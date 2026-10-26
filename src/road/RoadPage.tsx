@@ -27,7 +27,7 @@ import { loadRoadCorridors, loadRoadFc, loadRoadFcStation, loadRoadH24, loadRoad
 import type { RoadFcPoint } from './roadFc';
 import {
   ROAD_FC_AIR_COLOR, ROAD_FC_AIR_LABEL, ROAD_FC_LINE_COLOR, defaultRoadFcAxis, firstRoadFcAxis, isRoadFcAxisId, roadFcAirClass, roadFcAxisName, roadFcAxisPoints, roadFcBand, roadFcLine,
-  roadFcEngineName, roadFcRunView, roadFcValue,
+  roadFcEngineName, roadFcHasSurface, roadFcRunView, roadFcValue,
 } from './roadFcView';
 import RoadMap, { type RoadFcDot, type RoadMapLayers, type RoadRainState } from './RoadMap';
 import RoadDock, { type RoadCountry } from './RoadDock';
@@ -466,6 +466,24 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
     return { id: p.id, lon: p.lon, lat: p.lat, color: v ? ROAD_FC_AIR_COLOR[roadFcAirClass(v.t)] : null };
     // Hour steps only: the dots change when the valid hour changes, not every minute.
   })), [fcFile, Math.round(fcMs / 3_600_000)]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Phase FB: a station of the open corridor without a road measurement takes the computed road temperature of the nearest
+  // forecast point of the axis (≤ 6 km) — on the map as „~+1,2°“, never as a road class (D-04).
+  const fcRs = useMemo(() => {
+    const out = new Map<string, number>();
+    if (!surface || !fcFile || !roadFcHasSurface(fcFile)) return out;
+    const axisVals = roadFcAxisPoints(fcFile).map((a) => ({ a, v: roadFcValue(a, fcFile, fcMs) })).filter((x) => x.v?.rs != null);
+    for (const s of mapPoints) {
+      if (s.rs != null || !inCorridor.has(s.id)) continue;
+      let best: number | null = null, bestKm = 6;
+      for (const { a, v } of axisVals) {
+        const dKm = Math.hypot((a.lon - s.lon) * 111.32 * Math.cos((s.lat * Math.PI) / 180), (a.lat - s.lat) * 110.57);
+        if (dKm < bestKm) { bestKm = dKm; best = v!.rs; }
+      }
+      if (best != null) out.set(s.id, best);
+    }
+    return out;
+    // Hour steps only, like the forecast dots.
+  }, [surface, fcFile, mapPoints, inCorridor, Math.round(fcMs / 3_600_000)]); // eslint-disable-line react-hooks/exhaustive-deps
   const fcCells = useMemo(() => (fcFile && corridor ? roadFcBand(corridor, fcFile, dir, fcMs) : null), [fcFile, corridor, dir, Math.round(fcMs / 3_600_000)]); // eslint-disable-line react-hooks/exhaustive-deps
   const fcBandLabel = `Prognose Luft ${t === 0 ? 'jetzt' : `+${t} h`} · ${hm(Math.round(fcMs / 3_600_000) * 3_600_000)} · ${fcLabel}`;
   const callout = axis && corridor ? {
@@ -474,13 +492,14 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
     color: axisValue ? ROAD_FC_AIR_COLOR[roadFcAirClass(axisValue.t)] : null,
   } : point ? {
     lon: point.lon, lat: point.lat, name: point.n,
-    line: point.rs != null ? `Fahrbahn ${f1(point.rs)} °C · ${ROAD_CLASS_LABEL[point.cls].label}` : ROAD_CLASS_LABEL[point.cls].label,
+    line: point.rs != null ? `Fahrbahn ${f1(point.rs)} °C · ${ROAD_CLASS_LABEL[point.cls].label}`
+      : fcRs.has(point.id) ? `${ROAD_CLASS_LABEL[point.cls].label} · Fusion Fahrbahn ${f1(fcRs.get(point.id) as number)} °C (berechnet)` : ROAD_CLASS_LABEL[point.cls].label,
     color: isHatched(point.cls) ? null : ROAD_CLASS_COLOR[point.cls],
   } : null;
   const map = (
     <RoadMap corridors={corridors ?? []} corridor={corridor} points={mapPoints} inCorridor={inCorridor}
       selectedId={axis?.id ?? point?.id ?? null} stale={freshness === 'stale'} layers={layers} warnAreas={warnAreas} padding={padding}
-      onSelect={pickStationFromMap} onMap={(m) => { mapRef.current = m; }} callout={callout} fcDots={fcDots} onRain={setRain}
+      onSelect={pickStationFromMap} onMap={(m) => { mapRef.current = m; }} callout={callout} fcDots={fcDots} fcRs={fcRs} onRain={setRain}
       segLines={hz ? segLines : undefined} selSegId={hz ? segId : null} hoverSegId={hz ? hoverSeg : null} onSelectSegment={hz ? pickSegmentFromMap : undefined} onSelectCorridor={hz ? pickCorridorFromMap : pickCorridor} />
   );
   const readoutProps = {
@@ -526,7 +545,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
     </>
   ) : openSeg && hzShown ? (
     <Suspense fallback={<div className="aw-hz aw-hz-loading" role="status">Gefahren werden geladen …</div>}>
-      <RoadHazardDetail part={dsChapter === 2 ? 'seg' : 'wx'}
+      <RoadHazardDetail part={dsChapter === 2 ? 'seg' : 'wx'} surface={surface}
         seg={openSeg} entry={hzShown.seg[openSeg.id] ?? null} file={hzShown} prev={hzPrev && hzPrev.slot === hzSlot ? hzPrev.files : [undefined, undefined]}
         corridor={corridor} byId={shownById} fcFile={fcFile} ring={ring} nowMs={nowMs} dir={hzDir} onDir={setHzDir} backLabel="Alle Abschnitte"
         pos={{ i: Math.max(1, hzOrder.indexOf(openSeg.id) + 1), n: Math.max(1, hzOrder.length) }} onBack={hzBack} onPrev={() => hzStep(-1)} onNext={() => hzStep(1)}

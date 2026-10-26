@@ -209,21 +209,22 @@ export function planRows(e: HzEntry, prev: ReadonlyArray<HzEntry | null | undefi
 
 /** Bullet rows (Messgrößen gegen Schwellen): value, forecast marker, the level cuts — the axis runs "ungünstig = rechts". */
 export interface BulletRow { id: string; label: string; lo: number; hi: number; cuts: readonly number[]; value: number | null; fc: number | null; valueText: string; fcText: string }
-export function bulletRows(xs: CrossSection, seg: RoadSegment, fcHours: ReadonlyArray<{ fx: number | null; dd: number | null; vis: number | null } | null>): BulletRow[] {
+export function bulletRows(xs: CrossSection, seg: RoadSegment, fcHours: ReadonlyArray<{ fx: number | null; dd: number | null; vis: number | null; rs?: number | null } | null>): BulletRow[] {
   const st = xs.station;
   const cross = (gustKmh: number, dir: number | null) => (dir == null || !seg.bearings.length ? gustKmh : Math.max(...seg.bearings.map((b) => gustKmh * Math.abs(Math.sin(((dir - b) * Math.PI) / 180)))));
   const gustNow = st?.wg != null ? Math.round(st.wg * 3.6) : null;
   const crossNow = gustNow != null ? Math.round(cross(gustNow, st?.wd ?? null)) : null;
-  let crossFc: number | null = null, visFc: number | null = null;
+  let crossFc: number | null = null, visFc: number | null = null, rsFc: number | null = null;
   for (const h of fcHours) {
     if (!h) continue;
+    if (h.rs != null && (rsFc == null || h.rs < rsFc)) rsFc = h.rs;
     if (h.fx != null) { const c = Math.round(cross(h.fx * 3.6, h.dd)); if (crossFc == null || c > crossFc) crossFc = c; }
     if (h.vis != null && (visFc == null || h.vis < visFc)) visFc = h.vis;
   }
   const visTxt = (v: number) => (v < 1000 ? `${Math.round(v)} m` : `${(v / 1000).toFixed(1).replace('.', ',')} km`);
   const f1 = (v: number) => (Math.abs(v) < 0.05 ? '±0,0' : (v < 0 ? '−' : '+') + Math.abs(v).toFixed(1).replace('.', ','));
   return [
-    { id: 'rs', label: 'Fahrbahntemperatur', lo: 6, hi: -6, cuts: [ROAD_HZ_T.nass.l1Tf, ROAD_HZ_T.reif.l1Tf, ROAD_HZ_T.reif.l2Tf], value: st?.rs ?? null, fc: null, valueText: st?.rs != null ? `${f1(st.rs)} °C` : '—', fcText: 'keine Fahrbahnprognose (Gate D)' },
+    { id: 'rs', label: 'Fahrbahntemperatur', lo: 6, hi: -6, cuts: [ROAD_HZ_T.nass.l1Tf, ROAD_HZ_T.reif.l1Tf, ROAD_HZ_T.reif.l2Tf], value: st?.rs ?? null, fc: rsFc, valueText: st?.rs != null ? `${f1(st.rs)} °C` : '—', fcText: rsFc != null ? `buscosun Fusion — Fahrbahn: min. ${f1(rsFc)} °C bis +6 h (berechnet)` : 'keine Fahrbahnprognose (Gate D)' },
     { id: 'wf', label: 'Wasserfilm', lo: 0, hi: 3, cuts: ROAD_HZ_T.aqua.filmMm, value: st?.wf ?? null, fc: null, valueText: st?.wf != null ? `${st.wf.toFixed(2).replace('.', ',')} mm` : '—', fcText: 'keine Prognose' },
     { id: 'vis', label: 'Sichtweite', lo: 600, hi: 0, cuts: ROAD_HZ_T.nebel.visM, value: st?.vis != null ? Math.min(600, st.vis) : null, fc: visFc != null ? Math.min(600, visFc) : null, valueText: st?.vis != null ? visTxt(st.vis) : '—', fcText: visFc != null ? `Prognose min. ${visTxt(visFc)} (MOSMIX)` : 'keine Sichtprognose' },
     { id: 'quer', label: 'Böe quer zur Fahrbahn', lo: 0, hi: 100, cuts: ROAD_HZ_T.quer.crossKmh, value: crossNow, fc: crossFc, valueText: crossNow != null ? `${crossNow} km/h` : '—', fcText: crossFc != null ? `Prognose max. ${crossFc} km/h` : 'keine Prognose' },
@@ -289,12 +290,14 @@ export interface TempSeries {
   road: Array<[number, number]>; air: Array<[number, number]>; dew: Array<[number, number]>;
   /** Forecast air and dew point, hour offsets 0 … 6. */
   airFc: Array<[number, number]>; dewFc: Array<[number, number]>;
+  /** buscosun Fusion — Fahrbahn (computed, 0 … 6 h); empty without the surface forecast. */
+  rsFc: Array<[number, number]>;
   stationName: string | null;
 }
 
 /** Series from the ring of the station and the forecast of the segment's point (−12 … +6 h, 0 = the slot). */
-export function tempSeriesOf(ring: RoadH24File | null, stationId: string | null, slotMs: number, fc: ReadonlyArray<{ t: number | null; td: number | null } | null>): TempSeries {
-  const out: TempSeries = { road: [], air: [], dew: [], airFc: [], dewFc: [], stationName: null };
+export function tempSeriesOf(ring: RoadH24File | null, stationId: string | null, slotMs: number, fc: ReadonlyArray<{ t: number | null; td: number | null; rs?: number | null } | null>): TempSeries {
+  const out: TempSeries = { road: [], air: [], dew: [], airFc: [], dewFc: [], rsFc: [], stationName: null };
   const st = stationId && ring ? ring.stations[stationId] : null;
   if (st && ring) ring.slots.forEach((s, i) => {
     const dh = (roadStampToMs(s) - slotMs) / 3_600_000;
@@ -303,7 +306,7 @@ export function tempSeriesOf(ring: RoadH24File | null, stationId: string | null,
     if (st.ta[i] != null) out.air.push([dh, st.ta[i] as number]);
     if (st.td[i] != null) out.dew.push([dh, st.td[i] as number]);
   });
-  fc.forEach((h, i) => { if (h?.t != null) out.airFc.push([i, h.t]); if (h?.td != null) out.dewFc.push([i, h.td]); });
+  fc.forEach((h, i) => { if (h?.t != null) out.airFc.push([i, h.t]); if (h?.td != null) out.dewFc.push([i, h.td]); if (h?.rs != null) out.rsFc.push([i, h.rs]); });
   return out;
 }
 

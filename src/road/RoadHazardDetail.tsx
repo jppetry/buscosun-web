@@ -20,6 +20,7 @@ import { HZ_GROUP_ICON, HZ_SHORT, bulletRows, crossSectionOf, planRows, windSect
 import RoadCrossSection from './RoadCrossSection';
 import { EvDot } from './RoadHazardPanel';
 import { hm, dec, f1 } from './roadView';
+import { ROAD_SURFACE_WORD } from './roadSurface';
 import type { CapAlert } from '../warnings/capAlerts';
 
 const Charts = lazy(() => import('./RoadHazardCharts').then((m) => ({ default: function ChartsBundle({ temp, slotMs, bullets, wind }: { temp: ReturnType<typeof tempSeriesOf>; slotMs: number; bullets: ReturnType<typeof bulletRows>; wind: ReturnType<typeof windSectors> }) {
@@ -74,6 +75,8 @@ export interface RoadHazardDetailProps {
   backLabel?: string;
   /** AWD chapters: render only one part (`seg` = segment + timetable + warnings + provenance, `wx` = charts); absent = all. */
   part?: 'seg' | 'wx';
+  /** Phase FB: show buscosun Fusion — Fahrbahn (the computed road temperature of the run) where the segment has no measurement. */
+  surface?: boolean;
 }
 
 export default function RoadHazardDetail(p: RoadHazardDetailProps) {
@@ -93,9 +96,9 @@ export default function RoadHazardDetail(p: RoadHazardDetailProps) {
     if (i < 0 || i >= p.fcFile.steps) return null;
     const pts = seg.points.map((id) => p.fcFile!.points.find((q) => q.id === id)).filter((q): q is NonNullable<typeof q> => !!q);
     if (!pts.length) return null;
-    const dec1 = (v: 't' | 'td' | 'fx' | 'dd' | 'vs' | 'rr', pick: 'min' | 'max' | 'first') => { const vals = pts.map((q) => roadFcDecode(v, (q.v as Record<string, Array<number | null>>)[v]?.[i])).filter((x): x is number => x != null); return vals.length ? (pick === 'min' ? Math.min(...vals) : pick === 'max' ? Math.max(...vals) : vals[0]) : null; };
-    return { t: dec1('t', 'min'), td: dec1('td', 'first'), fx: dec1('fx', 'max'), dd: dec1('dd', 'first'), vis: dec1('vs', 'min'), rr: dec1('rr', 'max') };
-  }), [file.hours, p.fcFile, seg.points]);
+    const dec1 = (v: 't' | 'td' | 'fx' | 'dd' | 'vs' | 'rr' | 'rs', pick: 'min' | 'max' | 'first') => { const vals = pts.map((q) => roadFcDecode(v, (q.v as Record<string, Array<number | null>>)[v]?.[i])).filter((x): x is number => x != null); return vals.length ? (pick === 'min' ? Math.min(...vals) : pick === 'max' ? Math.max(...vals) : vals[0]) : null; };
+    return { t: dec1('t', 'min'), td: dec1('td', 'first'), fx: dec1('fx', 'max'), dd: dec1('dd', 'first'), vis: dec1('vs', 'min'), rr: dec1('rr', 'max'), rs: p.surface ? dec1('rs', 'min') : null };
+  }), [file.hours, p.fcFile, seg.points, p.surface]);
   const fusion = file.inputs.fc?.fusion ?? null;
   const xs = useMemo(() => crossSectionOf(seg, p.byId, file.slotMs, fusion, fcHours[0] ? { t: fcHours[0].t, td: fcHours[0].td } : null), [seg, p.byId, file.slotMs, fusion, fcHours]);
   const narrative: Narrative | null = useMemo(() => (entry ? roadNarrative(seg, entry, { stationName: (id) => p.byId.get(id)?.n ?? null, hm, slotMs: file.slotMs, hours: file.hours, fusion }) : null), [entry, seg, p.byId, file, fusion]);
@@ -103,7 +106,7 @@ export default function RoadHazardDetail(p: RoadHazardDetailProps) {
   const bullets = useMemo(() => bulletRows(xs, seg, fcHours), [xs, seg, fcHours]);
   const wind = useMemo(() => windSectors(seg, xs.station, fcHours), [seg, xs.station, fcHours]);
   const mainSt = xs.station?.id ?? segmentMainStation(seg, p.byId);
-  const temp = useMemo(() => tempSeriesOf(p.ring, mainSt, file.slotMs, fcHours.map((h) => (h ? { t: h.t, td: h.td } : null))), [p.ring, mainSt, file.slotMs, fcHours]);
+  const temp = useMemo(() => tempSeriesOf(p.ring, mainSt, file.slotMs, fcHours.map((h) => (h ? { t: h.t, td: h.td, rs: h.rs } : null))), [p.ring, mainSt, file.slotMs, fcHours]);
   temp.stationName = mainSt ? p.byId.get(mainSt)?.n ?? null : null;
 
   // Chips of the active hazards (now, or "ab HH:MM").
@@ -153,8 +156,15 @@ export default function RoadHazardDetail(p: RoadHazardDetailProps) {
           </div>
           <div className="aw-ds-tile">
             <span className="aw-ds-tile-l">Fahrbahn</span>
-            <span className="aw-ds-tile-v">{xs.station?.rs != null ? `${f1(xs.station.rs)} °C` : '—'}</span>
-            <span className="aw-ds-tile-s">{xs.label}</span>
+            {xs.station?.rs == null && fcHours[0]?.rs != null
+              ? <>
+                <span className="aw-ds-tile-v">{f1(fcHours[0].rs)} °C</span>
+                <span className="aw-ds-tile-s">{fusion ?? 'buscosun Fusion'} — Fahrbahn · {ROAD_SURFACE_WORD}, keine Messung</span>
+              </>
+              : <>
+                <span className="aw-ds-tile-v">{xs.station?.rs != null ? `${f1(xs.station.rs)} °C` : '—'}</span>
+                <span className="aw-ds-tile-s">{xs.label}</span>
+              </>}
           </div>
           <div className="aw-ds-tile">
             <span className="aw-ds-tile-l">Länge</span>

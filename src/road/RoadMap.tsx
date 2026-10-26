@@ -60,6 +60,8 @@ interface Props {
   callout?: { lon: number; lat: number; name: string; line: string; color: string | null } | null;
   /** Forecast points of the selected corridor (weather forecast of buscosun Fusion, layer `fc`). */
   fcDots?: readonly RoadFcDot[];
+  /** Phase FB: computed road temperature (buscosun Fusion — Fahrbahn) of stations without a road measurement — their label, hatched marker stays. */
+  fcRs?: ReadonlyMap<string, number>;
   /** V-AW-14: the radar layer reports its state (legend). */
   onRain?: (s: RoadRainState | null) => void;
   /** AW-8.3: hazard segments of the open corridor (behind the switch); a click opens the detail. */
@@ -149,7 +151,7 @@ function corridorFc(corridors: readonly RoadCorridor[], sel: string | null): Geo
   };
 }
 
-function pointFc(points: readonly RoadPoint[], inC: ReadonlySet<string>, sel: string | null, stale: boolean, zust: boolean): GeoJSON.FeatureCollection {
+function pointFc(points: readonly RoadPoint[], inC: ReadonlySet<string>, sel: string | null, stale: boolean, zust: boolean, fcRs?: ReadonlyMap<string, number>): GeoJSON.FeatureCollection {
   return {
     type: 'FeatureCollection',
     features: points.map((p) => {
@@ -160,7 +162,7 @@ function pointFc(points: readonly RoadPoint[], inC: ReadonlySet<string>, sel: st
         properties: {
           id: p.id, cls, icon: `aw-${cls}${stale || neutral ? '-stale' : ''}`,
           inC: inC.has(p.id) ? 1 : 0, sel: p.id === sel ? 1 : 0,
-          label: p.rs != null ? `${f1(p.rs)}°` : p.ta != null ? `L ${f1(p.ta)}°` : '—',
+          label: p.rs != null ? `${f1(p.rs)}°` : fcRs?.has(p.id) ? `~${f1(fcRs.get(p.id) as number)}°` : p.ta != null ? `L ${f1(p.ta)}°` : '—',
           fog: p.vis != null && p.vis < 150 ? 1 : 0,
         },
         geometry: { type: 'Point', coordinates: [p.lon, p.lat] },
@@ -210,11 +212,11 @@ export default function RoadMap(props: Props) {
       else if (changed) src.setData(make());
     };
     const corrKey = [p.corridors, p.corridor?.id ?? null];
-    const ptsKey = [p.points, p.inCorridor, p.selectedId, p.stale, p.layers.zust];
+    const ptsKey = [p.points, p.inCorridor, p.selectedId, p.stale, p.layers.zust, p.fcRs];
     const warnKey = p.layers.warn ? p.warnAreas : null;
     const same = (a: unknown[] | undefined, b: unknown[]) => !!a && a.length === b.length && a.every((v, i) => v === b[i]);
     set('aw-corridors', () => corridorFc(p.corridors, p.corridor?.id ?? null), !same(last.corr as unknown[] | undefined, corrKey));
-    set('aw-points', () => pointFc(p.points, p.inCorridor, p.selectedId, p.stale, p.layers.zust), !same(last.pts, ptsKey));
+    set('aw-points', () => pointFc(p.points, p.inCorridor, p.selectedId, p.stale, p.layers.zust, p.fcRs), !same(last.pts, ptsKey));
     set('aw-warn', () => (warnKey ?? { type: 'FeatureCollection', features: [] }) as GeoJSON.FeatureCollection, last.warn !== warnKey);
     const dots = p.layers.fc ? (p.fcDots ?? NO_DOTS) : NO_DOTS;
     const fcKey = [dots, p.selectedId];

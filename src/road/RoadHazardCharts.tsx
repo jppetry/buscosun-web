@@ -40,13 +40,13 @@ function dewReading(road: number | null, dew: number | null): { tone: 'ok' | 'ne
 
 export function TempChart({ s, slotMs }: { s: TempSeries; slotMs: number }) {
   const reduce = useReducedMotion();
-  const data = useMemo(() => [toSerie('Fahrbahn', s.road), toSerie('Luft', s.air), toSerie('Taupunkt', s.dew), toSerie('Luft Prognose', s.airFc), toSerie('Taupunkt Prognose', s.dewFc)].filter((d) => d.data.length), [s]);
+  const data = useMemo(() => [toSerie('Fahrbahn', s.road), toSerie('Luft', s.air), toSerie('Taupunkt', s.dew), toSerie('Luft Prognose', s.airFc), toSerie('Taupunkt Prognose', s.dewFc), toSerie('Fahrbahn Prognose', s.rsFc)].filter((d) => d.data.length), [s]);
   const all = data.flatMap((d) => d.data.map((p) => p.y as number));
   const lo = Math.min(-2, Math.floor(Math.min(...all, 0) - 1)), hi = Math.max(6, Math.ceil(Math.max(...all, 4) + 1));
   const step = hi - lo > 24 ? 5 : hi - lo > 10 ? 2 : 1;
   const yTicks: number[] = [];
   for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) yTicks.push(v);
-  const colorOf: Record<string, string> = { Fahrbahn: '#2C2A26', Luft: '#3A6FA8', Taupunkt: '#A0884F', 'Luft Prognose': '#3A6FA8', 'Taupunkt Prognose': '#A0884F' };
+  const colorOf: Record<string, string> = { Fahrbahn: '#2C2A26', Luft: '#3A6FA8', Taupunkt: '#A0884F', 'Luft Prognose': '#3A6FA8', 'Taupunkt Prognose': '#A0884F', 'Fahrbahn Prognose': '#2C2A26' };
   const nowRoad = last(s.road), nowAir = last(s.air), nowDew = last(s.dew);
   const reading = dewReading(nowRoad, nowDew);
   // Own layers: forecast shading, Reif area (road ≤ 0 and under the dew point, measured), dashed forecast lines, now line, end labels.
@@ -128,14 +128,15 @@ export function TempChart({ s, slotMs }: { s: TempSeries; slotMs: number }) {
         <span className={s.road.length ? '' : 'is-off'}><i style={{ background: '#2C2A26', height: 3 }} />Fahrbahn (gemessen)</span>
         <span><i style={{ background: '#3A6FA8', height: 2.4 }} />Luft · gestrichelt = Prognose</span>
         <span><i style={{ borderTop: '2px dashed #A0884F', height: 0 }} />Taupunkt</span>
+        {s.rsFc.length > 0 && <span><i style={{ borderTop: '2px dashed #2C2A26', height: 0 }} />Fahrbahn · buscosun Fusion, berechnet</span>}
         <span><i style={{ background: '#B5321F', opacity: 0.25, height: 10, width: 14 }} />Reif möglich: Fahrbahn ≤ 0 °C und unter dem Taupunkt</span>
       </div>
       <table className="aw-visually-hidden">
         <caption>{summary}</caption>
-        <thead><tr><th>Stunde</th><th>Fahrbahn °C</th><th>Luft °C</th><th>Taupunkt °C</th></tr></thead>
+        <thead><tr><th>Stunde</th><th>Fahrbahn °C</th>{s.rsFc.length > 0 && <th>Fahrbahn Fusion °C</th>}<th>Luft °C</th><th>Taupunkt °C</th></tr></thead>
         <tbody>{[...s.road, ...s.airFc].map(([x]) => x).filter((x, i, a) => a.indexOf(x) === i).sort((a, b) => a - b).map((x) => {
           const f = (arr: Array<[number, number]>) => { const p = arr.find((q) => q[0] === x); return p ? dec(p[1]) : '—'; };
-          return <tr key={x}><td>{x > 0 ? `+${x}` : x}</td><td>{f(s.road)}</td><td>{x >= 0 ? f(s.airFc) : f(s.air)}</td><td>{x >= 0 ? f(s.dewFc) : f(s.dew)}</td></tr>;
+          return <tr key={x}><td>{x > 0 ? `+${x}` : x}</td><td>{f(s.road)}</td>{s.rsFc.length > 0 && <td>{x >= 0 ? f(s.rsFc) : '—'}</td>}<td>{x >= 0 ? f(s.airFc) : f(s.air)}</td><td>{x >= 0 ? f(s.dewFc) : f(s.dew)}</td></tr>;
         })}</tbody>
       </table>
     </div>
