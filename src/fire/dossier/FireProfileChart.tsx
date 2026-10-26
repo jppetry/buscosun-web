@@ -335,15 +335,15 @@ function ProfileRadar({ profile, compact = false }: FireProfileChartProps) {
 }
 
 /**
- * Das Brandprofil in zwei Ansichten: Rang-Leisten (Vorgabe — jede Zahl steht neben ihrer Leiste, auch in der
- * schmalen Spalte lesbar) und das Netz (alle Größen als eine Form). Beide lesen dieselben `profile.axes`.
+ * Das Brandprofil in zwei Ansichten: das Netz (Vorgabe — alle Größen als eine Form) und Rang-Leisten (jede Zahl
+ * steht neben ihrer Leiste, auch in der schmalen Spalte lesbar). Beide lesen dieselben `profile.axes`.
  */
 export function FireProfileChart({ profile, compact = false }: FireProfileChartProps) {
-  const [view, setView] = useState<'bars' | 'radar'>('bars');
+  const [view, setView] = useState<'bars' | 'radar'>('radar');
   return (
     <Box>
       <Stack direction="row" spacing={0.5} sx={{ mb: 1 }} role="group" aria-label="Ansicht des Brandprofils">
-        {(['bars', 'radar'] as const).map((v) => (
+        {(['radar', 'bars'] as const).map((v) => (
           <Button
             key={v} size="small" variant={view === v ? 'contained' : 'outlined'} color="inherit" disableElevation
             aria-pressed={view === v} onClick={() => setView(v)}
