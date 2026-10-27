@@ -2243,7 +2243,7 @@ eingeschwungenes Profil fehlt — Zahl informativ, kein Gate); Produkt **11,2 MB
 Stunde `unbekannt`, keine `tf`-Lücke. Beispiel P756 (Brücke, A 8): gekoppelt `sw` am Anschlag 3 (Sonne um 17 UTC Ende Oktober zu schwach)
 — daher der Modus-Rückfall; **zweiter Volllauf mit Rückfall: 0 Kopplungen am Anschlag**, 191 s, Zustand nach Rundung und 10
 Schnappschüssen **1,18 MB gz** (vorher 8,25). Archiv-Ausdünnung desselben Laufs: 1 814 Stationen, 1 086 Paare, **303 KB gz**; der
-Prüfstand lief darauf durch (0 Paare — das GMA-Archiv reicht lokal bis 26.10., der Lauf ist vom 27.10.). `verify:road-vs` **115/115**,
+Prüfstand lief darauf durch (0 Paare — das GMA-Archiv reicht lokal bis 26.10., der Lauf ist vom 27.10.). `verify:road-vs` **114/114**,
 `verify:road-archive` 33/33, `typecheck` grün.
 
 **Größenbudget je Lauf (gemessen):** Antrieb 4,64 MB gz · Produkt 11,2 MB roh (≈ 1,3 MB gz über jsDelivr) · Zustand 1,2 MB gz ·
@@ -2261,7 +2261,8 @@ Kontingenz Modellgruppe × GMA-Buchstabe je Vorlauf; **Wasserfilm MAE in µm** a
 10-Stufen-Zuverlässigkeit; **stationsweise K-fach-CV** der Standortkorrektur (Tabelle auf K−1 Falten; auf der Testfalte roh gegen
 korrigiert — eine fremde Station hat keine eigene Zelle, der übertragbare Teil ist das gepoolte Stunden-/Klassen-Mittel). Datumsblöcke:
 `--from/--to`. Verifier Abschnitt N (8) auf einem synthetischen Archiv mit bekannten Fehlern (0,5 K / 2 K, Persistenz 0,1 K, T_G 1,5,
-T2m 3, SWSMOS −1; Ereignisse im Fenster; Kontingenz; Film 50 µm; Brier 0/1; CV 2 Falten). `verify:road-vs` **113/113**.
+T2m 3, SWSMOS −1; Ereignisse im Fenster; Kontingenz; Film 50 µm; Brier 0/1; CV 2 Falten; eine „gemessene" Stunde zählt nicht als
+Prognose). `verify:road-vs` **114/114**.
 
 **Was heute messbar ist — ehrlich:** nichts. Das GMA-Archiv läuft seit 03.10., das SWSMOS-Archiv seit heute (Scratch), das VS-Archiv
 entsteht erst mit dem Workflow; Frostfälle gibt es im Oktober kaum (FB: 33 Ereignisse). **Gate G braucht Winterdaten im Schattenbetrieb**
