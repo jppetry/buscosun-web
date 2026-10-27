@@ -19,6 +19,14 @@ import { roadVsFlagFrom, ROAD_VS_LIVE } from '../src/road/roadFlag.ts';
 import { ROAD_HEALTH, checkRoadStatus } from './health-manifests.mjs';
 import { reduceSwsmos, parseKatalog, swsmosRunOf, SWSMOS_LEADS, SWSMOS_COLUMNS } from './road/swsmos-archive.mjs';
 import { templateProblem, sampleAt, nextIndex } from './road/vs/build-forcing.mjs';
+import { svfOf, horizonAt, horizon8to360, horizonAngleDeg, terrainClassOf, curveRadiusM, roadVsSiteProblems } from '../src/road/vs/roadVsSite.ts';
+import { nearHorizon, segmentIndex } from './road/vs/build-site.mjs';
+import { decodeTile, glo30TileName } from './road/vs/glo30.mjs';
+import { deflateSync } from 'node:zlib';
+import {
+  VS_DT_S, VS_DT_LIMIT_S, VS_NODE_DEPTH_M, VS_SPINUP_H, VS_DEEP_SOIL, makeColumn, stepColumn, columnHeatJ, roadMaterialAt, initState, integrateHour,
+  sensibleHeat, vsStateProblems, deepSoilC, albedoOf, emptyStores,
+} from '../src/road/vs/roadVsCore.ts';
 
 const checks = [];
 const ok = (id, pass, detail = '') => { checks.push({ id, pass: !!pass, detail }); console.log(`${pass ? 'PASS' : 'FAIL'} ${id}${detail ? ` — ${detail}` : ''}`); };
@@ -140,6 +148,93 @@ const close = (a, b, eps = 1e-6) => Math.abs(a - b) <= eps;
   const doc = { schema: 1, product: 'road-vs-forcing', run: '2026102712', runMs: Date.UTC(2026, 9, 27, 12), builtAt: 'x', model: 'icon-d2', steps: ROAD_VS_STEPS, stepH: 1, conv: { avg: 'interval', acc: 'interval', eps: 0.95 }, ruc: null, cells: 'a', missing: {}, outOfRange: {}, source: 'x', points: [{ id: 'p', cell: 1, dKm: 0.1, v: { tg: new Array(ROAD_VS_STEPS).fill(null) } }] };
   const back = JSON.parse(gunzipSync(gzipSync(JSON.stringify(doc))).toString('utf8'));
   ok('F4 gz-Rundlauf der Produktdatei besteht den Prüfer', roadVsForcingProblems(back).length === 0 && back.points[0].v.tg.length === ROAD_VS_STEPS);
+}
+
+// ── G: site features (AW-6.2.2) ─────────────────────────────────────────────
+{
+  const flat = new Array(360).fill(0);
+  ok('G1 SVF: freier Horizont 1; 30° rundum = 0,5; 90° = 0', svfOf(flat) === 1 && close(svfOf(new Array(360).fill(30)), 0.5, 1e-3) && svfOf(new Array(16).fill(90)) === 0);
+  const hz = new Array(360).fill(0).map((_, az) => (az === 90 ? 200 : 0));
+  ok('G2 horizonAt: linear zwischen 1°-Stützen, 0,1°-Skala, Umlauf bei 360', horizonAt(hz, 90) === 20 && close(horizonAt(hz, 89.5), 10) && horizonAt(hz, 450) === 20 && horizonAt(hz, 0) === 0);
+  const h8 = [0, 10, 20, 10, 0, 0, 0, 0];
+  const h360 = horizon8to360(h8);
+  ok('G3 8 → 360 Richtungen: Stützen exakt, dazwischen linear', h360[45] === 10 && h360[90] === 20 && close(h360[67.5 | 0], 10 + 22 * (10 / 45), 1e-9) && h360[359] > 0 === false);
+  ok('G4 Horizontwinkel: 100 m Hügel in 1 km ≈ 5,7°; Erdkrümmung senkt 0 m in 5 km unter 0', close(horizonAngleDeg(100, 1000), 5.71, 0.02) && horizonAngleDeg(0, 5000) < 0 && horizonAngleDeg(0, 5000) > -0.1);
+  ok('G5 Geländeklasse aus TPI/Hang; ohne Werte unbekannt', terrainClassOf(-20, 1) === 'tal' && terrainClassOf(20, 1) === 'kuppe' && terrainClassOf(0, 7) === 'hang' && terrainClassOf(0, 1) === 'eben' && terrainClassOf(null, null) === 'unbekannt');
+  const r = curveRadiusM([8, 50], [8.01, 50.0001], [8.02, 50]);
+  ok('G6 Kurvenradius aus drei Punkten: flacher Bogen ≈ 23 km, Gerade ⇒ null', r != null && r > 20000 && r < 26000 && curveRadiusM([8, 50], [8.01, 50], [8.02, 50]) === null, `${r}`);
+  const nh = nearHorizon((lat, lon) => (lon > 8.0045 ? 150 : 100), 50, 8, { nearKm: 1, stepM: 30 });
+  ok('G7 Nahhorizont: 50-m-Stufe 320 m östlich ⇒ Osten ≈ 8,9°, Westen 0°, z0 vom Punkt', nh && close(nh.hz[90], Math.atan2(50, 330) * 180 / Math.PI, 0.6) && nh.hz[270] === 0 && nh.z0 === 100 && nearHorizon(() => NaN, 50, 8) === null, `${nh?.hz[90].toFixed(2)}`);
+  const segs = [{ id: 'S1', points: ['a1@0'], stations: ['X1'], near: ['X2'] }, { id: 'S2', points: [], stations: ['X2'], near: [] }];
+  const si = segmentIndex(segs);
+  ok('G8 Abschnittsindex: Achspunkt, eigene Station vor „nahe"', si.byPoint.get('a1@0').id === 'S1' && si.byStation.get('X1').id === 'S1' && si.byStation.get('X2').id === 'S2');
+  const good = { schema: 1, product: 'road-vs-site', site: { p: { hz: new Array(360).fill(12), svf: 0.98, bridge: false, surface: 'asphalt', geom: 'standard', widthM: 7.5 } } };
+  ok('G9 Prüfer: gute Datei ohne Befund; 359 Werte, svf 1,2, Belag „gravel" rot', roadVsSiteProblems(good).length === 0 && roadVsSiteProblems({ ...good, site: { p: { ...good.site.p, hz: new Array(359).fill(1) } } }).length === 1 && roadVsSiteProblems({ ...good, site: { p: { ...good.site.p, svf: 1.2 } } }).length === 1 && roadVsSiteProblems({ ...good, site: { p: { ...good.site.p, surface: 'gravel' } } }).length === 1);
+  // GLO-30 float predictor: a synthetic tile row through deflate + predictor 3 must decode to the floats it encodes.
+  const tw = 4, th = 1, vals = Float32Array.from([100.5, 101.25, 99, 250]);
+  const be = Buffer.alloc(tw * 4); vals.forEach((v, i) => be.writeFloatBE(v, i * 4));
+  const planes = Buffer.alloc(tw * 4); for (let x = 0; x < tw; x++) for (let b = 0; b < 4; b++) planes[b * tw + x] = be[x * 4 + b];
+  const delta = Buffer.from(planes); for (let i = tw * 4 - 1; i > 0; i--) delta[i] = (planes[i] - planes[i - 1]) & 0xff;
+  const dec = decodeTile(deflateSync(delta), { tw, th, pred: 3 });
+  ok('G10 GLO-30: Deflate + Float-Prädiktor 3 (Byte-Ebenen, MSB zuerst) dekodiert rund', Array.from(dec).every((v, i) => v === vals[i]), Array.from(dec).join(','));
+  ok('G11 GLO-30 Kachelname', glo30TileName(50, 8).endsWith('/Copernicus_DSM_COG_10_N50_00_E008_00_DEM/Copernicus_DSM_COG_10_N50_00_E008_00_DEM.tif') && /S01_00_W010/.test(glo30TileName(-1, -10)));
+}
+
+// ── H: the core (AW-6.2.3) ──────────────────────────────────────────────────
+{
+  ok(`H1 Stabilität: Δt ${VS_DT_S} s ≤ ρc·Δz²/(2λ) = ${VS_DT_LIMIT_S.toFixed(1)} s für beide Säulen und beide Beläge`, VS_DT_S <= VS_DT_LIMIT_S && VS_DT_LIMIT_S < 200);
+  const col = makeColumn(VS_NODE_DEPTH_M, (d) => roadMaterialAt(d, 'asphalt'), VS_NODE_DEPTH_M.map((_, i) => 5 + 3 * Math.sin(i)));
+  const h0 = columnHeatJ(col);
+  for (let i = 0; i < 2000; i++) stepColumn(col, 0, VS_DT_S, null);
+  const h1 = columnHeatJ(col);
+  const spread = Math.max(...col.T) - Math.min(...col.T);
+  const inside = col.T.every((t) => t >= 2 && t <= 8);
+  for (let i = 0; i < 120; i++) stepColumn(col, 100, VS_DT_S, null);
+  const h2 = columnHeatJ(col);
+  ok('H2 Energieerhaltung: isolierte Säule hält ihren Wärmeinhalt (2 000 Schritte); 100 W/m² × 1 h = +360 kJ/m²', Math.abs(h1 - h0) < 1e-6 * Math.abs(h0) + 1e-3 && close(h2 - h1, 360_000, 1e-3), `${(h1 - h0).toExponential(2)} J/m², ${(h2 - h1).toFixed(1)}`);
+  ok('H2b Diffusion glättet: Profilspanne nach 2 000 isolierten Schritten kleiner als am Anfang (5,97 K), kein Wert außerhalb 2 … 8 °C', spread < 5.97 && inside, `${spread.toFixed(2)} K`);
+
+  const site = { lat: 50, lon: 8.5, svf: 1, hz: null, bridge: true, surface: 'asphalt' };
+  const night = (ms) => ({ validMs: ms, ta: 0, td: -3, ff: 1, pHpa: 1000, swDir: 0, swDif: 0, lwDown: 230, rain: 0, snow: 0, frz: 0 });
+  let st = initState(Date.UTC(2026, 0, 15, 18), 2, 'ta', site);
+  const tsSeries = [], tbSeries = [];
+  for (let h = 1; h <= 8; h++) { const r = integrateHour(st, site, h === 1 ? null : night(Date.UTC(2026, 0, 15, 18 + h - 1)), night(Date.UTC(2026, 0, 15, 18 + h))); tsSeries.push(r.ts); tbSeries.push(r.tsBridge); }
+  ok('H3 Klarnacht (Ta 0 °C, LW↓ 230, Wind 1 m/s): Fahrbahn kühlt monoton unter die Luft, 1–8 K in 8 h', tsSeries.every((t, i) => i === 0 || t <= tsSeries[i - 1] + 1e-9) && tsSeries[7] < 0 && tsSeries[7] > -8, tsSeries.map((t) => t.toFixed(2)).join(' '));
+  ok('H4 Brücke kälter als die Strecke bei klarem Himmel (unterer Rand = Luft statt 10 °C Boden)', tbSeries[7] < tsSeries[7] && tbSeries[7] > -12, `${tbSeries[7].toFixed(2)} < ${tsSeries[7].toFixed(2)}`);
+  ok('H4b Kaltstart-Kennzeichen bis 7 Tage; danach nicht mehr', st.ageH === 8 && integrateHour(st, site, null, night(Date.UTC(2026, 0, 16, 3))).coldStart === true && (st.ageH = VS_SPINUP_H, integrateHour(st, site, null, night(Date.UTC(2026, 0, 16, 4))).coldStart === false));
+
+  const noon = (ms) => ({ validMs: ms, ta: 10, td: 2, ff: 2, pHpa: 1000, swDir: 500, swDif: 120, lwDown: 300, rain: 0, snow: 0, frz: 0 });
+  const siteFlat = { ...site, bridge: false };
+  let s2 = initState(Date.UTC(2026, 3, 20, 9), 8, 'ta', siteFlat);
+  let last = null;
+  for (let h = 10; h <= 13; h++) last = integrateHour(s2, siteFlat, null, noon(Date.UTC(2026, 3, 20, h)));
+  ok('H5 Sonne mittags (620 W/m² global, Ta 10 °C): Fahrbahn wärmer als die Luft nach 4 h, kurzwellige Bilanz > 400 W/m²', last.ts > 12 && last.flux.swNet > 400 && last.flux.shadeH === 0, `${last.ts.toFixed(1)} °C, swNet ${last.flux.swNet.toFixed(0)}`);
+  const siteWall = { ...siteFlat, hz: new Array(360).fill(600) };
+  let s3 = initState(Date.UTC(2026, 3, 20, 9), 8, 'ta', siteWall);
+  let lastW = null;
+  for (let h = 10; h <= 13; h++) lastW = integrateHour(s3, siteWall, null, noon(Date.UTC(2026, 3, 20, h)));
+  ok('H7 Horizont 60° rundum im April (Sonne ≈ 50°): Direktstrahlung weg, Stunde ganz abgeschattet, Fahrbahn kühler', lastW.flux.shadeH > 0.99 && lastW.flux.swNet < 0.4 * last.flux.swNet && lastW.ts < last.ts, `swNet ${lastW.flux.swNet.toFixed(0)} gegen ${last.flux.swNet.toFixed(0)}`);
+
+  // Deficit ≈ 60 W/m² (LW −29, H −4, LE ≈ −30, traffic +5): 2 mm of water (film + pores) carry the surface ≈ 3 h at 0 °C.
+  const cold = (ms) => ({ validMs: ms, ta: -2, td: -2.5, ff: 1, pHpa: 1000, swDir: 0, swDif: 0, lwDown: 285, rain: 0, snow: 0, frz: 0 });
+  let s4 = initState(Date.UTC(2026, 0, 10, 0), 0.05, 'ta', siteFlat);
+  s4.stores.water = 1.0; s4.stores.pore = 1.0;
+  const r4 = integrateHour(s4, siteFlat, null, cold(Date.UTC(2026, 0, 10, 1)));
+  let s5 = initState(Date.UTC(2026, 0, 10, 0), 0.05, 'ta', siteFlat);
+  const r5 = integrateHour(s5, siteFlat, null, cold(Date.UTC(2026, 0, 10, 1)));
+  ok('H6 Latentwärme-Halt: 2 mm Wasser bei 0 °C und ≈ 60 W/m² Abkühlung ⇒ Eis entsteht, Ts bleibt am Gefrierpunkt, Wasser bleibt übrig; ohne Wasser fällt Ts in der Stunde unter −0,1 °C', r4.phaseMm > 0.3 && r4.stores.ice > 0.05 && Math.abs(r4.ts) <= 0.15 && r4.stores.water + r4.stores.pore > 0.3 && r5.ts < -0.1 && r5.phaseMm === 0, `gefroren ${r4.phaseMm} mm, Eis ${r4.stores.ice.toFixed(2)} mm, Rest ${(r4.stores.water + r4.stores.pore).toFixed(2)}, Ts ${r4.ts} gegen ${r5.ts}`);
+  // Strong cooling (−150 W/m²) exhausts 0,8 mm within the hour: the surface then falls — the hold is not a thermostat.
+  const harsh = (ms) => ({ validMs: ms, ta: -5, td: -8, ff: 2, pHpa: 1000, swDir: 0, swDif: 0, lwDown: 200, rain: 0, snow: 0, frz: 0 });
+  let s6 = initState(Date.UTC(2026, 0, 10, 0), 0.05, 'ta', siteFlat); s6.stores.water = 0.8;
+  const r6 = integrateHour(s6, siteFlat, null, harsh(Date.UTC(2026, 0, 10, 1)));
+  ok('H6b bei −150 W/m² ist das Wasser in der Stunde gefroren, danach kühlt die Fahrbahn weiter', r6.stores.water + r6.stores.pore < 0.05 && r6.ts < -2 && r6.phaseMm > 0.3, `Ts ${r6.ts}, gefroren ${r6.phaseMm}`);
+
+  const ex1 = sensibleHeat(3, 5, 0), ex2 = sensibleHeat(3, 0, 5), ex3 = sensibleHeat(8, 5, 0);
+  ok('H8 Monin-Obukhov: warme Luft ⇒ H > 0 und stabil (ζ > 0); kalte Luft ⇒ H < 0, labil; mehr Wind ⇒ mehr Fluss', ex1.H > 0 && ex1.zeta > 0 && ex2.H < 0 && ex2.zeta < 0 && ex3.H > ex1.H && Number.isFinite(ex1.cH) && ex1.cH > 0.001 && ex1.cH < 0.05, `H ${ex1.H.toFixed(1)} ζ ${ex1.zeta.toFixed(3)} cH ${ex1.cH.toFixed(4)}`);
+  ok('H9 Zustand: Form und Prüfer (NaN, falsche Länge rot)', vsStateProblems(st).length === 0 && vsStateProblems({ ...st, T: st.T.slice(1) }).includes('T') && vsStateProblems({ ...st, T: st.T.map((t, i) => (i === 2 ? NaN : t)) }).includes('T') && vsStateProblems({ ...st, stores: { ...st.stores, ice: -1 } }).includes('stores'));
+  const d1 = deepSoilC(Date.UTC(2026, 8, 27)), d2 = deepSoilC(Date.UTC(2026, 2, 28));
+  ok('H10 Tiefentemperatur: Maximum Ende September, Minimum Ende März, innerhalb Mittel ± Amplitude', close(d1, VS_DEEP_SOIL.meanC + VS_DEEP_SOIL.ampK, 0.01) && close(d2, VS_DEEP_SOIL.meanC - VS_DEEP_SOIL.ampK, 0.01));
+  ok('H11 Albedo: Schnee 0,6; 0,75 mm Eis ⇒ 0,35; nass 0,08; trocken 0,10', albedoOf({ ...emptyStores(), snow: 1 }) === 0.6 && close(albedoOf({ ...emptyStores(), ice: 0.75 }), 0.35) && albedoOf({ ...emptyStores(), water: 0.2 }) === 0.08 && albedoOf(emptyStores()) === 0.1);
 }
 
 const failed = checks.filter((c) => !c.pass);

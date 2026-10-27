@@ -2079,3 +2079,66 @@ und Vorlauf 1–48 h ≈ 1/10 davon (E-VS-7, s. 20.3).
 **Annahmen dieses Pakets (eine Zeile je Annahme).** RUC liefert im Antrieb nur VIS (stündlich); die 5-min-Niederschlagsform kommt im Kern aus dem bestehenden Produkt `ruc/v1` (Leser `rucPoint.ts`), nicht aus einem zweiten RUC-Abgriff. Die QC-Kette läuft ÜBER der Messlinie (Rule 2, V-AW-70: Änderungen an `ROAD_NEIGHBOUR`/harten Regeln sind Jans Gate). Modellflächen T/HHL (Bourgouin) werden erst in 6.2.5 geholt, nur für Stunden mit Niederschlag und T2m nahe 0 °C.
 
 **Offen nach 6.2.1.** Workflows einspielen (§79, braucht den Zweig auf GitHub oder den Merge); erster Volllauf des Antriebs mit allen 4 772 Punkten (Zeit, Größe, `missing`/`outOfRange` messen, Feld `tch` gegen die eigene Iteration in 6.2.3); `rh2m`/`ceil`/`ww`-Spannen am ersten Volllauf prüfen (`outOfRange` zählt); V-VS-6: der Antrieb trägt noch keine Modellflächen; V-VS-7: `fieldSeries` lädt Felder nacheinander (26 × 49 Dateien) — bei Bedarf zwei Felder parallel.
+
+### 20.8 AW-6.2.2 Ortsmerkmale je Achspunkt (27.10.2026, gebaut und gemessen)
+
+**Gebaut.** `src/road/vs/roadVsSite.ts` (Vertrag `road/vs/v1/static/site.json.gz`, SVF, Horizont-Interpolation 1° und 8 → 360,
+Horizontwinkel mit Erdkrümmung/Refraktion k 0,13, Geländeklasse, Kurvenradius aus drei Punkten, Prüfer), `scripts/road/vs/glo30.mjs`
+(Copernicus-DEM-GLO-30-COGs auf AWS: Kopf 256 KB + nur die berührten 1 024²-Kacheln per Range, **Deflate + Float-Prädiktor 3**
+selbst dekodiert — der Projekt-TIFF-Leser lehnt Prädiktor ≠ 1 ab —, Plattencache `C:\dev\buscosun-road-publish\cache\glo30\`),
+`scripts/road/vs/build-site.mjs` (einmaliger Bau).
+
+**Was je Punkt drinsteht und woher.** Horizont 0 … 359° in 0,1° = max(Nahfeld 0–5 km aus GLO-30, Strahlen alle 30 m; Fernfeld aus
+den 8 Richtungen des Terrain-Caches `geo.json` z8/20,5 km, linear interpoliert); F_sv = 1 − (1/360)·Σ sin γ; DSM-Höhe; Brücke
+(Achspunkt: OSM `bridge` der gesnappten Fahrbahn aus `points.json`; Station: SWSMOS-Katalog Streckentyp 2); Einschnitt-, Damm-,
+Wald-Anteil des Abschnitts (`segments.json`: OSM, ESA WorldCover); Belag (Station: Katalog 1 Asphalt/2 Beton; Achspunkt: Beton-Anteil
+des Abschnitts ≥ 0,5 aus OSM `surface`, sonst Asphalt `set`); Fahrstreifen **unbekannt** (kein OSM-`lanes`-Cache vorhanden) ⇒ Breite
+2 × 3,75 m `set` (RAA RQ 31); Geländeklasse aus TPI 2 000 m / Hang (`set` ±15 m, 5°); Querneigung 2,5 % (E-VS-5), `geom: unknown` bei
+Kurvenradius < 4 000 m aus der Korridorlinie (`set`, RAA 2008). Jede Quelle mit Lizenz steht im Kopf der Datei.
+
+**Gemessen (Volllauf 27.10. 19:45–19:50 UTC+1).** 4 772 Punkte, **Horizont an 4 771** (ohne DEM nur `a3@655` — am Rand einer
+Gradkachel, V-VS-10), 630 GLO-30-Kacheln / **1 263 MB** geholt in **289 s**, Datei **0,76 MB gz**. SVF p1/p10/p50/p90/p99 =
+0,72 / 0,83 / 0,94 / 0,98 / 0,99; höchster Horizont je Punkt p50/p90/p99/max = 8,2° / 21,3° / 36° / 49,9°; |DSM − Terrain-Cache|
+p50/p90/p99 = 2,6 / 7,8 / 17,8 m (Brücken und Wald: das DSM sieht Deck und Kronen). Brücke 587 (426 Stationen aus dem Katalog, 161
+Achspunkte aus OSM), Beton 599 (Katalog 151 Stationen, OSM-Anteil 448 Achspunkte), 39 Stationen ohne Katalogzeile (Quelle null),
+mit Abschnitt 3 893 (879 Stationen abseits der Korridore ohne), Gelände Tal 743 / eben 3 177 / Hang 239 / Kuppe 613. **Geometrie
+unbekannt 1 723 (36 %)**: die Korridorlinie hat ≈ 1,4 km Stützweite, drei Stützen liefern dort Radien p10/p50 = 875 / 4 377 m —
+zu grob für eine Verwindungsaussage (V-VS-9: Radius aus der OSM-Fahrbahn selbst, die der Punktbauer snappt; bis dahin gilt die
+Marke als „vorsichtig unbekannt", nicht als Messung).
+
+**Verifier** `verify:road-vs` Abschnitt G (11): SVF-Grenzfälle, 1°-Interpolation, 8 → 360, Horizontwinkel mit Krümmung, Geländeklasse,
+Kurvenradius (flacher Bogen 23 km, Gerade null), Nahhorizont an einer 50-m-Stufe (8,6° gegen 8,9° analytisch, 30-m-Raster),
+Abschnittsindex, Prüfer mit drei roten Fällen, **GLO-30-Dekodierung rund durch Deflate + Prädiktor 3**, Kachelname.
+
+### 20.9 AW-6.2.3 Fahrbahntemperatur-Kern (27.10.2026)
+
+**Gebaut.** `src/road/vs/roadVsCore.ts` (MIT-Hinweis RoadSurf/FMI im Kopf, METRo nur als Prinzip): Säule 15 Knoten 0 … 4,3 m
+(`VS_NODE_DEPTH_M`, geometrisch wachsend, `set` nach RoadSurf-Muster — exakte Tiefen gegen die Quelle zu prüfen), Finite-Volumen
+explizit Δt 30 s, **Stabilität beim Laden geprüft** (Grenze 45,5 s = dünnste Schicht in Beton), Asphalt ρc 2,0·10⁶ / λ 0,8,
+Beton λ 2,2, Unterbau ab 0,30 m λ 1,5 (`set`); Ts = Mittel Knoten 0 und 3 cm; Bilanz G0 = (1−α)·SW↓·C_S + ε·LW↓·C_L − εσTs⁴ + H − LE +
+Q_P + Q_V; Monin-Obukhov iteriert (5 Iterationen, z0m 0,4 / z0h 0,001 m, stabil Φ = 1 + 4,7ζ, labil Paulson γ 16, ζ ∈ [−2; 1]);
+Bulk-Verdunstung mit r_a ≥ 30 s/m (Lesart des Prompts „r_a ≤ 30 s/m" als Transfer-Deckel — zu bestätigen), nur mit
+Oberflächenwasser, Deposition/Reif über Eis-Dampfdruck immer; Q_P Regenwärme; Verkehr 10/5 W/m², Mindestwind 1,5/0,4 m/s (19–04 UTC
+Nacht); Abschattung: Direkt = 0 bei Horizont > Sonnenhöhe (Sonne aus `roadSun.ts`), S_dif' = F_sv·S_dif + (1−F_sv)·0,15·(S_dir+S_dif),
+L↓' = F_sv·L↓ + (1−F_sv)·L_u; Albedo trocken 0,10 / nass 0,08 / Schnee 0,60 / Eis 0,10 → 0,60 bis 1,5 mm; Latentwärme-Halt
+(Gefrieren bei Ts ≤ +0,1 K und Flussdefizit, mit Rückholung des Oberflächenknotens auf 0 °C — Wasser unterkühlt auf der Fahrbahn
+nicht; Schmelzen bei Ts ≥ −0,1 K); unterer Rand Jahres-Sinus 10,0 °C ± 1,5 K, wärmster Tag 270 (`set`, V-VS-8, nicht die finnischen
+6,4 °C); Brücke als zweite Säule 8 cm Asphalt + 30 cm Beton, unterer Rand = Luft, Ausgabe `tsBridge`; Speicher Wasser/Poren/Schnee/
+Eis/Reif mit Maxima und finnischem Verkehrsabrieb (`set`); Modellzustand `VsPointState` (Profile, Speicher, Alter) mit Prüfer,
+Kaltstart < 7 Tage (`set`); Stundenergebnis mit Flussmitteln (Schattenprotokoll) und gefrorener/geschmolzener Menge.
+
+**Unit-Tests (Abschnitt H, 13).** Energieerhaltung exakt (isolierte Säule 2 000 Schritte: 0 J/m² Drift; 100 W/m² × 1 h = 360 000 J/m²);
+Diffusion glättet ohne Überschwingen; Klarnacht (Ta 0 °C, LW↓ 230, 1 m/s): Fahrbahn monoton auf −5,4 °C in 8 h; **Brücke kälter als
+Strecke** (−5,40 gegen −5,37 °C nach 8 h — der Unterschied ist klein, weil der Bodenwärmestrom aus 10 °C Tiefe erst über Tage wirkt;
+im Dauerbetrieb trennt sich das stärker, V-VS-11); Sonne mittags 22,8 °C bei 10 °C Luft, swNet 558 W/m²; Horizont 60° rundum im April
+⇒ ganz abgeschattet, swNet 108; Latentwärme-Halt: 2 mm Wasser bei ≈ 60 W/m² Defizit halten Ts am Gefrierpunkt (0,67 mm
+gefrieren in der Stunde, Wasser bleibt); ohne Wasser fällt Ts unter −0,1 °C; 0,8 mm bei −150 W/m² sind in der Stunde durch und Ts
+fällt auf −4,8 °C (kein Thermostat); Monin-Obukhov Vorzeichen/Stabilität/Windabhängigkeit (c_H 0,0016 bei 3 m/s stabil);
+Zustandsprüfer; Tiefentemperatur; Albedo. `verify:road-vs` **64/64** (A–H), `npm run typecheck` grün.
+
+**Nicht gebaut (bewusst, nächste Pakete).** Kopplung C_S/C_L und Standortkorrektur (6.2.4), Zustandsklassen/Gallaway/Bourgouin/Reif-
+Auslösung (6.2.5), Sicht (6.2.6), Produkt + Dauerlauf mit Zustand in `buscosun-data` (6.2.7), Prüfstand (6.2.8).
+
+**`set`-Zeilen dieses Pakets** (Ergänzung zu 20.6): Knotentiefen; Unterbau λ 1,5 ab 0,30 m; Albedo nass 0,08; r_a-Boden 30 s/m
+(Lesart); ζ-Klammer [−2; 1], 5 Iterationen; Tiefenklimatologie 10,0 ± 1,5 K / Tag 270; Kaltstart 168 h; Gefrierband ±0,1 K;
+Wald-Schatten-Diffus 0,15; Verkehr 10/5 W/m²; Mindestwind; Speicher-Maxima und Abrieb; Regen-Temperatur = max(Ta, 0).

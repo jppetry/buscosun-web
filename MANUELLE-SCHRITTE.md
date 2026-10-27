@@ -3021,6 +3021,22 @@ gebaut, gefittet und **eingeschaltet**: Register `n: 14`, `FUSION14_RUC_MEMBER =
    `reason: "ruc/ nicht im Checkout"`. Offen: V-RUC-29 — das Etikett „Modell · Cube" der Karte nennt den RUC-Anteil nicht (deine Wortwahl
    F1 ⇒ Rückfrage).
 
+## 80. Niederschlagsradar — 25 Bilder bis +2 h überall (Phase NC, `audit/radar-nowcast-dach.md`), 2026-10-27
+
+Alles uncommitted in `buscosun-web`; das Spiegelskript im Daten-Repo ist schon gepusht (`6a7d113bd`) und schlummert.
+
+1. **Commit + Push von `main`** (`buscosun-web`) = dein Gate. Erst damit bildet der nächste Spiegel-Job (≤ 5 h 45 nach dem Push,
+   Marker `src/sources/radarNowcastImg.ts` im Sparse-Klon) `radar/img/v1/rzc-nc/` und `inca-5m/`; der Client fällt bis dahin auf den
+   Stand vor NC zurück (`null` = rzc-Analyse allein, INCA nach Vorlauf). Prüfung danach: Spiegel-Log „Nowcast-Produkte an",
+   `radar/status.json` `nc: true`, Zeilen „rzc-nc … → 73 Dateien", „inca-5m … → 69 Dateien"; im Browser die Konsolenzeilen
+   „CH Hochrechnung → Slot …" und „AT INCA · 5 min → Lauf …" ohne `?ncbase`.
+2. **E-NC-2 (STOPP-Grenze Shader):** die Übergangszone braucht ein Alpha-Gewicht in der Masken-Zeile des `RainLayer`-Fragment-Shaders
+   (`mw`, 4 Zeilen; 0/1-Masken byte-gleich). Zwei Wächter sind deshalb rot (`verify:radar-hd` E2, `verify:regenradar-profile` E8) —
+   Freigabe oder Nein (dann Maske binär, Nähte hart an den neuen Linien).
+3. **Rückwege:** `?nc=0` je Besucher; Producer `RADAR_NC=0` in `radar.yml` (Workflow-Datei = dein Token).
+4. **Offen:** V-NC-1 (Kreuzungspunkte INCA 120 / CH 60 min messen, ab ≥ 14 Tagen Produkten), V-NC-2 (RV-Reichweite statt Linie),
+   V-NC-3 (Sichtprüfung an einem Regentag), V-NC-4 (Schraffur statt Schleier).
+
 ## 79. Autobahnwetter — Virtueller Fahrbahnsensor (Phase VS = AW-6.2, `audit/autobahnwetter.md` §20), 2026-10-27
 
 Zweig `feat/aw-6.2-virtueller-sensor`, ein Commit je Arbeitspaket; nichts davon ist live (`ROAD_VS_LIVE = false`, E-VS-2).
@@ -3043,3 +3059,7 @@ Zweig `feat/aw-6.2-virtueller-sensor`, ein Commit je Arbeitspaket; nichts davon 
    (ohne `--publish`), Log: Felder, `missing`, `outOfRange`, Größe, Zeit — Zahlen gehören in §20.7.
 7. **Rückwege:** Repo-Variable `ROAD_VS=0` (kein Antrieb), Schritt „Archive SWSMOS" entfernen (kein SWSMOS), `?roadvs=0` je Besucher
    (wirkt erst, wenn die Seite den VS zeigt).
+8. **Ortsdatei (6.2.2):** `road/vs/v1/static/site.json.gz` (0,76 MB) liegt gebaut im lokalen Klon `C:\dev\buscosun-data`, noch nicht
+   gepusht; sie geht mit dem ersten Push der Linie ins Daten-Repo (Schritt 5), zusammen mit `static/cells.json` aus dem ersten
+   Antriebslauf. Neubau nur bei neuer Punktdatei: `build-site.mjs --data=… --cache=C:\dev\buscosun-road-publish\cache\glo30` (≈ 5 min,
+   1,3 GB GLO-30 aus dem Plattencache).
