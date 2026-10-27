@@ -29,6 +29,7 @@ import {
 } from '../src/road/vs/roadVsCore.ts';
 import { coupleModeOf, tsWithFactor, fitCouplingFactor, couplingFactorAt, weatherClassOf, learnResiduals, stationCorrection, neighbourCorrection, correctedSigma } from '../src/road/vs/roadVsCouple.ts';
 import { gallawayFilm, aquaplaningKmh, frostPointOfDew, rimeIntegralUpdate, bourgouinAreas, bourgouinType, classifyRoad, gripOf, slipperinessP, VS_SCENARIO, VS_SCENARIO_TEXT } from '../src/road/vs/roadVsState.ts';
+import { fogVisibilityM, precipVisibilityM, hazeVisibilityM, diagnoseVisibilityM, visibilityProbabilities, capForecastProbabilities, visibilityNow, fitVisLogistic, VS_VIS_DEFAULT_MODEL, VS_VIS_THRESHOLDS_M } from '../src/road/vs/roadVsVis.ts';
 
 const checks = [];
 const ok = (id, pass, detail = '') => { checks.push({ id, pass: !!pass, detail }); console.log(`${pass ? 'PASS' : 'FAIL'} ${id}${detail ? ` — ${detail}` : ''}`); };
@@ -304,6 +305,31 @@ const close = (a, b, eps = 1e-6) => Math.abs(a - b) <= eps;
   const r1 = c({ ts: -1, stores: st({ ice: 0.1 }) }), r2 = c({ ts: 0.2, stores: st({ water: 0.02 }) }), r3 = c({ ts: 5, stores: st() });
   ok('J7 Glätte-Wort: Regel 1–5 ⇒ 1; feucht bei Ts ≤ 0,5 ⇒ 0,5; trocken warm ⇒ 0; „möglich" ⇒ 0,5', slipperinessP(r1, { ...base, ts: -1 }) === 1 && slipperinessP(r2, { ...base, ts: 0.2 }) === 0.5 && slipperinessP(r3, { ...base, ts: 5 }) === 0 && slipperinessP(c({ ts: -0.5, precipType: 'gefrierender-regen-moeglich' }), { ...base, ts: -0.5, precipType: 'gefrierender-regen-moeglich' }) === 0.5);
   ok('J8 Szenario-Wort v1 (E-VS-3)', VS_SCENARIO === 'ungestreut' && /ohne Streuung/.test(VS_SCENARIO_TEXT));
+}
+
+// ── K: visibility (AW-6.2.6) ────────────────────────────────────────────────
+{
+  const fog = fogVisibilityM(200), fogThin = fogVisibilityM(20);
+  ok('K1 Gultepe: 200 mg/kg Wolkenwasser (0,25 g/m³, N_d 200) ⇒ ≈ 80 m; 20 mg/kg ⇒ dichter als 1 km aber weiter; 0 ⇒ null', fog > 50 && fog < 120 && fogThin > fog && fogThin < 1000 && fogVisibilityM(0) === null && fogVisibilityM(null) === null, `${fog} / ${fogThin} m`);
+  const rain = precipVisibilityM(10, 0), snow = precipVisibilityM(0, 2), none = precipVisibilityM(0, 0);
+  ok('K2 Koschmieder über β: Regen 10 mm/h ⇒ 3,912/(2,24·10^0,75) ≈ 311 m; Schnee 2 mm/h ⇒ ≈ 220 m; trocken ⇒ null', close(rain, 3912 / (2.24 * Math.pow(10, 0.75)), 1) && close(snow, 3912 / (10.36 * Math.pow(2, 0.7776)), 1) && none === null, `${rain} / ${snow}`);
+  ok('K3 Feuchte-Dunst (`set`): Spread ≥ 2 K ⇒ 20 km, 0 K ⇒ 1 km, 1 K ⇒ 10,5 km', hazeVisibilityM(5, 2) === 20000 && hazeVisibilityM(5, 5) === 1000 && hazeVisibilityM(5, 4) === 10500 && hazeVisibilityM(null, 4) === null);
+  const d = diagnoseVisibilityM({ qcMgKg: 200, rain: 10, snow: 0, tC: 3, tdC: 3 });
+  ok('K4 Diagnose = Minimum der drei, nennt die begrenzende Größe', d.vM === fog && d.limiting === 'nebel' && diagnoseVisibilityM({ qcMgKg: null, rain: 0, snow: 0, tC: null, tdC: null }).vM === null);
+  const p1 = visibilityProbabilities({ diag: 100, mos: null, ruc: null }), p2 = visibilityProbabilities({ diag: 20000, mos: 20000, ruc: null }), p3 = visibilityProbabilities({ diag: 1000, mos: null, ruc: null });
+  ok('K5 Wahrscheinlichkeiten (unkalibriert): 100 m ⇒ P(<1000) ≈ 1, P(<50) < 0,5; 20 km ⇒ alle ≈ 0; genau an der Schwelle 0,5; ohne Quelle null', p1[0] > 0.95 && p1[3] < 0.5 && p2.every((x) => x < 0.01) && p3[0] === 0.5 && visibilityProbabilities({ diag: null, mos: null, ruc: null }) === null && VS_VIS_DEFAULT_MODEL.calibrated === false, JSON.stringify(p1));
+  ok('K5b fehlende Quellen werden gleich stark gewichtet (eine Quelle = drei gleiche Quellen)', JSON.stringify(visibilityProbabilities({ diag: 300, mos: null, ruc: null })) === JSON.stringify(visibilityProbabilities({ diag: 300, mos: 300, ruc: 300 })));
+  ok('K6 Stufe 3 (< 50 m) nur aus Messung: Prognose-P(<50) gedeckelt auf 0,5', capForecastProbabilities([1, 1, 1, 0.9])[3] === 0.5 && capForecastProbabilities(null) === null);
+  const me = { id: 'a1@5', lat: 50, lon: 8.5, h: 120, terrain: 'eben' };
+  const obs = [{ id: 'S1', lat: 50.05, lon: 8.5, h: 130, terrain: 'eben', visM: 400 }, { id: 'S2', lat: 50.02, lon: 8.5, h: 300, terrain: 'eben', visM: 100 }, { id: 'S3', lat: 50.02, lon: 8.52, h: 125, terrain: 'tal', visM: 50 }];
+  const now = visibilityNow(me, obs);
+  ok('K7 Sicht jetzt: eigener Wert zuerst; sonst nächster Nachbar gleicher Geländeklasse mit |Δz| ≤ 100 m (S2 zu hoch, S3 Tal)', now && now.from === 'S1' && now.visM === 400 && visibilityNow({ ...me, id: 'S3' }, obs).from === 'S3' && visibilityNow({ ...me, h: null }, obs) === null, JSON.stringify(now));
+  // Calibration: synthetic truth V_obs = diag · noise ⇒ the fit must give negative weights on diag and a smaller Brier than the default.
+  const pairs = [];
+  for (let i = 0; i < 400; i++) { const v = Math.exp(Math.log(30) + (Math.log(20000) - Math.log(30)) * ((i * 37) % 400) / 400); const noise = Math.exp(((i * 13) % 11 - 5) * 0.12); pairs.push({ sources: { diag: v, mos: i % 3 ? v * 1.3 : null, ruc: null }, observedM: v * noise }); }
+  const fit = fitVisLogistic(pairs);
+  const brierDefault = VS_VIS_THRESHOLDS_M.map((x) => pairs.reduce((s, p) => s + (visibilityProbabilities(p.sources)[VS_VIS_THRESHOLDS_M.indexOf(x)] - (p.observedM < x ? 1 : 0)) ** 2, 0) / pairs.length);
+  ok('K8 logistische Kalibrierung: negative Gewichte auf ln(V/x), Brier nicht schlechter als das unkalibrierte Modell, Modell heißt kalibriert', fit.model.calibrated && fit.model.weights.diag.every((w) => w < 0) && fit.brier.every((b, i) => b <= brierDefault[i] + 0.01) && fit.n === 400, `Brier ${fit.brier.join('/')} gegen ${brierDefault.map((b) => b.toFixed(3)).join('/')}`);
 }
 
 const failed = checks.filter((c) => !c.pass);

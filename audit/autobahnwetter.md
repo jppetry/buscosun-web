@@ -2190,3 +2190,21 @@ kommt allein aus Regel 1 (Regen auf Ts ≤ 0 °C) plus FRZ_RAIN des ICON-D2 als 
 mit Rücksetzen; Bourgouin warme Nase ⇒ gefrierender Regen bei PA 281 / NA 57, tiefe Kaltschicht ⇒ Eiskörner, Kaltluft ⇒ Schnee, warmer
 Boden ⇒ Regen; alle sechs Klassenregeln in Reihenfolge mit Gegenproben (Reif ohne Integral ⇒ trocken); Griffklassen; Glätte-Wort;
 Szenario. `verify:road-vs` **85/85**.
+
+### 20.12 AW-6.2.6 Sicht (27.10.2026)
+
+**Gebaut** `src/road/vs/roadVsVis.ts`. **Jetzt:** eigener GMA-Wert (nach QC), sonst der nächste Nachbar gleicher Geländeklasse mit
+|Δz| ≤ 100 m im 15-km-Radius (`set`); POI-Sichtmessungen des DWD sind nicht im Datenbestand (V-VS-14). **Voraus:** P(V < 1 000 / 300 /
+150 / 50 m) als logistische Kombination von drei Quellen auf ln(V/x): (a) eigene Diagnose V = min(V_Nebel, V_Feuchte, V_Niederschlag) —
+Gultepe V = 1,002/(LWC·N_d)^0,6473 mit LWC aus QC der untersten Modellfläche × ρ, N_d 200 cm⁻³; Koschmieder 3,912/β mit β_Regen =
+2,24·C^0,75, β_Schnee = 10,36·C^0,7776; Feuchte-Dunst 20 km → 1 km über die Taupunktdifferenz 2 → 0 K (`set`, Platzhalter bis zum
+CDC-Fit); (b) MOSMIX-Sicht der repräsentativen Station (`vs` aus `road/fc`); (c) RUC-VIS bis 30.11.2026. **Gewichte `set`
+(−1,5 je Quelle, gleich; fehlende Quellen renormiert) und die Datei heißt `calibrated: false`**, bis `fitVisLogistic` (logistische
+Regression je Schwelle, Gradientenabstieg) gegen CDC-Stundensicht gelaufen ist (6.2.8 — die 204 CDC-Stationen sind noch nicht
+geladen, V-VS-15). **Nebel Stufe 3 (< 50 m) nur aus Messung:** die Prognose-P(< 50) wird auf 0,5 gedeckelt (`set`). RUC-EPS-
+Memberanteil (Startprompt) ist nicht gebaut: der v1-Pfad führt kein `icon-d2-ruc-eps`, und ICON-D2-EPS hat kein VIS (Spike 20.2 i).
+
+**Verifier** Abschnitt K (9): Gultepe 200 mg/kg ⇒ 80 m; Koschmieder Regen 10 mm/h ⇒ 311 m, Schnee 2 mm/h ⇒ 220 m; Dunst-Stützen;
+Minimum mit begrenzender Größe; Wahrscheinlichkeiten an 100 m / 20 km / Schwelle (0,5); Renormierung; Deckel; Sicht jetzt mit beiden
+Ausschlüssen; Kalibrierung auf 400 synthetischen Paaren ⇒ negative Gewichte, Brier 0,044/0,035/0,036/0,043 ≈ unkalibriert (synthetisch
+ohne echten Zugewinn — erwartungsgemäß). `verify:road-vs` **94/94**.
