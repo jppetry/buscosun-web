@@ -1882,3 +1882,167 @@ Nicht angehoben — das ist die Entscheidung der Linie, die es verursacht.
 **Gate E neu:** 7 Tage ab dem Push von `main` (der Spiegel übernimmt die Vertragsfixes beim nächsten Jobstart, der Archiv-Lauf schreibt
 ab dann `hz/`), Folgeprompt wie in §19.12, diesmal mit den archivierten `hz`-Slots als Stichprobe im Fenster und mit
 `hz-nowcast-score.mjs` für E-AW-42.
+
+## 20. AW-6.2 „Virtueller Fahrbahnsensor" (VS) — Fortsetzung von Phase FB (`audit/autobahn-fahrbahn.md`), Zweig `feat/aw-6.2-virtueller-sensor`, ab 27.10.2026
+
+> Auftrag (Jan, 27.10.2026, Startprompt „AW-6.2: Virtueller Fahrbahnsensor"): Fahrbahntemperatur, -zustand, Wasserfilm und
+> Sicht an jedem Achspunkt von `road/fc/v1`, jetzt und 0–48 h stündlich, mit einem eigenen Energiebilanz-Kern nach dem Vorbild
+> RoadSurf (FMI, MIT), im Schattenbetrieb hinter `ROAD_VS_LIVE = false`; Gate G mit Prüfstand gegen Persistenz, SWSMOS TS,
+> ICON T_G, T2m. FB-1 (§5 der Phase FB, live seit 26.10.) bleibt bis Gate G die sichtbare Fahrbahnprognose.
+
+### 20.0 Pflichtlektüre und ein fehlendes Dokument
+
+Gelesen: `audit/autobahnwetter.md` (§1–§19), `autobahnwetter-plan.md` (AW-6), `autobahnwetter-gefahren.md`,
+`autobahnwetter-datenpruefung.md` (D-1…D-9, §5.1), `autobahn-fahrbahn.md`, `road-forecast.mjs`, `roadContract.ts`,
+`roadSurface.ts`, `roadHazards.ts`, `workflow-road-fc.yml`, `road/v1/status.json` (live).
+
+**`audit/fahrbahnmodell-recherche.md` existiert nicht** — weder im Repo (`main`, Arbeitsbaum) noch in einem der Verzeichnisse
+unter `C:\dev` (Suche nach `*recherche*`, Tiefe 3). Der Startprompt macht diese Datei zur Quelle jeder Konstante. Folge bis
+sie vorliegt: **jede Zahl aus dem Startprompt wird im Code als `set` mit Herkunft „Startprompt 27.10.2026" geführt**, eigene
+Literaturangaben (RoadSurf-Quelltext, METRo-Paper, BASt V 329, Gallaway 1979) werden am Ort der Zahl genannt. Sobald die
+Recherche-Datei da ist, wird jede `set`-Zahl gegen sie geprüft und die Herkunft umgeschrieben (eine Liste aller `set`-Werte
+führt §20.6). **Rückfrage an Jan:** Datei nachliefern oder Pfad nennen.
+
+### 20.1 Entscheidungen des Startprompts (festgelegt, Änderung nur nach Rückfrage)
+
+Die Nummern E-AW-38…43 des Startprompts sind in §19.6 schon vergeben (AW-7/AW-8). Damit keine Nummer zweimal gilt, heißen
+die Entscheidungen dieser Linie **E-VS-n**; die Prompt-Nummer steht daneben. Jan kann die Benennung ändern.
+
+| Nr. | Prompt | Entscheidung |
+|---|---|---|
+| E-VS-1 | E-AW-38 | Eigener TypeScript-Kern nach Vorbild RoadSurf (FMI, MIT; github.com/fmidev/RoadSurf), Node in GitHub Actions; kein Fortran; METRo (GPL-2.0) nur als Prinzip, kein Code; MIT-Hinweis in der Datei |
+| E-VS-2 | E-AW-39 | „Jetzt" bei totem Sensor: Schattenbetrieb ab sofort; die Anzeige ersetzt „Messlücke → unbekannt" erst nach Gate G hinter `ROAD_VS_LIVE = false` (`?roadvs=1`, Muster `roadhz`) |
+| E-VS-3 | E-AW-40 | Salz: v1 nur „ungestreut", Kennzeichnung „Glättepotenzial ohne Streuung" |
+| E-VS-4 | E-AW-41 | Geltung v1: DE-Korridore mit ICON-D2; AT/CH mit ihren Korridoren, ICON-CH1 erst dann |
+| E-VS-5 | E-AW-42 | Querneigung 2,5 % Standard; Verwindungsbereiche „Geometrie unbekannt", nicht geschätzt |
+| E-VS-6 | E-AW-43 | Sicht 27–48 h nach dem 30.11.2026 aus eigener Diagnose der v1-Felder — **durch den Spike erweitert, s. 20.3 (2)** |
+
+### 20.2 AW-6.2.0 Spike (27.10.2026 17:10–18:40 UTC+1, nur gelesen, geladen und gezählt)
+
+**(a) D-1…D-9 im Code und im Live-Slot.** D-1…D-4 hart seit M1–M4 (`datenpruefung.md` §5.1), dazu `roadAir` relativ zum
+Nachbar-Band (V-AW-62, committet — `roadContract.ts` ist im Arbeitsbaum unverändert); D-5 Marker auf Katalog-/Jans Lage
+(M6, V-AW-44); D-6/D-7 M5 (Wort „Luft", DWD-Prüftext aus den Bits); **D-8 Sägezahn nur diagnostiziert (M7)** — Producer/Motor
+sind Jans Gate; D-9 teils. Live-Slot `2610271645` (Status 17:09 UTC): 1 495 Punkte, **1 172 mit Fahrbahntemperatur, 160 mit
+Sicht, 1 006 mit Wasserfilm**; 285 von 11 756 Werten verworfen (2,4 %: `precipFill` 121, `stateNoTemp` 98, `stuck` 37, `limit`
+10, `roadAir` 5, …), Beobachtung `catalog` 141, `neighbours` 6, `cube` 3. 22 Reihen `ok` (Alter 0–1 min), `LH-LH` und `WW-SO`
+`missing`. **DD-DD liefert** (25 Stationen, 17 Fahrbahnwerte) — die Annahme des Startprompts „DD liefert seit 02.10. nichts"
+trifft heute nicht zu; die Aktualität je Reihe steht schon in `status.groups` (`state`, `ageMin`), `npm run health` prüft R1–R5
+(Slot-Alter, Anteil verworfen), aber **keine einzelne Reihe** — das wird in 6.2.1 ergänzt.
+
+**(b) Was `road/fc/v1` trägt** (Vertrag `roadFc.ts`, Lauf `2610271650`, 4 772 Punkte, 1 204 verankert): Pflicht `t ts td pp rr
+sn ff fx dd n cf q`, optional `sl t85 vs` (AW-7.1) und `rs rk rq` (FB-1, 0–6 h; `engine.surface.mode fb1`, 1 094 Punkte mit
+eigener Messung). Keine Strahlung, kein Bodenwert, keine Modellflächen — der Antrieb für VS muss neu beschafft werden.
+Der Lauf nennt `buscosun Fusion 13`, obwohl `main` seit 26.10. Stand 14 trägt (der Job klont `main`; der nächste Lauf nach dem
+Push zieht nach — nicht diese Linie).
+
+**(c) URL-Schema.** Der Punkt-Cube liest ICON-D2/ICON-EU über `dwdRegular.mjs` vom **alten** Pfad `nwp/icon-d2/grib/`
+(endet 30.11., eigene Phase E-EX-5); nur der RUC-Producer liest v1. Das v1-Schema am Verzeichnis gemessen (DWD-Newsletter
+September 2026 bestätigt die Muster): Einflächenfelder `v1/m/icon-d2/p/<P>/r/<YYYY-MM-DDTHH:00>/s/PT<hhh>H<mm>M.grib2`;
+Mehrflächenfelder `p/<P>/lvt1/<typeOfFirstFixedSurface>/lv1/<level>/r/…`: `T/lvt1/150/lv1/1…65`, `HHL/lvt1/150/lv1/1…66`,
+`T_SO/lvt1/106/lv1/{0.0 0.005 0.02 0.06 0.18 0.54 1.62 4.86 14.58}`. Jede Datei ist EINE GRIB2-Nachricht, Gitter GDT 101
+(542 040 Zellen, 525 072 mit Wert, 16 968 Bitmap-Fehlstellen = Rand), DRT 42 (CCSDS) — der eigene Decoder liest sie
+(`gribDecode.ts`, Probe unten). Größen je Schritt: ATHB_S 830 KB, ASWDIR_S 799 KB, T_G 761 KB, TCH 466 KB, FRZ_RAIN 69 KB,
+T je Fläche 770 KB, HHL je Fläche 577 KB. Läufe alle 3 h (`r/` 06, 09, 12, 15 UTC), 49 Schritte; Nachbarindex aus `CLAT/CLON`
+wie in `dwdIcosahedral.mjs`.
+
+**(d) SWSMOS** (`weather/local_forecasts/swsmos/`, Lauf `swsmos_20261027160000`): **48 Dateien, stündlich** (25.10. 17 UTC …
+27.10. 16 UTC), 2,0 MB bz2 / 26,1 MB CSV; Kopf `ID;Lat;Lon;YYYYMMDDHHmm;TL;TLSTA;RRL1c;RRS1c;RR6;WWL6;WWS3;RRS3c;R650;RC;TS;TD`,
+zweite Zeile der Lauf; **1 847 Stationen × 167 Stunden** (+1 … +167 h = 7 Tage), keine Lücken. **TS (Fahrbahntemperatur) ist
+enthalten** (−0,1 … 23,7 °C; TS − TL p5/p50/p95 −0,4 / +1,2 / +4,7 K), TD ebenso. **RC trägt im Oktoberlauf nur 1 (292 063) und
+2 (16 386)** — die Legende des Startprompts (3 Schnee, 4 Reif, 5 überfrierende Nässe, 6 Glatteis) ist am Rohlauf NICHT
+belegbar, erst ein Winterlauf zeigt die Codes; eine DWD-Spaltenbeschreibung habe ich nicht gefunden (Bedeutung von TLSTA
+0,1–6,1 mit 2 555 Lücken, RRL1c/RRS1c/RRS3c 0–1,5, RR6, WWL6 0–100, WWS3 0–47, R650 0–37,6 bleibt **Vermutung**: σ der Luft,
+Regen/Schnee 1 h/3 h, 6-h-Summe, Wahrscheinlichkeiten, Reif-/Nebelgröße — als `unbekannt` geführt, bis belegt).
+Katalog `swsKatalog.csv` (91,5 KB, Windows-1252): `Kennung;Name;Streckentyp (1 freie Strecke 1 429, 2 Brücke 455);Streckenbelag
+(1 Asphalt 1 733, 2 Beton 151);Breite;Laenge;Hoehe;Flughafen (869 markiert);Inaktiv (0)`, 1 884 Zeilen; 1 846 der 1 847
+Lauf-IDs im Katalog; **1 632 der 1 688 GMA aus `road/v1/static/stations.json` liegen im SWSMOS-Lauf** (dieselben Kennungen).
+Damit sind Brücke und Belag je GMA aus dem DWD-Katalog verfügbar (6.2.2), und die SWSMOS-Baseline für Gate G ist ab heute
+sammelbar — der DWD hält nur 48 h vor (6.2.1).
+
+**(e) Mittelungskonvention ATHB_S / ASWDIR_S / ASWDIFD_S am GRIB belegt** (Lauf 27.10. 12 UTC, Kopf je Datei, Range-Abruf):
+PDT 4.8, `statProcess 0` (Mittel), `forecastTime 0`, Intervall 0 → Schritt (60 / 120 / 180 min bei +1/+2/+3 h) ⇒ **Mittel seit
+Modellstart**, die Rückrechnung F(t1,t2) = (t2·F(0,t2) − t1·F(0,t1)) / (t2 − t1) ist nötig. RUC (`ASWDIR_S`, Lauf 16 UTC,
+Schritt +1 h): dieselbe Konvention. Dekodiert: ATHB_S Mittel −74 W/m² (−178 … +16) = **Netto**-Thermalstrahlung am Boden
+(negativ), T_G 266,8 … 300,9 K; Probe an drei Zellen: LW↓ = ATHB_S/ε + σ·T_G⁴ ≈ 250 … 310 W/m² mit ε = 0,95 (plausibel für
+Oktober); Intervallmittel der 2. Stunde aus den zwei Startmitteln −82,7 / −85,8 / −141,1 W/m². ε_s der ICON-Oberfläche
+ist nicht aus der DWD-Doku belegt ⇒ vorerst `set` 0,95.
+
+**(f) FRZ_RAIN** (ICON-D2 v1, Lauf 12 UTC): Disziplin 0, Kategorie 1, Nummer 67 (WMO 4.2 „freezing rain"), PDT 4.8
+`accumulation` seit Modellstart ⇒ **Summe gefrierenden Regens seit Laufbeginn in kg m⁻² (= mm)**, Rate je Stunde = Differenz
+zweier Schritte. Oktober-Probe: +6 h überall 0, +12 h max 0,094 mm. Ein DWD-Text zur Größe war nicht auffindbar (Newsletter
+September 2026 nennt nur URL-Schema, VIS, DEN/SMI) — Lesart aus dem GRIB-Kopf, mit dem ersten Winterfall gegen die
+Bourgouin-Diagnose zu prüfen (V-VS-3).
+
+**(g) TCH / TCM** vorhanden (PDT 4.0, Momentanwert je Schritt; TCH 0,001 … 3,44, Mittel 0,009; TCM 0,001 … 7,55, Mittel 0,019,
+dimensionslos) — als Vergleich zur eigenen Monin-Obukhov-Iteration verwendbar, wie der Prompt es will.
+
+**(h) Modellflächen T und HHL** im v1-Schema vorhanden (65 bzw. 66 Flächen, je Fläche eine Datei; Bourgouin braucht die unteren
+≈ 20 Flächen ≈ 15 MB je Schritt — nur für Stunden mit Niederschlag und T2m nahe 0 °C abrufen). **T_SO** 9 Tiefen (unterer Rand
+der Wärmeleitung ist damit aus dem Modell lesbar, als Vergleich zur Klimatologie).
+
+**(i) VIS.** `icon-d2` v1 hat **kein VIS** (Verzeichnis), `icon-d2-eps` v1 auch nicht; `icon-d2-ruc` v1 hat VIS (15 min bis
++27 h, 109 Schritte, Meter, 78 … 64 383) — **aber der DWD-Newsletter September 2026 sagt, VIS wird nach dem 30.11.2026 auch
+aus ICON-D2-RUC entfernt** („die VIS-Felder der ICON-Modellkette sind nicht geeignet, Sichtweiten nach VFR vorherzusagen"), für
+ICON-EU/ICON-D2(-EPS) kommt es nicht ins v1-Schema. Siehe 20.3 (2).
+
+**(j) Archiv.** `buscosun-archiv` `road/v1/<Tag>/{00,12}.json.gz, hz/, slots.json` seit 02.10. (27 Tage), `road/fc/v1/<Tag>/`
+seit 04.10.; kein SWSMOS; `road-archiv.yml` läuft alle 3 h — drei SWSMOS-Läufe je Archivlauf nachzuholen reicht (DWD 48 h).
+Roh wären das 2 MB bz2 je Lauf = 48 MB/Tag — zu viel für ein Git-Archiv; gekürzt auf die 1 632 GMA, Spalten `TL TS TD RC`
+und Vorlauf 1–48 h ≈ 1/10 davon (E-VS-7, s. 20.3).
+
+### 20.3 Befunde, die den Plan berühren (kein Umsturz des Designs — SWSMOS hat TS, ATHB_S ist rekonstruierbar; also weiter mit 6.2.1)
+
+1. **Recherche-Datei fehlt** (20.0): Konstanten bis dahin `set` mit Herkunft Startprompt; Liste in 20.6; Rückfrage.
+2. **VIS fällt am 30.11. auch im RUC weg** ⇒ E-VS-6 erweitert: **ab Dezember kommt die Sicht 0–48 h aus der eigenen
+   Diagnose** (Koschmieder, Gultepe, Niederschlags-β) plus Messung (POI/GMA) plus MOSMIX wwM/VV10; RUC-VIS dient bis zum
+   30.11. als Lern- und Vergleichsgröße der Kalibrierung, nicht als Baustein. Entscheidung Jan: so bauen (Vorschlag) oder 6.2.6
+   bis zum Nachfolgeprodukt des DWD zurückstellen.
+3. **SWSMOS-Legende RC 3–6 und Spaltenbedeutungen** sind unbelegt; der Verifier prüft RC nur auf ∈ {1 … 6}, der Prüfstand
+   wertet RC erst, wenn ein Winterlauf die Codes zeigt (V-VS-1). Eine Anfrage an den DWD nach der SWSMOS-Formatbeschreibung
+   lohnt (V-VS-2).
+4. **E-VS-7 (Vorschlag):** SWSMOS gekürzt archivieren (GMA-Schnittmenge, `TL TS TD RC`, Vorlauf 1–48 h, gz) im `road-archiv`-Lauf
+   alle 3 h, drei Läufe je Durchgang ≈ 5 MB/Tag; die Rohdatei nicht. Ohne Jans Nein wird so gebaut.
+5. **Nummern E-AW-38…43 doppelt** ⇒ E-VS-n (20.1).
+6. **Antriebsbudget:** 4 772 Punkte × 49 Stunden; je ICON-D2-Lauf ≈ 16 Einflächenfelder × 49 Schritte × 0,8 MB ≈ 630 MB Download
+   im Action-Lauf, abgetastet auf Punktreihen (≈ 4 772 × 49 × 16 Werte ≈ 15 MB roh, ≈ 2 MB gz) — tragbar alle 3 h; die
+   Modellflächen nur bei Bedarf (h). Ein eigener Workflow `road-vs.yml` statt einer Verlängerung von `road-fc.yml` (25 min Limit).
+
+### 20.4 Modellablauf (Programmablaufplan nach DIN 66001, Textform; Sinnbilder: ⬭ Grenzstelle, ▭ Verarbeitung, ◇ Verzweigung, ▱ Daten, ⊟ Unterprogramm)
+
+```
+⬭ Start (Lauf ICON-D2 r, Achspunkt p, Modellzustand Z[p] aus buscosun-data)
+▱ Eingänge: ICON-D2 v1 (T_2M TD_2M RELHUM_2M U/V_10M ASWDIR_S ASWDIFD_S ATHB_S T_G T_SO PRR/PRS/PRG_GSP FRZ_RAIN CLCT CLCL WW CEILING QC QR QS QG),
+             RUC (0–27 h, 15 min), road/fc/v1 (Fusion T Td Wind Niederschlag), GMA-Slot (rs ta td rh wf cond vis), Ortsmerkmale (F_sv, Horizont, Brücke, Belag)
+⊟ QC der GMA (Kette 1–9, gemeinsames Modul) → gültig / verworfen / schwach
+◇ Pflichteingang fehlt? ─ja─▶ ▱ Ausgabe „unbekannt" (null) für diese Stunde ─▶ nächste Stunde
+   └nein
+▭ Antrieb je Stunde: Intervallmittel aus Startmitteln; LW↓ = ATHB_S/ε + σT_G⁴ (Rückfall METRo-Bedeckung); Abschattung (Horizont, F_sv)
+◇ GMA gültig ≤ 6 h alt? ─ja─▶ ⊟ Kopplung: C ∈ [0,01; 3] per Bisektion im 3-h-Fenster, Abklingen e^(−t/4 h)
+   └nein ──▶ ⊟ Standortkorrektur (Residuentabelle Station × Stunde × Wetterklasse; Nachbar-Residuen im Höhenband)
+▭ Energiebilanz G0 = (1−α)·SW↓·C_S + ε·LW↓·C_L − εσTs⁴ + H(Monin-Obukhov) − LE(Bulk) + Q_P + Q_V
+◇ |Ts − 0 °C| ≤ 0,1 K und Speicher Wasser/Eis > 0? ─ja─▶ ▭ Latentwärme-Halt: G0 wandelt Wasser↔Eis, Ts bleibt
+   └nein ──▶ ▭ Wärmeleitung 1-D, 15 Knoten, Δt = 30 s (Stabilität geprüft), unterer Rand Jahres-Sinus; Brücke: zweite Säule
+▭ Speicher: Wasser, Porenwasser, Schnee, Eis, Reif (Niederschlag, Deposition/Verdunstung, Schmelze, Verkehrsabrieb)
+▭ Zustand (erste Regel gewinnt): Glatteis → Schneeglätte → Matsch → Eis/überfr. Nässe → Reif → nass/feucht/trocken; Wasserfilm (Gallaway); Griffklasse
+⊟ Sicht: Messung (POI/GMA) · P(<x) aus Diagnose/MOSMIX/RUC (bis 30.11.)
+▱ Ausgabe je Stunde: tf tf_sigma tf_src tf_bruecke · wasser/schnee/eis/reif/wasserfilm_mm · zustand glaette_p griff szenario · vis_p* vis_src · Kaltstart
+▭ Modellzustand Z[p] fortschreiben (atomar), Schattenprotokoll
+⬭ Ende
+```
+
+### 20.5 Offen nach dem Spike (V-VS)
+
+| Nr. | Befund | Mehrwert | Skizze |
+|---|---|---|---|
+| V-VS-1 | SWSMOS RC 3–6 im Oktober nicht vorhanden | Prüfstand gegen RC erst im Winter aussagekräftig | Verifier zählt Codes je Lauf; Gate-G-Teil „RC" wartet auf den ersten Lauf mit Code ≥ 3 |
+| V-VS-2 | Keine DWD-Beschreibung der SWSMOS-Spalten gefunden | Einheiten und Bedeutung belegt statt vermutet | Anfrage an den DWD (Text für Jan in `MANUELLE-SCHRITTE.md`) |
+| V-VS-3 | FRZ_RAIN-Lesart nur aus dem GRIB-Kopf | Glatteis-Eingang belegt | ersten Winterfall gegen Bourgouin und GMA-Code 5/6 legen |
+| V-VS-4 | `npm run health` prüft keine einzelne GMA-Reihe | tote Reihe (LH-LH, WW-SO heute) sichtbar | R6: Reihe `missing`/`stale` > n h ⇒ rot, n `set` |
+| V-VS-5 | ε_s der ICON-Oberfläche nicht belegt | LW↓-Rekonstruktion ohne `set` | ICON-Doku (Surface emissivity, `emis_rad`) nachschlagen; bis dahin 0,95 |
+
+### 20.6 `set`-Register der Linie (wächst je Paket; jede Zeile mit dem Ort im Code und dem Weg zur Kalibrierung)
+
+| Wert | Zahl | Herkunft heute | Kalibrierung |
+|---|---|---|---|
+| ε_s (ICON-Oberfläche, LW↓-Rückrechnung) | 0,95 | Startprompt / RoadSurf | ICON-Doku (V-VS-5) |
+| (weitere Zeilen mit 6.2.1 ff.) | | | |
