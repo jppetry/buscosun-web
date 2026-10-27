@@ -2164,3 +2164,29 @@ Nachbar-Übertrag mit 1/d und beiden Ausschlüssen; σ-Faktor. `verify:road-vs` 
 **`set`-Zeilen:** Sonnen-Schwelle 20 W/m²; 14 Iterationen; Klassen-Schwellen; minN 5, shrinkN 10, minDays 7; Radius 25 km, Band 300 m;
 σ-Faktor 1,5. Offen: die Kopplung braucht den Zustand von vor 3 h — der Derive (6.2.7) hält je Punkt einen Schnappschuss je Stunde
 der letzten 6 h (`history`), sonst wäre das Fenster nicht neu rechenbar (V-VS-13).
+
+### 20.11 AW-6.2.5 Speicher, Zustand, Wasserfilm (27.10.2026)
+
+**Gebaut** `src/road/vs/roadVsState.ts` (die Speicher selbst rechnet der Kern, s. 20.9 — Maxima 1/1/100/50/2 mm, Abrieb 0,145/0,45/0,319/1,16
+mm/h `set` finnisch): Film aus dem Speicher (Faktor 1,0 `set`, gegen GMA-Filme zu kalibrieren), BASt-V-329-Stufen trocken ≤ 0,01 /
+feucht 0,01–0,03 / nass > 0,03 mm; **Gallaway** d_W = 0,103·T_XD^0,11·L^0,43·I^0,59/S^0,42 − T_XD mit L = B·√(1+(g/q)²), S = √(q²+g²),
+T_XD 0,5 mm `set`, q 2,5 % (E-VS-5), g 0 % (`set`, keine Längsneigung je Punkt), B = 2 × 3,75 m (`set`, keine OSM-Fahrstreifen), gültig
+bis 50,8 mm/h, darüber gekappt und `capped`; **Testfall des Startprompts bestanden** (T_XD 0,4 / L 58,6 / I 50 / S 2,52 ⇒ 3,256 mm);
+Aquaplaning v_AP = 96,8·d^−0,259 km/h nur als Detail (< 2,4 mm); **Reif**: Frostpunkt (Magnus über Eis) statt Taupunkt, Deposition im
+Bulk-Ansatz des Kerns, Auslösung ∫max(0, T_frost − Ts)dt ≥ 1 K·h (`set`), Rücksetzen bei Ts > T_frost + 1 K; **Bourgouin** (2000)
+auf einem Modellprofil (Flächen PA/NA in J/kg, hydrostatische Form; Schwellen wie veröffentlicht: Schnee PA ≤ 5,6, Mischung ≤ 13,2,
+Eiskörner NA ≥ 66 + 0,66·PA, gefrierender Regen NA ≤ 46 + 0,66·PA, dazwischen „möglich"; dann T2m bzw. Feuchttemperatur ≤ 0 °C);
+**Klassen in Prompt-Reihenfolge** (erste Regel gewinnt): 1 Glatteis (flüssig ≥ 0,1 mm/h auf Ts ≤ 0 °C, unabhängig von Bourgouin;
+oder Bourgouin „gefrierender Regen" bei Ts ≤ 0), 2 Schneeglätte (Schnee ≥ 0,2 mm bei Ts ≤ +0,5 oder Schneefall ≥ 0,1 mm/h bei Ts ≤ 0),
+3 Schneematsch, 4 Eis/überfrierende Nässe (Eis ≥ 0,05 mm oder nasser Film bei Ts ≤ 0), 5 Reifglätte (Reif ≥ 0,02 mm UND Integral ≥ 1
+K·h UND Ts ≤ 0), 6 nass/feucht/trocken; **Griff nur als Klasse** (griffig / eingeschränkt / glatt / sehr glatt, `set`-Zuordnung);
+`glaette_p` v1 als grobes 0 / 0,5 / 1 (`set`; kalibrierte Wahrscheinlichkeit erst in 6.2.8 mit Winterpaaren — DWD-Vergleichsprodukt
+POD 0,40–0,56); Szenario „ungestreut" / „Glättepotenzial ohne Streuung" (E-VS-3).
+
+**Nicht im Antrieb:** die Modellflächen T/HHL für Bourgouin (V-VS-6) — bis dahin liefert `bourgouinType(null)` „unbekannt", und Glatteis
+kommt allein aus Regel 1 (Regen auf Ts ≤ 0 °C) plus FRZ_RAIN des ICON-D2 als Regenanteil.
+
+**Verifier** Abschnitt J (12): Gallaway-Testfall, RQ 31 bei 10 mm/h ≈ 0,10 mm, Kappung, Längsneigung; Aquaplaning; Frostpunkt; Reif-Integral
+mit Rücksetzen; Bourgouin warme Nase ⇒ gefrierender Regen bei PA 281 / NA 57, tiefe Kaltschicht ⇒ Eiskörner, Kaltluft ⇒ Schnee, warmer
+Boden ⇒ Regen; alle sechs Klassenregeln in Reihenfolge mit Gegenproben (Reif ohne Integral ⇒ trocken); Griffklassen; Glätte-Wort;
+Szenario. `verify:road-vs` **85/85**.

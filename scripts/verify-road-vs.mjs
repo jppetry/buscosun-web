@@ -28,6 +28,7 @@ import {
   sensibleHeat, vsStateProblems, deepSoilC, albedoOf, emptyStores,
 } from '../src/road/vs/roadVsCore.ts';
 import { coupleModeOf, tsWithFactor, fitCouplingFactor, couplingFactorAt, weatherClassOf, learnResiduals, stationCorrection, neighbourCorrection, correctedSigma } from '../src/road/vs/roadVsCouple.ts';
+import { gallawayFilm, aquaplaningKmh, frostPointOfDew, rimeIntegralUpdate, bourgouinAreas, bourgouinType, classifyRoad, gripOf, slipperinessP, VS_SCENARIO, VS_SCENARIO_TEXT } from '../src/road/vs/roadVsState.ts';
 
 const checks = [];
 const ok = (id, pass, detail = '') => { checks.push({ id, pass: !!pass, detail }); console.log(`${pass ? 'PASS' : 'FAIL'} ${id}${detail ? ` — ${detail}` : ''}`); };
@@ -271,6 +272,38 @@ const close = (a, b, eps = 1e-6) => Math.abs(a - b) <= eps;
   const nb = neighbourCorrection(tab, me, gma, Date.UTC(2026, 0, 12, 3), 'klar');
   ok('I6 Nachbar-Übertrag: Residuen von S1 (0,5, 5,6 km) und S2 (−0,25, 11 km) mit 1/d gewichtet; anderes Höhenband und andere Geländeklasse ausgeschlossen', nb && nb.n === 2 && nb.from.join() === 'S1,S2' && close(nb.k, (0.5 / 5.56 + -0.25 / 11.12) / (1 / 5.56 + 1 / 11.12), 0.02) && neighbourCorrection(tab, me, gma, Date.UTC(2026, 0, 12, 4), 'klar') === null && neighbourCorrection(null, me, gma, 0, 'klar') === null, JSON.stringify(nb));
   ok('I7 σ: Klassen-σ der Tabelle, in klarer Nacht × 1,5; ohne Tabelle der Rückfallwert', close(correctedSigma(tab, 'klar', Date.UTC(2026, 0, 12, 3), 2), tab.sigma.klar * 1.5, 0.02) && correctedSigma(tab, 'klar', Date.UTC(2026, 0, 12, 12), 2) === tab.sigma.klar && correctedSigma(null, 'nass', 0, 2) === 2);
+}
+
+// ── J: stores, condition, film, Bourgouin (AW-6.2.5) ───────────────────────
+{
+  const g = gallawayFilm(50, 58.6, 2.52, 0, 0.4);
+  ok('J1 Gallaway-Testfall des Startprompts: T_XD 0,4 / L 58,6 / I 50 / S 2,52 ⇒ 3,256 mm', g.lengthM === 58.6 && g.slopePct === 2.52 && close(g.filmMm, 3.256, 0.001) && !g.capped, `${g.filmMm} mm, L ${g.lengthM}, S ${g.slopePct}`);
+  const gl = gallawayFilm(50, 7.5, 2.5, 4);
+  ok('J1c Längsneigung 4 % verlängert den Abflussweg (L = B·√(1 + (g/q)²) = 14,2 m) und steilt S auf 4,72 %', close(gl.lengthM, 7.5 * Math.sqrt(1 + (4 / 2.5) ** 2), 0.01) && close(gl.slopePct, Math.sqrt(2.5 ** 2 + 16), 0.01));
+  const g2 = gallawayFilm(10, 7.5, 2.5), g3 = gallawayFilm(80, 7.5, 2.5), g0 = gallawayFilm(0, 7.5, 2.5);
+  ok('J1b RQ 31 bei 10 mm/h ≈ 0,1 mm; 80 mm/h gekappt und gekennzeichnet; 0 mm/h ⇒ 0', g2.filmMm > 0.05 && g2.filmMm < 0.2 && g3.capped && g3.filmMm === gallawayFilm(50.8, 7.5, 2.5).filmMm && g0.filmMm === 0 && !g0.capped, `${g2.filmMm}`);
+  ok('J2 Aquaplaning-Geschwindigkeit: 1 mm ⇒ 97 km/h, 0,5 mm ⇒ 116, ≥ 2,4 mm und 0 ⇒ null', aquaplaningKmh(1) === 97 && aquaplaningKmh(0.5) === 116 && aquaplaningKmh(2.4) === null && aquaplaningKmh(0) === null);
+  ok('J3 Frostpunkt unter dem Taupunkt (−5 °C Taupunkt ⇒ ≈ −4,5 °C Frostpunkt, über Eis höher als über Wasser)', frostPointOfDew(-5) > -5 && frostPointOfDew(-5) < -4 && close(frostPointOfDew(0), 0, 1e-6));
+  let kh = 0; for (let h = 0; h < 3; h++) kh = rimeIntegralUpdate(kh, -2, -2.5);
+  ok('J4 Reif-Integral: 3 h bei T_frost − Ts = 0,5 K ⇒ 1,5 K·h (Auslösung ≥ 1); 2 K darüber setzt zurück; ohne Frostpunkt unverändert', close(kh, 1.5) && rimeIntegralUpdate(kh, -2, 0.5) === 0 && rimeIntegralUpdate(kh, null, 5) === kh && rimeIntegralUpdate(kh, -2, -1.5) === kh);
+  const prof = (pairs) => pairs.map(([zM, tC]) => ({ zM, tC }));
+  const warmNose = prof([[0, -2], [300, -1], [600, 2], [1200, 3], [1800, -1], [3000, -8]]);
+  const a1 = bourgouinAreas(warmNose);
+  ok('J5 Bourgouin: warme Nase über kalter Bodenschicht ⇒ PA > 0 und NA > 0; Typ gefrierender Regen bei kleinem NA', a1 && a1.pa > 40 && a1.na > 0 && a1.na < 46 + 0.66 * a1.pa && !a1.surfaceWarm && bourgouinType(a1, -2) === 'gefrierender-regen' && bourgouinType(a1, 2) === 'regen', JSON.stringify(a1));
+  const deepCold = prof([[0, -6], [500, -5], [1000, -4], [1500, 2], [2000, 1], [2500, -5]]);
+  const a2 = bourgouinAreas(deepCold);
+  ok('J5b tiefe kalte Schicht unter der Nase ⇒ Eiskörner; reine Kaltluft ⇒ Schnee; warmer Boden ⇒ Regen', a2 && bourgouinType(a2, -6) === 'eiskoerner' && bourgouinType(bourgouinAreas(prof([[0, -3], [1000, -6], [2000, -10]])), -3) === 'schnee' && bourgouinType(bourgouinAreas(prof([[0, 4], [500, 2], [1000, -1], [2000, -6]])), 4) === 'regen' && bourgouinType(null, 0) === 'unbekannt', JSON.stringify(a2));
+  const st = (o = {}) => ({ water: 0, pore: 0, snow: 0, ice: 0, frost: 0, ...o });
+  const base = { ts: 2, stores: st(), rain: 0, snow: 0, frz: 0, rimeKh: 0 };
+  const c = (o) => classifyRoad({ ...base, ...o });
+  ok('J6 Klassen in Prompt-Reihenfolge: Glatteis (Regen auf Ts ≤ 0) schlägt Schnee; Schneeglätte; Matsch; Eis; Reif; nass/feucht/trocken',
+    c({ ts: -1, rain: 0.5, stores: st({ snow: 5 }) }).condition === 'glatteis' && c({ ts: -1, stores: st({ snow: 1 }) }).condition === 'schneeglaette' && c({ ts: 1, stores: st({ snow: 1, water: 0.1 }) }).condition === 'schneematsch'
+    && c({ ts: -1, stores: st({ ice: 0.1 }) }).condition === 'eis' && c({ ts: -1, stores: st({ water: 0.05 }) }).condition === 'eis' && c({ ts: -1, stores: st({ frost: 0.05 }), rimeKh: 1.2 }).condition === 'reifglaette' && c({ ts: -1, stores: st({ frost: 0.05 }), rimeKh: 0.5 }).condition === 'trocken'
+    && c({ stores: st({ water: 0.1 }) }).condition === 'nass' && c({ stores: st({ water: 0.02 }) }).condition === 'feucht' && c({ stores: st({ water: 0.005 }) }).condition === 'trocken');
+  ok('J6b Bourgouin „gefrierender Regen" bei Ts ≤ 0 ⇒ Glatteis auch ohne Regenrate im Antrieb; Griffklassen', c({ ts: -0.5, precipType: 'gefrierender-regen' }).condition === 'glatteis' && gripOf('glatteis') === 'sehr-glatt' && gripOf('reifglaette') === 'glatt' && gripOf('nass') === 'eingeschraenkt' && gripOf('trocken') === 'griffig' && gripOf('feucht', 0.015) === 'griffig' && gripOf('feucht', 0.025) === 'eingeschraenkt');
+  const r1 = c({ ts: -1, stores: st({ ice: 0.1 }) }), r2 = c({ ts: 0.2, stores: st({ water: 0.02 }) }), r3 = c({ ts: 5, stores: st() });
+  ok('J7 Glätte-Wort: Regel 1–5 ⇒ 1; feucht bei Ts ≤ 0,5 ⇒ 0,5; trocken warm ⇒ 0; „möglich" ⇒ 0,5', slipperinessP(r1, { ...base, ts: -1 }) === 1 && slipperinessP(r2, { ...base, ts: 0.2 }) === 0.5 && slipperinessP(r3, { ...base, ts: 5 }) === 0 && slipperinessP(c({ ts: -0.5, precipType: 'gefrierender-regen-moeglich' }), { ...base, ts: -0.5, precipType: 'gefrierender-regen-moeglich' }) === 0.5);
+  ok('J8 Szenario-Wort v1 (E-VS-3)', VS_SCENARIO === 'ungestreut' && /ohne Streuung/.test(VS_SCENARIO_TEXT));
 }
 
 const failed = checks.filter((c) => !c.pass);
