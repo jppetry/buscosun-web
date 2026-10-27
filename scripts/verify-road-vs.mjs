@@ -30,6 +30,10 @@ import {
 import { coupleModeOf, tsWithFactor, fitCouplingFactor, couplingFactorAt, weatherClassOf, learnResiduals, stationCorrection, neighbourCorrection, correctedSigma } from '../src/road/vs/roadVsCouple.ts';
 import { gallawayFilm, aquaplaningKmh, frostPointOfDew, rimeIntegralUpdate, bourgouinAreas, bourgouinType, classifyRoad, gripOf, slipperinessP, VS_SCENARIO, VS_SCENARIO_TEXT } from '../src/road/vs/roadVsState.ts';
 import { fogVisibilityM, precipVisibilityM, hazeVisibilityM, diagnoseVisibilityM, visibilityProbabilities, capForecastProbabilities, visibilityNow, fitVisLogistic, VS_VIS_DEFAULT_MODEL, VS_VIS_THRESHOLDS_M } from '../src/road/vs/roadVsVis.ts';
+import { ROAD_VS_VAR_IDS, roadVsProductProblems, roadVsProductEncode, roadVsProductDecode, roadVsSrcOf, roadVsDisplay } from '../src/road/vs/roadVsProduct.ts';
+import { hourForcing, VS_SIGMA_SET, nextIndex as nextVsIndex } from './road/vs/run-vs.mjs';
+import { thinRun, vsArchivePath } from './road/vs/archive-vs.mjs';
+import { scoreVs, summaryText, VS_SCORE_LEADS } from './road/vs/score-vs.mjs';
 
 const checks = [];
 const ok = (id, pass, detail = '') => { checks.push({ id, pass: !!pass, detail }); console.log(`${pass ? 'PASS' : 'FAIL'} ${id}${detail ? ` — ${detail}` : ''}`); };
@@ -330,6 +334,76 @@ const close = (a, b, eps = 1e-6) => Math.abs(a - b) <= eps;
   const fit = fitVisLogistic(pairs);
   const brierDefault = VS_VIS_THRESHOLDS_M.map((x) => pairs.reduce((s, p) => s + (visibilityProbabilities(p.sources)[VS_VIS_THRESHOLDS_M.indexOf(x)] - (p.observedM < x ? 1 : 0)) ** 2, 0) / pairs.length);
   ok('K8 logistische Kalibrierung: negative Gewichte auf ln(V/x), Brier nicht schlechter als das unkalibrierte Modell, Modell heißt kalibriert', fit.model.calibrated && fit.model.weights.diag.every((w) => w < 0) && fit.brier.every((b, i) => b <= brierDefault[i] + 0.01) && fit.n === 400, `Brier ${fit.brier.join('/')} gegen ${brierDefault.map((b) => b.toFixed(3)).join('/')}`);
+}
+
+// ── L: product contract, display rule, drive mapping (AW-6.2.7) ─────────────
+{
+  const steps = 3;
+  const mk = () => Object.fromEntries(ROAD_VS_VAR_IDS.map((k) => [k, new Array(steps).fill(null)]));
+  const v = mk(); v.tf[1] = -12; v.tf_src[1] = 2; v.zustand[1] = 3; v.vis_p50[1] = 50;
+  const good = { schema: 1, product: 'road-vs', run: '2026102712', t0Ms: Date.UTC(2026, 9, 27, 12), issuedAt: 'x', steps, kind: 'corridor', id: 'a1', engine: { live: false }, source: 's', points: [{ id: 'a1@0', kind: 'axis', lat: 50, lon: 8, bridge: false, kaltstart: true, szenario: 'ungestreut', v }] };
+  ok('L1 Produktprüfer: gute Datei; live:true, fehlende Reihe, Wert außerhalb, anderes Szenario rot', roadVsProductProblems(good).length === 0 && roadVsProductProblems({ ...good, engine: { live: true } }).some((p) => /live/.test(p)) && roadVsProductProblems({ ...good, points: [{ ...good.points[0], v: { ...v, tf: undefined } }] }).length === 1 && roadVsProductProblems({ ...good, points: [{ ...good.points[0], v: { ...v, tf: [null, 900, null] } }] }).length === 1 && roadVsProductProblems({ ...good, points: [{ ...good.points[0], szenario: 'gestreut' }] }).length === 1);
+  ok('L2 Kodierung: Fahrbahn 0,1 °C, Reif 0,001 mm, Prozent ganzzahlig und geklemmt, Codes', roadVsProductDecode('tf', roadVsProductEncode('tf', -3.14)) === -3.1 && roadVsProductEncode('reif_mm', 0.0234) === 23 && roadVsProductEncode('glaette_p', 120) === 100 && roadVsProductEncode('vis_p300', 86.1) === 86 && roadVsSrcOf(1) === 'gekoppelt' && roadVsSrcOf(9) === null);
+  ok('L2b Antriebs-Kodierung: −0,3 W/m² Nachtstrahlung ⇒ 0 (Toleranz), −20 ⇒ null; Feuchte 100,4 % ⇒ 100', roadVsEncode('swdir', -0.3) === 0 && roadVsEncode('swdir', -20) === null && roadVsEncode('rh2m', 100.4) === 100 && roadVsEncode('rh2m', 103) === null);
+  const d1 = roadVsDisplay('gemessen'), d2 = roadVsDisplay('gekoppelt', { sensorOffSinceMs: Date.UTC(2026, 0, 1, 5, 30) }), d3 = roadVsDisplay('modelliert'), d4 = roadVsDisplay('unbekannt'), d5 = roadVsDisplay(null, { runAgeH: 1 });
+  ok('L3 Anzeigeregel: gemessen → Messung; gekoppelt → „Sensor aus seit 05:30 UTC"; modelliert → Standortkorrektur/breitere Streuung; unbekannt → kein Lauf bzw. Pflichteingang fehlt', d1.word === 'gemessen' && /Sensor aus seit 05:30 UTC/.test(d2.detail) && /Standortkorrektur/.test(d3.detail) && /kein aktueller Lauf/.test(d4.detail) && /Pflichteingang/.test(d5.detail));
+  const fp = { v: { t2m: [null, 50, 40], td2m: [null, 20, 10], u10: [null, 30, 0], v10: [null, 40, 0], swdir: [null, 100, 200], swdif: [null, 50, 60], lwnet: [null, -70, -60], tg: [null, 60, 50], lwdown: [null, 300, null], clct: [null, 50, 50], frz: [null, 0, 10], prr: [null, 100, 0], prs: [null, 0, 50], prg: [null, 0, 0], qc: [null, 5, 0], vis: [null, 8000, null] } };
+  const t0 = Date.UTC(2026, 9, 27, 12);
+  const hIcon = hourForcing(fp, null, t0, 3, 'icon');
+  ok('L4 Antrieb aus ICON: Wind aus u/v, Regen = prr − frz, Schnee prs, LW↓ aus der Datei, sonst Brunt/Bolz-Rückfall; Stunde 0 leer', hIcon[0] === null && hIcon[1].ff === 5 && hIcon[1].rain === 1 && hIcon[1].lwDown === 300 && hIcon[2].lwDown > 200 && hIcon[2].lwDown < 400 && hIcon[2].snow === 0.5 && hIcon[2].frz === 0.1 && hIcon[2].rain === 0 && hIcon[1].vis === 8000 && hIcon[1].mos === null, `${hIcon[2].lwDown?.toFixed(0)}`);
+  const fu = { t0Ms: t0, t: [1, 2, 3], td: [0, 1, 2], ff: [7, 7, 7], rr: [0, 2, 2], sn: [0, 25, 100], vs: [null, 900, 500] };
+  const hF = hourForcing(fp, fu, t0, 3, 'fusion');
+  ok('L5 Antrieb mit Fusion: Luft/Taupunkt/Wind/Niederschlag aus der Streckenprognose (Regen 2·0,75 − frz 0 = 1,5, Schnee 0,5), Strahlung aus ICON, MOSMIX-Sicht dabei', hF[1].ta === 2 && hF[1].td === 1 && hF[1].ff === 7 && close(hF[1].rain, 1.5) && close(hF[1].snow, 0.5) && hF[1].swDir === 100 && hF[1].mos === 900 && hF[2].snow === 2 && hF[2].rain === 0);
+  const fpGap = { v: { ...fp.v, swdir: [null, null, 200] } };
+  ok('L6 fehlende Pflichtgröße (Direktstrahlung) ⇒ Stunde null, nie ein Ersatzwert', hourForcing(fpGap, null, t0, 3, 'icon')[1] === null && hourForcing(fpGap, null, t0, 3, 'icon')[2] !== null);
+  ok('L7 σ-Vorgabe ohne Tabelle: 1 + 0,1·h, Deckel 3 K', VS_SIGMA_SET(0) === 1 && VS_SIGMA_SET(10) === 2 && VS_SIGMA_SET(40) === 3);
+  const idx = nextVsIndex({ runs: [{ run: '2026102709' }, { run: '2026102706' }, { run: '2026102703' }] }, { run: '2026102712' }, 0);
+  ok('L8 Produkt-Zeiger: drei Läufe, neuester zuerst, killed false', idx.runs.map((r) => r.run).join() === '2026102712,2026102709,2026102706' && idx.killed === false && idx.product === 'road-vs-index');
+}
+
+// ── M: archive thinning (AW-6.2.7) ──────────────────────────────────────────
+{
+  const steps = 2;
+  const mkv = () => Object.fromEntries(ROAD_VS_VAR_IDS.map((k) => [k, new Array(steps).fill(null)]));
+  const files = [
+    { run: '2026102712', t0Ms: 1, steps, engine: { live: false }, points: [{ id: 'a1@0', kind: 'axis', lat: 50, lon: 8, bridge: false, kaltstart: true, szenario: 'ungestreut', v: mkv() }, { id: 'S1', kind: 'station', lat: 50, lon: 8, bridge: true, kaltstart: false, couple: { c: 1.2 }, szenario: 'ungestreut', v: mkv() }] },
+    { run: '2026102712', t0Ms: 1, steps, engine: { live: false }, points: [{ id: 'S2', kind: 'station', lat: 51, lon: 9, bridge: false, kaltstart: true, szenario: 'ungestreut', v: mkv() }] },
+  ];
+  const forcing = { run: '2026102712', points: [{ id: 'S1', v: { tg: [1, 2], t2m: [3, 4], swdir: [5, 6] } }, { id: 'a1@0', v: { tg: [9, 9] } }] };
+  const doc = thinRun({ run: '2026102712', files, forcing, shadow: [{ id: 'S1', residualK: 0.5 }] });
+  ok('M1 Archiv-Ausdünnung: nur Stationen (2), Antrieb nur an Stationen und nur die Baseline-Felder, Schatten mitgenommen, Kopplung erhalten', Object.keys(doc.stations).join() === 'S1,S2' && Object.keys(doc.forcing.points).join() === 'S1' && Object.keys(doc.forcing.points.S1).join() === 'tg,t2m' && doc.shadow.length === 1 && doc.stations.S1.couple.c === 1.2 && doc.counts.stations === 2 && doc.engine.live === false);
+  ok('M2 Archivpfad je Tag', vsArchivePath('2026102712') === '2026-10-27/2026102712.json.gz');
+}
+
+// ── N: test stand (AW-6.2.8) on a synthetic archive ─────────────────────────
+{
+  const t0 = Date.UTC(2026, 0, 10, 12), steps = 49;
+  const series = (fill) => Object.fromEntries(ROAD_VS_VAR_IDS.map((k) => [k, new Array(steps).fill(null)])).valueOf() && Object.fromEntries(ROAD_VS_VAR_IDS.map((k) => [k, Array.from({ length: steps }, (_, h) => fill(k, h))]));
+  // Six stations: model = obs + 0,5 K everywhere; station S5 is 2 K too warm (the CV must see it as the held-out error).
+  const ids = ['S0', 'S1', 'S2', 'S3', 'S4', 'S5'];
+  const obsRs = (id, h) => 1 - 0.1 * h + (id === 'S5' ? 0 : 0);           // cold: −3,8 … +1 over 48 h
+  const modelOff = (id) => (id === 'S5' ? 2 : 0.5);
+  const stations = Object.fromEntries(ids.map((id, i) => [id, { lat: 50 + i * 0.1, lon: 8, bridge: i % 2 === 0, kaltstart: false, v: series((k, h) => (k === 'tf' ? Math.round((obsRs(id, h) + modelOff(id)) * 10) : k === 'tf_src' ? (h === 2 ? 0 : 2) : k === 'zustand' ? (h >= 20 ? 3 : 0) : k === 'vis_p1000' ? (h === 2 ? 100 : 0) : k.startsWith('vis_p') ? 0 : null)) }]));
+  const forcing = { run: '2026011012', points: Object.fromEntries(ids.map((id) => [id, { tg: Array.from({ length: steps }, (_, h) => Math.round((obsRs(id, h) + 1.5) * 10)), t2m: Array.from({ length: steps }, (_, h) => Math.round((obsRs(id, h) + 3) * 10)), clct: new Array(steps).fill(20), u10: new Array(steps).fill(60), v10: new Array(steps).fill(0), prr: new Array(steps).fill(0), prs: new Array(steps).fill(0), frz: new Array(steps).fill(0) }])) };
+  const shadow = ids.map((id) => ({ id, validMs: t0 + 2 * 3_600_000, hObs: 2, modelTs: obsRs(id, 2) + modelOff(id), obsTs: obsRs(id, 2), residualK: modelOff(id), cls: 'klar', coldStart: false, obsWf: 0.1, modelWater: 0.05, obsVis: 200 }));
+  const run = { run: '2026011012', t0Ms: t0, steps, engine: { live: false }, stations, forcing, shadow };
+  const gma = (id, ms) => { const h = (ms - t0) / 3_600_000; if (!Number.isInteger(h) || h < 0 || h >= steps || !ids.includes(id)) return null; return { rs: obsRs(id, h), k: h >= 20 ? 'i' : 'd' }; };
+  const sws = (id, ms, t0Ms) => ({ ts: obsRs(id, (ms - t0Ms) / 3_600_000) - 1, rc: 1 });
+  const sc = scoreVs({ runs: [run], gma, swsmos: sws, cvFolds: 2 });
+  const t1 = sc.temperature.alle['1'], t2 = sc.temperature.alle['2'];
+  ok('N1 Temperatur +1 h: Modell MAE 0,75 (5 × 0,5, 1 × 2), Bias +0,75, within1 5/6; T_G 1,5; T2m 3; SWSMOS −1; Persistenz fehlt vor der Messstunde', t1.model.n === 6 && close(t1.model.mae, 0.75) && close(t1.model.bias, 0.75) && close(t1.model.within1, 5 / 6, 1e-3) && close(t1.tg.mae, 1.5) && close(t1.t2m.mae, 3) && close(t1.swsmos.bias, -1) && t1.persist === undefined && t2 === undefined, JSON.stringify(t1?.model));
+  const t3 = sc.temperature.alle['3'];
+  ok('N1b +3 h: Persistenz = Messwert der Stunde 2 ⇒ Fehler 0,1 K; Brücken-Stratum 3 Stationen; Klasse windig bei 6 m/s; 6 Stationen × 7 Vorläufe Paare', close(t3.persist.mae, 0.1, 1e-6) && t3.persist.n === 6 && sc.temperature.bruecke['3'].model.n === 3 && sc.temperature['klasse:windig']['3'].model.n === 6 && sc.pairs === 6 * VS_SCORE_LEADS.length, `${sc.pairs}`);
+  const runM = { ...run, stations: Object.fromEntries(Object.entries(stations).map(([id, s]) => [id, { ...s, v: { ...s.v, tf_src: s.v.tf_src.map((x, h) => (h === 3 ? 0 : x)) } }])) };
+  ok('N1c eine als „gemessen" markierte Stunde zählt nicht als Prognose (+3 h fällt aus den Paaren)', scoreVs({ runs: [runM], gma, swsmos: null, cvFolds: 2 }).temperature.alle['3'] === undefined);
+  const e24 = sc.events.ts0['24'];
+  ok('N2 Ereignis Ts ≤ 0 im Fenster −3 … +1: bei +24 h (obs −1,4) Modell 5 Treffer, S5 (+0,6) verfehlt ⇒ POD 0,83; T2m (+1,6) POD 0; SWSMOS (−2,4) POD 1', e24.model.hit === 5 && e24.model.miss === 1 && close(e24.model.pod, 5 / 6, 1e-3) && e24.t2m.pod === 0 && e24.swsmos.pod === 1 && sc.events.ts0['48'] === undefined, JSON.stringify(e24.model));
+  const i24 = sc.events.ice['24'];
+  ok('N2b Eis-Ereignis: GMA „i" ab Stunde 20, Modell Reif (3) ab 20 ⇒ POD 1, FAR 0; SWSMOS RC 1 ⇒ POD 0', i24.model.pod === 1 && i24.model.far === 0 && i24.swsmos.pod === 0, JSON.stringify(i24));
+  ok('N3 Kontingenz: +24 h Modell reif × GMA eis = 6; +1 h trocken × trocken = 6', sc.contingency['24|reif|eis'] === 6 && sc.contingency['1|trocken|trocken'] === 6);
+  ok('N4 Film: |0,05 − 0,1| mm = 50 µm MAE über 6 Paare; Sicht: P(<1000) = 1 bei 200 m ⇒ Brier 0, P(<300) = 0 ⇒ Brier 1', sc.film.n === 6 && close(sc.film.maeUm, 50, 1e-6) && sc.visibility[0].brier === 0 && sc.visibility[1].brier === 1 && sc.visibility[0].reliability[9].n === 6);
+  ok('N5 Stationsweise 2-fach-CV: roh MAE = mittlerer Versatz der Testfalte; korrigiert über den gepoolten Stunden-/Klassen-Mittelwert kleiner oder gleich', sc.cv.folds === 2 && sc.cv.perFold.every((f) => f.stations === 3 && f.raw.n === 3) && sc.cv.meanCorrectedMae <= sc.cv.meanRawMae + 1e-9, `${sc.cv.meanRawMae} → ${sc.cv.meanCorrectedMae}`);
+  ok('N6 Zusammenfassung nennt Läufe, Paare, Vorläufe und Film', /Läufe 1, Paare/.test(summaryText(sc)) && /\+24 h: model MAE/.test(summaryText(sc)) && /Film: MAE 50 µm/.test(summaryText(sc)));
 }
 
 const failed = checks.filter((c) => !c.pass);

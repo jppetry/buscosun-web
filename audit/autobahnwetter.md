@@ -2208,3 +2208,87 @@ Memberanteil (Startprompt) ist nicht gebaut: der v1-Pfad führt kein `icon-d2-ru
 Minimum mit begrenzender Größe; Wahrscheinlichkeiten an 100 m / 20 km / Schwelle (0,5); Renormierung; Deckel; Sicht jetzt mit beiden
 Ausschlüssen; Kalibrierung auf 400 synthetischen Paaren ⇒ negative Gewichte, Brier 0,044/0,035/0,036/0,043 ≈ unkalibriert (synthetisch
 ohne echten Zugewinn — erwartungsgemäß). `verify:road-vs` **94/94**.
+
+### 20.13 AW-6.2.7 Datenvertrag, Dauerlauf, Anzeige (27.10.2026)
+
+**Vertrag** `src/road/vs/roadVsProduct.ts`: eigener Pfad `road/vs/v1/<lauf>/c/<korridor>.json`, `s/<land>.json`, `index.json`, Zustand
+`state.json.gz`, Schatten `shadow/<lauf>.jsonl.gz`, Residuen `static/residuals.json` — **additiv, `road/fc/v1` bleibt unverändert**
+(Schema-Erhöhung dort entfällt, weil kein Byte der Streckenprognose sich ändert). Reihen je Punkt 0 … 48 h (ganzzahlig kodiert wie
+`road/fc`): `tf` 0,1 °C, `tf_sigma`, `tf_src` (0 gemessen / 1 gekoppelt / 2 modelliert / 3 unbekannt), `tf_bruecke`, `wasser_mm`,
+`schnee_mm`, `eis_mm`, `reif_mm`, `wasserfilm_mm`, `zustand` (0–7), `glaette_p`, `griff`, `vis_p1000/300/150/50`, `vis_src`; je Punkt
+`kaltstart`, `couple {c, mode, ageH, converged}`, `corr {k, from, n}`, `szenario: ungestreut`; Kopf `engine` (Kern, Antrieb, Fusion-Lauf,
+Messslot, Residuen-Tabelle, Sicht kalibriert?, σ-Herkunft, Zähler, **`live: false`** — der Prüfer lehnt `live: true` ab). Anzeigeregel
+`roadVsDisplay` (gemessen → Messung; gekoppelt → „Sensor aus seit hh:mm UTC"; modelliert → „Modell mit Standortkorrektur, breitere
+Streuung"; unbekannt → „kein aktueller Lauf" / „Pflichteingang fehlt"). Leser `roadVsClient.ts` (jsDelivr + raw-Hedge des Road-Clients,
+Zeiger + Datei, veraltet > 9 h). **Nicht verdrahtet:** `RoadReadout.tsx` zeigt den VS noch nicht — die Seite liegt in einer fremden
+uncommitteten Linie (`RoadPage.tsx`, AWD) und der Schalter ist aus; die Verdrahtung hinter `ROAD_VS_LIVE` ist der erste Schritt nach
+Gate G (V-VS-17). `roadHazards.ts` liest nichts davon (Startprompt: erst nach Gate G).
+
+**Derive** `scripts/road/vs/run-vs.mjs`: Antrieb → je Punkt `VsHourForcing` (Fusion-Luft/Taupunkt/Wind/Niederschlag der Streckenprognose
+wo vorhanden, sonst ICON; Strahlung immer ICON; LW↓-Rückfall Brunt/Bolz; fehlende Pflichtgröße ⇒ Stunde null und Abbruch der Reihe,
+nie Ersatz) → Zustand vom Schnappschuss des Vorlaufs bei t0 (sonst Kaltstart aus T_G bzw. Luft, Alter des alten Punkts vererbt) →
+Durchgang 1 ohne Kopplung (alle Punkte) → QC der Stationen zweistufig (eigene Schritte, dann Nachbar-Residuen und Modell) → Durchgang 2
+Kopplung (Fenster 3 h aus dem Schnappschuss; Modus nach Sonne, **Rückfall auf den anderen Eingang, wenn der erste den Messwert nicht
+erreicht**, Grenzfaktor nie blind) → Ausgabe mit Standortkorrektur (Tabelle, Nachbarn), σ (Tabelle oder `set` 1 + 0,1·h ≤ 3 K, benannt),
+Klassen, Gallaway, Sicht (Messung an der Messstunde, sonst Wahrscheinlichkeiten) → Zustand (Schnappschüsse 0 … 9 h, auf 0,01 K / 0,001
+mm gerundet) → Schattenpaare → Publish pfadbegrenzt. Workflow-Vorlage `workflow-road-vs.yml`: Schritt „Virtual sensor" nach dem Antrieb,
+Sparse `road/fc/v1 road/v1 road/vs`. Archiv `archive-vs.mjs` (Stationspunkte, Antrieb an Stationen, Schatten je Lauf → `buscosun-archiv/
+road/vs/v1/<Tag>/<Lauf>.json.gz`) als Schritt der `road-archiv`-Vorlage (Sparse des Daten-Klons um `road/vs/v1` erweitert).
+Residuen-Lerner `build-residuals.mjs` (aus dem Archiv, ≥ 7 Tage, ohne Kaltstart-Paare, `--holdout`).
+
+**Erster Volllauf (27.10. 19:58 UTC+1, lokal, Antrieb 2026-10-27 15 UTC, Messslot 17:15 = Stunde +2, Fusion-Lauf 17:19):** 4 772 Punkte,
+**1 086 gekoppelt** (QC gültig 1 086, verworfen 378 von 1 464 Stationen im Slot), alle Kaltstart (kein Zustand), 0 korrigiert (keine
+Tabelle); Schattenpaare 1 086, **Modell − Messung p10/p50/p90 = −2,13 / −0,76 / +0,82 K** beim Kaltstart nach 2 h (Start aus T_G; ein
+eingeschwungenes Profil fehlt — Zahl informativ, kein Gate); Produkt **11,2 MB** roh (212 Korridore + 16 Länder), **184 s**. Keine
+Stunde `unbekannt`, keine `tf`-Lücke. Beispiel P756 (Brücke, A 8): gekoppelt `sw` am Anschlag 3 (Sonne um 17 UTC Ende Oktober zu schwach)
+— daher der Modus-Rückfall; **zweiter Volllauf mit Rückfall: 0 Kopplungen am Anschlag**, 191 s, Zustand nach Rundung und 10
+Schnappschüssen **1,18 MB gz** (vorher 8,25). Archiv-Ausdünnung desselben Laufs: 1 814 Stationen, 1 086 Paare, **303 KB gz**; der
+Prüfstand lief darauf durch (0 Paare — das GMA-Archiv reicht lokal bis 26.10., der Lauf ist vom 27.10.). `verify:road-vs` **115/115**,
+`verify:road-archive` 33/33, `typecheck` grün.
+
+**Größenbudget je Lauf (gemessen):** Antrieb 4,64 MB gz · Produkt 11,2 MB roh (≈ 1,3 MB gz über jsDelivr) · Zustand 1,2 MB gz ·
+Schatten ≈ 60 KB gz; acht Läufe am Tag ⇒ ≈ 100 MB Commits je Tag im Daten-Repo (dessen Historie die Kartenlinie kürzt);
+Archiv 0,3 MB je Lauf ⇒ ≈ 2,4 MB/Tag (V-VS-18: Produkt nur Stationen + Achspunkte alle 10 km, wenn das Daten-Repo drückt).
+
+### 20.14 AW-6.2.8 Prüfstand und Gate G (27.10.2026 — Werkzeug gebaut, Messung erst mit Archivdaten)
+
+**Gebaut** `scripts/road/vs/score-vs.mjs` (rein rechnend, Verdikte kommen aus dem Skript): Fahrbahntemperatur je Vorlauf 0/1/3/6/12/24/48 h
+Bias, MAE, RMSE, Anteil ±1/±2 K; Schichtung Tag/Nacht, Wetterklasse (aus dem archivierten Antrieb), Brücke/Strecke, Kaltstart/eingeschwungen;
+Baselines auf denselben Paaren: **Persistenz** (GMA-Wert der Messstunde, erst ab dieser Stunde), **SWSMOS TS** (jüngster Lauf ≤ t0),
+**ICON T_G**, **T2m**; Stunden mit `tf_src = gemessen` zählen nicht als Prognose. **Ts ≤ 0 °C** POD/FAR/CSI nur für gemessene Ts in
+−3 … +1 °C gegen alle Baselines; **Eis/Reif** (Modellklassen 3/4/6/7 gegen GMA-Klasse `i`) gegen Persistenz und SWSMOS RC 3–6;
+Kontingenz Modellgruppe × GMA-Buchstabe je Vorlauf; **Wasserfilm MAE in µm** an der Messstunde; **Sicht Brier** je Schwelle mit
+10-Stufen-Zuverlässigkeit; **stationsweise K-fach-CV** der Standortkorrektur (Tabelle auf K−1 Falten; auf der Testfalte roh gegen
+korrigiert — eine fremde Station hat keine eigene Zelle, der übertragbare Teil ist das gepoolte Stunden-/Klassen-Mittel). Datumsblöcke:
+`--from/--to`. Verifier Abschnitt N (8) auf einem synthetischen Archiv mit bekannten Fehlern (0,5 K / 2 K, Persistenz 0,1 K, T_G 1,5,
+T2m 3, SWSMOS −1; Ereignisse im Fenster; Kontingenz; Film 50 µm; Brier 0/1; CV 2 Falten). `verify:road-vs` **113/113**.
+
+**Was heute messbar ist — ehrlich:** nichts. Das GMA-Archiv läuft seit 03.10., das SWSMOS-Archiv seit heute (Scratch), das VS-Archiv
+entsteht erst mit dem Workflow; Frostfälle gibt es im Oktober kaum (FB: 33 Ereignisse). **Gate G braucht Winterdaten im Schattenbetrieb**
+(Startprompt). Zielwerte des Startprompts: Ts RMSE ≤ 1,5 K bis Tag 1, Frost POD > 87 %, FAR < 30 %.
+
+**Vorschlag der Gate-G-Schwellen (Jan entscheidet, nach dem ersten echten Lauf des Skripts auf ≥ 14 Tagen Archiv):**
+G-T1 MAE(Modell) < MAE(Persistenz) ab +2 h und < MAE(SWSMOS TS), MAE(T_G), MAE(T2m) bei jedem Vorlauf 1 … 48 h, 95-%-Bootstrap über Läufe
+(wie Gate D-T); G-T2 RMSE ≤ 1,5 K bis +24 h, eingeschwungene Punkte; G-K Ts ≤ 0 °C: POD ≥ 0,87 und FAR ≤ 0,30 bei +1/+3/+6 h mit ≥ 200
+Ereignissen im Fenster, besser als Persistenz und SWSMOS; G-F Film MAE < 100 µm bei nassen Stunden (`set`, erst nach Kalibrierung des
+Speicherfaktors); G-S Sicht Brier je Schwelle < Klimatologie-Brier (Basisrate) und Zuverlässigkeitskurve innerhalb ±0,1; G-C
+Standortkorrektur: korrigiert ≤ roh in jeder CV-Falte. Rot in einem Teil ⇒ der Teil bleibt im Schatten, der Rest kann gezeigt werden
+(Anzeigeregel je Größe, `tf_src`).
+
+### 20.15 Zusammenfassung der Linie nach dem ersten Tag und Liste aller `set`-Werte
+
+**Stand:** alle acht Arbeitspakete gebaut und mit 113 netzfreien Prüfungen belegt; ein echter Volllauf (Antrieb 117 s, Derive 184 s)
+auf dem lokalen Klon; nichts in den Daten-/Archiv-Repos, nichts sichtbar (`ROAD_VS_LIVE = false`); Workflows als Vorlagen. Prüfstand-
+Ergebnis gegen die Baselines: **keines** — es gibt noch kein Archiv des Schattenbetriebs (§20.14). Jans Schritte: `MANUELLE-SCHRITTE.md` §79.
+
+**Alle `set`-Werte, die kalibriert werden müssen** (Ort → Weg): ε_s 0,95 (`ROAD_VS_SURFACE_EMISSIVITY` → ICON-Doku); Brunt/Bolz a b c
+(→ Fit gegen ATHB_S-LW↓); QC-Konstanz 4 h, Winterband −10/+15 K, Tukey k 1,5 / n 5 / Boden 1 K, Modell-k 4 σ / Boden 1 K (→ Archiv-Zählung
+Fehlalarme/Treffer); Health R8 20 Reihen (= Vertrag); SWSMOS-Kürzung; Zellindex 5 km; Horizont Nahfeld 5 km / Schritt 30 m / k 0,13;
+Querneigung 2,5 % / Kurvenradius 4 000 m / Fahrstreifen 2 × 3,75 m; Geländeklasse ±15 m / 5°; Beton-Anteil 0,5; Knotentiefen; Unterbau
+λ 1,5 ab 0,30 m; Albedo nass 0,08; r_a-Boden 30 s/m; ζ ∈ [−2; 1], 5 Iterationen; Tiefenklimatologie 10,0 ± 1,5 K / Tag 270; Kaltstart
+168 h; Gefrierband ±0,1 K; Schatten-Diffus 0,15; Verkehr 10/5 W/m² + Mindestwind; Speicher-Maxima und Abrieb (finnisch); Regen-T =
+max(Ta, 0); Kopplung Sonnen-Schwelle 20 W/m², 14 Iterationen; Wetterklassen-Schwellen; Residuen minN 5 / shrinkN 10 / minDays 7 /
+Radius 25 km / Band 300 m / σ-Faktor 1,5; Film-Speicherfaktor 1,0; Gallaway T_XD 0,5 mm, g 0 %; Reif-Integral 1 K·h / Reset 1 K /
+Mindestspeicher 0,02 mm; Klassenschwellen (Schnee 0,2 mm, Matsch, Eis 0,05 mm); Griff-Zuordnung; glaette_p 0/0,5/1; Dunst 20 km →
+1 km über 2 K; Sicht-Gewichte −1,5 je Quelle, Deckel P(<50) 0,5; Nachbar-Sicht 15 km / 100 m; σ-Vorgabe 1 + 0,1·h ≤ 3 K; Produkt-
+Aufbewahrung 3 Läufe, Zustands-Historie 9 h, veraltet 9 h; Gate-G-Schwellen (Vorschlag).
