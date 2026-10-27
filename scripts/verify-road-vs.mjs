@@ -27,6 +27,7 @@ import {
   VS_DT_S, VS_DT_LIMIT_S, VS_NODE_DEPTH_M, VS_SPINUP_H, VS_DEEP_SOIL, makeColumn, stepColumn, columnHeatJ, roadMaterialAt, initState, integrateHour,
   sensibleHeat, vsStateProblems, deepSoilC, albedoOf, emptyStores,
 } from '../src/road/vs/roadVsCore.ts';
+import { coupleModeOf, tsWithFactor, fitCouplingFactor, couplingFactorAt, weatherClassOf, learnResiduals, stationCorrection, neighbourCorrection, correctedSigma } from '../src/road/vs/roadVsCouple.ts';
 
 const checks = [];
 const ok = (id, pass, detail = '') => { checks.push({ id, pass: !!pass, detail }); console.log(`${pass ? 'PASS' : 'FAIL'} ${id}${detail ? ` — ${detail}` : ''}`); };
@@ -235,6 +236,41 @@ const close = (a, b, eps = 1e-6) => Math.abs(a - b) <= eps;
   const d1 = deepSoilC(Date.UTC(2026, 8, 27)), d2 = deepSoilC(Date.UTC(2026, 2, 28));
   ok('H10 Tiefentemperatur: Maximum Ende September, Minimum Ende März, innerhalb Mittel ± Amplitude', close(d1, VS_DEEP_SOIL.meanC + VS_DEEP_SOIL.ampK, 0.01) && close(d2, VS_DEEP_SOIL.meanC - VS_DEEP_SOIL.ampK, 0.01));
   ok('H11 Albedo: Schnee 0,6; 0,75 mm Eis ⇒ 0,35; nass 0,08; trocken 0,10', albedoOf({ ...emptyStores(), snow: 1 }) === 0.6 && close(albedoOf({ ...emptyStores(), ice: 0.75 }), 0.35) && albedoOf({ ...emptyStores(), water: 0.2 }) === 0.08 && albedoOf(emptyStores()) === 0.1);
+}
+
+// ── I: coupling and site correction (AW-6.2.4) ─────────────────────────────
+{
+  const siteFlat = { lat: 50, lon: 8.5, svf: 1, hz: null, bridge: false, surface: 'asphalt' };
+  const nightF = (ms) => ({ validMs: ms, ta: 1, td: -1, ff: 2, pHpa: 1000, swDir: 0, swDif: 0, lwDown: 260, rain: 0, snow: 0, frz: 0 });
+  const dayF = (ms) => ({ validMs: ms, ta: 8, td: 1, ff: 2, pHpa: 1000, swDir: 300, swDif: 100, lwDown: 300, rain: 0, snow: 0, frz: 0 });
+  const t0 = Date.UTC(2026, 0, 20, 0);
+  const start = initState(t0, 3, 'ta', siteFlat);
+  const win = [1, 2, 3].map((h) => nightF(t0 + h * 3_600_000));
+  const dayWin = [10, 11, 12].map((h) => dayF(Date.UTC(2026, 0, 20, h)));
+  ok('I1 Modus: Nachtfenster ⇒ langwellig, Tagfenster ⇒ kurzwellig', coupleModeOf(win) === 'lw' && coupleModeOf(dayWin) === 'sw');
+  // Truth produced with C = 1.6 on the longwave; the fit must find it back within the tolerance.
+  const truth = tsWithFactor(start, siteFlat, null, win, 'lw', 1.6);
+  const fit = fitCouplingFactor({ start, site: siteFlat, window: win, obsTs: truth });
+  ok('I2 Bisektion findet C_R = 1,6 zurück (|ΔTs| ≤ 0,1 K), Startzustand unverändert', fit.converged && Math.abs(fit.c - 1.6) < 0.08 && Math.abs(fit.residualK) <= 0.1 && start.T[0] === initState(t0, 3, 'ta', siteFlat).T[0] && start.ageH === 0, `C ${fit.c}, Rest ${fit.residualK}, ${fit.iterations} Iterationen`);
+  const dayStart = initState(Date.UTC(2026, 0, 20, 9), 5, 'ta', siteFlat);
+  const truthSw = tsWithFactor(dayStart, siteFlat, null, dayWin, 'sw', 0.6);
+  const fitSw = fitCouplingFactor({ start: dayStart, site: siteFlat, window: dayWin, obsTs: truthSw });
+  ok('I2b kurzwellig: C_R = 0,6 (Schatten/Dunst) zurückgefunden', fitSw.mode === 'sw' && fitSw.converged && Math.abs(fitSw.c - 0.6) < 0.08, `C ${fitSw.c}`);
+  const tooWarm = fitCouplingFactor({ start, site: siteFlat, window: win, obsTs: truth - 25 });
+  ok('I2c Messung 25 K unter jedem erreichbaren Wert ⇒ Grenze 0,01, nicht konvergiert, benannt', !tooWarm.converged && tooWarm.c === 0.01 && tooWarm.residualK > 0);
+  ok('I3 Abklingen C(t) = 1 + (C_R − 1)·e^(−t/4 h): t 0 ⇒ C_R, t 4 h ⇒ 1 + 0,368·(C_R − 1), t → ∞ ⇒ 1', couplingFactorAt(1.6, 0) === 1.6 && close(couplingFactorAt(1.6, 4), 1 + 0.6 * Math.exp(-1), 1e-9) && close(couplingFactorAt(0.5, 100), 1, 1e-9));
+  ok('I4 Wetterklassen: nass vor windig vor klar; bewölkt sonst', weatherClassOf({ ff: 7, clct: 10, rain: 0.2, snow: 0, frz: 0 }) === 'nass' && weatherClassOf({ ff: 7, clct: 10, rain: 0, snow: 0, frz: 0 }) === 'windig' && weatherClassOf({ ff: 1, clct: 10, rain: 0, snow: 0, frz: 0 }) === 'klar' && weatherClassOf({ ff: 1, clct: 80, rain: 0, snow: 0, frz: 0 }) === 'bewoelkt' && weatherClassOf({ ff: 1, clct: 10, rain: 0, snow: 0, frz: 0, filmMm: 0.2 }) === 'nass');
+  const pairs = [];
+  for (let d = 0; d < 10; d++) { pairs.push({ station: 'S1', validMs: Date.UTC(2026, 0, 1 + d, 3), cls: 'klar', residualK: 1.0 + (d % 2 ? 0.2 : -0.2) }); pairs.push({ station: 'S2', validMs: Date.UTC(2026, 0, 1 + d, 3), cls: 'klar', residualK: -0.5 }); }
+  for (let d = 0; d < 3; d++) pairs.push({ station: 'S3', validMs: Date.UTC(2026, 0, 1 + d, 3), cls: 'klar', residualK: 5 });
+  const tab = learnResiduals(pairs, '2026-01-11T00:00:00Z');
+  const c1 = stationCorrection(tab, 'S1', Date.UTC(2026, 0, 12, 3), 'klar');
+  ok('I5 Residuentabelle: Zelle 3 UTC/klar mit n 10 gelernt, geschrumpft 1,0·10/20 = 0,5; S3 mit n 3 < 5 fehlt; andere Stunde 0', tab.stations.S1['3:klar'].n === 10 && close(tab.stations.S1['3:klar'].mean, 1.0, 1e-9) && c1.k === 0.5 && tab.stations.S3 === undefined && stationCorrection(tab, 'S1', Date.UTC(2026, 0, 12, 4), 'klar').k === 0 && tab.window.days === 9 && Number.isFinite(tab.sigma.klar), JSON.stringify(c1));
+  const me = { id: 'a1@5', lat: 50.0, lon: 8.5, h: 120, terrain: 'eben' };
+  const gma = [{ id: 'S1', lat: 50.05, lon: 8.5, h: 130, terrain: 'eben' }, { id: 'S2', lat: 50.1, lon: 8.5, h: 140, terrain: 'eben' }, { id: 'S9', lat: 50.01, lon: 8.5, h: 450, terrain: 'eben' }, { id: 'S8', lat: 50.01, lon: 8.51, h: 120, terrain: 'tal' }];
+  const nb = neighbourCorrection(tab, me, gma, Date.UTC(2026, 0, 12, 3), 'klar');
+  ok('I6 Nachbar-Übertrag: Residuen von S1 (0,5, 5,6 km) und S2 (−0,25, 11 km) mit 1/d gewichtet; anderes Höhenband und andere Geländeklasse ausgeschlossen', nb && nb.n === 2 && nb.from.join() === 'S1,S2' && close(nb.k, (0.5 / 5.56 + -0.25 / 11.12) / (1 / 5.56 + 1 / 11.12), 0.02) && neighbourCorrection(tab, me, gma, Date.UTC(2026, 0, 12, 4), 'klar') === null && neighbourCorrection(null, me, gma, 0, 'klar') === null, JSON.stringify(nb));
+  ok('I7 σ: Klassen-σ der Tabelle, in klarer Nacht × 1,5; ohne Tabelle der Rückfallwert', close(correctedSigma(tab, 'klar', Date.UTC(2026, 0, 12, 3), 2), tab.sigma.klar * 1.5, 0.02) && correctedSigma(tab, 'klar', Date.UTC(2026, 0, 12, 12), 2) === tab.sigma.klar && correctedSigma(null, 'nass', 0, 2) === 2);
 }
 
 const failed = checks.filter((c) => !c.pass);

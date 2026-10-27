@@ -2142,3 +2142,25 @@ Auslösung (6.2.5), Sicht (6.2.6), Produkt + Dauerlauf mit Zustand in `buscosun-
 **`set`-Zeilen dieses Pakets** (Ergänzung zu 20.6): Knotentiefen; Unterbau λ 1,5 ab 0,30 m; Albedo nass 0,08; r_a-Boden 30 s/m
 (Lesart); ζ-Klammer [−2; 1], 5 Iterationen; Tiefenklimatologie 10,0 ± 1,5 K / Tag 270; Kaltstart 168 h; Gefrierband ±0,1 K;
 Wald-Schatten-Diffus 0,15; Verkehr 10/5 W/m²; Mindestwind; Speicher-Maxima und Abrieb; Regen-Temperatur = max(Ta, 0).
+
+### 20.10 AW-6.2.4 Kopplung und Standortkorrektur (27.10.2026)
+
+**Gebaut** `src/road/vs/roadVsCouple.ts`: `fitCouplingFactor` (Bisektion C ∈ [0,01; 3] über ein erneut gerechnetes 3-h-Fenster aus
+dem gespeicherten Zustand, Ziel |ΔTs| ≤ 0,1 K, höchstens 14 Iterationen; Modus `sw`, wenn das Fenster im Mittel ≥ 20 W/m² Global-
+strahlung hatte (`set`), sonst `lw`; läuft die Messung aus dem erreichbaren Band, wird die Grenze zurückgegeben und `converged:
+false` benannt — kein stilles Anschlagen), `couplingFactorAt` (C(t) = 1 + (C_R − 1)·e^(−t/4 h)), Wetterklassen `klar/bewoelkt/
+windig/nass` (`set`: nass ≥ 0,1 mm/h oder Film ≥ 0,05 mm; windig ≥ 5 m/s; klar ≤ 30 % Bedeckung und < 3 m/s), Residuentabelle
+`learnResiduals` (Station × UTC-Stunde × Klasse; Zelle erst ab n ≥ 5; Schrumpfung n/(n + 10); gepooltes σ je Klasse; Fenster/Paare
+im Kopf; Start frühestens nach 7 Tagen = `minDays`), `stationCorrection`, `neighbourCorrection` (Achspunkte: Residuen der GMA im
+25-km-Radius, gleiches 300-m-Höhenband UND gleiche Geländeklasse, Gewicht 1/d, nie Rohwerte), `correctedSigma` (Klassen-σ, in klaren
+ruhigen Nächten × 1,5). Die Tabelle wird im Derive (6.2.7) aus den Schattenpaaren gelernt und als `road/vs/v1/static/residuals.json`
+abgelegt; gepooltes Gradient-Boosting bewusst nicht gebaut — Notiz: nach einem vollen Winter (Startprompt), V-VS-12.
+
+**Verifier** Abschnitt I (9): Modus; Bisektion findet C_R 1,6 (langwellig, Nacht) und 0,6 (kurzwellig, Tag) in 9 Iterationen zurück
+(Rest −0,04 K), Startzustand bleibt unverändert; unerreichbare Messung ⇒ Grenze + `converged: false`; Abklingen an drei Stützen;
+Wetterklassen-Reihenfolge; Tabelle (n 10 gelernt, 1,0 K ⇒ 0,5 K geschrumpft, n 3 fällt, fremde Stunde 0, Fenster 9 Tage, σ);
+Nachbar-Übertrag mit 1/d und beiden Ausschlüssen; σ-Faktor. `verify:road-vs` **73/73**.
+
+**`set`-Zeilen:** Sonnen-Schwelle 20 W/m²; 14 Iterationen; Klassen-Schwellen; minN 5, shrinkN 10, minDays 7; Radius 25 km, Band 300 m;
+σ-Faktor 1,5. Offen: die Kopplung braucht den Zustand von vor 3 h — der Derive (6.2.7) hält je Punkt einen Schnappschuss je Stunde
+der letzten 6 h (`history`), sonst wäre das Fenster nicht neu rechenbar (V-VS-13).
