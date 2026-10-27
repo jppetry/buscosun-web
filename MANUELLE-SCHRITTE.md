@@ -3063,3 +3063,15 @@ Zweig `feat/aw-6.2-virtueller-sensor`, ein Commit je Arbeitspaket; nichts davon 
    gepusht; sie geht mit dem ersten Push der Linie ins Daten-Repo (Schritt 5), zusammen mit `static/cells.json` aus dem ersten
    Antriebslauf. Neubau nur bei neuer Punktdatei: `build-site.mjs --data=… --cache=C:\dev\buscosun-road-publish\cache\glo30` (≈ 5 min,
    1,3 GB GLO-30 aus dem Plattencache).
+9. **Dauerlauf (6.2.7) und Archiv:** die Vorlage `scripts/road/workflow-road-vs.yml` enthält jetzt zwei Schritte (Antrieb, dann
+   `run-vs.mjs --publish`; Sparse `road/fc/v1 road/v1 road/vs`), die `road-archiv`-Vorlage den Schritt „Archive virtual sensor"
+   (`archive-vs.mjs`, Daten-Klon sparse um `road/vs/v1` erweitert). Einspielen wie in Schritt 5. Erster Lauf lokal gemessen: Antrieb
+   117 s, Derive 191 s, 1 086 gekoppelte Stationen, Zustand 1,2 MB gz, Produkt 11 MB roh — acht Läufe am Tag ≈ 100 MB Commits im
+   Daten-Repo (V-VS-18, bei Bedarf Zustand/Produkt dünner).
+10. **Standortkorrektur lernen (ab ≈ 7 Tage Archiv):** `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/road/vs/build-residuals.mjs --archive=C:\dev\buscosun-archiv\road\vs\v1 --out=C:\dev\buscosun-data\road\vs\v1\static\residuals.json`,
+    dann Commit/Push des Daten-Repos (Weg V-WL-20). Ohne Tabelle rechnet der VS ohne Korrektur und sagt es im Kopf (`residuals: null`).
+11. **Prüfstand (6.2.8, ab ≈ 14 Tage Archiv, Gate G erst mit Winterdaten):** `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/road/vs/score-vs.mjs --vs=C:\dev\buscosun-archiv\road\vs\v1 --gma=C:\dev\buscosun-archiv\road\v1 --swsmos=C:\dev\buscosun-archiv\swsmos\v1 --out=audit\autobahnwetter\vs\score-<Datum>.json`
+    — Ergebnis mit allen Baselines in §20.14; danach entscheidest du die Gate-G-Schwellen (Vorschlag dort).
+12. **Nicht gebaut (bewusst, offen):** Verdrahtung in `RoadReadout.tsx` hinter `ROAD_VS_LIVE` (V-VS-17, nach Gate G — die Seite liegt in
+    der fremden AWD-Linie uncommitted); Modellflächen T/HHL für Bourgouin (V-VS-6); RUC-EPS-Memberanteil (gibt es im v1-Pfad nicht);
+    CDC-Sichtstationen für die Kalibrierung (V-VS-15); POI-Sicht (V-VS-14); gepooltes Gradient-Boosting (nach einem Winter, V-VS-12).

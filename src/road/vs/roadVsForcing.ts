@@ -104,11 +104,18 @@ export const ROAD_VS_RANGE: Readonly<Record<RoadVsField, readonly [number, numbe
   qc: [0, 20000], qr: [0, 50000], qs: [0, 50000], qg: [0, 50000], tch: [0, 10], vis: [0, 100000], lwdown: [50, 600],
 });
 
+/**
+ * Soft tolerance beyond the range that is clamped instead of nulled (`set`): the de-averaging of radiation leaves small negative
+ * hourly means at night (−0,3 W/m² from two rounded since-start means), ICON's relative humidity exceeds 100 % by a few tenths;
+ * both are the representation, not a wrong unit. Anything beyond the tolerance is still null and counted.
+ */
+export const ROAD_VS_SOFT: Partial<Record<RoadVsField, number>> = Object.freeze({ swdir: 5, swdif: 5, rh2m: 2, clct: 1, clcl: 1, prr: 0.01, prs: 0.01, prg: 0.01, frz: 0.01 });
 export const roadVsEncode = (id: RoadVsField, x: number | null | undefined): number | null => {
   if (x == null || !Number.isFinite(x)) return null;
   const [lo, hi] = ROAD_VS_RANGE[id];
-  if (x < lo || x > hi) return null;
-  return Math.round(x * ROAD_VS_FIELDS[id].scale);
+  const tol = ROAD_VS_SOFT[id] ?? 0;
+  if (x < lo - tol || x > hi + tol) return null;
+  return Math.round(Math.max(lo, Math.min(hi, x)) * ROAD_VS_FIELDS[id].scale);
 };
 export const roadVsDecode = (id: RoadVsField, i: number | null | undefined): number | null =>
   (i == null || !Number.isFinite(i) ? null : i / ROAD_VS_FIELDS[id].scale);

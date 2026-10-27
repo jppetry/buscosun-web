@@ -79,7 +79,7 @@ jobs:
         run: |
           git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-data.git data
           cd data
-          git sparse-checkout set --no-cone road/v1 road/fc/v1
+          git sparse-checkout set --no-cone road/v1 road/fc/v1 road/vs/v1
           git checkout --quiet
           test -f road/v1/status.json || { echo "road/v1/status.json fehlt im Daten-Repo"; exit 1; }
 
@@ -99,6 +99,16 @@ jobs:
           cd app
           test -f ../data/road/fc/v1/index.json || { echo "noch keine Streckenprognose im Daten-Repo"; exit 0; }
           node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/road/road-fc-archive.mjs             --fc=../data/road/fc/v1 --archive=../road/fc/v1
+
+      # AW-6.2.7: der virtuelle Fahrbahnsensor — Stationspunkte, Antrieb an den Stationen, Schattenpaare je Lauf (road/vs/v1/<Tag>/<Lauf>.json.gz).
+      # Ohne Produkt im Daten-Repo (vor dem ersten Lauf) endet der Schritt grün ohne Ablage.
+      - name: Archive virtual sensor
+        continue-on-error: true
+        run: |
+          cd app
+          test -f ../data/road/vs/v1/index.json || { echo "noch kein virtueller Sensor im Daten-Repo"; exit 0; }
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/road/vs/archive-vs.mjs \
+            --store=../data/road/vs/v1 --archive=../road/vs/v1
 
       # AW-6.2.1 / E-VS-7: das DWD-Straßenwetter-MOS (SWSMOS), gekürzt auf GMA-Stationen, TL TS TD RC und 48 h, je Lauf eine
       # Datei unter swsmos/v1/ (≈ 5 MB je Tag). Der DWD hält 48 Läufe vor; ein Durchgang holt bis zu sechs nach — ein

@@ -45,8 +45,11 @@ jobs:
           ref: main
           fetch-depth: 1
           filter: blob:none
+          # Antrieb braucht nur die Punktdatei; der Derive (6.2.7) liest dazu die GMA-Slots und Ringe (`road/v1`), die
+          # jüngste Streckenprognose (`road/fc/v1`, buscosun Fusion als Luft/Taupunkt/Wind/Niederschlag) und `road/vs`.
           sparse-checkout: |
-            road/fc/v1/static
+            road/fc/v1
+            road/v1
             road/vs
           sparse-checkout-cone-mode: true
 
@@ -76,3 +79,13 @@ jobs:
           cd "$RUNNER_TEMP/app"
           node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/register-ts.mjs \
             scripts/road/vs/build-forcing.mjs --data="$GITHUB_WORKSPACE" --publish
+
+      # AW-6.2.7: der virtuelle Sensor selbst — Zustand fortschreiben, QC und Kopplung an die GMA, Produkt + Schattenprotokoll.
+      # Liest den Antrieb, den der Schritt davor gerade gepusht hat (derselbe Checkout). Exit 3 = Lauf nicht geschrieben (benannt).
+      - name: Virtual sensor and publish
+        env:
+          ROAD_VS: ${{ vars.ROAD_VS }}
+        run: |
+          cd "$RUNNER_TEMP/app"
+          node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/register-ts.mjs \
+            scripts/road/vs/run-vs.mjs --data="$GITHUB_WORKSPACE" --publish
