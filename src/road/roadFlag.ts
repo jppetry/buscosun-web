@@ -104,3 +104,36 @@ export function rememberRoadSurfaceFlag(search: string = typeof location !== 'un
   if (q !== '0' && q !== '1') return;
   try { localStorage.setItem('rsfc', q); } catch { /* private mode */ }
 }
+
+// --- AW-6.2 VS (audit/autobahnwetter.md §20): the virtual road sensor, behind its own switch ---------------------
+
+/**
+ * `ROAD_VS_LIVE` = Jan's flag-on decision after Gate G (E-VS-2). Off: the page shows measurements, FB-1 and „Messlücke →
+ * unbekannt" exactly as before; the VS runs in the shadow. `?roadvs=0|1` beats `localStorage.roadvs`, which beats the constant.
+ */
+export const ROAD_VS_LIVE = false;
+
+export function roadVsFlagFrom(
+  search: string = typeof location !== 'undefined' ? location.search : '',
+  stored?: string | null,
+  live: boolean = ROAD_VS_LIVE,
+): boolean {
+  let q: string | null = null;
+  try { q = new URLSearchParams(search).get('roadvs'); } catch { /* broken query = no vote */ }
+  if (q === '0') return false;
+  if (q === '1') return true;
+  let s = stored;
+  if (s === undefined) {
+    try { s = typeof localStorage !== 'undefined' ? localStorage.getItem('roadvs') : null; } catch { s = null; }
+  }
+  if (s === '0') return false;
+  if (s === '1') return true;
+  return live;
+}
+
+export function rememberRoadVsFlag(search: string = typeof location !== 'undefined' ? location.search : ''): void {
+  let q: string | null = null;
+  try { q = new URLSearchParams(search).get('roadvs'); } catch { return; }
+  if (q !== '0' && q !== '1') return;
+  try { localStorage.setItem('roadvs', q); } catch { /* private mode */ }
+}

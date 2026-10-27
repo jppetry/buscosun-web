@@ -52,7 +52,10 @@ jobs:
           ref: main
           fetch-depth: 1
           filter: blob:none
-          sparse-checkout: road
+          # AW-6.2.1: `swsmos` dazu — `git add` in einem Sparse-Checkout verwirft Pfade außerhalb der Muster still (CLAUDE.md).
+          sparse-checkout: |
+            road
+            swsmos
           sparse-checkout-cone-mode: true
 
       - uses: actions/setup-node@v4
@@ -97,11 +100,21 @@ jobs:
           test -f ../data/road/fc/v1/index.json || { echo "noch keine Streckenprognose im Daten-Repo"; exit 0; }
           node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/road/road-fc-archive.mjs             --fc=../data/road/fc/v1 --archive=../road/fc/v1
 
+      # AW-6.2.1 / E-VS-7: das DWD-Straßenwetter-MOS (SWSMOS), gekürzt auf GMA-Stationen, TL TS TD RC und 48 h, je Lauf eine
+      # Datei unter swsmos/v1/ (≈ 5 MB je Tag). Der DWD hält 48 Läufe vor; ein Durchgang holt bis zu sechs nach — ein
+      # ausgefallener Archivlauf kostet nichts. Ein Fehler hier hält die Ablage der Messungen nicht auf.
+      - name: Archive SWSMOS
+        continue-on-error: true
+        run: |
+          cd app
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/road/swsmos-archive.mjs \
+            --archive=../swsmos/v1 --stations=../data/road/v1/static/stations.json --max=6
+
       # Append-only: normaler Push mit Wiederholung, NIE --force. Abgewiesen heißt hier nur, dass
       # das Punktarchiv (oder ein manueller Lauf) dazwischenkam — rebase und erneut.
       - name: Commit and push (append-only, with retry)
         run: |
-          git add -A -- road
+          git add -A -- road swsmos
           if git diff --cached --quiet; then echo "Nichts Neues — kein Commit."; exit 0; fi
           git commit -m "road: archiv $(date -u +%Y-%m-%dT%H:%MZ)"
           for attempt in 1 2 3 4 5; do

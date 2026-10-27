@@ -2042,7 +2042,40 @@ und Vorlauf 1–48 h ≈ 1/10 davon (E-VS-7, s. 20.3).
 
 ### 20.6 `set`-Register der Linie (wächst je Paket; jede Zeile mit dem Ort im Code und dem Weg zur Kalibrierung)
 
-| Wert | Zahl | Herkunft heute | Kalibrierung |
-|---|---|---|---|
-| ε_s (ICON-Oberfläche, LW↓-Rückrechnung) | 0,95 | Startprompt / RoadSurf | ICON-Doku (V-VS-5) |
-| (weitere Zeilen mit 6.2.1 ff.) | | | |
+| Wert | Zahl | Ort | Herkunft heute | Kalibrierung |
+|---|---|---|---|---|
+| ε_s (ICON-Oberfläche, LW↓-Rückrechnung) | 0,95 | `roadVsForcing.ts` `ROAD_VS_SURFACE_EMISSIVITY` | Startprompt / RoadSurf | ICON-Doku (V-VS-5) |
+| LW↓-Rückfall Brunt a, b; Bolz c | 0,52 · 0,065 · 0,22 | `ROAD_VS_LW_FALLBACK` | `literature` (Brunt 1932, Bolz 1949) — die METRo-Achtel-Tabelle steht in der fehlenden Recherche | gegen ATHB_S-LW↓ der Antriebsdateien messen (eine Woche), dann a/b/c fitten |
+| Konstanz Fahrbahn UND Luft | 4 h (16 Slots) | `roadVsQc.ts` `VS_QC_CONSTANT_H` | Startprompt | Trefferzahl am Archiv zählen (echte Windstillen-Nächte?) |
+| Winterdifferenz Fahrbahn − Luft (schwach) | −10 … +15 K, Nov–Mär | `VS_QC_WINTER` | AW-0 p1/p99 −5,4/+16,2 K über alle Jahreszeiten; Band weiter gesetzt | Verteilung je Monat am Archiv ab Dezember |
+| Tukey-Zaun auf Residuen | k 1,5 · n ≥ 5 · IQR-Boden 1 K | `VS_QC_IQR` | k Tukey 1977; n und Boden gesetzt | Fehlalarmquote an Tagen mit gültigen Fühlern |
+| Modellkonsistenz | k 4 σ · σ-Boden 1 K | `VS_QC_MODEL` | gesetzt | σ je Wetterklasse aus 6.2.4, k an der Verteilung der Residuen |
+| Kopplungsfenster | ≤ 6 h | `VS_QC_COUPLE_MAX_AGE_MS` | Startprompt | — |
+| Health R8 | 20 Reihen ok | `health-manifests.mjs` `groupsOkMin` | = Slot-Sperre Basis 23 − Toleranz 3 | — |
+| SWSMOS-Archiv | 4 Spalten, 48 h, GMA-Schnittmenge | `swsmos-archive.mjs` | E-VS-7 (Größe) | — |
+| Zellindex: größter Abstand Punkt → Zelle | 5 km | `buildCellIndex(maxKm)` | ICON-D2 2,1 km Maschenweite ⇒ nächste Zelle < 1,5 km; 5 km nur als Schutz vor Punkten außerhalb des Gebiets | — |
+
+### 20.7 AW-6.2.1 Eingänge und QC (27.10.2026, Zweig `feat/aw-6.2-virtueller-sensor`)
+
+**Gebaut.**
+
+| Teil | Datei | Was |
+|---|---|---|
+| Vertrag Antrieb | `src/road/vs/roadVsForcing.ts` | Produkt `road/vs/v1/forcing/<lauf>.json.gz` (27 Felder, Tabelle `ROAD_VS_FIELDS` mit DWD-Parameter, lvt-Pfad, Art `inst`/`avg`/`acc`, Einheit, Skala, Spanne), Zellindex `static/cells.json`, Physik: `intervalFromStartMeans` (Rückrechnung F(t1,t2)), `amountFromStartAccumulations`, `lwDownFromNet`, Brunt/Bolz-Rückfall, Magnus Wasser/Eis + Frostpunkt, Prüfer `roadVsForcingProblems`, Eimer-Zellindex `buildCellIndex` |
+| QC-Kette | `src/road/vs/roadVsQc.ts` | `vsQcStation`: Schritte 1–2 aus den Marken der Messlinie (`x` ⇒ `hard:<Regel>`, `o` ⇒ `observe:<Regel>` = Verwurf wie beim Anker, M4), 3 Sprung (`ROAD_JUMP_K` je Slot), 4 Konstanz Fahrbahn UND Luft ≥ 4 h (Lücken ≤ 4 Slots neutral), 5 gleichartige Sensoren (`spread`, `rsHi − rs > 5 K` ⇒ schwach), 6 Winterdifferenz (schwach), 7 Tukey-Zaun auf Residuen gegen das Modell im 25-km/300-m-Band, 8 Modellkonsistenz k·σ (ohne Kaltstart), 9 Codes 3–6 schwach. Was nicht laufen konnte, steht in `skipped` — nie stilles Grün. **Die Messlinie selbst (`roadContract.ts`) ist unverändert**: die Kette sitzt darüber und entscheidet nur, was der VS koppelt und lernt |
+| Schalter | `src/road/roadFlag.ts` | `ROAD_VS_LIVE = false`, `?roadvs=0|1`, `localStorage.roadvs` (E-VS-2) |
+| Producer Antrieb | `scripts/road/vs/build-forcing.mjs` | jüngster VOLLSTÄNDIGER ICON-D2-Lauf (ATHB_S +48 h als Sonde), CLAT/CLON ⇒ Zellindex einmal (Prüfung: gleiche Punktdatei, gleiche Zellzahl), je Feld und Schritt holen → dekodieren (`gribDecode.ts`, CCSDS) → an den Zellen abtasten → verwerfen; Template-Wächter je Feld (Momentanwert ≠ PDT 4.8, Mittel = Prozess 0 seit Start, Akkumulation = Prozess 1) ⇒ der ganze Lauf wird abgelehnt (Exit 3), nie still falsch; Rückrechnung auf Stundenintervalle, LW↓, RUC-VIS stündlich 0–27 h auf die ICON-Achse gelegt (bis 30.11.), Wiederholungsschutz am Zeiger, Publish mit Neuaufsetzen pfadbegrenzt auf `road/vs/v1` |
+| SWSMOS-Archiv | `scripts/road/swsmos-archive.mjs` | Verzeichnis lesen, fehlende Läufe der letzten 48 h (≤ 6 je Durchgang) laden, `reduceSwsmos` (rein): GMA-Schnittmenge, `TL TS TD RC`, Vorlauf 1–48 h, 0,1 °C ⇒ `swsmos/v1/<Tag>/<HH>.json.gz`; Katalog `static/katalog.json` nur bei neuer Prüfsumme; `index.json` mit RC-Zählung je Lauf (V-VS-1 wird so von selbst sichtbar), README |
+| Wächter | `scripts/health-manifests.mjs` R8 | je GMA-Reihe: `< 20` Reihen `ok` ⇒ rot; die nicht-ok-Reihen stehen immer im Text (heute `LH-LH missing, WW-SO missing`); Kill-Schalter ⇒ grün; `verify:health` 4 neue Fälle (V-VS-4) |
+| Workflows (Vorlagen) | `scripts/road/workflow-road-vs.yml` (Daten-Repo, `25 1,4,…,22`, Sparse `road/fc/v1/static` + `road/vs`, Klon-Ref `vars.ROAD_VS_WEB_REF` bis zum Merge), `scripts/punktarchiv-repo/workflow-road-archiv.yml` (Schritt „Archive SWSMOS", Sparse `road` + `swsmos` — ohne das zweite Muster würde `git add` die Dateien still verwerfen) | noch NICHT in den Repos: beide klonen `buscosun-web`, und die Linie liegt nur im lokalen Zweig (§79 `MANUELLE-SCHRITTE.md`) |
+| Verifier | `scripts/verify-road-vs.mjs` (`npm run verify:road-vs`) | **39/39**: A Antrieb (Rückrechnung exakt auf 6 Stunden mit Gegenprobe, Akkumulation, LW↓-Rundlauf, Brunt/Bolz-Spanne, Magnus, Kodierung, Prüfer mit drei roten Fällen, Zellindex = Brute-Force 60/60, URLs = Spike), B QC (16 Slots, Lücken, Sprung, Tukey mit Höhenband, k·σ, Kaltstart, harte/Beobachtungs-Marken, eingefrorener Logger, Vollkette, schwache Hinweise, Oktober ohne Winterregel), C SWSMOS-Reduktion (Spalten, 48 h, Skala, null, RC-Zählung, Gegenprobe ohne TS, Katalog Windows-1252/Dezimalkomma), D Schalter, E R8 = Vertrag + Live-Form 27.10., F Template-Wächter, Abtastung, Zeiger, gz-Rundlauf |
+
+**Gemessen (27.10.2026 18:50–19:20 UTC+1).**
+
+- Antrieb gegen den LIVE-v1-Pfad, 40 Punkte, 7 Felder (`t2m lwnet tg frz prr tso0 qc`), ohne RUC: Lauf **2026-10-27 15 UTC** als vollständig erkannt, Zellindex aus CLAT/CLON (542 040 Zellen) in Sekunden, alle 49 Schritte ohne Lücke, Template-Wächter grün für alle sieben (also stimmen `prr`/`tso0`/`qc` als Momentanwerte, `lwnet` als Mittel seit Start, `frz` als Akkumulation), **23 s** gesamt bei 4 parallelen Abrufen — hochgerechnet 26 Felder ≈ 2–3 min Netz je Lauf, dazu die Abtastung von 4 772 statt 40 Punkten (vernachlässigbar: ein Array-Zugriff je Punkt). Datei 10 KB gz für 40 Punkte × 8 Felder ⇒ **≈ 4 MB gz je Lauf** für alle Punkte und Felder (E-VS-7-Budget: drei Läufe im Daten-Repo ≈ 12 MB).
+- SWSMOS-Archiv gegen den LIVE-Ordner in ein Scratch-Verzeichnis: Läufe 27.10. 15 und 16 UTC je **1 632 Stationen, 223 KB gz**, RC-Zählung 66 416/11 920 bzw. 66 053/12 283 (nur 1 und 2 — V-VS-1 bestätigt), Katalog 1 884 Zeilen sha `943da36a748e`. ⇒ **≈ 5,4 MB je Tag, ≈ 160 MB je Monat** im Archiv-Repo.
+- `npm run typecheck` grün; `verify:health` **66/66**; `verify:road-archive` s. Lauf (Vorlage geändert).
+
+**Annahmen dieses Pakets (eine Zeile je Annahme).** RUC liefert im Antrieb nur VIS (stündlich); die 5-min-Niederschlagsform kommt im Kern aus dem bestehenden Produkt `ruc/v1` (Leser `rucPoint.ts`), nicht aus einem zweiten RUC-Abgriff. Die QC-Kette läuft ÜBER der Messlinie (Rule 2, V-AW-70: Änderungen an `ROAD_NEIGHBOUR`/harten Regeln sind Jans Gate). Modellflächen T/HHL (Bourgouin) werden erst in 6.2.5 geholt, nur für Stunden mit Niederschlag und T2m nahe 0 °C.
+
+**Offen nach 6.2.1.** Workflows einspielen (§79, braucht den Zweig auf GitHub oder den Merge); erster Volllauf des Antriebs mit allen 4 772 Punkten (Zeit, Größe, `missing`/`outOfRange` messen, Feld `tch` gegen die eigene Iteration in 6.2.3); `rh2m`/`ceil`/`ww`-Spannen am ersten Volllauf prüfen (`outOfRange` zählt); V-VS-6: der Antrieb trägt noch keine Modellflächen; V-VS-7: `fieldSeries` lädt Felder nacheinander (26 × 49 Dateien) — bei Bedarf zwei Felder parallel.

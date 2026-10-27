@@ -269,9 +269,11 @@ const msOf = (s) => roadStampToMs(s);
     ROAD_RETENTION.hzMaxAgeMs >= (ROAD_ARCHIVE_EVERY_H + 1) * 3_600_000 && ROAD_RETENTION.hzMinKeep >= 2, `${ROAD_RETENTION.hzMaxAgeMs / 3_600_000} h`);
   add('C2 append-only: kein --force, Push mit Wiederholung und Rebase, contents: write, eigene concurrency-Gruppe',
     !/--force|-f\b.*push|push\s+-f/.test(code) && /git pull --rebase origin main/.test(code) && /contents:\s*write/.test(code) && /group:\s*road-archiv\b/.test(code));
-  add('C3 Commit nur unter road/, Archiv-Ziel = ROAD_REPO_DIR, Bestand = road/v1 des Daten-Repos (sparse)',
-    /git add -A -- road\s*$/m.test(code) && code.includes(`--archive=../${ROAD_REPO_DIR}`) && code.includes(`--store=../data/${ROAD_REPO_DIR}`) && /sparse-checkout set --no-cone road\/v1\b/.test(code)
-    && /sparse-checkout:\s*road\s*$/m.test(code) && /filter:\s*blob:none/.test(code));
+  // AW-6.2.1 (E-VS-7): the job also writes `swsmos/` — both paths in `git add` AND in the sparse-checkout (a path outside the
+  // sparse patterns is dropped by `git add` silently, CLAUDE.md), nothing else.
+  add('C3 Commit nur unter road/ und swsmos/, beide im Sparse-Muster, Archiv-Ziel = ROAD_REPO_DIR, Bestand = road/v1 des Daten-Repos (sparse)',
+    /git add -A -- road swsmos\s*$/m.test(code) && code.includes(`--archive=../${ROAD_REPO_DIR}`) && code.includes(`--store=../data/${ROAD_REPO_DIR}`) && /sparse-checkout set --no-cone road\/v1\b/.test(code)
+    && /sparse-checkout:\s*\|\s*\n\s*road\s*\n\s*swsmos\s*$/m.test(code) && /filter:\s*blob:none/.test(code) && /swsmos-archive\.mjs[\s\S]*--archive=\.\.\/swsmos\/v1/.test(code));
   add('C4 rot erst nach dem Commit: Archivschritt continue-on-error, letzter Schritt prüft dessen outcome',
     /id:\s*archive\s*\n\s*continue-on-error:\s*true/.test(code) && /if:\s*steps\.archive\.outcome == 'failure'/.test(code)
     && code.indexOf('Commit and push') < code.indexOf("steps.archive.outcome"));

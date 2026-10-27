@@ -1,0 +1,78 @@
+# ============================================================================
+# road-vs.yml — Antrieb des virtuellen Fahrbahnsensors (AW-6.2.1, buscosun-web/audit/autobahnwetter.md §20)
+#
+# VORLAGE. Diese Datei wird in `buscosun-web/scripts/road/workflow-road-vs.yml` GEPFLEGT und liegt im Daten-Repo
+# als `.github/workflows/road-vs.yml`. Der Code lebt in `buscosun-web` (`scripts/road/vs/build-forcing.mjs`, Vertrag
+# `src/road/vs/roadVsForcing.ts`) und wird bei jedem Lauf frisch geklont — bis zum Merge der Linie vom Zweig
+# `feat/aw-6.2-virtueller-sensor` (Repo-Variable ROAD_VS_WEB_REF; leer = main).
+#
+# Was der Job tut: den jüngsten VOLLSTÄNDIGEN ICON-D2-Lauf vom DWD-v1-Pfad (Dreiecksgitter, CCSDS) an jedem Punkt von
+# `road/fc/v1/static/points.json` abtasten (0–48 h stündlich; 27 Felder; Strahlung als Stundenmittel aus Mitteln seit
+# Modellstart, LW↓ rekonstruiert; RUC-VIS bis 30.11.2026) und als `road/vs/v1/forcing/<lauf>.json.gz` ablegen
+# (Zeiger `forcing/index.json`, drei Läufe bleiben). Der Fahrbahn-Kern (AW-6.2.3) liest diese Datei im selben Repo.
+#
+# ── Takt: ICON-D2 läuft alle 3 h; der v1-Pfad ist ≈ 1 h nach dem Lauf vollständig ──────────────
+# Start 1 h 25 min nach jedem Lauf; der Producer prüft Vollständigkeit (ATHB_S +48 h) und wiederholt keinen Lauf, der
+# schon im Zeiger steht. Ein Start von Hand (workflow_dispatch) rechnet immer den jüngsten vollständigen Lauf.
+#
+# ── Eigene Linie, eigener Pfad ───────────────────────────────────────────────
+# Geschrieben wird NUR unter `road/vs/v1/`; Push mit Neuaufsetzen auf ein frisches origin/main (Muster road-fc), nie --force.
+# Exit 3 = nicht veröffentlicht (GRIB-Konvention eines Feldes passt nicht zum Vertrag, kein vollständiger Lauf) — der
+# vorige Lauf bleibt. Aus: Repo-Variable ROAD_VS=0.
+# ============================================================================
+
+name: road-vs
+
+on:
+  schedule:
+    - cron: '25 1,4,7,10,13,16,19,22 * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: road-vs
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  forcing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: |
+            road/fc/v1/static
+            road/vs
+          sparse-checkout-cone-mode: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Git identity
+        run: |
+          git config user.name  'buscosun-road-vs[bot]'
+          git config user.email 'road-vs@users.noreply.github.com'
+
+      - name: Checkout producer (buscosun-web, public, sparse)
+        env:
+          WEB_REF: ${{ vars.ROAD_VS_WEB_REF }}
+        run: |
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout --branch "${WEB_REF:-main}" https://github.com/jppetry/buscosun-web.git "$RUNNER_TEMP/app"
+          cd "$RUNNER_TEMP/app"
+          git sparse-checkout set --no-cone scripts/road scripts/lib src/road src/sources package.json
+          git checkout --quiet
+          test -f scripts/road/vs/build-forcing.mjs || { echo "scripts/road/vs/build-forcing.mjs fehlt in buscosun-web ${WEB_REF:-main}"; exit 1; }
+
+      - name: Forcing and publish
+        env:
+          ROAD_VS: ${{ vars.ROAD_VS }}
+        run: |
+          cd "$RUNNER_TEMP/app"
+          node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/register-ts.mjs \
+            scripts/road/vs/build-forcing.mjs --data="$GITHUB_WORKSPACE" --publish

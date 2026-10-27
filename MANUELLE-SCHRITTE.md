@@ -3020,3 +3020,26 @@ gebaut, gefittet und **eingeschaltet**: Register `n: 14`, `FUSION14_RUC_MEMBER =
    t1-Feldlauf loggt „RUC-Member an N" und `point/field/v1/<lauf>/t1/field.json` trägt `chain.options.ruc.run`; ohne Kopie steht dort
    `reason: "ruc/ nicht im Checkout"`. Offen: V-RUC-29 — das Etikett „Modell · Cube" der Karte nennt den RUC-Anteil nicht (deine Wortwahl
    F1 ⇒ Rückfrage).
+
+## 79. Autobahnwetter — Virtueller Fahrbahnsensor (Phase VS = AW-6.2, `audit/autobahnwetter.md` §20), 2026-10-27
+
+Zweig `feat/aw-6.2-virtueller-sensor`, ein Commit je Arbeitspaket; nichts davon ist live (`ROAD_VS_LIVE = false`, E-VS-2).
+
+1. **Recherche-Datei:** `audit/fahrbahnmodell-recherche.md` fehlt im Repo und unter `C:\dev` (§20.0). Bis sie da ist, trägt jede
+   Konstante aus dem Startprompt `set` mit Herkunft „Startprompt" (Register §20.6). Datei nachliefern oder Pfad nennen.
+2. **Nummern:** E-AW-38…43 des Startprompts waren schon vergeben (§19.6) ⇒ die Entscheidungen heißen E-VS-1…6 (§20.1). Einspruch?
+3. **Sicht nach dem 30.11.2026:** der DWD nimmt VIS auch aus ICON-D2-RUC (§20.2 i). Vorschlag §20.3 (2): ab Dezember Sicht 0–48 h
+   aus eigener Diagnose + Messung + MOSMIX, RUC-VIS bis dahin nur als Lern-/Vergleichsgröße. Alternativ 6.2.6 zurückstellen.
+4. **E-VS-7 SWSMOS-Archiv gekürzt** (GMA-Schnittmenge, `TL TS TD RC`, 48 h ⇒ 223 KB gz je Lauf, ≈ 5,4 MB/Tag, ≈ 160 MB/Monat im
+   Archiv-Repo): so gebaut; Nein ⇒ Spalten/Horizont ändern, bevor der Workflow läuft.
+5. **Zweig auf GitHub:** beide Workflow-Vorlagen klonen `buscosun-web`. Vor dem Merge brauchen sie den Zweig auf `origin`
+   (`git push -u origin feat/aw-6.2-virtueller-sensor`) — dein Push. Danach spiele ich ein (deine Freigabe für Daten- und Archiv-Repo
+   liegt im Startprompt vor): `scripts/road/workflow-road-vs.yml` → `buscosun-data/.github/workflows/road-vs.yml` mit Repo-Variable
+   `ROAD_VS_WEB_REF = feat/aw-6.2-virtueller-sensor` (leer = main nach dem Merge); `scripts/punktarchiv-repo/workflow-road-archiv.yml` →
+   `buscosun-archiv/.github/workflows/road-archiv.yml` (Schritt „Archive SWSMOS", Sparse `road` + `swsmos`) — der Archivjob klont dann
+   ebenfalls den Zweig, bis gemerged ist (eine Zeile in der Vorlage, `--branch`). Ohne Schritt 5 sammelt niemand SWSMOS; der DWD hält 48 h.
+6. **Erster Volllauf des Antriebs** (nach 5): `workflow_dispatch` von `road-vs` oder lokal
+   `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/road/vs/build-forcing.mjs --data=C:\dev\buscosun-data --out=<Ordner>`
+   (ohne `--publish`), Log: Felder, `missing`, `outOfRange`, Größe, Zeit — Zahlen gehören in §20.7.
+7. **Rückwege:** Repo-Variable `ROAD_VS=0` (kein Antrieb), Schritt „Archive SWSMOS" entfernen (kein SWSMOS), `?roadvs=0` je Besucher
+   (wirkt erst, wenn die Seite den VS zeigt).
