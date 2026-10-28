@@ -39,7 +39,13 @@ const rainBeforeId = (map: maplibregl.Map): string | undefined =>
   map.getStyle()?.layers?.find((l) => l.type === 'symbol' && !l.id.startsWith('aw-'))?.id ?? (map.getLayer('aw-warn-fill') ? 'aw-warn-fill' : undefined);
 
 /** Forecast point of the corridor axis (AW-6.1b): a small dot in the colour of the forecast AIR class. */
-export interface RoadFcDot { id: string; lon: number; lat: number; color: string | null }
+export interface RoadFcDot {
+  id: string; lon: number; lat: number; color: string | null;
+  /** Temperature text of the dot, shown from zoom `FC_LABEL_MINZOOM` (buscosun Fusion between the measurements); null = no value, no text. */
+  label?: string | null;
+}
+/** Zoom from which the forecast points of the open corridor carry their temperature. */
+const FC_LABEL_MINZOOM = 10;
 /** AW-8.3: a segment line over the corridor — level colour, unknown dotted grey, selected with a light halo, hovered from the rail. */
 export interface RoadSegLine { id: string; line: Array<[number, number]>; color: string | null; unknown: boolean }
 
@@ -84,7 +90,7 @@ function dotFc(dots: readonly RoadFcDot[], sel: string | null): GeoJSON.FeatureC
   return {
     type: 'FeatureCollection',
     features: dots.map((d) => ({
-      type: 'Feature', properties: { id: d.id, color: d.color ?? '#8B8474', sel: d.id === sel ? 1 : 0 },
+      type: 'Feature', properties: { id: d.id, color: d.color ?? '#8B8474', sel: d.id === sel ? 1 : 0, label: d.label ?? '' },
       geometry: { type: 'Point', coordinates: [d.lon, d.lat] },
     })),
   };
@@ -265,6 +271,11 @@ export default function RoadMap(props: Props) {
           'circle-stroke-color': ['case', ['==', ['get', 'sel'], 1], '#FAF6EA', '#0B0E12'], 'circle-stroke-width': ['case', ['==', ['get', 'sel'], 1], 2.5, 1.2],
         },
       });
+      map.addLayer({
+        id: 'aw-fc-labels', type: 'symbol', source: 'aw-fc', minzoom: FC_LABEL_MINZOOM, filter: ['all', ['==', ['get', 'sel'], 0], ['!=', ['get', 'label'], '']],
+        layout: { 'text-field': ['get', 'label'], 'text-size': 11, 'text-offset': [0.8, 0.9], 'text-anchor': 'left', 'text-font': ['Noto Sans Regular'], 'text-allow-overlap': false },
+        paint: { 'text-color': '#CFC9BA', 'text-halo-color': '#0B0E12', 'text-halo-width': 1.6 },
+      });
       map.addLayer({ id: 'aw-sel-halo', type: 'circle', source: 'aw-points', filter: ['==', ['get', 'sel'], 1], paint: { 'circle-radius': 16, 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#FAF6EA', 'circle-stroke-width': 3, 'circle-stroke-opacity': 0.9 } });
       map.addLayer({
         id: 'aw-points', type: 'symbol', source: 'aw-points',
@@ -297,6 +308,7 @@ export default function RoadMap(props: Props) {
     }
     const vis = (id: string, on: boolean) => { if (map.getLayoutProperty(id, 'visibility') !== (on ? 'visible' : 'none')) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); };
     vis('aw-labels', p.layers.temp);
+    vis('aw-fc-labels', p.layers.temp);
     vis('aw-fog', p.layers.fog);
   }
 
