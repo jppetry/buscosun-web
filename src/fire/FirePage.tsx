@@ -1543,7 +1543,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
             style={{ top: hoverCard.top, left: hoverCard.left, maxHeight: hoverCard.maxH }}
           >
             <FireLayerCard
-              layer={id} info={info} meta={metaFor(id)} stand={standFor(id)}
+              layer={id} info={{ ...info, legend: undefined }} meta={metaFor(id)} stand={standFor(id)}
               preview={!on}
               tiles={id === 'fireHotspots' ? detTiles(false) : undefined}
               lead={id === 'fireHotspots' ? detLead : undefined}
