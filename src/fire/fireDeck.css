@@ -1715,3 +1715,11 @@
 @media (max-width: 767px) {
   .br-map-tr .br-seg button { font-size: 13.5px; padding: 6px 11px; }
 }
+
+/* Kleiner Desktop: die Punkt-Legende nutzt die volle Kartenbreite statt 100 % − 298 px; die Flächen-Legende
+   (links unten) rückt dann über sie, statt dass beide nebeneinander gequetscht werden. */
+@media (min-width: 768px) and (max-width: 1599px) {
+  .br-pointlegend { left: 16px; right: 16px; width: auto; max-width: none; }
+  .br-pointlegend .br-pl-grid { gap: 6px 22px; }
+  .br-maplegend:has(~ .br-pointlegend) { bottom: 128px; }
+}
