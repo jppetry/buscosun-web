@@ -103,6 +103,48 @@ export const RZC_NC_CAVEATS: readonly string[] = Object.freeze([
 export const RZC_NC_UNKNOWN_WORD = 'grau = unbekannt (Regen könnte von außerhalb des Radargebiets kommen)';
 export const INCA_5M_NOTE = 'Zwischenbilder entlang der Bewegung verschoben — flüssiger, nicht genauer';
 
+// --- Phase NC-B: the extrapolation continued with buscosun Fusion (`radarNowcastBlend.ts` holds the arithmetic) -------------
+/** Model weight 0 up to this lead (radar alone) … */
+export const RZC_NC_BLEND_START_MIN = 30;
+/** … and 1 from this lead on (model alone), linear in between. SET (Phase NC-B, 28.10.2026); V-NC-1 measures the crossover. */
+export const RZC_NC_BLEND_FULL_MIN = 120;
+export const RZC_NC_BLEND_MODEL = 'ruc+field' as const;
+export const RZC_NC_BLEND_LABEL = 'Hochrechnung buscosun aus MeteoSwiss-Radar · ab +30 min mit buscosun Fusion gemischt';
+export const RZC_NC_BLEND_CAVEATS: readonly string[] = Object.freeze([
+  'ab +30 min mischt sich das Modell ein (Gewicht linear bis +120 min, gesetzt): Zerfall und Neubildung kommen aus buscosun Fusion, nicht aus dem Radar',
+  'Modellzellen sind 0,05° (≈ 4 km) grob, die 5-min-Form stammt aus ICON-D2-RUC (Lauf bis zu 1 h alt)',
+  'Zellen ohne Modellwert bleiben reine Verschiebung',
+]);
+/** Weight of the model at `leadMin` (0 … 1). */
+export function rzcNcBlendWeight(leadMin: number): number {
+  if (!(leadMin > RZC_NC_BLEND_START_MIN)) return 0;
+  if (leadMin >= RZC_NC_BLEND_FULL_MIN) return 1;
+  return (leadMin - RZC_NC_BLEND_START_MIN) / (RZC_NC_BLEND_FULL_MIN - RZC_NC_BLEND_START_MIN);
+}
+export const RZC_NC_BLEND_WEIGHTS: readonly number[] = Object.freeze(RZC_NC_LEADS.map((l) => Math.round(rzcNcBlendWeight(l) * 1000) / 1000));
+
+/** `meta.blend` of a product whose frames carry the model share (absent = pure translation, the stand before NC-B). */
+export interface RzcNcBlend {
+  model: typeof RZC_NC_BLEND_MODEL;
+  rucRun: string; rucRunAtMs: number;
+  fieldRun: string; fieldRunAtMs: number;
+  startMin: number; fullMin: number;
+  /** weight per frame, same order as `frames` */
+  weights: number[];
+  /** t1 cells under the rzc grid with a model value for every lead / all t1 cells under the grid */
+  cellsModel: number; cellsTotal: number;
+  provenance: 'set' | 'measured';
+}
+export function blendOk(v: unknown): v is RzcNcBlend {
+  const b = v as RzcNcBlend | null;
+  return !!b && typeof b === 'object' && b.model === RZC_NC_BLEND_MODEL
+    && typeof b.rucRun === 'string' && Number.isFinite(b.rucRunAtMs) && typeof b.fieldRun === 'string' && Number.isFinite(b.fieldRunAtMs)
+    && b.startMin === RZC_NC_BLEND_START_MIN && b.fullMin === RZC_NC_BLEND_FULL_MIN
+    && Array.isArray(b.weights) && b.weights.length === RZC_NC_LEADS.length && b.weights.every((w, i) => Number.isFinite(w) && Math.abs(w - RZC_NC_BLEND_WEIGHTS[i]) < 1e-6)
+    && Number.isInteger(b.cellsModel) && Number.isInteger(b.cellsTotal) && b.cellsModel >= 0 && b.cellsModel <= b.cellsTotal
+    && (b.provenance === 'set' || b.provenance === 'measured');
+}
+
 // --- model crossover (point series) -----------------------------------------------------------------------------------
 /**
  * Where the point series hands over from the radar nowcast to the model (RUC behind buscosun Fusion in DE, buscosun
@@ -147,6 +189,8 @@ export interface RzcNcImgMeta {
   caveats: string[];
   label: string;
   dual?: RadarImgDual;
+  /** Phase NC-B: present when the frames carry the model share from +30 min on (label and caveats then say so). */
+  blend?: RzcNcBlend;
 }
 
 export interface Inca5mFrame extends RadarImgFrame {
@@ -169,13 +213,14 @@ export interface Inca5mImgMeta {
 
 export function makeRzcNcImgMeta(a: {
   stamp: string; analysisAtMs: number; corners: QuadCorners; frames: RadarImgFrame[]; unknown: RadarImgFrame[];
-  series: string[]; motion: NcMotion; method: RzcNcImgMeta['method']; dual?: RadarImgDual;
+  series: string[]; motion: NcMotion; method: RzcNcImgMeta['method']; dual?: RadarImgDual; blend?: RzcNcBlend;
 }): RzcNcImgMeta {
   return {
     schema: 1, source: 'rzc-nc', stamp: a.stamp, analysisAtMs: a.analysisAtMs,
     width: RZC_IMG_WIDTH, height: RZC_IMG_HEIGHT, vMax: PRECIP_VMAX, corners: a.corners,
     frames: a.frames, unknown: a.unknown, series: a.series, motion: a.motion, method: a.method,
-    caveats: [...RZC_NC_CAVEATS], label: RZC_NC_LABEL, ...(a.dual ? { dual: a.dual } : {}),
+    caveats: a.blend ? [...RZC_NC_CAVEATS, ...RZC_NC_BLEND_CAVEATS] : [...RZC_NC_CAVEATS], label: a.blend ? RZC_NC_BLEND_LABEL : RZC_NC_LABEL,
+    ...(a.dual ? { dual: a.dual } : {}), ...(a.blend ? { blend: a.blend } : {}),
   };
 }
 
@@ -222,6 +267,7 @@ export function parseRzcNcImgMeta(j: unknown): RzcNcImgMeta | null {
   if (!motionOk(m.motion) || !m.method || (m.method.flow !== 'translation' && m.method.flow !== 'horn-schunck')) return null;
   if (!Array.isArray(m.caveats) || typeof m.label !== 'string') return null;
   if (m.dual !== undefined && !dualOk(m.dual, RZC_NC_LEADS)) return null;
+  if (m.blend !== undefined && !blendOk(m.blend)) return null;
   return m;
 }
 

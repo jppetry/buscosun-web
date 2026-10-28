@@ -110,7 +110,8 @@ add('B4 inca-5m: drift rejected — validity off by a minute, an INCA frame at +
   const rainIds = [...Object.values(RADAR_HD_LAYER_IDS)];
   const hdRamps = rainIds.every((id) => new RegExp(`id: RADAR_HD_LAYER_IDS\\.${id.slice(-2).toUpperCase()}, colorRamp: precipRainRamp,`).test(mv));
   const composite = /id: NOWCAST_LAYER_ID, colorRamp: precipRainRamp,/.test(mv);
-  const swap = /layer\.setColorRamp\(log \? precipRainRampLog : precipRainRamp\)/.test(mv);
+  // CH-Stil (`?chstyle=mch`, 28.10.2026): the CH layer may swap to the MeteoSchweiz class ramps — an opt-in look, default = the one ramp
+  const swap = /layer\.setColorRamp\((?:mch \? \(log \? precipRainRampMchLog : precipRainRampMch\) : )?\(?log \? precipRainRampLog : precipRainRamp\)?\)/.test(mv);
   const ramps = [...mv.matchAll(/colorRamp: (\w+)/g)].map((m) => m[1]);
   const foreign = ramps.filter((r) => /rain|precip/i.test(r) && !['precipRainRamp', 'precipRainRampLog', 'precipRamp'].includes(r));
   add('B5 one colour contract: composite and the three HD layers draw `precipRainRamp` (log plane: `precipRainRampLog`), no other rain ramp in MapView; the products carry the same vMax',
@@ -416,6 +417,81 @@ if (DERIVED) {
     for (const f of m.frames) if (!existsSync(join(d, f.file))) { ok = false; why.push(`${s}/${f.file} fehlt`); }
   }
   add(`F8 derived slots under ${DERIVED}: parsers accept, every listed file exists, unknown ⇒ 0, dual channel 1 = f`, ok, why.slice(0, 3).join('; '));
+}
+
+// ── G: Phase NC-B — the extrapolation continued with buscosun Fusion (`radarNowcastBlend.ts`) ──────────────────────
+{
+  const B = await import('../src/sources/radarNowcastBlend.ts');
+  const { rucChunkOf, encodeRucByte, RUC_CHUNK_WIDTH } = await import('../src/point/rucFormat.ts');
+  const { precipToU8, precipToU8Log, precipFromU8Log } = await import('../src/scalar/RainLayer.ts');
+  add('G1 weights: 0 up to +30, linear, 1 from +120; table of 24 = the leads; frame 6 (+30) = 0, frame 24 (+120) = 1',
+    B.rzcNcBlendWeight(5) === 0 && B.rzcNcBlendWeight(30) === 0 && Math.abs(B.rzcNcBlendWeight(75) - 0.5) < 1e-9 && B.rzcNcBlendWeight(120) === 1 && B.rzcNcBlendWeight(200) === 1
+    && B.RZC_NC_BLEND_WEIGHTS.length === 24 && B.RZC_NC_BLEND_WEIGHTS[5] === 0 && B.RZC_NC_BLEND_WEIGHTS[23] === 1 && B.RZC_NC_BLEND_WEIGHTS[6] > 0
+    && B.RZC_NC_BLEND_START_MIN === 30 && B.RZC_NC_BLEND_FULL_MIN === 120 && B.RZC_NC_BLEND_PROVENANCE === 'set');
+  // G2 the mix on one row: radar 2 mm/h, model 6 mm/h / NaN / unknown
+  {
+    const radar = Uint8Array.from([precipToU8(2), precipToU8(2), precipToU8(2), 0, 0]);
+    const radarLog = Uint8Array.from([precipToU8Log(2), precipToU8Log(2), precipToU8Log(2), 0, 0]);
+    const model = Float32Array.from([6, NaN, 6, 6, 6]);
+    const unknown = Uint8Array.from([0, 0, 255, 0, 0]);
+    const out = new Uint8Array(5), outLog = new Uint8Array(5);
+    B.blendFrame({ w: 0, radar, radarLog, model, unknown, out, outLog });
+    const id = same(out, radar) && same(outLog, radarLog);
+    const ch = B.blendFrame({ w: 0.5, radar, radarLog, model, unknown, out, outLog });
+    const v0 = precipFromU8Log(outLog[0]), v3 = precipFromU8Log(outLog[3]);
+    add('G2 blendFrame: w = 0 byte-identical; w = ½: 2 & 6 → 4 (log plane within a step), NaN model keeps the radar byte, unknown stays 0, dry radar + model = model share, both planes share the wet mask',
+      id && Math.abs(v0 - 4) / 4 < 0.02 && out[0] === precipToU8(4) && out[1] === radar[1] && outLog[1] === radarLog[1] && out[2] === 0 && outLog[2] === 0
+      && Math.abs(v3 - 3) / 3 < 0.02 && out[3] === precipToU8(3) && ch === 3 && out.every((u, i) => (u > 0) === (outLog[i] > 0)),
+      `log ${v0.toFixed(2)} / ${v3.toFixed(2)} · changed ${ch}`);
+    const w1 = new Uint8Array(5); B.blendFrame({ w: 1, radar, radarLog: null, model, unknown: null, out: w1, outLog: null });
+    add('G2b w = 1 = the model alone where it has a value', w1[0] === precipToU8(6) && w1[1] === radar[1] && w1[2] === precipToU8(6) && w1[3] === precipToU8(6));
+  }
+  // G3 modelPlanes on a 2 × 2 grid under ONE t1 cell: the E-RUC-4 rule per hour
+  {
+    const { TIER_BY_ID } = await import('../src/point/cubeFormat.ts');
+    const tier = TIER_BY_ID.t1;
+    const cells = B.cellIndexPlane(2, 2, () => [8.5, 47.0], tier);
+    const cid = cells[0], iy = Math.floor(cid / tier.nx), ix = cid % tier.nx;
+    const { cy, cx, column } = rucChunkOf(iy, ix);
+    const steps = 36, data = new Uint8Array(RUC_CHUNK_WIDTH * steps);
+    const runAtMs = Date.UTC(2026, 9, 28, 16), analysisAtMs = runAtMs + 20 * 60_000; // leads 5 … 120 ⇒ hours 17:00, 18:00, 19:00
+    for (let k = 0; k < steps; k++) data[k * RUC_CHUNK_WIDTH + column] = encodeRucByte(k < 12 ? 1 : k < 24 ? 0 : (k % 2 ? 2 : 0)); // h1 form 1 mm/h, h2 dry form, h3 alternating 0/2
+    const chunks = new Map([[`${cy}_${cx}`, { cy, cx, width: RUC_CHUNK_WIDTH, height: steps, data }]]);
+    const hourMean = (_iy, _ix, hEnd) => (hEnd === runAtMs + 3_600_000 ? 2 : hEnd === runAtMs + 7_200_000 ? 1 : 10); // form ×2 · flat 1 · mixed (10 / 1 > 4)
+    const r = B.modelPlanes({ w: 2, h: 2, cells, tier, analysisAtMs, ruc: { runAtMs, steps, chunks }, hourMean });
+    const at = (lead) => r.planes[RZC_NC_LEADS.indexOf(lead)][0];
+    const near = (x, y) => Math.abs(x - y) / y < 0.02; // the RUC byte codec quantises the form (log steps ≈ 1,4 %)
+    // hour 1 (16:20 … 17:00 = leads 5 … 40): 1 · 2 = 2; hour 2 (leads 45 … 100): flat 1; hour 3 (leads 105 … 120): rᵢ · 4 + (10 − 4 · 1) = 6 or 14
+    add('G3 modelPlanes: all four pixels in one cell; form hour ×2 → 2 mm/h, flat hour → 1 mm/h, mixed hour (cap 4) → 6 / 14 mm/h, kinds counted, cell complete',
+      cells.every((c) => c === cid) && at(5) === 2 && at(40) === 2 && at(45) === 1 && at(100) === 1 && near(at(105), 6) && near(at(110), 14) && near(at(120), 14)
+      && r.kinds.form === 1 && r.kinds.flat === 1 && r.kinds.mixed === 1 && r.kinds.missing === 0 && r.cellsModel === 1 && r.cellsTotal === 1,
+      `+5 ${at(5)} · +45 ${at(45)} · +105 ${at(105)} · +110 ${at(110)} · kinds ${JSON.stringify(r.kinds)}`);
+    data[0 * RUC_CHUNK_WIDTH + column] = 0; // a missing byte in hour 1 ⇒ that hour has no model, the others keep theirs
+    const r2 = B.modelPlanes({ w: 2, h: 2, cells, tier, analysisAtMs, ruc: { runAtMs, steps, chunks }, hourMean });
+    add('G3b a missing RUC byte: the hour has no model value (NaN), the cell is not complete, the other hours keep theirs',
+      Number.isNaN(r2.planes[0][0]) && r2.planes[RZC_NC_LEADS.indexOf(45)][0] === 1 && r2.kinds.missing === 1 && r2.cellsModel === 0 && r2.cellsTotal === 1);
+  }
+  // G4 contract
+  {
+    const frames = RZC_NC_LEADS.map((lead) => ({ lead, file: radarImgFrameFile(lead), bytes: 9, validAtMs: 1_700_000_000_000 + lead * 60_000 }));
+    const unknown = RZC_NC_LEADS.map((lead) => ({ lead, file: rzcNcUnknownFile(lead), bytes: 9 }));
+    const base = { stamp: '20261028T1720', analysisAtMs: 1_700_000_000_000, corners: RZC_CORNERS, frames, unknown, series: ['20261028T1715', '20261028T1720'], motion: { speedKmh: 3, fromDeg: 345, pairs: 1, wetCells: 10 }, method: { flow: 'translation', factor: 4, maxCoarse: 6, sampling: 'wet-bilinear-round' } };
+    const blend = { model: 'ruc+field', rucRun: '2026102817', rucRunAtMs: 1, fieldRun: '2026102816', fieldRunAtMs: 1, startMin: 30, fullMin: 120, weights: [...B.RZC_NC_BLEND_WEIGHTS], cellsModel: 100, cellsTotal: 120, provenance: 'set' };
+    const m = makeRzcNcImgMeta({ ...base, blend });
+    const rt = (x) => JSON.parse(JSON.stringify(x));
+    const plain = makeRzcNcImgMeta(base);
+    add('G4 meta with blend: label and caveats name the mix, the parser accepts; without blend the words before; wrong weights / window / cells are rejected',
+      m.label === B.RZC_NC_BLEND_LABEL && m.caveats.length === RZC_NC_CAVEATS.length + B.RZC_NC_BLEND_CAVEATS.length && !!parseRzcNcImgMeta(rt(m))?.blend
+      && plain.label === RZC_NC_LABEL && plain.blend === undefined && !!parseRzcNcImgMeta(rt(plain))
+      && parseRzcNcImgMeta(rt({ ...m, blend: { ...blend, weights: blend.weights.map((w) => w * 0.5) } })) === null
+      && parseRzcNcImgMeta(rt({ ...m, blend: { ...blend, fullMin: 90 } })) === null
+      && parseRzcNcImgMeta(rt({ ...m, blend: { ...blend, cellsModel: 121 } })) === null);
+  }
+  const derive = readFileSync(new URL('./radar-mirror/radar-derive.mjs', import.meta.url), 'utf8');
+  const frames = readFileSync(new URL('../src/radar/radarFrames.ts', import.meta.url), 'utf8');
+  const mv = readFileSync(new URL('../src/MapView.tsx', import.meta.url), 'utf8');
+  add('G5 producer switch OFF by default (`RADAR_NC_BLEND === \'1\'`), a failure leaves the slot a pure translation, the client takes the label from the product',
+    /process\.env\.RADAR_NC_BLEND === '1'/.test(derive) && /Modell-Mischung ausgelassen/.test(derive) && /label: nc\.label \|\| RZC_NC_LABEL/.test(frames) && /rzcNcRef\.current\.label \|\| RZC_NC_LABEL/.test(mv));
 }
 
 console.log(`\nverify:radar-nc — ${passed} passed, ${failed} failed${skipped ? `, ${skipped} skipped` : ''}`);

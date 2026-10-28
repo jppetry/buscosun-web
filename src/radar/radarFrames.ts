@@ -245,7 +245,8 @@ async function loadCh(signal?: AbortSignal): Promise<RadarStack> {
     const fut: RadarFrame[] = nc.frames
       .filter((f) => f.validAt.getTime() > t)
       .map((f) => ({ values: f.values, ...(f.values2 ? { values2: f.values2 } : {}), width: f.width, height: f.height, timeMs: f.validAt.getTime(), leadMinutes: Math.round((f.validAt.getTime() - t) / 60_000), measured: false, unknown: f.unknown }));
-    const st = assemble('CH', 'meteoswiss_rzc', fr.corners, [...past, analysis, ...fut], t, 5, NC_CROSSOVER_MIN.meteoswiss_rzc, { label: RZC_NC_LABEL, attribution: RZC_NC_ATTRIBUTION });
+    // Phase NC-B: a blended product names itself (`meta.label`); a pure translation carries `RZC_NC_LABEL`.
+    const st = assemble('CH', 'meteoswiss_rzc', fr.corners, [...past, analysis, ...fut], t, 5, NC_CROSSOVER_MIN.meteoswiss_rzc, { label: nc.label || RZC_NC_LABEL, attribution: RZC_NC_ATTRIBUTION });
     st.caveats = nc.caveats;
     st.unknownNote = RZC_NC_UNKNOWN_WORD;
     st.ageNote = `Analyse ${fmtClock(t)} · Zugrichtung aus ${nc.series.length} Bildern: ${nc.motion.speedKmh.toFixed(0).replace('.', ',')} km/h${nc.motion.fromDeg != null ? ` aus ${nc.motion.fromDeg}°` : ' (keine Bewegung messbar)'}`;
