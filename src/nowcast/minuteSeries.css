@@ -119,3 +119,30 @@
 .mv-hint-line { stroke: var(--stone-500, #8B7355); stroke-width: 1.5; stroke-dasharray: 1.5 3; stroke-linecap: round; opacity: 0.8; }
 .mv-hint-text { font-size: 10px; fill: var(--stone-500, #8B7355); font-weight: 500; letter-spacing: 0.01em; pointer-events: none; }
 .mv-tip-trace { margin-top: 2px; font-size: 11px; color: var(--stone-500, #8B7355); }
+
+/* Minutenverlauf-Overlay: modernere Optik wie das Ereignis-Overlay (nur `.ms-panel`; SnowArrivalPanel teilt `mv-modal-*` unverändert). */
+.ms-panel { --ed-line: color-mix(in srgb, var(--sand-200, #E0D6BE) 70%, transparent);
+  --ed-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 10px 24px -18px rgba(44, 42, 38, 0.38);
+  border-radius: 24px; padding: 22px 24px 18px; box-shadow: 0 30px 80px -30px rgba(44, 42, 38, 0.45); }
+.ms-panel .mv-modal-title { font-size: 28px; letter-spacing: -0.9px; }
+.ms-panel .mv-seg { border-radius: 999px; border-color: var(--ed-line); box-shadow: var(--ed-shadow); }
+.ms-panel .mv-seg button { border-radius: 999px; padding: 6px 16px; }
+.ms-panel .mv-close { border-radius: 50%; border-color: var(--ed-line); box-shadow: var(--ed-shadow); }
+.ms-panel .mv-kpis { gap: 12px; margin-top: 18px; }
+.ms-panel .mv-kpi { --kc: var(--steel-600, #3A6FA8); gap: 5px; border: 1px solid var(--ed-line); border-radius: 18px; padding: 14px 16px 15px;
+  background: linear-gradient(180deg, #fff 0%, color-mix(in srgb, #fff 55%, var(--cream-50, #FAF6EA)) 100%); box-shadow: var(--ed-shadow); }
+.ms-panel .mv-kpi-k { display: inline-flex; align-items: center; gap: 7px; letter-spacing: 1.2px; }
+.ms-panel .mv-kpi-k::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--kc); flex: 0 0 auto;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--kc) 16%, transparent); }
+.ms-panel .mv-kpi-v { font-size: 26px; letter-spacing: -1px; }
+.ms-panel .mv-kpi-s { font-size: 11.5px; }
+.ms-panel .mv-modal-chart { margin-top: 16px; border: 1px solid var(--ed-line); border-radius: 20px; padding: 16px 14px 10px; box-shadow: var(--ed-shadow); }
+.ms-panel .mv-modal-foot { margin-top: 16px; padding: 10px 14px; border-radius: 14px; background: color-mix(in srgb, var(--sand-100, #EFE8D6) 60%, transparent); }
+@media (max-width: 767px) {
+  .ms-panel { border-radius: 0; padding: calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)); box-shadow: none; }
+  .ms-panel .mv-modal-title { font-size: 24px; }
+  .ms-panel .mv-kpis { gap: 10px; }
+  .ms-panel .mv-kpi { padding: 12px 13px 13px; border-radius: 16px; }
+  .ms-panel .mv-kpi-v { font-size: 22px; }
+  .ms-panel .mv-modal-chart { padding: 10px 6px 6px; border-radius: 18px; }
+}

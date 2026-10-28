@@ -140,7 +140,7 @@ export default function MinuteSeriesCard({ nowcast, place, variant }: { nowcast:
 
       {open && createPortal(
         <div className="mv-modal" role="dialog" aria-modal="true" aria-label={`Minutenverlauf · ${place}`} onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}>
-          <div className="mv-modal-panel">
+          <div className="mv-modal-panel ms-panel">
             <div className="mv-modal-head">
               <div>
                 <span className="mv-eyebrow"><span className="mv-live" aria-hidden="true"><span /><span /></span>Regenradar · {place}</span>
