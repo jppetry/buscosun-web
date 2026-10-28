@@ -275,7 +275,7 @@ export default function SeaReadout(p: Props) {
     </>
   );
   const empty = <div className="sw-empty">Spot wählen — in der Liste, auf der Karte oder über die Suche.</div>;
-  const areaTab = <AreaDossier spot={s} texts={p.texts} warning={p.warning} />;
+  const areaTab = <AreaDossier spot={s} texts={p.texts} />;
   const sourcesTab = <SourcesTab spot={s} run={p.run} spotsDoc={p.spotsDoc} texts={p.texts} freshness={p.freshness} wl={p.waterLevel} />;
 
   if (p.layout === 'dossier') {
@@ -477,7 +477,7 @@ export default function SeaReadout(p: Props) {
               </>
             ) : empty}
             <DsSection id={SEC_AREA} title="Amtlich · Küste und Seegebiet" hint="Seewetterdienst Hamburg im Wortlaut: Warnstatus, Küstenbericht, Seewetterbericht, Mittelfrist">
-              <AreaDossier spot={s} texts={p.texts} warning={p.warning} />
+              <AreaDossier spot={s} texts={p.texts} />
             </DsSection>
             {s && disclaimer}
           </>
@@ -955,44 +955,15 @@ function SeaBars({ hour: h }: { hour: SeaReadoutHour }) {
   );
 }
 
-function StatusTile({ title, meta, status, text, missing, own }: { title: string; meta: string; status: 'none' | 'unknown' | null; text: string; missing: string; own?: string | null }) {
-  const tone = status === 'none' ? 'is-none' : 'is-unknown';
-  return (
-    <div className={`sw-ar-status ${tone}`}>
-      <span className="sw-ar-status-ic" aria-hidden="true">{status === 'none' ? '✓' : '!'}</span>
-      <div className="sw-ar-status-tx">
-        <span className="sw-ar-k">{title}</span>
-        {text ? <WarnRows text={text} own={own} /> : <p className="sw-official">{missing}</p>}
-        <span className="sw-ar-meta">{meta}</span>
-      </div>
-    </div>
-  );
-}
-
-function AreaDossier({ spot, texts, warning }: { spot: SeaSpot | null; texts: SeaTexts; warning: Props['warning'] }) {
-  const coastName = spot ? (spot.wodlCoast === 'Nordseekueste' ? 'Nordseeküste' : 'Ostseeküste') : 'Küste';
-  const c = warning.coast, area = warning.area;
-  const stale = texts.stale.WODL45;
+function AreaDossier({ spot, texts }: { spot: SeaSpot | null; texts: SeaTexts }) {
   const sec = spot && texts.fq51?.parts.kind === 'report' ? texts.fq51.parts.days[0]?.areas.find((a) => a.id === spot.coast?.id) : null;
   const d = texts.fq50;
   const id = spot?.seaArea?.id ?? null;
   const days = d?.parts.kind === 'report' ? d.parts.days : [];
   const fx = texts.fx40?.parts.kind === 'medium' ? texts.fx40.parts : null;
   const sea = fx?.seas.find((x) => x.sea === spot?.region) ?? null;
-  const wodlAt = texts.wodl ? `Stand ${issued(texts.wodl)}` : texts.loading ? 'lädt' : 'nicht lesbar';
   return (
     <div className="sw-ar">
-      <div className="sw-ar-statusrow">
-        <StatusTile title={`Warnstatus ${coastName}`} status={c && !stale ? c.status : null} own={spot?.coast?.name}
-          text={c?.text ?? ''} missing="Warnstatus derzeit unbekannt — es gibt keine lesbare, aktuelle Meldung. Das heißt nicht „keine Warnung“."
-          meta={`${c?.nr ? `NR. ${c.nr} · ` : ''}${wodlAt}${stale ? ' · veraltet' : ''}${c?.issuedText ? ` · ${c.kind ? `${c.kind} · ` : ''}${c.issuedText}` : ''}`} />
-        {spot?.seaArea && (
-          <StatusTile title={`Warnstatus Seegebiet ${spot.seaArea.name}`} status={area && !stale ? area.status : null}
-            text={area?.text ?? ''} missing="Für dieses Seegebiet ist keine Zeile der Warnmeldung lesbar — das heißt nicht „keine Warnung“."
-            meta={`WODL45, englischer Teil · ${wodlAt}${stale ? ' · veraltet' : ''}`} />
-        )}
-      </div>
-
       <div className="sw-ar-grid">
         <section className="sw-card is-official sw-ar-card">
           <div className="sw-card-head"><span className="sw-eyebrow is-accent-dark">Küstenbericht</span><span className="sw-unit">wörtlich</span></div>
