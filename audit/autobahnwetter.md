@@ -2344,7 +2344,11 @@ Cron-Push — Rettung aus dem Reflog, dann `checkout --detach origin/main` + `ch
 nach dem Merge leeren). **Erster Lauf lokal mit `--publish`:** Antrieb 2026102806 (4 772 Punkte, 27 Felder, 4,48 MB gz, `ww` Schritt 0
 fehlt, 150 s, Daten-Commit `827bcec`), Derive 159 s (Produkt 11,09 MB + Zustand 1,18 MB gz, Commit `6deeede`, Zeiger ein Lauf). **Befund
 V-VS-25:** der Messslot 2610280830 war für den Derive „nicht nutzbar" ⇒ 0 gekoppelt, 0 gemessen, 4 772 Kaltstart aus T_G — alle
-Werte `modelliert`; Ursache prüfen (Slot-Alter gegen t0 +2 h oder Ring-Pfad im lokalen Klon), bevor der Cron 10:25 UTC läuft.
+Werte `modelliert`. **Ursache gefunden und behoben:** `run-vs.mjs` verglich die auf die NÄCHSTE Modellstunde gerundete Slot-Stunde
+(08:30 ⇒ +3) mit der abgerundeten Jetzt-Stunde (08:46 ⇒ +2) und verwarf so jeden :30-Slot in der dritten halben Stunde nach einer
+Modellstunde; jetzt gilt: Slot im Lauf, nicht jünger als jetzt, höchstens 6 h alt. Der Cron (:25, Slots :15) hätte es meist nicht
+getroffen, ein lokaler Lauf um :4x immer. Der nächste Cron-Lauf (10:25 UTC) ist der erste mit Kopplung — Zahlen in §20.7/§20.13
+nachtragen (gekoppelt, QC gültig/verworfen, Schattenpaare).
 Die fünf Blicke (§79.13) im Dev-Server (`?roadvs=1&roadhz=0`, Chrome 1 568 px, headless 390 px): (a) Siegsdorf Brücke P890
 (ohne Fahrbahnwert seit 22 h 30 min) — Kopfzeile „Fahrbahnsensor ausgefallen · virtueller Sensor", +12,5 °C mit Info-Zeichen,
 Badge „Trocken · berechnet" gestrichelt (`outline dashed 2px`), Unterzeile mit Herkunft und σ, Callout auf der Karte; (b) Achse

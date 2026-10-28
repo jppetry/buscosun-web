@@ -179,8 +179,11 @@ export async function runVs({ dataDir, outDir, nowMs = Date.now(), run = null, l
   const fusion = drive === 'fusion' ? loadFusion(dataDir, nowMs) : null;
   const obs = loadObs(dataDir, nowMs);
   const hNow = Math.max(0, Math.min(steps - 1, Math.floor((nowMs - t0Ms) / H)));
+  // The slot belongs to the NEAREST model hour (a :30 slot rounds up); usable when it lies in the run, is not younger than „now"
+  // and at most 6 h old. V-VS-25 (28.10.): comparing the rounded hour with the floored `hNow` rejected every :30 slot in the
+  // third half-hour after a model hour (08:30 ⇒ +3 > +2) — 0 coupled stations in the first published run.
   const hObs = obs ? Math.round((obs.slotMs - t0Ms) / H) : null;
-  const obsUsable = hObs != null && hObs >= 0 && hObs <= hNow && nowMs - obs.slotMs <= VS_QC_COUPLE_MAX_AGE_MS;
+  const obsUsable = hObs != null && hObs >= 0 && hObs < steps && obs.slotMs <= nowMs && nowMs - obs.slotMs <= VS_QC_COUPLE_MAX_AGE_MS;
   log(`Antrieb ${F.run} (t0 ${new Date(t0Ms).toISOString()}), jetzt +${hNow} h, Messslot ${obs?.slot ?? '—'}${obsUsable ? ` = Stunde +${hObs}` : ' (nicht nutzbar)'}, Fusion ${fusion?.run ?? '—'}, Residuen ${residualsHash ?? '—'}, Zustand ${prev ? `${Object.keys(prev.points).length} Punkte aus ${prev.run}` : 'keiner (Kaltstart)'}, ${points.length} Punkte`);
 
   // Pass 1: every point from its state at t0, no coupling.
