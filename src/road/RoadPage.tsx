@@ -477,15 +477,10 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   const axisValue = axis && fcFile ? roadFcValue(axis, fcFile, fcMs) : null;
   const fcDots = useMemo<RoadFcDot[]>(() => (!fcFile ? [] : roadFcAxisPoints(fcFile).map((p) => {
     const v = roadFcValue(p, fcFile, fcMs);
-    // AW-6.2.9: with the virtual sensor the axis dot takes the computed ROAD class colour (sections without a sensor get a road, Jan 28.10.).
-    const vsPt = vsView.file ? vsView.byId.get(p.id) : undefined;
-    const vsV = vsPt && vsView.file ? roadVsValue(vsPt, vsView.file, fcMs) : null;
-    // Temperature of the dot between the measurements, all from buscosun Fusion of the shown hour: the computed road (`~`, virtual sensor or
-    // Fusion — Fahrbahn) like the station labels, else the forecast air (`L`); no value ⇒ no text.
-    const label = vsV ? `~${f1(vsV.tf)}°` : v ? (surface && v.rs != null ? `~${f1(v.rs)}°` : `L ${f1(v.t)}°`) : null;
-    return { id: p.id, lon: p.lon, lat: p.lat, color: vsV ? ROAD_CLASS_COLOR[roadVsClassOf(vsV)] : v ? ROAD_FC_AIR_COLOR[roadFcAirClass(v.t)] : null, label };
+    // Air colour only: a forecast dot never looks like a measured road class (Jan 28.10.: no road classes on the axis dots).
+    return { id: p.id, lon: p.lon, lat: p.lat, color: v ? ROAD_FC_AIR_COLOR[roadFcAirClass(v.t)] : null };
     // Hour steps only: the dots change when the valid hour changes, not every minute.
-  })), [fcFile, vsView, surface, Math.round(fcMs / 3_600_000)]); // eslint-disable-line react-hooks/exhaustive-deps
+  })), [fcFile, Math.round(fcMs / 3_600_000)]); // eslint-disable-line react-hooks/exhaustive-deps
   // AW-6.2.9: stations of the open corridor without a road measurement, with the virtual sensor's value of the shown hour (map marker + label).
   // Jan 28.10.: a failed sensor is simulated only while ONE measurement is missing, so the 24-h ring of every group with a failed sensor is needed.
   const failedGroups = useMemo(() => {
