@@ -445,7 +445,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
           {(['ice', 'frost', 'wet', 'dry'] as const).map((c) => <span key={c}><i style={{ background: ROAD_CLASS_COLOR[c] }} />{ROAD_CLASS_LABEL[c].label}</span>)}
           {/* Hatched = `unknown` (temperature, no condition) AND `nodata` — never "dry" (D-04). */}
           <span><i className="is-hatched" />Zustand unbekannt / keine Messung</span>
-          {vsView.file && <span><i className="is-vs-sim" />Rot umrandet = berechnet (letzte Messung fehlt, danach „keine Messung")</span>}
+          {vsView.file && <span><i className="is-vs-sim" />Rot umrandet = berechnet</span>}
           {gap && <span><i className="is-fc-line" style={{ background: ROAD_FC_LINE_COLOR }} />Abschnitt ohne Messstelle · {ROAD_GAP_SHORT}</span>}
         </div>
       </div>
