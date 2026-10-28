@@ -52,3 +52,6 @@ __pycache__/
 audit/obs-fusion/of8/
 # OF-9 raw collection parts (f32 rows + index, ≈ 100 MB each, reproducible from the hindcast)
 audit/obs-fusion/of9/
+
+# local radar nowcast products for ?ncbase=/nc-test (never commit)
+public/nc-test/
