@@ -17,8 +17,17 @@ export function parseRoadVsIndex(j: unknown): RoadVsIndex | null {
   return j as RoadVsIndex;
 }
 
+/** The pointer is mutable: read from raw.githubusercontent only, like the route forecast's (E-AW-20) — jsDelivr `@main`
+ *  kept the first run's index for hours, so every later run counted as stale and nothing was shown. */
 export async function loadRoadVsIndex(signal?: AbortSignal): Promise<RoadVsIndex | null> {
-  try { return parseRoadVsIndex(await fetchRoadJson(ROAD_VS_INDEX_PATH, signal, VS_BASES)); } catch (e) { if (e instanceof RoadNotThere) return null; throw e; }
+  try {
+    const res = await fetch(`${VS_BASES.raw}/${ROAD_VS_INDEX_PATH}`, { signal, cache: 'no-cache' });
+    if (!res.ok) return null;
+    return parseRoadVsIndex(await res.json());
+  } catch (e) {
+    if ((e as Error)?.name === 'AbortError') throw e;
+    return null;
+  }
 }
 
 export interface RoadVsLoad { file: RoadVsProductFile | null; run: string | null; stale: boolean; reason: string | null }
