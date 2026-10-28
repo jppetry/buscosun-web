@@ -1526,6 +1526,13 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
         {id === 'fireSoilDryness' && on && soilSeg}
         {id === 'fireBurnt' && on && burntSeg}
         {id === 'fireDanger' && on && viewChips}
+        {/* Legende des aktiven Layers direkt unter seiner Zeile; ist der Steckbrief offen, trägt er sie selbst. */}
+        {on && gebaut && info.legend && openInfo !== id && (
+          <div className="br-layer-legend" role="group" aria-label={`Legende ${meta.label}`}>
+            <span className="br-layer-legend-head">Legende</span>
+            <div className="fire-info-legend">{info.legend}</div>
+          </div>
+        )}
         {/* BD3: die Ehrlichkeits-Notiz des Treibers steht bei ihrem Layer, nicht mehr über der Karte. */}
         {id === 'fireWeather' && on && mapNotes}
         {on && stands && (
