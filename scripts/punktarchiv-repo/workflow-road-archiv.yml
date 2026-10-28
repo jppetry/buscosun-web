@@ -67,13 +67,17 @@ jobs:
           git config user.name  'buscosun-road-archiv[bot]'
           git config user.email 'road-archiv@users.noreply.github.com'
 
+      # AW-6.2.9: bis zum Merge der Linie VS klont der Job den Zweig aus der Repo-Variable ROAD_VS_WEB_REF (leer = main) —
+      # dieselbe Variable wie `road-vs.yml` im Daten-Repo; nach dem Merge die Variable leeren.
       - name: Checkout archiver (buscosun-web, public, sparse)
+        env:
+          WEB_REF: ${{ vars.ROAD_VS_WEB_REF }}
         run: |
-          git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-web.git app
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout --branch "${WEB_REF:-main}" https://github.com/jppetry/buscosun-web.git app
           cd app
           git sparse-checkout set --no-cone scripts/road scripts/lib src/road package.json
           git checkout --quiet
-          test -f scripts/road/road-archive.mjs || { echo "scripts/road/road-archive.mjs fehlt in buscosun-web main"; exit 1; }
+          test -f scripts/road/road-archive.mjs || { echo "scripts/road/road-archive.mjs fehlt in buscosun-web ${WEB_REF:-main}"; exit 1; }
 
       - name: Checkout road store (buscosun-data, public, sparse)
         run: |
