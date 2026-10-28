@@ -1353,7 +1353,8 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   // (kürzere Labels, „Std." statt „Stunden"), alles Übrige ist CSS.
   const isTablet = useMediaQuery('(max-width: 1439px)');
   // Desktop mit Maus: der Steckbrief erscheint beim Überfahren der Layer-Zeile (statt über den „i"-Knopf).
-  const hoverInfo = useMediaQuery('(min-width: 768px) and (hover: hover)');
+  // `any-hover`: Hybridgeräte (Touch-Laptop) melden für den Primärzeiger oft `hover: none`, haben aber eine Maus.
+  const hoverInfo = useMediaQuery('(min-width: 768px) and (any-hover: hover)');
   const [hoverCard, setHoverCard] = useState<{ id: FireLayerId; top: number; left: number; maxH: number } | null>(null);
   const hoverTimer = useRef<number | undefined>(undefined);
   const showHoverCard = (id: FireLayerId, el: HTMLElement) => {
