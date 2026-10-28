@@ -391,7 +391,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
             <button type="button" className="rm-brand" aria-label="Zur Startseite" onClick={onBack}>
               <img src="/buscosun-mark.svg" width={24} height={24} alt="" />
             </button>
-            <div className="rm-search"><NowcastLocationField value={location} onChange={onChangeLocation} showCountryCode /></div>
+            <div className="rm-search"><NowcastLocationField value={location} onChange={onChangeLocation} /></div>
             <ShareButton className="rm-share" compact />
           </div>
           <div className="rm-zoom" role="group" aria-label="Zoom">

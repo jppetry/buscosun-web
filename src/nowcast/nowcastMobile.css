@@ -132,21 +132,20 @@
 /* SH2: Teilen-Knopf rechts neben der Suchpille, gleiche Glasfläche. */
 .rm-share { flex: 0 0 auto; min-width: 48px; border-radius: 14px;
   background: var(--surface-glass-strong, #FAF6EA); border-color: var(--sand-200, #E0D6BE); }
-.rm-search .ev-loc-chip { display: flex; align-items: center; gap: 10px; margin: 0; max-width: none;
-  background: var(--surface-glass-strong, #FAF6EA); border: 1px solid var(--sand-200, #E0D6BE);
-  border-radius: 14px; padding: 15px 16px; box-shadow: var(--shadow-card); }
-.rm-search .ev-loc-chip::before { content: ''; width: 18px; height: 18px; flex: 0 0 auto;
-  background: no-repeat center / contain
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18' fill='none' stroke='%238B7355' stroke-width='1.7'><circle cx='8' cy='8' r='6'/><line x1='13' y1='13' x2='17' y2='17' stroke-linecap='round'/></svg>"); }
-.rm-search .ev-loc-name { flex: 1; font-family: var(--rm-font); font-size: 17px; font-weight: 500; color: var(--ink-900, #2C2A26);
+/* Suchpille wie in der Desktop-Topbar (`.rr-topsearch`, Jan 28.10.2026): weiß, 12-px-Radius, Flagge, „Ändern" als
+   Steel-Text; nur die Höhe bleibt ≥ 44 px für den Daumen. */
+.rm-search .ev-loc-chip { display: flex; align-items: center; gap: 9px; margin: 0; max-width: none;
+  background: #fff; border: 1px solid color-mix(in srgb, var(--border-medium, #D9D0B8) 80%, transparent);
+  border-radius: 12px; padding: 12px 13px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 6px 14px -12px rgba(44, 42, 38, 0.35); }
+.rm-search .ev-loc-name { flex: 1; font-size: 14px; font-weight: 400; color: var(--ink-900, #2C2A26);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.rm-search .ev-loc-change { font-size: 0; width: 12px; height: 12px; border-radius: 50%; flex: 0 0 auto;
-  background: var(--steel-600, #3A6FA8); padding: 0; border: 0; }
-.rm-search .ev-search { background: var(--surface-glass-strong, #FAF6EA); border: 1px solid var(--sand-200, #E0D6BE);
-  border-radius: 14px; padding: 4px 6px 4px 14px; box-shadow: var(--shadow-card); }
-.rm-search .ev-search-input { font-family: var(--rm-font); font-size: 16px; padding: 13px 6px; }
-.rm-search .ev-search-icon { color: var(--stone-500, #8B7355); }
-.rm-search .nc-search-go { border-radius: 10px; }
+.rm-search .ev-loc-change { font-size: 11px; color: var(--steel-600, #3A6FA8); font-weight: 600; }
+.rm-search .ev-search-wrap { max-width: none; }
+.rm-search .ev-search { background: #fff; border: 1px solid color-mix(in srgb, var(--border-medium, #D9D0B8) 80%, transparent);
+  border-radius: 12px; padding: 4px 6px 4px 14px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 6px 14px -12px rgba(44, 42, 38, 0.35); }
+.rm-search .ev-search-input { font-size: 16px; padding: 10px 6px; }
 
 .rm-iconbtn { flex: 0 0 auto; width: 54px; border-radius: 14px; display: flex; align-items: center; justify-content: center;
   color: var(--steel-600, #3A6FA8); background: var(--surface-glass-strong, #FAF6EA);
