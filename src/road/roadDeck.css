@@ -1005,3 +1005,53 @@ button.aw-prog-tile:not(:disabled):not(.is-on):hover { box-shadow: var(--aw-inse
   .aw-m-brand { width: 44px; height: 44px; flex: 0 0 auto; align-self: center; border-radius: 12px; padding: 0; cursor: pointer; display: flex; align-items: center; justify-content: center;
     background: var(--surface-glass-strong, #FAF6EA); border: 1px solid var(--sand-200, #E0D6BE); box-shadow: var(--shadow-card); }
 }
+
+/* Cross-section „Was auf der Fahrbahn liegt“: weather scene after the leading hazard (RoadCrossSection.tsx). A hazard ahead is faint. */
+.aw-xs-fx.is-ahead { opacity: 0.7; }
+.aw-xs-fx * { transform-box: fill-box; transform-origin: center; animation-timing-function: linear; animation-iteration-count: infinite; }
+.aw-xs-rain, .aw-xs-hail, .aw-xs-snow, .aw-xs-fall { transform-box: view-box; transform-origin: 0 0; }
+.aw-xs-rain { animation-name: awXsRain; }
+@keyframes awXsRain { from { transform: translate(0, var(--y0)); } to { transform: translate(-7px, var(--y1)); } }
+.aw-xs-hail { animation-name: awXsHail; }
+@keyframes awXsHail { 0% { transform: translate(0, var(--y0)); opacity: 1; } 72% { transform: translate(-3px, var(--y1)); } 82% { transform: translate(-4px, calc(var(--y1) - 7px)); } 92% { transform: translate(-5px, var(--y1)); opacity: 1; } 100% { transform: translate(-5px, var(--y1)); opacity: 0; } }
+.aw-xs-snow { animation-name: awXsSnow; }
+@keyframes awXsSnow { 0% { transform: translate(0, var(--y0)); } 25% { transform: translate(3px, calc(var(--y0) + (var(--y1) - var(--y0)) * 0.25)); } 50% { transform: translate(-2px, calc(var(--y0) + (var(--y1) - var(--y0)) * 0.5)); } 75% { transform: translate(3px, calc(var(--y0) + (var(--y1) - var(--y0)) * 0.75)); } 100% { transform: translate(0, var(--y1)); } }
+.aw-xs-fall { animation-name: awXsFall; }
+@keyframes awXsFall { 0% { transform: translate(0, var(--y0)); opacity: 0; } 20% { opacity: 1; } 85% { opacity: 1; } 100% { transform: translate(0, var(--y1)); opacity: 0; } }
+.aw-xs-wind, .aw-xs-dust, .aw-xs-leaf { transform-box: view-box; transform-origin: 0 0; animation-name: awXsWind; }
+@keyframes awXsWind { 0% { transform: translateX(var(--x0)); opacity: 0; } 12% { opacity: 0.85; } 88% { opacity: 0.85; } 100% { transform: translateX(var(--x1)); opacity: 0; } }
+.aw-xs-dust { animation-name: awXsDust; }
+@keyframes awXsDust { 0% { transform: translate(var(--x0), 0); } 50% { transform: translate(calc((var(--x0) + var(--x1)) / 2), -3px); } 100% { transform: translate(var(--x1), 1px); } }
+.aw-xs-spin { animation-name: awXsSpin; }
+@keyframes awXsSpin { to { transform: rotate(360deg); } }
+.aw-xs-twinkle { animation-name: awXsTwinkle; animation-timing-function: ease-in-out; }
+@keyframes awXsTwinkle { 0%, 100% { opacity: 0.15; transform: scale(0.4); } 50% { opacity: 1; transform: scale(1.15); } }
+.aw-xs-cloud { animation-name: awXsCloud; animation-direction: alternate; animation-timing-function: ease-in-out; }
+@keyframes awXsCloud { from { transform: translateX(-16px); } to { transform: translateX(16px); } }
+.aw-xs-fog { animation-name: awXsFog; animation-direction: alternate; animation-timing-function: ease-in-out; }
+@keyframes awXsFog { from { transform: translateX(-34px); } to { transform: translateX(34px); } }
+.aw-xs-flash { opacity: 0; animation-name: awXsFlash; }
+@keyframes awXsFlash { 0%, 88%, 100% { opacity: 0; } 89% { opacity: 0.75; } 91% { opacity: 0.1; } 93% { opacity: 0.6; } 96% { opacity: 0; } }
+.aw-xs-bolt { opacity: 0; animation-name: awXsBolt; }
+@keyframes awXsBolt { 0%, 88%, 100% { opacity: 0; } 89% { opacity: 1; } 91% { opacity: 0.2; } 93% { opacity: 1; } 97% { opacity: 0; } }
+.aw-xs-ripple { animation-name: awXsRipple; animation-timing-function: ease-out; }
+@keyframes awXsRipple { 0% { transform: scale(0.2); opacity: 0.95; } 100% { transform: scale(1.7); opacity: 0; } }
+.aw-xs-spray { animation-name: awXsSpray; animation-timing-function: ease-out; }
+@keyframes awXsSpray { 0% { transform: translate(0, 0) scale(0.5); opacity: 0.9; } 60% { opacity: 0.55; } 100% { transform: translate(-30px, -24px) scale(2.2); opacity: 0; } }
+.aw-xs-sheen { animation-name: awXsSheen; transform-box: view-box; transform-origin: 0 0; }
+@keyframes awXsSheen { from { transform: translateX(0); } to { transform: translateX(420px); } }
+.aw-xs-heat { animation-name: awXsHeat; animation-timing-function: ease-out; }
+@keyframes awXsHeat { 0% { transform: translateY(0); opacity: 0; } 30% { opacity: 0.85; } 100% { transform: translateY(-34px); opacity: 0; } }
+.aw-xs-glow { animation-name: awXsGlow; animation-direction: alternate; animation-timing-function: ease-in-out; }
+@keyframes awXsGlow { from { transform: scale(0.92); opacity: 0.8; } to { transform: scale(1.08); opacity: 1; } }
+.aw-xs-rays { animation-name: awXsSpin; }
+.aw-xs-glare { animation-name: awXsGlare; animation-direction: alternate; animation-timing-function: ease-in-out; }
+@keyframes awXsGlare { from { opacity: 0.12; } to { opacity: 0.45; } }
+.aw-xs-chill { animation-name: awXsChill; animation-direction: alternate; animation-timing-function: ease-in-out; }
+@keyframes awXsChill { from { opacity: 0.15; } to { opacity: 0.45; } }
+/* Reduced motion: the scene stands still (scattered, as drawn); the lightning stays visible. */
+@media (prefers-reduced-motion: reduce) {
+  .aw-xs-fx * { animation: none !important; }
+  .aw-xs-bolt { opacity: 0.9; }
+  .aw-xs-flash, .aw-xs-sheen { opacity: 0; }
+}

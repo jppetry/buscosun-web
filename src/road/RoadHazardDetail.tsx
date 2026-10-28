@@ -13,11 +13,11 @@ import type { RoadCorridor } from './roadClient';
 import type { RoadFcFile } from './roadFc';
 import { roadFcDecode } from './roadFc';
 import type { RoadSegment } from './roadSegments';
-import { ROAD_HAZARD_BY_ID, ROAD_HZ_HOURS, type HzEntry, type RoadEvidence, type RoadHazardId, type RoadHzFile, type RoadLevel } from './roadHazards';
+import { ROAD_HAZARD_BY_ID, ROAD_HAZARD_RANK, ROAD_HZ_HOURS, type HzEntry, type RoadEvidence, type RoadHazardId, type RoadHzFile, type RoadLevel } from './roadHazards';
 import { roadNarrative, type Narrative } from './roadNarrative';
 import { AW_SEV, AW_SEV_TINT, AW_HATCH, AW_UNKNOWN_TINT, AW_MONO } from './roadNivoTheme';
 import { HZ_GROUP_ICON, HZ_SHORT, bulletRows, crossSectionOf, planRows, windSectors, segmentMainStation, tempSeriesOf } from './roadHzView';
-import RoadCrossSection from './RoadCrossSection';
+import RoadCrossSection, { type CrossSectionFx } from './RoadCrossSection';
 import { EvDot } from './RoadHazardPanel';
 import { hm, dec, f1 } from './roadView';
 import { ROAD_SURFACE_WORD } from './roadSurface';
@@ -119,6 +119,30 @@ export default function RoadHazardDetail(p: RoadHazardDetailProps) {
     if (first > 0) return { id, text: `${HZ_SHORT[id]} · ab ${hm(file.hours[first])}`, tint: AW_SEV_TINT[lv[first] as RoadLevel], ev: 'p' as RoadEvidence, unknown: false };
     return null;
   }).filter((c): c is NonNullable<typeof c> => !!c) : [];
+  // Scene of the cross-section: the strongest hazard now (rank breaks ties), else the first one ahead in the window.
+  const xsFx = useMemo<CrossSectionFx | null>(() => {
+    if (import.meta.env.DEV) {
+      // Dev only: `?xsfx=<hazard>:<level>[:ab]` (or localStorage `awxsfx`, survives the URL sync) forces the scene for a visual check.
+      let raw: string | null = new URLSearchParams(window.location.search).get('xsfx');
+      try { raw ??= window.localStorage.getItem('awxsfx'); } catch { /* storage blocked */ }
+      const q = raw?.split(':');
+      if (q && ROAD_HAZARD_BY_ID[q[0] as RoadHazardId]) return { id: q[0] as RoadHazardId, lv: Math.max(1, Math.min(3, Number(q[1]) || 1)) as RoadLevel, at: q[2] ? hm(file.hours[2] ?? file.slotMs) : null, ev: null };
+    }
+    if (!entry) return null;
+    const ids = (Object.keys(entry.lv) as RoadHazardId[]).filter((id) => ROAD_HAZARD_BY_ID[id]).sort((a, b) => ROAD_HAZARD_RANK[a] - ROAD_HAZARD_RANK[b]);
+    let best: CrossSectionFx | null = null, bestI = Infinity;
+    for (const id of ids) {
+      const lv = entry.lv[id]!;
+      const i = lv.findIndex((l) => (l ?? 0) > 0);
+      if (i < 0) continue;
+      const l = lv[i] as RoadLevel;
+      if (i < bestI || (i === bestI && best && l > best.lv)) {
+        bestI = i;
+        best = { id, lv: l, at: i > 0 ? hm(file.hours[i]) : null, ev: ((entry.ev[id]?.[i] ?? null) as RoadEvidence | '-' | null) === '-' ? null : (entry.ev[id]?.[i] ?? null) as RoadEvidence | null };
+      }
+    }
+    return best;
+  }, [entry, file.hours, file.slotMs]);
   const nHaz = chips.filter((c) => !c.unknown).length, nUnk = chips.length - nHaz;
   // With the „Nicht auswertbar“ block below, the unknown chips would say the same twice — the chips keep the levels only.
   const shownChips = narrative?.unknown.length ? chips.filter((c) => !c.unknown) : chips;
@@ -184,7 +208,7 @@ export default function RoadHazardDetail(p: RoadHazardDetailProps) {
         <div className="aw-hz-xsgrid">
           <div className="aw-hz-xscol">
             <div className="aw-eyebrow aw-hz-xs-head">Was auf der Fahrbahn liegt</div>
-            <RoadCrossSection xs={xs} />
+            <RoadCrossSection xs={xs} fx={xsFx} />
           </div>
           <div className="aw-hz-txtcol">
             {shownChips.length > 0 && (
