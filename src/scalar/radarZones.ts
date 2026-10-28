@@ -59,12 +59,23 @@ export function zoneAt(lat: number, lng: number): RadarZone {
 }
 
 /**
+ * The product whose layer the map draws FIRST (`MapView` adds the HD layers DE, AT, CH in this order, so DWD-RV lies under
+ * INCA and rzc). In the band the layers overlap with "over" blending: if BOTH carried their weight as alpha, the background
+ * would show through (at w = ½ only ¾ of the pixel is covered — the seam looked pale). The exact cross-fade is: the under
+ * layer draws at full alpha wherever its weight is > 0, the over layer with its weight — over·w + under·(1 − w).
+ */
+export const RADAR_ZONE_UNDER: RadarZone = 'rv';
+
+/**
  * Weight mask of a radar grid: `cols × rows` bytes 0 … 255 = the weight of the grid's own product at the pixel centre
  * (255 = draws alone, 0 = not drawn, in between = the transition band). The `RainLayer` multiplies its alpha with it.
  * Where the country's product is the grid's own and no band runs, the mask equals the ownership mask (255 ⇔ 1).
+ * The under layer (`RADAR_ZONE_UNDER`) gets 255 throughout the band — see there. Band bytes start at 2: the `RainLayer`
+ * reads byte 1 as the ownership mask's "draw" (= 255), so a weight of 1/255 at the band's outer edge drew a full-alpha line.
  */
 export function zoneMaskForGrid(kind: HdGridKind, corners: QuadCorners, cols: number, rows: number): Uint8Array {
   const own = RADAR_ZONE_OF_GRID[kind];
+  const under = own === RADAR_ZONE_UNDER;
   const at = projectedSampler(gridNodeFn(kind, corners));
   const pick = fastCountryPicker();
   const out = new Uint8Array(cols * rows);
@@ -73,7 +84,7 @@ export function zoneMaskForGrid(kind: HdGridKind, corners: QuadCorners, cols: nu
     for (let col = 0; col < cols; col++) {
       const [lon, lat] = at((col + 0.5) / cols, v);
       const w = zoneWeightsFor(pick(lat, lon), lat, lon)[own];
-      out[r * cols + col] = w <= 0 ? 0 : w >= 1 ? 255 : Math.max(1, Math.round(w * 255));
+      out[r * cols + col] = w <= 0 ? 0 : (under || w >= 1) ? 255 : Math.max(2, Math.round(w * 255));
     }
   }
   return out;
