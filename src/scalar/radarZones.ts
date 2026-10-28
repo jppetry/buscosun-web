@@ -1,19 +1,17 @@
 /**
- * Phase NC (`audit/radar-nowcast-dach.md` §3) — which radar product draws where, with a transition band instead of a hard edge.
+ * Phase NC (`audit/radar-nowcast-dach.md` §3) — which radar product draws where.
  *
- * Before Phase NC the ownership mask gave every native pixel to the radar of its COUNTRY (`countryMaskForGrid`, `pickCountry`).
- * Now the split follows what each product can do (E-NC-1, Jan's brief):
- *   · `rv`   DWD-RV: Germany and the west of Austria (west of ≈ 14° E) — the DWD composite reaches there with 25 × 5 min
- *            from the analysis;
- *   · `rzc`  ALL of Switzerland: the MeteoSwiss analysis and buscosun's extrapolation of it (24 × 5 min). Until 28.10.2026 the
- *            north (≥ 46,7° N) went to DWD-RV — measured against MeteoSwiss that day (15:05 MEZ, 7,5–9,6° E): rzc saw 58–91 %
- *            wet pixels between 46,8 and 47,3° N, DWD-RV 0–4,5 % — the DWD composite is blind there (V-NC-6), so Jan gave
- *            CH back to rzc entirely;
- *   · `inca` the rest of Austria (Linz, Graz, Klagenfurt, Vienna): INCA, refined to 5 min.
- * The country still comes from `pickCountry` (box, else the border); inside AT the meridian `RADAR_ZONE_AT_RV_LNG_MAX` divides
- * with a linear ramp of ± half the band so the seam is a transition zone (the layers overlap there — see `RADAR_ZONE_UNDER`).
- * The AT number is SET (Jan's brief 27.10.2026: "westlich von etwa 14° E"); measured 28.10. the DWD composite thins from
- * 13,6° E and ends at 14,15° E at 48° N (V-NC-2) — the AT seam is still open.
+ * Every native pixel belongs to the radar of its COUNTRY (`pickCountry`: box, else the border) — the same split as the
+ * ownership mask before Phase NC:
+ *   · `rv`   DWD-RV: Germany, 25 × 5 min from the analysis;
+ *   · `rzc`  Switzerland: the MeteoSwiss analysis and buscosun's extrapolation of it (24 × 5 min);
+ *   · `inca` Austria: the INCA run refined to 5 min (34 frames, +15 … +180).
+ * Jan's brief of 27.10.2026 (E-NC-1) had given DWD-RV the north of Switzerland (≥ 46,7° N) and the west of Austria (< 14° E)
+ * with a ± 15-km ramp at each seam. Measured 28.10.2026 against the national products, the DWD composite is blind at those
+ * ranges: over central Switzerland (15:05 MEZ, 7,5–9,6° E, 46,8–47,3° N) rzc saw 58–91 % wet pixels, RV 0–4,5 % (V-NC-6);
+ * in Upper Austria at 48° N RV thins from 13,6° E and ends at 14,15° E while INCA sees 23–35 % wet pixels there (V-NC-2).
+ * Jan gave both countries back to their own product that day — no seam, no band. `RADAR_ZONE_UNDER` and the band bytes of
+ * `zoneMaskForGrid` keep the shader contract for a ramp, should one come back.
  *
  * Pure and worker-safe (`precipIndexWorker`, op `zone`): the same bicubic refinement of the pixel centres as the country mask.
  */
@@ -25,22 +23,11 @@ import type { QuadCorners } from './RainLayer';
 export type RadarZone = 'rv' | 'inca' | 'rzc';
 export const RADAR_ZONE_OF_GRID: Readonly<Record<HdGridKind, RadarZone>> = Object.freeze({ radolan: 'rv', inca: 'inca', rzc: 'rzc' });
 
-/** AT west of this longitude belongs to DWD-RV (set). */
-export const RADAR_ZONE_AT_RV_LNG_MAX = 14.0;
-/** Half-width of the transition band in degrees (≈ 15 km): 0,2° of longitude at 47° N. */
-export const RADAR_ZONE_BLEND_DEG = Object.freeze({ lng: 0.2 });
-
 export interface ZoneWeights { rv: number; inca: number; rzc: number }
 
-/** Linear ramp: 0 at x ≤ −1, 1 at x ≥ +1. */
-const ramp = (x: number) => (x <= -1 ? 0 : x >= 1 ? 1 : (x + 1) / 2);
-
-/** Weights of the three products at (lat, lng) for a point of `country` (they add up to 1). */
-export function zoneWeightsFor(country: Country, _lat: number, lng: number): ZoneWeights {
-  if (country === 'AT') {
-    const rv = ramp((RADAR_ZONE_AT_RV_LNG_MAX - lng) / RADAR_ZONE_BLEND_DEG.lng);
-    return { rv, inca: 1 - rv, rzc: 0 };
-  }
+/** Weights of the three products at (lat, lng) for a point of `country` (they add up to 1) — since 28.10.2026 the country alone. */
+export function zoneWeightsFor(country: Country, _lat: number, _lng: number): ZoneWeights {
+  if (country === 'AT') return { rv: 0, inca: 1, rzc: 0 };
   if (country === 'CH') return { rv: 0, inca: 0, rzc: 1 };
   return { rv: 1, inca: 0, rzc: 0 };
 }

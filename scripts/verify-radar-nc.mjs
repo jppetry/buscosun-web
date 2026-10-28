@@ -9,8 +9,8 @@
 // C  arithmetic (`radarNowcastExtrap.ts`, synthetic planes): zero flow = identity, constant flow = exact pixel shift with
 //    the unknown columns at value 0, `wet-bilinear-round` never invents a byte below the measured minimum, between frames
 //    reproduce their neighbours at frac 0 / 1, motion statistics (speed, direction FROM), series flow of a translated plane
-// D  zones (`radarZones.ts`): weights add up to 1, named places land in their product, the band is a ramp at 14,0° E /
-//    46,7° N, the zone mask on the real rzc grid (0 outside the country, 255 = ownership where no band runs, band < 5 %);
+// D  zones (`radarZones.ts`): weights add up to 1, named places land in their COUNTRY's product (no seam since 28.10.2026),
+//    the zone mask on the real rzc grid = the ownership mask, the RV grid's zone mask = its ownership mask;
 //    with `?nc=0` byte-identical: MapView takes the ownership mask, `pickCompositeFrames` without the products
 //    equals the pre-NC rule over the slider range, the stack and the point sampler gate on the flag
 // E  pick by validity time: analysis at its own time, extrapolation frame nearest (± 3 min), nothing beyond; INCA refined
@@ -39,7 +39,7 @@ import { RADAR_HD_UNKNOWN_RAMP, RADAR_HD_CH_UNKNOWN_LAYER_ID, RADAR_HD_LAYER_IDS
 import { PRECIP_VMAX, precipRainRamp } from '../src/scalar/RainLayer.ts';
 import { RADAR_IMG_BASE, RADAR_CDN_BASE } from '../src/sources/radolanRuns.ts';
 import { radarImgFrameFile, radarImgDualFile, makeRadarImgDual, parseRzcImgMeta, parseIncaImgMeta, RZC_IMG_WIDTH, RZC_IMG_HEIGHT, INCA_IMG_WIDTH, INCA_IMG_HEIGHT, radarImgStamp, radarImgStampToMs } from '../src/sources/radarImg.ts';
-import { zoneWeights, zoneWeightsFor, zoneAt, zoneMaskForGrid, RADAR_ZONE_AT_RV_LNG_MAX, RADAR_ZONE_BLEND_DEG } from '../src/scalar/radarZones.ts';
+import { zoneWeights, zoneWeightsFor, zoneAt, zoneMaskForGrid } from '../src/scalar/radarZones.ts';
 import { countryMaskForGrid, fastCountryPicker, gridNodeFn, projectedSampler } from '../src/scalar/radarCountryMask.ts';
 import { pickCompositeFrames, RV_MAX_H, INCA_MAX_H, RZC_MAX_H } from '../src/scalar/precipComposite.ts';
 
@@ -193,16 +193,13 @@ const cst = (u, v) => { const f = zeroFlow(W, H, F); f.u.fill(u); f.v.fill(v); r
   const P = { Lugano: [46.0, 8.95], Sion: [46.23, 7.36], StMoritz: [46.5, 9.84], Zürich: [47.37, 8.54], Bern: [46.95, 7.45], Basel: [47.56, 7.59], Chur: [46.85, 9.53],
     Wien: [48.21, 16.37], Graz: [47.07, 15.44], Linz: [48.31, 14.29], Klagenfurt: [46.62, 14.31], Innsbruck: [47.27, 11.39], Salzburg: [47.8, 13.04], Bregenz: [47.5, 9.75], München: [48.14, 11.58], Hamburg: [53.55, 10.0] };
   const z = Object.fromEntries(Object.entries(P).map(([k, [la, lo]]) => [k, zoneWeights(la, lo)]));
-  add('D2 named places: Lugano/Sion/St. Moritz/Zürich/Bern/Basel/Chur = rzc 1 (all of CH, 28.10.2026); Wien/Graz/Linz/Klagenfurt = inca 1; Innsbruck/Salzburg/Bregenz/München/Hamburg = rv 1',
+  add('D2 named places: Lugano/Sion/St. Moritz/Zürich/Bern/Basel/Chur = rzc 1 (all of CH); Wien/Graz/Linz/Klagenfurt/Innsbruck/Salzburg/Bregenz = inca 1 (all of AT); München/Hamburg = rv 1',
     ['Lugano', 'Sion', 'StMoritz', 'Zürich', 'Bern', 'Basel', 'Chur'].every((k) => z[k].rzc === 1)
-    && ['Wien', 'Graz', 'Linz', 'Klagenfurt'].every((k) => z[k].inca === 1) && ['Innsbruck', 'Salzburg', 'Bregenz', 'München', 'Hamburg'].every((k) => z[k].rv === 1));
-  const il = zoneWeights(46.686, 7.863), at14 = zoneWeightsFor('AT', 47.3, RADAR_ZONE_AT_RV_LNG_MAX), ch467 = zoneWeightsFor('CH', 46.7, 8.0), ch475 = zoneWeightsFor('CH', 47.5, 8.0);
-  // a hair beyond the half width (the ramp ends exactly there; 14,0 − 0,2 is not exactly representable)
-  const wAt = zoneWeightsFor('AT', 47.3, RADAR_ZONE_AT_RV_LNG_MAX - RADAR_ZONE_BLEND_DEG.lng - 1e-9), eAt = zoneWeightsFor('AT', 47.3, RADAR_ZONE_AT_RV_LNG_MAX + RADAR_ZONE_BLEND_DEG.lng + 1e-9);
-  add('D3 the band: 14,0° E in AT = 0,5 / 0,5, ± the half width ends the ramp (1 / 0), ≈ ± 15 km; CH has no band — Interlaken, 46,7° N and 47,5° N are rzc 1',
-    il.rzc === 1 && il.rv === 0 && ch467.rzc === 1 && ch475.rzc === 1 && at14.rv === 0.5 && at14.inca === 0.5 && wAt.rv === 1 && eAt.inca === 1
-    && Math.abs(RADAR_ZONE_BLEND_DEG.lng * 111 * Math.cos(47 * Math.PI / 180) - 15) < 1.5);
-  add('D4 `zoneAt` names the product with the largest weight', zoneAt(46.0, 8.95) === 'rzc' && zoneAt(47.37, 8.54) === 'rzc' && zoneAt(48.21, 16.37) === 'inca' && zoneAt(47.27, 11.39) === 'rv');
+    && ['Wien', 'Graz', 'Linz', 'Klagenfurt', 'Innsbruck', 'Salzburg', 'Bregenz'].every((k) => z[k].inca === 1) && ['München', 'Hamburg'].every((k) => z[k].rv === 1));
+  const il = zoneWeights(46.686, 7.863), at139 = zoneWeightsFor('AT', 47.3, 13.9), at141 = zoneWeightsFor('AT', 47.3, 14.1), ch467 = zoneWeightsFor('CH', 46.7, 8.0), ch475 = zoneWeightsFor('CH', 47.5, 8.0);
+  add('D3 no seam (28.10.2026): the former 14,0° E ramp in AT is inca 1 on both sides, Interlaken, 46,7° N and 47,5° N in CH are rzc 1',
+    il.rzc === 1 && il.rv === 0 && ch467.rzc === 1 && ch475.rzc === 1 && at139.inca === 1 && at139.rv === 0 && at141.inca === 1 && at141.rv === 0);
+  add('D4 `zoneAt` names the product with the largest weight', zoneAt(46.0, 8.95) === 'rzc' && zoneAt(47.37, 8.54) === 'rzc' && zoneAt(48.21, 16.37) === 'inca' && zoneAt(47.27, 11.39) === 'inca' && zoneAt(48.14, 11.58) === 'rv');
 }
 {
   const cols = RZC_IMG_WIDTH, rows = RZC_IMG_HEIGHT;
@@ -224,10 +221,10 @@ const cst = (u, v) => { const f = zeroFlow(W, H, F); f.u.fill(u); f.v.fill(v); r
     outside === 0 && mismatch === 0 && band === 0 && zeroInside === 0 && full > 0,
     `full ${full} · band ${band} · zero inside ${zeroInside} · outside ${outside} · mismatch ${mismatch}`);
   const zm = zoneMaskForGrid('radolan', [[3.0889, 55.8621], [18.7639, 55.8445], [16.6002, 45.6846], [4.6759, 45.6962]], 110, 120);
-  add('D6 negative control: the RV grid\'s zone mask differs from its ownership mask only in AT/CH (ownership 255 ⇒ zone 255 everywhere in DE)', (() => {
+  add('D6 the RV grid\'s zone mask = its ownership mask (RV draws DE alone — no CH / AT share since 28.10.2026)', (() => {
     const om = countryMaskForGrid('radolan', [[3.0889, 55.8621], [18.7639, 55.8445], [16.6002, 45.6846], [4.6759, 45.6962]], 110, 120);
     let extra = 0, lost = 0; for (let i = 0; i < zm.length; i++) { if (zm[i] && !om[i]) extra++; if (!zm[i] && om[i]) lost++; }
-    return extra > 0 && lost === 0;   // RV gains the north of CH / west of AT and loses nothing of DE
+    return extra === 0 && lost === 0;
   })());
 }
 {
