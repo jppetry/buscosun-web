@@ -101,7 +101,8 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   const [warn, setWarn] = useState<{ state: 'off' | 'loading' | 'ok' | 'error'; alerts: CapAlert[]; at: number | null }>({ state: 'off', alerts: [], at: null });
   const [pointWarnings, setPointWarnings] = useState<CapAlert[]>([]);
   const [sheet, setSheet] = useState<'peek' | 'open'>('peek');
-  const [picker, setPicker] = useState(false);
+  /** Mobile bottom bar: the page above the map (Karte = none). */
+  const [mobTab, setMobTab] = useState<'map' | 'roads' | 'hazards' | 'layers'>('map');
   const firstCorridor = useRef(true);
   // AW-8: rail state — window, group filter, open segment, hovered row; the hazard file and the segments.
   const [hzMode, setHzMode] = useState<RoadHzMode>('now');
@@ -360,7 +361,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
     firstCorridor.current = false;
   }, [corridor?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const pickCorridor = useCallback((id: string) => { setCorridorId(id); setStId(null); setSheet('peek'); setPicker(false); if (hz) setSegId(null); }, [hz]);
+  const pickCorridor = useCallback((id: string) => { setCorridorId(id); setStId(null); setSheet('peek'); setMobTab('map'); if (hz) setSegId(null); }, [hz]);
   const pickStation = useCallback((id: string) => {
     setStId(id); setCardOff(null);
     setTab((t) => (t === 'quellen' ? (hz ? 'gefahren' : 'station') : t));
@@ -382,7 +383,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   }, [segMap, corridorId, shownById]);
   // AWD: a click on a list row is the explicit wish for the details ⇒ open the segment AND switch to the dossier.
   // A click on the map only marks (segment line, callout, row in the list with „Dossier öffnen“).
-  const openDossier = useCallback((id: string) => { pickSegment(id); setStage('dossier'); }, [pickSegment]);
+  const openDossier = useCallback((id: string) => { pickSegment(id); setStage('dossier'); setMobTab('map'); }, [pickSegment]);
   // A click on the map picks the segment, but leaves the choice to the card: „Detailansicht öffnen“ switches to the dossier.
   const pickSegmentFromMap = useCallback((id: string) => { pickSegment(id); setSheet('peek'); setMapSeg(id); setMapCorr(null); }, [pickSegment]);
   const pickCorridorFromMap = useCallback((id: string) => { pickCorridor(id); setMapSeg(null); setMapCorr(id); }, [pickCorridor]);
@@ -663,7 +664,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
     const axisAll = gap && fcFile && corridor ? roadFcAxisPoints(fcFile).map((a) => ({ a, km: kmIn(corridor, a.km as number, dir), v: roadFcValue(a, fcFile, fcMs) })) : [];
     const axisList = axisAll.slice().sort((x, y) => (x.v?.t ?? 99) - (y.v?.t ?? 99)).slice(0, 3).sort((x, y) => x.km - y.km);
     const mPill = corridor && ends && (
-      <button type="button" className="aw-pill is-button" aria-haspopup="dialog" aria-expanded={picker} onClick={() => setPicker(true)}>
+      <button type="button" className="aw-pill is-button" aria-haspopup="dialog" aria-expanded={mobTab === 'roads'} onClick={() => setMobTab('roads')}>
         <span className="aw-pill-shields">{corridor.shields.map((s) => <span key={s} className="aw-shield">{s}</span>)}</span>
         <span className="aw-pill-body">
           <span className="aw-pill-title">{corridorRouteText(corridor, dir)}</span>
@@ -732,17 +733,39 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
             </>
           )}
         </section>
-        {picker && (
-          <div className="aw-m-dock" role="dialog" aria-label="Autobahn wählen">
+        {mobTab !== 'map' && (mobTab !== 'hazards' || hz) && (
+          <div className="aw-m-dock aw-m-page" role="dialog" aria-label={mobTab === 'roads' ? 'Autobahn wählen' : mobTab === 'hazards' ? 'Gefahren' : 'Ebenen'}>
             <div className="aw-m-dock-head">
-              <strong>Autobahn wählen</strong>
-              <button type="button" onClick={() => setDir((d) => (d ? 0 : 1))} aria-label="Fahrtrichtung wechseln">⇄ Richtung</button>
-              <button type="button" onClick={() => setPicker(false)} aria-label="Schließen">✕</button>
+              <strong>{mobTab === 'roads' ? 'Autobahn wählen' : mobTab === 'hazards' ? 'Gefahren' : 'Ebenen'}</strong>
+              {mobTab === 'roads' && <button type="button" onClick={() => setDir((d) => (d ? 0 : 1))} aria-label="Fahrtrichtung wechseln">⇄ Richtung</button>}
             </div>
-            <RoadDock corridors={filtered} byId={shownById} selectedId={corridor?.id ?? null} onPick={pickCorridor} query={query} onQuery={setQuery}
-              country={country} onCountry={setCountry} layers={layers} onToggle={(k) => setLayers((l) => ({ ...l, [k]: !l[k] }))} summary={summary} hasData={!noData && !!obs} loading={dockLoading} />
+            {mobTab === 'roads' && (
+              <div className="aw-m-page-body">
+                <RoadDock part="roads" corridors={filtered} byId={shownById} selectedId={corridor?.id ?? null} onPick={pickCorridor} query={query} onQuery={setQuery}
+                  country={country} onCountry={setCountry} layers={layers} onToggle={(k) => setLayers((l) => ({ ...l, [k]: !l[k] }))} summary={summary} hasData={!noData && !!obs} loading={dockLoading} />
+              </div>
+            )}
+            {mobTab === 'hazards' && <div className="aw-m-page-body aw-dossier-list">{hzNode}</div>}
+            {mobTab === 'layers' && (
+              <RoadDock part="layers" corridors={filtered} byId={shownById} selectedId={corridor?.id ?? null} onPick={pickCorridor} query={query} onQuery={setQuery}
+                country={country} onCountry={setCountry} layers={layers} onToggle={(k) => setLayers((l) => ({ ...l, [k]: !l[k] }))} summary={summary} hasData={!noData && !!obs} loading={dockLoading} />
+            )}
           </div>
         )}
+        <nav className="aw-bar" aria-label="Autobahnwetter-Bereiche">
+          {([
+            ['map', 'Karte', <path key="p" d="M9 4 3 6.5v13L9 17l6 2.5 6-2.5v-13L15 7 9 4zM9 4v13M15 7v12.5" />],
+            ['roads', 'Autobahnen', <path key="p" d="M8 3 4.5 21M16 3l3.5 18M12 4v3M12 10.5v3M12 17v3" />],
+            ...(hz ? [['hazards', 'Gefahren', <path key="p" d="M12 3.5 2.8 19.5h18.4L12 3.5zM12 10v4.5M12 17.2v.1" />] as const] : []),
+            ['layers', 'Ebenen', <path key="p" d="m12 3 9 4.5-9 4.5-9-4.5L12 3zM3 12l9 4.5 9-4.5M3 16.5 12 21l9-4.5" />],
+          ] as const).map(([id, label, icon]) => (
+            <button key={id} type="button" className={`aw-bar-btn${mobTab === id ? ' is-active' : ''}`} aria-current={mobTab === id ? 'page' : undefined}
+              onClick={() => { setMobTab(id); if (id === 'map') setStage('map'); }}>
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{icon}</svg>
+              <span>{label}</span>
+            </button>
+          ))}
+        </nav>
       </div>
     );
   }
