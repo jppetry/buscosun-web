@@ -3033,11 +3033,11 @@ Alles uncommitted in `buscosun-web`; das Spiegelskript im Daten-Repo ist schon g
 2. **E-NC-2 (STOPP-Grenze Shader):** die Übergangszone braucht ein Alpha-Gewicht in der Masken-Zeile des `RainLayer`-Fragment-Shaders
    (`mw`, 4 Zeilen; 0/1-Masken byte-gleich). Zwei Wächter sind deshalb rot (`verify:radar-hd` E2, `verify:regenradar-profile` E8) —
    Freigabe oder Nein (dann Maske binär, Nähte hart an den neuen Linien).
-3. ~~**Rückwege:** `?nc=0` je Besucher; Producer `RADAR_NC=0`~~ — **28.10. umgedreht (§6 im Audit, dein Auftrag „ohne Schalter
-   byte-gleich"):** Client AUS bis `?nc=1` (alias `?chnc=1`, dein Wortlaut) bzw. `localStorage.radarnc = '1'`; Producer AUS bis
-   `RADAR_NC=1`. **Dein Schritt:** die Kopie von `scripts/radar-mirror/radar-mirror.mjs` im Daten-Repo (`6a7d113bd`) trägt noch
-   die alte Voreinstellung (an, sobald `main` den Vertrag hat) — vor dem Push von `main` die neue Kopie einspielen oder in
-   `radar.yml` bewusst `RADAR_NC=1` setzen (E-NC-4: Voreinstellung aus = Rule 2; Einschalten = deine Entscheidung).
+3. **Rückwege (E-NC-6, 28.10. abends „setze alles aktiv"):** Client an, `?nc=0` (alias `?chnc=0`) je Besucher; Producer an,
+   `RADAR_NC=0` in `radar.yml` = aus. Die Kopie im Daten-Repo (`6a7d113bd`) ist damit wieder gleich der Vorlage — nichts zu tun.
+   (Mittags war nach deinem Auftrag „ohne Schalter byte-gleich" beides AUS, E-NC-4 — von E-NC-6 aufgehoben.) **Erledigt 28.10.:**
+   Merge `feat/aw-6.2-virtueller-sensor` → `main` (`6916d1f0`) und Push durch Claude auf dein Wort. **Dein Schritt danach:**
+   die Actions-Variable `ROAD_VS_WEB_REF` im Daten-Repo leeren (§79; `road-vs.yml`/`road-archiv.yml` klonen sonst weiter den Zweig).
 4. **E-NC-5 (28.10., umgesetzt, bitte bestätigen):** die Zugrichtung der CH-Hochrechnung ist jetzt EINE Verschiebung je Bildpaar
    (Korrelation der 4×-vergröberten Bilder, Subpixel) statt des Horn–Schunck-Felds — das Feld ließ die Hochrechnung nach wenigen
    Schritten stehen und maß 15–50 % zu langsam (V-NC-7, Messung `audit/radar-nowcast-dach/flow-scale.mjs`). Morph der Karte und

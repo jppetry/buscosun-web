@@ -1,8 +1,8 @@
 /**
  * Phase NC (`audit/radar-nowcast-dach.md` §6) — the radar sampler of the point series with the derived products: AT from the
  * INCA run refined to 5 min, CH from the analysis plus buscosun's extrapolation — both by VALIDITY time, 5-min spacing like
- * RV. Wraps `createRadarNowcastSampler` (src/pointForecast, untouched): when a product is missing or the switch is off (default;
- * `?nc=1`), the sampler
+ * RV. Wraps `createRadarNowcastSampler` (src/pointForecast, untouched): when a product is missing or the switch is off
+ * (`?nc=0`), the sampler
  * before Phase NC is returned unchanged. DE never changes here.
  */
 

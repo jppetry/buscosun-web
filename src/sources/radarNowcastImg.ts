@@ -19,16 +19,16 @@
  *
  * ONE file for client (`radarNowcast.ts`), producer (`scripts/radar-mirror/radar-derive.mjs`) and verifier: paths, meta
  * schema with builders and parsers, the zone split of DACH (`radarZones.ts` carries the geometry), the honest words and
- * the switch. Rule 2 (Jan's brief 27.10.2026: "im Client mit `?chnc=1` … ohne Schalter byte-gleich"): OFF by default —
- * `?nc=1` (alias `?chnc=1`) or `localStorage.radarnc = '1'` turns the readers, the zone split and the crossover on;
- * without it every reader behaves exactly as before Phase NC (ownership mask by country, AT by lead, CH analysis only).
+ * the switch. ON by default (E-NC-6, Jan 28.10.2026 "setze alles aktiv" — supersedes the brief's default-off, E-NC-4);
+ * `?nc=0` (alias `?chnc=0`) or `localStorage.radarnc = '0'` is the named fallback: every reader then behaves exactly as
+ * before Phase NC (ownership mask by country, AT by lead, CH analysis only).
  */
 
 import { PRECIP_VMAX, type QuadCorners } from '../scalar/RainLayer';
 import { RADAR_IMG_BASE, radarImgFrameFile, radarImgDualFile } from './radolanRuns';
 import { RZC_IMG_WIDTH, RZC_IMG_HEIGHT, INCA_IMG_WIDTH, INCA_IMG_HEIGHT, type RadarImgDual, type RadarImgFrame } from './radarImg';
 
-export const RADAR_NC_DEFAULT_ON = false;
+export const RADAR_NC_DEFAULT_ON = true;
 
 /** `?nc=0|1` (alias `?chnc=`) beats `localStorage.radarnc`; default `RADAR_NC_DEFAULT_ON`. Pure (the verifier passes the strings). */
 export function radarNcFlagFrom(
@@ -109,7 +109,7 @@ export const INCA_5M_NOTE = 'Zwischenbilder entlang der Bewegung verschoben — 
  * Fusion with ICON-CH1 in CH, with INCA/AROME in AT): radar alone up to `crossoverMin`, then a soft ramp over
  * `NC_CROSSOVER_BLEND_MIN` to the model. Provenance per source: DWD-RV 120 min = its published skill horizon (set by the
  * DWD, the stand before Phase NC — unchanged); the CH extrapolation 60 min and INCA 120 min are SET (Phase NC) — the measured
- * crossover against stations is open (V-NC-1). Without the switch (`?nc=1`) = the stand before (no ramp).
+ * crossover against stations is open (V-NC-1). `?nc=0` = the stand before (no ramp).
  */
 export const NC_CROSSOVER_MIN: Readonly<Record<'radolan_rv' | 'inca_grid' | 'meteoswiss_rzc', number>> = Object.freeze({
   radolan_rv: 120, inca_grid: 120, meteoswiss_rzc: 60,

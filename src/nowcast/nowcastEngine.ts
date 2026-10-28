@@ -79,7 +79,7 @@ export interface AssembleInput {
   /**
    * Phase NC: the measured/set crossover of the radar source (`NC_CROSSOVER_MIN`): radar alone up to this minute, then a
    * soft ramp over `NC_CROSSOVER_BLEND_MIN` to the model (RUC behind buscosun Fusion in DE, buscosun Fusion with ICON-CH1
-   * in CH). Absent (switch off, the default; `?nc=1`) = the rule before Phase NC (`blend`).
+   * in CH). Absent (`?nc=0`) = the rule before Phase NC (`blend`).
    */
   crossoverMin?: number;
 }

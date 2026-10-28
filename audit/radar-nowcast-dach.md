@@ -33,10 +33,10 @@
 - **Ehrliche Beschriftung**: Statuszeile der Karte, Regenradar-Dock, Zeitachse (`ageNote`), „Methodik & Datenqualität" (Zeitbezug,
   Schwächen, grau = unbekannt), Layer-Katalog, Quellenzeile. Grauer Schleier `precip-rain-hd-ch-unknown` über den unbekannten
   Flächen.
-- **Schalter** (Stand 28.10., §6): Client **aus** bis `?nc=1` (alias `?chnc=1`) oder `localStorage.radarnc = '1'` — ohne Schalter
-  jeder Leser byte-gleich zum Stand vor NC; `?ncbase=<url>` (Produktbasis für Prüfläufe, Muster `?rucbase=`); Producer **aus** bis
-  `RADAR_NC=1`. Der Spiegel bildet die Produkte nur, wenn der Web-Klon den Vertrag trägt (Marker `src/sources/radarNowcastImg.ts`)
-  — **live erst mit Jans Push von `main`**; das Spiegelskript im Daten-Repo (`6a7d113bd`) trägt noch die alte Voreinstellung (an).
+- **Schalter** (Stand 28.10. abends, E-NC-6): Client **an**, `?nc=0` (alias `?chnc=0`) oder `localStorage.radarnc = '0'` = jeder
+  Leser byte-gleich zum Stand vor NC; `?ncbase=<url>` (Produktbasis für Prüfläufe, Muster `?rucbase=`); Producer **an**, `RADAR_NC=0`
+  = aus (gleich der Kopie im Daten-Repo `6a7d113bd`). Der Spiegel bildet die Produkte, sobald der Web-Klon von `main` den Vertrag
+  trägt (Marker `src/sources/radarNowcastImg.ts`) — mit dem Merge `6916d1f0`/Push vom 28.10.
 
 ## §1 Bestand vor der Phase
 
@@ -187,5 +187,8 @@ Notiz (30.09.), nicht `--update`.
 
 ### 6.7 Entscheidungen
 
-- **E-NC-4 (umgesetzt nach Jans Auftrag):** Voreinstellung aus, Client `?nc=1`/`?chnc=1`, Producer `RADAR_NC=1`.
+- **E-NC-4 (umgesetzt nach Jans Auftrag, mittags):** Voreinstellung aus, Client `?nc=1`/`?chnc=1`, Producer `RADAR_NC=1`.
 - **E-NC-5 (umgesetzt, Bestätigung erbeten):** Zugrichtung der CH-Hochrechnung = Korrelations-Verschiebung je Paar statt Horn–Schunck.
+- **E-NC-6 (Jan 28.10. abends, „setze alles aktiv und pushe"):** hebt E-NC-4 auf — Client und Producer **an**, `?nc=0` bzw.
+  `RADAR_NC=0` sind die benannten Rückwege (`verify:radar-nc` A1). Merge des Zweigs nach `main` (`6916d1f0`) + Push durch Claude
+  auf Jans Wort; die Daten-Repo-Kopie des Spiegelskripts bleibt (sie ist schon „an").

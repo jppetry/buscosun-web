@@ -1,8 +1,8 @@
 // ---------------------------------------------------------------------------
 // Phase NC — verify:radar-nc (audit/radar-nowcast-dach.md §6): radar 25 × 5 min to +2 h everywhere in DACH
 //
-// A  switches and contract constants (`src/sources/radarNowcastImg.ts`): OFF by default (rule 2, Jan's brief), `?nc=1`
-//    / `?chnc=1` / store, `?ncbase=` grammar, leads 24 × 5 (CH) and 34 × 5 (AT), crossover table with provenance
+// A  switches and contract constants (`src/sources/radarNowcastImg.ts`): ON by default (E-NC-6), `?nc=0` / `?chnc=0` /
+//    store as the named fallback, `?ncbase=` grammar, leads 24 × 5 (CH) and 34 × 5 (AT), crossover table with provenance
 // B  meta schema: the producer's builders pass the client's parsers, every drift (vMax, frame count, file names, validity,
 //    kinds, series) is rejected; one colour contract for every radar product (vMax = PRECIP_VMAX, one ramp in MapView,
 //    the unknown veil grey)
@@ -11,7 +11,7 @@
 //    reproduce their neighbours at frac 0 / 1, motion statistics (speed, direction FROM), series flow of a translated plane
 // D  zones (`radarZones.ts`): weights add up to 1, named places land in their product, the band is a ramp at 14,0° E /
 //    46,7° N, the zone mask on the real rzc grid (0 outside the country, 255 = ownership where no band runs, band < 5 %);
-//    WITHOUT the switch byte-identical: MapView takes the ownership mask, `pickCompositeFrames` without the products
+//    with `?nc=0` byte-identical: MapView takes the ownership mask, `pickCompositeFrames` without the products
 //    equals the pre-NC rule over the slider range, the stack and the point sampler gate on the flag
 // E  pick by validity time: analysis at its own time, extrapolation frame nearest (± 3 min), nothing beyond; INCA refined
 //    frame nearest, nothing before +15
@@ -55,8 +55,8 @@ const RZC_CORNERS = [[2.689419984817505, 49.3744010925293], [12.462300300598145,
 const INCA_CORNERS = [[8.090898567448969, 49.36722050753486], [17.749633984088593, 49.400784490264904], [17.436301138588583, 45.529428764230374], [8.462551055500136, 45.498222963663224]];
 
 // ── A: switches and constants ────────────────────────────────────────────────
-add('A1 OFF without any vote (rule 2, Jan\'s brief "ohne Schalter byte-gleich")', RADAR_NC_DEFAULT_ON === false && radarNcFlagFrom('', null) === false);
-add('A2 `?nc=1` and the brief\'s `?chnc=1` switch it on', radarNcFlagFrom('?nc=1', null) === true && radarNcFlagFrom('?chnc=1', null) === true && radarNcFlagFrom('?x=1&chnc=1', '0') === true);
+add('A1 ON without any vote (E-NC-6, Jan 28.10.2026 "setze alles aktiv"); `?nc=0` is the named fallback', RADAR_NC_DEFAULT_ON === true && radarNcFlagFrom('', null) === true && radarNcFlagFrom('?nc=0', null) === false);
+add('A2 `?nc=1` and the brief\'s `?chnc=1` switch it on against a stored 0', radarNcFlagFrom('?nc=1', '0') === true && radarNcFlagFrom('?chnc=1', '0') === true && radarNcFlagFrom('?x=1&chnc=1', '0') === true);
 add('A3 `?nc=0` beats the stored value', radarNcFlagFrom('?nc=0', '1') === false && radarNcFlagFrom('?chnc=0', '1') === false);
 add('A4 stored `radarnc` counts without a query vote', radarNcFlagFrom('', '1') === true && radarNcFlagFrom('', '0') === false);
 add('A5 unknown word or broken query = no vote (store, else default)', radarNcFlagFrom('?nc=foo', '1') === true && radarNcFlagFrom('?nc=foo', null) === RADAR_NC_DEFAULT_ON && radarNcFlagFrom('%E0%A4%A', null) === RADAR_NC_DEFAULT_ON);
@@ -239,7 +239,7 @@ const cst = (u, v) => { const f = zeroFlow(W, H, F); f.u.fill(u); f.v.fill(v); r
   const rf = readFileSync(new URL('../src/radar/radarFrames.ts', import.meta.url), 'utf8');
   const nc = readFileSync(new URL('../src/nowcast/radarNowcastNc.ts', import.meta.url), 'utf8');
   const rn = readFileSync(new URL('../src/sources/radarNowcast.ts', import.meta.url), 'utf8');
-  add('D7 without the switch byte-identical: MapView takes the ownership mask (`ncRef.current ? zoneMaskOffMain : countryMaskOffMain`), the readers answer null (`radarNcFlagFrom()` in `cdnOk`), the point sampler falls through',
+  add('D7 with `?nc=0` byte-identical: MapView takes the ownership mask (`ncRef.current ? zoneMaskOffMain : countryMaskOffMain`), the readers answer null (`radarNcFlagFrom()` in `cdnOk`), the point sampler falls through',
     /ncRef\.current \? zoneMaskOffMain : countryMaskOffMain/.test(mv) && /const cdnOk = \(\) => radarNcFlagFrom\(\)/.test(rn) && /if \(ncOn && country === 'AT'\)/.test(nc) && /if \(ncOn && country === 'CH'\)/.test(nc)
     && /fetchRzcNowcast\(/.test(rf) && /fetchInca5m\(/.test(rf));
   // pickCompositeFrames without the products = the rule before Phase NC over the slider range

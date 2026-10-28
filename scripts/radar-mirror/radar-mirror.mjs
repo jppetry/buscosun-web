@@ -88,10 +88,10 @@ const HD250_ON = process.env.RADAR_HD250 !== '0' && PAST_ON && !!APP_DIR && exis
 // Phase NC (buscosun-web/audit/radar-nowcast-dach.md): after every rzc derive the CH extrapolation `img/rzc-nc/<stamp>/`
 // (24 × 5 min from the analysis, motion from the mirror's last analyses) and after every INCA derive the run refined to
 // 5 min `img/inca-5m/<stamp>/` — both as derive kind processes from the web clone, only when it carries the contract
-// (`src/sources/radarNowcastImg.ts`; an older main runs byte-identical to before). OFF by default (Jan's brief: "im
-// Daten-Job standardmäßig aus") — `RADAR_NC=1` switches the two derive steps on. A failure takes only the derived product
-// of the slot, never the analysis or the push.
-const NC_ON = process.env.RADAR_NC === '1' && !!APP_DIR && existsSync(join(APP_DIR, 'src', 'sources', 'radarNowcastImg.ts'));
+// (`src/sources/radarNowcastImg.ts`; an older main runs byte-identical to before). ON by default (E-NC-6, Jan 28.10.2026
+// "setze alles aktiv"; = the copy in the data repo `6a7d113bd`) — `RADAR_NC=0` switches the two derive steps off. A failure
+// takes only the derived product of the slot, never the analysis or the push.
+const NC_ON = process.env.RADAR_NC !== '0' && !!APP_DIR && existsSync(join(APP_DIR, 'src', 'sources', 'radarNowcastImg.ts'));
 const LIGHTNING_HOOK = APP_DIR ? join(APP_DIR, 'scripts', 'lightning', 'lightning-mirror.mjs') : '';
 const LIGHTNING_ON = process.env.LIGHTNING !== '0';
 const LIGHTNING_DIRS = ['lightning-de', 'lightning-mtg'];
