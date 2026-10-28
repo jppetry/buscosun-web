@@ -144,16 +144,25 @@ export default function SeaReadout(p: Props) {
   const windName = p.spotsDoc?.wind?.engine ?? 'buscosun Fusion';
   const officialBanner = s && p.warning.status === 'unknown' && (
     <section className="sw-card is-warn sw-warnbar" aria-label="Amtliche Meldung">
-      <span className="sw-warnbar-ic" aria-hidden="true">!</span>
+      <span className="sw-warnbar-ic" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 3.2 2.6 19.4h18.8L12 3.2Z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" /><path d="M12 9.6v4.6M12 16.9v.1" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" /></svg>
+      </span>
       <div className="sw-warnbar-tx">
-        <div className="sw-eyebrow is-warn">Amtliche Meldung · Seewetterdienst Hamburg · zuerst lesen</div>
+        <div className="sw-warnbar-head">
+          <span className="sw-warnbar-title">Amtliche Meldung</span>
+          <span className="sw-warnbar-src">Seewetterdienst Hamburg · zuerst lesen</span>
+        </div>
         {p.warning.area && p.warning.area.status === 'unknown' && p.warning.area.text && (
           <p className="sw-official"><span className="sw-official-meta">Seegebiet {p.warning.area.name} (WODL45, englischer Teil):</span>{p.warning.area.text}</p>
         )}
         {p.warning.coast && p.warning.coast.status === 'unknown' && (p.warning.coast.text
           ? (
             <>
-              <span className="sw-official-meta">Deutsche {s.wodlCoast === 'Nordseekueste' ? 'Nordseeküste' : 'Ostseeküste'}{p.warning.coast.nr ? ` · NR. ${p.warning.coast.nr}` : ''}{p.warning.coast.kind ? ` · ${p.warning.coast.kind}` : ''}</span>
+              <div className="sw-warnbar-meta">
+                <strong>Deutsche {s.wodlCoast === 'Nordseekueste' ? 'Nordseeküste' : 'Ostseeküste'}</strong>
+                {p.warning.coast.nr ? <span className="sw-warnbar-chip">NR. {p.warning.coast.nr}</span> : null}
+                {p.warning.coast.kind ? <span className="sw-warnbar-kind">{p.warning.coast.kind}</span> : null}
+              </div>
               <WarnRows text={p.warning.coast.text} own={s.coast?.name} onlyOwn={p.layout === 'dossier'} />
             </>
           )

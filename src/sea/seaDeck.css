@@ -491,23 +491,35 @@
 .sw-ds .sw-card.sw-ds-now { padding: 18px 20px; }
 .sw-ds-now .sw-ds-stats { margin-top: 0; }
 /* Official banner as a warning strip: the coast warning as area rows (verbatim), the spot's own section marked. */
-.sw-warnbar { display: flex; gap: 12px; align-items: flex-start; }
-.sw-warnbar-ic { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: #B86A2E; color: #fff; font-size: 16px; font-weight: 700; }
-.sw-warnbar-tx { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.sw-warnbar { display: flex; gap: 14px; align-items: flex-start; position: relative; overflow: hidden; border-radius: 14px; box-shadow: 0 1px 0 rgba(184, 106, 46, 0.12), 0 6px 18px -10px rgba(138, 51, 32, 0.35); background: linear-gradient(135deg, #FFF8EC 0%, #FBF0DE 100%); }
+.sw-warnbar::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 4px; background: linear-gradient(180deg, #D9822E, #B8452E); }
+.sw-warnbar-ic { flex: none; width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; background: linear-gradient(145deg, #D9822E, #B8452E); color: #fff; box-shadow: 0 3px 8px -3px rgba(184, 69, 46, 0.6); }
+.sw-warnbar-tx { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
 .sw-warnbar-tx .sw-official-meta { margin-top: 2px; }
-.sw-ds .sw-card.sw-warnbar { padding: 14px 18px; }
-.sw-warn-rows { margin: 4px 0 0; display: flex; flex-direction: column; gap: 6px; }
+.sw-warnbar-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+.sw-warnbar-title { font-size: 16px; font-weight: 700; color: #7A2E1A; letter-spacing: 0.01em; }
+.sw-warnbar-src { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #9A5A2A; }
+.sw-warnbar-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: 13px; color: #5C3A1E; }
+.sw-warnbar-meta strong { font-weight: 700; }
+.sw-warnbar-chip { padding: 1px 8px; border-radius: 999px; background: rgba(184, 69, 46, 0.12); color: #8A3320; font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em; }
+.sw-warnbar-kind { color: #8B7355; font-size: 12.5px; }
+.sw-warnbar-kind::before { content: '· '; }
+.sw-ds .sw-card.sw-warnbar { padding: 16px 20px 16px 22px; background: linear-gradient(135deg, #FFF8EC 0%, #FBF0DE 100%); }
+.sw-warnbar .sw-official-why { margin: 2px 0 0; padding-top: 8px; border-top: 1px dashed rgba(184, 106, 46, 0.35); font-size: 12px; line-height: 1.5; color: #8B6A4A; }
+.sw-warn-rows { margin: 0; display: flex; flex-direction: column; gap: 8px; }
 .sw-ds .sw-warn-rows { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
-.sw-warn-row { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 7px 10px; border-radius: 9px; background: rgba(255, 255, 255, 0.7); border: 1px solid #EBD3B0; }
-.sw-warn-row dt { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: #7A4520; }
+.sw-warn-row { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 9px 12px; border-radius: 10px; background: rgba(255, 255, 255, 0.55); border: 1px solid rgba(217, 163, 106, 0.35); }
+.sw-warn-row dt { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #8B6A4A; }
 .sw-warn-row dd { margin: 0; font-size: 14px; line-height: 1.45; white-space: pre-line; color: var(--ink-900, #2C2A26); }
 .sw-warn-row dd b { font-weight: 700; color: #8A3320; }
-.sw-warn-row.is-own { background: #fff; border-color: #D9A36A; box-shadow: inset 3px 0 0 #B86A2E; }
-.sw-warn-more { display: block; margin-top: 4px; text-align: left; }
+.sw-warn-row.is-own { background: #fff; border-color: #D9822E; box-shadow: 0 0 0 1px rgba(217, 130, 46, 0.35), 0 4px 12px -6px rgba(184, 69, 46, 0.4); }
+.sw-warn-row.is-own dt { font-size: 13px; font-weight: 700; color: #7A2E1A; }
+.sw-warn-row.is-own dd { font-size: 15.5px; font-weight: 600; }
+.sw-warn-more { display: block; margin-top: 2px; text-align: left; font-size: 13px; }
 .sw-ds-jump { display: flex; flex-wrap: wrap; gap: 6px; }
 .sw-ds-jump-b { min-height: 32px; padding: 0 12px; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 999px; background: var(--cream-50, #FAF6EA); color: var(--sw-accent-dark, #0B5560); font-size: 13.5px; font-weight: 600; cursor: pointer; }
 .sw-ds-jump-b:hover { background: #fff; }
-.sw-warn-own { padding: 1px 7px; border-radius: 999px; background: #B86A2E; color: #fff; font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; }
+.sw-warn-own { padding: 1px 8px; border-radius: 999px; background: linear-gradient(145deg, #D9822E, #B8452E); color: #fff; font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; }
 .sw-ar-status .sw-warn-rows { margin-top: 2px; }
 /* Hour card of the chapter Am Spot: verdict and next window on top, then wind · sea state · compass in three blocks. */
 .sw-now-top { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
