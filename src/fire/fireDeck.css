@@ -1727,3 +1727,15 @@
 /* „Ausbaustufe 2" (Brennmaterial, Schutzgebiete): die Tablet-Regel setzte padding-right auf 10 px — der Schalter lag unter dem „i"-Knopf. */
 .br-dock .br-group[data-br='stone'] .br-layer { padding-right: 34px; }
 .br-dock .br-group[data-br='stone'] .br-layer-label { font-size: 13.5px; }
+
+/* Desktop: Steckbrief beim Überfahren der Layer-Zeile — bleibt stehen, solange die Maus auf Zeile oder Karte ist. */
+.br-dock .br-layerwrap.is-hoverinfo > .br-layer { padding-right: 10px; }
+.br-dock .br-layerwrap.is-hoverinfo.has-seg > .br-layer { padding-right: 0; }
+.br-dock .br-group[data-br='stone'] .br-layerwrap.is-hoverinfo > .br-layer { padding-right: 10px; }
+.br-hovercard {
+  position: fixed; z-index: 60; width: 340px; overflow-y: auto; overscroll-behavior: contain;
+  border-radius: 14px; box-shadow: 0 18px 44px -14px rgba(44, 42, 38, .5), 0 2px 8px rgba(44, 42, 38, .12);
+  animation: br-legend-in .14s ease-out both;
+}
+.br-hovercard > .br-card { margin: 0; background: #fff; }
+@media (prefers-reduced-motion: reduce) { .br-hovercard { animation: none; } }

@@ -1352,6 +1352,21 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   // nur angeordnet. `isTablet` steuert die wenigen Textvarianten der Vorlage
   // (kürzere Labels, „Std." statt „Stunden"), alles Übrige ist CSS.
   const isTablet = useMediaQuery('(max-width: 1439px)');
+  // Desktop mit Maus: der Steckbrief erscheint beim Überfahren der Layer-Zeile (statt über den „i"-Knopf).
+  const hoverInfo = useMediaQuery('(min-width: 768px) and (hover: hover)');
+  const [hoverCard, setHoverCard] = useState<{ id: FireLayerId; top: number; left: number; maxH: number } | null>(null);
+  const hoverTimer = useRef<number | undefined>(undefined);
+  const showHoverCard = (id: FireLayerId, el: HTMLElement) => {
+    window.clearTimeout(hoverTimer.current);
+    const r = el.getBoundingClientRect();
+    const dock = el.closest('.br-dock')?.getBoundingClientRect();
+    const top = Math.max(12, Math.min(r.top, window.innerHeight - 260));
+    setHoverCard((cur) => (cur && cur.id === id ? cur : { id, top, left: (dock?.right ?? r.right) + 8, maxH: window.innerHeight - top - 12 }));
+  };
+  const hideHoverCard = () => {
+    window.clearTimeout(hoverTimer.current);
+    hoverTimer.current = window.setTimeout(() => setHoverCard(null), 220);
+  };
 
   /**
    * Kurz-Stempel für die Sub-Zeile einer Dock-Zeile: „lädt…" / „⚠ Fehler" /
@@ -1487,7 +1502,11 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     // BD3: der EU-Index bringt seine Ansicht-Chips mit ins Dock (vorher über der Karte).
     const hasSeg = (id === 'fireSoilDryness' || id === 'fireBurnt' || id === 'fireDanger') && on;
     return (
-      <div key={id} className={`br-layerwrap${hasSeg ? ' has-seg' : ''}`} data-br={meta.color}>
+      <div
+        key={id} className={`br-layerwrap${hasSeg ? ' has-seg' : ''}${hoverInfo && !inSheet ? ' is-hoverinfo' : ''}`} data-br={meta.color}
+        onMouseEnter={hoverInfo && !inSheet ? (e) => showHoverCard(id, e.currentTarget) : undefined}
+        onMouseLeave={hoverInfo && !inSheet ? hideHoverCard : undefined}
+      >
         <button
           type="button"
           className={`br-layer${on ? ' is-on' : ' is-off'}${gebaut ? '' : ' is-blocked'}`}
@@ -1507,15 +1526,30 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
         {/* BD3 (Jans Auftrag 2026-09-03): der Steckbrief steht auf JEDER Breite unter seiner
             Layer-Zeile — im Dock wie im mobilen Sheet, aufgeklappt über den „i"-Knopf. Vorher
             lag er rechts im Readout-Reiter „Layer"; der ist entfallen. Immer nur einer offen. */}
-        <button
-          type="button" className="br-layer-info"
-          aria-label={`Steckbrief ${meta.label}`}
-          aria-expanded={openInfo === id}
-          onClick={() => setOpenInfo((cur) => (cur === id ? null : id))}
-        >
-          i
-        </button>
-        {openInfo === id && (
+        {!(hoverInfo && !inSheet) && (
+          <button
+            type="button" className="br-layer-info"
+            aria-label={`Steckbrief ${meta.label}`}
+            aria-expanded={openInfo === id}
+            onClick={() => setOpenInfo((cur) => (cur === id ? null : id))}
+          >
+            i
+          </button>
+        )}
+        {hoverInfo && !inSheet && hoverCard?.id === id && (
+          <div
+            className="br-hovercard" role="tooltip"
+            style={{ top: hoverCard.top, left: hoverCard.left, maxHeight: hoverCard.maxH }}
+          >
+            <FireLayerCard
+              layer={id} info={info} meta={metaFor(id)} stand={standFor(id)}
+              preview={!on}
+              tiles={id === 'fireHotspots' ? detTiles(false) : undefined}
+              lead={id === 'fireHotspots' ? detLead : undefined}
+            />
+          </div>
+        )}
+        {openInfo === id && !(hoverInfo && !inSheet) && (
           <FireLayerCard
             layer={id} info={info} meta={metaFor(id)} stand={standFor(id)} compact
             preview={!on}
