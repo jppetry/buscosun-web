@@ -41,6 +41,8 @@ export interface RoadVsValue {
   /** P(V < 1 000 / 300 / 150 / 50 m) in %, null = none. */
   vis: [number | null, number | null, number | null, number | null];
   visSrc: RoadVsSrc | null;
+  /** The point carries a site correction (own cell or neighbours) — the origin line says „ohne Standortkorrektur" without (V-VS-24). */
+  corr: boolean;
 }
 
 const COND_OF_CODE: ReadonlyArray<VsCondition> = Object.entries(ROAD_VS_CONDITION_CODE).sort((a, b) => a[1] - b[1]).map(([k]) => k as VsCondition);
@@ -67,6 +69,7 @@ export function roadVsValue(p: RoadVsProductPoint, file: Pick<RoadVsProductFile,
     glaetteP: roadVsProductDecode('glaette_p', p.v.glaette_p[i]), filmMm: roadVsProductDecode('wasserfilm_mm', p.v.wasserfilm_mm[i]),
     tfBridge: roadVsProductDecode('tf_bruecke', p.v.tf_bruecke[i]),
     vis: [pct('vis_p1000'), pct('vis_p300'), pct('vis_p150'), pct('vis_p50')], visSrc: roadVsSrcOf(p.v.vis_src[i]),
+    corr: !!p.corr,
   };
 }
 
@@ -102,9 +105,11 @@ export function roadLastValueMs(ring: RoadH24File | null, id: string, group: str
   return null;
 }
 
-/** One line of origin for the hero sub-line: `berechnet · gekoppelt · Sensor aus seit 06:15 UTC`. */
-export function roadVsOriginText(v: Pick<RoadVsValue, 'src'>, sensorOffSinceMs: number | null = null): string {
+/** One line of origin for the hero sub-line: `berechnet · gekoppelt · Sensor aus seit 06:15 UTC`; a modelled value without a
+ *  site correction says so (V-VS-24: before the residual table exists, „mit Standortkorrektur" would be a false claim). */
+export function roadVsOriginText(v: Pick<RoadVsValue, 'src' | 'corr'>, sensorOffSinceMs: number | null = null): string {
   const d = roadVsDisplay(v.src, { sensorOffSinceMs });
+  if (v.src === 'modelliert' && !v.corr) return `${d.word} · Modell ohne Standortkorrektur, breitere Streuung`;
   return d.detail ? `${d.word} · ${d.detail}` : d.word;
 }
 

@@ -3076,10 +3076,12 @@ Zweig `feat/aw-6.2-virtueller-sensor`, ein Commit je Arbeitspaket; nichts davon 
 12. **Nicht gebaut (bewusst, offen):** Modellflächen T/HHL für Bourgouin (V-VS-6); RUC-EPS-Memberanteil (gibt es im v1-Pfad nicht);
     CDC-Sichtstationen für die Kalibrierung (V-VS-15); POI-Sicht (V-VS-14); gepooltes Gradient-Boosting (nach einem Winter, V-VS-12).
     Die Verdrahtung in der Seite (V-VS-17) ist seit 28.10. gebaut (Schritt 13).
-13. **Anzeige prüfen (AW-6.2.9, E-VS-8, 28.10.):** Die Seite zeigt den virtuellen Sensor nur mit `?roadvs=1` (`ROAD_VS_LIVE` bleibt
-    `false`; `?roadvs=0` schaltet zurück, `localStorage.roadvs` merkt sich die Wahl). Sichtbar wird etwas erst, wenn `road/vs/v1`
-    im Daten-Repo liegt (Schritte 5 + 9); vorher meldet der Leser „kein Lauf" und die Seite ist die von vorher. Dann anschauen
-    (`verify:road-ui` lief NICHT, Browser-Regel dieser Session): (a) eine Messstelle ohne gültigen Fahrbahnwert — Kopfzeile
+13. **Anzeige prüfen (AW-6.2.9, E-VS-8, 28.10.) — ERLEDIGT 28.10. 10:00 UTC mit deiner Freigabe (§20.16):** Schritte 5, 8, 9 sind
+    eingespielt (Zweig auf `origin`, `road-vs.yml` + Ortsdatei + Zellindex im Daten-Repo `95a4306e5`, `road-archiv.yml` im Archiv
+    `ba0a83e`, Variable `ROAD_VS_WEB_REF` auf beiden Repos — nach dem Merge leeren), erster Lauf 2026102806 veröffentlicht, die fünf
+    Blicke belegt. Offen aus dem ersten Lauf: V-VS-25 (Messslot „nicht nutzbar" ⇒ 0 gekoppelt). Der Cron läuft ab 10:25 UTC alle 3 h;
+    Seite mit `?roadvs=1` (`ROAD_VS_LIVE` bleibt `false`; `?roadvs=0` schaltet zurück, `localStorage.roadvs` merkt sich die Wahl).
+    Was zu sehen ist: (a) eine Messstelle ohne gültigen Fahrbahnwert — Kopfzeile
     „Fahrbahnsensor ausgefallen · virtueller Sensor", Wert mit Info-Zeichen, Badge in Klassenfarbe mit gestrichelter Umrandung,
     Klick auf „i" öffnet die Herkunft; (b) ein Prognosepunkt — Hero „Fahrbahn · berechnet" über dem Luft-Hero, Verlauf 0 … 24 h;
     (c) Strecke — gestrichelt umrandete Chips an Zeilen ohne Messung; (d) Karte — Marker mit hellem gestrichelten Innenring und Label

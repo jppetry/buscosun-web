@@ -2336,6 +2336,26 @@ Info-Tab, Reihe, Ring-Helfer, Quellenzeile) ⇒ **123/123**; `typecheck` grün. 
 und Preview-Server, Session-Regel) — die Sichtprüfung der Kacheln, des Info-Knopfs und der Marker ist Jans Schritt (§79.13), sobald
 `road/vs/v1` online liegt; bis dahin zeigt `?roadvs=1` nur die Seite von vorher (Leser liefert `kein Lauf`).
 
+**Einspielen und Sichtprüfung (28.10., 08:30 … 10:00 UTC, Jans Freigabe „du hast die Berechtigung").** Zweig auf `origin`
+(`f02ca559`, `cf4d8804`); Archiv-Repo `ba0a83e` (`road-archiv.yml` aus der Vorlage, klont `buscosun-web` aus `ROAD_VS_WEB_REF`);
+Daten-Repo `95a4306e5` (`road-vs.yml`, `static/site.json.gz`, `static/cells.json`; erster Versuch verlor den Commit an einen
+Cron-Push — Rettung aus dem Reflog, dann `checkout --detach origin/main` + `cherry-pick`, V-WL-20); Repo-Variable
+`ROAD_VS_WEB_REF = feat/aw-6.2-virtueller-sensor` auf beiden Repos per REST (kein `gh`, Token aus dem Git-Credential-Helper;
+nach dem Merge leeren). **Erster Lauf lokal mit `--publish`:** Antrieb 2026102806 (4 772 Punkte, 27 Felder, 4,48 MB gz, `ww` Schritt 0
+fehlt, 150 s, Daten-Commit `827bcec`), Derive 159 s (Produkt 11,09 MB + Zustand 1,18 MB gz, Commit `6deeede`, Zeiger ein Lauf). **Befund
+V-VS-25:** der Messslot 2610280830 war für den Derive „nicht nutzbar" ⇒ 0 gekoppelt, 0 gemessen, 4 772 Kaltstart aus T_G — alle
+Werte `modelliert`; Ursache prüfen (Slot-Alter gegen t0 +2 h oder Ring-Pfad im lokalen Klon), bevor der Cron 10:25 UTC läuft.
+Die fünf Blicke (§79.13) im Dev-Server (`?roadvs=1&roadhz=0`, Chrome 1 568 px, headless 390 px): (a) Siegsdorf Brücke P890
+(ohne Fahrbahnwert seit 22 h 30 min) — Kopfzeile „Fahrbahnsensor ausgefallen · virtueller Sensor", +12,5 °C mit Info-Zeichen,
+Badge „Trocken · berechnet" gestrichelt (`outline dashed 2px`), Unterzeile mit Herkunft und σ, Callout auf der Karte; (b) Achse
+A 8 km 105 — Hero „Fahrbahn · berechnet · jetzt +11,2 °C", Info-Box nach Klick mit allen Sätzen, Luft-Hero darunter, Zellen
+Zustand/Griff/Wasserfilm/Sicht, Verlauf 0 … 24 h; (c) Strecke — km 100/103/107 „Fahrbahn … · berechnet · trocken (virtueller
+Sensor)" mit gestrichelten Chips, Briefing „Kälteste berechnete Fahrbahn zur Ankunft"; (d) Karte — P886/P890/P891 mit Icon
+`aw-dry-vs` und Label `~+11,7°` …, Bilder `aw-*-vs` installiert, gemessene Nachbarn unverändert; (e) Mobil 390 × 844 — Sheet
+mit Kopfzeile, Wert, Info-Knopf 44 × 44 px (Ring 18 px), Badge. Quellen-Tab zeigt die VS-Zeile „aktiv". **V-VS-24 behoben:**
+die Unterzeile sagte „Modell mit Standortkorrektur", obwohl noch keine Residuen-Tabelle existiert ⇒ `RoadVsValue.corr`,
+„Modell ohne Standortkorrektur, breitere Streuung" ohne Korrektur (O5 erweitert, 123/123).
+
 **Befunde.** V-VS-19 Kartenlegende ohne VS-Eintrag (die Legende liegt in der fremden AWD-Hunk-Gruppe; Eintrag „gestrichelter Innenring =
 berechnet" nach deren Commit). V-VS-20 Stationen außerhalb der Korridor-Datei (Landesdateien `s/<land>.json`) bekommen in der Ansicht
 keinen VS-Wert (V-AW-26-Muster für den VS fehlt). V-VS-21 Streckenband und Dock zählen weiter nur Messungen (gewollt bis Gate G).
