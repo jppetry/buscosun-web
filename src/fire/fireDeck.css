@@ -1702,3 +1702,16 @@
 .br-dock .br-layer-note, .br-dock .br-layer-lag { font-size: 12px; }
 .br-dock .br-layer { gap: 7px; padding-left: 8px; }
 .br-dock .br-layer-label { font-size: 13.5px; }
+
+/* Größere Segmente: Karte | Dossier (Topbar) und 24 h | 7 d | Monat | Saison (Karte oben rechts) */
+.br-stage-seg { padding: 4px; border-radius: 10px; }
+.br-stage-seg button { font-size: 15px; font-weight: 600; padding: 7px 16px; min-width: 76px; border-radius: 7px; }
+.br-map-tr .br-seg { padding: 4px; border-radius: 10px; }
+.br-map-tr .br-seg button { font-size: 14.5px; font-weight: 600; padding: 7px 13px; border-radius: 7px; }
+@media (max-width: 1439px) and (min-width: 768px) {
+  .br-stage-seg button { font-size: 14px; padding: 6px 13px; min-width: 66px; }
+  .br-map-tr .br-seg button { font-size: 13.5px; padding: 6px 11px; }
+}
+@media (max-width: 767px) {
+  .br-map-tr .br-seg button { font-size: 13.5px; padding: 6px 11px; }
+}
