@@ -1650,3 +1650,22 @@
 @keyframes br-legend-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .br-layer-legend { animation: none; } }
 @media (max-width: 767px) { .br-layer-legend { padding: 11px 13px 12px; border-radius: 12px; } }
+
+/* Kompakte Klassen-Legende: Stufenbalken + enge Liste, Bezug eingeklappt */
+.fire-li-stepbar { display: flex; height: 7px; margin: 5px 0 4px; border-radius: 4px; overflow: hidden; }
+.fire-li-stepbar i { flex: 1; }
+.fire-li-refd { margin-top: 4px; }
+.fire-li-refd > summary { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; list-style: none; font-size: .704rem; font-weight: 600; letter-spacing: .04em; color: var(--stone-400, #A89A7A); user-select: none; }
+.fire-li-refd > summary::-webkit-details-marker { display: none; }
+.fire-li-refd > summary::before { content: '▸'; font-size: .65rem; transition: transform .15s; }
+.fire-li-refd[open] > summary::before { transform: rotate(90deg); }
+.fire-li-refd > summary:hover { color: var(--stone-600, #5C5447); }
+.fire-li-refd > .fire-li-ref { margin-top: 3px; }
+.br-layer-legend .fire-li-classes { margin-bottom: 0; }
+.br-layer-legend .fire-li-classes ol { margin-top: 0; }
+.br-layer-legend .fire-li-classes li { font-size: .748rem; padding: 0; gap: 6px; }
+.br-layer-legend .fire-li-cls-name { min-width: 70px; }
+.br-layer-legend .fire-li-cls-range { margin-left: auto; color: var(--stone-500, #8B7355); }
+.br-layer-legend .fire-swatch { width: 10px; height: 10px; border-radius: 50%; }
+.br-layer-legend .fire-li-partner { margin: .4rem 0 .15rem; padding-top: .3rem; }
+@media (prefers-reduced-motion: reduce) { .fire-li-refd > summary::before { transition: none; } }
