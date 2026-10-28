@@ -13,7 +13,7 @@ import { weatherWindOptions, WEATHER_WIND_DENSITY, WEATHER_WIND_POINT_SIZE, WEAT
 import type { DwdForecastResult } from './wind/brightSkySource';
 import type { ScalarGridResult } from './wind/openMeteoSource';
 import { ScalarLayer, temperatureRamp } from './scalar/ScalarLayer';
-import { RainLayer, precipRainRamp, precipRainRampLog, PRECIP_LOG_MIN, precipFromU8Log } from './scalar/RainLayer';
+import { RainLayer, precipRainRamp, precipRainRampLog, precipRainRampMch, precipRainRampMchLog, PRECIP_LOG_MIN, PRECIP_VMAX, precipFromU8Log } from './scalar/RainLayer';
 import { CloudLayer } from './scalar/CloudLayer';
 import { uvBoundsToCorners } from './scalar/quadWarpMesh';
 import { loadFusedForecast, type ModelChoice } from './fusion/loadFusedForecast';
@@ -131,7 +131,7 @@ import { fetchRzcLatest, type RadarFrame } from './sources/meteoSwissRadar';
 import { fetchIncaGrid, type IncaGrid } from './sources/geosphereIncaGrid';
 import { PrecipCompositor, pickCompositeFrames, countryMaskOffMain, zoneMaskOffMain, flowCached, flowOffMain, type CompositeFrame, type CompositePick, type RvPastFrame } from './scalar/precipComposite';
 // Phase HD (`audit/radar-hochaufloesung.md`): each country radar on its own 1-km grid behind `?hd=…`; off = byte-identical.
-import { radarHdFlagFrom, radarMorphFlagFrom, radarEdgeFlagFrom, radarDisplayMinFrom, applyDisplayMin, RADAR_HD_LAYER_IDS, RADAR_MORPH_FACTOR, RADAR_HD_CH_UNKNOWN_LAYER_ID, RADAR_HD_UNKNOWN_RAMP } from './scalar/radarHd';
+import { radarHdFlagFrom, radarMorphFlagFrom, radarEdgeFlagFrom, radarDisplayMinFrom, applyDisplayMin, radarChStyleFrom, MCH_DISPLAY_MIN_MMH, RADAR_HD_LAYER_IDS, RADAR_MORPH_FACTOR, RADAR_HD_CH_UNKNOWN_LAYER_ID, RADAR_HD_UNKNOWN_RAMP } from './scalar/radarHd';
 // Phase NC (`audit/radar-nowcast-dach.md`): CH extrapolation + INCA refined to 5 min, zone masks with a transition band; on by default (E-NC-6), `?nc=0` = before.
 import { fetchRzcNowcast, fetchInca5m, type RzcNowcast, type Inca5mGrid } from './sources/radarNowcast';
 import { radarNcFlagFrom, RZC_NC_LABEL, INCA_5M_LABEL, RZC_NC_UNKNOWN_WORD } from './sources/radarNowcastImg';
@@ -1007,13 +1007,27 @@ export default function MapView({
     if (!o) { o = applyDisplayMin(v, rminRef.current, PRECIP_LOG_MIN, precipFromU8Log); rminCacheRef.current.set(v, o); }
     return o;
   };
+  // CH-Stil (`?chstyle=mch`, `radarHd.ts`): the CH layer like the MeteoSchweiz page — 0,2-mm/h cut on whichever plane is
+  // drawn (log or v1 byte) and the hard class ramp; `dwd` (default) leaves every byte and ramp as before. Memoised per plane.
+  const chStyleRef = useRef(radarChStyleFrom());
+  const chMinCacheRef = useRef(new WeakMap<Uint8Array, Uint8Array>());
+  const withChStyleMin = (v: Uint8Array, log: boolean): Uint8Array => {
+    if (chStyleRef.current !== 'mch') return v;
+    let o = chMinCacheRef.current.get(v);
+    if (!o) {
+      o = log ? applyDisplayMin(v, MCH_DISPLAY_MIN_MMH, PRECIP_LOG_MIN, precipFromU8Log)
+        : applyDisplayMin(v, MCH_DISPLAY_MIN_MMH, PRECIP_LOG_MIN, (u) => (u / 255) * PRECIP_VMAX);
+      chMinCacheRef.current.set(v, o);
+    }
+    return o;
+  };
   const [hdFlowTick, setHdFlowTick] = useState(0);
   const hdMaskRef = useRef<{ DE?: Uint8Array; AT?: Uint8Array; CH?: Uint8Array }>({});
   const hdFramesRef = useRef<Map<number, CompositePick>>(new Map());
   const hdMorphBufRef = useRef<{ DE?: Uint8Array; AT?: Uint8Array; CH?: Uint8Array }>({});
   const hdMorphBuf2Ref = useRef<{ DE?: Uint8Array; AT?: Uint8Array; CH?: Uint8Array }>({});
   /** HD-3: which ramp each HD layer currently carries (`linear` = `precipRainRamp`, `log` = `precipRainRampLog`). */
-  const hdEncodingRef = useRef<Record<string, 'linear' | 'log'>>({});
+  const hdEncodingRef = useRef<Record<string, 'linear' | 'log' | 'linear-mch' | 'log-mch'>>({});
   // Phase R250: 250-m tiles of the RV analyses (DE) — switch, the 16 tile layers, tick on tile arrival / view change,
   // tile masks derived from the DE 1-km mask, mix buffers and the per-tile motion fields (all unused with the switch off).
   // Phase RA-250 (`audit/radar-aufloesung.md` §6): the tiles are a SWITCH (off by default) — React state so the layer panel
@@ -3691,12 +3705,15 @@ export default function MapView({
       // HD-3: a frame with a log plane (`values2`, dual PNG of the mirror) is drawn from that plane with the log ramp;
       // the ramp is swapped only when the encoding of the layer's frame changes (16 × 16 upload).
       // HD-4: `morph` = frame B + flow + fraction for the in-between picture; null switches the morph off.
-      const show = (layer: RainLayer | undefined, frame: RainFrameData | null, log: boolean, morph: RainMorph | null | undefined) => {
+      const show = (layer: RainLayer | undefined, frame: RainFrameData | null, log: boolean, morph: RainMorph | null | undefined, mch = false) => {
         if (!layer) return;
         if (!frame) { if (layer.opacity !== 0) { layer.opacity = 0; mapRef.current?.triggerRepaint(); } return; }
         if (frame.mask && frame.mask.length !== frame.width * frame.height) frame.mask = null;
-        const enc = log ? 'log' : 'linear';
-        if (hdEncodingRef.current[layer.id] !== enc) { hdEncodingRef.current[layer.id] = enc; layer.setColorRamp(log ? precipRainRampLog : precipRainRamp); }
+        const enc = mch ? (log ? 'log-mch' : 'linear-mch') : (log ? 'log' : 'linear');
+        if (hdEncodingRef.current[layer.id] !== enc) {
+          hdEncodingRef.current[layer.id] = enc;
+          layer.setColorRamp(mch ? (log ? precipRainRampMchLog : precipRainRampMch) : (log ? precipRainRampLog : precipRainRamp));
+        }
         layer.opacity = 0.85;
         layer.setFrame(frame);
         layer.setMorph(morph ?? null);
@@ -3710,9 +3727,10 @@ export default function MapView({
       show(L.hdAt, pick?.inca && incaSrc
         ? { values: plane(pick.inca)!, width: pick.inca.width, height: pick.inca.height, corners: incaSrc.corners, warpLnglat: incaWarpMesh(incaSrc.corners), warpN: INCA_WARP_N, mask: masks.AT ?? null }
         : null, !!pick?.inca?.values2, morphs.AT);
+      const chLog = !!pick?.rzc?.values2;
       show(L.hdCh, pick?.rzc
-        ? { values: plane(pick.rzc)!, width: pick.rzc.width, height: pick.rzc.height, corners: pick.rzc.corners, warpLnglat: rzcWarpMesh(pick.rzc.corners), warpN: RZC_WARP_N, mask: masks.CH ?? null }
-        : null, !!pick?.rzc?.values2, morphs.CH);
+        ? { values: withChStyleMin(plane(pick.rzc)!, chLog), width: pick.rzc.width, height: pick.rzc.height, corners: pick.rzc.corners, warpLnglat: rzcWarpMesh(pick.rzc.corners), warpN: RZC_WARP_N, mask: masks.CH ?? null }
+        : null, chLog, morphs.CH, chStyleRef.current === 'mch');
       // Phase NC: the unknown areas of the CH extrapolation frame as a grey veil (same grid, same zone mask); an analysis has none.
       const unk = L.hdChUnknown;
       if (unk) {

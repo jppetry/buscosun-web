@@ -654,6 +654,28 @@ export const precipRainRampLog: Record<number, string> = Object.fromEntries([
 ].map(([mm, c]) => [mm === 0 ? 0 : precipToU8Log(mm as number) / 255, c as string]));
 
 /**
+ * CH-Stil „MeteoSchweiz" (`?chstyle=mch`, `radarHd.ts`): die Klassen der MeteoSchweiz-Niederschlagsseite als HARTE Stufen —
+ * 0,2–1 lila, 1–2 blau, 2–4 dunkelgrün, 4–6 grün, 6–10 gelb, 10–20 orangegelb, 20–40 orange (Hex aus deren `animation.json`
+ * vom 28.10.2026), 40–60 rot und > 60 magenta nach Augenmaß (`set`). Unter 0,2 mm/h nichts (dort blendet die Seite aus).
+ * Je zwei Stützen pro Klasse (Anfang, Ende − ε) ⇒ der Verlauf ist innerhalb der Klasse flach, die Kante hart.
+ */
+export const PRECIP_MCH_CLASSES: readonly (readonly [number, string])[] = Object.freeze([
+  [0.2, 'rgba(154,126,149,0.90)'], [1, 'rgba(0,1,252,0.90)'], [2, 'rgba(5,140,45,0.90)'], [4, 'rgba(5,255,5,0.90)'],
+  [6, 'rgba(254,255,1,0.90)'], [10, 'rgba(255,199,3,0.90)'], [20, 'rgba(255,125,1,0.90)'], [40, 'rgba(255,0,0,0.90)'], [60, 'rgba(204,0,204,0.90)'],
+]);
+function mchStepRamp(toUnit: (mm: number) => number): Record<number, string> {
+  const EPS = 1e-4, out: Record<number, string> = { 0: 'rgba(154,126,149,0)' };
+  const cls = PRECIP_MCH_CLASSES.map(([mm, c]) => [Math.min(1, toUnit(mm)), c] as const).filter(([u], i, a) => i === 0 || u > a[i - 1][0]);
+  out[Math.max(0, cls[0][0] - EPS)] = 'rgba(154,126,149,0)';
+  cls.forEach(([u, c], i) => { out[u] = c; const end = i + 1 < cls.length ? cls[i + 1][0] - EPS : 1; if (end > u) out[end] = c; });
+  return out;
+}
+/** v1-Byte (0 … 20 mm/h linear): Klassen über 20 mm/h fallen auf die oberste Stufe. */
+export const precipRainRampMch: Record<number, string> = mchStepRamp((mm) => mm / PRECIP_VMAX);
+/** Log-Ebene: alle neun Klassen. */
+export const precipRainRampMchLog: Record<number, string> = mchStepRamp((mm) => precipToU8Log(mm) / 255);
+
+/**
  * Wolken-Farbskala (Bewölkungsgrad % → weiß/grau, Alpha steigt mit dem Grad).
  * Wird vom Wolken-RainLayer genutzt (ICON-D2 CLCT/CLCL/CLCM/CLCH).
  */

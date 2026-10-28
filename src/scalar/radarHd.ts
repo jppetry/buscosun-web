@@ -200,3 +200,27 @@ export function applyDisplayMin(values: Uint8Array, minMmh: number, floorMmh: nu
   for (let i = 0; i < values.length; i++) { const u = values[i]; out[i] = u >= uMin ? u : 0; }
   return out;
 }
+
+/**
+ * CH-Stil (28.10.2026): the CH HD layer drawn like the MeteoSchweiz precipitation page — nothing below 0,2 mm/h and its
+ * hard colour classes (`precipRainRampMch`/`…Log`, `RainLayer.ts`) instead of the DWD-like ramp. The DATA stay ours
+ * (rzc analysis + buscosun extrapolation); only the look changes. `?chstyle=mch|dwd` beats `localStorage.radarchstyle`;
+ * default `dwd` = byte-identical to before. DE and AT are never touched.
+ */
+export type RadarChStyle = 'dwd' | 'mch';
+export const RADAR_CH_STYLE_DEFAULT: RadarChStyle = 'dwd';
+export const MCH_DISPLAY_MIN_MMH = 0.2;
+export function radarChStyleFrom(
+  search: string = typeof location !== 'undefined' ? location.search : '',
+  stored?: string | null,
+): RadarChStyle {
+  const ok = (v: string | null | undefined): v is RadarChStyle => v === 'dwd' || v === 'mch';
+  let q: string | null = null;
+  try { q = new URLSearchParams(search).get('chstyle'); } catch { /* broken query = no vote */ }
+  if (ok(q)) return q;
+  let s = stored;
+  if (s === undefined) {
+    try { s = typeof localStorage !== 'undefined' ? localStorage.getItem('radarchstyle') : null; } catch { s = null; }
+  }
+  return ok(s) ? s : RADAR_CH_STYLE_DEFAULT;
+}
