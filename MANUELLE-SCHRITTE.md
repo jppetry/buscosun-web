@@ -3036,8 +3036,10 @@ Alles uncommitted in `buscosun-web`; das Spiegelskript im Daten-Repo ist schon g
 3. **Rückwege (E-NC-6, 28.10. abends „setze alles aktiv"):** Client an, `?nc=0` (alias `?chnc=0`) je Besucher; Producer an,
    `RADAR_NC=0` in `radar.yml` = aus. Die Kopie im Daten-Repo (`6a7d113bd`) ist damit wieder gleich der Vorlage — nichts zu tun.
    (Mittags war nach deinem Auftrag „ohne Schalter byte-gleich" beides AUS, E-NC-4 — von E-NC-6 aufgehoben.) **Erledigt 28.10.:**
-   Merge `feat/aw-6.2-virtueller-sensor` → `main` (`6916d1f0`) und Push durch Claude auf dein Wort. **Dein Schritt danach:**
-   die Actions-Variable `ROAD_VS_WEB_REF` im Daten-Repo leeren (§79; `road-vs.yml`/`road-archiv.yml` klonen sonst weiter den Zweig).
+   Merge `feat/aw-6.2-virtueller-sensor` → `main` (`6916d1f0`) und Push durch Claude auf dein Wort. **Ebenfalls erledigt
+   (28.10., auf dein Wort):** die Actions-Variable `ROAD_VS_WEB_REF` im Daten-Repo (Wert war `feat/aw-6.2-virtueller-sensor`)
+   ist GELÖSCHT — die API nimmt keinen leeren Wert (422), `vars.ROAD_VS_WEB_REF` liefert damit `''` = `main`, genau wie die
+   Workflows es lesen (`road-vs.yml`, `road-archiv.yml`). Der Zweig kann bleiben oder weg; nichts klont ihn mehr.
 4. **E-NC-5 (28.10., umgesetzt, bitte bestätigen):** die Zugrichtung der CH-Hochrechnung ist jetzt EINE Verschiebung je Bildpaar
    (Korrelation der 4×-vergröberten Bilder, Subpixel) statt des Horn–Schunck-Felds — das Feld ließ die Hochrechnung nach wenigen
    Schritten stehen und maß 15–50 % zu langsam (V-NC-7, Messung `audit/radar-nowcast-dach/flow-scale.mjs`). Morph der Karte und
