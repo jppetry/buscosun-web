@@ -406,3 +406,8 @@
   .nc-page--map .nc-intro-copy { padding: 24px 20px 22px; border-radius: 18px; }
 }
 .nc-page--map .nc-intro-title:focus, .rm-idle--map .rm-idle-title:focus { outline: none; }
+
+/* Mobil dieselbe Ortswahl-Seite wie am Desktop; nur die Werkzeug-Rail entfällt (Zurück über das Logo). */
+@media (max-width: 767px) {
+  .nc-idle-rail { display: none; }
+}

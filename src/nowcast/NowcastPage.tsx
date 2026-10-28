@@ -35,14 +35,6 @@ const NC_INTRO_CAPS = [
   'Datenquelle und Aktualität transparent ausgewiesen',
 ];
 
-/** Möglichkeiten-Liste mobil (RM1) — knapper, 1:1 nach references/mobile-RM1. */
-const RM1_CAPS = [
-  '„Regen in X Minuten" für deinen Standort',
-  'Messung und Modell-Vorhersage klar getrennt',
-  'Zellen-Zugbahn, Blitze & Schneefallgrenze',
-  'Datenquelle und Aktualität transparent',
-];
-
 function IconPin() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -156,40 +148,6 @@ export default function NowcastPage({ onBack, onOpenFeature, initialLocation, on
     );
   }
 
-  // RM1 — Mobile-Idle: eigenes Startbild 1:1 nach references/mobile-RM1.
-  if (isMobile) {
-    return (
-      <div className="rm-idle rm-idle--map">
-        {mapBg}
-        <nav className="rm-idle-nav">
-          <button type="button" className="rm-idle-brand" onClick={onBack} aria-label="Zur Startseite">
-            <img src="/buscosun-mark.svg" width={26} height={26} alt="" />
-            <span>buscosun</span>
-          </button>
-          <button type="button" className="rm-idle-back" onClick={onBack}>Zurück</button>
-        </nav>
-        <main className="rm-idle-main">
-          <span className="rm-idle-eyebrow">Regenradar · Nowcast</span>
-          <h1 className="rm-idle-title">Regnet es bald bei dir?</h1>
-          <p className="rm-idle-body">Minutengenauer Niederschlag für die nächsten 6 Stunden — Radar (0–2 h) &amp; Modell (2–6 h) klar getrennt.</p>
-          <ul className="rm-idle-caps">
-            {RM1_CAPS.map((c) => (
-              <li key={c} className="rm-idle-cap"><span className="rm-idle-cap-mark" aria-hidden="true"><IconCheck /></span>{c}</li>
-            ))}
-          </ul>
-          <span className="rm-idle-label">Standort</span>
-          <div className="rm-idle-search"><NowcastLocationField value={location} onChange={setLocation} /></div>
-          <button type="button" className="rm-idle-geo" onClick={useMyLocation}><IconPin /> Mein Standort</button>
-          <div className="rm-idle-howto">
-            <span className="rm-idle-howto-ic" aria-hidden="true"><IconHowTo /></span>
-            <p><b>So geht’s:</b> Ort wählen — danach zeigen wir Radar, Zeitverlauf &amp; die 6-h-Prognose.</p>
-          </div>
-          <p className="rm-idle-source"><span className="rm-src-dot" /> DWD RADOLAN-RV · buscosun Fusion · keine Tracker</p>
-        </main>
-      </div>
-    );
-  }
-
   // Idle-Startbild: gecraftete Intro-Komposition (Line-Art + Möglichkeiten +
   // „So geht's" + Suche) in der „Entdecke buscosun"-Designsprache. Die
   // Werkzeug-Rail steht wie im Deck links, damit man auch ohne Ort springen kann.
@@ -233,6 +191,7 @@ export default function NowcastPage({ onBack, onOpenFeature, initialLocation, on
             <div className="nc-intro-search">
               <span className="rt-eyebrow nc-eyebrow">Standort</span>
               <NowcastLocationField value={location} onChange={setLocation} />
+              {isMobile && <button type="button" className="rm-idle-geo" onClick={useMyLocation}><IconPin /> Mein Standort</button>}
             </div>
             <p className="intro-howto">
               <span className="intro-howto-ic" aria-hidden="true"><IconHowTo /></span>
