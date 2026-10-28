@@ -2336,10 +2336,10 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
               {!isMobile && sourcePill}
               {/* Straßen | Satellit: Desktop/Tablet oben links (Jans Auftrag 2026-10-23), mobil oben mittig. */}
               {!isMobile && basemapSeg}
-              {/* Mobil bleiben Chips und Treiber-Notiz über der Karte: dort gibt es kein Dock,
-                  das sie tragen könnte (auf dem Desktop stehen sie unter ihrer Layer-Zeile). */}
+              {/* Mobil bleiben die Chips über der Karte: dort gibt es kein Dock, das sie tragen
+                  könnte (auf dem Desktop stehen sie unter ihrer Layer-Zeile). Die Treiber-Notiz
+                  steht mobil nur noch unter ihrer Layer-Zeile im Sheet, nicht in der Karte. */}
               {isMobile && viewChips}
-              {isMobile && mapNotes}
               {isMobile && mapCardEl}
             </div>
 
