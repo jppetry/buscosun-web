@@ -170,7 +170,7 @@
 
 /* --- Layer-Dock (300 px) --------------------------------------------------- */
 .br-dock {
-  width: 300px; flex: 0 0 auto; background: var(--cream-50, #FAF6EA);
+  width: 280px; flex: 0 0 auto; background: var(--cream-50, #FAF6EA);
   border-right: 1px solid var(--sand-200, #E0D6BE); overflow-y: auto; padding: 16px 12px;
 }
 .br-dock-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
@@ -784,7 +784,7 @@
   .br-rail-btn { width: 38px; height: 38px; border-radius: 10px; }
   .br-rail-btn.is-active::before { left: -8px; }
   .br-rail-btn svg { width: 19px; height: 19px; }
-  .br-dock { width: 260px; padding: 14px 11px; }
+  .br-dock { width: 238px; padding: 14px 11px; }
   .br-dock-head { margin-bottom: 0; }
   .br-dock-head .br-eyebrow { font-size: 11px; }
   .br-group + .br-group { margin-top: 12px; }
@@ -1691,3 +1691,14 @@
   .br-layer-legend .fire-li-stepbar { height: 9px; }
   .br-layer-legend .fire-li-refd > summary { min-height: 32px; }
 }
+
+/* Dock-Feinschliff (Sichtprüfung): lesbarer aktiver Chip, keine Karte-in-Karte, größere Hinweise */
+.br-dock { padding-left: 10px; padding-right: 10px; }
+.br-dock .br-layer { padding-right: 34px; }
+.br-dock .br-views button { font-size: 12.5px; color: var(--stone-600, #5C5447); }
+.br-dock .br-views button.is-active { color: var(--br-red); font-weight: 700; border-color: var(--br-red); }
+.br-layerwrap.has-seg > .br-layer-legend { margin: 8px 0 0; padding: 8px 0 0; background: none; border: 0; border-top: 1px dashed var(--sand-200, #E0D6BE); border-radius: 0; }
+.br-dock .br-mapnote { max-width: none; margin-top: 6px; padding: 8px 10px; font-size: 12.5px; color: var(--stone-600, #5C5447); background: #fff; border-radius: 10px; }
+.br-dock .br-layer-note, .br-dock .br-layer-lag { font-size: 12px; }
+.br-dock .br-layer { gap: 7px; padding-left: 8px; }
+.br-dock .br-layer-label { font-size: 13.5px; }
