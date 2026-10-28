@@ -11,12 +11,10 @@
 
 import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { Location } from '../types';
-import { reverseGeocode } from '../geocode';
 import { buildNowcast } from './nowcastEngine';
 import type { Nowcast } from './nowcastView';
 import NowcastLocationField from './NowcastLocationField';
 import NowcastDeck from './NowcastDeck';
-import { useIsMobile } from '../mobile/useIsMobile';
 // Idle-/Intro-Kopf in der Designsprache des „Entdecke buscosun"-Intros.
 import '../intro/intro.css';
 import '../route/tourTheme.css';
@@ -34,15 +32,6 @@ const NC_INTRO_CAPS = [
   'Sturmzellen-Zugbahn, Blitze und Schneefallgrenze',
   'Datenquelle und Aktualität transparent ausgewiesen',
 ];
-
-function IconPin() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M12 21 C12 21 5 14.5 5 9.5 A7 7 0 0 1 19 9.5 C19 14.5 12 21 12 21 Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-      <circle cx="12" cy="9.3" r="2.4" stroke="currentColor" strokeWidth="1.8" />
-    </svg>
-  );
-}
 
 /* Kleine Line-Icons (currentColor) für die Möglichkeiten-Liste + „So geht's" —
    identisch zum Intro-Overlay, dort lokal/nicht exportiert. */
@@ -92,18 +81,6 @@ export default function NowcastPage({ onBack, onOpenFeature, initialLocation, on
   const [state, setState] = useState<State>({ kind: 'idle' });
   const [reloadNonce, setReloadNonce] = useState(0);
   const acRef = useRef<AbortController | null>(null);
-  const isMobile = useIsMobile();
-
-  const useMyLocation = () => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition((pos) => {
-      const { latitude, longitude } = pos.coords;
-      reverseGeocode(latitude, longitude)
-        .then((loc) => setLocation(loc ?? { lat: latitude, lon: longitude, name: 'Mein Standort', country: 'DE' }))
-        .catch(() => setLocation({ lat: latitude, lon: longitude, name: 'Mein Standort', country: 'DE' }));
-    });
-  };
-
   useEffect(() => {
     if (!location) { setState({ kind: 'idle' }); return; }
     acRef.current?.abort();
@@ -179,10 +156,6 @@ export default function NowcastPage({ onBack, onOpenFeature, initialLocation, on
           <div className="nc-intro-copy">
             <span className="intro-eyebrow">Regenradar</span>
             <h1 className="nc-intro-title">Regnet es bald?</h1>
-            <p className="intro-body">
-              High-End-Regenradar für deinen Standort: gemessenes DWD-Radar (0–2 h) mit
-              ehrlichem Übergang zur Punktvorhersage von buscosun Fusion — minutengenau bis zum Skill-Horizont.
-            </p>
             <ul className="intro-caps">
               {NC_INTRO_CAPS.map((c) => (
                 <li key={c}><span className="intro-caps-mark" aria-hidden="true"><IconCheck /></span>{c}</li>
@@ -191,7 +164,6 @@ export default function NowcastPage({ onBack, onOpenFeature, initialLocation, on
             <div className="nc-intro-search">
               <span className="rt-eyebrow nc-eyebrow">Standort</span>
               <NowcastLocationField value={location} onChange={setLocation} />
-              {isMobile && <button type="button" className="rm-idle-geo" onClick={useMyLocation}><IconPin /> Mein Standort</button>}
             </div>
             <p className="intro-howto">
               <span className="intro-howto-ic" aria-hidden="true"><IconHowTo /></span>
