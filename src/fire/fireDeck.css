@@ -1723,3 +1723,7 @@
   .br-pointlegend .br-pl-grid { gap: 6px 22px; }
   .br-maplegend:has(~ .br-pointlegend) { bottom: 128px; }
 }
+
+/* „Ausbaustufe 2" (Brennmaterial, Schutzgebiete): die Tablet-Regel setzte padding-right auf 10 px — der Schalter lag unter dem „i"-Knopf. */
+.br-dock .br-group[data-br='stone'] .br-layer { padding-right: 34px; }
+.br-dock .br-group[data-br='stone'] .br-layer-label { font-size: 13.5px; }
