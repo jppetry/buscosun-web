@@ -45,10 +45,10 @@ add('A2 order = profile table, duplicates and unknown ids dropped (E-RR-3: accum
   JSON.stringify(radarProfileLayers(['snowline', 'accum', 'precip', 'precip', 'coverage', 'graupel', 'hail', 'rain', 'wind'])) === JSON.stringify(['nowcast', 'snowline']));
 add('A3 the profile can only ever switch on its five layers', RADAR_PROFILE_LAYERS.length === 5
   && radarProfileLayers(['precip', 'cells', 'lightning', 'snow', 'snowline', 'temp', 'wind', 'gust', 'clouds']).every((k) => RADAR_PROFILE_LAYERS.includes(k)));
-add('A4 profile switches: no chrome, no city temperatures, no prefetch, zoom 8, draggable marker, zoom+locate, no scale, compact attribution',
+add('A4 profile switches: no chrome, no city temperatures, no prefetch, zoom 8, draggable marker, zoom+locate, no scale, no attribution',
   RADAR_PROFILE.chrome === 'none' && RADAR_PROFILE.tempLabels === false && RADAR_PROFILE.prefetch === false
   && RADAR_PROFILE.camera.zoom === 8 && RADAR_PROFILE.marker.draggable === true
-  && RADAR_PROFILE.controls.navigation && RADAR_PROFILE.controls.geolocate && !RADAR_PROFILE.controls.scale && RADAR_PROFILE.controls.compactAttribution);
+  && RADAR_PROFILE.controls.navigation && RADAR_PROFILE.controls.geolocate && !RADAR_PROFILE.controls.scale && RADAR_PROFILE.controls.attribution === false);
 add('A5 `?rr=legacy` exact → old radar map; anything else → MapView profile',
   radarMapLegacyFrom('?rr=legacy') && radarMapLegacyFrom('?lat=1&rr=legacy') && !radarMapLegacyFrom('') && !radarMapLegacyFrom('?rr=LEGACY')
   && !radarMapLegacyFrom('?rr=1') && !radarMapLegacyFrom('?pf=live'));

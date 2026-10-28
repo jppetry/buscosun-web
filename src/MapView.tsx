@@ -1319,8 +1319,8 @@ export default function MapView({
       // interest, not a basemap label fade).
       refreshExpiredTiles: false,
       fadeDuration: 0,
-      // Phase RR: im Profil die kompakte Attribution (ⓘ) wie die alte Radarkarte — die Legende des Decks liegt unten.
-      ...(profile && RADAR_PROFILE.controls.compactAttribution ? { attributionControl: { compact: true } } : {}),
+      // Phase RR: im Profil keine Attribution (ⓘ-Kachel, Jan 28.10.2026) — die Legende des Decks liegt unten.
+      ...(profile && !RADAR_PROFILE.controls.attribution ? { attributionControl: false } : {}),
     });
 
     if (!profile || RADAR_PROFILE.controls.scale) map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
@@ -2289,7 +2289,7 @@ export default function MapView({
         const ageMin = Math.max(0, Math.round((Date.now() - inca5Ref.current.refAt.getTime()) / 60_000));
         parts.push(`AT ${INCA_5M_LABEL} (Lauf ${inca5Ref.current.refAt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}, vor ${ageMin} min; kein Rückblick)`);
       } else if (incaGridRef.current) parts.push('AT INCA (ab +15 min, kein Rückblick)');
-      if (rzcNcRef.current) parts.push(`CH ${RZC_NC_LABEL} (bis +2 h, ${RZC_NC_UNKNOWN_WORD})`);
+      if (rzcNcRef.current) parts.push(`CH ${rzcNcRef.current.label || RZC_NC_LABEL} (bis +2 h, ${RZC_NC_UNKNOWN_WORD})`);
       else if (meteoRadarRef.current) parts.push('CH rzc (nur Messung)');
       // Phase R250: the DE analyses come on 250-m tiles from the site radars (from zoom 9; measured 250 m radial × 1° azimuth).
       // Phase RG: the status names the display threshold (measured, `RADAR_DISPLAY_MIN_MMH`); `?rmin=` shows the compared value.

@@ -50,7 +50,7 @@ export function radarProfileLayers(deckLayers: readonly string[]): LayerKey[] {
  *  - `camera`           start at the location (or the camera from the URL) at zoom 8, like the old radar map.
  *  - `marker`           draggable; dragging or a click reports the point (`onPointPick`), the mouse reports `onPointHover`.
  *  - `controls`         zoom + locate control bottom right (the old radar map had them; mobile CSS hides the group);
- *                       no scale bar (the deck's legend sits bottom left), attribution compact (ⓘ, as the old map).
+ *                       no scale bar (the deck's legend sits bottom left), no attribution control (Jan 28.10.2026).
  */
 export const RADAR_PROFILE = Object.freeze({
   chrome: 'none' as const,
@@ -58,7 +58,7 @@ export const RADAR_PROFILE = Object.freeze({
   prefetch: false,
   camera: { zoom: 8 },
   marker: { draggable: true },
-  controls: { navigation: true, geolocate: true, scale: false, compactAttribution: true },
+  controls: { navigation: true, geolocate: true, scale: false, attribution: false },
 });
 
 /**
