@@ -1000,3 +1000,8 @@ button.aw-prog-tile:not(:disabled):not(.is-on):hover { box-shadow: var(--aw-inse
     font: inherit; font-size: 10.5px; color: var(--stone-400, #A89A7A); }
   .aw-bar-btn.is-active { color: var(--steel-600, #3A6FA8); font-weight: 600; }
 }
+
+@media (max-width: 767px) {
+  .aw-m-brand { width: 44px; height: 44px; flex: 0 0 auto; align-self: center; border-radius: 12px; padding: 0; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    background: var(--surface-glass-strong, #FAF6EA); border: 1px solid var(--sand-200, #E0D6BE); box-shadow: var(--shadow-card); }
+}

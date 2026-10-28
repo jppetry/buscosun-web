@@ -666,7 +666,9 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
       <div className="aw-root is-mobile">
         <main className="aw-map is-mobile" aria-label={inDossier ? 'Dossier' : 'Karte'}>
           <div className="aw-m-mapwrap" hidden={inDossier}>{map}</div>
-          <div className="aw-m-top">{mPill}<ShareButton className="aw-m-share" compact /></div>
+          <div className="aw-m-top">
+            <button type="button" className="aw-m-brand" aria-label="Zur Startseite" onClick={nav.goHome}><img src="/buscosun-mark.svg" width={22} height={22} alt="" /></button>
+            {mPill}<ShareButton className="aw-m-share" compact /></div>
           <div className="aw-m-times">{times}</div>
           {stageSeg && <div className="aw-m-stage">{stageSeg}</div>}
           {!inDossier && emptyMap}
