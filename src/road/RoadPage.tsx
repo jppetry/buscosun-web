@@ -50,8 +50,8 @@ const RoadHazardPanel = lazy(() => import('./RoadHazardPanel'));
 const RoadHazardDetail = lazy(() => import('./RoadHazardDetail'));
 type RoadHzPanelState = React.ComponentProps<typeof import('./RoadHazardPanel').default>['state'];
 import {
-  ROAD_CLASS_COLOR, ROAD_GAP_SHORT, ROAD_GAP_TITLE, bandSegments, corridorEnds, corridorHeading, corridorRouteText, f1, hm, isCritical, isGapCorridor, isHatched, isRoadWarning, kmIn, roadGapHead, roadNoValueSince, roadNumber,
-  searchCorridors, slotSummary, activeRoadWarnings, defaultRoadStation, ROAD_WARN_REFRESH_MS, DEFAULT_SPEED_KMH,
+  ROAD_CLASS_COLOR, ROAD_GAP_SHORT, corridorEnds, corridorHeading, corridorRouteText, f1, hm, isCritical, isGapCorridor, isHatched, isRoadWarning, roadGapHead, roadNoValueSince, roadNumber,
+  searchCorridors, slotSummary, activeRoadWarnings, defaultRoadStation, ROAD_WARN_REFRESH_MS,
 } from './roadView';
 import './roadDeck.css';
 
@@ -100,7 +100,6 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   const [ring, setRing] = useState<RoadH24File | null>(null);
   const [warn, setWarn] = useState<{ state: 'off' | 'loading' | 'ok' | 'error'; alerts: CapAlert[]; at: number | null }>({ state: 'off', alerts: [], at: null });
   const [pointWarnings, setPointWarnings] = useState<CapAlert[]>([]);
-  const [sheet, setSheet] = useState<'peek' | 'open'>('peek');
   /** Mobile bottom bar: the page above the map (Karte = none). */
   const [mobTab, setMobTab] = useState<'map' | 'roads' | 'hazards' | 'layers'>('map');
   const firstCorridor = useRef(true);
@@ -361,7 +360,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
     firstCorridor.current = false;
   }, [corridor?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const pickCorridor = useCallback((id: string) => { setCorridorId(id); setStId(null); setSheet('peek'); setMobTab('map'); if (hz) setSegId(null); }, [hz]);
+  const pickCorridor = useCallback((id: string) => { setCorridorId(id); setStId(null); setMobTab('map'); if (hz) setSegId(null); }, [hz]);
   const pickStation = useCallback((id: string) => {
     setStId(id); setCardOff(null);
     setTab((t) => (t === 'quellen' ? (hz ? 'gefahren' : 'station') : t));
@@ -376,7 +375,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   const pickSegment = useCallback((id: string) => {
     const s = segMap.get(id);
     if (!s) return;
-    setSegId(id); setTab('gefahren'); setSheet('open');
+    setSegId(id); setTab('gefahren');
     if (s.corridor !== corridorId) setCorridorId(s.corridor);
     const main = segmentMainStation(s, shownById);
     setStId(main); setCardOff(null);
@@ -385,7 +384,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   // A click on the map only marks (segment line, callout, row in the list with „Dossier öffnen“).
   const openDossier = useCallback((id: string) => { pickSegment(id); setStage('dossier'); setMobTab('map'); }, [pickSegment]);
   // A click on the map picks the segment, but leaves the choice to the card: „Detailansicht öffnen“ switches to the dossier.
-  const pickSegmentFromMap = useCallback((id: string) => { pickSegment(id); setSheet('peek'); setMapSeg(id); setMapCorr(null); }, [pickSegment]);
+  const pickSegmentFromMap = useCallback((id: string) => { pickSegment(id); setMapSeg(id); setMapCorr(null); }, [pickSegment]);
   const pickCorridorFromMap = useCallback((id: string) => { pickCorridor(id); setMapSeg(null); setMapCorr(id); }, [pickCorridor]);
   const pickStationFromMap = useCallback((id: string) => {
     pickStation(id);
@@ -406,7 +405,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   const loadingObs = !load;
   const dockLoading = { corridors: corrState === 'loading', obs: loadingObs };
   // Overlays cover the map: mobile pill + chips on top, the sheet (design 414 px) at the bottom; desktop band 165 px.
-  const padding = isMobile ? { top: 130, bottom: 430, left: 24, right: 24 } : { top: 110, bottom: hz ? 80 : 232, left: 40, right: 60 };
+  const padding = isMobile ? { top: 130, bottom: 120, left: 24, right: 24 } : { top: 110, bottom: hz ? 80 : 232, left: 40, right: 60 };
   const ends = corridor ? corridorEnds(corridor, dir) : null;
 
   // --- pieces -----------------------------------------------------------------------------------------
@@ -566,7 +565,6 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
       onMode={(m) => { setHzMode(m); if (m === 'now') setTime(0); else if (typeof m === 'number') setTime(m); }} onFilter={setHzFilter} onHour={(h) => setTime(h)}
       onPick={openDossier} onHover={setHoverSeg} onOpenDossier={inDossier ? undefined : openDossier} />
   </Suspense>);
-  const readout = <RoadReadout {...readoutProps} hz={hzNode} />;
 
   // AWD: the dossier of the centre — the strip of the corridor, then the detail of the open segment (or the empty state).
   const hzWhy = hzState === 'loading' ? 'Gefahren werden geladen …'
@@ -654,15 +652,6 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
 
   // --- mobile ---------------------------------------------------------------------------------------------
   if (isMobile) {
-    const rows = corridor ? corridor.stations.map((s) => ({ s, p: shownById.get(s.id) })).filter((r): r is { s: RoadCorridor['stations'][number]; p: RoadPoint } => !!r.p) : [];
-    const critical = rows.filter((r) => isCritical(r.p.cls)).sort((a, b) => (a.p.rs ?? 99) - (b.p.rs ?? 99)).slice(0, 3);
-    const coldest = rows.filter((r) => r.p.rs != null).sort((a, b) => (a.p.rs as number) - (b.p.rs as number))[0];
-    const nCrit = rows.filter((r) => isCritical(r.p.cls)).length;
-    const slot15 = Math.ceil(nowMs / 900_000) * 900_000;
-    const list = (critical.length ? critical : rows.slice(0, 3));
-    // AF-5: on a section without a measuring station the sheet lists forecast points (the three with the coldest air, by km).
-    const axisAll = gap && fcFile && corridor ? roadFcAxisPoints(fcFile).map((a) => ({ a, km: kmIn(corridor, a.km as number, dir), v: roadFcValue(a, fcFile, fcMs) })) : [];
-    const axisList = axisAll.slice().sort((x, y) => (x.v?.t ?? 99) - (y.v?.t ?? 99)).slice(0, 3).sort((x, y) => x.km - y.km);
     const mPill = corridor && ends && (
       <button type="button" className="aw-pill is-button" aria-haspopup="dialog" aria-expanded={mobTab === 'roads'} onClick={() => setMobTab('roads')}>
         <span className="aw-pill-shields">{corridor.shields.map((s) => <span key={s} className="aw-shield">{s}</span>)}</span>
@@ -684,55 +673,6 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
           {mapCardEl && <div className="aw-map-card">{mapCardEl}</div>}
           {inDossier && <div className="aw-m-dossier">{dossier}</div>}
         </main>
-        <section className={`aw-sheet is-${sheet}`} aria-label="Strecken-Briefing" hidden={inDossier || !!mapCardEl}>
-          <button type="button" className="aw-sheet-grip" aria-label={sheet === 'open' ? 'Briefing verkleinern' : 'Briefing aufklappen'} aria-expanded={sheet === 'open'}
-            onClick={() => setSheet((s) => (s === 'open' ? 'peek' : 'open'))}><span /></button>
-          <div className="aw-sheet-head">
-            <span className="aw-eyebrow is-accent">Strecken-Briefing</span>
-            <span className={`aw-eyebrow is-${liveTone}`}>{liveTone === 'live' ? `Live · ${hm(obs!.slotMs)}` : liveTone === 'stale' ? `veraltet · ${hm(obs!.slotMs)}` : loadingObs ? 'Messung lädt …' : 'keine Messdaten'}</span>
-          </div>
-          <h2 className="aw-sheet-title">{gap ? ROAD_GAP_TITLE : loadingObs ? 'Messung lädt …' : noData ? 'Derzeit keine Messdaten' : coldest ? `Kälteste Stelle: ${coldest.p.n} ${f1(coldest.p.rs as number)} °C` : 'Keine gültige Fahrbahnmessung'}</h2>
-          <p className="aw-sheet-lead">{gap
-            ? (fcFile ? `Wetterprognose von ${roadFcEngineName(fcFile)} an ${axisAll.length} ${axisAll.length === 1 ? 'Punkt' : 'Punkten'} (${fcRun.label}): Luft, Niederschlag, Wind — keine Fahrbahnmessung, keine Prognose der Fahrbahn.` : `Die Fahrbahn wird hier nicht gemessen; die Wetterprognose ist derzeit nicht verfügbar (${fcLabel}).`)
-            : loadingObs ? 'Die jüngste Messung der DWD-Glättemeldeanlagen wird geladen.' : noData ?? `${nCrit} von ${rows.length} DWD-Anlagen mit Glätte oder Frostgefahr gemessen${corridor?.borders.length ? '; ab der Grenze keine offene Fahrbahnmessung' : ''}.`}</p>
-          {corridor && <MiniBand corridor={corridor} byId={shownById} dir={dir} fc={fcCells} fcLabel={fcBandLabel} gap={gap} />}
-          {corridor && gap && fcFile && (
-            <>
-              <div className="aw-sheet-list">
-                {axisList.map(({ a, km, v }) => (
-                  <button key={a.id} type="button" className="aw-sheet-row" onClick={() => { pickStation(a.id); setTab('station'); }}>
-                    <i className={v ? '' : 'is-hatched'} style={v ? { background: ROAD_FC_AIR_COLOR[roadFcAirClass(v.t)] } : undefined} />
-                    <span><strong>{roadFcAxisName(corridor, a, dir)}</strong><em>{v ? `Prognose ${roadFcLine(v)}` : 'keine Prognose für diese Stunde'}</em></span>
-                    <span className="aw-sheet-eta" title={`Ankunft bei Abfahrt jetzt am Anfang der Strecke, Ø ${DEFAULT_SPEED_KMH} km/h`}><em>an · Ø {DEFAULT_SPEED_KMH}</em><strong>{hm(slot15 + (km / DEFAULT_SPEED_KMH) * 3_600_000)}</strong></span>
-                  </button>
-                ))}
-              </div>
-              <div className="aw-sheet-actions">
-                <button type="button" className="aw-btn is-primary" onClick={() => { setTab('strecke'); setSheet('open'); }}>Alle {axisAll.length} Prognosepunkte</button>
-                <button type="button" className="aw-btn is-auto" onClick={() => { setTab('strecke'); setSheet('open'); }}>Abfahrt {hm(slot15 + departMin * 60_000)} · Ø {DEFAULT_SPEED_KMH} km/h</button>
-              </div>
-            </>
-          )}
-          {corridor && gap && sheet === 'open' && <div className="aw-sheet-readout">{readout}</div>}
-          {corridor && !gap && !noData && (
-            <>
-              <div className="aw-sheet-list">
-                {list.map(({ s, p }) => (
-                  <button key={s.id} type="button" className="aw-sheet-row" onClick={() => { pickStation(s.id); setTab('station'); }}>
-                    <i className={isHatched(p.cls) ? 'is-hatched' : ''} style={!isHatched(p.cls) ? { background: ROAD_CLASS_COLOR[p.cls] } : undefined} />
-                    <span><strong>{p.n} · km {Math.round(kmIn(corridor, s.km, dir))}</strong><em>{p.rs != null ? `jetzt ${f1(p.rs)} °C, ${ROAD_CLASS_LABEL[p.cls].label}` : ROAD_CLASS_LABEL[p.cls].label} · gemessen {hm(p.t)}</em></span>
-                    <span className="aw-sheet-eta" title={`Ankunft bei Abfahrt jetzt am Anfang der Strecke, Ø ${DEFAULT_SPEED_KMH} km/h`}><em>an · Ø {DEFAULT_SPEED_KMH}</em><strong>{hm(slot15 + (kmIn(corridor, s.km, dir) / DEFAULT_SPEED_KMH) * 3_600_000)}</strong></span>
-                  </button>
-                ))}
-              </div>
-              <div className="aw-sheet-actions">
-                <button type="button" className="aw-btn is-primary" onClick={() => { setTab('strecke'); setSheet('open'); }}>Alle {rows.length} Messpunkte</button>
-                <button type="button" className="aw-btn is-auto" onClick={() => { setTab('strecke'); setSheet('open'); }}>Abfahrt {hm(slot15 + departMin * 60_000)} · Ø {DEFAULT_SPEED_KMH} km/h</button>
-              </div>
-              {sheet === 'open' && <div className="aw-sheet-readout">{readout}</div>}
-            </>
-          )}
-        </section>
         {mobTab !== 'map' && (mobTab !== 'hazards' || hz) && (
           <div className="aw-m-dock aw-m-page" role="dialog" aria-label={mobTab === 'roads' ? 'Autobahn wählen' : mobTab === 'hazards' ? 'Gefahren' : 'Ebenen'}>
             <div className="aw-m-dock-head">
@@ -829,30 +769,3 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
 
 const EMPTY_BY_ID: ReadonlyMap<string, RoadPoint> = new Map();
 
-/** Mobile mini band (design: 10 px, towns underneath). */
-function MiniBand({ corridor, byId, dir, fc, fcLabel, gap = false }: { corridor: RoadCorridor; byId: ReadonlyMap<string, RoadPoint>; dir: 0 | 1; fc: ReturnType<typeof roadFcBand> | null; fcLabel: string; gap?: boolean }) {
-  const segs = bandSegments(corridor, byId, dir);
-  const len = corridor.lengthKm;
-  const towns = corridor.towns.map(([km, n]) => [kmIn(corridor, km, dir), n] as const).sort((a, b) => a[0] - b[0]);
-  const pick = [towns[0], towns[Math.floor(towns.length / 2)], towns[towns.length - 1]].filter((t, i, a) => !!t && a.indexOf(t) === i);
-  return (
-    <>
-      {/* AF-5: no measured bar on a section without a measuring station — the forecast row is the band. */}
-      {!gap && <div className="aw-miniband" aria-hidden="true">
-        {segs.map((g, i) => (
-          <div key={i} className={`aw-band-seg${g.cls === 'gap' || isHatched(g.cls) ? ' is-gap' : ''}`}
-            style={{ left: `${(g.fromKm / len) * 100}%`, width: `${((g.toKm - g.fromKm) / len) * 100}%`, ...(g.cls !== 'gap' && !isHatched(g.cls) ? { background: ROAD_CLASS_COLOR[g.cls] } : {}) }} />
-        ))}
-        {corridor.borders.map((b) => <div key={b.km} className="aw-miniband-border" style={{ left: `${(kmIn(corridor, b.km, dir) / len) * 100}%` }} />)}
-      </div>}
-      {fc && (
-        <div className={`aw-miniband is-fc${gap ? ' is-only' : ''}`} role="img" aria-label={fcLabel} title={fcLabel}>
-          {fc.filter((g) => g.cls !== 'gap').map((g) => (
-            <div key={g.id} className="aw-band-seg" style={{ left: `${(g.fromKm / len) * 100}%`, width: `${((g.toKm - g.fromKm) / len) * 100}%`, background: ROAD_FC_AIR_COLOR[g.cls as 'frost' | 'near' | 'above'] }} />
-          ))}
-        </div>
-      )}
-      <div className="aw-miniband-towns">{pick.map((t) => <span key={t[1]}>{t[1]}</span>)}</div>
-    </>
-  );
-}
