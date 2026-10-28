@@ -87,7 +87,7 @@ interface Props {
 
 /** Dock-Layer, die das ECHTE Radar steuern (Teilmenge der Radar-Layer). */
 const DECK_LAYERS: Array<{ id: RadarLayerId; label: string; sub: string; color: string; icon: ReactNode }> = [
-  { id: 'precip', label: 'Niederschlag', sub: 'DACH-Komposit: RADOLAN · INCA · rzc', color: '#3A6FA8', icon: (
+  { id: 'precip', label: 'Niederschlag', sub: 'DACH: DWD-RV · INCA (5 min) · Hochrechnung buscosun (rzc)', color: '#3A6FA8', icon: (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M7 13 A3.6 3.6 0 0 1 8 5.6 A5.4 5.4 0 0 1 18.2 8 A3.4 3.4 0 0 1 17.6 14 H8 A3.6 3.6 0 0 1 7 13 Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><path d="M9 17 L8 20 M13 17 L12 20 M16.5 17 L15.5 20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
   ) },
   { id: 'cells', label: 'Zellbahnen', sub: 'DWD KONRAD3D · amtliche Zugbahn (DE)', color: '#C97B47', icon: (

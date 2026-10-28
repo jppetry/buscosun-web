@@ -34,7 +34,8 @@ export function radarTimesAt(stack: RadarStack, lat: number, lon: number, nowMs:
   const wet = (i: number) => (vals[i] ?? 0) >= RB_WET_MMH;
   const wetNow = wet(iNow);
   const product: RadarTimes['product'] = stack.source === 'radolan_rv' ? 'RADOLAN-RV' : stack.source === 'inca_grid' ? 'INCA' : 'rzc';
-  if (stack.source === 'meteoswiss_rzc') return { kind: 'analysis', product, horizonMin: 0, wetNow, onsetMin: null, endMin: null };
+  // Phase NC: a CH stack with extrapolation frames behind the analysis is an extrapolation like RV/INCA; one image stays an analysis.
+  if (stack.source === 'meteoswiss_rzc' && fut.length <= 1) return { kind: 'analysis', product, horizonMin: 0, wetNow, onsetMin: null, endMin: null };
   const lastLead = fut[fut.length - 1].leadMinutes;
   const horizonMin = Math.max(0, Math.round(rel(Math.min(stack.skillMin || lastLead, lastLead))));
   let first: number | null = null;

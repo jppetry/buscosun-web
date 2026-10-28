@@ -240,6 +240,9 @@ export const ROAD_HEALTH = Object.freeze({
   cdnMinAgeMin: 10,
   /** …and only slots still kept in obs/ (3 h, ROAD_RETENTION) with a margin. */
   cdnMaxSlotAgeMin: 120,
+  /** R8 (AW-6.2.1, V-VS-4): series in state `ok` needed = ROAD_SLOT_BASELINE − ROAD_SLOT_TOLERANCE of the contract (the slot
+   *  lock's own number; `verify:road-vs` keeps them equal). Below it the job is red and names the series that are not ok. */
+  groupsOkMin: 20,
 });
 
 /** `YYMMDDHHMM` (UTC) → ms; NaN when malformed. */
@@ -289,6 +292,15 @@ export function checkRoadStatus(s, { nowMs }) {
     ok('R7 Gefahren-Eingänge', missing.length === 0, missing.length ? `fehlen oder zu alt: ${missing.join(', ')}` : 'obs, fc, RV, KONRAD3D, runs vorhanden');
   } else {
     ok('R6 Gefahren-Slot', true, 'kein hz-Block im Status — Gefahren-Schritt (AW-7.3) läuft noch nicht');
+  }
+  // R8 (AW-6.2.1, V-VS-4): freshness PER SERIES — a dead state series (LH-LH, WW-SO on 27.10.2026; DD-DD for days in
+  // October) is invisible in R2/R3 while the other 20 series keep the slot alive. Named always, red only below the lock's number.
+  const groups = s.groups && typeof s.groups === 'object' ? Object.entries(s.groups) : [];
+  if (groups.length) {
+    const notOk = groups.filter(([, g]) => g?.state !== 'ok').map(([id, g]) => `${id} ${g?.state ?? '?'}${Number.isFinite(g?.ageMin) ? ` (${g.ageMin} min)` : ''}`);
+    const nOk = groups.length - notOk.length;
+    ok('R8 GMA-Reihen', s.killSwitch || nOk >= ROAD_HEALTH.groupsOkMin,
+      `${nOk} von ${groups.length} Reihen ok (Grenze ${ROAD_HEALTH.groupsOkMin})${notOk.length ? ` · nicht ok: ${notOk.join(', ')}` : ''}`);
   }
   return out;
 }

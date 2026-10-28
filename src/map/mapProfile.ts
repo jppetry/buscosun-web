@@ -14,6 +14,7 @@ import type { CompositeSources, RvPastFrame } from '../scalar/precipComposite';
 import type { RvNowcast } from '../sources/radolan';
 import type { IncaGrid } from '../sources/geosphereIncaGrid';
 import type { RadarFrame } from '../sources/meteoSwissRadar';
+import type { RzcNowcast, Inca5mGrid } from '../sources/radarNowcast';
 
 export type MapProfile = 'radar';
 
@@ -86,6 +87,9 @@ export interface RadarProfileInputs {
   rvPast?: ReadonlyArray<RvPastFrame> | null;
   /** Measured rzc analyses of the look-back (session cache) — from the deck's radar stack. */
   rzcPast?: ReadonlyArray<RadarFrame> | null;
+  /** Phase NC: the derived nowcast products (CH extrapolation, INCA refined) — passed through for times at/after "now". */
+  rzcNc?: RzcNowcast | null;
+  inca5?: Inca5mGrid | null;
 }
 
 /**
@@ -109,10 +113,12 @@ export function radarProfileComposite(timeMs: number, nowMs: number, s: RadarPro
     }
     if (bd > PROFILE_RZC_PICK_TOL_MS) rzc = null;
   }
+  // Phase NC: in the look-back only measurements (no extrapolation for an earlier time); at/after "now" the derived products
+  // pick AT and CH by validity time.
   return {
     h,
     past,
-    sources: { rv: s.rv, inca: past ? null : s.inca, rzc, rvPast: s.rvPast ?? [] },
+    sources: { rv: s.rv, inca: past ? null : s.inca, rzc, rvPast: s.rvPast ?? [], ...(past ? {} : { rzcNc: s.rzcNc ?? null, inca5: s.inca5 ?? null }) },
   };
 }
 

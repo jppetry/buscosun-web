@@ -43,8 +43,18 @@ import {
 import { readdirSync, existsSync } from 'node:fs';
 import { inflateSync } from 'node:zlib';
 import { decodePng } from '../lib/png.mjs';
-import { RADAR_IMG_CLUTTER_FILE } from '../../src/sources/radarImg.ts';
+import { RADAR_IMG_CLUTTER_FILE, radarImgStampToMs } from '../../src/sources/radarImg.ts';
 import { clutterStep, clutterSitesCache } from './clutter-step.mjs';
+// Phase NC (audit/radar-nowcast-dach.md): the two derived nowcast products — CH extrapolation of the rzc analysis
+// (`rzc-nc`, from the mirror's last 3–6 analyses) and the INCA run refined to 5 min (`inca-5m`). Contract and arithmetic
+// are the client's modules; the producer only reads the mirror's PNGs and writes PNGs.
+import {
+  RZC_NC_LEADS, INCA_5M_LEADS, NC_STEP_MIN, RZC_NC_SERIES_MAX, RZC_NC_SERIES_SPAN_MS, NC_FLOW_FACTOR, rzcNcUnknownFile,
+  makeRzcNcImgMeta, parseRzcNcImgMeta, makeInca5mImgMeta, parseInca5mImgMeta,
+} from '../../src/sources/radarNowcastImg.ts';
+import { flowFromSeries, motionStats, advectPlane, betweenPlanes, zeroFlow, NC_TRANSLATION_MAX_COARSE } from '../../src/sources/radarNowcastExtrap.ts';
+import { estimateMorphFlow } from '../../src/scalar/radarMorphFlow.ts';
+import { RADAR_MORPH_HS } from '../../src/scalar/radarHd.ts';
 
 // Phase HD-3 (audit/radar-hochaufloesung.md §5, E-HD-3): mit `RADAR_IMG_DUAL=1` je Frame zusätzlich `g<lead>.png`
 // (Grau + Alpha: Kanal 1 = derselbe `precipToU8`-Byte wie `f<lead>.png`, Kanal 2 = `precipToU8Log`) und `meta.dual`.
@@ -67,7 +77,7 @@ const CLUTTER = process.env.RADAR_CLUTTER === '1' && DUAL && LOG_NATIVE;
 
 const [source, inPath, outDir, stamp, extra] = process.argv.slice(2);
 if (!source || !inPath || !outDir || !stamp) {
-  console.error('usage: radar-derive.mjs <rv|inca|rzc|konrad3d> <inPath> <outSlotDir> <stamp>\n       radar-derive.mjs hd250 <rvTar> <rvPastSlotDir> <stamp> [sitesDir]');
+  console.error('usage: radar-derive.mjs <rv|inca|rzc|konrad3d> <inPath> <outSlotDir> <stamp>\n       radar-derive.mjs hd250 <rvTar> <rvPastSlotDir> <stamp> [sitesDir]\n       radar-derive.mjs rzc-nc <rzcImgRootDir> <outSlotDir> <stamp>\n       radar-derive.mjs inca-5m <incaSlotDir> <outSlotDir> <stamp>');
   process.exit(2);
 }
 
@@ -197,7 +207,8 @@ function dualFrames(frames, rvNative = false, clutter = undefined) {
   return makeRadarImgDual(out, rvNative ? { ...dualExtra, ...(clutter ? { clutter } : {}) } : undefined);
 }
 
-const raw = readFileSync(inPath);
+// Phase NC: the two derived products read a DIRECTORY of the mirror's PNGs (no raw file).
+const raw = source === 'rzc-nc' || source === 'inca-5m' ? Buffer.alloc(0) : readFileSync(inPath);
 const rawBuf = raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength);
 
 if (source === 'rv') {
@@ -253,6 +264,132 @@ if (source === 'rv') {
 } else if (source === 'konrad3d') {
   const run = parseKonrad3d(new TextDecoder().decode(raw), `KONRAD3D_${stamp}.xml`);
   put('cells.json', JSON.stringify({ schema: 1, run }) + '\n');
+} else if (source === 'rzc-nc') {
+  // Phase NC: inPath = the mirror's rzc image root (`img/rzc/`). The series = the slots ≤ stamp within 30 min, the newest
+  // = stamp (its `g000.png` when the slot carries the log plane, else `frame.png`).
+  const slots = readdirSync(inPath).filter((f) => /^\d{8}T\d{4}$/.test(f) && !f.includes('.tmp-'))
+    .map((s) => ({ s, ms: radarImgStampToMs(s) }))
+    .filter((x) => Number.isFinite(x.ms) && x.ms <= radarImgStampToMs(stamp) && x.ms >= radarImgStampToMs(stamp) - RZC_NC_SERIES_SPAN_MS)
+    .sort((a, b) => a.ms - b.ms).slice(-RZC_NC_SERIES_MAX);
+  if (!slots.length || slots[slots.length - 1].s !== stamp) throw new Error(`rzc-nc: Analyse ${stamp} liegt nicht im Bestand`);
+  const read = (s) => {
+    const dir = join(inPath, s);
+    const meta = parseRzcImgMeta(JSON.parse(readFileSync(join(dir, 'meta.json'), 'utf8')));
+    if (!meta) throw new Error(`rzc-nc: ${s}/meta.json unlesbar`);
+    const dualFile = meta.dual?.frames[0]?.file;
+    if (dualFile && existsSync(join(dir, dualFile))) {
+      const g = decodePng(readFileSync(join(dir, dualFile)));
+      if (g.width !== meta.width || g.height !== meta.height || g.channels !== 2) throw new Error(`rzc-nc: ${s}/${dualFile} ${g.width}×${g.height}×${g.channels}`);
+      const values = new Uint8Array(g.width * g.height), values2 = new Uint8Array(g.width * g.height);
+      for (let i = 0; i < values.length; i++) { values[i] = g.data[i * 2]; values2[i] = g.data[i * 2 + 1]; }
+      return { meta, values, values2 };
+    }
+    const f = decodePng(readFileSync(join(dir, 'frame.png')));
+    if (f.width !== meta.width || f.height !== meta.height || f.channels !== 1) throw new Error(`rzc-nc: ${s}/frame.png ${f.width}×${f.height}×${f.channels}`);
+    return { meta, values: f.data, values2: undefined };
+  };
+  const series = slots.map((x) => read(x.s));
+  const newest = series[series.length - 1];
+  const { width: w, height: h } = newest.meta;
+  if (!series.every((x) => x.meta.width === w && x.meta.height === h)) throw new Error('rzc-nc: Gittermaße der Serie ungleich');
+  const factor = NC_FLOW_FACTOR.rzc;
+  const { flow, pairs } = series.length >= 2 ? flowFromSeries(series.map((x) => x.values), w, h, factor) : { flow: zeroFlow(w, h, factor), pairs: 0 };
+  const motion = motionStats(flow, newest.values, w, h, NC_STEP_MIN, pairs);
+  const analysisAtMs = newest.meta.validAtMs ?? radarImgStampToMs(stamp);
+  const frames = [], unknownRows = [], dualRows = [];
+  const buf = new Uint8Array(w * h), buf2 = newest.values2 ? new Uint8Array(w * h) : null, ubuf = new Uint8Array(w * h);
+  for (const lead of RZC_NC_LEADS) {
+    const k = lead / NC_STEP_MIN;
+    advectPlane(newest.values, w, h, flow, k, buf, ubuf);
+    const fpng = encodePng(w, h, buf, 1);
+    const ffile = radarImgFrameFile(lead);
+    put(ffile, fpng);
+    frames.push({ lead, file: ffile, bytes: fpng.length, validAtMs: analysisAtMs + lead * 60_000 });
+    const upng = encodePng(w, h, ubuf, 1);
+    const ufile = rzcNcUnknownFile(lead);
+    put(ufile, upng);
+    unknownRows.push({ lead, file: ufile, bytes: upng.length });
+    if (buf2) {
+      advectPlane(newest.values2, w, h, flow, k, buf2);
+      const inter = new Uint8Array(w * h * 2);
+      for (let i = 0; i < buf.length; i++) { inter[i * 2] = buf[i]; inter[i * 2 + 1] = buf2[i]; }
+      const gpng = encodePng(w, h, inter, 2);
+      const gfile = radarImgDualFile(lead);
+      put(gfile, gpng);
+      dualRows.push({ lead, file: gfile, bytes: gpng.length });
+    }
+  }
+  const meta = makeRzcNcImgMeta({
+    stamp, analysisAtMs, corners: newest.meta.corners, frames, unknown: unknownRows, series: slots.map((x) => x.s), motion,
+    // V-NC-7: one translation per pair (correlation shift), not the Horn–Schunck field — see radarNowcastExtrap.ts
+    method: { flow: 'translation', factor, maxCoarse: NC_TRANSLATION_MAX_COARSE, sampling: 'wet-bilinear-round' },
+    ...(buf2 ? { dual: makeRadarImgDual(dualRows) } : {}),
+  });
+  if (!parseRzcNcImgMeta(JSON.parse(JSON.stringify(meta)))) throw new Error('rzc-nc: eigene meta.json besteht den Client-Prüfer nicht');
+  put('meta.json', JSON.stringify(meta) + '\n');
+  console.error(`rzc-nc: ${series.length} Analysen, ${pairs} Paare, ${motion.speedKmh} km/h aus ${motion.fromDeg ?? '—'}°, ${motion.wetCells} nasse Zellen`);
+} else if (source === 'inca-5m') {
+  // Phase NC: inPath = the mirror's INCA slot (`img/inca/<stamp>/`): the run's frames, refined to 5 min along the motion.
+  const meta0 = parseIncaImgMeta(JSON.parse(readFileSync(join(inPath, 'meta.json'), 'utf8')));
+  if (!meta0 || meta0.stamp !== stamp) throw new Error(`inca-5m: ${stamp}/meta.json unlesbar oder fremder Stempel`);
+  const { width: w, height: h } = meta0;
+  const dualOf = meta0.dual ? new Map(meta0.dual.frames.map((d) => [d.lead, d.file])) : null;
+  const src = meta0.frames.map((f) => {
+    const g = dualOf?.get(f.lead);
+    if (g && existsSync(join(inPath, g))) {
+      const d = decodePng(readFileSync(join(inPath, g)));
+      if (d.width !== w || d.height !== h || d.channels !== 2) throw new Error(`inca-5m: ${g} ${d.width}×${d.height}×${d.channels}`);
+      const values = new Uint8Array(w * h), values2 = new Uint8Array(w * h);
+      for (let i = 0; i < values.length; i++) { values[i] = d.data[i * 2]; values2[i] = d.data[i * 2 + 1]; }
+      return { lead: f.lead, values, values2 };
+    }
+    const d = decodePng(readFileSync(join(inPath, f.file)));
+    if (d.width !== w || d.height !== h || d.channels !== 1) throw new Error(`inca-5m: ${f.file} ${d.width}×${d.height}×${d.channels}`);
+    return { lead: f.lead, values: d.data, values2: undefined };
+  });
+  const allDual = src.every((f) => !!f.values2);
+  const factor = NC_FLOW_FACTOR.inca;
+  const refAtMs = radarImgStampToMs(stamp);
+  const frames = [], dualRows = [];
+  const emit = (lead, values, values2, kind) => {
+    const fpng = encodePng(w, h, values, 1);
+    const ffile = radarImgFrameFile(lead);
+    put(ffile, fpng);
+    frames.push({ lead, file: ffile, bytes: fpng.length, validAtMs: refAtMs + lead * 60_000, kind });
+    if (allDual) {
+      const inter = new Uint8Array(w * h * 2);
+      for (let i = 0; i < values.length; i++) { inter[i * 2] = values[i]; inter[i * 2 + 1] = values2[i]; }
+      const gpng = encodePng(w, h, inter, 2);
+      const gfile = radarImgDualFile(lead);
+      put(gfile, gpng);
+      dualRows.push({ lead, file: gfile, bytes: gpng.length });
+    }
+  };
+  const buf = new Uint8Array(w * h), buf2 = allDual ? new Uint8Array(w * h) : null;
+  let pairs = 0;
+  for (let i = 0; i < src.length; i++) {
+    const a = src[i];
+    emit(a.lead, a.values, a.values2, 'inca');
+    const b = src[i + 1];
+    if (!b || b.lead - a.lead !== 15) continue;   // a gap in the run: no in-between pictures across it
+    const flow = estimateMorphFlow(a.values, b.values, w, h, factor);
+    pairs++;
+    for (const lead of [a.lead + NC_STEP_MIN, a.lead + 2 * NC_STEP_MIN]) {
+      const frac = (lead - a.lead) / 15;
+      betweenPlanes(a.values, b.values, w, h, flow, frac, buf);
+      if (buf2) betweenPlanes(a.values2, b.values2, w, h, flow, frac, buf2);
+      emit(lead, buf, buf2, 'between');
+    }
+  }
+  if (!frames.every((f) => INCA_5M_LEADS.includes(f.lead))) throw new Error('inca-5m: Lead außerhalb des Rasters');
+  const meta = makeInca5mImgMeta({
+    stamp, refAtMs, corners: meta0.corners, frames,
+    method: { flow: 'horn-schunck', factor, alpha: RADAR_MORPH_HS.alpha, iters: RADAR_MORPH_HS.iters, between: 'advect-both-round' },
+    ...(allDual ? { dual: makeRadarImgDual(dualRows) } : {}),
+  });
+  if (!parseInca5mImgMeta(JSON.parse(JSON.stringify(meta)))) throw new Error('inca-5m: eigene meta.json besteht den Client-Prüfer nicht');
+  put('meta.json', JSON.stringify(meta) + '\n');
+  console.error(`inca-5m: ${src.length} INCA-Frames → ${frames.length} Frames (${pairs} Paare)`);
 } else {
   throw new Error(`unbekannte Quelle ${source}`);
 }

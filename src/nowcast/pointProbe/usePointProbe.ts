@@ -31,6 +31,7 @@ export function pointProbeEnabledFrom(search: string): boolean {
 }
 
 const SOURCE_OF: Record<Country, RadarGridSource> = { DE: 'radolan_rv', AT: 'inca_grid', CH: 'meteoswiss_rzc' };
+// Phase NC: AT and CH carry the derived products' names when the deck stack has them (the stack's `sourceLabel`); these are the words before.
 const SOURCE_LABEL: Record<Country, string> = { DE: 'DWD RADOLAN-RV', AT: 'GeoSphere INCA', CH: 'MeteoSchweiz rzc' };
 /** Two clicks closer than this (km) release the pin instead of moving it. */
 const UNPIN_KM = 0.5;

@@ -7,6 +7,7 @@
  * surface temperature and road class stay measured-only (AW-6.2 behind Gate D). A forecast point of the corridor axis
  * can be selected like a station and gets its own card.
  */
+import { useState } from 'react';
 import type { CapAlert } from '../warnings/capAlerts';
 import { ROAD_CLASS_CODE, dwdCheckText, type RoadField, type RoadH24File, type RoadPoint, type RoadRuleId } from './roadContract';
 import type { RoadCorridor, RoadFcStationLoad } from './roadClient';
@@ -19,6 +20,13 @@ import {
   roadFcHasSurface, roadFcSurfaceSeries, roadSurfaceOriginText, roadSurfaceSigmaText, roadSurfaceText, roadSurfaceUiNote,
 } from './roadFcView';
 import { ROAD_SURFACE_HINT_LABEL, ROAD_SURFACE_HORIZON_H, ROAD_SURFACE_WORD } from './roadSurface';
+import {
+  ROAD_VS_AXIS_CHART_H, ROAD_VS_NAME, ROAD_VS_SHORT, ROAD_VS_WORD, roadLastValueMs, roadVsBadgeText, roadVsClassOf, roadVsCondText, roadVsInfoLines, roadVsOriginText,
+  roadVsRunLabel, roadVsSeries, roadVsSigmaText, roadVsSourceRow, roadVsText, roadVsValue, type RoadVsValue,
+} from './vs/roadVsView';
+import { ROAD_VS_OFF, type RoadVsView } from './vs/useRoadVs';
+import { VS_GRIP_LABEL } from './vs/roadVsState';
+import './vs/roadVs.css';
 import {
   ROAD_CLASS_COLOR, ROAD_CLASS_INK, ROAD_CLASS_TINT, ROAD_GAP_TEXT, ROAD_GAP_TITLE, ageMinText, classBadge, conditionText, corridorRouteText, dec, driverHint,
   etaRows, f1, hm, isCritical, isGapCorridor, isHatched, kmIn, roadNoValueSince, shieldText, visText, DEFAULT_SPEED_KMH, DWD_WARNINGS_URL,
@@ -100,6 +108,8 @@ interface ChartProps {
   fc?: Array<[number, number, number | null]>;
   /** Phase FB: forecast road surface („berechnet"), dashed dark: `[hours from slotMs, rs]`. */
   rsFc?: Array<[number, number]>;
+  /** AW-6.2.9: `rsFc` comes from the virtual road sensor (legend word, blue dash) instead of FB-1. */
+  rsVs?: boolean;
   /** Hours shown left and right of "jetzt": station −24…+6, forecast point 0…+24. */
   fromH?: number;
   toH?: number;
@@ -107,7 +117,7 @@ interface ChartProps {
 
 /** Verlauf: road, air, dew point from the ring of the station's series; right of "jetzt" the forecast AIR temperature
  *  and dew point of buscosun Fusion (dashed) — the road line has no forecast (AW-6.2, Gate D). */
-function Chart({ ring, id, slotMs, fc = [], rsFc = [], fromH = -24, toH = 6 }: ChartProps) {
+function Chart({ ring, id, slotMs, fc = [], rsFc = [], rsVs = false, fromH = -24, toH = 6 }: ChartProps) {
   const cells = fromH < 0 ? ringClassCells(ring, id, slotMs, fromH) : [];
   const W = 368, H = cells.length ? 134 : 124, x0 = 30, x1 = 356, yTop = 10, yBot = 104, yStrip = 108, yLab = H - 4;
   const X = (dh: number) => x0 + ((dh - fromH) / (toH - fromH)) * (x1 - x0);
@@ -134,7 +144,7 @@ function Chart({ ring, id, slotMs, fc = [], rsFc = [], fromH = -24, toH = 6 }: C
   return (
     <>
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img" className="aw-chart"
-        aria-label={`${st ? `Verlauf der letzten 24 Stunden: Fahrbahn, Luft und Taupunkt (${ring?.slots.length ?? 0} Messungen)` : fromH < 0 ? 'Kein gemessener Verlauf vorhanden' : 'Prognose'}${fcT.length ? `; Prognose Luft und Taupunkt für ${toH} Stunden (${fcT.length} Stundenwerte)` : ''}${rsFc.length ? `; Fahrbahn ${ROAD_SURFACE_WORD} für ${rsFc.length} Stunden` : ''}${kText}`}>
+        aria-label={`${st ? `Verlauf der letzten 24 Stunden: Fahrbahn, Luft und Taupunkt (${ring?.slots.length ?? 0} Messungen)` : fromH < 0 ? 'Kein gemessener Verlauf vorhanden' : 'Prognose'}${fcT.length ? `; Prognose Luft und Taupunkt für ${toH} Stunden (${fcT.length} Stundenwerte)` : ''}${rsFc.length ? `; Fahrbahn ${ROAD_SURFACE_WORD}${rsVs ? ` (${ROAD_VS_SHORT})` : ''} für ${rsFc.length} Stunden` : ''}${kText}`}>
         {cells.length > 0 && (
           <defs>
             <pattern id={hatchId} width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
@@ -146,7 +156,7 @@ function Chart({ ring, id, slotMs, fc = [], rsFc = [], fromH = -24, toH = 6 }: C
         <line x1={x0} y1={Y(0)} x2={x1} y2={Y(0)} stroke="#B5321F" strokeWidth="1" strokeDasharray="3 3" opacity="0.55" />
         <polyline className="aw-chart-fc-td" points={line(fcTd)} fill="none" stroke="#A89A7A" strokeWidth="1.2" strokeDasharray="1 3" />
         <polyline className="aw-chart-fc-t" points={line(fcT)} fill="none" stroke="#3A6FA8" strokeWidth="1.8" strokeDasharray="5 3" />
-        <polyline className="aw-chart-fc-rs" points={line(rsFc)} fill="none" stroke="#2C2A26" strokeWidth="2.2" strokeDasharray="5 3" />
+        <polyline className={`aw-chart-fc-rs${rsVs ? ' aw-chart-fc-vs' : ''}`} points={line(rsFc)} fill="none" stroke="#2C2A26" strokeWidth="2.2" strokeDasharray="5 3" />
         <polyline points={line(td)} fill="none" stroke="#A89A7A" strokeWidth="1.5" strokeDasharray="2 2" />
         <polyline points={line(ta)} fill="none" stroke="#3A6FA8" strokeWidth="1.8" />
         <polyline points={line(rs)} fill="none" stroke="#2C2A26" strokeWidth="2.4" />
@@ -190,7 +200,7 @@ function Chart({ ring, id, slotMs, fc = [], rsFc = [], fromH = -24, toH = 6 }: C
         )}
         {fcT.length > 0 && <span><i className="is-dash" style={{ borderTopColor: '#3A6FA8' }} />{fromH < 0 ? 'Prognose Luft / Taupunkt (gestrichelt)' : 'Prognose Luft 2 m'}</span>}
         {fcT.length > 0 && fromH >= 0 && <span><i className="is-dash" />Prognose Taupunkt</span>}
-        {rsFc.length > 0 && <span><i className="is-dash is-rs" />Fahrbahn {ROAD_SURFACE_WORD} (gestrichelt)</span>}
+        {rsFc.length > 0 && <span><i className={`is-dash is-rs${rsVs ? ' is-vs' : ''}`} />Fahrbahn {ROAD_SURFACE_WORD}{rsVs ? ` · ${ROAD_VS_SHORT}` : ''} (gestrichelt)</span>}
         {!st && fromH < 0 && <span className="aw-chart-none">kein Verlauf verfügbar</span>}
       </div>
     </>
@@ -229,12 +239,41 @@ interface Props {
   fcStation?: RoadFcStationLoad | 'loading' | null;
   /** Phase FB: show the road surface forecast of the run (`ROAD_SURFACE_LIVE` / `?rsfc=1`); off ⇒ the page says „Luft" as before. */
   surface?: boolean;
+  /** AW-6.2.9: the virtual road sensor's run of the corridor (`ROAD_VS_LIVE` / `?roadvs=1`); off or absent ⇒ the page of before. */
+  vs?: RoadVsView;
 }
 
 /** Phase FB: the run carries the surface AND the flag is on. */
 const showSurface = (p: Pick<Props, 'surface' | 'fcFile'>) => !!p.surface && roadFcHasSurface(p.fcFile);
+/** AW-6.2.9: the computed road value of a point at an hour — null when the switch is off, the run is missing or stale, or the point is not in it. */
+const vsAt = (p: Pick<Props, 'vs'>, id: string | null | undefined, ms: number): RoadVsValue | null => {
+  const v = p.vs ?? ROAD_VS_OFF;
+  const pt = id ? v.byId.get(id) : undefined;
+  return v.file && pt ? roadVsValue(pt, v.file, ms) : null;
+};
+const vsOn = (p: Pick<Props, 'vs'>) => !!p.vs?.file;
+
+/** The small info mark next to a computed value; the click opens the origin (Jan 28.10.: „beim Klick steht die Information nochmal"). */
+function VsInfo({ lines, label = 'Herkunft des berechneten Fahrbahnwerts' }: { lines: string[]; label?: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" className="aw-vs-i" aria-expanded={open} aria-label={label} title={label} onClick={() => setOpen((o) => !o)}><i aria-hidden="true">i</i></button>
+      {open && <div className="aw-vs-info" role="note"><strong>{ROAD_VS_NAME}</strong>{lines.map((l, i) => <p key={i}>{l}</p>)}</div>}
+    </>
+  );
+}
+/** Info lines of a point's value, or none when the point is not in the run. */
+function vsInfoOf(p: Pick<Props, 'vs' | 'ring'>, id: string, v: RoadVsValue, group?: string | null): string[] {
+  const view = p.vs ?? ROAD_VS_OFF;
+  const pt = view.byId.get(id);
+  if (!view.file || !pt) return [];
+  return roadVsInfoLines({ point: pt, value: v, file: view.file, sensorOffSinceMs: pt.kind === 'station' ? roadLastValueMs(p.ring, id, group) : null });
+}
 /** The sentence of the five places that used to say „folgt erst nach dem Backtest". */
 const surfaceNote = (p: Pick<Props, 'surface' | 'fcFile'>) => (showSurface(p) ? `Die Fahrbahn ist bis +${ROAD_SURFACE_HORIZON_H} h ${ROAD_SURFACE_WORD} (buscosun Fusion — Fahrbahn), keine Messung.` : 'Eine Prognose der Fahrbahn folgt erst nach dem Backtest.');
+/** AW-6.2.9: the same sentence when the virtual sensor fills the rows (gestrichelt umrandete Chips = berechnet). */
+const vsNote = (p: Pick<Props, 'vs'>) => `Gestrichelt umrandete Chips sind ${ROAD_VS_WORD}: ${ROAD_VS_NAME} (${p.vs?.file ? roadVsRunLabel(p.vs.file) : ''}, Schattenbetrieb) an ausgefallenen Sensoren und Prognosepunkten, keine Messung.`;
 
 /** Why a station has no forecast point (V-AW-26) — one sentence, no road-surface words. */
 function noFcText(p: Props): string {
@@ -245,10 +284,17 @@ function noFcText(p: Props): string {
   return 'Für diese Messstelle rechnet der Lauf keine Prognose (sie fehlt im Stationskatalog des DWD oder im Lauf).';
 }
 
-/** Values of the weather forecast for one hour (grid cells); Phase FB puts the computed surface first when shown. */
-function fcCells(v: RoadFcValue, surface = false, sigma = ''): Array<[string, string]> {
+/** Values of the weather forecast for one hour (grid cells); Phase FB puts the computed surface first when shown;
+ *  AW-6.2.9: with a value of the virtual sensor its road, condition, grip, film and fog lead instead. */
+function fcCells(v: RoadFcValue, surface = false, sigma = '', vs: RoadVsValue | null = null): Array<[string, string]> {
   return [
-    ...(surface && v.rs != null ? [
+    ...(vs ? [
+      [`Fahrbahn · ${ROAD_VS_WORD}`, `${f1(vs.tf)} °C${vs.sigma != null ? ` · ± ${dec(vs.sigma)} K` : ''}`] as [string, string],
+      [`Zustand · ${ROAD_VS_WORD}`, roadVsCondText(vs)] as [string, string],
+      ['Griff · ohne Streuung', vs.grip ? VS_GRIP_LABEL[vs.grip] : '—'] as [string, string],
+      ['Wasserfilm · ber.', vs.filmMm != null ? `${dec(vs.filmMm, 2)} mm` : '—'] as [string, string],
+      ['Sicht < 1 000 m', vs.vis[0] != null ? `${Math.round(vs.vis[0])} %` : '—'] as [string, string],
+    ] : surface && v.rs != null ? [
       [`Fahrbahn · ${ROAD_SURFACE_WORD}`, `${f1(v.rs)} °C${sigma ? ` · ${sigma}` : ''}`] as [string, string],
       [`Hinweis · ${ROAD_SURFACE_WORD}`, v.rk ? ROAD_SURFACE_HINT_LABEL[v.rk].short : '—'] as [string, string],
     ] : []),
@@ -265,18 +311,23 @@ function fcCells(v: RoadFcValue, surface = false, sigma = ''): Array<[string, st
  * The +1/+3/+6 h tiles: forecast AIR temperature and precipitation; a click selects the hour (time chip). Phase FB
  * (behind the flag): the computed road surface leads the tile, its hint („berechnet", dashed marker), the air below.
  */
-function FcTiles({ p, fcPoint }: { p: Props; fcPoint: RoadFcPoint | null }) {
+function FcTiles({ p, fcPoint, id }: { p: Props; fcPoint: RoadFcPoint | null; id?: string | null }) {
   const surface = showSurface(p);
   return (
     <>
       {roadFcTiles(fcPoint, p.fcFile, p.nowMs).map(({ leadH, value: v }) => {
-        const rs = surface && v && v.rs != null ? v : null;
+        // AW-6.2.9: the virtual sensor leads the tile when its run has the hour (also without a weather forecast point).
+        const vs = vsAt(p, id, p.nowMs + leadH * 3_600_000);
+        const rs = !vs && surface && v && v.rs != null ? v : null;
         const hint = rs?.rk ?? null;
+        const on = !!(v || vs);
         return (
-          <button key={leadH} type="button" className={`aw-prog-tile${p.time === leadH && v ? ' is-on' : ''}${v ? '' : ' is-off'}${rs ? ' has-rs' : ''}`} disabled={!v} aria-pressed={p.time === leadH}
-            title={rs ? `Fahrbahn ${ROAD_SURFACE_WORD} für ${hm(rs.validMs)} · ${roadSurfaceSigmaText(p.fcFile, leadH)} · Luft ${f1(rs.t)} °C · ${p.fcLabel}` : v ? `Prognose Luft für ${hm(v.validMs)} · ${p.fcLabel}` : 'Für diesen Punkt liegt keine Prognose vor.'} onClick={() => p.onTime(leadH as RoadTime)}>
-            <span>+{leadH} h · {rs ? `Fahrbahn · ${ROAD_SURFACE_WORD}` : 'Luft'}</span><strong>{rs ? `${f1(rs.rs as number)}°` : v ? `${f1(v.t)}°` : '—'}</strong>
-            <em>{rs ? <><i className="is-rs" style={{ borderColor: hint === 'frost' ? ROAD_CLASS_COLOR.frost : hint === 'wet' ? ROAD_CLASS_COLOR.wet : '#8B7355' }} />{hint && hint !== 'none' ? ROAD_SURFACE_HINT_LABEL[hint].short : `Luft ${f1(rs.t)}°`}</>
+          <button key={leadH} type="button" className={`aw-prog-tile${p.time === leadH && on ? ' is-on' : ''}${on ? '' : ' is-off'}${rs || vs ? ' has-rs' : ''}`} disabled={!on} aria-pressed={p.time === leadH}
+            title={vs ? `${roadVsText(vs)} für ${hm(vs.validMs)} · ${roadVsOriginText(vs)}${vs.sigma != null ? ` · ${roadVsSigmaText(vs)}` : ''}${v ? ` · Luft ${f1(v.t)} °C` : ''} · ${ROAD_VS_NAME}`
+              : rs ? `Fahrbahn ${ROAD_SURFACE_WORD} für ${hm(rs.validMs)} · ${roadSurfaceSigmaText(p.fcFile, leadH)} · Luft ${f1(rs.t)} °C · ${p.fcLabel}` : v ? `Prognose Luft für ${hm(v.validMs)} · ${p.fcLabel}` : 'Für diesen Punkt liegt keine Prognose vor.'} onClick={() => p.onTime(leadH as RoadTime)}>
+            <span>+{leadH} h · {vs || rs ? `Fahrbahn · ${ROAD_VS_WORD}` : 'Luft'}</span><strong>{vs ? `${f1(vs.tf)}°` : rs ? `${f1(rs.rs as number)}°` : v ? `${f1(v.t)}°` : '—'}</strong>
+            <em>{vs ? <><i className="is-vs" style={{ background: ROAD_CLASS_COLOR[roadVsClassOf(vs)] }} />{roadVsCondText(vs)}</>
+              : rs ? <><i className="is-rs" style={{ borderColor: hint === 'frost' ? ROAD_CLASS_COLOR.frost : hint === 'wet' ? ROAD_CLASS_COLOR.wet : '#8B7355' }} />{hint && hint !== 'none' ? ROAD_SURFACE_HINT_LABEL[hint].short : `Luft ${f1(rs.t)}°`}</>
               : v ? <><i style={{ background: ROAD_FC_AIR_COLOR[roadFcAirClass(v.t)] }} />{(v.pp ?? 0) >= ROAD_FC_PRECIP_NAME_PP ? `${roadFcPrecipKind(v.sn)} ${Math.round(v.pp as number)} %` : `Nd. ${v.pp != null ? Math.round(v.pp) : '—'} %`}</> : 'keine Prognose'}</em>
           </button>
         );
@@ -286,22 +337,26 @@ function FcTiles({ p, fcPoint }: { p: Props; fcPoint: RoadFcPoint | null }) {
 }
 
 /** Forecast values of the chosen hour + the product's one-sentence limits. */
-function FcDetail({ p, fcPoint, always }: { p: Props; fcPoint: RoadFcPoint | null; always?: boolean }) {
+function FcDetail({ p, fcPoint, always, id }: { p: Props; fcPoint: RoadFcPoint | null; always?: boolean; id?: string | null }) {
   const v = fcPoint && p.fcFile ? roadFcValue(fcPoint, p.fcFile, p.nowMs + p.time * 3_600_000) : null;
-  if (!p.fcFile) return <p className="aw-fc-note">Die Wetterprognose von {roadFcEngineName(null)} ist derzeit nicht verfügbar ({p.fcLabel}).</p>;
-  if (!fcPoint) return <p className="aw-fc-note">{noFcText(p)}</p>;
+  // AW-6.2.9: the virtual sensor's value of the hour; shown with the weather cells, or alone when the weather forecast is missing.
+  const vs = vsAt(p, id, p.nowMs + p.time * 3_600_000);
+  const vsNote = vs && p.vs?.file ? <p className="aw-fc-note aw-fc-note-rs">Fahrbahn 0 … 48 h aus dem {ROAD_VS_SHORT} ({roadVsRunLabel(p.vs.file)}, Schattenbetrieb) · diese Stunde {roadVsOriginText(vs)}{vs.sigma != null ? ` · ${roadVsSigmaText(vs)}` : ''}.</p> : null;
+  if (!p.fcFile) return <><p className="aw-fc-note">Die Wetterprognose von {roadFcEngineName(null)} ist derzeit nicht verfügbar ({p.fcLabel}).</p>{vsNote}</>;
+  if (!fcPoint) return <><p className="aw-fc-note">{noFcText(p)}</p>{vsNote}</>;
   return (
     <>
-      {v && (always || p.time > 0) && (
+      {v && (always || p.time > 0 || vs) && (
         <>
           <div className="aw-eyebrow aw-fc-grid-title">Prognose {p.time === 0 ? 'jetzt' : `+${p.time} h`} · gültig {hm(v.validMs)}</div>
           <div className="aw-grid aw-fc-grid">
-            {fcCells(v, showSurface(p), roadSurfaceSigmaText(p.fcFile, p.time)).map(([k, x]) => <div key={k} className="aw-cell"><span>{k}</span><strong>{x}</strong></div>)}
+            {fcCells(v, showSurface(p), roadSurfaceSigmaText(p.fcFile, p.time), vs).map(([k, x]) => <div key={k} className="aw-cell"><span>{k}</span><strong>{x}</strong></div>)}
           </div>
         </>
       )}
       <p className="aw-fc-note">{roadFcUiNote(p.fcFile)} {p.fcLabel} · {roadFcAnchorText(fcPoint, p.fcFile)}{v?.interpolated ? ' · Stunde zwischen zwei Modellschritten interpoliert' : ''}.</p>
-      {showSurface(p) && <p className="aw-fc-note aw-fc-note-rs">{roadSurfaceUiNote(p.fcFile)}{v && v.rs != null ? ` Diese Stunde ${roadSurfaceOriginText(v)}.` : ''}</p>}
+      {vsNote}
+      {!vs && showSurface(p) && <p className="aw-fc-note aw-fc-note-rs">{roadSurfaceUiNote(p.fcFile)}{v && v.rs != null ? ` Diese Stunde ${roadSurfaceOriginText(v)}.` : ''}</p>}
     </>
   );
 }
@@ -314,37 +369,54 @@ function AxisTab(p: Props & { axis: RoadFcPoint }) {
   const v = file ? roadFcValue(a, file, p.nowMs + p.time * 3_600_000) : null;
   const now = file ? roadFcValue(a, file, p.nowMs) : null;
   const cls = v ? roadFcAirClass(v.t) : null;
+  // AW-6.2.9: the virtual sensor at this axis point — the road leads the card like at a station, the air keeps its block.
+  const vsV = vsAt(p, a.id, p.nowMs + p.time * 3_600_000);
+  const vsNow = vsAt(p, a.id, p.nowMs);
+  const vsPt = p.vs?.byId.get(a.id) ?? null;
+  const vsCls = vsV ? roadVsClassOf(vsV) : null;
   return (
     <>
       <div className="aw-card aw-station aw-axis">
-        <div className="aw-eyebrow is-accent">Prognosepunkt · {roadFcEngineName(file)}</div>
+        <div className="aw-eyebrow is-accent">Prognosepunkt · {roadFcEngineName(file)}{vsOn(p) ? ` · ${ROAD_VS_SHORT}` : ''}</div>
         <h2 className="aw-station-name">{c ? roadFcAxisName(c, a, p.dir) : a.id}</h2>
         <div className="aw-station-sub">{[a.h != null ? `${Math.round(a.h)} m ü. NN` : null, a.bridge ? 'Brücke' : null, c && isGapCorridor(c) ? ROAD_GAP_TEXT : 'keine Messstelle an diesem Punkt'].filter(Boolean).join(' · ')}</div>
         <div className="aw-chip is-fc"><i />{p.fcLabel}{v ? ` · gültig ${hm(v.validMs)}` : ''}</div>
+        {vsV && vsCls && (
+          <div className="aw-hero is-vs">
+            <div>
+              <div className="aw-eyebrow is-vs">Fahrbahn · {ROAD_VS_WORD} · {p.time === 0 ? 'jetzt' : `+${p.time} h`}</div>
+              <div className="aw-hero-val">{f1(vsV.tf)} °C<VsInfo lines={vsInfoOf(p, a.id, vsV)} /></div>
+              <div className="aw-hero-sub is-vs">{roadVsOriginText(vsV)}{vsV.sigma != null ? ` · ${roadVsSigmaText(vsV)}` : ''}{vsPt?.kaltstart ? ' · Kaltstart' : ''}</div>
+            </div>
+            <div className="aw-badge is-vs" style={{ background: ROAD_CLASS_COLOR[vsCls], color: ROAD_CLASS_INK[vsCls] }}>{roadVsBadgeText(vsV)}</div>
+          </div>
+        )}
         <div className="aw-hero">
           <div>
             <div className="aw-eyebrow">Luft 2 m · {p.time === 0 ? 'jetzt' : `+${p.time} h`}</div>
             <div className="aw-hero-val">{v ? `${f1(v.t)} °C` : '—'}</div>
             <div className="aw-hero-sub">{v ? (v.ts != null ? `Prognose, Streuung ± ${dec(v.ts)} K` : 'Prognose') : 'für diese Stunde liegt keine Prognose vor'}</div>
-            {showSurface(p) && v && v.rs != null && <div className="aw-hero-sub aw-hero-rs">{roadSurfaceText(v)} · {roadSurfaceSigmaText(file, p.time)}</div>}
+            {!vsV && showSurface(p) && v && v.rs != null && <div className="aw-hero-sub aw-hero-rs">{roadSurfaceText(v)} · {roadSurfaceSigmaText(file, p.time)}</div>}
           </div>
           {cls && <div className="aw-badge" style={{ background: ROAD_FC_AIR_COLOR[cls], color: cls === 'frost' ? '#fff' : '#0B0E12' }}>{ROAD_FC_AIR_LABEL[cls]}</div>}
         </div>
-        <FcDetail p={p} fcPoint={a} always />
+        <FcDetail p={p} fcPoint={a} always id={a.id} />
       </div>
       <div className="aw-card">
-        <div className="aw-card-head"><span className="aw-eyebrow">Prognose 24 h</span><span className="aw-unit">°C</span></div>
-        <Chart ring={null} id={a.id} slotMs={p.nowMs} fc={file ? roadFcSeries(a, file, p.nowMs, 0, 24) : []} fromH={0} toH={24} />
+        <div className="aw-card-head"><span className="aw-eyebrow">Prognose 24 h{vsOn(p) && vsPt ? ' · Luft + Fahrbahn' : ''}</span><span className="aw-unit">°C</span></div>
+        <Chart ring={null} id={a.id} slotMs={p.nowMs} fc={file ? roadFcSeries(a, file, p.nowMs, 0, 24) : []} fromH={0} toH={24}
+          rsFc={vsPt && p.vs?.file ? roadVsSeries(vsPt, p.vs.file, p.nowMs, 0, ROAD_VS_AXIS_CHART_H) : []} rsVs />
         <div className="aw-prog">
-          <button type="button" className={`aw-prog-tile${p.time === 0 ? ' is-on' : ''}`} aria-pressed={p.time === 0} onClick={() => p.onTime(0)}>
-            <span>Jetzt · Luft</span><strong>{now ? `${f1(now.t)}°` : '—'}</strong>
-            <em>{now ? <><i style={{ background: ROAD_FC_AIR_COLOR[roadFcAirClass(now.t)] }} />Prognose</> : 'keine Prognose'}</em>
+          <button type="button" className={`aw-prog-tile${p.time === 0 ? ' is-on' : ''}${vsNow ? ' has-rs' : ''}`} aria-pressed={p.time === 0} onClick={() => p.onTime(0)}
+            title={vsNow ? `${roadVsText(vsNow)} · ${roadVsOriginText(vsNow)} · ${ROAD_VS_NAME}` : undefined}>
+            <span>Jetzt · {vsNow ? `Fahrbahn · ${ROAD_VS_WORD}` : 'Luft'}</span><strong>{vsNow ? `${f1(vsNow.tf)}°` : now ? `${f1(now.t)}°` : '—'}</strong>
+            <em>{vsNow ? <><i className="is-vs" style={{ background: ROAD_CLASS_COLOR[roadVsClassOf(vsNow)] }} />{roadVsCondText(vsNow)}</> : now ? <><i style={{ background: ROAD_FC_AIR_COLOR[roadFcAirClass(now.t)] }} />Prognose</> : 'keine Prognose'}</em>
           </button>
-          <FcTiles p={p} fcPoint={a} />
+          <FcTiles p={p} fcPoint={a} id={a.id} />
         </div>
       </div>
       <div className="aw-sources">
-        Datenbasis: {roadFcEngineName(file)} auf dem Punkt-Cube, {roadFcAnchorText(a, file)} · Lage des Punkts auf der Fahrbahn: © OpenStreetMap-Mitwirkende (ODbL)
+        Datenbasis: {roadFcEngineName(file)} auf dem Punkt-Cube, {roadFcAnchorText(a, file)}{vsOn(p) && vsPt ? ` · Fahrbahn: ${ROAD_VS_NAME} (Schattenbetrieb)` : ''} · Lage des Punkts auf der Fahrbahn: © OpenStreetMap-Mitwirkende (ODbL)
       </div>
     </>
   );
@@ -370,7 +442,7 @@ export default function RoadReadout(p: Props & { hz?: React.ReactNode; roads?: R
       {cur === 'gefahren' && p.hz}
       {cur === 'station' && <StationTab {...p} />}
       {cur === 'strecke' && <StreckeTab {...p} />}
-      {cur === 'quellen' && <QuellenTab file={p.fcFile} hz={p.hz !== undefined} surface={p.surface} />}
+      {cur === 'quellen' && <QuellenTab file={p.fcFile} hz={p.hz !== undefined} surface={p.surface} vs={vsOn(p)} />}
     </aside>
   );
 }
@@ -382,7 +454,7 @@ export function RoadStationCard(p: Props) { return <StationTab {...p} />; }
 function GapEmpty({ p }: { p: Props }) {
   return (
     <div className="aw-empty">
-      <strong>{ROAD_GAP_TITLE}.</strong> Fahrbahntemperatur und -zustand werden hier nicht gemessen.{' '}
+      <strong>{ROAD_GAP_TITLE}.</strong> Fahrbahntemperatur und -zustand werden hier nicht gemessen{vsOn(p) ? `; der ${ROAD_VS_SHORT} berechnet sie an jedem Prognosepunkt (Schattenbetrieb).` : '.'}{' '}
       {p.fcFile ? 'Einen Prognosepunkt im Streckenband oder auf der Karte wählen.' : `Die Wetterprognose von ${roadFcEngineName(null)} ist für diesen Abschnitt derzeit nicht verfügbar (${p.fcLabel}).`}
     </div>
   );
@@ -413,26 +485,33 @@ function StationTab(p: Props) {
   ];
   const warns = (p.warnings ?? []);
   const fcPoint = p.fcFile ? p.fcById.get(s.id) ?? (p.fcStation && p.fcStation !== 'loading' ? p.fcStation.point : null) : null;
+  const vsPt = vsOn(p) ? p.vs?.byId.get(s.id) ?? null : null;
   const refMs = p.slotMs ?? s.t;
   // The DWD stamps a row without values with the slot time too — „gemessen 00:00" would be wrong for a station with no road value.
   const noSince = s.cls === 'nodata' ? roadNoValueSince(p.ring, s.id, s.g, refMs) : null;
+  // AW-6.2.9: a failed road sensor shows the virtual sensor's value in the measured value's place (Jan 28.10.) — a valid measurement always wins.
+  const vsNow = s.rs == null ? vsAt(p, s.id, p.nowMs) : null;
+  const vsCls = vsNow ? roadVsClassOf(vsNow) : null;
   return (
     <>
       <div className="aw-card aw-station">
         {/* "keine gültige Messung" only when nothing valid arrived — a measured station without condition is `unknown` (hatched too, but measured). */}
-        <div className={`aw-eyebrow${s.cls === 'nodata' ? ' is-muted' : ' is-accent'}`}>{s.cls === 'nodata' ? 'Glättemeldeanlage · keine gültige Messung' : 'Glättemeldeanlage · DWD'}</div>
+        <div className={`aw-eyebrow${vsNow ? ' is-vs' : s.cls === 'nodata' ? ' is-muted' : ' is-accent'}`}>{vsNow ? `Glättemeldeanlage · Fahrbahnsensor ausgefallen · ${ROAD_VS_SHORT}` : s.cls === 'nodata' ? 'Glättemeldeanlage · keine gültige Messung' : 'Glättemeldeanlage · DWD'}</div>
         <h2 className="aw-station-name">{s.n}</h2>
         <div className="aw-station-sub">{sub}</div>
         {noSince
           ? <div className="aw-chip is-stale"><i />{noSince}</div>
           : <div className={`aw-chip${p.stale ? ' is-stale' : ''}`}><i />{p.stale ? `veraltet · gemessen ${hm(s.t)}` : `gemessen ${hm(s.t)} · ${ageMinText(age)}`}</div>}
-        <div className="aw-hero">
+        <div className={`aw-hero${vsNow ? ' is-vs' : ''}`}>
           <div>
-            <div className="aw-eyebrow">Fahrbahn</div>
-            <div className="aw-hero-val">{s.rs != null ? `${f1(s.rs)} °C` : '—'}</div>
-            <div className="aw-hero-sub">{s.rs != null ? `${s.ns > 1 ? `kältester von ${s.ns} Sensoren · ${f1(s.rs)} … ${f1(s.rsHi ?? s.rs)} °C` : '1 Sensor'}${s.o?.rs ? ` · auffällig: ${OBSERVE_TEXT[s.o.rs] ?? 'Prüfung'}` : ''}` : s.x?.rs ? `Fahrbahnwert verworfen (${RULE_TEXT[s.x.rs] ?? 'Prüfung'})` : 'keine Fahrbahntemperatur gemeldet'}</div>
+            <div className={`aw-eyebrow${vsNow ? ' is-vs' : ''}`}>Fahrbahn{vsNow ? ` · ${ROAD_VS_WORD}` : ''}</div>
+            <div className="aw-hero-val">{vsNow ? <>{f1(vsNow.tf)} °C<VsInfo lines={vsInfoOf(p, s.id, vsNow, s.g)} /></> : s.rs != null ? `${f1(s.rs)} °C` : '—'}</div>
+            <div className={`aw-hero-sub${vsNow ? ' is-vs' : ''}`}>{vsNow ? `${roadVsOriginText(vsNow, roadLastValueMs(p.ring, s.id, s.g))}${vsNow.sigma != null ? ` · ${roadVsSigmaText(vsNow)}` : ''}${s.x?.rs ? ` · Messung verworfen (${RULE_TEXT[s.x.rs] ?? 'Prüfung'})` : ''}`
+              : s.rs != null ? `${s.ns > 1 ? `kältester von ${s.ns} Sensoren · ${f1(s.rs)} … ${f1(s.rsHi ?? s.rs)} °C` : '1 Sensor'}${s.o?.rs ? ` · auffällig: ${OBSERVE_TEXT[s.o.rs] ?? 'Prüfung'}` : ''}` : s.x?.rs ? `Fahrbahnwert verworfen (${RULE_TEXT[s.x.rs] ?? 'Prüfung'})` : 'keine Fahrbahntemperatur gemeldet'}</div>
           </div>
-          <div className={`aw-badge${hatched ? ' is-hatched' : ''}`} style={!hatched ? { background: ROAD_CLASS_COLOR[s.cls], color: ROAD_CLASS_INK[s.cls] } : undefined}>{classBadge(s)}</div>
+          {vsNow && vsCls
+            ? <div className="aw-badge is-vs" style={{ background: ROAD_CLASS_COLOR[vsCls], color: ROAD_CLASS_INK[vsCls] }}>{roadVsBadgeText(vsNow)}</div>
+            : <div className={`aw-badge${hatched ? ' is-hatched' : ''}`} style={!hatched ? { background: ROAD_CLASS_COLOR[s.cls], color: ROAD_CLASS_INK[s.cls] } : undefined}>{classBadge(s)}</div>}
         </div>
         <div className="aw-eyebrow aw-grid-title">Messwerte {hm(s.t)}</div>
         <div className="aw-grid">
@@ -445,17 +524,18 @@ function StationTab(p: Props) {
       </div>
 
       <div className="aw-card">
-        <div className="aw-card-head"><span className="aw-eyebrow">Verlauf 24 h{fcPoint ? ` · Prognose Luft${showSurface(p) ? ' + Fahrbahn' : ''} 6 h` : ''}</span><span className="aw-unit">°C</span></div>
+        <div className="aw-card-head"><span className="aw-eyebrow">Verlauf 24 h{fcPoint || vsPt ? ` · Prognose Luft${vsPt || showSurface(p) ? ' + Fahrbahn' : ''} 6 h` : ''}</span><span className="aw-unit">°C</span></div>
         <Chart ring={p.ring} id={s.id} slotMs={refMs} fc={fcPoint && p.fcFile ? roadFcSeries(fcPoint, p.fcFile, refMs, 0, 6) : []}
-          rsFc={showSurface(p) && fcPoint && p.fcFile ? roadFcSurfaceSeries(fcPoint, p.fcFile, refMs, 0, ROAD_SURFACE_HORIZON_H) : []} />
+          rsFc={vsPt && p.vs?.file ? roadVsSeries(vsPt, p.vs.file, refMs, 0, 6) : showSurface(p) && fcPoint && p.fcFile ? roadFcSurfaceSeries(fcPoint, p.fcFile, refMs, 0, ROAD_SURFACE_HORIZON_H) : []} rsVs={!!vsPt} />
         <div className="aw-prog">
-          <button type="button" className={`aw-prog-tile${p.time === 0 ? ' is-on' : ''}`} aria-pressed={p.time === 0} onClick={() => p.onTime(0)}>
-            <span>Jetzt</span><strong>{s.rs != null ? `${f1(s.rs)}°` : '—'}</strong>
-            <em><i className={hatched ? 'is-hatched' : ''} style={!hatched ? { background: ROAD_CLASS_COLOR[s.cls] } : undefined} />{ROAD_CLASS_LABEL[s.cls].short}</em>
+          <button type="button" className={`aw-prog-tile${p.time === 0 ? ' is-on' : ''}${vsNow ? ' has-rs' : ''}`} aria-pressed={p.time === 0} onClick={() => p.onTime(0)}
+            title={vsNow ? `${roadVsText(vsNow)} · ${roadVsOriginText(vsNow)} · ${ROAD_VS_NAME}` : undefined}>
+            <span>Jetzt{vsNow ? ` · ${ROAD_VS_WORD}` : ''}</span><strong>{vsNow ? `${f1(vsNow.tf)}°` : s.rs != null ? `${f1(s.rs)}°` : '—'}</strong>
+            <em>{vsNow && vsCls ? <><i className="is-vs" style={{ background: ROAD_CLASS_COLOR[vsCls] }} />{roadVsCondText(vsNow)}</> : <><i className={hatched ? 'is-hatched' : ''} style={!hatched ? { background: ROAD_CLASS_COLOR[s.cls] } : undefined} />{ROAD_CLASS_LABEL[s.cls].short}</>}</em>
           </button>
-          <FcTiles p={p} fcPoint={fcPoint} />
+          <FcTiles p={p} fcPoint={fcPoint} id={s.id} />
         </div>
-        <FcDetail p={p} fcPoint={fcPoint} />
+        <FcDetail p={p} fcPoint={fcPoint} id={s.id} />
       </div>
 
       {p.warnState === 'ok' && warns.map((w) => (
@@ -510,6 +590,10 @@ function StreckeTab(p: Props) {
   const coldest = measured.reduce<typeof rows[number] | null>((a, b) => (!a || (b.point!.rs as number) < (a.point!.rs as number) ? b : a), null);
   const crit = rows.filter((r) => r.point && isCritical(r.point.cls)).length;
   const border = c.borders.find((b) => b.km > 0 && b.km >= c.lengthKm - 0.5) ?? c.borders[0];
+  // AW-6.2.9: the virtual sensor's value at the arrival hour of every row without a measured road (failed sensor or axis point).
+  const vsRows = rows.map((r) => ({ r, vs: r.point?.rs != null ? null : vsAt(p, r.id, r.etaMs) })).filter((x): x is { r: typeof rows[number]; vs: RoadVsValue } => !!x.vs);
+  const vsColdest = vsRows.reduce<typeof vsRows[number] | null>((a, b) => (!a || b.vs.tf < a.vs.tf ? b : a), null);
+  const vsOf = (id: string) => vsRows.find((x) => x.r.id === id)?.vs ?? null;
   return (
     <>
       <div className="aw-card">
@@ -529,6 +613,7 @@ function StreckeTab(p: Props) {
           {border ? ` Ab km ${dec(kmIn(c, border.km, p.dir), 0)} (Grenze ${border.country}) keine offene Fahrbahnmessung.` : ''}
           {(c.unbuilt ?? []).map(([a, b]) => ` km ${dec(Math.min(kmIn(c, a, p.dir), kmIn(c, b, p.dir)), 0)}–${dec(Math.max(kmIn(c, a, p.dir), kmIn(c, b, p.dir)), 0)}: keine Fahrbahn in OpenStreetMap (im Bau oder anders geführt).`).join('')}
           {trip.coldest && <span className="aw-brief-fc"> {roadFcTripText(trip)}</span>}
+          {vsColdest && <span className="aw-brief-fc"> Kälteste {ROAD_VS_WORD}e Fahrbahn zur Ankunft ({ROAD_VS_SHORT}): km {dec(vsColdest.r.km, 0)} {f1(vsColdest.vs.tf)} °C, {roadVsCondText(vsColdest.vs)}.</span>}
         </div>
       </div>
       {/* V-AW-29: from 1 440 px the arrival forecast has its own column (`.aw-table-fc`), below it stays a line under the name. */}
@@ -537,36 +622,44 @@ function StreckeTab(p: Props) {
         {rows.map((r) => {
           const cls = r.point?.cls ?? 'nodata';
           const hatched = isHatched(cls);
+          const vs = vsOf(r.id);
+          const vsCls = vs ? roadVsClassOf(vs) : null;
+          const vsChip = vs && vsCls ? (
+            <span className="aw-table-chip is-vs" style={{ background: ROAD_CLASS_COLOR[vsCls], color: ROAD_CLASS_INK[vsCls] }}
+              title={`${roadVsText(vs)} zur Ankunft ${hm(vs.validMs)} · ${roadVsOriginText(vs)} · ${ROAD_VS_NAME} (Schattenbetrieb)`}>{roadVsCondText(vs)} · ber.</span>
+          ) : null;
           if (r.axis) return (
             <button key={r.id} type="button" className="aw-table-row is-fc-row" onClick={() => p.onPick(r.id)}>
               <span className="aw-mono">{dec(r.km, 0)}</span>
-              <span className="aw-table-name"><strong>{r.name}</strong><em className="is-fc">{r.fc ? roadFcLine(r.fc) : 'keine Prognose für die Ankunftsstunde'}{r.fc && showSurface(p) && r.fc.rs != null ? <u> · {roadSurfaceText(r.fc)}</u> : null}</em></span>
-              <FcCell surface={showSurface(p)} v={r.fc} />
+              <span className="aw-table-name"><strong>{r.name}</strong><em className="is-fc">{r.fc ? roadFcLine(r.fc) : 'keine Prognose für die Ankunftsstunde'}{vs ? <u> · {roadVsText(vs)}</u> : r.fc && showSurface(p) && r.fc.rs != null ? <u> · {roadSurfaceText(r.fc)}</u> : null}</em></span>
+              <FcCell surface={showSurface(p) && !vs} v={r.fc} />
               <span>{hm(r.etaMs)}</span>
-              <span className="aw-table-chip is-fc" title={`${gap ? ROAD_GAP_TITLE : 'Keine Messstelle im 10-km-Umkreis'} — Wetterprognose von ${roadFcEngineName(file)}, keine Fahrbahnprognose`}>Prognose</span>
+              {vsChip ?? <span className="aw-table-chip is-fc" title={`${gap ? ROAD_GAP_TITLE : 'Keine Messstelle im 10-km-Umkreis'} — Wetterprognose von ${roadFcEngineName(file)}, keine Fahrbahnprognose`}>Prognose</span>}
             </button>
           );
           return (
             <button key={r.id} type="button" className="aw-table-row" onClick={() => p.onPick(r.id)}>
               <span className="aw-mono">{dec(r.km, 0)}</span>
               <span className="aw-table-name">
-                <strong>{r.name}</strong><em>{r.point?.rs != null ? `Fahrbahn ${f1(r.point.rs)} °C · gemessen ${hm(r.point.t)}` : 'keine gültige Fahrbahnmessung'}</em>
-                {r.fc && (!r.measuredAtArrival || r.point?.rs == null) && <em className="is-fc">zur Ankunft: {roadFcLine(r.fc)}{showSurface(p) && r.fc.rs != null ? <u> · {roadSurfaceText(r.fc)}</u> : null}</em>}
+                <strong>{r.name}</strong><em className={vs ? 'is-vs' : undefined}>{r.point?.rs != null ? `Fahrbahn ${f1(r.point.rs)} °C · gemessen ${hm(r.point.t)}` : vs ? `${roadVsText(vs)} (${ROAD_VS_SHORT})` : 'keine gültige Fahrbahnmessung'}</em>
+                {r.fc && (!r.measuredAtArrival || r.point?.rs == null) && <em className="is-fc">zur Ankunft: {roadFcLine(r.fc)}{!vs && showSurface(p) && r.fc.rs != null ? <u> · {roadSurfaceText(r.fc)}</u> : null}</em>}
               </span>
-              <FcCell surface={showSurface(p)} v={r.fc && (!r.measuredAtArrival || r.point?.rs == null) ? r.fc : null} measured={!!r.fc && r.measuredAtArrival && r.point?.rs != null} />
+              <FcCell surface={showSurface(p) && !vs} v={r.fc && (!r.measuredAtArrival || r.point?.rs == null) ? r.fc : null} measured={!!r.fc && r.measuredAtArrival && r.point?.rs != null} />
               <span>{hm(r.etaMs)}</span>
-              <span className={`aw-table-chip${hatched ? ' is-hatched' : ''}${r.measuredAtArrival ? '' : ' is-later'}`}
-                style={!hatched ? (r.measuredAtArrival ? { background: ROAD_CLASS_COLOR[cls], color: ROAD_CLASS_INK[cls] } : { borderColor: ROAD_CLASS_COLOR[cls] }) : undefined}
-                title={r.measuredAtArrival ? 'Messung gilt bis +30 min' : 'Ankunft später als 30 min nach der Messung — gezeigt ist die Messung, keine Ableitung'}>
-                {ROAD_CLASS_LABEL[cls].short}
-              </span>
+              {vsChip ?? (
+                <span className={`aw-table-chip${hatched ? ' is-hatched' : ''}${r.measuredAtArrival ? '' : ' is-later'}`}
+                  style={!hatched ? (r.measuredAtArrival ? { background: ROAD_CLASS_COLOR[cls], color: ROAD_CLASS_INK[cls] } : { borderColor: ROAD_CLASS_COLOR[cls] }) : undefined}
+                  title={r.measuredAtArrival ? 'Messung gilt bis +30 min' : 'Ankunft später als 30 min nach der Messung — gezeigt ist die Messung, keine Ableitung'}>
+                  {ROAD_CLASS_LABEL[cls].short}
+                </span>
+              )}
             </button>
           );
         })}
       </div>
       {gap ? (
-        <p className="aw-note">An diesem Abschnitt steht keine Messstelle: die Tabelle zeigt das Wetter zur Ankunft aus {roadFcEngineName(file)} (Luft, Niederschlag · {p.fcLabel}) an jedem Prognosepunkt. {surfaceNote(p)}</p>
-      ) : <p className="aw-note">Zustand zur Ankunftszeit: bis +30 min die Messung; später zeigt die Tabelle weiter die Messung (umrandet) und dazu das Wetter zur Ankunft aus {roadFcEngineName(file)} (Luft, Niederschlag{file ? ` · ${p.fcLabel}` : ' — derzeit nicht verfügbar'}). {surfaceNote(p)} Zwischen zwei Messpunkten kann die Fahrbahn anders sein.</p>}
+        <p className="aw-note">An diesem Abschnitt steht keine Messstelle: die Tabelle zeigt das Wetter zur Ankunft aus {roadFcEngineName(file)} (Luft, Niederschlag · {p.fcLabel}) an jedem Prognosepunkt. {vsRows.length ? vsNote(p) : surfaceNote(p)}</p>
+      ) : <p className="aw-note">Zustand zur Ankunftszeit: bis +30 min die Messung; später zeigt die Tabelle weiter die Messung (umrandet) und dazu das Wetter zur Ankunft aus {roadFcEngineName(file)} (Luft, Niederschlag{file ? ` · ${p.fcLabel}` : ' — derzeit nicht verfügbar'}). {vsRows.length ? vsNote(p) : surfaceNote(p)} Zwischen zwei Messpunkten kann die Fahrbahn anders sein.</p>}
     </>
   );
 }
@@ -597,6 +690,7 @@ const SOURCES: ReadonlyArray<{ cc: string; name: string; what: string; status: '
   { cc: 'DE', name: FC_ENGINE_ROW, what: 'Wetterprognose 0–48 h (Luft, Taupunkt, Niederschlag, Wind) alle 5 km und an jeder Messstelle, stündlich neu', status: 'aktiv' },
   { cc: 'DE', name: 'OpenStreetMap', what: 'Lage der Prognosepunkte auf der Fahrbahn · © OpenStreetMap-Mitwirkende, ODbL', status: 'aktiv' },
   { cc: 'DACH', name: SURFACE_ROW, what: 'Fahrbahntemperatur und -zustand +1/+3/+6 h — erst nach bestandenem Backtest', status: 'geplant' },
+  { cc: 'DE', name: ROAD_VS_NAME, what: 'Fahrbahntemperatur und -zustand 0 … 48 h an jedem Punkt — Schattenbetrieb bis Gate G', status: 'geplant' },
   { cc: 'AT', name: 'GeoSphere TAWES + Warnungen', what: 'Luft, 5-cm- und Bodentemperatur als Anker der Prognosepunkte · CC BY 4.0', status: 'geplant' },
   { cc: 'CH', name: 'MeteoSchweiz SwissMetNet', what: 'Luft, 5-cm- und Bodentemperatur als Anker der Prognosepunkte · CC BY 4.0', status: 'geplant' },
   { cc: 'DE', name: 'Autobahn GmbH API', what: 'Sperrungen, Baustellen, Webcams · keine Lizenz angegeben', status: 'blockiert' },
@@ -611,8 +705,8 @@ const HZ_SOURCES: typeof SOURCES = [
   { cc: 'DACH', name: 'ESA WorldCover 2021, Terrarium-Höhenmodell', what: 'Wald- und Ackeranteil neben der Fahrbahn, Höhe und Steigung der Achse · CC BY 4.0 / Mapzen', status: 'aktiv' },
 ];
 
-function QuellenTab({ file, hz = false, surface = false }: { file: RoadFcFile | null; hz?: boolean; surface?: boolean }) {
-  const rows = [...SOURCES, ...(hz ? HZ_SOURCES : [])].map((s) => (s.name === SURFACE_ROW ? { ...s, ...surfaceSourceRow(file, surface) } : s));
+function QuellenTab({ file, hz = false, surface = false, vs = false }: { file: RoadFcFile | null; hz?: boolean; surface?: boolean; vs?: boolean }) {
+  const rows = [...SOURCES, ...(hz ? HZ_SOURCES : [])].map((s) => (s.name === SURFACE_ROW ? { ...s, ...surfaceSourceRow(file, surface) } : s.name === ROAD_VS_NAME ? { ...s, ...roadVsSourceRow(vs) } : s));
   return (
     <>
       <div className="aw-eyebrow aw-sources-title">Quellen dieser Ansicht</div>

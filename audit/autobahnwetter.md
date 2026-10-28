@@ -1882,3 +1882,487 @@ Nicht angehoben — das ist die Entscheidung der Linie, die es verursacht.
 **Gate E neu:** 7 Tage ab dem Push von `main` (der Spiegel übernimmt die Vertragsfixes beim nächsten Jobstart, der Archiv-Lauf schreibt
 ab dann `hz/`), Folgeprompt wie in §19.12, diesmal mit den archivierten `hz`-Slots als Stichprobe im Fenster und mit
 `hz-nowcast-score.mjs` für E-AW-42.
+
+## 20. AW-6.2 „Virtueller Fahrbahnsensor" (VS) — Fortsetzung von Phase FB (`audit/autobahn-fahrbahn.md`), Zweig `feat/aw-6.2-virtueller-sensor`, ab 27.10.2026
+
+> Auftrag (Jan, 27.10.2026, Startprompt „AW-6.2: Virtueller Fahrbahnsensor"): Fahrbahntemperatur, -zustand, Wasserfilm und
+> Sicht an jedem Achspunkt von `road/fc/v1`, jetzt und 0–48 h stündlich, mit einem eigenen Energiebilanz-Kern nach dem Vorbild
+> RoadSurf (FMI, MIT), im Schattenbetrieb hinter `ROAD_VS_LIVE = false`; Gate G mit Prüfstand gegen Persistenz, SWSMOS TS,
+> ICON T_G, T2m. FB-1 (§5 der Phase FB, live seit 26.10.) bleibt bis Gate G die sichtbare Fahrbahnprognose.
+
+### 20.0 Pflichtlektüre und ein fehlendes Dokument
+
+Gelesen: `audit/autobahnwetter.md` (§1–§19), `autobahnwetter-plan.md` (AW-6), `autobahnwetter-gefahren.md`,
+`autobahnwetter-datenpruefung.md` (D-1…D-9, §5.1), `autobahn-fahrbahn.md`, `road-forecast.mjs`, `roadContract.ts`,
+`roadSurface.ts`, `roadHazards.ts`, `workflow-road-fc.yml`, `road/v1/status.json` (live).
+
+**`audit/fahrbahnmodell-recherche.md` existiert nicht** — weder im Repo (`main`, Arbeitsbaum) noch in einem der Verzeichnisse
+unter `C:\dev` (Suche nach `*recherche*`, Tiefe 3). Der Startprompt macht diese Datei zur Quelle jeder Konstante. Folge bis
+sie vorliegt: **jede Zahl aus dem Startprompt wird im Code als `set` mit Herkunft „Startprompt 27.10.2026" geführt**, eigene
+Literaturangaben (RoadSurf-Quelltext, METRo-Paper, BASt V 329, Gallaway 1979) werden am Ort der Zahl genannt. Sobald die
+Recherche-Datei da ist, wird jede `set`-Zahl gegen sie geprüft und die Herkunft umgeschrieben (eine Liste aller `set`-Werte
+führt §20.6). **Rückfrage an Jan:** Datei nachliefern oder Pfad nennen.
+
+### 20.1 Entscheidungen des Startprompts (festgelegt, Änderung nur nach Rückfrage)
+
+Die Nummern E-AW-38…43 des Startprompts sind in §19.6 schon vergeben (AW-7/AW-8). Damit keine Nummer zweimal gilt, heißen
+die Entscheidungen dieser Linie **E-VS-n**; die Prompt-Nummer steht daneben. Jan kann die Benennung ändern.
+
+| Nr. | Prompt | Entscheidung |
+|---|---|---|
+| E-VS-1 | E-AW-38 | Eigener TypeScript-Kern nach Vorbild RoadSurf (FMI, MIT; github.com/fmidev/RoadSurf), Node in GitHub Actions; kein Fortran; METRo (GPL-2.0) nur als Prinzip, kein Code; MIT-Hinweis in der Datei |
+| E-VS-2 | E-AW-39 | „Jetzt" bei totem Sensor: Schattenbetrieb ab sofort; die Anzeige ersetzt „Messlücke → unbekannt" erst nach Gate G hinter `ROAD_VS_LIVE = false` (`?roadvs=1`, Muster `roadhz`) |
+| E-VS-3 | E-AW-40 | Salz: v1 nur „ungestreut", Kennzeichnung „Glättepotenzial ohne Streuung" |
+| E-VS-4 | E-AW-41 | Geltung v1: DE-Korridore mit ICON-D2; AT/CH mit ihren Korridoren, ICON-CH1 erst dann |
+| E-VS-5 | E-AW-42 | Querneigung 2,5 % Standard; Verwindungsbereiche „Geometrie unbekannt", nicht geschätzt |
+| E-VS-6 | E-AW-43 | Sicht 27–48 h nach dem 30.11.2026 aus eigener Diagnose der v1-Felder — **durch den Spike erweitert, s. 20.3 (2)** |
+
+### 20.2 AW-6.2.0 Spike (27.10.2026 17:10–18:40 UTC+1, nur gelesen, geladen und gezählt)
+
+**(a) D-1…D-9 im Code und im Live-Slot.** D-1…D-4 hart seit M1–M4 (`datenpruefung.md` §5.1), dazu `roadAir` relativ zum
+Nachbar-Band (V-AW-62, committet — `roadContract.ts` ist im Arbeitsbaum unverändert); D-5 Marker auf Katalog-/Jans Lage
+(M6, V-AW-44); D-6/D-7 M5 (Wort „Luft", DWD-Prüftext aus den Bits); **D-8 Sägezahn nur diagnostiziert (M7)** — Producer/Motor
+sind Jans Gate; D-9 teils. Live-Slot `2610271645` (Status 17:09 UTC): 1 495 Punkte, **1 172 mit Fahrbahntemperatur, 160 mit
+Sicht, 1 006 mit Wasserfilm**; 285 von 11 756 Werten verworfen (2,4 %: `precipFill` 121, `stateNoTemp` 98, `stuck` 37, `limit`
+10, `roadAir` 5, …), Beobachtung `catalog` 141, `neighbours` 6, `cube` 3. 22 Reihen `ok` (Alter 0–1 min), `LH-LH` und `WW-SO`
+`missing`. **DD-DD liefert** (25 Stationen, 17 Fahrbahnwerte) — die Annahme des Startprompts „DD liefert seit 02.10. nichts"
+trifft heute nicht zu; die Aktualität je Reihe steht schon in `status.groups` (`state`, `ageMin`), `npm run health` prüft R1–R5
+(Slot-Alter, Anteil verworfen), aber **keine einzelne Reihe** — das wird in 6.2.1 ergänzt.
+
+**(b) Was `road/fc/v1` trägt** (Vertrag `roadFc.ts`, Lauf `2610271650`, 4 772 Punkte, 1 204 verankert): Pflicht `t ts td pp rr
+sn ff fx dd n cf q`, optional `sl t85 vs` (AW-7.1) und `rs rk rq` (FB-1, 0–6 h; `engine.surface.mode fb1`, 1 094 Punkte mit
+eigener Messung). Keine Strahlung, kein Bodenwert, keine Modellflächen — der Antrieb für VS muss neu beschafft werden.
+Der Lauf nennt `buscosun Fusion 13`, obwohl `main` seit 26.10. Stand 14 trägt (der Job klont `main`; der nächste Lauf nach dem
+Push zieht nach — nicht diese Linie).
+
+**(c) URL-Schema.** Der Punkt-Cube liest ICON-D2/ICON-EU über `dwdRegular.mjs` vom **alten** Pfad `nwp/icon-d2/grib/`
+(endet 30.11., eigene Phase E-EX-5); nur der RUC-Producer liest v1. Das v1-Schema am Verzeichnis gemessen (DWD-Newsletter
+September 2026 bestätigt die Muster): Einflächenfelder `v1/m/icon-d2/p/<P>/r/<YYYY-MM-DDTHH:00>/s/PT<hhh>H<mm>M.grib2`;
+Mehrflächenfelder `p/<P>/lvt1/<typeOfFirstFixedSurface>/lv1/<level>/r/…`: `T/lvt1/150/lv1/1…65`, `HHL/lvt1/150/lv1/1…66`,
+`T_SO/lvt1/106/lv1/{0.0 0.005 0.02 0.06 0.18 0.54 1.62 4.86 14.58}`. Jede Datei ist EINE GRIB2-Nachricht, Gitter GDT 101
+(542 040 Zellen, 525 072 mit Wert, 16 968 Bitmap-Fehlstellen = Rand), DRT 42 (CCSDS) — der eigene Decoder liest sie
+(`gribDecode.ts`, Probe unten). Größen je Schritt: ATHB_S 830 KB, ASWDIR_S 799 KB, T_G 761 KB, TCH 466 KB, FRZ_RAIN 69 KB,
+T je Fläche 770 KB, HHL je Fläche 577 KB. Läufe alle 3 h (`r/` 06, 09, 12, 15 UTC), 49 Schritte; Nachbarindex aus `CLAT/CLON`
+wie in `dwdIcosahedral.mjs`.
+
+**(d) SWSMOS** (`weather/local_forecasts/swsmos/`, Lauf `swsmos_20261027160000`): **48 Dateien, stündlich** (25.10. 17 UTC …
+27.10. 16 UTC), 2,0 MB bz2 / 26,1 MB CSV; Kopf `ID;Lat;Lon;YYYYMMDDHHmm;TL;TLSTA;RRL1c;RRS1c;RR6;WWL6;WWS3;RRS3c;R650;RC;TS;TD`,
+zweite Zeile der Lauf; **1 847 Stationen × 167 Stunden** (+1 … +167 h = 7 Tage), keine Lücken. **TS (Fahrbahntemperatur) ist
+enthalten** (−0,1 … 23,7 °C; TS − TL p5/p50/p95 −0,4 / +1,2 / +4,7 K), TD ebenso. **RC trägt im Oktoberlauf nur 1 (292 063) und
+2 (16 386)** — die Legende des Startprompts (3 Schnee, 4 Reif, 5 überfrierende Nässe, 6 Glatteis) ist am Rohlauf NICHT
+belegbar, erst ein Winterlauf zeigt die Codes; eine DWD-Spaltenbeschreibung habe ich nicht gefunden (Bedeutung von TLSTA
+0,1–6,1 mit 2 555 Lücken, RRL1c/RRS1c/RRS3c 0–1,5, RR6, WWL6 0–100, WWS3 0–47, R650 0–37,6 bleibt **Vermutung**: σ der Luft,
+Regen/Schnee 1 h/3 h, 6-h-Summe, Wahrscheinlichkeiten, Reif-/Nebelgröße — als `unbekannt` geführt, bis belegt).
+Katalog `swsKatalog.csv` (91,5 KB, Windows-1252): `Kennung;Name;Streckentyp (1 freie Strecke 1 429, 2 Brücke 455);Streckenbelag
+(1 Asphalt 1 733, 2 Beton 151);Breite;Laenge;Hoehe;Flughafen (869 markiert);Inaktiv (0)`, 1 884 Zeilen; 1 846 der 1 847
+Lauf-IDs im Katalog; **1 632 der 1 688 GMA aus `road/v1/static/stations.json` liegen im SWSMOS-Lauf** (dieselben Kennungen).
+Damit sind Brücke und Belag je GMA aus dem DWD-Katalog verfügbar (6.2.2), und die SWSMOS-Baseline für Gate G ist ab heute
+sammelbar — der DWD hält nur 48 h vor (6.2.1).
+
+**(e) Mittelungskonvention ATHB_S / ASWDIR_S / ASWDIFD_S am GRIB belegt** (Lauf 27.10. 12 UTC, Kopf je Datei, Range-Abruf):
+PDT 4.8, `statProcess 0` (Mittel), `forecastTime 0`, Intervall 0 → Schritt (60 / 120 / 180 min bei +1/+2/+3 h) ⇒ **Mittel seit
+Modellstart**, die Rückrechnung F(t1,t2) = (t2·F(0,t2) − t1·F(0,t1)) / (t2 − t1) ist nötig. RUC (`ASWDIR_S`, Lauf 16 UTC,
+Schritt +1 h): dieselbe Konvention. Dekodiert: ATHB_S Mittel −74 W/m² (−178 … +16) = **Netto**-Thermalstrahlung am Boden
+(negativ), T_G 266,8 … 300,9 K; Probe an drei Zellen: LW↓ = ATHB_S/ε + σ·T_G⁴ ≈ 250 … 310 W/m² mit ε = 0,95 (plausibel für
+Oktober); Intervallmittel der 2. Stunde aus den zwei Startmitteln −82,7 / −85,8 / −141,1 W/m². ε_s der ICON-Oberfläche
+ist nicht aus der DWD-Doku belegt ⇒ vorerst `set` 0,95.
+
+**(f) FRZ_RAIN** (ICON-D2 v1, Lauf 12 UTC): Disziplin 0, Kategorie 1, Nummer 67 (WMO 4.2 „freezing rain"), PDT 4.8
+`accumulation` seit Modellstart ⇒ **Summe gefrierenden Regens seit Laufbeginn in kg m⁻² (= mm)**, Rate je Stunde = Differenz
+zweier Schritte. Oktober-Probe: +6 h überall 0, +12 h max 0,094 mm. Ein DWD-Text zur Größe war nicht auffindbar (Newsletter
+September 2026 nennt nur URL-Schema, VIS, DEN/SMI) — Lesart aus dem GRIB-Kopf, mit dem ersten Winterfall gegen die
+Bourgouin-Diagnose zu prüfen (V-VS-3).
+
+**(g) TCH / TCM** vorhanden (PDT 4.0, Momentanwert je Schritt; TCH 0,001 … 3,44, Mittel 0,009; TCM 0,001 … 7,55, Mittel 0,019,
+dimensionslos) — als Vergleich zur eigenen Monin-Obukhov-Iteration verwendbar, wie der Prompt es will.
+
+**(h) Modellflächen T und HHL** im v1-Schema vorhanden (65 bzw. 66 Flächen, je Fläche eine Datei; Bourgouin braucht die unteren
+≈ 20 Flächen ≈ 15 MB je Schritt — nur für Stunden mit Niederschlag und T2m nahe 0 °C abrufen). **T_SO** 9 Tiefen (unterer Rand
+der Wärmeleitung ist damit aus dem Modell lesbar, als Vergleich zur Klimatologie).
+
+**(i) VIS.** `icon-d2` v1 hat **kein VIS** (Verzeichnis), `icon-d2-eps` v1 auch nicht; `icon-d2-ruc` v1 hat VIS (15 min bis
++27 h, 109 Schritte, Meter, 78 … 64 383) — **aber der DWD-Newsletter September 2026 sagt, VIS wird nach dem 30.11.2026 auch
+aus ICON-D2-RUC entfernt** („die VIS-Felder der ICON-Modellkette sind nicht geeignet, Sichtweiten nach VFR vorherzusagen"), für
+ICON-EU/ICON-D2(-EPS) kommt es nicht ins v1-Schema. Siehe 20.3 (2).
+
+**(j) Archiv.** `buscosun-archiv` `road/v1/<Tag>/{00,12}.json.gz, hz/, slots.json` seit 02.10. (27 Tage), `road/fc/v1/<Tag>/`
+seit 04.10.; kein SWSMOS; `road-archiv.yml` läuft alle 3 h — drei SWSMOS-Läufe je Archivlauf nachzuholen reicht (DWD 48 h).
+Roh wären das 2 MB bz2 je Lauf = 48 MB/Tag — zu viel für ein Git-Archiv; gekürzt auf die 1 632 GMA, Spalten `TL TS TD RC`
+und Vorlauf 1–48 h ≈ 1/10 davon (E-VS-7, s. 20.3).
+
+### 20.3 Befunde, die den Plan berühren (kein Umsturz des Designs — SWSMOS hat TS, ATHB_S ist rekonstruierbar; also weiter mit 6.2.1)
+
+1. **Recherche-Datei fehlt** (20.0): Konstanten bis dahin `set` mit Herkunft Startprompt; Liste in 20.6; Rückfrage.
+2. **VIS fällt am 30.11. auch im RUC weg** ⇒ E-VS-6 erweitert: **ab Dezember kommt die Sicht 0–48 h aus der eigenen
+   Diagnose** (Koschmieder, Gultepe, Niederschlags-β) plus Messung (POI/GMA) plus MOSMIX wwM/VV10; RUC-VIS dient bis zum
+   30.11. als Lern- und Vergleichsgröße der Kalibrierung, nicht als Baustein. Entscheidung Jan: so bauen (Vorschlag) oder 6.2.6
+   bis zum Nachfolgeprodukt des DWD zurückstellen.
+3. **SWSMOS-Legende RC 3–6 und Spaltenbedeutungen** sind unbelegt; der Verifier prüft RC nur auf ∈ {1 … 6}, der Prüfstand
+   wertet RC erst, wenn ein Winterlauf die Codes zeigt (V-VS-1). Eine Anfrage an den DWD nach der SWSMOS-Formatbeschreibung
+   lohnt (V-VS-2).
+4. **E-VS-7 (Vorschlag):** SWSMOS gekürzt archivieren (GMA-Schnittmenge, `TL TS TD RC`, Vorlauf 1–48 h, gz) im `road-archiv`-Lauf
+   alle 3 h, drei Läufe je Durchgang ≈ 5 MB/Tag; die Rohdatei nicht. Ohne Jans Nein wird so gebaut.
+5. **Nummern E-AW-38…43 doppelt** ⇒ E-VS-n (20.1).
+6. **Antriebsbudget:** 4 772 Punkte × 49 Stunden; je ICON-D2-Lauf ≈ 16 Einflächenfelder × 49 Schritte × 0,8 MB ≈ 630 MB Download
+   im Action-Lauf, abgetastet auf Punktreihen (≈ 4 772 × 49 × 16 Werte ≈ 15 MB roh, ≈ 2 MB gz) — tragbar alle 3 h; die
+   Modellflächen nur bei Bedarf (h). Ein eigener Workflow `road-vs.yml` statt einer Verlängerung von `road-fc.yml` (25 min Limit).
+
+### 20.4 Modellablauf (Programmablaufplan nach DIN 66001, Textform; Sinnbilder: ⬭ Grenzstelle, ▭ Verarbeitung, ◇ Verzweigung, ▱ Daten, ⊟ Unterprogramm)
+
+```
+⬭ Start (Lauf ICON-D2 r, Achspunkt p, Modellzustand Z[p] aus buscosun-data)
+▱ Eingänge: ICON-D2 v1 (T_2M TD_2M RELHUM_2M U/V_10M ASWDIR_S ASWDIFD_S ATHB_S T_G T_SO PRR/PRS/PRG_GSP FRZ_RAIN CLCT CLCL WW CEILING QC QR QS QG),
+             RUC (0–27 h, 15 min), road/fc/v1 (Fusion T Td Wind Niederschlag), GMA-Slot (rs ta td rh wf cond vis), Ortsmerkmale (F_sv, Horizont, Brücke, Belag)
+⊟ QC der GMA (Kette 1–9, gemeinsames Modul) → gültig / verworfen / schwach
+◇ Pflichteingang fehlt? ─ja─▶ ▱ Ausgabe „unbekannt" (null) für diese Stunde ─▶ nächste Stunde
+   └nein
+▭ Antrieb je Stunde: Intervallmittel aus Startmitteln; LW↓ = ATHB_S/ε + σT_G⁴ (Rückfall METRo-Bedeckung); Abschattung (Horizont, F_sv)
+◇ GMA gültig ≤ 6 h alt? ─ja─▶ ⊟ Kopplung: C ∈ [0,01; 3] per Bisektion im 3-h-Fenster, Abklingen e^(−t/4 h)
+   └nein ──▶ ⊟ Standortkorrektur (Residuentabelle Station × Stunde × Wetterklasse; Nachbar-Residuen im Höhenband)
+▭ Energiebilanz G0 = (1−α)·SW↓·C_S + ε·LW↓·C_L − εσTs⁴ + H(Monin-Obukhov) − LE(Bulk) + Q_P + Q_V
+◇ |Ts − 0 °C| ≤ 0,1 K und Speicher Wasser/Eis > 0? ─ja─▶ ▭ Latentwärme-Halt: G0 wandelt Wasser↔Eis, Ts bleibt
+   └nein ──▶ ▭ Wärmeleitung 1-D, 15 Knoten, Δt = 30 s (Stabilität geprüft), unterer Rand Jahres-Sinus; Brücke: zweite Säule
+▭ Speicher: Wasser, Porenwasser, Schnee, Eis, Reif (Niederschlag, Deposition/Verdunstung, Schmelze, Verkehrsabrieb)
+▭ Zustand (erste Regel gewinnt): Glatteis → Schneeglätte → Matsch → Eis/überfr. Nässe → Reif → nass/feucht/trocken; Wasserfilm (Gallaway); Griffklasse
+⊟ Sicht: Messung (POI/GMA) · P(<x) aus Diagnose/MOSMIX/RUC (bis 30.11.)
+▱ Ausgabe je Stunde: tf tf_sigma tf_src tf_bruecke · wasser/schnee/eis/reif/wasserfilm_mm · zustand glaette_p griff szenario · vis_p* vis_src · Kaltstart
+▭ Modellzustand Z[p] fortschreiben (atomar), Schattenprotokoll
+⬭ Ende
+```
+
+### 20.5 Offen nach dem Spike (V-VS)
+
+| Nr. | Befund | Mehrwert | Skizze |
+|---|---|---|---|
+| V-VS-1 | SWSMOS RC 3–6 im Oktober nicht vorhanden | Prüfstand gegen RC erst im Winter aussagekräftig | Verifier zählt Codes je Lauf; Gate-G-Teil „RC" wartet auf den ersten Lauf mit Code ≥ 3 |
+| V-VS-2 | Keine DWD-Beschreibung der SWSMOS-Spalten gefunden | Einheiten und Bedeutung belegt statt vermutet | Anfrage an den DWD (Text für Jan in `MANUELLE-SCHRITTE.md`) |
+| V-VS-3 | FRZ_RAIN-Lesart nur aus dem GRIB-Kopf | Glatteis-Eingang belegt | ersten Winterfall gegen Bourgouin und GMA-Code 5/6 legen |
+| V-VS-4 | `npm run health` prüft keine einzelne GMA-Reihe | tote Reihe (LH-LH, WW-SO heute) sichtbar | R6: Reihe `missing`/`stale` > n h ⇒ rot, n `set` |
+| V-VS-5 | ε_s der ICON-Oberfläche nicht belegt | LW↓-Rekonstruktion ohne `set` | ICON-Doku (Surface emissivity, `emis_rad`) nachschlagen; bis dahin 0,95 |
+
+### 20.6 `set`-Register der Linie (wächst je Paket; jede Zeile mit dem Ort im Code und dem Weg zur Kalibrierung)
+
+| Wert | Zahl | Ort | Herkunft heute | Kalibrierung |
+|---|---|---|---|---|
+| ε_s (ICON-Oberfläche, LW↓-Rückrechnung) | 0,95 | `roadVsForcing.ts` `ROAD_VS_SURFACE_EMISSIVITY` | Startprompt / RoadSurf | ICON-Doku (V-VS-5) |
+| LW↓-Rückfall Brunt a, b; Bolz c | 0,52 · 0,065 · 0,22 | `ROAD_VS_LW_FALLBACK` | `literature` (Brunt 1932, Bolz 1949) — die METRo-Achtel-Tabelle steht in der fehlenden Recherche | gegen ATHB_S-LW↓ der Antriebsdateien messen (eine Woche), dann a/b/c fitten |
+| Konstanz Fahrbahn UND Luft | 4 h (16 Slots) | `roadVsQc.ts` `VS_QC_CONSTANT_H` | Startprompt | Trefferzahl am Archiv zählen (echte Windstillen-Nächte?) |
+| Winterdifferenz Fahrbahn − Luft (schwach) | −10 … +15 K, Nov–Mär | `VS_QC_WINTER` | AW-0 p1/p99 −5,4/+16,2 K über alle Jahreszeiten; Band weiter gesetzt | Verteilung je Monat am Archiv ab Dezember |
+| Tukey-Zaun auf Residuen | k 1,5 · n ≥ 5 · IQR-Boden 1 K | `VS_QC_IQR` | k Tukey 1977; n und Boden gesetzt | Fehlalarmquote an Tagen mit gültigen Fühlern |
+| Modellkonsistenz | k 4 σ · σ-Boden 1 K | `VS_QC_MODEL` | gesetzt | σ je Wetterklasse aus 6.2.4, k an der Verteilung der Residuen |
+| Kopplungsfenster | ≤ 6 h | `VS_QC_COUPLE_MAX_AGE_MS` | Startprompt | — |
+| Health R8 | 20 Reihen ok | `health-manifests.mjs` `groupsOkMin` | = Slot-Sperre Basis 23 − Toleranz 3 | — |
+| SWSMOS-Archiv | 4 Spalten, 48 h, GMA-Schnittmenge | `swsmos-archive.mjs` | E-VS-7 (Größe) | — |
+| Zellindex: größter Abstand Punkt → Zelle | 5 km | `buildCellIndex(maxKm)` | ICON-D2 2,1 km Maschenweite ⇒ nächste Zelle < 1,5 km; 5 km nur als Schutz vor Punkten außerhalb des Gebiets | — |
+
+### 20.7 AW-6.2.1 Eingänge und QC (27.10.2026, Zweig `feat/aw-6.2-virtueller-sensor`)
+
+**Gebaut.**
+
+| Teil | Datei | Was |
+|---|---|---|
+| Vertrag Antrieb | `src/road/vs/roadVsForcing.ts` | Produkt `road/vs/v1/forcing/<lauf>.json.gz` (27 Felder, Tabelle `ROAD_VS_FIELDS` mit DWD-Parameter, lvt-Pfad, Art `inst`/`avg`/`acc`, Einheit, Skala, Spanne), Zellindex `static/cells.json`, Physik: `intervalFromStartMeans` (Rückrechnung F(t1,t2)), `amountFromStartAccumulations`, `lwDownFromNet`, Brunt/Bolz-Rückfall, Magnus Wasser/Eis + Frostpunkt, Prüfer `roadVsForcingProblems`, Eimer-Zellindex `buildCellIndex` |
+| QC-Kette | `src/road/vs/roadVsQc.ts` | `vsQcStation`: Schritte 1–2 aus den Marken der Messlinie (`x` ⇒ `hard:<Regel>`, `o` ⇒ `observe:<Regel>` = Verwurf wie beim Anker, M4), 3 Sprung (`ROAD_JUMP_K` je Slot), 4 Konstanz Fahrbahn UND Luft ≥ 4 h (Lücken ≤ 4 Slots neutral), 5 gleichartige Sensoren (`spread`, `rsHi − rs > 5 K` ⇒ schwach), 6 Winterdifferenz (schwach), 7 Tukey-Zaun auf Residuen gegen das Modell im 25-km/300-m-Band, 8 Modellkonsistenz k·σ (ohne Kaltstart), 9 Codes 3–6 schwach. Was nicht laufen konnte, steht in `skipped` — nie stilles Grün. **Die Messlinie selbst (`roadContract.ts`) ist unverändert**: die Kette sitzt darüber und entscheidet nur, was der VS koppelt und lernt |
+| Schalter | `src/road/roadFlag.ts` | `ROAD_VS_LIVE = false`, `?roadvs=0|1`, `localStorage.roadvs` (E-VS-2) |
+| Producer Antrieb | `scripts/road/vs/build-forcing.mjs` | jüngster VOLLSTÄNDIGER ICON-D2-Lauf (ATHB_S +48 h als Sonde), CLAT/CLON ⇒ Zellindex einmal (Prüfung: gleiche Punktdatei, gleiche Zellzahl), je Feld und Schritt holen → dekodieren (`gribDecode.ts`, CCSDS) → an den Zellen abtasten → verwerfen; Template-Wächter je Feld (Momentanwert ≠ PDT 4.8, Mittel = Prozess 0 seit Start, Akkumulation = Prozess 1) ⇒ der ganze Lauf wird abgelehnt (Exit 3), nie still falsch; Rückrechnung auf Stundenintervalle, LW↓, RUC-VIS stündlich 0–27 h auf die ICON-Achse gelegt (bis 30.11.), Wiederholungsschutz am Zeiger, Publish mit Neuaufsetzen pfadbegrenzt auf `road/vs/v1` |
+| SWSMOS-Archiv | `scripts/road/swsmos-archive.mjs` | Verzeichnis lesen, fehlende Läufe der letzten 48 h (≤ 6 je Durchgang) laden, `reduceSwsmos` (rein): GMA-Schnittmenge, `TL TS TD RC`, Vorlauf 1–48 h, 0,1 °C ⇒ `swsmos/v1/<Tag>/<HH>.json.gz`; Katalog `static/katalog.json` nur bei neuer Prüfsumme; `index.json` mit RC-Zählung je Lauf (V-VS-1 wird so von selbst sichtbar), README |
+| Wächter | `scripts/health-manifests.mjs` R8 | je GMA-Reihe: `< 20` Reihen `ok` ⇒ rot; die nicht-ok-Reihen stehen immer im Text (heute `LH-LH missing, WW-SO missing`); Kill-Schalter ⇒ grün; `verify:health` 4 neue Fälle (V-VS-4) |
+| Workflows (Vorlagen) | `scripts/road/workflow-road-vs.yml` (Daten-Repo, `25 1,4,…,22`, Sparse `road/fc/v1/static` + `road/vs`, Klon-Ref `vars.ROAD_VS_WEB_REF` bis zum Merge), `scripts/punktarchiv-repo/workflow-road-archiv.yml` (Schritt „Archive SWSMOS", Sparse `road` + `swsmos` — ohne das zweite Muster würde `git add` die Dateien still verwerfen) | noch NICHT in den Repos: beide klonen `buscosun-web`, und die Linie liegt nur im lokalen Zweig (§79 `MANUELLE-SCHRITTE.md`) |
+| Verifier | `scripts/verify-road-vs.mjs` (`npm run verify:road-vs`) | **39/39**: A Antrieb (Rückrechnung exakt auf 6 Stunden mit Gegenprobe, Akkumulation, LW↓-Rundlauf, Brunt/Bolz-Spanne, Magnus, Kodierung, Prüfer mit drei roten Fällen, Zellindex = Brute-Force 60/60, URLs = Spike), B QC (16 Slots, Lücken, Sprung, Tukey mit Höhenband, k·σ, Kaltstart, harte/Beobachtungs-Marken, eingefrorener Logger, Vollkette, schwache Hinweise, Oktober ohne Winterregel), C SWSMOS-Reduktion (Spalten, 48 h, Skala, null, RC-Zählung, Gegenprobe ohne TS, Katalog Windows-1252/Dezimalkomma), D Schalter, E R8 = Vertrag + Live-Form 27.10., F Template-Wächter, Abtastung, Zeiger, gz-Rundlauf |
+
+**Gemessen (27.10.2026 18:50–19:20 UTC+1).**
+
+- Antrieb gegen den LIVE-v1-Pfad, 40 Punkte, 7 Felder (`t2m lwnet tg frz prr tso0 qc`), ohne RUC: Lauf **2026-10-27 15 UTC** als vollständig erkannt, Zellindex aus CLAT/CLON (542 040 Zellen) in Sekunden, alle 49 Schritte ohne Lücke, Template-Wächter grün für alle sieben (also stimmen `prr`/`tso0`/`qc` als Momentanwerte, `lwnet` als Mittel seit Start, `frz` als Akkumulation), **23 s** gesamt bei 4 parallelen Abrufen — hochgerechnet 26 Felder ≈ 2–3 min Netz je Lauf, dazu die Abtastung von 4 772 statt 40 Punkten (vernachlässigbar: ein Array-Zugriff je Punkt). Datei 10 KB gz für 40 Punkte × 8 Felder ⇒ **≈ 4 MB gz je Lauf** für alle Punkte und Felder (E-VS-7-Budget: drei Läufe im Daten-Repo ≈ 12 MB).
+- SWSMOS-Archiv gegen den LIVE-Ordner in ein Scratch-Verzeichnis: Läufe 27.10. 15 und 16 UTC je **1 632 Stationen, 223 KB gz**, RC-Zählung 66 416/11 920 bzw. 66 053/12 283 (nur 1 und 2 — V-VS-1 bestätigt), Katalog 1 884 Zeilen sha `943da36a748e`. ⇒ **≈ 5,4 MB je Tag, ≈ 160 MB je Monat** im Archiv-Repo.
+- `npm run typecheck` grün; `verify:health` **66/66**; `verify:road-archive` s. Lauf (Vorlage geändert).
+
+**Annahmen dieses Pakets (eine Zeile je Annahme).** RUC liefert im Antrieb nur VIS (stündlich); die 5-min-Niederschlagsform kommt im Kern aus dem bestehenden Produkt `ruc/v1` (Leser `rucPoint.ts`), nicht aus einem zweiten RUC-Abgriff. Die QC-Kette läuft ÜBER der Messlinie (Rule 2, V-AW-70: Änderungen an `ROAD_NEIGHBOUR`/harten Regeln sind Jans Gate). Modellflächen T/HHL (Bourgouin) werden erst in 6.2.5 geholt, nur für Stunden mit Niederschlag und T2m nahe 0 °C.
+
+**Offen nach 6.2.1.** Workflows einspielen (§79, braucht den Zweig auf GitHub oder den Merge); erster Volllauf des Antriebs mit allen 4 772 Punkten (Zeit, Größe, `missing`/`outOfRange` messen, Feld `tch` gegen die eigene Iteration in 6.2.3); `rh2m`/`ceil`/`ww`-Spannen am ersten Volllauf prüfen (`outOfRange` zählt); V-VS-6: der Antrieb trägt noch keine Modellflächen; V-VS-7: `fieldSeries` lädt Felder nacheinander (26 × 49 Dateien) — bei Bedarf zwei Felder parallel.
+
+### 20.8 AW-6.2.2 Ortsmerkmale je Achspunkt (27.10.2026, gebaut und gemessen)
+
+**Gebaut.** `src/road/vs/roadVsSite.ts` (Vertrag `road/vs/v1/static/site.json.gz`, SVF, Horizont-Interpolation 1° und 8 → 360,
+Horizontwinkel mit Erdkrümmung/Refraktion k 0,13, Geländeklasse, Kurvenradius aus drei Punkten, Prüfer), `scripts/road/vs/glo30.mjs`
+(Copernicus-DEM-GLO-30-COGs auf AWS: Kopf 256 KB + nur die berührten 1 024²-Kacheln per Range, **Deflate + Float-Prädiktor 3**
+selbst dekodiert — der Projekt-TIFF-Leser lehnt Prädiktor ≠ 1 ab —, Plattencache `C:\dev\buscosun-road-publish\cache\glo30\`),
+`scripts/road/vs/build-site.mjs` (einmaliger Bau).
+
+**Was je Punkt drinsteht und woher.** Horizont 0 … 359° in 0,1° = max(Nahfeld 0–5 km aus GLO-30, Strahlen alle 30 m; Fernfeld aus
+den 8 Richtungen des Terrain-Caches `geo.json` z8/20,5 km, linear interpoliert); F_sv = 1 − (1/360)·Σ sin γ; DSM-Höhe; Brücke
+(Achspunkt: OSM `bridge` der gesnappten Fahrbahn aus `points.json`; Station: SWSMOS-Katalog Streckentyp 2); Einschnitt-, Damm-,
+Wald-Anteil des Abschnitts (`segments.json`: OSM, ESA WorldCover); Belag (Station: Katalog 1 Asphalt/2 Beton; Achspunkt: Beton-Anteil
+des Abschnitts ≥ 0,5 aus OSM `surface`, sonst Asphalt `set`); Fahrstreifen **unbekannt** (kein OSM-`lanes`-Cache vorhanden) ⇒ Breite
+2 × 3,75 m `set` (RAA RQ 31); Geländeklasse aus TPI 2 000 m / Hang (`set` ±15 m, 5°); Querneigung 2,5 % (E-VS-5), `geom: unknown` bei
+Kurvenradius < 4 000 m aus der Korridorlinie (`set`, RAA 2008). Jede Quelle mit Lizenz steht im Kopf der Datei.
+
+**Gemessen (Volllauf 27.10. 19:45–19:50 UTC+1).** 4 772 Punkte, **Horizont an 4 771** (ohne DEM nur `a3@655` — am Rand einer
+Gradkachel, V-VS-10), 630 GLO-30-Kacheln / **1 263 MB** geholt in **289 s**, Datei **0,76 MB gz**. SVF p1/p10/p50/p90/p99 =
+0,72 / 0,83 / 0,94 / 0,98 / 0,99; höchster Horizont je Punkt p50/p90/p99/max = 8,2° / 21,3° / 36° / 49,9°; |DSM − Terrain-Cache|
+p50/p90/p99 = 2,6 / 7,8 / 17,8 m (Brücken und Wald: das DSM sieht Deck und Kronen). Brücke 587 (426 Stationen aus dem Katalog, 161
+Achspunkte aus OSM), Beton 599 (Katalog 151 Stationen, OSM-Anteil 448 Achspunkte), 39 Stationen ohne Katalogzeile (Quelle null),
+mit Abschnitt 3 893 (879 Stationen abseits der Korridore ohne), Gelände Tal 743 / eben 3 177 / Hang 239 / Kuppe 613. **Geometrie
+unbekannt 1 723 (36 %)**: die Korridorlinie hat ≈ 1,4 km Stützweite, drei Stützen liefern dort Radien p10/p50 = 875 / 4 377 m —
+zu grob für eine Verwindungsaussage (V-VS-9: Radius aus der OSM-Fahrbahn selbst, die der Punktbauer snappt; bis dahin gilt die
+Marke als „vorsichtig unbekannt", nicht als Messung).
+
+**Verifier** `verify:road-vs` Abschnitt G (11): SVF-Grenzfälle, 1°-Interpolation, 8 → 360, Horizontwinkel mit Krümmung, Geländeklasse,
+Kurvenradius (flacher Bogen 23 km, Gerade null), Nahhorizont an einer 50-m-Stufe (8,6° gegen 8,9° analytisch, 30-m-Raster),
+Abschnittsindex, Prüfer mit drei roten Fällen, **GLO-30-Dekodierung rund durch Deflate + Prädiktor 3**, Kachelname.
+
+### 20.9 AW-6.2.3 Fahrbahntemperatur-Kern (27.10.2026)
+
+**Gebaut.** `src/road/vs/roadVsCore.ts` (MIT-Hinweis RoadSurf/FMI im Kopf, METRo nur als Prinzip): Säule 15 Knoten 0 … 4,3 m
+(`VS_NODE_DEPTH_M`, geometrisch wachsend, `set` nach RoadSurf-Muster — exakte Tiefen gegen die Quelle zu prüfen), Finite-Volumen
+explizit Δt 30 s, **Stabilität beim Laden geprüft** (Grenze 45,5 s = dünnste Schicht in Beton), Asphalt ρc 2,0·10⁶ / λ 0,8,
+Beton λ 2,2, Unterbau ab 0,30 m λ 1,5 (`set`); Ts = Mittel Knoten 0 und 3 cm; Bilanz G0 = (1−α)·SW↓·C_S + ε·LW↓·C_L − εσTs⁴ + H − LE +
+Q_P + Q_V; Monin-Obukhov iteriert (5 Iterationen, z0m 0,4 / z0h 0,001 m, stabil Φ = 1 + 4,7ζ, labil Paulson γ 16, ζ ∈ [−2; 1]);
+Bulk-Verdunstung mit r_a ≥ 30 s/m (Lesart des Prompts „r_a ≤ 30 s/m" als Transfer-Deckel — zu bestätigen), nur mit
+Oberflächenwasser, Deposition/Reif über Eis-Dampfdruck immer; Q_P Regenwärme; Verkehr 10/5 W/m², Mindestwind 1,5/0,4 m/s (19–04 UTC
+Nacht); Abschattung: Direkt = 0 bei Horizont > Sonnenhöhe (Sonne aus `roadSun.ts`), S_dif' = F_sv·S_dif + (1−F_sv)·0,15·(S_dir+S_dif),
+L↓' = F_sv·L↓ + (1−F_sv)·L_u; Albedo trocken 0,10 / nass 0,08 / Schnee 0,60 / Eis 0,10 → 0,60 bis 1,5 mm; Latentwärme-Halt
+(Gefrieren bei Ts ≤ +0,1 K und Flussdefizit, mit Rückholung des Oberflächenknotens auf 0 °C — Wasser unterkühlt auf der Fahrbahn
+nicht; Schmelzen bei Ts ≥ −0,1 K); unterer Rand Jahres-Sinus 10,0 °C ± 1,5 K, wärmster Tag 270 (`set`, V-VS-8, nicht die finnischen
+6,4 °C); Brücke als zweite Säule 8 cm Asphalt + 30 cm Beton, unterer Rand = Luft, Ausgabe `tsBridge`; Speicher Wasser/Poren/Schnee/
+Eis/Reif mit Maxima und finnischem Verkehrsabrieb (`set`); Modellzustand `VsPointState` (Profile, Speicher, Alter) mit Prüfer,
+Kaltstart < 7 Tage (`set`); Stundenergebnis mit Flussmitteln (Schattenprotokoll) und gefrorener/geschmolzener Menge.
+
+**Unit-Tests (Abschnitt H, 13).** Energieerhaltung exakt (isolierte Säule 2 000 Schritte: 0 J/m² Drift; 100 W/m² × 1 h = 360 000 J/m²);
+Diffusion glättet ohne Überschwingen; Klarnacht (Ta 0 °C, LW↓ 230, 1 m/s): Fahrbahn monoton auf −5,4 °C in 8 h; **Brücke kälter als
+Strecke** (−5,40 gegen −5,37 °C nach 8 h — der Unterschied ist klein, weil der Bodenwärmestrom aus 10 °C Tiefe erst über Tage wirkt;
+im Dauerbetrieb trennt sich das stärker, V-VS-11); Sonne mittags 22,8 °C bei 10 °C Luft, swNet 558 W/m²; Horizont 60° rundum im April
+⇒ ganz abgeschattet, swNet 108; Latentwärme-Halt: 2 mm Wasser bei ≈ 60 W/m² Defizit halten Ts am Gefrierpunkt (0,67 mm
+gefrieren in der Stunde, Wasser bleibt); ohne Wasser fällt Ts unter −0,1 °C; 0,8 mm bei −150 W/m² sind in der Stunde durch und Ts
+fällt auf −4,8 °C (kein Thermostat); Monin-Obukhov Vorzeichen/Stabilität/Windabhängigkeit (c_H 0,0016 bei 3 m/s stabil);
+Zustandsprüfer; Tiefentemperatur; Albedo. `verify:road-vs` **64/64** (A–H), `npm run typecheck` grün.
+
+**Nicht gebaut (bewusst, nächste Pakete).** Kopplung C_S/C_L und Standortkorrektur (6.2.4), Zustandsklassen/Gallaway/Bourgouin/Reif-
+Auslösung (6.2.5), Sicht (6.2.6), Produkt + Dauerlauf mit Zustand in `buscosun-data` (6.2.7), Prüfstand (6.2.8).
+
+**`set`-Zeilen dieses Pakets** (Ergänzung zu 20.6): Knotentiefen; Unterbau λ 1,5 ab 0,30 m; Albedo nass 0,08; r_a-Boden 30 s/m
+(Lesart); ζ-Klammer [−2; 1], 5 Iterationen; Tiefenklimatologie 10,0 ± 1,5 K / Tag 270; Kaltstart 168 h; Gefrierband ±0,1 K;
+Wald-Schatten-Diffus 0,15; Verkehr 10/5 W/m²; Mindestwind; Speicher-Maxima und Abrieb; Regen-Temperatur = max(Ta, 0).
+
+### 20.10 AW-6.2.4 Kopplung und Standortkorrektur (27.10.2026)
+
+**Gebaut** `src/road/vs/roadVsCouple.ts`: `fitCouplingFactor` (Bisektion C ∈ [0,01; 3] über ein erneut gerechnetes 3-h-Fenster aus
+dem gespeicherten Zustand, Ziel |ΔTs| ≤ 0,1 K, höchstens 14 Iterationen; Modus `sw`, wenn das Fenster im Mittel ≥ 20 W/m² Global-
+strahlung hatte (`set`), sonst `lw`; läuft die Messung aus dem erreichbaren Band, wird die Grenze zurückgegeben und `converged:
+false` benannt — kein stilles Anschlagen), `couplingFactorAt` (C(t) = 1 + (C_R − 1)·e^(−t/4 h)), Wetterklassen `klar/bewoelkt/
+windig/nass` (`set`: nass ≥ 0,1 mm/h oder Film ≥ 0,05 mm; windig ≥ 5 m/s; klar ≤ 30 % Bedeckung und < 3 m/s), Residuentabelle
+`learnResiduals` (Station × UTC-Stunde × Klasse; Zelle erst ab n ≥ 5; Schrumpfung n/(n + 10); gepooltes σ je Klasse; Fenster/Paare
+im Kopf; Start frühestens nach 7 Tagen = `minDays`), `stationCorrection`, `neighbourCorrection` (Achspunkte: Residuen der GMA im
+25-km-Radius, gleiches 300-m-Höhenband UND gleiche Geländeklasse, Gewicht 1/d, nie Rohwerte), `correctedSigma` (Klassen-σ, in klaren
+ruhigen Nächten × 1,5). Die Tabelle wird im Derive (6.2.7) aus den Schattenpaaren gelernt und als `road/vs/v1/static/residuals.json`
+abgelegt; gepooltes Gradient-Boosting bewusst nicht gebaut — Notiz: nach einem vollen Winter (Startprompt), V-VS-12.
+
+**Verifier** Abschnitt I (9): Modus; Bisektion findet C_R 1,6 (langwellig, Nacht) und 0,6 (kurzwellig, Tag) in 9 Iterationen zurück
+(Rest −0,04 K), Startzustand bleibt unverändert; unerreichbare Messung ⇒ Grenze + `converged: false`; Abklingen an drei Stützen;
+Wetterklassen-Reihenfolge; Tabelle (n 10 gelernt, 1,0 K ⇒ 0,5 K geschrumpft, n 3 fällt, fremde Stunde 0, Fenster 9 Tage, σ);
+Nachbar-Übertrag mit 1/d und beiden Ausschlüssen; σ-Faktor. `verify:road-vs` **73/73**.
+
+**`set`-Zeilen:** Sonnen-Schwelle 20 W/m²; 14 Iterationen; Klassen-Schwellen; minN 5, shrinkN 10, minDays 7; Radius 25 km, Band 300 m;
+σ-Faktor 1,5. Offen: die Kopplung braucht den Zustand von vor 3 h — der Derive (6.2.7) hält je Punkt einen Schnappschuss je Stunde
+der letzten 6 h (`history`), sonst wäre das Fenster nicht neu rechenbar (V-VS-13).
+
+### 20.11 AW-6.2.5 Speicher, Zustand, Wasserfilm (27.10.2026)
+
+**Gebaut** `src/road/vs/roadVsState.ts` (die Speicher selbst rechnet der Kern, s. 20.9 — Maxima 1/1/100/50/2 mm, Abrieb 0,145/0,45/0,319/1,16
+mm/h `set` finnisch): Film aus dem Speicher (Faktor 1,0 `set`, gegen GMA-Filme zu kalibrieren), BASt-V-329-Stufen trocken ≤ 0,01 /
+feucht 0,01–0,03 / nass > 0,03 mm; **Gallaway** d_W = 0,103·T_XD^0,11·L^0,43·I^0,59/S^0,42 − T_XD mit L = B·√(1+(g/q)²), S = √(q²+g²),
+T_XD 0,5 mm `set`, q 2,5 % (E-VS-5), g 0 % (`set`, keine Längsneigung je Punkt), B = 2 × 3,75 m (`set`, keine OSM-Fahrstreifen), gültig
+bis 50,8 mm/h, darüber gekappt und `capped`; **Testfall des Startprompts bestanden** (T_XD 0,4 / L 58,6 / I 50 / S 2,52 ⇒ 3,256 mm);
+Aquaplaning v_AP = 96,8·d^−0,259 km/h nur als Detail (< 2,4 mm); **Reif**: Frostpunkt (Magnus über Eis) statt Taupunkt, Deposition im
+Bulk-Ansatz des Kerns, Auslösung ∫max(0, T_frost − Ts)dt ≥ 1 K·h (`set`), Rücksetzen bei Ts > T_frost + 1 K; **Bourgouin** (2000)
+auf einem Modellprofil (Flächen PA/NA in J/kg, hydrostatische Form; Schwellen wie veröffentlicht: Schnee PA ≤ 5,6, Mischung ≤ 13,2,
+Eiskörner NA ≥ 66 + 0,66·PA, gefrierender Regen NA ≤ 46 + 0,66·PA, dazwischen „möglich"; dann T2m bzw. Feuchttemperatur ≤ 0 °C);
+**Klassen in Prompt-Reihenfolge** (erste Regel gewinnt): 1 Glatteis (flüssig ≥ 0,1 mm/h auf Ts ≤ 0 °C, unabhängig von Bourgouin;
+oder Bourgouin „gefrierender Regen" bei Ts ≤ 0), 2 Schneeglätte (Schnee ≥ 0,2 mm bei Ts ≤ +0,5 oder Schneefall ≥ 0,1 mm/h bei Ts ≤ 0),
+3 Schneematsch, 4 Eis/überfrierende Nässe (Eis ≥ 0,05 mm oder nasser Film bei Ts ≤ 0), 5 Reifglätte (Reif ≥ 0,02 mm UND Integral ≥ 1
+K·h UND Ts ≤ 0), 6 nass/feucht/trocken; **Griff nur als Klasse** (griffig / eingeschränkt / glatt / sehr glatt, `set`-Zuordnung);
+`glaette_p` v1 als grobes 0 / 0,5 / 1 (`set`; kalibrierte Wahrscheinlichkeit erst in 6.2.8 mit Winterpaaren — DWD-Vergleichsprodukt
+POD 0,40–0,56); Szenario „ungestreut" / „Glättepotenzial ohne Streuung" (E-VS-3).
+
+**Nicht im Antrieb:** die Modellflächen T/HHL für Bourgouin (V-VS-6) — bis dahin liefert `bourgouinType(null)` „unbekannt", und Glatteis
+kommt allein aus Regel 1 (Regen auf Ts ≤ 0 °C) plus FRZ_RAIN des ICON-D2 als Regenanteil.
+
+**Verifier** Abschnitt J (12): Gallaway-Testfall, RQ 31 bei 10 mm/h ≈ 0,10 mm, Kappung, Längsneigung; Aquaplaning; Frostpunkt; Reif-Integral
+mit Rücksetzen; Bourgouin warme Nase ⇒ gefrierender Regen bei PA 281 / NA 57, tiefe Kaltschicht ⇒ Eiskörner, Kaltluft ⇒ Schnee, warmer
+Boden ⇒ Regen; alle sechs Klassenregeln in Reihenfolge mit Gegenproben (Reif ohne Integral ⇒ trocken); Griffklassen; Glätte-Wort;
+Szenario. `verify:road-vs` **85/85**.
+
+### 20.12 AW-6.2.6 Sicht (27.10.2026)
+
+**Gebaut** `src/road/vs/roadVsVis.ts`. **Jetzt:** eigener GMA-Wert (nach QC), sonst der nächste Nachbar gleicher Geländeklasse mit
+|Δz| ≤ 100 m im 15-km-Radius (`set`); POI-Sichtmessungen des DWD sind nicht im Datenbestand (V-VS-14). **Voraus:** P(V < 1 000 / 300 /
+150 / 50 m) als logistische Kombination von drei Quellen auf ln(V/x): (a) eigene Diagnose V = min(V_Nebel, V_Feuchte, V_Niederschlag) —
+Gultepe V = 1,002/(LWC·N_d)^0,6473 mit LWC aus QC der untersten Modellfläche × ρ, N_d 200 cm⁻³; Koschmieder 3,912/β mit β_Regen =
+2,24·C^0,75, β_Schnee = 10,36·C^0,7776; Feuchte-Dunst 20 km → 1 km über die Taupunktdifferenz 2 → 0 K (`set`, Platzhalter bis zum
+CDC-Fit); (b) MOSMIX-Sicht der repräsentativen Station (`vs` aus `road/fc`); (c) RUC-VIS bis 30.11.2026. **Gewichte `set`
+(−1,5 je Quelle, gleich; fehlende Quellen renormiert) und die Datei heißt `calibrated: false`**, bis `fitVisLogistic` (logistische
+Regression je Schwelle, Gradientenabstieg) gegen CDC-Stundensicht gelaufen ist (6.2.8 — die 204 CDC-Stationen sind noch nicht
+geladen, V-VS-15). **Nebel Stufe 3 (< 50 m) nur aus Messung:** die Prognose-P(< 50) wird auf 0,5 gedeckelt (`set`). RUC-EPS-
+Memberanteil (Startprompt) ist nicht gebaut: der v1-Pfad führt kein `icon-d2-ruc-eps`, und ICON-D2-EPS hat kein VIS (Spike 20.2 i).
+
+**Verifier** Abschnitt K (9): Gultepe 200 mg/kg ⇒ 80 m; Koschmieder Regen 10 mm/h ⇒ 311 m, Schnee 2 mm/h ⇒ 220 m; Dunst-Stützen;
+Minimum mit begrenzender Größe; Wahrscheinlichkeiten an 100 m / 20 km / Schwelle (0,5); Renormierung; Deckel; Sicht jetzt mit beiden
+Ausschlüssen; Kalibrierung auf 400 synthetischen Paaren ⇒ negative Gewichte, Brier 0,044/0,035/0,036/0,043 ≈ unkalibriert (synthetisch
+ohne echten Zugewinn — erwartungsgemäß). `verify:road-vs` **94/94**.
+
+### 20.13 AW-6.2.7 Datenvertrag, Dauerlauf, Anzeige (27.10.2026)
+
+**Vertrag** `src/road/vs/roadVsProduct.ts`: eigener Pfad `road/vs/v1/<lauf>/c/<korridor>.json`, `s/<land>.json`, `index.json`, Zustand
+`state.json.gz`, Schatten `shadow/<lauf>.jsonl.gz`, Residuen `static/residuals.json` — **additiv, `road/fc/v1` bleibt unverändert**
+(Schema-Erhöhung dort entfällt, weil kein Byte der Streckenprognose sich ändert). Reihen je Punkt 0 … 48 h (ganzzahlig kodiert wie
+`road/fc`): `tf` 0,1 °C, `tf_sigma`, `tf_src` (0 gemessen / 1 gekoppelt / 2 modelliert / 3 unbekannt), `tf_bruecke`, `wasser_mm`,
+`schnee_mm`, `eis_mm`, `reif_mm`, `wasserfilm_mm`, `zustand` (0–7), `glaette_p`, `griff`, `vis_p1000/300/150/50`, `vis_src`; je Punkt
+`kaltstart`, `couple {c, mode, ageH, converged}`, `corr {k, from, n}`, `szenario: ungestreut`; Kopf `engine` (Kern, Antrieb, Fusion-Lauf,
+Messslot, Residuen-Tabelle, Sicht kalibriert?, σ-Herkunft, Zähler, **`live: false`** — der Prüfer lehnt `live: true` ab). Anzeigeregel
+`roadVsDisplay` (gemessen → Messung; gekoppelt → „Sensor aus seit hh:mm UTC"; modelliert → „Modell mit Standortkorrektur, breitere
+Streuung"; unbekannt → „kein aktueller Lauf" / „Pflichteingang fehlt"). Leser `roadVsClient.ts` (jsDelivr + raw-Hedge des Road-Clients,
+Zeiger + Datei, veraltet > 9 h). **Nicht verdrahtet:** `RoadReadout.tsx` zeigt den VS noch nicht — die Seite liegt in einer fremden
+uncommitteten Linie (`RoadPage.tsx`, AWD) und der Schalter ist aus; die Verdrahtung hinter `ROAD_VS_LIVE` ist der erste Schritt nach
+Gate G (V-VS-17). `roadHazards.ts` liest nichts davon (Startprompt: erst nach Gate G).
+
+**Derive** `scripts/road/vs/run-vs.mjs`: Antrieb → je Punkt `VsHourForcing` (Fusion-Luft/Taupunkt/Wind/Niederschlag der Streckenprognose
+wo vorhanden, sonst ICON; Strahlung immer ICON; LW↓-Rückfall Brunt/Bolz; fehlende Pflichtgröße ⇒ Stunde null und Abbruch der Reihe,
+nie Ersatz) → Zustand vom Schnappschuss des Vorlaufs bei t0 (sonst Kaltstart aus T_G bzw. Luft, Alter des alten Punkts vererbt) →
+Durchgang 1 ohne Kopplung (alle Punkte) → QC der Stationen zweistufig (eigene Schritte, dann Nachbar-Residuen und Modell) → Durchgang 2
+Kopplung (Fenster 3 h aus dem Schnappschuss; Modus nach Sonne, **Rückfall auf den anderen Eingang, wenn der erste den Messwert nicht
+erreicht**, Grenzfaktor nie blind) → Ausgabe mit Standortkorrektur (Tabelle, Nachbarn), σ (Tabelle oder `set` 1 + 0,1·h ≤ 3 K, benannt),
+Klassen, Gallaway, Sicht (Messung an der Messstunde, sonst Wahrscheinlichkeiten) → Zustand (Schnappschüsse 0 … 9 h, auf 0,01 K / 0,001
+mm gerundet) → Schattenpaare → Publish pfadbegrenzt. Workflow-Vorlage `workflow-road-vs.yml`: Schritt „Virtual sensor" nach dem Antrieb,
+Sparse `road/fc/v1 road/v1 road/vs`. Archiv `archive-vs.mjs` (Stationspunkte, Antrieb an Stationen, Schatten je Lauf → `buscosun-archiv/
+road/vs/v1/<Tag>/<Lauf>.json.gz`) als Schritt der `road-archiv`-Vorlage (Sparse des Daten-Klons um `road/vs/v1` erweitert).
+Residuen-Lerner `build-residuals.mjs` (aus dem Archiv, ≥ 7 Tage, ohne Kaltstart-Paare, `--holdout`).
+
+**Erster Volllauf (27.10. 19:58 UTC+1, lokal, Antrieb 2026-10-27 15 UTC, Messslot 17:15 = Stunde +2, Fusion-Lauf 17:19):** 4 772 Punkte,
+**1 086 gekoppelt** (QC gültig 1 086, verworfen 378 von 1 464 Stationen im Slot), alle Kaltstart (kein Zustand), 0 korrigiert (keine
+Tabelle); Schattenpaare 1 086, **Modell − Messung p10/p50/p90 = −2,13 / −0,76 / +0,82 K** beim Kaltstart nach 2 h (Start aus T_G; ein
+eingeschwungenes Profil fehlt — Zahl informativ, kein Gate); Produkt **11,2 MB** roh (212 Korridore + 16 Länder), **184 s**. Keine
+Stunde `unbekannt`, keine `tf`-Lücke. Beispiel P756 (Brücke, A 8): gekoppelt `sw` am Anschlag 3 (Sonne um 17 UTC Ende Oktober zu schwach)
+— daher der Modus-Rückfall; **zweiter Volllauf mit Rückfall: 0 Kopplungen am Anschlag**, 191 s, Zustand nach Rundung und 10
+Schnappschüssen **1,18 MB gz** (vorher 8,25). Archiv-Ausdünnung desselben Laufs: 1 814 Stationen, 1 086 Paare, **303 KB gz**; der
+Prüfstand lief darauf durch (0 Paare — das GMA-Archiv reicht lokal bis 26.10., der Lauf ist vom 27.10.). `verify:road-vs` **114/114**,
+`verify:road-archive` 33/33, `typecheck` grün.
+
+**Größenbudget je Lauf (gemessen):** Antrieb 4,64 MB gz · Produkt 11,2 MB roh (≈ 1,3 MB gz über jsDelivr) · Zustand 1,2 MB gz ·
+Schatten ≈ 60 KB gz; acht Läufe am Tag ⇒ ≈ 100 MB Commits je Tag im Daten-Repo (dessen Historie die Kartenlinie kürzt);
+Archiv 0,3 MB je Lauf ⇒ ≈ 2,4 MB/Tag (V-VS-18: Produkt nur Stationen + Achspunkte alle 10 km, wenn das Daten-Repo drückt).
+
+### 20.14 AW-6.2.8 Prüfstand und Gate G (27.10.2026 — Werkzeug gebaut, Messung erst mit Archivdaten)
+
+**Gebaut** `scripts/road/vs/score-vs.mjs` (rein rechnend, Verdikte kommen aus dem Skript): Fahrbahntemperatur je Vorlauf 0/1/3/6/12/24/48 h
+Bias, MAE, RMSE, Anteil ±1/±2 K; Schichtung Tag/Nacht, Wetterklasse (aus dem archivierten Antrieb), Brücke/Strecke, Kaltstart/eingeschwungen;
+Baselines auf denselben Paaren: **Persistenz** (GMA-Wert der Messstunde, erst ab dieser Stunde), **SWSMOS TS** (jüngster Lauf ≤ t0),
+**ICON T_G**, **T2m**; Stunden mit `tf_src = gemessen` zählen nicht als Prognose. **Ts ≤ 0 °C** POD/FAR/CSI nur für gemessene Ts in
+−3 … +1 °C gegen alle Baselines; **Eis/Reif** (Modellklassen 3/4/6/7 gegen GMA-Klasse `i`) gegen Persistenz und SWSMOS RC 3–6;
+Kontingenz Modellgruppe × GMA-Buchstabe je Vorlauf; **Wasserfilm MAE in µm** an der Messstunde; **Sicht Brier** je Schwelle mit
+10-Stufen-Zuverlässigkeit; **stationsweise K-fach-CV** der Standortkorrektur (Tabelle auf K−1 Falten; auf der Testfalte roh gegen
+korrigiert — eine fremde Station hat keine eigene Zelle, der übertragbare Teil ist das gepoolte Stunden-/Klassen-Mittel). Datumsblöcke:
+`--from/--to`. Verifier Abschnitt N (8) auf einem synthetischen Archiv mit bekannten Fehlern (0,5 K / 2 K, Persistenz 0,1 K, T_G 1,5,
+T2m 3, SWSMOS −1; Ereignisse im Fenster; Kontingenz; Film 50 µm; Brier 0/1; CV 2 Falten; eine „gemessene" Stunde zählt nicht als
+Prognose). `verify:road-vs` **114/114**.
+
+**Was heute messbar ist — ehrlich:** nichts. Das GMA-Archiv läuft seit 03.10., das SWSMOS-Archiv seit heute (Scratch), das VS-Archiv
+entsteht erst mit dem Workflow; Frostfälle gibt es im Oktober kaum (FB: 33 Ereignisse). **Gate G braucht Winterdaten im Schattenbetrieb**
+(Startprompt). Zielwerte des Startprompts: Ts RMSE ≤ 1,5 K bis Tag 1, Frost POD > 87 %, FAR < 30 %.
+
+**Vorschlag der Gate-G-Schwellen (Jan entscheidet, nach dem ersten echten Lauf des Skripts auf ≥ 14 Tagen Archiv):**
+G-T1 MAE(Modell) < MAE(Persistenz) ab +2 h und < MAE(SWSMOS TS), MAE(T_G), MAE(T2m) bei jedem Vorlauf 1 … 48 h, 95-%-Bootstrap über Läufe
+(wie Gate D-T); G-T2 RMSE ≤ 1,5 K bis +24 h, eingeschwungene Punkte; G-K Ts ≤ 0 °C: POD ≥ 0,87 und FAR ≤ 0,30 bei +1/+3/+6 h mit ≥ 200
+Ereignissen im Fenster, besser als Persistenz und SWSMOS; G-F Film MAE < 100 µm bei nassen Stunden (`set`, erst nach Kalibrierung des
+Speicherfaktors); G-S Sicht Brier je Schwelle < Klimatologie-Brier (Basisrate) und Zuverlässigkeitskurve innerhalb ±0,1; G-C
+Standortkorrektur: korrigiert ≤ roh in jeder CV-Falte. Rot in einem Teil ⇒ der Teil bleibt im Schatten, der Rest kann gezeigt werden
+(Anzeigeregel je Größe, `tf_src`).
+
+### 20.15 Zusammenfassung der Linie nach dem ersten Tag und Liste aller `set`-Werte
+
+**Stand:** alle acht Arbeitspakete gebaut und mit 113 netzfreien Prüfungen belegt; ein echter Volllauf (Antrieb 117 s, Derive 184 s)
+auf dem lokalen Klon; nichts in den Daten-/Archiv-Repos, nichts sichtbar (`ROAD_VS_LIVE = false`); Workflows als Vorlagen. Prüfstand-
+Ergebnis gegen die Baselines: **keines** — es gibt noch kein Archiv des Schattenbetriebs (§20.14). Jans Schritte: `MANUELLE-SCHRITTE.md` §79.
+
+**Alle `set`-Werte, die kalibriert werden müssen** (Ort → Weg): ε_s 0,95 (`ROAD_VS_SURFACE_EMISSIVITY` → ICON-Doku); Brunt/Bolz a b c
+(→ Fit gegen ATHB_S-LW↓); QC-Konstanz 4 h, Winterband −10/+15 K, Tukey k 1,5 / n 5 / Boden 1 K, Modell-k 4 σ / Boden 1 K (→ Archiv-Zählung
+Fehlalarme/Treffer); Health R8 20 Reihen (= Vertrag); SWSMOS-Kürzung; Zellindex 5 km; Horizont Nahfeld 5 km / Schritt 30 m / k 0,13;
+Querneigung 2,5 % / Kurvenradius 4 000 m / Fahrstreifen 2 × 3,75 m; Geländeklasse ±15 m / 5°; Beton-Anteil 0,5; Knotentiefen; Unterbau
+λ 1,5 ab 0,30 m; Albedo nass 0,08; r_a-Boden 30 s/m; ζ ∈ [−2; 1], 5 Iterationen; Tiefenklimatologie 10,0 ± 1,5 K / Tag 270; Kaltstart
+168 h; Gefrierband ±0,1 K; Schatten-Diffus 0,15; Verkehr 10/5 W/m² + Mindestwind; Speicher-Maxima und Abrieb (finnisch); Regen-T =
+max(Ta, 0); Kopplung Sonnen-Schwelle 20 W/m², 14 Iterationen; Wetterklassen-Schwellen; Residuen minN 5 / shrinkN 10 / minDays 7 /
+Radius 25 km / Band 300 m / σ-Faktor 1,5; Film-Speicherfaktor 1,0; Gallaway T_XD 0,5 mm, g 0 %; Reif-Integral 1 K·h / Reset 1 K /
+Mindestspeicher 0,02 mm; Klassenschwellen (Schnee 0,2 mm, Matsch, Eis 0,05 mm); Griff-Zuordnung; glaette_p 0/0,5/1; Dunst 20 km →
+1 km über 2 K; Sicht-Gewichte −1,5 je Quelle, Deckel P(<50) 0,5; Nachbar-Sicht 15 km / 100 m; σ-Vorgabe 1 + 0,1·h ≤ 3 K; Produkt-
+Aufbewahrung 3 Läufe, Zustands-Historie 9 h, veraltet 9 h; Gate-G-Schwellen (Vorschlag).
+
+### 20.16 AW-6.2.9 Anzeige des virtuellen Sensors hinter `?roadvs=1` (28.10.2026, E-VS-8)
+
+**Anlass und Entscheidung.** Jans Recherche liegt vor: `Fahrbahnzustand ohne Sensor.md` in der Repo-Wurzel ist die in §20.0 vermisste
+Pflichtlektüre (anderer Dateiname, gleicher Inhalt: RoadSurf/METRo-Kern, Speicher, Klassen, Gallaway, Sicht, QC-Kette, Kopplung,
+Prüfstand, Ausgabefelder). Seine Vorgabe vom 28.10.: wo der Sensor ausfällt, zeigt die Seite einen Fusion-Wert, der „aussieht wie ein
+normaler Sensor", mit kleinem Info-Zeichen; der Klick wiederholt die Herkunft; auf Abschnitten ohne Sensor liefert Fusion ebenfalls
+Fahrbahnwerte. **E-VS-8 (Jan 28.10., „ich gebe den nächsten Schritt frei"):** die Verdrahtung entsteht JETZT hinter `?roadvs=1`,
+nicht erst nach Gate G (ändert E-VS-2 nur im Zeitpunkt der Verdrahtung; `ROAD_VS_LIVE` bleibt `false`, ohne Parameter lädt die Seite
+nichts vom VS). Die fremde uncommittete AWD-Linie in `RoadPage.tsx` wurde dafür angefasst (Jans Freigabe in derselben Antwort).
+
+**Gebaut (Commit AW-6.2.9).**
+- `src/road/vs/roadVsView.ts` (rein): `roadVsStep`/`roadVsValue` (nächste volle Stunde des Laufs; `tf` null oder Herkunft
+  `unbekannt` ⇒ null, nie ein Wert aus dem Nichts), `roadVsClassOf` (Farben der MESSklassen: gefroren ⇒ `ice`, nass/feucht ⇒ `wet`,
+  trocken ≤ 0 °C ⇒ `frost`, sonst `dry`, ohne Zustand ⇒ `unknown`), Wörter (`berechnet` an jedem Wert, Badge „Reifglätte · berechnet",
+  Zeile, σ, Herkunft über `roadVsDisplay`), `roadVsInfoLines` (der Info-Tab: „nicht gemessen", Kopplung mit Messalter und Faktor,
+  Standortkorrektur mit Nachbarzahl, Streuung, Kaltstart, Szenario ohne Streuung mit Griff/Glättepotenzial/Film, Brückensäule, Sicht,
+  Lauf, Schalter), `roadVsSeries` (Diagramm), `roadLastValueMs` (Sensor aus seit, aus dem 24-h-Ring), `roadVsSourceRow`.
+- `src/road/vs/useRoadVs.ts`: Hook, Korridor-Datei des neuesten Laufs (Achse + Stationen des Korridors), alle 10 min, nichts ohne
+  Schalter; veraltet (> 9 h) ⇒ nicht gezeigt, Grund im Objekt. `src/road/vs/roadVs.css`: Info-Knopf (44 px Trefffläche, 18-px-Ring),
+  Info-Box, gestrichelte Umrandung an Badge und Chips, blaue Legende/Linie.
+- `RoadReadout.tsx`: **Station ohne gültigen Fahrbahnwert** ⇒ Kopfzeile „Fahrbahnsensor ausgefallen · virtueller Sensor", Hero mit
+  VS-Wert + Info-Zeichen + Badge in Klassenfarbe (gestrichelt umrandet), Unterzeile „berechnet · gekoppelt · Sensor aus seit hh:mm UTC"
+  bzw. „… Modell mit Standortkorrektur, breitere Streuung" + σ + ggf. „Messung verworfen (Regel)"; Kachel „Jetzt · berechnet"; Kacheln
+  +1/+3/+6 h mit VS-Wert und Zustand (VS vor FB-1, FB-1 bleibt Rückfall); Verlauf mit VS-Reihe 0 … 6 h (blau gestrichelt); Prognose-
+  Zellen Fahrbahn/Zustand/Griff/Wasserfilm/Sicht; Notiz mit Lauf und Herkunft der Stunde. **Prognosepunkt (Achse)** ⇒ eigener Hero
+  „Fahrbahn · berechnet" über dem Luft-Hero, Kachel „Jetzt · Fahrbahn", Verlauf 0 … 24 h, Kacheln, Zellen, Datenbasis-Zeile.
+  **Strecke** ⇒ Zeilen ohne Messung (Sensor aus oder Achse) tragen den VS-Wert zur Ankunftsstunde und einen Chip in Klassenfarbe mit
+  gestrichelter Umrandung „Trocken · ber."; Briefing „Kälteste berechnete Fahrbahn zur Ankunft"; Fußnote erklärt die Umrandung.
+  **Messlücke** ⇒ Satz „… der virtuelle Sensor berechnet sie an jedem Prognosepunkt". **Quellen** ⇒ Zeile „buscosun Fusion — virtueller
+  Fahrbahnsensor" aktiv/geplant. Eine gültige Messung gewinnt überall (`gemessen` ⇒ die Messung steht, der VS nur im Kreuzvergleich).
+- `RoadMap.tsx`: Marker-Variante `aw-<klasse>-vs` (Klassenfarbe, dunkler Rand, heller gestrichelter Innenring) für Stationen ohne
+  Fahrbahnwert mit VS-Wert, Label `~+1,2°`; Achsenpunkte des Korridors in der VS-Klassenfarbe statt der Luftklasse, wenn ein Wert da
+  ist; Callout nennt Wert und Herkunft. `RoadPage.tsx` (eigene Hunks, Legende der fremden Linie unberührt): Hook, Marker-Karte,
+  Callout, Props. `RoadRoute.tsx`: `roadVsFlagFrom`/`rememberRoadVsFlag`, Prop `vs`.
+- Nicht angefasst (Startprompt: erst nach Gate G): Gefahren-Regeln, Streckenband-Klassen, Dock-Zählungen; D-04 bleibt für Messwerte
+  (ein VS-Marker ist nie „trocken" aus Schweigen, sondern aus einem Zustandscode des Laufs).
+
+**Prüfung.** `verify:road-vs` Abschnitt O (9 Prüfungen: Stundenindex mit Rändern, Wert/Negativkontrolle, Klassenzuordnung, Wörter,
+Info-Tab, Reihe, Ring-Helfer, Quellenzeile) ⇒ **123/123**; `typecheck` grün. **Nicht gelaufen:** `verify:road-ui` (braucht Browser
+und Preview-Server, Session-Regel) — die Sichtprüfung der Kacheln, des Info-Knopfs und der Marker ist Jans Schritt (§79.13), sobald
+`road/vs/v1` online liegt; bis dahin zeigt `?roadvs=1` nur die Seite von vorher (Leser liefert `kein Lauf`).
+
+**Einspielen und Sichtprüfung (28.10., 08:30 … 10:00 UTC, Jans Freigabe „du hast die Berechtigung").** Zweig auf `origin`
+(`f02ca559`, `cf4d8804`); Archiv-Repo `ba0a83e` (`road-archiv.yml` aus der Vorlage, klont `buscosun-web` aus `ROAD_VS_WEB_REF`);
+Daten-Repo `95a4306e5` (`road-vs.yml`, `static/site.json.gz`, `static/cells.json`; erster Versuch verlor den Commit an einen
+Cron-Push — Rettung aus dem Reflog, dann `checkout --detach origin/main` + `cherry-pick`, V-WL-20); Repo-Variable
+`ROAD_VS_WEB_REF = feat/aw-6.2-virtueller-sensor` auf beiden Repos per REST (kein `gh`, Token aus dem Git-Credential-Helper;
+nach dem Merge leeren). **Erster Lauf lokal mit `--publish`:** Antrieb 2026102806 (4 772 Punkte, 27 Felder, 4,48 MB gz, `ww` Schritt 0
+fehlt, 150 s, Daten-Commit `827bcec`), Derive 159 s (Produkt 11,09 MB + Zustand 1,18 MB gz, Commit `6deeede`, Zeiger ein Lauf). **Befund
+V-VS-25:** der Messslot 2610280830 war für den Derive „nicht nutzbar" ⇒ 0 gekoppelt, 0 gemessen, 4 772 Kaltstart aus T_G — alle
+Werte `modelliert`. **Ursache gefunden und behoben:** `run-vs.mjs` verglich die auf die NÄCHSTE Modellstunde gerundete Slot-Stunde
+(08:30 ⇒ +3) mit der abgerundeten Jetzt-Stunde (08:46 ⇒ +2) und verwarf so jeden :30-Slot in der dritten halben Stunde nach einer
+Modellstunde; jetzt gilt: Slot im Lauf, nicht jünger als jetzt, höchstens 6 h alt. Der Cron (:25, Slots :15) hätte es meist nicht
+getroffen, ein lokaler Lauf um :4x immer. Der nächste Cron-Lauf (10:25 UTC) ist der erste mit Kopplung — Zahlen in §20.7/§20.13
+nachtragen (gekoppelt, QC gültig/verworfen, Schattenpaare).
+Die fünf Blicke (§79.13) im Dev-Server (`?roadvs=1&roadhz=0`, Chrome 1 568 px, headless 390 px): (a) Siegsdorf Brücke P890
+(ohne Fahrbahnwert seit 22 h 30 min) — Kopfzeile „Fahrbahnsensor ausgefallen · virtueller Sensor", +12,5 °C mit Info-Zeichen,
+Badge „Trocken · berechnet" gestrichelt (`outline dashed 2px`), Unterzeile mit Herkunft und σ, Callout auf der Karte; (b) Achse
+A 8 km 105 — Hero „Fahrbahn · berechnet · jetzt +11,2 °C", Info-Box nach Klick mit allen Sätzen, Luft-Hero darunter, Zellen
+Zustand/Griff/Wasserfilm/Sicht, Verlauf 0 … 24 h; (c) Strecke — km 100/103/107 „Fahrbahn … · berechnet · trocken (virtueller
+Sensor)" mit gestrichelten Chips, Briefing „Kälteste berechnete Fahrbahn zur Ankunft"; (d) Karte — P886/P890/P891 mit Icon
+`aw-dry-vs` und Label `~+11,7°` …, Bilder `aw-*-vs` installiert, gemessene Nachbarn unverändert; (e) Mobil 390 × 844 — Sheet
+mit Kopfzeile, Wert, Info-Knopf 44 × 44 px (Ring 18 px), Badge. Quellen-Tab zeigt die VS-Zeile „aktiv". **V-VS-24 behoben:**
+die Unterzeile sagte „Modell mit Standortkorrektur", obwohl noch keine Residuen-Tabelle existiert ⇒ `RoadVsValue.corr`,
+„Modell ohne Standortkorrektur, breitere Streuung" ohne Korrektur (O5 erweitert, 123/123).
+
+**Befunde.** V-VS-19 Kartenlegende ohne VS-Eintrag (die Legende liegt in der fremden AWD-Hunk-Gruppe; Eintrag „gestrichelter Innenring =
+berechnet" nach deren Commit). V-VS-20 Stationen außerhalb der Korridor-Datei (Landesdateien `s/<land>.json`) bekommen in der Ansicht
+keinen VS-Wert (V-AW-26-Muster für den VS fehlt). V-VS-21 Streckenband und Dock zählen weiter nur Messungen (gewollt bis Gate G).
+V-VS-22 Register §20.6: mit der Recherche-Datei lassen sich die meisten `set`-Werte auf `literature` umstellen (RoadSurf/METRo-Code,
+BASt V 329, Gallaway, MADIS) — Doku-Schritt, keine Code-Änderung. V-VS-23 Mobile: der Info-Knopf sitzt im Hero neben der 44-px-Zahl;
+Trefffläche 44 px per CSS, Sichtprüfung offen.

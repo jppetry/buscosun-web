@@ -3020,3 +3020,83 @@ gebaut, gefittet und **eingeschaltet**: Register `n: 14`, `FUSION14_RUC_MEMBER =
    t1-Feldlauf loggt „RUC-Member an N" und `point/field/v1/<lauf>/t1/field.json` trägt `chain.options.ruc.run`; ohne Kopie steht dort
    `reason: "ruc/ nicht im Checkout"`. Offen: V-RUC-29 — das Etikett „Modell · Cube" der Karte nennt den RUC-Anteil nicht (deine Wortwahl
    F1 ⇒ Rückfrage).
+
+## 80. Niederschlagsradar — 25 Bilder bis +2 h überall (Phase NC, `audit/radar-nowcast-dach.md`), 2026-10-27
+
+Alles uncommitted in `buscosun-web`; das Spiegelskript im Daten-Repo ist schon gepusht (`6a7d113bd`) und schlummert.
+
+1. **Commit + Push von `main`** (`buscosun-web`) = dein Gate. Erst damit bildet der nächste Spiegel-Job (≤ 5 h 45 nach dem Push,
+   Marker `src/sources/radarNowcastImg.ts` im Sparse-Klon) `radar/img/v1/rzc-nc/` und `inca-5m/`; der Client fällt bis dahin auf den
+   Stand vor NC zurück (`null` = rzc-Analyse allein, INCA nach Vorlauf). Prüfung danach: Spiegel-Log „Nowcast-Produkte an",
+   `radar/status.json` `nc: true`, Zeilen „rzc-nc … → 73 Dateien", „inca-5m … → 69 Dateien"; im Browser die Konsolenzeilen
+   „CH Hochrechnung → Slot …" und „AT INCA · 5 min → Lauf …" ohne `?ncbase`.
+2. **E-NC-2 (STOPP-Grenze Shader):** die Übergangszone braucht ein Alpha-Gewicht in der Masken-Zeile des `RainLayer`-Fragment-Shaders
+   (`mw`, 4 Zeilen; 0/1-Masken byte-gleich). Zwei Wächter sind deshalb rot (`verify:radar-hd` E2, `verify:regenradar-profile` E8) —
+   Freigabe oder Nein (dann Maske binär, Nähte hart an den neuen Linien).
+3. ~~**Rückwege:** `?nc=0` je Besucher; Producer `RADAR_NC=0`~~ — **28.10. umgedreht (§6 im Audit, dein Auftrag „ohne Schalter
+   byte-gleich"):** Client AUS bis `?nc=1` (alias `?chnc=1`, dein Wortlaut) bzw. `localStorage.radarnc = '1'`; Producer AUS bis
+   `RADAR_NC=1`. **Dein Schritt:** die Kopie von `scripts/radar-mirror/radar-mirror.mjs` im Daten-Repo (`6a7d113bd`) trägt noch
+   die alte Voreinstellung (an, sobald `main` den Vertrag hat) — vor dem Push von `main` die neue Kopie einspielen oder in
+   `radar.yml` bewusst `RADAR_NC=1` setzen (E-NC-4: Voreinstellung aus = Rule 2; Einschalten = deine Entscheidung).
+4. **E-NC-5 (28.10., umgesetzt, bitte bestätigen):** die Zugrichtung der CH-Hochrechnung ist jetzt EINE Verschiebung je Bildpaar
+   (Korrelation der 4×-vergröberten Bilder, Subpixel) statt des Horn–Schunck-Felds — das Feld ließ die Hochrechnung nach wenigen
+   Schritten stehen und maß 15–50 % zu langsam (V-NC-7, Messung `audit/radar-nowcast-dach/flow-scale.mjs`). Morph der Karte und
+   INCA-Zwischenbilder unverändert. Nein ⇒ `flowFromSeries` zurück auf `estimateMorphFlow` (ein Block in `radarNowcastExtrap.ts`).
+5. **Blaue Flecken Südschweiz (dein Befund 28.10.):** keine Radar-Farbe — es ist der Layer **Schnee** (Schneedecke ICON-D2 `h_snow`,
+   gesättigt auf Gletscherhöhe: Hover 3 502 m, „Niederschlag trocken"), der im Regenradar standardmäßig an ist und mit `snowRamp`
+   (Weiß→Blau) in derselben Farbfamilie wie leichter Regen liegt. Nicht geändert (Funktionserhalt). Vorschlag V-NC-8: im Profil
+   `radar` den Schnee-Layer standardmäßig aus ODER eine klar getrennte Palette — deine Wahl.
+6. **Offen:** V-NC-1 (Kreuzungspunkte INCA 120 / CH 60 min messen, ab ≥ 14 Tagen Produkten), V-NC-2 (RV-Reichweite statt Linie),
+   V-NC-3 (Sichtprüfung der Nähte an einem Regentag — 28.10. nur ohne Zug), V-NC-4 (Schraffur statt Schleier), V-NC-6 (Nord-CH:
+   DWD-RV statt rzc ist eine Qualitätsfrage), V-NC-9 (Mobil: INCA-Altersnotiz wird abgeschnitten).
+
+## 79. Autobahnwetter — Virtueller Fahrbahnsensor (Phase VS = AW-6.2, `audit/autobahnwetter.md` §20), 2026-10-27
+
+Zweig `feat/aw-6.2-virtueller-sensor`, ein Commit je Arbeitspaket; nichts davon ist live (`ROAD_VS_LIVE = false`, E-VS-2).
+
+1. **Recherche-Datei:** ~~fehlt~~ — liegt als `Fahrbahnzustand ohne Sensor.md` in der Repo-Wurzel (28.10., untracked). Soll sie nach
+   `audit/fahrbahnmodell-recherche.md` wandern und committet werden? Dann stelle ich das Register §20.6 von `set` auf `literature` um,
+   wo die Datei die Quelle nennt (V-VS-22).
+2. **Nummern:** E-AW-38…43 des Startprompts waren schon vergeben (§19.6) ⇒ die Entscheidungen heißen E-VS-1…6 (§20.1). Einspruch?
+3. **Sicht nach dem 30.11.2026:** der DWD nimmt VIS auch aus ICON-D2-RUC (§20.2 i). Vorschlag §20.3 (2): ab Dezember Sicht 0–48 h
+   aus eigener Diagnose + Messung + MOSMIX, RUC-VIS bis dahin nur als Lern-/Vergleichsgröße. Alternativ 6.2.6 zurückstellen.
+4. **E-VS-7 SWSMOS-Archiv gekürzt** (GMA-Schnittmenge, `TL TS TD RC`, 48 h ⇒ 223 KB gz je Lauf, ≈ 5,4 MB/Tag, ≈ 160 MB/Monat im
+   Archiv-Repo): so gebaut; Nein ⇒ Spalten/Horizont ändern, bevor der Workflow läuft.
+5. **Zweig auf GitHub:** beide Workflow-Vorlagen klonen `buscosun-web`. Vor dem Merge brauchen sie den Zweig auf `origin`
+   (`git push -u origin feat/aw-6.2-virtueller-sensor`) — dein Push. Danach spiele ich ein (deine Freigabe für Daten- und Archiv-Repo
+   liegt im Startprompt vor): `scripts/road/workflow-road-vs.yml` → `buscosun-data/.github/workflows/road-vs.yml` mit Repo-Variable
+   `ROAD_VS_WEB_REF = feat/aw-6.2-virtueller-sensor` (leer = main nach dem Merge); `scripts/punktarchiv-repo/workflow-road-archiv.yml` →
+   `buscosun-archiv/.github/workflows/road-archiv.yml` (Schritt „Archive SWSMOS", Sparse `road` + `swsmos`) — der Archivjob klont dann
+   ebenfalls den Zweig, bis gemerged ist (eine Zeile in der Vorlage, `--branch`). Ohne Schritt 5 sammelt niemand SWSMOS; der DWD hält 48 h.
+6. **Erster Volllauf des Antriebs** (nach 5): `workflow_dispatch` von `road-vs` oder lokal
+   `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/road/vs/build-forcing.mjs --data=C:\dev\buscosun-data --out=<Ordner>`
+   (ohne `--publish`), Log: Felder, `missing`, `outOfRange`, Größe, Zeit — Zahlen gehören in §20.7.
+7. **Rückwege:** Repo-Variable `ROAD_VS=0` (kein Antrieb), Schritt „Archive SWSMOS" entfernen (kein SWSMOS), `?roadvs=0` je Besucher
+   (wirkt erst, wenn die Seite den VS zeigt).
+8. **Ortsdatei (6.2.2):** `road/vs/v1/static/site.json.gz` (0,76 MB) liegt gebaut im lokalen Klon `C:\dev\buscosun-data`, noch nicht
+   gepusht; sie geht mit dem ersten Push der Linie ins Daten-Repo (Schritt 5), zusammen mit `static/cells.json` aus dem ersten
+   Antriebslauf. Neubau nur bei neuer Punktdatei: `build-site.mjs --data=… --cache=C:\dev\buscosun-road-publish\cache\glo30` (≈ 5 min,
+   1,3 GB GLO-30 aus dem Plattencache).
+9. **Dauerlauf (6.2.7) und Archiv:** die Vorlage `scripts/road/workflow-road-vs.yml` enthält jetzt zwei Schritte (Antrieb, dann
+   `run-vs.mjs --publish`; Sparse `road/fc/v1 road/v1 road/vs`), die `road-archiv`-Vorlage den Schritt „Archive virtual sensor"
+   (`archive-vs.mjs`, Daten-Klon sparse um `road/vs/v1` erweitert). Einspielen wie in Schritt 5. Erster Lauf lokal gemessen: Antrieb
+   117 s, Derive 191 s, 1 086 gekoppelte Stationen, Zustand 1,2 MB gz, Produkt 11 MB roh — acht Läufe am Tag ≈ 100 MB Commits im
+   Daten-Repo (V-VS-18, bei Bedarf Zustand/Produkt dünner).
+10. **Standortkorrektur lernen (ab ≈ 7 Tage Archiv):** `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/road/vs/build-residuals.mjs --archive=C:\dev\buscosun-archiv\road\vs\v1 --out=C:\dev\buscosun-data\road\vs\v1\static\residuals.json`,
+    dann Commit/Push des Daten-Repos (Weg V-WL-20). Ohne Tabelle rechnet der VS ohne Korrektur und sagt es im Kopf (`residuals: null`).
+11. **Prüfstand (6.2.8, ab ≈ 14 Tage Archiv, Gate G erst mit Winterdaten):** `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/road/vs/score-vs.mjs --vs=C:\dev\buscosun-archiv\road\vs\v1 --gma=C:\dev\buscosun-archiv\road\v1 --swsmos=C:\dev\buscosun-archiv\swsmos\v1 --out=audit\autobahnwetter\vs\score-<Datum>.json`
+    — Ergebnis mit allen Baselines in §20.14; danach entscheidest du die Gate-G-Schwellen (Vorschlag dort).
+12. **Nicht gebaut (bewusst, offen):** Modellflächen T/HHL für Bourgouin (V-VS-6); RUC-EPS-Memberanteil (gibt es im v1-Pfad nicht);
+    CDC-Sichtstationen für die Kalibrierung (V-VS-15); POI-Sicht (V-VS-14); gepooltes Gradient-Boosting (nach einem Winter, V-VS-12).
+    Die Verdrahtung in der Seite (V-VS-17) ist seit 28.10. gebaut (Schritt 13).
+13. **Anzeige prüfen (AW-6.2.9, E-VS-8, 28.10.) — ERLEDIGT 28.10. 10:00 UTC mit deiner Freigabe (§20.16):** Schritte 5, 8, 9 sind
+    eingespielt (Zweig auf `origin`, `road-vs.yml` + Ortsdatei + Zellindex im Daten-Repo `95a4306e5`, `road-archiv.yml` im Archiv
+    `ba0a83e`, Variable `ROAD_VS_WEB_REF` auf beiden Repos — nach dem Merge leeren), erster Lauf 2026102806 veröffentlicht, die fünf
+    Blicke belegt. Offen aus dem ersten Lauf: V-VS-25 (Messslot „nicht nutzbar" ⇒ 0 gekoppelt). Der Cron läuft ab 10:25 UTC alle 3 h;
+    Seite mit `?roadvs=1` (`ROAD_VS_LIVE` bleibt `false`; `?roadvs=0` schaltet zurück, `localStorage.roadvs` merkt sich die Wahl).
+    Was zu sehen ist: (a) eine Messstelle ohne gültigen Fahrbahnwert — Kopfzeile
+    „Fahrbahnsensor ausgefallen · virtueller Sensor", Wert mit Info-Zeichen, Badge in Klassenfarbe mit gestrichelter Umrandung,
+    Klick auf „i" öffnet die Herkunft; (b) ein Prognosepunkt — Hero „Fahrbahn · berechnet" über dem Luft-Hero, Verlauf 0 … 24 h;
+    (c) Strecke — gestrichelt umrandete Chips an Zeilen ohne Messung; (d) Karte — Marker mit hellem gestrichelten Innenring und Label
+    `~+1,2°`, Achsenpunkte in der Fahrbahn-Klassenfarbe; (e) Mobil 390 px — Info-Knopf treffbar (44 px). Kartenlegende ohne VS-Eintrag
+    (V-VS-19, nach dem AWD-Commit). Befunde in §20.16.

@@ -124,6 +124,12 @@ add('H1 rot bei nicht lesbarem Manifest', idOf(checkManifest('m', null, OPTS), '
   add('R3 rot ohne freigegebenen Slot', rid({ ...ok, lastPublishedSlot: null }, 'R3 freigegebener Slot')?.pass === false);
   add('R4 rot bei fehlendem Stationskatalog', rid({ ...ok, catalog: { state: 'missing' } }, 'R4 Katalog')?.pass === false);
   add('R4 grün bei veraltetem Katalog (alte Datei bleibt)', rid({ ...ok, catalog: { state: 'stale' } }, 'R4 Katalog')?.pass === true);
+  // R8 (AW-6.2.1): per-series freshness — 20 ok of 24 is the lock's number; 19 is red and names the dead series.
+  const grp = (nOk, nBad) => Object.fromEntries([...Array.from({ length: nOk }, (_, i) => [`G${i}-OK`, { state: 'ok', ageMin: 1, stations: 10 }]), ...Array.from({ length: nBad }, (_, i) => [`G${i}-XX`, { state: i % 2 ? 'missing' : 'stale', ageMin: i % 2 ? null : 95, stations: 0 }])]);
+  add('R8 grün bei 20 von 24 Reihen ok, nennt die vier anderen', (() => { const r = rid({ ...ok, groups: grp(20, 4) }, 'R8 GMA-Reihen'); return r?.pass === true && /G0-XX stale \(95 min\)/.test(r.detail) && /G1-XX missing/.test(r.detail); })());
+  add('R8 rot bei 19 von 24 Reihen ok', rid({ ...ok, groups: grp(19, 5) }, 'R8 GMA-Reihen')?.pass === false);
+  add('R8 fehlt ohne groups im Status (alte Form)', rid(ok, 'R8 GMA-Reihen') === undefined);
+  add('R8 grün bei Kill-Schalter trotz toter Reihen', rid({ ...ok, killSwitch: true, lastPublishedSlot: '2610030800', groups: grp(0, 24) }, 'R8 GMA-Reihen')?.pass === true);
   // A deliberate kill switch is not an outage — it must not mail every hour, but it is named.
   const killed = checkRoadStatus({ ...ok, killSwitch: true, lastPublishedSlot: '2610030800' }, ropts);
   add('Kill-Schalter: grün und benannt', killed.every((x) => x.pass) && killed.some((x) => /Kill/.test(x.detail ?? '')), killed.map((x) => `${x.id}:${x.pass}`).join(','));

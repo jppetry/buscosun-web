@@ -62,6 +62,9 @@ interface Props {
   fcDots?: readonly RoadFcDot[];
   /** Phase FB: computed road temperature (buscosun Fusion — Fahrbahn) of stations without a road measurement — their label, hatched marker stays. */
   fcRs?: ReadonlyMap<string, number>;
+  /** AW-6.2.9 (`?roadvs=1`): the virtual road sensor at stations without a road measurement — the marker takes the computed class
+   *  colour with a light inner ring („sieht aus wie ein Sensor", Jan 28.10.), the label `~+1,2°`. A measured station is never overridden. */
+  vsPoints?: ReadonlyMap<string, { tf: number; cls: RoadClass }>;
   /** V-AW-14: the radar layer reports its state (legend). */
   onRain?: (s: RoadRainState | null) => void;
   /** AW-8.3: hazard segments of the open corridor (behind the switch); a click opens the detail. */
@@ -111,8 +114,8 @@ function segFc(segs: readonly RoadSegLine[]): GeoJSON.FeatureCollection {
   };
 }
 
-/** One marker icon per class (+ grey "stale" variant): canvas, device pixel ratio 2. */
-function markerImage(cls: RoadClass, stale: boolean): ImageData {
+/** One marker icon per class (+ grey "stale" variant; AW-6.2.9: `vs` = computed, class colour with a light dashed inner ring): canvas, device pixel ratio 2. */
+function markerImage(cls: RoadClass, stale: boolean, vs = false): ImageData {
   const px = 30, r = 13;
   const c = document.createElement('canvas');
   c.width = px; c.height = px;
@@ -130,13 +133,20 @@ function markerImage(cls: RoadClass, stale: boolean): ImageData {
   }
   g.beginPath(); g.arc(px / 2, px / 2, r, 0, Math.PI * 2);
   g.lineWidth = 3; g.strokeStyle = '#0B0E12'; g.stroke();
+  if (vs) {
+    g.beginPath(); g.setLineDash([3, 2.5]); g.arc(px / 2, px / 2, r - 4.5, 0, Math.PI * 2);
+    g.lineWidth = 2; g.strokeStyle = '#FAF6EA'; g.stroke(); g.setLineDash([]);
+  }
   return g.getImageData(0, 0, px, px);
 }
 
 function installImages(map: maplibregl.Map) {
-  for (const cls of CLASSES) for (const stale of [false, true]) {
-    const id = `aw-${cls}${stale ? '-stale' : ''}`;
-    if (!map.hasImage(id)) map.addImage(id, markerImage(cls, stale), { pixelRatio: 2 });
+  for (const cls of CLASSES) {
+    for (const stale of [false, true]) {
+      const id = `aw-${cls}${stale ? '-stale' : ''}`;
+      if (!map.hasImage(id)) map.addImage(id, markerImage(cls, stale), { pixelRatio: 2 });
+    }
+    if (!map.hasImage(`aw-${cls}-vs`)) map.addImage(`aw-${cls}-vs`, markerImage(cls, false, true), { pixelRatio: 2 });
   }
 }
 
@@ -151,18 +161,20 @@ function corridorFc(corridors: readonly RoadCorridor[], sel: string | null): Geo
   };
 }
 
-function pointFc(points: readonly RoadPoint[], inC: ReadonlySet<string>, sel: string | null, stale: boolean, zust: boolean, fcRs?: ReadonlyMap<string, number>): GeoJSON.FeatureCollection {
+function pointFc(points: readonly RoadPoint[], inC: ReadonlySet<string>, sel: string | null, stale: boolean, zust: boolean, fcRs?: ReadonlyMap<string, number>, vsPoints?: ReadonlyMap<string, { tf: number; cls: RoadClass }>): GeoJSON.FeatureCollection {
   return {
     type: 'FeatureCollection',
     features: points.map((p) => {
-      const cls = zust ? p.cls : (p.cls === 'nodata' || p.cls === 'unknown' ? p.cls : 'dry');
+      // AW-6.2.9: a station without a road measurement takes the virtual sensor's class (its own marker variant), only when the switch delivers one.
+      const vs = p.rs == null ? vsPoints?.get(p.id) ?? null : null;
+      const cls = vs ? (zust ? vs.cls : 'dry') : zust ? p.cls : (p.cls === 'nodata' || p.cls === 'unknown' ? p.cls : 'dry');
       const neutral = !zust && cls === 'dry';
       return {
         type: 'Feature',
         properties: {
-          id: p.id, cls, icon: `aw-${cls}${stale || neutral ? '-stale' : ''}`,
+          id: p.id, cls, icon: vs && !stale && !neutral ? `aw-${cls}-vs` : `aw-${cls}${stale || neutral ? '-stale' : ''}`,
           inC: inC.has(p.id) ? 1 : 0, sel: p.id === sel ? 1 : 0,
-          label: p.rs != null ? `${f1(p.rs)}°` : fcRs?.has(p.id) ? `~${f1(fcRs.get(p.id) as number)}°` : p.ta != null ? `L ${f1(p.ta)}°` : '—',
+          label: p.rs != null ? `${f1(p.rs)}°` : vs ? `~${f1(vs.tf)}°` : fcRs?.has(p.id) ? `~${f1(fcRs.get(p.id) as number)}°` : p.ta != null ? `L ${f1(p.ta)}°` : '—',
           fog: p.vis != null && p.vis < 150 ? 1 : 0,
         },
         geometry: { type: 'Point', coordinates: [p.lon, p.lat] },
@@ -212,11 +224,11 @@ export default function RoadMap(props: Props) {
       else if (changed) src.setData(make());
     };
     const corrKey = [p.corridors, p.corridor?.id ?? null];
-    const ptsKey = [p.points, p.inCorridor, p.selectedId, p.stale, p.layers.zust, p.fcRs];
+    const ptsKey = [p.points, p.inCorridor, p.selectedId, p.stale, p.layers.zust, p.fcRs, p.vsPoints];
     const warnKey = p.layers.warn ? p.warnAreas : null;
     const same = (a: unknown[] | undefined, b: unknown[]) => !!a && a.length === b.length && a.every((v, i) => v === b[i]);
     set('aw-corridors', () => corridorFc(p.corridors, p.corridor?.id ?? null), !same(last.corr as unknown[] | undefined, corrKey));
-    set('aw-points', () => pointFc(p.points, p.inCorridor, p.selectedId, p.stale, p.layers.zust, p.fcRs), !same(last.pts, ptsKey));
+    set('aw-points', () => pointFc(p.points, p.inCorridor, p.selectedId, p.stale, p.layers.zust, p.fcRs, p.vsPoints), !same(last.pts, ptsKey));
     set('aw-warn', () => (warnKey ?? { type: 'FeatureCollection', features: [] }) as GeoJSON.FeatureCollection, last.warn !== warnKey);
     const dots = p.layers.fc ? (p.fcDots ?? NO_DOTS) : NO_DOTS;
     const fcKey = [dots, p.selectedId];

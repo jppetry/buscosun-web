@@ -129,9 +129,13 @@ import type { QuadCorners } from './scalar/RainLayer';
 import { fetchRzcLatest, type RadarFrame } from './sources/meteoSwissRadar';
 // GeoSphere INCA-Nowcast als Grid — AT-„jetzt..+3h"; danach ICON-D2.
 import { fetchIncaGrid, type IncaGrid } from './sources/geosphereIncaGrid';
-import { PrecipCompositor, pickCompositeFrames, countryMaskOffMain, flowCached, flowOffMain, type CompositeFrame, type CompositePick, type RvPastFrame } from './scalar/precipComposite';
+import { PrecipCompositor, pickCompositeFrames, countryMaskOffMain, zoneMaskOffMain, flowCached, flowOffMain, type CompositeFrame, type CompositePick, type RvPastFrame } from './scalar/precipComposite';
 // Phase HD (`audit/radar-hochaufloesung.md`): each country radar on its own 1-km grid behind `?hd=…`; off = byte-identical.
-import { radarHdFlagFrom, radarMorphFlagFrom, radarEdgeFlagFrom, radarDisplayMinFrom, applyDisplayMin, RADAR_HD_LAYER_IDS, RADAR_MORPH_FACTOR } from './scalar/radarHd';
+import { radarHdFlagFrom, radarMorphFlagFrom, radarEdgeFlagFrom, radarDisplayMinFrom, applyDisplayMin, RADAR_HD_LAYER_IDS, RADAR_MORPH_FACTOR, RADAR_HD_CH_UNKNOWN_LAYER_ID, RADAR_HD_UNKNOWN_RAMP } from './scalar/radarHd';
+// Phase NC (`audit/radar-nowcast-dach.md`): CH extrapolation + INCA refined to 5 min, zone masks with a transition band; off by default (`?nc=1` on).
+import { fetchRzcNowcast, fetchInca5m, type RzcNowcast, type Inca5mGrid } from './sources/radarNowcast';
+import { radarNcFlagFrom, RZC_NC_LABEL, INCA_5M_LABEL, RZC_NC_UNKNOWN_WORD } from './sources/radarNowcastImg';
+import { radarImgStamp as ncRadarImgStamp } from './sources/radarImg';
 // Phase R250 (`audit/radar-250m.md`): the RV analyses on 250-m tiles (DWD site radars) above the DE 1-km layer, `?hd250=0` = off.
 import { radarHd250FlagFrom, HD250_TILE_LIST, hd250LayerId, hd250VisibleTiles, hd250TileMesh, hd250TileCorners, hd250TileMask, hd250TileFlow, HD250_TILE_WARP_N, RADAR_HD250_MIN_ZOOM, onRadarHd250Pref, publishRadarHd250Note, radarHd250NoteText, type RadarHd250Note } from './scalar/radarHd250';
 import { Hd250Switch } from './components/Hd250Switch';
@@ -982,7 +986,7 @@ export default function MapView({
   // Fusion-Ladefehler (Phase A) → nicht-blockierender Indikator am Switch. Während
   // des normalen Ladens (noch kein Fehler, noch keine Daten) rendert still nativ.
   const [fusionError, setFusionError] = useState(false);
-  const layerRefs = useRef<{ wind?: WindLayer; temp?: ScalarLayer; gust?: ScalarLayer; clouds?: CloudLayer; precip?: ScalarLayer; rain?: RainLayer; confidence?: ConfidenceLayer; ki?: RainLayer; pop?: RainLayer; thunder?: ScalarLayer; lightningfc?: ScalarLayer; snow?: ScalarLayer; rotation?: ScalarLayer; hdDe?: RainLayer; hdAt?: RainLayer; hdCh?: RainLayer }>({});
+  const layerRefs = useRef<{ wind?: WindLayer; temp?: ScalarLayer; gust?: ScalarLayer; clouds?: CloudLayer; precip?: ScalarLayer; rain?: RainLayer; confidence?: ConfidenceLayer; ki?: RainLayer; pop?: RainLayer; thunder?: ScalarLayer; lightningfc?: ScalarLayer; snow?: ScalarLayer; rotation?: ScalarLayer; hdDe?: RainLayer; hdAt?: RainLayer; hdCh?: RainLayer; hdChUnknown?: RainLayer }>({});
   // Phase HD-1: switch read once per mount (URL/localStorage), ownership masks per native grid (worker), frame cache of the
   // profile per validity time and the morph buffers — all unused with the switch off.
   const hdRef = useRef(radarHdFlagFrom());
@@ -1059,6 +1063,10 @@ export default function MapView({
   const meteoRadarRef = useRef<RadarFrame | null>(null);
   // AT 0–3h: GeoSphere INCA-Nowcast-Grid (12 Frames, 15-min).
   const incaGridRef = useRef<IncaGrid | null>(null);
+  // Phase NC: the derived products — CH extrapolation of the analysis (24 × 5 min) and the INCA run refined to 5 min.
+  const rzcNcRef = useRef<RzcNowcast | null>(null);
+  const inca5Ref = useRef<Inca5mGrid | null>(null);
+  const ncRef = useRef(radarNcFlagFrom());
   // DACH-Komposit: mischt pro Karten-Zelle das richtige Landesradar (DE RADOLAN /
   // AT INCA / CH rzc) bzw. ICON-D2 — unabhängig vom gesuchten Ort.
   const compositorRef = useRef<PrecipCompositor | null>(null);
@@ -1239,6 +1247,7 @@ export default function MapView({
       radarDE: !!nowcastRef.current, // DE RADOLAN-RV
       radarAT: !!incaGridRef.current, // AT GeoSphere INCA
       radarCH: !!meteoRadarRef.current, // CH MeteoSchweiz rzc
+      radarCHNc: !!rzcNcRef.current,    // Phase NC: CH extrapolation (+2 h)
     };
   }
 
@@ -1583,9 +1592,11 @@ export default function MapView({
       new RainLayer({ id: RADAR_HD_LAYER_IDS.DE, colorRamp: precipRainRamp, opacity: 0.85, filter: hd.filter, edge: hdEdgeRef.current }),
       new RainLayer({ id: RADAR_HD_LAYER_IDS.AT, colorRamp: precipRainRamp, opacity: 0.85, filter: hd.filter, edge: hdEdgeRef.current }),
       new RainLayer({ id: RADAR_HD_LAYER_IDS.CH, colorRamp: precipRainRamp, opacity: 0.85, filter: hd.filter, edge: hdEdgeRef.current }),
+      // Phase NC: the grey veil over the unknown areas of the CH extrapolation (nearest texel, no edge rule, same zone mask).
+      new RainLayer({ id: RADAR_HD_CH_UNKNOWN_LAYER_ID, colorRamp: RADAR_HD_UNKNOWN_RAMP as Record<number, string>, opacity: 0, filter: 'nearest' }),
     ] : [];
     layerRefs.current = { wind, temp: tempLayer, gust: gustLayer, clouds: cloudLayer, precip: precipLayer, rain: rainLayer, confidence: confidenceLayer, ki: kiLayer, pop: popLayer, thunder: thunderLayer, lightningfc: lightningFcLayer, snow: snowLayer, rotation: rotationLayer,
-      ...(hd.on ? { hdDe: hdLayers[0], hdAt: hdLayers[1], hdCh: hdLayers[2] } : {}) };
+      ...(hd.on ? { hdDe: hdLayers[0], hdAt: hdLayers[1], hdCh: hdLayers[2], hdChUnknown: hdLayers[3] } : {}) };
     // Phase R250: one RainLayer per 250-m tile (log ramp — the tiles carry the HD-3 log byte), invisible until a tile is set.
     // Phase RA-250: created with HD whatever the switch says (a RainLayer without a frame draws nothing), so the switch can be
     // flipped at run time; with the switch off no frame is ever set and no tile requested.
@@ -1752,7 +1763,8 @@ export default function MapView({
         // Precip-Quelle (auch im Fusion-Modus); die Fusion-Modellhälfte ist raus.
         [NOWCAST_LAYER_ID]: active.has('nowcast') && precipFrameReady(forecastHour) && modelSourceRef.current.radar && !hdRef.current.on,
         // Phase HD-1: the native layers take the composite's place (same readiness rule); they only exist with the switch.
-        ...Object.fromEntries(Object.values(RADAR_HD_LAYER_IDS).map((id) => [
+        // Phase NC: the unknown veil of the CH extrapolation follows the same rule (opacity does the rest).
+        ...Object.fromEntries([...Object.values(RADAR_HD_LAYER_IDS), RADAR_HD_CH_UNKNOWN_LAYER_ID].map((id) => [
           id, hdRef.current.on && active.has('nowcast') && precipFrameReady(forecastHour) && modelSourceRef.current.radar,
         ])),
         // Phase R250: the 250-m tiles follow the DE 1-km layer's rule (they exist only with the switch; opacity does the rest).
@@ -2147,7 +2159,8 @@ export default function MapView({
     // Phase HD-1: ownership mask of the loaded grid (worker, memoised per grid); a tick redraws once it is there. Off = nothing.
     const hdMask = (c: 'DE' | 'AT' | 'CH', kind: 'radolan' | 'inca' | 'rzc', corners: QuadCorners, w: number, h: number) => {
       if (!hdRef.current.on) return;
-      void countryMaskOffMain(kind, corners, w, h).then((m) => {
+      // Phase NC: the zone mask (product split with a transition band) instead of the ownership mask by country.
+      void (ncRef.current ? zoneMaskOffMain : countryMaskOffMain)(kind, corners, w, h).then((m) => {
         if (abort.signal.aborted) return;
         hdMaskRef.current[c] = m;
         setNowcastTick((t) => t + 1);
@@ -2164,6 +2177,14 @@ export default function MapView({
         hoistRain();
         setNowcastTick((t) => t + 1);
         setCompositeStatus();
+        // Phase NC: the extrapolation behind the analysis (24 × 5 min) — after the analysis is on the map; null = as before.
+        if (ncRef.current) {
+          const nc = await fetchRzcNowcast(ncRadarImgStamp(meteoRadarRef.current.validAt.getTime()), abort.signal, prioFor('CH')).catch(() => null);
+          if (abort.signal.aborted) return;
+          rzcNcRef.current = nc;
+          setNowcastTick((t) => t + 1);
+          setCompositeStatus();
+        }
       } catch {
         if (!nowcastRef.current && !incaGridRef.current) updateStatus('nowcast', { err: 'MeteoSchweiz-Radar nicht erreichbar' });
       }
@@ -2206,6 +2227,14 @@ export default function MapView({
         hoistRain();
         setNowcastTick((t) => t + 1);
         setCompositeStatus();
+        // Phase NC: the run refined to 5 min (picked by validity time) — after the run is on the map; null = INCA by lead as before.
+        if (ncRef.current) {
+          const g5 = await fetchInca5m(incaGridRef.current.stamp ?? null, abort.signal, prioFor('AT')).catch(() => null);
+          if (abort.signal.aborted) return;
+          inca5Ref.current = g5;
+          setNowcastTick((t) => t + 1);
+          setCompositeStatus();
+        }
       } catch {
         if (!nowcastRef.current && !meteoRadarRef.current) updateStatus('nowcast', { err: 'GeoSphere INCA nicht erreichbar' });
       }
@@ -2240,8 +2269,14 @@ export default function MapView({
       if (nowcastRef.current ?? earlyRvRef.current) parts.push('DE RADOLAN');
       // Phase RA (`audit/radar-aufloesung.md` §2): what each radar can do on the time axis — INCA starts at +15 min and has
       // no analysis (so no look-back), rzc is a measurement without a nowcast (nothing beyond „jetzt").
-      if (incaGridRef.current) parts.push('AT INCA (ab +15 min, kein Rückblick)');
-      if (meteoRadarRef.current) parts.push('CH rzc (nur Messung)');
+      // Phase NC: the derived products say what they are — INCA refined to 5 min ("now" = the frame nearest to now, with the
+      // run's age), buscosun's extrapolation of the rzc analysis (+2 h, unknown areas grey); without them the words before.
+      if (inca5Ref.current) {
+        const ageMin = Math.max(0, Math.round((Date.now() - inca5Ref.current.refAt.getTime()) / 60_000));
+        parts.push(`AT ${INCA_5M_LABEL} (Lauf ${inca5Ref.current.refAt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}, vor ${ageMin} min; kein Rückblick)`);
+      } else if (incaGridRef.current) parts.push('AT INCA (ab +15 min, kein Rückblick)');
+      if (rzcNcRef.current) parts.push(`CH ${RZC_NC_LABEL} (bis +2 h, ${RZC_NC_UNKNOWN_WORD})`);
+      else if (meteoRadarRef.current) parts.push('CH rzc (nur Messung)');
       // Phase R250: the DE analyses come on 250-m tiles from the site radars (from zoom 9; measured 250 m radial × 1° azimuth).
       // Phase RG: the status names the display threshold (measured, `RADAR_DISPLAY_MIN_MMH`); `?rmin=` shows the compared value.
       const rminText = hdRef.current.on ? ` · ab ${rminRef.current.toFixed(2).replace('.', ',')} mm/h` : '';
@@ -3595,12 +3630,22 @@ export default function MapView({
       let next: { values: Uint8Array; width: number; height: number } | undefined = fr[0];
       for (const p of past) { if (next) pairs.push([p.values, next.values, p.width, p.height, 'DE']); next = p; }
     }
+    // Phase NC: the pairs of the derived products (5-min frames) where they are there, the run/analysis pairs otherwise.
+    const inca5 = inca5Ref.current;
     const inca = incaGridRef.current;
-    if (inca) {
+    if (inca5) {
+      const fr = inca5.frames;
+      for (let i = 0; i + 1 < fr.length; i++) pairs.push([fr[i].values, fr[i + 1].values, fr[i].width, fr[i].height, 'AT']);
+    } else if (inca) {
       const fr = [...inca.frames].sort((a, b) => a.leadHours - b.leadHours);
       for (let i = 0; i + 1 < fr.length; i++) pairs.push([fr[i].values, fr[i + 1].values, fr[i].width, fr[i].height, 'AT']);
     }
     const rzc = meteoRadarRef.current;
+    const rzcNc = rzcNcRef.current;
+    if (rzc && rzcNc) {
+      const fr = [rzc, ...rzcNc.frames];
+      for (let i = 0; i + 1 < fr.length; i++) pairs.push([fr[i].values, fr[i + 1].values, fr[i].width, fr[i].height, 'CH']);
+    }
     if (rzc) {
       const past = [...(radarPast?.rzc ?? [])].filter((p) => p.width === rzc.width && p.height === rzc.height).sort((a, b) => b.validAt.getTime() - a.validAt.getTime());
       let next: { values: Uint8Array; width: number; height: number } = rzc;
@@ -3668,6 +3713,16 @@ export default function MapView({
       show(L.hdCh, pick?.rzc
         ? { values: plane(pick.rzc)!, width: pick.rzc.width, height: pick.rzc.height, corners: pick.rzc.corners, warpLnglat: rzcWarpMesh(pick.rzc.corners), warpN: RZC_WARP_N, mask: masks.CH ?? null }
         : null, !!pick?.rzc?.values2, morphs.CH);
+      // Phase NC: the unknown areas of the CH extrapolation frame as a grey veil (same grid, same zone mask); an analysis has none.
+      const unk = L.hdChUnknown;
+      if (unk) {
+        const u = pick?.rzc?.unknown;
+        if (u && pick?.rzc) {
+          unk.setFrame({ values: u, width: pick.rzc.width, height: pick.rzc.height, corners: pick.rzc.corners, warpLnglat: rzcWarpMesh(pick.rzc.corners), warpN: RZC_WARP_N, mask: masks.CH ?? null });
+          unk.setMorph(null);
+          if (unk.opacity !== 1) { unk.opacity = 1; mapRef.current?.triggerRepaint(); }
+        } else if (unk.opacity !== 0) { unk.opacity = 0; mapRef.current?.triggerRepaint(); }
+      }
     };
     // Phase R250 (`audit/radar-250m.md` §6): the 250-m tiles of the RV ANALYSES above the DE 1-km layer — only from zoom 9
     // and only when every tile in view is resolved (decoded or dry) for the shown slot(s); until then, and between an
@@ -3795,6 +3850,7 @@ export default function MapView({
         const input = radarProfileComposite(ms, now, {
           rv: rvFor(true), inca: incaGridRef.current, rzc: meteoRadarRef.current,
           rvPast: radarPast?.rv ?? null, rzcPast: radarPast?.rzc ?? null,
+          rzcNc: rzcNcRef.current, inca5: inca5Ref.current,
         });
         const f = compositor.build(input.h, input.sources, now);
         cache.set(ms, f);
@@ -3829,6 +3885,7 @@ export default function MapView({
           const input = radarProfileComposite(ms, now, {
             rv: rvFor(true), inca: incaGridRef.current, rzc: meteoRadarRef.current,
             rvPast: radarPast?.rv ?? null, rzcPast: radarPast?.rzc ?? null,
+            rzcNc: rzcNcRef.current, inca5: inca5Ref.current,
           });
           const p = pickCompositeFrames(input.h, input.sources, now);
           hdCache.set(ms, p);
@@ -3926,17 +3983,17 @@ export default function MapView({
     // Das Warp-Mesh ist auch für dieses reguläre lat/lon-Gitter PFLICHT: ohne
     // es interpoliert der RainLayer das Quad linear in Mercator und der Regen
     // lag bis 30 km zu weit nördlich (§14 `audit/karten-layer-verortung.md`).
-    const frame = compositorRef.current.build(forecastHour, {
-      rv: rvFor(forecastHour === 0), inca: incaGridRef.current, rzc: meteoRadarRef.current,
-    }, Date.now());
+    // Phase NC: AT/CH by validity time (now + h) from the derived products when they are there.
+    const mapSources = { rv: rvFor(forecastHour === 0), inca: incaGridRef.current, rzc: meteoRadarRef.current, rzcNc: rzcNcRef.current, inca5: inca5Ref.current };
+    const frame = compositorRef.current.build(forecastHour, mapSources, Date.now());
     rain.setFrame({
       values: frame.values, width: frame.width, height: frame.height, corners: frame.corners,
       warpLnglat: frame.warpLnglat, warpN: frame.warpN, warpRows: frame.warpRows,
     });
-    if (hd.on) syncHd(pickCompositeFrames(forecastHour, { rv: rvFor(forecastHour === 0), inca: incaGridRef.current, rzc: meteoRadarRef.current }, Date.now()));
+    if (hd.on) syncHd(pickCompositeFrames(forecastHour, mapSources, Date.now()));
     // Phase R250: only the analysis (slider at „jetzt") is an RV analysis ⇒ tiles; every other hour stays 1 km.
     if (hd.on) {
-      const pw = pickCompositeFrames(forecastHour, { rv: rvFor(forecastHour === 0), inca: incaGridRef.current, rzc: meteoRadarRef.current }, Date.now());
+      const pw = pickCompositeFrames(forecastHour, mapSources, Date.now());
       syncHd250(pw.rv, pw.rv, 0);
     }
     // Phase RR: `timeMs`/`profileMorphKey`/`radarPast` ändern sich nur im Profil — ohne Profil keine zusätzlichen Läufe.
@@ -4471,7 +4528,8 @@ export default function MapView({
         // Precip-Quelle (auch im Fusion-Modus); die Fusion-Modellhälfte ist raus.
         [NOWCAST_LAYER_ID]: active.has('nowcast') && precipFrameReady(forecastHour) && modelSourceRef.current.radar && !hdRef.current.on,
         // Phase HD-1: the native layers take the composite's place (same readiness rule); they only exist with the switch.
-        ...Object.fromEntries(Object.values(RADAR_HD_LAYER_IDS).map((id) => [
+        // Phase NC: the unknown veil of the CH extrapolation follows the same rule (opacity does the rest).
+        ...Object.fromEntries([...Object.values(RADAR_HD_LAYER_IDS), RADAR_HD_CH_UNKNOWN_LAYER_ID].map((id) => [
           id, hdRef.current.on && active.has('nowcast') && precipFrameReady(forecastHour) && modelSourceRef.current.radar,
         ])),
         // Phase R250: the 250-m tiles follow the DE 1-km layer's rule (they exist only with the switch; opacity does the rest).
@@ -4701,11 +4759,18 @@ export default function MapView({
 
   // Phase DB (E-DB-2): mit Umschalter rückt mobil der Chip „Über diese Ansicht" mit der Modell-Pille eine Zeile tiefer
   // (mapDeck.css) — Klasse am body, weil der Chip außerhalb von `.mdk-root` liegt.
+  // Jan 27.10.: ohne gewählten Ort (`overview`) zeigt die mobile Karte weder den Umschalter noch den Chip „Über diese Ansicht".
+  const mobileViewToggle = !!onOpenDashboard && !overview;
   useEffect(() => {
-    if (!onOpenDashboard) return;
+    if (!mobileViewToggle) return;
     document.body.classList.add('mdk-viewtoggle-on');
     return () => document.body.classList.remove('mdk-viewtoggle-on');
-  }, [onOpenDashboard]);
+  }, [mobileViewToggle]);
+  useEffect(() => {
+    if (!overview || embedded) return;
+    document.body.classList.add('mdk-noplace');
+    return () => document.body.classList.remove('mdk-noplace');
+  }, [overview, embedded]);
 
   // Phase DB (E-DB-5): hinter dem Dashboard kein GPU-Dauerloop — Wind-Repaint anhalten, Wiedergabe stoppen.
   // MapLibre selbst rendert nur auf Anstoß; Datenabrufe laufen weiter, damit die Karte beim Zurückwechseln aktuell ist.
@@ -5686,7 +5751,7 @@ export default function MapView({
 
   return (
     <div
-      className={`mdk-root${suspended ? ' mdk-suspended' : ''}${onOpenDashboard ? ' mdk-has-viewtoggle' : ''}`}
+      className={`mdk-root${suspended ? ' mdk-suspended' : ''}${mobileViewToggle ? ' mdk-has-viewtoggle' : ''}`}
       style={{ '--mdk-bar-h': '64px' } as React.CSSProperties}
       inert={suspended || undefined}
       aria-hidden={suspended || undefined}
@@ -5850,7 +5915,7 @@ export default function MapView({
                   </div>
                 )}
                 <ShareButton className="mdk-m-share" compact />
-                {onOpenDashboard && (
+                {mobileViewToggle && (
                   <ViewToggle active="karte" variant="mobile" className="mdk-m-viewtoggle" onSelect={(v) => { if (v === 'dashboard') onOpenDashboard(); }} />
                 )}
               </div>
@@ -6073,7 +6138,7 @@ export default function MapView({
               { key: 'layer', label: 'Layer', ico: <IcoRows /> },
               { key: 'forecast', label: 'Forecast', ico: <IcoTrend size={22} /> },
               { key: 'modelle', label: 'Modelle', ico: <IcoGlobe size={22} /> },
-            ] as const).filter(t => MODEL_SWITCHER_VISIBLE || t.key !== 'modelle').map(t => (
+            ] as const).filter(t => (MODEL_SWITCHER_VISIBLE || t.key !== 'modelle') && t.key !== 'nowcast' && t.key !== 'forecast' /* Jan 27.10.: Nowcast + Forecast aus der Leiste (Radar: Layer „Niederschlag", Regenradar-Seite) */).map(t => (
               <button
                 key={t.key}
                 type="button"

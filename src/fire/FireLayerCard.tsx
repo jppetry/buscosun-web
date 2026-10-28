@@ -46,6 +46,15 @@ function Scale({ from, to }: { from: string; to: string }) {
 function Row({ swatch, label }: { swatch: ReactNode; label: string }) {
   return <div className="fire-li-row">{swatch}<span>{label}</span></div>;
 }
+/** Bezug/Quelle einer Legende — eingeklappt, damit die Skala kompakt bleibt. */
+function RefNote({ text }: { text: string }) {
+  return (
+    <details className="fire-li-refd">
+      <summary>Bezug &amp; Quelle</summary>
+      <span className="fire-li-ref">{text}</span>
+    </details>
+  );
+}
 
 /* Repräsentative Skalen — gespiegelt aus den Stufenfarben in `fireModel.ts`
  * (EU/DE/CH teilen die abgeleitete Farbreihe) bzw. der Layer-Einfärbung. */
@@ -83,6 +92,9 @@ function DangerClasses({ view, compact }: { view: DangerView; compact?: boolean 
   return (
     <div className={`fire-li-classes${compact ? ' is-compact' : ''}`}>
       <span className="fire-li-unit">{m.unit}</span>
+      <div className="fire-li-stepbar" aria-hidden="true">
+        {m.classes.map((c, i) => <i key={c.name} style={{ background: DANGER_STEPS[i] }} />)}
+      </div>
       <ol>
         {m.classes.map((c, i) => (
           <li key={c.name}>
@@ -92,7 +104,7 @@ function DangerClasses({ view, compact }: { view: DangerView; compact?: boolean 
           </li>
         ))}
       </ol>
-      <span className="fire-li-ref">{m.reference}</span>
+      <RefNote text={m.reference} />
     </div>
   );
 }
@@ -159,9 +171,7 @@ export function soilDrynessInfoFor(mode: SoilDrynessMode): FireLayerInfo {
               </li>
             ))}
           </ol>
-          <span className="fire-li-ref">
-            0 = Welkepunkt · 1 = Feldkapazität · DWD ICON-D2, Bodenschema TERRA
-          </span>
+          <RefNote text="0 = Welkepunkt · 1 = Feldkapazität · DWD ICON-D2, Bodenschema TERRA" />
         </div>
       </>
     ),

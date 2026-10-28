@@ -21,6 +21,10 @@ import { fetchIncaGrid } from '../sources/geosphereIncaGrid';
 import { incaWarpMesh, INCA_WARP_N } from '../sources/geosphereIncaGeo';
 import { fetchRzcLatest, fetchRzcAnalysisSequence } from '../sources/meteoSwissRadar';
 import { rzcWarpMesh, RZC_WARP_N } from '../sources/meteoSwissGeo';
+// Phase NC (`audit/radar-nowcast-dach.md`): AT refined to 5 min, CH analysis + extrapolation — 25 steps from now to +2 h like DE.
+import { fetchRzcNowcast, fetchInca5m } from '../sources/radarNowcast';
+import { radarImgStamp } from '../sources/radarImg';
+import { RZC_NC_LABEL, RZC_NC_ATTRIBUTION, INCA_5M_LABEL, INCA_5M_ATTRIBUTION, NC_CROSSOVER_MIN, RZC_NC_UNKNOWN_WORD } from '../sources/radarNowcastImg';
 
 export type RadarSourceId = 'radolan_rv' | 'inca_grid' | 'meteoswiss_rzc';
 
@@ -37,6 +41,8 @@ export interface RadarFrame {
   leadMinutes: number;
   /** gemessene Analyse (true) vs. extrapolierter Nowcast (false). */
   measured: boolean;
+  /** Phase NC (CH extrapolation): 255 = unknown — rain could come from beyond the radar grid; absent on every other frame. */
+  unknown?: Uint8Array;
 }
 
 export interface RadarStack {
@@ -62,6 +68,11 @@ export interface RadarStack {
   warpN?: number;
   /** Zeilen des Meshs, falls ≠ warpN (lat/lon-Quads unterteilen nur in Breite, §15). */
   warpRows?: number;
+  /** Phase NC: honest words for the deck — what "now" is (AT: the INCA frame nearest to now, with its run and age), the
+   *  weaknesses of the CH extrapolation, the unknown areas. Absent = the stand before Phase NC. */
+  ageNote?: string;
+  caveats?: string[];
+  unknownNote?: string;
 }
 
 const SRC_LABEL: Record<RadarSourceId, string> = {
@@ -187,8 +198,27 @@ async function loadDe(signal?: AbortSignal): Promise<RadarStack> {
   return { ...assemble('DE', 'radolan_rv', rv.corners, [...past, ...nowcast], runAtMs, 5, 120), warpLnglat: de1200WarpMesh(), warpN: DE1200_WARP_N };
 }
 
+/** Phase NC: the 2-h window of the AT stack counts from now — frames valid up to now + 2 h (+ half a step); none before now. */
+const NC_WINDOW_MS = 120 * 60_000 + 2.5 * 60_000;
+const fmtClock = (ms: number) => new Date(ms).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+
 async function loadAt(signal?: AbortSignal): Promise<RadarStack> {
   const grid = await fetchIncaGrid(signal);
+  // Phase NC: the run refined to 5 min, picked by VALIDITY time (reftime + lead) — "now" = the frame nearest to now, with its age.
+  const inca5 = await fetchInca5m(grid.stamp ?? null, signal).catch(() => null);
+  if (inca5 && inca5.frames.length) {
+    const now = Date.now();
+    const frames: RadarFrame[] = inca5.frames
+      .filter((f) => f.validAt.getTime() >= now - 2.5 * 60_000 && f.validAt.getTime() <= now + NC_WINDOW_MS)
+      .map((f) => ({ values: f.values, ...(f.values2 ? { values2: f.values2 } : {}), width: f.width, height: f.height, timeMs: f.validAt.getTime(), leadMinutes: Math.round((f.validAt.getTime() - now) / 60_000), measured: false }));
+    if (frames.length) {
+      const st = assemble('AT', 'inca_grid', inca5.corners, frames, now, 5, NC_CROSSOVER_MIN.inca_grid, { nowNearest: now, label: INCA_5M_LABEL, attribution: INCA_5M_ATTRIBUTION });
+      const nowFrame = st.frames[st.nowIndex];
+      const ageMin = Math.max(0, Math.round((now - inca5.refAt.getTime()) / 60_000));
+      st.ageNote = `INCA-Lauf ${fmtClock(inca5.refAt.getTime())} (vor ${ageMin} min) · „jetzt" = Bild gültig ${fmtClock(nowFrame.timeMs)} · ${inca5.note}`;
+      return { ...st, warpLnglat: incaWarpMesh(inca5.corners), warpN: INCA_WARP_N };
+    }
+  }
   const anchor = Date.now() - (Date.now() % 60_000);
   const nowcast: RadarFrame[] = grid.frames.map((f) => {
     const leadMinutes = Math.round(f.leadHours * 60);
@@ -209,6 +239,18 @@ async function loadCh(signal?: AbortSignal): Promise<RadarStack> {
   rememberMeasured('meteoswiss_rzc', { timeMs: t, values: fr.values, ...(fr.values2 ? { values2: fr.values2 } : {}), width: fr.width, height: fr.height });
   const analysis: RadarFrame = { values: fr.values, ...(fr.values2 ? { values2: fr.values2 } : {}), width: fr.width, height: fr.height, timeMs: t, leadMinutes: 0, measured: true };
   const past = pastFrames('meteoswiss_rzc', t);
+  // Phase NC: buscosun's extrapolation behind the analysis — 24 × 5 min, by validity time, each with its unknown mask.
+  const nc = await fetchRzcNowcast(radarImgStamp(t), signal).catch(() => null);
+  if (nc && nc.frames.length) {
+    const fut: RadarFrame[] = nc.frames
+      .filter((f) => f.validAt.getTime() > t)
+      .map((f) => ({ values: f.values, ...(f.values2 ? { values2: f.values2 } : {}), width: f.width, height: f.height, timeMs: f.validAt.getTime(), leadMinutes: Math.round((f.validAt.getTime() - t) / 60_000), measured: false, unknown: f.unknown }));
+    const st = assemble('CH', 'meteoswiss_rzc', fr.corners, [...past, analysis, ...fut], t, 5, NC_CROSSOVER_MIN.meteoswiss_rzc, { label: RZC_NC_LABEL, attribution: RZC_NC_ATTRIBUTION });
+    st.caveats = nc.caveats;
+    st.unknownNote = RZC_NC_UNKNOWN_WORD;
+    st.ageNote = `Analyse ${fmtClock(t)} · Zugrichtung aus ${nc.series.length} Bildern: ${nc.motion.speedKmh.toFixed(0).replace('.', ',')} km/h${nc.motion.fromDeg != null ? ` aus ${nc.motion.fromDeg}°` : ' (keine Bewegung messbar)'}`;
+    return { ...st, warpLnglat: rzcWarpMesh(fr.corners), warpN: RZC_WARP_N };
+  }
   // LV95/somerc-Gitter → projektionskorrektes Warp-Mesh (RP2, s. loadAt).
   return {
     ...assemble('CH', 'meteoswiss_rzc', fr.corners, [...past, analysis], t, 5, 0),
@@ -219,15 +261,21 @@ async function loadCh(signal?: AbortSignal): Promise<RadarStack> {
 function assemble(
   country: Country, source: RadarSourceId, corners: QuadCorners,
   frames: RadarFrame[], runAtMs: number, stepMin: number, skillMin: number,
+  opts: { nowNearest?: number; label?: string; attribution?: string } = {},
 ): RadarStack {
   frames.sort((a, b) => a.timeMs - b.timeMs);
   let nowIndex = frames.findIndex((f) => f.leadMinutes === 0);
+  if (opts.nowNearest != null) {
+    // Phase NC (AT): „jetzt" = the frame whose validity is nearest to now.
+    let bd = Infinity;
+    frames.forEach((f, i) => { const d = Math.abs(f.timeMs - opts.nowNearest!); if (d < bd) { bd = d; nowIndex = i; } });
+  }
   if (nowIndex < 0) {
     // kein lead-0-Frame (AT): „jetzt" = erster Frame.
     nowIndex = 0;
   }
   return {
-    country, source, sourceLabel: SRC_LABEL[source], attribution: SRC_ATTR[source],
+    country, source, sourceLabel: opts.label ?? SRC_LABEL[source], attribution: opts.attribution ?? SRC_ATTR[source],
     corners, frames, nowIndex, runAtMs, fetchedAtMs: Date.now(), stepMin, skillMin,
   };
 }

@@ -51,6 +51,8 @@ export {
  */
 export const RADAR_IMG_KEEP: Readonly<Record<string, number>> = Object.freeze({
   rv: 12, inca: 12, 'rv-past': RV_PAST_KEEP, rzc: 24, konrad3d: 24, 'lightning-de': 24, 'lightning-mtg': 24,
+  // Phase NC (`radarNowcastImg.ts`): the derived nowcast products, count rule like `rv`/`inca` (the client reads the newest).
+  'rzc-nc': 12, 'inca-5m': 12,
 });
 /** Quellen mit Altersregel (alle anderen: Zählregel). */
 export const RADAR_IMG_AGE_RULE: readonly string[] = Object.freeze(['rv-past', 'rzc', 'konrad3d', 'lightning-de', 'lightning-mtg']);

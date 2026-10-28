@@ -27,13 +27,16 @@
 import { countryRowPicker } from '../pointForecast/countryOfPoint';
 import { G, buildIndexMap, buildCompositeIndexMap, gridLatLon, type GridKind } from './precipIndexMap';
 import { countryMaskForGrid, type HdGridKind } from './radarCountryMask';
+import { zoneMaskForGrid } from './radarZones';
 import { estimateMorphFlow } from './radarMorphFlow';
 import type { QuadCorners, RainFlow } from './RainLayer';
 import { quadWarpMesh, quadWarpRows, QUAD_WARP_COLS } from './quadWarpMesh';
 import type { RvNowcast } from '../sources/radolan';
-import type { IncaGrid } from '../sources/geosphereIncaGrid';
+import type { IncaGrid, IncaFrame } from '../sources/geosphereIncaGrid';
 import type { RadarFrame } from '../sources/meteoSwissRadar';
 import type { IconD2Precip } from '../sources/iconD2Precip';
+import type { RzcNowcast, Inca5mGrid } from '../sources/radarNowcast';
+import { NC_PICK_TOL_MS } from '../sources/radarNowcastImg';
 
 /** Ecken [NW, NE, SE, SW] für RainLayer.setFrame (north-up). */
 export const COMPOSITE_CORNERS: QuadCorners = [
@@ -76,7 +79,18 @@ export interface CompositeSources {
    * field `build()` is byte-identical to before (RV frame by lead from the run, as the Wetterkarte slider uses it).
    */
   rvPast?: ReadonlyArray<RvPastFrame> | null;
+  /**
+   * Phase NC (`audit/radar-nowcast-dach.md`): the CH extrapolation of the rzc analysis (`rzc-nc`) and the INCA run refined to
+   * 5 min (`inca-5m`). When present, `pickCompositeFrames` picks AT and CH by VALIDITY TIME (the asked time = now + h) like RV:
+   * CH = the analysis at its own time, else the extrapolation frame nearest to the asked time (within `NC_PICK_TOL_MS`), else
+   * nothing; AT = the refined frame nearest to the asked time, else nothing. Without them the rules before Phase NC hold.
+   */
+  rzcNc?: RzcNowcast | null;
+  inca5?: Inca5mGrid | null;
 }
+
+/** Phase NC: a CH frame of the pick — the analysis or an extrapolation frame (then with its unknown mask and lead). */
+export type ChPickFrame = RadarFrame & { unknown?: Uint8Array; leadMinutes?: number };
 
 /** One measured RV analysis of the look-back (Phase RR). `values2` (Phase SE, V-SE-3): its log plane when the slot
  *  carries one — the HD DE layer then draws the look-back from the same plane as „jetzt". */
@@ -167,22 +181,30 @@ async function buildIndexMapOffMain(corners: QuadCorners, sCols: number, sRows: 
  */
 const hdMasks = new Map<string, Promise<Uint8Array>>();
 export function countryMaskOffMain(kind: HdGridKind, corners: QuadCorners, sCols: number, sRows: number): Promise<Uint8Array> {
-  const key = `${kind}:${sCols}x${sRows}:${corners[0][0]},${corners[0][1]}`;
+  return maskOffMain('mask', kind, corners, sCols, sRows);
+}
+/** Phase NC: the weight mask of the grid's radar product (`zoneMaskForGrid`) — same pool, same fallback, own memo key. */
+export function zoneMaskOffMain(kind: HdGridKind, corners: QuadCorners, sCols: number, sRows: number): Promise<Uint8Array> {
+  return maskOffMain('zone', kind, corners, sCols, sRows);
+}
+function maskOffMain(op: 'mask' | 'zone', kind: HdGridKind, corners: QuadCorners, sCols: number, sRows: number): Promise<Uint8Array> {
+  const key = `${op}:${kind}:${sCols}x${sRows}:${corners[0][0]},${corners[0][1]}`;
   const hit = hdMasks.get(key);
   if (hit) return hit;
+  const onMain = () => (op === 'zone' ? zoneMaskForGrid(kind, corners, sCols, sRows) : countryMaskForGrid(kind, corners, sCols, sRows));
   const p = (async () => {
     piInit();
-    if (!piUsable || piWorkers.length === 0) return countryMaskForGrid(kind, corners, sCols, sRows);
+    if (!piUsable || piWorkers.length === 0) return onMain();
     const w = piWorkers[piRr++ % piWorkers.length];
     const id = piNextId++;
     try {
       return await new Promise<Uint8Array>((resolve, reject) => {
         piPending.set(id, { resolve: resolve as (r: Int32Array | Uint8Array) => void, reject });
-        w.postMessage({ id, op: 'mask', corners, sCols, sRows, grid: kind });
+        w.postMessage({ id, op, corners, sCols, sRows, grid: kind });
       });
     } catch {
       piPending.delete(id);
-      return countryMaskForGrid(kind, corners, sCols, sRows);
+      return onMain();
     }
   })();
   hdMasks.set(key, p);
@@ -234,18 +256,49 @@ export function flowOffMain(a: Uint8Array, b: Uint8Array, w: number, h: number, 
 export interface CompositePick {
   /** `values2` (HD-3): Log-Ebene, wenn der Frame eine trägt. */
   rv: { values: Uint8Array; values2?: Uint8Array } | null;
-  inca: IncaGrid['frames'][number] | null;
-  rzc: RadarFrame | null;
+  inca: IncaFrame | null;
+  rzc: ChPickFrame | null;
   d2: IconD2Precip['frames'][number] | null;
 }
 export function pickCompositeFrames(h: number, s: CompositeSources, nowMs: number): CompositePick {
+  const target = nowMs + h * 3600_000;
   const rv = s.rvPast != null
-    ? rvAtValidTime(s.rv ?? null, s.rvPast, nowMs + h * 3600_000)
+    ? rvAtValidTime(s.rv ?? null, s.rvPast, target)
     : h <= RV_MAX_H + 1e-6 && s.rv?.frames.length ? nearestBy(s.rv.frames, (f) => Math.abs(f.leadMinutes - h * 60)) : null;
-  const inca = h <= INCA_MAX_H + 1e-6 && s.inca?.frames.length ? nearestBy(s.inca.frames, (f) => Math.abs(f.leadHours - h)) : null;
-  const rzc = h < RZC_MAX_H && s.rzc ? s.rzc : null;
-  const d2 = s.d2?.frames.length ? nearestBy(s.d2.frames, (f) => Math.abs(f.validAt.getTime() - (nowMs + h * 3600_000))) : null;
+  // Phase NC: AT and CH by validity time when the derived products are there (the rules before Phase NC otherwise).
+  const inca = s.inca5
+    ? inca5AtValidTime(s.inca5, target)
+    : h <= INCA_MAX_H + 1e-6 && s.inca?.frames.length ? nearestBy(s.inca.frames, (f) => Math.abs(f.leadHours - h)) : null;
+  const rzc = s.rzcNc
+    ? rzcNcAtValidTime(s.rzc ?? null, s.rzcNc, target)
+    : h < RZC_MAX_H && s.rzc ? s.rzc : null;
+  const d2 = s.d2?.frames.length ? nearestBy(s.d2.frames, (f) => Math.abs(f.validAt.getTime() - target)) : null;
   return { rv, inca, rzc, d2 };
+}
+
+/** Phase NC: the refined INCA frame valid nearest to `targetMs` (within `NC_PICK_TOL_MS`), as an `IncaFrame`; else null. */
+function inca5AtValidTime(g: Inca5mGrid, targetMs: number): IncaFrame | null {
+  let best: Inca5mGrid['frames'][number] | null = null, bd = Infinity;
+  for (const f of g.frames) { const d = Math.abs(f.validAt.getTime() - targetMs); if (d < bd) { bd = d; best = f; } }
+  if (!best || bd > NC_PICK_TOL_MS) return null;
+  return { leadHours: best.leadMinutes / 60, values: best.values, ...(best.values2 ? { values2: best.values2 } : {}), width: best.width, height: best.height };
+}
+
+/**
+ * Phase NC: CH at `targetMs` — the analysis when the asked time is its own (within the tolerance), else the extrapolation frame
+ * nearest to it (within the tolerance, after the analysis), else null. The measured frame wins over the shifted one at "now".
+ */
+function rzcNcAtValidTime(analysis: RadarFrame | null, nc: RzcNowcast, targetMs: number): ChPickFrame | null {
+  const aMs = analysis ? analysis.validAt.getTime() : nc.analysisAt.getTime();
+  if (analysis && Math.abs(targetMs - aMs) <= NC_PICK_TOL_MS) return analysis;
+  if (targetMs < aMs) return analysis && Math.abs(targetMs - aMs) <= NC_PICK_TOL_MS ? analysis : null;
+  let best: RzcNowcast['frames'][number] | null = null, bd = Infinity;
+  for (const f of nc.frames) { const d = Math.abs(f.validAt.getTime() - targetMs); if (d < bd) { bd = d; best = f; } }
+  if (!best || bd > NC_PICK_TOL_MS) return null;
+  return {
+    values: best.values, ...(best.values2 ? { values2: best.values2 } : {}), width: best.width, height: best.height,
+    corners: nc.corners, validAt: best.validAt, unknown: best.unknown, leadMinutes: best.leadMinutes,
+  };
 }
 
 /**
@@ -284,13 +337,13 @@ export class PrecipCompositor {
     this.deIdx = buildIndexMap(rv.corners, f.width, f.height, this.lat, this.lon, 'radolan');
     this.deKey = key;
   }
-  private ensureAt(inca: IncaGrid) {
-    const f = inca.frames[0]; const key = `${f.width}x${f.height}:${inca.corners[0][0]}`;
+  private ensureAt(corners: QuadCorners, f: { width: number; height: number }) {
+    const key = `${f.width}x${f.height}:${corners[0][0]}`;
     if (key === this.atKey && this.atIdx) return;
-    this.atIdx = buildIndexMap(inca.corners, f.width, f.height, this.lat, this.lon, 'inca');
+    this.atIdx = buildIndexMap(corners, f.width, f.height, this.lat, this.lon, 'inca');
     this.atKey = key;
   }
-  private ensureCh(rzc: RadarFrame) {
+  private ensureCh(rzc: { width: number; height: number; corners: QuadCorners }) {
     const key = `${rzc.width}x${rzc.height}:${rzc.corners[0][0]}`;
     if (key === this.chKey && this.chIdx) return;
     this.chIdx = buildIndexMap(rzc.corners, rzc.width, rzc.height, this.lat, this.lon, 'rzc');
@@ -341,8 +394,9 @@ export class PrecipCompositor {
     const { rv, inca, rzc, d2 } = pickCompositeFrames(h, s, nowMs);
 
     if (rv) this.ensureDe(s.rv!);
-    if (inca) this.ensureAt(s.inca!);
-    if (rzc) this.ensureCh(s.rzc!);
+    // Phase NC: the refined/extrapolated frames lie on the same grids as the run/analysis (same corners, same size).
+    if (inca) this.ensureAt((s.inca ?? s.inca5)!.corners, inca);
+    if (rzc) this.ensureCh(rzc);
     if (d2) this.ensureD2(s.d2!);
 
     for (let i = 0; i < out.length; i++) {

@@ -168,9 +168,9 @@
 .br-live.is-err { color: var(--stone-600, #5C5447); }
 @keyframes brPulse { 0% { transform: scale(.6); opacity: .75; } 100% { transform: scale(2.3); opacity: 0; } }
 
-/* --- Layer-Dock (250 px) --------------------------------------------------- */
+/* --- Layer-Dock (300 px) --------------------------------------------------- */
 .br-dock {
-  width: 250px; flex: 0 0 auto; background: var(--cream-50, #FAF6EA);
+  width: 280px; flex: 0 0 auto; background: var(--cream-50, #FAF6EA);
   border-right: 1px solid var(--sand-200, #E0D6BE); overflow-y: auto; padding: 16px 12px;
 }
 .br-dock-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
@@ -784,7 +784,7 @@
   .br-rail-btn { width: 38px; height: 38px; border-radius: 10px; }
   .br-rail-btn.is-active::before { left: -8px; }
   .br-rail-btn svg { width: 19px; height: 19px; }
-  .br-dock { width: 214px; padding: 14px 11px; }
+  .br-dock { width: 238px; padding: 14px 11px; }
   .br-dock-head { margin-bottom: 0; }
   .br-dock-head .br-eyebrow { font-size: 11px; }
   .br-group + .br-group { margin-top: 12px; }
@@ -1636,3 +1636,106 @@
 @media (min-width: 1440px) {
   .br-readout .br-mrange .br-mrange-ticks { font-size: 14px; }
 }
+
+/* Legende unter der aktiven Layer-Zeile (Dock und mobiles Sheet) */
+.br-layer-legend {
+  margin: 6px 0 2px; padding: 9px 11px 10px;
+  background: var(--cream-50, #FAF6EA); border: 1px solid var(--sand-200, #E0D6BE);
+  border-left: 3px solid color-mix(in srgb, var(--br-acc, var(--br-red)) 70%, transparent);
+  border-radius: 10px; animation: br-legend-in .22s ease-out both;
+}
+.br-layer-legend-head { display: block; margin-bottom: 6px; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--stone-400, #A89A7A); }
+.br-layer-legend .fire-info-legend { margin-top: 0; display: flex; flex-direction: column; gap: 3px; }
+.br-layerwrap.has-seg > .br-layer-legend { background: #fff; }
+@keyframes br-legend-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .br-layer-legend { animation: none; } }
+@media (max-width: 767px) { .br-layer-legend { padding: 11px 13px 12px; border-radius: 12px; } }
+
+/* Kompakte Klassen-Legende: Stufenbalken + enge Liste, Bezug eingeklappt */
+.fire-li-stepbar { display: flex; height: 7px; margin: 5px 0 4px; border-radius: 4px; overflow: hidden; }
+.fire-li-stepbar i { flex: 1; }
+.fire-li-refd { margin-top: 4px; }
+.fire-li-refd > summary { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; list-style: none; font-size: .704rem; font-weight: 600; letter-spacing: .04em; color: var(--stone-400, #A89A7A); user-select: none; }
+.fire-li-refd > summary::-webkit-details-marker { display: none; }
+.fire-li-refd > summary::before { content: '▸'; font-size: .65rem; transition: transform .15s; }
+.fire-li-refd[open] > summary::before { transform: rotate(90deg); }
+.fire-li-refd > summary:hover { color: var(--stone-600, #5C5447); }
+.fire-li-refd > .fire-li-ref { margin-top: 3px; }
+.br-layer-legend .fire-li-classes { margin-bottom: 0; }
+.br-layer-legend .fire-li-classes ol { margin-top: 0; }
+.br-layer-legend .fire-li-classes li { font-size: .748rem; padding: 0; gap: 6px; }
+.br-layer-legend .fire-li-cls-name { min-width: 70px; }
+.br-layer-legend .fire-li-cls-range { margin-left: auto; color: var(--stone-500, #8B7355); }
+.br-layer-legend .fire-swatch { width: 10px; height: 10px; border-radius: 50%; }
+.br-layer-legend .fire-li-partner { margin: .4rem 0 .15rem; padding-top: .3rem; }
+@media (prefers-reduced-motion: reduce) { .fire-li-refd > summary::before { transition: none; } }
+
+/* Legende unter der Layer-Zeile: League Spartan, gut lesbar groß (Desktop 13 px, mobil 15 px) */
+.br-layer-legend, .br-layer-legend * { font-family: 'League Spartan', var(--font-base, system-ui, sans-serif); }
+.br-layer-legend-head { font-size: 11px; }
+.br-layer-legend .fire-li-row, .br-layer-legend .fire-li-classes li, .br-layer-legend .fire-li-lc { font-size: 13px; line-height: 1.35; }
+.br-layer-legend .fire-li-unit, .br-layer-legend .fire-li-scale { font-size: 13px; }
+.br-layer-legend .fire-li-partner, .br-layer-legend .fire-li-refd > summary { font-size: 12px; }
+.br-layer-legend .fire-li-ref { font-size: 12.5px; line-height: 1.45; }
+.br-layer-legend .fire-li-cls-name { min-width: 78px; color: var(--ink-900, #2C2A26); }
+@media (max-width: 767px) {
+  .br-layer-legend-head { font-size: 12px; }
+  .br-layer-legend .fire-li-row, .br-layer-legend .fire-li-classes li, .br-layer-legend .fire-li-lc { font-size: 15px; line-height: 1.4; }
+  .br-layer-legend .fire-li-unit, .br-layer-legend .fire-li-scale { font-size: 15px; }
+  .br-layer-legend .fire-li-partner, .br-layer-legend .fire-li-refd > summary { font-size: 13.5px; }
+  .br-layer-legend .fire-li-ref { font-size: 14px; }
+  .br-layer-legend .fire-li-classes li { gap: 8px; padding: 1px 0; }
+  .br-layer-legend .fire-li-cls-name { min-width: 92px; }
+  .br-layer-legend .fire-swatch { width: 12px; height: 12px; }
+  .br-layer-legend .fire-li-bar { height: 12px; }
+  .br-layer-legend .fire-li-stepbar { height: 9px; }
+  .br-layer-legend .fire-li-refd > summary { min-height: 32px; }
+}
+
+/* Dock-Feinschliff (Sichtprüfung): lesbarer aktiver Chip, keine Karte-in-Karte, größere Hinweise */
+.br-dock { padding-left: 10px; padding-right: 10px; }
+.br-dock .br-layer { padding-right: 34px; }
+.br-dock .br-views button { font-size: 12.5px; color: var(--stone-600, #5C5447); }
+.br-dock .br-views button.is-active { color: var(--br-red); font-weight: 700; border-color: var(--br-red); }
+.br-layerwrap.has-seg > .br-layer-legend { margin: 8px 0 0; padding: 8px 0 0; background: none; border: 0; border-top: 1px dashed var(--sand-200, #E0D6BE); border-radius: 0; }
+.br-dock .br-mapnote { max-width: none; margin-top: 6px; padding: 8px 10px; font-size: 12.5px; color: var(--stone-600, #5C5447); background: #fff; border-radius: 10px; }
+.br-dock .br-layer-note, .br-dock .br-layer-lag { font-size: 12px; }
+.br-dock .br-layer { gap: 7px; padding-left: 8px; }
+.br-dock .br-layer-label { font-size: 13.5px; }
+
+/* Größere Segmente: Karte | Dossier (Topbar) und 24 h | 7 d | Monat | Saison (Karte oben rechts) */
+.br-stage-seg { padding: 4px; border-radius: 10px; }
+.br-stage-seg button { font-size: 15px; font-weight: 600; padding: 7px 16px; min-width: 76px; border-radius: 7px; }
+.br-map-tr .br-seg { padding: 4px; border-radius: 10px; }
+.br-map-tr .br-seg button { font-size: 14.5px; font-weight: 600; padding: 7px 13px; border-radius: 7px; }
+@media (max-width: 1439px) and (min-width: 768px) {
+  .br-stage-seg button { font-size: 14px; padding: 6px 13px; min-width: 66px; }
+  .br-map-tr .br-seg button { font-size: 13.5px; padding: 6px 11px; }
+}
+@media (max-width: 767px) {
+  .br-map-tr .br-seg button { font-size: 13.5px; padding: 6px 11px; }
+}
+
+/* Kleiner Desktop: die Punkt-Legende nutzt die volle Kartenbreite statt 100 % − 298 px; die Flächen-Legende
+   (links unten) rückt dann über sie, statt dass beide nebeneinander gequetscht werden. */
+@media (min-width: 768px) and (max-width: 1599px) {
+  .br-pointlegend { left: 16px; right: 16px; width: auto; max-width: none; }
+  .br-pointlegend .br-pl-grid { gap: 6px 22px; }
+  .br-maplegend:has(~ .br-pointlegend) { bottom: 128px; }
+}
+
+/* „Ausbaustufe 2" (Brennmaterial, Schutzgebiete): die Tablet-Regel setzte padding-right auf 10 px — der Schalter lag unter dem „i"-Knopf. */
+.br-dock .br-group[data-br='stone'] .br-layer { padding-right: 34px; }
+.br-dock .br-group[data-br='stone'] .br-layer-label { font-size: 13.5px; }
+
+/* Desktop: Steckbrief beim Überfahren der Layer-Zeile — bleibt stehen, solange die Maus auf Zeile oder Karte ist. */
+.br-dock .br-layerwrap.is-hoverinfo > .br-layer { padding-right: 10px; }
+.br-dock .br-layerwrap.is-hoverinfo.has-seg > .br-layer { padding-right: 0; }
+.br-dock .br-group[data-br='stone'] .br-layerwrap.is-hoverinfo > .br-layer { padding-right: 10px; }
+.br-hovercard {
+  position: fixed; z-index: 60; width: 340px; overflow-y: auto; overscroll-behavior: contain;
+  border-radius: 14px; box-shadow: 0 18px 44px -14px rgba(44, 42, 38, .5), 0 2px 8px rgba(44, 42, 38, .12);
+  animation: br-legend-in .14s ease-out both;
+}
+.br-hovercard > .br-card { margin: 0; background: #fff; }
+@media (prefers-reduced-motion: reduce) { .br-hovercard { animation: none; } }

@@ -85,6 +85,13 @@ const PAST_ON = PAST_KEEP > KEEP;
 // (`h<ty><tx>.png` + `hd250.json`, Retention wie rv-past). Nur mit Rückblick und nur, wenn der Web-Klon den Vertrag kennt
 // (sonst läuft der Spiegel wie vorher). Rückweg: `RADAR_HD250=0`. Ein Fehler nimmt nur die Kacheln des Slots, nie den Push.
 const HD250_ON = process.env.RADAR_HD250 !== '0' && PAST_ON && !!APP_DIR && existsSync(join(APP_DIR, 'src', 'sources', 'radarHd250.ts'));
+// Phase NC (buscosun-web/audit/radar-nowcast-dach.md): after every rzc derive the CH extrapolation `img/rzc-nc/<stamp>/`
+// (24 × 5 min from the analysis, motion from the mirror's last analyses) and after every INCA derive the run refined to
+// 5 min `img/inca-5m/<stamp>/` — both as derive kind processes from the web clone, only when it carries the contract
+// (`src/sources/radarNowcastImg.ts`; an older main runs byte-identical to before). OFF by default (Jan's brief: "im
+// Daten-Job standardmäßig aus") — `RADAR_NC=1` switches the two derive steps on. A failure takes only the derived product
+// of the slot, never the analysis or the push.
+const NC_ON = process.env.RADAR_NC === '1' && !!APP_DIR && existsSync(join(APP_DIR, 'src', 'sources', 'radarNowcastImg.ts'));
 const LIGHTNING_HOOK = APP_DIR ? join(APP_DIR, 'scripts', 'lightning', 'lightning-mirror.mjs') : '';
 const LIGHTNING_ON = process.env.LIGHTNING !== '0';
 const LIGHTNING_DIRS = ['lightning-de', 'lightning-mtg'];
@@ -95,7 +102,7 @@ let lightning = null;
 let pendingRvSlotMs = null;
 const rvQuiet = () => pendingRvSlotMs != null && Date.now() - pendingRvSlotMs >= 170_000 && Date.now() - pendingRvSlotMs <= 330_000;
 /** Slots je Bild-Quelle — dieselbe Tabelle wie `RADAR_IMG_KEEP` (src/sources/radarImg.ts, `verify:np0-radar` vergleicht). */
-export const IMG_KEEP = { rv: KEEP, inca: KEEP, 'rv-past': PAST_KEEP, rzc: PAST_ON ? PAST_KEEP : KEEP, konrad3d: PAST_ON ? PAST_KEEP : KEEP, 'lightning-de': 24, 'lightning-mtg': 24 };
+export const IMG_KEEP = { rv: KEEP, inca: KEEP, 'rv-past': PAST_KEEP, rzc: PAST_ON ? PAST_KEEP : KEEP, konrad3d: PAST_ON ? PAST_KEEP : KEEP, 'lightning-de': 24, 'lightning-mtg': 24, 'rzc-nc': KEEP, 'inca-5m': KEEP };
 /** Quellen mit Altersregel (nur mit PAST_ON; sonst Zählregel wie vor NP-0a). */
 export const IMG_AGE_RULE = ['rv-past', 'rzc', 'konrad3d', 'lightning-de', 'lightning-mtg'];
 export const IMG_MIN_KEEP = 2;
@@ -277,6 +284,30 @@ function derive(source, inPath, stamp) {
 }
 
 /**
+ * Phase NC: the derived nowcast product of a slot — `rzc-nc` from the rzc image root (the series), `inca-5m` from the INCA
+ * slot. Same kind process as `derive()`, own timeout (24 advections ≈ 3–6 s). Null = none (logged); the push runs anyway.
+ */
+function deriveNc(kind, stamp) {
+  if (!NC_ON || !DERIVE) return null;
+  const inPath = kind === 'rzc-nc' ? imgSrcDir('rzc') : join(imgSrcDir('inca'), stamp);
+  const outDir = join(imgSrcDir(kind), stamp);
+  try {
+    const t0 = Date.now();
+    const stdout = execFileSync(process.execPath, [
+      '--experimental-strip-types', '--import', pathToFileURL(join(APP_DIR, 'scripts', 'lib', 'register-ts.mjs')).href,
+      DERIVE_SCRIPT, kind, inPath, outDir, stamp,
+    ], { encoding: 'utf8', timeout: 120_000, env: { ...process.env }, stdio: ['ignore', 'pipe', 'pipe'] });
+    const j = JSON.parse(stdout.trim().split('\n').pop());
+    imgPrune(kind);
+    return { ms: Date.now() - t0, files: j.files, bytes: j.bytes };
+  } catch (e) {
+    log(`${kind} ${stamp}: FEHLGESCHLAGEN (${String(e.stderr ?? e.message).split('\n').find((l) => l.trim()) ?? 'unbekannt'}) — Slot ohne ${kind}`);
+    rmSync(outDir, { recursive: true, force: true });
+    return null;
+  }
+}
+
+/**
  * Phase R250: 250-m-Kacheln der Analyse in den Rückblick-Slot — Kindprozess wie `derive()`, lädt die Standortbilder
  * selbst (DWD liefert sie ≈ 75 s nach dem Scan, das RV-Tar kommt ≈ 3,3 min danach — sie liegen also schon da).
  * Liefert {ms, files, bytes, tiles, sites, missing} oder null (geloggt; der Slot bleibt ohne Kacheln = 1 km).
@@ -325,7 +356,7 @@ export function storeSeed() {
 // `status.json` liest kein Code nach Schema — reine Telemetrie (D-NP0-3).
 const status = {
   schema: 3, keep: KEEP, pastKeep: PAST_KEEP, imgKeep: IMG_KEEP, imgAgeRule: PAST_ON ? IMG_AGE_RULE : [],
-  pollSec: POLL_SEC, derive: DERIVE, hd250: HD250_ON,
+  pollSec: POLL_SEC, derive: DERIVE, hd250: HD250_ON, nc: NC_ON,
   job: process.env.GITHUB_RUN_ID ?? 'local', startedAt: nowIso(), recent: [], lightning: null,
 };
 
@@ -404,10 +435,11 @@ async function pollInca() {
   const d = derive('inca', tmpIn, stamp);
   if (!d) return;
   inca.lastReftime = reftime;
+  const nc = deriveNc('inca-5m', stamp);
   const pub = publish(`radar: inca ${stamp}`);
-  noteRow({ product: 'inca', stamp, reftime, bytes: dl.buf.length, downloadMs: dl.ms, deriveMs: d.ms, imgBytes: d.bytes, pushedAt: pub.pushedAt, pushMs: pub.pushMs ?? null });
+  noteRow({ product: 'inca', stamp, reftime, bytes: dl.buf.length, downloadMs: dl.ms, deriveMs: d.ms, imgBytes: d.bytes, nc: nc ? { ms: nc.ms, files: nc.files, bytes: nc.bytes } : null, pushedAt: pub.pushedAt, pushMs: pub.pushMs ?? null });
   const lag = ((Date.parse(pub.pushedAt) - ms) / 60_000).toFixed(1);
-  log(`inca ${stamp} · reftime→Push ${lag} min · NetCDF ${(dl.buf.length / 1024).toFixed(0)} KB · derive ${d.ms} ms → ${(d.bytes / 1024).toFixed(0)} KB · Push ${pub.pushedAt.slice(11, 19)}`);
+  log(`inca ${stamp} · reftime→Push ${lag} min · NetCDF ${(dl.buf.length / 1024).toFixed(0)} KB · derive ${d.ms} ms → ${(d.bytes / 1024).toFixed(0)} KB${nc ? ` · inca-5m ${nc.ms} ms → ${nc.files} Dateien ${(nc.bytes / 1024).toFixed(0)} KB` : ''} · Push ${pub.pushedAt.slice(11, 19)}`);
   return true;
 }
 
@@ -447,9 +479,10 @@ async function pollRzc() {
   writeFileSync(tmpIn, dl.buf);
   const d = derive('rzc', tmpIn, stamp);
   if (!d) return;
+  const nc = deriveNc('rzc-nc', stamp);
   const pub = publish(`radar: rzc ${stamp}`);
-  noteRow({ product: 'rzc', stamp, asset: name, bytes: dl.buf.length, downloadMs: dl.ms, deriveMs: d.ms, imgBytes: d.bytes, pushedAt: pub.pushedAt, pushMs: pub.pushMs ?? null });
-  log(`rzc ${stamp} (${name}) · HDF5 ${(dl.buf.length / 1024).toFixed(0)} KB · derive ${d.ms} ms → ${(d.bytes / 1024).toFixed(0)} KB · Push ${pub.pushedAt.slice(11, 19)}`);
+  noteRow({ product: 'rzc', stamp, asset: name, bytes: dl.buf.length, downloadMs: dl.ms, deriveMs: d.ms, imgBytes: d.bytes, nc: nc ? { ms: nc.ms, files: nc.files, bytes: nc.bytes } : null, pushedAt: pub.pushedAt, pushMs: pub.pushMs ?? null });
+  log(`rzc ${stamp} (${name}) · HDF5 ${(dl.buf.length / 1024).toFixed(0)} KB · derive ${d.ms} ms → ${(d.bytes / 1024).toFixed(0)} KB${nc ? ` · rzc-nc ${nc.ms} ms → ${nc.files} Dateien ${(nc.bytes / 1024).toFixed(0)} KB` : ''} · Push ${pub.pushedAt.slice(11, 19)}`);
   return true;
 }
 
@@ -472,7 +505,7 @@ async function main() {
     } catch (e) { log(`lightning: Modul nicht ladbar (${e.message}) — Blitze AUS`); lightning = null; }
   }
   const deadline = Date.now() + RUN_MINUTES * 60_000;
-  log(`Start · ${RUN_MINUTES} min · Abtastung ${POLL_SEC} s · Retention ${KEEP} · Rückblick ${PAST_ON ? PAST_KEEP : 'AUS'} · Blitze ${lightning ? 'an' : 'AUS'} · 250 m ${HD250_ON ? 'an' : 'AUS'} · derive ${DERIVE ? `an (${APP_DIR})` : 'AUS'} · Bestand ${Object.entries(PRODUCTS).map(([k, p]) => `${k}:${storeFiles(p).length}`).join(' ')} img ${['rv', 'inca', 'rzc', 'konrad3d', 'rv-past', ...LIGHTNING_DIRS].map((s) => `${s}:${imgSlots(s).length}`).join(' ')}`);
+  log(`Start · ${RUN_MINUTES} min · Abtastung ${POLL_SEC} s · Retention ${KEEP} · Rückblick ${PAST_ON ? PAST_KEEP : 'AUS'} · Blitze ${lightning ? 'an' : 'AUS'} · 250 m ${HD250_ON ? 'an' : 'AUS'} · Nowcast-Produkte ${NC_ON ? 'an' : 'AUS'} · derive ${DERIVE ? `an (${APP_DIR})` : 'AUS'} · Bestand ${Object.entries(PRODUCTS).map(([k, p]) => `${k}:${storeFiles(p).length}`).join(' ')} img ${['rv', 'inca', 'rzc', 'konrad3d', 'rv-past', 'rzc-nc', 'inca-5m', ...LIGHTNING_DIRS].map((s) => `${s}:${imgSlots(s).length}`).join(' ')}`);
 
   // Je Produkt der nächste erwartete Slot: der jüngste, der NICHT im Bestand ist,
   // rückwärts höchstens KEEP Slots (nach der Naht liegen die älteren schon auf main).
