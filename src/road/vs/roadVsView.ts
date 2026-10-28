@@ -105,6 +105,18 @@ export function roadLastValueMs(ring: RoadH24File | null, id: string, group: str
   return null;
 }
 
+/** `?vssim=1|0` — the router strips the query after load, so the vote is kept in `localStorage.vssim` (like `roadvs`). */
+const VS_SIM_PREVIEW: boolean = (() => {
+  let q: string | null = null;
+  try { if (typeof location !== 'undefined') q = new URLSearchParams(location.search).get('vssim'); } catch { /* broken query = no vote */ }
+  try {
+    if (q === '1') localStorage.setItem('vssim', '1');
+    else if (q === '0') localStorage.removeItem('vssim');
+    return (q ?? localStorage.getItem('vssim')) === '1';
+  } catch { return q === '1'; }
+})();
+const vsSimPreview = (): boolean => VS_SIM_PREVIEW;
+
 /**
  * Jan 28.10.: a failed road sensor is simulated only while ONE measurement is missing (the newest slot); after two
  * consecutive missing slots the station is „unbekannt / keine Messung". Without a ring there is no proof ⇒ no simulation.
@@ -115,6 +127,8 @@ export function roadVsMaySimulate(ring: RoadH24File | null, id: string, group: s
   if (!st) return false;
   let missing = 0;
   for (let i = ring.slots.length - 1; i >= 0 && st.rs[i] == null; i--) missing++;
+  // `?vssim=1` = preview of the look: every failed sensor with a ring counts as simulated (for checking the red outline when no sensor misses exactly one slot).
+  if (missing >= 1 && vsSimPreview()) return true;
   return missing <= 1; // 0 = the ring still lags the newest slot, 1 = exactly the newest measurement is missing
 }
 
