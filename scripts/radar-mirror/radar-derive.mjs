@@ -52,7 +52,7 @@ import {
   RZC_NC_LEADS, INCA_5M_LEADS, NC_STEP_MIN, RZC_NC_SERIES_MAX, RZC_NC_SERIES_SPAN_MS, NC_FLOW_FACTOR, rzcNcUnknownFile,
   makeRzcNcImgMeta, parseRzcNcImgMeta, makeInca5mImgMeta, parseInca5mImgMeta,
 } from '../../src/sources/radarNowcastImg.ts';
-import { flowFromSeries, motionStats, advectPlane, betweenPlanes, zeroFlow } from '../../src/sources/radarNowcastExtrap.ts';
+import { flowFromSeries, motionStats, advectPlane, betweenPlanes, zeroFlow, NC_TRANSLATION_MAX_COARSE } from '../../src/sources/radarNowcastExtrap.ts';
 import { estimateMorphFlow } from '../../src/scalar/radarMorphFlow.ts';
 import { RADAR_MORPH_HS } from '../../src/scalar/radarHd.ts';
 
@@ -321,7 +321,8 @@ if (source === 'rv') {
   }
   const meta = makeRzcNcImgMeta({
     stamp, analysisAtMs, corners: newest.meta.corners, frames, unknown: unknownRows, series: slots.map((x) => x.s), motion,
-    method: { flow: 'horn-schunck', factor, alpha: RADAR_MORPH_HS.alpha, iters: RADAR_MORPH_HS.iters, sampling: 'wet-bilinear-round' },
+    // V-NC-7: one translation per pair (correlation shift), not the Horn–Schunck field — see radarNowcastExtrap.ts
+    method: { flow: 'translation', factor, maxCoarse: NC_TRANSLATION_MAX_COARSE, sampling: 'wet-bilinear-round' },
     ...(buf2 ? { dual: makeRadarImgDual(dualRows) } : {}),
   });
   if (!parseRzcNcImgMeta(JSON.parse(JSON.stringify(meta)))) throw new Error('rzc-nc: eigene meta.json besteht den Client-Prüfer nicht');

@@ -3033,9 +3033,22 @@ Alles uncommitted in `buscosun-web`; das Spiegelskript im Daten-Repo ist schon g
 2. **E-NC-2 (STOPP-Grenze Shader):** die Übergangszone braucht ein Alpha-Gewicht in der Masken-Zeile des `RainLayer`-Fragment-Shaders
    (`mw`, 4 Zeilen; 0/1-Masken byte-gleich). Zwei Wächter sind deshalb rot (`verify:radar-hd` E2, `verify:regenradar-profile` E8) —
    Freigabe oder Nein (dann Maske binär, Nähte hart an den neuen Linien).
-3. **Rückwege:** `?nc=0` je Besucher; Producer `RADAR_NC=0` in `radar.yml` (Workflow-Datei = dein Token).
-4. **Offen:** V-NC-1 (Kreuzungspunkte INCA 120 / CH 60 min messen, ab ≥ 14 Tagen Produkten), V-NC-2 (RV-Reichweite statt Linie),
-   V-NC-3 (Sichtprüfung an einem Regentag), V-NC-4 (Schraffur statt Schleier).
+3. ~~**Rückwege:** `?nc=0` je Besucher; Producer `RADAR_NC=0`~~ — **28.10. umgedreht (§6 im Audit, dein Auftrag „ohne Schalter
+   byte-gleich"):** Client AUS bis `?nc=1` (alias `?chnc=1`, dein Wortlaut) bzw. `localStorage.radarnc = '1'`; Producer AUS bis
+   `RADAR_NC=1`. **Dein Schritt:** die Kopie von `scripts/radar-mirror/radar-mirror.mjs` im Daten-Repo (`6a7d113bd`) trägt noch
+   die alte Voreinstellung (an, sobald `main` den Vertrag hat) — vor dem Push von `main` die neue Kopie einspielen oder in
+   `radar.yml` bewusst `RADAR_NC=1` setzen (E-NC-4: Voreinstellung aus = Rule 2; Einschalten = deine Entscheidung).
+4. **E-NC-5 (28.10., umgesetzt, bitte bestätigen):** die Zugrichtung der CH-Hochrechnung ist jetzt EINE Verschiebung je Bildpaar
+   (Korrelation der 4×-vergröberten Bilder, Subpixel) statt des Horn–Schunck-Felds — das Feld ließ die Hochrechnung nach wenigen
+   Schritten stehen und maß 15–50 % zu langsam (V-NC-7, Messung `audit/radar-nowcast-dach/flow-scale.mjs`). Morph der Karte und
+   INCA-Zwischenbilder unverändert. Nein ⇒ `flowFromSeries` zurück auf `estimateMorphFlow` (ein Block in `radarNowcastExtrap.ts`).
+5. **Blaue Flecken Südschweiz (dein Befund 28.10.):** keine Radar-Farbe — es ist der Layer **Schnee** (Schneedecke ICON-D2 `h_snow`,
+   gesättigt auf Gletscherhöhe: Hover 3 502 m, „Niederschlag trocken"), der im Regenradar standardmäßig an ist und mit `snowRamp`
+   (Weiß→Blau) in derselben Farbfamilie wie leichter Regen liegt. Nicht geändert (Funktionserhalt). Vorschlag V-NC-8: im Profil
+   `radar` den Schnee-Layer standardmäßig aus ODER eine klar getrennte Palette — deine Wahl.
+6. **Offen:** V-NC-1 (Kreuzungspunkte INCA 120 / CH 60 min messen, ab ≥ 14 Tagen Produkten), V-NC-2 (RV-Reichweite statt Linie),
+   V-NC-3 (Sichtprüfung der Nähte an einem Regentag — 28.10. nur ohne Zug), V-NC-4 (Schraffur statt Schleier), V-NC-6 (Nord-CH:
+   DWD-RV statt rzc ist eine Qualitätsfrage), V-NC-9 (Mobil: INCA-Altersnotiz wird abgeschnitten).
 
 ## 79. Autobahnwetter — Virtueller Fahrbahnsensor (Phase VS = AW-6.2, `audit/autobahnwetter.md` §20), 2026-10-27
 

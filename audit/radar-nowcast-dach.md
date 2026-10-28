@@ -33,10 +33,10 @@
 - **Ehrliche Beschriftung**: Statuszeile der Karte, Regenradar-Dock, Zeitachse (`ageNote`), „Methodik & Datenqualität" (Zeitbezug,
   Schwächen, grau = unbekannt), Layer-Katalog, Quellenzeile. Grauer Schleier `precip-rain-hd-ch-unknown` über den unbekannten
   Flächen.
-- **Schalter**: `?nc=0` (= Stand vor NC in jedem Leser), `?ncbase=<url>` (Produktbasis für Prüfläufe, Muster `?rucbase=`),
-  Producer `RADAR_NC=0`. Der Spiegel bildet die Produkte nur, wenn der Web-Klon den Vertrag trägt (Marker
-  `src/sources/radarNowcastImg.ts`) — **live erst mit Jans Push von `main`**; das Spiegelskript im Daten-Repo ist schon aktualisiert
-  (`6a7d113bd`, schlummert bis dahin).
+- **Schalter** (Stand 28.10., §6): Client **aus** bis `?nc=1` (alias `?chnc=1`) oder `localStorage.radarnc = '1'` — ohne Schalter
+  jeder Leser byte-gleich zum Stand vor NC; `?ncbase=<url>` (Produktbasis für Prüfläufe, Muster `?rucbase=`); Producer **aus** bis
+  `RADAR_NC=1`. Der Spiegel bildet die Produkte nur, wenn der Web-Klon den Vertrag trägt (Marker `src/sources/radarNowcastImg.ts`)
+  — **live erst mit Jans Push von `main`**; das Spiegelskript im Daten-Repo (`6a7d113bd`) trägt noch die alte Voreinstellung (an).
 
 ## §1 Bestand vor der Phase
 
@@ -93,3 +93,99 @@ datenabhängig („0 Werte anders": die betroffenen Zellen sind heute trocken; v
 - **V-NC-3:** Sichtprüfung der Nähte und des grauen Schleiers an einem Regentag (Interlaken, 14° E bei Linz/Steyr).
 - **V-NC-4:** das Hintergrundbild der unbekannten Fläche ist ein Schleier über dem Gelände; eine Schraffur wäre lesbarer (CSS/Shader).
 - **V-NC-5:** `sourceLabel` der Punktreihe nannte für AT/CH „DWD RADOLAN-RV" (Altfehler, mit behoben).
+
+## §6 Verifikation 28.10.2026 (Jans Auftrag: Zeitschritte, Farben, Georeferenz, „blaue Flecken Südschweiz")
+
+Stand vorher: NC lag im Sammel-Commit `baa47d1a` (28.10. 10:23, Zweig `feat/aw-6.2-virtueller-sensor`, zusammen mit Sea/Road/History),
+nicht auf `main`; die Produkte `rzc-nc/`, `inca-5m/` liegen **nicht** im Daten-Repo (`radar/img/v1/` live: 404). Es gab keinen eigenen
+NC-Verifier; zwei Wächter rot (`radar-hd` E2 = Shader-Zeile `mw`, E-NC-2; `regenradar-profile` C1b datenabhängig, bekannt).
+
+### 6.1 Die blauen Flecken — Befund
+
+Produktion (`buscosun.com/regenradar/lugano`, 11:05–11:20 MEZ) Layer für Layer isoliert:
+- **alle Radar-Layer aus:** die große schwarze Fläche bleibt — sie ist die dunkle Basiskarte (`WEATHER_BASEMAP_STYLE` = OpenFreeMap
+  `dark`, seit 23.10.) INNERHALB von DACH, Sand außen. Design, kein Fehler.
+- **nur Niederschlag:** eckige, hellblau-stahlblaue 1-km-Echos über Tessin/Graubünden — das ist die rzc-Analyse. Gegenprobe an den
+  Daten: Slot `20261028T1005` roh von MeteoSchweiz (`rzc263011005rl.001.h5`: `quantity RATE`, gain 1, offset 0, `nodata` NaN,
+  `undetect` 0, max 3,76 mm/h, keine Sonderwerte) ⇒ `precipToU8(raw)` byte-gleich zu `frame.png` des Spiegels (0 Differenzen); 62 945
+  nasse Pixel, 58 723 davon EIN Cluster über den Alpen (Stau-Lage), vier Kleincluster ≤ 45 px mit log-Byte ≤ 20 (≈ 0,1 mm/h). Farben
+  aus `precipRainRamp`/`precipRainRampLog` (0,1–0,5 hellblau, 0,5–2 stahlblau) — echter Regen, korrekt verortet.
+- **nur Schnee:** leuchtend blaue, RUNDE Blobs mit hellem Kern über Wallis, Berner Alpen, Bernina, Mont Blanc (auch über die Maske
+  hinaus) — der Layer **Schneedecke** (ICON-D2 `h_snow`, `snowRamp` Weiß→Blau, Deckel 150 cm „Gletscher sättigen"). Hover auf einen
+  Blob: „Niederschlag trocken (unter 0,06 mm/h) · Höhe 3 502 m". Im Regenradar-Profil ist Schnee standardmäßig **an** („5 aktiv").
+  ⇒ **Das sind die „seltsamen blauen Flecken": Schneedecke auf Gletscherhöhe, keine Radar-Farbe, kein NC-Artefakt.** Nicht geändert
+  (Funktionserhalt); Vorschlag V-NC-8.
+- Dev-Server (Zweig, NC an, keine Produkte): Südschweiz identisch zur Produktion; Interlaken (46,7° N) zeigt die Übergangszone als
+  halbtransparente Überlagerung RV/rzc (E-NC-2-Verhalten).
+
+### 6.2 Zeitschritte, Gültigkeiten, Zonen, Beschriftung
+
+Mit lokal erzeugten Produkten (`radar-derive.mjs` auf den sechs Live-Slots 09:50–10:15 UTC und INCA-Lauf 10:00, `?ncbase=/nc-test`):
+CH „CH Hochrechnung → Slot 20261028T1015 · 24 Frames (+5…+120 min)", Zeitachse 25 Schritte, „in 1 h · Vorhersage" zeigt das
+Hochrechnungsbild, Altersnotiz „Analyse 11:15 · Zugrichtung aus 6 Bildern"; AT „34 Frames (+15…+180 min, 12 INCA-Bilder)", Graz
+„jetzt · Vorhersage · INCA-Lauf 11:00 (vor 25 min) · „jetzt" = Bild gültig 11:25". Mobil 390 × 844 (`headlessShot.mjs`, Belege
+`audit/radar-nowcast-dach/2026-10-28-*.png`): Lugano sauber; Graz: die INCA-Notiz wird am rechten Rand abgeschnitten (V-NC-9).
+Zonen, Auswahl nach Gültigkeitszeit, Parser, Beschriftungen: `verify:radar-nc` A–E (unten).
+
+### 6.3 Farben und Georeferenz — Befund „nichts weicht ab, per Konstruktion"
+
+- **Eine Farbdefinition:** Komposit und die drei HD-Layer (DE/AT/CH) zeichnen `precipRainRamp` (Log-Ebene `precipRainRampLog`,
+  Stützen an denselben mm/h ab 0,5), Schwelle 0,06 mm/h (`precipToU8`/`precipToU8Log`, `RADAR_DISPLAY_MIN_MMH`), Deckkraft 0,85, ein
+  Byte-Codec für RV, INCA, rzc, rzc-nc, inca-5m (`vMax = PRECIP_VMAX`, Parser lehnen anderes ab). Die Hochrechnung verschiebt
+  v1- und Log-Byte mit EINER Nassmaske (F3: 0 Differenzen über 24 Frames). RUC und ICON-CH1 sind keine Kartenlayer (Minutenverlauf
+  bzw. Member von buscosun Fusion); der ICON-D2-Rückfall des Komposits nutzt denselben Byte und dieselbe Rampe. Der Unbekannt-Schleier
+  ist ein eigener Layer in Grau (B6). ⇒ keine Abweichung.
+- **Georeferenz:** die Produkte liegen auf den Gittern ihrer Quelle (710 × 640 LV95/`somerc` bzw. 701 × 431 Lambert), die Ecken werden
+  aus `meta.json` der Analyse/des Laufs übernommen (F5/F7: identisch), die Verschiebung rechnet in nativen Pixeln ohne Reprojektion;
+  die Karte warpt mit denselben Meshes (`rzcWarpMesh`, `incaWarpMesh`) und die Zonenmaske tastet die Pixelmitten über dieselbe
+  Projektion ab wie die Besitzmaske (D5 auf dem echten rzc-Gitter: 0 Mismatch). ⇒ keine Abweichung.
+
+### 6.4 Abweichungen von der Vorgabe und Fehler — behoben
+
+1. **Schalter standardmäßig an** (Client `RADAR_NC_DEFAULT_ON = true`, Producer `RADAR_NC !== '0'`) — der Auftrag verlangt „im
+   Daten-Job standardmäßig aus, im Client mit `?chnc=1`, ohne Schalter byte-gleich". Mit NC an und OHNE Produkte (der Live-Zustand bis
+   zum Push) hatte sich das Bild trotzdem geändert: Zonenmaske statt Besitzmaske (Nord-CH zeichnete DWD-RV statt rzc, Band an 46,7° N).
+   **Behoben:** Client aus bis `?nc=1`/`?chnc=1`/Store, Producer aus bis `RADAR_NC=1` (E-NC-4). `verify:radar-nc` D7/D8 belegen die
+   Byte-Gleichheit ohne Schalter (Maskenwahl, Auswahlregel über den Schieberbereich, Stack und Punkt-Sampler am Flag).
+2. **V-NC-7 — die Hochrechnung blieb stehen.** Messung (`audit/radar-nowcast-dach/flow-scale.mjs`, Gauß-Blobs σ 4/8/16 px, wahre
+   Verschiebung 1…8 px/Schritt, 4 Bilder): das Horn–Schunck-Feld (Faktor 4, α 0,5, 100 Iterationen) maß die Geschwindigkeit mit
+   51–85 % der wahren, und der Schwerpunkt wanderte nach 24 Advektionsschritten nur **+13 … +35 px statt +24 … +192 px** — das lokale
+   Feld ist nur dort ≠ 0, wo das Echo gerade liegt; ein Zielpixel vor dem Regen hat keinen Fluss, seine Rückwärts-Trajektorie erreicht
+   das Echo nie. Am 27./28.10. unsichtbar (Stau, ≈ 0 km/h). **Behoben (E-NC-5):** `flowFromSeries` misst je Bildpaar EINE Verschiebung
+   (`translationBetween`: normierte Kreuzkorrelation der 4×-vergröberten Bilder über ± 6 Grobpixel, Parabel-Subpixel; Paare mit < 12
+   nassen Grobzellen tragen nichts) und legt das gewichtete Mittel als konstantes Feld über das ganze Gitter — der Auftrag spricht von
+   „der Zugrichtung". Nachmessung: Anteil 0,92–1,00, Schwerpunkt exakt (+48 von +48, +96 von +96). Auf der echten Serie 09:50–10:15 UTC:
+   12,8 km/h aus 279° statt 0,2 km/h; Gegenprobe (`series-motion-check.mjs`): beste ganzzahlige Verschiebung der Nassmasken (1, 0) in
+   3 von 5 Paaren, Schwerpunkt driftet ostwärts. `method.flow: 'translation'` im Produkt (Parser nimmt beide Wörter). Horn–Schunck
+   bleibt für den Karten-Morph und die INCA-Zwischenbilder (Form auf halbem Weg, keine Vorhersage).
+3. **Kein eigener Verifier** — jetzt `npm run verify:radar-nc` (`scripts/verify-radar-nc.mjs`): A Schalter/Konstanten, B Schema +
+   Farbvertrag, C Arithmetik (Identität, exakte Verschiebung mit Unbekannt-Spalten, keine erfundenen Bytes, Zwischenbilder, Richtung,
+   Serienfluss ohne Stillstand), D Zonen + Byte-Gleichheit ohne Schalter, E Auswahl nach Gültigkeit, F echte Daten (`--fixture`,
+   sonst live aus dem Daten-Repo; `--derived` prüft Producer-Slots). **40/40** mit den sechs Live-Slots und dem INCA-Lauf 10:00 UTC.
+
+### 6.5 Übrige Prüfläufe 28.10.
+
+`typecheck` grün · `verify:np0-radar` 40/40 · `verify:precip-source` 30/30 · `verify:radar-hd` 52/1 (E2 = Shader-Zeile, E-NC-2 offen)
+· `verify:regenradar-profile` 35/1 (C1b datenabhängig; E8 grün, weil der Shader-Diff im Commit liegt — der Wächter vergleicht gegen HEAD).
+`npm run build` grün (260/260) · `npm run budget`: eagerJs 110,2 / 111 KB ✓, largestChunk 278,4 / 302 KB ✓, **totalJs 1 941,7 KB
+> 1 932 KB ✗** — nicht aus dieser Verifikation (`radarNowcastExtrap.ts` liegt in keinem Client-Chunk, die Client-Änderung ist eine
+Zeile Schalter-Grammatik); die Ratsche war durch HB/NC/VS auf dem Zweig schon überschritten (V-HB-1, CLAUDE.md). Anheben = Jans
+Notiz (30.09.), nicht `--update`.
+
+### 6.6 Neue Befunde
+
+- **V-NC-6:** Nord-CH (≥ 46,7° N) zeichnet mit NC DWD-RV statt rzc — die Schweizer Radare (Albis, Dole, Plaine Morte) sehen dort besser
+  als die deutschen aus 100–150 km; die Zonenregel folgt Jans Wortlaut, die Qualitätsfrage ist offen (zusammen mit V-NC-2 messen).
+- **V-NC-7:** s. 6.4 (2), behoben; die Nachmessung an Regentagen mit Zug (Schwerpunkt der Nassmaske gegen die Hochrechnung) steht aus.
+- **V-NC-8:** Schneedecke im Regenradar-Profil: gleiche Farbfamilie wie leichter Regen, standardmäßig an ⇒ „blaue Flecken". Vorschlag:
+  im Profil `radar` aus oder eigene Palette (Jans Wahl, Funktionserhalt).
+- **V-NC-9:** Mobil: die INCA-Altersnotiz (`ageNote`, ≈ 110 Zeichen) wird in `.rdr-tl-status` abgeschnitten; Umbruch oder Kurzform.
+- **V-NC-10:** `ageNote` nennt bei 0,2 km/h „0 km/h aus 289°" — unter 1 km/h sollte die Richtung entfallen (`fromDeg`-Schwelle 0,05).
+- **V-NC-11:** INCA-Zwischenbilder nutzen weiter das Horn–Schunck-Feld; bei 15-min-Paaren (Verschiebungen bis 10 km) ist die
+  Zwischenform damit eher Mischung als Verschiebung — „flüssiger, nicht genauer" bleibt wahr, die Korrelations-Verschiebung wäre auch
+  hier die ehrlichere Basis.
+
+### 6.7 Entscheidungen
+
+- **E-NC-4 (umgesetzt nach Jans Auftrag):** Voreinstellung aus, Client `?nc=1`/`?chnc=1`, Producer `RADAR_NC=1`.
+- **E-NC-5 (umgesetzt, Bestätigung erbeten):** Zugrichtung der CH-Hochrechnung = Korrelations-Verschiebung je Paar statt Horn–Schunck.

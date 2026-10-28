@@ -6,8 +6,9 @@
  *       f005.png … f120.png (24 frames, 710 × 640, `precipToU8` byte), g005…g120.png (dual: v1 byte + log plane, only when
  *       the analysis slot carries one), u005…u120.png (1 channel, 255 = UNKNOWN: the back-trajectory of the pixel starts
  *       outside the radar grid — rain could come from beyond it; drawn as a grey veil, never as "dry"), meta.json.
- *       Motion from the last 3–6 analyses (Horn–Schunck on the 4×-coarsened frames, pairs weighted towards the newest),
- *       the newest analysis shifted semi-Lagrangian 24 × 5 min. Honest label: „Hochrechnung buscosun aus MeteoSwiss-Radar".
+ *       Motion from the last 3–6 analyses (ONE translation per pair — the correlation shift of the 4×-coarsened frames,
+ *       pairs weighted towards the newest; V-NC-7), the newest analysis shifted semi-Lagrangian 24 × 5 min. Honest label:
+ *       „Hochrechnung buscosun aus MeteoSwiss-Radar".
  *
  *   radar/img/v1/inca-5m/<YYYYMMDDTHHMM>/   AT: the GeoSphere INCA run (reftime = stamp) refined to 5 minutes —
  *       f015.png … f180.png (34 frames, 701 × 431), g… dual when the run slot carries one, meta.json with the validity
@@ -18,22 +19,24 @@
  *
  * ONE file for client (`radarNowcast.ts`), producer (`scripts/radar-mirror/radar-derive.mjs`) and verifier: paths, meta
  * schema with builders and parsers, the zone split of DACH (`radarZones.ts` carries the geometry), the honest words and
- * the switch. Kill-switch `?nc=0` (or `localStorage.radarnc = '0'`): every reader behaves as before Phase NC.
+ * the switch. Rule 2 (Jan's brief 27.10.2026: "im Client mit `?chnc=1` … ohne Schalter byte-gleich"): OFF by default —
+ * `?nc=1` (alias `?chnc=1`) or `localStorage.radarnc = '1'` turns the readers, the zone split and the crossover on;
+ * without it every reader behaves exactly as before Phase NC (ownership mask by country, AT by lead, CH analysis only).
  */
 
 import { PRECIP_VMAX, type QuadCorners } from '../scalar/RainLayer';
 import { RADAR_IMG_BASE, radarImgFrameFile, radarImgDualFile } from './radolanRuns';
 import { RZC_IMG_WIDTH, RZC_IMG_HEIGHT, INCA_IMG_WIDTH, INCA_IMG_HEIGHT, type RadarImgDual, type RadarImgFrame } from './radarImg';
 
-export const RADAR_NC_DEFAULT_ON = true;
+export const RADAR_NC_DEFAULT_ON = false;
 
-/** `?nc=0|1` beats `localStorage.radarnc`; default `RADAR_NC_DEFAULT_ON`. Pure (the verifier passes the strings). */
+/** `?nc=0|1` (alias `?chnc=`) beats `localStorage.radarnc`; default `RADAR_NC_DEFAULT_ON`. Pure (the verifier passes the strings). */
 export function radarNcFlagFrom(
   search: string = typeof location !== 'undefined' ? location.search : '',
   stored?: string | null,
 ): boolean {
   let q: string | null = null;
-  try { q = new URLSearchParams(search).get('nc'); } catch { /* broken query = no vote */ }
+  try { const p = new URLSearchParams(search); q = p.get('nc') ?? p.get('chnc'); } catch { /* broken query = no vote */ }
   if (q === '0') return false;
   if (q === '1') return true;
   let s = stored;
@@ -106,7 +109,7 @@ export const INCA_5M_NOTE = 'Zwischenbilder entlang der Bewegung verschoben — 
  * Fusion with ICON-CH1 in CH, with INCA/AROME in AT): radar alone up to `crossoverMin`, then a soft ramp over
  * `NC_CROSSOVER_BLEND_MIN` to the model. Provenance per source: DWD-RV 120 min = its published skill horizon (set by the
  * DWD, the stand before Phase NC — unchanged); the CH extrapolation 60 min and INCA 120 min are SET (Phase NC) — the measured
- * crossover against stations is open (V-NC-1). `?nc=0` = the stand before (no ramp).
+ * crossover against stations is open (V-NC-1). Without the switch (`?nc=1`) = the stand before (no ramp).
  */
 export const NC_CROSSOVER_MIN: Readonly<Record<'radolan_rv' | 'inca_grid' | 'meteoswiss_rzc', number>> = Object.freeze({
   radolan_rv: 120, inca_grid: 120, meteoswiss_rzc: 60,
@@ -133,7 +136,14 @@ export interface RzcNcImgMeta {
   /** The analyses the motion was estimated from (slot stamps, ascending; the newest = `stamp`). */
   series: string[];
   motion: NcMotion;
-  method: { flow: 'horn-schunck'; factor: number; alpha: number; iters: number; sampling: 'wet-bilinear-round' };
+  /**
+   * `translation` (since V-NC-7, 28.10.2026): one correlation shift per pair of coarsened analyses (`factor`), searched within
+   * ± `maxCoarse` coarse texels, laid over the whole grid; `horn-schunck` = the field of the first products (27.10.), still
+   * accepted when read.
+   */
+  method:
+    | { flow: 'translation'; factor: number; maxCoarse: number; sampling: 'wet-bilinear-round' }
+    | { flow: 'horn-schunck'; factor: number; alpha: number; iters: number; sampling: 'wet-bilinear-round' };
   caveats: string[];
   label: string;
   dual?: RadarImgDual;
@@ -209,7 +219,7 @@ export function parseRzcNcImgMeta(j: unknown): RzcNcImgMeta | null {
   if (!Array.isArray(m.unknown) || m.unknown.length !== RZC_NC_LEADS.length) return null;
   if (!m.unknown.every((f, i) => frameRowOk(f, RZC_NC_LEADS[i], rzcNcUnknownFile(RZC_NC_LEADS[i])))) return null;
   if (!Array.isArray(m.series) || !m.series.length || !m.series.every((s) => typeof s === 'string') || m.series[m.series.length - 1] !== m.stamp) return null;
-  if (!motionOk(m.motion) || !m.method || m.method.flow !== 'horn-schunck') return null;
+  if (!motionOk(m.motion) || !m.method || (m.method.flow !== 'translation' && m.method.flow !== 'horn-schunck')) return null;
   if (!Array.isArray(m.caveats) || typeof m.label !== 'string') return null;
   if (m.dual !== undefined && !dualOk(m.dual, RZC_NC_LEADS)) return null;
   return m;

@@ -132,7 +132,7 @@ import { fetchIncaGrid, type IncaGrid } from './sources/geosphereIncaGrid';
 import { PrecipCompositor, pickCompositeFrames, countryMaskOffMain, zoneMaskOffMain, flowCached, flowOffMain, type CompositeFrame, type CompositePick, type RvPastFrame } from './scalar/precipComposite';
 // Phase HD (`audit/radar-hochaufloesung.md`): each country radar on its own 1-km grid behind `?hd=…`; off = byte-identical.
 import { radarHdFlagFrom, radarMorphFlagFrom, radarEdgeFlagFrom, radarDisplayMinFrom, applyDisplayMin, RADAR_HD_LAYER_IDS, RADAR_MORPH_FACTOR, RADAR_HD_CH_UNKNOWN_LAYER_ID, RADAR_HD_UNKNOWN_RAMP } from './scalar/radarHd';
-// Phase NC (`audit/radar-nowcast-dach.md`): CH extrapolation + INCA refined to 5 min, zone masks with a transition band; `?nc=0` = before.
+// Phase NC (`audit/radar-nowcast-dach.md`): CH extrapolation + INCA refined to 5 min, zone masks with a transition band; off by default (`?nc=1` on).
 import { fetchRzcNowcast, fetchInca5m, type RzcNowcast, type Inca5mGrid } from './sources/radarNowcast';
 import { radarNcFlagFrom, RZC_NC_LABEL, INCA_5M_LABEL, RZC_NC_UNKNOWN_WORD } from './sources/radarNowcastImg';
 import { radarImgStamp as ncRadarImgStamp } from './sources/radarImg';

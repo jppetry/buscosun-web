@@ -1,12 +1,21 @@
 /**
  * Phase NC (`audit/radar-nowcast-dach.md` §4) — the pure arithmetic of the two nowcast products:
  *
- *   · `flowFromSeries`  motion of a series of analyses (Horn–Schunck per consecutive pair on the coarsened frames — the map's
- *                       HD-4 recipe, `estimateMorphFlow` — averaged with weights rising towards the newest pair);
+ *   · `flowFromSeries`  motion of a series of analyses: ONE translation per consecutive pair (`translationBetween` — the shift
+ *                       of the coarsened frames with the largest correlation, refined to a fraction of a texel), averaged with
+ *                       weights rising towards the newest pair and laid over the WHOLE grid as a constant field;
  *   · `advectPlane`     the newest analysis shifted semi-Lagrangian by k steps along that motion (CH extrapolation), with the
  *                       UNKNOWN mask: a pixel whose back-trajectory starts outside the grid is not "dry" but unknown;
  *   · `betweenPlanes`   the in-between picture between two frames along the motion (INCA refined to 5 min): both frames
  *                       advected towards the middle, mixed — the CPU twin of the shader's morph (`RainLayer`, `morphAt`).
+ *
+ * Why a translation and not the Horn–Schunck field of the map's morph (V-NC-7, measured 28.10.2026 on translated Gaussian
+ * blobs, `audit/radar-nowcast-dach.md` §6): the local field is non-zero only where the echo IS — a target pixel 20 km ahead
+ * of the rain has no flow, its back-trajectory never reaches the echo, and the extrapolation STALLED after a few steps
+ * (centroid +13 … +35 px after 24 steps instead of +24 … +192); the regularised speed was 15–50 % too small as well. The
+ * brief asks for one motion ("die Zugrichtung") — the correlation shift recovers a pure translation exactly (`verify:radar-nc`
+ * C6: speed and centroid within 10 %). The Horn–Schunck estimate stays what it is for the map's morph and the INCA
+ * in-between pictures (shape halfway, not a forecast).
  *
  * Sampling rule everywhere `wet-bilinear-round` (Phase RS edge rule): the four neighbours vote wet/dry with their bilinear
  * weights, the pixel is wet when the wet share is ≥ ½, and its value is the bilinear mean over the WET neighbours only — no
@@ -16,7 +25,6 @@
  * Pure, DOM-free: producer (`radar-derive.mjs`), verifier and (if ever needed) the client run the same code.
  */
 
-import { estimateMorphFlow } from '../scalar/radarMorphFlow';
 import type { RainFlow } from '../scalar/RainLayer';
 import type { NcMotion } from './radarNowcastImg';
 
@@ -26,30 +34,75 @@ export function zeroFlow(w: number, h: number, factor: number): RainFlow {
   return { u: new Float32Array(W * H), v: new Float32Array(W * H), w: W, h: H };
 }
 
+/** Farthest shift searched per pair, in coarse texels (6 × 4 km per 5 min ≈ 290 km/h — beyond any rain band). */
+export const NC_TRANSLATION_MAX_COARSE = 6;
+/** Fewer wet coarse cells than this in either frame ⇒ no measurable motion for the pair. */
+export const NC_TRANSLATION_MIN_CELLS = 12;
+
+/** Mean of the native bytes per coarse cell (`factor × factor`), as Float32 — the frame the shift is measured on. */
+function coarsen(a: Uint8Array, w: number, h: number, factor: number): { c: Float32Array; W: number; H: number; wet: number } {
+  const W = Math.max(1, Math.ceil(w / factor)), H = Math.max(1, Math.ceil(h / factor));
+  const c = new Float32Array(W * H), n = new Uint16Array(W * H);
+  for (let y = 0; y < h; y++) { const cy = Math.floor(y / factor); for (let x = 0; x < w; x++) { const k = cy * W + Math.floor(x / factor); c[k] += a[y * w + x]; n[k]++; } }
+  let wet = 0;
+  for (let k = 0; k < c.length; k++) { c[k] = n[k] ? c[k] / n[k] : 0; if (c[k] > 0) wet++; }
+  return { c, W, H, wet };
+}
+
 /**
- * Motion of a series of frames (ascending in time, equal spacing): the weighted mean of the pair flows A_i → A_{i+1}
- * (weights 1, 2, … towards the newest pair). A pair where either frame is dry everywhere carries nothing and is skipped.
- * Fewer than two frames ⇒ zero flow (`pairs: 0`).
+ * The ONE translation A → B in native texels per interval: the integer shift of the coarsened frames (`factor`) with the
+ * largest normalised cross-correlation within ± `maxCoarse` texels, refined to a fraction of a texel by a parabola through
+ * the three scores around the maximum (per axis). `null` when either frame has fewer than `NC_TRANSLATION_MIN_CELLS` wet
+ * coarse cells or no shift correlates at all. Exact for a pure translation (`verify:radar-nc` C6); a field that grows or
+ * decays at the place gives the shift of what moves.
+ */
+export function translationBetween(a: Uint8Array, b: Uint8Array, w: number, h: number, factor: number, maxCoarse: number = NC_TRANSLATION_MAX_COARSE): { u: number; v: number; score: number } | null {
+  const A = coarsen(a, w, h, factor), B = coarsen(b, w, h, factor);
+  if (A.wet < NC_TRANSLATION_MIN_CELLS || B.wet < NC_TRANSLATION_MIN_CELLS) return null;
+  const { W, H } = A;
+  const R = maxCoarse, S = 2 * R + 1;
+  const scores = new Float64Array(S * S);
+  let best = -1, bi = 0;
+  for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
+    // B(x + dx, y + dy) against A(x, y) over the overlap, normalised by the energies of both over that overlap
+    let sab = 0, saa = 0, sbb = 0;
+    const y0 = Math.max(0, -dy), y1 = Math.min(H, H - dy), x0 = Math.max(0, -dx), x1 = Math.min(W, W - dx);
+    for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
+      const va = A.c[y * W + x], vb = B.c[(y + dy) * W + x + dx];
+      sab += va * vb; saa += va * va; sbb += vb * vb;
+    }
+    const s = saa > 0 && sbb > 0 ? sab / Math.sqrt(saa * sbb) : 0;
+    const i = (dy + R) * S + dx + R;
+    scores[i] = s;
+    if (s > best) { best = s; bi = i; }
+  }
+  if (!(best > 0)) return null;
+  const by = Math.floor(bi / S) - R, bx = (bi % S) - R;
+  // parabolic sub-texel refinement per axis (only strictly inside the search window)
+  const sub = (m: number, p: number, n: number) => { const d = m - 2 * p + n; return d < 0 ? Math.max(-0.5, Math.min(0.5, (m - n) / (2 * d))) : 0; };
+  const fx = bx > -R && bx < R ? sub(scores[bi - 1], best, scores[bi + 1]) : 0;
+  const fy = by > -R && by < R ? sub(scores[bi - S], best, scores[bi + S]) : 0;
+  return { u: (bx + fx) * factor, v: (by + fy) * factor, score: best };
+}
+
+/**
+ * Motion of a series of frames (ascending in time, equal spacing): the weighted mean of the pair translations A_i → A_{i+1}
+ * (weights 1, 2, … towards the newest pair), laid over the whole coarse grid as a constant field — so every back-trajectory
+ * finds the motion, wherever the rain will be. A pair without measurable motion (dry, or fewer than
+ * `NC_TRANSLATION_MIN_CELLS` wet coarse cells) carries nothing and is skipped. Fewer than two usable frames ⇒ zero flow
+ * (`pairs: 0`, persistence).
  */
 export function flowFromSeries(frames: readonly Uint8Array[], w: number, h: number, factor: number): { flow: RainFlow; pairs: number } {
   const flow = zeroFlow(w, h, factor);
-  let wsum = 0, pairs = 0;
+  let wsum = 0, pairs = 0, su = 0, sv = 0;
   for (let i = 0; i + 1 < frames.length; i++) {
-    const a = frames[i], b = frames[i + 1];
-    if (!anyWet(a) || !anyWet(b)) continue;
-    const f = estimateMorphFlow(a, b, w, h, factor);
-    if (f.w !== flow.w || f.h !== flow.h) throw new Error(`flowFromSeries: coarse grid ${f.w}×${f.h} ≠ ${flow.w}×${flow.h}`);
+    const t = translationBetween(frames[i], frames[i + 1], w, h, factor);
+    if (!t) continue;
     const wt = i + 1;
-    for (let k = 0; k < flow.u.length; k++) { flow.u[k] += wt * f.u[k]; flow.v[k] += wt * f.v[k]; }
-    wsum += wt; pairs++;
+    su += wt * t.u; sv += wt * t.v; wsum += wt; pairs++;
   }
-  if (wsum > 0) for (let k = 0; k < flow.u.length; k++) { flow.u[k] /= wsum; flow.v[k] /= wsum; }
+  if (wsum > 0) { flow.u.fill(su / wsum); flow.v.fill(sv / wsum); }
   return { flow, pairs };
-}
-
-function anyWet(a: Uint8Array): boolean {
-  for (let i = 0; i < a.length; i++) if (a[i]) return true;
-  return false;
 }
 
 /**

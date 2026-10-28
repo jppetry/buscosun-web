@@ -2,7 +2,7 @@
  * Phase NC (`audit/radar-nowcast-dach.md` §5) — client readers of the two derived nowcast products of the mirror
  * (contract `radarNowcastImg.ts`): the CH extrapolation `rzc-nc/<stamp>/` and the INCA run refined to 5 min
  * `inca-5m/<stamp>/`. Image way only (the products exist nowhere else); every failure answers `null` and the caller keeps
- * what it had before Phase NC (the rzc analysis alone, INCA by lead) — rule 2. Off with `?nc=0`.
+ * what it had before Phase NC (the rzc analysis alone, INCA by lead) — rule 2. Off by default, on with `?nc=1` (`?chnc=1`).
  */
 
 import type { QuadCorners } from '../scalar/RainLayer';
