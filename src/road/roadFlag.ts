@@ -111,7 +111,7 @@ export function rememberRoadSurfaceFlag(search: string = typeof location !== 'un
  * `ROAD_VS_LIVE` = Jan's flag-on decision after Gate G (E-VS-2). Off: the page shows measurements, FB-1 and „Messlücke →
  * unbekannt" exactly as before; the VS runs in the shadow. `?roadvs=0|1` beats `localStorage.roadvs`, which beats the constant.
  */
-export const ROAD_VS_LIVE = false;
+export const ROAD_VS_LIVE = true;
 
 export function roadVsFlagFrom(
   search: string = typeof location !== 'undefined' ? location.search : '',

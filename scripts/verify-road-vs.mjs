@@ -137,7 +137,7 @@ const close = (a, b, eps = 1e-6) => Math.abs(a - b) <= eps;
 
 // ── D: switch ───────────────────────────────────────────────────────────────
 {
-  ok('D1 ROAD_VS_LIVE aus (E-VS-2); ?roadvs=1 zeigt, Query schlägt Speicher, Speicher schlägt Vorgabe', ROAD_VS_LIVE === false && roadVsFlagFrom('', null) === false && roadVsFlagFrom('?roadvs=1', null) === true && roadVsFlagFrom('?roadvs=0', '1') === false && roadVsFlagFrom('', '1') === true);
+  ok('D1 ROAD_VS_LIVE an (E-VS-2); ?roadvs=0 blendet aus, Query schlägt Speicher, Speicher schlägt Vorgabe', ROAD_VS_LIVE === true && roadVsFlagFrom('', null) === true && roadVsFlagFrom('?roadvs=0', null) === false && roadVsFlagFrom('?roadvs=1', '0') === true && roadVsFlagFrom('', '0') === false);
 }
 
 // ── E: health R8 ────────────────────────────────────────────────────────────
