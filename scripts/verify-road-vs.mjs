@@ -2,7 +2,8 @@
 /**
  * verify-road-vs.mjs — AW-6.2 „Virtueller Fahrbahnsensor" (`audit/autobahnwetter.md` §20), network-free.
  *   npm run verify:road-vs
- * A forcing contract and physics · B GMA quality chain · C SWSMOS reducer · D switch · E health R8 · F producer parts.
+ * A forcing contract and physics · B GMA quality chain · C SWSMOS reducer · D switch · E health R8 · F producer parts · … ·
+ * O page view (AW-6.2.9: value per hour, class colours, words, info tab, series).
  * Every section has a negative control (a rule that cannot turn red proves nothing).
  */
 import { gunzipSync, gzipSync } from 'node:zlib';
@@ -31,6 +32,10 @@ import { coupleModeOf, tsWithFactor, fitCouplingFactor, couplingFactorAt, weathe
 import { gallawayFilm, aquaplaningKmh, frostPointOfDew, rimeIntegralUpdate, bourgouinAreas, bourgouinType, classifyRoad, gripOf, slipperinessP, VS_SCENARIO, VS_SCENARIO_TEXT } from '../src/road/vs/roadVsState.ts';
 import { fogVisibilityM, precipVisibilityM, hazeVisibilityM, diagnoseVisibilityM, visibilityProbabilities, capForecastProbabilities, visibilityNow, fitVisLogistic, VS_VIS_DEFAULT_MODEL, VS_VIS_THRESHOLDS_M } from '../src/road/vs/roadVsVis.ts';
 import { ROAD_VS_VAR_IDS, roadVsProductProblems, roadVsProductEncode, roadVsProductDecode, roadVsSrcOf, roadVsDisplay } from '../src/road/vs/roadVsProduct.ts';
+import {
+  ROAD_VS_WORD, ROAD_VS_HORIZON_H, roadVsStep, roadVsValue, roadVsClassOf, roadVsCondText, roadVsBadgeText, roadVsText, roadVsSigmaText, roadVsOriginText, roadVsInfoLines,
+  roadVsSeries, roadLastValueMs, roadVsSourceRow,
+} from '../src/road/vs/roadVsView.ts';
 import { hourForcing, VS_SIGMA_SET, nextIndex as nextVsIndex } from './road/vs/run-vs.mjs';
 import { thinRun, vsArchivePath } from './road/vs/archive-vs.mjs';
 import { scoreVs, summaryText, VS_SCORE_LEADS } from './road/vs/score-vs.mjs';
@@ -404,6 +409,39 @@ const close = (a, b, eps = 1e-6) => Math.abs(a - b) <= eps;
   ok('N4 Film: |0,05 − 0,1| mm = 50 µm MAE über 6 Paare; Sicht: P(<1000) = 1 bei 200 m ⇒ Brier 0, P(<300) = 0 ⇒ Brier 1', sc.film.n === 6 && close(sc.film.maeUm, 50, 1e-6) && sc.visibility[0].brier === 0 && sc.visibility[1].brier === 1 && sc.visibility[0].reliability[9].n === 6);
   ok('N5 Stationsweise 2-fach-CV: roh MAE = mittlerer Versatz der Testfalte; korrigiert über den gepoolten Stunden-/Klassen-Mittelwert kleiner oder gleich', sc.cv.folds === 2 && sc.cv.perFold.every((f) => f.stations === 3 && f.raw.n === 3) && sc.cv.meanCorrectedMae <= sc.cv.meanRawMae + 1e-9, `${sc.cv.meanRawMae} → ${sc.cv.meanCorrectedMae}`);
   ok('N6 Zusammenfassung nennt Läufe, Paare, Vorläufe und Film', /Läufe 1, Paare/.test(summaryText(sc)) && /\+24 h: model MAE/.test(summaryText(sc)) && /Film: MAE 50 µm/.test(summaryText(sc)));
+}
+
+// ── O: the page's view (AW-6.2.9, `?roadvs=1`) — pure functions over a product file ──────────────
+{
+  const t0 = Date.UTC(2026, 9, 28, 9), steps = 4, H = 3_600_000;
+  const enc = (k, xs) => xs.map((x) => roadVsProductEncode(k, x));
+  const v = Object.fromEntries(ROAD_VS_VAR_IDS.map((k) => [k, new Array(steps).fill(null)]));
+  Object.assign(v, {
+    tf: enc('tf', [1.2, -0.4, -1.1, null]), tf_sigma: enc('tf_sigma', [0.8, 1.1, 1.3, 1.4]), tf_src: [1, 2, 2, 3],
+    zustand: [0, 0, 3, 0], griff: [0, 0, 2, 0], glaette_p: [0, 0, 50, 0], wasserfilm_mm: enc('wasserfilm_mm', [0, 0.02, 0.05, 0]),
+    tf_bruecke: enc('tf_bruecke', [null, -1.5, null, null]), vis_p1000: [5, 40, 90, 0], vis_p300: [0, 10, 60, 0], vis_p150: [0, 0, 20, 0], vis_p50: [0, 0, 0, 0], vis_src: [2, 2, 2, 2],
+  });
+  const file = { t0Ms: t0, steps, run: '2026102809', engine: { forcing: { run: '2026102809' }, fusionRun: '2026102808' } };
+  const pt = { id: 'S1', kind: 'station', bridge: true, kaltstart: false, couple: { c: 1.2, mode: 'lw', ageH: 2, converged: true }, corr: { k: -0.3, from: 'neighbours', n: 4 }, szenario: 'ungestreut', v };
+  ok('O1 Stundenindex: nächste volle Stunde innerhalb 0 … steps−1, außerhalb null (auch 20 min vor t0 ⇒ Stunde 0)', roadVsStep(file, t0) === 0 && roadVsStep(file, t0 + 1.4 * H) === 1 && roadVsStep(file, t0 + 1.6 * H) === 2 && roadVsStep(file, t0 - 20 * 60_000) === 0 && roadVsStep(file, t0 - H) === null && roadVsStep(file, t0 + 4 * H) === null);
+  const v0 = roadVsValue(pt, file, t0), v2 = roadVsValue(pt, file, t0 + 2 * H);
+  ok('O2 Wert der Stunde: tf, σ, Herkunft, Zustand, Griff, Film, Sicht dekodiert; Stunde 0 gekoppelt/trocken, Stunde 2 modelliert/Reifglätte', v0 && v0.tf === 1.2 && v0.sigma === 0.8 && v0.src === 'gekoppelt' && v0.cond === 'trocken' && v0.grip === 'griffig' && v0.vis[0] === 5
+    && v2 && v2.tf === -1.1 && v2.src === 'modelliert' && v2.cond === 'reifglaette' && v2.grip === 'glatt' && v2.glaetteP === 50 && v2.filmMm === 0.05 && v2.vis[1] === 60 && v2.validMs === t0 + 2 * H, JSON.stringify(v2));
+  ok('O3 Gegenprobe: Stunde ohne tf oder mit Herkunft unbekannt ⇒ null (nie ein Wert aus dem Nichts)', roadVsValue(pt, file, t0 + 3 * H) === null && roadVsValue({ ...pt, v: { ...v, tf_src: [3, 2, 2, 3] } }, file, t0) === null);
+  ok('O4 Klasse in den Farben der Messklassen: gefroren ⇒ ice, nass/feucht ⇒ wet, trocken ≤ 0 °C ⇒ frost, trocken > 0 ⇒ dry, ohne Zustand ⇒ unknown',
+    roadVsClassOf({ cond: 'reifglaette', tf: -1 }) === 'ice' && roadVsClassOf({ cond: 'glatteis', tf: 0.3 }) === 'ice' && roadVsClassOf({ cond: 'schneematsch', tf: 0.5 }) === 'ice' && roadVsClassOf({ cond: 'nass', tf: -1 }) === 'wet' && roadVsClassOf({ cond: 'feucht', tf: 5 }) === 'wet'
+    && roadVsClassOf({ cond: 'trocken', tf: 0 }) === 'frost' && roadVsClassOf({ cond: 'trocken', tf: 0.1 }) === 'dry' && roadVsClassOf({ cond: null, tf: 2 }) === 'unknown');
+  ok('O5 Wörter: jeder berechnete Wert trägt das Wort „berechnet"; Badge, Zeile, σ-Text, Herkunft gekoppelt mit „Sensor aus seit"', ROAD_VS_WORD === 'berechnet' && roadVsBadgeText(v2) === `Reifglätte · ${ROAD_VS_WORD}` && roadVsText(v2) === `Fahrbahn −1,1 °C · ${ROAD_VS_WORD} · Reifglätte` && roadVsSigmaText(v2) === 'typisch ± 1,3 K' && roadVsCondText({ cond: null }) === 'Zustand unbekannt'
+    && /^berechnet · gekoppelt · Sensor aus seit \d\d:\d\d UTC$/.test(roadVsOriginText(v0, t0 - H)) && roadVsOriginText(v2) === 'berechnet · Modell mit Standortkorrektur, breitere Streuung', roadVsOriginText(v0, t0 - H));
+  const lines0 = roadVsInfoLines({ point: pt, value: v0, file, sensorOffSinceMs: t0 - 2 * H }), lines2 = roadVsInfoLines({ point: { ...pt, kaltstart: true }, value: v2, file });
+  ok('O6 Info-Tab: beginnt mit „nicht gemessen", nennt Kopplung mit Messalter, Standortkorrektur mit Nachbarn, Kaltstart, Szenario ohne Streuung, Brücke, Sicht, Lauf und den Schalter',
+    /^Dieser Fahrbahnwert ist nicht gemessen/.test(lines0[0]) && /Brückensäule\)/.test(lines0[0]) && /gekoppelt \(Messung 2,0 h alt, Wärmestrahlung × 1,20\)/.test(lines0[1]) && /seit \d\d:\d\d keinen gültigen/.test(lines0[1])
+    && /Standortkorrektur −0,3 K aus 4 Nachbaranlagen/.test(lines2[1]) && lines2.some((l) => /^Kaltstart/.test(l)) && lines2.some((l) => /Glättepotenzial ohne Streuung: Zustand Reifglätte, Griff glatt, Glättepotenzial 50 %, Wasserfilm 0,05 mm/.test(l))
+    && roadVsInfoLines({ point: pt, value: roadVsValue(pt, file, t0 + H), file }).some((l) => /^Brückensäule .* −1,5 °C/.test(l)) && lines2.some((l) => /^Sicht: P\(< 1 000 m\) 90 %, P\(< 300 m\) 60 %/.test(l)) && /ICON-D2 2026102809, buscosun Fusion 2026102808.*roadvs=1/.test(lines2[lines2.length - 1]), lines2.join(' | '));
+  ok('O7 Reihe fürs Diagramm: nur Stunden mit tf und bekannter Herkunft, relativ zur Bezugszeit, Fenster eingehalten', JSON.stringify(roadVsSeries(pt, file, t0, 0, 48)) === '[[0,1.2],[1,-0.4],[2,-1.1]]' && JSON.stringify(roadVsSeries(pt, file, t0 + H, 0, 1)) === '[[0,-0.4],[1,-1.1]]');
+  const ring = { group: 'G', slots: ['2610280800', '2610280815', '2610280830'], stations: { S1: { rs: [1, null, null] }, S2: { rs: [null, null, null] } } };
+  ok('O8 letzter gültiger Fahrbahnwert aus dem Ring (für „Sensor aus seit"): S1 08:00 UTC, S2 nie, fremde Gruppe/unbekannte Station null', roadLastValueMs(ring, 'S1', 'G') === Date.UTC(2026, 9, 28, 8) && roadLastValueMs(ring, 'S2', 'G') === null && roadLastValueMs(ring, 'S1', 'H') === null && roadLastValueMs(ring, 'S9', 'G') === null && roadLastValueMs(null, 'S1', 'G') === null);
+  ok('O9 Quellen-Zeile: aktiv nur mit Lauf und mit dem Schalter im Text, sonst geplant; Horizont 48 h', roadVsSourceRow(true).status === 'aktiv' && /roadvs=1/.test(roadVsSourceRow(true).what) && roadVsSourceRow(false).status === 'geplant' && ROAD_VS_HORIZON_H === 48);
 }
 
 const failed = checks.filter((c) => !c.pass);

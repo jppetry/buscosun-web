@@ -2293,3 +2293,52 @@ Radius 25 km / Band 300 m / σ-Faktor 1,5; Film-Speicherfaktor 1,0; Gallaway T_X
 Mindestspeicher 0,02 mm; Klassenschwellen (Schnee 0,2 mm, Matsch, Eis 0,05 mm); Griff-Zuordnung; glaette_p 0/0,5/1; Dunst 20 km →
 1 km über 2 K; Sicht-Gewichte −1,5 je Quelle, Deckel P(<50) 0,5; Nachbar-Sicht 15 km / 100 m; σ-Vorgabe 1 + 0,1·h ≤ 3 K; Produkt-
 Aufbewahrung 3 Läufe, Zustands-Historie 9 h, veraltet 9 h; Gate-G-Schwellen (Vorschlag).
+
+### 20.16 AW-6.2.9 Anzeige des virtuellen Sensors hinter `?roadvs=1` (28.10.2026, E-VS-8)
+
+**Anlass und Entscheidung.** Jans Recherche liegt vor: `Fahrbahnzustand ohne Sensor.md` in der Repo-Wurzel ist die in §20.0 vermisste
+Pflichtlektüre (anderer Dateiname, gleicher Inhalt: RoadSurf/METRo-Kern, Speicher, Klassen, Gallaway, Sicht, QC-Kette, Kopplung,
+Prüfstand, Ausgabefelder). Seine Vorgabe vom 28.10.: wo der Sensor ausfällt, zeigt die Seite einen Fusion-Wert, der „aussieht wie ein
+normaler Sensor", mit kleinem Info-Zeichen; der Klick wiederholt die Herkunft; auf Abschnitten ohne Sensor liefert Fusion ebenfalls
+Fahrbahnwerte. **E-VS-8 (Jan 28.10., „ich gebe den nächsten Schritt frei"):** die Verdrahtung entsteht JETZT hinter `?roadvs=1`,
+nicht erst nach Gate G (ändert E-VS-2 nur im Zeitpunkt der Verdrahtung; `ROAD_VS_LIVE` bleibt `false`, ohne Parameter lädt die Seite
+nichts vom VS). Die fremde uncommittete AWD-Linie in `RoadPage.tsx` wurde dafür angefasst (Jans Freigabe in derselben Antwort).
+
+**Gebaut (Commit AW-6.2.9).**
+- `src/road/vs/roadVsView.ts` (rein): `roadVsStep`/`roadVsValue` (nächste volle Stunde des Laufs; `tf` null oder Herkunft
+  `unbekannt` ⇒ null, nie ein Wert aus dem Nichts), `roadVsClassOf` (Farben der MESSklassen: gefroren ⇒ `ice`, nass/feucht ⇒ `wet`,
+  trocken ≤ 0 °C ⇒ `frost`, sonst `dry`, ohne Zustand ⇒ `unknown`), Wörter (`berechnet` an jedem Wert, Badge „Reifglätte · berechnet",
+  Zeile, σ, Herkunft über `roadVsDisplay`), `roadVsInfoLines` (der Info-Tab: „nicht gemessen", Kopplung mit Messalter und Faktor,
+  Standortkorrektur mit Nachbarzahl, Streuung, Kaltstart, Szenario ohne Streuung mit Griff/Glättepotenzial/Film, Brückensäule, Sicht,
+  Lauf, Schalter), `roadVsSeries` (Diagramm), `roadLastValueMs` (Sensor aus seit, aus dem 24-h-Ring), `roadVsSourceRow`.
+- `src/road/vs/useRoadVs.ts`: Hook, Korridor-Datei des neuesten Laufs (Achse + Stationen des Korridors), alle 10 min, nichts ohne
+  Schalter; veraltet (> 9 h) ⇒ nicht gezeigt, Grund im Objekt. `src/road/vs/roadVs.css`: Info-Knopf (44 px Trefffläche, 18-px-Ring),
+  Info-Box, gestrichelte Umrandung an Badge und Chips, blaue Legende/Linie.
+- `RoadReadout.tsx`: **Station ohne gültigen Fahrbahnwert** ⇒ Kopfzeile „Fahrbahnsensor ausgefallen · virtueller Sensor", Hero mit
+  VS-Wert + Info-Zeichen + Badge in Klassenfarbe (gestrichelt umrandet), Unterzeile „berechnet · gekoppelt · Sensor aus seit hh:mm UTC"
+  bzw. „… Modell mit Standortkorrektur, breitere Streuung" + σ + ggf. „Messung verworfen (Regel)"; Kachel „Jetzt · berechnet"; Kacheln
+  +1/+3/+6 h mit VS-Wert und Zustand (VS vor FB-1, FB-1 bleibt Rückfall); Verlauf mit VS-Reihe 0 … 6 h (blau gestrichelt); Prognose-
+  Zellen Fahrbahn/Zustand/Griff/Wasserfilm/Sicht; Notiz mit Lauf und Herkunft der Stunde. **Prognosepunkt (Achse)** ⇒ eigener Hero
+  „Fahrbahn · berechnet" über dem Luft-Hero, Kachel „Jetzt · Fahrbahn", Verlauf 0 … 24 h, Kacheln, Zellen, Datenbasis-Zeile.
+  **Strecke** ⇒ Zeilen ohne Messung (Sensor aus oder Achse) tragen den VS-Wert zur Ankunftsstunde und einen Chip in Klassenfarbe mit
+  gestrichelter Umrandung „Trocken · ber."; Briefing „Kälteste berechnete Fahrbahn zur Ankunft"; Fußnote erklärt die Umrandung.
+  **Messlücke** ⇒ Satz „… der virtuelle Sensor berechnet sie an jedem Prognosepunkt". **Quellen** ⇒ Zeile „buscosun Fusion — virtueller
+  Fahrbahnsensor" aktiv/geplant. Eine gültige Messung gewinnt überall (`gemessen` ⇒ die Messung steht, der VS nur im Kreuzvergleich).
+- `RoadMap.tsx`: Marker-Variante `aw-<klasse>-vs` (Klassenfarbe, dunkler Rand, heller gestrichelter Innenring) für Stationen ohne
+  Fahrbahnwert mit VS-Wert, Label `~+1,2°`; Achsenpunkte des Korridors in der VS-Klassenfarbe statt der Luftklasse, wenn ein Wert da
+  ist; Callout nennt Wert und Herkunft. `RoadPage.tsx` (eigene Hunks, Legende der fremden Linie unberührt): Hook, Marker-Karte,
+  Callout, Props. `RoadRoute.tsx`: `roadVsFlagFrom`/`rememberRoadVsFlag`, Prop `vs`.
+- Nicht angefasst (Startprompt: erst nach Gate G): Gefahren-Regeln, Streckenband-Klassen, Dock-Zählungen; D-04 bleibt für Messwerte
+  (ein VS-Marker ist nie „trocken" aus Schweigen, sondern aus einem Zustandscode des Laufs).
+
+**Prüfung.** `verify:road-vs` Abschnitt O (9 Prüfungen: Stundenindex mit Rändern, Wert/Negativkontrolle, Klassenzuordnung, Wörter,
+Info-Tab, Reihe, Ring-Helfer, Quellenzeile) ⇒ **123/123**; `typecheck` grün. **Nicht gelaufen:** `verify:road-ui` (braucht Browser
+und Preview-Server, Session-Regel) — die Sichtprüfung der Kacheln, des Info-Knopfs und der Marker ist Jans Schritt (§79.13), sobald
+`road/vs/v1` online liegt; bis dahin zeigt `?roadvs=1` nur die Seite von vorher (Leser liefert `kein Lauf`).
+
+**Befunde.** V-VS-19 Kartenlegende ohne VS-Eintrag (die Legende liegt in der fremden AWD-Hunk-Gruppe; Eintrag „gestrichelter Innenring =
+berechnet" nach deren Commit). V-VS-20 Stationen außerhalb der Korridor-Datei (Landesdateien `s/<land>.json`) bekommen in der Ansicht
+keinen VS-Wert (V-AW-26-Muster für den VS fehlt). V-VS-21 Streckenband und Dock zählen weiter nur Messungen (gewollt bis Gate G).
+V-VS-22 Register §20.6: mit der Recherche-Datei lassen sich die meisten `set`-Werte auf `literature` umstellen (RoadSurf/METRo-Code,
+BASt V 329, Gallaway, MADIS) — Doku-Schritt, keine Code-Änderung. V-VS-23 Mobile: der Info-Knopf sitzt im Hero neben der 44-px-Zahl;
+Trefffläche 44 px per CSS, Sichtprüfung offen.

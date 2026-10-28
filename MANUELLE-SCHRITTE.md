@@ -3041,8 +3041,9 @@ Alles uncommitted in `buscosun-web`; das Spiegelskript im Daten-Repo ist schon g
 
 Zweig `feat/aw-6.2-virtueller-sensor`, ein Commit je Arbeitspaket; nichts davon ist live (`ROAD_VS_LIVE = false`, E-VS-2).
 
-1. **Recherche-Datei:** `audit/fahrbahnmodell-recherche.md` fehlt im Repo und unter `C:\dev` (§20.0). Bis sie da ist, trägt jede
-   Konstante aus dem Startprompt `set` mit Herkunft „Startprompt" (Register §20.6). Datei nachliefern oder Pfad nennen.
+1. **Recherche-Datei:** ~~fehlt~~ — liegt als `Fahrbahnzustand ohne Sensor.md` in der Repo-Wurzel (28.10., untracked). Soll sie nach
+   `audit/fahrbahnmodell-recherche.md` wandern und committet werden? Dann stelle ich das Register §20.6 von `set` auf `literature` um,
+   wo die Datei die Quelle nennt (V-VS-22).
 2. **Nummern:** E-AW-38…43 des Startprompts waren schon vergeben (§19.6) ⇒ die Entscheidungen heißen E-VS-1…6 (§20.1). Einspruch?
 3. **Sicht nach dem 30.11.2026:** der DWD nimmt VIS auch aus ICON-D2-RUC (§20.2 i). Vorschlag §20.3 (2): ab Dezember Sicht 0–48 h
    aus eigener Diagnose + Messung + MOSMIX, RUC-VIS bis dahin nur als Lern-/Vergleichsgröße. Alternativ 6.2.6 zurückstellen.
@@ -3072,6 +3073,15 @@ Zweig `feat/aw-6.2-virtueller-sensor`, ein Commit je Arbeitspaket; nichts davon 
     dann Commit/Push des Daten-Repos (Weg V-WL-20). Ohne Tabelle rechnet der VS ohne Korrektur und sagt es im Kopf (`residuals: null`).
 11. **Prüfstand (6.2.8, ab ≈ 14 Tage Archiv, Gate G erst mit Winterdaten):** `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/road/vs/score-vs.mjs --vs=C:\dev\buscosun-archiv\road\vs\v1 --gma=C:\dev\buscosun-archiv\road\v1 --swsmos=C:\dev\buscosun-archiv\swsmos\v1 --out=audit\autobahnwetter\vs\score-<Datum>.json`
     — Ergebnis mit allen Baselines in §20.14; danach entscheidest du die Gate-G-Schwellen (Vorschlag dort).
-12. **Nicht gebaut (bewusst, offen):** Verdrahtung in `RoadReadout.tsx` hinter `ROAD_VS_LIVE` (V-VS-17, nach Gate G — die Seite liegt in
-    der fremden AWD-Linie uncommitted); Modellflächen T/HHL für Bourgouin (V-VS-6); RUC-EPS-Memberanteil (gibt es im v1-Pfad nicht);
+12. **Nicht gebaut (bewusst, offen):** Modellflächen T/HHL für Bourgouin (V-VS-6); RUC-EPS-Memberanteil (gibt es im v1-Pfad nicht);
     CDC-Sichtstationen für die Kalibrierung (V-VS-15); POI-Sicht (V-VS-14); gepooltes Gradient-Boosting (nach einem Winter, V-VS-12).
+    Die Verdrahtung in der Seite (V-VS-17) ist seit 28.10. gebaut (Schritt 13).
+13. **Anzeige prüfen (AW-6.2.9, E-VS-8, 28.10.):** Die Seite zeigt den virtuellen Sensor nur mit `?roadvs=1` (`ROAD_VS_LIVE` bleibt
+    `false`; `?roadvs=0` schaltet zurück, `localStorage.roadvs` merkt sich die Wahl). Sichtbar wird etwas erst, wenn `road/vs/v1`
+    im Daten-Repo liegt (Schritte 5 + 9); vorher meldet der Leser „kein Lauf" und die Seite ist die von vorher. Dann anschauen
+    (`verify:road-ui` lief NICHT, Browser-Regel dieser Session): (a) eine Messstelle ohne gültigen Fahrbahnwert — Kopfzeile
+    „Fahrbahnsensor ausgefallen · virtueller Sensor", Wert mit Info-Zeichen, Badge in Klassenfarbe mit gestrichelter Umrandung,
+    Klick auf „i" öffnet die Herkunft; (b) ein Prognosepunkt — Hero „Fahrbahn · berechnet" über dem Luft-Hero, Verlauf 0 … 24 h;
+    (c) Strecke — gestrichelt umrandete Chips an Zeilen ohne Messung; (d) Karte — Marker mit hellem gestrichelten Innenring und Label
+    `~+1,2°`, Achsenpunkte in der Fahrbahn-Klassenfarbe; (e) Mobil 390 px — Info-Knopf treffbar (44 px). Kartenlegende ohne VS-Eintrag
+    (V-VS-19, nach dem AWD-Commit). Befunde in §20.16.

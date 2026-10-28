@@ -1,0 +1,21 @@
+/* AW-6.2.9 — the virtual road sensor on the Autobahnwetter page (behind `?roadvs=1`): a computed value looks like a
+   measured one and carries a small info mark; the badge and the chips get a dashed outline; the click opens the info box.
+   Command-Deck tokens of roadDeck.css; nothing here changes a measured element. */
+.aw-vs-i { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; min-width: 44px; min-height: 44px; margin: -12px -8px -12px -4px; padding: 0; background: none; border: 0; cursor: pointer; color: var(--aw-accent, #1F5FAE); }
+.aw-vs-i > i { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid currentColor; font: 700 10.5px/1 Georgia, 'Times New Roman', serif; font-style: italic; letter-spacing: 0; }
+.aw-vs-i:hover > i, .aw-vs-i[aria-expanded="true"] > i { background: var(--aw-accent, #1F5FAE); color: #fff; }
+.aw-vs-i:focus-visible { outline: 2px solid var(--aw-accent, #1F5FAE); outline-offset: -8px; border-radius: 10px; }
+.aw-vs-info { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: #EAF1F7; border: 1px dashed #A9C0D9; color: #1E3A5C; font-size: 11.5px; line-height: 1.5; }
+.aw-vs-info p { margin: 0; }
+.aw-vs-info p + p { margin-top: 5px; }
+.aw-vs-info strong { display: block; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 4px; color: #28507A; }
+.aw-badge.is-vs { outline: 2px dashed rgba(255, 255, 255, 0.85); outline-offset: -5px; }
+.aw-table-chip.is-vs { outline: 1.5px dashed rgba(255, 255, 255, 0.9); outline-offset: -3px; }
+.aw-hero.is-vs .aw-hero-val { position: relative; }
+.aw-hero-sub.is-vs { color: #28507A; }
+.aw-prog-tile em i.is-vs { border-radius: 50%; box-shadow: inset 0 0 0 1.5px #fff; }
+.aw-chart-legend i.is-dash.is-vs { border-top: 2px dashed #28507A; }
+.aw-chart-fc-vs { stroke: #28507A; }
+.aw-eyebrow.is-vs { color: #28507A; }
+.aw-table-name em.is-vs { color: #28507A; }
+.aw-table-name em.is-vs u { text-decoration: none; }

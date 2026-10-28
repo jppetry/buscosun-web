@@ -11,7 +11,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate, useNavigationType, useParams } from 'react-router';
 import NotFoundRoute from './NotFoundRoute';
 import AppLoader from '../AppLoader';
-import { roadFlagFrom, rememberRoadFlag, roadHzFlagFrom, rememberRoadHzFlag, roadSurfaceFlagFrom, rememberRoadSurfaceFlag } from '../../road/roadFlag';
+import { roadFlagFrom, rememberRoadFlag, roadHzFlagFrom, rememberRoadHzFlag, roadSurfaceFlagFrom, rememberRoadSurfaceFlag, roadVsFlagFrom, rememberRoadVsFlag } from '../../road/roadFlag';
 import { buildRoadUrl, parseRoadUrl, type RoadUrlState } from '../../road/roadState';
 
 const RoadPage = lazy(() => import('../../road/RoadPage'));
@@ -27,7 +27,9 @@ export default function RoadRoute() {
   const hz = useMemo(() => roadHzFlagFrom(loc.search), [loc.search]);
   // Phase FB: the road surface forecast behind its own switch (`ROAD_SURFACE_LIVE`, `?rsfc=1`).
   const surface = useMemo(() => roadSurfaceFlagFrom(loc.search), [loc.search]);
-  useEffect(() => { rememberRoadFlag(loc.search); rememberRoadHzFlag(loc.search); rememberRoadSurfaceFlag(loc.search); }, [loc.search]);
+  // AW-6.2.9: the virtual road sensor behind its own switch (`ROAD_VS_LIVE = false`, `?roadvs=1`, E-VS-2) — off, the page fetches nothing of it.
+  const vs = useMemo(() => roadVsFlagFrom(loc.search), [loc.search]);
+  useEffect(() => { rememberRoadFlag(loc.search); rememberRoadHzFlag(loc.search); rememberRoadSurfaceFlag(loc.search); rememberRoadVsFlag(loc.search); }, [loc.search]);
 
   const parsed = useMemo(() => parseRoadUrl(road ?? null, loc.search, hz), [road, loc.search, hz]);
   const stateRef = useRef<RoadUrlState>(parsed.state);
@@ -67,7 +69,7 @@ export default function RoadRoute() {
     <Suspense fallback={<AppLoader />}>
       {/* Back/forward (POP) hands the URL's state to the mounted page — `initial` is read only once (review #6,
           pattern FireRoute `routeView`). */}
-      <RoadPage initial={parsed.state} invalid={parsed.invalid} onUrlState={onUrlState} onCorridor={onCorridor} hz={hz} surface={surface}
+      <RoadPage initial={parsed.state} invalid={parsed.invalid} onUrlState={onUrlState} onCorridor={onCorridor} hz={hz} surface={surface} vs={vs}
         popState={navType === 'POP' ? { ...parsed.state, key: loc.key } : null} />
     </Suspense>
   );
