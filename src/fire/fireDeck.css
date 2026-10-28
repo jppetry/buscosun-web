@@ -1669,3 +1669,25 @@
 .br-layer-legend .fire-swatch { width: 10px; height: 10px; border-radius: 50%; }
 .br-layer-legend .fire-li-partner { margin: .4rem 0 .15rem; padding-top: .3rem; }
 @media (prefers-reduced-motion: reduce) { .fire-li-refd > summary::before { transition: none; } }
+
+/* Legende unter der Layer-Zeile: League Spartan, gut lesbar groß (Desktop 13 px, mobil 15 px) */
+.br-layer-legend, .br-layer-legend * { font-family: 'League Spartan', var(--font-base, system-ui, sans-serif); }
+.br-layer-legend-head { font-size: 11px; }
+.br-layer-legend .fire-li-row, .br-layer-legend .fire-li-classes li, .br-layer-legend .fire-li-lc { font-size: 13px; line-height: 1.35; }
+.br-layer-legend .fire-li-unit, .br-layer-legend .fire-li-scale { font-size: 13px; }
+.br-layer-legend .fire-li-partner, .br-layer-legend .fire-li-refd > summary { font-size: 12px; }
+.br-layer-legend .fire-li-ref { font-size: 12.5px; line-height: 1.45; }
+.br-layer-legend .fire-li-cls-name { min-width: 78px; color: var(--ink-900, #2C2A26); }
+@media (max-width: 767px) {
+  .br-layer-legend-head { font-size: 12px; }
+  .br-layer-legend .fire-li-row, .br-layer-legend .fire-li-classes li, .br-layer-legend .fire-li-lc { font-size: 15px; line-height: 1.4; }
+  .br-layer-legend .fire-li-unit, .br-layer-legend .fire-li-scale { font-size: 15px; }
+  .br-layer-legend .fire-li-partner, .br-layer-legend .fire-li-refd > summary { font-size: 13.5px; }
+  .br-layer-legend .fire-li-ref { font-size: 14px; }
+  .br-layer-legend .fire-li-classes li { gap: 8px; padding: 1px 0; }
+  .br-layer-legend .fire-li-cls-name { min-width: 92px; }
+  .br-layer-legend .fire-swatch { width: 12px; height: 12px; }
+  .br-layer-legend .fire-li-bar { height: 12px; }
+  .br-layer-legend .fire-li-stepbar { height: 9px; }
+  .br-layer-legend .fire-li-refd > summary { min-height: 32px; }
+}
