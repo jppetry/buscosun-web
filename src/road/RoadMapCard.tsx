@@ -1,6 +1,7 @@
 /**
  * Preview cards on the map (bottom left, like the fire card): one for a road segment picked by a map click, one for a
- * whole corridor picked by a click on its line. Both end in the way into the dossier. The segment values are the row
+ * whole corridor picked by a click on its line, one for the selected measuring/forecast point (desktop: replaces the
+ * map callout). Segment and corridor end in the way into the dossier. The segment values are the row
  * of the hazard list (`HzRow`), so card and list always say the same.
  */
 import { useEffect, type CSSProperties, type ReactNode } from 'react';
@@ -11,12 +12,29 @@ import type { RoadLevel } from './roadHazards';
 import { AW_HATCH, AW_SEV, AW_SEV_TINT, AW_UNKNOWN_TINT } from './roadNivoTheme';
 
 interface Actions {
-  onOpenDossier: () => void;
+  /** Absent = no way into the dossier (a station card without a segment). */
+  onOpenDossier?: () => void;
   onClose: () => void;
 }
 
+/** The picked measuring point or forecast point — the text of the former map callout. */
+export interface RoadCardStation {
+  kind: 'Messstelle' | 'Prognosepunkt';
+  name: string;
+  line: string;
+  /** Class colour; `null` = hatched (no class). */
+  color: string | null;
+}
+
+const StationRow = ({ st, withName }: { st: RoadCardStation; withName: boolean }) => (
+  <span className="aw-mapcard-st">
+    <i className={st.color ? undefined : 'is-hatched'} style={st.color ? { background: st.color } : undefined} />
+    <span>{withName && <b>{st.name}</b>}{st.line}</span>
+  </span>
+);
+
 function Shell({ label, shields, eyebrow, name, sub, accent, children, onOpenDossier, onClose }: Actions & {
-  label: string; shields: readonly string[]; eyebrow: string; name: string; sub: string; accent: string; children: ReactNode;
+  label: string; shields: readonly string[]; eyebrow: string; name: string; sub?: string; accent: string; children: ReactNode;
 }) {
   // Escape closes the card, like a popup.
   useEffect(() => {
@@ -33,7 +51,7 @@ function Shell({ label, shields, eyebrow, name, sub, accent, children, onOpenDos
             <span>{eyebrow}</span>
           </span>
           <span className="aw-mapcard-name">{name}</span>
-          <span className="aw-mapcard-sub">{sub}</span>
+          {sub && <span className="aw-mapcard-sub">{sub}</span>}
         </span>
         <button type="button" className="aw-mapcard-close" aria-label="Kachel schließen" onClick={onClose}>
           <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
@@ -42,14 +60,14 @@ function Shell({ label, shields, eyebrow, name, sub, accent, children, onOpenDos
         </button>
       </header>
       {children}
-      <button type="button" className="aw-mapcard-cta" onClick={onOpenDossier}>
+      {onOpenDossier && <button type="button" className="aw-mapcard-cta" onClick={onOpenDossier}>
         Detailansicht öffnen
         <span className="aw-mapcard-cta-arrow" aria-hidden="true">
           <svg width="14" height="14" viewBox="0 0 14 14">
             <path d="M3 7h8M7.5 3.5L11 7l-3.5 3.5" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </span>
-      </button>
+      </button>}
     </section>
   );
 }
@@ -65,15 +83,18 @@ const levelChip = (lv: RoadLevel | null, note?: string) => {
 };
 
 /** A road segment (map click on its line or on a measuring point). */
-export default function RoadMapCard({ seg, row, ...actions }: Actions & {
+export default function RoadMapCard({ seg, row, station, ...actions }: Actions & {
   seg: RoadSegment;
   /** The segment's row in the hazard list; `null` = no hazard in the window or no valid hazard file. */
   row: HzRow | null;
+  /** The picked point inside the segment, shown above the hazard line. */
+  station?: RoadCardStation | null;
 }) {
   const lv = row ? row.best.lv : null;
   return (
     <Shell {...actions} label={`Abschnitt ${seg.name}`} shields={seg.shields} eyebrow="Abschnitt" name={seg.name}
       sub={`km ${Math.round(seg.kmFrom)}–${Math.round(seg.kmTo)} · ${Math.round(seg.lengthKm)} km`} accent={lv ? AW_SEV[lv].bg : '#8B8474'}>
+      {station && <StationRow st={station} withName />}
       {row ? (
         <div className="aw-mapcard-body">
           {levelChip(lv, lv === null ? 'keine gültige Messung' : EV_LABEL[row.best.ev ?? 'p'])}
@@ -86,6 +107,16 @@ export default function RoadMapCard({ seg, row, ...actions }: Actions & {
       ) : (
         <p className="aw-mapcard-none">Keine Gefahr in diesem Zeitraum erkannt. Das ist keine Entwarnung.</p>
       )}
+    </Shell>
+  );
+}
+
+/** A measuring point or forecast point without a segment card (hazard switch off, point outside every segment, axis point). */
+export function RoadStationCard({ station, shields, ...actions }: Actions & { station: RoadCardStation; shields: readonly string[] }) {
+  return (
+    <Shell {...actions} label={`${station.kind} ${station.name}`} shields={shields} eyebrow={station.kind} name={station.name}
+      accent={station.color ?? '#8B8474'}>
+      <StationRow st={station} withName={false} />
     </Shell>
   );
 }

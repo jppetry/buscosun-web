@@ -723,6 +723,10 @@ button.aw-prog-tile:not(:disabled):not(.is-on):hover { box-shadow: var(--aw-inse
 .aw-mapcard-when { font-size: 12px; color: var(--stone-600, #5C5447); }
 .aw-mapcard-fact { flex: 1 1 100%; font-size: 12.5px; line-height: 1.35; color: var(--stone-600, #5C5447); }
 .aw-mapcard-none { margin: 0; font-size: 12.5px; line-height: 1.4; color: var(--stone-600, #5C5447); }
+.aw-mapcard-st { display: flex; align-items: baseline; gap: 8px; font-size: 13px; line-height: 1.4; color: var(--stone-600, #5C5447); }
+.aw-mapcard-st b { display: block; font-size: 13px; font-weight: 700; color: var(--ink-900, #2C2A26); }
+.aw-mapcard-st i { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; display: inline-block; transform: translateY(1px); }
+.aw-mapcard-st i.is-hatched { background: repeating-linear-gradient(135deg, #8B8474 0 2px, #3A3833 2px 4px); }
 .aw-mapcard-cta {
   display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 4px 6px 4px 14px;
   border: 0; border-radius: 12px; background: var(--ink-900, #2C2A26); color: #fff; font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer;

@@ -43,7 +43,7 @@ import { roadHzFreshness, type RoadHazardGroup, type RoadHzFile, type RoadLevel 
 import { loadRoadHz, loadRoadHzHistory, loadRoadSegments } from './roadHzClient';
 import { AW_SEV } from './roadNivoTheme';
 import { hzGroupRows, rowOrder, segMapState, segmentMainStation, segmentOfStation, type HzRow } from './roadHzView';
-import RoadMapCard, { RoadCorridorCard } from './RoadMapCard';
+import RoadMapCard, { RoadCorridorCard, RoadStationCard, type RoadCardStation } from './RoadMapCard';
 import { RoadDossierHead, RoadDossierTabs, RoadPickBar, RoadRouteCard, type RoadDossierChapter, type SegState } from './RoadDossier';
 // AW-8: rail and detail (with the nivo heatmap) are their own lazy chunk — a visitor without the switch loads none of it.
 const RoadHazardPanel = lazy(() => import('./RoadHazardPanel'));
@@ -119,6 +119,8 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   const [mapSeg, setMapSeg] = useState<string | null>(null);
   // The corridor a MAP click on its line picked: its preview card, until closed, a dossier opens or a segment is picked.
   const [mapCorr, setMapCorr] = useState<string | null>(null);
+  // The point whose preview card was closed — it stays closed until the next pick.
+  const [cardOff, setCardOff] = useState<string | null>(null);
   useEffect(() => { if (inDossier) { setMapSeg(null); setMapCorr(null); } }, [inDossier]);
   // AWD chapters (like the fire dossier): entering the dossier with an open segment lands on „Abschnitt“, otherwise on „Strecke“.
   const [dsChapter, setDsChapter] = useState<RoadDossierChapter>(1);
@@ -360,7 +362,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
 
   const pickCorridor = useCallback((id: string) => { setCorridorId(id); setStId(null); setSheet('peek'); setPicker(false); if (hz) setSegId(null); }, [hz]);
   const pickStation = useCallback((id: string) => {
-    setStId(id);
+    setStId(id); setCardOff(null);
     setTab((t) => (t === 'quellen' ? (hz ? 'gefahren' : 'station') : t));
     // AW-8: a click on a measuring point opens the detail of its segment (E-AW-37).
     if (hz && !isRoadFcAxisId(id) && segments && segments !== 'error') { const s = segmentOfStation(segments, id, corridorId); if (s) { setSegId(s.id); setTab('gefahren'); } }
@@ -376,7 +378,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
     setSegId(id); setTab('gefahren'); setSheet('open');
     if (s.corridor !== corridorId) setCorridorId(s.corridor);
     const main = segmentMainStation(s, shownById);
-    setStId(main);
+    setStId(main); setCardOff(null);
   }, [segMap, corridorId, shownById]);
   // AWD: a click on a list row is the explicit wish for the details ⇒ open the segment AND switch to the dossier.
   // A click on the map only marks (segment line, callout, row in the list with „Dossier öffnen“).
@@ -551,7 +553,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   const map = (
     <RoadMap corridors={corridors ?? []} corridor={corridor} points={mapPoints} inCorridor={inCorridor}
       selectedId={axis?.id ?? point?.id ?? null} stale={freshness === 'stale'} layers={layers} warnAreas={warnAreas} padding={padding}
-      onSelect={pickStationFromMap} onMap={(m) => { mapRef.current = m; }} callout={callout} fcDots={fcDots} fcRs={fcRs} vsPoints={vsMarkers} onRain={setRain}
+      onSelect={pickStationFromMap} onMap={(m) => { mapRef.current = m; }} callout={isMobile ? callout : null} fcDots={fcDots} fcRs={fcRs} vsPoints={vsMarkers} onRain={setRain}
       segLines={hz ? segLines : undefined} selSegId={hz ? segId : null} hoverSegId={hz ? hoverSeg : null} onSelectSegment={hz ? pickSegmentFromMap : undefined} onSelectCorridor={hz ? pickCorridorFromMap : pickCorridor} />
   );
   const readoutProps = {
@@ -630,10 +632,16 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
         onOpenDossier={() => { setMapCorr(null); setStage('dossier'); }} onClose={() => setMapCorr(null)} />
     );
   };
+  // Desktop: the selected point's text lives in the preview card (bottom left), no longer as a callout in the map;
+  // mobile keeps the callout (the card there covers the briefing sheet).
+  const selId = axis?.id ?? point?.id ?? null;
+  const stCard: RoadCardStation | null = callout && !isMobile && !inDossier && selId !== cardOff
+    ? { kind: axis ? 'Prognosepunkt' : 'Messstelle', name: callout.name, line: callout.line, color: callout.color } : null;
   const mapCardEl = mapCardSeg ? (
-    <RoadMapCard seg={mapCardSeg} row={hzGroups.flatMap((g) => g.rows).find((r) => r.segId === mapCardSeg.id) ?? null}
-      onOpenDossier={() => { setMapSeg(null); setStage('dossier'); }} onClose={() => setMapSeg(null)} />
-  ) : mapCardCorr ? corrCard(mapCardCorr) : null;
+    <RoadMapCard seg={mapCardSeg} row={hzGroups.flatMap((g) => g.rows).find((r) => r.segId === mapCardSeg.id) ?? null} station={stCard}
+      onOpenDossier={() => { setMapSeg(null); setStage('dossier'); }} onClose={() => { setMapSeg(null); setCardOff(selId); }} />
+  ) : mapCardCorr ? corrCard(mapCardCorr)
+    : stCard ? <RoadStationCard station={stCard} shields={corridor?.shields ?? []} onClose={() => setCardOff(selId)} /> : null;
   /** Segment „Karte | Dossier“ (Desktop topbar, mobile top row) — only behind the hazard switch. */
   const stageSeg = !hz ? null : (
     <div className="aw-seg aw-stage-seg" role="group" aria-label="Bühne der Mitte">
