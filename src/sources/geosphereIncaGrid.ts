@@ -48,6 +48,8 @@ export interface IncaGrid {
   /** V-RL-2: gesetzt, wenn dies der letzte gute Lauf ist, weil der frische
    *  Abruf fehlschlug (Zeitpunkt des guten Abrufs, ms). */
   staleFromMs?: number;
+  /** Phase NC: the run's reftime stamp `YYYYMMDDTHHMM` when it is known (image way) — the key of the refined product. */
+  stamp?: string;
 }
 
 /** LE2/H7: Netzpriorität des Abrufs — `'low'` für die Nachbarquelle. */
@@ -170,7 +172,7 @@ async function loadIncaSlot(stamp: string, signal: AbortSignal, priority?: Reque
       height: meta.height,
     };
   }, touch);
-  return { frames, corners: meta.corners as QuadCorners };
+  return { frames, corners: meta.corners as QuadCorners, stamp };
 }
 
 /**

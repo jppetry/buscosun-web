@@ -881,6 +881,10 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
           <ul>
             {stack && <li><strong>Quelle:</strong> {stack.attribution}</li>}
             {stack && <li><strong>Skill-Horizont:</strong> minutengenau bis ~{Math.round((stack.skillMin || 0) / 60 * 10) / 10} h, danach {pointNowcast?.nwpSource === 'cube' ? 'buscosun Fusion (Punkt-Cube)' : `Modell (${pointNowcast ? nwpLabel(pointNowcast) : 'ICON-D2'})`}.</li>}
+            {/* Phase NC: the honest words of the derived products — what "now" is, the weaknesses, the unknown areas */}
+            {stack?.ageNote && <li><strong>Zeitbezug:</strong> {stack.ageNote}</li>}
+            {stack?.caveats?.length ? <li><strong>Schwächen der Hochrechnung:</strong> {stack.caveats.join('; ')}.</li> : null}
+            {stack?.unknownNote && <li><strong>Karte:</strong> {stack.unknownNote}.</li>}
             <li><strong>Radarsicht:</strong> {coverageNote(point.lat, point.country)}</li>
             <li>Karte antippen für Punktabfrage. Raster sättigt ~20 mm/h (RADOLAN-RV-Kodierung).</li>
           </ul>

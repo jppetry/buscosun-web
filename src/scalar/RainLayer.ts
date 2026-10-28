@@ -187,7 +187,10 @@ float sampleWet(sampler2D sm, vec2 uv, out float ind) {
 
 void main() {
   if (v_uv.x < 0.0 || v_uv.x > 1.0 || v_uv.y < 0.0 || v_uv.y > 1.0) discard;
-  if (u_mask_on > 0.5 && texture2D(u_mask, (floor(v_uv * u_texsize) + 0.5) / u_texsize).r < 0.5) discard;
+  // Phase NC: the mask is a WEIGHT (0 … 1) — 0 discards as before, 1 draws as before, in between (the transition band
+  // between two radar products) scales the alpha so the neighbouring layers overlap softly instead of meeting at an edge.
+  float mw = 1.0;
+  if (u_mask_on > 0.5) { mw = texture2D(u_mask, (floor(v_uv * u_texsize) + 0.5) / u_texsize).r; if (mw < 0.002) discard; }
   float t;
   if (u_edge != 0) {
     float ia, ib;
@@ -214,7 +217,7 @@ void main() {
   if (t < 0.002) discard; // 0 = trocken oder außerhalb der Abdeckung
   vec2 rp = vec2(fract(16.0 * t), floor(16.0 * t) / 16.0);
   vec4 c = texture2D(u_color_ramp, rp);
-  gl_FragColor = vec4(c.rgb, c.a * u_opacity);
+  gl_FragColor = vec4(c.rgb, c.a * u_opacity * mw);
 }
 `;
 
@@ -478,8 +481,9 @@ export class RainLayer implements CustomLayerInterface {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
         gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+        // Phase NC: a byte 2 … 255 is the weight as it is (zone mask); 1 means "draw" (ownership mask, 0/1) and stays 255.
         const bytes = new Uint8Array(mask.length);
-        for (let i = 0; i < mask.length; i++) bytes[i] = mask[i] ? 255 : 0;
+        for (let i = 0; i < mask.length; i++) { const m = mask[i]; bytes[i] = m === 0 ? 0 : m === 1 ? 255 : m; }
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, frame.width, frame.height, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, bytes);
       }
     }

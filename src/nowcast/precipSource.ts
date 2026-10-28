@@ -33,6 +33,8 @@ export interface PrecipAvailability {
   radarDE: boolean; // RADOLAN-RV
   radarAT: boolean; // GeoSphere INCA
   radarCH: boolean; // MeteoSchweiz rzc
+  /** Phase NC: the CH extrapolation (`rzc-nc`) is loaded — CH then reaches +2 h like DE instead of "now" only. */
+  radarCHNc?: boolean;
 }
 
 export interface PrecipResolution {
@@ -50,6 +52,8 @@ export const RADAR_HORIZON_H: Record<Country, number> = {
   AT: 3,   // GeoSphere INCA (0.25 … 3.0 h)
   CH: 0.5, // MeteoSchweiz rzc (nur „jetzt")
 };
+/** Phase NC: horizon of the CH extrapolation (`rzc-nc`, 24 × 5 min from the analysis). */
+export const RADAR_HORIZON_H_CH_NC = 2;
 
 /** Numerische Toleranz an der Horizont-Grenze (spiegelt das `+1e-6`/`h < RZC_MAX_H`
  *  in `precipComposite`: DE/AT inklusive, CH strikt). */
@@ -61,7 +65,9 @@ function radarLoaded(country: Country, avail: PrecipAvailability): boolean {
 
 /** Liegt die Stunde im Radar-Fenster des Landes? Grenz-Inklusivität exakt wie im
  *  Kompositor: DE/AT `hour ≤ horizon (+ε)`, CH strikt `hour < 0.5`. */
-function inRadarWindow(hour: number, country: Country): boolean {
+function inRadarWindow(hour: number, country: Country, chNc = false): boolean {
+  // Phase NC: with the CH extrapolation loaded, CH is inclusive up to 2 h like DE.
+  if (country === 'CH' && chNc) return hour <= RADAR_HORIZON_H_CH_NC + EPS;
   const horizon = RADAR_HORIZON_H[country];
   return country === 'CH' ? hour < horizon : hour <= horizon + EPS;
 }
@@ -76,7 +82,7 @@ export function resolvePrecipSource(
   country: Country,
   avail: PrecipAvailability,
 ): PrecipResolution {
-  return { kind: 'radar', ready: inRadarWindow(hour, country) && radarLoaded(country, avail) };
+  return { kind: 'radar', ready: inRadarWindow(hour, country, !!avail.radarCHNc) && radarLoaded(country, avail) };
 }
 
 /**
@@ -97,7 +103,7 @@ export function precipRadarHorizonHours(avail: PrecipAvailability): number {
   let h = 0;
   if (avail.radarDE) h = Math.max(h, RADAR_HORIZON_H.DE);
   if (avail.radarAT) h = Math.max(h, RADAR_HORIZON_H.AT);
-  if (avail.radarCH) h = Math.max(h, RADAR_HORIZON_H.CH);
+  if (avail.radarCH) h = Math.max(h, avail.radarCHNc ? RADAR_HORIZON_H_CH_NC : RADAR_HORIZON_H.CH);
   return h;
 }
 

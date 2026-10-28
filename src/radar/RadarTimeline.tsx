@@ -106,6 +106,8 @@ export default function RadarTimeline({
               {fmtRel(cur.leadMinutes)} · {cur.measured ? 'gemessen' : 'Vorhersage'}
             </span>
           )}
+          {/* Phase NC: what "now" is for this stack (AT: INCA run + age; CH: analysis + measured motion) */}
+          {stack.ageNote && <span className="rdr-tl-status" title={stack.ageNote}>{stack.ageNote}</span>}
         </div>
         {legend}
         <div className="rdr-tl-legend2">

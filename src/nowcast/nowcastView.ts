@@ -105,7 +105,9 @@ export function nwpLabel(nc: Pick<Nowcast, 'nwpSource'>): string {
 
 export function sourceLabel(nc: Nowcast): string {
   if (nc.hasRadar && nc.radarSource) {
-    return `DWD RADOLAN-RV · ${nwpLabel(nc)} · Radar ${fmtClock(nc.runAtMs)}`;
+    // Phase NC: the radar product of the place (before: always "DWD RADOLAN-RV", also for AT/CH)
+    const radar = nc.radarSource === 'inca_grid' ? 'GeoSphere INCA (5 min)' : nc.radarSource === 'meteoswiss_rzc' ? 'MeteoSchweiz rzc · Hochrechnung buscosun' : 'DWD RADOLAN-RV';
+    return `${radar} · ${nwpLabel(nc)} · Radar ${fmtClock(nc.runAtMs)}`;
   }
   return nc.nwpSource === 'cube' ? `buscosun Fusion · ${fmtClock(nc.fetchedAtMs)}` : `ICON-D2 (2,2 km) · ${fmtClock(nc.fetchedAtMs)}`;
 }

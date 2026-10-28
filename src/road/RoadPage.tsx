@@ -435,30 +435,35 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
     </div>
   );
   const legend = (
-    <div className="aw-legend" aria-label="Legende">
-      <span className="aw-eyebrow">Fahrbahn</span>
-      {(['ice', 'frost', 'wet', 'dry'] as const).map((c) => <span key={c}><i style={{ background: ROAD_CLASS_COLOR[c] }} />{ROAD_CLASS_LABEL[c].label}</span>)}
-      {/* Hatched = `unknown` (temperature, no condition) AND `nodata` — never "dry" (D-04). */}
-      <span><i className="is-hatched" />Zustand unbekannt / keine Messung</span>
-      {gap && <span><i className="is-fc-line" style={{ background: ROAD_FC_LINE_COLOR }} />Abschnitt ohne Messstelle · {ROAD_GAP_SHORT}</span>}
+    // Frosted bar at the foot of the map, right-aligned (Jan 27.10., like the Seewetter and Gletscher legends): one column per layer.
+    <div className="aw-legend aw-legend-bar" aria-label="Legende">
+      <div className="aw-legend-sec">
+        <span className="aw-eyebrow">Fahrbahn</span>
+        <div className="aw-legend-grid">
+          {(['ice', 'frost', 'wet', 'dry'] as const).map((c) => <span key={c}><i style={{ background: ROAD_CLASS_COLOR[c] }} />{ROAD_CLASS_LABEL[c].label}</span>)}
+          {/* Hatched = `unknown` (temperature, no condition) AND `nodata` — never "dry" (D-04). */}
+          <span><i className="is-hatched" />Zustand unbekannt / keine Messung</span>
+          {gap && <span><i className="is-fc-line" style={{ background: ROAD_FC_LINE_COLOR }} />Abschnitt ohne Messstelle · {ROAD_GAP_SHORT}</span>}
+        </div>
+      </div>
       {layers.rain && (
-        <>
-          <span className="aw-eyebrow aw-legend-fc">Niederschlag jetzt</span>
+        <div className="aw-legend-sec">
+          <span className="aw-eyebrow">Niederschlag jetzt</span>
           <span className="aw-legend-rain" role="status"><i />{rain?.validAtMs != null && rain.state !== 'error' ? `Radar ${hm(rain.validAtMs)} · DWD RADOLAN` : rain?.state === 'none' || rain?.state === 'error' ? 'Radar derzeit nicht lesbar' : 'Radar lädt'}</span>
-        </>
+        </div>
       )}
       {fcFile && layers.fc && (
-        <>
-          <span className="aw-eyebrow aw-legend-fc">Prognose Luft · {t === 0 ? 'jetzt' : `+${t} h`}</span>
+        <div className="aw-legend-sec">
+          <span className="aw-eyebrow">Prognose Luft · {t === 0 ? 'jetzt' : `+${t} h`}</span>
           {(['frost', 'near', 'above'] as const).map((k) => <span key={k}><i className="is-dot" style={{ background: ROAD_FC_AIR_COLOR[k] }} />{ROAD_FC_AIR_LABEL[k]}</span>)}
-        </>
+        </div>
       )}
       {hz && hzShown && (
-        <>
-          <span className="aw-eyebrow aw-legend-fc">Gefahren · {hzMode === 'p6' ? 'bis +6 h' : t === 0 ? 'jetzt' : `+${t} h`}</span>
+        <div className="aw-legend-sec">
+          <span className="aw-eyebrow">Gefahren · {hzMode === 'p6' ? 'bis +6 h' : t === 0 ? 'jetzt' : `+${t} h`}</span>
           {([1, 2, 3] as const).map((l) => <span key={l}><i className="is-bar" style={{ background: AW_SEV[l].bg }} />Stufe {l}</span>)}
           <span><i className="is-bar is-dotted" />unbekannt</span>
-        </>
+        </div>
       )}
     </div>
   );
@@ -515,12 +520,12 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   } : point ? {
     lon: point.lon, lat: point.lat, name: point.n,
     line: point.rs != null ? `Fahrbahn ${f1(point.rs)} °C · ${ROAD_CLASS_LABEL[point.cls].label}`
+      : vsMarkers.has(point.id) ? `${roadVsText(vsAtSel(point.id)!)} (${roadVsOriginText(vsAtSel(point.id)!)})`
       : [point.cls === 'nodata' && roadNoValueSince(ring, point.id, point.g, obs?.slotMs ?? point.t) || ROAD_CLASS_LABEL[point.cls].label,
         fcRs.has(point.id) ? `Fusion Fahrbahn ${f1(fcRs.get(point.id) as number)} °C (berechnet)` : null].filter(Boolean).join(' · '),
     color: point.rs == null && vsMarkers.has(point.id) ? ROAD_CLASS_COLOR[vsMarkers.get(point.id)!.cls] : isHatched(point.cls) ? null : ROAD_CLASS_COLOR[point.cls],
   } : null;
   const map = (
-      : vsMarkers.has(point.id) ? `${roadVsText(vsAtSel(point.id)!)} (${roadVsOriginText(vsAtSel(point.id)!)})`
     <RoadMap corridors={corridors ?? []} corridor={corridor} points={mapPoints} inCorridor={inCorridor}
       selectedId={axis?.id ?? point?.id ?? null} stale={freshness === 'stale'} layers={layers} warnAreas={warnAreas} padding={padding}
       onSelect={pickStationFromMap} onMap={(m) => { mapRef.current = m; }} callout={callout} fcDots={fcDots} fcRs={fcRs} vsPoints={vsMarkers} onRain={setRain}
@@ -752,12 +757,12 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
             {map}
             <div className="aw-ov-left">{pill}{times}</div>
             <div className="aw-ov-right">
-              {legend}
               <div className="aw-zoom">
                 <button type="button" aria-label="Hineinzoomen" onClick={() => zoom(1)}>+</button>
                 <button type="button" aria-label="Herauszoomen" onClick={() => zoom(-1)}>−</button>
               </div>
             </div>
+            <div className="aw-ov-legend">{legend}</div>
             {emptyMap}{corrFail}
             {mapCardEl && <div className="aw-map-card">{mapCardEl}</div>}
             {/* AWD: with the hazard switch the strip lives in the dossier only; without it the map keeps its strip (rollback = the page of before). */}

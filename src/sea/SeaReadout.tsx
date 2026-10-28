@@ -4,7 +4,7 @@
  * "amtlich" (Seewetterdienst Hamburg, verbatim with number and issue time). The official warning status stands ABOVE
  * the verdict whenever it is not the exact "no warning" sentence (Seewetter check 3). No text says "sicher".
  */
-import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import type { SeaSpot } from './seaContract';
 import type { SeaTextDoc, WodlCoast, WodlSeaArea } from './seaText';
 import { WODL_AREA_IDS } from './seaText';
@@ -214,6 +214,23 @@ export default function SeaReadout(p: Props) {
           </div>
         </Card>
   );
+  const lastT = p.chartHours.length ? p.chartHours[p.chartHours.length - 1].t : 0;
+  // Dossier: one chart card as a dashboard panel — legend as chips in the head, a label per panel, the same two charts.
+  const chartPanel = s && !p.noData && p.chartHours.length > 1 && (
+    <section className="sw-card sw-chartpanel" aria-label="Verlauf Wind und Seegang">
+      <header className="sw-chartpanel-h">
+        <div><span className="sw-tile-h"><span>Verlauf</span><em>bis {dayShort(lastT)} {hh(lastT)} Uhr</em></span><span className="sw-unit">Welle {runLabel(p.run)} · Wind {windName}</span></div>
+        <div className="sw-chartpanel-leg">
+          <span><i style={{ background: '#2C2A26' }} />Wind</span><span><i className="is-band" />Böen-Band</span>
+          {p.limitKn != null && p.limitLabel && <span><i className="is-limit" />Grenze</span>}
+          <span><i style={{ background: '#0F6E7A' }} />Seegang gesamt</span><span><i style={{ background: '#3E9284' }} />Windsee</span><span><i style={{ background: '#7A9466' }} />Dünung</span>
+          {p.dry.hours > 0 && <span><i style={{ background: DRY_COLOUR, height: 5 }} />Modellzelle ohne Wasser</span>}
+        </div>
+      </header>
+      <div className="sw-chartpanel-p"><span className="sw-chartpanel-l">Wind · kn</span><WindChart hours={p.chartHours} selMs={h?.t ?? p.chartHours[0].t} limitKn={p.limitKn} limitLabel={p.limitLabel} big /></div>
+      <div className="sw-chartpanel-p"><span className="sw-chartpanel-l">Seegang · m</span><SeaStateChart hours={p.chartHours} selMs={h?.t ?? p.chartHours[0].t} big /></div>
+    </section>
+  );
   const chartCardOf = (big = false) => s && !p.noData && p.chartHours.length > 1 && (
         <Card cls={big ? 'is-cream is-wide' : 'is-cream'}>
           <div className="sw-card-head"><span className="sw-eyebrow">Verlauf bis {dayShort(p.chartHours[p.chartHours.length - 1].t)} {hh(p.chartHours[p.chartHours.length - 1].t)} Uhr</span><span className="sw-unit">Welle {runLabel(p.run)} · Wind {windName}</span></div>
@@ -329,54 +346,59 @@ export default function SeaReadout(p: Props) {
         ))}
       </section>
     );
+    // Dashboard of the chosen hour (27.10.): Wind | Seegang | a column with shore, water and the land measurement.
+    // Same values as before, one number per tile in front, everything else as one quiet line or row.
+    const water = s ? waterRange(p.texts, s) : null;
+    const hasWaves = h != null && !h.dry && h.hs != null && h.hs >= 0.05;
     const nowCard = s && (
-      <section className="sw-card sw-ds-now" aria-label="Wetter zur gewählten Stunde">
-        {p.noData && <div className="sw-empty"><strong>Keine Daten.</strong> {p.noData}</div>}
+      <section className="sw-ds-now sw-dash" aria-label="Wetter zur gewählten Stunde">
+        {p.noData && <div className="sw-card sw-empty"><strong>Keine Daten.</strong> {p.noData}</div>}
         {!p.noData && h && (
           <>
-            <div className="sw-now-grid">
-              <div className="sw-now-block">
-                <span className="sw-ds-stat-l">Wind · {windName}</span>
-                <div className="sw-now-big">
-                  {h.windDir != null && h.windMs != null && <WindArrow from={h.windDir} />}
-                  <strong>{h.windMs == null ? '–' : fmtWind(h.windMs, p.unit)}</strong>{h.windMs != null && <span>{unitLabel(p.unit)}</span>}
+            <div className="sw-dash-grid">
+              <article className="sw-tile is-wind">
+                <header className="sw-tile-h"><span>Wind</span><em>{windName}</em></header>
+                <div className="sw-tile-wind">
+                  <WindGauge windMs={h.windMs} gustMs={h.gustMs} dir={h.windDir} unit={p.unit} limitKn={p.limitKn} />
+                  <dl className="sw-tile-kv">
+                    <div><dt>Richtung</dt><dd><strong>{h.windMs == null ? '–' : `aus ${compass16(h.windDir)}`}</strong><small>{h.windMs == null ? 'kein Wind für diese Stunde berechnet' : `${h.windDir != null ? `${Math.round(h.windDir)}°` : '–'}${v?.shore ? ` · ${SHORE_LABEL[v.shore]}` : ''}`}</small></dd></div>
+                    <div><dt>Böen</dt><dd><strong>{h.gustMs == null ? '–' : `${fmtWind(h.gustMs, p.unit)} ${unitLabel(p.unit)}`}</strong><small>{spread == null ? 'keine Böe für diese Stunde berechnet' : `Böenspanne ${fmtWind(spread, p.unit)} ${unitLabel(p.unit)}`}</small></dd></div>
+                    {p.limitKn != null && p.limitLabel && <div><dt>Grenze</dt><dd><strong className="is-limit">{p.limitLabel}</strong><small>Profil {p.profileLabel} · rote Marke am Ring</small></dd></div>}
+                  </dl>
                 </div>
-                <span className="sw-ds-stat-c">{h.windMs == null ? 'kein Wind für diese Stunde berechnet' : `aus ${compass16(h.windDir)}${h.windDir != null ? ` (${Math.round(h.windDir)}°)` : ''}${v?.shore ? ` · ${SHORE_LABEL[v.shore]}` : ''}`}</span>
-                <div className="sw-now-kv">
-                  <span>Böen</span>
-                  <strong>{h.gustMs == null ? '–' : `${fmtWind(h.gustMs, p.unit)} ${unitLabel(p.unit)}`}</strong>
-                  <em>{spread == null ? 'keine Böe für diese Stunde berechnet' : `Böenspanne ${fmtWind(spread, p.unit)} ${unitLabel(p.unit)}`}</em>
+              </article>
+
+              <article className="sw-tile is-sea">
+                <header className="sw-tile-h"><span>Seegang</span><em>Modell CWAM</em></header>
+                <div className="sw-tile-big">
+                  <strong className={h.dry ? 'is-dry' : ''}>{h.dry ? DRY_VALUE : h.hs == null ? '–' : f1(h.hs)}</strong>{!h.dry && h.hs != null && <span>m</span>}
+                  {hasWaves && h.dir != null && <WaveArrow from={h.dir} />}
                 </div>
-                {h.windMs != null && h.gustMs != null && <GustMeter windKn={h.windMs * MS_TO_KN} gustKn={h.gustMs * MS_TO_KN} limitKn={p.limitKn} limitLabel={p.limitLabel} />}
-              </div>
-              <div className="sw-now-block is-sea">
-                <span className="sw-ds-stat-l">Seegang · Modell CWAM</span>
-                <div className="sw-now-big"><strong className={h.dry ? 'is-dry' : ''}>{h.dry ? DRY_VALUE : h.hs == null ? '–' : f1(h.hs)}</strong>{!h.dry && h.hs != null && <span>m</span>}</div>
-                <span className="sw-ds-stat-c">{h.dry ? dryHourText(s.region) : h.hs == null ? 'kein Wert an der Wasserzelle' : `aus ${compass16(h.dir)}${h.hs >= 0.05 ? ` (${Math.round(h.dir ?? 0)}°)` : ''}`}</span>
-                <dl className="sw-now-rows">
-                  <div><dt>Periode</dt><dd><strong>{h.dry || h.tm == null ? '–' : `${f1(h.tm)} s`}</strong><small>{h.dry ? 'kein Seegang' : h.tm == null ? 'kein Wert' : 'mittlere Periode Tm'}</small></dd></div>
-                  <div><dt>Windsee</dt><dd><strong>{h.dry || h.ws == null ? '–' : `${f1(h.ws)} m`}</strong><small>{h.dry ? 'kein Seegang' : h.ws == null ? 'kein Wert' : h.wsPer == null ? 'Periode –' : `Periode ${f1(h.wsPer)} s`}</small></dd></div>
-                  <div><dt>Dünung</dt><dd><strong>{h.dry || h.sw == null ? '–' : `${f1(h.sw)} m`}</strong><small>{h.dry ? 'kein Seegang' : h.sw == null ? 'kein Wert' : `Periode ${h.swPer == null ? '–' : `${f1(h.swPer)} s`} · aus ${compass16(h.swDir)}`}</small></dd></div>
-                  <div><dt>Wellenrichtung</dt><dd><strong>{h.hs == null || h.hs < 0.05 ? '–' : `aus ${compass16(h.dir)}`}</strong><small>{h.hs == null || h.hs < 0.05 ? 'kein Seegang mit Richtung' : `${Math.round(h.dir ?? 0)}°`}</small></dd></div>
-                </dl>
-              </div>
-              <div className="sw-now-block is-side">
-                <Compass normal={s.normal} windFrom={h.windDir} waveFrom={h.hs != null && h.hs >= 0.05 ? h.dir : null}
+                <p className="sw-tile-sub">{h.dry ? dryHourText(s.region) : h.hs == null ? 'kein Wert an der Wasserzelle' : hasWaves ? `aus ${compass16(h.dir)} (${Math.round(h.dir ?? 0)}°) · Periode ${h.tm == null ? '–' : `${f1(h.tm)} s`}` : `kein Seegang mit Richtung · Periode ${h.tm == null ? '–' : `${f1(h.tm)} s`}`}</p>
+                <SeaBars hour={h} />
+              </article>
+
+              <article className="sw-tile is-shore">
+                <header className="sw-tile-h"><span>Lage zum Ufer</span><em>Ufer nach {compass16(s.normal)}</em></header>
+                <Compass normal={s.normal} windFrom={h.windDir} waveFrom={hasWaves ? h.dir : null}
                   label={`Wind aus ${compass16(h.windDir)}, Welle aus ${compass16(h.dir)}, Ufer zeigt nach ${compass16(s.normal)}`} shore={v?.shore ? SHORE_LABEL[v.shore] : null} />
-                <div className="sw-now-water">
-                  <span className="sw-ds-stat-l">Wasser · Mittelfrist (amtlich)</span>
-                  <strong>{waterRange(p.texts, s) ?? '–'}</strong>
-                  <small>{waterRange(p.texts, s) ? seaName(s) : 'kein Wert im Bericht'}</small>
-                </div>
-              </div>
+              </article>
             </div>
-            {s.station && p.poi && p.poi !== 'loading' && (
-              <div className="sw-now-meas">
-                <span className="sw-ds-stat-l is-measured">Gemessen an Land · {hm(p.poi.t)} Uhr</span>
-                <strong>{fmtWind(p.poi.ffMs, p.unit)} {unitLabel(p.unit)} aus {compass16(p.poi.ddDeg)} · Böen {fmtWind(p.poi.fxMs, p.unit)} {unitLabel(p.unit)}</strong>
-                <small>DWD-Station {stationName}, {s.station.km} km vom Spot (10-min-Mittel, Böe der letzten Stunde) · Messung an Land, nicht auf dem Wasser</small>
-              </div>
-            )}
+            <div className="sw-dash-strip">
+              <article className="sw-tile is-water">
+                <header className="sw-tile-h"><span>Wasser</span><em>Mittelfrist · amtlich</em></header>
+                <div className="sw-tile-mid"><strong>{water ?? '–'}</strong><small>{water ? seaName(s) : 'kein Wert im Bericht'}</small></div>
+              </article>
+              {s.station && p.poi && p.poi !== 'loading' && (
+                <article className="sw-tile is-meas">
+                  <header className="sw-tile-h"><span>Gemessen an Land</span><em>{hm(p.poi.t)} Uhr</em></header>
+                  <div className="sw-tile-mid">
+                    <strong>{fmtWind(p.poi.ffMs, p.unit)} {unitLabel(p.unit)} aus {compass16(p.poi.ddDeg)} · Böen {fmtWind(p.poi.fxMs, p.unit)} {unitLabel(p.unit)}</strong>
+                    <small>DWD-Station {stationName}, {s.station.km} km vom Spot (10-min-Mittel, Böe der letzten Stunde) · Messung an Land, nicht auf dem Wasser</small>
+                  </div>
+                </article>
+              )}
+            </div>
             {p.dry.hours > 0
               ? <p className="sw-note is-dry">{dryNote(s.region, p.dry.hours, p.dry.of, s.cell.km, p.dry.classed)}</p>
               : s.tidal && <p className="sw-note">Watt: das Modell rechnet mit Gezeit und Wassertiefe — den Wasserstand selbst zeigt der Abschnitt „Wasserstand“, gemessen und vorhergesagt am nächsten BSH-Pegel. Bei Niedrigwasser kann die Stelle trockenfallen.</p>}
@@ -445,7 +467,7 @@ export default function SeaReadout(p: Props) {
                 </DsSection>
                 <DsSection id="sw-sec-verlauf" title="Stundenband und Verlauf" hint="Jede Stunde des Laufs — eine Stunde wählen setzt Karte und Werte oben auf diese Zeit">
                   {p.band}
-                  {chartCardOf(true)}
+                  {chartPanel}
                 </DsSection>
                 {p.waterLevel && (
                   <DsSection id="sw-sec-wasser" title="Wasserstand" hint="Nächster BSH-Pegel · Füllstand zur gewählten Stunde · Verlauf und amtlicher Text">
@@ -663,10 +685,23 @@ const cmSigned = (cm: number) => `${cm > 0 ? '+' : cm < 0 ? '−' : '±'}${cmTex
  * (forecast teal, measurement ink — the chart's colours).
  */
 function WaterLevelFill({ fill, isNow, big = false }: { fill: WlFill; isNow: boolean; big?: boolean }) {
-  const W = big ? 132 : 104, H = big ? 150 : 124, x0 = 6, x1 = big ? 46 : 40, top = 8, bottom = H - 8;
+  const uid = useId().replace(/:/g, '');
+  // A capsule glass: the water as a gradient with a slow wave on top, the span mean low → mean high water as a tinted
+  // band behind it, the gauge's marks as ticks with their labels to the right.
+  const W = big ? 196 : 148, H = big ? 224 : 150, x0 = 10, x1 = big ? 74 : 52, top = 10, bottom = H - 10, rx = (x1 - x0) / 2;
   const y = (cm: number) => bottom - ((cm - fill.lo) / (fill.hi - fill.lo)) * (bottom - top);
   const colour = fill.kind === 'forecast' ? '#0F6E7A' : '#2C2A26';
+  const [cTop, cBot] = fill.kind === 'forecast' ? ['#4BAAB4', '#0B5560'] : ['#9A9286', '#3E3A34'];
   const yv = y(fill.cm);
+  const hiMark = fill.marks.find((m) => m.label === fill.highLabel), loMark = fill.marks.find((m) => m.label === fill.lowLabel);
+  // One wavelength L; the wave group slides by exactly L, so the loop is seamless.
+  const L = (x1 - x0) * 0.8, amp = big ? 3.2 : 2.4;
+  const wave = (yy: number) => {
+    let d = `M${x0 - L} ${yy}`;
+    for (let x = x0 - L; x < x1 + L; x += L) d += ` q${L / 4} ${-amp} ${L / 2} 0 t${L / 2} 0`;
+    return `${d} V${bottom} H${x0 - L} Z`;
+  };
+  const spanPos = fill.spanFrac != null ? Math.min(100, Math.max(0, fill.spanFrac * 100)) : null;
   const spanPct = fill.spanFrac != null ? Math.round(fill.spanFrac * 100) : null;
   const spanText = fill.band === 'within' ? `${fill.spanLabel} zu ${spanPct} % gefüllt`
     : fill.band === 'above' ? `über dem ${fill.spanLabel} (${cmSigned(fill.vsHigh!)} cm gegen ${fill.highLabel})`
@@ -675,27 +710,47 @@ function WaterLevelFill({ fill, isNow, big = false }: { fill: WlFill; isNow: boo
   const label = `Füllstand des Pegels: ${cmText(fill.cm)} cm über Pegelnull, ${fill.kind === 'forecast' ? 'Vorhersage' : 'gemessen'} ${hm(fill.t)} Uhr`
     + (fill.marks.length ? `; Marken ${fill.marks.map((m) => `${m.label} ${m.cm} cm`).join(', ')}` : '');
   return (
-    <div className="sw-wl-fill" data-kind={fill.kind} data-band={fill.band ?? 'none'}>
+    <div className={`sw-wl-fill${big ? ' is-big' : ''}`} data-kind={fill.kind} data-band={fill.band ?? 'none'}>
       <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={label}>
-        <rect x={x0} y={top} width={x1 - x0} height={bottom - top} rx={5} fill="#F4F0E4" stroke="#E0D6BE" />
-        <rect className="sw-wl-fill-water" x={x0 + 1} y={yv} width={x1 - x0 - 2} height={Math.max(0, bottom - 1 - yv)} rx={4} fill={colour} fillOpacity={0.78} />
-        <line x1={x0} x2={x1} y1={yv} y2={yv} stroke={colour} strokeWidth={2} />
+        <defs>
+          <clipPath id={`${uid}c`}><rect x={x0} y={top} width={x1 - x0} height={bottom - top} rx={rx} /></clipPath>
+          <linearGradient id={`${uid}w`} x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor={cTop} /><stop offset="1" stopColor={cBot} /></linearGradient>
+          <linearGradient id={`${uid}g`} x1="0" x2="1" y1="0" y2="0"><stop offset="0" stopColor="#fff" stopOpacity={0} /><stop offset="0.3" stopColor="#fff" stopOpacity={0.5} /><stop offset="0.55" stopColor="#fff" stopOpacity={0} /></linearGradient>
+        </defs>
+        <rect x={x0} y={top} width={x1 - x0} height={bottom - top} rx={rx} fill="#F3EEE1" />
+        <g clipPath={`url(#${uid}c)`}>
+          {hiMark && loMark && <rect x={x0} y={y(hiMark.cm)} width={x1 - x0} height={Math.max(0, y(loMark.cm) - y(hiMark.cm))} fill={colour} fillOpacity={0.07} />}
+          <rect className="sw-wl-fill-water" x={x0} y={yv} width={x1 - x0} height={Math.max(0, bottom - yv)} fill={`url(#${uid}w)`} />
+          <g className="sw-wl-wave is-back" style={{ ['--wl' as string]: `${L}px` }}><path d={wave(yv - 1)} fill={cTop} fillOpacity={0.45} /></g>
+          <g className="sw-wl-wave" style={{ ['--wl' as string]: `${L}px` }}><path d={wave(yv + 1.5)} fill={`url(#${uid}w)`} /></g>
+          <rect x={x0} y={top} width={x1 - x0} height={bottom - top} fill={`url(#${uid}g)`} />
+        </g>
+        <rect x={x0} y={top} width={x1 - x0} height={bottom - top} rx={rx} fill="none" stroke="#D9D0B8" strokeWidth={1.5} />
         {fill.marks.map((m) => (
           <g key={m.label}>
-            <line x1={x0 - 2} x2={x1 + 4} y1={y(m.cm)} y2={y(m.cm)} stroke="#8B7355" strokeDasharray="3 2" />
-            <text x={x1 + 7} y={y(m.cm) + (big ? 4 : 3)} fontSize={big ? 12.5 : 10} fill="#8B7355" fontFamily="IBM Plex Mono, monospace">{m.label} {m.cm}</text>
+            <line x1={x1 - 10} x2={x1 + 6} y1={y(m.cm)} y2={y(m.cm)} stroke="#8B7355" strokeWidth={1.5} strokeLinecap="round" />
+            <circle cx={x1 + 6} cy={y(m.cm)} r={2} fill="#8B7355" />
+            <text x={x1 + 13} y={y(m.cm) + (big ? 4.5 : 3.5)} fontSize={big ? 12.5 : 10.5} fontWeight={600} fill="#7A6F5C" fontFamily="'League Spartan', system-ui, sans-serif">{m.label} {m.cm}</text>
           </g>
         ))}
       </svg>
       <div className="sw-wl-fill-txt">
         <span className="sw-wl-fill-k">Füllstand · {fill.kind === 'forecast' ? 'Vorhersage' : 'gemessen'} {hm(fill.t)} Uhr{isNow ? ' (letzter Wert, nicht die gewählte Stunde)' : ''}</span>
         <strong>{cmText(fill.cm)} cm <small>über Pegelnull</small></strong>
-        {fill.nhnCm != null && <span>{cmText(Math.abs(fill.nhnCm))} cm {fill.nhnCm < 0 ? 'unter' : fill.nhnCm > 0 ? 'über' : 'auf'} NHN</span>}
-        {fill.vsHigh != null && fill.vsLow != null && fill.vsHigh !== fill.vsLow && (
-          <span>{cmSigned(fill.vsLow)} cm gegen {fill.lowLabel} · {cmSigned(fill.vsHigh)} cm gegen {fill.highLabel}</span>
+        {spanPos != null && (
+          <div className="sw-wl-span" aria-hidden="true">
+            <div className="sw-wl-span-t"><i style={{ width: `${spanPos}%` }} /><b style={{ left: `${spanPos}%` }} /></div>
+            <div className="sw-wl-span-l"><span>{fill.lowLabel}</span><span>{fill.highLabel}</span></div>
+          </div>
         )}
-        {fill.marks.some((m) => m.label === 'MW') && fill.vsHigh != null && <span>{cmSigned(fill.vsHigh)} cm gegen Mittelwasser</span>}
         {spanText && <span className="sw-wl-fill-span">{spanText}</span>}
+        <div className="sw-wl-fill-rows">
+          {fill.nhnCm != null && <span>{cmText(Math.abs(fill.nhnCm))} cm {fill.nhnCm < 0 ? 'unter' : fill.nhnCm > 0 ? 'über' : 'auf'} NHN</span>}
+          {fill.vsHigh != null && fill.vsLow != null && fill.vsHigh !== fill.vsLow && (
+            <span>{cmSigned(fill.vsLow)} cm gegen {fill.lowLabel} · {cmSigned(fill.vsHigh)} cm gegen {fill.highLabel}</span>
+          )}
+          {fill.marks.some((m) => m.label === 'MW') && fill.vsHigh != null && <span>{cmSigned(fill.vsHigh)} cm gegen Mittelwasser</span>}
+        </div>
       </div>
     </div>
   );
@@ -831,28 +886,71 @@ function WarnRows({ text, own, onlyOwn }: { text: string; own?: string | null; o
   );
 }
 
-/** Arrow pointing where the wind blows to (the band's convention: arrows show where wind and waves run). */
-const WindArrow = ({ from }: { from: number }) => (
-  <svg className="sw-now-arrow" viewBox="0 0 24 24" width="30" height="30" aria-hidden="true" style={{ transform: `rotate(${(from + 180) % 360}deg)` }}>
+/** Arrow pointing where the wind/the waves run to (the band's convention: arrows show where wind and waves run). */
+const RunArrow = ({ from, cls }: { from: number; cls: string }) => (
+  <svg className={cls} viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" style={{ transform: `rotate(${(from + 180) % 360}deg)` }}>
     <path d="M12 3v17M5.5 9.5 12 3l6.5 6.5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
+const WaveArrow = ({ from }: { from: number }) => <RunArrow from={from} cls="sw-tile-arrow is-wave" />;
 
-/** Mean wind and gust of the hour on one bar (knots), with the profile's limit as a mark when it has one. */
-function GustMeter({ windKn, gustKn, limitKn, limitLabel }: { windKn: number; gustKn: number; limitKn: number | null; limitLabel: string }) {
-  const max = Math.max(gustKn, windKn, limitKn ?? 0, 10) * 1.12;
-  const pc = (x: number) => `${Math.min(100, (x / max) * 100)}%`;
+/**
+ * Mean wind and gust of the hour on one 270° ring (knots): the dark arc is the mean wind, the light arc runs on to the
+ * gust, the profile's limit is the red mark. The number in the middle is the mean wind in the page's unit.
+ */
+function WindGauge({ windMs, gustMs, dir, unit, limitKn }: { windMs: number | null; gustMs: number | null; dir: number | null; unit: SeaUnit; limitKn: number | null }) {
+  const windKn = windMs == null ? null : windMs * MS_TO_KN, gustKn = gustMs == null ? null : gustMs * MS_TO_KN;
+  const max = Math.ceil((Math.max(gustKn ?? 0, windKn ?? 0, limitKn ?? 0, 10) * 1.15) / 5) * 5;
+  const S = 176, cx = S / 2, cy = S / 2 + 4, r = 70, sw = 13;
+  const ang = (kn: number) => 135 + (270 * Math.min(Math.max(kn, 0), max)) / max;
+  const pt = (a: number, rr = r) => [cx + rr * Math.cos((a * Math.PI) / 180), cy + rr * Math.sin((a * Math.PI) / 180)] as const;
+  const arc = (k0: number, k1: number) => {
+    const a0 = ang(k0), a1 = ang(k1);
+    if (a1 - a0 < 0.5) return null;
+    const [x0, y0] = pt(a0), [x1, y1] = pt(a1);
+    return `M${x0.toFixed(1)} ${y0.toFixed(1)}A${r} ${r} 0 ${a1 - a0 > 180 ? 1 : 0} 1 ${x1.toFixed(1)} ${y1.toFixed(1)}`;
+  };
+  const track = arc(0, max), gust = gustKn != null ? arc(0, gustKn) : null, wind = windKn != null ? arc(0, windKn) : null;
+  const lim = limitKn != null ? [pt(ang(limitKn), r - sw / 2 - 4), pt(ang(limitKn), r + sw / 2 + 4)] : null;
+  const label = windKn == null ? 'kein Wind für diese Stunde berechnet'
+    : `Mittelwind ${Math.round(windKn)} kn${gustKn != null ? `, Böen ${Math.round(gustKn)} kn` : ''}${limitKn != null ? `, Grenze ${Math.round(limitKn)} kn` : ''}`;
   return (
-    <div className="sw-now-meter-wrap">
-      <div className="sw-now-meter" role="img" aria-label={`Mittelwind ${Math.round(windKn)} kn, Böen ${Math.round(gustKn)} kn${limitKn != null && limitLabel ? `, Grenze ${limitLabel}` : ''}`}>
-        <i className="is-gust" style={{ width: pc(gustKn) }} />
-        <i className="is-wind" style={{ width: pc(windKn) }} />
-        {limitKn != null && <b style={{ left: pc(limitKn) }} />}
+    <figure className="sw-gauge">
+      <svg width={S} height={S - 14} viewBox={`0 0 ${S} ${S - 14}`} role="img" aria-label={label}>
+        {track && <path d={track} fill="none" stroke="#EDE6D3" strokeWidth={sw} strokeLinecap="round" />}
+        {gust && <path d={gust} fill="none" stroke="rgba(139,115,85,0.42)" strokeWidth={sw} strokeLinecap="round" />}
+        {wind && <path d={wind} fill="none" stroke="#2C2A26" strokeWidth={sw} strokeLinecap="round" />}
+        {lim && <line x1={lim[0][0]} y1={lim[0][1]} x2={lim[1][0]} y2={lim[1][1]} stroke="#B5482E" strokeWidth={3} strokeLinecap="round" />}
+        <text x={pt(135, r + 2)[0] + 6} y={S - 18} fontSize="11" fill="#A89A7A" fontFamily="'League Spartan', system-ui, sans-serif">0</text>
+        <text x={pt(45, r + 2)[0] - 6} y={S - 18} textAnchor="end" fontSize="11" fill="#A89A7A" fontFamily="'League Spartan', system-ui, sans-serif">{max} kn</text>
+      </svg>
+      <div className="sw-gauge-c">
+        {dir != null && windMs != null && <RunArrow from={dir} cls="sw-tile-arrow" />}
+        <strong>{windMs == null ? '–' : fmtWind(windMs, unit)}</strong>
+        {windMs != null && <span>{unitLabel(unit)}</span>}
       </div>
-      <div className="sw-now-meter-l">
-        <span><i className="is-wind" />Mittelwind</span><span><i className="is-gust" />bis Böe</span>
-        {limitKn != null && limitLabel && <span><i className="is-limit" />Grenze {limitLabel}</span>}
-      </div>
+      <figcaption className="sw-gauge-l"><span><i className="is-wind" />Mittel</span><span><i className="is-gust" />bis Böe</span>{limitKn != null && <span><i className="is-limit" />Grenze</span>}</figcaption>
+    </figure>
+  );
+}
+
+/** Wind sea and swell as two bars on the scale of the total height — components, never added up (Hs² = Hs_ws² + Hs_sw²). */
+function SeaBars({ hour: h }: { hour: SeaReadoutHour }) {
+  const top = Math.max(h.hs ?? 0, h.ws ?? 0, h.sw ?? 0, 0.3);
+  const rows: Array<[string, string, number | null, string]> = [
+    ['Windsee', 'is-ws', h.dry ? null : h.ws, h.dry ? 'kein Seegang' : h.ws == null ? 'kein Wert' : h.wsPer == null ? 'Periode –' : `Periode ${f1(h.wsPer)} s`],
+    ['Dünung', 'is-sw', h.dry ? null : h.sw, h.dry ? 'kein Seegang' : h.sw == null ? 'kein Wert' : `Periode ${h.swPer == null ? '–' : `${f1(h.swPer)} s`} · aus ${compass16(h.swDir)}`],
+  ];
+  return (
+    <div className="sw-seabars">
+      {rows.map(([k, cls, val, sub]) => (
+        <div key={k} className={`sw-seabar ${cls}`}>
+          <div className="sw-seabar-h"><span>{k}</span><strong>{val == null ? '–' : `${f1(val)} m`}</strong></div>
+          <div className="sw-seabar-t"><i style={{ width: val == null ? 0 : `${Math.max(2, (val / top) * 100)}%` }} /></div>
+          <small>{sub}</small>
+        </div>
+      ))}
+      <p className="sw-seabars-n">Anteile der Gesamthöhe — sie addieren sich nicht.</p>
     </div>
   );
 }

@@ -337,7 +337,9 @@ button.hd-tile:hover .hd-tile-open { background: var(--terracotta-700); }
 .hd-drill-foot { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--sand-200); font-size: 11.5px; color: var(--stone-500); line-height: 1.6; }
 
 /* --- Explore: Feinjustierung der geteilten .hi-* Diagramm-Bausteine an die Vorlage --- */
-.hd-explore .hi-explore { margin: 0; }
+/* Tag/Monat/Jahr: the SVG charts scale with the column (viewBox ≈ 920 wide), so on a wide screen the year chart grew to ~550 px and
+   the calendar ran off the page. One reading column of ≈ the chart's own width keeps them at the size they were drawn for (Jan 27.10.). */
+.hd-explore .hi-explore { margin: 0 auto; max-width: 980px; }
 .hd-explore .hi-explore-bar { flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
 .hd-explore .hi-gran { background: var(--cream-50); border: 1px solid var(--border-default); border-radius: 10px; padding: 4px; gap: 4px; }
 .hd-explore .hi-gran .hi-seg { border: none; background: none; border-radius: 7px; padding: 8px 18px; font-size: 13px; color: var(--stone-500); }
@@ -366,7 +368,7 @@ button.hd-tile:hover .hd-tile-open { background: var(--terracotta-700); }
 .hd-explore .hi-placement-normal { background: var(--hd-place-normal); opacity: 1; border-radius: 7px; }
 .hd-explore .hi-placement-marker { top: 50%; transform: translate(-50%, -50%); width: 18px; height: 18px; border-radius: 50%; background: var(--hd-hot); border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.2); }
 .hd-explore .hi-placement-cur { color: var(--hd-hot); }
-.hd-explore .hi-provenance { margin-top: 12px; }
+.hd-explore .hi-provenance { margin: 12px auto 0; max-width: 980px; }
 
 /* ============================ Tablet (768–1439) ============================ */
 @media (max-width: 1439px) {

@@ -1,0 +1,83 @@
+/**
+ * Phase NC (`audit/radar-nowcast-dach.md` §3) — which radar product draws where, with a transition band instead of a hard edge.
+ *
+ * Before Phase NC the ownership mask gave every native pixel to the radar of its COUNTRY (`countryMaskForGrid`, `pickCountry`).
+ * Now the split follows what each product can do (E-NC-1, Jan's brief):
+ *   · `rv`   DWD-RV: Germany, the north of Switzerland and the west of Austria (west of ≈ 14° E) — the DWD composite reaches
+ *            there with 25 × 5 min from the analysis;
+ *   · `rzc`  the rest of Switzerland (Lake Geneva, Valais, Ticino, Upper Engadine): buscosun's extrapolation of the rzc analysis;
+ *   · `inca` the rest of Austria (Linz, Graz, Klagenfurt, Vienna): INCA, refined to 5 min.
+ * The country still comes from `pickCountry` (box, else the border); inside AT the meridian `RADAR_ZONE_AT_RV_LNG_MAX`, inside
+ * CH the parallel `RADAR_ZONE_CH_RV_LAT_MIN` divides — each with a linear ramp of ± half the band so the seam is a transition
+ * zone (the layers overlap there, each with its weight as alpha). The numbers are SET (Jan's brief 27.10.2026: "westlich von
+ * etwa 14° E", "Nordschweiz"); the measured reach of the DWD composite is open (V-NC-2).
+ *
+ * Pure and worker-safe (`precipIndexWorker`, op `zone`): the same bicubic refinement of the pixel centres as the country mask.
+ */
+
+import type { Country } from '../types';
+import { fastCountryPicker, gridNodeFn, projectedSampler, HD_GRID_COUNTRY, type HdGridKind } from './radarCountryMask';
+import type { QuadCorners } from './RainLayer';
+
+export type RadarZone = 'rv' | 'inca' | 'rzc';
+export const RADAR_ZONE_OF_GRID: Readonly<Record<HdGridKind, RadarZone>> = Object.freeze({ radolan: 'rv', inca: 'inca', rzc: 'rzc' });
+
+/** AT west of this longitude belongs to DWD-RV (set). */
+export const RADAR_ZONE_AT_RV_LNG_MAX = 14.0;
+/** CH north of this latitude belongs to DWD-RV (set). */
+export const RADAR_ZONE_CH_RV_LAT_MIN = 46.7;
+/** Half-width of the transition band in degrees (≈ 15 km): 0,2° of longitude at 47° N, 0,135° of latitude. */
+export const RADAR_ZONE_BLEND_DEG = Object.freeze({ lng: 0.2, lat: 0.135 });
+
+export interface ZoneWeights { rv: number; inca: number; rzc: number }
+
+/** Linear ramp: 0 at x ≤ −1, 1 at x ≥ +1. */
+const ramp = (x: number) => (x <= -1 ? 0 : x >= 1 ? 1 : (x + 1) / 2);
+
+/** Weights of the three products at (lat, lng) for a point of `country` (they add up to 1). */
+export function zoneWeightsFor(country: Country, lat: number, lng: number): ZoneWeights {
+  if (country === 'AT') {
+    const rv = ramp((RADAR_ZONE_AT_RV_LNG_MAX - lng) / RADAR_ZONE_BLEND_DEG.lng);
+    return { rv, inca: 1 - rv, rzc: 0 };
+  }
+  if (country === 'CH') {
+    const rv = ramp((lat - RADAR_ZONE_CH_RV_LAT_MIN) / RADAR_ZONE_BLEND_DEG.lat);
+    return { rv, inca: 0, rzc: 1 - rv };
+  }
+  return { rv: 1, inca: 0, rzc: 0 };
+}
+
+/** Weights at any point — the country by the same rule as the ownership mask. */
+export function zoneWeights(lat: number, lng: number): ZoneWeights {
+  return zoneWeightsFor(fastCountryPicker()(lat, lng), lat, lng);
+}
+
+/** The product with the largest weight at (lat, lng) — the hard rule for readers that need ONE product. */
+export function zoneAt(lat: number, lng: number): RadarZone {
+  const w = zoneWeights(lat, lng);
+  return w.rv >= w.inca && w.rv >= w.rzc ? 'rv' : w.inca >= w.rzc ? 'inca' : 'rzc';
+}
+
+/**
+ * Weight mask of a radar grid: `cols × rows` bytes 0 … 255 = the weight of the grid's own product at the pixel centre
+ * (255 = draws alone, 0 = not drawn, in between = the transition band). The `RainLayer` multiplies its alpha with it.
+ * Where the country's product is the grid's own and no band runs, the mask equals the ownership mask (255 ⇔ 1).
+ */
+export function zoneMaskForGrid(kind: HdGridKind, corners: QuadCorners, cols: number, rows: number): Uint8Array {
+  const own = RADAR_ZONE_OF_GRID[kind];
+  const at = projectedSampler(gridNodeFn(kind, corners));
+  const pick = fastCountryPicker();
+  const out = new Uint8Array(cols * rows);
+  for (let r = 0; r < rows; r++) {
+    const v = (r + 0.5) / rows;
+    for (let col = 0; col < cols; col++) {
+      const [lon, lat] = at((col + 0.5) / cols, v);
+      const w = zoneWeightsFor(pick(lat, lon), lat, lon)[own];
+      out[r * cols + col] = w <= 0 ? 0 : w >= 1 ? 255 : Math.max(1, Math.round(w * 255));
+    }
+  }
+  return out;
+}
+
+/** The country whose radar grid this is (re-exported for callers that only know the zone table). */
+export const RADAR_ZONE_GRID_COUNTRY = HD_GRID_COUNTRY;

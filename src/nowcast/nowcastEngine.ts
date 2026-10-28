@@ -18,6 +18,9 @@ import { minuteSeriesEnabledFrom, MV_HORIZON_H } from './minuteSeries';
 // Phase RUC (`audit/niederschlag-ruc.md`, `?ruc=1`): 5-min form of ICON-D2-RUC behind the radar, fitted to the hourly sums.
 import { rucEnabledFrom, rucBaseFrom, fitRucToFusion, rucMeanOver, type RucFitted } from './rucSeries';
 import { rainGateEnabledFrom } from './rainGate';
+// Phase NC (`audit/radar-nowcast-dach.md`): the radar → model crossover per radar source and its soft hand-over.
+import { radarNcFlagFrom, NC_CROSSOVER_MIN, NC_CROSSOVER_BLEND_MIN } from '../sources/radarNowcastImg';
+import { createRadarNowcastSamplerNc } from './radarNowcastNc';
 import { loadRucPoint, type RucPointSeries } from '../point/client/rucPoint';
 import { httpStore } from '../point/client/store';
 import { classifyPrecipitation } from '../pointForecast/precipType';
@@ -73,6 +76,12 @@ export interface AssembleInput {
    * `true` (`?ncblend=1`) = the stand before: radar → model blend 90–150 min, hourly values interpolated linearly.
    */
   blend?: boolean;
+  /**
+   * Phase NC: the measured/set crossover of the radar source (`NC_CROSSOVER_MIN`): radar alone up to this minute, then a
+   * soft ramp over `NC_CROSSOVER_BLEND_MIN` to the model (RUC behind buscosun Fusion in DE, buscosun Fusion with ICON-CH1
+   * in CH). Absent (`?nc=0`) = the rule before Phase NC (`blend`).
+   */
+  crossoverMin?: number;
 }
 
 /** `?ncblend=1` = fallback to the radar → model blend with linearly interpolated hours (stand before 26.10.). */
@@ -155,9 +164,14 @@ export function assembleNowcast(input: AssembleInput): Nowcast {
     const nm = input.rucAt ? (input.rucAt(etaMs) ?? nwpMmH) : nwpMmH;
 
     let mmH: number, source: NowcastSource, blendW = 0;
-    if (radarOk && (!input.blend || minutes <= BLEND_FROM_MIN)) {
+    const xo = input.crossoverMin;
+    if (radarOk && (xo != null ? minutes <= xo : (!input.blend || minutes <= BLEND_FROM_MIN))) {
       mmH = r as number; source = 'radar';
-    } else if (radarOk && minutes < BLEND_TO_MIN) {
+    } else if (radarOk && xo != null && minutes < xo + NC_CROSSOVER_BLEND_MIN) {
+      // Phase NC: soft hand-over from the crossover to the model
+      blendW = (minutes - xo) / NC_CROSSOVER_BLEND_MIN;
+      mmH = (r as number) * (1 - blendW) + nm * blendW; source = 'blend';
+    } else if (radarOk && xo == null && minutes < BLEND_TO_MIN) {
       blendW = (minutes - BLEND_FROM_MIN) / (BLEND_TO_MIN - BLEND_FROM_MIN);
       mmH = (r as number) * (1 - blendW) + nm * blendW; source = 'blend';
     } else {
@@ -434,7 +448,8 @@ export function fusionPWetOf(forecast: PointForecast, exceedance: (d: Dist, x: n
 export async function buildNowcast(opts: BuildNowcastOptions): Promise<Nowcast> {
   const { lat, lon, country, signal } = opts;
   const nowMs = opts.nowMs ?? Date.now();
-  const samplerP = createRadarNowcastSampler(country, signal);
+  // Phase NC: AT/CH with the derived 5-min products when they are there (src/nowcast/radarNowcastNc.ts), else as before.
+  const samplerP = createRadarNowcastSamplerNc(country, signal);
   type Sampler = Awaited<typeof samplerP>;
   let sampler: Sampler | undefined;
   let latestCube: PointForecast | null = null;
@@ -455,6 +470,7 @@ export async function buildNowcast(opts: BuildNowcastOptions): Promise<Nowcast> 
   const gate = rainGateEnabledFrom(typeof window !== 'undefined' ? window.location.search : '');
   let rucSeries: RucPointSeries | null = null;
   const blend = ncBlendEnabledFrom(typeof window !== 'undefined' ? window.location.search : '');
+  const ncOn = radarNcFlagFrom(typeof window !== 'undefined' ? window.location.search : '');
   const assemble =(s: Sampler, forecast: PointForecast, nwpSource: 'cube' | 'live'): Nowcast => {
     const nwpFull = nwpOf(forecast);
     // P(wet) per hour BEFORE the fit: the gate marks the trace hours of the 5-min form with it (rain window only, as before)
@@ -475,6 +491,8 @@ export async function buildNowcast(opts: BuildNowcastOptions): Promise<Nowcast> 
       lapseRatePerM: forecast.lapseRatePerM ?? null,
       nwpSource,
       blend,
+      // Phase NC: the crossover of the radar source (DWD-RV 120 measured; INCA 120, CH extrapolation 60 set — V-NC-1)
+      ...(ncOn && s ? { crossoverMin: NC_CROSSOVER_MIN[s.meta.source] } : {}),
       // the mean of the 5-min intervals of the 15-min step (eta − 15, eta] keeps the hourly sum of buscosun Fusion exact (review I3)
       ...(fit ? { rucAt: (eta: number) => rucMeanOver(fit, eta - NOWCAST_STEP_MIN * 60_000, eta) } : {}),
     });

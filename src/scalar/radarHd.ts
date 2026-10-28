@@ -145,6 +145,9 @@ export function radarDualFlagFrom(
 
 /** The three HD layers of `MapView` (one per country radar), drawn right above the composite layer. */
 export const RADAR_HD_LAYER_IDS = Object.freeze({ DE: 'precip-rain-hd-de', AT: 'precip-rain-hd-at', CH: 'precip-rain-hd-ch' });
+/** Phase NC: the grey veil over the UNKNOWN areas of the CH extrapolation (rain could come from beyond the radar grid). */
+export const RADAR_HD_CH_UNKNOWN_LAYER_ID = 'precip-rain-hd-ch-unknown';
+export const RADAR_HD_UNKNOWN_RAMP: Readonly<Record<number, string>> = Object.freeze({ 0: 'rgba(0,0,0,0)', 1: 'rgba(70,70,70,0.30)' });
 export type RadarHdCountry = keyof typeof RADAR_HD_LAYER_IDS;
 export const RADAR_HD_COUNTRIES: readonly RadarHdCountry[] = Object.freeze(['DE', 'AT', 'CH']);
 

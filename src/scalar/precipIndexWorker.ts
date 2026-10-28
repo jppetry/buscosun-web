@@ -14,12 +14,14 @@
 
 import { buildCompositeIndexMap, type GridKind } from './precipIndexMap';
 import { countryMaskForGrid, type HdGridKind } from './radarCountryMask';
+import { zoneMaskForGrid } from './radarZones';
 import { estimateMorphFlow } from './radarMorphFlow';
 import type { QuadCorners } from './RainLayer';
 
 interface Req {
   id: number;
-  op?: 'index' | 'mask' | 'flow';
+  /** Phase NC: `zone` = the weight mask of the grid's radar product (`zoneMaskForGrid`), same shape as `mask`. */
+  op?: 'index' | 'mask' | 'flow' | 'zone';
   corners: QuadCorners;
   sCols: number;
   sRows: number;
@@ -41,8 +43,8 @@ self.onmessage = (e: MessageEvent<Req>) => {
       );
       return;
     }
-    if (op === 'mask') {
-      const mask = countryMaskForGrid(grid as HdGridKind, corners, sCols, sRows);
+    if (op === 'mask' || op === 'zone') {
+      const mask = op === 'zone' ? zoneMaskForGrid(grid as HdGridKind, corners, sCols, sRows) : countryMaskForGrid(grid as HdGridKind, corners, sCols, sRows);
       (self as unknown as { postMessage: (m: unknown, t: Transferable[]) => void }).postMessage(
         { id, ok: true, maskBuf: mask.buffer },
         [mask.buffer],
