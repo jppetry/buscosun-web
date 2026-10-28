@@ -3,14 +3,17 @@
  *
  * Before Phase NC the ownership mask gave every native pixel to the radar of its COUNTRY (`countryMaskForGrid`, `pickCountry`).
  * Now the split follows what each product can do (E-NC-1, Jan's brief):
- *   · `rv`   DWD-RV: Germany, the north of Switzerland and the west of Austria (west of ≈ 14° E) — the DWD composite reaches
- *            there with 25 × 5 min from the analysis;
- *   · `rzc`  the rest of Switzerland (Lake Geneva, Valais, Ticino, Upper Engadine): buscosun's extrapolation of the rzc analysis;
+ *   · `rv`   DWD-RV: Germany and the west of Austria (west of ≈ 14° E) — the DWD composite reaches there with 25 × 5 min
+ *            from the analysis;
+ *   · `rzc`  ALL of Switzerland: the MeteoSwiss analysis and buscosun's extrapolation of it (24 × 5 min). Until 28.10.2026 the
+ *            north (≥ 46,7° N) went to DWD-RV — measured against MeteoSwiss that day (15:05 MEZ, 7,5–9,6° E): rzc saw 58–91 %
+ *            wet pixels between 46,8 and 47,3° N, DWD-RV 0–4,5 % — the DWD composite is blind there (V-NC-6), so Jan gave
+ *            CH back to rzc entirely;
  *   · `inca` the rest of Austria (Linz, Graz, Klagenfurt, Vienna): INCA, refined to 5 min.
- * The country still comes from `pickCountry` (box, else the border); inside AT the meridian `RADAR_ZONE_AT_RV_LNG_MAX`, inside
- * CH the parallel `RADAR_ZONE_CH_RV_LAT_MIN` divides — each with a linear ramp of ± half the band so the seam is a transition
- * zone (the layers overlap there, each with its weight as alpha). The numbers are SET (Jan's brief 27.10.2026: "westlich von
- * etwa 14° E", "Nordschweiz"); the measured reach of the DWD composite is open (V-NC-2).
+ * The country still comes from `pickCountry` (box, else the border); inside AT the meridian `RADAR_ZONE_AT_RV_LNG_MAX` divides
+ * with a linear ramp of ± half the band so the seam is a transition zone (the layers overlap there — see `RADAR_ZONE_UNDER`).
+ * The AT number is SET (Jan's brief 27.10.2026: "westlich von etwa 14° E"); measured 28.10. the DWD composite thins from
+ * 13,6° E and ends at 14,15° E at 48° N (V-NC-2) — the AT seam is still open.
  *
  * Pure and worker-safe (`precipIndexWorker`, op `zone`): the same bicubic refinement of the pixel centres as the country mask.
  */
@@ -24,10 +27,8 @@ export const RADAR_ZONE_OF_GRID: Readonly<Record<HdGridKind, RadarZone>> = Objec
 
 /** AT west of this longitude belongs to DWD-RV (set). */
 export const RADAR_ZONE_AT_RV_LNG_MAX = 14.0;
-/** CH north of this latitude belongs to DWD-RV (set). */
-export const RADAR_ZONE_CH_RV_LAT_MIN = 46.7;
-/** Half-width of the transition band in degrees (≈ 15 km): 0,2° of longitude at 47° N, 0,135° of latitude. */
-export const RADAR_ZONE_BLEND_DEG = Object.freeze({ lng: 0.2, lat: 0.135 });
+/** Half-width of the transition band in degrees (≈ 15 km): 0,2° of longitude at 47° N. */
+export const RADAR_ZONE_BLEND_DEG = Object.freeze({ lng: 0.2 });
 
 export interface ZoneWeights { rv: number; inca: number; rzc: number }
 
@@ -35,15 +36,12 @@ export interface ZoneWeights { rv: number; inca: number; rzc: number }
 const ramp = (x: number) => (x <= -1 ? 0 : x >= 1 ? 1 : (x + 1) / 2);
 
 /** Weights of the three products at (lat, lng) for a point of `country` (they add up to 1). */
-export function zoneWeightsFor(country: Country, lat: number, lng: number): ZoneWeights {
+export function zoneWeightsFor(country: Country, _lat: number, lng: number): ZoneWeights {
   if (country === 'AT') {
     const rv = ramp((RADAR_ZONE_AT_RV_LNG_MAX - lng) / RADAR_ZONE_BLEND_DEG.lng);
     return { rv, inca: 1 - rv, rzc: 0 };
   }
-  if (country === 'CH') {
-    const rv = ramp((lat - RADAR_ZONE_CH_RV_LAT_MIN) / RADAR_ZONE_BLEND_DEG.lat);
-    return { rv, inca: 0, rzc: 1 - rv };
-  }
+  if (country === 'CH') return { rv: 0, inca: 0, rzc: 1 };
   return { rv: 1, inca: 0, rzc: 0 };
 }
 
