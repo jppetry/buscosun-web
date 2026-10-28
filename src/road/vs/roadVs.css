@@ -9,8 +9,8 @@
 .aw-vs-info p { margin: 0; }
 .aw-vs-info p + p { margin-top: 5px; }
 .aw-vs-info strong { display: block; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 4px; color: #28507A; }
-.aw-badge.is-vs { outline: 2px dashed rgba(255, 255, 255, 0.85); outline-offset: -5px; }
-.aw-table-chip.is-vs { outline: 1.5px dashed rgba(255, 255, 255, 0.9); outline-offset: -3px; }
+.aw-badge.is-vs { outline: 2.5px solid #D32F2F; outline-offset: -2px; }
+.aw-table-chip.is-vs { outline: 2px solid #D32F2F; outline-offset: -1px; }
 .aw-hero.is-vs .aw-hero-val { position: relative; }
 .aw-hero-sub.is-vs { color: #28507A; }
 .aw-prog-tile em i.is-vs { border-radius: 50%; box-shadow: inset 0 0 0 1.5px #fff; }

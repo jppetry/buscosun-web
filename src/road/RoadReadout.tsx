@@ -21,7 +21,7 @@ import {
 } from './roadFcView';
 import { ROAD_SURFACE_HINT_LABEL, ROAD_SURFACE_HORIZON_H, ROAD_SURFACE_WORD } from './roadSurface';
 import {
-  ROAD_VS_AXIS_CHART_H, ROAD_VS_NAME, ROAD_VS_SHORT, ROAD_VS_WORD, roadLastValueMs, roadVsBadgeText, roadVsClassOf, roadVsCondText, roadVsInfoLines, roadVsOriginText,
+  ROAD_VS_AXIS_CHART_H, ROAD_VS_NAME, ROAD_VS_SHORT, ROAD_VS_WORD, roadLastValueMs, roadVsBadgeText, roadVsClassOf, roadVsCondText, roadVsInfoLines, roadVsMaySimulate, roadVsOriginText,
   roadVsRunLabel, roadVsSeries, roadVsSigmaText, roadVsSourceRow, roadVsText, roadVsValue, type RoadVsValue,
 } from './vs/roadVsView';
 import { ROAD_VS_OFF, type RoadVsView } from './vs/useRoadVs';
@@ -241,6 +241,8 @@ interface Props {
   surface?: boolean;
   /** AW-6.2.9: the virtual road sensor's run of the corridor (`ROAD_VS_LIVE` / `?roadvs=1`); off or absent ⇒ the page of before. */
   vs?: RoadVsView;
+  /** 24-h rings of the groups with a failed sensor (by group) — a failed sensor is simulated only while ONE measurement is missing. */
+  vsRings?: ReadonlyMap<string, RoadH24File>;
 }
 
 /** Phase FB: the run carries the surface AND the flag is on. */
@@ -273,7 +275,7 @@ function vsInfoOf(p: Pick<Props, 'vs' | 'ring'>, id: string, v: RoadVsValue, gro
 /** The sentence of the five places that used to say „folgt erst nach dem Backtest". */
 const surfaceNote = (p: Pick<Props, 'surface' | 'fcFile'>) => (showSurface(p) ? `Die Fahrbahn ist bis +${ROAD_SURFACE_HORIZON_H} h ${ROAD_SURFACE_WORD} (buscosun Fusion — Fahrbahn), keine Messung.` : 'Eine Prognose der Fahrbahn folgt erst nach dem Backtest.');
 /** AW-6.2.9: the same sentence when the virtual sensor fills the rows (gestrichelt umrandete Chips = berechnet). */
-const vsNote = (p: Pick<Props, 'vs'>) => `Gestrichelt umrandete Chips sind ${ROAD_VS_WORD}: ${ROAD_VS_NAME} (${p.vs?.file ? roadVsRunLabel(p.vs.file) : ''}, Schattenbetrieb) an ausgefallenen Sensoren und Prognosepunkten, keine Messung.`;
+const vsNote = (p: Pick<Props, 'vs'>) => `Rot umrandete Chips sind ${ROAD_VS_WORD}: ${ROAD_VS_NAME} (${p.vs?.file ? roadVsRunLabel(p.vs.file) : ''}, Schattenbetrieb) an Sensoren, deren letzte Messung fehlt (ab der zweiten fehlenden Messung „keine Messung"), und an Prognosepunkten, keine Messung.`;
 
 /** Why a station has no forecast point (V-AW-26) — one sentence, no road-surface words. */
 function noFcText(p: Props): string {
@@ -490,7 +492,7 @@ function StationTab(p: Props) {
   // The DWD stamps a row without values with the slot time too — „gemessen 00:00" would be wrong for a station with no road value.
   const noSince = s.cls === 'nodata' ? roadNoValueSince(p.ring, s.id, s.g, refMs) : null;
   // AW-6.2.9: a failed road sensor shows the virtual sensor's value in the measured value's place (Jan 28.10.) — a valid measurement always wins.
-  const vsNow = s.rs == null ? vsAt(p, s.id, p.nowMs) : null;
+  const vsNow = s.rs == null && roadVsMaySimulate(p.ring, s.id, s.g) ? vsAt(p, s.id, p.nowMs) : null;
   const vsCls = vsNow ? roadVsClassOf(vsNow) : null;
   return (
     <>
@@ -591,7 +593,8 @@ function StreckeTab(p: Props) {
   const crit = rows.filter((r) => r.point && isCritical(r.point.cls)).length;
   const border = c.borders.find((b) => b.km > 0 && b.km >= c.lengthKm - 0.5) ?? c.borders[0];
   // AW-6.2.9: the virtual sensor's value at the arrival hour of every row without a measured road (failed sensor or axis point).
-  const vsRows = rows.map((r) => ({ r, vs: r.point?.rs != null ? null : vsAt(p, r.id, r.etaMs) })).filter((x): x is { r: typeof rows[number]; vs: RoadVsValue } => !!x.vs);
+  // Stations: only while one measurement is missing (ring of their group); axis points have no sensor and keep the computed value.
+  const vsRows = rows.map((r) => ({ r, vs: r.point?.rs != null ? null : r.point && !roadVsMaySimulate(r.point.g ? p.vsRings?.get(r.point.g) ?? (p.ring?.group === r.point.g ? p.ring : null) : null, r.id, r.point.g) ? null : vsAt(p, r.id, r.etaMs) })).filter((x): x is { r: typeof rows[number]; vs: RoadVsValue } => !!x.vs);
   const vsColdest = vsRows.reduce<typeof vsRows[number] | null>((a, b) => (!a || b.vs.tf < a.vs.tf ? b : a), null);
   const vsOf = (id: string) => vsRows.find((x) => x.r.id === id)?.vs ?? null;
   return (

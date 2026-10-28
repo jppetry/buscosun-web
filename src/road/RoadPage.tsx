@@ -34,7 +34,7 @@ import RoadDock, { type RoadCountry } from './RoadDock';
 import RoadBand from './RoadBand';
 import RoadReadout from './RoadReadout';
 import { useRoadVs } from './vs/useRoadVs';
-import { roadVsClassOf, roadVsOriginText, roadVsText, roadVsValue } from './vs/roadVsView';
+import { roadVsClassOf, roadVsMaySimulate, roadVsOriginText, roadVsText, roadVsValue } from './vs/roadVsView';
 import { ROAD_FORECAST_ENABLED, ROAD_HZ_TIMES, ROAD_TIMES, type RoadHzMode, type RoadTab, type RoadTime, type RoadUrlState } from './roadState';
 import type { RoadSegLine } from './RoadMap';
 import type { RoadSegment } from './roadSegments';
@@ -481,17 +481,36 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
     // Hour steps only: the dots change when the valid hour changes, not every minute.
   })), [fcFile, vsView, Math.round(fcMs / 3_600_000)]); // eslint-disable-line react-hooks/exhaustive-deps
   // AW-6.2.9: stations of the open corridor without a road measurement, with the virtual sensor's value of the shown hour (map marker + label).
+  // Jan 28.10.: a failed sensor is simulated only while ONE measurement is missing, so the 24-h ring of every group with a failed sensor is needed.
+  const failedGroups = useMemo(() => {
+    const g = new Set<string>();
+    if (vsView.file) for (const s of mapPoints) if (s.rs == null && s.g) g.add(s.g);
+    return [...g].sort().slice(0, 12);
+  }, [vsView, mapPoints]);
+  const failedKey = `${failedGroups.join('|')}@${obsSlot}`;
+  const [vsRings, setVsRings] = useState<ReadonlyMap<string, RoadH24File>>(() => new Map());
+  useEffect(() => {
+    if (!obsSlot || !failedGroups.length) { setVsRings((m) => (m.size ? new Map() : m)); return; }
+    const ac = new AbortController();
+    Promise.all(failedGroups.map((g) => loadRoadH24(g, obsSlot, ac.signal).catch(() => null))).then((rings) => {
+      if (ac.signal.aborted) return;
+      const m = new Map<string, RoadH24File>();
+      rings.forEach((r, i) => { if (r) m.set(failedGroups[i], r); });
+      setVsRings(m);
+    });
+    return () => ac.abort();
+  }, [failedKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const vsMarkers = useMemo(() => {
     const out = new Map<string, { tf: number; cls: ReturnType<typeof roadVsClassOf> }>();
     if (!vsView.file) return out;
     for (const s of mapPoints) {
-      if (s.rs != null) continue;
+      if (s.rs != null || !roadVsMaySimulate(s.g ? vsRings.get(s.g) ?? null : null, s.id, s.g)) continue;
       const pt = vsView.byId.get(s.id);
       const v = pt ? roadVsValue(pt, vsView.file, fcMs) : null;
       if (v) out.set(s.id, { tf: v.tf, cls: roadVsClassOf(v) });
     }
     return out;
-  }, [vsView, mapPoints, Math.round(fcMs / 3_600_000)]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [vsView, mapPoints, vsRings, Math.round(fcMs / 3_600_000)]); // eslint-disable-line react-hooks/exhaustive-deps
   const vsAtSel = (id: string | null | undefined) => { const pt = id && vsView.file ? vsView.byId.get(id) : undefined; return pt && vsView.file ? roadVsValue(pt, vsView.file, fcMs) : null; };
   // Phase FB: a station of the open corridor without a road measurement takes the computed road temperature of the nearest
   // forecast point of the axis (≤ 6 km) — on the map as „~+1,2°“, never as a road class (D-04).
@@ -533,7 +552,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   );
   const readoutProps = {
     tab, onTab: setTab, point, corridor, byId: shownById, dir, slotMs: obs?.slotMs ?? null, nowMs,
-    stale: freshness === 'stale', ring, warnings: pointWarnings, warnState: warn.state, warnAt: warn.at, departOffsetMin: departMin,
+    stale: freshness === 'stale', ring, vsRings, warnings: pointWarnings, warnState: warn.state, warnAt: warn.at, departOffsetMin: departMin,
     onDepart: (d: number) => setDepartMin((m) => Math.max(0, Math.min(345, m + d))), onPick: pickStation, noData,
     fcFile, fcById, fcLabel, axis, time: t, onTime: setTimeShared,
     fcStation: fcStationNow ? (fcStationNow.load ?? ('loading' as const)) : null,

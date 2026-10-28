@@ -132,7 +132,7 @@ function markerImage(cls: RoadClass, stale: boolean, vs = false): ImageData {
     g.fill();
   }
   g.beginPath(); g.arc(px / 2, px / 2, r, 0, Math.PI * 2);
-  g.lineWidth = 3; g.strokeStyle = '#0B0E12'; g.stroke();
+  g.lineWidth = 3; g.strokeStyle = vs ? '#D32F2F' : '#0B0E12'; g.stroke();
   if (vs) {
     g.beginPath(); g.setLineDash([3, 2.5]); g.arc(px / 2, px / 2, r - 4.5, 0, Math.PI * 2);
     g.lineWidth = 2; g.strokeStyle = '#FAF6EA'; g.stroke(); g.setLineDash([]);

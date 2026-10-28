@@ -105,6 +105,19 @@ export function roadLastValueMs(ring: RoadH24File | null, id: string, group: str
   return null;
 }
 
+/**
+ * Jan 28.10.: a failed road sensor is simulated only while ONE measurement is missing (the newest slot); after two
+ * consecutive missing slots the station is „unbekannt / keine Messung". Without a ring there is no proof ⇒ no simulation.
+ */
+export function roadVsMaySimulate(ring: RoadH24File | null, id: string, group: string | null | undefined): boolean {
+  if (!ring || (group && ring.group !== group) || !ring.slots.length) return false;
+  const st = ring.stations[id];
+  if (!st) return false;
+  let missing = 0;
+  for (let i = ring.slots.length - 1; i >= 0 && st.rs[i] == null; i--) missing++;
+  return missing <= 1; // 0 = the ring still lags the newest slot, 1 = exactly the newest measurement is missing
+}
+
 /** One line of origin for the hero sub-line: `berechnet · gekoppelt · Sensor aus seit 06:15 UTC`; a modelled value without a
  *  site correction says so (V-VS-24: before the residual table exists, „mit Standortkorrektur" would be a false claim). */
 export function roadVsOriginText(v: Pick<RoadVsValue, 'src' | 'corr'>, sensorOffSinceMs: number | null = null): string {
