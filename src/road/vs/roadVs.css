@@ -16,6 +16,7 @@
 .aw-prog-tile em i.is-vs { border-radius: 50%; box-shadow: inset 0 0 0 1.5px #fff; }
 .aw-chart-legend i.is-dash.is-vs { border-top: 2px dashed #28507A; }
 .aw-chart-fc-vs { stroke: #28507A; }
+.aw-legend i.is-vs-sim { width: 12px; height: 12px; box-sizing: border-box; background: #8B95A3; border: 2.5px solid #D32F2F; }
 .aw-eyebrow.is-vs { color: #28507A; }
 .aw-table-name em.is-vs { color: #28507A; }
 .aw-table-name em.is-vs u { text-decoration: none; }
