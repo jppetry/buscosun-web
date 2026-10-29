@@ -349,13 +349,11 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
   const bandHours: SeaBandHour[] = spotHours.map((h, i) => ({ t: h.t, windMs: h.windMs, gustMs: h.gustMs, windDir: h.windDir, hs: h.hs, dir: h.dir, tm: h.tm, dry: h.dry, cls: spotVerdicts[i].cls, reason: spotVerdicts[i].reasons.join(' · '), daylight: spotVerdicts[i].daylight }));
   const chartHours = spotHours.map((h, i) => ({ t: h.t, windMs: h.windMs, gustMs: h.gustMs, hs: h.hs, ws: h.ws, sw: h.sw, dry: h.dry, daylight: spotVerdicts[i].daylight }));
   const dryHours = spotHours.reduce((a, h) => a + (h.dry ? 1 : 0), 0);
-  const waveShort = (h: SeaReadoutHour) => (h.dry ? DRY_VALUE : `Welle ${f1(h.hs, ' m')}`);
   const lim = limits.gustMax ?? limits.windMax;
   const profLabel = SEA_PROFILE_BY_ID[profile].label;
   const windEngine = spotsDoc?.wind?.engine ?? 'buscosun Fusion';
   const runTxt = run ? `CWAM ${run.run.slice(8, 10)} UTC` : '–';
   const liveTone = !runLoad ? 'loading' : noData ? 'none' : freshness === 'stale' ? 'stale' : 'live';
-  const callout = spot && !noData ? { lon: spot.lon, lat: spot.lat, name: spot.name, line: hour ? `${fmtWind(hour.windMs, unit)} ${unitLabel(unit)} · ${waveShort(hour)} · ${CLASS_SHORT[verdict?.cls ?? 'keine']}` : CLASS_SHORT[verdict?.cls ?? 'keine'], color: verdict && verdict.cls !== 'keine' ? CLASS_COLOR[verdict.cls] : null } : null;
   // Desktop: the hourly band lives in the dossier now, so the map foot is free (was 250 px for the band).
   const padding = isMobile ? { top: 130, bottom: 440, left: 24, right: 24 } : { top: 110, bottom: 40, left: 40, right: 230 };
   const fieldNote = fStep != null && fStep !== lead ? ` · Karte zeigt +${fStep} h (${fKind === 'c' ? 'Komponenten' : 'ab 48 h'} dreistündlich)` : '';
@@ -399,7 +397,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
   const catFail = catalog === null && <div className="sw-map-note" role="status"><strong>Spotkatalog nicht ladbar.</strong> Der Datenspeicher antwortet nicht.</div>;
   const map = (
     <SeaMap field={coloured} arrows={arrows} spots={noData ? mapSpots.map((s) => ({ ...s, cls: 'keine' as const, windTo: null })) : mapSpots} selectedId={spot?.id ?? null}
-      stations={stations} gauges={mapGauges} selectedGaugeId={gaugeId} onGauge={setGaugePick} areas={mapAreas} showWind={toggles.wind && !noData} padding={padding} onSelect={pickSpotFromMap} onMap={(m) => { mapRef.current = m; }} callout={callout} />
+      stations={stations} gauges={mapGauges} selectedGaugeId={gaugeId} onGauge={setGaugePick} areas={mapAreas} showWind={toggles.wind && !noData} padding={padding} onSelect={pickSpotFromMap} onMap={(m) => { mapRef.current = m; }} />
   );
   const band = spot && usable && bandHours.length > 0 && (
     <SeaBand hours={bandHours} unit={unit} selected={k} onPick={setT} compact={isMobile}
