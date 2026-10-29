@@ -611,6 +611,10 @@ async function fetchRvTar(ts: string, signal?: AbortSignal, priority?: RequestPr
   if (rvImgEligible(ts)) {
     const viaImg = await fetchRvFromImg(ts, signal, priority);
     if (viaImg) { _lastRvVia = 'img'; return viaImg; }
+    // Phase RL (29.10.2026): the slot became image-eligible but the mirror does not carry it yet — the run read on the tar
+    // way moments ago is the same run (measured: the 9,6-MB tar of slot 1500 decoded twice, 7 s apart, under the same switch).
+    const l = _rvLast;
+    if (l && l.ts === ts && l.via !== 'img' && l.dual === radarDualFlagFrom()) { _lastRvVia = l.via; return l.nc; }
   }
   // RD2: die Wegwahl (CDN vs. Netlify) liegt in `fetchRvBytesCached`/`rvTarUrlFor`
   // — der Frühstart in `radolanRuns.ts` nimmt denselben Resolver.

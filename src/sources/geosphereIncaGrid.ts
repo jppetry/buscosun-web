@@ -25,6 +25,10 @@ import { radarCdnEnabled, radarCdnUsable, radarImgEnabled, noteRadarCdnFailure, 
 import { incaImgDir, parseIncaImgMeta, radarImgStamp, radarImgStampToMs, fetchImgRes, RadarImg404, radarRawHedgeCount, RADAR_IMG_CONCURRENCY, pooledAll } from './radarImg';
 import { loadRadarGrayPngOffMain, loadRadarGrayAlphaPngOffMain } from './radolan';   // Phase PF (M4)
 import { radarDualFlagFrom } from '../scalar/radarHd';
+// Phase RL (29.10.2026): the run's 12 frames are a subset of the refined product `inca-5m` (every third frame, `kind: 'inca'`,
+// byte-equal) — with Phase NC on, the grid is built from that product and the run slot is not downloaded a second time.
+import { fetchInca5m } from './radarNowcast';
+import { radarNcFlagFrom } from './radarNowcastImg';
 
 const GRID_URL =
   'https://dataset.api.hub.geosphere.at/v1/grid/forecast/nowcast-v1-15min-1km';
@@ -68,7 +72,9 @@ export const GEOSPHERE_INCA_ATTRIBUTION =
  * Danach fällt die Quelle wie bisher aus (kein stilles Uraltbild).
  */
 export const INCA_STALE_MAX_MS = 45 * 60_000;
-let lastGood: { grid: IncaGrid; atMs: number } | null = null;
+let lastGood: { grid: IncaGrid; atMs: number; dual: boolean } | null = null;
+/** Nur für Verifier/Tests. */
+export function _resetIncaLastGood(): void { lastGood = null; }
 
 /** Lädt den jüngsten INCA-Nowcast-Lauf und baut Uint8-Werte-Grids (0.25–3 h). */
 export async function fetchIncaGrid(signal?: AbortSignal, opts?: IncaFetchOptions): Promise<IncaGrid> {
@@ -78,7 +84,7 @@ export async function fetchIncaGrid(signal?: AbortSignal, opts?: IncaFetchOption
   return shareInFlight('geosphere-inca-grid', async () => {
     try {
       const grid = await loadIncaGrid(opts?.priority);
-      lastGood = { grid, atMs: Date.now() };
+      if (lastGood?.grid !== grid) lastGood = { grid, atMs: Date.now(), dual: radarDualFlagFrom() };
       return grid;
     } catch (err) {
       const age = lastGood ? Date.now() - lastGood.atMs : Infinity;
@@ -138,13 +144,40 @@ async function loadIncaFromImg(priority?: RequestPriority): Promise<IncaGrid | n
     }
     if (!Number.isFinite(ref)) return null;
     dl.touch();
-    const grid = await loadIncaSlot(radarImgStamp(ref), dl.signal, priority, dl.touch);
-    if (grid) console.log(`[buscosun] GeoSphere INCA → Lauf ${radarImgStamp(ref)} · ${grid.frames.length} Frames · Quelle Daten-Repo (PNG)`);
+    const stamp = radarImgStamp(ref);
+    // Phase RL: the same run as the last good load = the same bytes (a mirrored slot is immutable) — measured: two callers
+    // 4 s apart loaded the 12 frames twice. Under the same dual switch only; `staleFromMs` never rides along (fresh run).
+    if (lastGood && lastGood.grid.stamp === stamp && lastGood.dual === radarDualFlagFrom() && !lastGood.grid.staleFromMs) {
+      console.log(`[buscosun] GeoSphere INCA → Lauf ${stamp} · ${lastGood.grid.frames.length} Frames · Quelle Daten-Repo (PNG, aus dem Sitzungsspeicher)`);
+      return lastGood.grid;
+    }
+    // Phase RL: with Phase NC on, the refined product carries the run's frames — one download for both readers.
+    const viaNc = radarNcFlagFrom() ? await loadIncaFromInca5m(stamp, priority) : null;
+    dl.touch();   // the product has its own deadline — the run slot below starts with a fresh one
+    if (viaNc) {
+      console.log(`[buscosun] GeoSphere INCA → Lauf ${stamp} · ${viaNc.frames.length} Frames · Quelle Daten-Repo (PNG, aus inca-5m)`);
+      return viaNc;
+    }
+    const grid = await loadIncaSlot(stamp, dl.signal, priority, dl.touch);
+    if (grid) console.log(`[buscosun] GeoSphere INCA → Lauf ${stamp} · ${grid.frames.length} Frames · Quelle Daten-Repo (PNG)`);
     return grid;
   } catch (err) {
     if (!(err instanceof RadarImg404)) noteRadarCdnFailure();
     return null;
   } finally { dl.done(); }
+}
+
+/**
+ * Phase RL: the run `stamp` out of the refined product — its `kind: 'inca'` frames (lead 15 … 180 by 15, byte-equal to the
+ * run slot's `f`/`g` files, verify:radar-nc). `null` = product missing or without a run frame ⇒ the run slot as before.
+ */
+async function loadIncaFromInca5m(stamp: string, priority?: RequestPriority): Promise<IncaGrid | null> {
+  const g5 = await fetchInca5m(stamp, undefined, priority ? { priority } : undefined).catch(() => null);
+  if (!g5) return null;
+  const frames: IncaFrame[] = g5.frames.filter((f) => f.kind === 'inca')
+    .map((f) => ({ leadHours: f.leadMinutes / 60, values: f.values, ...(f.values2 ? { values2: f.values2 } : {}), width: f.width, height: f.height }));
+  if (!frames.length) return null;
+  return { frames, corners: g5.corners, stamp };
 }
 
 /** EIN Bild-Slot vom CDN — meta.json (Ecken!) + alle darin genannten Frames. */

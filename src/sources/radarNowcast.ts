@@ -9,12 +9,35 @@ import type { QuadCorners } from '../scalar/RainLayer';
 import { radarDualFlagFrom } from '../scalar/radarHd';
 import { shareInFlight } from './shareInFlight';
 import { radarCdnEnabled, radarCdnUsable, radarImgEnabled, noteRadarCdnFailure, radarCdnDeadline } from './radolanRuns';
-import { fetchImgRes, RadarImg404, radarRawHedgeCount, RADAR_IMG_CONCURRENCY, pooledAll, radarImgStamp, radarImgStampToMs } from './radarImg';
+import { fetchImgRes, RadarImg404, radarRawHedgeCount, RADAR_IMG_CONCURRENCY, pooledAll, radarImgStamp, radarImgStampToMs, radarRawUrl } from './radarImg';
 import { loadRadarGrayPngOffMain, loadRadarGrayAlphaPngOffMain } from './radolan';
+import { RZC_IMG_GATE_MS } from './meteoSwissRadar';
 import {
-  radarNcFlagFrom, rzcNcImgDir, inca5mImgDir, parseRzcNcImgMeta, parseInca5mImgMeta, NC_STEP_MIN,
+  radarNcFlagFrom, rzcNcImgDir, inca5mImgDir, parseRzcNcImgMeta, parseInca5mImgMeta, NC_STEP_MIN, RZC_NC_GATE_EXTRA_MS,
   type NcMotion, type RzcNcImgMeta, type Inca5mImgMeta,
 } from './radarNowcastImg';
+
+/**
+ * Phase RL (29.10.2026): a mirrored product is immutable — the newest one read is kept per stamp (and dual switch) for the
+ * session. The map, the point series and the 5-min refresh asked for the same product again (72 files for CH, 34 for AT);
+ * now one download per stamp. One entry per product: the frames of a slot are ≈ 22 MB (CH) / 10 MB (AT) decoded.
+ */
+let _rzcNcLast: { key: string; nc: RzcNowcast } | null = null;
+let _inca5Last: { key: string; grid: Inca5mGrid } | null = null;
+const memoKey = (stamp: string) => `${stamp}|${radarDualFlagFrom() ? 'g' : 'f'}`;
+/** Nur für Verifier/Tests. */
+export function _resetNcMemo(): void { _rzcNcLast = null; _inca5Last = null; }
+
+/**
+ * Directory of a product slot: the CDN for a gated stamp, raw.githubusercontent only for a stamp younger than the gate
+ * (jsDelivr `@main` resolves to the old commit for up to ~3 min after a push and holds a 404 at the edge, V-AW-25) —
+ * `null` when such a stamp cannot be read (raw way off).
+ */
+function slotDir(cdnDir: string, stamp: string, gateMs: number): string | null {
+  const ms = radarImgStampToMs(stamp);
+  if (!Number.isFinite(ms) || Date.now() - ms >= gateMs) return cdnDir;
+  return radarRawUrl(cdnDir);
+}
 
 export interface RzcNcFrame {
   leadMinutes: number;
@@ -86,7 +109,8 @@ async function readFrames(dir: string, meta: RzcNcImgMeta | Inca5mImgMeta, signa
 }
 
 async function loadRzcNcSlot(stamp: string, signal: AbortSignal, priority?: RequestPriority, touch?: () => void): Promise<RzcNowcast | null> {
-  const dir = rzcNcImgDir(stamp);
+  const dir = slotDir(rzcNcImgDir(stamp), stamp, RZC_IMG_GATE_MS + RZC_NC_GATE_EXTRA_MS);
+  if (!dir) return null;
   const meta = parseRzcNcImgMeta(await metaJson(await fetchImgRes(`${dir}/meta.json`, signal, priority)));
   if (!meta || meta.stamp !== stamp) return null;
   touch?.();
@@ -113,10 +137,12 @@ export async function fetchRzcNowcast(analysisStamp: string, signal?: AbortSigna
     const ms0 = radarImgStampToMs(analysisStamp);
     const stamps = Number.isFinite(ms0) ? [analysisStamp, radarImgStamp(ms0 - NC_STEP_MIN * 60_000), radarImgStamp(ms0 - 2 * NC_STEP_MIN * 60_000)] : [analysisStamp];
     for (const stamp of stamps) {
+      if (_rzcNcLast?.key === memoKey(stamp)) return _rzcNcLast.nc;
       const dl = radarCdnDeadline(undefined);
       try {
         const nc = await loadRzcNcSlot(stamp, dl.signal, opts?.priority, dl.touch);
         if (!nc) continue;
+        _rzcNcLast = { key: memoKey(stamp), nc };
         console.log(`[buscosun] CH Hochrechnung → Slot ${stamp} · ${nc.frames.length} Frames (+5…+120 min) · ${nc.motion.speedKmh} km/h aus ${nc.motion.fromDeg ?? '—'}° (${nc.motion.pairs} Paare) · Quelle Daten-Repo (PNG)`);
         return nc;
       } catch (err) {
@@ -152,10 +178,12 @@ export async function fetchInca5m(runStamp: string | null, signal?: AbortSignal,
   return shareInFlight(`inca-5m:${key}`, async () => {
     const stamps = runStamp ? [runStamp] : guessRunStamps(2);
     for (const stamp of stamps) {
+      if (_inca5Last?.key === memoKey(stamp)) return _inca5Last.grid;
       const dl = radarCdnDeadline(undefined);
       try {
         const g = await loadInca5mSlot(stamp, dl.signal, opts?.priority, dl.touch);
         if (!g) continue;
+        _inca5Last = { key: memoKey(stamp), grid: g };
         console.log(`[buscosun] AT INCA · 5 min → Lauf ${stamp} · ${g.frames.length} Frames (+15…+180 min, ${g.frames.filter((f) => f.kind === 'inca').length} INCA-Bilder) · Quelle Daten-Repo (PNG)`);
         return g;
       } catch (err) {

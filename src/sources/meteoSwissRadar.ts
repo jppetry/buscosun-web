@@ -22,7 +22,7 @@ import { parseRzcOffMain, warmHdf5Worker } from './hdf5OffMain';
 import { shareInFlight } from './shareInFlight';
 // RD3 (audit/radar-datenrepo.md §14): fertiger Frame vom Daten-Repo-CDN
 import { radarCdnEnabled, radarCdnUsable, radarImgEnabled, noteRadarCdnFailure, radarCdnDeadline } from './radolanRuns';
-import { rzcImgDir, parseRzcImgMeta, radarImgStamp, radarImgStampToMs, fetchImgRes, RadarImg404 } from './radarImg';
+import { rzcImgDir, parseRzcImgMeta, radarImgStamp, radarImgStampToMs, fetchImgRes, RadarImg404, radarRawUrl } from './radarImg';
 import { loadRadarGrayPngOffMain, loadRadarGrayAlphaPngOffMain } from './radolan';   // Phase PF (M4)
 import { radarDualFlagFrom } from '../scalar/radarHd';
 
@@ -70,10 +70,35 @@ export function guessRzcStamps(count: number, nowMs: number = Date.now(), lagMs:
 }
 
 /**
+ * Phase RL (29.10.2026): a mirrored slot is immutable — once read, the frame is kept per stamp (and dual switch) for the
+ * session, bounded. The live reader, the 5-min refresh, the look-back seed and the point series asked for the SAME slot
+ * up to four times per load (measured: `rzc/<stamp>/meta.json` + `frame.png` twice within 4 s); now one download per slot.
+ */
+const RZC_MEMO_MAX = 30;
+const _rzcMemo = new Map<string, RadarFrame>();
+const rzcMemoKey = (stamp: string) => `${stamp}|${radarDualFlagFrom() ? 'g' : 'f'}`;
+function rzcMemoGet(stamp: string): RadarFrame | null { return _rzcMemo.get(rzcMemoKey(stamp)) ?? null; }
+function rzcMemoPut(stamp: string, frame: RadarFrame): void {
+  _rzcMemo.set(rzcMemoKey(stamp), frame);
+  while (_rzcMemo.size > RZC_MEMO_MAX) { const oldest = _rzcMemo.keys().next().value; if (oldest === undefined) break; _rzcMemo.delete(oldest); }
+}
+/** The last frame decoded from a MeteoSwiss HDF5 asset (no log plane) — a second caller within the same slot reuses it. */
+let _rzcH5Last: { stamp: string; frame: RadarFrame } | null = null;
+/** Nur für Verifier/Tests. */
+export function _resetRzcMemo(): void { _rzcMemo.clear(); _rzcH5Last = null; }
+
+/**
  * One mirrored rzc slot → frame. HD-3: mit `?hdv2=1` das Dual-PNG (beide Ebenen in einem Abruf); fehlt es (404), `frame.png`
  * wie bisher. Phase PF (M4): decoded off-main. Shared by the live reader and the look-back sequence (V-RA-3).
  */
 async function readRzcSlotFrame(dir: string, stamp: string, meta: NonNullable<ReturnType<typeof parseRzcImgMeta>>, signal: AbortSignal, priority?: RequestPriority): Promise<RadarFrame> {
+  const memo = rzcMemoGet(stamp);
+  if (memo) return memo;
+  const frame = await readRzcSlotFrameFresh(dir, stamp, meta, signal, priority);
+  rzcMemoPut(stamp, frame);
+  return frame;
+}
+async function readRzcSlotFrameFresh(dir: string, stamp: string, meta: NonNullable<ReturnType<typeof parseRzcImgMeta>>, signal: AbortSignal, priority?: RequestPriority): Promise<RadarFrame> {
   let values: Uint8Array | null = null, values2: Uint8Array | undefined;
   const g = radarDualFlagFrom() && meta.dual ? meta.dual.frames[0]?.file : null;
   if (g) {
@@ -101,6 +126,8 @@ export async function fetchRzcAnalysisSequence(count: number, signal?: AbortSign
   const stamps = guessRzcStamps(Math.min(24, count + 1), Date.now());
   for (const stamp of stamps) {
     if (out.length >= count || signal?.aborted) break;
+    const memo = rzcMemoGet(stamp);
+    if (memo) { out.push(memo); continue; }
     const dl = radarCdnDeadline(signal);
     try {
       const dir = rzcImgDir(stamp);
@@ -126,24 +153,61 @@ async function loadRzcFromImg(priority?: RequestPriority, quelleWeg = false): Pr
   // Frische-Fenster wie beim KONRAD-Weg: aggressiver Rat ≠ gegatteter Rat ⇒ direkt.
   // Ist die QUELLE weg, gibt es nichts Frischeres — dann gilt das Fenster nicht und
   // der Spiegel darf tiefer zurückreichen (Retention 12 Slots = 1 h).
-  if (!quelleWeg && guessRzcStamps(1, now, RZC_PUBLISH_LAG_MIN * 60_000)[0] !== guessRzcStamps(1, now)[0]) return null;
+  const fresh = guessRzcStamps(1, now, RZC_PUBLISH_LAG_MIN * 60_000)[0];
+  if (!quelleWeg && guessRzcStamps(1, now)[0] !== fresh) {
+    // Phase RL (29.10.2026): the mirror usually carries the fresh slot within ~2 min (poll 10 s + derive + push), i.e. for
+    // most of this window — measured 15:58 local: STAC + HDF5 delivered the SAME slot 14:50 the mirror held, without the
+    // log plane (so „jetzt" and +5 min were drawn from different planes). One probe on raw.githubusercontent for the fresh
+    // stamp (never the CDN: an un-gated 404 would be held at the edge, V-AW-25); a miss keeps the STAC way = same freshness.
+    return loadRzcMirrorSlot(fresh, priority, now);
+  }
   for (const stamp of guessRzcStamps(quelleWeg ? 6 : 2, now)) {
-    const dl = radarCdnDeadline(undefined);
-    try {
-      const dir = rzcImgDir(stamp);
-      const meta = parseRzcImgMeta(await (await fetchImgRes(`${dir}/meta.json`, dl.signal, priority)).json());
-      if (!meta || meta.stamp !== stamp) continue;
-      const frame = await readRzcSlotFrame(dir, stamp, meta, dl.signal, priority);
-      if (quelleWeg) console.warn(`[buscosun] MeteoSwiss rzc nicht erreichbar — Daten-Repo (PNG), Slot ${stamp} (${Math.round((now - radarImgStampToMs(stamp)) / 60_000)} min alt)`);
-      else console.log(`[buscosun] MeteoSwiss rzc → Slot ${stamp} · Quelle Daten-Repo (PNG)`);
-      return frame;
-    } catch (err) {
-      if (err instanceof RadarImg404) continue;   // Slot (noch) nicht gespiegelt ⇒ älterer Kandidat, dann STAC
-      noteRadarCdnFailure();
-      return null;
-    } finally { dl.done(); }
+    const r = await loadRzcMirrorSlot(stamp, priority, now, quelleWeg ? 'nicht erreichbar' : undefined);
+    if (r) return r;
+    if (!radarCdnUsable()) return null;   // a hard CDN error ended the way (latch) — STAC as before
   }
   return null;
+}
+
+/**
+ * ONE mirrored slot by stamp: the session memo first; then the CDN for a gated stamp, raw.githubusercontent for a younger one
+ * (never the CDN there: an un-gated 404 would be held at the edge, V-AW-25; `@main` lags a push by up to ~3 min). `null` =
+ * not mirrored (yet), unreadable, raw way off, or a hard error (a CDN one counts against the latch, a raw one does not).
+ */
+async function loadRzcMirrorSlot(stamp: string, priority: RequestPriority | undefined, now: number, warnWord?: string): Promise<RadarFrame | null> {
+  const say = (how: string) => {
+    const line = `[buscosun] MeteoSwiss rzc → Slot ${stamp} · Quelle Daten-Repo (PNG${how}) · ${Math.round((now - radarImgStampToMs(stamp)) / 60_000)} min alt`;
+    if (warnWord) console.warn(`[buscosun] MeteoSwiss rzc ${warnWord} — Daten-Repo (PNG${how}), Slot ${stamp} (${Math.round((now - radarImgStampToMs(stamp)) / 60_000)} min alt)`);
+    else console.log(line);
+  };
+  const memo = rzcMemoGet(stamp);
+  if (memo) { say(', aus dem Sitzungsspeicher'); return memo; }
+  const gated = now - radarImgStampToMs(stamp) >= RZC_IMG_GATE_MS;
+  const dir = gated ? rzcImgDir(stamp) : radarRawUrl(rzcImgDir(stamp));
+  if (!dir) return null;
+  const dl = radarCdnDeadline(undefined);
+  try {
+    const meta = parseRzcImgMeta(await (await fetchImgRes(`${dir}/meta.json`, dl.signal, priority)).json());
+    if (!meta || meta.stamp !== stamp) return null;
+    dl.touch();
+    const frame = await readRzcSlotFrame(dir, stamp, meta, dl.signal, priority);
+    say(gated ? '' : ', frischer Slot über raw');
+    return frame;
+  } catch (err) {
+    if (gated && !(err instanceof RadarImg404)) noteRadarCdnFailure();
+    return null;
+  } finally { dl.done(); }
+}
+
+/**
+ * Phase RL: the slot stamp of a STAC asset — `rzc<YY><DDD><HHMM>…` (year, day of year, UTC time; `rzc263021500rl.001.h5` =
+ * 2026-10-29 15:00). NaN for any other name. Exported for the verifier.
+ */
+export function rzcStampFromHref(href: string): string | null {
+  const m = /rzc(\d{2})(\d{3})(\d{2})(\d{2})[^/]*$/.exec(href);
+  if (!m) return null;
+  const ms = Date.UTC(2000 + +m[1], 0, +m[2], +m[3], +m[4]);
+  return Number.isFinite(ms) ? radarImgStamp(ms) : null;
 }
 
 /**
@@ -187,9 +251,20 @@ async function loadRzcLatest(priority?: RequestPriority): Promise<RadarFrame> {
   if (viaImg) return viaImg;
   try {
     const hrefs = await resolveRzcHrefs(undefined, priority);
+    // Phase RL (29.10.2026): the listing names the newest slot — when the mirror holds THAT slot, its PNG (with the log plane,
+    // memoised) replaces the HDF5 download + parse; measured 16:08 local: STAC's newest was 15:00, the slot the mirror held.
+    // The HDF5 way stays for a slot the mirror does not carry (yet) — the freshness never gets worse.
+    if (radarCdnEnabled() && radarCdnUsable() && radarImgEnabled()) {
+      const stamp = rzcStampFromHref(hrefs[0] ?? '');
+      const viaMirror = stamp ? await loadRzcMirrorSlot(stamp, priority, Date.now()) : null;
+      if (viaMirror) return viaMirror;
+    }
     warmHdf5Worker();   // Isolate + jsfive laden im Download-Schatten (H3)
     let lastErr: unknown;
     for (const href of hrefs) {
+      const stamp = rzcStampFromHref(href);
+      const h5 = stamp ? _rzcH5Last : null;
+      if (h5 && h5.stamp === stamp) return h5.frame;   // the same asset decoded moments ago by another caller
       const res = await fetch(href, priority ? { priority } : undefined);
       if (!res.ok) {                       // 403/404: noch nicht freigegeben ⇒ nächstälteres Asset
         lastErr = new Error(`MeteoSwiss rzc fetch: ${res.status}`);
@@ -197,10 +272,13 @@ async function loadRzcLatest(priority?: RequestPriority): Promise<RadarFrame> {
       }
       const buf = await res.arrayBuffer();
       const r = await parseRzcOffMain(buf);
-      return {
+      const frame: RadarFrame = {
         values: r.values, width: r.width, height: r.height, corners: r.corners,
         validAt: r.validAtMs == null ? new Date() : new Date(r.validAtMs),   // Fallback: jetzt (wie bisher)
       };
+      if (stamp) _rzcH5Last = { stamp, frame };
+      console.log(`[buscosun] MeteoSwiss rzc → ${href.split('/').pop()} · Quelle MeteoSchweiz (HDF5)${stamp ? ` · Slot ${stamp} nicht im Daten-Repo` : ''}`);
+      return frame;
     }
     throw lastErr ?? new Error('MeteoSwiss rzc: kein abrufbares Asset');
   } catch (err) {
