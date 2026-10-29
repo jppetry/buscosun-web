@@ -453,6 +453,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
         <main className="sw-map is-mobile" aria-label="Karte">
           {map}
           <div className="sw-m-top">
+            <button type="button" className="sw-m-brand" aria-label="Zur Startseite" onClick={nav.goHome}><img src="/buscosun-mark.svg" width={22} height={22} alt="" /></button>
             <button type="button" className="sw-pill is-button" aria-haspopup="dialog" aria-expanded={mobTab === 'spot'} onClick={() => setMobTab('spot')}>
               <span className="sw-badge">{pillBadge}</span>
               <span className="sw-pill-body"><span className="sw-pill-title">{spot?.name ?? 'Spot wählen'}</span><span className="sw-pill-sub">{spot?.seaArea?.name ?? spot?.coast?.name ?? ''} · Profil {profLabel}</span></span>
