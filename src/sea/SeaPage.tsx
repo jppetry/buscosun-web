@@ -1,7 +1,7 @@
 /**
  * SW-5/SW-6 — Seewetter page, Command-Deck (D-27), design `reference/seewetter-desktop.dc.html` (+ mobile).
  * Rail 62 · topbar 60 · dock 250 · map · readout 400, the hourly band as glass panel over the map foot; mobile: full-
- * screen map, spot pill + share (44 px), time chips, bottom sheet "Spot-Briefing" (two stages).
+ * screen map, spot pill + share (44 px), time chips.
  *
  * Data: `sea/v1/` of buscosun-data via `seaClient.ts` (expected run and issues from the clock, step back on 404, CDN +
  * raw hedge, client checks of the contract). Freshness: run > 18 h "veraltet", > 30 h or kill switch "Keine Daten" and
@@ -87,7 +87,6 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
   const [wlCat, setWlCat] = useState<{ gauges: WlGauge[]; why: string | null; state: 'loading' | 'ok' | 'missing' | 'error' }>({ gauges: [], why: null, state: 'loading' });
   const [wlDoc, setWlDoc] = useState<WlForecast | null | 'loading' | 'error'>(null);
   const [gaugePick, setGaugePick] = useState<string | null>(null);
-  const [sheet, setSheet] = useState<'peek' | 'open'>('peek');
   const [picker, setPicker] = useState(false);
   /** Desktop centre stage: the map (default) or the spot dossier — like the Brandradar (BD2), the map stays mounted. */
   const [stage, setStage] = useState<'map' | 'dossier'>('map');
@@ -286,7 +285,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
   }, [spot?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pickSpot = useCallback((id: string) => {
-    setSpotId(id); setPicker(false); setSheet('peek');
+    setSpotId(id); setPicker(false);
     // Mobile shows the new spot's briefing; the desktop dossier keeps its chapter (Allgemein = `quellen`).
     if (isMobile) setTab((tb) => (tb === 'quellen' ? 'spot' : tb));
     const s = spots.find((x) => x.id === id);
@@ -433,7 +432,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
       reason={!noData && verdict && verdict.cls !== 'passt' ? verdict.reasons[0] ?? null : null}
       window={noData || !usable || !wins.next ? null : `Nächstes Fenster ${dayShort(wins.next.from)} ${hh(wins.next.from)}–${hh(wins.next.to)} Uhr`}
       official={null}
-      onOpenDossier={() => { setMapCard(null); if (isMobile) { setTab('spot'); setSheet('open'); } else setStage('dossier'); }}
+      onOpenDossier={() => { setMapCard(null); if (!isMobile) setStage('dossier'); }}
       onClose={() => setMapCard(null)} />
   ) : null;
   const stageSeg = (
@@ -450,8 +449,6 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
 
   // --- mobile ----------------------------------------------------------------------------------------------
   if (isMobile) {
-    const head = !runLoad ? 'Daten laden …' : noData ? 'Keine Daten' : warning.status === 'unknown' ? 'Erst die amtliche Meldung lesen' : verdict ? CLASS_LABEL[verdict.cls].replace(/^./, (c) => c.toUpperCase()) : '';
-    const lead2 = !hour || noData ? (noData ?? '') : `${fmtWind(hour.windMs, unit)} ${unitLabel(unit)} aus ${compass16(hour.windDir)}, Böen ${fmtWind(hour.gustMs, unit)}. ${hour.dry ? 'Kein Seegang: Modellzelle ohne Wasser' : `Welle ${f1(hour.hs, ' m')}${hour.tm != null ? `, ${f1(hour.tm)} s` : ''}`}.${verdict?.shore ? ` Wind ${verdict.shore.replace('-', ' ').replace('schraeg', 'schräg')}.` : ''} ${verdict && verdict.cls !== 'passt' ? verdict.reasons[0] : ''}`;
     return (
       <div className="sw-root is-mobile">
         <main className="sw-map is-mobile" aria-label="Karte">
@@ -469,31 +466,6 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
           {emptyMap}{catFail}
           {cardEl && <div className="sw-map-card">{cardEl}</div>}
         </main>
-        <section className={`sw-sheet is-${sheet}`} aria-label="Spot-Briefing" hidden={!!cardEl}>
-          <button type="button" className="sw-sheet-grip" aria-label={sheet === 'open' ? 'Briefing verkleinern' : 'Briefing aufklappen'} aria-expanded={sheet === 'open'} onClick={() => setSheet((s) => (s === 'open' ? 'peek' : 'open'))}><span /></button>
-          <div className="sw-sheet-head"><span className="sw-eyebrow is-accent">Spot-Briefing · {profLabel}</span><span className="sw-eyebrow">{noData ? 'keine Daten' : `Modell · ${dayShort(validMs)} ${hh(validMs)}:00`}</span></div>
-          <h2 className="sw-sheet-title">{head}</h2>
-          <p className="sw-sheet-lead">{lead2}</p>
-          {!noData && wins.next && (
-            <div className="sw-sheet-win">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2" /><path d="M3.5 10h17M8 3v4M16 3v4" /></svg>
-              <span><strong>Fenster {dayShort(wins.next.from)} {hh(wins.next.from)}–{hh(wins.next.to)} Uhr</strong><em>{wins.longest && wins.longest !== wins.next ? `längstes ${dayShort(wins.longest.from)} ${hh(wins.longest.from)}–${hh(wins.longest.to)} Uhr` : `${wins.next.hours} h`}{SEA_PROFILE_BY_ID[profile].limits.daylight ? ' · nur bei Tageslicht' : ''}</em></span>
-            </div>
-          )}
-          {band}
-          {spot && (
-            <div className={`sw-sheet-official${warning.status === 'unknown' ? ' is-warn' : ''}`}>
-              <div className="sw-sheet-official-head"><span>Amtlich · {spot.wodlCoast === 'Nordseekueste' ? 'Nordseeküste' : 'Ostseeküste'}</span><span>{warning.coast?.nr ? `NR. ${warning.coast.nr} · ` : ''}{seaTexts.wodl ? hm(Date.parse(seaTexts.wodl.issuedAt)) : '–'}</span></div>
-              <p>{warning.status === 'none' ? warning.coast?.text : (warning.area?.status === 'unknown' && warning.area.text ? `${warning.area.name}: ${warning.area.text}` : warning.coast?.text || 'Warnstatus derzeit unbekannt — das heißt nicht „keine Warnung“.')}</p>
-              <button type="button" className="sw-link" onClick={() => { setTab('gebiet'); setSheet('open'); }}>ganzen Text lesen</button>
-            </div>
-          )}
-          <div className="sw-sheet-actions">
-            <button type="button" className="sw-btn is-primary" onClick={() => { setTab('spot'); setSheet('open'); }}>Stundentabelle und Verlauf</button>
-            <button type="button" className="sw-btn is-auto" onClick={() => setPicker(true)}>Profil: {SEA_PROFILE_BY_ID[profile].short}</button>
-          </div>
-          {sheet === 'open' && <div className="sw-sheet-readout">{units}{readout}</div>}
-        </section>
         {picker && (
           <div className="sw-m-dock" role="dialog" aria-label="Spot und Profil wählen">
             <div className="sw-m-dock-head"><strong>Spot und Profil</strong><button type="button" onClick={() => setPicker(false)} aria-label="Schließen">✕</button></div>
