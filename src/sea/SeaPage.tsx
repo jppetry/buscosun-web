@@ -30,13 +30,14 @@ import {
 import { SeaVerdictCache } from './seaVerdicts';
 import { SEA_TIME_CHIPS, type SeaLayer, type SeaRevier, type SeaTab, type SeaUrlState } from './seaState';
 import {
-  CLASS_COLOR, CLASS_SHORT, DRY_VALUE, HS_STOPS, LAYER_LABEL, PER_STOPS, H, cssGradient, dayShort, f1, hh, hm, tzLabel, waveArrows,
+  CLASS_COLOR, CLASS_LABEL, CLASS_SHORT, DRY_VALUE, HS_STOPS, LAYER_LABEL, PER_STOPS, H, compass16, cssGradient, dayShort, f1, hh, hm, tzLabel, waveArrows,
 } from './seaView';
 import { colourFieldAsync } from './seaFieldClient';
 import SeaMap, { type SeaMapArea, type SeaMapGauge, type SeaMapSpot } from './SeaMap';
 import SeaDock, { type SeaToggles } from './SeaDock';
 import SeaBand, { type SeaBandHour } from './SeaBand';
 import SeaReadout, { findWarning, type SeaReadoutHour, type SeaTexts, type SeaWaterLevel } from './SeaReadout';
+import SeaMapCard from './SeaMapCard';
 import './seaDeck.css';
 
 export interface SeaPageProps {
@@ -90,6 +91,8 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
   /** Desktop centre stage: the map (default) or the spot dossier — like the Brandradar (BD2), the map stays mounted. */
   const [stage, setStage] = useState<'map' | 'dossier'>('map');
   /** The spot a MAP click picked: its preview card (bottom left) stays until closed, the detail opens or another spot is picked. */
+  const [mapCard, setMapCard] = useState<string | null>(null);
+  useEffect(() => { if (stage === 'dossier') setMapCard(null); }, [stage]);
   const firstSpot = useRef(true);
 
   const popKey = popState?.key ?? null;
@@ -288,7 +291,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
     const s = spots.find((x) => x.id === id);
     if (s) mapRef.current?.easeTo({ center: [s.lon, s.lat], zoom: Math.max(mapRef.current.getZoom(), 7.5), duration: 600 });
   }, [spots, isMobile]);
-  const pickSpotFromMap = useCallback((id: string) => { pickSpot(id); }, [pickSpot]);
+  const pickSpotFromMap = useCallback((id: string) => { pickSpot(id); setMapCard(id); }, [pickSpot]);
 
   // --- lists ----------------------------------------------------------------------------------------------
   const dockSpots = useMemo(() => spots
@@ -416,6 +419,21 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
       layout={isMobile ? 'aside' : 'dossier'} band={isMobile ? undefined : band} chips={isMobile ? undefined : (usable && chips)} onMap={isMobile ? undefined : () => setStage('map')} />
   );
   const inDossier = stage === 'dossier';
+  // The compact preview of the map-picked spot — the same numbers as the briefing and the callout.
+  const cardEl = mapCard && spot && spot.id === mapCard && !inDossier ? (
+    <SeaMapCard badge={pillBadge} name={spot.name} sub={`${spot.seaArea?.name ?? spot.coast?.name ?? ''} · ${kindsLabel(spot.kinds)} · Profil ${profLabel}`}
+      verdict={noData ? 'keine Daten' : CLASS_LABEL[verdict?.cls ?? 'keine']} color={!noData && verdict && verdict.cls !== 'keine' ? CLASS_COLOR[verdict.cls] : null}
+      stats={!hour || noData ? [] : [
+        { l: 'Wind', v: `${fmtWind(hour.windMs, unit)} ${unitLabel(unit)}`, s: `aus ${compass16(hour.windDir)}` },
+        { l: 'Böen', v: `${fmtWind(hour.gustMs, unit)} ${unitLabel(unit)}` },
+        { l: 'Welle', v: hour.dry ? DRY_VALUE : f1(hour.hs, ' m'), s: !hour.dry && hour.tm != null ? `${f1(hour.tm)} s` : undefined },
+      ]}
+      reason={!noData && verdict && verdict.cls !== 'passt' ? verdict.reasons[0] ?? null : null}
+      window={noData || !usable || !wins.next ? null : `Nächstes Fenster ${dayShort(wins.next.from)} ${hh(wins.next.from)}–${hh(wins.next.to)} Uhr`}
+      official={null}
+      onOpenDossier={() => { setMapCard(null); if (!isMobile) setStage('dossier'); }}
+      onClose={() => setMapCard(null)} />
+  ) : null;
   const stageSeg = (
     <div className="sw-seg sw-stage-seg" role="group" aria-label="Bühne der Mitte">
       <button type="button" className={!inDossier ? 'is-active' : ''} aria-pressed={!inDossier} onClick={() => setStage('map')}>Karte</button>
@@ -446,6 +464,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
           <div className="sw-m-times">{chips}</div>
           <div className="sw-m-legend"><div className="sw-legend-ramp" style={{ background: cssGradient(layer === 'per' ? PER_STOPS : HS_STOPS) }} /><div className="sw-legend-ticks"><span>0</span><span>{layer === 'per' ? '6' : '3'}</span><span>{layer === 'per' ? '12 s' : '6 m'}</span></div></div>
           {emptyMap}{catFail}
+          {cardEl && <div className="sw-map-card">{cardEl}</div>}
         </main>
         {mobTab !== 'map' && (
           <div className="sw-m-dock" role="dialog" aria-label={mobTab === 'spot' ? 'Spot und Profil wählen' : 'Ebenen'}>
@@ -502,6 +521,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
             </div>
             <div className="sw-ov-right">{legend}</div>
             {emptyMap}{catFail}
+            {cardEl && <div className="sw-map-card">{cardEl}</div>}
           </main>
           {inDossier && (
             <main className="sw-ds-main" aria-label="Spot-Dossier">
