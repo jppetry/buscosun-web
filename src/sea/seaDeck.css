@@ -600,9 +600,8 @@
 
 /* --- Mobile (≤ 767 px): full-screen map, spot pill + share, chips, bottom sheet ------------------------ */
 @media (max-width: 767px) {
-  /* „Über diese Ansicht“ (seit 10.10. indexierbar): rechts oben läge der Chip auf den Zeitchips +24 h/+48 h —
-     hier links unter der Chipzeile, gegenüber der Legende. */
-  .rsb[data-route="seewetter"] { top: calc(130px + env(safe-area-inset-top, 0px)); right: auto; left: 12px; text-align: left; }
+  /* Der globale Chip „Über diese Ansicht“ (RouteSeoBlock) entfällt mobil im Seewetter. */
+  .rsb[data-route="seewetter"] { display: none; }
   .sw-root.is-mobile { display: block; position: relative; background: var(--sw-map-bg, #0B0E12); }
   .sw-map.is-mobile { position: absolute; inset: 0; }
   .sw-map.is-mobile .maplibregl-ctrl-bottom-right, .sw-map.is-mobile .maplibregl-ctrl-bottom-left { bottom: 480px; }
