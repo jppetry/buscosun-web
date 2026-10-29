@@ -87,7 +87,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
   const [wlCat, setWlCat] = useState<{ gauges: WlGauge[]; why: string | null; state: 'loading' | 'ok' | 'missing' | 'error' }>({ gauges: [], why: null, state: 'loading' });
   const [wlDoc, setWlDoc] = useState<WlForecast | null | 'loading' | 'error'>(null);
   const [gaugePick, setGaugePick] = useState<string | null>(null);
-  const [picker, setPicker] = useState(false);
+  const [mobTab, setMobTab] = useState<'map' | 'spot' | 'layers'>('map');
   /** Desktop centre stage: the map (default) or the spot dossier — like the Brandradar (BD2), the map stays mounted. */
   const [stage, setStage] = useState<'map' | 'dossier'>('map');
   /** The spot a MAP click picked: its preview card (bottom left) stays until closed, the detail opens or another spot is picked. */
@@ -285,7 +285,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
   }, [spot?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pickSpot = useCallback((id: string) => {
-    setSpotId(id); setPicker(false);
+    setSpotId(id); setMobTab('map');
     // Mobile shows the new spot's briefing; the desktop dossier keeps its chapter (Allgemein = `quellen`).
     if (isMobile) setTab((tb) => (tb === 'quellen' ? 'spot' : tb));
     const s = spots.find((x) => x.id === id);
@@ -411,7 +411,6 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
       spots={dockSpots} selectedId={spot?.id ?? null} onPick={pickSpot} total={spots.length} layer={layer} onLayer={setLayer}
       toggles={toggles} onToggle={(kk) => setToggles((x) => ({ ...x, [kk]: !x[kk] }))} loading={catalog === 'loading'} />
   );
-  const dock = dockOf('all');
   const readout = (
     <SeaReadout tab={tab} onTab={setTab} spot={spot} hour={hour} verdict={verdict} profileLabel={profLabel} windows={wins} chartHours={chartHours}
       limitKn={lim} limitLabel={limits.gustMax != null ? `Böen ${limits.gustMax} kn` : limits.windMax != null ? `Wind ${limits.windMax} kn` : ''} unit={unit}
@@ -454,7 +453,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
         <main className="sw-map is-mobile" aria-label="Karte">
           {map}
           <div className="sw-m-top">
-            <button type="button" className="sw-pill is-button" aria-haspopup="dialog" aria-expanded={picker} onClick={() => setPicker(true)}>
+            <button type="button" className="sw-pill is-button" aria-haspopup="dialog" aria-expanded={mobTab === 'spot'} onClick={() => setMobTab('spot')}>
               <span className="sw-badge">{pillBadge}</span>
               <span className="sw-pill-body"><span className="sw-pill-title">{spot?.name ?? 'Spot wählen'}</span><span className="sw-pill-sub">{spot?.seaArea?.name ?? spot?.coast?.name ?? ''} · Profil {profLabel}</span></span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B7355" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
@@ -466,12 +465,24 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
           {emptyMap}{catFail}
           {cardEl && <div className="sw-map-card">{cardEl}</div>}
         </main>
-        {picker && (
-          <div className="sw-m-dock" role="dialog" aria-label="Spot und Profil wählen">
-            <div className="sw-m-dock-head"><strong>Spot und Profil</strong><button type="button" onClick={() => setPicker(false)} aria-label="Schließen">✕</button></div>
-            {dock}
+        {mobTab !== 'map' && (
+          <div className="sw-m-dock" role="dialog" aria-label={mobTab === 'spot' ? 'Spot und Profil wählen' : 'Ebenen'}>
+            <div className="sw-m-dock-head"><strong>{mobTab === 'spot' ? 'Spot und Profil' : 'Ebenen'}</strong></div>
+            {dockOf(mobTab === 'spot' ? 'picker' : 'layers')}
           </div>
         )}
+        <nav className="sw-bar" aria-label="Seewetter-Bereiche">
+          {([
+            ['map', 'Karte', <path key="p" d="M9 4 3 6.5v13L9 17l6 2.5 6-2.5v-13L15 7 9 4zM9 4v13M15 7v12.5" />],
+            ['spot', 'Spot', <g key="p"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z" /><circle cx="12" cy="10" r="2.3" /></g>],
+            ['layers', 'Ebenen', <path key="p" d="m12 3 9 4.5-9 4.5-9-4.5L12 3zM3 12l9 4.5 9-4.5M3 16.5 12 21l9-4.5" />],
+          ] as const).map(([id, label, icon]) => (
+            <button key={id} type="button" className={`sw-bar-btn${mobTab === id ? ' is-active' : ''}`} aria-current={mobTab === id ? 'page' : undefined} onClick={() => setMobTab(id)}>
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{icon}</svg>
+              <span>{label}</span>
+            </button>
+          ))}
+        </nav>
       </div>
     );
   }

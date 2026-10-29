@@ -876,3 +876,16 @@
   .sw-dash-strip { grid-template-columns: minmax(0, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) { .sw-seabar-t i { transition: none; } }
+
+/* Mobile bottom bar (Karte · Spot · Ebenen) like the Brandradar: the map ends above it, the pages cover the map. */
+@media (max-width: 767px) {
+  .sw-root.is-mobile { --sw-bar-h: calc(64px + env(safe-area-inset-bottom, 0px)); }
+  .sw-root.is-mobile .sw-map.is-mobile { bottom: var(--sw-bar-h); }
+  .sw-root.is-mobile .sw-map.is-mobile .maplibregl-ctrl-bottom-right, .sw-root.is-mobile .sw-map.is-mobile .maplibregl-ctrl-bottom-left { bottom: 0; }
+  .sw-root.is-mobile .sw-m-dock { bottom: var(--sw-bar-h); }
+  .sw-bar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 8; display: flex; justify-content: space-around; padding: 10px 0 calc(8px + env(safe-area-inset-bottom, 0px)); box-sizing: border-box;
+    background: var(--cream-50, #FAF6EA); border-top: 1px solid var(--sand-200, #E0D6BE); }
+  .sw-bar-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 64px; min-height: 44px; padding: 0 6px; background: none; border: 0; cursor: pointer;
+    font: inherit; font-size: 10.5px; color: var(--stone-400, #A89A7A); }
+  .sw-bar-btn.is-active { color: var(--sw-accent, #0F6E7A); font-weight: 600; }
+}
