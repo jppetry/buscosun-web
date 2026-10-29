@@ -4,7 +4,7 @@
  * the chosen hour, layers, switches (WL-4: the water level of the BSH among them, on by default — E-WL-1)
  * and the data situation per region.
  */
-import { useId, useState, type ReactElement } from 'react';
+import { useId, useState, type CSSProperties, type ReactElement } from 'react';
 import { SEA_PROFILES, SEA_PROFILE_BY_ID, limitsChanged, limitsSummary, type SeaClass, type SeaLimits, type SeaProfileId } from './seaProfiles';
 import { CLASS_COLOR, CLASS_SHORT, HS_STOPS, LAYER_LABEL, PER_STOPS, cssGradient } from './seaView';
 import { SEA_LAYERS, SEA_REVIERE, type SeaLayer, type SeaRevier } from './seaState';
@@ -60,7 +60,7 @@ export default function SeaDock(p: Props) {
   const show = p.show ?? 'all';
   const picker = show !== 'layers' && (
     <>
-      <label htmlFor={`${sid}-q`} className="sw-eyebrow sw-dock-label">Spot, Hafen oder Ort</label>
+      <label htmlFor={`${sid}-q`} className="sw-dock-h sw-dock-sec sw-dock-label sw-dock-first">Spot, Hafen oder Ort</label>
       <div className="sw-search">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8B7355" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="M16 16l4.5 4.5" /></svg>
         <input id={`${sid}-q`} type="search" placeholder="Fehmarn, Büsum, Schilksee …" value={p.query} onChange={(e) => p.onQuery(e.target.value)} />
@@ -70,7 +70,7 @@ export default function SeaDock(p: Props) {
       </div>
 
       <div className="sw-dock-head">
-        <span className="sw-dock-h">Mein Profil</span>
+        <span className="sw-dock-h sw-dock-sec">Mein Profil</span>
         <button type="button" className="sw-link" aria-expanded={open} onClick={() => setOpen((o) => !o)}>{open ? 'Grenzen ausblenden' : changed ? 'Grenzen (geändert)' : 'Grenzen anzeigen'}</button>
       </div>
       <div className="sw-profiles" role="group" aria-label="Profil">
@@ -98,7 +98,7 @@ export default function SeaDock(p: Props) {
       )}
 
       <div className="sw-dock-head">
-        <span className="sw-dock-h">Spots</span>
+        <span className="sw-dock-h sw-dock-sec">Spots</span>
         <span className="sw-count">{p.spots.length === p.total ? p.total : `${p.spots.length} von ${p.total}`}</span>
       </div>
       <div className="sw-dock-list">
@@ -106,8 +106,9 @@ export default function SeaDock(p: Props) {
         {!p.loading && !p.spots.length && <div className="sw-note">Kein Spot passt zur Suche.</div>}
         {p.spots.map((s) => (
           <button key={s.id} type="button" aria-pressed={p.selectedId === s.id} className={`sw-spot${p.selectedId === s.id ? ' is-active' : ''}`} onClick={() => p.onPick(s.id)} title={`${CLASS_SHORT[s.cls]}: ${s.reason}`}>
+            <span className={`sw-dot sw-spot-dot${s.cls === 'keine' ? ' is-hatched' : ''}`} style={s.cls !== 'keine' ? { background: CLASS_COLOR[s.cls], '--sw-dot': CLASS_COLOR[s.cls] } as CSSProperties : undefined} aria-label={CLASS_SHORT[s.cls]} role="img" />
             <span className="sw-spot-body"><span className="sw-spot-name">{s.name}</span><span className="sw-spot-sub">{s.sub}</span></span>
-            <span className={`sw-dot${s.cls === 'keine' ? ' is-hatched' : ''}`} style={s.cls !== 'keine' ? { background: CLASS_COLOR[s.cls] } : undefined} aria-label={CLASS_SHORT[s.cls]} role="img" />
+            <svg className="sw-spot-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
           </button>
         ))}
       </div>
