@@ -433,6 +433,8 @@
 .br-basemap { display: flex; background: var(--br-glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid var(--sand-200, #E0D6BE); border-radius: 10px; padding: 3px; }
 .br-basemap button { border: 0; background: transparent; cursor: pointer; font: inherit; font-size: 12.5px; font-weight: 500; color: var(--stone-500, #8B7355); border-radius: 7px; padding: 6px 11px; }
 .br-basemap button.is-active { font-weight: 600; color: var(--cream-50, #FAF6EA); background: var(--ink-900, #2C2A26); }
+/* Basiskarte und Gebiet (DACH | Europa) nebeneinander. */
+.br-segrow { display: flex; gap: 8px; flex-wrap: wrap; }
 
 /* Punktkurve */
 .br-pc { background: var(--br-glass-strong); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--sand-200, #E0D6BE); border-radius: 12px; padding: 13px; }
@@ -856,7 +858,8 @@
   .fire-center .maplibregl-ctrl-bottom-left, .fire-center .maplibregl-ctrl-bottom-right { bottom: calc(46vh + 8px); }
   /* Der ⓘ-Knopf der Kartenquellen (MapLibre-Attribution) entfällt mobil auf der Karte (Jans Auftrag 2026-10-23). */
   .fire-center .maplibregl-ctrl-attrib { display: none; }
-  .br-m-basemaprow { display: flex; justify-content: center; flex: 1; min-width: 0; }
+  .br-m-basemaprow { display: flex; justify-content: center; flex: 1; min-width: 0; gap: 6px; }
+  .br-m-basemaprow .br-basemap button { padding: 5px 8px; }
   .br-map-tl > .br-pill { margin-right: 49px; }
   .br-m-basemaprow .br-basemap button { min-height: 38px; }
   /* Brand-Legende der Punkte: volle Breite knapp über der Bottom-Bar (die Karte endet an ihr). */

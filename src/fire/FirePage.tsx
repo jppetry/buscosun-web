@@ -75,7 +75,7 @@ import { buscosunTheme } from '../theme/buscosunTheme';
 import { FireDossier, DossierMapNote } from './FireDossier';
 import { FireMiniMap, historyAreaBbox, miniFeatures } from './FireMiniMap';
 import { applyFireView, fireViewFromState, type FireRouteView } from './fireRouteView';
-import { loadPlaces, nearestPlace, type PlaceIndex } from './footprint/places';
+import { loadPlacesFor, nearestPlace, type PlaceIndex } from './footprint/places';
 import { featuresOf } from './activity/features';
 import { areaEstEnabled, estimateArea, loadAreaModel } from './activity/estimate';
 import type { AreaEstimate } from './activity/estimate';
@@ -83,10 +83,11 @@ import type { AreaModel } from './activity/calibration';
 // AF2: Beobachtungsgelegenheit (regionale Aktivität) und Windabgleich — beides aus Daten, die schon da sind.
 import { buildObservationIndex, observationFor } from './activity/observation';
 import { fetchEmsActivations, type EmsActivation } from './sources/emsActivations';
+import { EUROPE_HISTORY_NOTE, EUROPE_LIMIT_NOTE, REGION_LABEL, type FireRegion } from './fireRegion';
 import { fetchWarnContextsFor, type AtWarnContext } from './sources/geosphereWarnContext';
-import { loadClcMask, landcoverAt, toAssessmentLandcover, type ClcMask } from './clcMask';
+import { loadClcMaskFor, landcoverAt, toAssessmentLandcover, type ClcMask } from './clcMask';
 // TA3/TA4: statische Standortliste persistenter Wärmequellen + Reiter „Thermalanomalien".
-import { loadThermalSites, siteAt, thermalSitesEnabled, SITE_CLASS_LABEL, type ThermalSitesIndex } from './anomaly/thermalSites';
+import { loadThermalSitesFor, siteAt, thermalSitesEnabled, SITE_CLASS_LABEL, type ThermalSitesIndex } from './anomaly/thermalSites';
 import { FireAnomalyPanel, AnomalySiteCards, siteStatTiles, siteName } from './FireAnomalyPanel';
 import { FireHistoryPanel, HistoryDossierBody, historyStatTiles, historyEntryName } from './FireHistoryPanel';
 import { historyEnabled, loadHistoryIndex, historyToGeoJSON, type HistoryLoad } from './history/historyLoad';
@@ -210,6 +211,10 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     };
   });
   const [basemap, setBasemap] = useState<FireBasemap>('satellite');
+  /** Gebiet: DACH (Vorgabe, Abrufe wie bisher) oder Europa (nur auf Wunsch geladen). */
+  const [region, setRegion] = useState<FireRegion>('dach');
+  /** Für welches Gebiet die Standortliste der Thermalanomalien geladen ist. */
+  const thermalSitesRegionRef = useRef<FireRegion | null>(null);
   const [openInfo, setOpenInfo] = useState<FireLayerId | null>(null);
   // E3: Sub-Ansicht des EU-Index; E2: eingeblendete Zeitkörbe der Brandflächen.
   const [dangerView, setDangerView] = useState<DangerView>(initial?.dangerView ?? DEFAULT_DANGER_VIEW);
@@ -445,12 +450,12 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
       // EINE zusätzliche Abruf dieser Phase (V-225). Er ist Beiwerk: Scheitert
       // er, fehlen nur Bestätigungszeile und Gegenprobe — der Layer selbst
       // meldet keinen Fehler, denn seine Daten sind vollständig.
-      const weekP: Promise<BurntPolygon[]> = fetchBurntWeek(ac.signal)
+      const weekP: Promise<BurntPolygon[]> = fetchBurntWeek(ac.signal, region)
         .then((polys) => { if (!ac.signal.aborted) setBurntWeek(polys); return polys; })
         .catch(() => { if (!ac.signal.aborted) setBurntWeek([]); return []; });
       // A2 (GWBA1): Copernicus-EMS-Aktivierungen als Abzeichen — interne API,
       // liefert bei jedem Fehler `[]`, blockiert nichts, zeigt keinen Ladezustand.
-      void fetchEmsActivations(ac.signal).then((acts) => { if (!ac.signal.aborted) setEmsActs(acts); });
+      void fetchEmsActivations(ac.signal, region).then((acts) => { if (!ac.signal.aborted) setEmsActs(acts); });
       let builtEvents: FireEvent[] = [];
       let at = Date.now();
       try {
@@ -458,11 +463,11 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
         // Bis die Klassifikation vorliegt, behauptet kein Punkt etwas (kein
         // Grau). Die Einordnung folgt danach im Worker (s. u.).
         at = Date.now();
-        run = await fetchFirmsHotspots(time.windowH, ac.signal, at);
+        run = await fetchFirmsHotspots(time.windowH, ac.signal, at, undefined, region);
       } catch (primary) {
         if (ac.signal.aborted) return;
         try {
-          const g = await fetchHotspots(time.windowH, ac.signal);
+          const g = await fetchHotspots(time.windowH, ac.signal, region);
           run = {
             points: g.features,
             footprints: { type: 'FeatureCollection', features: [] },
@@ -533,7 +538,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
             try {
               const classRows = time.windowH >= 168
                 ? displayed.rows
-                : (await fetchFirmsHotspots(168, ac.signal, at)).rows;
+                : (await fetchFirmsHotspots(168, ac.signal, at, undefined, region)).rows;
               if (ac.signal.aborted) return;
               const cls = await classifyHotspots(classRows, at, ac.signal);
               if (ac.signal.aborted) return;
@@ -599,15 +604,21 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
       }
       // A4: die Landbedeckungsmaske nach dem ersten Paint im Leerlauf laden —
       // eine statische Datei, danach null Requests je Nachschlagen.
-      if (!clcMask) {
+      // Europa: dieselbe Maske plus die dünne Europa-Ergänzung (außerhalb DACH).
+      if (!clcMask || (region === 'europe' && !clcMask.europe)) {
         const idle = (cb: () => void) => (typeof requestIdleCallback === 'function' ? requestIdleCallback(cb) : setTimeout(cb, 300));
-        idle(() => { void loadClcMask().then((m) => { if (m && !ac.signal.aborted) setClcMask(m); }); });
+        idle(() => { void loadClcMaskFor(region).then((m) => { if (m && !ac.signal.aborted) setClcMask(m); }); });
       }
       // TA3: die Standortliste persistenter Wärmequellen — ebenso statisch, ebenso im
       // Leerlauf; ohne sie (Fehler, `?ta=0`) bleibt `anomaly` überall null.
-      if (!thermalSites) {
+      // Europa: die Europa-Datei (Standorte außerhalb der DACH-Box) kommt dazu.
+      if (!thermalSites || thermalSitesRegionRef.current !== region) {
         const idle = (cb: () => void) => (typeof requestIdleCallback === 'function' ? requestIdleCallback(cb) : setTimeout(cb, 350));
-        idle(() => { void loadThermalSites().then((s) => { if (s && !ac.signal.aborted) setThermalSites(s); }); });
+        idle(() => {
+          void loadThermalSitesFor(region).then((s) => {
+            if (s && !ac.signal.aborted) { thermalSitesRegionRef.current = region; setThermalSites(s); }
+          });
+        });
       }
       // BC1: die drei Landesumrisse für die Spalte „Land" der Cluster-Liste.
       // Ebenfalls im Leerlauf, und die Karte hat sie für ihre DACH-Maske
@@ -643,7 +654,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
       });
     })();
     return () => ac.abort();
-  }, [active, time.windowH, setLayerLoad]);
+  }, [active, time.windowH, setLayerLoad, region]);
 
   /**
    * BA3 — beim Wechsel des Rückblickfensters wird das Raster geleert, BEVOR das
@@ -958,12 +969,18 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   // BP3: Ortsverzeichnis laden, sobald die Liste irgendwo sichtbar wird (Overlay
   // oder Sheet-Segment). Fehlschlag ⇒ Orte bleiben „—" mit Grund; kein Fehlerlayer.
   const wantPlaces = readoutTab === 'fires' || mobileTab === 'fires';
+  // Europa: das Verzeichnis wird um die übrigen Länder der Europa-Box ergänzt.
+  const placesRegionRef = useRef<FireRegion | null>(null);
   useEffect(() => {
-    if (!wantPlaces || places) return;
+    if (!wantPlaces || (places && placesRegionRef.current === region)) return;
     const ac = new AbortController();
-    void loadPlaces().then((idx) => { if (!ac.signal.aborted) setPlaces(idx); }).catch(() => { /* still: „—" */ });
+    void loadPlacesFor(region).then((idx) => {
+      if (ac.signal.aborted) return;
+      placesRegionRef.current = region;
+      setPlaces(idx);
+    }).catch(() => { /* still: „—" */ });
     return () => ac.abort();
-  }, [wantPlaces, places]);
+  }, [wantPlaces, places, region]);
   /**
    * Das Kalibriermodell (2,5 KB) hing bis VB3 allein am Panel-Reiter. Seit der
    * Karten-Steckbrief dieselbe Schätzung trägt, muss es auch dann geladen sein,
@@ -1582,6 +1599,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
           </p>
         )}
         {on && st?.kind === 'ok' && st.note && <p className="br-layer-note">{st.note}</p>}
+        {on && region === 'europe' && EUROPE_LIMIT_NOTE[id] && <p className="br-layer-note is-limit">{EUROPE_LIMIT_NOTE[id]}</p>}
         {/* E1/E2: die Bestätigung durch die EFFIS-Kartierung — nur, wenn es sie gibt. */}
         {on && id === 'fireHotspots' && st?.kind === 'ok' && mappedCount > 0 && (
           <p className="br-layer-note is-mapped">
@@ -1791,6 +1809,22 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     </div>
   );
   const basemapLabel = basemap === 'streets' ? 'Straßen' : basemap === 'terrain' ? 'Gelände' : 'Satellit';
+  /** Gebiet DACH | Europa — dieselbe Segment-Optik wie die Basiskarte. Europa lädt die
+   *  Live-Quellen für die Europa-Box nach; DACH bleibt Vorgabe und unverändert. */
+  const regionSeg = (
+    <div className="br-basemap" role="group" aria-label="Gebiet">
+      {(['dach', 'europe'] as FireRegion[]).map((r) => (
+        <button
+          key={r} type="button"
+          className={region === r ? 'is-active' : ''}
+          aria-pressed={region === r}
+          onClick={() => setRegion(r)}
+        >
+          {REGION_LABEL[r]}
+        </button>
+      ))}
+    </div>
+  );
 
   /**
    * WF4 — die Punktkurve (Vorlage: Kästchen rechts auf der Karte): Koordinate,
@@ -1928,6 +1962,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
       onSelect={(e: HistoryIndexEntry) => selectHistory(e.id)}
       onClearSelect={() => { setSelectedHistory(null); setFocusBbox(null); }}
       onLeave={() => setHistory(null)}
+      regionNote={region === 'europe' ? EUROPE_HISTORY_NOTE : undefined}
     />
   );
   /** TA4 (mobil): Segment Brände | Thermalanomalien in der Seite „Brände". */
@@ -2291,7 +2326,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
               <span className="br-brand-name">buscosun</span>
             </a>
             {!isTablet && <span className="br-topdiv" aria-hidden="true" />}
-            {!isTablet && <span className="br-topbar-sub">Brandradar · {inDossier ? (readoutTab === 'anomalies' ? 'Thermalanomalien' : 'Brände') : 'DACH-Flächenblick'}</span>}
+            {!isTablet && <span className="br-topbar-sub">Brandradar · {inDossier ? (readoutTab === 'anomalies' ? 'Thermalanomalien' : 'Brände') : `${REGION_LABEL[region]}-Flächenblick`}</span>}
             {inDossier && dossierRecord && <span className="br-topbar-sub br-topbar-name">{recordName(dossierRecord)}</span>}
             {stageSeg(false)}
             <div className="br-topbar-right">
@@ -2340,7 +2375,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
               burntSeason={burntSplit.seasonFc} burntArchive={burntArchive?.features ?? null}
               burntWeekFc={burntSplit.weekFc}
               burntBuckets={burntBuckets} burntLookup={burntLookup} burntWeek={burntWeek}
-              fireEvents={fireEvents} emsActs={emsActs} atContexts={atContexts} clcMask={clcMask}
+              fireEvents={fireEvents} emsActs={emsActs} atContexts={atContexts} clcMask={clcMask} region={region}
               weather={weather} soil={soil}
 
               prefetchIsoDate={prefetchIso} onTier={setTier}
@@ -2355,7 +2390,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                     <img src="/buscosun-mark.svg" width={22} height={22} alt="" />
                   </button>
                   {/* Mobil: Straßen | Satellit auf Höhe des Logos (Jans Auftrag 2026-10-23), die Quellen-Pille rückt darunter. */}
-                  <div className="br-m-basemaprow">{basemapSeg}</div>
+                  <div className="br-m-basemaprow">{basemapSeg}{regionSeg}</div>
                   <ShareButton className="br-m-share" compact />
                 </div>
               )}
@@ -2370,7 +2405,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
               )}
               {!isMobile && sourcePill}
               {/* Straßen | Satellit: Desktop/Tablet oben links (Jans Auftrag 2026-10-23), mobil oben mittig. */}
-              {!isMobile && basemapSeg}
+              {!isMobile && <div className="br-segrow">{basemapSeg}{regionSeg}</div>}
               {/* Mobil bleiben die Chips über der Karte: dort gibt es kein Dock, das sie tragen
                   könnte (auf dem Desktop stehen sie unter ihrer Layer-Zeile). Die Treiber-Notiz
                   steht mobil nur noch unter ihrer Layer-Zeile im Sheet, nicht in der Karte. */}

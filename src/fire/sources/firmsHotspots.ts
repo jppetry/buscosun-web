@@ -38,6 +38,8 @@
  * Nachverarbeitung verschwinden oder umziehen können.
  */
 
+import { REGION_BOX, boxWsen, inBox, type FireRegion } from '../fireRegion';
+
 /** Eigener Proxy-Pfad. Trägt den Schlüssel serverseitig ein — s. Kopf. */
 const FIRMS_PROXY = '/_firms';
 
@@ -232,6 +234,11 @@ export function inDach(r: { lat: number; lon: number }): boolean {
   return r.lat >= DACH.south && r.lat <= DACH.north && r.lon >= DACH.west && r.lon <= DACH.east;
 }
 
+/** Dieselbe zweite Linie für das gewählte Gebiet (`fireRegion.ts`). */
+export function inRegion(r: { lat: number; lon: number }, region: FireRegion): boolean {
+  return region === 'dach' ? inDach(r) : inBox(REGION_BOX[region], r.lat, r.lon);
+}
+
 // ---------------------------------------------------------------------------
 // Fensterplanung
 // ---------------------------------------------------------------------------
@@ -281,9 +288,10 @@ export function isoUtcDate(ms: number): string {
 }
 
 /** Die Proxy-URL für einen Abruf. Enthält **keinen** Schlüssel. */
-export function firmsUrl(source: FirmsSource, chunk: FirmsChunk): string {
+export function firmsUrl(source: FirmsSource, chunk: FirmsChunk, region: FireRegion = 'dach'): string {
   const tail = chunk.date ? `/${chunk.date}` : '';
-  return `${FIRMS_PROXY}/${source}/${DACH_WSEN}/${chunk.days}${tail}`;
+  const box = region === 'dach' ? DACH_WSEN : boxWsen(REGION_BOX[region]);
+  return `${FIRMS_PROXY}/${source}/${box}/${chunk.days}${tail}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -563,8 +571,9 @@ async function fetchChunk(
   chunk: FirmsChunk,
   signal: AbortSignal | undefined,
   nowMs: number,
+  region: FireRegion,
 ): Promise<{ rows: FirmsRow[]; skipped: number }> {
-  const url = firmsUrl(source, chunk);
+  const url = firmsUrl(source, chunk, region);
   const hit = _cache.get(url);
   if (hit && nowMs - hit.at < CACHE_TTL) return { rows: hit.rows, skipped: hit.skipped };
 
@@ -596,11 +605,13 @@ export async function fetchFirmsHotspots(
    * **keinen zusätzlichen Abruf** — sie rechnet auf genau diesen Zeilen.
    */
   classify?: (rows: readonly FirmsRow[]) => ReadonlySet<string> | Promise<ReadonlySet<string>>,
+  /** Gebiet des Abrufs — DACH wie bisher, Europa nur auf Wunsch (`fireRegion.ts`). */
+  region: FireRegion = 'dach',
 ): Promise<HotspotRun> {
   const plan = windowPlan(windowH, nowMs);
   const jobs: Promise<{ rows: FirmsRow[]; skipped: number }>[] = [];
   for (const source of FIRMS_SOURCES) {
-    for (const chunk of plan) jobs.push(fetchChunk(source, chunk, signal, nowMs));
+    for (const chunk of plan) jobs.push(fetchChunk(source, chunk, signal, nowMs, region));
   }
   /**
    * `allSettled`, NICHT `all`: Der Lauf besteht aus Satellit × Zeitabschnitt
@@ -633,7 +644,7 @@ export async function fetchFirmsHotspots(
     skipped += p.skipped;
     for (const r of p.rows) {
       if (r.acqMs < cutoff) continue;
-      if (!inDach(r)) continue;
+      if (!inRegion(r, region)) continue;
       rows.push(r);
     }
   }

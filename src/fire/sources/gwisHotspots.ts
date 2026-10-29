@@ -20,6 +20,7 @@
  */
 
 import { assertDachAxis, bboxIsLatLon } from './wfsAxis';
+import { REGION_BOX, boxLatLon, type FireRegion } from '../fireRegion';
 
 const GWIS_WFS = 'https://maps.effis.emergency.copernicus.eu/gwis';
 
@@ -53,14 +54,14 @@ export function hotspotTypename(windowH: number): string {
   return windowH >= 168 ? 'ms:viirs.hs.week' : 'ms:viirs.hs.today';
 }
 
-export function hotspotUrl(windowH: number): string {
+export function hotspotUrl(windowH: number, region: FireRegion = 'dach'): string {
   const q = [
     'service=WFS',
     'request=GetFeature',
     'version=1.1.0',
     `typename=${hotspotTypename(windowH)}`,
     'outputformat=geojson',
-    `bbox=${DACH_BBOX_LATLON}`,
+    `bbox=${region === 'dach' ? DACH_BBOX_LATLON : boxLatLon(REGION_BOX[region])}`,
   ].join('&');
   return `${GWIS_WFS}?${q}`;
 }
@@ -80,7 +81,7 @@ export interface HotspotRun {
 
 /** Kurzer Cache: der Layer wird beim Ein-/Ausschalten und beim Fensterwechsel
  *  neu abgefragt — ohne Cache wäre jedes Umschalten ein 1–2-s-Abruf. */
-const _cache = new Map<number, { run: HotspotRun; at: number }>();
+const _cache = new Map<string, { run: HotspotRun; at: number }>();
 const CACHE_TTL = 5 * 60_000;
 
 /**
@@ -94,17 +95,18 @@ export function parseAcqAt(raw: unknown): number | null {
   return Number.isFinite(ms) ? ms : null;
 }
 
-export async function fetchHotspots(windowH: number, signal?: AbortSignal): Promise<HotspotRun> {
-  const cached = _cache.get(windowH);
+export async function fetchHotspots(windowH: number, signal?: AbortSignal, region: FireRegion = 'dach'): Promise<HotspotRun> {
+  const key = `${region}:${windowH}`;
+  const cached = _cache.get(key);
   if (cached && Date.now() - cached.at < CACHE_TTL) return cached.run;
 
-  const res = await fetch(hotspotUrl(windowH), { signal });
+  const res = await fetch(hotspotUrl(windowH, region), { signal });
   if (!res.ok) throw new Error(`GWIS Hotspots: HTTP ${res.status}`);
   const fc = (await res.json()) as GeoJSON.FeatureCollection;
   const raw = Array.isArray(fc?.features) ? fc.features : [];
   // A0-1: gespiegelte Achsen ([lat,lon]) sind kein Datenzustand, sondern ein
   // Abruf-Fehler — verwerfen statt vor Somalia zeichnen (wfsAxis.ts).
-  assertDachAxis(raw, 'GWIS Hotspots');
+  assertDachAxis(raw, 'GWIS Hotspots', REGION_BOX[region]);
   const { features: feats, truncated, latest, oldest } = capNewest(raw, GWIS_CLIENT_CAP);
 
   const run: HotspotRun = {
@@ -115,7 +117,7 @@ export async function fetchHotspots(windowH: number, signal?: AbortSignal): Prom
     windowH,
     truncated,
   };
-  _cache.set(windowH, { run, at: Date.now() });
+  _cache.set(key, { run, at: Date.now() });
   return run;
 }
 

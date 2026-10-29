@@ -21,6 +21,15 @@
  *
  * Attribution: „Generated using European Union's Copernicus Land Monitoring
  * Service information; https://doi.org/10.2909/960998c1-1870-4e82-8051-6485205ebbac".
+ *
+ * `--region europe`: dieselbe Rasterung für die Europa-Box des Brandradars
+ * (`src/fire/fireRegion.ts`, 25° W–32° O, 34–72° N, 5700×3800 Zellen). Ein
+ * PNG dieser Größe müsste der Client als 87-MB-RGBA-Puffer dekodieren — deshalb
+ * schreibt der Europa-Lauf eine **dünne Liste**: die Indizes der gesetzten Zellen
+ * (zeilenweise N→S), aufsteigend, als LEB128-Varint-Differenzen
+ * (`public/fire/clc-industry-europe.bin` + Sidecar `.json`). CLC deckt die
+ * EEA-39-Länder ab; außerhalb (Ukraine, Belarus, Russland, Nordafrika) ist keine
+ * Zelle gesetzt — der Client macht daraus keine Aussage, nie „natürlich".
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
@@ -28,18 +37,32 @@ import { deflateSync } from 'node:zlib';
 
 const args = process.argv.slice(2);
 const argVal = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
-const OUT = argVal('--out', 'public/fire/clc-industry-mask.png');
-const META = OUT.replace(/\.png$/, '.json');
+const EUROPE = argVal('--region', 'dach') === 'europe';
+const OUT = argVal('--out', EUROPE ? 'public/fire/clc-industry-europe.bin' : 'public/fire/clc-industry-mask.png');
+const META = OUT.replace(/\.(png|bin)$/, '.json');
 
 const BASE = 'https://image.discomap.eea.europa.eu/arcgis/rest/services/Corine/CLC2018_WM/MapServer/0/query';
-const BBOX = { west: 5.5, south: 45.5, east: 17.5, north: 55.5 };
+const BBOX = EUROPE ? { west: -25, south: 34, east: 32, north: 72 } : { west: 5.5, south: 45.5, east: 17.5, north: 55.5 };
 const STEP = 0.01; // Grad je Zelle (~1,1 km × ~0,7 km)
 const W = Math.round((BBOX.east - BBOX.west) / STEP);   // 1200
 const H = Math.round((BBOX.north - BBOX.south) / STEP); // 1000
 const CLASSES = ['121', '131', '132'];
 const PAGE = 1000;
 
-async function fetchPage(offset) {
+/** Aufsteigende Zellindizes als LEB128-Varint-Differenzen (Europa-Lauf). */
+function encodeSparse(grid) {
+  const bytes = [];
+  let prev = 0;
+  for (let i = 0; i < grid.length; i++) {
+    if (!grid[i]) continue;
+    let d = i - prev; prev = i;
+    while (d >= 0x80) { bytes.push((d & 0x7f) | 0x80); d = Math.floor(d / 128); }
+    bytes.push(d);
+  }
+  return Buffer.from(bytes);
+}
+
+async function fetchPage(offset, attempt = 0) {
   const q = new URLSearchParams({
     where: `Code_18 IN (${CLASSES.map((c) => `'${c}'`).join(',')})`,
     geometry: `${BBOX.west},${BBOX.south},${BBOX.east},${BBOX.north}`,
@@ -48,11 +71,18 @@ async function fetchPage(offset) {
     maxAllowableOffset: String(STEP / 3), resultOffset: String(offset), resultRecordCount: String(PAGE),
     orderByFields: 'OBJECTID', f: 'json',
   });
-  const res = await fetch(`${BASE}?${q}`, { headers: { Origin: 'https://buscosun.com' } });
-  if (!res.ok) throw new Error(`HTTP ${res.status} at offset ${offset}`);
-  const j = await res.json();
-  if (j.error) throw new Error(JSON.stringify(j.error));
-  return j;
+  try {
+    const res = await fetch(`${BASE}?${q}`, { headers: { Origin: 'https://buscosun.com' } });
+    if (!res.ok) throw new Error(`HTTP ${res.status} at offset ${offset}`);
+    const j = await res.json();
+    if (j.error) throw new Error(JSON.stringify(j.error));
+    return j;
+  } catch (e) {
+    // Europa: ~hunderte Seiten — eine transiente Störung soll den Lauf nicht kippen.
+    if (attempt >= 4) throw e;
+    await new Promise((r) => setTimeout(r, 3000 * (attempt + 1)));
+    return fetchPage(offset, attempt + 1);
+  }
 }
 
 // Rasterisierung: gerade-ungerade-Regel je Zeile (Zellmitten).
@@ -121,7 +151,7 @@ for (;;) {
 }
 console.log('');
 let set = 0; for (const v of grid) if (v) set++;
-const png = encodePng(W, H, grid);
+const png = EUROPE ? encodeSparse(grid) : encodePng(W, H, grid);
 mkdirSync(dirname(OUT), { recursive: true });
 writeFileSync(OUT, png);
 writeFileSync(META, JSON.stringify({
@@ -130,5 +160,6 @@ writeFileSync(META, JSON.stringify({
   built: new Date().toISOString().slice(0, 10), bbox: BBOX, step: STEP, width: W, height: H,
   polygons: total, cells: set, cellSharePct: Math.round((set / (W * H)) * 10000) / 100,
   classes: CLASSES,
+  ...(EUROPE ? { format: 'sparse-varint-delta (aufsteigende Zellindizes, zeilenweise N→S)' } : {}),
 }, null, 2));
 console.log(`→ ${OUT} (${(png.length / 1024).toFixed(1)} KB), ${total} Polygone, ${set} Zellen (${((set / (W * H)) * 100).toFixed(2)} %) · ${META}`);

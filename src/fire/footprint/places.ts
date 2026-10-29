@@ -22,14 +22,15 @@
  */
 
 import { metersBetween } from '../sources/firmsHotspots';
-import type { Country } from '../../types';
+import type { FireRegion } from '../fireRegion';
 
 export interface Place {
   lat: number;
   lon: number;
   name: string;
   district: string | null;
-  country: Country;
+  /** ISO-3166-Alpha-2 aus GeoNames (DACH: DE/AT/CH; Europa-Datei: alle übrigen Länder der Box). */
+  country: string;
   population: number;
 }
 
@@ -50,6 +51,8 @@ export const MAX_KM = 20;
 const CELL = 0.1;
 
 export const PLACES_URL = '/fire/places-dach.json';
+/** Europa ohne DE/AT/CH (die stehen in `PLACES_URL`) — nur in der Europa-Ansicht geladen. */
+export const PLACES_EUROPE_URL = '/fire/places-europe.json';
 export const PLACES_ATTRIBUTION = 'Ortsnamen: <a href="https://www.geonames.org/" target="_blank" rel="noopener">GeoNames</a> (CC BY 4.0)';
 
 interface RawFile {
@@ -64,7 +67,7 @@ export function buildPlaceIndex(raw: RawFile): PlaceIndex {
   const places: Place[] = raw.places.map(([lat, lon, name, d, cc, population]) => ({
     lat, lon, name,
     district: d >= 0 ? raw.districts[d] ?? null : null,
-    country: cc as Country,
+    country: cc,
     population,
   }));
   const cells = new Map<string, number[]>();
@@ -121,8 +124,37 @@ export function loadPlaces(): Promise<PlaceIndex> {
   return _cache;
 }
 
+let _europe: Promise<PlaceIndex> | null = null;
+
+/** Zwei Verzeichnisse zu einem Index (DACH + übriges Europa; die Länder überlappen nicht). */
+export function mergePlaceIndex(a: PlaceIndex, b: PlaceIndex): PlaceIndex {
+  const places = [...a.places, ...b.places];
+  const cells = new Map<string, number[]>();
+  places.forEach((p, i) => {
+    const k = `${Math.floor(p.lon / CELL)},${Math.floor(p.lat / CELL)}`;
+    const l = cells.get(k); if (l) l.push(i); else cells.set(k, [i]);
+  });
+  const stamp = [a.stamp, b.stamp].filter((x): x is string => !!x).sort().pop() ?? null;
+  return { places, cells, stamp, source: a.source };
+}
+
+/** DACH wie `loadPlaces()`; Europa lädt die Europa-Datei zusätzlich (einmal je Sitzung). */
+export function loadPlacesFor(region: FireRegion): Promise<PlaceIndex> {
+  if (region === 'dach') return loadPlaces();
+  if (!_europe) {
+    _europe = Promise.all([
+      loadPlaces(),
+      fetch(PLACES_EUROPE_URL)
+        .then((r) => { if (!r.ok) throw new Error(`Ortsverzeichnis Europa: HTTP ${r.status}`); return r.json() as Promise<RawFile>; })
+        .then(buildPlaceIndex),
+    ]).then(([a, b]) => mergePlaceIndex(a, b))
+      .catch((e) => { _europe = null; throw e; });
+  }
+  return _europe;
+}
+
 /** Nur für Tests. */
-export function resetPlacesCache(): void { _cache = null; }
+export function resetPlacesCache(): void { _cache = null; _europe = null; }
 
 // ---------------------------------------------------------------------------
 // Selbst-Verifikation (D-12; netzfrei)

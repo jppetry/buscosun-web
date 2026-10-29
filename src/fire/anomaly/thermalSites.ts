@@ -23,6 +23,8 @@
  */
 
 export const THERMAL_SITES_URL = '/fire/ta/thermal-sites-v1.json';
+/** Europa ohne die DACH-Box (die steht in `THERMAL_SITES_URL`) — nur in der Europa-Ansicht geladen. */
+export const THERMAL_SITES_EUROPE_URL = '/fire/ta/thermal-sites-europe-v1.json';
 export const THERMAL_SITES_VERSION = 1;
 
 /** Zellraster: identisch zur CORINE-Maske (`clcMask.ts`) — 0,01°, Floor, DACH-Box. */
@@ -40,17 +42,54 @@ export function cellKey(lat: number, lon: number): string | null {
   return `${r},${c}`;
 }
 
+/**
+ * Europa (außerhalb der DACH-Box): dasselbe 0,01°-Raster, Ursprung an der Europa-Box
+ * (`fireRegion.ts`) — Schlüssel `"e:<row>,<col>"`, damit er nie mit einem DACH-Schlüssel
+ * zusammenfällt. Die Zellen liegen deckungsgleich (beide Ursprünge sind Vielfache von 0,01°).
+ */
+export const TA_EUROPE_BBOX = { west: -25, south: 34, east: 32, north: 72 } as const;
+const EU_PREFIX = 'e:';
+
+/** Europa-Schlüssel; `null` außerhalb der Europa-Box und INNERHALB der DACH-Box (dort gilt `cellKey`). */
+export function europeCellKey(lat: number, lon: number): string | null {
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  if (cellKey(lat, lon) != null) return null;
+  const b = TA_EUROPE_BBOX;
+  if (lon < b.west || lon >= b.east || lat <= b.south || lat > b.north) return null;
+  const c = Math.floor((lon - b.west) / TA_STEP);
+  const r = Math.floor((b.north - lat) / TA_STEP);
+  return `${EU_PREFIX}${r},${c}`;
+}
+
+/** DACH-Schlüssel, sonst Europa-Schlüssel. */
+export function anyCellKey(lat: number, lon: number): string | null {
+  return cellKey(lat, lon) ?? europeCellKey(lat, lon);
+}
+
+function splitKey(key: string): { box: { west: number; north: number }; prefix: string; r: number; c: number } {
+  const eu = key.startsWith(EU_PREFIX);
+  const [r, c] = (eu ? key.slice(EU_PREFIX.length) : key).split(',').map(Number);
+  return { box: eu ? TA_EUROPE_BBOX : TA_BBOX, prefix: eu ? EU_PREFIX : '', r, c };
+}
+
 /** Zellmitte eines Schlüssels. */
 export function cellCenter(key: string): { lat: number; lon: number } {
-  const [r, c] = key.split(',').map(Number);
-  return { lat: TA_BBOX.north - (r + 0.5) * TA_STEP, lon: TA_BBOX.west + (c + 0.5) * TA_STEP };
+  const { box, r, c } = splitKey(key);
+  return { lat: box.north - (r + 0.5) * TA_STEP, lon: box.west + (c + 0.5) * TA_STEP };
+}
+
+/** Zellgrenzen eines Schlüssels als [W, S, O, N]. */
+export function cellBounds(key: string): [number, number, number, number] {
+  const { box, r, c } = splitKey(key);
+  const west = box.west + c * TA_STEP, north = box.north - r * TA_STEP;
+  return [west, north - TA_STEP, west + TA_STEP, north];
 }
 
 /** Die 8 Nachbarn plus die Zelle selbst. */
 export function cellNeighbourhood(key: string): string[] {
-  const [r, c] = key.split(',').map(Number);
+  const { prefix, r, c } = splitKey(key);
   const out: string[] = [];
-  for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) out.push(`${r + dr},${c + dc}`);
+  for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) out.push(`${prefix}${r + dr},${c + dc}`);
   return out;
 }
 
@@ -99,7 +138,8 @@ export interface ThermalSite {
   landcover: 'industrial' | 'other' | null;
   /** Ortsname aus dem Ortsverzeichnis des Batch (GeoNames), falls kein Anlagenname. */
   place: string | null;
-  country: 'DE' | 'AT' | 'CH' | 'outside' | null;
+  /** DACH-Datei: DE/AT/CH/outside; Europa-Datei: ISO-Code des nächsten GeoNames-Orts oder `null`. */
+  country: string | null;
   note: string | null;
 }
 
@@ -128,7 +168,7 @@ export function indexSites(file: ThermalSitesFile): ThermalSitesIndex {
 /** Standort an einer Zelle — mit ±1-Zelle-Toleranz (ein VIIRS-Pixel ist 375–800 m). */
 export function siteAt(idx: ThermalSitesIndex | null, lat: number, lon: number): ThermalSite | null {
   if (!idx) return null;
-  const k = cellKey(lat, lon);
+  const k = anyCellKey(lat, lon);
   if (!k) return null;
   const direct = idx.byCell.get(k);
   if (direct != null) return idx.sites[direct];
@@ -141,7 +181,7 @@ export function siteAt(idx: ThermalSitesIndex | null, lat: number, lon: number):
 
 /** Liegt der Punkt in den Standortzellen ± 1 Zelle? */
 export function inSiteFootprint(site: ThermalSite, lat: number, lon: number): boolean {
-  const k = cellKey(lat, lon);
+  const k = anyCellKey(lat, lon);
   if (!k) return false;
   const set = new Set(site.cells);
   if (set.has(k)) return true;
@@ -198,7 +238,29 @@ export function loadThermalSites(): Promise<ThermalSitesIndex | null> {
   })();
   return _inflight;
 }
-export function resetThermalSites(): void { _idx = null; _inflight = null; }
+export function resetThermalSites(): void { _idx = null; _inflight = null; _europe = null; }
+
+let _europe: Promise<ThermalSitesIndex | null> | null = null;
+
+/** DACH wie `loadThermalSites()`; Europa ergänzt die Europa-Datei (Standorte außerhalb der DACH-Box). */
+export function loadThermalSitesFor(region: 'dach' | 'europe'): Promise<ThermalSitesIndex | null> {
+  if (region === 'dach') return loadThermalSites();
+  if (!thermalSitesEnabled()) return Promise.resolve(null);
+  if (!_europe) {
+    _europe = Promise.all([
+      loadThermalSites(),
+      fetch(THERMAL_SITES_EUROPE_URL, { cache: 'no-store' })
+        .then((r) => (r.ok ? (r.json() as Promise<ThermalSitesFile>) : null))
+        .then((f) => (f && f.version === THERMAL_SITES_VERSION && Array.isArray(f.sites) ? f : null))
+        .catch(() => null),
+    ]).then(([dach, eu]) => {
+      if (!dach) return null;
+      if (!eu) return dach;
+      return indexSites({ ...dach.file, sites: [...dach.file.sites, ...eu.sites], attributions: [...new Set([...dach.file.attributions, ...eu.attributions])] });
+    });
+  }
+  return _europe;
+}
 
 // ---------------------------------------------------------------------------
 // Selbst-Verifikation (D-12; netzfrei)

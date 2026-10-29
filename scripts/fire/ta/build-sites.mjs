@@ -4,7 +4,12 @@
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/fire/ta/build-sites.mjs
  *        [--cells data/fire/ta/cells.jsonl] [--detail .cache/ta/cell-detail.jsonl]
  *        [--facilities .cache/facilities/facilities.jsonl] [--out public/fire/ta/thermal-sites-v1.json]
- *        [--join-m 1500]
+ *        [--join-m 1500] [--region europe]
+ *
+ * `--region europe`: Standorte der Europa-Box OHNE die DACH-Box (Zellschlüssel `e:r,c` aus
+ * `persistence-grid.mjs --region europe`), Anlagen nur E-PRTR/IED, CORINE aus der dünnen
+ * Europa-Maske (`clc-industry-europe.bin`), Ortsname aus DACH- + Europa-Verzeichnis, Land =
+ * Land des nächsten GeoNames-Orts (≤ 20 km, sonst `null`) — es gibt keine Europa-Umrisse im Repo.
  *
  * Schritte: (1) persistente Zellen zu Standorten verbinden (Union-Find, Zellmitten ≤ 1,5 km — das
  * umfasst die 8er-Nachbarschaft); (2) Statistik je Standort aus den Zell-Detailwerten (Tage = Vereinigung,
@@ -19,7 +24,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { inflateSync } from 'node:zlib';
-import { cellKey, cellCenter, TA_STEP, TA_BBOX, THERMAL_SITES_VERSION } from '../../../src/fire/anomaly/thermalSites.ts';
+import { cellCenter, cellBounds, THERMAL_SITES_VERSION } from '../../../src/fire/anomaly/thermalSites.ts';
 import { buildPlaceIndex, nearestPlace } from '../../../src/fire/footprint/places.ts';
 import { pointInRings } from '../../../src/countryMask.ts';
 import { CLC_ATTRIBUTION } from '../../../src/fire/clcMask.ts';
@@ -29,7 +34,8 @@ const argVal = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1
 const CELLS = argVal('--cells', 'data/fire/ta/cells.jsonl');
 const DETAIL = argVal('--detail', '.cache/ta/cell-detail.jsonl');
 const FAC = argVal('--facilities', '.cache/facilities/facilities.jsonl');
-const OUT = argVal('--out', 'public/fire/ta/thermal-sites-v1.json');
+const EUROPE = argVal('--region', 'dach') === 'europe';
+const OUT = argVal('--out', EUROPE ? 'public/fire/ta/thermal-sites-europe-v1.json' : 'public/fire/ta/thermal-sites-v1.json');
 const REPORT = argVal('--report', 'data/fire/ta/sites.report.json');
 const JOIN_M = Number(argVal('--join-m', '1500'));
 const PAIRS = ['data/fire/af/pairs-effis-2020-2025.jsonl', 'data/fire/af/pairs-effis-2026.jsonl'];
@@ -81,7 +87,23 @@ function decodeGrayPng(buf) {
   return { w, h, data: out };
 }
 const clc = existsSync('public/fire/clc-industry-mask.png') ? decodeGrayPng(readFileSync('public/fire/clc-industry-mask.png')) : null;
+/** Europa: gesetzte Zellen der dünnen Maske (gleiches Raster wie die `e:`-Schlüssel, 5700 Spalten). */
+const clcEurope = (() => {
+  if (!EUROPE || !existsSync('public/fire/clc-industry-europe.bin')) return null;
+  const set = new Set(); let prev = 0, v = 0, mul = 1;
+  for (const b of readFileSync('public/fire/clc-industry-europe.bin')) {
+    v += (b & 0x7f) * mul; if (b & 0x80) { mul *= 128; continue; }
+    prev += v; set.add(prev); v = 0; mul = 1;
+  }
+  return set;
+})();
 function landcoverOfKey(key) {
+  if (key.startsWith('e:')) {
+    if (!clcEurope) return null;
+    const [r0, c0] = key.slice(2).split(',').map(Number);
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) if (clcEurope.has((r0 + dr) * 5700 + (c0 + dc))) return 'industrial';
+    return 'other';
+  }
   if (!clc) return null;
   const [r0, c0] = key.split(',').map(Number);
   for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
@@ -90,14 +112,24 @@ function landcoverOfKey(key) {
   }
   return 'other';
 }
-const places = existsSync('public/fire/places-dach.json') ? buildPlaceIndex(JSON.parse(readFileSync('public/fire/places-dach.json', 'utf8'))) : null;
+const placesRaw = existsSync('public/fire/places-dach.json') ? JSON.parse(readFileSync('public/fire/places-dach.json', 'utf8')) : null;
+if (EUROPE && placesRaw && existsSync('public/fire/places-europe.json')) {
+  // Ein Verzeichnis: die Distrikt-Indizes der Europa-Datei werden hinter die DACH-Liste verschoben.
+  const eu = JSON.parse(readFileSync('public/fire/places-europe.json', 'utf8'));
+  const off = placesRaw.districts.length;
+  placesRaw.districts = [...placesRaw.districts, ...eu.districts];
+  placesRaw.places = [...placesRaw.places, ...eu.places.map((p) => [p[0], p[1], p[2], p[3] >= 0 ? p[3] + off : -1, p[4], p[5]])];
+}
+const places = placesRaw ? buildPlaceIndex(placesRaw) : null;
 const countryRings = {};
 for (const c of ['DE', 'AT', 'CH']) {
   const p = `public/countries/${c}.geojson`; if (!existsSync(p)) continue;
   const feat = JSON.parse(readFileSync(p, 'utf8')); const g = feat.geometry ?? feat.features?.[0]?.geometry; if (!g) continue;
   countryRings[c] = g.type === 'Polygon' ? g.coordinates : g.coordinates.flat();
 }
-const countryOf = (lat, lon) => { for (const [c, rings] of Object.entries(countryRings)) if (pointInRings(rings, lon, lat)) return c; return Object.keys(countryRings).length ? 'outside' : null; };
+const countryOf = EUROPE
+  ? (lat, lon) => (places ? nearestPlace(places, lat, lon)?.country ?? null : null)
+  : (lat, lon) => { for (const [c, rings] of Object.entries(countryRings)) if (pointInRings(rings, lon, lat)) return c; return Object.keys(countryRings).length ? 'outside' : null; };
 
 // ---------------------------------------------------------------------------
 // (2)–(4) Standorte
@@ -118,7 +150,7 @@ for (const g of groups.values()) {
   if (!days.size) for (const c of g) for (const [y, n] of Object.entries(c.years)) years[y] = Math.max(years[y] ?? 0, n);
   const centers = g.map((c) => cellCenter(c.key));
   let west = Infinity, south = Infinity, east = -Infinity, north = -Infinity;
-  for (const c of g) { const [r, col] = c.key.split(',').map(Number); const w = TA_BBOX.west + col * TA_STEP, n = TA_BBOX.north - r * TA_STEP; west = Math.min(west, w); east = Math.max(east, w + TA_STEP); north = Math.max(north, n); south = Math.min(south, n - TA_STEP); }
+  for (const c of g) { const [w, sth, e, n] = cellBounds(c.key); west = Math.min(west, w); east = Math.max(east, e); north = Math.max(north, n); south = Math.min(south, sth); }
   // Join
   // Join: Rang = Gewicht (thermisch vor sonstig) + Größenbonus (Hauptwerk vor Nebeneinheit) − Abstandsanteil.
   const cands = [];
@@ -142,7 +174,7 @@ for (const g of groups.values()) {
   const landcover = g.some((c) => landcoverOfKey(c.key) === 'industrial') ? 'industrial' : clc ? 'other' : null;
   const place = places ? nearestPlace(places, lat, lon) : null;
   const note = cls === 'C' ? 'Nur Tagdetektionen über mehrere Jahre — Reflexion (PV, Glas, Gewächshaus) ist wahrscheinlicher als eine Wärmequelle; keine Anlage zugeordnet.'
-    : cls === 'B' ? `Mehrjährig wiederkehrendes Signal ohne Anlagentreffer ≤ ${JOIN_M} m im Verzeichnis (E-PRTR/MaStR/BFE) — eigene Einordnung, kein Nachweis.${alt ? ` Nächste bekannte Anlage: ${alt.f.name ?? alt.f.kind} in ${(alt.d / 1000).toFixed(1)} km.` : ''}`
+    : cls === 'B' ? `Mehrjährig wiederkehrendes Signal ohne Anlagentreffer ≤ ${JOIN_M} m im Verzeichnis (${EUROPE ? 'E-PRTR' : 'E-PRTR/MaStR/BFE'}) — eigene Einordnung, kein Nachweis.${alt ? ` Nächste bekannte Anlage: ${alt.f.name ?? alt.f.kind} in ${(alt.d / 1000).toFixed(1)} km.` : ''}`
     : null;
   sites.push({
     id: `ta:${anchor.key}`, lat: +lat.toFixed(5), lon: +lon.toFixed(5), cells: g.map((c) => c.key).sort(),
@@ -180,10 +212,12 @@ const file = {
   attributions: [
     'Detektionen: NASA FIRMS (VIIRS Standard Processing, Archiv 2020–2026) — Persistenzzählung und Klassen sind eigene Ableitung',
     'Anlagen: © European Environment Agency, Industrial Reporting (E-PRTR/IED) v16, CC-BY 4.0',
-    'Anlagen: Datenbasis Marktstammdatenregister der Bundesnetzagentur, DL-DE/BY-2.0, Stand 2026-07-07',
-    'Anlagen: Bundesamt für Energie (BFE), Elektrizitätsproduktionsanlagen, opendata.swiss OPEN BY',
+    ...(EUROPE ? [] : [
+      'Anlagen: Datenbasis Marktstammdatenregister der Bundesnetzagentur, DL-DE/BY-2.0, Stand 2026-07-07',
+      'Anlagen: Bundesamt für Energie (BFE), Elektrizitätsproduktionsanlagen, opendata.swiss OPEN BY',
+    ]),
     CLC_ATTRIBUTION,
-    'Ortsnamen: GeoNames (CC BY 4.0)',
+    EUROPE ? 'Ortsnamen und Land (Land des nächsten Orts ≤ 20 km): GeoNames (CC BY 4.0)' : 'Ortsnamen: GeoNames (CC BY 4.0)',
   ],
   sites,
 };

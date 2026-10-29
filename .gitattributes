@@ -1,1 +1,2 @@
 audit/seewetter/fixtures/** -text
+public/fire/*.bin -text

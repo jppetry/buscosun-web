@@ -3,6 +3,7 @@
  *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/fire/ta/persistence-grid.mjs
  *        [--cache .cache/firms-archive] [--out data/fire/ta/cells.jsonl] [--years-min 2] [--days-min 5]
+ *        [--region europe]   (Europa-Box OHNE die DACH-Box, Schlüssel `e:r,c` — eigenes --cache/--out)
  *
  * Je 0,01°-Zelle (EINE Zellkonvention: `cellKey` aus `src/fire/anomaly/thermalSites.ts`):
  * Detektionen, verschiedene Tage je Kalenderjahr, Nachtanteil, NASA-`type`-Verteilung,
@@ -16,13 +17,14 @@
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { cellKey, cellCenter, TA_STEP, TA_BBOX } from '../../../src/fire/anomaly/thermalSites.ts';
+import { cellKey, cellCenter, cellBounds, europeCellKey } from '../../../src/fire/anomaly/thermalSites.ts';
 import { parseBurntFeature } from '../../../src/fire/fireCorroboration.ts';
 
 const args = process.argv.slice(2);
 const argVal = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
 const CACHE = argVal('--cache', '.cache/firms-archive');
 const OUT = argVal('--out', 'data/fire/ta/cells.jsonl');
+const KEY_OF = argVal('--region', 'dach') === 'europe' ? europeCellKey : cellKey;
 const YEARS_MIN = Number(argVal('--years-min', '2'));
 const DAYS_MIN = Number(argVal('--days-min', '5'));
 
@@ -48,7 +50,7 @@ for (const f of files) {
     const l = lines[i]; if (!l) continue;
     const v = l.split(',');
     const lat = Number(v[iLat]), lon = Number(v[iLon]);
-    const k = cellKey(lat, lon);
+    const k = KEY_OF(lat, lon);
     if (!k) { outsideBox++; continue; }
     rows++;
     const date = v[iDate]; const year = date.slice(0, 4);
@@ -94,8 +96,7 @@ function pointInRing(lon, lat, ring) {
 }
 function cellInPolygon(key, P) {
   const { lat, lon } = cellCenter(key);
-  const [r, c] = key.split(',').map(Number);
-  const west = TA_BBOX.west + c * TA_STEP, east = west + TA_STEP, north = TA_BBOX.north - r * TA_STEP, south = north - TA_STEP;
+  const [west, south, east, north] = cellBounds(key);
   if (east < P.bbox[0] || west > P.bbox[2] || north < P.bbox[1] || south > P.bbox[3]) return false;
   for (const poly of P.polys) {
     if (poly.length && pointInRing(lon, lat, poly[0])) return true;

@@ -44,6 +44,8 @@ export interface HistoryPanelProps {
   onClose?: () => void;
   /** Zurück zum Live-Fenster (24 h / 7 d). */
   onLeave: () => void;
+  /** Europa-Ansicht: die Historie gibt es nur für DE/AT/CH — der Satz steht über der Liste. */
+  regionNote?: string;
 }
 
 const COUNTRY_LABEL: Record<string, string> = { DE: 'Deutschland', AT: 'Österreich', CH: 'Schweiz' };
@@ -80,6 +82,7 @@ export function FireHistoryPanel(p: HistoryPanelProps) {
 
   return (
     <div className={`br-fires br-history${p.inSheet ? ' in-sheet' : ''}${p.compact ? ' is-compact' : ''}`}>
+      {p.regionNote && <p className="br-note">{p.regionNote}</p>}
       {p.load.kind === 'loading' && <p className="br-empty">Historie wird geladen … (statische Datei, einmal je Sitzung)</p>}
       {p.load.kind === 'error' && (
         <p className="br-empty">Kein Stand verfügbar — die Historie-Datei ist nicht erreichbar ({p.load.message}). Das ist ein Ausfall, kein leerer Monat.

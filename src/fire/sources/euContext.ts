@@ -21,6 +21,7 @@
  */
 
 import { assertDachAxis, bboxIsLatLon } from './wfsAxis';
+import { REGION_BOX, boxLatLon, type FireRegion } from '../fireRegion';
 import {
   parseBurntFeature, dominantLandcover, squarePolygon, type BurntPolygon,
 } from '../fireCorroboration';
@@ -164,8 +165,9 @@ export const BURNT_TYPENAME: Record<BurntBucket, string> = {
   week: 'ms:modis.ba.poly.week',
 };
 
-export function burntUrl(which: BurntBucket): string {
-  return `${WFS_11}&typename=${BURNT_TYPENAME[which]}&maxfeatures=${BURNT_MAX_FEATURES}`;
+export function burntUrl(which: BurntBucket, region: FireRegion = 'dach'): string {
+  const base = region === 'dach' ? WFS_11 : WFS_11.replace('&bbox=45.5,5.5,55.5,17.5,EPSG:4326', `&bbox=${boxLatLon(REGION_BOX[region])}`);
+  return `${base}&typename=${BURNT_TYPENAME[which]}&maxfeatures=${BURNT_MAX_FEATURES}`;
 }
 
 export interface BurntRun {
@@ -267,22 +269,25 @@ export async function fetchBurntAreas(bucket: BurntFetchBucket, signal?: AbortSi
  * Layer eingeschaltet ist. Klein (~100 KB in DACH), TTL 30 min. Das ist der
  * eine zusätzliche Abruf dieser Phase, und er ist ausgewiesen (V-225).
  */
-let _week: { polygons: BurntPolygon[]; at: number } | null = null;
+/** Europa: der Wochenkorb ist klein (142 KB am 2026-10-29, 30 Flächen) — der
+ *  Saison-Korb dagegen 125 MB / 15 244 Flächen und wird für Europa NICHT geladen. */
+const _week = new Map<FireRegion, { polygons: BurntPolygon[]; at: number }>();
 const WEEK_TTL = 30 * 60_000;
 
-export async function fetchBurntWeek(signal?: AbortSignal): Promise<BurntPolygon[]> {
-  if (_week && Date.now() - _week.at < WEEK_TTL) return _week.polygons;
-  const res = await fetch(burntUrl('week'), { signal });
+export async function fetchBurntWeek(signal?: AbortSignal, region: FireRegion = 'dach'): Promise<BurntPolygon[]> {
+  const hit = _week.get(region);
+  if (hit && Date.now() - hit.at < WEEK_TTL) return hit.polygons;
+  const res = await fetch(burntUrl('week', region), { signal });
   if (!res.ok) throw new Error(`EFFIS Brandflächen (7 Tage): HTTP ${res.status}`);
   const fc = (await res.json()) as GeoJSON.FeatureCollection;
-  assertDachAxis(Array.isArray(fc?.features) ? fc.features : [], 'EFFIS Brandflächen (7 Tage)');
+  assertDachAxis(Array.isArray(fc?.features) ? fc.features : [], 'EFFIS Brandflächen (7 Tage)', REGION_BOX[region]);
   const polygons = (Array.isArray(fc?.features) ? fc.features : [])
     .map(parseBurntFeature).filter((p): p is BurntPolygon => p != null);
-  _week = { polygons, at: Date.now() };
+  _week.set(region, { polygons, at: Date.now() });
   return polygons;
 }
 
-export function resetBurntCache(): void { _cache.clear(); _week = null; }
+export function resetBurntCache(): void { _cache.clear(); _week.clear(); }
 
 /**
  * Die Beschriftung der Zeitspanne — **die Ehrlichkeitsstelle des Layers**.

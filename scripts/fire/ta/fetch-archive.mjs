@@ -10,6 +10,7 @@
  *
  *   node scripts/fire/ta/fetch-archive.mjs [--years 2020-2026] [--months 1-12]
  *        [--sources VIIRS_SNPP_SP,VIIRS_NOAA20_SP] [--cache .cache/firms-archive]
+ *        [--bbox west,south,east,north]   (Vorgabe DACH; Europa: -25,34,32,72 mit eigenem --cache)
  *
  * Schlüssel: `FIRMS_MAP_KEY` (Env) oder `.cache/firms-archive/mapkey.txt` — nie im Repo,
  * in jeder Ausgabe als `<KEY>` maskiert. Prod-Proxy `/_firms` unangetastet.
@@ -29,6 +30,14 @@ const KEY = process.env.FIRMS_MAP_KEY || (existsSync(KEY_FILE) ? readFileSync(KE
 
 const D = 86_400_000;
 const DACH = { west: 5.5, south: 45.5, east: 17.5, north: 55.5 };
+// Der Cache-Dateiname trägt die Box NICHT — eine andere Box braucht ein eigenes `--cache`.
+const BOX = (() => {
+  const v = argVal('--bbox', null);
+  if (!v) return DACH;
+  const [west, south, east, north] = v.split(',').map(Number);
+  if (![west, south, east, north].every(Number.isFinite) || west >= east || south >= north) throw new Error(`--bbox ungültig: ${v}`);
+  return { west, south, east, north };
+})();
 const FIRMS_ORIGIN = 'https://firms.modaps.eosdis.nasa.gov';
 const CHUNK_DAYS = 5;
 const PAUSE_MS = 400;
@@ -72,7 +81,7 @@ async function main() {
   if (!/^[0-9a-z]{32}$/.test(KEY)) { console.error('FIRMS_MAP_KEY hat nicht die erwartete Form (32 Zeichen [0-9a-z]).'); process.exit(2); }
   mkdirSync(CACHE, { recursive: true });
   const availability = await loadAvailability();
-  const bbox = `${DACH.west},${DACH.south},${DACH.east},${DACH.north}`;
+  const bbox = `${BOX.west},${BOX.south},${BOX.east},${BOX.north}`;
   const planned = [];
   for (const year of YEARS) {
     const start = Date.UTC(year, MONTHS[0] - 1, 1);

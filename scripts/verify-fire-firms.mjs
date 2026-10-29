@@ -11,7 +11,7 @@
  *   (b) der Client spricht nur `/_firms/*`, nie `firms.modaps.eosdis.nasa.gov`,
  *   (c) aus `frp` wird NIE eine Fläche in Hektar abgeleitet (Leistung ≠ Fläche),
  *   (d) die Edge Function verrät bei keinem Fehlerpfad den Schlüssel,
- *   (e) die Schutzregeln des Proxys greifen (Whitelist, DACH-Hülle, Tagesspanne).
+ *   (e) die Schutzregeln des Proxys greifen (Whitelist, Europa-Hülle, Tagesspanne).
  *
  * Netzfrei, dependency-frei.
  */
@@ -102,8 +102,10 @@ const U = (p) => `https://buscosun.com${p}`;
 const KEY = 'a'.repeat(32);
 add('[proxy] world-BBox wird abgelehnt',
   parseFirmsPath(U('/_firms/VIIRS_SNPP_NRT/-180,-90,180,90/1')) === null);
-add('[proxy] Europa-BBox wird abgelehnt',
+add('[proxy] Box über die Europa-Hülle hinaus (bis 45° O) wird abgelehnt',
   parseFirmsPath(U('/_firms/VIIRS_SNPP_NRT/-25,34,45,72/1')) === null);
+add('[proxy] vertauschte Europa-Box (lat,lon) fällt durch',
+  parseFirmsPath(U('/_firms/VIIRS_SNPP_NRT/34,-25,72,32/1')) === null);
 add('[proxy] MODIS ist nicht freigegeben',
   parseFirmsPath(U('/_firms/MODIS_NRT/5.5,45.5,17.5,55.5/1')) === null);
 add('[proxy] vertauschte lat,lon-BBox (GWIS-Form) fällt durch',
@@ -122,7 +124,10 @@ const now = Date.UTC(2026, 7, 14, 12, 0);
 const built = [];
 for (const src of FIRMS_SOURCES) {
   for (const wh of [24, 168]) {
-    for (const chunk of windowPlan(wh, now)) built.push(firmsUrl(src, chunk));
+    for (const chunk of windowPlan(wh, now)) {
+      built.push(firmsUrl(src, chunk));
+      built.push(firmsUrl(src, chunk, 'europe'));
+    }
   }
 }
 const rejected = built.filter((u) => parseFirmsPath(U(u)) === null);

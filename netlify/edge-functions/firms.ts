@@ -22,7 +22,7 @@
  *  (1) **Kein Pfad-Durchreichen, sondern Neubau aus geprüften Teilen.**
  *      `dwd-grib.ts` hängt den eingehenden Pfad an den Origin. Hier wird jede
  *      Komponente einzeln geprüft (Quelle aus Whitelist, BBox numerisch UND
- *      innerhalb der DACH-Hülle, Tagesspanne 1–5, Datum streng `YYYY-MM-DD`)
+ *      innerhalb der Europa-Hülle, Tagesspanne 1–5, Datum streng `YYYY-MM-DD`)
  *      und die Ziel-URL neu zusammengesetzt. Der Query-String wird verworfen.
  *      Damit ist Pfad-Traversal strukturell unmöglich, und der Proxy taugt
  *      nicht als Welt-Scraper auf Jans Transaktionsbudget.
@@ -60,14 +60,16 @@ const ALLOWED_SOURCES = new Set([
 ]);
 
 /**
- * Hülle, innerhalb derer eine BBox liegen muss: DACH mit Rand.
+ * Hülle, innerhalb derer eine BBox liegen muss: die Europa-Box des Clients
+ * (`src/fire/fireRegion.ts`, 25° W–32° O, 34–72° N) mit 1° Rand. Die DACH-Box
+ * liegt darin; der Client fragt DACH wie bisher und Europa nur auf Wunsch ab.
  * Reihenfolge **west, south, east, north** — die Area API erwartet lon/lat,
  * der GWIS-WFS in Version 1.1.0 dagegen lat/lon. Das ist der eine Fallstrick,
  * an dem eine vertauschte Box stillschweigend eine leere Antwort liefert
  * statt eines Fehlers; die Prüfung unten schlägt bei Vertauschung an, weil
- * `45.5` als West-Wert außerhalb der Hülle liegt.
+ * die vertauschte Ostkante (`55.5` bzw. `72`) außerhalb der Hülle liegt.
  */
-const ENVELOPE = { west: 5.0, south: 45.0, east: 18.0, north: 56.0 };
+const ENVELOPE = { west: -26.0, south: 33.0, east: 33.0, north: 73.0 };
 
 /** Tagesspanne laut Doku 1..5 (in F0 am eigenen Schlüssel gegengeprüft). */
 const MIN_DAYS = 1;
@@ -135,7 +137,7 @@ export function parseFirmsPath(requestUrl: string): FirmsRequest | null {
   if (![west, south, east, north].every((n) => Number.isFinite(n))) return null;
   // Nicht-degenerierte Box …
   if (!(west < east) || !(south < north)) return null;
-  // … und vollständig innerhalb der DACH-Hülle. Diese Zeile ist der Grund,
+  // … und vollständig innerhalb der Europa-Hülle. Diese Zeile ist der Grund,
   // warum der Proxy fremden Verbrauch auf Jans Schlüssel nicht ermöglicht.
   if (west < ENVELOPE.west || east > ENVELOPE.east) return null;
   if (south < ENVELOPE.south || north > ENVELOPE.north) return null;

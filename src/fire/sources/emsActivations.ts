@@ -21,6 +21,8 @@
  * Pur (bis auf `fetchEmsActivations`), DOM-frei — `npm run verify:fire-behoerden`.
  */
 
+import { REGION_BOX, inBox, type FireRegion } from '../fireRegion';
+
 export const EMS_URL =
   'https://rapidmapping.emergency.copernicus.eu/backend/dashboard-api/public-activations-info/';
 
@@ -100,7 +102,7 @@ export function parseActivation(raw: unknown): EmsActivation | null {
 }
 
 /** Rohantwort (beliebige Hülle) → DACH-Brandaktivierungen. Wirft nie. */
-export function parseEmsResponse(text: string): EmsActivation[] {
+export function parseEmsResponse(text: string, region: FireRegion = 'dach'): EmsActivation[] {
   try {
     const j = JSON.parse(text) as unknown;
     const arr = Array.isArray(j) ? j
@@ -112,6 +114,12 @@ export function parseEmsResponse(text: string): EmsActivation[] {
       const a = parseActivation(raw);
       if (!a || !a.isFire) continue;
       // DACH: nach Ländername ODER nach Lage (Centroid in der Hülle) — nie nur eines.
+      // Europa: nach Lage in der Europa-Box (`fireRegion.ts`) oder nach DACH-Ländername.
+      if (region !== 'dach') {
+        const inRegion = a.lon != null && a.lat != null && inBox(REGION_BOX[region], a.lat, a.lon);
+        if (inRegion || a.countries.some((c) => DACH_COUNTRIES.test(c.trim()))) out.push(a);
+        continue;
+      }
       const byName = a.countries.some((c) => DACH_COUNTRIES.test(c.trim()));
       const byPos = a.lon != null && a.lat != null && a.lon >= 5 && a.lon <= 18 && a.lat >= 45 && a.lat <= 56;
       if (byName || byPos) out.push(a);
@@ -164,23 +172,24 @@ export function emsLabel(a: EmsActivation): string {
 // Laden — still, kurz gecacht, nie werfend
 // ---------------------------------------------------------------------------
 
-let _cache: { acts: EmsActivation[]; at: number } | null = null;
+const _cache = new Map<FireRegion, { acts: EmsActivation[]; at: number }>();
 const TTL = 30 * 60_000;
 
 /** Liefert `[]` bei jedem Fehler — kein Ladezustand, kein Banner. */
-export async function fetchEmsActivations(signal?: AbortSignal): Promise<EmsActivation[]> {
-  if (_cache && Date.now() - _cache.at < TTL) return _cache.acts;
+export async function fetchEmsActivations(signal?: AbortSignal, region: FireRegion = 'dach'): Promise<EmsActivation[]> {
+  const hit = _cache.get(region);
+  if (hit && Date.now() - hit.at < TTL) return hit.acts;
   try {
     const res = await fetch(EMS_URL, { signal });
     if (!res.ok) return [];
-    const acts = parseEmsResponse(await res.text());
-    _cache = { acts, at: Date.now() };
+    const acts = parseEmsResponse(await res.text(), region);
+    _cache.set(region, { acts, at: Date.now() });
     return acts;
   } catch {
     return [];
   }
 }
-export function resetEmsCache(): void { _cache = null; }
+export function resetEmsCache(): void { _cache.clear(); }
 
 // ---------------------------------------------------------------------------
 // Selbst-Verifikation (D-12; netzfrei)

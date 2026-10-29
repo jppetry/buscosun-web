@@ -33,6 +33,58 @@ export interface ClcMask {
   height: number;
   /** Ein Byte je Zelle, zeilenweise von Nord nach Süd. */
   data: Uint8Array;
+  /**
+   * Europa-Ansicht: die gesetzten Zellen der Europa-Box (`CLC_EUROPE_BOX`, gleiche
+   * Schrittweite), aufsteigend — nur für Punkte außerhalb der DACH-Hülle gelesen.
+   * Fehlt sie, gilt außerhalb DACH wie bisher `null` (keine Aussage).
+   */
+  europe?: Uint32Array | null;
+}
+
+/** Dünne Europa-Maske (`build-clc-mask.mjs --region europe`): Varint-Differenzen der Zellindizes. */
+export const CLC_EUROPE_URL = '/fire/clc-industry-europe.bin';
+export const CLC_EUROPE_BOX = { west: -25, south: 34, east: 32, north: 72 } as const;
+export const CLC_EUROPE_W = 5700;
+export const CLC_EUROPE_H = 3800;
+
+/** LEB128-Varint-Differenzen → aufsteigende Zellindizes. */
+export function decodeSparseCells(bytes: Uint8Array): Uint32Array {
+  const out: number[] = [];
+  let prev = 0, v = 0, mul = 1;
+  for (let i = 0; i < bytes.length; i++) {
+    const b = bytes[i];
+    v += (b & 0x7f) * mul;
+    if (b & 0x80) { mul *= 128; continue; }
+    prev += v; out.push(prev); v = 0; mul = 1;
+  }
+  return Uint32Array.from(out);
+}
+
+function hasCell(cells: Uint32Array, k: number): boolean {
+  let lo = 0, hi = cells.length - 1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    const x = cells[mid];
+    if (x === k) return true;
+    if (x < k) lo = mid + 1; else hi = mid - 1;
+  }
+  return false;
+}
+
+/** Wie `landcoverAt`, aber auf der dünnen Europa-Maske; außerhalb der Europa-Box `null`. */
+function europeLandcoverAt(cells: Uint32Array, lat: number, lon: number): ClcVerdict {
+  const b = CLC_EUROPE_BOX;
+  if (lon < b.west || lon >= b.east || lat <= b.south || lat > b.north) return null;
+  const c0 = Math.floor((lon - b.west) / CLC_STEP);
+  const r0 = Math.floor((b.north - lat) / CLC_STEP);
+  for (let dr = -1; dr <= 1; dr++) {
+    for (let dc = -1; dc <= 1; dc++) {
+      const r = r0 + dr, c = c0 + dc;
+      if (r < 0 || r >= CLC_EUROPE_H || c < 0 || c >= CLC_EUROPE_W) continue;
+      if (hasCell(cells, r * CLC_EUROPE_W + c)) return 'industrial';
+    }
+  }
+  return 'other';
 }
 
 export type ClcVerdict = 'industrial' | 'other' | null;
@@ -54,7 +106,7 @@ export function cellIndex(lat: number, lon: number, w = CLC_W, h = CLC_H): numbe
 export function landcoverAt(mask: ClcMask | null, lat: number, lon: number): ClcVerdict {
   if (!mask) return null;
   const idx = cellIndex(lat, lon, mask.width, mask.height);
-  if (idx < 0) return null;
+  if (idx < 0) return mask.europe ? europeLandcoverAt(mask.europe, lat, lon) : null;
   const r0 = Math.floor(idx / mask.width), c0 = idx % mask.width;
   for (let dr = -1; dr <= 1; dr++) {
     for (let dc = -1; dc <= 1; dc++) {
@@ -108,7 +160,25 @@ export function loadClcMask(): Promise<ClcMask | null> {
   })();
   return _inflight;
 }
-export function resetClcMask(): void { _mask = null; _inflight = null; }
+export function resetClcMask(): void { _mask = null; _inflight = null; _europe = null; }
+
+let _europe: Promise<ClcMask | null> | null = null;
+
+/** DACH wie `loadClcMask()`; Europa ergänzt die dünne Europa-Maske (einmal je Sitzung, still). */
+export function loadClcMaskFor(region: 'dach' | 'europe'): Promise<ClcMask | null> {
+  if (region === 'dach') return loadClcMask();
+  if (!_europe) {
+    _europe = Promise.all([
+      loadClcMask(),
+      fetch(CLC_EUROPE_URL)
+        .then((r) => (r.ok ? r.arrayBuffer() : null))
+        .then((buf) => (buf ? decodeSparseCells(new Uint8Array(buf)) : null))
+        .catch(() => null),
+    ]).then(([m, europe]) => (m ? { ...m, europe } : null))
+      .finally(() => { /* Ergebnis bleibt im Promise gecacht */ });
+  }
+  return _europe;
+}
 
 // ---------------------------------------------------------------------------
 // Selbst-Verifikation (D-12; netzfrei) — synthetische Maske

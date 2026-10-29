@@ -96,8 +96,8 @@ add('kein Modul lädt warnung.bund.de (nur Deep-Link in officialSources)',
 {
   const page = src('src/fire/FirePage.tsx');
   add('V-222: erster Abruf OHNE Klassifikations-Rückruf (neutraler erster Eindruck)',
-    /fetchFirmsHotspots\(time\.windowH, ac\.signal, at\);/.test(page) && !/fetchFirmsHotspots\(time\.windowH, ac\.signal, at, async/.test(page));
-  add('V-222: 7-Tage-Nachladung nur zur Einordnung, im Leerlauf', /fetchFirmsHotspots\(168, ac\.signal, at\)/.test(page) && /requestIdleCallback/.test(page));
+    /fetchFirmsHotspots\(time\.windowH, ac\.signal, at(, undefined, region)?\);/.test(page) && !/fetchFirmsHotspots\(time\.windowH, ac\.signal, at, async/.test(page));
+  add('V-222: 7-Tage-Nachladung nur zur Einordnung, im Leerlauf', /fetchFirmsHotspots\(168, ac\.signal, at(, undefined, region)?\)/.test(page) && /requestIdleCallback/.test(page));
   add('V-222: Klassifikation über den Worker-Client', /classifyHotspots\(/.test(page) && existsSync(join(ROOT, 'src/fire/fireEventsWorker.ts')) && existsSync(join(ROOT, 'src/fire/fireEventsClient.ts')));
   add('V-222: bis zur Einordnung „Einordnung läuft …" statt einer Behauptung', /Einordnung läuft/.test(page));
   add('V-222: Kartierung hebt Grau weiterhin auf (Varallo) — Anker bleibt', /keys\.has\(k\) && mappedAreaFor\(r, polys\)\) keys\.delete\(k\)/.test(page));

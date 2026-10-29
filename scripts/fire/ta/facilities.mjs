@@ -3,7 +3,10 @@
  *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/fire/ta/facilities.mjs
  *        [--eprtr .cache/facilities/eprtr] [--mastr <anlagenatlas>/pipeline] [--bfe .cache/facilities/bfe-epa_2056.csv.zip]
- *        [--out .cache/facilities/facilities.jsonl]
+ *        [--out .cache/facilities/facilities.jsonl] [--region europe]
+ *
+ * `--region europe`: nur E-PRTR/IED (europaweit), Box = Europa-Box des Brandradars
+ * (25° W–32° O, 34–72° N); MaStR und BFE sind DE/CH-Verzeichnisse und entfallen.
  *
  * Quellen (alle ohne Login, kommerziell erlaubt, Attribution Pflicht):
  *   • EEA Industrial Reporting v16 (E-PRTR/IED), CC-BY 4.0 — „User friendly .csv files.zip" aus
@@ -35,7 +38,8 @@ const EPRTR_DIR = argVal('--eprtr', '.cache/facilities/eprtr');
 const MASTR_DIR = argVal('--mastr', 'C:/Users/User/Desktop/anlagenatlas/pipeline');
 const BFE_ZIP = argVal('--bfe', '.cache/facilities/bfe-epa_2056.csv.zip');
 const OUT = argVal('--out', '.cache/facilities/facilities.jsonl');
-const BOX = { west: 5.5, south: 45.5, east: 17.5, north: 55.5 };
+const EUROPE = argVal('--region', 'dach') === 'europe';
+const BOX = EUROPE ? { west: -25, south: 34, east: 32, north: 72 } : { west: 5.5, south: 45.5, east: 17.5, north: 55.5 };
 const inBox = (lat, lon) => Number.isFinite(lat) && Number.isFinite(lon) && lon >= BOX.west && lon < BOX.east && lat > BOX.south && lat <= BOX.north;
 
 // ---------------------------------------------------------------------------
@@ -244,8 +248,9 @@ async function loadBfe() {
 
 async function main() {
   const e = await loadEprtr();
-  const m = loadMastr();
-  const b = await loadBfe();
+  const none = { rows: [], stat: 'entfällt (--region europe)' };
+  const m = EUROPE ? none : loadMastr();
+  const b = EUROPE ? none : await loadBfe();
   const rows = [...e.rows, ...m.rows, ...b.rows];
   mkdirSync(dirname(OUT), { recursive: true });
   writeFileSync(OUT, rows.map((r) => JSON.stringify(r)).join('\n') + '\n');

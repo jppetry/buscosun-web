@@ -27,8 +27,13 @@ export const DACH_LAT = { min: 45.5, max: 55.5 } as const;
 
 export type AxisVerdict = 'lonlat' | 'latlon' | 'empty' | 'unknown';
 
-const inLon = (v: number) => v >= DACH_LON.min && v <= DACH_LON.max;
-const inLat = (v: number) => v >= DACH_LAT.min && v <= DACH_LAT.max;
+/** Die Bänder, gegen die geprüft wird — DACH als Vorgabe, Europa für den Europa-Abruf
+ *  (`fireRegion.ts`; dort sind die Bänder ebenfalls disjunkt: Länge ≤ 32 < 34 ≤ Breite). */
+export interface AxisBands { west: number; south: number; east: number; north: number }
+const DACH_BANDS: AxisBands = { west: DACH_LON.min, south: DACH_LAT.min, east: DACH_LON.max, north: DACH_LAT.max };
+
+const inLonOf = (b: AxisBands, v: number) => v >= b.west && v <= b.east;
+const inLatOf = (b: AxisBands, v: number) => v >= b.south && v <= b.north;
 
 /** Erste Stützstelle einer Geometrie (Point/Polygon/MultiPolygon/…), sonst null. */
 export function firstPosition(g: GeoJSON.Geometry | null | undefined): number[] | null {
@@ -46,7 +51,7 @@ export function firstPosition(g: GeoJSON.Geometry | null | undefined): number[] 
  * Urteil über die Achsenreihenfolge einer Feature-Menge — aus bis zu `sample`
  * Stichproben. `lonlat` = RFC 7946, `latlon` = gespiegelt.
  */
-export function axisVerdict(features: readonly GeoJSON.Feature[], sample = 50): AxisVerdict {
+export function axisVerdict(features: readonly GeoJSON.Feature[], sample = 50, bands: AxisBands = DACH_BANDS): AxisVerdict {
   const pts: number[][] = [];
   for (const f of features) {
     const p = firstPosition(f.geometry);
@@ -54,8 +59,8 @@ export function axisVerdict(features: readonly GeoJSON.Feature[], sample = 50): 
     if (pts.length >= sample) break;
   }
   if (!pts.length) return 'empty';
-  const lonlat = pts.filter((p) => inLon(p[0]) && inLat(p[1])).length / pts.length;
-  const latlon = pts.filter((p) => inLat(p[0]) && inLon(p[1])).length / pts.length;
+  const lonlat = pts.filter((p) => inLonOf(bands, p[0]) && inLatOf(bands, p[1])).length / pts.length;
+  const latlon = pts.filter((p) => inLatOf(bands, p[0]) && inLonOf(bands, p[1])).length / pts.length;
   if (lonlat > 0.9) return 'lonlat';
   if (latlon > 0.9) return 'latlon';
   return 'unknown';
@@ -67,8 +72,8 @@ export function axisVerdict(features: readonly GeoJSON.Feature[], sample = 50): 
  * Aufrufer als Warnung protokolliert — außerhalb DACH liegende Daten sind bei
  * einer DACH-BBox nicht zu erwarten.
  */
-export function assertDachAxis(features: readonly GeoJSON.Feature[], source: string): AxisVerdict {
-  const v = axisVerdict(features);
+export function assertDachAxis(features: readonly GeoJSON.Feature[], source: string, bands: AxisBands = DACH_BANDS): AxisVerdict {
+  const v = axisVerdict(features, 50, bands);
   if (v === 'latlon') {
     throw new Error(`${source}: Achsen gespiegelt ([lat,lon] statt [lon,lat]) — Antwort verworfen`);
   }
@@ -80,11 +85,11 @@ export function assertDachAxis(features: readonly GeoJSON.Feature[], source: str
  * **lat,lon** — der erste Wert muss im Breitengradband liegen. Wer die
  * Reihenfolge „korrigiert", macht diesen Test rot.
  */
-export function bboxIsLatLon(url: string): boolean {
+export function bboxIsLatLon(url: string, bands: AxisBands = DACH_BANDS): boolean {
   const m = url.match(/[?&]bbox=([-\d.]+),([-\d.]+),([-\d.]+),([-\d.]+)/i);
   if (!m) return false;
   const [a, b] = [Number(m[1]), Number(m[2])];
-  return inLat(a) && inLon(b);
+  return inLatOf(bands, a) && inLonOf(bands, b);
 }
 
 // ---------------------------------------------------------------------------

@@ -62,6 +62,7 @@ import {
 } from './fireZones';
 import { inAustriaBox } from './sources/geosphereWarnContext';
 import { landcoverAt, toAssessmentLandcover, type ClcMask } from './clcMask';
+import { EUROPE_BOX, inDachBox, type FireRegion } from './fireRegion';
 import { fireIncidentSourcesFor, type Country } from '../officialSources';
 import type { AtWarnContext } from './sources/geosphereWarnContext';
 import {
@@ -263,6 +264,13 @@ interface Props {
   emsActs?: readonly EmsActivation[];
   atContexts?: ReadonlyMap<string, AtWarnContext>;
   clcMask?: ClcMask | null;
+  /**
+   * Gebiet der Ansicht. `dach` (Vorgabe) = bisherige Optik: alles außerhalb DE/AT/CH
+   * sandfarben abgedeckt. `europe` = die Abdeckung liegt nur noch außerhalb der
+   * Europa-Box; die DACH-Maske kehrt zurück, solange eine Ebene an ist, die es nur
+   * für DACH gibt (ICON-D2-Treiber) — dort sagt die Karte außerhalb nichts.
+   */
+  region?: FireRegion;
   /** Feuerwetter-Treiber: das Trockenheits-Bild des passenden ICON-D2-Schritts. */
   weather: { image: HTMLCanvasElement; width: number; height: number;
     uvBounds: [number, number, number, number] } | null;
@@ -344,6 +352,7 @@ export default function FireMap({
   hotspotProvider, dangerView, burntSeason, burntArchive, burntWeekFc = null,
   burntBuckets, burntLookup, burntWeek, zoneEstimates = EMPTY_ZONE_EST,
   fireEvents = EMPTY_EVENTS, emsActs = EMPTY_EMS, atContexts = EMPTY_CTX, clcMask = null,
+  region = 'dach',
   weather, soil, prefetchIsoDate, onTier, onMapRef,
   anomalyFc = null, selectedSiteId = null, onSelectSite,
   historyFc = null, selectedHistoryId = null, onSelectHistory,
@@ -385,14 +394,14 @@ export default function FireMap({
     active, isoDate, hotspots, hotspotFootprints, fireZones, zoneFc,
     clusters, clusterFc, selectedClusterId, footprintFc, hoverFootprintId, selectedFootprintId,
     hotspotProvider, dangerView, burntSeason, burntArchive, burntWeekFc, burntBuckets, burntLookup, burntWeek, zoneEstimates, weather,
-    soil, fireEvents, emsActs, atContexts, clcMask,
+    soil, fireEvents, emsActs, atContexts, clcMask, region,
     anomalyFc, selectedSiteId, historyFc, selectedHistoryId,
   });
   stateRef.current = {
     active, isoDate, hotspots, hotspotFootprints, fireZones, zoneFc,
     clusters, clusterFc, selectedClusterId, footprintFc, hoverFootprintId, selectedFootprintId,
     hotspotProvider, dangerView, burntSeason, burntArchive, burntWeekFc, burntBuckets, burntLookup, burntWeek, zoneEstimates, weather,
-    soil, fireEvents, emsActs, atContexts, clcMask,
+    soil, fireEvents, emsActs, atContexts, clcMask, region,
     anomalyFc, selectedSiteId, historyFc, selectedHistoryId,
   };
   /** Der Auswahl-Rückruf, so wie er JETZT ist — der Klick-Handler wird einmal
@@ -609,6 +618,24 @@ export default function FireMap({
     // sie keine amtliche Entsprechung zeigt. `moveLayer` ohne Ziel = nach oben;
     // idempotent, also bei jedem Durchlauf unschädlich.
     if (m.getLayer('fire-dach-mask-fill')) m.moveLayer('fire-dach-mask-fill');
+    if (m.getLayer('fire-europe-mask-fill')) m.moveLayer('fire-europe-mask-fill');
+    // Gebiet: in Europa deckt die DACH-Maske nur noch zu, solange eine DACH-only-Ebene
+    // (ICON-D2-Treiber) an ist — sonst behauptete deren Fläche dort eine Aussage.
+    const dachOnlyOn = s.active.has('fireWeather') || s.active.has('fireSoilDryness');
+    // In Europa liegt sie dann direkt ÜBER den Treiber-Rastern, nicht ganz oben — die
+    // Brände außerhalb DACH (Punkte, Flächen) bleiben sichtbar. Solange noch kein
+    // Treiber-Raster in der Karte hängt (lädt), gibt es nichts abzudecken.
+    let dachMaskOn = s.region === 'dach';
+    if (s.region === 'europe' && dachOnlyOn && m.getLayer('fire-dach-mask-fill')) {
+      // `getLayersOrder()`, nicht `getStyle().layers` — der Stil führt keine Custom-Layer.
+      const ids = m.getLayersOrder().filter((id) => id !== 'fire-dach-mask-fill' && id !== 'fire-europe-mask-fill');
+      const top = Math.max(...['fire-weather-scalar', 'fire-soil-scalar'].map((id) => ids.indexOf(id)));
+      const before = top >= 0 ? ids[top + 1] : undefined;
+      if (before) m.moveLayer('fire-dach-mask-fill', before);
+      dachMaskOn = top >= 0;
+    }
+    if (m.getLayer('fire-dach-mask-fill')) m.setLayoutProperty('fire-dach-mask-fill', 'visibility', dachMaskOn ? 'visible' : 'none');
+    if (m.getLayer('fire-europe-mask-fill')) m.setLayoutProperty('fire-europe-mask-fill', 'visibility', s.region === 'europe' ? 'visible' : 'none');
 
     // Sichtbarkeit ZULETZT: erst jetzt existieren alle Layer sicher.
     for (const id of FIRE_LAYER_ORDER) {
@@ -846,7 +873,10 @@ export default function FireMap({
           popupRef.current = new maplibregl.Popup({ closeButton: true, maxWidth: '280px' })
             .setLngLat(ev.lngLat)
             .setHTML(hotspotPopupHtml(p, hits.length, mapped, assessment,
-              Array.isArray(geom?.coordinates) ? countryGuess(geom.coordinates[1], geom.coordinates[0]) : null,
+              // Europa: nationale Einsatzquellen nur für Detektionen in der DACH-Box — außerhalb
+              // hätte `countryGuess` sonst „DE" behauptet.
+              Array.isArray(geom?.coordinates) && inDachBox(geom.coordinates[1], geom.coordinates[0])
+                ? countryGuess(geom.coordinates[1], geom.coordinates[0]) : null,
               zone, zone ? s.zoneEstimates.get(zone.id) ?? null : null))
             .addTo(map);
           return;
@@ -926,6 +956,21 @@ export default function FireMap({
     rasterDayRef.current = null; // Quellen sind nach dem Stilwechsel weg
     m.setStyle(basemapStyle(basemap));
   }, [basemap]);
+
+  // --- Gebietswechsel: Ausschnitt auf DACH bzw. Europa setzen ------------------
+  // Der erste Lauf tut nichts (die Karte startet auf DACH_BOUNDS); Masken stellt
+  // applyState um.
+  const regionRef = useRef(region);
+  useEffect(() => {
+    const m = mapRef.current;
+    if (!m || regionRef.current === region) return;
+    regionRef.current = region;
+    const b = region === 'europe' ? EUROPE_BOX : null;
+    m.fitBounds(b ? [[b.west, b.south], [b.east, b.north]] : [[DACH_BOUNDS[0], DACH_BOUNDS[1]], [DACH_BOUNDS[2], DACH_BOUNDS[3]]],
+      { padding: 24, duration: 600 });
+    applyState(m);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [region]);
 
   // --- BC1: auf den Cluster zoomen, den die Liste anspringt -------------------
   // Ausgelöst wird ausschließlich über `focusNonce` (s. Props): eine Auswahl per
@@ -1365,6 +1410,32 @@ function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets') {
       });
     }
   }).catch(() => { /* Maske ist Beiwerk — ihr Ausfall darf die Karte nicht kippen */ });
+
+  // Gebiet Europa: dieselbe Sandfläche, aber nur außerhalb der Europa-Box — dort gibt es
+  // keine Abrufe. Sichtbarkeit setzt applyState (Vorgabe DACH: unsichtbar).
+  if (!map.getSource('fire-europe-mask')) {
+    const b = EUROPE_BOX;
+    map.addSource('fire-europe-mask', {
+      type: 'geojson',
+      data: {
+        type: 'Feature', properties: {},
+        geometry: {
+          type: 'Polygon',
+          coordinates: [
+            [[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]],
+            [[b.west, b.south], [b.west, b.north], [b.east, b.north], [b.east, b.south], [b.west, b.south]],
+          ],
+        },
+      },
+    });
+    map.addLayer({
+      id: 'fire-europe-mask-fill',
+      type: 'fill',
+      source: 'fire-europe-mask',
+      layout: { visibility: 'none' },
+      paint: { 'fill-color': '#E0D6BE', 'fill-opacity': 1.0 },
+    });
+  }
 
   /** Jeder GL-Layer mit seiner echten Quelle und Darstellung. */
   const SPECS: Record<string, maplibregl.LayerSpecification> = {
