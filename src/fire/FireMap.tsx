@@ -658,7 +658,7 @@ export default function FireMap({
     const map = new maplibregl.Map({
       container: hostRef.current,
       style: basemapStyle(basemapRef.current),
-      bounds: DACH_BOUNDS,
+      bounds: region === 'europe' ? [EUROPE_BOX.west, EUROPE_BOX.south, EUROPE_BOX.east, EUROPE_BOX.north] : DACH_BOUNDS,
       fitBoundsOptions: { padding: 24 },
       attributionControl: { compact: true },
       // Der Waldbrand-Blick ist ein Flächenblick — Neigung und Drehung würden
@@ -958,7 +958,7 @@ export default function FireMap({
   }, [basemap]);
 
   // --- Gebietswechsel: Ausschnitt auf DACH bzw. Europa setzen ------------------
-  // Der erste Lauf tut nichts (die Karte startet auf DACH_BOUNDS); Masken stellt
+  // Der erste Lauf tut nichts (die Karte startet schon im Gebiet); Masken stellt
   // applyState um.
   const regionRef = useRef(region);
   useEffect(() => {

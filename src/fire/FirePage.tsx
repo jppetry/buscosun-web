@@ -211,8 +211,8 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     };
   });
   const [basemap, setBasemap] = useState<FireBasemap>('satellite');
-  /** Gebiet: DACH (Vorgabe, Abrufe wie bisher) oder Europa (nur auf Wunsch geladen). */
-  const [region, setRegion] = useState<FireRegion>('dach');
+  /** Gebiet: fest Europa (Jans Auftrag 2026-10-30, kein Umschalter); die DACH-Pfade bleiben im Code. */
+  const region: FireRegion = 'europe';
   /** Für welches Gebiet die Standortliste der Thermalanomalien geladen ist. */
   const thermalSitesRegionRef = useRef<FireRegion | null>(null);
   const [openInfo, setOpenInfo] = useState<FireLayerId | null>(null);
@@ -1809,23 +1809,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     </div>
   );
   const basemapLabel = basemap === 'streets' ? 'Straßen' : basemap === 'terrain' ? 'Gelände' : 'Satellit';
-  /** Gebiet DACH | Europa — dieselbe Segment-Optik wie die Basiskarte. Europa lädt die
-   *  Live-Quellen für die Europa-Box nach; DACH bleibt Vorgabe und unverändert. */
-  const regionSeg = (
-    <div className="br-basemap" role="group" aria-label="Gebiet">
-      {(['dach', 'europe'] as FireRegion[]).map((r) => (
-        <button
-          key={r} type="button"
-          className={region === r ? 'is-active' : ''}
-          aria-pressed={region === r}
-          onClick={() => setRegion(r)}
-        >
-          {REGION_LABEL[r]}
-        </button>
-      ))}
-    </div>
-  );
-
   /**
    * WF4 — die Punktkurve (Vorlage: Kästchen rechts auf der Karte): Koordinate,
    * Linie mit Stützpunkten, Stundenachse, der Pflichtsatz „Punkt (Fusion) ≠
@@ -2390,7 +2373,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                     <img src="/buscosun-mark.svg" width={22} height={22} alt="" />
                   </button>
                   {/* Mobil: Straßen | Satellit auf Höhe des Logos (Jans Auftrag 2026-10-23), die Quellen-Pille rückt darunter. */}
-                  <div className="br-m-basemaprow">{basemapSeg}{regionSeg}</div>
+                  <div className="br-m-basemaprow">{basemapSeg}</div>
                   <ShareButton className="br-m-share" compact />
                 </div>
               )}
@@ -2405,7 +2388,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
               )}
               {!isMobile && sourcePill}
               {/* Straßen | Satellit: Desktop/Tablet oben links (Jans Auftrag 2026-10-23), mobil oben mittig. */}
-              {!isMobile && <div className="br-segrow">{basemapSeg}{regionSeg}</div>}
+              {!isMobile && basemapSeg}
               {/* Mobil bleiben die Chips über der Karte: dort gibt es kein Dock, das sie tragen
                   könnte (auf dem Desktop stehen sie unter ihrer Layer-Zeile). Die Treiber-Notiz
                   steht mobil nur noch unter ihrer Layer-Zeile im Sheet, nicht in der Karte. */}
