@@ -974,36 +974,3 @@
 .sw-dock-picker .sw-note { padding: 14px; border-radius: 14px; border: 1px dashed var(--sw-dk-line); text-align: center; font-size: 13px; color: var(--stone-500, #8B7355); }
 .sw-readout.is-picker { background: linear-gradient(180deg, var(--sand-100, #EDE6D3) 0%, color-mix(in srgb, var(--sand-100, #EDE6D3) 70%, var(--cream-50, #FAF6EA)) 100%); padding: 18px 16px 58px; }
 @media (max-width: 767px) { .sw-m-dock .sw-dock-picker { flex: 1; min-height: 0; overflow-y: auto; padding: 18px 14px 20px; background: linear-gradient(180deg, var(--cream-50, #FAF6EA) 0%, color-mix(in srgb, var(--cream-50, #FAF6EA) 70%, var(--sand-100, #EDE6D3)) 100%); } }
-
-/* Spot-Dossier in the pattern of the two sidebars: pill chapter bar, hairline cards, accent bars on the section heads, a calmer hour band. */
-.sw-ds { --sw-ds-line: color-mix(in srgb, var(--sand-200, #E0D6BE) 75%, transparent); --sw-ds-shadow: 0 1px 0 rgba(255, 255, 255, 0.85) inset, 0 12px 26px -20px rgba(44, 42, 38, 0.4); }
-.sw-ds-tabs { gap: 4px; padding: 4px; border-radius: 999px; border: 1px solid var(--sw-ds-line); }
-.sw-ds-tab { border-radius: 999px; padding: 5px 16px 5px 8px; transition: background .15s, color .15s, box-shadow .15s; }
-.sw-ds-tab-n { width: 26px; height: 26px; font-size: 13.5px; border-width: 1.5px; }
-.sw-ds-tab.is-active { box-shadow: 0 8px 16px -8px color-mix(in srgb, var(--sw-accent, #0F6E7A) 75%, transparent); }
-.sw-ds .sw-card, .sw-tile { border: 1px solid var(--sw-ds-line); box-shadow: var(--sw-ds-shadow); }
-.sw-tile { border-radius: 20px; transition: box-shadow .2s, transform .2s; }
-.sw-tile:hover { transform: translateY(-1px); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.85) inset, 0 16px 30px -20px rgba(44, 42, 38, 0.5); }
-.sw-ds .sw-ds-head { border-radius: 22px; padding: 20px 22px;
-  background:
-    radial-gradient(60% 220px at 0% 0%, color-mix(in srgb, var(--sw-accent, #0F6E7A) 20%, transparent), transparent 100%),
-    radial-gradient(40% 160px at 100% 0%, color-mix(in srgb, var(--sw-accent, #0F6E7A) 8%, transparent), transparent 100%),
-    linear-gradient(180deg, rgba(250, 246, 234, 0.96), rgba(244, 238, 222, 0.92)); }
-.sw-ds-title { font-size: 30px; }
-.sw-ds-kpibar { padding-top: 14px; border-top: 1px solid var(--sw-ds-line); }
-.sw-ds .sw-sec-tx h3::before { content: ''; width: 14px; height: 3px; border-radius: 2px; box-shadow: none; }
-.sw-ds .sw-sec-tx h3 { gap: 8px; }
-.sw-ds-jump { border: 1px solid var(--sw-ds-line); box-shadow: var(--sw-ds-shadow); }
-.sw-ds-jump-b { border-radius: 999px; font-weight: 600; }
-.sw-ds-stat, .sw-ds .sw-now-block { border-radius: 16px; border-color: var(--sw-ds-line); }
-.sw-ds .sw-card.sw-chartpanel { border-radius: 20px; }
-.sw-chartpanel-leg span { background: rgba(255, 255, 255, 0.8); }
-/* Hour band: one rounded card, hairlines between the rows, the chosen hour as a column. */
-.sw-ds .sw-band { border-radius: 20px; border: 1px solid var(--sw-ds-line); box-shadow: var(--sw-ds-shadow); padding: 14px 16px 12px; background: rgba(255, 255, 255, 0.82); }
-.sw-ds .sw-band-table .sw-band-lab { background: transparent; }
-.sw-ds .sw-band-table tbody tr + tr td, .sw-ds .sw-band-table tbody tr + tr th { border-top: 1px solid color-mix(in srgb, var(--sand-100, #EDE6D3) 80%, transparent); }
-.sw-ds .sw-band-bar { border-radius: 6px; }
-/* Official texts and water level: same radius and line as the cards. */
-.sw-ds .sw-ar-status, .sw-ds .sw-ar-water { border-radius: 18px; }
-.sw-ds .sw-ar-row, .sw-ds .sw-ar-wt, .sw-ds .sw-card.is-wide .sw-wl-events li { border-radius: 14px; }
-@media (prefers-reduced-motion: reduce) { .sw-tile { transition: none; } .sw-tile:hover { transform: none; } }
