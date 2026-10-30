@@ -279,8 +279,12 @@ export function countMapped(dets: readonly Detection[], polys: readonly BurntPol
   return n;
 }
 
+// Ein Formatierer für alle Aufrufe: `toLocaleDateString` mit Optionen baut je Aufruf einen
+// neuen — bei 15 000 Saisonflächen (Europa) waren das ≈ 5 s. Ausgabe identisch.
+const DATE_DE_UTC = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
+const NUM_DE = new Intl.NumberFormat('de-DE');
 const fmtDate = (ms: number | null): string =>
-  ms == null ? '—' : new Date(ms).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
+  ms == null ? '—' : DATE_DE_UTC.format(new Date(ms));
 
 /**
  * Der Satz zur Bestätigung. Das einzige „bestätigt" der Ansicht — mit Quelle,
@@ -288,7 +292,7 @@ const fmtDate = (ms: number | null): string =>
  * das Feuer „gemeldet".
  */
 export function corroborationLabel(p: BurntPolygon): string {
-  const ha = p.areaHa == null ? 'Fläche nicht angegeben' : `${p.areaHa.toLocaleString('de-DE')} ha`;
+  const ha = p.areaHa == null ? 'Fläche nicht angegeben' : `${NUM_DE.format(p.areaHa)} ha`;
   const top = landcoverBreakdown(p)[0];
   const lc = top ? `, ${Math.round(top.pct)} % ${top.label}` : '';
   return `Brandfläche von EFFIS kartiert (bestätigt): ${ha}${lc} · Branddatum ${fmtDate(p.firedateMs)}`

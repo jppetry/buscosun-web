@@ -103,11 +103,14 @@ export function reconcileZones(
   const estimated: FireZone[] = [];
   const confirmed: ConfirmedFootprint[] = [];
   if (polys.length === 0) return { estimated: [...zones], confirmed };
+  // Flächen ohne Umriss (Europa-Saisonliste) können keine Zone überdecken — vorab heraus,
+  // sonst liefe jede Zone über ~15 000 Einträge, die nie treffen.
+  const shaped = polys.filter((p) => p.polys.length > 0);
 
   for (const zone of zones) {
     let best: BurntPolygon | null = null;
     let bestDt = Infinity;
-    for (const poly of polys) {
+    for (const poly of shaped) {
       if (!timeOverlaps(zone, poly)) continue;
       if (!overlaps(zone, poly)) continue;
       const dt = Math.abs((poly.firedateMs ?? 0) - zone.lastMs);

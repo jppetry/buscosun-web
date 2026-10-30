@@ -53,8 +53,7 @@ export function inDachBox(lat: number, lon: number): boolean {
  * nicht „kein Brand" oder „keine Gefahr".
  */
 export const EUROPE_LIMIT_NOTE: Partial<Record<string, string>> = {
-  fireBurnt: 'Europa: kartierte Brandflächen (Saison, Archiv) nur für DE/AT/CH — der europäische EFFIS-Saisonkorb wäre rund 125 MB groß. Außerhalb heißt eine leere Karte nicht „keine Brandfläche".',
-  fireFootprints: 'Europa: außerhalb DE/AT/CH beruhen die Brände nur auf Satellitendetektionen (FIRMS) und der EFFIS-Wochenkartierung; die Saison-Kartierung fehlt dort.',
+  fireBurnt: 'Europa: das Archiv (Vorjahre) gibt es nur für DE/AT/CH. Die Saison außerhalb kommt aus einer EFFIS-Liste; Umrisse lädt die Karte ab Zoom 9 nach, bis dahin steht ein Punkt.',
   fireWeather: 'Nur DE/AT/CH (ICON-D2-Gebiet) — außerhalb ist die Fläche abgedeckt: nicht verfügbar, nicht „keine Gefahr".',
   fireSoilDryness: 'Nur DE/AT/CH (ICON-D2-Gebiet) — außerhalb ist die Fläche abgedeckt: nicht verfügbar, nicht „keine Trockenheit".',
 };

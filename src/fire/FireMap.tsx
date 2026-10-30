@@ -131,7 +131,7 @@ const GL_LAYERS: Record<FireLayerId, string[]> = {
   // Lage tragen. Überlappen können sie sich nicht (die Körbe teilen die Zeit).
   fireBurnt: [
     'fire-burnt-archive-fill', 'fire-burnt-archive-line',
-    'fire-burnt-season-fill', 'fire-burnt-season-line',
+    'fire-burnt-season-fill', 'fire-burnt-season-line', 'fire-burnt-season-pt',
     'fire-burnt-week-fill', 'fire-burnt-week-line',
   ],
   fireContext: ['fire-context-raster', 'fire-clc-raster'],
@@ -180,7 +180,7 @@ const CUSTOM_GL_LAYERS = new Set([
 
 const BURNT_GL: Record<BurntBucket, string[]> = {
   week: ['fire-burnt-week-fill', 'fire-burnt-week-line'],
-  season: ['fire-burnt-season-fill', 'fire-burnt-season-line'],
+  season: ['fire-burnt-season-fill', 'fire-burnt-season-line', 'fire-burnt-season-pt'],
   archive: ['fire-burnt-archive-fill', 'fire-burnt-archive-line'],
 };
 const BURNT_BUCKETS: readonly BurntBucket[] = ['week', 'season', 'archive'];
@@ -721,7 +721,7 @@ export default function FireMap({
     // wirft, wenn der Layer beim Registrieren noch nicht existiert — und die
     // Hotspot-Layer entstehen erst in `installLayers`, nach einem Stilwechsel
     // sogar erneut. `queryRenderedFeatures` ist dagegen jederzeit gültig.
-    const BURNT_FILLS = ['fire-burnt-week-fill', 'fire-burnt-season-fill', 'fire-burnt-archive-fill'];
+    const BURNT_FILLS = ['fire-burnt-week-fill', 'fire-burnt-season-fill', 'fire-burnt-season-pt', 'fire-burnt-archive-fill'];
     const present = (ids: string[]) => ids.filter((id) => !!map.getLayer(id));
     /**
      * Trefferzone um den Klickpunkt: kleine Punkte, Rauten und schmale Flächen trifft man mit dem
@@ -1592,6 +1592,25 @@ function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets') {
     'fire-burnt-season-line': {
       id: 'fire-burnt-season-line', type: 'line', source: 'fire-burnt-season',
       paint: { 'line-color': '#2A2119', 'line-width': 1.4 },
+    },
+    /**
+     * Europa: Saisonflächen außerhalb DACH, deren Umriss (noch) nicht geladen ist — als
+     * Punkt an der Bbox-Mitte, dieselbe Landbedeckungsfarbe, Größe nach kartierter Fläche.
+     * Die Quelle ist dieselbe wie die der Flächen; in DACH trägt sie nur Polygone, dieser
+     * Layer zeichnet dort also nichts. Ist der Umriss geladen, wird aus dem Punkt die Fläche.
+     */
+    'fire-burnt-season-pt': {
+      id: 'fire-burnt-season-pt', type: 'circle', source: 'fire-burnt-season',
+      filter: ['==', ['geometry-type'], 'Point'],
+      paint: {
+        'circle-color': landcoverColorExpression(),
+        'circle-radius': ['interpolate', ['linear'], ['zoom'],
+          4, ['interpolate', ['linear'], ['coalesce', ['get', 'ha'], 0], 0, 1.6, 100, 2.4, 1000, 4, 10000, 6],
+          9, ['interpolate', ['linear'], ['coalesce', ['get', 'ha'], 0], 0, 3.5, 100, 5, 1000, 8, 10000, 11]],
+        'circle-opacity': 0.85,
+        'circle-stroke-color': '#2A2119',
+        'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 4, 0.5, 9, 1.2],
+      },
     },
     /**
      * BF4 — die Flächen der letzten sieben Tage. Dieselbe Landbedeckungsfarbe

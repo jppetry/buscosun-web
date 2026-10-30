@@ -369,7 +369,7 @@ export function withCountries(
 // ---------------------------------------------------------------------------
 
 /** `outside` heißt „außerhalb DE/AT/CH", `null` heißt „noch nichts bekannt". */
-export function countryLabel(c: FireCluster['country']): string {
+export function countryLabel(c: FireCluster['country'] | string): string {
   if (c == null) return '—';
   return c === 'outside' ? 'außerhalb DE/AT/CH' : c;
 }

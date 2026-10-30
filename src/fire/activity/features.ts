@@ -159,7 +159,8 @@ export function featuresOf(r: FireRecord, asOfMs: number): FireFeatures {
     featureVersion: FEATURE_VERSION,
     id: r.id,
     asOfMs,
-    country: r.country,
+    // Das Kalibriermodell kennt nur DE/AT/CH/outside — ein Europa-Code bleibt „outside".
+    country: r.country == null ? null : r.country === 'DE' || r.country === 'AT' || r.country === 'CH' ? r.country : 'outside',
     lat: round5(r.lat),
     lon: round5(r.lon),
     nDetections: r.hotspots,

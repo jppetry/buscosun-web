@@ -45,6 +45,7 @@ import type { Reconciled } from './reconcile';
 import { reconcileZones, fixturePoly } from './reconcile';
 import { assess, type AssessmentLevel } from '../fireAssessment';
 import { emsActivationFor, type EmsActivation } from '../sources/emsActivations';
+import { isoCountry } from '../sources/effisSeasonEurope';
 import { metersBetween, detectionKey, type FirmsConfidence, type FirmsRow } from '../sources/firmsHotspots';
 import { ageText, stampLabel } from '../../dataAge';
 // AF1: Überflüge und Aktivität — additiv, dieselbe Regel wie in den Clustern.
@@ -56,7 +57,6 @@ import { estimateValueText, estimateSourceText, type AreaEstimate } from '../act
 import type { Observation } from '../activity/observation';
 import type { ThermalSite } from '../anomaly/thermalSites';
 import { anomalyOf, siteLabel, type FireAnomaly } from '../anomaly/classify';
-import type { Country } from '../../types';
 
 // ---------------------------------------------------------------------------
 // Modell
@@ -78,7 +78,11 @@ export interface FireRecord {
   mergedFrom: string[];
   /** Kennung, aus der dieser Eintrag herausgefallen ist (Split), sonst `null`. */
   splitFrom: string | null;
-  country: Country | 'outside' | null;
+  /**
+   * ISO-3166-Code des Landes (`DE`, `FR`, `PT` …). `'outside'` = außerhalb DE/AT/CH, ohne
+   * belegte Zuordnung (keine EFFIS-Angabe, kein Ort im Umkreis); `null` = noch unbekannt.
+   */
+  country: string | null;
   lat: number;
   lon: number;
   bbox: [number, number, number, number];
@@ -148,7 +152,7 @@ export interface RegistryInput {
    * Einträge OHNE EFFIS-Ortsangabe; `null` = kein Ort im Umkreis, es wird nichts
    * behauptet. Fehlt die Funktion (Verzeichnis nicht geladen), bleibt der Ort leer.
    */
-  placeAt?: (lat: number, lon: number) => { name: string; district: string | null; distanceKm: number } | null;
+  placeAt?: (lat: number, lon: number) => { name: string; district: string | null; distanceKm: number; country?: string | null } | null;
   /**
    * AF2: regionale Beobachtungsgelegenheit seit der letzten Detektion
    * (`activity/observation.ts`, Index über die angezeigten Zeilen) — nur für
@@ -409,7 +413,7 @@ export function buildFireRegistry(input: RegistryInput): FireRecord[] {
       // sichtbar (Auswahl/Permalink springt nicht ins Leere).
       previousIds: parts.filter((g) => g.anchorKey !== c.anchorKey).map(clusterId),
       mergedFrom: [], splitFrom: null,
-      country: c.country,
+      country: clusterCountry(c.country, effis, input.placeAt, c.lat, c.lon),
       lat: c.lat, lon: c.lon,
       bbox: effis ? unionBbox(c.bbox, effis.bbox) : c.bbox,
       geometry,
@@ -451,6 +455,10 @@ export function buildFireRegistry(input: RegistryInput): FireRecord[] {
       if (p.firedateMs == null || p.firedateMs < effisWindow.fromMs || p.firedateMs >= effisWindow.toMs) continue;
       const lon = (p.bbox[0] + p.bbox[2]) / 2; const lat = (p.bbox[1] + p.bbox[3]) / 2;
       const ems = emsActivationFor({ lat, lon, firstMs: p.firedateMs }, emsActs);
+      // Ohne EMS und mit EFFIS-Ort hängt der Eintrag allein an der Fläche — wiederverwenden.
+      const reusable = !ems && !!(p.commune || p.province);
+      const known = reusable ? _effisOnly.get(p) : undefined;
+      if (known) { out.push(known); continue; }
       const assessment = assess({ mapped: p, official: null, ems, overpasses: null, suspectedStatic: false, atContext: null, landcover: null });
       out.push({
         id: effisId(p),
@@ -474,10 +482,18 @@ export function buildFireRegistry(input: RegistryInput): FireRecord[] {
         passes: [],
         activity: null,
       });
+      if (reusable) _effisOnly.set(p, out[out.length - 1]);
     }
   }
   return out;
 }
+
+/**
+ * Reine EFFIS-Einträge ohne EMS-Treffer und mit EFFIS-Ort sind eine reine Funktion ihrer
+ * Fläche (`statusOf` ohne Detektion und ohne EMS hängt nicht an der Uhr). In Europa sind das
+ * ~15 000 je Lauf — gebaut wird jeder nur einmal je Flächenobjekt.
+ */
+const _effisOnly = new WeakMap<BurntPolygon, FireRecord>();
 
 /** Ort aus dem Verzeichnis — oder ausdrücklich nichts. */
 function placeFrom(
@@ -493,11 +509,27 @@ function unionBbox(a: [number, number, number, number], b: [number, number, numb
   return [Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[2], b[2]), Math.max(a[3], b[3])];
 }
 
-/** EFFIS `COUNTRY` ist ein ISO-2-Code — nur DE/AT/CH werden übernommen, der Rest ist „außerhalb". */
-export function countryFromEffis(code: string | null): Country | 'outside' | null {
-  if (!code) return null;
-  const c = code.trim().toUpperCase();
-  return c === 'DE' || c === 'AT' || c === 'CH' ? (c as Country) : 'outside';
+/** EFFIS `COUNTRY` → ISO-Code (EFFIS führt `EL`/`UK`/`KS`, s. `isoCountry`); ohne Angabe `null`. */
+export function countryFromEffis(code: string | null): string | null {
+  return isoCountry(code);
+}
+
+/**
+ * Land eines Detektions-Eintrags. Innerhalb DE/AT/CH entscheiden die Landesumrisse (wie
+ * bisher); außerhalb zuerst die EFFIS-Kartierung desselben Brands, dann der nächste Ort des
+ * Verzeichnisses (≤ 20 km) — aber nie ein DACH-Ort, wenn die Umrisse „außerhalb" sagen
+ * (ein Grenzbrand in Polen ist kein deutscher, nur weil die nächste Stadt deutsch ist).
+ * Ohne beides bleibt es `'outside'`, nichts wird geraten.
+ */
+function clusterCountry(
+  ringCountry: FireCluster['country'], effis: BurntPolygon | null,
+  placeAt: RegistryInput['placeAt'], lat: number, lon: number,
+): string | null {
+  if (ringCountry !== 'outside') return ringCountry;
+  const fromEffis = isoCountry(effis?.country);
+  if (fromEffis) return fromEffis;
+  const near = placeAt ? isoCountry(placeAt(lat, lon)?.country) : null;
+  return near && near !== 'DE' && near !== 'AT' && near !== 'CH' ? near : 'outside';
 }
 
 // ---------------------------------------------------------------------------
@@ -606,7 +638,7 @@ export function sortRecords(records: readonly FireRecord[], by: RecordSort): Fir
 export interface RecordFilter {
   minAreaHa: number;
   status: ReadonlySet<FireStatusKind> | null;
-  countries: ReadonlySet<Country | 'outside'> | null;
+  countries: ReadonlySet<string> | null;
   /**
    * TA4: Einträge, die zum Anlagenmuster passen (`anomaly.kind === 'site'`), stehen im Reiter
    * „Thermalanomalien"; `'hide'` nimmt sie aus der Brandliste (Default, Jans Entscheidung #4
@@ -880,6 +912,8 @@ export function footprintsToGeoJSON(
     let dup: 0 | 1 = 0;
     if (r.geometry.kind === 'effis' && r.sources.effis) {
       const p = r.sources.effis;
+      // Europa-Saisonliste ohne Umriss: kein Polygon — der Punkt der Brandflächen-Ebene liegt dort.
+      if (p.polys.length === 0) continue;
       geometry = p.polys.length === 1
         ? { type: 'Polygon', coordinates: p.polys[0] }
         : { type: 'MultiPolygon', coordinates: p.polys };

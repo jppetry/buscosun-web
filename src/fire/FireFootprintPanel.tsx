@@ -129,6 +129,10 @@ export interface FootprintPanelProps {
   placesLoaded?: boolean;
   /** GWBA1 A3: GeoSphere-Warnkontext je AT-Brand — Zitat, nie Bestätigung. */
   atContextFor?: (r: FireRecord) => AtWarnContext | null;
+  /** Länder der Einträge (häufigste zuerst) für den Land-Filter; ohne Angabe DE/AT/CH. */
+  countries?: readonly string[];
+  /** Europa: Herkunft und Stand der Saison außerhalb DE/AT/CH — steht unter „Umfang". */
+  scopeNote?: string | null;
 }
 
 /** 6 h ohne neuen Überflug bzw. 4 d ohne EFFIS-Bearbeitung ⇒ „veraltet" (gemessene Takte). */
@@ -323,7 +327,7 @@ export function FireFootprintPanel(p: FootprintPanelProps) {
     if (next.has(k)) next.delete(k); else next.add(k);
     p.onFilter({ ...filter, status: next.size ? next : null });
   };
-  const setCountry = (c: Country) => {
+  const setCountry = (c: string) => {
     const next = new Set(filter.countries ?? []);
     if (next.has(c)) next.delete(c); else next.add(c);
     p.onFilter({ ...filter, countries: next.size ? next : null });
@@ -431,6 +435,8 @@ export function FireFootprintPanel(p: FootprintPanelProps) {
         </button>
       </div>
 
+      {p.scopeNote && p.effisScope === 'season' && <p className="br-note">{p.scopeNote}</p>}
+
       {filtersOpen && (
         <div className="br-filters">
           <div className="br-chiprow" role="group" aria-label="Mindestfläche">
@@ -460,14 +466,15 @@ export function FireFootprintPanel(p: FootprintPanelProps) {
           </div>
           <div className="br-chiprow" role="group" aria-label="Land">
             <span className="br-chiprow-lbl">Land:</span>
-            {(['DE', 'AT', 'CH'] as Country[]).map((c) => (
+            {(p.countries && p.countries.length > 0 ? p.countries : (['DE', 'AT', 'CH'] as Country[])).map((c) => (
               <button
                 key={c} type="button"
                 className={`br-chip is-ink${!filter.countries || filter.countries.has(c) ? ' is-active' : ''}`}
                 aria-pressed={!filter.countries || filter.countries.has(c)}
+                title={c === 'outside' ? 'außerhalb DE/AT/CH, ohne belegte Landeszuordnung' : undefined}
                 onClick={() => setCountry(c)}
               >
-                {c}
+                {c === 'outside' ? 'außerhalb' : c}
               </button>
             ))}
             <span className="br-muted" title="Einträge ohne Landeszuordnung (Umrisse noch nicht geladen) bleiben bei jedem Filter sichtbar — nichts wird behauptet.">unbekannt bleibt</span>

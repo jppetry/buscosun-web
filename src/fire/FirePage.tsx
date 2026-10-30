@@ -105,6 +105,10 @@ import {
 } from './sources/euContext';
 import { DANGER_VIEWS, DANGER_VIEW_ORDER, DEFAULT_DANGER_VIEW, type DangerView } from './dangerViews';
 import { countMapped, mappedAreaFor, type BurntPolygon } from './fireCorroboration';
+import {
+  loadEffisSeasonEurope, fetchEffisOutlines, isOutlineless, seasonFeature, type EuropeSeason,
+} from './sources/effisSeasonEurope';
+import type { Map as MapLibreMap } from 'maplibre-gl';
 import { defaultPlayback, stepPlayback, prefetchTarget, daysPerSecondForTier, hoursPerSecondForTier } from './firePlayback';
 import { frameAtValidTime } from '../sources/frameAtValidTime';
 import { BottomSheet, type BottomSheetSnap } from '../mobile/BottomSheet';
@@ -239,6 +243,11 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   const [burntArchive, setBurntArchive] = useState<BurntRun | null>(null);
   /** Flächen der letzten 7 Tage — Bestätigung der Detektionen (E1/E2). */
   const [burntWeek, setBurntWeek] = useState<BurntPolygon[]>([]);
+  /** Europa: Saisonliste außerhalb DACH (ohne Umrisse) und die nachgeholten Umrisse je `id`. */
+  const [europeSeason, setEuropeSeason] = useState<EuropeSeason | null>(null);
+  const [europeOutlines, setEuropeOutlines] = useState<ReadonlyMap<string, BurntPolygon>>(() => new Map());
+  /** Die Karteninstanz — für das Nachladen der Umrisse am Ausschnitt. */
+  const [fireMapInst, setFireMapInst] = useState<MapLibreMap | null>(null);
   /** Die FIRMS-Zeilen des aktuellen Laufs — für die Zählung „in kartierter Fläche". */
   const [hotspotRows, setHotspotRows] = useState<readonly FirmsRow[]>([]);
   /** BA3: das Detektionsraster des angezeigten Fensters (Worker, nach dem Paint). */
@@ -887,6 +896,94 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     return () => ac.abort();
   }, [active, burntBuckets, setLayerLoad]);
 
+  // Europa: die Saisonliste außerhalb DACH — statisch, einmal je Sitzung, im Leerlauf nach dem ersten Paint.
+  useEffect(() => {
+    if (region !== 'europe' || !active.has('fireBurnt') || europeSeason) return;
+    let alive = true;
+    const idle = (cb: () => void) => (typeof requestIdleCallback === 'function' ? requestIdleCallback(cb) : setTimeout(cb, 300));
+    idle(() => { void loadEffisSeasonEurope().then((list) => { if (alive && list) setEuropeSeason(list); }); });
+    return () => { alive = false; };
+  }, [region, active, europeSeason]);
+
+  /** Umrisse nachholen (WFS `featureid`) und in den Bestand legen — nur, wenn wirklich neue da sind. */
+  const addOutlines = useCallback((ids: readonly string[]) => {
+    if (ids.length === 0) return;
+    void fetchEffisOutlines(ids).then((polys) => {
+      if (polys.length === 0) return;
+      setEuropeOutlines((prev) => {
+        if (polys.every((x) => prev.get(x.id) === x)) return prev;
+        const next = new Map(prev);
+        for (const x of polys) next.set(x.id, x);
+        return next;
+      });
+    });
+  }, []);
+
+  /**
+   * Der Saison-Korb, wie ihn die Seite benutzt. In DACH (und solange die Europa-Liste fehlt)
+   * exakt `burntSeason`. In Europa ergänzt um jede Fläche der Saisonliste außerhalb des
+   * DACH-Abrufs — je Fläche der beste vorhandene Stand: nachgeholter Umriss, sonst Umriss aus
+   * dem Wochenkorb (live), sonst der Listeneintrag ohne Umriss (Karte: Punkt). Flächen des
+   * Wochenkorbs, die jünger als die Liste sind, kommen dazu.
+   */
+  const seasonAll = useMemo<BurntRun | null>(() => {
+    if (region !== 'europe' || !europeSeason) return burntSeason;
+    const polygons: BurntPolygon[] = burntSeason ? [...burntSeason.polygons] : [];
+    const features: GeoJSON.Feature[] = burntSeason ? [...burntSeason.features.features] : [];
+    const have = new Set(polygons.map((x) => x.id));
+    const week = new Map(burntWeek.map((x) => [x.id, x]));
+    const add = (x: BurntPolygon) => { have.add(x.id); polygons.push(x); features.push(seasonFeature(x)); };
+    for (const listed of europeSeason.polygons) {
+      if (!have.has(listed.id)) add(europeOutlines.get(listed.id) ?? week.get(listed.id) ?? listed);
+    }
+    const yearStart = Date.UTC(new Date().getUTCFullYear(), 0, 1);
+    for (const x of burntWeek) if (!have.has(x.id) && x.firedateMs != null && x.firedateMs >= yearStart) add(x);
+    let from: number | null = null, to: number | null = null, upd: number | null = null;
+    let minHa: number | null = null, maxHa: number | null = null;
+    for (const x of polygons) {
+      if (x.firedateMs != null) { if (from == null || x.firedateMs < from) from = x.firedateMs; if (to == null || x.firedateMs > to) to = x.firedateMs; }
+      if (x.lastUpdateMs != null && (upd == null || x.lastUpdateMs > upd)) upd = x.lastUpdateMs;
+      if (x.areaHa != null) { if (minHa == null || x.areaHa < minHa) minHa = x.areaHa; if (maxHa == null || x.areaHa > maxHa) maxHa = x.areaHa; }
+    }
+    const day = (ms: number | null) => (ms == null ? null : new Date(ms).toISOString().slice(0, 10));
+    return {
+      bucket: 'season', features: { type: 'FeatureCollection', features }, polygons, count: polygons.length,
+      from: day(from), to: day(to), lastUpdateMs: upd, minAreaHa: minHa, maxAreaHa: maxHa,
+      truncated: burntSeason?.truncated ?? false,
+    };
+  }, [region, europeSeason, burntSeason, burntWeek, europeOutlines]);
+
+  /**
+   * Umrisse am Ausschnitt: ab Zoom 9 holt die Seite die Umrisse der Saisonflächen im Bild nach
+   * (höchstens 250 je Ausschnitt — sonst erst näher heran). Weiter draußen bleiben es Punkte;
+   * ein Umriss wäre dort ohnehin kaum ein Pixel groß.
+   */
+  const outlinelessRef = useRef<readonly BurntPolygon[]>([]);
+  outlinelessRef.current = useMemo(
+    () => (region === 'europe' && seasonAll ? seasonAll.polygons.filter(isOutlineless) : []),
+    [region, seasonAll],
+  );
+  useEffect(() => {
+    const m = fireMapInst;
+    if (!m || region !== 'europe') return;
+    const onMove = () => {
+      if (m.getZoom() < 9) return;
+      const b = m.getBounds();
+      const w = b.getWest(), so = b.getSouth(), e = b.getEast(), n = b.getNorth();
+      const ids: string[] = [];
+      for (const x of outlinelessRef.current) {
+        const [pw, ps, pe, pn] = x.bbox;
+        if (pe < w || pw > e || pn < so || ps > n) continue;
+        ids.push(x.id);
+        if (ids.length > 250) return;
+      }
+      addOutlines(ids);
+    };
+    m.on('moveend', onMove);
+    onMove();
+    return () => { m.off('moveend', onMove); };
+  }, [fireMapInst, region, europeSeason, addOutlines]);
+
   /**
    * BF4 — die Aufteilung des Saison-Korbs in „letzte 7 Tage" und „ältere".
    *
@@ -900,27 +997,27 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
    * wieder auf.
    */
   const burntSplit = useMemo(() => {
-    const fc = burntSeason?.features ?? null;
-    if (!burntSeason || !burntBuckets.has('week')) {
+    const fc = seasonAll?.features ?? null;
+    if (!seasonAll || !burntBuckets.has('week')) {
       return { weekFc: null, seasonFc: fc, weekCount: 0, weekUpdate: null as number | null };
     }
     const now = Date.now();
-    const windowIds = historyIds(burntSeason.polygons, now, null);
-    const shownIds = burntDay == null ? windowIds : historyIds(burntSeason.polygons, now, burntDay);
+    const windowIds = historyIds(seasonAll.polygons, now, null);
+    const shownIds = burntDay == null ? windowIds : historyIds(seasonAll.polygons, now, burntDay);
     return {
       weekFc: filterFeaturesById(fc, shownIds, true),
       seasonFc: filterFeaturesById(fc, windowIds, false),
       weekCount: shownIds.size,
-      weekUpdate: latestUpdateMs(burntSeason.polygons, shownIds),
+      weekUpdate: latestUpdateMs(seasonAll.polygons, shownIds),
     };
-  }, [burntSeason, burntBuckets, burntDay]);
+  }, [seasonAll, burntBuckets, burntDay]);
 
   /** Polygon-Modell beider Körbe, per `id` — fürs Flächen-Popup der Karte. */
   const burntLookup = useMemo(() => {
     const m = new Map<string, BurntPolygon>();
-    for (const r of [burntArchive, burntSeason]) if (r) for (const p of r.polygons) m.set(p.id, p);
+    for (const r of [burntArchive, seasonAll]) if (r) for (const p of r.polygons) m.set(p.id, p);
     return m;
-  }, [burntSeason, burntArchive]);
+  }, [seasonAll, burntArchive]);
 
   /**
    * BF3 — **Ersetzung statt Addition.** Wo eine kartierte Fläche denselben Brand
@@ -938,10 +1035,10 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   const drawnBurntPolys = useMemo<BurntPolygon[]>(() => {
     if (!active.has('fireBurnt')) return [];
     const out: BurntPolygon[] = [];
-    if (burntSeason && (burntBuckets.has('season') || burntBuckets.has('week'))) out.push(...burntSeason.polygons);
+    if (seasonAll && (burntBuckets.has('season') || burntBuckets.has('week'))) out.push(...seasonAll.polygons);
     if (burntArchive && burntBuckets.has('archive')) out.push(...burntArchive.polygons);
     return out;
-  }, [active, burntBuckets, burntSeason, burntArchive]);
+  }, [active, burntBuckets, seasonAll, burntArchive]);
 
   const reconciled = useMemo(
     () => reconcileZones(fireZones, drawnBurntPolys),
@@ -959,9 +1056,9 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   const registryPolys = useMemo<BurntPolygon[]>(() => {
     const m = new Map<string, BurntPolygon>();
     for (const p of burntWeek) m.set(p.id, p);
-    if (burntSeason) for (const p of burntSeason.polygons) m.set(p.id, p);
+    if (seasonAll) for (const p of seasonAll.polygons) m.set(p.id, p);
     return [...m.values()];
-  }, [burntWeek, burntSeason]);
+  }, [burntWeek, seasonAll]);
   const registryReconciled = useMemo(
     () => reconcileZones(fireZones, registryPolys),
     [fireZones, registryPolys],
@@ -999,7 +1096,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   const observationIndex = useMemo(() => (hotspotRows.length > 0 ? buildObservationIndex(hotspotRows) : null), [hotspotRows]);
   const records = useMemo<FireRecord[]>(() => {
     const now = Date.now();
-    const win = fpEffisScope === 'season' && burntSeason
+    const win = fpEffisScope === 'season' && seasonAll
       ? { fromMs: 0, toMs: now + 86_400_000 }
       : historyWindow(now);
     const built = buildFireRegistry({
@@ -1010,7 +1107,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
       siteAt: thermalSites ? (lat, lon) => siteAt(thermalSites, lat, lon) : undefined,
       placeAt: places ? (lat, lon) => {
         const h = nearestPlace(places, lat, lon);
-        return h ? { name: h.name, district: h.district, distanceKm: h.distanceKm } : null;
+        return h ? { name: h.name, district: h.district, distanceKm: h.distanceKm, country: h.country } : null;
       } : undefined,
       observationAt: observationIndex ? (lat, lon, lastMs) => observationFor(observationIndex, lat, lon, lastMs) : undefined,
       // AF4: Flächenschätzung aus Merkmalsatz + Modell — nur mit geladenem Modell (Kill-Switch `?afEst=0`).
@@ -1020,7 +1117,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     const carried = carryIds(built, prevRecordsRef.current);
     prevRecordsRef.current = carried;
     return carried;
-  }, [clusterList, fireZones, registryReconciled, registryPolys, emsActs, fpEffisScope, burntSeason, clcMask, thermalSites, places, observationIndex, areaModel]);
+  }, [clusterList, fireZones, registryReconciled, registryPolys, emsActs, fpEffisScope, seasonAll, clcMask, thermalSites, places, observationIndex, areaModel]);
   const recordsById = useMemo(() => new Map(records.map((r) => [r.id, r])), [records]);
   /** TA4: Einträge des Fensters auf einem bekannten Standort — Zähler des Reiters. */
   const liveSiteCount = useMemo(() => records.filter((r) => r.anomaly).length, [records]);
@@ -1126,6 +1223,12 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     if (rank >= 0) setShownFootprints((n) => Math.max(n, Math.ceil((rank + 1) / CLUSTER_PAGE) * CLUSTER_PAGE));
     return true;
   }, [panelRecords, recordsById, openMapCard]);
+  // Europa: das Dossier einer Saisonfläche ohne Umriss holt ihn nach (Minikarte, Satellitenbild).
+  useEffect(() => {
+    if (region !== 'europe' || !selectedFootprint) return;
+    const eff = recordsById.get(selectedFootprint)?.sources.effis;
+    if (eff && isOutlineless(eff)) addOutlines([eff.id]);
+  }, [region, selectedFootprint, recordsById, addOutlines]);
   const clearFootprint = useCallback(() => { setSelectedFootprint(null); setSelectedSite(null); setFocusBbox(null); }, []);
   /**
    * BD2b: Klick auf eine EFFIS-Fläche — gehört sie einem Brand der Registry
@@ -1957,6 +2060,25 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     </div>
   );
 
+  /** Länder der Einträge, häufigste zuerst — die Filter-Chips des Panels. */
+  const countryOptions = useMemo(() => {
+    const n = new Map<string, number>();
+    for (const r of records) if (r.country) n.set(r.country, (n.get(r.country) ?? 0) + 1);
+    return [...n.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([c]) => c);
+  }, [records]);
+  /** Europa: woher die Saison außerhalb DE/AT/CH kommt — und ob die Liste eine Lücke lässt. */
+  const europeSeasonNote = useMemo<string | null>(() => {
+    if (region !== 'europe') return null;
+    if (!europeSeason) return 'Saison außerhalb DE/AT/CH: die EFFIS-Liste wird geladen …';
+    const day = (ms: number | null) => (ms == null ? '—' : new Date(ms).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }));
+    const weekFrom = Date.now() - 7 * 86_400_000;
+    const gap = europeSeason.builtMs != null && europeSeason.builtMs < weekFrom
+      ? ` Flächen, die EFFIS zwischen ${day(europeSeason.builtMs)} und ${day(weekFrom)} kartiert hat, fehlen außerhalb DE/AT/CH — die Liste ist älter als der 7-Tage-Korb.`
+      : '';
+    return `Saison außerhalb DE/AT/CH: EFFIS-Liste (Stand ${day(europeSeason.lastUpdateMs)}), jüngere Flächen live aus dem 7-Tage-Korb. `
+      + `Umrisse lädt die Karte ab Zoom 9 und das Dossier nach; bis dahin steht ein Punkt an der Stelle.${gap}`;
+  }, [region, europeSeason]);
+
   const footprintPanel = (inSheet: boolean) => (
     <FireFootprintPanel
       inSheet={inSheet}
@@ -1967,7 +2089,9 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
       windowH={time.windowH}
       sort={fpSort} onSort={setFpSort}
       filter={fpFilter} onFilter={setFpFilter}
-      effisScope={burntSeason ? fpEffisScope : 'week'} onEffisScope={setFpEffisScope}
+      effisScope={seasonAll ? fpEffisScope : 'week'} onEffisScope={setFpEffisScope}
+      countries={countryOptions}
+      scopeNote={europeSeasonNote}
       shown={shownFootprints} onShowMore={() => setShownFootprints((n) => n + CLUSTER_PAGE)}
       hoverId={hoverFootprint} onHover={setHoverFootprint}
       selectedId={selectedFootprint} onSelect={openDossier} onClearSelect={clearFootprint}
@@ -1984,8 +2108,8 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
         detections: hotspotRows.length,
         clustersReady: hotspotRows.length === 0 || clusters.length > 0,
         detectionAgeMs: load.fireHotspots?.kind === 'ok' && load.fireHotspots.ref ? nowMs - load.fireHotspots.ref.atMs : null,
-        effisUpdateMs: burntSeason?.lastUpdateMs ?? latestUpdateMs(burntWeek),
-        seasonLoaded: !!burntSeason,
+        effisUpdateMs: seasonAll?.lastUpdateMs ?? latestUpdateMs(burntWeek),
+        seasonLoaded: !!seasonAll,
         effisFailed: load.fireBurnt?.kind === 'error',
       }}
     />
@@ -2358,7 +2482,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
               burntSeason={burntSplit.seasonFc} burntArchive={burntArchive?.features ?? null}
               burntWeekFc={burntSplit.weekFc}
               burntBuckets={burntBuckets} burntLookup={burntLookup} burntWeek={burntWeek}
-              fireEvents={fireEvents} emsActs={emsActs} atContexts={atContexts} clcMask={clcMask} region={region}
+              fireEvents={fireEvents} emsActs={emsActs} atContexts={atContexts} clcMask={clcMask} region={region} onMapRef={setFireMapInst}
               weather={weather} soil={soil}
 
               prefetchIsoDate={prefetchIso} onTier={setTier}
