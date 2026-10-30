@@ -327,9 +327,11 @@ export default function SeaReadout(p: Props) {
             <div className="sw-ds-sub">{[s.coast?.name, s.seaArea ? `Seegebiet ${s.seaArea.name}` : null, s.tidal ? 'Watt' : null].filter(Boolean).join(' · ')} · Ufer zeigt nach {compass16(s.normal)} ({s.normal}°{s.normalFrom === 'set' ? ', gesetzt' : ''})</div>
             <div className={`sw-chip${p.freshness !== 'live' ? ' is-stale' : ''}`}><i />Welle Modell {runLabel(p.run)} · Wind {windName}{p.freshness === 'stale' ? ' · veraltet' : ''}</div>
           </div>
-          {p.onMap && <div className="sw-ds-headside"><button type="button" className="sw-link sw-ds-back" onClick={p.onMap}>↗ Zur Karte</button></div>}
+          <div className="sw-ds-headside">
+            {p.onMap && <button type="button" className="sw-link sw-ds-back" onClick={p.onMap}>↗ Zur Karte</button>}
+            {cur === 'spot' && kpiRow}
+          </div>
         </div>
-        {cur === 'spot' && kpiRow}
       </section>
     );
     // Allgemein: the spot's facts, combined with what the sources say about them (report, station, gauge, model cell).
@@ -359,54 +361,62 @@ export default function SeaReadout(p: Props) {
     // Same values as before, one number per tile in front, everything else as one quiet line or row.
     const water = s ? waterRange(p.texts, s) : null;
     const hasWaves = h != null && !h.dry && h.hs != null && h.hs >= 0.05;
+    const gustKn = h && h.gustMs != null ? h.gustMs * MS_TO_KN : null;
+    const windKn = h && h.windMs != null ? h.windMs * MS_TO_KN : null;
+    const limitOn = p.limitLabel.startsWith('Wind') ? windKn : gustKn;
+    const limitPct = p.limitKn != null && limitOn != null ? Math.min(100, (limitOn / p.limitKn) * 100) : null;
     const nowCard = s && (
       <section className="sw-ds-now sw-dash" aria-label="Wetter zur gewählten Stunde">
         {p.noData && <div className="sw-card sw-empty"><strong>Keine Daten.</strong> {p.noData}</div>}
         {!p.noData && h && (
           <>
-            <div className="sw-dash-grid">
-              <article className="sw-tile is-wind">
-                <header className="sw-tile-h"><span>Wind</span><em>{windName}</em></header>
-                <div className="sw-tile-wind">
-                  <WindGauge windMs={h.windMs} gustMs={h.gustMs} dir={h.windDir} unit={p.unit} limitKn={p.limitKn} />
-                  <dl className="sw-tile-kv">
-                    <div><dt>Richtung</dt><dd><strong>{h.windMs == null ? '–' : `aus ${compass16(h.windDir)}`}</strong><small>{h.windMs == null ? 'kein Wind für diese Stunde berechnet' : `${h.windDir != null ? `${Math.round(h.windDir)}°` : '–'}${v?.shore ? ` · ${SHORE_LABEL[v.shore]}` : ''}`}</small></dd></div>
-                    <div><dt>Böen</dt><dd><strong>{h.gustMs == null ? '–' : `${fmtWind(h.gustMs, p.unit)} ${unitLabel(p.unit)}`}</strong><small>{spread == null ? 'keine Böe für diese Stunde berechnet' : `Böenspanne ${fmtWind(spread, p.unit)} ${unitLabel(p.unit)}`}</small></dd></div>
-                    {p.limitKn != null && p.limitLabel && <div><dt>Grenze</dt><dd><strong className="is-limit">{p.limitLabel}</strong><small>Profil {p.profileLabel} · rote Marke am Ring</small></dd></div>}
-                  </dl>
-                </div>
+            <div className="sw-kpis">
+              <article className="sw-kpi">
+                <span className="sw-kpi-l">Wind</span>
+                <div className="sw-kpi-v"><strong>{h.windMs == null ? '–' : fmtWind(h.windMs, p.unit)}</strong>{h.windMs != null && <span>{unitLabel(p.unit)}</span>}{h.windMs != null && h.windDir != null && <RunArrow from={h.windDir} cls="sw-tile-arrow" />}</div>
+                <small>{h.windMs == null ? 'für diese Stunde nicht berechnet' : `aus ${compass16(h.windDir)}${h.windDir != null ? ` · ${Math.round(h.windDir)}°` : ''}${v?.shore ? ` · ${SHORE_LABEL[v.shore]}` : ''}`}</small>
               </article>
-
+              <article className="sw-kpi">
+                <span className="sw-kpi-l">Böen</span>
+                <div className="sw-kpi-v"><strong>{h.gustMs == null ? '–' : fmtWind(h.gustMs, p.unit)}</strong>{h.gustMs != null && <span>{unitLabel(p.unit)}</span>}</div>
+                {limitPct != null && <i className={`sw-kpi-meter${limitPct >= 100 ? ' is-over' : ''}`} aria-hidden="true"><b style={{ width: `${limitPct}%` }} /></i>}
+                <small>{spread == null ? 'für diese Stunde nicht berechnet' : `Spanne ${fmtWind(spread, p.unit)} ${unitLabel(p.unit)}`}{p.limitKn != null && p.limitLabel ? ` · Grenze ${p.limitLabel}` : ''}</small>
+              </article>
+              <article className="sw-kpi is-sea">
+                <span className="sw-kpi-l">Seegang</span>
+                <div className="sw-kpi-v"><strong className={h.dry ? 'is-text' : ''}>{h.dry ? DRY_VALUE : h.hs == null ? '–' : f1(h.hs)}</strong>{!h.dry && h.hs != null && <span>m</span>}{hasWaves && h.dir != null && <WaveArrow from={h.dir} />}</div>
+                <small>{h.dry ? dryHourText(s.region) : h.hs == null ? 'kein Wert an der Wasserzelle' : hasWaves ? `aus ${compass16(h.dir)} · Periode ${h.tm == null ? '–' : `${f1(h.tm)} s`}` : `kein Seegang mit Richtung · Periode ${h.tm == null ? '–' : `${f1(h.tm)} s`}`}</small>
+              </article>
+              <article className="sw-kpi">
+                <span className="sw-kpi-l">Wasser</span>
+                <div className="sw-kpi-v"><strong className="is-text">{water ?? '–'}</strong></div>
+                <small>{water ? `${seaName(s)} · Mittelfrist, amtlich` : 'kein Wert im Bericht'}</small>
+              </article>
+              {s.station && p.poi && p.poi !== 'loading' && (
+                <article className="sw-kpi is-meas">
+                  <span className="sw-kpi-l">An Land gemessen</span>
+                  <div className="sw-kpi-v"><strong>{fmtWind(p.poi.ffMs, p.unit)}</strong><span>{unitLabel(p.unit)}</span>{p.poi.ddDeg != null && <RunArrow from={p.poi.ddDeg} cls="sw-tile-arrow" />}</div>
+                  <small>aus {compass16(p.poi.ddDeg)} · Böen {fmtWind(p.poi.fxMs, p.unit)} {unitLabel(p.unit)} · {hm(p.poi.t)} Uhr</small>
+                </article>
+              )}
+            </div>
+            <p className="sw-kpi-note">
+              Wind {windName} · Seegang Modell CWAM{s.station && p.poi && p.poi !== 'loading' ? ` · Messung: DWD-Station ${stationName}, ${s.station.km} km vom Spot (10-min-Mittel, Böe der letzten Stunde), an Land, nicht auf dem Wasser` : ''}
+            </p>
+            <div className="sw-dash-grid is-detail">
+              <article className="sw-tile is-wind">
+                <header className="sw-tile-h"><span>Mittel und Böen</span><em>Ring in kn</em></header>
+                <div className="sw-tile-wind"><WindGauge windMs={h.windMs} gustMs={h.gustMs} dir={h.windDir} unit={p.unit} limitKn={p.limitKn} /></div>
+              </article>
               <article className="sw-tile is-sea">
-                <header className="sw-tile-h"><span>Seegang</span><em>Modell CWAM</em></header>
-                <div className="sw-tile-big">
-                  <strong className={h.dry ? 'is-dry' : ''}>{h.dry ? DRY_VALUE : h.hs == null ? '–' : f1(h.hs)}</strong>{!h.dry && h.hs != null && <span>m</span>}
-                  {hasWaves && h.dir != null && <WaveArrow from={h.dir} />}
-                </div>
-                <p className="sw-tile-sub">{h.dry ? dryHourText(s.region) : h.hs == null ? 'kein Wert an der Wasserzelle' : hasWaves ? `aus ${compass16(h.dir)} (${Math.round(h.dir ?? 0)}°) · Periode ${h.tm == null ? '–' : `${f1(h.tm)} s`}` : `kein Seegang mit Richtung · Periode ${h.tm == null ? '–' : `${f1(h.tm)} s`}`}</p>
+                <header className="sw-tile-h"><span>Windsee und Dünung</span><em>Modell CWAM</em></header>
                 <SeaBars hour={h} />
               </article>
-
               <article className="sw-tile is-shore">
                 <header className="sw-tile-h"><span>Lage zum Ufer</span><em>Ufer nach {compass16(s.normal)}</em></header>
                 <Compass normal={s.normal} windFrom={h.windDir} waveFrom={hasWaves ? h.dir : null}
                   label={`Wind aus ${compass16(h.windDir)}, Welle aus ${compass16(h.dir)}, Ufer zeigt nach ${compass16(s.normal)}`} shore={v?.shore ? SHORE_LABEL[v.shore] : null} />
               </article>
-            </div>
-            <div className="sw-dash-strip">
-              <article className="sw-tile is-water">
-                <header className="sw-tile-h"><span>Wasser</span><em>Mittelfrist · amtlich</em></header>
-                <div className="sw-tile-mid"><strong>{water ?? '–'}</strong><small>{water ? seaName(s) : 'kein Wert im Bericht'}</small></div>
-              </article>
-              {s.station && p.poi && p.poi !== 'loading' && (
-                <article className="sw-tile is-meas">
-                  <header className="sw-tile-h"><span>Gemessen an Land</span><em>{hm(p.poi.t)} Uhr</em></header>
-                  <div className="sw-tile-mid">
-                    <strong>{fmtWind(p.poi.ffMs, p.unit)} {unitLabel(p.unit)} aus {compass16(p.poi.ddDeg)} · Böen {fmtWind(p.poi.fxMs, p.unit)} {unitLabel(p.unit)}</strong>
-                    <small>DWD-Station {stationName}, {s.station.km} km vom Spot (10-min-Mittel, Böe der letzten Stunde) · Messung an Land, nicht auf dem Wasser</small>
-                  </div>
-                </article>
-              )}
             </div>
             {p.dry.hours > 0
               ? <p className="sw-note is-dry">{dryNote(s.region, p.dry.hours, p.dry.of, s.cell.km, p.dry.classed)}</p>
@@ -467,25 +477,25 @@ export default function SeaReadout(p: Props) {
               <>
                 {/* Jump bar: the chapter is long, so each section is one click away. */}
                 <nav className="sw-ds-jump" aria-label="Abschnitte von Am Spot">
-                  {([['sw-sec-stunde', 'Wind und Seegang'], ['sw-sec-verlauf', 'Stundenband und Verlauf'], ...(p.waterLevel ? [['sw-sec-wasser', 'Wasserstand']] : []), [SEC_AREA, 'Amtlich']] as Array<[string, string]>).map(([id, label]) => (
+                  {([['sw-sec-stunde', 'Wind und Seegang'], ['sw-sec-verlauf', 'Verlauf und Stundenband'], ...(p.waterLevel ? [['sw-sec-wasser', 'Wasserstand']] : []), [SEC_AREA, 'Amtlich']] as Array<[string, string]>).map(([id, label]) => (
                     <button key={id} type="button" className="sw-ds-jump-b" onClick={() => document.getElementById(id)?.scrollIntoView({ block: 'start' })}>{label}</button>
                   ))}
                 </nav>
-                <DsSection id="sw-sec-stunde" title="Wind und Seegang im Detail" hint="Böen · Perioden · Wellenrichtung · Lage zum Ufer · Messung an Land">
+                <DsSection id="sw-sec-stunde" title="Wind und Seegang" hint="Die gewählte Stunde auf einen Blick">
                   {nowCard}
                 </DsSection>
-                <DsSection id="sw-sec-verlauf" title="Stundenband und Verlauf" hint="Jede Stunde des Laufs — eine Stunde wählen setzt Karte und Werte oben auf diese Zeit">
-                  {p.band}
+                <DsSection id="sw-sec-verlauf" title="Verlauf und Stundenband" hint="Eine Stunde im Band wählen setzt Karte und Werte auf diese Zeit">
                   {chartPanel}
+                  {p.band}
                 </DsSection>
                 {p.waterLevel && (
-                  <DsSection id="sw-sec-wasser" title="Wasserstand" hint="Nächster BSH-Pegel · Füllstand zur gewählten Stunde · Verlauf und amtlicher Text">
+                  <DsSection id="sw-sec-wasser" title="Wasserstand" hint="Nächster BSH-Pegel">
                     {waterCardOf(true)}
                   </DsSection>
                 )}
               </>
             ) : empty}
-            <DsSection id={SEC_AREA} title="Amtlich · Küste und Seegebiet" hint="Seewetterdienst Hamburg im Wortlaut: Warnstatus, Küstenbericht, Seewetterbericht, Mittelfrist">
+            <DsSection id={SEC_AREA} title="Amtlich" hint="Seewetterdienst Hamburg im Wortlaut">
               <AreaDossier spot={s} texts={p.texts} />
             </DsSection>
             {s && disclaimer}

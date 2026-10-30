@@ -974,3 +974,40 @@
 .sw-dock-picker .sw-note { padding: 14px; border-radius: 14px; border: 1px dashed var(--sw-dk-line); text-align: center; font-size: 13px; color: var(--stone-500, #8B7355); }
 .sw-readout.is-picker { background: linear-gradient(180deg, var(--sand-100, #EDE6D3) 0%, color-mix(in srgb, var(--sand-100, #EDE6D3) 70%, var(--cream-50, #FAF6EA)) 100%); padding: 18px 16px 58px; }
 @media (max-width: 767px) { .sw-m-dock .sw-dock-picker { flex: 1; min-height: 0; overflow-y: auto; padding: 18px 14px 20px; background: linear-gradient(180deg, var(--cream-50, #FAF6EA) 0%, color-mix(in srgb, var(--cream-50, #FAF6EA) 70%, var(--sand-100, #EDE6D3)) 100%); } }
+
+/* Dossier „Am Spot“ als Dashboard (Jan 30.10.): Kopf mit Zeit-Chips rechts, eine Kennzahlen-Leiste (Wind, Böen, Seegang, Wasser, Messung),
+   darunter drei ruhige Detail-Kacheln; Verlauf vor dem Stundenband. Ruhigere Flächen: weiß mit Haarlinie, keine Farbverläufe in den Kacheln. */
+.sw-ds .sw-ds-head { padding: 16px 20px; background: rgba(250, 246, 234, 0.92); }
+.sw-ds .sw-ds-title { font-size: 26px; margin-top: 2px; }
+.sw-ds .sw-ds-headside { align-items: flex-end; gap: 10px; }
+.sw-ds .sw-ds-kpibar { margin: 0; flex-direction: column; align-items: flex-end; gap: 6px; }
+.sw-ds .sw-ds-kpibar-t { font-size: 12px; letter-spacing: 0.1em; }
+.sw-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); gap: 10px; }
+.sw-kpi { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 14px 16px; border-radius: 16px; background: #fff; border: 1px solid var(--sand-200, #E0D6BE); }
+.sw-kpi-l { font-size: 11.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--stone-500, #8B7355); }
+.sw-kpi.is-sea .sw-kpi-l { color: var(--sw-accent-dark, #0B5560); }
+.sw-kpi.is-meas .sw-kpi-l { color: #4D6A3B; }
+.sw-kpi-v { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
+.sw-kpi-v strong { font-size: 34px; font-weight: 700; letter-spacing: -1px; line-height: 1.05; font-variant-numeric: tabular-nums; color: var(--ink-900, #2C2A26); }
+.sw-kpi-v strong.is-text { font-size: 22px; letter-spacing: -0.3px; line-height: 1.25; }
+.sw-kpi.is-sea .sw-kpi-v strong:not(.is-text) { color: var(--sw-accent-dark, #0B5560); }
+.sw-kpi-v > span { font-size: 15px; font-weight: 600; color: var(--stone-500, #8B7355); }
+.sw-kpi-v .sw-tile-arrow { align-self: center; margin-left: auto; width: 22px; height: 22px; }
+.sw-kpi small { font-size: 12.5px; line-height: 1.4; color: var(--stone-500, #8B7355); }
+.sw-kpi-meter { display: block; height: 5px; border-radius: 999px; background: var(--sand-100, #EDE6D3); overflow: hidden; }
+.sw-kpi-meter b { display: block; height: 100%; border-radius: 999px; background: var(--sw-accent, #0F6E7A); }
+.sw-kpi-meter.is-over b { background: #B5482E; }
+.sw-kpi-note { margin: 0 4px; font-size: 12px; line-height: 1.45; color: var(--stone-400, #A89A7A); }
+.sw-dash-grid.is-detail { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.sw-dash-grid.is-detail > .sw-tile.is-shore { grid-column: auto; flex-direction: column; align-items: stretch; justify-content: flex-start; }
+.sw-dash-grid.is-detail > .sw-tile.is-shore .sw-compass { margin-top: 8px; }
+.sw-dash-grid.is-detail .sw-tile { padding: 14px 16px; border-radius: 16px; background: #fff; border-color: var(--sand-200, #E0D6BE); box-shadow: none; }
+.sw-dash-grid.is-detail .sw-tile-h > span { font-size: 11.5px; color: var(--stone-500, #8B7355); }
+.sw-dash-grid.is-detail .sw-tile-wind { justify-content: center; margin-top: 6px; }
+.sw-dash-grid.is-detail .sw-seabars { padding-top: 10px; margin-top: 0; }
+@container (max-width: 700px) {
+  .sw-dash-grid.is-detail { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sw-dash-grid.is-detail > .sw-tile.is-shore { grid-column: 1 / -1; }
+}
+.sw-ds .sw-sec-tx p { font-size: 12.5px; }
+.sw-ds .sw-card, .sw-ds .sw-card.sw-chartpanel { border-radius: 16px; }
