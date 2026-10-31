@@ -74,6 +74,8 @@ import {
  *  `map/weatherBasemap.ts`) — ohne Schleier, mit deutschen Ortsnamen und der
  *  sandfarbenen DACH-Maske ergibt das dieselbe Kartenoptik wie dort. */
 const STREETS = WEATHER_BASEMAP_STYLE;
+/** Saum um die Europa-Box in `maxBounds` (Anteil der Box-Ausdehnung je Seite): schmaler Sandrand als Datengrenze. */
+const EUROPE_EDGE_FRACTION = 0.015;
 
 /** DACH-Überblick: der Ausschnitt, in dem die Ansicht startet. */
 const DACH_BOUNDS: [number, number, number, number] = [5.5, 45.5, 17.5, 55.5];
@@ -677,18 +679,19 @@ export default function FireMap({
     // Beide Ereignisse: LOAD einmal beim Start, STYLEDATA nach jedem
     // Basiskarten-Wechsel — MapLibre verwirft dabei alle eigenen Layer. IDLE
     // fängt den Rest ab. applyState ist idempotent, mehrfaches Auslösen ist folgenlos.
-    // Europa (2026-10-31, Jan): nicht weiter heraus als die Europa-Box — der Mindest-Zoom ist die
-    // Stufe, mit der die Box gerade ins Fenster passt (so wenig Sand wie möglich). Kein `maxBounds`:
-    // das zwänge die Ansicht INS Rechteck und schnitte je nach Seitenverhältnis Europa ab.
-    const clampToEurope = () => {
-      if (region !== 'europe') return;
+    // Europa (2026-10-31, Jan): der Sandrand soll auf JEDER Bildschirmgröße so klein wie möglich
+    // sein. `maxBounds` zwingt die Ansicht in die Box (plus `EUROPE_EDGE_FRACTION` je Seite):
+    // MapLibre hebt den Zoom je Fensterformat genau so weit, dass das Rechteck das Fenster deckt,
+    // und hält das Schwenken an der Kante an — es bleibt nur der schmale Saum, der die Datengrenze
+    // zeigt. Preis: im Querformat ist Europa beim kleinsten Zoom oben/unten angeschnitten
+    // (Schwenken zeigt den Rest), nicht mehr komplett auf einmal.
+    if (region === 'europe') {
       const b = EUROPE_BOX;
-      const cam = map.cameraForBounds([[b.west, b.south], [b.east, b.north]], { padding: 24 });
-      if (cam?.zoom != null && Number.isFinite(cam.zoom)) map.setMinZoom(Math.max(0, cam.zoom));
-    };
-    map.on('resize', clampToEurope);
+      const dx = (b.east - b.west) * EUROPE_EDGE_FRACTION;
+      const dy = (b.north - b.south) * EUROPE_EDGE_FRACTION;
+      map.setMaxBounds([[b.west - dx, b.south - dy], [b.east + dx, b.north + dy]]);
+    }
     map.on('load', () => {
-      clampToEurope();
       applyState(map);
       // Geräteklasse EINMAL bestimmen und melden. Sie steuert die
       // Abspielgeschwindigkeit — dieselbe Klassifikation wie beim
@@ -1441,14 +1444,13 @@ function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets') {
         },
       },
     });
-    // 2026-10-31 (Jan): außerhalb der Box scheint die Basiskarte gedämpft durch — der Rand
-    // bleibt lesbar als „kein Abruf", wirkt aber nicht mehr wie eine abgeschnittene Karte.
+    // Deckend wie die DACH-Maske; dank `maxBounds` (s. o.) ist davon nur ein schmaler Saum sichtbar.
     map.addLayer({
       id: 'fire-europe-mask-fill',
       type: 'fill',
       source: 'fire-europe-mask',
       layout: { visibility: 'none' },
-      paint: { 'fill-color': '#E0D6BE', 'fill-opacity': 0.62 },
+      paint: { 'fill-color': '#E0D6BE', 'fill-opacity': 1 },
     });
   }
 
