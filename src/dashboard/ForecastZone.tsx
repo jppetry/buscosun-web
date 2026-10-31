@@ -3,7 +3,7 @@
  * Nur „3 Tage" ist in der Vorlage gezeichnet; Heute/7/14 Tage nutzen dieselben Karten im selben Raster
  * (Jans Entscheidung 29.09.: aus den Bausteinen abgeleitet, audit/dashboard.md §6).
  */
-import { useId, useState } from 'react';
+import { useState } from 'react';
 import { dayLabel, hhmm, num } from './format';
 import { DASH_RANGES, DASH_RANGE_LABEL, type DashRange } from './dashUrl';
 import { WeatherIcon, type SunVariant } from './icons';
@@ -14,7 +14,6 @@ import type { DayVM, HourlyVM, ZoneVM } from './model/types';
 const PHASE_SUN: Record<string, SunVariant> = { MORGEN: 'mittag', MITTAG: 'mittag', ABEND: 'abend', NACHT: 'mittag' };
 
 export function ForecastZone({ vm, range, onRange, onDay }: { vm: ZoneVM; range: DashRange; onRange: (r: DashRange) => void; onDay?: (index: number, opener: HTMLElement) => void }) {
-  const patternId = `dbd-ens-${useId().replace(/[^a-z0-9]/gi, '')}`;
   // Mit der Maus (oder dem Finger) den Stundenverlauf nachfahren: Zeit unter dem Zeiger → nächste Stunde
   const [hoverT, setHoverT] = useState<number | null>(null);
   const hoverPt = hoverT != null && vm.hourly ? vm.hourly.points.reduce<HourlyVM['points'][number] | null>((b, p) => (!b || Math.abs(p.t - hoverT) < Math.abs(b.t - hoverT) ? p : b), null) : null;
@@ -53,7 +52,7 @@ export function ForecastZone({ vm, range, onRange, onDay }: { vm: ZoneVM; range:
           }}
           onPointerLeave={() => setHoverT(null)}
         >
-          {vm.hourly && <HourlyChart vm={vm.hourly} patternId={patternId} hoverT={hoverT} />}
+          {vm.hourly && <HourlyChart vm={vm.hourly} hoverT={hoverT} />}
           {hoverPt && vm.hourly && (
             <div className="dbd-hourly-tip" style={{ left: `${Math.min(86, Math.max(14, ((hoverPt.t - vm.hourly.startMs) / (vm.hourly.endMs - vm.hourly.startMs)) * 100))}%` }} role="status">
               <div className="dbd-hourly-tip-t">{dayLabel(hoverPt.t)} · {hhmm(hoverPt.t)} Uhr</div>
@@ -69,9 +68,9 @@ export function ForecastZone({ vm, range, onRange, onDay }: { vm: ZoneVM; range:
         {vm.hourly && <HourlyTicks vm={vm.hourly} mobile />}
         <div className="dbd-legend">
           <span><i style={{ width: 14, height: 2.5, background: '#2C2A26' }} /> Temperatur + Bandbreite p10–p90</span>
-          <span><i style={{ width: 14, height: 2, background: '#3A6FA8' }} /> Taupunkt</span>
-          <span><i style={{ width: 10, height: 8, background: '#3A6FA8', opacity: .55, borderRadius: 2 }} /> Menge mm/h</span>
-          <span><i style={{ width: 12, height: 9, background: '#E0D6BE', borderRadius: 2 }} /> Nacht</span>
+          <span><i style={{ width: 14, height: 0, borderTop: '2px dashed #3A6FA8' }} /> Taupunkt</span>
+          <span><i style={{ width: 8, height: 8, background: '#3A6FA8', opacity: .55, borderRadius: 2 }} /> Menge mm/h</span>
+          <span><i style={{ width: 10, height: 8, background: 'rgba(44, 42, 38, .07)', borderRadius: 2 }} /> Nacht</span>
           <span><i style={{ width: 0, height: 10, borderLeft: '1px dashed #8B7355' }} /> Bandbreite erreicht ±2/3/4 °C</span>
           <span className="dbd-legend-right">Tagesgrenzen als Linie</span>
         </div>
@@ -89,26 +88,33 @@ function DayCard({ d, onDetail }: { d: DayVM; onDetail?: (opener: HTMLElement) =
           <Val v={d.text} className="dbd-day-text" long />
         </span>
         <span className="dbd-day-right">
-          {onDetail && (
-            <button type="button" className="dbd-rose-open dbd-day-open" onClick={(e) => onDetail(e.currentTarget)} aria-haspopup="dialog" aria-label={`${d.title}: Tagesverlauf groß anzeigen`} title="Tagesverlauf mit allen Größen">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" /></svg>
-            </button>
-          )}
           <WeatherIcon icon={d.icon} size={30} variant="day" />
           <span className="dbd-day-temps">
             <Val v={d.tmax} className="dbd-day-max" />
             <Val v={d.tmin} className="dbd-day-min" />
           </span>
+          {onDetail && (
+            <button type="button" className="dbd-rose-open dbd-day-open" onClick={(e) => onDetail(e.currentTarget)} aria-haspopup="dialog" aria-label={`${d.title}: Tagesverlauf groß anzeigen`} title="Tagesverlauf mit allen Größen">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" /></svg>
+            </button>
+          )}
         </span>
       </div>
       <div className="dbd-phases">
         {d.phases.map((p) => (
-          <div key={p.id} className={`dbd-phase${p.highlight ? ' is-hl' : ''}`}>
+          <div key={p.id} className={`dbd-phase${p.highlight ? ' is-hl' : ''}${p.past ? ' is-past' : ''}`}>
             <div className="dbd-phase-l">{p.id}</div>
-            <WeatherIcon icon={p.icon} size={20} variant={PHASE_SUN[p.id]} stroke={2.2} />
-            <div className="dbd-phase-t"><Val v={p.temp} /></div>
-            <div className={`dbd-phase-p${p.popLevel === 'faint' ? ' is-faint' : p.popLevel === 'high' ? ' is-high' : ''}`}><Val v={p.pop} /></div>
-            <div className="dbd-phase-w"><Val v={p.wind} /></div>
+            {p.past ? (
+              // A phase of today that is over: one quiet word, the reason stays in the tooltip (same origin as the temperature).
+              <div className="dbd-phase-past" data-origin="P34" title={p.temp.na ?? undefined}>vorbei</div>
+            ) : (
+              <>
+                <WeatherIcon icon={p.icon} size={20} variant={PHASE_SUN[p.id]} stroke={2.2} />
+                <div className="dbd-phase-t"><Val v={p.temp} /></div>
+                <div className={`dbd-phase-p${p.popLevel === 'faint' ? ' is-faint' : p.popLevel === 'high' ? ' is-high' : ''}`}><Val v={p.pop} /></div>
+                <div className="dbd-phase-w"><Val v={p.wind} /></div>
+              </>
+            )}
           </div>
         ))}
       </div>

@@ -43,7 +43,7 @@ function Frame({ fromMs, toMs, layers, margin = NO_MARGIN }: { fromMs: number; t
 // Stundenverlauf (P47–P51)
 // ---------------------------------------------------------------------------
 
-export function HourlyChart({ vm, patternId, hoverT }: { vm: HourlyVM; patternId: string; hoverT?: number | null }) {
+export function HourlyChart({ vm, hoverT }: { vm: HourlyVM; hoverT?: number | null }) {
   const pts = vm.points;
   const vals: number[] = [];
   for (const p of pts) for (const x of [p.t10, p.t50, p.t90, p.td]) if (x != null) vals.push(x);
@@ -76,20 +76,14 @@ export function HourlyChart({ vm, patternId, hoverT }: { vm: HourlyVM; patternId
     const base = fy(170);
     return (
       <g>
-        <defs>
-          <pattern id={patternId} width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-            <line x1="0" y1="0" x2="0" y2="5" stroke="#C4D3E0" strokeWidth="1.1" />
-          </pattern>
-        </defs>
-        <rect x="0" y="0" width={w} height={h} fill={`url(#${patternId})`} opacity=".4" />
-        {/* E-DB-23: Nächte (P92) dezent unter allem, was Wert trägt */}
-        <g fill="#E0D6BE" opacity=".5" data-origin="P92">
+        {/* E-DB-23: Nächte (P92) dezent unter allem, was Wert trägt — 31.10.: ein leiser Ink-Schleier ohne Schraffur darunter */}
+        <g fill="rgba(44, 42, 38, .045)" data-origin="P92">
           {vm.nights.map((n) => <rect key={n.from} x={x(n.from)} y="0" width={Math.max(0, x(n.to) - x(n.from))} height={base} />)}
         </g>
         <g stroke="#EDE6D3" strokeWidth="1">
           {[34, 68, 102].map((u) => <line key={u} x1="0" y1={fy(u)} x2={w} y2={fy(u)} />)}
         </g>
-        <g stroke="#E0D6BE" strokeWidth="1.2" data-origin="P51">
+        <g stroke="#D9D0B8" strokeWidth="1" data-origin="P51">
           {vm.dayLines.map((d) => <line key={d.t} x1={x(d.t)} y1="0" x2={x(d.t)} y2={h} />)}
         </g>
         {bandD && <path d={bandD} fill="rgba(44,42,38,.08)" data-origin="P48" />}

@@ -65,6 +65,15 @@ function WarnTriangle({ size = 15 }: { size?: number }) {
   );
 }
 
+/** No official warning for the place: a quiet check mark — a triangle there read like a warning at first glance. */
+function ClearMark() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5F7A4C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9.5" fill="rgba(122, 148, 102, .14)" /><path d="M8 12.5l2.7 2.7L16 9.8" />
+    </svg>
+  );
+}
+
 /**
  * Eine Warnung als kompakte Zeile: Warnstufe, Überschrift (wörtlich) und Gültigkeit; die Detailansicht klappt den Text auf —
  * wörtlich als Zitat, darunter Absender. Ohne Beschreibung gibt es nichts aufzuklappen.
@@ -114,8 +123,8 @@ export function WarningStrip({ vm }: { vm: WarningVM }) {
         : vm.state === 'na' ? 'Für dieses Land liest die Plattform keine Warnungen'
           : 'Die Warnungen sind gerade nicht abrufbar — es wird kein Ersatztext gezeigt';
   return (
-    <div className={`dbd-warn${active ? ' is-active' : ''}`} role="group" aria-label="Amtliche Warnung" data-origin="P18" title={originTitle('P18')}>
-      <WarnTriangle />
+    <div className={`dbd-warn${active ? ' is-active' : ''}${vm.state === 'none' ? ' is-none' : ''}`} role="group" aria-label="Amtliche Warnung" data-origin="P18" title={originTitle('P18')}>
+      {vm.state === 'none' ? <ClearMark /> : <WarnTriangle />}
       <div className="dbd-warn-body">
         {active && <span className="dbd-warn-head">AMTLICHE WARNUNG · {vm.channel.toUpperCase()}</span>}
         <p lang="de">{text}</p>

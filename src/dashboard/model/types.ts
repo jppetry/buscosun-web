@@ -172,6 +172,8 @@ export interface PhaseVM {
   /** Mittelwind — oder „Böen N", wenn die Phase die Warnschwelle erreicht (`highlight`). */
   wind: Shown;
   highlight: boolean;
+  /** The phase of today is over (no Fusion hours any more) — drawn as one quiet „vorbei" instead of three „n. v.". */
+  past?: boolean;
 }
 
 /** Eine Stunde des Tages für die Tages-Detailansicht — alles aus buscosun Fusion, `null` = nicht verfügbar. */

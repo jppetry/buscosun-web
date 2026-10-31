@@ -475,7 +475,7 @@ function buildDay(c: Ctx, key: string, index: number, prevTmax: number | null): 
     const past = !hs.length && index === 0 && !p.nextDay && localParts(inp.nowMs).h >= p.to;
     const why = past ? NA_PAST : 'jenseits des Fusionshorizonts';
     if (!hs.length) {
-      return { id: p.id, icon: null, temp: na('P34', why), pop: na('P35', why), popLevel: 'faint' as const, wind: na('P36', why), highlight: false };
+      return { id: p.id, icon: null, temp: na('P34', why), pop: na('P35', why), popLevel: 'faint' as const, wind: na('P36', why), highlight: false, past };
     }
     const pm = maxOf(hs.map(pWet));
     const gm = maxOf(hs.map((s) => v(s, 'gust')));
