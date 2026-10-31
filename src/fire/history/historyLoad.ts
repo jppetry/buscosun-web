@@ -14,6 +14,7 @@
  * zusätzlicher Anzeigemodus über statische Dateien.
  */
 
+import type { FilterSpecification } from 'maplibre-gl';
 import { clusterColor, STATIC_GREY } from '../fireClusters';
 import { entryOf, INDEX_URL, HISTORY_ARTIFACT_VERSION, type HistoryIndexEntry, type HistoryIndexFile, type HistoryWindowKind } from './historyArtifacts';
 import { SEASON_SERIES_URL, SEASON_SERIES_VERSION, type SeasonSeriesFile } from './historySeries';
@@ -92,11 +93,36 @@ export interface HistoryFeatureProps extends Record<string, unknown> {
   /** Radius in px — Stärke (Summe FRP), gedeckelt wie die Hotspot-Punkte. */
   r: number;
   site: 0 | 1;
+  /** Sichtbarkeitsstufe 0–3 (`historyTier`): ab welchem Zoom der Punkt gezeichnet wird. */
+  tier: 0 | 1 | 2 | 3;
 }
 
 function radiusOf(frpSum: number | null): number {
   const v = frpSum ?? 0;
   return v >= 600 ? 9 : v >= 200 ? 7.5 : v >= 50 ? 6 : v >= 10 ? 5 : 4;
+}
+
+/**
+ * Zoomstufen der Europa-Historie (2026-10-31): 80 000 Ereignisse je Saison, drei Viertel unter
+ * 10 MW — im Überblick stehen nur die starken, beim Heranzoomen kommen die Klassen der Legende
+ * dazu. Stufe = Legendenklasse der Σ Leistung; eine EFFIS-Kartierung ab `TIER_EFFIS_HA` hebt auf
+ * Stufe 0 (ein großer, schwach detektierter Brand darf nicht verschwinden). Das gewählte Ereignis
+ * zeigt die Karte immer (Filter in `FireMap`).
+ */
+export const HISTORY_TIER_ZOOM = [0, 5.5, 7, 8.5] as const;
+export const HISTORY_TIER_MW = [200, 50, 10] as const;
+export const TIER_EFFIS_HA = 100;
+
+export function historyTier(e: Pick<HistoryIndexEntry, 'frpSumMw' | 'areaHa' | 'areaKind'>): 0 | 1 | 2 | 3 {
+  if (e.areaKind === 'mapped' && (e.areaHa ?? 0) >= TIER_EFFIS_HA) return 0;
+  const v = e.frpSumMw ?? 0;
+  return v >= HISTORY_TIER_MW[0] ? 0 : v >= HISTORY_TIER_MW[1] ? 1 : v >= HISTORY_TIER_MW[2] ? 2 : 3;
+}
+
+/** Filter des Punkt-Layers: Stufe passend zum Zoom (`zoom` nur als Eingang eines top-level `step`), die Auswahl immer. */
+export function historyTierFilter(selectedId: string | null): FilterSpecification {
+  const upTo = (t: number): unknown[] => ['any', ['<=', ['get', 'tier'], t], ['==', ['get', 'id'], selectedId ?? '']];
+  return ['step', ['zoom'], upTo(0), HISTORY_TIER_ZOOM[1], upTo(1), HISTORY_TIER_ZOOM[2], upTo(2), HISTORY_TIER_ZOOM[3], true] as unknown as FilterSpecification;
 }
 
 export function historyToGeoJSON(entries: readonly HistoryIndexEntry[]): GeoJSON.FeatureCollection {
@@ -110,6 +136,7 @@ export function historyToGeoJSON(entries: readonly HistoryIndexEntry[]): GeoJSON
         color: e.anomalyKind === 'site' ? STATIC_GREY : clusterColor(e.frpSumMw ?? 0),
         r: radiusOf(e.frpSumMw),
         site: e.anomalyKind === 'site' ? 1 : 0,
+        tier: historyTier(e),
       } satisfies HistoryFeatureProps,
     })),
   };
@@ -142,6 +169,9 @@ export function verifyHistoryLoad(): { checks: HistoryLoadCheck[]; passed: numbe
   add('ein Punkt je Ereignis, Farbe nach Stärke aus der Cluster-Tabelle', fc.features.length === 2 && fc.features[0].properties?.color === clusterColor(700));
   add('Standort-Ereignis ist grau, nie in der Brandfarbe', fc.features[1].properties?.color === STATIC_GREY && fc.features[1].properties?.site === 1);
   add('Radius wächst mit der Stärke und ist gedeckelt', radiusOf(null) === 4 && radiusOf(700) === 9 && radiusOf(1e6) === 9);
+  add('Zoomstufe = Legendenklasse; EFFIS ab 100 ha immer Stufe 0', historyTier(e({ frpSumMw: 250 })) === 0 && historyTier(e({ frpSumMw: 60 })) === 1 && historyTier(e({ frpSumMw: 12 })) === 2 && historyTier(e({ frpSumMw: null })) === 3 && historyTier(e({ frpSumMw: 1, areaHa: 120, areaKind: 'mapped' })) === 0 && historyTier(e({ frpSumMw: 1, areaHa: 120, areaKind: 'upper-bound' })) === 3);
+  const flt = historyTierFilter('bh:x') as unknown[];
+  add('Filter: top-level step über zoom, Auswahl in jeder Stufe', flt[0] === 'step' && JSON.stringify(flt[1]) === '["zoom"]' && flt.length === 9 && flt[8] === true && JSON.stringify(flt[2]).includes('"bh:x"'));
   add('Kill-Switch außerhalb des Browsers: an', historyEnabled() === true);
   add('Stand = letzter enthaltener Tag (Ende 23.08. exklusiv ⇒ 22.08.)', historyStandLabel(Date.UTC(2026, 7, 23)) === '22.08.2026');
   const passed = checks.filter((c) => c.ok).length;

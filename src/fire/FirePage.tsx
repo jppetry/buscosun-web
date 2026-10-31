@@ -90,7 +90,7 @@ import { loadClcMaskFor, landcoverAt, toAssessmentLandcover, type ClcMask } from
 import { loadThermalSitesFor, siteAt, thermalSitesEnabled, SITE_CLASS_LABEL, type ThermalSitesIndex } from './anomaly/thermalSites';
 import { FireAnomalyPanel, AnomalySiteCards, siteStatTiles, siteName } from './FireAnomalyPanel';
 import { FireHistoryPanel, HistoryDossierBody, historyStatTiles, historyEntryName } from './FireHistoryPanel';
-import { historyEnabled, loadHistoryIndex, historyToGeoJSON, type HistoryLoad } from './history/historyLoad';
+import { historyEnabled, loadHistoryIndex, historyToGeoJSON, HISTORY_TIER_MW, HISTORY_TIER_ZOOM, TIER_EFFIS_HA, type HistoryLoad } from './history/historyLoad';
 import type { HistoryIndexEntry, HistoryWindowKind } from './history/historyArtifacts';
 import { anomaliesToGeoJSON } from './anomaly/anomalyLayer';
 import { hiddenSiteCount } from './footprint/fireRegistry';
@@ -1893,6 +1893,14 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
             {legendPointsLive && <span className="br-pl-chip"><i className="br-pl-dot is-faint" />blass = geringe Konfidenz</span>}
           </span>
         </div>
+        {legendPointsHistory && (
+          <div className="br-pl-grp">
+            <span className="br-pl-lbl">Sichtbar</span>
+            <span className="br-pl-chips">
+              <span className="br-pl-chip">Überblick ab {HISTORY_TIER_MW[0]} MW · ab Zoom {HISTORY_TIER_ZOOM[1]} ab {HISTORY_TIER_MW[1]} · ab {HISTORY_TIER_ZOOM[2]} ab {HISTORY_TIER_MW[2]} · ab {HISTORY_TIER_ZOOM[3]} alle (EFFIS ab {TIER_EFFIS_HA} ha immer)</span>
+            </span>
+          </div>
+        )}
       </div>
     </div>
   ) : null;

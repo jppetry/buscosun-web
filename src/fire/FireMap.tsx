@@ -40,7 +40,7 @@ import {
   ANOMALY_SOURCE_ID, ANOMALY_LAYER_ID, ANOMALY_SEL_LAYER_ID, ANOMALY_IMAGE_ID, ANOMALY_IMAGE_IDS, ANOMALY_VARIANTS,
   ANOMALY_ATTRIBUTION, makeSiteDiamondImage,
 } from './anomaly/anomalyLayer';
-import { HISTORY_SOURCE_ID, HISTORY_LAYER_ID, HISTORY_SEL_LAYER_ID } from './history/historyLoad';
+import { HISTORY_SOURCE_ID, HISTORY_LAYER_ID, HISTORY_SEL_LAYER_ID, historyTierFilter } from './history/historyLoad';
 import { gwisRasterSource, gwisPrefetchUrls, GWIS_FWI_ATTRIBUTION } from './sources/gwisFwi';
 import { GWIS_HOTSPOT_ATTRIBUTION } from './sources/gwisHotspots';
 import {
@@ -535,6 +535,8 @@ export default function FireMap({
     if (m.getLayer(HISTORY_SEL_LAYER_ID)) {
       m.setFilter(HISTORY_SEL_LAYER_ID, ['==', ['get', 'id'], s.selectedHistoryId ?? '']);
     }
+    // Zoomstufen der Historie: schwächere Ereignisse erst beim Heranzoomen, die Auswahl immer.
+    if (m.getLayer(HISTORY_LAYER_ID)) m.setFilter(HISTORY_LAYER_ID, historyTierFilter(s.selectedHistoryId ?? null));
 
     // Feuerwetter-Treiber als ScalarLayer (WebGL-Custom-Layer, kein GeoJSON).
     // MapLibre verwirft Custom-Layer beim Stilwechsel, deshalb hier idempotent
@@ -1792,7 +1794,7 @@ function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets') {
   if (!map.getLayer(HISTORY_LAYER_ID)) {
     map.addLayer({
       id: HISTORY_LAYER_ID, type: 'circle', source: HISTORY_SOURCE_ID,
-      layout: { visibility: 'none' },
+      layout: { visibility: 'none' }, filter: historyTierFilter(null),
       paint: {
         'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, ['*', ['get', 'r'], 0.55], 8, ['get', 'r'], 11, ['*', ['get', 'r'], 1.4]],
         'circle-color': ['get', 'color'],
