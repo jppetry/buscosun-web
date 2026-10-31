@@ -187,19 +187,19 @@
   flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: flex-start;
   gap: 0.5rem 0; font-variant-numeric: tabular-nums;
 }
-.rl-dock .rl-sec { padding: 0 0.95rem; }
+.rl-dock .rl-sec { display: flex; align-items: center; gap: 0.2rem 0.85rem; padding: 0 1.1rem; }
 .rl-dock .rl-sec + .rl-sec { border-left: 1px solid rgba(224,214,190,0.9); }
 .rl-dock .rl-sec:last-child { padding-right: 0; }
-.rl-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.1rem 0.45rem; margin-bottom: 0.35rem; font-size: 0.58rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-900, #2C2A26); white-space: nowrap; }
-.rl-head span { font-weight: 500; letter-spacing: 0.02em; text-transform: none; color: var(--stone-500, #8B7355); }
-.rl-scale { display: flex; gap: 3px; }
-.rl-seg { display: flex; flex-direction: column; gap: 0.22rem; min-width: 3.5rem; }
-.rl-seg i { display: block; height: 0.42rem; border-radius: 3px; }
-.rl-seg b { font-size: 0.66rem; font-weight: 600; line-height: 1; color: var(--ink-800, #3A3833); white-space: nowrap; }
-.rl-seg small { font-size: 0.6rem; line-height: 1; color: var(--stone-500, #8B7355); white-space: nowrap; }
-.rl-grad { display: grid; grid-template-columns: auto auto; justify-content: space-between; row-gap: 0.25rem; min-width: 6.5rem; }
-.rl-grad i { grid-column: 1 / -1; height: 0.42rem; border-radius: 3px; }
-.rl-grad small { font-size: 0.6rem; color: var(--stone-500, #8B7355); }
+.rl-head { display: flex; flex-direction: column; align-items: flex-start; gap: 0.1rem; margin-bottom: 0; font-size: 0.86rem; font-weight: 700; letter-spacing: -0.01em; line-height: 1.1; color: var(--ink-900, #2C2A26); white-space: nowrap; }
+.rl-head span { font-size: 0.7rem; font-weight: 500; letter-spacing: 0.01em; text-transform: none; color: var(--stone-500, #8B7355); }
+.rl-scale { display: flex; gap: 4px; }
+.rl-seg { display: flex; flex-direction: column; gap: 0.28rem; min-width: 4.3rem; }
+.rl-seg i { display: block; height: 0.5rem; border-radius: 4px; }
+.rl-seg b { font-size: 0.8rem; font-weight: 600; line-height: 1; color: var(--ink-800, #3A3833); white-space: nowrap; }
+.rl-seg small { font-size: 0.72rem; line-height: 1; color: var(--stone-500, #8B7355); white-space: nowrap; }
+.rl-grad { display: grid; grid-template-columns: auto auto; justify-content: space-between; row-gap: 0.28rem; min-width: 7.5rem; }
+.rl-grad i { grid-column: 1 / -1; height: 0.5rem; border-radius: 4px; }
+.rl-grad small { font-size: 0.72rem; color: var(--stone-500, #8B7355); }
 .rl-sk { display: flex; flex-flow: row wrap; gap: 0.15rem 0.8rem; max-width: 19rem; }
 .rl-sk .nc-radar-leg-item { font-size: 0.64rem; line-height: 1.2; white-space: nowrap; }
 @media (max-width: 767px) { .rl-dock { display: none; } }
