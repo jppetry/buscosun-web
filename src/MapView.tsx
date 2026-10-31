@@ -2183,6 +2183,9 @@ export default function MapView({
     const loadRzc = async () => {
       try {
         meteoRadarRef.current = await fetchRzcLatest(abort.signal, prioFor('CH'));
+        // Faster full load (31.10.): the extrapolation's bytes start now, next to the off-main prime below — before, they
+        // waited for it (behind the worker queue of the other radars). Set and ticked exactly where it was.
+        const ncP = ncRef.current ? fetchRzcNowcast(ncRadarImgStamp(meteoRadarRef.current.validAt.getTime()), abort.signal, prioFor('CH')).catch(() => null) : null;
         // Index-Map off-main vorwärmen (s. PrecipCompositor.primeCh) — VOR dem
         // Tick, damit build() im Render-Pfad gleich den warmen Cache trifft statt
         // den Newton-Solver synchron nachzuholen.
@@ -2192,8 +2195,8 @@ export default function MapView({
         setNowcastTick((t) => t + 1);
         setCompositeStatus();
         // Phase NC: the extrapolation behind the analysis (24 × 5 min) — after the analysis is on the map; null = as before.
-        if (ncRef.current) {
-          const nc = await fetchRzcNowcast(ncRadarImgStamp(meteoRadarRef.current.validAt.getTime()), abort.signal, prioFor('CH')).catch(() => null);
+        if (ncP) {
+          const nc = await ncP;
           if (abort.signal.aborted) return;
           rzcNcRef.current = nc;
           setNowcastTick((t) => t + 1);
@@ -2236,14 +2239,16 @@ export default function MapView({
     const loadInca = async () => {
       try {
         incaGridRef.current = await fetchIncaGrid(abort.signal, prioFor('AT'));
+        // Faster full load (31.10.): the 5-min refinement's bytes start now, next to the off-main prime (see `loadRzc`).
+        const g5P = ncRef.current ? fetchInca5m(incaGridRef.current.stamp ?? null, abort.signal, prioFor('AT')).catch(() => null) : null;
         if (compositorRef.current) await compositorRef.current.primeAt(incaGridRef.current);
         if (incaGridRef.current.frames[0]) hdMask('AT', 'inca', incaGridRef.current.corners, incaGridRef.current.frames[0].width, incaGridRef.current.frames[0].height);
         hoistRain();
         setNowcastTick((t) => t + 1);
         setCompositeStatus();
         // Phase NC: the run refined to 5 min (picked by validity time) — after the run is on the map; null = INCA by lead as before.
-        if (ncRef.current) {
-          const g5 = await fetchInca5m(incaGridRef.current.stamp ?? null, abort.signal, prioFor('AT')).catch(() => null);
+        if (g5P) {
+          const g5 = await g5P;
           if (abort.signal.aborted) return;
           inca5Ref.current = g5;
           setNowcastTick((t) => t + 1);

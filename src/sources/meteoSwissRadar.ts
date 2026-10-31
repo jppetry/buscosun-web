@@ -242,12 +242,23 @@ async function resolveRzcHrefs(signal?: AbortSignal, priority?: RequestPriority,
 
 /** Lädt den jüngsten rzc-Frame, dekodiert das HDF5 und baut das Uint8-Werte-Grid. */
 export async function fetchRzcLatest(signal?: AbortSignal, opts?: RzcFetchOptions): Promise<RadarFrame> {
+  // Faster full load (31.10.): the page's readers (map, deck, point sampler, NC) ask one after another within seconds; the
+  // in-flight sharing below only catches simultaneous calls, so a late one ran the whole fresh-window probe again (raw
+  // meta, STAC item). A result this young is handed on — far below the 5-min slot step.
+  if (_rzcRecent && Date.now() - _rzcRecent.atMs < RZC_REUSE_MS) return _rzcRecent.frame;
   // Entdopplung: Karte und Punktforecast fragen beim Mount gleichzeitig (§24.3).
   // Anders als DE/AT senden beide CH-Endpunkte `max-age`, ein warmer HTTP-Cache
   // fängt die Wiederholung also ab — die Byte-Ersparnis wird hier NICHT
   // behauptet. Sicher gespart wird das zweite Dekodieren des HDF5.
-  return shareInFlight('meteoswiss-rzc-latest', () => loadRzcLatest(opts?.priority), signal);
+  return shareInFlight('meteoswiss-rzc-latest', async () => {
+    const frame = await loadRzcLatest(opts?.priority);
+    _rzcRecent = { atMs: Date.now(), frame };
+    return frame;
+  }, signal);
 }
+/** How long a loaded rzc analysis is handed to the next caller without a new probe. set. */
+export const RZC_REUSE_MS = 30_000;
+let _rzcRecent: { atMs: number; frame: RadarFrame } | null = null;
 
 async function loadRzcLatest(priority?: RequestPriority): Promise<RadarFrame> {
   // RD3: erst der Bild-Weg (kein STAC-Item 261 KB, kein HDF5-Parse); Fehlschlag ⇒ STAC wie bisher.

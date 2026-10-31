@@ -73,11 +73,17 @@ export const GEOSPHERE_INCA_ATTRIBUTION =
  */
 export const INCA_STALE_MAX_MS = 45 * 60_000;
 let lastGood: { grid: IncaGrid; atMs: number; dual: boolean } | null = null;
+/** How long a loaded (fresh, not stale) run is handed to the next caller without a new `/metadata` call. set. */
+export const INCA_REUSE_MS = 30_000;
+let _incaRecent: { atMs: number; grid: IncaGrid } | null = null;
 /** Nur für Verifier/Tests. */
-export function _resetIncaLastGood(): void { lastGood = null; }
+export function _resetIncaLastGood(): void { lastGood = null; _incaRecent = null; }
 
 /** Lädt den jüngsten INCA-Nowcast-Lauf und baut Uint8-Werte-Grids (0.25–3 h). */
 export async function fetchIncaGrid(signal?: AbortSignal, opts?: IncaFetchOptions): Promise<IncaGrid> {
+  // Faster full load (31.10.): a run loaded this recently is handed to the next caller without a new `/metadata` call
+  // (rate limit 240/h) — the page's readers ask one after another within seconds, the run changes every 15 min.
+  if (_incaRecent && Date.now() - _incaRecent.atMs < INCA_REUSE_MS) return _incaRecent.grid;
   // Entdopplung: Karte und Punktforecast fragen beim Mount gleichzeitig, und die
   // GeoSphere-API sendet keinen Cache-Header — gemessen 2 × 721 713 B, also 34 %
   // der gesamten AT-Kaltsitzung (`audit/bandbreite.md` §24.3).
@@ -85,6 +91,7 @@ export async function fetchIncaGrid(signal?: AbortSignal, opts?: IncaFetchOption
     try {
       const grid = await loadIncaGrid(opts?.priority);
       if (lastGood?.grid !== grid) lastGood = { grid, atMs: Date.now(), dual: radarDualFlagFrom() };
+      _incaRecent = { atMs: Date.now(), grid };
       return grid;
     } catch (err) {
       const age = lastGood ? Date.now() - lastGood.atMs : Infinity;
