@@ -87,7 +87,7 @@ const EUROPE_VIEW_EXTRA_SOUTH_DEG = 500 / 111.32;
  * Der Längengrad-Zuschlag rechnet mit der Breite der Mitte der Box (≈ 50° N: 1° ≈ 71,6 km).
  */
 const EUROPE_VIEW_PAD_DEG_LAT = 100 / 111.32;
-const EUROPE_VIEW_PAD_DEG_LON = 200 / (111.32 * Math.cos((50 * Math.PI) / 180)); // Westen/Osten seit Jan 31.10. 200 km statt 100 km
+const EUROPE_VIEW_PAD_DEG_LON = 300 / (111.32 * Math.cos((50 * Math.PI) / 180)); // Westen/Osten seit Jan 31.10. 300 km statt 100 km
 const EUROPE_VIEW_BOX = {
   west: EUROPE_BOX.west - (EUROPE_BOX.east - EUROPE_BOX.west) * EUROPE_VIEW_EXTRA.west - EUROPE_VIEW_PAD_DEG_LON,
   south: EUROPE_BOX.south - (EUROPE_BOX.north - EUROPE_BOX.south) * EUROPE_VIEW_EXTRA.south - EUROPE_VIEW_EXTRA_SOUTH_DEG - EUROPE_VIEW_PAD_DEG_LAT,
