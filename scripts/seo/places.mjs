@@ -14,8 +14,11 @@ export const PLACES_UPDATED = '2026-09-05';
 
 export function toSlug(name) {
   return name
+    .normalize('NFC')
     .toLowerCase()
     .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+    // Übrige Akzente (â é è ô ç …) verlieren das Zeichen, nicht den Buchstaben.
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '');
 }

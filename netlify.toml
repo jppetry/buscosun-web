@@ -18,7 +18,10 @@
 # `fetch('https://opendata.dwd.de/…')` from the page.
 
 [build]
-  command   = "npm run build"
+  # `git fetch --unshallow` holt den vollen Verlauf, falls der Clone flach ist: die
+  # Sitemap-lastmod (scripts/seo/gitDate.mjs) liest Commit-Daten. Bei vollem Clone
+  # schlägt der Befehl harmlos fehl (`|| true`); bleibt der Clone flach, fehlt lastmod.
+  command   = "git fetch --unshallow || true; npm run build"
   publish   = "dist"
 
 # ── Header (SEO/GEO 2026, E1 — „Ebene B") ────────────────────────────────────
@@ -173,6 +176,31 @@
   from   = "/_ecmwf/*"
   to     = "https://data.ecmwf.int/:splat"
   status = 200
+  force  = true
+
+# ── Alias-Domain buscosun.de → Primary buscosun.com ──────────────────────────
+# Primary ist https://buscosun.com. Das Netlify-Domain-Alias leitet die Apex-Domain
+# meist schon selbst um, `www.buscosun.de/<pfad>` lieferte aber 200 (Duplicate Content).
+# Host-Regeln mit `force`, Pfad bleibt über :splat erhalten. Stehen vor allen
+# App-Routen, weil Netlify von oben nach unten prüft.
+[[redirects]]
+  from   = "https://buscosun.de/*"
+  to     = "https://buscosun.com/:splat"
+  status = 301
+  force  = true
+[[redirects]]
+  from   = "https://www.buscosun.de/*"
+  to     = "https://buscosun.com/:splat"
+  status = 301
+  force  = true
+
+# Slug-Korrektur (Akzente werden transliteriert statt zu „-" zu werden):
+# /wetter/neuenburg-neuch-tel/ → /wetter/neuenburg-neuchatel/ (Ortsseiten sind
+# Ordner mit End-Slash, siehe unten). Ziel mit Slash, damit keine Kette entsteht.
+[[redirects]]
+  from   = "/wetter/neuenburg-neuch-tel"
+  to     = "/wetter/neuenburg-neuchatel/"
+  status = 301
   force  = true
 
 # ── App-Routen (Phase RT1, 2026-08-22: React Router 7, pfadbasiert) ──────────

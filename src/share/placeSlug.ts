@@ -24,8 +24,11 @@
 /** Regel: Kleinbuchstaben, ae/oe/ue/ss, alles Übrige zu Bindestrichen. */
 export function toSlug(name: string): string {
   return name
+    .normalize('NFC')
     .toLowerCase()
     .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+    // Übrige Akzente (â é è ô ç …) verlieren das Zeichen, nicht den Buchstaben.
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '');
 }
@@ -91,7 +94,10 @@ export const SLUG_EDGE_CASES: ReadonlyArray<readonly [name: string, slug: string
   ['Sankt Anton am Arlberg', 'sankt-anton-am-arlberg'],
   ['Weißenfels', 'weissenfels'],
   ['Zürich', 'zuerich'],
-  ['Genève', 'gen-ve'],
+  ['Genève', 'geneve'],
+  ['Neuenburg (Neuchâtel)', 'neuenburg-neuchatel'],
+  ['Saint-Maurice', 'saint-maurice'],
+  ['Sion/Sitten', 'sion-sitten'],
   ['Halle (Saale)', 'halle-saale'],
   ['Bad Reichenhall', 'bad-reichenhall'],
   ['St. Moritz', 'st-moritz'],

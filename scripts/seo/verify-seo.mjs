@@ -208,9 +208,13 @@ console.log('\nSitemap:');
   if (locs.some((l) => l.includes('?') || l.includes('#'))) fail('sitemap.xml', 'URL mit Query/Hash');
   if (/<changefreq>/.test(sm)) fail('sitemap.xml', 'changefreq vorhanden (seit E1 entfernt — Google ignoriert es)');
   else ok('sitemap.xml', 'kein changefreq');
-  if (mods.length !== locs.length || mods.some((d) => !/^\d{4}-\d{2}-\d{2}$/.test(d))) fail('sitemap.xml', 'lastmod fehlt oder ist kein ISO-Datum');
-  else if (new Set(mods).size < 2) fail('sitemap.xml', 'alle lastmod identisch — Build-Datum statt Inhaltsdatum?');
-  else ok('sitemap.xml', `lastmod aus dem Inhalt (${new Set(mods).size} verschiedene Daten)`);
+  // lastmod kommt aus Git (seo/gitDate.mjs). Ohne belastbaren Verlauf (flacher Clone) fehlt
+  // das Feld überall — das ist erlaubt, ein Platzhalter oder das Build-Datum nicht.
+  if (mods.some((d) => !/^\d{4}-\d{2}-\d{2}$/.test(d))) fail('sitemap.xml', 'lastmod ist kein ISO-Datum');
+  else if (mods.length === 0) ok('sitemap.xml', 'kein lastmod (Git-Verlauf nicht belastbar) — erlaubt');
+  else if (mods.length > locs.length) fail('sitemap.xml', 'mehr lastmod als URLs');
+  else if (new Set(mods).size < 2) fail('sitemap.xml', 'alle lastmod identisch — Build-Datum statt Git-Datum?');
+  else ok('sitemap.xml', `lastmod aus Git (${mods.length} von ${locs.length} URLs, ${new Set(mods).size} verschiedene Daten)`);
   const subUrls = subShells.map((f) => { const [r, sl] = f.replace(/\.html$/, '').split('--'); return `https://buscosun.com/${r}/${sl}`; });
   const missing = subUrls.filter((u) => !locs.includes(u));
   if (missing.length) fail('sitemap.xml', `Sub-Routen fehlen: ${missing.join(', ')}`);

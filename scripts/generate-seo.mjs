@@ -36,7 +36,7 @@ import { SEA_LIVE } from '../src/sea/seaFlag.ts';
 import { GLACIER_LIVE } from '../src/glacier/glacierFlag.ts';
 import { flagGateScript } from './seo/flagGate.mjs';
 import { PLACES_UPDATED } from './seo/places.mjs';
-import { LEGAL_UPDATED } from './seo/legal.mjs';
+import { gitLastmod, maxLastmod } from './seo/gitDate.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(ROOT, 'dist');
@@ -213,12 +213,25 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;bac
 }
 writeFileSync(join(DIST, '404.html'), notFoundPage(), 'utf8');
 
-// 3) sitemap.xml — lastmod je URL aus dem INHALT (Explainer/Tool/Event: dateModified;
-// Orte: PLACES_UPDATED; Rechtsseiten: LEGAL_UPDATED; App-Routen: CONTENT_UPDATED bzw.
-// `updated` je Route). Vorher stand das Build-Datum an jeder URL — jeder Cron-Rebuild
-// meldete 189 „geänderte" Seiten (SEO-AUDIT.md §6). `changefreq`/`priority` bleiben
-// weg bzw. minimal: Google ignoriert changefreq seit Jahren.
-const maxDate = (arr, fallback) => arr.reduce((m, d) => (d && d > m ? d : m), fallback);
+// 3) sitemap.xml — lastmod je URL aus GIT: Datum des letzten Commits auf den Quelldateien
+// der Seitengruppe (`seo/gitDate.mjs`). Ohne belastbares Datum (flacher Clone, kein Git,
+// Datei nicht versioniert) steht KEIN lastmod in der Sitemap — nie ein Platzhalter und
+// nie das Build-Datum (SEO-AUDIT.md §6: jeder Rebuild meldete 189 „geänderte" Seiten).
+// Granularität = Datendatei: ein Commit an `places.mjs` setzt alle Ortsseiten neu, weil
+// die Orte in EINER Datei stehen. Die redaktionellen `dateModified`-Felder je Eintrag
+// bleiben für JSON-LD und Feed; die Sitemap liest sie nicht mehr.
+// `changefreq`/`priority` bleiben weg bzw. minimal: Google ignoriert changefreq seit Jahren.
+const LM = {
+  routes: gitLastmod(['src/router/routes.ts', 'src/seo/subRouteTexts.ts']),
+  places: gitLastmod(['scripts/seo/places.mjs']),
+  explainers: gitLastmod(['scripts/seo/explainers.mjs', 'scripts/seo/explainers-extra.mjs']),
+  tools: gitLastmod(['scripts/seo/tools.mjs']),
+  events: gitLastmod(['scripts/seo/events.mjs']),
+  legal: gitLastmod(['scripts/seo/legal.mjs', 'scripts/seo/licenses.mjs']),
+  methodik: gitLastmod(['scripts/seo/methodik.mjs']),
+  glossary: gitLastmod(['scripts/seo/glossary.mjs']),
+  audiences: gitLastmod(['scripts/seo/audiences.mjs']),
+};
 /**
  * SEO/GEO 2026 (E9): `sitemap.xml` ist jetzt ein **Sitemap-Index** auf zwei Teillisten —
  * `sitemap-pages.xml` (App-Routen, Hubs, Erklärungen, Methodik, Zielgruppen, Werkzeuge,
@@ -231,41 +244,43 @@ function sitemap() {
   const fullTools = TOOLS.filter((t) => t.status === 'full');
   const fullEvents = EVENTS.filter((e) => e.status === 'full');
   const urls = [
-    { loc: `${SITE.url}/`, pri: '1.0', mod: CONTENT_UPDATED },
-    ...sitemapPaths().map((p) => ({ loc: `${SITE.url}${p.path}`, pri: p.priority, mod: p.lastmod })),
-    { loc: `${SITE.url}/wetter/`, pri: '0.8', mod: PLACES_UPDATED },
-    ...PLACES.map((p) => ({ loc: `${SITE.url}/wetter/${p.slug}/`, pri: '0.6', mod: PLACES_UPDATED })),
-    { loc: `${SITE.url}/wissen/`, pri: '0.7', mod: maxDate(fullEx.map((e) => e.dateModified), CONTENT_UPDATED) },
-    ...fullEx.map((e) => ({ loc: `${SITE.url}/wissen/${e.slug}/`, pri: '0.6', mod: e.dateModified || CONTENT_UPDATED })),
-    { loc: `${SITE.url}/funktionen/`, pri: '0.7', mod: maxDate(fullTools.map((t) => t.dateModified), CONTENT_UPDATED) },
-    ...fullTools.map((t) => ({ loc: `${SITE.url}/funktionen/${t.slug}/`, pri: '0.6', mod: t.dateModified || CONTENT_UPDATED })),
-    { loc: `${SITE.url}/wetterlage/`, pri: '0.6', mod: maxDate(fullEvents.map((e) => e.dateModified), CONTENT_UPDATED) },
-    ...fullEvents.map((e) => ({ loc: `${SITE.url}/wetterlage/${e.slug}/`, pri: '0.7', mod: e.dateModified || CONTENT_UPDATED })),
-    ...[...LEGAL_PAGES, LICENSE_PAGE].map((l) => ({ loc: `${SITE.url}/${l.slug}/`, pri: '0.3', mod: l.dateModified || LEGAL_UPDATED })),
+    { loc: `${SITE.url}/`, pri: '1.0', mod: LM.routes },
+    ...sitemapPaths().map((p) => ({ loc: `${SITE.url}${p.path}`, pri: p.priority, mod: LM.routes })),
+    { loc: `${SITE.url}/wetter/`, pri: '0.8', mod: LM.places },
+    ...PLACES.map((p) => ({ loc: `${SITE.url}/wetter/${p.slug}/`, pri: '0.6', mod: LM.places })),
+    { loc: `${SITE.url}/wissen/`, pri: '0.7', mod: LM.explainers },
+    ...fullEx.map((e) => ({ loc: `${SITE.url}/wissen/${e.slug}/`, pri: '0.6', mod: LM.explainers })),
+    { loc: `${SITE.url}/funktionen/`, pri: '0.7', mod: LM.tools },
+    ...fullTools.map((t) => ({ loc: `${SITE.url}/funktionen/${t.slug}/`, pri: '0.6', mod: LM.tools })),
+    { loc: `${SITE.url}/wetterlage/`, pri: '0.6', mod: LM.events },
+    ...fullEvents.map((e) => ({ loc: `${SITE.url}/wetterlage/${e.slug}/`, pri: '0.7', mod: LM.events })),
+    ...[...LEGAL_PAGES, LICENSE_PAGE].map((l) => ({ loc: `${SITE.url}/${l.slug}/`, pri: '0.3', mod: LM.legal })),
     // E3: Methodik + Vertrauensseiten
-    { loc: `${SITE.url}/methodik/`, pri: '0.7', mod: METHODIK_UPDATED },
-    ...METHODIK.map((pg) => ({ loc: `${SITE.url}/methodik/${pg.slug}/`, pri: '0.6', mod: METHODIK_UPDATED })),
-    ...TRUST_PAGES.map((pg) => ({ loc: `${SITE.url}/${pg.slug}/`, pri: '0.5', mod: METHODIK_UPDATED })),
+    { loc: `${SITE.url}/methodik/`, pri: '0.7', mod: LM.methodik },
+    ...METHODIK.map((pg) => ({ loc: `${SITE.url}/methodik/${pg.slug}/`, pri: '0.6', mod: LM.methodik })),
+    ...TRUST_PAGES.map((pg) => ({ loc: `${SITE.url}/${pg.slug}/`, pri: '0.5', mod: LM.methodik })),
     // E5/E6: Glossar + Zielgruppen-Seiten
-    { loc: `${SITE.url}/glossar/`, pri: '0.6', mod: GLOSSARY_UPDATED },
-    { loc: `${SITE.url}/fuer/`, pri: '0.7', mod: AUDIENCES_UPDATED },
-    ...AUDIENCES.map((pg) => ({ loc: `${SITE.url}/fuer/${pg.slug}/`, pri: '0.6', mod: AUDIENCES_UPDATED })),
+    { loc: `${SITE.url}/glossar/`, pri: '0.6', mod: LM.glossary },
+    { loc: `${SITE.url}/fuer/`, pri: '0.7', mod: LM.audiences },
+    ...AUDIENCES.map((pg) => ({ loc: `${SITE.url}/fuer/${pg.slug}/`, pri: '0.6', mod: LM.audiences })),
   ];
   return urls;
 }
 const urlSet = (urls) => `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${
-  urls.map((u) => `  <url><loc>${u.loc}</loc><lastmod>${u.mod}</lastmod><priority>${u.pri}</priority></url>`).join('\n')}\n</urlset>\n`;
+  urls.map((u) => `  <url><loc>${u.loc}</loc>${u.mod ? `<lastmod>${u.mod}</lastmod>` : ''}<priority>${u.pri}</priority></url>`).join('\n')}\n</urlset>\n`;
 const ALL_URLS = sitemap();
 const PLACE_PREFIX = `${SITE.url}/wetter/`;
 const placeUrls = ALL_URLS.filter((u) => u.loc.startsWith(PLACE_PREFIX) && u.loc !== `${PLACE_PREFIX}`);
 const pageUrls = ALL_URLS.filter((u) => !placeUrls.includes(u));
 writeFileSync(join(DIST, 'sitemap-orte.xml'), urlSet(placeUrls), 'utf8');
 writeFileSync(join(DIST, 'sitemap-pages.xml'), urlSet(pageUrls), 'utf8');
-const sitemapLastmod = maxDate(ALL_URLS.map((u) => u.mod), BUILD_DATE);
+const lastmodTag = (d) => (d ? `<lastmod>${d}</lastmod>` : '');
+const sitemapLastmod = lastmodTag(maxLastmod(pageUrls.map((u) => u.mod)));
+const orteLastmod = lastmodTag(maxLastmod(placeUrls.map((u) => u.mod)));
 writeFileSync(join(DIST, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <sitemap><loc>${SITE.url}/sitemap-pages.xml</loc><lastmod>${sitemapLastmod}</lastmod></sitemap>
-  <sitemap><loc>${SITE.url}/sitemap-orte.xml</loc><lastmod>${PLACES_UPDATED}</lastmod></sitemap>
+  <sitemap><loc>${SITE.url}/sitemap-pages.xml</loc>${sitemapLastmod}</sitemap>
+  <sitemap><loc>${SITE.url}/sitemap-orte.xml</loc>${orteLastmod}</sitemap>
 </sitemapindex>
 `, 'utf8');
 
