@@ -647,6 +647,7 @@ export default function FireMap({
     // sie keine amtliche Entsprechung zeigt. `moveLayer` ohne Ziel = nach oben;
     // idempotent, also bei jedem Durchlauf unschädlich.
     if (m.getLayer('fire-dach-mask-fill')) m.moveLayer('fire-dach-mask-fill');
+    if (m.getLayer('fire-europe-mask-fill')) m.moveLayer('fire-europe-mask-fill');
     // Gebiet: in Europa deckt die DACH-Maske nur noch zu, solange eine DACH-only-Ebene
     // (ICON-D2-Treiber) an ist — sonst behauptete deren Fläche dort eine Aussage.
     const dachOnlyOn = s.active.has('fireWeather') || s.active.has('fireSoilDryness');
@@ -656,13 +657,14 @@ export default function FireMap({
     let dachMaskOn = s.region === 'dach';
     if (s.region === 'europe' && dachOnlyOn && m.getLayer('fire-dach-mask-fill')) {
       // `getLayersOrder()`, nicht `getStyle().layers` — der Stil führt keine Custom-Layer.
-      const ids = m.getLayersOrder().filter((id) => id !== 'fire-dach-mask-fill');
+      const ids = m.getLayersOrder().filter((id) => id !== 'fire-dach-mask-fill' && id !== 'fire-europe-mask-fill');
       const top = Math.max(...['fire-weather-scalar', 'fire-soil-scalar'].map((id) => ids.indexOf(id)));
       const before = top >= 0 ? ids[top + 1] : undefined;
       if (before) m.moveLayer('fire-dach-mask-fill', before);
       dachMaskOn = top >= 0;
     }
     if (m.getLayer('fire-dach-mask-fill')) m.setLayoutProperty('fire-dach-mask-fill', 'visibility', dachMaskOn ? 'visible' : 'none');
+    if (m.getLayer('fire-europe-mask-fill')) m.setLayoutProperty('fire-europe-mask-fill', 'visibility', s.region === 'europe' ? 'visible' : 'none');
 
     // Sichtbarkeit ZULETZT: erst jetzt existieren alle Layer sicher.
     for (const id of FIRE_LAYER_ORDER) {
@@ -1439,8 +1441,32 @@ function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets') {
     }
   }).catch(() => { /* Maske ist Beiwerk — ihr Ausfall darf die Karte nicht kippen */ });
 
-  // Gebiet Europa: keine Maske außerhalb der Box (Muster Gletscher-Karte) — der Rahmen ist
-  // `EUROPE_MAX_BOUNDS` der Kamera, die Datengrenze nennt der Hinweis `EUROPE_HISTORY_NOTE`.
+  // Gebiet Europa: beige Umrandung — dieselbe Sandfläche wie die DACH-Maske, aber nur außerhalb der Europa-Box
+  // (dort gibt es keine Abrufe). Die Kamera bleibt bei `EUROPE_MAX_BOUNDS`; die Fläche rahmt die Karte, wenn
+  // herausgezoomt oder geschwenkt wird. Sichtbarkeit setzt applyState (Vorgabe DACH: unsichtbar).
+  if (!map.getSource('fire-europe-mask')) {
+    const b = EUROPE_BOX;
+    map.addSource('fire-europe-mask', {
+      type: 'geojson',
+      data: {
+        type: 'Feature', properties: {},
+        geometry: {
+          type: 'Polygon',
+          coordinates: [
+            [[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]],
+            [[b.west, b.south], [b.west, b.north], [b.east, b.north], [b.east, b.south], [b.west, b.south]],
+          ],
+        },
+      },
+    });
+    map.addLayer({
+      id: 'fire-europe-mask-fill',
+      type: 'fill',
+      source: 'fire-europe-mask',
+      layout: { visibility: 'none' },
+      paint: { 'fill-color': '#E0D6BE', 'fill-opacity': 1 },
+    });
+  }
 
   /** Jeder GL-Layer mit seiner echten Quelle und Darstellung. */
   const SPECS: Record<string, maplibregl.LayerSpecification> = {
