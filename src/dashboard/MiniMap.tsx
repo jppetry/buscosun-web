@@ -167,14 +167,15 @@ export default function MiniMap({ place }: { place: PlaceIn }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Only an unavailable source is announced; the routine "Wind ICON-D2 · 10 m · Radar jetzt" line is gone.
   const cap = [
-    windState === 'na' ? 'Wind: nicht verfügbar' : 'Wind ICON-D2 · 10 m',
-    radarState === 'na' ? 'Radar: nicht verfügbar' : radarState === 'loading' ? 'Radar lädt …' : 'Radar jetzt',
-  ].join(' · ');
+    windState === 'na' ? 'Wind: nicht verfügbar' : '',
+    radarState === 'na' ? 'Radar: nicht verfügbar' : '',
+  ].filter(Boolean).join(' · ');
   return (
     <div className="dbd-mm-inner">
       <div ref={hostRef} className="dbd-mm-map" role="img" aria-label={`Kartenausschnitt um ${place.name} mit Wind und Niederschlag`} />
-      {noWebgl ? <div className="dbd-mm-cap">Karte braucht WebGL — dieses Gerät bietet es nicht.</div> : <div className="dbd-mm-cap">{cap}</div>}
+      {noWebgl ? <div className="dbd-mm-cap">Karte braucht WebGL — dieses Gerät bietet es nicht.</div> : cap ? <div className="dbd-mm-cap">{cap}</div> : null}
     </div>
   );
 }
