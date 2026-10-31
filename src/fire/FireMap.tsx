@@ -1441,12 +1441,14 @@ function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets') {
         },
       },
     });
+    // 2026-10-31 (Jan): außerhalb der Box scheint die Basiskarte gedämpft durch — der Rand
+    // bleibt lesbar als „kein Abruf", wirkt aber nicht mehr wie eine abgeschnittene Karte.
     map.addLayer({
       id: 'fire-europe-mask-fill',
       type: 'fill',
       source: 'fire-europe-mask',
       layout: { visibility: 'none' },
-      paint: { 'fill-color': '#E0D6BE', 'fill-opacity': 1.0 },
+      paint: { 'fill-color': '#E0D6BE', 'fill-opacity': 0.62 },
     });
   }
 
