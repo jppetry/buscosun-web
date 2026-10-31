@@ -15,7 +15,7 @@ import { TOOLS } from './seo/tools.mjs';
 import { EVENTS } from './seo/events.mjs';
 import { LEGAL_PAGES, operatorIncomplete } from './seo/legal.mjs';
 import { buildLicensePage } from './seo/licenses.mjs';
-import { allMethodikPages, buildUeberPage, buildOhneTrackerPage, METHODIK_UPDATED } from './seo/methodik.mjs';
+import { allMethodikPages, buildUeberPage, buildOhneTrackerPage, buildFaqPage, METHODIK_UPDATED } from './seo/methodik.mjs';
 import { GLOSSARY, GLOSSARY_UPDATED, renderGlossaryPage } from './seo/glossary.mjs';
 import { buildLlmsTxt, buildLlmsFullTxt } from './seo/llms.mjs';
 import { ogImageOr } from './seo/content.mjs';
@@ -163,7 +163,7 @@ for (const pg of METHODIK) {
 }
 mkdirSync(join(DIST, 'methodik'), { recursive: true });
 writeFileSync(join(DIST, 'methodik', 'index.html'), renderMethodikHub(METHODIK, METHODIK_UPDATED), 'utf8');
-const TRUST_PAGES = [buildUeberPage(), buildOhneTrackerPage()];
+const TRUST_PAGES = [buildUeberPage(), buildOhneTrackerPage(), buildFaqPage()];
 for (const pg of TRUST_PAGES) {
   const dir = join(DIST, pg.slug);
   mkdirSync(dir, { recursive: true });
@@ -223,7 +223,7 @@ writeFileSync(join(DIST, '404.html'), notFoundPage(), 'utf8');
 // `changefreq`/`priority` bleiben weg bzw. minimal: Google ignoriert changefreq seit Jahren.
 const LM = {
   routes: gitLastmod(['src/router/routes.ts', 'src/seo/subRouteTexts.ts']),
-  places: gitLastmod(['scripts/seo/places.mjs']),
+  places: gitLastmod(['scripts/seo/places.mjs', 'scripts/seo/placeContent.mjs', 'scripts/seo/data/place-climate.json', 'scripts/seo/data/place-terrain.json', 'scripts/seo/data/place-modules.json']),
   explainers: gitLastmod(['scripts/seo/explainers.mjs', 'scripts/seo/explainers-extra.mjs']),
   tools: gitLastmod(['scripts/seo/tools.mjs']),
   events: gitLastmod(['scripts/seo/events.mjs']),

@@ -11,6 +11,7 @@
  */
 import { CONTACTED_HOSTS, STORAGE_GROUPS, OPERATOR, TODO } from './legal.mjs';
 import { readModelCatalog } from './licenses.mjs';
+import { COMPARE, MODULES, TERRAIN } from './placeRules.mjs';
 
 export const METHODIK_UPDATED = '2026-09-05';
 
@@ -333,6 +334,97 @@ export function buildOhneTrackerPage() {
   };
 }
 
+// --- Ortsseiten: zentrale Methodik und FAQ (Phase "Ortsseiten individuell") -----------------------------------
+
+/** Stand der beiden neuen Seiten (ISO), sichtbar im Kopf und im JSON-LD. */
+const ORTSSEITEN_UPDATED = '2026-10-31';
+const pct = (v) => `${Math.round(v * 100)} %`;
+
+/** /methodik/ortsseiten/ — alles, was früher auf jeder Ortsseite als Vorlagentext stand. */
+export function buildOrtsseitenPage() {
+  return {
+    slug: 'ortsseiten',
+    title: 'Ortsseiten: Datenbasis und Grenzen',
+    h1: 'Wie die Ortsseiten entstehen: Quellen, Rechenwege und Grenzen',
+    description: 'Woher die Klimawerte, Geländelagen und Sonnenzeiten auf den buscosun-Ortsseiten stammen, wie aus 1-km-Rastern Ortswerte werden und wann ein Vergleich oder ein Modul-Abschnitt erscheint.',
+    answer: 'Die Zahlen auf einer Ortsseite sind Normalwerte 1991–2020 aus amtlichen 1-km-Rastern (Deutschland: DWD, Österreich: GeoSphere Austria SPARTACUS), für die Schweiz eine Schätzung aus Stationsdaten. Dazu kommen die Höhenverteilung im 10-km-Umkreis aus Terrarium-Kacheln und astronomisch berechnete Sonnenzeiten. Jeder Satz leitet sich aus diesen Daten ab; was fehlt, steht nicht auf der Seite.',
+    dateModified: ORTSSEITEN_UPDATED,
+    sections: [
+      { h2: 'Woher die Klimazahlen kommen', html: table(['Land', 'Quelle', 'Auflösung', 'Größen', 'Lizenz'], [
+        ['Deutschland', 'DWD Klimaraster <code>grids_germany/multi_annual</code>, Mittel 1991–2020', '1 km', 'je Monat Höchst- und Tiefsttemperatur, Niederschlag, Sonnenscheindauer; je Jahr Frost-, Eis-, Sommer-, Heiße Tage und Tage mit Schneedecke', 'GeoNutzV, Quelle: Deutscher Wetterdienst'],
+        ['Österreich', 'GeoSphere Austria SPARTACUS v2, Tageswerte; Normalperiode 1991–2020 von buscosun gemittelt', '1 km', 'dieselben Größen aus Tageswerten, zusätzlich Regentage (mindestens 1 mm); keine Schneedecke', 'CC BY 4.0, Quelle: GeoSphere Austria'],
+        ['Schweiz', 'Stationsdaten (DWD-Messungen über Meteostat, 1995–2024), drei nächste Stationen entfernungsgewichtet', 'Stationsabstand', 'Höchst- und Tiefsttemperatur, Anteil der Regentage; keine Mengen, keine Sonnenscheindauer', 'siehe <a href="/lizenzen/">Quellen &amp; Lizenzen</a>'],
+      ]) + p('Für die Schweiz stellt MeteoSchweiz Raster und Normwerte unter CC-BY bereit. Im Katalog waren zum Zeitpunkt der Erstellung (31. Oktober 2026) für 1991–2020 aber keine abrufbaren Dateien aufgeführt; deshalb bleibt die Schweiz vorerst bei den Stationsdaten.') },
+      { h2: 'Vom Raster zum Ortswert', html: ul([
+        '<strong>Deutschland:</strong> Die Koordinate des Ortes wird in das Gitter des DWD (Gauß-Krüger, Streifen 3) umgerechnet und zwischen den vier umliegenden Zellmittelpunkten bilinear interpoliert.',
+        '<strong>Österreich:</strong> Aus den ein bis vier Rasterzellen um den Ort wird ein entfernungsgewichtetes Mittel gebildet. Frosttage zählen Tage mit Tiefstwert unter 0 °C, Eistage Tage mit Höchstwert unter 0 °C, Sommertage Höchstwert ab 25 °C, heiße Tage ab 30 °C — dieselben Schwellen wie beim DWD.',
+        '<strong>Eine Zelle ist ein Gebietsmittel.</strong> Im Gebirge liegt die mittlere Höhe einer 1-km-Zelle oft deutlich unter oder über der Höhe des Ortes; die Ortsseite nennt beide Höhen. Straßenzüge, Hinterhöfe und einzelne Hänge innerhalb der Zelle können abweichen.',
+        '<strong>Klima ist keine Vorhersage.</strong> Die Tabellen zeigen, was im Mittel von 30 Jahren zu erwarten war — nicht, was an einem bestimmten Tag passiert.',
+      ]) },
+      { h2: 'Geländelage und Seen', html: ul([
+        `<strong>Höhenverteilung:</strong> Aus den Terrarium-Höhenkacheln (Mapzen/AWS, rund 105 m je Pixel) wird die Höhenverteilung im Umkreis von ${TERRAIN.radiusKm} km um den Ort gebildet. Der Rang der Ortshöhe darin bestimmt die Lage: bis ${pct(TERRAIN.valleyRank)} „Tal- oder Beckenlage“, ab ${pct(TERRAIN.crestRank)} „Höhen- oder Kuppenlage“, dazwischen „Hanglage“. Unterscheiden sich die mittleren 80 % des Geländes um weniger als ${TERRAIN.flatReliefM} m, gilt der Ort als „flaches Gelände“.`,
+        `<strong>Seen:</strong> Aus Natural Earth (gemeinfrei) berücksichtigt buscosun eine geprüfte Liste größerer Seen und nennt die Entfernung zum Ufer bis ${TERRAIN.lakeMaxKm} km. Fehlt ein See in dieser Liste, sagt die Seite nichts — ein fehlender Eintrag heißt nicht, dass es keinen See gibt.`,
+        '<strong>Kaltluft und Nebel:</strong> Das Klimaraster bildet Kaltluftseen, Inversionen und Nebelneigung nicht gesondert ab. Die Seite behauptet sie deshalb nicht.',
+      ]) },
+      { h2: 'Sonnenzeiten', html: ul([
+        'Berechnet wird die Sonnenhöhe minutengenau für den 15. des Monats (Referenzjahr 2026) in mitteleuropäischer Zeit mit Sommerzeit; von Jahr zu Jahr verschieben sich die Zeiten um wenige Minuten.',
+        'Auf- und Untergang gelten bei −0,833° Sonnenhöhe (Standard-Refraktion). Die goldene Stunde am Abend beginnt bei 6° Sonnenhöhe und endet bei −4°; daran schließt die blaue Stunde bis −6° an.',
+        'Nicht berücksichtigt ist die Abschattung durch Berge. In einem engen Tal verschwindet die Sonne früher hinter dem Grat; die <a href="/eventplanung/fotografie">Event-Planung</a> rechnet diese Verdeckung für kommende Tage aus dem Geländemodell.',
+      ]) },
+      { h2: 'Wann ein Vergleich mit einem Nachbarort erscheint', html: p(`Ein Satz wie „Im Jahresmittel ist es in X um 1,4 K kälter als in Y“ erscheint nur, wenn alle Bedingungen erfüllt sind: Y liegt höchstens ${COMPARE.maxKm} km entfernt und mindestens ${COMPARE.minHeightDiffM} m höher oder tiefer; der Unterschied beträgt mindestens ${String(COMPARE.minTempDiffK).replace('.', ',')} K bei der Jahrestemperatur, ${pct(COMPARE.minPrecipRel)} beim Jahresniederschlag oder ${COMPARE.minFrostDays} Frosttage; und die Richtung passt zur Höhe (höher gelegene Orte sind kälter, niederschlagsreicher und frostreicher). Alles andere bleibt ungesagt, weil Unterschiede zwischen nahen Rasterzellen sonst Rechenartefakte wären.`) },
+      { h2: 'Wann eine Ortsseite einen Modul-Abschnitt bekommt', html: ul([
+        `<strong>Küste und Seewetter:</strong> ein Seewetter-Spot an Nord- oder Ostsee (kein reiner Revier-Spot) höchstens ${MODULES.seaKm} km vom Ort; ein BSH-Pegel höchstens ${MODULES.gaugeKm} km.`,
+        `<strong>Autobahn:</strong> ein Autobahn-Korridor höchstens ${MODULES.roadKm} km und eine Glättemeldeanlage des DWD höchstens ${MODULES.stationKm} km vom Ort (nur Deutschland).`,
+        `<strong>Gletscher:</strong> Gletscher ab ${String(MODULES.glacierMinKm2).replace('.', ',')} km² Fläche höchstens ${MODULES.glacierKm} km vom Ort.`,
+        'Ein Abschnitt erscheint außerdem nur, wenn die verlinkte Seite öffentlich ist und von Suchmaschinen indexiert werden darf.',
+      ]) },
+      { h2: 'Grenzen, die für alle Ortsseiten gelten', html: ul([
+        '<strong>Radar (Deutschland):</strong> Das gemessene Niederschlagsbild reicht bis zwei Stunden voraus (RADOLAN-RV). Danach beginnt Modellvorhersage, kein gemessener Regen mehr.',
+        '<strong>Radar (Österreich):</strong> INCA von GeoSphere Austria liefert bis drei Stunden voraus, danach beginnt Modellvorhersage.',
+        '<strong>Radar (Schweiz):</strong> Das Schweizer Radarbild (rzc) zeigt die Gegenwart, aber keine eigene Vorhersage.',
+        '<strong>Warnungen:</strong> Amtliche Warnungen werden wörtlich zitiert, nie umformuliert. Für Deutschland kommen sie vom DWD, für die Schweiz von MeteoSchweiz über MeteoAlarm; für Österreich zeigt buscosun keine amtlichen Warnflächen — die Lücke wird nicht durch Stufen anderer Länder ersetzt. Maßgeblich ist GeoSphere Austria. ' + NO_WARNING,
+        '<strong>Pollen und UV:</strong> Amtlich nur für Deutschland (DWD-Pollenflug-Gefahrenindex, UV-Tageshöchstwert). Für Österreich und die Schweiz wird UV per Klarhimmel-Modell geschätzt, Pollen sind nur als ausdrücklich zugeschaltete CAMS-Schätzung verfügbar.',
+        '<strong>Lawinen:</strong> buscosun modelliert keine Lawinengefahr, sondern verlinkt den amtlichen Lagebericht (SLF, lawinen.report, Lawinenwarndienst Bayern).',
+        '<strong>Nicht Teil der Ortsseiten:</strong> Wassertemperatur, Badegewässerqualität und Straßenzustand — dafür sind Landesportale und Gesundheitsämter zuständig.',
+      ]) },
+    ],
+    faqs: [
+      { q: 'Warum zeigt die Ortsseite andere Werte als die Station im Ort?', a: 'Die Seite zeigt Mittel über eine Rasterzelle von etwa 1 km und 30 Jahre (1991–2020), eine Station misst an einem Punkt. Stadtwärme, Hangneigung und die Lage der Station verschieben die Werte um einige Zehntel Grad.' },
+      { q: 'Warum steht bei manchen Orten kein Vergleich mit Nachbarorten?', a: `Weil Unterschiede nur genannt werden, wenn die Höhe sie erklärt: mindestens ${COMPARE.minHeightDiffM} m Höhenunterschied und ein Unterschied über der Schwelle.` },
+      { q: 'Warum fehlen für Schweizer Orte Niederschlagsmengen und Sonnenscheindauer?', a: 'Für die Schweiz liegen buscosun derzeit nur Stationsdaten für Temperatur und Regentage vor; Mengen und Sonnenscheindauer werden ergänzt, sobald MeteoSchweiz die Normalwerte als Raster abrufbar bereitstellt.' },
+    ],
+    related: ['/faq/', '/wetter/', '/methodik/hoehenkorrektur/', '/lizenzen/'],
+  };
+}
+
+/** /faq/ — die allgemeinen Fragen, die früher als Vorlage auf jeder Ortsseite standen. */
+export function buildFaqPage() {
+  return {
+    slug: 'faq',
+    title: 'Häufige Fragen',
+    h1: 'Häufige Fragen zu buscosun und den Ortsseiten',
+    description: 'Woher die Daten kommen, wie die Höhenkorrektur arbeitet, was Radar, Pollen, UV und Warnungen je Land leisten und was buscosun kostet — kurze Antworten mit Verweis auf die Methodik.',
+    answer: 'buscosun ist kostenlos, setzt keine Tracker ein und nutzt amtliche Quellen: DWD für Deutschland, GeoSphere Austria für Österreich, MeteoSchweiz für die Schweiz. Temperaturen werden über ein Geländemodell auf die tatsächliche Höhe umgerechnet. Die Antworten hier gelten für alle Ortsseiten; ortsbezogene Fragen beantwortet die jeweilige Ortsseite mit eigenen Zahlen.',
+    dateModified: ORTSSEITEN_UPDATED,
+    sections: [
+      { h2: 'So ist diese Seite gedacht', html: p('Hier stehen die Fragen, deren Antwort für jeden Ort gleich ist. Was nur für einen Ort gilt — Niederschlag, Frosttage, Sonnenstunden, Geländelage —, steht auf der Ortsseite selbst; wie diese Zahlen entstehen, erklärt die <a href="/methodik/ortsseiten/">Methodik der Ortsseiten</a>.') },
+    ],
+    faqs: [
+      { q: 'Woher kommen die Wetterdaten?', a: 'Aus amtlichen Quellen: für Deutschland DWD (ICON-D2, MOSMIX, RADOLAN-Radar, Sferics, UV, Pollen, Warnungen), für Österreich GeoSphere Austria (C-LAEF, INCA, TAWES), für die Schweiz MeteoSchweiz (Stationen, Radar rzc) und GeoSphere C-LAEF; im Grenzbereich ergänzt ICON-D2.' },
+      { q: 'Ist die Vorhersage höhenkorrigiert?', a: 'Ja. buscosun rechnet die Temperatur über ein digitales Geländemodell und eine ortsabhängige Lapse-Rate auf die tatsächliche Höhe um (Rückfall: 6,5 K je Kilometer). Details: Methodik „Höhenkorrektur“.' },
+      { q: 'Woher kommen die Klimawerte auf den Ortsseiten?', a: 'Aus amtlichen 1-km-Rastern für 1991–2020: Deutschland vom DWD, Österreich von GeoSphere Austria (SPARTACUS); für die Schweiz sind es Schätzungen aus Stationsdaten. Siehe Methodik der Ortsseiten.' },
+      { q: 'Wie weit reicht das Radar?', a: 'Deutschland: bis zwei Stunden voraus (RADOLAN-RV). Österreich: bis drei Stunden (INCA). Schweiz: das Radarbild zeigt die Gegenwart, aber keine eigene Vorhersage. Danach beginnt Modellvorhersage.' },
+      { q: 'Gibt es eine Pollenvorhersage?', a: 'Amtlich nur für Deutschland (DWD-Pollenflug-Gefahrenindex). Für Österreich und die Schweiz gibt es keinen amtlichen Feed; optional lässt sich eine CAMS-Schätzung über Open-Meteo zuschalten.' },
+      { q: 'Wie wird der UV-Index bestimmt?', a: 'Für Deutschland amtlich vom DWD (Tageshöchstwert). Für Österreich und die Schweiz schätzt buscosun ihn mit einem Klarhimmel-Modell — ohne Wolkeneffekt.' },
+      { q: 'Gibt buscosun Unwetterwarnungen heraus?', a: 'Nein. Amtliche Warnungen werden wörtlich zitiert; maßgeblich bleiben DWD, GeoSphere Austria und MeteoSchweiz. Für Österreich zeigt buscosun keine amtlichen Warnflächen.' },
+      { q: 'Zeigt buscosun den Lawinenlagebericht?', a: 'buscosun modelliert keine Lawinengefahr, verlinkt aber den amtlichen Lagebericht: SLF (Schweiz), lawinen.report (Österreich) und Lawinenwarndienst Bayern (Deutschland) sowie den europäischen EAWS-Dienst.' },
+      { q: 'Was ist der Unterschied zwischen Klima und Vorhersage?', a: 'Die Klimatabelle einer Ortsseite zeigt Mittelwerte der Jahre 1991–2020 und ändert sich nicht. Die Vorhersage für die kommenden Tage zeigt die interaktive Karte; die Ortsseite verlinkt sie.' },
+      { q: 'Kostet buscosun etwas?', a: 'Nein. buscosun ist kostenlos nutzbar, setzt keine Tracker ein und funktioniert direkt im Browser.' },
+    ],
+    related: ['/methodik/ortsseiten/', '/ueber/', '/ohne-tracker/', '/wetter/'],
+  };
+}
+
 export function allMethodikPages() {
-  return [...METHODIK_PAGES, buildWettermodellePage()];
+  return [...METHODIK_PAGES, buildWettermodellePage(), buildOrtsseitenPage()];
 }

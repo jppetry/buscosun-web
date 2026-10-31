@@ -50,8 +50,8 @@ const LIMITS = `## Grenzen (ausdrücklich)
 - Waldbrand: Satellitendetektionen sind keine Brandmeldungen. „Bestätigt" heißt ein Brand nur mit Quelle
   im selben Satz (EFFIS-Kartierung oder Copernicus-EMS-Aktivierung); unbestätigt ist der Normalfall.
   Österreich veröffentlicht keine offene amtliche Waldbrandstufe.
-- Klimatabellen auf Ortsseiten sind Schätzungen aus umliegenden Stationen (${'${clima}'}), keine Messreihen
-  des jeweiligen Ortes.
+- Klimatabellen auf Ortsseiten sind Normalwerte 1991–2020 aus amtlichen 1-km-Rastern (DE: DWD, AT: GeoSphere
+  SPARTACUS), keine Messreihen des Ortes; für die Schweiz Schätzungen aus Stationsdaten (${'${clima}'}).
 - Der 3D-Globus nutzt GFS mit 1° Gitterweite — global, aber deutlich gröber als die DACH-Layer.
 `;
 
@@ -88,8 +88,9 @@ ${link('/validierung', 'Validierung')}: Live-Hindcast des Nowcasts gegen gemesse
   sections.push(`## Wetter nach Ort
 
 ${link('/wetter/', `Übersicht aller ${places.length} Orte`)} (Deutschland ${byCountry.DE || 0} · Österreich ${byCountry.AT || 0} · Schweiz ${byCountry.CH || 0}).
-Jede Ortsseite nennt Lage, Höhe, Quellen je Land, eine Klimatabelle im Jahresverlauf, die Sonnenzeiten je Monat
-und einen Abschnitt „Was wir für diesen Ort nicht wissen". Beispiele:
+Jede Ortsseite nennt Lage im Gelände, Höhe, eine Klimatabelle 1991–2020 mit Niederschlag, Sonnenschein und Kenntagen,
+die Sonnenzeiten, datenbasierte Fragen und einen Abschnitt „Was wir für diesen Ort nicht wissen". Rechenwege:
+${link('/methodik/ortsseiten/', 'Methodik der Ortsseiten')}, allgemeine Fragen: ${link('/faq/', 'FAQ')}. Beispiele:
 ${['muenchen', 'innsbruck', 'zermatt'].map((s) => link('/wetter/' + s + '/', 'Wetter ' + s)).join('\n')}`);
 
   sections.push(`## Wie buscosun rechnet (Methodik, mit Konstanten und Grenzen)
@@ -113,7 +114,7 @@ ${link('/glossar/', `Glossar (${glossary.length} Begriffe, Anker je Begriff)`)}
 ${link('/funktionen/', `Funktionsseiten (${tools.length})`)}
 ${link('/wetterlage/', `Wetterlagen und Einordnungen (${events.length})`)}
 ${link('/lizenzen/', 'Quellen & Lizenzen (Modelltabelle direkt aus dem Katalog der App)')}
-${link('/ueber/', 'Über buscosun')} · ${link('/ohne-tracker/', 'Ohne Tracker — überprüfbar').slice(2)}
+${link('/ueber/', 'Über buscosun')} · ${link('/ohne-tracker/', 'Ohne Tracker — überprüfbar').slice(2)} · ${link('/faq/', 'Häufige Fragen').slice(2)}
 ${link('/llms-full.txt', 'Volltext aller Erklärungen, Methodik, Zielgruppen und Glossar-Begriffe')}
 `);
 
