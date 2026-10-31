@@ -262,6 +262,9 @@ const CH_T2 = [
   ['Yverdon-les-Bains', 'Waadt', 46.779, 6.641, 438],
 ];
 
+/** Die 60 Orte der Stufe 2 stammen aus dem GeoNames-Gazetteer (CC BY 4.0) und tragen den Quellenvermerk. */
+export const GEONAMES_BASE_SLUGS = new Set([...DE_T2, ...AT_T2, ...CH_T2].map((r) => toSlug(r[0])));
+
 export const PLACES = [
   ...build(DE, 'DE'), ...build(AT, 'AT'), ...build(CH, 'CH'),
   ...build(DE_T2, 'DE'), ...build(AT_T2, 'AT'), ...build(CH_T2, 'CH'),

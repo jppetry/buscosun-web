@@ -17,7 +17,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { nearestPlaces, PLACES_NEW } from './places.mjs';
+import { nearestPlaces, PLACES_NEW, GEONAMES_BASE_SLUGS } from './places.mjs';
 import { COMPARE, TERRAIN } from './placeRules.mjs';
 import {
   monthlyClimate as stationClimate, MONTHS, CLIMA_YEARS, CLIMA_STATION_COUNT, SUN_REFERENCE_YEAR, sunDay, monthlySun,
@@ -91,6 +91,7 @@ export function climateOf(place) {
 }
 
 const NEW_SLUGS = new Set(PLACES_NEW.map((p) => p.slug));
+const GEONAMES_SLUGS = new Set([...NEW_SLUGS, ...GEONAMES_BASE_SLUGS]);
 
 /** Grundlage der Stationsschätzung (Schweiz): die drei nächsten Stationen mit Abstand und Höhe und die Höhenkorrektur gegenüber ihrem Mittel. */
 const STATIONS = (() => {
@@ -417,9 +418,9 @@ export function seaPlaceLinks(places) {
   return places.filter((p) => MODS[p.slug]?.sea).map((p) => ({ slug: p.slug, name: p.name }));
 }
 
-/** CC-BY-Vermerk für die Ortsliste (GeoNames); Orte der zweiten Welle und alle Sammelseiten. */
+/** CC-BY-Vermerk für die Ortsliste (GeoNames); Orte der zweiten Welle, die 60 Orte der Stufe 2 und alle Sammelseiten. */
 export const GEONAMES_CREDIT_HTML = 'Ortsliste: <a href="https://www.geonames.org/" rel="noopener">GeoNames</a> (<a href="https://creativecommons.org/licenses/by/4.0/" rel="license noopener">CC BY 4.0</a>, ausgewählt und ergänzt von buscosun, siehe <a href="/methodik/ortsseiten/#ortsliste">Methodik</a>)';
-export const geonamesCreditFor = (place) => (NEW_SLUGS.has(place.slug) ? ` ${GEONAMES_CREDIT_HTML}.` : '');
+export const geonamesCreditFor = (place) => (GEONAMES_SLUGS.has(place.slug) ? ` ${GEONAMES_CREDIT_HTML}.` : '');
 
 /** Quellen nur für das, was die Seite zeigt. */
 export function sourcesLine(place, blocks) {
