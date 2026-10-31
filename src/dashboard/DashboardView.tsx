@@ -8,10 +8,10 @@
  * Die Kacheln zeichnen `buildDashboardVM(...)` — rein, geprüft von `verify:dashboard`. Im Entwicklungsmodus liefert
  * `?dbfixture=vorlage` die Werte der Vorlage (Pixel-Diff, §5.7); im Produktions-Bau ist der Zweig entfernt.
  */
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import './dashboard.css';
 import ViewToggle, { type DashboardView as View } from './ViewToggle';
-import { DASH_PARTS, DASH_PART_LABEL, type DashPart, type DashRange } from './dashUrl';
+import type { DashRange } from './dashUrl';
 import type { Country, Location } from '../types';
 import { buildDashboardVM, shortName } from './model/build';
 import type { CellsIn, DashboardVM, DashInputs, HailIn, IconD2In, NowcastIn, PlaceIn, PollenIn, TerrainIn, UvIn, WarningsIn } from './model/types';
@@ -21,7 +21,6 @@ import { FeatureRail } from '../nav/featureRail';
 import ShareButton from '../share/ShareButton';
 import { NowcastTile, NowCard, Val, WarningsTile } from './tiles';
 import { ForecastZone } from './ForecastZone';
-import { TerrainField } from './TerrainField';
 import { pfLogFrom } from '../pointForecast/pfFlags';
 
 interface Props {
@@ -34,9 +33,6 @@ interface Props {
   onBack: () => void;
   /** Werkzeug-Rail wie auf der Kartenebene: springt auf die Seite des Werkzeugs. */
   onOpenFeature?: (id: string) => void;
-  /** E-DB-24: sichtbarer Reiter — Überblick (Reihe 1 + Prognose) oder Details (alles weitere). */
-  part?: DashPart;
-  onPart?: (p: DashPart) => void;
   /**
    * E-DB-20: called once when the dashboard no longer needs the network for its forecast — whole window there, the
    * fusion failed, or no place is chosen. The route loads the map's JS in the background then.
@@ -246,7 +242,7 @@ function useWide(): boolean {
   return m;
 }
 
-function DashboardPage({ vm, place, range, onRange, onSelectView, onSelectLocation, onBack, onOpenFeature, onHalfKm, onRetry, refs, log, part = 'ueberblick', onPart }: Props & {
+function DashboardPage({ vm, place, range, onRange, onSelectView, onSelectLocation, onBack, onOpenFeature, onRetry, refs, log }: Props & {
   vm: DashboardVM; onHalfKm: (km: 10 | 20 | 50) => void; onRetry: () => void; refs: Refs; log: ForecastState | null;
 }) {
   const tablet = useTablet();
@@ -262,13 +258,6 @@ function DashboardPage({ vm, place, range, onRange, onSelectView, onSelectLocati
     <span className={`dbd-status is-${vm.top.status.tone === 'ok' ? 'ok' : vm.top.status.tone}`} data-origin="P05"><i /><span>{vm.top.status.text}</span></span>
   );
   const run = <>Lauf <Val v={vm.top.run} /> · Anker-Zeit <Val v={vm.top.anchorTime} /></>;
-  // E-DB-24: beim Reiterwechsel an den Anfang (nicht beim ersten Zeichnen — ein geteilter Link behält seine Lage).
-  const firstPart = useRef(true);
-  useEffect(() => {
-    if (firstPart.current) { firstPart.current = false; return; }
-    window.scrollTo({ top: 0 });
-  }, [part]);
-  const showTabs = vm.status !== 'noplace' && !!onPart;
   return (
     <div className="dbd-root">
       <div className="dbd-shell">
@@ -313,7 +302,6 @@ function DashboardPage({ vm, place, range, onRange, onSelectView, onSelectLocati
         <div className="dbd-top-right"><span className="dbd-run">{run}</span>{status}</div>
         <div className="dbd-run-mobile">{run}</div>
       </header>
-      {showTabs && <DashTabs part={part} onPart={onPart!} />}
 
       <main className="dbd-content">
         {vm.status === 'noplace' ? (
@@ -323,7 +311,7 @@ function DashboardPage({ vm, place, range, onRange, onSelectView, onSelectLocati
           </section>
         ) : (
           <>
-            <div className="dbd-panel" role={showTabs ? 'tabpanel' : undefined} id="dbd-panel-ueberblick" aria-labelledby={showTabs ? 'dbd-tab-ueberblick' : undefined} hidden={showTabs && part !== 'ueberblick'}>
+            <div className="dbd-panel">
             <div className="dbd-row1">
               {vm.status === 'error' ? (
                 <section className="dbd-card dbd-sand-card dbd-now" aria-label="Fehler">
@@ -345,15 +333,6 @@ function DashboardPage({ vm, place, range, onRange, onSelectView, onSelectLocati
               <WarningsTile vm={vm.warning} />
             </div>
             <ForecastZone vm={vm.zone} range={range} onRange={onRange} />
-            {showTabs && (
-              <button type="button" className="dbd-more" onClick={() => onPart!('details')}>
-                <span className="dbd-more-title">Mehr zur Lage am Ort</span>
-                <span className="dbd-more-list">Gelände</span>
-              </button>
-            )}
-            </div>
-            <div className="dbd-panel" role={showTabs ? 'tabpanel' : undefined} id="dbd-panel-details" aria-labelledby={showTabs ? 'dbd-tab-details' : undefined} hidden={showTabs && part !== 'details'}>
-            <TerrainField vm={vm.terrain} onHalfKm={onHalfKm} rootRef={refs?.terrain} nowMs={vm.nowMs} />
             </div>
           </>
         )}
@@ -361,35 +340,6 @@ function DashboardPage({ vm, place, range, onRange, onSelectView, onSelectLocati
         {log && <div className="dbd-pflog">{JSON.stringify({ emissions: log.emissions, error: log.error, notes: vm.notes.slice(0, 12) }, null, 1)}</div>}
       </main>
       </div>
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// E-DB-24: Reiter „Überblick | Details" — zweite Ebene unter dem Kopf (leiser als „Dashboard | Karte")
-// ---------------------------------------------------------------------------
-
-function DashTabs({ part, onPart }: { part: DashPart; onPart: (p: DashPart) => void }) {
-  const btns = useRef<Array<HTMLButtonElement | null>>([]);
-  const onKey = (e: KeyboardEvent<HTMLButtonElement>, i: number) => {
-    const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
-    if (!d) return;
-    e.preventDefault();
-    const j = (i + d + DASH_PARTS.length) % DASH_PARTS.length;
-    onPart(DASH_PARTS[j]);
-    btns.current[j]?.focus();
-  };
-  return (
-    <div className="dbd-tabs">
-      <div className="dbd-tablist" role="tablist" aria-label="Teile des Dashboards">
-        {DASH_PARTS.map((p, i) => (
-          <button key={p} ref={(el) => { btns.current[i] = el; }} type="button" role="tab" id={`dbd-tab-${p}`} aria-controls={`dbd-panel-${p}`}
-            aria-selected={p === part} tabIndex={p === part ? 0 : -1} className={`dbd-tab${p === part ? ' is-active' : ''}`}
-            onClick={() => { if (p !== part) onPart(p); }} onKeyDown={(e) => onKey(e, i)}>
-            {DASH_PART_LABEL[p]}
-          </button>
-        ))}
       </div>
     </div>
   );
