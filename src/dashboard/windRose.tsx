@@ -1,11 +1,11 @@
 /**
  * Windrose · Verteilung (P63) — zeichnet nur `WindRoseVM`: 16 Sektoren um die Herkunftsrichtung, je Sektor nach Windklasse
  * gestapelt; der Radius folgt der Wurzel des Zeitanteils, damit auch seltene Richtungen sichtbar bleiben.
- * Die Kachel zeigt nur die Rose.
+ * Die Kachel zeigt nur die Rose; Zahlen und Erklärung stehen in der Detailansicht (Fenster über dem Dashboard).
  */
-import { useId } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { originTitle } from './origin';
-import { compass16 } from './format';
+import { compass16, num } from './format';
 import { Val } from './tiles';
 import type { WindRoseVM } from './model/types';
 
@@ -98,14 +98,122 @@ function RoseSvg({ vm }: { vm: WindRoseVM }) {
   );
 }
 
-export function WindRoseTile({ vm }: { vm: WindRoseVM }) {
+function ExpandIcon() {
   return (
-    <section className="dbd-tile dbd-rose" aria-label="Windrose Verteilung" data-origin="P63" title={originTitle('P63')}>
-      <div className="dbd-rose-head">
-        <span className="dbd-eyebrow">WINDROSE · VERTEILUNG</span>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <path d="M5 5l14 14M19 5L5 19" />
+    </svg>
+  );
+}
+
+export function WindRoseTile({ vm }: { vm: WindRoseVM }) {
+  const [open, setOpen] = useState(false);
+  const opener = useRef<HTMLButtonElement>(null);
+  return (
+    <>
+      <section className="dbd-tile dbd-rose" aria-label="Windrose Verteilung" data-origin="P63" title={originTitle('P63')}>
+        <div className="dbd-rose-head">
+          <span className="dbd-eyebrow">WINDROSE · VERTEILUNG</span>
+          <button ref={opener} type="button" className="dbd-rose-open" onClick={() => setOpen(true)} aria-haspopup="dialog" aria-label="Windrose groß anzeigen" title="Groß anzeigen mit allen Angaben">
+            <ExpandIcon />
+          </button>
+        </div>
+        <RoseSvg vm={vm} />
+        {vm.headline.t == null && <div className="dbd-rose-detail"><Val v={vm.headline} long /></div>}
+      </section>
+      {open && <WindRoseDetail vm={vm} onClose={() => { setOpen(false); opener.current?.focus(); }} />}
+    </>
+  );
+}
+
+/** Detailansicht: Fenster über dem Dashboard mit großer Rose, Windklassen, Richtungen und Lesehilfe. */
+function WindRoseDetail({ vm, onClose }: { vm: WindRoseVM; onClose: () => void }) {
+  const closeBtn = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    closeBtn.current?.focus();
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
+    document.addEventListener('keydown', key);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.removeEventListener('keydown', key); document.body.style.overflow = prev; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const classMax = Math.max(0.0001, ...vm.classShare);
+  const ranked = vm.sectors.filter((s) => s.share > 0).sort((a, b) => b.share - a.share);
+  const maxShare = Math.max(0.0001, ...ranked.map((s) => s.share));
+  const now = vm.nowDeg;
+  const nowTxt = now == null ? null : `${compass16(now)} · ${Math.round(now)}°${vm.nowWind == null ? '' : ` · ${num(vm.nowWind, 1)}${NB}m/s`}`;
+  return (
+    <div className="dbd-rose-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="dbd-rose-dialog" role="dialog" aria-modal="true" aria-labelledby="dbd-rose-dlg-title">
+        <div className="dbd-rose-dlg-head">
+          <div>
+            <span className="dbd-eyebrow" id="dbd-rose-dlg-title">WINDROSE · VERTEILUNG</span>
+            <span className="dbd-rose-range">nächste {vm.hours}{NB}h</span>
+          </div>
+          <button ref={closeBtn} type="button" className="dbd-rose-open" onClick={onClose} aria-label="Schließen" title="Schließen (Esc)"><CloseIcon /></button>
+        </div>
+        <div className="dbd-rose-dlg-main">
+          <RoseSvg vm={vm} />
+          <div className="dbd-rose-body">
+            <div className="dbd-rose-headline"><Val v={vm.headline} long /></div>
+            <div className="dbd-rose-detail"><Val v={vm.detail} long /></div>
+            <h3 className="dbd-rose-h">Windstärke (m/s)</h3>
+            <div className="dbd-rose-legend" role="list" aria-label="Windklassen in Meter pro Sekunde">
+              {vm.classLabels.map((l, k) => (
+                <div key={l} className="dbd-rose-row" role="listitem">
+                  <i style={{ background: CLASS_FILLS[k] }} />
+                  <span className="dbd-rose-cls">{l}{NB}m/s</span>
+                  <span className="dbd-rose-bar"><b style={{ width: `${(vm.classShare[k] / classMax) * 100}%`, background: CLASS_FILLS[k] }} /></span>
+                  <span className="dbd-rose-pct">{pct(vm.classShare[k])}</span>
+                </div>
+              ))}
+              {vm.unresolvedShare > 0 && (
+                <div className="dbd-rose-row" role="listitem">
+                  <i className="is-hatched" />
+                  <span className="dbd-rose-cls">ohne Richtung</span>
+                  <span className="dbd-rose-bar" />
+                  <span className="dbd-rose-pct">{pct(vm.unresolvedShare)}</span>
+                </div>
+              )}
+            </div>
+            {nowTxt && <div className="dbd-rose-now" data-origin="P64"><i />jetzt {nowTxt} <span className="dbd-rose-nowmark">(Marke in der Rose)</span></div>}
+          </div>
+        </div>
+        {ranked.length > 0 && (
+          <>
+            <h3 className="dbd-rose-h">Richtungen im Zeitraum</h3>
+            <div className="dbd-rose-dirs">
+              {ranked.map((s) => (
+                <div key={s.deg} className="dbd-rose-dir">
+                  <span className="dbd-rose-dirname">{compass16(s.deg)}<small>{Math.round(s.deg)}°</small></span>
+                  <span className="dbd-rose-sbar">
+                    <span style={{ width: `${(s.share / maxShare) * 100}%` }}>
+                      {s.classes.map((x, k) => (x > 0 ? <b key={k} style={{ flexGrow: x, background: CLASS_FILLS[k] }} title={`${vm.classLabels[k]} m/s · ${pct(x)}`} /> : null))}
+                    </span>
+                  </span>
+                  <span className="dbd-rose-pct">{pct(s.share)}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+        <h3 className="dbd-rose-h">So ist die Rose gelesen</h3>
+        <ul className="dbd-rose-notes">
+          <li>Die Rose zeigt, <strong>woher</strong> der Wind weht (0° = Nord, oben). Ein Fächer nach Südwest heißt: Wind aus Südwest.</li>
+          <li>Grundlage ist je Stunde die Richtung und der Mittelwind (p50, 10 m über Grund) aus buscosun Fusion, gewichtet mit der Dauer des Zeitschritts.</li>
+          <li>Der Radius wächst mit der Wurzel des Zeitanteils, damit seltene Richtungen sichtbar bleiben; die Ringe nennen den Anteil der Zeit.</li>
+          <li>Stunden ohne freigegebene Richtung (schwacher, drehender Wind) stehen in keinem Fächer, sondern als „ohne Richtung".</li>
+        </ul>
       </div>
-      <RoseSvg vm={vm} />
-      {vm.headline.t == null && <div className="dbd-rose-detail"><Val v={vm.headline} long /></div>}
-    </section>
+    </div>
   );
 }
