@@ -18,8 +18,8 @@ export type DashboardView = 'dashboard' | 'karte';
  */
 export function ViewBar({ active, onSelect }: { active: DashboardView; onSelect: (v: DashboardView) => void }) {
   return (
-    <nav className="vt-bar" aria-label="Ansicht">
-      <button type="button" className={`vt-bar-btn${active === 'dashboard' ? ' is-active' : ''}`} aria-current={active === 'dashboard' ? 'page' : undefined} onClick={() => { if (active !== 'dashboard') onSelect('dashboard'); }}>
+    <nav className="vt-nav" aria-label="Ansicht">
+      <button type="button" className={`vt-nav-btn${active === 'dashboard' ? ' is-active' : ''}`} aria-current={active === 'dashboard' ? 'page' : undefined} onClick={() => { if (active !== 'dashboard') onSelect('dashboard'); }}>
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <rect x="3.5" y="3.5" width="7" height="9" rx="1.6" stroke="currentColor" strokeWidth="1.6" />
           <rect x="13.5" y="3.5" width="7" height="5" rx="1.6" stroke="currentColor" strokeWidth="1.6" />
@@ -28,7 +28,7 @@ export function ViewBar({ active, onSelect }: { active: DashboardView; onSelect:
         </svg>
         <span>Dashboard</span>
       </button>
-      <button type="button" className={`vt-bar-btn${active === 'karte' ? ' is-active' : ''}`} aria-current={active === 'karte' ? 'page' : undefined} onClick={() => { if (active !== 'karte') onSelect('karte'); }}>
+      <button type="button" className={`vt-nav-btn${active === 'karte' ? ' is-active' : ''}`} aria-current={active === 'karte' ? 'page' : undefined} onClick={() => { if (active !== 'karte') onSelect('karte'); }}>
         <IcoLayers size={22} />
         <span>Karte</span>
       </button>
