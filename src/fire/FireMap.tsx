@@ -81,6 +81,26 @@ const STREETS = WEATHER_BASEMAP_STYLE;
  */
 const EUROPE_MAX_BOUNDS: [[number, number], [number, number]] = [[-40, 27], [47, 78]];
 const EUROPE_MIN_ZOOM = 2;
+const EUROPE_FIT_PAD = 8;
+
+/**
+ * Einpass-Rand der Europa-Box. Mobil und bis 1599 px liegt die Punkt-Legende (`.br-pointlegend`)
+ * in voller Breite unten ÜBER der Karte — ohne Rücksicht darauf läge der Süden der Box unter ihr
+ * (Jan, 31.10.). Gemessen wird die Legende selbst, nicht eine Breakpoint-Zahl: der untere Rand
+ * ist ihre Überdeckung der Karte, sobald sie (fast) die ganze Breite einnimmt; rechts unten als
+ * schmale Kachel (großer Desktop) bleibt der Rand knapp.
+ */
+function europeFitPadding(host: HTMLElement): maplibregl.PaddingOptions {
+  const pad = { top: EUROPE_FIT_PAD, left: EUROPE_FIT_PAD, right: EUROPE_FIT_PAD, bottom: EUROPE_FIT_PAD };
+  const legend = host.closest('.fire-center')?.querySelector<HTMLElement>('.br-pointlegend');
+  if (!legend) return pad;
+  const h = host.getBoundingClientRect();
+  const l = legend.getBoundingClientRect();
+  if (l.width < h.width * 0.6) return pad;
+  const covered = h.bottom - l.top;
+  if (covered > 0 && covered < h.height * 0.6) pad.bottom = Math.round(covered) + EUROPE_FIT_PAD;
+  return pad;
+}
 
 /** DACH-Überblick: der Ausschnitt, in dem die Ansicht startet. */
 const DACH_BOUNDS: [number, number, number, number] = [5.5, 45.5, 17.5, 55.5];
@@ -666,7 +686,7 @@ export default function FireMap({
       container: hostRef.current,
       style: basemapStyle(basemapRef.current),
       bounds: region === 'europe' ? [EUROPE_BOX.west, EUROPE_BOX.south, EUROPE_BOX.east, EUROPE_BOX.north] : DACH_BOUNDS,
-      fitBoundsOptions: { padding: region === 'europe' ? 8 : 24 },
+      fitBoundsOptions: { padding: region === 'europe' ? europeFitPadding(hostRef.current) : 24 },
       ...(region === 'europe' ? { maxBounds: EUROPE_MAX_BOUNDS, minZoom: EUROPE_MIN_ZOOM } : {}),
       attributionControl: { compact: true },
       // Der Waldbrand-Blick ist ein Flächenblick — Neigung und Drehung würden
@@ -975,7 +995,7 @@ export default function FireMap({
     regionRef.current = region;
     const b = region === 'europe' ? EUROPE_BOX : null;
     m.fitBounds(b ? [[b.west, b.south], [b.east, b.north]] : [[DACH_BOUNDS[0], DACH_BOUNDS[1]], [DACH_BOUNDS[2], DACH_BOUNDS[3]]],
-      { padding: 24, duration: 600 });
+      { padding: b && hostRef.current ? europeFitPadding(hostRef.current) : 24, duration: 600 });
     applyState(m);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [region]);
