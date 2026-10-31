@@ -48,7 +48,16 @@ export interface HistoryPanelProps {
   regionNote?: string;
 }
 
-const COUNTRY_LABEL: Record<string, string> = { DE: 'Deutschland', AT: 'Österreich', CH: 'Schweiz' };
+const COUNTRY_LABEL: Record<string, string> = { DE: 'Deutschland', AT: 'Österreich', CH: 'Schweiz', XK: 'Kosovo' };
+let _regionNames: Intl.DisplayNames | null | undefined;
+/** Landesname zum ISO-Code (Europa-Box); `null` = kein Land bestimmt — das wird gesagt, nicht geraten. */
+export function historyCountryLabel(code: string | null): string {
+  if (code == null) return 'ohne Landangabe';
+  const fixed = COUNTRY_LABEL[code];
+  if (fixed) return fixed;
+  if (_regionNames === undefined) { try { _regionNames = new Intl.DisplayNames(['de'], { type: 'region' }); } catch { _regionNames = null; } }
+  try { return _regionNames?.of(code) ?? code; } catch { return code; }
+}
 const de = (n: number, frac = 0) => n.toLocaleString('de-DE', { maximumFractionDigits: frac });
 const fmtDay = (ms: number) => new Date(ms).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
 
@@ -115,7 +124,7 @@ export function FireHistoryPanel(p: HistoryPanelProps) {
                         {e.anomalyKind === 'site' ? <IndustryIcon size={20} /> : <FlameIcon size={20} />}
                       </span>
                       <span className="br-fire-name">{historyEntryName(e)}</span>
-                      <span className="br-fire-region">{COUNTRY_LABEL[e.country] ?? e.country}</span>
+                      <span className="br-fire-region">{historyCountryLabel(e.country)}</span>
                     </span>
                     <span className="br-fire-stats">
                       {historyStatTiles(e).map((t) => (
@@ -361,7 +370,7 @@ export function HistoryDossierBody({ entry, aside, head }: {
             {entry.placeName
               ? `${entry.placeName}${entry.placeDistrict && entry.placeDistrict !== entry.placeName ? ` · ${entry.placeDistrict}` : ''}${entry.placeKm != null ? ` (nächster Ort, ${de(entry.placeKm, 1)} km — GeoNames CC BY 4.0)` : ''}`
               : 'nicht bestimmt'}
-            {' '}· {COUNTRY_LABEL[entry.country] ?? entry.country}
+            {' '}· {historyCountryLabel(entry.country)}
           </dd>
           <dt>Herkunft</dt>
           <dd>{entry.nrt > 0 ? `${de(entry.nrt)} von ${de(entry.hotspots)} Detektionen vorläufig (NRT) — kann durch die Standard-Verarbeitung noch wandern` : 'Standard-Verarbeitung (SP), abgeschlossen'}</dd>

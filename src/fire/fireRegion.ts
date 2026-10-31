@@ -58,5 +58,5 @@ export const EUROPE_LIMIT_NOTE: Partial<Record<string, string>> = {
   fireSoilDryness: 'Nur DE/AT/CH (ICON-D2-Gebiet) — außerhalb ist die Fläche abgedeckt: nicht verfügbar, nicht „keine Trockenheit".',
 };
 
-/** Historie (Monat/Saison) in der Europa-Ansicht: die Ereignisdateien gibt es nur für DE/AT/CH. */
-export const EUROPE_HISTORY_NOTE = 'Europa: die Historie (Monat, Saison) gibt es bisher nur für DE/AT/CH. Außerhalb zeigt die Karte hier nichts — das heißt „nicht verfügbar", nicht „kein Brand".';
+/** Historie (Monat/Saison) in der Europa-Ansicht: seit 2026-10-31 die ganze Box; was außerhalb DE/AT/CH dünner ist, steht hier. */
+export const EUROPE_HISTORY_NOTE = 'Europa: Monat und Saison aus dem FIRMS-Archiv für die ganze Europa-Box. Außerhalb DE/AT/CH kommt das Land aus EFFIS oder dem nächsten Ort, Anlagenstandorte nur aus E-PRTR — ohne Landangabe heißt „nicht bestimmt", nicht „kein Brand".';

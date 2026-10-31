@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { verifyHistoryEvents, eventsFromRows, HISTORY_EVENT_VERSION, inSeason } from '../src/fire/history/historyEvents.ts';
-import { verifyHistoryArtifacts, entryOf, detectionsOf, shardPath, INDEX_FIELDS, HISTORY_ARTIFACT_VERSION } from '../src/fire/history/historyArtifacts.ts';
+import { verifyHistoryArtifacts, entryOf, detectionsOf, shardPath, INDEX_FIELDS, HISTORY_ARTIFACT_VERSION, isDach, indexAnomalyKind } from '../src/fire/history/historyArtifacts.ts';
 import { fixtureRow } from '../src/fire/fireClusters.ts';
 import { verifyHistoryLoad } from '../src/fire/history/historyLoad.ts';
 import { verifyHistoryDetail } from '../src/fire/history/historyDetail.ts';
@@ -107,7 +107,8 @@ if (!existsSync(file)) {
     add(`[artefakt ${kind}] Version, Fenster, Stand, Grenzen, Lizenzen`, idx.version === HISTORY_ARTIFACT_VERSION && idx.window?.kind === kind && typeof idx.evaluatedAt === 'number' && idx.limits.length >= 3 && idx.attributions.length >= 3);
     add(`[artefakt ${kind}] Feldliste = INDEX_FIELDS`, JSON.stringify(idx.fields) === JSON.stringify(INDEX_FIELDS));
     add(`[artefakt ${kind}] Zählstände = Zeilen (gesamt, je Land)`, idx.counts.total === entries.length && entries.filter((e) => e.country === 'DE').length === idx.counts.byCountry.DE);
-    add(`[artefakt ${kind}] nur DE/AT/CH, Weggelassene gezählt`, entries.every((e) => ['DE', 'AT', 'CH'].includes(e.country)) && typeof idx.counts.outsideDropped === 'number');
+    add(`[artefakt ${kind}] Land = ISO-Code oder null (nie „outside"), Zählstand ohne Land, Weggelassene gezählt`, entries.every((e) => e.country === null || /^[A-Z]{2}$/.test(e.country)) && entries.filter((e) => e.country === null).length === (idx.counts.withoutCountry ?? 0) && typeof idx.counts.outsideDropped === 'number');
+    add(`[artefakt ${kind}] jedes Ereignis liegt in der Box der Datei`, Array.isArray(idx.box) && entries.every((e) => e.lon >= idx.box[0] && e.lon <= idx.box[2] && e.lat >= idx.box[1] && e.lat <= idx.box[3]));
     add(`[artefakt ${kind}] Beginn im Fenster`, entries.every((e) => e.firstMs >= idx.window.fromMs && e.firstMs < idx.window.toMs));
     add(`[artefakt ${kind}] Ereignisse auf Anlagenstandorten (site + site-deviating) ohne Flächenschätzung`, entries.every((e) => e.anomalyKind === null || e.estHa === null));
     add(`[artefakt ${kind}] Schätzung nie ohne Intervall`, entries.every((e) => e.estHa === null || (e.estLowHa != null && e.estHighHa != null && e.estLowHa <= e.estHa && e.estHa <= e.estHighHa)));
@@ -205,10 +206,17 @@ if (!existsSync(file)) {
     const idx = JSON.parse(readFileSync(idxf, 'utf8'));
     const entries = idx.events.map((r) => entryOf(r, idx.fields));
     const cur = series.seasons.find((s) => !s.complete);
-    const firesInIndex = entries.filter((e) => e.anomalyKind !== 'site').length;
+    // Seit 2026-10-31 trägt der Index die Europa-Box (Lauf `events-europe.jsonl`), die Serie bleibt DE/AT/CH über
+    // alle Jahre aus `events.jsonl` (`build-index.mjs --series-in`): Zählgrundlage der Serie ist ihre Eingabe.
+    const seriesIn = join(ROOT, 'data', 'fire', 'bh', 'events.jsonl');
+    const firesInSeriesInput = existsSync(seriesIn)
+      ? readFileSync(seriesIn, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l))
+        .filter((e) => isDach(e) && e.firstMs != null && e.firstMs >= idx.window.fromMs && e.firstMs < idx.window.toMs && indexAnomalyKind(e) !== 'site').length
+      : null;
+    const firesInIndexDach = entries.filter((e) => ['DE', 'AT', 'CH'].includes(e.country) && e.anomalyKind !== 'site').length;
     add('[serie] Version, Stand = Index-Stand, Referenzjahre vollständig', series.version === SEASON_SERIES_VERSION && series.evaluatedAt === idx.evaluatedAt && Array.isArray(series.reference?.years) && series.reference.years.every((y) => series.seasons.find((s) => s.year === y)?.complete));
     add('[serie] laufende Saison = Saison des Index', !!cur && idx.window.label.includes(String(cur.year)));
-    add('[serie] Chart-Endwert = Brände im Saison-Index ohne Anlagen (dieselbe Zählgrundlage)', !!cur && cur.cumulative.DACH[cur.lastDay] === firesInIndex, `${cur?.cumulative.DACH[cur.lastDay]} / ${firesInIndex}`);
+    add('[serie] Chart-Endwert = DE/AT/CH-Brände der Serien-Eingabe ohne Anlagen (Index-Anteil DE/AT/CH zum Vergleich)', !!cur && (firesInSeriesInput == null || cur.cumulative.DACH[cur.lastDay] === firesInSeriesInput), `${cur?.cumulative.DACH[cur.lastDay]} / Eingabe ${firesInSeriesInput ?? '—'} / Index DE+AT+CH ${firesInIndexDach}`);
     add('[serie] Länder summieren auf DACH am Saisonende', series.seasons.every((s) => { const d = s.lastDay; return d < 0 || s.cumulative.DE[d] + s.cumulative.AT[d] + s.cumulative.CH[d] === s.cumulative.DACH[d]; }));
     add('[serie] nach dem Stand null, nie 0', !!cur && (cur.lastDay === series.days - 1 || cur.cumulative.DACH[cur.lastDay + 1] === null));
     add('[serie] kumulativ monoton', series.seasons.every((s) => s.cumulative.DACH.every((v, i, a) => i === 0 || v == null || (a[i - 1] != null && v >= a[i - 1]))));

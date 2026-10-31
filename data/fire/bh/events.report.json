@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "evaluatedAt": 1787443200000,
-  "today": "2026-08-22",
+  "evaluatedAt": 1793404800000,
+  "today": "2026-10-30",
   "years": {
     "2020": {
       "events": 9590,
@@ -28,10 +28,16 @@
       "nasaType2Events": 2820,
       "withAreaEst": 9576,
       "byCountry": {
-        "outside": 4333,
+        "outside": 4305,
         "DE": 4715,
+        "IT": 8,
         "AT": 270,
-        "CH": 272
+        "CH": 272,
+        "SI": 3,
+        "HR": 1,
+        "PL": 13,
+        "NL": 2,
+        "FR": 1
       }
     },
     "2021": {
@@ -59,10 +65,16 @@
       "nasaType2Events": 2804,
       "withAreaEst": 8186,
       "byCountry": {
-        "outside": 3783,
+        "outside": 3759,
         "DE": 3854,
         "CH": 226,
-        "AT": 334
+        "AT": 334,
+        "SI": 2,
+        "IT": 18,
+        "FR": 1,
+        "PL": 1,
+        "SK": 1,
+        "HR": 1
       }
     },
     "2022": {
@@ -90,10 +102,19 @@
       "nasaType2Events": 2783,
       "withAreaEst": 10125,
       "byCountry": {
-        "outside": 4525,
+        "outside": 4402,
+        "IT": 59,
         "AT": 433,
         "CH": 263,
-        "DE": 4986
+        "DE": 4986,
+        "NL": 16,
+        "SI": 7,
+        "BE": 3,
+        "FR": 10,
+        "PL": 24,
+        "DK": 1,
+        "CZ": 2,
+        "HU": 1
       }
     },
     "2023": {
@@ -121,10 +142,18 @@
       "nasaType2Events": 2560,
       "withAreaEst": 8949,
       "byCountry": {
-        "outside": 3647,
+        "outside": 3621,
         "DE": 4739,
         "CH": 229,
-        "AT": 353
+        "AT": 353,
+        "IT": 11,
+        "NL": 2,
+        "HU": 1,
+        "SI": 1,
+        "BE": 1,
+        "PL": 8,
+        "FR": 1,
+        "CZ": 1
       }
     },
     "2024": {
@@ -153,9 +182,16 @@
       "withAreaEst": 7991,
       "byCountry": {
         "DE": 4380,
-        "outside": 3098,
+        "outside": 3077,
         "AT": 323,
-        "CH": 215
+        "CH": 215,
+        "IT": 5,
+        "NL": 2,
+        "PL": 9,
+        "SI": 2,
+        "HR": 1,
+        "SK": 1,
+        "HU": 1
       }
     },
     "2025": {
@@ -183,46 +219,69 @@
       "nasaType2Events": 2369,
       "withAreaEst": 10251,
       "byCountry": {
-        "outside": 3765,
+        "outside": 3696,
         "AT": 465,
         "DE": 6072,
-        "CH": 210
+        "CH": 210,
+        "SI": 7,
+        "NL": 15,
+        "BE": 11,
+        "IT": 10,
+        "PL": 18,
+        "CZ": 8
       }
     },
     "2026": {
-      "events": 9055,
-      "withDetections": 8901,
-      "effisOnly": 154,
-      "effisMatched": 171,
-      "detections": 42970,
+      "events": 11109,
+      "withDetections": 10890,
+      "effisOnly": 219,
+      "effisMatched": 203,
+      "detections": 52871,
       "provenance": {
-        "sp": 17120,
-        "nrt": 25850
+        "sp": 33692,
+        "nrt": 19179
       },
-      "inSeason": 8683,
-      "singleDetection": 5368,
-      "singleOverpass": 6853,
+      "inSeason": 10737,
+      "singleDetection": 6505,
+      "singleOverpass": 8319,
       "medianDurationH": 0,
       "medianDistinctDays": 1,
       "anomaly": {
-        "site": 2369,
-        "siteDeviating": 73,
-        "shareSite": 0.266,
-        "shareDeviating": 0.008
+        "site": 3086,
+        "siteDeviating": 93,
+        "shareSite": 0.283,
+        "shareDeviating": 0.009
       },
       "suspectedStatic": 0,
-      "nasaType2Events": 907,
-      "withAreaEst": 8900,
+      "nasaType2Events": 1379,
+      "withAreaEst": 10888,
       "byCountry": {
-        "CH": 180,
-        "outside": 2959,
-        "DE": 5526,
-        "AT": 390
+        "CH": 236,
+        "outside": 3560,
+        "DE": 6687,
+        "IT": 87,
+        "AT": 475,
+        "SI": 8,
+        "BE": 10,
+        "PL": 14,
+        "CZ": 13,
+        "NL": 7,
+        "FR": 3,
+        "SK": 4,
+        "HR": 3,
+        "HU": 2
       }
     }
   },
   "out": "data/fire/bh/events.jsonl",
-  "sha256": "40a98428b2045b3ffef3c5a500a796b768649e3048953a324420cb68cbee552a",
+  "region": "dach",
+  "box": [
+    5.5,
+    45.5,
+    17.5,
+    55.5
+  ],
+  "sha256": "748a461635d59d08a0fe0bfe8a5c4ca865af09cad0a1fa014bdb95d2595c5e82",
   "rule": {
     "clusterRadiusM": 2000,
     "gapH": 48,
@@ -240,10 +299,10 @@
     "noaa21": "ausgeschlossen (nur NRT — Reihe bliebe sensorungleich)"
   },
   "input": {
-    "spChunks": 1358,
-    "spRows": 538145,
-    "nrtRows": 27193,
-    "rowsAfterDedupe": 343897,
+    "spChunks": 1389,
+    "spRows": 555553,
+    "nrtRows": 20143,
+    "rowsAfterDedupe": 353798,
     "effis": {
       "2020": {
         "polys": 48,
@@ -270,60 +329,106 @@
         "stamp": "effis-2025.geojson"
       },
       "2026": {
-        "polys": 316,
-        "stamp": "effis-season-2026-08-22.geojson"
+        "polys": 412,
+        "stamp": "effis-season-2026-10-30.geojson"
       }
     },
     "availability": {
       "VIIRS_SNPP_SP": {
         "min": "2012-01-20",
-        "max": "2026-04-27"
+        "max": "2026-07-31"
       },
       "VIIRS_NOAA20_SP": {
         "min": "2018-04-01",
-        "max": "2026-05-31"
+        "max": "2026-07-31"
       },
       "VIIRS_SNPP_NRT": {
-        "min": "2026-04-28",
-        "max": "2026-08-22"
+        "min": "2026-08-01",
+        "max": "2026-10-31"
       },
       "VIIRS_NOAA20_NRT": {
-        "min": "2026-06-01",
-        "max": "2026-08-22"
+        "min": "2026-08-01",
+        "max": "2026-10-31"
       }
     },
     "nrtRim": {
       "VIIRS_SNPP_NRT": {
-        "from": "2026-04-28",
-        "to": "2026-08-22",
-        "chunks": 24
+        "from": "2026-08-01",
+        "to": "2026-10-30",
+        "chunks": 19
       },
       "VIIRS_NOAA20_NRT": {
-        "from": "2026-06-01",
-        "to": "2026-08-22",
-        "chunks": 17
+        "from": "2026-08-01",
+        "to": "2026-10-30",
+        "chunks": 19
       }
     }
   },
-  "clusterRadiusSensitivity": {
-    "1000 m": 65922,
-    "1500 m": 64815,
-    "2000 m": 63980,
-    "3000 m": 61742
-  },
+  "clusterRadiusSensitivity": "nicht gerechnet (--sensitivity); 2026-08-22: 1000 m 65 922 · 1500 m 64 815 · 2000 m 63 980 · 3000 m 61 742",
   "link": {
-    "linked": 0,
-    "superseded": 0,
-    "supersededIds": []
+    "linked": 560,
+    "superseded": 2582,
+    "supersededIds": [
+      "bh:45.50085,15.55150,1782259620000",
+      "bh:45.50113,9.30232,1783603980000",
+      "bh:45.50130,8.13239,1785155880000",
+      "bh:45.50180,9.30245,1782994980000",
+      "bh:45.50214,8.13493,1779626160000",
+      "bh:45.50257,9.30055,1785241140000",
+      "bh:45.50330,11.91282,1779017100000",
+      "bh:45.50335,9.14021,1781612580000",
+      "bh:45.50425,9.38141,1781958540000",
+      "bh:45.50430,9.35723,1784553000000",
+      "bh:45.50448,9.30085,1782567600000",
+      "bh:45.50504,7.53527,1784548140000",
+      "bh:45.50605,9.35767,1785417780000",
+      "bh:45.50737,10.24522,1784688300000",
+      "bh:45.51068,7.53322,1783904040000",
+      "bh:45.51532,10.34638,1778549820000",
+      "bh:45.51627,10.34718,1784165940000",
+      "bh:45.51636,10.34465,1782868620000",
+      "bh:45.51642,10.34729,1784944140000",
+      "bh:45.51655,10.34303,1782264600000",
+      "bh:45.51683,10.34296,1780882200000",
+      "bh:45.51860,10.18668,1780661520000",
+      "bh:45.51919,9.29191,1784808720000",
+      "bh:45.52097,9.29081,1779279000000",
+      "bh:45.52135,11.49946,1784893980000",
+      "bh:45.52274,9.21821,1781179020000",
+      "bh:45.52285,11.61050,1782476220000",
+      "bh:45.52288,9.21983,1782561600000",
+      "bh:45.52300,9.22167,1782215460000",
+      "bh:45.52325,9.21822,1779796620000",
+      "bh:45.52413,11.60803,1782130320000",
+      "bh:45.52438,11.63785,1779626160000",
+      "bh:45.52454,11.60830,1780747800000",
+      "bh:45.52670,17.00711,1778329020000",
+      "bh:45.52688,11.87040,1780486080000",
+      "bh:45.52888,9.21922,1784893980000",
+      "bh:45.53132,9.09056,1784200860000",
+      "bh:45.53150,9.54508,1784554020000",
+      "bh:45.53417,12.11536,1784808720000",
+      "bh:45.53492,12.11401,1783426320000",
+      "bh:45.53497,8.12609,1782994980000",
+      "bh:45.53507,12.11184,1779279000000",
+      "bh:45.53571,9.54163,1784899980000",
+      "bh:45.53673,12.11602,1780661400000",
+      "bh:45.53957,17.28883,1783647000000",
+      "bh:45.54243,12.29624,1783079220000",
+      "bh:45.54247,9.00930,1785326400000",
+      "bh:45.54252,11.87497,1784546880000",
+      "bh:45.54715,11.93403,1780486080000",
+      "bh:45.54762,11.97323,1784546880000"
+    ]
   },
   "lostInRegistry": 0,
   "net": {
-    "requests": 43,
-    "cached": 6,
+    "requests": 36,
+    "cached": 10,
     "retries": 0,
     "nrtSkippedNoKey": 0
   },
-  "durationS": 2883.9,
+  "durationS": 925.6,
   "limits": [
     "keine CLC-Maske (landcoverAt) und kein Windflag im Batch — Felder null wie im Client ohne Quelle",
     "keine Beobachtungsqualifikation (AF2) — im Archiv eine andere Frage; Lücken stehen als freMaxGapH im Merkmalsatz",

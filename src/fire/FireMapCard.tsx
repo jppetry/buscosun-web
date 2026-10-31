@@ -6,7 +6,7 @@
  */
 import { useEffect, type ReactNode } from 'react';
 import { Badge, RecordStats, Stat, recordName, regionLabel } from './FireFootprintPanel';
-import { historyEntryName, historyStatTiles } from './FireHistoryPanel';
+import { historyCountryLabel, historyEntryName, historyStatTiles } from './FireHistoryPanel';
 import { FlameIcon, IndustryIcon } from './fireIcons';
 import { STATUS_COLOR, statusLabel, missingReason, type FireRecord } from './footprint/fireRegistry';
 import { STATIC_GREY, clusterColor } from './fireClusters';
@@ -87,8 +87,6 @@ export function FireMapCard({ r, nowMs, ...actions }: CardActions & { r: FireRec
   );
 }
 
-const COUNTRY_NAME: Record<string, string> = { DE: 'Deutschland', AT: 'Österreich', CH: 'Schweiz' };
-
 /** Look-back window (month / season): an event of the history index. */
 export function HistoryMapCard({ e, ...actions }: CardActions & { e: HistoryIndexEntry }) {
   const site = e.anomalyKind === 'site';
@@ -99,7 +97,7 @@ export function HistoryMapCard({ e, ...actions }: CardActions & { e: HistoryInde
     <MapCardShell
       {...actions}
       eyebrow={site ? 'Thermalanomalie · Rückblick' : 'Brand · Rückblick'}
-      name={historyEntryName(e)} region={COUNTRY_NAME[e.country] ?? e.country}
+      name={historyEntryName(e)} region={historyCountryLabel(e.country)}
       accent={site ? STATIC_GREY : clusterColor(e.frpSumMw ?? 0)}
       isSite={site}
       badge={<span className={`br-badge is-${b}`}>{BR_BADGE_LABEL[b]}</span>}

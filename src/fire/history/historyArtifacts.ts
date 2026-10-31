@@ -24,6 +24,7 @@
 
 import type { HistoryEvent, HistoryDetection } from './historyEvents';
 import { seasonWindow, SEASON_FROM_MONTH, SEASON_TO_MONTH } from './historyEvents';
+import { EUROPE_BOX, inBox, type LonLatBox } from '../fireRegion';
 
 export const HISTORY_ARTIFACT_VERSION = 1 as const;
 export const HISTORY_BASE_URL = '/fire/bh';
@@ -41,10 +42,14 @@ export interface HistoryWindow {
   current: boolean;
 }
 
-/** Index-Zeile, entpackt. Nur DE/AT/CH (Q-Default: die BBox ist ein Rechteck, die Aussage nicht). */
+/**
+ * Index-Zeile, entpackt. Seit 2026-10-31 die ganze Europa-Box (`EUROPE_BOX`): `country` ist der
+ * ISO-Code — in DE/AT/CH aus den Landesumrissen, sonst aus der EFFIS-Kartierung oder dem nächsten
+ * Ort (`clusterCountry` der Registry, wie live); `null`, wenn keines von beiden ein Land nennt.
+ */
 export interface HistoryIndexEntry {
   id: string;
-  country: 'DE' | 'AT' | 'CH';
+  country: string | null;
   lat: number;
   lon: number;
   firstMs: number;
@@ -88,16 +93,20 @@ export interface HistoryIndexFile {
   evaluatedAt: number;
   generatedAt: string;
   window: HistoryWindow;
+  /** Abrufbox W/S/O/N der Ereignisse (Europa-Box); fehlt in Dateien vor 2026-10-31 (DE/AT/CH). */
+  box?: [number, number, number, number];
   fields: readonly string[];
   events: IndexRow[];
   counts: {
     total: number;
-    byCountry: Record<'DE' | 'AT' | 'CH', number>;
+    /** Je ISO-Code; Ereignisse ohne Landangabe stehen in `withoutCountry`. */
+    byCountry: Record<string, number>;
+    withoutCountry?: number;
     sites: number;
     deviating: number;
     effisOnly: number;
     withNrt: number;
-    /** Ereignisse außerhalb DE/AT/CH, die der Filter weggelassen hat — gezählt, nie still. */
+    /** Ereignisse außerhalb der Box, die der Filter weggelassen hat — gezählt, nie still. */
     outsideDropped: number;
   };
   shards: { base: string; scheme: string };
@@ -171,15 +180,19 @@ export function indexAnomalyKind(e: Pick<HistoryEvent, 'anomaly' | 'distinctDays
   return e.anomaly.kind === 'site-deviating' && e.distinctDays > SITE_PERSIST_DAYS ? 'site' : e.anomaly.kind;
 }
 
+/** `country` der Zeile: ISO-Code, sonst `null` (die Registry sagt `'outside'`, wenn weder Umriss noch EFFIS noch Ort ein Land nennen). */
+export function indexCountry(country: string | null): string | null {
+  return country == null || country === 'outside' ? null : country;
+}
+
 export function rowOf(e: HistoryEvent): IndexRow {
-  if (!isDach(e)) throw new Error(`rowOf: nicht DACH (${e.id})`);
   // Keine Flächenschätzung auf einem bekannten Anlagenstandort — auch nicht bei `site-deviating`:
   // über eine Saison kippt ein Stahlwerk mit 2 000 Detektionen auf „abweichend" (Browser-Befund
   // GBH3, V-BH-2), und „82 ha geschätzt" wäre dort eine Brandfläche, die es nicht gibt.
   const est = e.anomaly ? null : e.areaEst;
   const c = e.confidence;
   const entry: HistoryIndexEntry = {
-    id: e.id, country: e.country, lat: +e.lat.toFixed(4), lon: +e.lon.toFixed(4),
+    id: e.id, country: indexCountry(e.country), lat: +e.lat.toFixed(4), lon: +e.lon.toFixed(4),
     firstMs: e.firstMs ?? 0, lastMs: e.lastMs ?? e.firstMs ?? 0,
     hotspots: e.hotspots, overpasses: e.overpasses, distinctDays: e.distinctDays,
     frpSumMw: e.frpSumMw, frpMaxMw: e.frpMaxMw, statusKind: e.status.kind,
@@ -208,12 +221,12 @@ export function detectionsOf(s: HistoryShardEvent, fields: readonly string[] = D
   return s.detections.map((row) => { const o: Record<string, unknown> = {}; fields.forEach((k, i) => { o[k] = row[i]; }); return o as unknown as HistoryDetection; });
 }
 
-/** Ereignisse eines Fensters: Beginn im Fenster, DE/AT/CH. Liefert auch die Zahl der weggelassenen. */
-export function selectWindow(events: readonly HistoryEvent[], w: HistoryWindow): { selected: HistoryEvent[]; outsideDropped: number } {
+/** Ereignisse eines Fensters: Beginn im Fenster, Schwerpunkt in der Box (jedes Land). Liefert auch die Zahl der weggelassenen. */
+export function selectWindow(events: readonly HistoryEvent[], w: HistoryWindow, box: LonLatBox = EUROPE_BOX): { selected: HistoryEvent[]; outsideDropped: number } {
   let outside = 0; const selected: HistoryEvent[] = [];
   for (const e of events) {
     if (e.firstMs == null || e.firstMs < w.fromMs || e.firstMs >= w.toMs) continue;
-    if (!isDach(e)) { outside++; continue; }
+    if (!inBox(box, e.lat, e.lon)) { outside++; continue; }
     selected.push(e);
   }
   selected.sort((a, b) => (b.frpSumMw ?? 0) - (a.frpSumMw ?? 0) || (a.firstMs ?? 0) - (b.firstMs ?? 0) || a.id.localeCompare(b.id));
@@ -221,17 +234,18 @@ export function selectWindow(events: readonly HistoryEvent[], w: HistoryWindow):
 }
 
 export function countsOf(selected: readonly HistoryEvent[], outsideDropped: number): HistoryIndexFile['counts'] {
-  const byCountry = { DE: 0, AT: 0, CH: 0 };
-  let sites = 0, deviating = 0, effisOnly = 0, withNrt = 0;
+  const byCountry: Record<string, number> = { DE: 0, AT: 0, CH: 0 };
+  let withoutCountry = 0, sites = 0, deviating = 0, effisOnly = 0, withNrt = 0;
   for (const e of selected) {
-    if (isDach(e)) byCountry[e.country]++;
+    const c = indexCountry(e.country);
+    if (c == null) withoutCountry++; else byCountry[c] = (byCountry[c] ?? 0) + 1;
     const k = indexAnomalyKind(e);
     if (k === 'site') sites++;
     if (k === 'site-deviating') deviating++;
     if (e.detections.length === 0) effisOnly++;
     if (e.provenance.nrt > 0) withNrt++;
   }
-  return { total: selected.length, byCountry, sites, deviating, effisOnly, withNrt, outsideDropped };
+  return { total: selected.length, byCountry, withoutCountry, sites, deviating, effisOnly, withNrt, outsideDropped };
 }
 
 // ---------------------------------------------------------------------------
@@ -264,8 +278,11 @@ export function verifyHistoryArtifacts(sample: HistoryEvent): { checks: Artifact
   add('Shard: Detektionen positional hin und zurück', detectionsOf(sh).length === sample.detections.length && (sample.detections.length === 0 || detectionsOf(sh)[0].key === sample.detections[0].key));
   add('Shard-Pfad: Jahr/Monat/1°-Zelle', shardPath({ lat: 48.7, lon: 11.2, firstMs: aug }) === '2026/08/48_11.json');
   const outside: HistoryEvent = { ...sample, country: 'outside' };
-  const sel = selectWindow([dach, outside, { ...dach, firstMs: Date.UTC(2026, 1, 1) }], monthWindow(aug));
-  add('Fensterauswahl: nur DACH, nur Beginn im Fenster, Weggelassene gezählt', sel.selected.length === 1 && sel.outsideDropped === 1);
+  const beyond: HistoryEvent = { ...sample, country: null, lat: 20, lon: 11 };
+  const sel = selectWindow([dach, outside, beyond, { ...dach, firstMs: Date.UTC(2026, 1, 1) }], monthWindow(aug));
+  add('Fensterauswahl: jedes Land der Box, nur Beginn im Fenster, außerhalb der Box gezählt', sel.selected.length === 2 && sel.outsideDropped === 1);
+  const cnt = countsOf(sel.selected, sel.outsideDropped);
+  add('Zählstände: ISO-Code je Land, „outside" wird „ohne Landangabe" (null)', cnt.byCountry.DE === 1 && cnt.withoutCountry === 1 && entryOf(rowOf(outside)).country === null && entryOf(rowOf({ ...sample, country: 'PT' })).country === 'PT');
   const passed = checks.filter((c) => c.ok).length;
   return { checks, passed, total: checks.length };
 }

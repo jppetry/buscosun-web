@@ -3,7 +3,12 @@
  *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/fire/bh/events-from-archive.mjs
  *        [--years 2020-2026] [--cache .cache/firms-archive] [--out data/fire/bh/events.jsonl]
- *        [--today YYYY-MM-DD] [--no-net] [--dry-run] [--sensitivity]
+ *        [--today YYYY-MM-DD] [--no-net] [--dry-run] [--sensitivity] [--region dach|europe]
+ *
+ * `--region europe`: dieselbe Kette auf der Europa-Box (`EUROPE_BOX`, src/fire/fireRegion.ts) — eigener
+ * Cache (`.cache/firms-archive-europe`, s. `scripts/fire/ta/fetch-archive.mjs --bbox`), eigene Ausgabe
+ * (`data/fire/bh/events-europe.jsonl`), Ortsverzeichnis und Anlagenstandorte DACH + Europa; das Land
+ * außerhalb DE/AT/CH kommt wie live aus der EFFIS-Kartierung oder dem nächsten Ort (`clusterCountry`).
  *
  * Was passiert:
  *   1. alle SP-Chunks aus dem Cache lesen (`VIIRS_SNPP_SP`, `VIIRS_NOAA20_SP`, 5-Tage-CSV, wie
@@ -23,7 +28,7 @@
  * Prod-Proxy `/_firms` unangetastet. Ausgabe nach `data/` (nicht `public/`) — BH2 baut daraus die
  * Artefakte.
  */
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, writeFileSync, writeSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { createHash } from 'node:crypto';
 
@@ -33,9 +38,10 @@ import { assertDachAxis } from '../../../src/fire/sources/wfsAxis.ts';
 import { CLUSTER_RADIUS_M } from '../../../src/fire/fireClusters.ts';
 import { spatialClusters, splitByTimeGap } from '../../../src/fire/fireEvents.ts';
 import { indexSites, siteAt } from '../../../src/fire/anomaly/thermalSites.ts';
-import { buildPlaceIndex, nearestPlace } from '../../../src/fire/footprint/places.ts';
+import { buildPlaceIndex, mergePlaceIndex, nearestPlace } from '../../../src/fire/footprint/places.ts';
 import { modelUsable } from '../../../src/fire/activity/estimate.ts';
 import { eventsFromRows, linkPrevious, seasonWindow, HISTORY_EVENT_VERSION } from '../../../src/fire/history/historyEvents.ts';
+import { DACH_BOX, EUROPE_BOX } from '../../../src/fire/fireRegion.ts';
 
 // ---------------------------------------------------------------------------
 // Argumente
@@ -44,21 +50,26 @@ const args = process.argv.slice(2);
 const opt = (name, def) => { const i = args.indexOf(`--${name}`); return i >= 0 && args[i + 1] && !args[i + 1].startsWith('--') ? args[i + 1] : def; };
 const flag = (name) => args.includes(`--${name}`);
 const range = (s) => { const [a, b] = s.split('-').map(Number); return b == null ? [a] : Array.from({ length: b - a + 1 }, (_, i) => a + i); };
+const REGION = opt('region', 'dach');
+if (REGION !== 'dach' && REGION !== 'europe') { console.error(`--region ${REGION}: nur dach oder europe.`); process.exit(2); }
+const EUROPE = REGION === 'europe';
 const YEARS = range(opt('years', '2020-2026'));
-const CACHE = opt('cache', '.cache/firms-archive');
-const OUT = opt('out', 'data/fire/bh/events.jsonl');
+const CACHE = opt('cache', EUROPE ? '.cache/firms-archive-europe' : '.cache/firms-archive');
+const OUT = opt('out', EUROPE ? 'data/fire/bh/events-europe.jsonl' : 'data/fire/bh/events.jsonl');
 const TODAY = opt('today', new Date().toISOString().slice(0, 10));
 const NO_NET = flag('no-net');
 const DRY = flag('dry-run');
 /** Radius-Sensitivität (vier volle Cluster-Läufe, ~40 min auf 344 k Zeilen) — nur auf Wunsch; der Wert steht im Report vom 2026-08-22. */
 const SENS = flag('sensitivity');
-const KEY_FILE = opt('key-file', join(CACHE, 'mapkey.txt'));
+// Der Schlüssel liegt im DACH-Cache; ein Europa-Cache darf einen eigenen tragen.
+const KEY_FILE = opt('key-file', existsSync(join(CACHE, 'mapkey.txt')) ? join(CACHE, 'mapkey.txt') : join('.cache/firms-archive', 'mapkey.txt'));
 const KEY = NO_NET ? '' : (process.env.FIRMS_MAP_KEY || (existsSync(KEY_FILE) ? readFileSync(KEY_FILE, 'utf8') : '')).trim();
 
 const D = 86_400_000;
 /** Auswertezeitpunkt: Ende des Abruftags (UTC) — fest, damit zwei Läufe am selben Tag byte-gleich sind. */
 const NOW = Date.parse(`${TODAY}T00:00:00Z`) + D;
-const DACH = { west: 5.5, south: 45.5, east: 17.5, north: 55.5 };
+/** Abrufbox: DACH wie bisher (byte-gleiche URLs), Europa die Box der Europa-Ansicht. */
+const DACH = EUROPE ? EUROPE_BOX : DACH_BOX;
 const FIRMS_ORIGIN = 'https://firms.modaps.eosdis.nasa.gov';
 const EFFIS = 'https://maps.effis.emergency.copernicus.eu';
 const SP_SOURCES = ['VIIRS_SNPP_SP', 'VIIRS_NOAA20_SP'];
@@ -183,7 +194,7 @@ async function loadEffisYear(year) {
   const text = await fetchText(url, file);
   const fc = JSON.parse(text);
   const feats = Array.isArray(fc?.features) ? fc.features : [];
-  assertDachAxis(feats, `EFFIS ${year}`);
+  assertDachAxis(feats, `EFFIS ${year}`, DACH);
   const from = Date.UTC(year, 0, 1); const to = Date.UTC(year + 1, 0, 1);
   const polys = [];
   for (const f of feats) {
@@ -280,16 +291,20 @@ async function main() {
   for (const y of YEARS) { const { polys: p, stamp } = await loadEffisYear(y); polys.push(...p); effisStamps[y] = { polys: p.length, stamp }; }
   console.log(`EFFIS-Kartierungen: ${polys.length}`);
 
+  // Europa: Standorte und Orte DACH + Europa zusammengeführt — genau wie `loadThermalSitesFor`/`loadPlacesFor` im Client.
   const sitesFile = JSON.parse(readFileSync('public/fire/ta/thermal-sites-v1.json', 'utf8'));
-  const sites = indexSites(sitesFile);
-  const places = buildPlaceIndex(JSON.parse(readFileSync('public/fire/places-dach.json', 'utf8')));
+  const sitesEu = EUROPE ? JSON.parse(readFileSync('public/fire/ta/thermal-sites-europe-v1.json', 'utf8')) : null;
+  const sites = indexSites(sitesEu ? { ...sitesFile, sites: [...sitesFile.sites, ...sitesEu.sites], attributions: [...new Set([...sitesFile.attributions, ...sitesEu.attributions])] } : sitesFile);
+  const placesDach = buildPlaceIndex(JSON.parse(readFileSync('public/fire/places-dach.json', 'utf8')));
+  const places = EUROPE ? mergePlaceIndex(placesDach, buildPlaceIndex(JSON.parse(readFileSync('public/fire/places-europe.json', 'utf8')))) : placesDach;
   const model = JSON.parse(readFileSync('public/fire/af/area-estimate-v1.json', 'utf8'));
   const rings = loadRings();
 
   const ctx = {
     nowMs: NOW, polys, rings,
     siteAt: (lat, lon) => siteAt(sites, lat, lon),
-    placeAt: (lat, lon) => { const h = nearestPlace(places, lat, lon); return h ? { name: h.name, district: h.district, distanceKm: h.distanceKm } : null; },
+    // `country` des Orts: außerhalb der Umrisse DE/AT/CH entscheidet er mit über das Land (`clusterCountry`, wie live).
+    placeAt: (lat, lon) => { const h = nearestPlace(places, lat, lon); return h ? { name: h.name, district: h.district, distanceKm: h.distanceKm, country: h.country } : null; },
     areaModel: modelUsable(model) ? model : null,
     nasaTypeOf: (key) => nasaType.get(key) ?? null,
   };
@@ -321,11 +336,18 @@ async function main() {
   const years = {};
   for (const y of YEARS) years[y] = yearStats(build.events.filter((e) => e.year === y), y);
 
-  const lines = build.events.map((e) => JSON.stringify(e));
-  const body = lines.join('\n') + (lines.length ? '\n' : '');
+  // Zeilenweise schreiben und hashen — die Europa-Datei überschreitet sonst die Stringgrenze von V8.
+  mkdirSync(dirname(OUT), { recursive: true });
+  const hash = createHash('sha256');
+  const fd = openSync(OUT, 'w');
+  let bodyBytes = 0;
+  for (const e of build.events) { const line = JSON.stringify(e) + '\n'; hash.update(line); bodyBytes += Buffer.byteLength(line); writeSync(fd, line); }
+  closeSync(fd);
+  const lines = build.events;
   const report = {
     version: HISTORY_EVENT_VERSION, evaluatedAt: NOW, today: TODAY, years: years, out: OUT,
-    sha256: createHash('sha256').update(body).digest('hex'),
+    region: REGION, box: [DACH.west, DACH.south, DACH.east, DACH.north],
+    sha256: hash.digest('hex'),
     rule: { clusterRadiusM: CLUSTER_RADIUS_M, gapH: 48, season: '03-01..10-31', sources: { sp: SP_SOURCES, nrt: Object.values(NRT_OF) }, noaa21: 'ausgeschlossen (nur NRT — Reihe bliebe sensorungleich)' },
     input: { spChunks: sp.files, spRows: sp.rows.length, nrtRows: nrtRows.length, rowsAfterDedupe: rows.length, effis: effisStamps, availability: availability ? Object.fromEntries([...SP_SOURCES, ...Object.values(NRT_OF)].map((s) => [s, availability[s] ?? null])) : null, nrtRim: rim },
     clusterRadiusSensitivity: sensitivity ?? 'nicht gerechnet (--sensitivity); 2026-08-22: 1000 m 65 922 · 1500 m 64 815 · 2000 m 63 980 · 3000 m 61 742',
@@ -339,10 +361,8 @@ async function main() {
       'NRT-Rand nur SNPP + NOAA-20; der Live-Client nutzt zusätzlich NOAA-21',
     ],
   };
-  mkdirSync(dirname(OUT), { recursive: true });
-  writeFileSync(OUT, body);
   writeFileSync(OUT.replace(/\.jsonl$/, '') + '.report.json', JSON.stringify(report, null, 2) + '\n');
-  console.log(`geschrieben: ${OUT} (${lines.length} Ereignisse, ${(body.length / 1048576).toFixed(1)} MB) · ${report.durationS} s`);
+  console.log(`geschrieben: ${OUT} (${lines.length} Ereignisse, ${(bodyBytes / 1048576).toFixed(1)} MB) · ${report.durationS} s`);
   for (const y of YEARS) { const s = years[y]; console.log(`  ${y}: ${s.events} Ereignisse (Saison ${s.inSeason}, nur EFFIS ${s.effisOnly}, Standort ${s.anomaly.site}/${s.anomaly.siteDeviating}, Einzeldetektion ${s.singleDetection}) · ${JSON.stringify(s.byCountry)}`); }
 }
 
