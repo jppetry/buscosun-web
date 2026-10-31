@@ -183,9 +183,9 @@
 .gl-ds-maplink { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; font-size: 12.5px; color: var(--gl-muted); border-top: 1px solid var(--gl-line); text-decoration: none; }
 .gl-ds-maplink b { color: var(--gl-accent-dark); font-weight: 600; white-space: nowrap; }
 .gl-ds-maplink:hover b { text-decoration: underline; }
-.gl-ds-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 18px; padding: 9px 12px; border-top: 1px solid var(--gl-line); font-size: 12.5px; color: var(--gl-muted); }
-.gl-ds-legend b { font-size: 12.5px; font-weight: 700; color: var(--gl-ink); }
-.gl-ds-legend .gl-legend-row { font-size: 12.5px; }
+.gl-ds-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 18px; padding: 11px 14px; border-top: 1px solid var(--gl-line); font-size: 14px; color: var(--gl-muted); }
+.gl-ds-legend b { font-size: 14px; font-weight: 700; color: var(--gl-ink); }
+.gl-ds-legend .gl-legend-row { font-size: 14px; gap: 8px; }
 /* Level "Heute" of the dossier as a dashboard (GlacierHeuteBoard): hero with the key figures, gauge + three tiles, 14-day bars + satellite ring, tour grid */
 .gl-hb { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .gl-hb-card { background: #fff; border: 1px solid var(--gl-line); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
