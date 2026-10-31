@@ -102,6 +102,14 @@ const EUROPE_VIEW_BOX = {
 const EUROPE_START_BOX = EUROPE_BOX;
 const EUROPE_FIT_PAD = 8;
 
+/** Herauszoomen in Europa nur so weit, dass die Anzeige-Box ins Fenster passt; DACH bleibt unbegrenzt wie bisher. */
+function limitEuropeZoomOut(map: maplibregl.Map, region: FireRegion) {
+  if (region !== 'europe') { map.setMinZoom(null); return; }
+  const b = EUROPE_VIEW_BOX;
+  const cam = map.cameraForBounds([[b.west, b.south], [b.east, b.north]]);
+  if (cam?.zoom != null) map.setMinZoom(cam.zoom);
+}
+
 /**
  * Einpass-Rand der Europa-Box. Mobil und bis 1599 px liegt die Punkt-Legende (`.br-pointlegend`)
  * in voller Breite unten ÜBER der Karte — ohne Rücksicht darauf läge der Süden der Box unter ihr
@@ -666,7 +674,6 @@ export default function FireMap({
     // sie keine amtliche Entsprechung zeigt. `moveLayer` ohne Ziel = nach oben;
     // idempotent, also bei jedem Durchlauf unschädlich.
     if (m.getLayer('fire-dach-mask-fill')) m.moveLayer('fire-dach-mask-fill');
-    if (m.getLayer('fire-europe-nodata-fill')) m.moveLayer('fire-europe-nodata-fill');
     // Gebiet: in Europa deckt die DACH-Maske nur noch zu, solange eine DACH-only-Ebene
     // (ICON-D2-Treiber) an ist — sonst behauptete deren Fläche dort eine Aussage.
     const dachOnlyOn = s.active.has('fireWeather') || s.active.has('fireSoilDryness');
@@ -683,7 +690,6 @@ export default function FireMap({
       dachMaskOn = top >= 0;
     }
     if (m.getLayer('fire-dach-mask-fill')) m.setLayoutProperty('fire-dach-mask-fill', 'visibility', dachMaskOn ? 'visible' : 'none');
-    if (m.getLayer('fire-europe-nodata-fill')) m.setLayoutProperty('fire-europe-nodata-fill', 'visibility', s.region === 'europe' ? 'visible' : 'none');
 
     // Sichtbarkeit ZULETZT: erst jetzt existieren alle Layer sicher.
     for (const id of FIRE_LAYER_ORDER) {
@@ -717,6 +723,9 @@ export default function FireMap({
     // Brandradar Command-Deck: Zoom oben rechts unter dem Basemap-Umschalter
     // (Vorlage references/brandradar.dc.html) — die Attribution bleibt unten.
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+    // Europa: Herauszoomen ist auf die Anzeige-Box begrenzt (Jan 31.10.); die Grenze hängt an der Fenstergröße.
+    limitEuropeZoomOut(map, region);
+    map.on('resize', () => limitEuropeZoomOut(map, regionRef.current));
     if (import.meta.env.DEV) {
       (window as unknown as { __fireMap?: maplibregl.Map }).__fireMap = map;
     }
@@ -1013,6 +1022,7 @@ export default function FireMap({
     const m = mapRef.current;
     if (!m || regionRef.current === region) return;
     regionRef.current = region;
+    limitEuropeZoomOut(m, region);
     const b = region === 'europe' ? EUROPE_START_BOX : null;
     m.fitBounds(b ? [[b.west, b.south], [b.east, b.north]] : [[DACH_BOUNDS[0], DACH_BOUNDS[1]], [DACH_BOUNDS[2], DACH_BOUNDS[3]]],
       { padding: b && hostRef.current ? europeFitPadding(hostRef.current) : 24, duration: 600 });
@@ -1458,32 +1468,6 @@ function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets') {
       });
     }
   }).catch(() => { /* Maske ist Beiwerk — ihr Ausfall darf die Karte nicht kippen */ });
-
-  // Europa: der Zuschlag der Anzeige-Box über die Datenbox hinaus (`EUROPE_BOX`; Süden und Westen) wird leicht abgedunkelt —
-  // dort fragt die Ansicht FIRMS nicht ab, es gibt keine Brandpunkte (Jan 31.10.). Ring = Anzeige-Box, Loch = Datenbox.
-  if (!map.getSource('fire-europe-nodata')) {
-    const v = EUROPE_VIEW_BOX, d = EUROPE_BOX;
-    map.addSource('fire-europe-nodata', {
-      type: 'geojson',
-      data: {
-        type: 'Feature', properties: {},
-        geometry: {
-          type: 'Polygon',
-          coordinates: [
-            [[v.west, v.south], [v.west, v.north], [v.east, v.north], [v.east, v.south], [v.west, v.south]],
-            [[d.west, d.south], [d.west, d.north], [d.east, d.north], [d.east, d.south], [d.west, d.south]],
-          ],
-        },
-      },
-    });
-    map.addLayer({
-      id: 'fire-europe-nodata-fill',
-      type: 'fill',
-      source: 'fire-europe-nodata',
-      layout: { visibility: 'none' },
-      paint: { 'fill-color': '#2C2A26', 'fill-opacity': 0.42 },
-    });
-  }
 
   /** Jeder GL-Layer mit seiner echten Quelle und Darstellung. */
   const SPECS: Record<string, maplibregl.LayerSpecification> = {
