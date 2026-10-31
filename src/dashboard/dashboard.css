@@ -1062,7 +1062,7 @@
 .dbd-now-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .dbd-now-top > .dbd-now-head { min-width: 0; }
 .dbd-wd-badge {
-  flex: none; display: flex; align-items: center; gap: 12px; padding: 9px 10px 9px 9px; margin: -4px -4px 0 0; min-width: 176px;
+  flex: none; display: flex; align-items: center; gap: 14px; padding: 12px 12px 12px 12px; margin: -4px -4px 0 0; min-width: 218px;
   font: inherit; color: var(--dbd-ink); text-align: left; cursor: pointer;
   background: rgba(255, 255, 255, .72); border: 1px solid var(--dbd-hair); border-radius: 16px;
   box-shadow: var(--dbd-inset), var(--dbd-shadow-s); transition: box-shadow .15s, background .15s;
@@ -1074,9 +1074,9 @@
 .dbd-wd-badge:disabled .dbd-wd-badge-open { visibility: hidden; }
 .dbd-wd-compass { display: block; flex: none; }
 .dbd-wd-badge-txt { display: flex; flex-direction: column; line-height: 1.1; min-width: 34px; }
-.dbd-wd-badge-l { font-size: 10.5px; letter-spacing: .8px; font-weight: 700; color: var(--dbd-muted); }
-.dbd-wd-badge-v { font-size: 22px; font-weight: 700; letter-spacing: -.3px; margin-top: 2px; }
-.dbd-wd-badge-s { font-size: 12px; color: var(--dbd-muted); font-variant-numeric: tabular-nums; margin-top: 1px; }
+.dbd-wd-badge-l { font-size: 11px; letter-spacing: .8px; font-weight: 700; color: var(--dbd-muted); }
+.dbd-wd-badge-v { font-size: 28px; font-weight: 700; letter-spacing: -.4px; margin-top: 3px; }
+.dbd-wd-badge-s { font-size: 13px; color: var(--dbd-muted); font-variant-numeric: tabular-nums; margin-top: 2px; }
 .dbd-wd-badge-open { display: grid; place-items: center; align-self: flex-start; width: 24px; height: 24px; color: var(--dbd-muted); }
 
 .dbd-wd-dialog { width: min(980px, 100%); }
@@ -1104,9 +1104,9 @@
 .dbd-wd-legend i { display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 3px; vertical-align: -1px; border: 1px solid rgba(37, 80, 110, .25); }
 .dbd-wd-notes { margin-top: 10px; }
 @media (max-width: 767px) {
-  .dbd-wd-badge { gap: 9px; min-width: 0; padding: 7px 8px 7px 7px; }
-  .dbd-wd-badge .dbd-wd-compass { width: 44px; height: 44px; }
-  .dbd-wd-badge-v { font-size: 19px; }
+  .dbd-wd-badge { gap: 10px; min-width: 0; padding: 9px 9px 9px 9px; }
+  .dbd-wd-badge .dbd-wd-compass { width: 54px; height: 54px; }
+  .dbd-wd-badge-v { font-size: 23px; }
   .dbd-wd-hero { gap: 12px; }
   .dbd-wd-hero .dbd-rose-headline { font-size: 20px; }
   .dbd-wd-hours { grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 5px; }
