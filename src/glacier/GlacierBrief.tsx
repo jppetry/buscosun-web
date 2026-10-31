@@ -196,17 +196,24 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
   const stateLine = snow && showSnow
     ? `Szene ${dateDeLong(snow.date)}: ${snow.state === 1 ? `Schneegrenze ${fmt0(snow.sla)} m` : STATE_TEXT[snow.state]}${snowShare != null ? ` · ${Math.round(snowShare * 100)} % der Fläche mit Schnee` : ''}`
     : `Umriss ${g.area.source} ${fmtRefYear(g.area.refYear)}`;
+  const legendRows = (
+    <>
+      <div className="gl-legend-row"><i className="gl-sw" style={{ background: '#fff', border: '1px solid #A9D4E2' }} />Schnee und Firn (Satellit)</div>
+      <div className="gl-legend-row"><i className="gl-sw" style={{ background: '#A8D0E0' }} />Eis ohne Schnee (Satellit)</div>
+      <div className="gl-legend-row"><i className="gl-sw gl-sw-dash" style={basemap === 'satellit' ? { borderTopColor: '#B9C4CA' } : undefined} />Umriss früher</div>
+      <div className="gl-legend-row"><i className="gl-sw" style={{ background: basemap === 'satellit' ? '#5FD3F3' : '#145A70', height: 3 }} />Umriss {fmtRefYear(g.area.refYear)}</div>
+    </>
+  );
   const mapEl = (
     <section className="gl-map gl-sheet-map" aria-label="Karte des Gletschers">
       <GlacierSheetMap g={g} geometry={data?.geometry ?? null} earlier={earlier} showEarlier={showEarlier} snow={snow} showSnow={showSnow} dem={data?.dem ?? null}
         view={view} basemap={basemap} compare={compare} onCompare={setCompare} onSnowShare={setSnowShare} onView3dFailed={() => setView3dFailed(true)} />
-      <div className="gl-legend gl-sheet-legend" aria-label="Legende">
-        <div className="gl-legend-head"><b>Legende</b></div>
-        <div className="gl-legend-row"><i className="gl-sw" style={{ background: '#fff', border: '1px solid #A9D4E2' }} />Schnee und Firn (Satellit)</div>
-        <div className="gl-legend-row"><i className="gl-sw" style={{ background: '#A8D0E0' }} />Eis ohne Schnee (Satellit)</div>
-        <div className="gl-legend-row"><i className="gl-sw gl-sw-dash" style={basemap === 'satellit' ? { borderTopColor: '#B9C4CA' } : undefined} />Umriss früher</div>
-        <div className="gl-legend-row"><i className="gl-sw" style={{ background: basemap === 'satellit' ? '#5FD3F3' : '#145A70', height: 3 }} />Umriss {fmtRefYear(g.area.refYear)}</div>
-      </div>
+      {layout !== 'dossier' && (
+        <div className="gl-legend gl-sheet-legend" aria-label="Legende">
+          <div className="gl-legend-head"><b>Legende</b></div>
+          {legendRows}
+        </div>
+      )}
       <div className="gl-sheet-status">{stateLine}</div>
     </section>
   );
@@ -278,6 +285,7 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
           <div className="gl-ds-card gl-ds-mapcard">
             {mapTools}
             {mapEl}
+            <div className="gl-ds-legend" role="group" aria-label="Legende"><b>Legende</b>{legendRows}</div>
             <a className="gl-ds-maplink" href={copernicusUrl(g.lat, g.lon, copernicusDay)} target="_blank" rel="noopener noreferrer">
               <span>Sentinel-2 in 10 m · {dateDeLong(copernicusDay)}</span><b>Copernicus Browser ↗</b>
             </a>
