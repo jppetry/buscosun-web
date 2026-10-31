@@ -288,6 +288,11 @@ export interface WindVM {
   reach: Shown;
   reachHours: number | null;
   reachPct: number | null;
+  /** Mittelwind und Böen an Stunde 0 (p50) — für die Windangabe der Jetzt-Kachel und die Wind-Detailansicht. */
+  nowWind?: number | null;
+  nowGust?: number | null;
+  /** Herkunftsrichtung, Mittelwind und Böen (p50) je Fusion-Schritt ab jetzt bis +7 Tage; `dir` null = nicht freigegeben. */
+  steps?: Array<{ t: number; dir: number | null; w: number | null; gust: number | null }>;
 }
 
 /** Windrose · Verteilung (P63): Herkunftsrichtung im gewählten Zeitraum, nach Windklasse gestapelt, nach Zeitdauer gewichtet. */

@@ -11,7 +11,7 @@ import type { WindRoseVM } from './model/types';
 
 const C = 150, R = 104, R0 = 20, HALF = 9.6;
 /** leicht → stark (Windklassen aus `ROSE_LABELS` im Modell) */
-const CLASS_FILLS = ['#CFE0EA', '#8FB6CC', '#4F86A8', '#25506E'];
+export const CLASS_FILLS = ['#CFE0EA', '#8FB6CC', '#4F86A8', '#25506E'];
 const NB = ' ';
 
 const pt = (deg: number, r: number): [number, number] => {
@@ -98,7 +98,7 @@ function RoseSvg({ vm }: { vm: WindRoseVM }) {
   );
 }
 
-function ExpandIcon() {
+export function ExpandIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
@@ -106,7 +106,7 @@ function ExpandIcon() {
   );
 }
 
-function CloseIcon() {
+export function CloseIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
       <path d="M5 5l14 14M19 5L5 19" />

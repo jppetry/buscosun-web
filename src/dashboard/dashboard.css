@@ -1055,3 +1055,56 @@
   .dbd-now-grid .dbd-kv-l { font-size: 10px; letter-spacing: .4px; white-space: nowrap; }
   .dbd-now-grid .dbd-kv-v { font-size: 14px; white-space: nowrap; }
 }
+
+/* ============================================================================
+   Windrichtung in der Jetzt-Kachel und Wind-Detailansicht (Jan 31.10., `windDetail.tsx`)
+   ============================================================================ */
+.dbd-now-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.dbd-now-top > .dbd-now-head { min-width: 0; }
+.dbd-wd-badge {
+  flex: none; display: flex; align-items: center; gap: 9px; padding: 5px 7px 5px 5px; margin: -4px -4px 0 0;
+  font: inherit; color: var(--dbd-ink); text-align: left; cursor: pointer;
+  background: rgba(255, 255, 255, .72); border: 1px solid var(--dbd-hair); border-radius: 14px;
+  box-shadow: var(--dbd-inset), var(--dbd-shadow-s); transition: box-shadow .15s, background .15s;
+}
+.dbd-wd-badge:hover:not(:disabled) { background: #FFFFFF; box-shadow: var(--dbd-inset), var(--dbd-shadow-m); }
+.dbd-wd-badge:focus-visible { outline: 2px solid var(--dbd-ink); outline-offset: 2px; }
+.dbd-wd-badge:disabled { cursor: default; }
+.dbd-wd-badge:disabled .dbd-wd-badge-open { visibility: hidden; }
+.dbd-wd-compass { display: block; flex: none; }
+.dbd-wd-badge-txt { display: flex; flex-direction: column; line-height: 1.1; min-width: 34px; }
+.dbd-wd-badge-l { font-size: 10px; letter-spacing: .8px; font-weight: 700; color: var(--dbd-muted); }
+.dbd-wd-badge-v { font-size: 17px; font-weight: 700; letter-spacing: -.2px; margin-top: 1px; }
+.dbd-wd-badge-s { font-size: 11px; color: var(--dbd-muted); font-variant-numeric: tabular-nums; }
+.dbd-wd-badge-open { display: grid; place-items: center; width: 22px; height: 22px; color: var(--dbd-muted); }
+
+.dbd-wd-dialog { width: min(980px, 100%); }
+.dbd-wd-hero { display: flex; align-items: center; gap: 18px; margin-top: 12px; }
+.dbd-wd-hero .dbd-rose-headline { font-size: 26px; }
+.dbd-wd-days { display: flex; max-width: 100%; margin-top: 18px; overflow-x: auto; scrollbar-width: none; }
+.dbd-wd-days::-webkit-scrollbar { display: none; }
+.dbd-wd-days button { flex: none; white-space: nowrap; }
+.dbd-wd-hours { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)); gap: 6px; }
+.dbd-wd-hours li {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px 7px; border-radius: 12px;
+  background: #FFFFFF; border: 1px solid var(--dbd-hair); box-shadow: var(--dbd-shadow-s); font-variant-numeric: tabular-nums;
+}
+.dbd-wd-hours li.is-calm { background: transparent; border-style: dashed; border-color: var(--dbd-line); box-shadow: none; }
+.dbd-wd-h { font-size: 11px; font-weight: 600; color: var(--dbd-muted); }
+.dbd-wd-a { display: grid; place-items: center; height: 32px; }
+.dbd-wd-arrow { display: block; }
+.dbd-wd-d { font-size: 11px; font-weight: 700; color: var(--dbd-ink); letter-spacing: .3px; }
+.dbd-wd-w { font-size: 15px; font-weight: 700; color: var(--dbd-ink); }
+.dbd-wd-w small { font-size: 10.5px; font-weight: 500; color: var(--dbd-muted); }
+.dbd-wd-g { font-size: 11px; color: var(--dbd-muted); min-height: 13px; }
+.dbd-wd-calm { display: block; width: 16px; height: 16px; border-radius: 50%; border: 1.5px dashed #A89A7A; }
+.dbd-wd-calm.is-small { display: inline-block; width: 10px; height: 10px; margin-right: 6px; vertical-align: -1px; }
+.dbd-wd-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 14px; font-size: 11.5px; color: var(--dbd-muted); }
+.dbd-wd-legend i { display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 3px; vertical-align: -1px; border: 1px solid rgba(37, 80, 110, .25); }
+.dbd-wd-notes { margin-top: 10px; }
+@media (max-width: 767px) {
+  .dbd-wd-badge { gap: 7px; }
+  .dbd-wd-hero { gap: 12px; }
+  .dbd-wd-hero .dbd-rose-headline { font-size: 20px; }
+  .dbd-wd-hours { grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 5px; }
+}

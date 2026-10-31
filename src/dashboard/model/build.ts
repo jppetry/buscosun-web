@@ -789,8 +789,16 @@ function buildWind(c: Ctx): WindVM {
     reach: orNa('P65', reachH == null ? null : `${reachH}${NBSP}h`, 'Richtung schon jetzt nicht freigegeben'),
     reachHours: reachH,
     reachPct: reachH == null ? null : Math.round((reachH / 336) * 100),
+    nowWind: v(s0, 'wind'),
+    nowGust: v(s0, 'gust'),
+    steps: c.steps
+      .filter((s) => s.validAtMs >= s0.validAtMs && s.validAtMs <= s0.validAtMs + WIND_DETAIL_H * H)
+      .map((s) => ({ t: s.validAtMs, dir: v(s, 'windDir'), w: v(s, 'wind'), gust: v(s, 'gust') })),
   };
 }
+
+/** Wind-Detailansicht: so weit reicht die Stundenliste ab jetzt. */
+const WIND_DETAIL_H = 7 * 24;
 
 /** Windklassen der Rose in m/s (Obergrenzen; die letzte ist offen). */
 const ROSE_BOUNDS = [3, 6, 10];

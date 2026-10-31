@@ -22,6 +22,7 @@ import { DayDetail } from './dayDetail';
 import { FeatureRail } from '../nav/featureRail';
 import ShareButton from '../share/ShareButton';
 import { NowcastTile, NowCard, Val, WarningsTile } from './tiles';
+import { WindBadge } from './windDetail';
 import { ForecastZone } from './ForecastZone';
 import { pfLogFrom } from '../pointForecast/pfFlags';
 
@@ -324,7 +325,7 @@ function DashboardPage({ vm, place, range, onRange, onSelectView, onSelectLocati
                   <p className="dbd-empty">Der Punkt-Cube konnte nicht gelesen werden{vm.error ? ` (${vm.error})` : ''}. Es gibt bewusst keinen Rückfall auf andere Rechenwege.</p>
                   <button type="button" className="dbd-retry" onClick={onRetry}>Erneut versuchen</button>
                 </section>
-              ) : <NowCard vm={vm.now} />}
+              ) : <NowCard vm={vm.now} aside={<WindBadge vm={vm.wind} />} />}
               {wide && (
                 <section className="dbd-card dbd-minimap" aria-label="Karte: Wind und Niederschlag am Ort">
                   {(vm.status === 'ok' || vm.status === 'error') && place && (
