@@ -1425,8 +1425,10 @@ export default function MapView({
       // Slowenien auch nach dem applyVisibility-Fix noch sichtbar).
       if (map.getLayer(STATIONS_LAYER_ID)) map.moveLayer(STATIONS_LAYER_ID);
     };
+    // Phase PF (M9): at `style.load` like `addLayers` below — the mask awaits its fetch, so it still lands on top of the
+    // weather layers, and the radar never shows outside DACH before it.
     if (map.isStyleLoaded()) void initOverlays();
-    else map.once('load', () => { void initOverlays(); });
+    else map.once('style.load', () => { void initOverlays(); });
 
     if (!overview) {
       markerRef.current = new maplibregl.Marker({ color: '#4a7dff', ...(profile ? { draggable: RADAR_PROFILE.marker.draggable } : {}) })
@@ -1845,10 +1847,11 @@ export default function MapView({
       if (map.getLayer(STATIONS_LAYER_ID)) map.moveLayer(STATIONS_LAYER_ID);
     };
     if (map.isStyleLoaded()) addLayers();
-    // Phase PF (M9, audit/performance-2026-10-10.md §6): adding the layers at `style.load` instead of `load` was tried and taken
-    // back — the overlay installers (dim, DACH mask) and the layer order are coupled to `load`; at `style.load` the mask covered
-    // the radar, and with blocked data the dim fill covered the whole map. A later phase may move all installers together.
-    else map.once('load', addLayers);
+    // Phase PF (M9, audit/performance-2026-10-10.md §6): the layers go in at `style.load`, not `load` — `load` also waits for the
+    // basemap tiles, sprite and glyphs, and the early radar frame waited with it. The 10.10. attempt was taken back because
+    // the dim overlay still came at `load` and covered the radar; that overlay is gone, and `initOverlays` (DACH mask only)
+    // moved to `style.load` too, so the stack order is the one from before.
+    else map.once('style.load', addLayers);
 
     mapRef.current = map;
     if (import.meta.env.DEV) {
