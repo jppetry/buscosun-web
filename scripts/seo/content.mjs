@@ -9,7 +9,14 @@
 import { existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { nearestPlaces } from './places.mjs';
+import { readFileSync } from 'node:fs';
+import { nearestPlaces, toSlug } from './places.mjs';
+import { crumbsFor } from './regions.mjs';
+// Phase 3: Orte der zweiten Welle stehen nicht in der Ortstabelle der App (`placeSlugs.json`); ihr Karten-Link trägt den Ort
+// in der Query — exakt so, wie ihn `mapPathForPlace` für einen freien Ort schreibt (`verify:routing` prüft die Parität).
+import { mapPathForPlace, buildRadarUrl } from '../../src/router/urlState.ts';
+const TABLE_SLUGS = new Set(JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'src', 'router', 'placeSlugs.json'), 'utf8')).map((r) => r[0]));
+const freePlace = (p) => ({ name: p.name, lat: p.lat, lon: p.lon, country: p.country });
 import { climateSection, sunSection, unknownsSection, climateHighlights, placeDescription, CLIMA_YEARS } from './climate.mjs';
 import {
   climateOf, climateSourceLabel, placeLeadV3, placeDescriptionV3, lageSection, climateSectionV3, sunSectionV3, placeFaqsV3,
@@ -68,6 +75,7 @@ export function mapPermalink(place) {
   //
   // Muss zeichengleich zu `mapPathForPlace()` in `src/router/urlState.ts` sein —
   // `verify:routing` prüft genau das.
+  if (!TABLE_SLUGS.has(place.slug)) return mapPathForPlace(freePlace(place), 'temp', { slug: toSlug(place.name), inTable: false });
   const land = String(place.country).toLowerCase();
   return `/wetterkarte/temperatur/${place.slug}` + (land === 'de' ? '' : `?land=${land}`);
 }
@@ -284,11 +292,7 @@ export function breadcrumbJsonLd(place) {
   return {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
-    itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Start', item: SITE.url + '/' },
-      { '@type': 'ListItem', position: 2, name: 'Wetter', item: SITE.url + '/wetter/' },
-      { '@type': 'ListItem', position: 3, name: place.name, item: `${SITE.url}/wetter/${place.slug}/` },
-    ],
+    itemListElement: crumbsFor(place).map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c.name, item: SITE.url + c.path })),
   };
 }
 
@@ -404,7 +408,7 @@ export function renderPlacePage(place) {
     // SH1: Das Regenradar trägt den Ort wie die Wetterkarte als Pfad-Slug
     // (`/regenradar/muenchen`). Die übrigen Ansichten bekommen ihre Slug-Form in
     // SH3–SH5, wenn ihr Zustand vom Fragment in die Query wandert.
-    ['Regenradar', `/regenradar/${place.slug}` + (String(place.country).toLowerCase() === 'de' ? '' : `?land=${String(place.country).toLowerCase()}`)],
+    ['Regenradar', TABLE_SLUGS.has(place.slug) ? `/regenradar/${place.slug}` + (String(place.country).toLowerCase() === 'de' ? '' : `?land=${String(place.country).toLowerCase()}`) : buildRadarUrl(freePlace(place), { slug: toSlug(place.name), inTable: false }, null)],
     ['Vorhersage & Modellvergleich', `/vorhersage?${placeQuery}`],
     ['Bester Tag für ein Vorhaben', `/eventplanung?${placeQuery}`],
     ['Wetter entlang einer Tour', '/tourenplanung'],
@@ -423,7 +427,7 @@ ${head}
   </head>
   <body>
     <main class="wrap">
-      <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › <a href="/wetter/">Wetter</a> › ${escapeHtml(place.name)}</nav>
+      <nav class="bc" aria-label="Brotkrumen">${crumbsFor(place).map((c, i, a) => (i === a.length - 1 ? escapeHtml(c.name) : `<a href="${c.path}">${escapeHtml(c.name)}</a>`)).join(' › ')}</nav>
       <h1>Wetter ${escapeHtml(place.name)}</h1>
       <p class="sub">${FLAG[place.country]} ${escapeHtml(place.region)} · ${COUNTRY_NAME[place.country]} · rund ${place.ele} m</p>
       <p class="lead">${escapeHtml(placeLeadV3(place))}</p>

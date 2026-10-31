@@ -189,7 +189,7 @@ console.log('\nSitemap:');
   if (!/<sitemapindex/.test(index)) fail('sitemap.xml', 'kein Sitemap-Index (E9)');
   else ok('sitemap.xml', 'Sitemap-Index');
   const children = [...index.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1].replace('https://buscosun.com/', ''));
-  const expected = ['sitemap-pages.xml', 'sitemap-orte.xml'];
+  const expected = ['sitemap-pages.xml', 'sitemap-orte.xml', 'sitemap-orte-2.xml'];
   if (expected.some((f) => !children.includes(f))) fail('sitemap.xml', `Teilliste fehlt: ${expected.filter((f) => !children.includes(f)).join(', ')}`);
   else ok('sitemap.xml', `verweist auf ${children.length} Teillisten`);
   const sm = expected.map((f) => read(f)).join('\n');
@@ -249,7 +249,9 @@ console.log('\nGEO-Dateien:');
     if (rel.length) fail(f, `relative Links (absolut erwartet): ${rel.slice(0, 3).join(', ')}`);
   }
   const llms = read('llms.txt');
-  const placeCount = readdirSync(join(DIST, 'wetter'), { withFileTypes: true }).filter((d) => d.isDirectory()).length;
+  // Länderseiten (/wetter/deutschland/ …) sind keine Orte.
+  const COUNTRY_DIRS = new Set(['deutschland', 'oesterreich', 'schweiz']);
+  const placeCount = readdirSync(join(DIST, 'wetter'), { withFileTypes: true }).filter((d) => d.isDirectory() && !COUNTRY_DIRS.has(d.name)).length;
   if (!llms.includes(`Übersicht aller ${placeCount} Orte`)) fail('llms.txt', `Ortszahl weicht ab (erwartet ${placeCount})`);
   else ok('llms.txt', `Ortszahl stimmt mit dem Bestand überein (${placeCount})`);
   if (!llms.includes('/atmosphaere/arbeitsfenster')) fail('llms.txt', 'Go/No-Go nicht auf dem kanonischen Pfad');
@@ -265,7 +267,7 @@ console.log('\nGEO-Dateien:');
 console.log('\nOrtsseiten v2:');
 {
   const words = (html) => html.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<style[\s\S]*?<\/style>/g, '').replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length;
-  const dirs = existsSync(join(DIST, 'wetter')) ? readdirSync(join(DIST, 'wetter'), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name) : [];
+  const dirs = existsSync(join(DIST, 'wetter')) ? readdirSync(join(DIST, 'wetter'), { withFileTypes: true }).filter((d) => d.isDirectory() && !['deutschland', 'oesterreich', 'schweiz'].includes(d.name)).map((d) => d.name) : [];
   if (dirs.length < 100) fail('wetter/', `erwartet ≥ 100 Ortsseiten, gefunden ${dirs.length}`);
   else ok('wetter/', `${dirs.length} Ortsseiten`);
   const descs = new Map();
