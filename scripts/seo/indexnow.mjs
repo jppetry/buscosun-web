@@ -36,7 +36,7 @@ function findKey() {
 
 function sitemapUrls() {
   const urls = [];
-  for (const f of ['sitemap-pages.xml', 'sitemap-orte.xml']) {
+  for (const f of ['sitemap-pages.xml', 'sitemap-orte.xml', 'sitemap-orte-2.xml']) {
     const p = join(DIST, f);
     if (!existsSync(p)) throw new Error(`${f} fehlt — vorher \`npm run build\``);
     for (const m of readFileSync(p, 'utf8').matchAll(/<loc>([^<]+)<\/loc>/g)) urls.push(m[1]);

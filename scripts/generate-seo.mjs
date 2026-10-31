@@ -9,7 +9,9 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PLACES } from './seo/places.mjs';
+import { PLACES, PLACES_ALL, PLACES_NEW } from './seo/places.mjs';
+import { COUNTRIES, COUNTRY_SLUGS, REGIONS, regionsOf, countryPath } from './seo/regions.mjs';
+import { renderRegionPage, renderCountryPage } from './seo/regionPages.mjs';
 import { EXPLAINERS, EXPLAINERS_BY_SLUG } from './seo/explainers.mjs';
 import { TOOLS } from './seo/tools.mjs';
 import { EVENTS } from './seo/events.mjs';
@@ -49,8 +51,10 @@ if (!existsSync(DIST)) {
 
 let pages = 0;
 
-// 1) Geo-Seiten
-for (const place of PLACES) {
+// 1) Geo-Seiten (erste und zweite Welle). Ein Ort darf nicht heißen wie eine Länderseite (/wetter/deutschland/ …).
+for (const p of PLACES_ALL) if (COUNTRY_SLUGS.has(p.slug)) throw new Error(`Ortsslug ${p.slug} kollidiert mit einer Länderseite`);
+if (new Set(PLACES_ALL.map((p) => p.slug)).size !== PLACES_ALL.length) throw new Error('doppelte Ortsslugs');
+for (const place of PLACES_ALL) {
   const dir = join(DIST, 'wetter', place.slug);
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, 'index.html'), renderPlacePage(place), 'utf8');
@@ -60,10 +64,11 @@ for (const place of PLACES) {
 // 2) /wetter/-Hub (Index aller Orte, gruppiert nach Land)
 function hubPage() {
   const byCountry = (c, label, flag) => {
-    const items = PLACES.filter((p) => p.country === c)
+    const items = PLACES_ALL.filter((p) => p.country === c)
       .sort((a, b) => a.name.localeCompare(b.name, 'de'))
       .map((p) => `<a href="/wetter/${p.slug}/">${escapeHtml(p.name)}</a>`).join('\n        ');
-    return `<section><h2>${flag} ${label}</h2><div class="links">\n        ${items}\n      </div></section>`;
+    const regs = regionsOf(c).filter((r) => r.hasPage).map((r) => `<a href="${r.path}">${escapeHtml(r.name)} <span>(${r.places.length})</span></a>`).join('\n        ');
+    return `<section><h2>${flag} ${label}</h2>\n      <p><a href="${countryPath(c)}">Alle ${COUNTRIES[c].regions} in ${label}</a></p>\n      <div class="links">\n        ${regs}\n      </div>\n      <h3>Alle Orte</h3><div class="links">\n        ${items}\n      </div></section>`;
   };
   return `<!doctype html>
 <html lang="de">
@@ -79,7 +84,7 @@ function hubPage() {
     <meta property="og:image" content="${SITE.url}/og/wetter.png" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="${SITE.url}/og/wetter.png" />
-    ${collectionPageScripts('Wetter in DACH-Orten', '/wetter/', `Höhenkorrigierte Wetter-Landingpages für ${PLACES.length} Orte in Deutschland, Österreich und der Schweiz.`, PLACES_UPDATED)}
+    ${collectionPageScripts('Wetter in DACH-Orten', '/wetter/', `Höhenkorrigierte Wetter-Landingpages für ${PLACES_ALL.length} Orte in Deutschland, Österreich und der Schweiz.`, PLACES_UPDATED)}
     <style>:root{--sand:#FAF6EA;--ink:#2C2A26;--stone:#5C5447;--terra:#C97B47;--border:#E0D6BE}
 body{margin:0;font-family:system-ui,sans-serif;background:var(--sand);color:var(--ink);line-height:1.6}
 .wrap{max-width:820px;margin:0 auto;padding:2rem 1.25rem 4rem}h1{font-size:2rem}h2{font-size:1.15rem;border-bottom:1px solid var(--border);padding-bottom:.3rem;margin-top:2rem}
@@ -90,7 +95,7 @@ a{color:var(--terra)}</style>
     <main class="wrap">
       <nav style="font-size:.85rem;color:var(--stone);margin-bottom:1rem"><a href="/" style="color:var(--stone)">Start</a> › Wetter</nav>
       <h1>Wetter in DACH-Orten</h1>
-      <p>Höhenkorrigierte Vorhersage aus amtlichen Quellen (DWD · GeoSphere · MeteoSwiss) für ${PLACES.length} Orte in Deutschland, Österreich und der Schweiz.</p>
+      <p>Höhenkorrigierte Vorhersage aus amtlichen Quellen (DWD · GeoSphere · MeteoSwiss) für ${PLACES_ALL.length} Orte in Deutschland, Österreich und der Schweiz.</p>
       ${byCountry('DE', 'Deutschland', '🇩🇪')}
       ${byCountry('AT', 'Österreich', '🇦🇹')}
       ${byCountry('CH', 'Schweiz', '🇨🇭')}
@@ -101,6 +106,21 @@ a{color:var(--terra)}</style>
 }
 mkdirSync(join(DIST, 'wetter'), { recursive: true });
 writeFileSync(join(DIST, 'wetter', 'index.html'), hubPage(), 'utf8');
+
+// 2b) Länder- und Regionsseiten (/wetter/<land>/ und /wetter/<land>/<region>/); Regionen unter MIN_REGION_PLACES Orten haben keine eigene Seite.
+let regionPages = 0;
+for (const code of Object.keys(COUNTRIES)) {
+  const cdir = join(DIST, 'wetter', COUNTRIES[code].slug);
+  mkdirSync(cdir, { recursive: true });
+  writeFileSync(join(cdir, 'index.html'), renderCountryPage(code), 'utf8');
+  regionPages++;
+}
+for (const r of REGIONS.filter((x) => x.hasPage)) {
+  const rdir = join(DIST, 'wetter', COUNTRIES[r.country].slug, r.slug);
+  mkdirSync(rdir, { recursive: true });
+  writeFileSync(join(rdir, 'index.html'), renderRegionPage(r), 'utf8');
+  regionPages++;
+}
 
 // 2c) Explainer (/wissen/<slug>/) + /wissen/-Hub
 let explainerPages = 0;
@@ -247,7 +267,11 @@ function sitemap() {
     { loc: `${SITE.url}/`, pri: '1.0', mod: LM.routes },
     ...sitemapPaths().map((p) => ({ loc: `${SITE.url}${p.path}`, pri: p.priority, mod: LM.routes })),
     { loc: `${SITE.url}/wetter/`, pri: '0.8', mod: LM.places },
-    ...PLACES.map((p) => ({ loc: `${SITE.url}/wetter/${p.slug}/`, pri: '0.6', mod: LM.places })),
+    ...PLACES.map((p) => ({ loc: `${SITE.url}/wetter/${p.slug}/`, pri: '0.6', mod: LM.places, kind: 'orte' })),
+    ...PLACES_NEW.map((p) => ({ loc: `${SITE.url}/wetter/${p.slug}/`, pri: '0.6', mod: LM.places, kind: 'orte2' })),
+    // Phase 3: Länder- und Regionsseiten gehören zu den Seiten, nicht zu den Orten.
+    ...Object.keys(COUNTRIES).map((c) => ({ loc: SITE.url + countryPath(c), pri: '0.7', mod: LM.places })),
+    ...REGIONS.filter((r) => r.hasPage).map((r) => ({ loc: SITE.url + r.path, pri: '0.6', mod: LM.places })),
     { loc: `${SITE.url}/wissen/`, pri: '0.7', mod: LM.explainers },
     ...fullEx.map((e) => ({ loc: `${SITE.url}/wissen/${e.slug}/`, pri: '0.6', mod: LM.explainers })),
     { loc: `${SITE.url}/funktionen/`, pri: '0.7', mod: LM.tools },
@@ -269,18 +293,23 @@ function sitemap() {
 const urlSet = (urls) => `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${
   urls.map((u) => `  <url><loc>${u.loc}</loc>${u.mod ? `<lastmod>${u.mod}</lastmod>` : ''}<priority>${u.pri}</priority></url>`).join('\n')}\n</urlset>\n`;
 const ALL_URLS = sitemap();
-const PLACE_PREFIX = `${SITE.url}/wetter/`;
-const placeUrls = ALL_URLS.filter((u) => u.loc.startsWith(PLACE_PREFIX) && u.loc !== `${PLACE_PREFIX}`);
-const pageUrls = ALL_URLS.filter((u) => !placeUrls.includes(u));
+// Die ersten 198 Orte bleiben in sitemap-orte.xml, die zweite Welle steht getrennt in sitemap-orte-2.xml
+// (Indexierungsrate je Welle in der Search Console getrennt lesbar).
+const placeUrls = ALL_URLS.filter((u) => u.kind === 'orte');
+const placeUrls2 = ALL_URLS.filter((u) => u.kind === 'orte2');
+const pageUrls = ALL_URLS.filter((u) => !u.kind);
 writeFileSync(join(DIST, 'sitemap-orte.xml'), urlSet(placeUrls), 'utf8');
+writeFileSync(join(DIST, 'sitemap-orte-2.xml'), urlSet(placeUrls2), 'utf8');
 writeFileSync(join(DIST, 'sitemap-pages.xml'), urlSet(pageUrls), 'utf8');
 const lastmodTag = (d) => (d ? `<lastmod>${d}</lastmod>` : '');
 const sitemapLastmod = lastmodTag(maxLastmod(pageUrls.map((u) => u.mod)));
 const orteLastmod = lastmodTag(maxLastmod(placeUrls.map((u) => u.mod)));
+const orte2Lastmod = lastmodTag(maxLastmod(placeUrls2.map((u) => u.mod)));
 writeFileSync(join(DIST, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <sitemap><loc>${SITE.url}/sitemap-pages.xml</loc>${sitemapLastmod}</sitemap>
   <sitemap><loc>${SITE.url}/sitemap-orte.xml</loc>${orteLastmod}</sitemap>
+  <sitemap><loc>${SITE.url}/sitemap-orte-2.xml</loc>${orte2Lastmod}</sitemap>
 </sitemapindex>
 `, 'utf8');
 
@@ -355,7 +384,7 @@ writeFileSync(join(DIST, 'sitemap-news.xml'), newsSitemap(), 'utf8');
 // Die handgeschriebene Fassung war an drei Stellen veraltet (Ortszahl, Go/No-Go-Link,
 // Globus-Datenlage) — jede Zahl kommt jetzt aus derselben Liste wie die Seiten.
 const llmsArgs = {
-  site: SITE, updated: CONTENT_UPDATED, places: PLACES,
+  site: SITE, updated: CONTENT_UPDATED, places: PLACES_ALL,
   explainers: EXPLAINERS.filter((e) => e.status === 'full'),
   tools: TOOLS.filter((t) => t.status === 'full'),
   methodik: METHODIK, audiences: AUDIENCES, glossary: GLOSSARY,
@@ -537,4 +566,4 @@ const fullExplainers = EXPLAINERS.filter((e) => e.status === 'full').length;
 const fullTools = TOOLS.filter((t) => t.status === 'full').length;
 const fullEvents = EVENTS.filter((e) => e.status === 'full').length;
 const appUrls = sitemapPaths().length;
-console.log(`[seo] llms.txt + llms-full.txt, ${GLOSSARY.length} Glossar-Begriffe, ${AUDIENCES.length} Zielgruppen-Seiten, ${pages} Geo, ${explainerPages} Explainer (${fullExplainers} idx), ${toolPages} Tools (${fullTools} idx), ${eventPages} Wetterlage (${fullEvents} idx), ${LEGAL_PAGES.length} Rechtsseiten + Hubs, ${METHODIK.length} Methodik + ${TRUST_PAGES.length} Vertrauensseiten, ${routeShells} App-Routen-Shells + ${subShells} Sub-Routen-Shells (${appUrls} URLs), sitemap-index + ${pageUrls.length} Seiten / ${placeUrls.length} Orte, feed.xml, sitemap-news.xml, Home angereichert. Build ${BUILD_DATE}.`);
+console.log(`[seo] llms.txt + llms-full.txt, ${GLOSSARY.length} Glossar-Begriffe, ${AUDIENCES.length} Zielgruppen-Seiten, ${pages} Geo (${PLACES.length} + ${PLACES_NEW.length}), ${regionPages} Länder-/Regionsseiten, ${explainerPages} Explainer (${fullExplainers} idx), ${toolPages} Tools (${fullTools} idx), ${eventPages} Wetterlage (${fullEvents} idx), ${LEGAL_PAGES.length} Rechtsseiten + Hubs, ${METHODIK.length} Methodik + ${TRUST_PAGES.length} Vertrauensseiten, ${routeShells} App-Routen-Shells + ${subShells} Sub-Routen-Shells (${appUrls} URLs), sitemap-index + ${pageUrls.length} Seiten / ${placeUrls.length} + ${placeUrls2.length} Orte, feed.xml, sitemap-news.xml, Home angereichert. Build ${BUILD_DATE}.`);

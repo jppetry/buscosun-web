@@ -17,7 +17,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { nearestPlaces } from './places.mjs';
+import { nearestPlaces, PLACES_NEW } from './places.mjs';
 import { COMPARE, TERRAIN } from './placeRules.mjs';
 import {
   monthlyClimate as stationClimate, MONTHS, CLIMA_YEARS, CLIMA_STATION_COUNT, SUN_REFERENCE_YEAR, sunDay, monthlySun,
@@ -89,6 +89,8 @@ export function climateOf(place) {
   c.meanTemp = SUM(c.rows.map((x) => (x.tmax + x.tmin) / 2)) / 12;
   return c;
 }
+
+const NEW_SLUGS = new Set(PLACES_NEW.map((p) => p.slug));
 
 export const climateSourceLabel = (place) => {
   const r = RASTER_CLIMATE ? CLIM[place.slug] : undefined;
@@ -400,6 +402,7 @@ export function sourcesLine(place, blocks) {
   s.push('Sonnenzeiten: eigene astronomische Berechnung');
   if (TERR[place.slug]) s.push('Gelände: Terrarium-Höhenkacheln (Mapzen/AWS Terrain Tiles)');
   if (TERR[place.slug]?.lake) s.push('Seen: Natural Earth (gemeinfrei)');
+  if (NEW_SLUGS.has(place.slug)) s.push('Ortsliste: GeoNames (CC BY 4.0)');
   for (const b of blocks) for (const x of b.sources || []) s.push(x);
   return [...new Set(s)].join(' · ');
 }
