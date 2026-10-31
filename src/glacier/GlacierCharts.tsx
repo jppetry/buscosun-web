@@ -44,7 +44,7 @@ export function SeasonChart({ scenes, band, zRange }: { scenes: readonly Scene[]
       {empty ? <div className="gl-empty">Keine klare Szene in dieser Saison.</div> : (
         <ResponsiveLine
           data={[{ id: 'Szenen', data: pts }]} colors={['#4B3D96']} lineWidth={2} margin={{ top: 10, right: 12, bottom: 26, left: 48 }}
-          xScale={{ type: 'linear', min: 121, max: 290 }} yScale={{ type: 'linear', min: yMin, max: yMax }} theme={THEME} animate={false}
+          xScale={{ type: 'linear', min: 121, max: 290, nice: false }} yScale={{ type: 'linear', min: yMin, max: yMax, nice: false }} theme={THEME} animate={false}
           enableGridX={false} gridYValues={5} useMesh pointSize={7} pointColor="#fff" pointBorderWidth={2} pointBorderColor="#4B3D96"
           axisBottom={{ tickSize: 0, tickPadding: 6, tickValues: MONTHS.map((m) => m[1]), format: (v: number) => MONTHS.find((m) => m[1] === v)?.[0] ?? '' }}
           axisLeft={{ tickSize: 0, tickPadding: 6, tickValues: 5, format: (v: number) => fmt0(v) }}
@@ -71,8 +71,11 @@ export function LengthChart({ points }: { points: readonly CumPoint[] }) {
   const minCum = Math.min(...points.map((p) => p.cum), 0);
   const step = niceStep(-minCum || 100, 4);
   const lo = -Math.ceil((-minCum || 100) / step) * step;
+  // the tongue can stand above the first year's level (advances): the scale reaches over 0 then, instead of clipping the line at the top
+  const maxCum = Math.max(...points.map((p) => p.cum), 0);
+  const hi = maxCum > 0 ? Math.ceil(maxCum / step) * step : 0;
   const yTicks: number[] = [];
-  for (let v = 0; v >= lo - 1e-9; v -= step) yTicks.push(Math.round(v * 100) / 100);
+  for (let v = hi; v >= lo - 1e-9; v -= step) yTicks.push(Math.round(v * 100) / 100);
   const span = last.year - first.year, xStep = span > 100 ? 20 : span > 50 ? 10 : 5;
   const xTicks: number[] = [];
   for (let y = Math.ceil(first.year / xStep) * xStep; y <= last.year; y += xStep) xTicks.push(y);
@@ -96,7 +99,7 @@ export function LengthChart({ points }: { points: readonly CumPoint[] }) {
       aria-label={`Längenänderung der Zunge, kumuliert in m, ${first.year} bis ${last.year}: ${fmt0(last.cum)} m`}>
       <ResponsiveLine
         data={[{ id: 'Länge', data: points.map((p) => ({ x: p.year, y: p.cum })) }]} colors={['#B5602C']} lineWidth={2.8} margin={{ top: 14, right: 16, bottom: 30, left: 64 }}
-        xScale={{ type: 'linear', min: first.year, max: last.year }} yScale={{ type: 'linear', min: lo, max: 0 }} theme={THEME} animate={false}
+        xScale={{ type: 'linear', min: first.year, max: last.year, nice: false }} yScale={{ type: 'linear', min: lo, max: hi, nice: false }} theme={THEME} animate={false}
         enablePoints={false} enableGridX={false} gridYValues={yTicks} useMesh enableArea areaOpacity={0.16} areaBaselineValue={0} enableCrosshair crosshairType="x"
         axisBottom={{ tickSize: 0, tickPadding: 8, tickValues: xTicks, format: (v: number) => String(v) }}
         axisLeft={{ tickSize: 0, tickPadding: 8, tickValues: yTicks, format: (v: number) => `${fmt0(v)} m` }}
