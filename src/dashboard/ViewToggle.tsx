@@ -7,8 +7,34 @@
  * (`?ansicht=dashboard`), der Aufrufer schreibt sie.
  */
 import './viewToggle.css';
+import { IcoLayers } from '../map/deckIcons';
 
 export type DashboardView = 'dashboard' | 'karte';
+
+/**
+ * Mobile (< 768 px): Dashboard | Karte als untere Leiste, Form wie die Bottom-Bar des Brandradars (`.br-bar`) und der
+ * Kartenseite (`.mdk-bar`). Ersetzt den oberen Umschalter `variant="mobile"` im Dashboard; auf der Karte steht der
+ * Eintrag „Dashboard" in `.mdk-bar` selbst. Auf Desktop/Tablet nicht sichtbar (viewToggle.css).
+ */
+export function ViewBar({ active, onSelect }: { active: DashboardView; onSelect: (v: DashboardView) => void }) {
+  return (
+    <nav className="vt-bar" aria-label="Ansicht">
+      <button type="button" className={`vt-bar-btn${active === 'dashboard' ? ' is-active' : ''}`} aria-current={active === 'dashboard' ? 'page' : undefined} onClick={() => { if (active !== 'dashboard') onSelect('dashboard'); }}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="3.5" y="3.5" width="7" height="9" rx="1.6" stroke="currentColor" strokeWidth="1.6" />
+          <rect x="13.5" y="3.5" width="7" height="5" rx="1.6" stroke="currentColor" strokeWidth="1.6" />
+          <rect x="13.5" y="11.5" width="7" height="9" rx="1.6" stroke="currentColor" strokeWidth="1.6" />
+          <rect x="3.5" y="15.5" width="7" height="5" rx="1.6" stroke="currentColor" strokeWidth="1.6" />
+        </svg>
+        <span>Dashboard</span>
+      </button>
+      <button type="button" className={`vt-bar-btn${active === 'karte' ? ' is-active' : ''}`} aria-current={active === 'karte' ? 'page' : undefined} onClick={() => { if (active !== 'karte') onSelect('karte'); }}>
+        <IcoLayers size={22} />
+        <span>Karte</span>
+      </button>
+    </nav>
+  );
+}
 
 export default function ViewToggle({ active, onSelect, variant = 'bar', className }: {
   active: DashboardView;

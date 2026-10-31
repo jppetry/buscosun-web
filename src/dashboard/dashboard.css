@@ -588,7 +588,7 @@
   .dbd-retry { min-height: 44px; }
   .dbd-search-input { font-size: 14px; flex: 1; field-sizing: fixed; width: 100%; }
   .dbd-run-mobile { display: block; font-size: 10.5px; color: var(--dbd-muted); }
-  .dbd-content { padding: 12px 12px 64px; }
+  .dbd-content { padding: 12px 12px calc(84px + env(safe-area-inset-bottom, 0px)); }
   .dbd-tabs { padding: 0 12px; }
   .dbd-tablist { gap: 0; }
   .dbd-tab { flex: 1; min-height: 44px; font-size: 15px; text-align: center; }
@@ -618,7 +618,7 @@
   .dbd-pollen { grid-template-columns: repeat(4, 1fr); gap: 6px 5px; }
   /* Mobil sitzt der Chip „Über diese Ansicht" sonst über Suche und Umschalter des Dashboard-Kopfs — hier unten rechts wie
      auf dem Desktop; der Seitenfuß hält dafür 64 px frei. Spezifischer als die Regel der Kartenansicht (Karte liegt dahinter). */
-  body.dbd-active .rsb { top: auto; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
+  body.dbd-active .rsb { top: auto; bottom: calc(78px + env(safe-area-inset-bottom, 0px)); }
 }
 
 /* ---- Jan 16.10.: Fusion-Kacheln im Reiter Details (P94–P96) ------------------------- */

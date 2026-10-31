@@ -10,7 +10,7 @@
  */
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import './dashboard.css';
-import ViewToggle, { type DashboardView as View } from './ViewToggle';
+import ViewToggle, { ViewBar, type DashboardView as View } from './ViewToggle';
 import type { DashRange } from './dashUrl';
 import type { Country, Location } from '../types';
 import { buildDashboardVM, shortName } from './model/build';
@@ -304,7 +304,6 @@ function DashboardPage({ vm, place, range, onRange, onSelectView, onSelectLocati
         <button type="button" className="dbd-brand" onClick={onBack} aria-label="Zur Startseite"><img src="/buscosun-mark.svg" width={24} height={24} alt="" /><span>buscosun</span></button>
         <ViewToggle active="dashboard" onSelect={onSelectView} />
         <DashSearch label={placeName ? `${placeName}${vm.top.elev.t ? ` · ${vm.top.elev.t}` : ''}` : 'Ort suchen …'} onSelect={onSelectLocation} />
-        <ViewToggle active="dashboard" onSelect={onSelectView} variant="mobile" />
         <div className="dbd-top-right"><span className="dbd-run">{run}</span>{status}</div>
         <div className="dbd-run-mobile">{run}</div>
       </header>
@@ -347,6 +346,7 @@ function DashboardPage({ vm, place, range, onRange, onSelectView, onSelectLocati
       </main>
       </div>
       </div>
+      <ViewBar active="dashboard" onSelect={onSelectView} />
       {dayIdx != null && vm.zone.days[dayIdx] && (
         <DayDetail days={vm.zone.days} index={dayIdx} onIndex={setDayIdx} onClose={() => { setDayIdx(null); dayOpener.current?.focus(); }} />
       )}

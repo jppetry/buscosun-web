@@ -4783,15 +4783,9 @@ export default function MapView({
   const dayLo = embedded && embedHourRange ? Math.max(0, Math.min(sliderMax, embedHourRange[0])) : 0;
   const dayHi = embedded && embedHourRange ? Math.max(dayLo + 0.2, Math.min(sliderMax, embedHourRange[1])) : sliderMax;
 
-  // Phase DB (E-DB-2): mit Umschalter rückt mobil der Chip „Über diese Ansicht" mit der Modell-Pille eine Zeile tiefer
-  // (mapDeck.css) — Klasse am body, weil der Chip außerhalb von `.mdk-root` liegt.
-  // Jan 27.10.: ohne gewählten Ort (`overview`) zeigt die mobile Karte weder den Umschalter noch den Chip „Über diese Ansicht".
+  // Phase DB (E-DB-2): mobil steht „Dashboard" als Eintrag in der unteren Leiste (`.mdk-bar`), nicht mehr oben.
+  // Jan 27.10.: ohne gewählten Ort (`overview`) zeigt die mobile Karte den Eintrag nicht.
   const mobileViewToggle = !!onOpenDashboard && !overview;
-  useEffect(() => {
-    if (!mobileViewToggle) return;
-    document.body.classList.add('mdk-viewtoggle-on');
-    return () => document.body.classList.remove('mdk-viewtoggle-on');
-  }, [mobileViewToggle]);
   useEffect(() => {
     if (!overview || embedded) return;
     document.body.classList.add('mdk-noplace');
@@ -5777,7 +5771,7 @@ export default function MapView({
 
   return (
     <div
-      className={`mdk-root${suspended ? ' mdk-suspended' : ''}${mobileViewToggle ? ' mdk-has-viewtoggle' : ''}`}
+      className={`mdk-root${suspended ? ' mdk-suspended' : ''}`}
       style={{ '--mdk-bar-h': '64px' } as React.CSSProperties}
       inert={suspended || undefined}
       aria-hidden={suspended || undefined}
@@ -5941,9 +5935,6 @@ export default function MapView({
                   </div>
                 )}
                 <ShareButton className="mdk-m-share" compact />
-                {mobileViewToggle && (
-                  <ViewToggle active="karte" variant="mobile" className="mdk-m-viewtoggle" onSelect={(v) => { if (v === 'dashboard') onOpenDashboard(); }} />
-                )}
               </div>
               {MODEL_SWITCHER_VISIBLE && mobileTab === 'karte' && (
                 <button type="button" className="mdk-m-modelpill mdk-glass" onClick={() => setMobileTab('modelle')}>
@@ -6158,6 +6149,17 @@ export default function MapView({
           {MODEL_SWITCHER_VISIBLE && mobileTab === 'modelle' && modelLibrary}
 
           <nav className="mdk-bar" aria-label="Kartenseite">
+            {mobileViewToggle && (
+              <button type="button" className="mdk-bar-btn" onClick={() => onOpenDashboard?.()}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <rect x="3.5" y="3.5" width="7" height="9" rx="1.6" stroke="currentColor" strokeWidth="1.6" />
+                  <rect x="13.5" y="3.5" width="7" height="5" rx="1.6" stroke="currentColor" strokeWidth="1.6" />
+                  <rect x="13.5" y="11.5" width="7" height="9" rx="1.6" stroke="currentColor" strokeWidth="1.6" />
+                  <rect x="3.5" y="15.5" width="7" height="5" rx="1.6" stroke="currentColor" strokeWidth="1.6" />
+                </svg>
+                <span>Dashboard</span>
+              </button>
+            )}
             {([
               { key: 'karte', label: 'Karte', ico: <IcoLayers size={22} /> },
               { key: 'nowcast', label: 'Nowcast', ico: <IcoGauge /> },

@@ -29,3 +29,25 @@
 .vt-mobile { border-radius: 10px; }
 .vt-mobile .vt-btn { flex: 1; text-align: center; font-size: 13px; border-radius: 7px; padding: 10px 0; }
 .vt-mobile .vt-btn::after { content: ''; position: absolute; left: 0; right: 0; top: -6px; bottom: -6px; }
+
+/* Untere Leiste Dashboard | Karte (nur mobil) — Maße wie `.mdk-bar` (mapDeck.css), Farben wie `.br-bar`. */
+.vt-bar { display: none; }
+@media (max-width: 767px) {
+  .vt-bar {
+    display: flex; align-items: stretch;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+    height: calc(64px + env(safe-area-inset-bottom, 0px));
+    padding: 0 6px env(safe-area-inset-bottom, 0px);
+    background: var(--cream-50, #FAF6EA);
+    border-top: 1px solid var(--sand-200, #E0D6BE);
+    font-family: 'League Spartan', var(--font-base, system-ui, sans-serif);
+  }
+  .vt-bar-btn {
+    flex: 1; min-width: 44px; border: 0; background: none; cursor: pointer; font: inherit;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    color: var(--stone-400, #A89A7A); padding: 6px 0;
+  }
+  .vt-bar-btn span { font-size: 11px; font-weight: 600; letter-spacing: 0.02em; }
+  .vt-bar-btn.is-active { color: var(--terracotta-700, #A85E2E); }
+  .vt-bar-btn:focus-visible { outline: 2px solid var(--terracotta-500, #C97B47); outline-offset: -2px; border-radius: 10px; }
+}
