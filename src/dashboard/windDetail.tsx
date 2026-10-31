@@ -55,7 +55,7 @@ export function WindBadge({ vm }: { vm: WindVM }) {
         aria-haspopup="dialog" aria-label={`Wind ${dir == null ? 'mit unklarer Richtung' : `aus ${compass16(dir)}`}: Richtung und Stärke der nächsten Tage anzeigen`}
         title="Windrichtung und -stärke der nächsten Tage, stündlich" data-origin="P64"
       >
-        <Compass dir={dir} size={38} />
+        <Compass dir={dir} size={52} />
         <span className="dbd-wd-badge-txt">
           <span className="dbd-wd-badge-l">WIND AUS</span>
           <span className="dbd-wd-badge-v">{dir == null ? (vm.state === 'ok' ? <span title={NO_DIR_TITLE}>unklar</span> : <Val v={vm.title} />) : compass16(dir)}</span>
