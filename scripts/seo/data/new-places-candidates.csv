@@ -2,11 +2,11 @@
 Borkum;DE;Niedersachsen;5186;Tourismus: Küste/Insel;53.5809;6.6915;2;borkum;;Juist (22,8 km);ja (Borkum Nordstrand, 3.3 km);ja (Borkum, Fischerbalje, 4.5 km);;;;2946206
 Juist;DE;Niedersachsen;1751;Tourismus: Küste/Insel;53.6779;6.9958;6;juist;;Norderney (11,0 km);ja (Juist, 0.2 km);ja (Norderney, Riffgat, 10.9 km);;;;2894569
 Langeoog;DE;Niedersachsen;1990;Tourismus: Küste/Insel;53.7455;7.4817;6;langeoog;;Spiekeroog (14,3 km);ja (Langeoog, 0.8 km);ja (Langeoog, Hafeneinfahrt, 2.8 km);;;;2880861
-Spiekeroog;DE;Niedersachsen;815;Tourismus: Küste/Insel;53.7701;7.6948;5;spiekeroog;;Nordseeheilbad Wangerooge (13,7 km);ja (Spiekeroog, 1.1 km);ja (Spiekeroog, ehem. Landungsbrücke, 2.5 km);;;;2830534
-Nordseeheilbad Wangerooge;DE;Niedersachsen;1081;Tourismus: Küste/Insel;53.7905;7.9007;5;nordseeheilbad-wangerooge;;Spiekeroog (13,7 km);ja (Wangerooge, 0.6 km);ja (Wangerooge, Langes Riff, Nord, 2.6 km);;;;2814266
+Spiekeroog;DE;Niedersachsen;815;Tourismus: Küste/Insel;53.7701;7.6948;5;spiekeroog;;Wangerooge (13,7 km);ja (Spiekeroog, 1.1 km);ja (Spiekeroog, ehem. Landungsbrücke, 2.5 km);;;;2830534
+Wangerooge;DE;Niedersachsen;1081;Tourismus: Küste/Insel;53.7905;7.9007;5;wangerooge;;Spiekeroog (13,7 km);ja (Wangerooge, 0.6 km);ja (Wangerooge, Langes Riff, Nord, 2.6 km);;;;2814266
 Norden;DE;Niedersachsen;24767;Tourismus: Küste/Insel;53.5955;7.2062;9;norden;;Norderney (12,8 km);ja (Norddeich, 5.1 km);ja (Norderney, Riffgat, 11.7 km);;;;2862118
 Greetsiel;DE;Niedersachsen;1247;Tourismus: Küste/Insel;53.5004;7.0942;2;greetsiel;;Norden (12,9 km);ja (Norddeich, 14.6 km);ja (Leyhörn, Leybucht, 6.6 km);;;;2917826
-Helgoland;DE;Schleswig-Holstein;1333;Tourismus: Küste/Insel;54.1814;7.8863;38;helgoland;;Nordseeheilbad Wangerooge (43,5 km);ja (Helgoland Düne, 1.9 km);ja (Helgoland, Binnenhafen, 0.4 km);;;;3208547
+Helgoland;DE;Schleswig-Holstein;1333;Tourismus: Küste/Insel;54.1814;7.8863;38;helgoland;;Wangerooge (43,5 km);ja (Helgoland Düne, 1.9 km);ja (Helgoland, Binnenhafen, 0.4 km);;;;3208547
 Wyk auf Föhr;DE;Schleswig-Holstein;4429;Tourismus: Küste/Insel;54.6914;8.5670;6;wyk-auf-foehr;;Wittdün (13,5 km);ja (Föhr Wyk, 0.5 km);ja (Wyk, Föhr, 0.6 km);;;;2805396
 Wittdün;DE;Schleswig-Holstein;650;Tourismus: Küste/Insel;54.6270;8.3894;3;wittduen;;Wyk auf Föhr (13,5 km);ja (Amrum Kniepsand, 4.4 km);ja (Wittdün, Amrum, Hafen, 0.6 km);;;;2807381
 Sankt Peter-Ording;DE;Schleswig-Holstein;4092;Tourismus: Küste/Insel;54.3036;8.6414;2;sankt-peter-ording;;Büsum (23,5 km);ja (St. Peter-Ording, 1.8 km);ja (Eider-Sperrwerk, Außenpegel, 13.7 km);;;;2841484
@@ -255,7 +255,7 @@ Lünen;DE;Nordrhein-Westfalen;91009;Stadt/Gemeinde;51.6163;7.5287;58;luenen;;Dor
 Velbert;DE;Nordrhein-Westfalen;87669;Stadt/Gemeinde;51.3354;7.0435;244;velbert;;Wuppertal (11,5 km);;;"ja (A535, 1.2 km; Anlage 3.6 km)";;;2817724
 Ludwigsburg;DE;Baden-Württemberg;87603;Stadt/Gemeinde;48.8973;9.1916;298;ludwigsburg;;Waiblingen (11,6 km);;;"ja (A81, 2.8 km; Anlage 3.3 km)";;;2875392
 Cottbus;DE;Brandenburg;84754;Stadt/Gemeinde;51.7577;14.3289;78;cottbus;;Senftenberg (34,3 km);;;"ja (A15, 4.3 km; Anlage 6.3 km)";;;2939811
-Wilhelmshaven;DE;Niedersachsen;84393;Stadt/Gemeinde;53.5476;8.1039;0;wilhelmshaven;;Nordseeheilbad Wangerooge (30,1 km);ja (Wilhelmshaven Südstrand, 4.6 km);ja (Wilhelmshaven, Neuer Vorhafen, Seeschleuse, 4.2 km);"ja (A29, 1.9 km; Anlage 2.3 km)";;;2808720
+Wilhelmshaven;DE;Niedersachsen;84393;Stadt/Gemeinde;53.5476;8.1039;0;wilhelmshaven;;Wangerooge (30,1 km);ja (Wilhelmshaven Südstrand, 4.6 km);ja (Wilhelmshaven, Neuer Vorhafen, Seeschleuse, 4.2 km);"ja (A29, 1.9 km; Anlage 2.3 km)";;;2808720
 Minden;DE;Nordrhein-Westfalen;82879;Stadt/Gemeinde;52.2895;8.9146;59;minden;;Bad Oeynhausen (11,9 km);;;"ja (A2, 8.7 km; Anlage 10.8 km)";;;2871039
 Norderstedt;DE;Schleswig-Holstein;82844;Stadt/Gemeinde;53.7018;9.9933;33;norderstedt;;Pinneberg (13,8 km);;;"ja (A7, 3.3 km; Anlage 10.7 km)";;;2862026
 Villingen-Schwenningen;DE;Baden-Württemberg;81770;Stadt/Gemeinde;48.0623;8.4936;757;villingen-schwenningen;;Triberg (20,8 km);;;"ja (A81, 7.8 km; Anlage 8.3 km)";;;2817220

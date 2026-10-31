@@ -98,7 +98,7 @@ const rows = readFileSync(join(GN, 'cities1000.txt'), 'utf8').split('\n').filter
   .filter((r) => r.fcode !== 'PPLX' && r.region);
 
 // Amtliche Zusätze im GeoNames-Namen („Ostseebad Kühlungsborn“, „Universitäts- und Hansestadt Greifswald“) gehören nicht in den Ortsnamen.
-const PREFIX = /^(Ostseebad|Nordseebad|Seebad|Heilbad|Luftkurort|Kurort|Universitäts- und Hansestadt|Hansestadt|Landeshauptstadt|Große Kreisstadt|Kreisstadt|Stadt|Gemeinde|Marktgemeinde|Markt|Stadtgemeinde)\s+/;
+const PREFIX = /^(Ostseebad|Nordseebad|Nordseeheilbad|Ostseeheilbad|Seebad|Heilbad|Luftkurort|Kurort|Universitäts- und Hansestadt|Hansestadt|Landeshauptstadt|Große Kreisstadt|Kreisstadt|Stadt|Gemeinde|Marktgemeinde|Markt|Stadtgemeinde)\s+/;
 const clean = (n) => { let x = n; for (let i = 0; i < 3; i++) x = x.replace(PREFIX, ''); return x; };
 for (const r of rows) r.name = clean(r.name);
 
