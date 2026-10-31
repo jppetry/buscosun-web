@@ -963,12 +963,22 @@
 .dbd-nowcast-head-r { display: contents; }
 .dbd-nowcast-head-r > span { grid-column: 1; grid-row: 2; font-size: 12px; line-height: 1.35; }
 .dbd-nowcast-head-r > button { grid-column: 2; grid-row: 1 / span 2; }
-/* Warnkachel ohne Warnung: eine ruhige Statuszeile über die volle Breite, der Stand darunter */
-.dbd-warntile .dbd-warn:not(.is-active) { flex-wrap: wrap; align-items: center; row-gap: 5px; }
-.dbd-warntile .dbd-warn:not(.is-active) .dbd-warn-body { flex: 1 1 0; }
-.dbd-warntile .dbd-warn:not(.is-active) p { font-size: 14px; font-weight: 500; color: var(--dbd-ink); }
-.dbd-warntile .dbd-warn:not(.is-active) .dbd-warn-foot { flex: 1 1 100%; padding-left: 25px; white-space: normal; }
+/* Warnkachel ohne aktive Warnung (keine, lädt, Fehler, nicht gelesen): eine Statusfläche — Zeichen, Satz, Stand als Pille.
+   Die wörtliche Darstellung aktiver Warnungen (.is-active) bleibt unberührt. */
+.dbd-warntile .dbd-warn:not(.is-active) { min-height: 100%; flex-direction: column; align-items: flex-start; justify-content: center; gap: 10px; }
+.dbd-warntile .dbd-warn:not(.is-active) > svg { width: 22px; height: 22px; }
+.dbd-warntile .dbd-warn:not(.is-active) .dbd-warn-body { flex: none; }
+.dbd-warntile .dbd-warn:not(.is-active) p { font-size: 16px; font-weight: 600; line-height: 1.3; letter-spacing: -.1px; color: var(--dbd-ink); max-width: 24ch; }
+.dbd-warntile .dbd-warn:not(.is-active) .dbd-warn-foot {
+  display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; white-space: normal;
+  background: rgba(255, 255, 255, .72); border: 1px solid var(--dbd-hair); box-shadow: var(--dbd-shadow-s);
+}
 .dbd-warn.is-none svg { opacity: 1; }
+.dbd-warntile .dbd-warn.is-none > svg { width: 40px; height: 40px; filter: drop-shadow(0 3px 8px rgba(95, 122, 76, .22)); }
+/* Kein Warnfall: ein Hauch Salbei in der Kachel — derselbe Ton wie „Konfidenz solide", kein Warnrot/-gelb */
+.dbd-warntile:has(.dbd-warn.is-none) {
+  background: radial-gradient(120% 90% at 0% 100%, rgba(122, 148, 102, .13), transparent 60%), var(--dbd-glass-cream);
+}
 
 /* Ruhigere Schrift: kleinste Größe 11 px, weniger gesperrt, etwas Luft zwischen Beschriftung und Wert */
 .dbd-kv-l, .dbd-dv-l, .dbd-phase-l { font-size: 11px; letter-spacing: .6px; }
@@ -1006,6 +1016,9 @@
   .dbd-days { grid-template-columns: 1fr; gap: 10px; }
   .dbd-day { display: grid; grid-template-columns: minmax(190px, 28%) minmax(0, 1fr); grid-template-rows: auto 1fr; }
   .dbd-day-head { grid-column: 1; grid-row: 1 / span 2; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 12px; border-bottom: 0; border-right: 1px solid var(--dbd-hair); }
+  /* Warnkachel ohne Warnung: Inhalt senkrecht mittig wie auf dem Desktop (die Reihe gibt der Nowcast vor) */
+  .dbd-warntile-scroll { flex: 1 1 auto; display: flex; flex-direction: column; }
+  .dbd-warntile .dbd-warn:not(.is-active) { flex: 1 1 auto; }
   /* Jetzt-Werte: jede Spalte mindestens so breit wie ihr Wert — „2,0 / 4,3 m/s" bricht nicht mehr um */
   .dbd-now-grid { grid-template-columns: repeat(4, minmax(max-content, 1fr)); }
   .dbd-day.is-hl .dbd-day-head { border-right-color: var(--dbd-hair); }
@@ -1029,6 +1042,12 @@
   .dbd-day-grid > div:first-child { padding-left: 0; }
   .dbd-dv-l { font-size: 10.5px; letter-spacing: .3px; }
   .dbd-hourly-chart { height: 190px; }
+  /* Warnkachel ohne Warnung: Zeichen links, Satz und Stand rechts daneben — eine Zeile weniger vor der Prognose */
+  .dbd-warntile .dbd-warn:not(.is-active) { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 4px 12px; }
+  .dbd-warntile .dbd-warn:not(.is-active) > svg { grid-row: 1 / span 2; }
+  .dbd-warntile .dbd-warn.is-none > svg { width: 34px; height: 34px; }
+  .dbd-warntile .dbd-warn:not(.is-active) p { font-size: 15px; max-width: none; }
+  .dbd-warntile .dbd-warn:not(.is-active) .dbd-warn-foot { justify-self: start; }
   /* Jetzt: die vier Werte als schmale Zeile statt 2 × 2 Kästen */
   .dbd-now-main { gap: 10px 14px; }
   .dbd-now-grid { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 10px; padding-top: 10px; border-top: 1px solid var(--dbd-hair); }
