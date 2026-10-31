@@ -34,13 +34,16 @@ function findKey() {
   return key;
 }
 
+const locs = (file) => {
+  const p = join(DIST, file);
+  if (!existsSync(p)) throw new Error(`${file} fehlt — vorher \`npm run build\``);
+  return [...readFileSync(p, 'utf8').matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+};
+
+/** Liest den Sitemap-Index und folgt jedem Eintrag; neue Teil-Sitemaps brauchen hier keine Änderung. */
 function sitemapUrls() {
   const urls = [];
-  for (const f of ['sitemap-pages.xml', 'sitemap-orte.xml', 'sitemap-orte-2.xml']) {
-    const p = join(DIST, f);
-    if (!existsSync(p)) throw new Error(`${f} fehlt — vorher \`npm run build\``);
-    for (const m of readFileSync(p, 'utf8').matchAll(/<loc>([^<]+)<\/loc>/g)) urls.push(m[1]);
-  }
+  for (const sm of locs('sitemap.xml')) urls.push(...locs(new URL(sm).pathname.replace(/^\//, '')));
   return urls;
 }
 
