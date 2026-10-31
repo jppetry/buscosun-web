@@ -19,7 +19,8 @@ import type { QuadCorners } from '../scalar/RainLayer';
 import { fetchRvNowcast, fetchRvAnalysisSequence, de1200WarpMesh, DE1200_WARP_N } from '../sources/radolan';
 import { fetchIncaGrid } from '../sources/geosphereIncaGrid';
 import { incaWarpMesh, INCA_WARP_N } from '../sources/geosphereIncaGeo';
-import { fetchRzcLatest, fetchRzcAnalysisSequence } from '../sources/meteoSwissRadar';
+import { fetchRzcLatest, fetchRzcAnalysisSequence, type RadarFrame as RzcFrame } from '../sources/meteoSwissRadar';
+import type { RvPastFrame } from '../scalar/precipComposite';
 import { rzcWarpMesh, RZC_WARP_N } from '../sources/meteoSwissGeo';
 // Phase NC (`audit/radar-nowcast-dach.md`): AT refined to 5 min, CH analysis + extrapolation — 25 steps from now to +2 h like DE.
 import { fetchRzcNowcast, fetchInca5m } from '../sources/radarNowcast';
@@ -93,19 +94,28 @@ const SRC_ATTR: Record<RadarSourceId, string> = {
 const MAX_PAST = 24;            // bis zu 2 h (DE 5-min) bzw. mehr bei gröberem Raster
 const PAST_WINDOW_MIN = 120;    // nur die letzten 2 h vorhalten
 
-interface PastEntry { timeMs: number; values: Uint8Array; values2?: Uint8Array; width: number; height: number }
+/** `corners`: the grid of an rzc analysis (the profile map draws the CH look-back on it); RV is always DE1200. */
+interface PastEntry { timeMs: number; values: Uint8Array; values2?: Uint8Array; width: number; height: number; corners?: QuadCorners }
 const pastCache = new Map<RadarSourceId, PastEntry[]>();
 
-/** Legt die gemessene Analyse in den Session-Cache (dedupe nach Minute). */
-function rememberMeasured(source: RadarSourceId, e: PastEntry): void {
+/** Legt die gemessene Analyse in den Session-Cache (dedupe nach Minute). true = neu aufgenommen. */
+function rememberMeasured(source: RadarSourceId, e: PastEntry): boolean {
   const arr = pastCache.get(source) ?? [];
   const minute = Math.round(e.timeMs / 60_000);
-  if (!arr.some((p) => Math.round(p.timeMs / 60_000) === minute)) arr.push(e);
+  const added = !arr.some((p) => Math.round(p.timeMs / 60_000) === minute);
+  if (added) arr.push(e);
   arr.sort((a, b) => a.timeMs - b.timeMs);
   // Fenster + Obergrenze einhalten.
   const cutoff = e.timeMs - PAST_WINDOW_MIN * 60_000;
   const trimmed = arr.filter((p) => p.timeMs >= cutoff).slice(-MAX_PAST);
   pastCache.set(source, trimmed);
+  return added && trimmed.includes(e);
+}
+
+/** A slot the session cache already holds (same minute) — the seed skips it instead of downloading it again. */
+function heldMeasured(source: RadarSourceId, timeMs: number): boolean {
+  const minute = Math.round(timeMs / 60_000);
+  return (pastCache.get(source) ?? []).some((p) => Math.round(p.timeMs / 60_000) === minute);
 }
 
 /**
@@ -140,11 +150,12 @@ export const DE_PAST_SEED_FRAMES = 9;
  */
 export async function seedDePastArchive(count: number, signal?: AbortSignal): Promise<boolean> {
   try {
-    const seq = await fetchRvAnalysisSequence(count, signal);
+    const seq = await fetchRvAnalysisSequence(count, signal, (ms) => heldMeasured('radolan_rv', ms));
+    let added = false;
     for (const a of seq.frames) {
-      rememberMeasured('radolan_rv', { timeMs: a.validAt.getTime(), values: a.values, ...(a.values2 ? { values2: a.values2 } : {}), width: a.width, height: a.height });
+      if (rememberMeasured('radolan_rv', { timeMs: a.validAt.getTime(), values: a.values, ...(a.values2 ? { values2: a.values2 } : {}), width: a.width, height: a.height })) added = true;
     }
-    return seq.frames.length > 0;
+    return added;
   } catch {
     return false; // Archiv nicht erreichbar / zu wenige Läufe → Session-Cache genügt
   }
@@ -161,13 +172,39 @@ export const CH_PAST_SEED_FRAMES = DE_PAST_SEED_FRAMES;
 export async function seedChPastArchive(count: number, signal?: AbortSignal): Promise<boolean> {
   try {
     const frames = await fetchRzcAnalysisSequence(count, signal);
+    let added = false;
     for (const f of frames) {
-      rememberMeasured('meteoswiss_rzc', { timeMs: f.validAt.getTime(), values: f.values, ...(f.values2 ? { values2: f.values2 } : {}), width: f.width, height: f.height });
+      if (rememberMeasured('meteoswiss_rzc', { timeMs: f.validAt.getTime(), values: f.values, ...(f.values2 ? { values2: f.values2 } : {}), width: f.width, height: f.height, corners: f.corners })) added = true;
     }
-    return frames.length > 0;
+    return added;
   } catch {
     return false;
   }
+}
+
+/**
+ * Look-back for every place (31.10.): the measured analyses of the last 40 min (8 slots + the newest) of BOTH sources from
+ * buscosun-data — RV (`radar/img/v1/rv/`, `rv-past/`) and rzc (`rzc/`) — into the session cache, whatever country the place
+ * is in. Slots the cache holds are skipped, so a refresh loads only the new one. true = frames added.
+ */
+export async function seedPastAll(signal?: AbortSignal): Promise<boolean> {
+  const [de, ch] = await Promise.all([seedDePastArchive(DE_PAST_SEED_FRAMES, signal), seedChPastArchive(CH_PAST_SEED_FRAMES, signal)]);
+  return de || ch;
+}
+
+/** The session look-back of both sources by validity time (newest analysis included) — the profile map's `radarPast`. */
+export function sessionPast(): { rv: RvPastFrame[]; rzc: RzcFrame[] } {
+  const rv = (pastCache.get('radolan_rv') ?? []).map((p): RvPastFrame => ({ validAt: new Date(p.timeMs), values: p.values, ...(p.values2 ? { values2: p.values2 } : {}), width: p.width, height: p.height }));
+  const rzc = (pastCache.get('meteoswiss_rzc') ?? []).flatMap((p): RzcFrame[] => (p.corners ? [{ validAt: new Date(p.timeMs), values: p.values, ...(p.values2 ? { values2: p.values2 } : {}), width: p.width, height: p.height, corners: p.corners }] : []));
+  return { rv, rzc };
+}
+
+/** The stack with its own source's look-back re-read from the session cache (after `seedPastAll`) — no download. AT unchanged. */
+export function withSessionPast(st: RadarStack): RadarStack {
+  if (st.source === 'inca_grid') return st;
+  const frames = [...pastFrames(st.source, st.runAtMs), ...st.frames.filter((f) => f.leadMinutes >= 0)].sort((a, b) => a.timeMs - b.timeMs);
+  const nowIndex = frames.findIndex((f) => f.leadMinutes === 0);
+  return { ...st, frames, nowIndex: nowIndex >= 0 ? nowIndex : st.nowIndex };
 }
 
 // ---------------------------------------------------------------------------
@@ -236,7 +273,7 @@ async function loadAt(signal?: AbortSignal): Promise<RadarStack> {
 async function loadCh(signal?: AbortSignal): Promise<RadarStack> {
   const fr = await fetchRzcLatest(signal);
   const t = fr.validAt.getTime();
-  rememberMeasured('meteoswiss_rzc', { timeMs: t, values: fr.values, ...(fr.values2 ? { values2: fr.values2 } : {}), width: fr.width, height: fr.height });
+  rememberMeasured('meteoswiss_rzc', { timeMs: t, values: fr.values, ...(fr.values2 ? { values2: fr.values2 } : {}), width: fr.width, height: fr.height, corners: fr.corners });
   const analysis: RadarFrame = { values: fr.values, ...(fr.values2 ? { values2: fr.values2 } : {}), width: fr.width, height: fr.height, timeMs: t, leadMinutes: 0, measured: true };
   const past = pastFrames('meteoswiss_rzc', t);
   // Phase NC: buscosun's extrapolation behind the analysis — 24 × 5 min, by validity time, each with its unknown mask.

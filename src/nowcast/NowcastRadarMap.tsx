@@ -29,7 +29,7 @@ import type { Nowcast } from './nowcastModel';
 import RadarMap from '../radar/RadarMap';
 import RadarTimeline from '../radar/RadarTimeline';
 import { frameIntensities } from '../radar/PointStrip';
-import { getRadarStack, seedDePastArchive, DE_PAST_SEED_FRAMES, seedChPastArchive, CH_PAST_SEED_FRAMES, type RadarStack } from '../radar/radarFrames';
+import { getRadarStack, seedPastAll, sessionPast, withSessionPast, type RadarStack } from '../radar/radarFrames';
 import { computeRainWindow, rainWindowEnabledFrom } from './rainWindow';
 import { radarTimesAt } from './rainWindowRadar';
 import { fetchKonrad3d } from '../sources/dwdKonrad3d';
@@ -60,8 +60,6 @@ import { loadMapView, loadedMapView } from '../router/mapViewLoader';
 import { radarMapLegacyFrom, radarProfileLayers } from '../map/mapProfile';
 import { sampleRadarPoint } from '../pointForecast/radarSample';
 import { RADAR_VMAX } from '../radar/radarModel';
-import type { RvPastFrame } from '../scalar/precipComposite';
-import type { RadarFrame as RzcFrame } from '../sources/meteoSwissRadar';
 import { nwpLabel } from './nowcastView';
 // Phase NS (audit/niederschlagssummen.md §9): Summen-Ansicht der Karte — eigene MapLibre-Ebenen, kein Shader.
 import { useSumMap } from '../precipSums/useSumMap';
@@ -306,12 +304,8 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   useEffect(() => { stackRef.current = stack; }, [stack]);
   // Vorigen Ort merken, um Ortswechsel (Karte leeren) vom Soft-Refresh zu trennen.
   const prevLocRef = useRef('');
-  // Welche Location bereits ERFOLGREICH ihr DE-Rückblick-Archiv geladen hat.
-  // Bewusst getrennt von prevLocRef: StrictMode mountet den Effekt doppelt; würde
-  // der Seed an isLocChange/prevLocRef hängen, überspränge ihn der 2. Mount
-  // (prevLocRef bereits gesetzt) und der 1. Seed wird per Abort verworfen → nie
-  // Vergangenheit. Wird erst NACH Seed-Erfolg gesetzt.
-  const seededLocRef = useRef('');
+  // Look-back for every place (31.10.): bumped when the session cache took new analyses — `radarPast` re-reads it.
+  const [pastTick, setPastTick] = useState(0);
 
   // Periodischer Auto-Refresh (alle 5 min, nur bei sichtbarem Tab) — RADOLAN-RV
   // läuft alle 5 min, also hält dieser Tick das Radarbild aktuell, statt seit dem
@@ -361,39 +355,34 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
         if (ac.signal.aborted) return;
         setStack(st); setLoadErr(null); repin(st);
         onRadarStackRef.current?.(st);
-        // DE-Rückblick-Archiv einmal je Location nachladen (schwer): acht
-        // zusätzliche RV-Tars, gemessen 2,28 MiB und 27 s (audit/bandbreite.md
-        // §24.3). Seit BW-5 NICHT mehr beim Öffnen, sondern beim ersten Griff in
-        // die Vergangenheit — Abspielen, Rückwärts-Schritt, Scrubben an den
-        // Anfang. Bewusste Verhaltensänderung (Jans Entscheidung): der Rückblick
-        // hat beim ersten Mal eine kurze Ladezeit. Unabhängig davon wächst der
-        // Session-Past-Cache mit jedem 5-Minuten-Refresh weiter.
-        // Phase RA (V-RA-3): CH seeds its look-back from the mirror's rzc slots the same way; AT has no analysis (INCA).
-        if (location.country !== 'DE' && location.country !== 'CH') return;
-        const country = location.country;
-        const seed = () => (country === 'CH' ? seedChPastArchive(CH_PAST_SEED_FRAMES, ac.signal) : seedDePastArchive(DE_PAST_SEED_FRAMES, ac.signal));
-        // `started` lebt je Effektlauf; StrictMode-Mount 2 überschreibt die
-        // Closure und bringt sein eigenes mit. `seededLocRef` wird weiterhin erst
-        // NACH Erfolg gesetzt (s. Ref-Kommentar), ein Fehlschlag bleibt wiederholbar.
+        // Look-back for every place (31.10.): once the current picture is in, the last 40 min of BOTH sources (RV + rzc)
+        // come from buscosun-data into the session cache — the same files for every place, whatever its country; slots
+        // the cache holds are skipped, so a 5-min refresh loads only the new one. Before, the look-back was loaded per
+        // place, only from the place's own source and only at the first grip into the past (BW-5: then 27 s of tars,
+        // now ≈ 9 + 9 small PNGs side by side). The grips still trigger it if the idle start has not run yet. The stack
+        // re-reads its own look-back from the cache (no second download); AT has no measured look-back of its own.
+        // `started` lebt je Effektlauf; StrictMode-Mount 2 bringt sein eigenes mit. Ein Fehlschlag bleibt wiederholbar.
         let started = false;
-        requestPastSeedRef.current = () => {
-          if (started || seededLocRef.current === locKey || ac.signal.aborted) return;
+        const seed = () => {
+          if (started || ac.signal.aborted) return;
           started = true;
-          void seed().then((added) => {
+          void seedPastAll(ac.signal).then((added) => {
             if (!added || ac.signal.aborted) { started = false; return; }
-            seededLocRef.current = locKey;   // erst NACH Erfolg markieren
+            setPastTick((t) => t + 1);
+            const st2 = withSessionPast(st);
+            if (st2 === st) return;
             const shownMs = st.frames[idxOf(st)]?.timeMs;
-            getRadarStack(country, ac.signal).then((st2) => {
-              if (ac.signal.aborted) return;
-              setStack(st2);
-              if (shownMs == null) return;
-              // sichtbaren Zeitpunkt auf den nächstgelegenen Frame des neuen Stacks remappen
-              let best = st2.nowIndex, bestD = Infinity;
-              st2.frames.forEach((f, k) => { const d = Math.abs(f.timeMs - shownMs); if (d < bestD) { bestD = d; best = k; } });
-              setFramePos(best);
-            }).catch(() => { /* Reload best-effort */ });
+            setStack(st2);
+            if (shownMs == null) return;
+            // sichtbaren Zeitpunkt auf den nächstgelegenen Frame des neuen Stacks remappen
+            let best = st2.nowIndex, bestD = Infinity;
+            st2.frames.forEach((f, k) => { const d = Math.abs(f.timeMs - shownMs); if (d < bestD) { bestD = d; best = k; } });
+            setFramePos(best);
           });
         };
+        requestPastSeedRef.current = seed;
+        if (typeof requestIdleCallback === 'function') requestIdleCallback(seed, { timeout: 2000 });
+        else window.setTimeout(seed, 500);
       })
       // Fehler-Overlay nur beim Ortswechsel zeigen; ein fehlgeschlagener
       // Soft-Refresh behält still das bisherige Bild.
@@ -591,18 +580,9 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
     // Phase SK: with Phase SK on the cap replaces the ICON-D2 line (E-SK-1); without it the list is the one before.
     return radarProfileLayers(skOnMap ? base.filter((l) => l !== 'snowline') : base);
   }, [layers, sumMode, chanceMode, skOnMap]);
-  const radarPast = useMemo(() => {
-    if (!stack) return null;
-    const measured = stack.frames.filter((f) => f.measured);
-    if (stack.source === 'radolan_rv') {
-      // V-SE-3: the log plane of a measured frame rides along (the HD layer draws the look-back from it like „jetzt").
-      return { rv: measured.map((f): RvPastFrame => ({ validAt: new Date(f.timeMs), values: f.values, ...(f.values2 ? { values2: f.values2 } : {}), width: f.width, height: f.height })), rzc: null };
-    }
-    if (stack.source === 'meteoswiss_rzc') {
-      return { rv: null, rzc: measured.map((f): RzcFrame => ({ validAt: new Date(f.timeMs), values: f.values, ...(f.values2 ? { values2: f.values2 } : {}), width: f.width, height: f.height, corners: stack.corners })) };
-    }
-    return null;
-  }, [stack]);
+  // Look-back for every place (31.10.): RV and rzc analyses from the session cache, whatever the place's country (before:
+  // only the stack's own source). V-SE-3: the log plane rides along (the HD layer draws the look-back from it like „jetzt").
+  const radarPast = useMemo(() => (stack ? sessionPast() : null), [stack, pastTick]);
   const shownIdx = stack ? Math.max(0, Math.min(stack.frames.length - 1, Math.round(framePos))) : 0;
   const profileTimeMs = stack?.frames[shownIdx]?.timeMs;
   // Phase RC: Zeit nach oben melden; die Chance-Karte folgt der Wahl aus der Leiste, sonst dem Slider.

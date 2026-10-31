@@ -722,26 +722,37 @@ export interface RvAnalysisFrame { validAt: Date; values: Uint8Array; values2?: 
  * gegen die spätere Beobachtung verifizieren — DWD-Forecast wird NICHT als
  * Wahrheit genutzt). Reuset den RV-Tar-Cache.
  */
-export async function fetchRvAnalysisSequence(count: number, signal?: AbortSignal): Promise<{ frames: RvAnalysisFrame[]; corners: QuadCorners }> {
+export async function fetchRvAnalysisSequence(
+  count: number, signal?: AbortSignal, have?: (validAtMs: number) => boolean,
+): Promise<{ frames: RvAnalysisFrame[]; corners: QuadCorners }> {
   const frames: RvAnalysisFrame[] = [];
+  let hits = 0;   // fetched frames + slots the caller already holds (`have`)
+  const one = async (ts: string): Promise<RvAnalysisFrame | null> => {
+    // RD3: für den Rückblick reicht der Analyse-Frame — 8–9 × f000.png (~30 KB)
+    // statt 8 Voll-Tars (2,28 MiB gemessen); je Stempel Tar-Fallback.
+    // V-SE-3: auch aus dem Rückblick-Slot (`rv-past`, 115 min) — vorher griff ab 55 min der Tar.
+    if (rvImgEligible(ts) || rvPastEligible(ts)) {
+      const viaImg = await fetchRvAnalysisFromImg(ts, signal);
+      if (viaImg) return viaImg;
+    }
+    try {
+      const nc = await fetchRvTar(ts, signal); // Tar-Cache greift; _000 = Analyse
+      const a = nc.frames.find((f) => f.leadMinutes === 0);
+      return a ? { validAt: a.validAt, values: a.values, width: a.width, height: a.height } : null;
+    } catch (err) {
+      if (signal?.aborted) throw err;         // Abbruch beendet die Reihe sofort
+      return null;                            // Lauf evtl. noch im Upload → überspringen
+    }
+  };
+  // Look-back for every place (31.10.): the slots load side by side instead of one after another; newest first, the
+  // first `count` hits count. A slot the caller already holds (`have`) is a hit without a download.
   const take = async (runs: string[]): Promise<void> => {
-    for (const ts of runs) {
-      if (frames.length >= count) return;
-      // RD3: für den Rückblick reicht der Analyse-Frame — 8–9 × f000.png (~30 KB)
-      // statt 8 Voll-Tars (2,28 MiB gemessen); je Stempel Tar-Fallback.
-      // V-SE-3: auch aus dem Rückblick-Slot (`rv-past`, 115 min) — vorher griff ab 55 min der Tar.
-      if (rvImgEligible(ts) || rvPastEligible(ts)) {
-        const viaImg = await fetchRvAnalysisFromImg(ts, signal);
-        if (viaImg) { frames.push(viaImg); continue; }
-      }
-      try {
-        const nc = await fetchRvTar(ts, signal); // Tar-Cache greift; _000 = Analyse
-        const a = nc.frames.find((f) => f.leadMinutes === 0);
-        if (a) frames.push({ validAt: a.validAt, values: a.values, width: a.width, height: a.height });
-      } catch (err) {
-        if (signal?.aborted) throw err;         // Abbruch beendet die Reihe sofort
-        /* Lauf evtl. noch im Upload → überspringen */
-      }
+    const known = runs.map((ts) => !!have?.(rvStampToMs(ts)));
+    const got = await pooledAll(runs.map((_, i) => i), RADAR_PAST_CONCURRENCY, (i) => (known[i] ? Promise.resolve(null) : one(runs[i])));
+    for (let i = 0; i < runs.length && hits < count; i++) {
+      if (known[i]) { hits++; continue; }
+      const f = got[i];
+      if (f) { frames.push(f); hits++; }
     }
   };
 
@@ -749,11 +760,15 @@ export async function fetchRvAnalysisSequence(count: number, signal?: AbortSigna
   // mehr als gebraucht, damit ein noch nicht veröffentlichter jüngster Lauf die
   // Reihe nicht verkürzt. Das Listing bleibt der benannte Fallback.
   await take(guessRvRuns(count + 1));
-  if (frames.length < 3) await take((await listRvRuns(signal)).slice(0, count + 1));
-  if (frames.length < 3) throw new Error('RADOLAN-RV: zu wenige Analysen für ein Hindcast');
+  if (hits < 3) { frames.length = 0; hits = 0; await take((await listRvRuns(signal)).slice(0, count + 1)); }
+  if (hits < 3) throw new Error('RADOLAN-RV: zu wenige Analysen für ein Hindcast');
   frames.sort((a, b) => a.validAt.getTime() - b.validAt.getTime()); // aufsteigend
   return { frames, corners: DE1200_CORNERS };
 }
+
+/** Look-back for every place (31.10.): look-back slots in flight at once — below `RADAR_IMG_CONCURRENCY`, so the current
+ *  picture loading next to it keeps its share of the connection. set. */
+export const RADAR_PAST_CONCURRENCY = 4;
 
 /**
  * V-AW-14 (Autobahnwetter, `audit/autobahnwetter.md` §18): die JÜNGSTE beobachtete Analyse allein — der f000-Frame

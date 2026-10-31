@@ -22,8 +22,8 @@ import { parseRzcOffMain, warmHdf5Worker } from './hdf5OffMain';
 import { shareInFlight } from './shareInFlight';
 // RD3 (audit/radar-datenrepo.md §14): fertiger Frame vom Daten-Repo-CDN
 import { radarCdnEnabled, radarCdnUsable, radarImgEnabled, noteRadarCdnFailure, radarCdnDeadline } from './radolanRuns';
-import { rzcImgDir, parseRzcImgMeta, radarImgStamp, radarImgStampToMs, fetchImgRes, RadarImg404, radarRawUrl } from './radarImg';
-import { loadRadarGrayPngOffMain, loadRadarGrayAlphaPngOffMain } from './radolan';   // Phase PF (M4)
+import { rzcImgDir, parseRzcImgMeta, radarImgStamp, radarImgStampToMs, fetchImgRes, RadarImg404, radarRawUrl, pooledAll } from './radarImg';
+import { loadRadarGrayPngOffMain, loadRadarGrayAlphaPngOffMain, RADAR_PAST_CONCURRENCY } from './radolan';   // Phase PF (M4)
 import { radarDualFlagFrom } from '../scalar/radarHd';
 
 const STAC_ITEM = (day: string) =>
@@ -124,24 +124,28 @@ export async function fetchRzcAnalysisSequence(count: number, signal?: AbortSign
   const out: RadarFrame[] = [];
   if (!(radarCdnEnabled() && radarCdnUsable() && radarImgEnabled())) return out;
   const stamps = guessRzcStamps(Math.min(24, count + 1), Date.now());
-  for (const stamp of stamps) {
-    if (out.length >= count || signal?.aborted) break;
+  // Look-back for every place (31.10.): the slots load side by side (`RADAR_PAST_CONCURRENCY`) instead of one after another.
+  // A hard CDN error is noted once and stops the slots not yet started — as the loop before stopped at it.
+  let hardFail = false;
+  const got = await pooledAll(stamps, RADAR_PAST_CONCURRENCY, async (stamp): Promise<RadarFrame | null> => {
     const memo = rzcMemoGet(stamp);
-    if (memo) { out.push(memo); continue; }
+    if (memo) return memo;
+    if (hardFail || signal?.aborted) return null;
     const dl = radarCdnDeadline(signal);
     try {
       const dir = rzcImgDir(stamp);
       const meta = parseRzcImgMeta(await (await fetchImgRes(`${dir}/meta.json`, dl.signal)).json());
-      if (!meta || meta.stamp !== stamp) continue;
+      if (!meta || meta.stamp !== stamp) return null;
       dl.touch();
-      out.push(await readRzcSlotFrame(dir, stamp, meta, dl.signal));
+      return await readRzcSlotFrame(dir, stamp, meta, dl.signal);
     } catch (err) {
       if (signal?.aborted) throw err;
-      if (err instanceof RadarImg404) continue;
-      noteRadarCdnFailure();
-      break;
+      if (err instanceof RadarImg404) return null;
+      if (!hardFail) { hardFail = true; noteRadarCdnFailure(); }
+      return null;
     } finally { dl.done(); }
-  }
+  });
+  for (const f of got) { if (f && out.length < count) out.push(f); }
   out.sort((a, b) => a.validAt.getTime() - b.validAt.getTime());
   return out;
 }
