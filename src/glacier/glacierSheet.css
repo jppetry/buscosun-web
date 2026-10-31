@@ -183,6 +183,15 @@
 .gl-ds-maplink { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; font-size: 12.5px; color: var(--gl-muted); border-top: 1px solid var(--gl-line); text-decoration: none; }
 .gl-ds-maplink b { color: var(--gl-accent-dark); font-weight: 600; white-space: nowrap; }
 .gl-ds-maplink:hover b { text-decoration: underline; }
+/* Quellen: closed by default, one line; the table and the licences open on demand */
+.gl-ds-card.gl-ds-fold { display: block; padding: 0; }
+.gl-ds-fold > summary { display: flex; align-items: center; gap: 12px; padding: 14px 18px; cursor: pointer; list-style: none; }
+.gl-ds-fold > summary::-webkit-details-marker { display: none; }
+.gl-ds-fold > summary::after { content: ''; margin-left: auto; width: 8px; height: 8px; border-right: 2px solid var(--gl-muted); border-bottom: 2px solid var(--gl-muted); transform: rotate(45deg); transition: transform .15s; }
+.gl-ds-fold[open] > summary::after { transform: rotate(-135deg); }
+.gl-ds-fold > summary:focus-visible { outline: 2px solid var(--gl-accent); outline-offset: -2px; border-radius: 14px; }
+.gl-ds-fold-hint { font-size: 13px; color: var(--gl-muted); }
+.gl-ds-foldbody { display: flex; flex-direction: column; gap: 10px; padding: 0 18px 16px; border-top: 1px solid var(--gl-line); padding-top: 14px; }
 .gl-ds-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 18px; padding: 11px 14px; border-top: 1px solid var(--gl-line); font-size: 14px; color: var(--gl-muted); }
 .gl-ds-legend b { font-size: 14px; font-weight: 700; color: var(--gl-ink); }
 .gl-ds-legend .gl-legend-row { font-size: 14px; gap: 8px; }

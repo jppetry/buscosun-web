@@ -304,10 +304,17 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
                         <Suspense fallback={<p className="gl-fine" role="status">Satellitenbild wird geladen …</p>}><GlacierSatImagery lat={g.lat} lon={g.lon} name={displayName(g)} nowMs={nowMs} /></Suspense>
                       </section>
                     )}
-                    <section className="gl-ds-card gl-ds-sec" data-tab={t} aria-label={TAB_LABEL[t]}>
-                      <span className="gl-ds-eyebrow">{TAB_LABEL[t]}</span>
-                      {tabBody(t, data, true)}
-                    </section>
+                    {t === 'quellen' ? (
+                      <details className="gl-ds-card gl-ds-sec gl-ds-fold" data-tab={t}>
+                        <summary><span className="gl-ds-eyebrow">{TAB_LABEL[t]}</span><span className="gl-ds-fold-hint">Herkunft, Stand und Lizenz jeder Zahl</span></summary>
+                        <div className="gl-ds-foldbody">{tabBody(t, data, true)}</div>
+                      </details>
+                    ) : (
+                      <section className="gl-ds-card gl-ds-sec" data-tab={t} aria-label={TAB_LABEL[t]}>
+                        <span className="gl-ds-eyebrow">{TAB_LABEL[t]}</span>
+                        {tabBody(t, data, true)}
+                      </section>
+                    )}
                   </Fragment>
                 ))}
               </>
