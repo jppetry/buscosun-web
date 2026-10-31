@@ -20,7 +20,7 @@ const freePlace = (p) => ({ name: p.name, lat: p.lat, lon: p.lon, country: p.cou
 import { climateSection, sunSection, unknownsSection, climateHighlights, placeDescription, CLIMA_YEARS } from './climate.mjs';
 import {
   climateOf, climateSourceLabel, placeLeadV3, placeDescriptionV3, lageSection, climateSectionV3, sunSectionV3, placeFaqsV3,
-  unknownsSectionV3, moduleBlocks, neighbourFindings, sourcesLine, placeJsonLdExtras, seaPlaceLinks,
+  unknownsSectionV3, moduleBlocks, neighbourFindings, sourcesLine, geonamesCreditFor, placeJsonLdExtras, seaPlaceLinks,
 } from './placeContent.mjs';
 import { verificationMetaTags } from './verification.mjs';
 
@@ -459,7 +459,7 @@ ${unknownsSectionV3(place)}
       <p class="note">Weiter mit ${escapeHtml(place.name)}: ${featureLinks}</p>
 
       <footer>
-        ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Quellen dieser Seite: ${escapeHtml(sourcesLine(place, mods.blocks))}. Keine Tracker, keine Werbung.
+        ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Quellen dieser Seite: ${escapeHtml(sourcesLine(place, mods.blocks))}.${geonamesCreditFor(place)} Keine Tracker, keine Werbung.
         Hinweis: Diese Seite nennt stabile Standort-Fakten; aktuelle Messwerte und Vorhersagen liefert die interaktive App. buscosun gibt keine amtlichen Warnungen heraus.
       </footer>
     </main>
@@ -872,7 +872,7 @@ export function renderArticlePage(page, { hub = null, updated, ogImage } = {}) {
     ...(page.faqs?.length ? [faqJsonLd(page.faqs)] : []),
   ];
   const head = headBlock({ title: `${page.title} | ${SITE.name}`, description: page.description, canonicalPath, locale: 'de-DE', ogImage, jsonLd });
-  const sections = page.sections.map((sec) => `      <section>\n        <h2>${escapeHtml(sec.h2)}</h2>\n        ${sec.html}\n      </section>`).join('\n');
+  const sections = page.sections.map((sec) => `      <section${sec.id ? ` id="${sec.id}"` : ''}>\n        <h2>${escapeHtml(sec.h2)}</h2>\n        ${sec.html}\n      </section>`).join('\n');
   const faqs = page.faqs?.length ? `      <section>\n        <h2>Häufige Fragen</h2>\n        ${page.faqs.map((f) => `<details><summary>${escapeHtml(f.q)}</summary><p>${escapeHtml(f.a)}</p></details>`).join('\n        ')}\n      </section>` : '';
   const related = page.related?.length ? `      <section>\n        <h2>Weiterlesen</h2>\n        <div class="links">${page.related.map((r) => `<a href="${r}">${escapeHtml(r.replace(/^\//, '').replace(/\/$/, '').replace(/-/g, ' '))}</a>`).join('')}</div>\n      </section>` : '';
   return `<!doctype html>

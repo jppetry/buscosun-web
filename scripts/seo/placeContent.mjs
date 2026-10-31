@@ -417,6 +417,10 @@ export function seaPlaceLinks(places) {
   return places.filter((p) => MODS[p.slug]?.sea).map((p) => ({ slug: p.slug, name: p.name }));
 }
 
+/** CC-BY-Vermerk für die Ortsliste (GeoNames); Orte der zweiten Welle und alle Sammelseiten. */
+export const GEONAMES_CREDIT_HTML = 'Ortsliste: <a href="https://www.geonames.org/" rel="noopener">GeoNames</a> (<a href="https://creativecommons.org/licenses/by/4.0/" rel="license noopener">CC BY 4.0</a>, ausgewählt und ergänzt von buscosun, siehe <a href="/methodik/ortsseiten/#ortsliste">Methodik</a>)';
+export const geonamesCreditFor = (place) => (NEW_SLUGS.has(place.slug) ? ` ${GEONAMES_CREDIT_HTML}.` : '');
+
 /** Quellen nur für das, was die Seite zeigt. */
 export function sourcesLine(place, blocks) {
   const s = [];
@@ -424,7 +428,6 @@ export function sourcesLine(place, blocks) {
   s.push('Sonnenzeiten: eigene astronomische Berechnung');
   if (TERR[place.slug]) s.push('Gelände: Terrarium-Höhenkacheln (Mapzen/AWS Terrain Tiles)');
   if (TERR[place.slug]?.lake) s.push('Seen: Natural Earth (gemeinfrei)');
-  if (NEW_SLUGS.has(place.slug)) s.push('Ortsliste: GeoNames (CC BY 4.0)');
   for (const b of blocks) for (const x of b.sources || []) s.push(x);
   return [...new Set(s)].join(' · ');
 }

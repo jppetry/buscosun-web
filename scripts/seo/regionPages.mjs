@@ -4,7 +4,7 @@
  */
 import { headBlock, PAGE_CSS, SITE, escapeHtml, faqJsonLd } from './content.mjs';
 import { COUNTRIES, REGIONS, regionsOf, countryPath, statsOf, MIN_REGION_PLACES } from './regions.mjs';
-import { climateSourceLabel } from './placeContent.mjs';
+import { climateSourceLabel, GEONAMES_CREDIT_HTML } from './placeContent.mjs';
 
 const nf0 = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 });
 const nf1 = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -21,7 +21,6 @@ table{font-size:.84rem}td:first-child,th:first-child{text-align:left}td+td,th+th
 function sourcesLine(places, extra = []) {
   const labels = new Set(places.map((p) => climateSourceLabel(p)));
   labels.add('Gelände: Terrarium-Höhenkacheln (Mapzen/AWS Terrain Tiles)');
-  labels.add('Ortsliste: GeoNames (CC BY 4.0)');
   for (const e of extra) labels.add(e);
   return [...labels].join(' · ');
 }
@@ -53,7 +52,7 @@ ${head}
       <p class="lead">${esc(lead)}</p>
 ${body}
       <footer>
-        ${esc(SITE.name)} — ${esc(SITE.tagline)}. Quellen dieser Seite: ${esc(sources)}. Keine Tracker, keine Werbung.
+        ${esc(SITE.name)} — ${esc(SITE.tagline)}. Quellen dieser Seite: ${esc(sources)}. ${GEONAMES_CREDIT_HTML}. Keine Tracker, keine Werbung.
         Hinweis: Die Werte sind Klimanormale 1991–2020 für die genannten Orte, keine Vorhersage; Rechenwege: <a href="/methodik/ortsseiten/">Methodik der Ortsseiten</a>. buscosun gibt keine amtlichen Warnungen heraus.
       </footer>
     </main>
