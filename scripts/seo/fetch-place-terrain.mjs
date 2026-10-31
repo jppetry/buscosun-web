@@ -19,7 +19,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PLACES } from './places.mjs';
+import { PLACES_ALL as PLACES } from './places.mjs';
 import { decodePng, distKm } from './lib/geo.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
