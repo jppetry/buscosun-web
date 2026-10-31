@@ -17,8 +17,6 @@ import { buildDashboardVM, shortName } from './model/build';
 import type { CellsIn, DashboardVM, DashInputs, HailIn, IconD2In, NowcastIn, PlaceIn, PollenIn, TerrainIn, UvIn, WarningsIn } from './model/types';
 import { subscribeDashboardForecast, retryDashboardForecast, coversWindow, type ForecastState } from './data/forecastStore';
 import { loadCells, loadHail, loadIconD2, loadNowcast, loadPollen, loadTerrain, loadUv, loadWarnings, warnChannel } from './data/extras';
-import { NowcastDetail } from './nowcastDetail';
-import { DayDetail } from './dayDetail';
 import { FeatureRail } from '../nav/featureRail';
 import ShareButton from '../share/ShareButton';
 import { NowcastTile, NowCard, Val, WarningsTile } from './tiles';
@@ -257,10 +255,6 @@ function DashboardPage({ vm, place, range, onRange, onSelectView, onSelectLocati
   const clock = new Date(useNow(15_000));
   const clockTime = clock.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
   const clockDate = `${clock.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '')} · ${clock.getDate()} ${clock.toLocaleDateString('de-DE', { month: 'short' }).replace('.', '')}`.toUpperCase();
-  const [ncOpen, setNcOpen] = useState(false);
-  const ncOpener = useRef<HTMLButtonElement>(null);
-  const [dayIdx, setDayIdx] = useState<number | null>(null);
-  const dayOpener = useRef<HTMLElement | null>(null);
   // Mobil sitzt der Chip „Über diese Ansicht" im Dashboard unten (dashboard.css) — Klasse am body, solange es offen ist.
   useEffect(() => { document.body.classList.add('dbd-active'); return () => document.body.classList.remove('dbd-active'); }, []);
   const placeName = vm.top.place.t ? (tablet ? shortName(vm.top.place.t) : vm.top.place.t) : null;
@@ -346,11 +340,11 @@ function DashboardPage({ vm, place, range, onRange, onSelectView, onSelectLocati
                 </section>
               )}
               {/* Jan 20.10.: der Radar-Nowcast steht in der Mitte der ersten Reihe (vorher eigene Reihe darunter). */}
-              <NowcastTile vm={vm.nowcast} rootRef={refs?.nowcast} onDetail={() => setNcOpen(true)} detailRef={ncOpener} />
+              <NowcastTile vm={vm.nowcast} rootRef={refs?.nowcast} />
               {/* Jan 25.10.: die amtlichen Warnungen stehen jetzt hier (vorher die Windrose, davor eine Zeile in der Jetzt-Kachel). */}
               <WarningsTile vm={vm.warning} />
             </div>
-            <ForecastZone vm={vm.zone} range={range} onRange={onRange} onDay={(i, el) => { dayOpener.current = el; setDayIdx(i); }} />
+            <ForecastZone vm={vm.zone} range={range} onRange={onRange} />
             {showTabs && (
               <button type="button" className="dbd-more" onClick={() => onPart!('details')}>
                 <span className="dbd-more-title">Mehr zur Lage am Ort</span>
@@ -368,10 +362,6 @@ function DashboardPage({ vm, place, range, onRange, onSelectView, onSelectLocati
       </main>
       </div>
       </div>
-      {dayIdx != null && vm.zone.days[dayIdx] && (
-        <DayDetail days={vm.zone.days} index={dayIdx} onIndex={setDayIdx} onClose={() => { setDayIdx(null); dayOpener.current?.focus(); }} />
-      )}
-      {ncOpen && <NowcastDetail vm={vm.nowcastDetail} onClose={() => { setNcOpen(false); ncOpener.current?.focus(); }} />}
     </div>
   );
 }

@@ -13,7 +13,7 @@ import type { DayVM, HourlyVM, ZoneVM } from './model/types';
 
 const PHASE_SUN: Record<string, SunVariant> = { MORGEN: 'mittag', MITTAG: 'mittag', ABEND: 'abend', NACHT: 'mittag' };
 
-export function ForecastZone({ vm, range, onRange, onDay }: { vm: ZoneVM; range: DashRange; onRange: (r: DashRange) => void; onDay?: (index: number, opener: HTMLElement) => void }) {
+export function ForecastZone({ vm, range, onRange }: { vm: ZoneVM; range: DashRange; onRange: (r: DashRange) => void }) {
   const patternId = `dbd-ens-${useId().replace(/[^a-z0-9]/gi, '')}`;
   // Mit der Maus (oder dem Finger) den Stundenverlauf nachfahren: Zeit unter dem Zeiger → nächste Stunde
   const [hoverT, setHoverT] = useState<number | null>(null);
@@ -36,7 +36,7 @@ export function ForecastZone({ vm, range, onRange, onDay }: { vm: ZoneVM; range:
       </div>
       <p className="dbd-zone-lead"><Val v={vm.lead} long /></p>
       <div className="dbd-days">
-        {vm.days.map((d, i) => <DayCard key={d.key} d={d} onDetail={onDay && d.detail ? (el) => onDay(i, el) : undefined} />)}
+        {vm.days.map((d) => <DayCard key={d.key} d={d} />)}
       </div>
       <div className="dbd-hourly">
         <div className="dbd-hourly-head">
@@ -80,7 +80,7 @@ export function ForecastZone({ vm, range, onRange, onDay }: { vm: ZoneVM; range:
   );
 }
 
-function DayCard({ d, onDetail }: { d: DayVM; onDetail?: (opener: HTMLElement) => void }) {
+function DayCard({ d }: { d: DayVM }) {
   return (
     <article className={`dbd-day${d.highlight ? ' is-hl' : ''}`} aria-label={d.title}>
       <div className="dbd-day-head">
@@ -89,11 +89,6 @@ function DayCard({ d, onDetail }: { d: DayVM; onDetail?: (opener: HTMLElement) =
           <Val v={d.text} className="dbd-day-text" long />
         </span>
         <span className="dbd-day-right">
-          {onDetail && (
-            <button type="button" className="dbd-rose-open dbd-day-open" onClick={(e) => onDetail(e.currentTarget)} aria-haspopup="dialog" aria-label={`${d.title}: Tagesverlauf groß anzeigen`} title="Tagesverlauf mit allen Größen">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" /></svg>
-            </button>
-          )}
           <WeatherIcon icon={d.icon} size={30} variant="day" />
           <span className="dbd-day-temps">
             <Val v={d.tmax} className="dbd-day-max" />

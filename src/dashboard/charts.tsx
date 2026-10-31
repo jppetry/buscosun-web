@@ -176,17 +176,17 @@ export function NowcastChart({ vm }: { vm: NowcastVM }) {
     const ticks: number[] = [];
     for (let t = Math.ceil(from / stepMs) * stepMs; t <= to; t += stepMs) ticks.push(t);
     const nowShown = nx >= 0 && nx <= w;
-    const txt = { fontFamily: 'League Spartan', fontSize: 10.5, fill: '#B4BFCB' } as const;
+    const txt = { fontFamily: 'League Spartan', fontSize: 10.5, fill: '#8B7355' } as const;
     return (
       <g>
         {[0, yMax / 2, yMax].map((v) => (
           <g key={v}>
-            {v > 0 && <line x1="0" y1={yAt(v)} x2={w} y2={yAt(v)} stroke="#2F3B4A" strokeWidth="1" />}
+            {v > 0 && <line x1="0" y1={yAt(v)} x2={w} y2={yAt(v)} stroke="#E0D6BE" strokeWidth="1" />}
             <text x={-6} y={yAt(v) + 3.5} textAnchor="end" {...txt}>{yTxt(v)}</text>
           </g>
         ))}
         <text transform={`translate(-34 ${h / 2}) rotate(-90)`} textAnchor="middle" {...txt} fontWeight={700}>Regen in mm/h</text>
-        <g fill="#5B9BD5">
+        <g fill="#3A6FA8">
           {vm.frames.filter((f) => f.mmh >= DRY_MMH).map((f) => {
             const bh = Math.max(1, (Math.min(f.mmh, yMax) / yMax) * h);
             return (
@@ -195,19 +195,19 @@ export function NowcastChart({ vm }: { vm: NowcastVM }) {
             );
           })}
         </g>
-        {nowShown && <line x1={nx} y1={0} x2={nx} y2={base} stroke="#FAF6EA" strokeWidth="1.3" strokeDasharray="3 3" />}
-        <line x1="0" y1={base} x2={w} y2={base} stroke="#3E4B5C" strokeWidth="1" />
+        {nowShown && <line x1={nx} y1={0} x2={nx} y2={base} stroke="#2C2A26" strokeWidth="1.3" strokeDasharray="3 3" />}
+        <line x1="0" y1={base} x2={w} y2={base} stroke="#CFC4A6" strokeWidth="1" />
         {ticks.map((t) => {
           const tx = x(t);
           const nearNow = nowShown && Math.abs(tx - nx) < 24;
           return (
             <g key={t}>
-              <line x1={tx} y1={base} x2={tx} y2={base + 4} stroke="#3E4B5C" strokeWidth="1" />
+              <line x1={tx} y1={base} x2={tx} y2={base + 4} stroke="#CFC4A6" strokeWidth="1" />
               {!nearNow && <text x={tx} y={base + 16} textAnchor="middle" {...txt}>{hhmm(t)}</text>}
             </g>
           );
         })}
-        {nowShown && <text x={nx} y={base + 16} textAnchor="middle" {...txt} fill="#FAF6EA" fontWeight={700}>jetzt</text>}
+        {nowShown && <text x={nx} y={base + 16} textAnchor="middle" {...txt} fill="#2C2A26" fontWeight={700}>jetzt</text>}
         <text x={w / 2} y={base + 31} textAnchor="middle" {...txt} fontWeight={700}>Uhrzeit</text>
       </g>
     );
