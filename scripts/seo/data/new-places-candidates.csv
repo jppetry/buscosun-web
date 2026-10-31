@@ -1,0 +1,501 @@
+﻿Name;Land;Region;Einwohner;Typ;Breite;Länge;Höhe_m;Slug;Slug-Hinweis;Nächster Ort;Seewetter;Pegel;Autobahn;Gletscher;Lawinenlink;GeoNames-ID
+Borkum;DE;Niedersachsen;5186;Tourismus: Küste/Insel;53.5809;6.6915;2;borkum;;Juist (22,8 km);ja (Borkum Nordstrand, 3.3 km);ja (Borkum, Fischerbalje, 4.5 km);;;;2946206
+Juist;DE;Niedersachsen;1751;Tourismus: Küste/Insel;53.6779;6.9958;6;juist;;Norderney (11,0 km);ja (Juist, 0.2 km);ja (Norderney, Riffgat, 10.9 km);;;;2894569
+Langeoog;DE;Niedersachsen;1990;Tourismus: Küste/Insel;53.7455;7.4817;6;langeoog;;Spiekeroog (14,3 km);ja (Langeoog, 0.8 km);ja (Langeoog, Hafeneinfahrt, 2.8 km);;;;2880861
+Spiekeroog;DE;Niedersachsen;815;Tourismus: Küste/Insel;53.7701;7.6948;5;spiekeroog;;Nordseeheilbad Wangerooge (13,7 km);ja (Spiekeroog, 1.1 km);ja (Spiekeroog, ehem. Landungsbrücke, 2.5 km);;;;2830534
+Nordseeheilbad Wangerooge;DE;Niedersachsen;1081;Tourismus: Küste/Insel;53.7905;7.9007;5;nordseeheilbad-wangerooge;;Spiekeroog (13,7 km);ja (Wangerooge, 0.6 km);ja (Wangerooge, Langes Riff, Nord, 2.6 km);;;;2814266
+Norden;DE;Niedersachsen;24767;Tourismus: Küste/Insel;53.5955;7.2062;9;norden;;Norderney (12,8 km);ja (Norddeich, 5.1 km);ja (Norderney, Riffgat, 11.7 km);;;;2862118
+Greetsiel;DE;Niedersachsen;1247;Tourismus: Küste/Insel;53.5004;7.0942;2;greetsiel;;Norden (12,9 km);ja (Norddeich, 14.6 km);ja (Leyhörn, Leybucht, 6.6 km);;;;2917826
+Helgoland;DE;Schleswig-Holstein;1333;Tourismus: Küste/Insel;54.1814;7.8863;38;helgoland;;Nordseeheilbad Wangerooge (43,5 km);ja (Helgoland Düne, 1.9 km);ja (Helgoland, Binnenhafen, 0.4 km);;;;3208547
+Wyk auf Föhr;DE;Schleswig-Holstein;4429;Tourismus: Küste/Insel;54.6914;8.5670;6;wyk-auf-foehr;;Wittdün (13,5 km);ja (Föhr Wyk, 0.5 km);ja (Wyk, Föhr, 0.6 km);;;;2805396
+Wittdün;DE;Schleswig-Holstein;650;Tourismus: Küste/Insel;54.6270;8.3894;3;wittduen;;Wyk auf Föhr (13,5 km);ja (Amrum Kniepsand, 4.4 km);ja (Wittdün, Amrum, Hafen, 0.6 km);;;;2807381
+Sankt Peter-Ording;DE;Schleswig-Holstein;4092;Tourismus: Küste/Insel;54.3036;8.6414;2;sankt-peter-ording;;Büsum (23,5 km);ja (St. Peter-Ording, 1.8 km);ja (Eider-Sperrwerk, Außenpegel, 13.7 km);;;;2841484
+Husum;DE;Schleswig-Holstein;20841;Tourismus: Küste/Insel;54.4858;9.0524;11;husum;;Sankt Peter-Ording (33,4 km);ja (Husum Dockkoog, 3 km);ja (Husum, Schleuse, 2.3 km);;;;2897132
+Büsum;DE;Schleswig-Holstein;4904;Tourismus: Küste/Insel;54.1340;8.8576;1;buesum;;Sankt Peter-Ording (23,5 km);ja (Büsum, 0.9 km);ja (Büsum, Schleuse, 1.3 km);;;;2940669
+Heiligenhafen;DE;Schleswig-Holstein;9308;Tourismus: Küste/Insel;54.3704;10.9763;13;heiligenhafen;;Scharbeutz (41,2 km);ja (Heiligenhafen, 1 km);ja (Heiligenhafen, 1.9 km);"ja (A1, 0.8 km; Anlage 12.7 km)";;;2907589
+Timmendorfer Strand;DE;Schleswig-Holstein;9127;Tourismus: Küste/Insel;53.9953;10.7768;4;timmendorfer-strand;;Scharbeutz (3,6 km);ja (Scharbeutz, 4 km);ja (Travemünde, 7.5 km);"ja (A1, 2.9 km; Anlage 11 km)";;;2822160
+Scharbeutz;DE;Schleswig-Holstein;12087;Tourismus: Küste/Insel;54.0239;10.7521;16;scharbeutz;;Timmendorfer Strand (3,6 km);ja (Scharbeutz, 0.9 km);ja (Neustadt, 8.8 km);"ja (A1, 1.4 km; Anlage 9 km)";;;2840393
+Binz;DE;Mecklenburg-Vorpommern;5531;Tourismus: Küste/Insel;54.3999;13.6105;5;binz;;Göhren (10,5 km);ja (Binz, 0.1 km);ja (Lauterbach, 9.7 km);;;;2856198
+Sassnitz;DE;Mecklenburg-Vorpommern;10779;Tourismus: Küste/Insel;54.5157;13.6445;31;sassnitz;;Binz (13,1 km);ja (Binz, 13 km);ja (Sassnitz, 1 km);;;;2841333
+Heringsdorf;DE;Mecklenburg-Vorpommern;;Tourismus: Küste/Insel;53.9500;14.1667;23;heringsdorf;;Zinnowitz (21,9 km);ja (Usedom Heringsdorf, 0.6 km);ja (Świnoujście, 7.9 km);;;;2864900
+Zinnowitz;DE;Mecklenburg-Vorpommern;4194;Tourismus: Küste/Insel;54.0757;13.9090;3;zinnowitz;;Heringsdorf (21,9 km);ja (Usedom Zinnowitz, 0.6 km);ja (Koserow, 6.2 km);;;;2804109
+Kühlungsborn;DE;Mecklenburg-Vorpommern;7453;Tourismus: Küste/Insel;54.1476;11.7432;16;kuehlungsborn;;Rostock (24,0 km);ja (Kühlungsborn, 0.7 km);;;;;2856193
+Boltenhagen;DE;Mecklenburg-Vorpommern;2574;Tourismus: Küste/Insel;53.9878;11.2019;3;boltenhagen;;Wismar (19,7 km);ja (Boltenhagen, 1.4 km);ja (Timmendorf (Poel), 11.4 km);;;;2856197
+Zingst;DE;Mecklenburg-Vorpommern;3198;Tourismus: Küste/Insel;54.4357;12.6888;2;zingst;;Prerow (7,3 km);ja (Zingst, 0.7 km);ja (Zingst (Bodden), 0.5 km);;;;2804135
+Ahrenshoop;DE;Mecklenburg-Vorpommern;784;Tourismus: Küste/Insel;54.3835;12.4243;2;ahrenshoop;;Prerow (12,0 km);ja (Ahrenshoop, 0.6 km);ja (Althagen, 1.3 km);;;;2856200
+Prerow;DE;Mecklenburg-Vorpommern;1728;Tourismus: Küste/Insel;54.4447;12.5768;1;prerow;;Zingst (7,3 km);ja (Zingst, 7.3 km);ja (Prerow, 1.6 km);;;;2856191
+Göhren;DE;Mecklenburg-Vorpommern;1280;Tourismus: Küste/Insel;54.3414;13.7382;36;goehren;;Binz (10,5 km);ja (Göhren, 0.5 km);ja (Thiessow, 7 km);;;;2856195
+Waren;DE;Mecklenburg-Vorpommern;21470;Tourismus: Küste/Insel;53.5199;12.6813;66;waren;;Neubrandenburg (38,5 km);;;;;;2814131
+Bad Tölz;DE;Bayern;17434;Tourismus: Berge/Ski;47.7611;11.5589;663;bad-toelz;;Lenggries (8,8 km);;;;;;2953324
+Schliersee;DE;Bayern;6416;Tourismus: Berge/Ski;47.7362;11.8594;789;schliersee;;Rottach-Egern (8,4 km);;;;;;2838502
+Rottach-Egern;DE;Bayern;5106;Tourismus: Berge/Ski;47.6897;11.7706;737;rottach-egern;;Kreuth (5,8 km);;;;;;2843775
+Bayrischzell;DE;Bayern;1601;Tourismus: Berge/Ski;47.6744;12.0145;804;bayrischzell;;Schliersee (13,5 km);;;;;ja;2951824
+Oberammergau;DE;Bayern;5344;Tourismus: Berge/Ski;47.5981;11.0669;840;oberammergau;;Garmisch-Partenkirchen (12,0 km);;;"ja (A95, 8.1 km; Anlage 8 km)";;ja;2861422
+Ruhpolding;DE;Bayern;6419;Tourismus: Berge/Ski;47.7667;12.6500;647;ruhpolding;;Inzell (7,6 km);;;"ja (A8, 6.6 km; Anlage 6.7 km)";;;2843203
+Reit im Winkl;DE;Bayern;2584;Tourismus: Berge/Ski;47.6773;12.4709;692;reit-im-winkl;;Ruhpolding (16,7 km);;;;;;2848382
+Inzell;DE;Bayern;4320;Tourismus: Berge/Ski;47.7630;12.7515;694;inzell;;Ruhpolding (7,6 km);;;"ja (A8, 7.1 km; Anlage 7.1 km)";;;2895898
+Bad Reichenhall;DE;Bayern;16910;Tourismus: Berge/Ski;47.7295;12.8782;468;bad-reichenhall;;Inzell (10,2 km);;;"ja (A8, 4.3 km; Anlage 4.8 km)";;;2953371
+Bayerisch Eisenstein;DE;Bayern;1318;Tourismus: Berge/Ski;49.1167;13.2000;782;bayerisch-eisenstein;;Bodenmais (9,2 km);;;;;;2951849
+Bodenmais;DE;Bayern;3362;Tourismus: Berge/Ski;49.0667;13.1000;688;bodenmais;;Bayerisch Eisenstein (9,2 km);;;;;;2947120
+Oberstaufen;DE;Bayern;7190;Tourismus: Berge/Ski;47.5557;10.0224;789;oberstaufen;;Immenstadt im Allgäu (14,4 km);;;;;;2858966
+Bad Hindelang;DE;Bayern;;Tourismus: Berge/Ski;47.5062;10.3723;822;bad-hindelang;;Oberstdorf (12,8 km);;;;;ja;2904473
+Immenstadt im Allgäu;DE;Bayern;14431;Tourismus: Berge/Ski;47.5600;10.2139;732;immenstadt-im-allgaeu;;Bad Hindelang (13,3 km);;;;;;2896261
+Pfronten;DE;Bayern;7890;Tourismus: Berge/Ski;47.5822;10.5496;867;pfronten;;Nesselwang (5,8 km);;;"ja (A7, 5.7 km; Anlage 6.6 km)";;ja;2853949
+Krün;DE;Bayern;2032;Tourismus: Berge/Ski;47.5052;11.2792;875;kruen;;Mittenwald (6,9 km);;;;;ja;2883236
+Kreuth;DE;Bayern;3715;Tourismus: Berge/Ski;47.6409;11.7448;780;kreuth;;Rottach-Egern (5,8 km);;;;;;2884280
+Lenggries;DE;Bayern;9432;Tourismus: Berge/Ski;47.6827;11.5747;680;lenggries;;Bad Tölz (8,8 km);;;;;;2878824
+Nesselwang;DE;Bayern;3498;Tourismus: Berge/Ski;47.6234;10.5024;860;nesselwang;;Pfronten (5,8 km);;;"ja (A7, 2 km; Anlage 6.8 km)";;ja;2866416
+Lindau;DE;Bayern;24518;Tourismus: See;47.5461;9.6843;406;lindau;;Bregenz (6,7 km);;;"ja (A96, 3.5 km; Anlage 11.7 km)";;;2877550
+Prien am Chiemsee;DE;Bayern;10915;Tourismus: See;47.8560;12.3462;531;prien-am-chiemsee;;Rosenheim (16,7 km);;;"ja (A8, 4.2 km; Anlage 5 km)";;;2852101
+Starnberg;DE;Bayern;23940;Tourismus: See;48.0019;11.3442;591;starnberg;;Tutzing (11,3 km);;;"ja (A952, 1.4 km; Anlage 3.9 km)";;;2829457
+Tutzing;DE;Bayern;9517;Tourismus: See;47.9094;11.2803;594;tutzing;;Seeshaupt (9,6 km);;;"ja (A95, 8.5 km; Anlage 10 km)";;;2820692
+Dießen am Ammersee;DE;Bayern;10050;Tourismus: See;47.9509;11.1031;548;diessen-am-ammersee;;Herrsching am Ammersee (7,7 km);;;;;;2937217
+Seeshaupt;DE;Bayern;2862;Tourismus: See;47.8247;11.3022;598;seeshaupt;;Tutzing (9,6 km);;;"ja (A95, 4.2 km; Anlage 7.1 km)";;;2833590
+Herrsching am Ammersee;DE;Bayern;10000;Tourismus: See;47.9989;11.1768;550;herrsching-am-ammersee;;Dießen am Ammersee (7,7 km);;;"ja (A96, 9.3 km; Anlage 9.5 km)";;;2905604
+Friedrichshafen;DE;Baden-Württemberg;58403;Tourismus: See;47.6569;9.4755;406;friedrichshafen;;Romanshorn (12,5 km);;;;;;2924585
+Meersburg;DE;Baden-Württemberg;5528;Tourismus: See;47.6942;9.2711;436;meersburg;;Konstanz (8,1 km);;;;;;2872486
+Überlingen;DE;Baden-Württemberg;21507;Tourismus: See;47.7698;9.1714;430;ueberlingen;;Meersburg (11,2 km);;;;;;2820577
+Radolfzell;DE;Baden-Württemberg;31734;Tourismus: See;47.7419;8.9710;401;radolfzell;;Überlingen (15,3 km);;;"ja (A98, 9.8 km; Anlage 9.9 km)";;;2850954
+Titisee-Neustadt;DE;Baden-Württemberg;12019;Tourismus: Berge/Ski;47.9210;8.1906;841;titisee-neustadt;;Hinterzarten (6,6 km);;;;;;2822083
+Todtnau;DE;Baden-Württemberg;5072;Tourismus: Berge/Ski;47.8294;7.9438;646;todtnau;;Feldberg (Schwarzwald) (6,7 km);;;;;;2821975
+Baiersbronn;DE;Baden-Württemberg;16248;Tourismus: Berge/Ski;48.5032;8.3770;601;baiersbronn;;Freudenstadt (4,9 km);;;;;;2953197
+Freudenstadt;DE;Baden-Württemberg;23868;Tourismus: Berge/Ski;48.4669;8.4137;735;freudenstadt;;Baiersbronn (4,9 km);;;;;;2924894
+Bad Wildbad;DE;Baden-Württemberg;9565;Tourismus: Berge/Ski;48.7507;8.5504;431;bad-wildbad;;Bad Herrenalb (9,9 km);;;;;;2809025
+Triberg;DE;Baden-Württemberg;5275;Tourismus: Berge/Ski;48.1317;8.2332;667;triberg;;Villingen-Schwenningen (20,8 km);;;;;;2821216
+Schluchsee;DE;Baden-Württemberg;2586;Tourismus: Berge/Ski;47.8167;8.1833;942;schluchsee;;Hinterzarten (11,1 km);;;;;;2838208
+Hinterzarten;DE;Baden-Württemberg;2631;Tourismus: Berge/Ski;47.9028;8.1070;894;hinterzarten;;Titisee-Neustadt (6,6 km);;;;;;2903889
+Bad Herrenalb;DE;Baden-Württemberg;7521;Tourismus: Berge/Ski;48.7979;8.4362;370;bad-herrenalb;;Bad Wildbad (9,9 km);;;;;;2953440
+Winterberg;DE;Nordrhein-Westfalen;14601;Tourismus: Berge/Ski;51.1925;8.5347;677;winterberg;;Willingen (12,4 km);;;;;;2807788
+Schmallenberg;DE;Nordrhein-Westfalen;26132;Tourismus: Berge/Ski;51.1547;8.2851;410;schmallenberg;;Lennestadt (15,8 km);;;;;;2838053
+Willingen;DE;Hessen;5672;Tourismus: Berge/Ski;51.2942;8.6091;570;willingen;;Winterberg (12,4 km);;;;;;2808544
+Braunlage;DE;Niedersachsen;5159;Tourismus: Berge/Ski;51.7265;10.6109;563;braunlage;;Schierke (5,5 km);;;;;;2945055
+Goslar;DE;Niedersachsen;43560;Tourismus: Berge/Ski;51.9042;10.4277;270;goslar;;Clausthal-Zellerfeld (12,2 km);;;"ja (A369, 8.7 km; Anlage 8.6 km)";;;2918840
+Sankt Andreasberg;DE;Niedersachsen;2037;Tourismus: Berge/Ski;51.7100;10.5187;610;sankt-andreasberg;;Braunlage (6,6 km);;;;;;2841672
+Clausthal-Zellerfeld;DE;Niedersachsen;15345;Tourismus: Berge/Ski;51.8095;10.3382;557;clausthal-zellerfeld;;Goslar (12,2 km);;;;;;2939995
+Altenberg;DE;Sachsen;5167;Tourismus: Berge/Ski;50.7656;13.7533;754;altenberg;;Pirna (25,0 km);;;"ja (A17, 9.8 km; Anlage 10 km)";;;2957834
+Oberwiesenthal;DE;Sachsen;2592;Tourismus: Berge/Ski;50.4194;12.9684;926;oberwiesenthal;;Chemnitz (46,4 km);;;;;;2882332
+Bad Schandau;DE;Sachsen;3078;Tourismus: Berge/Ski;50.9174;14.1549;129;bad-schandau;;Pirna (15,9 km);;;;;;2953352
+Wernigerode;DE;Sachsen-Anhalt;32167;Tourismus: Berge/Ski;51.8365;10.7822;237;wernigerode;;Schierke (11,5 km);;;;;;2810808
+Schierke;DE;Sachsen-Anhalt;747;Tourismus: Berge/Ski;51.7639;10.6621;613;schierke;;Brocken (5,1 km);;;;;;2839398
+Oberhof;DE;Thüringen;1626;Tourismus: Berge/Ski;50.7043;10.7272;816;oberhof;;Ilmenau (13,7 km);;;"ja (A71, 1.1 km; Anlage 4.4 km)";;;2860282
+Neuhaus am Rennweg;DE;Thüringen;6485;Tourismus: Berge/Ski;50.5101;11.1379;801;neuhaus-am-rennweg;;Saalfeld (22,2 km);;;;;;2865133
+Rüdesheim am Rhein;DE;Hessen;9921;Tourismus: Kultur/Landschaft;49.9789;7.9244;91;ruedesheim-am-rhein;;Bacharach (14,1 km);;;"ja (A60, 3.4 km; Anlage 5.4 km)";;;2843395
+Cochem;DE;Rheinland-Pfalz;5215;Tourismus: Kultur/Landschaft;50.1451;7.1638;113;cochem;;Bernkastel-Kues (26,2 km);;;"ja (A48, 8.5 km; Anlage 12.3 km)";;;2939949
+Bacharach;DE;Rheinland-Pfalz;2105;Tourismus: Kultur/Landschaft;50.0573;7.7695;84;bacharach;;Rüdesheim am Rhein (14,1 km);;;"ja (A61, 7.6 km; Anlage 9.5 km)";;;2953702
+Bernkastel-Kues;DE;Rheinland-Pfalz;6880;Tourismus: Kultur/Landschaft;49.9160;7.0766;135;bernkastel-kues;;Cochem (26,2 km);;;;;;2949998
+Schruns;AT;Vorarlberg;3818;Tourismus: Berge/Ski;47.0803;9.9192;689;schruns;;Sankt Gallenkirch (7,8 km);;;;ja (4, nächster Silvrettagletscher 28 km);;2765581
+Gaschurn;AT;Vorarlberg;1091;Tourismus: Berge/Ski;46.9858;10.0270;967;gaschurn;;Sankt Gallenkirch (5,6 km);;;;ja (5, nächster Silvrettagletscher 15.3 km);ja;2778834
+Sankt Gallenkirch;AT;Vorarlberg;1465;Tourismus: Berge/Ski;47.0210;9.9733;882;sankt-gallenkirch;;Gaschurn (5,6 km);;;;ja (5, nächster Silvrettagletscher 20.3 km);ja;2766724
+Damüls;AT;Vorarlberg;313;Tourismus: Berge/Ski;47.2803;9.8916;1406;damuels;;Mellau (7,8 km);;;;;ja;6949508
+Bezau;AT;Vorarlberg;2003;Tourismus: Berge/Ski;47.3848;9.9014;647;bezau;;Mellau (4,1 km);;;;;;2781806
+Schoppernau;AT;Vorarlberg;950;Tourismus: Berge/Ski;47.3120;10.0165;837;schoppernau;;Damüls (10,1 km);;;;;ja;2765650
+Warth;AT;Vorarlberg;148;Tourismus: Berge/Ski;47.2500;10.1833;1324;warth;;Lech am Arlberg (5,6 km);;;;;ja;2761870
+Mellau;AT;Vorarlberg;1301;Tourismus: Berge/Ski;47.3503;9.8815;687;mellau;;Bezau (4,1 km);;;;;;8411026
+Klösterle;AT;Vorarlberg;596;Tourismus: Berge/Ski;47.1333;10.0833;1118;kloesterle;;Lech am Arlberg (9,4 km);;;;ja (1, nächster Larain Ferner 27.6 km);ja;2773915
+Serfaus;AT;Tirol;1134;Tourismus: Berge/Ski;47.0402;10.6034;1452;serfaus;;Landeck (11,3 km);;;;ja (5, nächster Planggeross Ferner S1 16.7 km);ja;2765150
+Neustift im Stubaital;AT;Tirol;4747;Tourismus: Berge/Ski;47.1167;11.3167;971;neustift-im-stubaital;;Steinach am Brenner (11,9 km);;;;ja (5, nächster Hochmoos Ferner 15.1 km);ja;2770651
+Tux;AT;Tirol;1941;Tourismus: Berge/Ski;47.1556;11.7287;1270;tux;;Mayrhofen (10,6 km);;;;ja (5, nächster Gefrorene Wand Kees 11.2 km);ja;11903603
+Gerlos;AT;Tirol;790;Tourismus: Berge/Ski;47.2246;12.0301;1262;gerlos;;Krimml (11,0 km);;;;ja (5, nächster Wildgerlos Kees M 10.2 km);ja;3323921
+Alpbach;AT;Tirol;2561;Tourismus: Berge/Ski;47.3988;11.9437;970;alpbach;;Niederau (11,9 km);;;;;ja;3323982
+Kirchberg in Tirol;AT;Tirol;5245;Tourismus: Berge/Ski;47.4454;12.3160;829;kirchberg-in-tirol;;Brixen im Thale (5,0 km);;;;;ja;2774399
+Westendorf;AT;Tirol;3652;Tourismus: Berge/Ski;47.4321;12.2141;782;westendorf;;Brixen im Thale (3,4 km);;;;;;2761457
+Söll;AT;Tirol;3631;Tourismus: Berge/Ski;47.5038;12.1922;693;soell;;Hopfgarten im Brixental (6,6 km);;;;;;2764953
+Ellmau;AT;Tirol;2828;Tourismus: Berge/Ski;47.5138;12.2994;793;ellmau;;Kirchberg in Tirol (7,7 km);;;;;;2780135
+Sankt Johann in Tirol;AT;Tirol;9428;Tourismus: Berge/Ski;47.5233;12.4232;659;sankt-johann-in-tirol;;Kitzbühel (8,9 km);;;;;;2766636
+Galtür;AT;Tirol;765;Tourismus: Berge/Ski;46.9667;10.1833;1590;galtuer;;Ischgl (9,6 km);;;;ja (5, nächster Larain Ferner 7.6 km);ja;2778953
+Kappl;AT;Tirol;2102;Tourismus: Berge/Ski;47.0667;10.3833;1329;kappl;;Ischgl (9,3 km);;;;ja (3, nächster Larain Ferner 22.1 km);ja;2774761
+Nauders;AT;Tirol;1542;Tourismus: Berge/Ski;46.8886;10.5013;1349;nauders;;Samnaun (12,3 km);;;;ja (5, nächster Weisssee Ferner 16.5 km);ja;2770910
+Lermoos;AT;Tirol;1075;Tourismus: Berge/Ski;47.4036;10.8807;986;lermoos;;Garmisch Zugspitze (8,1 km);;;;;ja;2772592
+Reutte;AT;Tirol;6704;Tourismus: Berge/Ski;47.4833;10.7167;855;reutte;;Füssen (9,8 km);;;"ja (A7, 9.6 km; Anlage 10.7 km)";;ja;2767511
+Hopfgarten im Brixental;AT;Tirol;5630;Tourismus: Berge/Ski;47.4498;12.1566;608;hopfgarten-im-brixental;;Westendorf (4,8 km);;;;;;2775541
+Brixen im Thale;AT;Tirol;2639;Tourismus: Berge/Ski;47.4500;12.2500;793;brixen-im-thale;;Westendorf (3,4 km);;;;;;2781394
+Niederau;AT;Tirol;1043;Tourismus: Berge/Ski;47.4500;12.0833;817;niederau;;Hopfgarten im Brixental (5,5 km);;;;;ja;2770619
+Sankt Leonhard im Pitztal;AT;Tirol;743;Tourismus: Berge/Ski;47.0667;10.8500;1471;sankt-leonhard-im-pitztal;;Längenfeld (9,1 km);;;;ja (5, nächster Äusserer Pirchelkar Ferner S 8.1 km);ja;3319570
+Matrei in Osttirol;AT;Tirol;2482;Tourismus: Berge/Ski;47.0000;12.5333;944;matrei-in-osttirol;;Heiligenblut (23,9 km);;;;ja (5, nächster Fruschnitz Kees 13.5 km);ja;2771828
+Pettneu;AT;Tirol;1141;Tourismus: Berge/Ski;47.1459;10.3366;1195;pettneu;;Sankt Anton am Arlberg (5,8 km);;;;ja (1, nächster Larain Ferner 28.5 km);ja;2769004
+Längenfeld;AT;Tirol;4611;Tourismus: Berge/Ski;47.0740;10.9695;1177;laengenfeld;;Umhausen (7,5 km);;;;ja (5, nächster Bachfallen Ferner 8 km);ja;8740442
+Umhausen;AT;Tirol;1840;Tourismus: Berge/Ski;47.1350;10.9283;1055;umhausen;;Längenfeld (7,5 km);;;;ja (5, nächster Bachfallen Ferner 13.2 km);ja;2763164
+Fieberbrunn;AT;Tirol;4287;Tourismus: Berge/Ski;47.4763;12.5435;777;fieberbrunn;;Sankt Johann in Tirol (10,4 km);;;;;;2779595
+Kühtai;AT;Tirol;24;Tourismus: Berge/Ski;47.2135;11.0231;2017;kuehtai;;Telfs (10,9 km);;;;ja (5, nächster Lisenser Ferner 16.3 km);ja;2773276
+Mutters;AT;Tirol;1587;Tourismus: Berge/Ski;47.2333;11.3833;782;mutters;;Innsbruck (4,3 km);;;;ja (5, nächster Lisenser Ferner 25.9 km);;2770974
+Steinach am Brenner;AT;Tirol;2716;Tourismus: Berge/Ski;47.0833;11.4667;1134;steinach-am-brenner;;Neustift im Stubaital (11,9 km);;;;ja (5, nächster Stampfl Kees 14.8 km);ja;2764557
+Obsteig;AT;Tirol;1316;Tourismus: Berge/Ski;47.3000;10.9333;986;obsteig;;Telfs (10,2 km);;;;ja (3, nächster Bachfallen Ferner 27.6 km);ja;3319578
+Kaprun;AT;Salzburg;3177;Tourismus: Berge/Ski;47.2724;12.7599;770;kaprun;;Zell am See (6,2 km);;;;ja (5, nächster Schmiedinger Kees 10.5 km);;2774758
+Leogang;AT;Salzburg;377;Tourismus: Berge/Ski;47.4391;12.7611;784;leogang;;Saalbach (10,9 km);;;;ja (2, nächster Schmiedinger Kees 27.9 km);;2772641
+Flachau;AT;Salzburg;827;Tourismus: Berge/Ski;47.3441;13.3915;911;flachau;;Zauchensee (7,3 km);;;;ja (3, nächster Grosser Gosau Gletscher 21.8 km);ja;2779522
+Obertauern;AT;Salzburg;209;Tourismus: Berge/Ski;47.2496;13.5577;1767;obertauern;;Zauchensee (9,2 km);;;;ja (3, nächster Schladminger Gletscher 25.1 km);ja;2769682
+Bad Hofgastein;AT;Salzburg;2951;Tourismus: Berge/Ski;47.1727;13.0987;839;bad-hofgastein;;Bad Gastein (7,0 km);;;;ja (5, nächster Kleinelend Kees 17.2 km);ja;2782053
+Krimml;AT;Salzburg;876;Tourismus: Berge/Ski;47.2180;12.1749;1069;krimml;;Neukirchen am Großvenediger (8,4 km);;;;ja (5, nächster Wildgerlos Kees M 9.4 km);ja;3323923
+Mittersill;AT;Salzburg;1888;Tourismus: Berge/Ski;47.2833;12.4833;786;mittersill;;Neukirchen am Großvenediger (16,1 km);;;;ja (5, nächster Habach Kees 17.2 km);;2771385
+Neukirchen am Großvenediger;AT;Salzburg;1400;Tourismus: Berge/Ski;47.2505;12.2759;847;neukirchen-am-grossvenediger;;Krimml (8,4 km);;;;ja (5, nächster Käferfeld Kees 12.5 km);ja;2770740
+Maria Alm am Steinernen Meer;AT;Salzburg;1032;Tourismus: Berge/Ski;47.4058;12.9012;796;maria-alm-am-steinernen-meer;;Leogang (11,2 km);;;;ja (4, nächster Walcher Kees 27.5 km);;2771951
+Filzmoos;AT;Salzburg;761;Tourismus: Berge/Ski;47.4333;13.5167;1055;filzmoos;;Ramsau am Dachstein (10,5 km);;;;ja (3, nächster Grosser Gosau Gletscher 8.1 km);ja;2779579
+Mauterndorf;AT;Salzburg;1261;Tourismus: Berge/Ski;47.1345;13.6788;1127;mauterndorf;;Sankt Michael im Lungau (5,2 km);;;;ja (1, nächster Hochalm Kees 29.1 km);ja;2771764
+Sankt Michael im Lungau;AT;Salzburg;2059;Tourismus: Berge/Ski;47.1000;13.6333;1087;sankt-michael-im-lungau;;Mauterndorf (5,2 km);;;;ja (3, nächster Hochalm Kees 24.4 km);ja;2766496
+Rauris;AT;Salzburg;1146;Tourismus: Berge/Ski;47.2266;12.9946;943;rauris;;Bad Hofgastein (9,9 km);;;;ja (5, nächster Walcher Kees 18.1 km);ja;2767852
+Zauchensee;AT;Salzburg;;Tourismus: Berge/Ski;47.2951;13.4558;1340;zauchensee;;Flachau (7,3 km);;;;ja (3, nächster Grosser Gosau Gletscher 23.3 km);ja;6620236
+Ramsau am Dachstein;AT;Steiermark;2812;Tourismus: Berge/Ski;47.4215;13.6555;1123;ramsau-am-dachstein;;Schladming (3,9 km);;;;ja (3, nächster Schladminger Gletscher 5.6 km);ja;2768006
+Mariazell;AT;Steiermark;1254;Tourismus: Berge/Ski;47.7731;15.3164;854;mariazell;;Annaberg (11,8 km);;;;;ja;2771893
+Bad Aussee;AT;Steiermark;1012;Tourismus: Berge/Ski;47.6100;13.7824;664;bad-aussee;;Altaussee (3,5 km);;;;ja (3, nächster Hallstätter Gletscher 19 km);;2782070
+Altaussee;AT;Steiermark;309;Tourismus: Berge/Ski;47.6384;13.7628;723;altaussee;;Bad Aussee (3,5 km);;;;ja (3, nächster Hallstätter Gletscher 20.7 km);;2782724
+Mürzzuschlag;AT;Steiermark;5975;Tourismus: Berge/Ski;47.6066;15.6723;671;muerzzuschlag;;Semmering (12,2 km);;;;;;2770993
+Aflenz Kurort;AT;Steiermark;1017;Tourismus: Berge/Ski;47.5421;15.2390;747;aflenz-kurort;;Bruck an der Mur (14,9 km);;;;;;2782967
+Tauplitz;AT;Steiermark;615;Tourismus: Berge/Ski;47.5600;14.0129;891;tauplitz;;Bad Aussee (18,2 km);;;;;ja;2763855
+Heiligenblut;AT;Kärnten;1069;Tourismus: Berge/Ski;47.0398;12.8435;1297;heiligenblut;;Bad Gastein (23,5 km);;;;ja (5, nächster Kleinfleißkees 8 km);ja;2776595
+Bad Kleinkirchheim;AT;Kärnten;;Tourismus: Berge/Ski;46.8156;13.7806;1047;bad-kleinkirchheim;;Millstatt (15,3 km);;;;;ja;2782878
+Mallnitz;AT;Kärnten;441;Tourismus: Berge/Ski;46.9917;13.1678;1194;mallnitz;;Flattach (6,4 km);;;;ja (5, nächster Kleinelend Kees 10 km);ja;2772041
+Flattach;AT;Kärnten;396;Tourismus: Berge/Ski;46.9386;13.1344;835;flattach;;Mallnitz (6,4 km);;;;ja (5, nächster Kleinelend Kees 16.3 km);ja;2779504
+Hermagor;AT;Kärnten;1535;Tourismus: Berge/Ski;46.6272;13.3672;597;hermagor;;Spittal an der Drau (21,2 km);;;;;;2776497
+Bad Bleiberg;AT;Kärnten;458;Tourismus: Berge/Ski;46.6255;13.6810;913;bad-bleiberg;;Villach (13,5 km);;;;;ja;11903765
+Semmering;AT;Niederösterreich;544;Tourismus: Berge/Ski;47.6335;15.8299;985;semmering;;Mürzzuschlag (12,2 km);;;;;ja;2765170
+Lunz am See;AT;Niederösterreich;1806;Tourismus: Berge/Ski;47.8612;15.0300;601;lunz-am-see;;Mariazell (23,5 km);;;;;;2772186
+Gutenstein;AT;Niederösterreich;355;Tourismus: Berge/Ski;47.8760;15.8888;486;gutenstein;;Puchberg am Schneeberg (10,1 km);;;;;;2777196
+Puchberg am Schneeberg;AT;Niederösterreich;2683;Tourismus: Berge/Ski;47.7871;15.9135;572;puchberg-am-schneeberg;;Gutenstein (10,1 km);;;;;;2768279
+Annaberg;AT;Niederösterreich;;Tourismus: Berge/Ski;47.8713;15.3765;975;annaberg;;Mariazell (11,8 km);;;;;ja;2782496
+Hinterstoder;AT;Oberösterreich;342;Tourismus: Berge/Ski;47.6996;14.1547;591;hinterstoder;;Windischgarsten (13,2 km);;;;;;2776235
+Windischgarsten;AT;Oberösterreich;2392;Tourismus: Berge/Ski;47.7222;14.3276;601;windischgarsten;;Spital am Pyhrn (6,4 km);;;;;;2761096
+Spital am Pyhrn;AT;Oberösterreich;1435;Tourismus: Berge/Ski;47.6649;14.3401;641;spital-am-pyhrn;;Windischgarsten (6,4 km);;;;;;2764789
+Gosau;AT;Oberösterreich;1792;Tourismus: Berge/Ski;47.5842;13.5345;737;gosau;;Bad Goisern (8,9 km);;;;ja (3, nächster Grosser Gosau Gletscher 12.4 km);;2778302
+Bad Goisern;AT;Oberösterreich;1987;Tourismus: Berge/Ski;47.6425;13.6161;499;bad-goisern;;Bad Ischl (7,6 km);;;;ja (3, nächster Hallstätter Gletscher 17.9 km);;2782055
+Sankt Gilgen;AT;Salzburg;1113;Tourismus: See;47.7667;13.3667;542;sankt-gilgen;;Sankt Wolfgang im Salzkammergut (6,7 km);;;;;;2766683
+Mondsee;AT;Oberösterreich;3734;Tourismus: See;47.8565;13.3491;491;mondsee;;Sankt Gilgen (10,1 km);;;;;;2771277
+Sankt Wolfgang im Salzkammergut;AT;Oberösterreich;2770;Tourismus: See;47.7393;13.4467;555;sankt-wolfgang-im-salzkammergut;;Sankt Gilgen (6,7 km);;;;;;2766340
+Seewalchen;AT;Oberösterreich;2780;Tourismus: See;47.9525;13.5838;495;seewalchen;;Gmunden (16,5 km);;;;;;2765231
+Unterach am Attersee;AT;Oberösterreich;;Tourismus: See;47.8052;13.4894;476;unterach-am-attersee;;Sankt Wolfgang im Salzkammergut (8,0 km);;;;;;2763144
+Velden am Wörther See;AT;Kärnten;2325;Tourismus: See;46.6130;14.0413;448;velden-am-woerther-see;;Pörtschach am Wörthersee (8,4 km);;;;;;2762453
+Pörtschach am Wörthersee;AT;Kärnten;2751;Tourismus: See;46.6364;14.1464;447;poertschach-am-woerthersee;;Velden am Wörther See (8,4 km);;;;;;2768497
+Millstatt;AT;Kärnten;889;Tourismus: See;46.8042;13.5806;694;millstatt;;Spittal an der Drau (6,3 km);;;;;;2760380
+Rust;AT;Burgenland;1921;Tourismus: See;47.8012;16.6716;124;rust;;Illmitz (10,6 km);;;;;;2766939
+Podersdorf am See;AT;Burgenland;2135;Tourismus: See;47.8541;16.8371;121;podersdorf-am-see;;Neusiedl am See (10,6 km);;;;;;2768622
+Neusiedl am See;AT;Burgenland;8235;Tourismus: See;47.9490;16.8417;126;neusiedl-am-see;;Podersdorf am See (10,6 km);;;;;;2770684
+Illmitz;AT;Burgenland;2385;Tourismus: See;47.7615;16.8002;119;illmitz;;Rust (10,6 km);;;;;;2775327
+Mürren;CH;Bern;451;Tourismus: Berge/Ski;46.5588;7.8929;1624;muerren;;Wengen (5,6 km);;;;ja (5, nächster Giessengletscher 4.9 km);ja;2659530
+Kandersteg;CH;Bern;1123;Tourismus: Berge/Ski;46.4947;7.6733;1170;kandersteg;;Adelboden (8,7 km);;;;ja (5, nächster Doldenhorngletscher E 5 km);ja;2660191
+Lenk;CH;Bern;2268;Tourismus: Berge/Ski;46.4583;7.4430;1065;lenk;;Adelboden (9,8 km);;;;ja (5, nächster Ammertegletscher E 8.8 km);ja;2659956
+Meiringen;CH;Bern;4652;Tourismus: Berge/Ski;46.7271;8.1872;597;meiringen;;Brienz (11,7 km);;;;ja (5, nächster Rosenlouwigletscher 9.8 km);;2659700
+Leukerbad;CH;Wallis;1427;Tourismus: Berge/Ski;46.3794;7.6269;1379;leukerbad;;Kandersteg (13,3 km);;;;ja (5, nächster Lämmerengletscher 4.8 km);ja;2659907
+Grimentz;CH;Wallis;444;Tourismus: Berge/Ski;46.1809;7.5758;1591;grimentz;;Saint-Luc (4,8 km);;;;ja (5, nächster Turtmanngletscher zentral 11.6 km);ja;2660504
+Champéry;CH;Wallis;1191;Tourismus: Berge/Ski;46.1754;6.8690;1044;champery;;Morgins (7,2 km);;;;ja (5, nächster Plan Névé NE 5.4 km);ja;2661223
+Fiesch;CH;Wallis;1003;Tourismus: Berge/Ski;46.3998;8.1353;1050;fiesch;;Bettmeralp (5,7 km);;;;ja (5, nächster Triftgletscher W (Fieschertal) 9.8 km);ja;2660781
+Bettmeralp;CH;Wallis;;Tourismus: Berge/Ski;46.3902;8.0625;1949;bettmeralp;;Riederalp (3,2 km);;;;ja (5, nächster Driestgletscher 6.2 km);ja;6559543
+Riederalp;CH;Wallis;;Tourismus: Berge/Ski;46.3764;8.0261;1918;riederalp;;Bettmeralp (3,2 km);;;;ja (5, nächster Driestgletscher 6.2 km);ja;2659038
+Grächen;CH;Wallis;1362;Tourismus: Berge/Ski;46.1953;7.8374;1606;graechen;;Törbel (4,9 km);;;;ja (5, nächster Balfringletscher 6.2 km);ja;2660542
+Täsch;CH;Wallis;831;Tourismus: Berge/Ski;46.0684;7.7777;1438;taesch;;Zermatt (5,7 km);;;;ja (5, nächster Hohlichtgletscher 4.8 km);ja;2658418
+Basse-Nendaz;CH;Wallis;5410;Tourismus: Berge/Ski;46.1899;7.3121;1002;basse-nendaz;;Sitten (Sion) (6,0 km);;;;ja (5, nächster Glacier de Tortin zentral 11.8 km);ja;2661600
+Champex;CH;Wallis;;Tourismus: Berge/Ski;46.0265;7.1202;1479;champex;;Verbier (11,4 km);;;;ja (5, nächster Glacier d'Orny 6.3 km);ja;2661222
+Evolène;CH;Wallis;1557;Tourismus: Berge/Ski;46.1142;7.4941;1389;evolene;;Grimentz (9,7 km);;;;ja (5, nächster Glacier de la Vouasson zentral 6.2 km);ja;2660840
+Zinal;CH;Wallis;;Tourismus: Berge/Ski;46.1343;7.6287;1700;zinal;;Grimentz (6,6 km);;;;ja (5, nächster Glacier du Weisshorn N 5.6 km);ja;2657918
+Saint-Luc;CH;Wallis;347;Tourismus: Berge/Ski;46.2215;7.5962;1669;saint-luc;;Grimentz (4,8 km);;;;ja (5, nächster Turtmanngletscher zentral 13.2 km);ja;2658866
+Blatten;CH;Wallis;317;Tourismus: Berge/Ski;46.4207;7.8175;1570;blatten;;Kandersteg (13,8 km);;;;ja (5, nächster null 3.8 km);ja;2661478
+Törbel;CH;Wallis;511;Tourismus: Berge/Ski;46.2384;7.8524;1559;toerbel;;Grächen (4,9 km);;;;ja (5, nächster Balfringletscher 10.3 km);ja;2658350
+Morgins;CH;Wallis;1000;Tourismus: Berge/Ski;46.2390;6.8520;1351;morgins;;Champéry (7,2 km);;;;ja (5, nächster Plan Névé NE 10.4 km);ja;2659585
+Les Marécottes;CH;Wallis;;Tourismus: Berge/Ski;46.1114;7.0073;1111;les-marecottes;;Finhaut (3,8 km);;;;ja (5, nächster Glacier du Mont Ruan E 7.9 km);ja;2659924
+Finhaut;CH;Wallis;344;Tourismus: Berge/Ski;46.0838;6.9778;1281;finhaut;;Les Marécottes (3,8 km);;;;ja (5, nächster Glacier du Mont Ruan E 7.3 km);ja;2660771
+Les Diablerets;CH;Waadt;;Tourismus: Berge/Ski;46.3500;7.1590;1182;les-diablerets;;Les Mosses (6,7 km);;;;ja (5, nächster Glacier des Diablerets 5.6 km);ja;2659931
+Villars-sur-Ollon;CH;Waadt;2500;Tourismus: Berge/Ski;46.2983;7.0563;1269;villars-sur-ollon;;Leysin (5,9 km);;;;ja (5, nächster Glacier des Martinets 10.7 km);ja;2658126
+Leysin;CH;Waadt;3066;Tourismus: Berge/Ski;46.3418;7.0115;1273;leysin;;Villars-sur-Ollon (5,9 km);;;;ja (5, nächster Glacier des Diablerets 14.9 km);ja;2659900
+Les Mosses;CH;Waadt;;Tourismus: Berge/Ski;46.3952;7.1006;1436;les-mosses;;Les Diablerets (6,7 km);;;;ja (5, nächster Glacier des Diablerets 12.3 km);ja;2659923
+Rougemont;CH;Waadt;909;Tourismus: Berge/Ski;46.4881;7.2066;988;rougemont;;Gstaad (6,3 km);;;;ja (5, nächster Gältegletscher SW 18 km);ja;2658945
+Klosters Platz;CH;Graubünden;;Tourismus: Berge/Ski;46.8688;9.8815;1192;klosters-platz;;Davos (8,1 km);;;;ja (5, nächster Verstanclagletscher 14.8 km);ja;2660129
+Lenzerheide;CH;Graubünden;2610;Tourismus: Berge/Ski;46.7221;9.5590;1471;lenzerheide;;Arosa (11,4 km);;;;ja (3, nächster Vadret Calderas 24.4 km);ja;2659950
+Laax;CH;Graubünden;1252;Tourismus: Berge/Ski;46.8045;9.2579;1016;laax;;Flims (4,2 km);;;;ja (5, nächster Vorabgletscher 10.7 km);ja;2660083
+Disentis;CH;Graubünden;2193;Tourismus: Berge/Ski;46.7034;8.8509;1157;disentis;;Sedrun (6,5 km);;;;ja (5, nächster Brunnifirn 6.1 km);ja;2661009
+Savognin;CH;Graubünden;961;Tourismus: Berge/Ski;46.5973;9.5982;1212;savognin;;Lenzerheide (14,2 km);;;;ja (3, nächster Vadret Calderas 11.3 km);ja;2658773
+Samedan;CH;Graubünden;2700;Tourismus: Berge/Ski;46.5340;9.8728;1710;samedan;;Sankt Moritz (4,8 km);;;;ja (5, nächster Vadret da Porchabella W 10.4 km);ja;2658846
+Zuoz;CH;Graubünden;1209;Tourismus: Berge/Ski;46.6021;9.9596;1721;zuoz;;Samedan (10,1 km);;;;ja (5, nächster Vadret da Porchabella W 6.7 km);ja;2657898
+Poschiavo;CH;Graubünden;3428;Tourismus: Berge/Ski;46.3244;10.0582;1010;poschiavo;;Pontresina (22,2 km);;;;ja (5, nächster Vadret da Palü 7.8 km);ja;2659165
+Samnaun;CH;Graubünden;769;Tourismus: Berge/Ski;46.9437;10.3606;1839;samnaun;;Ischgl (9,1 km);;;;ja (5, nächster Larain Ferner 11.7 km);ja;2658842
+Zernez;CH;Graubünden;1053;Tourismus: Berge/Ski;46.6986;10.0927;1474;zernez;;Zuoz (14,8 km);;;;ja (5, nächster Vadret da Sarsura 6.8 km);ja;2657926
+Sedrun;CH;Graubünden;;Tourismus: Berge/Ski;46.6793;8.7730;1406;sedrun;;Disentis (6,5 km);;;;ja (5, nächster Brunnifirn 6.5 km);ja;2658657
+Bivio;CH;Graubünden;215;Tourismus: Berge/Ski;46.4685;9.6509;1769;bivio;;Sils-Segl Maria (9,7 km);;;;ja (5, nächster Vadret Calderas 7.6 km);ja;2661484
+Splügen;CH;Graubünden;400;Tourismus: Berge/Ski;46.5518;9.3222;1458;spluegen;;Vals Platz (13,0 km);;;;ja (5, nächster Surettagletscher W 6 km);ja;2658528
+Sankt Antönien;CH;Graubünden;219;Tourismus: Berge/Ski;46.9698;9.8123;1423;sankt-antoenien;;Klosters Platz (12,4 km);;;;ja (5, nächster Silvrettagletscher 24 km);ja;2658825
+Sils-Segl Maria;CH;Graubünden;735;Tourismus: Berge/Ski;46.4289;9.7636;1815;sils-segl-maria;;Silvaplana (4,0 km);;;;ja (5, nächster Vadret dal Tremoggia 8.9 km);ja;2658641
+Silvaplana;CH;Graubünden;973;Tourismus: Berge/Ski;46.4581;9.7951;1812;silvaplana;;Sils-Segl Maria (4,0 km);;;;ja (5, nächster Vadret da Misaun 8.6 km);ja;2658588
+Vals Platz;CH;Graubünden;1006;Tourismus: Berge/Ski;46.6165;9.1802;1257;vals-platz;;Splügen (13,0 km);;;;ja (5, nächster Fanellgletscher 9.8 km);ja;2658191
+Realp;CH;Uri;;Tourismus: Berge/Ski;46.5982;8.5028;1539;realp;;Andermatt (8,1 km);;;;ja (5, nächster Tiefengletscher 5.8 km);ja;2659092
+Wassen;CH;Uri;464;Tourismus: Berge/Ski;46.7065;8.5988;919;wassen;;Andermatt (7,8 km);;;;ja (5, nächster Kartigelfirn 6.4 km);ja;2658047
+Elm;CH;Glarus;729;Tourismus: Berge/Ski;46.9190;9.1724;976;elm;;Flims (12,5 km);;;;ja (5, nächster Vorabgletscher 4.5 km);ja;2660917
+Braunwald;CH;Glarus;421;Tourismus: Berge/Ski;46.9416;8.9964;1370;braunwald;;Glarus (12,3 km);;;;ja (5, nächster Guppenfirn 6.6 km);ja;2661419
+Flums;CH;St. Gallen;4848;Tourismus: Berge/Ski;47.0906;9.3430;457;flums;;Unterwasser (12,1 km);;;;ja (4, nächster Glatschiu dil Segnas 21.3 km);;2660747
+Wildhaus;CH;St. Gallen;1221;Tourismus: Berge/Ski;47.2058;9.3540;1098;wildhaus;;Unterwasser (3,6 km);;;;;ja;2657988
+Amden;CH;St. Gallen;1557;Tourismus: Berge/Ski;47.1489;9.1423;911;amden;;Glarus (13,3 km);;;;ja (3, nächster Guppenfirn 19.5 km);ja;2661758
+Unterwasser;CH;St. Gallen;685;Tourismus: Berge/Ski;47.1970;9.3086;906;unterwasser;;Wildhaus (3,6 km);;;;;ja;2658231
+Stoos;CH;Schwyz;;Tourismus: Berge/Ski;46.9767;8.6632;1311;stoos;;Brunnen (4,8 km);;;;ja (5, nächster Blüemlisalpfirn 17.4 km);ja;2658474
+Einsiedeln;CH;Schwyz;15867;Tourismus: Berge/Ski;47.1285;8.7474;886;einsiedeln;;Rapperswil (12,2 km);;;;ja (2, nächster Glärnischfirn 23.3 km);ja;2660925
+Sörenberg;CH;Luzern;;Tourismus: Berge/Ski;46.8222;8.0374;1170;soerenberg;;Brienz (7,5 km);;;;ja (5, nächster Hengsterengletscher NE 21 km);ja;2658550
+Weggis;CH;Luzern;3863;Tourismus: Berge/Ski;47.0321;8.4322;448;weggis;;Vitznau (4,6 km);;;;ja (5, nächster Schlossfirn (Isenthal) 20.9 km);;2658038
+Vitznau;CH;Luzern;1496;Tourismus: Berge/Ski;47.0101;8.4842;446;vitznau;;Gersau (3,6 km);;;;ja (5, nächster Schlossfirn (Isenthal) 17.8 km);;2658107
+Sarnen;CH;Obwalden;10368;Tourismus: Berge/Ski;46.8961;8.2453;474;sarnen;;Melchtal (7,7 km);;;;ja (5, nächster Titlisgletscher 19.2 km);;2658786
+Giswil;CH;Obwalden;3563;Tourismus: Berge/Ski;46.8333;8.1806;487;giswil;;Melchtal (8,3 km);;;;ja (5, nächster Titlisgletscher 19.6 km);;2660604
+Melchtal;CH;Obwalden;;Tourismus: Berge/Ski;46.8344;8.2899;892;melchtal;;Sarnen (7,7 km);;;;ja (5, nächster Titlisgletscher 12.2 km);ja;2659694
+Brissago;CH;Tessin;1831;Tourismus: See;46.1201;8.7118;212;brissago;;Locarno (8,8 km);;;;;;2661388
+Morcote;CH;Tessin;706;Tourismus: See;45.9250;8.9160;408;morcote;;Mendrisio (7,9 km);;;;;;2659592
+Airolo;CH;Tessin;1559;Tourismus: See;46.5286;8.6119;1167;airolo;;Realp (11,4 km);;;;ja (5, nächster Witenwasserengletscher 10.5 km);ja;2661830
+Faido;CH;Tessin;1512;Tourismus: See;46.4770;8.8012;702;faido;;Airolo (15,6 km);;;;ja (5, nächster Glatscher da Medel W 16.7 km);;2660830
+Mendrisio;CH;Tessin;14942;Tourismus: See;45.8702;8.9816;335;mendrisio;;Morcote (7,9 km);;;;;;2659689
+Vevey;CH;Waadt;19891;Tourismus: See;46.4630;6.8434;387;vevey;;Montreux (6,3 km);;;;;;2658145
+Morges;CH;Waadt;15705;Tourismus: See;46.5113;6.4985;380;morges;;Lausanne (10,3 km);;;;;;2659587
+Lutry;CH;Waadt;8774;Tourismus: See;46.5024;6.6865;380;lutry;;Lausanne (4,5 km);;;;;;2659819
+Rolle;CH;Waadt;4425;Tourismus: See;46.4582;6.3350;391;rolle;;Nyon (11,1 km);;;;;;2658989
+Spiez;CH;Bern;12594;Tourismus: See;46.6847;7.6911;594;spiez;;Thun (9,5 km);;;;ja (5, nächster Gamchigletscher 21.5 km);;2658536
+Brienz;CH;Bern;3090;Tourismus: See;46.7545;8.0385;564;brienz;;Sörenberg (7,5 km);;;;ja (5, nächster Hengsterengletscher NE 14.1 km);;2661398
+Rorschach;CH;St. Gallen;9000;Tourismus: See;47.4780;9.4903;404;rorschach;;Arbon (6,1 km);;;;;;2658969
+Romanshorn;CH;Thurgau;8956;Tourismus: See;47.5659;9.3787;401;romanshorn;;Arbon (6,8 km);;;;;;2658985
+Arbon;CH;Thurgau;14631;Tourismus: See;47.5167;9.4333;407;arbon;;Rorschach (6,1 km);;;;;;2661731
+Meilen;CH;Zürich;14207;Tourismus: See;47.2723;8.6462;464;meilen;;Wädenswil (5,3 km);;;;;;2659703
+Wädenswil;CH;Zürich;13269;Tourismus: See;47.2268;8.6687;444;waedenswil;;Meilen (5,3 km);;;;;;2658082
+Küsnacht;CH;Zürich;11525;Tourismus: See;47.3180;8.5840;423;kuesnacht;;Meilen (6,9 km);;;;;;2660089
+Brunnen;CH;Schwyz;;Tourismus: See;46.9936;8.6054;432;brunnen;;Stoos (4,8 km);;;;ja (5, nächster Blüemlisalpfirn 17.1 km);;2661368
+Gersau;CH;Schwyz;1983;Tourismus: See;46.9942;8.5250;463;gersau;;Vitznau (3,6 km);;;;ja (5, nächster Schlossfirn (Isenthal) 16 km);;2660631
+Murten/Morat;CH;Freiburg;5800;Tourismus: See;46.9283;7.1171;456;murten-morat;;Freiburg (Fribourg) (14,0 km);;;;;;2659529
+Gruyères;CH;Freiburg;1646;Tourismus: See;46.5834;7.0821;807;gruyeres;;Bulle (4,3 km);;;;;ja;2660463
+Bergisch Gladbach;DE;Nordrhein-Westfalen;106184;Stadt/Gemeinde;50.9856;7.1330;96;bergisch-gladbach;;Köln (13,2 km);;;"ja (A4, 4 km; Anlage 4.4 km)";;;2950349
+Lünen;DE;Nordrhein-Westfalen;91009;Stadt/Gemeinde;51.6163;7.5287;58;luenen;;Dortmund (12,2 km);;;"ja (A2, 3.8 km; Anlage 8.6 km)";;;2875107
+Velbert;DE;Nordrhein-Westfalen;87669;Stadt/Gemeinde;51.3354;7.0435;244;velbert;;Wuppertal (11,5 km);;;"ja (A535, 1.2 km; Anlage 3.6 km)";;;2817724
+Ludwigsburg;DE;Baden-Württemberg;87603;Stadt/Gemeinde;48.8973;9.1916;298;ludwigsburg;;Waiblingen (11,6 km);;;"ja (A81, 2.8 km; Anlage 3.3 km)";;;2875392
+Cottbus;DE;Brandenburg;84754;Stadt/Gemeinde;51.7577;14.3289;78;cottbus;;Senftenberg (34,3 km);;;"ja (A15, 4.3 km; Anlage 6.3 km)";;;2939811
+Wilhelmshaven;DE;Niedersachsen;84393;Stadt/Gemeinde;53.5476;8.1039;0;wilhelmshaven;;Nordseeheilbad Wangerooge (30,1 km);ja (Wilhelmshaven Südstrand, 4.6 km);ja (Wilhelmshaven, Neuer Vorhafen, Seeschleuse, 4.2 km);"ja (A29, 1.9 km; Anlage 2.3 km)";;;2808720
+Minden;DE;Nordrhein-Westfalen;82879;Stadt/Gemeinde;52.2895;8.9146;59;minden;;Bad Oeynhausen (11,9 km);;;"ja (A2, 8.7 km; Anlage 10.8 km)";;;2871039
+Norderstedt;DE;Schleswig-Holstein;82844;Stadt/Gemeinde;53.7018;9.9933;33;norderstedt;;Pinneberg (13,8 km);;;"ja (A7, 3.3 km; Anlage 10.7 km)";;;2862026
+Villingen-Schwenningen;DE;Baden-Württemberg;81770;Stadt/Gemeinde;48.0623;8.4936;757;villingen-schwenningen;;Triberg (20,8 km);;;"ja (A81, 7.8 km; Anlage 8.3 km)";;;2817220
+Worms;DE;Rheinland-Pfalz;81099;Stadt/Gemeinde;49.6328;8.3592;105;worms;;Mannheim (17,8 km);;;"ja (A61, 4.6 km; Anlage 6 km)";;;2806142
+Neumünster;DE;Schleswig-Holstein;80196;Stadt/Gemeinde;54.0740;9.9846;24;neumuenster;;Kiel (29,1 km);;;"ja (A7, 3.9 km; Anlage 11.3 km)";;;2864475
+Lüdenscheid;DE;Nordrhein-Westfalen;79386;Stadt/Gemeinde;51.2198;7.6273;410;luedenscheid;;Plettenberg (17,1 km);;;"ja (A45, 2.3 km; Anlage 2.8 km)";;;2875457
+Marburg an der Lahn;DE;Hessen;78895;Stadt/Gemeinde;50.8090;8.7707;223;marburg-an-der-lahn;;Gießen (25,6 km);;;;;;2873759
+Rheine;DE;Nordrhein-Westfalen;76491;Stadt/Gemeinde;52.2822;7.4413;41;rheine;;Emsdetten (13,5 km);;;"ja (A30, 3.8 km; Anlage 3.9 km)";;;2847645
+Delmenhorst;DE;Niedersachsen;75893;Stadt/Gemeinde;53.0511;8.6309;10;delmenhorst;;Bremen (11,8 km);;;"ja (A28, 1.7 km; Anlage 2.9 km)";;;2938323
+Gladbeck;DE;Nordrhein-Westfalen;75499;Stadt/Gemeinde;51.5708;6.9859;60;gladbeck;;Marl (12,0 km);;;"ja (A2, 1.4 km; Anlage 3.3 km)";;;2920236
+Arnsberg;DE;Nordrhein-Westfalen;74879;Stadt/Gemeinde;51.3833;8.0833;290;arnsberg;;Meschede (14,4 km);;;"ja (A46, 1.7 km; Anlage 1.8 km)";;;2955471
+Bocholt;DE;Nordrhein-Westfalen;73943;Stadt/Gemeinde;51.8388;6.6153;31;bocholt;;Borken (16,7 km);;;"ja (A3, 9.3 km; Anlage 10.2 km)";;;2947421
+Detmold;DE;Nordrhein-Westfalen;73680;Stadt/Gemeinde;51.9385;8.8732;135;detmold;;Herford (23,9 km);;;;;;2937936
+Bayreuth;DE;Bayern;72940;Stadt/Gemeinde;49.9478;11.5789;341;bayreuth;;Forchheim (45,2 km);;;"ja (A9, 2.2 km; Anlage 5.7 km)";;;2951825
+Landshut;DE;Bayern;71863;Stadt/Gemeinde;48.5296;12.1618;489;landshut;;Erding (31,2 km);;;"ja (A92, 5.1 km; Anlage 6.7 km)";;;2881485
+Lüneburg;DE;Niedersachsen;71260;Stadt/Gemeinde;53.2512;10.4155;13;lueneburg;;Winsen (18,0 km);;;"ja (A39, 3 km; Anlage 3.2 km)";;;2875115
+Celle;DE;Niedersachsen;71010;Stadt/Gemeinde;52.6226;10.0805;45;celle;;Lehrte (28,7 km);;;;;;2940213
+Aschaffenburg;DE;Bayern;68551;Stadt/Gemeinde;49.9770;9.1521;140;aschaffenburg;;Rodgau (19,8 km);;;"ja (A3, 1.8 km; Anlage 14.3 km)";;;2955272
+Neubrandenburg;DE;Mecklenburg-Vorpommern;68082;Stadt/Gemeinde;53.5573;13.2610;20;neubrandenburg;;Waren (38,5 km);;;;;;2866135
+Dessau;DE;Sachsen-Anhalt;67747;Stadt/Gemeinde;51.8386;12.2455;63;dessau;;Köthen (21,2 km);;;"ja (A9, 4.7 km; Anlage 7.6 km)";;;2937959
+Lippstadt;DE;Nordrhein-Westfalen;67219;Stadt/Gemeinde;51.6737;8.3448;81;lippstadt;;Rietberg (16,1 km);;;"ja (A44, 9.9 km; Anlage 7.5 km)";;;2876865
+Aalen;DE;Baden-Württemberg;67085;Stadt/Gemeinde;48.8378;10.0933;433;aalen;;Heidenheim an der Brenz (18,3 km);;;"ja (A7, 6.8 km; Anlage 7.8 km)";;;2959927
+Dinslaken;DE;Nordrhein-Westfalen;66993;Stadt/Gemeinde;51.5623;6.7434;33;dinslaken;;Duisburg (14,3 km);;;"ja (A59, 2.5 km; Anlage 6.3 km)";;;2936871
+Neuwied;DE;Rheinland-Pfalz;66805;Stadt/Gemeinde;50.4336;7.4706;67;neuwied;;Koblenz (11,7 km);;;"ja (A48, 6.6 km; Anlage 7.7 km)";;;2863840
+Unna;DE;Nordrhein-Westfalen;66734;Stadt/Gemeinde;51.5380;7.6897;104;unna;;Lünen (14,1 km);;;"ja (A1, 1.9 km; Anlage 2.9 km)";;;2820087
+Plauen;DE;Sachsen;66412;Stadt/Gemeinde;50.4973;12.1378;360;plauen;;Hof (26,0 km);;;"ja (A72, 3.8 km; Anlage 5.7 km)";;;2853292
+Herford;DE;Nordrhein-Westfalen;64879;Stadt/Gemeinde;52.1146;8.6734;69;herford;;Bünde (11,0 km);;;"ja (A2, 3.1 km; Anlage 8.1 km)";;;2906121
+Grevenbroich;DE;Nordrhein-Westfalen;64779;Stadt/Gemeinde;51.0910;6.5827;53;grevenbroich;;Mönchengladbach (14,3 km);;;"ja (A46, 2 km; Anlage 3.3 km)";;;2917540
+Weimar;DE;Thüringen;64727;Stadt/Gemeinde;50.9803;11.3290;221;weimar;;Jena (19,1 km);;;"ja (A4, 4.2 km; Anlage 14.8 km)";;;2812482
+Kerpen;DE;Nordrhein-Westfalen;64226;Stadt/Gemeinde;50.8699;6.6969;84;kerpen;;Brühl (15,3 km);;;"ja (A61, 1.1 km; Anlage 2.8 km)";;;2891524
+Fulda;DE;Hessen;63760;Stadt/Gemeinde;50.5516;9.6752;267;fulda;;Bad Hersfeld (35,7 km);;;"ja (A7, 4 km; Anlage 12.9 km)";;;2923822
+Dormagen;DE;Nordrhein-Westfalen;63582;Stadt/Gemeinde;51.0968;6.8317;46;dormagen;;Düsseldorf (15,1 km);;;"ja (A57, 1.8 km; Anlage 2.2 km)";;;2935825
+Wesel;DE;Nordrhein-Westfalen;61685;Stadt/Gemeinde;51.6669;6.6204;23;wesel;;Dinslaken (14,4 km);;;"ja (A3, 4.5 km; Anlage 8.7 km)";;;2810678
+Kempten (Allgäu);DE;Bayern;61399;Stadt/Gemeinde;47.7267;10.3139;679;kempten-allgaeu;;Nesselwang (18,2 km);;;"ja (A7, 2.3 km; Anlage 5 km)";;;2891621
+Sindelfingen;DE;Baden-Württemberg;61311;Stadt/Gemeinde;48.7000;9.0167;468;sindelfingen;;Leonberg (11,1 km);;;"ja (A81, 0.7 km; Anlage 5.4 km)";;;2831948
+Schwäbisch Gmünd;DE;Baden-Württemberg;61216;Stadt/Gemeinde;48.7995;9.7981;327;schwaebisch-gmuend;;Göppingen (15,1 km);;;;;;2835482
+Rosenheim;DE;Bayern;60167;Stadt/Gemeinde;47.8564;12.1225;448;rosenheim;;Prien am Chiemsee (16,7 km);;;"ja (A93, 5.3 km; Anlage 5.5 km)";;;2844988
+Brandenburg an der Havel;DE;Brandenburg;59826;Stadt/Gemeinde;52.4167;12.5500;52;brandenburg-an-der-havel;;Potsdam (35,0 km);;;"ja (A2, 7.4 km; Anlage 13 km)";;;2945358
+Rüsselsheim am Main;DE;Hessen;59730;Stadt/Gemeinde;49.9896;8.4225;91;ruesselsheim-am-main;;Hofheim am Taunus (11,4 km);;;"ja (A60, 1.6 km; Anlage 5.3 km)";;;2842884
+Offenburg;DE;Baden-Württemberg;59238;Stadt/Gemeinde;48.4738;7.9450;163;offenburg;;Kehl (14,6 km);;;"ja (A5, 2.8 km; Anlage 10.3 km)";;;2857798
+Stralsund;DE;Mecklenburg-Vorpommern;58976;Stadt/Gemeinde;54.3091;13.0818;3;stralsund;;Zingst (29,1 km);;;;;;2826287
+Hameln;DE;Niedersachsen;58666;Stadt/Gemeinde;52.1040;9.3562;73;hameln;;Springe (17,8 km);;;;;;2911271
+Göppingen;DE;Baden-Württemberg;58040;Stadt/Gemeinde;48.7035;9.6521;325;goeppingen;;Schorndorf (14,6 km);;;;;;2919054
+Frankfurt (Oder);DE;Brandenburg;57107;Stadt/Gemeinde;52.3471;14.5506;28;frankfurt-oder;;Eisenhüttenstadt (22,9 km);;;"ja (A12, 3.7 km; Anlage 3.6 km)";;;2925535
+Baden-Baden;DE;Baden-Württemberg;56881;Stadt/Gemeinde;48.7606;8.2398;168;baden-baden;;Rastatt (11,1 km);;;;;;2953504
+Eschweiler;DE;Nordrhein-Westfalen;55778;Stadt/Gemeinde;50.8185;6.2718;142;eschweiler;;Jülich (13,1 km);;;"ja (A4, 2.6 km; Anlage 3.9 km)";;;2928963
+Euskirchen;DE;Nordrhein-Westfalen;54889;Stadt/Gemeinde;50.6606;6.7872;165;euskirchen;;Brühl (20,5 km);;;"ja (A1, 3.3 km; Anlage 7 km)";;;2928396
+Schweinfurt;DE;Bayern;54012;Stadt/Gemeinde;50.0494;10.2218;232;schweinfurt;;Würzburg (34,5 km);;;"ja (A70, 3 km; Anlage 3 km)";;;2834498
+Neustadt an der Weinstraße;DE;Rheinland-Pfalz;53984;Stadt/Gemeinde;49.3501;8.1389;145;neustadt-an-der-weinstrasse;;Landau in der Pfalz (16,9 km);;;"ja (A65, 3.8 km; Anlage 4.5 km)";;;2864054
+Gummersbach;DE;Nordrhein-Westfalen;53131;Stadt/Gemeinde;51.0261;7.5647;256;gummersbach;;Lüdenscheid (22,0 km);;;"ja (A4, 5.8 km; Anlage 8.4 km)";;;2913761
+Waiblingen;DE;Baden-Württemberg;52945;Stadt/Gemeinde;48.8324;9.3164;234;waiblingen;;Stuttgart (11,6 km);;;;;;2815330
+Nordhorn;DE;Niedersachsen;52803;Stadt/Gemeinde;52.4308;7.0683;25;nordhorn;;Lingen (20,2 km);;;;;;2861934
+Greifswald;DE;Mecklenburg-Vorpommern;52731;Stadt/Gemeinde;54.0891;13.4024;6;greifswald;;Stralsund (32,2 km);ja (Lubmin (Greifswalder Bodden), 14.6 km);ja (Greifswald-Wieck, 3.7 km);;;;2917788
+Wetzlar;DE;Hessen;52656;Stadt/Gemeinde;50.5611;8.5049;170;wetzlar;;Gießen (12,4 km);;;"ja (A480, 2.4 km; Anlage 3.8 km)";;;2809889
+Bad Homburg vor der Höhe;DE;Hessen;51859;Stadt/Gemeinde;50.2268;8.6182;187;bad-homburg-vor-der-hoehe;;Frankfurt am Main (13,8 km);;;"ja (A661, 1.8 km; Anlage 10.3 km)";;;2953436
+Emden;DE;Niedersachsen;51526;Stadt/Gemeinde;53.3659;7.2085;5;emden;;Greetsiel (16,8 km);;;"ja (A31, 2.1 km; Anlage 2 km)";;;2930596
+Lingen;DE;Niedersachsen;51310;Stadt/Gemeinde;52.5227;7.3255;26;lingen;;Meppen (18,8 km);;;"ja (A31, 8.8 km; Anlage 9.4 km)";;;2877088
+Lahr;DE;Baden-Württemberg;50775;Stadt/Gemeinde;48.3404;7.8689;173;lahr;;Offenburg (15,9 km);;;"ja (A5, 5.7 km; Anlage 7 km)";;;2881885
+Ibbenbueren;DE;Nordrhein-Westfalen;50577;Stadt/Gemeinde;52.2796;7.7146;78;ibbenbueren;;Emsdetten (17,4 km);;;"ja (A30, 2.5 km; Anlage 7.9 km)";;;2896817
+Gronau;DE;Nordrhein-Westfalen;50547;Stadt/Gemeinde;52.2116;7.0241;42;gronau;;Ahaus (14,7 km);;;"ja (A31, 6.4 km; Anlage 6.8 km)";;;2917138
+Speyer;DE;Rheinland-Pfalz;50343;Stadt/Gemeinde;49.3208;8.4311;111;speyer;;Mannheim (18,8 km);;;"ja (A61, 3.6 km; Anlage 3.8 km)";;;2830582
+Heidenheim an der Brenz;DE;Baden-Württemberg;50067;Stadt/Gemeinde;48.6780;10.1516;498;heidenheim-an-der-brenz;;Aalen (18,3 km);;;"ja (A7, 4.8 km; Anlage 5.7 km)";;;2907851
+Peine;DE;Niedersachsen;49953;Stadt/Gemeinde;52.3193;10.2352;68;peine;;Lehrte (18,3 km);;;"ja (A2, 1.8 km; Anlage 3.1 km)";;;2855047
+Neunkirchen;DE;Saarland;49843;Stadt/Gemeinde;49.3445;7.1805;286;neunkirchen;;Homburg (11,6 km);;;"ja (A8, 1.9 km; Anlage 3.3 km)";;;2864435
+Bad Oeynhausen;DE;Nordrhein-Westfalen;49513;Stadt/Gemeinde;52.2070;8.8036;57;bad-oeynhausen;;Minden (11,9 km);;;"ja (A30, 1.6 km; Anlage 2.6 km)";;;2953386
+Leonberg;DE;Baden-Württemberg;49480;Stadt/Gemeinde;48.8000;9.0167;383;leonberg;;Sindelfingen (11,1 km);;;"ja (A81, 1.1 km; Anlage 10.7 km)";;;2878695
+Hof;DE;Bayern;49239;Stadt/Gemeinde;50.3130;11.9126;492;hof;;Plauen (26,0 km);;;"ja (A72, 5.6 km; Anlage 5.7 km)";;;2902768
+Kleve;DE;Nordrhein-Westfalen;49072;Stadt/Gemeinde;51.7883;6.1387;28;kleve;;Goch (12,3 km);;;;;;2887835
+Ravensburg;DE;Baden-Württemberg;48825;Stadt/Gemeinde;47.7820;9.6106;445;ravensburg;;Friedrichshafen (17,2 km);;;;;;2849802
+Elmshorn;DE;Schleswig-Holstein;48703;Stadt/Gemeinde;53.7491;9.6618;4;elmshorn;;Pinneberg (13,4 km);;;"ja (A23, 3.2 km; Anlage 9 km)";;;2930821
+Soest;DE;Nordrhein-Westfalen;48037;Stadt/Gemeinde;51.5756;8.1062;96;soest;;Werl (13,5 km);;;"ja (A44, 3.5 km; Anlage 9.2 km)";;;2831708
+Hennef (Sieg);DE;Nordrhein-Westfalen;48002;Stadt/Gemeinde;50.7756;7.2831;71;hennef-sieg;;Bonn (13,7 km);;;"ja (A560, 0.9 km; Anlage 1.9 km)";;;2906376
+Rastatt;DE;Baden-Württemberg;47906;Stadt/Gemeinde;48.8585;8.2096;126;rastatt;;Baden-Baden (11,1 km);;;;;;2850257
+Bruchsal;DE;Baden-Württemberg;47784;Stadt/Gemeinde;49.1243;8.5980;118;bruchsal;;Bretten (12,6 km);;;;;;2943560
+Dülmen;DE;Nordrhein-Westfalen;47495;Stadt/Gemeinde;51.8315;7.2808;72;duelmen;;Haltern am See (12,0 km);;;"ja (A43, 2 km; Anlage 3.3 km)";;;2934662
+Albstadt;DE;Baden-Württemberg;46950;Stadt/Gemeinde;48.2164;9.0260;733;albstadt;;Balingen (14,3 km);;;;;;2958595
+Gotha;DE;Thüringen;46615;Stadt/Gemeinde;50.9482;10.7019;306;gotha;;Erfurt (23,2 km);;;"ja (A4, 5.2 km; Anlage 5.4 km)";;;2918752
+Melle;DE;Niedersachsen;46436;Stadt/Gemeinde;52.2020;8.3383;84;melle;;Bünde (16,9 km);;;"ja (A30, 1.2 km; Anlage 5.3 km)";;;2872079
+Bünde;DE;Nordrhein-Westfalen;46365;Stadt/Gemeinde;52.1984;8.5864;73;buende;;Herford (11,0 km);;;"ja (A30, 1.2 km; Anlage 2.7 km)";;;2941694
+Stade;DE;Niedersachsen;45634;Stadt/Gemeinde;53.5941;9.4730;9;stade;;Buxtehude (19,9 km);;;;;;2829901
+Wismar;DE;Mecklenburg-Vorpommern;45255;Stadt/Gemeinde;53.8922;11.4556;3;wismar;;Boltenhagen (19,7 km);ja (Insel Poel, 13.3 km);ja (Wismar (Baumhaus), 0.7 km);"ja (A20, 3.4 km; Anlage 5.4 km)";;;2807465
+Amberg;DE;Bayern;44737;Stadt/Gemeinde;49.4429;11.8627;374;amberg;;Schwandorf in Bayern (22,2 km);;;"ja (A6, 5.4 km; Anlage 6.2 km)";;;2956656
+Neustadt am Rübenberge;DE;Niedersachsen;44668;Stadt/Gemeinde;52.5046;9.4587;42;neustadt-am-ruebenberge;;Nienburg (22,6 km);;;;;;2864058
+Erkelenz;DE;Nordrhein-Westfalen;44650;Stadt/Gemeinde;51.0795;6.3153;100;erkelenz;;Mönchengladbach (14,7 km);;;"ja (A46, 1.4 km; Anlage 8.2 km)";;;2929622
+Homburg;DE;Saarland;44607;Stadt/Gemeinde;49.3264;7.3387;241;homburg;;Neunkirchen (11,6 km);;;"ja (A6, 3 km; Anlage 4.8 km)";;;2899449
+Straubing;DE;Bayern;44580;Stadt/Gemeinde;48.8813;12.5739;333;straubing;;Deggendorf (28,7 km);;;"ja (A3, 7 km; Anlage 11.2 km)";;;2826099
+Memmingen;DE;Bayern;44192;Stadt/Gemeinde;47.9837;10.1853;600;memmingen;;Kempten (Allgäu) (30,1 km);;;"ja (A96, 1.8 km; Anlage 1.7 km)";;;2871992
+Brühl;DE;Nordrhein-Westfalen;44137;Stadt/Gemeinde;50.8293;6.9050;69;bruehl;;Köln (12,7 km);;;"ja (A553, 2 km; Anlage 5.8 km)";;;2943320
+Lehrte;DE;Niedersachsen;43920;Stadt/Gemeinde;52.3719;9.9792;61;lehrte;;Hannover (16,7 km);;;"ja (A2, 2 km; Anlage 2.5 km)";;;2879367
+Nordhausen;DE;Thüringen;43912;Stadt/Gemeinde;51.5018;10.7957;207;nordhausen;;Braunlage (28,1 km);;;"ja (A38, 3.5 km; Anlage 6.4 km)";;;2861982
+Freiberg;DE;Sachsen;43670;Stadt/Gemeinde;50.9109;13.3388;412;freiberg;;Meissen (29,4 km);;;;;;2925192
+Pirmasens;DE;Rheinland-Pfalz;43582;Stadt/Gemeinde;49.2015;7.6053;400;pirmasens;;Homburg (23,8 km);;;"ja (A8, 4.4 km; Anlage 13.1 km)";;;2853574
+Filderstadt;DE;Baden-Württemberg;43550;Stadt/Gemeinde;48.6570;9.2205;389;filderstadt;;Stuttgart (13,5 km);;;"ja (A8, 4 km; Anlage 4.3 km)";;;3336891
+Weinheim;DE;Baden-Württemberg;43325;Stadt/Gemeinde;49.5489;8.6670;119;weinheim;;Bensheim (15,4 km);;;"ja (A659, 2.4 km; Anlage 8.1 km)";;;2812174
+Rodgau;DE;Hessen;43315;Stadt/Gemeinde;50.0263;8.8859;129;rodgau;;Hanau am Main (12,1 km);;;"ja (A3, 3 km; Anlage 3.8 km)";;;3336893
+Bad Kreuznach;DE;Rheinland-Pfalz;43213;Stadt/Gemeinde;49.8414;7.8671;109;bad-kreuznach;;Rüdesheim am Rhein (15,8 km);;;"ja (A61, 7.4 km; Anlage 11 km)";;;2953416
+Gifhorn;DE;Niedersachsen;43000;Stadt/Gemeinde;52.4794;10.5522;59;gifhorn;;Wolfsburg (16,7 km);;;;;;2920478
+Freising;DE;Bayern;42570;Stadt/Gemeinde;48.4035;11.7488;450;freising;;Erding (15,9 km);;;"ja (A92, 2.6 km; Anlage 3 km)";;;2925034
+Weiden;DE;Bayern;42550;Stadt/Gemeinde;49.6768;12.1561;399;weiden;;Amberg (33,5 km);;;"ja (A93, 1.8 km; Anlage 10.4 km)";;;2813040
+Kaufbeuren;DE;Bayern;42505;Stadt/Gemeinde;47.8824;10.6219;672;kaufbeuren;;Kempten (Allgäu) (28,8 km);;;;;;2892080
+Nettetal;DE;Nordrhein-Westfalen;42417;Stadt/Gemeinde;51.3167;6.2833;52;nettetal;;Mönchengladbach (18,3 km);;;"ja (A61, 2.9 km; Anlage 6 km)";;;2866333
+Eberswalde;DE;Brandenburg;41980;Stadt/Gemeinde;52.8349;13.8195;15;eberswalde;;Bernau bei Berlin (23,3 km);;;"ja (A11, 9.5 km; Anlage 10.4 km)";;;2933882
+Bautzen;DE;Sachsen;41972;Stadt/Gemeinde;51.1803;14.4349;214;bautzen;;Hoyerswerda (31,8 km);;;"ja (A4, 1.9 km; Anlage 5.9 km)";;;2951881
+Coburg;DE;Bayern;41901;Stadt/Gemeinde;50.2594;10.9638;303;coburg;;Neuhaus am Rennweg (30,5 km);;;"ja (A73, 3.5 km; Anlage 4.4 km)";;;2939951
+Schorndorf;DE;Baden-Württemberg;41647;Stadt/Gemeinde;48.8054;9.5272;258;schorndorf;;Göppingen (14,6 km);;;;;;2836320
+Landau in der Pfalz;DE;Rheinland-Pfalz;41612;Stadt/Gemeinde;49.1984;8.1169;144;landau-in-der-pfalz;;Neustadt an der Weinstraße (16,9 km);;;"ja (A65, 2.5 km; Anlage 3.1 km)";;;2881646
+Heinsberg;DE;Nordrhein-Westfalen;41505;Stadt/Gemeinde;51.0636;6.0998;39;heinsberg;;Erkelenz (15,2 km);;;"ja (A46, 4.3 km; Anlage 5.4 km)";;;2907201
+Seevetal;DE;Niedersachsen;41266;Stadt/Gemeinde;53.4000;9.9667;46;seevetal;;Hamburg (16,9 km);;;"ja (A7, 2 km; Anlage 2.2 km)";;;2833564
+Bensheim;DE;Hessen;41124;Stadt/Gemeinde;49.6837;8.6184;102;bensheim;;Weinheim (15,4 km);;;"ja (A5, 1.4 km; Anlage 7.5 km)";;;2950978
+Germering;DE;Bayern;40916;Stadt/Gemeinde;48.1339;11.3765;544;germering;;Dachau (14,7 km);;;"ja (A99, 1.4 km; Anlage 1.7 km)";;;2921039
+Borken;DE;Nordrhein-Westfalen;40876;Stadt/Gemeinde;51.8438;6.8577;49;borken;;Bocholt (16,7 km);;;"ja (A31, 9.6 km; Anlage 10.3 km)";;;2946228
+Oranienburg;DE;Brandenburg;40793;Stadt/Gemeinde;52.7480;13.2519;33;oranienburg;;Falkensee (23,4 km);;;;;;2857129
+Eisenach;DE;Thüringen;40747;Stadt/Gemeinde;50.9807;10.3152;216;eisenach;;Mühlhausen (27,1 km);;;"ja (A4, 3.8 km; Anlage 6.5 km)";;;2931574
+Pinneberg;DE;Schleswig-Holstein;40577;Stadt/Gemeinde;53.6589;9.7970;15;pinneberg;;Elmshorn (13,4 km);;;"ja (A23, 1.4 km; Anlage 5.1 km)";;;2853658
+Pirna;DE;Sachsen;40322;Stadt/Gemeinde;50.9584;13.9370;120;pirna;;Bad Schandau (15,9 km);;;;;;2853572
+Aurich;DE;Niedersachsen;40319;Stadt/Gemeinde;53.4696;7.4824;10;aurich;;Emden (21,5 km);;;;;;2954006
+Kirchheim unter Teck;DE;Baden-Württemberg;40206;Stadt/Gemeinde;48.6468;9.4538;316;kirchheim-unter-teck;;Göppingen (15,9 km);;;"ja (A8, 1.6 km; Anlage 12.2 km)";;;2890473
+Dachau;DE;Bayern;39740;Stadt/Gemeinde;48.2600;11.4340;501;dachau;;Germering (14,7 km);;;"ja (A99, 6 km; Anlage 6.2 km)";;;2939623
+Halberstadt;DE;Sachsen-Anhalt;39729;Stadt/Gemeinde;51.8956;11.0562;123;halberstadt;;Wernigerode (19,9 km);;;;;;2911665
+Kehl;DE;Baden-Württemberg;39584;Stadt/Gemeinde;48.5730;7.8152;138;kehl;;Offenburg (14,6 km);;;;;;2891951
+Neumarkt in der Oberpfalz;DE;Bayern;39557;Stadt/Gemeinde;49.2803;11.4628;430;neumarkt-in-der-oberpfalz;;Schwabach (32,3 km);;;"ja (A3, 4.1 km; Anlage 4.9 km)";;;2864549
+Kamp-Lintfort;DE;Nordrhein-Westfalen;39490;Stadt/Gemeinde;51.5047;6.5459;30;kamp-lintfort;;Dinslaken (15,1 km);;;"ja (A57, 2.1 km; Anlage 5.9 km)";;;2893264
+Ilmenau;DE;Thüringen;38834;Stadt/Gemeinde;50.6832;10.9186;478;ilmenau;;Oberhof (13,7 km);;;"ja (A71, 3.3 km; Anlage 5.5 km)";;;2896514
+Backnang;DE;Baden-Württemberg;38818;Stadt/Gemeinde;48.9474;9.4372;248;backnang;;Waiblingen (15,5 km);;;;;;2953568
+Langen;DE;Hessen;38785;Stadt/Gemeinde;49.9896;8.6685;135;langen;;Darmstadt (13,1 km);;;"ja (A661, 1.4 km; Anlage 1.7 km)";;;2881279
+Warendorf;DE;Nordrhein-Westfalen;38707;Stadt/Gemeinde;51.9511;7.9876;59;warendorf;;Beckum (22,0 km);;;;;;2814127
+Altenburg;DE;Thüringen;38568;Stadt/Gemeinde;50.9876;12.4368;195;altenburg;;Zeitz (22,1 km);;;;;;2957773
+Schwabach;DE;Bayern;38554;Stadt/Gemeinde;49.3305;11.0235;327;schwabach;;Nürnberg (14,1 km);;;"ja (A6, 1.8 km; Anlage 9.6 km)";;;2835537
+Saarlouis;DE;Saarland;38333;Stadt/Gemeinde;49.3137;6.7515;183;saarlouis;;Merzig (16,6 km);;;"ja (A620, 1.3 km; Anlage 4.7 km)";;;2842632
+Buxtehude;DE;Niedersachsen;38192;Stadt/Gemeinde;53.4699;9.6897;6;buxtehude;;Stade (19,9 km);;;;;;2940451
+Ahaus;DE;Nordrhein-Westfalen;38165;Stadt/Gemeinde;52.0794;7.0134;51;ahaus;;Gronau (14,7 km);;;"ja (A31, 4.2 km; Anlage 4.3 km)";;;2959279
+Haltern am See;DE;Nordrhein-Westfalen;38142;Stadt/Gemeinde;51.7430;7.1816;45;haltern-am-see;;Marl (11,5 km);;;"ja (A43, 1.8 km; Anlage 4.9 km)";;;2911395
+Mühlhausen;DE;Thüringen;38108;Stadt/Gemeinde;51.2090;10.4527;221;muehlhausen;;Eisenach (27,1 km);;;;;;2867996
+Weißenfels;DE;Sachsen-Anhalt;37929;Stadt/Gemeinde;51.2015;11.9684;102;weissenfels;;Naumburg (12,5 km);;;"ja (A9, 3.6 km; Anlage 7.2 km)";;;2811899
+Beckum;DE;Nordrhein-Westfalen;37814;Stadt/Gemeinde;51.7557;8.0407;116;beckum;;Hamm (17,3 km);;;"ja (A2, 2.7 km; Anlage 1.4 km)";;;2951654
+Hofheim am Taunus;DE;Hessen;37750;Stadt/Gemeinde;50.0902;8.4493;146;hofheim-am-taunus;;Rüsselsheim am Main (11,4 km);;;"ja (A66, 2.3 km; Anlage 7.7 km)";;;2902533
+Stendal;DE;Sachsen-Anhalt;37722;Stadt/Gemeinde;52.6058;11.8609;37;stendal;;Brandenburg an der Havel (51,2 km);;;;;;2827479
+Falkensee;DE;Brandenburg;37468;Stadt/Gemeinde;52.5626;13.0872;32;falkensee;;Potsdam (19,1 km);;;"ja (A10, 7.8 km; Anlage 8.1 km)";;;2927930
+Sinsheim;DE;Baden-Württemberg;37036;Stadt/Gemeinde;49.2529;8.8787;162;sinsheim;;Heidelberg (22,0 km);;;;;;2831872
+Wermelskirchen;DE;Nordrhein-Westfalen;36816;Stadt/Gemeinde;51.1397;7.2158;304;wermelskirchen;;Wuppertal (13,7 km);;;"ja (A1, 1.2 km; Anlage 7.1 km)";;;2810855
+Coesfeld;DE;Nordrhein-Westfalen;36631;Stadt/Gemeinde;51.9435;7.1681;83;coesfeld;;Dülmen (14,7 km);;;"ja (A31, 8.5 km; Anlage 10.5 km)";;;2939945
+Bitterfeld-Wolfen;DE;Sachsen-Anhalt;36592;Stadt/Gemeinde;51.6236;12.3239;79;bitterfeld-wolfen;;Dessau (24,5 km);;;"ja (A9, 8.9 km; Anlage 10.1 km)";;;2948164
+Schwäbisch Hall;DE;Baden-Württemberg;36543;Stadt/Gemeinde;49.1113;9.7391;329;schwaebisch-hall;;Crailsheim (24,4 km);;;"ja (A6, 7.8 km; Anlage 8.5 km)";;;2835481
+Datteln;DE;Nordrhein-Westfalen;36338;Stadt/Gemeinde;51.6560;7.3453;56;datteln;;Recklinghausen (11,2 km);;;"ja (A2, 6 km; Anlage 9.2 km)";;;2938784
+Crailsheim;DE;Baden-Württemberg;35755;Stadt/Gemeinde;49.1344;10.0719;411;crailsheim;;Schwäbisch Hall (24,4 km);;;"ja (A6, 5.5 km; Anlage 5.8 km)";;;2939797
+Emsdetten;DE;Nordrhein-Westfalen;35582;Stadt/Gemeinde;52.1734;7.5278;44;emsdetten;;Steinfurt (13,3 km);;;;;;2930449
+Uelzen;DE;Niedersachsen;34996;Stadt/Gemeinde;52.9645;10.5670;38;uelzen;;Lüneburg (33,4 km);;;;;;2820456
+Bernau bei Berlin;DE;Brandenburg;34866;Stadt/Gemeinde;52.6798;13.5871;74;bernau-bei-berlin;;Berlin (21,6 km);;;"ja (A11, 1.6 km; Anlage 11.9 km)";;;2950096
+Tuttlingen;DE;Baden-Württemberg;34847;Stadt/Gemeinde;47.9846;8.8177;646;tuttlingen;;Villingen-Schwenningen (25,6 km);;;;;;2820693
+Merseburg;DE;Sachsen-Anhalt;34780;Stadt/Gemeinde;51.3548;11.9892;100;merseburg;;Halle (Saale) (14,2 km);;;"ja (A38, 4.6 km; Anlage 13.8 km)";;;2871736
+Rheinfelden;DE;Baden-Württemberg;34674;Stadt/Gemeinde;47.5601;7.7871;280;rheinfelden;;Pratteln (8,3 km);;;"ja (A861, 2 km; Anlage 2.3 km)";;;2847639
+Steinfurt;DE;Nordrhein-Westfalen;34601;Stadt/Gemeinde;52.1504;7.3366;60;steinfurt;;Emsdetten (13,3 km);;;;;;2828105
+Balingen;DE;Baden-Württemberg;34414;Stadt/Gemeinde;48.2752;8.8546;510;balingen;;Albstadt (14,3 km);;;;;;2953089
+Meppen;DE;Niedersachsen;34198;Stadt/Gemeinde;52.6906;7.2910;15;meppen;;Lingen (18,8 km);;;"ja (A31, 8 km; Anlage 7.9 km)";;;2871845
+Herrenberg;DE;Baden-Württemberg;34192;Stadt/Gemeinde;48.5952;8.8665;429;herrenberg;;Tübingen (15,8 km);;;;;;2905826
+Papenburg;DE;Niedersachsen;34117;Stadt/Gemeinde;53.0777;7.4152;4;papenburg;;Leer (17,4 km);;;;;;2855525
+Geldern;DE;Nordrhein-Westfalen;34013;Stadt/Gemeinde;51.5191;6.3236;28;geldern;;Kamp-Lintfort (15,5 km);;;"ja (A57, 8.6 km; Anlage 9.2 km)";;;2921528
+Jülich;DE;Nordrhein-Westfalen;33911;Stadt/Gemeinde;50.9215;6.3627;86;juelich;;Eschweiler (13,1 km);;;"ja (A44, 1.9 km; Anlage 3.3 km)";;;2894553
+Leer;DE;Niedersachsen;33886;Stadt/Gemeinde;53.2316;7.4610;7;leer;;Papenburg (17,4 km);;;"ja (A31, 3 km; Anlage 3.6 km)";;;2879697
+Limburg an der Lahn;DE;Hessen;33820;Stadt/Gemeinde;50.3836;8.0503;140;limburg-an-der-lahn;;Koblenz (33,6 km);;;"ja (A3, 2 km; Anlage 1.2 km)";;;2877648
+Schwedt (Oder);DE;Brandenburg;33730;Stadt/Gemeinde;53.0596;14.2815;3;schwedt-oder;;Eberswalde (39,8 km);;;;;;2834629
+Goch;DE;Nordrhein-Westfalen;33706;Stadt/Gemeinde;51.6787;6.1589;19;goch;;Kleve (12,3 km);;;"ja (A57, 2 km; Anlage 5.4 km)";;;2919625
+Fürstenwalde;DE;Brandenburg;33539;Stadt/Gemeinde;52.3607;14.0618;44;fuerstenwalde;;Königs Wusterhausen (29,9 km);;;"ja (A12, 2.9 km; Anlage 5.6 km)";;;2923588
+Erding;DE;Bayern;33519;Stadt/Gemeinde;48.3060;11.9069;466;erding;;Freising (15,9 km);;;"ja (A94, 9.6 km; Anlage 13.9 km)";;;2929715
+Itzehoe;DE;Schleswig-Holstein;33047;Stadt/Gemeinde;53.9210;9.5153;6;itzehoe;;Elmshorn (21,4 km);;;"ja (A23, 2.3 km; Anlage 2.5 km)";;;2895569
+Achim;DE;Niedersachsen;32870;Stadt/Gemeinde;53.0142;9.0263;13;achim;;Bremen (16,6 km);;;"ja (A27, 0.9 km; Anlage 3.4 km)";;;2959681
+Höxter;DE;Nordrhein-Westfalen;32713;Stadt/Gemeinde;51.7750;9.3816;100;hoexter;;Einbeck (33,9 km);;;;;;2898321
+Winsen;DE;Niedersachsen;32662;Stadt/Gemeinde;53.3578;10.2116;5;winsen;;Geesthacht (13,9 km);;;"ja (A39, 2.4 km; Anlage 12.9 km)";;;2807845
+Nienburg;DE;Niedersachsen;32629;Stadt/Gemeinde;52.6444;9.2166;28;nienburg;;Neustadt am Rübenberge (22,6 km);;;;;;2862620
+Königs Wusterhausen;DE;Brandenburg;32513;Stadt/Gemeinde;52.3014;13.6330;33;koenigs-wusterhausen;;Blankenfelde-Mahlow (15,4 km);;;"ja (A10, 1 km; Anlage 8.8 km)";;;2885732
+Biberach an der Riß;DE;Baden-Württemberg;32333;Stadt/Gemeinde;48.0934;9.7905;534;biberach-an-der-riss;;Memmingen (31,8 km);;;;;;2949423
+Meschede;DE;Nordrhein-Westfalen;32224;Stadt/Gemeinde;51.3502;8.2833;271;meschede;;Warstein (11,5 km);;;"ja (A46, 1.4 km; Anlage 1.2 km)";;;2871668
+Werl;DE;Nordrhein-Westfalen;32149;Stadt/Gemeinde;51.5549;7.9140;92;werl;;Soest (13,5 km);;;"ja (A445, 1.8 km; Anlage 4.3 km)";;;2810878
+Bernburg;DE;Sachsen-Anhalt;32113;Stadt/Gemeinde;51.7946;11.7401;87;bernburg;;Köthen (16,6 km);;;"ja (A14, 3.6 km; Anlage 9.5 km)";;;2950073
+Eisenhüttenstadt;DE;Brandenburg;32052;Stadt/Gemeinde;52.1500;14.6500;42;eisenhuettenstadt;;Frankfurt (Oder) (22,9 km);;;;;;2931481
+Neuruppin;DE;Brandenburg;31901;Stadt/Gemeinde;52.9282;12.8031;46;neuruppin;;Oranienburg (36,2 km);;;"ja (A24, 5 km; Anlage 13.2 km)";;;2864276
+Ansbach;DE;Bayern;31839;Stadt/Gemeinde;49.3048;10.5931;445;ansbach;;Schwabach (31,3 km);;;;;;2955936
+Osterholz-Scharmbeck;DE;Niedersachsen;31405;Stadt/Gemeinde;53.2266;8.7923;26;osterholz-scharmbeck;;Bremen (16,4 km);;;"ja (A27, 7.3 km; Anlage 8.6 km)";;;2856500
+Güstrow;DE;Mecklenburg-Vorpommern;31217;Stadt/Gemeinde;53.7972;12.1734;10;guestrow;;Rostock (33,1 km);;;"ja (A19, 8.2 km; Anlage 10.7 km)";;;2913433
+Cloppenburg;DE;Niedersachsen;31177;Stadt/Gemeinde;52.8475;8.0474;41;cloppenburg;;Vechta (20,8 km);;;"ja (A29, 9.5 km; Anlage 10.3 km)";;;2939969
+Merzig;DE;Saarland;31118;Stadt/Gemeinde;49.4433;6.6387;177;merzig;;Saarlouis (16,6 km);;;"ja (A8, 1.1 km; Anlage 3.9 km)";;;2871675
+Deggendorf;DE;Bayern;31081;Stadt/Gemeinde;48.8409;12.9607;317;deggendorf;;Bodenmais (27,1 km);;;"ja (A92, 1.1 km; Anlage 3.7 km)";;;2938540
+Northeim;DE;Niedersachsen;30894;Stadt/Gemeinde;51.7066;10.0000;127;northeim;;Einbeck (15,5 km);;;"ja (A7, 3.6 km; Anlage 4.2 km)";;;2861814
+Hoyerswerda;DE;Sachsen;30759;Stadt/Gemeinde;51.4379;14.2355;118;hoyerswerda;;Senftenberg (18,9 km);;;;;;2898304
+Bad Hersfeld;DE;Hessen;30725;Stadt/Gemeinde;50.8720;9.7089;214;bad-hersfeld;;Fulda (35,7 km);;;"ja (A4, 2.1 km; Anlage 11.5 km)";;;2953439
+Forchheim;DE;Bayern;30442;Stadt/Gemeinde;49.7175;11.0588;261;forchheim;;Erlangen (14,5 km);;;"ja (A73, 0.5 km; Anlage 3.7 km)";;;2925910
+Schönebeck;DE;Sachsen-Anhalt;30419;Stadt/Gemeinde;52.0168;11.7307;53;schoenebeck;;Magdeburg (13,6 km);;;"ja (A14, 5.1 km; Anlage 5.1 km)";;;2836809
+Bad Nauheim;DE;Hessen;30291;Stadt/Gemeinde;50.3646;8.7386;159;bad-nauheim;;Bad Homburg vor der Höhe (17,5 km);;;"ja (A5, 2.5 km; Anlage 3.4 km)";;;2953395
+Bretten;DE;Baden-Württemberg;30274;Stadt/Gemeinde;49.0369;8.7074;187;bretten;;Bruchsal (12,6 km);;;;;;2944200
+Ahrensburg;DE;Schleswig-Holstein;30103;Stadt/Gemeinde;53.6766;10.2370;49;ahrensburg;;Norderstedt (16,3 km);;;"ja (A1, 4.5 km; Anlage 5.9 km)";;;2959083
+Rietberg;DE;Nordrhein-Westfalen;30055;Stadt/Gemeinde;51.8092;8.4284;81;rietberg;;Gütersloh (11,4 km);;;"ja (A2, 7.2 km; Anlage 8.8 km)";;;2846843
+Wittenberg;DE;Sachsen-Anhalt;30000;Stadt/Gemeinde;51.8661;12.6497;74;wittenberg;;Dessau (27,9 km);;;;;;7303020
+Springe;DE;Niedersachsen;29828;Stadt/Gemeinde;52.2084;9.5542;110;springe;;Hameln (17,8 km);;;;;;2830035
+Einbeck;DE;Niedersachsen;29751;Stadt/Gemeinde;51.8202;9.8696;116;einbeck;;Northeim (15,5 km);;;;;;2931804
+Vechta;DE;Niedersachsen;29729;Stadt/Gemeinde;52.7306;8.2897;37;vechta;;Cloppenburg (20,8 km);;;"ja (A1, 7.7 km; Anlage 7.9 km)";;;2817812
+Naumburg;DE;Sachsen-Anhalt;29722;Stadt/Gemeinde;51.1499;11.8098;134;naumburg;;Weißenfels (12,5 km);;;;;;2866906
+Geesthacht;DE;Schleswig-Holstein;29487;Stadt/Gemeinde;53.4366;10.3734;18;geesthacht;;Winsen (13,9 km);;;"ja (A25, 3.6 km; Anlage 12.3 km)";;;2922102
+Haan;DE;Nordrhein-Westfalen;29431;Stadt/Gemeinde;51.1938;7.0133;168;haan;;Wuppertal (11,8 km);;;"ja (A46, 1.3 km; Anlage 1.2 km)";;;2913195
+Riesa;DE;Sachsen;29373;Stadt/Gemeinde;51.3078;13.2917;110;riesa;;Meissen (20,6 km);;;;;;2846939
+Idar-Oberstein;DE;Rheinland-Pfalz;29158;Stadt/Gemeinde;49.7144;7.3078;281;idar-oberstein;;Bernkastel-Kues (27,9 km);;;;;;2896753
+Blankenfelde-Mahlow;DE;Brandenburg;29129;Stadt/Gemeinde;52.3364;13.4132;44;blankenfelde-mahlow;;Königs Wusterhausen (15,4 km);;;"ja (A10, 3.5 km; Anlage 3.4 km)";;;13526830
+Senftenberg;DE;Brandenburg;28988;Stadt/Gemeinde;51.5252;14.0016;104;senftenberg;;Hoyerswerda (18,9 km);;;"ja (A13, 6.5 km; Anlage 11.4 km)";;;2833073
+Vaihingen an der Enz;DE;Baden-Württemberg;28798;Stadt/Gemeinde;48.9356;8.9604;239;vaihingen-an-der-enz;;Leonberg (15,6 km);;;;;;2817927
+Köthen;DE;Sachsen-Anhalt;28710;Stadt/Gemeinde;51.7518;11.9709;83;koethen;;Bernburg (16,6 km);;;;;;2885237
+Geislingen an der Steige;DE;Baden-Württemberg;28655;Stadt/Gemeinde;48.6242;9.8274;425;geislingen-an-der-steige;;Göppingen (15,6 km);;;;;;2921653
+Warstein;DE;Nordrhein-Westfalen;28532;Stadt/Gemeinde;51.4449;8.3485;344;warstein;;Meschede (11,5 km);;;"ja (A46, 8.9 km; Anlage 9 km)";;;2814005
+Meissen;DE;Sachsen;28492;Stadt/Gemeinde;51.1616;13.4737;109;meissen;;Riesa (20,6 km);;;;;;2872155
+Neuburg an der Donau;DE;Bayern;28370;Stadt/Gemeinde;48.7322;11.1871;382;neuburg-an-der-donau;;Ingolstadt (17,8 km);;;;;;2866070
+Zeitz;DE;Sachsen-Anhalt;28328;Stadt/Gemeinde;51.0496;12.1369;192;zeitz;;Gera (19,2 km);;;;;;2804922
+Rendsburg;DE;Schleswig-Holstein;28323;Stadt/Gemeinde;54.3018;9.6717;9;rendsburg;;Kiel (29,3 km);;;"ja (A210, 2.5 km; Anlage 4.8 km)";;;2848245
+Schwandorf in Bayern;DE;Bayern;28235;Stadt/Gemeinde;49.3253;12.1098;363;schwandorf-in-bayern;;Amberg (22,2 km);;;"ja (A93, 3.2 km; Anlage 13.4 km)";;;2835297
+Bramsche;DE;Niedersachsen;28220;Stadt/Gemeinde;52.4088;7.9729;62;bramsche;;Osnabrück (15,3 km);;;"ja (A1, 4 km; Anlage 10.3 km)";;;2945474
+Plettenberg;DE;Nordrhein-Westfalen;28206;Stadt/Gemeinde;51.2095;7.8726;229;plettenberg;;Lennestadt (17,0 km);;;;;;2853209
+Lennestadt;DE;Nordrhein-Westfalen;28102;Stadt/Gemeinde;51.1172;8.0671;276;lennestadt;;Schmallenberg (15,8 km);;;;;;2878784
+Saalfeld;DE;Thüringen;28023;Stadt/Gemeinde;50.6483;11.3654;229;saalfeld;;Neuhaus am Rennweg (22,2 km);;;;;;2842688
+Eisenzicken;AT;Burgenland;54353;Stadt/Gemeinde;47.2760;16.2591;293;eisenzicken;;Semmering (51,2 km);;;;;;2780180
+Baden;AT;Niederösterreich;26286;Stadt/Gemeinde;48.0054;16.2326;229;baden;;Mödling (9,9 km);;;;;;2782067
+Traun;AT;Oberösterreich;25345;Stadt/Gemeinde;48.2209;14.2383;275;traun;;Linz (10,1 km);;;;;;2763423
+Telfs;AT;Tirol;15229;Stadt/Gemeinde;47.3071;11.0682;632;telfs;;Seefeld in Tirol (9,4 km);;;;ja (5, nächster Lisenser Ferner 25.2 km);;2763810
+Schwaz;AT;Tirol;13728;Stadt/Gemeinde;47.3517;11.7101;536;schwaz;;Hall in Tirol (16,4 km);;;;;;2765390
+Hall in Tirol;AT;Tirol;13334;Stadt/Gemeinde;47.2833;11.5167;586;hall-in-tirol;;Innsbruck (8,6 km);;;;ja (1, nächster Gefrorene Wand Kees 26.7 km);;2764958
+Schwechat;AT;Niederösterreich;12351;Stadt/Gemeinde;48.1333;16.4667;162;schwechat;;Wien (10,8 km);;;;;;2765388
+Götzis;AT;Vorarlberg;11473;Stadt/Gemeinde;47.3331;9.6331;425;goetzis;;Altstätten (8,1 km);;;;;;2778218
+Neunkirchen;AT;Niederösterreich;11461;Stadt/Gemeinde;47.7210;16.0811;369;neunkirchen-niederoesterreich;Kollision mit Neunkirchen → neunkirchen-niederoesterreich;Puchberg am Schneeberg (14,5 km);;;;;;2770711
+Frauenfeld;CH;Thurgau;25607;Stadt/Gemeinde;47.5578;8.8989;413;frauenfeld;;Winterthur (14,6 km);;;;;;2660727
+Dietikon;CH;Zürich;20893;Stadt/Gemeinde;47.4016;8.4002;396;dietikon;;Wettingen (9,0 km);;;;;;2661015
+Gossau;CH;St. Gallen;17043;Stadt/Gemeinde;47.4155;9.2548;636;gossau;;Sankt Gallen (9,2 km);;;;;;2660549
+Kloten;CH;Zürich;16289;Stadt/Gemeinde;47.4515;8.5849;438;kloten;;Bülach (8,5 km);;;;;;2660127
+Grenchen;CH;Solothurn;15927;Stadt/Gemeinde;47.1921;7.3959;454;grenchen;;Solothurn (10,8 km);;;;;;2660512
+Pratteln;CH;Basel-Landschaft;14877;Stadt/Gemeinde;47.5207;7.6936;291;pratteln;;Rheinfelden (8,3 km);;;"ja (A861, 5.7 km; Anlage 5.9 km)";;;2659147
+Langenthal;CH;Bern;14184;Stadt/Gemeinde;47.2153;7.7961;478;langenthal;;Olten (17,0 km);;;;;;2660034
+Wohlen;CH;Aargau;13875;Stadt/Gemeinde;47.3507;8.2752;418;wohlen;;Lenzburg (8,6 km);;;;;;2657963
+Delémont;CH;Jura;12682;Stadt/Gemeinde;47.3649;7.3445;430;delemont;;Grenchen (19,6 km);;;;;;2661035
+Glarus;CH;Glarus;12425;Stadt/Gemeinde;47.0406;9.0680;475;glarus;;Braunwald (12,3 km);;;;ja (5, nächster Guppenfirn 6.5 km);;2660594
+Affoltern am Albis;CH;Zürich;12226;Stadt/Gemeinde;47.2774;8.4513;494;affoltern-am-albis;;Küsnacht (11,0 km);;;;;;2661842
+Versoix;CH;Genf;11467;Stadt/Gemeinde;46.2838;6.1621;404;versoix;;Genf (9,0 km);;;;;;2658151
+Brugg;CH;Aargau;11177;Stadt/Gemeinde;47.4810;8.2087;354;brugg;;Wettingen (9,0 km);;;;;;2661374
+Worb;CH;Bern;11053;Stadt/Gemeinde;46.9298;7.5631;583;worb;;Bern (9,0 km);;;;;;2657954
+Lyss;CH;Bern;10937;Stadt/Gemeinde;47.0741;7.3065;445;lyss;;Biel/Bienne (8,3 km);;;;;;2659808
+Altstätten;CH;St. Gallen;10574;Stadt/Gemeinde;47.3777;9.5475;447;altstaetten;;Götzis (8,1 km);;;;;;2661766
+Lenzburg;CH;Aargau;10569;Stadt/Gemeinde;47.3885;8.1750;401;lenzburg;;Wohlen (8,6 km);;;;;;2659952
+Buchs;CH;St. Gallen;10418;Stadt/Gemeinde;47.1674;9.4779;450;buchs;;Wildhaus (10,3 km);;;;;;2661349
+Aesch;CH;Basel-Landschaft;10138;Stadt/Gemeinde;47.4710;7.5973;311;aesch;;Pratteln (9,1 km);;;;;;2661852
