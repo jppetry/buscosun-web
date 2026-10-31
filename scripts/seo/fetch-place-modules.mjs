@@ -17,7 +17,7 @@
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PLACES } from './places.mjs';
+import { PLACES_ALL as PLACES } from './places.mjs';
 import { loadModuleCatalogs, relationsFor } from './lib/moduleRelations.mjs';
 import { MODULES } from './placeRules.mjs';
 

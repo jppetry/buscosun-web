@@ -23,7 +23,7 @@ import { gunzipSync } from 'node:zlib';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PLACES } from './places.mjs';
+import { PLACES_ALL as PLACES } from './places.mjs';
 import { wgs84ToGk3 } from './lib/geo.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
