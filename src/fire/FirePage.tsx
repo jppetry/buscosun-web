@@ -125,6 +125,7 @@ import {
 import { BR_LAYER, BR_GROUP_COLOR, dangerCardMeta, DANGER_VIEW_CODE, BR_BADGE_LABEL, badgeOf } from './brandradarMeta';
 import { recordTitle, recordName, regionLabel, Stat, type PanelSort } from './FireFootprintPanel';
 import { FireMapCard, HistoryMapCard } from './FireMapCard';
+import { FireRegionSearch, type RegionHit } from './FireRegionSearch';
 import { ageText } from '../dataAge';
 import './fireDeck.css';
 
@@ -1230,6 +1231,8 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     if (eff && isOutlineless(eff)) addOutlines([eff.id]);
   }, [region, selectedFootprint, recordsById, addOutlines]);
   const clearFootprint = useCallback(() => { setSelectedFootprint(null); setSelectedSite(null); setFocusBbox(null); }, []);
+  /** Regionssuche der Topbar: nur die Kamera — dieselbe Fokus-Logik wie die Listen (`focusBbox` + `focusNonce`), keine Auswahl. */
+  const focusRegion = useCallback((hit: RegionHit) => { setFocusBbox(hit.bbox); setFocusNonce((n) => n + 1); }, []);
   /**
    * BD2b: Klick auf eine EFFIS-Fläche — gehört sie einem Brand der Registry
    * (Kartierung oder Geometrie-Referenz), öffnet sein Dossier; historische
@@ -2444,6 +2447,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
             {!isTablet && <span className="br-topbar-sub">Brandradar · {inDossier ? (readoutTab === 'anomalies' ? 'Thermalanomalien' : 'Brände') : `${REGION_LABEL[region]}-Flächenblick`}</span>}
             {inDossier && dossierRecord && <span className="br-topbar-sub br-topbar-name">{recordName(dossierRecord)}</span>}
             {stageSeg(false)}
+            {!inDossier && <FireRegionSearch compact={isTablet} onPick={focusRegion} />}
             <div className="br-topbar-right">
               {!isTablet && <span className="br-topbar-map">Karte: <strong>{basemapLabel}</strong></span>}
               <span className={`br-live is-${firms.tone}`} role="status">

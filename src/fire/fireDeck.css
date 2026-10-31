@@ -152,6 +152,40 @@
 .br-topback { margin: 0; font-size: 13px; }
 .br-topbar-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
 
+/* Regionssuche der Topbar (2026-10-31): Aufbau wie `.mdk-search` der Kartenebene, Command-Deck-Tokens. */
+.br-search { position: relative; flex: 1; min-width: 160px; max-width: 380px; }
+.br-search.is-compact { max-width: 220px; }
+.br-search-box {
+  display: flex; align-items: center; gap: 10px;
+  background: #fff; border: 1px solid var(--border-medium, #D9D0B8);
+  border-radius: 12px; padding: 0 13px; height: 38px;
+  color: var(--stone-500, #8B7355);
+}
+.br-search-box:focus-within { border-color: var(--stone-400, #A89A7A); }
+.br-search-input {
+  flex: 1; min-width: 0; border: 0; outline: none; background: transparent;
+  font: inherit; font-size: 14px; color: var(--ink-900, #2C2A26); padding: 0;
+  height: 100%; align-self: stretch;
+}
+.br-search-busy { font-size: 13px; color: var(--stone-500, #8B7355); }
+.br-search-drop {
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 50;
+  background: var(--cream-50, #FAF6EA); border: 1px solid var(--border-medium, #D9D0B8);
+  border-radius: 12px; box-shadow: var(--shadow-float); overflow: hidden;
+  display: flex; flex-direction: column; padding: 5px;
+}
+.br-search-hit {
+  display: flex; align-items: center; gap: 9px; text-align: left;
+  border: 0; background: none; cursor: pointer; font: inherit;
+  font-size: 13.5px; color: var(--ink-900, #2C2A26); padding: 9px 10px; border-radius: 8px; min-height: 44px;
+}
+.br-search-hit:hover, .br-search-hit:focus-visible { background: #F0EAD9; }
+.br-search-hit-cc { font-size: 11px; font-weight: 700; color: var(--stone-500, #8B7355); width: 22px; flex: 0 0 auto; }
+.br-search-hit-txt { display: flex; flex-direction: column; min-width: 0; }
+.br-search-hit-txt b { font-weight: 600; }
+.br-search-hit-txt em { font-style: normal; font-size: 12px; color: var(--stone-500, #8B7355); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.br-search-err { font-size: 12px; color: var(--terracotta-700, #A85E2E); padding: 9px 10px; }
+
 
 /* SH3: Teilen-Knopf rechts in der Topbar bzw. in der mobilen Kartenzeile.
    Form und Farbe kommen aus `src/share/share.css`; hier steht nur die Einpassung. */
