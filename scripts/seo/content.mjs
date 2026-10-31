@@ -11,6 +11,10 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { nearestPlaces } from './places.mjs';
 import { climateSection, sunSection, unknownsSection, climateHighlights, placeDescription, CLIMA_YEARS } from './climate.mjs';
+import {
+  climateOf, climateSourceLabel, placeLeadV3, placeDescriptionV3, lageSection, climateSectionV3, sunSectionV3, placeFaqsV3,
+  unknownsSectionV3, moduleBlocks, neighbourFindings, sourcesLine, placeJsonLdExtras, seaPlaceLinks,
+} from './placeContent.mjs';
 import { verificationMetaTags } from './verification.mjs';
 
 const OG_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public', 'og');
@@ -163,7 +167,7 @@ export function metaFor(place) {
   // SEO/GEO 2026 (E8): eigene Description je Ort. Vorher stand auf allen 138 Seiten derselbe
   // Satz — für Google ein Duplikat-Signal, für einen Menschen ohne Informationswert. Die
   // Klimakennzahlen unterscheiden die Orte inhaltlich, nicht nur durch den Namen.
-  const description = placeDescription(place, climateHighlights(place));
+  const description = placeDescriptionV3(place);
   return { title, description, locale: LOCALE[place.country] };
 }
 
@@ -260,12 +264,12 @@ export function datasetJsonLd(place) {
     '@context': 'https://schema.org',
     '@type': 'Dataset',
     name: `Höhenkorrigierte Wettervorhersage ${place.name}`,
-    description: `Vorhersage- und Standortdaten für ${place.name} (${place.region}, ${COUNTRY_NAME[place.country]}, rund ${place.ele} m), höhenkorrigiert über ein digitales Geländemodell. Quellen: ${sourcesFor(place.country)}.`,
+    description: `Vorhersage- und Standortdaten für ${place.name} (${place.region}, ${COUNTRY_NAME[place.country]}, rund ${place.ele} m), höhenkorrigiert über ein digitales Geländemodell. Quellen: ${sourcesFor(place.country)}; Klima: ${climateSourceLabel(place)}.`,
     url: `${SITE.url}/wetter/${place.slug}/`,
     license,
     isAccessibleForFree: true,
     // E8: Die Seite trägt eine Klimatologie aus Stationsdaten — der Zeitraum gehört ausgewiesen.
-    temporalCoverage: `${CLIMA_YEARS[0]}/${CLIMA_YEARS[1]}`,
+    temporalCoverage: climateOf(place).kind === 'raster' ? '1991/2020' : `${CLIMA_YEARS[0]}/${CLIMA_YEARS[1]}`,
     creator: { '@type': 'Organization', name: SITE.name, url: SITE.url + '/' },
     spatialCoverage: {
       '@type': 'Place',
@@ -360,22 +364,36 @@ th{font-weight:600;background:rgba(224,214,190,.35)}
 td+td,th+th{text-align:right}
 p.note{font-size:.85rem;color:var(--stone)}`;
 
-/** Vollständige statische Geo-Seite (semantisch, crawlbar, GEO-zitierbar). */
+/**
+ * Vollständige statische Geo-Seite (semantisch, crawlbar, GEO-zitierbar).
+ *
+ * Ortsseiten v3: Jeder Satz ist aus Daten abgeleitet (`placeContent.mjs`); Allgemeines steht zentral unter
+ * /methodik/ortsseiten/ und /faq/. Module (Seewetter, Autobahn, Gletscher) erscheinen nur, wenn der Ort passt
+ * und die Zielseite live und indexierbar ist.
+ */
 export function renderPlacePage(place) {
   const meta = metaFor(place);
   const canonicalPath = `/wetter/${place.slug}/`;
-  const facts = placeFacts(place);
-  const faqs = placeFaqs(place);
+  const faqs = placeFaqsV3(place);
   const neighbors = nearestPlaces(place, 6);
+  const mods = moduleBlocks(place);
+  const findings = neighbourFindings(place);
+  const pageUrl = `${SITE.url}${canonicalPath}`;
+  const webPage = mods.mentions.length
+    ? { '@context': 'https://schema.org', '@type': 'WebPage', name: meta.title, url: pageUrl, about: { '@type': 'Place', name: place.name }, mentions: mods.mentions }
+    : null;
   const head = headBlock({
     title: meta.title, description: meta.description, canonicalPath, locale: meta.locale,
     ogImage: '/og/wetter-default.png',
-    jsonLd: [placeJsonLd(place), datasetJsonLd(place), breadcrumbJsonLd(place), faqJsonLd(faqs), webAppJsonLd()],
+    jsonLd: [
+      { ...placeJsonLd(place), containedInPlace: { '@type': 'AdministrativeArea', name: place.region }, ...placeJsonLdExtras(place, mods.blocks) },
+      datasetJsonLd(place), breadcrumbJsonLd(place), faqJsonLd(faqs), webPage, webAppJsonLd(),
+    ].filter(Boolean),
   });
 
-  const factItems = facts.map((f) => `<li>${escapeHtml(f)}</li>`).join('\n        ');
   const faqItems = faqs.map((f) => `<details><summary>${escapeHtml(f.q)}</summary><p>${escapeHtml(f.a)}</p></details>`).join('\n      ');
   const neighborLinks = neighbors.map((n) => `<a href="/wetter/${n.slug}/">${escapeHtml(n.name)} <span>(${n.distKm} km)</span></a>`).join('\n        ');
+  const compare = findings.length ? `<p>${findings.map(escapeHtml).join(' ')}</p>\n        ` : '';
   // E8: Vorher zeigten alle sechs Knöpfe auf „/" — sechs identische Links ohne Ziel.
   // Jetzt führt jeder in die passende Ansicht, wo möglich mit dem Ort in der Query.
   const placeQuery = new URLSearchParams([
@@ -392,10 +410,10 @@ export function renderPlacePage(place) {
     ['Wetter entlang einer Tour', '/tourenplanung'],
     ['Atmosphäre & Höhenwind', `/atmosphaere/querschnitt?${placeQuery}`],
     ['Wetterarchiv & Klima', `/wetterarchiv?${placeQuery}`],
-    ['Waldbrandgefahr', '/waldbrand/gefahrenindex'],
-  ].map(([label, href]) => `<a href="${href}">${label}</a>`).join('\n        ');
+  ].map(([label, href]) => `<a href="${href}">${label}</a>`).join(' · ');
   const knowledgeLinks = relevantExplainersFor(place, EXPLAINERS, 3)
     .map((e) => `<a href="/wissen/${e.slug}/">${escapeHtml(e.title)}</a>`).join('\n        ');
+  const moduleHtml = mods.blocks.map((b) => `      <section>\n        <h2>${escapeHtml(b.h2)}</h2>\n        ${b.html}\n      </section>\n`).join('\n');
 
   return `<!doctype html>
 <html lang="de">
@@ -408,27 +426,21 @@ ${head}
       <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › <a href="/wetter/">Wetter</a> › ${escapeHtml(place.name)}</nav>
       <h1>Wetter ${escapeHtml(place.name)}</h1>
       <p class="sub">${FLAG[place.country]} ${escapeHtml(place.region)} · ${COUNTRY_NAME[place.country]} · rund ${place.ele} m</p>
-      <p class="lead">${escapeHtml(placeLead(place))}</p>
+      <p class="lead">${escapeHtml(placeLeadV3(place))}</p>
       <a class="cta" href="${mapPermalink(place)}">Wetter für ${escapeHtml(place.name)} auf der interaktiven Karte öffnen →</a>
 
-      <section>
-        <h2>Wetter in ${escapeHtml(place.name)} — die Fakten</h2>
-        <ul class="facts">
-        ${factItems}
-        </ul>
-        <p>Live-Werte und Stundenverlauf zeigt die <a href="${mapPermalink(place)}">interaktive Karte für ${escapeHtml(place.name)}</a>. buscosun nutzt ausschließlich amtliche Quellen und arbeitet ohne Tracker.</p>
-      </section>
-
-${climateSection(place)}${sunSection(place)}
+${lageSection(place)}
+${climateSectionV3(place)}${sunSectionV3(place)}${moduleHtml}
       <section>
         <h2>Häufige Fragen zum Wetter in ${escapeHtml(place.name)}</h2>
         ${faqItems}
+        <p class="note">Allgemeine Fragen zu Datenquellen, Höhenkorrektur und Kosten beantwortet die <a href="/faq/">zentrale FAQ</a>.</p>
       </section>
 
-${unknownsSection(place, { alpine: isAlpine(place) })}
+${unknownsSectionV3(place)}
       <section>
         <h2>Wetter in der Umgebung</h2>
-        <div class="links">
+        ${compare}<div class="links">
         ${neighborLinks}
         </div>
       </section>
@@ -440,15 +452,10 @@ ${unknownsSection(place, { alpine: isAlpine(place) })}
         </div>
       </section>
 
-      <section>
-        <h2>buscosun-Funktionen</h2>
-        <div class="links">
-        ${featureLinks}
-        </div>
-      </section>
+      <p class="note">Weiter mit ${escapeHtml(place.name)}: ${featureLinks}</p>
 
       <footer>
-        ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, GeoNutzV) · GeoSphere Austria · MeteoSwiss. Keine Tracker, keine Werbung.
+        ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Quellen dieser Seite: ${escapeHtml(sourcesLine(place, mods.blocks))}. Keine Tracker, keine Werbung.
         Hinweis: Diese Seite nennt stabile Standort-Fakten; aktuelle Messwerte und Vorhersagen liefert die interaktive App. buscosun gibt keine amtlichen Warnungen heraus.
       </footer>
     </main>
@@ -1170,11 +1177,17 @@ export function renderRouteRootContent(route) {
   const subList = subs.length
     ? `<h2>Ansichten</h2>\n      <ul>\n        ${subs.map((s) => `<li><a href="${route.path}/${s.slug}">${escapeHtml(s.title)}</a> — ${escapeHtml(s.description)}</li>`).join('\n        ')}\n      </ul>`
     : '';
+  // Phase Ortsseiten (E): die Seewetter-Shell verlinkt die Ortsseiten der Küstenorte (Gegenrichtung zum Seewetter-Abschnitt dort).
+  const coast = route.id === 'seewetter' ? seaPlaceLinks(PLACES) : [];
+  const coastList = coast.length
+    ? `<h2>Orte an der Küste</h2>\n      <p>${coast.map((p) => `<a href="/wetter/${p.slug}/">${escapeHtml(p.name)}</a>`).join(' · ')}</p>`
+    : '';
   return `<div id="seo-fallback">
       <nav aria-label="Brotkrumen"><a href="/">Start</a> › ${escapeHtml(route.meta.title)}</nav>
       <h1>${escapeHtml(route.meta.h1)}</h1>
       <p>${escapeHtml(route.meta.lead)}</p>
       ${subList}
+      ${coastList}
       <h2>Mehr auf buscosun</h2>
       <p><a href="/wetter/">Wetter nach Ort</a> · <a href="/funktionen/">Alle Funktionen</a> · <a href="/wissen/">Wetterwissen</a> · <a href="/wetterkarte">Wetterkarte</a> · <a href="/regenradar">Regenradar</a></p>
       <p>Datenquellen: DWD · GeoSphere · MeteoSwiss — höhenkorrigiert, ohne Tracker.</p>

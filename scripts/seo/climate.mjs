@@ -100,9 +100,9 @@ function berlinMidnight(year, monthIndex, day) {
 
 const clock = (ms) => (ms == null ? null : clockFmt.format(new Date(ms)));
 
-/** Minutengenaue Übergänge der Sonnenhöhe über einen ganzen Ortstag. */
-function sunDay(place, monthIndex) {
-  const start = berlinMidnight(SUN_REFERENCE_YEAR, monthIndex, 15);
+/** Minutengenaue Übergänge der Sonnenhöhe über einen ganzen Ortstag (Standard: der 15. des Monats). */
+export function sunDay(place, monthIndex, day = 15) {
+  const start = berlinMidnight(SUN_REFERENCE_YEAR, monthIndex, day);
   const N = 1440;
   const alt = new Array(N + 1);
   let maxIdx = 0;
@@ -134,6 +134,8 @@ function sunDay(place, monthIndex) {
     goldenEvening: goldenEveningStart != null && goldenEveningEnd != null ? `${clock(goldenEveningStart)}–${clock(goldenEveningEnd)}` : null,
     blueEvening: goldenEveningEnd != null && blueEveningEnd != null ? `${clock(goldenEveningEnd)}–${clock(blueEveningEnd)}` : null,
     dayLength: dayMin == null ? null : `${Math.floor(dayMin / 60)}:${String(dayMin % 60).padStart(2, '0')} h`,
+    dayMinutes: dayMin,
+    noonAltitude: Math.round(alt[maxIdx] * 10) / 10,
   };
 }
 
