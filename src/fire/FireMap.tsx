@@ -80,12 +80,26 @@ const STREETS = WEATHER_BASEMAP_STYLE;
  * beigen Umrandung. Abrufe bleiben in `EUROPE_BOX` — im Zuschlag gibt es nur Basiskarte.
  */
 const EUROPE_VIEW_EXTRA = { west: 0.07, south: 0.07 };
+/** Weitere 500 km nach Süden Richtung Afrika (Jan 31.10.: 100 + 200 + nochmal 200 km, weil die Legende unten Fläche verdeckt), in Breitengrad umgerechnet (1° ≈ 111,32 km). */
+const EUROPE_VIEW_EXTRA_SOUTH_DEG = 500 / 111.32;
+/**
+ * Karte insgesamt je 200 km breiter und höher (Jan 31.10.): je 100 km an jeder Seite, also Süden, Norden, Westen, Osten.
+ * Der Längengrad-Zuschlag rechnet mit der Breite der Mitte der Box (≈ 50° N: 1° ≈ 71,6 km).
+ */
+const EUROPE_VIEW_PAD_DEG_LAT = 100 / 111.32;
+const EUROPE_VIEW_PAD_DEG_LON = 200 / (111.32 * Math.cos((50 * Math.PI) / 180)); // Westen/Osten seit Jan 31.10. 200 km statt 100 km
 const EUROPE_VIEW_BOX = {
-  west: EUROPE_BOX.west - (EUROPE_BOX.east - EUROPE_BOX.west) * EUROPE_VIEW_EXTRA.west,
-  south: EUROPE_BOX.south - (EUROPE_BOX.north - EUROPE_BOX.south) * EUROPE_VIEW_EXTRA.south,
-  east: EUROPE_BOX.east,
-  north: EUROPE_BOX.north,
+  west: EUROPE_BOX.west - (EUROPE_BOX.east - EUROPE_BOX.west) * EUROPE_VIEW_EXTRA.west - EUROPE_VIEW_PAD_DEG_LON,
+  south: EUROPE_BOX.south - (EUROPE_BOX.north - EUROPE_BOX.south) * EUROPE_VIEW_EXTRA.south - EUROPE_VIEW_EXTRA_SOUTH_DEG - EUROPE_VIEW_PAD_DEG_LAT,
+  east: EUROPE_BOX.east + EUROPE_VIEW_PAD_DEG_LON,
+  north: EUROPE_BOX.north + EUROPE_VIEW_PAD_DEG_LAT,
 };
+/**
+ * Startansicht Europa (Jan 31.10.): die Datenbox, denn nur dort gibt es Brandpunkte. `fitBounds` wählt den Zoom je Fenstergröße so,
+ * dass die ganze Box ins Fenster passt (Hochformat: Breite bindet, Querformat: Höhe); der größere Rest der Anzeige-Box bleibt als
+ * abgedunkelter Rand zum Herauszoomen und Schwenken.
+ */
+const EUROPE_START_BOX = EUROPE_BOX;
 /** Saum um die Anzeige-Box in `maxBounds` (Anteil der Box-Ausdehnung je Seite): schmaler Sandrand als Datengrenze. */
 const EUROPE_EDGE_FRACTION = 0.015;
 const EUROPE_FIT_PAD = 8;
@@ -654,6 +668,7 @@ export default function FireMap({
     // sie keine amtliche Entsprechung zeigt. `moveLayer` ohne Ziel = nach oben;
     // idempotent, also bei jedem Durchlauf unschädlich.
     if (m.getLayer('fire-dach-mask-fill')) m.moveLayer('fire-dach-mask-fill');
+    if (m.getLayer('fire-europe-nodata-fill')) m.moveLayer('fire-europe-nodata-fill');
     if (m.getLayer('fire-europe-mask-fill')) m.moveLayer('fire-europe-mask-fill');
     // Gebiet: in Europa deckt die DACH-Maske nur noch zu, solange eine DACH-only-Ebene
     // (ICON-D2-Treiber) an ist — sonst behauptete deren Fläche dort eine Aussage.
@@ -672,6 +687,7 @@ export default function FireMap({
     }
     if (m.getLayer('fire-dach-mask-fill')) m.setLayoutProperty('fire-dach-mask-fill', 'visibility', dachMaskOn ? 'visible' : 'none');
     if (m.getLayer('fire-europe-mask-fill')) m.setLayoutProperty('fire-europe-mask-fill', 'visibility', s.region === 'europe' ? 'visible' : 'none');
+    if (m.getLayer('fire-europe-nodata-fill')) m.setLayoutProperty('fire-europe-nodata-fill', 'visibility', s.region === 'europe' ? 'visible' : 'none');
 
     // Sichtbarkeit ZULETZT: erst jetzt existieren alle Layer sicher.
     for (const id of FIRE_LAYER_ORDER) {
@@ -694,7 +710,7 @@ export default function FireMap({
     const map = new maplibregl.Map({
       container: hostRef.current,
       style: basemapStyle(basemapRef.current),
-      bounds: region === 'europe' ? [EUROPE_VIEW_BOX.west, EUROPE_VIEW_BOX.south, EUROPE_VIEW_BOX.east, EUROPE_VIEW_BOX.north] : DACH_BOUNDS,
+      bounds: region === 'europe' ? [EUROPE_START_BOX.west, EUROPE_START_BOX.south, EUROPE_START_BOX.east, EUROPE_START_BOX.north] : DACH_BOUNDS,
       fitBoundsOptions: { padding: region === 'europe' ? europeFitPadding(hostRef.current) : 24 },
       attributionControl: { compact: true },
       // Der Waldbrand-Blick ist ein Flächenblick — Neigung und Drehung würden
@@ -1011,7 +1027,7 @@ export default function FireMap({
     const m = mapRef.current;
     if (!m || regionRef.current === region) return;
     regionRef.current = region;
-    const b = region === 'europe' ? EUROPE_VIEW_BOX : null;
+    const b = region === 'europe' ? EUROPE_START_BOX : null;
     m.fitBounds(b ? [[b.west, b.south], [b.east, b.north]] : [[DACH_BOUNDS[0], DACH_BOUNDS[1]], [DACH_BOUNDS[2], DACH_BOUNDS[3]]],
       { padding: b && hostRef.current ? europeFitPadding(hostRef.current) : 24, duration: 600 });
     applyState(m);
@@ -1481,6 +1497,32 @@ function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets') {
       source: 'fire-europe-mask',
       layout: { visibility: 'none' },
       paint: { 'fill-color': '#E0D6BE', 'fill-opacity': 1 },
+    });
+  }
+
+  // Europa: der Zuschlag der Anzeige-Box über die Datenbox hinaus (`EUROPE_BOX`; Süden und Westen) wird leicht abgedunkelt —
+  // dort fragt die Ansicht FIRMS nicht ab, es gibt keine Brandpunkte (Jan 31.10.). Ring = Anzeige-Box, Loch = Datenbox.
+  if (!map.getSource('fire-europe-nodata')) {
+    const v = EUROPE_VIEW_BOX, d = EUROPE_BOX;
+    map.addSource('fire-europe-nodata', {
+      type: 'geojson',
+      data: {
+        type: 'Feature', properties: {},
+        geometry: {
+          type: 'Polygon',
+          coordinates: [
+            [[v.west, v.south], [v.west, v.north], [v.east, v.north], [v.east, v.south], [v.west, v.south]],
+            [[d.west, d.south], [d.west, d.north], [d.east, d.north], [d.east, d.south], [d.west, d.south]],
+          ],
+        },
+      },
+    });
+    map.addLayer({
+      id: 'fire-europe-nodata-fill',
+      type: 'fill',
+      source: 'fire-europe-nodata',
+      layout: { visibility: 'none' },
+      paint: { 'fill-color': '#2C2A26', 'fill-opacity': 0.42 },
     });
   }
 
