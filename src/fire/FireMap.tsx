@@ -74,8 +74,13 @@ import {
  *  `map/weatherBasemap.ts`) — ohne Schleier, mit deutschen Ortsnamen und der
  *  sandfarbenen DACH-Maske ergibt das dieselbe Kartenoptik wie dort. */
 const STREETS = WEATHER_BASEMAP_STYLE;
-/** Saum um die Europa-Box in `maxBounds` (Anteil der Box-Ausdehnung je Seite): schmaler Sandrand als Datengrenze. */
-const EUROPE_EDGE_FRACTION = 0.015;
+/**
+ * Europa wie die Gletscher-Karte (`GlacierMap.tsx`): keine Sandmaske, die Basiskarte läuft über die
+ * Datenbox hinaus; ein großzügiger Rahmen als `maxBounds` hält die Ansicht in der Gegend, die
+ * Startansicht passt die Box mit knappem Rand ein (2026-10-31, Jan).
+ */
+const EUROPE_MAX_BOUNDS: [[number, number], [number, number]] = [[-40, 27], [47, 78]];
+const EUROPE_MIN_ZOOM = 2;
 
 /** DACH-Überblick: der Ausschnitt, in dem die Ansicht startet. */
 const DACH_BOUNDS: [number, number, number, number] = [5.5, 45.5, 17.5, 55.5];
@@ -622,7 +627,6 @@ export default function FireMap({
     // sie keine amtliche Entsprechung zeigt. `moveLayer` ohne Ziel = nach oben;
     // idempotent, also bei jedem Durchlauf unschädlich.
     if (m.getLayer('fire-dach-mask-fill')) m.moveLayer('fire-dach-mask-fill');
-    if (m.getLayer('fire-europe-mask-fill')) m.moveLayer('fire-europe-mask-fill');
     // Gebiet: in Europa deckt die DACH-Maske nur noch zu, solange eine DACH-only-Ebene
     // (ICON-D2-Treiber) an ist — sonst behauptete deren Fläche dort eine Aussage.
     const dachOnlyOn = s.active.has('fireWeather') || s.active.has('fireSoilDryness');
@@ -632,14 +636,13 @@ export default function FireMap({
     let dachMaskOn = s.region === 'dach';
     if (s.region === 'europe' && dachOnlyOn && m.getLayer('fire-dach-mask-fill')) {
       // `getLayersOrder()`, nicht `getStyle().layers` — der Stil führt keine Custom-Layer.
-      const ids = m.getLayersOrder().filter((id) => id !== 'fire-dach-mask-fill' && id !== 'fire-europe-mask-fill');
+      const ids = m.getLayersOrder().filter((id) => id !== 'fire-dach-mask-fill');
       const top = Math.max(...['fire-weather-scalar', 'fire-soil-scalar'].map((id) => ids.indexOf(id)));
       const before = top >= 0 ? ids[top + 1] : undefined;
       if (before) m.moveLayer('fire-dach-mask-fill', before);
       dachMaskOn = top >= 0;
     }
     if (m.getLayer('fire-dach-mask-fill')) m.setLayoutProperty('fire-dach-mask-fill', 'visibility', dachMaskOn ? 'visible' : 'none');
-    if (m.getLayer('fire-europe-mask-fill')) m.setLayoutProperty('fire-europe-mask-fill', 'visibility', s.region === 'europe' ? 'visible' : 'none');
 
     // Sichtbarkeit ZULETZT: erst jetzt existieren alle Layer sicher.
     for (const id of FIRE_LAYER_ORDER) {
@@ -663,7 +666,8 @@ export default function FireMap({
       container: hostRef.current,
       style: basemapStyle(basemapRef.current),
       bounds: region === 'europe' ? [EUROPE_BOX.west, EUROPE_BOX.south, EUROPE_BOX.east, EUROPE_BOX.north] : DACH_BOUNDS,
-      fitBoundsOptions: { padding: 24 },
+      fitBoundsOptions: { padding: region === 'europe' ? 8 : 24 },
+      ...(region === 'europe' ? { maxBounds: EUROPE_MAX_BOUNDS, minZoom: EUROPE_MIN_ZOOM } : {}),
       attributionControl: { compact: true },
       // Der Waldbrand-Blick ist ein Flächenblick — Neigung und Drehung würden
       // die Vergleichbarkeit der Länder nur stören.
@@ -679,18 +683,6 @@ export default function FireMap({
     // Beide Ereignisse: LOAD einmal beim Start, STYLEDATA nach jedem
     // Basiskarten-Wechsel — MapLibre verwirft dabei alle eigenen Layer. IDLE
     // fängt den Rest ab. applyState ist idempotent, mehrfaches Auslösen ist folgenlos.
-    // Europa (2026-10-31, Jan): der Sandrand soll auf JEDER Bildschirmgröße so klein wie möglich
-    // sein. `maxBounds` zwingt die Ansicht in die Box (plus `EUROPE_EDGE_FRACTION` je Seite):
-    // MapLibre hebt den Zoom je Fensterformat genau so weit, dass das Rechteck das Fenster deckt,
-    // und hält das Schwenken an der Kante an — es bleibt nur der schmale Saum, der die Datengrenze
-    // zeigt. Preis: im Querformat ist Europa beim kleinsten Zoom oben/unten angeschnitten
-    // (Schwenken zeigt den Rest), nicht mehr komplett auf einmal.
-    if (region === 'europe') {
-      const b = EUROPE_BOX;
-      const dx = (b.east - b.west) * EUROPE_EDGE_FRACTION;
-      const dy = (b.north - b.south) * EUROPE_EDGE_FRACTION;
-      map.setMaxBounds([[b.west - dx, b.south - dy], [b.east + dx, b.north + dy]]);
-    }
     map.on('load', () => {
       applyState(map);
       // Geräteklasse EINMAL bestimmen und melden. Sie steuert die
@@ -1427,32 +1419,8 @@ function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets') {
     }
   }).catch(() => { /* Maske ist Beiwerk — ihr Ausfall darf die Karte nicht kippen */ });
 
-  // Gebiet Europa: dieselbe Sandfläche, aber nur außerhalb der Europa-Box — dort gibt es
-  // keine Abrufe. Sichtbarkeit setzt applyState (Vorgabe DACH: unsichtbar).
-  if (!map.getSource('fire-europe-mask')) {
-    const b = EUROPE_BOX;
-    map.addSource('fire-europe-mask', {
-      type: 'geojson',
-      data: {
-        type: 'Feature', properties: {},
-        geometry: {
-          type: 'Polygon',
-          coordinates: [
-            [[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]],
-            [[b.west, b.south], [b.west, b.north], [b.east, b.north], [b.east, b.south], [b.west, b.south]],
-          ],
-        },
-      },
-    });
-    // Deckend wie die DACH-Maske; dank `maxBounds` (s. o.) ist davon nur ein schmaler Saum sichtbar.
-    map.addLayer({
-      id: 'fire-europe-mask-fill',
-      type: 'fill',
-      source: 'fire-europe-mask',
-      layout: { visibility: 'none' },
-      paint: { 'fill-color': '#E0D6BE', 'fill-opacity': 1 },
-    });
-  }
+  // Gebiet Europa: keine Maske außerhalb der Box (Muster Gletscher-Karte) — der Rahmen ist
+  // `EUROPE_MAX_BOUNDS` der Kamera, die Datengrenze nennt der Hinweis `EUROPE_HISTORY_NOTE`.
 
   /** Jeder GL-Layer mit seiner echten Quelle und Darstellung. */
   const SPECS: Record<string, maplibregl.LayerSpecification> = {
