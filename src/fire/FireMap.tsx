@@ -100,8 +100,6 @@ const EUROPE_VIEW_BOX = {
  * abgedunkelter Rand zum Herauszoomen und Schwenken.
  */
 const EUROPE_START_BOX = EUROPE_BOX;
-/** Saum um die Anzeige-Box in `maxBounds` (Anteil der Box-Ausdehnung je Seite): schmaler Sandrand als Datengrenze. */
-const EUROPE_EDGE_FRACTION = 0.015;
 const EUROPE_FIT_PAD = 8;
 
 /**
@@ -669,7 +667,6 @@ export default function FireMap({
     // idempotent, also bei jedem Durchlauf unschädlich.
     if (m.getLayer('fire-dach-mask-fill')) m.moveLayer('fire-dach-mask-fill');
     if (m.getLayer('fire-europe-nodata-fill')) m.moveLayer('fire-europe-nodata-fill');
-    if (m.getLayer('fire-europe-mask-fill')) m.moveLayer('fire-europe-mask-fill');
     // Gebiet: in Europa deckt die DACH-Maske nur noch zu, solange eine DACH-only-Ebene
     // (ICON-D2-Treiber) an ist — sonst behauptete deren Fläche dort eine Aussage.
     const dachOnlyOn = s.active.has('fireWeather') || s.active.has('fireSoilDryness');
@@ -679,14 +676,13 @@ export default function FireMap({
     let dachMaskOn = s.region === 'dach';
     if (s.region === 'europe' && dachOnlyOn && m.getLayer('fire-dach-mask-fill')) {
       // `getLayersOrder()`, nicht `getStyle().layers` — der Stil führt keine Custom-Layer.
-      const ids = m.getLayersOrder().filter((id) => id !== 'fire-dach-mask-fill' && id !== 'fire-europe-mask-fill');
+      const ids = m.getLayersOrder().filter((id) => id !== 'fire-dach-mask-fill');
       const top = Math.max(...['fire-weather-scalar', 'fire-soil-scalar'].map((id) => ids.indexOf(id)));
       const before = top >= 0 ? ids[top + 1] : undefined;
       if (before) m.moveLayer('fire-dach-mask-fill', before);
       dachMaskOn = top >= 0;
     }
     if (m.getLayer('fire-dach-mask-fill')) m.setLayoutProperty('fire-dach-mask-fill', 'visibility', dachMaskOn ? 'visible' : 'none');
-    if (m.getLayer('fire-europe-mask-fill')) m.setLayoutProperty('fire-europe-mask-fill', 'visibility', s.region === 'europe' ? 'visible' : 'none');
     if (m.getLayer('fire-europe-nodata-fill')) m.setLayoutProperty('fire-europe-nodata-fill', 'visibility', s.region === 'europe' ? 'visible' : 'none');
 
     // Sichtbarkeit ZULETZT: erst jetzt existieren alle Layer sicher.
@@ -727,16 +723,6 @@ export default function FireMap({
     // Beide Ereignisse: LOAD einmal beim Start, STYLEDATA nach jedem
     // Basiskarten-Wechsel — MapLibre verwirft dabei alle eigenen Layer. IDLE
     // fängt den Rest ab. applyState ist idempotent, mehrfaches Auslösen ist folgenlos.
-    // Europa (2026-10-31, Jan): der Sandrand soll auf JEDER Bildschirmgröße so klein wie möglich sein. `maxBounds`
-    // zwingt die Ansicht in die Anzeige-Box (plus `EUROPE_EDGE_FRACTION` je Seite): MapLibre hebt den Zoom je
-    // Fensterformat genau so weit, dass das Rechteck das Fenster deckt, und hält das Schwenken an der Kante an — es
-    // bleibt nur der schmale Saum, der die Datengrenze zeigt.
-    if (region === 'europe') {
-      const b = EUROPE_VIEW_BOX;
-      const dx = (b.east - b.west) * EUROPE_EDGE_FRACTION;
-      const dy = (b.north - b.south) * EUROPE_EDGE_FRACTION;
-      map.setMaxBounds([[b.west - dx, b.south - dy], [b.east + dx, b.north + dy]]);
-    }
     map.on('load', () => {
       applyState(map);
       // Geräteklasse EINMAL bestimmen und melden. Sie steuert die
@@ -1472,33 +1458,6 @@ function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets') {
       });
     }
   }).catch(() => { /* Maske ist Beiwerk — ihr Ausfall darf die Karte nicht kippen */ });
-
-  // Gebiet Europa: beige Umrandung — dieselbe Sandfläche wie die DACH-Maske, aber nur außerhalb der Anzeige-Box
-  // (`EUROPE_VIEW_BOX`; dort gibt es keine Abrufe). Die Kamera ist per `maxBounds` auf die Box geklemmt, es bleibt
-  // ein schmaler Saum. Sichtbarkeit setzt applyState (Vorgabe DACH: unsichtbar).
-  if (!map.getSource('fire-europe-mask')) {
-    const b = EUROPE_VIEW_BOX;
-    map.addSource('fire-europe-mask', {
-      type: 'geojson',
-      data: {
-        type: 'Feature', properties: {},
-        geometry: {
-          type: 'Polygon',
-          coordinates: [
-            [[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]],
-            [[b.west, b.south], [b.west, b.north], [b.east, b.north], [b.east, b.south], [b.west, b.south]],
-          ],
-        },
-      },
-    });
-    map.addLayer({
-      id: 'fire-europe-mask-fill',
-      type: 'fill',
-      source: 'fire-europe-mask',
-      layout: { visibility: 'none' },
-      paint: { 'fill-color': '#E0D6BE', 'fill-opacity': 1 },
-    });
-  }
 
   // Europa: der Zuschlag der Anzeige-Box über die Datenbox hinaus (`EUROPE_BOX`; Süden und Westen) wird leicht abgedunkelt —
   // dort fragt die Ansicht FIRMS nicht ab, es gibt keine Brandpunkte (Jan 31.10.). Ring = Anzeige-Box, Loch = Datenbox.
