@@ -677,7 +677,18 @@ export default function FireMap({
     // Beide Ereignisse: LOAD einmal beim Start, STYLEDATA nach jedem
     // Basiskarten-Wechsel — MapLibre verwirft dabei alle eigenen Layer. IDLE
     // fängt den Rest ab. applyState ist idempotent, mehrfaches Auslösen ist folgenlos.
+    // Europa (2026-10-31, Jan): nicht weiter heraus als die Europa-Box — der Mindest-Zoom ist die
+    // Stufe, mit der die Box gerade ins Fenster passt (so wenig Sand wie möglich). Kein `maxBounds`:
+    // das zwänge die Ansicht INS Rechteck und schnitte je nach Seitenverhältnis Europa ab.
+    const clampToEurope = () => {
+      if (region !== 'europe') return;
+      const b = EUROPE_BOX;
+      const cam = map.cameraForBounds([[b.west, b.south], [b.east, b.north]], { padding: 24 });
+      if (cam?.zoom != null && Number.isFinite(cam.zoom)) map.setMinZoom(Math.max(0, cam.zoom));
+    };
+    map.on('resize', clampToEurope);
     map.on('load', () => {
+      clampToEurope();
       applyState(map);
       // Geräteklasse EINMAL bestimmen und melden. Sie steuert die
       // Abspielgeschwindigkeit — dieselbe Klassifikation wie beim
