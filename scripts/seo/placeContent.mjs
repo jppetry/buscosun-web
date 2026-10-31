@@ -92,6 +92,27 @@ export function climateOf(place) {
 
 const NEW_SLUGS = new Set(PLACES_NEW.map((p) => p.slug));
 
+/** Grundlage der Stationsschätzung (Schweiz): die drei nächsten Stationen mit Abstand und Höhe und die Höhenkorrektur gegenüber ihrem Mittel. */
+const STATIONS = (() => {
+  try { return JSON.parse(readFileSync(join(DATA, '..', '..', '..', 'public', 'climaGrid.json'), 'utf8')).stations; } catch { return []; }
+})();
+const hav = (la1, lo1, la2, lo2) => { const R = Math.PI / 180, h = Math.sin((la2 - la1) * R / 2) ** 2 + Math.cos(la1 * R) * Math.cos(la2 * R) * Math.sin((lo2 - lo1) * R / 2) ** 2; return 12742 * Math.asin(Math.sqrt(h)); };
+function stationBasisText(place, c) {
+  const near = STATIONS.map((st) => ({ st, km: hav(place.lat, place.lon, st.lat, st.lon) })).sort((a, b) => a.km - b.km).slice(0, 3);
+  const nm = (x) => x.st.name.split(' / ')[0].trim();
+  const list = near.map((x) => `${nm(x)} (${n0(Math.max(1, Math.round(x.km)))} km${x.st.elev != null ? `, ${n0(x.st.elev)} m` : ''})`).join(', ');
+  const first = near[0];
+  let corr = '';
+  if (first.st.elev != null) {
+    const dh = place.ele - first.st.elev;
+    const k = -dh * 0.0065;
+    corr = Math.abs(dh) < 30
+      ? ` ${esc(place.name)} liegt praktisch auf der Höhe der nächsten Station ${esc(nm(first))}.`
+      : ` Gegenüber der nächsten Station ${esc(nm(first))} liegt ${esc(place.name)} ${n0(Math.abs(Math.round(dh)))} m ${dh >= 0 ? 'höher' : 'tiefer'}; bei 6,5 K je Kilometer sind das ${k >= 0 ? '+' : '−'}${n1(Math.abs(k))} K.`;
+  }
+  return `Die Werte sind eine nach Entfernung gewichtete Schätzung aus den drei nächsten von ${CLIMA_STATION_COUNT} Stationen: ${esc(list)}.${corr}`;
+}
+
 export const climateSourceLabel = (place) => {
   const r = RASTER_CLIMATE ? CLIM[place.slug] : undefined;
   if (r?.src === 'dwd') return 'Deutscher Wetterdienst (DWD), Klimaraster 1991–2020, 1 km (GeoNutzV)';
@@ -143,8 +164,9 @@ export function moduleBlocks(place) {
   if (m.sea && MODULE_OPEN.sea) {
     const s = m.sea.spot, g = m.sea.gauge;
     const sea = s.region === 'ostsee' ? 'Ostsee' : 'Nordsee';
+    const dwdName = (x) => String(x).replace(/Kueste/g, 'Küste').replace(/muendung/g, 'mündung').replace(/Muendung/g, 'Mündung');
     let h = `<p>Der nächste Seewetter-Spot von buscosun an der ${sea} ist <a href="/seewetter/${esc(s.id)}">${esc(s.name)}</a> (${n1(s.km)} km von ${esc(place.name)})` +
-      `${s.seaArea ? `, im Seegebiet „${esc(s.seaArea)}“` : ''}${s.coast ? ` am Küstenabschnitt „${esc(s.coast)}“` : ''} (Gebiete des Deutschen Wetterdienstes).</p>`;
+      `${s.seaArea ? `, im Seegebiet „${esc(dwdName(s.seaArea))}“` : ''}${s.coast ? ` am Küstenabschnitt „${esc(dwdName(s.coast))}“` : ''} (Gebiete des Deutschen Wetterdienstes).</p>`;
     if (g) h += `<p>Der nächste Pegel des Bundesamts für Seeschifffahrt und Hydrographie (BSH) ist <strong>${esc(g.name)}</strong> (${n1(g.km)} km); sein Wasserstandsverlauf steht auf der <a href="/seewetter/${esc(s.id)}">Seewetter-Seite</a>.</p>`;
     blocks.push({ id: 'sea', h2: `Küste und Seewetter bei ${place.name}`, html: h, sources: g ? ['DWD (Seegebiete, © GeoBasis-DE / BKG)', 'BSH (Pegeldaten, CC BY 4.0)'] : ['DWD (Seegebiete, © GeoBasis-DE / BKG)'] });
     mentions.push({ '@type': 'Place', name: s.name, geo: { '@type': 'GeoCoordinates', latitude: s.lat, longitude: s.lon }, description: `Seewetter-Spot, ${n1(s.km)} km von ${place.name}` });
@@ -191,7 +213,7 @@ export function neighbourFindings(place, max = 2) {
     if (Math.abs(dh) < MIN_DH) continue;
     const higher = dh > 0;
     const hTxt = `${n0(Math.abs(dh))} m ${higher ? 'tiefer' : 'höher'}`;
-    const ref = `dem ${nb.distKm} km entfernten ${nb.name}, das ${hTxt} liegt`;
+    const ref = `${nb.name} (${nb.distKm} km entfernt, ${hTxt})`;
     const dT = a.meanTemp - b.meanTemp;
     if (!used.has('t') && Math.abs(dT) >= MIN_DT && (higher ? dT < 0 : dT > 0)) {
       out.push(`Im Jahresmittel ist es in ${place.name} um ${n1(Math.abs(dT))} K ${dT < 0 ? 'kälter' : 'wärmer'} als in ${ref}.`);
@@ -200,7 +222,7 @@ export function neighbourFindings(place, max = 2) {
     if (out.length < max && a.kind === 'raster' && !used.has('rr')) {
       const rel = (a.rrYear - b.rrYear) / b.rrYear;
       if (Math.abs(rel) >= MIN_DRR && (higher ? rel > 0 : rel < 0)) {
-        out.push(`Mit rund ${n0(a.rrYear)} mm im Jahr fällt in ${place.name} etwa ${n0(Math.round(Math.abs(rel) * 100))} % ${rel > 0 ? 'mehr' : 'weniger'} Niederschlag als in ${ref} (${n0(b.rrYear)} mm).`);
+        out.push(`Mit rund ${n0(a.rrYear)} mm im Jahr fällt in ${place.name} etwa ${n0(Math.round(Math.abs(rel) * 100))} % ${rel > 0 ? 'mehr' : 'weniger'} Niederschlag als in ${ref}; dort sind es ${n0(b.rrYear)} mm.`);
         used.add('rr');
       }
     }
@@ -289,7 +311,7 @@ export function climateSectionV3(place) {
   const t = terrainOf(place);
   const cell = c.kind === 'raster' && t
     ? `Die Werte gelten für eine Rasterzelle von etwa 1 km; deren mittlere Höhe liegt bei ${n0(t.mean1)} m, ${Math.abs(t.mean1 - place.ele) < 25 ? 'praktisch auf Ortshöhe' : `der Ort selbst bei ${n0(place.ele)} m`}.`
-    : c.kind === 'station' ? `Die Werte sind eine Schätzung aus den drei nächsten Stationen (von ${CLIMA_STATION_COUNT}); die nächste liegt rund ${n0(c.nearestKm)} km entfernt, umgerechnet mit 6,5 K je km auf ${n0(place.ele)} m.` : '';
+    : c.kind === 'station' ? stationBasisText(place, c) : '';
   return `      <section>
         <h2>Klima in ${esc(place.name)} im Jahresverlauf</h2>
         <p>Der ${c.warm.month} ist mit Tagesmaxima um ${n1(c.warm.tmax)} °C der wärmste Monat, im ${c.cold.month} fallen die Tiefstwerte im Mittel auf ${n1(c.cold.tmin)} °C; das Jahresmittel der Temperatur liegt bei etwa ${n1(c.meanTemp)} °C.</p>
