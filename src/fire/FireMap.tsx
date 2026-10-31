@@ -75,12 +75,19 @@ import {
  *  sandfarbenen DACH-Maske ergibt das dieselbe Kartenoptik wie dort. */
 const STREETS = WEATHER_BASEMAP_STYLE;
 /**
- * Europa wie die Gletscher-Karte (`GlacierMap.tsx`): keine Sandmaske, die Basiskarte läuft über die
- * Datenbox hinaus; ein großzügiger Rahmen als `maxBounds` hält die Ansicht in der Gegend, die
- * Startansicht passt die Box mit knappem Rand ein (2026-10-31, Jan).
+ * Europa: die Datenbox (`EUROPE_BOX`) plus ein Zuschlag nach Süden und nach Westen (Jan 31.10.: „etwas größere Karte
+ * nach unten und links"). Diese Anzeige-Box ist der Ausschnitt der Karte: Startansicht, Einpassen und die Öffnung der
+ * beigen Umrandung. Abrufe bleiben in `EUROPE_BOX` — im Zuschlag gibt es nur Basiskarte.
  */
-const EUROPE_MAX_BOUNDS: [[number, number], [number, number]] = [[-40, 27], [47, 78]];
-const EUROPE_MIN_ZOOM = 2;
+const EUROPE_VIEW_EXTRA = { west: 0.07, south: 0.07 };
+const EUROPE_VIEW_BOX = {
+  west: EUROPE_BOX.west - (EUROPE_BOX.east - EUROPE_BOX.west) * EUROPE_VIEW_EXTRA.west,
+  south: EUROPE_BOX.south - (EUROPE_BOX.north - EUROPE_BOX.south) * EUROPE_VIEW_EXTRA.south,
+  east: EUROPE_BOX.east,
+  north: EUROPE_BOX.north,
+};
+/** Saum um die Anzeige-Box in `maxBounds` (Anteil der Box-Ausdehnung je Seite): schmaler Sandrand als Datengrenze. */
+const EUROPE_EDGE_FRACTION = 0.015;
 const EUROPE_FIT_PAD = 8;
 
 /**
@@ -687,9 +694,8 @@ export default function FireMap({
     const map = new maplibregl.Map({
       container: hostRef.current,
       style: basemapStyle(basemapRef.current),
-      bounds: region === 'europe' ? [EUROPE_BOX.west, EUROPE_BOX.south, EUROPE_BOX.east, EUROPE_BOX.north] : DACH_BOUNDS,
+      bounds: region === 'europe' ? [EUROPE_VIEW_BOX.west, EUROPE_VIEW_BOX.south, EUROPE_VIEW_BOX.east, EUROPE_VIEW_BOX.north] : DACH_BOUNDS,
       fitBoundsOptions: { padding: region === 'europe' ? europeFitPadding(hostRef.current) : 24 },
-      ...(region === 'europe' ? { maxBounds: EUROPE_MAX_BOUNDS, minZoom: EUROPE_MIN_ZOOM } : {}),
       attributionControl: { compact: true },
       // Der Waldbrand-Blick ist ein Flächenblick — Neigung und Drehung würden
       // die Vergleichbarkeit der Länder nur stören.
@@ -705,6 +711,16 @@ export default function FireMap({
     // Beide Ereignisse: LOAD einmal beim Start, STYLEDATA nach jedem
     // Basiskarten-Wechsel — MapLibre verwirft dabei alle eigenen Layer. IDLE
     // fängt den Rest ab. applyState ist idempotent, mehrfaches Auslösen ist folgenlos.
+    // Europa (2026-10-31, Jan): der Sandrand soll auf JEDER Bildschirmgröße so klein wie möglich sein. `maxBounds`
+    // zwingt die Ansicht in die Anzeige-Box (plus `EUROPE_EDGE_FRACTION` je Seite): MapLibre hebt den Zoom je
+    // Fensterformat genau so weit, dass das Rechteck das Fenster deckt, und hält das Schwenken an der Kante an — es
+    // bleibt nur der schmale Saum, der die Datengrenze zeigt.
+    if (region === 'europe') {
+      const b = EUROPE_VIEW_BOX;
+      const dx = (b.east - b.west) * EUROPE_EDGE_FRACTION;
+      const dy = (b.north - b.south) * EUROPE_EDGE_FRACTION;
+      map.setMaxBounds([[b.west - dx, b.south - dy], [b.east + dx, b.north + dy]]);
+    }
     map.on('load', () => {
       applyState(map);
       // Geräteklasse EINMAL bestimmen und melden. Sie steuert die
@@ -995,7 +1011,7 @@ export default function FireMap({
     const m = mapRef.current;
     if (!m || regionRef.current === region) return;
     regionRef.current = region;
-    const b = region === 'europe' ? EUROPE_BOX : null;
+    const b = region === 'europe' ? EUROPE_VIEW_BOX : null;
     m.fitBounds(b ? [[b.west, b.south], [b.east, b.north]] : [[DACH_BOUNDS[0], DACH_BOUNDS[1]], [DACH_BOUNDS[2], DACH_BOUNDS[3]]],
       { padding: b && hostRef.current ? europeFitPadding(hostRef.current) : 24, duration: 600 });
     applyState(m);
@@ -1441,11 +1457,11 @@ function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets') {
     }
   }).catch(() => { /* Maske ist Beiwerk — ihr Ausfall darf die Karte nicht kippen */ });
 
-  // Gebiet Europa: beige Umrandung — dieselbe Sandfläche wie die DACH-Maske, aber nur außerhalb der Europa-Box
-  // (dort gibt es keine Abrufe). Die Kamera bleibt bei `EUROPE_MAX_BOUNDS`; die Fläche rahmt die Karte, wenn
-  // herausgezoomt oder geschwenkt wird. Sichtbarkeit setzt applyState (Vorgabe DACH: unsichtbar).
+  // Gebiet Europa: beige Umrandung — dieselbe Sandfläche wie die DACH-Maske, aber nur außerhalb der Anzeige-Box
+  // (`EUROPE_VIEW_BOX`; dort gibt es keine Abrufe). Die Kamera ist per `maxBounds` auf die Box geklemmt, es bleibt
+  // ein schmaler Saum. Sichtbarkeit setzt applyState (Vorgabe DACH: unsichtbar).
   if (!map.getSource('fire-europe-mask')) {
-    const b = EUROPE_BOX;
+    const b = EUROPE_VIEW_BOX;
     map.addSource('fire-europe-mask', {
       type: 'geojson',
       data: {
