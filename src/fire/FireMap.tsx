@@ -95,12 +95,29 @@ const EUROPE_VIEW_BOX = {
   north: EUROPE_BOX.north + EUROPE_VIEW_PAD_DEG_LAT,
 };
 /**
- * Startansicht Europa (Jan 31.10.): die Datenbox, denn nur dort gibt es Brandpunkte. `fitBounds` wählt den Zoom je Fenstergröße so,
- * dass die ganze Box ins Fenster passt (Hochformat: Breite bindet, Querformat: Höhe); der größere Rest der Anzeige-Box bleibt als
- * abgedunkelter Rand zum Herauszoomen und Schwenken.
+ * Startansicht Europa (Jan 31.10.): Fokus Mitteleuropa. Der Zoom ist so gewählt, dass das Fenster in diese Box passt (die engere
+ * Achse bindet) — im Süden also kein Afrika (< 37° N), im Osten kein Russland (> 27° E).
  */
-const EUROPE_START_BOX = EUROPE_BOX;
+const EUROPE_START_FOCUS = { west: -8, south: 37, east: 27, north: 61 };
 const EUROPE_FIT_PAD = 8;
+
+/** Normierte Mercator-Höhe (0 = Nordpol-Kante, 1 = Südkante der Weltkachel). */
+const mercatorY = (lat: number) => (1 - Math.asinh(Math.tan((lat * Math.PI) / 180)) / Math.PI) / 2;
+
+/** Mitte und Zoom der Europa-Startansicht je Fenstergröße; die Box liegt in der von der Legende frei gelassenen Fläche. */
+function europeStartCamera(host: HTMLElement): { center: [number, number]; zoom: number } {
+  const { top = 0, bottom = 0, left = 0, right = 0 } = europeFitPadding(host);
+  const w = host.clientWidth || window.innerWidth;
+  const h = host.clientHeight || window.innerHeight;
+  const b = EUROPE_START_FOCUS;
+  const y0 = mercatorY(b.north), y1 = mercatorY(b.south);
+  const boxW = (b.east - b.west) / 360, boxH = y1 - y0;
+  const zoom = Math.log2(Math.max(Math.max(1, w - left - right) / boxW, Math.max(1, h - top - bottom) / boxH) / 512);
+  const world = 512 * 2 ** zoom;
+  const lon = (b.west + b.east) / 2 + (((right - left) / 2) / world) * 360;
+  const y = (y0 + y1) / 2 + (bottom - top) / 2 / world;
+  return { center: [lon, (Math.atan(Math.sinh(Math.PI * (1 - 2 * y))) * 180) / Math.PI], zoom };
+}
 
 /** Herauszoomen in Europa nur so weit, dass die Anzeige-Box ins Fenster passt; DACH bleibt unbegrenzt wie bisher. */
 function limitEuropeZoomOut(map: maplibregl.Map, region: FireRegion) {
@@ -712,8 +729,7 @@ export default function FireMap({
     const map = new maplibregl.Map({
       container: hostRef.current,
       style: basemapStyle(basemapRef.current),
-      bounds: region === 'europe' ? [EUROPE_START_BOX.west, EUROPE_START_BOX.south, EUROPE_START_BOX.east, EUROPE_START_BOX.north] : DACH_BOUNDS,
-      fitBoundsOptions: { padding: region === 'europe' ? europeFitPadding(hostRef.current) : 24 },
+      ...(region === 'europe' ? europeStartCamera(hostRef.current) : { bounds: DACH_BOUNDS, fitBoundsOptions: { padding: 24 } }),
       attributionControl: { compact: true },
       // Der Waldbrand-Blick ist ein Flächenblick — Neigung und Drehung würden
       // die Vergleichbarkeit der Länder nur stören.
@@ -1023,9 +1039,8 @@ export default function FireMap({
     if (!m || regionRef.current === region) return;
     regionRef.current = region;
     limitEuropeZoomOut(m, region);
-    const b = region === 'europe' ? EUROPE_START_BOX : null;
-    m.fitBounds(b ? [[b.west, b.south], [b.east, b.north]] : [[DACH_BOUNDS[0], DACH_BOUNDS[1]], [DACH_BOUNDS[2], DACH_BOUNDS[3]]],
-      { padding: b && hostRef.current ? europeFitPadding(hostRef.current) : 24, duration: 600 });
+    if (region === 'europe' && hostRef.current) m.easeTo({ ...europeStartCamera(hostRef.current), duration: 600 });
+    else m.fitBounds([[DACH_BOUNDS[0], DACH_BOUNDS[1]], [DACH_BOUNDS[2], DACH_BOUNDS[3]]], { padding: 24, duration: 600 });
     applyState(m);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [region]);
