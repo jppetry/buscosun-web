@@ -855,12 +855,16 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
       setLayerLoad('fireBurnt', { kind: 'ok', ref: null, note: 'kein Zeitkorb eingeblendet' });
       return;
     }
+    // BF4: `week` ist ein FILTER auf den Saison-Korb, kein eigener Abruf —
+    // `week ⊂ season` ist am Bestand belegt (audit/brandflaechen-echtzeit.md §6).
+    // Deshalb wird hier über die Abruf-Körbe iteriert, nicht über die Anzeige-Körbe.
+    // Europa (2026-10-31, Jan): der DACH-Saisonkorb wird NICHT mehr live geholt — die statische
+    // Europa-Liste trägt jede Fläche der Saison, auch in DE/AT/CH (Umrisse ab Zoom 9 und im
+    // Dossier); der langsame EFFIS-Abruf stand vor dem ersten Bild. Nur das Archiv bleibt live.
+    const toFetch = [...new Set(wanted.map(fetchBucketOf))].filter((b) => !(region === 'europe' && b === 'season'));
+    if (toFetch.length === 0) return;
     setLayerLoad('fireBurnt', { kind: 'loading' });
     void (async () => {
-      // BF4: `week` ist ein FILTER auf den Saison-Korb, kein eigener Abruf —
-      // `week ⊂ season` ist am Bestand belegt (audit/brandflaechen-echtzeit.md §6).
-      // Deshalb wird hier über die Abruf-Körbe iteriert, nicht über die Anzeige-Körbe.
-      const toFetch = [...new Set(wanted.map(fetchBucketOf))];
       const runs: Partial<Record<BurntFetchBucket, BurntRun>> = {};
       const errors: string[] = [];
       await Promise.all(toFetch.map(async (b) => {
@@ -895,14 +899,13 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
       });
     })();
     return () => ac.abort();
-  }, [active, burntBuckets, setLayerLoad]);
+  }, [active, burntBuckets, setLayerLoad, region]);
 
-  // Europa: die Saisonliste außerhalb DACH — statisch, einmal je Sitzung, im Leerlauf nach dem ersten Paint.
+  // Europa: die Saisonliste — statisch, einmal je Sitzung, sofort (sie IST der Saison-Korb, s. o.).
   useEffect(() => {
     if (region !== 'europe' || !active.has('fireBurnt') || europeSeason) return;
     let alive = true;
-    const idle = (cb: () => void) => (typeof requestIdleCallback === 'function' ? requestIdleCallback(cb) : setTimeout(cb, 300));
-    idle(() => { void loadEffisSeasonEurope().then((list) => { if (alive && list) setEuropeSeason(list); }); });
+    void loadEffisSeasonEurope().then((list) => { if (alive && list) setEuropeSeason(list); });
     return () => { alive = false; };
   }, [region, active, europeSeason]);
 
@@ -953,6 +956,17 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
       truncated: burntSeason?.truncated ?? false,
     };
   }, [region, europeSeason, burntSeason, burntWeek, europeOutlines]);
+
+  // Europa: Ladezustand des Saison-Korbs aus der Liste (kein Live-Abruf mehr); das Archiv setzt seinen eigenen.
+  useEffect(() => {
+    if (region !== 'europe' || !active.has('fireBurnt') || !(burntBuckets.has('season') || burntBuckets.has('week')) || burntBuckets.has('archive')) return;
+    if (!europeSeason || !seasonAll) { setLayerLoad('fireBurnt', { kind: 'loading' }); return; }
+    setLayerLoad('fireBurnt', {
+      kind: 'ok',
+      ref: seasonAll.lastUpdateMs != null ? { atMs: seasonAll.lastUpdateMs, kind: 'measured' } : null,
+      note: `${seasonAll.count} Flächen · ${burntPeriodLabel(seasonAll, Date.now())} · ${burntThresholdNote(seasonAll)}`,
+    });
+  }, [region, active, burntBuckets, europeSeason, seasonAll, setLayerLoad]);
 
   /**
    * Umrisse am Ausschnitt: ab Zoom 9 holt die Seite die Umrisse der Saisonflächen im Bild nach
