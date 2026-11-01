@@ -30,8 +30,8 @@ export function weatherWindOptions(coarsePointer: boolean): WindLayerOptions {
     particleColor: [0.86, 0.92, 1.0, 0.84], speedTint: 0.62,
     particleColorRamp: GLOBE_PARTICLE_RAMP,
     pointSize: WEATHER_WIND_POINT_SIZE, fadeOpacity: WEATHER_WIND_FADE,
-    // Further out the dots get thicker (x1,5 at z3,5 and below, x1 from z6), so the filaments do not thin to hairlines.
-    zoomOutPointBoost: 0.5,
+    // Dots do not get thicker when zoomed out (0 = off; was 0,5 on 31.10., reverted 01.11.).
+    zoomOutPointBoost: 0,
     // Tempo strictly linear to the GRIB value: px/s = speedPxPerMs · |V|.
     speedPxPerMs: 3.8, speedRefZoom: 5.5,
     // Slower when zoomed out (z4 ≈ 0,68×), slightly quicker when zoomed in.
