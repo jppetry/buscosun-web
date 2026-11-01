@@ -119,16 +119,21 @@ jobs:
       # ausgefallener Archivlauf kostet nichts. Ein Fehler hier hält die Ablage der Messungen nicht auf.
       - name: Archive SWSMOS
         continue-on-error: true
+        # scripts/lib/bz2.mjs imports the npm package bz2; the sparse app clone has no node_modules (red since 28.10., audit/seo-nischen.md §3).
         run: |
+          mkdir -p "$RUNNER_TEMP/deps" && npm --prefix "$RUNNER_TEMP/deps" install bz2@^1.0.1 --no-audit --no-fund --silent
           cd app
+          ln -s "$RUNNER_TEMP/deps/node_modules" node_modules
           node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/road/swsmos-archive.mjs \
             --archive=../swsmos/v1 --stations=../data/road/v1/static/stations.json --max=6
 
       # Append-only: normaler Push mit Wiederholung, NIE --force. Abgewiesen heißt hier nur, dass
       # das Punktarchiv (oder ein manueller Lauf) dazwischenkam — rebase und erneut.
+      # swsmos only if it exists: a path that does not exist aborts `git add`, and with it the store of the measurements.
       - name: Commit and push (append-only, with retry)
         run: |
-          git add -A -- road swsmos
+          git add -A -- road
+          if [ -d swsmos ]; then git add -A -- swsmos; fi
           if git diff --cached --quiet; then echo "Nichts Neues — kein Commit."; exit 0; fi
           git commit -m "road: archiv $(date -u +%Y-%m-%dT%H:%MZ)"
           for attempt in 1 2 3 4 5; do

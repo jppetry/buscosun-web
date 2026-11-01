@@ -272,7 +272,7 @@ const msOf = (s) => roadStampToMs(s);
   // AW-6.2.1 (E-VS-7): the job also writes `swsmos/` — both paths in `git add` AND in the sparse-checkout (a path outside the
   // sparse patterns is dropped by `git add` silently, CLAUDE.md), nothing else.
   add('C3 Commit nur unter road/ und swsmos/, beide im Sparse-Muster, Archiv-Ziel = ROAD_REPO_DIR, Bestand = road/v1 des Daten-Repos (sparse)',
-    /git add -A -- road swsmos\s*$/m.test(code) && code.includes(`--archive=../${ROAD_REPO_DIR}`) && code.includes(`--store=../data/${ROAD_REPO_DIR}`) && /sparse-checkout set --no-cone road\/v1\b/.test(code)
+    /git add -A -- road\s*$/m.test(code) && /if \[ -d swsmos \]; then git add -A -- swsmos; fi/.test(code) && !/git add -A -- road swsmos/.test(code) && code.includes(`--archive=../${ROAD_REPO_DIR}`) && code.includes(`--store=../data/${ROAD_REPO_DIR}`) && /sparse-checkout set --no-cone road\/v1\b/.test(code)
     && /sparse-checkout:\s*\|\s*\n\s*road\s*\n\s*swsmos\s*$/m.test(code) && /filter:\s*blob:none/.test(code) && /swsmos-archive\.mjs[\s\S]*--archive=\.\.\/swsmos\/v1/.test(code));
   add('C4 rot erst nach dem Commit: Archivschritt continue-on-error, letzter Schritt prüft dessen outcome',
     /id:\s*archive\s*\n\s*continue-on-error:\s*true/.test(code) && /if:\s*steps\.archive\.outcome == 'failure'/.test(code)
@@ -291,6 +291,14 @@ const msOf = (s) => roadStampToMs(s);
     }
     for (const m of src.matchAll(/register\('(\.\/[^']+)'/g)) walk(resolve(dirname(abs), m[1]));
   };
+  // V-SN-1: a bare npm import in a loaded script needs its package installed in the step: the sparse app clone has no node_modules.
+  {
+    const swFiles = [join(HERE, 'road', 'swsmos-archive.mjs'), join(HERE, 'lib', 'bz2.mjs')];
+    const bare = new Set();
+    for (const f of swFiles) for (const m of readFileSync(f, 'utf8').matchAll(/^import\s[^'\n]*'([^.'][^']*)'/gm)) if (!m[1].startsWith('node:')) bare.add(m[1]);
+    const step = code.slice(code.indexOf('Archive SWSMOS'), code.indexOf('Commit and push'));
+    add('C7 SWSMOS: jede npm-Abhängigkeit des Skripts wird im Schritt installiert (Ursache der roten Läufe ab 28.10.)', bare.has('bz2') && [...bare].every((b) => step.includes(`install ${b}@`)), [...bare].join(' '));
+  }
   walk(join(HERE, 'road', 'road-archive.mjs'));
   walk(join(HERE, 'lib', 'register-ts.mjs'));
   const files = [...seen].map((p) => relative(ROOT, p).replace(/\\/g, '/'));

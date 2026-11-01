@@ -258,12 +258,45 @@ add('A0 Fixture-Station V164 aus dem echten Slot (FN-BY, A95)', base && base.hig
   add('M2d Böe 57,6 m/s bei Mittelwind 0,4 (P415 Rügland) ⇒ gustNoWind', pt(p415).wg === null && pt(p415).x.wg === 'gustNoWind');
   const storm = run([raw({ windMs: 14, gustMs: 41 })]);
   add('M2e Gegenprobe Sturm 41 m/s bei Mittelwind 14 m/s bleibt', pt(storm).wg === 41);
+  // SEO-Nischen 01.11.2026: V528 (D-1), E237 (D-2), the channel constants 20.16/21.6 mm/h (D-3). Values from the live slots of that day.
+  {
+    const ring = [['S1', 0.02], ['S2', 0.04], ['S3', -0.03], ['S4', 0.05]];
+    const hood = (sensor, airT, nbRoad = 12) => [{ ...raw({ airT, sensors: [sensor] }), id: 'T1', lat: base.lat, elevM: base.elevM },
+      ...ring.map(([n, d], i) => ({ ...raw({ airT: 12 + 0.2 * i - 0.3, sensors: [{ roadT: nbRoad + 0.3 * i, filmMm: 0, cond: 0 }] }), id: n, lat: base.lat + d, elevM: base.elevM }))];
+    const at = (r) => r.obs.points.find((p) => p.id === 'T1');
+    const v528 = run(hood({ roadT: 0.2, filmMm: 0, cond: 1 }, 12));
+    add('SN1 V528: Fahrbahn 0,2 °C, Luft 12 °C (11,8 K, unter der harten 12-K-Grenze), Nachbarn 12 °C ⇒ roadAir, keine Frostgefahr',
+      at(v528).rs === null && at(v528).x.rs === 'roadAir' && at(v528).cls !== 'frost' && at(v528).ta === 12);
+    const e237 = run(hood({ roadT: 40, filmMm: 0, cond: 0 }, 12));
+    add('SN2 E237: Fahrbahn 40 °C, Luft 12 °C (28 K, unter der 30-K-Grenze), Nachbarn 12 °C ⇒ roadAir', at(e237).rs === null && at(e237).x.rs === 'roadAir');
+    const lone = run([raw({ airT: 12, sensors: [{ roadT: 0.2, filmMm: 0, cond: 1 }] })]);
+    add('SN3 Gegenprobe ohne Nachbarn: 11,8 K bleiben (eine einzelne echte Frostlage verschwindet nicht)', pt(lone).rs === 0.2);
+    const coldR = run(hood({ roadT: -2, filmMm: 0, cond: 1 }, 7).map((x, i) => (i ? { ...x, airT: 7, sensors: [{ roadT: -1.5, filmMm: 0, cond: 1 }] } : x)));
+    add('SN4 Gegenprobe Strahlungsnacht: Fahrbahn 9 K unter der Luft, Nachbarn ebenso kalt ⇒ bleibt', at(coldR).rs === -2 && !at(coldR).x?.rs);
+    const sunR = run(hood({ roadT: 29, filmMm: 0, cond: 0 }, 12, 26));
+    add('SN5 Gegenprobe Sonne: Fahrbahn 17 K über der Luft, Nachbarn ähnlich warm ⇒ bleibt', at(sunR).rs === 29);
+    const brokenAir = run(hood({ roadT: 12, filmMm: 0, cond: 0 }, 22));
+    add('SN6 Gegenprobe Luftfühler: Luft weit neben den Nachbarn ⇒ die enge Regel verwirft die Fahrbahn nicht', at(brokenAir).rs === 12);
+    const dry = [{ roadT: 12, filmMm: 0, cond: 0 }];
+    const c1 = run([raw({ precipRateMmH: 20.16, precipIntensity: 3, precipType: null, sensors: dry })]);
+    const c2 = run([raw({ precipRateMmH: 21.6, precipIntensity: 1, precipType: 2 ** 25, sensors: dry })]);
+    add('SN7 D-3: 20,16 (B338) und 21,6 mm/h mit Art Regen (K502) auf trockener Fahrbahn ⇒ precipFill', pt(c1).pr === null && pt(c1).x.pr === 'precipFill' && pt(c2).pr === null && pt(c2).x.pr === 'precipFill');
+    const c3 = run([raw({ precipRateMmH: 21.6, precipIntensity: 1, precipType: 2 ** 25, sensors: [{ roadT: 9, filmMm: 0, cond: 1 }] })]);
+    add('SN8 D-3: 21,6 mm/h bei nur feuchter Fahrbahn (K030) ⇒ precipFill', pt(c3).pr === null);
+    const c4 = run([raw({ precipRateMmH: 21.6, precipIntensity: 3, precipType: 2 ** 25, sensors: [{ roadT: 9, filmMm: 0.4, cond: 2 }] })]);
+    const c5 = run([raw({ precipRateMmH: 16.56, precipIntensity: 3, precipType: 2 ** 25, sensors: [{ roadT: 9, filmMm: null, cond: 2 }] })]);
+    const c6 = run([raw({ precipRateMmH: 4.68, precipIntensity: 1, precipType: 63, sensors: dry })]);
+    const c7 = run([raw({ precipRateMmH: 20.16, precipIntensity: 3, precipType: null, sensors: [{ roadT: null, filmMm: null, cond: null }] })]);
+    add('SN9 Gegenproben: 21,6 und 16,56 bei nasser Fahrbahn, 4,68 mm/h trocken (Beginn eines Schauers), 20,16 ohne jeden Zustand ⇒ bleiben', pt(c4).pr === 21.6 && pt(c5).pr === 16.56 && pt(c6).pr === 4.68 && pt(c7).pr === 20.16);
+    const c8 = run([raw({ precipRateMmH: 6.84, precipIntensity: 1, precipType: 2 ** 25, sensors: dry })]);
+    add('SN10 D-3: 6,84 mm/h auf trockener Fahrbahn (V608) ⇒ precipFill', pt(c8).pr === null);
+  }
   // M3 precipitation fill value.
   const ko = run([raw({ precipRateMmH: 21.6, precipIntensity: 0, precipType: 0 })]);
   add('M3 21,6 mm/h bei Intensität 0 („No phenomena") und Art 0 (KO-RP) ⇒ precipFill', pt(ko).pr === null && pt(ko).x.pr === 'precipFill');
-  const fn = run([raw({ precipRateMmH: 10.08, precipIntensity: 1, precipType: 0 })]);
-  const mc = run([raw({ precipRateMmH: 20.16, precipIntensity: 3, precipType: null })]);
-  const rain = run([raw({ precipRateMmH: 4.32, precipIntensity: null, precipType: 2 ** 25 })]);
+  const fn = run([raw({ precipRateMmH: 10.08, precipIntensity: 1, precipType: 0, sensors: [{ roadT: 8, filmMm: 0.2, cond: 2 }] })]);
+  const mc = run([raw({ precipRateMmH: 20.16, precipIntensity: 3, precipType: null, sensors: [{ roadT: 8, filmMm: 0.2, cond: 2 }] })]);
+  const rain = run([raw({ precipRateMmH: 4.32, precipIntensity: null, precipType: 2 ** 25, sensors: [{ roadT: 8, filmMm: 0, cond: 0 }] })]);
   add('M3b Gegenproben: Intensität 1 (FN-BY 10,08), Intensität 3 (MC-MV 20,16), Art Regen ohne Intensität ⇒ bleiben',
     pt(fn).pr === 10.08 && pt(mc).pr === 20.16 && pt(rain).pr === 4.32);
   const legacy = run([raw({ precipRateMmH: 21.6, precipType: 0 })]);

@@ -205,11 +205,11 @@ export const ROAD_RULES: Readonly<Record<RoadRuleId, RoadRule>> = Object.freeze(
   stateNoTemp: { id: 'stateNoTemp', level: 'value', mode: 'hard', text: 'Zustand/Wasserfilm ohne gültige Fahrbahntemperatur desselben Sensors (E-AW-11)' },
   iceWarm: { id: 'iceWarm', level: 'value', mode: 'hard', text: 'Eis-/Glätte-/Reif-/Schnee-Code bei Fahrbahn über +3 °C (E-AW-11)' },
   jump: { id: 'jump', level: 'value', mode: 'observe', text: 'Sprung der Fahrbahntemperatur zum Vorslot über der Schwelle' },
-  roadAir: { id: 'roadAir', level: 'value', mode: 'hard', text: 'Fahrbahn mehr als 12 K unter oder 30 K über der eigenen Lufttemperatur — verworfen wird der Fühler, der nicht zu den Nachbarn passt (M1/M2)' },
+  roadAir: { id: 'roadAir', level: 'value', mode: 'hard', text: 'Fahrbahn mehr als 12 K unter oder 30 K über der eigenen Lufttemperatur — verworfen wird der Fühler, der nicht zu den Nachbarn passt (M1/M2); schon ab 8 K darunter oder 15 K darüber, wenn die Nachbarn der Luft recht geben und der Fahrbahn nicht' },
   fillValue: { id: 'fillValue', level: 'value', mode: 'hard', text: 'Gerätefüllwert: Fahrbahn 0,00/−1,00 °C (±0,01) bei mindestens 5 K wärmerer Luft, oder Fahrbahn = Luft = Taupunkt dort, oder Fahrbahn = Luft dort ohne Taupunkt (M1, V-AW-48)' },
   dewSpread: { id: 'dewSpread', level: 'value', mode: 'hard', text: 'Taupunkt mehr als 25 K (Mai–Sep. 30 K) unter der Luft — Feuchtefühler defekt (M2)' },
   gustNoWind: { id: 'gustNoWind', level: 'value', mode: 'hard', text: 'Böe über 40 m/s bei Mittelwind unter 10 m/s (M2)' },
-  precipFill: { id: 'precipFill', level: 'value', mode: 'hard', text: 'Niederschlagsrate ohne Niederschlag: Intensität (0 20 024) „keine“ und keine Art (0 20 021) gemeldet (M3)' },
+  precipFill: { id: 'precipFill', level: 'value', mode: 'hard', text: 'Niederschlagsrate ohne Niederschlag: Intensität (0 20 024) „keine“ und keine Art (0 20 021) gemeldet (M3), oder Kanalkonstante 20,16/21,6 mm/h ohne nasse Fahrbahn, oder ab 5 mm/h auf trockener Fahrbahn ohne Wasserfilm' },
   unknownCode: { id: 'unknownCode', level: 'value', mode: 'flag', text: 'unbekannter Zustandscode — Zustand unbekannt, nie trocken' },
   catalog: { id: 'catalog', level: 'station', mode: 'observe', text: 'keine Zeile im Stationskatalog (E-AW-7)' },
   outsideDE: { id: 'outsideDE', level: 'station', mode: 'hard', text: 'Koordinaten fehlen oder liegen außerhalb Deutschlands' },
@@ -265,6 +265,17 @@ export const ROAD_ICE_MAX_C = 3;
  *  off ⇒ the air (and its dew point); otherwise the road sensor — above +30 K without neighbours only observed (summer
  *  midday not measured yet). */
 export const ROAD_AIR = Object.freeze({ belowK: 12, aboveK: 30 });
+/** SEO-Nischen 01.11.2026 (`audit/seo-nischen.md` §3): the hard bands above let V528 (road 0.2 °C, air 12 °C = 11.8 K, class "frost")
+ *  and E237 (road 40 °C, air 11.6 °C = 28 K, on 26 of 27 days) through. Inside the wider band a road sensor falls only when the
+ *  neighbours disagree with it AND agree with its air: real radiative cooling or a sun-heated surface moves the neighbours too.
+ *  Replay on the archive 02.–28.10. (hourly, 666 940 pairs): 1 760 rejected (0.26 %), 53 stations, led by E237, P457, M531, M821, E774.
+ *  `set`, measured on autumn only: repeat on a summer midday and on a clear winter night (V-SN-2). */
+export const ROAD_AIR_SOFT = Object.freeze({ belowK: 8, aboveK: 15, nbRoadK: 6, nbAirK: 4 });
+/** D-3 (`audit/seo-nischen.md` §3): 20.16 and 21.6 mm/h are channel constants (RP/KO, MC-MV) and arrive with intensity or type set on
+ *  roads the same station reports dry. A rate counts as a fill value at these exact values unless a sensor reports wet (code ≥ 2), and
+ *  any rate from `dryMinMmH` when all sensors report a dry road without a film. `set`: live slots 01.11. show 34 cases at the two
+ *  constants (28 dry, 6 moist, 0 wet) and real rates of 5–16.6 mm/h with code 2 (kept). */
+export const ROAD_PRECIP_FILL = Object.freeze({ valuesMmH: [20.16, 21.6] as readonly number[], eps: 0.005, wetCond: 2, dryMinMmH: 5 });
 /** Jump rule start value (observe): AW-0 window |Δ road| over 15 min p99.9 = 4.0 K, p99.99 = 24 K (flips of broken
  *  sensors) ⇒ 8 K (2 × p99.9; 72 of 218 701 steps in 48 h above it). Calibrated after ≥ 14 days. */
 export const ROAD_JUMP_K = 8;
@@ -816,6 +827,23 @@ export function validateRoadSlot(input: RoadSlotInput): RoadSlotResult {
         }
       }
     }
+    // V528/E237 (01.11.2026): the wider band, decided by the neighbours only — see `ROAD_AIR_SOFT`. Without neighbours for both road
+    // and air nothing happens here: a lone real frost must not vanish.
+    if (ta != null) {
+      const airT = ta;
+      const soft = sensors.filter((z) => z.roadT != null && (z.roadT < airT - ROAD_AIR_SOFT.belowK || z.roadT > airT + ROAD_AIR_SOFT.aboveK));
+      if (soft.length) {
+        const me = nbCands.find((c) => c.id === s.id);
+        const nbRs = me ? roadNeighbourStat(me, nbCands, 'rs') : null;
+        const nbTa = me ? roadNeighbourStat(me, nbCands, 'ta') : null;
+        if (nbRs && nbTa && Math.abs(airT - nbTa.med) <= ROAD_AIR_SOFT.nbAirK) {
+          for (const z of soft) {
+            const v = z.roadT as number;
+            if (Math.abs(v - nbRs.med) > ROAD_AIR_SOFT.nbRoadK) { reject('rs', v, 'roadAir', `Luft ${airT}; Nachbarn Fahrbahn ${round(nbRs.med, 1)}, Luft ${round(nbTa.med, 1)} (enges Band)`); x.rs = 'roadAir'; nRejected++; z.roadT = null; }
+          }
+        }
+      }
+    }
     // M2: dew point far below the air = broken humidity sensor (after `roadAir`, so a broken AIR does not take it along).
     if (ta != null && td != null && ta - td > dewSpreadK) {
       reject('td', td, 'dewSpread', `Luft ${ta}`); x.td = 'dewSpread'; nRejected++; td = null;
@@ -829,6 +857,18 @@ export function validateRoadSlot(input: RoadSlotInput): RoadSlotResult {
         if (sen.filmMm != null) { reject('wf', sen.filmMm, 'stateNoTemp'); x.wf = 'stateNoTemp'; nRejected++; sen.filmMm = null; }
       } else if (sen.cond != null && sen.cond >= 3 && sen.cond <= 6 && sen.roadT > ROAD_ICE_MAX_C) {
         reject('cond', sen.cond, 'iceWarm', `Fahrbahn ${sen.roadT}`); x.cond = 'iceWarm'; nRejected++; sen.cond = null;
+      }
+    }
+
+    // D-3: a rate at a channel constant without a wet road, or any notable rate on a dry road without a film. After the E-AW-11 cleanup,
+    // so a state from a rejected road sensor does not vouch for it. A station without a usable state keeps its rate: no state, no verdict.
+    if (pr != null && pr > 0 && s.precipIntensity !== undefined) {
+      const conds = sensors.map((z) => z.cond).filter((v): v is number => v != null);
+      const films = sensors.map((z) => z.filmMm).filter((v): v is number => v != null);
+      const isConstant = ROAD_PRECIP_FILL.valuesMmH.some((f) => Math.abs((pr as number) - f) < ROAD_PRECIP_FILL.eps);
+      const allDry = conds.length > 0 && conds.every((c) => c === 0) && films.every((f) => f === 0);
+      if ((isConstant && conds.length > 0 && !conds.some((c) => c >= ROAD_PRECIP_FILL.wetCond)) || (allDry && pr >= ROAD_PRECIP_FILL.dryMinMmH)) {
+        reject('pr', pr, 'precipFill', `Zustand ${conds.join('/')}, Film ${films.join('/') || 'fehlt'}`); x.pr = 'precipFill'; nRejected++; pr = null;
       }
     }
 
