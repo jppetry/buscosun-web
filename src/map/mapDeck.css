@@ -1064,3 +1064,8 @@
   .mdk-sheet.is-half { --mdk-sheet-h: 62dvh; }
   .mdk-sheet.is-full { --mdk-sheet-h: 86dvh; }
 }
+
+/* Mobil: statischer Erklärtext der Warnungs-Legende ausgeblendet (Ausfall-/Lückenhinweise bleiben) */
+@media (max-width: 767px) {
+  .mdk-legends .cl-warn-static { display: none; }
+}

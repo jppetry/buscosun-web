@@ -5492,6 +5492,7 @@ export default function MapView({
               <><b>Für {forecastHour === 0 ? 'jetzt' : `in ${forecastHour} h`} liegen keine amtlichen
               Warnungen für Deutschland und die Schweiz vor.</b>{' '}</>
             )}
+            <span className="cl-warn-static">
             Amtliche Warnungen des <b>Deutschen Wetterdienstes</b> (landkreisgenau) und von{' '}
             <b>MeteoSchweiz</b> (Warnregionen, über MeteoAlarm). Die <b>Texte</b> stammen
             unverändert aus der amtlichen Meldung. Die <b>Farbe</b> ist für Deutschland die
@@ -5502,6 +5503,7 @@ export default function MapView({
             {' '}<b>Österreich fehlt weiterhin</b> — dort warnt {warningsSourceFor('AT').operator}{' '}
             (<a href={warningsSourceFor('AT').url} target="_blank" rel="noopener">Warnübersicht</a>);
             eine leere Fläche über Österreich heißt <b>nicht</b> „keine Warnung".
+            </span>
             {warnInfo != null && warnInfo.dropped > 0 && (
               <> {warnInfo.dropped} Meldung(en) ohne darstellbare Fläche sind hier nicht abgebildet.</>
             )}
@@ -5509,9 +5511,11 @@ export default function MapView({
               <> {chWarnRun.textUnavailable} Schweizer Meldung(en) konnten im Wortlaut nicht geladen
               werden und werden deshalb <b>nicht</b> gezeigt.</>
             )}
+            <span className="cl-warn-static">
             {' '}Maßgeblich ist die amtliche Bekanntmachung auf{' '}
             <a href={warningsSourceFor('DE').url} target="_blank" rel="noopener">dwd.de</a>{' '}
             bzw. bei <a href={warningsSourceFor('CH').url} target="_blank" rel="noopener">MeteoSchweiz</a>.
+            </span>
           </div>
         </div>
       )}
