@@ -435,35 +435,35 @@
 .tile-tags { display: flex; gap: 7px; margin-top: 14px; flex-wrap: wrap; }
 .tile-tag { font-size: 11px; color: var(--stone-600); background: var(--sand-50); border: 1px solid var(--border-default); border-radius: 10px; padding: 5px 11px; }
 
-/* Wetterkarte-Vorschau */
+/* Wetterkarte (Phase WK, E-WK-1 „2d · Berge & Wälder", 31.10.2026): weiß wie die anderen Kacheln, mit Punktraster, Text oben links, die gezeichnete
+   DACH-Karte (DachMapPreview) rechts daneben; alles absolut, nichts bewegt sich. `.tile-map`/`.tile-map-tag` tragen weiter
+   Seewetter und Gletscher. */
 .tile-karte { flex-direction: column; }
+.tile-karte.t-lg {
+  position: relative; overflow: hidden; padding: 0; min-height: 360px;
+  background-color: #fff;
+  background-image: radial-gradient(circle at center, rgba(44, 42, 38, 0.09) 0.9px, rgba(44, 42, 38, 0) 1.2px);
+  background-size: 9px 9px;
+}
+.tile-karte-text { position: absolute; left: 26px; top: 26px; width: 240px; z-index: 1; }
+.tile-karte-text .tile-eyebrow { font-weight: 600; color: var(--terracotta-700); }
+/* Die Karte füllt die Kachel (Bezugsrahmen 640 × 520, Land ab x = 276 = 43,125 %). Wird die Kachel schmaler als ≈ 650 px, rückt der
+   Rahmen nach rechts, bis das Land 8 px rechts vom Textblock (26 + 240 px) beginnt: left = (274 px − 43,125 % · Breite) / 0,56875,
+   sonst 0. Kein eigener Breakpoint. */
+.tile-karte-svg { --wk-left: max(0px, calc((274px - 43.125%) / 0.56875)); position: absolute; top: 0; left: var(--wk-left); width: calc(100% - var(--wk-left)); height: 100%; }
+.tile-karte-label {
+  font-family: var(--font-display); font-weight: 600; letter-spacing: 0.07em; fill: var(--ink-900); fill-opacity: 0.82;
+  stroke: #F3ECDD; stroke-width: 2.8px; stroke-linejoin: round; paint-order: stroke;
+}
 .tile-map {
-  --tk-rain: var(--steel-600); --tk-core: var(--steel-600); --tk-de: #E4ECD6; --tk-at: #F4E4CC; --tk-ch: #DCE8F6;
-  --tk-mt-a: #D6C39C; --tk-mt-b: #AE9468; --tk-hill-a: #BDCDA0; --tk-hill-b: #9DB27E;
   flex: 1; min-height: 170px; margin-top: 16px; border-radius: 16px; position: relative; overflow: hidden;
   background: linear-gradient(160deg, var(--cream-50) 0%, var(--sage-50) 45%, var(--steel-50) 100%);
   box-shadow: inset 0 0 0 1px rgba(44, 42, 38, 0.06);
 }
-.tile-map-svg { position: absolute; left: 0; top: 8px; width: 58%; height: calc(100% - 16px); }
 .tile-map-tag {
   position: absolute; left: 12px; top: 11px; font-family: var(--font-mono); font-size: 9px; letter-spacing: 1px;
   color: var(--sand-50); background: var(--ink-900); padding: 5px 10px; border-radius: 999px;
 }
-.tile-map-chips { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
-.tile-map-chip { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; line-height: 1; color: var(--stone-600); background: rgba(255, 253, 246, 0.8); padding: 7px 12px; border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(44, 42, 38, 0.1); }
-.tile-map-chip.is-on { color: var(--sand-50); background: var(--ink-900); box-shadow: 0 6px 14px -6px rgba(44, 42, 38, 0.6); font-weight: 600; }
-.tile-map-chip-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber-500); animation: deck-map-dot 1.8s ease-in-out infinite; }
-/* Regenfront zieht in 16 s von West nach Ost über das Land (Zellen auf den Zugbahnen laufen per SMIL im selben Takt,
-   Von/Bis = X_FROM/X_TO in DachMapPreview.tsx). Ohne prefers-reduced-motion-Ausnahme. */
-.tile-map-front { animation: deck-map-front 16s linear infinite; }
-@keyframes deck-map-front {
-  0% { transform: translateX(-100px); opacity: 0; }
-  6% { opacity: 1; }
-  94% { opacity: 1; }
-  100% { transform: translateX(215px); opacity: 0; }
-}
-.tile-map-chip-sw { width: 6px; height: 6px; border-radius: 50%; flex: none; }
-@keyframes deck-map-dot { 0%, 100% { opacity: .35; transform: scale(.8); } 50% { opacity: 1; transform: scale(1.15); } }
 
 /* Tour */
 .tile-tour { justify-content: space-between; min-height: 230px; }
@@ -886,8 +886,11 @@
   .tile-title-xl { font-size: 21px; }
   .tile-title-lg { font-size: 19px; }
   .tile-map { min-height: 262px; }
-  .tile-map-chips { gap: 5px; }
-  .tile-map-chip { font-size: 11px; padding: 6px 10px; }
+  /* Wetterkarte mobil: Text über die volle Breite, Karte darunter (Bezugsrahmen 358 × 396). */
+  .tile-karte.t-lg { aspect-ratio: 358 / 396; min-height: 0; }
+  .tile-karte-text { left: 18px; right: 18px; top: 18px; width: auto; }
+  .tile-karte-svg { --wk-left: 0px; }
+  .tile-karte-text .tile-desc { font-size: 13px; margin-top: 10px; }
   .tile-tour, .tile-event, .tile-nowcast, .tile-forecast, .tile-fire, .tile-history, .tile-threed, .tile-globus,
   .tile-glacier, .tile-road, .tile-coast { min-height: 0; }
   /* Mobil dieselben kompakten Kacheln wie am Desktop, je eine Spalte (t-half), Reihenfolge wie dort:

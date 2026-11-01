@@ -175,6 +175,9 @@ export interface WindLayerOptions {
    *  Auffrisch-Puls nach zoomend springt wieder ein) — Rule-2-Fallback. */
   zoomRedistribute?: boolean;
   pointSize?: number;
+  /** Zuschlag auf die Punktgröße beim Rauszoomen (Points-Stil): × (1 + Wert · t), t = 0 ab Zoom 6 bis 1 bei Zoom 3,5.
+   *  Default 0 = unverändert (Globus). Die Wetterkarte setzt ihn in `weatherWindPreset.ts`. */
+  zoomOutPointBoost?: number;
   windPngUrl?: string;
   windJsonUrl?: string;
   colorRamp?: Record<number, string>;
@@ -331,6 +334,7 @@ export class WindLayer implements CustomLayerInterface {
   private autoScale: boolean;
   private baseDensity: number;
   private densityMultiplier: number;
+  private zoomOutPointBoost: number;
   private minParticles: number;
   private maxParticles: number;
   // ALT-Zoomausdünnung („Rule 2"-Fallback, s. getEffectiveParticleCount).
@@ -1173,6 +1177,7 @@ export class WindLayer implements CustomLayerInterface {
     this.zoomDropBoost = Math.max(0, options.zoomDropBoost ?? 0);
     this.zoomRedistribute = options.zoomRedistribute ?? true;
     this.pointSize = options.pointSize ?? 1.5;
+    this.zoomOutPointBoost = Math.max(0, options.zoomOutPointBoost ?? 0);
     this.showHeatmap = options.showHeatmap ?? true;
     this.heatmapOpacity = options.heatmapOpacity ?? 0.85;
     this.particleColor = options.particleColor ?? [1.0, 1.0, 1.0, 0.85];
@@ -2200,7 +2205,8 @@ export class WindLayer implements CustomLayerInterface {
     // aber nie breiter als der Schweif. Untergrenze 0,85 unverändert, damit der
     // Globus (Zoom ~0–2, ohnehin geklemmt) exakt gleich bleibt.
     const zoom = this.map?.getZoom() ?? 5;
-    const zoomFactor = Math.max(0.85, Math.min(1.5, 1.0 + (zoom - 5) * 0.08));
+    const zoomFactor = Math.max(0.85, Math.min(1.5, 1.0 + (zoom - 5) * 0.08))
+      * (1 + this.zoomOutPointBoost * Math.max(0, Math.min(1, (6 - zoom) / 2.5)));
     // gl_PointSize is in FRAMEBUFFER pixels, so apparent CSS thickness would be
     // pointSize / effectivePixelRatio — i.e. thinner on high-DPR desktops and on
     // the DPR-capped mobile buffer (a key cause of the mobile↔desktop mismatch).

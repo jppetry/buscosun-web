@@ -824,16 +824,12 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
       {/* 01 · WETTERKARTE — groß (2×2) */}
       {tile(['radar'], 'tile-karte t-lg', FEATURE.map2d, 'Wetterkarte öffnen',
         <>
-          <div className="tile-head">
-            <div>
-              <div className="tile-eyebrow">01 · WETTERKARTE</div>
-              <div className="tile-title tile-title-xl">Die ganze DACH-Wetterkarte</div>
-            </div>
+          <div className="tile-karte-text">
+            <div className="tile-eyebrow">01 · WETTERKARTE</div>
+            <div className="tile-title tile-title-xl">{mobile ? 'Die ganze DACH-Wetterkarte' : <>Die ganze<br />DACH-Wetterkarte</>}</div>
+            <p className="tile-desc">Wind, Niederschlag, Temperatur (höhenkorrigiert), Wolken, Satellit, Blitze und Stationen — mit Zeit-Slider und Modellwahl je Land. Direkt-Einstieg ohne Ortssuche.</p>
           </div>
-          <p className="tile-desc">Wind, Niederschlag, Temperatur (höhenkorrigiert), Wolken, Satellit, Blitze und Stationen — mit Zeit-Slider und Modellwahl je Land. Direkt-Einstieg ohne Ortssuche.</p>
-          <div className="tile-map">
-            <DachMapPreview />
-          </div>
+          <DachMapPreview mobile={mobile} />
         </>)}
 
       {/* 02 · TOURENPLANUNG — dunkel, span 2 */}

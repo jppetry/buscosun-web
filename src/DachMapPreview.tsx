@@ -1,127 +1,95 @@
 /**
- * DachMapPreview — Zier-Grafik der Startseiten-Kachel „01 · Wetterkarte": eine helle, flache DACH-Karte in den Farben der
- * Feature-Kacheln (Land je Staat getönt: Salbei / Amber / Stahlblau; dunkler Umriss), über die von West nach Ost eine
- * Regenfront zieht — Frontlinie mit Zacken in Zugrichtung, Regenband dahinter —, dazu drei gestrichelte Zugbahnen mit
- * mitwandernden Zellen. Daneben die Ebenen als Chip-Liste mit Farbpunkt (aktiv: Niederschlag). Keine Daten; die Umrisse stehen in `dachPreviewPaths.ts`
- * (GENERIERT, `scripts/gen-dach-preview.mjs`). Die Bewegung (`.tile-map-front`, SMIL der Zellen, `.tile-map-chip-dot`)
- * läuft bewusst ohne prefers-reduced-motion-Ausnahme, wie die übrigen Kachel-Glyphen (Jan 2026-10-03).
+ * DachMapPreview — Zier-Grafik der Startseiten-Kachel „01 · Wetterkarte" (Phase WK, Entwurf „2d · Berge & Wälder",
+ * E-WK-1): eine ruhige, gezeichnete DACH-Karte auf Sand — Land mit weichem Schatten, Hügel, Wald, zwei Reihen Berge mit
+ * Schneekappen, gestrichelte Landesgrenzen, Umriss und beschriftete Städte. Keine Daten, keine Bewegung; die Geometrie
+ * (Umrisse, Relief, Wald, Städte, Projektion) steht in `dachPreviewPaths.ts` (GENERIERT, `scripts/gen-dach-preview.mjs`).
+ * Der Text der Kachel steht im DOM davor (`.tile-karte-text`, SearchPage.css), die Karte sitzt absolut dahinter/daneben.
  */
-import { DACH_PREVIEW_H, DACH_PREVIEW_W, DACH_PREVIEW_PATHS as P, DACH_PREVIEW_RELIEF as R } from './dachPreviewPaths';
+import {
+  DACH_PREVIEW_CITIES as CITIES, DACH_PREVIEW_FOREST as FOREST, DACH_PREVIEW_PATHS as P, DACH_PREVIEW_RELIEF as R,
+} from './dachPreviewPaths';
 
-const PAD = 8;
 const SHAPE = `${P.DE}${P.AT}${P.CH}`;
-/** Ebenen mit Farbpunkt (Tokens der Feature-Kacheln). */
-const LAYERS: [string, string][] = [
-  ['Wind', 'var(--sage-600)'], ['Niederschlag', 'var(--steel-600)'], ['Temperatur', 'var(--amber-500)'], ['Wolken', 'var(--stone-500)'],
-  ['Satellit', '#5FAFC9'], ['Blitze', 'var(--amber-500)'], ['Stationen', 'var(--ink-900)'],
-];
-const ACTIVE = 'Niederschlag';
+const CAPITALS = new Set(['Berlin', 'Wien', 'Bern']);
+/** Beschriftung links vom Punkt (sonst rechts); mobil rückt München nach links, sonst stößt es an Wien. */
+const LABEL_LEFT = { wide: new Set(['Wien', 'Graz']), narrow: new Set(['Wien', 'München']) };
+const f2 = (n: number) => Math.round(n * 100) / 100;
 
-/** Frontlinie (lokal, Zugrichtung +x) als kubische Bézierkurve; das Regenband liegt BAND Einheiten dahinter. */
-const FRONT: [number, number][] = [[12, -10], [-6, 60], [26, 150], [4, 255]];
-const BAND = 78;
-/** Die Gruppe wandert von X_FROM nach X_TO (Einheiten des Land-Koordinatensystems, Land ≈ 0…190); 16 s je Zug — dieselben Werte stehen in `deck-map-front` (SearchPage.css). */
-const X_FROM = -100;
-const X_TO = 215;
-const DUR_S = 16;
-/** Zugbahnen (Land-Koordinaten). Die Zellen sitzen 6 Einheiten hinter dem Linienursprung, also im Regenband. */
-const TRACKS = [
-  `M${X_FROM - 6} 70 C-20 40 60 92 ${X_TO - 6} 52`,
-  `M${X_FROM - 6} 132 C-20 110 70 152 ${X_TO - 6} 120`,
-  `M${X_FROM - 6} 192 C-10 170 80 204 ${X_TO - 6} 176`,
-];
+/** Rahmen je Form: viewBox, Ausrichtung, Lage der Karte (Vorschau-Einheiten → viewBox-Pixel), sichtbare Städte, Schriftgröße. */
+const FRAME = {
+  wide: {
+    box: '0 0 640 520', align: 'xMaxYMid meet', x: 276, y: 38, k: 1.86, label: 9.5,
+    cities: ['Hamburg', 'Berlin', 'Köln', 'Frankfurt', 'Leipzig', 'München', 'Wien', 'Zürich', 'Bern', 'Innsbruck', 'Graz'],
+  },
+  narrow: {
+    box: '0 0 358 396', align: 'xMidYMax meet', x: 84, y: 134, k: 1, label: 8.5,
+    cities: ['Hamburg', 'Berlin', 'Frankfurt', 'München', 'Wien', 'Zürich', 'Bern'],
+  },
+} as const;
 
-const bez = (t: number): [number, number] => {
-  const u = 1 - t;
-  const [a, b, c, d] = FRONT;
-  return [0, 1].map((i) => u * u * u * a[i] + 3 * u * u * t * b[i] + 3 * u * t * t * c[i] + t * t * t * d[i]) as [number, number];
-};
-const frontPath = `M${FRONT[0]} C${FRONT[1]} ${FRONT[2]} ${FRONT[3]}`;
-const bandPath = `${frontPath} L${FRONT[3][0] - BAND} ${FRONT[3][1]} C${FRONT[2][0] - BAND} ${FRONT[2][1]} ${FRONT[1][0] - BAND} ${FRONT[1][1]} ${FRONT[0][0] - BAND} ${FRONT[0][1]}Z`;
-/** Zacken der Kaltfront: Dreiecke auf der Linie, Spitze in Zugrichtung (+x). */
-const TEETH = Array.from({ length: 10 }, (_, i) => {
-  const t = 0.05 + i * 0.1;
-  const [x, y] = bez(t);
-  const [x2, y2] = bez(t + 0.01);
-  const [x1, y1] = bez(t - 0.01);
-  const len = Math.hypot(x2 - x1, y2 - y1) || 1;
-  const tx = (x2 - x1) / len, ty = (y2 - y1) / len;
-  const nx = Math.abs(ty), ny = ty >= 0 ? -tx : tx; // normal with positive x
-  const f = (n: number) => Math.round(n * 10) / 10;
-  return `M${f(x - tx * 4)} ${f(y - ty * 4)}L${f(x + nx * 8)} ${f(y + ny * 8)}L${f(x + tx * 4)} ${f(y + ty * 4)}Z`;
-}).join('');
-
-export function DachMapPreview() {
+/** Wald: jeder Baum als zwei Formen, in Feldreihenfolge (hinten → vorn). Ein Mal gebaut, die Daten ändern sich nie. */
+const FOREST_EL = FOREST.map(([x, y, kind, s], i) => {
+  if (kind === 1) {
+    const h = 4.9 * s, w = 1.75 * s, top = f2(y - 0.62 * h), base = f2(y + 0.38 * h);
+    return (
+      <g key={i}>
+        <path d={`M${x} ${top}L${f2(x + w)} ${base}L${f2(x - w)} ${base}Z`} fill="#6E8A5C" />
+        <path d={`M${x} ${top}L${x} ${base}L${f2(x - w)} ${base}Z`} fill="#93AC7C" />
+      </g>
+    );
+  }
+  const r = 1.95 * s;
   return (
-    <>
-      <svg
-        viewBox={`${-PAD} ${-PAD} ${DACH_PREVIEW_W + 2 * PAD} ${DACH_PREVIEW_H + 2 * PAD}`}
-        preserveAspectRatio="xMidYMid meet"
-        className="tile-map-svg"
-        aria-hidden="true"
-      >
-        <defs>
-          <clipPath id="tkClip"><path d={SHAPE} /></clipPath>
-          <linearGradient id="tkBand" gradientUnits="userSpaceOnUse" x1="12" y1="0" x2={12 - BAND} y2="0">
-            <stop offset="0" stopColor="var(--tk-rain)" stopOpacity=".6" />
-            <stop offset=".5" stopColor="var(--tk-rain)" stopOpacity=".26" />
-            <stop offset="1" stopColor="var(--tk-rain)" stopOpacity="0" />
-          </linearGradient>
-          <radialGradient id="tkCore">
-            <stop offset="0" stopColor="var(--tk-core)" stopOpacity=".5" />
-            <stop offset="1" stopColor="var(--tk-core)" stopOpacity="0" />
-          </radialGradient>
-        </defs>
-        <path d={P.DE} fill="var(--tk-de)" />
-        <path d={P.AT} fill="var(--tk-at)" />
-        <path d={P.CH} fill="var(--tk-ch)" />
-        <g clipPath="url(#tkClip)">
-          <path d={R.hill.a} fill="var(--tk-hill-a)" />
-          <path d={R.hill.b} fill="var(--tk-hill-b)" />
-          <path d={R.back.a} fill="var(--tk-mt-a)" fillOpacity=".7" />
-          <path d={R.back.b} fill="var(--tk-mt-b)" fillOpacity=".7" />
-          <path d={R.back.s} fill="#fff" fillOpacity=".85" />
-          <path d={R.front.a} fill="var(--tk-mt-a)" />
-          <path d={R.front.b} fill="var(--tk-mt-b)" />
+    <g key={i}>
+      <circle cx={f2(x + 0.45)} cy={f2(y + 0.4)} r={f2(r)} fill="var(--sage-600)" />
+      <circle cx={f2(x - 0.25)} cy={f2(y - 0.3)} r={f2(0.8 * r)} fill="#A6BA8E" />
+    </g>
+  );
+});
+
+export function DachMapPreview({ mobile }: { mobile: boolean }) {
+  const fr = mobile ? FRAME.narrow : FRAME.wide;
+  return (
+    <svg viewBox={fr.box} preserveAspectRatio={fr.align} className="tile-karte-svg" aria-hidden="true">
+      <defs>
+        <clipPath id="wkClip"><path d={SHAPE} /></clipPath>
+      </defs>
+      <g className="tile-karte-land" transform={`translate(${fr.x} ${fr.y}) scale(${fr.k})`}>
+        <path d={SHAPE} transform="translate(1.2 2)" fill="var(--sand-300)" fillOpacity=".6" />
+        <path d={SHAPE} fill="#EFE7D4" />
+        <g clipPath="url(#wkClip)">
+          <path d={R.hill.a} fill="#BDCDA0" />
+          <path d={R.hill.b} fill="#9DB27E" />
+          {FOREST_EL}
+          <g fillOpacity=".75">
+            <path d={R.back.a} fill="#D6C39C" />
+            <path d={R.back.b} fill="#AE9468" />
+          </g>
+          <path d={R.back.s} fill="#fff" fillOpacity=".9" />
+          <path d={R.front.a} fill="#D6C39C" />
+          <path d={R.front.b} fill="#AE9468" />
           <path d={R.front.s} fill="#fff" />
         </g>
-        <g clipPath="url(#tkClip)">
-          <g fill="none" stroke="var(--ink-900)" strokeOpacity=".4" strokeWidth="1.1" strokeLinecap="round" strokeDasharray="1.5 4.5">
-            {TRACKS.map((d) => <path key={d} d={d} />)}
-          </g>
-          <g className="tile-map-front">
-            <path d={bandPath} fill="url(#tkBand)" />
-            <ellipse cx="-26" cy="62" rx="30" ry="20" fill="url(#tkCore)" />
-            <ellipse cx="-30" cy="168" rx="26" ry="18" fill="url(#tkCore)" />
-            <path d={frontPath} fill="none" stroke="var(--ink-900)" strokeWidth="2.2" strokeLinecap="round" />
-            <path d={TEETH} fill="var(--ink-900)" />
-          </g>
-          {TRACKS.map((d) => (
-            <g key={d} fill="var(--amber-500)">
-              <circle r="3.2" stroke="var(--ink-900)" strokeWidth="1.2">
-                <animateMotion dur={`${DUR_S}s`} repeatCount="indefinite" path={d} />
-              </circle>
-              <circle r="3" fill="none" stroke="var(--ink-900)" strokeWidth="1">
-                <animateMotion dur={`${DUR_S}s`} repeatCount="indefinite" path={d} />
-                <animate attributeName="r" values="3;9" dur="1.6s" repeatCount="indefinite" />
-                <animate attributeName="opacity" values=".7;0" dur="1.6s" repeatCount="indefinite" />
-              </circle>
-            </g>
-          ))}
+        <g fill="none" stroke="var(--ink-900)" strokeOpacity=".3" strokeWidth="1" strokeDasharray="3 4">
+          <path d={P.AT} vectorEffect="non-scaling-stroke" /><path d={P.CH} vectorEffect="non-scaling-stroke" />
         </g>
-        <g fill="none" stroke="var(--ink-900)" strokeOpacity=".3" strokeWidth="1" strokeLinejoin="round">
-          <path d={P.AT} /><path d={P.CH} />
-        </g>
-        <path d={SHAPE} fill="none" stroke="var(--ink-900)" strokeWidth="2" strokeLinejoin="round" />
-      </svg>
-      <div className="tile-map-chips" aria-hidden="true">
-        {LAYERS.map(([l, c]) => (
-          <span key={l} className={`tile-map-chip${l === ACTIVE ? ' is-on' : ''}`}>
-            {l === ACTIVE ? <i className="tile-map-chip-dot" /> : <i className="tile-map-chip-sw" style={{ background: c }} />}
-            {l}
-          </span>
-        ))}
-      </div>
-    </>
+        <path d={SHAPE} fill="none" stroke="var(--ink-900)" strokeOpacity=".6" strokeWidth="1.6" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+      </g>
+      {fr.cities.map((name) => {
+        const [ux, uy] = CITIES[name];
+        const x = fr.x + ux * fr.k, y = fr.y + uy * fr.k;
+        const cap = CAPITALS.has(name), r = cap ? 3.2 : 2.3, left = LABEL_LEFT[mobile ? 'narrow' : 'wide'].has(name);
+        return (
+          <g key={name}>
+            {cap && <circle cx={f2(x)} cy={f2(y)} r="6.2" fill="var(--terracotta-500)" fillOpacity=".22" />}
+            <circle cx={f2(x)} cy={f2(y)} r={r} fill={cap ? 'var(--terracotta-500)' : 'var(--ink-900)'} stroke="#FAF6EA" strokeWidth="1.2" />
+            <text
+              className="tile-karte-label" x={f2(x + (left ? -(r + 4) : r + 4))} y={f2(y + 3.2)}
+              textAnchor={left ? 'end' : 'start'} fontSize={fr.label}
+            >{name.toUpperCase()}</text>
+          </g>
+        );
+      })}
+    </svg>
   );
 }

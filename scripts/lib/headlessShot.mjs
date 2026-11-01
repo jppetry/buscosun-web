@@ -101,12 +101,12 @@ export async function openShooter(chromePath, { timeoutMs = 30_000 } = {}) {
    * Seite selbst befragen (z. B. „liegt das Kartenfeld noch in der Flaeche?").
    * Der Wert kommt zurueck; das Bild wird trotzdem geschrieben.
    */
-  async function shot(url, file, { width = 1200, height = 630, format = 'png', quality, probe, media, settleMs = 0 } = {}) {
+  async function shot(url, file, { width = 1200, height = 630, format = 'png', quality, probe, media, settleMs = 0, deviceScaleFactor = 1, mobile = false, clip } = {}) {
     const { targetId } = await send('Target.createTarget', { url: 'about:blank', width, height });
     const { sessionId } = await send('Target.attachToTarget', { targetId, flatten: true });
     try {
       await send('Emulation.setDeviceMetricsOverride',
-        { width, height, deviceScaleFactor: 1, mobile: false }, sessionId);
+        { width, height, deviceScaleFactor, mobile }, sessionId);
       await send('Page.enable', {}, sessionId);
       // `media: 'print'` schaltet die Druck-Stylesheets ein, ohne zu drucken —
       // so laesst sich ein `@media print`-Block ueberhaupt ansehen (E-7).
@@ -125,12 +125,12 @@ export async function openShooter(chromePath, { timeoutMs = 30_000 } = {}) {
       if (settleMs > 0) await new Promise((r) => setTimeout(r, settleMs));
       let probed;
       if (probe) {
-        const r = await send('Runtime.evaluate', { expression: probe, returnByValue: true }, sessionId);
+        const r = await send('Runtime.evaluate', { expression: probe, returnByValue: true, awaitPromise: true }, sessionId);
         probed = r?.result?.value;
       }
       const { data } = await send('Page.captureScreenshot', {
         format, ...(quality != null ? { quality } : {}),
-        clip: { x: 0, y: 0, width, height, scale: 1 }, captureBeyondViewport: true,
+        clip: { x: 0, y: 0, width, height, scale: 1, ...clip }, captureBeyondViewport: true,
       }, sessionId);
       writeFileSync(file, Buffer.from(data, 'base64'));
       return probed;
