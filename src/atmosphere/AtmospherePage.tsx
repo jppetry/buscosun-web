@@ -107,7 +107,7 @@ function AtmosphereIntro() {
     <section className="vsd-intro">
       <div className="vsd-intro-main">
         <div className="vsd-eyebrow">Schritt 1 von 3</div>
-        <h1 className="vsd-intro-title">Die Atmosphäre über dir</h1>
+        <h1 className="vsd-intro-title">Vertikalschnitt der Atmosphäre</h1>
         <p className="vsd-intro-lead">
           Wähle einen Ort oder lade eine Tour (GPX/TCX/FIT) hoch — dann zeigen wir dir den
           Vertikalschnitt darüber: den Höhenwind über die
