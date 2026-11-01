@@ -243,7 +243,7 @@ async function run(base, prof, scenario) {
       await ctx.send('Page.navigate', { url: `${base}/` });
       await loaded;
       await waitQuiet(ctx, base, () => true, 1500, 10_000);
-      const c = await clickOn(ctx, 'button.deck-tile[aria-label="Regenradar / Nowcast öffnen"]', null);
+      const c = await clickOn(ctx, 'a.deck-tile[aria-label="Regenradar / Nowcast öffnen"]', null);
       const t0 = Date.now();
       let s = null;
       while (Date.now() - t0 < 60_000) { await sleep(100); s = await ctx.evaluate(STATE).catch(() => null); if (s?.click?.draw != null && s?.click?.urlChange != null) break; }

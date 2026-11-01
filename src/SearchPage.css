@@ -387,9 +387,9 @@
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; grid-auto-rows: minmax(0, auto);
 }
 
-/* Tile-Basis (echtes <button> → Resets) */
+/* Tile-Basis (echter Link, sieht aus wie zuvor der <button>) */
 .deck-tile {
-  font: inherit; color: inherit; text-align: left; appearance: none; -webkit-appearance: none;
+  font: inherit; color: inherit; text-align: left; appearance: none; -webkit-appearance: none; text-decoration: none;
   background: #fff; border: 1px solid var(--border-medium); border-radius: 22px; padding: 24px;
   display: flex; flex-direction: column; cursor: pointer;
   /* Hebt die Kachel sichtbar von der Hintergrundkarte ab. */

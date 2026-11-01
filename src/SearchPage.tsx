@@ -26,6 +26,7 @@ import {
 import { EVENT_PLANNER_VISIBLE } from './nav/eventVisibility';
 import type { Location, NominatimResult } from './types';
 import type { FeatureInfo } from './App';
+import { pathForFeature } from './router/routes';
 import { parseCountry } from './countryProfiles';
 import RadarSweepIcon from './RadarSweepIcon';
 import GlobeIcon from './GlobeIcon';
@@ -310,17 +311,22 @@ function HeroQuad({ activeCat, onOpenFeature }: { activeCat: 'alle' | Category; 
 function makeTile(activeCat: 'alle' | Category, onOpenFeature: (f: FeatureInfo) => void) {
   const dim = (cats: Category[]) => activeCat !== 'alle' && !cats.includes(activeCat);
   return (cats: Category[], cls: string, feature: FeatureInfo, ariaLabel: string, children: ReactNode, style?: CSSProperties) => (
-    <button
-      type="button"
+    // A real link (audit/seo-nischen.md): crawlers and "open in new tab" get the feature's path; a plain click stays the app's own navigation.
+    <a
+      href={pathForFeature(feature.id)}
       className={`deck-tile ${cls}${dim(cats) ? ' is-dim' : ''}`}
       style={style}
       aria-label={ariaLabel}
       aria-hidden={dim(cats) || undefined}
       tabIndex={dim(cats) ? -1 : undefined}
-      onClick={() => onOpenFeature(feature)}
+      onClick={(e) => {
+        if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        e.preventDefault();
+        onOpenFeature(feature);
+      }}
     >
       {children}
-    </button>
+    </a>
   );
 }
 

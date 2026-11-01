@@ -29,6 +29,7 @@ const OG_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public
 // SH6: welche App-Karte zu Route/Sub-Route gehoert, sagt EINE Regel — dieselbe,
 // die der Renderer, die Edge Function und der Verifier benutzen.
 import { ogCardPath } from '../../src/share/ogCard.ts';
+import { ROUTE_BY_ID } from '../../src/router/routes.ts';
 
 export const ogImageOr = (slug, fallback) => (existsSync(join(OG_DIR, `${slug}.png`)) ? `/og/${slug}.png` : fallback);
 
@@ -470,6 +471,20 @@ ${unknownsSectionV3(place)}
 
 /** Crawlbarer Inhalts-Block, der in #root der Home-index.html injiziert wird
  *  (React ersetzt ihn beim Mount — inhaltsgleich, kein Cloaking). */
+/** Die Nischen auf der Startseite: nur Routen, die indexierbar sind; eine gesperrte Seite bewirbt die Startseite nicht. */
+function homeNicheLinks() {
+  const items = [
+    ['waldbrand', 'Waldbrandgefahr und Brandradar', 'Gefahrenindex, Satellitendetektionen, Trockenheit'],
+    ['seewetter', 'Seewetter Nord- und Ostsee', 'Wind, Seegang und Wasserstand'],
+    ['gletscher', 'Gletscher-Monitor', 'rund 2 200 Gletscher in DE, AT und CH'],
+    ['autobahnwetter', 'Autobahnwetter', 'was die Glättemeldeanlagen messen'],
+    ['wetterarchiv', 'Wetterarchiv', 'Rückblick und Klima seit 1940 für jeden Ort'],
+    ['atmosphaere', 'Vertikalschnitt der Atmosphäre', 'Höhenwind, Böen und Wolkenbasis entlang einer Linie'],
+  ];
+  return items.filter(([id]) => !ROUTE_BY_ID[id].meta.noindex)
+    .map(([id, label, what]) => `<li><a href="${id === 'atmosphaere' ? '/atmosphaere/querschnitt' : ROUTE_BY_ID[id].path}">${label}</a>: ${what}</li>`).join('\n        ');
+}
+
 export function renderHomeRootContent(places) {
   const topByCountry = (c) => places.filter((p) => p.country === c).slice(0, 8)
     .map((p) => `<a href="/wetter/${p.slug}/">${escapeHtml(p.name)}</a>`).join(' · ');
@@ -483,12 +498,15 @@ export function renderHomeRootContent(places) {
       <p>${escapeHtml(lead)}</p>
       <h2>Funktionen</h2>
       <ul>
-        <li>Interaktive 2D-Wetterkarte (Wind, Niederschlag, Temperatur, Wolken, Satellit, Blitze)</li>
-        <li>Tourenplanung mit Wetter entlang der Route</li>
-        <li>Event-Planung: bester Tag im 7-Tage-Vergleich</li>
-        <li>6-Stunden-Nowcast aus Radar &amp; ICON-D2</li>
-        <li>Modellvergleich mit ehrlichem Spread</li>
-        <li>Vertikalschnitt der Atmosphäre: Höhenwind, Böen und Wolkenbasis entlang einer Linie</li>
+        <li><a href="/wetterkarte">Interaktive 2D-Wetterkarte</a> (Wind, Niederschlag, Temperatur, Wolken, Satellit, Blitze)</li>
+        <li><a href="/regenradar">Regenradar</a> und 6-Stunden-Nowcast aus Radar &amp; ICON-D2</li>
+        <li><a href="/tourenplanung">Tourenplanung</a> mit Wetter entlang der Route</li>
+        <li><a href="/eventplanung">Event-Planung</a>: bester Tag im 7-Tage-Vergleich</li>
+        <li><a href="/funktionen/modellvergleich/">Modellvergleich</a>: welches Modell lag an deinem Ort zuletzt am nächsten</li>
+      </ul>
+      <h2>Spezialthemen</h2>
+      <ul>
+        ${homeNicheLinks()}
       </ul>
       <h2>Wetter in DACH-Orten</h2>
       <p>${topByCountry('DE')}</p>
