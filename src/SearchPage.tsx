@@ -126,7 +126,7 @@ const PALETTE: PaletteEntry[] = [
   { num: '04', label: 'Regenradar / Nowcast',   hint: 'Gemessenes Radar',           feature: FEATURE.nowcast },
   { num: '05', label: 'Vorhersage & Konfidenz', hint: 'Modell · Spread',            feature: FEATURE.forecast },
   { num: '06', label: 'Historie',               hint: 'Klima seit 1940',            feature: FEATURE.history },
-  { num: '07', label: 'Atmosphäre',             hint: 'Höhenwind · Föhn',           feature: FEATURE.atmosphere },
+  { num: '07', label: 'Atmosphäre',             hint: 'Höhenwind · Schnitt',        feature: FEATURE.atmosphere },
   { num: '08', label: '3D-Globus',              hint: 'Live-Wind (GFS)',            feature: FEATURE.globe },
   { num: '09', label: 'Brandradar',            hint: 'Satellit · Brände · Rückblick', feature: FEATURE.fire },
   { num: '10', label: 'Feedback',               hint: 'Ideen & Vorschläge',         feature: FEATURE.feedback },
@@ -450,7 +450,7 @@ const TILE_THREED = (
   <>
     <div className="tile-head">
       <div className="tile-eyebrow">07 · 3D-WETTER</div>
-      <span className="tile-badge badge-solid">Föhn</span>
+      <span className="tile-badge badge-solid">Höhenwind</span>
     </div>
     <svg viewBox="0 0 220 70" preserveAspectRatio="none" className="tile-terrain-svg" aria-hidden="true">
       {/* Vertikalschnitt: Anströmung über den Kamm, Wolkenkappe luvseitig, Föhn warm im Lee.
@@ -464,7 +464,7 @@ const TILE_THREED = (
     </svg>
     <div>
       <div className="tile-title tile-title-sm">Vertikalschnitt</div>
-      <p className="tile-desc sm">Höhenwind, Inversion, Wolkenschichten, Windscherung, Föhn-Durchgriff. Gelände-Modus.</p>
+      <p className="tile-desc sm">Höhenwind, Böen, Windscherung, Strömungslinien und Wolkenbasis entlang einer frei gezogenen Linie. Gelände-Modus.</p>
     </div>
   </>
 );
