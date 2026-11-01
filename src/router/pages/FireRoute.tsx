@@ -92,9 +92,14 @@ export default function FireRoute() {
   const stateRef = useRef<FireUrlState | null>(initialUrl);
   const extraRef = useRef<Array<[string, string]>>(parsed.extra);
 
+  // audit/seo-nischen.md §5: `/waldbrand` ohne Sicht bleibt `/waldbrand`. Der erste Abgleich schrieb den Pfad bisher auf die aus dem Zustand
+  // abgeleitete Sicht um (zuletzt immer `/waldbrand/historie`), mit Titel und Canonical; die Hauptseite gab es im gerenderten DOM damit nicht.
+  // Erst ein echter Sichtwechsel führt auf den Pfad der Sicht.
+  const onBaseRef = useRef(!view && !legacy);
   const urlOf = useCallback(() => {
     const st = stateRef.current;
-    return `/waldbrand/${viewRef.current}` + (st ? buildFireSearch(st, viewRef.current, extraRef.current) : '');
+    const path = onBaseRef.current ? '/waldbrand' : `/waldbrand/${viewRef.current}`;
+    return path + (st ? buildFireSearch(st, viewRef.current, extraRef.current) : '');
   }, []);
 
   // Zustandsänderungen sind kein Seitenwechsel: replaceState am Router vorbei,
@@ -121,6 +126,7 @@ export default function FireRoute() {
 
   /** Sichtwechsel ⇒ Pfad (erster Abgleich replace, danach push). */
   const onViewChange = useCallback((next: FireRouteView, initial: boolean) => {
+    if (!initial) onBaseRef.current = false;
     viewRef.current = next;
     const target = urlOf();
     if (target === window.location.pathname + window.location.search) return;
