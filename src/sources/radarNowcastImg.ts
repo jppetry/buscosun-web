@@ -120,7 +120,10 @@ export const RZC_NC_BLEND_CAVEATS: readonly string[] = Object.freeze([
  * (`smoothModelPlane`, `radarNowcastBlend.ts`) — display only, named in the product (`meta.blend.smoothing`) and on the page.
  * Producer switch `RADAR_NC_BLEND_SMOOTH=0` = the 4-km blocks as before (absent field).
  */
-export const RZC_NC_BLEND_SMOOTHING = 'wet-bilinear' as const;
+export const RZC_NC_BLEND_SMOOTHINGS = ['wet-bilinear', 'catmull-rom'] as const;
+export type RzcNcBlendSmoothing = typeof RZC_NC_BLEND_SMOOTHINGS[number];
+/** Default since 01.11.2026 (Jan, "wie richtige Radar-Niederschlagsfelder"): soft fields that fade out past the cell edge. */
+export const RZC_NC_BLEND_SMOOTHING: RzcNcBlendSmoothing = 'catmull-rom';
 /**
  * 01.11.2026 (Jan): the model share counts only from this rate on — below it the model is taken as dry in the mix. Seen in the
  * browser: the model's hourly drizzle (0,06 … 0,2 mm/h over 4-km cells) covered half of Switzerland with light-blue squares the
@@ -129,7 +132,10 @@ export const RZC_NC_BLEND_SMOOTHING = 'wet-bilinear' as const;
  */
 export const RZC_NC_BLEND_MODEL_MIN_MMH = 0.2;
 export const RZC_NC_BLEND_MODEL_MIN_CAVEAT = 'der Modellanteil zählt erst ab 0,2 mm/h — Modell-Niesel darunter kommt nicht ins Bild (Schwelle gesetzt, nicht gemessen)';
-export const RZC_NC_BLEND_SMOOTH_CAVEAT = 'der Modellanteil ist innerhalb seiner Regenfläche zwischen den 4-km-Zellmitten geglättet — Darstellung, keine Mehrinformation; die Außenkante bleibt die Zellkante';
+export const RZC_NC_BLEND_SMOOTH_CAVEAT: Readonly<Record<RzcNcBlendSmoothing, string>> = Object.freeze({
+  'wet-bilinear': 'der Modellanteil ist innerhalb seiner Regenfläche zwischen den 4-km-Zellmitten geglättet — Darstellung, keine Mehrinformation; die Außenkante bleibt die Zellkante',
+  'catmull-rom': 'der Modellanteil ist zwischen den 4-km-Zellmitten weich interpoliert und läuft bis zu einer halben Zelle in trockene Nachbarzellen aus — Darstellung, keine Mehrinformation',
+});
 /** Weight of the model at `leadMin` (0 … 1). */
 export function rzcNcBlendWeight(leadMin: number): number {
   if (!(leadMin > RZC_NC_BLEND_START_MIN)) return 0;
@@ -150,14 +156,14 @@ export interface RzcNcBlend {
   cellsModel: number; cellsTotal: number;
   provenance: 'set' | 'measured';
   /** present when the model share was interpolated between its cell centres (01.11.2026); absent = blocks per cell */
-  smoothing?: typeof RZC_NC_BLEND_SMOOTHING;
+  smoothing?: RzcNcBlendSmoothing;
   /** mm/h from which the model share counts (01.11.2026); absent = every model value entered the mix */
   modelMin?: number;
 }
 export function blendOk(v: unknown): v is RzcNcBlend {
   const b = v as RzcNcBlend | null;
   return !!b && typeof b === 'object' && b.model === RZC_NC_BLEND_MODEL
-    && (b.smoothing === undefined || b.smoothing === RZC_NC_BLEND_SMOOTHING)
+    && (b.smoothing === undefined || (RZC_NC_BLEND_SMOOTHINGS as readonly string[]).includes(b.smoothing))
     && (b.modelMin === undefined || (Number.isFinite(b.modelMin) && b.modelMin > 0))
     && typeof b.rucRun === 'string' && Number.isFinite(b.rucRunAtMs) && typeof b.fieldRun === 'string' && Number.isFinite(b.fieldRunAtMs)
     && b.startMin === RZC_NC_BLEND_START_MIN && b.fullMin === RZC_NC_BLEND_FULL_MIN
@@ -241,7 +247,7 @@ export function makeRzcNcImgMeta(a: {
     width: RZC_IMG_WIDTH, height: RZC_IMG_HEIGHT, vMax: PRECIP_VMAX, corners: a.corners,
     frames: a.frames, unknown: a.unknown, series: a.series, motion: a.motion, method: a.method,
     caveats: a.blend
-      ? [...RZC_NC_CAVEATS, ...RZC_NC_BLEND_CAVEATS, ...(a.blend.modelMin ? [RZC_NC_BLEND_MODEL_MIN_CAVEAT] : []), ...(a.blend.smoothing ? [RZC_NC_BLEND_SMOOTH_CAVEAT] : [])]
+      ? [...RZC_NC_CAVEATS, ...RZC_NC_BLEND_CAVEATS, ...(a.blend.modelMin ? [RZC_NC_BLEND_MODEL_MIN_CAVEAT] : []), ...(a.blend.smoothing ? [RZC_NC_BLEND_SMOOTH_CAVEAT[a.blend.smoothing]] : [])]
       : [...RZC_NC_CAVEATS],
     label: a.blend ? RZC_NC_BLEND_LABEL : RZC_NC_LABEL,
     ...(a.dual ? { dual: a.dual } : {}), ...(a.blend ? { blend: a.blend } : {}),

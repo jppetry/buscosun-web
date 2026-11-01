@@ -61,7 +61,7 @@ import { RADAR_MORPH_HS } from '../../src/scalar/radarHd.ts';
 // from the data repo next to the mirror (walking up from the rzc image root) or, when they are not checked out, from
 // raw.githubusercontent. OFF by default = byte-identical to before; any failure leaves the slot a pure translation.
 import {
-  cellIndexPlane, cellCoordPlane, modelPlanes, smoothModelPlane, applyModelMin, blendFrame, RZC_NC_BLEND_WEIGHTS, RZC_NC_BLEND_START_MIN, RZC_NC_BLEND_FULL_MIN, RZC_NC_BLEND_MODEL, RZC_NC_BLEND_PROVENANCE,
+  cellIndexPlane, cellCoordPlane, modelPlanes, smoothModelPlane, interpolateModelPlane, applyModelMin, blendFrame, RZC_NC_BLEND_WEIGHTS, RZC_NC_BLEND_START_MIN, RZC_NC_BLEND_FULL_MIN, RZC_NC_BLEND_MODEL, RZC_NC_BLEND_PROVENANCE,
 } from '../../src/sources/radarNowcastBlend.ts';
 import { RZC_NC_BLEND_SMOOTHING, RZC_NC_BLEND_MODEL_MIN_MMH } from '../../src/sources/radarNowcastImg.ts';
 import { parseRucManifest, rucLatestPath, rucChunkPath, RUC_CHUNK_WIDTH } from '../../src/point/rucFormat.ts';
@@ -69,9 +69,10 @@ import { parseFieldIndex, parseFieldManifest, FIELD_INDEX_PATH, FIELD_MANIFEST_F
 import { TIER_BY_ID } from '../../src/point/cubeFormat.ts';
 import { gridNodeFn, projectedSampler } from '../../src/scalar/radarCountryMask.ts';
 const NC_BLEND = process.env.RADAR_NC_BLEND === '1';
-// 01.11.2026: the model share interpolated between its cell centres inside its wet footprint (`smoothModelPlane`) — the 4-km
-// blocks of one value looked like a mosaic from +35 min on. On with the blend; `RADAR_NC_BLEND_SMOOTH=0` = blocks as before.
-const NC_BLEND_SMOOTH = process.env.RADAR_NC_BLEND_SMOOTH !== '0';
+// 01.11.2026: the model share drawn as a smooth field (`interpolateModelPlane`, Catmull-Rom between the cell centres, fading
+// past the cell edge — Jan: "wie richtige Radar-Niederschlagsfelder"); the 4-km blocks of one value looked like a mosaic.
+// `RADAR_NC_BLEND_SMOOTH=wet` = the first version (`smoothModelPlane`, inside the wet footprint only), `0` = blocks as before.
+const NC_BLEND_SMOOTH = process.env.RADAR_NC_BLEND_SMOOTH === '0' ? null : process.env.RADAR_NC_BLEND_SMOOTH === 'wet' ? 'wet-bilinear' : RZC_NC_BLEND_SMOOTHING;
 // 01.11.2026 (Jan): the model share counts only from RZC_NC_BLEND_MODEL_MIN_MMH on (its hourly drizzle below that covered half of
 // Switzerland with 4-km squares the radar never saw). `RADAR_NC_BLEND_MODEL_MIN=<mm/h>` overrides, '0' = every model value as before.
 const NC_BLEND_MODEL_MIN = process.env.RADAR_NC_BLEND_MODEL_MIN != null && process.env.RADAR_NC_BLEND_MODEL_MIN !== ''
@@ -144,13 +145,13 @@ async function ncBlendInputs(rzcRoot, analysisAtMs, w, h, corners) {
   if (NC_BLEND_MODEL_MIN > 0) planes = planes.map((p) => applyModelMin(p, NC_BLEND_MODEL_MIN));
   if (NC_BLEND_SMOOTH) {
     const coords = cellCoordPlane(w, h, projectedSampler(gridNodeFn('rzc', corners)), tier);
-    planes = planes.map((p) => smoothModelPlane(p, cells, coords, tier));
+    planes = planes.map((p) => (NC_BLEND_SMOOTH === 'wet-bilinear' ? smoothModelPlane(p, cells, coords, tier) : interpolateModelPlane(p, cells, coords, tier)));
   }
   const blend = {
     model: RZC_NC_BLEND_MODEL, rucRun: ruc.run, rucRunAtMs: ruc.runAtMs, fieldRun: run, fieldRunAtMs: fm.runAtMs,
     startMin: RZC_NC_BLEND_START_MIN, fullMin: RZC_NC_BLEND_FULL_MIN, weights: [...RZC_NC_BLEND_WEIGHTS],
     cellsModel: mp.cellsModel, cellsTotal: mp.cellsTotal, provenance: RZC_NC_BLEND_PROVENANCE,
-    ...(NC_BLEND_SMOOTH ? { smoothing: RZC_NC_BLEND_SMOOTHING } : {}),
+    ...(NC_BLEND_SMOOTH ? { smoothing: NC_BLEND_SMOOTH } : {}),
     ...(NC_BLEND_MODEL_MIN > 0 ? { modelMin: NC_BLEND_MODEL_MIN } : {}),
   };
   return { planes, blend, kinds: mp.kinds, source: root ? 'lokal' : 'raw' };

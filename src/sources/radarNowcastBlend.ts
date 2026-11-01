@@ -191,6 +191,50 @@ export function smoothModelPlane(plane: Float32Array, cells: Int32Array, coords:
   return out;
 }
 
+/**
+ * 01.11.2026 (Jan: "visualisiere sie wie richtige Radar-Niederschlagsfelder, nicht so kachelig"): the model share drawn as a
+ * SMOOTH field. Catmull-Rom over the 4 × 4 surrounding cell centres in cell coordinates — interpolating (a cell centre keeps
+ * the cell's own value), DRY cells and cells without a value count as 0, so a wet cell fades out towards its dry neighbours
+ * instead of ending at the cell edge: an isolated cell becomes a round blob of about one cell, a group of cells one field
+ * with soft edges. Clamped to [0, max of the inner 2 × 2 cells] — no overshoot, nothing above the neighbouring cell maximum.
+ * A pixel whose own cell has no model value stays NaN (the radar alone). Display only — the model's 4-km mean is spread
+ * over up to half a cell beyond its edge and no information is added; named in the product (`meta.blend.smoothing`).
+ */
+export function interpolateModelPlane(plane: Float32Array, cells: Int32Array, coords: Float32Array, tier: CubeTier = TIER_BY_ID.t1): Float32Array {
+  const byCell = new Map<number, number>();
+  for (let i = 0; i < cells.length; i++) { const c = cells[i]; if (c >= 0 && !byCell.has(c)) byCell.set(c, plane[i]); }
+  const out = new Float32Array(plane);
+  const at = (iy: number, ix: number): number => {
+    if (iy < 0 || iy >= tier.ny || ix < 0 || ix >= tier.nx) return 0;
+    const v = byCell.get(iy * tier.nx + ix);
+    return v === undefined || !(v > 0) ? 0 : v;
+  };
+  const cw = (t: number): [number, number, number, number] => {
+    const t2 = t * t, t3 = t2 * t;
+    return [(-t3 + 2 * t2 - t) * 0.5, (3 * t3 - 5 * t2 + 2) * 0.5, (-3 * t3 + 4 * t2 + t) * 0.5, (t3 - t2) * 0.5];
+  };
+  for (let i = 0; i < cells.length; i++) {
+    if (cells[i] < 0 || !Number.isFinite(plane[i])) continue;   // outside or no model: unchanged (NaN stays NaN)
+    const fy = coords[i * 2], fx = coords[i * 2 + 1];
+    if (!Number.isFinite(fy) || !Number.isFinite(fx)) continue;
+    const y0 = Math.floor(fy), x0 = Math.floor(fx);
+    const wy = cw(fy - y0), wx = cw(fx - x0);
+    let s = 0, hi = 0, any = false;
+    for (let j = 0; j < 4; j++) {
+      let row = 0;
+      for (let k = 0; k < 4; k++) {
+        const v = at(y0 + j - 1, x0 + k - 1);
+        if (v > 0) any = true;
+        row += wx[k] * v;
+        if (j >= 1 && j <= 2 && k >= 1 && k <= 2 && v > hi) hi = v;
+      }
+      s += wy[j] * row;
+    }
+    out[i] = any ? Math.min(hi, Math.max(0, s)) : 0;
+  }
+  return out;
+}
+
 // --- the mix ------------------------------------------------------------------------------------------------------------
 
 /** mm/h of a v1 byte (`precipToU8` inverse, 0 for dry). */
