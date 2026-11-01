@@ -34,10 +34,12 @@ export function weatherWindOptions(coarsePointer: boolean): WindLayerOptions {
     zoomOutPointBoost: 0,
     // Tempo strictly linear to the GRIB value: px/s = speedPxPerMs · |V|.
     speedPxPerMs: 3.8, speedRefZoom: 5.5,
-    // Slower when zoomed out (z4 ≈ 0,68×), slightly quicker when zoomed in.
-    screenTempoZoomExp: 0.35,
-    // Fewer particles when zooming in (the trails grow with the zoom, the covered area must not).
-    zoomInThinExp: 1.25, zoomInThinFrom: 6.5,
+    // Slightly slower when zoomed out (z4 ≈ 0,86×), slightly quicker when zoomed in (z12 ≈ 2×). Was 0,35 (z12 ≈ 4,8×): the
+    // dots jumped further than their own width per frame (3 px at 10 m/s, 6 px at 30 fps), so the trail broke into dots.
+    screenTempoZoomExp: 0.15,
+    // Fewer particles when zooming in (the trails grow with the zoom, the covered area must not). 1,25 -> 1,05 together with
+    // the lower tempo exponent (-0,2), so the zoomed-in picture does not get emptier than before.
+    zoomInThinExp: 1.05, zoomInThinFrom: 6.5,
     // Zoomed out the refresh rate rises (dissolves the clumps in convergence zones).
     zoomDropBoost: 0.42,
     // Touch devices: half the CPU upsampling work and ~30 fps; desktop is the reference.
