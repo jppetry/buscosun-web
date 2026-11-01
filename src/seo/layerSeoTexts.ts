@@ -331,16 +331,16 @@ export const LAYER_SEO: Readonly<Record<LayerKey, SeoText>> = {
   },
   warnings: {
     h1: 'Amtliche Unwetterwarnungen für Deutschland und die Schweiz',
-    lead: 'Der Warnlayer zeigt die amtlichen Wetterwarnungen des Deutschen Wetterdienstes (landkreisgenau, CAP) und von MeteoSchweiz (Warnregionen, über MeteoAlarm) als Flächen auf der Karte, alle fünf Minuten aktualisiert. Ein Klick öffnet alle Warnungen des Ortes — Überschrift, Beschreibung und Handlungshinweis wortwörtlich aus der amtlichen Meldung, höchste Stufe zuerst. Es ist der einzige Layer, der ein amtliches Warnprodukt ist; alle anderen verweisen darauf.',
+    lead: 'Der Warnlayer zeigt die amtlichen Wetterwarnungen des Deutschen Wetterdienstes (landkreisgenau, CAP), von GeoSphere Austria (Gemeinden) und von MeteoSchweiz (Warnregionen, über MeteoAlarm) als Flächen auf der Karte, alle fünf Minuten aktualisiert. Ein Klick öffnet alle Warnungen des Ortes — Überschrift, Beschreibung und Handlungshinweis wortwörtlich aus der amtlichen Meldung, höchste Stufe zuerst. Es ist der einzige Layer, der ein amtliches Warnprodukt ist; alle anderen verweisen darauf.',
     body: [
-      'Die Karte übernimmt die Warntexte als Zitat, fasst nichts zusammen und formuliert nichts um. Die Flächenfarbe ist in Deutschland die amtliche Warnfarbe aus der Meldung; der Schweizer Feed führt keine Farbe, dort wird sie aus der amtlichen Gefahrenstufe abgeleitet und in der Legende so gekennzeichnet. Die Stufenskalen bleiben getrennt, weil DWD-Stufe 1 und Schweizer Stufe 1 Verschiedenes bedeuten. Der Zeit-Schieber wählt, was zur eingestellten Stunde gilt.',
-      'Grenzen: Für Österreich fehlt der Layer — dort warnt GeoSphere Austria, und eine leere Fläche über Österreich heißt nicht „keine Warnung". Fällt eine der Quellen aus, sagt die Karte, welches Land fehlt, und verlinkt die amtliche Seite. Maßgeblich bleiben die amtlichen Bekanntmachungen unter dwd.de/warnungen und meteoschweiz.admin.ch; die Nutzungsbedingungen der Dienste sind auf der Seite „Quellen & Lizenzen" dokumentiert.',
+      'Die Karte übernimmt die Warntexte als Zitat, fasst nichts zusammen und formuliert nichts um. Die Flächenfarbe ist in Deutschland die amtliche Warnfarbe aus der Meldung; Österreich und die Schweiz führen keine Farbe, dort wird sie aus der amtlichen Warn- bzw. Gefahrenstufe abgeleitet und in der Legende so gekennzeichnet. Die Stufenskalen bleiben getrennt, weil DWD-Stufe 1 und Schweizer Stufe 1 Verschiedenes bedeuten. Der Zeit-Schieber wählt, was zur eingestellten Stunde gilt.',
+      'Grenzen: Die österreichischen Warnungen gelten für den Dauersiedlungsraum, hochalpine Lagen sind ausgenommen — eine warnfreie Alpenfläche heißt nicht „keine Gefahr". Fällt eine der Quellen aus, sagt die Karte, welches Land fehlt, und verlinkt die amtliche Seite. Maßgeblich bleiben die amtlichen Bekanntmachungen unter dwd.de/warnungen, geosphere.at und meteoschweiz.admin.ch; die Nutzungsbedingungen der Dienste sind auf der Seite „Quellen & Lizenzen" dokumentiert.',
     ],
     facts: [
-      { label: 'Quellen', text: 'DWD CAP 1.2 (DISTRICT) · MeteoSchweiz über MeteoAlarm (EUMETNET)' },
+      { label: 'Quellen', text: 'DWD CAP 1.2 (DISTRICT) · GeoSphere Austria Warn-API · MeteoSchweiz über MeteoAlarm (EUMETNET)' },
       { label: 'Takt', text: '5 min' },
       { label: 'Zeit', text: 'folgt dem Zeit-Schieber (onset/expires)' },
-      { label: 'Abdeckung', text: 'DE landkreisgenau, CH Warnregionen; AT fehlt (GeoSphere, geplant)' },
+      { label: 'Abdeckung', text: 'DE landkreisgenau, AT Gemeinden (Dauersiedlungsraum), CH Warnregionen' },
       { label: 'Grenze', text: 'nur Zitat; kein Ersatz für die amtliche Bekanntmachung' },
     ],
     explainer: 'gewitter-unwetter',

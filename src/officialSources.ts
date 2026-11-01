@@ -56,10 +56,11 @@ export function hasOwnWarnings(country: Country): boolean {
  *
  *  - DE ✅ DWD CAP `DISTRICT_DWD_STAT` (Phase W1)
  *  - CH ✅ MeteoSchweiz über MeteoAlarm (Phase W2)
- *  - AT ❌ noch nicht — geplant als Phase W3 (GeoSphere `getWarnstatus`)
+ *  - AT ✅ GeoSphere Austria `getWarnstatus` + `getWarningsForCoords` (Phase W3);
+ *       gilt nur für den Dauersiedlungsraum (`warningsSourceFor('AT').caveat`)
  */
 export function hasOwnMapWarnings(country: Country): boolean {
-  return country === 'DE' || country === 'CH';
+  return country === 'DE' || country === 'CH' || country === 'AT';
 }
 
 /** Amtliche Unwetterwarnungen je Land. */
@@ -250,12 +251,8 @@ export function verifyOfficialSources(): { checks: number; passed: number; faile
   // Es sichert weiterhin, dass ein NICHT abgedecktes Land nicht so aussieht,
   // als sei dort nichts los — nur ist CH seit W2 abgedeckt und AT nicht.
   checks++;
-  if (!hasOwnMapWarnings('DE') || !hasOwnMapWarnings('CH')) {
-    failed.push('Karte: DE und CH werden vom Warn-Layer abgedeckt (W1/W2)');
-  }
-  checks++;
-  if (hasOwnMapWarnings('AT')) {
-    failed.push('Karte: AT hat noch KEINE eigenen Warnungen (erst Phase W3) — der Deep-Link muss bleiben');
+  if (!hasOwnMapWarnings('DE') || !hasOwnMapWarnings('CH') || !hasOwnMapWarnings('AT')) {
+    failed.push('Karte: DE, CH und AT werden vom Warn-Layer abgedeckt (W1/W2/W3)');
   }
   // Die beiden Prädikate dürfen nicht zu einem verschmelzen: die Karte deckt
   // CH ab, die Punkt-Vorhersage nicht. Wer sie gleichsetzt, nimmt einer der
@@ -315,8 +312,8 @@ export function verifyOfficialSources(): { checks: number; passed: number; faile
   // Karte-Warnungen deckt CH ab, Punkt-Warnungen nicht, Waldbrand deckt CH ab,
   // aber AT bei keinem. Eine Gleichsetzung nähme einer Fläche ihren Hinweis.
   checks++;
-  if (hasOfficialFireDanger('AT') !== hasOwnMapWarnings('AT')) {
-    failed.push('AT ist bei Warnungen UND Waldbrand unabgedeckt — beide false erwartet');
+  if (hasOfficialFireDanger('AT') || !hasOwnMapWarnings('AT')) {
+    failed.push('AT: Karten-Warnungen abgedeckt (W3), amtlicher Waldbrand-Index NICHT — die Prädikate dürfen nicht gleich sein');
   }
   checks++;
   if (hasOfficialFireDanger('CH') === hasOwnWarnings('CH')) {

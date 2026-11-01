@@ -432,8 +432,8 @@ const EXPLAINERS_BASE = [
           '<p>buscosun gibt <strong>keine amtlichen Warnungen heraus</strong>. Maßgeblich bleiben der Deutsche ' +
           'Wetterdienst, GeoSphere Austria und MeteoSchweiz. Der Layer ' +
           '<a href="/warnungen">Amtliche Warnungen</a> gibt deren Texte <strong>wörtlich</strong> wieder — sie werden ' +
-          'nicht zusammengefasst, nicht umformuliert, nicht verschärft und nicht abgeschwächt. Für Österreich fehlt ' +
-          'dort weiterhin eine offene amtliche Quelle; das steht auf der Karte, statt kaschiert zu werden.</p>' +
+          'nicht zusammengefasst, nicht umformuliert, nicht verschärft und nicht abgeschwächt. Die österreichischen ' +
+          'Warnungen gelten nur für den Dauersiedlungsraum; das steht auf der Karte, statt kaschiert zu werden.</p>' +
           '<p>Auch die abgeleiteten Layer sind kein Warnprodukt: Der Rotations-Layer benennt einen Verdacht, kein ' +
           'Ereignis, und hat eine hohe Fehlalarmrate. Die Hinweise in den Zellbahnen sind als Hinweis formuliert, ' +
           'nicht als Zusage. Wer eine verbindliche Entscheidung treffen muss, liest die amtliche Warnung — buscosun ' +
@@ -788,8 +788,8 @@ const EXPLAINERS_BASE = [
           'verbindliche Betriebsfreigabe sind sie ausdrücklich nicht.</p>' +
           '<p>Vor allem: <strong>buscosun gibt keine Sturmwarnungen heraus.</strong> Amtliche Warnungen erscheinen im ' +
           'Layer <a href="/warnungen">Amtliche Warnungen</a> ausschließlich im Wortlaut des jeweiligen Dienstes — ' +
-          'DWD und MeteoSchweiz —, ohne Zusammenfassung und ohne Umformulierung. Für Österreich fehlt dort weiterhin ' +
-          'eine offene amtliche Quelle; die Böenkarte deckt AT trotzdem ab, weil ICON-D2 über die Grenze reicht.</p>',
+          'DWD, GeoSphere Austria und MeteoSchweiz —, ohne Zusammenfassung und ohne Umformulierung. Die ' +
+          'österreichischen Warnungen gelten nur für den Dauersiedlungsraum; die Böenkarte deckt AT zusätzlich ab, weil ICON-D2 über die Grenze reicht.</p>',
       },
     ],
     faqs: [

@@ -58,7 +58,7 @@ for (const c of verifySubRouteTexts(indexableSubRoutes().map((x) => x.path)).che
 // Die Tooltips im Dock kommen seit E1 aus dem Katalog — MapView darf keine eigene Liste mehr führen.
 const mapViewSrc = readFileSync(join(ROOT, 'src', 'MapView.tsx'), 'utf8');
 add('[layerCatalog] MapView leitet LAYER_OPTIONS aus LAYER_OPTION_ORDER/LAYER_CATALOG ab (keine Zweitliste)', /LAYER_OPTIONS[^\n]*= LAYER_OPTION_ORDER\.map/.test(mapViewSrc) && !/\{ key: 'wind', label: 'Wind', title: 'Wind \(DWD ICON-D2/.test(mapViewSrc));
-add('[layerCatalog] Tooltip des Warn-Layers unverändert (Zitatregel-Text erhalten)', LAYER_CATALOG.warnings.title.includes('wortwörtlich übernommen') && LAYER_CATALOG.warnings.title.includes('ÖSTERREICH fehlt weiterhin'));
+add('[layerCatalog] Tooltip des Warn-Layers unverändert (Zitatregel-Text erhalten)', LAYER_CATALOG.warnings.title.includes('wortwörtlich übernommen') && LAYER_CATALOG.warnings.title.includes('Dauersiedlungsraum'));
 
 // --- (2) Build-Seite: dieselben Tabellen --------------------------------------
 add('[seo] SITE_URL ≡ content.mjs SITE.url', SITE_URL === SITE.url, `${SITE_URL} vs ${SITE.url}`);

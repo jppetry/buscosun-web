@@ -14,11 +14,11 @@
  *
  * ⚠️ Seit Phase W2 gibt es ZWEI Abdeckungen, und sie sind verschieden:
  *   · `hasOwnWarnings()`    — Punkt-Vorhersage, Basis `dwdAlerts.ts`: DE
- *   · `hasOwnMapWarnings()` — 2D-Karten-Layer `warnings`:            DE + CH
+ *   · `hasOwnMapWarnings()` — 2D-Karten-Layer `warnings`:            DE + AT + CH
  * Das Schutznetz wurde deshalb nicht umgedreht, sondern **verdoppelt**: es
- * bewacht jetzt beide Flächen einzeln. Österreich bleibt in beiden ohne eigene
- * Daten — der Deep-Link samt Dauersiedlungsraum-Vorbehalt bleibt Pflicht, bis
- * Phase W3 ihn ablöst.
+ * bewacht jetzt beide Flächen einzeln. Österreich hat seit Phase W3 Karten-
+ * Warnungen (GeoSphere), in der Punkt-Vorhersage weiter nicht — der Deep-Link
+ * samt Dauersiedlungsraum-Vorbehalt bleibt in beiden Pflicht.
  *
  * Red-Test-Nachweis (V-99): Setzt man in `officialSources.ts` `hasOwnWarnings`
  * auf `return true`, meldet dieser Harness

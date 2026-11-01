@@ -85,6 +85,13 @@ export interface CapArea {
   /** Ringe als `[lon,lat]` — CAP liefert `lat,lon`, hier bereits gedreht.
    *  CAP kennt keine Löcher: mehrere `<polygon>` sind mehrere Flächen. */
   rings: Array<Array<[number, number]>>;
+  /**
+   * Optional: echte Polygone MIT Löchern (`[außen, loch, …]`, `[lon,lat]`).
+   * Nur Quellen, die Löcher kennen (GeoSphere: Gemeinde-Vereinigung mit
+   * Enklaven), setzen es; `rings` bleibt dann die Liste der Außenringe. Fehlt
+   * es, gilt die CAP-Regel „mehrere `<polygon>` = mehrere Flächen".
+   */
+  polygons?: Array<Array<Array<[number, number]>>>;
   /** DWD-Warnzellen-Kennungen des Gebiets (ohne Geometrie-Bedeutung). */
   warnCellIds: string[];
   /** Untergrenze der Warnung (m über NN) — gemessen durchweg 0. */

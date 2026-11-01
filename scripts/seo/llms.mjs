@@ -72,7 +72,7 @@ export function buildLlmsTxt({ site, updated, places, explainers, tools, methodi
 
 ${link('/wetterkarte', 'Interaktive Wetterkarte DACH')}: ${layerSubs.length} Layer mit je eigener URL, z. B.
   ${layerSubs.slice(0, 6).map((x) => site.url + x.path).join(', ')} …
-${link('/warnungen', 'Amtliche Unwetterwarnungen')}: DWD und MeteoSchweiz, Warntexte wortwörtlich (Österreich fehlt).
+${link('/warnungen', 'Amtliche Unwetterwarnungen')}: DWD, GeoSphere Austria und MeteoSchweiz, Warntexte wortwörtlich (AT: nur Dauersiedlungsraum).
 ${link('/regenradar', 'Regenradar')}: gemessenes Landesradar DE/AT/CH plus Nowcast im jeweiligen Horizont.
 ${link('/vorhersage', 'Vorhersage mit Konfidenz')}: Modellvergleich, Unsicherheits-Spread und Reihung der Modelle je Ort über 7, 14 oder 30 Tage,
   gemessen am Konsens der Modell-Analysen, nicht an Stationen (${site.url}/funktionen/modellvergleich/).

@@ -62,7 +62,7 @@ export const SEVERITY_FALLBACK_COLOR: Record<CapSeverity, string> = {
  * ausschließlich über Farbe und CAP-`severity` — nie über die Nummer
  * (`audit/warnungen-at-ch.md` §4.4).
  */
-export type WarnSourceKey = 'DE' | 'CH';
+export type WarnSourceKey = 'DE' | 'CH' | 'AT';
 
 export interface WarnSourceMeta {
   key: WarnSourceKey;
@@ -100,6 +100,22 @@ export const WARN_SOURCE_CH: WarnSourceMeta = {
   colorOrigin: 'derived',
   heightFromCeiling: false,
 };
+
+/**
+ * Österreich: GeoSphere Austria (Warn-API `getWarnstatus`). Die Stufe 1–3 ist
+ * dort amtlich als gelb/orange/rot festgelegt (OpenAPI `WarnLevel`), der RGB-Wert
+ * ist wie bei CH unsere Zutat ⇒ `derived`.
+ */
+export const WARN_SOURCE_AT: WarnSourceMeta = {
+  key: 'AT',
+  issuer: 'GeoSphere Austria',
+  country: 'Österreich',
+  colorOrigin: 'derived',
+  heightFromCeiling: false,
+};
+
+/** GeoSphere-Stufen (amtlich: 1 gelb, 2 orange, 3 rot) → Farbwort. */
+export const AT_LEVEL_WORD: Record<number, string> = { 1: 'gelb', 2: 'orange', 3: 'rot' };
 
 /**
  * MeteoAlarm-Warnstufen als Farbe. Die **Stufe und das Farbwort** stehen in der
@@ -143,6 +159,17 @@ export function awarenessOf(a: CapAlert): { level: number; colorWord: string } |
 }
 
 /**
+ * GeoSphere-Warnstufe (1–3) einer Meldung. Sie steckt im `parameter`
+ * `at_level`, das `geosphereWarnings.ts` setzt — die CAP-`severity` ist nur die
+ * grobe Entsprechung und würde Stufe 1 und 2 nicht sauber trennen.
+ */
+export function atLevelOf(a: CapAlert): number {
+  const raw = a.parameters.find((p) => p.name === 'at_level')?.value;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : 0;
+}
+
+/**
  * Farbe einer Meldung.
  *  - **DE:** amtlich aus der Datei (`AREA_COLOR`), sonst dokumentierter Fallback.
  *  - **CH:** aus der amtlichen Stufe abgeleitet — der Schweizer Feed führt
@@ -152,6 +179,9 @@ export function awarenessOf(a: CapAlert): { level: number; colorWord: string } |
  *    eine deutsche Behelfsfarbe, die niemand je gemessen hat.
  */
 export function warnColor(a: CapAlert, source: WarnSourceMeta = WARN_SOURCE_DE): string {
+  if (source.key === 'AT') {
+    return AWARENESS_COLOR[AT_LEVEL_WORD[atLevelOf(a)] ?? ''] ?? SEVERITY_FALLBACK_COLOR[a.severity];
+  }
   if (source.key === 'CH') {
     const aw = awarenessOf(a);
     const c = aw ? AWARENESS_COLOR[aw.colorWord] : undefined;
@@ -165,6 +195,10 @@ export function warnColor(a: CapAlert, source: WarnSourceMeta = WARN_SOURCE_DE):
  * CH die amtlichen Schweizer Gefahrenstufen.
  */
 export function warnSeverityLabel(a: CapAlert, source: WarnSourceMeta = WARN_SOURCE_DE): string {
+  if (source.key === 'AT') {
+    const word = AT_LEVEL_WORD[atLevelOf(a)];
+    return word ? `Warnstufe ${atLevelOf(a)} · ${word}` : 'Warnung';
+  }
   if (source.key === 'CH') {
     const aw = awarenessOf(a);
     const name = aw ? AWARENESS_LABEL[aw.level] : undefined;
@@ -356,7 +390,7 @@ export function buildWarnFeatures(
       // `awareness_*` sind Steuerfelder von MeteoAlarm, keine Wetterangaben —
       // sie stehen bereits als Stufe in der Legende und gehören nicht als
       // „awareness_level: 3; orange; Severe" in den Steckbrief.
-      .filter((p) => !p.name.startsWith('awareness_'))
+      .filter((p) => !p.name.startsWith('awareness_') && p.name !== 'at_level')
       .map((p) => `${paramLabel(p.name)}: ${paramValue(p.value)}`)
       .join(' · ');
     for (const area of a.areas) {
@@ -391,7 +425,9 @@ export function buildWarnFeatures(
       };
       features.push({
         type: 'Feature',
-        geometry: { type: 'MultiPolygon', coordinates: area.rings.map((r) => [closeRing(r)]) },
+        geometry: { type: 'MultiPolygon', coordinates: area.polygons
+            ? area.polygons.map((poly) => poly.map(closeRing))
+            : area.rings.map((r) => [closeRing(r)]) },
         properties: props as unknown as GeoJSON.GeoJsonProperties,
       });
     }

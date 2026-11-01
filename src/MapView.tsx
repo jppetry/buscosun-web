@@ -102,8 +102,11 @@ import { fetchDwdWarnings, DWD_WARNINGS_ATTRIBUTION, type WarnRun } from './sour
 // Eigene Quelle, eigener Ausfall, eigene Farbherkunft — bewusst NICHT mit dem
 // DWD-Pfad verschmolzen (audit/warnungen-at-ch.md §8).
 import { fetchChWarnings, CH_WARNINGS_ATTRIBUTION, type ChWarnRun } from './sources/meteoAlarmCh';
+// Österreichische Hälfte (Phase W3): GeoSphere Austria. Wieder eigene Quelle,
+// eigener Ausfall — Flächen aus getWarnstatus, Wortlaut aus getWarningsForCoords.
+import { fetchAtWarnings, AT_WARNINGS_ATTRIBUTION, type AtWarnRun } from './sources/geosphereWarnings';
 import {
-  buildWarnFeaturesMulti, warnSummaryMulti, WARN_SOURCE_DE, WARN_SOURCE_CH,
+  buildWarnFeaturesMulti, warnSummaryMulti, WARN_SOURCE_DE, WARN_SOURCE_CH, WARN_SOURCE_AT,
   type WarnFeatureProperties, type WarnSummaryTier, type WarnSourceMeta,
 } from './warnings/warnField';
 import { warningsSourceFor } from './officialSources';
@@ -843,6 +846,9 @@ export default function MapView({
   // aus und DE nicht, muss die Karte sagen, WELCHE Hälfte fehlt.
   const [chWarnRun, setChWarnRun] = useState<ChWarnRun | null>(null);
   const [chWarnFailed, setChWarnFailed] = useState(false);
+  // Österreichische Hälfte (Phase W3) — dritter eigener Zustand, eigenes Fehlerflag.
+  const [atWarnRun, setAtWarnRun] = useState<AtWarnRun | null>(null);
+  const [atWarnFailed, setAtWarnFailed] = useState(false);
   // Wind-Partikel-Steuerung (UI „Aus / Normal / Intensiv" + Dichte-Regler).
   // `on`=Animation an (Heatmap bleibt auch bei „Aus"), `intensive` verbreitert
   // Partikel + verlängert Schweif, `density` skaliert die viewport-Partikelzahl.
@@ -1738,7 +1744,7 @@ export default function MapView({
           // Beide Urheber, jeder in seiner eigenen Form. Der Schweizer Feed
           // führt KEINEN `LICENSE`-eventCode — die Attribution darf deshalb
           // nicht an einem leeren Lizenzfeld hängen, sondern steht fest.
-          attribution: `${DWD_WARNINGS_ATTRIBUTION} · ${CH_WARNINGS_ATTRIBUTION}`,
+          attribution: `${DWD_WARNINGS_ATTRIBUTION} · ${CH_WARNINGS_ATTRIBUTION} · ${AT_WARNINGS_ATTRIBUTION}`,
         });
       }
       if (!map.getLayer(WARN_FILL_ID)) {
@@ -3362,9 +3368,10 @@ export default function MapView({
     // deutsche Warnlage nicht vom Schirm nehmen — und umgekehrt.
     const load = async () => {
       if (stopped || document.visibilityState !== 'visible') return;
-      const [de, ch] = await Promise.allSettled([
+      const [de, ch, at] = await Promise.allSettled([
         fetchDwdWarnings(abort.signal),
         fetchChWarnings(abort.signal),
+        fetchAtWarnings(abort.signal),
       ]);
       if (stopped || abort.signal.aborted) return;
 
@@ -3386,9 +3393,17 @@ export default function MapView({
         setChWarnFailed(true);
       }
 
-      if (de.status === 'rejected' && ch.status === 'rejected') {
+      if (at.status === 'fulfilled') {
+        setAtWarnRun(at.value);
+        setAtWarnFailed(false);
+      } else {
+        setAtWarnRun(null);
+        setAtWarnFailed(true);
+      }
+
+      if (de.status === 'rejected' && ch.status === 'rejected' && at.status === 'rejected') {
         setWarnInfo(null);
-        updateStatus('warnings', { err: 'Amtliche Warnungen konnten nicht geladen werden (DWD und MeteoSchweiz)' });
+        updateStatus('warnings', { err: 'Amtliche Warnungen konnten nicht geladen werden (DWD, MeteoSchweiz und GeoSphere Austria)' });
       }
       // Beim halben Ausfall schreibt der Zeichen-Effekt den Status — er kennt
       // die gezeichnete Lage und kann benennen, welches Land fehlt.
@@ -3415,6 +3430,8 @@ export default function MapView({
       setWarnFailed(false);
       setChWarnRun(null);
       setChWarnFailed(false);
+      setAtWarnRun(null);
+      setAtWarnFailed(false);
     };
   }, [warnsOn]);
 
@@ -3429,12 +3446,13 @@ export default function MapView({
     if (!src) return;
     // Nur wenn BEIDE Quellen fehlen, ist die Karte leer. Sonst wird die
     // erreichbare Hälfte gezeichnet und die fehlende benannt.
-    if (!warnRun && !chWarnRun) { src.setData({ type: 'FeatureCollection', features: [] }); return; }
+    if (!warnRun && !chWarnRun && !atWarnRun) { src.setData({ type: 'FeatureCollection', features: [] }); return; }
 
     const targetMs = Date.now() + forecastHour * 3600_000;
     const inputs = [
       ...(warnRun ? [{ alerts: warnRun.alerts, source: WARN_SOURCE_DE }] : []),
       ...(chWarnRun ? [{ alerts: chWarnRun.alerts, source: WARN_SOURCE_CH }] : []),
+      ...(atWarnRun ? [{ alerts: atWarnRun.alerts, source: WARN_SOURCE_AT }] : []),
     ];
     src.setData(buildWarnFeaturesMulti(inputs, targetMs));
     const s = warnSummaryMulti(inputs, targetMs);
@@ -3444,10 +3462,10 @@ export default function MapView({
       // Datenalter = die ÄLTESTE der beteiligten Referenzzeiten. Ein
       // zusammengesetztes Produkt darf nicht mit der frischeren Hälfte werben
       // (V-19, Muster DACH-Komposit).
-      publishedMs: [warnRun?.publishedMs, chWarnRun?.publishedMs]
+      publishedMs: [warnRun?.publishedMs, chWarnRun?.publishedMs, atWarnRun?.publishedMs]
         .filter((v): v is number => v != null)
         .reduce<number | null>((acc, v) => (acc == null || v < acc ? v : acc), null),
-      dropped: (warnRun?.dropped ?? 0) + (chWarnRun?.dropped ?? 0),
+      dropped: (warnRun?.dropped ?? 0) + (chWarnRun?.dropped ?? 0) + (atWarnRun?.dropped ?? 0),
     });
 
     // Statuszeile: der Leerfall ist eine AUSSAGE, kein Fehlen (§7.7). Wann er
@@ -3458,6 +3476,7 @@ export default function MapView({
     const missing = [
       ...(warnFailed ? ['Deutschland'] : []),
       ...(chWarnFailed ? ['die Schweiz'] : []),
+      ...(atWarnFailed ? ['Österreich'] : []),
     ];
     const scope = inputs.map((i) => i.source.country).join(' + ');
     const head = s.total === 0
@@ -3475,13 +3494,13 @@ export default function MapView({
         // Referenzzeit = Ausgabezeit der jüngsten Meldung; im Leerfall die
         // Publikationszeit der Datei (V-19), nie die Abrufzeit.
         ref: measuredRef(
-          [warnRun?.latestSentMs ?? warnRun?.publishedMs, chWarnRun?.latestSentMs ?? chWarnRun?.publishedMs]
+          [warnRun?.latestSentMs ?? warnRun?.publishedMs, chWarnRun?.latestSentMs ?? chWarnRun?.publishedMs, atWarnRun?.latestSentMs ?? atWarnRun?.publishedMs]
             .filter((v): v is number => v != null)
             .reduce<number | null>((acc, v) => (acc == null || v < acc ? v : acc), null),
         ),
       },
     });
-  }, [warnsOn, warnRun, chWarnRun, warnFailed, chWarnFailed, forecastHour, nowcastTick]);
+  }, [warnsOn, warnRun, chWarnRun, atWarnRun, warnFailed, chWarnFailed, atWarnFailed, forecastHour, nowcastTick]);
 
   // Flow-Nowcast / Ensemble-Schleier: Bewegungsfeld EINMAL je RADOLAN-Lauf schätzen
   // (Horn-Schunck auf den gröberen Frames 0 & 5; synchron, daher nach UI-Yield).
@@ -5303,22 +5322,23 @@ export default function MapView({
       case 'warnings':
         return (
           <>
-            Die <b>amtlichen Wetterwarnungen</b> von <b>DWD</b> (Deutschland, CAP, landkreisgenau)
-            und <b>MeteoSchweiz</b> (Schweiz, Warnregionen, über MeteoAlarm), 5-Minuten-Takt —
+            Die <b>amtlichen Wetterwarnungen</b> von <b>DWD</b> (Deutschland, CAP, landkreisgenau),
+            <b> GeoSphere Austria</b> (Österreich, Gemeinden) und <b>MeteoSchweiz</b> (Schweiz,
+            Warnregionen, über MeteoAlarm), 5-Minuten-Takt —
             das <b>amtliche Warnprodukt</b>, auf das alle anderen Layer dieser Karte verweisen.
             Überschrift, Beschreibung und Handlungshinweis werden <b>wortwörtlich übernommen</b>.
             Die Farbe ist in Deutschland die <b>amtliche Warnfarbe</b> aus der Meldung; der
-            Schweizer Feed führt keine mit — dort ist sie aus der <b>amtlichen Gefahrenstufe
-            abgeleitet</b> und in der Legende als solche gekennzeichnet. Die Stufenskalen bleiben{' '}
-            <b>getrennt</b>: DWD-Stufe 1 ist gelb, die Schweizer Stufe 1 grün. Der Zeitregler
+            österreichische und der Schweizer Dienst führen keine mit — dort ist sie aus der{' '}
+            <b>amtlichen Warnstufe abgeleitet</b> und in der Legende als solche gekennzeichnet.
+            Die Stufenskalen bleiben <b>getrennt</b>: DWD-Stufe 1 ist gelb, die Schweizer Stufe 1 grün. Der Zeitregler
             wählt aus, was zur eingestellten Stunde gilt; Warnungen ohne festes Ende sind als solche
             gekennzeichnet. Höhenbeschränkungen stehen bei deutschen Warnungen im Steckbrief
             („gilt nur unterhalb 600 m"); bei Schweizer Warnungen steht die Höhe <b>im amtlichen
             Text selbst</b> — das dortige Datenfeld widerspricht ihm teils und wird deshalb nicht
-            ausgewertet. Ehrliche Grenzen: <b>Österreich fehlt</b> — dort warnt{' '}
-            {warningsSourceFor('AT').operator}, und eine leere Fläche über Österreich heißt{' '}
-            <b>nicht</b> „keine Warnung". <b>Kein Ersatz für die amtliche Bekanntmachung</b> —
-            maßgeblich bleiben dwd.de/warnungen und meteoschweiz.admin.ch.
+            ausgewertet. Ehrliche Grenzen: die österreichischen Warnungen gelten für den{' '}
+            <b>Dauersiedlungsraum</b>, hochalpine Lagen sind ausgenommen — eine warnfreie
+            Alpenfläche heißt <b>nicht</b> „keine Gefahr". <b>Kein Ersatz für die amtliche Bekanntmachung</b> —
+            maßgeblich bleiben dwd.de/warnungen, geosphere.at und meteoschweiz.admin.ch.
           </>
         );
       case 'snow':
@@ -5469,43 +5489,50 @@ export default function MapView({
                 Karte ohne diesen Satz läse sich als „keine Warnungen". Seit W2
                 gilt das AUCH für den halben Ausfall — eine fehlende Schweiz darf
                 nicht wie eine warnfreie Schweiz aussehen. */}
-            {warnFailed && chWarnFailed && (
+            {warnFailed && chWarnFailed && atWarnFailed && (
               <><b>Die amtlichen Warnungen sind gerade nicht abrufbar</b> — diese Karte zeigt
               deshalb keine. Das heißt <b>nicht</b>, dass keine gelten: bitte direkt bei{' '}
-              <a href={warningsSourceFor('DE').url} target="_blank" rel="noopener">dwd.de</a>{' '}
+              <a href={warningsSourceFor('DE').url} target="_blank" rel="noopener">dwd.de</a>,{' '}
+              <a href={warningsSourceFor('AT').url} target="_blank" rel="noopener">GeoSphere Austria</a>{' '}
               bzw. <a href={warningsSourceFor('CH').url} target="_blank" rel="noopener">naturgefahren.ch</a>{' '}
               nachsehen.{' '}</>
             )}
-            {warnFailed && !chWarnFailed && (
-              <><b>Für Deutschland sind die amtlichen Warnungen gerade nicht abrufbar</b> — die
-              deutsche Fläche ist deshalb leer, <b>nicht</b> warnfrei. Bitte direkt bei{' '}
-              <a href={warningsSourceFor('DE').url} target="_blank" rel="noopener">dwd.de</a>{' '}
-              nachsehen. Die Schweizer Warnungen unten sind aktuell.{' '}</>
+            {!(warnFailed && chWarnFailed && atWarnFailed) && (warnFailed || chWarnFailed || atWarnFailed) && (
+              <><b>Für {[
+                ...(warnFailed ? ['Deutschland'] : []),
+                ...(atWarnFailed ? ['Österreich'] : []),
+                ...(chWarnFailed ? ['die Schweiz'] : []),
+              ].join(' und ')} sind die amtlichen Warnungen gerade nicht abrufbar</b> — diese
+              Fläche ist deshalb leer, <b>nicht</b> warnfrei. Bitte direkt bei{' '}
+              {[
+                ...(warnFailed ? [<a key="de" href={warningsSourceFor('DE').url} target="_blank" rel="noopener">dwd.de</a>] : []),
+                ...(atWarnFailed ? [<a key="at" href={warningsSourceFor('AT').url} target="_blank" rel="noopener">GeoSphere Austria</a>] : []),
+                ...(chWarnFailed ? [<a key="ch" href={warningsSourceFor('CH').url} target="_blank" rel="noopener">naturgefahren.ch</a>] : []),
+              ].flatMap((el, i) => (i === 0 ? [el] : [' bzw. ', el]))}{' '}
+              nachsehen. Die übrigen Länder sind aktuell.{' '}</>
             )}
-            {chWarnFailed && !warnFailed && (
-              <><b>Für die Schweiz sind die amtlichen Warnungen gerade nicht abrufbar</b> — die
-              Schweizer Fläche ist deshalb leer, <b>nicht</b> warnfrei. Bitte direkt beim{' '}
-              <a href={warningsSourceFor('CH').url} target="_blank" rel="noopener">Naturgefahrenportal</a>{' '}
-              nachsehen. Die deutschen Warnungen sind aktuell.{' '}</>
-            )}
-            {!warnFailed && !chWarnFailed && warnInfo != null && warnInfo.total === 0 && (
+            {!warnFailed && !chWarnFailed && !atWarnFailed && warnInfo != null && warnInfo.total === 0 && (
               <><b>Für {forecastHour === 0 ? 'jetzt' : `in ${forecastHour} h`} liegen keine amtlichen
-              Warnungen für Deutschland und die Schweiz vor.</b>{' '}</>
+              Warnungen für Deutschland, Österreich und die Schweiz vor.</b>{' '}</>
             )}
             <span className="cl-warn-static">
-            Amtliche Warnungen des <b>Deutschen Wetterdienstes</b> (landkreisgenau) und von{' '}
-            <b>MeteoSchweiz</b> (Warnregionen, über MeteoAlarm). Die <b>Texte</b> stammen
-            unverändert aus der amtlichen Meldung. Die <b>Farbe</b> ist für Deutschland die
-            amtliche Warnfarbe aus der Meldung; für die Schweiz führt der Feed keine Farbe mit —
-            sie ist dort aus der <b>amtlichen Gefahrenstufe abgeleitet</b>. Fläche antippen zeigt{' '}
-            <b>alle</b> Warnungen dieses Ortes. Der Zeitregler wählt aus, was{' '}
-            <b>zu dieser Stunde gilt</b>.
-            {' '}<b>Österreich fehlt weiterhin</b> — dort warnt {warningsSourceFor('AT').operator}{' '}
-            (<a href={warningsSourceFor('AT').url} target="_blank" rel="noopener">Warnübersicht</a>);
-            eine leere Fläche über Österreich heißt <b>nicht</b> „keine Warnung".
+            Amtliche Warnungen des <b>Deutschen Wetterdienstes</b> (landkreisgenau), von{' '}
+            <b>GeoSphere Austria</b> (Gemeinden) und von <b>MeteoSchweiz</b> (Warnregionen, über
+            MeteoAlarm). Die <b>Texte</b> stammen unverändert aus der amtlichen Meldung. Die{' '}
+            <b>Farbe</b> ist für Deutschland die amtliche Warnfarbe aus der Meldung; für Österreich
+            und die Schweiz führt die Quelle keine Farbe mit — sie ist dort aus der{' '}
+            <b>amtlichen Warnstufe abgeleitet</b>. Fläche antippen zeigt <b>alle</b> Warnungen dieses
+            Ortes. Der Zeitregler wählt aus, was <b>zu dieser Stunde gilt</b>.
+            {' '}<b>Österreich:</b> die Warnungen gelten für den <b>Dauersiedlungsraum</b>,
+            hochalpine Lagen sind ausgenommen — eine warnfreie Alpenfläche heißt <b>nicht</b>
+            „keine Gefahr" (<a href={warningsSourceFor('AT').url} target="_blank" rel="noopener">Warnübersicht</a>).
             </span>
             {warnInfo != null && warnInfo.dropped > 0 && (
               <> {warnInfo.dropped} Meldung(en) ohne darstellbare Fläche sind hier nicht abgebildet.</>
+            )}
+            {atWarnRun != null && atWarnRun.textUnavailable > 0 && (
+              <> Bei {atWarnRun.textUnavailable} österreichischen Meldung(en) ließ sich der amtliche
+              Wortlaut nicht eindeutig zuordnen — gezeigt werden nur Typ und Stufe, <b>kein</b> Text.</>
             )}
             {chWarnRun != null && chWarnRun.textUnavailable > 0 && (
               <> {chWarnRun.textUnavailable} Schweizer Meldung(en) konnten im Wortlaut nicht geladen
@@ -5513,7 +5540,8 @@ export default function MapView({
             )}
             <span className="cl-warn-static">
             {' '}Maßgeblich ist die amtliche Bekanntmachung auf{' '}
-            <a href={warningsSourceFor('DE').url} target="_blank" rel="noopener">dwd.de</a>{' '}
+            <a href={warningsSourceFor('DE').url} target="_blank" rel="noopener">dwd.de</a>,{' '}
+            bei <a href={warningsSourceFor('AT').url} target="_blank" rel="noopener">GeoSphere Austria</a>{' '}
             bzw. bei <a href={warningsSourceFor('CH').url} target="_blank" rel="noopener">MeteoSchweiz</a>.
             </span>
           </div>
