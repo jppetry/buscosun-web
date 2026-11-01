@@ -164,6 +164,11 @@ export function FireDossier({ r, nowMs, atContext = null, breakpoint = 'desktop'
 
             <DetailFactTiles r={r} nowMs={nowMs} />
 
+            {/* Brand-Links (`/waldbrand/brand/<kennung>`) landen direkt hier — die Abgrenzung steht auf JEDER Brandseite, sofort sichtbar. */}
+            <Typography variant="caption" component="p" className="br-ds-disclaimer" sx={{ mt: 1.25, color: 'text.secondary' }}>
+              Datenansicht aus Satellitendetektionen und Kartierungen — <strong>keine amtliche Warnung</strong> und keine Einsatzmeldung.
+            </Typography>
+
             <Box component="details" sx={{ mt: 1.5 }}>
               <Typography component="summary" variant="caption" sx={{ cursor: 'pointer', color: 'text.disabled', letterSpacing: '.08em' }}>Alle Angaben im Wortlaut</Typography>
             <FactList>

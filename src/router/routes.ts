@@ -17,6 +17,7 @@ import { ALL_LAYER_KEYS } from '../map/layerTypes';
 import { LAYER_SLUGS, LAYER_SLUG_TITLE, LAYER_SLUG_DESCRIPTION } from './urlState';
 import { ogCardPath } from '../share/ogCard';
 import { roadSeoSubs } from '../road/roadSeo';
+import { FIRE_LINK_SEGMENT, FIRE_SLUG_RE } from '../fire/fireLink';
 
 /**
  * Freischaltung Autobahnwetter (audit/seo-nischen.md §6): EIN Schalter für `noindex`, Sitemap und die 20 Autobahn-Unterseiten. Erst umlegen,
@@ -440,6 +441,10 @@ export function routeForPath(pathname: string, cross = true): RouteMatch | null 
     if (r.subParam) {
       const sub = r.subs?.find((s) => s.slug === seg[0]) ?? null;
       if (seg.length === 1) return { def: r, sub, subSlug: seg[0], placeSlug: null };
+      // Brandradar: `/waldbrand/brand/<kennung>` — EIN Brand (src/fire/fireLink.ts). Kein Sub-Eintrag ⇒ noindex, Canonical = /waldbrand.
+      if (r.id === 'waldbrand' && seg.length === 2 && seg[0] === FIRE_LINK_SEGMENT && FIRE_SLUG_RE.test(seg[1])) {
+        return { def: r, sub: null, subSlug: FIRE_LINK_SEGMENT, placeSlug: null };
+      }
       // Ort nur hinter einem BEKANNTEN Sub-Slug, und nur ein einziges Segment.
       if (seg.length === 2 && r.place && sub && PLACE_SLUG_RE.test(seg[1])) {
         return { def: r, sub, subSlug: seg[0], placeSlug: seg[1] };

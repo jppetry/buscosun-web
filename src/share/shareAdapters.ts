@@ -47,6 +47,8 @@ import { ogCardPath } from './ogCard';
 import { resolveRoutePlace, slugForPlace } from './placeTable';
 import { encodeShareQuery, parseValidTime, roundTo, shareableExtras, shareLengthVerdict, type ShareLengthVerdict } from './shareSchema';
 import { shareCopy, shareMessage, type ShareCopy } from './shareText';
+// Brandradar: ein einzelner Brand (`/waldbrand/brand/<kennung>`) — rein, nur Typ-Importe, kein Fire-Modell im Share-Chunk.
+import { FIRE_LINK_SEGMENT, describeFireLink, parseFireLink, type FireLinkTarget } from '../fire/fireLink';
 
 export type ShareRouteId =
   | 'wetterkarte' | 'warnungen' | 'regenradar'
@@ -122,6 +124,8 @@ export interface ShareState {
   timePast?: boolean;
   /** Der Ort-Slug im Pfad ließ sich nicht auflösen. */
   placeUnresolved?: boolean;
+  /** Brandradar: Link auf EINEN Brand (`/waldbrand/brand/<kennung>`); `null` bei unlesbarer Kennung. */
+  fireLink?: FireLinkTarget | null;
 }
 
 export interface ShareUrl {
@@ -187,7 +191,8 @@ export function parseShareUrl(pathname: string, search: string, nowMs: number = 
     const pairs: Array<[string, string]> = [...q.entries()];
     // Beim Wetterarchiv steht an Stelle 1 der ORT, bei den anderen die Sicht.
     const placeAt = PLACE_SEGMENT[routeId];
-    const viewSlug = placeAt === 1 ? null : seg[1] ?? null;
+    const isFireLink = routeId === 'waldbrand' && seg[1] === FIRE_LINK_SEGMENT;
+    const viewSlug = placeAt === 1 || isFireLink ? null : seg[1] ?? null;
     const rp = resolveRoutePlace(placeAt ? seg[placeAt] : undefined, placeFromPairs(q));
     const t = parseValidTime(q.get('t'));
     return {
@@ -199,6 +204,7 @@ export function parseShareUrl(pathname: string, search: string, nowMs: number = 
       timePast: t != null && t <= nowMs ? true : undefined,
       placeUnresolved: rp.unresolved,
       viewSlug,
+      ...(isFireLink ? { fireLink: parseFireLink(seg[2]) } : {}),
       rawPath: '/' + seg.join('/'),
       rawQuery: pairs,
     };
@@ -242,6 +248,11 @@ export function parseShareUrl(pathname: string, search: string, nowMs: number = 
 
 /** Titel, Beschreibung und Nachricht zu einem Zustand (auch für die OG-Meta). */
 export function describeShareState(s: ShareState, timeZone?: string): ShareCopy {
+  // Ein einzelner Brand: Ort und Zeit der ersten Detektion stehen im Link selbst; mehr kennt eine Vorschau ohne Daten nicht.
+  if (s.routeId === 'waldbrand' && s.fireLink) {
+    const d = describeFireLink(s.fireLink);
+    return { title: d.title, description: d.description, message: d.title };
+  }
   const feature = SHARE_FEATURE_LABEL[s.routeId];
   const topic = s.routeId === 'wetterkarte' && s.primary
     ? LAYER_CATALOG[s.primary].label
@@ -315,6 +326,8 @@ export function describeShareUrl(
 export function ogCardForShare(s: ShareState): string | null {
   const view = s.viewSlug ?? (s.primary ? LAYER_SLUGS[s.primary] : null);
   if (s.routeId === 'warnungen') return ogCardPath('warnungen');
+  // Brand-Link: die Karte des Brandradars (kein pro Brand gerendertes Bild — das wäre Stufe 2 der Vorschau).
+  if (s.routeId === 'waldbrand' && s.fireLink) return ogCardPath('waldbrand', 'aktive-braende');
   if (s.routeId === 'wetterkarte' && view === LAYER_SLUGS.warnings) return ogCardPath('warnungen');
   return ogCardPath(s.routeId, view);
 }
@@ -329,6 +342,7 @@ export function ogCardForShare(s: ShareState): string | null {
  */
 export function canonicalShareKey(s: ShareState): string {
   const parts: string[] = [s.routeId];
+  if (s.fireLink) parts.push(`f:${s.fireLink.slug}`);
   if (s.viewSlug) parts.push(`v:${s.viewSlug}`);
   if (s.primary) parts.push(`l:${LAYER_SLUGS[s.primary]}`);
   const rest = s.layers.filter((k) => k !== s.primary).map((k) => LAYER_SLUGS[k]).sort();

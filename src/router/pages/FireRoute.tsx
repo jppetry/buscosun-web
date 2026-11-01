@@ -24,9 +24,11 @@ import { useLocation, useNavigate, useNavigationType, useParams } from 'react-ro
 import FirePage from '../../fire/FirePage';
 import { decodeFireState } from '../../fire/fireState';
 import {
-  buildFireSearch, parseFireQuery, validAtFromDay, validAtFromFireHour,
+  buildFireSearch, firePairs, parseFireQuery, validAtFromDay, validAtFromFireHour,
   type FireUrlState, type ParsedFireQuery,
 } from '../../fire/fireUrl';
+import { FIRE_LINK_SEGMENT, fireLinkPath, parseFireLink } from '../../fire/fireLink';
+import { encodeShareQuery } from '../../share/shareSchema';
 import { fireViewFromState, isFireRouteView, type FireRouteView } from '../../fire/fireRouteView';
 import { useAppNav } from '../useAppNav';
 import StaleLinkNotice from '../../share/StaleLinkNotice';
@@ -34,15 +36,21 @@ import NotFoundRoute from './NotFoundRoute';
 
 const STATE_DEBOUNCE_MS = 300;
 const DEFAULT_VIEW: FireRouteView = 'aktive-braende';
+/** Auf der Adresse eines Brandes entscheidet die Kennung allein, welches Fenster gilt — diese Schlüssel entfallen dort. */
+const FIRE_LINK_DROP: ReadonlySet<string> = new Set(['dossier', 'zeitraum', 'fenster']);
 
 export default function FireRoute() {
-  const { view } = useParams<{ view?: string }>();
+  const { view, fire } = useParams<{ view?: string; fire?: string }>();
   const loc = useLocation();
   const navigate = useNavigate();
   const navType = useNavigationType();
   const nav = useAppNav();
 
   const v: FireRouteView | null = isFireRouteView(view) ? view : null;
+  // `/waldbrand/brand/<kennung>`: ein einzelner Brand (src/fire/fireLink.ts). Das Segment `brand` ist keine Sicht.
+  const onFireRoute = view === FIRE_LINK_SEGMENT;
+  const fireTarget = useMemo(() => (onFireRoute && fire ? parseFireLink(fire) : null), [onFireRoute, fire]);
+  const fireInvalid = onFireRoute && !!fire && !fireTarget;
 
   /**
    * Alt-Link (`#wb=`) → Zustand, EINMAL beim Ankommen. Vor dem ersten Render,
@@ -96,11 +104,26 @@ export default function FireRoute() {
   // abgeleitete Sicht um (zuletzt immer `/waldbrand/historie`), mit Titel und Canonical; die Hauptseite gab es im gerenderten DOM damit nicht.
   // Erst ein echter Sichtwechsel führt auf den Pfad der Sicht.
   const onBaseRef = useRef(!view && !legacy);
+  /** Kennung des markierten Brandes — solange sie gesetzt ist, ist die Adresse die des Brandes. */
+  const fireRef = useRef<string | null>(fireTarget?.slug ?? null);
   const urlOf = useCallback(() => {
     const st = stateRef.current;
+    if (fireRef.current) {
+      const pairs = st ? firePairs(st, viewRef.current, extraRef.current).filter(([k]) => !FIRE_LINK_DROP.has(k)) : [];
+      return fireLinkPath(fireRef.current) + encodeShareQuery(pairs);
+    }
     const path = onBaseRef.current ? '/waldbrand' : `/waldbrand/${viewRef.current}`;
     return path + (st ? buildFireSearch(st, viewRef.current, extraRef.current) : '');
   }, []);
+  /** Ein Brand wurde markiert/abgewählt ⇒ Adresse sofort nachziehen (ohne Routerwechsel, ohne Remount). */
+  const onFireChange = useCallback((slug: string | null) => {
+    fireRef.current = slug;
+    if (unmountedRef.current || !window.location.pathname.startsWith('/waldbrand')) return;
+    const url = urlOf();
+    if (url !== window.location.pathname + window.location.search) {
+      window.history.replaceState(window.history.state, '', url);
+    }
+  }, [urlOf]);
 
   // Zustandsänderungen sind kein Seitenwechsel: replaceState am Router vorbei,
   // gebündelt (der Zeit-Schieber feuert sonst je Schritt einen Eintrag).
@@ -136,14 +159,15 @@ export default function FireRoute() {
   // Alt-Link oder unbrauchbare Werte einmal kanonisch nachziehen — und das
   // Fragment loswerden, denn genau darum geht es in dieser Etappe.
   useEffect(() => {
-    if (view && !v) return;
-    if (legacy || parsed.invalid.length || loc.hash) {
+    if (view && !v && !onFireRoute) return;
+    if (fireTarget) return;   // eine gültige Brand-Adresse bleibt, wie sie ist
+    if (legacy || parsed.invalid.length || loc.hash || fireInvalid) {
       void navigate(urlOf(), { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (view && !v) return <NotFoundRoute />;
+  if ((view && !v && !onFireRoute) || (onFireRoute && !fire) || (fire && !onFireRoute)) return <NotFoundRoute />;
 
   return (
     <>
@@ -162,6 +186,9 @@ export default function FireRoute() {
         onViewChange={onViewChange}
         initialUrl={initialUrl}
         onUrlState={onUrlState}
+        initialFire={fireTarget}
+        fireLinkInvalid={fireInvalid}
+        onFireChange={onFireChange}
       />
     </>
   );

@@ -128,6 +128,8 @@ import { FireMapCard, HistoryMapCard } from './FireMapCard';
 import MapGestureHint, { type HintSpot } from '../map/MapGestureHint';
 import { FireRegionSearch, type RegionHit } from './FireRegionSearch';
 import { ageText } from '../dataAge';
+import { FireLinkNotice, type FireLinkNoticeKind } from './FireLinkNotice';
+import { fireLinkSlug, findLiveRecord, findHistoryEntry, type FireLinkTarget } from './fireLink';
 import './fireDeck.css';
 
 /** Mobil: die vier Bereiche der Bottom-Bar (Vorlage B4–B6). */
@@ -187,9 +189,18 @@ interface Props {
   initialUrl?: ParsedFireQuery | null;
   /** SH3: Zustandsänderung ⇒ der Wrapper schreibt Pfad UND Query (einziger Schreiber). */
   onUrlState?: (s: FireUrlState) => void;
+  /**
+   * Link auf EINEN Brand (`/waldbrand/brand/<kennung>`, `fireLink.ts`): die Seite öffnet das Dossier dieses
+   * Brandes — live (7 Tage), sonst in der Saison-Historie — oder sagt, dass er nicht (mehr) in den Daten ist.
+   */
+  initialFire?: FireLinkTarget | null;
+  /** Der Brand-Link war unbrauchbar (kein gültiger Slug): die Übersicht öffnet, ein Hinweis sagt warum. */
+  fireLinkInvalid?: boolean;
+  /** Der markierte Brand hat sich geändert (`null` = keiner): der Wrapper schreibt den Pfad `/waldbrand/brand/<kennung>`. */
+  onFireChange?: (slug: string | null) => void;
 }
 
-export default function FirePage({ onBack, onOpenFeature, initialView, routeView, onViewChange, initialUrl, onUrlState }: Props) {
+export default function FirePage({ onBack, onOpenFeature, initialView, routeView, onViewChange, initialUrl, onUrlState, initialFire, fireLinkInvalid, onFireChange }: Props) {
   /**
    * SH3: Der Anfangszustand kommt aus Pfad + Query. `parseFireQuery` im Wrapper
    * hat das Preset der Sub-Route bereits eingerechnet — deshalb gibt es hier
@@ -206,12 +217,13 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   );
   const [time, setTime] = useState<FireTimeState>(() => {
     const base = defaultFireTimeState();
-    if (!initial) return base;
+    // Brand-Link: die 7 Tage, damit ein Brand der letzten Tage im Live-Fenster liegt (sonst fällt er auf die Historie zurück).
+    if (!initial) return initialFire ? { ...base, windowH: 168 } : base;
     // WF3: `t` mit Uhrzeit ⇒ Stundenachse (auch bei 0); reines Datum ⇒ Tagesachse.
     return {
       ...base,
       day: dayFromValidAt(initial.validAtMs, nowRef.current),
-      windowH: initial.windowH,
+      windowH: initialFire ? 168 : initial.windowH,
       hour: initial.hourly ? fireHourFromValidAt(initial.validAtMs, nowRef.current) : 0,
       unit: initial.hourly ? 'hours' : 'days',
     };
@@ -260,6 +272,11 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   const [countryRings, setCountryRings] = useState<CountryRings | null>(null);
   /** BC1: markierter Cluster + der Auslöser, der die Karte hinfahren lässt. */
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
+  /** Brand-Link: die Cluster des Live-Fensters sind berechnet (auch: leer) — erst dann lässt sich der Brand suchen. */
+  const [clustersDone, setClustersDone] = useState(false);
+  /** Brand-Link: `live` → `history` → `done`/`gone`. Ohne Link gleich `done`. */
+  const [linkStatus, setLinkStatus] = useState<'live' | 'history' | 'done' | 'gone'>(initialFire ? 'live' : 'done');
+  const [linkNotice, setLinkNotice] = useState<FireLinkNoticeKind | null>(fireLinkInvalid ? 'invalid' : null);
   const [focusNonce, setFocusNonce] = useState(0);
   /**
    * BC1/BD3: welche Liste das Readout zeigt. Der dritte Wert „Layer" ist mit BD3 entfallen —
@@ -293,7 +310,8 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   // E7: das Preset der Sub-Route `/waldbrand/historie` setzt das Saison-Fenster, sofern die
   // Historie nicht per `?bh=0` abgeschaltet ist; ein Hash im Link gewinnt wie bisher.
   // Standard: Saison (Jan 16.10.). Ein Link mit Reiter Anomalien (Thermalanomalien) bleibt im Live-Fenster.
-  const [history, setHistory] = useState<HistoryWindowKind | null>(() => (historyEnabled() && (initial?.historyWindow ?? (initial?.readoutTab === 'anomalies' ? null : 'season'))) || null);
+  // Brand-Link: erst das Live-Fenster; findet es den Brand nicht, wechselt die Auflösung (s. unten) in die Saison-Historie.
+  const [history, setHistory] = useState<HistoryWindowKind | null>(() => (initialFire ? null : (historyEnabled() && (initial?.historyWindow ?? (initial?.readoutTab === 'anomalies' ? null : 'season'))) || null));
   const [historyRaw, setHistoryLoad] = useState<HistoryLoad>({ kind: 'idle' });
   /** Mobile Einstellungen: Monatsbereich der Saison (0-basiert, März = 2 … Oktober = 9); voll = unverändert. */
   const [histMonths, setHistMonths] = useState<[number, number]>([SEASON_FIRST_MONTH, SEASON_LAST_MONTH]);
@@ -523,7 +541,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
       // führt weder `scan` noch `track` (V-199).
       // BC1: die Brand-Cluster hängen an derselben Eingabe und teilen deshalb
       // Aufruf und Lebenszyklus mit dem Raster (eine Worker-Nachricht, nicht zwei).
-      if (run.rows.length === 0) { setFireZones([]); setClusters([]); }
+      if (run.rows.length === 0) { setFireZones([]); setClusters([]); setClustersDone(true); }
       if (run.rows.length > 0) {
         const zoneRows = run.rows;
         const idleZones = (cb: () => void) => (typeof requestIdleCallback === 'function' ? requestIdleCallback(cb) : setTimeout(cb, 200));
@@ -533,8 +551,9 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
               if (ac.signal.aborted) return;
               setFireZones(r.zones);
               setClusters(r.clusters);
+              setClustersDone(true);
             })
-            .catch(() => { /* Beiwerk: ohne Raster bleiben Punkte und Footprints */ });
+            .catch(() => { if (!ac.signal.aborted) setClustersDone(true); /* Beiwerk: ohne Raster bleiben Punkte und Footprints */ });
         });
       }
       // V-222: Klassifikation NACH dem ersten Paint, im Leerlauf, im Worker.
@@ -678,7 +697,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   // Fenster. Eine Liste aus sieben Tagen über einer 24-h-Karte wäre genau die
   // stille Falschaussage, gegen die das Leeren hier steht. Die Markierung fällt
   // mit weg: ihre Kennung gehört zum alten Fenster.
-  useEffect(() => { setFireZones([]); setClusters([]); setSelectedCluster(null); }, [time.windowH]);
+  useEffect(() => { setFireZones([]); setClusters([]); setClustersDone(false); setSelectedCluster(null); }, [time.windowH]);
 
   /**
    * BC1 — die Liste, wie sie angezeigt wird: Cluster plus Landeszuordnung.
@@ -1298,6 +1317,85 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     const s = thermalSites?.sites.find((x) => x.id === siteId);
     if (s) { setFocusBbox(s.bbox); setFocusNonce((n) => n + 1); }
   }, [focusFootprint, thermalSites]);
+
+  // --- Brand-Link: den Brand finden, markieren, Dossier öffnen --------------------
+  // Reihenfolge und Regeln stehen in `fireLink.ts`: erst das Live-Fenster (7 Tage), dann die Saison-Historie,
+  // sonst „nicht mehr in den Daten". Es wird nie ein Nachbar geraten.
+  const isMobileLink = useMediaQuery('(max-width: 767px)');
+  const giveUpOnLink = useCallback((target: FireLinkTarget) => {
+    setLinkStatus('gone');
+    setLinkNotice(target.kind === 'effis' ? 'gone-effis' : 'gone');
+    setSelectedFootprint(null); setSelectedHistory(null);
+    if (target.kind === 'detection') {
+      // Die Karte fährt an die Stelle der ersten Detektion — echte Koordinaten aus dem Link, kein Ersatzbrand.
+      const d = 0.15;
+      setFocusBbox([target.lon - d, target.lat - d, target.lon + d, target.lat + d]);
+      setFocusNonce((n) => n + 1);
+    }
+  }, []);
+  // Seit dem Warten auf die Saison-Kartierung (nur EFFIS-Ziele) darf es nicht ewig dauern.
+  const [effisWaited, setEffisWaited] = useState(false);
+  useEffect(() => {
+    if (initialFire?.kind !== 'effis' || linkStatus !== 'live') return;
+    const t = window.setTimeout(() => setEffisWaited(true), 8000);
+    return () => window.clearTimeout(t);
+  }, [initialFire, linkStatus]);
+  // Phase 1: Live. Gewartet wird, bis die Cluster des Fensters berechnet sind; bei EFFIS-Kartierungen zusätzlich auf den Saison-Korb.
+  const liveSettled = clustersDone && (initialFire?.kind !== 'effis' || seasonAll != null || burntSeason != null || effisWaited);
+  useEffect(() => {
+    if (!initialFire || linkStatus !== 'live') return;
+    if (load.fireHotspots?.kind === 'error') { setLinkStatus('history'); setHistory(historyEnabled() ? 'season' : null); return; }
+    if (!liveSettled) return;
+    const rec = findLiveRecord(records, initialFire);
+    if (rec) {
+      setLinkStatus('done');
+      openDossier(rec.id);
+      if (isMobileLink) setMobileTab('fires');
+      return;
+    }
+    if (!historyEnabled()) { giveUpOnLink(initialFire); return; }
+    setLinkStatus('history');
+    setHistory('season');
+  }, [initialFire, linkStatus, load.fireHotspots?.kind, liveSettled, records, openDossier, isMobileLink, giveUpOnLink]);
+  // Phase 2: Saison-Historie (ein Ereignis des Archivs, auch wenn der Anker des Live-Fensters inzwischen gewandert ist).
+  useEffect(() => {
+    if (!initialFire || linkStatus !== 'history' || history !== 'season') return;
+    if (historyLoad.kind === 'error') { giveUpOnLink(initialFire); return; }
+    if (historyLoad.kind !== 'ok') return;
+    const id = findHistoryEntry(historyLoad.entries, initialFire);
+    if (id) {
+      setLinkStatus('done');
+      selectHistory(id);
+      if (isMobileLink) setMobileTab('fires');
+    } else giveUpOnLink(initialFire);
+  }, [initialFire, linkStatus, history, historyLoad, selectHistory, isMobileLink, giveUpOnLink]);
+  // Der Wrapper schreibt `/waldbrand/brand/<kennung>`, solange ein Brand markiert ist — die Adresszeile IST der Teilen-Link.
+  const markedFireSlug = useMemo(() => {
+    if (history && selectedHistory) return fireLinkSlug(selectedHistory);
+    if (selectedFootprint) {
+      const rec = recordsById.get(selectedFootprint);
+      // Dauerquellen (Industrie o. ä.) sind keine Brände und bekommen keinen Brand-Link.
+      if (rec?.anomaly?.kind === 'site') return null;
+      return fireLinkSlug(selectedFootprint);
+    }
+    return null;
+  }, [history, selectedHistory, selectedFootprint, recordsById]);
+  /** Zuletzt gemeldete Kennung — der Link selbst zählt als gemeldet, ohne Brand-Link ist es `null`. */
+  const lastFireSlugRef = useRef<string | null>(initialFire?.slug ?? null);
+  const onFireChangeRef = useRef(onFireChange);
+  onFireChangeRef.current = onFireChange;
+  useEffect(() => {
+    // Während der Auflösung bleibt die URL des Links unangetastet.
+    if (linkStatus === 'live' || linkStatus === 'history') return;
+    if (linkStatus === 'gone') {
+      if (!markedFireSlug) return;       // der verschwundene Brand behält seine Adresse, bis etwas anderes markiert wird
+      setLinkStatus('done');
+      return;
+    }
+    if (markedFireSlug === lastFireSlugRef.current) return;
+    lastFireSlugRef.current = markedFireSlug;
+    onFireChangeRef.current?.(markedFireSlug);
+  }, [markedFireSlug, linkStatus]);
 
 
   // Breakpoint 767 px — die Projekt-Konvention, kein Ad-hoc-Wert (CLAUDE.md).
@@ -2268,6 +2366,10 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
             <span className="br-fire-stats is-wide">
               {historyStatTiles(historyEntry).map((t) => <Stat key={t.lbl} lbl={t.lbl} val={t.val} sub={t.sub} />)}
             </span>
+            {/* Brand-Links landen auch hier direkt — die Abgrenzung steht auf JEDER Brandseite (wie im Live-Dossier). */}
+            <p className="br-ds-disclaimer" style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--stone-600, #5C5447)' }}>
+              Datenansicht aus Satellitendetektionen und Kartierungen — <strong>keine amtliche Warnung</strong> und keine Einsatzmeldung.
+            </p>
           </header>
             )}
             entry={historyEntry} chartWidth={isTablet ? 420 : 360}
@@ -2447,6 +2549,9 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   return (
     <ThemeProvider theme={buscosunTheme}>
     <div className={`fire-root${isMobile ? ' is-mobile' : ''}${firesMode ? ' is-fires' : ''}`} data-tab={mobileTab}>
+      {linkNotice && (
+        <FireLinkNotice kind={linkNotice} target={initialFire ?? null} onClose={() => setLinkNotice(null)} />
+      )}
       {!isMobile && (
         <FeatureRail
           active={'fire' as RailFeature}
