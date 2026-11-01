@@ -4163,7 +4163,7 @@ export default function MapView({
     wind.setDensityMultiplier(windCfg.density * (windCfg.intensive ? 2.1 : 1));
     // WG-1: feine Filamente statt fetter Punkte — die hohe Dichte und die kleine
     // Punktgroesse sind EIN Paar, einzeln kippt die Optik (Globus: 1,7).
-    wind.setPointSize(windCfg.intensive ? 2.6 : WEATHER_WIND_POINT_SIZE);
+    wind.setPointSize(windCfg.intensive ? 2.0 : WEATHER_WIND_POINT_SIZE);
     // Schweiflänge = Tempo × Lebensdauer der Spur. 0,972 ⇒ ~36 Frames ⇒ bei den
     // ~0,6 px/Frame der Übersicht ein ~22-px-Strich mit weichem Auslauf — die
     // Kometenform der Vorlage (WetterOnline: ~25 px). Vorher 0,955 ⇒ 22 Frames
@@ -4174,7 +4174,7 @@ export default function MapView({
     // fadeOpacity² zerfiel (0,972 wirkte wie 0,9448, also ~10 statt ~19 px).
     // Behoben in shaders.ts/screenFrag; Messung: audit/windpartikel-schweif.md.
     // Die Zahlen hier sind seither unverändert und beschreiben wieder die Realität.
-    wind.setFadeOpacity(windCfg.intensive ? 0.995 : WEATHER_WIND_FADE);
+    wind.setFadeOpacity(windCfg.intensive ? 0.982 : WEATHER_WIND_FADE);
   }, [windCfg, active]);
 
   // Niederschlag aktiv: keine Wind-Einfärbung (Heatmap) darunter — die Partikel bleiben. Sonst überlagern sich zwei Farbskalen.

@@ -17,8 +17,8 @@ import { GLOBE_PARTICLE_RAMP } from './particlePreset';
 /** Default of the density slider (multiplier on `baseDensity`). */
 export const WEATHER_WIND_DENSITY = 0.55;
 /** Dot size and trail length of "Normal" (the "Intensiv" mode of the Wetterkarte widens both). */
-export const WEATHER_WIND_POINT_SIZE = 2.2; // 1,7 -> 2,4 -> 4,8 -> 2,2 (01.11., Jan)
-export const WEATHER_WIND_FADE = 0.9927; // 0,972 -> 0,9813 -> 0,9884 -> 0,9927 (01.11., Jan): ~20 px trail per m/s (to 10 % alpha)
+export const WEATHER_WIND_POINT_SIZE = 1.7;
+export const WEATHER_WIND_FADE = 0.972;
 
 export function weatherWindOptions(coarsePointer: boolean): WindLayerOptions {
   return {
@@ -32,17 +32,14 @@ export function weatherWindOptions(coarsePointer: boolean): WindLayerOptions {
     pointSize: WEATHER_WIND_POINT_SIZE, fadeOpacity: WEATHER_WIND_FADE,
     // Dots do not get thicker when zoomed out (0 = off; was 0,5 on 31.10., reverted 01.11.).
     zoomOutPointBoost: 0,
-    // Zoomed out the on-screen tempo drops (z3 ~0,55x) and the trail shrinks with it: lengthen the afterglow by the same factor.
-    zoomOutTrailComp: true,
     // Tempo strictly linear to the GRIB value: px/s = speedPxPerMs · |V|.
     speedPxPerMs: 3.8, speedRefZoom: 5.5,
     // Slower when zoomed out (z4 ≈ 0,68×), slightly quicker when zoomed in.
     screenTempoZoomExp: 0.35,
     // Fewer particles when zooming in (the trails grow with the zoom, the covered area must not).
     zoomInThinExp: 1.25, zoomInThinFrom: 6.5,
-    // Zoomed out the refresh rate used to rise (0,42; dissolves clumps in convergence zones) - but it halves the particle
-    // lifetime at z3, so the particle dies before its trail reaches full length. Off (01.11., Jan: no trails when zoomed out).
-    zoomDropBoost: 0,
+    // Zoomed out the refresh rate rises (dissolves the clumps in convergence zones).
+    zoomDropBoost: 0.42,
     // Touch devices: half the CPU upsampling work and ~30 fps; desktop is the reference.
     upsample: coarsePointer ? 1 : 2,
     maxParticleFps: coarsePointer ? 30 : 0,
