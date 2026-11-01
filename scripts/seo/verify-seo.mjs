@@ -153,11 +153,12 @@ for (const rel of ['wetterkarte.html', 'regenradar.html', 'waldbrand.html', 'atm
 // 5) Sub-Routen-Shells (SEO/GEO 2026, E1): jede indexierbare Sub-Route hat eine
 // EIGENE flache Shell mit eigenem Title/Canonical/H1/Lead — vorher teilten sie die
 // Eltern-Shell (SEO-AUDIT.md §2). 34 = 18 Layer + 1 Atmosphäre + 5 Brand-Sichten + 10 Event-Anlässe (E7);
-// die exakte Menge prüft verify-routing gegen die Routen-Tabelle.
+// die exakte Menge prüft verify-routing gegen die Routen-Tabelle. Nach der Autobahn-Freischaltung (ROAD_INDEXABLE) kommen 20 Unterseiten dazu.
 console.log('\nSub-Routen-Shells:');
 const subShells = readdirSync(DIST).filter((f) => /^[a-z]+--[a-z0-9-]+\.html$/.test(f)).sort();
-if (subShells.length !== 34) fail('dist/', `erwartet 34 Sub-Routen-Shells, gefunden ${subShells.length}`);
-else ok('dist/', '34 Sub-Routen-Shells vorhanden');
+const subShellsWanted = subShells.some((f) => f.startsWith('autobahnwetter--')) ? 54 : 34;
+if (subShells.length !== subShellsWanted) fail('dist/', `erwartet ${subShellsWanted} Sub-Routen-Shells, gefunden ${subShells.length}`);
+else ok('dist/', `${subShellsWanted} Sub-Routen-Shells vorhanden`);
 const parentTitle = (id) => (read(`${id}.html`).match(/<title>([^<]*)<\/title>/) || [])[1];
 const seenLeads = new Set();
 for (const f of subShells) {

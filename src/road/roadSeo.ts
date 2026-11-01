@@ -23,14 +23,15 @@ export function roadSeoText(slug: string) {
   const [, name, span] = row;
   return {
     h1: `${name}: Was messen die Glättemeldeanlagen?`,
-    lead: `Diese Seite zeigt, was die Glättemeldeanlagen an der ${name} (${span}) melden: Fahrbahntemperatur, Fahrbahnzustand, Wasserfilm, Luft und Taupunkt, alle 15 Minuten aus dem Straßenwetter-System des Deutschen Wetterdienstes, geprüft und entlang der Strecke als Band. Dazu kommt das Wetter entlang der ${name} aus buscosun Fusion. Sie ist kein amtliches Warnprodukt und keine Verkehrsmeldung.`,
+    lead: `Diese Seite zeigt, was die Glättemeldeanlagen an der ${name} (${span}) melden: Fahrbahntemperatur, Fahrbahnzustand, Wasserfilm, Luft und Taupunkt, alle 15 Minuten aus dem Straßenwetter-System des Deutschen Wetterdienstes, geprüft und entlang der Strecke als Band, je Messstelle mit Messzeit. Dazu kommt das Wetter entlang der ${name} aus buscosun Fusion. Die Seite ist kein amtliches Warnprodukt, keine Verkehrsmeldung und keine Freigabe für eine Fahrt.`,
     body: [
-      `Das Band ordnet die Messstellen der ${name} nach Kilometer und Fahrtrichtung. Ein Wert, der eine Prüfregel nicht besteht, erscheint als Lücke mit Grund und nicht als Zahl. Zwischen zwei Anlagen, auf Brücken und in Senken kann die Fahrbahn anders sein, als die nächste Anlage meldet.`,
-      `Die Stunden voraus sind Wetter an der Strecke und keine Fahrbahnmessung. Amtliche Warnungen stehen im Wortlaut beim Deutschen Wetterdienst, Baustellen und Sperrungen bei der Autobahn GmbH des Bundes.`,
+      `Das Band ordnet die Messstellen der ${name} nach Kilometer und Fahrtrichtung, sodass sich Unterschiede entlang der Strecke ablesen lassen. Ein Wert, der eine Prüfregel nicht besteht, erscheint als Lücke mit Grund und nicht als Zahl. Zwischen zwei Anlagen, auf Brücken und in Senken kann die Fahrbahn anders sein, als die nächste Anlage meldet.`,
+      `Die Stunden voraus sind Wetter an der Strecke aus buscosun Fusion: Luft, Taupunkt, Niederschlag, Wind und Bewölkung, aber keine Fahrbahnmessung. Amtliche Warnungen stehen im Wortlaut beim Deutschen Wetterdienst, und Baustellen, Sperrungen und Staus meldet die Autobahn GmbH des Bundes; beides ersetzt diese Seite nicht.`,
     ],
     facts: [
       { label: 'Quelle', text: 'Glättemeldeanlagen über das Straßenwetter-System des DWD · buscosun Fusion für die Stunden voraus' },
       { label: 'Takt', text: 'Messung alle 15 Minuten, Vorhersage stündlich bis 48 Stunden' },
+      { label: 'Abdeckung', text: `Messstellen entlang der ${name}, soweit der DWD für das Bundesland Reihen liefert` },
       { label: 'Grenze', text: 'Messung an einzelnen Punkten; kein amtliches Warnprodukt, keine Verkehrsmeldung' },
     ],
     official: { text: 'Baustellen und Sperrungen meldet die', label: 'Autobahn GmbH', href: 'https://www.autobahn.de/' },

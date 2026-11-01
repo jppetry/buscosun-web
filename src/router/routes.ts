@@ -582,7 +582,7 @@ export function verifyRoutes(): { checks: RouteCheck[]; passed: number; failed: 
   add('[ATM] Gegenprobe: der Querschnitt selbst bleibt stehen, ein ähnlicher Slug ist kein Redirect, ein Tippfehler bleibt 404', normalizePath('/atmosphaere/querschnitt') === null && normalizePath('/atmosphaere/querschnitt/innsbruck') === null && aliasTarget('/atmosphaere/fliegenx') === null && routeForPath('/atmosphaere/fliegenx/innsbruck') === null && aliasTarget('/atmosphaere/fliegen/a/b') === null);
   // SEO/GEO 2026 (E1): jede indexierbare Sub-Route trägt eigenen Text für ihre Shell.
   const subs = indexableSubRoutes();
-  add('34 indexierbare Sub-Routen mit eigener Shell (18 Layer + 1 Atmosphäre + 5 Brand-Sichten + 10 Event-Anlässe)', subs.length === 34, String(subs.length));
+  add('34 indexierbare Sub-Routen mit eigener Shell (18 Layer + 1 Atmosphäre + 5 Brand-Sichten + 10 Event-Anlässe), nach der Autobahn-Freischaltung 20 mehr', subs.length === (ROAD_INDEXABLE ? 54 : 34), String(subs.length));
   const longDesc = subs.filter((x) => x.sub.description.length > 160).map((x) => `${x.path} (${x.sub.description.length})`);
   add('Sub-Routen-Descriptions sind paarweise verschieden und ≤ 160 Zeichen', new Set(subs.map((x) => x.sub.description)).size === subs.length && longDesc.length === 0, longDesc.join(', '));
   add('Shell-Dateinamen sind eindeutig und flach', new Set(subs.map((x) => x.shell)).size === subs.length && subs.every((x) => /^\/[a-z]+--[a-z0-9-]+\.html$/.test(x.shell)));

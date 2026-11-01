@@ -11,7 +11,7 @@
 import { ALL_LAYER_KEYS } from '../map/layerTypes';
 import { LAYER_SLUGS } from '../router/urlState';
 import { LAYER_SEO, wordCount, type SeoText } from './layerSeoTexts';
-import { roadSeoText } from '../road/roadSeo';
+import { roadSeoText, ROAD_SEO_MOTORWAYS } from '../road/roadSeo';
 import { ROAD_INDEXABLE } from '../router/routes';
 
 export type { SeoText, LayerFact } from './layerSeoTexts';
@@ -290,9 +290,12 @@ const OTHER_ENTRIES: Readonly<Record<string, SeoText>> = {
   },
 };
 
-export const SUB_ROUTE_TEXTS: Readonly<Record<string, SeoText>> = { ...LAYER_ENTRIES, ...OTHER_ENTRIES };
+export const SUB_ROUTE_TEXTS: Readonly<Record<string, SeoText>> = {
+  ...LAYER_ENTRIES,
+  ...OTHER_ENTRIES,
+  ...(ROAD_INDEXABLE ? Object.fromEntries(ROAD_SEO_MOTORWAYS.map(([slug]) => [`/autobahnwetter/${slug}`, roadSeoText(slug) as SeoText])) : {}),
+};
 
-/** Text zu einem kanonischen Sub-Routen-Pfad (z. B. `/wetterkarte/temperatur`); null wenn keiner. */
 /**
  * Texte der Top-Routen, die mehr brauchen als H1 und Lead (audit/seo-nischen.md). Lead und H1 kommen weiter aus `routes.ts`; hier stehen nur
  * Absätze, Fakten und Querverweise. Verbraucher: `renderRouteRootContent` (Shell) und `RouteSeoBlock` (lazy, im gerenderten DOM).
@@ -393,8 +396,8 @@ export function routeText(path: string): RouteText | null {
   return ROUTE_TEXTS[path] ?? null;
 }
 
+/** Text zu einem kanonischen Sub-Routen-Pfad (z. B. `/wetterkarte/temperatur`); null wenn keiner. */
 export function subRouteText(path: string): SeoText | null {
-  if (ROAD_INDEXABLE && path.startsWith('/autobahnwetter/')) return roadSeoText(path.slice('/autobahnwetter/'.length));
   return SUB_ROUTE_TEXTS[path] ?? null;
 }
 
