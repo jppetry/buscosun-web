@@ -182,7 +182,7 @@ export default function MapGestureHint({ map, feature, accent = '#B5651D', enabl
             <span className="bs-hint-dot" />
           </span>
           <span className="bs-hint-click-txt">
-            <b>Brandflächen anklicken</b>
+            <b>Brände anklicken</b>
             <span>zeigt nähere Infos zum jeweiligen Brand</span>
           </span>
         </div>
