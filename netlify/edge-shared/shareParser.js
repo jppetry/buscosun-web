@@ -294,7 +294,39 @@ function ogCardPath(routeId, viewSlug) {
   return `${OG_APP_DIR}/${ogCardSlug(routeId, viewSlug)}.png`;
 }
 
+// src/road/roadSeo.ts
+var ROAD_SEO_MOTORWAYS = [
+  ["a1", "A 1", "Heiligenhafen bis Saarbrücken"],
+  ["a7", "A 7", "Flensburg bis Füssen"],
+  ["a8", "A 8", "Karlsruhe, Stuttgart, München bis Salzburg"],
+  ["a2", "A 2", "Oberhausen bis Berlin"],
+  ["a9", "A 9", "Berlin bis München"],
+  ["a3", "A 3", "Emmerich bis Passau"],
+  ["a4", "A 4", "Aachen bis Görlitz"],
+  ["a44", "A 44", "Ruhrgebiet bis Kassel"],
+  ["a6", "A 6", "Saarbrücken bis Waidhaus"],
+  ["a45", "A 45", "Dortmund bis Aschaffenburg"],
+  ["a96", "A 96", "Lindau bis München"],
+  ["a93", "A 93", "Hof bis Kufstein"],
+  ["a99", "A 99", "Autobahnring München"],
+  ["a71", "A 71", "Sangerhausen bis Schweinfurt"],
+  ["a5", "A 5", "Hattenbach bis Basel"],
+  ["a61", "A 61", "Venlo bis Hockenheim"],
+  ["a20", "A 20", "Bad Segeberg bis Uckermark"],
+  ["a46", "A 46", "Düsseldorf bis Sauerland"],
+  ["a73", "A 73", "Suhl bis Nürnberg"],
+  ["a31", "A 31", "Emden bis Bottrop"]
+];
+function roadSeoSubs() {
+  return ROAD_SEO_MOTORWAYS.map(([slug, name, span]) => ({
+    slug,
+    title: `${name} — Glätte und Fahrbahnzustand`,
+    description: `Fahrbahntemperatur und -zustand an den Glättemeldeanlagen der ${name} (${span}), alle 15 Minuten gemessen — als Streckenband.`
+  }));
+}
+
 // src/router/routes.ts
+var ROAD_INDEXABLE = false;
 var SITE_URL = "https://buscosun.com";
 var SITE_NAME = "buscosun";
 var CONTENT_UPDATED = "2026-09-05";
@@ -522,21 +554,20 @@ var ROUTES = [
   },
   {
     // Phase AW (audit/autobahnwetter.md): Pfadsegment = Korridor (`/autobahnwetter/a8`), entscheidet die Seite. Die
-    // 20 Autobahn-Unterseiten (E-AW-4, `src/road/roadSeo.ts`) kommen erst mit Gate C in diese — eager geladene —
-    // Tabelle; bis dahin ist die Route noindex und steht in keiner Sitemap.
+    // 20 Autobahn-Unterseiten (E-AW-4, `src/road/roadSeo.ts`) hängen an `ROAD_INDEXABLE`; bis dahin ist die Route
+    // noindex und steht in keiner Sitemap.
     id: "autobahnwetter",
     path: "/autobahnwetter",
     aliases: ["/strassenwetter", "/glaette"],
     featureId: "road",
     subParam: "road",
-    subs: null,
+    subs: ROAD_INDEXABLE ? roadSeoSubs() : null,
     meta: {
       title: "Autobahnwetter — Glätte und Fahrbahnzustand",
       description: "Fahrbahntemperatur und -zustand der Glättemeldeanlagen an deutschen Autobahnen, alle 15 Minuten gemessen — je Strecke als Band.",
-      h1: "Autobahnwetter: Ist die Strecke glatt?",
-      lead: "Was die Glättemeldeanlagen an deutschen Autobahnen messen: Fahrbahntemperatur, Fahrbahnzustand, Wasserfilm, Luft und Taupunkt, alle 15 Minuten vom DWD, geprüft und je Autobahn als Streckenband. Kein amtliches Warnprodukt.",
-      noindex: true
-      // Gate C (ROAD_LIVE)
+      h1: "Autobahnwetter: Was messen die Anlagen?",
+      lead: "Was die Glättemeldeanlagen an deutschen Autobahnen messen: Fahrbahntemperatur, Fahrbahnzustand, Wasserfilm, Luft und Taupunkt, alle 15 Minuten vom DWD, geprüft und je Autobahn als Streckenband. Kein amtliches Warnprodukt und keine Verkehrsmeldung.",
+      noindex: !ROAD_INDEXABLE
     }
   },
   {
