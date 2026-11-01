@@ -7,11 +7,15 @@
   font-family: 'League Spartan', var(--font-base, system-ui), sans-serif;
   color: #fff;
   --bs-hint-accent: #B5651D;
+  --bs-hint-veil: rgba(28, 26, 22, 0.64);
+  --bs-hint-panel: rgba(28, 24, 18, 0.62);
 }
+/* Gletscher: kühler Schleier und Textfeld im Ton des Features (Gletscher-Cyan). */
+.bs-hint.is-glacier { --bs-hint-veil: rgba(14, 34, 42, 0.66); --bs-hint-panel: rgba(12, 44, 56, 0.66); }
 
 .bs-hint-veil {
   position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; border: 0;
-  background: rgba(28, 26, 22, 0.64); cursor: pointer; appearance: none; -webkit-appearance: none;
+  background: var(--bs-hint-veil); cursor: pointer; appearance: none; -webkit-appearance: none;
   animation: bs-hint-in 380ms ease both;
 }
 .bs-hint-veil:focus-visible { outline: 2px solid #FAF6EA; outline-offset: -4px; }
@@ -20,7 +24,7 @@
   position: relative; z-index: 1; pointer-events: none;
   display: flex; flex-direction: column; align-items: center; gap: 14px;
   padding: 22px 28px; text-align: center;
-  border-radius: 26px; background: rgba(28, 24, 18, 0.62);
+  border-radius: 26px; background: var(--bs-hint-panel);
   -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
   animation: bs-hint-in 380ms ease both;
 }

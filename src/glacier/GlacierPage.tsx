@@ -26,6 +26,7 @@ import {
 } from './glacierState';
 import GlacierMap, { type GlacierMapFeature, type RegionBoxes } from './GlacierMap';
 import GlacierMapCard from './GlacierMapCard';
+import MapGestureHint, { type HintSpot } from '../map/MapGestureHint';
 import GlacierDock from './GlacierDock';
 import GlacierMetricToggles from './GlacierMetricToggles';
 import GlacierList from './GlacierList';
@@ -62,6 +63,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   const isMobile = useMediaQuery('(max-width: 767px)');
   const bases = useMemo(() => glacierBasesFrom(), []);
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const [mapInst, setMapInst] = useState<maplibregl.Map | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [load, setLoad] = useState<{ s: 'loading' } | { s: 'error'; why: string } | { s: 'killed'; why: string } | { s: 'ready'; d: Loaded }>({ s: 'loading' });
   const [land, setLand] = useState<GlacierLand>(initial.land);
@@ -187,6 +189,9 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   useEffect(() => { onUrlState(stateNow()); }, [stateNow, onUrlState]);
 
   const pick = useCallback((id: string) => setSelSeg(glacierSegmentOf(id)), []);
+  // Map hint: highlight candidates = the largest glaciers currently on the map.
+  const hintSpots = useCallback((): HintSpot[] => features.filter((f) => f.name).sort((a, b) => b.km2 - a.km2).slice(0, 40)
+    .map((f) => ({ lng: f.lon, lat: f.lat, name: f.name as string, onPick: () => pick(f.id) })), [features, pick]);
   const follow = useCallback((id: string) => setFavs((cur) => { const next = toggleFav(cur, id); writeFavs(next); return next; }), []);
   const fresh = useMemo(() => newSinceLastVisit(feed ?? [], favs, lastVisit.current ?? null), [feed, favs]);
   const favValue = useCallback((id: string) => { const g = d?.cat.byId.get(id); if (!g) return null; const v = metricValue(metric, d?.summary?.latest[id], g, satCtx); return v.v == null ? null : { text: v.text ?? '', origin: defs[metric].origin, label: defs[metric].label }; }, [d, metric, satCtx, defs]);
@@ -230,7 +235,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
 
   const map = d && (
     <GlacierMap features={features} ramp={def.ramp} selectedId={selId} onSelect={pick} regionBoxes={regionBoxes} loadOutline={loadOutlineFn} bucketOf={bucketOf}
-      padding={isMobile ? { top: 0, bottom: 200, left: 0, right: 0 } : { top: 0, bottom: 0, left: 300, right: 0 }} onMap={(m) => { mapRef.current = m; }}
+      padding={isMobile ? { top: 0, bottom: 200, left: 0, right: 0 } : { top: 0, bottom: 0, left: 300, right: 0 }} onMap={(m) => { mapRef.current = m; setMapInst(m); }}
       view={map3dFailed ? '2d' : mapView} onView3dFailed={() => setMap3dFailed(true)} />
   );
   const viewSeg = d && allow3d && !map3dFailed && (
@@ -347,6 +352,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
             <div className="gl-center">
               <section className={`gl-map${dossierOn ? ' is-offstage' : ''}`} aria-label="Karte" aria-hidden={dossierOn ? true : undefined}>
                 {map}{note}
+                <MapGestureHint map={mapInst} feature="gletscher" subject="glacier" accent="#1E87A8" pickSpots={hintSpots} always enabled={!dossierOn && !mTab} />
                 <div className="gl-m-overlay"><span className="gl-season">{season.label}</span>{satChip}</div>
                 {/* Compact legend above the bottom bar while no glacier card covers the map (Jan 2026-10-25). */}
                 {!sel && <div className="gl-m-maplegend">{legend}</div>}
@@ -425,6 +431,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
           <div className="gl-center">
             <section className={`gl-map${stage === 'dossier' ? ' is-offstage' : ''}`} aria-label="Karte aller Gletscher" aria-hidden={stage === 'dossier' ? true : undefined}>
               {map}{zoom}{viewSeg}{legend}{pill}{note}
+              <MapGestureHint map={mapInst} feature="gletscher" subject="glacier" accent="#1E87A8" pickSpots={hintSpots} always enabled={stage === 'map'} />
               <div className="gl-attrib">Karte: OpenStreetMap-Mitwirkende · Inventare je nach Land</div>
             </section>
             {stage === 'dossier' && dossierStage}

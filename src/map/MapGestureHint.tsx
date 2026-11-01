@@ -25,7 +25,21 @@ interface Props {
   pickSpots?: () => HintSpot[];
   /** Bei jedem Besuch zeigen (kein `localStorage`-Vermerk); nach dem Schließen nur bis zum Verlassen der Seite still. */
   always?: boolean;
+  /** Wortlaut und Farbton je Feature; Standard `fire` (Brandradar). */
+  subject?: HintSubject;
 }
+
+export type HintSubject = 'fire' | 'glacier';
+const TEXTS: Record<HintSubject, { sub: string; pick: string; pickSub: string }> = {
+  fire: {
+    sub: 'Zoome hinein, um einzelne Brände und Brandflächen genauer zu sehen.',
+    pick: 'Brände anklicken', pickSub: 'zeigt nähere Infos zum jeweiligen Brand',
+  },
+  glacier: {
+    sub: 'Zoome hinein, um einzelne Gletscher genauer zu sehen.',
+    pick: 'Gletscher anklicken', pickSub: 'zeigt nähere Infos zum jeweiligen Gletscher',
+  },
+};
 
 const storageKey = (feature: string) => `bs.hint.zoom.${feature}`;
 const seen = (feature: string): boolean => {
@@ -46,7 +60,8 @@ const spotLabelW = (name: string) => 170 + name.length * 7.5;
  * wie man zoomt (Mausrad bzw. zwei Finger) und dass die Punkte klickbar sind. Schließt bei Klick,
  * Mausrad, Pinch, erstem echtem Zoom oder Klick auf den Leuchtpunkt — und kommt dann nie wieder.
  */
-export default function MapGestureHint({ map, feature, accent = '#B5651D', enabled = true, pickSpots, always = false }: Props) {
+export default function MapGestureHint({ map, feature, accent = '#B5651D', enabled = true, pickSpots, always = false, subject = 'fire' }: Props) {
+  const txt = TEXTS[subject];
   const [open, setOpen] = useState(false);
   const dismissed = useRef(false);
   const [spot, setSpot] = useState<{ x: number; y: number; dx: number; dy: number; flip: boolean; s: HintSpot } | null>(null);
@@ -132,7 +147,7 @@ export default function MapGestureHint({ map, feature, accent = '#B5651D', enabl
   return (
     <div
       ref={rootRef}
-      className={`bs-hint${touch ? ' is-touch' : ' is-mouse'}`}
+      className={`bs-hint${touch ? ' is-touch' : ' is-mouse'} is-${subject}`}
       style={{ ['--bs-hint-accent' as string]: accent }}
     >
       <button
@@ -174,7 +189,7 @@ export default function MapGestureHint({ map, feature, accent = '#B5651D', enabl
         </div>
         <div className="bs-hint-title">Karte erkunden</div>
         <div className="bs-hint-sub">
-          Zoome hinein, um einzelne Brände und Brandflächen genauer zu sehen.
+          {txt.sub}
         </div>
         <div className="bs-hint-click">
           <span className="bs-hint-click-tile">
@@ -182,8 +197,8 @@ export default function MapGestureHint({ map, feature, accent = '#B5651D', enabl
             <span className="bs-hint-dot" />
           </span>
           <span className="bs-hint-click-txt">
-            <b>Brände anklicken</b>
-            <span>zeigt nähere Infos zum jeweiligen Brand</span>
+            <b>{txt.pick}</b>
+            <span>{txt.pickSub}</span>
           </span>
         </div>
         <div className="bs-hint-cta">Los geht’s</div>
