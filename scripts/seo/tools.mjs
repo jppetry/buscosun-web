@@ -11,6 +11,8 @@
  *           Hash mehr; `scripts/verify-routing.mjs` prüft jeden Link gegen die Tabelle.
  */
 
+import { SEA_TOOL } from './nicheTools.mjs';
+
 const PUBLISHED = '2026-06-26';
 const MODIFIED = '2026-06-26';
 /** Etappe E4 (SEO-PLAN.md): Scaffolds zu vollen Seiten ausgebaut. */
@@ -721,6 +723,7 @@ export const TOOLS = [
     relatedExplainers: ['hoehenkorrektur-lapse-rate', 'modellvergleich-unsicherheit', 'schneefallgrenze'],
     datePublished: PUBLISHED, dateModified: MODIFIED_E4,
   },
+  SEA_TOOL,
 ];
 
 export const TOOLS_BY_SLUG = Object.fromEntries(TOOLS.map((t) => [t.slug, t]));

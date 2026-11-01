@@ -81,7 +81,9 @@ ${link('/atmosphaere', 'Atmosphäre')}: Vertikalschnitt entlang einer frei gezog
   unter ${site.url}/atmosphaere/querschnitt. Kein amtliches Flugwetter.
 ${link('/waldbrand', 'Brandradar DACH')}: EU-Gefahrenindex, aktive Brände aus Satellitendaten, Trockenheit,
   Historie seit 2020 (${site.url}/waldbrand/historie) und Thermalanomalien (${site.url}/waldbrand/thermalanomalien).
-${link('/wetterarchiv', 'Wetterarchiv & Klima')}: Rückblick und Veränderung je Ort.
+${link('/seewetter', 'Seewetter Nord- und Ostsee')}: Seegang aus dem DWD-Küstenmodell, Wind an rund 60 Spots, Wasserstand der BSH-Pegel,
+  Seewetterbericht im Wortlaut. Kein amtliches Warnprodukt (${site.url}/methodik/seewetter-quellen/).
+${link('/wetterarchiv', 'Wetterarchiv & Klima')}: Rückblick und Veränderung je Ort, Stationen und ERA5-Reanalyse ab 1940.
 ${link('/globus', '3D-Globus')}: globales Wind-, Temperatur- und Druckfeld aus dem aktuellen GFS-Lauf (NOAA).
 ${link('/validierung', 'Validierung')}: Live-Hindcast des Nowcasts gegen gemessenes Radar (Brier Skill Score,
   Kalibrierungsfehler, Reliability-Diagramm).`);

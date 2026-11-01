@@ -12,6 +12,7 @@
 import { CONTACTED_HOSTS, STORAGE_GROUPS, OPERATOR, TODO } from './legal.mjs';
 import { readModelCatalog } from './licenses.mjs';
 import { COMPARE, MODULES, TERRAIN } from './placeRules.mjs';
+import { SEA_METHODIK } from './nicheMethodik.mjs';
 
 export const METHODIK_UPDATED = '2026-09-05';
 
@@ -23,6 +24,7 @@ const table = (head, rows) => `<table><thead><tr>${head.map((h) => `<th>${h}</th
 const NO_WARNING = 'buscosun gibt keine amtlichen Warnungen heraus; maßgeblich bleiben DWD, GeoSphere Austria und MeteoSchweiz.';
 
 export const METHODIK_PAGES = [
+  SEA_METHODIK,
   {
     slug: 'hoehenkorrektur',
     title: 'Höhenkorrektur',

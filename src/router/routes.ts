@@ -286,10 +286,10 @@ export const ROUTES: readonly RouteDef[] = [
     id: 'seewetter', path: '/seewetter', aliases: ['/kuestenwetter', '/segelwetter', '/wellen'], featureId: 'sea', subParam: 'spot',
     subs: null,
     meta: {
-      title: 'Seewetter Nord- und Ostsee — Wind und Welle',
-      description: 'Seegang an der deutschen Küste aus dem DWD-Küstenmodell, Wind und Böen an rund 60 Spots, Seewetterbericht im Wortlaut.',
-      h1: 'Seewetter: Wie wird es auf dem Wasser?',
-      lead: 'Seegang mit Windsee und Dünung an Nord- und Ostsee (DWD CWAM), Wind und Böen an rund 60 Spots aus buscosun Fusion, Seewetterbericht und Warnstatus des DWD im Wortlaut. Kein amtliches Warnprodukt, keine Sicherheitsbewertung.',
+      title: 'Seewetter Nord- und Ostsee — Wind, Welle, Wasserstand',
+      description: 'Seegang an der deutschen Küste aus dem DWD-Küstenmodell, Wind und Böen an rund 60 Spots, Wasserstand der BSH-Pegel und der Seewetterbericht im Wortlaut.',
+      h1: 'Seewetter für Nord- und Ostsee: Wind, Welle und Wasserstand',
+      lead: 'Seegang mit Windsee und Dünung an Nord- und Ostsee (DWD CWAM), Wind und Böen an rund 60 Spots aus buscosun Fusion, Wasserstand an den Pegeln des BSH, Seewetterbericht und Warnstatus des DWD im Wortlaut. Kein amtliches Warnprodukt, keine Sicherheitsbewertung.',
     },
   },
   {

@@ -55,7 +55,7 @@ export interface OgCardStyle {
 export const OG_CARD_ROUTES: readonly string[] = [
   'wetterkarte', 'warnungen', 'regenradar', 'vorhersage', 'tourenplanung',
   'eventplanung', 'wetterarchiv', 'atmosphaere', 'globus', 'waldbrand',
-  'feedback', 'validierung',
+  'feedback', 'validierung', 'seewetter', 'gletscher', 'autobahnwetter',
 ];
 
 /**
@@ -76,6 +76,9 @@ export const OG_CARD_STYLE: Readonly<Record<string, OgCardStyle>> = {
   waldbrand:     { eyebrow: 'Brandradar',    accent: '#A85E2E', motif: 'feuer' },   // terracotta-700
   feedback:      { eyebrow: 'Feedback',      accent: '#5C5447', motif: 'text' },
   validierung:   { eyebrow: 'Validierung',   accent: '#5C5447', motif: 'punkt' },
+  seewetter:     { eyebrow: 'Seewetter',     accent: '#3A6FA8', motif: 'punkt' },
+  gletscher:     { eyebrow: 'Gletscher',     accent: '#3A6FA8', motif: 'archiv' },
+  autobahnwetter: { eyebrow: 'Autobahnwetter', accent: '#5C5447', motif: 'route' },
 };
 
 /** Fällt eine Route durch die Tabelle, ist das kein Fehler — nur die Grundfarbe. */

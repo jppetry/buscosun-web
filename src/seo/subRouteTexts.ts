@@ -295,6 +295,25 @@ export const SUB_ROUTE_TEXTS: Readonly<Record<string, SeoText>> = { ...LAYER_ENT
  */
 export type RouteText = Pick<SeoText, 'body' | 'facts' | 'official' | 'links'>;
 const ROUTE_TEXTS: Readonly<Record<string, RouteText>> = {
+  '/seewetter': {
+    body: [
+      'Die Ansicht beantwortet drei Fragen für einen Spot an der deutschen Küste. Wie weht es, mit welchen Böen? Wie hoch läuft die See, getrennt nach Windsee und Dünung? Wie steht das Wasser am nächsten Pegel? Das Stundenband zeigt die kommenden Stunden, die Karte das Seegangsfeld, und jeder Spot hat eine eigene Adresse, etwa St. Peter-Ording, Laboe oder Warnemünde.',
+      'Die Quellen werden nicht verrechnet. Der Seegang stammt aus dem Küstenmodell CWAM des DWD, der Wind am Spot aus buscosun Fusion, der Wasserstand aus der offenen Schnittstelle des BSH. Seewetterbericht und Warnstatus erscheinen unverändert im Wortlaut. Texte und Spots werden alle 15 Minuten auf neue Ausgaben geprüft; jeder Wert nennt seinen Stand.',
+      'Grenzen: In Häfen, Förden und hinter Sandbänken löst das Modell die Wellen nur grob auf, Strömungen sind nicht Teil der Anzeige, und eine Zelle ohne Wasser im Modell zeigt „kein Seegang“ statt 0 Meter. Binnenseen und andere Reviere fehlen. Die Ansicht entscheidet keine Ausfahrt.',
+    ],
+    facts: [
+      { label: 'Quellen', text: 'DWD CWAM (Seegang) · buscosun Fusion (Wind, Böen) · BSH (Wasserstand, CC BY 4.0) · DWD (Seewetterbericht im Wortlaut)' },
+      { label: 'Aktualisierung', text: 'Prüfung alle 15 Minuten; ein neuer CWAM-Lauf ist rund 4 Stunden nach dem Start vollständig' },
+      { label: 'Abdeckung', text: 'deutsche Nord- und Ostseeküste, rund 60 Spots' },
+      { label: 'Grenze', text: 'kein amtliches Warnprodukt, keine Sicherheitsbewertung, keine Strömung' },
+    ],
+    official: { text: 'Amtliche Wind- und Sturmwarnungen gibt der DWD heraus, Sturmflutwarnungen das BSH:', label: 'Sturmflutwarndienst', href: 'https://www.sturmflutwarndienst.de/' },
+    links: [
+      { label: 'So liest du das Seewetter', href: '/funktionen/seewetter/' },
+      { label: 'Quellen und Rechenweg', href: '/methodik/seewetter-quellen/' },
+      { label: 'Für Segler', href: '/fuer/segler/' },
+    ],
+  },
   '/wetterarchiv': {
     body: [
       'Zwei Fragen führen durch die Ansicht. „Rückblick“ schlägt nach, wie das Wetter an einem Tag, in einem Monat oder einem Jahr war, und ordnet es gegen die übrigen Jahre ein. „Veränderung“ zeigt den langen Verlauf: Klimastreifen, Abweichung von der Referenzperiode, Kenntage wie Hitze- und Frosttage und den Trend je Jahrzehnt. Beides geht für jeden Ort in Deutschland, Österreich und der Schweiz; als eigene Adresse lässt sich jeder Ort teilen.',

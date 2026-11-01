@@ -218,7 +218,7 @@ export const AUDIENCES = [
     title: 'Für Segler',
     h1: 'buscosun für Segler, Surfer und Kiter auf Bodensee, Alpenseen und Küste: Wind, Böen, Zellen, Blitze',
     description: 'Windkarte aus ICON-D2, Böen bis +24 h, KONRAD-Zellbahnen mit Ankunftszeit und Blitzkarte für Bodensee, Alpenseen und Küste — ohne Sturmwarnleuchten.',
-    answer: 'buscosun zeigt Seglern, Surfern und Kitern den Wind als Partikelfeld aus ICON-D2 mit Richtung und Stärke, die Böenspitzen bis 24 Stunden voraus, für Deutschland die amtlichen KONRAD3D-Gewitterzellen mit Zugbahn, Unsicherheitstrichter und Ankunftszeit sowie die Blitze der letzten Stunde. Seegang, Wellenhöhe und die Sturmwarnleuchten der Seen liefert buscosun nicht.',
+    answer: 'buscosun zeigt Seglern, Surfern und Kitern den Wind als Partikelfeld aus ICON-D2 mit Richtung und Stärke, die Böenspitzen bis 24 Stunden voraus, für Deutschland die amtlichen KONRAD3D-Gewitterzellen mit Zugbahn, Unsicherheitstrichter und Ankunftszeit sowie die Blitze der letzten Stunde. An der deutschen Nord- und Ostseeküste kommen Seegang und Wasserstand über das Seewetter dazu; für Binnenseen gibt es weder Wellenhöhe noch die Sturmwarnleuchten.',
     jsonLdType: 'WebPage',
     sections: [
       { h2: 'Was du hier bekommst', html:
@@ -230,21 +230,22 @@ export const AUDIENCES = [
         `Wechsle auf die ${a('/wetterkarte/boeen', 'Böenkarte')} für die Spitzen bis morgen; die Stationen (${a('/wetterkarte/stationen', 'Wetterstationen')}) zeigen den gemessenen Wind am Ufer.`,
         `Bei Gewitterlage: ${a('/wetterkarte/zellbahnen', 'Zellbahnen')} (DE) mit Ankunftszeit, ${a('/wetterkarte/blitze', 'Blitzkarte')} und ${a('/wetterkarte/gewitter', 'Gewitterpotenzial')}.`,
         `Auf Alpenseen: ${a('/atmosphaere/querschnitt', 'Vertikalschnitt')} über den Kamm und der Explainer ${a('/wissen/foehn/', 'Föhn')}.`,
+        `An Nord- und Ostsee: ${a('/seewetter', 'Seewetter')} mit Seegang, Wind am Spot, BSH-Wasserstand und Seewetterbericht im Wortlaut.`,
         `Amtliche Warnlage wörtlich: ${a('/warnungen', 'Warnungen')} — und ${a('/wissen/windboeen-sturm/', 'was Böen von Mittelwind unterscheidet')}.`,
       ]) },
       { h2: 'Was buscosun hier nicht kann', html: ul([
-        'Kein Seegang, keine Wellenhöhe, keine Strömung — im Code gibt es kein Wellenmodell.',
+        'Keine Strömung und außerhalb der deutschen Küste kein Seegang; Binnenseen wie der Bodensee haben kein Wellenmodell.',
         'Keine Sturmwarnleuchten und keine seespezifische Starkwind- oder Sturmwarnung. Die Warnsysteme der Seen (Bodensee, Schweizer Seen) sind eigene amtliche Dienste; buscosun bildet sie nicht ab.',
         'Das 2,2-km-Gitter glättet Land-Wasser-Übergänge, Düsen zwischen Ufern und Thermikwinde am See; der Modellwind über dem Wasser ist eine Fläche, keine Messung.',
         'Blitzkarte und KONRAD-Zellbahnen sind Deutschland-fokussiert; für Österreich und die Schweiz bleibt das Gewitterpotenzial aus ICON-D2.',
-        'Kein Tidenkalender, keine Wasserstände, keine Hafeninformationen. ' + NO_WARNING,
+        'Kein Tidenkalender und keine Hafeninformationen; Wasserstände nur an den BSH-Pegeln der Küste. ' + NO_WARNING,
         NO_PUSH,
       ]) },
       { h2: 'Datenquellen und Länder', html:
         p('Wind und Böen kommen für DE, AT und CH aus ICON-D2 (DWD). KONRAD3D-Zellbahnen und die Blitzkarte sind DWD-Produkte mit Deutschland-Fokus; am Bodensee decken sie das deutsche Ufer und den Verbundbereich ab, am Attersee oder Zürichsee nicht. Amtliche Warnungen erscheinen als Flächen für Deutschland (DWD CAP) und die Schweiz (MeteoSchweiz über MeteoAlarm); für Österreich nennt das Panel GeoSphere Austria, ohne Fläche. Live-Stationen: DWD (via BrightSky), TAWES, SMN.') },
     ],
     faqs: [
-      { q: 'Zeigt buscosun die Wellenhöhe auf dem Bodensee?', a: 'Nein. Es gibt kein Wellen- oder Seegangsmodell; buscosun zeigt Wind, Böen, Gewitterzellen und Blitze.' },
+      { q: 'Zeigt buscosun die Wellenhöhe auf dem Bodensee?', a: 'Nein. Das Seegangsmodell deckt nur die deutsche Nord- und Ostseeküste ab; auf dem Bodensee zeigt buscosun Wind, Böen, Gewitterzellen und Blitze.' },
       { q: 'Ersetzt buscosun die Sturmwarnleuchten?', a: 'Nein. Die Sturmwarnung der Seen ist ein eigener amtlicher Dienst. buscosun zitiert amtliche Wetterwarnungen für DE und CH wörtlich, gibt aber keine eigenen heraus.' },
       { q: 'Wie weit voraus reicht die Böenkarte?', a: '24 Stunden ab Modelllauf (ICON-D2 vmax_10m); die Windkarte reicht 12 Stunden.' },
       { q: 'Gibt es die Zellbahnen auch in Österreich und der Schweiz?', a: 'Nein. KONRAD3D ist ein DWD-Produkt für Deutschland. Für AT und CH bleiben Gewitterpotenzial und Blitzprognose aus ICON-D2.' },
