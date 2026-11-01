@@ -30,7 +30,7 @@ export const LAYER_CATALOG: Readonly<Record<LayerKey, LayerDockEntry>> = {
   wind: { label: 'Wind',
     title: 'Wind (DWD ICON-D2 u/v 10m · 2,2 km)' },
   gust: { label: 'Böen',
-    title: 'Windböen — Spitzen (DWD ICON-D2 vmax_10m · 2,2 km, 0–24 h). Sicherheitsrelevant für Drohne, Kran, Höhenarbeit (vgl. Go/No-Go).' },
+    title: 'Windböen — Spitzen (DWD ICON-D2 vmax_10m · 2,2 km, 0–24 h). Sicherheitsrelevant für Drohne, Kran, Höhenarbeit.' },
   nowcast: { label: 'Niederschlag',
     title: 'Niederschlag · jetzt–2 h in 5-Minuten-Schritten überall: DWD RADOLAN-RV (Deutschland, Nordschweiz, Westösterreich bis ≈ 14° E) · INCA-Nowcast, auf 5 min verfeinert (übriges Österreich) · Hochrechnung buscosun aus MeteoSwiss-Radar rzc (übrige Schweiz; grau = unbekannt). Nähte als Übergangszone, alles nach Gültigkeitszeit. Bewusst kurz & ehrlich: nur die gemessene Nahbereichs-Vorhersage, keine Modell-Verlängerung.' },
   temp: { label: 'Temperatur',

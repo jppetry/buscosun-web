@@ -223,7 +223,7 @@ const SECTION_VIEWS: DeckLens[] = ['hoehenwind'];
 
 const LAYER_ROWS: Array<{ key: keyof ThreeDLayers; label: string; sub: string; icon: () => ReactNode }> = [
   { key: 'mean', label: 'Mittelwind', sub: 'Farbflächen · Pfeile', icon: IconLayerMean },
-  { key: 'gust', label: 'Böen', sub: 'Isotachen gestrichelt', icon: IconLayerGust },
+  { key: 'gust', label: 'Böen', sub: 'Pfeile gestrichelt', icon: IconLayerGust },
   { key: 'shear', label: 'Shear', sub: 'Windscherung', icon: IconLayerShear },
   { key: 'streamlines', label: 'Streamlines', sub: 'Strömungslinien', icon: IconLayerStream },
   { key: 'cloudBase', label: 'Wolkenbasis', sub: 'Untergrenze der Wolken', icon: IconLayerCloud },
@@ -492,7 +492,7 @@ function CutGuide({ ctx, inline = false }: { ctx: DeckCtx; inline?: boolean }) {
           <button type="button" className="vsd-toppill vsd-toppill--primary" onClick={openSection}>Schnitt anzeigen</button>
         </div>
       ) : (
-        <div className="vsd-guide-foot"><span>Tipp: Eine Linie quer über ein Tal zeigt Kaltluftsee und Talwind am besten.</span></div>
+        <div className="vsd-guide-foot"><span>Tipp: Eine Linie quer über ein Tal oder einen Grat zeigt, wie der Wind mit dem Gelände spielt.</span></div>
       )}
     </div>
   );
@@ -559,7 +559,7 @@ function SectionPlaceholder({ data, onDraw }: { data: DataState; onDraw: () => v
       <CutHintArt />
       <strong>Zeichne eine Schnittlinie durch die Landschaft</strong>
       <p>Tippe auf der Karte mindestens zwei Punkte — z. B. quer über ein Tal oder einen Grat.
-        Entlang dieser Linie schneiden wir die Atmosphäre auf und zeigen Höhenwind, Inversion und Wolkenschichten.</p>
+        Entlang dieser Linie schneiden wir die Atmosphäre auf und zeigen Höhenwind, Böen und Wolkenbasis.</p>
       <button className="vsd-toppill vsd-toppill--primary" onClick={onDraw}>Zur Karte</button>
     </div>
   );

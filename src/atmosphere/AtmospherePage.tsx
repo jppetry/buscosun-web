@@ -97,9 +97,9 @@ const ATM_FLOW = [
 ];
 
 const ATM_INTRO_CAPS = [
-  'Höhenwind-Geländeschnitt mit Vektoren, Isotachen, Shear & Wolkenbasis',
-  // V-FR-10: der Schnitt rechnet den Bodenwind von buscosun Fusion hoch; das Höhenprofil (Emagramm, Föhn) kommt aus ICON-EU.
-  'Bodenwind aus buscosun Fusion, Höhenprofil aus ICON-EU-Druckflächen, Gelände (DEM) — werbefrei, keine Tracker',
+  'Höhenwind-Geländeschnitt mit Vektoren, Böen, Scherung & Wolkenbasis',
+  // V-FR-10: der Schnitt rechnet den Bodenwind von buscosun Fusion hoch; die Höhe kommt aus den ICON-D2-Modellflächen (atmoContract.ts).
+  'Bodenwind aus buscosun Fusion, Höhe aus ICON-D2-Modellflächen, Gelände (DEM) — werbefrei, keine Tracker',
 ];
 
 function AtmosphereIntro() {
@@ -137,7 +137,7 @@ function AtmosphereIntro() {
             <li key={c}><span className="vsd-intro-caps-mark" aria-hidden="true"><IconCheck /></span>{c}</li>
           ))}
         </ul>
-        <p className="vsd-intro-trust"><span className="vsd-live-dot" aria-hidden="true" /> buscosun Fusion + ICON-EU + Gelände · werbefrei · keine Tracker</p>
+        <p className="vsd-intro-trust"><span className="vsd-live-dot" aria-hidden="true" /> buscosun Fusion + ICON-D2 + Gelände · werbefrei · keine Tracker</p>
       </aside>
     </section>
   );
