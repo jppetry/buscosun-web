@@ -75,6 +75,7 @@ const OTHER_ENTRIES: Readonly<Record<string, SeoText>> = {
     explainer: 'thermalanomalien-firms',
   },
   '/waldbrand/trockenheit': {
+    links: [{ label: 'Wetterarchiv: Trockenheit am Ort im Rückblick', href: '/wetterarchiv' }, { label: 'Waldbrand-Historie seit 2020', href: '/waldbrand/historie' }],
     h1: 'Bodentrockenheit und Feuerwetter für Deutschland, Österreich und die Schweiz',
     lead: 'Die Sicht „Trockenheit" zeigt zwei Treiber der Waldbrandgefahr aus dem DWD-Modell ICON-D2: die Bodenfeuchte als Bodenfeuchteindex (SMI) in zwei Tiefen — Oberboden bis 9 cm für das Zündrisiko, Wurzelzone bis 81 cm für die Dürre — und die relative Luftfeuchte in 2 m als stündliches Feuerwetter, bis 24 Stunden voraus. Ein Readout nennt, wie viel Prozent der Bodenfläche im DACH-Raum am oder unter dem Welkepunkt liegen — eine Zahl aus diesem Modelllauf, nicht aus einer Klimatologie.',
     body: [
@@ -93,6 +94,7 @@ const OTHER_ENTRIES: Readonly<Record<string, SeoText>> = {
 
   // --- SEO/GEO 2026 (E7): Ansichten, die bisher nur Query oder Hash hatten -----------------
   '/waldbrand/historie': {
+    links: [{ label: 'Wetterarchiv: Wetter und Klima am Ort', href: '/wetterarchiv' }, { label: 'Trockenperioden erklärt', href: '/wissen/trockenperioden/' }],
     h1: 'Waldbrand-Historie für Deutschland, Österreich und die Schweiz seit 2020',
     lead: 'Die Historie zeigt nicht die Lage von heute, sondern den Verlauf: Ereignisse eines Monats oder einer ganzen Saison aus dem eigenen Archiv der Satellitendetektionen, dazu eine Kurve, die die laufende Saison gegen die Jahre seit 2020 stellt. Jedes Ereignis lässt sich öffnen — mit Ort, Zeitraum, Zahl der Detektionen, Strahlungsleistung, dem Flächenhinweis, sofern EFFIS eine Kartierung hat, und der Wetterlage am Brandort aus dem Archiv statt aus der Vorhersage.',
     body: [
@@ -342,6 +344,7 @@ const ROUTE_TEXTS: Readonly<Record<string, RouteText>> = {
       { label: 'Welches Modell lag an deinem Ort zuletzt am nächsten?', href: '/funktionen/modellvergleich/' },
       { label: 'Klimastreifen erklärt', href: '/wissen/klimastreifen/' },
       { label: 'Trockenperioden erklärt', href: '/wissen/trockenperioden/' },
+      { label: 'Trockenheit aktuell: Boden und Feuerwetter', href: '/waldbrand/trockenheit' },
     ],
   },
 };

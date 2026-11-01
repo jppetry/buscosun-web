@@ -30,7 +30,7 @@ const OG_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public
 // die der Renderer, die Edge Function und der Verifier benutzen.
 import { ogCardPath } from '../../src/share/ogCard.ts';
 import { routeText } from '../../src/seo/subRouteTexts.ts';
-import { ROUTE_BY_ID } from '../../src/router/routes.ts';
+import { ROUTE_BY_ID, metaForPath } from '../../src/router/routes.ts';
 
 export const ogImageOr = (slug, fallback) => (existsSync(join(OG_DIR, `${slug}.png`)) ? `/og/${slug}.png` : fallback);
 
@@ -473,6 +473,13 @@ ${unknownsSectionV3(place)}
 
 /** Crawlbarer Inhalts-Block, der in #root der Home-index.html injiziert wird
  *  (React ersetzt ihn beim Mount — inhaltsgleich, kein Cloaking). */
+/** Querverweise einer Funktionsseite auf verwandte Ansichten; Ziele hinter `noindex` fallen bis zur Freigabe weg. */
+function seeAlsoSection(tool) {
+  const open = (tool.seeAlso || []).filter((l) => !metaForPath(l.href.replace(/\/$/, '')).noindex || l.href.startsWith('/wetter/') || l.href.startsWith('/funktionen/') || l.href.startsWith('/fuer/'));
+  if (!open.length) return '';
+  return `      <section>\n        <h2>Passend dazu</h2>\n        <div class="links">\n        ${open.map((l) => `<a href="${l.href}">${escapeHtml(l.label)}</a>`).join('\n        ')}\n        </div>\n      </section>\n`;
+}
+
 /** Die Nischen auf der Startseite: nur Routen, die indexierbar sind; eine gesperrte Seite bewirbt die Startseite nicht. */
 function homeNicheLinks() {
   const items = [
@@ -793,7 +800,7 @@ ${sections}
         <h2>Häufige Fragen</h2>
         ${faqItems}
       </section>
-${relExplainers ? `      <section>\n        <h2>Passendes Wetterwissen</h2>\n        <div class="links">\n        ${relExplainers}\n        </div>\n      </section>` : ''}
+${seeAlsoSection(tool)}${relExplainers ? `      <section>\n        <h2>Passendes Wetterwissen</h2>\n        <div class="links">\n        ${relExplainers}\n        </div>\n      </section>` : ''}
       <footer>
         ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, GeoNutzV) · GeoSphere Austria · MeteoSwiss. Kostenlos, ohne Tracker.
       </footer>

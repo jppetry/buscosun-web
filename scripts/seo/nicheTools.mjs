@@ -61,6 +61,11 @@ export const SEA_TOOL = {
     { q: 'Woher kommt der Wasserstand?', a: 'Aus der offenen Schnittstelle des Bundesamts für Seeschifffahrt und Hydrographie, Lizenz CC BY 4.0. Bei hohen Wasserständen führt der Link zum Sturmflutwarndienst.' },
     { q: 'Warum steht in manchen Zellen „kein Seegang“?', a: 'Weil das Küstenmodell dort keine Wasserzelle hat. buscosun zeigt das als fehlenden Wert, nicht als 0 Meter.' },
   ],
+  seeAlso: [
+    { label: 'Wetter in Kiel', href: '/wetter/kiel/' }, { label: 'Wetter in Rostock', href: '/wetter/rostock/' },
+    { label: 'Wetter auf Sylt', href: '/wetter/sylt-westerland/' }, { label: 'Wetter in Cuxhaven', href: '/wetter/cuxhaven/' },
+    { label: 'buscosun für Segler', href: '/fuer/segler/' },
+  ],
   relatedExplainers: ['windboeen-sturm', 'modellvergleich-unsicherheit'],
   datePublished: PUBLISHED, dateModified: PUBLISHED,
 };
@@ -111,6 +116,10 @@ export const GLACIER_TOOL = {
     { q: 'Sind die Zahlen amtlich?', a: 'Nur dort, wo das Zeichen „amtlich“ steht. Daneben stehen Messreihen, Satellitenwerte und Modellwerte, und jede Zahl trägt ihr eigenes Zeichen.' },
     { q: 'Was bedeutet der Schmelzindex?', a: 'Eine Zahl von 0 bis 100 aus Wettermodelldaten, die Gletscher untereinander einordnet. Sie ist keine Schmelzmenge in Millimetern, weil die Eichung darauf die Abnahme nicht bestanden hat.' },
     { q: 'Kann ich sehen, ob ein Gletscher begehbar ist?', a: 'Nein. Der Reiter Tour nennt Vorbehalte und Links zu den zuständigen Stellen und bewertet keine Route.' },
+  ],
+  seeAlso: [
+    { label: 'Vertikalschnitt der Atmosphäre: Wind über Grat und Tal', href: '/atmosphaere/querschnitt' },
+    { label: 'Wetterarchiv: Klima seit 1940 am Ort', href: '/wetterarchiv' },
   ],
   relatedExplainers: ['schneefallgrenze', 'klimastreifen'],
   datePublished: PUBLISHED, dateModified: PUBLISHED,

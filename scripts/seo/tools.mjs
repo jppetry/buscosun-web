@@ -157,6 +157,11 @@ export const TOOLS = [
           + 'sind offen und ohne Schlüssel nutzbar.',
       },
     ],
+    seeAlso: [
+      { label: 'Bodentrockenheit und Feuerwetter', href: '/waldbrand/trockenheit' },
+      { label: 'Waldbrand-Historie seit 2020', href: '/waldbrand/historie' },
+      { label: 'Wetterarchiv: Trockenheit am Ort im Rückblick', href: '/wetterarchiv' },
+    ],
     relatedExplainers: ['gewitter-unwetter', 'thermik'],
     datePublished: '2026-08-14', dateModified: '2026-08-14',
   },
@@ -719,6 +724,11 @@ export const TOOLS = [
       { q: 'Worauf basiert die Wetterhistorie?', a: 'Standardmäßig auf Tages-Stationsmessungen der nächstgelegenen Station (für Deutschland überwiegend DWD), zurück bis 1931. Alternativ und für Stundenwerte steht die ERA5-Reanalyse über das Open-Meteo-Archiv bereit; sie ist in der App ausdrücklich als Reanalyse gekennzeichnet.' },
       { q: 'Welche Kenntage rechnet buscosun?', a: 'Fünf: Hitzetage mit Höchsttemperatur ab 30 °C, Sommertage ab 25 °C, Tropennächte mit Tiefsttemperatur ab 20 °C, Frosttage unter 0 °C Tiefstwert und Eistage unter 0 °C Höchstwert. Die Schwelle lässt sich für eigene Fragestellungen verändern.' },
       { q: 'Warum ändert sich die Farbe der Klimastreifen mit dem Zeitraum?', a: 'Weil die Streifen gegen den Mittelwert der gerade angezeigten Jahre eingefärbt werden, nicht gegen eine feste Klimanormale. Für Abweichungen gegen eine amtliche Referenzperiode gibt es die Anomalie-Ansicht mit wählbarer Normalperiode.' },
+    ],
+    seeAlso: [
+      { label: 'Trockenheit aktuell: Boden und Feuerwetter', href: '/waldbrand/trockenheit' },
+      { label: 'Waldbrand-Historie seit 2020', href: '/waldbrand/historie' },
+      { label: 'Welches Modell lag an deinem Ort zuletzt am nächsten?', href: '/funktionen/modellvergleich/' },
     ],
     relatedExplainers: ['hoehenkorrektur-lapse-rate', 'modellvergleich-unsicherheit', 'schneefallgrenze'],
     datePublished: PUBLISHED, dateModified: MODIFIED_E4,
