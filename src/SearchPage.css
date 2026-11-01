@@ -897,13 +897,13 @@
   .tile-tour, .tile-event, .tile-nowcast, .tile-forecast, .tile-fire, .tile-history, .tile-threed, .tile-globus,
   .tile-glacier, .tile-road, .tile-coast { min-height: 0; }
   /* Mobil dieselben kompakten Kacheln wie am Desktop, je eine Spalte (t-half), Reihenfolge wie dort:
-     Karte · Tour (volle Breite), dann Paare Waldbrand|Regenradar · Gletscher|Autobahn · See|Globus ·
-     Historie|3D-Wetter, zuletzt Feedback. Texte werden nicht gekürzt (Ehrlichkeitshinweise bleiben). */
+     Karte (volle Breite), dann Paare Waldbrand|Regenradar, Tour (volle Breite, Jan 01.11. hinter die beiden getauscht) ·
+     Gletscher|Autobahn · See|Globus · Historie|3D-Wetter, zuletzt Feedback. Texte werden nicht gekürzt (Ehrlichkeitshinweise bleiben). */
   .tile-fire, .tile-nowcast, .tile-glacier, .tile-road, .tile-coast, .tile-globus, .tile-history, .tile-threed { padding: 14px; border-radius: 16px; }
   .tile-karte { order: 1; }
-  .tile-tour { order: 2; }
-  .tile-fire { order: 3; }
-  .tile-nowcast { order: 4; }
+  .tile-fire { order: 2; }
+  .tile-nowcast { order: 3; }
+  .tile-tour { order: 4; }
   .tile-glacier { order: 5; }
   .tile-road { order: 6; }
   .tile-coast { order: 7; }
