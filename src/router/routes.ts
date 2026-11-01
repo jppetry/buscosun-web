@@ -84,18 +84,17 @@ const LAYER_SUBS: readonly SubRoute[] = ALL_LAYER_KEYS.map((k) => ({
 }));
 
 export const ATMOSPHERE_LENS_SLUGS = {
-  fly: 'fliegen',
-  mountain: 'berg-und-weg',
   section: 'querschnitt',
 } as const;
 export type AtmosphereLensSlug = (typeof ATMOSPHERE_LENS_SLUGS)[keyof typeof ATMOSPHERE_LENS_SLUGS];
 
 /**
- * SEO/GEO 2026 (E7): das Arbeitsfenster (Go/No-Go) ist fachlich eine eigene Ansicht — sie hatte
- * bisher nur die Query-Form "?ansicht=gonogo" und damit keinen kanonischen Pfad. Der Pfad liegt
- * auf derselben Linse "section"; die alte Query-Form bleibt gueltig und wird auf ihn umgeschrieben.
+ * Retired Atmosphäre views (Föhn, Thermik, Go/No-Go; Jan 01.11.2026): the deck shows the section only. The slugs are no
+ * routes any more and leave the sitemap, but old links and share links must not break: 301 in `netlify.toml`, client
+ * side `aliasTarget`, both keep the place segment.
  */
-export const ATMOSPHERE_WORK_WINDOW_SLUG = 'arbeitsfenster';
+export const ATMOSPHERE_RETIRED_SLUGS = ['fliegen', 'berg-und-weg', 'arbeitsfenster'] as const;
+const RETIRED_ATMOSPHERE_RE = new RegExp(`^/atmosphaere/(?:${ATMOSPHERE_RETIRED_SLUGS.join('|')})(/[^/]+)?$`);
 
 export const FIRE_VIEW_SLUGS = ['gefahrenindex', 'aktive-braende', 'trockenheit', 'historie', 'thermalanomalien'] as const;
 
@@ -188,7 +187,7 @@ export const ROUTES: readonly RouteDef[] = [
       { slug: 'grillen', title: 'Grillwetter — der beste Tag zum Grillen', description: 'Welcher Tag der kommenden Woche ist warm, trocken und windstill genug für Grillabend, Gartenfest oder Hoffest?', updated: CONTENT_UPDATED },
       { slug: 'hochzeit', title: 'Hochzeitswetter mit Plan B', description: 'Trauung, Empfang und Abendfeier einzeln bewertet, dazu die Schwelle, ab der ein Plan B nötig wird — für die Hochzeit im Freien.', updated: CONTENT_UPDATED },
       { slug: 'wandern', title: 'Wanderwetter — der beste Tag für die Tour', description: 'Trocken, mild, gute Sicht: welcher der nächsten Tage sich für die Wanderung eignet, mit ehrlicher Sicherheit je Tag.', updated: CONTENT_UPDATED },
-      { slug: 'drohne', title: 'Drohnenwetter — Böen, Sicht und Regen', description: 'Der beste Tag für den Drohnenflug: Böen zählen am schwersten, dazu Sicht und Niederschlag — plus Go/No-Go auf Flughöhe.', updated: CONTENT_UPDATED },
+      { slug: 'drohne', title: 'Drohnenwetter — Böen, Regen und Bewölkung', description: 'Der beste Tag für den Drohnenflug: Böen zählen am schwersten, dazu Regen und Bewölkung. Eine Tagesbewertung, keine Freigabe auf Flughöhe.', updated: '2026-11-01' },
       { slug: 'fotografie', title: 'Fotowetter — Licht, Wolken und Stimmung', description: 'Wolkenlicht statt blankem Himmel: welcher Tag weiches Licht verspricht, dazu goldene und blaue Stunde für jedes Datum.', updated: CONTENT_UPDATED },
       { slug: 'sterne', title: 'Sternenwetter — klare Nächte finden', description: 'Wolken, Mond, astronomische Dunkelheit und Tau-Risiko für die Kernnacht — welche Nacht der Woche sich zum Beobachten eignet.', updated: CONTENT_UPDATED },
       { slug: 'radtour', title: 'Radwetter — der beste Tag für die Ausfahrt', description: 'Wind wiegt schwer, Regen noch schwerer: welcher Tag sich für Rennrad, Gravel oder die E-Bike-Tour anbietet.', updated: CONTENT_UPDATED },
@@ -216,25 +215,15 @@ export const ROUTES: readonly RouteDef[] = [
     id: 'atmosphaere', path: '/atmosphaere', aliases: ['/atmosph%C3%A4re', '/atmosphere'], featureId: 'atmosphere', subParam: 'lens', place: true,
     subs: [
       {
-        slug: ATMOSPHERE_LENS_SLUGS.fly, title: 'Thermik & Fliegen', description: 'Thermik, Höhenwind und Wolkenbasis über deinem Startplatz — die Atmosphäre aus Sicht von Gleitschirm- und Segelfliegern.',
-      },
-      {
-        slug: ATMOSPHERE_LENS_SLUGS.mountain, title: 'Föhn, Berg & Weg', description: 'Föhn, Inversion und Wind in der Höhe für Bergtouren — was über dem Tal passiert, bevor es unten ankommt.',
-      },
-      {
         slug: ATMOSPHERE_LENS_SLUGS.section, title: 'Vertikalschnitt der Atmosphäre', description: 'Höhenwind, Inversion und Schichtung entlang einer frei gezogenen Schnittlinie — die Atmosphäre im Querschnitt.',
-      },
-      {
-        slug: ATMOSPHERE_WORK_WINDOW_SLUG, title: 'Arbeitsfenster Go/No-Go — Böen auf Arbeitshöhe',
-        description: 'Arbeitshöhe und Böengrenzwert eingeben und GO/NO-GO über den Tag ablesen — für Drohne, Kran, Gerüst und Höhenarbeit.',
-        updated: CONTENT_UPDATED,
       },
     ],
     meta: {
-      title: 'Die Atmosphäre über dir — Vertikalschnitt & 3D-Wetter',
-      description: 'Höhenwind, Inversionen, Föhn und Thermik als Vertikalschnitt über jedem Ort in DACH — für Fliegen, Berg und Drohne.',
+      title: 'Die Atmosphäre über dir — Vertikalschnitt & Höhenwind',
+      description: 'Höhenwind, Böen und Wolkenbasis als Vertikalschnitt entlang einer frei gezogenen Linie in DE, AT und CH. Kein amtliches Flugwetter.',
       h1: 'Die Atmosphäre über dir',
-      lead: 'Die Atmosphäre-Ansicht von buscosun zeigt, was sich über deinem Standort in der Höhe abspielt: Höhenwind in mehreren Druckflächen, Inversionen, Föhnlagen und Thermik als Vertikalschnitt und im 3D-Gelände — mit Go/No-Go-Einschätzung für Drohne, Höhenarbeit und Flugsport.',
+      lead: 'Die Atmosphäre-Ansicht von buscosun zeigt, was sich über dem Gelände in der Höhe abspielt: Du ziehst auf der Karte eine Linie und siehst entlang dieser Linie den Vertikalschnitt mit Höhenwind, Böen, Windscherung und Wolkenbasis, mit Zeit-Regler und genannter Herkunft. Kein amtliches Flugwetter.',
+      updated: '2026-11-01',
     },
   },
   {
@@ -396,6 +385,9 @@ function safeDecode(p: string): string {
 export function aliasTarget(pathname: string, cross = true): string | null {
   const p = stripSlash(pathname).toLowerCase();
   const dec = safeDecode(p);
+  // Retired Atmosphäre views: a real redirect, also client side (no route is hidden by it), with the place segment.
+  const retired = p.match(RETIRED_ATMOSPHERE_RE);
+  if (retired) return `/atmosphaere/${ATMOSPHERE_LENS_SLUGS.section}${retired[1] ?? ''}`;
   if (cross) for (const [from, to] of CROSS_ALIASES) if (p === from || dec === from) return to;
   for (const r of ROUTES) {
     for (const a of r.aliases) {
@@ -540,7 +532,7 @@ export function verifyRoutes(): { checks: RouteCheck[]; passed: number; failed: 
   add('Umlaut-Alias roh und kodiert', aliasTarget('/atmosphäre') === '/atmosphaere' && aliasTarget('/atmosph%C3%A4re') === '/atmosphaere');
   add('End-Slash/Großschreibung werden normalisiert', normalizePath('/Wetterkarte/') === '/wetterkarte' && normalizePath('/wetterkarte') === null && normalizePath('/') === null);
   add('/wetterkarte/warnungen → /warnungen (kanonisch + Meta), Client normalisiert NICHT (kein Remount)', canonicalPath('/wetterkarte/warnungen') === '/warnungen' && normalizePath('/wetterkarte/warnungen') === null && metaForPath('/wetterkarte/warnungen').routeId === 'warnungen');
-  add('Sub-Route wird erkannt', routeForPath('/wetterkarte/temperatur')?.sub?.slug === 'temperatur' && routeForPath('/atmosphaere/fliegen')?.sub?.slug === 'fliegen' && routeForPath('/waldbrand/aktive-braende')?.sub?.slug === 'aktive-braende');
+  add('Sub-Route wird erkannt', routeForPath('/wetterkarte/temperatur')?.sub?.slug === 'temperatur' && routeForPath('/atmosphaere/querschnitt')?.sub?.slug === 'querschnitt' && routeForPath('/waldbrand/aktive-braende')?.sub?.slug === 'aktive-braende');
   add('unbekannte Sub-Route bleibt auf der Route, aber noindex', routeForPath('/wetterkarte/xyz')?.sub === null && metaForPath('/wetterkarte/xyz').noindex);
   add('unbekannter Pfad ⇒ null', routeForPath('/nope') === null && routeForPath('/wetterkarte/a/b') === null && routeForPath('/wetterkarte/wind/a/b') === null);
   // --- SH1: Ort-Slug als letztes Segment -----------------------------------
@@ -574,9 +566,16 @@ export function verifyRoutes(): { checks: RouteCheck[]; passed: number; failed: 
   add('/route/3d löst auf /tourenplanung/3d auf und verdeckt keinen echten Pfad',
     aliasTarget('/route/3d') === '/tourenplanung/3d' && routeForPath('/route/3d', false) === null);
   add('Canonical von /route/3d ist die deutsche Sub-Route', canonicalPath('/route/3d') === '/tourenplanung/3d');
+  // Retired Atmosphäre views (Jan 01.11.2026): redirect client side, keep the place, never in the sitemap.
+  add('[ATM] alte Ansichten lösen auf den Querschnitt auf', ATMOSPHERE_RETIRED_SLUGS.every((s) => aliasTarget(`/atmosphaere/${s}`) === '/atmosphaere/querschnitt' && aliasTarget(`/atmosphaere/${s}`, false) === '/atmosphaere/querschnitt' && normalizePath(`/atmosphaere/${s}`) === '/atmosphaere/querschnitt' && canonicalPath(`/atmosphaere/${s}`) === '/atmosphaere/querschnitt'));
+  add('[ATM] der Ort bleibt erhalten, ist aber nicht kanonisch', ATMOSPHERE_RETIRED_SLUGS.every((s) => normalizePath(`/atmosphaere/${s}/innsbruck`) === '/atmosphaere/querschnitt/innsbruck' && routeForPath(`/atmosphaere/${s}/innsbruck`)?.placeSlug === 'innsbruck' && canonicalPath(`/atmosphaere/${s}/innsbruck`) === '/atmosphaere/querschnitt'));
+  add('[ATM] End-Slash an alten Pfaden führt ebenfalls zum Querschnitt', normalizePath('/atmosphaere/fliegen/') === '/atmosphaere/querschnitt');
+  add('[ATM] alte Ansichten tragen Meta des Querschnitts, nicht noindex', ATMOSPHERE_RETIRED_SLUGS.every((s) => metaForPath(`/atmosphaere/${s}`).title === metaForPath('/atmosphaere/querschnitt').title && !metaForPath(`/atmosphaere/${s}`).noindex));
+  add('[ATM] nur noch der Querschnitt ist Sub-Route, keine alte Ansicht in der Sitemap', ROUTE_BY_ID.atmosphaere.subs?.map((s) => s.slug).join() === 'querschnitt' && !sitemapPaths().some((x) => (ATMOSPHERE_RETIRED_SLUGS as readonly string[]).some((s) => x.path.endsWith(`/${s}`))));
+  add('[ATM] Gegenprobe: der Querschnitt selbst bleibt stehen, ein ähnlicher Slug ist kein Redirect, ein Tippfehler bleibt 404', normalizePath('/atmosphaere/querschnitt') === null && normalizePath('/atmosphaere/querschnitt/innsbruck') === null && aliasTarget('/atmosphaere/fliegenx') === null && routeForPath('/atmosphaere/fliegenx/innsbruck') === null && aliasTarget('/atmosphaere/fliegen/a/b') === null);
   // SEO/GEO 2026 (E1): jede indexierbare Sub-Route trägt eigenen Text für ihre Shell.
   const subs = indexableSubRoutes();
-  add('37 indexierbare Sub-Routen mit eigener Shell (18 Layer + 4 Atmosphäre + 5 Brand-Sichten + 10 Event-Anlässe)', subs.length === 37, String(subs.length));
+  add('34 indexierbare Sub-Routen mit eigener Shell (18 Layer + 1 Atmosphäre + 5 Brand-Sichten + 10 Event-Anlässe)', subs.length === 34, String(subs.length));
   const longDesc = subs.filter((x) => x.sub.description.length > 160).map((x) => `${x.path} (${x.sub.description.length})`);
   add('Sub-Routen-Descriptions sind paarweise verschieden und ≤ 160 Zeichen', new Set(subs.map((x) => x.sub.description)).size === subs.length && longDesc.length === 0, longDesc.join(', '));
   add('Shell-Dateinamen sind eindeutig und flach', new Set(subs.map((x) => x.shell)).size === subs.length && subs.every((x) => /^\/[a-z]+--[a-z0-9-]+\.html$/.test(x.shell)));

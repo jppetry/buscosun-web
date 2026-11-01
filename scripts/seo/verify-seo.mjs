@@ -152,12 +152,12 @@ for (const rel of ['wetterkarte.html', 'regenradar.html', 'waldbrand.html', 'atm
 }
 // 5) Sub-Routen-Shells (SEO/GEO 2026, E1): jede indexierbare Sub-Route hat eine
 // EIGENE flache Shell mit eigenem Title/Canonical/H1/Lead — vorher teilten sie die
-// Eltern-Shell (SEO-AUDIT.md §2). 37 = 18 Layer + 4 Atmosphäre + 5 Brand-Sichten + 10 Event-Anlässe (E7);
+// Eltern-Shell (SEO-AUDIT.md §2). 34 = 18 Layer + 1 Atmosphäre + 5 Brand-Sichten + 10 Event-Anlässe (E7);
 // die exakte Menge prüft verify-routing gegen die Routen-Tabelle.
 console.log('\nSub-Routen-Shells:');
 const subShells = readdirSync(DIST).filter((f) => /^[a-z]+--[a-z0-9-]+\.html$/.test(f)).sort();
-if (subShells.length !== 37) fail('dist/', `erwartet 37 Sub-Routen-Shells, gefunden ${subShells.length}`);
-else ok('dist/', '37 Sub-Routen-Shells vorhanden');
+if (subShells.length !== 34) fail('dist/', `erwartet 34 Sub-Routen-Shells, gefunden ${subShells.length}`);
+else ok('dist/', '34 Sub-Routen-Shells vorhanden');
 const parentTitle = (id) => (read(`${id}.html`).match(/<title>([^<]*)<\/title>/) || [])[1];
 const seenLeads = new Set();
 for (const f of subShells) {
@@ -254,13 +254,45 @@ console.log('\nGEO-Dateien:');
   const placeCount = readdirSync(join(DIST, 'wetter'), { withFileTypes: true }).filter((d) => d.isDirectory() && !COUNTRY_DIRS.has(d.name)).length;
   if (!llms.includes(`Übersicht aller ${placeCount} Orte`)) fail('llms.txt', `Ortszahl weicht ab (erwartet ${placeCount})`);
   else ok('llms.txt', `Ortszahl stimmt mit dem Bestand überein (${placeCount})`);
-  if (!llms.includes('/atmosphaere/arbeitsfenster')) fail('llms.txt', 'Go/No-Go nicht auf dem kanonischen Pfad');
-  else ok('llms.txt', 'Go/No-Go auf dem kanonischen Pfad');
+  if (!llms.includes('/atmosphaere/querschnitt')) fail('llms.txt', 'Vertikalschnitt nicht auf dem kanonischen Pfad');
+  else ok('llms.txt', 'Vertikalschnitt auf dem kanonischen Pfad');
   if (!/## Zitieren/.test(llms)) fail('llms.txt', 'kein Zitierhinweis');
   else ok('llms.txt', 'Zitierhinweis vorhanden');
   const full = read('llms-full.txt');
   if (full.length > 2 * 1024 * 1024) fail('llms-full.txt', `${Math.round(full.length / 1024)} KB > 2 MB`);
   else ok('llms-full.txt', 'unter 2 MB');
+}
+
+// 6c) Zurückgezogene Atmosphäre-Ansichten (Jan 01.11.2026): kein generierter Text führt noch dorthin oder verspricht sie.
+console.log('\nZurückgezogene Atmosphäre-Ansichten:');
+{
+  const OLD_PATH = /atmosphaere(?:\/|--)(?:fliegen|berg-und-weg|arbeitsfenster)\b|funktionen\/arbeitsfenster|ansicht=gonogo/;
+  // Nur Ansprüche, die auch verneint nie gebraucht werden. „Föhn-Index" und „Go/No-Go" dürfen verneint stehen, die Tourenansicht hat ein eigenes Go/No-Go.
+  const OLD_CLAIM = /Arbeitsfenster|GO\/NO-GO|Föhn-Linse|Flieger-Linse|Thermik-Karte|Profi-Panel|Nerd-Modus/;
+  // Gegenprobe: beide Muster schlagen an, der Querschnitt und die Tourenansicht nicht.
+  if (!OLD_PATH.test('<a href="/atmosphaere/fliegen/innsbruck">') || !OLD_PATH.test('/funktionen/arbeitsfenster/') || !OLD_CLAIM.test('Das Arbeitsfenster') || OLD_PATH.test('<a href="/atmosphaere/querschnitt">') || OLD_CLAIM.test('Go/No-Go der Tourenansicht')) {
+    fail('Gegenprobe', 'Prüfmuster erkennt die alten Pfade nicht');
+  } else ok('Gegenprobe', 'Prüfmuster schlägt an');
+  const files = [];
+  const walk = (rel) => {
+    for (const d of readdirSync(join(DIST, rel), { withFileTypes: true })) {
+      const r = rel ? `${rel}/${d.name}` : d.name;
+      if (d.isDirectory()) { if (!/^(?:assets|fire|params|countries|data|og)$/.test(r)) walk(r); }
+      // `_`-Dateien sind Vorlagen des OG-Renderers, kein ausgelieferter Inhalt.
+      else if (/\.(?:html|xml|txt)$/.test(d.name) && !d.name.startsWith('_')) files.push(r);
+    }
+  };
+  walk('');
+  const paths = files.filter((r) => OLD_PATH.test(read(r)));
+  const claims = files.filter((r) => OLD_CLAIM.test(read(r)));
+  if (files.length < 100) fail('dist/', `nur ${files.length} Dateien geprüft`);
+  if (paths.length) fail('dist/', `führt noch auf eine alte Ansicht: ${paths.slice(0, 5).join(', ')}`);
+  else ok('dist/', `${files.length} Seiten ohne Link auf eine alte Ansicht (auch Sitemap, llms.txt)`);
+  if (claims.length) fail('dist/', `verspricht noch eine alte Ansicht: ${claims.slice(0, 5).join(', ')}`);
+  else ok('dist/', `${files.length} Seiten ohne Versprechen einer alten Ansicht`);
+  for (const rel of ['atmosphaere--fliegen.html', 'atmosphaere--berg-und-weg.html', 'atmosphaere--arbeitsfenster.html', 'funktionen/arbeitsfenster/index.html']) {
+    if (existsSync(join(DIST, rel))) fail(rel, 'Datei am Pfad verhindert die ungezwungene 301');
+  }
 }
 
 // 7a) E8: Ortsseiten v2 — Umfang, Klimatabelle, Sonnenzeiten, Lücken-Abschnitt, eigene Description.

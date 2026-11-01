@@ -66,8 +66,10 @@ const EXPLAINERS_BASE = [
           '<p>In den Alpen unterscheidet man <strong>Südföhn</strong> (Anströmung aus Süden, warm und mild auf der ' +
           'Alpennordseite) und <strong>Nordföhn</strong> (Anströmung aus Norden, auf der Alpensüdseite). Klassische ' +
           'Föhntäler sind das Inntal um Innsbruck, das Wipptal, das Rheintal sowie die nördlichen Alpentäler in ' +
-          'Bayern, Tirol, Vorarlberg und Graubünden. buscosun erkennt Föhnlagen heuristisch aus Anströmung, ' +
-          'Druckgefälle und Geländemodell und markiert sie auf der Karte.</p>',
+          'Bayern, Tirol, Vorarlberg und Graubünden. Eine eigene Föhn-Ansicht hat buscosun nicht: ' +
+          'Die <a href="/tourenplanung">Tourenplanung</a> kennzeichnet Föhnverdacht entlang der Strecke heuristisch aus ' +
+          'Windrichtung, Windstärke, Böigkeit und Luftfeuchte, den Wind über dem Kamm zeigt der ' +
+          '<a href="/atmosphaere/querschnitt">Vertikalschnitt</a>.</p>',
       },
     ],
     faqs: [
@@ -81,7 +83,7 @@ const EXPLAINERS_BASE = [
     ],
     relatedExplainers: ['temperaturinversion', 'nebel-hochnebel-nebelobergrenze', 'schneefallgrenze'],
     relatedPlaces: ['innsbruck', 'garmisch-partenkirchen', 'bad-gastein', 'chur', 'landeck'],
-    datePublished: PUBLISHED, dateModified: MODIFIED,
+    datePublished: PUBLISHED, dateModified: '2026-11-01',
   },
 
   // ---------------------------------------------------------------- PILOT 2
@@ -177,9 +179,9 @@ const EXPLAINERS_BASE = [
         h2: 'Die Nebelobergrenze nutzen',
         html:
           '<p>Die <strong>Nebelobergrenze</strong> entscheidet, ob eine Wanderung oder Skitour im Grau endet ' +
-          'oder über dem Nebelmeer in der Sonne. buscosun schätzt sie aus der Schichtung und dem Geländemodell, ' +
-          'sodass sich Ziele oberhalb der Grenze gezielt ansteuern lassen. Da Hochnebel-Obergrenzen kleinräumig ' +
-          'schwanken, bleibt die Angabe ein Richtwert, kein garantierter Wert.</p>',
+          'oder über dem Nebelmeer in der Sonne. Einen eigenen Wert dafür führt buscosun nicht. Da Hochnebel-Obergrenzen ' +
+          'kleinräumig schwanken, sind Webcams in verschiedenen Höhen und die Berichte der Wetterdienste die bessere ' +
+          'Referenz.</p>',
       },
     ],
     faqs: [
@@ -192,7 +194,7 @@ const EXPLAINERS_BASE = [
     ],
     relatedExplainers: ['temperaturinversion', 'foehn', 'thermik'],
     relatedPlaces: ['zuerich', 'muenchen', 'feldberg-schwarzwald', 'davos', 'garmisch-partenkirchen'],
-    datePublished: PUBLISHED, dateModified: MODIFIED,
+    datePublished: PUBLISHED, dateModified: '2026-11-01',
   },
 
   // ------------------------------------------------------------- SCAFFOLDS
@@ -245,37 +247,27 @@ const EXPLAINERS_BASE = [
         id: 'buscosun',
         h2: 'So zeigt es buscosun',
         html:
-          '<p>Die Linse <a href="/atmosphaere/fliegen">Thermik &amp; Fliegen</a> leitet ein Thermik-Feld aus ' +
-          '<strong>einem ICON-EU-Umgebungsprofil</strong> (rund 7 km Gitterweite) und dem Geländemodell ab. Für jede ' +
-          'Geländezelle wird ein Boden-Luftpaket mit einer festen Tages-Überhitzung von <strong>3 K</strong> ' +
-          'angesetzt und trockenadiabatisch mit <strong>9,8 K je Kilometer</strong> gehoben, bis es das ' +
-          'Umgebungsprofil schneidet. Aus der so bestimmten Grenzschichttiefe entsteht eine Thermik-Stärke von ' +
-          '<strong>0 bis 5 m/s</strong>; die volle Stärke ist bei 2500 m Grenzschichttiefe erreicht. Unter 0,5 m/s ' +
-          'bleibt die Fläche transparent, statt schwache Werte als Aufwind auszumalen.</p>' +
-          '<p>Die Bewertung darüber ist bewusst grob gerastert: Ab 40 km/h Wind in der unteren Schicht gilt die Lage ' +
-          'als zu windig, unter 25 km/h zusammen mit mindestens 2 m/s Thermik als gut. Dazu kommt der ' +
-          '<strong>Talwind-Tagesgang</strong> — aus stündlichem Oberflächenwind und der Hangrichtung des ' +
-          'Geländemodells nennt buscosun die nächsten Umkehrpunkte zwischen bergauf (anabatisch) und bergab ' +
-          '(katabatisch) über 48 Stunden. In flachem Gelände sagt die App, dass es keinen ausgeprägten Tagesgang ' +
-          'gibt, statt eine Kurve zu erfinden.</p>',
+          '<p>Eine Karte der Thermik, einen Steigwert oder eine Flugbewertung zeigt buscosun nicht. Was sich für die ' +
+          'eigene Einschätzung nutzen lässt, liefert der <a href="/atmosphaere/querschnitt">Vertikalschnitt</a>: ' +
+          'Entlang einer frei gezogenen Linie stehen Höhenwind, Böen und Windscherung über dem Geländeprofil, auf ' +
+          'Wunsch auch die Wolkenbasis. Eine hohe Wolkenbasis spricht für trockene bodennahe Luft; ob an diesem Tag ' +
+          'tragfähige Aufwinde entstehen, lässt sich daraus allein nicht ablesen.</p>',
       },
       {
         id: 'grenzen',
-        h2: 'Grenzen der Thermik-Schätzung',
+        h2: 'Grenzen',
         html:
-          '<p>Alles davon ist eine <strong>Ableitung aus einem Modellprofil, kein gemessener Steigwert</strong>. ' +
-          'ICON-EU liefert nur grobe Standard-Druckflächen; Strukturen unter etwa 200 Metern Mächtigkeit sind darin ' +
-          'nicht aufgelöst. Hangwind- und Einstrahlungsphysik rechnet buscosun nicht, die Tages-Überhitzung ist ein ' +
-          'fester Wert statt einer echten Energiebilanz, und die „bergauf"-Richtung des Talwinds ist der lokale ' +
-          'Geländegradient, nicht der Verlauf einer echten Talachse. Für Flugentscheidungen bleiben das amtliche ' +
-          'Flugwetter und die eigene Beobachtung maßgeblich; buscosun liefert den Richtwert davor.</p>',
+          '<p>Die Wolkenbasis im Schnitt ist eine <strong>Näherung aus Temperatur und Feuchte am Boden</strong>, kein ' +
+          'gemessener Wert, und sie erscheint nur bei nennenswerter Bewölkung. Hangwind und Einstrahlung rechnet ' +
+          'buscosun nicht. Für Flugentscheidungen bleiben das amtliche Flugwetter und die eigene Beobachtung ' +
+          'maßgeblich.</p>',
       },
     ],
     faqs: [
       { q: 'Was ist Thermik?', a: 'Thermik ist aufsteigende warme Luft, die durch die ungleiche Erwärmung des Bodens entsteht. Über stärker aufgeheizten Flächen löst sich erwärmte Luft als Blase oder Schlauch ab und steigt so lange, wie sie wärmer bleibt als ihre Umgebung.' },
       { q: 'Wann ist die Thermik am stärksten?', a: 'In der Regel am frühen Nachmittag, wenn der Boden die Sonnenenergie des Tages abgegeben hat und die Schichtung am labilsten ist. Über die Jahreszeit gesehen sind Frühjahr und Sommer am ergiebigsten, weil die Sonne hoch steht und der Boden trocken ist.' },
-      { q: 'Wie stark ist eine gute Thermik?', a: 'buscosun rechnet die Thermik-Stärke auf einer Skala von 0 bis 5 m/s; ab etwa 2 m/s zusammen mit weniger als 25 km/h Wind gilt die Lage in der Flieger-Linse als gut, unter 0,5 m/s als nicht nutzbar. Das sind Modellwerte, keine gemessenen Steigwerte.' },
-      { q: 'Woher weiß buscosun, wo Thermik entsteht?', a: 'Aus einem ICON-EU-Umgebungsprofil und dem Geländemodell: Für jede Geländezelle wird ein Boden-Luftpaket mit fester Überhitzung gehoben, bis es das Profil schneidet. Das ist eine physikalische Abschätzung der Grenzschichttiefe, keine Messung und keine Beobachtung einzelner Aufwinde.' },
+      { q: 'Wie stark ist eine gute Thermik?', a: 'Das hängt vom Fluggerät und vom Gelände ab. Als grobe Größenordnung gelten Steigwerte um 1 bis 2 m/s als brauchbar, ab etwa 3 m/s als kräftig. buscosun rechnet solche Werte nicht aus.' },
+      { q: 'Zeigt buscosun die Thermik an?', a: 'Nein. Der Vertikalschnitt zeigt Höhenwind, Böen, Windscherung und die Wolkenbasis als Näherung. Eine Thermik-Prognose oder einen Steigwert gibt es nicht; dafür sind Flugwetter-Dienste zuständig.' },
     ],
     sources: [
       { name: 'DWD Wetterlexikon', url: 'https://www.dwd.de/DE/service/lexikon/lexikon_node.html' },
@@ -283,7 +275,7 @@ const EXPLAINERS_BASE = [
     ],
     relatedExplainers: ['nebel-hochnebel-nebelobergrenze', 'gewitter-unwetter', 'temperaturinversion', 'hoehenkorrektur-lapse-rate'],
     relatedPlaces: ['innsbruck', 'garmisch-partenkirchen', 'oberstdorf', 'bad-gastein', 'feldberg-schwarzwald'],
-    datePublished: PUBLISHED, dateModified: MODIFIED_E4,
+    datePublished: PUBLISHED, dateModified: '2026-11-01',
   },
   {
     slug: 'schneefallgrenze',
@@ -526,8 +518,8 @@ const EXPLAINERS_BASE = [
           'auf ausdrücklichen Knopfdruck eine externe Quelle (Open-Meteo/CAMS, sechs Arten) zuschalten. Deutsche ' +
           'Werte werden nicht über die Grenze übertragen.</li>' +
           '<li><strong>Föhnlage</strong>: eine transparente Heuristik aus Windrichtung, Windstärke, Böigkeit und ' +
-          'Luftfeuchte kennzeichnet Föhnverdacht und nennt die Gründe im Klartext. Die Schichtung dahinter zeigt die ' +
-          'Linse <a href="/atmosphaere/berg-und-weg">Föhn, Berg &amp; Weg</a>.</li>' +
+          'Luftfeuchte kennzeichnet Föhnverdacht und nennt die Gründe im Klartext. Den Wind über dem Kamm zeigt der ' +
+          '<a href="/atmosphaere/querschnitt">Vertikalschnitt</a>.</li>' +
           '</ul>',
       },
       {
@@ -554,7 +546,7 @@ const EXPLAINERS_BASE = [
     ],
     relatedExplainers: ['foehn', 'temperaturinversion', 'nebel-hochnebel-nebelobergrenze', 'gewitter-unwetter'],
     relatedPlaces: ['berlin', 'wien', 'zuerich', 'muenchen', 'innsbruck'],
-    datePublished: PUBLISHED, dateModified: MODIFIED_E4,
+    datePublished: PUBLISHED, dateModified: '2026-11-01',
   },
   {
     slug: 'hoehenkorrektur-lapse-rate',
@@ -626,7 +618,7 @@ const EXPLAINERS_BASE = [
       { q: 'Was ist die Lapse-Rate?', a: 'Die Abnahme der Lufttemperatur mit der Höhe. In der freien Atmosphäre beträgt sie im Mittel rund 0,65 °C je 100 Meter, schwankt aber je nach Luftmasse und Schichtung etwa zwischen 3 und 10 K je Kilometer — und kehrt sich bei Inversionen sogar um.' },
       { q: 'Warum ist eine Höhenkorrektur nötig?', a: 'Weil das Geländeraster der Wettermodelle gröber ist als die echte Topografie. Bei 2,2 Kilometern Gitterweite kann die Modellhöhe im Gebirge um hunderte Meter von der echten Höhe abweichen, was ohne Korrektur zu Fehlern von mehreren Grad führt.' },
       { q: 'Welche Lapse-Rate nutzt buscosun?', a: 'Auf der Karte fest 6,5 K je Kilometer, angewandt auf die Differenz zwischen dem digitalen Geländemodell und der Modellhöhe. Im Punktforecast wird die Rate zusätzlich aus den umliegenden Messstationen geschätzt, mit 6,5 K/km als Rückfallwert.' },
-      { q: 'Warum ist es im Tal manchmal trotzdem kälter als angezeigt?', a: 'Weil eine Lapse-Rate keine Inversion abbilden kann. Sammelt sich in einer klaren Nacht Kaltluft im Tal, ist es unten kälter als die Rechnung ergibt. Solche Lagen zeigt die Atmosphäre-Ansicht mit Inversionshöhe und Nebelobergrenze.' },
+      { q: 'Warum ist es im Tal manchmal trotzdem kälter als angezeigt?', a: 'Weil eine Lapse-Rate keine Inversion abbilden kann. Sammelt sich in einer klaren Nacht Kaltluft im Tal, ist es unten kälter als die Rechnung ergibt. Eine eigene Inversionsanzeige hat buscosun nicht; im Vertikalschnitt lässt sich die Temperatur je Höhe an einzelnen Punkten abfragen.' },
     ],
     sources: [
       { name: 'DWD Wetterlexikon', url: 'https://www.dwd.de/DE/service/lexikon/lexikon_node.html' },
@@ -634,7 +626,7 @@ const EXPLAINERS_BASE = [
     ],
     relatedExplainers: ['temperaturinversion', 'schneefallgrenze', 'modellvergleich-unsicherheit', 'foehn'],
     relatedPlaces: ['zermatt', 'davos', 'garmisch-partenkirchen', 'innsbruck', 'brocken'],
-    datePublished: PUBLISHED, dateModified: MODIFIED_E4,
+    datePublished: PUBLISHED, dateModified: '2026-11-01',
   },
   {
     slug: 'modellvergleich-unsicherheit',
@@ -781,12 +773,10 @@ const EXPLAINERS_BASE = [
           'ins Warme, bei 25 m/s ins Rote und läuft bei 33 m/s in den Orkanbereich. Der Layer ' +
           '<a href="/wetterkarte/wind">Wind</a> zeigt daneben den Mittelwind aus denselben Modellläufen — die ' +
           'Böenkarte zeigt Spitzen, die Windkarte den Durchschnitt.</p>' +
-          '<p>Wer auf einer bestimmten Arbeitshöhe unterwegs ist, findet im Go/No-Go-Modus des ' +
-          '<a href="/atmosphaere/querschnitt">Vertikalschnitts</a> die passende Auswertung: Eine Arbeits- oder ' +
-          'Flughöhe über Grund (Standard 120 m) und ein Böen-Grenzwert (Standard 40 km/h) werden vorgegeben, die ' +
-          'Bodenböen über ein Potenzprofil <strong>v(z) = v<sub>10</sub> · (z/10)<sup>0,2</sup></strong> auf diese ' +
-          'Höhe hochgerechnet und über 36 Stunden im 15-Minuten-Raster ausgewertet. Das Ergebnis ist ein GO oder ' +
-          'NO-GO mit den Zeitfenstern, in denen der Grenzwert überschritten wird.</p>',
+          '<p>Für die Höhe über dem Boden zeigt der <a href="/atmosphaere/querschnitt">Vertikalschnitt</a> Mittelwind ' +
+          'und Böen entlang einer Linie in Stufen von 150 Metern und nennt sie per Klick für einen Punkt. Eine Prüfung ' +
+          'gegen einen eigenen Grenzwert auf Arbeitshöhe rechnet buscosun nicht; ob ein Wert für Kran oder Drohne ' +
+          'reicht, entscheidet die Betriebsanleitung.</p>',
       },
       {
         id: 'grenzen',
@@ -794,9 +784,8 @@ const EXPLAINERS_BASE = [
         html:
           '<p>2,2 Kilometer Gitterweite glätten Kuppen, Talausgänge und Straßenschluchten, in denen reale Böen ' +
           'deutlich höher liegen können; eine Höhenkorrektur bekommt die Böenkarte bewusst nicht, weil das Feld die ' +
-          'Orografie schon enthält. Das Höhenprofil im Go/No-Go ist eine Standardannahme, kein gemessener Höhenwind — ' +
-          'oberhalb von 1500 Metern über Grund sättigt es, und eine verbindliche Betriebsfreigabe ist es ' +
-          'ausdrücklich nicht.</p>' +
+          'Orografie schon enthält. Die Böen im Vertikalschnitt sind Modellwerte, keine Messung in der Höhe, und eine ' +
+          'verbindliche Betriebsfreigabe sind sie ausdrücklich nicht.</p>' +
           '<p>Vor allem: <strong>buscosun gibt keine Sturmwarnungen heraus.</strong> Amtliche Warnungen erscheinen im ' +
           'Layer <a href="/warnungen">Amtliche Warnungen</a> ausschließlich im Wortlaut des jeweiligen Dienstes — ' +
           'DWD und MeteoSchweiz —, ohne Zusammenfassung und ohne Umformulierung. Für Österreich fehlt dort weiterhin ' +
@@ -806,8 +795,8 @@ const EXPLAINERS_BASE = [
     faqs: [
       { q: 'Was ist der Unterschied zwischen Wind und Böe?', a: 'Der Wind ist der über ein Zeitintervall gemittelte Luftstrom, meist über zehn Minuten; eine Böe ist eine kurze Windspitze, die diesen Mittelwert deutlich übertrifft. Für Sicherheit am Bau, beim Drohnenflug oder beim Zeltaufbau sind die Böen entscheidend.' },
       { q: 'Ab wann spricht man von Sturm?', a: 'Nach der Beaufort-Skala ab Windstärke 8, also rund 62 km/h, von Sturm; ab Stärke 10 (rund 89 km/h) von schwerem Sturm und ab Stärke 12 (rund 118 km/h) von Orkan. In Böen werden diese Schwellen deutlich früher erreicht als im Mittelwind.' },
-      { q: 'Wie weit voraus zeigt buscosun Böen?', a: 'Die Böenkarte deckt bis 24 Stunden voraus ab, stündlich und mit 2,2 Kilometern Gitterweite aus dem DWD-Modell ICON-D2. Der Go/No-Go-Check für eine gewählte Arbeitshöhe rechnet über 36 Stunden im 15-Minuten-Raster.' },
-      { q: 'Warum ist der Wind auf dem Kran stärker als in der Vorhersage?', a: 'Weil Modelle den Wind in 10 Metern Höhe angeben und er mit der Höhe zunimmt. buscosun rechnet ihn im Go/No-Go über ein Potenzprofil auf die eingestellte Arbeitshöhe hoch — das bleibt eine Standardannahme und ersetzt keine Messung vor Ort.' },
+      { q: 'Wie weit voraus zeigt buscosun Böen?', a: 'Die Böenkarte deckt bis 24 Stunden voraus ab, stündlich und mit 2,2 Kilometern Gitterweite aus dem DWD-Modell ICON-D2.' },
+      { q: 'Warum ist der Wind auf dem Kran stärker als in der Vorhersage?', a: 'Weil Modelle den Wind in 10 Metern Höhe angeben und er mit der Höhe zunimmt. Der Vertikalschnitt von buscosun zeigt den Wind je Höhe als Modellwert; eine Messung vor Ort ersetzt er nicht.' },
     ],
     sources: [
       { name: 'DWD Wetterlexikon (Beaufort-Skala, Bö)', url: 'https://www.dwd.de/DE/service/lexikon/lexikon_node.html' },
@@ -815,7 +804,7 @@ const EXPLAINERS_BASE = [
     ],
     relatedExplainers: ['foehn', 'gewitter-unwetter', 'thermik', 'modellvergleich-unsicherheit'],
     relatedPlaces: ['sylt-westerland', 'cuxhaven', 'brocken', 'feldberg-schwarzwald', 'hamburg'],
-    datePublished: PUBLISHED, dateModified: MODIFIED_E4,
+    datePublished: PUBLISHED, dateModified: '2026-11-01',
   },
 ];
 

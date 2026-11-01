@@ -76,8 +76,8 @@ ${link('/vorhersage', 'Vorhersage mit Konfidenz')}: Modellvergleich, Unsicherhei
 ${link('/tourenplanung', 'Tourenplanung')}: Wetter je Kilometer zur Ankunftszeit aus GPX/TCX/FIT/KML, inklusive E-Bike-Reichweite.
 ${link('/eventplanung', 'Event-Planung')}: bester Tag der nächsten sieben für ein Vorhaben, je Anlass eine eigene URL
   (${['grillen', 'hochzeit', 'drohne', 'fotografie', 'sterne'].map((s) => site.url + '/eventplanung/' + s).join(', ')} …).
-${link('/atmosphaere', 'Atmosphäre')}: Vertikalschnitt, Föhn, Thermik — und das Arbeitsfenster Go/No-Go unter
-  ${site.url}/atmosphaere/arbeitsfenster (Böe auf Arbeitshöhe für Drohne, Kran, Höhenarbeit).
+${link('/atmosphaere', 'Atmosphäre')}: Vertikalschnitt entlang einer frei gezogenen Linie (Höhenwind, Böen, Windscherung, Wolkenbasis)
+  unter ${site.url}/atmosphaere/querschnitt. Kein amtliches Flugwetter.
 ${link('/waldbrand', 'Brandradar DACH')}: EU-Gefahrenindex, aktive Brände aus Satellitendaten, Trockenheit,
   Historie seit 2020 (${site.url}/waldbrand/historie) und Thermalanomalien (${site.url}/waldbrand/thermalanomalien).
 ${link('/wetterarchiv', 'Wetterarchiv & Klima')}: Rückblick und Veränderung je Ort.

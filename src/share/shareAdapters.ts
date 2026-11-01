@@ -78,10 +78,7 @@ const VIEW_LABEL: Readonly<Record<string, string>> = {
   historie: 'Historie',
   thermalanomalien: 'Thermalanomalien',
   // Atmosphäre
-  'berg-und-weg': 'Föhn, Berg & Weg',
-  fliegen: 'Thermik & Fliegen',
   querschnitt: 'Querschnitt',
-  arbeitsfenster: 'Arbeitsfenster',
   // Eventplanung (Anlass)
   grillen: 'Grillen', hochzeit: 'Hochzeit', wandern: 'Wandern', drohne: 'Drohnenflug',
   fotografie: 'Fotografie', sterne: 'Sternenhimmel', radtour: 'Radtour', picknick: 'Picknick',

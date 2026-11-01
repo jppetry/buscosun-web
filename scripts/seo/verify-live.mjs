@@ -132,12 +132,25 @@ for (const l of parents) await checkUrl(l);
 const others = locs.filter((l) => !parents.includes(l));
 for (let i = 0; i < others.length; i += 8) await Promise.all(others.slice(i, i + 8).map(checkUrl));
 
+// 4b) Zurückgezogene Atmosphäre-Ansichten: 301 auf den Querschnitt, Ort und Query bleiben erhalten.
+for (const [from, to] of [
+  ['/atmosphaere/fliegen?t=x', '/atmosphaere/querschnitt?t=x'],
+  ['/atmosphaere/berg-und-weg/innsbruck?t=x', '/atmosphaere/querschnitt/innsbruck?t=x'],
+  ['/atmosphaere/arbeitsfenster', '/atmosphaere/querschnitt'],
+  ['/funktionen/arbeitsfenster/', '/atmosphaere/querschnitt'],
+]) {
+  const r = await get(from);
+  const loc = (r.headers?.get?.('location') ?? '').replace(/^https?:\/\/[^/]+/, '');
+  expect(r.status === 301 && loc === to, `${from} → 301 ${to} (ist ${r.status} ${loc})`);
+}
+
 // 5) llms.txt
 {
   const r = await get('/llms.txt');
   expect(r.status === 200 && /^# buscosun/.test(r.text), 'llms.txt 200 mit Titel');
   expect(!/buscosun\.app/.test(r.text), 'llms.txt ohne buscosun.app');
-  expect(/\/atmosphaere\/arbeitsfenster/.test(r.text), 'llms.txt nennt den kanonischen Go/No-Go-Pfad');
+  expect(/\/atmosphaere\/querschnitt/.test(r.text), 'llms.txt nennt den Vertikalschnitt auf seinem kanonischen Pfad');
+  expect(!/atmosphaere\/(?:fliegen|berg-und-weg|arbeitsfenster)|funktionen\/arbeitsfenster/.test(r.text), 'llms.txt nennt keine zurückgezogene Atmosphäre-Ansicht');
   expect(/## Zitieren/.test(r.text), 'llms.txt enthält den Zitierhinweis');
   const full = await get('/llms-full.txt');
   expect(full.status === 200 && /^# buscosun/.test(full.text), 'llms-full.txt 200 mit Titel');

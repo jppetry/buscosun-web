@@ -1,7 +1,7 @@
 /**
  * Texte der indexierbaren Sub-Routen (SEO/GEO 2026, E1) — je kanonischem Pfad
  * H1, Lead, Absätze, Fakten, Explainer. Layer-Texte kommen aus
- * `layerSeoTexts.ts`, Atmosphäre-Linsen und Brand-Sichten stehen hier.
+ * `layerSeoTexts.ts`, Vertikalschnitt und Brand-Sichten stehen hier.
  *
  * Verbraucher: `scripts/generate-seo.mjs` (Roh-HTML-Shells), `RouteSeoBlock`
  * (lazy, nach dem App-Mount), `scripts/verify-routing.mjs` (jede indexierbare
@@ -19,38 +19,6 @@ const LAYER_ENTRIES: Record<string, SeoText> = Object.fromEntries(
 );
 
 const OTHER_ENTRIES: Readonly<Record<string, SeoText>> = {
-  '/atmosphaere/fliegen': {
-    h1: 'Thermik und Höhenwind für Gleitschirm, Drachen und Segelflug',
-    lead: 'Die Linse „Fliegen" zeigt über jedem Startplatz in Deutschland, Österreich und der Schweiz, was für den Flugtag zählt: die geschätzte Thermikstärke als Karte über dem Gelände, den Höhenwind in fünf Bändern bis über 60 km/h, die Windscherung, die Wolkenbasis und die Umkehrzeiten des Talwinds — aus ICON-D2 am Boden und dem ICON-EU-Profil in der Höhe, stündlich bis 48 Stunden voraus, mit einem Urteil gut, Vorsicht oder schlecht je Stunde.',
-    body: [
-      'Die Thermik-Karte rechnet für jede Geländezelle einen trockenen Luftpaket-Aufstieg gegen das Modellprofil: Ein fester Tages-Überhitzungswert von 3 K wird auf die Umgebungstemperatur der Zelle gesetzt, der Schnittpunkt mit dem ICON-EU-Profil ergibt die Grenzschichttiefe, daraus die Stärke (volle Stärke bei etwa 2 500 m Tiefe). Ein Tipp aufs Gelände verschiebt den Profil-Marker; Profil und Urteil rechnen neu. Der Nerd-Modus legt das echte Skew-T mit CAPE, CIN, LCL, LFC und EL daneben.',
-      'Grenzen, die die Ansicht selbst nennt: Es ist eine Schätzung, kein gemessener Steigwert — ein Profil über die Fläche gehalten, feste Überhitzung, ICON-EU mit rund 7 km Gitter, keine Hangwind- oder Einstrahlungsphysik. Die Vertikalstruktur des Windes ist aus 10-m-Werten und Standardprofilen abgeleitet, nicht aus echten Druckflächen. Kein amtliches Flugwetter, kein Ersatz für das DWD-Segelflugwetter oder das Briefing des Vereins.',
-    ],
-    facts: [
-      { label: 'Quellen', text: 'DWD ICON-D2 (Boden, 2,2 km) · ICON-EU-Profil (Druckflächen, ~7 km) · Terrarium-DEM' },
-      { label: 'Horizont', text: '0 bis +48 h, stündlich' },
-      { label: 'Abdeckung', text: 'DE, AT, CH; Startplatz per Ortssuche oder GPX/TCX/FIT-Upload' },
-      { label: 'Urteil', text: 'nicht fliegbar > 40 km/h; gut < 25 km/h mit Thermik ≥ 2 m/s; keine nutzbare Thermik < 0,5 m/s' },
-      { label: 'Grenze', text: 'Thermik geschätzt, kein Messwert; Windprofil aus Standardprofilen; kein amtliches Flugwetter' },
-    ],
-    explainer: 'thermik',
-  },
-  '/atmosphaere/berg-und-weg': {
-    h1: 'Föhn, Inversion und Höhenwind für Bergtouren',
-    lead: 'Die Linse „Berg & Weg" beantwortet für einen Ort im Alpenraum drei Fragen, die im Tal nicht zu sehen sind: Kommt Föhn (Index kein, tendenziell oder aktiv aus kammnahem Südwind über 30 bzw. 45 km/h und trockener Bodenschicht), liegt eine Inversion mit Nebeldecke und wo ist ihre Obergrenze, und wie stark weht es auf Gratniveau. Dazu ein Isentropen-Querschnitt von Nord nach Süd, der das Absinken der Luft im Lee sichtbar macht — aus dem ICON-EU-Profil, bis 48 Stunden voraus.',
-    body: [
-      'Der Föhn-Index prüft die Kammschicht zwischen 1 200 und 3 500 m über Grund auf Windstärke und Südsektor (120–240°) und die Bodenschicht auf Trockenheit. Was er nicht prüfen kann, sagt die Ansicht ausdrücklich: Die Druckdifferenz zwischen Luv und Lee — der klassische Föhn-Indikator der Wetterdienste — ist ohne Stationsdruck-Pipeline nicht verfügbar. Deshalb ist der Index ein Richtwert mit Südföhn-Fokus, keine amtliche Föhnwarnung.',
-      'Die Inversionsschätzung liefert Inversionshöhe, Temperatur im Tal und oberhalb, die Nebelobergrenze und das Aufstiegs-Delta — die Zahl, die entscheidet, ob es sich lohnt, über den Nebel zu steigen. Grenzen: ICON-EU löst Strukturen unter 200 m nicht sicher auf; der Isentropen-Schnitt ist ein qualitatives Bild aus der heuristischen Schnitt-Temperatur, kein exaktes Feld. Für Touren über 1 000 m verlinkt buscosun die amtlichen Lawinenlageberichte, statt eigene Aussagen zu machen.',
-    ],
-    facts: [
-      { label: 'Quellen', text: 'ICON-EU-Profil (~7 km) · DWD ICON-D2 (Boden) · Terrarium-DEM' },
-      { label: 'Föhn-Schwellen', text: 'kammnah ≥ 45 km/h aktiv, ≥ 30 km/h tendenziell, Südsektor 120–240°, trockene Bodenschicht' },
-      { label: 'Horizont', text: '0 bis +48 h' },
-      { label: 'Abdeckung', text: 'Alpenraum AT/CH und bayerische Alpen im Fokus; ganz DACH abrufbar' },
-      { label: 'Grenze', text: 'keine Luv-Lee-Druckdifferenz; Richtwert, keine amtliche Föhnwarnung; keine Lawinenaussage' },
-    ],
-    explainer: 'foehn',
-  },
   '/atmosphaere/querschnitt': {
     h1: 'Vertikalschnitt der Atmosphäre — Höhenwind, Inversion und Arbeitsfenster',
     lead: 'Der Vertikalschnitt zeigt die Atmosphäre entlang einer frei auf die Karte gezogenen Linie als Querschnitt: das echte Geländeprofil aus dem Höhenmodell, darüber den Wind in fünf benannten Bändern von unter 15 bis über 60 km/h, Böenpfeile, Temperaturschichtung mit Inversionen, Wolkenbasis und Nullgradgrenze — aus ICON-D2 am Boden und ICON-EU in der Höhe, stündlich bis 48 Stunden voraus. Drei Ansichten teilen sich denselben Schnitt: Höhenwind, Inversion und das Arbeitsfenster Go/No-Go.',
@@ -117,22 +85,6 @@ const OTHER_ENTRIES: Readonly<Record<string, SeoText>> = {
   },
 
   // --- SEO/GEO 2026 (E7): Ansichten, die bisher nur Query oder Hash hatten -----------------
-  '/atmosphaere/arbeitsfenster': {
-    h1: 'Arbeitsfenster Go/No-Go — Böen auf Arbeitshöhe für Drohne, Kran und Höhenarbeit',
-    lead: 'Das Arbeitsfenster beantwortet eine einzige Frage: Hält die Böe auf meiner Arbeitshöhe heute unter meinem Grenzwert? Eingegeben werden Arbeits- oder Flughöhe über Grund und ein Böengrenzwert in Kilometern pro Stunde, voreingestellt sind 120 Meter und 40 km/h. Daraus entsteht eine Zeitleiste über den Tag mit klarem GO oder NO-GO, den Fenstern, in denen der Grenzwert reißt, der höchsten Böe im Zeitraum und dem Höhenfaktor, der sagt, um wie viel stärker es oben weht als am Boden.',
-    body: [
-      'Gerechnet wird am exponiertesten Punkt der gezogenen Schnittlinie: Die Ansicht wählt den Anker mit dem höchsten Gelände und wertet ihn im 15-Minuten-Raster aus. Die Böe auf Arbeitshöhe entsteht aus der 10-Meter-Böe des Modells über ein Potenzprofil der Grenzschicht mit dem Exponenten 0,2, das bis 1 500 Meter über Grund zunimmt und darüber sättigt. Eigene Grenzwerte für weitere Gewerke lassen sich anlegen; sie bleiben im Browser, nicht auf einem Server.',
-      'Grenzen, die die Ansicht ausspricht: Das Windprofil ist eine Näherung aus dem Bodenwert, keine Messung in Arbeitshöhe, und es kennt weder Gebäude noch Kranausleger noch Düsen zwischen Hallen. Strukturen unter 200 Metern löst das Modellprofil nicht sicher auf. Die Zeitleiste ist eine Planungshilfe und kein zertifiziertes Arbeitsschutz-Werkzeug: Maßgeblich bleiben die Betriebsanleitung des Geräts, die Vorgaben des Herstellers und die amtlichen Warnungen der Wetterdienste.',
-    ],
-    facts: [
-      { label: 'Quellen', text: 'DWD ICON-D2 (Böe 10 m, 2,2 km) · ICON-EU-Druckflächen · Terrarium-DEM' },
-      { label: 'Voreinstellung', text: '120 m über Grund, Grenzwert 40 km/h — beides frei änderbar, Zusatzgrenzwerte im Browser gespeichert' },
-      { label: 'Zeitraster', text: '15 Minuten über 36 bis 48 Stunden' },
-      { label: 'Höhenprofil', text: 'Potenzgesetz mit Exponent 0,2, Sättigung bei 1 500 m über Grund' },
-      { label: 'Grenze', text: 'Näherung statt Messung; keine Gebäude- oder Geräteeffekte; kein zertifiziertes Arbeitsschutz-Werkzeug' },
-    ],
-    explainer: 'windgrenzwerte-arbeit-drohne',
-  },
   '/waldbrand/historie': {
     h1: 'Waldbrand-Historie für Deutschland, Österreich und die Schweiz seit 2020',
     lead: 'Die Historie zeigt nicht die Lage von heute, sondern den Verlauf: Ereignisse eines Monats oder einer ganzen Saison aus dem eigenen Archiv der Satellitendetektionen, dazu eine Kurve, die die laufende Saison gegen die Jahre seit 2020 stellt. Jedes Ereignis lässt sich öffnen — mit Ort, Zeitraum, Zahl der Detektionen, Strahlungsleistung, dem Flächenhinweis, sofern EFFIS eine Kartierung hat, und der Wetterlage am Brandort aus dem Archiv statt aus der Vorhersage.',
@@ -202,7 +154,7 @@ const OTHER_ENTRIES: Readonly<Record<string, SeoText>> = {
     lead: 'Für eine Wanderung zählen Trockenheit, milde Temperaturen und eine Sicht, die den Weg lohnt. Der Anlass Wandern bewertet die kommenden sieben Tage mit Idealtemperatur zwischen 12 und 22 Grad, vollem Gewicht auf Niederschlag, deutlichem Gewicht auf Temperatur und moderatem auf Wind. Das Ergebnis ist eine Punktzahl je Tag mit dem Faktor, der ihn kippt — und eine Konfidenz, die sagt, wie einig sich die Quellen über diesen Tag überhaupt sind.',
     body: [
       'Wer die konkrete Strecke schon hat, ist mit der Tourenplanung besser bedient: Sie liest die GPX-Datei und rechnet das Wetter je Kilometer zur voraussichtlichen Ankunftszeit statt für einen Punkt über den ganzen Tag. Die Event-Ansicht beantwortet die Frage davor — welcher Tag überhaupt. Beide nutzen dieselbe Punktvorhersage aus amtlichen Stationen, MOSMIX und den Landesmodellen, höhenkorrigiert über das Geländemodell, damit der Gipfel nicht die Temperatur des Tals bekommt.',
-      'Grenzen: Die Bewertung kennt den Weg nicht, sondern nur den Ort — Nebelgrenzen, Grat und Tal unterscheidet erst die Tourenplanung oder die Atmosphäre-Ansicht. Für alpine Touren im Winter ersetzt nichts davon den Lawinenlagebericht; buscosun verlinkt ihn ab etwa 1 000 Metern, wertet ihn aber nicht aus. Amtliche Warnungen gibt allein der Wetterdienst heraus, in Österreich und der Schweiz mit anderen Stufenlogiken als in Deutschland.',
+      'Grenzen: Die Bewertung kennt den Weg nicht, sondern nur den Ort — Grat und Tal unterscheidet erst die Tourenplanung, den Wind über dem Gelände zeigt der Vertikalschnitt. Für alpine Touren im Winter ersetzt nichts davon den Lawinenlagebericht; buscosun verlinkt ihn ab etwa 1 000 Metern, wertet ihn aber nicht aus. Amtliche Warnungen gibt allein der Wetterdienst heraus, in Österreich und der Schweiz mit anderen Stufenlogiken als in Deutschland.',
     ],
     facts: [
       { label: 'Quellen', text: 'DWD MOSMIX und Messstationen · GeoSphere C-LAEF und INCA · MeteoSchweiz SMN · Terrarium-DEM' },
@@ -217,15 +169,15 @@ const OTHER_ENTRIES: Readonly<Record<string, SeoText>> = {
     h1: 'Drohnenwetter: der ruhigste Tag für den Flug',
     lead: 'Beim Drohnenflug entscheidet der Wind. Der Anlass Drohne gewichtet Böen mit dem vollen Faktor 1,0, Niederschlag mit 0,9, Bewölkung mit 0,4 und die Temperatur fast gar nicht — der Bereich von 2 bis 30 Grad gilt schlicht als unkritisch. So entsteht für die kommenden sieben Tage eine Reihenfolge, die dem entspricht, was das Fluggerät wirklich stört, und nicht dem allgemeinen Eindruck von schönem Wetter.',
     body: [
-      'Den Tag wählt diese Ansicht, die Stunde das Arbeitsfenster: Dort werden Flughöhe über Grund und Böengrenzwert eingegeben, und die Zeitleiste zeigt GO oder NO-GO über den Tag samt Höhenfaktor zwischen Boden und Flughöhe. Voreingestellt sind 120 Meter und 40 km/h; beides lässt sich auf die Grenzwerte des eigenen Geräts stellen. Wer eine Fläche aufzieht, bekommt zusätzlich die Windpfeile zur Böenspitzenstunde über dem Gelände.',
-      'Grenzen und Verantwortung: buscosun kennt weder die Betriebsgrenzen des Geräts noch die Luftraumlage. Die Herstellerangabe und die Betriebsanleitung sind maßgeblich, ebenso die Regeln der zuständigen Luftfahrtbehörde und geografische Sperrgebiete — dafür gibt es eigene amtliche Dienste. Die Böe in Flughöhe ist eine Näherung aus dem Bodenwert über ein Grenzschichtprofil, keine Messung, und Turbulenz an Kanten oder zwischen Gebäuden bildet kein Modell mit 2,2 Kilometern Gitterweite ab.',
+      'Den Tag wählt diese Ansicht, die Stunde liest du selbst ab: Die Böenkarte zeigt die Spitzen in 10 Metern Höhe bis 24 Stunden voraus, der Vertikalschnitt den Wind über dem Gelände in Höhenstufen von 150 Metern. Beide vergleichen nichts mit einem Grenzwert und geben nichts frei; das bleibt deine Entscheidung nach der Betriebsanleitung. Wer eine Fläche aufzieht, bekommt zusätzlich die Windpfeile zur Böenspitzenstunde über dem Gelände.',
+      'Grenzen und Verantwortung: buscosun kennt weder die Betriebsgrenzen des Geräts noch die Luftraumlage. Die Herstellerangabe und die Betriebsanleitung sind maßgeblich, ebenso die Regeln der zuständigen Luftfahrtbehörde und geografische Sperrgebiete — dafür gibt es eigene amtliche Dienste. Eine Böe auf der eigenen Flughöhe berechnet diese Ansicht nicht, und Turbulenz an Kanten oder zwischen Gebäuden bildet kein Modell mit 2,2 Kilometern Gitterweite ab.',
     ],
     facts: [
       { label: 'Quellen', text: 'DWD ICON-D2 (Böe) und MOSMIX · GeoSphere C-LAEF · MeteoSchweiz SMN · Terrarium-DEM' },
       { label: 'Profil', text: 'Idealtemperatur 2–30 °C; Gewichte Wind 1,0 · Regen 0,9 · Bewölkung 0,4 · Temperatur 0,1' },
-      { label: 'Stundenwahl', text: 'Arbeitsfenster Go/No-Go mit Flughöhe und Böengrenzwert (Voreinstellung 120 m, 40 km/h)' },
+      { label: 'Stunde', text: 'Böenkarte bis +24 h und Vertikalschnitt mit Wind und Böen je Höhe; keine Zeitleiste gegen einen Grenzwert' },
       { label: 'Abdeckung', text: 'DE, AT, CH' },
-      { label: 'Grenze', text: 'keine Luftraum- oder Sperrgebietsdaten; Herstellergrenzwerte maßgeblich; Böe in Höhe ist Näherung, keine Messung' },
+      { label: 'Grenze', text: 'keine Luftraum- oder Sperrgebietsdaten; Herstellergrenzwerte maßgeblich; keine Prüfung gegen einen Grenzwert auf Flughöhe' },
     ],
     explainer: 'windgrenzwerte-arbeit-drohne',
   },

@@ -16,7 +16,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
-import { CROSS_ALIASES, ROUTES, ROUTE_BY_ID, SITE_URL, routeForPath, verifyRoutes, aliasTarget, indexableSubRoutes } from '../src/router/routes.ts';
+import { ATMOSPHERE_RETIRED_SLUGS, CROSS_ALIASES, ROUTES, ROUTE_BY_ID, SITE_URL, routeForPath, verifyRoutes, aliasTarget, indexableSubRoutes } from '../src/router/routes.ts';
 // SEO/GEO 2026 (E1): Layer-Katalog = eine Quelle für Dock, Sub-Routen-Shells, gerenderten Inhalt.
 import { verifyLayerCatalog, LAYER_CATALOG } from '../src/map/layerCatalog.ts';
 import { ALL_LAYER_KEYS } from '../src/map/layerTypes.ts';
@@ -147,6 +147,31 @@ const iWild = idx((x) => x.from === '/wetterkarte/*');
 add('[netlify] /wetterkarte/warnungen → /warnungen (301) steht VOR /wetterkarte/*', iCross >= 0 && iWild >= 0 && iCross < iWild);
 missing = CROSS_ALIASES.filter(([from, to]) => !rules.some((x) => x.from === from && x.to === to && x.status === 301)).map(([from]) => from);
 add('[netlify] jeder Cross-Alias hat eine 301 auf sein Ziel (nicht auf die Top-Route)', missing.length === 0, missing.join(', '));
+// Retired Atmosphäre views (Jan 01.11.2026): 301 with the place segment, exact rule before its splat, both before `/atmosphaere/*`.
+function retiredRuleProblems(rs) {
+  const out = [];
+  const at = (pred) => rs.findIndex(pred);
+  const wild = at((x) => x.from === '/atmosphaere/*');
+  for (const s of ATMOSPHERE_RETIRED_SLUGS) {
+    const p = `/atmosphaere/${s}`;
+    const exact = at((x) => x.from === p && x.to === '/atmosphaere/querschnitt' && x.status === 301);
+    const splat = at((x) => x.from === `${p}/*` && x.to === '/atmosphaere/querschnitt/:splat' && x.status === 301);
+    if (exact < 0) out.push(`${p}: keine 301`);
+    if (splat < 0) out.push(`${p}/*: keine 301 mit :splat`);
+    if (exact > splat) out.push(`${p}: Einzelregel steht hinter der Splat-Regel`);
+    if (wild < 0 || splat > wild || exact > wild) out.push(`${p}: steht hinter /atmosphaere/*`);
+    if (rs.some((x) => x.from === p && x.status === 200)) out.push(`${p}: altes 200-Rewrite`);
+  }
+  if (!rs.some((x) => x.from === '/funktionen/arbeitsfenster' && x.to === '/atmosphaere/querschnitt' && x.status === 301)) out.push('/funktionen/arbeitsfenster: keine 301');
+  if (rs.some((x) => /\/(?:fliegen|berg-und-weg|arbeitsfenster)\/$/.test(x.from ?? ''))) out.push('Regel mit End-Slash im from (Netlify matcht ohne Rücksicht darauf)');
+  return out;
+}
+add('[netlify] alte Atmosphäre-Ansichten: 301 auf den Querschnitt, Ort bleibt, Reihenfolge stimmt', retiredRuleProblems(rules).length === 0, retiredRuleProblems(rules).join('; '));
+add('[netlify] Gegenprobe: fehlende Splat-Regel, falsche Reihenfolge und altes Rewrite werden erkannt',
+  retiredRuleProblems(rules.filter((x) => x.from !== '/atmosphaere/fliegen/*')).length > 0
+  && retiredRuleProblems([...rules].reverse()).length > 0
+  && retiredRuleProblems([{ from: '/atmosphaere/fliegen', to: '/atmosphaere--fliegen.html', status: 200 }, ...rules]).length > 0);
+add('[netlify] alte Atmosphäre-Ansichten haben keinen Text mehr, /funktionen kennt das Arbeitsfenster nicht', ATMOSPHERE_RETIRED_SLUGS.every((s) => subRouteText(`/atmosphaere/${s}`) === null) && !TOOLS.some((t) => t.slug === 'arbeitsfenster'));
 add('[netlify] keine Regel mit from ≡ to (Loop-Schutz)', !rules.some((x) => x.from && x.to && x.from.replace(/\/$/, '') === x.to.replace(/\/$/, '')));
 add('[netlify] Proxy-Rewrites unverändert vorhanden', ['/_dwd_opendata/*', '/_meteoalarm/*', '/_gfs/*', '/_cscs/*', '/_mf/*', '/_ecmwf/*'].every((p) => rules.some((x) => x.from === p && x.status === 200 && x.force)));
 add('[netlify] Proxys stehen VOR den App-Regeln', idx((x) => x.from === '/_ecmwf/*') < idx((x) => x.to && x.to.endsWith('.html') && x.status === 200));
@@ -332,8 +357,10 @@ if (wkShell && rrShell) {
   add('[shell] vorhersage.html trägt keine Karten-Preconnects', !fcShell || !fcShell.includes('rel="preconnect"'));
   // E1: Sub-Routen-Shells tragen eigenen Canonical + dieselben Preloads wie die Eltern-Shell.
   const subShell = (id, slug) => { const p = join(ROOT, 'dist', `${id}--${slug}.html`); return existsSync(p) ? readFileSync(p, 'utf8') : null; };
-  const tempShell = subShell('wetterkarte', 'temperatur'), flyShell = subShell('atmosphaere', 'fliegen'), fireShell = subShell('waldbrand', 'aktive-braende');
-  add('[shell] Sub-Routen-Shells existieren (wetterkarte--temperatur, atmosphaere--fliegen, waldbrand--aktive-braende)', !!tempShell && !!flyShell && !!fireShell);
+  const tempShell = subShell('wetterkarte', 'temperatur'), sectionShell = subShell('atmosphaere', 'querschnitt'), fireShell = subShell('waldbrand', 'aktive-braende');
+  add('[shell] Sub-Routen-Shells existieren (wetterkarte--temperatur, atmosphaere--querschnitt, waldbrand--aktive-braende)', !!tempShell && !!sectionShell && !!fireShell);
+  // Netlify wendet eine ungezwungene 301 nur an, wenn am Pfad keine Datei liegt: die alten Seiten dürfen nicht mehr entstehen.
+  add('[shell] alte Atmosphäre-Shells und /funktionen/arbeitsfenster werden nicht mehr erzeugt', ATMOSPHERE_RETIRED_SLUGS.every((s) => subShell('atmosphaere', s) === null) && !existsSync(join(ROOT, 'dist', 'funktionen', 'arbeitsfenster')));
   if (tempShell) {
     add('[shell] wetterkarte--temperatur.html: eigener Canonical, eigener Title, H1 aus dem Katalog', tempShell.includes('<link rel="canonical" href="https://buscosun.com/wetterkarte/temperatur" />') && tempShell.includes('<title>Temperaturkarte DACH | buscosun</title>') && tempShell.includes(`<h1>${subRouteText('/wetterkarte/temperatur').h1}</h1>`));
     add('[shell] wetterkarte--temperatur.html lädt den Route-Chunk fest vor und trägt dasselbe Ansichts-Skript wie die Eltern-Shell (E-DB-20)',

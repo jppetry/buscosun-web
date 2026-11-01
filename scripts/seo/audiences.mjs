@@ -29,51 +29,49 @@ const NO_PUSH = 'Es gibt keine Push-Benachrichtigung: buscosun hat keinen Server
 
 export const AUDIENCES = [
   // ---------------------------------------------------------------------------
-  // Belege: src/atmosphere/foehn.ts (Kammband 1 200–3 500 m AGL, 30/45 km/h,
-  // Südsektor 120–240°, T−Td ≥ 6 K, PRESSURE_GATE_NOTE), thermalField.ts
-  // (3 K Überhitzung, 2 500 m = volle Stärke ≈ 5 m/s), verdict.ts (25/40 km/h
-  // in den untersten 2 000 m), profile-derivations.ts (ICON-EU ~7 km, Strukturen
-  // < 200 m nicht aufgelöst), wind/iconEuPressureWind.ts (850/700/500 hPa),
-  // threed/crossSection.ts (Windbänder 15/30/45/60 km/h, aus 10-m-Werten +
-  // Standardprofil), TalwindPanel.tsx (DEM-Gradient, Richtwert).
+  // Belege: src/atmosphere/AtmosphereDeck.tsx (LAYER_ROWS, PointQuery), src/threed/SectionChart.tsx (Wind-Heatmap,
+  // Pfeile, MeasuredColumn), src/threed/buildCrossSection.ts (5 Anker, sectionMethod), src/threed/crossSection.ts
+  // (Windbänder, Scherung 25 km/h je 300 m, 150-m-Stufen, topM, Wolkenbasis ab 35 % Bewölkung), radiosonde.ts (40 km,
+  // 30 h), wind/iconEuPressureWind.ts (850/700/500 hPa). Föhn-, Thermik- und Go/No-Go-Ansicht: zurückgezogen 01.11.2026.
   // ---------------------------------------------------------------------------
   {
     slug: 'gleitschirmflieger',
     title: 'Für Gleitschirmflieger',
-    h1: 'buscosun für Gleitschirm- und Drachenflieger: Höhenwind, Thermik, Inversion und Föhn',
-    description: 'Höhenwind in 850, 700 und 500 hPa, Thermik als Schätzung, Inversion und Föhn-Index über jedem Startplatz in DACH — aber kein Flugwetter-Briefing.',
-    answer: 'buscosun zeigt Gleitschirm- und Drachenfliegern die Atmosphäre über dem Startplatz als Vertikalprofil aus ICON-EU: Höhenwind in mehreren Druckflächen, Windscherung, Wolkenbasis, Inversionsbänder, eine Thermik-Schätzung aus der Grenzschichttiefe, den Talwind-Tagesgang und einen dreistufigen Föhn-Index. Alles trägt seine Herkunft und seine Unsicherheit; ein amtliches Flugwetter-Briefing ersetzt es nicht.',
+    updated: '2026-11-01',
+    h1: 'buscosun für Gleitschirm- und Drachenflieger: Höhenwind, Böen und Wolkenbasis im Vertikalschnitt',
+    description: 'Höhenwind und Böen im Vertikalschnitt, Wolkenbasis als Näherung, Windkarte in 850, 700 und 500 hPa — keine Thermik-Prognose, kein Flugwetter-Briefing.',
+    answer: 'buscosun zeigt Gleitschirm- und Drachenfliegern den Wind über dem Gelände: Im Vertikalschnitt entlang einer frei gezogenen Linie stehen Höhenwind, Böen, Windscherung und auf Wunsch die Wolkenbasis, auf der Windkarte die Druckflächen 850, 700 und 500 hPa. Eine Karte der Thermik, einen Steigwert, ein Flugurteil oder einen Föhn-Index gibt es nicht, und ein amtliches Flugwetter-Briefing ersetzt buscosun nicht.',
     jsonLdType: 'WebPage',
     sections: [
       { h2: 'Was du hier bekommst', html:
-        p('Die Linse <strong>Thermik &amp; Fliegen</strong> der Atmosphäre-Ansicht baut über deinem Marker ein Vertikalprofil aus den ICON-EU-Druckflächen des DWD (rund 7 km Gitter). Daraus leitet buscosun das Höhenwindprofil in km/h, Zonen starker Windscherung, die Wolkenbasis, Inversionsbänder und die Nullgradgrenze ab. Die <strong>Thermik-Karte</strong> hebt für jede Geländezelle ein trockenes Bodenpaket mit fester Tages-Überhitzung von 3 K bis zum Schnitt mit dem Umgebungsprofil; die so gewonnene Grenzschichttiefe wird zur Thermik-Stärke — 2 500 m Grenzschicht gelten als „volle" Stärke von etwa 5 m/s. Das ist im Code ausdrücklich als Schätzung gekennzeichnet: ein Profil über die Fläche gehalten, keine Hangwind- oder Einstrahlungsphysik, kein gemessener Steigwert.') +
-        p('Das deterministische Urteil je Linse (gut, Vorsicht, schlecht) nutzt dokumentierte, konservative Schwellen: über 40 km/h Wind in den untersten 2 000 m über Grund gilt als nicht fliegbar, unter 25 km/h mit nutzbarer Thermik als gut. Der <strong>Föhn-Index</strong> (kein, tendenziell, aktiv) prüft den kammnahen Wind zwischen 1 200 und 3 500 m über Grund auf Südsektor (120–240°) und Stärke (30 bzw. 45 km/h) sowie die Abtrocknung der Bodenschicht (Taupunktspreizung ab 6 K). Der <strong>Talwind-Tagesgang</strong> nennt die Umkehrzeiten zwischen Hangauf- und Hangabwind aus dem stündlichen Oberflächenwind und dem DEM-Gradienten — die „bergauf"-Richtung ist der lokale Hang, keine echte Talachse.') +
-        p('Auf der Wetterkarte schaltet der Windlayer vom 10-m-Wind (ICON-D2, 2,2 km) auf die Druckflächen 850, 700 und 500 hPa aus ICON-EU um; die Böenkarte reicht 24 Stunden voraus. Für Profis öffnet der Nerd-Modus ein Skew-T-Diagramm mit CAPE, CIN, LCL, LFC, EL und Lifted Index aus den rohen ICON-EU-Leveln.') },
+        p('Im <strong>Vertikalschnitt</strong> ziehst du auf der Karte eine Linie, etwa vom Startplatz zum Landeplatz oder quer über ein Tal. Darüber zeichnet buscosun das Geländeprofil und den Wind je Höhe in fünf Bändern (unter 15, 15–30, 30–45, 45–60 und über 60 km/h) mit Pfeilen für die Richtung. Zuschaltbar sind Böen, Zonen starker Windscherung (ab 25 km/h je 300 m), Strömungslinien und die Wolkenbasis. Ein Klick in den Schnitt nennt für diesen Punkt die Höhe, den Abstand über Grund, Mittelwind, Böe, Richtung und Temperatur; der Zeit-Regler läuft über die nächsten Stunden.') +
+        p('Die Werte je Höhe kommen aus dem Höhen-Cube mit den Modellflächen von ICON-D2 (DWD, rund 2,2 km), am Boden an fünf Punkten der Linie auf buscosun Fusion verankert. Fehlt der Cube, rechnet der Schnitt aus dem Bodenwind mit einem Potenzgesetz hoch und schreibt das dazu. Liegt ein Radiosondenaufstieg höchstens 40 km neben der Linie und ist er höchstens 30 Stunden alt, steht sein gemessener Wind als eigene, beschriftete Säule daneben.') +
+        p('Auf der Wetterkarte schaltet der Windlayer vom 10-m-Wind (ICON-D2, 2,2 km) auf die Druckflächen 850, 700 und 500 hPa aus ICON-EU um; die Böenkarte reicht 24 Stunden voraus. Das Regenradar zeigt, ob Schauer am Standort ankommen, und die Wissensseiten erklären Thermik, Talwind und Inversion als Phänomene, ohne dass buscosun sie für deinen Startplatz vorhersagt.') },
       { h2: 'So nutzt du buscosun als Gleitschirmflieger', html: ol([
-        `Öffne ${a('/atmosphaere/fliegen', 'Thermik &amp; Fliegen')} und setze den Marker auf deinen Startplatz — das Profil, die Thermik-Karte und das Urteil erscheinen für die nächsten 48 Stunden.`,
-        `Prüfe den Höhenwind auf der ${a('/wetterkarte/wind', 'Windkarte')}: im Wind-Panel von 10 m auf 850, 700 oder 500 hPa umschalten, um den Wind auf Basishöhe zu sehen.`,
-        `Ziehe im ${a('/atmosphaere/querschnitt', 'Vertikalschnitt')} eine Linie vom Startplatz über den Landeplatz — Windbänder unter 15, 15–30, 30–45, 45–60 und über 60 km/h zeigen, wo es kräftig wird.`,
-        `Sieh dir vor Alpenflügen die ${a('/atmosphaere/berg-und-weg', 'Föhn-Linse')} an; die Böenkarte (${a('/wetterkarte/boeen', 'Böen')}) zeigt die Spitzen bis +24 h.`,
-        `Lies nach, was dahintersteckt: ${a('/wissen/thermik/', 'Thermik')}, ${a('/wissen/talwind/', 'Talwind')}, ${a('/wissen/temperaturinversion/', 'Inversion')} und ${a('/wissen/skew-t/', 'Skew-T')}.`,
+        `Öffne den ${a('/atmosphaere/querschnitt', 'Vertikalschnitt')}, wähle den Ort und ziehe eine Linie vom Startplatz zum Landeplatz; der Schnitt öffnet sich von selbst. Die Windbänder zeigen, wo es kräftig wird.`,
+        `Schalte Böen und Wolkenbasis zu, bewege den Zeit-Regler und tippe in den Schnitt, um Wind und Temperatur an einem Punkt abzulesen.`,
+        `Prüfe den Höhenwind auf der ${a('/wetterkarte/wind', 'Windkarte')}: im Wind-Panel von 10 m auf 850, 700 oder 500 hPa umschalten, um die großräumige Strömung zu sehen.`,
+        `Prüfe die Spitzen auf der ${a('/wetterkarte/boeen', 'Böenkarte')} bis +24 h und vor dem Start das ${a('/regenradar', 'Regenradar')}.`,
+        `Lies nach, was dahintersteckt: ${a('/wissen/thermik/', 'Thermik')}, ${a('/wissen/talwind/', 'Talwind')}, ${a('/wissen/temperaturinversion/', 'Inversion')} und ${a('/wissen/foehn/', 'Föhn')}.`,
       ]) },
       { h2: 'Was buscosun hier nicht kann', html: ul([
-        'Kein Flugwetter-Briefing und kein Ersatz für DHV-Wetter, Segelflugwetter oder METAR/TAF. buscosun ist rechtlich nicht für sicherheitskritische Entscheidungen gebaut.',
-        'Die Thermik-Stärke ist eine Grenzschicht-Schätzung aus einem Profil, kein gemessener Steigwert; Hangwind und Einstrahlung stecken nicht darin.',
-        'ICON-EU hat rund 7 km Gitter und grobe Standard-Druckflächen: dünne Schichten unter 200 m (etwa flache Inversionen) sind nicht sicher aufgelöst.',
-        'Der Föhn-Index kennt keine Luv-Lee-Druckdifferenz — es gibt keine Stationsdruck-Pipeline im Projekt. Er ist ein Richtwert aus Höhenwind und Bodentrockenheit, keine Föhnwarnung.',
-        'Der Vertikalschnitt der 3D-Bühne rechnet die Vertikalstruktur aus 10-m-Werten und Standardprofilen, nicht aus echten Druckflächen — die Oberfläche sagt das.',
+        `Kein Flugwetter-Briefing und kein Ersatz für DHV-Wetter, ${a('https://www.dwd.de/DE/fachnutzer/luftfahrt/luftfahrt_node.html', 'das Flugwetter des DWD')} oder METAR/TAF. buscosun ist nicht für sicherheitskritische Entscheidungen gebaut.`,
+        'Keine Karte der Thermik, kein Steigwert, keine Grenzschichttiefe und kein Flugurteil: buscosun rechnet Thermik nicht aus.',
+        'Kein Föhn-Index und kein Talwind-Tagesgang. Föhnverdacht kennzeichnet nur die Tourenplanung entlang einer Strecke, als Heuristik aus Wind und Feuchte.',
+        'Keine Inversionsanzeige und kein Skew-T. Die Temperatur je Höhe erscheint nur per Klick auf einen Punkt.',
+        'Der Schnitt reicht bis mindestens 3 000 m und bei hohem Gelände gut 1 500 m darüber, in Stufen von 150 m. Das Wetter kommt von fünf Punkten der Linie, nicht aus jeder Spalte; die Wolkenbasis ist eine Näherung aus Temperatur und Feuchte am Boden und erscheint nur bei nennenswerter Bewölkung.',
         'Keine Startplatz-Datenbank, keine Fluggebiets-Regeln, keine Luftraumdaten. ' + NO_WARNING,
       ]) },
       { h2: 'Datenquellen und Länder', html:
-        p('Das Vertikalprofil kommt für Deutschland, Österreich und die Schweiz gleichermaßen aus ICON-EU (DWD, CC BY 4.0), der Bodenwind aus ICON-D2 (2,2 km, DACH). Damit gibt es hier keine Länderlücke im Profil selbst. Unterschiede entstehen erst bei den Zusatzinformationen: amtliche Warnungen erscheinen als Flächen nur für Deutschland (DWD) und die Schweiz (MeteoSchweiz über MeteoAlarm); Österreich hat im Layer noch keine Flächen, das Panel nennt stattdessen GeoSphere Austria. Die Blitzkarte stammt vom DWD-Blitznetz und ist auf Deutschland fokussiert. Live-Stationen decken DE (DWD), AT (TAWES) und CH (SMN) ab.') },
+        p('Der Höhenwind im Schnitt kommt für Deutschland, Österreich und die Schweiz gleichermaßen aus ICON-D2 (DWD, CC BY 4.0), die Druckflächen der Windkarte aus ICON-EU (rund 7 km). Damit gibt es hier keine Länderlücke im Profil selbst. Unterschiede entstehen erst bei den Zusatzinformationen: Amtliche Warnungen erscheinen als Flächen nur für Deutschland (DWD) und die Schweiz (MeteoSchweiz über MeteoAlarm); Österreich hat im Layer noch keine Flächen, das Panel nennt stattdessen GeoSphere Austria. Die Blitzkarte stammt vom DWD-Blitznetz und ist auf Deutschland fokussiert. Live-Stationen decken DE (DWD), AT (TAWES) und CH (SMN) ab.') },
     ],
     faqs: [
-      { q: 'Zeigt buscosun die Thermik-Stärke in m/s?', a: 'Als Schätzung aus der Grenzschichttiefe: 2 500 m Grenzschicht entsprechen im Modell „voller" Stärke von etwa 5 m/s. Es ist kein gemessener Steigwert, und die Karte sagt das.' },
-      { q: 'Woher kommt der Höhenwind?', a: 'Aus den ICON-EU-Druckflächen des DWD (850, 700, 500 hPa und weitere, rund 7 km Gitter). ICON-D2 veröffentlicht Druckflächen nur im Ikosaeder-Gitter, das der eingebaute Decoder nicht liest.' },
-      { q: 'Ist der Föhn-Index eine Föhnwarnung?', a: 'Nein. Er kombiniert kammnahen Südwind ab 30 bzw. 45 km/h mit abgetrockneter Bodenschicht; die Druckdifferenz Luv–Lee fehlt und wird in der Oberfläche als fehlend benannt.' },
+      { q: 'Zeigt buscosun die Thermik-Stärke in m/s?', a: 'Nein. Es gibt keine Thermik-Prognose und keinen Steigwert. Der Vertikalschnitt zeigt Höhenwind, Böen, Windscherung und die Wolkenbasis als Näherung; die Einschätzung der Thermik bleibt bei dir und bei Flugwetter-Diensten.' },
+      { q: 'Woher kommt der Höhenwind?', a: 'Im Vertikalschnitt aus den Modellflächen von ICON-D2 (DWD, rund 2,2 km), am Boden auf buscosun Fusion verankert. Auf der Windkarte aus den ICON-EU-Druckflächen 850, 700 und 500 hPa (rund 7 km).' },
+      { q: 'Gibt es einen Föhn-Index?', a: 'Nein. Den Wind über dem Kamm zeigt der Vertikalschnitt, wenn die Linie quer über den Kamm läuft. Föhnverdacht kennzeichnet nur die Tourenplanung, als Heuristik und ohne amtlichen Charakter.' },
       { q: 'Ersetzt buscosun das DHV-Wetter?', a: 'Nein. buscosun ist ein Modell-Kontext ohne Briefing-Charakter. Für die Flugentscheidung gelten amtliche Quellen, Fluggebietsregeln und die eigene Einschätzung am Startplatz.' },
     ],
-    related: ['/atmosphaere/fliegen', '/wetterkarte/wind', '/wissen/thermik/', '/wissen/foehn/', '/funktionen/atmosphaere/', '/fuer/drohnenpiloten/'],
+    related: ['/atmosphaere/querschnitt', '/wetterkarte/wind', '/wissen/thermik/', '/wissen/foehn/', '/funktionen/atmosphaere/', '/fuer/drohnenpiloten/'],
   },
   // ---------------------------------------------------------------------------
   // Belege: scripts/seo/methodik.mjs (DIN 33466/SAC 350/500 Hm/h, T3 300/400,
@@ -99,7 +97,7 @@ export const AUDIENCES = [
         `Lade deine Tour in der ${a('/tourenplanung', 'Tourenplanung')} hoch, wähle Wandern oder Bergwandern (T3) und die Startzeit — das Wetter je Kilometer gilt zur Ankunftszeit.`,
         `Wechsle ins Gelände (3D-Ansicht) und setze deine Grenzwerte; der Zeitkorridor nennt die beste Startzeit ±2 h.`,
         `Prüfe die Lage am Grat auf der ${a('/wetterkarte/temperatur', 'Temperaturkarte')} und der ${a('/wetterkarte/schneegrenze', 'Schneefallgrenze')}, im Sommer das ${a('/wetterkarte/gewitter', 'Gewitterpotenzial')} und die ${a('/wetterkarte/zellbahnen', 'Zellbahnen')}.`,
-        `Bei Nebel im Tal: ${a('/atmosphaere/querschnitt', 'Vertikalschnitt')} mit Inversionshöhe und Nebelobergrenze — ${a('/wissen/nebel-hochnebel-nebelobergrenze/', 'so liest du sie')}.`,
+        `Für den Wind am Grat: ${a('/atmosphaere/querschnitt', 'Vertikalschnitt')} mit einer Linie quer über den Kamm. Eine Nebelobergrenze nennt buscosun nicht; ${a('/wissen/nebel-hochnebel-nebelobergrenze/', 'was sie bedeutet')}.`,
         `Im Winter: Lawinen-Link im Punktforecast der Karte (ab 1 000 m) und die ${a('/wetterkarte/schnee', 'Schneekarte')}; Rechenweg in ${a('/methodik/tourenplanung-zeitmodell/', 'Tourenplanung: Zeitmodell')}.`,
       ]) },
       { h2: 'Was buscosun hier nicht kann', html: ul([
@@ -219,19 +217,19 @@ export const AUDIENCES = [
     slug: 'segler',
     title: 'Für Segler',
     h1: 'buscosun für Segler, Surfer und Kiter auf Bodensee, Alpenseen und Küste: Wind, Böen, Zellen, Blitze',
-    description: 'Windkarte aus ICON-D2, Böen bis +24 h, KONRAD-Zellbahnen mit Ankunftszeit, Blitzkarte und Föhn-Index für Alpenseen — ohne Seegang und ohne Sturmwarnleuchten.',
-    answer: 'buscosun zeigt Seglern, Surfern und Kitern den Wind als Partikelfeld aus ICON-D2 mit Richtung und Stärke, die Böenspitzen bis 24 Stunden voraus, für Deutschland die amtlichen KONRAD3D-Gewitterzellen mit Zugbahn, Unsicherheitstrichter und Ankunftszeit sowie die Blitze der letzten Stunde. Für Alpenseen ergänzt der Föhn-Index die Lage. Seegang, Wellenhöhe und die Sturmwarnleuchten der Seen liefert buscosun nicht.',
+    description: 'Windkarte aus ICON-D2, Böen bis +24 h, KONRAD-Zellbahnen mit Ankunftszeit und Blitzkarte für Bodensee, Alpenseen und Küste — ohne Sturmwarnleuchten.',
+    answer: 'buscosun zeigt Seglern, Surfern und Kitern den Wind als Partikelfeld aus ICON-D2 mit Richtung und Stärke, die Böenspitzen bis 24 Stunden voraus, für Deutschland die amtlichen KONRAD3D-Gewitterzellen mit Zugbahn, Unsicherheitstrichter und Ankunftszeit sowie die Blitze der letzten Stunde. Seegang, Wellenhöhe und die Sturmwarnleuchten der Seen liefert buscosun nicht.',
     jsonLdType: 'WebPage',
     sections: [
       { h2: 'Was du hier bekommst', html:
         p('Die <strong>Windkarte</strong> zeichnet den 10-m-Wind aus ICON-D2 (DWD, 2,2 km Gitter) als Partikel und Heatmap — die Partikelgeschwindigkeit ist exakt aus dem Modellfeld gerechnet, nicht dekorativ —, 0 bis 12 Stunden voraus, mit Dichte-Regler. Die <strong>Böenkarte</strong> (Feld vmax_10m) reicht 24 Stunden und ist für die Ausfahrt oft die wichtigere Zahl. Der Zeit-Schieber läuft in Zehntelstunden; der Datenstand steht als „Stand · HH:MM" daneben, nicht als „jetzt".') +
         p('Für Gewitterlagen liefert Deutschland das amtliche Objektprodukt <strong>KONRAD3D</strong> des DWD: Zellen im 5-Minuten-Takt mit Zugbahn, Unsicherheitstrichter und einem Satz zur Ankunftszeit am gewählten Punkt. Die <strong>Blitzkarte</strong> zeigt die vom DWD-Blitznetz (Linet/Sferics) erfassten Entladungen der letzten Stunde, alle etwa zehn Minuten aktualisiert; das <strong>Gewitterpotenzial</strong> (CAPE × CIN × LPI aus ICON-D2) und die Blitzprognose reichen 12 Stunden voraus. Live-Stationen (DWD, TAWES, SMN) zeigen den gemessenen Wind am Ufer daneben.') +
-        p('Für Bodensee, Walensee, Urnersee oder Attersee zählt der Föhn: Der <strong>Föhn-Index</strong> der Atmosphäre-Ansicht wertet den kammnahen Südwind zwischen 1 200 und 3 500 m über Grund (ab 30 km/h Tendenz, ab 45 km/h aktiv) und die Abtrocknung der Bodenschicht aus. Amtliche Warnungen erscheinen für Deutschland und die Schweiz als Flächen, der Text im Popup wörtlich zitiert.') },
+        p('Für Bodensee, Walensee, Urnersee oder Attersee zählt der Föhn. Einen eigenen Föhn-Index hat buscosun nicht; wie stark der Wind über dem Kamm weht, zeigt der <strong>Vertikalschnitt</strong> der Atmosphäre-Ansicht, wenn die Linie quer über den Kamm läuft. Amtliche Warnungen erscheinen für Deutschland und die Schweiz als Flächen, der Text im Popup wörtlich zitiert.') },
       { h2: 'So nutzt du buscosun als Segler', html: ol([
         `Öffne die ${a('/wetterkarte/wind', 'Windkarte')} auf deinem Revier — etwa ${a('/wetter/konstanz/', 'Konstanz')}, ${a('/wetter/bregenz/', 'Bregenz')} oder ${a('/wetter/kiel/', 'Kiel')} — und fahre den Zeit-Schieber durch die nächsten 12 Stunden.`,
         `Wechsle auf die ${a('/wetterkarte/boeen', 'Böenkarte')} für die Spitzen bis morgen; die Stationen (${a('/wetterkarte/stationen', 'Wetterstationen')}) zeigen den gemessenen Wind am Ufer.`,
         `Bei Gewitterlage: ${a('/wetterkarte/zellbahnen', 'Zellbahnen')} (DE) mit Ankunftszeit, ${a('/wetterkarte/blitze', 'Blitzkarte')} und ${a('/wetterkarte/gewitter', 'Gewitterpotenzial')}.`,
-        `Auf Alpenseen: ${a('/atmosphaere/berg-und-weg', 'Föhn-Linse')} und der Explainer ${a('/wissen/foehn/', 'Föhn')}.`,
+        `Auf Alpenseen: ${a('/atmosphaere/querschnitt', 'Vertikalschnitt')} über den Kamm und der Explainer ${a('/wissen/foehn/', 'Föhn')}.`,
         `Amtliche Warnlage wörtlich: ${a('/warnungen', 'Warnungen')} — und ${a('/wissen/windboeen-sturm/', 'was Böen von Mittelwind unterscheidet')}.`,
       ]) },
       { h2: 'Was buscosun hier nicht kann', html: ul([
@@ -243,7 +241,7 @@ export const AUDIENCES = [
         NO_PUSH,
       ]) },
       { h2: 'Datenquellen und Länder', html:
-        p('Wind und Böen kommen für DE, AT und CH aus ICON-D2 (DWD). KONRAD3D-Zellbahnen und die Blitzkarte sind DWD-Produkte mit Deutschland-Fokus; am Bodensee decken sie das deutsche Ufer und den Verbundbereich ab, am Attersee oder Zürichsee nicht. Amtliche Warnungen erscheinen als Flächen für Deutschland (DWD CAP) und die Schweiz (MeteoSchweiz über MeteoAlarm); für Österreich nennt das Panel GeoSphere Austria, ohne Fläche. Live-Stationen: DWD (via BrightSky), TAWES, SMN. Der Föhn-Index rechnet auf ICON-EU (rund 7 km) und ist auf Alpen-Südföhn ausgelegt.') },
+        p('Wind und Böen kommen für DE, AT und CH aus ICON-D2 (DWD). KONRAD3D-Zellbahnen und die Blitzkarte sind DWD-Produkte mit Deutschland-Fokus; am Bodensee decken sie das deutsche Ufer und den Verbundbereich ab, am Attersee oder Zürichsee nicht. Amtliche Warnungen erscheinen als Flächen für Deutschland (DWD CAP) und die Schweiz (MeteoSchweiz über MeteoAlarm); für Österreich nennt das Panel GeoSphere Austria, ohne Fläche. Live-Stationen: DWD (via BrightSky), TAWES, SMN.') },
     ],
     faqs: [
       { q: 'Zeigt buscosun die Wellenhöhe auf dem Bodensee?', a: 'Nein. Es gibt kein Wellen- oder Seegangsmodell; buscosun zeigt Wind, Böen, Gewitterzellen und Blitze.' },
@@ -254,52 +252,52 @@ export const AUDIENCES = [
     related: ['/wetterkarte/wind', '/wetterkarte/boeen', '/wetterkarte/zellbahnen', '/wissen/foehn/', '/wissen/gewitterzellen-konrad/', '/warnungen'],
   },
   // ---------------------------------------------------------------------------
-  // Belege: src/threed/goNoGo.ts (DEFAULT_GONOGO 120 m AGL / 40 km/h, 15-min-
-  // Raster, Höhenfaktor, Referenzanker = höchstes Gelände), crossSection.ts
-  // (v(z) = v10·(z/10)^α, α 0,2, Grenzschicht 1 500 m), eventModel.ts (Anlass
-  // Drohne „schwache Böen, gute Sicht, trocken"), methodik.mjs (Drohne-Profil
-  // 2–30 °C, Wind 1,0), iconD2GustSource.ts (24 h).
+  // Belege: iconD2GustSource.ts (24 h), eventModel.ts und methodik.mjs (Anlass Drohne: 2–30 °C, Wind 1,0, Regen 0,9,
+  // Wolken 0,4), src/threed/crossSection.ts (150-m-Stufen, Böen je Höhe), AtmosphereDeck.tsx (Punkt-Abfrage).
+  // Die Go/No-Go-Ansicht ist zurückgezogen (01.11.2026); die Zeitbahn der Tourenplanung kennt keine Flughöhe.
   // ---------------------------------------------------------------------------
   {
     slug: 'drohnenpiloten',
     title: 'Für Drohnenpiloten',
-    h1: 'buscosun für Drohnenpiloten: Go/No-Go auf Flughöhe, Böen bis morgen, bester Flugtag',
-    description: 'Go/No-Go-Zeitbahn mit der Böe auf deiner Flughöhe und deinem Grenzwert, dazu Böenkarte und Event-Anlass Drohne — die Herstellerangabe bleibt maßgeblich.',
-    answer: 'buscosun rechnet für Drohnenpiloten die Böe auf der eingestellten Flughöhe über Grund hoch — Standard 120 m und 40 km/h Grenzwert, beides frei einstellbar — und zeichnet über den Prognosezeitraum im 15-Minuten-Raster eine Go/No-Go-Zeitbahn mit den Fenstern, in denen der Grenzwert gerissen wird. Die Böenkarte zeigt die Spitzen bis 24 Stunden voraus, die Event-Planung findet den besten Flugtag der Woche. Welcher Grenzwert für dein Gerät gilt, sagt die Betriebsanleitung, nicht buscosun.',
+    updated: '2026-11-01',
+    h1: 'buscosun für Drohnenpiloten: Böen bis morgen, Wind in der Höhe, bester Flugtag',
+    description: 'Böenkarte bis +24 h, Wind und Böen je Höhe im Vertikalschnitt, Event-Anlass Drohne — keine Prüfung deines Grenzwerts; die Herstellerangabe bleibt maßgeblich.',
+    answer: 'buscosun zeigt Drohnenpiloten die Böenspitzen in 10 m Höhe bis 24 Stunden voraus, den Wind über dem Gelände im Vertikalschnitt und den besten Flugtag der Woche in der Event-Planung. Eine Zeitleiste gegen deinen Grenzwert auf Flughöhe rechnet buscosun nicht: Ob der Wind für dein Gerät reicht, entscheidest du mit der Betriebsanleitung.',
     jsonLdType: 'WebPage',
     sections: [
       { h2: 'Was du hier bekommst', html:
-        p('Das <strong>Go/No-Go-Modul</strong> der Atmosphäre-Ansicht nimmt den Böenwert des Punktforecasts am exponiertesten Punkt des Schnitts (höchstes Gelände) und rechnet ihn mit einem Potenzprofil <code>v(z) = v10 · (z/10)^α</code> auf die Arbeits- oder Flughöhe über Grund hoch; α ist 0,2 (raues Gelände zwischen offen 0,14 und Stadt 0,28), oberhalb 1 500 m über Grund sättigt das Profil. Standard sind 120 m AGL und 40 km/h Grenzwert — beides Eingabefelder, die im Gerät gespeichert bleiben. Über den Prognosezeitraum prüft das Modul im 15-Minuten-Raster, ob die Böe auf Flughöhe den Grenzwert überschreitet, und listet die No-Go-Fenster mit Uhrzeit und Spitzenböe. Der <strong>Höhenfaktor</strong> zeigt, wie viel stärker es auf 120 m weht als am Boden — bei einem Bodenwert von 20 km/h liegt die Böe in 120 m rechnerisch bei rund 33 km/h.') +
-        p('Auf der Wetterkarte liefert die <strong>Böenkarte</strong> (ICON-D2 vmax_10m, 2,2 km) die Spitzen bis 24 Stunden voraus, die Windkarte die Richtung; im Wind-Panel lässt sich auf die Druckflächen 850, 700 und 500 hPa umschalten. Das Regenradar sagt, ob und wann Regen am Standort ankommt. In der <strong>Event-Planung</strong> hat der Anlass „Drohne" ein eigenes Profil: Idealtemperatur 2–30 °C, Wind mit vollem Gewicht 1,0, Regen 0,9, Wolken 0,4 — so findet buscosun den besten Flugtag der nächsten sieben Tage, mit Konfidenz je Tag.') +
-        p('Die Vertikalstruktur der 3D-Bühne ist aus 10-m-Werten und Standardprofilen abgeleitet, nicht aus echten Druckflächen — das steht so in der Oberfläche. Für Höhen unter 150 m ist genau dieses Grenzschichtprofil aber der übliche Ansatz.') },
+        p('Auf der Wetterkarte liefert die <strong>Böenkarte</strong> (ICON-D2 vmax_10m, 2,2 km) die Spitzen in 10 m Höhe als Fläche bis 24 Stunden voraus, die Windkarte die Richtung; im Wind-Panel lässt sich auf die Druckflächen 850, 700 und 500 hPa umschalten. Das Regenradar sagt, ob und wann Regen am Standort ankommt.') +
+        p('Für die Höhe gibt es den <strong>Vertikalschnitt</strong>: Du ziehst auf der Karte eine Linie über dein Einsatzgebiet und siehst darüber Mittelwind und auf Wunsch Böen und Windscherung über dem Geländeprofil. Ein Klick in den Schnitt nennt für diesen Punkt die Höhe, den Abstand über Grund, Mittelwind, Böe, Richtung und Temperatur. Die Stufen liegen 150 m auseinander, gezählt ab Meereshöhe. Für die untersten 120 m über Grund ist das grob: Du liest die nächste Stufe ab, keine Rechnung für deine eingestellte Flughöhe.') +
+        p('In der <strong>Event-Planung</strong> hat der Anlass „Drohne" ein eigenes Profil: Idealtemperatur 2–30 °C, Wind mit vollem Gewicht 1,0, Regen 0,9, Wolken 0,4. So findet buscosun den besten Flugtag der nächsten sieben Tage, mit Konfidenz je Tag.') },
       { h2: 'So nutzt du buscosun als Drohnenpilot', html: ol([
-        `Öffne den ${a('/atmosphaere/querschnitt?ansicht=gonogo', 'Go/No-Go-Modus')} der Atmosphäre-Ansicht, setze den Marker auf den Startpunkt und trage Flughöhe (m AGL) und Böen-Grenzwert (km/h) aus deiner Betriebsanleitung ein.`,
-        `Lies die Zeitbahn: Grün ist unter, rot über dem Grenzwert; die Liste nennt jedes No-Go-Fenster mit Spitzenböe.`,
-        `Prüfe die ${a('/wetterkarte/boeen', 'Böenkarte')} für die Fläche um den Standort und die ${a('/wetterkarte/wind', 'Windkarte')} für die Richtung.`,
-        `Suche den besten Flugtag in der ${a('/eventplanung', 'Event-Planung')} mit dem Anlass Drohne; ${a('/methodik/event-bewertung/', 'so entsteht der Score')}.`,
-        `Vor dem Start das ${a('/regenradar', 'Regenradar')} und die ${a('/warnungen', 'amtlichen Warnungen')}; Hintergrund: ${a('/wissen/windgrenzwerte-arbeit-drohne/', 'Windgrenzwerte für Arbeit und Drohne')}.`,
+        `Suche den besten Flugtag in der ${a('/eventplanung/drohne', 'Event-Planung')} mit dem Anlass Drohne; ${a('/methodik/event-bewertung/', 'so entsteht der Score')}.`,
+        `Prüfe am Flugtag die ${a('/wetterkarte/boeen', 'Böenkarte')} für die Fläche um den Standort und die ${a('/wetterkarte/wind', 'Windkarte')} für die Richtung.`,
+        `Ziehe im ${a('/atmosphaere/querschnitt', 'Vertikalschnitt')} eine Linie über das Einsatzgebiet, schalte Böen zu und tippe in den Schnitt, um Wind und Böe nahe deiner Flughöhe abzulesen.`,
+        `Vergleiche den Wert selbst mit dem Grenzwert aus deiner Betriebsanleitung; ${a('/wissen/windgrenzwerte-arbeit-drohne/', 'Windgrenzwerte für Arbeit und Drohne')} erklärt den Hintergrund.`,
+        `Vor dem Start das ${a('/regenradar', 'Regenradar')} und die ${a('/warnungen', 'amtlichen Warnungen')}.`,
       ]) },
       { h2: 'Was buscosun hier nicht kann', html: ul([
-        'Keine Rechtsauskunft: Welche Windgrenze, Flughöhe oder Sichtbedingung für dein Gerät und deine Kategorie gilt, sagen Herstellerangabe, Betriebsanleitung und die Luftfahrtregeln — buscosun trägt nur deinen Wert.',
+        'Keine Go/No-Go-Zeitleiste und keine Prüfung gegen einen Grenzwert auf Flughöhe. buscosun liefert Modellwerte; die Entscheidung bleibt beim Fernpiloten.',
+        'Keine Rechtsauskunft: Welche Windgrenze, Flughöhe oder Sichtbedingung für dein Gerät und deine Kategorie gilt, sagen Herstellerangabe, Betriebsanleitung und die Luftfahrtregeln.',
         'Keine Luftraum- oder Geo-Zonen-Daten, keine Flugverbotszonen, kein Kontakt zu Flugsicherung oder Behörden.',
         'Keine Sichtweite: Keine Quelle der Punkt-Kette führt sie, und aus Bewölkung geschätzt wäre sie eine erfundene Zahl.',
-        'Das Potenzprofil ist eine Standardannahme (α = 0,2) und kennt keine Gebäude, Bäume oder Turbulenz im Lee; das 2,2-km-Gitter glättet lokale Düsen.',
+        'Der Schnitt kennt keine Gebäude, Bäume oder Turbulenz im Lee; das 2,2-km-Gitter glättet lokale Düsen, und die Stufen von 150 m lösen die bodennahe Schicht nur grob auf.',
         'Kein Konto, kein Export als Flugbuch, keine API. ' + NO_WARNING,
         NO_PUSH,
       ]) },
       { h2: 'Datenquellen und Länder', html:
-        p('Böen und Wind kommen für Deutschland, Österreich und die Schweiz aus ICON-D2 (DWD, CC BY 4.0), der Punktforecast fürs Go/No-Go mischt je Land Stationen (DWD, TAWES, SMN), MOSMIX und für AT/CH C-LAEF. Der Höhenwind für die Druckflächen stammt aus ICON-EU. Amtliche Warnungen erscheinen als Flächen nur für Deutschland und die Schweiz; für Österreich nennt das Panel GeoSphere Austria. Das Regenradar reicht in Deutschland 2 Stunden (RADOLAN-RV), in Österreich 3 Stunden (INCA), in der Schweiz nur bis jetzt.') },
+        p('Böen und Wind kommen für Deutschland, Österreich und die Schweiz aus ICON-D2 (DWD, CC BY 4.0), die Werte je Höhe im Vertikalschnitt aus dem Höhen-Cube mit den ICON-D2-Modellflächen. Die Event-Planung nutzt den Punktforecast, der je Land Stationen (DWD, TAWES, SMN), MOSMIX und für AT/CH C-LAEF mischt. Der Höhenwind der Druckflächen auf der Windkarte stammt aus ICON-EU. Amtliche Warnungen erscheinen als Flächen nur für Deutschland und die Schweiz; für Österreich nennt das Panel GeoSphere Austria. Das Regenradar reicht in Deutschland 2 Stunden (RADOLAN-RV), in Österreich 3 Stunden (INCA), in der Schweiz nur bis jetzt.') },
     ],
     faqs: [
-      { q: 'Welchen Windgrenzwert soll ich eintragen?', a: 'Den aus der Betriebsanleitung deines Geräts. buscosun setzt als Standard 40 km/h auf 120 m, kennt aber dein Modell nicht.' },
-      { q: 'Wie rechnet buscosun die Böe auf Flughöhe hoch?', a: 'Mit einem Potenzprofil v(z) = v10 · (z/10)^0,2 ab dem Bodenwert des Punktforecasts, sättigend oberhalb 1 500 m über Grund. Der Höhenfaktor steht im Panel.' },
+      { q: 'Welchen Windgrenzwert soll ich ansetzen?', a: 'Den aus der Betriebsanleitung deines Geräts. buscosun kennt dein Modell nicht und prüft keinen Grenzwert; du vergleichst den Modellwert selbst.' },
+      { q: 'Wie finde ich den Wind auf Flughöhe?', a: 'Im Vertikalschnitt: Linie ziehen, Böen zuschalten, in den Schnitt tippen. Die Höhenstufen liegen 150 m auseinander, für eine bestimmte Flughöhe ist das also eine grobe Orientierung und keine Messung.' },
       { q: 'Zeigt buscosun Flugverbotszonen?', a: 'Nein. Luftraum- und Geo-Zonen-Daten gibt es nicht; dafür sind die Luftfahrtbehörden und deren Karten zuständig.' },
-      { q: 'Kann buscosun mich warnen, wenn der Wind auffrischt?', a: 'Nur bei geöffneter App. Es gibt keinen Server und darum keine Push-Benachrichtigung.' },
+      { q: 'Kann buscosun mich warnen, wenn der Wind auffrischt?', a: 'Nein. Es prüft keinen Grenzwert, und ohne Server gibt es keine Push-Benachrichtigung.' },
     ],
-    related: ['/atmosphaere/querschnitt?ansicht=gonogo', '/funktionen/arbeitsfenster/', '/wetterkarte/boeen', '/eventplanung', '/wissen/windgrenzwerte-arbeit-drohne/', '/fuer/bau-und-kran/'],
+    related: ['/atmosphaere/querschnitt', '/eventplanung/drohne', '/wetterkarte/boeen', '/wissen/windgrenzwerte-arbeit-drohne/', '/wetterkarte/wind', '/fuer/bau-und-kran/'],
   },
   // ---------------------------------------------------------------------------
-  // Belege: wie Drohne (threed/goNoGo.ts, crossSection.ts), capAlerts.ts /
+  // Belege: wie Drohne (crossSection.ts, iconD2GustSource.ts), capAlerts.ts /
   // warnField.ts (Zitatregel), historyIndices.ts (frostfreie Periode, HDD-Basis
   // 15 °C), methodik.mjs (Radar-Horizonte, Lapse 6,5 K/km), docs/zielgruppen-
   // dach.md Teil C (kein B2B: Konto/Export/API/SLA).
@@ -307,40 +305,42 @@ export const AUDIENCES = [
   {
     slug: 'bau-und-kran',
     title: 'Für Bau und Kran',
-    h1: 'buscosun für Kranführer, Gerüstbau, Dachdecker und Höhenarbeit: Arbeitsfenster nach Böe auf Arbeitshöhe',
-    description: 'Böe auf Arbeitshöhe statt am Boden, Go/No-Go mit eigenem Grenzwert, Böenkarte, Regenfenster und Warnungen wörtlich — kein zertifiziertes Windmesssystem.',
-    answer: 'buscosun rechnet für Baustellen die prognostizierte Böe vom Boden auf die Arbeitshöhe hoch — Kranspitze, Gerüstlage, Dachfirst — und zeigt über den Prognosezeitraum eine Go/No-Go-Zeitbahn mit den Fenstern, in denen dein Grenzwert überschritten wird. Dazu Böenkarte bis 24 Stunden, Regenradar mit Ankunftszeit, höhenkorrigierte Temperatur für Frostfragen und amtliche Warnungen als wörtliches Zitat. Ein zertifiziertes Windmesssystem am Kran ersetzt es nicht.',
+    updated: '2026-11-01',
+    h1: 'buscosun für Kranführer, Gerüstbau, Dachdecker und Höhenarbeit: Böen, Regenfenster und Frost am Standort',
+    description: 'Böenkarte bis +24 h, Wind je Höhe im Vertikalschnitt, Regen mit Ankunftszeit, Warnungen wörtlich — keine Prüfung deines Grenzwerts, kein Windmesssystem.',
+    answer: 'buscosun zeigt für Baustellen die Böenspitzen in 10 m Höhe bis 24 Stunden voraus, den Wind je Höhe im Vertikalschnitt, das Regenradar mit Ankunftszeit, höhenkorrigierte Temperatur für Frostfragen und amtliche Warnungen als wörtliches Zitat. Eine Prüfung deines Grenzwerts auf Arbeitshöhe rechnet es nicht, und ein zertifiziertes Windmesssystem am Kran ersetzt es nicht.',
     jsonLdType: 'WebPage',
     sections: [
       { h2: 'Was du hier bekommst', html:
-        p('Das <strong>Go/No-Go-Arbeitsfenster</strong> der Atmosphäre-Ansicht nimmt die Böe des Punktforecasts und rechnet sie mit dem Grenzschicht-Potenzprofil <code>v(z) = v10 · (z/10)^0,2</code> auf die Arbeitshöhe über Grund hoch — der Standard steht auf 120 m und 40 km/h, beide Werte sind Eingabefelder und bleiben im Gerät gespeichert. Über den Prognosezeitraum wird im 15-Minuten-Raster geprüft, wann die Böe auf Arbeitshöhe den Grenzwert reißt; das Panel listet jedes No-Go-Fenster mit Uhrzeit und Spitzenböe und nennt den Höhenfaktor Boden → Arbeitshöhe. Ein Text-Export fasst Standort, Arbeitshöhe, Grenzwert, Böe jetzt, Spitze und Fenster zusammen.') +
+        p('Für den Wind in der Höhe gibt es den <strong>Vertikalschnitt</strong>: Du ziehst auf der Karte eine Linie über die Baustelle und siehst darüber Mittelwind und auf Wunsch Böen und Windscherung über dem Geländeprofil. Ein Klick in den Schnitt nennt für diesen Punkt die Höhe, den Abstand über Grund, Mittelwind, Böe, Richtung und Temperatur. Die Stufen liegen 150 m auseinander, gezählt ab Meereshöhe; für eine Kranspitze oder Gerüstlage ist das eine grobe Orientierung und keine Rechnung für deine Arbeitshöhe. Den Vergleich mit dem Grenzwert aus der Betriebsanleitung machst du selbst.') +
         p('Für die Tagesplanung zeigt die <strong>Böenkarte</strong> (ICON-D2 vmax_10m, 2,2 km) die Spitzen bis 24 Stunden voraus, der Zeit-Schieber läuft in Zehntelstunden und der Datenstand steht als Uhrzeit daneben. Das <strong>Regenradar</strong> nennt für Dachdecker und Maler die Ankunftszeit des Regens am Standort in Minuten und die Regenfenster der nächsten Stunden; die <strong>Temperaturkarte</strong> ist je Bildpunkt auf die Geländehöhe korrigiert (6,5 K/km), der Punktforecast zeigt Tmin für die Frostfrage beim Betonieren. Das Wetterarchiv liefert für Standorte die frostfreie Periode und Heizgradtage (Basis 15 °C) aus Stationsdaten.') +
         p('<strong>Amtliche Warnungen</strong> erscheinen als Flächen mit dem Warntext wörtlich im Popup — Überschrift, Beschreibung und Verhaltenshinweis unverändert, nie zusammengefasst. Das ist die Regel des Moduls: zitieren, nicht umformulieren.') },
       { h2: 'So nutzt du buscosun auf der Baustelle', html: ol([
-        `Öffne den ${a('/atmosphaere/querschnitt?ansicht=gonogo', 'Go/No-Go-Modus')}, setze den Marker auf die Baustelle und trage Arbeitshöhe und Böen-Grenzwert aus der Betriebsanleitung des Krans oder der Gerüstfreigabe ein.`,
-        `Lies die Zeitbahn und die No-Go-Fenster; exportiere den Text für die Tagesbesprechung.`,
         `Prüfe die ${a('/wetterkarte/boeen', 'Böenkarte')} für morgen und die ${a('/wetterkarte/temperatur', 'Temperaturkarte')} für Frost am Standort.`,
+        `Ziehe im ${a('/atmosphaere/querschnitt', 'Vertikalschnitt')} eine Linie über die Baustelle, schalte Böen zu und tippe in den Schnitt, um den Wind in der Höhe abzulesen.`,
+        `Vergleiche den Wert selbst mit dem Grenzwert aus der Betriebsanleitung des Krans oder der Gerüstfreigabe.`,
         `Vor Dach- und Fassadenarbeiten das ${a('/regenradar', 'Regenradar')} mit Ankunftszeit; die ${a('/warnungen', 'amtlichen Warnungen')} wörtlich.`,
-        `Hintergrund: ${a('/funktionen/arbeitsfenster/', 'Arbeitsfenster')}, ${a('/wissen/windgrenzwerte-arbeit-drohne/', 'Windgrenzwerte bei der Arbeit')} und ${a('/wissen/windboeen-sturm/', 'Böen und Sturm')}.`,
+        `Hintergrund: ${a('/wissen/windgrenzwerte-arbeit-drohne/', 'Windgrenzwerte bei der Arbeit')} und ${a('/wissen/windboeen-sturm/', 'Böen und Sturm')}.`,
       ]) },
       { h2: 'Was buscosun hier nicht kann', html: ul([
-        'Kein zertifiziertes Windmesssystem und keine Rechtsgrundlage: Der Grenzwert für Kran, Gerüst oder Hubarbeitsbühne kommt aus Herstellerangabe, Betriebsanleitung und Unfallverhütungsvorschrift. buscosun trägt nur deinen Wert und liefert eine Modellprognose.',
-        'Kein B2B-Produkt: kein Konto, keine API, kein Dokumentations-Export außer Text, keine Verfügbarkeitszusage (SLA).',
-        'Das Potenzprofil kennt keine Gebäude, Baugruben oder Nachbargerüste; lokale Düsen und Turbulenz im Lee fehlen, das 2,2-km-Gitter glättet die Stadt.',
+        'Keine Go/No-Go-Zeitleiste und keine Böe für eine gewählte Arbeitshöhe. Die Böenkarte gilt für 10 m über Grund, der Vertikalschnitt in Stufen von 150 m.',
+        'Kein zertifiziertes Windmesssystem und keine Rechtsgrundlage: Der Grenzwert für Kran, Gerüst oder Hubarbeitsbühne kommt aus Herstellerangabe, Betriebsanleitung und Unfallverhütungsvorschrift. buscosun liefert nur eine Modellprognose.',
+        'Kein B2B-Produkt: kein Konto, keine API, kein Dokumentations-Export, keine Verfügbarkeitszusage (SLA).',
+        'Die Modellwerte kennen keine Gebäude, Baugruben oder Nachbargerüste; lokale Düsen und Turbulenz im Lee fehlen, das 2,2-km-Gitter glättet die Stadt.',
         'Kein Glätte- oder Streumodell, keine Betonier-Empfehlung — nur Temperatur, Tmin und Niederschlagsart.',
         'Amtliche Warnungen als Flächen nur für Deutschland und die Schweiz; Österreich nur als Verweis auf GeoSphere. ' + NO_WARNING,
         NO_PUSH,
       ]) },
       { h2: 'Datenquellen und Länder', html:
-        p('Böen und Temperatur kommen für DE, AT und CH aus ICON-D2 (DWD, CC BY 4.0); der Punktforecast fürs Go/No-Go aus Stationen (DWD, TAWES, SMN), MOSMIX und C-LAEF (AT/CH). Das Regenradar reicht in Deutschland 2 Stunden (RADOLAN-RV), in Österreich 3 Stunden (INCA), in der Schweiz nur bis jetzt. Amtliche Warnungen: DWD (CAP) für Deutschland, MeteoSchweiz über MeteoAlarm für die Schweiz, mit getrennten Stufenskalen; für Österreich keine Fläche. Das Wetterarchiv nutzt Meteostat-Stationsdaten (DWD-Tageswerte als Standard) und ERA5 für modellgefüllte Anteile, die ausgewiesen werden.') },
+        p('Böen und Temperatur kommen für DE, AT und CH aus ICON-D2 (DWD, CC BY 4.0), die Werte je Höhe im Vertikalschnitt aus dem Höhen-Cube mit den ICON-D2-Modellflächen; der Punktforecast aus Stationen (DWD, TAWES, SMN), MOSMIX und C-LAEF (AT/CH). Das Regenradar reicht in Deutschland 2 Stunden (RADOLAN-RV), in Österreich 3 Stunden (INCA), in der Schweiz nur bis jetzt. Amtliche Warnungen: DWD (CAP) für Deutschland, MeteoSchweiz über MeteoAlarm für die Schweiz, mit getrennten Stufenskalen; für Österreich keine Fläche. Das Wetterarchiv nutzt Meteostat-Stationsdaten (DWD-Tageswerte als Standard) und ERA5 für modellgefüllte Anteile, die ausgewiesen werden.') },
     ],
     faqs: [
-      { q: 'Ab welcher Windstärke muss der Kran stoppen?', a: 'Das sagt die Betriebsanleitung des Krans und die zuständige Vorschrift, nicht buscosun. Du trägst den Grenzwert ein; buscosun zeigt, wann die Prognose ihn auf deiner Arbeitshöhe reißt.' },
-      { q: 'Wie kommt die Böe auf 50 m Höhe zustande?', a: 'Aus dem Bodenwert des Punktforecasts über ein Potenzprofil v(z) = v10 · (z/10)^0,2. Bei 20 km/h am Boden sind das auf 50 m rechnerisch etwa 28 km/h.' },
-      { q: 'Kann ich das Arbeitsfenster dokumentieren?', a: 'Als Text-Export aus dem Panel (Standort, Arbeitshöhe, Grenzwert, Böe jetzt, Spitze, No-Go-Fenster). Es gibt kein Konto und keine API.' },
+      { q: 'Ab welcher Windstärke muss der Kran stoppen?', a: 'Das sagt die Betriebsanleitung des Krans und die zuständige Vorschrift, nicht buscosun. Einen Grenzwert prüft buscosun nicht; du vergleichst den Modellwert selbst.' },
+      { q: 'Zeigt buscosun die Böe auf 50 m Höhe?', a: 'Nicht für eine eingestellte Höhe. Die Böenkarte gilt für 10 m über Grund; der Vertikalschnitt zeigt Böen in Stufen von 150 m. Als Faustformel für offenes Gelände dient ein Potenzprofil: Bei 20 km/h am Boden sind das auf 50 m rechnerisch etwa 28 km/h.' },
+      { q: 'Kann ich die Prognose dokumentieren?', a: 'Nicht als Export. Du kannst den Link zur Ansicht teilen. Es gibt kein Konto und keine API.' },
       { q: 'Warnt buscosun vor Sturm?', a: 'Nein. Es zeigt die amtlichen Warnungen von DWD und MeteoSchweiz wörtlich und die eigenen Böenprognosen; eine eigene Warnung gibt es nicht.' },
     ],
-    related: ['/atmosphaere/querschnitt?ansicht=gonogo', '/funktionen/arbeitsfenster/', '/wetterkarte/boeen', '/warnungen', '/regenradar', '/fuer/drohnenpiloten/'],
+    related: ['/atmosphaere/querschnitt', '/wetterkarte/boeen', '/wissen/windgrenzwerte-arbeit-drohne/', '/warnungen', '/regenradar', '/fuer/drohnenpiloten/'],
   },
   // ---------------------------------------------------------------------------
   // Belege: src/sources/meteoSwissHail.ts (POH 0…1, MESHS mm, 1. April – 30.
@@ -481,24 +481,25 @@ export const AUDIENCES = [
   // Belege: src/photo/sun.ts (BLUE −6…−4, GOLD −4…+6, HORIZON −0,833, ASTRO −18),
   // photoLight.ts (Lichtqualität aus Bedeckung + Schichtung, Nebel-/Abendrot-
   // Chance als Wahrscheinlichkeit), methodik.mjs (Fotografie-Profil 2–28 °C,
-  // Wolken 1,0 weich), atmosphere (Inversion/Nebelobergrenze), FEATURE-INVENTAR
+  // Wolken 1,0 weich), FEATURE-INVENTAR
   // A6 (Wolken 3-schichtig, nicht im Dock), A7 (Satellit), E7.
   // ---------------------------------------------------------------------------
   {
     slug: 'fotografen',
     title: 'Für Fotografen',
-    h1: 'buscosun für Landschafts- und Hobbyfotografen: goldene Stunde, Nebelmeer, Abendrot-Chance',
-    description: 'Goldene und blaue Stunde minutengenau für jedes Datum, Lichtqualität, Nebel- und Abendrot-Chance, Nebelobergrenze und Wolken in drei Stockwerken.',
-    answer: 'buscosun rechnet Fotografen Sonnenauf- und -untergang, blaue und goldene Stunde rein astronomisch für jedes Datum und ergänzt im Vorhersagehorizont die Lichtqualität (weich, hart, dramatisch) aus Bedeckung und Schichtung sowie eine Nebel-Chance am Morgen und eine Abendrot-Chance am Abend — jede Lichtaussage mit Wahrscheinlichkeit, keine Garantie. Für Nebelmeer-Bilder nennt der Vertikalschnitt Inversionshöhe und Nebelobergrenze.',
+    updated: '2026-11-01',
+    h1: 'buscosun für Landschafts- und Hobbyfotografen: goldene Stunde, Nebel-Chance, Abendrot-Chance',
+    description: 'Goldene und blaue Stunde minutengenau für jedes Datum, Lichtqualität, Nebel- und Abendrot-Chance sowie Wolken in drei Stockwerken.',
+    answer: 'buscosun rechnet Fotografen Sonnenauf- und -untergang, blaue und goldene Stunde rein astronomisch für jedes Datum und ergänzt im Vorhersagehorizont die Lichtqualität (weich, hart, dramatisch) aus Bedeckung und Schichtung sowie eine Nebel-Chance am Morgen und eine Abendrot-Chance am Abend — jede Lichtaussage mit Wahrscheinlichkeit, keine Garantie. Ob ein Standort über dem Nebel liegt, sagt buscosun nicht.',
     jsonLdType: 'WebPage',
     sections: [
       { h2: 'Was du hier bekommst', html:
         p('Das <strong>Foto-Licht</strong> im Event-Anlass Fotografie berechnet Sonnenstand und Lichtfenster nach dem NOAA-Verfahren, etwa eine Minute genau: blaue Stunde bei Sonnenhöhe −6° bis −4°, goldene Stunde −4° bis +6°, Auf- und Untergang bei −0,833° (Standard-Refraktion), astronomische Dunkelheit unter −18°. Diese Zeiten sind reine Astronomie und gelten für jedes Datum, auch Monate voraus — für die Planung einer Reise oder eines Shootings ohne Wettervorhersage. Das Anlass-Profil Fotografie gewichtet Wolken mit 1,0 („weich"), Regen 0,7, Wind 0,25, Temperatur 0,15 bei Idealtemperatur 2–28 °C.') +
-        p('Im Vorhersagehorizont kommen Heuristiken aus dem Punktforecast dazu: die <strong>Lichtqualität</strong> — weiches Porträtlicht, reizvolle Wolkenstimmung oder flau und hart — aus Gesamtbedeckung und der Verteilung auf tiefe, mittlere und hohe Wolken; die <strong>Nebel-Chance</strong> am Morgen und die <strong>Abendrot-Chance</strong> am Abend aus Bewölkung, Feuchte und Wind. Jede Aussage trägt eine Wahrscheinlichkeit, keine Garantie — Licht ist nicht garantierbar, und der Code sagt das. Für Nebelmeere zeigt der <strong>Vertikalschnitt</strong> der Atmosphäre-Ansicht Inversionshöhe, Nebelobergrenze und das Aufstiegs-Delta („über dem Nebel Sonne?").') +
+        p('Im Vorhersagehorizont kommen Heuristiken aus dem Punktforecast dazu: die <strong>Lichtqualität</strong> — weiches Porträtlicht, reizvolle Wolkenstimmung oder flau und hart — aus Gesamtbedeckung und der Verteilung auf tiefe, mittlere und hohe Wolken; die <strong>Nebel-Chance</strong> am Morgen und die <strong>Abendrot-Chance</strong> am Abend aus Bewölkung, Feuchte und Wind. Jede Aussage trägt eine Wahrscheinlichkeit, keine Garantie — Licht ist nicht garantierbar, und der Code sagt das.') +
         p('Auf der Wetterkarte liegen die <strong>Wolken in drei Stockwerken</strong> (tief, mittel, hoch aus ICON-D2) übereinander, das Meteosat-Satellitenbild zeigt die reale Bewölkung, und die höhenkorrigierte Temperaturkarte hilft bei Raureif- und Frostfragen im Tal. Die Event-Fläche mit Gelände-Bühne nennt für einen Standort die Stunde, in der die Sonne hinter dem Grat verschwindet.') },
       { h2: 'So nutzt du buscosun als Fotograf', html: ol([
         `Öffne die ${a('/eventplanung', 'Event-Planung')}, wähle den Anlass Fotografie und den Ort — das Foto-Licht zeigt die Lichtfenster je Tag, ${a('/wissen/goldene-blaue-stunde/', 'so entstehen sie')}.`,
-        `Für Nebelmeer-Bilder im Herbst den ${a('/atmosphaere/querschnitt', 'Vertikalschnitt')} mit Inversion und Nebelobergrenze; Hintergrund ${a('/wissen/nebel-hochnebel-nebelobergrenze/', 'Nebel, Hochnebel, Nebelobergrenze')}.`,
+        `Für Nebelbilder im Herbst die Nebel-Chance am Morgen; Hintergrund ${a('/wissen/nebel-hochnebel-nebelobergrenze/', 'Nebel, Hochnebel, Nebelobergrenze')}.`,
         `Prüfe die ${a('/wetterkarte/bewoelkung', 'Bewölkungskarte')} in drei Stockwerken und das ${a('/wetterkarte/satellit', 'Satellitenbild')} für die reale Lage.`,
         `Für Standorte im Gebirge die ${a('/wetterkarte/temperatur', 'Temperaturkarte')} (höhenkorrigiert) und die Gelände-Bühne der Event-Fläche mit Sonne hinter dem Grat.`,
         `Die Rechenregeln stehen in ${a('/methodik/event-bewertung/', 'Event-Bewertung')} (Abschnitt Foto-Licht und Astro-Nacht).`,
@@ -508,18 +509,18 @@ export const AUDIENCES = [
         'Lichtqualität, Nebel- und Abendrot-Chance sind Heuristiken aus Bedeckung, Schichtung, Feuchte und Wind — Wahrscheinlichkeiten, keine Garantien, und nur innerhalb des Vorhersagehorizonts (sieben Tage, AT/CH etwa 60 Stunden).',
         'Keine Polarlicht- oder Meteorstrom-Prognose, keine Milchstraßen-Sichtbarkeit (siehe die Seite für Astronomie).',
         'Keine Webcams, keine Standortdatenbank, kein Fotospot-Verzeichnis, keine Sonnenrichtungs-Überlagerung auf der Karte.',
-        'Die Nebelobergrenze kommt aus dem ICON-EU-Profil (rund 7 km); dünne Schichten unter 200 m sind nicht sicher aufgelöst.',
+        'Keine Nebelobergrenze und keine Inversionshöhe: Ob ein Standort über dem Nebel liegt, musst du aus Webcams und Erfahrung ableiten.',
       ]) },
       { h2: 'Datenquellen und Länder', html:
-        p('Die Lichtzeiten sind Astronomie ohne Länderunterschied. Lichtqualität und Chancen laufen auf dem Punktforecast: Stationen (DWD, TAWES, SMN), MOSMIX und für Österreich und die Schweiz C-LAEF (bis 60 Stunden) — dort ist der Horizont für Wetteraussagen kürzer. Die Wolkenstockwerke kommen aus ICON-D2 (DWD, 2,2 km, DACH), das Satellitenbild vom DWD-Kartendienst (EUMETSAT Meteosat, 3-Stunden-Takt). Die Inversion rechnet auf ICON-EU für alle drei Länder gleich.') },
+        p('Die Lichtzeiten sind Astronomie ohne Länderunterschied. Lichtqualität und Chancen laufen auf dem Punktforecast: Stationen (DWD, TAWES, SMN), MOSMIX und für Österreich und die Schweiz C-LAEF (bis 60 Stunden) — dort ist der Horizont für Wetteraussagen kürzer. Die Wolkenstockwerke kommen aus ICON-D2 (DWD, 2,2 km, DACH), das Satellitenbild vom DWD-Kartendienst (EUMETSAT Meteosat, 3-Stunden-Takt).') },
     ],
     faqs: [
       { q: 'Kann ich die goldene Stunde für einen Termin in drei Monaten sehen?', a: 'Ja. Die Lichtfenster sind reine Astronomie (NOAA-Verfahren, etwa minutengenau) und gelten für jedes Datum; eine Wetterwahrscheinlichkeit gibt es erst im Vorhersagehorizont.' },
       { q: 'Wie zuverlässig ist die Abendrot-Chance?', a: 'Sie ist eine Heuristik aus Bewölkung, Schichtung, Feuchte und Wind und wird als Wahrscheinlichkeit gezeigt. Licht ist nicht garantierbar; der Code sagt das ausdrücklich.' },
-      { q: 'Sagt buscosun, ob ich über dem Nebel stehe?', a: 'Der Vertikalschnitt nennt Inversionshöhe und Nebelobergrenze aus dem ICON-EU-Profil und das Aufstiegs-Delta. Dünne Schichten unter 200 m sind nicht sicher aufgelöst.' },
+      { q: 'Sagt buscosun, ob ich über dem Nebel stehe?', a: 'Nein. Eine Nebelobergrenze oder Inversionshöhe zeigt buscosun nicht. Die Nebel-Chance am Morgen ist eine Heuristik für den Punkt; sie sagt nichts darüber, wo die Nebeldecke endet.' },
       { q: 'Wo liegt die blaue Stunde?', a: 'Bei Sonnenhöhe −6° bis −4°, morgens vor und abends nach der goldenen Stunde (−4° bis +6°).' },
     ],
-    related: ['/eventplanung', '/wissen/goldene-blaue-stunde/', '/wissen/nebel-hochnebel-nebelobergrenze/', '/wetterkarte/bewoelkung', '/atmosphaere/querschnitt', '/fuer/astronomie/'],
+    related: ['/eventplanung', '/wissen/goldene-blaue-stunde/', '/wissen/nebel-hochnebel-nebelobergrenze/', '/wetterkarte/bewoelkung', '/wetterkarte/satellit', '/fuer/astronomie/'],
   },
   // ---------------------------------------------------------------------------
   // Belege: src/astro/astroNight.ts (Nacht 21–06 Uhr, Magnus-Taupunkt, Wolken-
@@ -544,7 +545,7 @@ export const AUDIENCES = [
         `Öffne die ${a('/eventplanung', 'Event-Planung')}, wähle den Anlass Sterne und deinen Beobachtungsort — die Astro-Nacht ordnet die Nächte der Woche.`,
         `Lies je Nacht Mondphase, Mondhöhe, Wolkenstockwerke, Tau-Risiko und Dunkelheitsfenster; Bortle-Schätzung und nächste Stadt stehen daneben — ${a('/wissen/lichtverschmutzung-bortle/', 'was die Klassen bedeuten')}.`,
         `Prüfe am Abend die ${a('/wetterkarte/bewoelkung', 'Bewölkungskarte')} (hoch, mittel, tief) und das ${a('/wetterkarte/satellit', 'Satellitenbild')}.`,
-        `Bei Standorten im Gebirge: ${a('/wetterkarte/temperatur', 'Temperaturkarte')} für die Nachtkälte und die ${a('/atmosphaere/querschnitt', 'Inversion')} — über dem Nebel ist der Himmel oft klar.`,
+        `Bei Standorten im Gebirge: ${a('/wetterkarte/temperatur', 'Temperaturkarte')} für die Nachtkälte. Ob ein Standort über dem Nebel liegt, sagt buscosun nicht.`,
         `Der Rechenweg steht in ${a('/methodik/event-bewertung/', 'Event-Bewertung')} (Abschnitt Foto-Licht und Astro-Nacht).`,
       ]) },
       { h2: 'Was buscosun hier nicht kann', html: ul([
@@ -612,48 +613,48 @@ export const AUDIENCES = [
     related: ['/waldbrand/gefahrenindex', '/waldbrand/aktive-braende', '/methodik/brandradar-detektion-und-brandnarben/', '/wetterkarte/zellbahnen', '/warnungen', '/funktionen/waldbrandgefahr/'],
   },
   // ---------------------------------------------------------------------------
-  // Belege: src/atmosphere/foehn.ts (drei Stufen, Kammband 1 200–3 500 m AGL,
-  // 30/45 km/h, Südsektor 120–240°, T−Td ≥ 6 K, PRESSURE_GATE_NOTE, „keine
-  // amtliche Föhn-Warnung"), src/atmosphere/isentropes.ts (Isentropen-Schnitt),
-  // src/pointForecast/foehnDetector (Oberflächen-Föhn), FEATURE-INVENTAR G4.
-  // Keine Gesundheitsaussagen (Regel).
+  // Belege: src/pointForecast/foehnDetector.ts (Südsektor 135–225°, ≳ 5 m/s, Böigkeit, trockene Luft; nur Alpenraum, nördlich
+  // von 49,2° N Score 0), src/route/weatherAggregate.ts + WeatherSummary.tsx (Föhn entlang der Tour),
+  // AtmosphereDeck.tsx. Föhn-Ansicht mit Index und Isentropen: zurückgezogen 01.11.2026. Keine Gesundheitsaussagen (Regel).
   // ---------------------------------------------------------------------------
   {
     slug: 'wetterfuehlige',
     title: 'Für Wetterfühlige',
-    h1: 'buscosun für Wetterfühlige und Föhn-Geplagte: Ist heute Föhn — und wie lange noch?',
-    description: 'Föhn-Index in drei Stufen aus dem ICON-EU-Höhenprofil, Isentropen-Schnitt und Föhn-Erklärungen für Innsbruck, Chur oder Garmisch — ohne Gesundheitsaussagen.',
-    answer: 'buscosun zeigt Föhn-Geplagten, ob über ihrem Ort eine Föhnlage besteht: Der Föhn-Index wertet den kammnahen Südwind zwischen 1 200 und 3 500 m über Grund und die Abtrocknung der Bodenschicht zu „kein", „tendenziell" oder „aktiv" aus, der Isentropen-Schnitt zeigt das Absinken der Luft, und die Vorhersage nennt, wie lange die Lage anhält. Was der Föhn mit dem Körper macht, sagt buscosun nicht — es gibt kein Biowetter und keine Gesundheitsaussage.',
+    updated: '2026-11-01',
+    h1: 'buscosun für Wetterfühlige und Föhn-Geplagte: Wind, Temperatur und Föhn erklärt, ohne Gesundheitsaussagen',
+    description: 'Wind in der Höhe, Böen, Temperatur und Feuchte je Stunde, dazu Föhn verständlich erklärt — kein Föhn-Index, kein Biowetter, keine Gesundheitsaussagen.',
+    answer: 'buscosun zeigt Wetterfühligen die Größen, an denen sich eine Föhnlage ablesen lässt: Wind in der Höhe auf der Windkarte und im Vertikalschnitt, Böen im Tal, Temperatur und Feuchte je Stunde. Einen Föhn-Index oder eine Aussage „heute Föhn" für deinen Ort gibt es nicht; nur die Tourenplanung kennzeichnet Föhnverdacht entlang einer Strecke. Was das Wetter mit dem Körper macht, sagt buscosun nicht: Es gibt kein Biowetter und keine Gesundheitsaussage.',
     jsonLdType: 'WebPage',
     sections: [
       { h2: 'Was du hier bekommst', html:
-        p('Der <strong>Föhn-Index</strong> der Linse „Föhn, Berg &amp; Weg" arbeitet direkt auf dem ICON-EU-Vertikalprofil über deinem Ort: Er sucht im kammnahen Band zwischen 1 200 und 3 500 m über Grund den stärksten Wind, prüft, ob er aus dem Südsektor (120–240°) kommt, und ob er die Schwelle für „tendenziell" (30 km/h) oder „aktiv" (45 km/h) erreicht; dazu kommt die Abtrocknung der Bodenschicht (Taupunktspreizung mindestens 6 K) als Zeichen, dass die absinkende Luft unten angekommen ist. Die Treiber stehen als Klartext neben dem Ergebnis („südlicher Höhenwind", „Kammwind 52 km/h").') +
-        p('Was der Index nicht hat, benennt er selbst: Die klassische Luv-Lee-Druckdifferenz (etwa Lugano–Zürich oder Innsbruck–Bozen) ist über keine Pipeline im Projekt verfügbar, weil es keinen Stationsdruck-Ingest gibt. Der Index ist ein Richtwert aus Höhenwind und Bodentrockenheit, keine amtliche Föhn-Warnung, mit Fokus auf Alpen-Südföhn. Der <strong>Isentropen-Schnitt</strong> zeichnet Flächen gleicher potenzieller Temperatur über dem Gelände — wo sie über dem Alpenhauptkamm absinken, sieht man den Föhn im Querschnitt. Auf der Tourenplanung erscheint ein Föhn-Banner mit Kilometerspanne, wenn Streckenabschnitte Föhn-Indikatoren melden.') +
-        p('Die <strong>Windkarte</strong> mit Umschaltung auf 850 und 700 hPa zeigt den Südstau über den Alpen großräumig, die <strong>Böenkarte</strong> bis +24 h die Föhnböen im Tal, und der Punktforecast nennt Temperatur, Feuchte und Wind stündlich — so lässt sich abschätzen, wann die Lage kippt. Die Explainer erklären Föhn und Inversion allgemeinverständlich.') },
+        p('Die <strong>Windkarte</strong> mit Umschaltung auf 850 und 700 hPa zeigt großräumig, ob Südwind gegen die Alpen weht, die <strong>Böenkarte</strong> bis +24 h die Böen im Tal, und der Punktforecast nennt Temperatur, Feuchte und Wind stündlich. Steigt die Temperatur bei fallender Feuchte und auffrischendem Südwind, passt das zum typischen Bild einer Föhnlage. Diese Einschätzung triffst du selbst; buscosun gibt für einen Ort kein Urteil dazu aus.') +
+        p('Der <strong>Vertikalschnitt</strong> der Atmosphäre-Ansicht zeigt den Wind über dem Gelände entlang einer Linie, die du auf der Karte ziehst. Läuft sie quer über den Alpenkamm, siehst du, wie stark es in der Höhe weht und wie der Wind sich mit der Zeit ändert. Das Absinken der Luft im Lee zeigt er nicht, und eine Föhnstärke rechnet er nicht aus.') +
+        p('In der <strong>Tourenplanung</strong> erscheint ein Föhn-Hinweis mit Kilometerspanne, wenn Streckenabschnitte Föhnverdacht melden. Das ist eine transparente Heuristik aus Windrichtung (Südsektor), Windstärke, Böigkeit und trockener Luft, nur für den Alpenraum, und keine amtliche Aussage. Die Wissensseiten erklären <a href="/wissen/foehn/">Föhn</a> und <a href="/wissen/temperaturinversion/">Inversion</a> allgemeinverständlich.') },
       { h2: 'So nutzt du buscosun bei Wetterfühligkeit', html: ol([
-        `Öffne ${a('/atmosphaere/berg-und-weg', 'Föhn, Berg &amp; Weg')} und setze den Marker auf deinen Ort — etwa ${a('/wetter/innsbruck/', 'Innsbruck')}, ${a('/wetter/chur/', 'Chur')}, ${a('/wetter/garmisch-partenkirchen/', 'Garmisch')} oder ${a('/wetter/muenchen/', 'München')}.`,
-        `Lies den Föhn-Index (kein, tendenziell, aktiv) und seine Treiber; der Isentropen-Schnitt zeigt das Absinken über dem Kamm.`,
         `Prüfe auf der ${a('/wetterkarte/wind', 'Windkarte')} in 850 hPa den Südwind über den Alpen und auf der ${a('/wetterkarte/boeen', 'Böenkarte')} die Böen im Tal.`,
-        `Fahre im Zeit-Schieber voraus, um zu sehen, wann der Höhenwind dreht — dann endet die Lage meist.`,
+        `Lies für deinen Ort — etwa ${a('/wetter/innsbruck/', 'Innsbruck')}, ${a('/wetter/chur/', 'Chur')}, ${a('/wetter/garmisch-partenkirchen/', 'Garmisch')} oder ${a('/wetter/muenchen/', 'München')} — Temperatur, Feuchte und Wind je Stunde in der ${a('/vorhersage', 'Vorhersage')}.`,
+        `Ziehe im ${a('/atmosphaere/querschnitt', 'Vertikalschnitt')} eine Linie quer über den Kamm, um den Wind in der Höhe zu sehen.`,
+        `Fahre im Zeit-Schieber voraus, um zu sehen, wann der Höhenwind dreht.`,
         `Hintergrund: ${a('/wissen/foehn/', 'Föhn')}, ${a('/wissen/temperaturinversion/', 'Temperaturinversion')} und ${a('/wissen/biowetter/', 'warum buscosun kein Biowetter zeigt')}.`,
       ]) },
       { h2: 'Was buscosun hier nicht kann', html: ul([
         'Kein Biowetter, kein Gesundheitsindex, keine Aussage über Kopfschmerz, Kreislauf oder Schlaf. buscosun zeigt die Wetterlage; wie sie sich auf dich auswirkt, weißt du selbst — oder fragst medizinischen Rat.',
-        'Keine Luv-Lee-Druckdifferenz: Der Index kennt nur Höhenwind und Bodentrockenheit aus ICON-EU. Nordföhn und Föhn außerhalb der Alpen sind nicht abgebildet.',
-        'ICON-EU hat rund 7 km Gitter; Föhntäler wie das Wipptal oder das Rheintal sind geglättet, der Beginn des Durchbruchs im Tal kann Stunden abweichen.',
+        'Kein Föhn-Index und keine Aussage „heute Föhn" für einen Ort, kein Isentropen-Schnitt und keine Dauerprognose der Föhnlage. Der Föhnverdacht der Tourenplanung gilt nur entlang einer hochgeladenen Strecke.',
+        'Keine Luv-Lee-Druckdifferenz als Anzeige. Nordföhn und Föhn außerhalb der Alpen sind nicht abgebildet.',
+        'Die Modelle glätten Föhntäler wie das Wipptal oder das Rheintal; der Beginn des Durchbruchs im Tal kann Stunden abweichen.',
         'Keine amtliche Föhn-Warnung und keine Föhn-Statistik („wie oft im Jahr"); das Archiv kennt Wind, aber keinen Föhn-Marker.',
         NO_PUSH,
       ]) },
       { h2: 'Datenquellen und Länder', html:
-        p('Der Föhn-Index rechnet für Deutschland, Österreich und die Schweiz gleich auf ICON-EU (DWD, rund 7 km); der Bodenwind kommt aus ICON-D2 (2,2 km). Die Oberflächen-Föhnerkennung im Punktforecast nutzt die nächsten Messstationen (DWD, TAWES, SMN). Der Fokus liegt auf Alpen-Südföhn — also Nordtirol, Vorarlberg, Ostschweiz, Bayerisches Oberland; für die Alpensüdseite (Nordföhn im Tessin) gibt es keinen eigenen Index. Amtliche Warnungen, etwa Sturmwarnungen bei Föhnsturm, erscheinen als Flächen nur für Deutschland und die Schweiz.') },
+        p('Wind und Böen kommen für Deutschland, Österreich und die Schweiz aus ICON-D2 (DWD, 2,2 km), die Druckflächen der Windkarte aus ICON-EU (rund 7 km), die Werte je Höhe im Vertikalschnitt aus dem Höhen-Cube mit den ICON-D2-Modellflächen. Der Punktforecast nutzt die nächsten Messstationen (DWD, TAWES, SMN). Der Föhnverdacht der Tourenplanung ist auf Alpen-Südföhn ausgelegt, also Nordtirol, Vorarlberg, Ostschweiz und das Bayerische Oberland. Amtliche Warnungen, etwa Sturmwarnungen bei Föhnsturm, erscheinen als Flächen nur für Deutschland und die Schweiz.') },
     ],
     faqs: [
-      { q: 'Sagt buscosun, ob ich heute Föhn-Kopfschmerzen bekomme?', a: 'Nein. buscosun macht keine Gesundheitsaussagen und hat kein Biowetter. Es zeigt nur, ob eine Föhnlage besteht und wie lange sie voraussichtlich anhält.' },
-      { q: 'Woran erkennt buscosun Föhn?', a: 'Am kammnahen Wind zwischen 1 200 und 3 500 m über Grund: Südsektor 120–240°, ab 30 km/h „tendenziell", ab 45 km/h „aktiv", plus eine abgetrocknete Bodenschicht (Taupunktspreizung ab 6 K).' },
-      { q: 'Warum fehlt die Druckdifferenz?', a: 'Weil es im Projekt keine Stationsdruck-Pipeline gibt. Der Index sagt das in der Oberfläche, statt eine Zahl zu erfinden.' },
-      { q: 'Gilt der Index auch für Nordföhn im Tessin?', a: 'Nein. Der Index ist auf Alpen-Südföhn ausgelegt (Südsektor); Nordföhn auf der Alpensüdseite bildet er nicht ab.' },
+      { q: 'Sagt buscosun, ob ich heute Föhn-Kopfschmerzen bekomme?', a: 'Nein. buscosun macht keine Gesundheitsaussagen und hat kein Biowetter.' },
+      { q: 'Zeigt buscosun, ob heute Föhn ist?', a: 'Nicht als Urteil für einen Ort. Du siehst Wind in der Höhe, Böen, Temperatur und Feuchte und kannst daraus selbst schließen. Nur die Tourenplanung kennzeichnet Föhnverdacht, und zwar entlang einer hochgeladenen Strecke.' },
+      { q: 'Woran erkennt die Tourenplanung Föhnverdacht?', a: 'An einer Heuristik aus Wind aus dem Südsektor, kräftigem und böigem Wind und trockener Luft, nur im Alpenraum. Sie ist ein Hinweis, keine amtliche Aussage.' },
+      { q: 'Gilt das auch für Nordföhn im Tessin?', a: 'Nein. Die Heuristik ist auf Alpen-Südföhn ausgelegt; Nordföhn auf der Alpensüdseite bildet sie nicht ab.' },
     ],
-    related: ['/atmosphaere/berg-und-weg', '/wissen/foehn/', '/wissen/temperaturinversion/', '/wissen/biowetter/', '/wetterkarte/wind', '/wetter/innsbruck/'],
+    related: ['/wissen/foehn/', '/wissen/temperaturinversion/', '/wissen/biowetter/', '/atmosphaere/querschnitt', '/wetterkarte/wind', '/wetter/innsbruck/'],
   },
   // ---------------------------------------------------------------------------
   // Belege: src/sources/dwdPollen.ts (8 Arten Hasel, Erle, Esche, Birke, Gräser,
@@ -719,13 +720,13 @@ export const AUDIENCES = [
       { h2: 'Was du hier bekommst', html:
         p('Die <strong>Schneekarte</strong> zeigt die Schneemenge aus ICON-D2 (DWD, 2,2 km) in zwei Modi: „Schneedecke" ist die aktuelle Schneehöhe des Modells (Feld h_snow, in cm), „Neuschnee" die seit Laufbeginn akkumulierte Schneefallsumme (snow_gsp plus snow_con), aus dem Wasseräquivalent mit der Modell-Schneedichte in Zentimeter umgerechnet — die Summe wächst mit dem Horizont, Stunde 0 ist strukturell null. Beides sind Modellwerte, keine Messung an einer Station.') +
         p('Die <strong>Schneefallgrenze</strong> ist eine Linie im Gelände: Aus dem je Bildpunkt höhenkorrigierten Temperaturfeld (Lapse-Rate 6,5 K/km gegen das 30-m-Geländemodell) wird die Null-Linie von T_korr − T50 gezogen, wobei T50 ein physikalischer Anker um +1 °C plus eine gelernte Ortskorrektur ist. Im <strong>Regenradar</strong> leitet buscosun die Niederschlagsart (Regen, Schnee, Graupel, Hagel) aus Geländehöhe gegen die regionale Schneefallgrenze mit weichem Übergangsband ab — ausdrücklich eine Heuristik, denn Radar misst Reflektivität, keine Phase — und trennt im Alpenraum Tal und Grat: Der Gratwert ist eine Hochrechnung über die Lapse-Rate und so gekennzeichnet. Der Layer „Radarsicht" zeigt, wo Gebirge das Radar abschattet.') +
-        p('Die <strong>Temperaturkarte</strong> zeigt die Kälte am Grat statt der Modellglättung, die Böenkarte die Verfrachtung bis +24 h, der Vertikalschnitt Inversion und Sonne über dem Nebel. Ab 1 000 m Ortshöhe verlinkt der Punktforecast den amtlichen <strong>Lawinenlagebericht</strong> (SLF, lawinen.report, Lawinenwarndienst Bayern, EAWS). Das Wetterarchiv nennt Frost- und Eistage je Jahr.') },
+        p('Die <strong>Temperaturkarte</strong> zeigt die Kälte am Grat statt der Modellglättung, die Böenkarte die Verfrachtung bis +24 h, der Vertikalschnitt den Wind über dem Grat. Ab 1 000 m Ortshöhe verlinkt der Punktforecast den amtlichen <strong>Lawinenlagebericht</strong> (SLF, lawinen.report, Lawinenwarndienst Bayern, EAWS). Das Wetterarchiv nennt Frost- und Eistage je Jahr.') },
       { h2: 'So nutzt du buscosun im Wintersport', html: ol([
         `Öffne die ${a('/wetterkarte/schnee', 'Schneekarte')}, wähle Schneedecke oder Neuschnee und fahre den Zeit-Schieber durch die nächsten Stunden.`,
         `Lege die ${a('/wetterkarte/schneegrenze', 'Schneefallgrenze')} darüber und prüfe die ${a('/wetterkarte/temperatur', 'Temperaturkarte')} am Grat — ${a('/wissen/schneefallgrenze/', 'so entsteht die Linie')}.`,
         `Vor der Abfahrt ins Tal das ${a('/regenradar', 'Regenradar')}: Regen oder Schnee, Tal und Grat getrennt, plus ${a('/wissen/regenradar-radolan-inca-rzc/', 'was die drei Landesradare unterscheiden')}.`,
         `Für Skitouren im Punktforecast der Karte den Lawinen-Link (ab 1 000 m) öffnen und die ${a('/wetterkarte/boeen', 'Böenkarte')} für Verfrachtung prüfen; Tourdatei in die ${a('/tourenplanung', 'Tourenplanung')} laden (Bewegungsart Bergwandern).`,
-        `Nebelmeer oder Sonne oben? ${a('/atmosphaere/querschnitt', 'Vertikalschnitt')} mit Inversion — Hintergrund ${a('/wissen/temperaturinversion/', 'Temperaturinversion')}.`,
+        `Wind am Grat? ${a('/atmosphaere/querschnitt', 'Vertikalschnitt')} mit einer Linie quer über den Kamm. Zum Nebelmeer: ${a('/wissen/temperaturinversion/', 'Temperaturinversion')}, eine eigene Anzeige dafür gibt es nicht.`,
       ]) },
       { h2: 'Was buscosun hier nicht kann', html: ul([
         'Kein Lawinenlagebericht: buscosun modelliert keine Lawinengefahr und verlinkt ab 1 000 m die amtliche Quelle; die Bulletins sind saisonal.',

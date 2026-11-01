@@ -310,6 +310,39 @@
   from   = "/atmosphere"
   to     = "/atmosphaere"
   status = 301
+# Retired Atmosphäre views (Föhn, Thermik, Go/No-Go; Jan 01.11.2026): the deck shows the section only. Old links and
+# share links land on the section and keep their place. The exact rule must stand BEFORE its splat rule, because
+# `/x/*` also covers `/x`, which would give a target with an end slash. All of them must stand BEFORE `/atmosphaere/*`.
+# Never add a `from` with an end slash: Netlify matches `from` regardless of it, so `/x` already covers `/x/`.
+# Netlify passes the query string on by itself at 301. Client side: `aliasTarget` in src/router/routes.ts.
+[[redirects]]
+  from   = "/atmosphaere/fliegen"
+  to     = "/atmosphaere/querschnitt"
+  status = 301
+[[redirects]]
+  from   = "/atmosphaere/fliegen/*"
+  to     = "/atmosphaere/querschnitt/:splat"
+  status = 301
+[[redirects]]
+  from   = "/atmosphaere/berg-und-weg"
+  to     = "/atmosphaere/querschnitt"
+  status = 301
+[[redirects]]
+  from   = "/atmosphaere/berg-und-weg/*"
+  to     = "/atmosphaere/querschnitt/:splat"
+  status = 301
+[[redirects]]
+  from   = "/atmosphaere/arbeitsfenster"
+  to     = "/atmosphaere/querschnitt"
+  status = 301
+[[redirects]]
+  from   = "/atmosphaere/arbeitsfenster/*"
+  to     = "/atmosphaere/querschnitt/:splat"
+  status = 301
+[[redirects]]
+  from   = "/funktionen/arbeitsfenster"
+  to     = "/atmosphaere/querschnitt"
+  status = 301
 [[redirects]]
   from   = "/3d-globus"
   to     = "/globus"
@@ -547,20 +580,8 @@
 # (`dist/atmosphaere--<slug>.html`, aus `indexableSubRoutes()` in src/router/routes.ts) —
 # eigener Title/Canonical/H1/Lead statt der Eltern-Shell. Muss VOR `/atmosphaere/*` stehen.
 [[redirects]]
-  from   = "/atmosphaere/fliegen"
-  to     = "/atmosphaere--fliegen.html"
-  status = 200
-[[redirects]]
-  from   = "/atmosphaere/berg-und-weg"
-  to     = "/atmosphaere--berg-und-weg.html"
-  status = 200
-[[redirects]]
   from   = "/atmosphaere/querschnitt"
   to     = "/atmosphaere--querschnitt.html"
-  status = 200
-[[redirects]]
-  from   = "/atmosphaere/arbeitsfenster"
-  to     = "/atmosphaere--arbeitsfenster.html"
   status = 200
 [[redirects]]
   from   = "/atmosphaere/*"

@@ -301,11 +301,10 @@ var LAYER_SUBS = ALL_LAYER_KEYS.map((k) => ({
   description: LAYER_SLUG_DESCRIPTION[k]
 }));
 var ATMOSPHERE_LENS_SLUGS = {
-  fly: "fliegen",
-  mountain: "berg-und-weg",
   section: "querschnitt"
 };
-var ATMOSPHERE_WORK_WINDOW_SLUG = "arbeitsfenster";
+var ATMOSPHERE_RETIRED_SLUGS = ["fliegen", "berg-und-weg", "arbeitsfenster"];
+var RETIRED_ATMOSPHERE_RE = new RegExp(`^/atmosphaere/(?:${ATMOSPHERE_RETIRED_SLUGS.join("|")})(/[^/]+)?$`);
 var ROUTES = [
   {
     id: "home",
@@ -411,7 +410,7 @@ var ROUTES = [
       { slug: "grillen", title: "Grillwetter — der beste Tag zum Grillen", description: "Welcher Tag der kommenden Woche ist warm, trocken und windstill genug für Grillabend, Gartenfest oder Hoffest?", updated: CONTENT_UPDATED },
       { slug: "hochzeit", title: "Hochzeitswetter mit Plan B", description: "Trauung, Empfang und Abendfeier einzeln bewertet, dazu die Schwelle, ab der ein Plan B nötig wird — für die Hochzeit im Freien.", updated: CONTENT_UPDATED },
       { slug: "wandern", title: "Wanderwetter — der beste Tag für die Tour", description: "Trocken, mild, gute Sicht: welcher der nächsten Tage sich für die Wanderung eignet, mit ehrlicher Sicherheit je Tag.", updated: CONTENT_UPDATED },
-      { slug: "drohne", title: "Drohnenwetter — Böen, Sicht und Regen", description: "Der beste Tag für den Drohnenflug: Böen zählen am schwersten, dazu Sicht und Niederschlag — plus Go/No-Go auf Flughöhe.", updated: CONTENT_UPDATED },
+      { slug: "drohne", title: "Drohnenwetter — Böen, Regen und Bewölkung", description: "Der beste Tag für den Drohnenflug: Böen zählen am schwersten, dazu Regen und Bewölkung. Eine Tagesbewertung, keine Freigabe auf Flughöhe.", updated: "2026-11-01" },
       { slug: "fotografie", title: "Fotowetter — Licht, Wolken und Stimmung", description: "Wolkenlicht statt blankem Himmel: welcher Tag weiches Licht verspricht, dazu goldene und blaue Stunde für jedes Datum.", updated: CONTENT_UPDATED },
       { slug: "sterne", title: "Sternenwetter — klare Nächte finden", description: "Wolken, Mond, astronomische Dunkelheit und Tau-Risiko für die Kernnacht — welche Nacht der Woche sich zum Beobachten eignet.", updated: CONTENT_UPDATED },
       { slug: "radtour", title: "Radwetter — der beste Tag für die Ausfahrt", description: "Wind wiegt schwer, Regen noch schwerer: welcher Tag sich für Rennrad, Gravel oder die E-Bike-Tour anbietet.", updated: CONTENT_UPDATED },
@@ -449,32 +448,17 @@ var ROUTES = [
     place: true,
     subs: [
       {
-        slug: ATMOSPHERE_LENS_SLUGS.fly,
-        title: "Thermik & Fliegen",
-        description: "Thermik, Höhenwind und Wolkenbasis über deinem Startplatz — die Atmosphäre aus Sicht von Gleitschirm- und Segelfliegern."
-      },
-      {
-        slug: ATMOSPHERE_LENS_SLUGS.mountain,
-        title: "Föhn, Berg & Weg",
-        description: "Föhn, Inversion und Wind in der Höhe für Bergtouren — was über dem Tal passiert, bevor es unten ankommt."
-      },
-      {
         slug: ATMOSPHERE_LENS_SLUGS.section,
         title: "Vertikalschnitt der Atmosphäre",
         description: "Höhenwind, Inversion und Schichtung entlang einer frei gezogenen Schnittlinie — die Atmosphäre im Querschnitt."
-      },
-      {
-        slug: ATMOSPHERE_WORK_WINDOW_SLUG,
-        title: "Arbeitsfenster Go/No-Go — Böen auf Arbeitshöhe",
-        description: "Arbeitshöhe und Böengrenzwert eingeben und GO/NO-GO über den Tag ablesen — für Drohne, Kran, Gerüst und Höhenarbeit.",
-        updated: CONTENT_UPDATED
       }
     ],
     meta: {
-      title: "Die Atmosphäre über dir — Vertikalschnitt & 3D-Wetter",
-      description: "Höhenwind, Inversionen, Föhn und Thermik als Vertikalschnitt über jedem Ort in DACH — für Fliegen, Berg und Drohne.",
+      title: "Die Atmosphäre über dir — Vertikalschnitt & Höhenwind",
+      description: "Höhenwind, Böen und Wolkenbasis als Vertikalschnitt entlang einer frei gezogenen Linie in DE, AT und CH. Kein amtliches Flugwetter.",
       h1: "Die Atmosphäre über dir",
-      lead: "Die Atmosphäre-Ansicht von buscosun zeigt, was sich über deinem Standort in der Höhe abspielt: Höhenwind in mehreren Druckflächen, Inversionen, Föhnlagen und Thermik als Vertikalschnitt und im 3D-Gelände — mit Go/No-Go-Einschätzung für Drohne, Höhenarbeit und Flugsport."
+      lead: "Die Atmosphäre-Ansicht von buscosun zeigt, was sich über dem Gelände in der Höhe abspielt: Du ziehst auf der Karte eine Linie und siehst entlang dieser Linie den Vertikalschnitt mit Höhenwind, Böen, Windscherung und Wolkenbasis, mit Zeit-Regler und genannter Herkunft. Kein amtliches Flugwetter.",
+      updated: "2026-11-01"
     }
   },
   {
@@ -813,10 +797,7 @@ var VIEW_LABEL = {
   historie: "Historie",
   thermalanomalien: "Thermalanomalien",
   // Atmosphäre
-  "berg-und-weg": "Föhn, Berg & Weg",
-  fliegen: "Thermik & Fliegen",
   querschnitt: "Querschnitt",
-  arbeitsfenster: "Arbeitsfenster",
   // Eventplanung (Anlass)
   grillen: "Grillen",
   hochzeit: "Hochzeit",

@@ -367,24 +367,22 @@ export const GlobeDetail: IntroArt = ({ accent }) => (
   </DetailFrame>
 );
 
-/* atmosphere · Linsen-Switcher (Föhn aktiv, wie LensSwitcher) + Inversionsmarke
- * + Höhen-Cap-Hinweis */
+/* atmosphere · die Ebenen des Schnitts + Wolkenbasis-Linie über dem Gelände */
 export const AtmosphereDetail: IntroArt = ({ accent }) => (
   <DetailFrame accent={accent}>
     <g strokeWidth="1.5">
-      <rect x="18" y="12" width="58" height="22" rx="11" fill={T_INK} stroke="none" />
-      <text x="47" y="27" fontSize="10" fill="#fff" textAnchor="middle" stroke="none">Föhn</text>
-      <rect x="82" y="12" width="74" height="22" rx="11" fill="#fff" stroke={SAND2} />
-      <text x="119" y="27" fontSize="10" fill={T_STONE} textAnchor="middle" stroke="none">Thermik</text>
+      <rect x="18" y="12" width="66" height="22" rx="11" fill={T_INK} stroke="none" />
+      <text x="51" y="27" fontSize="10" fill="#fff" textAnchor="middle" stroke="none">Mittelwind</text>
+      <rect x="90" y="12" width="66" height="22" rx="11" fill="#fff" stroke={SAND2} />
+      <text x="123" y="27" fontSize="10" fill={T_STONE} textAnchor="middle" stroke="none">Böen</text>
       <rect x="162" y="12" width="92" height="22" rx="11" fill="#fff" stroke={SAND2} />
-      <text x="208" y="27" fontSize="10" fill={T_STONE} textAnchor="middle" stroke="none">Querschnitt</text>
+      <text x="208" y="27" fontSize="10" fill={T_STONE} textAnchor="middle" stroke="none">Wolkenbasis</text>
     </g>
-    {/* height axis + mini temperature profile with inversion kink */}
+    {/* height axis + terrain line + cloud base */}
     <line x1="24" y1="48" x2="24" y2="84" stroke={SAND2} strokeWidth="2" />
-    <path d="M 44 82 L 32 68 L 50 58 L 36 48" stroke="currentColor" strokeWidth="2" fill="none" />
-    <line x1="60" y1="60" x2="244" y2="60" stroke="currentColor" strokeDasharray="3 4" opacity="0.55" />
-    <text x="244" y="56" fontSize="9" fill={T_STONE} textAnchor="end" stroke="none">Inversion 900 m</text>
-    <text x="300" y="84" fontSize="9" fill={T_STONE} textAnchor="end" stroke="none">Cap 0–4000 m</text>
+    <path d="M 32 84 L 84 72 L 130 78 L 190 66 L 244 80" stroke="currentColor" strokeWidth="2" fill="none" />
+    <line x1="32" y1="56" x2="244" y2="56" stroke="currentColor" strokeDasharray="3 4" opacity="0.55" />
+    <text x="244" y="52" fontSize="9" fill={T_STONE} textAnchor="end" stroke="none">Wolkenbasis</text>
   </DetailFrame>
 );
 

@@ -34,7 +34,7 @@ export const METHODIK_PAGES = [
       { h2: 'Die Korrektur auf der Karte', html: p('Die Temperaturkarte legt unter jedes Modellpixel ein digitales Geländemodell (Mapzen/AWS Terrarium, rund 30 m Auflösung im DACH-Raum). Die Modellhöhe (Feld <code>hsurf</code>) steckt als Grünkanal in derselben Textur wie die Temperatur; der Grafik-Shader rechnet je Bildpunkt <code>T_korr = T_modell − γ · (h_gelände − h_modell)</code> mit γ = 6,5 K/km. Die Stadt-Labels auf der Karte werden mit exakt derselben Arithmetik berechnet — was am Label steht, ist der Wert der Fläche darunter, kein separater Punktwert.') + p('Dieselbe Idee steckt in der Schneefallgrenze (Null-Linie von <code>T_korr − T50</code> im Gelände), im Tal/Grat-Nowcast des Regenradars und in der Wolkenkomposition, die die Stockwerke höhenbewusst übereinanderlegt.') },
       { h2: 'Die Korrektur im Punktforecast', html: p('Für einen einzelnen Ort geht buscosun einen Schritt weiter: Aus dem Satz der nächsten Messstationen (DWD, TAWES, SMN) wird die Lapse-Rate per Regression geschätzt — sie schwankt real zwischen etwa 3 und 10 K/km je nach Wetterlage. Liefert der Stationssatz keine belastbare Steigung, greift der Standardwert 0,0065 K/m. Die Tourenplanung bündelt ihre Wetterpunkte deshalb nicht nur räumlich (6, 10 oder 14 km je Gelände), sondern zusätzlich in Höhenbändern von 300 m — ohne diese Bänderung lagen Talwerte im Test bis zu 4 °C zu kalt.') },
       { h2: 'Grenzen', html: ul([
-        'Eine Lapse-Rate ist ein Mittelwert. Bei <strong>Inversionen</strong> (Kaltluftsee im Tal, Sonne am Berg) kehrt sich das Verhältnis um; die Flächenkarte kann das Tal dann zu warm zeigen. Die Atmosphäre-Ansicht erkennt Inversionen und nennt Inversionshöhe und Nebelobergrenze.',
+        'Eine Lapse-Rate ist ein Mittelwert. Bei <strong>Inversionen</strong> (Kaltluftsee im Tal, Sonne am Berg) kehrt sich das Verhältnis um; die Flächenkarte kann das Tal dann zu warm zeigen. Eine eigene Inversionsanzeige gibt es nicht; im Vertikalschnitt lässt sich die Temperatur je Höhe an einzelnen Punkten abfragen.',
         'Das Geländemodell kennt weder Gebäude noch Bewuchs; in Städten ist der Wärmeinseleffekt nicht enthalten.',
         'Korrigiert wird die Temperatur, nicht der Wind: Düsen und Kuppen unter 2 km Gitterweite bleiben geglättet.',
         'Modellwert, keine Messung. Der Stationslayer zeigt die Messung daneben.',
@@ -43,7 +43,7 @@ export const METHODIK_PAGES = [
     faqs: [
       { q: 'Welche Lapse-Rate nutzt buscosun?', a: 'Auf der Karte fest 6,5 K je Kilometer; im Punktforecast eine aus den umliegenden Stationen geschätzte Rate mit 6,5 K/km als Rückfall.' },
       { q: 'Woher kommt das Geländemodell?', a: 'Aus den Terrarium-Höhenkacheln von Mapzen/AWS (Open Data), rund 30 m Auflösung in DACH.' },
-      { q: 'Warum zeigt die Karte im Tal trotzdem manchmal zu warm?', a: 'Bei Inversionen ist die Luft im Tal kälter als in der Höhe; eine Lapse-Rate kann das nicht abbilden. Die Atmosphäre-Ansicht zeigt solche Lagen.' },
+      { q: 'Warum zeigt die Karte im Tal trotzdem manchmal zu warm?', a: 'Bei Inversionen ist die Luft im Tal kälter als in der Höhe; eine Lapse-Rate kann das nicht abbilden. Eine eigene Inversionsanzeige gibt es nicht; im Vertikalschnitt lässt sich die Temperatur je Höhe an einzelnen Punkten abfragen.' },
     ],
     related: ['/wetterkarte/temperatur', '/wetterkarte/schneegrenze', '/wissen/hoehenkorrektur-lapse-rate/', '/wissen/temperaturinversion/'],
   },
@@ -277,7 +277,7 @@ export function buildUeberPage() {
         '<a href="/tourenplanung">Tourenplanung</a>: Wetter je Kilometer zur Ankunftszeit, E-Bike-Reichweite, 3D-Schnitt',
         '<a href="/eventplanung">Event-Planung</a>: bester Tag, Phasen, Plan B, Foto-Licht, Astro-Nacht',
         '<a href="/wetterarchiv">Wetterarchiv</a> seit 1940 mit Klimastreifen und Kenntagen',
-        '<a href="/atmosphaere">Atmosphäre</a>: Vertikalschnitt, Föhn, Thermik, Arbeitsfenster für Drohne und Kran',
+        '<a href="/atmosphaere">Atmosphäre</a>: Vertikalschnitt mit Höhenwind, Böen und Wolkenbasis',
         '<a href="/waldbrand">Brandradar</a>: Waldbrandgefahr, aktive Brände aus Satellitendaten, Brandnarben',
         '<a href="/globus">3D-Globus</a> mit dem globalen GFS-Windfeld',
       ]) },

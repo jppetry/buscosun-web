@@ -236,7 +236,7 @@ export function webAppJsonLd() {
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
     description: SITE.description,
     inLanguage: ['de-DE', 'de-AT', 'de-CH'],
-    featureList: ['2D-Wetterkarte', 'Tourenplanung', 'Event-Tag-Vergleich', '6-Stunden-Nowcast', 'Modellvergleich', '3D-Wetter', 'Arbeitsfenster (Go/No-Go)', 'Wetterhistorie'],
+    featureList: ['2D-Wetterkarte', 'Tourenplanung', 'Event-Tag-Vergleich', '6-Stunden-Nowcast', 'Modellvergleich', 'Vertikalschnitt der Atmosphäre', 'Wetterhistorie'],
   };
 }
 
@@ -488,7 +488,7 @@ export function renderHomeRootContent(places) {
         <li>Event-Planung: bester Tag im 7-Tage-Vergleich</li>
         <li>6-Stunden-Nowcast aus Radar &amp; ICON-D2</li>
         <li>Modellvergleich mit ehrlichem Spread</li>
-        <li>Arbeitsfenster (Go/No-Go) für Drohne, Kran, Höhenarbeit</li>
+        <li>Vertikalschnitt der Atmosphäre: Höhenwind, Böen und Wolkenbasis entlang einer Linie</li>
       </ul>
       <h2>Wetter in DACH-Orten</h2>
       <p>${topByCountry('DE')}</p>
@@ -952,7 +952,7 @@ export function renderFunktionenHub(tools) {
   const stubs = tools.filter((t) => t.status !== 'full').map(card).join('\n      ');
   const head = headBlock({
     title: `Funktionen — was buscosun kann | ${SITE.name}`,
-    description: 'Alle buscosun-Funktionen im Überblick: interaktive Wetterkarte, 3D-Atmosphäre, Tourenplanung, bester Event-Tag, Nowcast, Modellvergleich, Globus, Historie und Arbeitsfenster — kostenlos und ohne Tracker.',
+    description: 'Alle buscosun-Funktionen im Überblick: interaktive Wetterkarte, Vertikalschnitt der Atmosphäre, Tourenplanung, bester Event-Tag, Nowcast, Modellvergleich, Globus und Historie — kostenlos und ohne Tracker.',
     canonicalPath: '/funktionen/', locale: 'de-DE', ogImage: '/og/funktionen.png',
     jsonLd: [{
       '@context': 'https://schema.org', '@type': 'CollectionPage',
@@ -972,7 +972,7 @@ ${head}
     <main class="wrap">
       <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › Funktionen</nav>
       <h1>buscosun-Funktionen</h1>
-      <p class="lead">Alle Werkzeuge von buscosun auf einen Blick — interaktive Wetterkarte, 3D-Atmosphäre, Tourenplanung, bester Event-Tag, Nowcast, Modellvergleich, Globus, Wetterhistorie und Arbeitsfenster. Alles höhenkorrigiert, aus amtlichen Quellen, kostenlos und ohne Tracker.</p>
+      <p class="lead">Alle Werkzeuge von buscosun auf einen Blick — interaktive Wetterkarte, Vertikalschnitt der Atmosphäre, Tourenplanung, bester Event-Tag, Nowcast, Modellvergleich, Globus und Wetterhistorie. Alles höhenkorrigiert, aus amtlichen Quellen, kostenlos und ohne Tracker.</p>
       <h2>Ausführlich vorgestellt</h2>
       <div class="cards">
       ${full}

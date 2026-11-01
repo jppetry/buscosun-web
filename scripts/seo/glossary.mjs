@@ -182,7 +182,7 @@ const TERMS = [
   {
     id: 'cape', term: 'CAPE',
     short: 'Convective Available Potential Energy: Energie in J/kg, die ein aufsteigendes Luftpaket zwischen LFC und EL freisetzen kann.',
-    html: '<p><strong>CAPE</strong> ist im Skew-T die Fläche, in der das gehobene Luftpaket wärmer ist als die Umgebung. Werte unter 500 J/kg gelten als gering, 1 000 bis 2 000 als moderat, darüber als hoch — in Mitteleuropa sind mehr als 2 500 J/kg selten. CAPE allein macht kein Gewitter: Ohne Auslöser und bei starkem CIN bleibt die Energie ungenutzt. buscosun nutzt CAPE aus ICON-D2 und im Sounding aus ICON-EU.</p>',
+    html: '<p><strong>CAPE</strong> ist im Skew-T die Fläche, in der das gehobene Luftpaket wärmer ist als die Umgebung. Werte unter 500 J/kg gelten als gering, 1 000 bis 2 000 als moderat, darüber als hoch — in Mitteleuropa sind mehr als 2 500 J/kg selten. CAPE allein macht kein Gewitter: Ohne Auslöser und bei starkem CIN bleibt die Energie ungenutzt. buscosun nutzt CAPE aus ICON-D2.</p>',
     links: ['/wissen/skew-t/', '/wissen/gewitter-unwetter/'],
   },
   {
@@ -194,25 +194,25 @@ const TERMS = [
   {
     id: 'lcl', term: 'LCL (Hebungskondensationsniveau)',
     short: 'Höhe, in der ein vom Boden gehobenes Luftpaket seine Sättigung erreicht — die Basis der Quellwolken.',
-    html: '<p>Das <strong>Lifting Condensation Level</strong> folgt aus Temperatur und Taupunkt am Boden: Je größer die Spreizung, desto höher die Wolkenbasis, grob 125 m je Grad Spreizung. Für Gleitschirm und Segelflug ist das LCL die Cumulusbasis und damit die nutzbare Höhe der Thermik. buscosun berechnet es im Sounding und markiert es im Skew-T.</p>',
+    html: '<p>Das <strong>Lifting Condensation Level</strong> folgt aus Temperatur und Taupunkt am Boden: Je größer die Spreizung, desto höher die Wolkenbasis, grob 125 m je Grad Spreizung. Für Gleitschirm und Segelflug ist das LCL die Cumulusbasis und damit die nutzbare Höhe der Thermik. Als Näherung zeigt buscosun es als Wolkenbasis im Vertikalschnitt.</p>',
     links: ['/wissen/skew-t/', '/wissen/thermik/'],
   },
   {
     id: 'lfc', term: 'LFC (Niveau freier Konvektion)',
     short: 'Höhe, ab der ein gehobenes Luftpaket wärmer als die Umgebung ist und ohne weiteren Antrieb aufsteigt.',
-    html: '<p>Das <strong>Level of Free Convection</strong> liegt über dem LCL, sobald das feuchtadiabatisch aufsteigende Paket die Umgebungstemperatur überholt. Zwischen Boden und LFC wirkt die Hemmung (CIN), zwischen LFC und EL die Energie (CAPE). Liegt das LFC sehr hoch oder fehlt es, gibt es an diesem Tag keine freie Konvektion. buscosun markiert es im Skew-T des Querschnitts.</p>',
+    html: '<p>Das <strong>Level of Free Convection</strong> liegt über dem LCL, sobald das feuchtadiabatisch aufsteigende Paket die Umgebungstemperatur überholt. Zwischen Boden und LFC wirkt die Hemmung (CIN), zwischen LFC und EL die Energie (CAPE). Liegt das LFC sehr hoch oder fehlt es, gibt es an diesem Tag keine freie Konvektion.</p>',
     links: ['/wissen/skew-t/'],
   },
   {
     id: 'el', term: 'EL (Gleichgewichtsniveau)',
     short: 'Höhe, in der ein aufsteigendes Luftpaket wieder so kalt ist wie die Umgebung — die Obergrenze der Gewitterwolke.',
-    html: '<p>Das <strong>Equilibrium Level</strong> schließt die CAPE-Fläche nach oben ab. Aufsteigende Luft schießt aus Trägheit noch darüber hinaus (Overshooting Top), breitet sich aber am EL seitlich zum Amboss aus. Ein hohes EL nahe der Tropopause kennzeichnet kräftige Gewitter; buscosun zeigt es als Marker im Skew-T und nutzt es zur Einordnung der Wolkenobergrenze.</p>',
+    html: '<p>Das <strong>Equilibrium Level</strong> schließt die CAPE-Fläche nach oben ab. Aufsteigende Luft schießt aus Trägheit noch darüber hinaus (Overshooting Top), breitet sich aber am EL seitlich zum Amboss aus. Ein hohes EL nahe der Tropopause kennzeichnet kräftige Gewitter.</p>',
     links: ['/wissen/skew-t/'],
   },
   {
     id: 'lifted-index', term: 'Lifted Index',
     short: 'Temperaturdifferenz in Kelvin zwischen Umgebung und gehobenem Luftpaket in 500 hPa; negative Werte bedeuten Labilität.',
-    html: '<p>Der <strong>Lifted Index</strong> ist der klassische Einzahl-Indikator für Gewitterneigung: Umgebungstemperatur in 500 hPa minus Temperatur eines vom Boden gehobenen Pakets. Werte um 0 bis −2 K gelten als leicht labil, −4 bis −6 als deutlich labil, unter −6 als stark labil. Er ist einfacher als CAPE, aber grob; buscosun zeigt ihn im Profi-Panel des Soundings neben CAPE und CIN.</p>',
+    html: '<p>Der <strong>Lifted Index</strong> ist der klassische Einzahl-Indikator für Gewitterneigung: Umgebungstemperatur in 500 hPa minus Temperatur eines vom Boden gehobenen Pakets. Werte um 0 bis −2 K gelten als leicht labil, −4 bis −6 als deutlich labil, unter −6 als stark labil. Er ist einfacher als CAPE, aber grob.</p>',
     links: ['/wissen/skew-t/', '/wissen/gewitter-unwetter/'],
   },
   {
@@ -236,50 +236,50 @@ const TERMS = [
   {
     id: 'inversion', term: 'Inversion',
     short: 'Schicht, in der die Temperatur mit der Höhe zunimmt statt abnimmt; wirkt als Deckel für Nebel, Schadstoffe und Konvektion.',
-    html: '<p>Eine <strong>Temperaturinversion</strong> entsteht durch nächtliche Ausstrahlung am Boden, durch Absinken in Hochdruckgebieten oder durch aufgleitende Warmluft. Unter ihr sammeln sich Kaltluft, Hochnebel und Feinstaub; darüber ist es oft sonnig und mild. buscosun erkennt Inversionsbänder im ICON-EU-Profil und zeigt sie im Querschnitt; dünne Schichten unter 200 m sind mit dem groben Levelsatz nicht sicher aufgelöst.</p>',
+    html: '<p>Eine <strong>Temperaturinversion</strong> entsteht durch nächtliche Ausstrahlung am Boden, durch Absinken in Hochdruckgebieten oder durch aufgleitende Warmluft. Unter ihr sammeln sich Kaltluft, Hochnebel und Feinstaub; darüber ist es oft sonnig und mild. Eine eigene Inversionsanzeige hat buscosun nicht; im Vertikalschnitt lässt sich die Temperatur je Höhe an einzelnen Punkten abfragen. Sehr dünne Schichten sind in Modellen nur grob aufgelöst.</p>',
     links: ['/wissen/temperaturinversion/', '/atmosphaere/querschnitt'],
   },
   {
     id: 'nebelobergrenze', term: 'Nebelobergrenze',
     short: 'Höhe, in der eine Nebel- oder Hochnebeldecke endet; darüber beginnt die Sonne, meist direkt unter einer Inversion.',
-    html: '<p>Die <strong>Nebelobergrenze</strong> ist die Zahl, die im Winter über Sonne oder Grau entscheidet: Wer oberhalb wandert oder fährt, hat Fernsicht. Sie liegt im DACH-Winter oft zwischen 600 und 1 200 m und fällt in der Regel mit der Untergrenze der Inversion zusammen. buscosun schätzt sie aus Feuchteprofil und Inversion; Webcams und Messungen an Berghängen bleiben die Referenz.</p>',
+    html: '<p>Die <strong>Nebelobergrenze</strong> ist die Zahl, die im Winter über Sonne oder Grau entscheidet: Wer oberhalb wandert oder fährt, hat Fernsicht. Sie liegt im DACH-Winter oft zwischen 600 und 1 200 m und fällt in der Regel mit der Untergrenze der Inversion zusammen. buscosun führt dafür keinen eigenen Wert; Webcams und Messungen an Berghängen sind die Referenz.</p>',
     links: ['/wissen/nebel-hochnebel-nebelobergrenze/', '/wissen/temperaturinversion/'],
   },
   {
     id: 'grenzschicht', term: 'Grenzschicht',
     short: 'Untere, vom Boden beeinflusste Schicht der Atmosphäre, in der Reibung, Erwärmung und Thermik wirken; tagsüber oft 1 bis 2 km dick.',
-    html: '<p>Die <strong>atmosphärische Grenzschicht</strong> wächst tagsüber mit der Erwärmung des Bodens und schrumpft nachts auf wenige hundert Meter. In ihr nimmt der Wind mit der Höhe zu, weil die Bodenreibung nachlässt — buscosun rechnet das im Arbeitsfenster mit einem Potenzgesetz (Exponent 0,2, gedeckelt bei 1 500 m). Ihre Obergrenze ist zugleich die Thermik-Obergrenze; aus ihrer Tiefe schätzt buscosun die Thermikstärke.</p>',
+    html: '<p>Die <strong>atmosphärische Grenzschicht</strong> wächst tagsüber mit der Erwärmung des Bodens und schrumpft nachts auf wenige hundert Meter. In ihr nimmt der Wind mit der Höhe zu, weil die Bodenreibung nachlässt. Ihre Obergrenze ist zugleich die Thermik-Obergrenze.</p>',
     links: ['/wissen/windgrenzwerte-arbeit-drohne/', '/wissen/thermik/'],
   },
   {
     id: 'foehn', term: 'Föhn',
     short: 'Warmer, trockener Fallwind im Lee eines Gebirges, der beim Absinken um rund 1 °C je 100 m erwärmt wird.',
-    html: '<p><strong>Föhn</strong> entsteht, wenn Luft ein Gebirge überströmt, im Luv abregnet und im Lee trockenadiabatisch absinkt. Im Alpenraum bringt er Temperatursprünge von 5 bis 15 °C, kräftige Böen und außergewöhnliche Fernsicht. buscosun erkennt Föhnlagen heuristisch aus Anströmung, Druckgefälle und Feuchte und zeigt sie in der Atmosphären-Ansicht; Sturmwarnungen gibt allein der Wetterdienst heraus.</p>',
+    html: '<p><strong>Föhn</strong> entsteht, wenn Luft ein Gebirge überströmt, im Luv abregnet und im Lee trockenadiabatisch absinkt. Im Alpenraum bringt er Temperatursprünge von 5 bis 15 °C, kräftige Böen und außergewöhnliche Fernsicht. Die Tourenplanung von buscosun kennzeichnet Föhnverdacht heuristisch aus Wind und Feuchte, eine eigene Föhn-Ansicht gibt es nicht; Sturmwarnungen gibt allein der Wetterdienst heraus.</p>',
     links: ['/wissen/foehn/', '/atmosphaere/querschnitt'],
   },
   {
     id: 'talwind', term: 'Talwind',
     short: 'Tagsüber talaufwärts wehender, thermisch angetriebener Wind im Gebirge; nachts kehrt er sich als Bergwind um.',
-    html: '<p>Der <strong>Talwind</strong> setzt am Vormittag ein, wenn sich Hänge und Talboden erwärmen, und erreicht nachmittags in großen Alpentälern 5 bis 8 m/s. Nach Sonnenuntergang dreht die Strömung zum Bergwind. buscosun schätzt die Umkehrzeiten aus dem 48-h-Bodenwind, projiziert auf die aus dem Gelände abgeleitete Hangrichtung — ein Richtwert, kein Talachsenmodell.</p>',
-    links: ['/wissen/talwind/', '/atmosphaere/fliegen'],
+    html: '<p>Der <strong>Talwind</strong> setzt am Vormittag ein, wenn sich Hänge und Talboden erwärmen, und erreicht nachmittags in großen Alpentälern 5 bis 8 m/s. Nach Sonnenuntergang dreht die Strömung zum Bergwind. Umkehrzeiten rechnet buscosun nicht aus; den Bodenwind zeigt die Windkarte.</p>',
+    links: ['/wissen/talwind/', '/wetterkarte/wind'],
   },
   {
     id: 'thermik', term: 'Thermik',
     short: 'Aufsteigende Warmluftblasen über sonnenerwärmtem Boden, die Segelflieger, Gleitschirme und Greifvögel tragen.',
-    html: '<p><strong>Thermik</strong> entsteht, wenn sich bodennahe Luft stärker erwärmt als ihre Umgebung und als Blase oder Schlauch aufsteigt — bis zur Grenzschicht-Obergrenze oder bis zur Cumulusbasis. Auslöser sind dunkle Flächen, Südhänge und Kanten. buscosun schätzt die Thermikstärke von 0 bis 5 m/s aus der Grenzschichttiefe des ICON-EU-Profils — eine Schätzung, kein gemessener Steigwert.</p>',
-    links: ['/wissen/thermik/', '/atmosphaere/fliegen'],
+    html: '<p><strong>Thermik</strong> entsteht, wenn sich bodennahe Luft stärker erwärmt als ihre Umgebung und als Blase oder Schlauch aufsteigt — bis zur Grenzschicht-Obergrenze oder bis zur Cumulusbasis. Auslöser sind dunkle Flächen, Südhänge und Kanten. Eine Thermik-Prognose gibt es bei buscosun nicht.</p>',
+    links: ['/wissen/thermik/', '/atmosphaere/querschnitt'],
   },
   {
     id: 'taupunkt', term: 'Taupunkt',
     short: 'Temperatur, auf die Luft abgekühlt werden muss, damit ihr Wasserdampf kondensiert; ein direktes Maß für den Feuchtegehalt.',
-    html: '<p>Der <strong>Taupunkt</strong> ist aussagekräftiger als die relative Feuchte, weil er nicht von der Temperatur abhängt: 18 °C Taupunkt fühlen sich schwül an, 5 °C trocken. Die Differenz zur Lufttemperatur (Spreizung) bestimmt die Wolkenbasis und das Nebelrisiko. buscosun berechnet ihn nach der Magnus-Formel und nutzt ihn für Tauwarnhinweise in der Astro-Bewertung und für Wolkenschichten im Sounding.</p>',
+    html: '<p>Der <strong>Taupunkt</strong> ist aussagekräftiger als die relative Feuchte, weil er nicht von der Temperatur abhängt: 18 °C Taupunkt fühlen sich schwül an, 5 °C trocken. Die Differenz zur Lufttemperatur (Spreizung) bestimmt die Wolkenbasis und das Nebelrisiko. buscosun berechnet ihn nach der Magnus-Formel und nutzt ihn für Tauwarnhinweise in der Astro-Bewertung.</p>',
     links: ['/wissen/skew-t/', '/wissen/nebel-hochnebel-nebelobergrenze/'],
   },
   {
     id: 'nullgradgrenze', term: 'Nullgradgrenze',
     short: 'Höhe, in der die Lufttemperatur 0 °C erreicht; liegt in der Regel einige hundert Meter über der Schneefallgrenze.',
-    html: '<p>Die <strong>Nullgradgrenze</strong> wird aus dem Temperaturprofil abgelesen und ist die Bezugshöhe für Hagelprodukte (MESHS, POH) und für die Schneefallgrenze. Weil fallender Schnee beim Schmelzen die Luft kühlt, liegt die Schneefallgrenze bei kräftigem Niederschlag 200 bis 400 m tiefer. buscosun bestimmt sie im Sounding und markiert sie im Querschnitt; bei mehreren Nulldurchgängen zählt der unterste.</p>',
-    links: ['/wissen/schneefallgrenze/', '/atmosphaere/querschnitt'],
+    html: '<p>Die <strong>Nullgradgrenze</strong> wird aus dem Temperaturprofil abgelesen und ist die Bezugshöhe für Hagelprodukte (MESHS, POH) und für die Schneefallgrenze. Weil fallender Schnee beim Schmelzen die Luft kühlt, liegt die Schneefallgrenze bei kräftigem Niederschlag 200 bis 400 m tiefer. buscosun zeigt sie im Regenradar in der Ansicht „Karte + Höhe", abgeleitet aus den Temperaturen in 925, 850 und 700 hPa.</p>',
+    links: ['/wissen/schneefallgrenze/', '/regenradar'],
   },
   {
     id: 'schneefallgrenze', term: 'Schneefallgrenze',
@@ -290,7 +290,7 @@ const TERMS = [
   {
     id: 'boee', term: 'Böe',
     short: 'Kurzzeitige Windspitze von wenigen Sekunden, deutlich über dem 10-Minuten-Mittelwind; maßgeblich für Schäden und Arbeitsgrenzen.',
-    html: '<p>Eine <strong>Böe</strong> ist der Spitzenwert des Windes über etwa drei Sekunden; Modelle geben die maximale Böe je Stunde in 10 m Höhe aus. Sie liegt bei turbulenter Schichtung 1,5- bis 2-fach über dem Mittelwind, bei Gewittern noch höher. buscosun zeigt Böen als ICON-D2-Fläche im Layer <a href="/wetterkarte/boeen">Böen</a> und rechnet sie im Arbeitsfenster auf Arbeitshöhe hoch.</p>',
+    html: '<p>Eine <strong>Böe</strong> ist der Spitzenwert des Windes über etwa drei Sekunden; Modelle geben die maximale Böe je Stunde in 10 m Höhe aus. Sie liegt bei turbulenter Schichtung 1,5- bis 2-fach über dem Mittelwind, bei Gewittern noch höher. buscosun zeigt Böen als ICON-D2-Fläche im Layer <a href="/wetterkarte/boeen">Böen</a> und im Vertikalschnitt je Höhe entlang einer Linie.</p>',
     links: ['/wissen/windboeen-sturm/', '/wetterkarte/boeen'],
   },
   {
@@ -418,9 +418,9 @@ const TERMS = [
   },
   {
     id: 'icon-eu', term: 'ICON-EU',
-    short: 'DWD-Modell mit rund 7 km Gitter über Europa, vier Läufe täglich bis +120 Stunden; Quelle des Vertikalprofils auf buscosun.',
-    html: '<p><strong>ICON-EU</strong> ist der Nest-Bereich des globalen ICON über Europa. Es reicht weiter voraus als ICON-D2 und liefert Druckflächen für das Sounding: Temperatur, Feuchte und Wind auf Standardniveaus, aus denen buscosun Skew-T, Grenzschicht und Inversionen ableitet. Die Druckflächen kommen mit CCSDS-Kompression, die der eigene GRIB2-Decoder dekodiert. Für Tage 3 bis 5 ist es die feinste offene DWD-Quelle.</p>',
-    links: ['/methodik/wettermodelle/', '/wissen/skew-t/'],
+    short: 'DWD-Modell mit rund 7 km Gitter über Europa, vier Läufe täglich bis +120 Stunden; Quelle des Höhenwinds der Windkarte auf buscosun.',
+    html: '<p><strong>ICON-EU</strong> ist der Nest-Bereich des globalen ICON über Europa. Es reicht weiter voraus als ICON-D2 und liefert Druckflächen: Temperatur, Feuchte und Wind auf Standardniveaus, aus denen buscosun den Höhenwind der Windkarte (850, 700 und 500 hPa) nimmt. Die Druckflächen kommen mit CCSDS-Kompression, die der eigene GRIB2-Decoder dekodiert. Für Tage 3 bis 5 ist es die feinste offene DWD-Quelle.</p>',
+    links: ['/methodik/wettermodelle/', '/wetterkarte/wind'],
   },
   {
     id: 'arome', term: 'AROME',

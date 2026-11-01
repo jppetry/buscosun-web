@@ -731,16 +731,10 @@ export const EXPLAINERS_EXTRA = [
         id: 'buscosun',
         h2: 'So zeigt es buscosun',
         html:
-          '<p>In der Atmosphären-Ansicht <a href="/atmosphaere/fliegen">Fliegen</a> berechnet buscosun für den ' +
-          'gesetzten Punkt den <strong>Talwind-Tagesgang</strong>: Aus dem Geländemodell wird die „bergauf"-Richtung ' +
-          'als lokaler Höhengradient über etwa 3 km geschätzt; ist der Reliefunterschied kleiner als 40 m, gilt der ' +
-          'Ort als flach und es gibt keine Umkehr. Dann wird der stündliche Bodenwind der nächsten 48 Stunden auf ' +
-          'diese Achse projiziert: positive Werte wehen taleinwärts, negative talauswärts. Ein echter ' +
-          'Vorzeichenwechsel mit Hysterese von einem Kilometer pro Stunde markiert die <strong>Umkehrzeit</strong> — ' +
-          'die Ansicht nennt, wann der Wind auf talauf und wann auf talab dreht. Ehrlich dazu: Die Achse ist die ' +
-          'Hangrichtung aus dem Gelände, kein echter Talachsenverlauf, und die Winddaten stammen aus dem Punktforecast ' +
-          '(ICON-D2, Fusion), nicht aus einer Messung. Den Höhenwind über dem Tal zeigt der ' +
-          '<a href="/atmosphaere/querschnitt">Querschnitt</a>; Orte wie <a href="/wetter/innsbruck/">Innsbruck</a>, ' +
+          '<p>Einen Talwind-Tagesgang oder Umkehrzeiten rechnet buscosun nicht aus. Den Bodenwind je Stunde zeigt die ' +
+          '<a href="/wetterkarte/wind">Windkarte</a>, den Höhenwind über dem Tal der ' +
+          '<a href="/atmosphaere/querschnitt">Querschnitt</a>, wenn die Linie quer über das Tal gezogen wird. Beides ' +
+          'sind Modellwerte, in denen enge Täler geglättet sind. Orte wie <a href="/wetter/innsbruck/">Innsbruck</a>, ' +
           '<a href="/wetter/chur/">Chur</a> oder <a href="/wetter/zell-am-ziller/">Zell am Ziller</a> liegen in ' +
           'klassischen Talwindtälern.</p>',
       },
@@ -758,7 +752,7 @@ export const EXPLAINERS_EXTRA = [
     ],
     relatedExplainers: ['thermik', 'foehn', 'temperaturinversion', 'skew-t'],
     relatedPlaces: ['innsbruck', 'chur', 'zell-am-ziller', 'brig', 'landeck', 'mayrhofen'],
-    datePublished: PUBLISHED, dateModified: MODIFIED,
+    datePublished: PUBLISHED, dateModified: '2026-11-01',
   },
 
   // -------------------------------------------------------------------- skew-t
@@ -805,24 +799,19 @@ export const EXPLAINERS_EXTRA = [
         id: 'buscosun',
         h2: 'So zeigt es buscosun',
         html:
-          '<p>Im <a href="/atmosphaere/querschnitt">Querschnitt</a> öffnet das Profi-Panel ein echtes Skew-T-log-P aus ' +
-          'dem <strong>DWD-Modell ICON-EU</strong> (rund 7 km): Temperatur, Feuchte und Wind auf den Standard-Druckflächen ' +
-          'plus reale Bodenwerte, am Punkt bilinear gesampelt. Der Preis dafür ist ehrlich benannt — ein Profil lädt ' +
-          'etwa 40 Dateien, deshalb ist es ein Feature auf Abruf, kein Standardbild. Das Diagramm spannt −40 bis ' +
-          '+40 °C am unteren Rand, reicht bis 200 hPa, zeichnet den Hebungsparcel gestrichelt, CAPE rot und CIN blau ' +
-          'als Flächen und markiert LCL, LFC und EL. Aus demselben Profil leitet buscosun die Grenzschicht-Obergrenze ' +
-          '(trockenadiabatisch, 9,8 K/km), Wolkenschichten (Taupunktspreizung unter 3 °C), Inversionsbänder, ' +
-          'Scherzonen und eine <strong>Thermikstärke-Schätzung</strong> von 0 bis 5 m/s aus der Grenzschichttiefe ab — ' +
-          'eine Schätzung, kein gemessener Steigwert. Dünne Strukturen unter 200 m löst der grobe Levelsatz nicht ' +
-          'sicher auf. Die Ansicht <a href="/atmosphaere/fliegen">Fliegen</a> übersetzt dieselben Größen in ' +
-          'Höhenwind, <a href="/wissen/thermik/">Thermik</a> und <a href="/wissen/talwind/">Talwind</a>.</p>',
+          '<p>Ein Skew-T-Diagramm zeigt buscosun nicht; dieser Beitrag erklärt, wie man es in anderen Quellen liest. ' +
+          'Die Höhe bildet bei buscosun der <a href="/atmosphaere/querschnitt">Vertikalschnitt</a> ab: Wind und Böen ' +
+          'je Höhe entlang einer Linie aus dem <strong>DWD-Modell ICON-D2</strong>, die Temperatur je Höhe per Klick ' +
+          'auf einen Punkt. Liegt ein Radiosondenaufstieg höchstens 40 km neben der Linie und ist höchstens ' +
+          '30 Stunden alt, steht sein gemessener Wind als eigene Säule daneben. Das Gewitterpotenzial aus CAPE und CIN ' +
+          'zeigt der Layer <a href="/wetterkarte/gewitter">Gewitter</a>.</p>',
       },
     ],
     faqs: [
-      { q: 'Woher kommt das Profil — ist das eine Radiosonde?', a: 'Nein. buscosun zeigt ein Modellprofil aus DWD ICON-EU mit rund 7 km Auflösung auf Standard-Druckflächen. Es ist ein Richtwert für den Punkt, keine Messung; echte Radiosondenaufstiege gibt es nur an wenigen Stationen zweimal täglich.' },
+      { q: 'Zeigt buscosun ein Skew-T?', a: 'Nein. buscosun zeigt den Vertikalschnitt mit Wind und Böen je Höhe aus dem Modell ICON-D2 und, wo ein Aufstieg in der Nähe liegt, den gemessenen Wind einer Radiosonde. Skew-T-Diagramme bieten Fachdienste; echte Radiosondenaufstiege gibt es nur an wenigen Stationen zweimal täglich.' },
       { q: 'Wie lese ich CAPE im Skew-T ab?', a: 'CAPE ist die Fläche zwischen der Parcel-Kurve und der Umgebungstemperatur oberhalb des LFC, solange das Paket wärmer ist. Je größer und breiter diese rot markierte Fläche, desto mehr Energie steht Gewittern zur Verfügung; die blaue CIN-Fläche darunter zeigt den Deckel.' },
       { q: 'Warum sind die Isothermen schräg?', a: 'Damit Energie als Fläche ablesbar wird und Temperaturkurven in der Troposphäre annähernd senkrecht verlaufen. Ohne die Schrägstellung würden alle Kurven in einer schmalen Diagonale zusammenfallen und CAPE wäre kaum sichtbar.' },
-      { q: 'Was sagt eine kleine Taupunktspreizung?', a: 'Dass die Luft in dieser Höhe nahezu gesättigt ist — Wolken sind wahrscheinlich. buscosun markiert Niveaus mit weniger als 3 °C Spreizung als wolkig und leitet daraus die Wolkenschichten des Profils ab.' },
+      { q: 'Was sagt eine kleine Taupunktspreizung?', a: 'Dass die Luft in dieser Höhe nahezu gesättigt ist — Wolken sind wahrscheinlich.' },
     ],
     sources: [
       { name: 'NOAA Storm Prediction Center: Sounding analysis help', url: 'https://www.spc.noaa.gov/exper/soundings/help/index.html' },
@@ -831,7 +820,7 @@ export const EXPLAINERS_EXTRA = [
     ],
     relatedExplainers: ['gewitter-unwetter', 'thermik', 'temperaturinversion', 'talwind', 'hoehenkorrektur-lapse-rate'],
     relatedPlaces: ['muenchen', 'stuttgart', 'innsbruck', 'bern', 'nuernberg'],
-    datePublished: PUBLISHED, dateModified: MODIFIED,
+    datePublished: PUBLISHED, dateModified: '2026-11-01',
   },
 
   // --------------------------------------------------------- gewitterzellen-konrad
@@ -1099,26 +1088,21 @@ export const EXPLAINERS_EXTRA = [
         id: 'buscosun',
         h2: 'So zeigt es buscosun',
         html:
-          '<p>Das <a href="/funktionen/arbeitsfenster/">Arbeitsfenster</a> unter ' +
-          '<a href="/atmosphaere/querschnitt?ansicht=gonogo">Querschnitt · Go/No-Go</a> nimmt eine Arbeits- oder ' +
-          'Flughöhe über Grund (0 bis 1 500 m) und einen Böen-Grenzwert in km/h (0 bis 200) entgegen. Es rechnet die ' +
-          'prognostizierte Bodenböe mit einem Potenzgesetz (Exponent 0,2, Bezug 10 m, gesättigt ab 1 500 m über ' +
-          'Grund) auf diese Höhe hoch und prüft im 15-Minuten-Raster über rund 36 Stunden, wann der Grenzwert ' +
-          'überschritten wird. Ergebnis: Status <strong>Go</strong> oder <strong>No-Go</strong> für jetzt, die ' +
-          'Spitzenböe im Fenster, eine Liste der No-Go-Zeitfenster und der <strong>Höhenfaktor</strong> Boden → ' +
-          'Arbeitshöhe. Der Referenzpunkt ist der höchste Anker des Schnitts — die exponierteste Lage. Der Grenzwert ' +
-          'kommt von dir; buscosun schlägt keinen vor und ersetzt keine Betriebsanleitung. In der 3D-Tourenansicht ' +
-          'gibt es dieselbe Logik mit Standardgrenzen von 40 km/h Böen, 2 mm/h Regen und 0 °C gefühlter Temperatur ' +
-          'sowie den Zwischenstufen „knapp" und „unklar", wenn die Vorhersage nahe am Grenzwert oder ohne Quelle ist. ' +
-          'Die Böen selbst zeigt der Layer <a href="/wetterkarte/boeen">Böen</a> als ICON-D2-Fläche. Amtliche ' +
-          'Sturmwarnungen gibt allein der Wetterdienst heraus.</p>',
+          '<p>Eine Prüfung gegen deinen Grenzwert auf Arbeits- oder Flughöhe rechnet buscosun nicht. Der Layer ' +
+          '<a href="/wetterkarte/boeen">Böen</a> zeigt die Spitzen in 10 m Höhe als ICON-D2-Fläche bis 24 Stunden ' +
+          'voraus. Der <a href="/atmosphaere/querschnitt">Vertikalschnitt</a> zeigt Mittelwind und Böen je Höhe in ' +
+          'Stufen von 150 m entlang einer Linie und nennt sie per Klick für einen Punkt. Der Grenzwert kommt von dir; ' +
+          'buscosun schlägt keinen vor und ersetzt keine Betriebsanleitung. Nur die 3D-Tourenansicht wertet ' +
+          'Grenzwerte aus: entlang einer hochgeladenen Strecke, mit Standardgrenzen von 40 km/h Böen, 2 mm/h Regen und ' +
+          '0 °C gefühlter Temperatur sowie den Zwischenstufen „knapp" und „unklar". Sie ist für Touren gebaut, nicht ' +
+          'für eine Arbeitshöhe. Amtliche Sturmwarnungen gibt allein der Wetterdienst heraus.</p>',
       },
     ],
     faqs: [
       { q: 'Bei wie viel Wind darf eine Drohne nicht mehr fliegen?', a: 'Die EU-Regeln nennen keine Zahl; maßgeblich sind die Herstellerangabe zur Windbeständigkeit und die Einschätzung des Fernpiloten. Viele Multikopter sind für Größenordnungen von 8 bis 12 m/s ausgelegt — auf Flughöhe, nicht am Boden. Die Betriebsanleitung entscheidet.' },
-      { q: 'Wie rechnet buscosun die Böe auf Arbeitshöhe?', a: 'Mit einem Potenzgesetz der Grenzschicht: Böe auf Höhe = Bodenböe × (Höhe / 10 m) hoch 0,2, gedeckelt bei 1 500 m über Grund. Das ist eine Näherung für offenes Gelände; über Graten, an Gebäuden und bei Inversionen kann der reale Wert abweichen.' },
-      { q: 'Welcher Grenzwert ist voreingestellt?', a: 'Im Arbeitsfenster keiner — du trägst den Wert aus deiner Betriebsanleitung oder Gefährdungsbeurteilung ein. Die 3D-Tourenansicht nutzt als Standard 40 km/h Böen, 2 mm/h Regen und 0 °C gefühlte Temperatur, jeweils änderbar.' },
-      { q: 'Ist ein „Go" eine Freigabe?', a: 'Nein. Es bedeutet nur, dass die prognostizierte Böe auf der gewählten Höhe unter deinem Grenzwert liegt. Die Freigabe trifft die verantwortliche Person vor Ort nach Betriebsanleitung, Sichtprüfung und amtlicher Warnlage — Warnungen gibt ausschließlich der Wetterdienst heraus.' },
+      { q: 'Wie ändert sich die Böe mit der Höhe?', a: 'Als Faustformel dient ein Potenzgesetz der Grenzschicht: Böe auf Höhe = Bodenböe × (Höhe / 10 m) hoch 0,2. Das ist eine Näherung für offenes Gelände; über Graten, an Gebäuden und bei Inversionen kann der reale Wert abweichen. buscosun rechnet sie nicht für eine gewählte Höhe aus.' },
+      { q: 'Welcher Grenzwert ist voreingestellt?', a: 'Für Arbeit oder Drohnenflug keiner: Der Wert kommt aus deiner Betriebsanleitung oder Gefährdungsbeurteilung. Die 3D-Tourenansicht nutzt als Standard 40 km/h Böen, 2 mm/h Regen und 0 °C gefühlte Temperatur, jeweils änderbar.' },
+      { q: 'Ist eine günstige Prognose eine Freigabe?', a: 'Nein. Sie bedeutet nur, dass das Modell für diesen Zeitpunkt wenig Wind erwartet. Die Freigabe trifft die verantwortliche Person vor Ort nach Betriebsanleitung, Sichtprüfung und amtlicher Warnlage — Warnungen gibt ausschließlich der Wetterdienst heraus.' },
     ],
     sources: [
       { name: 'EASA: Drones — Civil drones (unmanned aircraft) regulatory framework', url: 'https://www.easa.europa.eu/en/domains/drones-air-mobility' },
@@ -1127,7 +1111,7 @@ export const EXPLAINERS_EXTRA = [
     ],
     relatedExplainers: ['windboeen-sturm', 'foehn', 'talwind', 'gewitter-unwetter'],
     relatedPlaces: ['hamburg', 'frankfurt-am-main', 'wien', 'zuerich', 'feldberg-schwarzwald'],
-    datePublished: PUBLISHED, dateModified: MODIFIED,
+    datePublished: PUBLISHED, dateModified: '2026-11-01',
   },
 ];
 

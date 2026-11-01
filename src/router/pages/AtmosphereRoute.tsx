@@ -1,8 +1,9 @@
 /**
- * `/atmosphaere/:lens?/:ort?` — Linse im Pfad (`fliegen` · `berg-und-weg` ·
- * `querschnitt` · `arbeitsfenster`), Ort als lesbares letztes Segment,
- * Unterlinse des Querschnitts in `?ansicht=`, der übrige Zustand in der Query
+ * `/atmosphaere/:lens?/:ort?` — einzige Linse im Pfad ist `querschnitt`, der Ort
+ * das lesbare letzte Segment, der übrige Zustand steht in der Query
  * (`t`, `nerd`, `marker`, `schnitt` — `src/atmosphere/atmosphereUrl.ts`).
+ * Die alten Ansichten (`fliegen`, `berg-und-weg`, `arbeitsfenster`, `?ansicht=gonogo`)
+ * führen auf den Querschnitt: 301 in `netlify.toml`, hier `<Navigate replace>`, Query und Ort bleiben.
  *
  * ── SH3: der Zustand ist aus dem Fragment gewandert ──────────────────────────
  * Bis 2026-09-08 lag er als prozentkodiertes JSON in `#atm=` (und davor `#3d=`).
@@ -20,7 +21,7 @@
  * Einträge erzeugen.
  */
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { useLocation, useNavigate, useNavigationType, useParams } from 'react-router';
+import { Navigate, useLocation, useNavigate, useNavigationType, useParams } from 'react-router';
 import AtmospherePage, { type DeckSub } from '../../atmosphere/AtmospherePage';
 import type { Lens } from '../../atmosphere/atmosphereState';
 import { decodeState as decodeAtmHash } from '../../atmosphere/atmosphereState';
@@ -29,16 +30,13 @@ import {
   buildAtmosphereSearch, parseAtmosphereQuery, validAtFromHour, type AtmosphereUrlState,
 } from '../../atmosphere/atmosphereUrl';
 import { resolveRoutePlace, slugForPlace } from '../../share/placeTable';
-import { ATMOSPHERE_LENS_SLUGS, ATMOSPHERE_WORK_WINDOW_SLUG } from '../routes';
+import { ATMOSPHERE_LENS_SLUGS, ATMOSPHERE_RETIRED_SLUGS, normalizePath } from '../routes';
 import { useAppNav } from '../useAppNav';
 import StaleLinkNotice from '../../share/StaleLinkNotice';
 import NotFoundRoute from './NotFoundRoute';
 
 const SLUG_TO_LENS: Record<string, Lens> = {
-  [ATMOSPHERE_LENS_SLUGS.fly]: 'fly',
-  [ATMOSPHERE_LENS_SLUGS.mountain]: 'mountain',
   [ATMOSPHERE_LENS_SLUGS.section]: 'section',
-  [ATMOSPHERE_WORK_WINDOW_SLUG]: 'section',
 };
 /** Sub-Route mit eigener Unterlinse (der Rest kommt aus `?ansicht=`). */
 const SLUG_TO_SUB: Record<string, DeckSub> = {};
@@ -47,8 +45,9 @@ const SUBS: readonly DeckSub[] = ['hoehenwind'];
 const STATE_DEBOUNCE_MS = 300;
 
 /** Kanonische URL aus Linse, Unterlinse, Ort und Zustand. Die EINE Stelle. */
-function urlFor(lens: Lens, _sub: DeckSub, st: AtmosphereUrlState | null, extra: ReadonlyArray<[string, string]>): string {
-  const base = `/atmosphaere/${ATMOSPHERE_LENS_SLUGS[lens]}`;
+function urlFor(_lens: Lens, _sub: DeckSub, st: AtmosphereUrlState | null, extra: ReadonlyArray<[string, string]>): string {
+  // Der Pfad kennt nur noch den Querschnitt; eine alte Linse aus Link oder Speicher setzt das Deck selbst darauf.
+  const base = `/atmosphaere/${ATMOSPHERE_LENS_SLUGS.section}`;
   const slug = st?.place ? slugForPlace(st.place) : null;
   const path = slug ? `${base}/${slug.slug}` : base;
   // `ansicht` bleibt Query und gehört dem Wrapper — deshalb hier, nicht im Codec.
@@ -58,6 +57,16 @@ function urlFor(lens: Lens, _sub: DeckSub, st: AtmosphereUrlState | null, extra:
 }
 
 export default function AtmosphereRoute() {
+  const { lens: slug } = useParams<{ lens?: string }>();
+  const { pathname, search, hash } = useLocation();
+  // Alte Ansicht: sofort auf den Querschnitt, damit nie die 404 aufblitzt (`App.tsx` normalisiert erst nach dem Commit).
+  if (slug && (ATMOSPHERE_RETIRED_SLUGS as readonly string[]).includes(slug)) {
+    return <Navigate to={{ pathname: normalizePath(pathname) ?? `/atmosphaere/${ATMOSPHERE_LENS_SLUGS.section}`, search, hash }} replace />;
+  }
+  return <AtmosphereRouteView />;
+}
+
+function AtmosphereRouteView() {
   const { lens: slug, ort } = useParams<{ lens?: string; ort?: string }>();
   const loc = useLocation();
   const navigate = useNavigate();
@@ -68,7 +77,6 @@ export default function AtmosphereRoute() {
   const parsed = useMemo(() => parseAtmosphereQuery(loc.search, Date.now()), [loc.search]);
   const ansichtRaw = new URLSearchParams(loc.search).get('ansicht');
   const subFromQuery = (SUBS as readonly string[]).includes(ansichtRaw ?? '') ? (ansichtRaw as DeckSub) : null;
-  // Der Pfad schlägt die Query: `/atmosphaere/arbeitsfenster?ansicht=inversion` bleibt Go/No-Go.
   const initialSub = (slug ? SLUG_TO_SUB[slug] : null) ?? subFromQuery;
 
   /**
@@ -166,7 +174,7 @@ export default function AtmosphereRoute() {
   useEffect(() => {
     if (slug && !lens && !legacy) return;
     if (legacy || parsed.invalid.length || routePlace.unresolved || (parsed.place && !ort)) {
-      const l = lensRef.current ?? lens ?? 'mountain';
+      const l = lensRef.current ?? lens ?? 'section';
       void navigate(urlFor(l, subRef.current, stateRef.current, extraRef.current), { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

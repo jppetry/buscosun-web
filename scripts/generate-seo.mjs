@@ -197,7 +197,7 @@ writeFileSync(join(DIST, 'glossar', 'index.html'), renderGlossaryPage(GLOSSARY, 
 for (const pg of AUDIENCES) {
   const dir = join(DIST, 'fuer', pg.slug);
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, 'index.html'), renderAudiencePage(pg, AUDIENCES_UPDATED), 'utf8');
+  writeFileSync(join(dir, 'index.html'), renderAudiencePage(pg, pg.updated ?? AUDIENCES_UPDATED), 'utf8');
 }
 mkdirSync(join(DIST, 'fuer'), { recursive: true });
 writeFileSync(join(DIST, 'fuer', 'index.html'), renderAudienceHub(AUDIENCES, AUDIENCES_UPDATED), 'utf8');
@@ -328,7 +328,7 @@ function rssFeed() {
       title: m.title, link: `${SITE.url}/methodik/${m.slug}/`, desc: m.answer, date: METHODIK_UPDATED, cat: 'Methodik',
     })),
     ...AUDIENCES.map((a) => ({
-      title: a.title, link: `${SITE.url}/fuer/${a.slug}/`, desc: a.answer, date: AUDIENCES_UPDATED, cat: 'Für wen',
+      title: a.title, link: `${SITE.url}/fuer/${a.slug}/`, desc: a.answer, date: a.updated ?? AUDIENCES_UPDATED, cat: 'Für wen',
     })),
   ].sort((a, b) => (a.date < b.date ? 1 : -1));
   const rfc822 = (iso) => new Date(iso + 'T08:00:00Z').toUTCString();

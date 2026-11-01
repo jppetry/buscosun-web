@@ -343,7 +343,14 @@ add('[ort] kaputtes Segment wird gar nicht erst als Slug gelesen',
 
   // Ein alter Zeitpunkt wird auch hier gemeldet (V-SH-2).
   add('[SH3] vergangener Zeitpunkt wird gemeldet',
-    parseShareUrl('/atmosphaere/berg-und-weg', '?t=2026-09-12T09:00Z', NOW).timePast === true);
+    parseShareUrl('/atmosphaere/querschnitt', '?t=2026-09-12T09:00Z', NOW).timePast === true);
+
+  // Retired views (Jan 01.11.2026): labels gone from the adapter AND from the generated edge bundle, the section stays.
+  {
+    const bundle = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'netlify', 'edge-shared', 'shareParser.js'), 'utf8');
+    add('[ATM] Edge-Bundle ohne die Labels der alten Ansichten', !/Thermik & Fliegen|Föhn, Berg & Weg|arbeitsfenster:\s*"Arbeitsfenster"/.test(bundle));
+    add('[ATM] Gegenprobe: das Edge-Bundle trägt den Querschnitt', /querschnitt:\s*"Querschnitt"/.test(bundle));
+  }
 
   // Cache-Schlüssel unterscheidet die Sichten.
   add('[SH3] Cache-Schlüssel trennt die Sichten',
