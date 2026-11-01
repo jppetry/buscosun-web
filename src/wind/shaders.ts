@@ -150,7 +150,9 @@ void main() {
   // Weiche, runde Punkte statt harter Quadrate (gl_PointCoord-Radius).
   vec2 pc = gl_PointCoord - 0.5;
   float d = length(pc);
-  float soft = smoothstep(0.5, 0.18, d);
+  // Harter Kern (voller Radius bis 0,36 statt 0,18): der Schweif ist aus denselben Stempeln gebaut und bleibt dadurch
+  // beim Verblassen so breit wie der Punkt (die weichen Raender verschwanden zuerst, 01.11.).
+  float soft = smoothstep(0.5, 0.36, d);
   if (soft <= 0.0) discard;
 
   vec2 wind_uv = (v_particle_pos - u_data_uv_bounds.xy) /
