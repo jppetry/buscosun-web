@@ -29,7 +29,7 @@ const OG_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public
 // SH6: welche App-Karte zu Route/Sub-Route gehoert, sagt EINE Regel — dieselbe,
 // die der Renderer, die Edge Function und der Verifier benutzen.
 import { ogCardPath } from '../../src/share/ogCard.ts';
-import { routeText } from '../../src/seo/subRouteTexts.ts';
+import { routeText } from '../../src/seo/routeTexts.ts';
 import { ROUTE_BY_ID, metaForPath } from '../../src/router/routes.ts';
 
 export const ogImageOr = (slug, fallback) => (existsSync(join(OG_DIR, `${slug}.png`)) ? `/og/${slug}.png` : fallback);

@@ -20,7 +20,8 @@ import { ATMOSPHERE_RETIRED_SLUGS, CROSS_ALIASES, ROUTES, ROUTE_BY_ID, SITE_URL,
 // SEO/GEO 2026 (E1): Layer-Katalog = eine Quelle für Dock, Sub-Routen-Shells, gerenderten Inhalt.
 import { verifyLayerCatalog, LAYER_CATALOG } from '../src/map/layerCatalog.ts';
 import { ALL_LAYER_KEYS } from '../src/map/layerTypes.ts';
-import { verifySubRouteTexts, subRouteText, routeText } from '../src/seo/subRouteTexts.ts';
+import { verifySubRouteTexts, subRouteText } from '../src/seo/subRouteTexts.ts';
+import { routeText } from '../src/seo/routeTexts.ts';
 import { ROUTES as ROUTE_LIST_FOR_TEXT, ROUTE_TEXT_IDS } from '../src/router/routes.ts';
 import { verifyUrlState, mapPathForPlace } from '../src/router/urlState.ts';
 // SH1 (Teilen): Ort-Slug im Pfad — reine Regel + Tabelle.
