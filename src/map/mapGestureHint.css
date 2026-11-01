@@ -1,0 +1,126 @@
+/* Gesten-Bühne (MapGestureHint): einmaliger Zoom-Hinweis über der Kartenfläche.
+   Liegt als Kind im Kartencontainer (position: relative), nie über Header oder Sidebar. */
+
+.bs-hint {
+  position: absolute; inset: 0; z-index: 30; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'League Spartan', var(--font-base, system-ui), sans-serif;
+  color: #fff;
+  --bs-hint-accent: #B5651D;
+}
+
+.bs-hint-veil {
+  position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; border: 0;
+  background: rgba(28, 26, 22, 0.64); cursor: pointer; appearance: none; -webkit-appearance: none;
+  animation: bs-hint-in 380ms ease both;
+}
+.bs-hint-veil:focus-visible { outline: 2px solid #FAF6EA; outline-offset: -4px; }
+
+.bs-hint-content {
+  position: relative; z-index: 1; pointer-events: none;
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  padding: 0 24px; text-align: center;
+  animation: bs-hint-in 380ms ease both;
+}
+
+/* --- Illustration ------------------------------------------------------- */
+.bs-hint-art {
+  position: relative; width: 156px; height: 156px; border-radius: 50%; flex: none;
+  background: rgba(250, 246, 234, 0.10); border: 1px solid rgba(250, 246, 234, 0.30);
+  display: flex; align-items: center; justify-content: center;
+}
+.bs-hint-mouse {
+  position: relative; width: 46px; height: 72px; box-sizing: border-box;
+  border: 3px solid #FAF6EA; border-radius: 23px;
+}
+.bs-hint-wheel {
+  position: absolute; left: 50%; top: 11px; width: 6px; height: 14px; margin-left: -3px; border-radius: 3px;
+  background: var(--bs-hint-accent); animation: bs-hint-wheel 1.2s ease-in-out infinite;
+}
+.bs-hint-chev { position: absolute; left: 50%; top: 14px; margin-left: -11px; animation: bs-hint-chev 1.2s ease-in-out infinite; }
+.bs-hint-plus {
+  position: absolute; right: 18px; bottom: 16px; width: 30px; height: 30px; border-radius: 50%;
+  background: var(--bs-hint-accent); color: #fff; font-size: 22px; font-weight: 700; line-height: 29px; text-align: center;
+}
+
+.bs-hint-fingers { position: absolute; inset: 0; width: 100%; height: 100%; }
+.bs-hint-finger {
+  position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%;
+  background: #FAF6EA; box-shadow: 0 0 0 7px color-mix(in srgb, var(--bs-hint-accent) 60%, transparent);
+}
+.bs-hint-finger.is-a { animation: bs-hint-finger-a 2.4s ease-in-out infinite; }
+.bs-hint-finger.is-b { animation: bs-hint-finger-b 2.4s ease-in-out infinite; }
+
+/* --- Text --------------------------------------------------------------- */
+.bs-hint-title { font-size: 30px; font-weight: 700; letter-spacing: -0.3px; line-height: 1.1; }
+.bs-hint-sub { font-size: 16.5px; line-height: 1.35; color: rgba(255, 255, 255, 0.9); max-width: 430px; }
+
+.bs-hint-click {
+  display: flex; align-items: center; gap: 12px; text-align: left;
+  padding: 9px 18px 9px 9px; border-radius: 16px;
+  background: rgba(250, 246, 234, 0.10); border: 1px solid rgba(250, 246, 234, 0.24);
+}
+.bs-hint-click-tile { position: relative; width: 42px; height: 42px; flex: none; display: flex; align-items: center; justify-content: center; }
+.bs-hint-click-txt { display: flex; flex-direction: column; gap: 1px; }
+.bs-hint-click-txt b { font-size: 16px; font-weight: 700; }
+.bs-hint-click-txt span { font-size: 14px; color: rgba(255, 255, 255, 0.85); }
+
+.bs-hint-dot,
+.bs-hint-spot-dot {
+  position: relative; width: 12px; height: 12px; border-radius: 50%; background: var(--bs-hint-accent);
+  box-shadow: 0 0 0 2.5px #fff, 0 0 0 7px color-mix(in srgb, var(--bs-hint-accent) 60%, transparent);
+}
+.bs-hint-ripple {
+  position: absolute; left: 50%; top: 50%; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%;
+  border: 2px solid #fff; opacity: 0; animation: bs-hint-ripple 1.6s ease-out infinite; pointer-events: none;
+}
+
+.bs-hint-cta {
+  display: inline-flex; align-items: center; height: 42px; padding: 0 22px; border-radius: 999px;
+  background: #FAF6EA; color: #2C2A26; font-size: 15px; font-weight: 600;
+}
+
+/* --- Leuchtpunkt über dem Schleier -------------------------------------- */
+.bs-hint-spot {
+  position: absolute; z-index: 2; width: 30px; height: 30px; margin: -15px 0 0 -15px; padding: 0; border: 0;
+  background: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  animation: bs-hint-spot-breathe 2.4s ease-in-out infinite;
+}
+.bs-hint-spot:focus-visible { outline: 2px solid #FAF6EA; outline-offset: 4px; border-radius: 50%; }
+.bs-hint-spot-label {
+  position: absolute; left: 24px; top: 50%; margin-top: -16px; height: 32px; padding: 0 14px 0 10px; border-radius: 999px;
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+  background: #FAF6EA; color: #2C2A26; font-size: 14px; font-weight: 600; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+}
+.bs-hint-spot.is-flip .bs-hint-spot-label { left: auto; right: 24px; }
+
+/* --- Die Karte atmet (Canvas-Container, ohne Map-Zoom) ------------------- */
+.bs-hint-breathe { transform-origin: 50% 50%; animation: bs-hint-breathe 2.4s ease-in-out infinite; }
+
+@keyframes bs-hint-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes bs-hint-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+/* Der Punkt folgt dem Atmen der Karte: Abstand zur Kartenmitte (--dx/--dy) wächst mit ihr um 7 %. */
+@keyframes bs-hint-spot-breathe { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(calc(var(--dx) * 0.07), calc(var(--dy) * 0.07)); } }
+@keyframes bs-hint-wheel { 0% { transform: translateY(0); opacity: 1; } 80% { transform: translateY(13px); opacity: 0; } 100% { transform: translateY(13px); opacity: 0; } }
+@keyframes bs-hint-chev { 0%, 100% { opacity: 0.35; transform: translateY(2px); } 50% { opacity: 1; transform: translateY(-3px); } }
+@keyframes bs-hint-ripple { 0% { transform: scale(0.6); opacity: 0.9; } 100% { transform: scale(2.1); opacity: 0; } }
+/* Abstand der Fingerpunkte 10 → 34 px, entlang der Diagonale (je Punkt ±d/2/√2). */
+@keyframes bs-hint-finger-a { 0%, 100% { transform: translate(-3.5px, 3.5px); } 50% { transform: translate(-12px, 12px); } }
+@keyframes bs-hint-finger-b { 0%, 100% { transform: translate(3.5px, -3.5px); } 50% { transform: translate(12px, -12px); } }
+
+/* --- Mobil: unten ausgerichtet ------------------------------------------ */
+@media (max-width: 767px) {
+  .bs-hint { align-items: flex-end; padding-bottom: 34px; box-sizing: border-box; }
+  .bs-hint-content { gap: 11px; padding: 0 16px; }
+  .bs-hint-art { width: 136px; height: 136px; }
+  .bs-hint-title { font-size: 26px; }
+  .bs-hint-sub { font-size: 15px; }
+  .bs-hint-cta { height: 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bs-hint-veil, .bs-hint-content, .bs-hint-spot,
+  .bs-hint-wheel, .bs-hint-chev, .bs-hint-finger, .bs-hint-ripple { animation: none; }
+  .bs-hint-ripple { opacity: 0.5; transform: scale(1.4); }
+  .bs-hint-breathe { animation: none; }
+}

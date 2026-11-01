@@ -125,6 +125,7 @@ import {
 import { BR_LAYER, BR_GROUP_COLOR, dangerCardMeta, DANGER_VIEW_CODE, BR_BADGE_LABEL, badgeOf } from './brandradarMeta';
 import { recordTitle, recordName, regionLabel, Stat, type PanelSort } from './FireFootprintPanel';
 import { FireMapCard, HistoryMapCard } from './FireMapCard';
+import MapGestureHint, { type HintSpot } from '../map/MapGestureHint';
 import { FireRegionSearch, type RegionHit } from './FireRegionSearch';
 import { ageText } from '../dataAge';
 import './fireDeck.css';
@@ -2181,6 +2182,14 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   // --- BD2: Bühne Karte | Dossier --------------------------------------------------
   const dossierRecord = selectedFootprint ? recordsById.get(selectedFootprint) ?? null : null;
   const inDossier = stage === 'dossier';
+  // Gesten-Bühne: Leuchtpunkt-Kandidaten = die Brände der Liste in ihrer Reihenfolge (Anlagenmuster nie).
+  const hintSpots = useCallback((): HintSpot[] => records
+    .filter((r) => r.anomaly?.kind !== 'site')
+    .slice(0, 40)
+    .map((r) => ({
+      lng: r.lon, lat: r.lat, name: recordTitle(r),
+      onPick: () => { selectFootprintFromMap(r.id); },
+    })), [records, selectFootprintFromMap]);
   /** Info card of the fire picked on the map — only while it is still the selected one and the map is the stage. */
   const mapCardRecord = mapCard?.kind === 'fire' && mapCard.id === selectedFootprint && !inDossier ? recordsById.get(mapCard.id) ?? null : null;
   const mapCardHistory = mapCard?.kind === 'history' && mapCard.id === selectedHistory && !inDossier ? historyEntriesById?.get(mapCard.id) ?? null : null;
@@ -2512,6 +2521,10 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
               weather={weather} soil={soil}
 
               prefetchIsoDate={prefetchIso} onTier={setTier}
+            />
+            <MapGestureHint
+              map={fireMapInst} feature="brandradar" accent="#B5651D" pickSpots={hintSpots} always
+              enabled={!inDossier && (!isMobile || mobileTab === 'map')}
             />
 
             {/* Oben links: Quellen-Pille, Sub-Ansichten, Ehrlichkeits-Notizen. Im
