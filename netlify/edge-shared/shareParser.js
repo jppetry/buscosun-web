@@ -325,6 +325,53 @@ function roadSeoSubs() {
   }));
 }
 
+// src/fire/fireLink.ts
+var FIRE_LINK_SEGMENT = "brand";
+var DET_RE = /^(-?\d{1,3}\.\d{5})_(-?\d{1,3}\.\d{5})_(\d{12,13})$/;
+var EFFIS_RE = /^effis-([A-Za-z0-9._-]{1,40})$/;
+var p2 = (n) => String(n).padStart(2, "0");
+function decodeTime(s) {
+  if (s.length === 13) {
+    const n = Number(s);
+    return Number.isFinite(n) ? n : null;
+  }
+  const y = Number(s.slice(0, 4)), mo = Number(s.slice(4, 6)), d = Number(s.slice(6, 8));
+  const h = Number(s.slice(8, 10)), mi = Number(s.slice(10, 12));
+  if (mo < 1 || mo > 12 || d < 1 || d > 31 || h > 23 || mi > 59) return null;
+  const ms = Date.UTC(y, mo - 1, d, h, mi);
+  const back = new Date(ms);
+  return back.getUTCMonth() === mo - 1 && back.getUTCDate() === d ? ms : null;
+}
+function parseFireLink(slug) {
+  if (!slug) return null;
+  const e = EFFIS_RE.exec(slug);
+  if (e) return { kind: "effis", slug, effisId: e[1] };
+  const m = DET_RE.exec(slug);
+  if (!m) return null;
+  const lat = Number(m[1]), lon = Number(m[2]);
+  const acqMs = decodeTime(m[3]);
+  if (acqMs == null || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+  return { kind: "detection", slug, lat, lon, acqMs, latStr: m[1], lonStr: m[2] };
+}
+function fireTimeText(ms) {
+  const d = new Date(ms);
+  return `${p2(d.getUTCDate())}.${p2(d.getUTCMonth() + 1)}.${d.getUTCFullYear()}, ${p2(d.getUTCHours())}:${p2(d.getUTCMinutes())} Uhr UTC`;
+}
+var deg = (v, pos, neg) => `${Math.abs(v).toFixed(2).replace(".", ",")}° ${v >= 0 ? pos : neg}`;
+var fireCoordText = (lat, lon) => `${deg(lat, "N", "S")}, ${deg(lon, "E", "W")}`;
+function describeFireLink(t) {
+  if (t.kind === "effis") {
+    return {
+      title: "Brandfläche (EFFIS) — Brandradar",
+      description: `Von EFFIS kartierte Brandfläche, Kennung ${t.effisId}. Die Seite zeigt Lage, Fläche und Quellen dieses Brandes. Datenseite des Brandradars, keine amtliche Warnung.`
+    };
+  }
+  return {
+    title: `Brand bei ${fireCoordText(t.lat, t.lon)} — Brandradar`,
+    description: `Erste Satellitendetektion dieses Brandes: ${fireTimeText(t.acqMs)} (NASA FIRMS). Die Seite zeigt Lage, Verlauf und Quellen. Detektionen sind unbestätigt, solange keine Kartierung sie stützt — Datenseite des Brandradars, keine amtliche Warnung.`
+  };
+}
+
 // src/router/routes.ts
 var ROAD_INDEXABLE = false;
 var SITE_URL = "https://buscosun.com";
@@ -723,7 +770,7 @@ var LAYER_CATALOG = {
   },
   warnings: {
     label: "Warnungen",
-    title: 'Amtliche Wetterwarnungen von DWD (Deutschland, CAP, landkreisgenau) und MeteoSchweiz (Schweiz, Warnregionen, über den MeteoAlarm-Feed) — alle 5 Minuten. Das AMTLICHE Warnprodukt: alle anderen Layer dieser Karte verweisen darauf. Überschrift, Beschreibung und Handlungshinweis werden wortwörtlich übernommen. Die Flächenfarbe ist für Deutschland die amtliche Warnfarbe aus der Meldung; der Schweizer Feed führt keine Farbe mit, dort ist sie aus der amtlichen Gefahrenstufe ABGELEITET. Warnstufen werden quellenrein geführt — die Stufennummern der beiden Dienste bedeuten Verschiedenes. Der Layer folgt dem Zeit-Slider: gezeigt wird, was zur eingestellten Stunde gilt. ÖSTERREICH fehlt weiterhin (geplant) — dort warnt GeoSphere Austria; eine leere Fläche über Österreich heißt NICHT „keine Warnung". Fällt eine der beiden Quellen aus, sagt die Karte ausdrücklich, welches Land fehlt. Kein Ersatz für die amtliche Bekanntmachung: maßgeblich bleiben dwd.de/warnungen und meteoschweiz.admin.ch.'
+    title: 'Amtliche Wetterwarnungen von DWD (Deutschland, CAP, landkreisgenau), GeoSphere Austria (Österreich, Gemeinden) und MeteoSchweiz (Schweiz, Warnregionen, über den MeteoAlarm-Feed) — alle 5 Minuten. Das AMTLICHE Warnprodukt: alle anderen Layer dieser Karte verweisen darauf. Überschrift, Beschreibung und Handlungshinweis werden wortwörtlich übernommen. Die Flächenfarbe ist für Deutschland die amtliche Warnfarbe aus der Meldung; Österreich und die Schweiz führen keine Farbe mit, dort ist sie aus der amtlichen Warn- bzw. Gefahrenstufe ABGELEITET. Warnstufen werden quellenrein geführt — die Stufennummern der beiden Dienste bedeuten Verschiedenes. Der Layer folgt dem Zeit-Slider: gezeigt wird, was zur eingestellten Stunde gilt. Österreichische Warnungen gelten nur für den Dauersiedlungsraum, hochalpine Lagen sind ausgenommen — eine warnfreie Alpenfläche heißt NICHT „keine Gefahr". Fällt eine der Quellen aus, sagt die Karte ausdrücklich, welches Land fehlt. Kein Ersatz für die amtliche Bekanntmachung: maßgeblich bleiben dwd.de/warnungen und meteoschweiz.admin.ch.'
   }
 };
 
@@ -863,7 +910,8 @@ function parseShareUrl(pathname, search, nowMs = Date.now()) {
     const q = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
     const pairs = [...q.entries()];
     const placeAt = PLACE_SEGMENT[routeId];
-    const viewSlug = placeAt === 1 ? null : seg[1] ?? null;
+    const isFireLink = routeId === "waldbrand" && seg[1] === FIRE_LINK_SEGMENT;
+    const viewSlug = placeAt === 1 || isFireLink ? null : seg[1] ?? null;
     const rp2 = resolveRoutePlace(placeAt ? seg[placeAt] : void 0, placeFromPairs(q));
     const t = parseValidTime(q.get("t"));
     return {
@@ -877,6 +925,7 @@ function parseShareUrl(pathname, search, nowMs = Date.now()) {
       timePast: t != null && t <= nowMs ? true : void 0,
       placeUnresolved: rp2.unresolved,
       viewSlug,
+      ...isFireLink ? { fireLink: parseFireLink(seg[2]) } : {},
       rawPath: "/" + seg.join("/"),
       rawQuery: pairs
     };
@@ -903,6 +952,10 @@ function parseShareUrl(pathname, search, nowMs = Date.now()) {
   };
 }
 function describeShareState(s, timeZone) {
+  if (s.routeId === "waldbrand" && s.fireLink) {
+    const d = describeFireLink(s.fireLink);
+    return { title: d.title, description: d.description, message: d.title };
+  }
   const feature = SHARE_FEATURE_LABEL[s.routeId];
   const topic = s.routeId === "wetterkarte" && s.primary ? LAYER_CATALOG[s.primary].label : s.viewSlug ? VIEW_LABEL[s.viewSlug] ?? null : null;
   const description = s.routeId === "wetterkarte" && s.primary ? LAYER_SLUG_DESCRIPTION[s.primary] : subRouteDescription(s.routeId, s.viewSlug);
@@ -940,11 +993,13 @@ function describeShareUrl(pathname, search, nowMs = Date.now(), timeZone) {
 function ogCardForShare(s) {
   const view = s.viewSlug ?? (s.primary ? LAYER_SLUGS[s.primary] : null);
   if (s.routeId === "warnungen") return ogCardPath("warnungen");
+  if (s.routeId === "waldbrand" && s.fireLink) return ogCardPath("waldbrand", "aktive-braende");
   if (s.routeId === "wetterkarte" && view === LAYER_SLUGS.warnings) return ogCardPath("warnungen");
   return ogCardPath(s.routeId, view);
 }
 function canonicalShareKey(s) {
   const parts = [s.routeId];
+  if (s.fireLink) parts.push(`f:${s.fireLink.slug}`);
   if (s.viewSlug) parts.push(`v:${s.viewSlug}`);
   if (s.primary) parts.push(`l:${LAYER_SLUGS[s.primary]}`);
   const rest = s.layers.filter((k) => k !== s.primary).map((k) => LAYER_SLUGS[k]).sort();
