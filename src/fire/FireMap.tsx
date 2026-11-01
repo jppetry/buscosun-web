@@ -510,7 +510,11 @@ export default function FireMap({
     if (!m.getStyle() || !m.isStyleLoaded()) return;
     const s = stateRef.current;
 
-    installLayers(m, basemapRef.current);
+    // Die DACH-Maske wird nur geholt/eingehängt, wenn sie etwas abdeckt (Region DACH oder
+    // eine ICON-D2-Ebene an) — in Europa ohne Treiber-Ebene kostet sie sonst Ladezeit und
+    // zeigt kurz den DACH-Ausschnitt, bevor ein späterer applyState sie ausblendet.
+    const wantDachMask = s.region === 'dach' || s.active.has('fireWeather') || s.active.has('fireSoilDryness');
+    installLayers(m, basemapRef.current, wantDachMask, () => applyState(m));
 
     // EU-Raster: Die Kachel-URL trägt den Tag UND den Layer der Sub-Ansicht (E3),
     // also muss die Quelle bei einem Wechsel ersetzt werden — eine `raster`-
@@ -1408,7 +1412,7 @@ function firstLayerAbove(map: maplibregl.Map, id: FireLayerId): string | undefin
  * eingehängt: EU-Fläche unten, Landesstufen darüber, Punkte oben. Sonst
  * verdeckt die EU-Rasterfläche genau die Stationspunkte, die sie erklären soll.
  */
-function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets') {
+function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets', wantDachMask = true, onDachMask?: () => void) {
   if (!map.getSource('fire-empty')) {
     map.addSource('fire-empty', { type: 'geojson', data: EMPTY_FC });
   }
@@ -1471,7 +1475,7 @@ function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets') {
   // #E0D6BE), nicht mehr als halbdurchsichtiger dunkler Schleier. Damit zeigt
   // die Brandkarte nur noch DE/AT/CH auf buscosun-farbenem Grund. Asynchron,
   // deshalb defensiv — die Karte darf inzwischen abgeräumt worden sein.
-  void loadDachMask().then((mask) => {
+  if (wantDachMask && !map.getSource('fire-dach-mask')) void loadDachMask().then((mask) => {
     if (!map.getStyle()) return;
     if (!map.getSource('fire-dach-mask')) {
       map.addSource('fire-dach-mask', { type: 'geojson', data: mask });
@@ -1479,8 +1483,11 @@ function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets') {
         id: 'fire-dach-mask-fill',
         type: 'fill',
         source: 'fire-dach-mask',
+        layout: { visibility: 'none' },
         paint: { 'fill-color': '#E0D6BE', 'fill-opacity': 1.0 },
       });
+      // Sichtbarkeit/Reihenfolge setzt applyState (es kennt Region und aktive Ebenen).
+      onDachMask?.();
     }
   }).catch(() => { /* Maske ist Beiwerk — ihr Ausfall darf die Karte nicht kippen */ });
 
