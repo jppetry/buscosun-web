@@ -13,6 +13,7 @@ import NotFoundRoute from './NotFoundRoute';
 import AppLoader from '../AppLoader';
 import { glacierFlagFrom, rememberGlacierFlag } from '../../glacier/glacierFlag';
 import { buildGlacierUrl, parseGlacierUrl, type GlacierUrlState } from '../../glacier/glacierState';
+import GlacierLinkNotice from '../../glacier/GlacierLinkNotice';
 
 const GlacierPage = lazy(() => import('../../glacier/GlacierPage'));
 const STATE_DEBOUNCE_MS = 300;
@@ -26,6 +27,8 @@ export default function GlacierRoute() {
   useEffect(() => { rememberGlacierFlag(loc.search); }, [loc.search]);
 
   const parsed = useMemo(() => parseGlacierUrl(glacier ?? null, loc.search), [glacier, loc.search]);
+  /** The first parse decides (the tidy-up navigation clears `invalid` right after arriving). */
+  const initialInvalid = useRef(parsed.invalid.includes('glacier') || parsed.invalid.includes('sel')).current;
   const stateRef = useRef<GlacierUrlState>(parsed.state);
   const timer = useRef<number | null>(null);
   const unmounted = useRef(false);
@@ -66,6 +69,8 @@ export default function GlacierRoute() {
   if (!enabled) return <NotFoundRoute />;
   return (
     <Suspense fallback={<AppLoader />}>
+      {/* a link whose glacier segment is malformed: the URL was tidied above, the notice says why the overview opens */}
+      <GlacierLinkNotice show={initialInvalid} />
       <GlacierPage initial={parsed.state} invalid={parsed.invalid} onUrlState={onUrlState} onGlacier={onGlacier}
         popState={navType === 'POP' ? { ...parsed.state, key: loc.key } : null} />
     </Suspense>

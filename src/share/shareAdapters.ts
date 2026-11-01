@@ -49,18 +49,20 @@ import { encodeShareQuery, parseValidTime, roundTo, shareableExtras, shareLength
 import { shareCopy, shareMessage, type ShareCopy } from './shareText';
 // Brandradar: ein einzelner Brand (`/waldbrand/brand/<kennung>`) — rein, nur Typ-Importe, kein Fire-Modell im Share-Chunk.
 import { FIRE_LINK_SEGMENT, describeFireLink, parseFireLink, type FireLinkTarget } from '../fire/fireLink';
+// Gletscher: das Pfadsegment (`/gletscher/ch-grosser-aletschgletscher`) ist die Kennung — dependency-free Modul, kein Gletscher-Chunk im Share-Pfad.
+import { isGlacierSegment, glacierSegmentLabel } from '../glacier/glacierState';
 
 export type ShareRouteId =
   | 'wetterkarte' | 'warnungen' | 'regenradar'
-  | 'waldbrand' | 'atmosphaere' | 'eventplanung' | 'wetterarchiv' | 'globus' | 'vorhersage';
+  | 'waldbrand' | 'atmosphaere' | 'eventplanung' | 'wetterarchiv' | 'globus' | 'vorhersage' | 'gletscher';
 
 export const SHARE_ROUTES: readonly ShareRouteId[] = [
-  'wetterkarte', 'warnungen', 'regenradar', 'waldbrand', 'atmosphaere', 'eventplanung', 'wetterarchiv', 'globus', 'vorhersage',
+  'wetterkarte', 'warnungen', 'regenradar', 'waldbrand', 'atmosphaere', 'eventplanung', 'wetterarchiv', 'globus', 'vorhersage', 'gletscher',
 ];
 
 /** Seiten, deren URL übernommen (und nur gefiltert) statt neu gebaut wird. */
 const PASSTHROUGH: ReadonlySet<ShareRouteId> = new Set([
-  'waldbrand', 'atmosphaere', 'eventplanung', 'wetterarchiv', 'globus', 'vorhersage',
+  'waldbrand', 'atmosphaere', 'eventplanung', 'wetterarchiv', 'globus', 'vorhersage', 'gletscher',
 ]);
 
 /** Welche Durchreiche-Seite trägt den Ort im Pfad — und an welcher Stelle? */
@@ -98,6 +100,7 @@ export const SHARE_FEATURE_LABEL: Readonly<Record<ShareRouteId, string>> = {
   wetterarchiv: 'Wetterarchiv',
   globus: 'Globus',
   vorhersage: 'Vorhersage',
+  gletscher: 'Gletscher',
 };
 
 export interface ShareState {
@@ -126,6 +129,8 @@ export interface ShareState {
   placeUnresolved?: boolean;
   /** Brandradar: Link auf EINEN Brand (`/waldbrand/brand/<kennung>`); `null` bei unlesbarer Kennung. */
   fireLink?: FireLinkTarget | null;
+  /** Gletscher: der Pfadsegment-Slug des Gletschers (`ch-grosser-aletschgletscher`), nur wenn wohlgeformt. */
+  glacierSeg?: string | null;
 }
 
 export interface ShareUrl {
@@ -192,7 +197,11 @@ export function parseShareUrl(pathname: string, search: string, nowMs: number = 
     // Beim Wetterarchiv steht an Stelle 1 der ORT, bei den anderen die Sicht.
     const placeAt = PLACE_SEGMENT[routeId];
     const isFireLink = routeId === 'waldbrand' && seg[1] === FIRE_LINK_SEGMENT;
-    const viewSlug = placeAt === 1 || isFireLink ? null : seg[1] ?? null;
+    // Gletscher: der Pfad trägt den Gletscher; auf der Lage-Seite markiert `?sel=` ihn — geteilt wird in beiden Fällen sein Steckbrief.
+    const glacierSeg = routeId === 'gletscher'
+      ? (isGlacierSegment(seg[1]) ? seg[1] : isGlacierSegment(q.get('sel')) && !seg[1] ? q.get('sel') : null)
+      : undefined;
+    const viewSlug = placeAt === 1 || isFireLink || routeId === 'gletscher' ? null : seg[1] ?? null;
     const rp = resolveRoutePlace(placeAt ? seg[placeAt] : undefined, placeFromPairs(q));
     const t = parseValidTime(q.get('t'));
     return {
@@ -205,8 +214,10 @@ export function parseShareUrl(pathname: string, search: string, nowMs: number = 
       placeUnresolved: rp.unresolved,
       viewSlug,
       ...(isFireLink ? { fireLink: parseFireLink(seg[2]) } : {}),
-      rawPath: '/' + seg.join('/'),
-      rawQuery: pairs,
+      ...(routeId === 'gletscher' ? { glacierSeg } : {}),
+      rawPath: routeId === 'gletscher' && glacierSeg ? `/gletscher/${glacierSeg}` : '/' + seg.join('/'),
+      // Lage-Seiten-Schlüssel (`sel`, `dossier`, `land`, `m`, `q`) gehören nicht an den Steckbrief-Link.
+      rawQuery: routeId === 'gletscher' && glacierSeg ? pairs.filter(([k]) => !['sel', 'dossier', 'land', 'm', 'q'].includes(k)) : pairs,
     };
   }
 
@@ -252,6 +263,17 @@ export function describeShareState(s: ShareState, timeZone?: string): ShareCopy 
   if (s.routeId === 'waldbrand' && s.fireLink) {
     const d = describeFireLink(s.fireLink);
     return { title: d.title, description: d.description, message: d.title };
+  }
+  if (s.routeId === 'gletscher' && s.glacierSeg) {
+    const l = glacierSegmentLabel(s.glacierSeg);
+    if (l) {
+      return {
+        title: `${l.name} — Gletscher (${l.country})`,
+        description: `Steckbrief des Gletschers ${l.name} (${l.country}): Fläche mit Bezugsjahr, Längen- und Massenreihe, Satellitenszene, Herkunft an jedem Wert. `
+          + 'Datenansicht, keine amtliche Warnung und keine Tourenfreigabe.',
+        message: `${l.name} — Gletscher (${l.country})`,
+      };
+    }
   }
   const feature = SHARE_FEATURE_LABEL[s.routeId];
   const topic = s.routeId === 'wetterkarte' && s.primary
@@ -326,6 +348,7 @@ export function describeShareUrl(
 export function ogCardForShare(s: ShareState): string | null {
   const view = s.viewSlug ?? (s.primary ? LAYER_SLUGS[s.primary] : null);
   if (s.routeId === 'warnungen') return ogCardPath('warnungen');
+  if (s.routeId === 'gletscher') return ogCardPath('gletscher');
   // Brand-Link: die Karte des Brandradars (kein pro Brand gerendertes Bild — das wäre Stufe 2 der Vorschau).
   if (s.routeId === 'waldbrand' && s.fireLink) return ogCardPath('waldbrand', 'aktive-braende');
   if (s.routeId === 'wetterkarte' && view === LAYER_SLUGS.warnings) return ogCardPath('warnungen');
@@ -343,6 +366,7 @@ export function ogCardForShare(s: ShareState): string | null {
 export function canonicalShareKey(s: ShareState): string {
   const parts: string[] = [s.routeId];
   if (s.fireLink) parts.push(`f:${s.fireLink.slug}`);
+  if (s.glacierSeg) parts.push(`g:${s.glacierSeg}`);
   if (s.viewSlug) parts.push(`v:${s.viewSlug}`);
   if (s.primary) parts.push(`l:${LAYER_SLUGS[s.primary]}`);
   const rest = s.layers.filter((k) => k !== s.primary).map((k) => LAYER_SLUGS[k]).sort();

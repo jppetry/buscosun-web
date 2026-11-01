@@ -45,6 +45,20 @@ export interface GlacierUrlState {
 
 export const GLACIER_DEFAULT_STATE: GlacierUrlState = { glacier: null, tab: 'heute', t: 'heute', v: '2d', e: ['o', 's'], o: 0, land: 'alle', m: 'laenge', q: '', sel: null, dossier: false };
 const SEG_RE = /^(ch|at|de)-[a-z0-9]+(?:-[a-z0-9]+)*$/;
+/** Is this a well-formed glacier path segment (country code + name slug)? Also used by the share adapter. */
+export const isGlacierSegment = (s: string | null | undefined): s is string => !!s && s.length <= 78 && SEG_RE.test(s);
+
+const COUNTRY_OF_SEG: Record<string, string> = { ch: 'Schweiz', at: 'Österreich', de: 'Deutschland' };
+/**
+ * Readable name and country from the segment ALONE (no catalog; the edge preview has none). The name is the slug in title case
+ * (`ch-grosser-aletschgletscher` → „Grosser Aletschgletscher"): the catalog spelling with ß/umlauts is not recoverable from it, so the
+ * page itself always shows the catalog name; this is only the text of a link preview.
+ */
+export function glacierSegmentLabel(seg: string): { name: string; country: string } | null {
+  if (!isGlacierSegment(seg)) return null;
+  const [cc, ...words] = seg.split('-');
+  return { name: words.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '), country: COUNTRY_OF_SEG[cc] ?? cc.toUpperCase() };
+}
 const ISO_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export const glacierSegmentOf = (id: string): string => (id.startsWith('gl_') ? id.slice(3).replace('_', '-') : id);

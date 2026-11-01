@@ -34,7 +34,7 @@ import { verifyForecastUrl } from '../src/confidence/forecastUrl.ts';
 import { verifyTourUrl } from '../src/route/tourUrl.ts';
 import { placeBySlug, slugForPlace, resolveRoutePlace, PLACE_TABLE_SIZE } from '../src/share/placeTable.ts';
 import {
-  buildShareUrl, parseShareUrl, describeShareUrl, canonicalShareKey, ogCardForShare,
+  buildShareUrl, parseShareUrl, describeShareState, describeShareUrl, canonicalShareKey, ogCardForShare,
   SHARE_ROUTES, SHARE_FEATURE_LABEL,
 } from '../src/share/shareAdapters.ts';
 import { verifyUrlState, parseMapSearch, LAYER_SLUGS } from '../src/router/urlState.ts';
@@ -218,7 +218,20 @@ for (const [name, { u }] of built) {
   const m = routeForPath(u.path.split('?')[0]);
   add(`[route] ${name}: der erzeugte Pfad ist eine bekannte Route`, !!m, u.path);
 }
-add('[route] alle acht teilbaren Seiten sind abgedeckt (SH1 + SH3 + SH4 + SH5)', SHARE_ROUTES.join(',') === 'wetterkarte,warnungen,regenradar,waldbrand,atmosphaere,eventplanung,wetterarchiv,globus,vorhersage', SHARE_ROUTES.join(','));
+add('[route] alle zehn teilbaren Seiten sind abgedeckt (SH1 + SH3 + SH4 + SH5 + Gletscher)', SHARE_ROUTES.join(',') === 'wetterkarte,warnungen,regenradar,waldbrand,atmosphaere,eventplanung,wetterarchiv,globus,vorhersage,gletscher', SHARE_ROUTES.join(','));
+{
+  // Gletscher: das Pfadsegment ist die Kennung; auf der Lage-Seite markiert `sel` ihn — geteilt wird jeweils der Steckbrief.
+  const g1 = parseShareUrl('/gletscher/ch-grosser-aletschgletscher', '?tab=saison', NOW);
+  add('[gletscher] Pfadsegment wird gelesen', g1?.glacierSeg === 'ch-grosser-aletschgletscher', String(g1?.glacierSeg));
+  const g2 = parseShareUrl('/gletscher', '?sel=at-pasterze&dossier=1&land=at', NOW);
+  add('[gletscher] Lage-Seite mit Auswahl teilt den Steckbrief-Pfad ohne Lage-Schlüssel', !!g2 && buildShareUrl(g2, 'https://buscosun.com', NOW).path === '/gletscher/at-pasterze', g2 ? buildShareUrl(g2, 'https://buscosun.com', NOW).path : 'null');
+  const g3 = parseShareUrl('/gletscher/ch-grosser-aletschgletscher', '', NOW);
+  const c3 = g3 ? describeShareState(g3, 'Europe/Berlin') : null;
+  add('[gletscher] Titel nennt Gletscher und Land, Beschreibung grenzt von Warnungen ab', !!c3 && c3.title === 'Grosser Aletschgletscher — Gletscher (Schweiz)' && c3.description.includes('keine amtliche Warnung'), c3?.title);
+  const g4 = parseShareUrl('/gletscher/quatsch', '', NOW);
+  add('[gletscher] ungültiges Segment ⇒ allgemeine Vorschau, kein erfundener Gletscher', g4?.glacierSeg == null && !!g4 && describeShareState(g4).title === 'Gletscher', g4 ? describeShareState(g4).title : 'null');
+  add('[gletscher] Vorschaubild ist die Gletscher-Karte', !!g3 && ogCardForShare(g3) === ogCardPath('gletscher'));
+}
 
 // --- (10) Worte --------------------------------------------------------------
 {
