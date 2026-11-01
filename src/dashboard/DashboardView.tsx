@@ -233,15 +233,14 @@ function useTablet(): boolean {
   return m;
 }
 
-function useWide(): boolean {
-  const q = '(min-width: 1280px)';
+function useMedia(q: string): boolean {
   const [m, setM] = useState(() => typeof window !== 'undefined' && window.matchMedia(q).matches);
   useEffect(() => {
     const mq = window.matchMedia(q);
     const on = () => setM(mq.matches);
     mq.addEventListener('change', on);
     return () => mq.removeEventListener('change', on);
-  }, []);
+  }, [q]);
   return m;
 }
 
@@ -249,7 +248,9 @@ function DashboardPage({ vm, place, range, onRange, onSelectView, onSelectLocati
   vm: DashboardVM; onHalfKm: (km: 10 | 20 | 50) => void; onRetry: () => void; refs: Refs; log: ForecastState | null;
 }) {
   const tablet = useTablet();
-  const wide = useWide();
+  // Kartenkachel: Desktop ≥ 1280 px und Mobil < 768 px (Tablet bleibt bei zwei Spalten ohne Karte).
+  const wide = useMedia('(min-width: 1280px)');
+  const phone = useMedia('(max-width: 767px)');
   // Uhr der Topbar im Format der Kartenebene (Zeit, Wochentag · Tag Monat)
   const clock = new Date(useNow(15_000));
   const clockTime = clock.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
@@ -326,7 +327,7 @@ function DashboardPage({ vm, place, range, onRange, onSelectView, onSelectLocati
                   <button type="button" className="dbd-retry" onClick={onRetry}>Erneut versuchen</button>
                 </section>
               ) : <NowCard vm={vm.now} aside={<WindBadge vm={vm.wind} />} />}
-              {wide && (
+              {(wide || phone) && (
                 <section className="dbd-card dbd-minimap" aria-label="Karte: Wind und Niederschlag am Ort">
                   {(vm.status === 'ok' || vm.status === 'error') && place && (
                     <Suspense fallback={null}><MiniMap key={`${place.country}:${place.lat}:${place.lon}`} place={{ name: place.name, lat: place.lat, lon: place.lon, country: place.country }} /></Suspense>
