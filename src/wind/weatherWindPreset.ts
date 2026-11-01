@@ -40,8 +40,9 @@ export function weatherWindOptions(coarsePointer: boolean): WindLayerOptions {
     screenTempoZoomExp: 0.35,
     // Fewer particles when zooming in (the trails grow with the zoom, the covered area must not).
     zoomInThinExp: 1.25, zoomInThinFrom: 6.5,
-    // Zoomed out the refresh rate rises (dissolves the clumps in convergence zones).
-    zoomDropBoost: 0.42,
+    // Zoomed out the refresh rate used to rise (0,42; dissolves clumps in convergence zones) - but it halves the particle
+    // lifetime at z3, so the particle dies before its trail reaches full length. Off (01.11., Jan: no trails when zoomed out).
+    zoomDropBoost: 0,
     // Touch devices: half the CPU upsampling work and ~30 fps; desktop is the reference.
     upsample: coarsePointer ? 1 : 2,
     maxParticleFps: coarsePointer ? 30 : 0,
