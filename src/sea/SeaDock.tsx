@@ -135,15 +135,6 @@ export default function SeaDock(p: Props) {
           </button>
         ))}
       </div>
-
-      <div className="sw-dock-data">
-        <div className="sw-dock-h sw-dock-sec">Datenlage je Revier</div>
-        <div className="sw-data-list">
-          <div className="sw-data-row"><div className="sw-data-head"><strong>Küste DE</strong><b className="sw-pill-ok">voll</b></div><span>CWAM 900 m, Seewetterbericht, Warnstatus, Messung, Wasserstand</span></div>
-          <div className="sw-data-row"><div className="sw-data-head"><strong>Europa</strong><b className="sw-pill-later">Stufe 2</b></div><span>EWAM 5 km, ohne Warnung des Ziellands</span></div>
-          <div className="sw-data-row"><div className="sw-data-head"><strong>DACH-Seen</strong><b className="sw-pill-later">keine Welle</b></div><span>nicht im DWD-Bestand</span></div>
-        </div>
-      </div>
     </>
   );
   if (show === 'picker') return <div className="sw-dock-picker">{picker}</div>;
