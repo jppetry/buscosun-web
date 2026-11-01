@@ -650,6 +650,14 @@ export class WindLayer implements CustomLayerInterface {
     this.map?.triggerRepaint();
   }
 
+  /** Heatmap-Einfärbung (Windgeschwindigkeit als Fläche) an/aus; die Partikel laufen unabhängig weiter.
+   *  Die Wetterkarte schaltet sie aus, solange der Niederschlagslayer aktiv ist. */
+  setShowHeatmap(on: boolean): void {
+    if (this.showHeatmap === on) return;
+    this.showHeatmap = on;
+    this.map?.triggerRepaint();
+  }
+
   /** Globus-Modus aktivieren: volle Partikeldichte unabhängig vom (niedrigen)
    *  Globus-Zoom und gleichmäßiges Bildschirmtempo. */
   setGlobeMode(on: boolean): void {
