@@ -31,7 +31,9 @@
 .gl-sheet-map { flex: 1 1 auto; border-bottom: 0; }
 .gl-sheet-map-wrap { position: absolute; inset: 0; }
 .gl-sheet-map-wrap .gl-map-canvas { position: absolute; inset: 0; }
-.gl-sheet-legend { width: 230px; bottom: 44px; }
+.gl-sheet-legend { width: 260px; bottom: 44px; }
+.gl-map .gl-sheet-legend .gl-legend-head b { font-size: 13.5px; }
+.gl-map .gl-sheet-legend .gl-legend-row { font-size: 13px; }
 .gl-sw { display: inline-block; width: 18px; height: 10px; border-radius: 2px; flex: 0 0 auto; }
 .gl-sw-dash { border-top: 2px dashed #145A70; height: 0; }
 .gl-sheet-status { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; background: rgba(250,246,234,.96); border-top: 1px solid var(--gl-line-strong); padding: 8px 14px; font-size: 12.5px; font-weight: 600; }
