@@ -289,6 +289,37 @@ const OTHER_ENTRIES: Readonly<Record<string, SeoText>> = {
 export const SUB_ROUTE_TEXTS: Readonly<Record<string, SeoText>> = { ...LAYER_ENTRIES, ...OTHER_ENTRIES };
 
 /** Text zu einem kanonischen Sub-Routen-Pfad (z. B. `/wetterkarte/temperatur`); null wenn keiner. */
+/**
+ * Texte der Top-Routen, die mehr brauchen als H1 und Lead (audit/seo-nischen.md). Lead und H1 kommen weiter aus `routes.ts`; hier stehen nur
+ * Absätze, Fakten und Querverweise. Verbraucher: `renderRouteRootContent` (Shell) und `RouteSeoBlock` (lazy, im gerenderten DOM).
+ */
+export type RouteText = Pick<SeoText, 'body' | 'facts' | 'official' | 'links'>;
+const ROUTE_TEXTS: Readonly<Record<string, RouteText>> = {
+  '/wetterarchiv': {
+    body: [
+      'Zwei Fragen führen durch die Ansicht. „Rückblick“ schlägt nach, wie das Wetter an einem Tag, in einem Monat oder einem Jahr war, und ordnet es gegen die übrigen Jahre ein. „Veränderung“ zeigt den langen Verlauf: Klimastreifen, Abweichung von der Referenzperiode, Kenntage wie Hitze- und Frosttage und den Trend je Jahrzehnt. Beides geht für jeden Ort in Deutschland, Österreich und der Schweiz; als eigene Adresse lässt sich jeder Ort teilen.',
+      'Die Daten kommen aus zwei Quellen, die getrennt ausgewiesen werden. Standard sind Stationsmessungen der nächstgelegenen Station über Meteostat, in Deutschland überwiegend vom DWD; die Ansicht nennt Stationsname und Entfernung. Für Stundenwerte und als Alternative steht die Reanalyse ERA5 von Copernicus über das Open-Meteo-Archiv bereit, zurück bis 1940. Eine Reanalyse ist eine nachträgliche Modellrechnung und keine Messung am Ort, und sie ist als solche gekennzeichnet.',
+      'Grenzen: Eine Station kann mehrere Kilometer entfernt liegen und anders im Gelände stehen. ERA5 rechnet grob und glättet Täler und Gipfel. Ein Rekord gilt nur für den geladenen Zeitraum und ist kein amtlicher Rekord. Lücken in den Reihen werden nicht stillschweigend aufgefüllt. Trends sind eine statistische Beschreibung der geladenen Reihe und keine Aussage über einzelne Ereignisse.',
+    ],
+    facts: [
+      { label: 'Quellen', text: 'Stationen über Meteostat (in DE überwiegend DWD) · ERA5 (Copernicus) über das Open-Meteo-Archiv' },
+      { label: 'Zeitraum', text: 'ERA5 ab 1940, Stationen je nach Station, in Deutschland teils ab 1931' },
+      { label: 'Aktualisierung', text: 'beim Aufruf aus dem Archiv geladen; die jüngsten Tage können noch fehlen' },
+      { label: 'Abdeckung', text: 'jeder Ort in DE, AT und CH' },
+      { label: 'Grenze', text: 'Reanalyse ist keine Messung; Rekorde gelten nur für den geladenen Zeitraum' },
+    ],
+    links: [
+      { label: 'So funktioniert die Wetterhistorie', href: '/funktionen/historie/' },
+      { label: 'Klimastreifen erklärt', href: '/wissen/klimastreifen/' },
+      { label: 'Trockenperioden erklärt', href: '/wissen/trockenperioden/' },
+    ],
+  },
+};
+
+export function routeText(path: string): RouteText | null {
+  return ROUTE_TEXTS[path] ?? null;
+}
+
 export function subRouteText(path: string): SeoText | null {
   return SUB_ROUTE_TEXTS[path] ?? null;
 }

@@ -32,6 +32,8 @@ export interface SeoText {
   facts: readonly LayerFact[];
   /** Optional: die zuständige amtliche Stelle, als echter Link neben dem Text. */
   official?: { text: string; label: string; href: string };
+  /** Interne Querverweise zu verwandten Ansichten (audit/seo-nischen.md). */
+  links?: readonly { label: string; href: string }[];
   /** Passender Explainer unter /wissen/<slug>/ (null = keiner). */
   explainer: string | null;
 }

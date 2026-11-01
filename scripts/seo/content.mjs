@@ -29,6 +29,7 @@ const OG_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public
 // SH6: welche App-Karte zu Route/Sub-Route gehoert, sagt EINE Regel — dieselbe,
 // die der Renderer, die Edge Function und der Verifier benutzen.
 import { ogCardPath } from '../../src/share/ogCard.ts';
+import { routeText } from '../../src/seo/subRouteTexts.ts';
 import { ROUTE_BY_ID } from '../../src/router/routes.ts';
 
 export const ogImageOr = (slug, fallback) => (existsSync(join(OG_DIR, `${slug}.png`)) ? `/og/${slug}.png` : fallback);
@@ -1194,6 +1195,19 @@ export function routeHeadExtras(route) {
 }
 
 /** Crawlbarer #root-Inhalt einer Route-Shell (wird von der App beim Mount ersetzt). */
+/** Absätze, Fakten, zuständige Stelle und Querverweise einer Route; leer ohne Eintrag in `subRouteTexts.ts`. */
+function seoTextBlock(t) {
+  if (!t) return '';
+  const body = (t.body || []).map((p) => `<p>${escapeHtml(p)}</p>`).join('\n      ');
+  const facts = (t.facts || []).map((f) => `<dt>${escapeHtml(f.label)}</dt><dd>${escapeHtml(f.text)}</dd>`).join('\n        ');
+  const official = t.official ? `<p>${escapeHtml(t.official.text)} <a href="${t.official.href}" rel="noopener">${escapeHtml(t.official.label)}</a>.</p>` : '';
+  const links = (t.links || []).map((l) => `<a href="${l.href}">${escapeHtml(l.label)}</a>`).join(' · ');
+  return `${body}
+      ${facts ? `<h2>Daten und Grenzen</h2>\n      <dl>\n        ${facts}\n      </dl>` : ''}
+      ${official}
+      ${links ? `<h2>Passend dazu</h2>\n      <p>${links}</p>` : ''}`;
+}
+
 export function renderRouteRootContent(route) {
   const subs = (route.subs || []).filter((s) => !(route.id === 'wetterkarte' && s.slug === 'warnungen'));
   const subList = subs.length
@@ -1208,6 +1222,7 @@ export function renderRouteRootContent(route) {
       <nav aria-label="Brotkrumen"><a href="/">Start</a> › ${escapeHtml(route.meta.title)}</nav>
       <h1>${escapeHtml(route.meta.h1)}</h1>
       <p>${escapeHtml(route.meta.lead)}</p>
+      ${seoTextBlock(routeText(route.path))}
       ${subList}
       ${coastList}
       <h2>Mehr auf buscosun</h2>
@@ -1265,7 +1280,8 @@ export function renderSubRouteRootContent(route, sub, text, siblings, explainerO
   const body = (text.body || []).map((p) => `<p>${escapeHtml(p)}</p>`).join('\n      ');
   const facts = (text.facts || []).map((f) => `<dt>${escapeHtml(f.label)}</dt><dd>${escapeHtml(f.text)}</dd>`).join('\n        ');
   const sib = siblings.filter((x) => x.slug !== sub.slug).map((x) => `<li><a href="${route.path}/${x.slug}">${escapeHtml(x.title)}</a></li>`).join('\n        ');
-  const official = text.official ? `<p>${escapeHtml(text.official.text)} <a href="${text.official.href}" rel="noopener">${escapeHtml(text.official.label)}</a>.</p>` : '';
+  const official = (text.official ? `<p>${escapeHtml(text.official.text)} <a href="${text.official.href}" rel="noopener">${escapeHtml(text.official.label)}</a>.</p>` : '')
+    + ((text.links || []).length ? `<p>Passend dazu: ${text.links.map((l) => `<a href="${l.href}">${escapeHtml(l.label)}</a>`).join(' · ')}</p>` : '');
   const explainer = text.explainer && explainerOk(text.explainer) ? `<p>Hintergrund: <a href="/wissen/${text.explainer}/">Erklärung im Wetterwissen</a>.</p>` : '';
   return `<div id="seo-fallback">
       <nav aria-label="Brotkrumen"><a href="/">Start</a> › <a href="${route.path}">${escapeHtml(route.meta.title)}</a> › ${escapeHtml(sub.title)}</nav>

@@ -19,20 +19,21 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router';
 import { canonicalPath, indexableSubRoutes, routeForPath } from './routes';
 import type { SeoText } from '../seo/layerSeoTexts';
+import type { RouteText } from '../seo/subRouteTexts';
 import './routeSeoBlock.css';
 
 export default function RouteSeoBlock() {
   const { pathname } = useLocation();
   const match = routeForPath(pathname);
   const path = canonicalPath(pathname);
-  const wantsText = !!match?.sub && !match.sub.noindex;
-  const [text, setText] = useState<{ path: string; text: SeoText | null } | null>(null);
+  const wantsText = !!match && !match.sub?.noindex && !match.def.meta.noindex && match.def.id !== 'home';
+  const [text, setText] = useState<{ path: string; text: (Partial<SeoText> & RouteText) | null } | null>(null);
   const [ownH1, setOwnH1] = useState(false);
 
   useEffect(() => {
     let alive = true;
     if (!wantsText) { setText(null); return; }
-    import('../seo/subRouteTexts').then((mod) => { if (alive) setText({ path, text: mod.subRouteText(path) }); }).catch(() => { if (alive) setText({ path, text: null }); });
+    import('../seo/subRouteTexts').then((mod) => { if (alive) setText({ path, text: match?.sub ? mod.subRouteText(path) : mod.routeText(path) }); }).catch(() => { if (alive) setText({ path, text: null }); });
     return () => { alive = false; };
   }, [path, wantsText]);
 
@@ -64,6 +65,7 @@ export default function RouteSeoBlock() {
         <p className="rsb-lead">{lead}</p>
         {t?.body.map((p, i) => <p key={i}>{p}</p>)}
         {t?.official && <p>{t.official.text} <a href={t.official.href} rel="noopener">{t.official.label}</a>.</p>}
+        {t?.links && t.links.length > 0 && <p>Passend dazu: {t.links.map((l, i) => <span key={l.href}>{i > 0 && ' · '}<a href={l.href}>{l.label}</a></span>)}</p>}
         {t?.facts && t.facts.length > 0 && (
           <>
             <h2 className="rsb-h2">Daten und Grenzen</h2>
