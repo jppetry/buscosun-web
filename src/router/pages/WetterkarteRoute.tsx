@@ -33,7 +33,7 @@ import { isWhitelisted } from '../../fusion/modelCatalog';
 import { useAppNav } from '../useAppNav';
 import {
   buildMapUrl, layersFromRoute, parseMapSearch, routeForLayers,
-  DEFAULT_MAP_LAYER, LAYER_SLUGS, type MapCamera,
+  DEFAULT_MAP_LAYER, DEFAULT_MAP_LAYERS, LAYER_SLUGS, type MapCamera,
 } from '../urlState';
 // SH1: Ort-Slug im Pfad (`/wetterkarte/wind/muenchen`). Die Ortstabelle wird hier
 // importiert — dieser Wrapper ist ein LAZY Chunk, `urlState.ts` (eager) bekommt
@@ -90,7 +90,7 @@ export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: Laye
   const route = useMemo(() => layersFromRoute(slug, parsed.l), [slug, parsed.l]);
   const unknownPrimary = !!slug && !route.primary;
   const urlLayers = useMemo<LayerKey[]>(
-    () => (route.noLayers || route.all.length > 0 || !!slug) ? route.all : [DEFAULT_MAP_LAYER],
+    () => (route.noLayers || route.all.length > 0 || !!slug) ? route.all : [...DEFAULT_MAP_LAYERS],
     [route, slug],
   );
 

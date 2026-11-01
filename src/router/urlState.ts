@@ -113,6 +113,9 @@ export const SLUG_TO_LAYER: Readonly<Record<string, LayerKey>> = Object.fromEntr
 
 export const DEFAULT_MAP_LAYER: LayerKey = 'wind';
 
+/** Aktive Layer beim Öffnen von `/wetterkarte` ohne Pfad-Layer und ohne `l=` (Jan 01.11.); Hauptlayer bleibt `DEFAULT_MAP_LAYER`. */
+export const DEFAULT_MAP_LAYERS: readonly LayerKey[] = ['warnings', 'nowcast', 'wind'];
+
 export function layerFromSlug(slug: string | undefined | null): LayerKey | null {
   if (!slug) return null;
   return SLUG_TO_LAYER[slug] ?? null;
