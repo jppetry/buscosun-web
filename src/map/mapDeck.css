@@ -1065,7 +1065,7 @@
   .mdk-sheet.is-full { --mdk-sheet-h: 86dvh; }
 }
 
-/* Mobil: statischer Erklärtext der Warnungs-Legende ausgeblendet (Ausfall-/Lückenhinweise bleiben) */
+/* Mobil: Warnungs-Legende komplett ausgeblendet (Desktop unverändert) */
 @media (max-width: 767px) {
-  .mdk-legends .cl-warn-static { display: none; }
+  .mdk-legends .confidence-legend[aria-label="Amtliche Wetterwarnungen"] { display: none; }
 }
