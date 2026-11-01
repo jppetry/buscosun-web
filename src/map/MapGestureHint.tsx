@@ -172,11 +172,9 @@ export default function MapGestureHint({ map, feature, accent = '#B5651D', enabl
             </>
           )}
         </div>
-        <div className="bs-hint-title">{touch ? 'Zwei Finger spreizen' : 'Scrollen zum Zoomen'}</div>
+        <div className="bs-hint-title">Karte erkunden</div>
         <div className="bs-hint-sub">
-          {touch
-            ? 'So zoomst du in die Karte. Ein Finger verschiebt sie.'
-            : 'Mausrad nach vorn holt die Karte näher heran, Ziehen verschiebt sie.'}
+          Zoome hinein, um einzelne Brände und Brandflächen genauer zu sehen.
         </div>
         <div className="bs-hint-click">
           <span className="bs-hint-click-tile">
@@ -184,11 +182,11 @@ export default function MapGestureHint({ map, feature, accent = '#B5651D', enabl
             <span className="bs-hint-dot" />
           </span>
           <span className="bs-hint-click-txt">
-            <b>{touch ? 'Punkt antippen' : 'Punkt anklicken'}</b>
-            <span>zeigt nähere Infos zum Brand</span>
+            <b>Brandflächen anklicken</b>
+            <span>zeigt nähere Infos zum jeweiligen Brand</span>
           </span>
         </div>
-        <div className="bs-hint-cta">{touch ? 'Tippen, um loszulegen' : 'Klicken, um loszulegen'}</div>
+        <div className="bs-hint-cta">Los geht’s</div>
       </div>
       {spot && (
         <button
