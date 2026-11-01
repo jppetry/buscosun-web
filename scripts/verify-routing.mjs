@@ -20,7 +20,8 @@ import { ATMOSPHERE_RETIRED_SLUGS, CROSS_ALIASES, ROUTES, ROUTE_BY_ID, SITE_URL,
 // SEO/GEO 2026 (E1): Layer-Katalog = eine Quelle für Dock, Sub-Routen-Shells, gerenderten Inhalt.
 import { verifyLayerCatalog, LAYER_CATALOG } from '../src/map/layerCatalog.ts';
 import { ALL_LAYER_KEYS } from '../src/map/layerTypes.ts';
-import { verifySubRouteTexts, subRouteText } from '../src/seo/subRouteTexts.ts';
+import { verifySubRouteTexts, subRouteText, routeText } from '../src/seo/subRouteTexts.ts';
+import { ROUTES as ROUTE_LIST_FOR_TEXT, ROUTE_TEXT_IDS } from '../src/router/routes.ts';
 import { verifyUrlState, mapPathForPlace } from '../src/router/urlState.ts';
 // SH1 (Teilen): Ort-Slug im Pfad — reine Regel + Tabelle.
 import { verifyPlaceSlug, toSlug } from '../src/share/placeSlug.ts';
@@ -171,6 +172,7 @@ add('[netlify] Gegenprobe: fehlende Splat-Regel, falsche Reihenfolge und altes R
   retiredRuleProblems(rules.filter((x) => x.from !== '/atmosphaere/fliegen/*')).length > 0
   && retiredRuleProblems([...rules].reverse()).length > 0
   && retiredRuleProblems([{ from: '/atmosphaere/fliegen', to: '/atmosphaere--fliegen.html', status: 200 }, ...rules]).length > 0);
+add('[routeText] ROUTE_TEXT_IDS nennt genau die Top-Routen mit eigenem Text', ROUTE_LIST_FOR_TEXT.filter((r) => routeText(r.path)).map((r) => r.id).sort().join() === [...ROUTE_TEXT_IDS].sort().join());
 add('[netlify] alte Atmosphäre-Ansichten haben keinen Text mehr, /funktionen kennt das Arbeitsfenster nicht', ATMOSPHERE_RETIRED_SLUGS.every((s) => subRouteText(`/atmosphaere/${s}`) === null) && !TOOLS.some((t) => t.slug === 'arbeitsfenster'));
 add('[netlify] keine Regel mit from ≡ to (Loop-Schutz)', !rules.some((x) => x.from && x.to && x.from.replace(/\/$/, '') === x.to.replace(/\/$/, '')));
 add('[netlify] Proxy-Rewrites unverändert vorhanden', ['/_dwd_opendata/*', '/_meteoalarm/*', '/_gfs/*', '/_cscs/*', '/_mf/*', '/_ecmwf/*'].every((p) => rules.some((x) => x.from === p && x.status === 200 && x.force)));

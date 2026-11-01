@@ -17,7 +17,7 @@
  */
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router';
-import { canonicalPath, indexableSubRoutes, routeForPath } from './routes';
+import { canonicalPath, indexableSubRoutes, routeForPath, ROUTE_TEXT_IDS } from './routes';
 import type { SeoText } from '../seo/layerSeoTexts';
 import type { RouteText } from '../seo/subRouteTexts';
 import './routeSeoBlock.css';
@@ -26,15 +26,20 @@ export default function RouteSeoBlock() {
   const { pathname } = useLocation();
   const match = routeForPath(pathname);
   const path = canonicalPath(pathname);
-  const wantsText = !!match && !match.sub?.noindex && !match.def.meta.noindex && match.def.id !== 'home';
+  const wantsText = !!match && !match.def.meta.noindex && (match.sub ? !match.sub.noindex : ROUTE_TEXT_IDS.has(match.def.id));
   const [text, setText] = useState<{ path: string; text: (Partial<SeoText> & RouteText) | null } | null>(null);
   const [ownH1, setOwnH1] = useState(false);
 
   useEffect(() => {
     let alive = true;
     if (!wantsText) { setText(null); return; }
-    import('../seo/subRouteTexts').then((mod) => { if (alive) setText({ path, text: match?.sub ? mod.subRouteText(path) : mod.routeText(path) }); }).catch(() => { if (alive) setText({ path, text: null }); });
-    return () => { alive = false; };
+    // A top route's text is not urgent: it waits until the app has settled, so it does not add to the load of a map page.
+    const load = () => import('../seo/subRouteTexts').then((mod) => { if (alive) setText({ path, text: match?.sub ? mod.subRouteText(path) : mod.routeText(path) }); }).catch(() => { if (alive) setText({ path, text: null }); });
+    if (match?.sub) { void load(); return () => { alive = false; }; }
+    const idle = window.requestIdleCallback ?? ((f: () => void) => window.setTimeout(f, 2000));
+    const cancel = window.cancelIdleCallback ?? window.clearTimeout;
+    const id = idle(() => { void load(); }, { timeout: 5000 });
+    return () => { alive = false; cancel(id); };
   }, [path, wantsText]);
 
   // Genau eine H1 je Seite: nur setzen, wenn außerhalb dieses Blocks keine steht.

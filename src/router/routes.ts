@@ -343,6 +343,9 @@ export const ROUTES: readonly RouteDef[] = [
   },
 ];
 
+/** Top-Routen mit eigenem Text (`routeText` in `src/seo/subRouteTexts.ts`); nur sie laden den Text-Chunk. `verify:routing` hält beide Listen gleich. */
+export const ROUTE_TEXT_IDS: ReadonlySet<string> = new Set(['waldbrand', 'wetterarchiv', 'seewetter', 'gletscher', 'autobahnwetter']);
+
 export const ROUTE_BY_ID: Readonly<Record<RouteId, RouteDef>> = Object.fromEntries(ROUTES.map((r) => [r.id, r])) as Record<RouteId, RouteDef>;
 
 /** FeatureId (App.tsx / Rail) → kanonischer Pfad. `dayflow` hat keine Seite (wie bisher) → Start. */
