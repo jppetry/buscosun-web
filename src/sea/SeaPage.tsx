@@ -514,9 +514,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
           <main className={`sw-map${inDossier ? ' is-offstage' : ''}`} aria-label="Karte" aria-hidden={inDossier ? true : undefined}>
             {map}
             <div className="sw-ov-left">
-              {pill}{usable && chips}
-              {spot && <button type="button" className="sw-ds-open" onClick={() => setStage('dossier')}>Spot-Dossier öffnen <span aria-hidden="true">→</span></button>}
-            </div>
+              {pill}{usable && chips}            </div>
             <div className="sw-ov-right">{legend}</div>
             {emptyMap}{catFail}
             {cardEl && <div className="sw-map-card">{cardEl}</div>}
