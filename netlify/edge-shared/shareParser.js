@@ -839,6 +839,16 @@ function shareCopy(s, locale = "de", timeZone) {
   return { title, description, message: title };
 }
 
+// src/glacier/glacierState.ts
+var SEG_RE = /^(ch|at|de)-[a-z0-9]+(?:-[a-z0-9]+)*$/;
+var isGlacierSegment = (s) => !!s && s.length <= 78 && SEG_RE.test(s);
+var COUNTRY_OF_SEG = { ch: "Schweiz", at: "Österreich", de: "Deutschland" };
+function glacierSegmentLabel(seg) {
+  if (!isGlacierSegment(seg)) return null;
+  const [cc, ...words] = seg.split("-");
+  return { name: words.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" "), country: COUNTRY_OF_SEG[cc] ?? cc.toUpperCase() };
+}
+
 // src/share/shareAdapters.ts
 var SHARE_ROUTES = [
   "wetterkarte",
@@ -849,7 +859,8 @@ var SHARE_ROUTES = [
   "eventplanung",
   "wetterarchiv",
   "globus",
-  "vorhersage"
+  "vorhersage",
+  "gletscher"
 ];
 var PASSTHROUGH = /* @__PURE__ */ new Set([
   "waldbrand",
@@ -857,7 +868,8 @@ var PASSTHROUGH = /* @__PURE__ */ new Set([
   "eventplanung",
   "wetterarchiv",
   "globus",
-  "vorhersage"
+  "vorhersage",
+  "gletscher"
 ]);
 var PLACE_SEGMENT = {
   atmosphaere: 2,
@@ -899,7 +911,8 @@ var SHARE_FEATURE_LABEL = {
   eventplanung: "Event-Planung",
   wetterarchiv: "Wetterarchiv",
   globus: "Globus",
-  vorhersage: "Vorhersage"
+  vorhersage: "Vorhersage",
+  gletscher: "Gletscher"
 };
 function parseShareUrl(pathname, search, nowMs = Date.now()) {
   const seg = pathname.replace(/\/+$/, "").split("/").filter(Boolean);
@@ -911,7 +924,8 @@ function parseShareUrl(pathname, search, nowMs = Date.now()) {
     const pairs = [...q.entries()];
     const placeAt = PLACE_SEGMENT[routeId];
     const isFireLink = routeId === "waldbrand" && seg[1] === FIRE_LINK_SEGMENT;
-    const viewSlug = placeAt === 1 || isFireLink ? null : seg[1] ?? null;
+    const glacierSeg = routeId === "gletscher" ? isGlacierSegment(seg[1]) ? seg[1] : isGlacierSegment(q.get("sel")) && !seg[1] ? q.get("sel") : null : void 0;
+    const viewSlug = placeAt === 1 || isFireLink || routeId === "gletscher" ? null : seg[1] ?? null;
     const rp2 = resolveRoutePlace(placeAt ? seg[placeAt] : void 0, placeFromPairs(q));
     const t = parseValidTime(q.get("t"));
     return {
@@ -926,8 +940,10 @@ function parseShareUrl(pathname, search, nowMs = Date.now()) {
       placeUnresolved: rp2.unresolved,
       viewSlug,
       ...isFireLink ? { fireLink: parseFireLink(seg[2]) } : {},
-      rawPath: "/" + seg.join("/"),
-      rawQuery: pairs
+      ...routeId === "gletscher" ? { glacierSeg } : {},
+      rawPath: routeId === "gletscher" && glacierSeg ? `/gletscher/${glacierSeg}` : "/" + seg.join("/"),
+      // Lage-Seiten-Schlüssel (`sel`, `dossier`, `land`, `m`, `q`) gehören nicht an den Steckbrief-Link.
+      rawQuery: routeId === "gletscher" && glacierSeg ? pairs.filter(([k]) => !["sel", "dossier", "land", "m", "q"].includes(k)) : pairs
     };
   }
   const parsed = parseMapSearch(search, nowMs);
@@ -955,6 +971,16 @@ function describeShareState(s, timeZone) {
   if (s.routeId === "waldbrand" && s.fireLink) {
     const d = describeFireLink(s.fireLink);
     return { title: d.title, description: d.description, message: d.title };
+  }
+  if (s.routeId === "gletscher" && s.glacierSeg) {
+    const l = glacierSegmentLabel(s.glacierSeg);
+    if (l) {
+      return {
+        title: `${l.name} — Gletscher (${l.country})`,
+        description: `Steckbrief des Gletschers ${l.name} (${l.country}): Fläche mit Bezugsjahr, Längen- und Massenreihe, Satellitenszene, Herkunft an jedem Wert. Datenansicht, keine amtliche Warnung und keine Tourenfreigabe.`,
+        message: `${l.name} — Gletscher (${l.country})`
+      };
+    }
   }
   const feature = SHARE_FEATURE_LABEL[s.routeId];
   const topic = s.routeId === "wetterkarte" && s.primary ? LAYER_CATALOG[s.primary].label : s.viewSlug ? VIEW_LABEL[s.viewSlug] ?? null : null;
@@ -993,6 +1019,7 @@ function describeShareUrl(pathname, search, nowMs = Date.now(), timeZone) {
 function ogCardForShare(s) {
   const view = s.viewSlug ?? (s.primary ? LAYER_SLUGS[s.primary] : null);
   if (s.routeId === "warnungen") return ogCardPath("warnungen");
+  if (s.routeId === "gletscher") return ogCardPath("gletscher");
   if (s.routeId === "waldbrand" && s.fireLink) return ogCardPath("waldbrand", "aktive-braende");
   if (s.routeId === "wetterkarte" && view === LAYER_SLUGS.warnings) return ogCardPath("warnungen");
   return ogCardPath(s.routeId, view);
@@ -1000,6 +1027,7 @@ function ogCardForShare(s) {
 function canonicalShareKey(s) {
   const parts = [s.routeId];
   if (s.fireLink) parts.push(`f:${s.fireLink.slug}`);
+  if (s.glacierSeg) parts.push(`g:${s.glacierSeg}`);
   if (s.viewSlug) parts.push(`v:${s.viewSlug}`);
   if (s.primary) parts.push(`l:${LAYER_SLUGS[s.primary]}`);
   const rest = s.layers.filter((k) => k !== s.primary).map((k) => LAYER_SLUGS[k]).sort();
