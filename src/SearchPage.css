@@ -46,7 +46,7 @@
 /* Alles außer der DACH-Karte über die Karte heben. Palette & Bottom-Tab-Bar
    ausnehmen — die brauchen ihr eigenes position:fixed (sonst würde diese Regel
    sie mit höherer Spezifität auf position:relative zwingen). */
-.deck > *:not(.deck-mapbg):not(.deck-pal):not(.deck-tabbar) { position: relative; z-index: 1; }
+.deck > *:not(.deck-mapbg):not(.deck-pal) { position: relative; z-index: 1; }
 
 /* ============ DACH-KARTE (SVG) — gezoomter Ausschnitt, läuft mit der Seite ============
    Die Karte ist ≈ 1,5 Fensterbreiten breit; Mitte und Oberkante kommen als
@@ -776,26 +776,6 @@
 .deck-pal-label { font-size: 14px; font-weight: 500; }
 .deck-pal-hint { margin-left: auto; font-size: 11px; color: var(--stone-500); }
 
-/* ============ MOBILE BOTTOM-TAB-BAR ============ */
-.deck-tabbar {
-  display: none;
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
-  background: rgba(250, 246, 234, 0.9); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  border-top: 1px solid var(--border-default);
-  --pad: 9px;
-  padding-top: 9px; padding-left: 18px; padding-right: 18px;
-  justify-content: space-around;
-}
-.deck-tab {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  min-width: 56px; min-height: 44px; padding: 4px 8px;
-  background: none; border: none; cursor: pointer; font-family: inherit;
-  color: var(--stone-400);
-}
-.deck-tab span { font-size: 10px; }
-.deck-tab.is-active { color: var(--ink-900); font-weight: 500; }
-.deck-tab:focus-visible { outline: 2px solid var(--ink-900); outline-offset: 2px; border-radius: 8px; }
-
 /* ============================================================================
    TABLET (768–1024) — 3-Spalten-Bento, Hero zweispaltig, per `order` umsortiert.
    Range-Query (min 768), damit `order`/Spans NICHT in den Mobile-Bereich lecken.
@@ -851,7 +831,7 @@
    MOBILE (≤767) — 1–2-Spalten + Bottom-Tab-Bar
    ============================================================================ */
 @media (max-width: 767px) {
-  .deck { --deck-pad-x: 18px; --deck-glass-in: 12px; padding-bottom: calc(74px + env(safe-area-inset-bottom, 0px)); }
+  .deck { --deck-pad-x: 18px; --deck-glass-in: 12px; padding-bottom: env(safe-area-inset-bottom, 0px); }
 
   /* Command-Bar: nur Logo + LIVE + DE (⌘K-Trigger versteckt) */
   .deck-kbar { display: none; }
@@ -929,9 +909,6 @@
   .deck-h2 { font-size: 26px; }
   .deck-h3 { font-size: 20px; }
   .deck-footer-cols { gap: 28px; }
-
-  /* Bottom-Tab-Bar zeigen */
-  .deck-tabbar { display: flex; }
 }
 
 /* Sehr schmal: Bento einspaltig, 3D+Globus bleiben als Paar (span 1 in 2 Spalten) */

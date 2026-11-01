@@ -196,13 +196,6 @@ export default function SearchPage({ onSelect, onOpenFeature }: Props) {
     onOpenFeature(f);
   }, [onOpenFeature]);
 
-  const focusSearch = useCallback(() => {
-    setPaletteOpen(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    // Nach dem Scroll fokussieren, damit das Feld sicher im Viewport steht.
-    window.setTimeout(() => searchInputRef.current?.focus(), 260);
-  }, []);
-
   return (
     <div className="deck">
       {/* DACH-Karte als SVG unter dem Inhalt, läuft mit der Seite. */}
@@ -223,7 +216,6 @@ export default function SearchPage({ onSelect, onOpenFeature }: Props) {
         onClose={() => setPaletteOpen(false)}
         onOpenFeature={openFeature}
       />
-      <MobileTabBar onOpenFeature={openFeature} onSearch={focusSearch} />
 
       <IntroOverlay tour={tour} />
     </div>
@@ -1133,32 +1125,5 @@ function CommandPalette({ open, onClose, onOpenFeature }: {
         </div>
       </div>
     </div>
-  );
-}
-
-// ============================================================================
-// MOBILE BOTTOM-TAB-BAR — Start · Karte · Touren · Suche (nur ≤767px).
-// safeArea.css sorgt für Home-Indicator-Abstand.
-// ============================================================================
-function MobileTabBar({ onOpenFeature, onSearch }: { onOpenFeature: (f: FeatureInfo) => void; onSearch: () => void }) {
-  return (
-    <nav className="deck-tabbar safe-pad-bottom" aria-label="Schnellzugriff">
-      <button type="button" className="deck-tab is-active" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Start">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 11 L12 3 L21 11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /><path d="M5 10 V20 H19 V10" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /></svg>
-        <span>Start</span>
-      </button>
-      <button type="button" className="deck-tab" onClick={() => onOpenFeature(FEATURE.map2d)} aria-label="Wetterkarte">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6 L9 4 L15 6 L20 4 V18 L15 20 L9 18 L4 20 Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /><path d="M9 4 V18 M15 6 V20" stroke="currentColor" strokeWidth="1.6" /></svg>
-        <span>Karte</span>
-      </button>
-      <button type="button" className="deck-tab" onClick={() => onOpenFeature(FEATURE.route)} aria-label="Tourenplanung">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 18 L9 9 L13 14 L20 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        <span>Touren</span>
-      </button>
-      <button type="button" className="deck-tab" onClick={onSearch} aria-label="Ort suchen">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="6.5" stroke="currentColor" strokeWidth="1.8" /><line x1="15" y1="15" x2="20" y2="20" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
-        <span>Suche</span>
-      </button>
-    </nav>
   );
 }
