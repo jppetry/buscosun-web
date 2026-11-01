@@ -83,6 +83,8 @@ ${link('/waldbrand', 'Brandradar DACH')}: EU-Gefahrenindex, aktive Brände aus S
   Historie seit 2020 (${site.url}/waldbrand/historie) und Thermalanomalien (${site.url}/waldbrand/thermalanomalien).
 ${link('/seewetter', 'Seewetter Nord- und Ostsee')}: Seegang aus dem DWD-Küstenmodell, Wind an rund 60 Spots, Wasserstand der BSH-Pegel,
   Seewetterbericht im Wortlaut. Kein amtliches Warnprodukt (${site.url}/methodik/seewetter-quellen/).
+${link('/gletscher', 'Gletscher-Monitor DACH')}: rund 2 200 Gletscher mit Inventarfläche und Bezugsjahr, Messreihen, Sentinel-2-Szenen und einem Schmelzindex
+  ohne Einheit; jede Zahl trägt ihre Herkunft. Kein amtliches Produkt, keine Tourenfreigabe (${site.url}/methodik/gletscher-daten/).
 ${link('/wetterarchiv', 'Wetterarchiv & Klima')}: Rückblick und Veränderung je Ort, Stationen und ERA5-Reanalyse ab 1940.
 ${link('/globus', '3D-Globus')}: globales Wind-, Temperatur- und Druckfeld aus dem aktuellen GFS-Lauf (NOAA).
 ${link('/validierung', 'Validierung')}: Live-Hindcast des Nowcasts gegen gemessenes Radar (Brier Skill Score,

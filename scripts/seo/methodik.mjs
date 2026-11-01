@@ -12,7 +12,7 @@
 import { CONTACTED_HOSTS, STORAGE_GROUPS, OPERATOR, TODO } from './legal.mjs';
 import { readModelCatalog } from './licenses.mjs';
 import { COMPARE, MODULES, TERRAIN } from './placeRules.mjs';
-import { SEA_METHODIK } from './nicheMethodik.mjs';
+import { SEA_METHODIK, GLACIER_METHODIK } from './nicheMethodik.mjs';
 
 export const METHODIK_UPDATED = '2026-09-05';
 
@@ -25,6 +25,7 @@ const NO_WARNING = 'buscosun gibt keine amtlichen Warnungen heraus; maßgeblich 
 
 export const METHODIK_PAGES = [
   SEA_METHODIK,
+  GLACIER_METHODIK,
   {
     slug: 'hoehenkorrektur',
     title: 'Höhenkorrektur',

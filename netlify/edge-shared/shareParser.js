@@ -278,7 +278,10 @@ var OG_CARD_ROUTES = [
   "globus",
   "waldbrand",
   "feedback",
-  "validierung"
+  "validierung",
+  "seewetter",
+  "gletscher",
+  "autobahnwetter"
 ];
 function hasOgCard(routeId) {
   return !!routeId && OG_CARD_ROUTES.includes(routeId);
@@ -373,7 +376,7 @@ var ROUTES = [
       title: "Wettervorhersage mit Konfidenz & Modellvergleich",
       description: "Vorhersage für jeden Ort in DACH mit ausgewiesener Sicherheit — mehrere Modelle im Vergleich, ehrlich statt scheingenau.",
       h1: "Wettervorhersage mit Konfidenz und Modellvergleich",
-      lead: "Die Vorhersage von buscosun stellt mehrere Wettermodelle nebeneinander und weist aus, wie sicher eine Aussage ist — aus der Streuung der Modelle und der Vorlaufzeit. Statt einer scheingenauen Zahl siehst du, wo sich die Modelle einig sind und wo nicht."
+      lead: "Die Vorhersage von buscosun stellt mehrere Wettermodelle nebeneinander und weist aus, wie sicher eine Aussage ist — aus der Streuung der Modelle und der Vorlaufzeit. Statt einer scheingenauen Zahl siehst du, wo sich die Modelle einig sind und wo nicht. Der Rückblick reiht die Modelle je Ort danach, wie nah sie in den letzten 7, 14 oder 30 Tagen lagen, gemessen am Konsens der Modell-Analysen und nicht an Stationen."
     }
   },
   {
@@ -547,15 +550,15 @@ var ROUTES = [
     subParam: "spot",
     subs: null,
     meta: {
-      title: "Seewetter Nord- und Ostsee — Wind und Welle",
-      description: "Seegang an der deutschen Küste aus dem DWD-Küstenmodell, Wind und Böen an rund 60 Spots, Seewetterbericht im Wortlaut.",
-      h1: "Seewetter: Wie wird es auf dem Wasser?",
-      lead: "Seegang mit Windsee und Dünung an Nord- und Ostsee (DWD CWAM), Wind und Böen an rund 60 Spots aus buscosun Fusion, Seewetterbericht und Warnstatus des DWD im Wortlaut. Kein amtliches Warnprodukt, keine Sicherheitsbewertung."
+      title: "Seewetter Nord- und Ostsee — Wind, Welle, Wasserstand",
+      description: "Seegang an der deutschen Küste aus dem DWD-Küstenmodell, Wind und Böen an rund 60 Spots, Wasserstand der BSH-Pegel und der Seewetterbericht im Wortlaut.",
+      h1: "Seewetter für Nord- und Ostsee: Wind, Welle und Wasserstand",
+      lead: "Seegang mit Windsee und Dünung an Nord- und Ostsee (DWD CWAM), Wind und Böen an rund 60 Spots aus buscosun Fusion, Wasserstand an den Pegeln des BSH, Seewetterbericht und Warnstatus des DWD im Wortlaut. Kein amtliches Warnprodukt, keine Sicherheitsbewertung."
     }
   },
   {
-    // Phase GL (audit/gletscher.md): Pfadsegment = Gletscher (`/gletscher/ch-grosser-aletschgletscher`), entscheidet die Seite. Bis Jan
-    // `GLACIER_LIVE` schaltet (nach Gate D, `src/glacier/glacierFlag.ts`) noindex und in keiner Sitemap; die Seite gibt es nur mit `?gl=1`.
+    // Phase GL (audit/gletscher.md): Pfadsegment = Gletscher (`/gletscher/ch-grosser-aletschgletscher`), entscheidet die Seite. Für alle sichtbar seit
+    // 13.10.2026 (`GLACIER_LIVE`), indexierbar seit 01.11.2026 (Jan, audit/seo-nischen.md): `/gletscher` in der Sitemap, Gletscher-Pfade teilen Shell und Canonical.
     id: "gletscher",
     path: "/gletscher",
     aliases: ["/gletscherradar", "/gletschermonitor"],
@@ -566,9 +569,7 @@ var ROUTES = [
       title: "Gletscher DACH — Lage, Schmelze und Messreihen",
       description: "Rund 2 200 Gletscher in Deutschland, Österreich und der Schweiz: amtliche Zahlen, Längen- und Massenreihen, Herkunft an jedem Wert.",
       h1: "Gletscher: Wie geht es dem Eis?",
-      lead: "Alle rund 2 200 Gletscher in DE, AT und CH an einem Ort: Inventare mit Bezugsjahr, Längen- und Massenreihen der Messnetze, amtliche Berichte im Wortlaut. Jeder Wert nennt seine Herkunft (gemessen, Satellit, Modell, amtlich). Kein amtliches Warnprodukt, keine Tourenfreigabe.",
-      noindex: true
-      // bis Gate D (GLACIER_LIVE)
+      lead: "Alle rund 2 200 Gletscher in DE, AT und CH an einem Ort: Inventare mit Bezugsjahr, Längen- und Massenreihen der Messnetze, Satellitenszenen, ein Schmelzindex ohne Einheit und amtliche Berichte im Wortlaut. Jeder Wert nennt seine Herkunft (gemessen, Satellit, Modell, amtlich). Kein amtliches Warnprodukt, keine Tourenfreigabe."
     }
   },
   {
@@ -623,7 +624,7 @@ var LAYER_CATALOG = {
   },
   gust: {
     label: "Böen",
-    title: "Windböen — Spitzen (DWD ICON-D2 vmax_10m · 2,2 km, 0–24 h). Sicherheitsrelevant für Drohne, Kran, Höhenarbeit (vgl. Go/No-Go)."
+    title: "Windböen — Spitzen (DWD ICON-D2 vmax_10m · 2,2 km, 0–24 h). Sicherheitsrelevant für Drohne, Kran, Höhenarbeit."
   },
   nowcast: {
     label: "Niederschlag",

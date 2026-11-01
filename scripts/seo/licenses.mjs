@@ -108,6 +108,32 @@ export const NON_MODEL_SOURCES = [
     ],
   },
   {
+    group: 'Gletscher-Monitor',
+    items: [
+      { name: 'GLIMS Glacier Database (NSIDC-0272)', operator: 'GLIMS Consortium / National Snow and Ice Data Center', license: 'Quellenangabe Pflicht (NSIDC: „As a condition of using these data, you must cite the use of this data set.")',
+        note: 'Schweizer Inventare und frühere Umrisse. GLIMS Consortium, doi:10.7265/N5V98602; die Einreichungen stammen von den Inventar-Autoren. Eine ausdrückliche CC-BY-Angabe steht auf der Datensatzseite nicht; deshalb nennt buscosun die Zitierpflicht.', ref: 'audit/gletscher/licences.md' },
+      { name: 'WGMS Fluctuations of Glaciers', operator: 'World Glacier Monitoring Service', license: 'CC BY 4.0 (laut WGMS: Open Access mit korrekter Zitierung)',
+        note: 'Längen- und Massenreihen, Version 2026-02-10.', ref: 'audit/gletscher/licences.md' },
+      { name: 'AGI 5 und GI4', operator: 'PANGAEA (Buckel & Otto u. a.)', license: 'CC BY 4.0 / CC BY 3.0',
+        note: 'Österreichische Gletscherinventare.', ref: 'audit/gletscher/licences.md' },
+      { name: 'RGI 6.2', operator: 'RGI Consortium', license: 'CC BY 4.0',
+        note: 'Brücke zwischen Inventaren und die vier deutschen Umrisse.', ref: 'audit/gletscher/licences.md' },
+      { name: 'Copernicus Sentinel-2 L2A', operator: 'ESA / Europäische Kommission (Earth Search, AWS Open Data)', license: 'freier und offener Zugang',
+        note: 'Szenenwerte für Schneegrenze und Albedo. Enthält modifizierte Copernicus-Sentinel-Daten.', ref: 'scripts/glacier/sat-scan.mjs' },
+    ],
+  },
+  {
+    group: 'Seewetter und Autobahnwetter',
+    items: [
+      { name: 'BSH Wasserstandsvorhersage', operator: 'Bundesamt für Seeschifffahrt und Hydrographie', license: 'CC BY 4.0',
+        note: 'Pegel und Vorhersagekurven über die OGC API; die Warnkategorie wird nur zitiert.', ref: 'src/sea/waterLevelClient.ts' },
+      { name: 'DWD CWAM und Seewetterbericht', operator: 'Deutscher Wetterdienst', license: 'GeoNutzV / CC BY 4.0',
+        note: 'Seegang im Küstenmodell, Bericht und Warnstatus im Wortlaut.', ref: 'src/sea/seaContract.ts' },
+      { name: 'DWD Glättemeldeanlagen (SWIS)', operator: 'Deutscher Wetterdienst und Straßenbauverwaltungen der Länder', license: 'GeoNutzV',
+        note: 'Fahrbahnmessungen im 15-Minuten-Takt, von buscosun dekodiert, geprüft und umkodiert.', ref: 'src/road/roadContract.ts' },
+    ],
+  },
+  {
     group: 'Waldbrand DACH',
     items: [
       { name: 'NASA FIRMS / LANCE', operator: 'NASA (Fire Information for Resource Management System, LANCE)', license: 'NASA: „no restrictions on subsequent use or redistribution"',

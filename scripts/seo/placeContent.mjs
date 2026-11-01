@@ -61,8 +61,6 @@ export const MODULE_OPEN = {
   road: moduleOpen('road', 'autobahnwetter', ROAD_LIVE),
   glacier: moduleOpen('glacier', 'gletscher', GLACIER_LIVE),
 };
-/** GLAMOS (CH-Gletscherinventar): Lizenzklärung steht aus (Daten-Repo-README) ⇒ keine CH-Gletscherzahlen, bis Jan sie freigibt. */
-const GLAMOS_CH_CLEARED = false;
 
 // ------------------------------------------------------------------ Klima
 
@@ -183,14 +181,14 @@ export function moduleBlocks(place) {
     });
   }
   if (m.glaciers && MODULE_OPEN.glacier) {
-    const list = m.glaciers.filter((g) => g.country !== 'CH' || GLAMOS_CH_CLEARED).slice(0, 3);
+    const list = m.glaciers.slice(0, 3);
     if (list.length) {
-      const items = list.map((g) => `<li><a href="/gletscher/${esc(g.id)}">${esc(g.name)}</a>, ${n0(Math.round(g.km))} km entfernt, ${n1(g.areaKm2)} km² (Bezugsjahr ${esc(g.areaYear)}, ${esc(g.areaSource)})</li>`).join('');
+      const items = list.map((g) => `<li><a href="/gletscher/${esc(String(g.id).slice(3).replace('_', '-'))}">${esc(g.name)}</a>, ${n0(Math.round(g.km))} km entfernt, ${n1(g.areaKm2)} km² (Bezugsjahr ${esc(g.areaYear)}, ${esc(g.areaSource)})</li>`).join('');
       for (const g of list) mentions.push({ '@type': 'Place', name: g.name, geo: { '@type': 'GeoCoordinates', latitude: g.lat, longitude: g.lon } });
       blocks.push({
         id: 'glacier', h2: `Gletscher in der Nähe von ${place.name}`,
         html: `<p>Im Umkreis von 30 km um ${esc(place.name)} liegen Gletscher ab 0,5 km² Fläche. Die nächsten:</p><ul class="facts">${items}</ul>`,
-        sources: ['Gletscherinventare AGI 5 / GI4 / RGI (CC BY)'],
+        sources: list.some((g) => g.country === 'CH') ? ['Gletscherinventare AGI 5 / GI4 / RGI (CC BY)', 'GLIMS Glacier Database (NSIDC-0272, doi:10.7265/N5V98602; Quellenangabe Pflicht)'] : ['Gletscherinventare AGI 5 / GI4 / RGI (CC BY)'],
       });
     }
   }

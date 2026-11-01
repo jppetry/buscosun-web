@@ -297,6 +297,25 @@ export const SUB_ROUTE_TEXTS: Readonly<Record<string, SeoText>> = { ...LAYER_ENT
  */
 export type RouteText = Pick<SeoText, 'body' | 'facts' | 'official' | 'links'>;
 const ROUTE_TEXTS: Readonly<Record<string, RouteText>> = {
+  '/gletscher': {
+    body: [
+      'Die Lage zeigt die Gletscher im DACH-Raum auf der Karte und in einer Rangliste; der Steckbrief zu jedem Gletscher, etwa zum Großen Aletschgletscher oder zur Pasterze, gliedert sich in Heute, Saison, Langzeit, Tour und Quellen. Frühere Umrisse und ein Vergleichsregler zeigen die Veränderung der Fläche, soweit Inventare dafür vorliegen. Jede Zahl trägt ein Zeichen: gemessen, Satellit, Modell oder amtlich.',
+      'Die Inventare stammen aus AGI 5 und GI4 für Österreich, aus der GLIMS Glacier Database für die Schweiz und aus RGI 6.2; die Längen- und Massenreihen aus dem Datensatz des WGMS, für Österreich auch vom Alpenverein. Sentinel-2-Szenen werden zweimal täglich gesucht und bei Wolken verworfen. Der Schmelzindex wird alle drei Stunden aus Wettermodellen berechnet und hat keine Einheit, weil seine Eichung auf Millimeter die vorab festgelegte Abnahme nicht bestanden hat.',
+      'Grenzen: Die Schneegrenze einer Szene ist keine Gleichgewichtslinie; gegen die gemessene Linie lag der Median-Abstand bei 282 Metern. Schweizer Reihen sind über das WGMS kürzer als bei GLAMOS. Massenbilanzen und Jahresberichte geben GLAMOS und der Österreichische Alpenverein heraus. Die Ansicht sagt nichts über Spalten, Steinschlag oder Lawinen und gibt keine Tour frei.',
+    ],
+    facts: [
+      { label: 'Quellen', text: 'AGI 5, GI4 (PANGAEA) · GLIMS (NSIDC-0272, doi:10.7265/N5V98602) · RGI 6.2 · WGMS FoG · Sentinel-2 · ICON-Modelle' },
+      { label: 'Aktualisierung', text: 'Szenen zweimal täglich geprüft, Schmelzindex alle 3 Stunden, Inventare selten' },
+      { label: 'Abdeckung', text: 'rund 2 200 Gletscher in DE, AT und CH' },
+      { label: 'Grenze', text: 'kein amtliches Warnprodukt, keine Tourenfreigabe; Schmelzindex ohne Einheit, Schneegrenze als Szenenwert' },
+    ],
+    official: { text: 'Amtliche Schweizer Gletscherdaten und Jahresberichte stehen bei', label: 'GLAMOS', href: 'https://www.glamos.ch/' },
+    links: [
+      { label: 'So liest du den Gletscher-Monitor', href: '/funktionen/gletscher/' },
+      { label: 'Daten und Grenzen', href: '/methodik/gletscher-daten/' },
+      { label: 'Vertikalschnitt der Atmosphäre', href: '/atmosphaere/querschnitt' },
+    ],
+  },
   '/waldbrand': {
     body: [],
     facts: [],

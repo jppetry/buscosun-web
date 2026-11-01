@@ -11,7 +11,7 @@
  *           Hash mehr; `scripts/verify-routing.mjs` prüft jeden Link gegen die Tabelle.
  */
 
-import { SEA_TOOL } from './nicheTools.mjs';
+import { SEA_TOOL, GLACIER_TOOL } from './nicheTools.mjs';
 
 const PUBLISHED = '2026-06-26';
 const MODIFIED = '2026-06-26';
@@ -734,6 +734,7 @@ export const TOOLS = [
     datePublished: PUBLISHED, dateModified: MODIFIED_E4,
   },
   SEA_TOOL,
+  GLACIER_TOOL,
 ];
 
 export const TOOLS_BY_SLUG = Object.fromEntries(TOOLS.map((t) => [t.slug, t]));

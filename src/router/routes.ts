@@ -293,16 +293,15 @@ export const ROUTES: readonly RouteDef[] = [
     },
   },
   {
-    // Phase GL (audit/gletscher.md): Pfadsegment = Gletscher (`/gletscher/ch-grosser-aletschgletscher`), entscheidet die Seite. Bis Jan
-    // `GLACIER_LIVE` schaltet (nach Gate D, `src/glacier/glacierFlag.ts`) noindex und in keiner Sitemap; die Seite gibt es nur mit `?gl=1`.
+    // Phase GL (audit/gletscher.md): Pfadsegment = Gletscher (`/gletscher/ch-grosser-aletschgletscher`), entscheidet die Seite. Für alle sichtbar seit
+    // 13.10.2026 (`GLACIER_LIVE`), indexierbar seit 01.11.2026 (Jan, audit/seo-nischen.md): `/gletscher` in der Sitemap, Gletscher-Pfade teilen Shell und Canonical.
     id: 'gletscher', path: '/gletscher', aliases: ['/gletscherradar', '/gletschermonitor'], featureId: 'glacier', subParam: 'glacier',
     subs: null,
     meta: {
       title: 'Gletscher DACH — Lage, Schmelze und Messreihen',
       description: 'Rund 2 200 Gletscher in Deutschland, Österreich und der Schweiz: amtliche Zahlen, Längen- und Massenreihen, Herkunft an jedem Wert.',
       h1: 'Gletscher: Wie geht es dem Eis?',
-      lead: 'Alle rund 2 200 Gletscher in DE, AT und CH an einem Ort: Inventare mit Bezugsjahr, Längen- und Massenreihen der Messnetze, amtliche Berichte im Wortlaut. Jeder Wert nennt seine Herkunft (gemessen, Satellit, Modell, amtlich). Kein amtliches Warnprodukt, keine Tourenfreigabe.',
-      noindex: true, // bis Gate D (GLACIER_LIVE)
+      lead: 'Alle rund 2 200 Gletscher in DE, AT und CH an einem Ort: Inventare mit Bezugsjahr, Längen- und Massenreihen der Messnetze, Satellitenszenen, ein Schmelzindex ohne Einheit und amtliche Berichte im Wortlaut. Jeder Wert nennt seine Herkunft (gemessen, Satellit, Modell, amtlich). Kein amtliches Warnprodukt, keine Tourenfreigabe.',
     },
   },
   {
@@ -590,8 +589,8 @@ export function verifyRoutes(): { checks: RouteCheck[]; passed: number; failed: 
   add('[SW] Gegenprobe: ein unbekannter Sub-Slug einer Route MIT Sub-Liste bleibt noindex', metaForPath('/wetterkarte/xyz').noindex && metaForPath('/waldbrand/xyz').noindex);
   // Phase GL: Route, Aliase, Gletscher als Pfadsegment; bis Gate D noindex und ohne Sitemap.
   add('[GL] /gletscher ist eine Route, /gletscherradar und /gletschermonitor sind Aliase', routeForPath('/gletscher')?.def.id === 'gletscher' && aliasTarget('/gletscherradar') === '/gletscher' && aliasTarget('/gletschermonitor') === '/gletscher');
-  add('[GL] /gletscher/ch-grosser-aletschgletscher trägt den Gletscher als Segment (die Seite entscheidet), noindex', routeForPath('/gletscher/ch-grosser-aletschgletscher')?.subSlug === 'ch-grosser-aletschgletscher' && metaForPath('/gletscher/ch-grosser-aletschgletscher').noindex);
-  add('[GL] bis Gate D noindex und in keiner Sitemap', !!ROUTE_BY_ID.gletscher.meta.noindex && !sitemapPaths().some((x) => x.path.startsWith('/gletscher')));
+  add('[GL] /gletscher/ch-grosser-aletschgletscher trägt den Gletscher als Segment (die Seite entscheidet): indexierbar, Canonical = /gletscher', routeForPath('/gletscher/ch-grosser-aletschgletscher')?.subSlug === 'ch-grosser-aletschgletscher' && !metaForPath('/gletscher/ch-grosser-aletschgletscher').noindex && canonicalPath('/gletscher/ch-grosser-aletschgletscher') === '/gletscher');
+  add('[GL] seit 01.11. indexierbar: /gletscher genau einmal in der Sitemap, kein Gletscher-Pfad', !ROUTE_BY_ID.gletscher.meta.noindex && sitemapPaths().filter((x) => x.path.startsWith('/gletscher')).map((x) => x.path).join() === '/gletscher');
   add('[GL] zwei Segmente (/gletscher/a/b) sind keine Route', routeForPath('/gletscher/ch-a/b') === null);
   const failed = checks.filter((c) => !c.ok).length;
   return { checks, passed: checks.length - failed, failed };
