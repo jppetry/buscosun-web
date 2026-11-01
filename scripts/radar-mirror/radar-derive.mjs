@@ -65,107 +65,9 @@ const NC_FLOW_REGIONAL = process.env.RADAR_NC_FLOW === 'regional';
 const NC_RANGE_MASK = process.env.RADAR_NC_RANGE !== '0';
 import { estimateMorphFlow } from '../../src/scalar/radarMorphFlow.ts';
 import { RADAR_MORPH_HS } from '../../src/scalar/radarHd.ts';
-// Phase NC-B (src/sources/radarNowcastBlend.ts): with `RADAR_NC_BLEND=1` the CH extrapolation frames from +30 min on are a mix
-// of the shifted analysis and the model rate (ICON-D2-RUC form `ruc/v1` fitted to the hourly mean of the cube field
-// `point/field/v1` of the buscosun Fusion chain), weight linear to 1 at +120 min; `meta.blend` says so. Inputs are read
-// from the data repo next to the mirror (walking up from the rzc image root) or, when they are not checked out, from
-// raw.githubusercontent. OFF by default = byte-identical to before; any failure leaves the slot a pure translation.
-import {
-  cellIndexPlane, cellCoordPlane, modelPlanes, smoothModelPlane, interpolateModelPlane, applyModelMin, blendFrame, RZC_NC_BLEND_WEIGHTS, RZC_NC_BLEND_START_MIN, RZC_NC_BLEND_FULL_MIN, RZC_NC_BLEND_MODEL, RZC_NC_BLEND_PROVENANCE,
-} from '../../src/sources/radarNowcastBlend.ts';
-import { RZC_NC_BLEND_SMOOTHING, RZC_NC_BLEND_MODEL_MIN_MMH } from '../../src/sources/radarNowcastImg.ts';
-import { parseRucManifest, rucLatestPath, rucChunkPath, RUC_CHUNK_WIDTH } from '../../src/point/rucFormat.ts';
-import { parseFieldIndex, parseFieldManifest, FIELD_INDEX_PATH, FIELD_MANIFEST_FILE, fieldRunDir, fieldFileName, decodePrecipCumPixel, fieldPixelOffset } from '../../src/point/fieldFormat.ts';
-import { TIER_BY_ID } from '../../src/point/cubeFormat.ts';
+// Phase NC-B (the CH frames mixed with buscosun Fusion from +30 min, `RADAR_NC_BLEND=1`, 28.10.–01.11.2026) was REMOVED on
+// Jan's decision of 01.11.2026 — the Swiss picture is the shifted radar alone; the variable in the data repo does nothing.
 import { gridNodeFn, projectedSampler } from '../../src/scalar/radarCountryMask.ts';
-const NC_BLEND = process.env.RADAR_NC_BLEND === '1';
-// 01.11.2026: the model share drawn as a smooth field (`interpolateModelPlane`, Catmull-Rom between the cell centres, fading
-// past the cell edge — Jan: "wie richtige Radar-Niederschlagsfelder"); the 4-km blocks of one value looked like a mosaic.
-// `RADAR_NC_BLEND_SMOOTH=wet` = the first version (`smoothModelPlane`, inside the wet footprint only), `0` = blocks as before.
-const NC_BLEND_SMOOTH = process.env.RADAR_NC_BLEND_SMOOTH === '0' ? null : process.env.RADAR_NC_BLEND_SMOOTH === 'wet' ? 'wet-bilinear' : RZC_NC_BLEND_SMOOTHING;
-// 01.11.2026 (Jan): the model share counts only from RZC_NC_BLEND_MODEL_MIN_MMH on (its hourly drizzle below that covered half of
-// Switzerland with 4-km squares the radar never saw). `RADAR_NC_BLEND_MODEL_MIN=<mm/h>` overrides, '0' = every model value as before.
-const NC_BLEND_MODEL_MIN = process.env.RADAR_NC_BLEND_MODEL_MIN != null && process.env.RADAR_NC_BLEND_MODEL_MIN !== ''
-  ? Math.max(0, Number(process.env.RADAR_NC_BLEND_MODEL_MIN) || 0) : RZC_NC_BLEND_MODEL_MIN_MMH;
-const NC_BLEND_RAW = process.env.RADAR_NC_BLEND_BASE || 'https://raw.githubusercontent.com/jppetry/buscosun-data/main';
-
-/** Model planes for the 24 leads of a CH extrapolation (null = no blend, with the reason logged). */
-async function ncBlendInputs(rzcRoot, analysisAtMs, w, h, corners) {
-  let root = null;
-  for (let d = rzcRoot, i = 0; i < 7; i++, d = dirname(d)) if (existsSync(join(d, rucLatestPath()))) { root = d; break; }
-  const readRel = async (rel) => {
-    if (root && existsSync(join(root, rel))) return new Uint8Array(readFileSync(join(root, rel)));
-    const ac = new AbortController(); const timer = setTimeout(() => ac.abort(), 30_000);
-    try {
-      const r = await fetch(`${NC_BLEND_RAW}/${rel}`, { signal: ac.signal, headers: { 'user-agent': 'buscosun-radar-mirror (buscosun-web/audit/radar-nowcast-dach.md)' } });
-      if (!r.ok) return null;
-      return new Uint8Array(await r.arrayBuffer());
-    } finally { clearTimeout(timer); }
-  };
-  const readJson = async (rel) => { const b = await readRel(rel); return b ? JSON.parse(new TextDecoder().decode(b)) : null; };
-  const tier = TIER_BY_ID.t1;
-  // RUC: the newest run (`latest.json`), its chunks under the rzc grid
-  const ruc = parseRucManifest(await readJson(rucLatestPath()));
-  if (!ruc) throw new Error('ruc/v1/latest.json fehlt oder unlesbar');
-  if (ruc.runAtMs > analysisAtMs + 3_600_000) throw new Error(`RUC-Lauf ${ruc.run} liegt nach der Analyse`);
-  const cells = cellIndexPlane(w, h, projectedSampler(gridNodeFn('rzc', corners)), tier);
-  const keys = new Set();
-  for (let i = 0; i < cells.length; i++) if (cells[i] >= 0) { const iy = Math.floor(cells[i] / tier.nx), ix = cells[i] % tier.nx; keys.add(`${Math.floor(iy / 16)}_${Math.floor(ix / 16)}`); }
-  const chunks = new Map();
-  for (const key of keys) {
-    const [cy, cx] = key.split('_').map(Number);
-    const b = await readRel(rucChunkPath(ruc.run, cy, cx));
-    if (!b) continue;
-    const p = decodePng(b);
-    if (p.channels !== 1 || p.width !== RUC_CHUNK_WIDTH) throw new Error(`RUC-Chunk ${key}: ${p.width}×${p.height}×${p.channels}`);
-    chunks.set(key, { cy, cx, width: p.width, height: p.height, data: p.data });
-  }
-  if (!chunks.size) throw new Error(`kein RUC-Chunk des Laufs ${ruc.run} unter dem rzc-Gitter`);
-  // field: the newest t1 run, hourly means from precipcum (C(L) − C(L − 1))
-  const idx = parseFieldIndex(await readJson(FIELD_INDEX_PATH));
-  const run = idx?.latestByTier?.t1?.run;
-  if (!run) throw new Error('point/field/v1/index.json ohne t1-Lauf');
-  const fm = parseFieldManifest(await readJson(`${fieldRunDir(run, 't1')}/${FIELD_MANIFEST_FILE}`));
-  if (!fm) throw new Error(`field.json des Laufs ${run} unlesbar`);
-  const cumByLead = new Map();
-  const cumPlane = async (leadH) => {
-    if (cumByLead.has(leadH)) return cumByLead.get(leadH);
-    const lead = fm.leads.find((l) => l.leadH === leadH);
-    const b = lead?.precipcum ? await readRel(`${fieldRunDir(run, 't1')}/${fieldFileName('precipcum', leadH)}`) : null;
-    const p = b ? decodePng(b) : null;
-    const plane = p && p.channels === 4 && p.width === tier.nx && p.height === tier.ny ? p.data : null;
-    cumByLead.set(leadH, plane);
-    return plane;
-  };
-  const H = 3_600_000;
-  const hourEnds = [...new Set(RZC_NC_LEADS.map((l) => Math.ceil((analysisAtMs + l * 60_000) / H) * H))];
-  for (const hEnd of hourEnds) { const L = (hEnd - fm.runAtMs) / H; if (Number.isInteger(L) && L >= 1) { await cumPlane(L); await cumPlane(L - 1); } }
-  const hourMean = (iy, ix, hEnd) => {
-    const L = (hEnd - fm.runAtMs) / H;
-    if (!Number.isInteger(L) || L < 1) return null;
-    const a = cumByLead.get(L), b = cumByLead.get(L - 1);
-    if (!a || !b) return null;
-    const o = fieldPixelOffset(tier, iy, ix);
-    const ca = decodePrecipCumPixel(a[o], a[o + 1], a[o + 2], a[o + 3]), cb = decodePrecipCumPixel(b[o], b[o + 1], b[o + 2], b[o + 3]);
-    if (ca == null || cb == null) return null;
-    return Math.max(0, (ca - cb) / fm.stepH);
-  };
-  const mp = modelPlanes({ w, h, cells, tier, analysisAtMs, ruc: { runAtMs: ruc.runAtMs, steps: ruc.steps, chunks }, hourMean });
-  let planes = mp.planes;
-  if (NC_BLEND_MODEL_MIN > 0) planes = planes.map((p) => applyModelMin(p, NC_BLEND_MODEL_MIN));
-  if (NC_BLEND_SMOOTH) {
-    const coords = cellCoordPlane(w, h, projectedSampler(gridNodeFn('rzc', corners)), tier);
-    planes = planes.map((p) => (NC_BLEND_SMOOTH === 'wet-bilinear' ? smoothModelPlane(p, cells, coords, tier) : interpolateModelPlane(p, cells, coords, tier)));
-  }
-  const blend = {
-    model: RZC_NC_BLEND_MODEL, rucRun: ruc.run, rucRunAtMs: ruc.runAtMs, fieldRun: run, fieldRunAtMs: fm.runAtMs,
-    startMin: RZC_NC_BLEND_START_MIN, fullMin: RZC_NC_BLEND_FULL_MIN, weights: [...RZC_NC_BLEND_WEIGHTS],
-    cellsModel: mp.cellsModel, cellsTotal: mp.cellsTotal, provenance: RZC_NC_BLEND_PROVENANCE,
-    ...(NC_BLEND_SMOOTH ? { smoothing: NC_BLEND_SMOOTH } : {}),
-    ...(NC_BLEND_MODEL_MIN > 0 ? { modelMin: NC_BLEND_MODEL_MIN } : {}),
-  };
-  return { planes, blend, kinds: mp.kinds, source: root ? 'lokal' : 'raw' };
-}
 
 // Phase HD-3 (audit/radar-hochaufloesung.md §5, E-HD-3): mit `RADAR_IMG_DUAL=1` je Frame zusätzlich `g<lead>.png`
 // (Grau + Alpha: Kanal 1 = derselbe `precipToU8`-Byte wie `f<lead>.png`, Kanal 2 = `precipToU8Log`) und `meta.dual`.
@@ -410,24 +312,12 @@ if (source === 'rv') {
   const motion = motionStats(flow, newest.values, w, h, NC_STEP_MIN, pairs);
   const analysisAtMs = newest.meta.validAtMs ?? radarImgStampToMs(stamp);
   const range = NC_RANGE_MASK ? rangeUnknownMask(w, h, projectedSampler(gridNodeFn('rzc', newest.meta.corners)), RZC_RADAR_SITES, RZC_RANGE_KM) : null;
-  // Phase NC-B: model planes per lead (null = pure translation, as before)
-  let nb = null;
-  if (NC_BLEND) {
-    try { nb = await ncBlendInputs(inPath, analysisAtMs, w, h, newest.meta.corners); }
-    catch (e) { console.error(`rzc-nc: Modell-Mischung ausgelassen — ${e.message}`); }
-  }
   const frames = [], unknownRows = [], dualRows = [];
   const buf = new Uint8Array(w * h), buf2 = newest.values2 ? new Uint8Array(w * h) : null, ubuf = new Uint8Array(w * h);
-  const mix = nb ? new Uint8Array(w * h) : null, mix2 = nb && buf2 ? new Uint8Array(w * h) : null;
-  let changed = 0;
-  for (const [li, lead] of RZC_NC_LEADS.entries()) {
+  for (const lead of RZC_NC_LEADS) {
     const k = lead / NC_STEP_MIN;
     advectPlane(newest.values, w, h, flow, k, buf, ubuf, range?.mask);
     if (buf2) advectPlane(newest.values2, w, h, flow, k, buf2, undefined, range?.mask);
-    if (nb && RZC_NC_BLEND_WEIGHTS[li] > 0) {
-      changed += blendFrame({ w: RZC_NC_BLEND_WEIGHTS[li], radar: buf, radarLog: buf2, model: nb.planes[li], unknown: ubuf, out: mix, outLog: mix2 });
-      buf.set(mix); if (buf2) buf2.set(mix2);
-    }
     const fpng = encodePng(w, h, buf, 1);
     const ffile = radarImgFrameFile(lead);
     put(ffile, fpng);
@@ -451,14 +341,12 @@ if (source === 'rv') {
     method: { flow: 'translation', factor, maxCoarse: NC_TRANSLATION_MAX_COARSE, sampling: 'wet-bilinear-round', ...(NC_FLOW_REGIONAL ? { regions } : {}) },
     ...(range ? { unknownBeyondKm: RZC_RANGE_KM } : {}),
     ...(buf2 ? { dual: makeRadarImgDual(dualRows) } : {}),
-    ...(nb ? { blend: nb.blend } : {}),
   });
   if (!parseRzcNcImgMeta(JSON.parse(JSON.stringify(meta)))) throw new Error('rzc-nc: eigene meta.json besteht den Client-Prüfer nicht');
   put('meta.json', JSON.stringify(meta) + '\n');
   console.error(`rzc-nc: ${series.length} Analysen, ${pairs} Paare, ${motion.speedKmh} km/h aus ${motion.fromDeg ?? '—'}°, ${motion.wetCells} nasse Zellen`
     + (NC_FLOW_REGIONAL ? ` · ${regions}/${NC_REGION_GRID * NC_REGION_GRID} Regionen mit eigenem Zug` : ' · ein Zug für das ganze Bild')
-    + (range ? ` · ${range.count} Quellpixel jenseits ${RZC_RANGE_KM} km unbekannt` : '')
-    + (nb ? ` · Mischung mit buscosun Fusion (RUC ${nb.blend.rucRun}, Feld ${nb.blend.fieldRun}, ${nb.source}): ${nb.blend.cellsModel}/${nb.blend.cellsTotal} Zellen, Stunden ${JSON.stringify(nb.kinds)}, ${changed} Pixel geändert${nb.blend.smoothing ? `, Modellanteil ${nb.blend.smoothing}` : ', Modellanteil je Zelle'}${nb.blend.modelMin ? ` ab ${nb.blend.modelMin} mm/h` : ''}` : ''));
+    + (range ? ` · ${range.count} Quellpixel jenseits ${RZC_RANGE_KM} km unbekannt` : ''));
 } else if (source === 'inca-5m') {
   // Phase NC: inPath = the mirror's INCA slot (`img/inca/<stamp>/`): the run's frames, refined to 5 min along the motion.
   const meta0 = parseIncaImgMeta(JSON.parse(readFileSync(join(inPath, 'meta.json'), 'utf8')));

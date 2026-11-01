@@ -119,74 +119,8 @@ export const RZC_NC_CAVEATS: readonly string[] = Object.freeze([
 export const RZC_NC_UNKNOWN_WORD = 'grau = unbekannt (Regen könnte von außerhalb des Radargebiets kommen)';
 export const INCA_5M_NOTE = 'Zwischenbilder entlang der Bewegung verschoben — flüssiger, nicht genauer';
 
-// --- Phase NC-B: the extrapolation continued with buscosun Fusion (`radarNowcastBlend.ts` holds the arithmetic) -------------
-/** Model weight 0 up to this lead (radar alone) … */
-export const RZC_NC_BLEND_START_MIN = 30;
-/** … and 1 from this lead on (model alone), linear in between. SET (Phase NC-B, 28.10.2026); V-NC-1 measures the crossover. */
-export const RZC_NC_BLEND_FULL_MIN = 120;
-export const RZC_NC_BLEND_MODEL = 'ruc+field' as const;
-export const RZC_NC_BLEND_LABEL = 'Hochrechnung buscosun aus MeteoSwiss-Radar · ab +30 min mit buscosun Fusion gemischt';
-export const RZC_NC_BLEND_CAVEATS: readonly string[] = Object.freeze([
-  'ab +30 min mischt sich das Modell ein (Gewicht linear bis +120 min, gesetzt): Zerfall und Neubildung kommen aus buscosun Fusion, nicht aus dem Radar',
-  'Modellzellen sind 0,05° (≈ 4 km) grob, die 5-min-Form stammt aus ICON-D2-RUC (Lauf bis zu 1 h alt)',
-  'Zellen ohne Modellwert bleiben reine Verschiebung',
-]);
-/**
- * 01.11.2026: the model share is interpolated between its cell centres inside its wet footprint before the mix
- * (`smoothModelPlane`, `radarNowcastBlend.ts`) — display only, named in the product (`meta.blend.smoothing`) and on the page.
- * Producer switch `RADAR_NC_BLEND_SMOOTH=0` = the 4-km blocks as before (absent field).
- */
-export const RZC_NC_BLEND_SMOOTHINGS = ['wet-bilinear', 'catmull-rom'] as const;
-export type RzcNcBlendSmoothing = typeof RZC_NC_BLEND_SMOOTHINGS[number];
-/** Default since 01.11.2026 (Jan, "wie richtige Radar-Niederschlagsfelder"): soft fields that fade out past the cell edge. */
-export const RZC_NC_BLEND_SMOOTHING: RzcNcBlendSmoothing = 'catmull-rom';
-/**
- * 01.11.2026 (Jan): the model share counts only from this rate on — below it the model is taken as dry in the mix. Seen in the
- * browser: the model's hourly drizzle (0,06 … 0,2 mm/h over 4-km cells) covered half of Switzerland with light-blue squares the
- * radar never saw. SET, not measured; `meta.blend.modelMin` names it; producer `RADAR_NC_BLEND_MODEL_MIN=0` = every model value
- * as before. The radar share keeps the display threshold 0,06 mm/h.
- */
-export const RZC_NC_BLEND_MODEL_MIN_MMH = 0.2;
-export const RZC_NC_BLEND_MODEL_MIN_CAVEAT = 'der Modellanteil zählt erst ab 0,2 mm/h — Modell-Niesel darunter kommt nicht ins Bild (Schwelle gesetzt, nicht gemessen)';
-export const RZC_NC_BLEND_SMOOTH_CAVEAT: Readonly<Record<RzcNcBlendSmoothing, string>> = Object.freeze({
-  'wet-bilinear': 'der Modellanteil ist innerhalb seiner Regenfläche zwischen den 4-km-Zellmitten geglättet — Darstellung, keine Mehrinformation; die Außenkante bleibt die Zellkante',
-  'catmull-rom': 'der Modellanteil ist zwischen den 4-km-Zellmitten weich interpoliert und läuft bis zu einer halben Zelle in trockene Nachbarzellen aus — Darstellung, keine Mehrinformation',
-});
-/** Weight of the model at `leadMin` (0 … 1). */
-export function rzcNcBlendWeight(leadMin: number): number {
-  if (!(leadMin > RZC_NC_BLEND_START_MIN)) return 0;
-  if (leadMin >= RZC_NC_BLEND_FULL_MIN) return 1;
-  return (leadMin - RZC_NC_BLEND_START_MIN) / (RZC_NC_BLEND_FULL_MIN - RZC_NC_BLEND_START_MIN);
-}
-export const RZC_NC_BLEND_WEIGHTS: readonly number[] = Object.freeze(RZC_NC_LEADS.map((l) => Math.round(rzcNcBlendWeight(l) * 1000) / 1000));
-
-/** `meta.blend` of a product whose frames carry the model share (absent = pure translation, the stand before NC-B). */
-export interface RzcNcBlend {
-  model: typeof RZC_NC_BLEND_MODEL;
-  rucRun: string; rucRunAtMs: number;
-  fieldRun: string; fieldRunAtMs: number;
-  startMin: number; fullMin: number;
-  /** weight per frame, same order as `frames` */
-  weights: number[];
-  /** t1 cells under the rzc grid with a model value for every lead / all t1 cells under the grid */
-  cellsModel: number; cellsTotal: number;
-  provenance: 'set' | 'measured';
-  /** present when the model share was interpolated between its cell centres (01.11.2026); absent = blocks per cell */
-  smoothing?: RzcNcBlendSmoothing;
-  /** mm/h from which the model share counts (01.11.2026); absent = every model value entered the mix */
-  modelMin?: number;
-}
-export function blendOk(v: unknown): v is RzcNcBlend {
-  const b = v as RzcNcBlend | null;
-  return !!b && typeof b === 'object' && b.model === RZC_NC_BLEND_MODEL
-    && (b.smoothing === undefined || (RZC_NC_BLEND_SMOOTHINGS as readonly string[]).includes(b.smoothing))
-    && (b.modelMin === undefined || (Number.isFinite(b.modelMin) && b.modelMin > 0))
-    && typeof b.rucRun === 'string' && Number.isFinite(b.rucRunAtMs) && typeof b.fieldRun === 'string' && Number.isFinite(b.fieldRunAtMs)
-    && b.startMin === RZC_NC_BLEND_START_MIN && b.fullMin === RZC_NC_BLEND_FULL_MIN
-    && Array.isArray(b.weights) && b.weights.length === RZC_NC_LEADS.length && b.weights.every((w, i) => Number.isFinite(w) && Math.abs(w - RZC_NC_BLEND_WEIGHTS[i]) < 1e-6)
-    && Number.isInteger(b.cellsModel) && Number.isInteger(b.cellsTotal) && b.cellsModel >= 0 && b.cellsModel <= b.cellsTotal
-    && (b.provenance === 'set' || b.provenance === 'measured');
-}
+// Phase NC-B (28.10.–01.11.2026, the extrapolation mixed with buscosun Fusion from +30 min) was REMOVED on Jan's decision of
+// 01.11.2026: the Swiss picture is the shifted radar alone again. A `meta.blend` of a product derived before that is ignored.
 
 // --- model crossover (point series) -----------------------------------------------------------------------------------
 /**
@@ -237,8 +171,6 @@ export interface RzcNcImgMeta {
   caveats: string[];
   label: string;
   dual?: RadarImgDual;
-  /** Phase NC-B: present when the frames carry the model share from +30 min on (label and caveats then say so). */
-  blend?: RzcNcBlend;
 }
 
 export interface Inca5mFrame extends RadarImgFrame {
@@ -261,18 +193,16 @@ export interface Inca5mImgMeta {
 
 export function makeRzcNcImgMeta(a: {
   stamp: string; analysisAtMs: number; corners: QuadCorners; frames: RadarImgFrame[]; unknown: RadarImgFrame[];
-  series: string[]; motion: NcMotion; method: RzcNcImgMeta['method']; dual?: RadarImgDual; blend?: RzcNcBlend; unknownBeyondKm?: number;
+  series: string[]; motion: NcMotion; method: RzcNcImgMeta['method']; dual?: RadarImgDual; unknownBeyondKm?: number;
 }): RzcNcImgMeta {
   return {
     schema: 1, source: 'rzc-nc', stamp: a.stamp, analysisAtMs: a.analysisAtMs,
     width: RZC_IMG_WIDTH, height: RZC_IMG_HEIGHT, vMax: PRECIP_VMAX, corners: a.corners,
     frames: a.frames, unknown: a.unknown, series: a.series, motion: a.motion, method: a.method,
     ...(a.unknownBeyondKm ? { unknownBeyondKm: a.unknownBeyondKm } : {}),
-    caveats: a.blend
-      ? [...RZC_NC_CAVEATS, ...RZC_NC_BLEND_CAVEATS, ...(a.blend.modelMin ? [RZC_NC_BLEND_MODEL_MIN_CAVEAT] : []), ...(a.blend.smoothing ? [RZC_NC_BLEND_SMOOTH_CAVEAT[a.blend.smoothing]] : [])]
-      : [...RZC_NC_CAVEATS],
-    label: a.blend ? RZC_NC_BLEND_LABEL : RZC_NC_LABEL,
-    ...(a.dual ? { dual: a.dual } : {}), ...(a.blend ? { blend: a.blend } : {}),
+    caveats: [...RZC_NC_CAVEATS],
+    label: RZC_NC_LABEL,
+    ...(a.dual ? { dual: a.dual } : {}),
   };
 }
 
@@ -321,7 +251,6 @@ export function parseRzcNcImgMeta(j: unknown): RzcNcImgMeta | null {
   if (m.unknownBeyondKm !== undefined && !(Number.isFinite(m.unknownBeyondKm) && m.unknownBeyondKm > 0)) return null;
   if (!Array.isArray(m.caveats) || typeof m.label !== 'string') return null;
   if (m.dual !== undefined && !dualOk(m.dual, RZC_NC_LEADS)) return null;
-  if (m.blend !== undefined && !blendOk(m.blend)) return null;
   return m;
 }
 
