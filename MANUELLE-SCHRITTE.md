@@ -3023,7 +3023,8 @@ gebaut, gefittet und **eingeschaltet**: Register `n: 14`, `FUSION14_RUC_MEMBER =
 
 ## 80. Niederschlagsradar — 25 Bilder bis +2 h überall (Phase NC, `audit/radar-nowcast-dach.md`), 2026-10-27
 
-Alles uncommitted in `buscosun-web`; das Spiegelskript im Daten-Repo ist schon gepusht (`6a7d113bd`) und schlummert.
+~~Alles uncommitted in `buscosun-web`; das Spiegelskript im Daten-Repo ist schon gepusht (`6a7d113bd`) und schlummert.~~ Stand 01.11.:
+Phase NC ist seit 28.10. auf `origin/main` und live (Punkt 3); offen ist nur noch der Push der lokalen Commits vom 01.11. (Punkt 7).
 
 1. **Commit + Push von `main`** (`buscosun-web`) = dein Gate. Erst damit bildet der nächste Spiegel-Job (≤ 5 h 45 nach dem Push,
    Marker `src/sources/radarNowcastImg.ts` im Sparse-Klon) `radar/img/v1/rzc-nc/` und `inca-5m/`; der Client fällt bis dahin auf den
@@ -3048,9 +3049,17 @@ Alles uncommitted in `buscosun-web`; das Spiegelskript im Daten-Repo ist schon g
    gesättigt auf Gletscherhöhe: Hover 3 502 m, „Niederschlag trocken"), der im Regenradar standardmäßig an ist und mit `snowRamp`
    (Weiß→Blau) in derselben Farbfamilie wie leichter Regen liegt. Nicht geändert (Funktionserhalt). Vorschlag V-NC-8: im Profil
    `radar` den Schnee-Layer standardmäßig aus ODER eine klar getrennte Palette — deine Wahl.
-6. **Offen:** V-NC-1 (Kreuzungspunkte INCA 120 / CH 60 min messen, ab ≥ 14 Tagen Produkten), V-NC-2 (RV-Reichweite statt Linie),
-   V-NC-3 (Sichtprüfung der Nähte an einem Regentag — 28.10. nur ohne Zug), V-NC-4 (Schraffur statt Schleier), V-NC-6 (Nord-CH:
-   DWD-RV statt rzc ist eine Qualitätsfrage), V-NC-9 (Mobil: INCA-Altersnotiz wird abgeschnitten).
+6. **Offen:** V-NC-1 (Kreuzungspunkte INCA 120 / CH 60 min messen, ab ≥ 14 Tagen Produkten), V-NC-4 (Schraffur statt Schleier),
+   V-NC-9 (Mobil: INCA-Altersnotiz wird abgeschnitten). ~~V-NC-2, V-NC-3, V-NC-6~~ — erledigt mit E-NC-7 (28.10., Zonen = Länder:
+   das DWD-Komposit ist über der Zentralschweiz und östlich 14,15° E blind, gemessen; `4ee58412`, `fac66f5f`, auf `origin/main`).
+7. **Push von `main` (01.11., dein Gate; Stand 22:30 MEZ 15 Commits vor `origin/main`):** darunter `ef7766e0` — NC-B (Modellanteil
+   ab +30 min in den CH-Bildern, 28.10. gebaut, am 01.11. auf dein Wort entfernt, E-NC-8) und `9ec0bfab` (Reichweiten-Maske 250 km
+   an, E-NC-9). Der Spiegel klont `origin/main`: bis zum Push mischt er weiter (der Lauf `rzc-nc/20261101T2105` trug `meta.blend`
+   mit Gewichten bis 1,0, V-NC-12) und der Layer-Katalog sagt solange zu Unrecht „keine Modell-Extrapolation". Nach dem Push:
+   nächster Spiegel-Lauf ohne `meta.blend` prüfen (`curl …/rzc-nc/<stamp>/meta.json | grep blend` leer); die Variable
+   `RADAR_NC_BLEND` im Daten-Repo tut nichts mehr und kann weg. Vorschläge aus dem Vergleich mit MeteoSchweiz (§7.4): V-NC-13
+   (Radar im Grenzband unter der Sandmaske durchzeichnen — der Regen südlich von Lugano war unsichtbar), V-NC-14 (Zahlenlegende
+   auf der Wetterkarte), V-NC-15 (Erstbesucher-Zustand der Regenradar-Layer prüfen) — deine Wahl.
 
 ## 79. Autobahnwetter — Virtueller Fahrbahnsensor (Phase VS = AW-6.2, `audit/autobahnwetter.md` §20), 2026-10-27
 

@@ -1,28 +1,37 @@
 # Phase NC — Niederschlagsradar: 25 Bilder bis +2 h überall in DACH
 
-> Stand 2026-10-27. Auftrag (Jan, Schnellmodus): „Überall steht das Radar von jetzt bis +2 h in 5-Minuten-Schritten zur Verfügung,
-> also 25 Bilder wie beim DWD-RV." Gebietsaufteilung, Zusammenführung, CH-Hochrechnung, AT-Verfeinerung und ehrliche Beschriftung
-> wie im Auftrag; Verifikation mit Browser-Check. Kein Plan-Modus; Entscheidungen E-NC-n sind Jans, Befunde V-NC-n.
+> Stand 2026-11-01 (§0 und §7 nachgezogen; §1–§6 sind der Verlauf vom 27./28.10.). Auftrag (Jan, Schnellmodus): „Überall steht das
+> Radar von jetzt bis +2 h in 5-Minuten-Schritten zur Verfügung, also 25 Bilder wie beim DWD-RV." Gebietsaufteilung, Zusammenführung,
+> CH-Hochrechnung, AT-Verfeinerung und ehrliche Beschriftung wie im Auftrag; Verifikation mit Browser-Check. Kein Plan-Modus;
+> Entscheidungen E-NC-n sind Jans, Befunde V-NC-n. Bei Widerspruch gilt der Code (`src/scalar/radarZones.ts`,
+> `src/sources/radarNowcastImg.ts`, `radarNowcastExtrap.ts`, `scripts/radar-mirror/radar-derive.mjs`).
 
 ## §0 Kurzfassung
 
 - **Zwei neue Produkte des Radar-Spiegels** (Vertrag `src/sources/radarNowcastImg.ts`, Arithmetik `radarNowcastExtrap.ts`, Producer
   `scripts/radar-mirror/radar-derive.mjs` Quellen `rzc-nc` und `inca-5m`, Spiegel-Haken `radar-mirror.mjs` `deriveNc`):
   - `radar/img/v1/rzc-nc/<stamp>/` — **Hochrechnung buscosun aus MeteoSwiss-Radar**: die rzc-Analyse des Stempels, 24 × 5 min
-    semi-Lagrange verschoben (Zugrichtung = gewichtetes Mittel der Horn–Schunck-Felder der letzten 3–6 Analysen, Faktor 4, α 0,5,
-    100 Iterationen); `f005…f120.png` (v1-Byte), `g…png` (Dual mit Log-Ebene, wenn die Analyse eine trägt), `u…png` (255 =
-    **unbekannt**: der Rückweg des Pixels beginnt außerhalb des Radargitters — nie „trocken"), `meta.json` mit `motion`
-    (km/h, Richtung „aus", Paare, nasse Zellen), `series`, `caveats`, `label`.
+    semi-Lagrange verschoben. Zugrichtung seit E-NC-5 (28.10.) = **EINE Verschiebung je Bildpaar** der letzten 3–6 Analysen
+    (normierte Kreuzkorrelation der 4×-vergröberten Bilder über ± 6 Grobpixel, Parabel-Subpixel), gewichtetes Mittel mit Gewicht
+    zum jüngsten Paar, als konstantes Feld über das ganze Gitter (`method.flow: 'translation'`; die ersten Produkte vom 27.10.
+    trugen `horn-schunck`, V-NC-7). `f005…f120.png` (v1-Byte), `g…png` (Dual mit Log-Ebene, wenn die Analyse eine trägt),
+    `u…png` (255 = **unbekannt**: der Rückweg des Pixels beginnt außerhalb des Radargitters ODER — seit 01.11., E-NC-9 — weiter als
+    250 km von jedem MeteoSchweiz-Radar, `meta.unknownBeyondKm`; nie „trocken"), `meta.json` mit `motion` (km/h, Richtung „aus",
+    Paare, nasse Zellen), `series`, `caveats`, `label`. **Kein Modellanteil** (NC-B gebaut 28.10., entfernt 01.11., E-NC-8, §7).
   - `radar/img/v1/inca-5m/<stamp>/` — **INCA-Nowcast · auf 5 min verfeinert**: die 12 INCA-Bilder (+15…+180) plus je zwei
     Zwischenbilder, entlang des Horn–Schunck-Felds des Paars verschoben (beide Nachbarn zur Mitte advehiert, Regel wie der
     Shader-Morph, `betweenPlanes`); `meta.json` mit `validAtMs` = Reftime + Lead und `kind: inca | between`. Nichts neu
     hochgerechnet (INCA ist schon eine Hochrechnung).
 - **Abtastregel** überall `wet-bilinear-round` (Randregel RS): nass nur bei nassem Anteil ≥ ½, Wert = Mittel der nassen Nachbarn —
   kein erfundener Leichtregen an Kanten; v1- und Log-Ebene teilen eine Maske.
-- **Gebietsaufteilung mit Übergangszone** (`src/scalar/radarZones.ts`, E-NC-1 = Jans Regel): RV = DE ∪ AT westlich 14,0° E ∪ CH
-  nördlich 46,7° N; INCA = übriges AT; rzc-Hochrechnung = übrige CH. Band ± 0,2° (Länge) bzw. ± 0,135° (Breite) ≈ ± 15 km, lineare
-  Gewichte. Die Maske des `RainLayer` ist jetzt ein **Gewicht 0…255** (Alpha-Faktor im Fragment-Shader, 4 Zeilen; 0/1-Masken
-  byte-gleich zu vorher). Worker-Op `zone`, `zoneMaskOffMain`.
+- **Gebietsaufteilung = Länder, ohne Band** (`src/scalar/radarZones.ts`, E-NC-7 vom 28.10., ersetzt E-NC-1): jedes native Pixel
+  zeichnet das Radar seines Landes (`pickCountry`, dieselbe Regel wie die Besitzmaske vor NC) — **DE = DWD-RV** (25 × 5 min vom
+  DWD), **AT = INCA auf 5 min verfeinert** (34 Bilder +15 … +180), **CH = rzc-Analyse + Hochrechnung buscosun** (24 × 5 min).
+  Die Linien 14,0° E / 46,7° N mit ± 15-km-Band (E-NC-1, Jans Wortlaut vom 27.10.) galten nur bis zum 28.10.: gemessen gegen die
+  nationalen Produkte ist das DWD-Komposit dort blind (V-NC-6: Zentralschweiz 46,8–47,3° N rzc 58–91 % nasse Pixel, RV 0–4,5 %;
+  V-NC-2: Oberösterreich 48° N RV dünnt ab 13,6° E aus und endet bei 14,15° E, INCA sieht 23–35 %). Die Maske des `RainLayer`
+  bleibt ein **Gewicht 0…255** (Alpha-Faktor im Fragment-Shader, Shader-Vertrag für ein Band, falls eines zurückkommt;
+  `RADAR_ZONE_UNDER`, Band-Bytes ab 2), die Gewichte sind seither nur noch 0 oder 1. Worker-Op `zone`, `zoneMaskOffMain`.
 - **Alles nach Gültigkeitszeit** (`pickCompositeFrames`): AT = das verfeinerte Bild, das der gefragten Zeit am nächsten liegt
   (± 3 min), CH = Analyse zu ihrer Zeit, sonst das Hochrechnungsbild; Wetterkarte (jetzt + h) und Regenradar-Profil (absolute Zeit)
   gleich. Regenradar-Stack (`radarFrames.ts`): AT 25 Schritte ab jetzt mit „jetzt" = nächstgelegene Gültigkeit und Altersangabe des
@@ -192,3 +201,62 @@ Notiz (30.09.), nicht `--update`.
 - **E-NC-6 (Jan 28.10. abends, „setze alles aktiv und pushe"):** hebt E-NC-4 auf — Client und Producer **an**, `?nc=0` bzw.
   `RADAR_NC=0` sind die benannten Rückwege (`verify:radar-nc` A1). Merge des Zweigs nach `main` (`6916d1f0`) + Push durch Claude
   auf Jans Wort; die Daten-Repo-Kopie des Spiegelskripts bleibt (sie ist schon „an").
+
+## §7 Stand nach dem 28.10. — Länderregel, NC-B gebaut und wieder entfernt, Reichweiten-Maske (nachgezogen 01.11.2026)
+
+Nachtrag auf Jans Wort vom 01.11. („zieh die Doku nach"): §0 beschrieb bis dahin noch die Zonenlinien 14° E / 46,7° N und den
+Horn–Schunck-Fluss, obwohl der Code seit dem 28.10. anders rechnet. Quelle je Punkt: die Commits und Modulköpfe.
+
+### 7.1 Zonen = Länder (E-NC-7, 28.10., auf `origin/main`)
+
+- `4ee58412` — ganze Schweiz zeichnet rzc + Hochrechnung; `fac66f5f` — ganz Österreich zeichnet INCA auf 5 min. Messung 28.10.
+  15:05 MEZ gegen die MeteoSchweiz-Radarseite und INCA (Zahlen in §0). Band-Konstanten und Rampe entfernt; `zoneWeightsFor` liefert
+  je Land 0/1. `verify:radar-nc` D2–D6 folgen der Länderregel.
+- Damit sind **V-NC-2 und V-NC-6 beantwortet** (nicht mehr „offen messen"): die Reichweite des DWD-Komposits reicht nicht über die
+  Grenze, die Länderregel ist die Datenlage. V-NC-3 (Sichtprüfung der Nähte) ist gegenstandslos, solange kein Band läuft.
+- Optik-Schalter `?chstyle=mch` (`f8e7af34`): CH-Layer in MeteoSchweiz-Anmutung (Schnitt 0,2 mm/h, harte Farbklassen), aus.
+
+### 7.2 NC-B — Modellanteil hinter der Verschiebung, gebaut und entfernt (28.10.–01.11.)
+
+- `3908f751` (28.10., `RADAR_NC_BLEND=1`, aus): ab +30 min mischte der Producer buscosun Fusion (Feld `point/field`, Form aus
+  ICON-D2-RUC) linear bis 100 % bei +120 min in die CH-Bilder; `e26ed517`/`e04882c4`/`56901b1d` (01.11.): Modellanteil zwischen
+  den 4-km-Zellmitten interpoliert, erst ab 0,2 mm/h (E, Jan), als weiche Catmull-Rom-Felder gezeichnet. Produkte dieser Tage
+  tragen `meta.blend` (`model: 'ruc+field'`, `weights[]`, `provenance: 'set'`).
+- **E-NC-8 (Jan, 01.11.): NC-B entfernt** — `ef7766e0`: `radarNowcastBlend.ts` gelöscht, Vertrag ohne Blend-Label/-Caveats, der
+  Producer liest `RADAR_NC_BLEND` nicht mehr (die Variable im Daten-Repo tut nichts), ein älteres `meta.blend` wird beim Lesen
+  ignoriert; Verifier-Block G stillgelegt (39/39). **Das Schweizer Bild ist wieder das verschobene Radar allein.**
+- **V-NC-12 (01.11. abends, Browser-Check gegen MeteoSchweiz):** `ef7766e0` liegt nur lokal (`main` 15 Commits vor `origin/main`).
+  Der Spiegel klont `origin/main`, daher trug der Lauf `rzc-nc/20261101T2105` (22:05 UTC) noch `meta.blend` mit Gewichten bis 1,0 —
+  der Layer-Katalog („keine Modell-Extrapolation darüber hinaus") war bis zum Push unwahr. **Push von `main` = Jans Gate (§80.7).**
+
+### 7.3 Reichweiten-Maske und regionale Bewegung (01.11., `9ec0bfab`, lokal)
+
+- **E-NC-9 (an):** Quellpixel weiter als `RZC_RANGE_KM` = 250 km von jedem der `RZC_RADAR_SITES` waren im rzc-Komposit 0 kodiert,
+  aber nie gemessen — `rangeUnknownMask` zählt sie als UNBEKANNT (`advectPlane srcUnknown`, `meta.unknownBeyondKm`; `RADAR_NC_RANGE=0`
+  aus). Messung 01.11.: nasse Pixel bis 247 km, keines dahinter; kein nasses Analysepixel innerhalb der Maske.
+- **`flowFromSeriesRegional` (gebaut, AUS, `RADAR_NC_FLOW=regional`):** eine Verschiebung je 2 × 2-Region, bilinear zwischen den
+  Regionsmitten; eine Region behält ihren Vektor nur mit ≥ 40 nassen Grobzellen, Score ≥ 0,5 und 0,02 mehr Korrelation als der
+  Gesamtvektor. An 30 Startzeiten des 01.11. (gleichförmiger Niesel 4–6 km/h) besaß sie in 10 einen Vektor (immer NE-Viertel), CSI
+  +60 min CH 0,7960 → 0,7953, +90 0,7160 → 0,7075 — kein Gewinn; ein Tag mit verschieden ziehenden Hälften ist nicht gemessen.
+  Korrelations-Gleichstand geht jetzt zur kleineren Verschiebung (ein Band quer durchs Fenster springt nicht mehr an den Rand).
+
+### 7.4 Vergleich mit der MeteoSchweiz-Niederschlags-App (01.11. 22:05–22:15 MEZ, Schweiz fast trocken — kein Treffer-Vergleich möglich)
+
+- MeteoSchweiz: Messung bis 22:00, danach „Prognose" in 5-min-Schritten nahtlos bis Montag 21:00 (≈ 24 h), ohne sichtbare Grenze
+  zwischen Nowcast und Modell; volles 710 × 640-km-Bild inkl. Norditalien; neun benannte mm/h-Klassen.
+- buscosun Wetterkarte: Analyse 22:05 (8 min alt) + 24 Hochrechnungsbilder, Bewegung 4,9 km/h aus 348° aus 5 Paaren, 3 631 nasse
+  Zellen; Schieber bis +3 h (AT-Horizont), CH danach leer.
+- **V-NC-13:** die DACH-Sandmaske verdeckt das Radarbild jenseits der Grenze — der Regenstreifen südlich von Lugano (im rzc-Gitter
+  enthalten, wird mitverschoben) ist unsichtbar, bis er die Grenze überschreitet; die Unbekannt-Maske deckt nur Gitterrand und
+  Reichweite, nicht die Maskengrenze. Vorschlag: Radar-Layer im Grenzband (z. B. 50 km) unter der Maske durchzeichnen oder die
+  Maske für das Profil `radar` auf das Radargitter weiten (Jans Wahl, Funktionserhalt).
+- **V-NC-14:** die Wetterkarte zeigt beim Niederschlag-Layer nur die Farbrampe „leicht … Starkregen" ohne Zahlen; das Regenradar
+  nennt die mm/h-Klassen. Eine Zahlenlegende auch auf der Wetterkarte wäre die ehrlichere Anzeige.
+- **V-NC-15 (nicht geprüft):** auf `/regenradar/lugano` war in Jans Chrome der Niederschlag-Layer aus, Zellbahnen/Blitze/Schnee an —
+  vermutlich gespeicherter Layer-Zustand des Profils; der Erstbesucher-Zustand ist gegenzuprüfen (frisches Profil / Inkognito).
+
+### 7.5 Offen
+
+V-NC-1 (Kreuzungspunkte INCA 120 / CH 60 min messen, ab ≥ 14 Tagen Produkten), V-NC-4 (Schraffur statt Schleier), V-NC-8 (Schnee-Layer
+im Profil `radar`), V-NC-9/10/11, V-NC-12 (Push), V-NC-13…15; E-NC-2 (Shader-Gewicht, Wächter rot) bleibt als Vertrag, ohne Band
+ohne Wirkung.
