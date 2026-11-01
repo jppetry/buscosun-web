@@ -72,7 +72,8 @@ ${link('/wetterkarte', 'Interaktive Wetterkarte DACH')}: ${layerSubs.length} Lay
   ${layerSubs.slice(0, 6).map((x) => site.url + x.path).join(', ')} …
 ${link('/warnungen', 'Amtliche Unwetterwarnungen')}: DWD und MeteoSchweiz, Warntexte wortwörtlich (Österreich fehlt).
 ${link('/regenradar', 'Regenradar')}: gemessenes Landesradar DE/AT/CH plus Nowcast im jeweiligen Horizont.
-${link('/vorhersage', 'Vorhersage mit Konfidenz')}: Modellvergleich, Unsicherheits-Spread, Trefferquoten-Rückblick.
+${link('/vorhersage', 'Vorhersage mit Konfidenz')}: Modellvergleich, Unsicherheits-Spread und Reihung der Modelle je Ort über 7, 14 oder 30 Tage,
+  gemessen am Konsens der Modell-Analysen, nicht an Stationen (${site.url}/funktionen/modellvergleich/).
 ${link('/tourenplanung', 'Tourenplanung')}: Wetter je Kilometer zur Ankunftszeit aus GPX/TCX/FIT/KML, inklusive E-Bike-Reichweite.
 ${link('/eventplanung', 'Event-Planung')}: bester Tag der nächsten sieben für ein Vorhaben, je Anlass eine eigene URL
   (${['grillen', 'hochzeit', 'drohne', 'fotografie', 'sterne'].map((s) => site.url + '/eventplanung/' + s).join(', ')} …).

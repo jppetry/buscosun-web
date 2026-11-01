@@ -485,11 +485,12 @@ export const TOOLS = [
     datePublished: PUBLISHED, dateModified: MODIFIED_E4,
   },
   {
-    slug: 'modellvergleich', title: 'Modellvergleich', h1: 'Modellvergleich: Vorhersagen ehrlich gegenübergestellt',
+    slug: 'modellvergleich', title: 'Modellvergleich je Ort', h1: 'Modellvergleich: welches Wettermodell lag an deinem Ort zuletzt am nächsten?',
     status: 'full', deepLink: '/vorhersage',
     answer:
-      'Der Modellvergleich stellt fünf unabhängige Wettermodelle — ICON (DWD), ECMWF, GFS (NOAA), GEM (Kanada) ' +
-      'und Météo-France — nebeneinander und zeigt den Unsicherheits-Spread sowie einen Trefferquoten-Rückblick. ' +
+      'Der Modellvergleich stellt für deinen Ort fünf unabhängige Wettermodelle — ICON (DWD), ECMWF, GFS (NOAA), GEM (Kanada) ' +
+      'und Météo-France — nebeneinander, zeigt den Unsicherheits-Spread und reiht die Modelle danach, wie nah sie dort ' +
+      'in den letzten 7, 14 oder 30 Tagen lagen. Gemessen wird am Konsens der Modell-Analysen, nicht an Stationen. ' +
       'Statt einer Scheingenauigkeit macht er sichtbar, wie verlässlich die Vorhersage gerade ist — eng ' +
       'beieinander heißt sicher, weit auseinander heißt Vorsicht.',
     bullets: [
@@ -497,7 +498,7 @@ export const TOOLS = [
       'Konsenslinie plus Spread-Band für Temperatur, Niederschlag, Wind und Bewölkung',
       'Konfidenz je Tag in drei Stufen: hohe Sicherheit ab 70 %, mittlere ab 40 %, darunter niedrig',
       'Stabilität gegenüber den früheren Läufen — mit dem ausdrücklichen Hinweis, dass stabil nicht richtig heißt',
-      'Trefferquoten-Rückblick über 7, 14 oder 30 Tage mit Vorlauf 1 und 3 Tage',
+      'Reihung je Ort: welches Modell zuletzt am nächsten lag, über 7, 14 oder 30 Tage, gemessen am Konsens der Modell-Analysen und nicht an Stationen',
       'Ausreißer-Modelle werden markiert, Quellen lassen sich einzeln ein- und ausblenden',
     ],
     sections: [
@@ -533,6 +534,8 @@ export const TOOLS = [
           'Panel ausdrücklich: Die Reihung der Quellen ist belastbar, die absoluten Werte sind eine Untergrenze der ' +
           'tatsächlichen Abweichung. Solange weniger als fünf Tage Datenbasis vorliegen, wird die Reihung als noch ' +
           'unsicher gekennzeichnet.</p>' +
+          '<p>Die Reihung gilt für diesen Ort und diesen Zeitraum. „Zuletzt am besten“ heißt nicht „das genaueste Modell“: ' +
+          'An einem anderen Ort, bei einer anderen Größe oder in der nächsten Wetterlage kann die Reihenfolge anders aussehen.</p>' +
           '<p>Auch „Regen" ist definiert statt vorausgesetzt: Ein Tag zählt ab einer Tagessumme von 1 mm als nass, ' +
           'eine Stunde ab 0,2 mm — überall in der App gleich. Die Regenwahrscheinlichkeit auf dieser Seite ist ' +
           'entsprechend die Modell-Einigkeit, also der Anteil der Modelle mit nennenswertem Niederschlag. Eine Fläche ' +

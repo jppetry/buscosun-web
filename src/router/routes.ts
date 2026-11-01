@@ -159,7 +159,7 @@ export const ROUTES: readonly RouteDef[] = [
       title: 'Wettervorhersage mit Konfidenz & Modellvergleich',
       description: 'Vorhersage für jeden Ort in DACH mit ausgewiesener Sicherheit — mehrere Modelle im Vergleich, ehrlich statt scheingenau.',
       h1: 'Wettervorhersage mit Konfidenz und Modellvergleich',
-      lead: 'Die Vorhersage von buscosun stellt mehrere Wettermodelle nebeneinander und weist aus, wie sicher eine Aussage ist — aus der Streuung der Modelle und der Vorlaufzeit. Statt einer scheingenauen Zahl siehst du, wo sich die Modelle einig sind und wo nicht.',
+      lead: 'Die Vorhersage von buscosun stellt mehrere Wettermodelle nebeneinander und weist aus, wie sicher eine Aussage ist — aus der Streuung der Modelle und der Vorlaufzeit. Statt einer scheingenauen Zahl siehst du, wo sich die Modelle einig sind und wo nicht. Der Rückblick reiht die Modelle je Ort danach, wie nah sie in den letzten 7, 14 oder 30 Tagen lagen, gemessen am Konsens der Modell-Analysen und nicht an Stationen.',
     },
   },
   {

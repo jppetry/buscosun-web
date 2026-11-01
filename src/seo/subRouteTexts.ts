@@ -310,6 +310,7 @@ const ROUTE_TEXTS: Readonly<Record<string, RouteText>> = {
     ],
     links: [
       { label: 'So funktioniert die Wetterhistorie', href: '/funktionen/historie/' },
+      { label: 'Welches Modell lag an deinem Ort zuletzt am nächsten?', href: '/funktionen/modellvergleich/' },
       { label: 'Klimastreifen erklärt', href: '/wissen/klimastreifen/' },
       { label: 'Trockenperioden erklärt', href: '/wissen/trockenperioden/' },
     ],
