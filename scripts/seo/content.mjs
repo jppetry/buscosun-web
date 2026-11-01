@@ -416,6 +416,7 @@ export function renderPlacePage(place) {
     ['Wetter entlang einer Tour', '/tourenplanung'],
     ['Atmosphäre & Höhenwind', `/atmosphaere/querschnitt?${placeQuery}`],
     ['Wetterarchiv & Klima', `/wetterarchiv?${placeQuery}`],
+    ['Waldbrandgefahr', '/waldbrand'],
   ].map(([label, href]) => `<a href="${href}">${label}</a>`).join(' · ');
   const knowledgeLinks = relevantExplainersFor(place, EXPLAINERS, 3)
     .map((e) => `<a href="/wissen/${e.slug}/">${escapeHtml(e.title)}</a>`).join('\n        ');

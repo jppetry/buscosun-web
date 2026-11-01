@@ -73,8 +73,8 @@ export const TOOLS = [
   // der Grund, warum sich die Seite zu verlinken lohnt.
   {
     slug: 'waldbrandgefahr',
-    title: 'Waldbrandgefahr DACH',
-    h1: 'Waldbrandgefahr in Deutschland, Österreich und der Schweiz',
+    title: 'Brandradar: so liest du die Waldbrandgefahr',
+    h1: 'So liest du das Brandradar: Index, Stufen und Satellitendaten',
     status: 'full',
     deepLink: '/waldbrand',
     answer:

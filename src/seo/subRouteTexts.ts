@@ -295,6 +295,16 @@ export const SUB_ROUTE_TEXTS: Readonly<Record<string, SeoText>> = { ...LAYER_ENT
  */
 export type RouteText = Pick<SeoText, 'body' | 'facts' | 'official' | 'links'>;
 const ROUTE_TEXTS: Readonly<Record<string, RouteText>> = {
+  '/waldbrand': {
+    body: [],
+    facts: [],
+    official: { text: 'Das Brandradar ist kein amtliches Warnprodukt. Die amtliche Stufe für Deutschland nennt der', label: 'Waldbrandgefahrenindex des DWD', href: 'https://www.dwd.de/DE/leistungen/waldbrandgef/waldbrandgef.html' },
+    links: [
+      { label: 'So liest du das Brandradar', href: '/funktionen/waldbrandgefahr/' },
+      { label: 'Waldbrandstufen in DE, AT und CH erklärt', href: '/wissen/waldbrandwarnstufen-de-at-ch/' },
+      { label: 'Wie die Detektion rechnet', href: '/methodik/brandradar-detektion-und-brandnarben/' },
+    ],
+  },
   '/seewetter': {
     body: [
       'Die Ansicht beantwortet drei Fragen für einen Spot an der deutschen Küste. Wie weht es, mit welchen Böen? Wie hoch läuft die See, getrennt nach Windsee und Dünung? Wie steht das Wasser am nächsten Pegel? Das Stundenband zeigt die kommenden Stunden, die Karte das Seegangsfeld, und jeder Spot hat eine eigene Adresse, etwa St. Peter-Ording, Laboe oder Warnemünde.',
