@@ -402,12 +402,12 @@ const TILE_GLACIER = (
 // ≤1024 px bleibt die Vollbreiten-Kachel am Ende des Bento-Rasters (AW_TILE_STYLE).
 const TILE_ROAD = (
   <>
-    <div className="tile-eyebrow">11 · AUTOBAHN MONITOR</div>
+    <div className="tile-eyebrow">11 · AUTOBAHNWETTER</div>
     <div className="tile-road-icon">
       <RoadIcon />
     </div>
     <div>
-      <div className="tile-title tile-title-sm">Ist die Strecke glatt?</div>
+      <div className="tile-title tile-title-sm">Autobahn Monitor</div>
       <p className="tile-desc sm">
         Fahrbahn von rund 1.200 DWD-Glättemeldeanlagen, alle 15 Minuten, je Autobahn als Streckenband.
       </p>
@@ -935,8 +935,8 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
             </svg>
           </div>
           <div className="tile-feedback-body">
-            <div className="tile-eyebrow">11 · AUTOBAHN MONITOR</div>
-            <div className="tile-title tile-title-lg">Ist die Strecke glatt?</div>
+            <div className="tile-eyebrow">11 · AUTOBAHNWETTER</div>
+            <div className="tile-title tile-title-lg">Autobahn Monitor</div>
             <p className="tile-desc">
               Fahrbahntemperatur und -zustand von rund 1.200 Glättemeldeanlagen des DWD, alle 15 Minuten —
               je Autobahn als Streckenband.
