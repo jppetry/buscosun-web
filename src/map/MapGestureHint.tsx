@@ -29,7 +29,7 @@ interface Props {
   subject?: HintSubject;
 }
 
-export type HintSubject = 'fire' | 'glacier' | 'road';
+export type HintSubject = 'fire' | 'glacier' | 'road' | 'sea';
 const TEXTS: Record<HintSubject, { sub: string; pick: string; pickSub: string }> = {
   fire: {
     sub: 'Zoome hinein, um einzelne Brände und Brandflächen genauer zu sehen.',
@@ -42,6 +42,10 @@ const TEXTS: Record<HintSubject, { sub: string; pick: string; pickSub: string }>
   road: {
     sub: 'Zoome hinein, um einzelne Streckenabschnitte und Messstellen genauer zu sehen.',
     pick: 'Strecken und Messstellen anklicken', pickSub: 'zeigt nähere Infos zu Fahrbahn und Wetter dort',
+  },
+  sea: {
+    sub: 'Zoome hinein, um einzelne Küstenabschnitte und Spots genauer zu sehen.',
+    pick: 'Spots anklicken', pickSub: 'zeigt nähere Infos zu Wind, Wellen und Wetter dort',
   },
 };
 

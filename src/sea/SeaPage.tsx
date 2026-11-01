@@ -38,6 +38,7 @@ import SeaDock, { type SeaToggles } from './SeaDock';
 import SeaBand, { type SeaBandHour } from './SeaBand';
 import SeaReadout, { findWarning, type SeaReadoutHour, type SeaTexts, type SeaWaterLevel } from './SeaReadout';
 import SeaMapCard from './SeaMapCard';
+import MapGestureHint, { type HintSpot } from '../map/MapGestureHint';
 import './seaDeck.css';
 
 export interface SeaPageProps {
@@ -61,6 +62,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
   const nav = useAppNav();
   const isMobile = useMediaQuery('(max-width: 767px)');
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const [mapInst, setMapInst] = useState<maplibregl.Map | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [catalog, setCatalog] = useState<SeaCatalog | null | 'loading'>('loading');
   const [areas, setAreas] = useState<SeaAreas | null>(null);
@@ -311,6 +313,10 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
     const h = usable ? hourOf(s.id, k) : null;
     return { id: s.id, name: s.name, lon: s.lon, lat: s.lat, cls: verdictAt(s, k).cls, windTo: h?.windDir == null ? null : (h.windDir + 180) % 360, windKn: h?.windMs == null ? null : h.windMs * MS_TO_KN };
   }), [spots, revier, usable, hourOf, k, verdictAt]);
+  // Map hint: highlight candidates = the spots of the shown region, the picked one first.
+  const hintSpots = useCallback((): HintSpot[] => spots.filter((s) => revier === 'alle' || s.region === revier)
+    .sort((a, b) => Number(b.id === spotId) - Number(a.id === spotId)).slice(0, 40)
+    .map((s) => ({ lng: s.lon, lat: s.lat, name: s.name, onPick: () => pickSpotFromMap(s.id) })), [spots, revier, spotId, pickSpotFromMap]);
   // --- WL-4: gauge of this spot, its live forecast, and what the card is allowed to claim ----------------
   const nearestGauge = useMemo(() => (water && spot && wlCat.gauges.length ? wlNearest(wlCat.gauges, spot.lat, spot.lon) : null), [water, spot, wlCat.gauges]);
   const gauge = useMemo(() => (gaugePick ? wlCat.gauges.find((g) => g.id === gaugePick) ?? null : null) ?? nearestGauge?.gauge ?? null, [gaugePick, wlCat.gauges, nearestGauge]);
@@ -397,7 +403,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
   const catFail = catalog === null && <div className="sw-map-note" role="status"><strong>Spotkatalog nicht ladbar.</strong> Der Datenspeicher antwortet nicht.</div>;
   const map = (
     <SeaMap field={coloured} arrows={arrows} spots={noData ? mapSpots.map((s) => ({ ...s, cls: 'keine' as const, windTo: null })) : mapSpots} selectedId={spot?.id ?? null}
-      stations={stations} gauges={mapGauges} selectedGaugeId={gaugeId} onGauge={setGaugePick} areas={mapAreas} showWind={toggles.wind && !noData} padding={padding} onSelect={pickSpotFromMap} onMap={(m) => { mapRef.current = m; }} />
+      stations={stations} gauges={mapGauges} selectedGaugeId={gaugeId} onGauge={setGaugePick} areas={mapAreas} showWind={toggles.wind && !noData} padding={padding} onSelect={pickSpotFromMap} onMap={(m) => { mapRef.current = m; setMapInst(m); }} />
   );
   const band = spot && usable && bandHours.length > 0 && (
     <SeaBand hours={bandHours} unit={unit} selected={k} onPick={setT} compact={isMobile}
@@ -450,6 +456,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
       <div className="sw-root is-mobile">
         <main className="sw-map is-mobile" aria-label="Karte">
           {map}
+          <MapGestureHint map={mapInst} feature="seewetter" subject="sea" accent="#0F6E7A" pickSpots={hintSpots} always enabled={mobTab === 'map'} />
           <div className="sw-m-top">
             <button type="button" className="sw-m-brand" aria-label="Zur Startseite" onClick={nav.goHome}><img src="/buscosun-mark.svg" width={22} height={22} alt="" /></button>
             <button type="button" className="sw-pill is-button" aria-haspopup="dialog" aria-expanded={mobTab === 'spot'} onClick={() => setMobTab('spot')}>
@@ -513,6 +520,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
           {dockOf('layers')}
           <main className={`sw-map${inDossier ? ' is-offstage' : ''}`} aria-label="Karte" aria-hidden={inDossier ? true : undefined}>
             {map}
+            <MapGestureHint map={mapInst} feature="seewetter" subject="sea" accent="#0F6E7A" pickSpots={hintSpots} always enabled={!inDossier} />
             <div className="sw-ov-left">
               {pill}{usable && chips}            </div>
             <div className="sw-ov-right">{legend}</div>
