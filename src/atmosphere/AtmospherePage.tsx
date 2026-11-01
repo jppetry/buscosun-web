@@ -3,7 +3,7 @@
  *
  * Ohne Ort: Schritt 1 im Deck-Rahmen (Ablauf + Ort-/Tour-Einstieg). Mit Ort: das
  * „Command-Deck" (AtmosphereDeck) — Karte mit Schnitt-Anleitung, danach der
- * Vertikalschnitt; Höhenwind · Inversion · Go/No-Go · Föhn · Thermik in der linken Leiste.
+ * Vertikalschnitt; Höhenwind in der linken Leiste.
  * Das alte Split-/Grid-Layout ist vom Deck abgelöst; die Datenpfade bleiben
  * (Store, Cross-Section, Sounding-Profil, Go/No-Go).
  */
@@ -93,13 +93,11 @@ function AtmosphereShell({ onBack, onOpenFeature, initialSub, routeSub, onSubCha
 const ATM_FLOW = [
   { title: 'Ort wählen', text: 'Stadt, Adresse oder PLZ in DE, AT oder CH — oder eine Tour hochladen.' },
   { title: 'Schnitt ziehen', text: 'Auf der Karte zwei Punkte antippen, am besten quer über ein Tal oder einen Grat.' },
-  { title: 'Atmosphäre ansehen', text: 'Höhenwind, Inversion und Go/No-Go entlang der Linie; Föhn und Thermik am Ort.' },
+  { title: 'Atmosphäre ansehen', text: 'Höhenwind, Böen und Wolkenbasis entlang der Linie.' },
 ];
 
 const ATM_INTRO_CAPS = [
   'Höhenwind-Geländeschnitt mit Vektoren, Isotachen, Shear & Wolkenbasis',
-  'Inversion / Kaltluftsee — Temperatur-Umkehr, Nebelobergrenze, Aufstiegs-Delta',
-  'Go/No-Go Betriebs-Check (B2B): Böen auf Arbeitshöhe, Grenzwerte, Zeitfenster',
   // V-FR-10: der Schnitt rechnet den Bodenwind von buscosun Fusion hoch; das Höhenprofil (Emagramm, Föhn) kommt aus ICON-EU.
   'Bodenwind aus buscosun Fusion, Höhenprofil aus ICON-EU-Druckflächen, Gelände (DEM) — werbefrei, keine Tracker',
 ];
@@ -112,7 +110,7 @@ function AtmosphereIntro() {
         <h1 className="vsd-intro-title">Die Atmosphäre über dir</h1>
         <p className="vsd-intro-lead">
           Wähle einen Ort oder lade eine Tour (GPX/TCX/FIT) hoch — dann zeigen wir dir den
-          Vertikalschnitt darüber: Höhenwind, Inversion und den Go/No-Go-Betriebs-Check über die
+          Vertikalschnitt darüber: den Höhenwind über die
           nächsten Stunden, mit ehrlicher Einordnung.
         </p>
 

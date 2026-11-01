@@ -2,7 +2,7 @@
  * Vertikalschnitt / 3D-Wetter — „Command-Deck" (hell).
  *
  * Aufbau wie Wetterkarte und Brandradar: Topbar · Rail · linke Funktionsleiste
- * (Ansichten, Ebenen, Schnittlinie, Föhn/Thermik — Zeilen mit Icon und Schalter)
+ * (Ansichten, Ebenen, Schnittlinie — Zeilen mit Icon und Schalter)
  * · Bühne. Ablauf für den Anwender: Ort (Intro) → Karte mit Schnitt-Anleitung →
  * nach dem zweiten Punkt öffnet sich der Schnitt von selbst.
  *
@@ -10,17 +10,15 @@
  * EINEM vorbereiteten Vertikalschnitt (prepareCrossSection → sectionAtTime →
  * CrossSection). Keine erfundenen
  * Daten: ohne Schnittlinie die Karte mit Anleitung statt Fake-Werte.
- * Funktionserhalt: SectionChart, evaluateGoNoGo, estimateInversion, FoehnPanel,
- * ThermalMap, Profil & Nerd bleiben verdrahtet.
+ * Funktionserhalt: SectionChart bleibt verdrahtet.
  */
 
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { Location } from '../types';
 import { geocodeDACH, flagForCountry } from '../geocode';
 import { tourFileToCutLine } from '../threed/tourImport';
 import { pickCountry } from '../pointForecast/clustering';
 import { useAtmosphere } from './atmosphereStore';
-import { HOUR_MIN, HOUR_MAX } from './atmosphereState';
 import ThreeDMap from '../threed/ThreeDMap';
 import SectionChart, { BAND_COLORS, BAND_LABELS, type PickedPoint } from '../threed/SectionChart';
 import {
@@ -29,10 +27,6 @@ import {
 import { SECTION_LEVEL_STEP_M } from '../threed/crossSection';
 import type { CrossSection } from '../threed/crossSection';
 import type { ThreeDLayers } from '../threed/threedState';
-import AtmosphereVerdict from './AtmosphereVerdict';
-import AtmosphereProfile from './AtmosphereProfile';
-import ThermalMap from './ThermalMap';
-import FoehnPanel from './FoehnPanel';
 import { useIsMobile } from '../mobile/useIsMobile';
 import '../threed/threed.css';
 import './atmosphere.css';
@@ -41,10 +35,8 @@ import { FeatureRail, type RailFeature } from '../nav/featureRail';
 // SH3: der Teilen-Knopf ersetzt die drei Attrappen, die hier bisher ohne onClick standen (V-SH-1).
 import ShareButton from '../share/ShareButton';
 
-const NerdPanel = lazy(() => import('./NerdPanel'));
-
-/** Deck-Linse: die drei Schnitt-Seiten + die erhaltenen Föhn/Thermik-Linsen. */
-type DeckLens = 'hoehenwind' | 'foehn' | 'thermik';
+/** Deck-Linse: nur noch der Höhenwind-Schnitt. */
+type DeckLens = 'hoehenwind';
 
 /** Unteransichten der Querschnitt-Linse (Router RT1: `?ansicht=`; `hoehenwind` = Default, wird nicht geschrieben). */
 export type DeckSub = 'hoehenwind';
@@ -114,6 +106,8 @@ function useSectionData() {
 export default function AtmosphereDeck({ onBack, onOpenFeature, initialSub, routeSub, onSubChange }: Props) {
   const isMobile = useIsMobile();
   const { lens, setLens, location, cutPoints } = useAtmosphere();
+  // Das Deck zeigt nur noch den Schnitt: alte Linsen (Föhn, Thermik) aus Link oder Speicher auf den Schnitt setzen.
+  useEffect(() => { if (lens !== 'section') setLens('section'); }, [lens, setLens]);
   void initialSub; // alte Unteransichten (Inversion, Go/No-Go) gibt es nicht mehr — alte Links landen im Höhenwind
   const [sub, setSub] = useState<DeckSub>('hoehenwind');
   // Router (RT1): Unterlinse ⇒ `?ansicht=` (replace, kein History-Eintrag).
@@ -122,12 +116,8 @@ export default function AtmosphereDeck({ onBack, onOpenFeature, initialSub, rout
   useEffect(() => { onSubChangeRef.current?.(sub); }, [sub]);
   // Zurueck/Vorwaerts: Unterlinse aus der URL uebernehmen (E7; setLens macht der Store).
   void routeSub;
-  const deckLens: DeckLens = lens === 'mountain' ? 'foehn' : lens === 'fly' ? 'thermik' : sub;
-  const setDeckLens = (l: DeckLens) => {
-    if (l === 'foehn') setLens('mountain');
-    else if (l === 'thermik') setLens('fly');
-    else { setLens('section'); setSub(l); }
-  };
+  const deckLens: DeckLens = sub;
+  const setDeckLens = (l: DeckLens) => { setLens('section'); setSub(l); };
 
   const sectionData = useSectionData();
   // Ablauf: ohne Linie die Karte mit Anleitung; sobald die Linie steht (zweiter
@@ -202,7 +192,6 @@ function DesktopDeck(ctx: DeckCtx) {
           {mapOpen ? <CutStage {...ctx} /> : (
             <>
               {deckLens === 'hoehenwind' && <HoehenwindDesktop {...ctx} />}
-              {(deckLens === 'foehn' || deckLens === 'thermik') && <PreservedHost {...ctx} />}
             </>
           )}
         </main>
@@ -228,12 +217,9 @@ function Rail({ onBack, onOpenFeature }: { onBack: () => void; onOpenFeature?: (
 // ============================ Funktionsleiste (links) ============================
 const VIEW_META: Record<DeckLens, { label: string; sub: string; icon: () => ReactNode }> = {
   hoehenwind: { label: 'Höhenwind', sub: 'Wind & Böen im Querschnitt', icon: IconViewWind },
-  foehn: { label: 'Föhn', sub: 'Föhn-Index · Talwind · Profil', icon: IconViewFoehn },
-  thermik: { label: 'Thermik', sub: 'Aufwind · Wolkenbasis · Profil', icon: IconViewThermik },
 };
 
 const SECTION_VIEWS: DeckLens[] = ['hoehenwind'];
-const PLACE_VIEWS: DeckLens[] = ['foehn', 'thermik'];
 
 const LAYER_ROWS: Array<{ key: keyof ThreeDLayers; label: string; sub: string; icon: () => ReactNode }> = [
   { key: 'mean', label: 'Mittelwind', sub: 'Farbflächen · Pfeile', icon: IconLayerMean },
@@ -245,7 +231,7 @@ const LAYER_ROWS: Array<{ key: keyof ThreeDLayers; label: string; sub: string; i
 
 function SidePanel({ ctx, mobile = false, onPicked }: { ctx: DeckCtx; mobile?: boolean; onPicked?: () => void }) {
   const { deckLens, setDeckLens, isSection, mapOpen, hasCut, openMap, openSection, picked } = ctx;
-  const { cutPoints, setCutPoints, sectionLayers, setSectionLayers, nerdOpen, setNerdOpen } = useAtmosphere();
+  const { cutPoints, setCutPoints, sectionLayers, setSectionLayers } = useAtmosphere();
   const pick = (l: DeckLens) => { setDeckLens(l); onPicked?.(); };
   return (
     <div className="vsd-side-panel">
@@ -266,18 +252,7 @@ function SidePanel({ ctx, mobile = false, onPicked }: { ctx: DeckCtx; mobile?: b
               <ViewRow key={l} lens={l} on={deckLens === l} accent="steel" onClick={() => pick(l)} />
             ))}
           </SideGroup>
-          <SideGroup title="Am Ort · ohne Schnitt" accent="sage" role="radiogroup">
-            {PLACE_VIEWS.map((l) => (
-              <ViewRow key={l} lens={l} on={deckLens === l} accent="sage" onClick={() => pick(l)} />
-            ))}
-          </SideGroup>
         </>
-      )}
-
-      {!isSection && (
-        <SideGroup title="Anzeige" accent="sage">
-          <SwitchRow label="Detailansicht" sub="Skew-T, Indizes, Werte-Tabelle" icon={IconDetail} accent="sage" on={nerdOpen} onClick={() => setNerdOpen(!nerdOpen)} />
-        </SideGroup>
       )}
 
       {deckLens === 'hoehenwind' && (
@@ -444,7 +419,7 @@ function StageHead({ ctx, eyebrow, title }: { ctx: DeckCtx; eyebrow: string; tit
   );
 }
 
-/** Ansichten als Knöpfe im Bühnenkopf: „Am Schnitt" und „Am Ort" als zwei Gruppen. */
+/** Ansichten als Knöpfe im Bühnenkopf: „Am Schnitt". */
 function ViewBar({ ctx }: { ctx: DeckCtx }) {
   const { deckLens, setDeckLens } = ctx;
   const group = (label: string, accent: string, views: DeckLens[]) => (
@@ -465,7 +440,6 @@ function ViewBar({ ctx }: { ctx: DeckCtx }) {
   return (
     <div className="vsd-viewbar">
       {group('Am Schnitt', 'steel', SECTION_VIEWS)}
-      {group('Am Ort', 'sage', PLACE_VIEWS)}
     </div>
   );
 }
@@ -662,53 +636,6 @@ export function CutHintArt() {
   );
 }
 
-// ---------------------------- Erhaltene Linsen (Föhn/Thermik) ----------------
-function PreservedHost(ctx: DeckCtx) {
-  const { lens } = useAtmosphere();
-  return (
-    <div className={`vsd-host vsd-atm vsd-atm--${lens === 'fly' ? 'thermik' : 'foehn'}`}>
-      <StageHead ctx={ctx} eyebrow={lens === 'fly' ? 'Am Ort · Thermik' : 'Am Ort · Föhn'} title={ctx.location?.name ?? 'Atmosphäre'} />
-      <div className="atm-grid vsd-atm-grid">
-        <AtmosphereVerdict />
-        {lens === 'fly' ? <ThermalMap /> : <FoehnPanel />}
-        <AtmosphereProfile />
-        <DeckNerd />
-      </div>
-      <DeckScrubber />
-    </div>
-  );
-}
-
-function DeckNerd() {
-  const { nerdOpen, setNerdOpen } = useAtmosphere();
-  return (
-    <section className="rt-card atm-nerd" aria-label="Detailansicht">
-      <button type="button" className="atm-nerd-toggle" aria-expanded={nerdOpen} onClick={() => setNerdOpen(!nerdOpen)}>
-        {nerdOpen ? '▾' : '▸'} Werte anzeigen (Detailansicht)
-      </button>
-      {nerdOpen && <Suspense fallback={<div className="atm-nerd-body">Detailansicht wird geladen …</div>}><NerdPanel /></Suspense>}
-    </section>
-  );
-}
-
-function DeckScrubber() {
-  const { hour, setHour } = useAtmosphere();
-  const pct = ((hour - HOUR_MIN) / (HOUR_MAX - HOUR_MIN || 1)) * 100;
-  return (
-    <div className="vsd-timedeck vsd-hourdeck">
-      <div className="vsd-timedeck-head"><span className="vsd-timedeck-lab">Vorhersage</span><span className="vsd-timedeck-when">+{hour} h</span></div>
-      <div className="vsd-timedeck-row">
-        <span className="vsd-timedeck-end">jetzt</span>
-        <div className="vsd-track">
-          <input type="range" min={HOUR_MIN} max={HOUR_MAX} step={1} value={hour} onChange={(e) => setHour(Number(e.target.value))} aria-label="Vorhersage-Vorlaufstunde"
-            style={{ ['--pct' as string]: `${pct}%` } as CSSProperties} />
-        </div>
-        <span className="vsd-timedeck-end">+48 h</span>
-      </div>
-    </div>
-  );
-}
-
 // ============================ Mobile ============================
 function MobileDeck(ctx: DeckCtx) {
   const { deckLens, onBack, location, mapOpen } = ctx;
@@ -721,8 +648,6 @@ function MobileDeck(ctx: DeckCtx) {
   }, [sheetOpen]);
   const titles: Record<DeckLens, { eyebrow: string; title: string }> = {
     hoehenwind: { eyebrow: '3D-Wetter · Schnitt', title: location?.name ?? 'Schnittlinie' },
-    foehn: { eyebrow: 'Föhn', title: location?.name ?? 'Atmosphäre' },
-    thermik: { eyebrow: 'Thermik', title: location?.name ?? 'Atmosphäre' },
   };
   const t = titles[deckLens];
   const m = VIEW_META[deckLens];
@@ -747,7 +672,6 @@ function MobileDeck(ctx: DeckCtx) {
         {mapOpen ? <CutStageMobile {...ctx} /> : (
           <>
             {deckLens === 'hoehenwind' && <HoehenwindMobile {...ctx} />}
-            {(deckLens === 'foehn' || deckLens === 'thermik') && <MobilePreserved />}
           </>
         )}
       </div>
@@ -822,21 +746,6 @@ function HoehenwindMobile(ctx: DeckCtx) {
       {section && <TimeDeck data={data} timeMs={timeMs} setTimeMs={setTimeMs} />}
       <p className="vsd-m-caption">{dataOrigin(data)} · {sectionMethod(section)} · werbefrei.</p>
     </>
-  );
-}
-
-function MobilePreserved() {
-  const { lens } = useAtmosphere();
-  return (
-    <div className={`vsd-host vsd-atm vsd-atm--${lens === 'fly' ? 'thermik' : 'foehn'}`}>
-      <div className="atm-grid vsd-atm-grid">
-        <AtmosphereVerdict />
-        {lens === 'fly' ? <ThermalMap /> : <FoehnPanel />}
-        <AtmosphereProfile />
-        <DeckNerd />
-      </div>
-      <DeckScrubber />
-    </div>
   );
 }
 
@@ -925,9 +834,6 @@ function IconRoute() { return <svg width="16" height="16" viewBox="0 0 24 24" fi
 // Funktionsleiste — gleiche Strichstärke wie die Layer-Icons der Wetterkarte.
 const SI = { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, 'aria-hidden': true };
 function IconViewWind() { return <svg {...SI}><path d="M3 8 H14 A3 3 0 1 0 11 5" /><path d="M3 12 H18 A3 3 0 1 1 15 15" /><path d="M3 16 H10" /></svg>; }
-function IconViewFoehn() { return <svg {...SI}><path d="M2 20 L9 9 L13 14 L16 10 L22 20 Z" /><path d="M4 6 H12 A2 2 0 1 0 10 4" /></svg>; }
-function IconViewThermik() { return <svg {...SI}><path d="M12 21 C8 19 8 15 12 14 C16 13 16 9 12 8" /><path d="M9 6 L12 3 L15 6" /><path d="M5 21 H19" /></svg>; }
-function IconDetail() { return <svg {...SI}><rect x="4" y="4" width="16" height="16" rx="2" /><path d="M4 10 H20 M4 15 H20 M10 4 V20" /></svg>; }
 function IconLayerMean() { return <svg {...SI}><path d="M4 12 H19" /><path d="M14 7 L19 12 L14 17" /></svg>; }
 function IconLayerGust() { return <svg {...SI}><path d="M3 15 L7 9 L11 15 L15 9 L19 15" /><path d="M19 15 L21 13" /></svg>; }
 function IconLayerShear() { return <svg {...SI}><path d="M4 8 H17 M13 5 L17 8 L13 11" /><path d="M20 16 H7 M11 13 L7 16 L11 19" /></svg>; }
