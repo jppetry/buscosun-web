@@ -131,7 +131,7 @@ const PALETTE: PaletteEntry[] = [
   { num: '09', label: 'Waldbrand DACH',         hint: 'Satellit · Brände · Rückblick', feature: FEATURE.fire },
   { num: '10', label: 'Feedback',               hint: 'Ideen & Vorschläge',         feature: FEATURE.feedback },
   { num: '11', label: 'Validierung',            hint: 'Wie gut ist der Nowcast?',   feature: FEATURE.validation },
-  { num: '12', label: 'Autobahnwetter',         hint: 'Glätte · Fahrbahn · DWD',    feature: FEATURE.road },
+  { num: '12', label: 'Autobahn Monitor',        hint: 'Glätte · Fahrbahn · DWD',    feature: FEATURE.road },
   { num: '13', label: 'Seewetter',              hint: 'Küste · Segeln · Kiten · Wellen', feature: FEATURE.sea },
   { num: '14', label: 'Gletscher',              hint: 'Schmelze · Schneegrenze · Messreihen', feature: FEATURE.glacier },
 ];
@@ -402,15 +402,14 @@ const TILE_GLACIER = (
 // ≤1024 px bleibt die Vollbreiten-Kachel am Ende des Bento-Rasters (AW_TILE_STYLE).
 const TILE_ROAD = (
   <>
-    <div className="tile-eyebrow">11 · AUTOBAHNWETTER</div>
+    <div className="tile-eyebrow">11 · AUTOBAHN MONITOR</div>
     <div className="tile-road-icon">
       <RoadIcon />
     </div>
     <div>
       <div className="tile-title tile-title-sm">Ist die Strecke glatt?</div>
       <p className="tile-desc sm">
-        Fahrbahn von rund 1.200 DWD-Glättemeldeanlagen, alle 15 Minuten, je Autobahn als Streckenband.{' '}
-        <span className="tile-caveat">Kein amtliches Warnprodukt; AT und CH ohne offene Fahrbahnmessung.</span>
+        Fahrbahn von rund 1.200 DWD-Glättemeldeanlagen, alle 15 Minuten, je Autobahn als Streckenband.
       </p>
     </div>
   </>
@@ -884,7 +883,7 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
       {/* Desktop: 13 · GLETSCHER · 12 · SEEWETTER · 08 · GLOBUS · 09 · FEEDBACK, darunter 06 · HISTORIE und 07 · 3D-WETTER.
           ≤ 1024 px unverändert: 06 · 07 · 08 · 09, Seewetter und Gletscher am Ende. */}
       {compact
-        ? <>{mobile && glacierTile}{roadFlagFrom() && tile(['planen'], 'tile-road t-half', FEATURE.road, 'Autobahnwetter öffnen', TILE_ROAD)}{seaTile}</>
+        ? <>{mobile && glacierTile}{roadFlagFrom() && tile(['planen'], 'tile-road t-half', FEATURE.road, 'Autobahn Monitor öffnen', TILE_ROAD)}{seaTile}</>
         : <>{historyTile}{threedTile}</>}
 
       {/* 08 · GLOBUS */}
@@ -927,7 +926,7 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
       {/* 11 · AUTOBAHNWETTER (Phase AW, E-AW-5) — auf Desktop seit 17.10.2026 im Hero (HeroQuad, TILE_ROAD); auf
           ≤1024 px volle Breite am Ende des Bento-Rasters, Stellung und Breite inline (`order: 11` hinter den
           Tablet-Rängen 1–10, `grid-column: 1 / -1`), Farben inline. Lädt keine Daten. `?road=0` blendet aus. */}
-      {narrow && !mobile && roadFlagFrom() && tile(['planen'], 'tile-fire', FEATURE.road, 'Autobahnwetter öffnen',
+      {narrow && !mobile && roadFlagFrom() && tile(['planen'], 'tile-fire', FEATURE.road, 'Autobahn Monitor öffnen',
         <>
           <div className="tile-feedback-icon" aria-hidden="true">
             <svg width="34" height="34" viewBox="0 0 56 56">
@@ -936,15 +935,11 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
             </svg>
           </div>
           <div className="tile-feedback-body">
-            <div className="tile-eyebrow">11 · AUTOBAHNWETTER</div>
+            <div className="tile-eyebrow">11 · AUTOBAHN MONITOR</div>
             <div className="tile-title tile-title-lg">Ist die Strecke glatt?</div>
             <p className="tile-desc">
               Fahrbahntemperatur und -zustand von rund 1.200 Glättemeldeanlagen des DWD, alle 15 Minuten —
               je Autobahn als Streckenband.
-              {' '}
-              <span className="tile-caveat">
-                Kein amtliches Warnprodukt. Österreich und die Schweiz ohne offene Fahrbahnmessung.
-              </span>
             </p>
           </div>
         </>, AW_TILE_STYLE)}
