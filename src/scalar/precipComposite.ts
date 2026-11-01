@@ -36,7 +36,10 @@ import type { IncaGrid, IncaFrame } from '../sources/geosphereIncaGrid';
 import type { RadarFrame } from '../sources/meteoSwissRadar';
 import type { IconD2Precip } from '../sources/iconD2Precip';
 import type { RzcNowcast, Inca5mGrid } from '../sources/radarNowcast';
-import { NC_PICK_TOL_MS } from '../sources/radarNowcastImg';
+import { NC_PICK_TOL_MS, RZC_NC_LEADS } from '../sources/radarNowcastImg';
+
+/** Horizon of the CH extrapolation in ms (the last lead of `rzc-nc`, +120 min) — the slider's "+2 h". */
+const RZC_NC_HORIZON_MS = RZC_NC_LEADS[RZC_NC_LEADS.length - 1] * 60_000;
 
 /** Ecken [NW, NE, SE, SW] für RainLayer.setFrame (north-up). */
 export const COMPOSITE_CORNERS: QuadCorners = [
@@ -270,7 +273,7 @@ export function pickCompositeFrames(h: number, s: CompositeSources, nowMs: numbe
     ? inca5AtValidTime(s.inca5, target)
     : h <= INCA_MAX_H + 1e-6 && s.inca?.frames.length ? nearestBy(s.inca.frames, (f) => Math.abs(f.leadHours - h)) : null;
   const rzc = s.rzcNc
-    ? rzcNcAtValidTime(s.rzc ?? null, s.rzcNc, target)
+    ? rzcNcAtValidTime(s.rzc ?? null, s.rzcNc, target, nowMs)
     : h < RZC_MAX_H && s.rzc ? s.rzc : null;
   const d2 = s.d2?.frames.length ? nearestBy(s.d2.frames, (f) => Math.abs(f.validAt.getTime() - target)) : null;
   return { rv, inca, rzc, d2 };
@@ -287,14 +290,22 @@ function inca5AtValidTime(g: Inca5mGrid, targetMs: number): IncaFrame | null {
 /**
  * Phase NC: CH at `targetMs` — the analysis when the asked time is its own (within the tolerance), else the extrapolation frame
  * nearest to it (within the tolerance, after the analysis), else null. The measured frame wins over the shifted one at "now".
+ * The LAST frame (+120 min after the analysis) is held for the age of the analysis: the slider asks for now + 2 h, the
+ * analysis is some minutes old, so the +2 h frame is valid a few minutes BEFORE the asked time — without this rule the
+ * Swiss picture vanished at exactly "+2 h" (Jan, 01.11.2026). Beyond now + horizon + tolerance still nothing.
  */
-function rzcNcAtValidTime(analysis: RadarFrame | null, nc: RzcNowcast, targetMs: number): ChPickFrame | null {
+function rzcNcAtValidTime(analysis: RadarFrame | null, nc: RzcNowcast, targetMs: number, nowMs: number): ChPickFrame | null {
   const aMs = analysis ? analysis.validAt.getTime() : nc.analysisAt.getTime();
   if (analysis && Math.abs(targetMs - aMs) <= NC_PICK_TOL_MS) return analysis;
   if (targetMs < aMs) return analysis && Math.abs(targetMs - aMs) <= NC_PICK_TOL_MS ? analysis : null;
   let best: RzcNowcast['frames'][number] | null = null, bd = Infinity;
   for (const f of nc.frames) { const d = Math.abs(f.validAt.getTime() - targetMs); if (d < bd) { bd = d; best = f; } }
-  if (!best || bd > NC_PICK_TOL_MS) return null;
+  if (!best) return null;
+  if (bd > NC_PICK_TOL_MS) {
+    const last = nc.frames[nc.frames.length - 1];
+    const holdLast = best === last && targetMs > last.validAt.getTime() && targetMs <= nowMs + RZC_NC_HORIZON_MS + NC_PICK_TOL_MS;
+    if (!holdLast) return null;
+  }
   return {
     values: best.values, ...(best.values2 ? { values2: best.values2 } : {}), width: best.width, height: best.height,
     corners: nc.corners, validAt: best.validAt, unknown: best.unknown, leadMinutes: best.leadMinutes,
