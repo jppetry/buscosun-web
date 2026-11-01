@@ -759,7 +759,6 @@ export default function MapView({
   const profileCbRef = useRef({ onPointPick, onPointHover, onMapReady });
   profileCbRef.current = { onPointPick, onPointHover, onMapReady };
   // Phase DB: für die Stelle, an der der WindLayer entsteht (Mount-Effekt, liest ohne Stale-Closure).
-  const precipActiveRef = useRef(false);
   const suspendedRef = useRef(suspended);
   suspendedRef.current = suspended;
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -1623,8 +1622,6 @@ export default function MapView({
     hd250LayersRef.current = new Map(hd250Layers.map((l) => [l.id, l]));
     // Phase DB: entsteht die Karte, während das Dashboard schon wieder vorn liegt, startet der Wind-Loop angehalten.
     if (suspendedRef.current) wind.setSuspended(true);
-    // Niederschlag schon aktiv (z. B. per Teilen-Link): keine Wind-Einfärbung von Anfang an.
-    if (precipActiveRef.current) wind.setShowHeatmap(false);
 
     // Insert temp + clouds *under* the boundary/label layers of the OSM basemap so
     // country outlines, state borders and city labels stay readable on top of the
@@ -4163,7 +4160,7 @@ export default function MapView({
     wind.setDensityMultiplier(windCfg.density * (windCfg.intensive ? 2.1 : 1));
     // WG-1: feine Filamente statt fetter Punkte — die hohe Dichte und die kleine
     // Punktgroesse sind EIN Paar, einzeln kippt die Optik (Globus: 1,7).
-    wind.setPointSize(windCfg.intensive ? 3.6 : WEATHER_WIND_POINT_SIZE);
+    wind.setPointSize(windCfg.intensive ? 2.0 : WEATHER_WIND_POINT_SIZE);
     // Schweiflänge = Tempo × Lebensdauer der Spur. 0,972 ⇒ ~36 Frames ⇒ bei den
     // ~0,6 px/Frame der Übersicht ein ~22-px-Strich mit weichem Auslauf — die
     // Kometenform der Vorlage (WetterOnline: ~25 px). Vorher 0,955 ⇒ 22 Frames
@@ -4176,13 +4173,6 @@ export default function MapView({
     // Die Zahlen hier sind seither unverändert und beschreiben wieder die Realität.
     wind.setFadeOpacity(windCfg.intensive ? 0.982 : WEATHER_WIND_FADE);
   }, [windCfg, active]);
-
-  // Niederschlag aktiv: keine Wind-Einfärbung (Heatmap) darunter — die Partikel bleiben. Sonst überlagern sich zwei Farbskalen.
-  const precipActive = active.has('nowcast');
-  precipActiveRef.current = precipActive;
-  useEffect(() => {
-    layerRefs.current.wind?.setShowHeatmap(!precipActive);
-  }, [precipActive, active]);
 
   // Temperatur-Layer (natives ICON-D2 t_2m): bei jeder Slider-Bewegung den Frame
   // mit der nächstgelegenen Vorlaufstunde setzen. Das DEM-Bild (hsurf-Refinement)

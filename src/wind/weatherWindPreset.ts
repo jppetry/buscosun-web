@@ -15,10 +15,10 @@ import type { WindLayerOptions } from './WindLayer';
 import { GLOBE_PARTICLE_RAMP } from './particlePreset';
 
 /** Default of the density slider (multiplier on `baseDensity`). */
-export const WEATHER_WIND_DENSITY = 0.3; // 0,55 -> 0,3 (01.11.): fewer, larger particles (= the slider minimum)
+export const WEATHER_WIND_DENSITY = 0.55;
 /** Dot size and trail length of "Normal" (the "Intensiv" mode of the Wetterkarte widens both). */
-export const WEATHER_WIND_POINT_SIZE = 3.0; // 1,7 -> 3,0 (01.11.): clearly larger single particles, readable from afar
-export const WEATHER_WIND_FADE = 0.980; // 0,972 -> 0,980 (01.11.): longer, clearer trail so the direction reads better
+export const WEATHER_WIND_POINT_SIZE = 1.7;
+export const WEATHER_WIND_FADE = 0.972;
 
 export function weatherWindOptions(coarsePointer: boolean): WindLayerOptions {
   return {
@@ -32,17 +32,12 @@ export function weatherWindOptions(coarsePointer: boolean): WindLayerOptions {
     pointSize: WEATHER_WIND_POINT_SIZE, fadeOpacity: WEATHER_WIND_FADE,
     // Dots do not get thicker when zoomed out (0 = off; was 0,5 on 31.10., reverted 01.11.).
     zoomOutPointBoost: 0,
-    // Calm wind: the trail lives longer (same tempo), so slow particles stay readable from afar. Strongest wind in the frame
-    // below 16 m/s lengthens the trail by 16 / v_max (at most x2,5). Assumption, not measured: typical frames reach 12-25 m/s.
-    calmTrailRefMs: 16, calmTrailMaxGain: 2.5,
     // Tempo strictly linear to the GRIB value: px/s = speedPxPerMs · |V|.
     speedPxPerMs: 3.8, speedRefZoom: 5.5,
-    // Slightly slower when zoomed out (z4 ≈ 0,86×), slightly quicker when zoomed in (z12 ≈ 2×). Was 0,35 (z12 ≈ 4,8×): the
-    // dots jumped further than their own width per frame (3 px at 10 m/s, 6 px at 30 fps), so the trail broke into dots.
-    screenTempoZoomExp: 0.15,
-    // Fewer particles when zooming in (the trails grow with the zoom, the covered area must not). 1,25 -> 1,05 together with
-    // the lower tempo exponent (-0,2), so the zoomed-in picture does not get emptier than before.
-    zoomInThinExp: 1.05, zoomInThinFrom: 6.5,
+    // Slower when zoomed out (z4 ≈ 0,68×), slightly quicker when zoomed in.
+    screenTempoZoomExp: 0.35,
+    // Fewer particles when zooming in (the trails grow with the zoom, the covered area must not).
+    zoomInThinExp: 1.25, zoomInThinFrom: 6.5,
     // Zoomed out the refresh rate rises (dissolves the clumps in convergence zones).
     zoomDropBoost: 0.42,
     // Touch devices: half the CPU upsampling work and ~30 fps; desktop is the reference.
