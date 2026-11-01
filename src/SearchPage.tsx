@@ -391,8 +391,6 @@ const TILE_GLACIER = (
       <div className="tile-title tile-title-sm">Gletscherbericht</div>
       <p className="tile-desc sm">
         Rund 2 200 Gletscher in DACH: Messreihen, Umrisse und Herkunft je Wert.
-        {' '}
-        <span className="tile-caveat">Keine Tourenfreigabe.</span>
       </p>
     </div>
   </>
@@ -786,7 +784,7 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
               Messnetze, Umrisse mit Bezugsjahr — an jedem Wert steht, ob er gemessen, vom Satelliten, aus dem Modell oder amtlich ist.
               {' '}
               <span className="tile-caveat">
-                Kein amtliches Warnprodukt, keine Tourenfreigabe. Schmelze und Schneegrenze folgen, sobald die Eichung besteht.
+                Kein amtliches Warnprodukt. Schmelze und Schneegrenze folgen, sobald die Eichung besteht.
               </span>
             </p>
             <div className="tile-tags">
