@@ -178,6 +178,10 @@ export interface WindLayerOptions {
   /** Zuschlag auf die Punktgröße beim Rauszoomen (Points-Stil): × (1 + Wert · t), t = 0 ab Zoom 6 bis 1 bei Zoom 3,5.
    *  Default 0 = unverändert (Globus). Die Wetterkarte setzt ihn in `weatherWindPreset.ts`. */
   zoomOutPointBoost?: number;
+  /** Rausgezoomt (unter `speedRefZoom`) sinkt das Bildschirmtempo mit `screenTempoZoomExp`, und der Schweif (Tempo × Nachleuchtdauer)
+   *  schrumpft mit. `true` verlängert die Nachleuchtdauer um denselben Faktor (höchstens ×3, Fade-Deckel 0,997), sodass die
+   *  Schweiflänge in px konstant bleibt. Das Tempo selbst bleibt unberührt. Default aus (Globus unverändert). */
+  zoomOutTrailComp?: boolean;
   windPngUrl?: string;
   windJsonUrl?: string;
   colorRamp?: Record<number, string>;
@@ -335,6 +339,7 @@ export class WindLayer implements CustomLayerInterface {
   private baseDensity: number;
   private densityMultiplier: number;
   private zoomOutPointBoost: number;
+  private zoomOutTrailComp: boolean;
   private minParticles: number;
   private maxParticles: number;
   // ALT-Zoomausdünnung („Rule 2"-Fallback, s. getEffectiveParticleCount).
@@ -682,6 +687,15 @@ export class WindLayer implements CustomLayerInterface {
     } else if (p.u_matrix) {
       gl.uniformMatrix4fv(p.u_matrix as WebGLUniformLocation, false, matrix);
     }
+  }
+
+  /** `fadeOpacity`, rausgezoomt (`zoomOutTrailComp`) mit längerer Nachleuchtdauer: 1 − (1 − f) / Gain, Gain = Kehrwert des Tempo-Zoomfaktors. */
+  private effectiveFadeOpacity(): number {
+    if (!this.zoomOutTrailComp || this.globeMode) return this.fadeOpacity;
+    const below = this.speedRefZoom - this.tempoZoom();
+    if (!(below > 0) || !(this.screenTempoZoomExp > 0)) return this.fadeOpacity;
+    const gain = Math.min(3, Math.pow(2, this.screenTempoZoomExp * below));
+    return Math.min(0.997, Math.max(this.fadeOpacity, 1 - (1 - this.fadeOpacity) / gain));
   }
 
   /** Partikel-Punktgröße (UI „Intensiv" verbreitert leicht). */
@@ -1186,6 +1200,7 @@ export class WindLayer implements CustomLayerInterface {
     this.zoomRedistribute = options.zoomRedistribute ?? true;
     this.pointSize = options.pointSize ?? 1.5;
     this.zoomOutPointBoost = Math.max(0, options.zoomOutPointBoost ?? 0);
+    this.zoomOutTrailComp = options.zoomOutTrailComp ?? false;
     this.showHeatmap = options.showHeatmap ?? true;
     this.heatmapOpacity = options.heatmapOpacity ?? 0.85;
     this.particleColor = options.particleColor ?? [1.0, 1.0, 1.0, 0.85];
@@ -2058,7 +2073,7 @@ export class WindLayer implements CustomLayerInterface {
     // to the dt-scale power makes the trail decay per unit of WALL-CLOCK time
     // instead of per frame, so trail length matches across frame rates
     // (desktop↔mobile parity). At 60 fps dtScale≈1 → unchanged.
-    const fade = Math.pow(this.fadeOpacity, this.frameDtScale);
+    const fade = Math.pow(this.effectiveFadeOpacity(), this.frameDtScale);
     // ZA-1: bei bewegter Kamera den Vorframe um die Bewegung versetzt/skaliert
     // abtasten, damit der Schweif an der Karte klebt statt am Bildschirm.
     // Ohne Bewegung ist das die Identität → byte-identisch zum Alt-Verhalten.

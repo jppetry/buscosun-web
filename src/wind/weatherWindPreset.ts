@@ -32,6 +32,8 @@ export function weatherWindOptions(coarsePointer: boolean): WindLayerOptions {
     pointSize: WEATHER_WIND_POINT_SIZE, fadeOpacity: WEATHER_WIND_FADE,
     // Dots do not get thicker when zoomed out (0 = off; was 0,5 on 31.10., reverted 01.11.).
     zoomOutPointBoost: 0,
+    // Zoomed out the on-screen tempo drops (z3 ~0,55x) and the trail shrinks with it: lengthen the afterglow by the same factor.
+    zoomOutTrailComp: true,
     // Tempo strictly linear to the GRIB value: px/s = speedPxPerMs · |V|.
     speedPxPerMs: 3.8, speedRefZoom: 5.5,
     // Slower when zoomed out (z4 ≈ 0,68×), slightly quicker when zoomed in.
