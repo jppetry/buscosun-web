@@ -61,9 +61,9 @@ import { RADAR_MORPH_HS } from '../../src/scalar/radarHd.ts';
 // from the data repo next to the mirror (walking up from the rzc image root) or, when they are not checked out, from
 // raw.githubusercontent. OFF by default = byte-identical to before; any failure leaves the slot a pure translation.
 import {
-  cellIndexPlane, cellCoordPlane, modelPlanes, smoothModelPlane, blendFrame, RZC_NC_BLEND_WEIGHTS, RZC_NC_BLEND_START_MIN, RZC_NC_BLEND_FULL_MIN, RZC_NC_BLEND_MODEL, RZC_NC_BLEND_PROVENANCE,
+  cellIndexPlane, cellCoordPlane, modelPlanes, smoothModelPlane, applyModelMin, blendFrame, RZC_NC_BLEND_WEIGHTS, RZC_NC_BLEND_START_MIN, RZC_NC_BLEND_FULL_MIN, RZC_NC_BLEND_MODEL, RZC_NC_BLEND_PROVENANCE,
 } from '../../src/sources/radarNowcastBlend.ts';
-import { RZC_NC_BLEND_SMOOTHING } from '../../src/sources/radarNowcastImg.ts';
+import { RZC_NC_BLEND_SMOOTHING, RZC_NC_BLEND_MODEL_MIN_MMH } from '../../src/sources/radarNowcastImg.ts';
 import { parseRucManifest, rucLatestPath, rucChunkPath, RUC_CHUNK_WIDTH } from '../../src/point/rucFormat.ts';
 import { parseFieldIndex, parseFieldManifest, FIELD_INDEX_PATH, FIELD_MANIFEST_FILE, fieldRunDir, fieldFileName, decodePrecipCumPixel, fieldPixelOffset } from '../../src/point/fieldFormat.ts';
 import { TIER_BY_ID } from '../../src/point/cubeFormat.ts';
@@ -72,6 +72,10 @@ const NC_BLEND = process.env.RADAR_NC_BLEND === '1';
 // 01.11.2026: the model share interpolated between its cell centres inside its wet footprint (`smoothModelPlane`) — the 4-km
 // blocks of one value looked like a mosaic from +35 min on. On with the blend; `RADAR_NC_BLEND_SMOOTH=0` = blocks as before.
 const NC_BLEND_SMOOTH = process.env.RADAR_NC_BLEND_SMOOTH !== '0';
+// 01.11.2026 (Jan): the model share counts only from RZC_NC_BLEND_MODEL_MIN_MMH on (its hourly drizzle below that covered half of
+// Switzerland with 4-km squares the radar never saw). `RADAR_NC_BLEND_MODEL_MIN=<mm/h>` overrides, '0' = every model value as before.
+const NC_BLEND_MODEL_MIN = process.env.RADAR_NC_BLEND_MODEL_MIN != null && process.env.RADAR_NC_BLEND_MODEL_MIN !== ''
+  ? Math.max(0, Number(process.env.RADAR_NC_BLEND_MODEL_MIN) || 0) : RZC_NC_BLEND_MODEL_MIN_MMH;
 const NC_BLEND_RAW = process.env.RADAR_NC_BLEND_BASE || 'https://raw.githubusercontent.com/jppetry/buscosun-data/main';
 
 /** Model planes for the 24 leads of a CH extrapolation (null = no blend, with the reason logged). */
@@ -137,6 +141,7 @@ async function ncBlendInputs(rzcRoot, analysisAtMs, w, h, corners) {
   };
   const mp = modelPlanes({ w, h, cells, tier, analysisAtMs, ruc: { runAtMs: ruc.runAtMs, steps: ruc.steps, chunks }, hourMean });
   let planes = mp.planes;
+  if (NC_BLEND_MODEL_MIN > 0) planes = planes.map((p) => applyModelMin(p, NC_BLEND_MODEL_MIN));
   if (NC_BLEND_SMOOTH) {
     const coords = cellCoordPlane(w, h, projectedSampler(gridNodeFn('rzc', corners)), tier);
     planes = planes.map((p) => smoothModelPlane(p, cells, coords, tier));
@@ -146,6 +151,7 @@ async function ncBlendInputs(rzcRoot, analysisAtMs, w, h, corners) {
     startMin: RZC_NC_BLEND_START_MIN, fullMin: RZC_NC_BLEND_FULL_MIN, weights: [...RZC_NC_BLEND_WEIGHTS],
     cellsModel: mp.cellsModel, cellsTotal: mp.cellsTotal, provenance: RZC_NC_BLEND_PROVENANCE,
     ...(NC_BLEND_SMOOTH ? { smoothing: RZC_NC_BLEND_SMOOTHING } : {}),
+    ...(NC_BLEND_MODEL_MIN > 0 ? { modelMin: NC_BLEND_MODEL_MIN } : {}),
   };
   return { planes, blend, kinds: mp.kinds, source: root ? 'lokal' : 'raw' };
 }
@@ -435,7 +441,7 @@ if (source === 'rv') {
   if (!parseRzcNcImgMeta(JSON.parse(JSON.stringify(meta)))) throw new Error('rzc-nc: eigene meta.json besteht den Client-Prüfer nicht');
   put('meta.json', JSON.stringify(meta) + '\n');
   console.error(`rzc-nc: ${series.length} Analysen, ${pairs} Paare, ${motion.speedKmh} km/h aus ${motion.fromDeg ?? '—'}°, ${motion.wetCells} nasse Zellen`
-    + (nb ? ` · Mischung mit buscosun Fusion (RUC ${nb.blend.rucRun}, Feld ${nb.blend.fieldRun}, ${nb.source}): ${nb.blend.cellsModel}/${nb.blend.cellsTotal} Zellen, Stunden ${JSON.stringify(nb.kinds)}, ${changed} Pixel geändert${nb.blend.smoothing ? `, Modellanteil ${nb.blend.smoothing}` : ', Modellanteil je Zelle'}` : ''));
+    + (nb ? ` · Mischung mit buscosun Fusion (RUC ${nb.blend.rucRun}, Feld ${nb.blend.fieldRun}, ${nb.source}): ${nb.blend.cellsModel}/${nb.blend.cellsTotal} Zellen, Stunden ${JSON.stringify(nb.kinds)}, ${changed} Pixel geändert${nb.blend.smoothing ? `, Modellanteil ${nb.blend.smoothing}` : ', Modellanteil je Zelle'}${nb.blend.modelMin ? ` ab ${nb.blend.modelMin} mm/h` : ''}` : ''));
 } else if (source === 'inca-5m') {
   // Phase NC: inPath = the mirror's INCA slot (`img/inca/<stamp>/`): the run's frames, refined to 5 min along the motion.
   const meta0 = parseIncaImgMeta(JSON.parse(readFileSync(join(inPath, 'meta.json'), 'utf8')));

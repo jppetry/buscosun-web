@@ -121,6 +121,14 @@ export const RZC_NC_BLEND_CAVEATS: readonly string[] = Object.freeze([
  * Producer switch `RADAR_NC_BLEND_SMOOTH=0` = the 4-km blocks as before (absent field).
  */
 export const RZC_NC_BLEND_SMOOTHING = 'wet-bilinear' as const;
+/**
+ * 01.11.2026 (Jan): the model share counts only from this rate on — below it the model is taken as dry in the mix. Seen in the
+ * browser: the model's hourly drizzle (0,06 … 0,2 mm/h over 4-km cells) covered half of Switzerland with light-blue squares the
+ * radar never saw. SET, not measured; `meta.blend.modelMin` names it; producer `RADAR_NC_BLEND_MODEL_MIN=0` = every model value
+ * as before. The radar share keeps the display threshold 0,06 mm/h.
+ */
+export const RZC_NC_BLEND_MODEL_MIN_MMH = 0.2;
+export const RZC_NC_BLEND_MODEL_MIN_CAVEAT = 'der Modellanteil zählt erst ab 0,2 mm/h — Modell-Niesel darunter kommt nicht ins Bild (Schwelle gesetzt, nicht gemessen)';
 export const RZC_NC_BLEND_SMOOTH_CAVEAT = 'der Modellanteil ist innerhalb seiner Regenfläche zwischen den 4-km-Zellmitten geglättet — Darstellung, keine Mehrinformation; die Außenkante bleibt die Zellkante';
 /** Weight of the model at `leadMin` (0 … 1). */
 export function rzcNcBlendWeight(leadMin: number): number {
@@ -143,11 +151,14 @@ export interface RzcNcBlend {
   provenance: 'set' | 'measured';
   /** present when the model share was interpolated between its cell centres (01.11.2026); absent = blocks per cell */
   smoothing?: typeof RZC_NC_BLEND_SMOOTHING;
+  /** mm/h from which the model share counts (01.11.2026); absent = every model value entered the mix */
+  modelMin?: number;
 }
 export function blendOk(v: unknown): v is RzcNcBlend {
   const b = v as RzcNcBlend | null;
   return !!b && typeof b === 'object' && b.model === RZC_NC_BLEND_MODEL
     && (b.smoothing === undefined || b.smoothing === RZC_NC_BLEND_SMOOTHING)
+    && (b.modelMin === undefined || (Number.isFinite(b.modelMin) && b.modelMin > 0))
     && typeof b.rucRun === 'string' && Number.isFinite(b.rucRunAtMs) && typeof b.fieldRun === 'string' && Number.isFinite(b.fieldRunAtMs)
     && b.startMin === RZC_NC_BLEND_START_MIN && b.fullMin === RZC_NC_BLEND_FULL_MIN
     && Array.isArray(b.weights) && b.weights.length === RZC_NC_LEADS.length && b.weights.every((w, i) => Number.isFinite(w) && Math.abs(w - RZC_NC_BLEND_WEIGHTS[i]) < 1e-6)
@@ -229,7 +240,9 @@ export function makeRzcNcImgMeta(a: {
     schema: 1, source: 'rzc-nc', stamp: a.stamp, analysisAtMs: a.analysisAtMs,
     width: RZC_IMG_WIDTH, height: RZC_IMG_HEIGHT, vMax: PRECIP_VMAX, corners: a.corners,
     frames: a.frames, unknown: a.unknown, series: a.series, motion: a.motion, method: a.method,
-    caveats: a.blend ? [...RZC_NC_CAVEATS, ...RZC_NC_BLEND_CAVEATS, ...(a.blend.smoothing ? [RZC_NC_BLEND_SMOOTH_CAVEAT] : [])] : [...RZC_NC_CAVEATS],
+    caveats: a.blend
+      ? [...RZC_NC_CAVEATS, ...RZC_NC_BLEND_CAVEATS, ...(a.blend.modelMin ? [RZC_NC_BLEND_MODEL_MIN_CAVEAT] : []), ...(a.blend.smoothing ? [RZC_NC_BLEND_SMOOTH_CAVEAT] : [])]
+      : [...RZC_NC_CAVEATS],
     label: a.blend ? RZC_NC_BLEND_LABEL : RZC_NC_LABEL,
     ...(a.dual ? { dual: a.dual } : {}), ...(a.blend ? { blend: a.blend } : {}),
   };

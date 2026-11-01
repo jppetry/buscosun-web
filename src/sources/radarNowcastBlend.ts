@@ -118,6 +118,19 @@ export function modelPlanes(a: {
   return { planes, cellsModel, cellsTotal: cellList.length, kinds };
 }
 
+// --- threshold of the model share (01.11.2026, Jan) -----------------------------------------------------------------------
+/**
+ * Model values below `minMmh` become 0 (the model counts as dry there — the radar share then fades with its weight); NaN (no
+ * model) stays NaN. Returns a new plane. Applied BEFORE `smoothModelPlane`, so cells below the threshold take no part in the
+ * interpolation either.
+ */
+export function applyModelMin(plane: Float32Array, minMmh: number): Float32Array {
+  const out = new Float32Array(plane);
+  if (!(minMmh > 0)) return out;
+  for (let i = 0; i < out.length; i++) { const v = out[i]; if (Number.isFinite(v) && v < minMmh) out[i] = 0; }
+  return out;
+}
+
 // --- display smoothing of the model share (01.11.2026) ------------------------------------------------------------------
 /**
  * Continuous cell coordinates of every rzc pixel centre: `(lat − lat0) / deg`, `(lon − lon0) / deg` as pairs (y, x) —
