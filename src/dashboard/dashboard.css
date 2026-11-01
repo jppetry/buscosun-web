@@ -802,7 +802,7 @@
 .dbd-sand-card.dbd-now { background: radial-gradient(130% 110% at 0% 0%, rgba(58, 111, 168, .07), transparent 55%), var(--dbd-glass-cream); }
 /* Dark cards keep their colours, gain depth and a soft glow */
 .dbd-dark-card, .dbd-icond2 { background: radial-gradient(130% 100% at 0% 0%, rgba(156, 191, 131, .1), transparent 55%), linear-gradient(160deg, #34312C, #2C2A26 60%); border-color: #3A3833; border-radius: 16px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), var(--dbd-shadow-l); }
-.dbd-nowcast { background: radial-gradient(140% 90% at 0% 0%, rgba(255, 255, 255, .55), transparent 60%), var(--dbd-glass); border-color: var(--dbd-hair); border-radius: 16px; box-shadow: var(--dbd-inset), var(--dbd-shadow-m); }
+.dbd-nowcast { background: radial-gradient(140% 90% at 0% 0%, rgba(255, 255, 255, .55), transparent 60%), var(--dbd-glass-cream); border-color: var(--dbd-hair); border-radius: 16px; box-shadow: var(--dbd-inset), var(--dbd-shadow-m); }
 .dbd-nchip { border-radius: 999px; }
 
 /* Now row: key figures as tiles, chips as pills */
