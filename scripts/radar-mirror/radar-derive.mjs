@@ -52,7 +52,17 @@ import {
   RZC_NC_LEADS, INCA_5M_LEADS, NC_STEP_MIN, RZC_NC_SERIES_MAX, RZC_NC_SERIES_SPAN_MS, NC_FLOW_FACTOR, rzcNcUnknownFile,
   makeRzcNcImgMeta, parseRzcNcImgMeta, makeInca5mImgMeta, parseInca5mImgMeta,
 } from '../../src/sources/radarNowcastImg.ts';
-import { flowFromSeries, motionStats, advectPlane, betweenPlanes, zeroFlow, NC_TRANSLATION_MAX_COARSE } from '../../src/sources/radarNowcastExtrap.ts';
+import { flowFromSeries, flowFromSeriesRegional, rangeUnknownMask, motionStats, advectPlane, betweenPlanes, zeroFlow, NC_TRANSLATION_MAX_COARSE, NC_REGION_GRID } from '../../src/sources/radarNowcastExtrap.ts';
+import { RZC_RADAR_SITES, RZC_RANGE_KM } from '../../src/sources/radarNowcastImg.ts';
+// 01.11.2026 (Jan: pure extrapolation for Switzerland, no model). `RADAR_NC_FLOW=regional`: ONE translation per 2 × 2 region
+// of the frame (north/south of the Alps, west/east), blended between the region centres — built, OFF by default: measured on
+// 30 start times of 01.11.2026 (uniform drizzle at 4–6 km/h) it owned a vector in 10 of them (always the NE quarter) and the
+// hit rate against the later analysis in CH fell slightly (+60 min CSI 0,7960 → 0,7953, +90 0,7160 → 0,7075); a day with
+// differently moving halves has not been measured yet. Source pixels beyond the radars' range (`RZC_RANGE_KM` from every
+// MeteoSwiss site) count as UNKNOWN instead of dry — ON (no wet analysis pixel lies there, measured the same day);
+// `RADAR_NC_RANGE=0` turns that off.
+const NC_FLOW_REGIONAL = process.env.RADAR_NC_FLOW === 'regional';
+const NC_RANGE_MASK = process.env.RADAR_NC_RANGE !== '0';
 import { estimateMorphFlow } from '../../src/scalar/radarMorphFlow.ts';
 import { RADAR_MORPH_HS } from '../../src/scalar/radarHd.ts';
 // Phase NC-B (src/sources/radarNowcastBlend.ts): with `RADAR_NC_BLEND=1` the CH extrapolation frames from +30 min on are a mix
@@ -394,9 +404,12 @@ if (source === 'rv') {
   const { width: w, height: h } = newest.meta;
   if (!series.every((x) => x.meta.width === w && x.meta.height === h)) throw new Error('rzc-nc: Gittermaße der Serie ungleich');
   const factor = NC_FLOW_FACTOR.rzc;
-  const { flow, pairs } = series.length >= 2 ? flowFromSeries(series.map((x) => x.values), w, h, factor) : { flow: zeroFlow(w, h, factor), pairs: 0 };
+  const { flow, pairs, regions } = series.length < 2 ? { flow: zeroFlow(w, h, factor), pairs: 0, regions: 0 }
+    : NC_FLOW_REGIONAL ? flowFromSeriesRegional(series.map((x) => x.values), w, h, factor, NC_REGION_GRID)
+    : { ...flowFromSeries(series.map((x) => x.values), w, h, factor), regions: 0 };
   const motion = motionStats(flow, newest.values, w, h, NC_STEP_MIN, pairs);
   const analysisAtMs = newest.meta.validAtMs ?? radarImgStampToMs(stamp);
+  const range = NC_RANGE_MASK ? rangeUnknownMask(w, h, projectedSampler(gridNodeFn('rzc', newest.meta.corners)), RZC_RADAR_SITES, RZC_RANGE_KM) : null;
   // Phase NC-B: model planes per lead (null = pure translation, as before)
   let nb = null;
   if (NC_BLEND) {
@@ -409,8 +422,8 @@ if (source === 'rv') {
   let changed = 0;
   for (const [li, lead] of RZC_NC_LEADS.entries()) {
     const k = lead / NC_STEP_MIN;
-    advectPlane(newest.values, w, h, flow, k, buf, ubuf);
-    if (buf2) advectPlane(newest.values2, w, h, flow, k, buf2);
+    advectPlane(newest.values, w, h, flow, k, buf, ubuf, range?.mask);
+    if (buf2) advectPlane(newest.values2, w, h, flow, k, buf2, undefined, range?.mask);
     if (nb && RZC_NC_BLEND_WEIGHTS[li] > 0) {
       changed += blendFrame({ w: RZC_NC_BLEND_WEIGHTS[li], radar: buf, radarLog: buf2, model: nb.planes[li], unknown: ubuf, out: mix, outLog: mix2 });
       buf.set(mix); if (buf2) buf2.set(mix2);
@@ -435,13 +448,16 @@ if (source === 'rv') {
   const meta = makeRzcNcImgMeta({
     stamp, analysisAtMs, corners: newest.meta.corners, frames, unknown: unknownRows, series: slots.map((x) => x.s), motion,
     // V-NC-7: one translation per pair (correlation shift), not the Horn–Schunck field — see radarNowcastExtrap.ts
-    method: { flow: 'translation', factor, maxCoarse: NC_TRANSLATION_MAX_COARSE, sampling: 'wet-bilinear-round' },
+    method: { flow: 'translation', factor, maxCoarse: NC_TRANSLATION_MAX_COARSE, sampling: 'wet-bilinear-round', ...(NC_FLOW_REGIONAL ? { regions } : {}) },
+    ...(range ? { unknownBeyondKm: RZC_RANGE_KM } : {}),
     ...(buf2 ? { dual: makeRadarImgDual(dualRows) } : {}),
     ...(nb ? { blend: nb.blend } : {}),
   });
   if (!parseRzcNcImgMeta(JSON.parse(JSON.stringify(meta)))) throw new Error('rzc-nc: eigene meta.json besteht den Client-Prüfer nicht');
   put('meta.json', JSON.stringify(meta) + '\n');
   console.error(`rzc-nc: ${series.length} Analysen, ${pairs} Paare, ${motion.speedKmh} km/h aus ${motion.fromDeg ?? '—'}°, ${motion.wetCells} nasse Zellen`
+    + (NC_FLOW_REGIONAL ? ` · ${regions}/${NC_REGION_GRID * NC_REGION_GRID} Regionen mit eigenem Zug` : ' · ein Zug für das ganze Bild')
+    + (range ? ` · ${range.count} Quellpixel jenseits ${RZC_RANGE_KM} km unbekannt` : '')
     + (nb ? ` · Mischung mit buscosun Fusion (RUC ${nb.blend.rucRun}, Feld ${nb.blend.fieldRun}, ${nb.source}): ${nb.blend.cellsModel}/${nb.blend.cellsTotal} Zellen, Stunden ${JSON.stringify(nb.kinds)}, ${changed} Pixel geändert${nb.blend.smoothing ? `, Modellanteil ${nb.blend.smoothing}` : ', Modellanteil je Zelle'}${nb.blend.modelMin ? ` ab ${nb.blend.modelMin} mm/h` : ''}` : ''));
 } else if (source === 'inca-5m') {
   // Phase NC: inPath = the mirror's INCA slot (`img/inca/<stamp>/`): the run's frames, refined to 5 min along the motion.

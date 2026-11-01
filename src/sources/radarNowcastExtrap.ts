@@ -4,8 +4,11 @@
  *   · `flowFromSeries`  motion of a series of analyses: ONE translation per consecutive pair (`translationBetween` — the shift
  *                       of the coarsened frames with the largest correlation, refined to a fraction of a texel), averaged with
  *                       weights rising towards the newest pair and laid over the WHOLE grid as a constant field;
+ *   · `flowFromSeriesRegional`  the same per 2 × 2 region of the frame, blended bilinearly between the region centres
+ *                       (01.11.2026; built and OFF — `RADAR_NC_FLOW=regional` in the producer; no gain measured yet);
  *   · `advectPlane`     the newest analysis shifted semi-Lagrangian by k steps along that motion (CH extrapolation), with the
- *                       UNKNOWN mask: a pixel whose back-trajectory starts outside the grid is not "dry" but unknown;
+ *                       UNKNOWN mask: a pixel whose back-trajectory starts outside the grid — or beyond the radars' range
+ *                       (`rangeUnknownMask`, 01.11.2026) — is not "dry" but unknown;
  *   · `betweenPlanes`   the in-between picture between two frames along the motion (INCA refined to 5 min): both frames
  *                       advected towards the middle, mixed — the CPU twin of the shader's morph (`RainLayer`, `morphAt`).
  *
@@ -56,25 +59,37 @@ function coarsen(a: Uint8Array, w: number, h: number, factor: number): { c: Floa
  * coarse cells or no shift correlates at all. Exact for a pure translation (`verify:radar-nc` C6); a field that grows or
  * decays at the place gives the shift of what moves.
  */
-export function translationBetween(a: Uint8Array, b: Uint8Array, w: number, h: number, factor: number, maxCoarse: number = NC_TRANSLATION_MAX_COARSE): { u: number; v: number; score: number } | null {
+export function translationBetween(a: Uint8Array, b: Uint8Array, w: number, h: number, factor: number, maxCoarse: number = NC_TRANSLATION_MAX_COARSE, minCells: number = NC_TRANSLATION_MIN_CELLS): { u: number; v: number; score: number } | null {
   const A = coarsen(a, w, h, factor), B = coarsen(b, w, h, factor);
-  if (A.wet < NC_TRANSLATION_MIN_CELLS || B.wet < NC_TRANSLATION_MIN_CELLS) return null;
-  const { W, H } = A;
+  if (A.wet < minCells || B.wet < minCells) return null;
+  return bestShift(A.c, B.c, A.W, A.H, factor, maxCoarse);
+}
+
+/** Normalised cross-correlation of B(x + dx, y + dy) against A(x, y) over the overlap of two coarse frames (0 without energy). */
+function nccAtShift(a: Float32Array, b: Float32Array, W: number, H: number, dx: number, dy: number): number {
+  let sab = 0, saa = 0, sbb = 0;
+  const y0 = Math.max(0, -dy), y1 = Math.min(H, H - dy), x0 = Math.max(0, -dx), x1 = Math.min(W, W - dx);
+  for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
+    const va = a[y * W + x], vb = b[(y + dy) * W + x + dx];
+    sab += va * vb; saa += va * va; sbb += vb * vb;
+  }
+  return saa > 0 && sbb > 0 ? sab / Math.sqrt(saa * sbb) : 0;
+}
+
+/**
+ * The shift of two coarse frames with the largest correlation within ± `maxCoarse`; an exact tie goes to the SMALLER shift
+ * (a field without structure along one axis — a band across the whole window — must not jump to the window's edge).
+ */
+function bestShift(a: Float32Array, b: Float32Array, W: number, H: number, factor: number, maxCoarse: number): { u: number; v: number; score: number } | null {
   const R = maxCoarse, S = 2 * R + 1;
   const scores = new Float64Array(S * S);
-  let best = -1, bi = 0;
+  let best = -1, bi = 0, bestD = Infinity;
   for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
-    // B(x + dx, y + dy) against A(x, y) over the overlap, normalised by the energies of both over that overlap
-    let sab = 0, saa = 0, sbb = 0;
-    const y0 = Math.max(0, -dy), y1 = Math.min(H, H - dy), x0 = Math.max(0, -dx), x1 = Math.min(W, W - dx);
-    for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
-      const va = A.c[y * W + x], vb = B.c[(y + dy) * W + x + dx];
-      sab += va * vb; saa += va * va; sbb += vb * vb;
-    }
-    const s = saa > 0 && sbb > 0 ? sab / Math.sqrt(saa * sbb) : 0;
+    const s = nccAtShift(a, b, W, H, dx, dy);
     const i = (dy + R) * S + dx + R;
     scores[i] = s;
-    if (s > best) { best = s; bi = i; }
+    const d = dx * dx + dy * dy;
+    if (s > best + 1e-9 || (Math.abs(s - best) <= 1e-9 && d < bestD)) { best = s; bi = i; bestD = d; }
   }
   if (!(best > 0)) return null;
   const by = Math.floor(bi / S) - R, bx = (bi % S) - R;
@@ -103,6 +118,113 @@ export function flowFromSeries(frames: readonly Uint8Array[], w: number, h: numb
   }
   if (wsum > 0) { flow.u.fill(su / wsum); flow.v.fill(sv / wsum); }
   return { flow, pairs };
+}
+
+/** Regions per axis of the regional motion (2 ⇒ 2 × 2 quarters; on the rzc grid the split runs along the main Alpine ridge). */
+export const NC_REGION_GRID = 2;
+/** A region's pair needs at least this many wet coarse cells (40 × 16 km² = 640 km²) — a smaller patch correlates by chance. */
+export const NC_REGION_MIN_CELLS = 40;
+/** A region's pair counts only when its best correlation reaches this (a pure translation scores 1; noise ≈ 0,2). */
+export const NC_REGION_MIN_SCORE = 0.5;
+/**
+ * … and the region's vector, run over the whole series span (first → last frame, 2–5 steps), must explain its window by at
+ * least this much more correlation than the whole-frame vector does. Checked over the span, not per pair: at 5 min and 4-km
+ * cells a pair's shift is a fraction of a texel (30 km/h = 0,6 texel) and the correlation surface is flat around it.
+ */
+export const NC_REGION_MIN_GAIN = 0.02;
+
+/** The `x0 … x1 × y0 … y1` window of `plane` as its own plane. */
+function crop(plane: Uint8Array, w: number, x0: number, x1: number, y0: number, y1: number): Uint8Array {
+  const cw = x1 - x0, out = new Uint8Array(cw * (y1 - y0));
+  for (let y = y0; y < y1; y++) out.set(plane.subarray(y * w + x0, y * w + x1), (y - y0) * cw);
+  return out;
+}
+
+/**
+ * Motion of a series with ONE translation per REGION (`grid × grid` windows of the frame), 01.11.2026 (Jan: the one vector for
+ * 710 × 640 km missed that the north and the south side of the Alps often move differently). OFF in the producer until a day
+ * with such motion has been measured (the uniform drizzle of 01.11.2026 showed no gain, see `radar-derive.mjs`). Each region measures its own
+ * pair shifts on its window (same correlation as `translationBetween`, stricter: `NC_REGION_MIN_CELLS` wet cells and a score
+ * ≥ `NC_REGION_MIN_SCORE`, else the pair carries nothing), and keeps the result only when it explains the window over the
+ * whole series span by `NC_REGION_MIN_GAIN` more correlation than the whole-frame vector does; otherwise the region takes
+ * the whole-frame motion of `flowFromSeries`. The coarse field is the bilinear blend between the region centres (clamped outside them), so
+ * the flow is continuous and everywhere a convex mix of the measured vectors — no new speeds, no stall. For a pure translation
+ * every region scores like the whole frame and the field equals the global one. `regions` = how many carried their own vector.
+ */
+export function flowFromSeriesRegional(frames: readonly Uint8Array[], w: number, h: number, factor: number, grid: number = NC_REGION_GRID): { flow: RainFlow; pairs: number; regions: number; vectors: { u: number; v: number; own: boolean }[] } {
+  const global = flowFromSeries(frames, w, h, factor);
+  if (grid < 2) return { ...global, regions: 0, vectors: [] };
+  const gu = global.flow.u[0] ?? 0, gv = global.flow.v[0] ?? 0;
+  const vectors: { u: number; v: number; own: boolean }[] = [];
+  let regions = 0;
+  const n = frames.length;
+  for (let ry = 0; ry < grid; ry++) for (let rx = 0; rx < grid; rx++) {
+    const x0 = Math.floor((rx * w) / grid), x1 = Math.floor(((rx + 1) * w) / grid);
+    const y0 = Math.floor((ry * h) / grid), y1 = Math.floor(((ry + 1) * h) / grid);
+    const cw = x1 - x0, ch = y1 - y0;
+    const coarse = frames.map((f) => coarsen(crop(f, w, x0, x1, y0, y1), cw, ch, factor));
+    let su = 0, sv = 0, wsum = 0;
+    for (let i = 0; i + 1 < n; i++) {
+      const A = coarse[i], B = coarse[i + 1];
+      if (A.wet < NC_REGION_MIN_CELLS || B.wet < NC_REGION_MIN_CELLS) continue;
+      const t = bestShift(A.c, B.c, A.W, A.H, factor, NC_TRANSLATION_MAX_COARSE);
+      if (!t || t.score < NC_REGION_MIN_SCORE) continue;
+      const wt = i + 1;
+      su += wt * t.u; sv += wt * t.v; wsum += wt;
+    }
+    let own = false;
+    if (wsum > 0 && n >= 3) {
+      // over the series span: does the region's vector explain its window better than the whole-frame vector?
+      const ru = su / wsum, rv = sv / wsum, A = coarse[0], B = coarse[n - 1], k = n - 1;
+      if (A.wet >= NC_REGION_MIN_CELLS && B.wet >= NC_REGION_MIN_CELLS) {
+        const sr = nccAtShift(A.c, B.c, A.W, A.H, Math.round((k * ru) / factor), Math.round((k * rv) / factor));
+        const sg = nccAtShift(A.c, B.c, A.W, A.H, Math.round((k * gu) / factor), Math.round((k * gv) / factor));
+        own = sr >= sg + NC_REGION_MIN_GAIN;
+      }
+    }
+    if (own) { vectors.push({ u: su / wsum, v: sv / wsum, own: true }); regions++; }
+    else vectors.push({ u: gu, v: gv, own: false });
+  }
+  const flow = zeroFlow(w, h, factor);
+  if (regions === 0) return { flow: global.flow, pairs: global.pairs, regions, vectors };
+  for (let cy = 0; cy < flow.h; cy++) {
+    // region coordinate of the coarse cell centre: 0 at the first region's centre, grid − 1 at the last one's
+    const py = Math.min(grid - 1, Math.max(0, ((cy + 0.5) / flow.h) * grid - 0.5));
+    const y0 = Math.min(grid - 2, Math.floor(py)), ty = py - y0;
+    for (let cx = 0; cx < flow.w; cx++) {
+      const px = Math.min(grid - 1, Math.max(0, ((cx + 0.5) / flow.w) * grid - 0.5));
+      const x0 = Math.min(grid - 2, Math.floor(px)), tx = px - x0;
+      const a = vectors[y0 * grid + x0], b = vectors[y0 * grid + x0 + 1], c = vectors[(y0 + 1) * grid + x0], d = vectors[(y0 + 1) * grid + x0 + 1];
+      const k = cy * flow.w + cx;
+      flow.u[k] = (a.u * (1 - tx) + b.u * tx) * (1 - ty) + (c.u * (1 - tx) + d.u * tx) * ty;
+      flow.v[k] = (a.v * (1 - tx) + b.v * tx) * (1 - ty) + (c.v * (1 - tx) + d.v * tx) * ty;
+    }
+  }
+  return { flow, pairs: global.pairs, regions, vectors };
+}
+
+/**
+ * Source mask of what the radars can SEE: 255 for every pixel farther than `kmMax` from all `sites` (lat, lon). The composite
+ * encodes such pixels as 0 = "dry", but they were never measured — the extrapolation treats them as UNKNOWN (`advectPlane`,
+ * `srcUnknown`). `lonLatAt(u, v)` maps grid fractions to [lon, lat] (the projected sampler of the grid).
+ */
+export function rangeUnknownMask(w: number, h: number, lonLatAt: (u: number, v: number) => [number, number], sites: readonly (readonly [number, number])[], kmMax: number): { mask: Uint8Array; count: number } {
+  const mask = new Uint8Array(w * h);
+  const R = 6371, rad = Math.PI / 180;
+  const sc = sites.map(([lat, lon]) => ({ lat: lat * rad, lon: lon * rad, cos: Math.cos(lat * rad) }));
+  let count = 0;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const [lon, lat] = lonLatAt((x + 0.5) / w, (y + 0.5) / h);
+    const la = lat * rad, lo = lon * rad, cl = Math.cos(la);
+    let seen = false;
+    for (const s of sc) {
+      const sa = Math.sin((la - s.lat) / 2), sb = Math.sin((lo - s.lon) / 2);
+      const d = 2 * R * Math.asin(Math.sqrt(sa * sa + s.cos * cl * sb * sb));
+      if (d <= kmMax) { seen = true; break; }
+    }
+    if (!seen) { mask[y * w + x] = 255; count++; }
+  }
+  return { mask, count };
 }
 
 /**
@@ -164,9 +286,10 @@ function sampleWet(plane: Uint8Array, w: number, h: number, sx: number, sy: numb
 
 /**
  * Shift `plane` by `k` steps along `flow` (backward semi-Lagrangian) into `out`; `unknown` (optional, same size) gets 255
- * where the back-trajectory starts outside the grid (the value there is 0). Returns the number of unknown pixels.
+ * where the back-trajectory starts outside the grid (the value there is 0) — or, with `srcUnknown` (255 = the source pixel
+ * was never measured, `rangeUnknownMask`), where it starts on such a pixel. Returns the number of unknown pixels.
  */
-export function advectPlane(plane: Uint8Array, w: number, h: number, flow: RainFlow, k: number, out: Uint8Array, unknown?: Uint8Array): number {
+export function advectPlane(plane: Uint8Array, w: number, h: number, flow: RainFlow, k: number, out: Uint8Array, unknown?: Uint8Array, srcUnknown?: Uint8Array): number {
   const d = new Float64Array(2), share = new Float64Array(1);
   let nUnknown = 0;
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
@@ -174,6 +297,7 @@ export function advectPlane(plane: Uint8Array, w: number, h: number, flow: RainF
     flowAt(flow, x, y, w, h, d);
     const sx = x + 0.5 - k * d[0], sy = y + 0.5 - k * d[1];
     if (sx < 0 || sy < 0 || sx > w || sy > h) { out[i] = 0; if (unknown) unknown[i] = 255; nUnknown++; continue; }
+    if (srcUnknown && srcUnknown[clampI(Math.floor(sy), h) * w + clampI(Math.floor(sx), w)] === 255) { out[i] = 0; if (unknown) unknown[i] = 255; nUnknown++; continue; }
     if (unknown) unknown[i] = 0;
     out[i] = sampleWet(plane, w, h, sx, sy, share);
   }

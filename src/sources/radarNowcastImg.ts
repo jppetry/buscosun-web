@@ -64,6 +64,22 @@ export const NC_FLOW_FACTOR = Object.freeze({ rzc: 4, inca: 4 });
 /** Farthest a nowcast frame may be from the asked validity time — half a step plus a little. */
 export const NC_PICK_TOL_MS = 3 * 60_000;
 
+/**
+ * The five MeteoSwiss radars of the rzc composite (lat, lon; `set` from MeteoSwiss' published site list) and the composite's
+ * maximum range. Measured 01.11.2026 on six analyses (09:25–09:50 UTC): wet pixels out to 247 km from the nearest site with a
+ * steady 15–16 % wet share between 150 and 250 km, NOT ONE wet pixel beyond — the domain outside this range is encoded 0 but
+ * never seen. The producer marks it UNKNOWN in the extrapolation (`rangeUnknownMask`, `meta.unknownBeyondKm`); 250 km keeps
+ * a 3-km margin over the measured edge (the site list is `set`, the pixel centres are projected).
+ */
+export const RZC_RADAR_SITES: readonly (readonly [number, number])[] = Object.freeze([
+  [47.2843, 8.5120],   // Albis
+  [46.4251, 6.0994],   // La Dôle
+  [46.0408, 8.8334],   // Monte Lema
+  [46.3706, 7.4866],   // Plaine Morte
+  [46.8350, 9.7943],   // Weissfluhgipfel
+]);
+export const RZC_RANGE_KM = 250;
+
 // --- paths ------------------------------------------------------------------------------------------------------------
 
 export const RZC_NC_SOURCE = 'rzc-nc';
@@ -211,8 +227,13 @@ export interface RzcNcImgMeta {
    * accepted when read.
    */
   method:
-    | { flow: 'translation'; factor: number; maxCoarse: number; sampling: 'wet-bilinear-round' }
+    | { flow: 'translation'; factor: number; maxCoarse: number; sampling: 'wet-bilinear-round'; regions?: number }
     | { flow: 'horn-schunck'; factor: number; alpha: number; iters: number; sampling: 'wet-bilinear-round' };
+  /**
+   * 01.11.2026: source pixels farther than this from every MeteoSwiss radar (`RZC_RADAR_SITES`) were never measured and count
+   * as UNKNOWN in the frames (the composite encodes them as 0). Absent in older products (they treated them as dry).
+   */
+  unknownBeyondKm?: number;
   caveats: string[];
   label: string;
   dual?: RadarImgDual;
@@ -240,12 +261,13 @@ export interface Inca5mImgMeta {
 
 export function makeRzcNcImgMeta(a: {
   stamp: string; analysisAtMs: number; corners: QuadCorners; frames: RadarImgFrame[]; unknown: RadarImgFrame[];
-  series: string[]; motion: NcMotion; method: RzcNcImgMeta['method']; dual?: RadarImgDual; blend?: RzcNcBlend;
+  series: string[]; motion: NcMotion; method: RzcNcImgMeta['method']; dual?: RadarImgDual; blend?: RzcNcBlend; unknownBeyondKm?: number;
 }): RzcNcImgMeta {
   return {
     schema: 1, source: 'rzc-nc', stamp: a.stamp, analysisAtMs: a.analysisAtMs,
     width: RZC_IMG_WIDTH, height: RZC_IMG_HEIGHT, vMax: PRECIP_VMAX, corners: a.corners,
     frames: a.frames, unknown: a.unknown, series: a.series, motion: a.motion, method: a.method,
+    ...(a.unknownBeyondKm ? { unknownBeyondKm: a.unknownBeyondKm } : {}),
     caveats: a.blend
       ? [...RZC_NC_CAVEATS, ...RZC_NC_BLEND_CAVEATS, ...(a.blend.modelMin ? [RZC_NC_BLEND_MODEL_MIN_CAVEAT] : []), ...(a.blend.smoothing ? [RZC_NC_BLEND_SMOOTH_CAVEAT[a.blend.smoothing]] : [])]
       : [...RZC_NC_CAVEATS],
@@ -295,6 +317,8 @@ export function parseRzcNcImgMeta(j: unknown): RzcNcImgMeta | null {
   if (!m.unknown.every((f, i) => frameRowOk(f, RZC_NC_LEADS[i], rzcNcUnknownFile(RZC_NC_LEADS[i])))) return null;
   if (!Array.isArray(m.series) || !m.series.length || !m.series.every((s) => typeof s === 'string') || m.series[m.series.length - 1] !== m.stamp) return null;
   if (!motionOk(m.motion) || !m.method || (m.method.flow !== 'translation' && m.method.flow !== 'horn-schunck')) return null;
+  if (m.method.flow === 'translation' && m.method.regions !== undefined && !(Number.isInteger(m.method.regions) && m.method.regions >= 0)) return null;
+  if (m.unknownBeyondKm !== undefined && !(Number.isFinite(m.unknownBeyondKm) && m.unknownBeyondKm > 0)) return null;
   if (!Array.isArray(m.caveats) || typeof m.label !== 'string') return null;
   if (m.dual !== undefined && !dualOk(m.dual, RZC_NC_LEADS)) return null;
   if (m.blend !== undefined && !blendOk(m.blend)) return null;
