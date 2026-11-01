@@ -888,9 +888,10 @@
   .tile-map { min-height: 262px; }
   /* Wetterkarte mobil (Jan 01.11.: 40 % niedriger, vorher 358 / 396): Text links, die gezeichnete Karte rechts daneben auf voller Höhe.
      Mindesthöhe, damit der Text auch auf schmalen Geräten (320 px) nicht abgeschnitten wird. */
-  .tile-karte.t-lg { aspect-ratio: 358 / 238; min-height: 214px; }
+  .tile-karte.t-lg { aspect-ratio: 358 / 214; min-height: 214px; }
   .tile-karte-text { left: 18px; top: 16px; width: calc(54% - 22px); }
-  .tile-karte-svg { --wk-left: 0px; left: auto; right: 6px; top: 6px; width: 46%; height: calc(100% - 12px); }
+  /* Karte bleibt so groß wie bei 238 px Höhe (105,6 % statt 100 % − 12 px) und wird unten bewusst etwas abgeschnitten (Jan 01.11.: noch −10 %). */
+  .tile-karte-svg { --wk-left: 0px; left: auto; right: 6px; top: 6px; width: 46%; height: 105.6%; }
   .tile-karte-text .tile-title-xl { font-size: 18px; margin-top: 6px; }
   .tile-karte-text .tile-desc { font-size: 12px; line-height: 1.4; margin-top: 8px; }
   .tile-tour, .tile-event, .tile-nowcast, .tile-forecast, .tile-fire, .tile-history, .tile-threed, .tile-globus,
