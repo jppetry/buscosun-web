@@ -128,7 +128,7 @@ const PALETTE: PaletteEntry[] = [
   { num: '06', label: 'Historie',               hint: 'Klima seit 1940',            feature: FEATURE.history },
   { num: '07', label: 'Atmosphäre',             hint: 'Höhenwind · Föhn',           feature: FEATURE.atmosphere },
   { num: '08', label: '3D-Globus',              hint: 'Live-Wind (GFS)',            feature: FEATURE.globe },
-  { num: '09', label: 'Waldbrand DACH',         hint: 'Satellit · Brände · Rückblick', feature: FEATURE.fire },
+  { num: '09', label: 'Brandradar',            hint: 'Satellit · Brände · Rückblick', feature: FEATURE.fire },
   { num: '10', label: 'Feedback',               hint: 'Ideen & Vorschläge',         feature: FEATURE.feedback },
   { num: '11', label: 'Validierung',            hint: 'Wie gut ist der Nowcast?',   feature: FEATURE.validation },
   { num: '12', label: 'Autobahn Monitor',        hint: 'Glätte · Fahrbahn · DWD',    feature: FEATURE.road },
@@ -298,7 +298,7 @@ function HeroQuad({ activeCat, onOpenFeature }: { activeCat: 'alle' | Category; 
   const tile = makeTile(activeCat, onOpenFeature);
   return (
     <div className="deck-quad" aria-label="Werkzeuge · Waldbrand, Nowcast, Vorhersage, Gletscher">
-      {tile(['erkunden'], 'tile-fire q-tile', FEATURE.fire, 'Waldbrand DACH öffnen', TILE_FIRE)}
+      {tile(['erkunden'], 'tile-fire q-tile', FEATURE.fire, 'Brandradar öffnen', TILE_FIRE)}
       {tile(['radar'], 'tile-nowcast q-tile', FEATURE.nowcast, 'Regenradar / Nowcast öffnen', TILE_NOWCAST)}
       {!FORECAST_TILE_HIDDEN && tile(['verstehen'], 'tile-forecast t-cream q-tile', FEATURE.forecast, 'Vorhersage & Konfidenz öffnen', TILE_FORECAST)}
       {glacierFlagFrom() && tile(['planen'], 'tile-glacier q-tile', FEATURE.glacier, 'Gletscherbericht öffnen', TILE_GLACIER)}
@@ -352,7 +352,7 @@ const TILE_FIRE = (
       <FireIcon />
     </div>
     <div>
-      <div className="tile-title tile-title-sm">Wo brennt es gerade?</div>
+      <div className="tile-title tile-title-sm">Brandradar</div>
       <p className="tile-desc sm">
         Aktive Brände und Brandflächen per Satellit, aktuell und im Rückblick.
       </p>
@@ -873,7 +873,7 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
           ihrer angestammten Stelle — so bleibt die schmale Ansicht wie zuvor. */}
       {narrow && (
         <>
-          {tile(['erkunden'], `tile-fire${half}`, FEATURE.fire, 'Waldbrand DACH öffnen', TILE_FIRE)}
+          {tile(['erkunden'], `tile-fire${half}`, FEATURE.fire, 'Brandradar öffnen', TILE_FIRE)}
           {tile(['radar'], `tile-nowcast${half}`, FEATURE.nowcast, 'Regenradar / Nowcast öffnen', TILE_NOWCAST)}
           {!FORECAST_TILE_HIDDEN && tile(['verstehen'], `tile-forecast t-cream${half}`, FEATURE.forecast, 'Vorhersage & Konfidenz öffnen', TILE_FORECAST)}
         </>
