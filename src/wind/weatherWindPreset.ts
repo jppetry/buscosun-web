@@ -18,7 +18,7 @@ import { GLOBE_PARTICLE_RAMP } from './particlePreset';
 export const WEATHER_WIND_DENSITY = 0.55;
 /** Dot size and trail length of "Normal" (the "Intensiv" mode of the Wetterkarte widens both). */
 export const WEATHER_WIND_POINT_SIZE = 1.7;
-export const WEATHER_WIND_FADE = 0.972;
+export const WEATHER_WIND_FADE = 0.980; // 0,972 -> 0,980 (01.11.): longer, clearer trail so the direction reads better
 
 export function weatherWindOptions(coarsePointer: boolean): WindLayerOptions {
   return {
