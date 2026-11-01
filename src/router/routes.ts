@@ -16,6 +16,14 @@ import type { FeatureId } from '../App';
 import { ALL_LAYER_KEYS } from '../map/layerTypes';
 import { LAYER_SLUGS, LAYER_SLUG_TITLE, LAYER_SLUG_DESCRIPTION } from './urlState';
 import { ogCardPath } from '../share/ogCard';
+import { roadSeoSubs } from '../road/roadSeo';
+
+/**
+ * Freischaltung Autobahnwetter (audit/seo-nischen.md §6): EIN Schalter für `noindex`, Sitemap und die 20 Autobahn-Unterseiten. Erst umlegen,
+ * wenn die Fühler-Fixes live sind, `road-archiv` grün läuft und Jan freigibt; dazu kommen die Rewrites aus `audit/seo-nischen/road-release.toml`
+ * und `npm run edge:share`. Solange `false`, nimmt Rollup die Unterseiten nicht ins Start-Bundle.
+ */
+export const ROAD_INDEXABLE = false as boolean;
 
 /** Kanonische Origin — deckungsgleich mit `scripts/seo/content.mjs` (O-03); der Verifier prüft das. */
 export const SITE_URL = 'https://buscosun.com';
@@ -267,16 +275,16 @@ export const ROUTES: readonly RouteDef[] = [
   },
   {
     // Phase AW (audit/autobahnwetter.md): Pfadsegment = Korridor (`/autobahnwetter/a8`), entscheidet die Seite. Die
-    // 20 Autobahn-Unterseiten (E-AW-4, `src/road/roadSeo.ts`) kommen erst mit Gate C in diese — eager geladene —
-    // Tabelle; bis dahin ist die Route noindex und steht in keiner Sitemap.
+    // 20 Autobahn-Unterseiten (E-AW-4, `src/road/roadSeo.ts`) hängen an `ROAD_INDEXABLE`; bis dahin ist die Route
+    // noindex und steht in keiner Sitemap.
     id: 'autobahnwetter', path: '/autobahnwetter', aliases: ['/strassenwetter', '/glaette'], featureId: 'road', subParam: 'road',
-    subs: null,
+    subs: ROAD_INDEXABLE ? roadSeoSubs() : null,
     meta: {
       title: 'Autobahnwetter — Glätte und Fahrbahnzustand',
       description: 'Fahrbahntemperatur und -zustand der Glättemeldeanlagen an deutschen Autobahnen, alle 15 Minuten gemessen — je Strecke als Band.',
-      h1: 'Autobahnwetter: Ist die Strecke glatt?',
-      lead: 'Was die Glättemeldeanlagen an deutschen Autobahnen messen: Fahrbahntemperatur, Fahrbahnzustand, Wasserfilm, Luft und Taupunkt, alle 15 Minuten vom DWD, geprüft und je Autobahn als Streckenband. Kein amtliches Warnprodukt.',
-      noindex: true, // Gate C (ROAD_LIVE)
+      h1: 'Autobahnwetter: Was messen die Anlagen?',
+      lead: 'Was die Glättemeldeanlagen an deutschen Autobahnen messen: Fahrbahntemperatur, Fahrbahnzustand, Wasserfilm, Luft und Taupunkt, alle 15 Minuten vom DWD, geprüft und je Autobahn als Streckenband. Kein amtliches Warnprodukt und keine Verkehrsmeldung.',
+      noindex: !ROAD_INDEXABLE,
     },
   },
   {
@@ -581,8 +589,8 @@ export function verifyRoutes(): { checks: RouteCheck[]; passed: number; failed: 
   add('Sitemap trägt lastmod je Eintrag (ISO-Datum)', sitemapPaths().every((p) => /^\d{4}-\d{2}-\d{2}$/.test(p.lastmod)));
   // Phase AW: Route, Aliase, 20 Autobahn-Unterseiten; bis Gate C noindex und ohne Sitemap.
   add('[AW] /autobahnwetter ist eine Route, /strassenwetter und /glaette sind Aliase', routeForPath('/autobahnwetter')?.def.id === 'autobahnwetter' && aliasTarget('/strassenwetter') === '/autobahnwetter' && aliasTarget('/glaette') === '/autobahnwetter');
-  add('[AW] /autobahnwetter/a8 trägt den Korridor als Segment (die Seite entscheidet), noindex', routeForPath('/autobahnwetter/a8')?.subSlug === 'a8' && metaForPath('/autobahnwetter/a8').noindex);
-  add('[AW] bis Gate C noindex und in keiner Sitemap', !!ROUTE_BY_ID.autobahnwetter.meta.noindex && !sitemapPaths().some((x) => x.path.startsWith('/autobahnwetter')));
+  add('[AW] /autobahnwetter/a8 trägt den Korridor als Segment (die Seite entscheidet); noindex bis zur Freigabe', routeForPath('/autobahnwetter/a8')?.subSlug === 'a8' && metaForPath('/autobahnwetter/a8').noindex === !ROAD_INDEXABLE);
+  add('[AW] bis zur Freigabe noindex und in keiner Sitemap; danach die Route und 20 Unterseiten', ROAD_INDEXABLE ? sitemapPaths().filter((x) => x.path.startsWith('/autobahnwetter')).length === 21 : !!ROUTE_BY_ID.autobahnwetter.meta.noindex && !sitemapPaths().some((x) => x.path.startsWith('/autobahnwetter')));
   add('[SW] /seewetter ist eine Route, /kuestenwetter, /segelwetter, /wellen sind Aliase', routeForPath('/seewetter')?.def.id === 'seewetter' && aliasTarget('/kuestenwetter') === '/seewetter' && aliasTarget('/segelwetter') === '/seewetter' && aliasTarget('/wellen') === '/seewetter');
   add('[SW] /seewetter/st-peter-ording trägt den Spot als Segment (die Seite entscheidet): indexierbar, Canonical = /seewetter', routeForPath('/seewetter/st-peter-ording')?.subSlug === 'st-peter-ording' && !metaForPath('/seewetter/st-peter-ording').noindex && canonicalPath('/seewetter/st-peter-ording') === '/seewetter');
   add('[SW] seit 10.10. indexierbar (E-SW-32): /seewetter genau einmal in der Sitemap, kein Spot-Pfad', !ROUTE_BY_ID.seewetter.meta.noindex && !metaForPath('/seewetter').noindex && sitemapPaths().filter((x) => x.path.startsWith('/seewetter')).map((x) => x.path).join() === '/seewetter');

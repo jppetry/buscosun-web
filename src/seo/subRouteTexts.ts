@@ -11,6 +11,8 @@
 import { ALL_LAYER_KEYS } from '../map/layerTypes';
 import { LAYER_SLUGS } from '../router/urlState';
 import { LAYER_SEO, wordCount, type SeoText } from './layerSeoTexts';
+import { roadSeoText } from '../road/roadSeo';
+import { ROAD_INDEXABLE } from '../router/routes';
 
 export type { SeoText, LayerFact } from './layerSeoTexts';
 
@@ -297,6 +299,25 @@ export const SUB_ROUTE_TEXTS: Readonly<Record<string, SeoText>> = { ...LAYER_ENT
  */
 export type RouteText = Pick<SeoText, 'body' | 'facts' | 'official' | 'links'>;
 const ROUTE_TEXTS: Readonly<Record<string, RouteText>> = {
+  '/autobahnwetter': {
+    body: [
+      'Eine Glättemeldeanlage steht an einem Punkt der Strecke und meldet alle 15 Minuten, was ihre Fühler messen. Das Band zeigt diese Messstellen je Autobahn, die Gefahren-Leiste bewertet die Abschnitte mit benannten Schwellen und nennt je Stufe die Herkunft. Die Stunden voraus sind Wetter an der Strecke aus buscosun Fusion und tragen das Wort Prognose; eine Fahrbahnmessung sind sie nicht.',
+      'Die Rohwerte kommen aus dem Straßenwetter-System des DWD. Prüfregeln verwerfen physikalisch unmögliche Werte, hängende Fühler, Gerätefüllwerte und Fühler, die weder zur eigenen Luft noch zu den Nachbaranlagen passen. Ein verworfener Wert erscheint als Lücke mit Grund. Das fängt viele Defekte ab, aber nicht jeden: Vor Ort gilt, was du siehst.',
+      'Grenzen: Zwischen zwei Anlagen, auf Brücken und in Senken kann die Fahrbahn anders sein. Aus Baden-Württemberg liefert der DWD keine Reihen, Österreich und die Schweiz sind nicht enthalten. Staus und Sperrungen zeigt die Seite nicht.',
+    ],
+    facts: [
+      { label: 'Quellen', text: 'Glättemeldeanlagen über das Straßenwetter-System des DWD · buscosun Fusion für die Stunden voraus' },
+      { label: 'Aktualisierung', text: 'Messung alle 15 Minuten, Vorhersage stündlich bis 48 Stunden' },
+      { label: 'Abdeckung', text: 'deutsche Autobahnen, außer wo der DWD keine Reihen liefert' },
+      { label: 'Grenze', text: 'kein amtliches Warnprodukt, keine Verkehrsmeldung; Prognose-Stufen gedeckelt' },
+    ],
+    official: { text: 'Amtliche Warnungen gibt der Deutsche Wetterdienst heraus, Baustellen und Sperrungen meldet die', label: 'Autobahn GmbH', href: 'https://www.autobahn.de/' },
+    links: [
+      { label: 'Amtliche Warnungen auf buscosun', href: '/warnungen' },
+      { label: 'So liest du das Autobahnwetter', href: '/funktionen/autobahnwetter/' },
+      { label: 'Prüfregeln der Messwerte', href: '/methodik/autobahnwetter-pruefregeln/' },
+    ],
+  },
   '/gletscher': {
     body: [
       'Die Lage zeigt die Gletscher im DACH-Raum auf der Karte und in einer Rangliste; der Steckbrief zu jedem Gletscher, etwa zum Großen Aletschgletscher oder zur Pasterze, gliedert sich in Heute, Saison, Langzeit, Tour und Quellen. Frühere Umrisse und ein Vergleichsregler zeigen die Veränderung der Fläche, soweit Inventare dafür vorliegen. Jede Zahl trägt ein Zeichen: gemessen, Satellit, Modell oder amtlich.',
@@ -373,6 +394,7 @@ export function routeText(path: string): RouteText | null {
 }
 
 export function subRouteText(path: string): SeoText | null {
+  if (ROAD_INDEXABLE && path.startsWith('/autobahnwetter/')) return roadSeoText(path.slice('/autobahnwetter/'.length));
   return SUB_ROUTE_TEXTS[path] ?? null;
 }
 

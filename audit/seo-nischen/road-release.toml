@@ -1,0 +1,83 @@
+# Freischaltung Autobahnwetter (audit/seo-nischen.md §6): diese Rewrites gehören in netlify.toml, im selben Commit, in dem
+# ROAD_INDEXABLE in src/router/routes.ts auf true geht, und VOR die Regel "/autobahnwetter/*".
+# Vorher hier lassen: ein Rewrite auf eine noch nicht gebaute Shell antwortet 404 und würde /autobahnwetter/a8 brechen.
+[[redirects]]
+  from   = "/autobahnwetter/a1"
+  to     = "/autobahnwetter--a1.html"
+  status = 200
+[[redirects]]
+  from   = "/autobahnwetter/a7"
+  to     = "/autobahnwetter--a7.html"
+  status = 200
+[[redirects]]
+  from   = "/autobahnwetter/a8"
+  to     = "/autobahnwetter--a8.html"
+  status = 200
+[[redirects]]
+  from   = "/autobahnwetter/a2"
+  to     = "/autobahnwetter--a2.html"
+  status = 200
+[[redirects]]
+  from   = "/autobahnwetter/a9"
+  to     = "/autobahnwetter--a9.html"
+  status = 200
+[[redirects]]
+  from   = "/autobahnwetter/a3"
+  to     = "/autobahnwetter--a3.html"
+  status = 200
+[[redirects]]
+  from   = "/autobahnwetter/a4"
+  to     = "/autobahnwetter--a4.html"
+  status = 200
+[[redirects]]
+  from   = "/autobahnwetter/a44"
+  to     = "/autobahnwetter--a44.html"
+  status = 200
+[[redirects]]
+  from   = "/autobahnwetter/a6"
+  to     = "/autobahnwetter--a6.html"
+  status = 200
+[[redirects]]
+  from   = "/autobahnwetter/a45"
+  to     = "/autobahnwetter--a45.html"
+  status = 200
+[[redirects]]
+  from   = "/autobahnwetter/a96"
+  to     = "/autobahnwetter--a96.html"
+  status = 200
+[[redirects]]
+  from   = "/autobahnwetter/a93"
+  to     = "/autobahnwetter--a93.html"
+  status = 200
+[[redirects]]
+  from   = "/autobahnwetter/a99"
+  to     = "/autobahnwetter--a99.html"
+  status = 200
+[[redirects]]
+  from   = "/autobahnwetter/a71"
+  to     = "/autobahnwetter--a71.html"
+  status = 200
+[[redirects]]
+  from   = "/autobahnwetter/a5"
+  to     = "/autobahnwetter--a5.html"
+  status = 200
+[[redirects]]
+  from   = "/autobahnwetter/a61"
+  to     = "/autobahnwetter--a61.html"
+  status = 200
+[[redirects]]
+  from   = "/autobahnwetter/a20"
+  to     = "/autobahnwetter--a20.html"
+  status = 200
+[[redirects]]
+  from   = "/autobahnwetter/a46"
+  to     = "/autobahnwetter--a46.html"
+  status = 200
+[[redirects]]
+  from   = "/autobahnwetter/a73"
+  to     = "/autobahnwetter--a73.html"
+  status = 200
+[[redirects]]
+  from   = "/autobahnwetter/a31"
+  to     = "/autobahnwetter--a31.html"
+  status = 200

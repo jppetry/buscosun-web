@@ -13,6 +13,8 @@
  * damit ein Sprachmodell zitieren kann, ohne 200 Seiten einzeln zu holen.
  */
 
+import { ROAD_INDEXABLE as roadIndexable } from '../../src/router/routes.ts';
+
 const stripTags = (html) => String(html).replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
 
 /** Kopfzeile + Grenzen — der Teil, der nicht aus Listen kommt. */
@@ -85,7 +87,8 @@ ${link('/seewetter', 'Seewetter Nord- und Ostsee')}: Seegang aus dem DWD-Küsten
   Seewetterbericht im Wortlaut. Kein amtliches Warnprodukt (${site.url}/methodik/seewetter-quellen/).
 ${link('/gletscher', 'Gletscher-Monitor DACH')}: rund 2 200 Gletscher mit Inventarfläche und Bezugsjahr, Messreihen, Sentinel-2-Szenen und einem Schmelzindex
   ohne Einheit; jede Zahl trägt ihre Herkunft. Kein amtliches Produkt, keine Tourenfreigabe (${site.url}/methodik/gletscher-daten/).
-${link('/wetterarchiv', 'Wetterarchiv & Klima')}: Rückblick und Veränderung je Ort, Stationen und ERA5-Reanalyse ab 1940.
+${roadIndexable ? `${link('/autobahnwetter', 'Autobahnwetter')}: Messwerte der Glättemeldeanlagen im 15-Minuten-Takt, geprüft und je Autobahn als Band, dazu Wetter entlang der Strecke. Kein amtliches
+  Warnprodukt und keine Verkehrsmeldung (${site.url}/methodik/autobahnwetter-pruefregeln/).\n` : ''}${link('/wetterarchiv', 'Wetterarchiv & Klima')}: Rückblick und Veränderung je Ort, Stationen und ERA5-Reanalyse ab 1940.
 ${link('/globus', '3D-Globus')}: globales Wind-, Temperatur- und Druckfeld aus dem aktuellen GFS-Lauf (NOAA).
 ${link('/validierung', 'Validierung')}: Live-Hindcast des Nowcasts gegen gemessenes Radar (Brier Skill Score,
   Kalibrierungsfehler, Reliability-Diagramm).`);

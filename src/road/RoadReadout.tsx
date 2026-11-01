@@ -552,6 +552,7 @@ function StationTab(p: Props) {
         <p className="aw-note">Amtliche Warnungen derzeit nicht abrufbar — kein Ersatztext. Die gültigen Warnungen stehen beim{' '}
           <a href={DWD_WARNINGS_URL} target="_blank" rel="noopener noreferrer">Deutschen Wetterdienst</a>.</p>
       )}
+      <p className="aw-note">Kein amtliches Warnprodukt. Amtliche Warnungen: <a href={DWD_WARNINGS_URL} target="_blank" rel="noopener noreferrer">Deutscher Wetterdienst</a>. Baustellen und Sperrungen: <a href="https://www.autobahn.de/" target="_blank" rel="noopener noreferrer">Autobahn GmbH</a>.</p>
 
       <div className="aw-sources">
         {/* M5 (D-7): the DWD check from the raw flag; slots written before `qf` know only „0“ (ok) and the rest. */}
