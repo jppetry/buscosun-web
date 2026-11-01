@@ -9,7 +9,7 @@
  * official items) — or read from a full local build with `--tree=` — and served by request interception for
  * `…/buscosun-data@main/glacier/v1/*`, `…@glacier/glacier/v1/*` (the static builds) and raw.githubusercontent. Basemap tiles come from the network (no checked content).
  *
- *   A  flag gate: on for everyone since 13.10. (GLACIER_LIVE) — page and start-page tile 13 without parameter, `?gl=0` hides; noindex on the page stays until Gate D
+ *   A  flag gate: on for everyone since 13.10. (GLACIER_LIVE) — page and start-page tile 13 without parameter, `?gl=0` hides; indexable since 2026-11-01 (audit/seo-nischen.md)
  *   B  layout at 1440 × 900: rail 62 · topbar 60 · dock 250 · readout 400 · map 728
  *   C  data: official sentences VERBATIM with date and source link; origin chip at every number; reference year at every area
  *   D  state: land, metric, search, selection ⇒ URL and back; locked metrics cannot be chosen
@@ -176,7 +176,7 @@ const P = '/gletscher?gl=1';
   const { ctx, errors, off } = await openPage({ path: P });
   const ready = await until(ctx, READY, 60_000);
   const meta = await ctx.evaluate(`({ robots: document.querySelector('meta[name="robots"]')?.getAttribute('content') ?? '', title: document.title, rail: [...document.querySelectorAll('a[title], button[title]')].some((a) => /Gletscher/.test(a.getAttribute('title') ?? '')) })`);
-  add('A4 mit ?gl=1: Seite lädt, noindex gesetzt, Titel nennt die Gletscher, Rail-Eintrag da', ready && /noindex/.test(meta.robots) && /Gletscher/.test(meta.title), JSON.stringify(meta));
+  add('A4 mit ?gl=1: Seite lädt, seit 01.11. ohne noindex, Titel nennt die Gletscher, Rail-Eintrag da', ready && !/noindex/.test(meta.robots ?? '') && /Gletscher/.test(meta.title), JSON.stringify(meta));
   off(); allErrors.push(...errors); await ctx.close();
 }
 

@@ -3102,3 +3102,15 @@ Zweig `feat/aw-6.2-virtueller-sensor`, ein Commit je Arbeitspaket; nichts davon 
     (c) Strecke — gestrichelt umrandete Chips an Zeilen ohne Messung; (d) Karte — Marker mit hellem gestrichelten Innenring und Label
     `~+1,2°`, Achsenpunkte in der Fahrbahn-Klassenfarbe; (e) Mobil 390 px — Info-Knopf treffbar (44 px). Kartenlegende ohne VS-Eintrag
     (V-VS-19, nach dem AWD-Commit). Befunde in §20.16.
+
+## 81. SEO der Nischen (Phase SN, `audit/seo-nischen.md`), 2026-11-01
+
+Alles lokal auf `main` committet, nichts gepusht. **Der Push trägt auch die fremden Radar- und Wind-Commits seit `083a77ee`** (`audit/seo-nischen.md` §2).
+
+1. **Real-Device Gletscher:** Checkliste `audit/seo-nischen.md` §4.3. Geht schon auf Produktion, die Seite ist seit 13.10. für alle sichtbar. Stürzt der Tab ab: `9769247b` nicht pushen.
+2. **Push von `main`.** Danach `node scripts/seo/verify-live.mjs` (prüft die 301 der alten Atmosphäre-Pfade) und PageSpeed Nachher auf den sechs URLs gegen §7.2.
+3. **`road-archiv` reparieren:** `scripts/punktarchiv-repo/workflow-road-archiv.yml` nach `buscosun-archiv/.github/workflows/road-archiv.yml` kopieren und pushen (Ursache §3.3). Dann einen Lauf abwarten, er muss grün sein.
+4. **Fühler-Fixes prüfen:** ein Radar-Job nach dem Push (≤ 5,75 h), dann neu stichproben: V528 ohne Frostgefahr, E237 ohne 40 °C, keine 20,16/21,6 mm/h auf trockener Fahrbahn.
+5. **Autobahnwetter freischalten:** vier Schritte in §6, im Probelauf grün. Gate C und E bleiben formal offen; das entscheidest du beim Umlegen.
+6. **Search Console, Bing, IndexNow, externe Verlinkung:** §9.
+7. **Stark umgeschriebene Seiten ansehen** (`/fuer/gleitschirmflieger/`, `/fuer/drohnenpiloten/`, `/fuer/bau-und-kran/`, `/fuer/wetterfuehlige/`, `/wissen/skew-t/` u. a., §5.1) und V-SN-5 entscheiden: Soll `/waldbrand` weiter die Saison zeigen oder den Gefahrenindex?
