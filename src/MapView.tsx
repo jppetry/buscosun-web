@@ -4163,7 +4163,7 @@ export default function MapView({
     wind.setDensityMultiplier(windCfg.density * (windCfg.intensive ? 2.1 : 1));
     // WG-1: feine Filamente statt fetter Punkte — die hohe Dichte und die kleine
     // Punktgroesse sind EIN Paar, einzeln kippt die Optik (Globus: 1,7).
-    wind.setPointSize(windCfg.intensive ? 2.0 : WEATHER_WIND_POINT_SIZE);
+    wind.setPointSize(windCfg.intensive ? 3.6 : WEATHER_WIND_POINT_SIZE);
     // Schweiflänge = Tempo × Lebensdauer der Spur. 0,972 ⇒ ~36 Frames ⇒ bei den
     // ~0,6 px/Frame der Übersicht ein ~22-px-Strich mit weichem Auslauf — die
     // Kometenform der Vorlage (WetterOnline: ~25 px). Vorher 0,955 ⇒ 22 Frames
