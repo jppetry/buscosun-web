@@ -4174,7 +4174,7 @@ export default function MapView({
     // fadeOpacity² zerfiel (0,972 wirkte wie 0,9448, also ~10 statt ~19 px).
     // Behoben in shaders.ts/screenFrag; Messung: audit/windpartikel-schweif.md.
     // Die Zahlen hier sind seither unverändert und beschreiben wieder die Realität.
-    wind.setFadeOpacity(windCfg.intensive ? 0.988 : WEATHER_WIND_FADE);
+    wind.setFadeOpacity(windCfg.intensive ? 0.9925 : WEATHER_WIND_FADE);
   }, [windCfg, active]);
 
   // Niederschlag aktiv: keine Wind-Einfärbung (Heatmap) darunter — die Partikel bleiben. Sonst überlagern sich zwei Farbskalen.
