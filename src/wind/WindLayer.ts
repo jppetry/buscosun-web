@@ -178,6 +178,12 @@ export interface WindLayerOptions {
   /** Zuschlag auf die Punktgröße beim Rauszoomen (Points-Stil): × (1 + Wert · t), t = 0 ab Zoom 6 bis 1 bei Zoom 3,5.
    *  Default 0 = unverändert (Globus). Die Wetterkarte setzt ihn in `weatherWindPreset.ts`. */
   zoomOutPointBoost?: number;
+  /** Ruhiger Wind ⇒ längere Schweife bei GLEICHEM Tempo: ist der stärkste Wind im Frame (`hypot(max|u|, max|v|)`) kleiner als
+   *  dieser Wert (m/s), wächst die Nachleuchtdauer der Spur um `Wert / v_max` (höchstens `calmTrailMaxGain`). Der Schweif ist
+   *  Tempo × Nachleuchtdauer; das Tempo bleibt unberührt. Default 0 = aus (Globus unverändert). */
+  calmTrailRefMs?: number;
+  /** Obergrenze des Faktors von `calmTrailRefMs` (Default 2.5). */
+  calmTrailMaxGain?: number;
   windPngUrl?: string;
   windJsonUrl?: string;
   colorRamp?: Record<number, string>;
@@ -335,6 +341,8 @@ export class WindLayer implements CustomLayerInterface {
   private baseDensity: number;
   private densityMultiplier: number;
   private zoomOutPointBoost: number;
+  private calmTrailRefMs: number;
+  private calmTrailMaxGain: number;
   private minParticles: number;
   private maxParticles: number;
   // ALT-Zoomausdünnung („Rule 2"-Fallback, s. getEffectiveParticleCount).
@@ -682,6 +690,16 @@ export class WindLayer implements CustomLayerInterface {
     } else if (p.u_matrix) {
       gl.uniformMatrix4fv(p.u_matrix as WebGLUniformLocation, false, matrix);
     }
+  }
+
+  /** `fadeOpacity`, bei ruhigem Wind (`calmTrailRefMs`) mit längerer Nachleuchtdauer: 1 − (1 − f) / Gain, gedeckelt bei 0,992. */
+  private effectiveFadeOpacity(): number {
+    const d = this.windData;
+    if (this.calmTrailRefMs <= 0 || !d) return this.fadeOpacity;
+    const vMax = Math.hypot(Math.max(Math.abs(d.uMin), Math.abs(d.uMax)), Math.max(Math.abs(d.vMin), Math.abs(d.vMax)));
+    if (!(vMax > 0.5)) return this.fadeOpacity;
+    const gain = Math.max(1, Math.min(this.calmTrailMaxGain, this.calmTrailRefMs / vMax));
+    return gain <= 1 ? this.fadeOpacity : Math.min(0.992, 1 - (1 - this.fadeOpacity) / gain);
   }
 
   /** Partikel-Punktgröße (UI „Intensiv" verbreitert leicht). */
@@ -1186,6 +1204,8 @@ export class WindLayer implements CustomLayerInterface {
     this.zoomRedistribute = options.zoomRedistribute ?? true;
     this.pointSize = options.pointSize ?? 1.5;
     this.zoomOutPointBoost = Math.max(0, options.zoomOutPointBoost ?? 0);
+    this.calmTrailRefMs = Math.max(0, options.calmTrailRefMs ?? 0);
+    this.calmTrailMaxGain = Math.max(1, options.calmTrailMaxGain ?? 2.5);
     this.showHeatmap = options.showHeatmap ?? true;
     this.heatmapOpacity = options.heatmapOpacity ?? 0.85;
     this.particleColor = options.particleColor ?? [1.0, 1.0, 1.0, 0.85];
@@ -2058,7 +2078,7 @@ export class WindLayer implements CustomLayerInterface {
     // to the dt-scale power makes the trail decay per unit of WALL-CLOCK time
     // instead of per frame, so trail length matches across frame rates
     // (desktop↔mobile parity). At 60 fps dtScale≈1 → unchanged.
-    const fade = Math.pow(this.fadeOpacity, this.frameDtScale);
+    const fade = Math.pow(this.effectiveFadeOpacity(), this.frameDtScale);
     // ZA-1: bei bewegter Kamera den Vorframe um die Bewegung versetzt/skaliert
     // abtasten, damit der Schweif an der Karte klebt statt am Bildschirm.
     // Ohne Bewegung ist das die Identität → byte-identisch zum Alt-Verhalten.

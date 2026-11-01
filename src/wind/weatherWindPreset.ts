@@ -32,6 +32,9 @@ export function weatherWindOptions(coarsePointer: boolean): WindLayerOptions {
     pointSize: WEATHER_WIND_POINT_SIZE, fadeOpacity: WEATHER_WIND_FADE,
     // Dots do not get thicker when zoomed out (0 = off; was 0,5 on 31.10., reverted 01.11.).
     zoomOutPointBoost: 0,
+    // Calm wind: the trail lives longer (same tempo), so slow particles stay readable from afar. Strongest wind in the frame
+    // below 16 m/s lengthens the trail by 16 / v_max (at most x2,5). Assumption, not measured: typical frames reach 12-25 m/s.
+    calmTrailRefMs: 16, calmTrailMaxGain: 2.5,
     // Tempo strictly linear to the GRIB value: px/s = speedPxPerMs · |V|.
     speedPxPerMs: 3.8, speedRefZoom: 5.5,
     // Slightly slower when zoomed out (z4 ≈ 0,86×), slightly quicker when zoomed in (z12 ≈ 2×). Was 0,35 (z12 ≈ 4,8×): the
