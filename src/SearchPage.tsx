@@ -369,11 +369,9 @@ const TILE_SEA = (
       <SeaIcon />
     </div>
     <div>
-      <div className="tile-title tile-title-sm">Wie wird es auf dem Wasser?</div>
+      <div className="tile-title tile-title-sm">Seewetter</div>
       <p className="tile-desc sm">
         Seegang, Wind und Böen an rund 60 Spots an Nord- und Ostsee.
-        {' '}
-        <span className="tile-caveat">Keine Sicherheitsbewertung.</span>
       </p>
     </div>
   </>
@@ -710,7 +708,7 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
               </div>
               <div>
                 <div className="tile-eyebrow">12 · SEEWETTER</div>
-                <div className="tile-title tile-title-lg">Wie wird es auf dem Wasser?</div>
+                <div className="tile-title tile-title-lg">Seewetter</div>
               </div>
             </div>
             <p className="tile-desc">
@@ -718,7 +716,7 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
               Seewetterbericht und Warnstatus im Wortlaut — mit deinen eigenen Grenzen je Profil.
               {' '}
               <span className="tile-caveat">
-                Kein amtliches Warnprodukt, keine Sicherheitsbewertung. Binnenseen ohne Welle (nicht im DWD-Bestand).
+                Kein amtliches Warnprodukt. Binnenseen ohne Welle (nicht im DWD-Bestand).
               </span>
             </p>
             <div className="tile-tags">
