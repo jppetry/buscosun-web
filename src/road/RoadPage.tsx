@@ -53,6 +53,7 @@ import {
   ROAD_CLASS_COLOR, ROAD_GAP_SHORT, corridorEnds, corridorHeading, corridorRouteText, f1, hm, isCritical, isGapCorridor, isHatched, isRoadWarning, roadGapHead, roadNoValueSince, roadNumber,
   searchCorridors, slotSummary, activeRoadWarnings, defaultRoadStation, ROAD_WARN_REFRESH_MS,
 } from './roadView';
+import MapGestureHint, { type HintSpot } from '../map/MapGestureHint';
 import './roadDeck.css';
 
 export interface RoadPageProps {
@@ -82,6 +83,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   const nav = useAppNav();
   const isMobile = useMediaQuery('(max-width: 767px)');
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const [mapInst, setMapInst] = useState<maplibregl.Map | null>(null);
   const [corridors, setCorridors] = useState<RoadCorridor[] | null>(null);
   const [corrState, setCorrState] = useState<'loading' | 'ok' | 'error'>('loading');
   const [load, setLoad] = useState<RoadSlotLoad | null>(null);
@@ -390,6 +392,10 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
     pickStation(id);
     if (hz && !isRoadFcAxisId(id) && segments && segments !== 'error') { const s = segmentOfStation(segments, id, corridorId); if (s) { setMapSeg(s.id); setMapCorr(null); } }
   }, [pickStation, hz, segments, corridorId]);
+  // Map hint: highlight candidates = the stations of the open corridor first, then the other points on the map.
+  const hintSpots = useCallback((): HintSpot[] => [...mapPoints.filter((p) => inCorridor.has(p.id)), ...mapPoints.filter((p) => !inCorridor.has(p.id))]
+    .filter((p) => p.n).slice(0, 40)
+    .map((p) => ({ lng: p.lon, lat: p.lat, name: p.n, onPick: () => pickStationFromMap(p.id) })), [mapPoints, inCorridor, pickStationFromMap]);
   const hzBack = useCallback(() => { setSegId(null); setDsChapter(1); }, []);
   const hzStep = useCallback((d: 1 | -1) => {
     if (!segId || !hzOrder.length) return;
@@ -548,7 +554,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   const map = (
     <RoadMap corridors={corridors ?? []} corridor={corridor} points={mapPoints} inCorridor={inCorridor}
       selectedId={axis?.id ?? point?.id ?? null} stale={freshness === 'stale'} layers={layers} warnAreas={warnAreas} padding={padding}
-      onSelect={pickStationFromMap} onMap={(m) => { mapRef.current = m; }} callout={isMobile ? callout : null} fcDots={fcDots} fcRs={fcRs} vsPoints={vsMarkers} onRain={setRain}
+      onSelect={pickStationFromMap} onMap={(m) => { mapRef.current = m; setMapInst(m); }} callout={isMobile ? callout : null} fcDots={fcDots} fcRs={fcRs} vsPoints={vsMarkers} onRain={setRain}
       segLines={hz ? segLines : undefined} selSegId={hz ? segId : null} hoverSegId={hz ? hoverSeg : null} onSelectSegment={hz ? pickSegmentFromMap : undefined} onSelectCorridor={hz ? pickCorridorFromMap : pickCorridor} />
   );
   const readoutProps = {
@@ -666,6 +672,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
       <div className="aw-root is-mobile">
         <main className="aw-map is-mobile" aria-label={inDossier ? 'Dossier' : 'Karte'}>
           <div className="aw-m-mapwrap" hidden={inDossier}>{map}</div>
+          <MapGestureHint map={mapInst} feature="autobahn" subject="road" accent="#1F5FAE" pickSpots={hintSpots} always enabled={!inDossier && mobTab === 'map'} />
           <div className="aw-m-top">
             <button type="button" className="aw-m-brand" aria-label="Zur Startseite" onClick={nav.goHome}><img src="/buscosun-mark.svg" width={22} height={22} alt="" /></button>
             {mPill}<ShareButton className="aw-m-share" compact /></div>
@@ -745,6 +752,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
           )}
           <main className={`aw-map${fcCells ? ' has-fc' : ''}${hz ? ' no-band' : ''}`} aria-label="Karte" hidden={inDossier}>
             {map}
+            <MapGestureHint map={mapInst} feature="autobahn" subject="road" accent="#1F5FAE" pickSpots={hintSpots} always enabled={!inDossier} />
             <div className="aw-ov-left">{pill}{times}</div>
             <div className="aw-ov-right">
               <div className="aw-zoom">

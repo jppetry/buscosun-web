@@ -12,6 +12,8 @@
 }
 /* Gletscher: kühler Schleier und Textfeld im Ton des Features (Gletscher-Cyan). */
 .bs-hint.is-glacier { --bs-hint-veil: rgba(14, 34, 42, 0.66); --bs-hint-panel: rgba(12, 44, 56, 0.66); }
+/* Autobahn: Schleier und Textfeld im Ton des Features (Autobahn-Blau). */
+.bs-hint.is-road { --bs-hint-veil: rgba(14, 26, 44, 0.66); --bs-hint-panel: rgba(18, 40, 76, 0.68); }
 
 .bs-hint-veil {
   position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; border: 0;
