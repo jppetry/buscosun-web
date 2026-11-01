@@ -215,7 +215,7 @@ export const ROUTES: readonly RouteDef[] = [
     id: 'atmosphaere', path: '/atmosphaere', aliases: ['/atmosph%C3%A4re', '/atmosphere'], featureId: 'atmosphere', subParam: 'lens', place: true,
     subs: [
       {
-        slug: ATMOSPHERE_LENS_SLUGS.section, title: 'Vertikalschnitt der Atmosphäre', description: 'Höhenwind, Inversion und Schichtung entlang einer frei gezogenen Schnittlinie — die Atmosphäre im Querschnitt.',
+        slug: ATMOSPHERE_LENS_SLUGS.section, title: 'Vertikalschnitt der Atmosphäre — Höhenwind im Querschnitt', description: 'Höhenwind, Böen, Windscherung und Wolkenbasis entlang einer frei gezogenen Linie: der Querschnitt der Atmosphäre über dem Gelände in DE, AT und CH.', updated: '2026-11-01',
       },
     ],
     meta: {

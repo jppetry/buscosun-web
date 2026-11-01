@@ -449,8 +449,9 @@ var ROUTES = [
     subs: [
       {
         slug: ATMOSPHERE_LENS_SLUGS.section,
-        title: "Vertikalschnitt der Atmosphäre",
-        description: "Höhenwind, Inversion und Schichtung entlang einer frei gezogenen Schnittlinie — die Atmosphäre im Querschnitt."
+        title: "Vertikalschnitt der Atmosphäre — Höhenwind im Querschnitt",
+        description: "Höhenwind, Böen, Windscherung und Wolkenbasis entlang einer frei gezogenen Linie: der Querschnitt der Atmosphäre über dem Gelände in DE, AT und CH.",
+        updated: "2026-11-01"
       }
     ],
     meta: {

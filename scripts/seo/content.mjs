@@ -1247,6 +1247,7 @@ export function renderSubRouteRootContent(route, sub, text, siblings, explainerO
   const body = (text.body || []).map((p) => `<p>${escapeHtml(p)}</p>`).join('\n      ');
   const facts = (text.facts || []).map((f) => `<dt>${escapeHtml(f.label)}</dt><dd>${escapeHtml(f.text)}</dd>`).join('\n        ');
   const sib = siblings.filter((x) => x.slug !== sub.slug).map((x) => `<li><a href="${route.path}/${x.slug}">${escapeHtml(x.title)}</a></li>`).join('\n        ');
+  const official = text.official ? `<p>${escapeHtml(text.official.text)} <a href="${text.official.href}" rel="noopener">${escapeHtml(text.official.label)}</a>.</p>` : '';
   const explainer = text.explainer && explainerOk(text.explainer) ? `<p>Hintergrund: <a href="/wissen/${text.explainer}/">Erklärung im Wetterwissen</a>.</p>` : '';
   return `<div id="seo-fallback">
       <nav aria-label="Brotkrumen"><a href="/">Start</a> › <a href="${route.path}">${escapeHtml(route.meta.title)}</a> › ${escapeHtml(sub.title)}</nav>
@@ -1257,11 +1258,12 @@ export function renderSubRouteRootContent(route, sub, text, siblings, explainerO
       <dl>
         ${facts}
       </dl>
+      ${official}
       ${explainer}
-      <h2>Weitere Ansichten</h2>
+      ${sib ? `<h2>Weitere Ansichten</h2>
       <ul>
         ${sib}
-      </ul>
+      </ul>` : ''}
       <h2>Mehr auf buscosun</h2>
       <p><a href="${route.path}">${escapeHtml(route.meta.title)}</a> · <a href="/wetter/">Wetter nach Ort</a> · <a href="/funktionen/">Alle Funktionen</a> · <a href="/wissen/">Wetterwissen</a> · <a href="/lizenzen/">Quellen &amp; Lizenzen</a></p>
       <p>Diese Ansicht: <a href="${path}">${SITE.url}${path}</a> — amtliche Quellen, höhenkorrigiert, ohne Konto, ohne Tracker.</p>

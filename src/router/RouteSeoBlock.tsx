@@ -63,6 +63,7 @@ export default function RouteSeoBlock() {
         <Heading className="rsb-h1">{h1}</Heading>
         <p className="rsb-lead">{lead}</p>
         {t?.body.map((p, i) => <p key={i}>{p}</p>)}
+        {t?.official && <p>{t.official.text} <a href={t.official.href} rel="noopener">{t.official.label}</a>.</p>}
         {t?.facts && t.facts.length > 0 && (
           <>
             <h2 className="rsb-h2">Daten und Grenzen</h2>

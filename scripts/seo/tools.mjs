@@ -162,47 +162,74 @@ export const TOOLS = [
   // ---------------------------------------------------------------- PILOT 2
   {
     slug: 'atmosphaere',
-    title: 'Atmosphäre & 3D-Querschnitt',
-    h1: 'Atmosphäre: die Luftschichten über dir in 3D',
+    title: 'Vertikalschnitt der Atmosphäre',
+    h1: 'Vertikalschnitt: der Querschnitt der Atmosphäre entlang deiner Linie',
     status: 'full',
-    deepLink: '/atmosphaere',
+    deepLink: '/atmosphaere/querschnitt',
     answer:
-      'Die Atmosphäre-Ansicht zeigt die vertikale Schichtung der Luft über einem Ort als interaktiven ' +
-      '3D-Querschnitt: Temperatur, Wind und Feuchte mit der Höhe. So werden Föhnlagen, Temperaturinversionen ' +
-      'und die Nebel- oder Schneefallgrenze sichtbar. Grundlage sind ICON-EU-Soundings und ein abgeleiteter ' +
-      'Höhenschnitt — gerendert als MapLibre-WebGL-Layer.',
+      'Der Vertikalschnitt von buscosun zeigt den Querschnitt der Atmosphäre entlang einer Linie, die du auf der ' +
+      'Karte ziehst oder aus einer Tourdatei lädst: das Höhenprofil des Geländes und darüber Höhenwind, Böen, ' +
+      'Windscherung und Wolkenbasis. Grundlage sind die Modellflächen von ICON-D2 und buscosun Fusion am Boden. Es ist ' +
+      'kein amtliches Produkt und kein amtliches Flugwetter.',
     bullets: [
-      'Vertikalprofil von Temperatur, Wind und Feuchte mit der Höhe',
-      'Linsen für Föhn/Inversion, Thermik und Querschnitt',
-      'Profil-Cap 0–4000 m mit „ganze Höhe"-Umschaltung',
-      'Datenbasis: ICON-EU-Sounding + digitales Geländemodell',
+      'Schnittlinie frei zeichnen oder aus GPX, TCX, FIT oder KML laden',
+      'Wind je Höhe in fünf Bändern mit Pfeilen für die Richtung, Höhenstufen 150 m',
+      'Zuschaltbar: Böen, Windscherung, Strömungslinien und Wolkenbasis',
+      'Punkt-Abfrage: Höhe, Abstand über Grund, Mittelwind, Böe, Richtung und Temperatur',
+      'Zeit-Regler rund 36 Stunden voraus, auch als Abspielen',
+      'Gemessener Wind einer Radiosonde als eigene Säule, wenn ein Aufstieg nahe der Linie liegt',
     ],
     sections: [
       {
-        id: 'was',
-        h2: 'Was der 3D-Querschnitt zeigt',
+        id: 'so-gehts',
+        h2: "So geht's",
         html:
-          '<p>Statt nur Bodenwerten zeigt die Atmosphäre-Ansicht, wie sich Temperatur, Wind und Feuchte ' +
-          '<strong>mit der Höhe</strong> ändern. Eine wärmere Schicht über kälterer Luft — eine ' +
-          '<a href="/wissen/temperaturinversion/">Temperaturinversion</a> — wird so unmittelbar erkennbar, ' +
-          'ebenso die Höhe, ab der Hochnebel endet (die <a href="/wissen/nebel-hochnebel-nebelobergrenze/">' +
-          'Nebelobergrenze</a>) oder Schnee in Regen übergeht.</p>',
+          '<ol>' +
+          '<li><strong>Ort wählen.</strong> Stadt, Adresse oder PLZ in Deutschland, Österreich oder der Schweiz, oder ' +
+          'eine Tourdatei laden; dann wird die Tour zur Linie.</li>' +
+          '<li><strong>Linie ziehen.</strong> Auf der Karte zwei Punkte setzen, am besten quer über ein Tal oder einen ' +
+          'Grat. Weitere Punkte knicken die Linie.</li>' +
+          '<li><strong>Schnitt lesen.</strong> Der Schnitt öffnet sich von selbst. Ebenen zuschalten, den Zeit-Regler ' +
+          'bewegen und in den Schnitt tippen, um die Werte an einem Punkt abzulesen.</li>' +
+          '</ol>',
       },
       {
         id: 'daten',
-        h2: 'Datenbasis und Grenzen',
+        h2: 'Datenbasis und Aktualisierung',
         html:
-          '<p>Die Vertikaldaten stammen aus ICON-EU-Soundings; daraus wird ein 3D-Höhenschnitt abgeleitet und ' +
-          'als WebGL-Layer in MapLibre gerendert (kein Three.js). Sehr dünne Inversionen unter etwa 200 m ' +
-          'Mächtigkeit sind modellseitig nur grob aufgelöst und werden als unsicher gekennzeichnet.</p>',
+          '<p>Wind und Temperatur je Höhe stammen aus einem Höhen-Cube mit den <strong>Modellflächen von ICON-D2</strong> ' +
+          '(DWD, rund 2,2 km, CC BY 4.0), neu berechnet für die Läufe 00, 06, 12 und 18 UTC und über Deutschland, ' +
+          'Österreich und die Schweiz gleich verfügbar. Am Boden ist der Schnitt an fünf Punkten der Linie auf buscosun ' +
+          'Fusion verankert. Das Höhenprofil des Geländes kommt aus einem digitalen Geländemodell, 64 Spalten je ' +
+          'Schnitt. Radiosondenaufstiege erscheinen nur als eigene, beschriftete Säule und werden nie mit dem Modell ' +
+          'verrechnet. Fehlt der Höhen-Cube, schätzt der Schnitt den Wind aus dem Bodenwert mit einem Potenzgesetz und ' +
+          'schreibt das in die Bildunterschrift.</p>',
+      },
+      {
+        id: 'grenzen',
+        h2: 'Was die Ansicht nicht kann',
+        html:
+          '<ul>' +
+          '<li><strong>Kein amtliches Produkt und kein amtliches Flugwetter.</strong> Für Flugentscheidungen gelten die ' +
+          '<a href="https://www.dwd.de/DE/fachnutzer/luftfahrt/luftfahrt_node.html" rel="noopener">Flugwetterberatung des DWD</a>, die Dienste in Österreich und der ' +
+          'Schweiz und die eigene Beobachtung. Amtliche Warnungen stehen im Wortlaut unter ' +
+          '<a href="/warnungen">Warnungen</a>.</li>' +
+          '<li><strong>Keine Messung.</strong> Alle Werte in den Bändern sind Modellwerte; die Böen sind vom Boden ' +
+          'abgeleitet, die Wolkenbasis ist eine Näherung und erscheint nur bei nennenswerter Bewölkung.</li>' +
+          '<li><strong>Begrenzte Höhe und Auflösung.</strong> Der Schnitt reicht bis mindestens 3 000 m und bei hohem ' +
+          'Gelände gut 1 500 m über den höchsten Punkt. Enge Täler und Grate glättet das Modellgitter.</li>' +
+          '<li><strong>Keine Auswertung.</strong> Keine Thermik-Prognose, kein Föhn-Index, keine Inversionsanzeige, kein ' +
+          'Skew-T und keine Prüfung gegen Grenzwerte für Drohne oder Kran.</li>' +
+          '</ul>',
       },
     ],
     faqs: [
-      { q: 'Was zeigt die Atmosphäre-Ansicht?', a: 'Die vertikale Schichtung der Luft über einem Ort — Temperatur, Wind und Feuchte mit der Höhe — als interaktiver 3D-Querschnitt. Damit werden Föhn, Inversionen sowie Nebel- und Schneefallgrenze sichtbar.' },
-      { q: 'Woher kommen die Höhendaten?', a: 'Aus ICON-EU-Soundings, aus denen ein abgeleiteter Höhenschnitt erzeugt wird. Gerendert wird als MapLibre-WebGL-Layer.' },
+      { q: 'Was zeigt der Vertikalschnitt?', a: 'Den Querschnitt der Atmosphäre entlang einer Linie: das Höhenprofil des Geländes und darüber Mittelwind und Richtung je Höhe, zuschaltbar Böen, Windscherung, Strömungslinien und Wolkenbasis. Per Klick kommt für einen Punkt auch die Temperatur dazu.' },
+      { q: 'Woher kommen die Höhendaten?', a: 'Aus einem Höhen-Cube mit den Modellflächen von ICON-D2 (DWD), am Boden verankert auf buscosun Fusion. Der Cube folgt den Läufen 00, 06, 12 und 18 UTC.' },
+      { q: 'Ist das Flugwetter?', a: 'Nein. Der Vertikalschnitt ist kein amtliches Produkt und ersetzt kein Flugwetter-Briefing. Zuständig sind die Wetterdienste, in Deutschland der DWD mit seiner Flugwetterberatung.' },
     ],
-    relatedExplainers: ['temperaturinversion', 'foehn', 'nebel-hochnebel-nebelobergrenze'],
-    datePublished: PUBLISHED, dateModified: MODIFIED,
+    relatedExplainers: ['windboeen-sturm', 'talwind', 'temperaturinversion'],
+    datePublished: PUBLISHED, dateModified: '2026-11-01',
   },
 
   // ------------------------------------------------------------- SCAFFOLDS

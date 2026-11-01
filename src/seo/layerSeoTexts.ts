@@ -30,6 +30,8 @@ export interface SeoText {
   body: readonly string[];
   /** Faktenliste: Quelle · Auflösung/Takt · Horizont · Abdeckung · Grenze. */
   facts: readonly LayerFact[];
+  /** Optional: die zuständige amtliche Stelle, als echter Link neben dem Text. */
+  official?: { text: string; label: string; href: string };
   /** Passender Explainer unter /wissen/<slug>/ (null = keiner). */
   explainer: string | null;
 }

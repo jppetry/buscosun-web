@@ -290,6 +290,20 @@ console.log('\nZurückgezogene Atmosphäre-Ansichten:');
   else ok('dist/', `${files.length} Seiten ohne Link auf eine alte Ansicht (auch Sitemap, llms.txt)`);
   if (claims.length) fail('dist/', `verspricht noch eine alte Ansicht: ${claims.slice(0, 5).join(', ')}`);
   else ok('dist/', `${files.length} Seiten ohne Versprechen einer alten Ansicht`);
+  // Der Schnitt zeichnet keine 0-°C-Linie (SectionChart.tsx, LAYER_ROWS): die Hauptseite dieser Nische darf sie nicht behaupten.
+  const heading = (html, re) => (html.match(re) || [])[1] ?? '';
+  for (const [rel, want] of [['atmosphaere--querschnitt.html', /Vertikalschnitt/], ['funktionen/atmosphaere/index.html', /Vertikalschnitt/]]) {
+    const html = read(rel);
+    const title = heading(html, /<title>([^<]*)<\/title>/), h1 = heading(html, /<h1[^>]*>([^<]*)<\/h1>/);
+    if (!want.test(title) || !want.test(h1)) fail(rel, `Title/H1 ohne „Vertikalschnitt": ${title} / ${h1}`);
+    else ok(rel, 'Title und H1 nennen den Vertikalschnitt');
+    if (/Nullgrad/.test(html)) fail(rel, 'behauptet eine Nullgradgrenze, die der Schnitt nicht zeigt');
+    else ok(rel, 'keine Nullgradgrenze behauptet');
+    if (!/kein amtliches (?:Produkt|Flugwetter)/i.test(html) || !/dwd\.de\/DE\/fachnutzer\/luftfahrt/.test(html)) fail(rel, 'kein Hinweis „kein amtliches Produkt" mit Link zum DWD');
+    else ok(rel, 'nennt „kein amtliches Produkt" und verlinkt den DWD');
+  }
+  if (heading(read('atmosphaere.html'), /<h1[^>]*>([^<]*)<\/h1>/) === heading(read('atmosphaere--querschnitt.html'), /<h1[^>]*>([^<]*)<\/h1>/)) fail('atmosphaere.html', 'gleiche H1 wie der Querschnitt');
+  else ok('atmosphaere.html', 'Hub trägt eine andere H1 als der Querschnitt');
   for (const rel of ['atmosphaere--fliegen.html', 'atmosphaere--berg-und-weg.html', 'atmosphaere--arbeitsfenster.html', 'funktionen/arbeitsfenster/index.html']) {
     if (existsSync(join(DIST, rel))) fail(rel, 'Datei am Pfad verhindert die ungezwungene 301');
   }

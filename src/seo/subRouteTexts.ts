@@ -19,21 +19,28 @@ const LAYER_ENTRIES: Record<string, SeoText> = Object.fromEntries(
 );
 
 const OTHER_ENTRIES: Readonly<Record<string, SeoText>> = {
+  // Belege: src/atmosphere/AtmosphereDeck.tsx (LAYER_ROWS, PointQuery, SectionChart ohne overlay), src/threed/SectionChart.tsx,
+  // src/threed/buildCrossSection.ts (COLUMNS, ANCHORS, FORECAST_HOURS 36, DEM_ZOOM 11, sectionMethod), crossSection.ts (150 m,
+  // topM, SHEAR_THRESHOLD, Böenüberschuss, Wolkenbasis ab 35 %), atmoContract.ts (ICON-D2, ATMO_RUN_EVERY_H, ATMO_GRID), radiosonde.ts.
+  // Eine 0-°C-Linie zeichnet der Schnitt nicht: darum steht die Nullgradgrenze hier nicht (verify-seo prüft das).
   '/atmosphaere/querschnitt': {
-    h1: 'Vertikalschnitt der Atmosphäre — Höhenwind, Inversion und Arbeitsfenster',
-    lead: 'Der Vertikalschnitt zeigt die Atmosphäre entlang einer frei auf die Karte gezogenen Linie als Querschnitt: das echte Geländeprofil aus dem Höhenmodell, darüber den Wind in fünf benannten Bändern von unter 15 bis über 60 km/h, Böenpfeile, Temperaturschichtung mit Inversionen, Wolkenbasis und Nullgradgrenze — aus ICON-D2 am Boden und ICON-EU in der Höhe, stündlich bis 48 Stunden voraus. Drei Ansichten teilen sich denselben Schnitt: Höhenwind, Inversion und das Arbeitsfenster Go/No-Go.',
+    h1: 'Vertikalschnitt der Atmosphäre: Höhenwind und Böen im Querschnitt über dem Gelände',
+    lead: 'Der Vertikalschnitt zeigt den Querschnitt der Atmosphäre entlang einer frei auf die Karte gezogenen Linie: unten das Höhenprofil des Geländes aus dem Höhenmodell, darüber den Wind in fünf benannten Bändern von unter 15 bis über 60 km/h mit Pfeilen für die Richtung. Zuschaltbar sind Böen, Windscherung, Strömungslinien und die Wolkenbasis. Ein Klick in den Schnitt nennt Höhe, Mittelwind, Böe, Richtung und Temperatur an diesem Punkt, ein Zeit-Regler führt rund 36 Stunden voraus.',
     body: [
-      'Die Ansicht „Arbeitsfenster" ist für Drohne, Kran, Gerüst und Höhenarbeit gebaut: Arbeitshöhe in Metern über Grund und ein Böengrenzwert ergeben eine GO/NO-GO-Zeitleiste über den Tag („GO ab 14:30", „NO-GO ganzer Tag"), mit einem Höhenfaktor, der die Böe in Arbeitshöhe aus der 10-m-Böe ableitet. Eigene Zusatzgrenzwerte werden im Browser gespeichert. Referenzanker des Schnitts ist das höchste Gelände der Linie.',
-      'Grenzen: Der Wind über Grund folgt einem Potenzprofil mit Sättigung in 1 500 m, keiner Messung; Strukturen unter 200 m sind aus ICON-EU nicht sicher aufgelöst; die Wolkenbasis ist eine LCL-Näherung und trägt das Wort „abgeleitet". Die Zeitleiste ist eine Planungshilfe, kein zertifiziertes Arbeitsschutz-Werkzeug — maßgeblich sind Herstellergrenzwerte und die amtlichen Warnungen.',
+      'Gerechnet wird mit 64 Spalten entlang der Linie und Höhenstufen von 150 Metern. Wind und Temperatur je Höhe kommen aus einem Höhen-Cube mit den Modellflächen von ICON-D2 des Deutschen Wetterdienstes, neu berechnet für die Läufe 00, 06, 12 und 18 UTC; am Boden ist der Schnitt an fünf Punkten der Linie auf buscosun Fusion verankert. Liegt ein Radiosondenaufstieg höchstens 40 Kilometer neben der Linie und ist höchstens 30 Stunden alt, steht sein gemessener Wind als eigene, beschriftete Säule daneben und wird nie mit dem Modell verrechnet. Die Bildunterschrift nennt Lauf und Rechenweg des aktuellen Schnitts.',
+      'Grenzen: Das Wetter am Boden stammt von fünf Punkten der Linie, dazwischen wird interpoliert, und das Modellgitter von rund 2,2 Kilometern glättet enge Täler und Grate. Der Schnitt reicht bis mindestens 3 000 Meter und bei hohem Gelände gut 1 500 Meter über den höchsten Punkt. Die Böen sind der Böenüberschuss vom Boden, der mit der Höhe ausläuft, keine Messung in der Höhe. Die Wolkenbasis ist eine Näherung aus Temperatur und Feuchte am Boden und erscheint nur bei nennenswerter Bewölkung. Fehlt der Höhen-Cube, schätzt der Schnitt den Wind aus dem Bodenwert und schreibt das dazu. Grenzwerte für Drohne oder Kran prüft die Ansicht nicht.',
+      'Der Vertikalschnitt ist kein amtliches Produkt und kein amtliches Flugwetter, und er gibt keine Warnungen heraus. Für Flugentscheidungen gelten die Flugwetterberatung der Wetterdienste, die Regeln des Fluggebiets und die eigene Beobachtung; amtliche Warnungen zeigt buscosun nur als wörtliches Zitat auf der Seite Warnungen.',
     ],
+    official: { text: 'Zuständig für Flugwetter in Deutschland:', label: 'Deutscher Wetterdienst, Luftfahrt und Flugwetterberatung', href: 'https://www.dwd.de/DE/fachnutzer/luftfahrt/luftfahrt_node.html' },
     facts: [
-      { label: 'Quellen', text: 'DWD ICON-D2 (Boden) · ICON-EU-Druckflächen · Terrarium-DEM (~76 m/px)' },
-      { label: 'Auflösung', text: '64 Spalten je Schnitt, 5 Ankerpunkte, 36–48 h' },
+      { label: 'Quellen', text: 'DWD ICON-D2 (Modellflächen, rund 2,2 km) · buscosun Fusion (Boden) · Radiosonden neben der Linie, sofern vorhanden · Terrarium-DEM (rund 76 m/px)' },
+      { label: 'Aktualisierung', text: 'Höhen-Cube alle 6 Stunden (Läufe 00/06/12/18 UTC); Bodenwerte beim Öffnen aus dem neuesten Stand von buscosun Fusion; Zeit-Regler in 15-Minuten-Schritten zwischen Stundenwerten' },
+      { label: 'Auflösung', text: '64 Spalten je Schnitt, Wetter am Boden an 5 Punkten der Linie, Höhenstufen 150 m, rund 36 h voraus' },
       { label: 'Windbänder', text: '< 15 · 15–30 · 30–45 · 45–60 · > 60 km/h; Scherung ab 25 km/h je 300 m' },
-      { label: 'Abdeckung', text: 'DE, AT, CH' },
-      { label: 'Grenze', text: 'Windprofil aus 10-m-Wert + Standardprofil; keine Sichtweite; kein zertifiziertes Arbeitsschutz-Tool' },
+      { label: 'Abdeckung', text: 'DE, AT, CH (45,5–55,5° N, 5,5–17,5° O); Start über Ort, gezeichnete Linie oder GPX, TCX, FIT, KML' },
+      { label: 'Grenze', text: 'Modellwerte, keine Messung; Böen vom Boden abgeleitet; keine Sichtweite; kein amtliches Produkt, kein amtliches Flugwetter' },
     ],
-    explainer: 'temperaturinversion',
+    explainer: 'windboeen-sturm',
   },
   '/waldbrand/gefahrenindex': {
     h1: 'Waldbrandgefahr für Deutschland, Österreich und die Schweiz — der Gefahrenindex',
