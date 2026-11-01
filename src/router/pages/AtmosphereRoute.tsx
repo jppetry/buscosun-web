@@ -41,20 +41,18 @@ const SLUG_TO_LENS: Record<string, Lens> = {
   [ATMOSPHERE_WORK_WINDOW_SLUG]: 'section',
 };
 /** Sub-Route mit eigener Unterlinse (der Rest kommt aus `?ansicht=`). */
-const SLUG_TO_SUB: Record<string, DeckSub> = { [ATMOSPHERE_WORK_WINDOW_SLUG]: 'gonogo' };
-const SUBS: readonly DeckSub[] = ['hoehenwind', 'inversion', 'gonogo'];
+const SLUG_TO_SUB: Record<string, DeckSub> = {};
+const SUBS: readonly DeckSub[] = ['hoehenwind'];
 
 const STATE_DEBOUNCE_MS = 300;
 
 /** Kanonische URL aus Linse, Unterlinse, Ort und Zustand. Die EINE Stelle. */
-function urlFor(lens: Lens, sub: DeckSub, st: AtmosphereUrlState | null, extra: ReadonlyArray<[string, string]>): string {
-  const base = lens === 'section' && sub === 'gonogo'
-    ? `/atmosphaere/${ATMOSPHERE_WORK_WINDOW_SLUG}`
-    : `/atmosphaere/${ATMOSPHERE_LENS_SLUGS[lens]}`;
+function urlFor(lens: Lens, _sub: DeckSub, st: AtmosphereUrlState | null, extra: ReadonlyArray<[string, string]>): string {
+  const base = `/atmosphaere/${ATMOSPHERE_LENS_SLUGS[lens]}`;
   const slug = st?.place ? slugForPlace(st.place) : null;
   const path = slug ? `${base}/${slug.slug}` : base;
   // `ansicht` bleibt Query und gehört dem Wrapper — deshalb hier, nicht im Codec.
-  const withSub: Array<[string, string]> = lens === 'section' && sub === 'inversion' ? [['ansicht', 'inversion']] : [];
+  const withSub: Array<[string, string]> = [];
   const rest = extra.filter(([k]) => k !== 'ansicht');
   return path + buildAtmosphereSearch(st ?? { place: null, validAtMs: null, nerd: false, marker: null, cut: [] }, slug, [...withSub, ...rest]);
 }
