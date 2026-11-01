@@ -133,7 +133,7 @@ const PALETTE: PaletteEntry[] = [
   { num: '11', label: 'Validierung',            hint: 'Wie gut ist der Nowcast?',   feature: FEATURE.validation },
   { num: '12', label: 'Autobahn Monitor',        hint: 'Glätte · Fahrbahn · DWD',    feature: FEATURE.road },
   { num: '13', label: 'Seewetter',              hint: 'Küste · Segeln · Kiten · Wellen', feature: FEATURE.sea },
-  { num: '14', label: 'Gletscher',              hint: 'Schmelze · Schneegrenze · Messreihen', feature: FEATURE.glacier },
+  { num: '14', label: 'Gletscherbericht',      hint: 'Schmelze · Schneegrenze · Messreihen', feature: FEATURE.glacier },
 ];
 
 // ============================================================================
@@ -301,7 +301,7 @@ function HeroQuad({ activeCat, onOpenFeature }: { activeCat: 'alle' | Category; 
       {tile(['erkunden'], 'tile-fire q-tile', FEATURE.fire, 'Waldbrand DACH öffnen', TILE_FIRE)}
       {tile(['radar'], 'tile-nowcast q-tile', FEATURE.nowcast, 'Regenradar / Nowcast öffnen', TILE_NOWCAST)}
       {!FORECAST_TILE_HIDDEN && tile(['verstehen'], 'tile-forecast t-cream q-tile', FEATURE.forecast, 'Vorhersage & Konfidenz öffnen', TILE_FORECAST)}
-      {glacierFlagFrom() && tile(['planen'], 'tile-glacier q-tile', FEATURE.glacier, 'Gletscher öffnen', TILE_GLACIER)}
+      {glacierFlagFrom() && tile(['planen'], 'tile-glacier q-tile', FEATURE.glacier, 'Gletscherbericht öffnen', TILE_GLACIER)}
     </div>
   );
 }
@@ -388,7 +388,7 @@ const TILE_GLACIER = (
       <GlacierIcon />
     </div>
     <div>
-      <div className="tile-title tile-title-sm">Wie geht es dem Eis?</div>
+      <div className="tile-title tile-title-sm">Gletscherbericht</div>
       <p className="tile-desc sm">
         Rund 2 200 Gletscher in DACH: Messreihen, Umrisse und Herkunft je Wert.
         {' '}
@@ -766,7 +766,7 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
   // seit 23.10.2026 (Jan) an erster Stelle der Reihe 06–09 als Kachel wie Waldbrand (TILE_GLACIER). Hinter
   // `GLACIER_LIVE`: Text links, schematische Gletscherkarte rechts (`.tile-gl*` in SearchPage.css; die Vorschau ist eine
   // Zeichnung, kein Datenbild). Lädt keine Daten.
-  const glacierTile = glacierFlagFrom() && (mobile ? tile(['planen'], 'tile-glacier t-half', FEATURE.glacier, 'Gletscher öffnen', TILE_GLACIER) : !narrow ? null : tile(['planen'], 'tile-gl', FEATURE.glacier, 'Gletscher öffnen',
+  const glacierTile = glacierFlagFrom() && (mobile ? tile(['planen'], 'tile-glacier t-half', FEATURE.glacier, 'Gletscherbericht öffnen', TILE_GLACIER) : !narrow ? null : tile(['planen'], 'tile-gl', FEATURE.glacier, 'Gletscherbericht öffnen',
         <>
           <div className="tile-gl-text">
             <div className="tile-gl-head">
@@ -778,7 +778,7 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
               </div>
               <div>
                 <div className="tile-eyebrow">13 · GLETSCHER</div>
-                <div className="tile-title tile-title-lg">Wie geht es dem Eis?</div>
+                <div className="tile-title tile-title-lg">Gletscherbericht</div>
               </div>
             </div>
             <p className="tile-desc">
