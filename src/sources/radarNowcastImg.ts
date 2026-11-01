@@ -115,6 +115,13 @@ export const RZC_NC_BLEND_CAVEATS: readonly string[] = Object.freeze([
   'Modellzellen sind 0,05° (≈ 4 km) grob, die 5-min-Form stammt aus ICON-D2-RUC (Lauf bis zu 1 h alt)',
   'Zellen ohne Modellwert bleiben reine Verschiebung',
 ]);
+/**
+ * 01.11.2026: the model share is interpolated between its cell centres inside its wet footprint before the mix
+ * (`smoothModelPlane`, `radarNowcastBlend.ts`) — display only, named in the product (`meta.blend.smoothing`) and on the page.
+ * Producer switch `RADAR_NC_BLEND_SMOOTH=0` = the 4-km blocks as before (absent field).
+ */
+export const RZC_NC_BLEND_SMOOTHING = 'wet-bilinear' as const;
+export const RZC_NC_BLEND_SMOOTH_CAVEAT = 'der Modellanteil ist innerhalb seiner Regenfläche zwischen den 4-km-Zellmitten geglättet — Darstellung, keine Mehrinformation; die Außenkante bleibt die Zellkante';
 /** Weight of the model at `leadMin` (0 … 1). */
 export function rzcNcBlendWeight(leadMin: number): number {
   if (!(leadMin > RZC_NC_BLEND_START_MIN)) return 0;
@@ -134,10 +141,13 @@ export interface RzcNcBlend {
   /** t1 cells under the rzc grid with a model value for every lead / all t1 cells under the grid */
   cellsModel: number; cellsTotal: number;
   provenance: 'set' | 'measured';
+  /** present when the model share was interpolated between its cell centres (01.11.2026); absent = blocks per cell */
+  smoothing?: typeof RZC_NC_BLEND_SMOOTHING;
 }
 export function blendOk(v: unknown): v is RzcNcBlend {
   const b = v as RzcNcBlend | null;
   return !!b && typeof b === 'object' && b.model === RZC_NC_BLEND_MODEL
+    && (b.smoothing === undefined || b.smoothing === RZC_NC_BLEND_SMOOTHING)
     && typeof b.rucRun === 'string' && Number.isFinite(b.rucRunAtMs) && typeof b.fieldRun === 'string' && Number.isFinite(b.fieldRunAtMs)
     && b.startMin === RZC_NC_BLEND_START_MIN && b.fullMin === RZC_NC_BLEND_FULL_MIN
     && Array.isArray(b.weights) && b.weights.length === RZC_NC_LEADS.length && b.weights.every((w, i) => Number.isFinite(w) && Math.abs(w - RZC_NC_BLEND_WEIGHTS[i]) < 1e-6)
@@ -219,7 +229,8 @@ export function makeRzcNcImgMeta(a: {
     schema: 1, source: 'rzc-nc', stamp: a.stamp, analysisAtMs: a.analysisAtMs,
     width: RZC_IMG_WIDTH, height: RZC_IMG_HEIGHT, vMax: PRECIP_VMAX, corners: a.corners,
     frames: a.frames, unknown: a.unknown, series: a.series, motion: a.motion, method: a.method,
-    caveats: a.blend ? [...RZC_NC_CAVEATS, ...RZC_NC_BLEND_CAVEATS] : [...RZC_NC_CAVEATS], label: a.blend ? RZC_NC_BLEND_LABEL : RZC_NC_LABEL,
+    caveats: a.blend ? [...RZC_NC_CAVEATS, ...RZC_NC_BLEND_CAVEATS, ...(a.blend.smoothing ? [RZC_NC_BLEND_SMOOTH_CAVEAT] : [])] : [...RZC_NC_CAVEATS],
+    label: a.blend ? RZC_NC_BLEND_LABEL : RZC_NC_LABEL,
     ...(a.dual ? { dual: a.dual } : {}), ...(a.blend ? { blend: a.blend } : {}),
   };
 }

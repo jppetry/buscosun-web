@@ -13,7 +13,7 @@
  * against the analyses that arrive later (persistence as the bar) before anyone switches it on.
  */
 
-import { PRECIP_VMAX, precipToU8, precipToU8Log, precipFromU8Log } from '../scalar/RainLayer';
+import { PRECIP_VMAX, PRECIP_LOG_MIN, precipToU8, precipToU8Log, precipFromU8Log } from '../scalar/RainLayer';
 import { RUC_CAP_FACTOR, RUC_STEP_MS, decodeRucByte, rucPixelOffset, rucChunkOf } from '../point/rucFormat';
 import { TIER_BY_ID, cellOf, type CubeTier } from '../point/cubeFormat';
 import { NC_STEP_MIN, RZC_NC_LEADS } from './radarNowcastImg';
@@ -116,6 +116,66 @@ export function modelPlanes(a: {
     return p;
   });
   return { planes, cellsModel, cellsTotal: cellList.length, kinds };
+}
+
+// --- display smoothing of the model share (01.11.2026) ------------------------------------------------------------------
+/**
+ * Continuous cell coordinates of every rzc pixel centre: `(lat − lat0) / deg`, `(lon − lon0) / deg` as pairs (y, x) —
+ * the cell centre `cellOf` picks is `round()` of them. Outside the cube domain both are NaN.
+ */
+export function cellCoordPlane(w: number, h: number, lonLatAt: (u: number, v: number) => [number, number], tier: CubeTier = TIER_BY_ID.t1): Float32Array {
+  const out = new Float32Array(w * h * 2).fill(NaN);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const [lon, lat] = lonLatAt((x + 0.5) / w, (y + 0.5) / h);
+    if (!cellOf(tier, lat, lon)) continue;
+    out[(y * w + x) * 2] = (lat - tier.lat0) / tier.deg;
+    out[(y * w + x) * 2 + 1] = (lon - tier.lon0) / tier.deg;
+  }
+  return out;
+}
+
+/**
+ * The model plane of one lead with its 0,05° cells (≈ 4 km, median 20 rzc pixels) drawn as blocks of one value looks like a
+ * mosaic from +35 min on (measured 01.11.2026: at +120 min 67 % of neighbouring pixels inside a cell were equal). This
+ * interpolates the model rate between the cell centres — bilinear in cell coordinates, the house rule `wet-bilinear`:
+ *   · the WET FOOTPRINT is exactly the nearest-cell one — wet = at or above the display threshold `PRECIP_LOG_MIN`
+ *     (0,06 mm/h, the floor of both codecs): a pixel whose own cell is dry or below it, without a value or unknown stays
+ *     byte-identical; no new wet pixel, no rain carried into a dry model cell;
+ *   · inside it the value is the bilinear mean over the ≤ 4 surrounding cell centres that are wet by the same rule — a convex
+ *     mix, never below the threshold, nothing above the largest neighbouring cell value, the value at a cell centre is the
+ *     cell's own;
+ *   · cells below the threshold or without a value (NaN, outside the grid) take no part.
+ * Where the frame mixes radar and model (`blendFrame`, weight < 1) the DISPLAYED wet set is that of the weighted sum —
+ * it can cross 0,06 mm/h in either direction where the sum lies at the threshold; the model footprint itself does not move.
+ * Display only — no information is added; the 4-km staircase of the outer edge stays (it IS the model's resolution).
+ * Returns a new plane (the input is not touched).
+ */
+export function smoothModelPlane(plane: Float32Array, cells: Int32Array, coords: Float32Array, tier: CubeTier = TIER_BY_ID.t1): Float32Array {
+  // one value per cell (the plane is constant inside a cell by construction of `modelPlanes`)
+  const byCell = new Map<number, number>();
+  for (let i = 0; i < cells.length; i++) { const c = cells[i]; if (c >= 0 && !byCell.has(c)) byCell.set(c, plane[i]); }
+  const out = new Float32Array(plane);
+  const at = (iy: number, ix: number): number => {
+    if (iy < 0 || iy >= tier.ny || ix < 0 || ix >= tier.nx) return NaN;
+    const v = byCell.get(iy * tier.nx + ix);
+    return v === undefined ? NaN : v;
+  };
+  const WET = PRECIP_LOG_MIN;
+  for (let i = 0; i < cells.length; i++) {
+    const own = plane[i];
+    if (cells[i] < 0 || !(own >= WET)) continue;           // dry, below the threshold, no value or outside: byte-identical
+    const fy = coords[i * 2], fx = coords[i * 2 + 1];
+    if (!Number.isFinite(fy) || !Number.isFinite(fx)) continue;
+    const y0 = Math.floor(fy), x0 = Math.floor(fx), ty = fy - y0, tx = fx - x0;
+    let s = 0, ws = 0;
+    const take = (v: number, wgt: number) => { if (v >= WET && wgt > 0) { s += v * wgt; ws += wgt; } };
+    take(at(y0, x0), (1 - ty) * (1 - tx));
+    take(at(y0, x0 + 1), (1 - ty) * tx);
+    take(at(y0 + 1, x0), ty * (1 - tx));
+    take(at(y0 + 1, x0 + 1), ty * tx);
+    if (ws > 0) out[i] = s / ws;
+  }
+  return out;
 }
 
 // --- the mix ------------------------------------------------------------------------------------------------------------
