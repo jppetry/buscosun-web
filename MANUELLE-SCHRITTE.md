@@ -3052,7 +3052,7 @@ Phase NC ist seit 28.10. auf `origin/main` und live (Punkt 3); offen ist nur noc
 6. **Offen:** V-NC-1 (Kreuzungspunkte INCA 120 / CH 60 min messen, ab ≥ 14 Tagen Produkten), V-NC-4 (Schraffur statt Schleier),
    V-NC-9 (Mobil: INCA-Altersnotiz wird abgeschnitten). ~~V-NC-2, V-NC-3, V-NC-6~~ — erledigt mit E-NC-7 (28.10., Zonen = Länder:
    das DWD-Komposit ist über der Zentralschweiz und östlich 14,15° E blind, gemessen; `4ee58412`, `fac66f5f`, auf `origin/main`).
-7. **Push von `main` (01.11., dein Gate; Stand 22:30 MEZ 15 Commits vor `origin/main`):** darunter `ef7766e0` — NC-B (Modellanteil
+7. **Push von `main` — ERLEDIGT 01.11. ≈ 22:35 MEZ (Jan):** Spiegel-Job neu ab 21:38 UTC, Produkt `rzc-nc/20261101T2135` ohne `blend`, Label rein, `unknownBeyondKm: 250`, NC-Schritt 1,9 s statt 7,4 s. Übrig: `RADAR_NC_BLEND: '1'` in `radar.yml` des Daten-Repos ist wirkungslos und kann bei der nächsten Vorlagen-Kopie weg. Ursprünglicher Text: darunter `ef7766e0` — NC-B (Modellanteil
    ab +30 min in den CH-Bildern, 28.10. gebaut, am 01.11. auf dein Wort entfernt, E-NC-8) und `9ec0bfab` (Reichweiten-Maske 250 km
    an, E-NC-9). Der Spiegel klont `origin/main`: bis zum Push mischt er weiter (der Lauf `rzc-nc/20261101T2105` trug `meta.blend`
    mit Gewichten bis 1,0, V-NC-12) und der Layer-Katalog sagt solange zu Unrecht „keine Modell-Extrapolation". Nach dem Push:

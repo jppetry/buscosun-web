@@ -227,7 +227,7 @@ Horn–Schunck-Fluss, obwohl der Code seit dem 28.10. anders rechnet. Quelle je 
   ignoriert; Verifier-Block G stillgelegt (39/39). **Das Schweizer Bild ist wieder das verschobene Radar allein.**
 - **V-NC-12 (01.11. abends, Browser-Check gegen MeteoSchweiz):** `ef7766e0` liegt nur lokal (`main` 15 Commits vor `origin/main`).
   Der Spiegel klont `origin/main`, daher trug der Lauf `rzc-nc/20261101T2105` (22:05 UTC) noch `meta.blend` mit Gewichten bis 1,0 —
-  der Layer-Katalog („keine Modell-Extrapolation darüber hinaus") war bis zum Push unwahr. **Push von `main` = Jans Gate (§80.7).**
+  der Layer-Katalog („keine Modell-Extrapolation darüber hinaus") war bis zum Push unwahr. **Push durch Jan 01.11. ≈ 22:35 MEZ; Spiegel-Job neu ab 21:38 UTC, Produkt `20261101T2135` ohne `blend`, `unknownBeyondKm: 250`, NC-Schritt 1,9 s — erledigt.**
 
 ### 7.3 Reichweiten-Maske und regionale Bewegung (01.11., `9ec0bfab`, lokal)
 
