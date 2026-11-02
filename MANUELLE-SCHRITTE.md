@@ -3173,3 +3173,27 @@ Alles im Arbeitsbaum von `main`, **nichts committet** (Cloud-Sitzung ohne Shell 
 7. **Entscheiden:** E-WBS-1 Standardsicht von `/waldbrand` (V-SN-5; für „Waldbrand aktuell" passt „Aktive Brände"), E-WBS-2 Impressum vervollständigen (`scripts/seo/legal.mjs` hat TODO-Platzhalter), E-WBS-3 FIRMS Suomi-NPP (V-WBS-1: laut FIRMS keine Lieferung mehr ab 02.11.2026).
 8. **In der nächsten Saison:** den Brand-Historie-Batch (`npm run fire:history-index`) regelmäßig laufen lassen und committen — die Regionsseiten sind so frisch wie `public/fire/bh/index-season-v1.json` (V-WBS-3).
 9. **Außerhalb des Repos (Reichweite):** Feuerwehren, Gemeinden, Forstbetriebe und Wanderportale verlinken Gefahrenkarten — die Regionsseiten sind dafür gebaut (amtliche Stelle zuerst, kein Warnanspruch). Keine gekauften Links.
+
+## 85. Seewetter-SEO (Phase SS, `audit/seewetter-seo.md`), 2026-11-02
+
+Gebaut in einer Cloud-Sitzung gegen `fa33869`, liegt als Patch `audit/seewetter-seo/ss-gegen-fa33869.patch`. Eingespielt wird erst,
+wenn GLS, WBS, SA und FX-UI fertig sind (deine Entscheidung 02.11.); das Einmischen übernimmt die Sitzung auf Zuruf (Konflikte §7).
+
+1. **Nach dem Einspielen bauen und prüfen** (die Cloud-Sitzung hatte keine npm-Registry): `npm run edge:share`, `npm run typecheck`,
+   `npm run build` (enthält `generate-seo`, `verify-seo`, `verify-routing`), `npm run verify:sea-seo`, `npm run verify:share`,
+   `npm run budget`. Erwartung: eagerJs ≈ +1,1 KB, totalJs ≈ +8,5 KB ⇒ die totalJs-Ratsche wird rot; mit gemessener Zahl und Notiz anheben.
+2. **Sichtprüfung** (Desktop 1440 und Mobil 390): `/seewetter` öffnen — die Adresse bleibt `/seewetter`, die Karte zeigt die ganze Küste;
+   einen Spot wählen — Adresse `/seewetter/<spot>`, „Zurück" führt zur Übersicht; `/seewetter/sylt-westerland` direkt — Dossier wie bisher;
+   „Über diese Ansicht" zeigt Nachbarspots und Fragen; `/seewetter/gibt-es-nicht` — der Hinweis „unbekannter Spot" wie bisher.
+3. **E-SS-4 entscheiden:** Titel der Übersicht „… Wind, Wellen, Seewetterbericht" statt „… Wind, Welle, Wasserstand".
+4. **Commit und Push** (Push = live).
+5. **Nach dem Deploy:** `curl.exe -s https://buscosun.com/seewetter/kiel-schilksee | findstr canonical` zeigt den eigenen Pfad;
+   `https://buscosun.com/sitemap-seewetter.xml` hat 57 URLs.
+6. **Search Console:** `sitemap-seewetter.xml` einreichen, URL-Prüfung für `/seewetter`, `/seewetter/sylt-westerland`,
+   `/seewetter/kiel-schilksee`, `/seewetter/warnemuende` („Live-URL testen", gerendertes HTML ansehen), Indexierung beantragen.
+7. **Bing Webmaster Tools:** Website aus der Search Console importieren (falls noch nicht), `sitemap-seewetter.xml` einreichen, dann
+   `npm run build && node scripts/seo/indexnow.mjs --only=/seewetter` sowie `--only=/wissen/seegang-wellenhoehe` und
+   `--only=/wissen/seewetterbericht`. Nur nach echten Änderungen erneut melden.
+8. **Neue oder umbenannte Spots:** Katalog im Daten-Repo bauen, `node scripts/seo/fetch-place-modules.mjs`, dann
+   `node scripts/sea/gen-spot-seo.mjs` und `node scripts/sea/gen-spot-names.mjs`; `npm run verify:sea-seo` muss grün sein.
+9. **Nach 4–8 Wochen:** GSC/BWT nach „seewetter + ort" auswerten (V-SS-7); Verbreitung V-SS-8.

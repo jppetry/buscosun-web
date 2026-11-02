@@ -40,7 +40,7 @@ import {
 import { verifyUrlState, parseMapSearch, LAYER_SLUGS } from '../src/router/urlState.ts';
 import { routeForPath, SITE_URL, ROUTES, ROUTE_BY_ID } from '../src/router/routes.ts';
 // SH6: Vorschaubild je Seite + Meta je Zustand.
-import { verifyOgCard, ogCardSlug, ogCardPath, hasOgCard, OG_WIDTH, OG_HEIGHT } from '../src/share/ogCard.ts';
+import { verifyOgCard, ogCardSlug, ogCardPath, hasOgCard, OG_WIDTH, OG_HEIGHT, OG_CARD_ROUTE_ONLY } from '../src/share/ogCard.ts';
 import { buildEdgeShare, OUT as EDGE_BUNDLE } from './build-edge-share.mjs';
 import { routeHeadExtras, subRouteHeadExtras } from './seo/content.mjs';
 
@@ -522,6 +522,7 @@ add('[ort] kaputtes Segment wird gar nicht erst als Slug gelesen',
     expected.add(ogCardSlug(r.id));
     for (const s of r.subs ?? []) {
       if (r.id === 'wetterkarte' && s.slug === 'warnungen') continue; // Cross-Alias auf /warnungen
+      if (OG_CARD_ROUTE_ONLY.includes(r.id)) continue;                 // Phase SS: Seewetter-Spots teilen die Karte der Route
       expected.add(ogCardSlug(r.id, s.slug));
     }
   }

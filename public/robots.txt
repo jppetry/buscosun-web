@@ -54,11 +54,13 @@ Disallow: /sw.js
 # Phase GLS: Dateien hinter den Gletscher-Steckbriefen — die Seiten selbst stehen unter /gletscher/<land>-<name>
 Disallow: /_gl/
 
-# sitemap.xml ist ein Index auf die Teillisten (E9, Gletscher seit Phase GLS) — alle zusätzlich genannt,
+# sitemap.xml ist ein Index auf die Teillisten (E9; Gletscher seit Phase GLS, Seewetter seit Phase SS getrennt) — alle zusätzlich genannt,
 # damit Crawler sie auch ohne Index-Auflösung finden.
 Sitemap: https://buscosun.com/sitemap.xml
 Sitemap: https://buscosun.com/sitemap-pages.xml
 Sitemap: https://buscosun.com/sitemap-orte.xml
+Sitemap: https://buscosun.com/sitemap-orte-2.xml
+Sitemap: https://buscosun.com/sitemap-seewetter.xml
 Sitemap: https://buscosun.com/sitemap-news.xml
 Sitemap: https://buscosun.com/sitemap-gletscher.xml
 Sitemap: https://buscosun.com/sitemap-waldbrand.xml

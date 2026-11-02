@@ -1,7 +1,10 @@
 /**
  * Texte der indexierbaren Sub-Routen (SEO/GEO 2026, E1) — je kanonischem Pfad
  * H1, Lead, Absätze, Fakten, Explainer. Layer-Texte kommen aus
- * `layerSeoTexts.ts`, Vertikalschnitt und Brand-Sichten stehen hier.
+ * `layerSeoTexts.ts`, Vertikalschnitt und Brand-Sichten stehen hier. Die 56
+ * Seewetter-Spots haben einen EIGENEN Lazy-Chunk (`src/sea/seaSeoText.ts`, Phase SS),
+ * damit die Layer-Seiten deren Steckbriefe nicht mitladen; Build und Verifier
+ * reichen sie als `extra` herein.
  *
  * Verbraucher: `scripts/generate-seo.mjs` (Roh-HTML-Shells), `RouteSeoBlock`
  * (lazy, nach dem App-Mount), `scripts/verify-routing.mjs` (jede indexierbare
@@ -297,7 +300,7 @@ export const SUB_ROUTE_TEXTS: Readonly<Record<string, SeoText>> = {
   ...(ROAD_INDEXABLE ? Object.fromEntries(ROAD_SEO_MOTORWAYS.map(([slug]) => [`/autobahnwetter/${slug}`, roadSeoText(slug) as SeoText])) : {}),
 };
 
-/** Text zu einem kanonischen Sub-Routen-Pfad (z. B. `/wetterkarte/temperatur`); null wenn keiner. */
+/** Text zu einem kanonischen Sub-Routen-Pfad (z. B. `/wetterkarte/temperatur`); null wenn keiner. Seewetter-Spots: `seaSpotSeoText`. */
 export function subRouteText(path: string): SeoText | null {
   return SUB_ROUTE_TEXTS[path] ?? null;
 }
@@ -305,24 +308,26 @@ export function subRouteText(path: string): SeoText | null {
 export interface SubTextCheck { name: string; ok: boolean; detail?: string }
 
 /** Selbstverifikation gegen die Liste der indexierbaren Pfade aus `routes.ts`. */
-export function verifySubRouteTexts(paths: readonly string[]): { checks: SubTextCheck[]; passed: number; failed: number } {
+export function verifySubRouteTexts(paths: readonly string[], extraTexts: Readonly<Record<string, SeoText>> = {}): { checks: SubTextCheck[]; passed: number; failed: number } {
+  // Phase SS: Texte aus eigenen Chunks (Seewetter-Spots) werden mitgeprüft, nach denselben Regeln.
+  const ALL: Readonly<Record<string, SeoText>> = { ...SUB_ROUTE_TEXTS, ...extraTexts };
   const checks: SubTextCheck[] = [];
   const add = (name: string, ok: boolean, detail?: string) => checks.push({ name, ok, detail });
-  const missing = paths.filter((p) => !SUB_ROUTE_TEXTS[p]);
+  const missing = paths.filter((p) => !ALL[p]);
   add('jede indexierbare Sub-Route hat einen Text', missing.length === 0, missing.join(', '));
-  const extra = Object.keys(SUB_ROUTE_TEXTS).filter((p) => !paths.includes(p));
+  const extra = Object.keys(ALL).filter((p) => !paths.includes(p));
   add('kein Text ohne Sub-Route', extra.length === 0, extra.join(', '));
-  const present = paths.filter((p) => SUB_ROUTE_TEXTS[p]);
-  const shortLead = present.filter((p) => wordCount(SUB_ROUTE_TEXTS[p].lead) < 60);
+  const present = paths.filter((p) => ALL[p]);
+  const shortLead = present.filter((p) => wordCount(ALL[p].lead) < 60);
   add('jeder Lead hat ≥ 60 Wörter', shortLead.length === 0, shortLead.join(', '));
-  const thin = present.filter((p) => SUB_ROUTE_TEXTS[p].body.length < 2 || SUB_ROUTE_TEXTS[p].body.some((x) => wordCount(x) < 40));
+  const thin = present.filter((p) => ALL[p].body.length < 2 || ALL[p].body.some((x) => wordCount(x) < 40));
   add('jeder Text hat ≥ 2 Absätze mit ≥ 40 Wörtern', thin.length === 0, thin.join(', '));
-  const noFacts = present.filter((p) => SUB_ROUTE_TEXTS[p].facts.length < 4 || !SUB_ROUTE_TEXTS[p].facts.some((f) => f.label === 'Grenze') || !SUB_ROUTE_TEXTS[p].facts.some((f) => /^Quelle/.test(f.label)));
+  const noFacts = present.filter((p) => ALL[p].facts.length < 4 || !ALL[p].facts.some((f) => f.label === 'Grenze') || !ALL[p].facts.some((f) => /^Quelle/.test(f.label)));
   add('jeder Text nennt ≥ 4 Fakten inkl. Quelle und Grenze', noFacts.length === 0, noFacts.join(', '));
-  add('keine zwei Leads sind gleich', new Set(present.map((p) => SUB_ROUTE_TEXTS[p].lead)).size === present.length);
-  add('keine zwei H1 sind gleich', new Set(present.map((p) => SUB_ROUTE_TEXTS[p].h1)).size === present.length);
-  add('keine Tornado-Sprache', present.every((p) => !/tornado/i.test(SUB_ROUTE_TEXTS[p].lead + SUB_ROUTE_TEXTS[p].body.join(' '))));
-  add('„bestätigt" nur mit Quelle im selben Satz', present.every((p) => (SUB_ROUTE_TEXTS[p].lead + ' ' + SUB_ROUTE_TEXTS[p].body.join(' ')).split(/[.!?]/).every((sent) => !/\bbestätigt\b/i.test(sent) || /EFFIS|EMS|amtlich|Quelle|unbestätigt/i.test(sent))));
+  add('keine zwei Leads sind gleich', new Set(present.map((p) => ALL[p].lead)).size === present.length);
+  add('keine zwei H1 sind gleich', new Set(present.map((p) => ALL[p].h1)).size === present.length);
+  add('keine Tornado-Sprache', present.every((p) => !/tornado/i.test(ALL[p].lead + ALL[p].body.join(' '))));
+  add('„bestätigt" nur mit Quelle im selben Satz', present.every((p) => (ALL[p].lead + ' ' + ALL[p].body.join(' ')).split(/[.!?]/).every((sent) => !/\bbestätigt\b/i.test(sent) || /EFFIS|EMS|amtlich|Quelle|unbestätigt/i.test(sent))));
   const failed = checks.filter((c) => !c.ok).length;
   return { checks, passed: checks.length - failed, failed };
 }

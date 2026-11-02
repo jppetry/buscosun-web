@@ -298,8 +298,9 @@ function ogCardSlug(routeId, viewSlug) {
 }
 function ogCardPath(routeId, viewSlug) {
   if (!hasOgCard(routeId)) return null;
-  return `${OG_APP_DIR}/${ogCardSlug(routeId, viewSlug)}.png`;
+  return `${OG_APP_DIR}/${ogCardSlug(routeId, OG_CARD_ROUTE_ONLY.includes(routeId) ? null : viewSlug)}.png`;
 }
+var OG_CARD_ROUTE_ONLY = ["seewetter"];
 
 // src/road/roadSeo.ts
 var ROAD_SEO_MOTORWAYS = [
@@ -415,6 +416,80 @@ function describeRoadLink(corridor, kmSlug, validAtMs, whenText) {
     title: `${where} — Autobahnwetter${when}`,
     description: km ? `Wetterbedingte Hinweise auf dem Abschnitt ab km ${Number(km[1])} der ${road}: Regeln über Messwerte der Glättemeldeanlagen und die Prognose von buscosun Fusion. Der Link zeigt immer die aktuelle Lage. Keine amtliche Verkehrs- oder Wetterwarnung.` : `Fahrbahn- und Wetterlage entlang der ${road}: Messwerte der Glättemeldeanlagen und Prognose von buscosun Fusion. Der Link zeigt immer die aktuelle Lage. Keine amtliche Verkehrs- oder Wetterwarnung.`
   };
+}
+
+// src/sea/seaSpotNames.ts
+var SEA_SPOT_NAMES = {
+  "borkum": ["Borkum Nordstrand", "nordsee"],
+  "juist": ["Juist", "nordsee"],
+  "norderney": ["Norderney Nordstrand", "nordsee"],
+  "norddeich": ["Norddeich", "nordsee"],
+  "langeoog": ["Langeoog", "nordsee"],
+  "spiekeroog": ["Spiekeroog", "nordsee"],
+  "wangerooge": ["Wangerooge", "nordsee"],
+  "schillig": ["Schillig", "nordsee"],
+  "wilhelmshaven": ["Wilhelmshaven Südstrand", "nordsee"],
+  "dangast": ["Dangast (Jadebusen)", "nordsee"],
+  "cuxhaven-duhnen": ["Cuxhaven-Duhnen", "nordsee"],
+  "helgoland": ["Helgoland Düne", "nordsee"],
+  "buesum": ["Büsum", "nordsee"],
+  "st-peter-ording": ["St. Peter-Ording", "nordsee"],
+  "pellworm": ["Pellworm", "nordsee"],
+  "husum": ["Husum Dockkoog", "nordsee"],
+  "amrum": ["Amrum Kniepsand", "nordsee"],
+  "foehr-wyk": ["Föhr Wyk", "nordsee"],
+  "sylt-hoernum": ["Sylt Hörnum", "nordsee"],
+  "sylt-westerland": ["Sylt Westerland", "nordsee"],
+  "sylt-list": ["Sylt List", "nordsee"],
+  "elbe-wittenbergen": ["Elbe Wittenbergen", "nordsee"],
+  "flensburg": ["Flensburg Solitüde", "ostsee"],
+  "holnis": ["Glücksburg Holnis", "ostsee"],
+  "schleimuende": ["Schleimünde", "ostsee"],
+  "damp": ["Damp", "ostsee"],
+  "eckernfoerde": ["Eckernförde", "ostsee"],
+  "kiel-schilksee": ["Kiel-Schilksee", "ostsee"],
+  "laboe": ["Laboe", "ostsee"],
+  "schoenberger-strand": ["Schönberger Strand", "ostsee"],
+  "hohwacht": ["Hohwacht", "ostsee"],
+  "heiligenhafen": ["Heiligenhafen", "ostsee"],
+  "grossenbrode": ["Großenbrode", "ostsee"],
+  "fehmarn-gruener-brink": ["Fehmarn Grüner Brink", "ostsee"],
+  "fehmarn-wulfen": ["Fehmarn Wulfener Hals", "ostsee"],
+  "fehmarn-burgtiefe": ["Fehmarn Südstrand", "ostsee"],
+  "groemitz": ["Grömitz", "ostsee"],
+  "pelzerhaken": ["Pelzerhaken", "ostsee"],
+  "scharbeutz": ["Scharbeutz", "ostsee"],
+  "travemuende": ["Travemünde", "ostsee"],
+  "boltenhagen": ["Boltenhagen", "ostsee"],
+  "poel": ["Insel Poel", "ostsee"],
+  "rerik": ["Rerik (Salzhaff)", "ostsee"],
+  "kuehlungsborn": ["Kühlungsborn", "ostsee"],
+  "warnemuende": ["Warnemünde", "ostsee"],
+  "graal-mueritz": ["Graal-Müritz", "ostsee"],
+  "ahrenshoop": ["Ahrenshoop", "ostsee"],
+  "zingst": ["Zingst", "ostsee"],
+  "hiddensee": ["Hiddensee Vitte", "ostsee"],
+  "juliusruh": ["Juliusruh", "ostsee"],
+  "binz": ["Binz", "ostsee"],
+  "goehren": ["Göhren", "ostsee"],
+  "lubmin": ["Lubmin (Greifswalder Bodden)", "ostsee"],
+  "zinnowitz": ["Usedom Zinnowitz", "ostsee"],
+  "heringsdorf": ["Usedom Heringsdorf", "ostsee"],
+  "ueckermuende": ["Ueckermünde (Stettiner Haff)", "ostsee"]
+};
+
+// src/sea/seaSeo.ts
+var SEA_SEO_UPDATED = "2026-11-02";
+var SEA_SPOT_COUNT = Object.keys(SEA_SPOT_NAMES).length;
+var REGION = { nordsee: "Nordsee", ostsee: "Ostsee" };
+function seaSeoSubs() {
+  return Object.entries(SEA_SPOT_NAMES).map(([slug, [name, region]]) => ({
+    slug,
+    label: name,
+    title: `Seewetter ${name} — Wind, Wellen, Böen`,
+    description: `Seewetter ${name} (${REGION[region]}): Wind und Böen, Wellenhöhe mit Windsee und Dünung, Wasserstand und DWD-Seewetterbericht, stündlich bis 78 h.`,
+    updated: SEA_SEO_UPDATED
+  }));
 }
 
 // src/router/routes.ts
@@ -665,19 +740,22 @@ var ROUTES = [
   },
   {
     // Phase SW (audit/seewetter.md): Pfadsegment = Spot (`/seewetter/st-peter-ording`), entscheidet die Seite. Seit
-    // 10.10.2026 für alle sichtbar (`SEA_LIVE`, `src/sea/seaFlag.ts`) und indexierbar (Jan 10.10., E-SW-32): `/seewetter`
-    // steht in der Sitemap; die Spot-Pfade teilen Shell und Canonical der Route (keine eigenen Unterseiten).
+    // 10.10.2026 für alle sichtbar (`SEA_LIVE`, `src/sea/seaFlag.ts`) und indexierbar (Jan 10.10., E-SW-32). Phase SS
+    // (audit/seewetter-seo.md, 02.11.2026): jeder Spot ist eine eigene indexierbare Sub-Route mit eigener Shell, eigenem
+    // Canonical und Steckbrief-Text (`src/sea/seaSeo.ts`, Texte lazy in `seaSeoText.ts`); vorher teilten die Spot-Pfade
+    // Shell und Canonical der Route.
     id: "seewetter",
     path: "/seewetter",
     aliases: ["/kuestenwetter", "/segelwetter", "/wellen"],
     featureId: "sea",
     subParam: "spot",
-    subs: null,
+    subs: seaSeoSubs(),
     meta: {
-      title: "Seewetter Nord- und Ostsee — Wind, Welle, Wasserstand",
-      description: "Seegang an der deutschen Küste aus dem DWD-Küstenmodell, Wind und Böen an rund 60 Spots, Wasserstand der BSH-Pegel und der Seewetterbericht im Wortlaut.",
-      h1: "Seewetter für Nord- und Ostsee: Wind, Welle und Wasserstand",
-      lead: "Seegang mit Windsee und Dünung an Nord- und Ostsee (DWD CWAM), Wind und Böen an rund 60 Spots aus buscosun Fusion, Wasserstand an den Pegeln des BSH, Seewetterbericht und Warnstatus des DWD im Wortlaut. Kein amtliches Warnprodukt, keine Sicherheitsbewertung."
+      title: "Seewetter Nord- und Ostsee: Wind, Wellen, Seewetterbericht",
+      description: `Wind, Böen und Wellenhöhe stündlich bis 78 h für ${SEA_SPOT_COUNT} Spots an Nord- und Ostsee, Wasserstand der BSH-Pegel und der DWD-Seewetterbericht im Wortlaut.`,
+      h1: "Seewetter für Nord- und Ostsee: Wind, Wellen und Wasserstand",
+      lead: `Seegang mit Windsee und Dünung an Nord- und Ostsee aus dem Küstenwellenmodell CWAM des DWD, Wind und Böen an ${SEA_SPOT_COUNT} Spots aus buscosun Fusion, Wasserstand an den Pegeln des BSH, Seewetterbericht und Warnstatus des Seewetterdienstes Hamburg im Wortlaut — stündlich bis 78 Stunden, jeder Spot mit eigener Seite. Kein amtliches Warnprodukt, keine Sicherheitsbewertung.`,
+      updated: "2026-11-02"
     }
   },
   {
@@ -943,66 +1021,6 @@ function describeCutLink(placeName, cut, whenText) {
     description: `Höhenwind, Böen, Windscherung und Wolkenbasis entlang einer ${kmText(cut.km)} km langen Linie (${coord(first)} → ${coord(last)}) über dem Gelände: Modellwerte aus buscosun Fusion und ICON-D2. Der Link zeigt immer die aktuelle Prognose für diese Linie. Keine amtliche Warnung und keine Freigabe für Flug oder Bergtour.`
   };
 }
-
-// src/sea/seaSpotNames.ts
-var SEA_SPOT_NAMES = {
-  "borkum": ["Borkum Nordstrand", "nordsee"],
-  "juist": ["Juist", "nordsee"],
-  "norderney": ["Norderney Nordstrand", "nordsee"],
-  "norddeich": ["Norddeich", "nordsee"],
-  "langeoog": ["Langeoog", "nordsee"],
-  "spiekeroog": ["Spiekeroog", "nordsee"],
-  "wangerooge": ["Wangerooge", "nordsee"],
-  "schillig": ["Schillig", "nordsee"],
-  "wilhelmshaven": ["Wilhelmshaven Südstrand", "nordsee"],
-  "dangast": ["Dangast (Jadebusen)", "nordsee"],
-  "cuxhaven-duhnen": ["Cuxhaven-Duhnen", "nordsee"],
-  "helgoland": ["Helgoland Düne", "nordsee"],
-  "buesum": ["Büsum", "nordsee"],
-  "st-peter-ording": ["St. Peter-Ording", "nordsee"],
-  "pellworm": ["Pellworm", "nordsee"],
-  "husum": ["Husum Dockkoog", "nordsee"],
-  "amrum": ["Amrum Kniepsand", "nordsee"],
-  "foehr-wyk": ["Föhr Wyk", "nordsee"],
-  "sylt-hoernum": ["Sylt Hörnum", "nordsee"],
-  "sylt-westerland": ["Sylt Westerland", "nordsee"],
-  "sylt-list": ["Sylt List", "nordsee"],
-  "elbe-wittenbergen": ["Elbe Wittenbergen", "nordsee"],
-  "flensburg": ["Flensburg Solitüde", "ostsee"],
-  "holnis": ["Glücksburg Holnis", "ostsee"],
-  "schleimuende": ["Schleimünde", "ostsee"],
-  "damp": ["Damp", "ostsee"],
-  "eckernfoerde": ["Eckernförde", "ostsee"],
-  "kiel-schilksee": ["Kiel-Schilksee", "ostsee"],
-  "laboe": ["Laboe", "ostsee"],
-  "schoenberger-strand": ["Schönberger Strand", "ostsee"],
-  "hohwacht": ["Hohwacht", "ostsee"],
-  "heiligenhafen": ["Heiligenhafen", "ostsee"],
-  "grossenbrode": ["Großenbrode", "ostsee"],
-  "fehmarn-gruener-brink": ["Fehmarn Grüner Brink", "ostsee"],
-  "fehmarn-wulfen": ["Fehmarn Wulfener Hals", "ostsee"],
-  "fehmarn-burgtiefe": ["Fehmarn Südstrand", "ostsee"],
-  "groemitz": ["Grömitz", "ostsee"],
-  "pelzerhaken": ["Pelzerhaken", "ostsee"],
-  "scharbeutz": ["Scharbeutz", "ostsee"],
-  "travemuende": ["Travemünde", "ostsee"],
-  "boltenhagen": ["Boltenhagen", "ostsee"],
-  "poel": ["Insel Poel", "ostsee"],
-  "rerik": ["Rerik (Salzhaff)", "ostsee"],
-  "kuehlungsborn": ["Kühlungsborn", "ostsee"],
-  "warnemuende": ["Warnemünde", "ostsee"],
-  "graal-mueritz": ["Graal-Müritz", "ostsee"],
-  "ahrenshoop": ["Ahrenshoop", "ostsee"],
-  "zingst": ["Zingst", "ostsee"],
-  "hiddensee": ["Hiddensee Vitte", "ostsee"],
-  "juliusruh": ["Juliusruh", "ostsee"],
-  "binz": ["Binz", "ostsee"],
-  "goehren": ["Göhren", "ostsee"],
-  "lubmin": ["Lubmin (Greifswalder Bodden)", "ostsee"],
-  "zinnowitz": ["Usedom Zinnowitz", "ostsee"],
-  "heringsdorf": ["Usedom Heringsdorf", "ostsee"],
-  "ueckermuende": ["Ueckermünde (Stettiner Haff)", "ostsee"]
-};
 
 // src/sea/seaLink.ts
 var SEA_LINK_MAX_T = 78;

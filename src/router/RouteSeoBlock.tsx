@@ -37,7 +37,11 @@ export default function RouteSeoBlock() {
     let alive = true;
     if (!wantsText) { setText(null); return; }
     // A top route's text is not urgent: it waits until the app has settled, so it does not add to the load of a map page.
-    const load = () => (match?.sub ? import('../seo/subRouteTexts').then((mod) => mod.subRouteText(path)) : import('../seo/routeTexts').then((mod) => mod.routeText(path))).then((value) => { if (alive) setText({ path, text: value }); }).catch(() => { if (alive) setText({ path, text: null }); });
+    // Phase SS: the 56 Seewetter spots load their texts from their own chunk (spot facts), not with the layer texts.
+    const seaSpot = match?.def.id === 'seewetter' && match.sub ? match.sub.slug : null;
+    const load = () => (seaSpot ? import('../sea/seaSeoText').then((mod) => mod.seaSpotSeoText(seaSpot))
+      : match?.sub ? import('../seo/subRouteTexts').then((mod) => mod.subRouteText(path))
+        : import('../seo/routeTexts').then((mod) => mod.routeText(path))).then((value) => { if (alive) setText({ path, text: value }); }).catch(() => { if (alive) setText({ path, text: null }); });
     if (match?.sub) { void load(); return () => { alive = false; }; }
     const idle = window.requestIdleCallback ?? ((f: () => void) => window.setTimeout(f, 2000));
     const cancel = window.cancelIdleCallback ?? window.clearTimeout;
@@ -103,11 +107,19 @@ export default function RouteSeoBlock() {
             </dl>
           </>
         )}
-        {siblings.length > 0 && (
+        {/* Phase SS: a page with its own list (the neighbour spots) shows it instead of all siblings. */}
+        {t?.related && t.related.items.length > 0 ? (
           <>
-            <h2 className="rsb-h2">{def.id === 'autobahnwetter' ? (sub ? 'Autobahnwetter für weitere Autobahnen' : 'Autobahnwetter je Autobahn') : (sub ? 'Weitere Ansichten' : 'Ansichten')}</h2>
+            <h2 className="rsb-h2">{t.related.heading}</h2>
             <ul className="rsb-list">
-              {siblings.map((x) => <li key={x.path}><Link to={x.path}>{x.sub.title}</Link></li>)}
+              {t.related.items.map((x) => <li key={x.href}><Link to={x.href}>{x.label}</Link></li>)}
+            </ul>
+          </>
+        ) : siblings.length > 0 && (
+          <>
+            <h2 className="rsb-h2">{def.id === 'autobahnwetter' ? (sub ? 'Autobahnwetter für weitere Autobahnen' : 'Autobahnwetter je Autobahn') : def.id === 'seewetter' ? 'Spots' : sub ? 'Weitere Ansichten' : 'Ansichten'}</h2>
+            <ul className="rsb-list">
+              {siblings.map((x) => <li key={x.path}><Link to={x.path}>{x.sub.label ?? x.sub.title}</Link></li>)}
             </ul>
           </>
         )}

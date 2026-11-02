@@ -65,6 +65,7 @@ export function buildLlmsTxt({ site, updated, places, explainers, tools, methodi
   const layerSubs = subRoutes.filter((x) => x.route.id === 'wetterkarte');
   // Phase SA: die 20 Autobahn-Seiten (kommen aus derselben Liste wie Sitemap und Shells).
   const roadSubs = subRoutes.filter((x) => x.route.id === 'autobahnwetter');
+  const seaSubs = subRoutes.filter((x) => x.route.id === 'seewetter');
   const link = (path, label) => `- [${label}](${site.url}${path})`;
 
   const sections = [];
@@ -85,8 +86,9 @@ ${link('/atmosphaere', 'Atmosphäre')}: Vertikalschnitt entlang einer frei gezog
   unter ${site.url}/atmosphaere/querschnitt. Kein amtliches Flugwetter.
 ${link('/waldbrand', 'Brandradar DACH')}: EU-Gefahrenindex, aktive Brände aus Satellitendaten, Trockenheit,
   Historie seit 2020 (${site.url}/waldbrand/historie) und Thermalanomalien (${site.url}/waldbrand/thermalanomalien).
-${fireRegions}${link('/seewetter', 'Seewetter Nord- und Ostsee')}: Seegang aus dem DWD-Küstenmodell, Wind an rund 60 Spots, Wasserstand der BSH-Pegel,
-  Seewetterbericht im Wortlaut. Kein amtliches Warnprodukt (${site.url}/methodik/seewetter-quellen/).
+${fireRegions}${link('/seewetter', 'Seewetter Nord- und Ostsee')}: Seegang aus dem DWD-Küstenmodell, Wind und Böen an ${seaSubs.length} Spots, je Spot eine URL
+  (${seaSubs.slice(0, 4).map((x) => site.url + x.path).join(', ')} …), Wasserstand der BSH-Pegel, Seewetterbericht im Wortlaut.
+  Kein amtliches Warnprodukt (${site.url}/methodik/seewetter-quellen/, ${site.url}/wissen/seewetterbericht/).
 ${link('/gletscher', 'Gletscher-Monitor DACH')}: rund 2 200 Gletscher mit Inventarfläche und Bezugsjahr, Messreihen, Sentinel-2-Szenen und einem Schmelzindex
   ohne Einheit; jede Zahl trägt ihre Herkunft. Kein amtliches Produkt, keine Tourenfreigabe (${site.url}/methodik/gletscher-daten/).
 ${glacierAtlas ? `${link('/gletscher-atlas/', 'Gletscher-Atlas DACH')}: Zahl der Gletscher je Land, Ranglisten, amtliche Angaben im Wortlaut; ${glacierAtlas.pages} Steckbriefe

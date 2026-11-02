@@ -1117,6 +1117,208 @@ export const EXPLAINERS_EXTRA = [
     relatedPlaces: ['hamburg', 'frankfurt-am-main', 'wien', 'zuerich', 'feldberg-schwarzwald'],
     datePublished: PUBLISHED, dateModified: '2026-11-01',
   },
+  // ------------------------------------------------------------ seegang-wellenhoehe
+  // Phase SS (audit/seewetter-seo.md). Numbers: CWAM ~900 m, 0–78 h hourly, runs 00/12 UTC (src/sea/seaContract.ts,
+  // audit/seewetter.md); "kein Seegang" for a dry cell (V-SW-20, src/sea/seaView.ts); Rayleigh factor and the deep-water
+  // wavelength L = g·T²/2π ≈ 1.56·T² are textbook values, not buscosun results.
+  {
+    slug: 'seegang-wellenhoehe',
+    title: 'Seegang & Wellenhöhe',
+    h1: 'Seegang, Wellenhöhe, Windsee und Dünung: die Welle richtig lesen',
+    status: 'full',
+    answer:
+      'Die signifikante Wellenhöhe ist der Mittelwert des höchsten Drittels aller Wellen und entspricht etwa dem, was ' +
+      'ein geübter Beobachter schätzt; einzelne Wellen werden fast doppelt so hoch. Seegang setzt sich aus Windsee, ' +
+      'die der Wind vor Ort erzeugt, und Dünung zusammen, die aus einem entfernten Windfeld einläuft. Die Periode ' +
+      'zeigt, wie steil die See ist.',
+    sections: [
+      {
+        id: 'wellenhoehe',
+        h2: 'Signifikante Wellenhöhe: was die Zahl bedeutet',
+        html:
+          '<p>Wellen sind nie gleich hoch. Die <strong>signifikante Wellenhöhe</strong> (Hs) fasst sie zu einer Zahl ' +
+          'zusammen: Sie ist der Mittelwert des höchsten Drittels der Wellen in einem Zeitraum und liegt nahe an dem, ' +
+          'was ein erfahrener Beobachter vom Boot aus schätzt. Wellenmodelle wie das Küstenmodell des Deutschen ' +
+          'Wetterdienstes geben genau diese Größe aus.</p>' +
+          '<p>Die Zahl ist ein Mittel, keine Obergrenze. Unter rund tausend Wellen ist die höchste nach der ' +
+          'Rayleigh-Verteilung etwa <strong>1,9-mal so hoch</strong> wie die signifikante Wellenhöhe; bei 1,5 Metern ' +
+          'sind also einzelne Wellen um 3 Meter zu erwarten, wenn man lange genug draußen ist. Das gilt für offenes, ' +
+          'tiefes Wasser; in flachem Wasser begrenzen Tiefe und Brechen die Höhe.</p>',
+      },
+      {
+        id: 'windsee-duenung',
+        h2: 'Windsee und Dünung',
+        html:
+          '<p><strong>Windsee</strong> entsteht durch den Wind, der gerade über das Wasser weht. Sie wächst mit der ' +
+          'Windstärke, mit der Zeit, die der Wind schon weht, und mit der Strecke, über die er auf das Wasser wirkt ' +
+          '(Wirklänge oder Fetch). Windsee ist kurz, unregelmäßig und läuft meist mit dem Wind.</p>' +
+          '<p><strong>Dünung</strong> sind Wellen, die ein entferntes Windfeld erzeugt hat und die ohne den Wind ' +
+          'weiterlaufen. Sie ist länger und gleichmäßiger, kann bei Flaute ankommen und aus einer anderen Richtung ' +
+          'als der Wind vor Ort. In der Nordsee läuft Dünung aus der offenen See regelmäßig an die Küste; in der ' +
+          'Ostsee mit ihren kurzen Wirklängen und dem flachen Wasser ist sie selten, dort dominiert kurze, steile Windsee. ' +
+          'Der Gesamtseegang ist die Überlagerung beider.</p>',
+      },
+      {
+        id: 'periode',
+        h2: 'Periode und Steilheit',
+        html:
+          '<p>Die <strong>Periode</strong> ist die Zeit in Sekunden, die zwischen zwei Wellenkämmen vergeht. In tiefem ' +
+          'Wasser gehört zu ihr eine Wellenlänge von rund 1,56 × Periode² Metern: 4 Sekunden entsprechen etwa 25 Metern, ' +
+          '8 Sekunden etwa 100 Metern. Bei gleicher Höhe ist eine Welle mit kurzer Periode deshalb viel steiler, eine ' +
+          '4-Sekunden-See etwa viermal so steil wie eine 8-Sekunden-Dünung.</p>' +
+          '<p>Steilheit macht den Unterschied zwischen „ein Meter, angenehm" und „ein Meter, ruppig". Für kleine Boote, ' +
+          'SUP und Kajak zählt sie oft mehr als die Höhe allein.</p>',
+      },
+      {
+        id: 'kueste',
+        h2: 'Flaches Wasser, Watt und Strömung',
+        html:
+          '<p>Über Sandbänken und vor dem Strand wird das Wasser flacher: Die Wellen verlangsamen sich, werden steiler ' +
+          'und brechen. Läuft eine Gezeitenströmung gegen den Wind, wird die See kurz und steil — „Wind gegen Strom". ' +
+          'Im Wattenmeer begrenzt die Wassertiefe die Wellenhöhe, und bei Niedrigwasser fallen ganze Flächen trocken.</p>' +
+          '<p>Ein Wellenmodell mit rund 900 Metern Maschenweite kennt einzelne Sandbänke, Buhnen und Molen nicht. ' +
+          'In Häfen, Förden und Buchten kann der Seegang deshalb deutlich vom Modellwert der nächsten Zelle abweichen.</p>',
+      },
+      {
+        id: 'buscosun',
+        h2: 'So zeigt es buscosun',
+        html:
+          '<p>Das <a href="/seewetter">Seewetter für Nord- und Ostsee</a> zeigt die signifikante Wellenhöhe, Windsee, ' +
+          'Dünung und Periode als Karte und an jedem Spot als Stundenband, aus dem Küstenwellenmodell CWAM des DWD ' +
+          '(rund 900 Meter, Läufe um 00 und 12 UTC, stündlich bis 78 Stunden). Jeder Spot hat eine eigene Seite, etwa ' +
+          '<a href="/seewetter/sylt-westerland">Sylt Westerland</a>, <a href="/seewetter/st-peter-ording">St. Peter-Ording</a>, ' +
+          '<a href="/seewetter/laboe">Laboe</a> oder <a href="/seewetter/warnemuende">Warnemünde</a>. Wind und Böen kommen ' +
+          'aus buscosun Fusion.</p>' +
+          '<p>Fällt die Modellzelle am Spot trocken, steht dort „kein Seegang" statt 0 Meter, damit kein ruhiges Wasser ' +
+          'vorgetäuscht wird. Die Seite bewertet Wellen gegen Grenzen, die du je Profil einstellst; eine ' +
+          'Sicherheitsbewertung oder Freigabe ist das nicht.</p>',
+      },
+    ],
+    faqs: [
+      { q: 'Wie hoch wird die höchste Welle bei 1,5 Metern signifikanter Wellenhöhe?', a: 'Unter rund tausend Wellen etwa 1,9-mal so hoch, also knapp 3 Meter. Das ist eine statistische Faustregel für offenes, tiefes Wasser; in flachem Wasser begrenzen Tiefe und Brechen die Höhe.' },
+      { q: 'Warum fühlt sich ein Meter in der Ostsee rauer an als in der Nordsee?', a: 'Weil die Ostsee meist kurze Perioden hat. Bei gleicher Höhe ist eine Welle mit 4 Sekunden Periode etwa viermal so steil wie eine Dünung mit 8 Sekunden; lange Dünung ist in der Ostsee selten.' },
+      { q: 'Was bedeutet „Seegang 2 Meter" im Seewetterbericht?', a: 'Der Bericht nennt den erwarteten Seegang für ein ganzes Seegebiet in Metern, in Stufen von einem halben Meter. An einem einzelnen Strand kann er je nach Lage, Wassertiefe und Windrichtung deutlich niedriger oder höher sein.' },
+      { q: 'Warum zeigt buscosun manchmal „kein Seegang"?', a: 'Wenn die Modellzelle am Spot trockenfällt, etwa im Watt bei Niedrigwasser, gibt es dort keine Welle zu rechnen. Statt 0 Meter steht dann „kein Seegang", damit kein ruhiges Wasser vorgetäuscht wird.' },
+    ],
+    sources: [
+      { name: 'DWD: Seewetter für Nord- und Ostsee', url: 'https://www.dwd.de/DE/leistungen/seewetternordostsee/seewetternordostsee.html' },
+      { name: 'DWD Open Data: Seewetter (Wellenmodelle und Berichte)', url: 'https://opendata.dwd.de/weather/maritime/' },
+      { name: 'DWD Wetterlexikon', url: 'https://www.dwd.de/DE/service/lexikon/lexikon_node.html' },
+    ],
+    relatedExplainers: ['seewetterbericht', 'windboeen-sturm'],
+    relatedPlaces: ['sylt-westerland', 'sankt-peter-ording', 'helgoland', 'kiel', 'rostock', 'binz'],
+    datePublished: '2026-11-02', dateModified: '2026-11-02',
+  },
+  // ------------------------------------------------------------ seewetterbericht
+  // Phase SS. Structure, area names, units and footnote from the DWD bulletins FQEN50/FQEN51/WODL45 as fetched by the
+  // text line (src/sea/seaText.ts, buscosun-data sea/v1/text/); stale rules from SEA_TEXT_PRODUCTS (report 6 h,
+  // warning status 4 h); Beaufort table = WMO values.
+  {
+    slug: 'seewetterbericht',
+    title: 'Seewetterbericht',
+    h1: 'Seewetterbericht für Nord- und Ostsee lesen: Seegebiete, Begriffe, Warnungen',
+    status: 'full',
+    answer:
+      'Den Seewetterbericht für Nord- und Ostsee gibt der Seewetterdienst Hamburg des Deutschen Wetterdienstes heraus. ' +
+      'Er beschreibt die Wetterlage und sagt für jedes Seegebiet, etwa Deutsche Bucht oder Westliche Ostsee, den Wind ' +
+      'in Beaufort, Sicht und Wetter sowie den Seegang in Metern voraus. Warnungen vor Starkwind und Sturm erscheinen ' +
+      'als eigene Meldungen.',
+    sections: [
+      {
+        id: 'aufbau',
+        h2: 'Aufbau: Wetterlage, Seegebiete, Vorhersage',
+        html:
+          '<p>Der Kopf nennt Herausgeber und Ausgabezeit in UTC, etwa „herausgegeben vom Seewetterdienst Hamburg ' +
+          '02.11.2026, 1700 UTC". Darauf folgt die <strong>Wetterlage</strong>: Hochs und Tiefs mit ihrem Kerndruck in ' +
+          'Hektopascal und wohin sie ziehen. Dann kommt die <strong>Vorhersage</strong> je Tag und je Seegebiet mit drei ' +
+          'Zeilen: <em>Wind</em> mit Richtung und Stärke in Beaufort, <em>Sicht/Wetter</em> und <em>Seegang</em> in Metern. ' +
+          'Am Ende steht der Hinweis „Windstärke in Beaufort, Luftdruck in Hektopascal".</p>' +
+          '<p>Neben dem Bericht für die Seegebiete gibt es einen <strong>Küstenbericht</strong> für die deutsche Nord- und ' +
+          'Ostseeküste. Er ist nach Küstenabschnitten gegliedert, nennt Wind sowie Sicht und Wetter, aber keinen Seegang. ' +
+          'Die <strong>Mittelfrist</strong> blickt einige Tage weiter voraus und nennt auch die Wassertemperatur von Nord- und Ostsee.</p>',
+      },
+      {
+        id: 'seegebiete',
+        h2: 'Die Seegebiete und Küstenabschnitte',
+        html:
+          '<p>Der Bericht für Nord- und Ostsee ist nach Seegebieten gegliedert, unter anderem <strong>Deutsche Bucht</strong>, ' +
+          'Südwestliche Nordsee, Fischer, Skagerrak, Kattegat, Belte und Sund, <strong>Westliche Ostsee</strong>, ' +
+          '<strong>Südliche Ostsee</strong> und Südöstliche Ostsee. Für die deutsche Küste zählen vor allem diese:</p>' +
+          '<ul>' +
+          '<li><strong>Deutsche Bucht</strong>: die ganze deutsche Nordseeküste, etwa <a href="/seewetter/borkum">Borkum</a>, ' +
+          '<a href="/seewetter/helgoland">Helgoland</a>, <a href="/seewetter/cuxhaven-duhnen">Cuxhaven-Duhnen</a>, ' +
+          '<a href="/seewetter/st-peter-ording">St. Peter-Ording</a> und <a href="/seewetter/sylt-westerland">Sylt Westerland</a>.</li>' +
+          '<li><strong>Westliche Ostsee</strong>: von der Flensburger Förde bis Hiddensee, etwa <a href="/seewetter/kiel-schilksee">Kiel-Schilksee</a>, ' +
+          '<a href="/seewetter/fehmarn-wulfen">Fehmarn Wulfener Hals</a>, <a href="/seewetter/travemuende">Travemünde</a> und ' +
+          '<a href="/seewetter/warnemuende">Warnemünde</a>.</li>' +
+          '<li><strong>Südliche Ostsee</strong> und <strong>Boddengewässer Ost</strong>: Rügen und Usedom, etwa ' +
+          '<a href="/seewetter/juliusruh">Juliusruh</a>, <a href="/seewetter/binz">Binz</a> und <a href="/seewetter/heringsdorf">Usedom Heringsdorf</a>.</li>' +
+          '</ul>' +
+          '<p>Die Küstenabschnitte des Küstenberichts sind Ostfriesische Küste, Elbmündung, Helgoland, Nordfriesische Küste, ' +
+          'Elbe von Hamburg bis Cuxhaven, Flensburg bis Fehmarn, Östlich Fehmarn bis Rügen sowie Boddengewässer Ost und östlich Rügen. ' +
+          'Jede Spot-Seite auf buscosun nennt, zu welchem Seegebiet und Abschnitt sie gehört.</p>',
+      },
+      {
+        id: 'begriffe',
+        h2: 'Begriffe: strichweise, zeitweise, drehend, Beaufort',
+        html:
+          '<p><strong>Strichweise</strong> heißt: nicht im ganzen Gebiet, sondern in Teilen davon. <strong>Zeitweise</strong> ' +
+          'heißt: nicht durchgehend. <strong>Anfangs</strong> und <strong>später</strong> ordnen den Verlauf im ' +
+          'Vorhersagezeitraum. <strong>Drehend</strong> beschreibt eine Änderung der Windrichtung („nordostdrehend" = auf ' +
+          'Nordost drehend), <strong>umlaufend</strong> wechselnde Richtungen bei schwachem Wind. Die Sicht heißt gut, ' +
+          'mittel oder schlecht.</p>' +
+          '<p>Den Wind nennt der Bericht in <a href="/glossar/#beaufort">Beaufort</a>:</p>' +
+          '<ul>' +
+          '<li><strong>3</strong> schwache Brise: 7–10 Knoten, 12–19 km/h</li>' +
+          '<li><strong>4</strong> mäßige Brise: 11–16 Knoten, 20–28 km/h</li>' +
+          '<li><strong>5</strong> frische Brise: 17–21 Knoten, 29–38 km/h</li>' +
+          '<li><strong>6</strong> starker Wind: 22–27 Knoten, 39–49 km/h</li>' +
+          '<li><strong>7</strong> steifer Wind: 28–33 Knoten, 50–61 km/h</li>' +
+          '<li><strong>8</strong> stürmischer Wind: 34–40 Knoten, 62–74 km/h</li>' +
+          '<li><strong>9</strong> Sturm: 41–47 Knoten, 75–88 km/h</li>' +
+          '<li><strong>10</strong> schwerer Sturm: 48–55 Knoten, 89–102 km/h</li>' +
+          '</ul>' +
+          '<p>Die Werte gelten für den Mittelwind über zehn Minuten; <a href="/glossar/#boee">Böen</a> liegen darüber.</p>',
+      },
+      {
+        id: 'warnungen',
+        h2: 'Warnungen für See und Küste',
+        html:
+          '<p>Warnungen stehen nicht im Seewetterbericht selbst, sondern in eigenen Meldungen des Seewetterdienstes ' +
+          'Hamburg: für die Seegebiete Deutsche Bucht, Westliche und Südliche Ostsee (auf Englisch, „no warning" heißt ' +
+          'keine Warnung) und für die deutschen Küstenabschnitte als Starkwind-, Sturm- und Orkanwarnungen, dazu ' +
+          'Böenwarnungen. Jede Meldung trägt eine Nummer und ihre Ausgabezeit; eine Aufhebung erscheint als eigene Meldung.</p>' +
+          '<p>Maßgeblich ist immer die amtliche Meldung beim Deutschen Wetterdienst. Wer auf dem Wasser ist, hört den ' +
+          'Seewetterdienst über die Funkwege, die der DWD auf seiner Seewetter-Seite nennt.</p>',
+      },
+      {
+        id: 'buscosun',
+        h2: 'So zeigt es buscosun',
+        html:
+          '<p>Im Reiter „Seegebiet" jeder <a href="/seewetter">Spot-Seite</a> stehen der Seewetterbericht des passenden ' +
+          'Seegebiets, der Küstenbericht des Abschnitts, die Warnmeldung für die Küste und die Mittelfrist im ' +
+          'Wortlaut, unverändert bis auf Zeilenumbrüche und mit Ausgabezeit. buscosun prüft alle 15 Minuten auf eine ' +
+          'neue Ausgabe; ein Bericht über sechs Stunden alt gilt als veraltet, ein Warnstatus über vier Stunden alt als ' +
+          'unbekannt.</p>' +
+          '<p>„Keine Warnung" zeigt die Seite nur, wenn der amtliche Text genau das sagt; sonst steht der Wortlaut ' +
+          'obenan. buscosun fasst amtliche Texte nicht zusammen und gibt selbst keine Warnungen heraus.</p>',
+      },
+    ],
+    faqs: [
+      { q: 'In welcher Einheit nennt der Seewetterbericht den Wind?', a: 'In Beaufort, also Windstärken von 0 bis 12. Windstärke 6 entspricht 22 bis 27 Knoten oder 39 bis 49 km/h, Windstärke 8 entspricht 34 bis 40 Knoten oder 62 bis 74 km/h.' },
+      { q: 'Was heißt „strichweise 6"?', a: 'Dass Windstärke 6 nicht im ganzen Seegebiet zu erwarten ist, sondern nur in Teilen davon; im Rest des Gebiets weht es schwächer.' },
+      { q: 'Ist der Seewetterbericht auf buscosun amtlich?', a: 'Der Text ist der amtliche Wortlaut des Seewetterdienstes Hamburg, unverändert übernommen und mit Ausgabezeit. buscosun selbst gibt keine Warnungen heraus; maßgeblich ist der DWD.' },
+      { q: 'Welche Zeitzone gilt?', a: 'Der Bericht nennt die Ausgabezeit in UTC. In Deutschland ist es im Winter eine Stunde, im Sommer zwei Stunden später.' },
+    ],
+    sources: [
+      { name: 'DWD: Seewetter für Nord- und Ostsee', url: 'https://www.dwd.de/DE/leistungen/seewetternordostsee/seewetternordostsee.html' },
+      { name: 'DWD Open Data: Seewetterberichte (Textprodukte)', url: 'https://opendata.dwd.de/weather/maritime/forecast/german/' },
+      { name: 'DWD Wetterlexikon (Beaufort-Skala)', url: 'https://www.dwd.de/DE/service/lexikon/lexikon_node.html' },
+    ],
+    relatedExplainers: ['seegang-wellenhoehe', 'windboeen-sturm'],
+    relatedPlaces: ['helgoland', 'cuxhaven', 'kiel', 'rostock', 'flensburg', 'binz'],
+    datePublished: '2026-11-02', dateModified: '2026-11-02',
+  },
 ];
 
 export const EXPLAINERS_EXTRA_BY_SLUG = Object.fromEntries(EXPLAINERS_EXTRA.map((e) => [e.slug, e]));

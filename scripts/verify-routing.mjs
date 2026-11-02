@@ -21,6 +21,7 @@ import { ATMOSPHERE_RETIRED_SLUGS, CROSS_ALIASES, ROUTES, ROUTE_BY_ID, SITE_URL,
 import { verifyLayerCatalog, LAYER_CATALOG } from '../src/map/layerCatalog.ts';
 import { ALL_LAYER_KEYS } from '../src/map/layerTypes.ts';
 import { verifySubRouteTexts, subRouteText } from '../src/seo/subRouteTexts.ts';
+import { seaSpotSeoTexts } from '../src/sea/seaSeoText.ts';
 import { routeText } from '../src/seo/routeTexts.ts';
 import { ROUTES as ROUTE_LIST_FOR_TEXT, ROUTE_TEXT_IDS } from '../src/router/routes.ts';
 import { verifyUrlState, mapPathForPlace } from '../src/router/urlState.ts';
@@ -54,7 +55,8 @@ for (const c of verifyPlaceSlug().checks) add(`[placeSlug] ${c.name}`, c.ok, c.d
 for (const c of verifyShareSchema().checks) add(`[shareSchema] ${c.name}`, c.ok, c.detail);
 for (const c of verifyFireRouteView().checks) add(`[fireView] ${c.name}`, c.ok);
 for (const c of verifyLayerCatalog(ALL_LAYER_KEYS).checks) add(`[layerCatalog] ${c.name}`, c.ok, c.detail);
-for (const c of verifySubRouteTexts(indexableSubRoutes().map((x) => x.path)).checks) add(`[subTexts] ${c.name}`, c.ok, c.detail);
+// Phase SS: die Seewetter-Spots tragen ihre Texte in einem eigenen Lazy-Chunk (src/sea/seaSeoText.ts) — hier mitgeprüft.
+for (const c of verifySubRouteTexts(indexableSubRoutes().map((x) => x.path), seaSpotSeoTexts()).checks) add(`[subTexts] ${c.name}`, c.ok, c.detail);
 // Die Tooltips im Dock kommen seit E1 aus dem Katalog — MapView darf keine eigene Liste mehr führen.
 const mapViewSrc = readFileSync(join(ROOT, 'src', 'MapView.tsx'), 'utf8');
 add('[layerCatalog] MapView leitet LAYER_OPTIONS aus LAYER_OPTION_ORDER/LAYER_CATALOG ab (keine Zweitliste)', /LAYER_OPTIONS[^\n]*= LAYER_OPTION_ORDER\.map/.test(mapViewSrc) && !/\{ key: 'wind', label: 'Wind', title: 'Wind \(DWD ICON-D2/.test(mapViewSrc));

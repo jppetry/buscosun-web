@@ -713,10 +713,236 @@
   from   = "/autobahnwetter/*"
   to     = "/autobahnwetter.html"
   status = 200
-# Phase SW: Seewetter — Spot als Pfadsegment teilt die Shell der Route (Canonical /seewetter); indexierbar seit 10.10.2026.
+# Phase SW: Seewetter, indexierbar seit 10.10.2026. Phase SS (audit/seewetter-seo.md): jeder Spot hat seine EIGENE flache
+# Shell (`dist/seewetter--<spot>.html`, aus `indexableSubRoutes()`), eigener Title/Canonical/H1/Steckbrief. Muss VOR
+# `/seewetter/*` stehen; ein unbekannter Spot fällt weiter auf die Shell der Route (die Seite sagt es, noindex).
 [[redirects]]
   from   = "/seewetter"
   to     = "/seewetter.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/borkum"
+  to     = "/seewetter--borkum.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/juist"
+  to     = "/seewetter--juist.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/norderney"
+  to     = "/seewetter--norderney.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/norddeich"
+  to     = "/seewetter--norddeich.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/langeoog"
+  to     = "/seewetter--langeoog.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/spiekeroog"
+  to     = "/seewetter--spiekeroog.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/wangerooge"
+  to     = "/seewetter--wangerooge.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/schillig"
+  to     = "/seewetter--schillig.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/wilhelmshaven"
+  to     = "/seewetter--wilhelmshaven.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/dangast"
+  to     = "/seewetter--dangast.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/cuxhaven-duhnen"
+  to     = "/seewetter--cuxhaven-duhnen.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/helgoland"
+  to     = "/seewetter--helgoland.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/buesum"
+  to     = "/seewetter--buesum.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/st-peter-ording"
+  to     = "/seewetter--st-peter-ording.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/pellworm"
+  to     = "/seewetter--pellworm.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/husum"
+  to     = "/seewetter--husum.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/amrum"
+  to     = "/seewetter--amrum.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/foehr-wyk"
+  to     = "/seewetter--foehr-wyk.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/sylt-hoernum"
+  to     = "/seewetter--sylt-hoernum.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/sylt-westerland"
+  to     = "/seewetter--sylt-westerland.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/sylt-list"
+  to     = "/seewetter--sylt-list.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/elbe-wittenbergen"
+  to     = "/seewetter--elbe-wittenbergen.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/flensburg"
+  to     = "/seewetter--flensburg.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/holnis"
+  to     = "/seewetter--holnis.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/schleimuende"
+  to     = "/seewetter--schleimuende.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/damp"
+  to     = "/seewetter--damp.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/eckernfoerde"
+  to     = "/seewetter--eckernfoerde.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/kiel-schilksee"
+  to     = "/seewetter--kiel-schilksee.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/laboe"
+  to     = "/seewetter--laboe.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/schoenberger-strand"
+  to     = "/seewetter--schoenberger-strand.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/hohwacht"
+  to     = "/seewetter--hohwacht.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/heiligenhafen"
+  to     = "/seewetter--heiligenhafen.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/grossenbrode"
+  to     = "/seewetter--grossenbrode.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/fehmarn-gruener-brink"
+  to     = "/seewetter--fehmarn-gruener-brink.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/fehmarn-wulfen"
+  to     = "/seewetter--fehmarn-wulfen.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/fehmarn-burgtiefe"
+  to     = "/seewetter--fehmarn-burgtiefe.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/groemitz"
+  to     = "/seewetter--groemitz.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/pelzerhaken"
+  to     = "/seewetter--pelzerhaken.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/scharbeutz"
+  to     = "/seewetter--scharbeutz.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/travemuende"
+  to     = "/seewetter--travemuende.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/boltenhagen"
+  to     = "/seewetter--boltenhagen.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/poel"
+  to     = "/seewetter--poel.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/rerik"
+  to     = "/seewetter--rerik.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/kuehlungsborn"
+  to     = "/seewetter--kuehlungsborn.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/warnemuende"
+  to     = "/seewetter--warnemuende.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/graal-mueritz"
+  to     = "/seewetter--graal-mueritz.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/ahrenshoop"
+  to     = "/seewetter--ahrenshoop.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/zingst"
+  to     = "/seewetter--zingst.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/hiddensee"
+  to     = "/seewetter--hiddensee.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/juliusruh"
+  to     = "/seewetter--juliusruh.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/binz"
+  to     = "/seewetter--binz.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/goehren"
+  to     = "/seewetter--goehren.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/lubmin"
+  to     = "/seewetter--lubmin.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/zinnowitz"
+  to     = "/seewetter--zinnowitz.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/heringsdorf"
+  to     = "/seewetter--heringsdorf.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/ueckermuende"
+  to     = "/seewetter--ueckermuende.html"
   status = 200
 [[redirects]]
   from   = "/seewetter/*"

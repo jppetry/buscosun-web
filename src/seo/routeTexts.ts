@@ -1,4 +1,5 @@
 import type { SeoText } from './layerSeoTexts';
+import { SEA_SPOT_COUNT } from '../sea/seaSeo';
 
 /**
  * Texte der Top-Routen, die mehr brauchen als H1 und Lead (audit/seo-nischen.md). Lead und H1 kommen weiter aus `routes.ts`; hier stehen nur
@@ -97,19 +98,29 @@ const ROUTE_TEXTS: Readonly<Record<string, RouteText>> = {
   },
   '/seewetter': {
     body: [
-      'Die Ansicht beantwortet drei Fragen für einen Spot an der deutschen Küste. Wie weht es, mit welchen Böen? Wie hoch läuft die See, getrennt nach Windsee und Dünung? Wie steht das Wasser am nächsten Pegel? Das Stundenband zeigt die kommenden Stunden, die Karte das Seegangsfeld, und jeder Spot hat eine eigene Adresse, etwa St. Peter-Ording, Laboe oder Warnemünde.',
-      'Die Quellen werden nicht verrechnet. Der Seegang stammt aus dem Küstenmodell CWAM des DWD, der Wind am Spot aus buscosun Fusion, der Wasserstand aus der offenen Schnittstelle des BSH. Seewetterbericht und Warnstatus erscheinen unverändert im Wortlaut. Texte und Spots werden alle 15 Minuten auf neue Ausgaben geprüft; jeder Wert nennt seinen Stand.',
-      'Grenzen: In Häfen, Förden und hinter Sandbänken löst das Modell die Wellen nur grob auf, Strömungen sind nicht Teil der Anzeige, und eine Zelle ohne Wasser im Modell zeigt „kein Seegang“ statt 0 Meter. Binnenseen und andere Reviere fehlen. Die Ansicht entscheidet keine Ausfahrt.',
+      `Die Ansicht beantwortet drei Fragen für einen Spot an der deutschen Küste. Wie weht es, mit welchen Böen? Wie hoch läuft die See, getrennt nach Windsee und Dünung? Wie steht das Wasser am nächsten Pegel? Das Stundenband zeigt die kommenden Stunden, die Karte das Seegangsfeld, und jeder der ${SEA_SPOT_COUNT} Spots hat eine eigene Seite mit Steckbrief, etwa St. Peter-Ording, Sylt Westerland, Laboe, Fehmarn Grüner Brink oder Warnemünde.`,
+      'Die Quellen werden nicht verrechnet. Der Seegang stammt aus dem Küstenmodell CWAM des DWD, der Wind am Spot aus buscosun Fusion, der Wasserstand aus der offenen Schnittstelle des BSH. Seewetterbericht und Warnstatus des Seewetterdienstes Hamburg erscheinen unverändert im Wortlaut, die Wassertemperatur von Nord- und Ostsee als Spanne aus der amtlichen Mittelfrist. Texte und Spots werden alle 15 Minuten auf neue Ausgaben geprüft; jeder Wert nennt seinen Stand.',
+      'Grenzen: In Häfen, Förden und hinter Sandbänken löst das Modell die Wellen nur grob auf, Strömungen sind nicht Teil der Anzeige, und eine Zelle ohne Wasser im Modell zeigt „kein Seegang“ statt 0 Meter. Binnenseen wie der Bodensee und Reviere im Mittelmeer fehlen. Die Ansicht entscheidet keine Ausfahrt.',
     ],
     facts: [
-      { label: 'Quellen', text: 'DWD CWAM (Seegang) · buscosun Fusion (Wind, Böen) · BSH (Wasserstand, CC BY 4.0) · DWD (Seewetterbericht im Wortlaut)' },
-      { label: 'Aktualisierung', text: 'Prüfung alle 15 Minuten; ein neuer CWAM-Lauf ist rund 4 Stunden nach dem Start vollständig' },
-      { label: 'Abdeckung', text: 'deutsche Nord- und Ostseeküste, rund 60 Spots' },
-      { label: 'Grenze', text: 'kein amtliches Warnprodukt, keine Sicherheitsbewertung, keine Strömung' },
+      { label: 'Quellen', text: 'DWD CWAM (Seegang) · buscosun Fusion (Wind, Böen) · BSH (Wasserstand, CC BY 4.0) · Seewetterdienst Hamburg des DWD (Seewetterbericht und Warnungen im Wortlaut)' },
+      { label: 'Aktualisierung', text: 'Prüfung alle 15 Minuten; CWAM-Läufe um 00 und 12 UTC, rund 4 Stunden nach dem Start vollständig; Horizont 78 Stunden' },
+      { label: 'Abdeckung', text: `deutsche Nord- und Ostseeküste, ${SEA_SPOT_COUNT} Spots von Borkum bis Ueckermünde` },
+      { label: 'Grenze', text: 'kein amtliches Warnprodukt, keine Sicherheitsbewertung, keine Strömung, keine Binnenseen' },
     ],
-    official: { text: 'Amtliche Wind- und Sturmwarnungen gibt der DWD heraus, Sturmflutwarnungen das BSH:', label: 'Sturmflutwarndienst', href: 'https://www.sturmflutwarndienst.de/' },
+    faq: [
+      { q: 'Wie oft wird das Seewetter aktualisiert?', a: 'Die Seite prüft alle 15 Minuten auf neue Ausgaben. Das Küstenwellenmodell CWAM des DWD rechnet zweimal am Tag, um 00 und 12 UTC, und ist rund vier Stunden nach dem Start vollständig; den Seewetterbericht gibt der Seewetterdienst Hamburg mehrmals täglich heraus.' },
+      { q: 'Wo steht der Seewetterbericht für die Deutsche Bucht oder die Westliche Ostsee?', a: 'Auf jeder Spot-Seite im Reiter „Seegebiet“, unverändert im Wortlaut und mit Ausgabezeit: für die Deutsche Bucht etwa bei Helgoland, Sylt oder Cuxhaven, für die Westliche Ostsee bei Kiel, Fehmarn oder Warnemünde.' },
+      { q: 'Was ist der Unterschied zwischen Windsee und Dünung?', a: 'Windsee entsteht durch den Wind vor Ort und ist kurz und steil; Dünung läuft aus einem entfernten Windfeld ein, ist länger und regelmäßiger. Die Seite zeigt beide getrennt, dazu die Periode.' },
+      { q: 'Wie warm ist die Ostsee oder die Nordsee gerade?', a: 'Die Seite nennt die Wassertemperatur von Nord- und Ostsee als Spanne aus der amtlichen Mittelfrist des Seewetterdienstes Hamburg, mit Ausgabezeit. Messungen an einzelnen Badestellen enthält sie nicht.' },
+      { q: 'Ist das eine amtliche Warnung?', a: 'Nein. buscosun gibt keine Warnungen heraus. Der Warnstatus des Seewetterdienstes Hamburg erscheint im Wortlaut; ist er älter als vier Stunden, gilt er als unbekannt.' },
+      { q: 'Gibt es Seewetter für den Bodensee oder das Mittelmeer?', a: 'Noch nicht. Das Küstenwellenmodell des DWD rechnet Nord- und Ostsee, aber keine Binnenseen, und Spots im Mittelmeer sind bisher nicht angelegt.' },
+    ],
+    official: { text: 'Amtliche Wind- und Sturmwarnungen gibt der Seewetterdienst Hamburg des DWD heraus, Sturmflutwarnungen das BSH:', label: 'Sturmflutwarndienst', href: 'https://www.sturmflutwarndienst.de/' },
     links: [
       { label: 'So liest du das Seewetter', href: '/funktionen/seewetter/' },
+      { label: 'Seegang, Windsee und Dünung erklärt', href: '/wissen/seegang-wellenhoehe/' },
+      { label: 'Den Seewetterbericht lesen', href: '/wissen/seewetterbericht/' },
       { label: 'Quellen und Rechenweg', href: '/methodik/seewetter-quellen/' },
       { label: 'Für Segler', href: '/fuer/segler/' },
     ],

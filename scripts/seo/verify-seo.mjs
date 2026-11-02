@@ -156,9 +156,12 @@ for (const rel of ['wetterkarte.html', 'regenradar.html', 'waldbrand.html', 'atm
 // EIGENE flache Shell mit eigenem Title/Canonical/H1/Lead — vorher teilten sie die
 // Eltern-Shell (SEO-AUDIT.md §2). 34 = 18 Layer + 1 Atmosphäre + 5 Brand-Sichten + 10 Event-Anlässe (E7);
 // die exakte Menge prüft verify-routing gegen die Routen-Tabelle. Nach der Autobahn-Freischaltung (ROAD_INDEXABLE) kommen 20 Unterseiten dazu.
+// Phase SS: dazu je Seewetter-Spot eine Shell (die Zahl liest die Prüfung aus der Namenstabelle, nicht aus dist/).
 console.log('\nSub-Routen-Shells:');
 const subShells = readdirSync(DIST).filter((f) => /^[a-z]+--[a-z0-9-]+\.html$/.test(f)).sort();
-const subShellsWanted = subShells.some((f) => f.startsWith('autobahnwetter--')) ? 54 : 34;
+const seaSpotCount = (readFileSync(join(ROOT, 'src', 'sea', 'seaSpotNames.ts'), 'utf8').match(/^ {2}"[a-z0-9-]+": \[/gm) || []).length;
+const subShellsWanted = (subShells.some((f) => f.startsWith('autobahnwetter--')) ? 54 : 34) + seaSpotCount;
+if (seaSpotCount < 50) fail('src/sea/seaSpotNames.ts', `nur ${seaSpotCount} Spots gelesen — Format der Namenstabelle geändert?`);
 if (subShells.length !== subShellsWanted) fail('dist/', `erwartet ${subShellsWanted} Sub-Routen-Shells, gefunden ${subShells.length}`);
 else ok('dist/', `${subShellsWanted} Sub-Routen-Shells vorhanden`);
 const parentTitle = (id) => (read(`${id}.html`).match(/<title>([^<]*)<\/title>/) || [])[1];
@@ -192,7 +195,7 @@ console.log('\nSitemap:');
   if (!/<sitemapindex/.test(index)) fail('sitemap.xml', 'kein Sitemap-Index (E9)');
   else ok('sitemap.xml', 'Sitemap-Index');
   const children = [...index.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1].replace('https://buscosun.com/', ''));
-  const expected = ['sitemap-pages.xml', 'sitemap-orte.xml', 'sitemap-orte-2.xml'];
+  const expected = ['sitemap-pages.xml', 'sitemap-orte.xml', 'sitemap-orte-2.xml', 'sitemap-seewetter.xml'];
   if (expected.some((f) => !children.includes(f))) fail('sitemap.xml', `Teilliste fehlt: ${expected.filter((f) => !children.includes(f)).join(', ')}`);
   else ok('sitemap.xml', `verweist auf ${children.length} Teillisten`);
   const sm = expected.map((f) => read(f)).join('\n');
@@ -537,7 +540,7 @@ console.log('\nGletscherseiten (Phase GLS):');
     else if (new Set(all).size !== all.length) fail('sitemap', 'URL in mehreren Teillisten');
     else if ([...part.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)].length !== locs.length) fail('sitemap-gletscher.xml', 'lastmod fehlt');
     else ok('sitemap-gletscher.xml', `${locs.length} URLs, alle mit lastmod aus dem Datenstand, keine Doppelung über die Teillisten`);
-    const robots = read('robots.txt');
+    const robots = read('robots.txt').replace(/\r/g, '');
     if (!/\nDisallow: \/_gl\/\n/.test(robots) || !robots.includes('Sitemap: https://buscosun.com/sitemap-gletscher.xml')) fail('robots.txt', 'Disallow /_gl/ oder Sitemap-Zeile der Gletscher fehlt');
     else ok('robots.txt', 'sperrt /_gl/ und nennt sitemap-gletscher.xml');
     const shell = read('gletscher.html');

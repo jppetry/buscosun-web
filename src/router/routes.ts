@@ -20,6 +20,7 @@ import { ogCardPath } from '../share/ogCard';
 import { roadSeoSubs } from '../road/roadSeo';
 import { FIRE_LINK_SEGMENT, FIRE_SLUG_RE } from '../fire/fireLink';
 import { ROAD_CORRIDOR_SLUG_RE, ROAD_KM_SLUG_RE } from '../road/roadLink';
+import { seaSeoSubs, SEA_SPOT_COUNT } from '../sea/seaSeo';
 
 /**
  * Freischaltung Autobahnwetter (audit/seo-nischen.md §6): EIN Schalter für `noindex`, Sitemap und die 20 Autobahn-Unterseiten. Umgelegt in
@@ -51,6 +52,8 @@ export interface RouteMeta {
 
 export interface SubRoute {
   slug: string;
+  /** Kurzes Linklabel in Listen (Seewetter: der Spot-Name); ohne Eintrag gilt `title`. */
+  label?: string;
   title: string;
   description: string;
   /** Sicht, die ohne Nutzereingabe leer ist (3D braucht eine hochgeladene Strecke) ⇒ nicht in die Sitemap. */
@@ -294,15 +297,18 @@ export const ROUTES: readonly RouteDef[] = [
   },
   {
     // Phase SW (audit/seewetter.md): Pfadsegment = Spot (`/seewetter/st-peter-ording`), entscheidet die Seite. Seit
-    // 10.10.2026 für alle sichtbar (`SEA_LIVE`, `src/sea/seaFlag.ts`) und indexierbar (Jan 10.10., E-SW-32): `/seewetter`
-    // steht in der Sitemap; die Spot-Pfade teilen Shell und Canonical der Route (keine eigenen Unterseiten).
+    // 10.10.2026 für alle sichtbar (`SEA_LIVE`, `src/sea/seaFlag.ts`) und indexierbar (Jan 10.10., E-SW-32). Phase SS
+    // (audit/seewetter-seo.md, 02.11.2026): jeder Spot ist eine eigene indexierbare Sub-Route mit eigener Shell, eigenem
+    // Canonical und Steckbrief-Text (`src/sea/seaSeo.ts`, Texte lazy in `seaSeoText.ts`); vorher teilten die Spot-Pfade
+    // Shell und Canonical der Route.
     id: 'seewetter', path: '/seewetter', aliases: ['/kuestenwetter', '/segelwetter', '/wellen'], featureId: 'sea', subParam: 'spot',
-    subs: null,
+    subs: seaSeoSubs(),
     meta: {
-      title: 'Seewetter Nord- und Ostsee — Wind, Welle, Wasserstand',
-      description: 'Seegang an der deutschen Küste aus dem DWD-Küstenmodell, Wind und Böen an rund 60 Spots, Wasserstand der BSH-Pegel und der Seewetterbericht im Wortlaut.',
-      h1: 'Seewetter für Nord- und Ostsee: Wind, Welle und Wasserstand',
-      lead: 'Seegang mit Windsee und Dünung an Nord- und Ostsee (DWD CWAM), Wind und Böen an rund 60 Spots aus buscosun Fusion, Wasserstand an den Pegeln des BSH, Seewetterbericht und Warnstatus des DWD im Wortlaut. Kein amtliches Warnprodukt, keine Sicherheitsbewertung.',
+      title: 'Seewetter Nord- und Ostsee: Wind, Wellen, Seewetterbericht',
+      description: `Wind, Böen und Wellenhöhe stündlich bis 78 h für ${SEA_SPOT_COUNT} Spots an Nord- und Ostsee, Wasserstand der BSH-Pegel und der DWD-Seewetterbericht im Wortlaut.`,
+      h1: 'Seewetter für Nord- und Ostsee: Wind, Wellen und Wasserstand',
+      lead: `Seegang mit Windsee und Dünung an Nord- und Ostsee aus dem Küstenwellenmodell CWAM des DWD, Wind und Böen an ${SEA_SPOT_COUNT} Spots aus buscosun Fusion, Wasserstand an den Pegeln des BSH, Seewetterbericht und Warnstatus des Seewetterdienstes Hamburg im Wortlaut — stündlich bis 78 Stunden, jeder Spot mit eigener Seite. Kein amtliches Warnprodukt, keine Sicherheitsbewertung.`,
+      updated: '2026-11-02',
     },
   },
   {
@@ -611,7 +617,7 @@ export function verifyRoutes(): { checks: RouteCheck[]; passed: number; failed: 
   add('[ATM] Gegenprobe: der Querschnitt selbst bleibt stehen, ein ähnlicher Slug ist kein Redirect, ein Tippfehler bleibt 404', normalizePath('/atmosphaere/querschnitt') === null && normalizePath('/atmosphaere/querschnitt/innsbruck') === null && aliasTarget('/atmosphaere/fliegenx') === null && routeForPath('/atmosphaere/fliegenx/innsbruck') === null && aliasTarget('/atmosphaere/fliegen/a/b') === null);
   // SEO/GEO 2026 (E1): jede indexierbare Sub-Route trägt eigenen Text für ihre Shell.
   const subs = indexableSubRoutes();
-  add('34 indexierbare Sub-Routen mit eigener Shell (18 Layer + 1 Atmosphäre + 5 Brand-Sichten + 10 Event-Anlässe), nach der Autobahn-Freischaltung 20 mehr', subs.length === (ROAD_INDEXABLE ? 54 : 34), String(subs.length));
+  add(`${34 + SEA_SPOT_COUNT} indexierbare Sub-Routen mit eigener Shell (18 Layer + 1 Atmosphäre + 5 Brand-Sichten + 10 Event-Anlässe + ${SEA_SPOT_COUNT} Seewetter-Spots), nach der Autobahn-Freischaltung 20 mehr`, subs.length === (ROAD_INDEXABLE ? 54 : 34) + SEA_SPOT_COUNT, String(subs.length));
   const longDesc = subs.filter((x) => x.sub.description.length > 160).map((x) => `${x.path} (${x.sub.description.length})`);
   add('Sub-Routen-Descriptions sind paarweise verschieden und ≤ 160 Zeichen', new Set(subs.map((x) => x.sub.description)).size === subs.length && longDesc.length === 0, longDesc.join(', '));
   add('Shell-Dateinamen sind eindeutig und flach', new Set(subs.map((x) => x.shell)).size === subs.length && subs.every((x) => /^\/[a-z]+--[a-z0-9-]+\.html$/.test(x.shell)));
@@ -621,8 +627,10 @@ export function verifyRoutes(): { checks: RouteCheck[]; passed: number; failed: 
   add('[AW] /autobahnwetter/a8 trägt den Korridor als Segment (die Seite entscheidet); noindex bis zur Freigabe', routeForPath('/autobahnwetter/a8')?.subSlug === 'a8' && metaForPath('/autobahnwetter/a8').noindex === !ROAD_INDEXABLE);
   add('[AW] bis zur Freigabe noindex und in keiner Sitemap; danach die Route und 20 Unterseiten', ROAD_INDEXABLE ? sitemapPaths().filter((x) => x.path.startsWith('/autobahnwetter')).length === 21 : !!ROUTE_BY_ID.autobahnwetter.meta.noindex && !sitemapPaths().some((x) => x.path.startsWith('/autobahnwetter')));
   add('[SW] /seewetter ist eine Route, /kuestenwetter, /segelwetter, /wellen sind Aliase', routeForPath('/seewetter')?.def.id === 'seewetter' && aliasTarget('/kuestenwetter') === '/seewetter' && aliasTarget('/segelwetter') === '/seewetter' && aliasTarget('/wellen') === '/seewetter');
-  add('[SW] /seewetter/st-peter-ording trägt den Spot als Segment (die Seite entscheidet): indexierbar, Canonical = /seewetter', routeForPath('/seewetter/st-peter-ording')?.subSlug === 'st-peter-ording' && !metaForPath('/seewetter/st-peter-ording').noindex && canonicalPath('/seewetter/st-peter-ording') === '/seewetter');
-  add('[SW] seit 10.10. indexierbar (E-SW-32): /seewetter genau einmal in der Sitemap, kein Spot-Pfad', !ROUTE_BY_ID.seewetter.meta.noindex && !metaForPath('/seewetter').noindex && sitemapPaths().filter((x) => x.path.startsWith('/seewetter')).map((x) => x.path).join() === '/seewetter');
+  add('[SS] /seewetter/st-peter-ording ist eine eigene Seite: Sub-Route, indexierbar, eigener Canonical und Titel', routeForPath('/seewetter/st-peter-ording')?.sub?.slug === 'st-peter-ording' && !metaForPath('/seewetter/st-peter-ording').noindex && canonicalPath('/seewetter/st-peter-ording') === '/seewetter/st-peter-ording' && metaForPath('/seewetter/st-peter-ording').title.startsWith('Seewetter St. Peter-Ording'));
+  add(`[SS] Sitemap: /seewetter und alle ${SEA_SPOT_COUNT} Spots, jede genau einmal`, (() => { const p = sitemapPaths().filter((x) => x.path.startsWith('/seewetter')).map((x) => x.path); return !ROUTE_BY_ID.seewetter.meta.noindex && p[0] === '/seewetter' && p.length === 1 + SEA_SPOT_COUNT && new Set(p).size === p.length; })());
+  add('[SS] ein unbekannter Spot bleibt auf der Route (die Seite sagt es), ist aber noindex und kanonisch /seewetter', routeForPath('/seewetter/gibt-es-nicht')?.def.id === 'seewetter' && routeForPath('/seewetter/gibt-es-nicht')?.sub === null && metaForPath('/seewetter/gibt-es-nicht').noindex && canonicalPath('/seewetter/gibt-es-nicht') === '/seewetter');
+  add('[SS] jeder Spot hat ein Linklabel (den Namen) und einen Titel mit „Seewetter“', (ROUTE_BY_ID.seewetter.subs ?? []).every((x) => !!x.label && x.title.startsWith(`Seewetter ${x.label}`)));
   add('[SW] Gegenprobe: ein unbekannter Sub-Slug einer Route MIT Sub-Liste bleibt noindex', metaForPath('/wetterkarte/xyz').noindex && metaForPath('/waldbrand/xyz').noindex);
   // Phase GL: Route, Aliase, Gletscher als Pfadsegment; bis Gate D noindex und ohne Sitemap.
   add('[GL] /gletscher ist eine Route, /gletscherradar und /gletschermonitor sind Aliase', routeForPath('/gletscher')?.def.id === 'gletscher' && aliasTarget('/gletscherradar') === '/gletscher' && aliasTarget('/gletschermonitor') === '/gletscher');

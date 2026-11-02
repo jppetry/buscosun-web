@@ -35,6 +35,9 @@ import { routeText } from '../../src/seo/routeTexts.ts';
 import { ROUTE_BY_ID, metaForPath } from '../../src/router/routes.ts';
 // Phase SA (audit/seo-autobahnwetter.md): Zahlen je Autobahn für die Übersicht der Autobahnwetter-Shell (nur Build, nie Bundle).
 import { ROAD_SEO_FACTS, ROAD_SEO_STATE_NAME } from '../../src/road/roadSeoFacts.ts';
+// Phase SS (audit/seewetter-seo.md): Steckbriefe der Seewetter-Spots für das Verzeichnis auf /seewetter.
+import { SEA_SPOT_FACTS } from '../../src/sea/seaSpotFacts.ts';
+import { dwdName } from '../../src/sea/seaSeoText.ts';
 
 export const ogImageOr = (slug, fallback) => (existsSync(join(OG_DIR, `${slug}.png`)) ? `/og/${slug}.png` : fallback);
 
@@ -1236,6 +1239,30 @@ function seoTextBlock(t) {
       ${faqSection(t.faq)}`;
 }
 
+/**
+ * Phase SS: Verzeichnis der Seewetter-Spots für die Shell von /seewetter — nach Revier und Küstenabschnitt des DWD
+ * gegliedert (Anker je Abschnitt), je Spot ein echter Link mit Seegebiet. Ersetzt dort die flache Liste der Sub-Routen.
+ */
+const SEA_COAST_ORDER = ['Nordfriesische Kueste', 'Helgoland', 'Elbmuendung', 'Elbe von Hamburg bis Cuxhaven', 'Ostfriesische Kueste',
+  'Flensburg bis Fehmarn', 'Oestlich Fehmarn bis Ruegen', 'Boddengewaesser Ost und oestlich Ruegen'];
+const anchorOf = (s) => dwdName(s).toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+export function seaSpotDirectory() {
+  const KIND = { strand: 'Badestrand', kite: 'Kite-Spot', hafen: 'Hafen', revier: 'Revier' };
+  const out = [];
+  for (const [region, label] of [['nordsee', 'Nordsee'], ['ostsee', 'Ostsee']]) {
+    const spots = SEA_SPOT_FACTS.filter((x) => x.region === region);
+    const coasts = [...new Set(spots.map((x) => x.coast ?? ''))].sort((a, b) => SEA_COAST_ORDER.indexOf(a) - SEA_COAST_ORDER.indexOf(b));
+    const areas = [...new Set(spots.map((x) => x.seaArea).filter(Boolean))].map(dwdName);
+    out.push(`<h3 id="${region}">${label} · Seegebiet${areas.length > 1 ? 'e' : ''} ${escapeHtml(areas.join(', '))}</h3>`);
+    for (const c of coasts) {
+      // Das Seegebiet je Spot nur, wo ein Revier mehrere hat (Ostsee); in der Nordsee steht es schon in der Überschrift.
+      const list = spots.filter((x) => (x.coast ?? '') === c).map((x) => `<li><a href="/seewetter/${x.id}">${escapeHtml(x.name)}</a> — ${escapeHtml(x.kinds.map((k) => KIND[k] ?? k).join(', '))}${areas.length > 1 && x.seaArea ? `, Seegebiet ${escapeHtml(dwdName(x.seaArea))}` : ''}</li>`);
+      out.push(`<h4 id="${anchorOf(c || label)}">${escapeHtml(c ? `Küstenabschnitt ${dwdName(c)}` : label)}</h4>\n      <ul>\n        ${list.join('\n        ')}\n      </ul>`);
+    }
+  }
+  return `<h2>Alle ${SEA_SPOT_FACTS.length} Spots nach Revier und Küstenabschnitt</h2>\n      ${out.join('\n      ')}`;
+}
+
 /** `extraHtml`: zusätzlicher Abschnitt vor „Mehr auf buscosun“ (Phase GLS: Atlas und Steckbriefe in der Shell von `/gletscher`). */
 export function renderRouteRootContent(route, extraHtml = '') {
   const subs = (route.subs || []).filter((s) => !(route.id === 'wetterkarte' && s.slug === 'warnungen'));
@@ -1246,9 +1273,11 @@ export function renderRouteRootContent(route, extraHtml = '') {
     const states = f.byState.map(([st]) => ROAD_SEO_STATE_NAME[st] ?? st).join(', ');
     return `<li><a href="${route.path}/${s.slug}">Autobahnwetter ${escapeHtml(f.road)}</a> — ${f.stations.toLocaleString('de-DE')} Glättemeldeanlagen, rund ${f.km.toLocaleString('de-DE')} km (${escapeHtml(states)})</li>`;
   };
-  const subList = subs.length
-    ? `<h2>${route.id === 'autobahnwetter' ? 'Autobahnwetter je Autobahn' : 'Ansichten'}</h2>\n      <ul>\n        ${subs.map(subItem).join('\n        ')}\n      </ul>`
-    : '';
+  const subList = route.id === 'seewetter'
+    ? seaSpotDirectory()
+    : subs.length
+      ? `<h2>${route.id === 'autobahnwetter' ? 'Autobahnwetter je Autobahn' : 'Ansichten'}</h2>\n      <ul>\n        ${subs.map(subItem).join('\n        ')}\n      </ul>`
+      : '';
   // Phase Ortsseiten (E): die Seewetter-Shell verlinkt die Ortsseiten der Küstenorte (Gegenrichtung zum Seewetter-Abschnitt dort).
   const coast = route.id === 'seewetter' ? seaPlaceLinks(PLACES) : [];
   const coastList = coast.length
@@ -1271,13 +1300,24 @@ export function renderRouteRootContent(route, extraHtml = '') {
 /** Head-Ergänzungen für die Home (OG/Twitter/canonical/hreflang/JSON-LD). */
 /** Sub-Routen-Shell (SEO/GEO 2026, E1): eigener Head je Layer/Linse/Brand-Sicht. */
 function subRouteJsonLd(route, sub, url, text) {
-  return {
+  const page = {
     '@context': 'https://schema.org', '@type': 'WebPage',
     name: sub.title, description: sub.description, url, inLanguage: 'de',
     isPartOf: { '@type': 'WebSite', name: SITE.name, url: SITE.url + '/' },
     // Phase SA: Gegenstand der Seite (die Autobahn, mit Wikipedia-Eintrag) — nur, wo der Text ihn nennt.
     ...(text?.about ? { about: { '@type': text.about.type, name: text.about.name, ...(text.about.sameAs ? { sameAs: text.about.sameAs } : {}) } } : {}),
   };
+  // Phase SS: eine Seite über einen Ort (Seewetter-Spot) nennt ihn als `about` — Kontext, kein Rich Result.
+  const pl = text?.place;
+  if (pl) {
+    page.about = {
+      '@type': 'Place', name: pl.name,
+      geo: { '@type': 'GeoCoordinates', latitude: pl.lat, longitude: pl.lon },
+      ...(pl.containedIn ? { containedInPlace: { '@type': 'Place', name: pl.containedIn } } : {}),
+    };
+    if (sub.updated) page.dateModified = sub.updated;
+  }
+  return page;
 }
 function subRouteBreadcrumbJsonLd(route, sub, url) {
   return {
@@ -1318,7 +1358,11 @@ export function renderSubRouteRootContent(route, sub, text, siblings, explainerO
   const path = route.path + '/' + sub.slug;
   const body = (text.body || []).map((p) => `<p>${escapeHtml(p)}</p>`).join('\n      ');
   const facts = (text.facts || []).map((f) => `<dt>${escapeHtml(f.label)}</dt><dd>${escapeHtml(f.text)}</dd>`).join('\n        ');
-  const sib = siblings.filter((x) => x.slug !== sub.slug).map((x) => `<li><a href="${route.path}/${x.slug}">${escapeHtml(x.title)}</a></li>`).join('\n        ');
+  // Phase SS: eine eigene Liste (Nachbarspots) ersetzt die Geschwister — 55 gleichförmige Links wären kein Mehrwert.
+  const sib = text.related
+    ? text.related.items.map((x) => `<li><a href="${x.href}">${escapeHtml(x.label)}</a></li>`).join('\n        ')
+    : siblings.filter((x) => x.slug !== sub.slug).map((x) => `<li><a href="${route.path}/${x.slug}">${escapeHtml(x.label ?? x.title)}</a></li>`).join('\n        ');
+  const sibHeading = text.related ? text.related.heading : route.id === 'autobahnwetter' ? 'Autobahnwetter für weitere Autobahnen' : 'Weitere Ansichten';
   const official = (text.official ? `<p>${escapeHtml(text.official.text)} <a href="${text.official.href}" rel="noopener">${escapeHtml(text.official.label)}</a>.</p>` : '')
     + ((text.links || []).length ? `<p>Passend dazu: ${text.links.map((l) => `<a href="${l.href}">${escapeHtml(l.label)}</a>`).join(' · ')}</p>` : '');
   const explainer = text.explainer && explainerOk(text.explainer) ? `<p>Hintergrund: <a href="/wissen/${text.explainer}/">Erklärung im Wetterwissen</a>.</p>` : '';
@@ -1334,7 +1378,7 @@ export function renderSubRouteRootContent(route, sub, text, siblings, explainerO
       ${official}
       ${explainer}
       ${faqSection(text.faq)}
-      ${sib ? `<h2>${route.id === 'autobahnwetter' ? 'Autobahnwetter für weitere Autobahnen' : 'Weitere Ansichten'}</h2>
+      ${sib ? `<h2>${escapeHtml(sibHeading)}</h2>
       <ul>
         ${sib}
       </ul>` : ''}

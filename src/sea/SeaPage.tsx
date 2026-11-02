@@ -100,11 +100,18 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   const [mapCard, setMapCard] = useState<string | null>(openDossier && isMobile ? initial.spot : null);
   useEffect(() => { if (stage === 'dossier') setMapCard(null); }, [stage]);
   const firstSpot = useRef(true);
+  /**
+   * Phase SS (audit/seewetter-seo.md): does the URL name the spot? On `/seewetter` (the overview) the page shows the
+   * default spot WITHOUT writing it into the path — every spot is its own indexable page now, and rewriting the overview
+   * to `/seewetter/st-peter-ording` would hand its canonical to that spot. The first pick of a spot writes it (a real
+   * navigation, back returns to the overview); a link on a spot carries it from the start.
+   */
+  const [spotInUrl, setSpotInUrl] = useState<boolean>(!!initial.spot);
 
   const popKey = popState?.key ?? null;
   useEffect(() => {
     if (!popState) return;
-    setSpotId(popState.spot ?? DEFAULT_SPOT); setProfile(popState.p); setT(popState.t); setLayer(popState.l); setUnit(popState.u); setTab(popState.tab); setRevier(popState.rv);
+    setSpotId(popState.spot ?? DEFAULT_SPOT); setSpotInUrl(!!popState.spot); setProfile(popState.p); setT(popState.t); setLayer(popState.l); setUnit(popState.u); setTab(popState.tab); setRevier(popState.rv);
   }, [popKey]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { setLimitsState(loadLimits(profile)); }, [profile]);
   const setLimits = useCallback((l: SeaLimits | null) => { saveLimits(profile, l); setLimitsState(l ?? SEA_PROFILE_BY_ID[profile].limits); }, [profile]);
@@ -296,17 +303,17 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   }, [stationId]);
 
   // --- URL ------------------------------------------------------------------------------------------------
-  const urlState: SeaUrlState = { spot: spot?.id ?? spotId, p: profile, t, l: layer, u: unit, tab, rv: revier };
+  const urlState: SeaUrlState = { spot: spotInUrl ? (spot?.id ?? spotId) : null, p: profile, t, l: layer, u: unit, tab, rv: revier };
   const urlKey = JSON.stringify(urlState);
   useEffect(() => { if (!firstSpot.current) onUrlState(urlState); }, [urlKey]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!spot) return;
-    onSpot({ ...urlState, spot: spot.id }, firstSpot.current);
+    if (spotInUrl) onSpot({ ...urlState, spot: spot.id }, firstSpot.current);
     firstSpot.current = false;
-  }, [spot?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [spot?.id, spotInUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pickSpot = useCallback((id: string) => {
-    setSpotId(id); setMobTab('map');
+    setSpotId(id); setSpotInUrl(true); setMobTab('map');
     // Mobile shows the new spot's briefing; the desktop dossier keeps its chapter (Allgemein = `quellen`).
     if (isMobile) setTab((tb) => (tb === 'quellen' ? 'spot' : tb));
     const s = spots.find((x) => x.id === id);

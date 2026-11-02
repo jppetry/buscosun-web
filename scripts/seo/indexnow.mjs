@@ -12,6 +12,9 @@
  *   node scripts/seo/indexnow.mjs            # meldet alle URLs aus den erzeugten Sitemaps
  *   node scripts/seo/indexnow.mjs --dry      # zeigt nur, was gemeldet würde
  *   node scripts/seo/indexnow.mjs --match=/gletscher   # nur URLs, die den Text enthalten (Phase GLS: Steckbriefe und Atlas)
+ *   node scripts/seo/indexnow.mjs --only=/seewetter   # nur URLs, deren Pfad so beginnt (Phase SS: nach
+ *                                            # einer Änderung nur das melden, was sich geändert hat — Bing
+ *                                            # wünscht geänderte URLs, nicht wiederholt den ganzen Bestand)
  *
  * Es ist unschädlich, das mehrfach zu tun; sinnvoll ist es nach größeren Inhaltsänderungen.
  */
@@ -49,14 +52,16 @@ function sitemapUrls() {
 }
 
 const dry = process.argv.includes('--dry');
+const only = (process.argv.find((a) => a.startsWith('--only=')) ?? '').slice('--only='.length);
 const key = findKey();
 const matchArg = process.argv.find((a) => a.startsWith('--match='));
-const urlList = sitemapUrls().filter((u) => !matchArg || u.includes(matchArg.slice('--match='.length)));
-if (!urlList.length) { console.error('[indexnow] keine URL passt'); process.exit(1); }
+const urlList = sitemapUrls().filter((u) => (!only || new URL(u).pathname.startsWith(only)) && (!matchArg || u.includes(matchArg.slice('--match='.length))));
+if (urlList.length === 0) { console.error(`[indexnow] keine URL${only ? ` mit Pfad ${only}…` : ''} in den Sitemaps`); process.exit(1); }
+if (urlList.length > 10000) { console.error(`[indexnow] ${urlList.length} URLs — das Protokoll erlaubt höchstens 10 000 je Meldung`); process.exit(1); }
 console.log(`[indexnow] ${urlList.length} URLs, Schlüssel ${key.slice(0, 6)}… (Datei https://${HOST}/${key}.txt)`);
 
 if (dry) {
-  console.log(urlList.slice(0, 5).join('\n') + `\n… und ${urlList.length - 5} weitere`);
+  console.log(urlList.slice(0, 5).join('\n') + (urlList.length > 5 ? `\n… und ${urlList.length - 5} weitere` : ''));
   process.exit(0);
 }
 

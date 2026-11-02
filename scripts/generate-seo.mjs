@@ -32,6 +32,8 @@ import {
 // + register-ts.mjs wie die Verifier) — Route-Shells + Sitemap aus EINER Quelle.
 import { ROUTES, sitemapPaths, indexableSubRoutes, CONTENT_UPDATED } from '../src/router/routes.ts';
 import { subRouteText } from '../src/seo/subRouteTexts.ts';
+import { seaSpotSeoTexts } from '../src/sea/seaSeoText.ts';
+const SEA_SPOT_TEXTS = seaSpotSeoTexts();
 import { DASH_VIEW_KEY, DASH_VIEW_DASHBOARD } from '../src/dashboard/viewKey.ts';
 import { ROAD_LIVE } from '../src/road/roadFlag.ts';
 import { SEA_LIVE } from '../src/sea/seaFlag.ts';
@@ -267,6 +269,8 @@ const LM = {
   methodik: gitLastmod(['scripts/seo/methodik.mjs']),
   glossary: gitLastmod(['scripts/seo/glossary.mjs']),
   audiences: gitLastmod(['scripts/seo/audiences.mjs']),
+  // Phase SS: Seewetter-Hub und Spot-Seiten — Tabelle, Steckbriefe, Texte (nicht die Prognose, die erst die App zeigt).
+  sea: gitLastmod(['src/router/routes.ts', 'src/sea/seaSeo.ts', 'src/sea/seaSeoText.ts', 'src/sea/seaSpotFacts.ts', 'src/seo/routeTexts.ts']),
 };
 /**
  * SEO/GEO 2026 (E9): `sitemap.xml` ist jetzt ein **Sitemap-Index** auf zwei Teillisten —
@@ -281,7 +285,10 @@ function sitemap() {
   const fullEvents = EVENTS.filter((e) => e.status === 'full');
   const urls = [
     { loc: `${SITE.url}/`, pri: '1.0', mod: LM.routes },
-    ...sitemapPaths().map((p) => ({ loc: `${SITE.url}${p.path}`, pri: p.priority, mod: p.path.startsWith('/autobahnwetter') ? LM.road : LM.routes })),
+    // Phase SS: Seewetter (Hub + Spots) in einer eigenen Teilliste, damit Search Console und Bing ihre Indexierung getrennt zeigen.
+    ...sitemapPaths().map((p) => (p.path === '/seewetter' || p.path.startsWith('/seewetter/')
+      ? { loc: `${SITE.url}${p.path}`, pri: p.priority, mod: LM.sea, kind: 'sea' }
+      : { loc: `${SITE.url}${p.path}`, pri: p.priority, mod: p.path.startsWith('/autobahnwetter') ? LM.road : LM.routes })),
     { loc: `${SITE.url}/wetter/`, pri: '0.8', mod: LM.places },
     ...PLACES.map((p) => ({ loc: `${SITE.url}/wetter/${p.slug}/`, pri: '0.6', mod: LM.places, kind: 'orte' })),
     ...PLACES_NEW.map((p) => ({ loc: `${SITE.url}/wetter/${p.slug}/`, pri: '0.6', mod: LM.places, kind: 'orte2' })),
@@ -313,9 +320,11 @@ const ALL_URLS = sitemap();
 // (Indexierungsrate je Welle in der Search Console getrennt lesbar).
 const placeUrls = ALL_URLS.filter((u) => u.kind === 'orte');
 const placeUrls2 = ALL_URLS.filter((u) => u.kind === 'orte2');
+const seaUrls = ALL_URLS.filter((u) => u.kind === 'sea');
 const pageUrls = ALL_URLS.filter((u) => !u.kind);
 writeFileSync(join(DIST, 'sitemap-orte.xml'), urlSet(placeUrls), 'utf8');
 writeFileSync(join(DIST, 'sitemap-orte-2.xml'), urlSet(placeUrls2), 'utf8');
+writeFileSync(join(DIST, 'sitemap-seewetter.xml'), urlSet(seaUrls), 'utf8');
 writeFileSync(join(DIST, 'sitemap-pages.xml'), urlSet(pageUrls), 'utf8');
 // Phase WBS: eigene Teilliste der Waldbrand-Regionsseiten; lastmod aus Git (Saison-Index, Grenzen, Generator), nie das Build-Datum.
 const fireMod = gitLastmod(FIRE_REGION_SOURCES);
@@ -330,11 +339,13 @@ const orte2Lastmod = lastmodTag(maxLastmod(placeUrls2.map((u) => u.mod)));
 const glacierUrls = glacierSitemapUrls();
 if (glacierUrls.length) writeFileSync(join(DIST, 'sitemap-gletscher.xml'), urlSet(glacierUrls), 'utf8');
 const glacierLastmod = lastmodTag(maxLastmod(glacierUrls.map((u) => u.mod)));
+const seaLastmod = lastmodTag(maxLastmod(seaUrls.map((u) => u.mod)));
 writeFileSync(join(DIST, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <sitemap><loc>${SITE.url}/sitemap-pages.xml</loc>${sitemapLastmod}</sitemap>
   <sitemap><loc>${SITE.url}/sitemap-orte.xml</loc>${orteLastmod}</sitemap>
   <sitemap><loc>${SITE.url}/sitemap-orte-2.xml</loc>${orte2Lastmod}</sitemap>
+  <sitemap><loc>${SITE.url}/sitemap-seewetter.xml</loc>${seaLastmod}</sitemap>
 ${glacierUrls.length ? `  <sitemap><loc>${SITE.url}/sitemap-gletscher.xml</loc>${glacierLastmod}</sitemap>\n` : ''}${fireUrls.length ? `  <sitemap><loc>${SITE.url}/sitemap-waldbrand.xml</loc>${lastmodTag(fireMod)}</sitemap>\n` : ''}</sitemapindex>
 `, 'utf8');
 
@@ -568,7 +579,7 @@ for (const route of ROUTES) {
   const subs = indexableSubRoutes(route);
   const explainerOk = (slug) => EXPLAINERS_BY_SLUG[slug]?.status === 'full';
   for (const x of subs) {
-    const text = subRouteText(x.path);
+    const text = subRouteText(x.path) ?? SEA_SPOT_TEXTS[x.path] ?? null;
     if (!text) { console.error(`[seo] Sub-Route ${x.path} ohne Text (src/seo/subRouteTexts.ts)`); process.exit(1); }
     let sh = rawShell
       .replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(x.sub.title)} | ${SITE.name}</title>`)
@@ -622,4 +633,4 @@ const fullExplainers = EXPLAINERS.filter((e) => e.status === 'full').length;
 const fullTools = TOOLS.filter((t) => t.status === 'full').length;
 const fullEvents = EVENTS.filter((e) => e.status === 'full').length;
 const appUrls = sitemapPaths().length;
-console.log(`[seo] llms.txt + llms-full.txt, ${GLOSSARY.length} Glossar-Begriffe, ${AUDIENCES.length} Zielgruppen-Seiten, ${pages} Geo (${PLACES.length} + ${PLACES_NEW.length}), ${regionPages} Länder-/Regionsseiten, ${explainerPages} Explainer (${fullExplainers} idx), ${toolPages} Tools (${fullTools} idx), ${eventPages} Wetterlage (${fullEvents} idx), ${LEGAL_PAGES.length} Rechtsseiten + Hubs, ${METHODIK.length} Methodik + ${TRUST_PAGES.length} Vertrauensseiten, ${routeShells} App-Routen-Shells + ${subShells} Sub-Routen-Shells (${appUrls} URLs), sitemap-index + ${pageUrls.length} Seiten / ${placeUrls.length} + ${placeUrls2.length} Orte / ${glacierUrls.length} Gletscher (${glacierShells} Steckbrief-Shells, ${atlas.length} Atlas-Seiten), ${FIRE_REGION_PATHS.length} Waldbrand-Regionsseiten, feed.xml, sitemap-news.xml, Home angereichert. Build ${BUILD_DATE}.`);
+console.log(`[seo] llms.txt + llms-full.txt, ${GLOSSARY.length} Glossar-Begriffe, ${AUDIENCES.length} Zielgruppen-Seiten, ${pages} Geo (${PLACES.length} + ${PLACES_NEW.length}), ${regionPages} Länder-/Regionsseiten, ${explainerPages} Explainer (${fullExplainers} idx), ${toolPages} Tools (${fullTools} idx), ${eventPages} Wetterlage (${fullEvents} idx), ${LEGAL_PAGES.length} Rechtsseiten + Hubs, ${METHODIK.length} Methodik + ${TRUST_PAGES.length} Vertrauensseiten, ${routeShells} App-Routen-Shells + ${subShells} Sub-Routen-Shells (${appUrls} URLs), sitemap-index + ${pageUrls.length} Seiten / ${placeUrls.length} + ${placeUrls2.length} Orte / ${seaUrls.length} Seewetter / ${glacierUrls.length} Gletscher (${glacierShells} Steckbrief-Shells, ${atlas.length} Atlas-Seiten), ${FIRE_REGION_PATHS.length} Waldbrand-Regionsseiten, feed.xml, sitemap-news.xml, Home angereichert. Build ${BUILD_DATE}.`);

@@ -107,8 +107,15 @@ export function ogCardSlug(routeId: string, viewSlug?: string | null): string {
  */
 export function ogCardPath(routeId: string | null | undefined, viewSlug?: string | null): string | null {
   if (!hasOgCard(routeId)) return null;
-  return `${OG_APP_DIR}/${ogCardSlug(routeId as string, viewSlug)}.png`;
+  return `${OG_APP_DIR}/${ogCardSlug(routeId as string, OG_CARD_ROUTE_ONLY.includes(routeId as string) ? null : viewSlug)}.png`;
 }
+
+/**
+ * Routen, deren Sub-Routen die Karte der Route teilen (Phase SS): die 56 Seewetter-Spots sind Unterseiten, aber keine
+ * eigene Ansicht — 56 Karten mit nur anderem Ortsnamen wären Ballast im Repo. Die Vorschau eines Spot-Links nennt den
+ * Spot im Text (`describeSeaLink`), das Bild bleibt die Seewetter-Karte.
+ */
+export const OG_CARD_ROUTE_ONLY: readonly string[] = ['seewetter'];
 
 // --- Selbstverifikation (Muster D-12; netzfrei) -------------------------------
 
@@ -122,6 +129,7 @@ export function verifyOgCard(): { checks: OgCardCheck[]; passed: number; failed:
   add('Route mit Sicht ⇒ Bindestrich', ogCardPath('wetterkarte', 'wind') === '/og/app/wetterkarte-wind.png');
   add('mehrteiliger Sub-Slug bleibt unverändert', ogCardPath('waldbrand', 'aktive-braende') === '/og/app/waldbrand-aktive-braende.png');
   add('Start hat keine App-Karte (sie behält /og/home.png)', ogCardPath('home') === null);
+  add('Seewetter-Spots teilen die Karte der Route', ogCardPath('seewetter', 'sylt-westerland') === '/og/app/seewetter.png' && ogCardPath('seewetter') === '/og/app/seewetter.png');
   add('unbekannte Route hat keine Karte', ogCardPath('gibtsnicht') === null && ogCardPath(null) === null);
   add('jede Karte ist ein PNG unter /og/app/', OG_CARD_ROUTES.every((id) => ogCardPath(id)?.startsWith('/og/app/') && ogCardPath(id)?.endsWith('.png')));
   add('Namensliste und Stil-Tabelle nennen dieselben Routen (sie liegen getrennt, s. Kommentar)',

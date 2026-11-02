@@ -43,6 +43,10 @@ export interface SeoText {
   faq?: readonly { q: string; a: string }[];
   /** Optional (Phase SA): Gegenstand der Seite für das JSON-LD (`WebPage.about`), etwa die Autobahn mit Wikipedia-Eintrag. */
   about?: { type: 'Place'; name: string; sameAs?: string };
+  /** Optional (Phase SS): eigene Linkliste statt der Geschwister-Ansichten — die Spot-Seiten nennen ihre Nachbarspots, nicht alle 55 übrigen. */
+  related?: { heading: string; items: readonly { label: string; href: string }[] };
+  /** Optional (Phase SS): der Ort der Seite, als `about`/`Place` im JSON-LD der Shell. */
+  place?: { name: string; lat: number; lon: number; containedIn?: string };
 }
 
 const DACH = 'Deutschland, Österreich und die Schweiz';

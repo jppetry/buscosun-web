@@ -16,7 +16,7 @@ export const SEA_TOOL = {
   status: 'full', deepLink: '/seewetter',
   answer:
     'Die Seewetter-Ansicht von buscosun zeigt für die deutsche Nord- und Ostseeküste den Seegang mit Windsee und Dünung aus dem '
-    + 'Küstenmodell des Deutschen Wetterdienstes, Wind und Böen an rund 60 Spots aus buscosun Fusion, den Wasserstand an den Pegeln des '
+    + 'Küstenmodell des Deutschen Wetterdienstes, Wind und Böen an 56 Spots aus buscosun Fusion, den Wasserstand an den Pegeln des '
     + 'Bundesamts für Seeschifffahrt und Hydrographie (BSH) und den Seewetterbericht des DWD im Wortlaut. Sie ist kein amtliches '
     + 'Warnprodukt und gibt keine Sicherheitsbewertung für eine Ausfahrt.',
   bullets: [
@@ -30,8 +30,9 @@ export const SEA_TOOL = {
     {
       id: 'so-gehts', h2: "So geht's",
       html:
-        '<ol><li><strong>Spot wählen.</strong> Auf der Karte oder über die Suche einen Spot antippen, zum Beispiel St. Peter-Ording oder Laboe. '
-        + 'Jeder Spot hat einen eigenen Link, der sich teilen lässt.</li>'
+        '<ol><li><strong>Spot wählen.</strong> Auf der Karte oder über die Suche einen Spot antippen, zum Beispiel '
+        + '<a href="/seewetter/st-peter-ording">St. Peter-Ording</a> oder <a href="/seewetter/laboe">Laboe</a>. '
+        + 'Jeder Spot hat eine eigene Seite mit Steckbrief, die sich teilen lässt; die <a href="/seewetter">Übersicht</a> listet alle nach Küstenabschnitt.</li>'
         + '<li><strong>Stunde wählen.</strong> Das Stundenband zeigt Wind, Böe und Seegang über die kommenden Stunden.</li>'
         + '<li><strong>Seegang lesen.</strong> Windsee entsteht vor Ort, Dünung läuft von weiter her ein. Beide können aus verschiedenen Richtungen kommen; deshalb stehen sie getrennt da.</li>'
         + '<li><strong>Wasserstand prüfen.</strong> Der nächste Pegel zeigt die Vorhersagekurve des BSH mit Zeitstempel.</li>'
@@ -65,12 +66,14 @@ export const SEA_TOOL = {
     { q: 'Warum steht in manchen Zellen „kein Seegang“?', a: 'Weil das Küstenmodell dort keine Wasserzelle hat. buscosun zeigt das als fehlenden Wert, nicht als 0 Meter.' },
   ],
   seeAlso: [
+    { label: 'Seewetter Sylt Westerland', href: '/seewetter/sylt-westerland' }, { label: 'Seewetter Kiel-Schilksee', href: '/seewetter/kiel-schilksee' },
+    { label: 'Seewetter Warnemünde', href: '/seewetter/warnemuende' }, { label: 'Seewetter Fehmarn Grüner Brink', href: '/seewetter/fehmarn-gruener-brink' },
     { label: 'Wetter in Kiel', href: '/wetter/kiel/' }, { label: 'Wetter in Rostock', href: '/wetter/rostock/' },
     { label: 'Wetter auf Sylt', href: '/wetter/sylt-westerland/' }, { label: 'Wetter in Cuxhaven', href: '/wetter/cuxhaven/' },
     { label: 'buscosun für Segler', href: '/fuer/segler/' },
   ],
-  relatedExplainers: ['windboeen-sturm', 'modellvergleich-unsicherheit'],
-  datePublished: PUBLISHED, dateModified: PUBLISHED,
+  relatedExplainers: ['seegang-wellenhoehe', 'seewetterbericht', 'windboeen-sturm', 'modellvergleich-unsicherheit'],
+  datePublished: PUBLISHED, dateModified: '2026-11-02',
 };
 
 export const GLACIER_TOOL = {

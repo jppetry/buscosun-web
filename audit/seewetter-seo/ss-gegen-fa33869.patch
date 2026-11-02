@@ -1,0 +1,1719 @@
+diff --git a/CLAUDE.md b/CLAUDE.md
+index 81d2b8c..eba2067 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -39,6 +39,7 @@
+ | **GL** — Gletscher-Monitor | auf `main`, `GLACIER_LIVE` an (`8e8646a`, 13.10.); in der alten Tabelle nicht geführt | — | s. Audit | `gletscher.md` |
+ | **HB** — Historie: Angleich + Bühne | Hülle wie Wetterkarte (Topbar, Rail — war fast leer, Dock mit Diagramm-Zeilen), Klimastreifen als Bühne mit Ablese-Pille und Zeit-Deck, echte Streifen in der Modus-Kachel, „Zuletzt angesehen" (22.10., uncommitted) | — | Sichtprüfung + Commit (§73), V-HB-1…3 | `historie-buehne.md` |
+ | **SN** — SEO der Nischen | 01.11., lokal committet: Gletscher indexierbar (Funktion, Methodik, OG, Ortsblöcke), Seewetter und Wetterarchiv mit Text, Modellvergleich je Ort benannt, Kacheln als Links, alte Atmosphäre-Ansichten 301 auf `/atmosphaere/querschnitt`, `/waldbrand` springt nicht mehr auf `/historie`; Autobahn vorbereitet hinter `ROAD_INDEXABLE` (`routes.ts`, aus); Fühler-Regeln `ROAD_AIR_SOFT`, `ROAD_PRECIP_FILL` | `ROAD_INDEXABLE` | Push (Jan), Vorlage `road-archiv` einspielen, Real-Device Gletscher, Freischaltung Autobahn; V-SN-1…10; §81 | `seo-nischen.md` |
++| **SS** — Seewetter-SEO | 02.11., als Patch (`audit/seewetter-seo/ss-gegen-fa33869.patch`), noch nicht im Arbeitsbaum: 56 Spot-Seiten `/seewetter/<spot>` als Sub-Routen mit eigener Shell, eigenem Canonical und Steckbrief (`src/sea/seaSeo.ts` eager, Texte lazy `seaSeoText.ts` aus dem generierten `seaSpotFacts.ts`), Übersicht mit Spot-Verzeichnis und Fragen, `sitemap-seewetter.xml`, `/wissen/seegang-wellenhoehe/` + `/wissen/seewetterbericht/`, IndexNow `--only`; die Übersicht schreibt keinen Standard-Spot mehr in die Adresse | — | Einspielen nach GLS/WBS/SA/FX-UI, `edge:share`, Build/Typecheck/Budget (totalJs-Ratsche), Sichtprüfung, E-SS-4, Commit/Push; V-SS-1…9; §82 | `seewetter-seo.md` |
+ | **BW-14 · HZ1** — Nebenlinien | Publisher des Daten-Repos mit `--force-with-lease` und Neuaufsetzen (V-BW-58, live abgenommen); Windpartikel-Ausdünnung ab z7 | — | V-BW-62/63 (§64.3), V-HZ-1…4 | `bandbreite.md` §33, `windpartikel-hochzoom.md` |
+ 
+ **Fristen:** 20.10. DWD-Radar-Altformate (HDF5-Weg ist an) · 04.11. GeoSphere `nwp-v1` endet (v2 ist Voreinstellung) · 30.11. DWD-URL-Schema + Wegfall des regulären Gitters (eigene Phase, E-EX-5) · ≈ 20.10. Spur P für `fusion-12t`/`12u` · 24.10. Seewetter Gate D · Dezember Winter-Nachfit der Lernstufe (7–48 h).
+diff --git a/MANUELLE-SCHRITTE.md b/MANUELLE-SCHRITTE.md
+index 48de6f7..a5c804f 100644
+--- a/MANUELLE-SCHRITTE.md
++++ b/MANUELLE-SCHRITTE.md
+@@ -3123,3 +3123,27 @@ Alles lokal auf `main` committet, nichts gepusht. **Der Push trägt auch die fre
+ 5. **Autobahnwetter freischalten:** vier Schritte in §6, im Probelauf grün. Gate C und E bleiben formal offen; das entscheidest du beim Umlegen.
+ 6. **Search Console, Bing, IndexNow, externe Verlinkung:** §9.
+ 7. **Stark umgeschriebene Seiten ansehen** (`/fuer/gleitschirmflieger/`, `/fuer/drohnenpiloten/`, `/fuer/bau-und-kran/`, `/fuer/wetterfuehlige/`, `/wissen/skew-t/` u. a., §5.1) und V-SN-5 entscheiden: Soll `/waldbrand` weiter die Saison zeigen oder den Gefahrenindex?
++
++## 82. Seewetter-SEO (Phase SS, `audit/seewetter-seo.md`), 2026-11-02
++
++Gebaut in einer Cloud-Sitzung gegen `fa33869`, liegt als Patch `audit/seewetter-seo/ss-gegen-fa33869.patch`. Eingespielt wird erst,
++wenn GLS, WBS, SA und FX-UI fertig sind (deine Entscheidung 02.11.); das Einmischen übernimmt die Sitzung auf Zuruf (Konflikte §7).
++
++1. **Nach dem Einspielen bauen und prüfen** (die Cloud-Sitzung hatte keine npm-Registry): `npm run edge:share`, `npm run typecheck`,
++   `npm run build` (enthält `generate-seo`, `verify-seo`, `verify-routing`), `npm run verify:sea-seo`, `npm run verify:share`,
++   `npm run budget`. Erwartung: eagerJs ≈ +1,1 KB, totalJs ≈ +8,5 KB ⇒ die totalJs-Ratsche wird rot; mit gemessener Zahl und Notiz anheben.
++2. **Sichtprüfung** (Desktop 1440 und Mobil 390): `/seewetter` öffnen — die Adresse bleibt `/seewetter`, die Karte zeigt die ganze Küste;
++   einen Spot wählen — Adresse `/seewetter/<spot>`, „Zurück" führt zur Übersicht; `/seewetter/sylt-westerland` direkt — Dossier wie bisher;
++   „Über diese Ansicht" zeigt Nachbarspots und Fragen; `/seewetter/gibt-es-nicht` — der Hinweis „unbekannter Spot" wie bisher.
++3. **E-SS-4 entscheiden:** Titel der Übersicht „… Wind, Wellen, Seewetterbericht" statt „… Wind, Welle, Wasserstand".
++4. **Commit und Push** (Push = live).
++5. **Nach dem Deploy:** `curl.exe -s https://buscosun.com/seewetter/kiel-schilksee | findstr canonical` zeigt den eigenen Pfad;
++   `https://buscosun.com/sitemap-seewetter.xml` hat 57 URLs.
++6. **Search Console:** `sitemap-seewetter.xml` einreichen, URL-Prüfung für `/seewetter`, `/seewetter/sylt-westerland`,
++   `/seewetter/kiel-schilksee`, `/seewetter/warnemuende` („Live-URL testen", gerendertes HTML ansehen), Indexierung beantragen.
++7. **Bing Webmaster Tools:** Website aus der Search Console importieren (falls noch nicht), `sitemap-seewetter.xml` einreichen, dann
++   `npm run build && node scripts/seo/indexnow.mjs --only=/seewetter` sowie `--only=/wissen/seegang-wellenhoehe` und
++   `--only=/wissen/seewetterbericht`. Nur nach echten Änderungen erneut melden.
++8. **Neue oder umbenannte Spots:** Katalog im Daten-Repo bauen, `node scripts/seo/fetch-place-modules.mjs`, dann
++   `node scripts/sea/gen-spot-seo.mjs` und `node scripts/sea/gen-spot-names.mjs`; `npm run verify:sea-seo` muss grün sein.
++9. **Nach 4–8 Wochen:** GSC/BWT nach „seewetter + ort" auswerten (V-SS-7); Verbreitung V-SS-8.
+diff --git a/netlify.toml b/netlify.toml
+index 87ecc64..6e73ca5 100644
+--- a/netlify.toml
++++ b/netlify.toml
+@@ -631,11 +631,237 @@
+   from   = "/autobahnwetter/*"
+   to     = "/autobahnwetter.html"
+   status = 200
+-# Phase SW: Seewetter — Spot als Pfadsegment teilt die Shell der Route (Canonical /seewetter); indexierbar seit 10.10.2026.
++# Phase SW: Seewetter, indexierbar seit 10.10.2026. Phase SS (audit/seewetter-seo.md): jeder Spot hat seine EIGENE flache
++# Shell (`dist/seewetter--<spot>.html`, aus `indexableSubRoutes()`), eigener Title/Canonical/H1/Steckbrief. Muss VOR
++# `/seewetter/*` stehen; ein unbekannter Spot fällt weiter auf die Shell der Route (die Seite sagt es, noindex).
+ [[redirects]]
+   from   = "/seewetter"
+   to     = "/seewetter.html"
+   status = 200
++[[redirects]]
++  from   = "/seewetter/borkum"
++  to     = "/seewetter--borkum.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/juist"
++  to     = "/seewetter--juist.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/norderney"
++  to     = "/seewetter--norderney.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/norddeich"
++  to     = "/seewetter--norddeich.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/langeoog"
++  to     = "/seewetter--langeoog.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/spiekeroog"
++  to     = "/seewetter--spiekeroog.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/wangerooge"
++  to     = "/seewetter--wangerooge.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/schillig"
++  to     = "/seewetter--schillig.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/wilhelmshaven"
++  to     = "/seewetter--wilhelmshaven.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/dangast"
++  to     = "/seewetter--dangast.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/cuxhaven-duhnen"
++  to     = "/seewetter--cuxhaven-duhnen.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/helgoland"
++  to     = "/seewetter--helgoland.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/buesum"
++  to     = "/seewetter--buesum.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/st-peter-ording"
++  to     = "/seewetter--st-peter-ording.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/pellworm"
++  to     = "/seewetter--pellworm.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/husum"
++  to     = "/seewetter--husum.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/amrum"
++  to     = "/seewetter--amrum.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/foehr-wyk"
++  to     = "/seewetter--foehr-wyk.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/sylt-hoernum"
++  to     = "/seewetter--sylt-hoernum.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/sylt-westerland"
++  to     = "/seewetter--sylt-westerland.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/sylt-list"
++  to     = "/seewetter--sylt-list.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/elbe-wittenbergen"
++  to     = "/seewetter--elbe-wittenbergen.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/flensburg"
++  to     = "/seewetter--flensburg.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/holnis"
++  to     = "/seewetter--holnis.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/schleimuende"
++  to     = "/seewetter--schleimuende.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/damp"
++  to     = "/seewetter--damp.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/eckernfoerde"
++  to     = "/seewetter--eckernfoerde.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/kiel-schilksee"
++  to     = "/seewetter--kiel-schilksee.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/laboe"
++  to     = "/seewetter--laboe.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/schoenberger-strand"
++  to     = "/seewetter--schoenberger-strand.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/hohwacht"
++  to     = "/seewetter--hohwacht.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/heiligenhafen"
++  to     = "/seewetter--heiligenhafen.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/grossenbrode"
++  to     = "/seewetter--grossenbrode.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/fehmarn-gruener-brink"
++  to     = "/seewetter--fehmarn-gruener-brink.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/fehmarn-wulfen"
++  to     = "/seewetter--fehmarn-wulfen.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/fehmarn-burgtiefe"
++  to     = "/seewetter--fehmarn-burgtiefe.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/groemitz"
++  to     = "/seewetter--groemitz.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/pelzerhaken"
++  to     = "/seewetter--pelzerhaken.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/scharbeutz"
++  to     = "/seewetter--scharbeutz.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/travemuende"
++  to     = "/seewetter--travemuende.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/boltenhagen"
++  to     = "/seewetter--boltenhagen.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/poel"
++  to     = "/seewetter--poel.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/rerik"
++  to     = "/seewetter--rerik.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/kuehlungsborn"
++  to     = "/seewetter--kuehlungsborn.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/warnemuende"
++  to     = "/seewetter--warnemuende.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/graal-mueritz"
++  to     = "/seewetter--graal-mueritz.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/ahrenshoop"
++  to     = "/seewetter--ahrenshoop.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/zingst"
++  to     = "/seewetter--zingst.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/hiddensee"
++  to     = "/seewetter--hiddensee.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/juliusruh"
++  to     = "/seewetter--juliusruh.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/binz"
++  to     = "/seewetter--binz.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/goehren"
++  to     = "/seewetter--goehren.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/lubmin"
++  to     = "/seewetter--lubmin.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/zinnowitz"
++  to     = "/seewetter--zinnowitz.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/heringsdorf"
++  to     = "/seewetter--heringsdorf.html"
++  status = 200
++[[redirects]]
++  from   = "/seewetter/ueckermuende"
++  to     = "/seewetter--ueckermuende.html"
++  status = 200
+ [[redirects]]
+   from   = "/seewetter/*"
+   to     = "/seewetter.html"
+diff --git a/package.json b/package.json
+index 5af5659..fce8d0e 100644
+--- a/package.json
++++ b/package.json
+@@ -10,6 +10,7 @@
+     "dev": "vite",
+     "build": "tsc -b && vite build && node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/generate-seo.mjs && node scripts/seo/verify-seo.mjs && node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-routing.mjs",
+     "verify:seo": "node scripts/seo/verify-seo.mjs",
++    "verify:sea-seo": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-sea-seo.mjs",
+     "verify:official-sources": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-official-sources.mjs",
+     "verify:datenalter": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-datenalter.mjs",
+     "verify:layer-transport": "node scripts/verify-layer-transport.mjs",
+diff --git a/public/robots.txt b/public/robots.txt
+index cf55690..a2a8277 100644
+--- a/public/robots.txt
++++ b/public/robots.txt
+@@ -52,9 +52,11 @@ Disallow: /climaGrid.json
+ Disallow: /nowcasterWeights.json
+ Disallow: /sw.js
+ 
+-# sitemap.xml ist ein Index auf die beiden Teillisten (E9) — beide zusätzlich genannt,
++# sitemap.xml ist ein Index auf die Teillisten (E9; Seewetter seit Phase SS getrennt) — alle zusätzlich genannt,
+ # damit Crawler sie auch ohne Index-Auflösung finden.
+ Sitemap: https://buscosun.com/sitemap.xml
+ Sitemap: https://buscosun.com/sitemap-pages.xml
+ Sitemap: https://buscosun.com/sitemap-orte.xml
++Sitemap: https://buscosun.com/sitemap-orte-2.xml
++Sitemap: https://buscosun.com/sitemap-seewetter.xml
+ Sitemap: https://buscosun.com/sitemap-news.xml
+diff --git a/scripts/generate-seo.mjs b/scripts/generate-seo.mjs
+index 621ecc1..f286d0e 100644
+--- a/scripts/generate-seo.mjs
++++ b/scripts/generate-seo.mjs
+@@ -32,6 +32,8 @@ import {
+ // + register-ts.mjs wie die Verifier) — Route-Shells + Sitemap aus EINER Quelle.
+ import { ROUTES, sitemapPaths, indexableSubRoutes, CONTENT_UPDATED } from '../src/router/routes.ts';
+ import { subRouteText } from '../src/seo/subRouteTexts.ts';
++import { seaSpotSeoTexts } from '../src/sea/seaSeoText.ts';
++const SEA_SPOT_TEXTS = seaSpotSeoTexts();
+ import { DASH_VIEW_KEY, DASH_VIEW_DASHBOARD } from '../src/dashboard/viewKey.ts';
+ import { ROAD_LIVE } from '../src/road/roadFlag.ts';
+ import { SEA_LIVE } from '../src/sea/seaFlag.ts';
+@@ -251,6 +253,8 @@ const LM = {
+   methodik: gitLastmod(['scripts/seo/methodik.mjs']),
+   glossary: gitLastmod(['scripts/seo/glossary.mjs']),
+   audiences: gitLastmod(['scripts/seo/audiences.mjs']),
++  // Phase SS: Seewetter-Hub und Spot-Seiten — Tabelle, Steckbriefe, Texte (nicht die Prognose, die erst die App zeigt).
++  sea: gitLastmod(['src/router/routes.ts', 'src/sea/seaSeo.ts', 'src/sea/seaSeoText.ts', 'src/sea/seaSpotFacts.ts', 'src/seo/routeTexts.ts']),
+ };
+ /**
+  * SEO/GEO 2026 (E9): `sitemap.xml` ist jetzt ein **Sitemap-Index** auf zwei Teillisten —
+@@ -265,7 +269,10 @@ function sitemap() {
+   const fullEvents = EVENTS.filter((e) => e.status === 'full');
+   const urls = [
+     { loc: `${SITE.url}/`, pri: '1.0', mod: LM.routes },
+-    ...sitemapPaths().map((p) => ({ loc: `${SITE.url}${p.path}`, pri: p.priority, mod: LM.routes })),
++    // Phase SS: Seewetter (Hub + Spots) in einer eigenen Teilliste, damit Search Console und Bing ihre Indexierung getrennt zeigen.
++    ...sitemapPaths().map((p) => (p.path === '/seewetter' || p.path.startsWith('/seewetter/')
++      ? { loc: `${SITE.url}${p.path}`, pri: p.priority, mod: LM.sea, kind: 'sea' }
++      : { loc: `${SITE.url}${p.path}`, pri: p.priority, mod: LM.routes })),
+     { loc: `${SITE.url}/wetter/`, pri: '0.8', mod: LM.places },
+     ...PLACES.map((p) => ({ loc: `${SITE.url}/wetter/${p.slug}/`, pri: '0.6', mod: LM.places, kind: 'orte' })),
+     ...PLACES_NEW.map((p) => ({ loc: `${SITE.url}/wetter/${p.slug}/`, pri: '0.6', mod: LM.places, kind: 'orte2' })),
+@@ -297,19 +304,23 @@ const ALL_URLS = sitemap();
+ // (Indexierungsrate je Welle in der Search Console getrennt lesbar).
+ const placeUrls = ALL_URLS.filter((u) => u.kind === 'orte');
+ const placeUrls2 = ALL_URLS.filter((u) => u.kind === 'orte2');
++const seaUrls = ALL_URLS.filter((u) => u.kind === 'sea');
+ const pageUrls = ALL_URLS.filter((u) => !u.kind);
+ writeFileSync(join(DIST, 'sitemap-orte.xml'), urlSet(placeUrls), 'utf8');
+ writeFileSync(join(DIST, 'sitemap-orte-2.xml'), urlSet(placeUrls2), 'utf8');
++writeFileSync(join(DIST, 'sitemap-seewetter.xml'), urlSet(seaUrls), 'utf8');
+ writeFileSync(join(DIST, 'sitemap-pages.xml'), urlSet(pageUrls), 'utf8');
+ const lastmodTag = (d) => (d ? `<lastmod>${d}</lastmod>` : '');
+ const sitemapLastmod = lastmodTag(maxLastmod(pageUrls.map((u) => u.mod)));
+ const orteLastmod = lastmodTag(maxLastmod(placeUrls.map((u) => u.mod)));
+ const orte2Lastmod = lastmodTag(maxLastmod(placeUrls2.map((u) => u.mod)));
++const seaLastmod = lastmodTag(maxLastmod(seaUrls.map((u) => u.mod)));
+ writeFileSync(join(DIST, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>
+ <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+   <sitemap><loc>${SITE.url}/sitemap-pages.xml</loc>${sitemapLastmod}</sitemap>
+   <sitemap><loc>${SITE.url}/sitemap-orte.xml</loc>${orteLastmod}</sitemap>
+   <sitemap><loc>${SITE.url}/sitemap-orte-2.xml</loc>${orte2Lastmod}</sitemap>
++  <sitemap><loc>${SITE.url}/sitemap-seewetter.xml</loc>${seaLastmod}</sitemap>
+ </sitemapindex>
+ `, 'utf8');
+ 
+@@ -541,12 +552,12 @@ for (const route of ROUTES) {
+   const subs = indexableSubRoutes(route);
+   const explainerOk = (slug) => EXPLAINERS_BY_SLUG[slug]?.status === 'full';
+   for (const x of subs) {
+-    const text = subRouteText(x.path);
++    const text = subRouteText(x.path) ?? SEA_SPOT_TEXTS[x.path] ?? null;
+     if (!text) { console.error(`[seo] Sub-Route ${x.path} ohne Text (src/seo/subRouteTexts.ts)`); process.exit(1); }
+     let sh = rawShell
+       .replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(x.sub.title)} | ${SITE.name}</title>`)
+       .replace(/<meta name="description" content="[^"]*" \/>/, `<meta name="description" content="${escapeHtml(x.sub.description)}" />`);
+-    sh = sh.replace('</head>', `    ${subRouteHeadExtras(route, x.sub)}\n  </head>`);
++    sh = sh.replace('</head>', `    ${subRouteHeadExtras(route, x.sub, text)}\n  </head>`);
+     sh = withPreloads(sh, preload);
+     sh = sh.replace('<div id="root"></div>', `<div id="root">${renderSubRouteRootContent(route, x.sub, text, subs.map((y) => y.sub), explainerOk)}</div>`);
+     writeFileSync(join(DIST, x.shell.slice(1)), sh, 'utf8');
+@@ -566,4 +577,4 @@ const fullExplainers = EXPLAINERS.filter((e) => e.status === 'full').length;
+ const fullTools = TOOLS.filter((t) => t.status === 'full').length;
+ const fullEvents = EVENTS.filter((e) => e.status === 'full').length;
+ const appUrls = sitemapPaths().length;
+-console.log(`[seo] llms.txt + llms-full.txt, ${GLOSSARY.length} Glossar-Begriffe, ${AUDIENCES.length} Zielgruppen-Seiten, ${pages} Geo (${PLACES.length} + ${PLACES_NEW.length}), ${regionPages} Länder-/Regionsseiten, ${explainerPages} Explainer (${fullExplainers} idx), ${toolPages} Tools (${fullTools} idx), ${eventPages} Wetterlage (${fullEvents} idx), ${LEGAL_PAGES.length} Rechtsseiten + Hubs, ${METHODIK.length} Methodik + ${TRUST_PAGES.length} Vertrauensseiten, ${routeShells} App-Routen-Shells + ${subShells} Sub-Routen-Shells (${appUrls} URLs), sitemap-index + ${pageUrls.length} Seiten / ${placeUrls.length} + ${placeUrls2.length} Orte, feed.xml, sitemap-news.xml, Home angereichert. Build ${BUILD_DATE}.`);
++console.log(`[seo] llms.txt + llms-full.txt, ${GLOSSARY.length} Glossar-Begriffe, ${AUDIENCES.length} Zielgruppen-Seiten, ${pages} Geo (${PLACES.length} + ${PLACES_NEW.length}), ${regionPages} Länder-/Regionsseiten, ${explainerPages} Explainer (${fullExplainers} idx), ${toolPages} Tools (${fullTools} idx), ${eventPages} Wetterlage (${fullEvents} idx), ${LEGAL_PAGES.length} Rechtsseiten + Hubs, ${METHODIK.length} Methodik + ${TRUST_PAGES.length} Vertrauensseiten, ${routeShells} App-Routen-Shells + ${subShells} Sub-Routen-Shells (${appUrls} URLs), sitemap-index + ${pageUrls.length} Seiten / ${placeUrls.length} + ${placeUrls2.length} Orte / ${seaUrls.length} Seewetter, feed.xml, sitemap-news.xml, Home angereichert. Build ${BUILD_DATE}.`);
+diff --git a/scripts/sea/gen-spot-seo.mjs b/scripts/sea/gen-spot-seo.mjs
+new file mode 100644
+index 0000000..e45d8a7
+--- /dev/null
++++ b/scripts/sea/gen-spot-seo.mjs
+@@ -0,0 +1,111 @@
++/**
++ * Seewetter · Steckbriefe der Spot-Seiten (Phase SS, audit/seewetter-seo.md) — schreibt `src/sea/seaSpotFacts.ts`.
++ *
++ * Die Spot-Seiten `/seewetter/<spot>` brauchen im ROH-HTML Inhalt, der je Spot wirklich verschieden ist (Google: „scaled
++ * content abuse" = Seiten, die sich nur im Ortsnamen unterscheiden). Hier stehen deshalb nur gerechnete oder gemessene
++ * Eigenschaften des Spots, keine Prognosewerte: Seegebiet und Küstenabschnitt des DWD, Ufernormale (wohin die offene See
++ * zeigt), Abstand der Modellzelle, nächste DWD-Station, nächster BSH-Pegel, Nachbarspots und die Ortsseiten, deren
++ * nächster Spot dieser ist. Live-Werte zeigt erst die App.
++ *
++ * Quelle ist der veröffentlichte Katalog des Daten-Repos (`sea/v1/static/spots.json`, `gauges.json`) — dieselbe Datei,
++ * die die Seite lädt —, dazu `scripts/seo/data/place-modules.json` (Ort → nächster Spot). Läuft NICHT im Build.
++ *
++ *   node scripts/sea/gen-spot-seo.mjs [--data=../buscosun-data]
++ *
++ * Neue oder umbenannte Spots ⇒ zuerst den Katalog im Daten-Repo bauen, dann dieses Skript; `verify:sea-seo` prüft, dass
++ * Steckbriefe, Namenstabelle (`seaSpotNames.ts`) und Handliste (`spots-src.json`) dieselben Kennungen tragen.
++ */
++import { readFileSync, writeFileSync } from 'node:fs';
++import { dirname, join, resolve } from 'node:path';
++import { fileURLToPath } from 'node:url';
++import { PLACES_ALL } from '../seo/places.mjs';
++
++const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
++const args = Object.fromEntries(process.argv.slice(2).map((a) => { const [k, v] = a.replace(/^--/, '').split('='); return [k, v ?? true]; }));
++const DATA = resolve(ROOT, args.data || '../buscosun-data');
++const J = (f) => JSON.parse(readFileSync(f, 'utf8'));
++
++const cat = J(join(DATA, 'sea/v1/static/spots.json'));
++const gauges = J(join(DATA, 'sea/v1/static/gauges.json'));
++const modules = J(join(ROOT, 'scripts/seo/data/place-modules.json'));
++
++/** Nächster BSH-Pegel nur bis zu dieser Entfernung (wie `MODULES.gaugeKm` der Ortsseiten); weiter weg wäre der Satz irreführend. */
++const GAUGE_MAX_KM = 20;
++/** Nachbarspots je Seite (gleiche Küste). */
++const NEAR_N = 4;
++
++/** DWD-Stationsnamen (Großbuchstaben, abgekürzt) → Lesename. Unbekannte fallen auf Großschreibung je Wort zurück und werden gemeldet. */
++const STATION_NAME = {
++  'NORDERNEY': 'Norderney', 'LEUCHTTURM A. WESER': 'Leuchtturm Alte Weser', 'BREMERHAVEN': 'Bremerhaven', 'CUXHAVEN': 'Cuxhaven',
++  'HELGOLAND': 'Helgoland', 'ELPERSBUETTEL': 'Elpersbüttel', 'ST. PETER ORDING': 'St. Peter-Ording', 'LECK': 'Leck',
++  'LIST/SYLT': 'List auf Sylt', 'HAMBURG-FU.': 'Hamburg-Fuhlsbüttel', 'SCHLESWIG': 'Schleswig', 'OLPENITZ': 'Olpenitz',
++  'KIEL-H.': 'Kiel-Holtenau', 'DOERNICK': 'Dörnick', 'WESTERMARKELSDORF': 'Westermarkelsdorf (Fehmarn)', 'PELZERHAKEN': 'Pelzerhaken',
++  'BOLTENHAGEN': 'Boltenhagen', 'WARNEMUENDE': 'Warnemünde', 'BARTH': 'Barth', 'ARKONA': 'Kap Arkona', 'PUTBUS': 'Putbus',
++  'GREIFSWALDER OIE': 'Greifswalder Oie', 'GREIFSWALD': 'Greifswald', 'UECKERMUENDE': 'Ueckermünde',
++};
++const unknownStations = new Set();
++function stationName(raw) {
++  if (STATION_NAME[raw]) return STATION_NAME[raw];
++  unknownStations.add(raw);
++  return raw.toLowerCase().replace(/(^|[\s\-/(])\p{L}/gu, (m) => m.toUpperCase());
++}
++
++const km = (aLat, aLon, bLat, bLon) => {
++  const r = Math.PI / 180, dLat = (bLat - aLat) * r, dLon = (bLon - aLon) * r;
++  const h = Math.sin(dLat / 2) ** 2 + Math.cos(aLat * r) * Math.cos(bLat * r) * Math.sin(dLon / 2) ** 2;
++  return 12742 * Math.asin(Math.sqrt(h));
++};
++const r1 = (v) => Math.round(v * 10) / 10;
++
++const nameOfPlace = new Map(PLACES_ALL.map((p) => [p.slug, p.name]));
++const placesOfSpot = new Map();
++for (const [slug, rec] of Object.entries(modules.places)) {
++  const id = rec.sea?.spot?.id;
++  if (!id || !nameOfPlace.has(slug)) continue;
++  if (!placesOfSpot.has(id)) placesOfSpot.set(id, []);
++  placesOfSpot.get(id).push({ slug, name: nameOfPlace.get(slug), km: rec.sea.spot.km });
++}
++
++const spots = cat.spots;
++const rows = spots.map((s) => {
++  const g = gauges.gauges.map((x) => [km(s.lat, s.lon, x.lat, x.lon), x]).sort((a, b) => a[0] - b[0])[0];
++  const near = spots.filter((o) => o.id !== s.id && o.region === s.region)
++    .map((o) => [km(s.lat, s.lon, o.lat, o.lon), o]).sort((a, b) => a[0] - b[0]).slice(0, NEAR_N)
++    .map(([d, o]) => [o.id, r1(d)]);
++  const places = (placesOfSpot.get(s.id) ?? []).sort((a, b) => a.km - b.km || a.name.localeCompare(b.name, 'de')).slice(0, 6).map((p) => [p.slug, p.name]);
++  return {
++    id: s.id, name: s.name, region: s.region, kinds: s.kinds, lat: s.lat, lon: s.lon,
++    normal: s.normal, normalSet: s.normalFrom === 'set',
++    seaArea: s.seaArea?.name ?? null, coast: s.coast?.name ?? null, wodl: s.wodlCoast,
++    station: s.station ? [stationName(s.station.name), r1(s.station.km)] : null,
++    cellKm: r1(s.cell.km), tidal: !!s.tidal,
++    gauge: g && g[0] <= GAUGE_MAX_KM ? [g[1].name, r1(g[0])] : null,
++    near, places,
++  };
++});
++
++const head = `/**
++ * GENERIERT von \`scripts/sea/gen-spot-seo.mjs\` aus dem Katalog \`sea/v1/static/spots.json\` (gebaut ${cat.built.slice(0, 10)}),
++ * \`gauges.json\` und \`scripts/seo/data/place-modules.json\` — nicht von Hand ändern.
++ *
++ * Steckbrief je Spot für die SEO-Texte der Spot-Seiten (\`seaSeoText.ts\`). Nur Eigenschaften des Ortes, keine Prognose:
++ * Seegebiet/Küstenabschnitt in DWD-Schreibweise (ASCII), Ufernormale in Grad (wohin die offene See zeigt), Abstand der
++ * CWAM-Zelle, nächste DWD-Station [Name, km], nächster BSH-Pegel bis ${GAUGE_MAX_KM} km [Name, km], Nachbarspots derselben
++ * Küste [Kennung, km], Ortsseiten mit diesem Spot als nächstem [Slug, Name]. Liegt nur im Lazy-Chunk der Texte und im Build.
++ */
++export interface SeaSpotFact {
++  id: string; name: string; region: 'nordsee' | 'ostsee'; kinds: readonly string[]; lat: number; lon: number;
++  normal: number; normalSet: boolean; seaArea: string | null; coast: string | null; wodl: 'Nordseekueste' | 'Ostseekueste';
++  station: readonly [name: string, km: number] | null; cellKm: number; tidal: boolean;
++  gauge: readonly [name: string, km: number] | null;
++  near: ReadonlyArray<readonly [id: string, km: number]>;
++  places: ReadonlyArray<readonly [slug: string, name: string]>;
++}
++/** Bau-Datum des Katalogs, aus dem die Steckbriefe stammen. */
++export const SEA_SPOT_FACTS_BUILT = ${JSON.stringify(cat.built.slice(0, 10))};
++export const SEA_SPOT_FACTS: readonly SeaSpotFact[] = [
++`;
++const body = rows.map((r) => `  ${JSON.stringify(r)},`).join('\n');
++writeFileSync(join(ROOT, 'src/sea/seaSpotFacts.ts'), `${head}${body}\n];\n`, 'utf8');
++console.log(`[sea-seo] ${rows.length} Steckbriefe → src/sea/seaSpotFacts.ts (Katalog ${cat.built.slice(0, 10)}); Pegel ≤ ${GAUGE_MAX_KM} km: ${rows.filter((r) => r.gauge).length}; mit Ortsseiten: ${rows.filter((r) => r.places.length).length}`);
++if (unknownStations.size) console.warn(`[sea-seo] Stationsnamen ohne Lesenamen (bitte in STATION_NAME ergänzen): ${[...unknownStations].join(', ')}`);
+diff --git a/scripts/seo/audiences.mjs b/scripts/seo/audiences.mjs
+index f000b0a..0760933 100644
+--- a/scripts/seo/audiences.mjs
++++ b/scripts/seo/audiences.mjs
+@@ -230,12 +230,12 @@ export const AUDIENCES = [
+         `Wechsle auf die ${a('/wetterkarte/boeen', 'Böenkarte')} für die Spitzen bis morgen; die Stationen (${a('/wetterkarte/stationen', 'Wetterstationen')}) zeigen den gemessenen Wind am Ufer.`,
+         `Bei Gewitterlage: ${a('/wetterkarte/zellbahnen', 'Zellbahnen')} (DE) mit Ankunftszeit, ${a('/wetterkarte/blitze', 'Blitzkarte')} und ${a('/wetterkarte/gewitter', 'Gewitterpotenzial')}.`,
+         `Auf Alpenseen: ${a('/atmosphaere/querschnitt', 'Vertikalschnitt')} über den Kamm und der Explainer ${a('/wissen/foehn/', 'Föhn')}.`,
+-        `An Nord- und Ostsee: ${a('/seewetter', 'Seewetter')} mit Seegang, Wind am Spot, BSH-Wasserstand und Seewetterbericht im Wortlaut.`,
++        `An Nord- und Ostsee: ${a('/seewetter', 'Seewetter')} mit Seegang, Wind am Spot, BSH-Wasserstand und Seewetterbericht im Wortlaut — jeder Spot mit eigener Seite, etwa ${a('/seewetter/kiel-schilksee', 'Kiel-Schilksee')}, ${a('/seewetter/fehmarn-wulfen', 'Fehmarn Wulfener Hals')} oder ${a('/seewetter/warnemuende', 'Warnemünde')}. Wie der Bericht zu lesen ist, erklärt ${a('/wissen/seewetterbericht/', 'Seewetterbericht lesen')}.`,
+         `Amtliche Warnlage wörtlich: ${a('/warnungen', 'Warnungen')} — und ${a('/wissen/windboeen-sturm/', 'was Böen von Mittelwind unterscheidet')}.`,
+       ]) },
+       { h2: 'Was buscosun hier nicht kann', html: ul([
+         'Keine Strömung und außerhalb der deutschen Küste kein Seegang; Binnenseen wie der Bodensee haben kein Wellenmodell.',
+-        'Keine Sturmwarnleuchten und keine seespezifische Starkwind- oder Sturmwarnung. Die Warnsysteme der Seen (Bodensee, Schweizer Seen) sind eigene amtliche Dienste; buscosun bildet sie nicht ab.',
++        'Keine Sturmwarnleuchten und keine eigene Starkwind- oder Sturmwarnung. Die Warnsysteme der Seen (Bodensee, Schweizer Seen) sind eigene amtliche Dienste, die buscosun nicht abbildet; für die deutsche Küste steht der Warnstatus des Seewetterdienstes Hamburg im Wortlaut auf der Seewetter-Seite.',
+         'Das 2,2-km-Gitter glättet Land-Wasser-Übergänge, Düsen zwischen Ufern und Thermikwinde am See; der Modellwind über dem Wasser ist eine Fläche, keine Messung.',
+         'Blitzkarte und KONRAD-Zellbahnen sind Deutschland-fokussiert; für Österreich und die Schweiz bleibt das Gewitterpotenzial aus ICON-D2.',
+         'Kein Tidenkalender und keine Hafeninformationen; Wasserstände nur an den BSH-Pegeln der Küste. ' + NO_WARNING,
+@@ -250,7 +250,8 @@ export const AUDIENCES = [
+       { q: 'Wie weit voraus reicht die Böenkarte?', a: '24 Stunden ab Modelllauf (ICON-D2 vmax_10m); die Windkarte reicht 12 Stunden.' },
+       { q: 'Gibt es die Zellbahnen auch in Österreich und der Schweiz?', a: 'Nein. KONRAD3D ist ein DWD-Produkt für Deutschland. Für AT und CH bleiben Gewitterpotenzial und Blitzprognose aus ICON-D2.' },
+     ],
+-    related: ['/wetterkarte/wind', '/wetterkarte/boeen', '/wetterkarte/zellbahnen', '/wissen/foehn/', '/wissen/gewitterzellen-konrad/', '/warnungen'],
++    related: ['/seewetter', '/wissen/seegang-wellenhoehe/', '/wetterkarte/wind', '/wetterkarte/boeen', '/wetterkarte/zellbahnen', '/wissen/foehn/', '/wissen/gewitterzellen-konrad/', '/warnungen'],
++    updated: '2026-11-02',
+   },
+   // ---------------------------------------------------------------------------
+   // Belege: iconD2GustSource.ts (24 h), eventModel.ts und methodik.mjs (Anlass Drohne: 2–30 °C, Wind 1,0, Regen 0,9,
+diff --git a/scripts/seo/content.mjs b/scripts/seo/content.mjs
+index ef928f0..7e5f8ca 100644
+--- a/scripts/seo/content.mjs
++++ b/scripts/seo/content.mjs
+@@ -31,6 +31,9 @@ const OG_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public
+ import { ogCardPath } from '../../src/share/ogCard.ts';
+ import { routeText } from '../../src/seo/routeTexts.ts';
+ import { ROUTE_BY_ID, metaForPath } from '../../src/router/routes.ts';
++// Phase SS (audit/seewetter-seo.md): Steckbriefe der Seewetter-Spots für das Verzeichnis auf /seewetter.
++import { SEA_SPOT_FACTS } from '../../src/sea/seaSpotFacts.ts';
++import { dwdName } from '../../src/sea/seaSeoText.ts';
+ 
+ export const ogImageOr = (slug, fallback) => (existsSync(join(OG_DIR, `${slug}.png`)) ? `/og/${slug}.png` : fallback);
+ 
+@@ -1212,15 +1215,48 @@ function seoTextBlock(t) {
+   const links = (t.links || []).map((l) => `<a href="${l.href}">${escapeHtml(l.label)}</a>`).join(' · ');
+   return `${body}
+       ${facts ? `<h2>Daten und Grenzen</h2>\n      <dl>\n        ${facts}\n      </dl>` : ''}
++      ${faqBlock(t.faq)}
+       ${official}
+       ${links ? `<h2>Passend dazu</h2>\n      <p>${links}</p>` : ''}`;
+ }
+ 
++/** Sichtbare Fragen und Antworten (Phase SS) — nur Text, kein FAQPage-Markup. */
++function faqBlock(faq) {
++  if (!faq || !faq.length) return '';
++  return `<h2>Häufige Fragen</h2>\n      ${faq.map((f) => `<h3>${escapeHtml(f.q)}</h3>\n      <p>${escapeHtml(f.a)}</p>`).join('\n      ')}`;
++}
++
++/**
++ * Phase SS: Verzeichnis der Seewetter-Spots für die Shell von /seewetter — nach Revier und Küstenabschnitt des DWD
++ * gegliedert (Anker je Abschnitt), je Spot ein echter Link mit Seegebiet. Ersetzt dort die flache Liste der Sub-Routen.
++ */
++const SEA_COAST_ORDER = ['Nordfriesische Kueste', 'Helgoland', 'Elbmuendung', 'Elbe von Hamburg bis Cuxhaven', 'Ostfriesische Kueste',
++  'Flensburg bis Fehmarn', 'Oestlich Fehmarn bis Ruegen', 'Boddengewaesser Ost und oestlich Ruegen'];
++const anchorOf = (s) => dwdName(s).toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
++export function seaSpotDirectory() {
++  const KIND = { strand: 'Badestrand', kite: 'Kite-Spot', hafen: 'Hafen', revier: 'Revier' };
++  const out = [];
++  for (const [region, label] of [['nordsee', 'Nordsee'], ['ostsee', 'Ostsee']]) {
++    const spots = SEA_SPOT_FACTS.filter((x) => x.region === region);
++    const coasts = [...new Set(spots.map((x) => x.coast ?? ''))].sort((a, b) => SEA_COAST_ORDER.indexOf(a) - SEA_COAST_ORDER.indexOf(b));
++    const areas = [...new Set(spots.map((x) => x.seaArea).filter(Boolean))].map(dwdName);
++    out.push(`<h3 id="${region}">${label} · Seegebiet${areas.length > 1 ? 'e' : ''} ${escapeHtml(areas.join(', '))}</h3>`);
++    for (const c of coasts) {
++      // Das Seegebiet je Spot nur, wo ein Revier mehrere hat (Ostsee); in der Nordsee steht es schon in der Überschrift.
++      const list = spots.filter((x) => (x.coast ?? '') === c).map((x) => `<li><a href="/seewetter/${x.id}">${escapeHtml(x.name)}</a> — ${escapeHtml(x.kinds.map((k) => KIND[k] ?? k).join(', '))}${areas.length > 1 && x.seaArea ? `, Seegebiet ${escapeHtml(dwdName(x.seaArea))}` : ''}</li>`);
++      out.push(`<h4 id="${anchorOf(c || label)}">${escapeHtml(c ? `Küstenabschnitt ${dwdName(c)}` : label)}</h4>\n      <ul>\n        ${list.join('\n        ')}\n      </ul>`);
++    }
++  }
++  return `<h2>Alle ${SEA_SPOT_FACTS.length} Spots nach Revier und Küstenabschnitt</h2>\n      ${out.join('\n      ')}`;
++}
++
+ export function renderRouteRootContent(route) {
+   const subs = (route.subs || []).filter((s) => !(route.id === 'wetterkarte' && s.slug === 'warnungen'));
+-  const subList = subs.length
+-    ? `<h2>Ansichten</h2>\n      <ul>\n        ${subs.map((s) => `<li><a href="${route.path}/${s.slug}">${escapeHtml(s.title)}</a> — ${escapeHtml(s.description)}</li>`).join('\n        ')}\n      </ul>`
+-    : '';
++  const subList = route.id === 'seewetter'
++    ? seaSpotDirectory()
++    : subs.length
++      ? `<h2>Ansichten</h2>\n      <ul>\n        ${subs.map((s) => `<li><a href="${route.path}/${s.slug}">${escapeHtml(s.title)}</a> — ${escapeHtml(s.description)}</li>`).join('\n        ')}\n      </ul>`
++      : '';
+   // Phase Ortsseiten (E): die Seewetter-Shell verlinkt die Ortsseiten der Küstenorte (Gegenrichtung zum Seewetter-Abschnitt dort).
+   const coast = route.id === 'seewetter' ? seaPlaceLinks(PLACES) : [];
+   const coastList = coast.length
+@@ -1241,12 +1277,23 @@ export function renderRouteRootContent(route) {
+ 
+ /** Head-Ergänzungen für die Home (OG/Twitter/canonical/hreflang/JSON-LD). */
+ /** Sub-Routen-Shell (SEO/GEO 2026, E1): eigener Head je Layer/Linse/Brand-Sicht. */
+-function subRouteJsonLd(route, sub, url) {
+-  return {
++function subRouteJsonLd(route, sub, url, text) {
++  const page = {
+     '@context': 'https://schema.org', '@type': 'WebPage',
+     name: sub.title, description: sub.description, url, inLanguage: 'de',
+     isPartOf: { '@type': 'WebSite', name: SITE.name, url: SITE.url + '/' },
+   };
++  // Phase SS: eine Seite über einen Ort (Seewetter-Spot) nennt ihn als `about` — Kontext, kein Rich Result.
++  const pl = text?.place;
++  if (pl) {
++    page.about = {
++      '@type': 'Place', name: pl.name,
++      geo: { '@type': 'GeoCoordinates', latitude: pl.lat, longitude: pl.lon },
++      ...(pl.containedIn ? { containedInPlace: { '@type': 'Place', name: pl.containedIn } } : {}),
++    };
++    if (sub.updated) page.dateModified = sub.updated;
++  }
++  return page;
+ }
+ function subRouteBreadcrumbJsonLd(route, sub, url) {
+   return {
+@@ -1258,7 +1305,7 @@ function subRouteBreadcrumbJsonLd(route, sub, url) {
+     ],
+   };
+ }
+-export function subRouteHeadExtras(route, sub) {
++export function subRouteHeadExtras(route, sub, text) {
+   const url = SITE.url + route.path + '/' + sub.slug;
+   const title = `${sub.title} | ${SITE.name}`;
+   const og = ogCardPath(route.id, sub.slug) || DEFAULT_OG_IMAGE;
+@@ -1274,7 +1321,7 @@ export function subRouteHeadExtras(route, sub) {
+     <meta name="twitter:title" content="${escapeHtml(title)}" />
+     <meta name="twitter:description" content="${escapeHtml(sub.description)}" />
+     <meta name="twitter:image" content="${SITE.url}${og}" />
+-    ${jsonLdScript(subRouteJsonLd(route, sub, url))}
++    ${jsonLdScript(subRouteJsonLd(route, sub, url, text))}
+     ${jsonLdScript(subRouteBreadcrumbJsonLd(route, sub, url))}
+     ${entityScripts()}`;
+ }
+@@ -1287,7 +1334,11 @@ export function renderSubRouteRootContent(route, sub, text, siblings, explainerO
+   const path = route.path + '/' + sub.slug;
+   const body = (text.body || []).map((p) => `<p>${escapeHtml(p)}</p>`).join('\n      ');
+   const facts = (text.facts || []).map((f) => `<dt>${escapeHtml(f.label)}</dt><dd>${escapeHtml(f.text)}</dd>`).join('\n        ');
+-  const sib = siblings.filter((x) => x.slug !== sub.slug).map((x) => `<li><a href="${route.path}/${x.slug}">${escapeHtml(x.title)}</a></li>`).join('\n        ');
++  // Phase SS: eine eigene Liste (Nachbarspots) ersetzt die Geschwister — 55 gleichförmige Links wären kein Mehrwert.
++  const sib = text.related
++    ? text.related.items.map((x) => `<li><a href="${x.href}">${escapeHtml(x.label)}</a></li>`).join('\n        ')
++    : siblings.filter((x) => x.slug !== sub.slug).map((x) => `<li><a href="${route.path}/${x.slug}">${escapeHtml(x.label ?? x.title)}</a></li>`).join('\n        ');
++  const sibHeading = text.related ? text.related.heading : 'Weitere Ansichten';
+   const official = (text.official ? `<p>${escapeHtml(text.official.text)} <a href="${text.official.href}" rel="noopener">${escapeHtml(text.official.label)}</a>.</p>` : '')
+     + ((text.links || []).length ? `<p>Passend dazu: ${text.links.map((l) => `<a href="${l.href}">${escapeHtml(l.label)}</a>`).join(' · ')}</p>` : '');
+   const explainer = text.explainer && explainerOk(text.explainer) ? `<p>Hintergrund: <a href="/wissen/${text.explainer}/">Erklärung im Wetterwissen</a>.</p>` : '';
+@@ -1300,9 +1351,10 @@ export function renderSubRouteRootContent(route, sub, text, siblings, explainerO
+       <dl>
+         ${facts}
+       </dl>
++      ${faqBlock(text.faq)}
+       ${official}
+       ${explainer}
+-      ${sib ? `<h2>Weitere Ansichten</h2>
++      ${sib ? `<h2>${escapeHtml(sibHeading)}</h2>
+       <ul>
+         ${sib}
+       </ul>` : ''}
+diff --git a/scripts/seo/explainers-extra.mjs b/scripts/seo/explainers-extra.mjs
+index 23dc866..17128af 100644
+--- a/scripts/seo/explainers-extra.mjs
++++ b/scripts/seo/explainers-extra.mjs
+@@ -1113,6 +1113,208 @@ export const EXPLAINERS_EXTRA = [
+     relatedPlaces: ['hamburg', 'frankfurt-am-main', 'wien', 'zuerich', 'feldberg-schwarzwald'],
+     datePublished: PUBLISHED, dateModified: '2026-11-01',
+   },
++  // ------------------------------------------------------------ seegang-wellenhoehe
++  // Phase SS (audit/seewetter-seo.md). Numbers: CWAM ~900 m, 0–78 h hourly, runs 00/12 UTC (src/sea/seaContract.ts,
++  // audit/seewetter.md); "kein Seegang" for a dry cell (V-SW-20, src/sea/seaView.ts); Rayleigh factor and the deep-water
++  // wavelength L = g·T²/2π ≈ 1.56·T² are textbook values, not buscosun results.
++  {
++    slug: 'seegang-wellenhoehe',
++    title: 'Seegang & Wellenhöhe',
++    h1: 'Seegang, Wellenhöhe, Windsee und Dünung: die Welle richtig lesen',
++    status: 'full',
++    answer:
++      'Die signifikante Wellenhöhe ist der Mittelwert des höchsten Drittels aller Wellen und entspricht etwa dem, was ' +
++      'ein geübter Beobachter schätzt; einzelne Wellen werden fast doppelt so hoch. Seegang setzt sich aus Windsee, ' +
++      'die der Wind vor Ort erzeugt, und Dünung zusammen, die aus einem entfernten Windfeld einläuft. Die Periode ' +
++      'zeigt, wie steil die See ist.',
++    sections: [
++      {
++        id: 'wellenhoehe',
++        h2: 'Signifikante Wellenhöhe: was die Zahl bedeutet',
++        html:
++          '<p>Wellen sind nie gleich hoch. Die <strong>signifikante Wellenhöhe</strong> (Hs) fasst sie zu einer Zahl ' +
++          'zusammen: Sie ist der Mittelwert des höchsten Drittels der Wellen in einem Zeitraum und liegt nahe an dem, ' +
++          'was ein erfahrener Beobachter vom Boot aus schätzt. Wellenmodelle wie das Küstenmodell des Deutschen ' +
++          'Wetterdienstes geben genau diese Größe aus.</p>' +
++          '<p>Die Zahl ist ein Mittel, keine Obergrenze. Unter rund tausend Wellen ist die höchste nach der ' +
++          'Rayleigh-Verteilung etwa <strong>1,9-mal so hoch</strong> wie die signifikante Wellenhöhe; bei 1,5 Metern ' +
++          'sind also einzelne Wellen um 3 Meter zu erwarten, wenn man lange genug draußen ist. Das gilt für offenes, ' +
++          'tiefes Wasser; in flachem Wasser begrenzen Tiefe und Brechen die Höhe.</p>',
++      },
++      {
++        id: 'windsee-duenung',
++        h2: 'Windsee und Dünung',
++        html:
++          '<p><strong>Windsee</strong> entsteht durch den Wind, der gerade über das Wasser weht. Sie wächst mit der ' +
++          'Windstärke, mit der Zeit, die der Wind schon weht, und mit der Strecke, über die er auf das Wasser wirkt ' +
++          '(Wirklänge oder Fetch). Windsee ist kurz, unregelmäßig und läuft meist mit dem Wind.</p>' +
++          '<p><strong>Dünung</strong> sind Wellen, die ein entferntes Windfeld erzeugt hat und die ohne den Wind ' +
++          'weiterlaufen. Sie ist länger und gleichmäßiger, kann bei Flaute ankommen und aus einer anderen Richtung ' +
++          'als der Wind vor Ort. In der Nordsee läuft Dünung aus der offenen See regelmäßig an die Küste; in der ' +
++          'Ostsee mit ihren kurzen Wirklängen und dem flachen Wasser ist sie selten, dort dominiert kurze, steile Windsee. ' +
++          'Der Gesamtseegang ist die Überlagerung beider.</p>',
++      },
++      {
++        id: 'periode',
++        h2: 'Periode und Steilheit',
++        html:
++          '<p>Die <strong>Periode</strong> ist die Zeit in Sekunden, die zwischen zwei Wellenkämmen vergeht. In tiefem ' +
++          'Wasser gehört zu ihr eine Wellenlänge von rund 1,56 × Periode² Metern: 4 Sekunden entsprechen etwa 25 Metern, ' +
++          '8 Sekunden etwa 100 Metern. Bei gleicher Höhe ist eine Welle mit kurzer Periode deshalb viel steiler, eine ' +
++          '4-Sekunden-See etwa viermal so steil wie eine 8-Sekunden-Dünung.</p>' +
++          '<p>Steilheit macht den Unterschied zwischen „ein Meter, angenehm" und „ein Meter, ruppig". Für kleine Boote, ' +
++          'SUP und Kajak zählt sie oft mehr als die Höhe allein.</p>',
++      },
++      {
++        id: 'kueste',
++        h2: 'Flaches Wasser, Watt und Strömung',
++        html:
++          '<p>Über Sandbänken und vor dem Strand wird das Wasser flacher: Die Wellen verlangsamen sich, werden steiler ' +
++          'und brechen. Läuft eine Gezeitenströmung gegen den Wind, wird die See kurz und steil — „Wind gegen Strom". ' +
++          'Im Wattenmeer begrenzt die Wassertiefe die Wellenhöhe, und bei Niedrigwasser fallen ganze Flächen trocken.</p>' +
++          '<p>Ein Wellenmodell mit rund 900 Metern Maschenweite kennt einzelne Sandbänke, Buhnen und Molen nicht. ' +
++          'In Häfen, Förden und Buchten kann der Seegang deshalb deutlich vom Modellwert der nächsten Zelle abweichen.</p>',
++      },
++      {
++        id: 'buscosun',
++        h2: 'So zeigt es buscosun',
++        html:
++          '<p>Das <a href="/seewetter">Seewetter für Nord- und Ostsee</a> zeigt die signifikante Wellenhöhe, Windsee, ' +
++          'Dünung und Periode als Karte und an jedem Spot als Stundenband, aus dem Küstenwellenmodell CWAM des DWD ' +
++          '(rund 900 Meter, Läufe um 00 und 12 UTC, stündlich bis 78 Stunden). Jeder Spot hat eine eigene Seite, etwa ' +
++          '<a href="/seewetter/sylt-westerland">Sylt Westerland</a>, <a href="/seewetter/st-peter-ording">St. Peter-Ording</a>, ' +
++          '<a href="/seewetter/laboe">Laboe</a> oder <a href="/seewetter/warnemuende">Warnemünde</a>. Wind und Böen kommen ' +
++          'aus buscosun Fusion.</p>' +
++          '<p>Fällt die Modellzelle am Spot trocken, steht dort „kein Seegang" statt 0 Meter, damit kein ruhiges Wasser ' +
++          'vorgetäuscht wird. Die Seite bewertet Wellen gegen Grenzen, die du je Profil einstellst; eine ' +
++          'Sicherheitsbewertung oder Freigabe ist das nicht.</p>',
++      },
++    ],
++    faqs: [
++      { q: 'Wie hoch wird die höchste Welle bei 1,5 Metern signifikanter Wellenhöhe?', a: 'Unter rund tausend Wellen etwa 1,9-mal so hoch, also knapp 3 Meter. Das ist eine statistische Faustregel für offenes, tiefes Wasser; in flachem Wasser begrenzen Tiefe und Brechen die Höhe.' },
++      { q: 'Warum fühlt sich ein Meter in der Ostsee rauer an als in der Nordsee?', a: 'Weil die Ostsee meist kurze Perioden hat. Bei gleicher Höhe ist eine Welle mit 4 Sekunden Periode etwa viermal so steil wie eine Dünung mit 8 Sekunden; lange Dünung ist in der Ostsee selten.' },
++      { q: 'Was bedeutet „Seegang 2 Meter" im Seewetterbericht?', a: 'Der Bericht nennt den erwarteten Seegang für ein ganzes Seegebiet in Metern, in Stufen von einem halben Meter. An einem einzelnen Strand kann er je nach Lage, Wassertiefe und Windrichtung deutlich niedriger oder höher sein.' },
++      { q: 'Warum zeigt buscosun manchmal „kein Seegang"?', a: 'Wenn die Modellzelle am Spot trockenfällt, etwa im Watt bei Niedrigwasser, gibt es dort keine Welle zu rechnen. Statt 0 Meter steht dann „kein Seegang", damit kein ruhiges Wasser vorgetäuscht wird.' },
++    ],
++    sources: [
++      { name: 'DWD: Seewetter für Nord- und Ostsee', url: 'https://www.dwd.de/DE/leistungen/seewetternordostsee/seewetternordostsee.html' },
++      { name: 'DWD Open Data: Seewetter (Wellenmodelle und Berichte)', url: 'https://opendata.dwd.de/weather/maritime/' },
++      { name: 'DWD Wetterlexikon', url: 'https://www.dwd.de/DE/service/lexikon/lexikon_node.html' },
++    ],
++    relatedExplainers: ['seewetterbericht', 'windboeen-sturm'],
++    relatedPlaces: ['sylt-westerland', 'sankt-peter-ording', 'helgoland', 'kiel', 'rostock', 'binz'],
++    datePublished: '2026-11-02', dateModified: '2026-11-02',
++  },
++  // ------------------------------------------------------------ seewetterbericht
++  // Phase SS. Structure, area names, units and footnote from the DWD bulletins FQEN50/FQEN51/WODL45 as fetched by the
++  // text line (src/sea/seaText.ts, buscosun-data sea/v1/text/); stale rules from SEA_TEXT_PRODUCTS (report 6 h,
++  // warning status 4 h); Beaufort table = WMO values.
++  {
++    slug: 'seewetterbericht',
++    title: 'Seewetterbericht',
++    h1: 'Seewetterbericht für Nord- und Ostsee lesen: Seegebiete, Begriffe, Warnungen',
++    status: 'full',
++    answer:
++      'Den Seewetterbericht für Nord- und Ostsee gibt der Seewetterdienst Hamburg des Deutschen Wetterdienstes heraus. ' +
++      'Er beschreibt die Wetterlage und sagt für jedes Seegebiet, etwa Deutsche Bucht oder Westliche Ostsee, den Wind ' +
++      'in Beaufort, Sicht und Wetter sowie den Seegang in Metern voraus. Warnungen vor Starkwind und Sturm erscheinen ' +
++      'als eigene Meldungen.',
++    sections: [
++      {
++        id: 'aufbau',
++        h2: 'Aufbau: Wetterlage, Seegebiete, Vorhersage',
++        html:
++          '<p>Der Kopf nennt Herausgeber und Ausgabezeit in UTC, etwa „herausgegeben vom Seewetterdienst Hamburg ' +
++          '02.11.2026, 1700 UTC". Darauf folgt die <strong>Wetterlage</strong>: Hochs und Tiefs mit ihrem Kerndruck in ' +
++          'Hektopascal und wohin sie ziehen. Dann kommt die <strong>Vorhersage</strong> je Tag und je Seegebiet mit drei ' +
++          'Zeilen: <em>Wind</em> mit Richtung und Stärke in Beaufort, <em>Sicht/Wetter</em> und <em>Seegang</em> in Metern. ' +
++          'Am Ende steht der Hinweis „Windstärke in Beaufort, Luftdruck in Hektopascal".</p>' +
++          '<p>Neben dem Bericht für die Seegebiete gibt es einen <strong>Küstenbericht</strong> für die deutsche Nord- und ' +
++          'Ostseeküste. Er ist nach Küstenabschnitten gegliedert, nennt Wind sowie Sicht und Wetter, aber keinen Seegang. ' +
++          'Die <strong>Mittelfrist</strong> blickt einige Tage weiter voraus und nennt auch die Wassertemperatur von Nord- und Ostsee.</p>',
++      },
++      {
++        id: 'seegebiete',
++        h2: 'Die Seegebiete und Küstenabschnitte',
++        html:
++          '<p>Der Bericht für Nord- und Ostsee ist nach Seegebieten gegliedert, unter anderem <strong>Deutsche Bucht</strong>, ' +
++          'Südwestliche Nordsee, Fischer, Skagerrak, Kattegat, Belte und Sund, <strong>Westliche Ostsee</strong>, ' +
++          '<strong>Südliche Ostsee</strong> und Südöstliche Ostsee. Für die deutsche Küste zählen vor allem diese:</p>' +
++          '<ul>' +
++          '<li><strong>Deutsche Bucht</strong>: die ganze deutsche Nordseeküste, etwa <a href="/seewetter/borkum">Borkum</a>, ' +
++          '<a href="/seewetter/helgoland">Helgoland</a>, <a href="/seewetter/cuxhaven-duhnen">Cuxhaven-Duhnen</a>, ' +
++          '<a href="/seewetter/st-peter-ording">St. Peter-Ording</a> und <a href="/seewetter/sylt-westerland">Sylt Westerland</a>.</li>' +
++          '<li><strong>Westliche Ostsee</strong>: von der Flensburger Förde bis Hiddensee, etwa <a href="/seewetter/kiel-schilksee">Kiel-Schilksee</a>, ' +
++          '<a href="/seewetter/fehmarn-wulfen">Fehmarn Wulfener Hals</a>, <a href="/seewetter/travemuende">Travemünde</a> und ' +
++          '<a href="/seewetter/warnemuende">Warnemünde</a>.</li>' +
++          '<li><strong>Südliche Ostsee</strong> und <strong>Boddengewässer Ost</strong>: Rügen und Usedom, etwa ' +
++          '<a href="/seewetter/juliusruh">Juliusruh</a>, <a href="/seewetter/binz">Binz</a> und <a href="/seewetter/heringsdorf">Usedom Heringsdorf</a>.</li>' +
++          '</ul>' +
++          '<p>Die Küstenabschnitte des Küstenberichts sind Ostfriesische Küste, Elbmündung, Helgoland, Nordfriesische Küste, ' +
++          'Elbe von Hamburg bis Cuxhaven, Flensburg bis Fehmarn, Östlich Fehmarn bis Rügen sowie Boddengewässer Ost und östlich Rügen. ' +
++          'Jede Spot-Seite auf buscosun nennt, zu welchem Seegebiet und Abschnitt sie gehört.</p>',
++      },
++      {
++        id: 'begriffe',
++        h2: 'Begriffe: strichweise, zeitweise, drehend, Beaufort',
++        html:
++          '<p><strong>Strichweise</strong> heißt: nicht im ganzen Gebiet, sondern in Teilen davon. <strong>Zeitweise</strong> ' +
++          'heißt: nicht durchgehend. <strong>Anfangs</strong> und <strong>später</strong> ordnen den Verlauf im ' +
++          'Vorhersagezeitraum. <strong>Drehend</strong> beschreibt eine Änderung der Windrichtung („nordostdrehend" = auf ' +
++          'Nordost drehend), <strong>umlaufend</strong> wechselnde Richtungen bei schwachem Wind. Die Sicht heißt gut, ' +
++          'mittel oder schlecht.</p>' +
++          '<p>Den Wind nennt der Bericht in <a href="/glossar/#beaufort">Beaufort</a>:</p>' +
++          '<ul>' +
++          '<li><strong>3</strong> schwache Brise: 7–10 Knoten, 12–19 km/h</li>' +
++          '<li><strong>4</strong> mäßige Brise: 11–16 Knoten, 20–28 km/h</li>' +
++          '<li><strong>5</strong> frische Brise: 17–21 Knoten, 29–38 km/h</li>' +
++          '<li><strong>6</strong> starker Wind: 22–27 Knoten, 39–49 km/h</li>' +
++          '<li><strong>7</strong> steifer Wind: 28–33 Knoten, 50–61 km/h</li>' +
++          '<li><strong>8</strong> stürmischer Wind: 34–40 Knoten, 62–74 km/h</li>' +
++          '<li><strong>9</strong> Sturm: 41–47 Knoten, 75–88 km/h</li>' +
++          '<li><strong>10</strong> schwerer Sturm: 48–55 Knoten, 89–102 km/h</li>' +
++          '</ul>' +
++          '<p>Die Werte gelten für den Mittelwind über zehn Minuten; <a href="/glossar/#boee">Böen</a> liegen darüber.</p>',
++      },
++      {
++        id: 'warnungen',
++        h2: 'Warnungen für See und Küste',
++        html:
++          '<p>Warnungen stehen nicht im Seewetterbericht selbst, sondern in eigenen Meldungen des Seewetterdienstes ' +
++          'Hamburg: für die Seegebiete Deutsche Bucht, Westliche und Südliche Ostsee (auf Englisch, „no warning" heißt ' +
++          'keine Warnung) und für die deutschen Küstenabschnitte als Starkwind-, Sturm- und Orkanwarnungen, dazu ' +
++          'Böenwarnungen. Jede Meldung trägt eine Nummer und ihre Ausgabezeit; eine Aufhebung erscheint als eigene Meldung.</p>' +
++          '<p>Maßgeblich ist immer die amtliche Meldung beim Deutschen Wetterdienst. Wer auf dem Wasser ist, hört den ' +
++          'Seewetterdienst über die Funkwege, die der DWD auf seiner Seewetter-Seite nennt.</p>',
++      },
++      {
++        id: 'buscosun',
++        h2: 'So zeigt es buscosun',
++        html:
++          '<p>Im Reiter „Seegebiet" jeder <a href="/seewetter">Spot-Seite</a> stehen der Seewetterbericht des passenden ' +
++          'Seegebiets, der Küstenbericht des Abschnitts, die Warnmeldung für die Küste und die Mittelfrist im ' +
++          'Wortlaut, unverändert bis auf Zeilenumbrüche und mit Ausgabezeit. buscosun prüft alle 15 Minuten auf eine ' +
++          'neue Ausgabe; ein Bericht über sechs Stunden alt gilt als veraltet, ein Warnstatus über vier Stunden alt als ' +
++          'unbekannt.</p>' +
++          '<p>„Keine Warnung" zeigt die Seite nur, wenn der amtliche Text genau das sagt; sonst steht der Wortlaut ' +
++          'obenan. buscosun fasst amtliche Texte nicht zusammen und gibt selbst keine Warnungen heraus.</p>',
++      },
++    ],
++    faqs: [
++      { q: 'In welcher Einheit nennt der Seewetterbericht den Wind?', a: 'In Beaufort, also Windstärken von 0 bis 12. Windstärke 6 entspricht 22 bis 27 Knoten oder 39 bis 49 km/h, Windstärke 8 entspricht 34 bis 40 Knoten oder 62 bis 74 km/h.' },
++      { q: 'Was heißt „strichweise 6"?', a: 'Dass Windstärke 6 nicht im ganzen Seegebiet zu erwarten ist, sondern nur in Teilen davon; im Rest des Gebiets weht es schwächer.' },
++      { q: 'Ist der Seewetterbericht auf buscosun amtlich?', a: 'Der Text ist der amtliche Wortlaut des Seewetterdienstes Hamburg, unverändert übernommen und mit Ausgabezeit. buscosun selbst gibt keine Warnungen heraus; maßgeblich ist der DWD.' },
++      { q: 'Welche Zeitzone gilt?', a: 'Der Bericht nennt die Ausgabezeit in UTC. In Deutschland ist es im Winter eine Stunde, im Sommer zwei Stunden später.' },
++    ],
++    sources: [
++      { name: 'DWD: Seewetter für Nord- und Ostsee', url: 'https://www.dwd.de/DE/leistungen/seewetternordostsee/seewetternordostsee.html' },
++      { name: 'DWD Open Data: Seewetterberichte (Textprodukte)', url: 'https://opendata.dwd.de/weather/maritime/forecast/german/' },
++      { name: 'DWD Wetterlexikon (Beaufort-Skala)', url: 'https://www.dwd.de/DE/service/lexikon/lexikon_node.html' },
++    ],
++    relatedExplainers: ['seegang-wellenhoehe', 'windboeen-sturm'],
++    relatedPlaces: ['helgoland', 'cuxhaven', 'kiel', 'rostock', 'flensburg', 'binz'],
++    datePublished: '2026-11-02', dateModified: '2026-11-02',
++  },
+ ];
+ 
+ export const EXPLAINERS_EXTRA_BY_SLUG = Object.fromEntries(EXPLAINERS_EXTRA.map((e) => [e.slug, e]));
+diff --git a/scripts/seo/indexnow.mjs b/scripts/seo/indexnow.mjs
+index aa6f696..04346a4 100644
+--- a/scripts/seo/indexnow.mjs
++++ b/scripts/seo/indexnow.mjs
+@@ -11,6 +11,9 @@
+  * Aufruf:
+  *   node scripts/seo/indexnow.mjs            # meldet alle URLs aus den erzeugten Sitemaps
+  *   node scripts/seo/indexnow.mjs --dry      # zeigt nur, was gemeldet würde
++ *   node scripts/seo/indexnow.mjs --only=/seewetter   # nur URLs, deren Pfad so beginnt (Phase SS: nach
++ *                                            # einer Änderung nur das melden, was sich geändert hat — Bing
++ *                                            # wünscht geänderte URLs, nicht wiederholt den ganzen Bestand)
+  *
+  * Es ist unschädlich, das mehrfach zu tun; sinnvoll ist es nach größeren Inhaltsänderungen.
+  */
+@@ -48,12 +51,15 @@ function sitemapUrls() {
+ }
+ 
+ const dry = process.argv.includes('--dry');
++const only = (process.argv.find((a) => a.startsWith('--only=')) ?? '').slice('--only='.length);
+ const key = findKey();
+-const urlList = sitemapUrls();
++const urlList = sitemapUrls().filter((u) => !only || new URL(u).pathname.startsWith(only));
++if (urlList.length === 0) { console.error(`[indexnow] keine URL${only ? ` mit Pfad ${only}…` : ''} in den Sitemaps`); process.exit(1); }
++if (urlList.length > 10000) { console.error(`[indexnow] ${urlList.length} URLs — das Protokoll erlaubt höchstens 10 000 je Meldung`); process.exit(1); }
+ console.log(`[indexnow] ${urlList.length} URLs, Schlüssel ${key.slice(0, 6)}… (Datei https://${HOST}/${key}.txt)`);
+ 
+ if (dry) {
+-  console.log(urlList.slice(0, 5).join('\n') + `\n… und ${urlList.length - 5} weitere`);
++  console.log(urlList.slice(0, 5).join('\n') + (urlList.length > 5 ? `\n… und ${urlList.length - 5} weitere` : ''));
+   process.exit(0);
+ }
+ 
+diff --git a/scripts/seo/llms.mjs b/scripts/seo/llms.mjs
+index 360df9f..085374a 100644
+--- a/scripts/seo/llms.mjs
++++ b/scripts/seo/llms.mjs
+@@ -63,6 +63,7 @@ const LIMITS = `## Grenzen (ausdrücklich)
+ export function buildLlmsTxt({ site, updated, places, explainers, tools, methodik, audiences, glossary, events, subRoutes }) {
+   const byCountry = places.reduce((a, p) => ((a[p.country] = (a[p.country] || 0) + 1), a), {});
+   const layerSubs = subRoutes.filter((x) => x.route.id === 'wetterkarte');
++  const seaSubs = subRoutes.filter((x) => x.route.id === 'seewetter');
+   const link = (path, label) => `- [${label}](${site.url}${path})`;
+ 
+   const sections = [];
+@@ -83,8 +84,9 @@ ${link('/atmosphaere', 'Atmosphäre')}: Vertikalschnitt entlang einer frei gezog
+   unter ${site.url}/atmosphaere/querschnitt. Kein amtliches Flugwetter.
+ ${link('/waldbrand', 'Brandradar DACH')}: EU-Gefahrenindex, aktive Brände aus Satellitendaten, Trockenheit,
+   Historie seit 2020 (${site.url}/waldbrand/historie) und Thermalanomalien (${site.url}/waldbrand/thermalanomalien).
+-${link('/seewetter', 'Seewetter Nord- und Ostsee')}: Seegang aus dem DWD-Küstenmodell, Wind an rund 60 Spots, Wasserstand der BSH-Pegel,
+-  Seewetterbericht im Wortlaut. Kein amtliches Warnprodukt (${site.url}/methodik/seewetter-quellen/).
++${link('/seewetter', 'Seewetter Nord- und Ostsee')}: Seegang aus dem DWD-Küstenmodell, Wind und Böen an ${seaSubs.length} Spots, je Spot eine URL
++  (${seaSubs.slice(0, 4).map((x) => site.url + x.path).join(', ')} …), Wasserstand der BSH-Pegel, Seewetterbericht im Wortlaut.
++  Kein amtliches Warnprodukt (${site.url}/methodik/seewetter-quellen/, ${site.url}/wissen/seewetterbericht/).
+ ${link('/gletscher', 'Gletscher-Monitor DACH')}: rund 2 200 Gletscher mit Inventarfläche und Bezugsjahr, Messreihen, Sentinel-2-Szenen und einem Schmelzindex
+   ohne Einheit; jede Zahl trägt ihre Herkunft. Kein amtliches Produkt, keine Tourenfreigabe (${site.url}/methodik/gletscher-daten/).
+ ${roadIndexable ? `${link('/autobahnwetter', 'Autobahnwetter')}: Messwerte der Glättemeldeanlagen im 15-Minuten-Takt, geprüft und je Autobahn als Band, dazu Wetter entlang der Strecke. Kein amtliches
+diff --git a/scripts/seo/nicheTools.mjs b/scripts/seo/nicheTools.mjs
+index 18502db..adb39ec 100644
+--- a/scripts/seo/nicheTools.mjs
++++ b/scripts/seo/nicheTools.mjs
+@@ -13,7 +13,7 @@ export const SEA_TOOL = {
+   status: 'full', deepLink: '/seewetter',
+   answer:
+     'Die Seewetter-Ansicht von buscosun zeigt für die deutsche Nord- und Ostseeküste den Seegang mit Windsee und Dünung aus dem '
+-    + 'Küstenmodell des Deutschen Wetterdienstes, Wind und Böen an rund 60 Spots aus buscosun Fusion, den Wasserstand an den Pegeln des '
++    + 'Küstenmodell des Deutschen Wetterdienstes, Wind und Böen an 56 Spots aus buscosun Fusion, den Wasserstand an den Pegeln des '
+     + 'Bundesamts für Seeschifffahrt und Hydrographie (BSH) und den Seewetterbericht des DWD im Wortlaut. Sie ist kein amtliches '
+     + 'Warnprodukt und gibt keine Sicherheitsbewertung für eine Ausfahrt.',
+   bullets: [
+@@ -27,8 +27,9 @@ export const SEA_TOOL = {
+     {
+       id: 'so-gehts', h2: "So geht's",
+       html:
+-        '<ol><li><strong>Spot wählen.</strong> Auf der Karte oder über die Suche einen Spot antippen, zum Beispiel St. Peter-Ording oder Laboe. '
+-        + 'Jeder Spot hat einen eigenen Link, der sich teilen lässt.</li>'
++        '<ol><li><strong>Spot wählen.</strong> Auf der Karte oder über die Suche einen Spot antippen, zum Beispiel '
++        + '<a href="/seewetter/st-peter-ording">St. Peter-Ording</a> oder <a href="/seewetter/laboe">Laboe</a>. '
++        + 'Jeder Spot hat eine eigene Seite mit Steckbrief, die sich teilen lässt; die <a href="/seewetter">Übersicht</a> listet alle nach Küstenabschnitt.</li>'
+         + '<li><strong>Stunde wählen.</strong> Das Stundenband zeigt Wind, Böe und Seegang über die kommenden Stunden.</li>'
+         + '<li><strong>Seegang lesen.</strong> Windsee entsteht vor Ort, Dünung läuft von weiter her ein. Beide können aus verschiedenen Richtungen kommen; deshalb stehen sie getrennt da.</li>'
+         + '<li><strong>Wasserstand prüfen.</strong> Der nächste Pegel zeigt die Vorhersagekurve des BSH mit Zeitstempel.</li>'
+@@ -62,12 +63,14 @@ export const SEA_TOOL = {
+     { q: 'Warum steht in manchen Zellen „kein Seegang“?', a: 'Weil das Küstenmodell dort keine Wasserzelle hat. buscosun zeigt das als fehlenden Wert, nicht als 0 Meter.' },
+   ],
+   seeAlso: [
++    { label: 'Seewetter Sylt Westerland', href: '/seewetter/sylt-westerland' }, { label: 'Seewetter Kiel-Schilksee', href: '/seewetter/kiel-schilksee' },
++    { label: 'Seewetter Warnemünde', href: '/seewetter/warnemuende' }, { label: 'Seewetter Fehmarn Grüner Brink', href: '/seewetter/fehmarn-gruener-brink' },
+     { label: 'Wetter in Kiel', href: '/wetter/kiel/' }, { label: 'Wetter in Rostock', href: '/wetter/rostock/' },
+     { label: 'Wetter auf Sylt', href: '/wetter/sylt-westerland/' }, { label: 'Wetter in Cuxhaven', href: '/wetter/cuxhaven/' },
+     { label: 'buscosun für Segler', href: '/fuer/segler/' },
+   ],
+-  relatedExplainers: ['windboeen-sturm', 'modellvergleich-unsicherheit'],
+-  datePublished: PUBLISHED, dateModified: PUBLISHED,
++  relatedExplainers: ['seegang-wellenhoehe', 'seewetterbericht', 'windboeen-sturm', 'modellvergleich-unsicherheit'],
++  datePublished: PUBLISHED, dateModified: '2026-11-02',
+ };
+ 
+ export const GLACIER_TOOL = {
+diff --git a/scripts/seo/verify-seo.mjs b/scripts/seo/verify-seo.mjs
+index 78623a3..a4cf386 100644
+--- a/scripts/seo/verify-seo.mjs
++++ b/scripts/seo/verify-seo.mjs
+@@ -154,9 +154,12 @@ for (const rel of ['wetterkarte.html', 'regenradar.html', 'waldbrand.html', 'atm
+ // EIGENE flache Shell mit eigenem Title/Canonical/H1/Lead — vorher teilten sie die
+ // Eltern-Shell (SEO-AUDIT.md §2). 34 = 18 Layer + 1 Atmosphäre + 5 Brand-Sichten + 10 Event-Anlässe (E7);
+ // die exakte Menge prüft verify-routing gegen die Routen-Tabelle. Nach der Autobahn-Freischaltung (ROAD_INDEXABLE) kommen 20 Unterseiten dazu.
++// Phase SS: dazu je Seewetter-Spot eine Shell (die Zahl liest die Prüfung aus der Namenstabelle, nicht aus dist/).
+ console.log('\nSub-Routen-Shells:');
+ const subShells = readdirSync(DIST).filter((f) => /^[a-z]+--[a-z0-9-]+\.html$/.test(f)).sort();
+-const subShellsWanted = subShells.some((f) => f.startsWith('autobahnwetter--')) ? 54 : 34;
++const seaSpotCount = (readFileSync(join(ROOT, 'src', 'sea', 'seaSpotNames.ts'), 'utf8').match(/^ {2}"[a-z0-9-]+": \[/gm) || []).length;
++const subShellsWanted = (subShells.some((f) => f.startsWith('autobahnwetter--')) ? 54 : 34) + seaSpotCount;
++if (seaSpotCount < 50) fail('src/sea/seaSpotNames.ts', `nur ${seaSpotCount} Spots gelesen — Format der Namenstabelle geändert?`);
+ if (subShells.length !== subShellsWanted) fail('dist/', `erwartet ${subShellsWanted} Sub-Routen-Shells, gefunden ${subShells.length}`);
+ else ok('dist/', `${subShellsWanted} Sub-Routen-Shells vorhanden`);
+ const parentTitle = (id) => (read(`${id}.html`).match(/<title>([^<]*)<\/title>/) || [])[1];
+@@ -190,7 +193,7 @@ console.log('\nSitemap:');
+   if (!/<sitemapindex/.test(index)) fail('sitemap.xml', 'kein Sitemap-Index (E9)');
+   else ok('sitemap.xml', 'Sitemap-Index');
+   const children = [...index.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1].replace('https://buscosun.com/', ''));
+-  const expected = ['sitemap-pages.xml', 'sitemap-orte.xml', 'sitemap-orte-2.xml'];
++  const expected = ['sitemap-pages.xml', 'sitemap-orte.xml', 'sitemap-orte-2.xml', 'sitemap-seewetter.xml'];
+   if (expected.some((f) => !children.includes(f))) fail('sitemap.xml', `Teilliste fehlt: ${expected.filter((f) => !children.includes(f)).join(', ')}`);
+   else ok('sitemap.xml', `verweist auf ${children.length} Teillisten`);
+   const sm = expected.map((f) => read(f)).join('\n');
+diff --git a/scripts/verify-routing.mjs b/scripts/verify-routing.mjs
+index 27c5c90..2cd8e20 100644
+--- a/scripts/verify-routing.mjs
++++ b/scripts/verify-routing.mjs
+@@ -21,6 +21,7 @@ import { ATMOSPHERE_RETIRED_SLUGS, CROSS_ALIASES, ROUTES, ROUTE_BY_ID, SITE_URL,
+ import { verifyLayerCatalog, LAYER_CATALOG } from '../src/map/layerCatalog.ts';
+ import { ALL_LAYER_KEYS } from '../src/map/layerTypes.ts';
+ import { verifySubRouteTexts, subRouteText } from '../src/seo/subRouteTexts.ts';
++import { seaSpotSeoTexts } from '../src/sea/seaSeoText.ts';
+ import { routeText } from '../src/seo/routeTexts.ts';
+ import { ROUTES as ROUTE_LIST_FOR_TEXT, ROUTE_TEXT_IDS } from '../src/router/routes.ts';
+ import { verifyUrlState, mapPathForPlace } from '../src/router/urlState.ts';
+@@ -54,7 +55,8 @@ for (const c of verifyPlaceSlug().checks) add(`[placeSlug] ${c.name}`, c.ok, c.d
+ for (const c of verifyShareSchema().checks) add(`[shareSchema] ${c.name}`, c.ok, c.detail);
+ for (const c of verifyFireRouteView().checks) add(`[fireView] ${c.name}`, c.ok);
+ for (const c of verifyLayerCatalog(ALL_LAYER_KEYS).checks) add(`[layerCatalog] ${c.name}`, c.ok, c.detail);
+-for (const c of verifySubRouteTexts(indexableSubRoutes().map((x) => x.path)).checks) add(`[subTexts] ${c.name}`, c.ok, c.detail);
++// Phase SS: die Seewetter-Spots tragen ihre Texte in einem eigenen Lazy-Chunk (src/sea/seaSeoText.ts) — hier mitgeprüft.
++for (const c of verifySubRouteTexts(indexableSubRoutes().map((x) => x.path), seaSpotSeoTexts()).checks) add(`[subTexts] ${c.name}`, c.ok, c.detail);
+ // Die Tooltips im Dock kommen seit E1 aus dem Katalog — MapView darf keine eigene Liste mehr führen.
+ const mapViewSrc = readFileSync(join(ROOT, 'src', 'MapView.tsx'), 'utf8');
+ add('[layerCatalog] MapView leitet LAYER_OPTIONS aus LAYER_OPTION_ORDER/LAYER_CATALOG ab (keine Zweitliste)', /LAYER_OPTIONS[^\n]*= LAYER_OPTION_ORDER\.map/.test(mapViewSrc) && !/\{ key: 'wind', label: 'Wind', title: 'Wind \(DWD ICON-D2/.test(mapViewSrc));
+diff --git a/scripts/verify-sea-seo.mjs b/scripts/verify-sea-seo.mjs
+new file mode 100644
+index 0000000..a20c755
+--- /dev/null
++++ b/scripts/verify-sea-seo.mjs
+@@ -0,0 +1,95 @@
++/**
++ * verify:sea-seo — Phase SS (audit/seewetter-seo.md): die Spot-Seiten des Seewetters.
++ *
++ *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-sea-seo.mjs
++ *
++ * Netzfrei, ohne dist/. Prüft, dass Handliste, Namenstabelle und Steckbriefe dieselben Spots tragen, dass jede Spot-Seite
++ * Sub-Route mit eigenem Canonical, Rewrite und Text ist, dass die Texte nur auf Seiten zeigen, die es gibt, und dass keine
++ * Sicherheits- oder Warnsprache in eigener Stimme darin steht. Die Regeln der Texte selbst (Wortzahlen, Fakten, Einzigartigkeit)
++ * prüft `verify-routing` über `verifySubRouteTexts`; hier nur, was die Seewetter-Linie zusätzlich verlangt.
++ */
++import { readFileSync } from 'node:fs';
++import { join, dirname } from 'node:path';
++import { fileURLToPath } from 'node:url';
++import { SEA_SPOT_NAMES } from '../src/sea/seaSpotNames.ts';
++import { SEA_SPOT_FACTS } from '../src/sea/seaSpotFacts.ts';
++import { seaSpotSeoTexts, seaSpotSeoText, dirWord, dwdName } from '../src/sea/seaSeoText.ts';
++import { SEA_SPOT_COUNT } from '../src/sea/seaSeo.ts';
++import { ROUTE_BY_ID, canonicalPath, metaForPath, indexableSubRoutes } from '../src/router/routes.ts';
++import { ogCardPath } from '../src/share/ogCard.ts';
++import { PLACES_ALL } from './seo/places.mjs';
++import { seaSpotDirectory } from './seo/content.mjs';
++
++const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
++const checks = [];
++const add = (name, ok, detail = '') => checks.push({ name, ok: !!ok, detail });
++
++// (1) Eine Spot-Liste, drei Quellen.
++const src = JSON.parse(readFileSync(join(ROOT, 'scripts/sea/spots-src.json'), 'utf8')).spots.map((s) => s.id);
++const names = Object.keys(SEA_SPOT_NAMES);
++const facts = SEA_SPOT_FACTS.map((s) => s.id);
++const same = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
++add('Handliste, Namenstabelle und Steckbriefe nennen dieselben Spots', same(src, names) && same(names, facts), `src ${src.length} · Namen ${names.length} · Steckbriefe ${facts.length}`);
++add('Namen in Namenstabelle und Steckbrief stimmen überein', SEA_SPOT_FACTS.every((s) => SEA_SPOT_NAMES[s.id]?.[0] === s.name && SEA_SPOT_NAMES[s.id]?.[1] === s.region));
++add('SEA_SPOT_COUNT = Zahl der Spots', SEA_SPOT_COUNT === names.length && names.length >= 50, String(SEA_SPOT_COUNT));
++
++// (2) Jede Spot-Seite ist eine eigene Sub-Route mit eigenem Canonical, Titel und Rewrite; die Übersicht bleibt die Übersicht.
++const subs = ROUTE_BY_ID.seewetter.subs ?? [];
++add('jeder Spot ist Sub-Route von /seewetter', same(subs.map((x) => x.slug), names));
++add('jeder Spot ist indexierbar und kanonisch auf sich selbst', names.every((id) => !metaForPath(`/seewetter/${id}`).noindex && canonicalPath(`/seewetter/${id}`) === `/seewetter/${id}`));
++add('jeder Spot hat eine eigene Shell', indexableSubRoutes(ROUTE_BY_ID.seewetter).every((x) => x.shell === `/seewetter--${x.sub.slug}.html`) && indexableSubRoutes(ROUTE_BY_ID.seewetter).length === names.length);
++const toml = readFileSync(join(ROOT, 'netlify.toml'), 'utf8');
++const rule = (id) => toml.indexOf(`from   = "/seewetter/${id}"\n  to     = "/seewetter--${id}.html"\n  status = 200`);
++const wild = toml.indexOf('from   = "/seewetter/*"');
++const badRules = names.filter((id) => rule(id) < 0 || rule(id) > wild);
++add('netlify.toml: je Spot ein 200-Rewrite auf seine Shell VOR /seewetter/*', badRules.length === 0 && wild > 0, badRules.join(', '));
++add('die Übersicht ist kanonisch /seewetter, ein unbekannter Spot noindex', canonicalPath('/seewetter') === '/seewetter' && metaForPath('/seewetter/gibt-es-nicht').noindex && canonicalPath('/seewetter/gibt-es-nicht') === '/seewetter');
++add('Spot-Seiten teilen die Vorschau-Karte der Route (keine 56 PNG)', names.every((id) => ogCardPath('seewetter', id) === '/og/app/seewetter.png'));
++const titles = subs.map((x) => x.title), descs = subs.map((x) => x.description);
++add('Titel und Descriptions paarweise verschieden, Description ≤ 160 Zeichen', new Set(titles).size === titles.length && new Set(descs).size === descs.length && descs.every((d) => d.length <= 160));
++
++// (3) Texte: Links nur auf Seiten, die es gibt; Ort im JSON-LD; Nachbarn aus derselben Küste.
++const texts = seaSpotSeoTexts();
++const placeSlugs = new Set(PLACES_ALL.map((p) => p.slug));
++const badLinks = [];
++for (const [path, t] of Object.entries(texts)) {
++  for (const l of [...(t.links ?? []), ...(t.related?.items ?? [])]) {
++    const h = l.href;
++    const ok = h === '/seewetter' || (h.startsWith('/seewetter/') && names.includes(h.slice(11)))
++      || (h.startsWith('/wetter/') && placeSlugs.has(h.slice(8).replace(/\/$/, '')))
++      || ['/wissen/seegang-wellenhoehe/', '/wissen/seewetterbericht/'].includes(h);
++    if (!ok) badLinks.push(`${path} → ${h}`);
++  }
++}
++add('jeder Link einer Spot-Seite zeigt auf eine bestehende Seite', badLinks.length === 0, badLinks.slice(0, 5).join(', '));
++add('jede Spot-Seite nennt ihren Ort (Place mit Koordinaten) und Nachbarspots', Object.values(texts).every((t) => t.place && Number.isFinite(t.place.lat) && t.related && t.related.items.length >= 2));
++const sameRegion = SEA_SPOT_FACTS.every((s) => s.near.every(([id]) => SEA_SPOT_FACTS.find((o) => o.id === id)?.region === s.region));
++add('Nachbarspots liegen an derselben Küste', sameRegion);
++add('seaSpotSeoText kennt jeden Spot und keinen anderen', names.every((id) => !!seaSpotSeoText(id)) && seaSpotSeoText('gibt-es-nicht') === null);
++
++// (4) Ehrlichkeit (CLAUDE.md, D-04): keine Sicherheitsfreigabe, keine eigene Warnung, keine Prognosezahl im statischen Text.
++const all = Object.values(texts).map((t) => [t.h1, t.lead, ...t.body, ...t.facts.map((f) => f.text)].join(' ')).join(' ');
++add('keine Sicherheitsfreigabe in eigener Stimme („sicher", „ungefährlich", „gefahrlos")', !/\b(ist|sind|bleibt|gilt als) (sicher|ungefährlich|gefahrlos)\b|\bsicheres? (Segeln|Baden|Kiten)\b/i.test(all));
++add('„Warnung" nur als Hinweis auf den amtlichen Text', all.split(/[.;]/).every((sent) => !/Warnung/i.test(sent) || /amtlich|Seewetterdienst|Wortlaut|Warnstatus|kein amtliches Warnprodukt/i.test(sent)));
++add('keine Prognosewerte im statischen Text (Meter-/Knotenwerte nur als Abstand oder Gitterweite)', !/\d+(,\d+)?\s?(m|Meter|kn|Knoten|Bft|Beaufort)\b/.test(all.replace(/rund 900 Metern Maschenweite/g, '').replace(/statt 0 Meter/g, '')));
++add('DWD-Schreibweise wird umgesetzt (Suedliche → Südliche, Kueste → Küste)', dwdName('Suedliche Ostsee') === 'Südliche Ostsee' && dwdName('Boddengewaesser Ost und oestlich Ruegen') === 'Boddengewässer Ost und östlich Rügen' && !/Kueste|Suedl|Ruegen|gewaesser/.test(all));
++add('Himmelsrichtungen: 0° Nord, 90° Ost, 284° Westnordwest, 359° Nord', dirWord(0) === 'Nord' && dirWord(90) === 'Ost' && dirWord(284) === 'Westnordwest' && dirWord(359) === 'Nord');
++
++// (5) Übersicht: das Verzeichnis verlinkt jeden Spot genau einmal.
++const dir = seaSpotDirectory();
++const linked = [...dir.matchAll(/href="\/seewetter\/([a-z0-9-]+)"/g)].map((m) => m[1]);
++add('das Verzeichnis auf /seewetter verlinkt jeden Spot genau einmal', same(linked, names) && new Set(linked).size === linked.length, `${linked.length} Links`);
++
++// (6) Die App schreibt den Standard-Spot nicht in die Adresse der Übersicht (Canonical-Schutz, Textsonde mit Gegenprobe).
++const page = readFileSync(join(ROOT, 'src/sea/SeaPage.tsx'), 'utf8');
++const probe = (src) => /useState<boolean>\(!!initial\.spot\)/.test(src) && /spot: spotInUrl \? \(spot\?\.id \?\? spotId\) : null/.test(src)
++  && /if \(spotInUrl\) onSpot\(/.test(src) && /setSpotId\(id\); setSpotInUrl\(true\)/.test(src);
++add('SeaPage: auf /seewetter bleibt der Spot aus der Adresse, bis einer gewählt wird', probe(page));
++add('Gegenprobe: die Sonde erkennt den alten Stand (Spot immer in der Adresse)', !probe(page.replace('if (spotInUrl) onSpot(', 'onSpot(')) && !probe(page.replace('spot: spotInUrl ? (spot?.id ?? spotId) : null', 'spot: spot?.id ?? spotId')));
++const numbers = /\d+(,\d+)?\s?(m|Meter|kn|Knoten|Bft|Beaufort)\b/;
++add('Gegenprobe: die Zahlenregel erkennt einen eingeschmuggelten Prognosewert', numbers.test('Welle 1,5 m') && numbers.test('Wind 5 Bft') && !numbers.test('5,2 km vom Spot'));
++
++const failed = checks.filter((c) => !c.ok);
++for (const c of checks) console.log(`  ${c.ok ? '✓' : '✗'} ${c.name}${c.detail && !c.ok ? `  — ${c.detail}` : ''}`);
++console.log(`\n  ${checks.length - failed.length}/${checks.length} passed, ${failed.length} failed`);
++process.exit(failed.length ? 1 : 0);
+diff --git a/scripts/verify-share.mjs b/scripts/verify-share.mjs
+index 2db7a8d..1f7e65f 100644
+--- a/scripts/verify-share.mjs
++++ b/scripts/verify-share.mjs
+@@ -40,7 +40,7 @@ import {
+ import { verifyUrlState, parseMapSearch, LAYER_SLUGS } from '../src/router/urlState.ts';
+ import { routeForPath, SITE_URL, ROUTES, ROUTE_BY_ID } from '../src/router/routes.ts';
+ // SH6: Vorschaubild je Seite + Meta je Zustand.
+-import { verifyOgCard, ogCardSlug, ogCardPath, hasOgCard, OG_WIDTH, OG_HEIGHT } from '../src/share/ogCard.ts';
++import { verifyOgCard, ogCardSlug, ogCardPath, hasOgCard, OG_WIDTH, OG_HEIGHT, OG_CARD_ROUTE_ONLY } from '../src/share/ogCard.ts';
+ import { buildEdgeShare, OUT as EDGE_BUNDLE } from './build-edge-share.mjs';
+ import { routeHeadExtras, subRouteHeadExtras } from './seo/content.mjs';
+ 
+@@ -522,6 +522,7 @@ add('[ort] kaputtes Segment wird gar nicht erst als Slug gelesen',
+     expected.add(ogCardSlug(r.id));
+     for (const s of r.subs ?? []) {
+       if (r.id === 'wetterkarte' && s.slug === 'warnungen') continue; // Cross-Alias auf /warnungen
++      if (OG_CARD_ROUTE_ONLY.includes(r.id)) continue;                 // Phase SS: Seewetter-Spots teilen die Karte der Route
+       expected.add(ogCardSlug(r.id, s.slug));
+     }
+   }
+diff --git a/src/router/RouteSeoBlock.tsx b/src/router/RouteSeoBlock.tsx
+index aae2b7d..4ffc474 100644
+--- a/src/router/RouteSeoBlock.tsx
++++ b/src/router/RouteSeoBlock.tsx
+@@ -34,7 +34,11 @@ export default function RouteSeoBlock() {
+     let alive = true;
+     if (!wantsText) { setText(null); return; }
+     // A top route's text is not urgent: it waits until the app has settled, so it does not add to the load of a map page.
+-    const load = () => (match?.sub ? import('../seo/subRouteTexts').then((mod) => mod.subRouteText(path)) : import('../seo/routeTexts').then((mod) => mod.routeText(path))).then((value) => { if (alive) setText({ path, text: value }); }).catch(() => { if (alive) setText({ path, text: null }); });
++    // Phase SS: the 56 Seewetter spots load their texts from their own chunk (spot facts), not with the layer texts.
++    const seaSpot = match?.def.id === 'seewetter' && match.sub ? match.sub.slug : null;
++    const load = () => (seaSpot ? import('../sea/seaSeoText').then((mod) => mod.seaSpotSeoText(seaSpot))
++      : match?.sub ? import('../seo/subRouteTexts').then((mod) => mod.subRouteText(path))
++        : import('../seo/routeTexts').then((mod) => mod.routeText(path))).then((value) => { if (alive) setText({ path, text: value }); }).catch(() => { if (alive) setText({ path, text: null }); });
+     if (match?.sub) { void load(); return () => { alive = false; }; }
+     const idle = window.requestIdleCallback ?? ((f: () => void) => window.setTimeout(f, 2000));
+     const cancel = window.cancelIdleCallback ?? window.clearTimeout;
+@@ -79,11 +83,25 @@ export default function RouteSeoBlock() {
+             </dl>
+           </>
+         )}
+-        {siblings.length > 0 && (
++        {t?.faq && t.faq.length > 0 && (
+           <>
+-            <h2 className="rsb-h2">{sub ? 'Weitere Ansichten' : 'Ansichten'}</h2>
++            <h2 className="rsb-h2">Häufige Fragen</h2>
++            {t.faq.map((f) => <p key={f.q}><strong>{f.q}</strong> {f.a}</p>)}
++          </>
++        )}
++        {/* Phase SS: a page with its own list (the neighbour spots) shows it instead of all siblings. */}
++        {t?.related && t.related.items.length > 0 ? (
++          <>
++            <h2 className="rsb-h2">{t.related.heading}</h2>
++            <ul className="rsb-list">
++              {t.related.items.map((x) => <li key={x.href}><Link to={x.href}>{x.label}</Link></li>)}
++            </ul>
++          </>
++        ) : siblings.length > 0 && (
++          <>
++            <h2 className="rsb-h2">{def.id === 'seewetter' ? 'Spots' : sub ? 'Weitere Ansichten' : 'Ansichten'}</h2>
+             <ul className="rsb-list">
+-              {siblings.map((x) => <li key={x.path}><Link to={x.path}>{x.sub.title}</Link></li>)}
++              {siblings.map((x) => <li key={x.path}><Link to={x.path}>{x.sub.label ?? x.sub.title}</Link></li>)}
+             </ul>
+           </>
+         )}
+diff --git a/src/router/routes.ts b/src/router/routes.ts
+index c5a2d4b..8537545 100644
+--- a/src/router/routes.ts
++++ b/src/router/routes.ts
+@@ -19,6 +19,7 @@ import { ogCardPath } from '../share/ogCard';
+ import { roadSeoSubs } from '../road/roadSeo';
+ import { FIRE_LINK_SEGMENT, FIRE_SLUG_RE } from '../fire/fireLink';
+ import { ROAD_CORRIDOR_SLUG_RE, ROAD_KM_SLUG_RE } from '../road/roadLink';
++import { seaSeoSubs, SEA_SPOT_COUNT } from '../sea/seaSeo';
+ 
+ /**
+  * Freischaltung Autobahnwetter (audit/seo-nischen.md §6): EIN Schalter für `noindex`, Sitemap und die 20 Autobahn-Unterseiten. Erst umlegen,
+@@ -49,6 +50,8 @@ export interface RouteMeta {
+ 
+ export interface SubRoute {
+   slug: string;
++  /** Kurzes Linklabel in Listen (Seewetter: der Spot-Name); ohne Eintrag gilt `title`. */
++  label?: string;
+   title: string;
+   description: string;
+   /** Sicht, die ohne Nutzereingabe leer ist (3D braucht eine hochgeladene Strecke) ⇒ nicht in die Sitemap. */
+@@ -291,15 +294,18 @@ export const ROUTES: readonly RouteDef[] = [
+   },
+   {
+     // Phase SW (audit/seewetter.md): Pfadsegment = Spot (`/seewetter/st-peter-ording`), entscheidet die Seite. Seit
+-    // 10.10.2026 für alle sichtbar (`SEA_LIVE`, `src/sea/seaFlag.ts`) und indexierbar (Jan 10.10., E-SW-32): `/seewetter`
+-    // steht in der Sitemap; die Spot-Pfade teilen Shell und Canonical der Route (keine eigenen Unterseiten).
++    // 10.10.2026 für alle sichtbar (`SEA_LIVE`, `src/sea/seaFlag.ts`) und indexierbar (Jan 10.10., E-SW-32). Phase SS
++    // (audit/seewetter-seo.md, 02.11.2026): jeder Spot ist eine eigene indexierbare Sub-Route mit eigener Shell, eigenem
++    // Canonical und Steckbrief-Text (`src/sea/seaSeo.ts`, Texte lazy in `seaSeoText.ts`); vorher teilten die Spot-Pfade
++    // Shell und Canonical der Route.
+     id: 'seewetter', path: '/seewetter', aliases: ['/kuestenwetter', '/segelwetter', '/wellen'], featureId: 'sea', subParam: 'spot',
+-    subs: null,
++    subs: seaSeoSubs(),
+     meta: {
+-      title: 'Seewetter Nord- und Ostsee — Wind, Welle, Wasserstand',
+-      description: 'Seegang an der deutschen Küste aus dem DWD-Küstenmodell, Wind und Böen an rund 60 Spots, Wasserstand der BSH-Pegel und der Seewetterbericht im Wortlaut.',
+-      h1: 'Seewetter für Nord- und Ostsee: Wind, Welle und Wasserstand',
+-      lead: 'Seegang mit Windsee und Dünung an Nord- und Ostsee (DWD CWAM), Wind und Böen an rund 60 Spots aus buscosun Fusion, Wasserstand an den Pegeln des BSH, Seewetterbericht und Warnstatus des DWD im Wortlaut. Kein amtliches Warnprodukt, keine Sicherheitsbewertung.',
++      title: 'Seewetter Nord- und Ostsee: Wind, Wellen, Seewetterbericht',
++      description: `Wind, Böen und Wellenhöhe stündlich bis 78 h für ${SEA_SPOT_COUNT} Spots an Nord- und Ostsee, Wasserstand der BSH-Pegel und der DWD-Seewetterbericht im Wortlaut.`,
++      h1: 'Seewetter für Nord- und Ostsee: Wind, Wellen und Wasserstand',
++      lead: `Seegang mit Windsee und Dünung an Nord- und Ostsee aus dem Küstenwellenmodell CWAM des DWD, Wind und Böen an ${SEA_SPOT_COUNT} Spots aus buscosun Fusion, Wasserstand an den Pegeln des BSH, Seewetterbericht und Warnstatus des Seewetterdienstes Hamburg im Wortlaut — stündlich bis 78 Stunden, jeder Spot mit eigener Seite. Kein amtliches Warnprodukt, keine Sicherheitsbewertung.`,
++      updated: '2026-11-02',
+     },
+   },
+   {
+@@ -595,7 +601,7 @@ export function verifyRoutes(): { checks: RouteCheck[]; passed: number; failed:
+   add('[ATM] Gegenprobe: der Querschnitt selbst bleibt stehen, ein ähnlicher Slug ist kein Redirect, ein Tippfehler bleibt 404', normalizePath('/atmosphaere/querschnitt') === null && normalizePath('/atmosphaere/querschnitt/innsbruck') === null && aliasTarget('/atmosphaere/fliegenx') === null && routeForPath('/atmosphaere/fliegenx/innsbruck') === null && aliasTarget('/atmosphaere/fliegen/a/b') === null);
+   // SEO/GEO 2026 (E1): jede indexierbare Sub-Route trägt eigenen Text für ihre Shell.
+   const subs = indexableSubRoutes();
+-  add('34 indexierbare Sub-Routen mit eigener Shell (18 Layer + 1 Atmosphäre + 5 Brand-Sichten + 10 Event-Anlässe), nach der Autobahn-Freischaltung 20 mehr', subs.length === (ROAD_INDEXABLE ? 54 : 34), String(subs.length));
++  add(`${34 + SEA_SPOT_COUNT} indexierbare Sub-Routen mit eigener Shell (18 Layer + 1 Atmosphäre + 5 Brand-Sichten + 10 Event-Anlässe + ${SEA_SPOT_COUNT} Seewetter-Spots), nach der Autobahn-Freischaltung 20 mehr`, subs.length === (ROAD_INDEXABLE ? 54 : 34) + SEA_SPOT_COUNT, String(subs.length));
+   const longDesc = subs.filter((x) => x.sub.description.length > 160).map((x) => `${x.path} (${x.sub.description.length})`);
+   add('Sub-Routen-Descriptions sind paarweise verschieden und ≤ 160 Zeichen', new Set(subs.map((x) => x.sub.description)).size === subs.length && longDesc.length === 0, longDesc.join(', '));
+   add('Shell-Dateinamen sind eindeutig und flach', new Set(subs.map((x) => x.shell)).size === subs.length && subs.every((x) => /^\/[a-z]+--[a-z0-9-]+\.html$/.test(x.shell)));
+@@ -605,8 +611,10 @@ export function verifyRoutes(): { checks: RouteCheck[]; passed: number; failed:
+   add('[AW] /autobahnwetter/a8 trägt den Korridor als Segment (die Seite entscheidet); noindex bis zur Freigabe', routeForPath('/autobahnwetter/a8')?.subSlug === 'a8' && metaForPath('/autobahnwetter/a8').noindex === !ROAD_INDEXABLE);
+   add('[AW] bis zur Freigabe noindex und in keiner Sitemap; danach die Route und 20 Unterseiten', ROAD_INDEXABLE ? sitemapPaths().filter((x) => x.path.startsWith('/autobahnwetter')).length === 21 : !!ROUTE_BY_ID.autobahnwetter.meta.noindex && !sitemapPaths().some((x) => x.path.startsWith('/autobahnwetter')));
+   add('[SW] /seewetter ist eine Route, /kuestenwetter, /segelwetter, /wellen sind Aliase', routeForPath('/seewetter')?.def.id === 'seewetter' && aliasTarget('/kuestenwetter') === '/seewetter' && aliasTarget('/segelwetter') === '/seewetter' && aliasTarget('/wellen') === '/seewetter');
+-  add('[SW] /seewetter/st-peter-ording trägt den Spot als Segment (die Seite entscheidet): indexierbar, Canonical = /seewetter', routeForPath('/seewetter/st-peter-ording')?.subSlug === 'st-peter-ording' && !metaForPath('/seewetter/st-peter-ording').noindex && canonicalPath('/seewetter/st-peter-ording') === '/seewetter');
+-  add('[SW] seit 10.10. indexierbar (E-SW-32): /seewetter genau einmal in der Sitemap, kein Spot-Pfad', !ROUTE_BY_ID.seewetter.meta.noindex && !metaForPath('/seewetter').noindex && sitemapPaths().filter((x) => x.path.startsWith('/seewetter')).map((x) => x.path).join() === '/seewetter');
++  add('[SS] /seewetter/st-peter-ording ist eine eigene Seite: Sub-Route, indexierbar, eigener Canonical und Titel', routeForPath('/seewetter/st-peter-ording')?.sub?.slug === 'st-peter-ording' && !metaForPath('/seewetter/st-peter-ording').noindex && canonicalPath('/seewetter/st-peter-ording') === '/seewetter/st-peter-ording' && metaForPath('/seewetter/st-peter-ording').title.startsWith('Seewetter St. Peter-Ording'));
++  add(`[SS] Sitemap: /seewetter und alle ${SEA_SPOT_COUNT} Spots, jede genau einmal`, (() => { const p = sitemapPaths().filter((x) => x.path.startsWith('/seewetter')).map((x) => x.path); return !ROUTE_BY_ID.seewetter.meta.noindex && p[0] === '/seewetter' && p.length === 1 + SEA_SPOT_COUNT && new Set(p).size === p.length; })());
++  add('[SS] ein unbekannter Spot bleibt auf der Route (die Seite sagt es), ist aber noindex und kanonisch /seewetter', routeForPath('/seewetter/gibt-es-nicht')?.def.id === 'seewetter' && routeForPath('/seewetter/gibt-es-nicht')?.sub === null && metaForPath('/seewetter/gibt-es-nicht').noindex && canonicalPath('/seewetter/gibt-es-nicht') === '/seewetter');
++  add('[SS] jeder Spot hat ein Linklabel (den Namen) und einen Titel mit „Seewetter“', (ROUTE_BY_ID.seewetter.subs ?? []).every((x) => !!x.label && x.title.startsWith(`Seewetter ${x.label}`)));
+   add('[SW] Gegenprobe: ein unbekannter Sub-Slug einer Route MIT Sub-Liste bleibt noindex', metaForPath('/wetterkarte/xyz').noindex && metaForPath('/waldbrand/xyz').noindex);
+   // Phase GL: Route, Aliase, Gletscher als Pfadsegment; bis Gate D noindex und ohne Sitemap.
+   add('[GL] /gletscher ist eine Route, /gletscherradar und /gletschermonitor sind Aliase', routeForPath('/gletscher')?.def.id === 'gletscher' && aliasTarget('/gletscherradar') === '/gletscher' && aliasTarget('/gletschermonitor') === '/gletscher');
+diff --git a/src/sea/SeaPage.tsx b/src/sea/SeaPage.tsx
+index 5823623..8475854 100644
+--- a/src/sea/SeaPage.tsx
++++ b/src/sea/SeaPage.tsx
+@@ -100,11 +100,18 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
+   const [mapCard, setMapCard] = useState<string | null>(openDossier && isMobile ? initial.spot : null);
+   useEffect(() => { if (stage === 'dossier') setMapCard(null); }, [stage]);
+   const firstSpot = useRef(true);
++  /**
++   * Phase SS (audit/seewetter-seo.md): does the URL name the spot? On `/seewetter` (the overview) the page shows the
++   * default spot WITHOUT writing it into the path — every spot is its own indexable page now, and rewriting the overview
++   * to `/seewetter/st-peter-ording` would hand its canonical to that spot. The first pick of a spot writes it (a real
++   * navigation, back returns to the overview); a link on a spot carries it from the start.
++   */
++  const [spotInUrl, setSpotInUrl] = useState<boolean>(!!initial.spot);
+ 
+   const popKey = popState?.key ?? null;
+   useEffect(() => {
+     if (!popState) return;
+-    setSpotId(popState.spot ?? DEFAULT_SPOT); setProfile(popState.p); setT(popState.t); setLayer(popState.l); setUnit(popState.u); setTab(popState.tab); setRevier(popState.rv);
++    setSpotId(popState.spot ?? DEFAULT_SPOT); setSpotInUrl(!!popState.spot); setProfile(popState.p); setT(popState.t); setLayer(popState.l); setUnit(popState.u); setTab(popState.tab); setRevier(popState.rv);
+   }, [popKey]); // eslint-disable-line react-hooks/exhaustive-deps
+   useEffect(() => { setLimitsState(loadLimits(profile)); }, [profile]);
+   const setLimits = useCallback((l: SeaLimits | null) => { saveLimits(profile, l); setLimitsState(l ?? SEA_PROFILE_BY_ID[profile].limits); }, [profile]);
+@@ -296,17 +303,17 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
+   }, [stationId]);
+ 
+   // --- URL ------------------------------------------------------------------------------------------------
+-  const urlState: SeaUrlState = { spot: spot?.id ?? spotId, p: profile, t, l: layer, u: unit, tab, rv: revier };
++  const urlState: SeaUrlState = { spot: spotInUrl ? (spot?.id ?? spotId) : null, p: profile, t, l: layer, u: unit, tab, rv: revier };
+   const urlKey = JSON.stringify(urlState);
+   useEffect(() => { if (!firstSpot.current) onUrlState(urlState); }, [urlKey]); // eslint-disable-line react-hooks/exhaustive-deps
+   useEffect(() => {
+     if (!spot) return;
+-    onSpot({ ...urlState, spot: spot.id }, firstSpot.current);
++    if (spotInUrl) onSpot({ ...urlState, spot: spot.id }, firstSpot.current);
+     firstSpot.current = false;
+-  }, [spot?.id]); // eslint-disable-line react-hooks/exhaustive-deps
++  }, [spot?.id, spotInUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+ 
+   const pickSpot = useCallback((id: string) => {
+-    setSpotId(id); setMobTab('map');
++    setSpotId(id); setSpotInUrl(true); setMobTab('map');
+     // Mobile shows the new spot's briefing; the desktop dossier keeps its chapter (Allgemein = `quellen`).
+     if (isMobile) setTab((tb) => (tb === 'quellen' ? 'spot' : tb));
+     const s = spots.find((x) => x.id === id);
+diff --git a/src/sea/seaSeo.ts b/src/sea/seaSeo.ts
+new file mode 100644
+index 0000000..805e1d0
+--- /dev/null
++++ b/src/sea/seaSeo.ts
+@@ -0,0 +1,29 @@
++/**
++ * Phase SS (audit/seewetter-seo.md) — the spot pages `/seewetter/<spot>` as indexable sub-routes of `/seewetter`.
++ *
++ * This module sits in the EAGER route table (`routes.ts`), so it carries only what the router, `RouteMeta` and the
++ * sitemap need: slug, short label, title and description, built from the generated name table (`seaSpotNames.ts`).
++ * H1, lead, paragraphs, facts and neighbour links come from `seaSeoText.ts` (lazy text chunk + build), the spot facts
++ * behind them from `seaSpotFacts.ts` (generated from the published catalogue).
++ *
++ * Before SS the spot paths shared shell and canonical of `/seewetter`; each spot is now its own page with its own
++ * canonical, because searches name the place ("seewetter sylt", "wellen kiel") and the page per spot already exists.
++ */
++import { SEA_SPOT_NAMES } from './seaSpotNames';
++
++/** Last change of the spot texts (sitemap `lastmod` falls back to Git; this is the editorial date of the rows). */
++export const SEA_SEO_UPDATED = '2026-11-02';
++/** Number of spots in the name table — the route texts say this number instead of a rounded one. */
++export const SEA_SPOT_COUNT = Object.keys(SEA_SPOT_NAMES).length;
++const REGION = { nordsee: 'Nordsee', ostsee: 'Ostsee' } as const;
++
++/** Sub-route rows (same shape as `SubRoute` in `routes.ts`). */
++export function seaSeoSubs() {
++  return Object.entries(SEA_SPOT_NAMES).map(([slug, [name, region]]) => ({
++    slug,
++    label: name,
++    title: `Seewetter ${name} — Wind, Wellen, Böen`,
++    description: `Seewetter ${name} (${REGION[region]}): Wind und Böen, Wellenhöhe mit Windsee und Dünung, Wasserstand und DWD-Seewetterbericht, stündlich bis 78 h.`,
++    updated: SEA_SEO_UPDATED,
++  }));
++}
+diff --git a/src/sea/seaSeoText.ts b/src/sea/seaSeoText.ts
+new file mode 100644
+index 0000000..0215ccb
+--- /dev/null
++++ b/src/sea/seaSeoText.ts
+@@ -0,0 +1,111 @@
++/**
++ * Phase SS (audit/seewetter-seo.md) — texts of the spot pages `/seewetter/<spot>`: H1, lead, paragraphs, facts, the
++ * official source, neighbour spots and the place pages that name this spot. One source for the static shells
++ * (`scripts/generate-seo.mjs`) and the rendered block after mount (`RouteSeoBlock`, lazy).
++ *
++ * Everything here is a property of the PLACE, computed from the published catalogue (`seaSpotFacts.ts`): DWD sea area
++ * and coast section, the shore normal, the distance of the model cell, the measuring station, the BSH gauge. No
++ * forecast value ever stands in this text — those come from the app and carry their own time stamp. Rules: no
++ * official-warning language of our own, no safety verdict, every number names its origin (CLAUDE.md, D-04).
++ *
++ * Pure: no React, no DOM; Node loads it with `--experimental-strip-types`. Only the lazy text chunk and the build
++ * import it — never the start bundle.
++ */
++import type { SeoText } from '../seo/layerSeoTexts';
++import { SEA_SPOT_FACTS, type SeaSpotFact } from './seaSpotFacts';
++
++const DIR16 = ['Nord', 'Nordnordost', 'Nordost', 'Ostnordost', 'Ost', 'Ostsüdost', 'Südost', 'Südsüdost',
++  'Süd', 'Südsüdwest', 'Südwest', 'Westsüdwest', 'West', 'Westnordwest', 'Nordwest', 'Nordnordwest'] as const;
++/** Direction word of a bearing (16 points, German). */
++export const dirWord = (deg: number) => DIR16[Math.round((((deg % 360) + 360) % 360) / 22.5) % 16];
++
++/** DWD writes area and coast names in ASCII (`Suedliche Ostsee`); the page text uses the real spelling. */
++const DWD_SPELLING: ReadonlyArray<[RegExp, string]> = [
++  [/Suedoestliche/g, 'Südöstliche'], [/Suedwestliche/g, 'Südwestliche'], [/Suedliche/g, 'Südliche'],
++  [/Boddengewaesser/g, 'Boddengewässer'], [/Kueste/g, 'Küste'], [/muendung/g, 'mündung'], [/Oestlich/g, 'Östlich'],
++  [/oestlich/g, 'östlich'], [/Ruegen/g, 'Rügen'],
++];
++export const dwdName = (s: string) => DWD_SPELLING.reduce((out, [re, to]) => out.replace(re, to), s);
++
++const KIND: Readonly<Record<string, string>> = { strand: 'Badestrand', kite: 'Kite-Spot', hafen: 'Hafen', revier: 'Revier' };
++const listDe = (xs: readonly string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} und ${xs[xs.length - 1]}`);
++const n1 = (x: number) => String(Math.round(x * 10) / 10).replace('.', ',');
++const REGION = { nordsee: 'Nordsee', ostsee: 'Ostsee' } as const;
++const COAST = { Nordseekueste: 'Nordseeküste', Ostseekueste: 'Ostseeküste' } as const;
++
++const NAME_OF: ReadonlyMap<string, string> = new Map(SEA_SPOT_FACTS.map((s) => [s.id, s.name]));
++/** The official page of the DWD marine weather service (bulletins and warnings for North Sea and Baltic). */
++export const DWD_SEEWETTER_URL = 'https://www.dwd.de/DE/leistungen/seewetternordostsee/seewetternordostsee.html';
++
++/** The SEO text of one spot (`null` for an id the catalogue does not know). */
++export function seaSpotSeoText(id: string): SeoText | null {
++  const s = SEA_SPOT_FACTS.find((x) => x.id === id);
++  return s ? textOf(s) : null;
++}
++
++function textOf(s: SeaSpotFact): SeoText {
++  const region = REGION[s.region];
++  const area = s.seaArea ? dwdName(s.seaArea) : null;
++  const coast = s.coast ? dwdName(s.coast) : null;
++  const facing = dirWord(s.normal), opposite = dirWord(s.normal + 180);
++  const sideA = dirWord(s.normal + 90), sideB = dirWord(s.normal - 90);
++  const kinds = s.kinds.map((k) => KIND[k] ?? k);
++  const station = s.station ? { name: s.station[0], km: n1(s.station[1]) } : null;
++  const gauge = s.gauge ? { name: s.gauge[0], km: n1(s.gauge[1]) } : null;
++
++  const lead = `Seewetter für ${s.name} an der ${region}: Diese Seite zeigt für den Spot die kommenden 78 Stunden Stunde für Stunde, `
++    + `nämlich Wind und Böen aus buscosun Fusion, die signifikante Wellenhöhe getrennt nach Windsee und Dünung aus dem Küstenwellenmodell CWAM `
++    + `des Deutschen Wetterdienstes${gauge ? `, den Wasserstand am BSH-Pegel ${gauge.name}` : ''} und ${area ? `den Seewetterbericht für das Seegebiet ${area}` : 'den Seewetterbericht für die deutsche Küste'} im Wortlaut. `
++    + `${coast ? `${s.name} gehört zum Küstenabschnitt „${coast}“` : `${s.name} liegt an der deutschen ${COAST[s.wodl]}`}${station ? `, die nächste Messstation des DWD ist ${station.name} (${station.km} km)` : ''}. `
++    + 'Die Seite ist kein amtliches Warnprodukt und ersetzt weder den amtlichen Bericht noch die eigene seemännische Einschätzung.';
++
++  const orientation = `Das Ufer von ${s.name} zeigt nach ${facing} (${s.normal}°)${s.normalSet ? ', von Hand gesetzt, weil die Modellmaske hier der bekannten Strandlage widerspricht' : ', gerechnet aus der Land-See-Maske des Wellenmodells'}. `
++    + `Wind aus ${facing} kommt damit auflandig vom Wasser, Wind aus ${sideA} oder ${sideB} läuft etwa parallel zum Ufer, und Wind aus ${opposite} weht ablandig aufs Wasser hinaus. `
++    + 'Die Profile Kite, Wing/Surf und SUP/Kajak werten ablandigen und schräg ablandigen Wind deshalb als „außerhalb“; Jolle, Yacht, Motorboot und Angeln richten sich nach Wind, Böen und Seegang, und jede Grenze lässt sich in der Ansicht anpassen. '
++    + `Im Katalog steht ${s.name} als ${listDe(kinds)}${s.tidal ? ' im Wattenmeer' : ''}.`;
++
++  const provenance = `Der Seegang kommt aus der CWAM-Gitterzelle ${n1(s.cellKm)} km vor dem Spot; das Modell rechnet mit rund 900 Metern Maschenweite und kennt einzelne Buhnen, Molen oder Sandbänke nicht. `
++    + (s.tidal ? 'Weil der Spot im Watt liegt, rechnet das Modell mit Gezeit und Wassertiefe: Bei Niedrigwasser kann die Zelle trockenfallen, und die Seite zeigt dann „kein Seegang“ statt 0 Meter. ' : '')
++    + (station ? `Gemessener Wind und Böen kommen von der DWD-Station ${station.name}, ${station.km} km vom Spot entfernt, an Land und nicht auf dem Wasser, deshalb kann es draußen schwächer oder stärker wehen. ` : 'Eine DWD-Station mit Windmessung liegt nicht in der Nähe; die Ansicht sagt das, statt einen Wert zu übertragen. ')
++    + (gauge ? `Den Wasserstand misst das Bundesamt für Seeschifffahrt und Hydrographie am Pegel ${gauge.name}, ${gauge.km} km entfernt, und sagt ihn dort auch vorher.` :'Ein BSH-Pegel liegt nicht im Umkreis von 20 Kilometern; die Ansicht nennt den nächsten Pegel mit seiner Entfernung.');
++
++  const official = `Für ${s.name} gelten ${area ? `der Seewetterbericht für das Seegebiet ${area}` : 'der Seewetterbericht für Nord- und Ostsee'}${coast ? `, der Küstenbericht für den Abschnitt „${coast}“` : ''} `
++    + `und die Starkwind-, Sturm- und Orkanwarnungen des Seewetterdienstes Hamburg für die deutsche ${COAST[s.wodl]}. `
++    + `Im Reiter „Seegebiet“ stehen diese Texte unverändert im Wortlaut und mit Ausgabezeit; den Wind nennt der Bericht in Beaufort, den Seegang in Metern, und aus der amtlichen Mittelfrist kommt die Wassertemperatur der ${region} als Spanne. `
++    + '„Keine Warnung“ zeigt die Seite nur, wenn der amtliche Text genau das sagt, sonst steht der Wortlaut obenan; ein veralteter Warnstatus gilt als unbekannt.';
++
++  const near = s.near.map(([id, km]) => ({ label: `${NAME_OF.get(id) ?? id} (${n1(km)} km)`, href: `/seewetter/${id}` }));
++  const sources = ['DWD CWAM (Seegang)', 'buscosun Fusion (Wind, Böen)'];
++  if (station) sources.push(`DWD-Station ${station.name} (Messung)`);
++  if (gauge) sources.push(`BSH-Pegel ${gauge.name} (Wasserstand, CC BY 4.0)`);
++  sources.push('Seewetterdienst Hamburg (Berichte im Wortlaut)');
++
++  return {
++    h1: `Seewetter ${s.name}: Wind, Wellen und Wasserstand`,
++    lead,
++    body: [orientation, provenance, official],
++    facts: [
++      { label: 'Quellen', text: sources.join(' · ') },
++      { label: 'Lage', text: `${n1(s.lat)}° N, ${n1(s.lon)}° O · ${region}${area ? ` · Seegebiet ${area}` : ''}${coast ? ` · Küstenabschnitt ${coast}` : ''}` },
++      { label: 'Ufer', text: `zeigt nach ${facing} (${s.normal}°): auflandig bei Wind aus ${facing}, ablandig bei Wind aus ${opposite}` },
++      { label: 'Spot', text: `${listDe(kinds)}${s.tidal ? ' · Watt (kann trockenfallen)' : ''}` },
++      { label: 'Aktualisierung', text: 'Prüfung alle 15 Minuten; CWAM-Läufe um 00 und 12 UTC, rund 4 Stunden später vollständig; Horizont 78 Stunden' },
++      { label: 'Grenze', text: 'kein amtliches Warnprodukt, keine Sicherheitsbewertung, keine Strömung; Hafenbecken und Sandbänke löst das Modell nicht auf' },
++    ],
++    official: { text: 'Den amtlichen Seewetterbericht und die Warnungen für Nord- und Ostsee gibt der Seewetterdienst Hamburg des DWD heraus:', label: 'Seewetter beim DWD', href: DWD_SEEWETTER_URL },
++    links: [
++      { label: 'Seewetter Nord- und Ostsee: alle Spots', href: '/seewetter' },
++      { label: 'Seegang, Windsee und Dünung erklärt', href: '/wissen/seegang-wellenhoehe/' },
++      { label: 'Den Seewetterbericht lesen', href: '/wissen/seewetterbericht/' },
++      ...s.places.map(([slug, name]) => ({ label: `Wetter ${name}`, href: `/wetter/${slug}/` })),
++    ],
++    related: near.length ? { heading: 'Spots in der Nähe', items: near } : undefined,
++    place: { name: s.name, lat: s.lat, lon: s.lon, containedIn: area ?? coast ?? region },
++    explainer: null,
++  };
++}
++
++/** All spot texts keyed by canonical path — merged into `SUB_ROUTE_TEXTS` (`src/seo/subRouteTexts.ts`). */
++export function seaSpotSeoTexts(): Record<string, SeoText> {
++  return Object.fromEntries(SEA_SPOT_FACTS.map((s) => [`/seewetter/${s.id}`, textOf(s)]));
++}
+diff --git a/src/sea/seaSpotFacts.ts b/src/sea/seaSpotFacts.ts
+new file mode 100644
+index 0000000..30d71f1
+--- /dev/null
++++ b/src/sea/seaSpotFacts.ts
+@@ -0,0 +1,77 @@
++/**
++ * GENERIERT von `scripts/sea/gen-spot-seo.mjs` aus dem Katalog `sea/v1/static/spots.json` (gebaut 2026-10-11),
++ * `gauges.json` und `scripts/seo/data/place-modules.json` — nicht von Hand ändern.
++ *
++ * Steckbrief je Spot für die SEO-Texte der Spot-Seiten (`seaSeoText.ts`). Nur Eigenschaften des Ortes, keine Prognose:
++ * Seegebiet/Küstenabschnitt in DWD-Schreibweise (ASCII), Ufernormale in Grad (wohin die offene See zeigt), Abstand der
++ * CWAM-Zelle, nächste DWD-Station [Name, km], nächster BSH-Pegel bis 20 km [Name, km], Nachbarspots derselben
++ * Küste [Kennung, km], Ortsseiten mit diesem Spot als nächstem [Slug, Name]. Liegt nur im Lazy-Chunk der Texte und im Build.
++ */
++export interface SeaSpotFact {
++  id: string; name: string; region: 'nordsee' | 'ostsee'; kinds: readonly string[]; lat: number; lon: number;
++  normal: number; normalSet: boolean; seaArea: string | null; coast: string | null; wodl: 'Nordseekueste' | 'Ostseekueste';
++  station: readonly [name: string, km: number] | null; cellKm: number; tidal: boolean;
++  gauge: readonly [name: string, km: number] | null;
++  near: ReadonlyArray<readonly [id: string, km: number]>;
++  places: ReadonlyArray<readonly [slug: string, name: string]>;
++}
++/** Bau-Datum des Katalogs, aus dem die Steckbriefe stammen. */
++export const SEA_SPOT_FACTS_BUILT = "2026-10-11";
++export const SEA_SPOT_FACTS: readonly SeaSpotFact[] = [
++  {"id":"borkum","name":"Borkum Nordstrand","region":"nordsee","kinds":["strand","kite"],"lat":53.6076,"lon":6.67,"normal":316,"normalSet":false,"seaArea":"Deutsche Bucht","coast":"Ostfriesische Kueste","wodl":"Nordseekueste","station":["Norderney",33.9],"cellKm":0.4,"tidal":false,"gauge":["Borkum, Fischerbalje",7.6],"near":[["juist",22.9],["norddeich",31.7],["norderney",34.5],["langeoog",56]],"places":[["borkum","Borkum"]]},
++  {"id":"juist","name":"Juist","region":"nordsee","kinds":["strand"],"lat":53.68,"lon":6.995,"normal":329,"normalSet":false,"seaArea":"Deutsche Bucht","coast":"Ostfriesische Kueste","wodl":"Nordseekueste","station":["Norderney",11],"cellKm":0.9,"tidal":false,"gauge":["Norderney, Riffgat",10.9],"near":[["norderney",11.6],["norddeich",11.8],["borkum",22.9],["langeoog",33.2]],"places":[["juist","Juist"]]},
++  {"id":"norderney","name":"Norderney Nordstrand","region":"nordsee","kinds":["strand","kite"],"lat":53.716,"lon":7.1606,"normal":328,"normalSet":false,"seaArea":"Deutsche Bucht","coast":"Ostfriesische Kueste","wodl":"Nordseekueste","station":["Norderney",0.7],"cellKm":0.6,"tidal":false,"gauge":["Norderney, Riffgat",2.2],"near":[["norddeich",9.9],["juist",11.6],["langeoog",21.7],["borkum",34.5]],"places":[["norderney","Norderney"]]},
++  {"id":"norddeich","name":"Norddeich","region":"nordsee","kinds":["kite","hafen"],"lat":53.627,"lon":7.15,"normal":313,"normalSet":false,"seaArea":"Deutsche Bucht","coast":"Ostfriesische Kueste","wodl":"Nordseekueste","station":["Norderney",10],"cellKm":0.4,"tidal":true,"gauge":["Norderney, Riffgat",7.7],"near":[["norderney",9.9],["juist",11.8],["langeoog",26.1],["borkum",31.7]],"places":[["norden","Norden"],["greetsiel","Greetsiel"]]},
++  {"id":"langeoog","name":"Langeoog","region":"nordsee","kinds":["strand"],"lat":53.752,"lon":7.485,"normal":329,"normalSet":false,"seaArea":"Deutsche Bucht","coast":"Ostfriesische Kueste","wodl":"Nordseekueste","station":["Norderney",22.4],"cellKm":0.5,"tidal":false,"gauge":["Langeoog, Hafeneinfahrt",3.4],"near":[["spiekeroog",14.3],["norderney",21.7],["norddeich",26.1],["wangerooge",27.3]],"places":[["langeoog","Langeoog"]]},
++  {"id":"spiekeroog","name":"Spiekeroog","region":"nordsee","kinds":["strand"],"lat":53.7803,"lon":7.697,"normal":321,"normalSet":false,"seaArea":"Deutsche Bucht","coast":"Ostfriesische Kueste","wodl":"Nordseekueste","station":["Leuchtturm Alte Weser",28.6],"cellKm":0.6,"tidal":false,"gauge":["Spiekeroog, ehem. Landungsbrücke",3.6],"near":[["wangerooge",13.1],["langeoog",14.3],["schillig",23.1],["norderney",36]],"places":[["spiekeroog","Spiekeroog"]]},
++  {"id":"wangerooge","name":"Wangerooge","region":"nordsee","kinds":["strand"],"lat":53.7943,"lon":7.8947,"normal":29,"normalSet":false,"seaArea":"Deutsche Bucht","coast":"Ostfriesische Kueste","wodl":"Nordseekueste","station":["Leuchtturm Alte Weser",15.8],"cellKm":1,"tidal":false,"gauge":["Wangerooge, Langes Riff, Nord",2.6],"near":[["schillig",13],["spiekeroog",13.1],["langeoog",27.3],["wilhelmshaven",35.3]],"places":[["wangerooge","Wangerooge"]]},
++  {"id":"schillig","name":"Schillig","region":"nordsee","kinds":["kite","strand"],"lat":53.708,"lon":8.027,"normal":49,"normalSet":false,"seaArea":"Deutsche Bucht","coast":"Ostfriesische Kueste","wodl":"Nordseekueste","station":["Leuchtturm Alte Weser",16.9],"cellKm":0.7,"tidal":false,"gauge":["Schillig",1.7],"near":[["wangerooge",13],["wilhelmshaven",23],["spiekeroog",23.1],["dangast",29.5]],"places":[]},
++  {"id":"wilhelmshaven","name":"Wilhelmshaven Südstrand","region":"nordsee","kinds":["strand","hafen"],"lat":53.512,"lon":8.14,"normal":126,"normalSet":false,"seaArea":"Deutsche Bucht","coast":"Ostfriesische Kueste","wodl":"Nordseekueste","station":["Bremerhaven",29.4],"cellKm":0.4,"tidal":false,"gauge":["Wilhelmshaven, Alter Vorhafen",0.4],"near":[["dangast",7.3],["schillig",23],["wangerooge",35.3],["spiekeroog",41.7]],"places":[["wilhelmshaven","Wilhelmshaven"]]},
++  {"id":"dangast","name":"Dangast (Jadebusen)","region":"nordsee","kinds":["kite","strand"],"lat":53.448,"lon":8.118,"normal":4,"normalSet":false,"seaArea":"Deutsche Bucht","coast":"Ostfriesische Kueste","wodl":"Nordseekueste","station":["Bremerhaven",32.2],"cellKm":1.2,"tidal":true,"gauge":["Wilhelmshaven, Alter Vorhafen",7.6],"near":[["wilhelmshaven",7.3],["schillig",29.5],["wangerooge",41.2],["spiekeroog",46.2]],"places":[]},
++  {"id":"cuxhaven-duhnen","name":"Cuxhaven-Duhnen","region":"nordsee","kinds":["strand","kite"],"lat":53.884,"lon":8.642,"normal":331,"normalSet":false,"seaArea":"Deutsche Bucht","coast":"Elbmuendung","wodl":"Nordseekueste","station":["Cuxhaven",5.3],"cellKm":1.4,"tidal":true,"gauge":["Cuxhaven, Steubenhöft, Elbe",5.3],"near":[["buesum",30.3],["schillig",44.9],["st-peter-ording",46.1],["wangerooge",50]],"places":[["cuxhaven","Cuxhaven"]]},
++  {"id":"helgoland","name":"Helgoland Düne","region":"nordsee","kinds":["strand","hafen"],"lat":54.186,"lon":7.915,"normal":30,"normalSet":false,"seaArea":"Deutsche Bucht","coast":"Helgoland","wodl":"Nordseekueste","station":["Helgoland",3],"cellKm":0.6,"tidal":false,"gauge":["Helgoland, Binnenhafen",1.8],"near":[["wangerooge",43.6],["st-peter-ording",47.2],["spiekeroog",47.3],["schillig",53.7]],"places":[["helgoland","Helgoland"]]},
++  {"id":"buesum","name":"Büsum","region":"nordsee","kinds":["strand","hafen"],"lat":54.128,"lon":8.848,"normal":219,"normalSet":false,"seaArea":"Deutsche Bucht","coast":"Elbmuendung","wodl":"Nordseekueste","station":["Elpersbüttel",12.9],"cellKm":0.5,"tidal":true,"gauge":["Büsum, Schleuse",1],"near":[["st-peter-ording",24.2],["cuxhaven-duhnen",30.3],["husum",39.9],["pellworm",46.6]],"places":[["buesum","Büsum"]]},
++  {"id":"st-peter-ording","name":"St. Peter-Ording","region":"nordsee","kinds":["kite","strand"],"lat":54.2982,"lon":8.6157,"normal":217,"normalSet":false,"seaArea":"Deutsche Bucht","coast":"Elbmuendung","wodl":"Nordseekueste","station":["St. Peter-Ording",4],"cellKm":2,"tidal":false,"gauge":["Süderoogsand",14.9],"near":[["buesum",24.2],["pellworm",24.6],["husum",32.2],["amrum",42.4]],"places":[["sankt-peter-ording","Sankt Peter-Ording"]]},
++  {"id":"pellworm","name":"Pellworm","region":"nordsee","kinds":["strand"],"lat":54.5188,"lon":8.5878,"normal":268,"normalSet":false,"seaArea":"Deutsche Bucht","coast":"Nordfriesische Kueste","wodl":"Nordseekueste","station":["St. Peter-Ording",20.6],"cellKm":0.8,"tidal":true,"gauge":["Pellworm, Hoogerfähre",2],"near":[["foehr-wyk",19.3],["amrum",21.6],["st-peter-ording",24.6],["husum",27.7]],"places":[]},
++  {"id":"husum","name":"Husum Dockkoog","region":"nordsee","kinds":["kite"],"lat":54.474,"lon":9.01,"normal":284,"normalSet":false,"seaArea":"Deutsche Bucht","coast":"Nordfriesische Kueste","wodl":"Nordseekueste","station":["St. Peter-Ording",30.8],"cellKm":1.2,"tidal":true,"gauge":["Husum, Schleuse",1],"near":[["pellworm",27.7],["st-peter-ording",32.2],["foehr-wyk",37.1],["buesum",39.9]],"places":[["husum","Husum"]]},
++  {"id":"amrum","name":"Amrum Kniepsand","region":"nordsee","kinds":["strand","kite"],"lat":54.6395,"lon":8.3246,"normal":220,"normalSet":false,"seaArea":"Deutsche Bucht","coast":"Nordfriesische Kueste","wodl":"Nordseekueste","station":["St. Peter-Ording",38.4],"cellKm":0.2,"tidal":false,"gauge":["Wittdün, Amrum, Hafen",3.9],"near":[["sylt-hoernum",13.4],["foehr-wyk",17.1],["pellworm",21.6],["sylt-westerland",29.9]],"places":[["wittduen","Wittdün"]]},
++  {"id":"foehr-wyk","name":"Föhr Wyk","region":"nordsee","kinds":["strand","hafen"],"lat":54.692,"lon":8.575,"normal":117,"normalSet":false,"seaArea":"Deutsche Bucht","coast":"Nordfriesische Kueste","wodl":"Nordseekueste","station":["Leck",26.9],"cellKm":0.4,"tidal":true,"gauge":["Wyk, Föhr",0.2],"near":[["amrum",17.1],["pellworm",19.3],["sylt-hoernum",19.7],["sylt-westerland",29.9]],"places":[["wyk-auf-foehr","Wyk auf Föhr"]]},
++  {"id":"sylt-hoernum","name":"Sylt Hörnum","region":"nordsee","kinds":["strand","hafen"],"lat":54.758,"lon":8.29,"normal":114,"normalSet":false,"seaArea":"Deutsche Bucht","coast":"Nordfriesische Kueste","wodl":"Nordseekueste","station":["List auf Sylt",29.9],"cellKm":0.7,"tidal":false,"gauge":["Hörnum, Sylt, Hafen",0.4],"near":[["amrum",13.4],["sylt-westerland",16.7],["foehr-wyk",19.7],["sylt-list",30.4]],"places":[]},
++  {"id":"sylt-westerland","name":"Sylt Westerland","region":"nordsee","kinds":["strand","kite"],"lat":54.908,"lon":8.296,"normal":284,"normalSet":false,"seaArea":"Deutsche Bucht","coast":"Nordfriesische Kueste","wodl":"Nordseekueste","station":["List auf Sylt",14.3],"cellKm":0.8,"tidal":false,"gauge":["Westerland, Sylt",1.6],"near":[["sylt-list",15.1],["sylt-hoernum",16.7],["amrum",29.9],["foehr-wyk",29.9]],"places":[["sylt-westerland","Sylt (Westerland)"]]},
++  {"id":"sylt-list","name":"Sylt List","region":"nordsee","kinds":["strand","hafen"],"lat":55.018,"lon":8.435,"normal":141,"normalSet":false,"seaArea":"Deutsche Bucht","coast":"Nordfriesische Kueste","wodl":"Nordseekueste","station":["List auf Sylt",1.2],"cellKm":0.6,"tidal":false,"gauge":["List, Sylt, Hafen",0.4],"near":[["sylt-westerland",15.1],["sylt-hoernum",30.4],["foehr-wyk",37.3],["amrum",42.7]],"places":[]},
++  {"id":"elbe-wittenbergen","name":"Elbe Wittenbergen","region":"nordsee","kinds":["revier"],"lat":53.567,"lon":9.76,"normal":179,"normalSet":false,"seaArea":"Deutsche Bucht","coast":"Elbe von Hamburg bis Cuxhaven","wodl":"Nordseekueste","station":["Hamburg-Fuhlsbüttel",17.5],"cellKm":0.5,"tidal":false,"gauge":["Hamburg, Blankenese, Elbe, Unterfeuer",2.6],"near":[["cuxhaven-duhnen",81.6],["buesum",86.4],["wilhelmshaven",107.2],["dangast",109.4]],"places":[]},
++  {"id":"flensburg","name":"Flensburg Solitüde","region":"ostsee","kinds":["strand"],"lat":54.8232,"lon":9.4984,"normal":341,"normalSet":false,"seaArea":"Westliche Ostsee","coast":"Flensburg bis Fehmarn","wodl":"Ostseekueste","station":["Schleswig",32.4],"cellKm":0.8,"tidal":false,"gauge":["Flensburg",5.2],"near":[["holnis",7.5],["schleimuende",38.3],["damp",43],["eckernfoerde",45.1]],"places":[["flensburg","Flensburg"]]},
++  {"id":"holnis","name":"Glücksburg Holnis","region":"ostsee","kinds":["kite","strand"],"lat":54.862,"lon":9.595,"normal":314,"normalSet":false,"seaArea":"Westliche Ostsee","coast":"Flensburg bis Fehmarn","wodl":"Ostseekueste","station":["Olpenitz",35.5],"cellKm":0.6,"tidal":false,"gauge":["Langballigau",5.7],"near":[["flensburg",7.5],["schleimuende",35.3],["damp",41.4],["eckernfoerde",46.4]],"places":[]},
++  {"id":"schleimuende","name":"Schleimünde","region":"ostsee","kinds":["hafen","revier"],"lat":54.672,"lon":10.035,"normal":88,"normalSet":false,"seaArea":"Westliche Ostsee","coast":"Flensburg bis Fehmarn","wodl":"Ostseekueste","station":["Olpenitz",0.6],"cellKm":0.1,"tidal":false,"gauge":["Schleimünde",0.1],"near":[["damp",9.9],["eckernfoerde",25.7],["kiel-schilksee",28.5],["laboe",31.7]],"places":[]},
++  {"id":"damp","name":"Damp","region":"ostsee","kinds":["strand","hafen"],"lat":54.583,"lon":10.022,"normal":87,"normalSet":false,"seaArea":"Westliche Ostsee","coast":"Flensburg bis Fehmarn","wodl":"Ostseekueste","station":["Olpenitz",9.3],"cellKm":0.9,"tidal":false,"gauge":["Schleimünde",10],"near":[["schleimuende",9.9],["eckernfoerde",17.1],["kiel-schilksee",19.8],["laboe",23.4]],"places":[]},
++  {"id":"eckernfoerde","name":"Eckernförde","region":"ostsee","kinds":["strand","hafen"],"lat":54.47,"lon":9.842,"normal":112,"normalSet":false,"seaArea":"Westliche Ostsee","coast":"Flensburg bis Fehmarn","wodl":"Ostseekueste","station":["Schleswig",20.1],"cellKm":0.8,"tidal":false,"gauge":["Eckernförde",0.7],"near":[["damp",17.1],["kiel-schilksee",21.8],["laboe",25.5],["schleimuende",25.7]],"places":[]},
++  {"id":"kiel-schilksee","name":"Kiel-Schilksee","region":"ostsee","kinds":["hafen","revier"],"lat":54.428,"lon":10.172,"normal":85,"normalSet":false,"seaArea":"Westliche Ostsee","coast":"Flensburg bis Fehmarn","wodl":"Ostseekueste","station":["Kiel-Holtenau",5.2],"cellKm":0.2,"tidal":false,"gauge":["Kiel-Holtenau",6.3],"near":[["laboe",3.9],["schoenberger-strand",14.3],["damp",19.8],["eckernfoerde",21.8]],"places":[]},
++  {"id":"laboe","name":"Laboe","region":"ostsee","kinds":["strand","hafen"],"lat":54.408,"lon":10.222,"normal":318,"normalSet":false,"seaArea":"Westliche Ostsee","coast":"Flensburg bis Fehmarn","wodl":"Ostseekueste","station":["Kiel-Holtenau",5.4],"cellKm":0.6,"tidal":false,"gauge":["Kiel-Holtenau",5.8],"near":[["kiel-schilksee",3.9],["schoenberger-strand",11.2],["damp",23.4],["eckernfoerde",25.5]],"places":[["kiel","Kiel"]]},
++  {"id":"schoenberger-strand","name":"Schönberger Strand","region":"ostsee","kinds":["strand","kite"],"lat":54.4247,"lon":10.3925,"normal":34,"normalSet":false,"seaArea":"Westliche Ostsee","coast":"Flensburg bis Fehmarn","wodl":"Ostseekueste","station":["Kiel-Holtenau",16.4],"cellKm":0.6,"tidal":false,"gauge":["Leuchtturm Kiel",11.3],"near":[["laboe",11.2],["kiel-schilksee",14.3],["hohwacht",21.7],["damp",29.7]],"places":[]},
++  {"id":"hohwacht","name":"Hohwacht","region":"ostsee","kinds":["strand"],"lat":54.32,"lon":10.675,"normal":58,"normalSet":false,"seaArea":"Westliche Ostsee","coast":"Flensburg bis Fehmarn","wodl":"Ostseekueste","station":["Dörnick",27.1],"cellKm":0.8,"tidal":false,"gauge":["Lippe",2.6],"near":[["heiligenhafen",21.1],["schoenberger-strand",21.7],["groemitz",27],["grossenbrode",27.3]],"places":[]},
++  {"id":"heiligenhafen","name":"Heiligenhafen","region":"ostsee","kinds":["strand","kite","hafen"],"lat":54.378,"lon":10.985,"normal":359,"normalSet":false,"seaArea":"Westliche Ostsee","coast":"Flensburg bis Fehmarn","wodl":"Ostseekueste","station":["Westermarkelsdorf (Fehmarn)",18.1],"cellKm":0.4,"tidal":false,"gauge":["Heiligenhafen",1.5],"near":[["grossenbrode",7.1],["fehmarn-wulfen",12.2],["fehmarn-burgtiefe",14.4],["fehmarn-gruener-brink",19.9]],"places":[["heiligenhafen","Heiligenhafen"]]},
++  {"id":"grossenbrode","name":"Großenbrode","region":"ostsee","kinds":["kite","strand"],"lat":54.36,"lon":11.09,"normal":168,"normalSet":false,"seaArea":"Westliche Ostsee","coast":"Oestlich Fehmarn bis Ruegen","wodl":"Ostseekueste","station":["Westermarkelsdorf (Fehmarn)",19.3],"cellKm":0.6,"tidal":false,"gauge":["Heiligenhafen",5.7],"near":[["fehmarn-wulfen",7],["heiligenhafen",7.1],["fehmarn-burgtiefe",9],["fehmarn-gruener-brink",18.7]],"places":[]},
++  {"id":"fehmarn-gruener-brink","name":"Fehmarn Grüner Brink","region":"ostsee","kinds":["kite","strand"],"lat":54.5223,"lon":11.1664,"normal":17,"normalSet":false,"seaArea":"Westliche Ostsee","coast":"Flensburg bis Fehmarn","wodl":"Ostseekueste","station":["Westermarkelsdorf (Fehmarn)",6.5],"cellKm":0.5,"tidal":false,"gauge":["Marienleuchte",5.5],"near":[["fehmarn-burgtiefe",12.7],["fehmarn-wulfen",13.3],["grossenbrode",18.7],["heiligenhafen",19.9]],"places":[]},
++  {"id":"fehmarn-wulfen","name":"Fehmarn Wulfener Hals","region":"ostsee","kinds":["kite","revier"],"lat":54.403,"lon":11.168,"normal":137,"normalSet":false,"seaArea":"Westliche Ostsee","coast":"Oestlich Fehmarn bis Ruegen","wodl":"Ostseekueste","station":["Westermarkelsdorf (Fehmarn)",15.9],"cellKm":0.9,"tidal":false,"gauge":["Heiligenhafen",11],"near":[["fehmarn-burgtiefe",2.2],["grossenbrode",7],["heiligenhafen",12.2],["fehmarn-gruener-brink",13.3]],"places":[]},
++  {"id":"fehmarn-burgtiefe","name":"Fehmarn Südstrand","region":"ostsee","kinds":["strand","hafen"],"lat":54.41,"lon":11.2,"normal":193,"normalSet":false,"seaArea":"Westliche Ostsee","coast":"Oestlich Fehmarn bis Ruegen","wodl":"Ostseekueste","station":["Westermarkelsdorf (Fehmarn)",16.2],"cellKm":0.7,"tidal":false,"gauge":["Marienleuchte",10],"near":[["fehmarn-wulfen",2.2],["grossenbrode",9],["fehmarn-gruener-brink",12.7],["heiligenhafen",14.4]],"places":[]},
++  {"id":"groemitz","name":"Grömitz","region":"ostsee","kinds":["strand","hafen"],"lat":54.145,"lon":10.962,"normal":122,"normalSet":false,"seaArea":"Westliche Ostsee","coast":"Oestlich Fehmarn bis Ruegen","wodl":"Ostseekueste","station":["Pelzerhaken",8.6],"cellKm":0.2,"tidal":false,"gauge":["Neustadt",11.6],"near":[["pelzerhaken",8.3],["scharbeutz",18.4],["travemuende",20.6],["boltenhagen",22.4]],"places":[]},
++  {"id":"pelzerhaken","name":"Pelzerhaken","region":"ostsee","kinds":["kite","strand"],"lat":54.09,"lon":10.875,"normal":80,"normalSet":true,"seaArea":"Westliche Ostsee","coast":"Oestlich Fehmarn bis Ruegen","wodl":"Ostseekueste","station":["Pelzerhaken",0.9],"cellKm":0.5,"tidal":false,"gauge":["Neustadt",4.6],"near":[["groemitz",8.3],["scharbeutz",10],["travemuende",13.9],["boltenhagen",23.5]],"places":[]},
++  {"id":"scharbeutz","name":"Scharbeutz","region":"ostsee","kinds":["strand"],"lat":54.03,"lon":10.76,"normal":95,"normalSet":false,"seaArea":"Westliche Ostsee","coast":"Oestlich Fehmarn bis Ruegen","wodl":"Ostseekueste","station":["Pelzerhaken",10],"cellKm":0.2,"tidal":false,"gauge":["Neustadt",8],"near":[["pelzerhaken",10],["travemuende",11.1],["groemitz",18.4],["boltenhagen",28.9]],"places":[["scharbeutz","Scharbeutz"],["timmendorfer-strand","Timmendorfer Strand"]]},
++  {"id":"travemuende","name":"Travemünde","region":"ostsee","kinds":["strand","hafen"],"lat":53.965,"lon":10.888,"normal":45,"normalSet":true,"seaArea":"Westliche Ostsee","coast":"Oestlich Fehmarn bis Ruegen","wodl":"Ostseekueste","station":["Pelzerhaken",13.2],"cellKm":0.5,"tidal":false,"gauge":["Travemünde",1.3],"near":[["scharbeutz",11.1],["pelzerhaken",13.9],["groemitz",20.6],["boltenhagen",20.8]],"places":[["luebeck","Lübeck"]]},
++  {"id":"boltenhagen","name":"Boltenhagen","region":"ostsee","kinds":["strand","hafen"],"lat":54,"lon":11.2,"normal":32,"normalSet":false,"seaArea":"Westliche Ostsee","coast":"Oestlich Fehmarn bis Ruegen","wodl":"Ostseekueste","station":["Boltenhagen",1.1],"cellKm":0.5,"tidal":false,"gauge":["Timmendorf (Poel)",11.5],"near":[["poel",14.4],["travemuende",20.8],["groemitz",22.4],["pelzerhaken",23.5]],"places":[["boltenhagen","Boltenhagen"]]},
++  {"id":"poel","name":"Insel Poel","region":"ostsee","kinds":["kite","strand"],"lat":54.01,"lon":11.42,"normal":331,"normalSet":false,"seaArea":"Westliche Ostsee","coast":"Oestlich Fehmarn bis Ruegen","wodl":"Ostseekueste","station":["Boltenhagen",15.5],"cellKm":1.2,"tidal":false,"gauge":["Timmendorf (Poel)",3.5],"near":[["boltenhagen",14.4],["rerik",17.5],["kuehlungsborn",26.7],["groemitz",33.4]],"places":[["wismar","Wismar"]]},
++  {"id":"rerik","name":"Rerik (Salzhaff)","region":"ostsee","kinds":["kite","revier"],"lat":54.108,"lon":11.63,"normal":312,"normalSet":false,"seaArea":"Westliche Ostsee","coast":"Oestlich Fehmarn bis Ruegen","wodl":"Ostseekueste","station":["Warnemünde",30.7],"cellKm":1.6,"tidal":false,"gauge":null,"near":[["kuehlungsborn",9.2],["poel",17.5],["boltenhagen",30.5],["warnemuende",30.8]],"places":[]},
++  {"id":"kuehlungsborn","name":"Kühlungsborn","region":"ostsee","kinds":["strand","hafen"],"lat":54.152,"lon":11.75,"normal":13,"normalSet":false,"seaArea":"Westliche Ostsee","coast":"Oestlich Fehmarn bis Ruegen","wodl":"Ostseekueste","station":["Warnemünde",22],"cellKm":1.3,"tidal":false,"gauge":null,"near":[["rerik",9.2],["warnemuende",22.1],["poel",26.7],["graal-mueritz",34]],"places":[["kuehlungsborn","Kühlungsborn"]]},
++  {"id":"warnemuende","name":"Warnemünde","region":"ostsee","kinds":["strand","kite","hafen"],"lat":54.182,"lon":12.085,"normal":320,"normalSet":true,"seaArea":"Westliche Ostsee","coast":"Oestlich Fehmarn bis Ruegen","wodl":"Ostseekueste","station":["Warnemünde",0.2],"cellKm":0.5,"tidal":false,"gauge":["Warnemünde",1.8],"near":[["graal-mueritz",13.2],["kuehlungsborn",22.1],["rerik",30.8],["ahrenshoop",31.1]],"places":[["rostock","Rostock"]]},
++  {"id":"graal-mueritz","name":"Graal-Müritz","region":"ostsee","kinds":["strand"],"lat":54.2592,"lon":12.2401,"normal":344,"normalSet":false,"seaArea":"Westliche Ostsee","coast":"Oestlich Fehmarn bis Ruegen","wodl":"Ostseekueste","station":["Warnemünde",13.2],"cellKm":0.4,"tidal":false,"gauge":["Warnemünde",13.3],"near":[["warnemuende",13.2],["ahrenshoop",18],["kuehlungsborn",34],["zingst",35.5]],"places":[]},
++  {"id":"ahrenshoop","name":"Ahrenshoop","region":"ostsee","kinds":["strand"],"lat":54.385,"lon":12.415,"normal":324,"normalSet":false,"seaArea":"Westliche Ostsee","coast":"Oestlich Fehmarn bis Ruegen","wodl":"Ostseekueste","station":["Barth",20.4],"cellKm":0.4,"tidal":false,"gauge":["Althagen",1.5],"near":[["graal-mueritz",18],["zingst",18.9],["warnemuende",31.1],["hiddensee",48.5]],"places":[["ahrenshoop","Ahrenshoop"]]},
++  {"id":"zingst","name":"Zingst","region":"ostsee","kinds":["strand","kite"],"lat":54.442,"lon":12.69,"normal":0,"normalSet":false,"seaArea":"Westliche Ostsee","coast":"Oestlich Fehmarn bis Ruegen","wodl":"Ostseekueste","station":["Barth",12.2],"cellKm":0.5,"tidal":false,"gauge":["Zingst (Bodden)",1.2],"near":[["ahrenshoop",18.9],["hiddensee",29.7],["graal-mueritz",35.5],["warnemuende",48.7]],"places":[["zingst","Zingst"],["prerow","Prerow"]]},
++  {"id":"hiddensee","name":"Hiddensee Vitte","region":"ostsee","kinds":["strand"],"lat":54.5639,"lon":13.1,"normal":281,"normalSet":false,"seaArea":"Westliche Ostsee","coast":"Oestlich Fehmarn bis Ruegen","wodl":"Ostseekueste","station":["Kap Arkona",25.2],"cellKm":0.6,"tidal":false,"gauge":["Kloster",2.4],"near":[["juliusruh",19.4],["zingst",29.7],["binz",37.8],["goehren",48.3]],"places":[]},
++  {"id":"juliusruh","name":"Juliusruh","region":"ostsee","kinds":["strand","kite"],"lat":54.627,"lon":13.38,"normal":110,"normalSet":false,"seaArea":"Suedliche Ostsee","coast":"Boddengewaesser Ost und oestlich Ruegen","wodl":"Ostseekueste","station":["Kap Arkona",7.1],"cellKm":1.1,"tidal":false,"gauge":["Wittower Fähre",11.6],"near":[["hiddensee",19.4],["binz",29.3],["goehren",39.3],["zingst",49]],"places":[]},
++  {"id":"binz","name":"Binz","region":"ostsee","kinds":["strand"],"lat":54.4,"lon":13.612,"normal":90,"normalSet":true,"seaArea":"Boddengewaesser Ost","coast":"Boddengewaesser Ost und oestlich Ruegen","wodl":"Ostseekueste","station":["Putbus",9.1],"cellKm":0.6,"tidal":false,"gauge":["Lauterbach",9.8],"near":[["goehren",10.6],["juliusruh",29.3],["lubmin",29.5],["hiddensee",37.8]],"places":[["binz","Binz"],["sassnitz","Sassnitz"]]},
++  {"id":"goehren","name":"Göhren","region":"ostsee","kinds":["strand"],"lat":54.344,"lon":13.745,"normal":32,"normalSet":false,"seaArea":"Boddengewaesser Ost","coast":"Boddengewaesser Ost und oestlich Ruegen","wodl":"Ostseekueste","station":["Greifswalder Oie",16.6],"cellKm":0.8,"tidal":false,"gauge":["Thiessow",7.4],"near":[["binz",10.6],["lubmin",24.8],["zinnowitz",31.4],["juliusruh",39.3]],"places":[["goehren","Göhren"]]},
++  {"id":"lubmin","name":"Lubmin (Greifswalder Bodden)","region":"ostsee","kinds":["kite","revier"],"lat":54.135,"lon":13.612,"normal":331,"normalSet":false,"seaArea":"Boddengewaesser Ost","coast":"Boddengewaesser Ost und oestlich Ruegen","wodl":"Ostseekueste","station":["Greifswald",13.3],"cellKm":0.5,"tidal":false,"gauge":["Greifswald-Wieck",10.9],"near":[["zinnowitz",20.7],["goehren",24.8],["binz",29.5],["heringsdorf",41.6]],"places":[["greifswald","Greifswald"]]},
++  {"id":"zinnowitz","name":"Usedom Zinnowitz","region":"ostsee","kinds":["strand"],"lat":54.08,"lon":13.915,"normal":16,"normalSet":false,"seaArea":"Boddengewaesser Ost","coast":"Boddengewaesser Ost und oestlich Ruegen","wodl":"Ostseekueste","station":["Greifswalder Oie",17],"cellKm":0.6,"tidal":false,"gauge":["Koserow",6],"near":[["lubmin",20.7],["heringsdorf",21.7],["goehren",31.4],["ueckermuende",38.3]],"places":[["zinnowitz","Zinnowitz"]]},
++  {"id":"heringsdorf","name":"Usedom Heringsdorf","region":"ostsee","kinds":["strand"],"lat":53.955,"lon":14.17,"normal":27,"normalSet":false,"seaArea":"Boddengewaesser Ost","coast":"Boddengewaesser Ost und oestlich Ruegen","wodl":"Ostseekueste","station":["Ueckermünde",25.6],"cellKm":0.9,"tidal":false,"gauge":["Świnoujście",8.1],"near":[["zinnowitz",21.7],["ueckermuende",24.6],["lubmin",41.6],["goehren",51.4]],"places":[["heringsdorf","Heringsdorf"]]},
++  {"id":"ueckermuende","name":"Ueckermünde (Stettiner Haff)","region":"ostsee","kinds":["strand","revier"],"lat":53.745,"lon":14.05,"normal":29,"normalSet":false,"seaArea":null,"coast":"Boddengewaesser Ost und oestlich Ruegen","wodl":"Ostseekueste","station":["Ueckermünde",1.7],"cellKm":1.3,"tidal":false,"gauge":["Ueckermünde",1.2],"near":[["heringsdorf",24.6],["zinnowitz",38.3],["lubmin",52],["goehren",69.5]],"places":[]},
++];
+diff --git a/src/seo/layerSeoTexts.ts b/src/seo/layerSeoTexts.ts
+index e3134fe..fb58194 100644
+--- a/src/seo/layerSeoTexts.ts
++++ b/src/seo/layerSeoTexts.ts
+@@ -36,6 +36,12 @@ export interface SeoText {
+   links?: readonly { label: string; href: string }[];
+   /** Passender Explainer unter /wissen/<slug>/ (null = keiner). */
+   explainer: string | null;
++  /** Optional (Phase SS): eigene Linkliste statt der Geschwister-Ansichten — die Spot-Seiten nennen ihre Nachbarspots, nicht alle 55 übrigen. */
++  related?: { heading: string; items: readonly { label: string; href: string }[] };
++  /** Optional (Phase SS): der Ort der Seite, als `about`/`Place` im JSON-LD der Shell. */
++  place?: { name: string; lat: number; lon: number; containedIn?: string };
++  /** Optional (Phase SS): sichtbare Fragen und Antworten (kein FAQ-Rich-Result-Versprechen, nur Text). */
++  faq?: readonly { q: string; a: string }[];
+ }
+ 
+ const DACH = 'Deutschland, Österreich und die Schweiz';
+diff --git a/src/seo/routeTexts.ts b/src/seo/routeTexts.ts
+index 247c332..11dc604 100644
+--- a/src/seo/routeTexts.ts
++++ b/src/seo/routeTexts.ts
+@@ -1,10 +1,11 @@
+ import type { SeoText } from './layerSeoTexts';
++import { SEA_SPOT_COUNT } from '../sea/seaSeo';
+ 
+ /**
+  * Texte der Top-Routen, die mehr brauchen als H1 und Lead (audit/seo-nischen.md). Lead und H1 kommen weiter aus `routes.ts`; hier stehen nur
+  * Absätze, Fakten und Querverweise. Verbraucher: `renderRouteRootContent` (Shell) und `RouteSeoBlock` (lazy, im gerenderten DOM).
+  */
+-export type RouteText = Pick<SeoText, 'body' | 'facts' | 'official' | 'links'>;
++export type RouteText = Pick<SeoText, 'body' | 'facts' | 'official' | 'links' | 'faq'>;
+ const ROUTE_TEXTS: Readonly<Record<string, RouteText>> = {
+   '/autobahnwetter': {
+     body: [
+@@ -56,19 +57,29 @@ const ROUTE_TEXTS: Readonly<Record<string, RouteText>> = {
+   },
+   '/seewetter': {
+     body: [
+-      'Die Ansicht beantwortet drei Fragen für einen Spot an der deutschen Küste. Wie weht es, mit welchen Böen? Wie hoch läuft die See, getrennt nach Windsee und Dünung? Wie steht das Wasser am nächsten Pegel? Das Stundenband zeigt die kommenden Stunden, die Karte das Seegangsfeld, und jeder Spot hat eine eigene Adresse, etwa St. Peter-Ording, Laboe oder Warnemünde.',
+-      'Die Quellen werden nicht verrechnet. Der Seegang stammt aus dem Küstenmodell CWAM des DWD, der Wind am Spot aus buscosun Fusion, der Wasserstand aus der offenen Schnittstelle des BSH. Seewetterbericht und Warnstatus erscheinen unverändert im Wortlaut. Texte und Spots werden alle 15 Minuten auf neue Ausgaben geprüft; jeder Wert nennt seinen Stand.',
+-      'Grenzen: In Häfen, Förden und hinter Sandbänken löst das Modell die Wellen nur grob auf, Strömungen sind nicht Teil der Anzeige, und eine Zelle ohne Wasser im Modell zeigt „kein Seegang“ statt 0 Meter. Binnenseen und andere Reviere fehlen. Die Ansicht entscheidet keine Ausfahrt.',
++      `Die Ansicht beantwortet drei Fragen für einen Spot an der deutschen Küste. Wie weht es, mit welchen Böen? Wie hoch läuft die See, getrennt nach Windsee und Dünung? Wie steht das Wasser am nächsten Pegel? Das Stundenband zeigt die kommenden Stunden, die Karte das Seegangsfeld, und jeder der ${SEA_SPOT_COUNT} Spots hat eine eigene Seite mit Steckbrief, etwa St. Peter-Ording, Sylt Westerland, Laboe, Fehmarn Grüner Brink oder Warnemünde.`,
++      'Die Quellen werden nicht verrechnet. Der Seegang stammt aus dem Küstenmodell CWAM des DWD, der Wind am Spot aus buscosun Fusion, der Wasserstand aus der offenen Schnittstelle des BSH. Seewetterbericht und Warnstatus des Seewetterdienstes Hamburg erscheinen unverändert im Wortlaut, die Wassertemperatur von Nord- und Ostsee als Spanne aus der amtlichen Mittelfrist. Texte und Spots werden alle 15 Minuten auf neue Ausgaben geprüft; jeder Wert nennt seinen Stand.',
++      'Grenzen: In Häfen, Förden und hinter Sandbänken löst das Modell die Wellen nur grob auf, Strömungen sind nicht Teil der Anzeige, und eine Zelle ohne Wasser im Modell zeigt „kein Seegang“ statt 0 Meter. Binnenseen wie der Bodensee und Reviere im Mittelmeer fehlen. Die Ansicht entscheidet keine Ausfahrt.',
+     ],
+     facts: [
+-      { label: 'Quellen', text: 'DWD CWAM (Seegang) · buscosun Fusion (Wind, Böen) · BSH (Wasserstand, CC BY 4.0) · DWD (Seewetterbericht im Wortlaut)' },
+-      { label: 'Aktualisierung', text: 'Prüfung alle 15 Minuten; ein neuer CWAM-Lauf ist rund 4 Stunden nach dem Start vollständig' },
+-      { label: 'Abdeckung', text: 'deutsche Nord- und Ostseeküste, rund 60 Spots' },
+-      { label: 'Grenze', text: 'kein amtliches Warnprodukt, keine Sicherheitsbewertung, keine Strömung' },
++      { label: 'Quellen', text: 'DWD CWAM (Seegang) · buscosun Fusion (Wind, Böen) · BSH (Wasserstand, CC BY 4.0) · Seewetterdienst Hamburg des DWD (Seewetterbericht und Warnungen im Wortlaut)' },
++      { label: 'Aktualisierung', text: 'Prüfung alle 15 Minuten; CWAM-Läufe um 00 und 12 UTC, rund 4 Stunden nach dem Start vollständig; Horizont 78 Stunden' },
++      { label: 'Abdeckung', text: `deutsche Nord- und Ostseeküste, ${SEA_SPOT_COUNT} Spots von Borkum bis Ueckermünde` },
++      { label: 'Grenze', text: 'kein amtliches Warnprodukt, keine Sicherheitsbewertung, keine Strömung, keine Binnenseen' },
+     ],
+-    official: { text: 'Amtliche Wind- und Sturmwarnungen gibt der DWD heraus, Sturmflutwarnungen das BSH:', label: 'Sturmflutwarndienst', href: 'https://www.sturmflutwarndienst.de/' },
++    faq: [
++      { q: 'Wie oft wird das Seewetter aktualisiert?', a: 'Die Seite prüft alle 15 Minuten auf neue Ausgaben. Das Küstenwellenmodell CWAM des DWD rechnet zweimal am Tag, um 00 und 12 UTC, und ist rund vier Stunden nach dem Start vollständig; den Seewetterbericht gibt der Seewetterdienst Hamburg mehrmals täglich heraus.' },
++      { q: 'Wo steht der Seewetterbericht für die Deutsche Bucht oder die Westliche Ostsee?', a: 'Auf jeder Spot-Seite im Reiter „Seegebiet“, unverändert im Wortlaut und mit Ausgabezeit: für die Deutsche Bucht etwa bei Helgoland, Sylt oder Cuxhaven, für die Westliche Ostsee bei Kiel, Fehmarn oder Warnemünde.' },
++      { q: 'Was ist der Unterschied zwischen Windsee und Dünung?', a: 'Windsee entsteht durch den Wind vor Ort und ist kurz und steil; Dünung läuft aus einem entfernten Windfeld ein, ist länger und regelmäßiger. Die Seite zeigt beide getrennt, dazu die Periode.' },
++      { q: 'Wie warm ist die Ostsee oder die Nordsee gerade?', a: 'Die Seite nennt die Wassertemperatur von Nord- und Ostsee als Spanne aus der amtlichen Mittelfrist des Seewetterdienstes Hamburg, mit Ausgabezeit. Messungen an einzelnen Badestellen enthält sie nicht.' },
++      { q: 'Ist das eine amtliche Warnung?', a: 'Nein. buscosun gibt keine Warnungen heraus. Der Warnstatus des Seewetterdienstes Hamburg erscheint im Wortlaut; ist er älter als vier Stunden, gilt er als unbekannt.' },
++      { q: 'Gibt es Seewetter für den Bodensee oder das Mittelmeer?', a: 'Noch nicht. Das Küstenwellenmodell des DWD rechnet Nord- und Ostsee, aber keine Binnenseen, und Spots im Mittelmeer sind bisher nicht angelegt.' },
++    ],
++    official: { text: 'Amtliche Wind- und Sturmwarnungen gibt der Seewetterdienst Hamburg des DWD heraus, Sturmflutwarnungen das BSH:', label: 'Sturmflutwarndienst', href: 'https://www.sturmflutwarndienst.de/' },
+     links: [
+       { label: 'So liest du das Seewetter', href: '/funktionen/seewetter/' },
++      { label: 'Seegang, Windsee und Dünung erklärt', href: '/wissen/seegang-wellenhoehe/' },
++      { label: 'Den Seewetterbericht lesen', href: '/wissen/seewetterbericht/' },
+       { label: 'Quellen und Rechenweg', href: '/methodik/seewetter-quellen/' },
+       { label: 'Für Segler', href: '/fuer/segler/' },
+     ],
+diff --git a/src/seo/subRouteTexts.ts b/src/seo/subRouteTexts.ts
+index 2e4bb74..2cadfd0 100644
+--- a/src/seo/subRouteTexts.ts
++++ b/src/seo/subRouteTexts.ts
+@@ -1,7 +1,10 @@
+ /**
+  * Texte der indexierbaren Sub-Routen (SEO/GEO 2026, E1) — je kanonischem Pfad
+  * H1, Lead, Absätze, Fakten, Explainer. Layer-Texte kommen aus
+- * `layerSeoTexts.ts`, Vertikalschnitt und Brand-Sichten stehen hier.
++ * `layerSeoTexts.ts`, Vertikalschnitt und Brand-Sichten stehen hier. Die 56
++ * Seewetter-Spots haben einen EIGENEN Lazy-Chunk (`src/sea/seaSeoText.ts`, Phase SS),
++ * damit die Layer-Seiten deren Steckbriefe nicht mitladen; Build und Verifier
++ * reichen sie als `extra` herein.
+  *
+  * Verbraucher: `scripts/generate-seo.mjs` (Roh-HTML-Shells), `RouteSeoBlock`
+  * (lazy, nach dem App-Mount), `scripts/verify-routing.mjs` (jede indexierbare
+@@ -296,7 +299,7 @@ export const SUB_ROUTE_TEXTS: Readonly<Record<string, SeoText>> = {
+   ...(ROAD_INDEXABLE ? Object.fromEntries(ROAD_SEO_MOTORWAYS.map(([slug]) => [`/autobahnwetter/${slug}`, roadSeoText(slug) as SeoText])) : {}),
+ };
+ 
+-/** Text zu einem kanonischen Sub-Routen-Pfad (z. B. `/wetterkarte/temperatur`); null wenn keiner. */
++/** Text zu einem kanonischen Sub-Routen-Pfad (z. B. `/wetterkarte/temperatur`); null wenn keiner. Seewetter-Spots: `seaSpotSeoText`. */
+ export function subRouteText(path: string): SeoText | null {
+   return SUB_ROUTE_TEXTS[path] ?? null;
+ }
+@@ -304,24 +307,26 @@ export function subRouteText(path: string): SeoText | null {
+ export interface SubTextCheck { name: string; ok: boolean; detail?: string }
+ 
+ /** Selbstverifikation gegen die Liste der indexierbaren Pfade aus `routes.ts`. */
+-export function verifySubRouteTexts(paths: readonly string[]): { checks: SubTextCheck[]; passed: number; failed: number } {
++export function verifySubRouteTexts(paths: readonly string[], extraTexts: Readonly<Record<string, SeoText>> = {}): { checks: SubTextCheck[]; passed: number; failed: number } {
++  // Phase SS: Texte aus eigenen Chunks (Seewetter-Spots) werden mitgeprüft, nach denselben Regeln.
++  const ALL: Readonly<Record<string, SeoText>> = { ...SUB_ROUTE_TEXTS, ...extraTexts };
+   const checks: SubTextCheck[] = [];
+   const add = (name: string, ok: boolean, detail?: string) => checks.push({ name, ok, detail });
+-  const missing = paths.filter((p) => !SUB_ROUTE_TEXTS[p]);
++  const missing = paths.filter((p) => !ALL[p]);
+   add('jede indexierbare Sub-Route hat einen Text', missing.length === 0, missing.join(', '));
+-  const extra = Object.keys(SUB_ROUTE_TEXTS).filter((p) => !paths.includes(p));
++  const extra = Object.keys(ALL).filter((p) => !paths.includes(p));
+   add('kein Text ohne Sub-Route', extra.length === 0, extra.join(', '));
+-  const present = paths.filter((p) => SUB_ROUTE_TEXTS[p]);
+-  const shortLead = present.filter((p) => wordCount(SUB_ROUTE_TEXTS[p].lead) < 60);
++  const present = paths.filter((p) => ALL[p]);
++  const shortLead = present.filter((p) => wordCount(ALL[p].lead) < 60);
+   add('jeder Lead hat ≥ 60 Wörter', shortLead.length === 0, shortLead.join(', '));
+-  const thin = present.filter((p) => SUB_ROUTE_TEXTS[p].body.length < 2 || SUB_ROUTE_TEXTS[p].body.some((x) => wordCount(x) < 40));
++  const thin = present.filter((p) => ALL[p].body.length < 2 || ALL[p].body.some((x) => wordCount(x) < 40));
+   add('jeder Text hat ≥ 2 Absätze mit ≥ 40 Wörtern', thin.length === 0, thin.join(', '));
+-  const noFacts = present.filter((p) => SUB_ROUTE_TEXTS[p].facts.length < 4 || !SUB_ROUTE_TEXTS[p].facts.some((f) => f.label === 'Grenze') || !SUB_ROUTE_TEXTS[p].facts.some((f) => /^Quelle/.test(f.label)));
++  const noFacts = present.filter((p) => ALL[p].facts.length < 4 || !ALL[p].facts.some((f) => f.label === 'Grenze') || !ALL[p].facts.some((f) => /^Quelle/.test(f.label)));
+   add('jeder Text nennt ≥ 4 Fakten inkl. Quelle und Grenze', noFacts.length === 0, noFacts.join(', '));
+-  add('keine zwei Leads sind gleich', new Set(present.map((p) => SUB_ROUTE_TEXTS[p].lead)).size === present.length);
+-  add('keine zwei H1 sind gleich', new Set(present.map((p) => SUB_ROUTE_TEXTS[p].h1)).size === present.length);
+-  add('keine Tornado-Sprache', present.every((p) => !/tornado/i.test(SUB_ROUTE_TEXTS[p].lead + SUB_ROUTE_TEXTS[p].body.join(' '))));
+-  add('„bestätigt" nur mit Quelle im selben Satz', present.every((p) => (SUB_ROUTE_TEXTS[p].lead + ' ' + SUB_ROUTE_TEXTS[p].body.join(' ')).split(/[.!?]/).every((sent) => !/\bbestätigt\b/i.test(sent) || /EFFIS|EMS|amtlich|Quelle|unbestätigt/i.test(sent))));
++  add('keine zwei Leads sind gleich', new Set(present.map((p) => ALL[p].lead)).size === present.length);
++  add('keine zwei H1 sind gleich', new Set(present.map((p) => ALL[p].h1)).size === present.length);
++  add('keine Tornado-Sprache', present.every((p) => !/tornado/i.test(ALL[p].lead + ALL[p].body.join(' '))));
++  add('„bestätigt" nur mit Quelle im selben Satz', present.every((p) => (ALL[p].lead + ' ' + ALL[p].body.join(' ')).split(/[.!?]/).every((sent) => !/\bbestätigt\b/i.test(sent) || /EFFIS|EMS|amtlich|Quelle|unbestätigt/i.test(sent))));
+   const failed = checks.filter((c) => !c.ok).length;
+   return { checks, passed: checks.length - failed, failed };
+ }
+diff --git a/src/share/ogCard.ts b/src/share/ogCard.ts
+index 2e65408..39750cc 100644
+--- a/src/share/ogCard.ts
++++ b/src/share/ogCard.ts
+@@ -107,9 +107,16 @@ export function ogCardSlug(routeId: string, viewSlug?: string | null): string {
+  */
+ export function ogCardPath(routeId: string | null | undefined, viewSlug?: string | null): string | null {
+   if (!hasOgCard(routeId)) return null;
+-  return `${OG_APP_DIR}/${ogCardSlug(routeId as string, viewSlug)}.png`;
++  return `${OG_APP_DIR}/${ogCardSlug(routeId as string, OG_CARD_ROUTE_ONLY.includes(routeId as string) ? null : viewSlug)}.png`;
+ }
+ 
++/**
++ * Routen, deren Sub-Routen die Karte der Route teilen (Phase SS): die 56 Seewetter-Spots sind Unterseiten, aber keine
++ * eigene Ansicht — 56 Karten mit nur anderem Ortsnamen wären Ballast im Repo. Die Vorschau eines Spot-Links nennt den
++ * Spot im Text (`describeSeaLink`), das Bild bleibt die Seewetter-Karte.
++ */
++export const OG_CARD_ROUTE_ONLY: readonly string[] = ['seewetter'];
++
+ // --- Selbstverifikation (Muster D-12; netzfrei) -------------------------------
+ 
+ export interface OgCardCheck { name: string; ok: boolean; detail?: string }
+@@ -122,6 +129,7 @@ export function verifyOgCard(): { checks: OgCardCheck[]; passed: number; failed:
+   add('Route mit Sicht ⇒ Bindestrich', ogCardPath('wetterkarte', 'wind') === '/og/app/wetterkarte-wind.png');
+   add('mehrteiliger Sub-Slug bleibt unverändert', ogCardPath('waldbrand', 'aktive-braende') === '/og/app/waldbrand-aktive-braende.png');
+   add('Start hat keine App-Karte (sie behält /og/home.png)', ogCardPath('home') === null);
++  add('Seewetter-Spots teilen die Karte der Route', ogCardPath('seewetter', 'sylt-westerland') === '/og/app/seewetter.png' && ogCardPath('seewetter') === '/og/app/seewetter.png');
+   add('unbekannte Route hat keine Karte', ogCardPath('gibtsnicht') === null && ogCardPath(null) === null);
+   add('jede Karte ist ein PNG unter /og/app/', OG_CARD_ROUTES.every((id) => ogCardPath(id)?.startsWith('/og/app/') && ogCardPath(id)?.endsWith('.png')));
+   add('Namensliste und Stil-Tabelle nennen dieselben Routen (sie liegen getrennt, s. Kommentar)',
