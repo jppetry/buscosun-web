@@ -218,7 +218,32 @@ for (const [name, { u }] of built) {
   const m = routeForPath(u.path.split('?')[0]);
   add(`[route] ${name}: der erzeugte Pfad ist eine bekannte Route`, !!m, u.path);
 }
-add('[route] alle elf teilbaren Seiten sind abgedeckt (SH1 + SH3 + SH4 + SH5 + Gletscher + Autobahnwetter)', SHARE_ROUTES.join(',') === 'wetterkarte,warnungen,regenradar,waldbrand,atmosphaere,eventplanung,wetterarchiv,globus,vorhersage,gletscher,autobahnwetter', SHARE_ROUTES.join(','));
+add('[route] alle zwölf teilbaren Seiten sind abgedeckt (SH1 + SH3 + SH4 + SH5 + Gletscher + Autobahnwetter + Seewetter)', SHARE_ROUTES.join(',') === 'wetterkarte,warnungen,regenradar,waldbrand,atmosphaere,eventplanung,wetterarchiv,globus,vorhersage,gletscher,autobahnwetter,seewetter', SHARE_ROUTES.join(','));
+{
+  // Seewetter: der Spot steht im Pfad, die Zeit absolut; die Namenstabelle ist aus der Handliste generiert.
+  const NOW3 = Date.UTC(2026, 10, 2, 14, 37);
+  const seaLink = await import('../src/sea/seaLink.ts');
+  const seaState = await import('../src/sea/seaState.ts');
+  const names = await import('../src/sea/seaSpotNames.ts');
+  const src = JSON.parse(readFileSync(new URL('./sea/spots-src.json', import.meta.url), 'utf8'));
+  add('[see] Namenstabelle passt zur Handliste (npm: node scripts/sea/gen-spot-names.mjs)',
+    src.spots.length === Object.keys(names.SEA_SPOT_NAMES).length && src.spots.every((x) => names.SEA_SPOT_NAMES[x.id]?.[0] === x.name && names.SEA_SPOT_NAMES[x.id]?.[1] === x.region), `${src.spots.length} Spots`);
+  add('[see] Zeithorizont des Links = SEA_MAX_T der Seite', seaLink.SEA_LINK_MAX_T === seaState.SEA_MAX_T, `${seaLink.SEA_LINK_MAX_T} / ${seaState.SEA_MAX_T}`);
+  const s1 = parseShareUrl('/seewetter/st-peter-ording', '?p=kite&t=2026-11-04T10:00Z&tab=gebiet', NOW3);
+  add('[see] Pfad-Link wird gelesen (Spot, Zeit)', s1?.seaSpot === 'st-peter-ording' && s1.validAtMs === Date.UTC(2026, 10, 4, 10, 0), String(s1?.seaSpot));
+  const su1 = s1 ? buildShareUrl(s1, 'https://buscosun.com', NOW3) : null;
+  add('[see] der geteilte Link behält Pfad, Ansicht und absolute Zeit', !!su1 && su1.path.startsWith('/seewetter/st-peter-ording?') && su1.path.includes('tab=gebiet') && su1.path.includes('t=2026-11-04T10'), su1?.path);
+  const s2 = parseShareUrl('/seewetter/borkum', '?t=24', NOW3);
+  const su2 = s2 ? buildShareUrl(s2, 'https://buscosun.com', NOW3) : null;
+  add('[see] alte Stundenform (t=24) wird beim Teilen absolut', !!su2 && su2.path.includes('t=2026-11-03T14'), su2?.path);
+  const c1 = s1 ? describeShareState(s1, 'Europe/Berlin') : null;
+  add('[see] Titel nennt Spot, Revier und Prognosezeit; Beschreibung grenzt von Warnung und Navigation ab',
+    !!c1 && c1.title.startsWith('St. Peter-Ording — Seewetter Nordsee · Prognose') && c1.description.includes('Keine amtliche Warnung') && c1.description.includes('Navigation') && c1.description.includes('aktuelle Lage'), c1?.title);
+  const s3 = parseShareUrl('/seewetter/gibtsnicht', '', NOW3);
+  add('[see] unbekannter Spot ⇒ allgemeine Vorschau, kein erfundener Name', describeShareState(s3).title === 'Seewetter', describeShareState(s3).title);
+  const s4 = parseShareUrl('/seewetter', '', NOW3);
+  add('[see] ohne Spot: allgemeine Vorschau + Karte des Seewetters', describeShareState(s4).title === 'Seewetter' && ogCardForShare(s4) === ogCardPath('seewetter'));
+}
 {
   // Autobahnwetter: Abschnitt im Pfad, Zeit absolut, alter Query-Link wird zum Pfad-Link.
   const NOW2 = Date.UTC(2026, 10, 2, 14, 37);

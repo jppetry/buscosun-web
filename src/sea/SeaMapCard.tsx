@@ -49,6 +49,8 @@ export default function SeaMapCard(p: SeaMapCardProps) {
       {p.reason && <p className="sw-mapcard-line">{p.reason}</p>}
       {p.window && <p className="sw-mapcard-line is-win">{p.window}</p>}
       {p.official && <p className={`sw-mapcard-line is-official${p.official.warn ? ' is-warn' : ''}`}>{p.official.text}</p>}
+      {/* On mobile the card is the only spot detail a link opens on — the delimitation stands here as well. */}
+      <p className="sw-mapcard-line">Kein amtliches Warnprodukt und kein Ersatz für die Navigation.</p>
       <button type="button" className="sw-mapcard-cta" onClick={p.onOpenDossier}>
         Detailansicht öffnen
         <span className="sw-mapcard-cta-arrow" aria-hidden="true">

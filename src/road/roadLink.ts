@@ -22,7 +22,7 @@
  * immer der AKTUELLE — der Link trägt nur die Auswahl, nie Messwerte.
  */
 
-import { formatValidTime, parseValidTime } from '../share/shareSchema';
+import { absolutizeHourParam, baseHour, hoursFromParam, hoursToParam, normalizeHourSearch } from '../share/hourOffset';
 
 export const ROAD_KM_SLUG_RE = /^km-(\d{3,4})$/;
 /** Dasselbe Vokabular wie `roadState.ts` (Strecke: `a8`, `a8-2`). */
@@ -57,35 +57,13 @@ export function roadSegPath(segId: string): string | null {
 // Zeit
 // ---------------------------------------------------------------------------
 
-const HOUR = 3_600_000;
-/** Die volle Stunde, ab der die Seite „+t h" zählt. */
-export const roadBaseHour = (nowMs: number): number => Math.floor(nowMs / HOUR) * HOUR;
-
+export const roadBaseHour = baseHour;
 /** `t` Stunden voraus → absoluter Zeitpunkt für den Link (`2026-11-02T17:00Z`). */
-export const roadTimeToParam = (t: number, nowMs: number): string => formatValidTime(roadBaseHour(nowMs) + t * HOUR);
-
-/**
- * Ein `t` aus dem Link in Stunden. Nur die absolute Form wird umgerechnet — `t=3` (alte Links) bleibt Sache von
- * `parseRoadUrl`. `past`/`beyond` tragen den gemeinten Zeitpunkt, damit die Seite sagen kann, was sie stattdessen zeigt.
- */
-export function roadTimeFromParam(raw: string | null, nowMs: number, maxH = 6): { t: number; past: number | null; beyond: number | null } | null {
-  if (!raw || !raw.includes('T')) return null;
-  const ms = parseValidTime(raw);
-  if (ms == null) return null;
-  const h = Math.round((ms - roadBaseHour(nowMs)) / HOUR);
-  if (h < 0) return { t: 0, past: ms, beyond: null };
-  if (h > maxH) return { t: maxH, past: null, beyond: ms };
-  return { t: h, past: null, beyond: null };
-}
-
-/** Query mit absolutem `t` → Query mit Stunden-`t` (was `parseRoadUrl` versteht) + was geklemmt wurde. */
-export function roadNormalizeSearch(search: string, nowMs: number): { search: string; past: number | null; beyond: number | null } {
-  const q = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search);
-  const conv = roadTimeFromParam(q.get('t'), nowMs);
-  if (!conv) return { search, past: null, beyond: null };
-  q.set('t', String(conv.t));
-  return { search: `?${q.toString()}`, past: conv.past, beyond: conv.beyond };
-}
+export const roadTimeToParam = hoursToParam;
+/** Ein `t` aus dem Link in Stunden (Fenster +6 h); Einzelheiten und Regeln: `share/hourOffset.ts`. */
+export const roadTimeFromParam = (raw: string | null, nowMs: number, maxH = 6) => hoursFromParam(raw, nowMs, maxH);
+/** Query mit absolutem `t` → Query mit Stunden-`t` + was geklemmt wurde. */
+export const roadNormalizeSearch = (search: string, nowMs: number) => normalizeHourSearch(search, nowMs, 6);
 
 /**
  * Zustand → Adresse. Mit geöffnetem Abschnitt DERSELBEN Strecke steht er im Pfad (`/autobahnwetter/a8/km-034`; `seg` und `ds`
@@ -103,8 +81,7 @@ export function roadLinkUrl(
   const s = asPath ? { ...(state as object), seg: null, ds: false } : state;
   let url = base(s as never);
   if (asPath && parts) url = url.replace(`/autobahnwetter/${st.corridor}`, `/autobahnwetter/${st.corridor}/${parts.kmSlug}`);
-  if (st.t > 0) url = url.replace(/([?&])t=\d+/, `$1t=${encodeURIComponent(roadTimeToParam(st.t, nowMs))}`);
-  return url;
+  return absolutizeHourParam(url, st.t, nowMs);
 }
 
 // --- Worte (Teilen-Vorschau; keine Daten, nur Werte aus dem Link) -----------

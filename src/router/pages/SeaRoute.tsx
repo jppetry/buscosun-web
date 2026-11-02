@@ -7,12 +7,15 @@
  * Until Gate C the page exists only with `?sea=1` / `localStorage.sea = '1'` (`src/sea/seaFlag.ts`); without the flag
  * the route answers like an unknown path. The page itself is a lazy chunk of its own (`src/sea/SeaPage.tsx`).
  */
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useNavigationType, useParams } from 'react-router';
 import NotFoundRoute from './NotFoundRoute';
 import AppLoader from '../AppLoader';
 import { seaFlagFrom, rememberSeaFlag } from '../../sea/seaFlag';
-import { buildSeaUrl, parseSeaUrl, type SeaUrlState } from '../../sea/seaState';
+import { buildSeaUrl, parseSeaUrl, SEA_MAX_T, type SeaUrlState } from '../../sea/seaState';
+import { absolutizeHourParam, normalizeHourSearch } from '../../share/hourOffset';
+import StaleLinkNotice from '../../share/StaleLinkNotice';
+import SeaLinkNotice from '../../sea/SeaLinkNotice';
 
 const SeaPage = lazy(() => import('../../sea/SeaPage'));
 const STATE_DEBOUNCE_MS = 300;
@@ -25,7 +28,12 @@ export default function SeaRoute() {
   const enabled = useMemo(() => seaFlagFrom(loc.search), [loc.search]);
   useEffect(() => { rememberSeaFlag(loc.search); }, [loc.search]);
 
-  const parsed = useMemo(() => parseSeaUrl(spot ?? null, loc.search), [spot, loc.search]);
+  // The time in a shared link is absolute (src/share/hourOffset.ts): turned into hours here, written back absolute below.
+  const nowRef = useRef(Date.now());
+  const norm = useMemo(() => normalizeHourSearch(loc.search, nowRef.current, SEA_MAX_T), [loc.search]);
+  const parsed = useMemo(() => parseSeaUrl(spot ?? null, norm.search), [spot, norm.search]);
+  const urlOf = useCallback((st: SeaUrlState) => absolutizeHourParam(buildSeaUrl(st), st.t, nowRef.current), []);
+  const [badLink, setBadLink] = useState(() => parsed.invalid.includes('spot'));
   const stateRef = useRef<SeaUrlState>(parsed.state);
   const timer = useRef<number | null>(null);
   const unmounted = useRef(false);
@@ -40,28 +48,32 @@ export default function SeaRoute() {
     timer.current = window.setTimeout(() => {
       timer.current = null;
       if (unmounted.current || !window.location.pathname.startsWith('/seewetter')) return;
-      const url = buildSeaUrl(stateRef.current);
+      const url = urlOf(stateRef.current);
       if (url !== window.location.pathname + window.location.search) window.history.replaceState(window.history.state, '', url);
     }, STATE_DEBOUNCE_MS);
-  }, []);
+  }, [urlOf]);
 
   const onSpot = useCallback((st: SeaUrlState, initial: boolean) => {
     stateRef.current = st;
-    const url = buildSeaUrl(st);
+    const url = urlOf(st);
     if (url === window.location.pathname + window.location.search) return;
     void navigate(url, { replace: initial });
-  }, [navigate]);
+  }, [navigate, urlOf]);
 
   // Invalid values are dropped once, canonically.
   useEffect(() => {
-    if (enabled && parsed.invalid.length) void navigate(buildSeaUrl(parsed.state), { replace: true });
+    if (enabled && parsed.invalid.length) void navigate(urlOf(parsed.state), { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!enabled) return <NotFoundRoute />;
   return (
     <Suspense fallback={<AppLoader />}>
-      <SeaPage initial={parsed.state} invalid={parsed.invalid} onUrlState={onUrlState} onSpot={onSpot}
+      {/* A shared time that is past / beyond +78 h: the page clamps and says so (the same notice as the other pages). */}
+      <StaleLinkNotice at={norm.past} kind="time" shows="die aktuelle Lage" />
+      <StaleLinkNotice reason="horizon" at={norm.beyond} />
+      {badLink && <SeaLinkNotice kind="invalid" onClose={() => setBadLink(false)} />}
+      <SeaPage initial={parsed.state} invalid={parsed.invalid} onUrlState={onUrlState} onSpot={onSpot} openDossier={!!parsed.state.spot}
         popState={navType === 'POP' ? { ...parsed.state, key: loc.key } : null} />
     </Suspense>
   );

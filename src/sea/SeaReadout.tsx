@@ -270,7 +270,7 @@ export default function SeaReadout(p: Props) {
               )}
       </Card>
   );
-  const disclaimer = <p className="sw-disclaimer">Kein amtliches Warnprodukt. Die Profile vergleichen Modell und Rechnung mit deinen Grenzen und sind keine Sicherheitsbewertung — die Entscheidung bleibt bei dir. Verbindlich sind die Meldungen des Seewetterdienstes Hamburg. Daten: Deutscher Wetterdienst (GeoNutzV).</p>;
+  const disclaimer = <p className="sw-disclaimer">Kein amtliches Warnprodukt. Die Profile vergleichen Modell und Rechnung mit deinen Grenzen und sind keine Sicherheitsbewertung und kein Ersatz für die Navigation — die Entscheidung bleibt bei dir. Verbindlich sind die Meldungen des Seewetterdienstes Hamburg. Daten: Deutscher Wetterdienst (GeoNutzV).</p>;
   const spotTab = s && (
     <>
       {officialBanner}

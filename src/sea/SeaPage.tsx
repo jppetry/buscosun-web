@@ -39,6 +39,7 @@ import SeaBand, { type SeaBandHour } from './SeaBand';
 import SeaReadout, { findWarning, type SeaReadoutHour, type SeaTexts, type SeaWaterLevel } from './SeaReadout';
 import SeaMapCard from './SeaMapCard';
 import MapGestureHint, { type HintSpot } from '../map/MapGestureHint';
+import SeaLinkNotice from './SeaLinkNotice';
 import './seaDeck.css';
 
 export interface SeaPageProps {
@@ -47,6 +48,8 @@ export interface SeaPageProps {
   onUrlState: (s: SeaUrlState) => void;
   onSpot: (s: SeaUrlState, initial: boolean) => void;
   popState?: (SeaUrlState & { key: string }) | null;
+  /** The path named a valid spot (`/seewetter/<spot>`): the desktop opens on its dossier, like the other share links. */
+  openDossier?: boolean;
 }
 
 const DEFAULT_SPOT = 'st-peter-ording';
@@ -58,7 +61,7 @@ const KIND_LABEL: Record<string, string> = { strand: 'Badestrand', kite: 'Kite-S
 export const kindsLabel = (kinds: readonly string[]) => kinds.map((x) => KIND_LABEL[x] ?? x).join(', ');
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'ss');
 
-export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPageProps) {
+export default function SeaPage({ initial, onUrlState, onSpot, popState, openDossier }: SeaPageProps) {
   const nav = useAppNav();
   const isMobile = useMediaQuery('(max-width: 767px)');
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -91,9 +94,10 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
   const [gaugePick, setGaugePick] = useState<string | null>(null);
   const [mobTab, setMobTab] = useState<'map' | 'spot' | 'layers'>('map');
   /** Desktop centre stage: the map (default) or the spot dossier — like the Brandradar (BD2), the map stays mounted. */
-  const [stage, setStage] = useState<'map' | 'dossier'>('map');
+  const [stage, setStage] = useState<'map' | 'dossier'>(openDossier && !isMobile ? 'dossier' : 'map');
   /** The spot a MAP click picked: its preview card (bottom left) stays until closed, the detail opens or another spot is picked. */
-  const [mapCard, setMapCard] = useState<string | null>(null);
+  // A link on a spot: mobile opens on the map with the spot's preview card (its detail), the desktop on the dossier.
+  const [mapCard, setMapCard] = useState<string | null>(openDossier && isMobile ? initial.spot : null);
   useEffect(() => { if (stage === 'dossier') setMapCard(null); }, [stage]);
   const firstSpot = useRef(true);
 
@@ -184,6 +188,21 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
           : freshness === 'dead' ? `Der letzte geprüfte Lauf (${run.run.slice(8, 10)} UTC vom ${run.run.slice(6, 8)}.${run.run.slice(4, 6)}.) ist älter als 30 Stunden.` : null;
   const spots: SeaSpot[] = useMemo(() => (catalog && catalog !== 'loading' ? catalog.spots : []), [catalog]);
   const spot = useMemo(() => spots.find((s) => s.id === spotId) ?? spots.find((s) => s.id === DEFAULT_SPOT) ?? spots[0] ?? null, [spots, spotId]);
+  // A link on a spot: the map centres on it once (also behind the dossier, so „Zur Karte" lands at the spot).
+  const flewToLink = useRef(false);
+  useEffect(() => {
+    if (flewToLink.current || !openDossier || !initial.spot || !spot || spot.id !== initial.spot || !mapInst) return;
+    flewToLink.current = true;
+    mapInst.jumpTo({ center: [spot.lon, spot.lat], zoom: Math.max(mapInst.getZoom(), 7.5) });
+  }, [spot, mapInst]); // eslint-disable-line react-hooks/exhaustive-deps
+  // A link on a well-formed spot the catalogue does not know (any more): the page falls back to the default spot — and says so, once.
+  const [unknownSpot, setUnknownSpot] = useState<string | null>(null);
+  const spotChecked = useRef(false);
+  useEffect(() => {
+    if (spotChecked.current || !initial.spot || spots.length === 0) return;
+    spotChecked.current = true;
+    if (!spots.some((s) => s.id === initial.spot)) { setUnknownSpot(initial.spot); setStage('map'); }
+  }, [spots]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- hour axis ------------------------------------------------------------------------------------
   const nowHour = Math.floor(nowMs / H) * H;
@@ -454,6 +473,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
   if (isMobile) {
     return (
       <div className="sw-root is-mobile">
+        {unknownSpot && <SeaLinkNotice kind="unknown" slug={unknownSpot} onClose={() => setUnknownSpot(null)} />}
         <main className="sw-map is-mobile" aria-label="Karte">
           {map}
           <MapGestureHint map={mapInst} feature="seewetter" subject="sea" accent="#0F6E7A" pickSpots={hintSpots} always enabled={mobTab === 'map'} />
@@ -496,6 +516,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState }: SeaPa
   // --- desktop / tablet -------------------------------------------------------------------------------------
   return (
     <div className="sw-root">
+      {unknownSpot && <SeaLinkNotice kind="unknown" slug={unknownSpot} onClose={() => setUnknownSpot(null)} />}
       <FeatureRail active={'sea' as RailFeature} onOpenFeature={(id) => nav.openFeature(id)} onHome={nav.goHome}
         navClass="sw-rail" btnClass="sw-rail-btn" activeClass="is-active" spacerClass="sw-rail-spacer" />
       <div className="sw-deck">
