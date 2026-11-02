@@ -36,9 +36,18 @@ import { DASH_VIEW_KEY, DASH_VIEW_DASHBOARD } from '../src/dashboard/viewKey.ts'
 import { ROAD_LIVE } from '../src/road/roadFlag.ts';
 import { SEA_LIVE } from '../src/sea/seaFlag.ts';
 import { GLACIER_LIVE } from '../src/glacier/glacierFlag.ts';
+import { FUSION_EXPLAINER_LIVE } from '../src/fusionExplainer/fxFlag.ts';
 import { flagGateScript } from './seo/flagGate.mjs';
 import { PLACES_UPDATED } from './seo/places.mjs';
 import { gitLastmod, maxLastmod } from './seo/gitDate.mjs';
+// Phase WBS (audit/seo-waldbrand.md): Waldbrandgefahr nach Land und Region aus dem Saison-Index des Brandarchivs.
+import { writeFireRegionPages, fireRegionsLlms } from './seo/fireRegionPages.mjs';
+import { FIRE_REGION_SOURCES, FIRE_BASE } from './seo/fireRegions.mjs';
+// Phase GLS (audit/gletscher-seo.md): statische Gletscherseiten und Gletscher-Atlas aus `seo/data/glacier-pages.json`.
+import {
+  GLACIER_PAGES, GLACIER_DATA, PAGE_GLACIERS, renderGlacierShell, glacierShellFile, glacierRedirectLines,
+  atlasPages, glacierSitemapUrls, glacierRouteLinksHtml,
+} from './seo/glacierPages.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(ROOT, 'dist');
@@ -233,6 +242,10 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;bac
 }
 writeFileSync(join(DIST, '404.html'), notFoundPage(), 'utf8');
 
+// 2i) Phase WBS: /waldbrandgefahr/ (Übersicht, drei Länder, Regionen ab 5 Brandereignissen oder einer EFFIS-Kartierung).
+// Ohne Saison-Index fällt nur dieser Teil weg (leere Liste).
+const FIRE_REGION_PATHS = writeFireRegionPages(DIST);
+
 // 3) sitemap.xml — lastmod je URL aus GIT: Datum des letzten Commits auf den Quelldateien
 // der Seitengruppe (`seo/gitDate.mjs`). Ohne belastbares Datum (flacher Clone, kein Git,
 // Datei nicht versioniert) steht KEIN lastmod in der Sitemap — nie ein Platzhalter und
@@ -243,6 +256,9 @@ writeFileSync(join(DIST, '404.html'), notFoundPage(), 'utf8');
 // `changefreq`/`priority` bleiben weg bzw. minimal: Google ignoriert changefreq seit Jahren.
 const LM = {
   routes: gitLastmod(['src/router/routes.ts', 'src/seo/subRouteTexts.ts']),
+  // Phase SA: die Autobahnwetter-Seiten haben eigene Quelldateien (Texte, erzeugte Zahlen) — ein Commit dort soll nur sie
+  // als geändert melden, nicht alle App-Routen; und ein Commit an routes.ts betrifft sie mit.
+  road: gitLastmod(['src/router/routes.ts', 'src/seo/routeTexts.ts', 'src/road/roadSeo.ts', 'src/road/roadSeoTexts.ts', 'src/road/roadSeoFacts.ts']),
   places: gitLastmod(['scripts/seo/places.mjs', 'scripts/seo/placeContent.mjs', 'scripts/seo/data/place-climate.json', 'scripts/seo/data/place-terrain.json', 'scripts/seo/data/place-modules.json']),
   explainers: gitLastmod(['scripts/seo/explainers.mjs', 'scripts/seo/explainers-extra.mjs']),
   tools: gitLastmod(['scripts/seo/tools.mjs']),
@@ -265,7 +281,7 @@ function sitemap() {
   const fullEvents = EVENTS.filter((e) => e.status === 'full');
   const urls = [
     { loc: `${SITE.url}/`, pri: '1.0', mod: LM.routes },
-    ...sitemapPaths().map((p) => ({ loc: `${SITE.url}${p.path}`, pri: p.priority, mod: LM.routes })),
+    ...sitemapPaths().map((p) => ({ loc: `${SITE.url}${p.path}`, pri: p.priority, mod: p.path.startsWith('/autobahnwetter') ? LM.road : LM.routes })),
     { loc: `${SITE.url}/wetter/`, pri: '0.8', mod: LM.places },
     ...PLACES.map((p) => ({ loc: `${SITE.url}/wetter/${p.slug}/`, pri: '0.6', mod: LM.places, kind: 'orte' })),
     ...PLACES_NEW.map((p) => ({ loc: `${SITE.url}/wetter/${p.slug}/`, pri: '0.6', mod: LM.places, kind: 'orte2' })),
@@ -301,16 +317,25 @@ const pageUrls = ALL_URLS.filter((u) => !u.kind);
 writeFileSync(join(DIST, 'sitemap-orte.xml'), urlSet(placeUrls), 'utf8');
 writeFileSync(join(DIST, 'sitemap-orte-2.xml'), urlSet(placeUrls2), 'utf8');
 writeFileSync(join(DIST, 'sitemap-pages.xml'), urlSet(pageUrls), 'utf8');
+// Phase WBS: eigene Teilliste der Waldbrand-Regionsseiten; lastmod aus Git (Saison-Index, Grenzen, Generator), nie das Build-Datum.
+const fireMod = gitLastmod(FIRE_REGION_SOURCES);
+const fireUrls = FIRE_REGION_PATHS.map((p) => ({ loc: SITE.url + p, pri: p === FIRE_BASE ? '0.7' : '0.6', mod: fireMod }));
+if (fireUrls.length) writeFileSync(join(DIST, 'sitemap-waldbrand.xml'), urlSet(fireUrls), 'utf8');
 const lastmodTag = (d) => (d ? `<lastmod>${d}</lastmod>` : '');
 const sitemapLastmod = lastmodTag(maxLastmod(pageUrls.map((u) => u.mod)));
 const orteLastmod = lastmodTag(maxLastmod(placeUrls.map((u) => u.mod)));
 const orte2Lastmod = lastmodTag(maxLastmod(placeUrls2.map((u) => u.mod)));
+// Phase GLS: Gletscherseiten und Atlas in einer eigenen Teilliste — lastmod je Gletscher aus dem Datenstand
+// (`glacier-pages.json`: Datum der letzten inhaltlichen Änderung des Datensatzes, nie das Build-Datum).
+const glacierUrls = glacierSitemapUrls();
+if (glacierUrls.length) writeFileSync(join(DIST, 'sitemap-gletscher.xml'), urlSet(glacierUrls), 'utf8');
+const glacierLastmod = lastmodTag(maxLastmod(glacierUrls.map((u) => u.mod)));
 writeFileSync(join(DIST, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <sitemap><loc>${SITE.url}/sitemap-pages.xml</loc>${sitemapLastmod}</sitemap>
   <sitemap><loc>${SITE.url}/sitemap-orte.xml</loc>${orteLastmod}</sitemap>
   <sitemap><loc>${SITE.url}/sitemap-orte-2.xml</loc>${orte2Lastmod}</sitemap>
-</sitemapindex>
+${glacierUrls.length ? `  <sitemap><loc>${SITE.url}/sitemap-gletscher.xml</loc>${glacierLastmod}</sitemap>\n` : ''}${fireUrls.length ? `  <sitemap><loc>${SITE.url}/sitemap-waldbrand.xml</loc>${lastmodTag(fireMod)}</sitemap>\n` : ''}</sitemapindex>
 `, 'utf8');
 
 // 3b) RSS-2.0-Feed (/feed.xml) — neueste Inhalte für Discover/Reader. Enthält
@@ -390,6 +415,8 @@ const llmsArgs = {
   methodik: METHODIK, audiences: AUDIENCES, glossary: GLOSSARY,
   events: EVENTS.filter((e) => e.status === 'full'),
   subRoutes: indexableSubRoutes(),
+  fireRegions: fireRegionsLlms(SITE.url),
+  glacierAtlas: GLACIER_PAGES && !!GLACIER_DATA ? { pages: PAGE_GLACIERS.length } : null,
 };
 writeFileSync(join(DIST, 'llms.txt'), buildLlmsTxt(llmsArgs), 'utf8');
 writeFileSync(join(DIST, 'llms-full.txt'), buildLlmsFullTxt(llmsArgs), 'utf8');
@@ -528,8 +555,8 @@ for (const route of ROUTES) {
   const preload = routePreloadLinks(route.id);
   shell = withPreloads(shell, preload);
   // V-AW-12: a flag-gated route empties its lead at parse time for visitors with the flag off (no flash before "404").
-  const gate = route.id === 'autobahnwetter' ? flagGateScript('road', ROAD_LIVE) : route.id === 'seewetter' ? flagGateScript('sea', SEA_LIVE) : route.id === 'gletscher' ? flagGateScript('gl', GLACIER_LIVE) : '';
-  shell = shell.replace('<div id="root"></div>', `<div id="root">${renderRouteRootContent(route)}</div>${gate}`);
+  const gate = route.id === 'autobahnwetter' ? flagGateScript('road', ROAD_LIVE) : route.id === 'seewetter' ? flagGateScript('sea', SEA_LIVE) : route.id === 'gletscher' ? flagGateScript('gl', GLACIER_LIVE) : route.id === 'buscosun-fusion' ? flagGateScript('fx', FUSION_EXPLAINER_LIVE) : '';
+  shell = shell.replace('<div id="root"></div>', `<div id="root">${renderRouteRootContent(route, route.id === 'gletscher' ? glacierRouteLinksHtml() : '')}</div>${gate}`);
   writeFileSync(join(DIST, `${route.id}.html`), shell, 'utf8');
   routeShells++;
 
@@ -546,12 +573,41 @@ for (const route of ROUTES) {
     let sh = rawShell
       .replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(x.sub.title)} | ${SITE.name}</title>`)
       .replace(/<meta name="description" content="[^"]*" \/>/, `<meta name="description" content="${escapeHtml(x.sub.description)}" />`);
-    sh = sh.replace('</head>', `    ${subRouteHeadExtras(route, x.sub)}\n  </head>`);
+    sh = sh.replace('</head>', `    ${subRouteHeadExtras(route, x.sub, text)}\n  </head>`);
     sh = withPreloads(sh, preload);
     sh = sh.replace('<div id="root"></div>', `<div id="root">${renderSubRouteRootContent(route, x.sub, text, subs.map((y) => y.sub), explainerOk)}</div>`);
     writeFileSync(join(DIST, x.shell.slice(1)), sh, 'utf8');
     subShells++;
   }
+}
+
+// 4d) Phase GLS (audit/gletscher-seo.md): je Gletscher der Stufen A/B eine eigene App-Shell `dist/_gl/<segment>.html`
+// (eigener Title/Description/Canonical/JSON-LD, Faktenblock im #root), dazu der Gletscher-Atlas als statische Seiten.
+// Netlify liest `dist/_redirects` VOR netlify.toml: `/gletscher/<segment>` → eigene Shell (200); alle übrigen Gletscher
+// bleiben bei `/gletscher/*` → `/gletscher.html`. Ohne Datenstand (`seo/data/glacier-pages.json`) fällt nur dieser Teil weg.
+let glacierShells = 0;
+const atlas = atlasPages();
+if (GLACIER_PAGES && GLACIER_DATA) {
+  const glRoute = ROUTES.find((r) => r.id === 'gletscher');
+  const glPreload = routePreloadLinks('gletscher');
+  const glGate = flagGateScript('gl', GLACIER_LIVE);
+  mkdirSync(join(DIST, '_gl'), { recursive: true });
+  for (const g of PAGE_GLACIERS) {
+    if (!glRoute) break;
+    writeFileSync(join(DIST, glacierShellFile(g)), renderGlacierShell(rawShell, g, { withPreloads: (h) => withPreloads(h, glPreload), gate: glGate }), 'utf8');
+    glacierShells++;
+  }
+  for (const [path, html] of atlas) {
+    const dir = join(DIST, ...path.split('/').filter(Boolean));
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, 'index.html'), html, 'utf8');
+  }
+  writeFileSync(join(DIST, '_redirects'), `# Erzeugt von scripts/generate-seo.mjs (Phase GLS) — nicht von Hand ändern.
+# Netlify wertet diese Datei VOR netlify.toml aus: eigene Shell je Gletscher mit Steckbrief-Seite.
+${glacierRedirectLines().join('\n')}
+`, 'utf8');
+} else {
+  console.warn('[seo] Gletscherseiten übersprungen: ' + (GLACIER_PAGES ? 'scripts/seo/data/glacier-pages.json fehlt (node scripts/seo/refresh-glacier-pages.mjs)' : 'GLACIER_PAGES = false'));
 }
 
 // 4) Home anreichern: Head-Meta/JSON-LD + crawlbarer #root-Inhalt
@@ -566,4 +622,4 @@ const fullExplainers = EXPLAINERS.filter((e) => e.status === 'full').length;
 const fullTools = TOOLS.filter((t) => t.status === 'full').length;
 const fullEvents = EVENTS.filter((e) => e.status === 'full').length;
 const appUrls = sitemapPaths().length;
-console.log(`[seo] llms.txt + llms-full.txt, ${GLOSSARY.length} Glossar-Begriffe, ${AUDIENCES.length} Zielgruppen-Seiten, ${pages} Geo (${PLACES.length} + ${PLACES_NEW.length}), ${regionPages} Länder-/Regionsseiten, ${explainerPages} Explainer (${fullExplainers} idx), ${toolPages} Tools (${fullTools} idx), ${eventPages} Wetterlage (${fullEvents} idx), ${LEGAL_PAGES.length} Rechtsseiten + Hubs, ${METHODIK.length} Methodik + ${TRUST_PAGES.length} Vertrauensseiten, ${routeShells} App-Routen-Shells + ${subShells} Sub-Routen-Shells (${appUrls} URLs), sitemap-index + ${pageUrls.length} Seiten / ${placeUrls.length} + ${placeUrls2.length} Orte, feed.xml, sitemap-news.xml, Home angereichert. Build ${BUILD_DATE}.`);
+console.log(`[seo] llms.txt + llms-full.txt, ${GLOSSARY.length} Glossar-Begriffe, ${AUDIENCES.length} Zielgruppen-Seiten, ${pages} Geo (${PLACES.length} + ${PLACES_NEW.length}), ${regionPages} Länder-/Regionsseiten, ${explainerPages} Explainer (${fullExplainers} idx), ${toolPages} Tools (${fullTools} idx), ${eventPages} Wetterlage (${fullEvents} idx), ${LEGAL_PAGES.length} Rechtsseiten + Hubs, ${METHODIK.length} Methodik + ${TRUST_PAGES.length} Vertrauensseiten, ${routeShells} App-Routen-Shells + ${subShells} Sub-Routen-Shells (${appUrls} URLs), sitemap-index + ${pageUrls.length} Seiten / ${placeUrls.length} + ${placeUrls2.length} Orte / ${glacierUrls.length} Gletscher (${glacierShells} Steckbrief-Shells, ${atlas.length} Atlas-Seiten), ${FIRE_REGION_PATHS.length} Waldbrand-Regionsseiten, feed.xml, sitemap-news.xml, Home angereichert. Build ${BUILD_DATE}.`);

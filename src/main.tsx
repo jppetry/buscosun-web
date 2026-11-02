@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router/dom';
 import { createAppRouter } from './router/router';
 import { runLegacyHashMigration } from './router/legacyHash';
+import { captureStaticPage } from './seo/staticPage';
 import './index.css';
 
 // Alt-Permalinks (`/#m=…`, `/#wb=…`, …) VOR dem Router auf die neuen Pfade
@@ -15,6 +16,9 @@ import './index.css';
 // einmal per `replace` auf die kurze Slug-Form nach.
 const migrated = runLegacyHashMigration(window.location);
 if (migrated) window.history.replaceState(window.history.state, '', migrated);
+
+// Phase GLS: vorgerenderte Seiten (Gletscher-Steckbriefe) — Head und Faktenblock merken, BEVOR React `#root` ersetzt.
+captureStaticPage();
 
 const router = createAppRouter();
 

@@ -78,33 +78,34 @@ export const TOOLS = [
     h1: 'So liest du das Brandradar: Index, Stufen und Satellitendaten',
     status: 'full',
     deepLink: '/waldbrand',
+    // Phase WBS (audit/seo-waldbrand.md): Text auf den Stand nach dem Rückzug des Layers „Amtliche Stufe" (19.08.) gebracht —
+    // die Seite behauptete noch, die Karte zeige DWD- und BAFU-Stufen.
     answer:
-      'Die Waldbrand-Ansicht von buscosun zeigt den europäischen Gefahrenindex als durchgehende Fläche über '
-      + 'Deutschland, Österreich und die Schweiz — und daneben die amtlichen Landesstufen von DWD und BAFU, '
-      + 'jede mit ihrer eigenen Skala. Dazu aktive Brände aus Satellitendaten und die Feuchte der Luft als '
-      + 'Feuerwetter-Treiber. Für Österreich gibt es keinen '
-      + 'offenen amtlichen Index; das steht auf der Karte, statt kaschiert zu werden.',
+      'Das Brandradar von buscosun zeigt den europäischen Feuerwetterindex als durchgehende Fläche über '
+      + 'Deutschland, Österreich und die Schweiz, aktive Brände aus Satellitendaten, Bodentrockenheit und Feuerwetter '
+      + 'als Treiber sowie die Brände jeder Saison seit 2020. Amtliche Waldbrandstufen zeigt die Karte bewusst nicht: '
+      + 'Sie verweist auf die zuständigen Stellen — DWD und Länder in Deutschland, die Kantone in der Schweiz; '
+      + 'Österreich hat keine offene landesweite Stufe.',
     bullets: [
-      'EU-Gefahrenindex (Copernicus GWIS, ECMWF-FWI) bis +9 Tage, durchgehend über alle drei Länder',
-      'Amtliche Stufen: DWD-Waldbrandgefahrenindex (484 Stationen) und BAFU-Warnregionen — getrennte Skalen, keine Umrechnung',
-      'Aktive Brände als Satelliten-Thermalanomalien (VIIRS), 24 Stunden oder 7 Tage',
-      'Feuerwetter-Treiber aus ICON-D2: je trockener die Luft, desto leichter entzündet sich Streu',
-      'Datenalter je Layer sichtbar',
+      'EU-Feuerwetterindex (Copernicus GWIS, ECMWF-FWI) bis 9 Tage voraus, durchgehend über alle drei Länder, mit Einordnung als Perzentil',
+      'Aktive Brände aus VIIRS-Satellitendaten, 24 Stunden oder 7 Tage, mit Brand-Dossier je Brand',
+      'Industrieanlagen als eigene Klasse (Thermalanomalien), damit ein Werk nicht als Brand zählt',
+      'Bodentrockenheit und Luftfeuchte aus ICON-D2 als Feuerwetter-Treiber',
+      'Saisonbilanz und zuständige Stellen je Bundesland und Kanton unter /waldbrandgefahr/',
     ],
     sections: [
       {
         id: 'skalen',
-        h2: 'Warum die nationalen Stufen nicht vergleichbar sind',
+        h2: 'Warum die Karte keine amtliche Stufe zeigt',
         html:
           '<p>„Geringe Gefahr" bedeutet in Deutschland <strong>Stufe 2</strong> und in der Schweiz '
-          + '<strong>Stufe 1</strong>. Dahinter stehen verschiedene Modelle — der DWD rechnet ein eigenes '
-          + 'Bestandsmodell aus Streu- und Bodenfeuchte, die Schweiz den kanadischen Fire Weather Index, den '
-          + 'die Kantone anschließend anpassen können. Eine Zuordnung nach Beschriftung würde die gesamte '
-          + 'Schweizer Skala um eine Stufe verschieben.</p>'
-          + '<p>buscosun rechnet die Skalen deshalb <strong>nicht</strong> ineinander um. Sie stehen '
-          + 'nebeneinander, jede mit eigener Legende und eigenem Quellenlabel. An der Grenze endet die '
-          + 'deutsche Stufe und die Schweizer beginnt — sichtbar und gewollt, während der EU-Index '
-          + 'darunter durchläuft.</p>',
+          + '<strong>Stufe 1</strong>. Die nationalen Skalen stammen aus verschiedenen Verfahren und lassen sich '
+          + 'nicht nach ihrer Beschriftung ineinander umrechnen; die Schweizer Kantone passen ihre Stufe zudem '
+          + 'selbst an.</p>'
+          + '<p>Ein früherer Layer „Amtliche Stufe" mit dem DWD-Index und den BAFU-Warnregionen wurde 2026 bewusst '
+          + 'zurückgezogen, damit auf der Karte kein amtliches Produkt neben einem Modellwert steht, das anders '
+          + 'gelesen werden könnte. Die Karte zeigt deshalb den EU-Index, der an keiner Grenze endet; jeder '
+          + 'Brand-Steckbrief führt einen Link „Amtliche Warn-/Einsatzlage nachsehen" für sein Land.</p>',
       },
       {
         id: 'oesterreich',
@@ -113,9 +114,19 @@ export const TOOLS = [
           '<p>Für Österreich gibt es <strong>keinen offenen amtlichen Waldbrandindex</strong>. GeoSphere '
           + 'Austria führt weder einen entsprechenden Datensatz noch einen Waldbrand-Warntyp; die '
           + 'Risikokarte des Ministeriums und die Waldbrand-Datenbank der BOKU stehen ohne Lizenz und ohne '
-          + 'Download bereit. Auf der Karte erscheint für Österreich deshalb nur der EU-Modellwert — und '
-          + 'der ist ausdrücklich <em>keine</em> amtliche Stufe. Verbindlich sind die Verordnungen der '
-          + 'Bezirkshauptmannschaften, auf die die Ansicht verlinkt.</p>',
+          + 'Download bereit. Der EU-Modellwert ist auch dort ausdrücklich <em>keine</em> amtliche Stufe. '
+          + 'Verbindlich sind die Waldbrandverordnungen der Bezirkshauptmannschaften.</p>',
+      },
+      {
+        id: 'regionen',
+        h2: 'Waldbrandgefahr je Bundesland und Kanton',
+        html:
+          '<p>Für jedes Bundesland und jeden Kanton mit Bränden in der Saison gibt es eine eigene Seite: wer dort '
+          + 'die amtliche Stufe festlegt, das Bild des EU-Feuerwetterindex für heute und die kommenden Tage und die '
+          + 'Saisonbilanz aus Satellitendaten mit den von EFFIS kartierten Brandflächen. Einstieg: '
+          + '<a href="/waldbrandgefahr/">Waldbrandgefahr nach Bundesland und Kanton</a>, '
+          + '<a href="/waldbrandgefahr/deutschland/">Deutschland</a>, <a href="/waldbrandgefahr/oesterreich/">Österreich</a>, '
+          + '<a href="/waldbrandgefahr/schweiz/">Schweiz</a>.</p>',
       },
       {
         id: 'grenzen',
@@ -135,27 +146,26 @@ export const TOOLS = [
     faqs: [
       {
         q: 'Ist die Waldbrandgefahr auf buscosun eine amtliche Warnung?',
-        a: 'Nein. Die Ansicht gibt amtliche Stufen wieder und ergänzt sie um Modell- und Satellitendaten, '
-          + 'ist selbst aber kein Warnprodukt. Verbindlich sind DWD, Landesforstverwaltungen, '
+        a: 'Nein. Die Ansicht zeigt Modell- und Satellitendaten und verweist auf die amtlichen Stellen, ist '
+          + 'selbst aber kein Warnprodukt. Verbindlich sind DWD, Landesforstverwaltungen, '
           + 'Bezirkshauptmannschaften und Kantone.',
       },
       {
-        q: 'Warum sehe ich für Österreich keine amtliche Stufe?',
-        a: 'Weil es keine offen verfügbare gibt. GeoSphere Austria veröffentlicht keinen Waldbrandindex, '
-          + 'und die vorhandenen Karten stehen ohne Lizenz und ohne Download bereit. Gezeigt wird dort nur '
-          + 'der europäische Modellwert.',
+        q: 'Warum sehe ich auf der Karte keine amtliche Stufe?',
+        a: 'Weil die Karte bewusst nur den grenzüberschreitenden EU-Modellwert zeigt; der frühere Layer mit den '
+          + 'Stufen von DWD und BAFU wurde 2026 zurückgezogen. Für Österreich gibt es zudem keine offene '
+          + 'landesweite Stufe. Wer zuständig ist, steht je Bundesland und Kanton unter /waldbrandgefahr/.',
       },
       {
         q: 'Lassen sich die deutsche und die Schweizer Stufe vergleichen?',
         a: 'Nicht direkt. „Geringe Gefahr" ist in Deutschland Stufe 2 und in der Schweiz Stufe 1, und die '
-          + 'Modelle dahinter sind verschieden. buscosun zeigt beide Skalen getrennt, statt sie umzurechnen.',
+          + 'Verfahren dahinter sind verschieden. buscosun rechnet die Skalen nicht ineinander um.',
       },
       {
         q: 'Woher kommen die Daten?',
-        a: 'Der EU-Index vom Copernicus Global Wildfire Information System (ECMWF-FWI), die deutschen '
-          + 'Stationswerte vom Deutschen Wetterdienst, die Schweizer Warnregionen vom BAFU, '
-          + 'die Brandpunkte aus VIIRS-Satellitendaten und der Feuerwetter-Treiber aus ICON-D2. Alle Quellen '
-          + 'sind offen und ohne Schlüssel nutzbar.',
+        a: 'Der EU-Index vom Copernicus Global Wildfire Information System (ECMWF-FWI), die Brandpunkte aus '
+          + 'VIIRS-Satellitendaten des NASA-Systems FIRMS, die Brandflächen von EFFIS und Boden- und Luftfeuchte '
+          + 'aus dem DWD-Modell ICON-D2.',
       },
     ],
     seeAlso: [
@@ -164,7 +174,7 @@ export const TOOLS = [
       { label: 'Wetterarchiv: Trockenheit am Ort im Rückblick', href: '/wetterarchiv' },
     ],
     relatedExplainers: ['gewitter-unwetter', 'thermik'],
-    datePublished: '2026-08-14', dateModified: '2026-08-14',
+    datePublished: '2026-08-14', dateModified: '2026-11-02',
   },
 
   // ---------------------------------------------------------------- PILOT 2

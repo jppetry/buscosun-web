@@ -137,6 +137,7 @@ export function createAppRouter() {
         { path: `${sub('autobahnwetter')}/:seg?`, ...page(() => import('./pages/RoadRoute')) },
         { path: sub('seewetter'), ...page(() => import('./pages/SeaRoute')) },
         { path: sub('gletscher'), ...page(() => import('./pages/GlacierRoute')) },
+        { path: sub('buscosun-fusion'), ...page(() => import('./pages/FusionExplainerRoute')) },
         { path: sub('feedback'), ...page(() => import('./pages/FeedbackRoute')) },
         { path: sub('validierung'), ...page(() => import('./pages/ValidationRoute')) },
         { path: sub('mobiletest'), ...page(() => import('./pages/MobileTestRoute')) },

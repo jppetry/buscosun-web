@@ -163,7 +163,11 @@ export const EXPLAINERS_EXTRA = [
           'je Land. Amtlicher Warntext erscheint auf buscosun ausschließlich als wörtliches Zitat — nie zusammengefasst, ' +
           'nie verschärft, nie abgeschwächt. Satellitendetektionen unter <a href="/waldbrand/aktive-braende">aktive Brände</a> ' +
           'gelten als unbestätigt, solange keine EFFIS-Kartierung oder Copernicus-EMS-Aktivierung im selben Satz ' +
-          'steht; die Regeln erklärt die <a href="/methodik/brandradar-detektion-und-brandnarben/">Methodik</a>.</p>',
+          'steht; die Regeln erklärt die <a href="/methodik/brandradar-detektion-und-brandnarben/">Methodik</a>.</p>' +
+          '<p>Wer in einem bestimmten Bundesland oder Kanton zuständig ist, steht auf den Seiten ' +
+          '<a href="/waldbrandgefahr/">Waldbrandgefahr nach Bundesland und Kanton</a> — mit den Links für ' +
+          '<a href="/waldbrandgefahr/deutschland/">Deutschland</a>, <a href="/waldbrandgefahr/oesterreich/">Österreich</a> ' +
+          'und <a href="/waldbrandgefahr/schweiz/">die Schweiz</a> und der Saisonbilanz aus Satellitendaten.</p>',
       },
     ],
     faqs: [
@@ -180,7 +184,7 @@ export const EXPLAINERS_EXTRA = [
     ],
     relatedExplainers: ['fire-weather-index', 'thermalanomalien-firms', 'trockenperioden'],
     relatedPlaces: ['potsdam', 'berlin', 'wien', 'eisenstadt', 'sitten-sion', 'chur'],
-    datePublished: PUBLISHED, dateModified: MODIFIED,
+    datePublished: PUBLISHED, dateModified: '2026-11-02', // WBS: Links auf /waldbrandgefahr/
   },
 
   // ---------------------------------------------------- thermalanomalien-firms

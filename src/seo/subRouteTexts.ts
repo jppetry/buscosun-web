@@ -11,7 +11,8 @@
 import { ALL_LAYER_KEYS } from '../map/layerTypes';
 import { LAYER_SLUGS } from '../router/urlState';
 import { LAYER_SEO, wordCount, type SeoText } from './layerSeoTexts';
-import { roadSeoText, ROAD_SEO_MOTORWAYS } from '../road/roadSeo';
+import { ROAD_SEO_MOTORWAYS } from '../road/roadSeo';
+import { roadSeoText } from '../road/roadSeoTexts';
 import { ROAD_INDEXABLE } from '../router/routes';
 
 export type { SeoText, LayerFact } from './layerSeoTexts';

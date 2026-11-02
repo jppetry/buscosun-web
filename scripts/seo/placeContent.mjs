@@ -25,6 +25,8 @@ import {
 import { ROUTE_BY_ID } from '../../src/router/routes.ts';
 import { SEA_LIVE } from '../../src/sea/seaFlag.ts';
 import { ROAD_LIVE } from '../../src/road/roadFlag.ts';
+import { ROAD_SEO_MOTORWAYS, roadSeoQuery } from '../../src/road/roadSeo.ts';
+import { ROAD_INDEXABLE } from '../../src/router/routes.ts';
 import { GLACIER_LIVE } from '../../src/glacier/glacierFlag.ts';
 
 const DATA = join(dirname(fileURLToPath(import.meta.url)), 'data');
@@ -173,10 +175,17 @@ export function moduleBlocks(place) {
   }
   if (m.road && MODULE_OPEN.road) {
     const { corridor: c, station: st } = m.road;
+    // Phase SA: liegt der Ort an einer Teilstrecke einer der 20 Autobahnen mit eigener Seite (`/autobahnwetter/a8-2`
+    // ist keine eigene Seite, `/autobahnwetter/a8` schon), verlinkt der Block zusätzlich die Autobahn-Seite.
+    const roadSlug = String(c.road).replace(/\s+/g, '').toLowerCase();
+    const ownPage = ROAD_INDEXABLE && ROAD_SEO_MOTORWAYS.some(([s]) => s === roadSlug);
+    const roadPage = ownPage && c.id !== roadSlug
+      ? ` Alles zur ${esc(c.road)} mit allen Teilstrecken und Messstellen steht auf <a href="/autobahnwetter/${esc(roadSlug)}">Autobahnwetter ${esc(roadSeoQuery(roadSlug))}</a>.`
+      : '';
     mentions.push({ '@type': 'Place', name: `Glättemeldeanlage ${st.name}`, geo: { '@type': 'GeoCoordinates', latitude: st.lat, longitude: st.lon } });
     blocks.push({
       id: 'road', h2: `Autobahn bei ${place.name}`,
-      html: `<p>Die Autobahn ${esc(c.road)} liegt etwa ${n0(Math.max(1, Math.round(c.km)))} km von ${esc(place.name)} entfernt. Die nächste Glättemeldeanlage des Deutschen Wetterdienstes steht bei „${esc(st.name)}“ an der ${esc(st.road)}${st.roadKm != null ? ` (km ${n1(st.roadKm)})` : ''}, ${n1(st.km)} km entfernt. Fahrbahntemperatur und -zustand zeigt <a href="/autobahnwetter/${esc(c.id)}">Autobahnwetter für die ${esc(c.road)}</a>.</p>`,
+      html: `<p>Die Autobahn ${esc(c.road)} liegt etwa ${n0(Math.max(1, Math.round(c.km)))} km von ${esc(place.name)} entfernt. Die nächste Glättemeldeanlage des Deutschen Wetterdienstes steht bei „${esc(st.name)}“ an der ${esc(st.road)}${st.roadKm != null ? ` (km ${n1(st.roadKm)})` : ''}, ${n1(st.km)} km entfernt. Fahrbahntemperatur und -zustand zeigt <a href="/autobahnwetter/${esc(c.id)}">Autobahnwetter für die ${esc(c.road)}</a>.${roadPage}</p>`,
       sources: ['DWD (Glättemeldeanlagen, GeoNutzV)', 'BKG DLM250 (Autobahnachsen, dl-de/by-2.0)'],
     });
   }

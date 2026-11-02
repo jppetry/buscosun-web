@@ -1,0 +1,60 @@
+/* Phase FX-UI, part A — start-page preview. The glass surface is the existing `.deck-fundament-inner` (SearchPage.css). */
+.fxp {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 620px); gap: 44px; align-items: center;
+  color: inherit; text-decoration: none; cursor: pointer;
+}
+.fxp:focus-visible { outline: 3px solid var(--terracotta-700); outline-offset: 3px; }
+.fxp-eyebrow-row { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.fxp-eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: 3px; color: #7A6548; }
+.fxp-pill {
+  font-size: 11.5px; font-weight: 600; color: #8F4E22; background: var(--terracotta-50);
+  border: 1px solid #E3C39A; border-radius: 10px; padding: 4px 10px 3px;
+}
+.fxp .deck-h2 { margin-top: 14px; }
+.fxp-lead { max-width: 600px; }
+.fxp-chips { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 18px 0 0; padding: 0; }
+.fxp-chip {
+  font-size: 12px; color: var(--stone-600); background: var(--sand-50); border: 1px solid #E0D6BE;
+  border-radius: 10px; padding: 5px 10px 4px;
+}
+.fxp-chip b { color: var(--terracotta-700); font-weight: 600; }
+.fxp-btn {
+  display: inline-flex; align-items: center; min-height: 44px; margin-top: 18px; padding: 0 20px; border-radius: 13px;
+  background: var(--ink-900); color: var(--sand-50); font-size: 14.5px; font-weight: 600;
+  transition: transform .15s ease;
+}
+.fxp:hover .fxp-btn { transform: translateX(2px); }
+
+.fxp-card {
+  background: #fff; border: 1px solid var(--border-medium); border-radius: 16px; box-shadow: var(--deck-lift);
+  padding: 16px 18px 14px; min-width: 0;
+}
+.fxp-pair { display: flex; align-items: center; gap: 10px; }
+.fxp-col { flex: 1 1 0; min-width: 0; }
+.fxp-col-head { display: flex; flex-direction: column; gap: 1px; margin-bottom: 6px; min-height: 34px; }
+.fxp-col-title { font-size: 10.5px; letter-spacing: 2px; color: #7A6548; }
+.fxp-col-title-after { color: var(--terracotta-700); font-weight: 600; }
+.fxp-col-sub { font-size: 12px; color: var(--stone-600); }
+.fxp-knot {
+  flex: 0 0 34px; width: 34px; height: 34px; border-radius: 50%; background: var(--ink-900); color: var(--sand-50);
+  display: inline-flex; align-items: center; justify-content: center; margin-top: 20px;
+}
+.fxp-caption { margin-top: 10px; font-size: 10.5px; letter-spacing: 1.5px; color: #7A6548; }
+
+@media (max-width: 767px) {
+  .fxp { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .fxp-card { padding: 12px; }
+  .fxp .deck-h2, .fxp .fxp-lead { margin: 0; }
+  .fxp-col-sub { display: none; }
+  .fxp-col-head { min-height: 0; }
+  .fxp-knot { flex-basis: 26px; width: 26px; height: 26px; margin-top: 0; }
+  .fxp-knot svg { width: 13px; height: 13px; }
+  /* Reading order on a phone: text, card, chips, button (the chips and the button sit after the card). */
+  .fxp-text { display: contents; }
+  .fxp-eyebrow-row { order: 1; }
+  .fxp .deck-h2 { order: 2; }
+  .fxp-lead { order: 3; }
+  .fxp-card { order: 4; }
+  .fxp-chips { order: 5; margin-top: 0; }
+  .fxp-btn { order: 6; margin-top: 0; justify-self: start; }
+}

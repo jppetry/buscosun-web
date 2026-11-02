@@ -4,6 +4,9 @@
 // Warum ein Buendel: Deno verlangt Datei-Endungen an jedem Import, der
 // App-Baum hat keine. Es ist DERSELBE Parser, nur zusammengezogen.
 
+// src/fusionExplainer/fxFlag.ts
+var FUSION_EXPLAINER_LIVE = true;
+
 // src/map/layerTypes.ts
 var ALL_LAYER_KEYS = [
   "wind",
@@ -302,14 +305,14 @@ function ogCardPath(routeId, viewSlug) {
 var ROAD_SEO_MOTORWAYS = [
   ["a1", "A 1", "Heiligenhafen bis Saarbrücken"],
   ["a7", "A 7", "Flensburg bis Füssen"],
-  ["a8", "A 8", "Karlsruhe, Stuttgart, München bis Salzburg"],
+  ["a8", "A 8", "Karlsruhe, Stuttgart bis Salzburg"],
   ["a2", "A 2", "Oberhausen bis Berlin"],
   ["a9", "A 9", "Berlin bis München"],
   ["a3", "A 3", "Emmerich bis Passau"],
   ["a4", "A 4", "Aachen bis Görlitz"],
-  ["a44", "A 44", "Ruhrgebiet bis Kassel"],
+  ["a44", "A 44", "Aachen bis Kassel"],
   ["a6", "A 6", "Saarbrücken bis Waidhaus"],
-  ["a45", "A 45", "Dortmund bis Aschaffenburg"],
+  ["a45", "A 45", "Dortmund bis Seligenstädter Dreieck"],
   ["a96", "A 96", "Lindau bis München"],
   ["a93", "A 93", "Hof bis Kufstein"],
   ["a99", "A 99", "Autobahnring München"],
@@ -321,12 +324,18 @@ var ROAD_SEO_MOTORWAYS = [
   ["a73", "A 73", "Suhl bis Nürnberg"],
   ["a31", "A 31", "Emden bis Bottrop"]
 ];
+function roadSeoQuery(slug) {
+  return slug.toUpperCase();
+}
 function roadSeoSubs() {
-  return ROAD_SEO_MOTORWAYS.map(([slug, name, span]) => ({
-    slug,
-    title: `${name} — Glätte und Fahrbahnzustand`,
-    description: `Fahrbahntemperatur und -zustand an den Glättemeldeanlagen der ${name} (${span}), alle 15 Minuten gemessen — als Streckenband.`
-  }));
+  return ROAD_SEO_MOTORWAYS.map(([slug, , span]) => {
+    const q = roadSeoQuery(slug);
+    return {
+      slug,
+      title: `Autobahnwetter ${q} — Glätte, Wetter und Fahrbahntemperatur`,
+      description: `Wetter und Glätte auf der ${q} (${span}): Fahrbahntemperatur und -zustand der Glättemeldeanlagen alle 15 Minuten, Prognose bis 48 h.`
+    };
+  });
 }
 
 // src/fire/fireLink.ts
@@ -409,7 +418,7 @@ function describeRoadLink(corridor, kmSlug, validAtMs, whenText) {
 }
 
 // src/router/routes.ts
-var ROAD_INDEXABLE = false;
+var ROAD_INDEXABLE = true;
 var SITE_URL = "https://buscosun.com";
 var SITE_NAME = "buscosun";
 var CONTENT_UPDATED = "2026-09-05";
@@ -628,17 +637,18 @@ var ROUTES = [
         updated: CONTENT_UPDATED
       }
     ],
+    // Phase WBS (audit/seo-waldbrand.md D8): Title mit den Suchzusätzen „aktuell" und „Karte", H1 bleibt davon getrennt (SN).
     meta: {
-      title: "Waldbrandgefahr DACH — Brandradar",
-      description: "Waldbrandgefahr, aktive Brände aus Satellitendaten und Trockenheit für Deutschland, Österreich und die Schweiz — EU-Index als Fläche, die nationalen Skalen von DWD und BAFU zur Einordnung.",
-      h1: "Waldbrandgefahr in Deutschland, Österreich und der Schweiz",
-      lead: "Das Brandradar von buscosun zeigt den europäischen Gefahrenindex als durchgehende Fläche über die DACH-Region und zur Einordnung die nationalen Skalen von DWD und BAFU, jede mit ihrer eigenen Stufenlogik (Österreich hat keine offene amtliche Stufe). Dazu aktive Brände aus Satellitendetektionen, von EFFIS kartierte Brandflächen, die zwischen den Überflügen beobachtete Verschiebung eines Brands sowie Bodentrockenheit und Feuerwetter als Treiber — ohne amtliches Warnprodukt zu sein."
+      title: "Waldbrand aktuell: Karte, Gefahr & aktive Brände in DE, AT, CH",
+      description: "Waldbrand-Karte für DE, AT und CH: Feuerwettergefahr nach EU-Index, aktive Brände aus Satellitendaten der letzten 24 Stunden, Trockenheit, Brände seit 2020. Keine amtliche Warnung.",
+      h1: "Waldbrandgefahr und aktive Brände in Deutschland, Österreich und der Schweiz",
+      lead: "Das Brandradar von buscosun zeigt, wo in Deutschland, Österreich und der Schweiz gerade Feuer brennen und wie hoch die Feuerwettergefahr ist: aktive Brände aus Satellitendaten, von EFFIS kartierte Brandflächen, den europäischen Feuerwetterindex bis zu neun Tage voraus, Bodentrockenheit und die Brände jeder Saison seit 2020. Kein amtliches Warnprodukt — amtlich sind DWD und Länder, in der Schweiz die Kantone."
     }
   },
   {
     // Phase AW (audit/autobahnwetter.md): Pfadsegment = Korridor (`/autobahnwetter/a8`), entscheidet die Seite. Die
-    // 20 Autobahn-Unterseiten (E-AW-4, `src/road/roadSeo.ts`) hängen an `ROAD_INDEXABLE`; bis dahin ist die Route
-    // noindex und steht in keiner Sitemap.
+    // 20 Autobahn-Unterseiten (E-AW-4, `src/road/roadSeo.ts`) hängen an `ROAD_INDEXABLE` (an seit Phase SA). Title, H1 und
+    // Description nennen die Suchwörter (Autobahnwetter, Glätte, Fahrbahntemperatur, Straßenwetter; audit/seo-autobahnwetter.md §2).
     id: "autobahnwetter",
     path: "/autobahnwetter",
     aliases: ["/strassenwetter", "/glaette"],
@@ -646,10 +656,10 @@ var ROUTES = [
     subParam: "road",
     subs: ROAD_INDEXABLE ? roadSeoSubs() : null,
     meta: {
-      title: "Autobahnwetter — Glätte und Fahrbahnzustand",
-      description: "Fahrbahntemperatur und -zustand der Glättemeldeanlagen an deutschen Autobahnen, alle 15 Minuten gemessen — je Strecke als Band.",
-      h1: "Autobahnwetter: Was messen die Anlagen?",
-      lead: "Was die Glättemeldeanlagen an deutschen Autobahnen messen: Fahrbahntemperatur, Fahrbahnzustand, Wasserfilm, Luft und Taupunkt, alle 15 Minuten vom DWD, geprüft und je Autobahn als Streckenband. Kein amtliches Warnprodukt und keine Verkehrsmeldung.",
+      title: "Autobahnwetter — Glätte und Fahrbahntemperatur aktuell",
+      description: "Wetter und Glätte auf deutschen Autobahnen: Fahrbahntemperatur, Fahrbahnzustand und Wasserfilm der Glättemeldeanlagen alle 15 Minuten vom DWD, je Autobahn als Streckenband, mit Prognose bis 48 h.",
+      h1: "Autobahnwetter: Glätte und Fahrbahnzustand an deutschen Autobahnen",
+      lead: "Das Autobahnwetter von buscosun zeigt, was die Glättemeldeanlagen an deutschen Autobahnen messen: Fahrbahntemperatur, Fahrbahnzustand, Wasserfilm, Luft und Taupunkt, alle 15 Minuten vom Deutschen Wetterdienst, geprüft und je Autobahn als Streckenband. Dazu kommen eine Gefahren-Leiste für Glätte, Aquaplaning, Nebel und Seitenwind von jetzt bis +6 Stunden und das Straßenwetter entlang der Strecke bis 48 Stunden voraus. Kein amtliches Warnprodukt und keine Verkehrsmeldung.",
       noindex: !ROAD_INDEXABLE
     }
   },
@@ -684,6 +694,22 @@ var ROUTES = [
       description: "Rund 2 200 Gletscher in Deutschland, Österreich und der Schweiz: amtliche Zahlen, Längen- und Massenreihen, Herkunft an jedem Wert.",
       h1: "Gletscher: Wie geht es dem Eis?",
       lead: "Alle rund 2 200 Gletscher in DE, AT und CH an einem Ort: Inventare mit Bezugsjahr, Längen- und Massenreihen der Messnetze, Satellitenszenen, ein Schmelzindex ohne Einheit und amtliche Berichte im Wortlaut. Jeder Wert nennt seine Herkunft (gemessen, Satellit, Modell, amtlich). Kein amtliches Warnprodukt, keine Tourenfreigabe."
+    }
+  },
+  {
+    // Phase FX-UI (audit/fusion-erklaerung.md): was das Postprocessing „buscosun Fusion" tut, ohne die Abstimmung zu verraten. Die Route gibt es nur
+    // mit dem Flag (`FUSION_EXPLAINER_LIVE`, `?fx=1`); bis Jan es umlegt, ist sie noindex und in keiner Sitemap (E-FXU-4).
+    id: "buscosun-fusion",
+    path: "/buscosun-fusion",
+    aliases: [],
+    featureId: "fusion",
+    subs: null,
+    meta: {
+      title: "buscosun Fusion — was zwischen Wettermodell und Vorhersage passiert",
+      description: "Wie buscosun Fusion mehrere Wettermodelle bündelt, bekannte Fehler herausrechnet, aufs echte Gelände umrechnet, an Messungen anschließt und eine ehrliche Spanne liefert.",
+      h1: "Was zwischen Wettermodell und deiner Vorhersage passiert",
+      lead: "buscosun Fusion ist unser Postprocessing: Es bündelt mehrere Wettermodelle, rechnet ihre bekannten Fehler heraus, bringt sie auf die echte Lage deines Ortes und schließt sie an aktuelle Messungen an. Heraus kommt kein Scheinwert, sondern eine ehrliche Spanne. Kein amtliches Warnprodukt.",
+      noindex: !FUSION_EXPLAINER_LIVE
     }
   },
   {

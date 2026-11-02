@@ -60,9 +60,11 @@ const LIMITS = `## Grenzen (ausdrücklich)
 /**
  * `llms.txt` — die Landkarte. Alle Zahlen und Listen kommen aus dem Build.
  */
-export function buildLlmsTxt({ site, updated, places, explainers, tools, methodik, audiences, glossary, events, subRoutes }) {
+export function buildLlmsTxt({ site, updated, places, explainers, tools, methodik, audiences, glossary, events, subRoutes, glacierAtlas = null , fireRegions = ''}) {
   const byCountry = places.reduce((a, p) => ((a[p.country] = (a[p.country] || 0) + 1), a), {});
   const layerSubs = subRoutes.filter((x) => x.route.id === 'wetterkarte');
+  // Phase SA: die 20 Autobahn-Seiten (kommen aus derselben Liste wie Sitemap und Shells).
+  const roadSubs = subRoutes.filter((x) => x.route.id === 'autobahnwetter');
   const link = (path, label) => `- [${label}](${site.url}${path})`;
 
   const sections = [];
@@ -83,12 +85,15 @@ ${link('/atmosphaere', 'Atmosphäre')}: Vertikalschnitt entlang einer frei gezog
   unter ${site.url}/atmosphaere/querschnitt. Kein amtliches Flugwetter.
 ${link('/waldbrand', 'Brandradar DACH')}: EU-Gefahrenindex, aktive Brände aus Satellitendaten, Trockenheit,
   Historie seit 2020 (${site.url}/waldbrand/historie) und Thermalanomalien (${site.url}/waldbrand/thermalanomalien).
-${link('/seewetter', 'Seewetter Nord- und Ostsee')}: Seegang aus dem DWD-Küstenmodell, Wind an rund 60 Spots, Wasserstand der BSH-Pegel,
+${fireRegions}${link('/seewetter', 'Seewetter Nord- und Ostsee')}: Seegang aus dem DWD-Küstenmodell, Wind an rund 60 Spots, Wasserstand der BSH-Pegel,
   Seewetterbericht im Wortlaut. Kein amtliches Warnprodukt (${site.url}/methodik/seewetter-quellen/).
 ${link('/gletscher', 'Gletscher-Monitor DACH')}: rund 2 200 Gletscher mit Inventarfläche und Bezugsjahr, Messreihen, Sentinel-2-Szenen und einem Schmelzindex
   ohne Einheit; jede Zahl trägt ihre Herkunft. Kein amtliches Produkt, keine Tourenfreigabe (${site.url}/methodik/gletscher-daten/).
-${roadIndexable ? `${link('/autobahnwetter', 'Autobahnwetter')}: Messwerte der Glättemeldeanlagen im 15-Minuten-Takt, geprüft und je Autobahn als Band, dazu Wetter entlang der Strecke. Kein amtliches
-  Warnprodukt und keine Verkehrsmeldung (${site.url}/methodik/autobahnwetter-pruefregeln/).\n` : ''}${link('/wetterarchiv', 'Wetterarchiv & Klima')}: Rückblick und Veränderung je Ort, Stationen und ERA5-Reanalyse ab 1940.
+${glacierAtlas ? `${link('/gletscher-atlas/', 'Gletscher-Atlas DACH')}: Zahl der Gletscher je Land, Ranglisten, amtliche Angaben im Wortlaut; ${glacierAtlas.pages} Steckbriefe
+  unter ${site.url}/gletscher/<land>-<name>, z. B. ${site.url}/gletscher/ch-grosser-aletschgletscher, ${site.url}/gletscher/at-pasterzen-kees.
+` : ''}${roadIndexable ? `${link('/autobahnwetter', 'Autobahnwetter')}: Messwerte der Glättemeldeanlagen im 15-Minuten-Takt, geprüft und je Autobahn als Band, dazu Wetter entlang der Strecke. Kein amtliches
+  Warnprodukt und keine Verkehrsmeldung (${site.url}/methodik/autobahnwetter-pruefregeln/).${roadSubs.length ? `
+  Eigene Seite je Autobahn (${roadSubs.length}): ${roadSubs.map((x) => site.url + x.path).join(', ')}` : ''}\n` : ''}${link('/wetterarchiv', 'Wetterarchiv & Klima')}: Rückblick und Veränderung je Ort, Stationen und ERA5-Reanalyse ab 1940.
 ${link('/globus', '3D-Globus')}: globales Wind-, Temperatur- und Druckfeld aus dem aktuellen GFS-Lauf (NOAA).
 ${link('/validierung', 'Validierung')}: Live-Hindcast des Nowcasts gegen gemessenes Radar (Brier Skill Score,
   Kalibrierungsfehler, Reliability-Diagramm).`);

@@ -3123,3 +3123,53 @@ Alles lokal auf `main` committet, nichts gepusht. **Der Push trägt auch die fre
 5. **Autobahnwetter freischalten:** vier Schritte in §6, im Probelauf grün. Gate C und E bleiben formal offen; das entscheidest du beim Umlegen.
 6. **Search Console, Bing, IndexNow, externe Verlinkung:** §9.
 7. **Stark umgeschriebene Seiten ansehen** (`/fuer/gleitschirmflieger/`, `/fuer/drohnenpiloten/`, `/fuer/bau-und-kran/`, `/fuer/wetterfuehlige/`, `/wissen/skew-t/` u. a., §5.1) und V-SN-5 entscheiden: Soll `/waldbrand` weiter die Saison zeigen oder den Gefahrenindex?
+
+## 82. Gletscher-SEO: Steckbrief-Seiten und Gletscher-Atlas (Phase GLS, `audit/gletscher-seo.md`), 2026-11-02
+
+Alles im Arbeitsbaum von `main`, **nichts committet**. Geprüft in einem Klon ohne `node_modules` (`verify-seo` 1 018/0, `verify-routing` wie HEAD); Vite-Build, Budget und Browser stehen aus.
+
+1. **Bauen:** `npm run build` (läuft `generate-seo`, `verify-seo` mit dem neuen Abschnitt „Gletscherseiten" und `verify-routing`), dann `npm run budget`. eagerJs wächst um rund 0,3 KB; ist die Ratsche (112 KB) rot, mit Notiz anheben oder mir sagen.
+2. **Ansehen vor dem Push:** `npx netlify dev` (wertet `dist/_redirects` aus) oder ein Deploy-Preview. Prüfen: `/gletscher/ch-grosser-aletschgletscher` zeigt den Steckbrief, „Über diese Ansicht" klappt die Fakten auf, im Tab steht „Grosser Aletschgletscher: Rückgang seit 1870, Massenbilanz, Daten“, Quelltext-Canonical = eigene Adresse; Konsole sauber. Dazu `/gletscher-atlas/` und `/gletscher-atlas/deutschland/`.
+3. **Commit und Push** (Vorschlag: `feat(seo): glacier pages and atlas (GLS)`), mit den neuen Dateien `scripts/seo/glacierPages.mjs`, `scripts/seo/refresh-glacier-pages.mjs`, `scripts/seo/data/glacier-pages.json`, `src/seo/staticPage.ts`, `audit/gletscher-seo.md`.
+4. **Nach dem Deploy:** `node scripts/seo/verify-live.mjs https://buscosun.com --sample 40` (prüft auch Steckbrief, Atlas und Aliase).
+5. **Google Search Console:** `https://buscosun.com/sitemap-gletscher.xml` einreichen; URL-Prüfung → Indexierung beantragen für `/gletscher-atlas/`, `/gletscher-atlas/deutschland/`, `/gletscher-atlas/schweiz/`, `/gletscher-atlas/oesterreich/`, `/gletscher/ch-grosser-aletschgletscher`, `/gletscher/at-pasterzen-kees`, `/gletscher/de-hoellentalferner`. Unter Einstellungen prüfen, dass die Website für die generativen KI-Funktionen der Suche nicht ausgeschlossen ist. Den Rich-Results-Test einmal auf einen Steckbrief laufen lassen (gerendertes HTML: Canonical muss die eigene Adresse bleiben).
+6. **Bing Webmaster Tools:** dieselbe Sitemap einreichen; danach `node scripts/seo/indexnow.mjs --match=/gletscher` (378 URLs).
+7. **Real-Device:** einen Steckbrief auf dem Handy öffnen; „Über diese Ansicht" öffnen und scrollen, nichts verdeckt die Karte mehr als vorher.
+8. **Datenstand auffrischen,** wenn ein neuer Gletscher-Build läuft oder nach den Berichten (GLAMOS Anfang Oktober, ÖAV März): `npm run seo:glaciers`, committen. Das lastmod eines Gletschers ändert sich nur, wenn sich sein Datensatz ändert.
+9. **Außerhalb des Repos (Reichweite):** Atlas und Länderseiten sind die Seiten zum Verlinken — Alpenverein-Sektionen, Bildungsseiten, Redaktionen vor den Berichtsterminen (Datenpaket statt eigener Messbehauptung). Wikipedia nur nach deren Regeln, keine Eigenlinks.
+10. **Entscheiden:** V-GLS-1 (echte 404 für unbekannte Gletscher-Segmente) und V-GLS-2 (Edge Function lässt `og:*` der Steckbriefe stehen; STOPP-&-FRAGEN-Zone).
+
+## 83. SEO Autobahnwetter — Freischaltung und Ranking (Phase SA, `audit/seo-autobahnwetter.md`), 2026-11-02
+
+`ROAD_INDEXABLE` ist an: `/autobahnwetter` und 20 Autobahn-Seiten sind indexierbar, mit eigenen Texten aus dem Daten-Repo. Gebaut in einem Container ohne npm, deshalb sind die Schritte 1–2 auf deinem Rechner nötig, bevor gepusht wird.
+
+1. **OG-Karten rendern** (der Renderer braucht Segoe UI, also Windows): `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/render-og-app-cards.mjs` (die 20 fehlenden `autobahnwetter-a*.png`), danach dasselbe mit `--pick autobahnwetter` (der Untertitel des Hubs hat sich geändert). Karten mit einchecken.
+2. **Prüfen:** `npm run typecheck`, `npm run build`, `npm run budget` (eagerJs lag im SN-Probelauf bei 111,5 von 112 KB, GLS (§82) rechnet mit +0,3 KB, SA mit +0,1–0,2 KB; liegt es darüber, Grenze mit Notiz anheben, nie per `--update`), `npm run edge:share` (das Bündel muss nach SA **und** FX-UI neu, beide ändern `routes.ts`), dann `npm run verify:share`.
+3. **Commit und Push von `main`.** `routes.ts`, `generate-seo.mjs`, `content.mjs`, `llms.mjs`, `verify-seo.mjs`, `RouteSeoBlock.tsx` und `netlify.toml` tragen Änderungen von SA, GLS und FX-UI zugleich; entweder zusammen committen oder mit `git add -p` trennen. Reine SA-Dateien: `src/road/roadSeo.ts`, `roadSeoTexts.ts`, `roadSeoFacts.ts`, `scripts/seo/build-road-seo-facts.mjs`, `scripts/seo/nicheTools.mjs`, `scripts/seo/placeContent.mjs`, `src/seo/layerSeoTexts.ts`, `src/seo/subRouteTexts.ts`, `audit/seo-autobahnwetter.md`, `audit/seo-nischen/road-release.toml`, die 20 OG-Karten.
+4. **Vorbedingungen aus SN §6, die die Freischaltung formal voraussetzte** (E-SA-1): Stichprobe nach den Fühler-Fixes (V528 ohne Frostgefahr, E237 ohne 40 °C, keine 20,16/21,6 mm/h auf trockener Fahrbahn) und `road-archiv` grün (§81 Nr. 3). Fällt die Stichprobe schlecht aus: `ROAD_INDEXABLE = false` und die 20 Rewrites aus `netlify.toml` entfernen.
+5. **Nach dem Deploy:** `node scripts/seo/verify-live.mjs`; im Browser „Quelltext anzeigen" für `https://buscosun.com/autobahnwetter/a8`: Canonical `/autobahnwetter/a8`, kein `noindex`, H1 „Autobahnwetter A8: …".
+6. **Google Search Console:** Sitemap `https://buscosun.com/sitemap.xml` neu einreichen; URL-Prüfung und „Indexierung beantragen" für `/autobahnwetter`, `/autobahnwetter/a7`, `/a8`, `/a9`, `/a3`, `/a1` (der Rest kommt über die Sitemap).
+7. **Bing:** In den Bing Webmaster Tools die Website anlegen (Import aus der Search Console geht), Sitemap einreichen. Dann `node scripts/seo/indexnow.mjs --match=/autobahnwetter` (Hub, 20 Autobahn-Seiten, Funktions- und Methodikseite; Antwort 200 oder 202). Copilot und die Bing-Suche lesen aus diesem Index.
+8. **Impressum ausfüllen:** `scripts/seo/legal.mjs` enthält noch TODO-Platzhalter für Name und Anschrift (der Build warnt). Das ist Pflicht und ein Vertrauenssignal für Google (D-8).
+9. **Nach 2–4 Wochen:** In der Search Console den Leistungsbericht mit Seitenfilter `/autobahnwetter` öffnen und die Suchanfragen exportieren, in Bing die Keyword-Recherche für „autobahnwetter", „glätte autobahn" und „wetter a7" ansehen. Damit E-SA-4 (mehr Autobahnen) und V-SA-2 (Brennpunkt-Seiten) entscheiden.
+10. **Erwähnungen statt gekaufter Links:**
+    - Bei einem Wintereinbruch der Lokalpresse eine kurze Datenmeldung mit Link anbieten: SWR und Stuttgarter Zeitung für die A 8, HNA für die Kasseler Berge, Main-Post für A 3 und A 7, Thüringer Allgemeine für die A 71.
+    - In Fernfahrer-, Lkw-, Wohnmobil- und Pendlerforen konkret helfen und dabei offen sagen, dass du der Betreiber bist.
+    - Open-Data-Schaufenster nutzen: GovData-Anwendungen und die Projektlisten rund um bund.dev/autobahn-api.
+    - Keine eigenen Links in Wikipedia setzen.
+11. **Zahlen auffrischen,** wenn im Daten-Repo Korridore, Abschnitte oder Stationsliste neu gebaut werden: `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/seo/build-road-seo-facts.mjs --data C:\dev\buscosun-data` (ohne `--data` lädt das Skript die Dateien von GitHub), dann committen.
+12. **Entscheiden:** E-SA-4 (weitere Autobahnen, Liste im Audit) und V-SA-1 (Live-Lagesatz im HTML per Edge Function, STOPP-Zone).
+
+## 84. Waldbrand-SEO: Waldbrandgefahr nach Bundesland und Kanton, `/waldbrand`-Texte (Phase WBS, `audit/seo-waldbrand.md`), 2026-11-02
+
+Alles im Arbeitsbaum von `main`, **nichts committet** (Cloud-Sitzung ohne Shell auf dem Rechner). Geprüft in einem Klon ohne `node_modules`: `verify-seo` 1 282 ok / 0 rot (mit dem Stand der parallelen Linien GLS, FX-UI und SA von 21:40), `verify-routing` wie HEAD (9 Vorlade-Prüfungen brauchen den Vite-Build).
+
+1. **Edge-Bündel:** `npm run edge:share` — die Meta-Texte von `/waldbrand` in `routes.ts` sind neu, `verify:share` vergleicht das Bündel Byte für Byte.
+2. **Bauen und prüfen:** `npm run typecheck`, `npm run build`, `npm run budget`, `npm run verify:share`. eagerJs sollte nicht wachsen (die neuen Meta-Texte sind kürzer), totalJs etwa +1 KB im lazy Text-Chunk.
+3. **Ansehen:** `/waldbrandgefahr/`, `/waldbrandgefahr/deutschland/brandenburg/`, `/waldbrandgefahr/schweiz/wallis/` — Feuerwetter-Bild und Legende laden vom EU-Dienst, „Morgen" und „Einordnung (Perzentil)" wechseln das Bild, mobil kein Überlauf. Dazu `/waldbrand` ohne JavaScript (Quelltext): Title „Waldbrand aktuell: Karte, Gefahr & aktive Brände in DE, AT, CH", drei Absätze, Links auf die Länder.
+4. **Commit und Push** (Vorschlag: `feat(seo): wildfire danger by state and canton, /waldbrand texts (WBS)`), mit den neuen Dateien `scripts/seo/fireRegions.mjs`, `scripts/seo/fireRegionPages.mjs`, `scripts/seo/verifyFireRegions.mjs`, `scripts/seo/build-dach-admin1.mjs`, `scripts/seo/data/dach-admin1.json`, `audit/seo-waldbrand.md` und dem neuen Edge-Bündel.
+5. **Google Search Console:** `https://buscosun.com/sitemap.xml` neu einreichen (enthält `sitemap-waldbrand.xml`); URL-Prüfung → Indexierung beantragen für `/waldbrand`, `/waldbrandgefahr/`, `/waldbrandgefahr/deutschland/`, `/waldbrandgefahr/oesterreich/`, `/waldbrandgefahr/schweiz/`. Nach 2–4 Wochen „Gecrawlt, nicht indexiert" für `/waldbrandgefahr/` prüfen und die Suchanfragen mit „waldbrand" exportieren (Volumen je Region fehlen bisher).
+6. **Bing Webmaster Tools:** Sitemap einreichen; danach `node scripts/seo/indexnow.mjs --match=waldbrand` (46 URLs).
+7. **Entscheiden:** E-WBS-1 Standardsicht von `/waldbrand` (V-SN-5; für „Waldbrand aktuell" passt „Aktive Brände"), E-WBS-2 Impressum vervollständigen (`scripts/seo/legal.mjs` hat TODO-Platzhalter), E-WBS-3 FIRMS Suomi-NPP (V-WBS-1: laut FIRMS keine Lieferung mehr ab 02.11.2026).
+8. **In der nächsten Saison:** den Brand-Historie-Batch (`npm run fire:history-index`) regelmäßig laufen lassen und committen — die Regionsseiten sind so frisch wie `public/fire/bh/index-season-v1.json` (V-WBS-3).
+9. **Außerhalb des Repos (Reichweite):** Feuerwehren, Gemeinden, Forstbetriebe und Wanderportale verlinken Gefahrenkarten — die Regionsseiten sind dafür gebaut (amtliche Stelle zuerst, kein Warnanspruch). Keine gekauften Links.

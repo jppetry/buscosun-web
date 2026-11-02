@@ -16,7 +16,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  FUSION_RELEASES, FUSION_BASE, FUSION_BASE_OPTIONS, FUSION_CURRENT, FUSION_NAME, FUSION_BRAND, FUSION_STAGE_NOTE_PREFIX,
+  FUSION_RELEASES, FUSION_BASE, FUSION_BASE_PUBLIC_LABEL, FUSION_BASE_OPTIONS, FUSION_CURRENT, FUSION_NAME, FUSION_BRAND, FUSION_STAGE_NOTE_PREFIX,
   fusionName, fusionStage, fusionStageIo, fusionStageNote, fusionVersionOfNotes, fusionVersionOfEngine, fusionProductBehind, FUSION_PARTS,
 } from '../src/pointForecast/fusion/fusionRelease.ts';
 import { ROAD_FC_RAW_BASE, ROAD_FC_INDEX_PATH, ROAD_FC_SOURCE_TEXT, roadFcSourceText } from '../src/road/roadFc.ts';
@@ -39,6 +39,12 @@ const src = (p) => readFileSync(join(ROOT, p), 'utf8');
     ns.every((n, i) => n === FUSION_BASE + 1 + i) && FUSION_RELEASES.every((r) => /^\d{4}-\d{2}-\d{2}$/.test(r.date) && r.ref && r.option && r.note)
     && new Set(allKeys).size === allKeys.length && new Set(FUSION_RELEASES.filter((r) => r.io).map((r) => r.io.key)).size === FUSION_RELEASES.filter((r) => r.io).length
     && allKeys.every((k) => !(k in FUSION_BASE_OPTIONS)), `${ns.join(', ')} · Begleit-Optionen: ${FUSION_RELEASES.filter((r) => r.also).map((r) => `${r.n}: ${Object.keys(r.also).join('+')}`).join(' · ') || 'keine'}`);
+  // E-FXU-2 (audit/fusion-erklaerung.md): the public explainer page names every stand — a stand without a short display label would leave a hole in its strip.
+  const okLabel = (l) => typeof l === 'string' && l.trim().length > 0 && l.length <= 50;
+  add('A1b jeder Stand (und der Grundstand) trägt ein Anzeige-Label der Erklärseite: nicht leer, höchstens 50 Zeichen',
+    okLabel(FUSION_BASE_PUBLIC_LABEL) && FUSION_RELEASES.every((r) => okLabel(r.publicLabel)),
+    FUSION_RELEASES.filter((r) => !okLabel(r.publicLabel)).map((r) => `n ${r.n}`).join(', ') || `${FUSION_RELEASES.length + 1} Labels`);
+  add('A1c Gegenprobe: ein leeres und ein 51 Zeichen langes Label fallen durch', !okLabel('') && !okLabel('   ') && !okLabel('x'.repeat(51)) && okLabel('x'.repeat(50)));
   const on = FUSION_RELEASES.filter((r) => r.value !== false && r.value !== 0);
   const full = fusionStage();
   add('A2 neuester Stand = höchster eingeschalteter Stand ohne Lücke; Name daraus; die Stufe ohne Schalter rechnet ihn mit Basis + jeder Option (auch den Begleit-Optionen)',

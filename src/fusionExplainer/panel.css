@@ -1,0 +1,7 @@
+/* Phase FX-UI — step panel (shared by the start-page preview and the detail page). Schematic, no measured data. */
+.fx-panel { background: #FBF8F1; border: 1px solid #EDE6D3; border-radius: 10px; padding: 6px 6px 4px; }
+.fx-panel svg { display: block; width: 100%; height: auto; }
+.fx-panel-times {
+  display: flex; justify-content: space-between; margin-top: 2px; padding: 0 2px;
+  font-size: 10px; letter-spacing: 1px; color: #7A6548;
+}

@@ -98,7 +98,7 @@ const mods = new Set([...sm.text.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)].map((
 expect(mods.size >= 2, `sitemap lastmod aus dem Inhalt (${mods.size} Daten)`);
 if (sample > 0) {
   // App-Routen + Sub-Routen immer, Rest gesampelt.
-  const app = locs.filter((l) => !/\/(wetter|wissen|funktionen|wetterlage|impressum|datenschutz|kontakt|lizenzen)\//.test(l));
+  const app = locs.filter((l) => !/\/(wetter|wissen|funktionen|wetterlage|impressum|datenschutz|kontakt|lizenzen|gletscher|gletscher-atlas)\//.test(l));
   const rest = locs.filter((l) => !app.includes(l));
   locs = [...app, ...rest.filter((_, i) => i % Math.ceil(rest.length / sample) === 0)];
 }
@@ -142,6 +142,40 @@ for (const [from, to] of [
   const r = await get(from);
   const loc = (r.headers?.get?.('location') ?? '').replace(/^https?:\/\/[^/]+/, '');
   expect(r.status === 301 && loc === to, `${from} → 301 ${to} (ist ${r.status} ${loc})`);
+}
+
+// 4c) Phase GLS (audit/gletscher-seo.md): Steckbriefe haben eine eigene Shell (dist/_redirects), alle übrigen Gletscher teilen
+// weiter die Shell der Route; robots sperrt die Dateien hinter den Steckbriefen.
+{
+  const { readFileSync, existsSync } = await import('node:fs');
+  const { join, dirname } = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const file = join(dirname(fileURLToPath(import.meta.url)), 'data', 'glacier-pages.json');
+  const data = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : null;
+  if (data) {
+    const rb = (await get('/robots.txt')).text.replace(/\r\n/g, '\n');
+    expect(rb.includes('Disallow: /_gl/\n') && rb.includes('Sitemap: https://buscosun.com/sitemap-gletscher.xml'), 'robots: /_gl/ gesperrt, sitemap-gletscher.xml genannt');
+    const page = data.glaciers.find((g) => g.seg === 'ch-grosser-aletschgletscher' && g.tier) ?? data.glaciers.find((g) => g.tier);
+    const r = await get(`/gletscher/${page.seg}`);
+    const canon = attr(r.text, /<link rel="canonical" href="([^"]+)"/);
+    expect(r.status === 200 && canon === `${CANON_ORIGIN}/gletscher/${page.seg}` && r.text.includes(`data-static-page="/gletscher/${page.seg}"`) && !/noindex/.test(r.text),
+      `/gletscher/${page.seg}: 200, Self-Canonical, Faktenblock, index (ist ${r.status}, ${canon})`);
+    const other = data.glaciers.find((g) => !g.tier);
+    if (other) {
+      const o = await get(`/gletscher/${other.seg}`);
+      const oc = attr(o.text, /<link rel="canonical" href="([^"]+)"/);
+      expect(o.status === 200 && oc === `${CANON_ORIGIN}/gletscher`, `/gletscher/${other.seg} (ohne Steckbrief-Seite): Shell der Route, Canonical /gletscher (ist ${o.status}, ${oc})`);
+    }
+    for (const p of ['/gletscher-atlas/', '/gletscher-atlas/deutschland/']) {
+      const a = await get(p);
+      expect(a.status === 200 && attr(a.text, /<link rel="canonical" href="([^"]+)"/) === CANON_ORIGIN + p, `${p}: 200 mit Self-Canonical (ist ${a.status})`);
+    }
+    for (const [from, to] of [['/gletscherradar', '/gletscher'], ['/gletschermonitor', '/gletscher']]) {
+      const x = await get(from, { head: true });
+      const loc = (x.location || '').replace(/^https?:\/\/[^/]+/, '');
+      expect(x.status === 301 && loc === to, `${from} → 301 ${to} (ist ${x.status} ${loc || '—'})`);
+    }
+  }
 }
 
 // 5) llms.txt

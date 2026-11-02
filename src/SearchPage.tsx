@@ -58,6 +58,9 @@ import { roadFlagFrom, rememberRoadFlag } from './road/roadFlag';
 import { seaFlagFrom, rememberSeaFlag } from './sea/seaFlag';
 // Phase GL: Gletscher-Kachel und Palette — nur mit `?gl=1`, bis Jan `GLACIER_LIVE` schaltet (nach Gate D).
 import { glacierFlagFrom, rememberGlacierFlag } from './glacier/glacierFlag';
+// Phase FX-UI (audit/fusion-erklaerung.md): the preview replaces the block "Fundament" while the flag is on; lazy, so the start bundle only carries the flag reader.
+import { fxFlagFrom, rememberFxFlag } from './fusionExplainer/fxFlag';
+const FundamentPreview = lazy(() => import('./fusionExplainer/FundamentPreview'));
 
 interface Props {
   onSelect: (location: Location) => void;
@@ -94,6 +97,7 @@ const FEATURE: Record<string, FeatureInfo> = {
   road:       { id: 'road',       eyebrow: 'Autobahnwetter', title: 'Ist die Strecke glatt?' },
   sea:        { id: 'sea',        eyebrow: 'Seewetter',     title: 'Wie wird es auf dem Wasser?' },
   glacier:    { id: 'glacier',    eyebrow: 'Gletscher',     title: 'Wie geht es dem Eis?' },
+  fusion:     { id: 'fusion',     eyebrow: 'Methodik',      title: 'Was zwischen Wettermodell und Vorhersage passiert' },
   feedback:   { id: 'feedback',   eyebrow: 'Feedback',      title: 'Ideen & Vorschläge' },
   validation: { id: 'validation', eyebrow: 'Validierung',   title: 'Wie gut ist der KI-Nowcast wirklich?' },
 };
@@ -143,7 +147,7 @@ const PALETTE: PaletteEntry[] = [
 export default function SearchPage({ onSelect, onOpenFeature }: Props) {
   const tour = useIntroTour();
   const [paletteOpen, setPaletteOpen] = useState(false);
-  useEffect(() => { rememberRoadFlag(); rememberSeaFlag(); rememberGlacierFlag(); }, []);
+  useEffect(() => { rememberRoadFlag(); rememberSeaFlag(); rememberGlacierFlag(); rememberFxFlag(); }, []);
   const [activeCat, setActiveCat] = useState<'alle' | Category>('alle');
   const narrow = useMediaQuery(NARROW_QUERY);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -206,7 +210,13 @@ export default function SearchPage({ onSelect, onOpenFeature }: Props) {
       <main className="deck-main">
         <Hero onSelect={selectPlace} onOpenFeature={openFeature} inputRef={searchInputRef} tour={tour} activeCat={activeCat} onCatChange={setActiveCat} narrow={narrow} />
         <BentoGrid activeCat={activeCat} onOpenFeature={openFeature} narrow={narrow} />
-        <Fundament />
+        {fxFlagFrom()
+          ? (
+            <Suspense fallback={<section className="deck-fundament" aria-label="Fundament"><div className="deck-fundament-inner" style={{ minHeight: 360 }} /></section>}>
+              <FundamentPreview onOpen={() => openFeature(FEATURE.fusion)} />
+            </Suspense>
+          )
+          : <Fundament />}
       </main>
 
       <DeckFooter onOpenFeature={openFeature} />

@@ -20,13 +20,16 @@ import { Link, useLocation } from 'react-router';
 import { canonicalPath, indexableSubRoutes, routeForPath, ROUTE_TEXT_IDS } from './routes';
 import type { SeoText } from '../seo/layerSeoTexts';
 import type { RouteText } from '../seo/routeTexts';
+import { staticPageFor } from '../seo/staticPage';
 import './routeSeoBlock.css';
 
 export default function RouteSeoBlock() {
   const { pathname } = useLocation();
   const match = routeForPath(pathname);
   const path = canonicalPath(pathname);
-  const wantsText = !!match && !match.def.meta.noindex && (match.sub ? !match.sub.noindex : ROUTE_TEXT_IDS.has(match.def.id));
+  // Phase GLS: eine vorgerenderte Seite (Gletscher-Steckbrief) bringt ihren eigenen Text mit — kein Nachladen des Routen-Texts.
+  const staticPage = staticPageFor(pathname);
+  const wantsText = !staticPage && !!match && !match.def.meta.noindex && (match.sub ? !match.sub.noindex : ROUTE_TEXT_IDS.has(match.def.id));
   const [text, setText] = useState<{ path: string; text: (Partial<SeoText> & RouteText) | null } | null>(null);
   const [ownH1, setOwnH1] = useState(false);
 
@@ -49,6 +52,19 @@ export default function RouteSeoBlock() {
   }, [path]);
 
   if (!match || match.def.id === 'home' || match.def.meta.noindex || match.sub?.noindex) return null;
+  if (staticPage) {
+    // Derselbe Faktenblock wie im Roh-HTML, zugeklappt im gerenderten DOM. Die H1 trägt die Seite selbst (Name im Steckbrief),
+    // deshalb steht die H1 des Blocks hier als Absatz (`rsb-h1`) — genau eine H1 je Seite.
+    const html = staticPage.html.replace(/<h1(\s[^>]*)?>/, '<p class="rsb-h1">').replace('</h1>', '</p>');
+    return (
+      <details className="rsb rsb-static" data-route={match.def.id}>
+        <summary className="rsb-summary" aria-label="Über diesen Gletscher: Fakten, Messreihen, Quellen und Gletscher in der Nähe">
+          <span className="rsb-i" aria-hidden="true">i</span> Über diese Ansicht
+        </summary>
+        <div className="rsb-body" dangerouslySetInnerHTML={{ __html: html }} />
+      </details>
+    );
+  }
   const { def, sub } = match;
   const t = text && text.path === path ? text.text : null;
   const h1 = sub ? (t?.h1 ?? sub.title) : def.meta.h1;
@@ -79,9 +95,17 @@ export default function RouteSeoBlock() {
             </dl>
           </>
         )}
+        {t?.faq && t.faq.length > 0 && (
+          <>
+            <h2 className="rsb-h2">Häufige Fragen</h2>
+            <dl className="rsb-faq">
+              {t.faq.map((x) => <div key={x.q}><dt>{x.q}</dt><dd>{x.a}</dd></div>)}
+            </dl>
+          </>
+        )}
         {siblings.length > 0 && (
           <>
-            <h2 className="rsb-h2">{sub ? 'Weitere Ansichten' : 'Ansichten'}</h2>
+            <h2 className="rsb-h2">{def.id === 'autobahnwetter' ? (sub ? 'Autobahnwetter für weitere Autobahnen' : 'Autobahnwetter je Autobahn') : (sub ? 'Weitere Ansichten' : 'Ansichten')}</h2>
             <ul className="rsb-list">
               {siblings.map((x) => <li key={x.path}><Link to={x.path}>{x.sub.title}</Link></li>)}
             </ul>

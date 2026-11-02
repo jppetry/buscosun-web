@@ -6,6 +6,9 @@
  * Keine Genauigkeitsbehauptung ohne Verifikationslauf: wo eine Abnahme rot ist, steht das im Text.
  */
 
+// Phase SA (audit/seo-autobahnwetter.md): die Funktionsseite verlinkt die 20 Autobahn-Seiten.
+import { ROAD_SEO_MOTORWAYS, roadSeoQuery } from '../../src/road/roadSeo.ts';
+
 const PUBLISHED = '2026-11-01';
 
 export const SEA_TOOL = {
@@ -158,6 +161,13 @@ export const ROAD_TOOL = {
         + '<p>Die Regeln im Einzelnen stehen in der <a href="/methodik/autobahnwetter-pruefregeln/">Methodik des Autobahnwetters</a>.</p>',
     },
     {
+      id: 'autobahnen', h2: 'Autobahnwetter je Autobahn',
+      html:
+        '<p>Für die 20 Autobahnen mit den meisten Glättemeldeanlagen gibt es eine eigene Seite mit Teilstrecken, Anlagen je Bundesland, den höchstgelegenen Messstellen und den Ortsmerkmalen der Abschnitte: '
+        + ROAD_SEO_MOTORWAYS.map(([slug]) => `<a href="/autobahnwetter/${slug}">Autobahnwetter ${roadSeoQuery(slug)}</a>`).join(' · ')
+        + '. Alle anderen Autobahnen wählst du auf der Seite selbst.</p>',
+    },
+    {
       id: 'grenzen', h2: 'Was das Werkzeug nicht kann',
       html:
         '<ul><li><strong>Es warnt nicht.</strong> Amtliche Warnungen vor Glätte gibt der <a href="https://www.dwd.de/DE/wetter/warnungen/warnWetter_node.html">Deutsche Wetterdienst</a> heraus. '
@@ -175,5 +185,5 @@ export const ROAD_TOOL = {
     { q: 'Zeigt die Seite Staus oder Sperrungen?', a: 'Nein. Dafür ist die Autobahn GmbH des Bundes zuständig.' },
   ],
   relatedExplainers: ['windboeen-sturm', 'schneefallgrenze'],
-  datePublished: PUBLISHED, dateModified: PUBLISHED,
+  datePublished: PUBLISHED, dateModified: '2026-11-02',
 };

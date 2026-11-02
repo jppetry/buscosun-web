@@ -1,3 +1,4 @@
+# EINGESPIELT in Phase SA (02.11.2026, audit/seo-autobahnwetter.md): die Regeln stehen jetzt in netlify.toml; diese Datei bleibt als Beleg.
 # Freischaltung Autobahnwetter (audit/seo-nischen.md §6): diese Rewrites gehören in netlify.toml, im selben Commit, in dem
 # ROAD_INDEXABLE in src/router/routes.ts auf true geht, und VOR die Regel "/autobahnwetter/*".
 # Vorher hier lassen: ein Rewrite auf eine noch nicht gebaute Shell antwortet 404 und würde /autobahnwetter/a8 brechen.

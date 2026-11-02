@@ -23,6 +23,8 @@ import {
   unknownsSectionV3, moduleBlocks, neighbourFindings, sourcesLine, geonamesCreditFor, placeJsonLdExtras, seaPlaceLinks,
 } from './placeContent.mjs';
 import { verificationMetaTags } from './verification.mjs';
+// Phase WBS: Ortsseiten verlinken die Waldbrand-Seite ihres Bundeslands/Kantons (nur, wenn es sie gibt).
+import { fireRegionLinkForPlace } from './fireRegions.mjs';
 
 const OG_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public', 'og');
 /** SEO/GEO 2026 (E4): eigenes OG-Bild nur, wenn die PNG existiert — sonst die Bereichs-Karte (E10 erzeugt die Bilder). */
@@ -31,6 +33,8 @@ const OG_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public
 import { ogCardPath } from '../../src/share/ogCard.ts';
 import { routeText } from '../../src/seo/routeTexts.ts';
 import { ROUTE_BY_ID, metaForPath } from '../../src/router/routes.ts';
+// Phase SA (audit/seo-autobahnwetter.md): Zahlen je Autobahn für die Übersicht der Autobahnwetter-Shell (nur Build, nie Bundle).
+import { ROAD_SEO_FACTS, ROAD_SEO_STATE_NAME } from '../../src/road/roadSeoFacts.ts';
 
 export const ogImageOr = (slug, fallback) => (existsSync(join(OG_DIR, `${slug}.png`)) ? `/og/${slug}.png` : fallback);
 
@@ -417,6 +421,7 @@ export function renderPlacePage(place) {
     ['Atmosphäre & Höhenwind', `/atmosphaere/querschnitt?${placeQuery}`],
     ['Wetterarchiv & Klima', `/wetterarchiv?${placeQuery}`],
     ['Waldbrandgefahr', '/waldbrand'],
+    ...(fireRegionLinkForPlace(place) ? [[escapeHtml(fireRegionLinkForPlace(place).label), fireRegionLinkForPlace(place).path]] : []),
   ].map(([label, href]) => `<a href="${href}">${label}</a>`).join(' · ');
   const knowledgeLinks = relevantExplainersFor(place, EXPLAINERS, 3)
     .map((e) => `<a href="/wissen/${e.slug}/">${escapeHtml(e.title)}</a>`).join('\n        ');
@@ -1198,8 +1203,22 @@ export function routeHeadExtras(route) {
     <meta name="twitter:description" content="${escapeHtml(route.meta.description)}" />
     <meta name="twitter:image" content="${SITE.url}${og}" />
     ${jsonLdScript(routeJsonLd(route, url))}
-    ${jsonLdScript(routeBreadcrumbJsonLd(route, url))}
+    ${jsonLdScript(routeBreadcrumbJsonLd(route, url))}${faqScript(routeText(route.path)?.faq)}
     ${entityScripts()}`;
+}
+
+/**
+ * Phase SA: `FAQPage` nur für Fragen, die auch sichtbar auf der Seite stehen (`faqSection`). Google zeigt dafür seit Mai 2026
+ * keine Rich Results mehr; das Markup bleibt, weil es nichts kostet und Bing/Copilot die Struktur lesen.
+ */
+function faqScript(faq) {
+  return faq && faq.length ? `
+    ${jsonLdScript(faqJsonLd(faq.map((x) => ({ q: x.q, a: x.a }))))}` : '';
+}
+/** Sichtbare Fragen und Antworten (Phase SA) — dieselben wie im `FAQPage`-JSON-LD. */
+function faqSection(faq) {
+  if (!faq || !faq.length) return '';
+  return `<h2>Häufige Fragen</h2>\n      ${faq.map((x) => `<h3>${escapeHtml(x.q)}</h3>\n      <p>${escapeHtml(x.a)}</p>`).join('\n      ')}`;
 }
 
 /** Crawlbarer #root-Inhalt einer Route-Shell (wird von der App beim Mount ersetzt). */
@@ -1213,13 +1232,22 @@ function seoTextBlock(t) {
   return `${body}
       ${facts ? `<h2>Daten und Grenzen</h2>\n      <dl>\n        ${facts}\n      </dl>` : ''}
       ${official}
-      ${links ? `<h2>Passend dazu</h2>\n      <p>${links}</p>` : ''}`;
+      ${links ? `<h2>Passend dazu</h2>\n      <p>${links}</p>` : ''}
+      ${faqSection(t.faq)}`;
 }
 
-export function renderRouteRootContent(route) {
+/** `extraHtml`: zusätzlicher Abschnitt vor „Mehr auf buscosun“ (Phase GLS: Atlas und Steckbriefe in der Shell von `/gletscher`). */
+export function renderRouteRootContent(route, extraHtml = '') {
   const subs = (route.subs || []).filter((s) => !(route.id === 'wetterkarte' && s.slug === 'warnungen'));
+  // Phase SA: die Autobahnwetter-Shell listet die 20 Autobahn-Seiten mit ihren Zahlen statt der allgemeinen „Ansichten".
+  const subItem = (s) => {
+    const f = route.id === 'autobahnwetter' ? ROAD_SEO_FACTS[s.slug] : null;
+    if (!f) return `<li><a href="${route.path}/${s.slug}">${escapeHtml(s.title)}</a> — ${escapeHtml(s.description)}</li>`;
+    const states = f.byState.map(([st]) => ROAD_SEO_STATE_NAME[st] ?? st).join(', ');
+    return `<li><a href="${route.path}/${s.slug}">Autobahnwetter ${escapeHtml(f.road)}</a> — ${f.stations.toLocaleString('de-DE')} Glättemeldeanlagen, rund ${f.km.toLocaleString('de-DE')} km (${escapeHtml(states)})</li>`;
+  };
   const subList = subs.length
-    ? `<h2>Ansichten</h2>\n      <ul>\n        ${subs.map((s) => `<li><a href="${route.path}/${s.slug}">${escapeHtml(s.title)}</a> — ${escapeHtml(s.description)}</li>`).join('\n        ')}\n      </ul>`
+    ? `<h2>${route.id === 'autobahnwetter' ? 'Autobahnwetter je Autobahn' : 'Ansichten'}</h2>\n      <ul>\n        ${subs.map(subItem).join('\n        ')}\n      </ul>`
     : '';
   // Phase Ortsseiten (E): die Seewetter-Shell verlinkt die Ortsseiten der Küstenorte (Gegenrichtung zum Seewetter-Abschnitt dort).
   const coast = route.id === 'seewetter' ? seaPlaceLinks(PLACES) : [];
@@ -1233,6 +1261,7 @@ export function renderRouteRootContent(route) {
       ${seoTextBlock(routeText(route.path))}
       ${subList}
       ${coastList}
+      ${extraHtml}
       <h2>Mehr auf buscosun</h2>
       <p><a href="/wetter/">Wetter nach Ort</a> · <a href="/funktionen/">Alle Funktionen</a> · <a href="/wissen/">Wetterwissen</a> · <a href="/wetterkarte">Wetterkarte</a> · <a href="/regenradar">Regenradar</a></p>
       <p>Datenquellen: DWD · GeoSphere · MeteoSwiss — höhenkorrigiert, ohne Tracker.</p>
@@ -1241,11 +1270,13 @@ export function renderRouteRootContent(route) {
 
 /** Head-Ergänzungen für die Home (OG/Twitter/canonical/hreflang/JSON-LD). */
 /** Sub-Routen-Shell (SEO/GEO 2026, E1): eigener Head je Layer/Linse/Brand-Sicht. */
-function subRouteJsonLd(route, sub, url) {
+function subRouteJsonLd(route, sub, url, text) {
   return {
     '@context': 'https://schema.org', '@type': 'WebPage',
     name: sub.title, description: sub.description, url, inLanguage: 'de',
     isPartOf: { '@type': 'WebSite', name: SITE.name, url: SITE.url + '/' },
+    // Phase SA: Gegenstand der Seite (die Autobahn, mit Wikipedia-Eintrag) — nur, wo der Text ihn nennt.
+    ...(text?.about ? { about: { '@type': text.about.type, name: text.about.name, ...(text.about.sameAs ? { sameAs: text.about.sameAs } : {}) } } : {}),
   };
 }
 function subRouteBreadcrumbJsonLd(route, sub, url) {
@@ -1258,7 +1289,7 @@ function subRouteBreadcrumbJsonLd(route, sub, url) {
     ],
   };
 }
-export function subRouteHeadExtras(route, sub) {
+export function subRouteHeadExtras(route, sub, text = null) {
   const url = SITE.url + route.path + '/' + sub.slug;
   const title = `${sub.title} | ${SITE.name}`;
   const og = ogCardPath(route.id, sub.slug) || DEFAULT_OG_IMAGE;
@@ -1274,8 +1305,8 @@ export function subRouteHeadExtras(route, sub) {
     <meta name="twitter:title" content="${escapeHtml(title)}" />
     <meta name="twitter:description" content="${escapeHtml(sub.description)}" />
     <meta name="twitter:image" content="${SITE.url}${og}" />
-    ${jsonLdScript(subRouteJsonLd(route, sub, url))}
-    ${jsonLdScript(subRouteBreadcrumbJsonLd(route, sub, url))}
+    ${jsonLdScript(subRouteJsonLd(route, sub, url, text))}
+    ${jsonLdScript(subRouteBreadcrumbJsonLd(route, sub, url))}${faqScript(text?.faq)}
     ${entityScripts()}`;
 }
 /**
@@ -1302,7 +1333,8 @@ export function renderSubRouteRootContent(route, sub, text, siblings, explainerO
       </dl>
       ${official}
       ${explainer}
-      ${sib ? `<h2>Weitere Ansichten</h2>
+      ${faqSection(text.faq)}
+      ${sib ? `<h2>${route.id === 'autobahnwetter' ? 'Autobahnwetter für weitere Autobahnen' : 'Weitere Ansichten'}</h2>
       <ul>
         ${sib}
       </ul>` : ''}

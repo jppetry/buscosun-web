@@ -5,11 +5,13 @@
  * Build-Generator injizierte `WebApplication` das einzige bleibt.
  *
  * Quelle ist EINE Tabelle (`routes.ts`), die auch die statischen Route-Shells
- * speist — Roh-HTML und Client sagen dasselbe.
+ * speist — Roh-HTML und Client sagen dasselbe. Ausnahme (Phase GLS): Seiten mit
+ * eigenem Build-Head (`src/seo/staticPage.ts`) behalten ihren Head.
  */
 import { useEffect } from 'react';
 import { useLocation } from 'react-router';
 import { canonicalPath, metaForPath, SITE_NAME, SITE_URL } from './routes';
+import { leaveStaticPage, staticPageFor } from '../seo/staticPage';
 
 function setMeta(selector: string, create: () => HTMLElement, value: string | null): void {
   let el = document.head.querySelector<HTMLElement>(selector);
@@ -30,6 +32,9 @@ export function titleFor(pathname: string): string {
 export default function RouteMeta() {
   const { pathname } = useLocation();
   useEffect(() => {
+    // Phase GLS: eine vorgerenderte Seite (Gletscher-Steckbrief) trägt ihren eigenen Head — nicht mit dem der Route überschreiben.
+    if (staticPageFor(pathname)) return;
+    leaveStaticPage();
     const m = metaForPath(pathname);
     const canon = SITE_URL + canonicalPath(pathname);
     const title = titleFor(pathname);

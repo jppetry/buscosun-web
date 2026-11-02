@@ -51,10 +51,14 @@ Disallow: /latest-grib.json
 Disallow: /climaGrid.json
 Disallow: /nowcasterWeights.json
 Disallow: /sw.js
+# Phase GLS: Dateien hinter den Gletscher-Steckbriefen — die Seiten selbst stehen unter /gletscher/<land>-<name>
+Disallow: /_gl/
 
-# sitemap.xml ist ein Index auf die beiden Teillisten (E9) — beide zusätzlich genannt,
+# sitemap.xml ist ein Index auf die Teillisten (E9, Gletscher seit Phase GLS) — alle zusätzlich genannt,
 # damit Crawler sie auch ohne Index-Auflösung finden.
 Sitemap: https://buscosun.com/sitemap.xml
 Sitemap: https://buscosun.com/sitemap-pages.xml
 Sitemap: https://buscosun.com/sitemap-orte.xml
 Sitemap: https://buscosun.com/sitemap-news.xml
+Sitemap: https://buscosun.com/sitemap-gletscher.xml
+Sitemap: https://buscosun.com/sitemap-waldbrand.xml

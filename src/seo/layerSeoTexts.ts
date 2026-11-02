@@ -36,6 +36,13 @@ export interface SeoText {
   links?: readonly { label: string; href: string }[];
   /** Passender Explainer unter /wissen/<slug>/ (null = keiner). */
   explainer: string | null;
+  /**
+   * Optional (Phase SA, Autobahnwetter): sichtbare Fragen und Antworten. Shell und `RouteSeoBlock` zeigen sie als Text,
+   * die Shell zusätzlich als `FAQPage`-JSON-LD — nur, was auch sichtbar dasteht.
+   */
+  faq?: readonly { q: string; a: string }[];
+  /** Optional (Phase SA): Gegenstand der Seite für das JSON-LD (`WebPage.about`), etwa die Autobahn mit Wikipedia-Eintrag. */
+  about?: { type: 'Place'; name: string; sameAs?: string };
 }
 
 const DACH = 'Deutschland, Österreich und die Schweiz';

@@ -11,6 +11,8 @@
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+// Phase WBS (audit/seo-waldbrand.md): Prüfungen der Waldbrand-Regionsseiten.
+import { verifyFireRegions } from './verifyFireRegions.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const DIST = join(ROOT, 'dist');
@@ -222,6 +224,41 @@ console.log('\nSitemap:');
   else ok('sitemap.xml', 'alle Sub-Routen-Shells enthalten');
 }
 
+// 6b) Phase SA (audit/seo-autobahnwetter.md): Autobahnwetter-Seiten. Nur wenn sie gebaut sind (ROAD_INDEXABLE).
+// FAQPage nur mit sichtbaren Fragen, Gegenstand = die Autobahn mit Wikipedia-Eintrag, H1 mit dem Suchwort, keine Warnsprache.
+{
+  const roadShells = readdirSync(DIST).filter((f) => /^autobahnwetter--a\d+\.html$/.test(f));
+  if (roadShells.length) {
+    console.log('\nAutobahnwetter (Phase SA):');
+    const visibleFaqOk = (html) => {
+      const faq = jsonLdBlocks(html).map((b) => { try { return JSON.parse(b); } catch { return null; } }).find((o) => o && o['@type'] === 'FAQPage');
+      if (!faq) return 'kein FAQPage';
+      const missing = faq.mainEntity.filter((q) => !html.includes(`<h3>${q.name}</h3>`));
+      return missing.length ? `Frage nicht sichtbar: ${missing[0].name}` : null;
+    };
+    for (const f of roadShells) {
+      const html = read(f);
+      const n = f.match(/--a(\d+)\.html$/)[1];
+      const h1 = (html.match(/<h1>([^<]*)<\/h1>/) || [])[1] ?? '';
+      if (!h1.startsWith(`Autobahnwetter A${n}`)) fail(f, `H1 ohne „Autobahnwetter A${n}": ${h1}`);
+      const faqErr = visibleFaqOk(html);
+      if (faqErr) fail(f, faqErr);
+      const page = jsonLdBlocks(html).map((b) => { try { return JSON.parse(b); } catch { return null; } }).find((o) => o && o['@type'] === 'WebPage');
+      if (page?.about?.sameAs !== `https://de.wikipedia.org/wiki/Bundesautobahn_${n}`) fail(f, `WebPage.about.sameAs ist ${page?.about?.sameAs}`);
+      const text = html.slice(html.indexOf('<div id="root">')).replace(/<[^>]+>/g, ' ');
+      if (/Achtung|Gefahr!|unbedingt|Entwarnung/.test(text)) fail(f, 'Warnsprache im Text');
+      if (!faqErr && h1.startsWith(`Autobahnwetter A${n}`)) ok(f, 'H1, FAQ sichtbar = FAQPage, about = Wikipedia, keine Warnsprache');
+    }
+    const hub = read('autobahnwetter.html');
+    const hubLinks = new Set([...hub.matchAll(/href="\/autobahnwetter\/(a\d+)"/g)].map((m) => m[1]));
+    if (hubLinks.size !== roadShells.length) fail('autobahnwetter.html', `verlinkt ${hubLinks.size} von ${roadShells.length} Autobahn-Seiten`);
+    else ok('autobahnwetter.html', `verlinkt alle ${roadShells.length} Autobahn-Seiten`);
+    const hubFaq = visibleFaqOk(hub);
+    if (hubFaq) fail('autobahnwetter.html', hubFaq); else ok('autobahnwetter.html', 'FAQ sichtbar = FAQPage');
+    if (/noindex/.test(hub)) fail('autobahnwetter.html', 'noindex trotz Freischaltung');
+  }
+}
+
 // 7) E3: Methodik-/Vertrauensseiten — Wortzahl, Typ, FAQ.
 console.log('\nMethodik & Vertrauen:');
 {
@@ -378,6 +415,8 @@ console.log('\nEntitäten-Graph:');
 {
   const ORG = 'https://buscosun.com/#organization', WEB = 'https://buscosun.com/#website';
   const files = ['index.html', 'wetterkarte.html', 'wetterkarte--temperatur.html', 'wetter/muenchen/index.html', 'wissen/foehn/index.html', 'funktionen/wetterkarte/index.html', 'wetterlage/omega-lage-mitteleuropa/index.html', 'lizenzen/index.html', 'impressum/index.html', 'methodik/hoehenkorrektur/index.html', 'ueber/index.html'];
+  // Phase GLS: ein Steckbrief und der Atlas, sobald es sie gibt (ohne Datenstand fehlen beide absichtlich).
+  for (const rel of ['_gl/ch-grosser-aletschgletscher.html', 'gletscher-atlas/index.html', 'gletscher-atlas/deutschland/index.html']) if (existsSync(join(DIST, rel))) files.push(rel);
   for (const rel of files) {
     if (!existsSync(join(DIST, rel))) { fail(rel, 'fehlt (Entitäten-Prüfung)'); continue; }
     const html = read(rel);
@@ -401,6 +440,115 @@ console.log('\nEntitäten-Graph:');
     if (/DWD, CC BY 4\.0/.test(html)) fail(rel, 'Footer nennt „DWD, CC BY 4.0" — DWD-Open-Data steht unter GeoNutzV');
   }
 }
+
+// 9) Phase GLS (audit/gletscher-seo.md): Gletscher-Steckbriefe und Gletscher-Atlas.
+// Jede Seite der Stufen A/B hat eine eigene Shell (dist/_gl/<segment>.html), eine Zeile in dist/_redirects, einen
+// Self-Canonical auf /gletscher/<segment>, eigenen Title und eigene Description, den Faktenblock mit `data-static-page`
+// (für `src/seo/staticPage.ts`) und genug eigenen Text; Atlas-Seiten sind statisch und indexierbar.
+console.log('\nGletscherseiten (Phase GLS):');
+{
+  const dataFile = join(ROOT, 'scripts', 'seo', 'data', 'glacier-pages.json');
+  const data = existsSync(dataFile) ? JSON.parse(readFileSync(dataFile, 'utf8')) : null;
+  const want = data ? data.glaciers.filter((g) => g.tier).map((g) => g.seg) : [];
+  const glDir = join(DIST, '_gl');
+  const shells = existsSync(glDir) ? readdirSync(glDir).filter((f) => f.endsWith('.html')).map((f) => f.replace(/\.html$/, '')).sort() : [];
+  const words = (html) => html.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<style[\s\S]*?<\/style>/g, '').replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length;
+  if (!data) fail('glacier-pages.json', 'Datenstand fehlt (node scripts/seo/refresh-glacier-pages.mjs)');
+  else if (shells.length !== want.length || want.some((sg) => !shells.includes(sg))) fail('_gl/', `erwartet ${want.length} Steckbrief-Shells, gefunden ${shells.length}`);
+  else ok('_gl/', `${shells.length} Steckbrief-Shells (Stufe A/B laut Datenstand ${data.build})`);
+  const red = existsSync(join(DIST, '_redirects')) ? read('_redirects') : '';
+  const rules = red.split('\n').filter((l) => l && !l.startsWith('#')).map((l) => l.trim().split(/\s+/));
+  const bad = rules.filter(([from, to, st]) => st !== '200' || !/^\/gletscher\/(ch|at|de)-[a-z0-9-]+$/.test(from) || to !== `/_gl/${from.slice('/gletscher/'.length)}.html` || !existsSync(join(DIST, to.slice(1))));
+  if (rules.length !== shells.length || bad.length) fail('_redirects', `${rules.length} Regeln für ${shells.length} Shells, ${bad.length} fehlerhaft (${bad.slice(0, 2).map((r) => r.join(' ')).join('; ')})`);
+  else ok('_redirects', `${rules.length} Regeln /gletscher/<segment> → /_gl/<segment>.html (200)`);
+  // Gegenprobe der Regelprüfung: eine falsche Zielzeile muss auffallen.
+  const probe = [['/gletscher/ch-x', '/_gl/ch-y.html', '200']].filter(([from, to]) => to !== `/_gl/${from.slice('/gletscher/'.length)}.html`).length;
+  if (probe !== 1) fail('_redirects', 'Gegenprobe: falsche Zielzeile nicht erkannt'); else ok('_redirects', 'Gegenprobe greift');
+  const titles = new Map(), descs = new Map();
+  const problems = [];
+  for (const sg of shells) {
+    const rel = `_gl/${sg}.html`;
+    const html = read(rel);
+    const p = [];
+    const canon = (html.match(/rel=["']canonical["'][^>]*href=["']([^"']+)["']/i) || [])[1];
+    if (canon !== `https://buscosun.com/gletscher/${sg}`) p.push(`canonical ${canon}`);
+    if (!/<meta name="robots" content="index, follow/.test(html) || /noindex/.test(html)) p.push('robots nicht index');
+    const title = (html.match(/<title>([^<]*)<\/title>/) || [])[1] || '';
+    const desc = (html.match(/name=["']description["'][^>]*content=["']([^"']+)["']/i) || [])[1] || '';
+    if ((html.match(/<title>/g) || []).length !== 1) p.push('Title mehrfach');
+    if ((html.match(/name="description"/g) || []).length !== 1) p.push('Description mehrfach');
+    if ((html.match(/rel="canonical"/g) || []).length !== 1) p.push('Canonical mehrfach');
+    if (titles.has(title)) p.push(`Title wie ${titles.get(title)}`); else titles.set(title, sg);
+    if (descs.has(desc)) p.push(`Description wie ${descs.get(desc)}`); else descs.set(desc, sg);
+    if (desc.length > 160) p.push(`Description ${desc.length} Zeichen`);
+    if (!html.includes(`data-static-page="/gletscher/${sg}"`)) p.push('Faktenblock ohne data-static-page');
+    if (!/<script type="module"/.test(html) || !html.includes('<div id="root">')) p.push('keine App-Shell');
+    if ((html.match(/<h1[\s>]/g) || []).length !== 1) p.push('nicht genau eine H1');
+    if (!html.includes('<h2>Steckbrief</h2>')) p.push('Steckbrief fehlt');
+    if (!/"@type":"Landform"/.test(html)) p.push('kein Landform');
+    if (!/"@type":"BreadcrumbList"/.test(html)) p.push('keine BreadcrumbList');
+    if (/"value":0[,}]/.test(html)) p.push('Platzhalterwert 0 im JSON-LD');
+    if (leadWordCount(html) < 40) p.push(`Lead ${leadWordCount(html)} Wörter`);
+    const n = words(html.slice(html.indexOf('<div id="root">')));
+    if (n < 250) p.push(`nur ${n} Wörter`);
+    const glLinks = new Set([...html.matchAll(/href="\/gletscher\/((?:ch|at|de)-[a-z0-9-]+)"/g)].map((m) => m[1]).filter((x) => x !== sg));
+    if (glLinks.size < 3) p.push(`nur ${glLinks.size} Links auf andere Steckbriefe`);
+    if (!html.includes('href="/gletscher-atlas/"')) p.push('kein Link auf den Atlas');
+    if (/hreflang=/.test(html)) p.push('hreflang');
+    if (p.length) problems.push(`${sg}: ${p.join(', ')}`);
+  }
+  if (problems.length) { for (const x of problems.slice(0, 10)) fail('_gl/', x); if (problems.length > 10) fail('_gl/', `… und ${problems.length - 10} weitere`); }
+  else if (shells.length) ok('_gl/', `jede Shell: Self-Canonical, index, eigener Title/Description (≤ 160), eine H1, Landform + BreadcrumbList, ≥ 250 Wörter, ≥ 3 Steckbrief-Links, Atlas-Link`);
+  if (shells.includes('ch-grosser-aletschgletscher')) {
+    const html = read('_gl/ch-grosser-aletschgletscher.html');
+    checkCommon('_gl/ch-grosser-aletschgletscher.html', html, { type: 'Landform' });
+  }
+  // Atlas
+  const atlasDir = join(DIST, 'gletscher-atlas');
+  const atlasPages = [];
+  const walkAtlas = (rel) => { for (const d of readdirSync(join(DIST, rel), { withFileTypes: true })) { if (d.isDirectory()) walkAtlas(`${rel}/${d.name}`); else if (d.name === 'index.html') atlasPages.push(`${rel}/index.html`); } };
+  if (existsSync(atlasDir)) walkAtlas('gletscher-atlas');
+  if (data && atlasPages.length < 4) fail('gletscher-atlas/', `nur ${atlasPages.length} Atlas-Seiten (Hub + 3 Länder erwartet)`);
+  else if (atlasPages.length) ok('gletscher-atlas/', `${atlasPages.length} Atlas-Seiten`);
+  for (const rel of atlasPages) {
+    const html = read(rel);
+    checkCommon(rel, html, { type: 'CollectionPage' });
+    const canon = (html.match(/rel=["']canonical["'][^>]*href=["']([^"']+)["']/i) || [])[1];
+    if (canon !== `https://buscosun.com/${rel.replace(/index\.html$/, '')}`) fail(rel, `canonical ${canon}`);
+    if (words(html) < 200) fail(rel, `nur ${words(html)} Wörter`);
+  }
+  if (atlasPages.includes('gletscher-atlas/index.html') && !/"@type":"Dataset"/.test(read('gletscher-atlas/index.html'))) fail('gletscher-atlas/index.html', 'kein Dataset');
+  if (existsSync(join(DIST, 'gletscher-atlas', 'deutschland', 'index.html'))) {
+    const de = read('gletscher-atlas/deutschland/index.html');
+    const names = ['Höllentalferner', 'Nördlicher Schneeferner', 'Blaueis', 'Watzmanngletscher'];
+    if (!names.every((n) => de.includes(n)) || !/vier Gletscher/.test(de)) fail('gletscher-atlas/deutschland/', 'nennt nicht die vier deutschen Gletscher');
+    else ok('gletscher-atlas/deutschland/', 'nennt die vier deutschen Gletscher');
+  }
+  // Sitemap, robots, Route-Shell
+  if (data) {
+    const index = read('sitemap.xml');
+    if (!index.includes('https://buscosun.com/sitemap-gletscher.xml')) fail('sitemap.xml', 'Teilliste sitemap-gletscher.xml fehlt im Index');
+    const part = existsSync(join(DIST, 'sitemap-gletscher.xml')) ? read('sitemap-gletscher.xml') : '';
+    const locs = [...part.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+    const wantLocs = [...shells.map((sg) => `https://buscosun.com/gletscher/${sg}`), ...atlasPages.map((r) => `https://buscosun.com/${r.replace(/index\.html$/, '')}`)];
+    const missing = wantLocs.filter((u) => !locs.includes(u));
+    const all = ['sitemap-pages.xml', 'sitemap-orte.xml', 'sitemap-orte-2.xml', 'sitemap-gletscher.xml'].flatMap((f) => [...read(f).matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]));
+    if (missing.length || locs.length !== wantLocs.length) fail('sitemap-gletscher.xml', `${locs.length} URLs, ${missing.length} fehlen (${missing.slice(0, 2).join(', ')})`);
+    else if (new Set(all).size !== all.length) fail('sitemap', 'URL in mehreren Teillisten');
+    else if ([...part.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)].length !== locs.length) fail('sitemap-gletscher.xml', 'lastmod fehlt');
+    else ok('sitemap-gletscher.xml', `${locs.length} URLs, alle mit lastmod aus dem Datenstand, keine Doppelung über die Teillisten`);
+    const robots = read('robots.txt');
+    if (!/\nDisallow: \/_gl\/\n/.test(robots) || !robots.includes('Sitemap: https://buscosun.com/sitemap-gletscher.xml')) fail('robots.txt', 'Disallow /_gl/ oder Sitemap-Zeile der Gletscher fehlt');
+    else ok('robots.txt', 'sperrt /_gl/ und nennt sitemap-gletscher.xml');
+    const shell = read('gletscher.html');
+    if (!shell.includes('href="/gletscher-atlas/"') || !/href="\/gletscher\/(ch|at|de)-/.test(shell)) fail('gletscher.html', 'Route-Shell verlinkt Atlas oder Steckbriefe nicht');
+    else ok('gletscher.html', 'Route-Shell verlinkt Atlas und Steckbriefe');
+  }
+}
+
+// Phase WBS: Waldbrandgefahr nach Land und Region (Liste aus scripts/seo/fireRegions.mjs).
+console.log('\nWaldbrandgefahr nach Region:');
+verifyFireRegions({ DIST, read, ok, fail, jsonLdBlocks });
 
 const homeApps = jsonLdBlocks(read('index.html')).filter((b) => /"@type":"WebApplication"/.test(b)).length;
 if (homeApps !== 1) fail('index.html', `erwartet genau 1× WebApplication, gefunden ${homeApps}`);

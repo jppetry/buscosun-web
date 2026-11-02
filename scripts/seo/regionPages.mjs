@@ -5,6 +5,7 @@
 import { headBlock, PAGE_CSS, SITE, escapeHtml, faqJsonLd } from './content.mjs';
 import { COUNTRIES, REGIONS, regionsOf, countryPath, statsOf, MIN_REGION_PLACES } from './regions.mjs';
 import { climateSourceLabel, GEONAMES_CREDIT_HTML } from './placeContent.mjs';
+import { fireRegionLinkFor, fireCountryLink } from './fireRegions.mjs';
 
 const nf0 = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 });
 const nf1 = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -127,7 +128,7 @@ export function renderRegionPage(region) {
       <section>
         <h2>Weitere ${c.regions} in ${esc(c.name)}</h2>
         <div class="links">${others.map((r) => `<a href="${r.path}">${esc(r.name)} <span>(${r.places.length})</span></a>`).join('\n        ')}</div>
-        <p class="note"><a href="${countryPath(region.country)}">Alle ${c.regions} in ${esc(c.name)}</a> · <a href="/wetter/">Wetter nach Ort</a></p>
+        <p class="note"><a href="${countryPath(region.country)}">Alle ${c.regions} in ${esc(c.name)}</a> · <a href="/wetter/">Wetter nach Ort</a>${fireRegionLinkFor(region.country, R) ? ` · <a href="${fireRegionLinkFor(region.country, R).path}">${esc(fireRegionLinkFor(region.country, R).label)}</a>` : ''}</p>
       </section>`;
   const description = lead.length <= 158 ? lead : `${R}: ${st.n} Orte von ${n0(st.lowest.ele)} bis ${n0(st.highest.ele)} m, Jahresmittel ${n1(st.coldest.mean)} bis ${n1(st.warmest.mean)} °C — Klima 1991–2020 im Vergleich.`;
   return pageShell({
@@ -184,7 +185,7 @@ ${smallHtml}
       </section>
 
       <section>
-        <p class="note"><a href="/wetter/">Wetter nach Ort — alle Länder</a></p>
+        <p class="note"><a href="/wetter/">Wetter nach Ort — alle Länder</a>${fireCountryLink(code) ? ` · <a href="${fireCountryLink(code).path}">${esc(fireCountryLink(code).label)}</a>` : ''}</p>
       </section>`;
   const description = `Wetter in ${c.name}: ${st.n} Orte in ${regs.length} ${c.regions} mit Klima 1991–2020, Sonnenzeiten und Lage im Gelände — von ${n0(st.lowest.ele)} bis ${n0(st.highest.ele)} m.`;
   return pageShell({

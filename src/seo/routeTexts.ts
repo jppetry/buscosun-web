@@ -4,13 +4,21 @@ import type { SeoText } from './layerSeoTexts';
  * Texte der Top-Routen, die mehr brauchen als H1 und Lead (audit/seo-nischen.md). Lead und H1 kommen weiter aus `routes.ts`; hier stehen nur
  * Absätze, Fakten und Querverweise. Verbraucher: `renderRouteRootContent` (Shell) und `RouteSeoBlock` (lazy, im gerenderten DOM).
  */
-export type RouteText = Pick<SeoText, 'body' | 'facts' | 'official' | 'links'>;
+export type RouteText = Pick<SeoText, 'body' | 'facts' | 'official' | 'links' | 'faq'>;
 const ROUTE_TEXTS: Readonly<Record<string, RouteText>> = {
   '/autobahnwetter': {
     body: [
       'Eine Glättemeldeanlage steht an einem Punkt der Strecke und meldet alle 15 Minuten, was ihre Fühler messen. Das Band zeigt diese Messstellen je Autobahn, die Gefahren-Leiste bewertet die Abschnitte mit benannten Schwellen und nennt je Stufe die Herkunft. Die Stunden voraus sind Wetter an der Strecke aus buscosun Fusion und tragen das Wort Prognose; eine Fahrbahnmessung sind sie nicht.',
       'Die Rohwerte kommen aus dem Straßenwetter-System des DWD. Prüfregeln verwerfen physikalisch unmögliche Werte, hängende Fühler, Gerätefüllwerte und Fühler, die weder zur eigenen Luft noch zu den Nachbaranlagen passen. Ein verworfener Wert erscheint als Lücke mit Grund. Das fängt viele Defekte ab, aber nicht jeden: Vor Ort gilt, was du siehst.',
+      'Für die 20 Autobahnen mit den meisten Anlagen gibt es eigene Seiten, etwa das Autobahnwetter für die A 7, die A 8 oder die A 1: mit den Teilstrecken, der Zahl der Anlagen je Bundesland, den höchstgelegenen Messstellen und den Ortsmerkmalen der Abschnitte wie Brücken, Wald und Niederungen. Alle anderen Autobahnen wählst du auf der Karte oder in der Liste; dort gelten dieselben Messwerte und Regeln.',
       'Grenzen: Zwischen zwei Anlagen, auf Brücken und in Senken kann die Fahrbahn anders sein. Aus Baden-Württemberg liefert der DWD keine Reihen, Österreich und die Schweiz sind nicht enthalten. Staus und Sperrungen zeigt die Seite nicht.',
+    ],
+    faq: [
+      { q: 'Wie aktuell ist das Autobahnwetter?', a: 'Die Glättemeldeanlagen melden alle 15 Minuten, und buscosun zeigt jede Messung mit ihrer Messzeit. Die Gefahren-Leiste rechnet nach jedem Messtakt neu; die Vorhersage entlang der Strecke aus buscosun Fusion kommt stündlich und reicht 48 Stunden voraus.' },
+      { q: 'Was ist eine Glättemeldeanlage?', a: 'Eine Messstation am Rand der Autobahn mit Fühlern in der Fahrbahndecke. Sie misst Fahrbahntemperatur, Fahrbahnzustand (etwa trocken, nass, Reif oder Eis) und Wasserfilm, dazu Lufttemperatur und Taupunkt, je nach Ausstattung auch Wind, Niederschlag und Sicht. Betrieben werden die Anlagen von den Straßenbauverwaltungen, die Daten verteilt der Deutsche Wetterdienst.' },
+      { q: 'Ist das Autobahnwetter eine amtliche Glättewarnung?', a: 'Nein. Die Seite zeigt Messwerte und eine regelbasierte Einschätzung mit benannten Schwellen. Amtliche Warnungen gibt der Deutsche Wetterdienst heraus; buscosun zeigt sie nur im Wortlaut auf der Seite Warnungen. Sperrungen und Baustellen meldet die Autobahn GmbH des Bundes.' },
+      { q: 'Warum fehlen Messwerte aus Baden-Württemberg?', a: 'Der DWD liefert die Reihen der baden-württembergischen Anlagen derzeit leer aus. Die Anlagen stehen in der Stationsliste; auf ihren Abschnitten zeigt die Seite die Prognose aus buscosun Fusion und sagt das dazu.' },
+      { q: 'Gibt es das Autobahnwetter auch für Österreich und die Schweiz?', a: 'Nein. Die Straßenwetterdaten von ASFINAG und ASTRA sind nicht offen nutzbar, deshalb enden die Strecken an der Grenze. Für das Wetter in Österreich und der Schweiz gibt es die Wetterkarte und die Ortsseiten.' },
     ],
     facts: [
       { label: 'Quellen', text: 'Glättemeldeanlagen über das Straßenwetter-System des DWD · buscosun Fusion für die Stunden voraus' },
@@ -40,15 +48,48 @@ const ROUTE_TEXTS: Readonly<Record<string, RouteText>> = {
     official: { text: 'Amtliche Schweizer Gletscherdaten und Jahresberichte stehen bei', label: 'GLAMOS', href: 'https://www.glamos.ch/' },
     links: [
       { label: 'So liest du den Gletscher-Monitor', href: '/funktionen/gletscher/' },
+      { label: 'Gletscher-Atlas: alle Gletscher nach Land und Region', href: '/gletscher-atlas/' },
       { label: 'Daten und Grenzen', href: '/methodik/gletscher-daten/' },
       { label: 'Vertikalschnitt der Atmosphäre', href: '/atmosphaere/querschnitt' },
     ],
   },
-  '/waldbrand': {
-    body: [],
-    facts: [],
-    official: { text: 'Das Brandradar ist kein amtliches Warnprodukt. Die amtliche Stufe für Deutschland nennt der', label: 'Waldbrandgefahrenindex des DWD', href: 'https://www.dwd.de/DE/leistungen/waldbrandgef/waldbrandgef.html' },
+  '/buscosun-fusion': {
+    body: [
+      'Ein Wettermodell rechnet auf einem geglätteten Gitter und kennt weder dein Tal noch die Messung von eben. buscosun Fusion ist das Postprocessing dazwischen: Es bündelt Modelle von DWD, ECMWF, GeoSphere Austria und MeteoSchweiz sowie Radar und stündlich neue Kurzfristläufe, rechnet bekannte Fehler heraus, bringt den Wert auf die tatsächliche Geländehöhe, schließt ihn an die nächsten Messungen an und liefert eine Spanne statt eines Scheinwerts.',
+      'Je Stunde entstehen ein wahrscheinlichster Wert, eine Spanne von p10 bis p90, in der das Wetter in acht von zehn Fällen liegen soll, und ein Wort für die Konfidenz. Jeder Stand des Verfahrens bekommt eine Nummer und wird eingefroren; er wird mit dem, was danach gemessen wurde, an Stationen in Deutschland, Österreich und der Schweiz verglichen, auch gegen die Stationsvorhersage MOSMIX des DWD.',
+      'Grenzen: Fusion verbessert, was Modelle und Radar liefern; ein Gewitter, das keine Quelle kommen sieht, sieht auch Fusion nicht. Zwischen weit entfernten Stationen ist die Spanne breiter, und je weiter voraus, desto mehr nähert sich die Vorhersage dem Klima. Alle Grafiken der Seite sind Schemata ohne Messdaten.',
+    ],
+    facts: [
+      { label: 'Quellen', text: 'DWD · ECMWF · GeoSphere Austria · MeteoSchweiz, dazu Radar und Messungen der Wetterdienste' },
+      { label: 'Aktualisierung', text: 'vorgerechnet je Modelllauf, fertig gerechnet im Browser' },
+      { label: 'Horizont', text: '0 bis 336 Stunden, die ersten 48 Stunden stündlich' },
+      { label: 'Grenze', text: 'kein amtliches Warnprodukt; Spanne statt Scheinwert; Schemata ohne Messdaten' },
+    ],
+    official: { text: 'Amtliche Warnungen geben der Deutsche Wetterdienst, GeoSphere Austria und MeteoSchweiz heraus; sie stehen auf buscosun im Wortlaut unter', label: 'Amtliche Warnungen', href: '/warnungen' },
     links: [
+      { label: 'Vorhersage und Konfidenz', href: '/vorhersage' },
+      { label: 'Wie gut ist der Nowcast?', href: '/validierung' },
+    ],
+  },
+  // Phase WBS (audit/seo-waldbrand.md): Absätze und Fakten statt leerer Liste; Links auf die Seiten je Land und Region.
+  '/waldbrand': {
+    body: [
+      'Die Karte beantwortet drei Fragen. Brennt es gerade? Die Sicht „Aktive Brände" bündelt die Wärmepunkte der VIIRS-Satelliten aus dem NASA-System FIRMS zu Bränden mit Ort, Stärke und Verlauf; ein Klick öffnet das Brand-Dossier mit Satellitenbild und Wetterlage am Brandort. Wie hoch ist die Gefahr? Der Gefahrenindex zeigt den Fire Weather Index von Copernicus und ECMWF als Fläche, dazu die Einordnung, wie ungewöhnlich der Tag für den Ort ist. Wie trocken ist es? Bodenfeuchte und Luftfeuchte kommen aus dem DWD-Modell ICON-D2.',
+      'Für jedes Bundesland und jeden Kanton mit Bränden in der Saison gibt es eine eigene Seite: wer dort die amtliche Stufe festlegt, das Feuerwetter-Bild für heute und die kommenden Tage und die Saisonbilanz aus Satellitendaten mit den von EFFIS kartierten Brandflächen — etwa für Brandenburg, Niedersachsen, Niederösterreich, Tirol, das Tessin oder das Wallis.',
+      'Grenzen: Eine Satellitendetektion ist keine Einsatzmeldung. Kleine Brände und Brände unter Wolken fehlen, Felder und Grasflächen zählen mit. Rund 39 Prozent aller Detektionen liegen auf Industrieanlagen; sie stehen als eigene Klasse grau auf der Karte und zählen nicht als Brand. Bestätigt heißt ein Brand nur mit EFFIS-Kartierung oder Copernicus-EMS-Aktivierung. Bei Feuer: Notruf 112, in Österreich Feuerwehr 122, in der Schweiz 118.',
+    ],
+    facts: [
+      { label: 'Quellen', text: 'NASA FIRMS VIIRS (375 m) · EFFIS-Brandflächen · Copernicus EMS GWIS/ECMWF (FWI, CC BY 4.0) · DWD ICON-D2 (Boden- und Luftfeuchte)' },
+      { label: 'Aktualisierung', text: 'Satellitenüberflüge mehrmals täglich; Feuerwetterindex täglich, bis 9 Tage voraus; Trockenheit stündlich' },
+      { label: 'Abdeckung', text: 'Deutschland, Österreich, Schweiz; Grenzräume mitgezählt; Seiten je Bundesland und Kanton unter /waldbrandgefahr/' },
+      { label: 'Grenze', text: 'kein amtliches Warnprodukt; Detektion ist keine Einsatzmeldung; kleine Brände fehlen' },
+    ],
+    official: { text: 'Das Brandradar ist kein amtliches Warnprodukt. Amtlich sind in Deutschland der DWD und die Länder, in der Schweiz die Kantone; für Deutschland:', label: 'Waldbrandgefahrenindex des DWD', href: 'https://www.dwd.de/DE/leistungen/waldbrandgef/waldbrandgef.html' },
+    links: [
+      { label: 'Waldbrandgefahr nach Bundesland und Kanton', href: '/waldbrandgefahr/' },
+      { label: 'Deutschland', href: '/waldbrandgefahr/deutschland/' },
+      { label: 'Österreich', href: '/waldbrandgefahr/oesterreich/' },
+      { label: 'Schweiz', href: '/waldbrandgefahr/schweiz/' },
       { label: 'So liest du das Brandradar', href: '/funktionen/waldbrandgefahr/' },
       { label: 'Waldbrandstufen in DE, AT und CH erklärt', href: '/wissen/waldbrandwarnstufen-de-at-ch/' },
       { label: 'Wie die Detektion rechnet', href: '/methodik/brandradar-detektion-und-brandnarben/' },

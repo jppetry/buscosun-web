@@ -154,6 +154,8 @@ export type FusionIoSwitch = 'nowcastHourMean' | 'anchorAtObsTime' | 'obsDense' 
 export interface FusionRelease {
   /** The number of the stand: „buscosun Fusion <n>". Ascending, without gaps. */
   n: number;
+  /** Display-only wording of the stand for the public explainer page (`/buscosun-fusion`, phase FX-UI, E-FXU-2) — at most 50 characters; the engine never reads it. */
+  publicLabel?: string;
   /** Jan's ruling (ISO date) and where it is written down. */
   date: string;
   ref: string;
@@ -182,45 +184,45 @@ export interface FusionRelease {
 /** The stands since the frozen „buscosun Fusion 6" (data-repo commit 1aaec969), oldest first. A new stand = a new entry at the end. */
 export const FUSION_RELEASES: readonly FusionRelease[] = Object.freeze([
   {
-    n: 7, date: '2026-10-01', ref: 'E-AX-14, audit/fusion-ausbau.md §6i',
+    n: 7, publicLabel: 'Messanker für Wind verfeinert', date: '2026-10-01', ref: 'E-AX-14, audit/fusion-ausbau.md §6i',
     option: 'anchorWindKm', value: FUSION7_ANCHOR_WIND_KM,
     note: `Wind-Anker über die Messdistanz gedämpft (${FUSION7_ANCHOR_WIND_KM} km, E-AX-14)`, needs: 'measurement',
   },
   {
-    n: 8, date: '2026-10-02', ref: 'E-AX-17, audit/fusion-ausbau.md §6l.4/§6m',
+    n: 8, publicLabel: 'Radar als Stundenmittel', date: '2026-10-02', ref: 'E-AX-17, audit/fusion-ausbau.md §6l.4/§6m',
     option: 'nowcastHourMean', value: FUSION8_NOWCAST_HOUR_MEAN,
     note: 'Radar-Stundenmittel (E-AX-17)', io: { key: 'nowcastHourMean', set: true, flag: '?hm=0' },
     offLabel: 'Stundenmittel per Schalter aus', needs: 'radar',
   },
   {
-    n: 9, date: '2026-10-04', ref: 'V-AW-33, audit/autobahnwetter.md',
+    n: 9, publicLabel: 'Messanker zeitgenau', date: '2026-10-04', ref: 'V-AW-33, audit/autobahnwetter.md',
     option: 'anchorAtObsTime', value: FUSION9_ANCHOR_AT_OBS_TIME,
     note: 'Anker am Messzeitpunkt (V-AW-33)', io: { key: 'anchorAtObsTime', flag: '?anc=0' }, needs: 'measurement',
   },
   {
-    n: 10, date: '2026-10-07', ref: 'Phase F10, audit/fusion-10.md (Kandidat, Champion-Entscheidung = Jan)',
+    n: 10, publicLabel: 'Langfrist überarbeitet', date: '2026-10-07', ref: 'Phase F10, audit/fusion-10.md (Kandidat, Champion-Entscheidung = Jan)',
     option: 'longRange', value: FUSION10_LONG_RANGE,
     note: 'Langfrist zur Klimatologie zurückgeführt (> 48 h, gefittete Gewichte je Größe und Vorlauf-Bin, F10)',
   },
   {
-    n: 11, date: '2026-10-07', ref: 'Phase F11, audit/fusion-11.md (Kandidat, Champion-Entscheidung = Jan)',
+    n: 11, publicLabel: 'Langfrist nachjustiert', date: '2026-10-07', ref: 'Phase F11, audit/fusion-11.md (Kandidat, Champion-Entscheidung = Jan)',
     option: 'longRangeFix', value: FUSION11_LONG_RANGE_FIX,
     note: 'Langfrist-Korrekturen: T 241–336 h Identität, Windschritt AT/CH ohne Bandverengung bei 126–240 h (F11)',
   },
   {
-    n: 12, date: '2026-10-08', ref: 'E-OF-4, audit/obs-fusion.md §12 (Kandidat fusion-12s; Prüfstand-Champion bleibt 9 bis E-OF-7); Leser je Größe mit eigenem Stempel: V-AF-9, audit/autobahn-fusion12-lueckenlos.md §8.3; Anker paart auch vor dem Achsenbeginn: V-AF-10, §8.4',
+    n: 12, publicLabel: 'dichteres Messnetz', date: '2026-10-08', ref: 'E-OF-4, audit/obs-fusion.md §12 (Kandidat fusion-12s; Prüfstand-Champion bleibt 9 bis E-OF-7); Leser je Größe mit eigenem Stempel: V-AF-9, audit/autobahn-fusion12-lueckenlos.md §8.3; Anker paart auch vor dem Achsenbeginn: V-AF-10, §8.4',
     option: 'obsDense', value: FUSION12_OBS_DENSE, also: { anchorSigma: FUSION12_ANCHOR_SIGMA, anchorBeforeAxis: FUSION12_ANCHOR_BEFORE_AXIS },
     note: 'Anker auf dem dichten Messsatz aus obs/v1 (Niederschlagsstationen, gemessener Taupunkt) und σ an den Anker gekoppelt (Phase OF, OF-6)', io: { key: 'obsDense', set: true, flag: '?dense=0' },
     offLabel: 'dichter Messsatz per Schalter aus', needs: 'measurement',
   },
   {
-    n: 13, date: '2026-10-22', ref: 'E-OF-15, audit/obs-fusion.md §16.7 (Kandidat fusion-12x, Volltest +0,13 % gegen Fusion 12; Prüfstand-Champion bleibt 9 bis E-OF-7; Abnahme Spur P ab ≈ 03.11.)',
+    n: 13, publicLabel: 'Spannen je Tageszeit geeicht', date: '2026-10-22', ref: 'E-OF-15, audit/obs-fusion.md §16.7 (Kandidat fusion-12x, Volltest +0,13 % gegen Fusion 12; Prüfstand-Champion bleibt 9 bis E-OF-7; Abnahme Spur P ab ≈ 03.11.)',
     option: 'sigmaScale', value: FUSION13_SIGMA_SCALE,
     note: 'σ von T, Td und Böe je Tagesstunde, Vorlauf und Land skaliert (Tabelle H aus der Lauf-Route mit acht Slots je Tag, Böe ≤ 6 h mit Saisonfaktor; Wind unverändert; Phase OF, OF-9)', io: { key: 'sigmaScaleHour', flag: '?sscale=0' },
     offLabel: 'Stundenskala per Schalter aus',
   },
   {
-    n: 14, date: '2026-10-26', ref: 'E-RUC-16, audit/niederschlag-ruc.md §15 (Fit 1–11 h an 23 Hindcast-Slots 23.–26.10. mit den RUC-Stationsreihen gegen W1: Niederschlag-CRPS −3,2 % gegen 13; 13–27 h gesetzt; kein Spur-P-Urteil, Prüfstand-Champion bleibt 9 bis E-OF-7)',
+    n: 14, publicLabel: 'stündliche Kurzfristläufe im Niederschlag', date: '2026-10-26', ref: 'E-RUC-16, audit/niederschlag-ruc.md §15 (Fit 1–11 h an 23 Hindcast-Slots 23.–26.10. mit den RUC-Stationsreihen gegen W1: Niederschlag-CRPS −3,2 % gegen 13; 13–27 h gesetzt; kein Spur-P-Urteil, Prüfstand-Champion bleibt 9 bis E-OF-7)',
     option: 'rucMember', value: FUSION14_RUC_MEMBER,
     note: 'ICON-D2-RUC (5-min-Niederschlag, stündlich frisch, +27 h) als eigener Niederschlags-Member mit gefitteter ρ-Kurve 1–11 h und gesetztem Auslauf bis 27 h; eine RUC-Stunde behält K-2 wie eine Radar-Stunde (Phase RUC, E-RUC-16)', io: { key: 'rucMember', set: true, flag: '?rucm=0' },
     offLabel: 'RUC-Member per Schalter aus', needs: 'ruc',
@@ -229,6 +231,8 @@ export const FUSION_RELEASES: readonly FusionRelease[] = Object.freeze([
 
 /** The stand the stage rests on: buscosun Fusion 6 — its options, set by the stage with the learned tables. */
 export const FUSION_BASE = 6;
+/** Display-only wording of the base stand (explainer page, E-FXU-2); the engine never reads it. */
+export const FUSION_BASE_PUBLIC_LABEL = 'Lernstufe aus dem Archiv';
 export const FUSION_BASE_OPTIONS = Object.freeze({ learnedSpeed: true, learnedPrecip: true, learnedAtPoint: true, learnedClouds: true, priorShrink: false } as const);
 export const FUSION_BASE_NOTE = 'Lernstufe mit learnedSpeed, learnedPrecip, learnedAtPoint, learnedClouds, ohne Klimatologie-Schritt';
 

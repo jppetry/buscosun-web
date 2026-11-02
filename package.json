@@ -42,6 +42,7 @@
     "repack:publish": "node scripts/publish-repack.mjs",
     "seo:logs": "node scripts/seo/parse-crawler-logs.mjs",
     "seo:places": "node scripts/seo/export-place-slugs.mjs",
+    "seo:glaciers": "node scripts/seo/refresh-glacier-pages.mjs",
     "og:app-cards": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/render-og-app-cards.mjs",
     "edge:share": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/build-edge-share.mjs",
     "verify:live": "node scripts/seo/verify-live.mjs",

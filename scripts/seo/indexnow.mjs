@@ -11,6 +11,7 @@
  * Aufruf:
  *   node scripts/seo/indexnow.mjs            # meldet alle URLs aus den erzeugten Sitemaps
  *   node scripts/seo/indexnow.mjs --dry      # zeigt nur, was gemeldet würde
+ *   node scripts/seo/indexnow.mjs --match=/gletscher   # nur URLs, die den Text enthalten (Phase GLS: Steckbriefe und Atlas)
  *
  * Es ist unschädlich, das mehrfach zu tun; sinnvoll ist es nach größeren Inhaltsänderungen.
  */
@@ -49,7 +50,9 @@ function sitemapUrls() {
 
 const dry = process.argv.includes('--dry');
 const key = findKey();
-const urlList = sitemapUrls();
+const matchArg = process.argv.find((a) => a.startsWith('--match='));
+const urlList = sitemapUrls().filter((u) => !matchArg || u.includes(matchArg.slice('--match='.length)));
+if (!urlList.length) { console.error('[indexnow] keine URL passt'); process.exit(1); }
 console.log(`[indexnow] ${urlList.length} URLs, Schlüssel ${key.slice(0, 6)}… (Datei https://${HOST}/${key}.txt)`);
 
 if (dry) {
