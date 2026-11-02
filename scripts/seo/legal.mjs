@@ -44,7 +44,7 @@ export const OPERATOR = {
    * /wetterlage/ redaktionelle Beiträge erscheinen (NewsArticle-Markup).
    * Leer lassen, wenn identisch mit `name`.
    */
-  editorial: '',
+  editorial: 'Jan Petry, Hainstr. 7, 35745 Herborn',
   /** Optional: USt-IdNr., Registereintrag, Aufsichtsbehörde. */
   vatId: '',
 };
