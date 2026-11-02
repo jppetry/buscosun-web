@@ -56,6 +56,10 @@ var roundTo = (n, digits) => {
   const f = 10 ** digits;
   return Math.round(n * f) / f;
 };
+var TIME_GRID_MS = 6e5;
+function formatValidTime(ms) {
+  return new Date(Math.round(ms / TIME_GRID_MS) * TIME_GRID_MS).toISOString().slice(0, 16) + "Z";
+}
 function parseValidTime(s) {
   if (!s) return null;
   const m = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2})(?::(\d{2}))?)?Z?$/.exec(s.trim());
@@ -369,6 +373,35 @@ function describeFireLink(t) {
   return {
     title: `Brand bei ${fireCoordText(t.lat, t.lon)} — Brandradar`,
     description: `Erste Satellitendetektion dieses Brandes: ${fireTimeText(t.acqMs)} (NASA FIRMS). Die Seite zeigt Lage, Verlauf und Quellen. Detektionen sind unbestätigt, solange keine Kartierung sie stützt — Datenseite des Brandradars, keine amtliche Warnung.`
+  };
+}
+
+// src/road/roadLink.ts
+var ROAD_KM_SLUG_RE = /^km-(\d{3,4})$/;
+var ROAD_CORRIDOR_SLUG_RE = /^[a-z][a-z0-9]{0,4}(?:-\d{1,2})?$/;
+var SEG_ID_RE = /^([AB]\d{1,3}[A-Z]?)(?:\.(\d{1,2}))?-(\d{3,4})$/;
+function roadLinkPartsOf(segId) {
+  const m = segId ? SEG_ID_RE.exec(segId) : null;
+  if (!m) return null;
+  return { corridor: `${m[1].toLowerCase()}${m[2] ? `-${m[2]}` : ""}`, kmSlug: `km-${m[3]}`, km: Number(m[3]) };
+}
+var HOUR = 36e5;
+var roadBaseHour = (nowMs) => Math.floor(nowMs / HOUR) * HOUR;
+var roadTimeToParam = (t, nowMs) => formatValidTime(roadBaseHour(nowMs) + t * HOUR);
+function roadCorridorLabel(corridor) {
+  if (!ROAD_CORRIDOR_SLUG_RE.test(corridor)) return null;
+  const m = /^([a-z][a-z0-9]*?)(?:-(\d{1,2}))?$/.exec(corridor);
+  return m ? `${m[1].toUpperCase()}${m[2] ? ` (Teilstrecke ${m[2]})` : ""}` : null;
+}
+function describeRoadLink(corridor, kmSlug, validAtMs, whenText) {
+  const road = corridor ? roadCorridorLabel(corridor) : null;
+  if (!road) return null;
+  const km = kmSlug ? ROAD_KM_SLUG_RE.exec(kmSlug) : null;
+  const where = km ? `${road}, Abschnitt ab km ${Number(km[1])}` : road;
+  const when = validAtMs != null && whenText ? ` · Prognose ${whenText}` : "";
+  return {
+    title: `${where} — Autobahnwetter${when}`,
+    description: km ? `Wetterbedingte Hinweise auf dem Abschnitt ab km ${Number(km[1])} der ${road}: Regeln über Messwerte der Glättemeldeanlagen und die Prognose von buscosun Fusion. Der Link zeigt immer die aktuelle Lage. Keine amtliche Verkehrs- oder Wetterwarnung.` : `Fahrbahn- und Wetterlage entlang der ${road}: Messwerte der Glättemeldeanlagen und Prognose von buscosun Fusion. Der Link zeigt immer die aktuelle Lage. Keine amtliche Verkehrs- oder Wetterwarnung.`
   };
 }
 
@@ -860,7 +893,8 @@ var SHARE_ROUTES = [
   "wetterarchiv",
   "globus",
   "vorhersage",
-  "gletscher"
+  "gletscher",
+  "autobahnwetter"
 ];
 var PASSTHROUGH = /* @__PURE__ */ new Set([
   "waldbrand",
@@ -869,7 +903,8 @@ var PASSTHROUGH = /* @__PURE__ */ new Set([
   "wetterarchiv",
   "globus",
   "vorhersage",
-  "gletscher"
+  "gletscher",
+  "autobahnwetter"
 ]);
 var PLACE_SEGMENT = {
   atmosphaere: 2,
@@ -912,7 +947,8 @@ var SHARE_FEATURE_LABEL = {
   wetterarchiv: "Wetterarchiv",
   globus: "Globus",
   vorhersage: "Vorhersage",
-  gletscher: "Gletscher"
+  gletscher: "Gletscher",
+  autobahnwetter: "Autobahnwetter"
 };
 function parseShareUrl(pathname, search, nowMs = Date.now()) {
   const seg = pathname.replace(/\/+$/, "").split("/").filter(Boolean);
@@ -925,7 +961,22 @@ function parseShareUrl(pathname, search, nowMs = Date.now()) {
     const placeAt = PLACE_SEGMENT[routeId];
     const isFireLink = routeId === "waldbrand" && seg[1] === FIRE_LINK_SEGMENT;
     const glacierSeg = routeId === "gletscher" ? isGlacierSegment(seg[1]) ? seg[1] : isGlacierSegment(q.get("sel")) && !seg[1] ? q.get("sel") : null : void 0;
-    const viewSlug = placeAt === 1 || isFireLink || routeId === "gletscher" ? null : seg[1] ?? null;
+    let road;
+    let roadT = null;
+    let roadTParam = null;
+    if (routeId === "autobahnwetter") {
+      const corridor = ROAD_CORRIDOR_SLUG_RE.test(seg[1] ?? "") ? seg[1] : null;
+      let kmSlug = corridor && ROAD_KM_SLUG_RE.test(seg[2] ?? "") ? seg[2] : null;
+      const legacy = !kmSlug ? roadLinkPartsOf(q.get("seg")) : null;
+      road = { corridor: corridor ?? legacy?.corridor ?? null, kmSlug: kmSlug ?? (legacy && (!corridor || legacy.corridor === corridor) ? legacy.kmSlug : null) };
+      kmSlug = road.kmSlug;
+      const th = /^[0-6]$/.test(q.get("t") ?? "") ? Number(q.get("t")) : null;
+      if (th != null && th > 0) {
+        roadTParam = roadTimeToParam(th, nowMs);
+        roadT = parseValidTime(roadTParam);
+      }
+    }
+    const viewSlug = placeAt === 1 || isFireLink || routeId === "gletscher" || routeId === "autobahnwetter" ? null : seg[1] ?? null;
     const rp2 = resolveRoutePlace(placeAt ? seg[placeAt] : void 0, placeFromPairs(q));
     const t = parseValidTime(q.get("t"));
     return {
@@ -934,16 +985,17 @@ function parseShareUrl(pathname, search, nowMs = Date.now()) {
       layers: [],
       primary: null,
       cam: null,
-      validAtMs: t != null && t > nowMs ? t : null,
+      validAtMs: routeId === "autobahnwetter" ? t != null && t > nowMs ? t : roadT : t != null && t > nowMs ? t : null,
       extra: shareableExtras(pairs),
       timePast: t != null && t <= nowMs ? true : void 0,
       placeUnresolved: rp2.unresolved,
       viewSlug,
       ...isFireLink ? { fireLink: parseFireLink(seg[2]) } : {},
       ...routeId === "gletscher" ? { glacierSeg } : {},
-      rawPath: routeId === "gletscher" && glacierSeg ? `/gletscher/${glacierSeg}` : "/" + seg.join("/"),
+      ...road ? { roadLink: road } : {},
+      rawPath: routeId === "gletscher" && glacierSeg ? `/gletscher/${glacierSeg}` : road && road.corridor ? road.kmSlug ? `/autobahnwetter/${road.corridor}/${road.kmSlug}` : `/autobahnwetter/${road.corridor}` : "/" + seg.join("/"),
       // Lage-Seiten-Schlüssel (`sel`, `dossier`, `land`, `m`, `q`) gehören nicht an den Steckbrief-Link.
-      rawQuery: routeId === "gletscher" && glacierSeg ? pairs.filter(([k]) => !["sel", "dossier", "land", "m", "q"].includes(k)) : pairs
+      rawQuery: routeId === "gletscher" && glacierSeg ? pairs.filter(([k]) => !["sel", "dossier", "land", "m", "q"].includes(k)) : road ? pairs.filter(([k]) => !(road.kmSlug && (k === "seg" || k === "ds")) && !(k === "t" && roadTParam != null)).concat(roadTParam != null ? [["t", roadTParam]] : []) : pairs
     };
   }
   const parsed = parseMapSearch(search, nowMs);
@@ -981,6 +1033,10 @@ function describeShareState(s, timeZone) {
         message: `${l.name} — Gletscher (${l.country})`
       };
     }
+  }
+  if (s.routeId === "autobahnwetter" && s.roadLink?.corridor) {
+    const d = describeRoadLink(s.roadLink.corridor, s.roadLink.kmSlug, s.validAtMs, formatWhen(s.validAtMs, "de", timeZone));
+    if (d) return { title: d.title, description: d.description, message: d.title };
   }
   const feature = SHARE_FEATURE_LABEL[s.routeId];
   const topic = s.routeId === "wetterkarte" && s.primary ? LAYER_CATALOG[s.primary].label : s.viewSlug ? VIEW_LABEL[s.viewSlug] ?? null : null;
@@ -1020,6 +1076,7 @@ function ogCardForShare(s) {
   const view = s.viewSlug ?? (s.primary ? LAYER_SLUGS[s.primary] : null);
   if (s.routeId === "warnungen") return ogCardPath("warnungen");
   if (s.routeId === "gletscher") return ogCardPath("gletscher");
+  if (s.routeId === "autobahnwetter") return ogCardPath("autobahnwetter");
   if (s.routeId === "waldbrand" && s.fireLink) return ogCardPath("waldbrand", "aktive-braende");
   if (s.routeId === "wetterkarte" && view === LAYER_SLUGS.warnings) return ogCardPath("warnungen");
   return ogCardPath(s.routeId, view);
@@ -1028,6 +1085,7 @@ function canonicalShareKey(s) {
   const parts = [s.routeId];
   if (s.fireLink) parts.push(`f:${s.fireLink.slug}`);
   if (s.glacierSeg) parts.push(`g:${s.glacierSeg}`);
+  if (s.roadLink?.corridor) parts.push(`r:${s.roadLink.corridor}${s.roadLink.kmSlug ? `/${s.roadLink.kmSlug}` : ""}`);
   if (s.viewSlug) parts.push(`v:${s.viewSlug}`);
   if (s.primary) parts.push(`l:${LAYER_SLUGS[s.primary]}`);
   const rest = s.layers.filter((k) => k !== s.primary).map((k) => LAYER_SLUGS[k]).sort();
