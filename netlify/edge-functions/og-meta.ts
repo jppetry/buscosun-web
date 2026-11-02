@@ -142,7 +142,7 @@ export default async function ogMeta(
 
 /**
  * Datei-basierte Konfiguration (Muster `firms.ts`) — **kein**
- * `netlify.toml`-Eingriff. Nur die elf teilbaren Seiten (seit dem Autobahn-Abschnitt `/autobahnwetter/<strecke>/km-<beginn>` und dem Gletscher-Link `/gletscher/<gletscher>`); jede Route braucht
+ * `netlify.toml`-Eingriff. Nur die zwölf teilbaren Seiten (seit dem Seewetter-Spot `/seewetter/<spot>`, dem Autobahn-Abschnitt `/autobahnwetter/<strecke>/km-<beginn>` und dem Gletscher-Link `/gletscher/<gletscher>`); jede Route braucht
  * zwei Einträge, weil `/wetterkarte/*` den nackten Pfad `/wetterkarte` nicht
  * trifft. Alles andere (Start, Assets, `/wetter/…`, `/wissen/…`) läuft an
  * dieser Funktion vorbei und wird nicht einmal ausgewertet.
@@ -160,5 +160,6 @@ export const config = {
     '/globus',
     '/gletscher', '/gletscher/*',
     '/autobahnwetter', '/autobahnwetter/*',
+    '/seewetter', '/seewetter/*',
   ],
 };

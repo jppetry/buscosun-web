@@ -376,6 +376,11 @@ function describeFireLink(t) {
   };
 }
 
+// src/share/hourOffset.ts
+var HOUR = 36e5;
+var baseHour = (nowMs) => Math.floor(nowMs / HOUR) * HOUR;
+var hoursToParam = (t, nowMs) => formatValidTime(baseHour(nowMs) + t * HOUR);
+
 // src/road/roadLink.ts
 var ROAD_KM_SLUG_RE = /^km-(\d{3,4})$/;
 var ROAD_CORRIDOR_SLUG_RE = /^[a-z][a-z0-9]{0,4}(?:-\d{1,2})?$/;
@@ -385,9 +390,7 @@ function roadLinkPartsOf(segId) {
   if (!m) return null;
   return { corridor: `${m[1].toLowerCase()}${m[2] ? `-${m[2]}` : ""}`, kmSlug: `km-${m[3]}`, km: Number(m[3]) };
 }
-var HOUR = 36e5;
-var roadBaseHour = (nowMs) => Math.floor(nowMs / HOUR) * HOUR;
-var roadTimeToParam = (t, nowMs) => formatValidTime(roadBaseHour(nowMs) + t * HOUR);
+var roadTimeToParam = hoursToParam;
 function roadCorridorLabel(corridor) {
   if (!ROAD_CORRIDOR_SLUG_RE.test(corridor)) return null;
   const m = /^([a-z][a-z0-9]*?)(?:-(\d{1,2}))?$/.exec(corridor);
@@ -882,6 +885,84 @@ function glacierSegmentLabel(seg) {
   return { name: words.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" "), country: COUNTRY_OF_SEG[cc] ?? cc.toUpperCase() };
 }
 
+// src/sea/seaSpotNames.ts
+var SEA_SPOT_NAMES = {
+  "borkum": ["Borkum Nordstrand", "nordsee"],
+  "juist": ["Juist", "nordsee"],
+  "norderney": ["Norderney Nordstrand", "nordsee"],
+  "norddeich": ["Norddeich", "nordsee"],
+  "langeoog": ["Langeoog", "nordsee"],
+  "spiekeroog": ["Spiekeroog", "nordsee"],
+  "wangerooge": ["Wangerooge", "nordsee"],
+  "schillig": ["Schillig", "nordsee"],
+  "wilhelmshaven": ["Wilhelmshaven Südstrand", "nordsee"],
+  "dangast": ["Dangast (Jadebusen)", "nordsee"],
+  "cuxhaven-duhnen": ["Cuxhaven-Duhnen", "nordsee"],
+  "helgoland": ["Helgoland Düne", "nordsee"],
+  "buesum": ["Büsum", "nordsee"],
+  "st-peter-ording": ["St. Peter-Ording", "nordsee"],
+  "pellworm": ["Pellworm", "nordsee"],
+  "husum": ["Husum Dockkoog", "nordsee"],
+  "amrum": ["Amrum Kniepsand", "nordsee"],
+  "foehr-wyk": ["Föhr Wyk", "nordsee"],
+  "sylt-hoernum": ["Sylt Hörnum", "nordsee"],
+  "sylt-westerland": ["Sylt Westerland", "nordsee"],
+  "sylt-list": ["Sylt List", "nordsee"],
+  "elbe-wittenbergen": ["Elbe Wittenbergen", "nordsee"],
+  "flensburg": ["Flensburg Solitüde", "ostsee"],
+  "holnis": ["Glücksburg Holnis", "ostsee"],
+  "schleimuende": ["Schleimünde", "ostsee"],
+  "damp": ["Damp", "ostsee"],
+  "eckernfoerde": ["Eckernförde", "ostsee"],
+  "kiel-schilksee": ["Kiel-Schilksee", "ostsee"],
+  "laboe": ["Laboe", "ostsee"],
+  "schoenberger-strand": ["Schönberger Strand", "ostsee"],
+  "hohwacht": ["Hohwacht", "ostsee"],
+  "heiligenhafen": ["Heiligenhafen", "ostsee"],
+  "grossenbrode": ["Großenbrode", "ostsee"],
+  "fehmarn-gruener-brink": ["Fehmarn Grüner Brink", "ostsee"],
+  "fehmarn-wulfen": ["Fehmarn Wulfener Hals", "ostsee"],
+  "fehmarn-burgtiefe": ["Fehmarn Südstrand", "ostsee"],
+  "groemitz": ["Grömitz", "ostsee"],
+  "pelzerhaken": ["Pelzerhaken", "ostsee"],
+  "scharbeutz": ["Scharbeutz", "ostsee"],
+  "travemuende": ["Travemünde", "ostsee"],
+  "boltenhagen": ["Boltenhagen", "ostsee"],
+  "poel": ["Insel Poel", "ostsee"],
+  "rerik": ["Rerik (Salzhaff)", "ostsee"],
+  "kuehlungsborn": ["Kühlungsborn", "ostsee"],
+  "warnemuende": ["Warnemünde", "ostsee"],
+  "graal-mueritz": ["Graal-Müritz", "ostsee"],
+  "ahrenshoop": ["Ahrenshoop", "ostsee"],
+  "zingst": ["Zingst", "ostsee"],
+  "hiddensee": ["Hiddensee Vitte", "ostsee"],
+  "juliusruh": ["Juliusruh", "ostsee"],
+  "binz": ["Binz", "ostsee"],
+  "goehren": ["Göhren", "ostsee"],
+  "lubmin": ["Lubmin (Greifswalder Bodden)", "ostsee"],
+  "zinnowitz": ["Usedom Zinnowitz", "ostsee"],
+  "heringsdorf": ["Usedom Heringsdorf", "ostsee"],
+  "ueckermuende": ["Ueckermünde (Stettiner Haff)", "ostsee"]
+};
+
+// src/sea/seaLink.ts
+var SEA_LINK_MAX_T = 78;
+var SEA_SPOT_SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+var REGION_LABEL = { nordsee: "Nordsee", ostsee: "Ostsee" };
+function seaSpotLabel(id) {
+  if (!id || id.length > 40 || !SEA_SPOT_SLUG_RE.test(id)) return null;
+  const row = SEA_SPOT_NAMES[id];
+  return row ? { name: row[0], region: row[1], regionLabel: REGION_LABEL[row[1]] } : null;
+}
+function describeSeaLink(id, whenText) {
+  const l = seaSpotLabel(id);
+  if (!l) return null;
+  return {
+    title: `${l.name} — Seewetter ${l.regionLabel}${whenText ? ` · Prognose ${whenText}` : ""}`,
+    description: `Wind, Böen und Seegang am Spot ${l.name} (${l.regionLabel}): Modellwerte des DWD und buscosun Fusion, bewertet mit eigenen Grenzen je Profil. Der Link zeigt immer die aktuelle Lage. Keine amtliche Warnung, kein Ersatz für den Seewetterbericht des Seewetterdienstes Hamburg und nicht für die Navigation.`
+  };
+}
+
 // src/share/shareAdapters.ts
 var SHARE_ROUTES = [
   "wetterkarte",
@@ -894,7 +975,8 @@ var SHARE_ROUTES = [
   "globus",
   "vorhersage",
   "gletscher",
-  "autobahnwetter"
+  "autobahnwetter",
+  "seewetter"
 ];
 var PASSTHROUGH = /* @__PURE__ */ new Set([
   "waldbrand",
@@ -904,7 +986,8 @@ var PASSTHROUGH = /* @__PURE__ */ new Set([
   "globus",
   "vorhersage",
   "gletscher",
-  "autobahnwetter"
+  "autobahnwetter",
+  "seewetter"
 ]);
 var PLACE_SEGMENT = {
   atmosphaere: 2,
@@ -948,7 +1031,8 @@ var SHARE_FEATURE_LABEL = {
   globus: "Globus",
   vorhersage: "Vorhersage",
   gletscher: "Gletscher",
-  autobahnwetter: "Autobahnwetter"
+  autobahnwetter: "Autobahnwetter",
+  seewetter: "Seewetter"
 };
 function parseShareUrl(pathname, search, nowMs = Date.now()) {
   const seg = pathname.replace(/\/+$/, "").split("/").filter(Boolean);
@@ -976,7 +1060,17 @@ function parseShareUrl(pathname, search, nowMs = Date.now()) {
         roadT = parseValidTime(roadTParam);
       }
     }
-    const viewSlug = placeAt === 1 || isFireLink || routeId === "gletscher" || routeId === "autobahnwetter" ? null : seg[1] ?? null;
+    let seaSpot;
+    let seaTParam = null;
+    if (routeId === "seewetter") {
+      seaSpot = seg[1] && seg[1].length <= 40 && SEA_SPOT_SLUG_RE.test(seg[1]) ? seg[1] : null;
+      const sh = /^\d{1,2}$/.test(q.get("t") ?? "") ? Number(q.get("t")) : null;
+      if (sh != null && sh > 0 && sh <= SEA_LINK_MAX_T) {
+        seaTParam = hoursToParam(sh, nowMs);
+        roadT = parseValidTime(seaTParam);
+      }
+    }
+    const viewSlug = placeAt === 1 || isFireLink || routeId === "gletscher" || routeId === "autobahnwetter" || routeId === "seewetter" ? null : seg[1] ?? null;
     const rp2 = resolveRoutePlace(placeAt ? seg[placeAt] : void 0, placeFromPairs(q));
     const t = parseValidTime(q.get("t"));
     return {
@@ -985,7 +1079,7 @@ function parseShareUrl(pathname, search, nowMs = Date.now()) {
       layers: [],
       primary: null,
       cam: null,
-      validAtMs: routeId === "autobahnwetter" ? t != null && t > nowMs ? t : roadT : t != null && t > nowMs ? t : null,
+      validAtMs: routeId === "autobahnwetter" || routeId === "seewetter" ? t != null && t > nowMs ? t : roadT : t != null && t > nowMs ? t : null,
       extra: shareableExtras(pairs),
       timePast: t != null && t <= nowMs ? true : void 0,
       placeUnresolved: rp2.unresolved,
@@ -993,9 +1087,10 @@ function parseShareUrl(pathname, search, nowMs = Date.now()) {
       ...isFireLink ? { fireLink: parseFireLink(seg[2]) } : {},
       ...routeId === "gletscher" ? { glacierSeg } : {},
       ...road ? { roadLink: road } : {},
-      rawPath: routeId === "gletscher" && glacierSeg ? `/gletscher/${glacierSeg}` : road && road.corridor ? road.kmSlug ? `/autobahnwetter/${road.corridor}/${road.kmSlug}` : `/autobahnwetter/${road.corridor}` : "/" + seg.join("/"),
+      ...routeId === "seewetter" ? { seaSpot } : {},
+      rawPath: routeId === "gletscher" && glacierSeg ? `/gletscher/${glacierSeg}` : road && road.corridor ? road.kmSlug ? `/autobahnwetter/${road.corridor}/${road.kmSlug}` : `/autobahnwetter/${road.corridor}` : routeId === "seewetter" && seaSpot ? `/seewetter/${seaSpot}` : "/" + seg.join("/"),
       // Lage-Seiten-Schlüssel (`sel`, `dossier`, `land`, `m`, `q`) gehören nicht an den Steckbrief-Link.
-      rawQuery: routeId === "gletscher" && glacierSeg ? pairs.filter(([k]) => !["sel", "dossier", "land", "m", "q"].includes(k)) : road ? pairs.filter(([k]) => !(road.kmSlug && (k === "seg" || k === "ds")) && !(k === "t" && roadTParam != null)).concat(roadTParam != null ? [["t", roadTParam]] : []) : pairs
+      rawQuery: routeId === "gletscher" && glacierSeg ? pairs.filter(([k]) => !["sel", "dossier", "land", "m", "q"].includes(k)) : road ? pairs.filter(([k]) => !(road.kmSlug && (k === "seg" || k === "ds")) && !(k === "t" && roadTParam != null)).concat(roadTParam != null ? [["t", roadTParam]] : []) : seaTParam != null ? pairs.filter(([k]) => k !== "t").concat([["t", seaTParam]]) : pairs
     };
   }
   const parsed = parseMapSearch(search, nowMs);
@@ -1038,6 +1133,10 @@ function describeShareState(s, timeZone) {
     const d = describeRoadLink(s.roadLink.corridor, s.roadLink.kmSlug, s.validAtMs, formatWhen(s.validAtMs, "de", timeZone));
     if (d) return { title: d.title, description: d.description, message: d.title };
   }
+  if (s.routeId === "seewetter" && s.seaSpot) {
+    const d = describeSeaLink(s.seaSpot, formatWhen(s.validAtMs, "de", timeZone));
+    if (d) return { title: d.title, description: d.description, message: d.title };
+  }
   const feature = SHARE_FEATURE_LABEL[s.routeId];
   const topic = s.routeId === "wetterkarte" && s.primary ? LAYER_CATALOG[s.primary].label : s.viewSlug ? VIEW_LABEL[s.viewSlug] ?? null : null;
   const description = s.routeId === "wetterkarte" && s.primary ? LAYER_SLUG_DESCRIPTION[s.primary] : subRouteDescription(s.routeId, s.viewSlug);
@@ -1077,6 +1176,7 @@ function ogCardForShare(s) {
   if (s.routeId === "warnungen") return ogCardPath("warnungen");
   if (s.routeId === "gletscher") return ogCardPath("gletscher");
   if (s.routeId === "autobahnwetter") return ogCardPath("autobahnwetter");
+  if (s.routeId === "seewetter") return ogCardPath("seewetter");
   if (s.routeId === "waldbrand" && s.fireLink) return ogCardPath("waldbrand", "aktive-braende");
   if (s.routeId === "wetterkarte" && view === LAYER_SLUGS.warnings) return ogCardPath("warnungen");
   return ogCardPath(s.routeId, view);
@@ -1085,6 +1185,7 @@ function canonicalShareKey(s) {
   const parts = [s.routeId];
   if (s.fireLink) parts.push(`f:${s.fireLink.slug}`);
   if (s.glacierSeg) parts.push(`g:${s.glacierSeg}`);
+  if (s.seaSpot) parts.push(`s:${s.seaSpot}`);
   if (s.roadLink?.corridor) parts.push(`r:${s.roadLink.corridor}${s.roadLink.kmSlug ? `/${s.roadLink.kmSlug}` : ""}`);
   if (s.viewSlug) parts.push(`v:${s.viewSlug}`);
   if (s.primary) parts.push(`l:${LAYER_SLUGS[s.primary]}`);
