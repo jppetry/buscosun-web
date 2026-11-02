@@ -885,6 +885,39 @@ function glacierSegmentLabel(seg) {
   return { name: words.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" "), country: COUNTRY_OF_SEG[cc] ?? cc.toUpperCase() };
 }
 
+// src/atmosphere/atmosphereLink.ts
+var CUT_LINK_MAX_POINTS = 24;
+var rad = (d) => d * Math.PI / 180;
+function legKm(a, b) {
+  const dLat = rad(b.lat - a.lat), dLon = rad(b.lon - a.lon);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLon / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+function parseCutLine(raw) {
+  if (!raw) return null;
+  const pts = [];
+  for (const part of raw.split(";")) {
+    const [a, b] = part.split(",");
+    const lat = a === "" || a == null ? NaN : Number(a), lon = b === "" || b == null ? NaN : Number(b);
+    if (Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) pts.push({ lat, lon });
+  }
+  if (pts.length < 2) return null;
+  const used = pts.slice(0, CUT_LINK_MAX_POINTS);
+  let km = 0;
+  for (let i = 1; i < used.length; i++) km += legKm(used[i - 1], used[i]);
+  return { points: used, km };
+}
+var deg2 = (v, pos, neg) => `${Math.abs(v).toFixed(2).replace(".", ",")}° ${v >= 0 ? pos : neg}`;
+var coord = (p) => `${deg2(p.lat, "N", "S")}, ${deg2(p.lon, "E", "W")}`;
+var kmText = (km) => (km < 10 ? km.toFixed(1) : String(Math.round(km))).replace(".", ",");
+function describeCutLink(placeName, cut, whenText) {
+  const first = cut.points[0], last = cut.points[cut.points.length - 1];
+  return {
+    title: `Vertikalschnitt${placeName ? ` ${placeName}` : ""} — ${kmText(cut.km)} km Höhenwind${whenText ? ` · Prognose ${whenText}` : ""}`,
+    description: `Höhenwind, Böen, Windscherung und Wolkenbasis entlang einer ${kmText(cut.km)} km langen Linie (${coord(first)} → ${coord(last)}) über dem Gelände: Modellwerte aus buscosun Fusion und ICON-D2. Der Link zeigt immer die aktuelle Prognose für diese Linie. Keine amtliche Warnung und keine Freigabe für Flug oder Bergtour.`
+  };
+}
+
 // src/sea/seaSpotNames.ts
 var SEA_SPOT_NAMES = {
   "borkum": ["Borkum Nordstrand", "nordsee"],
@@ -1088,6 +1121,7 @@ function parseShareUrl(pathname, search, nowMs = Date.now()) {
       ...routeId === "gletscher" ? { glacierSeg } : {},
       ...road ? { roadLink: road } : {},
       ...routeId === "seewetter" ? { seaSpot } : {},
+      ...routeId === "atmosphaere" ? { cut: parseCutLine(q.get("schnitt")) } : {},
       rawPath: routeId === "gletscher" && glacierSeg ? `/gletscher/${glacierSeg}` : road && road.corridor ? road.kmSlug ? `/autobahnwetter/${road.corridor}/${road.kmSlug}` : `/autobahnwetter/${road.corridor}` : routeId === "seewetter" && seaSpot ? `/seewetter/${seaSpot}` : "/" + seg.join("/"),
       // Lage-Seiten-Schlüssel (`sel`, `dossier`, `land`, `m`, `q`) gehören nicht an den Steckbrief-Link.
       rawQuery: routeId === "gletscher" && glacierSeg ? pairs.filter(([k]) => !["sel", "dossier", "land", "m", "q"].includes(k)) : road ? pairs.filter(([k]) => !(road.kmSlug && (k === "seg" || k === "ds")) && !(k === "t" && roadTParam != null)).concat(roadTParam != null ? [["t", roadTParam]] : []) : seaTParam != null ? pairs.filter(([k]) => k !== "t").concat([["t", seaTParam]]) : pairs
@@ -1132,6 +1166,10 @@ function describeShareState(s, timeZone) {
   if (s.routeId === "autobahnwetter" && s.roadLink?.corridor) {
     const d = describeRoadLink(s.roadLink.corridor, s.roadLink.kmSlug, s.validAtMs, formatWhen(s.validAtMs, "de", timeZone));
     if (d) return { title: d.title, description: d.description, message: d.title };
+  }
+  if (s.routeId === "atmosphaere" && s.cut) {
+    const d = describeCutLink(s.place?.name || null, s.cut, formatWhen(s.validAtMs, "de", timeZone));
+    return { title: d.title, description: d.description, message: d.title };
   }
   if (s.routeId === "seewetter" && s.seaSpot) {
     const d = describeSeaLink(s.seaSpot, formatWhen(s.validAtMs, "de", timeZone));
@@ -1186,6 +1224,7 @@ function canonicalShareKey(s) {
   if (s.fireLink) parts.push(`f:${s.fireLink.slug}`);
   if (s.glacierSeg) parts.push(`g:${s.glacierSeg}`);
   if (s.seaSpot) parts.push(`s:${s.seaSpot}`);
+  if (s.cut) parts.push(`c:${s.cut.points.length}@${s.cut.points[0].lat.toFixed(2)},${s.cut.points[0].lon.toFixed(2)}`);
   if (s.roadLink?.corridor) parts.push(`r:${s.roadLink.corridor}${s.roadLink.kmSlug ? `/${s.roadLink.kmSlug}` : ""}`);
   if (s.viewSlug) parts.push(`v:${s.viewSlug}`);
   if (s.primary) parts.push(`l:${LAYER_SLUGS[s.primary]}`);
