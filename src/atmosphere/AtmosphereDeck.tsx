@@ -537,7 +537,7 @@ function HoehenwindDesktop(ctx: DeckCtx) {
       </div>
 
       <TimeDeck data={data} timeMs={timeMs} setTimeMs={setTimeMs} />
-      <p className="vsd-caption">{dataOrigin(data)} · {sectionMethod(section)} · ≥30 FPS · werbefrei</p>
+      <p className="vsd-caption">{dataOrigin(data)} · {sectionMethod(section)} · ≥30 FPS · werbefrei · Keine amtliche Warnung, keine Freigabe für Flug oder Bergtour</p>
     </>
   );
 }
@@ -744,7 +744,7 @@ function HoehenwindMobile(ctx: DeckCtx) {
         ) : <div className="vsd-pquery-empty">Tippe in den Schnitt für Werte an einem Punkt.</div>}
       </div>
       {section && <TimeDeck data={data} timeMs={timeMs} setTimeMs={setTimeMs} />}
-      <p className="vsd-m-caption">{dataOrigin(data)} · {sectionMethod(section)} · werbefrei.</p>
+      <p className="vsd-m-caption">{dataOrigin(data)} · {sectionMethod(section)} · werbefrei. Keine amtliche Warnung, keine Freigabe für Flug oder Bergtour.</p>
     </>
   );
 }

@@ -53,6 +53,8 @@ import { FIRE_LINK_SEGMENT, describeFireLink, parseFireLink, type FireLinkTarget
 import { isGlacierSegment, glacierSegmentLabel } from '../glacier/glacierState';
 // Autobahnwetter: Abschnitt im Pfad (`/autobahnwetter/a8/km-034`), Zeit absolut — rein, keine Seitenmodule im Share-Pfad.
 // Seewetter: der Spot steht im Pfad (`/seewetter/st-peter-ording`), Zeit absolut — rein, nur Namenstabelle + Zeitschema.
+// Vertikalschnitt: die Linie (`schnitt=`) für Titel und Beschreibung — rein, ohne Imports.
+import { describeCutLink, parseCutLine, type CutInfo } from '../atmosphere/atmosphereLink';
 import { SEA_LINK_MAX_T, SEA_SPOT_SLUG_RE, describeSeaLink } from '../sea/seaLink';
 import { hoursToParam } from './hourOffset';
 import { ROAD_CORRIDOR_SLUG_RE, ROAD_KM_SLUG_RE, describeRoadLink, roadLinkPartsOf, roadTimeToParam } from '../road/roadLink';
@@ -142,6 +144,8 @@ export interface ShareState {
   roadLink?: { corridor: string | null; kmSlug: string | null };
   /** Seewetter: die Spot-Kennung aus dem Pfad, nur wenn wohlgeformt (`null` bei `/seewetter` und bei Unsinn). */
   seaSpot?: string | null;
+  /** Atmosphäre: die gelesene Schnittlinie (Länge, Endpunkte) — `null` ohne gültige Linie. */
+  cut?: CutInfo | null;
 }
 
 export interface ShareUrl {
@@ -249,6 +253,7 @@ export function parseShareUrl(pathname: string, search: string, nowMs: number = 
       ...(routeId === 'gletscher' ? { glacierSeg } : {}),
       ...(road ? { roadLink: road } : {}),
       ...(routeId === 'seewetter' ? { seaSpot } : {}),
+      ...(routeId === 'atmosphaere' ? { cut: parseCutLine(q.get('schnitt')) } : {}),
       rawPath: routeId === 'gletscher' && glacierSeg ? `/gletscher/${glacierSeg}`
         : road && road.corridor ? (road.kmSlug ? `/autobahnwetter/${road.corridor}/${road.kmSlug}` : `/autobahnwetter/${road.corridor}`)
           : routeId === 'seewetter' && seaSpot ? `/seewetter/${seaSpot}`
@@ -320,6 +325,10 @@ export function describeShareState(s: ShareState, timeZone?: string): ShareCopy 
   if (s.routeId === 'autobahnwetter' && s.roadLink?.corridor) {
     const d = describeRoadLink(s.roadLink.corridor, s.roadLink.kmSlug, s.validAtMs, formatWhen(s.validAtMs, 'de', timeZone));
     if (d) return { title: d.title, description: d.description, message: d.title };
+  }
+  if (s.routeId === 'atmosphaere' && s.cut) {
+    const d = describeCutLink(s.place?.name || null, s.cut, formatWhen(s.validAtMs, 'de', timeZone));
+    return { title: d.title, description: d.description, message: d.title };
   }
   if (s.routeId === 'seewetter' && s.seaSpot) {
     const d = describeSeaLink(s.seaSpot, formatWhen(s.validAtMs, 'de', timeZone));
@@ -420,6 +429,7 @@ export function canonicalShareKey(s: ShareState): string {
   if (s.fireLink) parts.push(`f:${s.fireLink.slug}`);
   if (s.glacierSeg) parts.push(`g:${s.glacierSeg}`);
   if (s.seaSpot) parts.push(`s:${s.seaSpot}`);
+  if (s.cut) parts.push(`c:${s.cut.points.length}@${s.cut.points[0].lat.toFixed(2)},${s.cut.points[0].lon.toFixed(2)}`);
   if (s.roadLink?.corridor) parts.push(`r:${s.roadLink.corridor}${s.roadLink.kmSlug ? `/${s.roadLink.kmSlug}` : ''}`);
   if (s.viewSlug) parts.push(`v:${s.viewSlug}`);
   if (s.primary) parts.push(`l:${LAYER_SLUGS[s.primary]}`);

@@ -218,6 +218,25 @@ for (const [name, { u }] of built) {
   const m = routeForPath(u.path.split('?')[0]);
   add(`[route] ${name}: der erzeugte Pfad ist eine bekannte Route`, !!m, u.path);
 }
+{
+  // Vertikalschnitt: die Schnittlinie ist die Einheit; Vorschau liest sie aus dem Link, beide Leser stimmen überein.
+  const NOW4 = Date.UTC(2026, 10, 2, 14, 37);
+  const atmUrl = await import('../src/atmosphere/atmosphereUrl.ts');
+  const q = '?schnitt=47.9,11;47.6,12.2&t=2026-11-04T10:00Z';
+  const a1 = parseShareUrl('/atmosphaere/querschnitt/muenchen', q, NOW4);
+  const pq = atmUrl.parseAtmosphereQuery(q, NOW4);
+  add('[schnitt] Vorschau-Leser und Seiten-Leser lesen dieselbe Linie', !!a1?.cut && a1.cut.points.length === pq.cut.length && a1.cut.points.every((p, k) => Math.abs(p.lat - pq.cut[k].lat) < 1e-9 && Math.abs(p.lon - pq.cut[k].lon) < 1e-9), String(a1?.cut?.points.length));
+  const ac = a1 ? describeShareState(a1, 'Europe/Berlin') : null;
+  add('[schnitt] Titel nennt Ort, Länge und Zeit; Beschreibung grenzt von Warnung und Freigabe ab',
+    !!ac && ac.title.startsWith('Vertikalschnitt München — 96 km') && ac.title.includes('km Höhenwind · Prognose') && ac.description.includes('Keine amtliche Warnung') && ac.description.includes('aktuelle Prognose'), ac?.title);
+  add('[schnitt] Länge ist plausibel (0,3° Breite ≈ 33 km, 1,2° Länge ≈ 90 km ⇒ ≈ 96 km)', !!a1?.cut && a1.cut.km > 95 && a1.cut.km < 97, String(a1?.cut?.km));
+  for (const bad of ['quatsch', '47.9,11', '95,11;47,12', ';;', '']) {
+    const x = parseShareUrl('/atmosphaere/querschnitt/muenchen', `?schnitt=${bad}`, NOW4);
+    add(`[schnitt] unlesbar („${bad}") ⇒ allgemeine Vorschau, keine erfundene Linie`, x?.cut == null && describeShareState(x).title === 'Atmosphäre München — Querschnitt', describeShareState(x).title);
+  }
+  const many = Array.from({ length: 30 }, (_, k) => `47.${k + 10},11`).join(';');
+  add('[schnitt] höchstens 24 Punkte wie auf der Seite', parseShareUrl('/atmosphaere/querschnitt', `?schnitt=${many}`, NOW4)?.cut?.points.length === 24 && atmUrl.parseAtmosphereQuery(`?schnitt=${many}`, NOW4).cut.length === 24);
+}
 add('[route] alle zwölf teilbaren Seiten sind abgedeckt (SH1 + SH3 + SH4 + SH5 + Gletscher + Autobahnwetter + Seewetter)', SHARE_ROUTES.join(',') === 'wetterkarte,warnungen,regenradar,waldbrand,atmosphaere,eventplanung,wetterarchiv,globus,vorhersage,gletscher,autobahnwetter,seewetter', SHARE_ROUTES.join(','));
 {
   // Seewetter: der Spot steht im Pfad, die Zeit absolut; die Namenstabelle ist aus der Handliste generiert.

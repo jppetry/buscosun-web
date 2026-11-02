@@ -24,6 +24,8 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Navigate, useLocation, useNavigate, useNavigationType, useParams } from 'react-router';
 import AtmospherePage, { type DeckSub } from '../../atmosphere/AtmospherePage';
 import type { Lens } from '../../atmosphere/atmosphereState';
+import { HOUR_MAX } from '../../atmosphere/atmosphereState';
+import AtmosphereLinkNotice, { type AtmosphereLinkProblem } from '../../atmosphere/AtmosphereLinkNotice';
 import { decodeState as decodeAtmHash } from '../../atmosphere/atmosphereState';
 import { decodeState as decodeThreeD, hasThreeDHash } from '../../threed/threedState';
 import {
@@ -111,6 +113,17 @@ function AtmosphereRouteView() {
 
   // Ort: Pfadsegment (Tabellenort) und/oder ort/olat/olon (freier Ort).
   const routePlace = useMemo(() => resolveRoutePlace(ort, parsed.place), [ort, parsed.place]);
+  // Link parts that could not be read — decided once on arrival (the tidy-up below rewrites the URL right after).
+  const problems = useRef<AtmosphereLinkProblem[]>(((): AtmosphereLinkProblem[] => {
+    const out: AtmosphereLinkProblem[] = [];
+    if (routePlace.unresolved || parsed.invalid.some((k) => k === 'ort' || k === 'olat' || k === 'olon' || k === 'land')) out.push('ort');
+    if (parsed.invalid.includes('schnitt')) out.push('schnitt');
+    if (parsed.invalid.includes('marker')) out.push('marker');
+    if (parsed.invalid.some((k) => !['ort', 'olat', 'olon', 'land', 'schnitt', 'marker'].includes(k))) out.push('sonst');
+    return out;
+  })()).current;
+  // A shared time beyond the 48 h window: the scrubber clamps, the notice says so.
+  const beyondAt = parsed.validAtMs != null && parsed.validAtMs > Date.now() + (HOUR_MAX + 1) * 3_600_000 ? parsed.validAtMs : null;
 
   const initialUrl = useMemo<AtmosphereUrlState>(() => legacy?.state ?? ({
     place: routePlace.place,
@@ -196,6 +209,8 @@ function AtmosphereRouteView() {
   return (
     <>
       <StaleLinkNotice at={parsed.timePast ? parsed.wantedAtMs : null} shows="die Lage für jetzt" />
+      <StaleLinkNotice reason="horizon" at={beyondAt} />
+      <AtmosphereLinkNotice problems={problems} />
       <AtmospherePage
         onBack={nav.goHome}
         onOpenFeature={nav.openFeature}
