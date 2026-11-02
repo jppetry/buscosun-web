@@ -1,5 +1,5 @@
 /** Letzte inhaltliche Änderung der Rechtsseiten (Sitemap-lastmod, SEO/GEO 2026 E1). */
-export const LEGAL_UPDATED = '2026-08-01';
+export const LEGAL_UPDATED = '2026-11-02';
 
 /**
  * Rechtsseiten: /impressum/, /datenschutz/, /kontakt/ (V-103, build-only).
@@ -28,11 +28,11 @@ export const TODO = '@@TODO_JAN@@';
  */
 export const OPERATOR = {
   /** Vor- und Nachname bzw. Firma inkl. Rechtsform. */
-  name: TODO,
+  name: 'Jan Petry',
   /** Straße + Hausnummer. */
-  street: TODO,
+  street: 'Hainstr. 7',
   /** PLZ + Ort. */
-  city: TODO,
+  city: '35745 Herborn',
   /** Land. */
   country: 'Deutschland',
   /** Kontakt-E-Mail — bereits produktiv in src/feedback/FeedbackPage.tsx. */
