@@ -218,7 +218,25 @@ for (const [name, { u }] of built) {
   const m = routeForPath(u.path.split('?')[0]);
   add(`[route] ${name}: der erzeugte Pfad ist eine bekannte Route`, !!m, u.path);
 }
-add('[route] alle zehn teilbaren Seiten sind abgedeckt (SH1 + SH3 + SH4 + SH5 + Gletscher)', SHARE_ROUTES.join(',') === 'wetterkarte,warnungen,regenradar,waldbrand,atmosphaere,eventplanung,wetterarchiv,globus,vorhersage,gletscher', SHARE_ROUTES.join(','));
+add('[route] alle elf teilbaren Seiten sind abgedeckt (SH1 + SH3 + SH4 + SH5 + Gletscher + Autobahnwetter)', SHARE_ROUTES.join(',') === 'wetterkarte,warnungen,regenradar,waldbrand,atmosphaere,eventplanung,wetterarchiv,globus,vorhersage,gletscher,autobahnwetter', SHARE_ROUTES.join(','));
+{
+  // Autobahnwetter: Abschnitt im Pfad, Zeit absolut, alter Query-Link wird zum Pfad-Link.
+  const NOW2 = Date.UTC(2026, 10, 2, 14, 37);
+  const r1 = parseShareUrl('/autobahnwetter/a8/km-034', '?t=2026-11-02T17:00Z', NOW2);
+  add('[autobahn] Pfad-Link wird gelesen (Strecke, Abschnitt, Zeit)', r1?.roadLink?.corridor === 'a8' && r1.roadLink.kmSlug === 'km-034' && r1.validAtMs === Date.UTC(2026, 10, 2, 17, 0), JSON.stringify(r1?.roadLink));
+  const u1 = r1 ? buildShareUrl(r1, 'https://buscosun.com', NOW2) : null;
+  add('[autobahn] der geteilte Link bleibt Pfad + absolute Zeit', u1?.path === '/autobahnwetter/a8/km-034?t=2026-11-02T17%3A00Z' || u1?.path === '/autobahnwetter/a8/km-034?t=2026-11-02T17:00Z', u1?.path);
+  const r2 = parseShareUrl('/autobahnwetter/a8', '?seg=A8-034&ds=1&t=3&tab=gefahren', NOW2);
+  const u2 = r2 ? buildShareUrl(r2, 'https://buscosun.com', NOW2) : null;
+  add('[autobahn] alter Query-Link (?seg=, ?ds=1, ?t=3) wird zum Pfad-Link mit absoluter Zeit', !!u2 && u2.path.startsWith('/autobahnwetter/a8/km-034?') && !u2.path.includes('seg=') && !u2.path.includes('ds=') && u2.path.includes('t=2026-11-02T17'), u2?.path);
+  const c1 = r1 ? describeShareState(r1, 'Europe/Berlin') : null;
+  add('[autobahn] Titel nennt Autobahn, km und Prognosezeit; Beschreibung grenzt von Warnungen ab', !!c1 && c1.title.startsWith('A8, Abschnitt ab km 34 — Autobahnwetter · Prognose') && c1.description.includes('Keine amtliche Verkehrs- oder Wetterwarnung') && c1.description.includes('aktuelle Lage'), c1?.title);
+  const r3 = parseShareUrl('/autobahnwetter/a8-2', '', NOW2);
+  add('[autobahn] Strecken-Link ohne Abschnitt', describeShareState(r3).title === 'A8 (Teilstrecke 2) — Autobahnwetter', describeShareState(r3).title);
+  const r4 = parseShareUrl('/autobahnwetter/quatsch/km-1', '', NOW2);
+  add('[autobahn] ungültige Teile ⇒ allgemeine Vorschau, kein erfundener Abschnitt', r4?.roadLink?.corridor == null && describeShareState(r4).title === 'Autobahnwetter', describeShareState(r4).title);
+  add('[autobahn] Vorschaubild ist die Autobahn-Karte', !!r1 && ogCardForShare(r1) === ogCardPath('autobahnwetter'));
+}
 {
   // Gletscher: das Pfadsegment ist die Kennung; auf der Lage-Seite markiert `sel` ihn — geteilt wird jeweils der Steckbrief.
   const g1 = parseShareUrl('/gletscher/ch-grosser-aletschgletscher', '?tab=saison', NOW);

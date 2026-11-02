@@ -133,7 +133,8 @@ export function createAppRouter() {
         { path: sub('globus'), ...page(() => import('./pages/GlobeRoute')) },
         // `/waldbrand/brand/<kennung>`: dieselbe Route (kein Remount beim Wechsel Sicht ↔ Brand), :fire nur hinter `brand` gültig.
         { path: `${sub('waldbrand')}/:fire?`, ...page(() => import('./pages/FireRoute')) },
-        { path: sub('autobahnwetter'), ...page(() => import('./pages/RoadRoute')) },
+        // `/autobahnwetter/<strecke>/km-<beginn>`: dieselbe Route, :seg nur hinter einer Strecke gültig (RoadRoute prüft).
+        { path: `${sub('autobahnwetter')}/:seg?`, ...page(() => import('./pages/RoadRoute')) },
         { path: sub('seewetter'), ...page(() => import('./pages/SeaRoute')) },
         { path: sub('gletscher'), ...page(() => import('./pages/GlacierRoute')) },
         { path: sub('feedback'), ...page(() => import('./pages/FeedbackRoute')) },

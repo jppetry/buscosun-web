@@ -39,6 +39,8 @@ import { ROAD_FORECAST_ENABLED, ROAD_HZ_TIMES, ROAD_TIMES, type RoadHzMode, type
 import type { RoadSegLine } from './RoadMap';
 import type { RoadSegment } from './roadSegments';
 import { stretchLine } from './roadSegments';
+import { roadLinkPartsOf } from './roadLink';
+import { RoadSegNotice, type RoadSegNoticeKind } from './RoadLinkNotice';
 import { roadHzFreshness, type RoadHazardGroup, type RoadHzFile, type RoadLevel } from './roadHazards';
 import { loadRoadHz, loadRoadHzHistory, loadRoadSegments } from './roadHzClient';
 import { AW_SEV } from './roadNivoTheme';
@@ -201,6 +203,28 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   const hzGroups = useMemo(() => (hzShown ? hzGroupRows(hzShown, segMap, hzMode, hzFilter) : []), [hzShown, segMap, hzMode, hzFilter]);
   const hzOrder = useMemo(() => rowOrder(hzGroups), [hzGroups]);
   const openSeg = segId ? segMap.get(segId) ?? null : null;
+  // Link on a segment / a corridor (`/autobahnwetter/a8/km-034`): once corridors and segments are loaded, find what the link means (roadLink.ts):
+  // the exact id; else the segment of the same corridor that contains the km (boundaries moved); else say there is none. Never a guess.
+  const [segNotice, setSegNotice] = useState<RoadSegNoticeKind | null>(null);
+  const segChecked = useRef(false);
+  useEffect(() => {
+    if (segChecked.current) return;
+    const wantedSeg = hz ? initial.seg ?? null : null;
+    const parts = wantedSeg ? roadLinkPartsOf(wantedSeg) : null;
+    const cid = parts?.corridor ?? initial.corridor;
+    if (!cid || corrState !== 'ok' || !corridors) return;   // a transient 'error' (aborted first fetch of a dev double mount) just waits for 'ok'
+    if (wantedSeg && segments === null) return;
+    segChecked.current = true;
+    if (!corridors?.some((c) => c.id === cid)) {
+      setSegNotice({ kind: 'corridor', road: cid.toUpperCase() });
+      if (wantedSeg) { setSegId(null); setStage('map'); }
+      return;
+    }
+    if (!wantedSeg || !parts || !segments || segments === 'error' || segMap.has(wantedSeg)) return;
+    const hit = segments.find((s) => s.corridor === cid && s.kmFrom <= parts.km && parts.km < s.kmTo);
+    if (hit) { setSegId(hit.id); setSegNotice({ kind: 'moved', wantedKm: parts.km, from: Math.round(hit.kmFrom), to: Math.round(hit.kmTo) }); }
+    else { setSegId(null); setStage('map'); setSegNotice({ kind: 'gone', wantedKm: parts.km, road: corridors.find((c) => c.id === cid)?.road ?? cid.toUpperCase() }); }
+  }, [corrState, corridors, segments, segMap]); // eslint-disable-line react-hooks/exhaustive-deps
   const freshness = obs ? roadFreshness(obs.slotMs, nowMs, obs.killed) : 'dead';
   const summary = useMemo(() => slotSummary(obs, nowMs), [obs, nowMs]);
   const noData: string | null = !load ? null
@@ -670,6 +694,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
     );
     return (
       <div className="aw-root is-mobile">
+        <RoadSegNotice notice={segNotice} onClose={() => setSegNotice(null)} />
         <main className="aw-map is-mobile" aria-label={inDossier ? 'Dossier' : 'Karte'}>
           <div className="aw-m-mapwrap" hidden={inDossier}>{map}</div>
           <MapGestureHint map={mapInst} feature="autobahn" subject="road" accent="#1F5FAE" pickSpots={hintSpots} always enabled={!inDossier && mobTab === 'map'} />
@@ -721,6 +746,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   // --- desktop / tablet ------------------------------------------------------------------------------------
   return (
     <div className="aw-root">
+      <RoadSegNotice notice={segNotice} onClose={() => setSegNotice(null)} />
       <FeatureRail active={'road' as RailFeature} onOpenFeature={(id) => nav.openFeature(id)} onHome={nav.goHome}
         navClass="aw-rail" btnClass="aw-rail-btn" activeClass="is-active" spacerClass="aw-rail-spacer" />
       <div className="aw-deck">

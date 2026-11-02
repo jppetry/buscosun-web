@@ -13,12 +13,15 @@ import NotFoundRoute from './NotFoundRoute';
 import AppLoader from '../AppLoader';
 import { roadFlagFrom, rememberRoadFlag, roadHzFlagFrom, rememberRoadHzFlag, roadSurfaceFlagFrom, rememberRoadSurfaceFlag, roadVsFlagFrom, rememberRoadVsFlag } from '../../road/roadFlag';
 import { buildRoadUrl, parseRoadUrl, type RoadUrlState } from '../../road/roadState';
+import { roadLinkUrl, roadNormalizeSearch, roadSegIdFromLink } from '../../road/roadLink';
+import StaleLinkNotice from '../../share/StaleLinkNotice';
+import RoadLinkNotice from '../../road/RoadLinkNotice';
 
 const RoadPage = lazy(() => import('../../road/RoadPage'));
 const STATE_DEBOUNCE_MS = 300;
 
 export default function RoadRoute() {
-  const { road } = useParams<{ road?: string }>();
+  const { road, seg: segSlug } = useParams<{ road?: string; seg?: string }>();
   const loc = useLocation();
   const navigate = useNavigate();
   const navType = useNavigationType();
@@ -31,7 +34,20 @@ export default function RoadRoute() {
   const vs = useMemo(() => roadVsFlagFrom(loc.search), [loc.search]);
   useEffect(() => { rememberRoadFlag(loc.search); rememberRoadHzFlag(loc.search); rememberRoadSurfaceFlag(loc.search); rememberRoadVsFlag(loc.search); }, [loc.search]);
 
-  const parsed = useMemo(() => parseRoadUrl(road ?? null, loc.search, hz), [road, loc.search, hz]);
+  // Link on ONE segment (`/autobahnwetter/a8/km-034`, src/road/roadLink.ts): the path names the segment, the detail view opens on arrival.
+  const nowRef = useRef(Date.now());
+  const norm = useMemo(() => roadNormalizeSearch(loc.search, nowRef.current), [loc.search]);
+  const linkSegId = useMemo(() => (segSlug ? roadSegIdFromLink(road, segSlug) : null), [road, segSlug]);
+  const parsed = useMemo(() => {
+    const p = parseRoadUrl(road ?? null, norm.search, hz);
+    if (segSlug && !linkSegId) p.invalid.push('segment');
+    // without the hazard switch there is no segment view: the link degrades to the corridor page
+    if (hz && linkSegId) { p.state.seg = linkSegId; p.state.ds = true; }
+    return p;
+  }, [road, norm.search, hz, segSlug, linkSegId]);
+  /** The first parse decides what the arriving visitor is told (the tidy-up navigation clears `invalid` right after). */
+  const linkInvalid = useRef(!!segSlug && !linkSegId).current;
+  const urlOf = useCallback((st: RoadUrlState) => roadLinkUrl(st, buildRoadUrl as never, st, nowRef.current), []);
   const stateRef = useRef<RoadUrlState>(parsed.state);
   const timer = useRef<number | null>(null);
   const unmounted = useRef(false);
@@ -46,27 +62,31 @@ export default function RoadRoute() {
     timer.current = window.setTimeout(() => {
       timer.current = null;
       if (unmounted.current || !window.location.pathname.startsWith('/autobahnwetter')) return;
-      const url = buildRoadUrl(stateRef.current);
+      const url = urlOf(stateRef.current);
       if (url !== window.location.pathname + window.location.search) window.history.replaceState(window.history.state, '', url);
     }, STATE_DEBOUNCE_MS);
-  }, []);
+  }, [urlOf]);
 
   const onCorridor = useCallback((st: RoadUrlState, initial: boolean) => {
     stateRef.current = st;
-    const url = buildRoadUrl(st);
+    const url = urlOf(st);
     if (url === window.location.pathname + window.location.search) return;
     void navigate(url, { replace: initial });
-  }, [navigate]);
+  }, [navigate, urlOf]);
 
   // Invalid values (e.g. a forecast hour before Gate D) are dropped once, canonically.
   useEffect(() => {
-    if (enabled && parsed.invalid.length) void navigate(buildRoadUrl(parsed.state), { replace: true });
+    if (enabled && parsed.invalid.length) void navigate(urlOf(parsed.state), { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!enabled) return <NotFoundRoute />;
   return (
     <Suspense fallback={<AppLoader />}>
+      {/* A shared time that is past / beyond the +6 h window: the page clamps and says so (the same notice as the other pages). */}
+      <StaleLinkNotice at={norm.past} kind="time" shows="die aktuelle Lage" />
+      <StaleLinkNotice reason="horizon" at={norm.beyond} />
+      <RoadLinkNotice invalid={linkInvalid} />
       {/* Back/forward (POP) hands the URL's state to the mounted page — `initial` is read only once (review #6,
           pattern FireRoute `routeView`). */}
       <RoadPage initial={parsed.state} invalid={parsed.invalid} onUrlState={onUrlState} onCorridor={onCorridor} hz={hz} surface={surface} vs={vs}

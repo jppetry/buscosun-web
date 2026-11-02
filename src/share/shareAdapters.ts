@@ -46,23 +46,25 @@ import { LAYER_CATALOG } from '../map/layerCatalog';
 import { ogCardPath } from './ogCard';
 import { resolveRoutePlace, slugForPlace } from './placeTable';
 import { encodeShareQuery, parseValidTime, roundTo, shareableExtras, shareLengthVerdict, type ShareLengthVerdict } from './shareSchema';
-import { shareCopy, shareMessage, type ShareCopy } from './shareText';
+import { shareCopy, shareMessage, formatWhen, type ShareCopy } from './shareText';
 // Brandradar: ein einzelner Brand (`/waldbrand/brand/<kennung>`) — rein, nur Typ-Importe, kein Fire-Modell im Share-Chunk.
 import { FIRE_LINK_SEGMENT, describeFireLink, parseFireLink, type FireLinkTarget } from '../fire/fireLink';
 // Gletscher: das Pfadsegment (`/gletscher/ch-grosser-aletschgletscher`) ist die Kennung — dependency-free Modul, kein Gletscher-Chunk im Share-Pfad.
 import { isGlacierSegment, glacierSegmentLabel } from '../glacier/glacierState';
+// Autobahnwetter: Abschnitt im Pfad (`/autobahnwetter/a8/km-034`), Zeit absolut — rein, keine Seitenmodule im Share-Pfad.
+import { ROAD_CORRIDOR_SLUG_RE, ROAD_KM_SLUG_RE, describeRoadLink, roadLinkPartsOf, roadTimeToParam } from '../road/roadLink';
 
 export type ShareRouteId =
   | 'wetterkarte' | 'warnungen' | 'regenradar'
-  | 'waldbrand' | 'atmosphaere' | 'eventplanung' | 'wetterarchiv' | 'globus' | 'vorhersage' | 'gletscher';
+  | 'waldbrand' | 'atmosphaere' | 'eventplanung' | 'wetterarchiv' | 'globus' | 'vorhersage' | 'gletscher' | 'autobahnwetter';
 
 export const SHARE_ROUTES: readonly ShareRouteId[] = [
-  'wetterkarte', 'warnungen', 'regenradar', 'waldbrand', 'atmosphaere', 'eventplanung', 'wetterarchiv', 'globus', 'vorhersage', 'gletscher',
+  'wetterkarte', 'warnungen', 'regenradar', 'waldbrand', 'atmosphaere', 'eventplanung', 'wetterarchiv', 'globus', 'vorhersage', 'gletscher', 'autobahnwetter',
 ];
 
 /** Seiten, deren URL übernommen (und nur gefiltert) statt neu gebaut wird. */
 const PASSTHROUGH: ReadonlySet<ShareRouteId> = new Set([
-  'waldbrand', 'atmosphaere', 'eventplanung', 'wetterarchiv', 'globus', 'vorhersage', 'gletscher',
+  'waldbrand', 'atmosphaere', 'eventplanung', 'wetterarchiv', 'globus', 'vorhersage', 'gletscher', 'autobahnwetter',
 ]);
 
 /** Welche Durchreiche-Seite trägt den Ort im Pfad — und an welcher Stelle? */
@@ -101,6 +103,7 @@ export const SHARE_FEATURE_LABEL: Readonly<Record<ShareRouteId, string>> = {
   globus: 'Globus',
   vorhersage: 'Vorhersage',
   gletscher: 'Gletscher',
+  autobahnwetter: 'Autobahnwetter',
 };
 
 export interface ShareState {
@@ -131,6 +134,8 @@ export interface ShareState {
   fireLink?: FireLinkTarget | null;
   /** Gletscher: der Pfadsegment-Slug des Gletschers (`ch-grosser-aletschgletscher`), nur wenn wohlgeformt. */
   glacierSeg?: string | null;
+  /** Autobahnwetter: Strecke (`a8`) und Abschnitt (`km-034`) aus dem Pfad bzw. dem alten `?seg=`; nur wohlgeformte Teile. */
+  roadLink?: { corridor: string | null; kmSlug: string | null };
 }
 
 export interface ShareUrl {
@@ -201,23 +206,44 @@ export function parseShareUrl(pathname: string, search: string, nowMs: number = 
     const glacierSeg = routeId === 'gletscher'
       ? (isGlacierSegment(seg[1]) ? seg[1] : isGlacierSegment(q.get('sel')) && !seg[1] ? q.get('sel') : null)
       : undefined;
-    const viewSlug = placeAt === 1 || isFireLink || routeId === 'gletscher' ? null : seg[1] ?? null;
+    // Autobahnwetter: Strecke + Abschnitt. Der alte Query-Link (`?seg=A8-034&ds=1&t=3`) wird zum Pfad-Link; eine Stundenzeit zur absoluten Zeit.
+    let road: { corridor: string | null; kmSlug: string | null } | undefined;
+    let roadT: number | null = null;
+    let roadTParam: string | null = null;
+    if (routeId === 'autobahnwetter') {
+      const corridor = ROAD_CORRIDOR_SLUG_RE.test(seg[1] ?? '') ? seg[1] : null;
+      let kmSlug = corridor && ROAD_KM_SLUG_RE.test(seg[2] ?? '') ? seg[2] : null;
+      const legacy = !kmSlug ? roadLinkPartsOf(q.get('seg')) : null;
+      road = { corridor: corridor ?? legacy?.corridor ?? null, kmSlug: kmSlug ?? (legacy && (!corridor || legacy.corridor === corridor) ? legacy.kmSlug : null) };
+      kmSlug = road.kmSlug;
+      const th = /^[0-6]$/.test(q.get('t') ?? '') ? Number(q.get('t')) : null;
+      if (th != null && th > 0) { roadTParam = roadTimeToParam(th, nowMs); roadT = parseValidTime(roadTParam); }
+    }
+    const viewSlug = placeAt === 1 || isFireLink || routeId === 'gletscher' || routeId === 'autobahnwetter' ? null : seg[1] ?? null;
     const rp = resolveRoutePlace(placeAt ? seg[placeAt] : undefined, placeFromPairs(q));
     const t = parseValidTime(q.get('t'));
     return {
       routeId,
       place: rp.place,
       layers: [], primary: null, cam: null,
-      validAtMs: t != null && t > nowMs ? t : null,
+      validAtMs: routeId === 'autobahnwetter' ? (t != null && t > nowMs ? t : roadT) : t != null && t > nowMs ? t : null,
       extra: shareableExtras(pairs),
       timePast: t != null && t <= nowMs ? true : undefined,
       placeUnresolved: rp.unresolved,
       viewSlug,
       ...(isFireLink ? { fireLink: parseFireLink(seg[2]) } : {}),
       ...(routeId === 'gletscher' ? { glacierSeg } : {}),
-      rawPath: routeId === 'gletscher' && glacierSeg ? `/gletscher/${glacierSeg}` : '/' + seg.join('/'),
+      ...(road ? { roadLink: road } : {}),
+      rawPath: routeId === 'gletscher' && glacierSeg ? `/gletscher/${glacierSeg}`
+        : road && road.corridor ? (road.kmSlug ? `/autobahnwetter/${road.corridor}/${road.kmSlug}` : `/autobahnwetter/${road.corridor}`)
+          : '/' + seg.join('/'),
       // Lage-Seiten-Schlüssel (`sel`, `dossier`, `land`, `m`, `q`) gehören nicht an den Steckbrief-Link.
-      rawQuery: routeId === 'gletscher' && glacierSeg ? pairs.filter(([k]) => !['sel', 'dossier', 'land', 'm', 'q'].includes(k)) : pairs,
+      rawQuery: routeId === 'gletscher' && glacierSeg ? pairs.filter(([k]) => !['sel', 'dossier', 'land', 'm', 'q'].includes(k))
+        : road
+          // Abschnitt im Pfad ⇒ `seg`/`ds` entfallen; eine Stundenzeit (`t=3`) wird zur absoluten Zeit
+          ? pairs.filter(([k]) => !(road.kmSlug && (k === 'seg' || k === 'ds')) && !(k === 't' && roadTParam != null))
+            .concat(roadTParam != null ? [['t', roadTParam] as [string, string]] : [])
+          : pairs,
     };
   }
 
@@ -274,6 +300,10 @@ export function describeShareState(s: ShareState, timeZone?: string): ShareCopy 
         message: `${l.name} — Gletscher (${l.country})`,
       };
     }
+  }
+  if (s.routeId === 'autobahnwetter' && s.roadLink?.corridor) {
+    const d = describeRoadLink(s.roadLink.corridor, s.roadLink.kmSlug, s.validAtMs, formatWhen(s.validAtMs, 'de', timeZone));
+    if (d) return { title: d.title, description: d.description, message: d.title };
   }
   const feature = SHARE_FEATURE_LABEL[s.routeId];
   const topic = s.routeId === 'wetterkarte' && s.primary
@@ -349,6 +379,7 @@ export function ogCardForShare(s: ShareState): string | null {
   const view = s.viewSlug ?? (s.primary ? LAYER_SLUGS[s.primary] : null);
   if (s.routeId === 'warnungen') return ogCardPath('warnungen');
   if (s.routeId === 'gletscher') return ogCardPath('gletscher');
+  if (s.routeId === 'autobahnwetter') return ogCardPath('autobahnwetter');
   // Brand-Link: die Karte des Brandradars (kein pro Brand gerendertes Bild — das wäre Stufe 2 der Vorschau).
   if (s.routeId === 'waldbrand' && s.fireLink) return ogCardPath('waldbrand', 'aktive-braende');
   if (s.routeId === 'wetterkarte' && view === LAYER_SLUGS.warnings) return ogCardPath('warnungen');
@@ -367,6 +398,7 @@ export function canonicalShareKey(s: ShareState): string {
   const parts: string[] = [s.routeId];
   if (s.fireLink) parts.push(`f:${s.fireLink.slug}`);
   if (s.glacierSeg) parts.push(`g:${s.glacierSeg}`);
+  if (s.roadLink?.corridor) parts.push(`r:${s.roadLink.corridor}${s.roadLink.kmSlug ? `/${s.roadLink.kmSlug}` : ''}`);
   if (s.viewSlug) parts.push(`v:${s.viewSlug}`);
   if (s.primary) parts.push(`l:${LAYER_SLUGS[s.primary]}`);
   const rest = s.layers.filter((k) => k !== s.primary).map((k) => LAYER_SLUGS[k]).sort();
