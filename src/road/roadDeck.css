@@ -508,8 +508,16 @@ button.aw-prog-tile:disabled { cursor: default; }
 .aw-hz-notobs strong { color: var(--ink-900, #2C2A26); }
 .aw-hz-src { margin-top: 12px; }
 @media (max-width: 767px) {
-  .aw-hz-matrix-head, .aw-hz-matrix-body { min-width: 420px; }
-  .aw-hz-matrix { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  /* Lage-Matrix: passt in die Bildschirmbreite statt seitwärts zu scrollen — schmale Namensspalte, 32-px-Zeilen zum Antippen. */
+  .aw-hz-matrix-card { padding: 12px 10px 10px; }
+  .aw-hz-matrix-head { grid-template-columns: 92px repeat(7, minmax(0, 1fr)); gap: 2px; }
+  .aw-hz-matrix-body { grid-template-columns: 92px minmax(0, 1fr); gap: 2px; }
+  .aw-hz-matrix-head button { font-size: 10.5px; min-height: 28px; padding: 0 0 4px; }
+  .aw-hz-matrix-rows { grid-template-rows: repeat(7, 32px); gap: 3px; }
+  .aw-hz-matrix-rows button { font-size: 12px; gap: 5px; }
+  .aw-hz-matrix-cells { height: calc(7 * 32px + 6 * 3px); }
+  .aw-hz-legend-matrix { gap: 6px 12px; font-size: 11.5px; }
+  .aw-hz-legend-matrix .aw-hz-legend-ev { margin-left: 0; flex: 1 0 100%; }
   .aw-hz-row { min-height: 44px; }
   .aw-hz-modes button, .aw-hz-chips button, .aw-hz-dirs button, .aw-hz-back, .aw-hz-nav .aw-icon-btn { min-height: 44px; }
   .aw-hz-nav .aw-icon-btn { width: 44px; }
