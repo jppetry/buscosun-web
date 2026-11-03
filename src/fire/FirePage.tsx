@@ -2333,12 +2333,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
       ariaLabel={`Karte: ${recordTitle(dossierRecord)} — zur Kartenbühne wechseln`}
       onClick={() => {
         setStage('map');
-        if (!isMobile) return;
-        openTab('map');
-        // Mobil: große Karte ohne Sheet davor, Kamera auf den Brand (sonst liegt er hinter dem halben Sheet).
-        setSheetSnap('collapsed');
-        setFocusBbox(dossierRecord.bbox);
-        setFocusNonce((n) => n + 1);
+        if (isMobile) openTab('map');
       }}
     />
   );
@@ -2474,6 +2469,15 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     if (t === 'time' || t === 'map') setSheetSnap('half');
     // Die Karte zeigt die Vorschaukachel nur auf der Kartenbühne — der Wechsel über die Bottom-Bar muss sie zurückholen.
     if (t === 'map' || t === 'time') setStage('map');
+    // Aus dem Dossier zur Karte: Kamera auf den Brand (bzw. Standort), Sheet eingeklappt, damit er nicht dahinter liegt.
+    if (t === 'map' && inDossier) {
+      const bb = dossierRecord?.bbox ?? dossierSite?.bbox ?? null;
+      if (bb) {
+        setSheetSnap('collapsed');
+        setFocusBbox(bb);
+        setFocusNonce((n) => n + 1);
+      }
+    }
   };
   const bottomBar = (
     <nav className="br-bar safe-pad-bottom" aria-label="Brandradar-Bereiche">
