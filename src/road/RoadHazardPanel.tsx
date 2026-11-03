@@ -128,9 +128,6 @@ export default function RoadHazardPanel(p: RoadHazardPanelProps) {
       </div>
       <div className="aw-hz-subrow">
         <div className="aw-hz-sub">{file ? `${windowLabel(mode, hours)} · DE gemessen, AT/CH folgen${p.state === 'stale' ? ' · veraltet' : ''}${file.missing.length ? ` · ohne ${file.missing.join(', ')}` : ''}` : note}</div>
-        <div role="group" aria-label="Zeitraum" className="aw-hz-modes">
-          {(['now', 'p6'] as const).map((m) => <button key={m} type="button" aria-pressed={mode === m} className={mode === m ? 'is-on' : ''} onClick={() => p.onMode(m)}>{m === 'now' ? 'Jetzt' : 'Bis +6 h'}</button>)}
-        </div>
       </div>
       {file && note && <p className="aw-note" role="status">{note}</p>}
       {!file && note && <p className="aw-empty" role="status">{note} Das ist keine Entwarnung.</p>}
