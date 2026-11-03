@@ -2331,7 +2331,15 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     <FireMiniMap
       record={dossierRecord} footprintFc={history ? null : footprintFc} basemap={basemap} height={height}
       ariaLabel={`Karte: ${recordTitle(dossierRecord)} — zur Kartenbühne wechseln`}
-      onClick={() => { setStage('map'); if (isMobile) openTab('map'); }}
+      onClick={() => {
+        setStage('map');
+        if (!isMobile) return;
+        openTab('map');
+        // Mobil: große Karte ohne Sheet davor, Kamera auf den Brand (sonst liegt er hinter dem halben Sheet).
+        setSheetSnap('collapsed');
+        setFocusBbox(dossierRecord.bbox);
+        setFocusNonce((n) => n + 1);
+      }}
     />
   );
   /** Rechte Spalte des Dossiers (Desktop 300 px, Tablet 250 px in der zweiten Rasterspalte). */
