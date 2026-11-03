@@ -2296,6 +2296,12 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
       onClose={() => openMapCard(null)}
     />
   ) : null;
+  /** Mobil: buscosun-Logo oben links in den Seitenköpfen Brände/Layer/Einstellungen, führt zur Startseite. */
+  const mobileBrand = (
+    <button type="button" className="br-m-brand" aria-label="Zur Startseite" onClick={onBack}>
+      <img src="/buscosun-mark.svg" width={22} height={22} alt="" />
+    </button>
+  );
   /** Topbar-/Kopf-Segment „Karte | Dossier" (Desktop, Tablet, Mobil). */
   const stageSeg = (big: boolean) => (
     <div className={`br-seg br-stage-seg${big ? ' is-big' : ''}`} role="group" aria-label="Bühne der Mitte">
@@ -2700,9 +2706,12 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
               {mobileTab === 'layers' && (
                 <section className="br-m-page" aria-label="Layer">
                   <header className="br-m-head">
-                    <div>
-                      <div className="br-eyebrow">Brandradar · Layer</div>
-                      <h1 className="br-m-title">Layer</h1>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      {mobileBrand}
+                      <div>
+                        <div className="br-eyebrow">Brandradar · Layer</div>
+                        <h1 className="br-m-title">Layer</h1>
+                      </div>
                     </div>
                     <span className="br-count is-bordered">{switchableCount} aktiv</span>
                   </header>
@@ -2715,9 +2724,12 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
               {mobileTab === 'settings' && (
                 <section className="br-m-page" aria-label="Einstellungen">
                   <header className="br-m-head">
-                    <div>
-                      <div className="br-eyebrow">Brandradar · Anzeige</div>
-                      <h1 className="br-m-title">Einstellungen</h1>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      {mobileBrand}
+                      <div>
+                        <div className="br-eyebrow">Brandradar · Anzeige</div>
+                        <h1 className="br-m-title">Einstellungen</h1>
+                      </div>
                     </div>
                   </header>
                   <div className="br-m-scroll">{settingsCards}</div>
@@ -2782,9 +2794,12 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
               {mobileTab === 'fires' && !(inDossier && (dossierRecord || (history && historyEntry) || (readoutTab === 'anomalies' && dossierSite))) && (
                 <section className="br-m-page" aria-label="Brände">
                   <header className="br-m-head">
-                    <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      {mobileBrand}
+                      <div>
                       <div className="br-eyebrow">{readoutTab === 'anomalies' ? 'Archiv 2020–2026 · ' : history ? 'Historie · ' : 'Registry · '}{history ? (history === 'month' ? 'Monat' : 'Saison') : `${time.windowH >= 168 ? '7-Tage' : '24-h'}-Fenster`}</div>
                       <h1 className="br-m-title">{readoutTab === 'anomalies' ? `Thermalanomalien${liveSiteCount > 0 ? ` · ${liveSiteCount}` : ''}` : history ? `Brände${historyLoad.kind === 'ok' ? ` · ${historyLoad.file.counts.total.toLocaleString('de-DE')}` : ''}` : `Brände${panelRecords.length > 0 ? ` · ${panelRecords.length}` : ''}`}</h1>
+                      </div>
                     </div>
                     {readoutTab !== 'anomalies' && !history && <span className="br-muted">{Math.min(shownFootprints, panelRecords.length)} gezeigt</span>}
                   </header>
