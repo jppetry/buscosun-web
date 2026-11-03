@@ -2302,6 +2302,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
       <img src="/buscosun-mark.svg" width={22} height={22} alt="" />
     </button>
   );
+  const mobileShare = <ShareButton className="br-m-share" compact />;
   /** Mobil, Dossier-Kopf: Logo, Zurück-Link und Name des Brands in EINER Reihe (Name kürzt mit …). */
   const dsHeadRow = (backLabel: string, name: string, right?: ReactNode) => (
     <div className="br-m-dshead-row" style={{ gap: 10 }}>
@@ -2311,6 +2312,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
       </h1>
       {right}
+      {mobileShare}
     </div>
   );
   /** Topbar-/Kopf-Segment „Karte | Dossier" (Desktop, Tablet, Mobil). */
@@ -2724,7 +2726,10 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                         <h1 className="br-m-title">Layer</h1>
                       </div>
                     </div>
-                    <span className="br-count is-bordered">{switchableCount} aktiv</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span className="br-count is-bordered">{switchableCount} aktiv</span>
+                      {mobileShare}
+                    </div>
                   </header>
                   <div className="br-m-scroll">
                     {dockGroups(true)}
@@ -2742,6 +2747,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                         <h1 className="br-m-title">Einstellungen</h1>
                       </div>
                     </div>
+                    {mobileShare}
                   </header>
                   <div className="br-m-scroll">{settingsCards}</div>
                 </section>
@@ -2805,7 +2811,10 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                       <h1 className="br-m-title">{readoutTab === 'anomalies' ? `Thermalanomalien${liveSiteCount > 0 ? ` · ${liveSiteCount}` : ''}` : history ? `Brände${historyLoad.kind === 'ok' ? ` · ${historyLoad.file.counts.total.toLocaleString('de-DE')}` : ''}` : `Brände${panelRecords.length > 0 ? ` · ${panelRecords.length}` : ''}`}</h1>
                       </div>
                     </div>
-                    {readoutTab !== 'anomalies' && !history && <span className="br-muted">{Math.min(shownFootprints, panelRecords.length)} gezeigt</span>}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {readoutTab !== 'anomalies' && !history && <span className="br-muted">{Math.min(shownFootprints, panelRecords.length)} gezeigt</span>}
+                      {mobileShare}
+                    </div>
                   </header>
                   <div className="br-m-scroll">
                     {firesSeg}
