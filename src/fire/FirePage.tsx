@@ -2302,6 +2302,17 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
       <img src="/buscosun-mark.svg" width={22} height={22} alt="" />
     </button>
   );
+  /** Mobil, Dossier-Kopf: Logo, Zurück-Link und Name des Brands in EINER Reihe (Name kürzt mit …). */
+  const dsHeadRow = (backLabel: string, name: string, right?: ReactNode) => (
+    <div className="br-m-dshead-row" style={{ gap: 10 }}>
+      {mobileBrand}
+      <button type="button" className="br-link br-m-dsback" style={{ flex: '0 0 auto' }} onClick={() => setStage('map')}>{backLabel}</button>
+      <h1 className="br-m-title" style={{ flex: 1, minWidth: 0, margin: 0, fontSize: 18 }}>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+      </h1>
+      {right}
+    </div>
+  );
   /** Topbar-/Kopf-Segment „Karte | Dossier" (Desktop, Tablet, Mobil). */
   const stageSeg = (big: boolean) => (
     <div className={`br-seg br-stage-seg${big ? ' is-big' : ''}`} role="group" aria-label="Bühne der Mitte">
@@ -2740,10 +2751,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
               {mobileTab === 'fires' && inDossier && !dossierRecord && readoutTab === 'anomalies' && dossierSite && (
                 <section className="br-m-page br-m-dossier" aria-label={`Standort ${siteName(dossierSite)}`}>
                   <header className="br-m-head br-m-dshead">
-                    <div className="br-m-dshead-row">
-                      <button type="button" className="br-link br-m-dsback" onClick={() => setStage('map')}>← Thermalanomalien</button>
-                    </div>
-                    <h1 className="br-m-title">{siteName(dossierSite)}</h1>
+                    {dsHeadRow('← Thermalanomalien', siteName(dossierSite))}
                     <p className="br-m-dsregion">{SITE_CLASS_LABEL[dossierSite.cls]}</p>
                   </header>
                   <div className="br-m-scroll">{siteDossier(true)}</div>
@@ -2752,14 +2760,13 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
               {mobileTab === 'fires' && inDossier && dossierRecord && (
                 <section className="br-m-page br-m-dossier" aria-label={`Dossier ${recordTitle(dossierRecord)}`}>
                   <header className="br-m-head br-m-dshead">
-                    <div className="br-m-dshead-row">
-                      <button type="button" className="br-link br-m-dsback" onClick={() => setStage('map')}>← Brände</button>
+                    {dsHeadRow('← Brände', recordName(dossierRecord), (
                       <span className={`br-live is-${firms.tone}`} role="status">
                         <span className="br-live-dot" aria-hidden="true"><span /><span /></span>
                         {firms.label}
                       </span>
-                    </div>
-                    <h1 className="br-m-title">{recordName(dossierRecord)} <span className="br-m-dsbadge">{BR_BADGE_LABEL[badgeOf(dossierRecord.status.kind, dossierRecord.suspectedStatic, dossierRecord.anomaly?.kind ?? null)]}</span></h1>
+                    ))}
+                    <div><span className="br-m-dsbadge">{BR_BADGE_LABEL[badgeOf(dossierRecord.status.kind, dossierRecord.suspectedStatic, dossierRecord.anomaly?.kind ?? null)]}</span></div>
                     <p className="br-m-dsregion">{regionLabel(dossierRecord)}</p>
                   </header>
                   <div className="br-m-scroll">
@@ -2782,10 +2789,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
               {mobileTab === 'fires' && inDossier && history && historyEntry && (
                 <section className="br-m-page br-m-dossier" aria-label={`Dossier ${historyEntryName(historyEntry)}`}>
                   <header className="br-m-head br-m-dshead">
-                    <div className="br-m-dshead-row">
-                      <button type="button" className="br-link br-m-dsback" onClick={() => setStage('map')}>← Brände</button>
-                    </div>
-                    <h1 className="br-m-title">{historyEntryName(historyEntry)}</h1>
+                    {dsHeadRow('← Brände', historyEntryName(historyEntry))}
                     <p className="br-m-dsregion">{historyEntry.country}</p>
                   </header>
                   <div className="br-m-scroll">{historyDossier}</div>
