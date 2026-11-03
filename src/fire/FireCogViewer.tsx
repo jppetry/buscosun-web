@@ -20,6 +20,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useIsMobile } from '../mobile/useIsMobile';
 import {
   COG_HEADER_BYTES, COG_HEADER_RETRY_BYTES, decodeTile, decodeTileU16, estimateBytes,
   parseCogIfds, pickLevel, subTileU16, tilesFor, type CogIfd, type CogTileRef,
@@ -442,6 +443,8 @@ function shapeRingsPx(rings: readonly (readonly number[])[][] | null, epsg: numb
 export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallbackUrl, detections = null, fireBbox = null, fireShape = null, onClose }: CogViewerProps) {
   const [phase, setPhase] = useState<Phase>({ kind: 'loading', word: 'Szene wird gesucht …' });
   const [full, setFull] = useState(false);
+  // Mobil ist das Bild inline zu klein für die Moduswahl — sie erscheint nur im Vollbild.
+  const isMobile = useIsMobile();
   const [mode, setMode] = useState<CogMode>('tci');
   const [swirState, setSwirState] = useState<ExtraState>({ kind: 'idle' });
   const [dnbrState, setDnbrState] = useState<ExtraState>({ kind: 'idle' });
@@ -1139,7 +1142,7 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
           <a href={fallbackUrl} target="_blank" rel="noopener">Im Copernicus Browser öffnen</a>
         </p>
       )}
-      {hasBands && (
+      {hasBands && (full || !isMobile) && (
         <div className="br-cog-mode" role="group" aria-label="Darstellung der 10-m-Ansicht">
           {(['tci', 'swir', 'dnbr'] as const).map((k) => (
             <button
