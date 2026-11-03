@@ -2566,7 +2566,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
             {!isTablet && <span className="br-topdiv" aria-hidden="true" />}
             {!isTablet && <span className="br-topbar-sub">Brandradar · {inDossier ? (readoutTab === 'anomalies' ? 'Thermalanomalien' : 'Brände') : `${REGION_LABEL[region]}-Flächenblick`}</span>}
             {inDossier && dossierRecord && <span className="br-topbar-sub br-topbar-name">{recordName(dossierRecord)}</span>}
-            {stageSeg(false)}
+            {!inDossier && stageSeg(false)}
             {!inDossier && <FireRegionSearch compact={isTablet} onPick={focusRegion} />}
             <div className="br-topbar-right">
               {!isTablet && <span className="br-topbar-map">Karte: <strong>{basemapLabel}</strong></span>}
@@ -2733,7 +2733,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                     </div>
                     <h1 className="br-m-title">{siteName(dossierSite)}</h1>
                     <p className="br-m-dsregion">{SITE_CLASS_LABEL[dossierSite.cls]}</p>
-                    {stageSeg(true)}
                   </header>
                   <div className="br-m-scroll">{siteDossier(true)}</div>
                 </section>
@@ -2750,7 +2749,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                     </div>
                     <h1 className="br-m-title">{recordName(dossierRecord)} <span className="br-m-dsbadge">{BR_BADGE_LABEL[badgeOf(dossierRecord.status.kind, dossierRecord.suspectedStatic, dossierRecord.anomaly?.kind ?? null)]}</span></h1>
                     <p className="br-m-dsregion">{regionLabel(dossierRecord)}</p>
-                    {stageSeg(true)}
                   </header>
                   <div className="br-m-scroll">
                     <FireDossier
@@ -2777,7 +2775,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                     </div>
                     <h1 className="br-m-title">{historyEntryName(historyEntry)}</h1>
                     <p className="br-m-dsregion">{historyEntry.country}</p>
-                    {stageSeg(true)}
                   </header>
                   <div className="br-m-scroll">{historyDossier}</div>
                 </section>
