@@ -2793,7 +2793,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                       lead={(
                         <div className="br-ds-mapstrip">
                           {miniMap(150)}
-                          <span className="br-ds-mapstrip-lbl">Kartenstreifen · tippen für Vollbild</span>
+                          <span className="br-ds-mapstrip-lbl">Kartenstreifen · tippen für die Karte</span>
                         </div>
                       )}
                       aside={<DossierMapNote r={dossierRecord} fromRegistry={miniFrom} />}
