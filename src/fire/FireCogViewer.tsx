@@ -1212,6 +1212,20 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
               )}
             </div>
           )}
+          {(extra.kind === 'loading' || extra.kind === 'absent' || extra.kind === 'error') && (
+            <p className="br-cog-note br-muted">
+              {extra.kind === 'loading'
+                ? (mode === 'dnbr' ? 'Vorher-Szene wird gesucht …' : 'Band-Originale werden gelesen …')
+                : (<>
+                  {extra.sentence}{' '}
+                  <a href={fallbackUrl} target="_blank" rel="noopener">Im Copernicus Browser öffnen</a>
+                </>)}
+            </p>
+          )}
+          {/* Mobil + Verbrannt: nur die Legende bleibt offen, alle Erläuterungen stehen eingeklappt unter „Methodik". */}
+          {(() => {
+            const notes = (
+              <>
           {/* SAT3d: die Narbe in Zahlen — Auflösung und Vollständigkeit stehen im selben Satz. */}
           {mode === 'dnbr' && dnbrState.kind === 'ready' && scar && (
             <p className="br-cog-note br-muted">
@@ -1224,16 +1238,6 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
           {hasDet && showDet && (
             <p className="br-cog-note br-muted">
               ▭ FIRMS-Pixelgrundfläche — das Feuer liegt irgendwo darin, nicht in der Mitte · gestrichelt und blasser: Detektion erst nach dieser Aufnahme.
-            </p>
-          )}
-          {(extra.kind === 'loading' || extra.kind === 'absent' || extra.kind === 'error') && (
-            <p className="br-cog-note br-muted">
-              {extra.kind === 'loading'
-                ? (mode === 'dnbr' ? 'Vorher-Szene wird gesucht …' : 'Band-Originale werden gelesen …')
-                : (<>
-                  {extra.sentence}{' '}
-                  <a href={fallbackUrl} target="_blank" rel="noopener">Im Copernicus Browser öffnen</a>
-                </>)}
             </p>
           )}
           {mode === 'swir' && swirState.kind === 'ready' && (
@@ -1260,6 +1264,12 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
               Szenenrand, kein Bildfehler.
             </p>
           )}
+              </>
+            );
+            return isMobile && mode === 'dnbr'
+              ? <details className="br-cog-method"><summary>Methodik</summary>{notes}</details>
+              : notes;
+          })()}
         </div>
       )}
     </div>

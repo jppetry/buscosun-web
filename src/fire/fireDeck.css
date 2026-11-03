@@ -1258,6 +1258,11 @@
 /* SAT2b: Sätze und Legende stapeln sich über der Statuszeile (mehrere gleichzeitig möglich). */
 .br-cog-notes { position: absolute; left: 8px; right: 56px; bottom: 32px; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 .br-cog-note { margin: 0; padding: 3px 7px; border-radius: 6px; background: var(--ink-900, #2C2A26); font-size: 13px; color: #EDE6D3; }
+/* Mobil + Verbrannt: Erläuterungen eingeklappt unter „Methodik". */
+.br-cog-method { display: flex; flex-direction: column; gap: 4px; }
+.br-cog-method > summary { align-self: flex-start; cursor: pointer; padding: 3px 9px; border-radius: 6px; background: var(--ink-900, #2C2A26); color: #EDE6D3; font-size: 13px; min-height: 28px; box-sizing: border-box; display: flex; align-items: center; }
+.br-cog-method[open] { gap: 4px; }
+.br-cog-method[open] > summary { margin-bottom: 4px; }
 .br-cog-mode { position: absolute; top: 8px; left: 8px; display: flex; gap: 6px; }
 .br-cog-mode button { padding: 7px 12px; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 999px; background: #FDFBF4; color: var(--ink-900, #2C2A26); font-family: 'League Spartan', system-ui, sans-serif; font-size: 13px; font-weight: 700; letter-spacing: .04em; cursor: pointer; }
 .br-cog-mode button.is-active { background: var(--ink-900, #2C2A26); color: #FDFBF4; border-color: var(--ink-900, #2C2A26); }
