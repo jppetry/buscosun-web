@@ -401,12 +401,6 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
     </div>
   );
   const pillBadge = spot ? (spot.region === 'nordsee' ? 'NORDSEE' : 'OSTSEE') : '';
-  const pill = spot && (
-    <div className="sw-pill">
-      <span className="sw-badge">{pillBadge}</span>
-      <span className="sw-pill-body"><span className="sw-pill-title">{spot.name}</span><span className="sw-pill-sub">{spot.seaArea?.name ?? spot.coast?.name ?? ''} · {kindsLabel(spot.kinds)}</span></span>
-    </div>
-  );
   const legend = (
     <div className="sw-legend sw-legend-bar" aria-label="Legende">
       <div className="sw-legend-main">
@@ -486,11 +480,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
           <MapGestureHint map={mapInst} feature="seewetter" subject="sea" accent="#0F6E7A" pickSpots={hintSpots} always enabled={mobTab === 'map'} />
           <div className="sw-m-top">
             <button type="button" className="sw-m-brand" aria-label="Zur Startseite" onClick={nav.goHome}><img src="/buscosun-mark.svg" width={22} height={22} alt="" /></button>
-            <button type="button" className="sw-pill is-button" aria-haspopup="dialog" aria-expanded={mobTab === 'spot'} onClick={() => setMobTab('spot')}>
-              <span className="sw-badge">{pillBadge}</span>
-              <span className="sw-pill-body"><span className="sw-pill-title">{spot?.name ?? 'Spot wählen'}</span><span className="sw-pill-sub">{spot?.seaArea?.name ?? spot?.coast?.name ?? ''} · Profil {profLabel}</span></span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B7355" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
-            </button>
+            <div style={{ flex: 1 }} />
             <ShareButton className="sw-m-share" compact />
           </div>
           <div className="sw-m-times">{chips}</div>
@@ -550,7 +540,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
             {map}
             <MapGestureHint map={mapInst} feature="seewetter" subject="sea" accent="#0F6E7A" pickSpots={hintSpots} always enabled={!inDossier} />
             <div className="sw-ov-left">
-              {pill}{usable && chips}            </div>
+              {usable && chips}            </div>
             <div className="sw-ov-right">{legend}</div>
             {emptyMap}{catFail}
             {cardEl && <div className="sw-map-card">{cardEl}</div>}
