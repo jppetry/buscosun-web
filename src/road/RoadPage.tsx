@@ -295,8 +295,9 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   const fcById = useMemo(() => (fcFile ? new Map(fcFile.points.map((p) => [p.id, p] as const)) : EMPTY_FC_BY_ID), [fcFile]);
   const fcLabel = fcFile ? fcRun.label
     : !fcOwn ? 'Prognose lädt' : fcOwn.reason === 'no-index' ? 'Zeiger nicht lesbar' : fcOwn.reason === 'no-run' ? 'kein Lauf veröffentlicht' : fcOwn.reason === 'no-file' ? 'kein Lauf für diese Strecke' : 'letzter Lauf älter als 12 Stunden';
-  // Without a usable forecast the chip falls back to "Jetzt" (the URL keeps the wish).
-  const t: RoadTime = fcFile ? time : 0;
+  // Without a usable forecast the chip falls back to "Jetzt" (the URL keeps the wish). Overview without an open corridor: the hours steer the hazard map and rail, which need no forecast file.
+  const hzOverview = hz && !corridor;
+  const t: RoadTime = fcFile || hzOverview ? time : 0;
   const fcMs = nowMs + t * 3_600_000;
 
   // Default station (E-AW-13): most critical class first, then the coldest road, else the corridor's first station.
@@ -457,10 +458,10 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   const times = (
     <div role="group" aria-label="Zeitpunkt" className={`aw-seg aw-times${hz ? ' is-hourly' : ''}`}>
       {(hz ? ROAD_HZ_TIMES : ROAD_TIMES).map((h) => {
-        const enabled = h === 0 || (ROAD_FORECAST_ENABLED && !!fcFile);
+        const enabled = h === 0 || (ROAD_FORECAST_ENABLED && (!!fcFile || hzOverview));
         return (
           <button key={h} type="button" aria-pressed={h === t} className={h === t ? 'is-active' : ''} disabled={!enabled} onClick={() => setTimeShared(h)}
-            title={enabled ? (h === 0 ? undefined : `Wetterprognose von ${roadFcEngineName(fcFile)} für ${hm(nowMs + h * 3_600_000)} (${fcLabel})${gap ? '' : ' — Karte und Band zeigen weiter die Messung'}`) : `Wetterprognose derzeit nicht verfügbar (${fcLabel}).`}>
+            title={enabled ? (h === 0 ? undefined : hzOverview ? `Gefahren für ${hm(nowMs + h * 3_600_000)} — die Messpunkte zeigen weiter die Messung; Wetterprognose nach Wahl einer Autobahn` : `Wetterprognose von ${roadFcEngineName(fcFile)} für ${hm(nowMs + h * 3_600_000)} (${fcLabel})${gap ? '' : ' — Karte und Band zeigen weiter die Messung'}`) : `Wetterprognose derzeit nicht verfügbar (${fcLabel}).`}>
             {h === 0 ? `Jetzt${!gap && obs && !noData ? ` · ${hm(obs.slotMs)}` : ''}` : `+${h} h`}
           </button>
         );
