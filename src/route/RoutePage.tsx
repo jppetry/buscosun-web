@@ -183,38 +183,46 @@ export default function RoutePage({ onBack, onOpenFeature, view = '2d', onView, 
   );
 
   return (
-    <RouteDeckShell isMobile={isMobile} onHome={onBack} onOpenFeature={onOpenFeature} crumb={crumb} right={right} mobileHeader={mobileHeader}>
+    <RouteDeckShell isMobile={isMobile} onHome={onBack} onOpenFeature={onOpenFeature} crumb={crumb} right={right} mobileHeader={mobileHeader} step={0} contentClass={status.kind === 'idle' ? 'rd-content--deck' : undefined}>
       {status.kind === 'idle' && (
-        <section className="rd-intro">
-          <span className="rd-intro-eyebrow">Tourenplanung</span>
-          <h1 className="rd-intro-title">Wetter entlang deiner Route</h1>
-          <p className="rd-intro-body">
-            Lade deine geplante Tour hoch — wir zeigen dir Wind, Regen und Temperatur
-            an jedem Kilometer, zur tatsächlichen Uhrzeit deiner Ankunft.
-          </p>
-          <ul className="rd-caps">
-            {RT_INTRO_CAPS.map((c) => (
-              <li key={c}><span className="rd-caps-mark" aria-hidden="true"><IconCheck /></span>{c}</li>
-            ))}
-          </ul>
-
-          {view === '3d' && (
-            <p className="rd-note rd-note--warn" style={{ marginTop: 14 }}>
-              Die 3D-Ansicht zeigt das Wetter über deiner Strecke — dafür braucht sie erst eine Strecke.
-              Lade sie unten hoch; nach der Berechnung steht der Umschalter <b>2D / 3D</b> im Ergebnis.
-            </p>
-          )}
-          <div className="rd-section-label">Strecke hochladen</div>
-          <RouteUpload onFile={handleFile} />
-
-          {!isMobile && (
-            <div className="rd-howto">
-              <span className="rd-howto-ic" aria-hidden="true"><IconHowTo /></span>
-              <span><strong>So geht’s:</strong> Strecke hochladen — wir rechnen Tempo, Ankunftszeiten und das Wetter Kilometer für Kilometer aus.</span>
+        <section className="rd-intro rd-deck">
+          <div className="rd-dock">
+            <div className="rd-intro-head">
+              <span className="rd-intro-eyebrow">Tourenplanung</span>
+              <h1 className="rd-intro-title">Wetter entlang deiner Route</h1>
+              <p className="rd-intro-body">
+                Lade deine geplante Tour hoch — wir zeigen dir Wind, Regen und Temperatur
+                an jedem Kilometer, zur tatsächlichen Uhrzeit deiner Ankunft.
+              </p>
             </div>
-          )}
-          <div className="rd-trust">
-            <span className="dot">●</span> Native Behörden-Quellen: DWD · GeoSphere · MeteoSwiss · höhenkorrigiert · keine Tracker
+            <div className="rd-intro-foot rd-dock-after">
+              <ul className="rd-caps">
+                {RT_INTRO_CAPS.map((c) => (
+                  <li key={c}><span className="rd-caps-mark" aria-hidden="true"><IconCheck /></span>{c}</li>
+                ))}
+              </ul>
+              <div className="rd-trust">
+                <span className="dot">●</span> Native Behörden-Quellen: DWD · GeoSphere · MeteoSwiss · höhenkorrigiert · keine Tracker
+              </div>
+            </div>
+          </div>
+
+          <div className="rd-stage">
+            {view === '3d' && (
+              <p className="rd-note rd-note--warn">
+                Die 3D-Ansicht zeigt das Wetter über deiner Strecke — dafür braucht sie erst eine Strecke.
+                Lade sie hier hoch; nach der Berechnung steht der Umschalter <b>2D / 3D</b> im Ergebnis.
+              </p>
+            )}
+            <div className="rd-section-label">Strecke hochladen</div>
+            <RouteUpload onFile={handleFile} />
+
+            {!isMobile && (
+              <div className="rd-howto">
+                <span className="rd-howto-ic" aria-hidden="true"><IconHowTo /></span>
+                <span><strong>So geht’s:</strong> Strecke hochladen — wir rechnen Tempo, Ankunftszeiten und das Wetter Kilometer für Kilometer aus.</span>
+              </div>
+            )}
           </div>
         </section>
       )}

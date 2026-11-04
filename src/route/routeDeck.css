@@ -137,11 +137,6 @@
 .rd-h2 { font-size: 30px; font-weight: 700; color: var(--ink-900); letter-spacing: -0.6px; margin: 10px 0 0; }
 .rd-p { font-size: 14px; color: var(--stone-600); font-weight: 300; margin: 8px 0 0; line-height: 1.5; }
 
-/* Fortschritts-Kopf (Schritt 1/2 von 2 …) */
-.rd-progress { display: flex; align-items: center; gap: 10px; }
-.rd-progress-bar { flex: 1; max-width: 180px; height: 4px; border-radius: 2px; background: var(--sand-200); overflow: hidden; }
-.rd-progress-bar > span { display: block; height: 100%; background: var(--terracotta-500); }
-
 /* CTA (Weiter / Wetter berechnen) */
 .rd-cta {
   display: inline-flex; align-items: center; gap: 9px; margin-top: 20px;
@@ -284,10 +279,6 @@
 /* ============================ Ergebnis (T5 / T7 / T10) ============================ */
 .rd-result-head { }
 .rd-result-title { font-size: 28px; font-weight: 700; color: var(--ink-900); letter-spacing: -0.5px; margin: 6px 0 0; }
-.rd-result-sub { font-size: 13.5px; color: var(--stone-600); margin-top: 5px; }
-.rd-result-sub strong { color: var(--ink-900); }
-
-.rd-result-strip-label { display: block; font-size: 10px; letter-spacing: 2px; color: var(--stone-400); font-weight: 700; margin: 22px 0 9px; text-transform: uppercase; }
 
 .rd-result-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; margin-top: 16px; align-items: stretch; }
 /* Die Kartenspalte des Ergebnisses: Umschalter oben, darunter die gewaehlte
@@ -440,7 +431,6 @@
    Nur die Intro-Ansicht — die übrigen Route-Screens bleiben unverändert.
    ============================================================================ */
 @media (min-width: 768px) {
-  .rd-content:has(.rd-intro) { padding-top: 26px; padding-bottom: 24px; }
   .rd-intro .rd-intro-title { font-size: 34px; margin-top: 4px; }
   .rd-intro .rd-intro-body { font-size: 15px; margin-top: 8px; }
   .rd-intro .rd-caps { gap: 6px; margin-top: 12px; }
@@ -455,13 +445,6 @@
   .rd-intro .rd-formats-note { margin-top: 14px; padding-top: 12px; line-height: 1.55; }
   .rd-intro .rd-howto { margin-top: 10px; padding: 10px 14px; }
   .rd-intro .rd-trust { margin-top: 8px; }
-}
-
-/* ===== R3D · Umschalter 2D/3D über dem Ergebnis ===== */
-.rd-viewbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 12px; }
-.rd-viewbar-note { font-size: 12px; color: var(--stone-500); flex: 1 1 260px; min-width: 0; }
-@media (max-width: 767px) {
-  .rd-viewbar-note { display: none; }
 }
 
 /* ===== R3D · Umschalter 2D | 3D (auch im 2D-Ergebnis sichtbar) ===== */
@@ -628,59 +611,184 @@
 }
 
 /* ============================================================================
-   Modernisierung Wetter entlang der Route (Handy · Tablet · Desktop)
-   Nur Darstellung unter .rd-root / .rd-m-root: weichere Karten mit Tiefe,
-   größere Zahlen, Wetterstreifen mit Einrasten, großzügigere Karte, feste
-   Haupt-Aktion am Handy. tourTheme.css bleibt unberührt (geteilt).
+   Command-Deck aller Route-Screens (04.11.2026): gleicher Bau wie Gletscher,
+   Seewetter und Brandradar. Topbar mit Stepper · Dock (Kontext + Haupt-Aktion) ·
+   Bühne (Arbeitsfläche) · mobil eine Spalte und im Ergebnis eine Bottom-Bar.
+   Flach mit Haarlinien statt Schatten. tourTheme.css bleibt unberührt (geteilt).
    ============================================================================ */
-:is(.rd-root, .rd-m-root) { --rd-shadow-soft: 0 1px 2px rgba(44, 42, 38, 0.05), 0 6px 18px -10px rgba(44, 42, 38, 0.18); }
 
-/* Karten und Panels: ruhige Tiefe statt harter Rahmen */
-.rd-panel, .rd-fcpanel, .rd-config-panel, .rd-ebike-panel, .rd-elev, .rd-filebar, .rd-config-head, .rd-formats, .rd-dropzone-card {
-  border-radius: 18px; box-shadow: var(--rd-shadow-soft);
+/* ---- Topbar ---- */
+.rd-topbar {
+  height: 60px; gap: 16px; padding-left: 20px; padding-right: 20px; position: relative; z-index: 3;
+  background: linear-gradient(180deg, var(--rd-card) 0%, color-mix(in srgb, var(--rd-card) 70%, var(--rd-content-bg)) 100%);
+  box-shadow: 0 8px 18px -16px rgba(44, 42, 38, 0.35);
 }
-.rd-stat { border-radius: 16px; box-shadow: var(--rd-shadow-soft); }
-.rd-stat-value, :is(.rd-root, .rd-m-root) .rt-stat-value { font-variant-numeric: tabular-nums; letter-spacing: -0.4px; }
-.rd-result-title, .rd-preview-title, .rd-h2 { letter-spacing: -0.7px; }
-.rd-cta { box-shadow: 0 6px 16px -8px rgba(168, 94, 46, 0.55); }
-.rd-cta:active:not(:disabled) { transform: translateY(1px); }
-
-/* Wetterstreifen entlang der Route: Karten mit Tiefe, Einrasten, Randverlauf */
-:is(.rd-root, .rd-m-root) .rt-rwx-cards { scroll-snap-type: x proximity; scroll-padding: 0 12px; padding: 4px 2px 10px; gap: 8px; }
-:is(.rd-root, .rd-m-root) .rt-rwx-card {
-  scroll-snap-align: start; border-radius: 16px; gap: 6px; padding: 12px 8px 11px;
-  box-shadow: var(--rd-shadow-soft); transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+.rd-brand { font-size: 20.5px; }
+.rd-crumb { flex: 0 1 auto; }
+.rd-steps { list-style: none; margin: 0 0 0 auto; padding: 0; display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+.rd-steps + .rd-topright { margin-left: 0; }
+.rd-step { display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; color: var(--stone-500); white-space: nowrap; }
+.rd-step + .rd-step::before { content: ''; width: 16px; height: 1px; margin-right: 1px; background: var(--border-strong); }
+.rd-step i { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-style: normal; font-size: 11px; font-weight: 700; background: var(--sand-200); color: var(--stone-600); }
+.rd-step.is-done i { background: var(--rd-sage-tint); color: var(--rd-sage-strong); }
+.rd-step.is-now { color: var(--ink-900); }
+.rd-step.is-now i { background: var(--terracotta-500); color: var(--rd-card); }
+@media (max-width: 1100px) {
+  .rd-step:not(.is-now) span { display: none; }
 }
-:is(.rd-root, .rd-m-root) .rt-rwx-card:hover { transform: translateY(-2px); }
-:is(.rd-root, .rd-m-root) .rt-rwx-card.is-selected { border-width: 1.5px; box-shadow: 0 0 0 3px rgba(201, 123, 71, 0.16), var(--rd-shadow-soft); }
-:is(.rd-root, .rd-m-root) .rt-rwx-card-km { font-size: 0.8rem; }
-:is(.rd-root, .rd-m-root) .rt-rwx-card-tmax { font-size: 1.45rem; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
-:is(.rd-root, .rd-m-root) .rt-rwx-card-tmin { font-variant-numeric: tabular-nums; }
-:is(.rd-root, .rd-m-root) .rt-rwx-pill { padding: 3px 9px; font-size: 0.64rem; }
-@media (prefers-reduced-motion: reduce) { :is(.rd-root, .rd-m-root) .rt-rwx-card:hover { transform: none; } }
 
-/* Desktop und breites Tablet: Karte darf wachsen, Seitenspalte bleibt in Sicht */
+/* ---- Dock + Bühne ---- */
+.rd-content--deck { padding: 0; }
+.rd-deck { display: grid; grid-template-columns: minmax(300px, 360px) minmax(0, 1fr); height: 100%; min-height: 0; }
+.rd-dock {
+  display: flex; flex-direction: column; gap: 16px; min-height: 0; overflow-y: auto; padding: 22px;
+  background: var(--rd-card); border-right: 1px solid var(--border-default);
+}
+.rd-stage { display: flex; flex-direction: column; gap: 14px; min-width: 0; min-height: 0; overflow-y: auto; padding: 22px 26px; }
+.rd-dock .rd-h2 { font-size: 26px; margin-top: 8px; }
+.rd-dock .rd-cta { margin-top: auto; }
+.rd-section-label, .rd-intro .rd-section-label { margin: 0; }
+
+.rd-tourcard { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 13px 14px; border-radius: 12px; background: #fff; border: 1px solid var(--border-default); }
+.rd-tourcard strong { margin-top: 2px; font-size: 15.5px; font-weight: 700; color: var(--ink-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rd-tourcard-meta { font-size: 12.5px; color: var(--stone-600); font-variant-numeric: tabular-nums; }
+
+.rd-cta { border-radius: 12px; }
+.rd-cta--full { min-height: 48px; }
+.rd-readout { display: flex; flex: 1 1 auto; flex-direction: column; gap: 14px; }
+
+/* ---- Upload ---- */
+.rd-intro-title, .rd-intro .rd-intro-title { font-size: 32px; font-weight: 700; letter-spacing: -0.8px; line-height: 1.08; margin-top: 8px; }
+.rd-intro-foot { display: flex; flex: 1 1 auto; flex-direction: column; gap: 16px; }
+.rd-intro .rd-caps { margin-top: 0; gap: 9px; }
+.rd-caps li { align-items: flex-start; font-size: 13.5px; line-height: 1.35; }
+.rd-trust { align-items: flex-start; margin-top: auto; line-height: 1.45; }
+.rd-intro .rd-trust { margin-top: auto; }
+.rd-upload { flex: 1 1 auto; flex-direction: column; gap: 14px; min-height: 0; }
+.rd-dropzone-card { display: flex; flex: 1 1 auto; border-radius: 14px; }
+.rd-dropzone { flex: 1 1 auto; height: auto; min-height: 240px; }
+.rd-formats { width: 100%; flex: 0 0 auto; border-radius: 14px; }
+.rd-intro .rd-howto { margin-top: 0; }
+@media (min-width: 768px) {
+  .rd-formats-list, .rd-intro .rd-formats-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 9px 18px; }
+  .rd-intro .rd-formats-note { margin-top: 12px; padding-top: 10px; }
+}
+
+/* ---- Vorschau ---- */
+.rd-dock .rd-filebar { flex-wrap: wrap; row-gap: 6px; padding: 11px 13px; background: #fff; }
+.rd-dock .rd-filebar-name { flex: 1 1 140px; }
+.rd-dock .rd-filebar-replace { margin-left: 0; }
+.rd-dock .rd-tracks { margin-top: 0; }
+.rd-preview-eyebrow { margin: 0 0 4px; }
+.rd-preview-title { font-size: 25px; line-height: 1.12; }
+.rd-dock .rd-statgrid { grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 0; }
+.rd-stat { background: #fff; border-radius: 12px; padding: 12px 13px; }
+.rd-stat-value { font-size: 21px; font-variant-numeric: tabular-nums; }
+.rd-dock .rd-preview-details { margin-top: 0; gap: 6px; }
+.rd-chip-info { background: #fff; }
+.rd-stage .rd-elev { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 300px; margin-top: 0; }
+.rd-stage .rd-elev svg { flex: 1 1 240px; height: auto; min-height: 200px; }
+.rd-stage > .rd-status { margin: 0; }
+
+/* ---- Bewegungsart ---- */
+:is(.rd-root, .rd-m-root) .rd-stage .rt-mvgrid { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin-top: 0; }
+:is(.rd-root, .rd-m-root) .rt-mvcard { border-radius: 14px; }
+
+/* ---- Planung ---- */
+.rd-stage .rd-config-cols { margin-top: 0; }
+.rd-stage .rd-ebike-panel { margin-top: 0; }
+.rd-dock .rd-config-head { margin-top: 0; padding: 13px 14px; background: #fff; }
+.rd-dock .rd-config-blurb { flex: 1 1 100%; }
+.rd-dock .rd-config-change { margin-left: 0; padding: 0; }
+.rd-dock .rt-card.rt-timeover { padding: 8px 14px; background: #fff; }
+@media (max-width: 1240px) {
+  .rd-stage .rd-config-cols { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---- Ergebnis: Kopf mit Kennzahlen ---- */
+.rd-result-head { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 14px 24px; }
+.rd-result-titles { min-width: 0; flex: 1 1 280px; }
+.rd-result-title { font-size: 26px; line-height: 1.12; }
+.rd-kpis { display: flex; margin: 0; overflow: hidden; border-radius: 14px; background: var(--rd-card); border: 1px solid var(--border-default); }
+.rd-kpis > div { min-width: 0; padding: 9px 16px; }
+.rd-kpis > div + div { border-left: 1px solid var(--border-default); }
+.rd-kpis dt { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; color: var(--stone-400); text-transform: uppercase; }
+.rd-kpis dd { margin: 3px 0 0; font-size: 16px; font-weight: 700; color: var(--ink-900); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rd-content--result .rd-status { margin: 12px 0 0; }
+
+/* ---- Ergebnis: Werkzeugleiste + Karte + Readout ---- */
+.rd-result-grid { align-items: start; }
+.rd-mapsw-seg, .r3-toggle { display: inline-flex; flex: 0 0 auto; gap: 2px; padding: 3px; border-radius: 11px; background: var(--rd-neutral-chip); border: 1px solid var(--border-default); }
+.rd-mapsw button { border: 0; border-radius: 8px; background: none; }
+.r3-toggle button { border-radius: 8px; }
+.rd-mapsw-note { flex: 1 1 160px; min-width: 0; }
+.rd-mapsw-view { flex: 0 0 auto; margin-left: auto; }
 @media (min-width: 901px) {
   .rd-mapwrap { height: clamp(380px, 54dvh, 600px); }
-  .rd-result-grid > .rd-fcpanel { position: sticky; top: 0; align-self: start; }
+}
+.rd-fcpanel { padding: 16px 18px; gap: 14px; }
+.rd-fcpanel .rt-statgrid { gap: 0 14px; margin-top: 8px; }
+.rd-fcpanel .rt-stat { padding: 10px 0; border: 0; border-top: 1px solid var(--border-default); border-radius: 0; background: none; }
+
+/* ---- Ergebnis: Wetter entlang der Route ---- */
+.rd-wx { display: flex; flex-direction: column; gap: 10px; }
+.rd-mapcol, .rd-fcpanel, .rd-section, .rd-analysis-grid { scroll-margin-top: 12px; }
+:is(.rd-root, .rd-m-root) .rt-rwx-cards { gap: 8px; padding: 2px 2px 8px; scroll-snap-type: x proximity; scroll-padding: 0 2px; }
+:is(.rd-root, .rd-m-root) .rt-rwx-card { scroll-snap-align: start; border-radius: 12px; background: #fff; padding: 11px 8px; }
+:is(.rd-root, .rd-m-root) .rt-rwx-card:hover { border-color: var(--border-strong); }
+:is(.rd-root, .rd-m-root) .rt-rwx-card.is-selected { border-color: var(--terracotta-500); }
+:is(.rd-root, .rd-m-root) .rt-rwx-card-tmax { font-size: 1.35rem; letter-spacing: -0.4px; font-variant-numeric: tabular-nums; }
+:is(.rd-root, .rd-m-root) .rt-rwx-card-tmin { font-variant-numeric: tabular-nums; }
+:is(.rd-root, .rd-m-root) .rt-rwx-cap { margin-top: 2px; }
+:is(.rd-root, .rd-m-root) .rt-stat-value { font-variant-numeric: tabular-nums; }
+
+/* ---- Tablet hochkant: Dock über der Bühne, die ganze Fläche scrollt ---- */
+@media (min-width: 768px) and (max-width: 900px) {
+  .rd-deck { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .rd-dock { border-right: 0; border-bottom: 1px solid var(--border-default); overflow: visible; }
+  .rd-stage { overflow: visible; }
+  .rd-dock .rd-cta { margin-top: 4px; }
+  .rd-trust, .rd-intro .rd-trust { margin-top: 4px; }
 }
 
-/* Tablet: etwas mehr Luft in den Panels, Wetterkarten breiter */
-@media (min-width: 768px) and (max-width: 1439px) {
-  .rd-panel, .rd-fcpanel, .rd-config-panel { padding: 20px; }
-  :is(.rd-root, .rd-m-root) .rt-rwx-card { min-width: 92px; }
-}
-
-/* Handy: Wetterkarten bis zum Rand wischbar, größere Zahlen, Haupt-Aktion fest unten */
+/* ---- Handy: eine Spalte, Reihenfolge Kontext → Bühne → Rest, Aktion fest unten ---- */
 @media (max-width: 767px) {
-  .rd-panel, .rd-fcpanel, .rd-config-panel, .rd-ebike-panel, .rd-elev { border-radius: 16px; }
-  :is(.rd-root, .rd-m-root) .rt-rwx { margin-left: -16px; margin-right: -16px; }
-  :is(.rd-root, .rd-m-root) .rt-rwx-cards { padding-left: 16px; padding-right: 16px; scroll-padding: 0 16px; }
-  :is(.rd-root, .rd-m-root) .rt-rwx-card { width: 88px; min-width: 88px; }
-  :is(.rd-root, .rd-m-root) .rt-rwx-cap { padding: 0 2px; }
-  .rd-m-scroll .rd-cta--full {
-    position: sticky; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); z-index: 5;
-    min-height: 52px; box-shadow: 0 10px 24px -10px rgba(168, 94, 46, 0.65);
-  }
-  .rd-m-header { box-shadow: 0 8px 18px -16px rgba(44, 42, 38, 0.4); }
+  .rd-m-header { background: var(--rd-card); }
+  .rd-m-header:has(+ .rd-m-steps) { border-bottom: 0; }
+  .rd-m-steps { flex: 0 0 auto; display: flex; gap: 4px; padding: 0 16px 9px; background: var(--rd-card); border-bottom: 1px solid var(--border-default); }
+  .rd-m-steps i { flex: 1; height: 3px; border-radius: 2px; background: var(--sand-200); }
+  .rd-m-steps i.is-on { background: var(--terracotta-500); }
+
+  .rd-deck { display: flex; flex-direction: column; gap: 14px; height: auto; }
+  .rd-dock { display: contents; }
+  .rd-dock > * { order: 1; }
+  .rd-stage { order: 2; padding: 0; overflow: visible; }
+  .rd-dock > .rd-dock-after { order: 3; }
+  .rd-intro-title, .rd-intro .rd-intro-title { font-size: 28px; }
+  .rd-stage .rd-elev { min-height: 0; }
+  .rd-stage .rd-elev svg { flex: none; height: 140px; min-height: 0; }
+  .rd-dropzone { min-height: 0; }
+  .rd-dock .rd-filebar-replace { margin-left: auto; }
+  .rd-trust, .rd-intro .rd-trust { margin-top: 0; }
+
+  .rd-m-scroll .rd-config-cols { margin-top: 12px; }
+  .rd-m-scroll .rd-readout { margin-top: 12px; }
+  .rd-m-scroll .rt-card.rt-timeover { padding: 8px 14px; }
+  .rd-m-scroll .rd-cta--full { position: sticky; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); z-index: 5; min-height: 52px; margin-top: 0; box-shadow: 0 10px 24px -10px rgba(168, 94, 46, 0.65); }
+
+  .rd-result-title { font-size: 22px; }
+  .rd-result-titles { flex-basis: 100%; }
+  .rd-kpis { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+  .rd-kpis > div { padding: 9px 13px; }
+  .rd-kpis > div + div { border-left: 0; }
+  .rd-kpis > div:nth-child(even) { border-left: 1px solid var(--border-default); }
+  .rd-kpis > div:nth-child(n + 3) { border-top: 1px solid var(--border-default); }
+  .rd-kpis dd { font-size: 14.5px; white-space: normal; }
+  .rd-mapsw-note { flex-basis: 100%; }
+  .rd-panel, .rd-fcpanel { padding: 14px; }
+  :is(.rd-root, .rd-m-root) .rt-rwx-card { width: 84px; min-width: 84px; }
+
+  .rd-m-bar { flex: 0 0 auto; display: flex; justify-content: space-around; padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px)); background: var(--rd-card); border-top: 1px solid var(--border-medium); }
+  .rd-m-bar-btn { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 72px; min-height: 44px; padding: 0 8px; border: 0; background: none; color: var(--stone-500); font-size: 10.5px; cursor: pointer; }
+  .rd-m-bar-btn.is-active { color: var(--terracotta-700); font-weight: 600; }
 }

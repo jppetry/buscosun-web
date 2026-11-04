@@ -13,7 +13,7 @@ import SpeedProfileConfig from './SpeedProfileConfig';
 import StartTimeConfig from './StartTimeConfig';
 import BreaksConfig from './BreaksConfig';
 import { getMovementType, MOVEMENT_TYPES, type MovementId } from './movementTypes';
-import RouteDeckShell, { DeckLive, IconChevLeft, type RailFeature } from './RouteDeck';
+import RouteDeckShell, { DeckLive, DeckSectionBar, IconChevLeft, type DeckBarItem, type RailFeature } from './RouteDeck';
 import { MODELS } from './movementModels';
 import { formatHM, type SpeedProfile } from './speedModel';
 import { BREAK_DEFAULTS, defaultBreakConfig, type BreakConfig } from './breaks';
@@ -301,8 +301,8 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
     </div>
   );
 
-  /* ===== Konfigurations-Panels (Tempo/Richtung/Start · Pausen · E-Bike · CTA) ===== */
-  const configBody = type && profile && breakCfg ? (
+  /* ===== Konfigurations-Panels (Tempo/Richtung/Start · Pausen · E-Bike) ===== */
+  const configStage = type && profile && breakCfg ? (
     <>
       <div className="rd-config-cols">
         <div className="rd-config-panel tp">
@@ -317,66 +317,82 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
       {type.id === 'ebike' && ebikeResult && (
         <div className="rd-ebike-panel"><EbikeBatteryPanel cfg={ebikeCfg} onChange={setEbikeCfg} result={ebikeResult} /></div>
       )}
-      <button type="button" className={`rd-cta${isMobile ? ' rd-cta--full' : ''}`} disabled={!timing} onClick={() => setWeatherRequested(true)}>
-        Wetter berechnen <IconArrowRight size={17} />
-      </button>
     </>
   ) : null;
+
+  /* ===== Readout der Planung: die Zeiten laufen beim Einstellen mit, darunter die Haupt-Aktion ===== */
+  const configReadout = type && profile && breakCfg ? (
+    <div className="rd-readout">
+      {timing && <TimeOverview timing={timing} startMs={startMs} category={type.category} />}
+      <button type="button" className="rd-cta rd-cta--full" disabled={!timing} onClick={() => setWeatherRequested(true)}>
+        Wetter berechnen <IconArrowRight size={17} />
+      </button>
+    </div>
+  ) : null;
+
+  /* ===== Tour-Kachel im Dock: was geplant wird ===== */
+  const tourCard = (
+    <div className="rd-tourcard">
+      <span className="rd-label">Deine Tour</span>
+      <strong title={tourName}>{tourName}</strong>
+      <span className="rd-tourcard-meta">{distKm} km{eff.meta.elevationAvailable ? ` · ${eff.meta.ascentM} hm hoch · ${eff.meta.descentM} hm runter` : ''}</span>
+    </div>
+  );
 
   /* ===== Ergebnis-Body (T5/T7/T10) ===== */
   const resultBody = (
     <>
-      <span className="rd-eyebrow">Ergebnis{type ? ` · ${type.label}` : ''}</span>
-      <h1 className="rd-result-title">{tourName}</h1>
-      {timing && (
-        <div className="rd-result-sub">
-          {formatStart(startMs)} → <strong>{clock(timing.arrivalMs)}</strong> · Gesamt <strong>{formatHM(timing.totalSec)}</strong> · <strong>{distKm} km</strong>
+      <header className="rd-result-head">
+        <div className="rd-result-titles">
+          <span className="rd-eyebrow">Ergebnis{type ? ` · ${type.label}` : ''}</span>
+          <h1 className="rd-result-title">{tourName}</h1>
         </div>
-      )}
+        {timing && (
+          <dl className="rd-kpis">
+            <div><dt>Start</dt><dd>{formatStart(startMs)}</dd></div>
+            <div><dt>Ankunft</dt><dd>{clock(timing.arrivalMs)}</dd></div>
+            <div><dt>Gesamt</dt><dd>{formatHM(timing.totalSec)}</dd></div>
+            <div><dt>Distanz</dt><dd>{distKm} km</dd></div>
+          </dl>
+        )}
+      </header>
 
-      {weatherState.kind === 'loading' && <p className="rd-note">Wetter pro Punkt wird geladen …</p>}
+      {weatherState.kind === 'loading' && <p className="rd-status rd-status--busy" role="status">Wetter pro Punkt wird geladen …</p>}
       {weatherState.kind === 'error' && <p className="rd-note rd-note--warn"><IconWarning size={14} /> Wetter-Anreicherung fehlgeschlagen: {weatherState.message}</p>}
 
-      {weatherState.kind === 'ready' && (
-        <>
-          <span className="rd-result-strip-label">Wetter entlang · Verlässlichkeit</span>
-          <TourWeatherStrip samples={displaySamples} onPick={handlePickDist} selectedDistM={scrubDistM} />
-        </>
-      )}
-
-      {viewToggle && weatherState.kind === 'ready' && (
-        <div className="rd-viewbar">
-          {viewToggle}
-          <span className="rd-viewbar-note">3D zeigt Wind, Regen und Wolkenbasis über dem Höhenprofil — Strecke und Zeit bleiben erhalten.</span>
-        </div>
-      )}
       <div className="rd-result-grid">
-        <div className="rd-mapcol">
+        <div className="rd-mapcol" id="rd-sec-map">
           {canTerrain && (
-            <div className="rd-mapsw" role="group" aria-label="Kartenansicht">
-              <button
-                type="button"
-                className={resultMap === 'terrain' ? 'is-on' : undefined}
-                aria-pressed={resultMap === 'terrain'}
-                onClick={() => setResultMap('terrain')}
-                title="3D-Relief mit der Wetterlage auf der Strecke"
-              >
-                Gelände
-              </button>
-              <button
-                type="button"
-                className={resultMap === 'flat' ? 'is-on' : undefined}
-                aria-pressed={resultMap === 'flat'}
-                onClick={() => setResultMap('flat')}
-                title="Flache Karte mit Pausen, Wegpunkten und Wetter-Markern"
-              >
-                Karte
-              </button>
+            <div className="rd-mapsw">
+              <span className="rd-mapsw-seg" role="group" aria-label="Kartenansicht">
+                <button
+                  type="button"
+                  className={resultMap === 'terrain' ? 'is-on' : undefined}
+                  aria-pressed={resultMap === 'terrain'}
+                  onClick={() => setResultMap('terrain')}
+                  title="3D-Relief mit der Wetterlage auf der Strecke"
+                >
+                  Gelände
+                </button>
+                <button
+                  type="button"
+                  className={resultMap === 'flat' ? 'is-on' : undefined}
+                  aria-pressed={resultMap === 'flat'}
+                  onClick={() => setResultMap('flat')}
+                  title="Flache Karte mit Pausen, Wegpunkten und Wetter-Markern"
+                >
+                  Karte
+                </button>
+              </span>
               <span className="rd-mapsw-note">
                 {showTerrain
                   ? 'Relief mit der Wetterlage auf der Strecke'
                   : 'Flache Karte mit Pausen, Wegpunkten und Wetter-Markern'}
               </span>
+              {/* Auf dem Handy trägt die Kopfzeile den Umschalter bereits. */}
+              {!isMobile && viewToggle && (
+                <span className="rd-mapsw-view" title="3D zeigt Wind, Regen und Wolkenbasis über dem Höhenprofil — Strecke und Zeit bleiben erhalten.">{viewToggle}</span>
+              )}
             </div>
           )}
 
@@ -409,7 +425,7 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
           )}
         </div>
 
-        <aside className="rd-fcpanel">
+        <aside className="rd-fcpanel" id="rd-sec-wx">
           {agg.hasData && (
             <div className="rt-fc-sec">
               <span className="rd-label">Wetter · gesamte Tour</span>
@@ -430,8 +446,15 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
         </aside>
       </div>
 
+      {weatherState.kind === 'ready' && (
+        <section className="rd-section rd-panel rd-wx">
+          <span className="rd-label">Wetter entlang · Verlässlichkeit</span>
+          <TourWeatherStrip samples={displaySamples} onPick={handlePickDist} selectedDistM={scrubDistM} />
+        </section>
+      )}
+
       {timing && weatherState.kind === 'ready' && (
-        <div className="rd-section">
+        <div className="rd-section" id="rd-sec-course">
           <RouteScrubber points={eff.points} samples={displaySamples} milestones={timing.milestones} startMs={startMs} onPos={handleScrubPos} dist={scrubDistM ?? undefined} onDist={setScrubDistM} />
         </div>
       )}
@@ -444,7 +467,7 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
       )}
 
       {timing && weatherState.kind === 'ready' && timingResult && (
-        <div className="rd-analysis-grid rd-analysis-grid--rl">
+        <div className="rd-analysis-grid rd-analysis-grid--rl" id="rd-sec-plan">
           <div className="rt-card rt-timeline">
             <span className="rd-label">Zeitplan</span>
             <Timeline milestones={timing.milestones} />
@@ -512,30 +535,46 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
             </button>
           ))}
         </div>
-        {configBody ?? <p className="rd-status">Wähle oben deine Bewegungsart, um die Planung zu starten.</p>}
+        {configStage}
+        {configReadout ?? <p className="rd-status">Wähle oben deine Bewegungsart, um die Planung zu starten.</p>}
       </>
     );
   } else if (!type) {
     body = (
-      <>
-        <div className="rd-progress"><span className="rd-eyebrow">Schritt 1 von 2 · Bewegungsart</span><span className="rd-progress-bar"><span style={{ width: '50%' }} /></span></div>
-        <h2 className="rd-h2">Wie bist du unterwegs?</h2>
-        <p className="rd-p">Wähle deine Bewegungsart — danach planen wir Zeiten und holen das Wetter entlang der Tour.</p>
-        <MovementPicker selected={typeId} onSelect={selectType} />
-      </>
+      <div className="rd-deck">
+        <div className="rd-dock">
+          <div>
+            <span className="rd-eyebrow">Bewegungsart</span>
+            <h2 className="rd-h2">Wie bist du unterwegs?</h2>
+            <p className="rd-p">Wähle deine Bewegungsart — danach planen wir Zeiten und holen das Wetter entlang der Tour.</p>
+          </div>
+          {tourCard}
+        </div>
+        <div className="rd-stage">
+          {restoreNote}
+          <MovementPicker selected={typeId} onSelect={selectType} />
+        </div>
+      </div>
     );
   } else {
     body = (
-      <>
-        <div className="rd-progress"><span className="rd-eyebrow">Schritt 2 von 2 · Konfiguration</span><span className="rd-progress-bar"><span style={{ width: '100%' }} /></span></div>
-        <div className="rd-config-head">
-          <span className="rd-config-dot" />
-          <span className="rd-config-name">{type.label}</span>
-          <span className="rd-config-blurb">{type.blurb}</span>
-          <button type="button" className="rd-config-change" onClick={resetType}>andere Art wählen</button>
+      <div className="rd-deck">
+        <div className="rd-dock">
+          <span className="rd-eyebrow">Planung</span>
+          <div className="rd-config-head">
+            <span className="rd-config-dot" />
+            <span className="rd-config-name">{type.label}</span>
+            <span className="rd-config-blurb">{type.blurb}</span>
+            <button type="button" className="rd-config-change" onClick={resetType}>andere Art wählen</button>
+          </div>
+          {tourCard}
+          {configReadout}
         </div>
-        {configBody}
-      </>
+        <div className="rd-stage">
+          {restoreNote}
+          {configStage}
+        </div>
+      </div>
     );
   }
 
@@ -581,12 +620,14 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
     <>
       <button type="button" className="rd-m-back" onClick={backToPrev} aria-label="Zurück"><IconChevLeft /></button>
       <div className="rd-m-htext">
-        <div className="rd-m-eyebrow">Schritt 2 von 2</div>
-        <div className="rd-m-title">Konfiguration</div>
+        <div className="rd-m-eyebrow">Schritt {type ? 3 : 2} von 4</div>
+        <div className="rd-m-title">{type ? 'Planung' : 'Bewegungsart'}</div>
       </div>
     </>
   );
 
+  // Desktop/Tablet: Bewegungsart und Planung sind Dock + Bühne, der Wiederherstellungs-Hinweis sitzt in der Bühne.
+  const deckScreen = !isMobile && !showResult;
   return (
     <RouteDeckShell
       isMobile={isMobile}
@@ -595,13 +636,23 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
       crumb={crumb}
       right={showResult ? <DeckLive /> : undefined}
       mobileHeader={mobileHeader}
-      contentClass={showResult ? 'rd-content--result' : undefined}
+      contentClass={showResult ? 'rd-content--result' : deckScreen ? 'rd-content--deck' : undefined}
+      step={showResult ? 3 : type ? 2 : 1}
+      mobileBar={showResult && !in3d && weatherState.kind === 'ready' && timing ? <DeckSectionBar items={RESULT_SECTIONS} /> : undefined}
     >
-      {restoreNote}
+      {!deckScreen && restoreNote}
       {body}
     </RouteDeckShell>
   );
 }
+
+/** Abschnitte des mobilen Ergebnisses (Bottom-Bar). Die Ids stehen im Ergebnis-Body. */
+const RESULT_SECTIONS: readonly DeckBarItem[] = [
+  { id: 'rd-sec-map', label: 'Karte', icon: <path d="M9 4 3 6.5v13L9 17l6 2.5 6-2.5v-13L15 7 9 4zM9 4v13M15 7v12.5" /> },
+  { id: 'rd-sec-wx', label: 'Wetter', icon: <path d="M7 18a4 4 0 0 1-.6-7.95A5.5 5.5 0 0 1 17 9.2 4.5 4.5 0 0 1 17 18H7z" /> },
+  { id: 'rd-sec-course', label: 'Verlauf', icon: <path d="M3 18c3 0 4-9 7-9s3 6 6 6 3-8 5-8" /> },
+  { id: 'rd-sec-plan', label: 'Zeitplan', icon: <><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></> },
+];
 
 /* ===== Quellen-Overlay auf der Karte ===== */
 function QuellenOverlay({ meta }: { meta: EnrichmentMeta }) {

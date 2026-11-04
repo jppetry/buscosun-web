@@ -6,7 +6,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import TourView from './TourView';
-import RouteSummary from './RouteSummary';
+import { RouteDetails, RouteElevation, RouteStats } from './RouteSummary';
 import RouteDeckShell, { DeckLive, IconChevLeft, type RailFeature } from './RouteDeck';
 import { validateTrack } from './routeValidation';
 import { buildTourTrack, type TourTrack } from './tourTrack';
@@ -84,40 +84,47 @@ export default function RouteResult({ file, format, parsed, onReset, onHome, onO
   );
 
   return (
-    <RouteDeckShell isMobile={isMobile} onHome={onHome} onOpenFeature={onOpenFeature} crumb={crumb} right={<DeckLive />} mobileHeader={mobileHeader}>
-      <div className="rd-filebar">
-        <span className="rd-filebar-badge">{format.label}</span>
-        <span className="rd-filebar-name" title={file.name}>{file.name}</span>
-        <span className="rd-filebar-sub">{formatFileSize(file.size)} · Tier {format.tier}</span>
-        <button type="button" className="rd-filebar-replace" onClick={onReset}>Andere Datei</button>
+    <RouteDeckShell isMobile={isMobile} onHome={onHome} onOpenFeature={onOpenFeature} crumb={crumb} right={<DeckLive />} mobileHeader={mobileHeader} step={0} contentClass="rd-content--deck">
+      <div className="rd-deck">
+        {/* Dock: Datei, Kennzahlen, Weiter. Bühne: das Höhenprofil (oder der laufende Schritt). */}
+        <div className="rd-dock">
+          <div className="rd-filebar">
+            <span className="rd-filebar-badge">{format.label}</span>
+            <span className="rd-filebar-name" title={file.name}>{file.name}</span>
+            <span className="rd-filebar-sub">{formatFileSize(file.size)} · Tier {format.tier}</span>
+            <button type="button" className="rd-filebar-replace" onClick={onReset}>Andere Datei</button>
+          </div>
+
+          {multi && <TrackSelector parsed={parsed} selection={selection} onSelect={setSelection} />}
+
+          {validation.ok && tour.kind === 'done' && (
+            <>
+              <div>
+                <span className="rd-preview-eyebrow">Strecke erkannt</span>
+                <h1 className="rd-preview-title">{tour.track.meta.name || 'Deine Strecke'}</h1>
+              </div>
+              <RouteStats track={tour.track} />
+              <div className="rd-dock-after"><RouteDetails track={tour.track} /></div>
+              <button type="button" className="rd-cta rd-cta--full rd-dock-after" onClick={() => setStarted(true)}>
+                Weiter zur Planung <IconArrowRight size={16} />
+              </button>
+            </>
+          )}
+        </div>
+
+        <div className="rd-stage">
+          {!validation.ok ? (
+            <p className="rd-status rd-status--error" role="alert">{validation.message}</p>
+          ) : tour.kind === 'working' ? (
+            <p className="rd-status rd-status--busy" role="status">Strecke wird aufbereitet …</p>
+          ) : tour.kind === 'error' ? (
+            <p className="rd-status rd-status--error" role="alert">{tour.message}</p>
+          ) : tour.kind === 'done' ? (
+            <RouteElevation track={tour.track} />
+          ) : null}
+        </div>
       </div>
-
-      {multi && <TrackSelector parsed={parsed} selection={selection} onSelect={setSelection} />}
-
-      {!validation.ok ? (
-        <p className="rd-status rd-status--error" role="alert">{validation.message}</p>
-      ) : tour.kind === 'working' ? (
-        <p className="rd-status rd-status--busy" role="status">Strecke wird aufbereitet …</p>
-      ) : tour.kind === 'error' ? (
-        <p className="rd-status rd-status--error" role="alert">{tour.message}</p>
-      ) : tour.kind === 'done' ? (
-        <ParsedPreview track={tour.track} isMobile={isMobile} onContinue={() => setStarted(true)} />
-      ) : null}
     </RouteDeckShell>
-  );
-}
-
-/** Parse-Vorschau (T2): erkannter Streckenname, Kennzahlen + Höhenprofil, „Weiter". */
-function ParsedPreview({ track, isMobile, onContinue }: { track: TourTrack; isMobile: boolean; onContinue: () => void }) {
-  return (
-    <>
-      <span className="rd-preview-eyebrow">Strecke erkannt</span>
-      <h1 className="rd-preview-title">{track.meta.name || 'Deine Strecke'}</h1>
-      <RouteSummary track={track} />
-      <button type="button" className={`rd-cta${isMobile ? ' rd-cta--full' : ''}`} onClick={onContinue}>
-        Weiter zur Planung <IconArrowRight size={16} />
-      </button>
-    </>
   );
 }
 

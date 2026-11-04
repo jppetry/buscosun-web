@@ -14,7 +14,8 @@ interface Props {
 
 function cap(s: string): string { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 
-export default function RouteSummary({ track }: Props) {
+/** Die vier Primär-Kennzahlen (Dock der Vorschau). */
+export function RouteStats({ track }: Props) {
   const { meta } = track;
 
   const stats: Array<{ label: string; value: string }> = [
@@ -25,18 +26,23 @@ export default function RouteSummary({ track }: Props) {
   ];
 
   return (
+    <div className="rd-statgrid">
+      {stats.map((s) => (
+        <div key={s.label} className="rd-stat">
+          <div className="rd-stat-label">{s.label}</div>
+          <div className="rd-stat-value">{s.value}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Detail-Chips und Original-Zeit (Dock der Vorschau). */
+export function RouteDetails({ track }: Props) {
+  const { meta } = track;
+
+  return (
     <div className="rd-summary">
-      <div className="rd-statgrid">
-        {stats.map((s) => (
-          <div key={s.label} className="rd-stat">
-            <div className="rd-stat-label">{s.label}</div>
-            <div className="rd-stat-value">{s.value}</div>
-          </div>
-        ))}
-      </div>
-
-      <ElevationProfile track={track} />
-
       <div className="rd-preview-details">
         {meta.maxEleM != null && <span className="rd-chip-info">Höchster Punkt: {meta.maxEleM} m</span>}
         {meta.minEleM != null && <span className="rd-chip-info">Tiefster Punkt: {meta.minEleM} m</span>}
@@ -63,7 +69,8 @@ export default function RouteSummary({ track }: Props) {
   );
 }
 
-function ElevationProfile({ track }: { track: TourTrack }) {
+/** Höhenprofil als Bühne der Vorschau; ohne Höhen sagt die Bühne das. */
+export function RouteElevation({ track }: Props) {
   const profile = useMemo(() => {
     if (!track.meta.elevationAvailable) return null;
     const pts = track.points;
@@ -86,10 +93,11 @@ function ElevationProfile({ track }: { track: TourTrack }) {
       W, H, line, area,
       startY: y(pts[0].ele).toFixed(1), endY: y(pts[pts.length - 1].ele).toFixed(1),
       min: Math.round(min), max: Math.round(max), totalKm: total / 1000,
+      startEle: Math.round(pts[0].ele), endEle: Math.round(pts[pts.length - 1].ele),
     };
   }, [track]);
 
-  if (!profile) return null;
+  if (!profile) return <p className="rd-status">Für diese Strecke liegt kein Höhenprofil vor.</p>;
   const nn = (n: number) => n.toLocaleString('de-DE');
 
   return (
@@ -110,8 +118,8 @@ function ElevationProfile({ track }: { track: TourTrack }) {
         <circle cx={profile.W} cy={profile.endY} r="4" fill="var(--rd-red)" />
       </svg>
       <div className="rd-elev-axis">
-        <span>Start · {nn(profile.min)} m</span>
-        <span>Ziel · {nn(profile.max)} m</span>
+        <span>Start · {nn(profile.startEle)} m</span>
+        <span>Ziel · {nn(profile.endEle)} m</span>
       </div>
     </div>
   );

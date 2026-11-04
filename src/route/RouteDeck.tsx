@@ -5,10 +5,56 @@
  * Ergebnis) geteilt, damit die Shell exakt identisch ist.
  */
 
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { FeatureRail, type RailFeature } from '../nav/featureRail';
 
 export type { RailFeature };
+
+/** Die vier Schritte des Routenplaners, 0-basiert: `step` der Shell zeigt den laufenden. */
+const ROUTE_STEPS = ['Strecke', 'Bewegungsart', 'Planung', 'Ergebnis'] as const;
+
+function RouteStepper({ step }: { step: number }) {
+  return (
+    <ol className="rd-steps" aria-label="Fortschritt">
+      {ROUTE_STEPS.map((label, i) => (
+        <li key={label} className={`rd-step${i < step ? ' is-done' : ''}${i === step ? ' is-now' : ''}`} aria-current={i === step ? 'step' : undefined}>
+          <i aria-hidden="true">{i < step ? '✓' : i + 1}</i><span>{label}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+export interface DeckBarItem { id: string; label: string; icon: ReactNode }
+
+/** Bottom-Bar des mobilen Ergebnisses: springt zu den Abschnitten der Seite und zeigt, wo man gerade liest. */
+export function DeckSectionBar({ items }: { items: readonly DeckBarItem[] }) {
+  const [active, setActive] = useState(items[0]?.id ?? '');
+  const idsKey = items.map((it) => it.id).join('|');
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      (entries) => { for (const e of entries) if (e.isIntersecting) setActive(e.target.id); },
+      { root: document.querySelector('.rd-m-scroll'), rootMargin: '-15% 0px -75% 0px' },
+    );
+    for (const id of idsKey.split('|')) { const el = document.getElementById(id); if (el) obs.observe(el); }
+    return () => obs.disconnect();
+  }, [idsKey]);
+  const go = (id: string) => {
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    document.getElementById(id)?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    setActive(id);
+  };
+  return (
+    <nav className="rd-m-bar" aria-label="Abschnitte des Ergebnisses">
+      {items.map((it) => (
+        <button key={it.id} type="button" className={`rd-m-bar-btn${active === it.id ? ' is-active' : ''}`} aria-current={active === it.id ? 'true' : undefined} onClick={() => go(it.id)}>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{it.icon}</svg>
+          <span>{it.label}</span>
+        </button>
+      ))}
+    </nav>
+  );
+}
 
 /* ============================ Rail-/Deck-Icons (SVG-Pfade aus der Vorlage) ============================ */
 export function IconRailMap({ size = 21 }: { size?: number }) {
@@ -83,15 +129,25 @@ interface ShellProps {
   mobileHeader: ReactNode;
   /** Zusatzklasse für die Content-Fläche (z. B. rd-content--result). */
   contentClass?: string;
+  /** Laufender Schritt (0–3): Stepper in der Topbar, schmale Leiste unter dem Mobile-Header. */
+  step?: number;
+  /** Bottom-Bar unter der Scroll-Fläche (nur mobil). */
+  mobileBar?: ReactNode;
   children: ReactNode;
 }
 
-export default function RouteDeckShell({ isMobile, onHome, onOpenFeature, crumb, right, mobileHeader, contentClass, children }: ShellProps) {
+export default function RouteDeckShell({ isMobile, onHome, onOpenFeature, crumb, right, mobileHeader, contentClass, step, mobileBar, children }: ShellProps) {
   if (isMobile) {
     return (
       <div className="rd-m-root">
         <header className="rd-m-header">{mobileHeader}</header>
+        {step != null && (
+          <div className="rd-m-steps" role="img" aria-label={`Schritt ${step + 1} von ${ROUTE_STEPS.length}: ${ROUTE_STEPS[step]}`}>
+            {ROUTE_STEPS.map((label, i) => <i key={label} className={i <= step ? 'is-on' : undefined} />)}
+          </div>
+        )}
         <div className="rd-m-scroll rd-scroll">{children}</div>
+        {mobileBar}
       </div>
     );
   }
@@ -104,6 +160,7 @@ export default function RouteDeckShell({ isMobile, onHome, onOpenFeature, crumb,
         </div>
         <div className="rd-topdivider" />
         {crumb}
+        {step != null && <RouteStepper step={step} />}
         <div className="rd-topright">{right}</div>
       </header>
       <div className="rd-body">

@@ -15,7 +15,7 @@
   display: block; font-size: 11px; font-weight: 700; letter-spacing: 1.6px;
   text-transform: uppercase; color: var(--terracotta-500);
 }
-.r3-title { margin: 6px 0 0; font-size: 30px; line-height: 1.12; letter-spacing: -0.9px; color: var(--ink-900); font-weight: 700; }
+.r3-title { margin: 6px 0 0; font-size: 26px; line-height: 1.12; letter-spacing: -0.5px; color: var(--ink-900); font-weight: 700; }
 .r3-sub { margin: 7px 0 0; font-size: 13.5px; color: var(--stone-600); }
 .r3-head-side { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; max-width: 260px; }
 .r3-head-hint { font-size: 11.5px; color: var(--stone-500); text-align: right; line-height: 1.45; }
