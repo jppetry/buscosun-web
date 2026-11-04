@@ -13,6 +13,7 @@ import {
 } from './roadHazards';
 import type { RoadHzMode, RoadTime } from './roadState';
 import { hm } from './roadView';
+import { parseWhy } from './roadNarrative';
 
 export const HZ_SHORT: Readonly<Record<RoadHazardId, string>> = Object.freeze({
   reif: 'Reifglätte', nass: 'Überfrierende Nässe', glatteis: 'Gefrierender Regen', schnee: 'Schneeglätte', aqua: 'Aquaplaning',
@@ -80,12 +81,35 @@ export interface HzRow {
   /** "jetzt · bis 10:15" / "ab 08:15 · bis 10:15". */
   when: string;
   sub: string;
+  /** The inputs of the deciding hazard with value (from `why`), e.g. „Fahrbahn −1,2 °C“. */
+  vals: string[];
   dir: 0 | 1 | null;
   group: RoadHazardGroup;
   sortKey: number;
 }
 export interface HzGroupRows { group: RoadHazardGroup; label: string; icon: string; rows: HzRow[]; unknown: number }
 
+const WHY_VAL: Readonly<Record<string, (v: number) => string>> = Object.freeze({
+  Tf: (v) => `Fahrbahn ${dn(v)} °C`, Td: (v) => `Taupunkt ${dn(v)} °C`, rF: (v) => `Feuchte ${Math.round(v)} %`, film: (v) => `Wasserfilm ${dn(v, 2)} mm`,
+  T2m: (v) => `Luft ${dn(v)} °C`, Td2m: (v) => `Taupunkt ${dn(v)} °C`, vis: (v) => `Sicht ${Math.round(v)} m`, visMOS: (v) => `Sicht ${Math.round(v)} m`,
+  gust: (v) => `Böen ${Math.round(v)} km/h`, cross: (v) => `quer ${Math.round(v)} km/h`, rate: (v) => `Regen ${dn(v)} mm/h`, rateRV: (v) => `Regen ${dn(v)} mm/h`,
+  rr: (v) => `Regen ${dn(v)} mm/h`, elev: (v) => `Sonne ${dn(v)}° hoch`, trend: (v) => `Trend ${dn(v)} K/h`, ff: (v) => `Wind ${dn(v)} m/s`,
+});
+function dn(v: number, d = 1): string { return v.toFixed(d).replace('.', ',').replace('-', '−'); }
+/** The numbers behind a hazard (from `why`), at most four, in the order of `WHY_VAL`; the road condition code comes first as a word. */
+export function hzValues(e: HzEntry, id: RoadHazardId): string[] {
+  const got = new Map<string, string>();
+  let code: string | null = null;
+  for (const w of e.why[id] ?? []) {
+    const p = parseWhy(w);
+    if (!p || p.value === '—') continue;
+    if (p.key === 'code') { code = p.value; continue; }
+    const f = WHY_VAL[p.key], n = Number(p.value);
+    if (f && Number.isFinite(n) && !got.has(p.key)) got.set(p.key, f(n));
+  }
+  const out = Object.keys(WHY_VAL).filter((k) => got.has(k)).map((k) => got.get(k) as string);
+  return [...(code ? [`Zustand ${code}`] : []), ...out].slice(0, 4);
+}
 const dirText = (seg: RoadSegment, dir: 0 | 1 | null): string => (dir == null ? 'beide Richtungen' : dir === 0 ? `Richtung ${seg.to}` : `Richtung ${seg.from}`);
 
 export function whenText(lv: Array<RoadLevel | null>, hours: readonly number[]): string {
@@ -113,7 +137,7 @@ export function hzGroupRows(file: RoadHzFile, segs: ReadonlyMap<string, RoadSegm
       const dir = best.id === 'sonne' ? (e.dir?.sonne ?? null) : null;
       rows.push({
         segId: id, seg, best, also, strip: Array.from({ length: ROAD_HZ_HOURS }, (_, i) => lv[i] ?? null),
-        when: whenText(lv, file.hours), sub: `${best.lv === null ? HZ_UNKNOWN_SUB : HZ_SHORT[best.id]} · km ${Math.round(seg.kmFrom)}–${Math.round(seg.kmTo)} · ${dirText(seg, dir)}`, dir, group: g.id,
+        when: whenText(lv, file.hours), vals: best.lv === null ? [] : hzValues(e, best.id), sub: `${best.lv === null ? HZ_UNKNOWN_SUB : HZ_SHORT[best.id]} · km ${Math.round(seg.kmFrom)}–${Math.round(seg.kmTo)} · ${dirText(seg, dir)}`, dir, group: g.id,
         sortKey: best.lv === null ? -1 : best.lv * 100 + EV_RANK[best.ev ?? '-'] * 10 + (16 - ROAD_HAZARD_RANK[best.id]),
       });
     }

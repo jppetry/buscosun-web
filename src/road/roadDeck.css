@@ -1065,3 +1065,11 @@ button.aw-prog-tile:not(:disabled):not(.is-on):hover { box-shadow: var(--aw-inse
   .aw-xs-bolt { opacity: 0.9; }
   .aw-xs-flash, .aw-xs-sheen { opacity: 0; }
 }
+
+/* Hazard tiles (Jan 04.11.): hazard as headline, the numbers behind it as chips. */
+.aw-hz-row-haz { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; letter-spacing: 0.01em; color: var(--ink-900, #2C2A26); }
+.aw-hz-row-haz svg { flex: 0 0 auto; opacity: 0.75; }
+.aw-hz-row-vals { display: flex; flex-wrap: wrap; gap: 4px; }
+.aw-hz-val { font-size: 10.5px; font-weight: 600; font-variant-numeric: tabular-nums; padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--aw-accent, #1F5FAE) 8%, #fff); border: 1px solid color-mix(in srgb, var(--aw-accent, #1F5FAE) 18%, transparent); color: var(--ink-900, #2C2A26); white-space: nowrap; }
+.aw-hz-val.is-gap { background: #F1ECDD; border-style: dashed; border-color: #B9AC8C; color: var(--stone-600, #5C5447); font-weight: 500; white-space: normal; }
+.aw-hz-row-sub { white-space: normal; }

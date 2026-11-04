@@ -10,7 +10,7 @@ import { ROAD_HAZARD_GROUPS, ROAD_HZ_CAP_TEXT, ROAD_HZ_NO_LEVEL_TEXT, type RoadH
 import type { RoadSegment } from './roadSegments';
 import type { RoadHzMode, RoadTime } from './roadState';
 import { AW_SEV, AW_SEV_TINT, AW_HATCH, AW_UNKNOWN_TINT } from './roadNivoTheme';
-import { EV_LABEL, HZ_SHORT, hzCounts, hzGroupRows, hzMatrix, windowLabel, type HzRow } from './roadHzView';
+import { EV_LABEL, HZ_GROUP_ICON, HZ_SHORT, hzCounts, hzGroupRows, hzMatrix, windowLabel, type HzRow } from './roadHzView';
 import RoadHazardMatrix from './RoadHazardMatrix';
 import { hm } from './roadView';
 
@@ -69,7 +69,13 @@ const Row = memo(function Row({ r, selected, onPick, onHover }: { r: HzRow; sele
           {r.seg.shields.map((s) => <span key={s} className="aw-shield">{s}</span>)}
           <span className="aw-hz-row-name">{r.seg.name}</span>
         </span>
-        <span className="aw-hz-row-sub">{r.sub}</span>
+        <span className="aw-hz-row-haz">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={HZ_GROUP_ICON[r.group]} /></svg>
+          {lv === null ? 'Fahrbahnmessung fehlt' : HZ_SHORT[r.best.id]}
+        </span>
+        <span className="aw-hz-row-sub">{r.sub.split(' · ').slice(1).join(' · ')}</span>
+        {r.vals.length > 0 && <span className="aw-hz-row-vals">{r.vals.map((v) => <span key={v} className="aw-hz-val">{v}</span>)}</span>}
+        {lv === null && <span className="aw-hz-row-vals"><span className="aw-hz-val is-gap">Eingang fehlt oder zu alt — keine Entwarnung</span></span>}
         <span className="aw-hz-row-strip"><Strip lv={r.strip} /><span className="aw-hz-row-when">{r.when}</span></span>
         {r.also.length > 0 && <span className="aw-hz-row-also">außerdem: {r.also.map((h) => HZ_SHORT[h]).join(', ')}</span>}
       </span>
