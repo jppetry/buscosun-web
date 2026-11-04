@@ -1,0 +1,135 @@
+{
+  "stamp": "2611022025",
+  "rv": {
+    "ok": true,
+    "files": 53,
+    "bytes": 1607629,
+    "ms": 16736,
+    "wallMs": 17807
+  },
+  "px250": {
+    "ok": true,
+    "files": 15,
+    "bytes": 211023,
+    "ms": 4101,
+    "tiles": 14,
+    "src": "px250",
+    "sites": 17,
+    "missing": [],
+    "blocks": {
+      "wet": 18087,
+      "structured": 16741,
+      "flat": 1346,
+      "belowMin": 17768
+    },
+    "wallMs": 6243,
+    "ms3": [
+      4568,
+      4009,
+      4101
+    ]
+  },
+  "hx": {
+    "ok": true,
+    "files": 15,
+    "bytes": 212322,
+    "ms": 2850,
+    "tiles": 14,
+    "src": "hx",
+    "sites": 17,
+    "missing": [],
+    "blocks": {
+      "wet": 18087,
+      "structured": 16851,
+      "flat": 1236,
+      "belowMin": 17768
+    },
+    "wallMs": 5325,
+    "ms3": [
+      2714,
+      3519,
+      2850
+    ]
+  },
+  "places": {
+    "muenchen": {
+      "wet": 2809,
+      "diff": 2475,
+      "big": 2147,
+      "onlyPx": 115,
+      "onlyHx": 245,
+      "meanAbsStep": 9.7
+    },
+    "basel": {
+      "wet": 0,
+      "diff": 0,
+      "big": 0,
+      "onlyPx": 0,
+      "onlyHx": 0,
+      "meanAbsStep": 0
+    },
+    "bodensee": {
+      "wet": 0,
+      "diff": 0,
+      "big": 0,
+      "onlyPx": 0,
+      "onlyHx": 0,
+      "meanAbsStep": 0
+    },
+    "emden": {
+      "wet": 10255,
+      "diff": 6651,
+      "big": 5407,
+      "onlyPx": 540,
+      "onlyHx": 555,
+      "meanAbsStep": 6.07
+    },
+    "koeln": {
+      "wet": 18797,
+      "diff": 13786,
+      "big": 11192,
+      "onlyPx": 693,
+      "onlyHx": 967,
+      "meanAbsStep": 7.87
+    },
+    "seam-ess-fld": {
+      "wet": 10145,
+      "diff": 8521,
+      "big": 6702,
+      "onlyPx": 826,
+      "onlyHx": 774,
+      "meanAbsStep": 5.91
+    },
+    "seam-nhb-ess": {
+      "wet": 50100,
+      "diff": 39035,
+      "big": 29988,
+      "onlyPx": 2193,
+      "onlyHx": 2358,
+      "meanAbsStep": 6.35
+    },
+    "seam-fld-hnr": {
+      "wet": 9220,
+      "diff": 8274,
+      "big": 6696,
+      "onlyPx": 632,
+      "onlyHx": 627,
+      "meanAbsStep": 6.46
+    }
+  },
+  "whole": {
+    "wet": 238649,
+    "diff": 176661,
+    "big": 133533,
+    "onlyPx": 11357,
+    "onlyHx": 11791,
+    "relSdPerBlock": {
+      "px250": 0.274,
+      "hx": 0.278,
+      "blocks": {
+        "px250": 8171,
+        "hx": 8171
+      }
+    }
+  }
+}
