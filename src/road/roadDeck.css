@@ -1073,3 +1073,15 @@ button.aw-prog-tile:not(:disabled):not(.is-on):hover { box-shadow: var(--aw-inse
 .aw-hz-val { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--aw-accent, #1F5FAE) 8%, #fff); border: 1px solid color-mix(in srgb, var(--aw-accent, #1F5FAE) 18%, transparent); color: var(--ink-900, #2C2A26); white-space: nowrap; }
 .aw-hz-val.is-gap { background: #F1ECDD; border-style: dashed; border-color: #B9AC8C; color: var(--stone-600, #5C5447); font-weight: 500; white-space: normal; }
 .aw-hz-row-sub { white-space: normal; }
+
+/* Layers in the look of the weather map's dock (Jan 04.11.): groups, icon left, switch right. */
+.aw-dock-head-layers { margin: 18px 0 10px; }
+.aw-dock.is-layers .aw-dock-head-layers { margin-top: 0; }
+.aw-layer-group { margin-bottom: 14px; }
+.aw-layer-group-h { font-size: 12px; letter-spacing: 1.6px; font-weight: 700; text-transform: uppercase; color: var(--aw-accent, #1F5FAE); margin: 0 2px 7px; }
+.aw-layer { gap: 10px; min-height: 44px; }
+.aw-layer-ic { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 9px; color: var(--aw-accent, #1F5FAE); background: color-mix(in srgb, var(--aw-accent, #1F5FAE) 10%, #fff); }
+.aw-layer.is-off .aw-layer-ic { color: var(--stone-500, #8B7355); background: var(--sand-100, #EDE6D3); }
+.aw-layer.is-off .aw-layer-label { font-weight: 500; color: var(--stone-500, #8B7355); }
+.aw-layer-label { font-size: 13px; }
+.aw-layer-sub { font-size: 12px; line-height: 1.3; }
