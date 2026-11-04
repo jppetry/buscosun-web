@@ -213,7 +213,12 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     // Die immer aktiven Layer (FIRE_ALWAYS_ON) kommen bei JEDER Herkunft dazu.
     // Ein leeres Set aus der URL (`l=-`) ist eine ABSICHT und bleibt leer;
     // ganz ohne URL-Zustand gelten die Standard-Layer.
-    () => withFireAlwaysOn(initial ? initial.layers : FIRE_DEFAULT_LAYERS),
+    // Ein Link auf eine EFFIS-Kartierung braucht den Saison-Korb, um sie zu finden: nur dann startet der Layer an.
+    () => {
+      const start = withFireAlwaysOn(initial ? initial.layers : FIRE_DEFAULT_LAYERS);
+      if (initialFire?.kind === 'effis') start.add('fireBurnt');
+      return start;
+    },
   );
   const [time, setTime] = useState<FireTimeState>(() => {
     const base = defaultFireTimeState();
@@ -976,6 +981,8 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
       truncated: burntSeason?.truncated ?? false,
     };
   }, [region, europeSeason, burntSeason, burntWeek, europeOutlines]);
+  /** Saison-Korb für Liste und Brandflächen je Brand: ist der Layer aus, zeichnet die Registry keine früheren Flächen (nur die 7 Tage). */
+  const registrySeason = active.has('fireBurnt') ? seasonAll : null;
 
   // Europa: Ladezustand des Saison-Korbs aus der Liste (kein Live-Abruf mehr); das Archiv setzt seinen eigenen.
   useEffect(() => {
@@ -995,8 +1002,8 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
    */
   const outlinelessRef = useRef<readonly BurntPolygon[]>([]);
   outlinelessRef.current = useMemo(
-    () => (region === 'europe' && seasonAll ? seasonAll.polygons.filter(isOutlineless) : []),
-    [region, seasonAll],
+    () => (region === 'europe' && registrySeason ? registrySeason.polygons.filter(isOutlineless) : []),
+    [region, registrySeason],
   );
   useEffect(() => {
     const m = fireMapInst;
@@ -1091,9 +1098,9 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   const registryPolys = useMemo<BurntPolygon[]>(() => {
     const m = new Map<string, BurntPolygon>();
     for (const p of burntWeek) m.set(p.id, p);
-    if (seasonAll) for (const p of seasonAll.polygons) m.set(p.id, p);
+    if (registrySeason) for (const p of registrySeason.polygons) m.set(p.id, p);
     return [...m.values()];
-  }, [burntWeek, seasonAll]);
+  }, [burntWeek, registrySeason]);
   const registryReconciled = useMemo(
     () => reconcileZones(fireZones, registryPolys),
     [fireZones, registryPolys],
@@ -1131,7 +1138,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   const observationIndex = useMemo(() => (hotspotRows.length > 0 ? buildObservationIndex(hotspotRows) : null), [hotspotRows]);
   const records = useMemo<FireRecord[]>(() => {
     const now = Date.now();
-    const win = fpEffisScope === 'season' && seasonAll
+    const win = fpEffisScope === 'season' && registrySeason
       ? { fromMs: 0, toMs: now + 86_400_000 }
       : historyWindow(now);
     const built = buildFireRegistry({
@@ -1152,7 +1159,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     const carried = carryIds(built, prevRecordsRef.current);
     prevRecordsRef.current = carried;
     return carried;
-  }, [clusterList, fireZones, registryReconciled, registryPolys, emsActs, fpEffisScope, seasonAll, clcMask, thermalSites, places, observationIndex, areaModel]);
+  }, [clusterList, fireZones, registryReconciled, registryPolys, emsActs, fpEffisScope, registrySeason, clcMask, thermalSites, places, observationIndex, areaModel]);
   const recordsById = useMemo(() => new Map(records.map((r) => [r.id, r])), [records]);
   /** TA4: Einträge des Fensters auf einem bekannten Standort — Zähler des Reiters. */
   const liveSiteCount = useMemo(() => records.filter((r) => r.anomaly).length, [records]);
@@ -2205,7 +2212,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
       windowH={time.windowH}
       sort={fpSort} onSort={setFpSort}
       filter={fpFilter} onFilter={setFpFilter}
-      effisScope={seasonAll ? fpEffisScope : 'week'} onEffisScope={setFpEffisScope}
+      effisScope={registrySeason ? fpEffisScope : 'week'} onEffisScope={setFpEffisScope}
       countries={countryOptions}
       scopeNote={europeSeasonNote}
       shown={shownFootprints} onShowMore={() => setShownFootprints((n) => n + CLUSTER_PAGE)}
@@ -2225,7 +2232,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
         clustersReady: hotspotRows.length === 0 || clusters.length > 0,
         detectionAgeMs: load.fireHotspots?.kind === 'ok' && load.fireHotspots.ref ? nowMs - load.fireHotspots.ref.atMs : null,
         effisUpdateMs: seasonAll?.lastUpdateMs ?? latestUpdateMs(burntWeek),
-        seasonLoaded: !!seasonAll,
+        seasonLoaded: !!registrySeason,
         effisFailed: load.fireBurnt?.kind === 'error',
       }}
     />

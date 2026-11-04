@@ -212,25 +212,23 @@ export interface FirePreset {
  */
 /**
  * Default-Layer beim Öffnen ohne Hash — identisch mit dem Preset „Überblick",
- * damit der Schnellzugriff beim Start hervorgehoben ist. 2026-08-25 (Jans
- * Auftrag): die früheren Brandflächen (EFFIS, Saison-Korb) sind von Anfang an
- * dabei — damit ist auch der Umfang „ganze Saison" der Brände-Liste sofort
- * wählbar, der sonst gesperrt bleibt, bis der Layer eingeschaltet wird.
+ * damit der Schnellzugriff beim Start hervorgehoben ist. 2026-11-04 (Jans
+ * Auftrag): die früheren Brandflächen (EFFIS, Saison-Korb) sind ein schaltbarer
+ * Layer und beim Start aus; der Umfang „ganze Saison" der Brände-Liste bleibt
+ * gesperrt, bis der Layer eingeschaltet wird.
  */
-export const FIRE_DEFAULT_LAYERS: readonly FireLayerId[] = ['fireHotspots', 'fireBurnt'] as const;
+export const FIRE_DEFAULT_LAYERS: readonly FireLayerId[] = ['fireHotspots'] as const;
 
 /**
  * Immer aktive Layer (Jans Auftrag 2026-09-05).
  *
- * Detektionen, Brandflächen je Brand, Thermalanomalien und frühere Brandflächen
- * SIND die Datengrundlage des Brandradars — Brandliste, Dossier und die
- * Anomalien-Einordnung lesen sie ohnehin. Sie ein- und auszuschalten ergibt
- * keinen Sinn, also entfällt der Schalter; die Dock-Zeilen bleiben mit
- * Steckbrief, Zeitraum-Filter und Ehrlichkeits-Notizen bestehen
- * (Funktionserhalt). Kein Rückzug: die Layer laufen weiter, nur eben immer.
+ * Detektionen, Brandflächen je Brand und Thermalanomalien SIND die Datengrundlage
+ * des Brandradars — Brandliste, Dossier und die Anomalien-Einordnung lesen sie
+ * ohnehin. Sie ein- und auszuschalten ergibt keinen Sinn, also entfällt der
+ * Schalter. Kein Rückzug: die Layer laufen weiter, nur eben immer.
  */
 export const FIRE_ALWAYS_ON: readonly FireLayerId[] =
-  ['fireHotspots', 'fireFootprints', 'fireAnomalies', 'fireBurnt'] as const;
+  ['fireHotspots', 'fireFootprints', 'fireAnomalies'] as const;
 
 /** Ergänzt eine Layer-Auswahl um die immer aktiven — die EINE Stelle, die das tut. */
 export function withFireAlwaysOn(layers: Iterable<FireLayerId>): Set<FireLayerId> {
@@ -606,10 +604,10 @@ export function verifyFireModel(): { checks: FireModelCheck[]; passed: number; t
   // oder Anomalie-Layer im Schnellzugriff.
   add('kein Preset enthält Layer außerhalb MVP + Ausbau',
     FIRE_PRESETS.every((p) => p.layers.every((l) => FIRE_MVP_LAYERS.includes(l) || FIRE_EXTENDED_LAYERS.includes(l))));
-  add('Default-Set = Preset „Überblick" (inkl. frühere Brandflächen)',
-    activeFirePresetId([...FIRE_DEFAULT_LAYERS]) === 'standard' && FIRE_DEFAULT_LAYERS.includes('fireBurnt'));
+  add('Default-Set = Preset „Überblick" (frühere Brandflächen schaltbar und aus)',
+    activeFirePresetId([...FIRE_DEFAULT_LAYERS]) === 'standard' && !FIRE_DEFAULT_LAYERS.includes('fireBurnt') && !FIRE_ALWAYS_ON.includes('fireBurnt'));
   add('activeFirePresetId erkennt das Standard-Set unabhängig von der Reihenfolge',
-    activeFirePresetId(['fireBurnt', 'fireHotspots']) === 'standard');
+    activeFirePresetId(['fireFootprints', 'fireHotspots']) === 'standard');
   add('activeFirePresetId meldet null bei fremder Kombination',
     activeFirePresetId(['fireDanger', 'fireFuel']) === null);
   // Seit die Grundlage-Layer immer an sind, ist „Gefahrenindex + Feuerwetter"

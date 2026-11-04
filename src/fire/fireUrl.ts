@@ -21,8 +21,8 @@
  * korrigiert.
  *
  * **Die immer aktiven Layer** (`FIRE_ALWAYS_ON`: Detektionen, Brandflächen,
- * Thermalanomalien, frühere Brandflächen) stehen in JEDEM Zustand und sagen
- * deshalb nichts. In `l=` stehen nur die fünf **schaltbaren** Layer.
+ * Thermalanomalien) stehen in JEDEM Zustand und sagen deshalb nichts. In `l=`
+ * stehen nur die sechs **schaltbaren** Layer.
  *
  * **Der markierte Brand.** Seine Registry-Kennung ist sitzungsgebunden (BD2) —
  * das war beim Fragment schon so und bleibt so.
@@ -37,12 +37,13 @@ import type { SoilDrynessMode } from '../sources/iconD2Smi';
 import { applyFireView, type FireReadoutTab, type FireRouteView } from './fireRouteView';
 import { encodeShareQuery, formatValidTime, parseValidTime } from '../share/shareSchema';
 
-/** Die fünf schaltbaren Layer mit lesbarem Namen. Reihenfolge = Ausgabereihenfolge. */
+/** Die sechs schaltbaren Layer mit lesbarem Namen. Reihenfolge = Ausgabereihenfolge. */
 export const FIRE_LAYER_SLUGS: ReadonlyArray<readonly [FireLayerId, string]> = [
   ['fireDanger', 'gefahrenindex'],
   ['fireWeather', 'feuerwetter'],
   ['fireSoilDryness', 'trockenheit'],
   ['fireFuel', 'brennmaterial'],
+  ['fireBurnt', 'fruehere-brandflaechen'],
   ['fireContext', 'schutzgebiete'],
 ] as const;
 
@@ -341,7 +342,7 @@ export function verifyFireUrl(): { checks: FireUrlCheck[]; passed: number; faile
   add('immer aktive Layer stehen NIE in der URL',
     !buildFireSearch(baseState(), 'aktive-braende').includes('detektionen'));
 
-  const s1 = baseState({ windowH: 168, readoutTab: 'fires', layers: ['fireHotspots', 'fireFootprints', 'fireAnomalies', 'fireBurnt'] });
+  const s1 = baseState({ windowH: 168, readoutTab: 'fires', layers: ['fireHotspots', 'fireFootprints', 'fireAnomalies'] });
   add('aktive Brände mit 7-Tage-Fenster', buildFireSearch(s1, 'aktive-braende') === '?fenster=7t', buildFireSearch(s1, 'aktive-braende'));
   add('nur die Fenster, die die App wirklich anbietet',
     FIRE_WINDOW_SLUGS.map(([h]) => h).join(',') === '24,168', FIRE_WINDOW_SLUGS.map(([h]) => h).join(','));
