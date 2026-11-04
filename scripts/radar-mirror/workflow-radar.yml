@@ -81,6 +81,11 @@ jobs:
           # 17 DWD-Standortbildern (`px250`) in den Rückblick-Slot `rv-past/<stamp>/` (`h<ty><tx>.png` + `hd250.json`, ≈ 2 MB je
           # Slot, Retention 2 h). Voreinstellung an, sobald der Web-Klon den Vertrag trägt; Rückweg: RADAR_HD250 auf '0'.
           RADAR_HD250: '1'
+          # Phase HDR (buscosun-web/audit/hd-radar.md, E-HDR-2, 04.11.2026): Quelle der 250-m-Struktur — `px250` (die 17 Standortbilder,
+          # hier kompositiert, wie seit R250) oder `hx` (das 250-m-Komposit des DWD, EINE Datei ≤ 1,6 MB auf demselben Gitter). `hx`
+          # erst nach dem Vergleich am nassen Slot (Jan); fehlt HX für einen Slot, fällt der Schritt auf px250 zurück (`hd250.json` nennt
+          # `src`). Rückweg: 'px250' — byte-gleich zu R250. Braucht buscosun-web main mit `src/sources/dwdHx.ts`.
+          RADAR_HD250_SRC: 'px250'
           # Phase RG (buscosun-web/audit/radar-regenschwelle.md, Jan 10.10.2026, E-RG-1…3): Log-Ebene der `g`-Frames und
           # 250-m-Kacheln aus den NATIVEN RV-Werten — unter 0,06 mm/h (an Stationen gemessene Darstellungsschwelle) nichts.
           # Rückweg: Zeile entfernen (angehobene RADOLAN-Einheiten wie vor RG, jedes Echo blau).

@@ -28,6 +28,12 @@ import { precipToU8Log, PRECIP_LOG_MIN, PRECIP_LOG_MAX, PRECIP_LOG_STEPS, PRECIP
 import { psFwd } from './radolanGeo';
 import { rvPastDir } from './radolanRuns';
 import type { Px250Grid } from './dwdPx250';
+import type { HxGrid } from './dwdHx';
+
+/** Phase HDR: where the 250-m structure came from — the 17 site images composited here (`px250`, Phase R250) or the
+ *  DWD's HX composite (`hx`, E-HDR-2). The producer's switch `RADAR_HD250_SRC` picks; the meta names it. */
+export type Hd250Source = 'px250' | 'hx';
+export const HD250_SOURCES: readonly Hd250Source[] = Object.freeze(['px250', 'hx']);
 
 // --- grid ---------------------------------------------------------------------------------------------------------
 /** 250-m cells per 1-km cell and axis. */
@@ -113,6 +119,30 @@ export function compositePx250(grids: Px250Grid[]): Hd250Composite {
     }
   });
   return { rate, dist, siteIdx, sites };
+}
+
+/**
+ * Phase HDR (E-HDR-2): the DWD's own 250-m composite `HX` (`dwdHx.ts`) as the structure source instead of the 17 site
+ * images — the DWD composited the sites already (`camethod MAXIMUM`), on exactly this grid (shift 0, checked here).
+ * Steps 1–2 of §4 fall away; step 3 (Z-R as a ratio) and the anchoring are the same code as for px250.
+ * `dist` is not known per cell (the composite does not say which site supplied it): NaN where covered, +Infinity where
+ * HX has no data; `siteIdx` −1 everywhere; `sites` = the composite's node list.
+ */
+export function compositeHx(g: HxGrid): Hd250Composite {
+  if (g.cols !== HD250_COLS || g.rows !== HD250_ROWS || g.cellM !== HD250_CELL_M) throw new Error(`hd250: HX-Gitter ${g.cols}×${g.rows} @ ${g.cellM} m`);
+  const sh = px250Shift(g);
+  if (sh.dk !== 0 || sh.dl !== 0 || Math.abs(sh.fracX) > 1e-6 || Math.abs(sh.fracY) > 1e-6) throw new Error(`hd250: HX liegt um ${sh.dk + sh.fracX} × ${sh.dl + sh.fracY} Zellen neben dem Zielgitter`);
+  const n = HD250_COLS * HD250_ROWS;
+  const rate = new Float32Array(n);
+  const dist = new Float32Array(n);
+  const siteIdx = new Int8Array(n).fill(-1);
+  for (let k = 0; k < n; k++) {
+    const v = g.dbz[k];
+    if (Number.isNaN(v)) { rate[k] = NaN; dist[k] = Infinity; continue; }
+    dist[k] = NaN;
+    rate[k] = v === -Infinity ? 0 : Math.pow(Math.pow(10, v / 10) / HD250_ZR.a, 1 / HD250_ZR.b);
+  }
+  return { rate, dist, siteIdx, sites: [...g.sites] };
 }
 
 // --- anchoring ----------------------------------------------------------------------------------------------------
@@ -211,11 +241,13 @@ export interface Hd250Meta {
   /** Phase RG: the tiles were anchored on the NATIVE RV rates with this display threshold (mm/h); blocks under it are dry
    *  (`blocks.belowMin`). Absent = anchored on RADOLAN units (slots before RG). */
   displayMin?: number;
+  /** Phase HDR: the structure source of the slot. Absent = slots before HDR (always the site images). */
+  src?: Hd250Source;
 }
 /* Phase SE (`audit/radar-stoerecho.md` §6): `blocks.clutter` = 1-km blocks the producer's echo filter took out before the
  * anchoring (they are dry in all 16 cells and not counted in `wet`). Absent = no filter ran for the slot. */
 
-export function makeHd250Meta(stamp: string, validAtMs: number, sites: string[], missing: string[], field: Hd250Field, tiles: Hd250MetaTile[], extra?: { displayMin: number; clutterBlocks?: number }): Hd250Meta {
+export function makeHd250Meta(stamp: string, validAtMs: number, sites: string[], missing: string[], field: Hd250Field, tiles: Hd250MetaTile[], extra?: { displayMin?: number; clutterBlocks?: number; src?: Hd250Source }): Hd250Meta {
   return {
     schema: 1, source: 'hd250', stamp, validAtMs,
     cols: HD250_COLS, rows: HD250_ROWS, cellM: HD250_CELL_M, factor: HD250_FACTOR,
@@ -224,7 +256,8 @@ export function makeHd250Meta(stamp: string, validAtMs: number, sites: string[],
     zr: { ...HD250_ZR }, anchor: 'rv', sites, missing,
     blocks: { wet: field.wetBlocks, structured: field.structuredBlocks, flat: field.flatBlocks, ...(field.belowMinBlocks !== undefined ? { belowMin: field.belowMinBlocks } : {}), ...(extra?.clutterBlocks !== undefined ? { clutter: extra.clutterBlocks } : {}) },
     tiles,
-    ...(extra ? { displayMin: extra.displayMin } : {}),
+    ...(extra?.displayMin !== undefined ? { displayMin: extra.displayMin } : {}),
+    ...(extra?.src !== undefined ? { src: extra.src } : {}),
   };
 }
 
@@ -242,6 +275,7 @@ export function parseHd250Meta(j: unknown): Hd250Meta | null {
   if (m.blocks.belowMin !== undefined && !Number.isInteger(m.blocks.belowMin)) return null;
   if (m.blocks.clutter !== undefined && !(Number.isInteger(m.blocks.clutter) && m.blocks.clutter >= 0)) return null;   // Phase SE
   if (m.displayMin !== undefined && !(Number.isFinite(m.displayMin) && m.displayMin >= PRECIP_LOG_MIN)) return null;   // Phase RG
+  if (m.src !== undefined && !HD250_SOURCES.includes(m.src)) return null;   // Phase HDR
   if (!Array.isArray(m.tiles) || m.tiles.length > HD250_TILES_X * HD250_TILES_Y) return null;
   const seen = new Set<string>();
   for (const t of m.tiles) {

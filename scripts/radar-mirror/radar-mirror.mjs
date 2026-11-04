@@ -85,6 +85,9 @@ const PAST_ON = PAST_KEEP > KEEP;
 // (`h<ty><tx>.png` + `hd250.json`, Retention wie rv-past). Nur mit Rückblick und nur, wenn der Web-Klon den Vertrag kennt
 // (sonst läuft der Spiegel wie vorher). Rückweg: `RADAR_HD250=0`. Ein Fehler nimmt nur die Kacheln des Slots, nie den Push.
 const HD250_ON = process.env.RADAR_HD250 !== '0' && PAST_ON && !!APP_DIR && existsSync(join(APP_DIR, 'src', 'sources', 'radarHd250.ts'));
+// Phase HDR (buscosun-web/audit/hd-radar.md, E-HDR-2): structure source of the tiles — `px250` (default) or `hx` (DWD composite);
+// read by the derive step itself, named here only for the status and the log.
+const HD250_SRC = process.env.RADAR_HD250_SRC === 'hx' ? 'hx' : 'px250';
 // Phase NC (buscosun-web/audit/radar-nowcast-dach.md): after every rzc derive the CH extrapolation `img/rzc-nc/<stamp>/`
 // (24 × 5 min from the analysis, motion from the mirror's last analyses) and after every INCA derive the run refined to
 // 5 min `img/inca-5m/<stamp>/` — both as derive kind processes from the web clone, only when it carries the contract
@@ -323,7 +326,7 @@ function deriveHd250(stamp, tarPath) {
       DERIVE_SCRIPT, 'hd250', tarPath, outDir, stamp,
     ], { encoding: 'utf8', timeout: 150_000, env: { ...process.env }, stdio: ['ignore', 'pipe', 'pipe'] });
     const j = JSON.parse(stdout.trim().split('\n').pop());
-    return { ms: Date.now() - t0, files: j.files, bytes: j.bytes, tiles: j.tiles, sites: j.sites, missing: j.missing };
+    return { ms: Date.now() - t0, files: j.files, bytes: j.bytes, tiles: j.tiles, src: j.src ?? null, sites: j.sites, missing: j.missing };
   } catch (e) {
     log(`hd250 ${stamp}: FEHLGESCHLAGEN (${String(e.stderr ?? e.message).split('\n').find((l) => l.trim()) ?? 'unbekannt'}) — Slot ohne 250-m-Kacheln`);
     // Reste einer halben Ablage: unverzeichnete Kacheln sind harmlos (der Client liest nur gelistete), aber ein halbes
@@ -356,7 +359,7 @@ export function storeSeed() {
 // `status.json` liest kein Code nach Schema — reine Telemetrie (D-NP0-3).
 const status = {
   schema: 3, keep: KEEP, pastKeep: PAST_KEEP, imgKeep: IMG_KEEP, imgAgeRule: PAST_ON ? IMG_AGE_RULE : [],
-  pollSec: POLL_SEC, derive: DERIVE, hd250: HD250_ON, nc: NC_ON,
+  pollSec: POLL_SEC, derive: DERIVE, hd250: HD250_ON, hd250Src: HD250_ON ? HD250_SRC : null, nc: NC_ON,
   job: process.env.GITHUB_RUN_ID ?? 'local', startedAt: nowIso(), recent: [], lightning: null,
 };
 
@@ -505,7 +508,7 @@ async function main() {
     } catch (e) { log(`lightning: Modul nicht ladbar (${e.message}) — Blitze AUS`); lightning = null; }
   }
   const deadline = Date.now() + RUN_MINUTES * 60_000;
-  log(`Start · ${RUN_MINUTES} min · Abtastung ${POLL_SEC} s · Retention ${KEEP} · Rückblick ${PAST_ON ? PAST_KEEP : 'AUS'} · Blitze ${lightning ? 'an' : 'AUS'} · 250 m ${HD250_ON ? 'an' : 'AUS'} · Nowcast-Produkte ${NC_ON ? 'an' : 'AUS'} · derive ${DERIVE ? `an (${APP_DIR})` : 'AUS'} · Bestand ${Object.entries(PRODUCTS).map(([k, p]) => `${k}:${storeFiles(p).length}`).join(' ')} img ${['rv', 'inca', 'rzc', 'konrad3d', 'rv-past', 'rzc-nc', 'inca-5m', ...LIGHTNING_DIRS].map((s) => `${s}:${imgSlots(s).length}`).join(' ')}`);
+  log(`Start · ${RUN_MINUTES} min · Abtastung ${POLL_SEC} s · Retention ${KEEP} · Rückblick ${PAST_ON ? PAST_KEEP : 'AUS'} · Blitze ${lightning ? 'an' : 'AUS'} · 250 m ${HD250_ON ? `an (${HD250_SRC})` : 'AUS'} · Nowcast-Produkte ${NC_ON ? 'an' : 'AUS'} · derive ${DERIVE ? `an (${APP_DIR})` : 'AUS'} · Bestand ${Object.entries(PRODUCTS).map(([k, p]) => `${k}:${storeFiles(p).length}`).join(' ')} img ${['rv', 'inca', 'rzc', 'konrad3d', 'rv-past', 'rzc-nc', 'inca-5m', ...LIGHTNING_DIRS].map((s) => `${s}:${imgSlots(s).length}`).join(' ')}`);
 
   // Je Produkt der nächste erwartete Slot: der jüngste, der NICHT im Bestand ist,
   // rückwärts höchstens KEEP Slots (nach der Naht liegen die älteren schon auf main).
@@ -552,10 +555,10 @@ async function main() {
       const hd = k === 'rv' && d ? deriveHd250(p.imgStamp(st.slot, s), join(storeDir(p), file)) : null;
       const pub = publish(`radar: ${file}`);
       lastPushAt = Date.now();
-      const row = { product: k, file, slot: st.slot.toISOString(), dwdAt, seenAt, bytes: dl.buf.length, downloadMs: dl.ms, deriveMs: d?.ms ?? null, imgBytes: d?.bytes ?? null, hd250: hd ? { ms: hd.ms, bytes: hd.bytes, tiles: hd.tiles, sites: hd.sites, missing: hd.missing } : null, pushedAt: pub.pushedAt, pushMs: pub.pushMs ?? null, attempt: pub.attempt ?? null };
+      const row = { product: k, file, slot: st.slot.toISOString(), dwdAt, seenAt, bytes: dl.buf.length, downloadMs: dl.ms, deriveMs: d?.ms ?? null, imgBytes: d?.bytes ?? null, hd250: hd ? { ms: hd.ms, bytes: hd.bytes, tiles: hd.tiles, src: hd.src, sites: hd.sites, missing: hd.missing } : null, pushedAt: pub.pushedAt, pushMs: pub.pushMs ?? null, attempt: pub.attempt ?? null };
       noteRow(row);
       const lag = dwdAt ? ((Date.parse(pub.pushedAt) - Date.parse(dwdAt)) / 1000).toFixed(0) : '—';
-      log(`${k} ${file} · DWD ${dwdAt?.slice(11, 19) ?? '?'} · gesehen ${seenAt.slice(11, 19)} (${st.polls}) · ${(dl.buf.length / 1024).toFixed(0)} KB in ${dl.ms} ms${d ? ` · derive ${d.ms} ms → ${(d.bytes / 1024).toFixed(0)} KB` : ''}${hd ? ` · hd250 ${hd.ms} ms → ${hd.tiles} Kacheln ${(hd.bytes / 1024).toFixed(0)} KB (${hd.sites}/17 Standorte)` : ''} · Push ${pub.pushedAt.slice(11, 19)}${pub.attempt > 1 ? ` (Versuch ${pub.attempt})` : ''} · DWD→Push ${lag} s`);
+      log(`${k} ${file} · DWD ${dwdAt?.slice(11, 19) ?? '?'} · gesehen ${seenAt.slice(11, 19)} (${st.polls}) · ${(dl.buf.length / 1024).toFixed(0)} KB in ${dl.ms} ms${d ? ` · derive ${d.ms} ms → ${(d.bytes / 1024).toFixed(0)} KB` : ''}${hd ? ` · hd250 ${hd.ms} ms → ${hd.tiles} Kacheln ${(hd.bytes / 1024).toFixed(0)} KB (${hd.src ?? 'px250'}, ${hd.sites}/17 Standorte)` : ''} · Push ${pub.pushedAt.slice(11, 19)}${pub.attempt > 1 ? ` (Versuch ${pub.attempt})` : ''} · DWD→Push ${lag} s`);
       pending[k] = { slot: new Date(st.slot.getTime() + 300_000), polls: 0 };
     }
     if (await pollInca()) lastPushAt = Date.now();

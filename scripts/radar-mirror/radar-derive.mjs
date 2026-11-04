@@ -38,8 +38,9 @@ import { untar } from '../../src/sources/radolanDecode.ts';
 import { decodeRvHdf5, isHdf5 } from '../../src/sources/rvHdf5.ts';
 import { PX250_SITES, px250FileName, px250Url, decodePx250 } from '../../src/sources/dwdPx250.ts';
 import {
-  compositePx250, anchorToRv, hd250Tiles, makeHd250Meta, parseHd250Meta, hd250TileFile, HD250_META_FILE, HD250_TILE_W, HD250_TILE_H,
+  compositePx250, compositeHx, anchorToRv, hd250Tiles, makeHd250Meta, parseHd250Meta, hd250TileFile, HD250_META_FILE, HD250_TILE_W, HD250_TILE_H,
 } from '../../src/sources/radarHd250.ts';
+import { hxFileName, hxUrl, decodeHx } from '../../src/sources/dwdHx.ts';
 import { readdirSync, existsSync } from 'node:fs';
 import { inflateSync } from 'node:zlib';
 import { decodePng } from '../lib/png.mjs';
@@ -87,6 +88,9 @@ const dualExtra = DUAL && LOG_NATIVE ? { native: true, displayMin: RADAR_DISPLAY
 // der nativen Log-Ebene (RADAR_IMG_DUAL + RADAR_LOG_NATIVE, HDF5-Lieferform). Kanal 1, `f`-Frames, `m`-Bilder: byte-gleich.
 // Ohne den Schalter byte-gleich zum Stand vor SE; ein Fehler im Filter lässt den Slot ungefiltert (nie ohne Bild).
 const CLUTTER = process.env.RADAR_CLUTTER === '1' && DUAL && LOG_NATIVE;
+// Phase HDR (audit/hd-radar.md, E-HDR-2): structure source of the 250-m tiles — `px250` (the 17 site images, default) or `hx`
+// (the DWD's HX composite). Only the `hd250` step reads it.
+const HD250_SRC = process.env.RADAR_HD250_SRC === 'hx' ? 'hx' : 'px250';
 
 const [source, inPath, outDir, stamp, extra] = process.argv.slice(2);
 if (!source || !inPath || !outDir || !stamp) {
@@ -112,41 +116,64 @@ if (source === 'hd250') {
   // Phase SE: der RV-Schritt desselben Slots hat die Standortbilder schon geholt (`clutterSitesCache`) — von dort lesen,
   // was da ist, den Rest wie bisher vom DWD.
   const siteCache = !sitesDir && CLUTTER && existsSync(clutterSitesCache(stamp)) ? clutterSitesCache(stamp) : '';
-  const fetchSite = async (site) => {
-    if (sitesDir) {
-      const cands = [join(sitesDir, `${site.id}.h5`), join(sitesDir, px250FileName(site, stamp))];
-      const hit = cands.find((p) => existsSync(p)) ?? readdirSync(sitesDir).map((f) => join(sitesDir, f)).find((p) => p.endsWith(`-de${site.id}-hd5`));
-      if (!hit) return null;
-      const b = readFileSync(hit);
-      return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength);
-    }
-    if (siteCache && existsSync(join(siteCache, `${site.id}.h5`))) {
-      const b = readFileSync(join(siteCache, `${site.id}.h5`));
-      return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength);
-    }
+  const readLocal = (p) => { const b = readFileSync(p); return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength); };
+  const fetchDwd = async (url) => {
     const ac = new AbortController();
     const timer = setTimeout(() => ac.abort(), 30_000);
     try {
-      const r = await fetch(px250Url(site, stamp), { signal: ac.signal, headers: { 'user-agent': 'buscosun-radar-mirror (buscosun-web/audit/radar-250m.md)' } });
+      const r = await fetch(url, { signal: ac.signal, headers: { 'user-agent': 'buscosun-radar-mirror (buscosun-web/audit/radar-250m.md)' } });
       if (!r.ok) return null;
       return await r.arrayBuffer();
     } catch { return null; } finally { clearTimeout(timer); }
   };
-  const bufs = await Promise.all(PX250_SITES.map(fetchSite));
-  const grids = [], missing = [];
-  for (let i = 0; i < PX250_SITES.length; i++) {
-    const site = PX250_SITES[i];
-    if (!bufs[i]) { missing.push(site.id); continue; }
-    try {
-      // Phase SE §6.5: zlib von Node statt `DecompressionStream` (51 ms statt ≈ 1 s je Standortbild, dieselben Bytes).
-      const g = await decodePx250(bufs[i], { name: `${site.id}.h5`, inflate: (b) => inflateSync(b) });
-      if (g.site !== site.id) throw new Error(`Datei nennt Standort ${g.site || '?'}`);
-      if (g.timeMs !== rv.validAt.getTime()) throw new Error(`Scanzeit ${new Date(g.timeMs).toISOString()} ≠ Slot`);
-      grids.push(g);
-    } catch (e) { console.error(`hd250: ${site.id} verworfen (${e.message})`); missing.push(site.id); }
+  const fetchSite = async (site) => {
+    if (sitesDir) {
+      const cands = [join(sitesDir, `${site.id}.h5`), join(sitesDir, px250FileName(site, stamp))];
+      const hit = cands.find((p) => existsSync(p)) ?? readdirSync(sitesDir).map((f) => join(sitesDir, f)).find((p) => p.endsWith(`-de${site.id}-hd5`));
+      return hit ? readLocal(hit) : null;
+    }
+    if (siteCache && existsSync(join(siteCache, `${site.id}.h5`))) return readLocal(join(siteCache, `${site.id}.h5`));
+    return fetchDwd(px250Url(site, stamp));
+  };
+  /** Phase R250: the 17 site images composited here (nearest site per cell). */
+  const loadPx250 = async () => {
+    const bufs = await Promise.all(PX250_SITES.map(fetchSite));
+    const grids = [], missing = [];
+    for (let i = 0; i < PX250_SITES.length; i++) {
+      const site = PX250_SITES[i];
+      if (!bufs[i]) { missing.push(site.id); continue; }
+      try {
+        // Phase SE §6.5: zlib von Node statt `DecompressionStream` (51 ms statt ≈ 1 s je Standortbild, dieselben Bytes).
+        const g = await decodePx250(bufs[i], { name: `${site.id}.h5`, inflate: (b) => inflateSync(b) });
+        if (g.site !== site.id) throw new Error(`Datei nennt Standort ${g.site || '?'}`);
+        if (g.timeMs !== rv.validAt.getTime()) throw new Error(`Scanzeit ${new Date(g.timeMs).toISOString()} ≠ Slot`);
+        grids.push(g);
+      } catch (e) { console.error(`hd250: ${site.id} verworfen (${e.message})`); missing.push(site.id); }
+    }
+    if (!grids.length) throw new Error('hd250: kein Standortbild lesbar');
+    return { src: 'px250', comp: compositePx250(grids), sites: grids.map((g) => g.site), missing };
+  };
+  // Phase HDR (audit/hd-radar.md, E-HDR-2): `RADAR_HD250_SRC=hx` takes the DWD's own 250-m composite (`composite_hx_*`, ONE
+  // file ≤ 1,6 MB instead of 17 site images ≈ 6,5 MB, measured on the same 250-m plane) as the structure source; the anchoring
+  // is the same code. From `sitesDir` (`hx.h5` or the DWD name) or the DWD. An HX that is missing, unreadable or of another
+  // time falls back to px250 for the slot — named here and in `hd250.json` (`src`). Default `px250` = byte-identical to R250.
+  const loadHx = async () => {
+    let buf = null;
+    if (sitesDir) {
+      const hit = [join(sitesDir, 'hx.h5'), join(sitesDir, hxFileName(stamp))].find((p) => existsSync(p));
+      if (hit) buf = readLocal(hit);
+    } else buf = await fetchDwd(hxUrl(stamp));
+    if (!buf) throw new Error('Datei nicht da');
+    const g = await decodeHx(buf, { name: hxFileName(stamp), inflate: (b) => inflateSync(b) });
+    if (g.timeMs !== rv.validAt.getTime()) throw new Error(`Zeit ${new Date(g.timeMs).toISOString()} ≠ Slot`);
+    return { src: 'hx', comp: compositeHx(g), sites: g.sites, missing: PX250_SITES.map((s) => s.id).filter((id) => !g.sites.includes(id)) };
+  };
+  let picked = null;
+  if (HD250_SRC === 'hx') {
+    try { picked = await loadHx(); } catch (e) { console.error(`hd250: HX verworfen (${e.message}) — Rückfall auf px250`); }
   }
+  if (!picked) picked = await loadPx250();
   if (siteCache) rmSync(siteCache, { recursive: true, force: true });
-  if (!grids.length) throw new Error('hd250: kein Standortbild lesbar');
   // Phase SE: die Maske der Analyse aus dem RV-Slot desselben Stempels (`rv/<stamp>/clutter.png`, Geschwister von
   // `rv-past/<stamp>`): maskierte 1-km-Blöcke bleiben trocken. Keine Datei (nichts gefunden, Filter aus oder gescheitert)
   // ⇒ wie bisher; eine unlesbare Datei ⇒ wie bisher, benannt.
@@ -162,7 +189,7 @@ if (source === 'hd250') {
       } catch (e) { console.error(`hd250: Störecho-Maske unlesbar (${e.message}) — Kacheln ungefiltert`); clutterBlocks = undefined; }
     }
   }
-  const comp = compositePx250(grids);
+  const comp = picked.comp;
   const field = anchorToRv(rv.rainRate, comp, LOG_NATIVE ? { minRate: RADAR_DISPLAY_MIN_MMH } : {});
   const tiles = hd250Tiles(field.rate);
   mkdirSync(outDir, { recursive: true });
@@ -176,11 +203,11 @@ if (source === 'hd250') {
     files++; bytes += png.length;
     metaTiles.push({ tx: t.tx, ty: t.ty, file, bytes: png.length });
   }
-  const meta = makeHd250Meta(stamp, rv.validAt.getTime(), grids.map((g) => g.site), missing, field, metaTiles, LOG_NATIVE ? { displayMin: RADAR_DISPLAY_MIN_MMH, ...(clutterBlocks !== undefined ? { clutterBlocks } : {}) } : undefined);
+  const meta = makeHd250Meta(stamp, rv.validAt.getTime(), picked.sites, picked.missing, field, metaTiles, { ...(LOG_NATIVE ? { displayMin: RADAR_DISPLAY_MIN_MMH, ...(clutterBlocks !== undefined ? { clutterBlocks } : {}) } : {}), src: picked.src });
   if (!parseHd250Meta(JSON.parse(JSON.stringify(meta)))) throw new Error('hd250: eigene hd250.json besteht den Client-Prüfer nicht');
   writeFileSync(join(outDir, HD250_META_FILE), JSON.stringify(meta) + '\n');
   files++;
-  console.log(JSON.stringify({ ok: true, files, bytes, ms: Date.now() - t0, tiles: metaTiles.length, sites: grids.length, missing, blocks: meta.blocks }));
+  console.log(JSON.stringify({ ok: true, files, bytes, ms: Date.now() - t0, tiles: metaTiles.length, src: picked.src, sites: picked.sites.length, missing: picked.missing, blocks: meta.blocks }));
   process.exit(0);
 }
 const out = { files: 0, bytes: 0 };

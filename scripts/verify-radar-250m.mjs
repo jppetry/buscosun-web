@@ -15,7 +15,7 @@
 //
 // Call: npm run verify:radar-250m   (optional: RADAR_250_RAW=<dir>)
 // ---------------------------------------------------------------------------
-import { readFileSync, existsSync, mkdtempSync, rmSync, readdirSync } from 'node:fs';
+import { readFileSync, existsSync, mkdtempSync, rmSync, readdirSync, linkSync, copyFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
@@ -29,6 +29,8 @@ import {
   hd250CellXY, px250Shift, zrRate, compositePx250, anchorToRv, hd250Tiles, hd250TileFile, makeHd250Meta, parseHd250Meta, HD250_META_FILE,
 } from '../src/sources/radarHd250.ts';
 import { PX250_SITES, PX250_SIZE, px250FileName, px250Url, decodePx250, px250ProjectionOk } from '../src/sources/dwdPx250.ts';
+import { HX_COLS, HX_ROWS, HX_CELL_M, HX_X0, HX_Y0, hxFileName, hxUrl, hxNodes, hxGridOk, decodeHx } from '../src/sources/dwdHx.ts';
+import { compositeHx, HD250_SOURCES } from '../src/sources/radarHd250.ts';
 import { de1200Node, psFwd, DE1200_CORNERS } from '../src/sources/radolanGeo.ts';
 import { precipToU8Log, precipFromU8Log, PRECIP_LOG_MIN } from '../src/scalar/RainLayer.ts';
 import { untar } from '../src/sources/radolanDecode.ts';
@@ -222,6 +224,49 @@ add('A5 projection check accepts the RV/px250 projdef and rejects a sphere or an
   add(`D2 every mutation rejected (${muts.length})`, rejected === muts.length, `${rejected}/${muts.length}`);
 }
 
+// ── G: Phase HDR — HX composite as the structure source (audit/hd-radar.md, E-HDR-2) ──
+{
+  add('G1 HX file name and URL carry the slot; the composite grid is the 250-m target grid; its false easting/northing are RV\'s shifted by 375 m (half 1-km cell − half 250-m cell)',
+    hxFileName('2611021030') === 'composite_hx_20261102_1030-hd5' && hxUrl('2611021030') === 'https://opendata.dwd.de/weather/radar/composite/hx/composite_hx_20261102_1030-hd5'
+    && HX_COLS === HD250_COLS && HX_ROWS === HD250_ROWS && HX_CELL_M === 250 && HX_X0 === RV_X0 + 375 && HX_Y0 === RV_Y0 - 375
+    && px250Shift({ x0: HX_X0, y0: HX_Y0 }).dk === 0 && px250Shift({ x0: HX_X0, y0: HX_Y0 }).dl === 0 && px250Shift({ x0: HX_X0, y0: HX_Y0 }).fracX === 0);
+  const projdef = (x0, y0) => `+proj=stere +lat_ts=60 +lat_0=90 +lon_0=10 +x_0=${x0} +y_0=${y0} +units=m +a=6378137 +b=6356752.3142451802 +no_defs`;
+  add('G2 grid check: the measured HX header passes; another origin, size, cell or a sphere is rejected',
+    hxGridOk({ projdef: projdef('543571.83521776402', '3622213.8619310022'), xsize: 4400, ysize: 4800, xscale: 250, yscale: 250 })
+    && !hxGridOk({ projdef: projdef('543196.83521776402', '3622588.8619310022'), xsize: 4400, ysize: 4800, xscale: 250, yscale: 250 })
+    && !hxGridOk({ projdef: projdef('543571.83521776402', '3622213.8619310022'), xsize: 1100, ysize: 1200, xscale: 250, yscale: 250 })
+    && !hxGridOk({ projdef: projdef('543571.83521776402', '3622213.8619310022'), xsize: 4400, ysize: 4800, xscale: 1000, yscale: 1000 })
+    && !hxGridOk({ projdef: '+proj=stere +lat_ts=60 +lat_0=90 +lon_0=10 +x_0=543571.83521776402 +y_0=3622213.8619310022 +units=m +a=6370040 +b=6370040 +no_defs', xsize: 4400, ysize: 4800, xscale: 250, yscale: 250 }));
+  add('G3 node list: `de` prefixes dropped, sorted, unique; foreign ids kept', hxNodes("'dehnr','deasb','deasb','chalb'").join() === 'asb,chalb,hnr' && hxNodes('').length === 0);
+  // synthetic composite: three cells + nodata + undetect → Z-R rate, NaN, 0; the anchoring treats it like the site composite
+  const dbz = new Float32Array(HD250_COLS * HD250_ROWS).fill(-Infinity);
+  const iA = 300, jA = 400;
+  const at = (k, l) => l * HD250_COLS + k;
+  dbz[at(4 * iA, 4 * jA)] = 30; dbz[at(4 * iA + 1, 4 * jA)] = 20; dbz[at(4 * iA + 2, 4 * jA + 3)] = NaN;
+  for (let k = 0; k < 40; k++) dbz[at(k, 0)] = NaN;
+  const g = { timeMs: Date.UTC(2026, 10, 2, 10, 30), cols: HD250_COLS, rows: HD250_ROWS, cellM: 250, x0: HX_X0, y0: HX_Y0, sites: ['hnr', 'asb'], dbz, gain: 1, offset: 0 };
+  const comp = compositeHx(g);
+  add('G4 compositeHx: dBZ → Z-R rate per cell (30 dBZ → 2,61 mm/h with a = 256, b = 1,42), no echo → 0, nodata → NaN with dist +∞, covered cells dist NaN, siteIdx −1, sites passed through',
+    Math.abs(comp.rate[at(4 * iA, 4 * jA)] - zrRate(30)) < 1e-6 && Math.abs(zrRate(30) - 2.6105) < 0.001 && comp.rate[at(4 * iA + 1, 4 * jA)] === Math.fround(zrRate(20))
+    && comp.rate[at(0, 5)] === 0 && Number.isNaN(comp.rate[at(4 * iA + 2, 4 * jA + 3)]) && comp.dist[at(4 * iA + 2, 4 * jA + 3)] === Infinity && Number.isNaN(comp.dist[at(0, 5)])
+    && comp.siteIdx.every((v) => v === -1) && comp.sites.join() === 'hnr,asb' && comp.rate.length === HD250_COLS * HD250_ROWS);
+  const rv = new Float32Array(1100 * 1200);
+  rv[jA * 1100 + iA] = 2.0; rv[5 * 1100 + 7] = 1.0;
+  const field = anchorToRv(rv, comp);
+  let sum = 0; for (let dy = 0; dy < 4; dy++) for (let dx = 0; dx < 4; dx++) sum += field.rate[at(4 * iA + dx, 4 * jA + dy)];
+  add('G5 anchoring on the HX composite: block mean = RV, the nodata sub-cell takes the flat value, a block without echo stays flat',
+    Math.abs(sum / 16 - 2.0) < 1e-5 && field.rate[at(4 * iA + 2, 4 * jA + 3)] === 2.0 && field.rate[at(28, 20)] === 1.0 && field.structuredBlocks === 1 && field.flatBlocks === 1);
+  add('G6 a grid on another plane or size is refused by compositeHx', (() => {
+    try { compositeHx({ ...g, x0: HX_X0 + 250 }); return false; } catch { /* expected */ }
+    try { compositeHx({ ...g, cols: 1100 }); return false; } catch { return true; }
+  })());
+  const meta = makeHd250Meta('2611021030', g.timeMs, ['hnr'], [], field, [], { displayMin: PRECIP_LOG_MIN, src: 'hx' });
+  const meta0 = makeHd250Meta('2611021030', g.timeMs, ['hnr'], [], field, []);
+  add('G7 meta names the source (`src: hx|px250`), an old meta without it still parses, a foreign source is rejected; without `extra` no displayMin/src keys',
+    !!parseHd250Meta(JSON.parse(JSON.stringify(meta))) && meta.src === 'hx' && !!parseHd250Meta(JSON.parse(JSON.stringify(meta0))) && !('src' in meta0) && !('displayMin' in meta0)
+    && parseHd250Meta({ ...JSON.parse(JSON.stringify(meta)), src: 'wn' }) === null && HD250_SOURCES.join() === 'px250,hx');
+}
+
 // ── E: real files ───────────────────────────────────────────────────────────
 const RAW = process.env.RADAR_250_RAW ?? '';
 let realSlot = null;   // { dir, stamp, rvRates } for block F
@@ -297,6 +342,71 @@ if (RAW && existsSync(RAW)) {
       add('E6 cross-check against the independent Python reference: ≥ 99,99 % identical bytes, the rest one step (rounding ties), never more',
         ref.length === full.length && eq / full.length >= 0.9999 && more === 0, `${eq} equal, ${off1} ± 1, ${more} further`);
     } else skip('E6 Python reference', 'tiles250_radolan.u8 fehlt im RAW-Verzeichnis');
+    add('E2b the px250 meta names its source', meta.src === 'px250');
+    // ── Phase HDR: the same slot from the DWD's HX composite (`hx.h5` in RAW) ──
+    const hxPath = [join(RAW, 'hx.h5'), join(RAW, hxFileName(stamp))].find((p) => existsSync(p));
+    if (hxPath) {
+      const hb = readFileSync(hxPath);
+      const hab = hb.buffer.slice(hb.byteOffset, hb.byteOffset + hb.byteLength);
+      const t1 = Date.now();
+      const hx = await decodeHx(hab), hxj = await decodeHx(hab, { reader: 'jsfive' });
+      const msFast = Date.now() - t1;
+      let hsame = 0, hecho = 0, hnod = 0;
+      for (let i = 0; i < hx.dbz.length; i++) { if (Object.is(hx.dbz[i], hxj.dbz[i])) hsame++; const v = hx.dbz[i]; if (Number.isNaN(v)) hnod++; else if (v !== -Infinity) hecho++; }
+      add(`E7 HX decoder: 4400 × 4800 @ 250 m on the target plane, slot time, 17 sites named, fast path = jsfive on every cell`,
+        hx.cols === HD250_COLS && hx.rows === HD250_ROWS && hx.timeMs === rv.validAt.getTime() && hx.sites.length === 17 && hsame === hx.dbz.length && hx.x0 === HX_X0 && hx.y0 === HX_Y0,
+        `nodata ${(hnod / hx.dbz.length * 100).toFixed(1)} %, echo ${(hecho / hx.dbz.length * 100).toFixed(1)} %, ${msFast} ms both paths`);
+      const out2 = mkdtempSync(join(tmpdir(), 'hd250-hx-'));
+      const t2 = Date.now();
+      const line2 = execFileSync(process.execPath, ['--experimental-strip-types', '--import', pathToFileURL(join(process.cwd(), 'scripts', 'lib', 'register-ts.mjs')).href,
+        join(process.cwd(), 'scripts', 'radar-mirror', 'radar-derive.mjs'), 'hd250', join(RAW, tar), out2, stamp, RAW], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, RADAR_HD250_SRC: 'hx' } }).trim().split('\n').pop();
+      const res2 = JSON.parse(line2);
+      const meta2 = parseHd250Meta(JSON.parse(readFileSync(join(out2, HD250_META_FILE), 'utf8')));
+      add(`E8 derive hd250 with RADAR_HD250_SRC=hx: ok, meta parses and names \`hx\`, 17 sites, every listed tile present`, res2.ok && res2.src === 'hx' && !!meta2 && meta2.src === 'hx' && meta2.sites.length === 17 && meta2.missing.length === 0
+        && meta2.tiles.every((t) => existsSync(join(out2, t.file)) && readFileSync(join(out2, t.file)).length === t.bytes), `${res2.tiles} Kacheln, ${(res2.bytes / 1024).toFixed(0)} KB, ${res2.ms} ms (gesamt ${Date.now() - t2} ms)`);
+      const fieldHx = anchorToRv(rv.rainRate, compositeHx(hx));
+      const tilesHx = hd250Tiles(fieldHx.rate);
+      let bad2 = 0, listed2 = 0;
+      const fullHx = new Uint8Array(HD250_COLS * HD250_ROWS);
+      for (const t of tilesHx) {
+        for (let y = 0; y < HD250_TILE_H; y++) fullHx.set(t.data.subarray(y * HD250_TILE_W, (y + 1) * HD250_TILE_W), (t.ty * HD250_TILE_H + y) * HD250_COLS + t.tx * HD250_TILE_W);
+        const listed = meta2.tiles.find((x) => x.tx === t.tx && x.ty === t.ty);
+        if (!!listed !== t.wet) { bad2++; continue; }
+        if (!listed) continue;
+        listed2++;
+        const png = decodePng(readFileSync(join(out2, listed.file)));
+        if (png.width !== 1100 || png.height !== 1200 || png.channels !== 1 || Buffer.compare(Buffer.from(png.data), Buffer.from(t.data)) !== 0) bad2++;
+      }
+      add(`E9 HX tiles: listed ⇔ wet, bytes byte-identical to the library path (${listed2} tiles)`, bad2 === 0, `${bad2} differ`);
+      let wetBad2 = 0, meanBad2 = 0, meanN2 = 0, maxRel2 = 0, clipped2 = 0, diffCells = 0, diffBig = 0, wetCells = 0, onlyPx = 0, onlyHx = 0;
+      for (let j = 0; j < 1200; j++) for (let i = 0; i < 1100; i++) {
+        const v = rv.rainRate[j * 1100 + i];
+        let any = false, s = 0, clip = false;
+        for (let dy = 0; dy < 4; dy++) for (let dx = 0; dx < 4; dx++) {
+          const q = (4 * j + dy) * HD250_COLS + 4 * i + dx, u = fullHx[q], u0 = full[q];
+          if (u) any = true; if (u === 255 || (v > 0 && u === 0)) clip = true; s += precipFromU8Log(u);
+          if (u || u0) { wetCells++; if (u !== u0) { diffCells++; if (Math.abs(u - u0) > 1) diffBig++; } if (u && !u0) onlyHx++; if (u0 && !u) onlyPx++; }
+        }
+        if (any !== v > 0) wetBad2++;
+        if (v >= 0.5) { if (clip) { clipped2++; continue; } meanN2++; const rel = Math.abs(s / 16 - v) / v; if (rel > maxRel2) maxRel2 = rel; if (rel > 0.02) meanBad2++; }
+      }
+      add(`E10 HX: wet 1-km block ⇔ RV wet; de-quantised block mean within 2 % of RV for ${meanN2} blocks ≥ 0,5 mm/h (${clipped2} clipped not judged)`, wetBad2 === 0 && meanBad2 === 0,
+        `${wetBad2} wet mismatches, ${meanBad2} means off (max ${(maxRel2 * 100).toFixed(2)} %)`);
+      add(`E11 HX against px250 on the same slot (information for E-HDR-2, no gate): ${wetCells} wet 250-m cells, ${diffCells} differ (${(diffCells / Math.max(1, wetCells) * 100).toFixed(1)} %), ${diffBig} by more than one log step, only px250 ${onlyPx}, only HX ${onlyHx}`, true);
+      // fallback: `hx` requested, no HX file at hand ⇒ the slot comes from px250 and says so
+      const noHx = mkdtempSync(join(tmpdir(), 'hd250-nohx-'));
+      for (const s of sites) { try { linkSync(join(RAW, `${s.id}.h5`), join(noHx, `${s.id}.h5`)); } catch { copyFileSync(join(RAW, `${s.id}.h5`), join(noHx, `${s.id}.h5`)); } }
+      const out3 = mkdtempSync(join(tmpdir(), 'hd250-fb-'));
+      let stderr3 = '';
+      const line3 = (() => { try { return execFileSync(process.execPath, ['--experimental-strip-types', '--import', pathToFileURL(join(process.cwd(), 'scripts', 'lib', 'register-ts.mjs')).href,
+        join(process.cwd(), 'scripts', 'radar-mirror', 'radar-derive.mjs'), 'hd250', join(RAW, tar), out3, stamp, noHx], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, RADAR_HD250_SRC: 'hx' } }).trim().split('\n').pop(); } catch (e) { stderr3 = String(e.stderr); return '{}'; } })();
+      const res3 = JSON.parse(line3);
+      const meta3 = res3.ok ? parseHd250Meta(JSON.parse(readFileSync(join(out3, HD250_META_FILE), 'utf8'))) : null;
+      add('E12 RADAR_HD250_SRC=hx without an HX file: the slot falls back to px250 and names it (`src: px250`), tiles byte-identical to the px250 run',
+        res3.ok && res3.src === 'px250' && !!meta3 && meta3.src === 'px250' && meta3.tiles.length === meta.tiles.length
+        && meta3.tiles.every((t) => Buffer.compare(readFileSync(join(out3, t.file)), readFileSync(join(out, t.file))) === 0), stderr3.slice(0, 200));
+      rmSync(out2, { recursive: true, force: true }); rmSync(out3, { recursive: true, force: true }); rmSync(noHx, { recursive: true, force: true });
+    } else skip('E7–E12 HX composite', 'hx.h5 fehlt im RAW-Verzeichnis');
     realSlot = { dir: out, stamp, meta };
   }
 } else skip('E real files', 'RADAR_250_RAW nicht gesetzt (Verzeichnis mit composite_rv_*.tar und <site>.h5)');
