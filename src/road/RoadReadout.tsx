@@ -435,7 +435,7 @@ const TAB_ICON: Readonly<Record<string, string>> = {
 /** AW-8 (E-AW-37): behind the hazard switch the column starts with Gefahren · Strecke · Quellen; the station readout lives on inside the detail. */
 export default function RoadReadout(p: Props & { hz?: React.ReactNode; roads?: React.ReactNode }) {
   // Desktop: the motorway list (search, countries, list) lives here as the first tab; the left dock keeps the layers.
-  const base: readonly RoadTab[] = p.hz !== undefined ? ['gefahren', 'strecke', 'quellen'] : ['station', 'strecke', 'quellen'];
+  const base: readonly RoadTab[] = p.hz !== undefined ? ['gefahren', 'quellen'] : ['station', 'quellen'];
   const tabs: readonly RoadTab[] = p.roads !== undefined ? ['autobahnen', ...base] : base;
   const want: RoadTab = p.hz !== undefined && p.tab === 'station' ? 'gefahren' : p.tab;
   const cur: RoadTab = tabs.includes(want) ? want : base[0];
