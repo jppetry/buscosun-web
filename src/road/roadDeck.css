@@ -274,6 +274,8 @@
 
 /* --- Mobile (≤ 767 px): full-screen map, top pill + share, time chips, bottom sheet ---- */
 @media (max-width: 767px) {
+  /* Der globale Chip „Über diese Ansicht“ (RouteSeoBlock) entfällt mobil im Autobahnwetter. */
+  .rsb[data-route="autobahnwetter"] { display: none; }
   .aw-root.is-mobile { display: block; position: relative; background: #0B0E12; }
   .aw-map.is-mobile { position: absolute; inset: 0; }
   .aw-m-top { position: absolute; left: 12px; right: 12px; top: calc(12px + env(safe-area-inset-top, 0px)); display: flex; gap: 8px; z-index: 3; }
