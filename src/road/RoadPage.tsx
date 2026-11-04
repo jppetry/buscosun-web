@@ -79,7 +79,7 @@ const REFRESH_MS = 60_000;
 const FC_REFRESH_MS = 10 * 60_000;
 // V-AW-14: the radar layer is off by default (one more download and a GL layer only when asked for).
 // Jan 04.11.: the forecast dots on the open corridor are off by default („stören nur"), the layer panel still offers them.
-const DEFAULT_LAYERS: RoadMapLayers = { zust: true, temp: true, fog: true, warn: true, bl: false, fc: false, rain: false };
+const DEFAULT_LAYERS: RoadMapLayers = { zust: true, temp: true, fog: true, warn: false, bl: false, fc: false, rain: false };
 const EMPTY_FC_BY_ID: ReadonlyMap<string, RoadFcPoint> = new Map();
 
 export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz = false, surface = false, vs = false }: RoadPageProps) {
@@ -251,6 +251,20 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
       return { id: g.id, line: g.line, color: st.lv ? AW_SEV[st.lv].bg : null, unknown: st.unknown };
     });
   }, [segGeo, hzShown, hzMode, time, hzFilter]);
+  // Jan 04.11.: without an open road the main view already shows the coloured sections of ALL motorways (only those with a level, 1-km sampling).
+  const overviewLines = useMemo<RoadSegLine[]>(() => {
+    if (!hz || corridor || !hzShown || !corridors || !segments || segments === 'error') return [];
+    const win: RoadHzMode = hzMode === 'p6' ? 'p6' : time;
+    const byC = new Map(corridors.map((c) => [c.id, c] as const));
+    const out: RoadSegLine[] = [];
+    for (const sg of segments) {
+      const st = segMapState(hzShown.seg[sg.id], win, hzFilter);
+      const c = byC.get(sg.corridor);
+      if (!st.lv || !c) continue;
+      out.push({ id: sg.id, line: stretchLine(c.line, sg.kmFrom, sg.kmTo, 1), color: AW_SEV[st.lv].bg, unknown: false });
+    }
+    return out;
+  }, [hz, corridor, corridors, segments, hzShown, hzMode, time, hzFilter]);
   // Dossier: the same states for the route card (only with a valid hazard file — without one nothing is called „no hazard“).
   const segStates = useMemo(() => {
     const win: RoadHzMode = hzMode === 'p6' ? 'p6' : time;
@@ -585,7 +599,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
     <RoadMap corridors={corridors ?? []} corridor={corridor} points={mapPoints} inCorridor={inCorridor}
       selectedId={axis?.id ?? point?.id ?? null} stale={freshness === 'stale'} layers={layers} warnAreas={warnAreas} padding={padding}
       onSelect={pickStationFromMap} onMap={(m) => { mapRef.current = m; setMapInst(m); }} callout={isMobile ? callout : null} fcDots={fcDots} fcRs={fcRs} vsPoints={vsMarkers} onRain={setRain}
-      segLines={hz ? segLines : undefined} selSegId={hz ? segId : null} hoverSegId={hz ? hoverSeg : null} onSelectSegment={hz ? pickSegmentFromMap : undefined} onSelectCorridor={hz ? pickCorridorFromMap : pickCorridor} />
+      segLines={hz ? (corridor ? segLines : overviewLines) : undefined} selSegId={hz ? segId : null} hoverSegId={hz ? hoverSeg : null} onSelectSegment={hz ? pickSegmentFromMap : undefined} onSelectCorridor={hz ? pickCorridorFromMap : pickCorridor} />
   );
   const readoutProps = {
     tab, onTab: setTab, point, corridor, byId: shownById, dir, slotMs: obs?.slotMs ?? null, nowMs,
