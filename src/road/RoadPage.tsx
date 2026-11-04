@@ -27,14 +27,14 @@ import { loadRoadCorridors, loadRoadFc, loadRoadFcStation, loadRoadH24, loadRoad
 import type { RoadFcPoint } from './roadFc';
 import {
   ROAD_FC_AIR_COLOR, ROAD_FC_AIR_LABEL, ROAD_FC_LINE_COLOR, defaultRoadFcAxis, firstRoadFcAxis, isRoadFcAxisId, roadFcAirClass, roadFcAxisName, roadFcAxisPoints, roadFcBand, roadFcLine,
-  roadFcEngineName, roadFcHasSurface, roadFcRunView, roadFcValue, roadSurfaceText,
+  roadFcEngineName, roadFcHasSurface, roadFcRunView, roadFcValue,
 } from './roadFcView';
 import RoadMap, { type RoadFcDot, type RoadMapLayers, type RoadRainState } from './RoadMap';
 import RoadDock, { type RoadCountry } from './RoadDock';
 import RoadBand from './RoadBand';
 import RoadReadout from './RoadReadout';
 import { useRoadVs } from './vs/useRoadVs';
-import { roadVsClassOf, roadVsCondText, roadVsMaySimulate, roadVsOriginText, roadVsText, roadVsValue } from './vs/roadVsView';
+import { roadVsClassOf, roadVsMaySimulate, roadVsOriginText, roadVsText, roadVsValue } from './vs/roadVsView';
 import { ROAD_FORECAST_ENABLED, ROAD_HZ_TIMES, ROAD_TIMES, type RoadHzMode, type RoadTab, type RoadTime, type RoadUrlState } from './roadState';
 import type { RoadSegLine } from './RoadMap';
 import type { RoadSegment } from './roadSegments';
@@ -549,7 +549,8 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   // forecast point of the axis (≤ 6 km) — on the map as „~+1,2°“, never as a road class (D-04).
   const fcRs = useMemo(() => {
     const out = new Map<string, number>();
-    if (!surface || !fcFile || !roadFcHasSurface(fcFile)) return out;
+    // Jan 04.11.: the virtual sensor is the computed road value; FB-1 only when its run is missing.
+    if (!surface || !fcFile || !roadFcHasSurface(fcFile) || vsView.file || vsView.reason === 'lädt') return out;
     const axisVals = roadFcAxisPoints(fcFile).map((a) => ({ a, v: roadFcValue(a, fcFile, fcMs) })).filter((x) => x.v?.rs != null);
     for (const s of mapPoints) {
       if (s.rs != null || !inCorridor.has(s.id)) continue;
@@ -562,19 +563,17 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
     }
     return out;
     // Hour steps only, like the forecast dots.
-  }, [surface, fcFile, mapPoints, inCorridor, Math.round(fcMs / 3_600_000)]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [surface, vsView, fcFile, mapPoints, inCorridor, Math.round(fcMs / 3_600_000)]); // eslint-disable-line react-hooks/exhaustive-deps
   const fcCells = useMemo(() => (fcFile && corridor ? roadFcBand(corridor, fcFile, dir, fcMs) : null), [fcFile, corridor, dir, Math.round(fcMs / 3_600_000)]); // eslint-disable-line react-hooks/exhaustive-deps
   const fcBandLabel = `Prognose Luft ${t === 0 ? 'jetzt' : `+${t} h`} · ${hm(Math.round(fcMs / 3_600_000) * 3_600_000)} · ${fcLabel}`;
-  // Jan 04.11.: with both products the temperature is buscosun Fusion — Fahrbahn's as far as the run has it, the condition the virtual sensor's.
-  const fbAxisText = surface && roadFcHasSurface(fcFile) && axisValue ? roadSurfaceText(axisValue) : null;
   const callout = axis && corridor ? {
     lon: axis.lon, lat: axis.lat, name: roadFcAxisName(corridor, axis, dir),
-    line: [vsAtSel(axis.id) ? (fbAxisText ? `${fbAxisText} · ${roadVsCondText(vsAtSel(axis.id)!)}` : `${roadVsText(vsAtSel(axis.id)!)} (${roadVsOriginText(vsAtSel(axis.id)!)})`) : null, axisValue ? `Prognose ${roadFcLine(axisValue)}` : 'keine Prognose für diese Stunde'].filter(Boolean).join(' · '),
+    line: [vsAtSel(axis.id) ? `${roadVsText(vsAtSel(axis.id)!)} (${roadVsOriginText(vsAtSel(axis.id)!)})` : null, axisValue ? `Prognose ${roadFcLine(axisValue)}` : 'keine Prognose für diese Stunde'].filter(Boolean).join(' · '),
     color: vsAtSel(axis.id) ? ROAD_CLASS_COLOR[roadVsClassOf(vsAtSel(axis.id)!)] : axisValue ? ROAD_FC_AIR_COLOR[roadFcAirClass(axisValue.t)] : null,
   } : point ? {
     lon: point.lon, lat: point.lat, name: point.n,
     line: point.rs != null ? `Fahrbahn ${f1(point.rs)} °C · ${ROAD_CLASS_LABEL[point.cls].label}`
-      : vsMarkers.has(point.id) ? (fcRs.has(point.id) ? `Fusion Fahrbahn ${f1(fcRs.get(point.id) as number)} °C (berechnet) · ${roadVsCondText(vsAtSel(point.id)!)}` : `${roadVsText(vsAtSel(point.id)!)} (${roadVsOriginText(vsAtSel(point.id)!)})`)
+      : vsMarkers.has(point.id) ? `${roadVsText(vsAtSel(point.id)!)} (${roadVsOriginText(vsAtSel(point.id)!)})`
       : [point.cls === 'nodata' && roadNoValueSince(ring, point.id, point.g, obs?.slotMs ?? point.t) || ROAD_CLASS_LABEL[point.cls].label,
         fcRs.has(point.id) ? `Fusion Fahrbahn ${f1(fcRs.get(point.id) as number)} °C (berechnet)` : null].filter(Boolean).join(' · '),
     color: point.rs == null && vsMarkers.has(point.id) ? ROAD_CLASS_COLOR[vsMarkers.get(point.id)!.cls] : isHatched(point.cls) ? null : ROAD_CLASS_COLOR[point.cls],
@@ -627,7 +626,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
     </>
   ) : openSeg && hzShown ? (
     <Suspense fallback={<div className="aw-hz aw-hz-loading" role="status">Gefahren werden geladen …</div>}>
-      <RoadHazardDetail part={dsChapter === 2 ? 'seg' : 'wx'} surface={surface}
+      <RoadHazardDetail part={dsChapter === 2 ? 'seg' : 'wx'} surface={surface} vs={vsView}
         seg={openSeg} entry={hzShown.seg[openSeg.id] ?? null} file={hzShown} prev={hzPrev && hzPrev.slot === hzSlot ? hzPrev.files : [undefined, undefined]}
         corridor={corridor} byId={shownById} fcFile={fcFile} ring={ring} nowMs={nowMs} dir={hzDir} onDir={setHzDir} backLabel="Alle Abschnitte"
         pos={{ i: Math.max(1, hzOrder.indexOf(openSeg.id) + 1), n: Math.max(1, hzOrder.length) }} onBack={hzBack} onPrev={() => hzStep(-1)} onNext={() => hzStep(1)}

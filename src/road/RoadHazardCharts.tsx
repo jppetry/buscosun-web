@@ -128,12 +128,12 @@ export function TempChart({ s, slotMs }: { s: TempSeries; slotMs: number }) {
         <span className={s.road.length ? '' : 'is-off'}><i style={{ background: '#2C2A26', height: 3 }} />Fahrbahn (gemessen)</span>
         <span><i style={{ background: '#3A6FA8', height: 2.4 }} />Luft · gestrichelt = Prognose</span>
         <span><i style={{ borderTop: '2px dashed #A0884F', height: 0 }} />Taupunkt</span>
-        {s.rsFc.length > 0 && <span><i style={{ borderTop: '2px dashed #2C2A26', height: 0 }} />Fahrbahn · buscosun Fusion, berechnet</span>}
+        {s.rsFc.length > 0 && <span><i style={{ borderTop: '2px dashed #2C2A26', height: 0 }} />Fahrbahn · {s.rsVs ? 'virtueller Sensor' : 'buscosun Fusion'}, berechnet</span>}
         <span><i style={{ background: '#B5321F', opacity: 0.25, height: 10, width: 14 }} />Reif möglich: Fahrbahn ≤ 0 °C und unter dem Taupunkt</span>
       </div>
       <table className="aw-visually-hidden">
         <caption>{summary}</caption>
-        <thead><tr><th>Stunde</th><th>Fahrbahn °C</th>{s.rsFc.length > 0 && <th>Fahrbahn Fusion °C</th>}<th>Luft °C</th><th>Taupunkt °C</th></tr></thead>
+        <thead><tr><th>Stunde</th><th>Fahrbahn °C</th>{s.rsFc.length > 0 && <th>{s.rsVs ? 'Fahrbahn berechnet °C' : 'Fahrbahn Fusion °C'}</th>}<th>Luft °C</th><th>Taupunkt °C</th></tr></thead>
         <tbody>{[...s.road, ...s.airFc].map(([x]) => x).filter((x, i, a) => a.indexOf(x) === i).sort((a, b) => a - b).map((x) => {
           const f = (arr: Array<[number, number]>) => { const p = arr.find((q) => q[0] === x); return p ? dec(p[1]) : '—'; };
           return <tr key={x}><td>{x > 0 ? `+${x}` : x}</td><td>{f(s.road)}</td>{s.rsFc.length > 0 && <td>{x >= 0 ? f(s.rsFc) : '—'}</td>}<td>{x >= 0 ? f(s.airFc) : f(s.air)}</td><td>{x >= 0 ? f(s.dewFc) : f(s.dew)}</td></tr>;

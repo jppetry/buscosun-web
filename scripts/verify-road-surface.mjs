@@ -339,7 +339,7 @@ const tmp = mkdtempSync(join(tmpdir(), 'verify-road-surface-'));
   // The page's wording constants: the readout imports ROAD_SURFACE_WORD; nothing in src/road says "Fahrbahnprognose" without it.
   const src = readFileSync(join(ROOT, 'src', 'road', 'RoadReadout.tsx'), 'utf8');
   add('F4 Readout: Kacheln, Raster, Verlauf, Ankunftsspalte und Quellenzeile hängen an showSurface (Lauf trägt die Fahrbahn UND Schalter an); die alten Sätze „folgt erst nach dem Backtest" leben nur noch im Ausweichtext',
-    (src.match(/showSurface\(p\)/g) ?? []).length >= 8 && (src.match(/folgt erst nach dem Backtest/g) ?? []).length <= 2 && !/Eine Prognose der Fahrbahn folgt erst nach dem Backtest\.<\/p>/.test(src) && /surfaceSourceRow\(file, surface\)/.test(src) && /ROAD_SURFACE_WORD/.test(src));
+    (src.match(/showSurface\(p\)/g) ?? []).length >= 8 && (src.match(/folgt erst nach dem Backtest/g) ?? []).length <= 2 && !/Eine Prognose der Fahrbahn folgt erst nach dem Backtest\.<\/p>/.test(src) && /surfaceSourceRow\(file, surface, vs\)/.test(src) && /ROAD_SURFACE_WORD/.test(src));
 }
 
 // --- G: the real archive (optional) ---------------------------------------------------------------------------------

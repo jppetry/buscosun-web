@@ -21,6 +21,8 @@ import RoadCrossSection, { type CrossSectionFx } from './RoadCrossSection';
 import { EvDot } from './RoadHazardPanel';
 import { hm, dec, f1 } from './roadView';
 import { ROAD_SURFACE_WORD } from './roadSurface';
+import { ROAD_VS_NAME, roadVsValue } from './vs/roadVsView';
+import type { RoadVsView } from './vs/useRoadVs';
 import type { CapAlert } from '../warnings/capAlerts';
 
 const Charts = lazy(() => import('./RoadHazardCharts').then((m) => ({ default: function ChartsBundle({ temp, slotMs, bullets, wind }: { temp: ReturnType<typeof tempSeriesOf>; slotMs: number; bullets: ReturnType<typeof bulletRows>; wind: ReturnType<typeof windSectors> }) {
@@ -77,6 +79,8 @@ export interface RoadHazardDetailProps {
   part?: 'seg' | 'wx';
   /** Phase FB: show buscosun Fusion — Fahrbahn (the computed road temperature of the run) where the segment has no measurement. */
   surface?: boolean;
+  /** Jan 04.11.: the virtual sensor is the computed road value of the segment; FB-1 only when its run is missing. */
+  vs?: RoadVsView;
 }
 
 export default function RoadHazardDetail(p: RoadHazardDetailProps) {
@@ -97,17 +101,22 @@ export default function RoadHazardDetail(p: RoadHazardDetailProps) {
     const pts = seg.points.map((id) => p.fcFile!.points.find((q) => q.id === id)).filter((q): q is NonNullable<typeof q> => !!q);
     if (!pts.length) return null;
     const dec1 = (v: 't' | 'td' | 'fx' | 'dd' | 'vs' | 'rr' | 'rs', pick: 'min' | 'max' | 'first') => { const vals = pts.map((q) => roadFcDecode(v, (q.v as Record<string, Array<number | null>>)[v]?.[i])).filter((x): x is number => x != null); return vals.length ? (pick === 'min' ? Math.min(...vals) : pick === 'max' ? Math.max(...vals) : vals[0]) : null; };
-    return { t: dec1('t', 'min'), td: dec1('td', 'first'), fx: dec1('fx', 'max'), dd: dec1('dd', 'first'), vis: dec1('vs', 'min'), rr: dec1('rr', 'max'), rs: p.surface ? dec1('rs', 'min') : null };
-  }), [file.hours, p.fcFile, seg.points, p.surface]);
+    const vsFile = p.vs?.file ?? null;
+    const vsTf = vsFile ? seg.points.flatMap((id) => { const pt = p.vs!.byId.get(id); const v = pt ? roadVsValue(pt, vsFile, ms) : null; return v ? [v.tf] : []; }) : [];
+    const rs = vsFile ? (vsTf.length ? Math.min(...vsTf) : null) : p.surface && p.vs?.reason !== 'lädt' ? dec1('rs', 'min') : null;
+    return { t: dec1('t', 'min'), td: dec1('td', 'first'), fx: dec1('fx', 'max'), dd: dec1('dd', 'first'), vis: dec1('vs', 'min'), rr: dec1('rr', 'max'), rs };
+  }), [file.hours, p.fcFile, seg.points, p.surface, p.vs]);
+  const rsVs = !!p.vs?.file;
   const fusion = file.inputs.fc?.fusion ?? null;
   const xs = useMemo(() => crossSectionOf(seg, p.byId, file.slotMs, fusion, fcHours[0] ? { t: fcHours[0].t, td: fcHours[0].td } : null), [seg, p.byId, file.slotMs, fusion, fcHours]);
   const narrative: Narrative | null = useMemo(() => (entry ? roadNarrative(seg, entry, { stationName: (id) => p.byId.get(id)?.n ?? null, hm, slotMs: file.slotMs, hours: file.hours, fusion }) : null), [entry, seg, p.byId, file, fusion]);
   const plan = useMemo(() => (entry ? planRows(entry, p.prev.map((f) => (f === undefined ? undefined : f ? f.seg[seg.id] ?? null : null))) : []), [entry, p.prev, seg.id]);
-  const bullets = useMemo(() => bulletRows(xs, seg, fcHours), [xs, seg, fcHours]);
+  const bullets = useMemo(() => bulletRows(xs, seg, fcHours, rsVs ? ROAD_VS_NAME : undefined), [xs, seg, fcHours, rsVs]);
   const wind = useMemo(() => windSectors(seg, xs.station, fcHours), [seg, xs.station, fcHours]);
   const mainSt = xs.station?.id ?? segmentMainStation(seg, p.byId);
   const temp = useMemo(() => tempSeriesOf(p.ring, mainSt, file.slotMs, fcHours.map((h) => (h ? { t: h.t, td: h.td, rs: h.rs } : null))), [p.ring, mainSt, file.slotMs, fcHours]);
   temp.stationName = mainSt ? p.byId.get(mainSt)?.n ?? null : null;
+  temp.rsVs = rsVs;
 
   // Chips of the active hazards (now, or "ab HH:MM").
   const chips = entry ? (Object.keys(entry.lv) as RoadHazardId[]).filter((id) => ROAD_HAZARD_BY_ID[id]).map((id) => {
@@ -183,7 +192,7 @@ export default function RoadHazardDetail(p: RoadHazardDetailProps) {
             {xs.station?.rs == null && fcHours[0]?.rs != null
               ? <>
                 <span className="aw-ds-tile-v">{f1(fcHours[0].rs)} °C</span>
-                <span className="aw-ds-tile-s">{fusion ?? 'buscosun Fusion'} — Fahrbahn · {ROAD_SURFACE_WORD}, keine Messung</span>
+                <span className="aw-ds-tile-s">{rsVs ? ROAD_VS_NAME : `${fusion ?? 'buscosun Fusion'} — Fahrbahn`} · {ROAD_SURFACE_WORD}, keine Messung</span>
               </>
               : <>
                 <span className="aw-ds-tile-v">{xs.station?.rs != null ? `${f1(xs.station.rs)} °C` : '—'}</span>

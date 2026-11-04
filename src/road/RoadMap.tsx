@@ -175,8 +175,7 @@ function pointFc(points: readonly RoadPoint[], inC: ReadonlySet<string>, sel: st
         properties: {
           id: p.id, cls, icon: vs && !stale && !neutral ? `aw-${cls}-vs` : `aw-${cls}${stale || neutral ? '-stale' : ''}`,
           inC: inC.has(p.id) ? 1 : 0, sel: p.id === sel ? 1 : 0,
-          // Jan 04.11.: buscosun Fusion — Fahrbahn leads the computed temperature as far as the run has it, the virtual sensor after that.
-          label: p.rs != null ? `${f1(p.rs)}°` : fcRs?.has(p.id) ? `~${f1(fcRs.get(p.id) as number)}°` : vs ? `~${f1(vs.tf)}°` : p.ta != null ? `L ${f1(p.ta)}°` : '—',
+          label: p.rs != null ? `${f1(p.rs)}°` : vs ? `~${f1(vs.tf)}°` : fcRs?.has(p.id) ? `~${f1(fcRs.get(p.id) as number)}°` : p.ta != null ? `L ${f1(p.ta)}°` : '—',
           fog: p.vis != null && p.vis < 150 ? 1 : 0,
         },
         geometry: { type: 'Point', coordinates: [p.lon, p.lat] },
