@@ -90,7 +90,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   const [corrState, setCorrState] = useState<'loading' | 'ok' | 'error'>('loading');
   const [load, setLoad] = useState<RoadSlotLoad | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
-  const [corridorId, setCorridorId] = useState<string>(initial.corridor ?? DEFAULT_CORRIDOR);
+  const [corridorId, setCorridorId] = useState<string | null>(initial.corridor ?? null);
   const [stId, setStId] = useState<string | null>(initial.st);
   const [dir, setDir] = useState<0 | 1>(initial.dir);
   const [tab, setTab] = useState<RoadTab>(initial.tab);
@@ -134,7 +134,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   const popKey = popState?.key ?? null;
   useEffect(() => {
     if (!popState) return;
-    setCorridorId(popState.corridor ?? DEFAULT_CORRIDOR);
+    setCorridorId(popState.corridor ?? null);
     setStId(popState.st);
     setDir(popState.dir);
     setTab(popState.tab);
@@ -235,7 +235,8 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   const shownPoints = useMemo(() => (noData ? [] : (obs?.points ?? [])), [noData, obs]);
   const shownById = noData ? EMPTY_BY_ID : byId;
 
-  const corridor = useMemo(() => corridors?.find((c) => c.id === corridorId) ?? corridors?.find((c) => c.id === DEFAULT_CORRIDOR) ?? corridors?.[0] ?? null, [corridors, corridorId]);
+  // Without a road in the link nothing is selected: the visitor sees the map of Germany (DACH) first.
+  const corridor = useMemo(() => (corridorId ? corridors?.find((c) => c.id === corridorId) ?? corridors?.find((c) => c.id === DEFAULT_CORRIDOR) ?? corridors?.[0] ?? null : null), [corridors, corridorId]);
   // AW-8.3: the segment lines of the open corridor in the window of the shared time (hour `t`, or the whole window).
   // The geometry (sampled along the corridor) depends on corridor + segments only; selection and hover are layer filters on the map, so a click never rebuilds the lines.
   const segGeo = useMemo(() => {
