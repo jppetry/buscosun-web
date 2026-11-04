@@ -164,7 +164,8 @@ function corridorFc(corridors: readonly RoadCorridor[], sel: string | null): Geo
 function pointFc(points: readonly RoadPoint[], inC: ReadonlySet<string>, sel: string | null, stale: boolean, zust: boolean, fcRs?: ReadonlyMap<string, number>, vsPoints?: ReadonlyMap<string, { tf: number; cls: RoadClass }>): GeoJSON.FeatureCollection {
   return {
     type: 'FeatureCollection',
-    features: points.map((p) => {
+    // Jan 04.11.: sensors without a valid value are not drawn (the selected one and the virtual-sensor ones stay).
+    features: points.filter((p) => p.id === sel || p.rs != null || (p.cls !== 'nodata' && p.cls !== 'unknown') || !!vsPoints?.has(p.id)).map((p) => {
       // AW-6.2.9: a station without a road measurement takes the virtual sensor's class (its own marker variant), only when the switch delivers one.
       const vs = p.rs == null ? vsPoints?.get(p.id) ?? null : null;
       const cls = vs ? (zust ? vs.cls : 'dry') : zust ? p.cls : (p.cls === 'nodata' || p.cls === 'unknown' ? p.cls : 'dry');
