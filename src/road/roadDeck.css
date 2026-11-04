@@ -1092,7 +1092,7 @@ button.aw-prog-tile:not(:disabled):not(.is-on):hover { box-shadow: var(--aw-inse
 .aw-readout > .aw-tabs button svg { flex: 0 0 auto; opacity: 0.8; }
 .aw-readout > .aw-tabs button.is-active { background: var(--aw-grad-ink); color: var(--cream-50, #FAF6EA); box-shadow: 0 2px 8px rgba(44, 42, 38, 0.22); }
 .aw-readout > .aw-tabs + * { margin-top: 14px; }
-.aw-hz-title-n { display: inline-block; min-width: 1.6em; padding: 0 8px; margin-right: 2px; border-radius: 999px; text-align: center; font-variant-numeric: tabular-nums; color: var(--cream-50, #FAF6EA); background: var(--aw-grad); box-shadow: var(--aw-grad-shadow); }
+.aw-hz-title-n { color: var(--aw-accent, #1F5FAE); font-variant-numeric: tabular-nums; }
 .aw-hz-group-head { gap: 9px; text-transform: none; letter-spacing: 0; font-size: 14px; padding-bottom: 8px; }
 .aw-hz-group-ic { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 9px; color: var(--aw-accent, #1F5FAE); background: color-mix(in srgb, var(--aw-accent, #1F5FAE) 10%, #fff); }
 .aw-hz-group-n { font-size: 12px; }
