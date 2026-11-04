@@ -506,10 +506,11 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   const zoom = (d: number) => { const m = mapRef.current; if (m) { if (d > 0) m.zoomIn(); else m.zoomOut(); } };
 
   const axisValue = axis && fcFile ? roadFcValue(axis, fcFile, fcMs) : null;
-  const fcDots = useMemo<RoadFcDot[]>(() => (!fcFile ? [] : roadFcAxisPoints(fcFile).map((p) => {
+  const fcDots = useMemo<RoadFcDot[]>(() => (!fcFile ? [] : roadFcAxisPoints(fcFile).flatMap((p) => {
     const v = roadFcValue(p, fcFile, fcMs);
     // Air colour only: a forecast dot never looks like a measured road class (Jan 28.10.: no road classes on the axis dots).
-    return { id: p.id, lon: p.lon, lat: p.lat, color: v ? ROAD_FC_AIR_COLOR[roadFcAirClass(v.t)] : null };
+    // Jan 04.11.: points without a value (grey) are not drawn.
+    return v ? [{ id: p.id, lon: p.lon, lat: p.lat, color: ROAD_FC_AIR_COLOR[roadFcAirClass(v.t)] }] : [];
     // Hour steps only: the dots change when the valid hour changes, not every minute.
   })), [fcFile, Math.round(fcMs / 3_600_000)]); // eslint-disable-line react-hooks/exhaustive-deps
   // AW-6.2.9: stations of the open corridor without a road measurement, with the virtual sensor's value of the shown hour (map marker + label).
