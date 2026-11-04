@@ -24,7 +24,7 @@ const last = (a: Array<[number, number]>) => (a.length ? a[a.length - 1][1] : nu
 const bigTheme = {
   ...roadNivoTheme,
   text: { ...roadNivoTheme.text, fontSize: 12 },
-  axis: { ...roadNivoTheme.axis, ticks: { ...roadNivoTheme.axis.ticks, text: { ...roadNivoTheme.axis.ticks.text, fontSize: 11.5, fill: '#8B7355' } } },
+  axis: { ...roadNivoTheme.axis, ticks: { ...roadNivoTheme.axis.ticks, text: { ...roadNivoTheme.axis.ticks.text, fontSize: 12, fill: '#8B7355' } } },
 };
 
 /** Reading aid: road against the dew point — the one comparison that says whether moisture settles (and freezes). */
@@ -53,7 +53,7 @@ export function TempChart({ s, slotMs }: { s: TempSeries; slotMs: number }) {
   type L = LineCustomSvgLayerProps<LineSeries>;
   const Shade = ({ xScale, innerHeight }: L) => {
     const x0 = (xScale as (v: number) => number)(0), x6 = (xScale as (v: number) => number)(6);
-    return <g><rect x={x0} y={0} width={Math.max(0, x6 - x0)} height={innerHeight} fill="#EEF1F4" /><text x={(x0 + x6) / 2} y={-8} fontSize={11.5} fontWeight={600} fontFamily={AW_FONT} fill="#6B7A8F" textAnchor="middle">Prognose</text></g>;
+    return <g><rect x={x0} y={0} width={Math.max(0, x6 - x0)} height={innerHeight} fill="#EEF1F4" /><text x={(x0 + x6) / 2} y={-8} fontSize={12} fontWeight={600} fontFamily={AW_FONT} fill="#6B7A8F" textAnchor="middle">Prognose</text></g>;
   };
   const Reif = ({ xScale, yScale }: L) => {
     const X = xScale as (v: number) => number, Y = yScale as (v: number) => number;
@@ -82,7 +82,7 @@ export function TempChart({ s, slotMs }: { s: TempSeries; slotMs: number }) {
   };
   const Now = ({ xScale, innerHeight }: L) => {
     const x = (xScale as (v: number) => number)(0);
-    return <g><line x1={x} x2={x} y1={0} y2={innerHeight} stroke="#1F5FAE" strokeWidth={1.5} /><text x={x} y={-8} fontSize={11.5} fontWeight={700} fontFamily={AW_FONT} fill="#1F5FAE" textAnchor="middle">jetzt</text></g>;
+    return <g><line x1={x} x2={x} y1={0} y2={innerHeight} stroke="#1F5FAE" strokeWidth={1.5} /><text x={x} y={-8} fontSize={12} fontWeight={700} fontFamily={AW_FONT} fill="#1F5FAE" textAnchor="middle">jetzt</text></g>;
   };
   // The current value of each measured line, written next to its last point (pushed apart so they never overlap).
   const Ends = ({ xScale, yScale }: L) => {
@@ -117,7 +117,7 @@ export function TempChart({ s, slotMs }: { s: TempSeries; slotMs: number }) {
           xScale={{ type: 'linear', min: -12, max: 6 }} yScale={{ type: 'linear', min: lo, max: hi }}
           axisBottom={{ tickValues: [-12, -9, -6, -3, 0, 3, 6], tickSize: 0, tickPadding: 10, format: (v) => (v === 0 ? hm(slotMs) : v > 0 ? `+${v} h` : `${String(v).replace('-', '−')} h`) }}
           axisLeft={{ tickValues: yTicks, tickSize: 0, tickPadding: 8, format: (v) => `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v as number)}°` }} enableGridX={false} gridYValues={yTicks}
-          markers={[{ axis: 'y', value: 0, lineStyle: { stroke: '#B5321F', strokeDasharray: '4 3', strokeOpacity: 0.7, strokeWidth: 1.4 }, legend: '0 °C', legendPosition: 'top-left', textStyle: { fill: '#B5321F', fontSize: 11, fontFamily: AW_FONT } }]}
+          markers={[{ axis: 'y', value: 0, lineStyle: { stroke: '#B5321F', strokeDasharray: '4 3', strokeOpacity: 0.7, strokeWidth: 1.4 }, legend: '0 °C', legendPosition: 'top-left', textStyle: { fill: '#B5321F', fontSize: 12, fontFamily: AW_FONT } }]}
           colors={(d) => colorOf[String(d.id)]} enablePoints={false} enableSlices="x" lineWidth={0}
           layers={['grid', Shade, Reif, 'markers', 'axes', Lines, Now, Ends, 'slices', 'mesh']}
           sliceTooltip={({ slice }) => (
@@ -217,7 +217,7 @@ export function WindPolar({ w }: { w: { sectors: WindSector[]; axisDeg: number; 
         <line x1={cx - r * Math.cos(a)} y1={cy - r * Math.sin(a)} x2={cx + r * Math.cos(a)} y2={cy + r * Math.sin(a)} stroke="#2C2A26" strokeWidth={5} strokeLinecap="round" opacity={0.85} />
         <line x1={cx - r * Math.cos(a)} y1={cy - r * Math.sin(a)} x2={cx + r * Math.cos(a)} y2={cy + r * Math.sin(a)} stroke="#FAF6EA" strokeWidth={1} strokeDasharray="3 3" />
         {now != null && <circle cx={cx + rr * Math.cos(now)} cy={cy + rr * Math.sin(now)} r={4.5} fill="#1F5FAE" stroke="#FFFFFF" strokeWidth={1.5} />}
-        {(['N', 'O', 'S', 'W'] as const).map((n, i) => { const t = ((i * 90 - 90) * Math.PI) / 180; return <text key={n} x={cx + (outerRadius + 11) * Math.cos(t)} y={cy + (outerRadius + 11) * Math.sin(t) + 3} fontSize={9} fontFamily={AW_FONT} fill="#8B7355" textAnchor="middle">{n}</text>; })}
+        {(['N', 'O', 'S', 'W'] as const).map((n, i) => { const t = ((i * 90 - 90) * Math.PI) / 180; return <text key={n} x={cx + (outerRadius + 11) * Math.cos(t)} y={cy + (outerRadius + 11) * Math.sin(t) + 3} fontSize={12} fontFamily={AW_FONT} fill="#8B7355" textAnchor="middle">{n}</text>; })}
       </g>
     );
   };

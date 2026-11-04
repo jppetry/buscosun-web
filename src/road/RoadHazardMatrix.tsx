@@ -41,7 +41,7 @@ export default function RoadHazardMatrix({ matrix, hours, filter, hour, onCell, 
         style={{ cursor: 'pointer', outline: 'none' }} onClick={onClick?.(cell) as unknown as React.MouseEventHandler<SVGGElement>}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onCell(d.group, d.hour); } }} className="aw-hz-cell">
         <rect width={cell.width - 3} height={cell.height - 3} x={1.5} y={1.5} rx={5} fill={bg} stroke={active ? '#1F5FAE' : 'none'} strokeWidth={2} />
-        <text x={cell.width / 2} y={cell.height / 2 + 4} textAnchor="middle" fontFamily={AW_FONT} fontSize={11} fontWeight={700} fill={ink} style={{ fontVariantNumeric: 'tabular-nums', pointerEvents: 'none' }}>
+        <text x={cell.width / 2} y={cell.height / 2 + 4} textAnchor="middle" fontFamily={AW_FONT} fontSize={12} fontWeight={700} fill={ink} style={{ fontVariantNumeric: 'tabular-nums', pointerEvents: 'none' }}>
           {d.y ? d.y : d.unknown ? '?' : '·'}
         </text>
       </g>
