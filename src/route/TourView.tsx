@@ -27,8 +27,7 @@ import { batterySocAtDist, computeEbikeBattery, DEFAULT_EBIKE_CONFIG, type Ebike
 import { enrichSampleWeather, START_OFFSETS_MIN, type EnrichmentMeta } from '../pointForecast/weatherEnrichment';
 import { packTour, saveTour, tourStoreEnabled, TOUR_SAVE_DEBOUNCE_MS, type StoredPlan } from './tourStore';
 import { computeWeatherAggregate } from './weatherAggregate';
-import { WeatherStatGrid, WarningBanner, FoehnBanner } from './WeatherSummary';
-import WeatherProfile from './WeatherProfile';
+import { WeatherStatGrid, WarningBanner, FoehnBanner, tourVerdict } from './WeatherSummary';
 import TourWeatherStrip from './TourWeatherStrip';
 import RouteScrubber from './RouteScrubber';
 // Die 3D-Ansicht lädt erst beim Umschalten (eigener Chunk) — das 2D-Ergebnis
@@ -39,6 +38,8 @@ const Route3DView = lazy(() => import('./route3d/Route3DView'));
  * lazy — wer auf die flache Karte umschaltet, lädt Vorhang und Textur nie.
  */
 const RouteTerrainPanel = lazy(() => import('./route3d/RouteTerrainPanel'));
+/** Die Kurven hängen an nivo: eigener Chunk, Planung und Upload zahlen nichts dafür. */
+const WeatherProfile = lazy(() => import('./WeatherProfile'));
 
 /** Welche Karte das Ergebnis zeigt. Standard: das Gelände. */
 type ResultMap = 'terrain' | 'flat';
@@ -213,6 +214,7 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
 
   const displaySamples: SampleETA[] = weatherState.kind === 'ready' ? weatherState.samples : enrichedSamples;
   const agg = useMemo(() => computeWeatherAggregate(displaySamples), [displaySamples]);
+  const verdict = useMemo(() => tourVerdict(displaySamples, agg), [displaySamples, agg]);
 
   const mapBreaks: MapBreak[] = useMemo(
     () => (timing?.milestones ?? [])
@@ -346,6 +348,9 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
         <div className="rd-result-titles">
           <span className="rd-eyebrow">Ergebnis{type ? ` · ${type.label}` : ''}</span>
           <h1 className="rd-result-title">{tourName}</h1>
+          {weatherState.kind === 'ready' && verdict && (
+            <p className="rd-verdict"><b>{verdict.lead}</b>{verdict.rest ? ` ${verdict.rest}` : ''}</p>
+          )}
         </div>
         {timing && (
           <dl className="rd-kpis">
@@ -461,7 +466,11 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
 
       {timing && (
         <div className="rd-analysis-grid rd-analysis-grid--lr">
-          <div className="rd-panel"><WeatherProfile samples={displaySamples} /></div>
+          <div className="rd-panel">
+            <Suspense fallback={<div className="wp-wait" role="status">Kurven werden geladen …</div>}>
+              <WeatherProfile samples={displaySamples} markerM={scrubDistM} onPickDist={handlePickDist} />
+            </Suspense>
+          </div>
           <TimeOverview timing={timing} startMs={startMs} category={type?.category ?? 'foot'} />
         </div>
       )}

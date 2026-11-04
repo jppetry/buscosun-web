@@ -7,8 +7,47 @@
 import type { ReactNode } from 'react';
 import type { WeatherAggregate, AggregatedWarning } from './weatherAggregate';
 import { uvCategory } from '../sources/dwdUvForecast';
-import { fmt1, SeverityBadge } from './tourUi';
+import type { SampleETA } from './tourTiming';
+import { clock, fmt1, SeverityBadge } from './tourUi';
 import { IconWarning, IconWind } from './routeIcons';
+
+/* ===== Die Antwort als Satz (Kopf des Ergebnisses) ===== */
+const WET_MM_H = 0.1;
+
+/** Sagt in Worten, wo und wann es nass wird, dazu Temperatur und Böen. Vorhersage, aus denselben Punkten wie die Karten. */
+export function tourVerdict(samples: SampleETA[], agg: WeatherAggregate): { lead: string; rest: string } | null {
+  const withW = samples.filter((s) => s.weather != null);
+  if (!agg.hasData || withW.length < 2) return null;
+
+  const stretches: SampleETA[][] = [];
+  let cur: SampleETA[] = [];
+  for (const s of withW) {
+    if ((s.weather!.precipitationMmH ?? 0) > WET_MM_H) cur.push(s);
+    else if (cur.length) { stretches.push(cur); cur = []; }
+  }
+  if (cur.length) stretches.push(cur);
+
+  const km = (s: SampleETA) => Math.round(s.dist / 1000);
+  const word = agg.precip.dominantType === 'snow' ? 'Schnee' : agg.precip.dominantType === 'sleet' ? 'Schneeregen' : 'Regen';
+  let lead: string;
+  if (stretches.length === 0) lead = 'Trocken auf der ganzen Strecke.';
+  else if (stretches.length === 1) {
+    const a = stretches[0][0], b = stretches[0][stretches[0].length - 1];
+    lead = km(a) === km(b)
+      ? `${word} bei km ${km(a)} gegen ${clock(a.etaMs)} Uhr.`
+      : `${word} zwischen km ${km(a)} und ${km(b)}, etwa ${clock(a.etaMs)} bis ${clock(b.etaMs)} Uhr.`;
+  } else {
+    const a = stretches[0][0];
+    lead = `${word} in ${stretches.length} Abschnitten, zuerst ab km ${km(a)} gegen ${clock(a.etaMs)} Uhr.`;
+  }
+
+  const parts: string[] = [];
+  if (agg.temp) parts.push(`${Math.round(agg.temp.min)} bis ${Math.round(agg.temp.max)} °C`);
+  if (agg.gust) parts.push(`Böen bis ${Math.round(agg.gust.max * 3.6)} km/h`);
+  let rest = parts.length ? `${parts.join(', ')}.` : '';
+  if (agg.warnings.count > 0) rest += `${rest ? ' ' : ''}Für die Strecke liegt eine amtliche Warnung vor.`;
+  return { lead, rest };
+}
 
 /* ===== Stat-Grid ===== */
 export function WeatherStatGrid({ agg }: { agg: WeatherAggregate }) {

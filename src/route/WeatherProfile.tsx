@@ -1,290 +1,300 @@
 /**
- * Wetter-Sparkline-Streifen entlang der Strecke (x = Distanz). Drei
- * gestapelte Panels:
+ * Wetter entlang der Strecke (`@nivo/line`, lazy geladen): drei Kurven übereinander mit derselben km-Achse statt einer
+ * Grafik mit zwei Skalen. 1 Temperatur + gefühlt (gestrichelt, nur wenn merklich anders), 2 Niederschlag als Balken
+ * (Farbe = Art, kräftig = Radar, blass = Modell), 3 Wind + Böen (gestrichelt).
  *
- *   1. Temperatur — Linie + optional Apparent gestrichelt (wenn ≠ T).
- *   2. Niederschlag — Balken (mm/h), eingefärbt nach Quelle (Radar = sage,
- *      NWP = steel-blau). Y-Skala auto, mindestens 0–4 mm/h.
- *   3. Wind — Mittelwind-Linie + Gust-Ribbon (fill zwischen Wind und Gust).
- *
+ * Ein Fadenkreuz läuft durch alle drei, die Zeile darüber nennt die Werte an der Stelle. Ein Klick oder Tipp setzt die
+ * Position der Tour (dieselbe wie Scrubber und Karte). Der Export legt die drei Diagramme zu einem Bild zusammen.
  * Liefert null, wenn keine Wetter-Samples vorliegen.
  */
 
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import { ResponsiveLine, type LineCustomSvgLayerProps, type LineSeries } from '@nivo/line';
 import type { SampleETA } from './tourTiming';
 import { exportSvgAsPng } from '../imageExport';
+import { clock } from './tourUi';
+import { ROUTE_CHART_COLOR as C, ROUTE_CHART_FONT, routeNivoTheme } from './routeNivoTheme';
 
 interface Props {
   samples: SampleETA[];
+  /** Gekoppelte Position der Tour (m): dieselbe wie Scrubber und Karte. */
+  markerM?: number | null;
+  onPickDist?: (distM: number) => void;
 }
 
-const W = 600;
-const PANEL_H = 56;
-const GAP = 6;
-const PAD_Y = 5;
+type PrecipType = 'rain' | 'sleet' | 'snow' | 'none';
+interface Row {
+  km: number; dist: number; etaMs: number;
+  t: number | null; at: number | null;
+  p: number; ptype: PrecipType; radar: boolean;
+  w: number | null; g: number | null;
+}
+type L = LineCustomSvgLayerProps<LineSeries>;
+type Scale = (v: number) => number;
 
-export default function WeatherProfile({ samples }: Props) {
+const MARGIN_L = 40;
+const MARGIN_R = 12;
+const AXIS_H = 24;
+const PANEL_H = 92;
+
+const fmt1 = (n: number) => (Math.round(n * 10) / 10).toString().replace('.', ',');
+const PRECIP_COLOR: Record<PrecipType, string> = { rain: C.rain, sleet: C.sleet, snow: C.snow, none: C.rain };
+const PRECIP_WORD: Record<PrecipType, string> = { rain: 'Regen', sleet: 'Schneeregen', snow: 'Schnee', none: 'Regen' };
+
+/** Eine Linie mit Lücken: fehlende Werte werden nicht überbrückt. */
+function polyPoints(rows: Row[], get: (r: Row) => number | null, X: Scale, Y: Scale): string[] {
+  const out: string[] = [];
+  let cur: string[] = [];
+  for (const r of rows) {
+    const v = get(r);
+    if (v == null) { if (cur.length) out.push(cur.join(' ')); cur = []; continue; }
+    cur.push(`${X(r.km).toFixed(1)},${Y(v).toFixed(1)}`);
+  }
+  if (cur.length) out.push(cur.join(' '));
+  return out;
+}
+
+function Panel({ title, height, axis, totalKm, yMin, yMax, children, cursorKm, markerKm }: {
+  title: string; height: number; axis: boolean; totalKm: number; yMin: number; yMax: number;
+  children: (x: Scale, y: Scale, innerHeight: number, innerWidth: number) => ReactNode;
+  cursorKm: number | null; markerKm: number | null;
+}) {
+  // nivo braucht eine Reihe für die Skalen; gezeichnet wird in der eigenen Ebene.
+  const data: LineSeries[] = [{ id: title, data: [{ x: 0, y: yMin }, { x: totalKm, y: yMax }] }];
+  const Marks = ({ xScale, yScale, innerHeight, innerWidth }: L) => <g>{children(xScale as Scale, yScale as Scale, innerHeight, innerWidth)}</g>;
+  const Cursor = ({ xScale, innerHeight }: L) => {
+    const X = xScale as Scale;
+    return (
+      <g pointerEvents="none">
+        {markerKm != null && <line x1={X(markerKm)} x2={X(markerKm)} y1={0} y2={innerHeight} stroke={C.marker} strokeWidth={2} />}
+        {cursorKm != null && <line x1={X(cursorKm)} x2={X(cursorKm)} y1={0} y2={innerHeight} stroke={C.cursor} strokeWidth={1} strokeDasharray="4 4" />}
+      </g>
+    );
+  };
+  return (
+    <div className="wp-panel">
+      <div className="wp-panel-title">{title}</div>
+      <div className="wp-chart" style={{ height }}>
+        <ResponsiveLine
+          data={data}
+          margin={{ top: 6, right: MARGIN_R, bottom: axis ? AXIS_H : 4, left: MARGIN_L }}
+          xScale={{ type: 'linear', min: 0, max: totalKm }}
+          yScale={{ type: 'linear', min: yMin, max: yMax }}
+          enablePoints={false}
+          enableGridX={false}
+          gridYValues={3}
+          axisLeft={{ tickValues: 3, tickSize: 0, tickPadding: 6 }}
+          axisBottom={axis ? { tickValues: 6, tickSize: 0, tickPadding: 7, format: (v) => `${fmt1(Number(v))} km` } : null}
+          theme={routeNivoTheme}
+          animate={false}
+          isInteractive={false}
+          layers={['grid', 'axes', Marks, Cursor]}
+        />
+      </div>
+    </div>
+  );
+}
+
+export default function WeatherProfile({ samples, markerM = null, onPickDist }: Props) {
   const series = useMemo(() => buildSeries(samples), [samples]);
-  const svgRef = useRef<SVGSVGElement>(null);
+  const figRef = useRef<HTMLElement>(null);
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   if (!series) return null;
 
-  const totalKm = series.totalM / 1000;
+  const { rows, totalKm } = series;
+  const idxAt = (clientX: number, el: HTMLElement) => {
+    const r = el.getBoundingClientRect();
+    const frac = Math.max(0, Math.min(1, (clientX - r.left - MARGIN_L) / Math.max(1, r.width - MARGIN_L - MARGIN_R)));
+    const km = frac * totalKm;
+    let best = 0, bd = Infinity;
+    rows.forEach((row, i) => { const d = Math.abs(row.km - km); if (d < bd) { bd = d; best = i; } });
+    return best;
+  };
+  const onMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const i = idxAt(e.clientX, e.currentTarget);
+    if (i !== hoverIdx) setHoverIdx(i);
+  };
+  const onPick = (e: ReactMouseEvent<HTMLDivElement>) => { onPickDist?.(rows[idxAt(e.clientX, e.currentTarget)].dist); };
+
+  const markerKm = markerM != null ? markerM / 1000 : null;
+  const cursorKm = hoverIdx != null ? rows[hoverIdx].km : null;
+  let shownIdx = hoverIdx;
+  if (shownIdx == null && markerKm != null) {
+    let bd = Infinity;
+    rows.forEach((row, i) => { const d = Math.abs(row.km - markerKm); if (d < bd) { bd = d; shownIdx = i; } });
+  }
+  const shown = shownIdx != null ? rows[shownIdx] : null;
+  const panelProps = { totalKm, cursorKm, markerKm };
+
+  const exportImage = () => {
+    const charts = figRef.current ? Array.from(figRef.current.querySelectorAll<SVGSVGElement>('.wp-chart svg')) : [];
+    const titles = figRef.current ? Array.from(figRef.current.querySelectorAll('.wp-panel-title')).map((t) => t.textContent ?? '') : [];
+    if (!charts.length) return;
+    const NS = 'http://www.w3.org/2000/svg';
+    const width = charts[0].getBoundingClientRect().width;
+    const out = document.createElementNS(NS, 'svg');
+    let y = 0;
+    charts.forEach((svg, i) => {
+      const label = document.createElementNS(NS, 'text');
+      label.setAttribute('x', String(MARGIN_L));
+      label.setAttribute('y', String(y + 13));
+      label.setAttribute('font-family', ROUTE_CHART_FONT);
+      label.setAttribute('font-size', '12');
+      label.setAttribute('font-weight', '600');
+      label.setAttribute('fill', '#2C2A26');
+      label.textContent = titles[i] ?? '';
+      out.appendChild(label);
+      y += 18;
+      const g = document.createElementNS(NS, 'g');
+      g.setAttribute('transform', `translate(0,${y})`);
+      Array.from(svg.childNodes).forEach((n) => g.appendChild(n.cloneNode(true)));
+      out.appendChild(g);
+      y += svg.getBoundingClientRect().height + 6;
+    });
+    out.setAttribute('viewBox', `0 0 ${width} ${y}`);
+    out.setAttribute('width', String(width));
+    out.setAttribute('height', String(y));
+    // Der Export liest berechnete Stile und braucht das Element deshalb kurz im Dokument.
+    out.style.position = 'fixed';
+    out.style.left = '-99999px';
+    document.body.appendChild(out);
+    void exportSvgAsPng(out, {
+      filename: 'buscosun-wetterprofil.png',
+      title: 'Wetter entlang der Strecke',
+      subtitle: `${fmt1(totalKm)} km · Temperatur · Niederschlag · Wind`,
+      source: 'buscosun · Quellen: DWD · GeoSphere · MeteoSwiss (höhenkorrigiert)',
+    }).finally(() => out.remove());
+  };
+
+  const summary = `Wetter über ${fmt1(totalKm)} Kilometer: Temperatur ${series.tempRange ? `${Math.round(series.tempLo)} bis ${Math.round(series.tempHi)} °C` : 'unbekannt'}, höchste Niederschlagsrate ${fmt1(series.precipMax)} mm/h, stärkste Böen ${fmt1(series.windHi)} m/s.`;
+  const tableRows = rows.filter((_, i) => i % Math.max(1, Math.ceil(rows.length / 12)) === 0);
+
   return (
-    <figure className="wp-figure">
+    <figure className="wp-figure" ref={figRef}>
       <div className="wp-head">
         <figcaption>Wetter entlang der Strecke</figcaption>
-        <button type="button" className="wp-export" title="Wetterprofil als Bild (PNG) herunterladen"
-          onClick={() => svgRef.current && void exportSvgAsPng(svgRef.current, {
-            filename: 'buscosun-wetterprofil.png',
-            title: 'Wetter entlang der Strecke',
-            subtitle: `${fmt1(totalKm)} km · Temperatur · Niederschlag · Wind`,
-            source: 'buscosun · Quellen: DWD · GeoSphere · MeteoSwiss (höhenkorrigiert)',
-          })}>
+        <button type="button" className="wp-export" title="Wetterprofil als Bild (PNG) herunterladen" onClick={exportImage}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7,10 12,15 17,10" /><line x1="12" y1="15" x2="12" y2="3" />
           </svg>
           <span>Als Bild</span>
         </button>
       </div>
-      <svg
-        ref={svgRef}
-        viewBox={`0 0 ${W} ${series.height}`}
-        preserveAspectRatio="none"
-        className="wp-svg"
-        aria-hidden="true"
-      >
-        {/* Panel 1: Temperatur */}
-        <g transform={`translate(0,0)`}>
-          <rect x="0" y="0" width={W} height={PANEL_H} fill="var(--cream-50, #FAF6EA)" stroke="var(--sand-200, #e0d6be)" />
-          {series.tempArea && <path d={series.tempArea} fill="rgba(198, 99, 59, 0.10)" />}
-          {series.tempLine && <path d={series.tempLine} fill="none" stroke="var(--terracotta-500, #c6633b)" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />}
-          {series.apparentLine && series.apparentDiffers && (
-            <path d={series.apparentLine} fill="none" stroke="var(--terracotta-700, #a8431f)" strokeWidth="1.1" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" opacity="0.7" />
-          )}
-          <text x="6" y="11" className="wp-axis-label">°C</text>
-          {series.tempRange && (
-            <>
-              <text x={W - 4} y="11" textAnchor="end" className="wp-axis-label">{Math.round(series.tempRange.max)}</text>
-              <text x={W - 4} y={PANEL_H - 3} textAnchor="end" className="wp-axis-label">{Math.round(series.tempRange.min)}</text>
-            </>
-          )}
-        </g>
 
-        {/* Panel 2: Niederschlag */}
-        <g transform={`translate(0, ${PANEL_H + GAP})`}>
-          <rect x="0" y="0" width={W} height={PANEL_H} fill="var(--cream-50, #FAF6EA)" stroke="var(--sand-200, #e0d6be)" />
-          {series.precipBars.map((b, i) => (
-            <rect
-              key={i}
-              x={b.x} y={b.y} width={b.w} height={b.h}
-              fill={precipColor(b.type, b.source)}
-              opacity={b.source === 'radar' ? 0.9 : 0.75}
-            />
-          ))}
-          <text x="6" y="11" className="wp-axis-label">mm/h</text>
-          <text x={W - 4} y="11" textAnchor="end" className="wp-axis-label">{fmt1(series.precipMaxScale)}</text>
-        </g>
-
-        {/* Panel 3: Wind */}
-        <g transform={`translate(0, ${(PANEL_H + GAP) * 2})`}>
-          <rect x="0" y="0" width={W} height={PANEL_H} fill="var(--cream-50, #FAF6EA)" stroke="var(--sand-200, #e0d6be)" />
-          {series.windRibbon && <path d={series.windRibbon} fill="rgba(198, 99, 59, 0.18)" />}
-          {series.windLine && <path d={series.windLine} fill="none" stroke="#4f627e" strokeWidth="1.4" vectorEffect="non-scaling-stroke" />}
-          {series.gustLine && <path d={series.gustLine} fill="none" stroke="var(--terracotta-500, #c6633b)" strokeWidth="1" strokeDasharray="2 2" vectorEffect="non-scaling-stroke" opacity="0.7" />}
-          <text x="6" y="11" className="wp-axis-label">m/s</text>
-          {series.windRange && (
-            <text x={W - 4} y="11" textAnchor="end" className="wp-axis-label">{fmt1(series.windRange.max)}</text>
-          )}
-        </g>
-      </svg>
-      <div className="wp-axis-x">
-        <span>0 km</span>
-        <span>{totalKm.toFixed(1).replace('.', ',')} km</span>
+      {/* Ablesezeile: feste Höhe, damit die Kurven beim Überfahren nicht springen. */}
+      <div className="wp-readout" aria-live="off">
+        {shown ? (
+          <>
+            <span><b>km {fmt1(shown.km)}</b> um {clock(shown.etaMs)} Uhr</span>
+            {shown.t != null && <span><b>{fmt1(shown.t)} °C</b>{shown.at != null && series.apparentDiffers ? ` gefühlt ${fmt1(shown.at)}` : ''}</span>}
+            <span><b>{fmt1(shown.p)} mm/h</b>{shown.p > 0 ? ` ${PRECIP_WORD[shown.ptype]}, ${shown.radar ? 'Radar' : 'Modell'}` : ''}</span>
+            {shown.w != null && <span><b>{fmt1(shown.w)} m/s</b>{shown.g != null ? ` Böen ${fmt1(shown.g)}` : ''}</span>}
+          </>
+        ) : <span>Zeig auf die Kurven, um die Werte abzulesen. Ein Klick setzt deine Position auf Karte und Höhenprofil.</span>}
       </div>
+
+      <div className="wp-charts" role="img" aria-label={summary} onPointerMove={onMove} onPointerDown={onMove} onPointerLeave={() => setHoverIdx(null)} onClick={onPick}>
+        <Panel title="Temperatur in °C" height={PANEL_H} axis={false} yMin={series.tempLo} yMax={series.tempHi} {...panelProps}>
+          {(X, Y, h) => (
+            <g fill="none" strokeLinejoin="round" strokeLinecap="round">
+              {polyPoints(rows, (r) => r.t, X, Y).map((pts, i) => {
+                const first = pts.split(' ')[0].split(',')[0], last = pts.split(' ').at(-1)!.split(',')[0];
+                return <polygon key={`a${i}`} points={`${first},${h} ${pts} ${last},${h}`} fill={C.temp} opacity={0.1} stroke="none" />;
+              })}
+              {series.apparentDiffers && polyPoints(rows, (r) => r.at, X, Y).map((pts, i) => <polyline key={`g${i}`} points={pts} stroke={C.temp} strokeWidth={1.5} strokeDasharray="4 4" opacity={0.8} />)}
+              {polyPoints(rows, (r) => r.t, X, Y).map((pts, i) => <polyline key={`t${i}`} points={pts} stroke={C.temp} strokeWidth={2} />)}
+            </g>
+          )}
+        </Panel>
+
+        <Panel title="Niederschlag in mm/h" height={PANEL_H} axis={false} yMin={0} yMax={series.precipScale} {...panelProps}>
+          {(X, Y, h, w) => (
+            <g>
+              {series.precipMax <= 0 && <text x={w / 2} y={h / 2 + 4} textAnchor="middle" fontFamily={ROUTE_CHART_FONT} fontSize={12} fill="#6F5E45">trocken auf der ganzen Strecke</text>}
+              {rows.map((r, i) => {
+                if (r.p <= 0) return null;
+                const prev = i > 0 ? rows[i - 1].km : r.km, next = i + 1 < rows.length ? rows[i + 1].km : r.km;
+                const halfKm = Math.min(next - r.km || Infinity, r.km - prev || Infinity) / 2;
+                const barW = Number.isFinite(halfKm) ? Math.max(2, (X(r.km + halfKm) - X(r.km)) * 2 - 2) : 2;
+                const top = Y(r.p);
+                return <rect key={i} x={X(r.km) - barW / 2} y={top} width={barW} height={Math.max(1, h - top)} rx={Math.min(2, barW / 2)} fill={PRECIP_COLOR[r.ptype]} opacity={r.radar ? 1 : 0.55} />;
+              })}
+            </g>
+          )}
+        </Panel>
+
+        <Panel title="Wind und Böen in m/s" height={PANEL_H + AXIS_H} axis yMin={0} yMax={series.windHi} {...panelProps}>
+          {(X, Y) => (
+            <g fill="none" strokeLinejoin="round" strokeLinecap="round">
+              {polyPoints(rows, (r) => r.g, X, Y).map((pts, i) => <polyline key={`b${i}`} points={pts} stroke={C.gust} strokeWidth={1.5} strokeDasharray="4 4" />)}
+              {polyPoints(rows, (r) => r.w, X, Y).map((pts, i) => <polyline key={`w${i}`} points={pts} stroke={C.wind} strokeWidth={2} />)}
+            </g>
+          )}
+        </Panel>
+      </div>
+
       <div className="wp-legend">
-        <span><i className="wp-sw wp-sw-temp" /> Temperatur</span>
-        <span><i className="wp-sw wp-sw-apparent" /> Gefühlt</span>
-        {series.precipTypes.has('rain') && <span><i className="wp-sw wp-sw-rain" /> Regen</span>}
-        {series.precipTypes.has('sleet') && <span><i className="wp-sw wp-sw-sleet" /> Schneeregen</span>}
-        {series.precipTypes.has('snow') && <span><i className="wp-sw wp-sw-snow" /> Schnee</span>}
-        <span><i className="wp-sw wp-sw-radar-mark" /> Radar (sonst NWP)</span>
-        <span><i className="wp-sw wp-sw-wind" /> Wind</span>
-        <span><i className="wp-sw wp-sw-gust" /> Böen</span>
+        <span><i className="wp-key" style={{ borderTopColor: C.temp }} /> Temperatur</span>
+        {series.apparentDiffers && <span><i className="wp-key is-dashed" style={{ borderTopColor: C.temp }} /> Gefühlt</span>}
+        {series.precipTypes.has('rain') && <span><i className="wp-key-bar" style={{ background: C.rain }} /> Regen</span>}
+        {series.precipTypes.has('sleet') && <span><i className="wp-key-bar" style={{ background: C.sleet }} /> Schneeregen</span>}
+        {series.precipTypes.has('snow') && <span><i className="wp-key-bar" style={{ background: C.snow }} /> Schnee</span>}
+        {series.precipMax > 0 && <span>Kräftig: Radar, blass: Modell</span>}
+        <span><i className="wp-key" style={{ borderTopColor: C.wind }} /> Wind</span>
+        <span><i className="wp-key is-dashed" style={{ borderTopColor: C.gust }} /> Böen</span>
       </div>
+
+      <table className="wp-sr">
+        <caption>Wetter entlang der Strecke</caption>
+        <thead><tr><th>km</th><th>Uhrzeit</th><th>Temperatur °C</th><th>Niederschlag mm/h</th><th>Wind m/s</th><th>Böen m/s</th></tr></thead>
+        <tbody>
+          {tableRows.map((r) => (
+            <tr key={r.dist}><td>{fmt1(r.km)}</td><td>{clock(r.etaMs)}</td><td>{r.t != null ? fmt1(r.t) : '—'}</td><td>{fmt1(r.p)}</td><td>{r.w != null ? fmt1(r.w) : '—'}</td><td>{r.g != null ? fmt1(r.g) : '—'}</td></tr>
+          ))}
+        </tbody>
+      </table>
     </figure>
   );
 }
 
 // ---------------------------------------------------------------------------
 
-interface BuiltSeries {
-  totalM: number;
-  height: number;
-  tempLine: string | null;
-  tempArea: string | null;
-  apparentLine: string | null;
-  apparentDiffers: boolean;
-  tempRange: { min: number; max: number } | null;
-  precipBars: Array<{ x: number; y: number; w: number; h: number; source: 'radar' | 'nwp'; type: 'rain' | 'sleet' | 'snow' | 'none' }>;
-  precipMaxScale: number;
-  /** Welche Niederschlagsarten kommen in dieser Tour vor (für Legenden-Anzeige). */
-  precipTypes: Set<'rain' | 'sleet' | 'snow'>;
-  windLine: string | null;
-  gustLine: string | null;
-  windRibbon: string | null;
-  windRange: { min: number; max: number } | null;
-}
-
-function buildSeries(samples: SampleETA[]): BuiltSeries | null {
+function buildSeries(samples: SampleETA[]) {
   const withW = samples.filter((s) => s.weather != null);
   if (withW.length < 2) return null;
   const totalM = samples[samples.length - 1].dist;
   if (totalM <= 0) return null;
 
-  const x = (distM: number) => (distM / totalM) * W;
+  const rows: Row[] = withW.map((s) => {
+    const w = s.weather!;
+    return {
+      km: s.dist / 1000, dist: s.dist, etaMs: s.etaMs,
+      t: w.temperatureC, at: w.apparentTempC,
+      p: w.precipitationMmH ?? 0, ptype: w.precipitationType, radar: w.precipitationSource === 'radar',
+      w: w.windSpeedMps, g: w.gustMps,
+    };
+  });
 
-  // Temperatur-Range
-  const ts: number[] = [];
-  const ats: number[] = [];
-  for (const s of withW) {
-    if (s.weather?.temperatureC != null) ts.push(s.weather.temperatureC);
-    if (s.weather?.apparentTempC != null) ats.push(s.weather.apparentTempC);
-  }
-  let tempRange: { min: number; max: number } | null = null;
-  let tempLine: string | null = null;
-  let tempArea: string | null = null;
-  let apparentLine: string | null = null;
-  let apparentDiffers = false;
-  if (ts.length > 0) {
-    const lo = Math.min(...ts);
-    const hi = Math.max(...ts);
-    const pad = Math.max(1, (hi - lo) * 0.1);
-    tempRange = { min: lo - pad, max: hi + pad };
-    const yT = (v: number) => PAD_Y + (1 - (v - tempRange!.min) / (tempRange!.max - tempRange!.min)) * (PANEL_H - 2 * PAD_Y);
-    let line = '';
-    let first = true;
-    for (const s of withW) {
-      const v = s.weather!.temperatureC;
-      if (v == null) continue;
-      line += `${first ? 'M' : 'L'} ${x(s.dist).toFixed(1)} ${yT(v).toFixed(1)} `;
-      first = false;
-    }
-    tempLine = line.trim();
-    tempArea = `${tempLine} L ${W} ${PANEL_H} L 0 ${PANEL_H} Z`;
-    if (ats.length > 0) {
-      let aline = '';
-      let af = true;
-      let diff = 0;
-      for (const s of withW) {
-        const v = s.weather!.apparentTempC;
-        const t = s.weather!.temperatureC;
-        if (v == null) continue;
-        aline += `${af ? 'M' : 'L'} ${x(s.dist).toFixed(1)} ${yT(v).toFixed(1)} `;
-        af = false;
-        if (t != null) diff = Math.max(diff, Math.abs(v - t));
-      }
-      apparentLine = aline.trim();
-      apparentDiffers = diff >= 1.0;            // nur zeigen wenn merklich anders
-    }
-  }
+  const ts = rows.flatMap((r) => (r.t != null ? [r.t] : []));
+  const tempRange = ts.length > 0;
+  const lo = tempRange ? Math.min(...ts) : 0, hi = tempRange ? Math.max(...ts) : 1;
+  const pad = Math.max(1, (hi - lo) * 0.1);
 
-  // Niederschlag-Balken (Farb-Code nach Typ — Regen/Sleet/Schnee).
-  const precipBars: BuiltSeries['precipBars'] = [];
-  let precipMax = 0;
-  for (const s of withW) {
-    const v = s.weather?.precipitationMmH ?? 0;
-    if (v > precipMax) precipMax = v;
-  }
-  const precipMaxScale = Math.max(4, Math.ceil(precipMax * 1.2));
-  const yP = (v: number) => PAD_Y + (1 - v / precipMaxScale) * (PANEL_H - 2 * PAD_Y);
-  for (let i = 0; i < withW.length; i++) {
-    const s = withW[i];
-    const v = s.weather?.precipitationMmH ?? 0;
-    if (v <= 0) continue;
-    const xCenter = x(s.dist);
-    const nextDist = i + 1 < withW.length ? withW[i + 1].dist : s.dist;
-    const prevDist = i > 0 ? withW[i - 1].dist : s.dist;
-    const halfW = (Math.min(nextDist - s.dist, s.dist - prevDist) / totalM) * W * 0.45;
-    const w = Math.max(1.5, halfW * 2);
-    const y0 = yP(v);
-    precipBars.push({
-      x: xCenter - w / 2,
-      y: y0,
-      w,
-      h: PANEL_H - PAD_Y - y0,
-      source: s.weather!.precipitationSource === 'radar' ? 'radar' : 'nwp',
-      type: s.weather!.precipitationType,
-    });
-  }
+  // Gefühlte Temperatur nur zeigen, wenn sie merklich anders ist; sie darf die Skala mitbestimmen.
+  const diff = rows.reduce((m, r) => (r.t != null && r.at != null ? Math.max(m, Math.abs(r.at - r.t)) : m), 0);
+  const apparentDiffers = diff >= 1;
+  const ats = apparentDiffers ? rows.flatMap((r) => (r.at != null ? [r.at] : [])) : [];
 
-  // Welche Niederschlagsarten kommen vor (für die dynamische Legende).
+  const precipMax = rows.reduce((m, r) => Math.max(m, r.p), 0);
   const precipTypes = new Set<'rain' | 'sleet' | 'snow'>();
-  for (const b of precipBars) if (b.type !== 'none') precipTypes.add(b.type);
+  for (const r of rows) if (r.p > 0 && r.ptype !== 'none') precipTypes.add(r.ptype);
 
-  // Wind-Panel
-  const ws: number[] = [];
-  const gs: number[] = [];
-  for (const s of withW) {
-    if (s.weather?.windSpeedMps != null) ws.push(s.weather.windSpeedMps);
-    if (s.weather?.gustMps != null) gs.push(s.weather.gustMps);
-  }
-  let windRange: { min: number; max: number } | null = null;
-  let windLine: string | null = null;
-  let gustLine: string | null = null;
-  let windRibbon: string | null = null;
-  if (ws.length > 0) {
-    const hi = Math.max(...ws, ...gs);
-    windRange = { min: 0, max: Math.max(2, Math.ceil(hi * 1.1)) };
-    const yW = (v: number) => PAD_Y + (1 - v / windRange!.max) * (PANEL_H - 2 * PAD_Y);
-    let wl = '';
-    let firstW = true;
-    for (const s of withW) {
-      const v = s.weather?.windSpeedMps;
-      if (v == null) continue;
-      wl += `${firstW ? 'M' : 'L'} ${x(s.dist).toFixed(1)} ${yW(v).toFixed(1)} `;
-      firstW = false;
-    }
-    windLine = wl.trim();
-    if (gs.length > 0) {
-      let gl = '';
-      let firstG = true;
-      for (const s of withW) {
-        const v = s.weather?.gustMps;
-        if (v == null) continue;
-        gl += `${firstG ? 'M' : 'L'} ${x(s.dist).toFixed(1)} ${yW(v).toFixed(1)} `;
-        firstG = false;
-      }
-      gustLine = gl.trim();
-      // Ribbon: forward = wind, backward = gust
-      const upper = gustLine;
-      const lower = ws.slice().reverse();
-      let back = '';
-      for (let i = withW.length - 1; i >= 0; i--) {
-        const v = withW[i].weather?.windSpeedMps;
-        if (v == null) continue;
-        back += ` L ${x(withW[i].dist).toFixed(1)} ${yW(v).toFixed(1)}`;
-      }
-      windRibbon = `${upper}${back} Z`;
-      void lower;
-    }
-  }
+  const winds = rows.flatMap((r) => [r.w, r.g].filter((v): v is number => v != null));
 
   return {
-    totalM,
-    height: PANEL_H * 3 + GAP * 2,
-    tempLine, tempArea, apparentLine, apparentDiffers, tempRange,
-    precipBars, precipMaxScale, precipTypes,
-    windLine, gustLine, windRibbon, windRange,
+    rows, totalKm: totalM / 1000, tempRange, apparentDiffers,
+    tempLo: Math.floor(Math.min(lo, ...ats) - pad), tempHi: Math.ceil(Math.max(hi, ...ats) + pad),
+    precipMax, precipScale: Math.max(4, Math.ceil(precipMax * 1.2)), precipTypes,
+    windHi: Math.max(2, Math.ceil(Math.max(0, ...winds) * 1.1)),
   };
-}
-
-function fmt1(n: number): string { return (Math.round(n * 10) / 10).toString().replace('.', ','); }
-
-/** Farbe pro Niederschlagsart. Radar-Variante etwas kräftiger; sonst gleiche Hue. */
-function precipColor(type: 'rain' | 'sleet' | 'snow' | 'none', source: 'radar' | 'nwp'): string {
-  // Regen → steel-blue; Schneeregen → violett; Schnee → blass-blau (Eisblau).
-  if (type === 'snow') return source === 'radar' ? '#9ab8cf' : '#b6c8d6';
-  if (type === 'sleet') return source === 'radar' ? '#8a6dc4' : '#a994d1';
-  // 'rain' oder 'none' (sollte bei 'none' nicht gezeichnet werden)
-  return source === 'radar' ? '#3a6fa3' : '#4f627e';
 }

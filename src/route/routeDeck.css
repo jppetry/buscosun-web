@@ -214,7 +214,6 @@
 .rd-elev-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .rd-elev-head span:first-child { font-size: 12px; font-weight: 600; color: var(--ink-900); }
 .rd-elev-head span:last-child { font-size: 11px; color: var(--stone-500); }
-.rd-elev svg { width: 100%; height: 200px; margin-top: 12px; display: block; }
 .rd-elev-axis { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--stone-400); margin-top: 6px; }
 .rd-preview-details { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .rd-chip-info { font-size: 12px; color: var(--stone-600); background: var(--rd-card); border: 1px solid var(--border-default); border-radius: 999px; padding: 5px 12px; }
@@ -394,7 +393,6 @@
   .rd-stat { border-radius: 11px; padding: 12px; }
   .rd-stat-value { font-size: 20px; }
   .rd-preview-title { font-size: 22px; }
-  .rd-elev svg { height: 120px; }
 
   .rd-config-cols { grid-template-columns: 1fr; gap: 12px; }
   .rd-result-grid { grid-template-columns: 1fr; }
@@ -687,7 +685,6 @@
 .rd-dock .rd-preview-details { margin-top: 0; gap: 6px; }
 .rd-chip-info { background: #fff; }
 .rd-stage .rd-elev { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 300px; margin-top: 0; }
-.rd-stage .rd-elev svg { flex: 1 1 240px; height: auto; min-height: 200px; }
 .rd-stage > .rd-status { margin: 0; }
 
 /* ---- Bewegungsart ---- */
@@ -766,7 +763,6 @@
   .rd-dock > .rd-dock-after { order: 3; }
   .rd-intro-title, .rd-intro .rd-intro-title { font-size: 28px; }
   .rd-stage .rd-elev { min-height: 0; }
-  .rd-stage .rd-elev svg { flex: none; height: 140px; min-height: 0; }
   .rd-dropzone { min-height: 0; }
   .rd-dock .rd-filebar-replace { margin-left: auto; }
   .rd-trust, .rd-intro .rd-trust { margin-top: 0; }
@@ -791,4 +787,31 @@
   .rd-m-bar { flex: 0 0 auto; display: flex; justify-content: space-around; padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px)); background: var(--rd-card); border-top: 1px solid var(--border-medium); }
   .rd-m-bar-btn { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 72px; min-height: 44px; padding: 0 8px; border: 0; background: none; color: var(--stone-500); font-size: 10.5px; cursor: pointer; }
   .rd-m-bar-btn.is-active { color: var(--terracotta-700); font-weight: 600; }
+}
+
+/* ---- Die Antwort als Satz + nivo-Kurven (Wetter entlang der Strecke, Höhenprofil) ---- */
+.rd-verdict { margin: 8px 0 0; max-width: 68ch; font-size: 15.5px; line-height: 1.4; color: var(--stone-600); }
+.rd-verdict b { font-weight: 600; color: var(--ink-900); }
+
+.rd-elev-chart { position: relative; flex: 1 1 240px; min-height: 220px; margin-top: 10px; }
+.rd-elev-chart-in { position: absolute; inset: 0; }
+.rd-chart-tip { padding: 6px 10px; border-radius: 8px; background: var(--ink-900); color: var(--rd-card); font-size: 12.5px; white-space: nowrap; }
+.rd-chart-tip b { font-weight: 700; }
+
+.rt-profile .wp-figure, .rd-panel .wp-figure { margin: 0; }
+.wp-readout { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 14px; min-height: 40px; margin-top: 8px; padding: 6px 10px; border-radius: 10px; background: var(--rd-neutral-chip); font-size: 12.5px; line-height: 1.3; color: var(--stone-600); font-variant-numeric: tabular-nums; }
+.wp-readout b { font-weight: 700; color: var(--ink-900); }
+.wp-charts { margin-top: 8px; cursor: crosshair; touch-action: pan-y; }
+.wp-panel-title { padding-left: 40px; font-size: 12px; font-weight: 600; color: var(--ink-900); }
+.wp-chart { position: relative; }
+.wp-wait { min-height: 200px; display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--stone-500); }
+.wp-key { display: inline-block; width: 16px; height: 0; vertical-align: middle; border-top: 2px solid; }
+.wp-key.is-dashed { border-top-style: dashed; }
+.wp-key-bar { display: inline-block; width: 8px; height: 12px; border-radius: 2px; vertical-align: middle; }
+.wp-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+@media (max-width: 767px) {
+  .rd-verdict { font-size: 15px; }
+  .rd-elev-chart { flex: none; height: 170px; min-height: 0; }
+  .wp-readout { min-height: 52px; }
 }
