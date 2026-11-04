@@ -191,8 +191,26 @@ export function RoadRouteCard(p: RoadRouteCardProps) {
   const towns = useMemo(() => {
     const t = c.towns;
     if (!t.length) return [];
-    const n = Math.min(5, t.length);
-    return Array.from({ length: n }, (_, i) => t[Math.round((i * (t.length - 1)) / Math.max(1, n - 1))]).filter((x, i, a) => a.indexOf(x) === i).map(([km, name]) => ({ ...pos(km), name }));
+    // Priority order: both ends, then repeated midpoints — so the first picks are spread over the whole route.
+    const order: number[] = [0, t.length - 1];
+    const queue: Array<[number, number]> = [[0, t.length - 1]];
+    for (let qi = 0; qi < queue.length; qi++) { const [a, b] = queue[qi]; if (b - a < 2) continue; const m = (a + b) >> 1; order.push(m); queue.push([a, m], [m, b]); }
+    const W = view.W * S, H = view.H * S, fs = u * 0.032; // label size as in the SVG below (fS)
+    const placed: Array<{ x0: number; x1: number; y0: number; y1: number }> = [];
+    const out: Array<{ x: number; y: number; name: string; left: boolean }> = [];
+    for (const i of [...new Set(order)]) {
+      if (out.length >= 12) break;
+      const [km, name] = t[i];
+      const q = pos(km);
+      const w = name.length * fs * 0.58;
+      const left = q.x + u * 1.4 + w > W - u;
+      const x0 = left ? q.x - u * 1.4 - w : q.x + u * 1.4;
+      const box = { x0, x1: x0 + w, y0: q.y - fs, y1: q.y + fs };
+      if (q.x < 0 || q.y < 0 || q.y > H || x0 < 0 || placed.some((p2) => box.x0 < p2.x1 && box.x1 > p2.x0 && box.y0 < p2.y1 && box.y1 > p2.y0)) continue;
+      placed.push(box);
+      out.push({ ...q, name, left });
+    }
+    return out;
   }, [c, view]); // eslint-disable-line react-hooks/exhaustive-deps
   const sel = p.selectedId ? p.segs.find((s) => s.id === p.selectedId) ?? null : null;
   const focus = (hover ? p.segs.find((s) => s.id === hover) : null) ?? sel;
@@ -247,7 +265,10 @@ export function RoadRouteCard(p: RoadRouteCardProps) {
                 <circle key={s.id} cx={num(s.x)} cy={num(s.y)} r={u * 0.85} fill={s.pt ? (s.pt.cls === 'nodata' || s.pt.cls === 'unknown' ? '#C9BE9E' : ROAD_CLASS_COLOR[s.pt.cls]) : '#C9BE9E'} stroke="#FFFFFF" strokeWidth={1.6} vectorEffect="non-scaling-stroke" />
               ))}
               {towns.map((t) => (
-                <text key={t.name} x={num(t.x + u * 1.4)} y={num(t.y + fS * 0.35)} fontSize={fS} fontFamily={AW_FONT} fontWeight={600} fill="#5C5447" stroke="#F7F2E4" strokeWidth={fS * 0.3} paintOrder="stroke">{t.name}</text>
+                <g key={t.name} pointerEvents="none">
+                  <circle cx={num(t.x)} cy={num(t.y)} r={u * 0.45} fill="#F7F2E4" stroke="#5C5447" strokeWidth={1.4} vectorEffect="non-scaling-stroke" />
+                  <text x={num(t.left ? t.x - u * 1.4 : t.x + u * 1.4)} y={num(t.y + fS * 0.35)} textAnchor={t.left ? 'end' : 'start'} fontSize={fS} fontFamily={AW_FONT} fontWeight={600} fill="#5C5447" stroke="#F7F2E4" strokeWidth={fS * 0.3} paintOrder="stroke">{t.name}</text>
+                </g>
               ))}
               {sel && (() => {
                 const a = pos(sel.kmFrom), b = pos(sel.kmTo);
