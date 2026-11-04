@@ -59,9 +59,8 @@ export interface IncaGrid {
 /** LE2/H7: Netzpriorität des Abrufs — `'low'` für die Nachbarquelle. */
 export interface IncaFetchOptions { priority?: RequestPriority }
 
-export const GEOSPHERE_INCA_ATTRIBUTION =
-  'Nowcast: <a href="https://www.geosphere.at" target="_blank" rel="noopener">GeoSphere Austria</a> ' +
-  'INCA (RR) · CC BY 4.0';
+// Phase HDR: the attribution text lives in the leaf module `radarAttribution.ts` (shown in the UI); same name here.
+export { GEOSPHERE_INCA_ATTRIBUTION } from './radarAttribution';
 
 /**
  * V-RL-2 (2026-08-25): die Grid-API antwortet zeitweise mit HTTP 200 und NULL

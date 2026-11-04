@@ -5,7 +5,7 @@
  * Daten-Repo) als KINDPROZESS gespawnt — ein Derive-Fehler nimmt nur die Bild-Ablage,
  * nie den Roh-Push. Läuft aus dem buscosun-web-Klon (APP_DIR des Workflows), damit die
  * DECODER DES CLIENTS die Bytes erzeugen (BW-1-Regel: byte-identisch per Konstruktion):
- *   rv        composite_rv_<JJJJMMTT>_<HHMM>.tar (HDF5) oder DE1200_RV<stamp>.tar.bz2 (bis 2026-10-20)
+ *   rv        composite_rv_<JJJJMMTT>_<HHMM>.tar (HDF5; das RADOLAN-bz2 ging mit E-HDR-7)
  *                                      → 25 Graustufen-PNGs (precipToU8-Bytes) + meta.json
  *                                        + E-AX-16: je volle Stunde nach dem Slot ein Summenbild m<lead>.png (RGB,
  *                                        Stundenmittel der Frames im Fenster (t − 60 min, t], ≥ 6 Frames; meta.hourMeans)
@@ -20,9 +20,8 @@
  */
 import { mkdirSync, writeFileSync, readFileSync, rmSync, renameSync, cpSync } from 'node:fs';
 import { join, dirname } from 'node:path';
-import { decompressBz2 } from '../lib/bz2.mjs';
 import { encodePng } from '../lib/png.mjs';
-import { decodeRvTar, isBz2, rvTarIsHdf5 } from '../../src/sources/radolanDecode.ts';
+import { rvTarIsHdf5 } from '../../src/sources/radolanDecode.ts';
 import { decodeRvHdf5Tar } from '../../src/sources/rvHdf5.ts';
 import { parseIncaNetcdf } from '../../src/sources/incaParse.ts';
 import { parseRzcHdf5 } from '../../src/sources/rzcParse.ts';
@@ -252,11 +251,12 @@ const raw = source === 'rzc-nc' || source === 'inca-5m' ? Buffer.alloc(0) : read
 const rawBuf = raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength);
 
 if (source === 'rv') {
-  // EX-3: beide Lieferformen des DWD, am INHALT erkannt — `composite_rv_*.tar` (ODIM-HDF5, nacktes Tar)
-  // und bis 2026-10-20 `DE1200_RV*.tar.bz2` (RADOLAN-Binär).
-  const tar = isBz2(raw) ? await decompressBz2(raw) : new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength);
+  // EX-3 / E-HDR-7: nur die HDF5-Lieferform (`composite_rv_*.tar`, nacktes Tar), am INHALT erkannt; ein anderer
+  // Inhalt ist ein benannter Fehler (das RADOLAN-bz2 gibt es seit 2026-10-20 nicht mehr; kein bz2 im Spiegel).
+  const tar = new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength);
   const hdf5 = rvTarIsHdf5(tar);
-  const run = hdf5 ? await decodeRvHdf5Tar(tar, secondary) : decodeRvTar(tar, secondary);
+  if (!hdf5) throw new Error('rv: Tar ohne HDF5-Felder (RADOLAN-Binärformat seit 2026-10-20 abgeschaltet, E-HDR-7)');
+  const run = await decodeRvHdf5Tar(tar, secondary);
   const metaFrames = pngFrames(run.frames.map((f) => ({ ...f, lead: f.leadMinutes })));
   // Phase SE: der Filter arbeitet auf KOPIEN der Log-Ebenen und ersetzt sie erst nach Erfolg — ein Fehler mitten im Schritt
   // hinterlässt keinen halb gefilterten Slot.

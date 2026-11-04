@@ -1,7 +1,9 @@
 /**
  * Pure (DOM-freier) RADOLAN-RV-Dekoder: TAR-Splitting + Binär-Header-Parsing +
  * Zell-Dekodierung + mm/h→Uint8-Quantisierung — extrahiert aus radolan.ts, damit
- * derselbe Code auch off-main im radolanWorker läuft (s. radolanWorker.ts).
+ * derselbe Code auch off-main läuft. Seit E-HDR-7 (Phase HDR) liest der CLIENT das
+ * RADOLAN-Binärformat nicht mehr (der DWD liefert es seit 2026-10-20 nicht); `decodeRadolanRaw`/
+ * `decodeRvTar` bleiben für Archiv-Leser (`scripts/point/nowcastReader.mjs`, Hindcast) und Verifier.
  *
  * Vorher lief `decodeRvTar` (25 Frames × 1,32-Mio.-Zellen-Gitter DE1200, JEDER
  * Frame ein synchroner verschachtelter Loop OHNE jeden Yield dazwischen) direkt
@@ -159,19 +161,7 @@ export function rvStampFromFileName(name: string): string | null {
   return r ? r[1] : null;
 }
 
-/**
- * Reihenfolge, in der die Lieferformen versucht werden: HDF5, dann das Altformat. `?rvfmt=radolan|hdf5`
- * bzw. `localStorage.rvfmt` legt EINE Form fest (die Query schlägt den Speicher).
- */
-export function rvFormatOrder(search?: string, stored?: string | null): RvFormat[] {
-  let q: string | null | undefined, s = stored;
-  try {
-    q = new URLSearchParams(search ?? location.search).get('rvfmt');
-    if (s === undefined) s = localStorage.getItem('rvfmt');
-  } catch { /* kein Fenster, kaputte Query, gesperrter Speicher = kein Votum */ }
-  for (const v of [q, s]) if (v === 'hdf5' || v === 'radolan') return [v];
-  return ['hdf5', 'radolan'];
-}
+// (`rvFormatOrder` / `?rvfmt=` — die Wahl der Lieferform im Client — ging mit E-HDR-7: nur noch HDF5.)
 
 /** bzip2-Signatur `BZh` — das Altformat kommt als `.tar.bz2`, die HDF5-Lieferung als nacktes Tar. */
 export function isBz2(bytes: Uint8Array): boolean {

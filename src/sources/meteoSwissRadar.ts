@@ -29,9 +29,8 @@ import { radarDualFlagFrom } from '../scalar/radarHd';
 const STAC_ITEM = (day: string) =>
   `https://data.geo.admin.ch/api/stac/v1/collections/ch.meteoschweiz.ogd-radar-precip/items/${day}-ch`;
 
-export const METEOSWISS_RADAR_ATTRIBUTION =
-  'Radar: <a href="https://www.meteoschweiz.admin.ch" target="_blank" rel="noopener">MeteoSchweiz</a> ' +
-  'rzc (RR) · CC BY 4.0';
+// Phase HDR: the attribution text lives in the leaf module `radarAttribution.ts` (shown in the UI); same name here.
+export { METEOSWISS_RADAR_ATTRIBUTION } from './radarAttribution';
 
 export interface RadarFrame {
   values: Uint8Array;

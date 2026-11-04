@@ -42,6 +42,7 @@ import { CellPlaceStops } from './cellPlaceStops';
 import { fetchIconD2Snow, type IconD2Snow, type SnowMode } from '../sources/iconD2Snow';
 import type { CompositeSources } from '../scalar/precipComposite';
 import { fetchRvNowcast } from '../sources/radolan';
+import { RadarAttribution } from '../components/RadarAttribution';   // Phase HDR: licences from the constants
 import { fetchIncaGrid } from '../sources/geosphereIncaGrid';
 import { fetchRzcLatest } from '../sources/meteoSwissRadar';
 import { accumulate, ACCUM_WINDOWS } from '../radar/accumulation';
@@ -860,6 +861,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
         const qualityList = (
           <ul>
             {stack && <li><strong>Quelle:</strong> {stack.attribution}</li>}
+            <li><strong>Lizenzen:</strong> <RadarAttribution /></li>
             {stack && <li><strong>Skill-Horizont:</strong> minutengenau bis ~{Math.round((stack.skillMin || 0) / 60 * 10) / 10} h, danach {pointNowcast?.nwpSource === 'cube' ? 'buscosun Fusion (Punkt-Cube)' : `Modell (${pointNowcast ? nwpLabel(pointNowcast) : 'ICON-D2'})`}.</li>}
             {/* Phase NC: the honest words of the derived products — what "now" is, the weaknesses, the unknown areas */}
             {stack?.ageNote && <li><strong>Zeitbezug:</strong> {stack.ageNote}</li>}

@@ -1,39 +1,27 @@
 /**
- * DWD RADOLAN — 0–2 h Niederschlags-Nowcast aus den OpenData-Binärprodukten.
+ * DWD RADOLAN-RV — 0–2 h Niederschlags-Nowcast aus den OpenData-Produkten.
  *
- * Quellen (opendata.dwd.de, CC BY 4.0, keine Rate-Limits, kommerziell ok):
- *   - composite/rv/DE1200_RV<YYMMDDHHMM>.tar.bz2
- *       RV = "Radar-Vorhersage" Nowcast. EIN tar.bz2 pro 5-Min-Lauf, das ALLE
- *       25 Frames von +0 bis +120 min (5-Min-Schritte) enthält. Gitter DE1200
- *       (1100 Spalten × 1200 Zeilen, 1 km). Frame _000 ist die Analyse ("jetzt").
- *   - radar/radolan/ry/…-latest…bin.bz2
- *       RY = ungeeichte 5-Min-Analyse (Echtzeit). Legacy-900×900-Gitter im
- *       Binärformat. Hier optional als Live-Frame nutzbar — der RV-_000-Frame
- *       liefert dieselbe Live-Analyse aber bereits auf dem DE1200-Gitter, daher
- *       speist der Slider die Nowcast-Anzeige aus dem RV-Tar (ein Gitter, keine
- *       Naht). `fetchRyLatest` bleibt exportiert für eine spätere Live-Variante.
+ * Quelle (opendata.dwd.de, CC BY 4.0, keine Rate-Limits, kommerziell ok):
+ *   - composite/rv/composite_rv_<JJJJMMTT>_<HHMM>.tar
+ *       RV = "Radar-Vorhersage" Nowcast. EIN nacktes Tar pro 5-Min-Lauf mit ALLEN 25 Feldern von +0 bis
+ *       +120 min (5-Min-Schritte) als ODIM-HDF5 (`rvHdf5.ts`). Gitter DE1200 (1100 Spalten × 1200 Zeilen,
+ *       1 km). Feld _000 ist die Analyse ("jetzt").
  *
- * **Quantitatives Feld (verifiziert 2026-05 gegen echte Bytes).** Frühere
- * Annahme, OpenData liefere nur eine Binär-Maske, war falsch. Jedes Zelle ist
- * ein little-endian uint16:
- *   - Flag-Bit 0x2000 gesetzt (Wert 0x29C4 = 2500+Flag) → außerhalb der
- *     Radarabdeckung / kein Messwert → transparent.
- *   - sonst: die unteren Bits sind der Niederschlag in PR-Einheiten
- *     (Header `PR E-02` ⇒ 0,01 mm) über das Messintervall (Header `INT 5` ⇒
- *     5 min). mm/h = Wert · 0,01 · (60/5) = Wert · 0,12.
+ * Phase HDR (E-HDR-7, Jan 04.11.2026): das RADOLAN-Binärformat (`DE1200_RV*.tar.bz2`) und der RY-Live-Frame
+ * (`…bin.bz2`) sind aus diesem Leser entfernt — der DWD liefert sie seit dem 2026-10-20 nicht mehr (404 am
+ * 04.11.). Der Hauptweg sind ohnehin die fertigen Frame-PNGs des Daten-Repos (RD3); der Tar ist der Rückfall.
+ * Der RADOLAN-Dekoder selbst (`radolanDecode.ts`) bleibt für Archiv-Leser (`scripts/point/nowcastReader.mjs`).
  */
 
-import { decompress } from './decompress';
 import { shareInFlight } from './shareInFlight';
 import type { QuadCorners } from '../scalar/RainLayer';
-import { decodeRadolanRaw, decodeRvTar, isBz2, rvTarIsHdf5, rvStampFromFileName, rvFormatOrder, rvFileNameOf, type RvFormat, type RadolanGrid, type DecodedRvFrame } from './radolanDecode';
+import { rvTarIsHdf5, rvStampFromFileName, type DecodedRvFrame } from './radolanDecode';
 // LE1/H2: Lauf-Zeitstempel, Tar-URL, Cache-Name und der Frühstart des Tar-Abrufs
 // leben abhängigkeitsfrei in `radolanRuns.ts` (der Router stößt ihn aus dem
 // index-Chunk an). Re-Export, damit `verify:radar-runs` und andere Importeure
 // unverändert bleiben.
 import {
-  RV_DIR, RV_TAR_CACHE, RADAR_CDN_BASE, guessRvRuns, rvTarUrl, takeWarmRvTar, type WarmRvTar,
-  // EX-3: zwei Lieferformen desselben Laufs (HDF5 zuerst, RADOLAN als Rückfall)
+  RV_DIR, RV_TAR_CACHE, guessRvRuns, rvTarUrl, rvFileName, takeWarmRvTar, type WarmRvTar,
   // RD2 (audit/radar-datenrepo.md §13): CDN-Weg über das Daten-Repo
   rvTarCdnUrl, rvCdnEligible, noteRadarCdnFailure, radarCdnDeadline,
   // RD3 (audit §14): fertig aufbereitete Frame-PNGs vom Daten-Repo
@@ -46,12 +34,8 @@ import { decodeGrayPng, decodeGrayAlphaPng } from './grayPng';
 import { radarDualFlagFrom } from '../scalar/radarHd';
 export { guessRvRuns } from './radolanRuns';
 
-const RY_LATEST =
-  '/_dwd_opendata/weather/radar/radolan/ry/raa01-ry_10000-latest-dwd---bin.bz2';
-
-export const RADOLAN_RV_ATTRIBUTION =
-  'Nowcast: <a href="https://www.dwd.de/EN/ourservices/opendata/opendata.html" ' +
-  'target="_blank" rel="noopener">DWD RADOLAN-RV</a> · CC BY 4.0';
+// Phase HDR: the attribution text lives in the leaf module `radarAttribution.ts` (shown in the UI); same name here.
+export { RADOLAN_RV_ATTRIBUTION } from './radarAttribution';
 
 /**
  * Gitter-Geometrie (Eckkoordinaten, polar-stereografische Projektion, Warp-Mesh)
@@ -65,10 +49,7 @@ export {
   DE1200_CORNERS, DE1200_WARP_N, de1200WarpMesh, psFwd, psInv,
 } from './radolanGeo';
 
-// RadolanGrid, TarEntry/untar, RadolanHeader/parseHeader, decodeRadolanRaw und
-// ratesToValues sind nach radolanDecode.ts ausgelagert (DOM-frei, läuft off-main
-// im radolanWorker — s. decodeRvTarOffMain unten). decodeRadolanRaw bleibt hier
-// re-importiert für fetchRyLatest (Einzelframe, kein Tar, kein Worker nötig).
+// Die Tar-Zerlegung und der HDF5-Leser liegen DOM-frei in `radolanDecode.ts` / `rvHdf5.ts` (Worker-fähig).
 
 // ---------------------------------------------------------------------------
 // Fetcher
@@ -135,8 +116,7 @@ async function listRvRuns(signal?: AbortSignal): Promise<string[]> {
   if (!res.ok) throw new Error(`RADOLAN-RV Verzeichnis: ${res.status}`);
   const html = await res.text();
   const set = new Set<string>();
-  // EX-3: beide Lieferformen nennen denselben Slot (`rvStampFromFileName`).
-  const re = /(?:DE1200_RV\d{10}\.tar\.bz2|composite_rv_20\d{6}_\d{4}\.tar)/g;
+  const re = /composite_rv_20\d{6}_\d{4}\.tar/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(html)) !== null) { const ts = rvStampFromFileName(m[0]); if (ts) set.add(ts); }
   return [...set].sort().reverse();
@@ -166,11 +146,10 @@ async function pruneRvCache(cache: Cache): Promise<void> {
 /** Woher kam der letzte Tar? Nur fürs Log in `loadRvNowcast` (synchron danach gelesen). */
 let _lastRvVia: 'img' | 'cdn' | 'dwd' = 'dwd';
 
-async function fetchRvBytesCached(ts: string, signal?: AbortSignal, priority: RequestPriority = 'high', fmt: RvFormat = 'hdf5'): Promise<ArrayBuffer> {
-  // Die HDF5-Adressen kommen aus `radolanRuns.ts` (derselbe Resolver wie der Frühstart); das Altformat
-  // liegt im selben Verzeichnis unter seinem alten Namen.
-  const netlifyUrl = fmt === 'hdf5' ? rvTarUrl(ts) : `${RV_DIR}${rvFileNameOf(ts, fmt)}`;
-  const cdnUrl = fmt === 'hdf5' ? rvTarCdnUrl(ts) : `${RADAR_CDN_BASE}/rv/${rvFileNameOf(ts, fmt)}`;
+async function fetchRvBytesCached(ts: string, signal?: AbortSignal, priority: RequestPriority = 'high'): Promise<ArrayBuffer> {
+  // Die Adressen kommen aus `radolanRuns.ts` (derselbe Resolver wie der Frühstart).
+  const netlifyUrl = rvTarUrl(ts);
+  const cdnUrl = rvTarCdnUrl(ts);
   const cache = await rvCache();
   // LE1/H2: hat der Router den Tar schon vorgestartet (beim Laden des Seiten-
   // Chunks), nehmen wir dessen Antwort — sie hat die Cache-API selbst befragt.
@@ -246,13 +225,11 @@ async function fetchRvBytesCached(ts: string, signal?: AbortSignal, priority: Re
 }
 
 // ---------------------------------------------------------------------------
-// RV-Tar-Decode-Pool: untar + decodeRadolanRaw + ratesToValues (25 Frames ×
-// 1,32-Mio.-Zellen DE1200-Gitter) laufen off-main im radolanWorker — vorher ein
-// einziger unyielded Main-Thread-Loop (gemessen ~2-3 s blockiert, 4×-Throttle,
-// beim ersten Zuschalten von Niederschlag/Flow-Nowcast/Regen-Chance, die alle
-// auf denselben RV-Frames aufbauen). Fällt transparent auf denselben
-// Main-Thread-Code zurück, wenn der Worker nicht verfügbar ist (gleiches Muster
-// wie decompress.ts/windFrameWorker).
+// Frame-PNG-Dekode-Pool (RD3): die 25 Graustufen-PNGs eines Laufs (33 MPixel) werden off-main im
+// radolanWorker dekodiert — vorher ein einziger unyielded Main-Thread-Loop (gemessen ~2-3 s blockiert,
+// 4×-Throttle). Fällt transparent auf denselben Main-Thread-Code zurück, wenn der Worker nicht verfügbar
+// ist (gleiches Muster wie decompress.ts/windFrameWorker). Der Tar-Weg (RADOLAN-Binär) lief hier bis
+// E-HDR-7; das HDF5-Tar dekodiert `hdf5OffMain`.
 // ---------------------------------------------------------------------------
 interface RwMsg {
   id: number; ok: boolean; error?: string;
@@ -294,29 +271,6 @@ function rwInit(): void {
     rwWorker = w;
   } catch {
     rwUsable = false;
-  }
-}
-
-/** Entpackt+dekodiert den Tar off-main; fällt bei Worker-Problemen auf den
- *  identischen Main-Thread-Code (decodeRvTar) zurück. */
-async function decodeRvTarOffMain(tarBytes: Uint8Array): Promise<{ runAtMs: number; frames: DecodedRvFrame[] }> {
-  rwInit();
-  if (!rwUsable || !rwWorker) return decodeRvTar(tarBytes);
-  const w = rwWorker;
-  const id = rwNextId++;
-  try {
-    return await new Promise((resolve, reject) => {
-      rwPending.set(id, { resolve, reject });
-      // Exakt zugeschnittene Kopie transferieren (tarBytes kann eine Teilsicht
-      // eines größeren Buffers sein) — der Aufrufer braucht tarBytes danach
-      // nicht mehr.
-      const buf = tarBytes.buffer.slice(tarBytes.byteOffset, tarBytes.byteOffset + tarBytes.byteLength);
-      w.postMessage({ id, tarBuf: buf }, [buf]);
-    });
-  } catch (err) {
-    rwPending.delete(id);
-    if (tarBytes.buffer.byteLength === 0) throw err; // s. windBlendWorker: nach echtem Transfer kein Fallback möglich
-    return decodeRvTar(tarBytes);
   }
 }
 
@@ -466,8 +420,7 @@ async function fetchRvAnalysisFromImg(ts: string, signal?: AbortSignal): Promise
 }
 
 /**
- * Frame-PNGs → Werte-Grids, off-main im vorhandenen RADOLAN-Worker; bei
- * Worker-Problemen derselbe Code auf dem Hauptthread (Muster `decodeRvTarOffMain`).
+ * Frame-PNGs → Werte-Grids, off-main im radolanWorker; bei Worker-Problemen derselbe Code auf dem Hauptthread.
  */
 async function decodeGrayPngsOffMain(
   pngs: { leadMinutes: number; validAtMs: number; buf: ArrayBuffer; dual?: boolean }[], width: number, height: number,
@@ -575,34 +528,18 @@ export async function loadRadarGrayAlphaPngOffMain(res: Response, width: number,
   return { values: g.values, values2: g.values2 };
 }
 
-/** In welcher Lieferform kam der letzte Roh-Lauf? Nur fürs Log. */
-let _lastRvFormat: RvFormat = 'hdf5';
-
-/** Rohbytes eines Laufs → Frames, gleich in welcher Lieferform (bz2 und HDF5 an der Signatur erkannt). */
+/** Rohbytes eines Laufs → Frames. Nur das HDF5-Tar wird gelesen (am Inhalt erkannt, nicht am Namen); alles
+ *  andere ist ein benannter Fehler — das RADOLAN-Altformat gibt es seit dem 2026-10-20 nicht mehr (E-HDR-7). */
 async function decodeRvBytes(buf: ArrayBuffer): Promise<{ runAtMs: number; frames: DecodedRvFrame[] }> {
-  const head = new Uint8Array(buf, 0, Math.min(buf.byteLength, 8));
-  const tarBytes = isBz2(head) ? await decompress(buf) : new Uint8Array(buf);
-  if (rvTarIsHdf5(tarBytes)) {
-    // jsfive gehört nicht in diesen Chunk: die Brücke (Worker + Hauptthread-Rückfall) wird erst hier geladen.
-    const { decodeRvHdf5TarOffMain } = await import('./hdf5OffMain');
-    return decodeRvHdf5TarOffMain(tarBytes);
-  }
-  return decodeRvTarOffMain(tarBytes);
+  const tarBytes = new Uint8Array(buf);
+  if (!rvTarIsHdf5(tarBytes)) throw new Error('RADOLAN-RV: Tar ohne HDF5-Felder (das RADOLAN-Binärformat ist seit 2026-10-20 abgeschaltet)');
+  // jsfive gehört nicht in diesen Chunk: die Brücke (Worker + Hauptthread-Rückfall) wird erst hier geladen.
+  const { decodeRvHdf5TarOffMain } = await import('./hdf5OffMain');
+  return decodeRvHdf5TarOffMain(tarBytes);
 }
 
 async function fetchRvDecoded(ts: string, signal?: AbortSignal, priority?: RequestPriority): Promise<{ runAtMs: number; frames: DecodedRvFrame[] }> {
-  let lastErr: unknown;
-  for (const fmt of rvFormatOrder()) {
-    try {
-      const out = await decodeRvBytes(await fetchRvBytesCached(ts, signal, priority, fmt));
-      _lastRvFormat = fmt;
-      return out;
-    } catch (err) {
-      if (signal?.aborted) throw err;
-      lastErr = err;
-    }
-  }
-  throw lastErr ?? new Error(`RADOLAN-RV ${ts}: keine Lieferform lesbar`);
+  return decodeRvBytes(await fetchRvBytesCached(ts, signal, priority));
 }
 
 async function fetchRvTar(ts: string, signal?: AbortSignal, priority?: RequestPriority): Promise<RvNowcast> {
@@ -618,8 +555,7 @@ async function fetchRvTar(ts: string, signal?: AbortSignal, priority?: RequestPr
   }
   // RD2: die Wegwahl (CDN vs. Netlify) liegt in `fetchRvBytesCached`/`rvTarUrlFor`
   // — der Frühstart in `radolanRuns.ts` nimmt denselben Resolver.
-  // EX-3: HDF5 zuerst, das RADOLAN-Altformat als benannter Rückfall (bis der DWD es am
-  // 2026-10-20 abschaltet). Welcher Leser läuft, entscheidet der INHALT, nicht der Name.
+  // EX-3 / E-HDR-7: nur noch die HDF5-Lieferform; welcher Leser läuft, entscheidet der INHALT, nicht der Name.
   const { runAtMs, frames: decoded } = await fetchRvDecoded(ts, signal, priority);
   const frames: RvFrame[] = decoded.map((f) => ({
     leadMinutes: f.leadMinutes,
@@ -688,7 +624,7 @@ async function loadRvNowcast(priority?: RequestPriority): Promise<RvNowcast> {
         rememberRvLast(ts, result);
         // Welche RADOLAN-RV-Datei wird gerade auf die Karte gerendert?
         console.log(
-          `[buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: ${_lastRvVia === 'img' ? `Slot ${ts}` : rvFileNameOf(ts, _lastRvFormat)}` +
+          `[buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: ${_lastRvVia === 'img' ? `Slot ${ts}` : rvFileName(ts)}` +
           ` · Lauf ${result.runAt.toLocaleString('de-DE')} · ${result.frames.length} Frames (0…+120 min)` +
           ` · Quelle ${_lastRvVia === 'img' ? 'Daten-Repo (PNG)' : _lastRvVia === 'cdn' ? 'Daten-Repo (jsDelivr)' : 'DWD (Netlify)'}`,
         );
@@ -783,14 +719,3 @@ export async function fetchRvLatestAnalysis(signal?: AbortSignal): Promise<{ fra
   return null;
 }
 
-/**
- * Lädt den jüngsten RY-Live-Frame (ungeeichte 5-Min-Analyse, Legacy-900×900).
- * Aktuell nicht im Slider verdrahtet — der RV-_000-Frame liefert die Live-
- * Analyse bereits auf dem DE1200-Gitter. Exportiert für eine spätere
- * eigenständige Live-Radar-Variante.
- */
-export async function fetchRyLatest(signal?: AbortSignal): Promise<RadolanGrid> {
-  const res = await fetch(RY_LATEST, { signal });
-  if (!res.ok) throw new Error(`RADOLAN-RY: ${res.status}`);
-  return decodeRadolanRaw(await decompress(await res.arrayBuffer()));
-}

@@ -12,6 +12,7 @@
 
 import type { CSSProperties, ReactNode } from 'react';
 import type { LayerKey } from '../MapView';
+import { radarAttributionsPlain } from '../sources/radarAttribution';   // Phase HDR: the radar sources + licences from the constants
 
 interface Info {
   eyebrow: string;
@@ -67,7 +68,7 @@ const LAYER_INFO: Record<LayerKey, Info> = {
   },
   nowcast: {
     eyebrow: 'Niederschlag', title: 'Niederschlag · jetzt–2 h', accent: '--steel-600',
-    desc: 'Gemessenes Radar/Nowcast über den Zeit-Slider, per Land bis zum Nowcast-Horizont: DE RADOLAN-RV (bis 2 h), AT GeoSphere INCA (bis 3 h), CH MeteoSchweiz. Bewusst kurz & ehrlich — nur die gemessene Nahbereichs-Vorhersage, keine Modell-Extrapolation darüber hinaus.',    source: 'RADOLAN-RV · INCA · MeteoSchweiz',
+    desc: 'Gemessenes Radar/Nowcast über den Zeit-Slider, per Land bis zum Nowcast-Horizont: DE RADOLAN-RV (bis 2 h), AT GeoSphere INCA (bis 3 h), CH MeteoSchweiz. Bewusst kurz & ehrlich — nur die gemessene Nahbereichs-Vorhersage, keine Modell-Extrapolation darüber hinaus.',    source: radarAttributionsPlain(),
     legend: <><Bar css={PRECIP} /><Scale from="leicht" to="Starkregen" /></>,
   },
   temp: {

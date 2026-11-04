@@ -24,7 +24,7 @@ import {
   RV_CDN_GATE_MS, RADAR_CDN_WINDOW_MS, RADAR_CDN_BASE, RADAR_CDN_FAIL_LATCH,
   radarCdnEnabled, radarCdnUsable, noteRadarCdnFailure, _resetRadarCdn, radarCdnDeadline,
 } from '../src/sources/radolanRuns.ts';
-import { rvStampFromFileName, rvFormatOrder, rvFileNameOf as rvFileName } from '../src/sources/radolanDecode.ts';
+import { rvStampFromFileName, rvFileNameOf as rvFileName } from '../src/sources/radolanDecode.ts';
 import {
   guessKonradStamps, konradCdnUrl, KONRAD_CDN_GATE_MS, KONRAD_PUBLISH_LAG_MIN,
 } from '../src/sources/dwdKonrad3d.ts';
@@ -239,10 +239,7 @@ add('am Ende ist keine Entdopplung mehr offen', _inFlightCount() === 0, `${_inFl
   add('[ex3] Dateiname ↔ Slot-Stempel ist in beiden Formen ein Rundlauf',
     rvStampFromFileName(rvFileName(ts, 'hdf5')) === ts && rvStampFromFileName(rvFileName(ts, 'radolan')) === ts
     && rvStampFromFileName('KONRAD3D_20260829T135500.xml') === null);
-  add('[ex3] Reihenfolge: HDF5, dann RADOLAN; `?rvfmt=` bzw. der Speicher legt EINE Form fest, die Query schlägt den Speicher',
-    rvFormatOrder('', null).join() === 'hdf5,radolan' && rvFormatOrder('?rvfmt=radolan', null).join() === 'radolan'
-    && rvFormatOrder('', 'radolan').join() === 'radolan' && rvFormatOrder('?rvfmt=hdf5', 'radolan').join() === 'hdf5'
-    && rvFormatOrder('?rvfmt=quatsch', null).join() === 'hdf5,radolan');
+  // (E-HDR-7: `rvFormatOrder` / `?rvfmt=` sind weg — der Client liest nur noch HDF5; das Altformat bleibt als Name adressierbar.)
   add('[rd2] Netlify-URL bleibt unverändert (benannter Fallback)', rvTarUrl(ts).startsWith('/_dwd_opendata/weather/radar/composite/rv/'));
 
   // Das Gate: VOR Slot + 4:00 kein CDN (jsDelivr hielte unser 404 fest, §10.3:

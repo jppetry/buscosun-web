@@ -134,15 +134,19 @@ async function navigate(ctx, url) {
   await ctx.send('Page.navigate', { url });
   await loaded;
 }
-/** Wait until the timeline exists and the status line names the DE radar (the RV frames are on the map). */
-async function waitReady(ctx, served, timeoutS = 60) {
-  for (let i = 0; i < timeoutS; i++) {
-    const st = await ctx.evaluate(STATE_JS).catch(() => null);
-    // the status chip is a Wetterkarte element; in the radar profile the served `rv/<stamp>/meta.json` + the timeline tell
-    if (st && st.max != null && (/DE RADOLAN/.test(st.status) || served.some((s) => /^rv\/\d{10}\/meta\.json$/.test(s)))) return st;
-    await sleep(1000);
+/**
+ * Wait until the radar is really on the map: the WebGL hook saw a draw with a non-empty radar texture (`__perf.radarDrawNZ`)
+ * and the timeline exists; for a 250-m variant from zoom 9 additionally until at least one tile file was served. Fixed
+ * sleeps are not enough on a loaded machine (04.11.: shots taken before the frames arrived while a typecheck ran).
+ */
+async function waitReady(ctx, served, { tiles = false, timeoutS = 90 } = {}) {
+  let st = null;
+  for (let i = 0; i < timeoutS * 2; i++) {
+    st = await ctx.evaluate(`(() => { const st = ${STATE_JS}; st.radarDrawn = !!(window.__perf && window.__perf.radarDrawNZ != null); return st; })()`).catch(() => null);
+    if (st && st.max != null && st.radarDrawn && (!tiles || served.some((s) => /rv-past\/\d{10}\/h\d\d\.png$/.test(s)))) return st;
+    await sleep(500);
   }
-  return null;
+  return st && st.radarDrawn ? st : null;
 }
 const jumpNow = (ctx) => ctx.evaluate(`(() => { const b = document.querySelector('.rdr-tl-now'); if (b) b.click(); return !!b; })()`).catch(() => false);
 const url = (place, variant, z) => `${BASE}/regenradar/${place.slug}?lat=${place.center[1]}&lon=${place.center[0]}&z=${z}&${VARIANT[variant].q}`;
@@ -157,9 +161,9 @@ if (!PERF_ONLY) {
     for (const z of ZOOMS) {
       const before = served.length;
       await navigate(ctx, url(place, variant, z));
-      const ready = await waitReady(ctx, served);
+      const ready = await waitReady(ctx, served, { tiles: variant !== '1km' && z >= 9 });
       await jumpNow(ctx);
-      await sleep(z >= 10 ? 8000 : 5000);
+      await sleep(z >= 10 ? 5000 : 3000);
       const state = await ctx.evaluate(STATE_JS).catch((e) => ({ error: String(e) }));
       const hd250Reqs = served.slice(before).filter((s) => /rv-past\/\d{10}\/(hd250\.json|h\d\d\.png)/.test(s));
       const name = `${id}-z${z}.png`;
@@ -190,7 +194,12 @@ if (PERF_N > 0) {
       await sleep(500);
     }
     await sleep(1500);
-    const clicked = await ctx.evaluate(`(() => { const b = document.querySelector('button.mdk-td-play, button.rm-play, button.rdr-tl-play, button[title*="bspielen"], button[aria-label*="bspielen"]'); if (!b) return false; b.click(); return true; })()`).catch(() => false);
+    // the deck mounts after the map under CPU throttling — wait for the play button (up to 30 s), then click it
+    let clicked = 'none';
+    for (let k = 0; k < 60 && clicked === 'none'; k++) {
+      clicked = await ctx.evaluate(`(() => { const b = document.querySelector('button.mdk-td-play, button.rdr-tl-play, button[aria-label="Abspielen"]'); if (!b) return 'none'; b.click(); return true; })()`).catch((e) => 'ERR ' + String(e.message).slice(0, 120));
+      if (clicked === 'none') await sleep(500);
+    }
     await sleep(1000);
     const fps = await ctx.evaluate('window.__fpsSample(6000)').catch(() => null);
     const state = await ctx.evaluate(STATE_JS).catch(() => ({}));

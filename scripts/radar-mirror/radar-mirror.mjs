@@ -117,18 +117,16 @@ const INCA_META_URL = 'https://dataset.api.hub.geosphere.at/v1/grid/forecast/now
 const INCA_GRID_URL = 'https://dataset.api.hub.geosphere.at/v1/grid/forecast/nowcast-v1-15min-1km?parameters=rr&output_format=netcdf&bbox=45.51,8.11,49.47,17.73';
 const RZC_STAC_ITEM = (day) => `https://data.geo.admin.ch/api/stac/v1/collections/ch.meteoschweiz.ogd-radar-precip/items/${day}-ch`;
 
-// EX-3 (buscosun-web/audit/fusion-expertenbericht-2026-09-29.md §3.3): der DWD schaltet das RADOLAN-
-// Binärformat am 2026-10-20 08 UTC ab. Gespiegelt wird deshalb die HDF5-Lieferung desselben Laufs
-// (`composite_rv_<JJJJMMTT>_<HHMM>.tar`, nacktes Tar, gemessen 0,75–2,4 MB statt 0,1–0,5 MB). Der
-// Slot-Stempel `JJMMTTHHMM` bleibt der Schlüssel der Bild-Ablage. `RV_FORMAT=radolan` stellt bis zum
-// Stichtag auf das Altformat zurück.
-const RV_FORMAT = process.env.RV_FORMAT === 'radolan' ? 'radolan' : 'hdf5';
+// EX-3 (buscosun-web/audit/fusion-expertenbericht-2026-09-29.md §3.3): der DWD schaltete das RADOLAN-
+// Binärformat am 2026-10-20 08 UTC ab. Gespiegelt wird die HDF5-Lieferung (`composite_rv_<JJJJMMTT>_<HHMM>.tar`,
+// nacktes Tar, gemessen 0,75–2,4 MB). Der Slot-Stempel `JJMMTTHHMM` bleibt der Schlüssel der Bild-Ablage.
+// E-HDR-7 (Phase HDR, 04.11.2026): die Option `RV_FORMAT=radolan` und das bz2-Paket sind aus dem Spiegel entfernt.
 
 const PRODUCTS = {
   rv: {
     dir: 'rv',
     stamp: (d) => two(d.getUTCFullYear() % 100) + two(d.getUTCMonth() + 1) + two(d.getUTCDate()) + two(d.getUTCHours()) + two(d.getUTCMinutes()),
-    file: (s) => (RV_FORMAT === 'hdf5' ? `composite_rv_20${s.slice(0, 6)}_${s.slice(6, 10)}.tar` : `DE1200_RV${s}.tar.bz2`),
+    file: (s) => `composite_rv_20${s.slice(0, 6)}_${s.slice(6, 10)}.tar`,
     url: (f) => `https://opendata.dwd.de/weather/radar/composite/rv/${f}`,
     derive: 'rv',
     imgStamp: (d, s) => s, // Bild-Slot = Tar-Stempel
@@ -273,7 +271,7 @@ function derive(source, inPath, stamp) {
     const stdout = execFileSync(process.execPath, [
       '--experimental-strip-types', '--import', pathToFileURL(join(APP_DIR, 'scripts', 'lib', 'register-ts.mjs')).href,
       DERIVE_SCRIPT, source, inPath, outDir, stamp,
-    ], { encoding: 'utf8', timeout: 120_000, env: { ...process.env, REPACK_BZIP2: '1' }, stdio: ['ignore', 'pipe', 'pipe'] });
+    ], { encoding: 'utf8', timeout: 120_000, env: { ...process.env }, stdio: ['ignore', 'pipe', 'pipe'] });
     const line = stdout.trim().split('\n').pop();
     const j = JSON.parse(line);
     imgPrune(source);

@@ -16,6 +16,7 @@ import type maplibregl from 'maplibre-gl';
 import type { Location } from '../types';
 import { flagForCountry } from '../geocode';
 import { Hd250Switch } from '../components/Hd250Switch';   // Phase RA-250: 1 km | 250 m (DE only)
+import { RadarAttribution } from '../components/RadarAttribution';   // Phase HDR: radar sources + licences from the constants
 import type { RadarLayerId } from '../radar/radarModel';
 import type { SnowMode } from '../sources/iconD2Snow';
 import { loadLastView } from '../radar/radarState';
@@ -531,7 +532,7 @@ function ReadoutBody({ nowcast, state, mode, chance, cellCard = null }: {
 
       {mode === 'detail' && <div style={{ marginTop: 10 }}><AlpineCard nowcast={nowcast} /></div>}
 
-      <div className="rr-readout-foot">● DWD RADOLAN-RV (Radar-Nowcast) · {nowcast.nwpSource === 'cube' ? 'buscosun Fusion (Punkt-Cube)' : 'ICON-D2 (2,2 km)'} · keine Tracker</div>
+      <div className="rr-readout-foot">● <RadarAttribution /> · {nowcast.nwpSource === 'cube' ? 'buscosun Fusion (Punkt-Cube)' : 'ICON-D2 (2,2 km)'} · keine Tracker</div>
     </>
   );
 }

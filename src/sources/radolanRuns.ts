@@ -58,20 +58,17 @@ export function rvStampToMs(s: string): number {
 // ---------------------------------------------------------------------------
 // EX-3 — zwei Lieferformen desselben Laufs (audit/fusion-expertenbericht-2026-09-29.md §3.3)
 // ---------------------------------------------------------------------------
-// Der DWD legt jeden RV-Lauf bis zum 2026-10-20 08 UTC doppelt ab: als RADOLAN-Binär
+// Der DWD legte jeden RV-Lauf bis zum 2026-10-20 08 UTC doppelt ab: als RADOLAN-Binär
 // (`DE1200_RV<JJMMTTHHMM>.tar.bz2`) und als ODIM-HDF5 (`composite_rv_<JJJJMMTT>_<HHMM>.tar`,
-// unkomprimiertes Tar). Danach bleibt nur HDF5. Der Leser fragt deshalb HDF5 ZUERST und
-// nimmt das Altformat als benannten Rückfall; `?rvfmt=radolan|hdf5` (bzw.
-// `localStorage.rvfmt`) legt die Form fest, ohne Rückfall auf die andere.
+// unkomprimiertes Tar). Seitdem gibt es nur HDF5; mit E-HDR-7 (Phase HDR, 04.11.2026) liest der
+// Client nur noch diese Form (kein `?rvfmt=`, kein bz2 auf dem Radarpfad).
 // Der Slot-Stempel `JJMMTTHHMM` bleibt der Schlüssel aller Wege (Bild-Verzeichnis, Cache).
-// Dieses Modul liegt im Start-Chunk und kennt nur die HDF5-Form; die Adressen des Altformats baut
-// `rvUrls` in `radolanDecode.ts`.
 /** Dateiname eines RV-Laufs (HDF5-Lieferung); `ts` = `JJMMTTHHMM`. */
 export function rvFileName(ts: string): string {
   return `composite_rv_20${ts.slice(0, 6)}_${ts.slice(6)}.tar`;
 }
 
-// (`rvFormatOrder` und `rvStampFromFileName` stehen in `radolanDecode.ts` — dieses Modul liegt im Start-Chunk.)
+// (`rvStampFromFileName` steht in `radolanDecode.ts` — dieses Modul liegt im Start-Chunk.)
 
 export function rvTarCdnUrl(ts: string): string {
   return `${RADAR_CDN_BASE}/rv/${rvFileName(ts)}`;
