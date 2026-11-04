@@ -42,6 +42,29 @@ interface Props {
   onView3dFailed?: () => void;
 }
 
+/** 3D only: two buttons turn the view by 45° and a compass resets north (right mouse drag / two fingers still rotate freely). */
+function makeRotateControl(): maplibregl.IControl {
+  let el: HTMLDivElement | null = null;
+  return {
+    onAdd(map) {
+      el = document.createElement('div');
+      el.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+      const mk = (label: string, text: string, on: () => void) => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.title = label; b.setAttribute('aria-label', label); b.textContent = text;
+        b.style.cssText = 'font-size:18px;line-height:1;font-weight:600;';
+        b.addEventListener('click', on);
+        el!.appendChild(b);
+      };
+      mk('Ansicht nach links drehen', '↺', () => map.easeTo({ bearing: map.getBearing() - 45, duration: 450 }));
+      mk('Ansicht nach rechts drehen', '↻', () => map.easeTo({ bearing: map.getBearing() + 45, duration: 450 }));
+      mk('Norden oben', 'N', () => map.easeTo({ bearing: 0, duration: 450 }));
+      return el;
+    },
+    onRemove() { el?.remove(); el = null; },
+  };
+}
+
 export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, snow, showSnow, dem, view, basemap, compare, onCompare, onSnowShare, onMap, onView3dFailed }: Props) {
   const box = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -115,11 +138,14 @@ export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, sno
     map.setPaintProperty('gls-earlier-line-l', 'line-color', sat ? EARLIER_ON_SAT : LINE_INK);
   };
 
+  const rotCtl = useRef<maplibregl.IControl | null>(null);
   const apply3d = (on: boolean) => {
     const map = mapRef.current;
     if (!map || !ready.current) return;
     try {
       if (on) {
+        if (!rotCtl.current) { rotCtl.current = makeRotateControl(); map.addControl(rotCtl.current, 'top-right'); }
+        map.dragRotate.enable(); map.touchZoomRotate.enableRotation();
         map.setTerrain({ source: 'gls-dem', exaggeration: SHEET_EXAGGERATION });
         map.setLayoutProperty('gls-hill', 'visibility', latest.current.basemap === 'satellit' ? 'none' : 'visible');
         // Jan 04.11.: frame the whole glacier in the tilted camera. The bounds fit ignores the terrain height (the peaks sit nearer to the camera),
@@ -135,6 +161,7 @@ export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, sno
         map.once('idle', go);
         map.triggerRepaint();
       } else {
+        if (rotCtl.current) { map.removeControl(rotCtl.current); rotCtl.current = null; }
         map.setTerrain(null);
         map.setLayoutProperty('gls-hill', 'visibility', 'none');
         const bb2 = latest.current.geometry ? bboxOf(latest.current.geometry) : null;
@@ -178,7 +205,7 @@ export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, sno
     });
     const onMove = () => { if (latest.current.compare != null) { cancelAnimationFrame(raf.current); raf.current = requestAnimationFrame(applyOutlines); } };
     map.on('move', onMove);
-    return () => { cancelAnimationFrame(raf.current); ready.current = false; onMap?.(null); map.remove(); if (mapRef.current === map) mapRef.current = null; };
+    return () => { cancelAnimationFrame(raf.current); ready.current = false; rotCtl.current = null; onMap?.(null); map.remove(); if (mapRef.current === map) mapRef.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
