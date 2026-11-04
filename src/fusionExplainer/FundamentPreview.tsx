@@ -3,7 +3,7 @@
  * flag is on (`fxFlag.ts`). The whole glass tile is ONE link to `/buscosun-fusion` (a plain click stays the app's own navigation,
  * like the tool tiles); nothing inside it is interactive. Schematic, no measured data.
  */
-import { FUSION_CURRENT, fusionName } from '../pointForecast/fusion/fusionRelease';
+import { FUSION_BRAND } from '../pointForecast/fusion/fusionRelease';
 import StepPanel from './StepPanel';
 import { PREVIEW as T } from './copy';
 import './FundamentPreview.css';
@@ -27,7 +27,7 @@ export default function FundamentPreview({ onOpen }: { onOpen: () => void }) {
           <div className="fxp-eyebrow-row">
             <span className="fxp-eyebrow">{T.eyebrow}</span>
           </div>
-          <h2 className="deck-h2">{fusionName(FUSION_CURRENT)}</h2>
+          <h2 className="deck-h2">{FUSION_BRAND}</h2>
           <p className="deck-lead fxp-lead">{T.lead}</p>
           <ul className="fxp-chips" aria-hidden="true">
             {T.chips.map(([n, label]) => <li key={n} className="fxp-chip"><b>{n}</b> {label}</li>)}

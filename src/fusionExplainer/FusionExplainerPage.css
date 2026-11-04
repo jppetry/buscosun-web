@@ -205,3 +205,9 @@
   .fx-closing { margin-top: 44px; padding: 22px 20px; border-radius: 18px; }
   .fx-closing-title { font-size: 22px; }
 }
+
+/* Start-page map as page background (Jan 04.11.): fixed, soft, behind all content. */
+.fx-bgmap { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.42; }
+.fx-bgmap .tile-karte-svg { position: absolute; top: 0; left: 0; right: auto; width: 100%; height: 100%; }
+.fx-topbar, .fx-main { position: relative; z-index: 1; }
+@media (max-width: 767px) { .fx-bgmap { opacity: 0.3; } }
