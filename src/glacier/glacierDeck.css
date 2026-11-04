@@ -235,6 +235,15 @@
   .gl-m-topmid .gl-view-seg button { width: 52px; height: 32px; min-height: 32px; }
   .gl-topbar .gl-share { width: 40px; height: 40px; padding: 0; justify-content: center; }
   .gl-root a.gl-brand span { display: none; }
+  /* On the map the topbar is not a continuous bar: logo, 2D | 3D and share float over the map as single tiles. */
+  .gl-main.is-floattop { position: relative; }
+  .gl-main.is-floattop > .gl-topbar { position: absolute; top: 0; left: 0; right: 0; z-index: 6; height: auto; padding: 8px 12px 0; background: none; box-shadow: none; border-bottom: 0; pointer-events: none; }
+  .gl-main.is-floattop > .gl-topbar > * { pointer-events: auto; }
+  .gl-main.is-floattop > .gl-topbar > .gl-m-topmid { pointer-events: none; }
+  .gl-main.is-floattop .gl-m-topmid .gl-view-seg { pointer-events: auto; }
+  .gl-main.is-floattop > .gl-topbar .gl-share { background: var(--gl-surface, #fff); border: 1px solid var(--gl-line-strong); border-radius: 11px; }
+  .gl-main.is-floattop .gl-m-overlay { top: 58px; }
+  .gl-main.is-floattop .gl-map-note { top: 58px; }
   .gl-stand, .gl-season-d { display: none; }
   .gl-body { flex-direction: column; overflow-y: auto; }
   .gl-dock { display: none; }

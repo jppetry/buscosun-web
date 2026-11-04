@@ -346,7 +346,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
     const dossierOn = stage === 'dossier' && !!sel;
     return (
       <div className="gl-root is-mobile">
-        <div className="gl-main">
+        <div className={`gl-main${!dossierOn && !mTab ? ' is-floattop' : ''}`}>
           {topbar}
           <div className="gl-body">
             <div className="gl-center">
