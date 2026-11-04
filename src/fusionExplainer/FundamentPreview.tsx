@@ -26,9 +26,8 @@ export default function FundamentPreview({ onOpen }: { onOpen: () => void }) {
         <div className="fxp-text">
           <div className="fxp-eyebrow-row">
             <span className="fxp-eyebrow">{T.eyebrow}</span>
-            <span className="fxp-pill">{fusionName(FUSION_CURRENT)}</span>
           </div>
-          <h2 className="deck-h2">{T.h2}</h2>
+          <h2 className="deck-h2">{fusionName(FUSION_CURRENT)}</h2>
           <p className="deck-lead fxp-lead">{T.lead}</p>
           <ul className="fxp-chips" aria-hidden="true">
             {T.chips.map(([n, label]) => <li key={n} className="fxp-chip"><b>{n}</b> {label}</li>)}
