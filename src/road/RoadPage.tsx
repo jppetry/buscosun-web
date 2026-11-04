@@ -409,11 +409,12 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
     const main = segmentMainStation(s, shownById);
     setStId(main); setCardOff(null);
   }, [segMap, corridorId, shownById]);
-  // AWD: a click on a list row is the explicit wish for the details ⇒ open the segment AND switch to the dossier.
-  // A click on the map only marks (segment line, callout, row in the list with „Dossier öffnen“).
+  // „Dossier öffnen“ under the selected row: open the segment AND switch to the dossier.
   const openDossier = useCallback((id: string) => { pickSegment(id); setStage('dossier'); setMobTab('map'); }, [pickSegment]);
   // A click on the map picks the segment, but leaves the choice to the card: „Detailansicht öffnen“ switches to the dossier.
   const pickSegmentFromMap = useCallback((id: string) => { pickSegment(id); setMapSeg(id); setMapCorr(null); }, [pickSegment]);
+  // Jan 04.11.: a click on a list row first selects the segment on the main map with its card bottom left; inside the dossier it changes the open segment.
+  const pickSegmentFromList = useCallback((id: string) => { if (inDossier) pickSegment(id); else pickSegmentFromMap(id); setMobTab('map'); }, [inDossier, pickSegment, pickSegmentFromMap]);
   const pickCorridorFromMap = useCallback((id: string) => { pickCorridor(id); setMapSeg(null); setMapCorr(id); }, [pickCorridor]);
   const pickStationFromMap = useCallback((id: string) => {
     pickStation(id);
@@ -598,7 +599,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   const hzNode = !hz ? undefined : (<Suspense fallback={<div className="aw-hz aw-hz-loading" role="status">Gefahren werden geladen …</div>}>
     <RoadHazardPanel file={hzShown} state={hzState} segments={segMap} mode={hzMode} filter={hzFilter} selectedId={segId} nowMs={nowMs}
       onMode={(m) => { setHzMode(m); if (m === 'now') setTime(0); else if (typeof m === 'number') setTime(m); }} onFilter={setHzFilter} onHour={(h) => setTime(h)}
-      onPick={openDossier} onHover={setHoverSeg} onOpenDossier={inDossier ? undefined : openDossier} />
+      onPick={pickSegmentFromList} onHover={setHoverSeg} onOpenDossier={inDossier ? undefined : openDossier} />
   </Suspense>);
 
   // AWD: the dossier of the centre — the strip of the corridor, then the detail of the open segment (or the empty state).
