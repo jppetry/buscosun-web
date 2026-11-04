@@ -212,11 +212,24 @@ export function FirePassChart({ passes, nowMs, compact = false, wide = false, wi
     // Y-Achsenbeschriftung läuft. (Die Achsen-Ticks entzerrt die Bibliothek selbst.)
     const stampAt = new Set<string>(); const mwAt = new Set<string>(); const glyphAt = new Set<string>();
     if (wide) {
-      let ls = -1e9; let lm = -1e9; let lg = -1e9;
+      // Breitenbewusst (Jan 04.11.): bei sehr vielen Überflügen (großer Brand) zählt die Textbreite, nicht ein fester Abstand.
+      const tw = (txt: string) => txt.length * fontSize * 0.6;
+      // Zeitstempel: von links nach rechts, nur wenn der vorige samt Lücke zu Ende ist.
+      let stampEnd = -1e9;
+      for (const b of tl.bars) {
+        const x = px(b.atMs), w = tw(stamp(b.atMs));
+        if (x - w / 2 >= stampEnd + 8) { stampAt.add(b.key); stampEnd = x + w / 2; }
+      }
+      // MW-Zahlen: die größten Balken zuerst; eine Zahl entfällt, wenn sie eine bereits gesetzte berührt (ganz entfällt sie am Rand zur Y-Achse).
+      const placed: Array<[number, number]> = [];
+      for (const b of [...tl.bars].filter((q) => q.hasFrp).sort((m, n) => n.frpMw - m.frpMw)) {
+        const x = px(b.atMs), w = tw(`${mwText(b.frpMw)} MW`), l = x - w / 2 - 4, r = x + w / 2 + 4;
+        if (l < 0 || r > innerWidth + margin.right - 4 || placed.some(([pl, pr]) => l < pr && r > pl)) continue;
+        mwAt.add(b.key); placed.push([l, r]);
+      }
+      let lg = -1e9;
       for (const b of tl.bars) {
         const x = px(b.atMs);
-        if (x - ls >= 76) { stampAt.add(b.key); ls = x; }
-        if (b.hasFrp && x - lm >= 34 && x >= 12) { mwAt.add(b.key); lm = x; }
         if (x - lg >= 14) { glyphAt.add(b.key); lg = x; }
       }
     }

@@ -153,7 +153,10 @@ export function snapshotBbox(
   const cLat = bbox ? (bbox[1] + bbox[3]) / 2 : lat;
   const cLon = bbox ? (bbox[0] + bbox[2]) / 2 : lon;
   const fireLatSpan = bbox ? Math.abs(bbox[3] - bbox[1]) : 0;
-  const latSpan = Math.max(fireLatSpan * 1.6, MIN_LAT_SPAN);
+  // Jan 04.11.: a fire wider than tall must fit in longitude, too (the image is 5:4), else the east/west part of a big fire is cut off.
+  const fireLonSpan = bbox ? Math.abs(bbox[2] - bbox[0]) : 0;
+  const latForLon = (fireLonSpan * 1.6 * Math.max(0.2, Math.cos((cLat * Math.PI) / 180)) * SNAP_H) / SNAP_W;
+  const latSpan = Math.max(fireLatSpan * 1.6, latForLon, MIN_LAT_SPAN);
   const lonSpan = (latSpan * (SNAP_W / SNAP_H)) / Math.max(0.2, Math.cos((cLat * Math.PI) / 180));
   const r = (n: number) => Number(n.toFixed(4));
   return [r(cLat - latSpan / 2), r(cLon - lonSpan / 2), r(cLat + latSpan / 2), r(cLon + lonSpan / 2)];
