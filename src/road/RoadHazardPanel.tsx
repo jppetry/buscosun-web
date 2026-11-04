@@ -130,7 +130,7 @@ export default function RoadHazardPanel(p: RoadHazardPanelProps) {
     <div className="aw-hz" ref={listRef}>
       <div className="aw-hz-head">
         <div className="aw-eyebrow is-accent">Gefahrenlage DACH</div>
-        <h2 className="aw-hz-title">{file ? `${n} ${n === 1 ? 'Abschnitt' : 'Abschnitte'} mit Hinweisen` : 'Gefahrenlage'}</h2>
+        <h2 className="aw-hz-title">{file ? <><span className="aw-hz-title-n">{n}</span> {n === 1 ? 'Abschnitt' : 'Abschnitte'} mit Hinweisen</> : 'Gefahrenlage'}</h2>
       </div>
       <div className="aw-hz-subrow">
         <div className="aw-hz-sub">{file ? `${windowLabel(mode, hours)} · DE gemessen, AT/CH folgen${p.state === 'stale' ? ' · veraltet' : ''}${file.missing.length ? ` · ohne ${file.missing.join(', ')}` : ''}` : note}</div>
@@ -159,7 +159,7 @@ export default function RoadHazardPanel(p: RoadHazardPanelProps) {
       {file && groups.map((g) => (
         <section key={g.group} className="aw-hz-group" aria-label={g.label}>
           <div className="aw-hz-group-head">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2C2A26" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={g.icon} /></svg>
+            <span className="aw-hz-group-ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d={g.icon} /></svg></span>
             <span>{g.label}</span>
             <span className="aw-hz-group-n">{g.rows.length - g.unknown}{g.unknown ? ` + ${g.unknown} ?` : ''}</span>
           </div>

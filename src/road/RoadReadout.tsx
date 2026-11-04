@@ -424,6 +424,14 @@ function AxisTab(p: Props & { axis: RoadFcPoint }) {
   );
 }
 
+/** Tab icons (24 × 24 stroke paths), in the look of the layer dock. */
+const TAB_ICON: Readonly<Record<string, string>> = {
+  autobahnen: 'M8 3 4.5 21M16 3l3.5 18M12 4v3M12 10.5v3M12 17v3',
+  gefahren: 'M12 3.5 2.8 19.5h18.4L12 3.5zM12 10v4.5M12 17.2v.1',
+  station: 'M12 21s-6-5.6-6-10a6 6 0 0 1 12 0c0 4.4-6 10-6 10zM12 11.5a1.8 1.8 0 1 0 0-.01',
+  strecke: 'M5 19c0-5 14-4 14-10M5 19h.01M19 9h.01M4 5h6M14 19h6',
+  quellen: 'M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18M12 11v6M12 7.5v.5',
+};
 /** AW-8 (E-AW-37): behind the hazard switch the column starts with Gefahren · Strecke · Quellen; the station readout lives on inside the detail. */
 export default function RoadReadout(p: Props & { hz?: React.ReactNode; roads?: React.ReactNode }) {
   // Desktop: the motorway list (search, countries, list) lives here as the first tab; the left dock keeps the layers.
@@ -436,7 +444,8 @@ export default function RoadReadout(p: Props & { hz?: React.ReactNode; roads?: R
       <div role="tablist" aria-label="Ansicht" className="aw-seg aw-tabs">
         {tabs.map((t) => (
           <button key={t} type="button" role="tab" aria-selected={cur === t} className={cur === t ? 'is-active' : ''} onClick={() => p.onTab(t)}>
-            {t === 'station' ? 'Station' : t === 'strecke' ? 'Strecke' : t === 'quellen' ? 'Quellen' : t === 'autobahnen' ? 'Autobahnen' : 'Gefahren'}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={TAB_ICON[t]} /></svg>
+            <span>{t === 'station' ? 'Station' : t === 'strecke' ? 'Strecke' : t === 'quellen' ? 'Quellen' : t === 'autobahnen' ? 'Autobahnen' : 'Gefahren'}</span>
           </button>
         ))}
       </div>
