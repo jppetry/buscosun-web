@@ -399,6 +399,8 @@ export interface FirmsProps extends Record<string, unknown> {
   trackKm: number | null;
   /** 1 = gehört zu einem als ortsfest eingestuften Ereignis (F2, abgeleitet). */
   stat?: number;
+  /** Bekannter Standort an dieser Stelle (Beschriftung, von der Seite nachgetragen). */
+  anlage?: string;
 }
 
 function propsOf(r: FirmsRow, nowMs: number): FirmsProps {

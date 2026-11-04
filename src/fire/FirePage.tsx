@@ -87,7 +87,8 @@ import { EUROPE_HISTORY_NOTE, EUROPE_LIMIT_NOTE, REGION_LABEL, type FireRegion }
 import { fetchWarnContextsFor, type AtWarnContext } from './sources/geosphereWarnContext';
 import { loadClcMaskFor, landcoverAt, toAssessmentLandcover, type ClcMask } from './clcMask';
 // TA3/TA4: statische Standortliste persistenter Wärmequellen + Reiter „Thermalanomalien".
-import { loadThermalSitesFor, siteAt, thermalSitesEnabled, SITE_CLASS_LABEL, type ThermalSitesIndex } from './anomaly/thermalSites';
+import { loadThermalSitesFor, siteAt, thermalSitesEnabled, SITE_CLASS_LABEL, type ThermalSite, type ThermalSitesIndex } from './anomaly/thermalSites';
+import { siteLabel } from './anomaly/classify';
 import { FireAnomalyPanel, AnomalySiteCards, siteStatTiles, siteName } from './FireAnomalyPanel';
 import { FireHistoryPanel, HistoryDossierBody, historyStatTiles, historyEntryName } from './FireHistoryPanel';
 import { historyEnabled, loadHistoryIndex, historyToGeoJSON, type HistoryLoad } from './history/historyLoad';
@@ -1232,6 +1233,53 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     return reconciled.estimated.filter((z) => !represented.has(z.id));
   }, [active, reconciled, records]);
 
+  /**
+   * Live-Fenster: alles, was an einem bekannten Standort liegt, wird als „vermutlich Anlage, ortsfest"
+   * grau gezeichnet — Punkt, Pixelrechteck, Raster und Hülle. Ausnahme: Weicht ein Eintrag vom
+   * Anlagenmuster ab (`site-deviating`: wachsend, kartiert, zu stark), bleibt der Standort farbig.
+   */
+  const deviatingSiteKey = useMemo(
+    () => [...new Set(records.flatMap((r) => (r.anomaly?.kind === 'site-deviating' ? [r.anomaly.siteId] : [])))].sort().join('|'),
+    [records],
+  );
+  const greySiteAt = useMemo(() => {
+    const deviating = new Set(deviatingSiteKey.split('|'));
+    return (lat: number, lon: number): ThermalSite | null => {
+      const site = siteAt(thermalSites, lat, lon);
+      return site && !deviating.has(site.id) ? site : null;
+    };
+  }, [thermalSites, deviatingSiteKey]);
+  const mapHotspots = useMemo<GeoJSON.FeatureCollection | null>(() => {
+    if (!hotspots || !thermalSites) return hotspots;
+    return {
+      ...hotspots,
+      features: hotspots.features.map((f) => {
+        if (f.geometry.type !== 'Point') return f;
+        const site = greySiteAt(f.geometry.coordinates[1], f.geometry.coordinates[0]);
+        return site ? { ...f, properties: { ...f.properties, stat: 1, anlage: siteLabel(site) } } : f;
+      }),
+    };
+  }, [hotspots, thermalSites, greySiteAt]);
+  const mapHotspotFootprints = useMemo<GeoJSON.FeatureCollection | null>(() => {
+    if (!hotspotFootprints || !thermalSites) return hotspotFootprints;
+    return {
+      ...hotspotFootprints,
+      features: hotspotFootprints.features.map((f) => {
+        if (f.geometry.type !== 'Polygon') return f;
+        const [[w, s], , [e, n]] = f.geometry.coordinates[0];
+        return greySiteAt((s + n) / 2, (w + e) / 2) ? { ...f, properties: { ...f.properties, stat: 1 } } : f;
+      }),
+    };
+  }, [hotspotFootprints, thermalSites, greySiteAt]);
+  const mapZonesShown = useMemo<readonly FireZone[]>(
+    () => (thermalSites ? mapZones.map((z) => (greySiteAt(z.lat, z.lon) ? { ...z, anlage: true } : z)) : mapZones),
+    [mapZones, thermalSites, greySiteAt],
+  );
+  const mapClusters = useMemo<readonly FireCluster[]>(
+    () => (thermalSites ? clusterList.map((c) => (!c.mostlyStatic && greySiteAt(c.lat, c.lon) ? { ...c, mostlyStatic: true } : c)) : clusterList),
+    [clusterList, thermalSites, greySiteAt],
+  );
+
   /** Auswahl aus der Panel-Liste: markieren, Cluster-Auswahl nullen, hinfahren. */
   const focusFootprint = useCallback((id: string) => {
     const r = recordsById.get(id);
@@ -1656,8 +1704,8 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   /** Kennzahlen der Detektionen: im Fenster, ortsfest (grau), in kartierter Fläche. */
   const detCount = hotspots?.features.length ?? 0;
   const staticCount = useMemo(
-    () => (hotspots ? hotspots.features.filter((f) => f.properties?.stat === 1).length : 0),
-    [hotspots],
+    () => (mapHotspots ? mapHotspots.features.filter((f) => f.properties?.stat === 1).length : 0),
+    [mapHotspots],
   );
   const latestAge = detSt?.kind === 'ok' && detSt.ref ? ageText(Math.max(0, nowMs - detSt.ref.atMs)) : null;
 
@@ -2637,10 +2685,10 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
           <main className={`fire-center${inDossier && !isMobile ? ' is-offstage' : ''}`} aria-hidden={inDossier && !isMobile ? true : undefined}>
             <FireMap
               active={mapActive} basemap={basemap} day={committedDay} isoDate={committedIso}
-              hotspots={onlyKind === 'anomalies' ? null : hotspots}
-              hotspotFootprints={onlyKind === 'anomalies' ? null : hotspotFootprints} hotspotProvider={hotspotProvider}
-              fireZones={onlyKind === 'anomalies' ? NO_ZONES : mapZones} zoneEstimates={zoneEstimates}
-              clusters={onlyKind === 'anomalies' ? NO_CLUSTERS : clusterList} selectedClusterId={selectedCluster}
+              hotspots={onlyKind === 'anomalies' ? null : mapHotspots}
+              hotspotFootprints={onlyKind === 'anomalies' ? null : mapHotspotFootprints} hotspotProvider={hotspotProvider}
+              fireZones={onlyKind === 'anomalies' ? NO_ZONES : mapZonesShown} zoneEstimates={zoneEstimates}
+              clusters={onlyKind === 'anomalies' ? NO_CLUSTERS : mapClusters} selectedClusterId={selectedCluster}
               focusNonce={focusNonce} onSelectCluster={selectFromMap}
               footprintFc={mapFootprintFc} hoverFootprintId={hoverFootprint} selectedFootprintId={selectedFootprint}
               anomalyFc={onlyKind === 'fires' ? null : anomalyFc} selectedSiteId={selectedSite} onSelectSite={selectSiteFromMap}

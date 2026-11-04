@@ -166,7 +166,7 @@ export type BrBadge = 'active' | 'no-signal' | 'out' | 'static' | 'site' | 'site
 export const BR_BADGE_LABEL: Record<BrBadge, string> = {
   active: 'AKTIV', 'no-signal': 'KEIN SIGNAL', out: 'ERLOSCHEN', static: 'ORTSFEST',
   // TA3: bekannter Standort einer Dauerquelle — „Abweichung" heißt: Signal passt nicht zum Anlagenmuster, bleibt Brand.
-  site: 'ANLAGE', 'site-deviating': 'ABWEICHUNG',
+  site: 'VERMUTLICH ANLAGE · ORTSFEST', 'site-deviating': 'ABWEICHUNG',
 };
 export function badgeOf(kind: FireStatusKind, suspectedStatic: boolean, anomaly: 'site' | 'site-deviating' | null = null): BrBadge {
   if (anomaly === 'site-deviating') return 'site-deviating';

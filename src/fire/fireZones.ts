@@ -97,6 +97,8 @@ export interface FireZone {
   bbox: [number, number, number, number];
   /** Wurde `MAX_RECTS_PER_ZONE` erreicht? Dann ist die Fläche unvollständig. */
   capped: boolean;
+  /** Liegt an einem bekannten Standort: die Karte zeichnet die Zone grau (vermutlich Anlage). */
+  anlage?: boolean;
 }
 
 interface Rect { w: number; s: number; e: number; n: number; row: FirmsRow }
@@ -525,7 +527,7 @@ export function zonesToGeoJSON(zones: readonly FireZone[]): GeoJSON.FeatureColle
     features: zones.map((z) => ({
       type: 'Feature' as const,
       geometry: { type: 'MultiPolygon' as const, coordinates: z.polys },
-      properties: { id: z.id, ha: z.areaHa, px: z.pixels },
+      properties: { id: z.id, ha: z.areaHa, px: z.pixels, stat: z.anlage ? 1 : 0 },
     })),
   };
 }

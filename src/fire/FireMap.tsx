@@ -938,6 +938,7 @@ export default function FireMap({
               s.emsActs),
             overpasses: evt?.overpasses ?? null,
             suspectedStatic: p.stat === 1,
+            site: p.anlage ? { label: p.anlage, deviating: false } : null,
             atContext: evt ? (s.atContexts.get(evt.id) ?? null) : null,
             landcover: toAssessmentLandcover(landcoverAt(s.clcMask, geom.coordinates[1], geom.coordinates[0])),
           }) : null;
@@ -1208,12 +1209,15 @@ export function hotspotPopupHtml(p: FirmsProps, hitCount = 1, mapped: BurntPolyg
 
   // F2: Warum dieser Punkt grau ist. Die Einordnung ist ausdrücklich UNSERE
   // Ableitung aus dem Detektionsmuster — die Quelle führt kein solches Feld.
-  const stat = p.stat === 1
-    ? '<p class="fire-pop-stat">Grau gezeichnet: an dieser Stelle wird seit mindestens fünf '
+  const stat = p.stat !== 1 ? '' : p.anlage
+    ? `<p class="fire-pop-stat"><b>Vermutlich Anlage, ortsfest.</b> Grau gezeichnet: die Detektion liegt an `
+      + `einem bekannten Standort einer Dauerquelle — ${esc(p.anlage)}. `
+      + '<b>Eigene Ableitung aus dem FIRMS-Archiv und Anlagenverzeichnissen, kein Nachweis</b> und '
+      + 'kein Feld der Quelle.</p>'
+    : '<p class="fire-pop-stat">Grau gezeichnet: an dieser Stelle wird seit mindestens fünf '
       + 'Tagen ohne räumliche Ausdehnung detektiert — häufig eine dauerhafte Wärmequelle '
       + '(z. B. Industrieanlage). <b>Eigene Einordnung aus dem Muster, kein Nachweis</b> und '
-      + 'kein Feld der Quelle.</p>'
-    : '';
+      + 'kein Feld der Quelle.</p>';
 
   // Mehrere Detektionen an derselben Stelle: sagen, statt stillschweigend eine
   // auszuwählen. Die Einordnung solcher Häufungen ist Aufgabe von F2.
@@ -1546,12 +1550,12 @@ function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets', wa
      */
     'fire-hotspots-zone-fill': {
       id: 'fire-hotspots-zone-fill', type: 'fill', source: 'fire-hotspots-zone',
-      paint: { 'fill-color': '#C2542B', 'fill-opacity': 0.1 },
+      paint: { 'fill-color': ['case', ['==', ['get', 'stat'], 1], STATIC_GREY, '#C2542B'], 'fill-opacity': 0.1 },
     },
     'fire-hotspots-zone-line': {
       id: 'fire-hotspots-zone-line', type: 'line', source: 'fire-hotspots-zone',
       paint: {
-        'line-color': '#C2542B', 'line-width': 1.2, 'line-opacity': 0.55,
+        'line-color': ['case', ['==', ['get', 'stat'], 1], STATIC_GREY, '#C2542B'], 'line-width': 1.2, 'line-opacity': 0.55,
         'line-dasharray': [3, 2],
       },
     },
@@ -1601,7 +1605,7 @@ function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets', wa
     'fire-hotspots-foot-fill': {
       id: 'fire-hotspots-foot-fill', type: 'fill', source: 'fire-hotspots-foot',
       minzoom: FOOTPRINT_MIN_ZOOM,
-      paint: { 'fill-color': '#C2542B', 'fill-opacity': 0.14 },
+      paint: { 'fill-color': ['case', ['==', ['coalesce', ['get', 'stat'], 0], 1], STATIC_GREY, '#C2542B'], 'fill-opacity': 0.14 },
     },
     /**
      * Tag- und Nachtumriss als ZWEI Layer mit Filter.
@@ -1619,14 +1623,14 @@ function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets', wa
       id: 'fire-hotspots-foot-line', type: 'line', source: 'fire-hotspots-foot',
       minzoom: FOOTPRINT_MIN_ZOOM,
       filter: ['==', ['get', 'day'], 1],
-      paint: { 'line-color': '#C2542B', 'line-width': 0.9, 'line-opacity': 0.75 },
+      paint: { 'line-color': ['case', ['==', ['coalesce', ['get', 'stat'], 0], 1], STATIC_GREY, '#C2542B'], 'line-width': 0.9, 'line-opacity': 0.75 },
     },
     'fire-hotspots-foot-night': {
       id: 'fire-hotspots-foot-night', type: 'line', source: 'fire-hotspots-foot',
       minzoom: FOOTPRINT_MIN_ZOOM,
       filter: ['==', ['get', 'day'], 0],
       paint: {
-        'line-color': '#C2542B', 'line-width': 0.9, 'line-opacity': 0.75,
+        'line-color': ['case', ['==', ['coalesce', ['get', 'stat'], 0], 1], STATIC_GREY, '#C2542B'], 'line-width': 0.9, 'line-opacity': 0.75,
         'line-dasharray': [2, 1.5],
       },
     },

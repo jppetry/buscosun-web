@@ -114,7 +114,7 @@ const mk = (anomaly) => ({ anomaly, areaHa: { value: null }, status: { kind: 'ac
 const recs = [mk(null), mk({ kind: 'site' }), mk({ kind: 'site-deviating' })];
 add('[filter] Default nimmt `site` aus der Brandliste, `site-deviating` bleibt', filterRecords(recs, DEFAULT_FILTER).length === 2 && hiddenSiteCount(recs, DEFAULT_FILTER) === 1);
 add('[filter] `sites: show` zeigt alle', filterRecords(recs, { ...DEFAULT_FILTER, sites: 'show' }).length === 3 && hiddenSiteCount(recs, { ...DEFAULT_FILTER, sites: 'show' }) === 0);
-add('[badge] Abzeichen ANLAGE / ABWEICHUNG, Abweichung schlägt Ortsfest', badgeOf('active', true, 'site-deviating') === 'site-deviating' && BR_BADGE_LABEL.site === 'ANLAGE' && BR_BADGE_LABEL['site-deviating'] === 'ABWEICHUNG' && badgeOf('active', true, null) === 'static');
+add('[badge] Abzeichen VERMUTLICH ANLAGE · ORTSFEST / ABWEICHUNG, Abweichung schlägt Ortsfest', badgeOf('active', true, 'site-deviating') === 'site-deviating' && BR_BADGE_LABEL.site === 'VERMUTLICH ANLAGE · ORTSFEST' && BR_BADGE_LABEL['site-deviating'] === 'ABWEICHUNG' && badgeOf('active', true, null) === 'static');
 
 const passed = checks.filter((c) => c.ok).length;
 for (const c of checks) console.log(`${c.ok ? '✓' : '✗'} ${c.name}${c.detail ? ` — ${c.detail}` : ''}`);
