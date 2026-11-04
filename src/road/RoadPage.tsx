@@ -78,7 +78,8 @@ const REFRESH_MS = 60_000;
 /** The pointer of the route forecast changes once an hour (plus the publish gate) — re-read every 10 min. */
 const FC_REFRESH_MS = 10 * 60_000;
 // V-AW-14: the radar layer is off by default (one more download and a GL layer only when asked for).
-const DEFAULT_LAYERS: RoadMapLayers = { zust: true, temp: true, fog: true, warn: true, bl: false, fc: true, rain: false };
+// Jan 04.11.: the forecast dots on the open corridor are off by default („stören nur"), the layer panel still offers them.
+const DEFAULT_LAYERS: RoadMapLayers = { zust: true, temp: true, fog: true, warn: true, bl: false, fc: false, rain: false };
 const EMPTY_FC_BY_ID: ReadonlyMap<string, RoadFcPoint> = new Map();
 
 export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz = false, surface = false, vs = false }: RoadPageProps) {
