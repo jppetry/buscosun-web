@@ -424,6 +424,17 @@ function bboxCornersPx(bb: readonly [number, number, number, number] | null, eps
   return pts;
 }
 
+/** Start view framing the whole fire (area rings, else bbox, plus the ignition point) with a 12 % margin; never closer than `START_MPP`. */
+function fitView(d: { fire: { px: number; py: number }; bbox: number[] | null; shape: number[][] | null }, cssW: number, cssH: number): { cx: number; cy: number; mpp: number } | null {
+  if (cssW <= 0 || cssH <= 0) return null;
+  const pts: number[] = d.shape && d.shape.length ? d.shape.flat() : d.bbox ?? [];
+  if (pts.length < 4) return null;
+  let x0 = d.fire.px, x1 = d.fire.px, y0 = d.fire.py, y1 = d.fire.py;
+  for (let i = 0; i + 1 < pts.length; i += 2) { x0 = Math.min(x0, pts[i]); x1 = Math.max(x1, pts[i]); y0 = Math.min(y0, pts[i + 1]); y1 = Math.max(y1, pts[i + 1]); }
+  const mpp = Math.min(MAX_M_PER_CSS_PX, Math.max(START_MPP, (Math.max((x1 - x0) * FULL_M_PER_PX / (cssW * 0.88), (y1 - y0) * FULL_M_PER_PX / (cssH * 0.88)))));
+  return { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, mpp };
+}
+
 /** Die Ringe der Registry-Fläche als Pixel des Granulats (je Ring x0, y0, x1, y1, …) — `null` ohne Fläche/Projektion. */
 function shapeRingsPx(rings: readonly (readonly number[])[][] | null, epsg: number, transform: readonly number[]): number[][] | null {
   if (!rings || rings.length === 0) return null;
@@ -492,6 +503,8 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
   const scarJobRef = useRef<{ key: string; id: number } | null>(null);
   // Sichtzustand: Zentrum in Vollauflösungs-Pixeln + Meter je CSS-Pixel.
   const viewRef = useRef({ cx: 0, cy: 0, mpp: START_MPP });
+  /** Jan 04.11.: the first draw (and the reset button) frames the whole burn extent, not just the ignition point. */
+  const fitRef = useRef(true);
   const bytesRef = useRef({ tiles: 0, bytes: 0 });
   const rafRef = useRef(0);
   const modeRef = useRef<CogMode>('tci');
@@ -534,6 +547,7 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
         };
         scarRef.current = null;
         viewRef.current = { cx: fire.px, cy: fire.py, mpp: START_MPP };
+        fitRef.current = true;
         setStatus((s) => ({ ...s, edge: ref.marginPx * FULL_M_PER_PX < START_HALF_M }));
         setPhase({ kind: 'ready' });
       } catch (e) {
@@ -662,6 +676,7 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
     const cssW = box.clientWidth;
     const cssH = box.clientHeight;
     if (cssW === 0 || cssH === 0) return;
+    if (fitRef.current) { fitRef.current = false; viewRef.current = fitView(d, cssW, cssH) ?? viewRef.current; }
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     if (canvas.width !== Math.round(cssW * dpr)) canvas.width = Math.round(cssW * dpr);
     if (canvas.height !== Math.round(cssH * dpr)) canvas.height = Math.round(cssH * dpr);
@@ -1105,7 +1120,8 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
   const resetView = () => {
     const d = dataRef.current;
     if (!d) return;
-    viewRef.current = { cx: d.fire.px, cy: d.fire.py, mpp: START_MPP };
+    const box = boxRef.current;
+    viewRef.current = (box && fitView(d, box.clientWidth, box.clientHeight)) || { cx: d.fire.px, cy: d.fire.py, mpp: START_MPP };
     schedule();
   };
 
