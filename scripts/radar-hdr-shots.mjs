@@ -47,7 +47,7 @@ const PLACES = {
 };
 const PLACE_IDS = String(args.places ?? 'koeln,emden,muenchen,basel,konstanz').split(',');
 /** variant → query + which local derive serves the page */
-const VARIANT = { '1km': { q: 'hd250=0', dir: 'px250' }, px250: { q: 'hd250=1', dir: 'px250' }, hx: { q: 'hd250=1', dir: 'hx' } };
+const VARIANT = { '1km': { q: 'hd250=0', dir: 'px250' }, px250: { q: 'hd250=1', dir: 'px250' }, hx: { q: 'hd250=1', dir: 'hx' }, default: { q: '', dir: 'hx' } };   // `default`: no hd250 key — the page's own default (HDR: on)
 const TILE_WORD = '250-m-Gitter';   // `radarHd250NoteText('tiles')` — the status line says it only while the tiles are drawn
 
 const chrome = findHeadlessChrome();
@@ -149,7 +149,7 @@ async function waitReady(ctx, served, { tiles = false, timeoutS = 90 } = {}) {
   return st && st.radarDrawn ? st : null;
 }
 const jumpNow = (ctx) => ctx.evaluate(`(() => { const b = document.querySelector('.rdr-tl-now'); if (b) b.click(); return !!b; })()`).catch(() => false);
-const url = (place, variant, z) => `${BASE}/regenradar/${place.slug}?lat=${place.center[1]}&lon=${place.center[0]}&z=${z}&${VARIANT[variant].q}`;
+const url = (place, variant, z) => `${BASE}/regenradar/${place.slug}?lat=${place.center[1]}&lon=${place.center[0]}&z=${z}${VARIANT[variant].q ? `&${VARIANT[variant].q}` : ''}`;
 
 // ── picture matrix ──
 if (!PERF_ONLY) {

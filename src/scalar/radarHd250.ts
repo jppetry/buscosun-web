@@ -2,7 +2,7 @@
  * Phase R250 (`audit/radar-250m.md` §5 R250-4) — switches and geometry of the 250-m tiles for Germany on the client.
  *
  * Pure (no DOM, no maplibre): the verifier reads it headless. With the switch off, `MapView` draws exactly as before
- * Phase R250 (the three native 1-km layers of Phase HD); with it on, the RV ANALYSES (measured frames — now and the
+ * Phase R250 (the three native 1-km layers of Phase HD); with it on (the default since Phase HDR), the RV ANALYSES (measured frames — now and the
  * look-back, never the extrapolation) are drawn from the 250-m tiles of the mirror wherever the view is zoomed in
  * far enough and the tile is loaded; the 1-km DE layer stays underneath as the named fallback (progressive: it shows
  * first, the tiles replace it per slot as they arrive).
@@ -16,11 +16,12 @@ import { HD250_TILES_X, HD250_TILES_Y, HD250_TILE_W, HD250_TILE_H, hd250TileFile
 import type { QuadCorners } from './RainLayer';
 
 /**
- * Phase RA-250 (`audit/radar-aufloesung.md` §6, Jan 13.10.2026): the 250-m tiles are OFF unless asked for — `?hd250=1`,
- * the switch „250 m" in the layer panel (`setRadarHd250Pref`, kept in `localStorage.radarhd250` and in the share link as
- * `hd250=1`) or the store. Before (E-R250-1, 09.10.) they were the default from zoom 9. `?hd250=0` stays the hard off.
+ * Phase HDR (`audit/hd-radar.md` §9, Jan 04.11.2026): the 250-m tiles are ON by default from zoom 9 (the mirror composes
+ * them from the DWD HX composite, `RADAR_HD250_SRC`). `?hd250=0` is the hard off; the switch „1 km" in the layer panel
+ * (`setRadarHd250Pref`, kept in `localStorage.radarhd250` and in the share link as `hd250=0`) or the store turn them off.
+ * History: default on from zoom 9 (E-R250-1, 09.10.), off unless asked for (Phase RA-250, Jan 13.10.), on again (HDR).
  */
-export const RADAR_HD250_DEFAULT_ON = false;
+export const RADAR_HD250_DEFAULT_ON = true;
 export const RADAR_HD250_STORE_KEY = 'radarhd250';
 export const RADAR_HD250_QUERY_KEY = 'hd250';
 /**
@@ -54,14 +55,15 @@ export function radarHd250FlagFrom(
 }
 
 /**
- * Phase RA-250: the search string with the switch state written in — `hd250=1` when on, nothing when off (off is the
- * default and a shared link carries the state, not the default). Other keys stay byte for byte (no re-encoding: the
- * app's own query keeps commas and colons, `URLSearchParams.toString` would turn them into `%2C`/`%3A`).
+ * Phase RA-250: the search string with the switch state written in — `hd250=1` / `hd250=0` only when the state differs
+ * from `RADAR_HD250_DEFAULT_ON`, nothing when it is the default (a shared link carries the choice, not the default).
+ * Other keys stay byte for byte (no re-encoding: the app's own query keeps commas and colons, `URLSearchParams.toString`
+ * would turn them into `%2C`/`%3A`).
  */
 export function hd250SearchWith(search: string, on: boolean): string {
   const q = search.startsWith('?') ? search.slice(1) : search;
   const kept = q.split('&').filter((p) => p !== '' && !/^hd250(=|$)/.test(p));
-  if (on) kept.push(`${RADAR_HD250_QUERY_KEY}=1`);
+  if (on !== RADAR_HD250_DEFAULT_ON) kept.push(`${RADAR_HD250_QUERY_KEY}=${on ? '1' : '0'}`);
   return kept.length ? `?${kept.join('&')}` : '';
 }
 
