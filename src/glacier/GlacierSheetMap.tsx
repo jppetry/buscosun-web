@@ -124,10 +124,16 @@ export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, sno
         map.setLayoutProperty('gls-hill', 'visibility', latest.current.basemap === 'satellit' ? 'none' : 'visible');
         // Jan 04.11.: frame the whole glacier in the tilted camera. The bounds fit ignores the terrain height (the peaks sit nearer to the camera),
         // so the zoom is taken back a little (0.45) and the top padding is larger — no manual zooming out after switching to 3D.
-        const bb = latest.current.geometry ? bboxOf(latest.current.geometry) : null;
-        const cam = bb ? map.cameraForBounds([[bb[0], bb[1]], [bb[2], bb[3]]], { padding: { top: 110, bottom: 60, left: 60, right: 60 }, bearing: -20, pitch: 62, maxZoom: 15 }) : null;
-        if (cam && cam.center && cam.zoom != null) map.easeTo({ center: cam.center, zoom: Math.max(map.getMinZoom(), cam.zoom - 0.45), pitch: 62, bearing: -20, duration: 700 });
-        else map.easeTo({ pitch: 62, bearing: -20, duration: 700 });
+        // The camera moves only once the terrain tiles are in (else the height of the peaks shifts the distance after the move).
+        const go = () => {
+          if (latest.current.view !== '3d') return;
+          const bb = latest.current.geometry ? bboxOf(latest.current.geometry) : null;
+          const cam = bb ? map.cameraForBounds([[bb[0], bb[1]], [bb[2], bb[3]]], { padding: { top: 110, bottom: 60, left: 60, right: 60 }, bearing: -20, pitch: 62, maxZoom: 15 }) : null;
+          if (cam && cam.center && cam.zoom != null) map.easeTo({ center: cam.center, zoom: Math.max(map.getMinZoom(), cam.zoom - 0.45), pitch: 62, bearing: -20, duration: 700 });
+          else map.easeTo({ pitch: 62, bearing: -20, duration: 700 });
+        };
+        map.once('idle', go);
+        map.triggerRepaint();
       } else {
         map.setTerrain(null);
         map.setLayoutProperty('gls-hill', 'visibility', 'none');
