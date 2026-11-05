@@ -949,6 +949,12 @@
 /* Mobil: die Kartenkachel steht allein in der Spalte, braucht also eine eigene Höhe (Desktop bestimmt sie die Reihe). */
 @media (max-width: 767px) { .dbd-minimap { height: 220px; } }
 .dbd-mm-pin { width: 12px; height: 12px; border-radius: 50%; background: var(--terracotta-500, #C2542B); border: 2px solid #fff; box-shadow: 0 0 0 4px rgba(194, 84, 43, .25), 0 1px 4px rgba(44, 42, 38, .4); }
+/* Temperaturwerte wie `.temp-label` der Wetterkarte (MapView.css), die im Dashboard noch nicht geladen sein muss. */
+.dbd-mm-temp { position: absolute; top: 0; left: 0; display: inline-flex; align-items: center; gap: .24rem; font-family: var(--font-base); font-size: .82rem; font-weight: 700; line-height: 1; white-space: nowrap; pointer-events: none; font-variant-numeric: tabular-nums; letter-spacing: -.015em; text-shadow: 0 0 2px rgba(0, 0, 0, .95), 0 1px 3px rgba(0, 0, 0, .75), 0 0 7px rgba(0, 0, 0, .5); }
+.dbd-mm-temp-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; flex-shrink: 0; box-shadow: 0 0 0 1px rgba(0, 0, 0, .55); }
+.dbd-mm-temp-rank-2 { font-size: .76rem; }
+.dbd-mm-temp-rank-3 { font-size: .7rem; font-weight: 600; }
+.dbd-mm-temp-rank-4 { font-size: .64rem; font-weight: 600; opacity: .92; }
 
 /* ============================================================================
    Feinschliff 31.10. (Jan: übersichtlicher, ruhiger) — Kachelköpfe, Schrift, Tageskarten und Stundenverlauf; Tablet: Tage

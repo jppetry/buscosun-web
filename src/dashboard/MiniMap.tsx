@@ -1,5 +1,6 @@
 /**
- * Kleiner Kartenausschnitt neben der Jetzt-Kachel (Desktop): der gewählte Ort mit Windpartikeln und dem aktuellen Radarbild.
+ * Kleiner Kartenausschnitt neben der Jetzt-Kachel (Desktop): der gewählte Ort mit denselben Start-Ebenen wie die Wetterkarte
+ * (`DEFAULT_MAP_LAYERS` Niederschlag + Wind, dazu ihre dauerhaften Temperaturwerte).
  * Lazy-Chunk, wird erst gemountet, wenn die Fusion da ist (E-DB-20: das Netz gehört zuerst dem Kern).
  *
  * Nur bestehende Bausteine, nichts Neues an Shader oder Quellen:
@@ -7,6 +8,8 @@
  *    aus dem Cache). Das ist das Modellfeld, nicht der Fusion-Wert der Kachel — die Beschriftung sagt es.
  *  - Niederschlag: jüngstes Radarbild des Landes des Orts (DE RV-Analyse, AT INCA-Anfangsbild, CH RZC), per CPU auf ein
  *    `canvas`-Bild gelegt wie auf der 3D-Bühne (`radarDrape.ts`). Ohne Radar für den Ort steht „Radar: nicht verfügbar".
+ *  - Temperatur: die Orts-Werte der Wetterkarte (`temperatureLabels.ts`, gleiche Orte, gleiches t_2m-Gitter, gleiche Farbe),
+ *    zuerst aus dem Sofort-Cache. Eigene CSS-Klassen, weil `MapView.css` im Dashboard noch nicht geladen sein muss.
  * Die Karte ist nicht bedienbar (kein Scroll-Fang auf der Seite); die Namensnennung der Basiskarte bleibt sichtbar.
  */
 import { useEffect, useRef, useState } from 'react';
@@ -17,6 +20,9 @@ import { WEATHER_BASEMAP_STYLE, firstBoundaryLayerId, germanBasemapLabels, orien
 import { loadDachMask } from '../countryMask';
 import { weatherWindOptions, WEATHER_WIND_DENSITY } from '../wind/weatherWindPreset';
 import { fetchIconD2Wind, loadWindNowCache, windFrameAtValidTime } from '../wind/iconD2WindSource';
+import { fetchIconD2Temp } from '../sources/iconD2TempSource';
+import { frameAtValidTime } from '../sources/frameAtValidTime';
+import { DACH_CITIES, PLACE_LABEL_MIN_ZOOM, TemperatureSampler, loadTempLabelCache, minZoomForRank, saveTempLabelCache, tempLabelColor, visiblePlaceLabels, type City } from '../temperatureLabels';
 import { fetchRvLatestAnalysis } from '../sources/radolan';
 import { fetchRzcLatest } from '../sources/meteoSwissRadar';
 import { fetchIncaGrid } from '../sources/geosphereIncaGrid';
@@ -65,11 +71,48 @@ async function loadRadarPick(country: PlaceIn['country'], signal: AbortSignal): 
   }
 }
 
+/** Paints the Wetterkarte's temperature labels (`MapView`) for the visible part of this map. */
+function paintTempLabels(map: maplibregl.Map, markers: Map<string, maplibregl.Marker>, getTemp: (c: City) => number | null) {
+  const keep = new Set<string>();
+  const put = (key: string, lng: number, lat: number, t: number, rank: number) => {
+    let m = markers.get(key);
+    if (!m) {
+      const el = document.createElement('div');
+      el.innerHTML = '<span class="dbd-mm-temp-val"></span><span class="dbd-mm-temp-dot"></span>';
+      // As in the Wetterkarte: the number left of the dot, the dot on the place, the basemap's name to the right of it.
+      m = new maplibregl.Marker({ element: el, anchor: 'right', offset: [2, 0] }).setLngLat([lng, lat]).addTo(map);
+      markers.set(key, m);
+    }
+    const root = m.getElement();
+    root.className = `dbd-mm-temp dbd-mm-temp-rank-${rank}`;
+    root.style.color = tempLabelColor(t);
+    root.firstElementChild!.textContent = `${Math.round(t)}°`;
+    keep.add(key);
+  };
+  const zoom = map.getZoom();
+  const view = map.getBounds();
+  for (const city of DACH_CITIES) {
+    if (zoom < minZoomForRank(city.rank) || !view.contains([city.lng, city.lat])) continue;
+    const t = getTemp(city);
+    if (t != null && Number.isFinite(t)) put(city.name, city.lng, city.lat, t, city.rank);
+  }
+  if (zoom >= PLACE_LABEL_MIN_ZOOM) {
+    for (const p of visiblePlaceLabels(map, keep)) {
+      const t = getTemp({ name: p.name, lat: p.lat, lng: p.lng, rank: 4 });
+      if (t != null && Number.isFinite(t)) put(p.key, p.lng, p.lat, t, 4);
+    }
+  }
+  for (const [key, m] of markers) {
+    if (!keep.has(key)) { m.remove(); markers.delete(key); }
+  }
+}
+
 export default function MiniMap({ place }: { place: PlaceIn }) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const [noWebgl, setNoWebgl] = useState(false);
   const [windState, setWindState] = useState<Part>('loading');
   const [radarState, setRadarState] = useState<Part>('loading');
+  const [tempState, setTempState] = useState<Part>('loading');
 
   useEffect(() => {
     const host = hostRef.current;
@@ -140,6 +183,40 @@ export default function MiniMap({ place }: { place: PlaceIn }) {
         }
       })();
 
+      // Temperature values: instant from the Wetterkarte's cache (named cities only), then the fresh t_2m grid. The map
+      // does not move by hand, but `moveend` also follows a resize of the tile.
+      void (async () => {
+        const markers = new Map<string, maplibregl.Marker>();
+        let getTemp: ((c: City) => number | null) | null = null;
+        const repaint = () => { if (getTemp && !ac.signal.aborted) paintTempLabels(map, markers, getTemp); };
+        map.on('moveend', repaint);
+        const cached = loadTempLabelCache();
+        if (cached) {
+          getTemp = (c) => cached[c.name] ?? null;
+          repaint();
+          setTempState('ok');
+        }
+        try {
+          const td = await fetchIconD2Temp(ac.signal, undefined, { nowOnly: true, aheadHours: 0 });
+          if (ac.signal.aborted) return;
+          const f = frameAtValidTime(td.frames, Date.now());
+          const sampler = new TemperatureSampler({
+            tempImage: f.image, tempUvBounds: td.uvBounds, vMin: td.vMin, vMax: td.vMax,
+            demImage: td.demImage, demUvBounds: td.uvBounds, demMax: 4500, lapseRatePerM: 0.0065,
+          });
+          const full: Record<string, number> = {};
+          for (const c of DACH_CITIES) { const t = sampler.sample(c.lng, c.lat); if (t != null && Number.isFinite(t)) full[c.name] = t; }
+          // Same guard as the Wetterkarte: a degraded grid neither replaces the cache nor the values shown.
+          if (Object.keys(full).length < 8) { setTempState((s) => (s === 'ok' ? s : 'na')); return; }
+          saveTempLabelCache(full);
+          getTemp = (c) => sampler.sample(c.lng, c.lat);
+          repaint();
+          setTempState('ok');
+        } catch {
+          if (!ac.signal.aborted) setTempState((s) => (s === 'ok' ? s : 'na'));
+        }
+      })();
+
       // Radar: latest picture of the country, drawn in time slices.
       void (async () => {
         const pick = await loadRadarPick(place.country, ac.signal);
@@ -171,10 +248,11 @@ export default function MiniMap({ place }: { place: PlaceIn }) {
   const cap = [
     windState === 'na' ? 'Wind: nicht verfügbar' : '',
     radarState === 'na' ? 'Radar: nicht verfügbar' : '',
+    tempState === 'na' ? 'Temperatur: nicht verfügbar' : '',
   ].filter(Boolean).join(' · ');
   return (
     <div className="dbd-mm-inner">
-      <div ref={hostRef} className="dbd-mm-map" role="img" aria-label={`Kartenausschnitt um ${place.name} mit Wind und Niederschlag`} />
+      <div ref={hostRef} className="dbd-mm-map" role="img" aria-label={`Kartenausschnitt um ${place.name} mit Wind, Niederschlag und Temperatur`} />
       {noWebgl ? <div className="dbd-mm-cap">Karte braucht WebGL — dieses Gerät bietet es nicht.</div> : cap ? <div className="dbd-mm-cap">{cap}</div> : null}
     </div>
   );

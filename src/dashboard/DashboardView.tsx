@@ -328,7 +328,7 @@ function DashboardPage({ vm, place, range, onRange, onSelectView, onSelectLocati
                 </section>
               ) : <NowCard vm={vm.now} aside={<WindBadge vm={vm.wind} />} />}
               {(wide || phone) && (
-                <section className="dbd-card dbd-minimap" aria-label="Karte: Wind und Niederschlag am Ort">
+                <section className="dbd-card dbd-minimap" aria-label="Karte: Wind, Niederschlag und Temperatur am Ort">
                   {(vm.status === 'ok' || vm.status === 'error') && place && (
                     <Suspense fallback={null}><MiniMap key={`${place.country}:${place.lat}:${place.lon}`} place={{ name: place.name, lat: place.lat, lon: place.lon, country: place.country }} /></Suspense>
                   )}

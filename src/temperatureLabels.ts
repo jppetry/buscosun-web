@@ -21,6 +21,8 @@
  * lapse-rate refinement.
  */
 
+import type maplibregl from 'maplibre-gl';
+
 // ---------------------------------------------------------------------------
 // Sofort-Label-Cache (localStorage). Die Stadt-Temperaturen der letzten Sitzung
 // werden — wie der Wind-„jetzt"-Frame — gespeichert und beim nächsten Aktivieren
@@ -106,6 +108,50 @@ export interface City {
  */
 export function minZoomForRank(rank: 1 | 2 | 3 | 4): number {
   return rank === 1 ? 0 : rank === 2 ? 4.8 : rank === 3 ? 6.2 : 7.6;
+}
+
+/** Ab dieser Zoomstufe bekommen auch die Orte der Basiskarte (Kleinstädte,
+ *  Gemeinden, Dörfer) eine Temperatur — davor genügt die kuratierte Liste. */
+export const PLACE_LABEL_MIN_ZOOM = 8.2;
+/** Obergrenze, damit dichte Regionen (Ruhrgebiet) das Bild nicht zupflastern. */
+const PLACE_LABEL_MAX = 70;
+/** Ortsklassen der Basiskarte, die beschriftet werden sollen — Rangfolge = Priorität. */
+const PLACE_LABEL_CLASSES = ['city', 'town', 'village', 'suburb'];
+
+export interface PlaceLabel { key: string; name: string; lat: number; lng: number }
+
+/**
+ * Ortspunkte, die der Basemap-Stil im aktuellen Ausschnitt gerade beschriftet.
+ * `queryRenderedFeatures` liefert genau das, was sichtbar ist — also greift die
+ * Zoom- und Kollisionslogik des Stils, ohne dass wir sie nachbauen müssen.
+ * `skip` filtert Orte, die schon aus DACH_CITIES gesetzt wurden (Doppelwerte).
+ */
+export function visiblePlaceLabels(map: maplibregl.Map, skip: Set<string>): PlaceLabel[] {
+  let feats: maplibregl.MapGeoJSONFeature[] = [];
+  try {
+    feats = map.queryRenderedFeatures(undefined, { filter: ['in', ['get', 'class'], ['literal', PLACE_LABEL_CLASSES]] })
+      .filter((f) => f.sourceLayer === 'place' && f.geometry?.type === 'Point');
+  } catch {
+    return []; // Style noch nicht geladen o. Ä. — nächster moveend versucht es erneut.
+  }
+  const out: PlaceLabel[] = [];
+  const seen = new Set<string>();
+  // Nach Ortsklasse sortieren, damit bei Erreichen der Obergrenze die größeren
+  // Orte gewinnen statt einer zufälligen Kachel-Reihenfolge.
+  feats.sort((a, b) =>
+    PLACE_LABEL_CLASSES.indexOf(String(a.properties?.class)) - PLACE_LABEL_CLASSES.indexOf(String(b.properties?.class)));
+  for (const f of feats) {
+    const p = f.properties ?? {};
+    const name = String(p['name:de'] ?? p.name ?? '').trim();
+    if (!name || skip.has(name)) continue;
+    const [lng, lat] = (f.geometry as GeoJSON.Point).coordinates as [number, number];
+    const key = `place:${name}@${lng.toFixed(3)},${lat.toFixed(3)}`;
+    if (seen.has(key) || skip.has(key)) continue;
+    seen.add(key);
+    out.push({ key, name, lat, lng });
+    if (out.length >= PLACE_LABEL_MAX) break;
+  }
+  return out;
 }
 
 export const DACH_CITIES: City[] = [
