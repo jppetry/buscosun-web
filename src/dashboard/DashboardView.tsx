@@ -299,15 +299,16 @@ function DashboardPage({ vm, place, range, onRange, onSelectView, onSelectLocati
         </div>
       </header>
       <header className="dbd-top">
+        {/* Mobil wie die anderen Ansichten: Logo links, Ort mit Suche in der Mitte, Teilen rechts; keine durchgehende Leiste. */}
         <div className="dbd-top-mobile-row">
-          <button type="button" className="dbd-brand" onClick={onBack} aria-label="Zur Startseite"><img src="/buscosun-mark.svg" width={22} height={22} alt="" /><span>buscosun</span></button>
-          {status}
+          <button type="button" className="dbd-brand" onClick={onBack} aria-label="Zur Startseite"><img src="/buscosun-mark.svg" width={22} height={22} alt="" /></button>
+          <DashSearch label={placeName ? `${placeName}${vm.top.elev.t ? ` · ${vm.top.elev.t}` : ''}` : 'Ort suchen …'} onSelect={onSelectLocation} />
+          <ShareButton className="dbd-m-share" compact />
         </div>
         <button type="button" className="dbd-brand" onClick={onBack} aria-label="Zur Startseite"><img src="/buscosun-mark.svg" width={24} height={24} alt="" /><span>buscosun</span></button>
         <ViewToggle active="dashboard" onSelect={onSelectView} />
-        <DashSearch label={placeName ? `${placeName}${vm.top.elev.t ? ` · ${vm.top.elev.t}` : ''}` : 'Ort suchen …'} onSelect={onSelectLocation} />
         <div className="dbd-top-right"><span className="dbd-run">{run}</span>{status}</div>
-        <div className="dbd-run-mobile">{run}</div>
+        <div className="dbd-run-mobile"><span>{run}</span>{status}</div>
       </header>
 
       <main className="dbd-content">

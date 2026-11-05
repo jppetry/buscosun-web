@@ -568,26 +568,24 @@
    Mobile < 768 px (Vorlage #vm) — einspaltig, Umschalter volle Breite, 44-px-Ziele
    ============================================================================ */
 @media (max-width: 767px) {
+  /* Kopf wie die anderen mobilen Ansichten (`.mdk-m-topfloat`): einzelne Kacheln auf dem Sand, keine durchgehende Leiste. */
   .dbd-top {
-    height: auto; flex-direction: column; align-items: stretch; gap: 10px;
-    padding: calc(4px + env(safe-area-inset-top, 0px)) 14px 12px;
+    height: auto; flex-direction: column; align-items: stretch; gap: 8px;
+    padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 0;
+    background: none; border-bottom: 0;
   }
   .dbd-top > .dbd-brand, .dbd-top > .vt-toggle:not(.vt-mobile), .dbd-top > .dbd-top-right { display: none; }
-  .dbd-top-mobile-row { display: flex; align-items: center; gap: 9px; }
+  .dbd-top-mobile-row { display: flex; align-items: stretch; gap: 9px; }
   .dbd-top > .vt-mobile { display: flex; }
+  .dbd-top-mobile-row .dbd-brand { flex: 0 0 auto; width: 46px; min-height: 46px; justify-content: center; border-radius: 14px; border: 1px solid var(--dbd-border); background: var(--dbd-cream); box-shadow: var(--dbd-shadow-s); }
   .dbd-top-mobile-row .dbd-brand img { width: 22px; height: 22px; }
-  .dbd-top-mobile-row .dbd-brand span { font-size: 17px; }
-  .dbd-top-mobile-row .dbd-status { margin-left: auto; gap: 6px; }
-  .dbd-top-mobile-row .dbd-status span { font-size: 10.5px; letter-spacing: 1.1px; }
-  .dbd-search-box { border-radius: 10px; padding: 10px 13px; }
-  /* 44-px-Trefferflächen ohne Bildänderung (Suchfeld ≈ 39 px, Marke 22 px, „Erneut versuchen"). */
-  .dbd-search-box { position: relative; }
-  .dbd-search-box::after { content: ''; position: absolute; left: 0; right: 0; top: -3px; bottom: -3px; z-index: -1; }
-  .dbd-top-mobile-row .dbd-brand { position: relative; }
-  .dbd-top-mobile-row .dbd-brand::after { content: ''; position: absolute; left: -6px; right: -6px; top: -11px; bottom: -11px; }
+  .dbd-top-mobile-row .dbd-m-share { flex: 0 0 auto; min-width: 46px; min-height: 46px; border-radius: 14px; border-color: var(--dbd-border); background: var(--dbd-cream); box-shadow: var(--dbd-shadow-s); }
+  .dbd-top-mobile-row .dbd-search { flex: 1; min-width: 0; }
   .dbd-retry { min-height: 44px; }
-  .dbd-search-input { font-size: 14px; flex: 1; field-sizing: fixed; width: 100%; }
-  .dbd-run-mobile { display: block; font-size: 10.5px; color: var(--dbd-muted); }
+  .dbd-search-input { font-size: 14px; flex: 1; field-sizing: fixed; width: 100%; text-overflow: ellipsis; }
+  .dbd-run-mobile { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 10px; padding: 0 2px; font-size: 10.5px; color: var(--dbd-muted); }
+  .dbd-run-mobile .dbd-status { gap: 6px; }
+  .dbd-run-mobile .dbd-status span { font-size: 10.5px; letter-spacing: 1.1px; }
   .dbd-content { padding: 12px 12px calc(84px + env(safe-area-inset-bottom, 0px)); }
   .dbd-tabs { padding: 0 12px; }
   .dbd-tablist { gap: 0; }
@@ -870,7 +868,7 @@
 .dbd-search-box:focus-within { box-shadow: 0 0 0 3px rgba(44, 42, 38, .08), var(--dbd-shadow-s); }
 .dbd-search-drop { border-color: rgba(255, 255, 255, .6); border-radius: 12px; background: rgba(250, 246, 234, .94); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); box-shadow: var(--dbd-shadow-l); }
 @media (max-width: 767px) {
-  .dbd-top { background: linear-gradient(180deg, #FFFDF7, var(--dbd-cream)); border-bottom-color: var(--dbd-hair); box-shadow: 0 4px 14px rgba(44, 42, 38, .05); }
+  .dbd-search-box { height: 46px; padding: 0 13px; border-radius: 14px; background: var(--dbd-cream); }
   .dbd-now-grid > div { padding: 7px 9px; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -944,6 +942,9 @@
 .dbd-minimap .maplibregl-ctrl-attrib { background: rgba(31, 41, 55, .82); color: #8A97A6; }
 .dbd-minimap .maplibregl-ctrl-attrib a { color: #8A97A6; }
 .dbd-minimap .maplibregl-ctrl-attrib-button { filter: invert(1); }
+/* Info-Knopf ganz unten rechts in der Kachel; hebt auch die mobile Regel aus MapView.css (+152 px) auf, falls die geladen ist. */
+.dbd-minimap .maplibregl-ctrl-bottom-right { right: 0; bottom: 0; }
+.dbd-minimap .maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib.maplibregl-compact { margin: 0 4px 4px 0; }
 .dbd-mm-inner, .dbd-mm-map { position: absolute; inset: 0; }
 .dbd-mm-cap { position: absolute; left: 8px; bottom: 8px; z-index: 2; max-width: calc(100% - 100px); padding: 3px 8px; border-radius: 7px; font-size: 10.5px; line-height: 1.35; color: #EDF1F5; background: rgba(31, 41, 55, .82); box-shadow: 0 1px 3px rgba(0, 0, 0, .35); }
 /* Mobil: die Kartenkachel steht allein in der Spalte, braucht also eine eigene Höhe (Desktop bestimmt sie die Reihe). */
