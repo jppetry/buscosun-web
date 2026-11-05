@@ -131,7 +131,7 @@ import type { QuadCorners } from './scalar/RainLayer';
 // auf einem unstrukturierten Gitter — beides nicht raster-nutzbar).
 import { fetchRzcLatest, type RadarFrame } from './sources/meteoSwissRadar';
 // GeoSphere INCA-Nowcast als Grid — AT-„jetzt..+3h"; danach ICON-D2.
-import { fetchIncaGrid, type IncaGrid } from './sources/geosphereIncaGrid';
+import { fetchIncaGrid, warmIncaMeta, type IncaGrid } from './sources/geosphereIncaGrid';
 import { PrecipCompositor, pickCompositeFrames, countryMaskOffMain, zoneMaskOffMain, flowCached, flowOffMain, type CompositeFrame, type CompositePick, type RvPastFrame } from './scalar/precipComposite';
 // Phase HD (`audit/radar-hochaufloesung.md`): each country radar on its own 1-km grid behind `?hd=…`; off = byte-identical.
 import { radarHdFlagFrom, radarMorphFlagFrom, radarEdgeFlagFrom, radarDisplayMinFrom, applyDisplayMin, radarChStyleFrom, MCH_DISPLAY_MIN_MMH, RADAR_HD_LAYER_IDS, RADAR_MORPH_FACTOR, RADAR_HD_CH_UNKNOWN_LAYER_ID, RADAR_HD_UNKNOWN_RAMP } from './scalar/radarHd';
@@ -141,7 +141,6 @@ import { radarNcFlagFrom, RZC_NC_LABEL, INCA_5M_LABEL, RZC_NC_UNKNOWN_WORD } fro
 import { radarImgStamp as ncRadarImgStamp } from './sources/radarImg';
 // Phase R250 (`audit/radar-250m.md`): the RV analyses on 250-m tiles (DWD site radars) above the DE 1-km layer, `?hd250=0` = off.
 import { radarHd250FlagFrom, HD250_TILE_LIST, hd250LayerId, hd250VisibleTiles, hd250TileMesh, hd250TileCorners, hd250TileMask, hd250TileFlow, HD250_TILE_WARP_N, RADAR_HD250_MIN_ZOOM, onRadarHd250Pref, publishRadarHd250Note, radarHd250NoteText, type RadarHd250Note } from './scalar/radarHd250';
-import { Hd250Switch } from './components/Hd250Switch';
 import { hd250Store, type Hd250TileState } from './scalar/radarHd250Store';
 import { HD250_TILE_W, HD250_TILE_H, HD250_FACTOR } from './sources/radarHd250';
 /** Phase R250: a dry tile on one side of a mix (the slot has no file for it = every cell 0). */
@@ -787,6 +786,23 @@ export default function MapView({
   // die Readout-Spalte seine Beschreibung an ihrer Ordnungsposition als Vorschau
   // ein; ist er aktiv, wird die bereits stehende Karte hervorgehoben.
   const [layerHover, setLayerHover] = useState<LayerKey | null>(null);
+  // Short layer description as a hover card next to the dock row, shown after a short dwell (Jan 04.11.).
+  const [layerTip, setLayerTip] = useState<{ key: LayerKey; top?: number; bottom?: number; left: number } | null>(null);
+  const layerTipTimer = useRef<number | undefined>(undefined);
+  const startLayerTip = (key: LayerKey, el: HTMLElement) => {
+    window.clearTimeout(layerTipTimer.current);
+    layerTipTimer.current = window.setTimeout(() => {
+      const r = el.getBoundingClientRect();
+      // Lower half of the window: the card grows upward from the row's bottom edge, otherwise downward from its top edge.
+      setLayerTip(r.top > window.innerHeight / 2
+        ? { key, bottom: window.innerHeight - r.bottom, left: r.right + 10 }
+        : { key, top: r.top, left: r.right + 10 });
+    }, 450);
+  };
+  const stopLayerTip = () => {
+    window.clearTimeout(layerTipTimer.current);
+    setLayerTip(null);
+  };
   // Phase LB-1 (13.10.): „Im Detail"-Ehrlichkeitstext je Layer-Karte in der
   // Readout-Spalte „Aktive Layer" ist standardmäßig zugeklappt (Platz sparen),
   // per Klick aufklappbar. Reine UI-Ansicht, kein Permalink-Zustand.
@@ -853,7 +869,8 @@ export default function MapView({
   // `on`=Animation an (Heatmap bleibt auch bei „Aus"), `intensive` verbreitert
   // Partikel + verlängert Schweif, `density` skaliert die viewport-Partikelzahl.
   // Default density: `WEATHER_WIND_DENSITY` (wind/weatherWindPreset.ts); the slider runs from 0,3 to 2,5.
-  const [windCfg, setWindCfg] = useState<{ on: boolean; intensive: boolean; density: number }>(
+  // The Dichte controls were removed from the layer deck (Jan 04.11.); the defaults stay fixed.
+  const [windCfg] = useState<{ on: boolean; intensive: boolean; density: number }>(
     { on: true, intensive: false, density: WEATHER_WIND_DENSITY },
   );
   // Wind-Höhe: 'surface' = natives ICON-D2 10-m-Gitter (2,2 km), sonst ICON-EU-
@@ -937,9 +954,11 @@ export default function MapView({
   const [modelsOpen, setModelsOpen] = useState(false);
   // Mobile-Bottom-Bar-Tab (Karte · Layer · Forecast · Modelle; Nowcast navigiert).
   const [mobileTab, setMobileTab] = useState<'karte' | 'layer' | 'forecast' | 'modelle'>('karte');
-  // Modus des mobilen Layer-Screens: Standard (schlank) ⇄ Detail (Sublabels +
-  // Wind-/Satellit-Feinsteuerung + Lade-Stand je Layer).
-  const [layerMode, setLayerMode] = useState<'standard' | 'detail'>('standard');
+  // Mobiler Layer-Screen: Beschreibungskarte je Layer. Standard: offen, solange der Layer aktiv ist, sonst zu; der Pfeil in der Zeile
+  // setzt das Gegenteil (`lcardOverride`), auch bei inaktiven Layern (Vorschau).
+  const [lcardOverride, setLcardOverride] = useState<ReadonlyMap<LayerKey, boolean>>(() => new Map());
+  // Mobiler Layer-Screen: immer die Detail-Ansicht (Sublabels + Wind-/Satellit-Feinsteuerung + Lade-Stand je Layer);
+  // der frühere Schalter Standard ⇄ Detail ist entfernt (Jan 03.11.2026).
   // Ansicht Karte⇄Diagramm (mobil): steuert den Punktforecast-Tab von außen —
   // „Diagramm" öffnet das Sheet voll mit der Diagramme-Ansicht.
   const [pfcView, setPfcView] = useState<PointForecastView>('overview');
@@ -1087,6 +1106,9 @@ export default function MapView({
   // Phase NC: the derived products — CH extrapolation of the analysis (24 × 5 min) and the INCA run refined to 5 min.
   const rzcNcRef = useRef<RzcNowcast | null>(null);
   const inca5Ref = useRef<Inca5mGrid | null>(null);
+  // Phase ND (ND-6): the last error per country radar — the composite status NAMES a radar that is missing while the
+  // others draw (before: silent, the error text only when no source at all was there). Cleared by the next good load.
+  const radarFailRef = useRef<Partial<Record<'DE' | 'AT' | 'CH', string>>>({});
   const ncRef = useRef(radarNcFlagFrom());
   // DACH-Komposit: mischt pro Karten-Zelle das richtige Landesradar (DE RADOLAN /
   // AT INCA / CH rzc) bzw. ICON-D2 — unabhängig vom gesuchten Ort.
@@ -2192,9 +2214,17 @@ export default function MapView({
         setNowcastTick((t) => t + 1);
       }).catch(() => { /* without a mask the layer draws the whole grid — the composite stays the named fallback */ });
     };
+    // ND-6: a failed country radar is named in the composite status (and stays named until its next good load); the plain
+    // error status remains for the case that NO source is there.
+    const noteRadarFail = (c: 'DE' | 'AT' | 'CH', msg: string) => {
+      radarFailRef.current[c] = msg;
+      if (!nowcastRef.current && !earlyRvRef.current && !incaGridRef.current && !meteoRadarRef.current) updateStatus('nowcast', { err: msg });
+      else setCompositeStatus();
+    };
     const loadRzc = async () => {
       try {
         meteoRadarRef.current = await fetchRzcLatest(abort.signal, prioFor('CH'));
+        delete radarFailRef.current.CH;
         // Faster full load (31.10.): the extrapolation's bytes start now, next to the off-main prime below — before, they
         // waited for it (behind the worker queue of the other radars). Set and ticked exactly where it was.
         const ncP = ncRef.current ? fetchRzcNowcast(ncRadarImgStamp(meteoRadarRef.current.validAt.getTime()), abort.signal, prioFor('CH')).catch(() => null) : null;
@@ -2215,7 +2245,7 @@ export default function MapView({
           setCompositeStatus();
         }
       } catch {
-        if (!nowcastRef.current && !incaGridRef.current) updateStatus('nowcast', { err: 'MeteoSchweiz-Radar nicht erreichbar' });
+        if (!abort.signal.aborted) noteRadarFail('CH', 'MeteoSchweiz-Radar nicht erreichbar');
       }
     };
     // DE-Nowcast: DWD RADOLAN-RV (0–2 h).
@@ -2238,19 +2268,21 @@ export default function MapView({
       try {
         nowcastRef.current = await fetchRvNowcast(abort.signal, prioFor('DE'));
         earlyRvRef.current = null;
+        delete radarFailRef.current.DE;
         if (compositorRef.current) await compositorRef.current.primeDe(nowcastRef.current);
         if (nowcastRef.current.frames[0]) hdMask('DE', 'radolan', nowcastRef.current.corners, nowcastRef.current.frames[0].width, nowcastRef.current.frames[0].height);
         hoistRain();
         setNowcastTick((t) => t + 1);
         setCompositeStatus();
       } catch {
-        if (!incaGridRef.current && !meteoRadarRef.current) updateStatus('nowcast', { err: 'RADOLAN-RV nicht erreichbar' });
+        if (!abort.signal.aborted) noteRadarFail('DE', 'RADOLAN-RV nicht erreichbar');
       } finally { offEarly(); }
     };
     // AT-Nowcast: GeoSphere INCA-Grid (0–3 h, 15-min, 1 km).
     const loadInca = async () => {
       try {
         incaGridRef.current = await fetchIncaGrid(abort.signal, prioFor('AT'));
+        delete radarFailRef.current.AT;
         // Faster full load (31.10.): the 5-min refinement's bytes start now, next to the off-main prime (see `loadRzc`).
         const g5P = ncRef.current ? fetchInca5m(incaGridRef.current.stamp ?? null, abort.signal, prioFor('AT')).catch(() => null) : null;
         if (compositorRef.current) await compositorRef.current.primeAt(incaGridRef.current);
@@ -2267,7 +2299,7 @@ export default function MapView({
           setCompositeStatus();
         }
       } catch {
-        if (!nowcastRef.current && !meteoRadarRef.current) updateStatus('nowcast', { err: 'GeoSphere INCA nicht erreichbar' });
+        if (!abort.signal.aborted) noteRadarFail('AT', 'GeoSphere INCA nicht erreichbar');
       }
     };
     // ALLE drei Landesradare laden (nicht nur das des gesuchten Orts) — das
@@ -2283,6 +2315,9 @@ export default function MapView({
         CH: () => (meteoRadarRef.current ? null : loadRzc()),
       } as const;
       const own: keyof typeof jobs = countryRef.current in jobs ? (countryRef.current as keyof typeof jobs) : 'DE';
+      // ND-4: the small GeoSphere `/metadata` call (1,4 s TTFB measured) starts now, next to the own radar, instead of
+      // serially after it — another host, no bytes on the CDN line; the AT reader consumes the running answer.
+      if (own !== 'AT' && !incaGridRef.current) warmIncaMeta('low');
       await Promise.allSettled([jobs[own]()].filter(Boolean) as Promise<void>[]);
       await Promise.allSettled((Object.keys(jobs) as Array<keyof typeof jobs>).filter((c) => c !== own).map((c) => jobs[c]()).filter(Boolean) as Promise<void>[]);
       setCompositeStatus();
@@ -2322,7 +2357,9 @@ export default function MapView({
       const hd250Text = !nowcastRef.current || !hdRef.current.on ? ''
         : hd250Ref.current ? ` · DE 250 m (Standortradare, ab Zoom ${RADAR_HD250_MIN_ZOOM})${hd250NoteRef.current && noteWords ? ` · ${noteWords}` : ''}`
         : hd250NoteRef.current === 'avail' ? ` · ${noteWords} (DE)` : '';
-      const model = parts.length ? `DACH-Komposit · ${parts.join(' · ')}${gridText}${hd250Text}${rminText}${clutterText}` : '';
+      // ND-6: a country radar that failed is named — the empty area is „nicht erreichbar", not „trocken".
+      const failText = (['DE', 'AT', 'CH'] as const).filter((c) => radarFailRef.current[c]).map((c) => `${c}: ${radarFailRef.current[c]}`).join(' · ');
+      const model = parts.length ? `DACH-Komposit · ${parts.join(' · ')}${gridText}${hd250Text}${rminText}${clutterText}${failText ? ` · ${failText}` : ''}` : '';
       setRvClutterCells(clutterCells);
       // V-19: Das Komposit ist so alt wie sein ÄLTESTER Teil (konservativ). DE
       // (RADOLAN-RV) und CH (rzc, ODIM-/what) weisen eine Messzeit aus; das
@@ -5086,8 +5123,8 @@ export default function MapView({
     const stamp = st?.err
       ? '⚠ Fehler'
       : stampInfo ? `${stampInfo.stale ? '⚠ ' : ''}${stampInfo.text}` : on ? 'lädt…' : '';
-    const showSub = big && layerMode === 'detail';
-    return (
+    const showSub = big;
+    const row = (
       <button
         key={key}
         type="button"
@@ -5095,12 +5132,12 @@ export default function MapView({
         data-accent={accent}
         role="switch"
         aria-checked={on}
-        onClick={() => toggle(key)}
-        onMouseEnter={big ? undefined : () => setLayerHover(key)}
-        onMouseLeave={big ? undefined : () => setLayerHover(null)}
+        onClick={() => { if (!big) stopLayerTip(); toggle(key); }}
+        onMouseEnter={big ? undefined : e => { setLayerHover(key); startLayerTip(key, e.currentTarget); }}
+        onMouseLeave={big ? undefined : () => { setLayerHover(null); stopLayerTip(); }}
         onFocus={big ? undefined : () => setLayerHover(key)}
-        onBlur={big ? undefined : () => setLayerHover(null)}
-        title={opt.title}
+        onBlur={big ? undefined : () => { setLayerHover(null); stopLayerTip(); }}
+        title={big ? opt.title : undefined}
       >
         <span className="mdk-layer-ic"><LayerIcon layer={key} size={big ? 16 : 14} /></span>
         <span className="mdk-layer-tx">
@@ -5111,6 +5148,24 @@ export default function MapView({
         </span>
         <span className="mdk-switch" aria-hidden="true"><span className="mdk-switch-knob" /></span>
       </button>
+    );
+    if (!big) return row;
+    // Mobil: Pfeil links neben dem Schalter klappt die Beschreibungskarte darunter ein/aus, bei aktiven wie bei inaktiven Layern (ein
+    // eigener Knopf neben der Zeile — ein Button im Switch-Button wäre ungültig).
+    const open = lcardOverride.get(key) ?? on;
+    return (
+      <div key={key} className="mdk-m-lrow" data-accent={accent}>
+        {row}
+        <button
+          type="button" className="mdk-m-lcard-toggle" aria-expanded={open}
+          aria-label={`${open ? 'Beschreibung einklappen' : 'Beschreibung ausklappen'}: ${opt.label}`}
+          onClick={() => setLcardOverride(prev => new Map(prev).set(key, !open))}
+        >
+          <svg className={`mdk-ro-lchevron${open ? ' is-open' : ''}`} viewBox="0 0 16 16" width="20" height="20" aria-hidden="true">
+            <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      </div>
     );
   };
 
@@ -5147,11 +5202,8 @@ export default function MapView({
     </div>
   );
 
-  // Phase RA-250: resolution switch of the DE radar picture (1 km ↔ 250 m from the DWD site radars) under the nowcast row —
-  // Germany only (AT/CH have no open 250-m product, V-R250 §2); the words next to it come from the map (tiles / forecast …).
-  const hd250Seg = location.country === 'DE' && hdRef.current.on ? (
-    <Hd250Switch segClass="mdk-subseg" btnClass="" eyebrowClass="" accent="steel" />
-  ) : null;
+  // The "1 km | 250 m" switch under the nowcast row was removed from the Wetterkarte layer dock (Jan 04.11.);
+  // `components/Hd250Switch` stays for other surfaces.
 
   // Hagel-Produktumschalter (Phase HA1) — betrifft NUR die Schweiz; der
   // DE-Anteil (KONRAD3D-Zellen) bleibt in beiden Stellungen sichtbar.
@@ -5171,71 +5223,29 @@ export default function MapView({
     </div>
   );
 
-  const windDeckControls = (
-    <>
-      <span className="mdk-winddeck-label">Dichte</span>
-      <div className="mdk-winddeck-seg" role="group" aria-label="Wind-Partikel">
+  // Wind height (10 m / 850 / 700 / 500 hPa) — shown right under the "Wind" layer row (Jan 04.11.).
+  const windSeg = (
+    <div className="mdk-subseg" data-accent="sage" role="group" aria-label="Wind-Höhe">
+      <button
+        type="button"
+        className={windLevel === 'surface' ? 'is-active' : ''}
+        onClick={() => setWindLevel('surface')}
+        title="Bodennah · 10 m (ICON-D2, 2,2 km)"
+      >
+        10&nbsp;m
+      </button>
+      {WIND_PRESSURE_LEVELS.map(lvl => (
         <button
+          key={lvl}
           type="button"
-          className={!windCfg.on ? 'is-active' : ''}
-          onClick={() => setWindCfg(c => ({ ...c, on: false }))}
-          title="Nur Wind-Heatmap, keine Partikel-Animation"
+          className={windLevel === lvl ? 'is-active' : ''}
+          onClick={() => setWindLevel(lvl)}
+          title={`${lvl} hPa Höhenwind (ICON-EU, ~7 km)`}
         >
-          Aus
+          {lvl}
         </button>
-        <button
-          type="button"
-          className={windCfg.on && !windCfg.intensive ? 'is-active' : ''}
-          onClick={() => setWindCfg(c => ({ ...c, on: true, intensive: false }))}
-          title="Normale Partikeldichte"
-        >
-          Normal
-        </button>
-        <button
-          type="button"
-          className={windCfg.on && windCfg.intensive ? 'is-active' : ''}
-          onClick={() => setWindCfg(c => ({ ...c, on: true, intensive: true }))}
-          title="Dichtere, längere Partikel"
-        >
-          Intensiv
-        </button>
-      </div>
-      {windCfg.on && (
-        <label className="mdk-winddeck-density" title="Partikel-Dichte">
-          <input
-            type="range"
-            min={0.3}
-            max={2.5}
-            step={0.1}
-            value={windCfg.density}
-            onChange={e => setWindCfg(c => ({ ...c, density: Number(e.target.value) }))}
-            aria-label="Partikel-Dichte"
-          />
-        </label>
-      )}
-      <span className="mdk-winddeck-label">Höhe</span>
-      <div className="mdk-winddeck-seg is-level" role="group" aria-label="Wind-Höhe">
-        <button
-          type="button"
-          className={windLevel === 'surface' ? 'is-active' : ''}
-          onClick={() => setWindLevel('surface')}
-          title="Bodennah · 10 m (ICON-D2, 2,2 km)"
-        >
-          10&nbsp;m
-        </button>
-        {WIND_PRESSURE_LEVELS.map(lvl => (
-          <button
-            key={lvl}
-            type="button"
-            className={windLevel === lvl ? 'is-active' : ''}
-            onClick={() => setWindLevel(lvl)}
-            title={`${lvl} hPa Höhenwind (ICON-EU, ~7 km)`}
-          >
-            {lvl}
-          </button>
-        ))}
-      </div>
-    </>
+      ))}
+    </div>
   );
 
   const timeDeck = forecast ? (
@@ -5286,14 +5296,6 @@ export default function MapView({
             Stand · {new Date(dataValidAtMs).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', weekday: 'short' }).replace('.,', '')}
           </span>
         )}
-      </div>
-      <div className="mdk-td-legend">
-        <span className="mdk-td-legend-label">Legende</span>
-        <span className="mdk-td-legend-item">Temp <i className="mdk-ramp mdk-ramp-temp" aria-hidden="true" /> −10…30°</span>
-        <span className="mdk-td-legend-item">Regen <i className="mdk-ramp mdk-ramp-precip" aria-hidden="true" /> 0,1…&gt;10</span>
-        <span className="mdk-td-legend-item"><span className="mdk-td-legend-wind" aria-hidden="true">⟶</span> Wind</span>
-        <span className="mdk-td-legend-item"><i className="mdk-td-legend-stationdot" aria-hidden="true" /> Stationen</span>
-        <span className="mdk-td-legend-item"><i className="mdk-td-legend-radar" aria-hidden="true" /> Radar-Grenze</span>
       </div>
     </div>
   ) : null;
@@ -5723,12 +5725,37 @@ export default function MapView({
   // Layer (nur per #m=-Permalink aktivierbar) hängen sich hinten an. Ein per
   // Hover/Fokus angesteuerter INAKTIVER Layer erscheint zusätzlich als Vorschau
   // an seiner Ordnungsposition (ersetzt das frühere Overlay über der Karte).
-  const readoutLayers = READOUT_ORDER.filter(k => active.has(k) || layerHover === k);
+  // Hover no longer adds a preview card here (Jan 04.11.): the hover card next to the dock row shows it instead.
+  const readoutLayers = READOUT_ORDER.filter(k => active.has(k));
   const toggleLayerExt = (k: LayerKey) => setExpandedLayerExt(prev => {
     const next = new Set(prev);
     if (next.has(k)) next.delete(k); else next.add(k);
     return next;
   });
+  /** Karteninhalt eines Layers (Legende + Beschreibung + „Im Detail"): Readout-Spalte auf Desktop, mobil unter der Layer-Zeile. */
+  const layerCardBody = (k: LayerKey) => {
+    const ext = layerExtNote(k);
+    const extOpen = expandedLayerExt.has(k);
+    return (
+      <>
+        <LayerInfoPanel layer={k} suffix={layerTitleSuffix(k)} note={layerNote(k)} />
+        {ext && (
+          <div className="mdk-ro-lext">
+            <button
+              type="button" className="mdk-ro-lext-toggle" aria-expanded={extOpen}
+              onClick={() => toggleLayerExt(k)}
+            >
+              <span className="mdk-ro-lext-head">Im Detail</span>
+              <svg className={`mdk-ro-lchevron${extOpen ? ' is-open' : ''}`} viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+                <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            {extOpen && <div className="mdk-ro-lext-body">{ext}</div>}
+          </div>
+        )}
+      </>
+    );
+  };
   const layerReadout = readoutLayers.length > 0 ? (
     <section
       className={`mdk-ro-layerinfo${overview || START_NOW_ONLY ? ' is-solo' : ''}`}
@@ -5741,8 +5768,6 @@ export default function MapView({
       <div className="mdk-ro-lstack">
         {readoutLayers.map(k => {
           const on = active.has(k);
-          const ext = layerExtNote(k);
-          const extOpen = expandedLayerExt.has(k);
           return (
             <article
               key={k}
@@ -5750,21 +5775,7 @@ export default function MapView({
               data-accent={LAYER_ACCENT.get(k) ?? 'steel'}
             >
               {!on && <span className="mdk-ro-lchip">Vorschau</span>}
-              <LayerInfoPanel layer={k} suffix={layerTitleSuffix(k)} note={layerNote(k)} />
-              {ext && (
-                <div className="mdk-ro-lext">
-                  <button
-                    type="button" className="mdk-ro-lext-toggle" aria-expanded={extOpen}
-                    onClick={() => toggleLayerExt(k)}
-                  >
-                    <span className="mdk-ro-lext-head">Im Detail</span>
-                    <svg className={`mdk-ro-lchevron${extOpen ? ' is-open' : ''}`} viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-                      <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </button>
-                  {extOpen && <div className="mdk-ro-lext-body">{ext}</div>}
-                </div>
-              )}
+              {layerCardBody(k)}
             </article>
           );
         })}
@@ -5892,8 +5903,8 @@ export default function MapView({
               <div key={g.title} className="mdk-group" data-accent={g.accent}>
                 <div className="mdk-group-head">{g.title}</div>
                 <div className="mdk-layers">
-                  {g.layers.map(l => (l.key === 'nowcast' && active.has('nowcast') && hd250Seg
-                    ? <Fragment key={l.key}>{layerRowDeck(l.key, l.accent ?? g.accent, l.sub, false)}{hd250Seg}</Fragment>   // RA-250: right under its row
+                  {g.layers.map(l => (l.key === 'wind' && active.has('wind')
+                    ? <Fragment key={l.key}>{layerRowDeck(l.key, l.accent ?? g.accent, l.sub, false)}{windSeg}</Fragment>
                     : layerRowDeck(l.key, l.accent ?? g.accent, l.sub, false)))}
                   {g.layers.some(l => l.key === 'sat') && active.has('sat') && satSeg}
                   {g.layers.some(l => l.key === 'snow') && active.has('snow') && snowSeg}
@@ -5901,6 +5912,17 @@ export default function MapView({
                 </div>
               </div>
             ))}
+            {layerTip && (
+              <div
+                className="mdk-layer-tip"
+                role="tooltip"
+                style={{ top: layerTip.top, bottom: layerTip.bottom, left: layerTip.left }}
+              >
+                <article className="mdk-ro-lcard" data-accent={LAYER_ACCENT.get(layerTip.key) ?? 'steel'}>
+                  {layerCardBody(layerTip.key)}
+                </article>
+              </div>
+            )}
           </aside>
         )}
 
@@ -5927,9 +5949,6 @@ export default function MapView({
               </div>
               {/* Datenlage-Chip stört, sobald ein Layer läuft (Jan 13.10.) — bleibt im Code, rendert nur ohne aktiven Layer. */}
               {active.size === 0 && statusChip}
-              {active.has('wind') && (
-                <div className="mdk-winddeck mdk-glass" role="group" aria-label="Wind-Steuerung">{windDeckControls}</div>
-              )}
               {timeDeck}
             </>
           )}
@@ -6078,75 +6097,37 @@ export default function MapView({
 
           {mobileTab === 'layer' && (
             <div className="mdk-screen" aria-label="Wetterlayer">
-              <div className="mdk-screen-head">
-                <div>
+              <div className="mdk-screen-head mdk-screen-head-layer">
+                <button type="button" className="mdk-m-brand" aria-label="Zur Startseite" onClick={onBack}>
+                  <img src="/buscosun-mark.svg" width={22} height={22} alt="" />
+                </button>
+                <div className="mdk-screen-head-title">
                   <span className="mdk-eyebrow">Karte · Layer</span>
                   <h1>Wetterlayer</h1>
                 </div>
                 <span className="mdk-screen-chip">{active.size} aktiv</span>
+                <ShareButton className="mdk-m-share" compact />
               </div>
               <div className="mdk-screen-body">
-                <div className="mdk-m-segrow">
-                  <div className="mdk-m-seg mdk-m-seg-ansicht" role="tablist" aria-label="Ansicht">
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={pfcView !== 'charts'}
-                      className={pfcView !== 'charts' ? 'is-active' : ''}
-                      onClick={() => { setPfcView('overview'); setMobileTab('karte'); setSheetSnap('half'); }}
-                    >
-                      Karte
-                    </button>
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={pfcView === 'charts'}
-                      className={pfcView === 'charts' ? 'is-active' : ''}
-                      disabled={overview}
-                      onClick={() => { setPfcView('charts'); setMobileTab('karte'); setSheetSnap('full'); }}
-                    >
-                      Diagramm
-                    </button>
-                  </div>
-                  <div className="mdk-m-seg mdk-m-seg-modus" role="tablist" aria-label="Modus">
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={layerMode === 'standard'}
-                      className={layerMode === 'standard' ? 'is-active' : ''}
-                      onClick={() => setLayerMode('standard')}
-                    >
-                      Standard
-                    </button>
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={layerMode === 'detail'}
-                      className={layerMode === 'detail' ? 'is-active' : ''}
-                      onClick={() => setLayerMode('detail')}
-                    >
-                      Detail
-                    </button>
-                  </div>
-                </div>
-
                 {DECK_GROUPS.map(g => (
                   <div key={g.title} data-accent={g.accent}>
                     <div className="mdk-m-group-head">{g.title}</div>
                     <div className="mdk-m-layers">
-                      {g.layers.map(l => (l.key === 'nowcast' && layerMode === 'detail' && active.has('nowcast') && hd250Seg
-                        ? <Fragment key={l.key}>{layerRowDeck(l.key, l.accent ?? g.accent, l.sub, true)}<div className="mdk-m-sub" data-accent="steel">{hd250Seg}</div></Fragment>   // RA-250
-                        : layerRowDeck(l.key, l.accent ?? g.accent, l.sub, true)))}
-                      {layerMode === 'detail' && g.layers.some(l => l.key === 'wind') && active.has('wind') && (
-                        <div className="mdk-m-sub" data-accent="sage" role="group" aria-label="Wind-Steuerung">{windDeckControls}</div>
-                      )}
-                      {layerMode === 'detail' && g.layers.some(l => l.key === 'sat') && active.has('sat') && (
+                      {g.layers.map(l => (
+                        <Fragment key={l.key}>
+                          {layerRowDeck(l.key, l.accent ?? g.accent, l.sub, true)}                          {l.key === 'wind' && active.has('wind') && <div className="mdk-m-sub" data-accent="sage">{windSeg}</div>}
+                          {(lcardOverride.get(l.key) ?? active.has(l.key)) && (
+                            <article className={`mdk-ro-lcard mdk-m-lcard${active.has(l.key) ? '' : ' is-preview'}`} data-accent={LAYER_ACCENT.get(l.key) ?? 'steel'}>{layerCardBody(l.key)}</article>
+                          )}
+                        </Fragment>
+                      ))}
+                      {g.layers.some(l => l.key === 'sat') && active.has('sat') && (
                         <div className="mdk-m-sub" data-accent="slate">{satSeg}</div>
                       )}
-                      {layerMode === 'detail' && g.layers.some(l => l.key === 'snow') && active.has('snow') && (
+                      {g.layers.some(l => l.key === 'snow') && active.has('snow') && (
                         <div className="mdk-m-sub" data-accent="steel">{snowSeg}</div>
                       )}
-                      {layerMode === 'detail' && g.layers.some(l => l.key === 'hail') && active.has('hail') && (
+                      {g.layers.some(l => l.key === 'hail') && active.has('hail') && (
                         <div className="mdk-m-sub" data-accent="violet">{hailSeg}</div>
                       )}
                     </div>

@@ -1,0 +1,148 @@
+#0 2026-11-03T20:58:38.455Z /wetterkarte/niederschlag?ort=M%C3%BCnchen&olat=48.1371&olon=11.5754&land=de slotAge=218s  RV@5705 INCA@11681 rzc@6649 CHnc@14314 AT5m@11680 radarKB=1667 reqs=100 warn/err=1
+    subs: []
+    log   5705 log [buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: composite_rv_20261103_2055.tar · Lauf 3.11.2026, 21:55:00 · 25 Frames (0…+120 min) · Quelle DWD (Netlify)
+    log   6649 log [buscosun] MeteoSwiss rzc → Slot 20261103T2055 · Quelle Daten-Repo (PNG, frischer Slot über raw) · 4 min alt
+    log  11680 log [buscosun] AT INCA · 5 min → Lauf 20261103T2030 · 34 Frames (+15…+180 min, 12 INCA-Bilder) · Quelle Daten-Repo (PNG)
+    log  11681 log [buscosun] GeoSphere INCA → Lauf 20261103T2030 · 12 Frames · Quelle Daten-Repo (PNG, aus inca-5m)
+    log  14314 log [buscosun] CH Hochrechnung → Slot 20261103T2050 · 24 Frames (+5…+120 min) · 12 km/h aus 86° (5 Paare) · Quelle Daten-Repo (PNG)
+    WARNING   4950 Image "circle-11" could not be loaded. Please make sure you have added the image with map.addImage() or a "sprite" property in your style. You can provide missing images by listening for the "styleimagemissing" map event
+    net   6770→  8153 403      0KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2030/g065.png 
+    net   7237→ 10130 200     12KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2050/g005.png 
+    net   7238→ 10780 200     12KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2050/g015.png 
+    net   7238→ 11125 200     12KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2050/g020.png 
+    net   8414→ 11521 200     22KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2030/g130.png 
+    net   8414→ 11242 200     20KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2030/g135.png 
+    net   8415→ 11581 200     24KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2030/g140.png 
+    net   8415→ 11604 200     25KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2030/g145.png 
+    net   8415→ 11497 200     23KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2030/g150.png 
+    net   8416→ 11537 200     27KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2030/g155.png 
+    net   8416→ 11605 200     29KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2030/g160.png 
+    net   8416→ 11565 200     25KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2030/g165.png 
+    net   8416→ 11566 200     30KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2030/g170.png 
+    net   8417→ 11566 200     32KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2030/g175.png 
+    net   8417→ 11581 200     28KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2030/g180.png 
+    net   8637→ 11299 200     12KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2050/g075.png 
+    net   8637→ 10078 403      0KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2050/g080.png 
+    net   8638→ 11226 200     12KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2050/g105.png 
+    net   8639→ 11375 200     12KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2050/g120.png 
+    net  11736→ 13398 403      0KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2050/u050.png 
+    net  11749→ 13410 403      0KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2050/u060.png 
+    net  12165→ 13568 403      0KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2050/u075.png 
+    net  12283→ 13687 403      0KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2050/u080.png 
+    net  12686→ 14080 403      0KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2050/u100.png 
+#1 2026-11-03T20:59:08.853Z /wetterkarte/niederschlag?ort=M%C3%BCnchen&olat=48.1371&olon=11.5754&land=de slotAge=249s  RV@2555 INCA@4679 rzc@3976 CHnc@6169 AT5m@4679 radarKB=1109 reqs=95 warn/err=1
+    subs: []
+    log   2555 log [buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: composite_rv_20261103_2055.tar · Lauf 3.11.2026, 21:55:00 · 25 Frames (0…+120 min) · Quelle Daten-Repo (jsDelivr)
+    log   3976 log [buscosun] MeteoSwiss rzc → Slot 20261103T2055 · Quelle Daten-Repo (PNG) · 4 min alt
+    log   4679 log [buscosun] AT INCA · 5 min → Lauf 20261103T2030 · 34 Frames (+15…+180 min, 12 INCA-Bilder) · Quelle Daten-Repo (PNG)
+    log   4679 log [buscosun] GeoSphere INCA → Lauf 20261103T2030 · 12 Frames · Quelle Daten-Repo (PNG, aus inca-5m)
+    log   6169 log [buscosun] CH Hochrechnung → Slot 20261103T2050 · 24 Frames (+5…+120 min) · 12 km/h aus 86° (5 Paare) · Quelle Daten-Repo (PNG)
+    WARNING   1816 Image "circle-11" could not be loaded. Please make sure you have added the image with map.addImage() or a "sprite" property in your style. You can provide missing images by listening for the "styleimagemissing" map event
+    net   2869→  2960 403      0KB MISS, HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2030/g065.png 
+    net   4772→  4856 403       KB MISS, HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2050/g080.png net::ERR_ABORTED
+#2 2026-11-03T20:59:39.124Z /wetterkarte/niederschlag?ort=Wien&olat=48.2082&olon=16.3738&land=at slotAge=279s  RV@9326 INCA@3793 rzc@4432 CHnc@11510 AT5m@3792 radarKB=1042 reqs=123 warn/err=1
+    subs: []
+    log   3792 log [buscosun] AT INCA · 5 min → Lauf 20261103T2030 · 34 Frames (+15…+180 min, 12 INCA-Bilder) · Quelle Daten-Repo (PNG)
+    log   3793 log [buscosun] GeoSphere INCA → Lauf 20261103T2030 · 12 Frames · Quelle Daten-Repo (PNG, aus inca-5m)
+    log   4432 log [buscosun] MeteoSwiss rzc → Slot 20261103T2055 · Quelle Daten-Repo (PNG) · 5 min alt
+    log   9326 log [buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: Slot 2611032055 · Lauf 3.11.2026, 21:55:00 · 25 Frames (0…+120 min) · Quelle Daten-Repo (PNG)
+    log  11510 log [buscosun] CH Hochrechnung → Slot 20261103T2055 · 24 Frames (+5…+120 min) · 8.6 km/h aus 84° (5 Paare) · Quelle Daten-Repo (PNG)
+    WARNING   1630 Image "circle-11" could not be loaded. Please make sure you have added the image with map.addImage() or a "sprite" property in your style. You can provide missing images by listening for the "styleimagemissing" map event
+    net   1847→  1911 403      0KB MISS, HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2030/g065.png 
+    net   4027→  5359 403      0KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032055/g025.png 
+    net   5296→  8016 200      7KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032055/g065.png 
+    net   5374→  8052 200     11KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2055/g040.png 
+    net   5374→  6951 403      0KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2055/g045.png 
+    net   5375→  8034 200     12KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2055/g055.png 
+    net   5375→  8127 200     12KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2055/g060.png 
+    net   5375→  8127 200     12KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2055/g065.png 
+    net   5375→  8052 200     12KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2055/g070.png 
+    net   5376→  8095 200     12KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2055/g075.png 
+    net   5376→  7998 200     11KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2055/g080.png 
+    net   5376→  8016 200     12KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2055/g085.png 
+    net   5377→  8016 200     11KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2055/g090.png 
+    net   5377→  8127 200     11KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2055/g095.png 
+    net   5378→  8095 200     11KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2055/g100.png 
+    net   5378→  8130 200     12KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2055/g105.png 
+    net   5379→  8128 200     12KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2055/g110.png 
+    net   5379→  8095 200     11KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2055/g115.png 
+    net   5571→  7336 403       KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032055/g120.png net::ERR_ABORTED
+    net   8719→ 10089 403      0KB MISS, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2055/u035.png 
+#3 2026-11-03T21:00:09.389Z /wetterkarte/niederschlag?ort=Wien&olat=48.2082&olon=16.3738&land=at slotAge=309s  RV@28145 INCA@— rzc@25661 CHnc@27496 AT5m@25536 radarKB=662 reqs=120 warn/err=1
+    subs: []
+    log  25536 log [buscosun] AT INCA · 5 min → Lauf 20261103T2030 · 34 Frames (+15…+180 min, 12 INCA-Bilder) · Quelle Daten-Repo (PNG)
+    log  25661 log [buscosun] MeteoSwiss rzc → Slot 20261103T2055 · Quelle Daten-Repo (PNG) · 6 min alt
+    log  27496 log [buscosun] CH Hochrechnung → Slot 20261103T2055 · 24 Frames (+5…+120 min) · 8.6 km/h aus 84° (5 Paare) · Quelle Daten-Repo (PNG)
+    log  28145 log [buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: Slot 2611032055 · Lauf 3.11.2026, 21:55:00 · 25 Frames (0…+120 min) · Quelle Daten-Repo (PNG)
+    WARNING   1855 Image "circle-11" could not be loaded. Please make sure you have added the image with map.addImage() or a "sprite" property in your style. You can provide missing images by listening for the "styleimagemissing" map event
+    net    819→  8828 -       KB  https://dataset.api.hub.geosphere.at/v1/grid/forecast/nowcast-v1-15min-1km/metadata net::ERR_ABORTED
+    net   8827→ 24278 200      0KB  https://dataset.api.hub.geosphere.at/v1/grid/forecast/nowcast-v1-15min-1km?parameters=rr&output_format=netcdf&bbox=45.51 
+    net  25703→ 25807 403       KB HIT, MISS CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2055/g045.png net::ERR_ABORTED
+#4 2026-11-03T21:00:39.658Z /wetterkarte/niederschlag?ort=Z%C3%BCrich&olat=47.3769&olon=8.5417&land=ch slotAge=340s  RV@5456 INCA@6851 rzc@1384 CHnc@2809 AT5m@6851 radarKB=1046 reqs=122 warn/err=1
+    subs: []
+    log   1384 log [buscosun] MeteoSwiss rzc → Slot 20261103T2055 · Quelle Daten-Repo (PNG) · 6 min alt
+    log   2809 log [buscosun] CH Hochrechnung → Slot 20261103T2055 · 24 Frames (+5…+120 min) · 8.6 km/h aus 84° (5 Paare) · Quelle Daten-Repo (PNG)
+    log   5456 log [buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: Slot 2611032055 · Lauf 3.11.2026, 21:55:00 · 25 Frames (0…+120 min) · Quelle Daten-Repo (PNG)
+    log   6851 log [buscosun] AT INCA · 5 min → Lauf 20261103T2030 · 34 Frames (+15…+180 min, 12 INCA-Bilder) · Quelle Daten-Repo (PNG)
+    log   6851 log [buscosun] GeoSphere INCA → Lauf 20261103T2030 · 12 Frames · Quelle Daten-Repo (PNG, aus inca-5m)
+    WARNING   1626 Image "circle-11" could not be loaded. Please make sure you have added the image with map.addImage() or a "sprite" property in your style. You can provide missing images by listening for the "styleimagemissing" map event
+    net   1671→  1706 403      0KB MISS, HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2055/g045.png 
+    net   2607→  2686 403       KB MISS, HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2055/u035.png net::ERR_ABORTED
+    net   2879→  2950 403       KB MISS, HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032055/g025.png net::ERR_ABORTED
+    net   2955→  3070 403       KB MISS, HIT CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032055/g120.png net::ERR_ABORTED
+#5 2026-11-03T21:01:10.696Z /wetterkarte/niederschlag?ort=Z%C3%BCrich&olat=47.3769&olon=8.5417&land=ch slotAge=371s  RV@13151 INCA@11585 rzc@2848 CHnc@7110 AT5m@11585 radarKB=1075 reqs=118 warn/err=1
+    subs: []
+    log   2848 log [buscosun] MeteoSwiss rzc → Slot 20261103T2055 · Quelle Daten-Repo (PNG) · 6 min alt
+    log   7110 log [buscosun] CH Hochrechnung → Slot 20261103T2055 · 24 Frames (+5…+120 min) · 8.6 km/h aus 84° (5 Paare) · Quelle Daten-Repo (PNG)
+    log  11585 log [buscosun] AT INCA · 5 min → Lauf 20261103T2030 · 34 Frames (+15…+180 min, 12 INCA-Bilder) · Quelle Daten-Repo (PNG)
+    log  11585 log [buscosun] GeoSphere INCA → Lauf 20261103T2030 · 12 Frames · Quelle Daten-Repo (PNG, aus inca-5m)
+    log  13151 log [buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: Slot 2611032055 · Lauf 3.11.2026, 21:55:00 · 25 Frames (0…+120 min) · Quelle Daten-Repo (PNG)
+    WARNING   3342 Image "circle-11" could not be loaded. Please make sure you have added the image with map.addImage() or a "sprite" property in your style. You can provide missing images by listening for the "styleimagemissing" map event
+#6 2026-11-03T21:01:41.158Z /wetterkarte/niederschlag?ort=M%C3%BCnchen&olat=48.1371&olon=11.5754&land=de slotAge=401s  RV@6935 INCA@12228 rzc@7767 CHnc@12793 AT5m@12227 radarKB=1063 reqs=119 warn/err=1
+    subs: []
+    log   6935 log [buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: Slot 2611032055 · Lauf 3.11.2026, 21:55:00 · 25 Frames (0…+120 min) · Quelle Daten-Repo (PNG)
+    log   7767 log [buscosun] MeteoSwiss rzc → Slot 20261103T2100 · Quelle Daten-Repo (PNG, frischer Slot über raw) · 2 min alt
+    log  12227 log [buscosun] AT INCA · 5 min → Lauf 20261103T2030 · 34 Frames (+15…+180 min, 12 INCA-Bilder) · Quelle Daten-Repo (PNG)
+    log  12228 log [buscosun] GeoSphere INCA → Lauf 20261103T2030 · 12 Frames · Quelle Daten-Repo (PNG, aus inca-5m)
+    log  12793 log [buscosun] CH Hochrechnung → Slot 20261103T2055 · 24 Frames (+5…+120 min) · 8.6 km/h aus 84° (5 Paare) · Quelle Daten-Repo (PNG)
+    WARNING   2699 Image "circle-11" could not be loaded. Please make sure you have added the image with map.addImage() or a "sprite" property in your style. You can provide missing images by listening for the "styleimagemissing" map event
+#7 2026-11-03T21:02:11.539Z /wetterkarte/niederschlag?ort=M%C3%BCnchen&olat=48.1371&olon=11.5754&land=de slotAge=432s  RV@6200 INCA@9178 rzc@6956 CHnc@9727 AT5m@9178 radarKB=1063 reqs=119 warn/err=1
+    subs: []
+    log   6200 log [buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: Slot 2611032055 · Lauf 3.11.2026, 21:55:00 · 25 Frames (0…+120 min) · Quelle Daten-Repo (PNG)
+    log   6956 log [buscosun] MeteoSwiss rzc → Slot 20261103T2100 · Quelle Daten-Repo (PNG, frischer Slot über raw) · 2 min alt
+    log   9178 log [buscosun] AT INCA · 5 min → Lauf 20261103T2030 · 34 Frames (+15…+180 min, 12 INCA-Bilder) · Quelle Daten-Repo (PNG)
+    log   9178 log [buscosun] GeoSphere INCA → Lauf 20261103T2030 · 12 Frames · Quelle Daten-Repo (PNG, aus inca-5m)
+    log   9727 log [buscosun] CH Hochrechnung → Slot 20261103T2055 · 24 Frames (+5…+120 min) · 8.6 km/h aus 84° (5 Paare) · Quelle Daten-Repo (PNG)
+    WARNING   2962 Image "circle-11" could not be loaded. Please make sure you have added the image with map.addImage() or a "sprite" property in your style. You can provide missing images by listening for the "styleimagemissing" map event
+#8 2026-11-03T21:02:42.049Z /wetterkarte/niederschlag?ort=Wien&olat=48.2082&olon=16.3738&land=at slotAge=462s  RV@9908 INCA@4109 rzc@5370 CHnc@9432 AT5m@4109 radarKB=1063 reqs=119 warn/err=1
+    subs: []
+    log   4109 log [buscosun] AT INCA · 5 min → Lauf 20261103T2030 · 34 Frames (+15…+180 min, 12 INCA-Bilder) · Quelle Daten-Repo (PNG)
+    log   4109 log [buscosun] GeoSphere INCA → Lauf 20261103T2030 · 12 Frames · Quelle Daten-Repo (PNG, aus inca-5m)
+    log   5370 log [buscosun] MeteoSwiss rzc → Slot 20261103T2100 · Quelle Daten-Repo (PNG, frischer Slot über raw) · 3 min alt
+    log   9432 log [buscosun] CH Hochrechnung → Slot 20261103T2055 · 24 Frames (+5…+120 min) · 8.6 km/h aus 84° (5 Paare) · Quelle Daten-Repo (PNG)
+    log   9908 log [buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: Slot 2611032055 · Lauf 3.11.2026, 21:55:00 · 25 Frames (0…+120 min) · Quelle Daten-Repo (PNG)
+    WARNING   2634 Image "circle-11" could not be loaded. Please make sure you have added the image with map.addImage() or a "sprite" property in your style. You can provide missing images by listening for the "styleimagemissing" map event
+#9 2026-11-03T21:03:12.490Z /wetterkarte/niederschlag?ort=Wien&olat=48.2082&olon=16.3738&land=at slotAge=492s  RV@10156 INCA@3964 rzc@5410 CHnc@9061 AT5m@3963 radarKB=1063 reqs=119 warn/err=1
+    subs: []
+    log   3963 log [buscosun] AT INCA · 5 min → Lauf 20261103T2030 · 34 Frames (+15…+180 min, 12 INCA-Bilder) · Quelle Daten-Repo (PNG)
+    log   3964 log [buscosun] GeoSphere INCA → Lauf 20261103T2030 · 12 Frames · Quelle Daten-Repo (PNG, aus inca-5m)
+    log   5410 log [buscosun] MeteoSwiss rzc → Slot 20261103T2100 · Quelle Daten-Repo (PNG, frischer Slot über raw) · 3 min alt
+    log   9061 log [buscosun] CH Hochrechnung → Slot 20261103T2055 · 24 Frames (+5…+120 min) · 8.6 km/h aus 84° (5 Paare) · Quelle Daten-Repo (PNG)
+    log  10156 log [buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: Slot 2611032055 · Lauf 3.11.2026, 21:55:00 · 25 Frames (0…+120 min) · Quelle Daten-Repo (PNG)
+    WARNING   2902 Image "circle-11" could not be loaded. Please make sure you have added the image with map.addImage() or a "sprite" property in your style. You can provide missing images by listening for the "styleimagemissing" map event
+#10 2026-11-03T21:03:43.026Z /wetterkarte/niederschlag?ort=Z%C3%BCrich&olat=47.3769&olon=8.5417&land=ch slotAge=223s  RV@7724 INCA@9561 rzc@2121 CHnc@5300 AT5m@9560 radarKB=1701 reqs=93 warn/err=1
+    subs: []
+    log   2121 log [buscosun] MeteoSwiss rzc → Slot 20261103T2100 · Quelle Daten-Repo (PNG, frischer Slot über raw) · 4 min alt
+    log   5300 log [buscosun] CH Hochrechnung → Slot 20261103T2055 · 24 Frames (+5…+120 min) · 8.6 km/h aus 84° (5 Paare) · Quelle Daten-Repo (PNG)
+    log   7724 log [buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: composite_rv_20261103_2100.tar · Lauf 3.11.2026, 22:00:00 · 25 Frames (0…+120 min) · Quelle DWD (Netlify)
+    log   9560 log [buscosun] AT INCA · 5 min → Lauf 20261103T2030 · 34 Frames (+15…+180 min, 12 INCA-Bilder) · Quelle Daten-Repo (PNG)
+    log   9561 log [buscosun] GeoSphere INCA → Lauf 20261103T2030 · 12 Frames · Quelle Daten-Repo (PNG, aus inca-5m)
+    WARNING   2810 Image "circle-11" could not be loaded. Please make sure you have added the image with map.addImage() or a "sprite" property in your style. You can provide missing images by listening for the "styleimagemissing" map event
+#11 2026-11-03T21:04:13.507Z /wetterkarte/niederschlag?ort=Z%C3%BCrich&olat=47.3769&olon=8.5417&land=ch slotAge=254s  RV@8116 INCA@9076 rzc@2644 CHnc@5679 AT5m@9076 radarKB=1205 reqs=93 warn/err=1
+    subs: []
+    log   2644 log [buscosun] MeteoSwiss rzc → Slot 20261103T2100 · Quelle Daten-Repo (PNG) · 4 min alt
+    log   5679 log [buscosun] CH Hochrechnung → Slot 20261103T2055 · 24 Frames (+5…+120 min) · 8.6 km/h aus 84° (5 Paare) · Quelle Daten-Repo (PNG)
+    log   8116 log [buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: composite_rv_20261103_2100.tar · Lauf 3.11.2026, 22:00:00 · 25 Frames (0…+120 min) · Quelle Daten-Repo (jsDelivr)
+    log   9076 log [buscosun] AT INCA · 5 min → Lauf 20261103T2030 · 34 Frames (+15…+180 min, 12 INCA-Bilder) · Quelle Daten-Repo (PNG)
+    log   9076 log [buscosun] GeoSphere INCA → Lauf 20261103T2030 · 12 Frames · Quelle Daten-Repo (PNG, aus inca-5m)
+    WARNING   2948 Image "circle-11" could not be loaded. Please make sure you have added the image with map.addImage() or a "sprite" property in your style. You can provide missing images by listening for the "styleimagemissing" map event

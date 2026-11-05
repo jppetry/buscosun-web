@@ -41,6 +41,13 @@
 }
 .fxp-caption { margin-top: 10px; font-size: 10.5px; letter-spacing: 1.5px; color: #7A6548; }
 
+/* Tablet (Jan 04.11.): two columns left only ~100 px for the text (the card takes its 620 px) — stack: text, then the figure. */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .fxp { grid-template-columns: minmax(0, 1fr); gap: 26px; align-items: start; }
+  .fxp-lead { max-width: 640px; }
+  .fxp-card { max-width: 640px; }
+}
+
 @media (max-width: 767px) {
   .fxp { grid-template-columns: minmax(0, 1fr); gap: 20px; }
   .fxp-card { padding: 12px; }

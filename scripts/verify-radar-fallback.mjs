@@ -45,7 +45,7 @@ globalThis.fetch = (input, init = {}) => {
     }, b.delayMs ?? 0);
   });
 };
-const reset = () => { rules = []; log = []; t0 = performance.now(); };
+const reset = () => { rules = []; log = []; t0 = performance.now(); mod?._resetRadarRaw?.(); };
 const reqs = (pat) => log.filter((r) => (typeof pat === 'string' ? r.url.startsWith(pat) : pat.test(r.url)));
 
 // ── Fixtures in echter Datenform: Graustufen-PNG 1100 × 1200 und Bild-Meta wie der Spiegel ──
@@ -152,6 +152,94 @@ if (mod) {
   if (realLS2 === undefined) delete globalThis.localStorage; else globalThis.localStorage = realLS2;
   add('A13 vorgestartete Antwort hängt, ohne Ausweichweg ⇒ die Frist des Aufrufers greift (und erst sie)',
     !r.ok && r.ms >= 700 && r.ms < 1300 && log.length === 0, `${r.ms} ms, Abrufe ${log.length}`);
+
+  // ── Phase ND (audit/niederschlag-laden-dach.md) ──
+  // ND-1: die Frist rechnet ab dem START der vorgestarteten Antwort — eine, die beim Lesen schon 3 s alt ist, bekommt raw sofort
+  reset(); rules = [[Fr, { status: 200, body: 'raw', delayMs: 50 }]];
+  r = await outcome(mod.fetchImgRes(F, undefined, undefined, new Promise(() => {}), Date.now() - 3000));
+  add('A14 (ND-1) vorgestartete Antwort ist beim Lesen schon 3 s alt und hängt ⇒ Ausweichweg sofort (nicht erst nach 2,5 s)',
+    r.ok && (await r.v.text()) === 'raw' && r.ms < 600 && reqs(RAW)[0]?.at < 300, `${r.ms} ms, raw@${reqs(RAW)[0]?.at} ms`);
+  reset(); rules = [[Fr, { status: 200, body: 'raw', delayMs: 50 }]];
+  r = await outcome(mod.fetchImgRes(F, undefined, undefined, new Promise(() => {}), Date.now() - 1000));
+  add('A14b vorgestartete Antwort 1 s alt ⇒ Ausweichweg nach den restlichen 1,5 s', r.ok && reqs(RAW)[0]?.at >= 1300 && reqs(RAW)[0]?.at < 2200, `raw@${reqs(RAW)[0]?.at} ms`);
+
+  // ND-2: raw hatte, was das CDN nicht lieferte ⇒ die übrigen Dateien DESSELBEN Slot-Verzeichnisses lesen raw zuerst, das CDN
+  // wird ihr Ausweichweg; ein anderes Verzeichnis beginnt wie immer am CDN
+  const F2 = `${CDN}/img/v1/rv/2610011630/f010.png`, F2r = `${RAW}/img/v1/rv/2610011630/f010.png`;
+  const G = `${CDN}/img/v1/rv/2610011635/f005.png`, Gr = `${RAW}/img/v1/rv/2610011635/f005.png`;
+  reset(); rules = [[F, { status: 403, delayMs: 100 }], [Fr, { status: 200, body: 'raw' }], [F2, { status: 200, body: 'cdn', delayMs: 50 }], [F2r, { status: 200, body: 'raw2' }], [G, { status: 200, body: 'cdn-g', delayMs: 50 }], [Gr, { status: 200, body: 'raw-g' }]];
+  add('A15 vor dem ersten Fehler liest das Verzeichnis das CDN zuerst', mod.radarRawFirst(F) === false);
+  r = await outcome(mod.fetchImgRes(F));
+  const r2 = await outcome(mod.fetchImgRes(F2));
+  const rg = await outcome(mod.fetchImgRes(G));
+  const t2 = r2.ok ? await r2.v.text() : '—', tg = rg.ok ? await rg.v.text() : '—';
+  add('A15 (ND-2) nach 403 ⇒ raw für diese Datei, die nächste Datei des Slots raw ZUERST (kein CDN-Abruf), anderes Verzeichnis CDN zuerst',
+    r.ok && (await r.v.text()) === 'raw' && mod.radarRawFirst(F2) === true && t2 === 'raw2' && reqs(F2).length === 0
+    && mod.radarRawFirst(G) === false && tg === 'cdn-g' && reqs(Gr).length === 0,
+    `f010 via ${t2}, CDN-Abrufe f010=${reqs(F2).length}, G via ${tg}, raw-Abrufe G=${reqs(Gr).length}`);
+  // raw zuerst, aber raw hängt ⇒ das CDN ist der Hedge; raw 404 ⇒ CDN sofort; 404 beidseitig bleibt „nicht da"; 5 Hedges zählen nicht
+  reset(); mod.radarMarkRawFirst(`${CDN}/img/v1/rv/2610011630`);
+  rules = [[F2r, { hang: true }], [F2, { status: 200, body: 'cdn', delayMs: 50 }]];
+  r = await outcome(mod.fetchImgRes(F2));
+  add('A16 raw zuerst, raw hängt ⇒ CDN als Hedge nach 2,5 s, raw-Abruf abgebrochen', r.ok && (await r.v.text()) === 'cdn' && reqs(F2)[0]?.at >= 2400 && r.ms < 3500 && reqs(F2r)[0]?.aborted, `${r.ms} ms, cdn@${reqs(F2)[0]?.at}`);
+  reset(); mod.radarMarkRawFirst(`${CDN}/img/v1/rv/2610011630`);
+  rules = [[F2r, { status: 404 }], [F2, { status: 200, body: 'cdn', delayMs: 50 }]];
+  r = await outcome(mod.fetchImgRes(F2));
+  add('A16b raw zuerst, raw 404 ⇒ sofort das CDN, CDN-Bytes', r.ok && (await r.v.text()) === 'cdn' && r.ms < 600, `${r.ms} ms`);
+  reset(); mod.radarMarkRawFirst(`${CDN}/img/v1/rv/2610011630`);
+  rules = [[F2r, { status: 404 }], [F2, { status: 404 }]];
+  r = await outcome(mod.fetchImgRes(F2));
+  add('A16c raw zuerst, 404 auf beiden Wegen ⇒ RadarImg404 (nicht da)', !r.ok && r.e instanceof mod.RadarImg404);
+  add('A16d raw-zuerst im Verzeichnis läuft nach RADAR_RAW_FIRST_TTL_MS ab', mod.radarRawFirst(F2) === true && mod.radarRawFirst(F2, Date.now() + mod.RADAR_RAW_FIRST_TTL_MS + 1) === false);
+  reset(); mod.radarMarkRawFirst(`${CDN}/img/v1/rv/2610011630`);
+  const h0 = mod.radarRawHedgeCount();
+  rules = [[F2r, { status: 200, body: 'raw2', delayMs: 20 }]];
+  r = await outcome(mod.fetchImgRes(F2));
+  add('A16e raw zuerst ⇒ der Pool-Zähler (Hedges zu raw, M8) bleibt unverändert, kein CDN-Abruf', r.ok && mod.radarRawHedgeCount() === h0 && reqs(F2).length === 0, `Hedges ${mod.radarRawHedgeCount() - h0}, CDN ${reqs(F2).length}`);
+  const realLS3 = globalThis.localStorage; globalThis.localStorage = { getItem: (k) => (k === 'radarraw' ? '0' : null) };
+  reset(); mod.radarMarkRawFirst(`${CDN}/img/v1/rv/2610011630`);
+  rules = [[F2, { status: 200, body: 'cdn', delayMs: 20 }], [F2r, { status: 200, body: 'raw2' }]];
+  r = await outcome(mod.fetchImgRes(F2));
+  if (realLS3 === undefined) delete globalThis.localStorage; else globalThis.localStorage = realLS3;
+  add('A16f Schalter radarraw=0 ⇒ raw-zuerst wirkungslos, CDN wie bisher', r.ok && (await r.v.text()) === 'cdn' && reqs(RAW).length === 0);
+
+  // ND-3: Pool je Leitung — ohne Browser (Node) die enge Vorgabe, Konstanten 6 / 12
+  add('A17 (ND-3) radarImgPoolSize: 6 ohne Browser, Konstanten 6 und 12', mod.radarImgPoolSize() === 6 && mod.RADAR_IMG_CONCURRENCY === 6 && mod.RADAR_IMG_CONCURRENCY_WIDE === 12, `${mod.radarImgPoolSize()}`);
+  {
+    const realNav = globalThis.navigator, realWin = globalThis.window;
+    const withEnv = (conn, narrow) => {
+      Object.defineProperty(globalThis, 'navigator', { value: { connection: conn }, configurable: true });
+      Object.defineProperty(globalThis, 'window', { value: { matchMedia: () => ({ matches: narrow }) }, configurable: true });
+      const n = mod.radarImgPoolSize();
+      Object.defineProperty(globalThis, 'navigator', { value: realNav, configurable: true });
+      if (realWin === undefined) delete globalThis.window; else Object.defineProperty(globalThis, 'window', { value: realWin, configurable: true });
+      return n;
+    };
+    add('A17b breiter Viewport + 4g ⇒ 12; schmal ⇒ 6; saveData ⇒ 6; 3g ⇒ 6; ohne connection-API breit ⇒ 12',
+      withEnv({ effectiveType: '4g' }, false) === 12 && withEnv({ effectiveType: '4g' }, true) === 6 && withEnv({ saveData: true, effectiveType: '4g' }, false) === 6
+      && withEnv({ effectiveType: '3g' }, false) === 6 && withEnv(undefined, false) === 12);
+  }
+}
+
+// ── C: Sitzungs-Latch mit Ablauf (ND-5, V-NL-1) ──
+if (runs) {
+  runs._resetRadarCdn();
+  const T = Date.UTC(2026, 10, 3, 20, 0, 0);
+  runs.noteRadarCdnFailure(T);
+  add('C1 ein harter Fehler ⇒ CDN bleibt nutzbar', runs.radarCdnUsable(T + 1000) === true);
+  runs.noteRadarCdnFailure(T + 2000);
+  add('C1 zweiter harter Fehler im Fenster ⇒ CDN zu', runs.radarCdnUsable(T + 3000) === false && runs.radarCdnUsable(T + 60_000) === false);
+  add('C1 (ND-5) nach RADAR_CDN_LATCH_MS wieder nutzbar (vorher: bis zum Neuladen zu)', runs.radarCdnUsable(T + 2000 + runs.RADAR_CDN_LATCH_MS) === true && runs.RADAR_CDN_LATCH_MS === 5 * 60_000);
+  runs._resetRadarCdn();
+  runs.noteRadarCdnFailure(T);
+  runs.noteRadarCdnFailure(T + runs.RADAR_CDN_LATCH_MS + 1000);
+  add('C2 zwei Fehler, mehr als 5 min auseinander ⇒ zählen nicht zusammen, CDN bleibt nutzbar', runs.radarCdnUsable(T + runs.RADAR_CDN_LATCH_MS + 2000) === true);
+  runs._resetRadarCdn();
+  add('C3 ND-7: rvImgRawFirst — jünger als RV_IMG_CDN_READY_MS (360 s) und Bild-berechtigt ⇒ raw zuerst, älter ⇒ CDN, unter dem Gate ⇒ nein',
+    runs.RV_IMG_CDN_READY_MS === 360_000 && (() => {
+      const s = Date.UTC(2026, 10, 3, 19, 0, 0), ts = runs.rvStamp(new Date(s));
+      return runs.rvImgRawFirst(ts, s + 300_000) === true && runs.rvImgRawFirst(ts, s + 400_000) === false && runs.rvImgRawFirst(ts, s + 200_000) === false;
+    })());
 }
 
 // ── B: Ende zu Ende (fetchRvNowcast, Frühstart wie der Router) ───────────────
@@ -184,17 +272,37 @@ if (nowcast && runs && mod) {
       r.ok && r.v.frames.length === 25 && r.ms < 8000 && tar.length === 0, r.ok ? `${r.ms} ms, Tar-Abrufe ${tar.length}` : `${r.e?.message} nach ${r.ms} ms`);
     add('B1 Ausweich-Abrufe zählen nicht als harter CDN-Fehler', failureCount() === 0, `Zähler ${failureCount()}`);
   }
-  // B2 = Läufe #9/#10: f000.png 403 (vorgestartet), Rest gut ⇒ nur dieses Bild über raw, kein 9,6-MB-Tar
+  // B2 (ND-7) = Läufe #9/#10 und die Sonde vom 03.11.: ein junger Slot (285 s) — das CDN löst `@main` noch nicht auf.
+  // Frühstart UND Leser gehen raw zuerst; das CDN wird für keine Datei des Slots gefragt; kein Tar.
   {
     const s = nextSlot(); const ts = stampOf(s); setClock(s + 285_000);
     runs._resetRadarCdn(); runs._resetWarmRv(); reset();
-    rules = [...imgRules(ts, CDN, { frames: [[`${CDN}/img/v1/rv/${ts}/f000.png`, { status: 403, delayMs: 200 }]] }), ...imgRules(ts, RAW)];
-    runs.warmRvTar(Date.now());
+    rules = [...imgRules(ts, CDN, { meta: { status: 404, delayMs: 200 }, frames: [[new RegExp(`^${CDN.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/img/v1/rv/${ts}/`), { status: 404, delayMs: 200 }]] }), ...imgRules(ts, RAW)];
+    const warmUrl = runs.warmRvTar(Date.now());
+    const warmReqs = log.map((x) => x.url);
+    const r = await outcome(nowcast.fetchRvNowcast(), 20_000);
+    const cdnSlot = reqs(`${CDN}/img/v1/rv/${ts}/`).length, rawSlot = reqs(`${RAW}/img/v1/rv/${ts}/`).length;
+    add('B2 (ND-7) junger Slot (285 s) ⇒ Frühstart wärmt auf raw (meta + g000 + f000), Leser nimmt sie entgegen',
+      warmUrl === `${RAW}/img/v1/rv/${ts}/meta.json` && warmReqs.length === 3 && warmReqs.every((u) => u.startsWith(RAW)),
+      `warm=${warmUrl?.replace(RAW, 'RAW')} (${warmReqs.length} Abrufe)`);
+    // 27 raw-Abrufe = meta + 25 Frames + die vorgestartete `g000.png` (dieser Slot trägt keine Dual-Frames ⇒ billiges 404)
+    add('B2 (ND-7) junger Slot ⇒ alle 26 Dateien raw zuerst (+ g000-Sonde), KEIN CDN-Abruf für den Slot, kein Tar, Regen < 4 s',
+      r.ok && r.v.frames.length === 25 && reqs(/composite_rv_|DE1200_RV/).length === 0 && cdnSlot === 0 && rawSlot === 27 && r.ms < 4000,
+      r.ok ? `${r.ms} ms, raw ${rawSlot}, cdn ${cdnSlot}` : `${r.e?.message}`);
+    add('B2 raw-zuerst zählt nicht als harter CDN-Fehler', failureCount() === 0);
+  }
+  // B2b (ND-2) = Lauf #0 vom 03.11.: älterer Slot (400 s, CDN zuerst), ein Bild 403 am CDN ⇒ dieses über raw UND die danach
+  // gestarteten Dateien des Slots raw zuerst; Slot bleibt Bild-Weg, kein Tar
+  {
+    const s = nextSlot(); const ts = stampOf(s); setClock(s + 400_000);
+    runs._resetRadarCdn(); runs._resetWarmRv(); reset();
+    rules = [...imgRules(ts, CDN, { frames: [[`${CDN}/img/v1/rv/${ts}/f005.png`, { status: 403, delayMs: 20 }], [new RegExp(`^${CDN.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/img/v1/rv/${ts}/f\\d{3}\\.png$`), { status: 200, body: () => PNG.slice(), delayMs: 150 }]] }), ...imgRules(ts, RAW)];
     const r = await outcome(nowcast.fetchRvNowcast(), 20_000);
     const rawReqs = reqs(RAW).map((x) => x.url.split('/').pop());
-    add('B2 (#9) ein Bild 403 ⇒ nur dieses über raw.githubusercontent, Slot bleibt Bild-Weg, kein Tar',
-      r.ok && r.v.frames.length === 25 && reqs(/composite_rv_|DE1200_RV/).length === 0 && rawReqs.length === 1 && rawReqs[0] === 'f000.png',
-      r.ok ? `${r.ms} ms, raw: ${rawReqs.join(',')}` : `${r.e?.message}`);
+    const cdnLast = reqs(`${CDN}/img/v1/rv/${ts}/f120.png`).length;
+    add('B2b (ND-2) ein Bild 403 am CDN ⇒ dieses über raw, die später gestarteten Dateien des Slots raw zuerst (f120 nie am CDN), kein Tar',
+      r.ok && r.v.frames.length === 25 && reqs(/composite_rv_|DE1200_RV/).length === 0 && rawReqs.includes('f005.png') && rawReqs.includes('f120.png') && cdnLast === 0,
+      r.ok ? `${r.ms} ms, raw: ${rawReqs.length} Dateien (${rawReqs.slice(0, 3).join(',')}…), f120 am CDN ${cdnLast}×` : `${r.e?.message}`);
   }
   // B3 = Lauf #8: Slot nicht Bild-berechtigt, vorgestarteter roher Tar am CDN hängt ⇒ nach der CDN-Frist Netlify, CDN nicht erneut
   {
@@ -218,8 +326,8 @@ if (nowcast && runs && mod) {
     rules = [...imgRules(ts, CDN, { frames: [[`${CDN}/img/v1/rv/${ts}/f060.png`, { status: 404 }]] }), ...imgRules(ts, RAW)];
     const r = await outcome(nowcast.fetchRvNowcast(), 30_000);
     const rawReqs = reqs(RAW).map((x) => x.url.split('/').pop());
-    add('B4 Bild 404 am CDN, raw hat es (V-AW-25) ⇒ nur dieses über raw, Slot bleibt Bild-Weg, kein Tar',
-      r.ok && r.v.frames.length === 25 && rawReqs.length === 1 && rawReqs[0] === 'f060.png' && reqs(runs.rvTarCdnUrl(ts)).length === 0, `raw=${rawReqs.join(',')}, tar=${reqs(runs.rvTarCdnUrl(ts)).length}`);
+    add('B4 Bild 404 am CDN, raw hat es (V-AW-25) ⇒ dieses über raw (ND-2: die danach gestarteten ebenso), Slot bleibt Bild-Weg, kein Tar',
+      r.ok && r.v.frames.length === 25 && rawReqs[0] === 'f060.png' && reqs(runs.rvTarCdnUrl(ts)).length === 0, `raw=${rawReqs.join(',')}, tar=${reqs(runs.rvTarCdnUrl(ts)).length}`);
   }
   // B5 Gegenprobe: das Bild fehlt WIRKLICH (404 auf beiden Wegen) ⇒ Rückfall auf den rohen Tar wie bisher
   {
@@ -231,6 +339,41 @@ if (nowcast && runs && mod) {
       reqs(`${RAW}/img/v1/rv/${ts}/f060.png`).length === 1 && reqs(runs.rvTarCdnUrl(ts)).length >= 1 && failureCount() === 0, `tar=${reqs(runs.rvTarCdnUrl(ts)).length} (${r.ok ? 'ok' : 'Fehler erwartet'})`);
   }
   Date.now = realNow;
+}
+
+// ── D: ND-4 — GeoSphere-`/metadata` vorgestartet, vom INCA-Leser genau einmal verbraucht ──
+{
+  let inca = null;
+  try { inca = await import('../src/sources/geosphereIncaGrid.ts'); } catch (e) { add('D0 geosphereIncaGrid.ts laden', false, String(e?.message ?? e).slice(0, 200)); }
+  if (inca && mod) {
+    const META = 'https://dataset.api.hub.geosphere.at/v1/grid/forecast/nowcast-v1-15min-1km/metadata';
+    const ref = Date.UTC(2026, 10, 3, 20, 0, 0), stamp = mod.radarImgStamp(ref);
+    const IW = 701, IH = 431;
+    const ig = new Uint8Array(IW * IH); for (let k = 0; k < ig.length; k++) ig[k] = (k % IW) > 300 && (k % IW) < 320 ? 90 : 0;
+    const IPNG = new Uint8Array(encodePng(IW, IH, ig, 1));
+    const iframes = Array.from({ length: 12 }, (_, i) => ({ lead: (i + 1) * 15, file: `f${String((i + 1) * 15).padStart(3, '0')}.png`, bytes: IPNG.length }));
+    const corners = [[8.1, 49.47], [17.73, 49.47], [17.73, 45.51], [8.1, 45.51]];
+    const imeta = JSON.stringify(mod.makeIncaImgMeta(stamp, ref + 60_000, corners, iframes));
+    const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    reset(); inca._resetIncaLastGood(); inca._resetIncaMetaWarm?.(); runs?._resetRadarCdn();
+    rules = [
+      [META, { status: 200, body: JSON.stringify({ last_forecast_reftime: new Date(ref).toISOString() }), delayMs: 300 }],
+      [`${CDN}/img/v1/inca-5m/${stamp}/meta.json`, { status: 404 }], [`${RAW}/img/v1/inca-5m/${stamp}/meta.json`, { status: 404 }],
+      [`${CDN}/img/v1/inca/${stamp}/meta.json`, { status: 200, body: imeta, delayMs: 30 }],
+      [new RegExp(`^${esc(CDN)}/img/v1/inca/${stamp}/f\\d{3}\\.png$`), { status: 200, body: () => IPNG.slice(), delayMs: 20 }],
+    ];
+    add('D1 warmIncaMeta exportiert, zweiter Aufruf im Fenster ist No-op', typeof inca.warmIncaMeta === 'function' && (inca.warmIncaMeta(), inca.warmIncaMeta(), reqs(META).length === 1), `Abrufe ${reqs(META).length}`);
+    const r = await outcome(inca.fetchIncaGrid(), 20_000);
+    add('D2 (ND-4) der INCA-Leser verbraucht die vorgestartete Antwort: genau EIN /metadata-Abruf, Lauf aus dem Bild-Slot',
+      r.ok && r.v.frames.length === 12 && r.v.stamp === stamp && reqs(META).length === 1, r.ok ? `${r.ms} ms, /metadata ${reqs(META).length}×` : `${r.e?.message}`);
+    reset(); inca._resetIncaLastGood(); inca._resetIncaMetaWarm?.(); runs?._resetRadarCdn();
+    rules = [[META, { hang: true }], [`${CDN}/img/v1/inca/${stamp}/meta.json`, { status: 200, body: imeta }]];
+    inca.warmIncaMeta();
+    const t = performance.now();
+    const r2 = await outcome(inca.fetchIncaGrid().catch(() => 'fehler'), 20_000);
+    add('D3 vorgestartetes /metadata hängt ⇒ die Frist des Lesers (8 s) beendet das Warten (kein ewiges Hängen)',
+      performance.now() - t >= runs.RADAR_CDN_DEADLINE_MS - 300 && performance.now() - t < runs.RADAR_CDN_DEADLINE_MS + 4000, `${Math.round(performance.now() - t)} ms (${r2.ok ? String(r2.v).slice(0, 20) : r2.e?.message})`);
+  }
 }
 globalThis.fetch = realFetch;
 

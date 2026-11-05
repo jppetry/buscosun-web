@@ -42,13 +42,22 @@ export const RV_TAR_CACHE = 'radolan-rv-tar-v1';
 // des Spiegels (12 Läufe = 1 h) liegt nichts mehr auf `main` ⇒ ebenfalls
 // Netlify. Kill-Switch `?radarcdn=0` bzw. `localStorage.radarcdn = '0'`
 // (Query schlägt Speicher in beide Richtungen, D-31-Muster); zwei harte
-// Netzfehler des CDN in einer Sitzung schalten den Weg für die Sitzung ab
-// (404 zählt nicht — „noch nicht gespiegelt" ist eine Antwort).
+// Netzfehler des CDN innerhalb von fünf Minuten schalten den Weg für fünf
+// Minuten ab (ND-5; vorher bis zum Neuladen) — 404 zählt nicht („noch nicht
+// gespiegelt" ist eine Antwort).
 export const RADAR_CDN_BASE = 'https://cdn.jsdelivr.net/gh/jppetry/buscosun-data@main/radar';
 export const RV_CDN_GATE_MS = 240_000;              // Slot + 4:00 (gemessen §10.3/§8)
 export const RADAR_CDN_WINDOW_MS = 55 * 60_000;     // Retention 12 Läufe minus Reserve
 export const RADAR_CDN_FAIL_LATCH = 2;
-let _cdnHardFails = 0;
+/**
+ * Phase ND (`audit/niederschlag-laden-dach.md` ND-5, V-NL-1): the latch EXPIRES. Hard CDN errors are counted within a window
+ * of `RADAR_CDN_LATCH_MS`; the `RADAR_CDN_FAIL_LATCH`-th one closes every CDN way for `RADAR_CDN_LATCH_MS`, then the session
+ * counts anew. Before, two errors (a deadline counts as one) closed the CDN until the page was reloaded — a map left open for
+ * hours never came back from the tar/NetCDF/STAC ways after one bad minute. set.
+ */
+export const RADAR_CDN_LATCH_MS = 5 * 60_000;
+let _cdnFailAt: number[] = [];
+let _cdnLatchUntil = 0;
 
 /** `YYMMDDHHMM` (UTC, `rvStamp`) → ms des Slots. */
 export function rvStampToMs(s: string): number {
@@ -90,9 +99,14 @@ export function radarCdnEnabled(
   return s !== '0';
 }
 
-/** Harter CDN-Fehler (Netz/Timeout — NICHT 404). Ab RADAR_CDN_FAIL_LATCH: Sitzung auf Netlify. */
-export function noteRadarCdnFailure(): void { _cdnHardFails++; }
-export function radarCdnUsable(): boolean { return _cdnHardFails < RADAR_CDN_FAIL_LATCH; }
+/** Harter CDN-Fehler (Netz/Timeout — NICHT 404). Ab RADAR_CDN_FAIL_LATCH innerhalb von RADAR_CDN_LATCH_MS: CDN-Wege für
+ *  RADAR_CDN_LATCH_MS zu (ND-5), danach zählt die Sitzung neu. */
+export function noteRadarCdnFailure(nowMs: number = Date.now()): void {
+  _cdnFailAt = _cdnFailAt.filter((t) => nowMs - t < RADAR_CDN_LATCH_MS);
+  _cdnFailAt.push(nowMs);
+  if (_cdnFailAt.length >= RADAR_CDN_FAIL_LATCH) { _cdnLatchUntil = nowMs + RADAR_CDN_LATCH_MS; _cdnFailAt = []; }
+}
+export function radarCdnUsable(nowMs: number = Date.now()): boolean { return nowMs >= _cdnLatchUntil; }
 
 /** Darf DIESER Lauf jetzt vom CDN angefragt werden? (Gate + Fenster + Schalter + Latch) */
 export function rvCdnEligible(ts: string, nowMs: number = Date.now()): boolean {
@@ -129,7 +143,7 @@ export function radarCdnDeadline(signal: AbortSignal | undefined, ms: number = R
 
 
 /** Nur für Verifier/Tests. */
-export function _resetRadarCdn(): void { _cdnHardFails = 0; }
+export function _resetRadarCdn(): void { _cdnFailAt = []; _cdnLatchUntil = 0; }
 
 // ---------------------------------------------------------------------------
 // RD3 — Bild-Weg: fertig aufbereitete Frames vom Daten-Repo (audit §14)
@@ -178,6 +192,41 @@ export function radarImgDualFile(leadMin: number): string {
 /** RV-Bild-Slot-Verzeichnis; `ts` ist der Tar-Stempel `YYMMDDHHMM`. */
 export function rvImgDir(ts: string): string {
   return `${RADAR_IMG_BASE}/rv/${ts}`;
+}
+
+// --- NL-2 / Phase ND: der Ausweichweg raw.githubusercontent (Basis und Schalter leben HIER, im Start-Chunk, weil der
+// Frühstart ihn seit ND-7 selbst nimmt; `radarImg.ts` re-exportiert sie als Vertragsadresse) ---------------------------------
+export const RADAR_RAW_BASE = 'https://raw.githubusercontent.com/jppetry/buscosun-data/main/radar';
+/** Kill-Switch des Ausweichwegs: `?radarraw=0|1` schlägt `localStorage.radarraw` (D-31). */
+export function radarRawFlagFrom(
+  search: string = typeof location !== 'undefined' ? location.search : '',
+  stored?: string | null,
+): boolean {
+  let q: string | null = null;
+  try { q = new URLSearchParams(search).get('radarraw'); } catch { /* kaputte Query = kein Votum */ }
+  if (q === '0') return false;
+  if (q === '1') return true;
+  let s = stored;
+  if (s === undefined) {
+    try { s = typeof localStorage !== 'undefined' ? localStorage.getItem('radarraw') : null; } catch { s = null; }
+  }
+  return s !== '0';
+}
+/** Dieselbe Datei auf raw.githubusercontent — `null` für jede andere Basis oder mit Schalter aus. */
+export function radarRawUrl(url: string): string | null {
+  if (!url.startsWith(`${RADAR_CDN_BASE}/`) || !radarRawFlagFrom()) return null;
+  return RADAR_RAW_BASE + url.slice(RADAR_CDN_BASE.length);
+}
+/**
+ * Phase ND (`audit/niederschlag-laden-dach.md` §1.4, ND-7): jsDelivr löst `@main` erst 31–90 s nach dem Push auf den neuen
+ * Commit auf — gemessen 03.11.: raw hatte den RV-Slot ab 277–280 s, das CDN antwortete am Gate (270 s) in 3 von 3 Fällen 404 und
+ * hatte ihn erst bei 304–361 s. Ein RV-Slot, der jünger ist als RV_IMG_CDN_READY_MS, wird deshalb RAW ZUERST gelesen (das CDN
+ * bleibt sein Ausweichweg) — auch vom Frühstart. Ältere Slots lesen wie bisher das CDN zuerst. set.
+ */
+export const RV_IMG_CDN_READY_MS = 360_000;
+export function rvImgRawFirst(ts: string, nowMs: number = Date.now()): boolean {
+  if (!rvImgEligible(ts, nowMs) || !radarRawFlagFrom()) return false;
+  return nowMs - rvStampToMs(ts) < RV_IMG_CDN_READY_MS;
 }
 
 /** Darf DIESER Lauf jetzt als Bild-Slot angefragt werden? (Gate + Fenster + beide Schalter + Latch) */
@@ -252,7 +301,8 @@ export function warmRvTar(nowMs: number = Date.now()): string | null {
   // meta.json + f000.png (Erstbild-Frame) statt des ganzen Tars — der Leser nimmt
   // beide über dieselben URL-Schlüssel entgegen.
   if (rvImgEligible(ts, nowMs)) {
-    const dir = rvImgDir(ts);
+    // ND-7: a slot the CDN cannot have yet is warmed on raw.githubusercontent (keys = the raw URLs; the reader looks there first).
+    const dir = rvImgRawFirst(ts, nowMs) ? (radarRawUrl(rvImgDir(ts)) ?? rvImgDir(ts)) : rvImgDir(ts);
     // Phase PF (M1): the dual analysis frame (`g000.png`, log plane) is warmed as well — the reader takes it first and draws it
     // before the forecast frames; on a slot without dual frames it is a cheap 404 and the `f000.png` stays the first picture.
     for (const u of [`${dir}/meta.json`, `${dir}/${radarImgDualFile(0)}`, `${dir}/${radarImgFrameFile(0)}`]) {
@@ -290,10 +340,18 @@ export function warmRvTar(nowMs: number = Date.now()): string | null {
 
 /** Nimmt den vorgestarteten Abruf EINMAL entgegen; `null` = selbst holen. */
 export function takeWarmRvTar(url: string, nowMs: number = Date.now()): Promise<WarmRvTar> | null {
+  return takeWarmRv(url, nowMs)?.p ?? null;
+}
+/**
+ * Phase ND (ND-1): like `takeWarmRvTar`, with the time the warm request was STARTED — the reader's hedge/deadline clock
+ * (`fetchImgRes`) runs from there, not from the moment of reading. Measured 03.11.: for an AT/CH place DE loads after the own
+ * radar (M10), and the warm `meta.json`/`g000.png` hung 7,4 s at the CDN before anyone watched them.
+ */
+export function takeWarmRv(url: string, nowMs: number = Date.now()): { p: Promise<WarmRvTar>; at: number } | null {
   const cur = warm.get(url);
   if (!cur) return null;
   warm.delete(url);
-  return nowMs - cur.at < RV_WARM_TTL_MS ? cur.p : null;
+  return nowMs - cur.at < RV_WARM_TTL_MS ? { p: cur.p, at: cur.at } : null;
 }
 
 /** Nur für Verifier/Tests. */

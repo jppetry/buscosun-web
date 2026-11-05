@@ -1,0 +1,9 @@
+#0 2026-11-03T20:32:36.177Z /wetterkarte/niederschlag?ort=M%C3%BCnchen&olat=48.1371&olon=11.5754&land=de slotAge=456s  RV@10222 INCA@8883 rzc@5848 CHnc@14879 AT5m@8883 radarKB=1856 reqs=149 warn/err=1
+    subs: []
+    log   5848 log [buscosun] MeteoSwiss rzc → Slot 20261103T2030 · Quelle Daten-Repo (PNG, frischer Slot über raw) · 3 min alt
+    log   8883 log [buscosun] AT INCA · 5 min → Lauf 20261103T2000 · 34 Frames (+15…+180 min, 12 INCA-Bilder) · Quelle Daten-Repo (PNG)
+    log   8883 log [buscosun] GeoSphere INCA → Lauf 20261103T2000 · 12 Frames · Quelle Daten-Repo (PNG, aus inca-5m)
+    log  10222 log [buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: Slot 2611032025 · Lauf 3.11.2026, 21:25:00 · 25 Frames (0…+120 min) · Quelle Daten-Repo (PNG)
+    log  14879 log [buscosun] CH Hochrechnung → Slot 20261103T2025 · 24 Frames (+5…+120 min) · 12 km/h aus 110° (5 Paare) · Quelle Daten-Repo (PNG)
+    WARNING   6305 Image "circle-11" could not be loaded. Please make sure you have added the image with map.addImage() or a "sprite" property in your style. You can provide missing images by listening for the "styleimagemissing" map event
+    net   1613→  4303 200      2KB  https://dataset.api.hub.geosphere.at/v1/grid/forecast/nowcast-v1-15min-1km/metadata 

@@ -3197,3 +3197,22 @@ wenn GLS, WBS, SA und FX-UI fertig sind (deine Entscheidung 02.11.); das Einmisc
 8. **Neue oder umbenannte Spots:** Katalog im Daten-Repo bauen, `node scripts/seo/fetch-place-modules.mjs`, dann
    `node scripts/sea/gen-spot-seo.mjs` und `node scripts/sea/gen-spot-names.mjs`; `npm run verify:sea-seo` muss grün sein.
 9. **Nach 4–8 Wochen:** GSC/BWT nach „seewetter + ort" auswerten (V-SS-7); Verbreitung V-SS-8.
+
+## 86. Niederschlag-Layer DE/AT/CH schneller und zuverlässiger (Phase ND, `audit/niederschlag-laden-dach.md`), 2026-11-03
+
+Client-Maßnahmen ND-1…ND-7 sind gebaut und uncommitted (`radolanRuns.ts`, `radarImg.ts`, `radolan.ts`, `geosphereIncaGrid.ts`,
+`radarNowcast.ts`, `MapView.tsx`, Verifier). Datenwerte unverändert (dieselben Dateien, andere Reihenfolge der Wege).
+
+1. **Sichtprüfung:** `/wetterkarte/niederschlag` für einen DE-, AT- und CH-Ort — alle drei Landesradare erscheinen, die Statuszeile
+   nennt kein „nicht erreichbar"; Konsole zeigt je Quelle die Zeile „Quelle Daten-Repo (PNG)“ (bei jungem Slot: dieselbe Zeile, die
+   Dateien kamen über raw.githubusercontent).
+2. **Commit und Push** (Push = live; `budget` grün, eagerJs 115 KB = Grenze, mit dem Start-Chunk-Umzug von `radarRawUrl`).
+3. **E-ND-1 (Daten-Repo, Spiegel):** Warm-up der Slot-Dateien über jsDelivr `@main` nach dem Push — erst, wenn jsDelivr den neuen
+   Commit auflöst (31–90 s nach dem Push, §1.4), sonst hält der Edge ein 404 fest. Entscheiden, ob gewünscht; Umsetzung in
+   `scripts/radar-mirror/radar-mirror.mjs` (läuft mit deinem nächsten Push des Web-Repos).
+4. **E-ND-2 (Spiegel + Client):** ein Bündel je Slot (`frames.bin`: Vorhersage-Frames in einer Datei; `g000` bleibt einzeln) — aus
+   26/35/72 Anfragen werden 2. Eigene Phase, dein Go.
+5. **E-ND-3:** RV-Bild-Gate 270 s gegen Push-Median 234 s / p90 321 s — Spiegel beschleunigen (Produkte parallel, Push gebündelt)
+   oder Gate auf 330 s (dann 60 s länger der 840-KB-Tar-Weg). Deine Abwägung Frische gegen Treffer; ND-7 mildert die Folge.
+6. **Bekannt rot, nicht ND:** `verify:radar-runs` „Listing > 100 KB" (DWD-Listing ist seit 20.10. 80 KB — Schwelle veraltet, V-ND-2),
+   `verify:layer-erstbild` „beide wärmen den Worker VOR dem fetch" (seit RL, Regex-Abstand, V-ND-3) — beide auch an HEAD rot.

@@ -466,8 +466,8 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
   const [wcSrcVia, setWcSrcVia] = useState<WcVia | null>(null);
   const [status, setStatus] = useState({ tiles: 0, mb: 0, mPerPx: 0, viewMpp: 0, edge: false });
   /** SAT3: Detektions-Rechtecke ein-/ausblenden (Sitzungszustand, default an). */
-  const [showDet, setShowDet] = useState(true);
-  const showDetRef = useRef(true);
+  const [showDet, setShowDet] = useState(false);
+  const showDetRef = useRef(false);
   showDetRef.current = showDet;
   const [scar, setScar] = useState<ScarNote | null>(null);
   const detectionsRef = useRef(detections);
@@ -1179,11 +1179,30 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
         </div>
       )}
       <div className="br-cog-ctrl" role="group" aria-label="10-m-Ansicht steuern">
-        <button type="button" onClick={resetView} aria-label="Ansicht auf den Brand zurücksetzen">⌂</button>
-        <button type="button" onClick={() => setFull((f) => !f)} aria-label={full ? 'Vollbild verlassen' : 'Vollbild'}>
-          {full ? '⇲' : '⤢'}
+        <button type="button" onClick={resetView} aria-label="Ansicht auf den Brand zurücksetzen" title="Auf den Brand zurücksetzen">
+          <svg viewBox="0 0 18 18" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="9" cy="9" r="5.2" /><circle cx="9" cy="9" r="1.3" fill="currentColor" stroke="none" />
+            <line x1="9" y1="1.2" x2="9" y2="3.4" /><line x1="9" y1="14.6" x2="9" y2="16.8" /><line x1="1.2" y1="9" x2="3.4" y2="9" /><line x1="14.6" y1="9" x2="16.8" y2="9" />
+          </svg>
         </button>
-        <button type="button" onClick={() => { setFull(false); onClose(); }} aria-label="10-m-Ansicht schließen">×</button>
+        <button type="button" onClick={() => setFull((f) => !f)} aria-label={full ? 'Vollbild verlassen' : 'Vollbild'} title={full ? 'Kleiner machen' : 'Vollbild'}>
+          {full ? (
+            /* corners pointing inward = make smaller */
+            <svg viewBox="0 0 18 18" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline points="2,7 7,7 7,2" /><polyline points="16,7 11,7 11,2" /><polyline points="2,11 7,11 7,16" /><polyline points="16,11 11,11 11,16" />
+            </svg>
+          ) : (
+            /* corners pointing outward = make larger */
+            <svg viewBox="0 0 18 18" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline points="2,6 2,2 6,2" /><polyline points="16,6 16,2 12,2" /><polyline points="2,12 2,16 6,16" /><polyline points="16,12 16,16 12,16" />
+            </svg>
+          )}
+        </button>
+        <button type="button" onClick={() => { setFull(false); onClose(); }} aria-label="10-m-Ansicht schließen" title="Schließen">
+          <svg viewBox="0 0 18 18" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" aria-hidden="true">
+            <line x1="4" y1="4" x2="14" y2="14" /><line x1="14" y1="4" x2="4" y2="14" />
+          </svg>
+        </button>
       </div>
       {phase.kind === 'ready' && (
         <div className="br-cog-status">

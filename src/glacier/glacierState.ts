@@ -43,7 +43,7 @@ export interface GlacierUrlState {
   dossier: boolean;
 }
 
-export const GLACIER_DEFAULT_STATE: GlacierUrlState = { glacier: null, tab: 'heute', t: 'heute', v: '2d', e: ['o', 's'], o: 0, land: 'alle', m: 'laenge', q: '', sel: null, dossier: false };
+export const GLACIER_DEFAULT_STATE: GlacierUrlState = { glacier: null, tab: 'heute', t: 'heute', v: '2d', e: ['o'], o: 0, land: 'alle', m: 'laenge', q: '', sel: null, dossier: false };
 const SEG_RE = /^(ch|at|de)-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 /** Is this a well-formed glacier path segment (country code + name slug)? Also used by the share adapter. */
 export const isGlacierSegment = (s: string | null | undefined): s is string => !!s && s.length <= 78 && SEG_RE.test(s);

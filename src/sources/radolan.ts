@@ -21,15 +21,15 @@ import { rvTarIsHdf5, rvStampFromFileName, type DecodedRvFrame } from './radolan
 // index-Chunk an). Re-Export, damit `verify:radar-runs` und andere Importeure
 // unverändert bleiben.
 import {
-  RV_DIR, RV_TAR_CACHE, guessRvRuns, rvTarUrl, rvFileName, takeWarmRvTar, type WarmRvTar,
+  RV_DIR, RV_TAR_CACHE, guessRvRuns, rvTarUrl, rvFileName, takeWarmRvTar, takeWarmRv, type WarmRvTar,
   // RD2 (audit/radar-datenrepo.md §13): CDN-Weg über das Daten-Repo
   rvTarCdnUrl, rvCdnEligible, noteRadarCdnFailure, radarCdnDeadline,
   // RD3 (audit §14): fertig aufbereitete Frame-PNGs vom Daten-Repo
-  rvImgEligible, rvImgDir, rvStampToMs, RV_STEP_MIN,
+  rvImgEligible, rvImgDir, rvStampToMs, RV_STEP_MIN, rvImgRawFirst, radarRawUrl,
   // NP-0a / Phase SE (V-SE-3): the look-back slot (`rv-past/<ts>/`, 24 slots) as the second image way of the analyses
   rvPastEligible, rvPastDir,
 } from './radolanRuns';
-import { parseRvImgMeta, RadarImg404, fetchImgRes, radarRawHedgeCount, RADAR_IMG_CONCURRENCY, pooledAll } from './radarImg';
+import { parseRvImgMeta, RadarImg404, fetchImgRes, radarRawHedgeCount, radarImgPoolSize, pooledAll, radarRawFirst, radarMarkRawFirst } from './radarImg';
 import { decodeGrayPng, decodeGrayAlphaPng } from './grayPng';
 import { radarDualFlagFrom } from '../scalar/radarHd';
 export { guessRvRuns } from './radolanRuns';
@@ -280,8 +280,12 @@ function rwInit(): void {
  *  NL-1: die vorgestartete Antwort steht unter derselben Frist und demselben Ausweichweg wie ein
  *  eigener Abruf — vorher wartete der Leser auf sie ohne Frist (gemessen 9,8 s bis > 30 s). */
 function imgRes(url: string, signal: AbortSignal, priority?: RequestPriority): Promise<Response> {
-  const wf = takeWarmRvTar(url);
-  return fetchImgRes(url, signal, priority, wf ? wf.then((w) => w.res) : undefined);
+  // ND-1: the hedge clock runs from the START of the warm request (M10 reads DE after the own radar — the warm answer may be
+  // seconds old by then), not from this moment. ND-7: the warm-up of a young slot ran on raw (key = raw URL) — taken as such.
+  const rawUrl = radarRawFirst(url) ? radarRawUrl(url) : null;
+  const wr = rawUrl ? takeWarmRv(rawUrl) : null;
+  const wf = wr ?? takeWarmRv(url);
+  return fetchImgRes(url, signal, priority, wf ? wf.p.then((w) => w.res) : undefined, wf?.at, wr ? 'raw' : 'cdn');
 }
 
 /** Phase PF (M1): the analysis frame of the RV slot being loaded, published as soon as it is decoded — before the forecast frames. */
@@ -310,6 +314,8 @@ function publishRvAnalysisEarly(a: RvAnalysisEarly): void {
  */
 async function fetchRvFromImg(ts: string, signal?: AbortSignal, priority?: RequestPriority): Promise<RvNowcast | null> {
   const dir = rvImgDir(ts);
+  // ND-7: a slot younger than the CDN's `@main` lag reads raw first (CDN = hedge); measured §1.4 — the CDN answers 404 at the gate.
+  if (rvImgRawFirst(ts)) radarMarkRawFirst(dir);
   const dl = radarCdnDeadline(signal);
   try {
     const metaRes = await imgRes(`${dir}/meta.json`, dl.signal, priority);
@@ -347,7 +353,7 @@ async function fetchRvFromImg(ts: string, signal?: AbortSignal, priority?: Reque
     // M8: six frames on the wire — unless the CDN is hedging (hangs/refuses): then every file waits for the raw way and a pool would
     // multiply that wait, so the limit is lifted as soon as one hedge fired during this slot (verify:radar-fallback B1–B3).
     const hedges0 = radarRawHedgeCount();
-    const poolLimit = () => (radarRawHedgeCount() > hedges0 ? Number.POSITIVE_INFINITY : RADAR_IMG_CONCURRENCY);
+    const poolLimit = () => (radarRawHedgeCount() > hedges0 ? Number.POSITIVE_INFINITY : radarImgPoolSize());   // ND-3: pool per line
     const f0 = meta.frames.find((f) => f.lead === 0);
     let early: DecodedRvFrame | null = null;
     let rest = meta.frames;
@@ -356,7 +362,7 @@ async function fetchRvFromImg(ts: string, signal?: AbortSignal, priority?: Reque
       const b0 = await frameBytes(f0, 'high');
       dl.touch();
       // the forecast frames start as soon as the analysis BYTES are in (the line stays busy while the worker decodes it);
-      // M8: at most RADAR_IMG_CONCURRENCY on the wire, every arrival restarts the deadline (D-PF-13/14)
+      // M8: at most `radarImgPoolSize()` on the wire (6, broadband 12 — ND-3), every arrival restarts the deadline (D-PF-13/14)
       rest = meta.frames.filter((f) => f !== f0);
       bytesP = pooledAll(rest, poolLimit, (f) => frameBytes(f, priority), dl.touch);
       bytesP.catch(() => { /* awaited below */ });

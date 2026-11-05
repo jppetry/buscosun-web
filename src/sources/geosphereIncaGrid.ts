@@ -22,7 +22,7 @@ import { parseIncaOffMain, warmHdf5Worker } from './hdf5OffMain';
 import { shareInFlight } from './shareInFlight';
 // RD3 (audit/radar-datenrepo.md §14): fertig aufbereitete Frames vom Daten-Repo-CDN
 import { radarCdnEnabled, radarCdnUsable, radarImgEnabled, noteRadarCdnFailure, radarCdnDeadline } from './radolanRuns';
-import { incaImgDir, parseIncaImgMeta, radarImgStamp, radarImgStampToMs, fetchImgRes, RadarImg404, radarRawHedgeCount, RADAR_IMG_CONCURRENCY, pooledAll } from './radarImg';
+import { incaImgDir, parseIncaImgMeta, radarImgStamp, radarImgStampToMs, fetchImgRes, RadarImg404, radarRawHedgeCount, radarImgPoolSize, pooledAll } from './radarImg';
 import { loadRadarGrayPngOffMain, loadRadarGrayAlphaPngOffMain } from './radolan';   // Phase PF (M4)
 import { radarDualFlagFrom } from '../scalar/radarHd';
 // Phase RL (29.10.2026): the run's 12 frames are a subset of the refined product `inca-5m` (every third frame, `kind: 'inca'`,
@@ -108,6 +108,42 @@ export async function fetchIncaGrid(signal?: AbortSignal, opts?: IncaFetchOption
 const META_URL = `${GRID_URL}/metadata`;
 
 /**
+ * Phase ND (`audit/niederschlag-laden-dach.md` ND-4): the `/metadata` call started EARLY — measured 1,4 s TTFB (03.11.), and for a
+ * DE/CH place it ran only after the own radar was done (M10), serially before the first AT byte. `warmIncaMeta()` starts it
+ * (once per `INCA_META_WARM_MS`); `incaMetaRef()` hands the running answer to the reader. Same request, same host, same error
+ * circle (never the CDN latch) — only earlier. The reader pays no extra call: a warm answer is consumed exactly once.
+ */
+export const INCA_META_WARM_MS = 60_000;
+let _metaWarm: { at: number; p: Promise<number> } | null = null;
+function fetchIncaMeta(signal?: AbortSignal, priority?: RequestPriority): Promise<number> {
+  return fetch(META_URL, { ...(signal ? { signal } : {}), ...(priority ? { priority } : {}) } as RequestInit)
+    .then(async (mr) => (mr.ok ? Date.parse(String((await mr.json() as { last_forecast_reftime?: string }).last_forecast_reftime ?? '')) : NaN));
+}
+export function warmIncaMeta(priority?: RequestPriority, nowMs: number = Date.now()): void {
+  if (typeof fetch !== 'function') return;
+  if (_metaWarm && nowMs - _metaWarm.at < INCA_META_WARM_MS) return;
+  const p = fetchIncaMeta(undefined, priority);
+  p.catch(() => { /* the reader sees the failure */ });
+  _metaWarm = { at: nowMs, p };
+}
+/** The reftime (ms, NaN = none) — a warm answer when there is one, else a fresh call under the caller's signal. */
+function incaMetaRef(signal: AbortSignal, priority?: RequestPriority, nowMs: number = Date.now()): Promise<number> {
+  const w = _metaWarm;
+  if (w && nowMs - w.at < INCA_META_WARM_MS) {
+    _metaWarm = null;
+    // the warm call carries no signal — the reader's deadline must still end the wait (NL-1 rule for warm answers)
+    return new Promise<number>((resolve, reject) => {
+      if (signal.aborted) { reject(signal.reason); return; }
+      signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+      w.p.then(resolve, reject);
+    });
+  }
+  return fetchIncaMeta(signal, priority);
+}
+/** Nur für Verifier/Tests. */
+export function _resetIncaMetaWarm(): void { _metaWarm = null; }
+
+/**
  * Gate für GERECHNETE Bild-Stempel (RD3c-Nachtrag): der Spiegel pusht einen Lauf
  * 16,7–22,8 min nach seiner Referenzzeit (Telemetrie 2026-09-03) — plus CDN und
  * Reserve. Nur für den Ausfall-Rückfall; im Normalbetrieb kommt der Stempel
@@ -142,9 +178,7 @@ async function loadIncaFromImg(priority?: RequestPriority): Promise<IncaGrid | n
     // auch RV/KONRAD/rzc ab). Deshalb hat der Fremd-Abruf sein eigenes catch.
     let ref = NaN;
     try {
-      const mr = await fetch(META_URL, { signal: dl.signal, ...(priority ? { priority } : {}) } as RequestInit);
-      if (!mr.ok) return null;
-      ref = Date.parse(String((await mr.json() as { last_forecast_reftime?: string }).last_forecast_reftime ?? ''));
+      ref = await incaMetaRef(dl.signal, priority);   // ND-4: a warm answer when the composite started it early
     } catch {
       return null;                               // GeoSphere weg ⇒ Direktweg, danach der geratene Bild-Weg
     }
@@ -194,9 +228,9 @@ async function loadIncaSlot(stamp: string, signal: AbortSignal, priority?: Reque
   // HD-3: mit `?hdv2=1` das Dual-PNG (beide Ebenen in einem Abruf); fehlt es (404), je Frame das `f`-Bild wie bisher.
   const dualFile = radarDualFlagFrom() && meta.dual ? new Map(meta.dual.frames.map((d) => [d.lead, d.file])) : null;
   touch?.();
-  // Phase PF (M8): at most RADAR_IMG_CONCURRENCY frames on the wire (lifted once the CDN hedges), every arrival restarts the CDN deadline (D-PF-13/14)
+  // Phase PF (M8): at most `radarImgPoolSize()` frames on the wire (lifted once the CDN hedges; ND-3: 6, broadband 12), every arrival restarts the CDN deadline (D-PF-13/14)
   const hedges0 = radarRawHedgeCount();
-  const frames: IncaFrame[] = await pooledAll(meta.frames, () => (radarRawHedgeCount() > hedges0 ? Number.POSITIVE_INFINITY : RADAR_IMG_CONCURRENCY), async (f) => {
+  const frames: IncaFrame[] = await pooledAll(meta.frames, () => (radarRawHedgeCount() > hedges0 ? Number.POSITIVE_INFINITY : radarImgPoolSize()), async (f) => {
     const g = dualFile?.get(f.lead);
     if (g) {
       try {

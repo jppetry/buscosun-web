@@ -10,6 +10,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import type { Location } from '../types';
 import { geocodeDACH, flagForCountry } from '../geocode';
+import { LocationSearchSheet, useSearchSheet } from '../components/LocationSearchSheet';
 import ThreeDMap from './ThreeDMap';
 import SectionView from './SectionView';
 import TerrainView from './TerrainView';
@@ -265,6 +266,7 @@ function ThreeDLocationField({ value, onChange }: { value: Location | null; onCh
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const sheet = useSearchSheet();   // phone / tablet: full-screen search page instead of the inline dropdown
 
   async function search() {
     const q = query.trim();
@@ -305,11 +307,18 @@ function ThreeDLocationField({ value, onChange }: { value: Location | null; onCh
           <circle cx="8" cy="8" r="6" /><line x1="13" y1="13" x2="17" y2="17" strokeLinecap="round" />
         </svg>
         <input type="text" className="ev-search-input" placeholder="Bergregion, Tal oder Ort …" value={query}
-          onChange={(e) => setQuery(e.target.value)} onKeyDown={onKey} disabled={loading} aria-label="Ort suchen" />
+          onChange={(e) => setQuery(e.target.value)} onKeyDown={onKey} onFocus={sheet.openSheet} disabled={loading} aria-label="Ort suchen" />
         <button type="button" className="ev-search-go td-search-go" onClick={() => void search()} disabled={loading || !query.trim()}>
           {loading ? 'Suche …' : 'Suchen'}
         </button>
       </div>
+      {sheet.open && (
+        <LocationSearchSheet
+          inputRef={sheet.inputRef} onClose={sheet.close} placeholder="Bergregion, Tal oder Ort …"
+          accent="var(--td-blue, #3A6FA8)" accentDark="var(--td-blue-dark, #28507A)"
+          onPick={(l) => { sheet.close(); onChange(l); }}
+        />
+      )}
       {(results.length > 0 || error) && (
         <div className="ev-search-dropdown" role="listbox">
           {error && <div className="ev-search-error">⚠ {error}</div>}

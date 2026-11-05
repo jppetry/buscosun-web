@@ -1241,6 +1241,15 @@
 .br-sat-day.is-on .br-sat-day-cloud { color: #FFF; }
 .br-sat-day.is-during:not(.is-on) { border-color: var(--br-warn-border); }
 .br-sat-day-cloud { font-size: 13px; color: var(--stone-400, #A89A7A); }
+/* Dossier chapter "Satellitenbild" (Jan 04.11.): the picture centred and large (was 600 px, left-aligned); phase buttons, label,
+   caption and day strip centred with it. The narrow history panel keeps its own size (it does not carry .br-ds-satbild). */
+.br-ds-satbild .br-sat-seg, .br-ds-satbild .br-sat-label { justify-content: center; }
+.br-ds-satbild .br-sat-frame { max-width: min(100%, 820px); margin-inline: auto; }
+.br-ds-satbild .br-sat-caption, .br-ds-satbild > .br-note, .br-ds-satbild .br-sat-detnote { text-align: center; }
+.br-ds-satbild .br-sat-days { width: fit-content; max-width: 100%; margin-inline: auto; }
+@media (min-width: 768px) {
+  .br-ds-satbild .br-sat-frame { aspect-ratio: 3 / 2; max-height: 70vh; }
+}
 .br-ds-satbild .fire-fp-reasons { margin-top: 10px; font-size: 14px; }
 .br-ds-satbild > .br-note { margin-top: 10px; font-size: 14px; }
 /* SAT2a: 10-m-Viewer — Canvas im Bildrahmen, Vollbild als Portal-Overlay, Statuszeile mit Maßstab. */
@@ -1252,7 +1261,8 @@
 .br-cog-inline .br-sat-wait, .br-cog-full .br-sat-wait { color: #EDE6D3; }
 .br-cog-inline a, .br-cog-full a { color: #EAF1F7; }
 .br-cog-ctrl { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; }
-.br-cog-ctrl button { width: 34px; height: 34px; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 8px; background: #FDFBF4; color: var(--ink-900, #2C2A26); font-size: 17.5px; line-height: 1; cursor: pointer; }
+.br-cog-ctrl button { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 8px; background: #FDFBF4; color: var(--ink-900, #2C2A26); font-size: 17.5px; line-height: 1; cursor: pointer; }
+.br-cog-ctrl button:hover { background: #fff; border-color: var(--ink-900, #2C2A26); }
 .br-cog-status { position: absolute; left: 8px; right: 8px; bottom: 8px; display: flex; align-items: center; gap: 8px; margin: 0; font-size: 13px; color: #EDE6D3; }
 .br-cog-scale { display: inline-block; flex: 0 0 auto; height: 0; border-bottom: 2px solid #EDE6D3; }
 /* SAT2b: Sätze und Legende stapeln sich über der Statuszeile (mehrere gleichzeitig möglich). */

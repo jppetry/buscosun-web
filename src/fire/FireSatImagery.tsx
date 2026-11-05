@@ -93,7 +93,7 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
   /** SAT2a: 10-m-Ansicht offen? Sitzungszustand, nie Permalink (Präzedenz Szenenwahl). */
   const [cog10, setCog10] = useState(false);
   /** SAT3: Detektions-Rechtecke über dem 30-m-Bild (Sitzungszustand, default an). */
-  const [showDet, setShowDet] = useState(true);
+  const [showDet, setShowDet] = useState(false);
 
   useEffect(() => {
     let alive = true;

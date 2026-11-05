@@ -14,6 +14,7 @@
 
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
 import { geocodeDACH, flagForCountry } from '../geocode';
+import { LocationSearchSheet, useSearchSheet } from '../components/LocationSearchSheet';
 import { defaultHistorySource } from './historySource';
 import type { DailyRecord } from './historyModel';
 import {
@@ -1037,6 +1038,7 @@ function LocationSearch({ onPick }: { onPick: (l: HistoryLocation) => void }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const sheet = useSearchSheet();   // phone / tablet: full-screen search page instead of the inline dropdown
 
   async function search() {
     const q = query.trim(); if (q.length < 2) return;
@@ -1062,9 +1064,16 @@ function LocationSearch({ onPick }: { onPick: (l: HistoryLocation) => void }) {
       <div className="ev-search">
         <svg className="ev-search-icon" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="8" cy="8" r="6" /><line x1="13" y1="13" x2="17" y2="17" strokeLinecap="round" /></svg>
         <input type="text" className="ev-search-input" placeholder="Ort oder PLZ suchen – z. B. Dillenburg oder 35683" value={query}
-          onChange={(e) => setQuery(e.target.value)} onKeyDown={onKey} disabled={loading} aria-label="Ort suchen" />
+          onChange={(e) => setQuery(e.target.value)} onKeyDown={onKey} onFocus={sheet.openSheet} disabled={loading} aria-label="Ort suchen" />
         <button type="button" className="ev-search-go" onClick={() => void search()} disabled={loading || query.trim().length < 2}>{loading ? 'Suche …' : 'Suchen'}</button>
       </div>
+      {sheet.open && (
+        <LocationSearchSheet
+          inputRef={sheet.inputRef} onClose={sheet.close} placeholder="Ort oder PLZ suchen – z. B. Dillenburg oder 35683"
+          accent="var(--hi-ink, #2C2A26)" accentDark="#000"
+          onPick={(l) => { sheet.close(); onPick({ name: l.name, lat: l.lat, lon: l.lon, country: l.country }); }}
+        />
+      )}
       {(results.length > 0 || error) && (
         <div className="ev-search-dropdown" role="listbox">
           {error && <div className="ev-search-error">⚠ {error}</div>}

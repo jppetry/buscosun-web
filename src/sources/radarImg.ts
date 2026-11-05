@@ -27,9 +27,10 @@
 import { PRECIP_VMAX, PRECIP_LOG_MIN, PRECIP_LOG_MAX, PRECIP_LOG_STEPS, type QuadCorners } from '../scalar/RainLayer';
 import { decodeGrayPng, decodeGrayAlphaPng, GrayPngUnsupported } from './grayPng';
 import {
-  RADAR_CDN_BASE, RADAR_IMG_BASE, RADAR_IMG_VERSION, RV_IMG_GATE_MS,
+  RADAR_IMG_BASE, RADAR_IMG_VERSION, RV_IMG_GATE_MS,
   radarImgFrameFile, radarImgDualFile, radarImgFlagFrom, radarImgEnabled, rvImgDir, rvImgEligible,
   RV_PAST_KEEP, RADAR_PAST_WINDOW_MS, rvPastDir, rvPastEligible,
+  RADAR_RAW_BASE, radarRawFlagFrom, radarRawUrl,
 } from './radolanRuns';
 
 // Die RV-/Schalter-/Gate-Primitiven leben in `radolanRuns.ts` (abhängigkeitsfrei,
@@ -346,7 +347,8 @@ export class RadarImg404 extends Error {}
 // wenn das CDN nach 2,5 s keine Kopfzeilen geschickt hat, sofort bei 403/5xx/Netzfehler.
 // Seit V-AW-25 auch nach einem 404 am CDN EINMAL raw (jsDelivr hält einen zu früh erfragten 404 am Edge
 // fest); „gibt es nicht" ist ein 404 erst auf beiden Wegen. Schalter `?radarraw=0|1` / `localStorage.radarraw`.
-export const RADAR_RAW_BASE = 'https://raw.githubusercontent.com/jppetry/buscosun-data/main/radar';
+// Basis, Schalter und URL-Abbildung leben seit ND-7 in `radolanRuns.ts` (Start-Chunk, der Frühstart braucht sie) — hier re-exportiert.
+export { RADAR_RAW_BASE, radarRawFlagFrom, radarRawUrl };
 /** p95 der gemessenen MISS-TTFB (AP0/AP1) — wie `RAW_FALLBACK_HEDGE_MS` des Punkt-Lesers. */
 export const RADAR_RAW_HEDGE_MS = 2_500;
 /**
@@ -358,6 +360,36 @@ export const RADAR_RAW_HEDGE_MS = 2_500;
 let _rawHedges = 0;
 export function radarRawHedgeCount(): number { return _rawHedges; }
 
+// --- Phase ND (`audit/niederschlag-laden-dach.md` ND-2): raw first for a slot the CDN has already failed on -----------------
+// Measured 03.11. (production, desktop): jsDelivr answered single frames of a FRESH slot with 403 (1,4–1,7 s each, then held at the
+// edge) or without headers for 2,5–7 s, and every file learned that for itself — 26–72 files of one slot, one after the other
+// within the pool. Now the slot DIRECTORY remembers: once raw.githubusercontent delivered a file the CDN hung on or refused, the
+// remaining files of that directory go to raw first and the CDN becomes their hedge (same timer, mirrored). The mark expires
+// after `RADAR_RAW_FIRST_TTL_MS` (a slot's lifetime of interest) and never spreads to another slot — the next slot starts at
+// the CDN again. A 404 on both ways stays "not there". Off with the raw switch (`?radarraw=0`), like the hedge itself.
+export const RADAR_RAW_FIRST_TTL_MS = 10 * 60_000;
+const RAW_FIRST_MAX_DIRS = 64;
+const _rawFirst = new Map<string, number>();   // slot directory → marked at (ms)
+const dirOf = (url: string) => url.slice(0, url.lastIndexOf('/'));
+/** Does this URL's slot directory read raw first right now? */
+export function radarRawFirst(url: string, nowMs: number = Date.now()): boolean {
+  const d = dirOf(url);
+  const at = _rawFirst.get(d);
+  if (at === undefined) return false;
+  if (nowMs - at >= RADAR_RAW_FIRST_TTL_MS) { _rawFirst.delete(d); return false; }
+  return true;
+}
+/** Marks a slot directory (or any URL under it) raw-first — the RV reader does it for a slot the CDN cannot have yet (ND-7). */
+export function radarMarkRawFirst(urlOrDir: string, nowMs: number = Date.now()): void { markRawFirst(`${urlOrDir}/x`, nowMs); }
+function markRawFirst(url: string, nowMs: number = Date.now()): void {
+  const d = dirOf(url);
+  _rawFirst.delete(d);
+  _rawFirst.set(d, nowMs);
+  while (_rawFirst.size > RAW_FIRST_MAX_DIRS) { const k = _rawFirst.keys().next().value; if (k === undefined) break; _rawFirst.delete(k); }
+}
+/** Nur für Verifier/Tests. */
+export function _resetRadarRaw(): void { _rawFirst.clear(); _rawHedges = 0; }
+
 /**
  * Phase PF (M8, D-PF-14): at most this many frame files of one slot on the wire at once. 25 parallel streams on a throttled
  * link share the bandwidth so that the first of them completes almost as late as the last (the analysis frame included), the
@@ -367,6 +399,37 @@ export function radarRawHedgeCount(): number { return _rawHedges; }
  * `radolanRuns.ts` (eager, router warm-up) — the eager chunk carries only what the warm-up needs.
  */
 export const RADAR_IMG_CONCURRENCY = 6;
+/**
+ * Phase ND (`audit/niederschlag-laden-dach.md` ND-3, V-PF-5): the pool on a broadband line. Measured 03.11. (desktop,
+ * production): a slot is 26–72 files of 1–30 KB and the CDN answers in 0,3–0,7 s each, so with six on the wire a neighbour
+ * radar costs 3–5 s of pure latency (INCA 35 files: 4,7 s after RV in run #3). Six stays for a narrow viewport (≤ 767 px), for
+ * `saveData`, and for a connection the browser does not call `4g` — there the pool guards against the false hedge of D-PF-14.
+ * set — lab numbers only (desktop unthrottled, mobile 4G).
+ */
+export const RADAR_IMG_CONCURRENCY_WIDE = 12;
+/** Diagnose-Schalter `?radarpool=N` / `localStorage.radarpool` (1…25, D-31: Query schlägt Speicher) — für Lab-Messungen der Pool-Größe. */
+export function radarPoolOverrideFrom(
+  search: string = typeof location !== 'undefined' ? location.search : '',
+  stored?: string | null,
+): number | null {
+  let q: string | null = null;
+  try { q = new URLSearchParams(search).get('radarpool'); } catch { /* kaputte Query = kein Votum */ }
+  let s = stored;
+  if (q == null && s === undefined) {
+    try { s = typeof localStorage !== 'undefined' ? localStorage.getItem('radarpool') : null; } catch { s = null; }
+  }
+  const n = Number(q ?? s);
+  return Number.isInteger(n) && n >= 1 && n <= 25 ? n : null;
+}
+export function radarImgPoolSize(): number {
+  if (typeof navigator === 'undefined' || typeof window === 'undefined') return RADAR_IMG_CONCURRENCY;
+  const o = radarPoolOverrideFrom();
+  if (o != null) return o;
+  const c = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+  if (c?.saveData || (typeof c?.effectiveType === 'string' && c.effectiveType !== '4g')) return RADAR_IMG_CONCURRENCY;
+  try { if (window.matchMedia('(max-width: 767px)').matches) return RADAR_IMG_CONCURRENCY; } catch { /* no matchMedia: broad */ }
+  return RADAR_IMG_CONCURRENCY_WIDE;
+}
 /**
  * Runs `fn` over `items` with at most `limit()` in flight (re-read after every completion — a reader may lift the limit when it
  * sees the CDN hedging), keeps the order of `items`, calls `onEach` after every completion. Rejects with the first error.
@@ -392,28 +455,6 @@ export function pooledAll<T, R>(items: readonly T[], limit: number | (() => numb
   });
 }
 
-/** Kill-Switch des Ausweichwegs: `?radarraw=0|1` schlägt `localStorage.radarraw` (D-31). */
-export function radarRawFlagFrom(
-  search: string = typeof location !== 'undefined' ? location.search : '',
-  stored?: string | null,
-): boolean {
-  let q: string | null = null;
-  try { q = new URLSearchParams(search).get('radarraw'); } catch { /* kaputte Query = kein Votum */ }
-  if (q === '0') return false;
-  if (q === '1') return true;
-  let s = stored;
-  if (s === undefined) {
-    try { s = typeof localStorage !== 'undefined' ? localStorage.getItem('radarraw') : null; } catch { s = null; }
-  }
-  return s !== '0';
-}
-
-/** Dieselbe Datei auf raw.githubusercontent — `null` für jede andere Basis oder mit Schalter aus. */
-export function radarRawUrl(url: string): string | null {
-  if (!url.startsWith(`${RADAR_CDN_BASE}/`) || !radarRawFlagFrom()) return null;
-  return RADAR_RAW_BASE + url.slice(RADAR_CDN_BASE.length);
-}
-
 function abortReason(signal: AbortSignal): unknown {
   return signal.reason ?? new DOMException('Aborted', 'AbortError');
 }
@@ -422,14 +463,24 @@ function abortReason(signal: AbortSignal): unknown {
  * CDN-Abruf mit 404-Markierung und Ausweichweg (NL-2); harte Fehler auf BEIDEN Wegen werfen normal
  * (⇒ Sitzungs-Latch beim Aufrufer), „nicht da" (404/403 überall) wirft `RadarImg404`.
  * `started` = eine schon laufende Antwort desselben URL (Router-Frühstart, `takeWarmRvTar`) — sie
- * steht unter derselben Frist (`signal`) und demselben Hedge wie ein eigener Abruf (NL-1).
+ * steht unter derselben Frist (`signal`) und demselben Hedge wie ein eigener Abruf (NL-1); `startedAt` (ND-1) = wann sie
+ * gestartet wurde — der Hedge rechnet ab dort, eine Antwort, die beim Lesen schon ≥ 2,5 s alt ist, bekommt den Ausweichweg sofort.
+ * ND-2: liest das Slot-Verzeichnis gerade raw zuerst (`radarRawFirst`), tauschen die Wege die Rollen — raw ist der erste Weg,
+ * das CDN der Hedge; die Regeln (404 beidseitig = nicht da, harter Fehler zählt) bleiben dieselben.
  * Die Antwort ist gepuffert: auch ihr Körper ist innerhalb der Frist gelesen.
  */
-export function fetchImgRes(url: string, signal?: AbortSignal, priority?: RequestPriority, started?: Promise<Response>): Promise<Response> {
+export function fetchImgRes(
+  url: string, signal?: AbortSignal, priority?: RequestPriority, started?: Promise<Response>, startedAt?: number, startedVia: 'cdn' | 'raw' = 'cdn',
+): Promise<Response> {
   const raw = radarRawUrl(url);
+  // a warm answer decides the first way itself (ND-7: the warm-up reads a young slot on raw); without one, the slot directory does
+  const rawFirst = !!raw && (started ? startedVia === 'raw' : radarRawFirst(url));
+  const pUrl = rawFirst ? raw! : url;          // der erste Weg
+  const sUrl = rawFirst ? url : raw;           // der Ausweichweg (null ohne raw)
   const init = (s: AbortSignal): RequestInit => ({ signal: s, ...(priority ? { priority } : {}) } as RequestInit);
   const acP = new AbortController();
   const acF = new AbortController();
+  const hedgeMs = Math.max(0, RADAR_RAW_HEDGE_MS - (started && startedAt != null ? Math.max(0, Date.now() - startedAt) : 0));
   return new Promise<Response>((resolve, reject) => {
     let settled = false;
     let won = false;          // ein Weg hat geantwortet; sein Körper wird gerade gelesen
@@ -457,24 +508,27 @@ export function fetchImgRes(url: string, signal?: AbortSignal, priority?: Reques
       finish(() => reject(notThere(pErr) ? fErr : pErr));
     };
     // Gewinner puffern (der Körper liegt dann innerhalb der Frist), Verlierer abbrechen.
-    const win = (res: Response, loser: AbortController) => {
+    const win = (res: Response, loser: AbortController, viaRaw: boolean) => {
       if (settled || won) return;
       won = true;
       loser.abort(new Error(`hedge: anderer Weg war schneller: ${url}`));
+      // ND-2: raw hatte, was das CDN nicht lieferte ⇒ die übrigen Dateien dieses Slot-Verzeichnisses lesen raw zuerst.
+      if (viaRaw && !rawFirst) markRawFirst(url);
       res.arrayBuffer().then(
         (buf) => finish(() => resolve(new Response(buf, { status: res.status, statusText: res.statusText, headers: res.headers }))),
         (e) => finish(() => reject(e)),
       );
     };
+    const statusErr = (res: Response, u: string) => (res.status === 404 || res.status === 403 ? new RadarImg404(`${res.status} ${u}`) : new Error(`${res.status} ${u}`));
     const startFallback = (): boolean => {
-      if (!raw || fbStarted || settled) return false;
+      if (!sUrl || fbStarted || settled) return false;
       fbStarted = true;
-      _rawHedges++;
-      fetch(raw, init(acF.signal)).then(
+      if (!rawFirst) _rawHedges++;   // der Pool-Zähler meint den Weg zu raw (M8); das CDN als Hedge zählt nicht
+      fetch(sUrl, init(acF.signal)).then(
         (res) => {
           if (settled || won) return;
-          if (res.ok) { win(res, acP); return; }
-          fErr = res.status === 404 || res.status === 403 ? new RadarImg404(`${res.status} ${raw}`) : new Error(`${res.status} ${raw}`);
+          if (res.ok) { win(res, acP, !rawFirst); return; }
+          fErr = statusErr(res, sUrl);
           settleFailure();
         },
         (e) => { if (settled || won) return; fErr = e; settleFailure(); },
@@ -486,16 +540,16 @@ export function fetchImgRes(url: string, signal?: AbortSignal, priority?: Reques
       if (signal.aborted) { onAbort(); return; }
       signal.addEventListener('abort', onAbort, { once: true });
     }
-    if (raw) timer = setTimeout(() => { timer = null; startFallback(); }, RADAR_RAW_HEDGE_MS);
-    (started ?? fetch(url, init(acP.signal))).then(
+    if (sUrl) timer = setTimeout(() => { timer = null; startFallback(); }, hedgeMs);
+    (started ?? fetch(pUrl, init(acP.signal))).then(
       (res) => {
         if (settled || won) return;
         if (timer) { clearTimeout(timer); timer = null; }   // Kopfzeilen da: kein Hedge mehr
-        if (res.ok) { win(res, acF); return; }
+        if (res.ok) { win(res, acF, rawFirst); return; }
         // V-AW-25 (audit/autobahnwetter.md §18): ein 404 am CDN kann ein am Edge festgehaltener 404 sein (eine
         // Anfrage vor dem Push) — dann einmal raw.githubusercontent; sagt auch raw 404, bleibt es „nicht da".
         // Ohne Ausweichweg (Schalter `radarraw=0`, fremde Basis) wie bisher sofort RadarImg404.
-        pErr = res.status === 403 || res.status === 404 ? new RadarImg404(`${res.status} ${url}`) : new Error(`${res.status} ${url}`);
+        pErr = statusErr(res, pUrl);
         startFallback();   // ohne Ausweichweg (Schalter/fremde Basis) entscheidet settleFailure sofort
         settleFailure();
       },

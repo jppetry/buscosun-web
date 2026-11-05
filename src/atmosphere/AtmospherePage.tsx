@@ -11,6 +11,7 @@
 import { useRef, useState, type KeyboardEvent } from 'react';
 import type { Location } from '../types';
 import { geocodeDACH, flagForCountry } from '../geocode';
+import { LocationSearchSheet, useSearchSheet } from '../components/LocationSearchSheet';
 import { tourFileToCutLine } from '../threed/tourImport';
 import { pickCountry } from '../pointForecast/clustering';
 import { AtmosphereProvider, useAtmosphere } from './atmosphereStore';
@@ -188,6 +189,7 @@ function LocationField() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const sheet = useSearchSheet();   // phone / tablet: full-screen search page instead of the inline dropdown
 
   async function search() {
     const q = query.trim();
@@ -228,11 +230,18 @@ function LocationField() {
           <circle cx="8" cy="8" r="6" /><line x1="13" y1="13" x2="17" y2="17" strokeLinecap="round" />
         </svg>
         <input type="text" className="ev-search-input" placeholder="Stadt, Adresse oder PLZ …" value={query}
-          onChange={(e) => setQuery(e.target.value)} onKeyDown={onKey} disabled={loading} aria-label="Ort suchen" />
+          onChange={(e) => setQuery(e.target.value)} onKeyDown={onKey} onFocus={sheet.openSheet} disabled={loading} aria-label="Ort suchen" />
         <button type="button" className="ev-search-go" onClick={() => void search()} disabled={loading || !query.trim()}>
           {loading ? 'Suche …' : 'Suchen'}
         </button>
       </div>
+      {sheet.open && (
+        <LocationSearchSheet
+          inputRef={sheet.inputRef} onClose={sheet.close} placeholder="Stadt, Adresse oder PLZ …"
+          accent="var(--terracotta-500, #C97B47)" accentDark="var(--terracotta-700, #A85E2E)"
+          onPick={(l) => { sheet.close(); setLocation(l); }}
+        />
+      )}
       {(results.length > 0 || error) && (
         <div className="ev-search-dropdown" role="listbox">
           {error && <div className="ev-search-error">⚠ {error}</div>}

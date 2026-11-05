@@ -44,7 +44,7 @@ const NARROW_QUERY = '(max-width: 1024px)';
 /** Mobil (≤ 767 px, Projekt-Breakpoint): dieselben kompakten Kacheln wie am Desktop, im 2-Spalten-Raster. */
 const MOBILE_QUERY = '(max-width: 767px)';
 import { warmMapData } from './fusion/loadFusedForecast';
-import { flagForCountry } from './geocode';
+import { flagForCountry, suggestDACH } from './geocode';
 import { getFavorites, removeFavorite, subscribeFavorites } from './favorites';
 import FavoriteStar from './FavoriteStar';
 import { useIntroTour, type IntroTour } from './intro/useIntroTour';
@@ -115,13 +115,6 @@ const TOOL_TILE_COUNT = 13;
 const FORECAST_TILE_HIDDEN = true;
 /** Autobahnwetter- und Seewetter-Kachel zählen, solange ihr Flag an ist (`ROAD_LIVE`/`SEA_LIVE`; `?road=0`, `?sea=0` blenden aus). */
 const toolTileCount = () => TOOL_TILE_COUNT - (FORECAST_TILE_HIDDEN ? 1 : 0) - (roadFlagFrom() ? 0 : 1) - (seaFlagFrom() ? 0 : 1) - (glacierFlagFrom() ? 0 : 1);
-/** Autobahnwetter-Kachel: hinter allen Tablet-Rängen (`order` 1–10 in SearchPage.css) und über die volle Breite —
- *  inline, weil SearchPage.css für diese Phase unverändert bleibt (E-AW-5). */
-const AW_TILE_STYLE: CSSProperties = { order: 11, gridColumn: '1 / -1' };
-/** Seewetter-Kachel (Phase SW, E-SW-8): Nr. 12, volle Breite hinter Autobahnwetter — Stellung inline wie AW, Aufbau in `.tile-sea*` (SearchPage.css). */
-const SW_TILE_STYLE: CSSProperties = { order: 12, gridColumn: '1 / -1' };
-/** Gletscher-Kachel (Phase GL): Nr. 13, volle Breite hinter Seewetter — Stellung inline, Aufbau in `.tile-gl*` (SearchPage.css). */
-const GL_TILE_STYLE: CSSProperties = { order: 13, gridColumn: '1 / -1' };
 
 interface PaletteEntry { num: string; label: string; hint: string; feature: FeatureInfo; }
 const PALETTE: PaletteEntry[] = [
@@ -472,7 +465,7 @@ const TILE_THREED = (
     </svg>
     <div>
       <div className="tile-title tile-title-sm">Vertikalschnitt</div>
-      <p className="tile-desc sm">Höhenwind, Böen, Windscherung, Strömungslinien und Wolkenbasis entlang einer frei gezogenen Linie. Gelände-Modus.</p>
+      <p className="tile-desc sm">Höhenwind, Böen, Windscherung, Strömungslinien und Wolkenbasis entlang einer frei gezogenen Linie.</p>
     </div>
   </>
 );
@@ -492,10 +485,41 @@ function HeroSearch({ onSelect, inputRef }: HeroSearchProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
+  // Phone / tablet: tapping the field opens a full-screen search page with the same input (no page zoom, room for the keyboard,
+  // results and saved places below). Desktop keeps the pill with its dropdown.
+  const [sheet, setSheet] = useState(false);
+  const closeSheet = () => {
+    setSheet(false); setResults([]); setError(null);
+    inputRef.current?.blur();
+  };
+
+  // Suggestions while typing (no Enter needed): after a short pause, from Photon; a newer keystroke cancels the older request.
+  // Enter still runs the full Nominatim search below. Failures stay silent — the Enter path remains.
+  const suggestAbort = useRef<AbortController | null>(null);
+  useEffect(() => {
+    suggestAbort.current?.abort();
+    const q = query.trim();
+    if (q.length < 3) { setResults([]); return; }
+    const ctl = new AbortController();
+    suggestAbort.current = ctl;
+    const t = window.setTimeout(() => {
+      suggestDACH(q, ctl.signal)
+        .then(list => { if (!ctl.signal.aborted) { setError(null); setResults(list); } })
+        .catch(() => { /* silent */ });
+    }, 300);
+    return () => { window.clearTimeout(t); ctl.abort(); };
+  }, [query]);
+
+  useEffect(() => {
+    if (!sheet) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, [sheet]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setResults([]); setError(null); }
+      if (e.key === 'Escape') { setResults([]); setError(null); setSheet(false); }
     };
     const onClick = (e: MouseEvent) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setResults([]);
@@ -512,6 +536,7 @@ function HeroSearch({ onSelect, inputRef }: HeroSearchProps) {
     e.preventDefault();
     const q = query.trim();
     if (!q) return;
+    suggestAbort.current?.abort();   // a late suggestion must not overwrite the Enter search
     setLoading(true);
     setError(null);
     setResults([]);
@@ -549,7 +574,13 @@ function HeroSearch({ onSelect, inputRef }: HeroSearchProps) {
   const showDropdown = results.length > 0 || error != null;
 
   return (
-    <div className={`deck-search-wrap${showDropdown ? ' has-dropdown' : ''}`} ref={wrapRef}>
+    <div className={`deck-search-wrap${showDropdown ? ' has-dropdown' : ''}${sheet ? ' is-sheet' : ''}`} ref={wrapRef}>
+      {sheet && (
+        <Suspense fallback={null}>
+          <DachMapBackground />
+        </Suspense>
+      )}
+      <div className="deck-search-head">
       <form className="deck-search" onSubmit={handleSubmit} role="search">
         <span className="deck-search-icon"><SearchIcon size={19} /></span>
         <input
@@ -559,6 +590,7 @@ function HeroSearch({ onSelect, inputRef }: HeroSearchProps) {
           placeholder="Stadt, Straße oder PLZ …"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => { if (!sheet && window.matchMedia('(max-width: 1024px), (pointer: coarse)').matches) setSheet(true); }}
           disabled={loading}
           aria-label="Standort suchen"
         />
@@ -571,6 +603,14 @@ function HeroSearch({ onSelect, inputRef }: HeroSearchProps) {
           )}
         </button>
       </form>
+        {sheet && (
+          <button type="button" className="deck-sheet-back" onClick={closeSheet} aria-label="Suche schließen">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" aria-hidden="true">
+              <line x1="4" y1="4" x2="14" y2="14" /><line x1="14" y1="4" x2="4" y2="14" />
+            </svg>
+          </button>
+        )}
+      </div>
 
       {showDropdown && (
         <div className="deck-search-dropdown" role="listbox">
@@ -591,6 +631,8 @@ function HeroSearch({ onSelect, inputRef }: HeroSearchProps) {
           })}
         </div>
       )}
+
+      {sheet && <HeroFavorites onSelect={onSelect} />}
 
       {/* Auftrag Jan 2026-08-09: die Fußzeile „↵ Enter zum Suchen · Live-Daten
           aus DE · AT · CH · oder direkt in die DACH-Wetterkarte" ist entfernt.
@@ -693,139 +735,15 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
   // Mobil nutzt dieselben kompakten Kachel-Inhalte wie der Desktop (Waldbrand, Regenradar, Gletscher, Autobahnwetter,
   // Seewetter, Globus, Historie, 3D-Wetter je eine Spalte); die Reihenfolge steht in SearchPage.css (≤ 767 px, `order`).
   const mobile = useMediaQuery(MOBILE_QUERY);
-  const compact = !narrow || mobile;
   const half = mobile ? ' t-half' : '';
   // 06 · HISTORIE / 07 · 3D-WETTER: auf ≤ 1024 px je eine Spalte der Reihe 06–09; auf Desktop seit 23.10.2026 (Jan)
   // darunter als zwei halbe Kacheln — ihre Plätze in der Reihe tragen Gletscher und Seewetter.
   const historyTile = tile(['verstehen'], 'tile-history t-half', FEATURE.history, 'Historie öffnen', TILE_HISTORY);
   const threedTile = tile(['erkunden'], 'tile-threed t-half', FEATURE.atmosphere, 'Atmosphäre / 3D-Wetter öffnen', TILE_THREED);
-  // 12 · SEEWETTER (Phase SW, E-SW-8) — auf ≤ 1024 px volle Breite hinter Autobahnwetter, Stellung inline (`order: 12`);
-  // auf Desktop seit 23.10.2026 (Jan) in der Reihe 06–09 als Kachel wie Waldbrand (TILE_SEA). Seit 10.10.2026 für
-  // alle sichtbar (`SEA_LIVE`, `?sea=0` blendet aus): Text links, schematische Seekarte rechts (`.tile-sea*` in
-  // SearchPage.css; die Vorschau ist eine Zeichnung, kein Datenbild). Lädt keine Daten.
-  const seaTile = seaFlagFrom() && (compact ? tile(['planen'], 'tile-coast t-half', FEATURE.sea, 'Seewetter öffnen', TILE_SEA) : tile(['planen'], 'tile-sea', FEATURE.sea, 'Seewetter öffnen',
-        <>
-          <div className="tile-sea-text">
-            <div className="tile-sea-head">
-              <div className="tile-feedback-icon" aria-hidden="true">
-                <svg width="34" height="34" viewBox="0 0 24 24">
-                  <path d="M2.5 9c2 0 2-1.6 4-1.6S8.5 9 10.5 9s2-1.6 4-1.6S16.5 9 18.5 9s2-1.6 3-1.6" fill="none" stroke="#7FC4CC" strokeWidth="1.6" strokeLinecap="round" />
-                  <path d="M2.5 14c2 0 2-1.6 4-1.6s2 1.6 4 1.6 2-1.6 4-1.6 2 1.6 4 1.6 2-1.6 3-1.6" fill="none" stroke="#2A9AA6" strokeWidth="1.6" strokeLinecap="round" />
-                  <path d="M2.5 19c2 0 2-1.6 4-1.6s2 1.6 4 1.6 2-1.6 4-1.6 2 1.6 4 1.6 2-1.6 3-1.6" fill="none" stroke="#C9BFA8" strokeWidth="1.6" strokeLinecap="round" />
-                </svg>
-              </div>
-              <div>
-                <div className="tile-eyebrow">12 · SEEWETTER</div>
-                <div className="tile-title tile-title-lg">Seewetter</div>
-              </div>
-            </div>
-            <p className="tile-desc">
-              Seegang mit Windsee und Dünung an Nord- und Ostsee aus dem DWD-Küstenmodell, Wind und Böen an rund 60 Spots,
-              Seewetterbericht und Warnstatus im Wortlaut — mit deinen eigenen Grenzen je Profil.
-              {' '}
-              <span className="tile-caveat">
-                Kein amtliches Warnprodukt. Binnenseen ohne Welle (nicht im DWD-Bestand).
-              </span>
-            </p>
-            <div className="tile-tags">
-              {['Seegang', 'Windsee & Dünung', 'Wind & Böen', 'Seewetterbericht', 'Kite · Segeln · SUP'].map((t) => (
-                <span key={t} className="tile-tag">{t}</span>
-              ))}
-            </div>
-          </div>
-          <div className="tile-sea-preview" aria-hidden="true">
-            <svg viewBox="0 0 520 200" preserveAspectRatio="xMidYMid slice">
-              <defs>
-                <linearGradient id="tile-sea-field" x1="0" y1="0" x2="1" y2="0.35">
-                  <stop offset="0" stopColor="#E0A23C" />
-                  <stop offset="0.3" stopColor="#5FB7A6" />
-                  <stop offset="0.62" stopColor="#2A9AA6" />
-                  <stop offset="1" stopColor="#1C5F6B" />
-                </linearGradient>
-              </defs>
-              <rect width="520" height="200" fill="url(#tile-sea-field)" />
-              {/* Land (schematisch): Küste unten und eine Insel */}
-              <path d="M0 200 L0 152 C60 140 96 158 150 146 C196 136 214 104 262 108 C304 112 318 148 366 150 C420 152 452 118 520 124 L520 200 Z" fill="var(--ink-900)" />
-              <path d="M300 62 C322 50 356 54 368 68 C356 82 318 84 300 62 Z" fill="var(--ink-900)" />
-              <path d="M0 152 C60 140 96 158 150 146 C196 136 214 104 262 108 C304 112 318 148 366 150 C420 152 452 118 520 124" fill="none" stroke="#E8C98A" strokeWidth="1.4" strokeDasharray="5 4" strokeOpacity=".8" />
-              {/* Wellen laufen in Pfeilrichtung */}
-              <g stroke="var(--sand-50)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" strokeOpacity=".7">
-                {[[60, 44], [150, 34], [240, 46], [110, 96], [200, 82], [430, 56], [470, 92], [400, 100]].map(([x, y]) => (
-                  <path key={`${x}-${y}`} d={`M${x} ${y} l20 7 m-6 -6 l6 6 l-8 3`} />
-                ))}
-              </g>
-              {/* Spots: passt · knapp · außerhalb */}
-              <g stroke="var(--sand-50)" strokeWidth="2">
-                <circle cx="150" cy="146" r="6.5" fill="var(--sage-600)" />
-                <circle cx="262" cy="108" r="6.5" fill="var(--amber-500)" />
-                <circle cx="366" cy="150" r="6.5" fill="var(--sage-600)" />
-                <circle cx="334" cy="60" r="6.5" fill="var(--terracotta-500)" />
-                <circle cx="470" cy="122" r="6.5" fill="var(--amber-500)" />
-              </g>
-            </svg>
-            <span className="tile-map-tag">DWD CWAM · BUSCOSUN FUSION · NORD- UND OSTSEE</span>
-          </div>
-        </>, SW_TILE_STYLE));
-  // 13 · GLETSCHER (Phase GL) — auf ≤ 1024 px volle Breite hinter Seewetter, Stellung inline (`order: 13`); auf Desktop
-  // seit 23.10.2026 (Jan) an erster Stelle der Reihe 06–09 als Kachel wie Waldbrand (TILE_GLACIER). Hinter
-  // `GLACIER_LIVE`: Text links, schematische Gletscherkarte rechts (`.tile-gl*` in SearchPage.css; die Vorschau ist eine
-  // Zeichnung, kein Datenbild). Lädt keine Daten.
-  const glacierTile = glacierFlagFrom() && (mobile ? tile(['planen'], 'tile-glacier t-half', FEATURE.glacier, 'Gletscherbericht öffnen', TILE_GLACIER) : !narrow ? null : tile(['planen'], 'tile-gl', FEATURE.glacier, 'Gletscherbericht öffnen',
-        <>
-          <div className="tile-gl-text">
-            <div className="tile-gl-head">
-              <div className="tile-feedback-icon" aria-hidden="true">
-                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#8FD0E3" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M2.5 19.5L9.2 8.6l3.1 4.6 2.9-4 6.3 10.3z" />
-                  <path d="M6.6 13.6l1.9 1.2 1.6-1.4 1.8 1.4" />
-                </svg>
-              </div>
-              <div>
-                <div className="tile-eyebrow">13 · GLETSCHER</div>
-                <div className="tile-title tile-title-lg">Gletscherbericht</div>
-              </div>
-            </div>
-            <p className="tile-desc">
-              Rund 2 200 Gletscher in Deutschland, Österreich und der Schweiz: amtliche Zahlen mit Datum, Längen- und Massenreihen der
-              Messnetze, Umrisse mit Bezugsjahr — an jedem Wert steht, ob er gemessen, vom Satelliten, aus dem Modell oder amtlich ist.
-              {' '}
-              <span className="tile-caveat">
-                Kein amtliches Warnprodukt. Schmelze und Schneegrenze folgen, sobald die Eichung besteht.
-              </span>
-            </p>
-            <div className="tile-tags">
-              {['Lage der Gletscher', 'Messreihen', 'Umrisse seit 1850', 'Herkunft je Wert'].map((t) => (
-                <span key={t} className="tile-tag">{t}</span>
-              ))}
-            </div>
-          </div>
-          <div className="tile-gl-preview" aria-hidden="true">
-            <svg viewBox="0 0 520 200" preserveAspectRatio="xMidYMid slice">
-              <defs>
-                <linearGradient id="tile-gl-ice" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0" stopColor="#E3F1F5" />
-                  <stop offset="0.5" stopColor="#A9D4E2" />
-                  <stop offset="1" stopColor="#5FAFC9" />
-                </linearGradient>
-              </defs>
-              <rect width="520" height="200" fill="var(--ink-900)" />
-              {/* Gebirgsrelief (schematisch) und zwei Gletscherzungen */}
-              <path d="M0 200 L0 120 L70 74 L118 108 L186 40 L262 112 L318 66 L392 130 L452 88 L520 124 L520 200 Z" fill="#3A3833" />
-              <path d="M150 70 C168 74 190 92 200 118 C212 148 232 160 224 186 C208 196 176 190 160 170 C140 146 134 96 150 70 Z" fill="url(#tile-gl-ice)" />
-              <path d="M368 100 C384 104 398 120 404 138 C410 158 424 166 418 186 C404 194 380 188 370 172 C358 152 356 116 368 100 Z" fill="url(#tile-gl-ice)" opacity=".85" />
-              {/* Umriss eines früheren Jahres (gestrichelt) */}
-              <path d="M146 62 C170 64 198 86 212 120 C226 154 250 172 232 196" fill="none" stroke="#E0A567" strokeWidth="1.4" strokeDasharray="5 4" />
-              {/* Gletscher als Kreise nach Fläche */}
-              <g stroke="var(--sand-50)" strokeWidth="2">
-                <circle cx="188" cy="124" r="8" fill="#5FAFC9" />
-                <circle cx="396" cy="146" r="6" fill="#A9D4E2" />
-                <circle cx="268" cy="112" r="4.5" fill="#E3F1F5" />
-                <circle cx="468" cy="112" r="5" fill="#A9D4E2" />
-              </g>
-            </svg>
-            <span className="tile-map-tag">GLAMOS · ÖAV · AGI 5 · WGMS · BAdW</span>
-          </div>
-        </>, GL_TILE_STYLE));
+  // 12 · SEEWETTER (Phase SW, E-SW-8): kompakte Kachel (TILE_SEA) auf allen Breiten (Tablet seit 04.11.2026 wie Handy und Desktop). Hinter `SEA_LIVE`, `?sea=0` blendet aus.
+  const seaTile = seaFlagFrom() && tile(['planen'], 'tile-coast t-half', FEATURE.sea, 'Seewetter öffnen', TILE_SEA);
+  // 13 · GLETSCHER (Phase GL): kompakte Kachel (TILE_GLACIER) auf Tablet und Handy; auf Desktop steht sie im Hero (HeroQuad). Hinter `GLACIER_LIVE`.
+  const glacierTile = glacierFlagFrom() && (!narrow ? null : tile(['planen'], 'tile-glacier t-half', FEATURE.glacier, 'Gletscherbericht öffnen', TILE_GLACIER));
 
   return (
     <section className="deck-bento" aria-label="Werkzeuge">
@@ -882,9 +800,7 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
       {/* 06–09 stehen als EINE Reihe zu vier Spalten (Jan, 2026-08-09). */}
       {/* Desktop: 13 · GLETSCHER · 12 · SEEWETTER · 08 · GLOBUS · 09 · FEEDBACK, darunter 06 · HISTORIE und 07 · 3D-WETTER.
           ≤ 1024 px unverändert: 06 · 07 · 08 · 09, Seewetter und Gletscher am Ende. */}
-      {compact
-        ? <>{mobile && glacierTile}{roadFlagFrom() && tile(['planen'], 'tile-road t-half', FEATURE.road, 'Autobahn Monitor öffnen', TILE_ROAD)}{seaTile}</>
-        : <>{historyTile}{threedTile}</>}
+      {glacierTile}{roadFlagFrom() && tile(['planen'], 'tile-road t-half', FEATURE.road, 'Autobahn Monitor öffnen', TILE_ROAD)}{seaTile}
 
       {/* 08 · GLOBUS */}
       {tile(['erkunden'], 'tile-globus t-half', FEATURE.globe, '3D-Globus öffnen',
@@ -919,31 +835,12 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
           <span className="tile-badge badge-mono-ghost">E-MAIL</span>
         </>)}
 
-      {compact && <>{historyTile}{threedTile}</>}
+      {historyTile}{threedTile}
 
       {/* 10 · WALDBRAND steht seit 2026-10-03 (Jan) links neben dem Regenradar: auf Desktop im
           Hero (HeroQuad), auf ≤1024 px im narrow-Block oben (TILE_FIRE). */}
-      {/* 11 · AUTOBAHNWETTER (Phase AW, E-AW-5) — auf Desktop seit 17.10.2026 im Hero (HeroQuad, TILE_ROAD); auf
-          ≤1024 px volle Breite am Ende des Bento-Rasters, Stellung und Breite inline (`order: 11` hinter den
-          Tablet-Rängen 1–10, `grid-column: 1 / -1`), Farben inline. Lädt keine Daten. `?road=0` blendet aus. */}
-      {narrow && !mobile && roadFlagFrom() && tile(['planen'], 'tile-fire', FEATURE.road, 'Autobahn Monitor öffnen',
-        <>
-          <div className="tile-feedback-icon" aria-hidden="true">
-            <svg width="34" height="34" viewBox="0 0 56 56">
-              <path d="M21 10 L11 46 M35 10 L45 46" fill="none" stroke="#8FB4E3" strokeWidth="2.6" strokeLinecap="round" />
-              <path d="M28 12 V18 M28 25 V31 M28 38 V44" fill="none" stroke="#C9BFA8" strokeWidth="2.4" strokeLinecap="round" />
-            </svg>
-          </div>
-          <div className="tile-feedback-body">
-            <div className="tile-eyebrow">11 · AUTOBAHNWETTER</div>
-            <div className="tile-title tile-title-lg">Autobahn Monitor</div>
-            <p className="tile-desc">
-              Fahrbahntemperatur und -zustand von rund 1.200 Glättemeldeanlagen des DWD, alle 15 Minuten —
-              je Autobahn als Streckenband.
-            </p>
-          </div>
-        </>, AW_TILE_STYLE)}
-      {narrow && !mobile && <>{seaTile}{glacierTile}</>}
+      {/* 11 · AUTOBAHNWETTER (Phase AW, E-AW-5): auf Desktop im Hero (HeroQuad, TILE_ROAD); auf Tablet und Handy hier als kompakte Kachel
+          (Jan 04.11.: die alte Vollbreiten-Kachel auf Tablet entfällt). Lädt keine Daten. `?road=0` blendet aus. */}
     </section>
   );
 }

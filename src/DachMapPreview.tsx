@@ -1,7 +1,7 @@
 /**
  * DachMapPreview — Zier-Grafik der Startseiten-Kachel „01 · Wetterkarte" (Phase WK, Entwurf „2d · Berge & Wälder",
  * E-WK-1): eine ruhige, gezeichnete DACH-Karte auf Sand — Land mit weichem Schatten, Hügel, Wald, zwei Reihen Berge mit
- * Schneekappen, gestrichelte Landesgrenzen, Umriss und beschriftete Städte. Keine Daten, keine Bewegung; die Geometrie
+ * Schneekappen, gestrichelte Landesgrenzen, Umriss und beschriftete Städte, dazu zwei langsam treibende Wolken. Keine Daten; die Geometrie
  * (Umrisse, Relief, Wald, Städte, Projektion) steht in `dachPreviewPaths.ts` (GENERIERT, `scripts/gen-dach-preview.mjs`).
  * Der Text der Kachel steht im DOM davor (`.tile-karte-text`, SearchPage.css), die Karte sitzt absolut dahinter/daneben.
  */
@@ -20,11 +20,13 @@ const FRAME = {
   wide: {
     box: '0 0 640 520', align: 'xMaxYMid meet', x: 276, y: 38, k: 1.86, label: 9.5,
     cities: ['Hamburg', 'Berlin', 'Köln', 'Frankfurt', 'Leipzig', 'München', 'Wien', 'Zürich', 'Bern', 'Innsbruck', 'Graz'],
+    clouds: [{ x: 372, y: 132, s: 1.15, cls: 'is-a', storm: true }, { x: 488, y: 236, s: 0.9, cls: 'is-b', storm: false }],
   },
   narrow: {
     // Mobil: nur der Kartenbereich (Land + Beschriftungen), rechts neben dem Text; Koordinaten bleiben die des Bezugsrahmens 358 × 396.
     box: '76 128 214 268', align: 'xMidYMid meet', x: 84, y: 134, k: 1, label: 8.5,
     cities: ['Hamburg', 'Berlin', 'Frankfurt', 'München', 'Wien', 'Zürich', 'Bern'],
+    clouds: [{ x: 152, y: 212, s: 0.7, cls: 'is-a', storm: true }, { x: 190, y: 288, s: 0.6, cls: 'is-b', storm: false }],
   },
 } as const;
 
@@ -47,6 +49,26 @@ const FOREST_EL = FOREST.map(([x, y, kind, s], i) => {
     </g>
   );
 });
+
+/** Eine Wolke um (0, 0): flache Basis, drei Kuppen. */
+const CLOUD = (
+  <>
+    <rect x="-26" y="-6" width="52" height="12" rx="6" />
+    <circle cx="-9" cy="-8" r="9" />
+    <circle cx="6" cy="-12" r="12" />
+    <circle cx="18" cy="-5" r="7" />
+  </>
+);
+
+/** Regen und Blitz unter der oberen (grauen) Wolke; Bewegung in CSS (`.tile-karte-drop`, `.tile-karte-bolt`), Reihenfolge: hinter der Wolke. */
+const STORM = (
+  <>
+    {[-14, -5, 4, 13].map((x, i) => (
+      <path key={x} className="tile-karte-drop" d={`M${x} 10l-2 7`} style={{ animationDelay: `${-i * 0.27}s` }} />
+    ))}
+    <path className="tile-karte-bolt" d="M4 7L-4 20h5l-4 12 12-17H3l5-8z" />
+  </>
+);
 
 export function DachMapPreview({ mobile }: { mobile: boolean }) {
   const fr = mobile ? FRAME.narrow : FRAME.wide;
@@ -76,6 +98,16 @@ export function DachMapPreview({ mobile }: { mobile: boolean }) {
         </g>
         <path d={SHAPE} fill="none" stroke="var(--ink-900)" strokeOpacity=".6" strokeWidth="1.6" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
       </g>
+      {/* Zwei Wolken treiben langsam hin und her (CSS, `.tile-karte-cloud`); sie liegen unter den Städtenamen. */}
+      {fr.clouds.map((c) => (
+        <g key={c.cls} transform={`translate(${c.x} ${c.y}) scale(${c.s})`}>
+          <g className={`tile-karte-cloud ${c.cls}`}>
+            <g fill="var(--ink-900)" fillOpacity=".12" transform="translate(4 13)">{CLOUD}</g>
+            {c.storm && STORM}
+            <g fill={c.storm ? '#B3B1AB' : '#fff'} fillOpacity=".96">{CLOUD}</g>
+          </g>
+        </g>
+      ))}
       {fr.cities.map((name) => {
         const [ux, uy] = CITIES[name];
         const x = fr.x + ux * fr.k, y = fr.y + uy * fr.k;

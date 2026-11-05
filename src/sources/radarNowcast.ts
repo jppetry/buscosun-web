@@ -9,7 +9,7 @@ import type { QuadCorners } from '../scalar/RainLayer';
 import { radarDualFlagFrom } from '../scalar/radarHd';
 import { shareInFlight } from './shareInFlight';
 import { radarCdnEnabled, radarCdnUsable, radarImgEnabled, noteRadarCdnFailure, radarCdnDeadline } from './radolanRuns';
-import { fetchImgRes, RadarImg404, radarRawHedgeCount, RADAR_IMG_CONCURRENCY, pooledAll, radarImgStamp, radarImgStampToMs, radarRawUrl } from './radarImg';
+import { fetchImgRes, RadarImg404, radarRawHedgeCount, radarImgPoolSize, pooledAll, radarImgStamp, radarImgStampToMs, radarRawUrl } from './radarImg';
 import { loadRadarGrayPngOffMain, loadRadarGrayAlphaPngOffMain } from './radolan';
 import { RZC_IMG_GATE_MS } from './meteoSwissRadar';
 import {
@@ -95,7 +95,7 @@ async function metaJson(res: Response): Promise<unknown> {
 async function readFrames(dir: string, meta: RzcNcImgMeta | Inca5mImgMeta, signal: AbortSignal, priority?: RequestPriority, touch?: () => void) {
   const dualFile = radarDualFlagFrom() && meta.dual ? new Map(meta.dual.frames.map((d) => [d.lead, d.file])) : null;
   const hedges0 = radarRawHedgeCount();
-  const limit = () => (radarRawHedgeCount() > hedges0 ? Number.POSITIVE_INFINITY : RADAR_IMG_CONCURRENCY);
+  const limit = () => (radarRawHedgeCount() > hedges0 ? Number.POSITIVE_INFINITY : radarImgPoolSize());   // ND-3
   return pooledAll(meta.frames, limit, async (f) => {
     const g = dualFile?.get(f.lead);
     if (g) {
@@ -116,7 +116,7 @@ async function loadRzcNcSlot(stamp: string, signal: AbortSignal, priority?: Requ
   touch?.();
   const planes = await readFrames(dir, meta, signal, priority, touch);
   const hedges0 = radarRawHedgeCount();
-  const unknown = await pooledAll(meta.unknown, () => (radarRawHedgeCount() > hedges0 ? Number.POSITIVE_INFINITY : RADAR_IMG_CONCURRENCY),
+  const unknown = await pooledAll(meta.unknown, () => (radarRawHedgeCount() > hedges0 ? Number.POSITIVE_INFINITY : radarImgPoolSize()),
     async (u) => loadRadarGrayPngOffMain(await fetchImgRes(`${dir}/${u.file}`, signal, priority), meta.width, meta.height), touch);
   const frames: RzcNcFrame[] = meta.frames.map((f, i) => ({
     leadMinutes: f.lead, validAt: new Date(f.validAtMs ?? meta.analysisAtMs + f.lead * 60_000),

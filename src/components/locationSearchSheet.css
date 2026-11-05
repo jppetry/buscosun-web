@@ -1,0 +1,42 @@
+/* Full-screen location search page (phone / tablet) — see LocationSearchSheet.tsx. Accent comes from --lss-accent. */
+.lss {
+  position: fixed; inset: 0; z-index: 3000; overflow-y: auto; overscroll-behavior: contain;
+  background: var(--cream-50, #FAF6EA);
+  padding: calc(env(safe-area-inset-top, 0px) + 12px) 14px calc(env(safe-area-inset-bottom, 0px) + 16px);
+}
+.lss > *:not(.deck-mapbg) { position: relative; z-index: 1; }
+.lss-head { display: flex; flex-direction: column; gap: 12px; }
+.lss-x {
+  align-self: flex-end; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;
+  background: var(--lss-accent); border: 1px solid var(--lss-accent); border-radius: 14px; color: #fff; cursor: pointer;
+}
+.lss-search {
+  display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid var(--border-medium, #D9D0B8);
+  border-radius: 22px; padding: 8px 8px 8px 18px; box-shadow: 0 18px 40px -26px rgba(44, 42, 38, 0.45);
+}
+.lss-search:focus-within { border-color: var(--lss-accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--lss-accent) 16%, transparent), 0 18px 40px -26px rgba(44, 42, 38, 0.45); }
+.lss-icon { flex: 0 0 auto; color: var(--stone-500, #8B7355); }
+.lss-input {
+  flex: 1; min-width: 0; border: none; outline: none; background: transparent; padding: 4px 0;
+  font: inherit; font-size: 16px; color: var(--ink-900, #2C2A26);   /* >= 16 px: no iOS zoom on focus */
+}
+.lss-input::placeholder { color: var(--stone-400, #A89A7A); }
+.lss-go {
+  flex: 0 0 auto; border: none; border-radius: 16px; padding: 12px 20px; cursor: pointer;
+  background: var(--lss-accent); color: #fff; font: inherit; font-size: 15px; font-weight: 600;
+}
+.lss-go:hover:not(:disabled) { background: var(--lss-accent-dark); }
+.lss-go:disabled { background: color-mix(in srgb, var(--lss-accent) 35%, #fff); color: #fff; cursor: not-allowed; }
+.lss-list {
+  margin-top: 14px; background: #fff; border: 1px solid var(--border-default, #E0D6BE); border-radius: 20px; overflow: hidden;
+}
+.lss-error { padding: 16px 20px; color: var(--terracotta-700, #A85E2E); font-size: 14px; }
+.lss-result {
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 12px 18px; text-align: left;
+  background: transparent; border: none; border-bottom: 1px solid var(--sand-100, #EDE6D3); cursor: pointer;
+  font: inherit; font-size: 15px; line-height: 1.35; color: var(--ink-900, #2C2A26);
+}
+.lss-result:last-child { border-bottom: none; }
+.lss-result:hover { background: var(--sand-50, #F5F1E8); }
+.lss-flag { font-size: 17px; line-height: 1; flex: 0 0 auto; }
+.lss-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

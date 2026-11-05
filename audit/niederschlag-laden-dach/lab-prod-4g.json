@@ -1,0 +1,9416 @@
+[
+ {
+  "i": 0,
+  "url": "https://buscosun.com/wetterkarte/niederschlag?ort=M%C3%BCnchen&olat=48.1371&olon=11.5754&land=de",
+  "at": "2026-11-03T20:33:02.802Z",
+  "slotAgeS": 483,
+  "logs": [
+   {
+    "t": 10911,
+    "type": "warning",
+    "text": "Image \"circle-11\" could not be loaded. Please make sure you have added the image with map.addImage() or a \"sprite\" property in your style. You can provide missing images by listening for the \"styleimagemissing\" map event."
+   },
+   {
+    "t": 13928,
+    "type": "log",
+    "text": "[buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: Slot 2611032025 · Lauf 3.11.2026, 21:25:00 · 25 Frames (0…+120 min) · Quelle Daten-Repo (PNG)"
+   },
+   {
+    "t": 14536,
+    "type": "log",
+    "text": "[buscosun] MeteoSwiss rzc → Slot 20261103T2030 · Quelle Daten-Repo (PNG, frischer Slot über raw) · 3 min alt"
+   },
+   {
+    "t": 17228,
+    "type": "log",
+    "text": "[buscosun] AT INCA · 5 min → Lauf 20261103T2000 · 34 Frames (+15…+180 min, 12 INCA-Bilder) · Quelle Daten-Repo (PNG)"
+   },
+   {
+    "t": 17230,
+    "type": "log",
+    "text": "[buscosun] GeoSphere INCA → Lauf 20261103T2000 · 12 Frames · Quelle Daten-Repo (PNG, aus inca-5m)"
+   },
+   {
+    "t": 18265,
+    "type": "log",
+    "text": "[buscosun] CH Hochrechnung → Slot 20261103T2025 · 24 Frames (+5…+120 min) · 12 km/h aus 110° (5 Paare) · Quelle Daten-Repo (PNG)"
+   }
+  ],
+  "net": [
+   {
+    "url": "/wetterkarte/niederschlag?ort=M%C3%BCnchen&olat=48.1371&olon=11.5754&land=de",
+    "st": 200,
+    "xc": null,
+    "kb": 5,
+    "t0": 0,
+    "t1": 1866,
+    "ttfb": 1863,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/fonts/space-grotesk-600-latin.woff2",
+    "st": 200,
+    "xc": null,
+    "kb": 22,
+    "t0": 1886,
+    "t1": 2130,
+    "ttfb": 171,
+    "prio": "High"
+   },
+   {
+    "url": "/fonts/league-spartan-500-latin.woff2",
+    "st": 200,
+    "xc": null,
+    "kb": 24,
+    "t0": 1887,
+    "t1": 2135,
+    "ttfb": 164,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/index-5jFv7pbD.js",
+    "st": 200,
+    "xc": null,
+    "kb": 110,
+    "t0": 1887,
+    "t1": 2649,
+    "ttfb": 291,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/cjs-helpers-Cpj98o6Y.js",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 1887,
+    "t1": 2077,
+    "ttfb": 158,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/index-BkLV0zc3.css",
+    "st": 200,
+    "xc": null,
+    "kb": 2,
+    "t0": 1887,
+    "t1": 2146,
+    "ttfb": 225,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/assets/WetterkarteRoute-xug1NXPm.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 1887,
+    "t1": 2241,
+    "ttfb": 281,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/modelCatalog-BbqlpjhE.js",
+    "st": 200,
+    "xc": null,
+    "kb": 2,
+    "t0": 1888,
+    "t1": 2153,
+    "ttfb": 228,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/useAppNav-dMDZGyW5.js",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 1888,
+    "t1": 2078,
+    "ttfb": 156,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/placeTable-BbtjGNal.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1888,
+    "t1": 2134,
+    "ttfb": 211,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/placeSlugs-B2C_i7YS.js",
+    "st": 200,
+    "xc": null,
+    "kb": 4,
+    "t0": 1888,
+    "t1": 2169,
+    "ttfb": 230,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/StaleLinkNotice-DkPdwIr5.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1888,
+    "t1": 2156,
+    "ttfb": 232,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/shareText-dgVRmrvW.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1888,
+    "t1": 2146,
+    "ttfb": 221,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/share-BbtFrz6j.css",
+    "st": 200,
+    "xc": null,
+    "kb": 2,
+    "t0": 1888,
+    "t1": 2284,
+    "ttfb": 332,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/assets/NotFoundRoute-DVNQLZfw.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1888,
+    "t1": 2134,
+    "ttfb": 210,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/NotFoundRoute-D5gLhNUD.css",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1889,
+    "t1": 2124,
+    "ttfb": 199,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/assets/MapView-MsRlQ2mG.js",
+    "st": 200,
+    "xc": null,
+    "kb": 71,
+    "t0": 1893,
+    "t1": 2589,
+    "ttfb": 364,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/layerCatalog-DIuEZjfi.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 1893,
+    "t1": 2323,
+    "ttfb": 352,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/repackSource-DwbmNybP.js",
+    "st": 200,
+    "xc": null,
+    "kb": 9,
+    "t0": 1893,
+    "t1": 2346,
+    "ttfb": 277,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/precipType-DUpA9G44.js",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 1893,
+    "t1": 2085,
+    "ttfb": 157,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/RainLayer-DVlSgX2P.js",
+    "st": 200,
+    "xc": null,
+    "kb": 7,
+    "t0": 1893,
+    "t1": 2290,
+    "ttfb": 255,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/quadWarpMesh-DgRdp-FC.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 1894,
+    "t1": 2271,
+    "ttfb": 294,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/maplibre-Y04dvQ_6.js",
+    "st": 200,
+    "xc": null,
+    "kb": 265,
+    "t0": 1894,
+    "t1": 2786,
+    "ttfb": 304,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/maplibre-B-YMMjus.css",
+    "st": 200,
+    "xc": null,
+    "kb": 9,
+    "t0": 1894,
+    "t1": 2111,
+    "ttfb": 156,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/assets/WindLayer-CBv1pUlO.js",
+    "st": 200,
+    "xc": null,
+    "kb": 20,
+    "t0": 1894,
+    "t1": 2464,
+    "ttfb": 416,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/perfGovernor-DRlV9hh2.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1894,
+    "t1": 2193,
+    "ttfb": 261,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/iconD2WindSource-DkBmp6wK.js",
+    "st": 200,
+    "xc": null,
+    "kb": 5,
+    "t0": 1894,
+    "t1": 2273,
+    "ttfb": 269,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/iconD2Precip-JRvFdFA5.js",
+    "st": 200,
+    "xc": null,
+    "kb": 6,
+    "t0": 1894,
+    "t1": 2314,
+    "ttfb": 300,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/decompress-CSvRoCdr.js",
+    "st": 200,
+    "xc": null,
+    "kb": 4,
+    "t0": 1894,
+    "t1": 2237,
+    "ttfb": 260,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/ScalarLayer-ot4XseYH.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 1894,
+    "t1": 2355,
+    "ttfb": 389,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/FavoriteStar-YFyCtjRH.js",
+    "st": 200,
+    "xc": null,
+    "kb": 14,
+    "t0": 1894,
+    "t1": 2413,
+    "ttfb": 347,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/spatialInterp-C5y8-fIz.js",
+    "st": 200,
+    "xc": null,
+    "kb": 11,
+    "t0": 1895,
+    "t1": 2362,
+    "ttfb": 281,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/geosphereInca-B4gDQ1iJ.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1895,
+    "t1": 2216,
+    "ttfb": 280,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/pfFlags-0kXz64gO.js",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 1895,
+    "t1": 2149,
+    "ttfb": 213,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/elevation-C7ru2EyS.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1895,
+    "t1": 2258,
+    "ttfb": 321,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/countryProfiles-BxfwpeCG.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1895,
+    "t1": 2184,
+    "ttfb": 247,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/favorites-CFhiwowP.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1895,
+    "t1": 2165,
+    "ttfb": 227,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/mapProfile-srFP_mdJ.js",
+    "st": 200,
+    "xc": null,
+    "kb": 13,
+    "t0": 1895,
+    "t1": 2389,
+    "ttfb": 315,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/dwdKonrad3d-DDZ-9OLs.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 1895,
+    "t1": 2290,
+    "ttfb": 325,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/gridGeo-C5fxNpjK.js",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 1895,
+    "t1": 2257,
+    "ttfb": 316,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/radarImg-B8k7zrlt.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 1895,
+    "t1": 2166,
+    "ttfb": 225,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/cellPolygons-CoL03GOY.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 1895,
+    "t1": 2298,
+    "ttfb": 315,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/countryOfPoint-CNVNnGll.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1895,
+    "t1": 2195,
+    "ttfb": 254,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/countryBorders-DRWaC3F6.js",
+    "st": 200,
+    "xc": null,
+    "kb": 5,
+    "t0": 1896,
+    "t1": 2270,
+    "ttfb": 252,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/radolan-CE9JBgNO.js",
+    "st": 200,
+    "xc": null,
+    "kb": 7,
+    "t0": 1896,
+    "t1": 2180,
+    "ttfb": 223,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/radarSample-BbsMohsw.js",
+    "st": 200,
+    "xc": null,
+    "kb": 10,
+    "t0": 1896,
+    "t1": 2369,
+    "ttfb": 313,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/index-B57jaMJ9.js",
+    "st": 200,
+    "xc": null,
+    "kb": 18,
+    "t0": 1896,
+    "t1": 2446,
+    "ttfb": 381,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/quadSampler-CxiS843B.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1896,
+    "t1": 2255,
+    "ttfb": 311,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/radarCountryMask-DtRDBmMf.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1896,
+    "t1": 2195,
+    "ttfb": 251,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/opticalFlowNowcast-rZPtycAe.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1896,
+    "t1": 2156,
+    "ttfb": 211,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/mapProfile-HFWtP5or.css",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1897,
+    "t1": 2183,
+    "ttfb": 238,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/assets/countryMask-CPj47CZW.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1897,
+    "t1": 2153,
+    "ttfb": 207,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/weatherBasemap-B-blnNL4.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1897,
+    "t1": 2165,
+    "ttfb": 218,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/confidenceClasses-DtK7eI0c.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1897,
+    "t1": 2181,
+    "ttfb": 233,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/pointForecast-CtZ7JIOc.js",
+    "st": 200,
+    "xc": null,
+    "kb": 12,
+    "t0": 1897,
+    "t1": 2364,
+    "ttfb": 244,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/dwdUvForecast-_NiJSUbx.js",
+    "st": 200,
+    "xc": null,
+    "kb": 2,
+    "t0": 1897,
+    "t1": 2275,
+    "ttfb": 306,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/dwdAlerts-vgqFxWeX.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1897,
+    "t1": 2313,
+    "ttfb": 364,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/dwdPollen-BUxCXz3c.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1897,
+    "t1": 2264,
+    "ttfb": 314,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/officialSources-BpPrM3VE.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1897,
+    "t1": 2202,
+    "ttfb": 251,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/WeatherIcon-DKr5rC9x.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1897,
+    "t1": 2256,
+    "ttfb": 304,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/useIsMobile-bYiymzta.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1897,
+    "t1": 2256,
+    "ttfb": 303,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/meteoSwissHail-YV8RdkUK.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1897,
+    "t1": 2257,
+    "ttfb": 306,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/dwdCapAlerts-DAoKuzQC.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1898,
+    "t1": 2292,
+    "ttfb": 340,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/capAlerts-CxRb59-A.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 1898,
+    "t1": 2313,
+    "ttfb": 328,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/meteoAlarmCh-D8Y2UIPd.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1899,
+    "t1": 2203,
+    "ttfb": 250,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/warnField-HZ8cOnd4.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 1900,
+    "t1": 2216,
+    "ttfb": 239,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/multiModel-CpQ_xN8F.js",
+    "st": 200,
+    "xc": null,
+    "kb": 2,
+    "t0": 1900,
+    "t1": 2238,
+    "ttfb": 268,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/climaField-NlUyLfOY.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1900,
+    "t1": 2233,
+    "ttfb": 278,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/climatology-WB8LnLs9.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1900,
+    "t1": 2216,
+    "ttfb": 259,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/flowEnsemble-Rm0ZHq3_.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1900,
+    "t1": 2202,
+    "ttfb": 244,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/featureRail-DHtx8UPx.js",
+    "st": 200,
+    "xc": null,
+    "kb": 2,
+    "t0": 1900,
+    "t1": 2223,
+    "ttfb": 244,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/eventVisibility-B9pqjKbP.js",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 1900,
+    "t1": 2119,
+    "ttfb": 160,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/roadFlag-BrfW5qHa.js",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 1900,
+    "t1": 2256,
+    "ttfb": 295,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/seaFlag-DMd-PfpF.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1900,
+    "t1": 2256,
+    "ttfb": 294,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/glacierFlag-BXxSTwuL.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1900,
+    "t1": 2323,
+    "ttfb": 362,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/ShareButton-Cniv-vf1.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1900,
+    "t1": 2193,
+    "ttfb": 231,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/ViewToggle-D64ouU_h.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1901,
+    "t1": 2123,
+    "ttfb": 161,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/ViewToggle-A06VHuSr.css",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1901,
+    "t1": 2208,
+    "ttfb": 245,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/assets/geocode-CymML_YK.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1901,
+    "t1": 2346,
+    "ttfb": 382,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/MapView-Dw1L1MTi.css",
+    "st": 200,
+    "xc": null,
+    "kb": 14,
+    "t0": 1901,
+    "t1": 2433,
+    "ttfb": 360,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032025/meta.json",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 1,
+    "t0": 2783,
+    "t1": 3049,
+    "ttfb": 264,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032025/g000.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 8,
+    "t0": 2784,
+    "t1": 3063,
+    "ttfb": 261,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032025/f000.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 5,
+    "t0": 2784,
+    "t1": 3049,
+    "ttfb": 260,
+    "prio": "High"
+   },
+   {
+    "url": "/icon.svg",
+    "st": 200,
+    "xc": null,
+    "kb": 4,
+    "t0": 2847,
+    "t1": 3125,
+    "ttfb": 265,
+    "prio": "High"
+   },
+   {
+    "url": "/buscosun-mark.svg",
+    "st": 200,
+    "xc": null,
+    "kb": 4,
+    "t0": 3188,
+    "t1": 3501,
+    "ttfb": 294,
+    "prio": "Low"
+   },
+   {
+    "url": "/assets/RouteSeoBlock-DFGIF7Qc.js",
+    "st": 200,
+    "xc": null,
+    "kb": 2,
+    "t0": 3191,
+    "t1": 3363,
+    "ttfb": 170,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/RouteSeoBlock-DYoHkiGl.css",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 3192,
+    "t1": 3486,
+    "ttfb": 292,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "blob:https://buscosun.com/35608156-6442-4569-88a5-f4b8d3cab628",
+    "kb": null,
+    "t0": 3872,
+    "t1": null,
+    "prio": "VeryLow"
+   },
+   {
+    "url": "blob:https://buscosun.com/35608156-6442-4569-88a5-f4b8d3cab628",
+    "kb": null,
+    "t0": 3873,
+    "t1": null,
+    "prio": "VeryLow"
+   },
+   {
+    "url": "/fonts/league-spartan-400-latin.woff2",
+    "st": 200,
+    "xc": null,
+    "kb": 24,
+    "t0": 3217,
+    "t1": 4274,
+    "ttfb": 162,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/fonts/league-spartan-600-latin.woff2",
+    "st": 200,
+    "xc": null,
+    "kb": 24,
+    "t0": 3218,
+    "t1": 4294,
+    "ttfb": 196,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill-rule='evenodd' viewBox='0 0 20 20'%3E%3Cpath d='M4 10a6 6 0 1 0 12 0 6 6 0 1 0-12 0m5-3a1 1 0 1 0 2 0 1 1 0 1 0-2 0m0 3a1 1 0 1 1 2 0v3a1 1 0 1 1-2 0'/%3E%3C/svg%3E",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3878,
+    "t1": 3878,
+    "ttfb": null,
+    "prio": "Low"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/styles/dark",
+    "st": 200,
+    "xc": null,
+    "kb": 4,
+    "t0": 4042,
+    "t1": 4248,
+    "ttfb": 187,
+    "prio": "High"
+   },
+   {
+    "url": "/fonts/league-spartan-700-latin.woff2",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4515,
+    "t1": 4656,
+    "ttfb": 137,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/icon.svg",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4534,
+    "t1": 4572,
+    "ttfb": 20,
+    "prio": "High"
+   },
+   {
+    "url": "/countries/DACH.geojson",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4634,
+    "t1": 4862,
+    "ttfb": 225,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/planet",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 9259,
+    "t1": 9292,
+    "ttfb": 29,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/sprites/ofm_f384/ofm@2x.json",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 9260,
+    "t1": 9326,
+    "ttfb": 65,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/sprites/ofm_f384/ofm@2x.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 9262,
+    "t1": 9544,
+    "ttfb": 43,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/radolanWorker-O8RK-D-P.js",
+    "kb": null,
+    "t0": 9378,
+    "t1": null,
+    "prio": "VeryLow"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032025/g005.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 7,
+    "t0": 9375,
+    "t1": 9731,
+    "ttfb": 174,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032025/g010.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 7,
+    "t0": 9376,
+    "t1": 9736,
+    "ttfb": 171,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032025/g015.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 7,
+    "t0": 9376,
+    "t1": 9731,
+    "ttfb": 171,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032025/g020.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 7,
+    "t0": 9376,
+    "t1": 9731,
+    "ttfb": 169,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032025/g025.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 7,
+    "t0": 9377,
+    "t1": 9746,
+    "ttfb": 175,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032025/g030.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 7,
+    "t0": 9377,
+    "t1": 9746,
+    "ttfb": 169,
+    "prio": "High"
+   },
+   {
+    "url": "/icon.svg",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 9378,
+    "t1": 9691,
+    "ttfb": 199,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/index.json",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 10,
+    "t0": 9393,
+    "t1": 9750,
+    "ttfb": 167,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/subRouteTexts-DYsB10gb.js",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 9577,
+    "t1": 10190,
+    "ttfb": 470,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032025/g035.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 7,
+    "t0": 9734,
+    "t1": 9902,
+    "ttfb": 165,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032025/g040.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 7,
+    "t0": 9735,
+    "t1": 9902,
+    "ttfb": 165,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032025/g045.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 7,
+    "t0": 9736,
+    "t1": 9931,
+    "ttfb": 178,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032025/g050.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 7,
+    "t0": 9738,
+    "t1": 9930,
+    "ttfb": 163,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032025/g055.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 7,
+    "t0": 9748,
+    "t1": 9931,
+    "ttfb": 166,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032025/g060.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 7,
+    "t0": 9749,
+    "t1": 9931,
+    "ttfb": 165,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/hsurf-v1.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 60,
+    "t0": 9755,
+    "t1": 9992,
+    "ttfb": 160,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032025/g065.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 7,
+    "t0": 9955,
+    "t1": 10140,
+    "ttfb": 169,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032025/g070.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 7,
+    "t0": 9956,
+    "t1": 10149,
+    "ttfb": 169,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032025/g075.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 7,
+    "t0": 9957,
+    "t1": 10149,
+    "ttfb": 167,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032025/g080.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 7,
+    "t0": 9957,
+    "t1": 10149,
+    "ttfb": 168,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032025/g085.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 7,
+    "t0": 9958,
+    "t1": 10154,
+    "ttfb": 167,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032025/g090.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 7,
+    "t0": 9958,
+    "t1": 10154,
+    "ttfb": 167,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10006,
+    "t1": 10697,
+    "ttfb": 461,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10006,
+    "t1": 10588,
+    "ttfb": 441,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10006,
+    "t1": 10450,
+    "ttfb": 441,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10006,
+    "t1": 10527,
+    "ttfb": 408,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10006,
+    "t1": 10588,
+    "ttfb": 460,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10006,
+    "t1": 10913,
+    "ttfb": 439,
+    "prio": "Low"
+   },
+   {
+    "url": "/assets/precipIndexWorker-DRuBJY6e.js",
+    "kb": null,
+    "t0": 10163,
+    "t1": null,
+    "prio": "VeryLow"
+   },
+   {
+    "url": "/assets/precipIndexWorker-DRuBJY6e.js",
+    "kb": null,
+    "t0": 10165,
+    "t1": null,
+    "prio": "VeryLow"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032025/g095.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 7,
+    "t0": 10172,
+    "t1": 10396,
+    "ttfb": 160,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032025/g100.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 7,
+    "t0": 10172,
+    "t1": 10397,
+    "ttfb": 164,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032025/g105.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 7,
+    "t0": 10173,
+    "t1": 10396,
+    "ttfb": 159,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032025/g110.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 7,
+    "t0": 10173,
+    "t1": 10396,
+    "ttfb": 159,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032025/g115.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 7,
+    "t0": 10173,
+    "t1": 10402,
+    "ttfb": 163,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032025/g120.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 7,
+    "t0": 10174,
+    "t1": 10402,
+    "ttfb": 163,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10603,
+    "t1": 10877,
+    "ttfb": 167,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10604,
+    "t1": 10870,
+    "ttfb": 140,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10605,
+    "t1": 10870,
+    "ttfb": 166,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10605,
+    "t1": 10771,
+    "ttfb": 164,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10716,
+    "t1": 10972,
+    "ttfb": 136,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10830,
+    "t1": 10972,
+    "ttfb": 141,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10873,
+    "t1": 11013,
+    "ttfb": 138,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10874,
+    "t1": 11012,
+    "ttfb": 136,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10880,
+    "t1": 11024,
+    "ttfb": 144,
+    "prio": "Low"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/0-255.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10902,
+    "t1": 10972,
+    "ttfb": 61,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/256-511.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10903,
+    "t1": 10963,
+    "ttfb": 45,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/8192-8447.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10903,
+    "t1": 10948,
+    "ttfb": 44,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 10916,
+    "t1": 11398,
+    "ttfb": 147,
+    "prio": "Low"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/512-767.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 11062,
+    "t1": 11156,
+    "ttfb": 32,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/1536-1791.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 11062,
+    "t1": 11156,
+    "ttfb": 43,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/11520-11775.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 11062,
+    "t1": 11259,
+    "ttfb": 48,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 11075,
+    "t1": 11259,
+    "ttfb": 183,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 11076,
+    "t1": 11332,
+    "ttfb": 182,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 11076,
+    "t1": 11262,
+    "ttfb": 181,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 11077,
+    "t1": 11342,
+    "ttfb": 180,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 11078,
+    "t1": 11425,
+    "ttfb": 179,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 11895,
+    "t1": 12528,
+    "ttfb": 188,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 11896,
+    "t1": 12109,
+    "ttfb": 208,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 11897,
+    "t1": 12109,
+    "ttfb": 208,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 11898,
+    "t1": 12123,
+    "ttfb": 222,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 11904,
+    "t1": 12107,
+    "ttfb": 189,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 11907,
+    "t1": 12123,
+    "ttfb": 201,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 12139,
+    "t1": 12290,
+    "ttfb": 136,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 12140,
+    "t1": 12320,
+    "ttfb": 179,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 12141,
+    "t1": 12316,
+    "ttfb": 152,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 12142,
+    "t1": 12320,
+    "ttfb": 174,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 12143,
+    "t1": 12316,
+    "ttfb": 150,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 12296,
+    "t1": 12449,
+    "ttfb": 149,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 12321,
+    "t1": 12471,
+    "ttfb": 138,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 12323,
+    "t1": 12472,
+    "ttfb": 140,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 12327,
+    "t1": 12501,
+    "ttfb": 161,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 12328,
+    "t1": 12501,
+    "ttfb": 160,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 12453,
+    "t1": 12709,
+    "ttfb": 141,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 12475,
+    "t1": 12657,
+    "ttfb": 177,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 12476,
+    "t1": 12653,
+    "ttfb": 151,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 12509,
+    "t1": 12673,
+    "ttfb": 162,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 12511,
+    "t1": 12673,
+    "ttfb": 145,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 12534,
+    "t1": 12927,
+    "ttfb": 148,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 12658,
+    "t1": 12803,
+    "ttfb": 137,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 12662,
+    "t1": 12817,
+    "ttfb": 142,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 12678,
+    "t1": 12844,
+    "ttfb": 158,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 12679,
+    "t1": 12835,
+    "ttfb": 155,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 12713,
+    "t1": 12860,
+    "ttfb": 144,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 12806,
+    "t1": 12954,
+    "ttfb": 136,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 12820,
+    "t1": 12979,
+    "ttfb": 139,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 12839,
+    "t1": 12994,
+    "ttfb": 140,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 12848,
+    "t1": 13009,
+    "ttfb": 146,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 12863,
+    "t1": 13016,
+    "ttfb": 148,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 12930,
+    "t1": 13436,
+    "ttfb": 140,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 12959,
+    "t1": 13114,
+    "ttfb": 134,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 12982,
+    "t1": 13150,
+    "ttfb": 156,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 12997,
+    "t1": 13177,
+    "ttfb": 164,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 13012,
+    "t1": 13167,
+    "ttfb": 138,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 13019,
+    "t1": 13193,
+    "ttfb": 158,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 13123,
+    "t1": 13267,
+    "ttfb": 143,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 13156,
+    "t1": 13315,
+    "ttfb": 138,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 13172,
+    "t1": 13330,
+    "ttfb": 144,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 13180,
+    "t1": 13334,
+    "ttfb": 153,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 13200,
+    "t1": 13359,
+    "ttfb": 144,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 13270,
+    "t1": 13436,
+    "ttfb": 149,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 13318,
+    "t1": 13464,
+    "ttfb": 140,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 13336,
+    "t1": 13499,
+    "ttfb": 143,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 13340,
+    "t1": 13519,
+    "ttfb": 158,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 13364,
+    "t1": 13526,
+    "ttfb": 158,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 13451,
+    "t1": 13960,
+    "ttfb": 153,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 13452,
+    "t1": 13604,
+    "ttfb": 150,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 13468,
+    "t1": 13620,
+    "ttfb": 147,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 13522,
+    "t1": 13681,
+    "ttfb": 135,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 13524,
+    "t1": 13682,
+    "ttfb": 155,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 13533,
+    "t1": 13696,
+    "ttfb": 149,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 13611,
+    "t1": 13766,
+    "ttfb": 139,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 13624,
+    "t1": 13773,
+    "ttfb": 142,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 13686,
+    "t1": 13846,
+    "ttfb": 148,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 13687,
+    "t1": 13839,
+    "ttfb": 148,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 13702,
+    "t1": 13857,
+    "ttfb": 145,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 13771,
+    "t1": 13960,
+    "ttfb": 137,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 13777,
+    "t1": 14009,
+    "ttfb": 182,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 13842,
+    "t1": 14009,
+    "ttfb": 148,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 13860,
+    "t1": 14218,
+    "ttfb": 148,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 13861,
+    "t1": 14218,
+    "ttfb": 171,
+    "prio": "Low"
+   },
+   {
+    "url": "https://dataset.api.hub.geosphere.at/v1/grid/forecast/nowcast-v1-15min-1km/metadata",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 13926,
+    "t1": 14093,
+    "ttfb": 142,
+    "prio": "Low"
+   },
+   {
+    "url": "RAW/jppetry/buscosun-data/main/radar/img/v1/rzc/20261103T2030/meta.json",
+    "st": 200,
+    "xc": "HIT",
+    "kb": 0,
+    "t0": 13928,
+    "t1": 14095,
+    "ttfb": 143,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/meta.json",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 1,
+    "t0": 14236,
+    "t1": 14419,
+    "ttfb": 173,
+    "prio": "Low"
+   },
+   {
+    "url": "RAW/jppetry/buscosun-data/main/radar/img/v1/rzc/20261103T2030/g000.png",
+    "st": 200,
+    "xc": "MISS",
+    "kb": 0,
+    "t0": 14244,
+    "t1": 14496,
+    "ttfb": 246,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 14246,
+    "t1": 14499,
+    "ttfb": 243,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 14247,
+    "t1": 14492,
+    "ttfb": 242,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 14249,
+    "t1": 14492,
+    "ttfb": 189,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 14250,
+    "t1": 14817,
+    "ttfb": 240,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 14251,
+    "t1": 14499,
+    "ttfb": 239,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g015.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 6,
+    "t0": 14433,
+    "t1": 14633,
+    "ttfb": 165,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g020.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 6,
+    "t0": 14434,
+    "t1": 14629,
+    "ttfb": 158,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g025.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 6,
+    "t0": 14434,
+    "t1": 14634,
+    "ttfb": 164,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g030.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 6,
+    "t0": 14435,
+    "t1": 14637,
+    "ttfb": 164,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g035.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 6,
+    "t0": 14435,
+    "t1": 14633,
+    "ttfb": 163,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g040.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 6,
+    "t0": 14435,
+    "t1": 14634,
+    "ttfb": 163,
+    "prio": "Low"
+   },
+   {
+    "url": "RAW/jppetry/buscosun-data/main/radar/img/v1/rzc-nc/20261103T2030/meta.json",
+    "st": 200,
+    "xc": "HIT",
+    "kb": 0,
+    "t0": 14534,
+    "t1": 14635,
+    "ttfb": 100,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/meta.json",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 1,
+    "t0": 14641,
+    "t1": 14806,
+    "ttfb": 160,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g045.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 6,
+    "t0": 14675,
+    "t1": 14841,
+    "ttfb": 157,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g050.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 6,
+    "t0": 14717,
+    "t1": 14889,
+    "ttfb": 160,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g055.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 6,
+    "t0": 14723,
+    "t1": 14889,
+    "ttfb": 155,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g060.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 6,
+    "t0": 14737,
+    "t1": 14900,
+    "ttfb": 155,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g065.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 6,
+    "t0": 14769,
+    "t1": 14940,
+    "ttfb": 169,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g070.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 7,
+    "t0": 14783,
+    "t1": 14946,
+    "ttfb": 156,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g005.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 9,
+    "t0": 14808,
+    "t1": 15014,
+    "ttfb": 159,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g010.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 9,
+    "t0": 14809,
+    "t1": 15028,
+    "ttfb": 159,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g015.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 9,
+    "t0": 14809,
+    "t1": 15028,
+    "ttfb": 169,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g020.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 9,
+    "t0": 14809,
+    "t1": 15011,
+    "ttfb": 169,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g025.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 9,
+    "t0": 14809,
+    "t1": 15008,
+    "ttfb": 156,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g030.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 9,
+    "t0": 14810,
+    "t1": 15028,
+    "ttfb": 169,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g075.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 7,
+    "t0": 14869,
+    "t1": 15037,
+    "ttfb": 152,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g080.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 7,
+    "t0": 14933,
+    "t1": 15112,
+    "ttfb": 158,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g085.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 11,
+    "t0": 14942,
+    "t1": 15114,
+    "ttfb": 157,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g090.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 10,
+    "t0": 15033,
+    "t1": 15209,
+    "ttfb": 159,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g095.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 12,
+    "t0": 15074,
+    "t1": 15247,
+    "ttfb": 166,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g100.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 15,
+    "t0": 15101,
+    "t1": 15292,
+    "ttfb": 162,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g035.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 8,
+    "t0": 15153,
+    "t1": 15335,
+    "ttfb": 165,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g040.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 9,
+    "t0": 15174,
+    "t1": 15348,
+    "ttfb": 157,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g045.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 9,
+    "t0": 15228,
+    "t1": 15395,
+    "ttfb": 166,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g050.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 9,
+    "t0": 15273,
+    "t1": 15454,
+    "ttfb": 167,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g055.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 9,
+    "t0": 15330,
+    "t1": 15511,
+    "ttfb": 166,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g060.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 9,
+    "t0": 15372,
+    "t1": 15544,
+    "ttfb": 156,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g105.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 14,
+    "t0": 15416,
+    "t1": 15595,
+    "ttfb": 166,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g110.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 17,
+    "t0": 15453,
+    "t1": 15626,
+    "ttfb": 156,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g115.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 19,
+    "t0": 15480,
+    "t1": 15661,
+    "ttfb": 162,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g120.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 18,
+    "t0": 15508,
+    "t1": 15676,
+    "ttfb": 152,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g125.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 21,
+    "t0": 15562,
+    "t1": 15752,
+    "ttfb": 161,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g130.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 23,
+    "t0": 15580,
+    "t1": 15767,
+    "ttfb": 154,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g065.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 9,
+    "t0": 15642,
+    "t1": 15813,
+    "ttfb": 170,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/temp-002.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 91,
+    "t0": 15666,
+    "t1": 16012,
+    "ttfb": 175,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/temp-003.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 91,
+    "t0": 15666,
+    "t1": 16012,
+    "ttfb": 174,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g070.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 9,
+    "t0": 15672,
+    "t1": 15858,
+    "ttfb": 170,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g075.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 9,
+    "t0": 16201,
+    "t1": 16427,
+    "ttfb": 171,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g080.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 9,
+    "t0": 16206,
+    "t1": 16427,
+    "ttfb": 170,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g085.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 9,
+    "t0": 16207,
+    "t1": 16427,
+    "ttfb": 169,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g090.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 9,
+    "t0": 16208,
+    "t1": 16428,
+    "ttfb": 168,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g135.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 20,
+    "t0": 16209,
+    "t1": 16473,
+    "ttfb": 165,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g140.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 25,
+    "t0": 16210,
+    "t1": 16489,
+    "ttfb": 172,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g145.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 26,
+    "t0": 16210,
+    "t1": 16502,
+    "ttfb": 172,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g150.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 23,
+    "t0": 16211,
+    "t1": 16488,
+    "ttfb": 172,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g155.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 28,
+    "t0": 16350,
+    "t1": 16542,
+    "ttfb": 158,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g160.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 29,
+    "t0": 16388,
+    "t1": 16587,
+    "ttfb": 167,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g095.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 9,
+    "t0": 16505,
+    "t1": 16696,
+    "ttfb": 169,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g100.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 9,
+    "t0": 16508,
+    "t1": 16696,
+    "ttfb": 168,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/gust-002.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 130,
+    "t0": 16658,
+    "t1": 16954,
+    "ttfb": 154,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g105.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 9,
+    "t0": 16729,
+    "t1": 16908,
+    "ttfb": 161,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g110.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 9,
+    "t0": 16758,
+    "t1": 16935,
+    "ttfb": 159,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g115.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 9,
+    "t0": 16791,
+    "t1": 16961,
+    "ttfb": 165,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g120.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 9,
+    "t0": 16814,
+    "t1": 16978,
+    "ttfb": 162,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g165.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 26,
+    "t0": 16828,
+    "t1": 17019,
+    "ttfb": 154,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g170.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 31,
+    "t0": 16852,
+    "t1": 17041,
+    "ttfb": 152,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g175.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 33,
+    "t0": 16889,
+    "t1": 17077,
+    "ttfb": 157,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g180.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 29,
+    "t0": 16914,
+    "t1": 17107,
+    "ttfb": 173,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/gust-003.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 131,
+    "t0": 16956,
+    "t1": 17236,
+    "ttfb": 165,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u005.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 4,
+    "t0": 17133,
+    "t1": 17300,
+    "ttfb": 165,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u010.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 4,
+    "t0": 17134,
+    "t1": 17319,
+    "ttfb": 164,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u015.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 4,
+    "t0": 17134,
+    "t1": 17320,
+    "ttfb": 167,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u020.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 4,
+    "t0": 17135,
+    "t1": 17319,
+    "ttfb": 165,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u025.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 4,
+    "t0": 17135,
+    "t1": 17320,
+    "ttfb": 166,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u030.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 4,
+    "t0": 17135,
+    "t1": 17320,
+    "ttfb": 180,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/thunder-002.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 6,
+    "t0": 17239,
+    "t1": 17406,
+    "ttfb": 156,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u035.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 4,
+    "t0": 17329,
+    "t1": 17507,
+    "ttfb": 173,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u040.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 4,
+    "t0": 17347,
+    "t1": 17512,
+    "ttfb": 159,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u045.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 4,
+    "t0": 17349,
+    "t1": 17521,
+    "ttfb": 161,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u050.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 4,
+    "t0": 17364,
+    "t1": 17536,
+    "ttfb": 168,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u055.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 4,
+    "t0": 17368,
+    "t1": 17552,
+    "ttfb": 169,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u060.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 4,
+    "t0": 17382,
+    "t1": 17552,
+    "ttfb": 169,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/thunder-003.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 5,
+    "t0": 17408,
+    "t1": 17582,
+    "ttfb": 173,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/rotation-002.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 22,
+    "t0": 17679,
+    "t1": 17859,
+    "ttfb": 159,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u065.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 4,
+    "t0": 17808,
+    "t1": 18001,
+    "ttfb": 166,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u070.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 3,
+    "t0": 17808,
+    "t1": 18003,
+    "ttfb": 180,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u075.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 3,
+    "t0": 17809,
+    "t1": 18002,
+    "ttfb": 164,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u080.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 3,
+    "t0": 17809,
+    "t1": 18002,
+    "ttfb": 164,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u085.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 3,
+    "t0": 17810,
+    "t1": 18002,
+    "ttfb": 164,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u090.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 3,
+    "t0": 17818,
+    "t1": 18003,
+    "ttfb": 156,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/rotation-003.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 21,
+    "t0": 17861,
+    "t1": 18042,
+    "ttfb": 169,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u095.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 3,
+    "t0": 18043,
+    "t1": 18225,
+    "ttfb": 167,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/snowdepth-002.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 7,
+    "t0": 18044,
+    "t1": 18240,
+    "ttfb": 167,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u100.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 3,
+    "t0": 18048,
+    "t1": 18226,
+    "ttfb": 164,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u105.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 3,
+    "t0": 18054,
+    "t1": 18239,
+    "ttfb": 155,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u110.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 3,
+    "t0": 18061,
+    "t1": 18240,
+    "ttfb": 155,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u115.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 3,
+    "t0": 18061,
+    "t1": 18240,
+    "ttfb": 161,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u120.png",
+    "st": 200,
+    "xc": "HIT, MISS",
+    "kb": 3,
+    "t0": 18062,
+    "t1": 18240,
+    "ttfb": 160,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/snowdepth-003.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 7,
+    "t0": 18244,
+    "t1": 18418,
+    "ttfb": 169,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/precip-003.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 13,
+    "t0": 18265,
+    "t1": 18440,
+    "ttfb": 157,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/lpi-002.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 3,
+    "t0": 18423,
+    "t1": 18609,
+    "ttfb": 183,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/lpi-003.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 3,
+    "t0": 18622,
+    "t1": 18791,
+    "ttfb": 168,
+    "prio": "Low"
+   }
+  ],
+  "dom": {
+   "subs": [],
+   "status": [],
+   "title": "Niederschlagskarte DACH | buscosun"
+  }
+ },
+ {
+  "i": 1,
+  "url": "https://buscosun.com/wetterkarte/niederschlag?ort=Wien&olat=48.2082&olon=16.3738&land=at",
+  "at": "2026-11-03T20:33:45.144Z",
+  "slotAgeS": 225,
+  "logs": [
+   {
+    "t": 3403,
+    "type": "warning",
+    "text": "Image \"circle-11\" could not be loaded. Please make sure you have added the image with map.addImage() or a \"sprite\" property in your style. You can provide missing images by listening for the \"styleimagemissing\" map event."
+   },
+   {
+    "t": 6167,
+    "type": "log",
+    "text": "[buscosun] AT INCA · 5 min → Lauf 20261103T2000 · 34 Frames (+15…+180 min, 12 INCA-Bilder) · Quelle Daten-Repo (PNG)"
+   },
+   {
+    "t": 6167,
+    "type": "log",
+    "text": "[buscosun] GeoSphere INCA → Lauf 20261103T2000 · 12 Frames · Quelle Daten-Repo (PNG, aus inca-5m)"
+   },
+   {
+    "t": 6914,
+    "type": "log",
+    "text": "[buscosun] MeteoSwiss rzc → Slot 20261103T2030 · Quelle Daten-Repo (PNG, frischer Slot über raw) · 4 min alt"
+   },
+   {
+    "t": 9242,
+    "type": "log",
+    "text": "[buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: composite_rv_20261103_2030.tar · Lauf 3.11.2026, 21:30:00 · 25 Frames (0…+120 min) · Quelle DWD (Netlify)"
+   },
+   {
+    "t": 12044,
+    "type": "log",
+    "text": "[buscosun] CH Hochrechnung → Slot 20261103T2025 · 24 Frames (+5…+120 min) · 12 km/h aus 110° (5 Paare) · Quelle Daten-Repo (PNG)"
+   }
+  ],
+  "net": [
+   {
+    "url": "/wetterkarte/niederschlag?ort=Wien&olat=48.2082&olon=16.3738&land=at",
+    "st": 200,
+    "xc": null,
+    "kb": 5,
+    "t0": 0,
+    "t1": 468,
+    "ttfb": 465,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/fonts/space-grotesk-600-latin.woff2",
+    "st": 200,
+    "xc": null,
+    "kb": 22,
+    "t0": 483,
+    "t1": 730,
+    "ttfb": 207,
+    "prio": "High"
+   },
+   {
+    "url": "/fonts/league-spartan-500-latin.woff2",
+    "st": 200,
+    "xc": null,
+    "kb": 24,
+    "t0": 484,
+    "t1": 1008,
+    "ttfb": 207,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/index-5jFv7pbD.js",
+    "st": 200,
+    "xc": null,
+    "kb": 110,
+    "t0": 484,
+    "t1": 1262,
+    "ttfb": 216,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/cjs-helpers-Cpj98o6Y.js",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 484,
+    "t1": 811,
+    "ttfb": 294,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/index-BkLV0zc3.css",
+    "st": 200,
+    "xc": null,
+    "kb": 2,
+    "t0": 484,
+    "t1": 746,
+    "ttfb": 224,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/assets/WetterkarteRoute-xug1NXPm.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 484,
+    "t1": 789,
+    "ttfb": 224,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/modelCatalog-BbqlpjhE.js",
+    "st": 200,
+    "xc": null,
+    "kb": 2,
+    "t0": 484,
+    "t1": 749,
+    "ttfb": 222,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/useAppNav-dMDZGyW5.js",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 484,
+    "t1": 827,
+    "ttfb": 305,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/placeTable-BbtjGNal.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 485,
+    "t1": 828,
+    "ttfb": 306,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/placeSlugs-B2C_i7YS.js",
+    "st": 200,
+    "xc": null,
+    "kb": 4,
+    "t0": 485,
+    "t1": 855,
+    "ttfb": 240,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/StaleLinkNotice-DkPdwIr5.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 485,
+    "t1": 828,
+    "ttfb": 306,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/shareText-dgVRmrvW.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 485,
+    "t1": 828,
+    "ttfb": 304,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/share-BbtFrz6j.css",
+    "st": 200,
+    "xc": null,
+    "kb": 2,
+    "t0": 485,
+    "t1": 837,
+    "ttfb": 238,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/assets/NotFoundRoute-DVNQLZfw.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 485,
+    "t1": 828,
+    "ttfb": 302,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/NotFoundRoute-D5gLhNUD.css",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 485,
+    "t1": 828,
+    "ttfb": 302,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/assets/MapView-MsRlQ2mG.js",
+    "st": 200,
+    "xc": null,
+    "kb": 71,
+    "t0": 493,
+    "t1": 1185,
+    "ttfb": 216,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/layerCatalog-DIuEZjfi.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 494,
+    "t1": 865,
+    "ttfb": 238,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/repackSource-DwbmNybP.js",
+    "st": 200,
+    "xc": null,
+    "kb": 9,
+    "t0": 494,
+    "t1": 956,
+    "ttfb": 215,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/precipType-DUpA9G44.js",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 494,
+    "t1": 839,
+    "ttfb": 312,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/RainLayer-DVlSgX2P.js",
+    "st": 200,
+    "xc": null,
+    "kb": 7,
+    "t0": 494,
+    "t1": 956,
+    "ttfb": 239,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/quadWarpMesh-DgRdp-FC.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 494,
+    "t1": 888,
+    "ttfb": 247,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/maplibre-Y04dvQ_6.js",
+    "st": 200,
+    "xc": null,
+    "kb": 265,
+    "t0": 494,
+    "t1": 1396,
+    "ttfb": 359,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/maplibre-B-YMMjus.css",
+    "st": 200,
+    "xc": null,
+    "kb": 9,
+    "t0": 494,
+    "t1": 957,
+    "ttfb": 213,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/assets/WindLayer-CBv1pUlO.js",
+    "st": 200,
+    "xc": null,
+    "kb": 20,
+    "t0": 494,
+    "t1": 1050,
+    "ttfb": 213,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/perfGovernor-DRlV9hh2.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 494,
+    "t1": 828,
+    "ttfb": 297,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/iconD2WindSource-DkBmp6wK.js",
+    "st": 200,
+    "xc": null,
+    "kb": 5,
+    "t0": 494,
+    "t1": 931,
+    "ttfb": 248,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/iconD2Precip-JRvFdFA5.js",
+    "st": 200,
+    "xc": null,
+    "kb": 6,
+    "t0": 495,
+    "t1": 908,
+    "ttfb": 232,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/decompress-CSvRoCdr.js",
+    "st": 200,
+    "xc": null,
+    "kb": 4,
+    "t0": 495,
+    "t1": 896,
+    "ttfb": 247,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/ScalarLayer-ot4XseYH.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 495,
+    "t1": 812,
+    "ttfb": 214,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/FavoriteStar-YFyCtjRH.js",
+    "st": 200,
+    "xc": null,
+    "kb": 14,
+    "t0": 495,
+    "t1": 1020,
+    "ttfb": 231,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/spatialInterp-C5y8-fIz.js",
+    "st": 200,
+    "xc": null,
+    "kb": 11,
+    "t0": 495,
+    "t1": 1003,
+    "ttfb": 250,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/geosphereInca-B4gDQ1iJ.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 495,
+    "t1": 843,
+    "ttfb": 309,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/pfFlags-0kXz64gO.js",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 495,
+    "t1": 836,
+    "ttfb": 302,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/elevation-C7ru2EyS.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 495,
+    "t1": 839,
+    "ttfb": 304,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/countryProfiles-BxfwpeCG.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 495,
+    "t1": 866,
+    "ttfb": 330,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/favorites-CFhiwowP.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 495,
+    "t1": 866,
+    "ttfb": 329,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/mapProfile-srFP_mdJ.js",
+    "st": 200,
+    "xc": null,
+    "kb": 13,
+    "t0": 495,
+    "t1": 1018,
+    "ttfb": 247,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/dwdKonrad3d-DDZ-9OLs.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 496,
+    "t1": 843,
+    "ttfb": 225,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/gridGeo-C5fxNpjK.js",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 496,
+    "t1": 866,
+    "ttfb": 327,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/radarImg-B8k7zrlt.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 496,
+    "t1": 836,
+    "ttfb": 245,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/cellPolygons-CoL03GOY.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 496,
+    "t1": 829,
+    "ttfb": 245,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/countryOfPoint-CNVNnGll.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 496,
+    "t1": 841,
+    "ttfb": 301,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/countryBorders-DRWaC3F6.js",
+    "st": 200,
+    "xc": null,
+    "kb": 5,
+    "t0": 496,
+    "t1": 932,
+    "ttfb": 244,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/radolan-CE9JBgNO.js",
+    "st": 200,
+    "xc": null,
+    "kb": 7,
+    "t0": 496,
+    "t1": 969,
+    "ttfb": 226,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/radarSample-BbsMohsw.js",
+    "st": 200,
+    "xc": null,
+    "kb": 10,
+    "t0": 496,
+    "t1": 983,
+    "ttfb": 221,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/index-B57jaMJ9.js",
+    "st": 200,
+    "xc": null,
+    "kb": 18,
+    "t0": 496,
+    "t1": 1050,
+    "ttfb": 246,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/quadSampler-CxiS843B.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 496,
+    "t1": 882,
+    "ttfb": 339,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/radarCountryMask-DtRDBmMf.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 496,
+    "t1": 875,
+    "ttfb": 330,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/opticalFlowNowcast-rZPtycAe.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 496,
+    "t1": 852,
+    "ttfb": 308,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/mapProfile-HFWtP5or.css",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 497,
+    "t1": 881,
+    "ttfb": 336,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/assets/countryMask-CPj47CZW.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 497,
+    "t1": 895,
+    "ttfb": 350,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/weatherBasemap-B-blnNL4.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 497,
+    "t1": 797,
+    "ttfb": 243,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/confidenceClasses-DtK7eI0c.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 497,
+    "t1": 854,
+    "ttfb": 309,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/pointForecast-CtZ7JIOc.js",
+    "st": 200,
+    "xc": null,
+    "kb": 12,
+    "t0": 497,
+    "t1": 1034,
+    "ttfb": 330,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/dwdUvForecast-_NiJSUbx.js",
+    "st": 200,
+    "xc": null,
+    "kb": 2,
+    "t0": 497,
+    "t1": 836,
+    "ttfb": 242,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/dwdAlerts-vgqFxWeX.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 497,
+    "t1": 875,
+    "ttfb": 326,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/dwdPollen-BUxCXz3c.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 497,
+    "t1": 884,
+    "ttfb": 336,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/officialSources-BpPrM3VE.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 497,
+    "t1": 881,
+    "ttfb": 332,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/WeatherIcon-DKr5rC9x.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 497,
+    "t1": 888,
+    "ttfb": 339,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/useIsMobile-bYiymzta.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 497,
+    "t1": 867,
+    "ttfb": 316,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/meteoSwissHail-YV8RdkUK.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 497,
+    "t1": 876,
+    "ttfb": 323,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/dwdCapAlerts-DAoKuzQC.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 497,
+    "t1": 882,
+    "ttfb": 330,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/capAlerts-CxRb59-A.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 498,
+    "t1": 811,
+    "ttfb": 217,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/meteoAlarmCh-D8Y2UIPd.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 498,
+    "t1": 916,
+    "ttfb": 363,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/warnField-HZ8cOnd4.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 498,
+    "t1": 811,
+    "ttfb": 222,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/multiModel-CpQ_xN8F.js",
+    "st": 200,
+    "xc": null,
+    "kb": 2,
+    "t0": 498,
+    "t1": 811,
+    "ttfb": 222,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/climaField-NlUyLfOY.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 498,
+    "t1": 875,
+    "ttfb": 320,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/climatology-WB8LnLs9.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 498,
+    "t1": 876,
+    "ttfb": 321,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/flowEnsemble-Rm0ZHq3_.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 498,
+    "t1": 867,
+    "ttfb": 313,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/featureRail-DHtx8UPx.js",
+    "st": 200,
+    "xc": null,
+    "kb": 2,
+    "t0": 498,
+    "t1": 925,
+    "ttfb": 333,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/eventVisibility-B9pqjKbP.js",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 498,
+    "t1": 925,
+    "ttfb": 368,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/roadFlag-BrfW5qHa.js",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 498,
+    "t1": 851,
+    "ttfb": 294,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/seaFlag-DMd-PfpF.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 498,
+    "t1": 916,
+    "ttfb": 357,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/glacierFlag-BXxSTwuL.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 498,
+    "t1": 915,
+    "ttfb": 355,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/ShareButton-Cniv-vf1.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 498,
+    "t1": 916,
+    "ttfb": 356,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/ViewToggle-D64ouU_h.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 499,
+    "t1": 797,
+    "ttfb": 216,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/ViewToggle-A06VHuSr.css",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 499,
+    "t1": 925,
+    "ttfb": 364,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/assets/geocode-CymML_YK.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 499,
+    "t1": 917,
+    "ttfb": 355,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/MapView-Dw1L1MTi.css",
+    "st": 200,
+    "xc": null,
+    "kb": 14,
+    "t0": 499,
+    "t1": 1049,
+    "ttfb": 314,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/_dwd_opendata/weather/radar/composite/rv/composite_rv_20261103_2030.tar",
+    "st": 200,
+    "xc": null,
+    "kb": 811,
+    "t0": 1467,
+    "t1": 2481,
+    "ttfb": 161,
+    "prio": "High"
+   },
+   {
+    "url": "/icon.svg",
+    "st": 200,
+    "xc": null,
+    "kb": 4,
+    "t0": 1468,
+    "t1": 1667,
+    "ttfb": 197,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/RouteSeoBlock-DFGIF7Qc.js",
+    "st": 200,
+    "xc": null,
+    "kb": 2,
+    "t0": 1678,
+    "t1": 1864,
+    "ttfb": 177,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/RouteSeoBlock-DYoHkiGl.css",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1680,
+    "t1": 1864,
+    "ttfb": 177,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/buscosun-mark.svg",
+    "st": 200,
+    "xc": null,
+    "kb": 4,
+    "t0": 1680,
+    "t1": 1864,
+    "ttfb": 177,
+    "prio": "Low"
+   },
+   {
+    "url": "/fonts/league-spartan-400-latin.woff2",
+    "st": 200,
+    "xc": null,
+    "kb": 24,
+    "t0": 1707,
+    "t1": 1960,
+    "ttfb": 156,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/fonts/league-spartan-600-latin.woff2",
+    "st": 200,
+    "xc": null,
+    "kb": 24,
+    "t0": 1708,
+    "t1": 1960,
+    "ttfb": 156,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "blob:https://buscosun.com/3c7a069b-b483-45cb-8f29-d4495d736afb",
+    "kb": null,
+    "t0": 1779,
+    "t1": null,
+    "prio": "VeryLow"
+   },
+   {
+    "url": "blob:https://buscosun.com/3c7a069b-b483-45cb-8f29-d4495d736afb",
+    "kb": null,
+    "t0": 1779,
+    "t1": null,
+    "prio": "VeryLow"
+   },
+   {
+    "url": "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill-rule='evenodd' viewBox='0 0 20 20'%3E%3Cpath d='M4 10a6 6 0 1 0 12 0 6 6 0 1 0-12 0m5-3a1 1 0 1 0 2 0 1 1 0 1 0-2 0m0 3a1 1 0 1 1 2 0v3a1 1 0 1 1-2 0'/%3E%3C/svg%3E",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 1784,
+    "t1": 1784,
+    "ttfb": null,
+    "prio": "Low"
+   },
+   {
+    "url": "https://dataset.api.hub.geosphere.at/v1/grid/forecast/nowcast-v1-15min-1km/metadata",
+    "st": 200,
+    "xc": null,
+    "kb": 2,
+    "t0": 1866,
+    "t1": 3129,
+    "ttfb": 1246,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/styles/dark",
+    "st": 200,
+    "xc": null,
+    "kb": 4,
+    "t0": 1892,
+    "t1": 2104,
+    "ttfb": 198,
+    "prio": "High"
+   },
+   {
+    "url": "/fonts/league-spartan-700-latin.woff2",
+    "st": 200,
+    "xc": null,
+    "kb": 24,
+    "t0": 2047,
+    "t1": 2270,
+    "ttfb": 163,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/icon.svg",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 2059,
+    "t1": 2226,
+    "ttfb": 163,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/subRouteTexts-DYsB10gb.js",
+    "st": 200,
+    "xc": null,
+    "kb": 31,
+    "t0": 2081,
+    "t1": 2316,
+    "ttfb": 167,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/index.json",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 10,
+    "t0": 2116,
+    "t1": 2378,
+    "ttfb": 259,
+    "prio": "High"
+   },
+   {
+    "url": "/countries/DACH.geojson",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 2209,
+    "t1": 2336,
+    "ttfb": 124,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/planet",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 2696,
+    "t1": 2743,
+    "ttfb": 44,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/sprites/ofm_f384/ofm@2x.json",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 2697,
+    "t1": 2731,
+    "ttfb": 33,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/sprites/ofm_f384/ofm@2x.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 2699,
+    "t1": 2783,
+    "ttfb": 37,
+    "prio": "High"
+   },
+   {
+    "url": "/icon.svg",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 2782,
+    "t1": 2829,
+    "ttfb": 43,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/hsurf-v1.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 60,
+    "t0": 2829,
+    "t1": 3058,
+    "ttfb": 159,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3086,
+    "t1": 3809,
+    "ttfb": 476,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3087,
+    "t1": 3710,
+    "ttfb": 450,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3087,
+    "t1": 3652,
+    "ttfb": 450,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3087,
+    "t1": 3668,
+    "ttfb": 450,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3087,
+    "t1": 3809,
+    "ttfb": 482,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3087,
+    "t1": 3729,
+    "ttfb": 512,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/meta.json",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 1,
+    "t0": 3181,
+    "t1": 3357,
+    "ttfb": 175,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g015.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 6,
+    "t0": 3366,
+    "t1": 3556,
+    "ttfb": 156,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g020.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 6,
+    "t0": 3367,
+    "t1": 3556,
+    "ttfb": 166,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g025.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 6,
+    "t0": 3369,
+    "t1": 3557,
+    "ttfb": 165,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g030.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 6,
+    "t0": 3369,
+    "t1": 3561,
+    "ttfb": 165,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g035.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 6,
+    "t0": 3370,
+    "t1": 3561,
+    "ttfb": 163,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g040.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 6,
+    "t0": 3370,
+    "t1": 3563,
+    "ttfb": 161,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/0-255.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3396,
+    "t1": 3443,
+    "ttfb": 43,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/256-511.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3397,
+    "t1": 3474,
+    "ttfb": 70,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/512-767.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3397,
+    "t1": 3483,
+    "ttfb": 73,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/8192-8447.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3398,
+    "t1": 3473,
+    "ttfb": 73,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/1536-1791.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3522,
+    "t1": 3578,
+    "ttfb": 55,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/11520-11775.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3522,
+    "t1": 3578,
+    "ttfb": 53,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/radolanWorker-O8RK-D-P.js",
+    "kb": null,
+    "t0": 3563,
+    "t1": null,
+    "prio": "VeryLow"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3759,
+    "t1": 3945,
+    "ttfb": 179,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3761,
+    "t1": 4036,
+    "ttfb": 144,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3854,
+    "t1": 4010,
+    "ttfb": 144,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3855,
+    "t1": 4036,
+    "ttfb": 179,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3856,
+    "t1": 4154,
+    "ttfb": 179,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3861,
+    "t1": 4057,
+    "ttfb": 195,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g045.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 6,
+    "t0": 3919,
+    "t1": 4093,
+    "ttfb": 168,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g050.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 6,
+    "t0": 3942,
+    "t1": 4102,
+    "ttfb": 159,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3947,
+    "t1": 4136,
+    "ttfb": 180,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4014,
+    "t1": 4162,
+    "ttfb": 145,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4083,
+    "t1": 4262,
+    "ttfb": 178,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4084,
+    "t1": 4262,
+    "ttfb": 147,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4085,
+    "t1": 4262,
+    "ttfb": 152,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g055.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 6,
+    "t0": 4106,
+    "t1": 4276,
+    "ttfb": 168,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4139,
+    "t1": 4329,
+    "ttfb": 161,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g060.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 6,
+    "t0": 4148,
+    "t1": 4309,
+    "ttfb": 155,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4161,
+    "t1": 4332,
+    "ttfb": 169,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4165,
+    "t1": 4332,
+    "ttfb": 164,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g065.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 6,
+    "t0": 4176,
+    "t1": 4348,
+    "ttfb": 167,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g070.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 7,
+    "t0": 4193,
+    "t1": 4351,
+    "ttfb": 151,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g075.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 7,
+    "t0": 4212,
+    "t1": 4386,
+    "ttfb": 161,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g080.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 7,
+    "t0": 4230,
+    "t1": 4419,
+    "ttfb": 165,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4271,
+    "t1": 4455,
+    "ttfb": 159,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4272,
+    "t1": 4461,
+    "ttfb": 173,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4274,
+    "t1": 4428,
+    "ttfb": 151,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g085.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 11,
+    "t0": 4299,
+    "t1": 4597,
+    "ttfb": 158,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g090.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 10,
+    "t0": 4336,
+    "t1": 4638,
+    "ttfb": 162,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4340,
+    "t1": 4544,
+    "ttfb": 199,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4341,
+    "t1": 4545,
+    "ttfb": 203,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4342,
+    "t1": 4727,
+    "ttfb": 244,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g095.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 12,
+    "t0": 4372,
+    "t1": 4681,
+    "ttfb": 166,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g100.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 15,
+    "t0": 4384,
+    "t1": 4708,
+    "ttfb": 156,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4432,
+    "t1": 4731,
+    "ttfb": 166,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g105.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 14,
+    "t0": 4442,
+    "t1": 4708,
+    "ttfb": 154,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4466,
+    "t1": 4634,
+    "ttfb": 159,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4468,
+    "t1": 4627,
+    "ttfb": 159,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g110.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 17,
+    "t0": 4497,
+    "t1": 4787,
+    "ttfb": 162,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4548,
+    "t1": 4748,
+    "ttfb": 197,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4548,
+    "t1": 4743,
+    "ttfb": 180,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g115.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 19,
+    "t0": 4620,
+    "t1": 4831,
+    "ttfb": 156,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4631,
+    "t1": 4790,
+    "ttfb": 151,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4638,
+    "t1": 4827,
+    "ttfb": 173,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g120.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 18,
+    "t0": 4658,
+    "t1": 4868,
+    "ttfb": 154,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g125.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 21,
+    "t0": 4705,
+    "t1": 5094,
+    "ttfb": 161,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4730,
+    "t1": 4900,
+    "ttfb": 162,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4734,
+    "t1": 4892,
+    "ttfb": 150,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4760,
+    "t1": 4923,
+    "ttfb": 152,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4766,
+    "t1": 4968,
+    "ttfb": 199,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g130.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 23,
+    "t0": 4767,
+    "t1": 5233,
+    "ttfb": 160,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g135.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 20,
+    "t0": 4787,
+    "t1": 5239,
+    "ttfb": 152,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4795,
+    "t1": 4950,
+    "ttfb": 145,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g140.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 25,
+    "t0": 4808,
+    "t1": 5291,
+    "ttfb": 154,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4838,
+    "t1": 4986,
+    "ttfb": 142,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g145.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 26,
+    "t0": 4850,
+    "t1": 5358,
+    "ttfb": 170,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g150.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 23,
+    "t0": 4886,
+    "t1": 5381,
+    "ttfb": 153,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4895,
+    "t1": 5048,
+    "ttfb": 145,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4910,
+    "t1": 5053,
+    "ttfb": 139,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4926,
+    "t1": 5082,
+    "ttfb": 154,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4962,
+    "t1": 5219,
+    "ttfb": 143,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4971,
+    "t1": 5174,
+    "ttfb": 183,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4996,
+    "t1": 5138,
+    "ttfb": 138,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5052,
+    "t1": 5236,
+    "ttfb": 160,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5057,
+    "t1": 5234,
+    "ttfb": 147,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5086,
+    "t1": 5248,
+    "ttfb": 148,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g155.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 28,
+    "t0": 5112,
+    "t1": 5482,
+    "ttfb": 159,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5141,
+    "t1": 5298,
+    "ttfb": 150,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5179,
+    "t1": 5350,
+    "ttfb": 160,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5223,
+    "t1": 5382,
+    "ttfb": 147,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5237,
+    "t1": 5433,
+    "ttfb": 174,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5242,
+    "t1": 5422,
+    "ttfb": 159,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5252,
+    "t1": 5436,
+    "ttfb": 180,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g160.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 29,
+    "t0": 5255,
+    "t1": 5822,
+    "ttfb": 155,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g165.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 26,
+    "t0": 5273,
+    "t1": 5628,
+    "ttfb": 157,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5301,
+    "t1": 5482,
+    "ttfb": 159,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g170.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 31,
+    "t0": 5319,
+    "t1": 6045,
+    "ttfb": 159,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5354,
+    "t1": 5542,
+    "ttfb": 170,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g175.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 33,
+    "t0": 5380,
+    "t1": 6075,
+    "ttfb": 156,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5386,
+    "t1": 5563,
+    "ttfb": 172,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g180.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 29,
+    "t0": 5405,
+    "t1": 6075,
+    "ttfb": 154,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5434,
+    "t1": 5591,
+    "ttfb": 145,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5439,
+    "t1": 5628,
+    "ttfb": 181,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5443,
+    "t1": 5637,
+    "ttfb": 183,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5487,
+    "t1": 5659,
+    "ttfb": 167,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5547,
+    "t1": 5726,
+    "ttfb": 160,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5567,
+    "t1": 5735,
+    "ttfb": 166,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5595,
+    "t1": 5767,
+    "ttfb": 169,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5632,
+    "t1": 5801,
+    "ttfb": 158,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5640,
+    "t1": 5802,
+    "ttfb": 149,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5662,
+    "t1": 5844,
+    "ttfb": 177,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5730,
+    "t1": 5907,
+    "ttfb": 164,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5741,
+    "t1": 5940,
+    "ttfb": 164,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5771,
+    "t1": 5973,
+    "ttfb": 197,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5818,
+    "t1": 6018,
+    "ttfb": 180,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5819,
+    "t1": 5998,
+    "ttfb": 150,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5847,
+    "t1": 6034,
+    "ttfb": 171,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5917,
+    "t1": 6127,
+    "ttfb": 194,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5943,
+    "t1": 6112,
+    "ttfb": 157,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5976,
+    "t1": 6201,
+    "ttfb": 182,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6001,
+    "t1": 6189,
+    "ttfb": 153,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6032,
+    "t1": 6238,
+    "ttfb": 187,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6039,
+    "t1": 6219,
+    "ttfb": 172,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6125,
+    "t1": 6275,
+    "ttfb": 148,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6130,
+    "t1": 6308,
+    "ttfb": 165,
+    "prio": "Low"
+   },
+   {
+    "url": "/assets/precipIndexWorker-DRuBJY6e.js",
+    "kb": null,
+    "t0": 6165,
+    "t1": null,
+    "prio": "VeryLow"
+   },
+   {
+    "url": "/assets/precipIndexWorker-DRuBJY6e.js",
+    "kb": null,
+    "t0": 6166,
+    "t1": null,
+    "prio": "VeryLow"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6193,
+    "t1": 6370,
+    "ttfb": 175,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6205,
+    "t1": 6382,
+    "ttfb": 162,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6227,
+    "t1": 6395,
+    "ttfb": 154,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6242,
+    "t1": 6427,
+    "ttfb": 183,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6278,
+    "t1": 6450,
+    "ttfb": 165,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6352,
+    "t1": 6549,
+    "ttfb": 186,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6373,
+    "t1": 6548,
+    "ttfb": 167,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6386,
+    "t1": 6572,
+    "ttfb": 162,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6414,
+    "t1": 6581,
+    "ttfb": 159,
+    "prio": "Low"
+   },
+   {
+    "url": "RAW/jppetry/buscosun-data/main/radar/img/v1/rzc/20261103T2030/meta.json",
+    "st": 200,
+    "xc": "HIT",
+    "kb": 0,
+    "t0": 6694,
+    "t1": 6820,
+    "ttfb": 123,
+    "prio": "Low"
+   },
+   {
+    "url": "/assets/hdf5Worker-BzhF92sA.js",
+    "kb": null,
+    "t0": 6810,
+    "t1": null,
+    "prio": "VeryLow"
+   },
+   {
+    "url": "RAW/jppetry/buscosun-data/main/radar/img/v1/rzc/20261103T2030/g000.png",
+    "st": 200,
+    "xc": "HIT",
+    "kb": 0,
+    "t0": 6845,
+    "t1": 6860,
+    "ttfb": 14,
+    "prio": "Low"
+   },
+   {
+    "url": "RAW/jppetry/buscosun-data/main/radar/img/v1/rzc-nc/20261103T2030/meta.json",
+    "st": 200,
+    "xc": "HIT",
+    "kb": 0,
+    "t0": 6912,
+    "t1": 6970,
+    "ttfb": 55,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/meta.json",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 1,
+    "t0": 6975,
+    "t1": 7144,
+    "ttfb": 162,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g005.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 7971,
+    "t1": 8276,
+    "ttfb": 171,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g010.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 7972,
+    "t1": 8276,
+    "ttfb": 167,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g015.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 7973,
+    "t1": 8279,
+    "ttfb": 167,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g020.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 7974,
+    "t1": 8276,
+    "ttfb": 166,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g025.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 9,
+    "t0": 7975,
+    "t1": 8276,
+    "ttfb": 166,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g030.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 7975,
+    "t1": 8277,
+    "ttfb": 165,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g035.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 8,
+    "t0": 8373,
+    "t1": 8549,
+    "ttfb": 158,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g040.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 8374,
+    "t1": 8550,
+    "ttfb": 160,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g045.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 8507,
+    "t1": 8679,
+    "ttfb": 171,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g050.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 8539,
+    "t1": 8706,
+    "ttfb": 165,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g055.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 8745,
+    "t1": 8936,
+    "ttfb": 170,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g060.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 8745,
+    "t1": 8978,
+    "ttfb": 170,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g065.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 8747,
+    "t1": 8932,
+    "ttfb": 168,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g070.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 8748,
+    "t1": 8941,
+    "ttfb": 169,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g075.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 8788,
+    "t1": 8953,
+    "ttfb": 158,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g080.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 8816,
+    "t1": 8994,
+    "ttfb": 161,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g085.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 8991,
+    "t1": 9174,
+    "ttfb": 172,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/temp-002.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 91,
+    "t0": 9080,
+    "t1": 10233,
+    "ttfb": 166,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/temp-003.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 91,
+    "t0": 9080,
+    "t1": 10233,
+    "ttfb": 164,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g090.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 9081,
+    "t1": 10678,
+    "ttfb": 1132,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g095.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 9146,
+    "t1": 10710,
+    "ttfb": 1100,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g100.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 9200,
+    "t1": 10705,
+    "ttfb": 1045,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g105.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 9,
+    "t0": 9220,
+    "t1": 10705,
+    "ttfb": 1056,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g110.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 9246,
+    "t1": 10677,
+    "ttfb": 1029,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g115.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 9289,
+    "t1": 10617,
+    "ttfb": 986,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/gust-002.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 130,
+    "t0": 10492,
+    "t1": 11771,
+    "ttfb": 152,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g120.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 10650,
+    "t1": 10985,
+    "ttfb": 179,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u005.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 4,
+    "t0": 11011,
+    "t1": 11188,
+    "ttfb": 172,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u010.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 4,
+    "t0": 11012,
+    "t1": 11188,
+    "ttfb": 171,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u015.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 4,
+    "t0": 11012,
+    "t1": 11190,
+    "ttfb": 171,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u020.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 4,
+    "t0": 11012,
+    "t1": 11194,
+    "ttfb": 170,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u025.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 4,
+    "t0": 11013,
+    "t1": 11194,
+    "ttfb": 170,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u030.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 4,
+    "t0": 11013,
+    "t1": 11190,
+    "ttfb": 168,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u035.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 4,
+    "t0": 11226,
+    "t1": 11398,
+    "ttfb": 168,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u040.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 4,
+    "t0": 11230,
+    "t1": 11412,
+    "ttfb": 166,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u045.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 4,
+    "t0": 11233,
+    "t1": 11412,
+    "ttfb": 174,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u050.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 4,
+    "t0": 11239,
+    "t1": 11413,
+    "ttfb": 169,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u055.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 4,
+    "t0": 11241,
+    "t1": 11415,
+    "ttfb": 167,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u060.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 4,
+    "t0": 11244,
+    "t1": 11523,
+    "ttfb": 163,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u065.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 4,
+    "t0": 11406,
+    "t1": 11578,
+    "ttfb": 170,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u070.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 4,
+    "t0": 11431,
+    "t1": 11605,
+    "ttfb": 155,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u075.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 3,
+    "t0": 11434,
+    "t1": 11605,
+    "ttfb": 155,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u080.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 3,
+    "t0": 11436,
+    "t1": 11611,
+    "ttfb": 164,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u085.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 3,
+    "t0": 11439,
+    "t1": 11611,
+    "ttfb": 164,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u090.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 3,
+    "t0": 11531,
+    "t1": 11699,
+    "ttfb": 166,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u095.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 3,
+    "t0": 11588,
+    "t1": 11766,
+    "ttfb": 175,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u100.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 3,
+    "t0": 11624,
+    "t1": 11808,
+    "ttfb": 169,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u105.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 3,
+    "t0": 11626,
+    "t1": 11807,
+    "ttfb": 167,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u110.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 3,
+    "t0": 11628,
+    "t1": 11807,
+    "ttfb": 165,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u115.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 3,
+    "t0": 11632,
+    "t1": 11807,
+    "ttfb": 161,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u120.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 3,
+    "t0": 11710,
+    "t1": 12032,
+    "ttfb": 196,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/gust-003.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 131,
+    "t0": 11773,
+    "t1": 12484,
+    "ttfb": 264,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/precip-003.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 13,
+    "t0": 12046,
+    "t1": 12232,
+    "ttfb": 161,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/thunder-002.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 6,
+    "t0": 12559,
+    "t1": 12750,
+    "ttfb": 166,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/thunder-003.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 5,
+    "t0": 12782,
+    "t1": 12964,
+    "ttfb": 177,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/rotation-002.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 22,
+    "t0": 12973,
+    "t1": 13165,
+    "ttfb": 162,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/rotation-003.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 21,
+    "t0": 13168,
+    "t1": 13355,
+    "ttfb": 170,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/snowdepth-002.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 7,
+    "t0": 13396,
+    "t1": 13566,
+    "ttfb": 168,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/snowdepth-003.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 7,
+    "t0": 13570,
+    "t1": 13806,
+    "ttfb": 173,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/lpi-002.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 3,
+    "t0": 13808,
+    "t1": 13990,
+    "ttfb": 176,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/lpi-003.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 3,
+    "t0": 13993,
+    "t1": 14174,
+    "ttfb": 180,
+    "prio": "Low"
+   }
+  ],
+  "dom": {
+   "subs": [],
+   "status": [],
+   "title": "Niederschlagskarte DACH | buscosun"
+  }
+ },
+ {
+  "i": 2,
+  "url": "https://buscosun.com/wetterkarte/niederschlag?ort=Z%C3%BCrich&olat=47.3769&olon=8.5417&land=ch",
+  "at": "2026-11-03T20:34:26.025Z",
+  "slotAgeS": 266,
+  "logs": [
+   {
+    "t": 3219,
+    "type": "log",
+    "text": "[buscosun] MeteoSwiss rzc → Slot 20261103T2030 · Quelle Daten-Repo (PNG) · 4 min alt"
+   },
+   {
+    "t": 3549,
+    "type": "warning",
+    "text": "Image \"circle-11\" could not be loaded. Please make sure you have added the image with map.addImage() or a \"sprite\" property in your style. You can provide missing images by listening for the \"styleimagemissing\" map event."
+   },
+   {
+    "t": 6764,
+    "type": "log",
+    "text": "[buscosun] CH Hochrechnung → Slot 20261103T2025 · 24 Frames (+5…+120 min) · 12 km/h aus 110° (5 Paare) · Quelle Daten-Repo (PNG)"
+   },
+   {
+    "t": 8995,
+    "type": "log",
+    "text": "[buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: composite_rv_20261103_2030.tar · Lauf 3.11.2026, 21:30:00 · 25 Frames (0…+120 min) · Quelle Daten-Repo (jsDelivr)"
+   },
+   {
+    "t": 12036,
+    "type": "log",
+    "text": "[buscosun] AT INCA · 5 min → Lauf 20261103T2000 · 34 Frames (+15…+180 min, 12 INCA-Bilder) · Quelle Daten-Repo (PNG)"
+   },
+   {
+    "t": 12036,
+    "type": "log",
+    "text": "[buscosun] GeoSphere INCA → Lauf 20261103T2000 · 12 Frames · Quelle Daten-Repo (PNG, aus inca-5m)"
+   }
+  ],
+  "net": [
+   {
+    "url": "/wetterkarte/niederschlag?ort=Z%C3%BCrich&olat=47.3769&olon=8.5417&land=ch",
+    "st": 200,
+    "xc": null,
+    "kb": 5,
+    "t0": 0,
+    "t1": 337,
+    "ttfb": 306,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/fonts/space-grotesk-600-latin.woff2",
+    "st": 200,
+    "xc": null,
+    "kb": 22,
+    "t0": 345,
+    "t1": 845,
+    "ttfb": 164,
+    "prio": "High"
+   },
+   {
+    "url": "/fonts/league-spartan-500-latin.woff2",
+    "st": 200,
+    "xc": null,
+    "kb": 24,
+    "t0": 346,
+    "t1": 870,
+    "ttfb": 164,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/index-5jFv7pbD.js",
+    "st": 200,
+    "xc": null,
+    "kb": 110,
+    "t0": 346,
+    "t1": 1071,
+    "ttfb": 157,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/cjs-helpers-Cpj98o6Y.js",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 346,
+    "t1": 532,
+    "ttfb": 157,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/index-BkLV0zc3.css",
+    "st": 200,
+    "xc": null,
+    "kb": 2,
+    "t0": 346,
+    "t1": 552,
+    "ttfb": 171,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/assets/WetterkarteRoute-xug1NXPm.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 346,
+    "t1": 577,
+    "ttfb": 156,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/modelCatalog-BbqlpjhE.js",
+    "st": 200,
+    "xc": null,
+    "kb": 2,
+    "t0": 347,
+    "t1": 553,
+    "ttfb": 171,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/useAppNav-dMDZGyW5.js",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 347,
+    "t1": 550,
+    "ttfb": 171,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/placeTable-BbtjGNal.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 347,
+    "t1": 549,
+    "ttfb": 170,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/placeSlugs-B2C_i7YS.js",
+    "st": 200,
+    "xc": null,
+    "kb": 4,
+    "t0": 347,
+    "t1": 578,
+    "ttfb": 170,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/StaleLinkNotice-DkPdwIr5.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 347,
+    "t1": 550,
+    "ttfb": 169,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/shareText-dgVRmrvW.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 347,
+    "t1": 577,
+    "ttfb": 198,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/share-BbtFrz6j.css",
+    "st": 200,
+    "xc": null,
+    "kb": 2,
+    "t0": 347,
+    "t1": 557,
+    "ttfb": 169,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/assets/NotFoundRoute-DVNQLZfw.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 347,
+    "t1": 550,
+    "ttfb": 169,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/NotFoundRoute-D5gLhNUD.css",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 347,
+    "t1": 550,
+    "ttfb": 168,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/assets/MapView-MsRlQ2mG.js",
+    "st": 200,
+    "xc": null,
+    "kb": 71,
+    "t0": 351,
+    "t1": 1009,
+    "ttfb": 168,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/layerCatalog-DIuEZjfi.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 352,
+    "t1": 657,
+    "ttfb": 216,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/repackSource-DwbmNybP.js",
+    "st": 200,
+    "xc": null,
+    "kb": 9,
+    "t0": 352,
+    "t1": 747,
+    "ttfb": 180,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/precipType-DUpA9G44.js",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 352,
+    "t1": 562,
+    "ttfb": 180,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/RainLayer-DVlSgX2P.js",
+    "st": 200,
+    "xc": null,
+    "kb": 7,
+    "t0": 352,
+    "t1": 659,
+    "ttfb": 194,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/quadWarpMesh-DgRdp-FC.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 352,
+    "t1": 584,
+    "ttfb": 179,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/maplibre-Y04dvQ_6.js",
+    "st": 200,
+    "xc": null,
+    "kb": 265,
+    "t0": 352,
+    "t1": 1215,
+    "ttfb": 334,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/maplibre-B-YMMjus.css",
+    "st": 200,
+    "xc": null,
+    "kb": 9,
+    "t0": 352,
+    "t1": 794,
+    "ttfb": 212,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/assets/WindLayer-CBv1pUlO.js",
+    "st": 200,
+    "xc": null,
+    "kb": 20,
+    "t0": 353,
+    "t1": 886,
+    "ttfb": 223,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/perfGovernor-DRlV9hh2.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 353,
+    "t1": 635,
+    "ttfb": 249,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/iconD2WindSource-DkBmp6wK.js",
+    "st": 200,
+    "xc": null,
+    "kb": 5,
+    "t0": 353,
+    "t1": 735,
+    "ttfb": 212,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/iconD2Precip-JRvFdFA5.js",
+    "st": 200,
+    "xc": null,
+    "kb": 6,
+    "t0": 353,
+    "t1": 694,
+    "ttfb": 210,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/decompress-CSvRoCdr.js",
+    "st": 200,
+    "xc": null,
+    "kb": 4,
+    "t0": 353,
+    "t1": 681,
+    "ttfb": 221,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/ScalarLayer-ot4XseYH.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 353,
+    "t1": 662,
+    "ttfb": 209,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/FavoriteStar-YFyCtjRH.js",
+    "st": 200,
+    "xc": null,
+    "kb": 14,
+    "t0": 353,
+    "t1": 844,
+    "ttfb": 220,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/spatialInterp-C5y8-fIz.js",
+    "st": 200,
+    "xc": null,
+    "kb": 11,
+    "t0": 354,
+    "t1": 812,
+    "ttfb": 210,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/geosphereInca-B4gDQ1iJ.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 354,
+    "t1": 599,
+    "ttfb": 208,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/pfFlags-0kXz64gO.js",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 354,
+    "t1": 625,
+    "ttfb": 234,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/elevation-C7ru2EyS.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 354,
+    "t1": 600,
+    "ttfb": 207,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/countryProfiles-BxfwpeCG.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 354,
+    "t1": 609,
+    "ttfb": 216,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/favorites-CFhiwowP.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 354,
+    "t1": 599,
+    "ttfb": 206,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/mapProfile-srFP_mdJ.js",
+    "st": 200,
+    "xc": null,
+    "kb": 13,
+    "t0": 354,
+    "t1": 840,
+    "ttfb": 207,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/dwdKonrad3d-DDZ-9OLs.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 354,
+    "t1": 665,
+    "ttfb": 231,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/gridGeo-C5fxNpjK.js",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 354,
+    "t1": 626,
+    "ttfb": 231,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/radarImg-B8k7zrlt.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 354,
+    "t1": 665,
+    "ttfb": 231,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/cellPolygons-CoL03GOY.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 355,
+    "t1": 667,
+    "ttfb": 230,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/countryOfPoint-CNVNnGll.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 355,
+    "t1": 626,
+    "ttfb": 230,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/countryBorders-DRWaC3F6.js",
+    "st": 200,
+    "xc": null,
+    "kb": 5,
+    "t0": 355,
+    "t1": 752,
+    "ttfb": 230,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/radolan-CE9JBgNO.js",
+    "st": 200,
+    "xc": null,
+    "kb": 7,
+    "t0": 355,
+    "t1": 794,
+    "ttfb": 234,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/radarSample-BbsMohsw.js",
+    "st": 200,
+    "xc": null,
+    "kb": 10,
+    "t0": 355,
+    "t1": 810,
+    "ttfb": 233,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/index-B57jaMJ9.js",
+    "st": 200,
+    "xc": null,
+    "kb": 18,
+    "t0": 355,
+    "t1": 885,
+    "ttfb": 232,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/quadSampler-CxiS843B.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 355,
+    "t1": 632,
+    "ttfb": 232,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/radarCountryMask-DtRDBmMf.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 355,
+    "t1": 652,
+    "ttfb": 250,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/opticalFlowNowcast-rZPtycAe.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 355,
+    "t1": 652,
+    "ttfb": 249,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/mapProfile-HFWtP5or.css",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 356,
+    "t1": 652,
+    "ttfb": 249,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/assets/countryMask-CPj47CZW.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 356,
+    "t1": 652,
+    "ttfb": 248,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/weatherBasemap-B-blnNL4.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 356,
+    "t1": 719,
+    "ttfb": 314,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/confidenceClasses-DtK7eI0c.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 356,
+    "t1": 694,
+    "ttfb": 289,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/pointForecast-CtZ7JIOc.js",
+    "st": 200,
+    "xc": null,
+    "kb": 12,
+    "t0": 356,
+    "t1": 855,
+    "ttfb": 250,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/dwdUvForecast-_NiJSUbx.js",
+    "st": 200,
+    "xc": null,
+    "kb": 2,
+    "t0": 356,
+    "t1": 694,
+    "ttfb": 247,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/dwdAlerts-vgqFxWeX.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 356,
+    "t1": 653,
+    "ttfb": 246,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/dwdPollen-BUxCXz3c.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 356,
+    "t1": 694,
+    "ttfb": 286,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/officialSources-BpPrM3VE.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 356,
+    "t1": 719,
+    "ttfb": 311,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/WeatherIcon-DKr5rC9x.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 357,
+    "t1": 694,
+    "ttfb": 286,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/useIsMobile-bYiymzta.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 357,
+    "t1": 695,
+    "ttfb": 285,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/meteoSwissHail-YV8RdkUK.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 357,
+    "t1": 704,
+    "ttfb": 291,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/dwdCapAlerts-DAoKuzQC.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 357,
+    "t1": 705,
+    "ttfb": 291,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/capAlerts-CxRb59-A.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 357,
+    "t1": 747,
+    "ttfb": 290,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/meteoAlarmCh-D8Y2UIPd.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 357,
+    "t1": 705,
+    "ttfb": 289,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/warnField-HZ8cOnd4.js",
+    "st": 200,
+    "xc": null,
+    "kb": 3,
+    "t0": 357,
+    "t1": 747,
+    "ttfb": 289,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/multiModel-CpQ_xN8F.js",
+    "st": 200,
+    "xc": null,
+    "kb": 2,
+    "t0": 357,
+    "t1": 748,
+    "ttfb": 289,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/climaField-NlUyLfOY.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 357,
+    "t1": 705,
+    "ttfb": 290,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/climatology-WB8LnLs9.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 357,
+    "t1": 706,
+    "ttfb": 289,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/flowEnsemble-Rm0ZHq3_.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 358,
+    "t1": 711,
+    "ttfb": 293,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/featureRail-DHtx8UPx.js",
+    "st": 200,
+    "xc": null,
+    "kb": 2,
+    "t0": 358,
+    "t1": 749,
+    "ttfb": 293,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/eventVisibility-B9pqjKbP.js",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 358,
+    "t1": 711,
+    "ttfb": 293,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/roadFlag-BrfW5qHa.js",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 358,
+    "t1": 711,
+    "ttfb": 292,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/seaFlag-DMd-PfpF.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 358,
+    "t1": 712,
+    "ttfb": 292,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/glacierFlag-BXxSTwuL.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 358,
+    "t1": 719,
+    "ttfb": 298,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/ShareButton-Cniv-vf1.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 359,
+    "t1": 734,
+    "ttfb": 313,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/ViewToggle-D64ouU_h.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 359,
+    "t1": 734,
+    "ttfb": 312,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/ViewToggle-A06VHuSr.css",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 360,
+    "t1": 719,
+    "ttfb": 296,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/assets/geocode-CymML_YK.js",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 360,
+    "t1": 735,
+    "ttfb": 311,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/MapView-Dw1L1MTi.css",
+    "st": 200,
+    "xc": null,
+    "kb": 14,
+    "t0": 361,
+    "t1": 870,
+    "ttfb": 311,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/icon.svg",
+    "st": 200,
+    "xc": null,
+    "kb": 4,
+    "t0": 1252,
+    "t1": 1467,
+    "ttfb": 210,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/rv/composite_rv_20261103_2030.tar",
+    "st": 200,
+    "xc": "MISS, MISS",
+    "kb": 307,
+    "t0": 1253,
+    "t1": 2189,
+    "ttfb": 658,
+    "prio": "High"
+   },
+   {
+    "url": "/buscosun-mark.svg",
+    "st": 200,
+    "xc": null,
+    "kb": 4,
+    "t0": 1389,
+    "t1": 1591,
+    "ttfb": 201,
+    "prio": "Low"
+   },
+   {
+    "url": "/assets/RouteSeoBlock-DFGIF7Qc.js",
+    "st": 200,
+    "xc": null,
+    "kb": 2,
+    "t0": 1390,
+    "t1": 1590,
+    "ttfb": 179,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/RouteSeoBlock-DYoHkiGl.css",
+    "st": 200,
+    "xc": null,
+    "kb": 1,
+    "t0": 1395,
+    "t1": 1590,
+    "ttfb": 193,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "blob:https://buscosun.com/c6908ecc-bb21-4237-bd08-930ec979394c",
+    "kb": null,
+    "t0": 1565,
+    "t1": null,
+    "prio": "VeryLow"
+   },
+   {
+    "url": "blob:https://buscosun.com/c6908ecc-bb21-4237-bd08-930ec979394c",
+    "kb": null,
+    "t0": 1566,
+    "t1": null,
+    "prio": "VeryLow"
+   },
+   {
+    "url": "/fonts/league-spartan-400-latin.woff2",
+    "st": 200,
+    "xc": null,
+    "kb": 24,
+    "t0": 1440,
+    "t1": 2501,
+    "ttfb": 699,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "/fonts/league-spartan-600-latin.woff2",
+    "st": 200,
+    "xc": null,
+    "kb": 24,
+    "t0": 1447,
+    "t1": 2500,
+    "ttfb": 697,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill-rule='evenodd' viewBox='0 0 20 20'%3E%3Cpath d='M4 10a6 6 0 1 0 12 0 6 6 0 1 0-12 0m5-3a1 1 0 1 0 2 0 1 1 0 1 0-2 0m0 3a1 1 0 1 1 2 0v3a1 1 0 1 1-2 0'/%3E%3C/svg%3E",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 1573,
+    "t1": 1573,
+    "ttfb": null,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20261103T2030/meta.json",
+    "st": 200,
+    "xc": "MISS, MISS",
+    "kb": 1,
+    "t0": 1687,
+    "t1": 1849,
+    "ttfb": 159,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/styles/dark",
+    "st": 200,
+    "xc": null,
+    "kb": 4,
+    "t0": 1758,
+    "t1": 1971,
+    "ttfb": 205,
+    "prio": "High"
+   },
+   {
+    "url": "/icon.svg",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 1839,
+    "t1": 1873,
+    "ttfb": 33,
+    "prio": "High"
+   },
+   {
+    "url": "/fonts/league-spartan-700-latin.woff2",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 1850,
+    "t1": 2613,
+    "ttfb": 716,
+    "prio": "VeryHigh"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20261103T2030/g000.png",
+    "st": 200,
+    "xc": "MISS, MISS",
+    "kb": 9,
+    "t0": 1894,
+    "t1": 2204,
+    "ttfb": 308,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/subRouteTexts-DYsB10gb.js",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 1906,
+    "t1": 2347,
+    "ttfb": 241,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/index.json",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 10,
+    "t0": 1924,
+    "t1": 2097,
+    "ttfb": 170,
+    "prio": "High"
+   },
+   {
+    "url": "/countries/DACH.geojson",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 2089,
+    "t1": 2447,
+    "ttfb": 347,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/planet",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 2514,
+    "t1": 2613,
+    "ttfb": 50,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/sprites/ofm_f384/ofm@2x.json",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 2515,
+    "t1": 2613,
+    "ttfb": 81,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/sprites/ofm_f384/ofm@2x.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 2517,
+    "t1": 2722,
+    "ttfb": 81,
+    "prio": "High"
+   },
+   {
+    "url": "/icon.svg",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 2600,
+    "t1": 2628,
+    "ttfb": 27,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/hsurf-v1.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 60,
+    "t0": 2614,
+    "t1": 2839,
+    "ttfb": 168,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/radolanWorker-O8RK-D-P.js",
+    "kb": null,
+    "t0": 2689,
+    "t1": null,
+    "prio": "VeryLow"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 2892,
+    "t1": 3539,
+    "ttfb": 471,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 2893,
+    "t1": 3437,
+    "ttfb": 470,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 2893,
+    "t1": 3317,
+    "ttfb": 423,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 2893,
+    "t1": 3492,
+    "ttfb": 470,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 2893,
+    "t1": 3492,
+    "ttfb": 470,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 2893,
+    "t1": 3528,
+    "ttfb": 470,
+    "prio": "Low"
+   },
+   {
+    "url": "/assets/precipIndexWorker-DRuBJY6e.js",
+    "kb": null,
+    "t0": 3219,
+    "t1": null,
+    "prio": "VeryLow"
+   },
+   {
+    "url": "RAW/jppetry/buscosun-data/main/radar/img/v1/rzc-nc/20261103T2030/meta.json",
+    "st": 200,
+    "xc": "HIT",
+    "kb": 0,
+    "t0": 3217,
+    "t1": 3288,
+    "ttfb": 69,
+    "prio": "High"
+   },
+   {
+    "url": "/assets/precipIndexWorker-DRuBJY6e.js",
+    "kb": null,
+    "t0": 3220,
+    "t1": null,
+    "prio": "VeryLow"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/meta.json",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 1,
+    "t0": 3296,
+    "t1": 3473,
+    "ttfb": 163,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3536,
+    "t1": 3798,
+    "ttfb": 133,
+    "prio": "Low"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/0-255.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3541,
+    "t1": 3711,
+    "ttfb": 54,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/1536-1791.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3542,
+    "t1": 3711,
+    "ttfb": 52,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/8192-8447.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3542,
+    "t1": 3638,
+    "ttfb": 54,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/11520-11775.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3543,
+    "t1": 3711,
+    "ttfb": 53,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/256-511.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3658,
+    "t1": 3733,
+    "ttfb": 41,
+    "prio": "High"
+   },
+   {
+    "url": "https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/512-767.pbf",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3658,
+    "t1": 3727,
+    "ttfb": 40,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g005.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 3717,
+    "t1": 3930,
+    "ttfb": 163,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g010.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 3718,
+    "t1": 3930,
+    "ttfb": 161,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g015.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 3718,
+    "t1": 3931,
+    "ttfb": 161,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g020.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 3718,
+    "t1": 3930,
+    "ttfb": 161,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g025.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 9,
+    "t0": 3719,
+    "t1": 3930,
+    "ttfb": 161,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g030.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 3719,
+    "t1": 3930,
+    "ttfb": 161,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3730,
+    "t1": 4012,
+    "ttfb": 153,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3732,
+    "t1": 3902,
+    "ttfb": 168,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/38.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3734,
+    "t1": 3905,
+    "ttfb": 171,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3735,
+    "t1": 4012,
+    "ttfb": 138,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3736,
+    "t1": 3905,
+    "ttfb": 165,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3845,
+    "t1": 4012,
+    "ttfb": 166,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3952,
+    "t1": 4095,
+    "ttfb": 139,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3952,
+    "t1": 4095,
+    "ttfb": 139,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 3953,
+    "t1": 4105,
+    "ttfb": 142,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4071,
+    "t1": 4255,
+    "ttfb": 164,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4072,
+    "t1": 4256,
+    "ttfb": 181,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4073,
+    "t1": 4257,
+    "ttfb": 181,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/39.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4099,
+    "t1": 4390,
+    "ttfb": 172,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4101,
+    "t1": 4376,
+    "ttfb": 152,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g035.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 8,
+    "t0": 4104,
+    "t1": 4263,
+    "ttfb": 157,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4109,
+    "t1": 4390,
+    "ttfb": 161,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4258,
+    "t1": 4411,
+    "ttfb": 151,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4260,
+    "t1": 4419,
+    "ttfb": 151,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4261,
+    "t1": 4419,
+    "ttfb": 156,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g040.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 4268,
+    "t1": 4444,
+    "ttfb": 157,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g045.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 4330,
+    "t1": 4507,
+    "ttfb": 160,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g050.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 4389,
+    "t1": 4561,
+    "ttfb": 156,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4393,
+    "t1": 4570,
+    "ttfb": 167,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4394,
+    "t1": 4560,
+    "ttfb": 165,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4395,
+    "t1": 4572,
+    "ttfb": 174,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4428,
+    "t1": 4578,
+    "ttfb": 143,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/40.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4431,
+    "t1": 4587,
+    "ttfb": 155,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4432,
+    "t1": 4586,
+    "ttfb": 146,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g055.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 4473,
+    "t1": 4975,
+    "ttfb": 181,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g060.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 4506,
+    "t1": 4691,
+    "ttfb": 155,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4564,
+    "t1": 4715,
+    "ttfb": 146,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g065.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 4599,
+    "t1": 4778,
+    "ttfb": 159,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g070.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 4601,
+    "t1": 4779,
+    "ttfb": 157,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4605,
+    "t1": 4779,
+    "ttfb": 158,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4606,
+    "t1": 4761,
+    "ttfb": 148,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4607,
+    "t1": 4782,
+    "ttfb": 172,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4608,
+    "t1": 4764,
+    "ttfb": 134,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4609,
+    "t1": 4781,
+    "ttfb": 153,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g075.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 4641,
+    "t1": 4990,
+    "ttfb": 165,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g080.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 4689,
+    "t1": 5008,
+    "ttfb": 170,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g085.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 4715,
+    "t1": 5071,
+    "ttfb": 157,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4719,
+    "t1": 4882,
+    "ttfb": 158,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4766,
+    "t1": 4938,
+    "ttfb": 170,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/41.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4768,
+    "t1": 4938,
+    "ttfb": 166,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4784,
+    "t1": 4955,
+    "ttfb": 163,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4786,
+    "t1": 4965,
+    "ttfb": 152,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4788,
+    "t1": 4967,
+    "ttfb": 179,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g090.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 4826,
+    "t1": 5090,
+    "ttfb": 162,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4885,
+    "t1": 5040,
+    "ttfb": 138,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g095.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 4891,
+    "t1": 5072,
+    "ttfb": 165,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4947,
+    "t1": 5141,
+    "ttfb": 178,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4948,
+    "t1": 5168,
+    "ttfb": 185,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4968,
+    "t1": 5173,
+    "ttfb": 199,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4972,
+    "t1": 5187,
+    "ttfb": 193,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 4973,
+    "t1": 5168,
+    "ttfb": 188,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g100.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 5004,
+    "t1": 5171,
+    "ttfb": 159,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g105.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 9,
+    "t0": 5141,
+    "t1": 5307,
+    "ttfb": 162,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/42.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5150,
+    "t1": 5326,
+    "ttfb": 162,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g110.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 5151,
+    "t1": 5318,
+    "ttfb": 156,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5154,
+    "t1": 5312,
+    "ttfb": 157,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5185,
+    "t1": 5364,
+    "ttfb": 171,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5187,
+    "t1": 5364,
+    "ttfb": 170,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5190,
+    "t1": 5356,
+    "ttfb": 142,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5191,
+    "t1": 5333,
+    "ttfb": 138,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g115.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 5250,
+    "t1": 5422,
+    "ttfb": 170,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/g120.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 9,
+    "t0": 5295,
+    "t1": 5461,
+    "ttfb": 159,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5321,
+    "t1": 5484,
+    "ttfb": 147,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5332,
+    "t1": 5525,
+    "ttfb": 171,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5336,
+    "t1": 5525,
+    "ttfb": 163,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5359,
+    "t1": 5539,
+    "ttfb": 167,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/43.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5447,
+    "t1": 5623,
+    "ttfb": 173,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5458,
+    "t1": 5600,
+    "ttfb": 139,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5500,
+    "t1": 5669,
+    "ttfb": 160,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5535,
+    "t1": 5698,
+    "ttfb": 152,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5536,
+    "t1": 5715,
+    "ttfb": 160,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5549,
+    "t1": 5844,
+    "ttfb": 167,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u005.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 4,
+    "t0": 5571,
+    "t1": 5752,
+    "ttfb": 165,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u010.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 4,
+    "t0": 5571,
+    "t1": 6083,
+    "ttfb": 165,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u015.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 4,
+    "t0": 5571,
+    "t1": 6106,
+    "ttfb": 165,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u020.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 4,
+    "t0": 5571,
+    "t1": 6105,
+    "ttfb": 175,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u025.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 4,
+    "t0": 5572,
+    "t1": 6078,
+    "ttfb": 175,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u030.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 4,
+    "t0": 5572,
+    "t1": 6106,
+    "ttfb": 174,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5603,
+    "t1": 5854,
+    "ttfb": 245,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5626,
+    "t1": 5856,
+    "ttfb": 221,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5673,
+    "t1": 5876,
+    "ttfb": 184,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5704,
+    "t1": 6079,
+    "ttfb": 319,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/44.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5825,
+    "t1": 6040,
+    "ttfb": 192,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u035.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 4,
+    "t0": 5845,
+    "t1": 6107,
+    "ttfb": 169,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5848,
+    "t1": 6016,
+    "ttfb": 153,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5857,
+    "t1": 6060,
+    "ttfb": 160,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5860,
+    "t1": 6075,
+    "ttfb": 165,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 5879,
+    "t1": 6079,
+    "ttfb": 196,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6048,
+    "t1": 6298,
+    "ttfb": 206,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6050,
+    "t1": 6239,
+    "ttfb": 177,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6066,
+    "t1": 6228,
+    "ttfb": 159,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6079,
+    "t1": 6257,
+    "ttfb": 160,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6083,
+    "t1": 6256,
+    "ttfb": 167,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/45.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6085,
+    "t1": 6285,
+    "ttfb": 195,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u040.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 4,
+    "t0": 6144,
+    "t1": 6323,
+    "ttfb": 171,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u045.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 4,
+    "t0": 6145,
+    "t1": 6317,
+    "ttfb": 156,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u050.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 4,
+    "t0": 6145,
+    "t1": 6318,
+    "ttfb": 170,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u055.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 4,
+    "t0": 6146,
+    "t1": 6323,
+    "ttfb": 170,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u060.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 4,
+    "t0": 6146,
+    "t1": 6323,
+    "ttfb": 169,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u065.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 4,
+    "t0": 6147,
+    "t1": 6324,
+    "ttfb": 169,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/62/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6232,
+    "t1": 6397,
+    "ttfb": 148,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/63/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6245,
+    "t1": 6401,
+    "ttfb": 148,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/64/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6302,
+    "t1": 6548,
+    "ttfb": 229,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/65/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6303,
+    "t1": 6563,
+    "ttfb": 251,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/66/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6304,
+    "t1": 6552,
+    "ttfb": 230,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/67/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6305,
+    "t1": 6555,
+    "ttfb": 247,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u070.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 4,
+    "t0": 6333,
+    "t1": 6540,
+    "ttfb": 174,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u075.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 3,
+    "t0": 6338,
+    "t1": 6494,
+    "ttfb": 154,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u080.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 3,
+    "t0": 6340,
+    "t1": 6503,
+    "ttfb": 161,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u085.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 3,
+    "t0": 6342,
+    "t1": 6531,
+    "ttfb": 180,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u090.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 3,
+    "t0": 6344,
+    "t1": 6511,
+    "ttfb": 157,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u095.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 3,
+    "t0": 6347,
+    "t1": 6523,
+    "ttfb": 160,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/68/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6403,
+    "t1": 6563,
+    "ttfb": 160,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/69/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6405,
+    "t1": 6595,
+    "ttfb": 161,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u100.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 3,
+    "t0": 6521,
+    "t1": 6697,
+    "ttfb": 174,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u105.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 3,
+    "t0": 6523,
+    "t1": 6697,
+    "ttfb": 171,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u110.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 3,
+    "t0": 6530,
+    "t1": 6709,
+    "ttfb": 155,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u115.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 3,
+    "t0": 6533,
+    "t1": 6724,
+    "ttfb": 153,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rzc-nc/20261103T2025/u120.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 3,
+    "t0": 6537,
+    "t1": 6725,
+    "ttfb": 153,
+    "prio": "High"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/70/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6552,
+    "t1": 6709,
+    "ttfb": 145,
+    "prio": "Low"
+   },
+   {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/71/46.png",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6558,
+    "t1": 6738,
+    "ttfb": 169,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/rv/2611032030/meta.json",
+    "st": 404,
+    "xc": "MISS, MISS",
+    "kb": null,
+    "t0": 6771,
+    "t1": null,
+    "ttfb": 230,
+    "prio": "Low"
+   },
+   {
+    "url": "https://dataset.api.hub.geosphere.at/v1/grid/forecast/nowcast-v1-15min-1km/metadata",
+    "st": 200,
+    "xc": null,
+    "kb": 0,
+    "t0": 6775,
+    "t1": 7210,
+    "ttfb": 435,
+    "prio": "Low"
+   },
+   {
+    "url": "RAW/jppetry/buscosun-data/main/radar/img/v1/rv/2611032030/meta.json",
+    "st": 404,
+    "xc": "HIT",
+    "kb": 0,
+    "t0": 7044,
+    "t1": 7061,
+    "ttfb": 15,
+    "prio": "Low"
+   },
+   {
+    "url": "/assets/hdf5Worker-BzhF92sA.js",
+    "kb": null,
+    "t0": 7117,
+    "t1": null,
+    "prio": "VeryLow"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/meta.json",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 1,
+    "t0": 7242,
+    "t1": 7423,
+    "ttfb": 176,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g015.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 6,
+    "t0": 7443,
+    "t1": 7641,
+    "ttfb": 165,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g020.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 6,
+    "t0": 7445,
+    "t1": 7641,
+    "ttfb": 162,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g025.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 6,
+    "t0": 7446,
+    "t1": 7641,
+    "ttfb": 161,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g030.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 6,
+    "t0": 7447,
+    "t1": 7642,
+    "ttfb": 159,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g035.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 6,
+    "t0": 7447,
+    "t1": 7642,
+    "ttfb": 158,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g040.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 6,
+    "t0": 7448,
+    "t1": 7646,
+    "ttfb": 158,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g045.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 6,
+    "t0": 7686,
+    "t1": 7849,
+    "ttfb": 154,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g050.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 6,
+    "t0": 7730,
+    "t1": 7897,
+    "ttfb": 151,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g055.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 6,
+    "t0": 7739,
+    "t1": 9698,
+    "ttfb": 171,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g060.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 6,
+    "t0": 7767,
+    "t1": 9698,
+    "ttfb": 160,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g065.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 6,
+    "t0": 7809,
+    "t1": 7994,
+    "ttfb": 167,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g070.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 7,
+    "t0": 7837,
+    "t1": 9683,
+    "ttfb": 157,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g075.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 7,
+    "t0": 7886,
+    "t1": 9759,
+    "ttfb": 158,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/temp-002.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 91,
+    "t0": 7935,
+    "t1": 9684,
+    "ttfb": 162,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/temp-003.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 91,
+    "t0": 7936,
+    "t1": 9683,
+    "ttfb": 161,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g080.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 7,
+    "t0": 7936,
+    "t1": 9762,
+    "ttfb": 1737,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g085.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 11,
+    "t0": 8027,
+    "t1": 9774,
+    "ttfb": 1665,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g090.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 10,
+    "t0": 10194,
+    "t1": 10398,
+    "ttfb": 159,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g095.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 12,
+    "t0": 10195,
+    "t1": 10406,
+    "ttfb": 159,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g100.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 15,
+    "t0": 10196,
+    "t1": 10421,
+    "ttfb": 158,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g105.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 14,
+    "t0": 10281,
+    "t1": 10467,
+    "ttfb": 161,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g110.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 17,
+    "t0": 10345,
+    "t1": 10553,
+    "ttfb": 162,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g115.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 19,
+    "t0": 10346,
+    "t1": 10572,
+    "ttfb": 171,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/gust-002.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 130,
+    "t0": 10358,
+    "t1": 12045,
+    "ttfb": 160,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g120.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 18,
+    "t0": 10421,
+    "t1": 10617,
+    "ttfb": 162,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g125.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 21,
+    "t0": 10460,
+    "t1": 10967,
+    "ttfb": 158,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g130.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 23,
+    "t0": 10471,
+    "t1": 10967,
+    "ttfb": 159,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g135.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 20,
+    "t0": 10497,
+    "t1": 11078,
+    "ttfb": 178,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g140.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 25,
+    "t0": 10570,
+    "t1": 11151,
+    "ttfb": 182,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g145.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 26,
+    "t0": 10617,
+    "t1": 11682,
+    "ttfb": 181,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g150.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 23,
+    "t0": 10636,
+    "t1": 11224,
+    "ttfb": 178,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g155.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 28,
+    "t0": 10998,
+    "t1": 11854,
+    "ttfb": 153,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g160.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 29,
+    "t0": 11012,
+    "t1": 11854,
+    "ttfb": 154,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g165.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 26,
+    "t0": 11098,
+    "t1": 11918,
+    "ttfb": 173,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g170.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 31,
+    "t0": 11169,
+    "t1": 11963,
+    "ttfb": 178,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g175.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 33,
+    "t0": 11244,
+    "t1": 12005,
+    "ttfb": 438,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/radar/img/v1/inca-5m/20261103T2000/g180.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 29,
+    "t0": 11705,
+    "t1": 11989,
+    "ttfb": 164,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/gust-003.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 131,
+    "t0": 12048,
+    "t1": 12459,
+    "ttfb": 167,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/precip-003.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 13,
+    "t0": 12251,
+    "t1": 12444,
+    "ttfb": 165,
+    "prio": "High"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/thunder-002.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 6,
+    "t0": 12499,
+    "t1": 12703,
+    "ttfb": 172,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/thunder-003.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 5,
+    "t0": 12727,
+    "t1": 12916,
+    "ttfb": 178,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/rotation-002.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 22,
+    "t0": 12924,
+    "t1": 13097,
+    "ttfb": 168,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/rotation-003.png",
+    "st": 200,
+    "xc": "MISS, HIT",
+    "kb": 21,
+    "t0": 13101,
+    "t1": 13276,
+    "ttfb": 159,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/snowdepth-002.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 7,
+    "t0": 13278,
+    "t1": 13453,
+    "ttfb": 173,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/snowdepth-003.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 7,
+    "t0": 13457,
+    "t1": 13639,
+    "ttfb": 180,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/lpi-002.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 3,
+    "t0": 13643,
+    "t1": 13866,
+    "ttfb": 221,
+    "prio": "Low"
+   },
+   {
+    "url": "CDN/gh/jppetry/buscosun-data@main/runs/2026110318/lpi-003.png",
+    "st": 200,
+    "xc": "HIT, HIT",
+    "kb": 3,
+    "t0": 13871,
+    "t1": 14058,
+    "ttfb": 184,
+    "prio": "Low"
+   }
+  ],
+  "dom": {
+   "subs": [],
+   "status": [],
+   "title": "Niederschlagskarte DACH | buscosun"
+  }
+ }
+]

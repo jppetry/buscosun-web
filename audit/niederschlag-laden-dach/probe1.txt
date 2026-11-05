@@ -1,0 +1,72 @@
+20:25:18 age=618s inca-5m/20261103T2015 raw 404 300ms MISS 
+20:25:18 age=618s rzc/20261103T2015 raw 200 358ms MISS   ← erste 200
+20:25:18 age=318s rzc/20261103T2020 raw 200 363ms MISS   ← erste 200
+20:25:18 age=318s rv/2611032020 raw 200 374ms MISS   ← erste 200
+20:25:18 age=2418s inca-5m/20261103T1945 raw 200 341ms MISS   ← erste 200
+20:25:18 age=618s rv/2611032015 raw 200 370ms MISS   ← erste 200
+20:25:18 age=618s rzc-nc/20261103T2015 raw 200 353ms MISS   ← erste 200
+20:25:18 age=318s rv/2611032020 cdn 200 598ms MISS, MISS   ← erste 200
+20:25:18 age=618s rv/2611032015 cdn 200 642ms MISS, MISS   ← erste 200
+20:25:18 age=1518s inca-5m/20261103T2000 raw 200 615ms MISS   ← erste 200
+20:25:18 age=618s rzc/20261103T2015 cdn 200 641ms MISS, MISS   ← erste 200
+20:25:18 age=318s rzc-nc/20261103T2020 raw 200 633ms HIT   ← erste 200
+20:25:18 age=618s rzc-nc/20261103T2015 cdn 200 635ms MISS, MISS   ← erste 200
+20:25:18 age=318s rzc-nc/20261103T2020 cdn 200 646ms MISS, MISS   ← erste 200
+20:25:18 age=318s rzc/20261103T2020 cdn 200 655ms MISS, MISS   ← erste 200
+20:25:19 age=2418s inca-5m/20261103T1945 cdn 200 1218ms MISS, MISS   ← erste 200
+20:26:05 age=65s rzc-nc/20261103T2025 raw 404 403ms MISS 
+20:26:05 age=65s rzc/20261103T2025 raw 404 519ms MISS 
+20:27:06 age=127s rzc/20261103T2025 raw 200 256ms MISS   ← erste 200
+20:27:06 age=127s rzc-nc/20261103T2025 raw 200 262ms MISS   ← erste 200
+20:27:32 age=153s rv/2611032025 raw 404 258ms MISS 
+20:28:03 age=1683s inca-5m/20261103T2000 cdn 200 416ms MISS, MISS   ← erste 200
+20:29:00 age=240s rzc/20261103T2025 cdn 200 761ms MISS, MISS   ← erste 200
+20:29:31 age=271s rzc-nc/20261103T2025 cdn 200 400ms MISS, MISS   ← erste 200
+20:29:31 age=271s rv/2611032025 cdn 404 533ms MISS, MISS 
+20:29:37 age=277s rv/2611032025 raw 200 235ms MISS   ← erste 200
+20:31:01 age=361s rv/2611032025 cdn 200 102ms MISS, MISS   ← erste 200
+20:31:01 age=61s rzc/20261103T2030 raw 404 232ms MISS 
+20:31:01 age=61s rzc-nc/20261103T2030 raw 404 234ms MISS 
+20:32:02 age=122s rzc-nc/20261103T2030 raw 200 251ms MISS   ← erste 200
+20:32:02 age=122s rzc/20261103T2030 raw 200 268ms MISS   ← erste 200
+20:32:33 age=153s rv/2611032030 raw 404 254ms MISS 
+20:34:13 age=245s rzc/20261103T2030 cdn 200 8775ms MISS, MISS   ← erste 200
+20:34:34 age=274s rv/2611032030 cdn 404 398ms MISS, MISS 
+20:34:34 age=274s rzc-nc/20261103T2030 cdn 200 832ms MISS, MISS   ← erste 200
+20:34:40 age=280s rv/2611032030 raw 200 231ms MISS   ← erste 200
+20:35:01 age=301s inca-5m/20261103T2030 raw 404 322ms MISS 
+20:35:42 age=1242s inca-5m/20261103T2015 raw 200 258ms MISS   ← erste 200
+20:35:42 age=342s rv/2611032030 cdn 200 367ms MISS, MISS   ← erste 200
+20:36:03 age=63s rzc/20261103T2035 raw 200 268ms MISS   ← erste 200
+20:36:03 age=63s rzc-nc/20261103T2035 raw 200 271ms MISS   ← erste 200
+20:37:35 age=155s rv/2611032035 raw 404 274ms MISS 
+20:39:02 age=242s rzc/20261103T2035 cdn 200 422ms MISS, MISS   ← erste 200
+20:39:33 age=273s rv/2611032035 cdn 404 388ms MISS, MISS 
+20:39:33 age=273s rzc-nc/20261103T2035 cdn 200 393ms MISS, MISS   ← erste 200
+20:39:38 age=279s rv/2611032035 raw 200 259ms MISS   ← erste 200
+20:40:05 age=304s rv/2611032035 cdn 200 653ms MISS, MISS   ← erste 200
+20:41:01 age=61s rzc-nc/20261103T2040 raw 404 235ms MISS 
+20:41:01 age=61s rzc/20261103T2040 raw 404 398ms MISS 
+
+== Zusammenfassung (Alter in s nach dem Slot, bei dem die Datei zuerst 200 war; – = nie im Fenster) ==
+inca-5m/20261103T1945    cdn 2418   raw 2418
+inca-5m/20261103T2000    cdn 1683   raw 1518
+inca-5m/20261103T2015    cdn – (zuletzt undefined)   raw 1242
+inca-5m/20261103T2030    cdn – (zuletzt undefined)   raw – (zuletzt 404)
+rv/2611032015            cdn 618   raw 618
+rv/2611032020            cdn 318   raw 318
+rv/2611032025            cdn 361   raw 277
+rv/2611032030            cdn 342   raw 280
+rv/2611032035            cdn 304   raw 279
+rzc-nc/20261103T2015     cdn 618   raw 618
+rzc-nc/20261103T2020     cdn 318   raw 318
+rzc-nc/20261103T2025     cdn 271   raw 127
+rzc-nc/20261103T2030     cdn 274   raw 122
+rzc-nc/20261103T2035     cdn 273   raw 63
+rzc-nc/20261103T2040     cdn – (zuletzt undefined)   raw – (zuletzt 404)
+rzc/20261103T2015        cdn 618   raw 618
+rzc/20261103T2020        cdn 318   raw 318
+rzc/20261103T2025        cdn 240   raw 127
+rzc/20261103T2030        cdn 245   raw 122
+rzc/20261103T2035        cdn 242   raw 63
+rzc/20261103T2040        cdn – (zuletzt undefined)   raw – (zuletzt 404)

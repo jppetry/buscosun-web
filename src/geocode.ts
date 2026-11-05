@@ -33,6 +33,47 @@ export async function geocodeDACH(query: string, signal?: AbortSignal): Promise<
   return data.map(nominatimToLocation).filter((l): l is Location => l != null);
 }
 
+interface PhotonFeature {
+  geometry?: { coordinates?: [number, number] };
+  properties?: {
+    osm_id?: number; name?: string; street?: string; housenumber?: string; postcode?: string;
+    city?: string; district?: string; locality?: string; county?: string; state?: string; country?: string; countrycode?: string;
+  };
+}
+
+/**
+ * Autovervollständigung beim Tippen (Photon, photon.komoot.io, OSM-Daten). Nominatims öffentlicher Server verbietet
+ * Suche-beim-Tippen ausdrücklich — der Enter-Pfad (`geocodeDACH`) bleibt dort, nur die Vorschläge kommen von Photon.
+ * Liefert dieselbe Form wie Nominatim, damit die Ergebnisliste der Startseite unverändert bleibt; nur DE/AT/CH.
+ */
+export async function suggestDACH(query: string, signal?: AbortSignal): Promise<NominatimResult[]> {
+  const url = new URL('https://photon.komoot.io/api/');
+  url.searchParams.set('q', query);
+  url.searchParams.set('lang', 'de');
+  url.searchParams.set('limit', '8');
+  url.searchParams.set('bbox', '5.8,45.7,17.3,55.1');   // minLon,minLat,maxLon,maxLat around DACH
+  const res = await fetch(url.toString(), { signal });
+  if (!res.ok) throw new Error(`Vorschläge: ${res.status}`);
+  const data = (await res.json()) as { features?: PhotonFeature[] };
+  const out: NominatimResult[] = [];
+  const seen = new Set<string>();
+  for (const f of data.features ?? []) {
+    const p = f.properties ?? {};
+    const cc = p.countrycode?.toLowerCase();
+    const c = f.geometry?.coordinates;
+    if (!c || (cc !== 'de' && cc !== 'at' && cc !== 'ch')) continue;
+    const street = p.street ? `${p.street}${p.housenumber ? ` ${p.housenumber}` : ''}` : null;
+    const head = p.name && street && p.name !== street ? `${p.name}, ${street}` : (p.name ?? street);
+    if (!head) continue;
+    const place = [p.postcode, p.city ?? p.locality ?? p.county].filter(Boolean).join(' ');
+    const display = [head, place || null, p.state, p.country].filter(Boolean).join(', ');
+    if (seen.has(display)) continue;
+    seen.add(display);
+    out.push({ display_name: display, lat: String(c[1]), lon: String(c[0]), place_id: p.osm_id ?? out.length, address: { country_code: cc } });
+  }
+  return out;
+}
+
 /**
  * Reverse-Geocoding: Koordinaten → benannter Ort (DE/AT/CH). Für den Ausweich-
  * ort-Vorschlag (PLANB-US5), um Kandidaten-Punkte mit echtem Namen + Land zu

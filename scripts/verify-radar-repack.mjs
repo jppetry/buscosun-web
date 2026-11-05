@@ -182,9 +182,13 @@ add('A19 Kill-Switch: Query schlägt Speicher in beide Richtungen; default an',
     iDirect > 0 && iGuess > iDirect && /catch \(err\) \{[\s\S]{0,300}loadIncaFromImgGuessed/.test(src));
   // A27: der Fremdhost darf den GETEILTEN CDN-Latch nicht belasten — ein 502 des
   // GeoSphere-`/metadata` hätte sonst auch RV/KONRAD/rzc auf den Altweg geschaltet.
-  const meta = src.slice(src.indexOf('const mr = await fetch(META_URL'), src.indexOf('const grid = await loadIncaSlot'));
+  // Phase ND (ND-4): der Abruf selbst steht in `fetchIncaMeta`/`incaMetaRef` (vorgestartet oder frisch); der Leser fängt ihn
+  // weiterhin mit eigenem `catch { return null }` — beide Stellen ohne `noteRadarCdnFailure`.
+  const iMeta = src.indexOf('ref = await incaMetaRef(');
+  const meta = src.slice(iMeta, src.indexOf('const grid = await loadIncaSlot', iMeta));
+  const fetcher = src.slice(src.indexOf('function fetchIncaMeta('), src.indexOf('export function warmIncaMeta('));
   add('A27 GeoSphere-Fehler zählt NICHT in den CDN-Latch (eigenes catch, kein noteRadarCdnFailure)',
-    /catch \{[\s\S]{0,200}return null;/.test(meta) && !meta.includes('noteRadarCdnFailure'));
+    iMeta > 0 && /catch \{[\s\S]{0,200}return null;/.test(meta) && !meta.includes('noteRadarCdnFailure') && fetcher.includes('fetch(META_URL') && !fetcher.includes('noteRadarCdnFailure'));
 }
 
 {

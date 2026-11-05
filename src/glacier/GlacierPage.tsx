@@ -195,8 +195,8 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   const follow = useCallback((id: string) => setFavs((cur) => { const next = toggleFav(cur, id); writeFavs(next); return next; }), []);
   const fresh = useMemo(() => newSinceLastVisit(feed ?? [], favs, lastVisit.current ?? null), [feed, favs]);
   const favValue = useCallback((id: string) => { const g = d?.cat.byId.get(id); if (!g) return null; const v = metricValue(metric, d?.summary?.latest[id], g, satCtx); return v.v == null ? null : { text: v.text ?? '', origin: defs[metric].origin, label: defs[metric].label }; }, [d, metric, satCtx, defs]);
-  const openBrief = () => { if (GLACIER_BRIEF_READY && selSeg) onGlacier(stateNow({ glacier: selSeg, sel: null, tab: 'heute', t: 'heute', v: '2d', e: ['o', 's'], o: 0 }), false); };
-  const closeBrief = () => onGlacier(stateNow({ glacier: null, sel: briefSeg, tab: 'heute', t: 'heute', v: '2d', e: ['o', 's'], o: 0 }), false);
+  const openBrief = () => { if (GLACIER_BRIEF_READY && selSeg) onGlacier(stateNow({ glacier: selSeg, sel: null, tab: 'heute', t: 'heute', v: '2d', e: ['o'], o: 0 }), false); };
+  const closeBrief = () => onGlacier(stateNow({ glacier: null, sel: briefSeg, tab: 'heute', t: 'heute', v: '2d', e: ['o'], o: 0 }), false);
   const bucketOf = useCallback((id: string) => values.get(id)?.bucket ?? -1, [values]);
   const loadOutlineFn = useCallback((region: string, level: 1 | 2 | 3) => (d ? loadOutline(d.build, region, level, undefined, bases) : Promise.resolve(null)), [d, bases]);
 
