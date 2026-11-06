@@ -787,16 +787,8 @@ export default function FireMap({
     // Spätere Quellen (Basiskarte Satellit, Detektionen, EFFIS) schreiben ihre Zeile in dieselbe
     // Attribution und MapLibre klappt sie dabei wieder auf: bis der Nutzer selbst auf ⓘ tippt,
     // bleibt sie nach jedem Leerlauf zugeklappt (die Quellenangabe bleibt einen Klick entfernt).
-    let attribTouched = false;
-    const collapseAttrib = () => {
-      if (attribTouched) return;
-      map.getContainer().querySelectorAll('details.maplibregl-ctrl-attrib[open]').forEach((d) => d.removeAttribute('open'));
-    };
-    map.getContainer().addEventListener('click', (e) => {
-      if ((e.target as Element | null)?.closest?.('.maplibregl-ctrl-attrib-button')) attribTouched = true;
-    }, true);
-    map.once('load', collapseAttrib);
-    map.on('idle', collapseAttrib);
+    // 06.11.: Die Quellenzeile bleibt offen (Pflichtnennungen ohne Klick). Das alte Zuklappen entfällt;
+    // die Zeile ist jetzt EINE Zeile (`fireDeck.css`) und schluckt keine Karten-Klicks mehr.
 
     // --- Detektions-Steckbrief (F1) ------------------------------------------
     // Ein Klick auf eine Thermalanomalie öffnet ihre gemessenen Werte. Der
