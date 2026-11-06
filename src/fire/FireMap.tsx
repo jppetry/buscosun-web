@@ -65,6 +65,7 @@ import { landcoverAt, toAssessmentLandcover, type ClcMask } from './clcMask';
 import { EUROPE_BOX, inDachBox, type FireRegion } from './fireRegion';
 import { fireIncidentSourcesFor, type Country } from '../officialSources';
 import type { AtWarnContext } from './sources/geosphereWarnContext';
+import { ESRI_IMAGERY_CREDIT, ESRI_TOPO_CREDIT } from './FireSourcesTile';
 import {
   LANDCOVER_KEYS, LANDCOVER_COLOR, landcoverBreakdown, mappedAreaFor,
   corroborationLabel, NO_MAPPING_NOTE, type BurntPolygon,
@@ -163,12 +164,12 @@ export function basemapStyle(b: FireBasemap): string | maplibregl.StyleSpecifica
   if (b === 'satellite') {
     return rasterStyle(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      'Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community');
+      ESRI_IMAGERY_CREDIT);
   }
   if (b === 'terrain') {
     return rasterStyle(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
-      'Esri World Topo');
+      ESRI_TOPO_CREDIT);
   }
   return STREETS;
 }
@@ -581,13 +582,13 @@ export default function FireMap({
       const src = m.getSource('fire-footprints') as { attribution?: string } | undefined;
       if (src && src.attribution !== fpAttr) src.attribution = fpAttr;
     }
-
     // Feuerwetter-Treiber: in Europa ICON-EU, sonst ICON-D2 — der Lizenzträger nennt das Modell, das zeichnet.
     {
       const wAttr = s.region === 'europe' ? ICON_EU_RELHUM_ATTRIBUTION : ICON_D2_RELHUM_ATTRIBUTION;
       const src = m.getSource('fire-weather-attr') as { attribution?: string } | undefined;
       if (src && src.attribution !== wAttr) src.attribution = wAttr;
     }
+
     // BC1: die Hervorhebung des markierten Clusters. Als FILTER auf einem
     // eigenen Layer und nicht als Paint-Ausdruck: der Filter übersteht einen
     // Stilwechsel, weil `applyState` ihn ohnehin bei jedem Durchlauf setzt —

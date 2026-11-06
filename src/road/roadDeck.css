@@ -1099,3 +1099,69 @@ button.aw-prog-tile:not(:disabled):not(.is-on):hover { box-shadow: var(--aw-inse
 @media (max-width: 767px) {
   .aw-sheet-readout .aw-readout > .aw-tabs { position: static; margin: 0; padding: 3px; border: 1px solid var(--aw-hair, #E8E0CC); border-radius: 11px; background: var(--aw-glass); backdrop-filter: none; }
 }
+
+/* Phase DV — „Fahrerblick“ (RoadDriverView.tsx, behind ROAD_XS_VIEW / ?xsview=driver; audit/autobahn-fahrerblick.md).
+   Three planes: the still picture (one SVG, no animation), the weather above it (compositor-only motion), the HUD as HTML. */
+.aw-dv { display: grid; grid-template: "stage" auto / minmax(0, 1fr); max-width: 640px; margin-top: 6px; border-radius: 12px; overflow: hidden; background: #1C1E22; color: var(--dv-ink, #FFFFFF);
+  font-family: 'League Spartan', var(--font-base, system-ui, sans-serif); line-height: 1.25; box-shadow: 0 10px 22px -16px rgba(44, 42, 38, 0.5); }
+.aw-dv.is-loading { aspect-ratio: 520 / 292; background: var(--sand-100, #EDE6D3); box-shadow: none; }
+.aw-dv-stage { grid-area: stage; position: relative; aspect-ratio: 520 / 292; overflow: hidden; }
+.aw-dv-scene { display: block; width: 100%; height: 100%; }
+/* plane 2: weather */
+.aw-dv-wx { position: absolute; inset: 0; pointer-events: none; }
+.aw-dv-wx.is-ahead { opacity: 0.7; }
+.aw-dv-fx, .aw-dv-veil { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.aw-dv-fx { overflow: visible; }
+.aw-dv-drift { position: absolute; display: block; animation: awDvDrift 1s linear infinite; will-change: transform; }
+@keyframes awDvDrift { to { transform: translate3d(var(--dv-dx, 0), var(--dv-dy, 0), 0); } }
+.aw-dv-fogbank { animation: awDvFog 14s ease-in-out infinite alternate; will-change: transform; }
+@keyframes awDvFog { from { transform: translate3d(-1.5%, 0, 0); } to { transform: translate3d(3%, 0, 0); } }
+.aw-dv-flash { background: #FFFFFF; opacity: 0; animation: awDvFlash 4.6s linear infinite; }
+@keyframes awDvFlash { 0%, 86%, 90%, 100% { opacity: 0; } 88% { opacity: 0.75; } 93% { opacity: 0.45; } }
+.aw-dv-bolt { opacity: 0; animation: awDvBolt 4.6s linear infinite; }
+@keyframes awDvBolt { 0%, 86%, 100% { opacity: 0; } 88% { opacity: 1; } 90% { opacity: 0.2; } 93% { opacity: 1; } }
+.aw-dv-spray { animation: awDvPulse 1.3s ease-in-out infinite alternate; }
+@keyframes awDvPulse { from { opacity: var(--dv-o0, 0.8); } to { opacity: var(--dv-o1, 1); } }
+.aw-dv-twinkle { animation: awDvTwinkle 2s ease-in-out infinite; }
+@keyframes awDvTwinkle { 0%, 100% { opacity: 0.15; } 50% { opacity: 1; } }
+.aw-dv-ring { opacity: 0.6; animation: awDvRing 1s ease-out infinite; }
+@keyframes awDvRing { 0%, 100% { opacity: 0; } 50% { opacity: 0.9; } }
+.aw-dv-heat { animation: awDvHeat 0.9s ease-in-out infinite alternate; }
+@keyframes awDvHeat { from { transform: translateY(0); } to { transform: translateY(-1.8px); } }
+.aw-dv-sock { transform-box: view-box; animation: awDvSock 1.4s ease-in-out infinite alternate; }
+@keyframes awDvSock { from { transform: rotate(-2.5deg); } to { transform: rotate(2.5deg); } }
+/* Reduced motion: the scene stands still (as drawn); the lightning stays visible, the flash stays hidden — the rule of `.aw-xs-*`. */
+@media (prefers-reduced-motion: reduce) {
+  .aw-dv-wx, .aw-dv-wx * { animation: none !important; }
+  .aw-dv-bolt { opacity: 0.9; }
+  .aw-dv-flash { opacity: 0; }
+}
+/* plane 3: HUD (HTML over the picture, never below 12 px) */
+.aw-dv-top, .aw-dv-bot { grid-area: stage; z-index: 1; display: flex; justify-content: space-between; gap: 8px; min-width: 0; padding: 10px; pointer-events: none; }
+.aw-dv-top { align-self: start; align-items: flex-start; }
+.aw-dv-bot { align-self: end; align-items: flex-end; }
+.aw-dv-panel, .aw-dv-src, .aw-dv-road, .aw-dv-cap { background: var(--dv-panel, rgba(20, 22, 26, 0.66)); }
+.aw-dv-airbox { min-width: 0; max-width: 56%; padding: 6px 10px; border-radius: 9px; }
+.aw-dv-air { font-size: 14px; font-weight: 700; color: var(--dv-ink, #FFFFFF); font-variant-numeric: tabular-nums; }
+.aw-dv-dew { display: flex; flex-wrap: wrap; column-gap: 0.3em; margin-top: 1px; font-size: 12px; color: var(--dv-sub, #E6E9EC); font-variant-numeric: tabular-nums; }
+.aw-dv-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; min-width: 0; max-width: 46%; }
+.aw-dv-src { padding: 4px 8px; border-radius: 7px; font-size: 12px; color: var(--dv-src, #F2F2F2); text-align: right; text-wrap: balance; }
+.aw-dv-tag { padding: 2px 9px; border: 1px solid; border-radius: 999px; font-size: 12px; font-weight: 700; text-align: right; }
+.aw-dv-road { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; min-width: 0; padding: 8px 10px; border-radius: 10px; }
+.aw-dv-roadtext { font-size: 17px; font-weight: 700; color: var(--dv-ink, #FFFFFF); font-variant-numeric: tabular-nums; }
+.aw-dv-roadtext.is-long { font-size: 14px; }
+.aw-dv-chip { padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; background: var(--dv-chip-bg, #E9E4D6); color: var(--dv-chip-ink, #2C2A26); }
+.aw-dv-chip.is-hatch { background: repeating-linear-gradient(135deg, #EDE6D3 0 3px, #F5F1E8 3px 6px); }
+.aw-dv-chip.is-dash { border: 1px dashed #C98A55; padding: 1px 8px; }
+.aw-dv-cap { max-width: 44%; padding: 3px 8px; border-radius: 7px; font-size: 12px; color: var(--dv-src, #F2F2F2); text-align: right; text-wrap: balance; }
+@media (max-width: 1439px) { .aw-dossier-body .aw-dv { max-width: 520px; } }
+/* Mobile: the road panel leaves the picture and stands below it; the note stays in the corner. */
+@media (max-width: 767px) {
+  .aw-dv { grid-template: "stage" auto "road" auto / minmax(0, 1fr); }
+  .aw-dv-top { padding: 8px; gap: 6px; }
+  .aw-dv-airbox { max-width: 52%; padding: 5px 8px; }
+  .aw-dv-right { max-width: 47%; }
+  .aw-dv-bot { display: contents; }
+  .aw-dv-road { grid-area: road; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 10px 12px; border-radius: 0; background: none; }
+  .aw-dv-cap { grid-area: stage; z-index: 1; align-self: end; justify-self: end; max-width: 70%; margin: 0 8px 8px; }
+}

@@ -152,7 +152,7 @@ type MobileTab ='map' | 'layers' | 'fires' | 'time' | 'settings';
  *  amtliche Quelle, statt eine leere Fläche zu zeigen (Gate-Punkt WB-T2-6). */
 /** Start cover: how long "map loaded, nothing loading" must hold before it leaves, and its hard limit (`set`). */
 const PAGE_COVER_SETTLE_MS = 400;
-const PAGE_COVER_MAX_MS = 20_000;
+const PAGE_COVER_MAX_MS = 10_000;
 
 type LoadState =
   | { kind: 'idle' }
@@ -430,11 +430,26 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   useEffect(() => {
     if (!fireMapInst) return;
     // `idle` = style, tiles and sources are loaded AND the frame is drawn (`load`/`loaded()` come earlier, with half-empty tiles).
-    const on = () => { if (fireMapInst.isStyleLoaded() && fireMapInst.areTilesLoaded()) setMapLoaded(true); };
+    let done = false;
+    const on = () => {
+      if (done) return;
+      if (fireMapInst.isStyleLoaded() && fireMapInst.areTilesLoaded()) { done = true; setMapLoaded(true); }
+    };
     fireMapInst.on('idle', on);
-    return () => { fireMapInst.off('idle', on); };
+    // `idle` fires only after a render: if it came before the tiles/style were complete (or before this listener existed),
+    // no second one follows and the cover would wait for the hard limit. Check once now and then on a short poll.
+    on();
+    const poll = window.setInterval(on, 300);
+    return () => { window.clearInterval(poll); fireMapInst.off('idle', on); };
   }, [fireMapInst]);
-  const layersBusy = Object.keys(load).length === 0 || Object.values(load).some((s) => s?.kind === 'loading');
+  // Only layers that are switched on can hold the cover; a layer that never reports (off, or no data) must not.
+  // No layer has reported yet ⇒ still busy, but only for a short grace period (nothing may report at all).
+  const [loadGrace, setLoadGrace] = useState(true);
+  useEffect(() => {
+    const t = window.setTimeout(() => setLoadGrace(false), 3000);
+    return () => window.clearTimeout(t);
+  }, []);
+  const layersBusy = (loadGrace && Object.keys(load).length === 0) || Object.entries(load).some(([id, s]) => s?.kind === 'loading' && active.has(id as FireLayerId));
   useEffect(() => {
     if (pageShown || !mapLoaded || layersBusy) return;
     const t = window.setTimeout(() => setPageShown(true), PAGE_COVER_SETTLE_MS);
@@ -2738,6 +2753,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
 
               prefetchIsoDate={prefetchIso} onTier={setTier}
             />
+            <FireSourcesTile basemap={basemap} active={mapActive} provider={hotspotProvider} ready={pageShown} />
             <MapGestureHint
               map={fireMapInst} feature="brandradar" accent="#B5651D" pickSpots={hintSpots} always
               enabled={!inDossier && (!isMobile || mobileTab === 'map')}
@@ -2753,7 +2769,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                   </button>
                   {/* Mobil: Straßen | Satellit auf Höhe des Logos (Jans Auftrag 2026-10-23), die Quellen-Pille rückt darunter. */}
                   <div className="br-m-basemaprow">{basemapSeg}</div>
-            <FireSourcesTile basemap={basemap} active={mapActive} provider={hotspotProvider} />
                   <ShareButton className="br-m-share" compact />
                 </div>
               )}

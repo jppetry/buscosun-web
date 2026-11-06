@@ -11,7 +11,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { useLocation, useNavigate, useNavigationType, useParams } from 'react-router';
 import NotFoundRoute from './NotFoundRoute';
 import AppLoader from '../AppLoader';
-import { roadFlagFrom, rememberRoadFlag, roadHzFlagFrom, rememberRoadHzFlag, roadSurfaceFlagFrom, rememberRoadSurfaceFlag, roadVsFlagFrom, rememberRoadVsFlag } from '../../road/roadFlag';
+import { roadFlagFrom, rememberRoadFlag, roadHzFlagFrom, rememberRoadHzFlag, roadSurfaceFlagFrom, rememberRoadSurfaceFlag, roadVsFlagFrom, rememberRoadVsFlag, rememberRoadXsView, rememberRoadXsFx } from '../../road/roadFlag';
 import { buildRoadUrl, parseRoadUrl, type RoadUrlState } from '../../road/roadState';
 import { roadLinkUrl, roadNormalizeSearch, roadSegIdFromLink } from '../../road/roadLink';
 import StaleLinkNotice from '../../share/StaleLinkNotice';
@@ -34,7 +34,7 @@ export default function RoadRoute() {
   const surface = useMemo(() => roadSurfaceFlagFrom(loc.search), [loc.search]);
   // AW-6.2.9: the virtual road sensor behind its own switch (`ROAD_VS_LIVE = false`, `?roadvs=1`, E-VS-2) — off, the page fetches nothing of it.
   const vs = useMemo(() => roadVsFlagFrom(loc.search), [loc.search]);
-  useEffect(() => { rememberRoadFlag(loc.search); rememberRoadHzFlag(loc.search); rememberRoadSurfaceFlag(loc.search); rememberRoadVsFlag(loc.search); }, [loc.search]);
+  useEffect(() => { rememberRoadFlag(loc.search); rememberRoadHzFlag(loc.search); rememberRoadSurfaceFlag(loc.search); rememberRoadVsFlag(loc.search); rememberRoadXsView(loc.search); if (import.meta.env.DEV) rememberRoadXsFx(loc.search); }, [loc.search]);
   // Early start: corridors, measured slot, the corridor's forecast and (hazard rail on) segments + hazards load while the page chunk and MapLibre still download.
   useState(() => {
     if (enabled) { try { warmRoadStart(road && /^[a-z0-9-]+$/.test(road) ? road : null); if (hz) warmRoadHzStart(); } catch { /* the page then reads them itself */ } }

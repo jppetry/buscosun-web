@@ -106,6 +106,8 @@ interface Props {
   onPlayingChange?: (playing: boolean) => void;
   /** MapLibre-Instanz nach außen reichen (Mobile-Zoom-Buttons im Deck). Additiv. */
   onMapReady?: (m: maplibregl.Map | null) => void;
+  /** Profile map: every switched-on layer has reported once (start cover). */
+  onDataReady?: (ready: boolean) => void;
   /** Router (RT1): Startkamera aus der Query + Kamera-Meldung nach `moveend`. Additiv. */
   initialView?: { lat: number; lon: number; zoom: number } | null;
   onViewChange?: (v: { lat: number; lon: number; zoom: number }) => void;
@@ -180,7 +182,7 @@ const HEURISTIC_PHASES = new Set<RadarLayerId>(['graupel', 'hail']);
 
 type PointInfo = { lat: number; lon: number; name: string; country: 'DE' | 'AT' | 'CH' };
 
-export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, layers: controlledLayers, onLayersChange, hideLayerbar = false, compact = false, playing: controlledPlaying, onPlayingChange, onMapReady, initialView, onViewChange, snowMode = 'depth', sum, onRadarStack, chance, onTimeChange, onUserTime, onCellsRun, cellStops, onCellPick, onPointChange, snowCap, stageAside, stage3d, onProfileRadarPick, onPointHover, onPointClick }: Props) {
+export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, layers: controlledLayers, onLayersChange, hideLayerbar = false, compact = false, playing: controlledPlaying, onPlayingChange, onMapReady, onDataReady, initialView, onViewChange, snowMode = 'depth', sum, onRadarStack, chance, onTimeChange, onUserTime, onCellsRun, cellStops, onCellPick, onPointChange, snowCap, stageAside, stage3d, onProfileRadarPick, onPointHover, onPointClick }: Props) {
   const last = useMemo(() => loadLastView(), []);
   // Phase RR: welche Karte? Voreinstellung = Wetterkarte (`MapView`, Profil `radar`); `?rr=legacy` = die alte eigene.
   const legacyMap = useMemo(() => radarMapLegacyFrom(typeof window !== 'undefined' ? window.location.search : ''), []);
@@ -201,6 +203,8 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
     });
     return () => { alive = false; };
   }, [legacyMap, MapViewC]);
+  // The legacy radar map has no per-layer report: the page cover does not wait for one.
+  useEffect(() => { if (!useProfile) onDataReady?.(true); }, [useProfile, onDataReady]);
   const [layersUnc, setLayersUnc] = useState<RadarLayerId[]>((last?.layers as RadarLayerId[]) ?? ['precip']);
   // Controlled/uncontrolled-Hybrid: steuert das Dock die Layer, gewinnt dessen
   // Auswahl; sonst der interne Zustand. Beide teilen dieselbe Persistenz.
@@ -725,6 +729,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
               timeMs={profileTimeMs} timeBracket={timeBracket} radarPast={radarPast} profileSnowMode={snowMode}
               onPointPick={onPick} onPointHover={onProfileHover}
               onMapReady={(m) => { mapRef.current = m; setMapInst(m); onMapReady?.(m); }}
+              {...(onDataReady ? { onDataReady } : {})}
               initialView={initialView} onViewChange={onViewChange}
               {...(markerLabel ? { profileMarkerLabel: markerLabel } : {})}
               {...(zoAffectsCellId !== undefined ? { profileAffectsCellId: zoAffectsCellId } : {})}

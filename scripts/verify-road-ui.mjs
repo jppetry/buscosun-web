@@ -1199,7 +1199,7 @@ const shotPng = async (ctx) => pngLib.decodePng(Buffer.from((await ctx.send('Pag
   const det = JSON.parse(await ctx.evaluate(`JSON.stringify({
     url: location.search, h2: document.querySelector('.aw-hz-h2')?.textContent, focused: document.activeElement?.classList.contains('aw-hz-h2'), pos: document.querySelector('.aw-hz-pos')?.textContent,
     eyebrow: document.querySelector('.aw-hz-article .aw-eyebrow')?.textContent, chips: [...document.querySelectorAll('.aw-hz-nowchips .aw-hz-chip')].map((c) => c.textContent),
-    xs: document.querySelector('.aw-hz-xs')?.getAttribute('aria-label'), text: document.querySelector('.aw-hz-text')?.textContent, out: document.querySelector('.aw-hz-text.is-sub')?.textContent,
+    xs: document.querySelector('.aw-dv-scene, .aw-hz-xs')?.getAttribute('aria-label'), text: document.querySelector('.aw-hz-text')?.textContent, out: document.querySelector('.aw-hz-text.is-sub')?.textContent,
     plan: document.querySelectorAll('.aw-hz-plan-cell').length, planRows: document.querySelectorAll('.aw-hz-plan-name').length,
     dirs: [...document.querySelectorAll('.aw-hz-dirs button')].map((b) => b.textContent), feats: document.querySelectorAll('.aw-hz-feat').length, stations: document.querySelectorAll('.aw-hz-station').length,
     notobs: document.querySelector('.aw-hz-notobs')?.textContent, src: document.querySelector('.aw-hz-src')?.textContent, stationCard: document.querySelectorAll('.aw-hz-stationcard .aw-station').length,

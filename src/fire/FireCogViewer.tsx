@@ -55,6 +55,8 @@ export interface CogViewerProps {
   /** Ringe der Registry-Fläche in [lon, lat] (wie „Karte · markiert") — vorrangig vor `fireBbox`. */
   fireShape?: readonly (readonly number[])[][] | null;
   onClose: () => void;
+  /** Which display modes the switch offers (default: all three). With one mode the switch is not shown (Gletscher: Echtfarbe only). */
+  modes?: readonly CogMode[];
 }
 
 const FULL_M_PER_PX = 10;
@@ -98,7 +100,8 @@ function scarEnabled(): boolean {
  */
 const SCAR_SETTLE_MS = 400;
 
-type CogMode = 'tci' | 'swir' | 'dnbr';
+export type CogMode = 'tci' | 'swir' | 'dnbr';
+const ALL_COG_MODES: readonly CogMode[] = ['tci', 'swir', 'dnbr'];
 const MODE_LABEL: Record<CogMode, string> = { tci: 'Echtfarbe', swir: 'SWIR', dnbr: 'Verbrannt (dNBR)' };
 
 // --- Kachel-Caches (Sitzung; Deckel geben ImageBitmaps wieder frei) ----------------------------
@@ -507,7 +510,7 @@ function shapeRingsPx(rings: readonly (readonly number[])[][] | null, epsg: numb
   return out;
 }
 
-export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallbackUrl, detections = null, fireBbox = null, fireShape = null, onClose }: CogViewerProps) {
+export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallbackUrl, detections = null, fireBbox = null, fireShape = null, onClose, modes = ALL_COG_MODES }: CogViewerProps) {
   const [phase, setPhase] = useState<Phase>({ kind: 'loading', word: 'Szene wird gesucht …' });
   const [full, setFull] = useState(false);
   // Mobil ist das Bild inline zu klein für die Moduswahl — sie erscheint nur im Vollbild.
@@ -1257,9 +1260,9 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
           <a href={fallbackUrl} target="_blank" rel="noopener">Im Copernicus Browser öffnen</a>
         </p>
       )}
-      {hasBands && (
+      {hasBands && modes.length > 1 && (
         <div className="br-cog-mode" role="group" aria-label="Darstellung der 10-m-Ansicht">
-          {(['tci', 'swir', 'dnbr'] as const).map((k) => (
+          {modes.map((k) => (
             <button
               key={k} type="button" aria-pressed={mode === k}
               className={mode === k ? 'is-active' : undefined}

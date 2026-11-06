@@ -18,12 +18,16 @@ import { roadNarrative, type Narrative } from './roadNarrative';
 import { AW_SEV, AW_SEV_TINT, AW_HATCH, AW_UNKNOWN_TINT, AW_MONO } from './roadNivoTheme';
 import { HZ_GROUP_ICON, HZ_SHORT, bulletRows, crossSectionOf, planRows, windSectors, segmentMainStation, tempSeriesOf } from './roadHzView';
 import RoadCrossSection, { type CrossSectionFx } from './RoadCrossSection';
+import { roadXsViewFrom } from './roadFlag';
 import { EvDot } from './RoadHazardPanel';
 import { hm, dec, f1 } from './roadView';
 import { ROAD_SURFACE_WORD } from './roadSurface';
 import { ROAD_VS_NAME, roadVsValue } from './vs/roadVsView';
 import type { RoadVsView } from './vs/useRoadVs';
 import type { CapAlert } from '../warnings/capAlerts';
+
+/** Phase DV: the driver's view of „Was auf der Fahrbahn liegt“ — a chunk of its own, never loaded while `ROAD_XS_VIEW` is 'schematic'. */
+const RoadDriverView = lazy(() => import('./RoadDriverView'));
 
 const Charts = lazy(() => import('./RoadHazardCharts').then((m) => ({ default: function ChartsBundle({ temp, slotMs, bullets, wind }: { temp: ReturnType<typeof tempSeriesOf>; slotMs: number; bullets: ReturnType<typeof bulletRows>; wind: ReturnType<typeof windSectors> }) {
   return (
@@ -152,6 +156,8 @@ export default function RoadHazardDetail(p: RoadHazardDetailProps) {
     }
     return best;
   }, [entry, file.hours, file.slotMs]);
+  // Phase DV: schematic cross-section (default) or the driver's view (`ROAD_XS_VIEW`, `?xsview=`, remembered by RoadRoute).
+  const xsView = useMemo(() => roadXsViewFrom(), []);
   const nHaz = chips.filter((c) => !c.unknown).length, nUnk = chips.length - nHaz;
   // With the „Nicht auswertbar“ block below, the unknown chips would say the same twice — the chips keep the levels only.
   const shownChips = narrative?.unknown.length ? chips.filter((c) => !c.unknown) : chips;
@@ -217,7 +223,9 @@ export default function RoadHazardDetail(p: RoadHazardDetailProps) {
         <div className="aw-hz-xsgrid">
           <div className="aw-hz-xscol">
             <div className="aw-eyebrow aw-hz-xs-head">Was auf der Fahrbahn liegt</div>
-            <RoadCrossSection xs={xs} fx={xsFx} />
+            {xsView === 'driver'
+              ? <Suspense fallback={<div className="aw-dv is-loading" aria-hidden="true" />}><RoadDriverView xs={xs} fx={xsFx} /></Suspense>
+              : <RoadCrossSection xs={xs} fx={xsFx} />}
           </div>
           <div className="aw-hz-txtcol">
             {shownChips.length > 0 && (

@@ -9,6 +9,8 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { CLOUD_OK_PCT, cloudLabel, copernicusBrowserUrl, fetchSatImagery, prefetchS2Day, S2_COG_ORIGIN, SAT_ATTRIBUTION, sat10Enabled, type SatImagery, type SatScene } from '../fire/detail/fireSatImagery';
 
+/** Glacier view: true colour only (SWIR and the burnt-area comparison are fire tools). */
+const GL_COG_MODES = ['tci'] as const;
 const FireCogViewer = lazy(() => import('../fire/FireCogViewer'));
 
 /** Opens the connection (DNS, TCP, TLS) to a host that is asked a moment later — a fresh hint each time, an idle socket closes after seconds. */
@@ -78,7 +80,7 @@ export default function GlacierSatImagery({ lat, lon, name, nowMs }: { lat: numb
       </p>
       <div className="gl-sat-frame">
         <Suspense fallback={<p className="br-sat-wait br-muted">10-m-Ansicht wird geladen …</p>}>
-          <FireCogViewer key={scene.dayIso} lat={lat} lon={lon} dayIso={scene.dayIso} fireStartIso={null}
+          <FireCogViewer key={scene.dayIso} lat={lat} lon={lon} dayIso={scene.dayIso} fireStartIso={null} modes={GL_COG_MODES}
             fallbackUrl={copernicusBrowserUrl(lat, lon, scene.dayIso)} onClose={() => { /* the picture stays: nothing to close here */ }} />
         </Suspense>
       </div>

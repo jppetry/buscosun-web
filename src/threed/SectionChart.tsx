@@ -7,7 +7,7 @@
  * Props eingeblendet (Folge-Tasks).
  */
 
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   shearCellFlags, windBandIndex,
   type CrossSection, type SectionCell, type ColumnProfile,
@@ -26,7 +26,10 @@ const LANDSCAPE = { W: 960, H: 540 };
 // nutzt und trotzdem ohne Scrollen auf eine Bildschirmhöhe passt.
 const LANDSCAPE_WIDE = { W: 1200, H: 430 };
 const PORTRAIT = { W: 560, H: 600 };
-const PAD_L = 54, PAD_R = 16, PAD_T = 16, PAD_B = 42;
+const BASE_PAD_L = 54, BASE_PAD_R = 16, PAD_T = 16, PAD_B = 42;
+/** Portrait on a phone: the viewBox follows the real width (1 unit = 1 CSS px), so labels and arrows stay readable. */
+const PORTRAIT_MIN_W = 280, PORTRAIT_MAX_W = 560, PORTRAIT_ASPECT = 0.65;
+const NARROW_PAD_L = 42, NARROW_PAD_R = 10;
 
 export interface PickedPoint {
   distanceM: number;
@@ -62,7 +65,24 @@ export interface SectionGeo {
 
 export default function SectionChart({ section, layers, picked, onPick, overlay, portrait, wide }: Props) {
   const svgRef = useRef<SVGSVGElement | null>(null);
-  const { W, H } = portrait ? PORTRAIT : wide ? LANDSCAPE_WIDE : LANDSCAPE;
+  const [measuredW, setMeasuredW] = useState<number | null>(null);
+  useEffect(() => {
+    if (!portrait) return;
+    const el = svgRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => {
+      const w = Math.round(el.getBoundingClientRect().width);
+      if (w > 0) setMeasuredW((prev) => (prev === w ? prev : w));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [portrait]);
+  const pw = portrait ? Math.min(PORTRAIT_MAX_W, Math.max(PORTRAIT_MIN_W, measuredW ?? PORTRAIT.W)) : 0;
+  const narrow = portrait && measuredW != null && pw < 480;
+  const { W, H } = portrait
+    ? (measuredW == null ? PORTRAIT : { W: pw, H: Math.round(pw * PORTRAIT_ASPECT) })
+    : wide ? LANDSCAPE_WIDE : LANDSCAPE;
+  const PAD_L = narrow ? NARROW_PAD_L : BASE_PAD_L, PAD_R = narrow ? NARROW_PAD_R : BASE_PAD_R;
   const PLOT_W = W - PAD_L - PAD_R;
   const PLOT_H = H - PAD_T - PAD_B;
   const maxDistanceM = section.columns[section.columns.length - 1].distanceM || 1;
@@ -201,7 +221,8 @@ export default function SectionChart({ section, layers, picked, onPick, overlay,
       {/* Gemessener Aufstieg (Radiosonde) — eigene Säule neben dem Modell */}
       {section.measured && (
         <MeasuredColumn m={section.measured} x={x} y={y} topM={topM} terrainM={nearestCol(cols, section.measured.distanceM).terrainM}
-          rightHalf={x(section.measured.distanceM) > PAD_L + PLOT_W / 2} />
+          rightHalf={x(section.measured.distanceM) > PAD_L + PLOT_W / 2}
+          narrow={narrow} plotLeft={PAD_L} plotTop={PAD_T} />
       )}
 
       {/* Achsen */}
@@ -213,7 +234,9 @@ export default function SectionChart({ section, layers, picked, onPick, overlay,
           <text x={PAD_L - 7} y={y(m) + 3} className="td-axislabel" textAnchor="end">{m}</text>
         </g>
       ))}
-      <text className="td-axistitle" transform={`rotate(-90 ${16} ${PAD_T + PLOT_H / 2})`} x={16} y={PAD_T + PLOT_H / 2} textAnchor="middle">Höhe m ü. NN</text>
+      {narrow
+        ? <text className="td-axistitle" x={4} y={H - 6} textAnchor="start">Höhe m ü. NN</text>
+        : <text className="td-axistitle" transform={`rotate(-90 ${16} ${PAD_T + PLOT_H / 2})`} x={16} y={PAD_T + PLOT_H / 2} textAnchor="middle">Höhe m ü. NN</text>}
       {xTicks.map((km) => (
         <g key={km}>
           <line x1={x(km * 1000)} y1={PAD_T + PLOT_H} x2={x(km * 1000)} y2={PAD_T + PLOT_H + 4} stroke="#8B7355" />
@@ -233,8 +256,9 @@ export default function SectionChart({ section, layers, picked, onPick, overlay,
 }
 
 /** Measured wind as a column in the same colour bands as the model cells, outlined, with its own label (never blended). */
-function MeasuredColumn({ m, x, y, topM, terrainM, rightHalf }: {
+function MeasuredColumn({ m, x, y, topM, terrainM, rightHalf, narrow, plotLeft, plotTop }: {
   m: SectionMeasured; x: (d: number) => number; y: (m: number) => number; topM: number; terrainM: number; rightHalf: boolean;
+  narrow?: boolean; plotLeft: number; plotTop: number;
 }) {
   const cx = x(m.distanceM), w = 10;
   const ls = m.levels.filter((l) => l.windKmh != null && l.zM >= terrainM - 25 && l.zM <= topM + 200);
@@ -258,7 +282,8 @@ function MeasuredColumn({ m, x, y, topM, terrainM, rightHalf }: {
   const ageH = Math.max(0, Math.round((Date.now() - m.launchMs) / 3_600_000));
   const tx = rightHalf ? cx - w / 2 - 6 : cx + w / 2 + 6;
   const anchor = rightHalf ? 'end' : 'start';
-  const labelY = y(zTop) + 11;
+  const labelY = narrow ? plotTop + 14 : y(zTop) + 11;
+  const note = `${Math.round(m.distanceKm)} km neben der Linie · vor ${ageH} h${m.wind === 'gps' ? ' · Wind aus GPS-Bahn' : ''}`;
   return (
     <g>
       {runs.map((r, i) => (
@@ -268,10 +293,18 @@ function MeasuredColumn({ m, x, y, topM, terrainM, rightHalf }: {
       {arrows.map((l, i) => (
         <Arrow key={i} cx={rightHalf ? cx - w / 2 - 14 : cx + w / 2 + 14} cy={y(l.zM)} dirFromDeg={l.windDirDeg!} kmh={l.windKmh!} color="#3A6FA8" />
       ))}
-      <text x={tx} y={labelY} className="td-axislabel" textAnchor={anchor} style={{ fontWeight: 700 }}>gemessen</text>
-      <text x={tx} y={labelY + 12} className="td-axislabel" textAnchor={anchor}>
-        Radiosonde {m.name} · {Math.round(m.distanceKm)} km neben der Linie · vor {ageH} h{m.wind === 'gps' ? ' · Wind aus GPS-Bahn' : ''}
-      </text>
+      {narrow ? (
+        <>
+          {/* Phone: the label sits at the top left of the plot, in two short lines, instead of running off the right edge. */}
+          <text x={plotLeft + 6} y={labelY} className="td-axislabel" style={{ fontWeight: 700, paintOrder: 'stroke', stroke: '#FAF6EA', strokeWidth: 3, strokeLinejoin: 'round' }}>gemessen · Radiosonde {m.name}</text>
+          <text x={plotLeft + 6} y={labelY + 13} className="td-axislabel" style={{ paintOrder: 'stroke', stroke: '#FAF6EA', strokeWidth: 3, strokeLinejoin: 'round' }}>{note}</text>
+        </>
+      ) : (
+        <>
+          <text x={tx} y={labelY} className="td-axislabel" textAnchor={anchor} style={{ fontWeight: 700 }}>gemessen</text>
+          <text x={tx} y={labelY + 12} className="td-axislabel" textAnchor={anchor}>Radiosonde {m.name} · {note}</text>
+        </>
+      )}
     </g>
   );
 }

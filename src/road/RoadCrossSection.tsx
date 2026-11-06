@@ -65,7 +65,7 @@ export default function RoadCrossSection({ xs, fx = null }: { xs: CrossSection; 
 // --- scene ------------------------------------------------------------------------------------------------
 
 /** Deterministic 0…1 per element and channel — the same scene on every render. */
-const rnd = (i: number, ch: number) => { const v = Math.sin(i * 12.9898 + ch * 78.233) * 43758.5453; return v - Math.floor(v); };
+export const rnd = (i: number, ch: number) => { const v = Math.sin(i * 12.9898 + ch * 78.233) * 43758.5453; return v - Math.floor(v); };
 /** Count, duration factor and opacity per level (1 faint, 3 dense and fast). */
 const N = (lv: RoadLevel, base: readonly [number, number, number]) => base[Math.max(0, lv - 1)];
 const SPEED: Record<RoadLevel, number> = { 0: 1.2, 1: 1, 2: 0.78, 3: 0.6 };

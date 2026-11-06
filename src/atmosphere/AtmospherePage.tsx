@@ -8,7 +8,7 @@
  * (Store, Cross-Section, Sounding-Profil, Go/No-Go).
  */
 
-import { useRef, useState, type KeyboardEvent } from 'react';
+import { lazy, Suspense, useRef, useState, type KeyboardEvent } from 'react';
 import type { Location } from '../types';
 import { geocodeDACH, flagForCountry } from '../geocode';
 import { LocationSearchSheet, useSearchSheet } from '../components/LocationSearchSheet';
@@ -26,6 +26,9 @@ import './atmosphere.css';
 import './atmosphereDeck.css';
 
 export type { DeckSub } from './AtmosphereDeck';
+
+// Same DACH map background as the start page (lazy, own chunk).
+const DachMapBackground = lazy(() => import('../DachMapBackground'));
 
 interface Props {
   onBack: () => void;
@@ -83,7 +86,8 @@ function AtmosphereShell({ onBack, onOpenFeature, initialSub, routeSub, onSubCha
           activeClass="vsd-rail-btn--active"
           spacerClass="vsd-rail-spacer"
         />
-        <main className="vsd-intro-stage vsd-scroll">
+        <main className="vsd-intro-stage vsd-scroll vsd-intro-stage--map">
+          <Suspense fallback={null}><DachMapBackground /></Suspense>
           <AtmosphereIntro />
         </main>
       </div>

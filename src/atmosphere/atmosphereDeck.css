@@ -544,6 +544,10 @@
 /* ---- Einstieg (Schritt 1) -------------------------------------------------- */
 .vsd-top-label { font-size: 13px; font-weight: 600; color: var(--stone-600); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .vsd-intro-stage { flex: 1; min-width: 0; overflow-y: auto; padding: 40px 32px 56px; }
+/* Ortswahl: DACH-Karte wie auf der Startseite dahinter (läuft mit dem Inhalt, im Dunkelmodus aus). */
+.vsd-intro-stage--map { position: relative; isolation: isolate; }
+.vsd-intro-stage--map > :not(.deck-mapbg) { position: relative; z-index: 1; }
+[data-theme="dark"] .vsd-intro-stage--map .deck-mapbg { display: none; }
 .vsd-intro {
   max-width: 1120px; margin: 0 auto;
   display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 28px; align-items: start;
@@ -577,9 +581,9 @@
 @media (max-width: 767px) {
   .vsd-intro-root .vsd-rail, .vsd-intro-root .vsd-top-label, .vsd-intro-root .vsd-topdivider { display: none; }
   .vsd-intro-root .vsd-topbar { height: 56px; padding: 0 16px; }
-  .vsd-intro-stage { padding: 16px 16px calc(76px + env(safe-area-inset-bottom)); }
+  .vsd-intro-stage { padding: 6px 12px calc(76px + env(safe-area-inset-bottom)); }
   .vsd-intro { gap: 18px; }
-  .vsd-intro-main { padding: 22px 18px 20px; border-radius: 18px; }
+  .vsd-intro-main { padding: 16px 16px 18px; border-radius: 18px; }
   .vsd-intro-title { font-size: 28px; letter-spacing: -0.5px; }
   .vsd-intro-lead { font-size: 14px; }
   .vsd-intro-action .atm-tour, .vsd-intro-action .atm-tour-btn { width: 100%; justify-content: center; }

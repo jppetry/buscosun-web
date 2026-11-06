@@ -149,7 +149,7 @@ export const FEATURE_RAIL_ITEMS: Array<{ id: RailFeature; label: string; icon: R
   { id: 'event', label: 'Event-Planung', icon: <IconRailEvent /> },
   { id: 'forecast', label: 'Konfidenz & Modelle', icon: <IconRailForecast /> },
   { id: 'history', label: 'Historie · Klima seit 1940', icon: <IconRailHistory /> },
-  { id: 'atmosphere', label: 'Vertikalschnitt · 3D-Wetter', icon: <IconRailSection /> },
+  { id: 'feedback', label: 'Ideen & Vorschläge', icon: <IconRailFeedback /> },
   { id: 'globe', label: '3D-Globus', icon: <IconRailGlobe /> },
   { id: 'fire', label: 'Waldbrand DACH', icon: <IconRailFire /> },
   // Phase AW: sichtbar nach `ROAD_LIVE` (seit 03.10. an), `?road=0` blendet aus (`src/road/roadFlag.ts`); auf der eigenen Seite immer.
@@ -158,7 +158,7 @@ export const FEATURE_RAIL_ITEMS: Array<{ id: RailFeature; label: string; icon: R
   { id: 'sea', label: 'Seewetter', icon: <IconRailSea /> },
   // Phase GL: nur mit `?gl=1` bis Gate D (`GLACIER_LIVE`, `src/glacier/glacierFlag.ts`); auf der eigenen Seite immer.
   { id: 'glacier', label: 'Gletscher', icon: <IconRailGlacier /> },
-  { id: 'feedback', label: 'Ideen & Vorschläge', icon: <IconRailFeedback /> },
+  { id: 'atmosphere', label: 'Vertikalschnitt · 3D-Wetter', icon: <IconRailSection /> },
 ];
 
 /** Anker statt Button: die Deck-Klassen setzen Farbe/Layout, aber nicht die Link-Unterstreichung —

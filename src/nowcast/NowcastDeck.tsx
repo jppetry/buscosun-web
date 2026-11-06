@@ -151,7 +151,9 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
   const mapRef = useRef<maplibregl.Map | null>(null);
   // Start cover (buscosun mark + ring) until the map has its first frame and the nowcast is in (error ends it too).
   const [coverMap, setCoverMap] = useState<maplibregl.Map | null>(null);
-  const pageShown = usePageCover(coverMap, state.kind !== 'loading');
+  // The radar map (MapView, profile radar) reports when its layers have their first data; without the profile map (legacy) nothing reports.
+  const [mapDataReady, setMapDataReady] = useState(false);
+  const pageShown = usePageCover(coverMap, state.kind !== 'loading' && mapDataReady);
   // Phase NS: Summen-Ansicht (Dock „Darstellung") und die Karte am Ort.
   const sumsOn = useMemo(() => sumsEnabledFrom(typeof window !== 'undefined' ? window.location.search : ''), []);
   // Phase RC: „Chance" nur mit `?rc=1` und nur, wo es das Dock „Darstellung" gibt (nicht mit `?sum=0`).
@@ -329,7 +331,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
           <div className="rr-stage">
             <NowcastRadarMap location={location} nowcast={nowcast} reloadKey={reloadNonce}
               layers={layers} onLayersChange={setLayers} hideLayerbar compact snowMode={snowMode}
-              initialView={initialView} onViewChange={onViewChange} sum={sumProp} onRadarStack={onRadarStack} {...chanceMapProps} {...timeMapProps}
+              initialView={initialView} onViewChange={onViewChange} sum={sumProp} onRadarStack={onRadarStack} onDataReady={setMapDataReady} {...chanceMapProps} {...timeMapProps}
               {...zoMapProps} {...hzsMapProps} {...(zoOn ? { onMapReady: (m: maplibregl.Map | null) => { mapRef.current = m; setCoverMap(m); } } : {})} {...ztMapProps} {...skMapProps} {...p3dMapProps} />
           </div>
           {view === 'height' && <div className="rr-hzs-pane">{hzsPanel('desktop')}</div>}
@@ -390,7 +392,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
           <div className="rm-map">
             <NowcastRadarMap location={location} nowcast={nowcast} reloadKey={reloadNonce}
               layers={layers} onLayersChange={setLayers} hideLayerbar compact snowMode={snowMode}
-              initialView={initialView} onViewChange={onViewChange} sum={sumProp} onRadarStack={onRadarStack} {...chanceMapProps} {...timeMapProps}
+              initialView={initialView} onViewChange={onViewChange} sum={sumProp} onRadarStack={onRadarStack} onDataReady={setMapDataReady} {...chanceMapProps} {...timeMapProps}
               {...zoMapProps} {...hzsMapProps} onMapReady={(m) => { mapRef.current = m; setCoverMap(m); }} {...ztMapProps} {...skMapProps} {...p3dMapProps} />
           </div>
           <div className="rm-topfloat">

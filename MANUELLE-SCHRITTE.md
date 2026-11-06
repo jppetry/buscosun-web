@@ -3216,3 +3216,42 @@ Client-Maßnahmen ND-1…ND-7 sind gebaut und uncommitted (`radolanRuns.ts`, `ra
    oder Gate auf 330 s (dann 60 s länger der 840-KB-Tar-Weg). Deine Abwägung Frische gegen Treffer; ND-7 mildert die Folge.
 6. **Bekannt rot, nicht ND:** `verify:radar-runs` „Listing > 100 KB" (DWD-Listing ist seit 20.10. 80 KB — Schwelle veraltet, V-ND-2),
    `verify:layer-erstbild` „beide wärmen den Worker VOR dem fetch" (seit RL, Regex-Abstand, V-ND-3) — beide auch an HEAD rot.
+
+## 87. Autobahnwetter — „Fahrerblick" für „Was auf der Fahrbahn liegt" (Phase DV, `audit/autobahn-fahrerblick.md`), 2026-11-06
+
+Gebaut und uncommitted, **an für alle seit 06.11. (E-DV-1, dein Wort: „aktiv und schalte das komplette Feature default aktiv")**:
+`ROAD_XS_VIEW = 'driver'` — ohne Parameter zeigt jeder Abschnitt den Fahrerblick; `?xsview=schematic` bringt je Besucher den
+Querschnitt zurück. Kein Datenprodukt, kein Datenvertrag, kein Schalter einer anderen Linie ist berührt. Live wird es mit dem Push.
+
+1. **Real-Device — vor dem Push** (Mittelklasse-Android, Chrome). Das Feature ist eingeschaltet, bevor das geprüft ist. Ruckelt die
+   Seite beim Scrollen über das Bild, beim Abschnittswechsel („Nächster Abschnitt") oder bei Gewitter Stufe 3 / Schnee Stufe 3? Das
+   Bild nutzt zwei bis drei Rauschfilter (`feTurbulence`), einen Weichzeichner für Spiegelung, Gischt und Nebel und drei bis sechs
+   bewegte Ebenen. Gemessen ist nur Desktop mit Intel-Grafik (kein Hauptthread-Task > 200 ms) — ein Telefon ist nicht gemessen.
+   Wenn es ruckelt: `ROAD_XS_VIEW = 'schematic'` (eine Zeile in `src/road/roadFlag.ts`) und mir Bescheid geben.
+2. **Sichtprüfung** (Dev-Server oder Produktion nach dem Push): `/autobahnwetter` → einen Abschnitt aus der Liste öffnen → unter
+   „Was auf der Fahrbahn liegt" steht der Blick aus dem Auto. `?xsview=schematic` zeigt den Querschnitt (die Stimme wird in
+   `localStorage.xsview` gemerkt), `?xsview=driver` hebt sie wieder auf. Belege: `%TEMP%\dv-shots\png\`, `…\png-reduce\`, `…\page\`.
+   - **Dein Chrome zeigt den Stillstand.** Windows hat „Animationseffekte" aus, Chrome meldet `prefers-reduced-motion: reduce` —
+     Regen, Schnee, Wind stehen dann (so gewollt, wie beim Querschnitt). Bewegung siehst du mit DevTools → Rendering →
+     „Emulate CSS media feature prefers-reduced-motion: no-preference" oder in den Windows-Einstellungen.
+   - **Szene erzwingen (nur Dev-Server):** `?xsfx=<gefahr>:<stufe>[:ab]`, z. B. `xsfx=nebel:3`, `xsfx=gischt:2`, `xsfx=aqua:2:ab`.
+     Die Stimme bleibt gemerkt, bis `?xsfx=off` sie löscht (V-DV-2: vorher ging sie beim URL-Abgleich verloren).
+     Gefahren: `reif nass glatteis schnee aqua nebel gischt sonne quer baum staub gewitter hagel blowup frost1 sturz`.
+   - Den Zustand der Fahrbahn (trocken, feucht, nass, Reif, Eis, Schnee, unbekannt, nicht gemessen) kann `xsfx` nicht erzwingen —
+     er kommt aus der Messung. Alle acht stehen in der Galerie: `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs
+     scripts/verify-road-driver.mjs --dump=<Ordner>` schreibt HTML-Seiten mit der echten Komponente.
+3. **`verify:road-ui` klären — vor dem Push.** Der Browser-Prüfer der Autobahn-Seite bricht am Produktions-Build in Block D ab
+   (Seite ohne Gefahren-Leiste, keine Bandmarken im Fixture-Lauf) und liefert keine Zahl (V-DV-12). Ob er an HEAD ebenso abbricht,
+   ist nicht geprüft. Solange er abbricht, prüft nichts die Detailansicht dauerhaft im Browser; die Prüfung dieser Phase lief über
+   `audit/autobahn-fahrerblick/page.mjs` (Live-Daten, 11/11 nach dem Einschalten).
+4. **Bestätigt am 06.11. („passt so", „passt auch"):** neutraler grauer Himmel bei „unbekannt" und „nicht gemessen" (S-DV-3);
+   dunkleres Glasfeld hinter der Schrift und dunklerer Chip „Wasserfilm" für 4,5 : 1 Kontrast (S-DV-4).
+5. **Budget:** `npm run budget` ist rot — schon vor dieser Phase (eagerJs 115,6 KB gegen 115 KB, totalJs 1 987,2 gegen 1 985 KB,
+   aus den offenen Linien im Arbeitsbaum). DV lässt eagerJs unverändert und legt 10,6 KB auf totalJs (der Lazy-Chunk des
+   Fahrerblicks, 9,3 KB gzip; seit dem Einschalten lädt ihn jeder, der einen Abschnitt öffnet). Die Grenze habe ich nicht angehoben.
+6. **Commit** (Auftrag fehlt, daher nicht committed): `git add src/road/RoadDriverView.tsx src/road/RoadCrossSection.tsx
+   src/road/RoadHazardDetail.tsx src/road/roadFlag.ts src/road/roadDeck.css src/router/pages/RoadRoute.tsx
+   scripts/verify-road-driver.mjs scripts/verify-road-ui.mjs scripts/lib/cdpBrowser.mjs package.json audit/autobahn-fahrerblick.md
+   audit/autobahn-fahrerblick reference/fahrerblick CLAUDE.md MANUELLE-SCHRITTE.md` und
+   `git commit -m "feat(road): driver's view of the road surface, on by default (ROAD_XS_VIEW)"`. **Push = live für alle.**
+7. **Rückweg:** je Besucher `?xsview=schematic`; für alle `ROAD_XS_VIEW = 'schematic'` und ein Push.

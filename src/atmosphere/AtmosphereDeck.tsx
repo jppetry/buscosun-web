@@ -407,7 +407,7 @@ function StageHead({ ctx, eyebrow, title }: { ctx: DeckCtx; eyebrow: string; tit
       </div>
       <div className="vsd-stagehead-tools">
         <ViewBar ctx={ctx} />
-        {isSection && (
+        {isSection && !mapOpen && (
           <div className="vsd-seg" role="tablist" aria-label="Bühne">
             <button type="button" role="tab" aria-selected={mapOpen} className={`vsd-seg-btn${mapOpen ? ' is-active' : ''}`} onClick={openMap}><IconMapSmall />Karte</button>
             <button type="button" role="tab" aria-selected={!mapOpen} className={`vsd-seg-btn${!mapOpen ? ' is-active' : ''}`} onClick={openSection} disabled={!hasCut}

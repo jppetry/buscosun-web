@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Fahrerblick-Szene (Komponente)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="line-height: 0; font-family: 'League Spartan', system-ui, sans-serif; color: #2C2A26">
+  <svg viewBox="0 0 520 292" width="{{w}}" height="{{h}}" role="img" aria-label="{{aria}}" style="display: block; font-family: 'League Spartan', sans-serif">
+    <defs>
+      <linearGradient id="fsSkyS" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#BFC6CD"></stop><stop offset="1" stop-color="#ECEEF0"></stop></linearGradient>
+      <linearGradient id="fsSkyG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8F99A4"></stop><stop offset="1" stop-color="#D6DADE"></stop></linearGradient>
+      <linearGradient id="fsSkyD" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4E5762"></stop><stop offset="0.7" stop-color="#7D8691"></stop><stop offset="1" stop-color="#A9B0B7"></stop></linearGradient>
+      <linearGradient id="fsSkyC" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7FA9D3"></stop><stop offset="0.75" stop-color="#C9DCEC"></stop><stop offset="1" stop-color="#EEF2F2"></stop></linearGradient>
+      <linearGradient id="fsSkyK" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9DBBDA"></stop><stop offset="0.8" stop-color="#DCE7F1"></stop><stop offset="1" stop-color="#F3F6F9"></stop></linearGradient>
+      <linearGradient id="fsSkyU" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8FA9C4"></stop><stop offset="0.55" stop-color="#E9C9A0"></stop><stop offset="1" stop-color="#FBE3B8"></stop></linearGradient>
+      <linearGradient id="fsSkyT" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#B9A27E"></stop><stop offset="1" stop-color="#E6D3B0"></stop></linearGradient>
+      <linearGradient id="fsAsph" x1="0" y1="120" x2="0" y2="292" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#A5A39E"></stop><stop offset="0.3" stop-color="#7A7873"></stop><stop offset="1" stop-color="#4B4945"></stop></linearGradient>
+      <linearGradient id="fsRefl" x1="0" y1="120" x2="0" y2="292" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#E6EBEF" stop-opacity="0.95"></stop><stop offset="0.28" stop-color="#C9D1D8" stop-opacity="0.55"></stop><stop offset="1" stop-color="#9AA5AF" stop-opacity="0"></stop></linearGradient>
+      <linearGradient id="fsSnow" x1="0" y1="120" x2="0" y2="292" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#E4E8EC"></stop><stop offset="1" stop-color="#F6F8FA"></stop></linearGradient>
+      <linearGradient id="fsGlare" x1="0" y1="120" x2="0" y2="292" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#FFF6DA" stop-opacity="1"></stop><stop offset="0.5" stop-color="#FFE7B0" stop-opacity="0.55"></stop><stop offset="1" stop-color="#FFE7B0" stop-opacity="0"></stop></linearGradient>
+      <linearGradient id="fsFog1" x1="0" y1="0" x2="0" y2="292" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#CDD3D8" stop-opacity="0.55"></stop><stop offset="0.41" stop-color="#CDD3D8" stop-opacity="0.82"></stop><stop offset="1" stop-color="#CDD3D8" stop-opacity="0.12"></stop></linearGradient>
+      <linearGradient id="fsFog2" x1="0" y1="0" x2="0" y2="292" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#CDD3D8" stop-opacity="0.75"></stop><stop offset="0.41" stop-color="#CDD3D8" stop-opacity="0.95"></stop><stop offset="0.7" stop-color="#CDD3D8" stop-opacity="0.6"></stop><stop offset="1" stop-color="#CDD3D8" stop-opacity="0.3"></stop></linearGradient>
+      <linearGradient id="fsFog3" x1="0" y1="0" x2="0" y2="292" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#D2D7DC" stop-opacity="0.92"></stop><stop offset="0.5" stop-color="#D2D7DC" stop-opacity="1"></stop><stop offset="0.78" stop-color="#D2D7DC" stop-opacity="0.82"></stop><stop offset="1" stop-color="#D2D7DC" stop-opacity="0.55"></stop></linearGradient>
+      <linearGradient id="fsDust" x1="0" y1="0" x2="0" y2="292" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#D9B98A" stop-opacity="0.35"></stop><stop offset="0.42" stop-color="#D9B98A" stop-opacity="0.75"></stop><stop offset="1" stop-color="#D9B98A" stop-opacity="0.15"></stop></linearGradient>
+      <radialGradient id="fsSun"><stop offset="0" stop-color="#FFFBEA"></stop><stop offset="0.18" stop-color="#FFF1C4" stop-opacity="0.95"></stop><stop offset="0.5" stop-color="#FFD98A" stop-opacity="0.45"></stop><stop offset="1" stop-color="#FFC24A" stop-opacity="0"></stop></radialGradient>
+      <filter id="fsGrainL" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="4"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 0.86  0 0 0 0 0.84  0 0 0 0 0.8  1.4 0 0 0 -0.62"></feColorMatrix></filter>
+      <filter id="fsGrainD" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="2" seed="11"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 0.12  0 0 0 0 0.12  0 0 0 0 0.12  1.6 0 0 0 -0.7"></feColorMatrix></filter>
+      <filter id="fsFrost" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="1.5" numOctaves="1" seed="7"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  2.4 0 0 0 -0.95"></feColorMatrix></filter>
+      <filter id="fsBlur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.6 3"></feGaussianBlur></filter>
+      <filter id="fsSoft" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="4"></feGaussianBlur></filter>
+      <filter id="fsSoft2" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="9"></feGaussianBlur></filter>
+      <pattern id="fsHatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="none"></rect><rect width="3.2" height="9" fill="#EDE6D3"></rect></pattern>
+      <pattern id="fsRain1" width="40" height="80" patternUnits="userSpaceOnUse"><path d="M8 4l-3 16M27 30l-3 16M17 56l-3 16" stroke="#E2E8EE" stroke-width="1" stroke-linecap="round" opacity="0.7"></path></pattern>
+      <pattern id="fsRain2" width="40" height="80" patternUnits="userSpaceOnUse"><path d="M33 12l-3 16M14 40l-3 16M36 62l-3 16" stroke="#E2E8EE" stroke-width="1" stroke-linecap="round" opacity="0.6"></path></pattern>
+      <pattern id="fsRain3" width="40" height="80" patternUnits="userSpaceOnUse"><path d="M22 0l-3 16M4 44l-3 16M30 50l-3 16" stroke="#EEF2F5" stroke-width="1.2" stroke-linecap="round" opacity="0.65"></path></pattern>
+      <pattern id="fsDrizzle" width="30" height="60" patternUnits="userSpaceOnUse"><path d="M6 4l-1 7M20 20l-1 7M12 38l-1 7M26 48l-1 7" stroke="#EAF0F5" stroke-width="0.8" stroke-linecap="round" opacity="0.75"></path></pattern>
+      <pattern id="fsSnow1" width="60" height="60" patternUnits="userSpaceOnUse"><g fill="#FFFFFF"><circle cx="8" cy="10" r="1.3"></circle><circle cx="31" cy="4" r="1"></circle><circle cx="50" cy="20" r="1.5"></circle><circle cx="20" cy="33" r="1.1"></circle><circle cx="42" cy="44" r="1.3"></circle><circle cx="12" cy="52" r="1"></circle></g></pattern>
+      <pattern id="fsSnow2" width="90" height="90" patternUnits="userSpaceOnUse"><g fill="#FFFFFF" stroke="#C2CFDB" stroke-width="0.4"><circle cx="20" cy="18" r="2.6"></circle><circle cx="66" cy="40" r="3"></circle><circle cx="38" cy="74" r="2.4"></circle></g></pattern>
+      <pattern id="fsSnow3" width="60" height="60" patternUnits="userSpaceOnUse"><g fill="#FFFFFF"><circle cx="25" cy="14" r="1.6"></circle><circle cx="4" cy="28" r="1.2"></circle><circle cx="46" cy="32" r="1"></circle><circle cx="33" cy="55" r="1.7"></circle></g></pattern>
+      <pattern id="fsHail1" width="50" height="60" patternUnits="userSpaceOnUse"><g fill="#FFFFFF" stroke="#AFC3D6" stroke-width="0.6"><circle cx="10" cy="10" r="1.8"></circle><circle cx="34" cy="28" r="2.2"></circle><circle cx="20" cy="48" r="1.6"></circle></g></pattern>
+      <pattern id="fsHail2" width="50" height="60" patternUnits="userSpaceOnUse"><g fill="#FFFFFF" stroke="#AFC3D6" stroke-width="0.6"><circle cx="42" cy="6" r="2.4"></circle><circle cx="6" cy="34" r="2"></circle><circle cx="28" cy="54" r="2.6"></circle></g></pattern>
+      <pattern id="fsWind" width="160" height="50" patternUnits="userSpaceOnUse"><path d="M10 10h46M90 26h60M40 42h34" stroke="#FFFFFF" stroke-width="1.1" stroke-linecap="round" opacity="0.55"></path></pattern>
+      <pattern id="fsDustP" width="40" height="40" patternUnits="userSpaceOnUse"><g fill="#8E6A3A" opacity="0.7"><circle cx="5" cy="8" r="0.9"></circle><circle cx="22" cy="3" r="0.7"></circle><circle cx="33" cy="19" r="1.1"></circle><circle cx="14" cy="27" r="0.8"></circle><circle cx="28" cy="36" r="0.9"></circle></g></pattern>
+      <pattern id="fsLeaves" width="120" height="80" patternUnits="userSpaceOnUse"><path d="M14 18c2-3 6-3 8 0-2 3-6 3-8 0z" fill="#8A9A3C"></path><path d="M70 40c2-3 6-3 8 0-2 3-6 3-8 0z" fill="#B07A2E" transform="rotate(30 74 40)"></path><path d="M40 66c2-3 6-3 8 0-2 3-6 3-8 0z" fill="#9C8A34" transform="rotate(-25 44 66)"></path><path d="M100 12c2-3 6-3 8 0-2 3-6 3-8 0z" fill="#B07A2E"></path></pattern>
+      <clipPath id="fsRoad"><polygon points="{{g.road}}"></polygon></clipPath>
+    </defs>
+
+    <rect x="0" y="0" width="520" height="122" fill="url(#fsSkyS)"></rect>
+    <rect x="0" y="0" width="520" height="122" fill="url(#fsSkyG)" opacity="{{sky.G}}"></rect>
+    <rect x="0" y="0" width="520" height="122" fill="url(#fsSkyD)" opacity="{{sky.D}}"></rect>
+    <rect x="0" y="0" width="520" height="122" fill="url(#fsSkyC)" opacity="{{sky.C}}"></rect>
+    <rect x="0" y="0" width="520" height="122" fill="url(#fsSkyK)" opacity="{{sky.K}}"></rect>
+    <rect x="0" y="0" width="520" height="122" fill="url(#fsSkyU)" opacity="{{sky.U}}"></rect>
+    <rect x="0" y="0" width="520" height="122" fill="url(#fsSkyT)" opacity="{{sky.T}}"></rect>
+    <g opacity="{{fx.sunA}}">
+      <circle cx="268" cy="104" r="120" fill="url(#fsSun)"></circle>
+      <circle cx="268" cy="104" r="9" fill="#FFFDF2"></circle>
+    </g>
+    <g opacity="{{fx.shelf}}">
+      <path d="M0 70 C40 62 90 66 140 60 C200 54 260 62 320 58 C380 54 440 62 520 58 L520 112 C480 104 450 112 400 106 C350 100 320 110 270 104 C220 98 180 108 130 102 C80 96 40 106 0 100 Z" fill="#3E4650" opacity="0.88"></path>
+      <path d="M0 100 C40 106 80 96 130 102 C180 108 220 98 270 104 C320 110 350 100 400 106 C450 112 480 104 520 112 L520 116 L0 116 Z" fill="#59626C" opacity="0.6"></path>
+    </g>
+    <path d="M0 108 C60 92 110 96 170 102 C230 86 300 90 360 100 C420 92 470 96 520 104 L520 122 L0 122 Z" fill="#9AA4A6" opacity="0.7"></path>
+    <path d="M0 116 C50 108 90 110 140 113 C200 104 250 110 300 114 C360 106 430 108 520 112 L520 122 L0 122 Z" fill="#6F7B6E"></path>
+    <path d="{{g.trees}}" fill="#46553F"></path>
+    <path d="M0 116 C50 108 90 110 140 113 C200 104 250 110 300 114 C360 106 430 108 520 112 L520 122 L0 122 Z" fill="#FFFFFF" opacity="{{k.hillSnow}}"></path>
+
+    <polygon points="{{g.vergeR}}" fill="#8C9466"></polygon>
+    <polygon points="{{g.vergeL}}" fill="#8C9466"></polygon>
+    <polygon points="{{g.vergeR}}" fill="#F2F4F6" opacity="{{k.vergeWhite}}"></polygon>
+    <polygon points="{{g.vergeL}}" fill="#F2F4F6" opacity="{{k.vergeWhite}}"></polygon>
+
+    <g clip-path="url(#fsRoad)">
+      <rect x="0" y="118" width="520" height="174" fill="url(#fsAsph)"></rect>
+      <rect x="0" y="118" width="520" height="174" fill="#000" filter="url(#fsGrainD)" opacity="0.7"></rect>
+      <rect x="0" y="118" width="520" height="174" fill="#000" filter="url(#fsGrainL)" opacity="0.55"></rect>
+      <sc-for list="{{g.tracks}}" as="t" hint-placeholder-count="4"><polygon points="{{t}}" fill="#2E2C29" opacity="0.18"></polygon></sc-for>
+      <g opacity="{{fx.joints}}">
+        <sc-for list="{{g.joints}}" as="j" hint-placeholder-count="7"><polyline points="{{j}}" fill="none" stroke="#2E2C29" stroke-width="0.9" opacity="0.55"></polyline></sc-for>
+      </g>
+      <g opacity="{{k.mark}}">
+        <polygon points="{{g.edgeR}}" fill="#ECEAE2"></polygon>
+        <polygon points="{{g.edgeL}}" fill="#ECEAE2"></polygon>
+        <sc-for list="{{g.dashes}}" as="d" hint-placeholder-count="8"><polygon points="{{d}}" fill="#ECEAE2"></polygon></sc-for>
+      </g>
+      <rect x="0" y="118" width="520" height="174" fill="#15171A" opacity="{{k.dark}}"></rect>
+      <rect x="0" y="118" width="520" height="174" fill="url(#fsRefl)" opacity="{{k.refl}}"></rect>
+      <g opacity="{{k.reflP}}" filter="url(#fsBlur)">
+        <polygon points="{{g.railReflR}}" fill="#C9CED3"></polygon>
+        <polygon points="{{g.railReflL}}" fill="#C9CED3"></polygon>
+        <sc-for list="{{g.postRefl}}" as="p" hint-placeholder-count="8"><rect x="{{p.x}}" y="{{p.y}}" width="{{p.w}}" height="{{p.h}}" fill="#3A3F45"></rect></sc-for>
+        <rect x="340" y="128" width="180" height="12" fill="#56634F" opacity="0.6"></rect>
+      </g>
+      <g opacity="{{fx.truckRefl}}" filter="url(#fsBlur)">
+        <rect x="{{g.truck.x}}" y="{{g.truck.yg}}" width="{{g.truck.w}}" height="{{g.truck.rh}}" fill="#5B636B" opacity="0.55"></rect>
+        <rect x="{{g.truck.l1x}}" y="{{g.truck.yg}}" width="{{g.truck.lw}}" height="{{g.truck.rh}}" fill="#C8332B" opacity="0.5"></rect>
+        <rect x="{{g.truck.l2x}}" y="{{g.truck.yg}}" width="{{g.truck.lw}}" height="{{g.truck.rh}}" fill="#C8332B" opacity="0.5"></rect>
+      </g>
+      <g opacity="{{k.pud}}">
+        <sc-for list="{{g.puddles}}" as="p" hint-placeholder-count="5"><ellipse cx="{{p.cx}}" cy="{{p.cy}}" rx="{{p.rx}}" ry="{{p.ry}}" fill="#C3CCD4" opacity="0.55"></ellipse></sc-for>
+      </g>
+      <g opacity="{{fx.pudX}}">
+        <sc-for list="{{g.puddles2}}" as="p" hint-placeholder-count="8"><ellipse cx="{{p.cx}}" cy="{{p.cy}}" rx="{{p.rx}}" ry="{{p.ry}}" fill="#B9C4CE" opacity="0.6"></ellipse></sc-for>
+      </g>
+      <g opacity="{{k.frost}}">
+        <rect x="0" y="118" width="520" height="174" fill="#DCE3EA" opacity="0.5"></rect>
+        <rect x="0" y="118" width="520" height="174" fill="#000" filter="url(#fsFrost)" opacity="0.9"></rect>
+        <sc-for list="{{g.tracks}}" as="t" hint-placeholder-count="4"><polygon points="{{t}}" fill="#5B5D60" opacity="0.38"></polygon></sc-for>
+      </g>
+      <g opacity="{{k.ice}}">
+        <rect x="0" y="118" width="520" height="174" fill="#6F97BF" opacity="0.22"></rect>
+        <sc-for list="{{g.cracks}}" as="c" hint-placeholder-count="6"><polyline points="{{c}}" fill="none" stroke="#E6F0F8" stroke-width="0.8" opacity="0.65"></polyline></sc-for>
+        <sc-for list="{{g.glints}}" as="p" hint-placeholder-count="10"><ellipse cx="{{p.cx}}" cy="{{p.cy}}" rx="{{p.rx}}" ry="{{p.ry}}" fill="#FFFFFF" opacity="0.85"></ellipse></sc-for>
+      </g>
+      <g opacity="{{k.snow}}">
+        <rect x="0" y="118" width="520" height="174" fill="url(#fsSnow)"></rect>
+        <rect x="0" y="118" width="520" height="174" fill="#000" filter="url(#fsGrainD)" opacity="0.12"></rect>
+        <sc-for list="{{g.tracks}}" as="t" hint-placeholder-count="4"><polygon points="{{t}}" fill="#8A9298" opacity="0.8"></polygon></sc-for>
+        <sc-for list="{{g.ruts}}" as="t" hint-placeholder-count="4"><polygon points="{{t}}" fill="#5F676E" opacity="0.7"></polygon></sc-for>
+      </g>
+      <g opacity="{{k.hatch}}">
+        <rect x="0" y="118" width="520" height="174" fill="#3A3833" opacity="0.25"></rect>
+        <rect x="0" y="118" width="520" height="174" fill="url(#fsHatch)" opacity="0.32"></rect>
+      </g>
+      <rect x="0" y="118" width="520" height="174" fill="#9C9890" opacity="{{k.desat}}"></rect>
+      <g opacity="{{fx.glare}}">
+        <polygon points="{{g.glare}}" fill="url(#fsGlare)" opacity="{{fx.glareMul}}"></polygon>
+      </g>
+      <g opacity="{{fx.sparkle}}">
+        <sc-for list="{{g.sparks}}" as="p" hint-placeholder-count="14">
+          <path d="M0 -2.6L0.6 -0.6 2.6 0 0.6 0.6 0 2.6 -0.6 0.6 -2.6 0 -0.6 -0.6Z" fill="#FFFFFF" transform="{{p.t}}">
+            <animate attributeName="opacity" values="0.15;1;0.15" dur="{{p.d}}" repeatCount="indefinite"></animate>
+          </path>
+        </sc-for>
+      </g>
+      <g opacity="{{fx.splash}}">
+        <sc-for list="{{g.rings}}" as="r" hint-placeholder-count="10">
+          <ellipse cx="{{r.cx}}" cy="{{r.cy}}" rx="{{r.rx}}" ry="{{r.ry}}" fill="none" stroke="#E8EDF1" stroke-width="0.8">
+            <animate attributeName="opacity" values="0;0.9;0" dur="{{r.d}}" repeatCount="indefinite"></animate>
+          </ellipse>
+        </sc-for>
+      </g>
+      <g opacity="{{fx.hailRoad}}">
+        <sc-for list="{{g.hailRoad}}" as="p" hint-placeholder-count="20"><circle cx="{{p.x}}" cy="{{p.y}}" r="{{p.r}}" fill="#F4F7FA" stroke="#B8C8D8" stroke-width="0.4"></circle></sc-for>
+      </g>
+      <g opacity="{{fx.joints}}">
+        <polygon points="{{g.ridge}}" fill="#C9C3B6"></polygon>
+        <polygon points="{{g.ridgeShadow}}" fill="#1E1C19" opacity="0.6"></polygon>
+      </g>
+      <g opacity="{{fx.branch}}">
+        <sc-for list="{{g.branches}}" as="b" hint-placeholder-count="3"><polyline points="{{b.pts}}" fill="none" stroke="#5A4128" stroke-width="{{b.sw}}" stroke-linecap="round" stroke-linejoin="round"></polyline></sc-for>
+        <sc-for list="{{g.roadLeaves}}" as="p" hint-placeholder-count="10"><ellipse cx="{{p.x}}" cy="{{p.y}}" rx="{{p.rx}}" ry="{{p.ry}}" fill="{{p.c}}"></ellipse></sc-for>
+      </g>
+    </g>
+    <polygon points="{{g.road}}" fill="none" stroke="#9A5A2A" stroke-width="1.6" stroke-dasharray="6 4" opacity="{{k.dash}}"></polygon>
+
+    <polygon points="{{g.railR}}" fill="#B8BDC2"></polygon>
+    <polygon points="{{g.railL}}" fill="#B8BDC2"></polygon>
+    <sc-for list="{{g.posts}}" as="p" hint-placeholder-count="10"><rect x="{{p.x}}" y="{{p.y}}" width="{{p.w}}" height="{{p.h}}" fill="#5A5F64"></rect></sc-for>
+    <g opacity="{{k.snow}}">
+      <polygon points="{{g.bankR}}" fill="#FFFFFF"></polygon>
+      <polygon points="{{g.bankL}}" fill="#FFFFFF"></polygon>
+    </g>
+
+    <g opacity="{{fx.sock}}">
+      <line x1="{{g.sock.x}}" y1="{{g.sock.yg}}" x2="{{g.sock.x}}" y2="{{g.sock.top}}" stroke="#5A5F64" stroke-width="1.8"></line>
+      <sc-for list="{{sock}}" as="s" hint-placeholder-count="5"><polygon points="{{s.pts}}" fill="{{s.c}}" stroke="#7A2A1E" stroke-width="0.3"></polygon></sc-for>
+    </g>
+
+    <g opacity="{{fx.truck}}">
+      <ellipse cx="{{g.truck.cx}}" cy="{{g.truck.yg}}" rx="{{g.truck.sx}}" ry="3" fill="#000" opacity="0.35"></ellipse>
+      <rect x="{{g.truck.x}}" y="{{g.truck.y}}" width="{{g.truck.w}}" height="{{g.truck.h}}" rx="1.5" fill="#5B636B"></rect>
+      <rect x="{{g.truck.ix}}" y="{{g.truck.iy}}" width="{{g.truck.iw}}" height="{{g.truck.ih}}" fill="none" stroke="#7A838B" stroke-width="0.8"></rect>
+      <line x1="{{g.truck.cx}}" y1="{{g.truck.iy}}" x2="{{g.truck.cx}}" y2="{{g.truck.iyb}}" stroke="#7A838B" stroke-width="0.8"></line>
+      <rect x="{{g.truck.x}}" y="{{g.truck.by}}" width="{{g.truck.w}}" height="{{g.truck.bh}}" fill="#2E3338"></rect>
+      <rect x="{{g.truck.l1x}}" y="{{g.truck.ly}}" width="{{g.truck.lw}}" height="{{g.truck.lh}}" fill="#D23A30"></rect>
+      <rect x="{{g.truck.l2x}}" y="{{g.truck.ly}}" width="{{g.truck.lw}}" height="{{g.truck.lh}}" fill="#D23A30"></rect>
+      <rect x="{{g.truck.px}}" y="{{g.truck.py}}" width="{{g.truck.pw}}" height="{{g.truck.ph}}" fill="#E9E4D6"></rect>
+    </g>
+    <g opacity="{{fx.spray}}">
+      <g filter="url(#fsSoft)">
+        <sc-for list="{{g.spray}}" as="s" hint-placeholder-count="6"><ellipse cx="{{s.cx}}" cy="{{s.cy}}" rx="{{s.rx}}" ry="{{s.ry}}" fill="#D4DADF" opacity="{{s.op}}"></ellipse></sc-for>
+        <animate attributeName="opacity" values="{{fx.sprayVals}}" dur="2.6s" repeatCount="indefinite"></animate>
+      </g>
+    </g>
+
+    <g opacity="{{fx.ahead}}">
+      <rect x="0" y="0" width="520" height="292" fill="#BFD6EE" opacity="{{fx.cold}}"></rect>
+      <rect x="0" y="0" width="520" height="292" fill="#F7C98A" opacity="{{fx.heat}}"></rect>
+      <g opacity="{{fx.heatWave}}">
+        <path d="M150 121 q8 -2 16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0" stroke="#EAD9C0" stroke-width="2.4" fill="none" opacity="0.8">
+          <animateTransform attributeName="transform" type="translate" values="0 0;0 -1.8;0 0" dur="0.9s" repeatCount="indefinite"></animateTransform>
+        </path>
+        <path d="M200 116 q6 -1.5 12 0 t12 0 t12 0 t12 0 t12 0 t12 0 t12 0 t12 0 t12 0" stroke="#F2E6D2" stroke-width="1.6" fill="none" opacity="0.7">
+          <animateTransform attributeName="transform" type="translate" values="0 0;0 1.4;0 0" dur="1.1s" repeatCount="indefinite"></animateTransform>
+        </path>
+      </g>
+      <rect x="0" y="0" width="520" height="292" fill="url(#fsDust)" opacity="{{fx.dust}}"></rect>
+      <rect x="-40" y="0" width="600" height="292" fill="url(#fsDustP)" opacity="{{fx.dust}}">
+        <animateTransform attributeName="transform" type="translate" from="0 0" to="-40 0" dur="0.5s" repeatCount="indefinite"></animateTransform>
+      </rect>
+      <rect x="-160" y="0" width="840" height="292" fill="url(#fsWind)" opacity="{{fx.wind1}}">
+        <animateTransform attributeName="transform" type="translate" from="0 0" to="-160 0" dur="0.75s" repeatCount="indefinite"></animateTransform>
+      </rect>
+      <rect x="-160" y="17" width="840" height="292" fill="url(#fsWind)" opacity="{{fx.wind2}}">
+        <animateTransform attributeName="transform" type="translate" from="0 0" to="-160 0" dur="0.55s" repeatCount="indefinite"></animateTransform>
+      </rect>
+      <rect x="-120" y="0" width="760" height="292" fill="url(#fsLeaves)" opacity="{{fx.leaves}}">
+        <animateTransform attributeName="transform" type="translate" from="0 0" to="-120 40" dur="1.1s" repeatCount="indefinite"></animateTransform>
+      </rect>
+      <rect x="-20" y="-80" width="560" height="372" fill="url(#fsRain1)" opacity="{{fx.rain1}}">
+        <animateTransform attributeName="transform" type="translate" from="0 0" to="0 80" dur="0.42s" repeatCount="indefinite"></animateTransform>
+      </rect>
+      <rect x="-20" y="-80" width="560" height="372" fill="url(#fsRain2)" opacity="{{fx.rain2}}">
+        <animateTransform attributeName="transform" type="translate" from="0 0" to="0 80" dur="0.36s" repeatCount="indefinite"></animateTransform>
+      </rect>
+      <rect x="-20" y="-80" width="560" height="372" fill="url(#fsRain3)" opacity="{{fx.rain3}}">
+        <animateTransform attributeName="transform" type="translate" from="0 0" to="0 80" dur="0.3s" repeatCount="indefinite"></animateTransform>
+      </rect>
+      <rect x="-20" y="-60" width="560" height="352" fill="url(#fsDrizzle)" opacity="{{fx.drizzle}}">
+        <animateTransform attributeName="transform" type="translate" from="0 0" to="0 60" dur="0.7s" repeatCount="indefinite"></animateTransform>
+      </rect>
+      <rect x="-20" y="-60" width="560" height="352" fill="url(#fsSnow1)" opacity="{{fx.snow1}}">
+        <animateTransform attributeName="transform" type="translate" from="0 0" to="0 60" dur="{{fx.snowDur1}}" repeatCount="indefinite"></animateTransform>
+      </rect>
+      <rect x="-20" y="-60" width="560" height="352" fill="url(#fsSnow3)" opacity="{{fx.snow2}}">
+        <animateTransform attributeName="transform" type="translate" from="0 0" to="0 60" dur="{{fx.snowDur2}}" repeatCount="indefinite"></animateTransform>
+      </rect>
+      <rect x="-20" y="-90" width="560" height="382" fill="url(#fsSnow2)" opacity="{{fx.snow3}}">
+        <animateTransform attributeName="transform" type="translate" from="0 0" to="0 90" dur="{{fx.snowDur3}}" repeatCount="indefinite"></animateTransform>
+      </rect>
+      <rect x="-20" y="-60" width="560" height="352" fill="url(#fsHail1)" opacity="{{fx.hail1}}">
+        <animateTransform attributeName="transform" type="translate" from="0 0" to="0 60" dur="0.32s" repeatCount="indefinite"></animateTransform>
+      </rect>
+      <rect x="-20" y="-60" width="560" height="352" fill="url(#fsHail2)" opacity="{{fx.hail2}}">
+        <animateTransform attributeName="transform" type="translate" from="0 0" to="0 60" dur="0.27s" repeatCount="indefinite"></animateTransform>
+      </rect>
+      <g opacity="{{fx.fogOn}}">
+        <rect x="0" y="0" width="520" height="292" fill="{{fx.fogFill}}"></rect>
+        <g filter="url(#fsSoft2)">
+          <animateTransform attributeName="transform" type="translate" values="0 0;16 0;0 0" dur="14s" repeatCount="indefinite"></animateTransform>
+          <ellipse cx="120" cy="150" rx="140" ry="16" fill="#E2E6EA" opacity="0.7"></ellipse>
+          <ellipse cx="380" cy="168" rx="160" ry="18" fill="#E2E6EA" opacity="0.6"></ellipse>
+          <ellipse cx="260" cy="205" rx="200" ry="20" fill="#E2E6EA" opacity="0.45"></ellipse>
+        </g>
+      </g>
+      <g opacity="{{fx.flash}}">
+        <rect x="0" y="0" width="520" height="292" fill="#FFFFFF" opacity="0">
+          <animate attributeName="opacity" values="0;0;0.75;0;0.45;0" keyTimes="0;0.86;0.88;0.9;0.93;1" dur="{{fx.flashDur}}" repeatCount="indefinite"></animate>
+        </rect>
+        <path d="M150 18l-12 30h10l-9 28 22-36h-11l9-22z" fill="#FFF3B0" stroke="#F2D25A" stroke-width="0.8" opacity="0">
+          <animate attributeName="opacity" values="0;0;1;0.2;1;0" keyTimes="0;0.86;0.88;0.9;0.93;1" dur="{{fx.flashDur}}" repeatCount="indefinite"></animate>
+        </path>
+      </g>
+    </g>
+
+    <g opacity="{{hud.on}}">
+      <rect x="12" y="12" width="{{hud.airW}}" height="46" rx="9" fill="#14161A" opacity="0.52"></rect>
+      <text x="24" y="31" font-size="14" font-weight="700" fill="#FFFFFF">{{s.air}}</text>
+      <text x="24" y="48" font-size="11.5" fill="#E6E9EC">{{s.dew}} · {{s.rh}}</text>
+      <rect x="{{hud.srcX}}" y="12" width="{{hud.srcW}}" height="22" rx="7" fill="#14161A" opacity="0.42"></rect>
+      <text x="500" y="27" font-size="10.5" fill="#F2F2F2" text-anchor="end">{{s.src}}</text>
+      <g opacity="{{hud.tagOn}}">
+        <rect x="{{hud.tagX}}" y="40" width="{{hud.tagW}}" height="18" rx="9" fill="{{hud.tagBg}}" stroke="{{hud.tagBorder}}" stroke-width="0.8" opacity="{{hud.tagOp}}"></rect>
+        <text x="{{hud.tagMid}}" y="52.5" font-size="10.5" font-weight="700" fill="{{hud.tagInk}}" text-anchor="middle">{{hud.tag}}</text>
+      </g>
+      <rect x="12" y="226" width="{{hud.roadW}}" height="54" rx="10" fill="#14161A" opacity="0.6"></rect>
+      <text x="24" y="250" font-size="{{hud.roadFs}}" font-weight="700" fill="#FFFFFF">{{s.roadText}}</text>
+      <rect x="24" y="258" width="{{hud.chipW}}" height="16" rx="8" fill="{{s.chip}}"></rect>
+      <rect x="24" y="258" width="{{hud.chipW}}" height="16" rx="8" fill="url(#fsHatch)" opacity="{{k.hatch}}"></rect>
+      <rect x="24.5" y="258.5" width="{{hud.chipW1}}" height="15" rx="7.5" fill="none" stroke="#C98A55" stroke-width="1" stroke-dasharray="3 2" opacity="{{k.dash}}"></rect>
+      <text x="32" y="270" font-size="10.5" font-weight="700" fill="{{s.chipInk}}">{{s.label}}</text>
+    </g>
+  </svg>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["trocken","feucht","nass","reif","eis","schnee","unbekannt","nichtgemessen"],"default":"trocken","section":"Szene"},"hz":{"editor":"enum","options":["none","reif","nass","glatteis","schnee","aqua","nebel","gischt","sonne","quer","baum","staub","gewitter","hagel","blowup","frost1","sturz"],"default":"none","section":"Szene"},"lv":{"editor":"int","min":1,"max":3,"default":2,"section":"Szene"},"at":{"editor":"text","default":"","section":"Szene"},"hud":{"editor":"enum","options":["voll","aus"],"default":"voll","section":"Szene"},"w":{"editor":"int","min":200,"max":1600,"default":520,"section":"Größe"},"$preview":{"width":520,"height":292}}'>
+const H = 120, B = 292, VX = 268;
+const rnd = (i, c) => { const v = Math.sin(i * 12.9898 + c * 78.233) * 43758.5453; return v - Math.floor(v); };
+const f = (n) => n.toFixed(1);
+const xAt = (xb, y) => VX + (xb - VX) * (y - H) / (B - H);
+const yAtZ = (z) => H + (B - H) / z;
+const strip = (xb, wb, y0, y1) => `${f(xAt(xb - wb / 2, y0))},${f(y0)} ${f(xAt(xb + wb / 2, y0))},${f(y0)} ${f(xAt(xb + wb / 2, y1))},${f(y1)} ${f(xAt(xb - wb / 2, y1))},${f(y1)}`;
+const ZS = [1.05, 1.4, 2, 3, 5, 8, 14, 30, 80];
+const rail = (xb) => ZS.map((z) => { const y = yAtZ(z); return `${f(xAt(xb, y))},${f(y - 46 / z)}`; }).concat(ZS.slice().reverse().map((z) => { const y = yAtZ(z); return `${f(xAt(xb, y))},${f(y - 36 / z)}`; })).join(' ');
+const railRefl = (xb) => ZS.map((z) => { const y = yAtZ(z); return `${f(xAt(xb, y))},${f(y + 36 / z)}`; }).concat(ZS.slice().reverse().map((z) => { const y = yAtZ(z); return `${f(xAt(xb, y))},${f(y + 46 / z)}`; })).join(' ');
+function build() {
+  const yTop = H + 1.5;
+  const road = `${f(xAt(-340, B))},${B} ${f(xAt(600, B))},${B} ${f(xAt(600, yTop))},${f(yTop)} ${f(xAt(-340, yTop))},${f(yTop)}`;
+  const vergeR = `${f(xAt(600, B))},${B} 520,${B} 520,${f(yTop)} ${f(xAt(600, yTop))},${f(yTop)}`;
+  const vergeL = `0,${B} ${f(xAt(-340, B))},${B} ${f(xAt(-340, yTop))},${f(yTop)} 0,${f(yTop)}`;
+  const dashes = [];
+  for (let z = 1.02; z < 60; z += 2.4) dashes.push(strip(150, 9, yAtZ(z), yAtZ(z + 1)));
+  const tracks = [strip(262, 64, B, yTop), strip(452, 64, B, yTop), strip(-130, 64, B, yTop), strip(50, 64, B, yTop)];
+  const ruts = [strip(250, 18, B, yTop), strip(276, 18, B, yTop), strip(440, 18, B, yTop), strip(466, 18, B, yTop)];
+  const posts = [], postRefl = [];
+  [640, -420].forEach((xb) => {
+    for (const z of [1.15, 1.6, 2.2, 3, 4.1, 5.6, 7.6, 10.5, 14.5, 20, 28, 40]) {
+      const yg = yAtZ(z), x = xAt(xb, yg), h = 50 / z, w = Math.max(0.8, 6 / z);
+      posts.push({ x: f(x - w / 2), y: f(yg - h), w: f(w), h: f(h) });
+      postRefl.push({ x: f(x - w / 2), y: f(yg), w: f(w * 1.3), h: f(h * 0.9) });
+    }
+  });
+  const bank = (xb, side) => {
+    const zs = [1, 1.5, 2.2, 3.4, 5, 8, 14, 40];
+    return zs.map((z) => { const y = yAtZ(z); return `${f(xAt(xb, y))},${f(y)}`; }).concat(zs.slice().reverse().map((z) => { const y = yAtZ(z); return `${f(xAt(xb + side * 60, y))},${f(y - 14 / z)}`; })).join(' ');
+  };
+  const puddles = [], puddles2 = [], glints = [], rings = [], cracks = [], sparks = [], hailRoad = [], roadLeaves = [];
+  for (let i = 0; i < 9; i++) { const z = 1.1 + rnd(i, 1) * 5, y = yAtZ(z), xb = rnd(i, 2) > 0.5 ? 262 : 452; puddles.push({ cx: f(xAt(xb + (rnd(i, 3) - 0.5) * 30, y)), cy: f(y), rx: f(46 / z), ry: f(5 / z) }); }
+  for (let i = 0; i < 14; i++) { const z = 1.05 + rnd(i, 31) * 7, y = yAtZ(z), xb = -100 + rnd(i, 32) * 600; puddles2.push({ cx: f(xAt(xb, y)), cy: f(y), rx: f(70 / z), ry: f(6 / z) }); }
+  for (let i = 0; i < 18; i++) { const z = 1.05 + rnd(i, 4) * 7, y = yAtZ(z); glints.push({ cx: f(xAt(150 + rnd(i, 5) * 400, y)), cy: f(y), rx: f(14 / z + 1), ry: f(0.8 / z + 0.4) }); }
+  for (let i = 0; i < 26; i++) { const z = 1.05 + rnd(i, 6) * 4, y = yAtZ(z); rings.push({ cx: f(xAt(-200 + rnd(i, 7) * 760, y)), cy: f(y), rx: f(9 / z), ry: f(1.6 / z), d: (0.6 + rnd(i, 33) * 0.7).toFixed(2) + 's' }); }
+  for (let i = 0; i < 7; i++) {
+    let x = 120 + rnd(i, 8) * 300, y = 220 + rnd(i, 9) * 70; const pts = [`${f(x)},${f(y)}`];
+    for (let j = 0; j < 4; j++) { x += (rnd(i * 7 + j, 10) - 0.5) * 50; y += (rnd(i * 7 + j, 11) - 0.6) * 18; pts.push(`${f(x)},${f(y)}`); }
+    cracks.push(pts.join(' '));
+  }
+  for (let i = 0; i < 22; i++) { const z = 1.05 + rnd(i, 34) * 6, y = yAtZ(z), x = xAt(-250 + rnd(i, 35) * 820, y), s = Math.max(0.4, 1.4 / Math.sqrt(z)); sparks.push({ t: `translate(${f(x)} ${f(y)}) scale(${s.toFixed(2)})`, d: (1.2 + rnd(i, 36) * 1.8).toFixed(2) + 's' }); }
+  for (let i = 0; i < 70; i++) { const z = 1.02 + rnd(i, 37) * 4, y = yAtZ(z); hailRoad.push({ x: f(xAt(-300 + rnd(i, 38) * 880, y)), y: f(y), r: f(Math.max(0.5, 2.2 / z)) }); }
+  for (let i = 0; i < 16; i++) { const z = 1.1 + rnd(i, 39) * 5, y = yAtZ(z); roadLeaves.push({ x: f(xAt(-200 + rnd(i, 40) * 760, y)), y: f(y), rx: f(5 / z + 0.6), ry: f(2 / z + 0.3), c: i % 3 ? '#8A7A34' : '#A86E2A' }); }
+  let trees = 'M300 118';
+  for (let x = 300; x <= 520; x += 7) trees += ` L${x} ${f(118 - 5 - rnd(x, 17) * 9)} L${x + 3.5} ${f(118 - 2 - rnd(x, 18) * 4)}`;
+  trees += ' L520 120 L300 120 Z';
+  const joints = [];
+  for (const z of [1.3, 1.9, 2.7, 3.8, 5.4, 7.5, 11, 16]) { const y = yAtZ(z); joints.push(`${f(xAt(-340, y))},${f(y)} ${f(xAt(600, y))},${f(y)}`); }
+  const ry0 = yAtZ(2.08), ry1 = yAtZ(2.0);
+  const ridge = `${f(xAt(150, ry1))},${f(ry1)} ${f(xAt(560, ry1))},${f(ry1)} ${f(xAt(560, ry0) + 2)},${f(ry0 - 3)} ${f(xAt(150, ry0))},${f(ry0 - 3)}`;
+  const ridgeShadow = `${f(xAt(150, ry1))},${f(ry1)} ${f(xAt(560, ry1))},${f(ry1)} ${f(xAt(560, ry1 + 4))},${f(ry1 + 4)} ${f(xAt(150, ry1 + 4))},${f(ry1 + 4)}`;
+  const branches = [];
+  { const y = yAtZ(2.3); branches.push({ pts: `${f(xAt(230, y))},${f(y)} ${f(xAt(330, y - 2))},${f(y - 2)} ${f(xAt(420, y + 1))},${f(y + 1)}`, sw: '3' }); branches.push({ pts: `${f(xAt(300, y - 1))},${f(y - 1)} ${f(xAt(330, y - 8))},${f(y - 8)}`, sw: '1.6' }); branches.push({ pts: `${f(xAt(380, y))},${f(y)} ${f(xAt(400, y + 6))},${f(y + 6)}`, sw: '1.4' }); }
+  const tz = 3.6, tyg = yAtZ(tz), tcx = xAt(355, tyg), tw = 270 / tz, th = 300 / tz;
+  const truck = { cx: f(tcx), yg: f(tyg), x: f(tcx - tw / 2), y: f(tyg - th), w: f(tw), h: f(th), sx: f(tw * 0.6), ix: f(tcx - tw / 2 + 3), iy: f(tyg - th + 3), iw: f(tw - 6), ih: f(th * 0.78), iyb: f(tyg - th + 3 + th * 0.78), by: f(tyg - th * 0.12), bh: f(th * 0.08), l1x: f(tcx - tw / 2 + 2), l2x: f(tcx + tw / 2 - 2 - tw * 0.1), lw: f(tw * 0.1), ly: f(tyg - th * 0.19), lh: f(th * 0.05), px: f(tcx - tw * 0.12), py: f(tyg - th * 0.18), pw: f(tw * 0.24), ph: f(th * 0.05), rh: f(th * 0.55) };
+  const spray = [];
+  for (let i = 0; i < 7; i++) { const t = i / 6; spray.push({ cx: f(tcx + (i % 2 ? 1 : -1) * tw * 0.25 * (1 - t * 0.3)), cy: f(tyg - 6 + t * 40), rx: f(tw * (0.35 + t * 0.6)), ry: f(th * (0.14 + t * 0.12)), op: (0.85 - t * 0.45).toFixed(2) }); }
+  const sz = 2.4, syg = yAtZ(sz);
+  const sock = { x: f(xAt(700, syg)), yg: f(syg), top: f(syg - 120 / sz), px: xAt(700, syg), py: syg - 120 / sz };
+  const glare = `${VX - 5},${H + 1.5} ${VX + 5},${H + 1.5} ${VX + 170},${B} ${VX - 170},${B}`;
+  return {
+    road, vergeR, vergeL, dashes, tracks, ruts, posts, postRefl, puddles, puddles2, glints, rings, cracks, sparks, hailRoad, roadLeaves, trees, joints, ridge, ridgeShadow, branches, truck, spray, sock, glare,
+    edgeR: strip(560, 11, B, yTop), edgeL: strip(-300, 11, B, yTop),
+    railR: rail(640), railL: rail(-420), railReflR: railRefl(640), railReflL: railRefl(-420), bankR: bank(610, 1), bankL: bank(-350, -1),
+  };
+}
+const G = build();
+
+const HZ_SHORT = { reif: 'Reifglätte', nass: 'Überfrierende Nässe', glatteis: 'Gefrierender Regen', schnee: 'Schneeglätte', aqua: 'Aquaplaning', nebel: 'Nebel', gischt: 'Gischt', sonne: 'Tiefe Sonne', quer: 'Seitenwind, Böen', baum: 'Bäume, Teile', staub: 'Staub, Sand', gewitter: 'Gewitter', hagel: 'Hagel', blowup: 'Blow-up Beton', frost1: 'Erster Frost', sturz: 'Temperatursturz' };
+const HZ_MAX = { reif: 3, nass: 3, glatteis: 3, schnee: 3, aqua: 3, nebel: 3, gischt: 2, sonne: 2, quer: 3, baum: 2, staub: 1, gewitter: 3, hagel: 3, blowup: 3, frost1: 2, sturz: 3 };
+const TINT = { 1: { bg: '#FBF5E2', border: '#E9D9A8', ink: '#6B5212' }, 2: { bg: '#FBEFE3', border: '#EBC39C', ink: '#7A4520' }, 3: { bg: '#FBE9E4', border: '#E8C9BD', ink: '#8A1C1C' } };
+const S = {
+  trocken: { label: 'trocken (Sensor)', roadText: 'Fahrbahn +10,6 °C', air: 'Luft +6,0 °C', dew: 'Taupunkt +2,3 °C', rh: '77 % rel. Feuchte', src: 'GMA Leininger Berg · 11:45', chip: '#E9E4D6', chipInk: '#2C2A26' },
+  feucht: { label: 'feucht · Film 0,08 mm', roadText: 'Fahrbahn +3,4 °C', air: 'Luft +4,1 °C', dew: 'Taupunkt +3,2 °C', rh: '94 % rel. Feuchte', src: 'GMA Beispiel · 06:15', chip: '#BFD6EE', chipInk: '#1F3F6E' },
+  nass: { label: 'Wasserfilm 0,45 mm', roadText: 'Fahrbahn +4,8 °C', air: 'Luft +5,6 °C', dew: 'Taupunkt +4,3 °C', rh: '96 % rel. Feuchte', src: 'GMA Beispiel · 06:15', chip: '#5E97D1', chipInk: '#FFFFFF' },
+  reif: { label: 'Reif (Sensor)', roadText: 'Fahrbahn −1,6 °C', air: 'Luft +0,6 °C', dew: 'Taupunkt −0,9 °C', rh: '90 % rel. Feuchte', src: 'GMA Beispiel · 06:15', chip: '#E4EEF7', chipInk: '#1F3F6E' },
+  eis: { label: 'Eis (Sensor)', roadText: 'Fahrbahn −2,3 °C', air: 'Luft −0,8 °C', dew: 'Taupunkt −1,6 °C', rh: '95 % rel. Feuchte', src: 'GMA Beispiel · 06:15', chip: '#CFE2F3', chipInk: '#1F3F6E' },
+  schnee: { label: 'Schnee (Sensor)', roadText: 'Fahrbahn −1,2 °C', air: 'Luft −1,9 °C', dew: 'Taupunkt −2,7 °C', rh: '93 % rel. Feuchte', src: 'GMA Beispiel · 06:15', chip: '#FFFFFF', chipInk: '#2C2A26' },
+  unbekannt: { label: 'Zustand unbekannt', roadText: 'Fahrbahn: Sensor verworfen', air: 'Luft +3,9 °C', dew: 'Taupunkt +1,8 °C', rh: '86 % rel. Feuchte', src: 'GMA Beispiel · 06:15', chip: '#EDE6D3', chipInk: '#3A3833' },
+  nichtgemessen: { label: 'Zustand nicht gemessen', roadText: 'Fahrbahn: keine Messung', air: 'Luft +5,8 °C (Prognose)', dew: 'Taupunkt +2,1 °C (Prognose)', rh: '— % rel. Feuchte', src: 'Prognose · buscosun Fusion 14', chip: '#F5F1E8', chipInk: '#7A4520' },
+};
+const KZ = { dark: 0, refl: 0, reflP: 0, pud: 0, frost: 0, ice: 0, snow: 0, mark: 1, hillSnow: 0, vergeWhite: 0, hatch: 0, desat: 0, dash: 0 };
+const K = {
+  trocken: { ...KZ, sky: 'C' },
+  feucht: { ...KZ, sky: 'G', dark: 0.32, refl: 0.38, reflP: 0.25 },
+  nass: { ...KZ, sky: 'G', dark: 0.55, refl: 0.95, reflP: 0.7, pud: 0.9 },
+  reif: { ...KZ, sky: 'K', frost: 1, vergeWhite: 0.6, hillSnow: 0.35 },
+  eis: { ...KZ, sky: 'G', dark: 0.5, refl: 0.9, reflP: 0.75, ice: 1, vergeWhite: 0.3 },
+  schnee: { ...KZ, sky: 'S', snow: 1, mark: 0, hillSnow: 0.85, vergeWhite: 1 },
+  unbekannt: { ...KZ, sky: 'C', hatch: 1 },
+  nichtgemessen: { ...KZ, sky: 'C', desat: 0.38, dash: 1 },
+};
+const FZ = { sunA: 0, shelf: 0, joints: 0, truckRefl: 0, pudX: 0, glare: 0, glareMul: 1, sparkle: 0, splash: 0, hailRoad: 0, branch: 0, sock: 0, truck: 0, spray: 0, cold: 0, heat: 0, heatWave: 0, dust: 0, wind1: 0, wind2: 0, leaves: 0, rain1: 0, rain2: 0, rain3: 0, drizzle: 0, snow1: 0, snow2: 0, snow3: 0, hail1: 0, hail2: 0, fogOn: 0, flash: 0 };
+function hazardFx(hz, lv, kind) {
+  const L = (n) => (lv >= n ? 1 : 0);
+  const fx = { ...FZ, snowDur1: '3.2s', snowDur2: '2.6s', snowDur3: '2.2s', flashDur: '4.6s', fogFill: 'url(#fsFog1)', sprayVals: '0.8;1;0.8' };
+  let sky = null;
+  switch (hz) {
+    case 'aqua': sky = lv >= 3 ? 'D' : 'G'; fx.rain1 = 1; fx.rain2 = L(2); fx.rain3 = L(3); fx.splash = 1; fx.pudX = [0, 0.4, 0.7, 1][lv]; break;
+    case 'glatteis': sky = 'G'; fx.drizzle = 1; fx.rain1 = L(2) * 0.6; fx.rain2 = L(3) * 0.6; fx.sparkle = 1; fx.cold = 0.12; break;
+    case 'gewitter': sky = 'D'; fx.shelf = 1; fx.flash = 1; fx.flashDur = ['4.6s', '6s', '4.2s', '3s'][lv]; fx.rain1 = 1; fx.rain2 = L(2); fx.rain3 = L(3); fx.splash = 1; break;
+    case 'hagel': sky = 'D'; fx.shelf = 0.6; fx.hail1 = 1; fx.hail2 = L(2); fx.rain1 = L(3); fx.hailRoad = [0, 0.4, 0.75, 1][lv]; break;
+    case 'schnee': sky = 'S'; fx.snow1 = 1; fx.snow2 = L(2); fx.snow3 = L(3); fx.wind1 = L(2) * 0.6; fx.wind2 = L(3) * 0.6; if (lv >= 3) { fx.snowDur1 = '2.2s'; fx.snowDur2 = '1.8s'; fx.snowDur3 = '1.5s'; } break;
+    case 'nebel': sky = 'G'; fx.fogOn = 1; fx.fogFill = `url(#fsFog${lv})`; break;
+    case 'gischt': sky = 'G'; fx.truck = 1; fx.spray = [0, 0.55, 0.9, 0.9][lv]; fx.sprayVals = lv >= 2 ? '0.85;1;0.85' : '0.45;0.7;0.45'; fx.truckRefl = kind === 'nass' || kind === 'feucht' || kind === 'eis' ? 0.8 : 0; break;
+    case 'sonne': sky = 'U'; fx.sunA = 1; fx.glare = 1; fx.glareMul = kind === 'nass' || kind === 'eis' ? 1 : kind === 'feucht' ? 0.75 : 0.45 + lv * 0.1; break;
+    case 'quer': sky = lv >= 3 ? 'G' : 'C'; fx.sock = 1; fx.wind1 = 1; fx.wind2 = L(2); break;
+    case 'baum': sky = 'G'; fx.wind1 = 1; fx.wind2 = L(2); fx.leaves = 1; fx.branch = 1; break;
+    case 'staub': sky = 'T'; fx.dust = 1; fx.wind1 = 0.5; break;
+    case 'blowup': sky = 'C'; fx.heat = 0.1 + lv * 0.05; fx.heatWave = 1; fx.joints = 1; break;
+    case 'frost1': sky = 'K'; fx.cold = 0.16; fx.sparkle = 0.8; break;
+    case 'sturz': sky = 'K'; fx.shelf = 1; fx.cold = 0.12 + lv * 0.05; fx.wind1 = L(2); fx.wind2 = L(3); break;
+    case 'reif': sky = 'K'; fx.cold = 0.14; fx.sparkle = 1; break;
+    case 'nass': sky = 'K'; fx.cold = 0.16; fx.sparkle = 1; break;
+    default: break;
+  }
+  return { fx, sky };
+}
+function sockParts(lv) {
+  const a = [55, 55, 25, 6][lv] * Math.PI / 180, d = [-Math.cos(a), Math.sin(a)], n = [d[1], -d[0]], L = 30;
+  const P = [G.sock.px, G.sock.py];
+  const out = [];
+  for (let i = 0; i < 5; i++) {
+    const t0 = i / 5, t1 = (i + 1) / 5, r0 = 5.5 - 3 * t0, r1 = 5.5 - 3 * t1;
+    const c0 = [P[0] + d[0] * L * t0, P[1] + d[1] * L * t0], c1 = [P[0] + d[0] * L * t1, P[1] + d[1] * L * t1];
+    const pts = [[c0[0] + n[0] * r0, c0[1] + n[1] * r0], [c1[0] + n[0] * r1, c1[1] + n[1] * r1], [c1[0] - n[0] * r1, c1[1] - n[1] * r1], [c0[0] - n[0] * r0, c0[1] - n[1] * r0]];
+    out.push({ pts: pts.map((p) => `${f(p[0])},${f(p[1])}`).join(' '), c: i % 2 ? '#F6F2EA' : '#D2452F' });
+  }
+  return out;
+}
+class Component extends DCLogic {
+  renderVals() {
+    const kind = S[this.props.kind] ? this.props.kind : 'trocken';
+    const hz = HZ_SHORT[this.props.hz] ? this.props.hz : 'none';
+    const lv = hz === 'none' ? 0 : Math.max(1, Math.min(HZ_MAX[hz], Number(this.props.lv) || 1));
+    const at = (this.props.at || '').trim();
+    const w = Number(this.props.w) || 520;
+    const s = S[kind], k = K[kind];
+    const { fx, sky: hzSky } = hazardFx(hz, lv, kind);
+    fx.ahead = at ? 0.7 : 1;
+    const skyKey = hzSky || k.sky;
+    const sky = { G: 0, D: 0, C: 0, K: 0, U: 0, T: 0 };
+    if (skyKey !== 'S') sky[skyKey] = 1;
+    const kk = { ...k };
+    if (hz === 'frost1') kk.vergeWhite = Math.max(kk.vergeWhite, 0.45);
+    const tag = hz === 'none' ? '' : `${HZ_SHORT[hz]} · ${at ? 'ab ' + at : 'Stufe ' + lv}${at ? ' · Prognose' : ''}`;
+    const tagW = tag.length * 5.9 + 20;
+    const t = TINT[lv] || TINT[1];
+    const chipW = Math.round(s.label.length * 5.7 + 16);
+    const roadFs = s.roadText.length > 20 ? 15 : 20;
+    const roadW = Math.max(214, Math.round(s.roadText.length * (roadFs === 15 ? 7.6 : 10.4) + 26), chipW + 24);
+    const airW = Math.max(214, Math.round(Math.max(s.air.length * 8.2, (s.dew.length + s.rh.length + 3) * 5.9) + 26));
+    const srcW = Math.round(s.src.length * 5.6 + 16);
+    const hud = {
+      on: this.props.hud === 'aus' ? 0 : 1, airW, srcW, srcX: f(508 - srcW), roadW, roadFs, chipW, chipW1: chipW - 1,
+      tag, tagOn: tag ? 1 : 0, tagW: f(tagW), tagX: f(508 - tagW), tagMid: f(508 - tagW / 2), tagBg: t.bg, tagBorder: t.border, tagInk: t.ink, tagOp: at ? 0.85 : 1,
+    };
+    const aria = `Fahrbahn aus Fahrersicht: ${s.label}, ${s.roadText}${tag ? '; Szene: ' + tag : ''}`;
+    return { g: G, s, k: kk, fx, sky, hud, aria, sock: sockParts(lv || 1), w, h: Math.round((w * 292) / 520) };
+  }
+}
+</script>
+</body>
+</html>

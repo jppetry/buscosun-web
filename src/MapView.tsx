@@ -618,6 +618,8 @@ interface Props {
   onPointHover?: (pos: { lat: number; lon: number } | null) => void;
   /** Profil: MapLibre-Instanz nach außen (Zoom-Knöpfe des Decks); `null` beim Abbau. */
   onMapReady?: (map: MapLibreMap | null) => void;
+  /** Profil: `true`, sobald jeder eingeschaltete Layer einmal gemeldet hat (Daten oder Fehler; spätestens nach 8 s) — der Startlader der Seite wartet darauf. */
+  onDataReady?: (ready: boolean) => void;
   /** Phase RB (`audit/regenbeginn-spanne.md`, an, `?rb=0` aus): kleines Label am Ortsmarker („Regen 14:05–14:20"). Nur im
    *  Profil; ohne Prop (oder `null`) kein Element — der Marker exakt wie vorher. */
   profileMarkerLabel?: string | null;
@@ -708,7 +710,7 @@ export default function MapView({
   location, onBack, onOpenFeature, onSelectLocation, embedded = false, initialActive, initialHour, embedHourRange, embeddedLayer, overview = false,
   routeLayers, onLayersChange, routeHour, onHourChange, initialView, onViewChange, initialModelSource, routeModelSource, onModelSourceChange,
   suspended = false, onOpenDashboard,
-  profile, timeMs, timeBracket, radarPast, profileSnowMode, onPointPick, onPointHover, onMapReady, profileMarkerLabel, profileAffectsCellId,
+  profile, timeMs, timeBracket, radarPast, profileSnowMode, onPointPick, onPointHover, onMapReady, onDataReady, profileMarkerLabel, profileAffectsCellId,
   onProfileRadarPick,
 }: Props) {
   // Phase ZT: last reported HD pick (re-sent when a listener appears later, e.g. the 3D stage opens after the slider moved).
@@ -729,7 +731,6 @@ export default function MapView({
   const mapRef = useRef<MapLibreMap | null>(null);
   // Start cover (buscosun mark + ring) until the map has its first complete frame; only on the full Wetterkarte page.
   const [coverMap, setCoverMap] = useState<MapLibreMap | null>(null);
-  const pageShown = usePageCover(coverMap, true);
   const markerRef = useRef<Marker | null>(null);
 
   // Start-Layer: im Nur-Jetzt-Testmodus AUSSCHLIESSLICH Wind (Jans Vorgabe:
@@ -778,6 +779,15 @@ export default function MapView({
   const [statuses, setStatuses] = useState<Record<LayerKey, { ok?: { model: string; fetchedAt: number; ref?: DataRef }; err?: string }>>({
     wind: {}, gust: {}, nowcast: {}, temp: {}, clouds: {}, sat: {}, lightning: {}, lightningfc: {}, stations: {}, confidence: {}, snowline: {}, flownowcast: {}, poprob: {}, thunder: {}, snow: {}, rotation: {}, cells: {}, hail: {}, warnings: {},
   });
+  // Start cover: the first data layers are part of "complete" — every switched-on layer has to report once (data or error),
+  // at most 8 s (a layer that never reports must not hold the page back).
+  const [coverDataGrace, setCoverDataGrace] = useState(true);
+  useEffect(() => { const t = window.setTimeout(() => setCoverDataGrace(false), 8000); return () => window.clearTimeout(t); }, []);
+  const coverDataReady = !coverDataGrace || [...active].every((k) => !(k in statuses) || statuses[k].ok != null || statuses[k].err != null);
+  const pageShown = usePageCover(coverMap, coverDataReady);
+  const onDataReadyRef = useRef(onDataReady);
+  onDataReadyRef.current = onDataReady;
+  useEffect(() => { onDataReadyRef.current?.(coverDataReady); }, [coverDataReady]);
   const [satProduct, setSatProduct] = useState<SatelliteProduct>('eu_rgb');
   // Schnee-Modus (Feature F4): 'depth' = Schneedecke (h_snow), 'fresh' = Neuschnee (snow_gsp).
   const [snowMode, setSnowMode] = useState<SnowMode>(profileSnowMode ?? 'depth');

@@ -25,12 +25,13 @@ export const NET_PROFILES = Object.freeze({
   fast3g: { offline: false, latency: 560, downloadThroughput: (1.6 * 1024 * 1024) / 8, uploadThroughput: (0.75 * 1024 * 1024) / 8 },
 });
 
-export async function openBrowser(chromePath, { timeoutMs = 60_000, extraArgs = [] } = {}) {
+/** `gpu: true` leaves `--disable-gpu` out (a full Chromium with `--headless=new` and a real GPU, e.g. for task and frame measurements). */
+export async function openBrowser(chromePath, { timeoutMs = 60_000, extraArgs = [], gpu = false } = {}) {
   const profile = mkdtempSync(join(tmpdir(), 'pv-lab-'));
   const child = spawn(chromePath, [
     '--remote-debugging-port=0',
     `--user-data-dir=${profile}`,
-    '--disable-gpu', '--hide-scrollbars', '--no-first-run', '--no-default-browser-check',
+    ...(gpu ? [] : ['--disable-gpu']), '--hide-scrollbars', '--no-first-run', '--no-default-browser-check',
     '--disable-extensions', '--disable-background-networking', '--force-device-scale-factor=1',
     ...extraArgs,
   ], { stdio: ['ignore', 'pipe', 'pipe'] });

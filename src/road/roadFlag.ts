@@ -137,3 +137,52 @@ export function rememberRoadVsFlag(search: string = typeof location !== 'undefin
   if (q !== '0' && q !== '1') return;
   try { localStorage.setItem('roadvs', q); } catch { /* private mode */ }
 }
+
+// --- Phase DV (audit/autobahn-fahrerblick.md): which picture stands under „Was auf der Fahrbahn liegt“ ------------
+
+/** The schematic cross-section (`RoadCrossSection`) or the driver's view (`RoadDriverView`). */
+export type RoadXsView = 'schematic' | 'driver';
+
+/**
+ * `ROAD_XS_VIEW` = Jan's decision which picture the hazard detail shows. `'driver'` since 06.11.2026 (E-DV-1, Jan: „aktiv
+ * und schalte das komplette Feature default aktiv“ — ahead of the real-device check, audit/autobahn-fahrerblick.md §8).
+ * `'schematic'`: the page of before, the driver's view is never loaded. `?xsview=driver|schematic` beats
+ * `localStorage.xsview`, which beats the constant. Back: `'schematic'` and a push, or `?xsview=schematic` per visitor.
+ */
+export const ROAD_XS_VIEW: RoadXsView = 'driver';
+
+const xsViewOf = (v: string | null | undefined): RoadXsView | null => (v === 'driver' || v === 'schematic' ? v : null);
+
+export function roadXsViewFrom(
+  search: string = typeof location !== 'undefined' ? location.search : '',
+  stored?: string | null,
+  def: RoadXsView = ROAD_XS_VIEW,
+): RoadXsView {
+  let q: string | null = null;
+  try { q = new URLSearchParams(search).get('xsview'); } catch { /* broken query = no vote */ }
+  let s = stored;
+  if (s === undefined) {
+    try { s = typeof localStorage !== 'undefined' ? localStorage.getItem('xsview') : null; } catch { s = null; }
+  }
+  return xsViewOf(q) ?? xsViewOf(s) ?? def;
+}
+
+/** Remembers an explicit `?xsview=` — the page rewrites its query, the detail view mounts after that. */
+export function rememberRoadXsView(search: string = typeof location !== 'undefined' ? location.search : ''): void {
+  let q: string | null = null;
+  try { q = new URLSearchParams(search).get('xsview'); } catch { return; }
+  if (!xsViewOf(q)) return;
+  try { localStorage.setItem('xsview', q as string); } catch { /* private mode: the query still works until the first URL sync */ }
+}
+
+/**
+ * Dev tool of the hazard detail (`RoadHazardDetail`): `?xsfx=<hazard>:<level>[:ab]` forces the scene of the picture. The
+ * page rewrites its query before the detail view mounts, so the vote is kept in `localStorage.awxsfx` (the key the detail
+ * reads); `?xsfx=` or `?xsfx=off` forgets it. Called in DEV only — a production build never reads the key.
+ */
+export function rememberRoadXsFx(search: string = typeof location !== 'undefined' ? location.search : ''): void {
+  let q: string | null = null;
+  try { q = new URLSearchParams(search).get('xsfx'); } catch { return; }
+  if (q === null) return;
+  try { if (q === '' || q === 'off') localStorage.removeItem('awxsfx'); else localStorage.setItem('awxsfx', q); } catch { /* private mode */ }
+}
