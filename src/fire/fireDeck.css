@@ -313,7 +313,30 @@
 .fire-center .maplibregl-ctrl-attrib:focus-within { white-space: normal; }
 .fire-center .maplibregl-ctrl-attrib a { text-decoration: underline; text-decoration-color: rgba(168, 178, 192, 0.4); }
 /* Quellenzeile: schmaler Streifen ganz unten, unter den Legenden-Karten (die enden 16 px über dem Rand). */
-.fire-center .maplibregl-ctrl-bottom-right { bottom: 0; right: 0; left: 0; }
+.fire-center .maplibregl-ctrl-bottom-right { bottom: 0; right: 86px; left: 0; }
+/* Info-Kachel „Quellen" (06.11.): Knopf rechts in der Quellenzeile, die Kachel öffnet nach oben. */
+.br-src { position: absolute; right: 6px; bottom: 0; z-index: 8; font-size: 11px; color: #A8B2C0; }
+.br-src-btn {
+  display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 8px; border: 0; cursor: pointer;
+  background: rgba(11, 14, 18, 0.6); color: #C9D1DC; font: inherit; border-radius: 6px 6px 0 0;
+}
+.br-src-btn:hover, .br-src-btn[aria-expanded='true'] { background: rgba(11, 14, 18, 0.85); color: #fff; }
+.br-src-btn:focus-visible { outline: 2px solid #fff; outline-offset: -2px; }
+.br-src-tile {
+  position: absolute; right: 0; bottom: 24px; width: min(400px, calc(100vw - 24px)); max-height: min(70vh, 520px); overflow: auto; box-sizing: border-box;
+  padding: 10px 12px 11px; background: var(--br-glass); backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  border: 1px solid color-mix(in srgb, var(--sand-200, #E0D6BE) 80%, #fff); border-radius: 13px;
+  box-shadow: 0 14px 32px -18px rgba(44, 42, 38, 0.55); color: var(--ink-900, #2C2A26); font-size: 12px; line-height: 1.35;
+}
+.br-src-head { display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
+.br-src-x { border: 0; background: none; font-size: 20px; line-height: 1; cursor: pointer; color: inherit; width: 32px; height: 32px; margin: -6px -8px -6px 0; }
+.br-src-sec { margin: 9px 0 3px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.9px; text-transform: uppercase; color: var(--stone-400, #A89A7A); }
+.br-src-tile ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.br-src-row { display: flex; flex-direction: column; }
+.br-src-name { font-weight: 700; }
+.br-src-what, .br-src-meta { color: var(--stone-600, #5C5447); }
+.br-src-tile a { color: inherit; text-decoration-color: rgba(92, 84, 71, 0.5); }
+.br-src-foot { margin: 9px 0 0; color: var(--stone-600, #5C5447); }
 .fire-center .maplibregl-ctrl-attrib { line-height: 1.3; border-radius: 6px 0 0 0; }
 .fire-center .maplibregl-ctrl-bottom-left { bottom: 128px; left: 16px; }
 /* Zoom (NavigationControl, top-right) — Glass-Kasten unter dem Basemap-Umschalter. */
@@ -895,7 +918,8 @@
   .fire-center .maplibregl-ctrl-bottom-left { bottom: calc(46vh + 8px); }
   /* Quellenzeile mobil: kleiner, über der Sheet-Kante; der Rest klappt beim Tippen auf. */
   .fire-center .maplibregl-ctrl-attrib { max-width: calc(100vw - 24px); font-size: 10px; padding: 1px 5px; }
-  .fire-center .maplibregl-ctrl-bottom-right { right: 12px; }
+  .fire-center .maplibregl-ctrl-bottom-right { right: 84px; }
+  .br-src-btn { height: 26px; }
   .br-m-basemaprow { display: flex; justify-content: center; flex: 1; min-width: 0; }
   .br-map-tl > .br-pill { margin-right: 49px; }
   .br-m-basemaprow .br-basemap button { min-height: 38px; }

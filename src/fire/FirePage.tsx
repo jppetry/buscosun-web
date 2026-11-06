@@ -129,6 +129,7 @@ import { recordTitle, recordName, regionLabel, Stat, type PanelSort } from './Fi
 import { FireMapCard, HistoryMapCard } from './FireMapCard';
 import MapGestureHint, { type HintSpot } from '../map/MapGestureHint';
 import { FireRegionSearch, type RegionHit } from './FireRegionSearch';
+import { FireSourcesTile } from './FireSourcesTile';
 import { ageText } from '../dataAge';
 import { FireLinkNotice, type FireLinkNoticeKind } from './FireLinkNotice';
 import { fireLinkSlug, findLiveRecord, findHistoryEntry, type FireLinkTarget } from './fireLink';
@@ -2749,6 +2750,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                   </button>
                   {/* Mobil: Straßen | Satellit auf Höhe des Logos (Jans Auftrag 2026-10-23), die Quellen-Pille rückt darunter. */}
                   <div className="br-m-basemaprow">{basemapSeg}</div>
+            <FireSourcesTile basemap={basemap} active={mapActive} provider={hotspotProvider} />
                   <ShareButton className="br-m-share" compact />
                 </div>
               )}
