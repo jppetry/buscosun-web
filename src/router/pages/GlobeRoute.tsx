@@ -70,7 +70,7 @@ export default function GlobeRoute() {
       {/* Der Globus rechnet Vorhersagestunden ab dem GFS-Lauf; ein alter Link
           landet beim aktuellen Lauf — Jans „nächstliegender verfügbarer Lauf
           plus dezenter Hinweis". */}
-      <StaleLinkNotice at={parsed.timePast ? parsed.wantedAtMs : null} shows="der aktuelle Lauf" tone="dark" />
+      <StaleLinkNotice at={parsed.timePast ? parsed.wantedAtMs : null} shows="der aktuelle Lauf" />
       <GlobePage
         onBack={nav.goHome}
         initialUrl={initialUrl}

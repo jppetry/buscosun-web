@@ -1,14 +1,17 @@
 /**
- * 3D-Globus · Seite (nullschool-Erlebnis, LIVE GFS).
+ * 3D-Globus · Seite (LIVE GFS) im Command-Deck (Jan 06.11.): helle Hülle wie die
+ * anderen Features (Rail, Topbar, Dock links, mobil Kopf-Kacheln + Fußleiste),
+ * die Kugel selbst bleibt vor dunklem Hintergrund — Kartenstil, Partikel und
+ * Farbskalen sind unverändert.
  *
- * Vollbild-Erdkugel mit geschwindigkeitsgefärbten Wind-Partikeln und
- * umschaltbarem Overlay (Temperatur / Wind / Feuchte / Druck) auf wählbarer Höhe
- * (Boden / 850 / 500 / 250 hPa). Vorlaufstunden-Navigation + Animation. Klick auf
- * die Kugel pinnt einen Ort (Readout aktualisiert sich mit Zeit/Höhe). Der
- * gesamte Zustand steht im Permalink (`#g=`).
+ * Erdkugel mit geschwindigkeitsgefärbten Wind-Partikeln und umschaltbarer Ebene
+ * (Temperatur / Wind / Feuchte / Druck) auf wählbarer Höhe (Boden / 850 / 500 /
+ * 250 hPa). Vorlaufstunden-Navigation + Animation. Klick auf die Kugel pinnt
+ * einen Ort (Readout aktualisiert sich mit Zeit/Höhe). Der gesamte Zustand steht
+ * in der Query (`globeUrl.ts`).
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import GlobeMap, { type PickInfo, type Projection, type RunInfo } from './GlobeMap';
 import { fhourForValidAt, validAtForFhour, type GlobeUrlState } from './globeUrl';
 // SH4: Teilen-Knopf (laedt Adapter und Sheet erst beim Klick).
@@ -17,6 +20,9 @@ import type { Height, OverlayKind } from './gfs';
 import { prefetch } from './gfsClient';
 import AppLoader from '../router/AppLoader';
 import { usePageCover } from '../router/usePageCover';
+import { useAppNav } from '../router/useAppNav';
+import { FeatureRail, type RailFeature } from '../nav/featureRail';
+import { useMediaQuery } from '../mobile/useIsMobile';
 import './globe.css';
 
 const COMPASS = ['N', 'NO', 'O', 'SO', 'S', 'SW', 'W', 'NW'];
@@ -27,11 +33,26 @@ const fmtCoord = (v: number, pos: string, neg: string) => `${Math.abs(v).toFixed
 const FH_STEP = 3, FH_MAX = 120;
 function fhLabel(h: number): string { return h === 0 ? 'jetzt' : h % 24 === 0 ? `+${h / 24} T` : `+${h} h`; }
 const OVERLAYS: Array<{ k: OverlayKind; label: string }> = [
-  { k: 'temp', label: 'Temp' }, { k: 'wind', label: 'Wind' }, { k: 'rh', label: 'Feuchte' }, { k: 'mslp', label: 'Druck' }, { k: 'none', label: 'Keins' },
+  { k: 'temp', label: 'Temperatur' }, { k: 'wind', label: 'Wind' }, { k: 'rh', label: 'Feuchte' }, { k: 'mslp', label: 'Luftdruck' }, { k: 'none', label: 'Ohne Ebene' },
 ];
 const HEIGHTS: Array<{ k: Height; label: string }> = [
   { k: 'sfc', label: 'Boden' }, { k: '850', label: '850' }, { k: '500', label: '500' }, { k: '250', label: '250' },
 ];
+const FH_TICKS = [0, 24, 48, 72, 96, 120];
+
+/** Schalter-Zeile des Docks (An/Aus mit Unterzeile). */
+function SwitchRow({ label, sub, on, onClick, disabled }: { label: string; sub: string; on: boolean; onClick: () => void; disabled?: boolean }) {
+  return (
+    <button type="button" role="switch" aria-checked={on} className={`glb-switchrow${on ? ' is-on' : ''}`} onClick={onClick} disabled={disabled}>
+      <span className="glb-switchrow-tx"><b>{label}</b><span>{sub}</span></span>
+      <span className="glb-switch" aria-hidden="true"><span /></span>
+    </button>
+  );
+}
+const BAR_ICONS: Record<'map' | 'layers', ReactNode> = {
+  map: <g><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18" /></g>,
+  layers: <path d="m12 3 9 4.5-9 4.5-9-4.5L12 3zM3 12l9 4.5 9-4.5M3 16.5 12 21l9-4.5" />,
+};
 
 const WD = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 function fmtValid(ms: number): string {
@@ -157,112 +178,171 @@ export default function GlobePage({ onBack, initialUrl, initialFhour, onUrlState
     }
   }, [fhour, overlay, height, runInfo]);
 
+  // --- Command-Deck shell ------------------------------------------------------------------------------
+  const nav = useAppNav();
+  const isMobile = useMediaQuery('(max-width: 767px)');
+  const [mobTab, setMobTab] = useState<'map' | 'layers'>('map');
+  const liveTone = error ? 'none' : loading ? 'loading' : 'live';
+
+  const dock = (
+    <div className="glb-dock-body">
+      <div className="glb-sec">Ebene</div>
+      <div className="glb-tiles" role="radiogroup" aria-label="Ebene">
+        {OVERLAYS.map((o) => {
+          const lg = o.k !== 'none' ? LEGENDS[o.k] : undefined;
+          return (
+            <button key={o.k} type="button" role="radio" aria-checked={overlay === o.k} className={`glb-tile${overlay === o.k ? ' is-active' : ''}`} onClick={() => setOverlay(o.k)}>
+              <span className="glb-tile-top">{o.label}</span>
+              <span className={`glb-tile-ramp${lg ? '' : ' is-none'}`} style={lg ? { background: gradient(lg.stops) } : undefined} />
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="glb-sec">Höhe</div>
+      <div className="glb-seg" role="radiogroup" aria-label="Höhe">
+        {HEIGHTS.map((hh) => (
+          <button key={hh.k} type="button" role="radio" aria-checked={height === hh.k} className={height === hh.k ? 'is-active' : ''} onClick={() => setHeight(hh.k)} title={hh.k === 'sfc' ? 'Bodennah (10 m Wind / 2 m Temp)' : `${hh.k} hPa`}>{hh.label}</button>
+        ))}
+      </div>
+      <p className="glb-note">{height === 'sfc' ? 'Bodennah: Wind in 10 m, Temperatur in 2 m.' : `Druckfläche ${height} hPa.`}</p>
+
+      <div className="glb-sec">Windpartikel</div>
+      <div className="glb-rows">
+        <SwitchRow label="Partikel" sub="Strömung als bewegte Linien" on={showParticles} onClick={() => setShowParticles((v) => !v)} />
+        <SwitchRow label="HD" sub="dichteres Partikelfeld" on={hd} onClick={() => setHd((v) => !v)} disabled={!showParticles} />
+      </div>
+
+      <div className="glb-sec">Ansicht</div>
+      <div className="glb-seg" role="radiogroup" aria-label="Projektion">
+        {(['globe', 'flat'] as Projection[]).map((p) => (
+          <button key={p} type="button" role="radio" aria-checked={projection === p} className={projection === p ? 'is-active' : ''} onClick={() => setProjection(p)}>{p === 'globe' ? 'Globus' : 'Flach'}</button>
+        ))}
+      </div>
+      <div className="glb-rows glb-gap">
+        <SwitchRow label="Auto-Rotation" sub="die Kugel dreht sich von selbst" on={spinning} onClick={() => setSpinning((v) => !v)} />
+      </div>
+
+      <div className="glb-sec">Daten</div>
+      <p className="glb-note glb-foot">
+        Live {runInfo ? fmtRun(runInfo) : 'NOAA GFS'} (1°, global, Public Domain) · clientseitig dekodiert (Worker) · Umriss Natural Earth.
+      </p>
+    </div>
+  );
+
   return (
-    <div className="gl-page">
+    <div className={`glb-root${isMobile ? ' is-mobile' : ''}`}>
       <AppLoader cover done={pageShown} />
-      <GlobeMap
-        overlay={overlay} height={height} projection={projection} showParticles={showParticles}
-        hd={hd} spinning={spinning} fhour={fhour} pinActive={pin !== null}
-        initialView={viewRef.current ?? undefined}
-        initialPin={init?.pin ? { lat: init.pin.lat, lng: init.pin.lon } : undefined}
-        onHover={setHover} onPin={setPin} onRunInfo={setRunInfo}
-        onLoading={setLoading} onError={setError}
-        onView={(v) => { viewRef.current = v; }}
-      />
-      {loading && <div className="gl-loading"><span className="gl-spinner" /> GFS-Daten werden geladen …</div>}
-      {error && <div className="gl-error">⚠ {error}</div>}
-
-      <header className="gl-top">
-        <button type="button" className="gl-back" onClick={onBack} aria-label="Zurück">‹ Start</button>
-        <span className="gl-brand"><span className="gl-brand-mark" /> buscosun · Erde</span>
-        <button type="button" className={`gl-iconbtn${spinning ? ' is-on' : ''}`} aria-pressed={spinning} title="Auto-Rotation" onClick={() => setSpinning((v) => !v)}>{spinning ? '❚❚' : '▶'}</button>
-        {/* V-SH-12: Knopf UND Sheet dunkel — der Globus ist die einzige dunkle
-            Oberfläche; ein helles Dialogfenster sprang hier ins Auge wie ein
-            Fremdkörper (Jans Entscheidung 2026-09-09). */}
-        <ShareButton className="gl-share" tone="dark" />
-      </header>
-
-      <section className="gl-panel" aria-label="Globus-Steuerung">
-        <div className="gl-panel-title">Globale Wetter-Visualisierung · Live</div>
-
-        <div className="gl-row">
-          <span className="gl-row-key">Overlay</span>
-          <div className="gl-seg">
-            {OVERLAYS.map((o) => (
-              <button key={o.k} type="button" className={`gl-link${overlay === o.k ? ' is-active' : ''}`} onClick={() => setOverlay(o.k)}>{o.label}</button>
-            ))}
-          </div>
-        </div>
-
-        <div className="gl-row">
-          <span className="gl-row-key">Höhe</span>
-          <div className="gl-seg">
-            {HEIGHTS.map((hh) => (
-              <button key={hh.k} type="button" className={`gl-link${height === hh.k ? ' is-active' : ''}`} onClick={() => setHeight(hh.k)} title={hh.k === 'sfc' ? 'Bodennah (10 m Wind / 2 m Temp)' : `${hh.k} hPa`}>{hh.label}</button>
-            ))}
-          </div>
-        </div>
-
-        <div className="gl-row">
-          <span className="gl-row-key">Partikel</span>
-          <div className="gl-seg">
-            <button type="button" className={`gl-link${showParticles ? ' is-active' : ''}`} onClick={() => setShowParticles((v) => !v)}>{showParticles ? 'An' : 'Aus'}</button>
-            <button type="button" className={`gl-link${hd ? ' is-active' : ''}`} onClick={() => setHd((v) => !v)} disabled={!showParticles}>HD</button>
-          </div>
-        </div>
-
-        <div className="gl-row">
-          <span className="gl-row-key">Projektion</span>
-          <div className="gl-seg">
-            {(['globe', 'flat'] as Projection[]).map((p) => (
-              <button key={p} type="button" className={`gl-link${projection === p ? ' is-active' : ''}`} onClick={() => setProjection(p)}>{p === 'globe' ? 'Globus' : 'Flach'}</button>
-            ))}
-          </div>
-        </div>
-
-        <div className="gl-row gl-row-time">
-          <span className="gl-row-key">Vorlauf</span>
-          <button type="button" className={`gl-link gl-play${playing ? ' is-active' : ''}`} onClick={() => setPlaying((v) => !v)} title="Animation abspielen/pausieren">{playing ? '❚❚' : '▶'}</button>
-          <input type="range" className="gl-slider" min={0} max={FH_MAX} step={FH_STEP} value={fhour}
-            onChange={(e) => { setPlaying(false); setFhour(+e.target.value); }} aria-label="Vorlaufstunde" />
-          <span className="gl-fhlabel">{fhLabel(fhour)}</span>
-        </div>
-        {runInfo && <div className="gl-validtime">Gültig: <strong>{fmtValid(runInfo.validMs)}</strong></div>}
-
-        <div className="gl-panel-sep" />
-
-        <div className="gl-readout">
-          {readout ? (
-            <>
-              <div className="gl-readout-head">
-                <span className="gl-readout-loc">{fmtCoord(readout.lat, 'N', 'S')}, {fmtCoord(readout.lng, 'O', 'W')}</span>
-                {pin && <button type="button" className="gl-readout-clear" onClick={() => setPin(null)} aria-label="Pin entfernen">×</button>}
+      {!isMobile && (
+        <FeatureRail active={'globe' as RailFeature} onOpenFeature={(id) => nav.openFeature(id)} onHome={onBack}
+          navClass="glb-rail" btnClass="glb-rail-btn" activeClass="is-active" spacerClass="glb-rail-spacer" />
+      )}
+      <div className="glb-deck">
+        {!isMobile && (
+          <header className="glb-topbar">
+            <a className="glb-brand" href="/" onClick={(e) => { e.preventDefault(); onBack(); }} aria-label="Zur Startseite">
+              <img src="/buscosun-mark.svg" width={22} height={22} alt="" /><span>buscosun</span>
+            </a>
+            <span className="glb-topdiv" aria-hidden="true" />
+            <span className="glb-topbar-sub">3D-Globus · Wetter der ganzen Erde</span>
+            <div className="glb-topbar-right">
+              <span className={`glb-live is-${liveTone}`} role="status">
+                <span className="glb-live-dot" aria-hidden="true"><span /><span /></span>
+                {liveTone === 'live' ? 'Live' : liveTone === 'loading' ? 'Lädt' : 'Keine Daten'}
+              </span>
+              <span className="glb-topbar-stand">{runInfo ? fmtRun(runInfo) : 'NOAA GFS'}</span>
+              <ShareButton className="glb-share" text="Teilen" />
+            </div>
+          </header>
+        )}
+        <div className="glb-body">
+          {!isMobile && <aside className="glb-dock" aria-label="Ebenen und Ansicht">{dock}</aside>}
+          <main className="glb-stage" aria-label="Globus">
+            <GlobeMap
+              overlay={overlay} height={height} projection={projection} showParticles={showParticles}
+              hd={hd} spinning={spinning} fhour={fhour} pinActive={pin !== null}
+              initialView={viewRef.current ?? undefined}
+              initialPin={init?.pin ? { lat: init.pin.lat, lng: init.pin.lon } : undefined}
+              onHover={setHover} onPin={setPin} onRunInfo={setRunInfo}
+              onLoading={setLoading} onError={setError}
+              onView={(v) => { viewRef.current = v; }}
+            />
+            {isMobile && (
+              <div className="glb-m-top">
+                <button type="button" className="glb-m-brand" aria-label="Zur Startseite" onClick={onBack}><img src="/buscosun-mark.svg" width={22} height={22} alt="" /></button>
+                <div style={{ flex: 1 }} />
+                <ShareButton className="glb-m-share" compact />
               </div>
-              <div className="gl-readout-rows">
-                <div className="gl-readout-row"><span className="gl-dot gl-dot-temp" /> {readout.tempC != null ? `${Math.round(readout.tempC)} °C` : '—'}</div>
-                <div className="gl-readout-row"><span className="gl-dot gl-dot-wind" /> {readout.wind ? `${Math.round(readout.wind.speedMs * 3.6)} km/h · ${dirName(readout.wind.dirFromDeg)} (${Math.round(readout.wind.speedMs)} m/s)` : '—'}</div>
+            )}
+            {loading && <div className="glb-loading"><span className="glb-spinner" /> GFS-Daten werden geladen …</div>}
+            {error && <div className="glb-error" role="alert">{error}</div>}
+
+            <div className="glb-ov-tl">
+              <div className="glb-card glb-readout">
+                <div className="glb-eyebrow">Ort</div>
+                {readout ? (
+                  <>
+                    <div className="glb-readout-head">
+                      <span className="glb-readout-loc">{fmtCoord(readout.lat, 'N', 'S')}, {fmtCoord(readout.lng, 'O', 'W')}</span>
+                      {pin && <button type="button" className="glb-readout-clear" onClick={() => setPin(null)} aria-label="Pin entfernen">×</button>}
+                    </div>
+                    <div className="glb-readout-rows">
+                      <div className="glb-readout-row"><span className="glb-dot glb-dot-temp" /> {readout.tempC != null ? `${Math.round(readout.tempC)} °C` : '—'}</div>
+                      <div className="glb-readout-row"><span className="glb-dot glb-dot-wind" /> {readout.wind ? `${Math.round(readout.wind.speedMs * 3.6)} km/h · ${dirName(readout.wind.dirFromDeg)} (${Math.round(readout.wind.speedMs)} m/s)` : '—'}</div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="glb-readout-hint">{isMobile ? 'Auf die Kugel tippen, um einen Ort zu pinnen.' : 'Auf die Kugel klicken, um einen Ort zu pinnen.'}</div>
+                )}
               </div>
-            </>
-          ) : (
-            <div className="gl-readout-hint">Auf die Kugel klicken, um einen Ort zu pinnen.</div>
+              {legend && (
+                <div className="glb-card glb-legend">
+                  <span className="glb-eyebrow">{legend.title}{height !== 'sfc' && overlay !== 'mslp' ? ` · ${height} hPa` : ''}</span>
+                  <div className="glb-legend-bar" style={{ background: gradient(legend.stops) }}>
+                    {legend.ticks.map((t) => (
+                      <span key={t} className="glb-legend-tick" style={{ left: `${tickPos(t, legend.stops)}%` }}>{legend.fmt ? legend.fmt(t) : t}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="glb-time" role="group" aria-label="Vorhersagezeit">
+              <button type="button" className={`glb-play${playing ? ' is-on' : ''}`} aria-pressed={playing} onClick={() => setPlaying((v) => !v)}
+                aria-label={playing ? 'Animation anhalten' : 'Animation abspielen'} title="Animation abspielen/pausieren">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  {playing ? <path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" /> : <path d="M8 5v14l11-7z" />}
+                </svg>
+              </button>
+              <div className="glb-time-main">
+                <div className="glb-time-head">
+                  <span className="glb-time-valid">{runInfo ? <>Gültig <strong>{fmtValid(runInfo.validMs)}</strong></> : 'Zeit wird geladen …'}</span>
+                  <span className="glb-time-lead">{fhLabel(fhour)}</span>
+                </div>
+                <input type="range" className="glb-slider" min={0} max={FH_MAX} step={FH_STEP} value={fhour}
+                  onChange={(e) => { setPlaying(false); setFhour(+e.target.value); }} aria-label="Vorlaufstunde" />
+                <div className="glb-time-ticks" aria-hidden="true">{FH_TICKS.map((h) => <span key={h}>{fhLabel(h)}</span>)}</div>
+              </div>
+            </div>
+          </main>
+          {isMobile && mobTab === 'layers' && (
+            <div className="glb-m-dock" role="dialog" aria-label="Ebenen">
+              <div className="glb-m-dock-head"><strong>Ebenen</strong></div>
+              <div className="glb-dock">{dock}</div>
+            </div>
           )}
         </div>
-
-        {legend && (
-          <div className="gl-legend">
-            <span className="gl-legend-title">{legend.title}{height !== 'sfc' && overlay !== 'mslp' ? ` · ${height} hPa` : ''}</span>
-            <div className="gl-legend-bar" style={{ background: gradient(legend.stops) }}>
-              {legend.ticks.map((t) => (
-                <span key={t} className="gl-legend-tick" style={{ left: `${tickPos(t, legend.stops)}%` }}>{legend.fmt ? legend.fmt(t) : t}</span>
-              ))}
-            </div>
-          </div>
+        {isMobile && (
+          <nav className="glb-bar" aria-label="Globus-Bereiche">
+            {([['map', 'Globus'], ['layers', 'Ebenen']] as const).map(([id, label]) => (
+              <button key={id} type="button" className={`glb-bar-btn${mobTab === id ? ' is-active' : ''}`} aria-current={mobTab === id ? 'page' : undefined} onClick={() => setMobTab(id)}>
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{BAR_ICONS[id]}</svg>
+                <span>{label}</span>
+              </button>
+            ))}
+          </nav>
         )}
-
-        <div className="gl-panel-foot">
-          <span className="gl-attr-mark">ⓘ</span> Live {runInfo ? fmtRun(runInfo) : 'NOAA GFS'} (1°, global, Public Domain) · clientseitig dekodiert (Worker) · Umriss Natural Earth.
-        </div>
-      </section>
+      </div>
     </div>
   );
 }

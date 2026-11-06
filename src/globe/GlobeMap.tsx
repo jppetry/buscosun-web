@@ -90,7 +90,7 @@ export default function GlobeMap(props: Props) {
   const setPin = (map: maplibregl.Map, info: PickInfo | null) => {
     pinMarkerRef.current?.remove(); pinMarkerRef.current = null;
     if (!info) return;
-    const el = document.createElement('div'); el.className = 'gl-pin';
+    const el = document.createElement('div'); el.className = 'glb-pin';
     pinMarkerRef.current = new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat([info.lng, info.lat]).addTo(map);
   };
 
@@ -231,13 +231,13 @@ export default function GlobeMap(props: Props) {
 
   if (noWebgl) {
     return (
-      <div className="gl-map gl-map-fallback">
+      <div className="glb-map glb-map-fallback">
         <p><strong>3D-Globus nicht verfügbar</strong></p>
         <p>Dein Gerät/Browser unterstützt kein WebGL. Der Globus benötigt WebGL.</p>
       </div>
     );
   }
-  return <div className="gl-map-shell"><div ref={containerRef} className="gl-map" /></div>;
+  return <div className="glb-map-shell"><div ref={containerRef} className="glb-map" /></div>;
 }
 
 function supportsWebGL(): boolean {
