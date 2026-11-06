@@ -7,9 +7,18 @@
  * The picture is a scene, not a measurement of the glacier: the cloud share is per scene, not at the glacier.
  */
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
-import { CLOUD_OK_PCT, cloudLabel, copernicusBrowserUrl, fetchSatImagery, SAT_ATTRIBUTION, sat10Enabled, type SatImagery, type SatScene } from '../fire/detail/fireSatImagery';
+import { CLOUD_OK_PCT, cloudLabel, copernicusBrowserUrl, fetchSatImagery, prefetchS2Day, S2_COG_ORIGIN, SAT_ATTRIBUTION, sat10Enabled, type SatImagery, type SatScene } from '../fire/detail/fireSatImagery';
 
 const FireCogViewer = lazy(() => import('../fire/FireCogViewer'));
+
+/** Opens the connection (DNS, TCP, TLS) to a host that is asked a moment later — a fresh hint each time, an idle socket closes after seconds. */
+function preconnect(origin: string): void {
+  if (typeof document === 'undefined') return;
+  document.head.querySelector(`link[rel="preconnect"][href="${origin}"]`)?.remove();
+  const l = document.createElement('link');
+  l.rel = 'preconnect'; l.href = origin; l.crossOrigin = 'anonymous';
+  document.head.appendChild(l);
+}
 
 const fmtDay = (d: string) => `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}`;
 const fmtDayShort = (d: string) => `${d.slice(8, 10)}.${d.slice(5, 7)}.`;
@@ -24,6 +33,8 @@ export default function GlacierSatImagery({ lat, lon, name, nowMs }: { lat: numb
     let alive = true;
     setIm({ kind: 'loading' }); setSelDay(null);
     void fetchSatImagery(lat, lon, null, null, null, nowMs).then((data) => { if (alive) setIm({ kind: 'ok', data }); });
+    // Cold start: the viewer chunk loads while the scene list is searched, not after it.
+    if (sat10Enabled()) void import('../fire/FireCogViewer').catch(() => undefined);
     return () => { alive = false; };
     // nowMs deliberately not a dependency — a tick does not reload (same as the Brandradar).
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -37,6 +48,14 @@ export default function GlacierSatImagery({ lat, lon, name, nowMs }: { lat: numb
     const clear = [...s2].reverse().find((s) => s.cloudPct != null && s.cloudPct <= CLOUD_OK_PCT);
     return clear ?? s2.at(-1) ?? null;
   }, [s2, selDay]);
+
+  // The day is known: its image search and the connection to the image bucket start now, side by side with the viewer.
+  const sceneDay = scene?.dayIso ?? null;
+  useEffect(() => {
+    if (!sceneDay || !sat10Enabled()) return;
+    prefetchS2Day(lat, lon, sceneDay);
+    preconnect(S2_COG_ORIGIN);
+  }, [lat, lon, sceneDay]);
 
   if (im.kind === 'loading') return <p className="gl-fine" role="status">Aufnahmetage für {name} werden gesucht …</p>;
   const notes = (data?.notes ?? []).filter((n) => !isFireNote(n));
