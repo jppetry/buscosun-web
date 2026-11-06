@@ -92,6 +92,45 @@ export function takeWarmManifest(path: string, nowMs: number = Date.now()): Prom
   return nowMs - cur.at < MANIFEST_TTL_MS ? cur.p : null;
 }
 
+// ---------------------------------------------------------------------------
+// Frühstart des Daten-Index (Jan 06.11.2026)
+//
+// Seit BW-12 kommt der Lauf jedes Layers aus dem Index des Daten-Repos, nicht
+// mehr aus dem Manifest — der Manifest-Frühstart oben ist auf dem Index-Weg
+// deshalb ein No-op (V-BW-53), und der Index selbst ging erst nach dem Mount
+// der Karte raus (116 KB, +93 ms warm, +1,36 s nach einem Purge, jedes
+// Layerbild wartet dahinter). Hier startet er, sobald die Route feststeht —
+// parallel zum Download von MapView und MapLibre. `repackSource` nimmt die
+// laufende Antwort EINMAL entgegen (`takeWarmRepackIndex`); ohne sie holt es
+// wie bisher selbst. Die beiden Konstanten wohnen hier (abhängigkeitsfrei,
+// Router-Chunk), `repackSource` reicht sie nur durch — wie den Schalter oben.
+// ---------------------------------------------------------------------------
+
+/** Spiegel von `CDN_BASE` in `scripts/lib/repackManifest.mjs` — `verify:repack` prüft die Gleichheit. */
+export const DATA_CDN_BASE = 'https://cdn.jsdelivr.net/gh/jppetry/buscosun-data';
+/** Spiegel von `INDEX_CDN_URL` dort. Branch-Ref, vom Publisher nach jedem Push gepurgt. */
+export const DATA_INDEX_CDN_URL = `${DATA_CDN_BASE}@main/index.json`;
+
+let warmIndex: Warm | null = null;
+
+/** Startet den Abruf des Daten-Index vor. No-op ohne Index-Weg (`?repackrun=0`: dort greift der Manifest-Frühstart) und im TTL. */
+export function warmRepackIndex(nowMs: number = Date.now()): boolean {
+  if (typeof fetch !== 'function' || !repackRunEnabled()) return false;
+  if (warmIndex && nowMs - warmIndex.at < MANIFEST_TTL_MS) return false;
+  const p = fetch(DATA_INDEX_CDN_URL, { cache: 'no-store' });
+  p.catch(() => { /* der Verbraucher sieht die Ablehnung, nicht der Frühstart */ });
+  warmIndex = { at: nowMs, p };
+  return true;
+}
+
+/** Nimmt den vorgestarteten Index-Abruf EINMAL entgegen; `null` für jede andere URL, ohne Frühstart oder nach dem TTL. */
+export function takeWarmRepackIndex(url: string, nowMs: number = Date.now()): Promise<Response> | null {
+  if (url !== DATA_INDEX_CDN_URL || !warmIndex) return null;
+  const cur = warmIndex;
+  warmIndex = null;
+  return nowMs - cur.at < MANIFEST_TTL_MS ? cur.p : null;
+}
+
 /** Nur für Verifier/Tests. */
 export function _warmManifestCount(): number { return warm.size; }
 export function _resetWarmManifests(): void { warm.clear(); }

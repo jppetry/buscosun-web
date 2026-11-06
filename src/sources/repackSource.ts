@@ -44,7 +44,7 @@
  */
 
 import { GRIB_MANIFEST_URL, readManifestRepack } from './gribManifest';
-import { repackRunEnabled } from './liveManifest';
+import { DATA_CDN_BASE, DATA_INDEX_CDN_URL, repackRunEnabled, takeWarmRepackIndex } from './liveManifest';
 import { lzEnabled } from './loadTuning';
 import { reportManifest, stateFromUpdatedAt } from './manifestHealth';
 import {
@@ -790,10 +790,10 @@ export async function loadGridStep(
 // nicht decken; im Normalfall (vollständiger Abschnitt) 0 CDN-Abrufe.
 // ---------------------------------------------------------------------------
 
-/** Spiegel von `CDN_BASE` in `scripts/lib/repackManifest.mjs` — `verify:repack` prüft die Gleichheit. */
-export const REPACK_CDN_BASE = 'https://cdn.jsdelivr.net/gh/jppetry/buscosun-data';
+/** Spiegel von `CDN_BASE` in `scripts/lib/repackManifest.mjs` — `verify:repack` prüft die Gleichheit. Die Konstante wohnt in `liveManifest.ts` (Frühstart des Index im Router-Chunk). */
+export const REPACK_CDN_BASE = DATA_CDN_BASE;
 /** Spiegel von `INDEX_CDN_URL` dort. Branch-Ref, vom Publisher nach jedem Push gepurgt. */
-export const REPACK_INDEX_CDN_URL = `${REPACK_CDN_BASE}@main/index.json`;
+export const REPACK_INDEX_CDN_URL = DATA_INDEX_CDN_URL;
 /** Sitzungs-Cache des Index: EIN geteiltes Promise je TTL-Fenster — zehn Quellen
  *  fragen denselben Lauf, nicht zehn Abrufe (dasselbe Muster wie `gribManifest.ts`). */
 export const INDEX_TTL_MS = 60_000;
@@ -901,6 +901,17 @@ function startIndexFetch(at: number): { at: number; p: Promise<unknown>; ok: boo
  * liegen, der Manifest-Abschnitt sagt dann, wo. Frist wie der erste Bildabruf.
  */
 async function fetchCdnJson(url: string): Promise<unknown> {
+  // Frühstart (`liveManifest.ts`): der Index läuft womöglich schon, seit die Route feststand. Dieselbe Frist wie der eigene
+  // Abruf; eine hängende Antwort ist wie dort `null`, eine gescheiterte (Netz, Status, JSON) fällt auf den eigenen Abruf.
+  const warm = takeWarmRepackIndex(url);
+  if (warm) {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const res = await Promise.race([warm, new Promise<null>((resolve) => { timer = setTimeout(() => resolve(null), FIRST_TIMEOUT_MS); })]);
+      if (res === null) return null;
+      if (res.ok) return await res.json() as unknown;
+    } catch { /* eigener Abruf unten */ } finally { clearTimeout(timer); }
+  }
   const { signal, done } = withDeadline(FIRST_TIMEOUT_MS);
   try {
     const res = await fetch(url, { signal, cache: 'no-store' });

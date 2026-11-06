@@ -14,7 +14,7 @@
  *
  * Bewusst KEINE schweren Importe: dieses Modul landet im index-Chunk.
  */
-import { warmLiveManifest } from '../sources/liveManifest';
+import { DATA_INDEX_CDN_URL, warmLiveManifest, warmRepackIndex } from '../sources/liveManifest';
 import { warmRvTar } from '../sources/radolanRuns';
 import { warmFireStart } from '../fire/fireWarm';
 import type { RouteId } from './routes';
@@ -80,6 +80,9 @@ export function warmRouteData(routeId: RouteId, pathname: string, search: string
   const plan = warmPlanFor(routeId, pathname, search);
   const started: string[] = [];
   for (const m of plan.manifests) if (warmLiveManifest(m, nowMs)) started.push(m);
+  // Kartenansicht der Wetterkarte und Warnungen: der Index des Daten-Repos (Lauf und Bilder aller Layer) statt des Manifests,
+  // solange der Index-Weg gilt — sonst startete auf diesen Routen gar nichts vor (V-BW-53).
+  if ((routeId === 'wetterkarte' || routeId === 'warnungen') && plan.manifests.length > 0 && warmRepackIndex(nowMs)) started.push(DATA_INDEX_CDN_URL);
   if (plan.rvTar) { const url = warmRvTar(nowMs); if (url) started.push(url); }
   // Brandradar: satellite detections and the season list start while the page chunk still downloads (`src/fire/fireWarm.ts`).
   if (routeId === 'waldbrand') started.push(...warmFireStart(pathname, search, typeof window !== 'undefined' ? window.location.hash : '', nowMs));
