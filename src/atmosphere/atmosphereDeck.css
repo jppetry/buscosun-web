@@ -503,10 +503,9 @@
 .vsd-m-fnbar-cta { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--steel-600); background: var(--sand-50); border: 1px solid var(--border-default); border-radius: 9px; padding: 8px 10px; }
 .vsd-m-map { height: 56vh; min-height: 300px; }
 @media (max-width: 767px) {
-  /* „Über diese Ansicht" (.rsb) säße mobil oben rechts auf dem Funktionen-Knopf — hier unten rechts
-     wie am Desktop; der Scrollbereich hält unten Platz frei, damit nichts dauerhaft darunter liegt. */
-  .rsb[data-route="atmosphaere"] { top: auto; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
-  .vsd-m-scroll { padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+  /* The global chip „Über diese Ansicht" (RouteSeoBlock) is not shown on the phone in the Vertikalschnitt (Jan 06.11.),
+     so the scroll area no longer keeps room for it. */
+  .rsb[data-route="atmosphaere"] { display: none; }
 }
 
 /* Mobile Fußleiste (Jan 06.11.): Karte | Schnitt | Ebenen — Optik wie die Leiste im Autobahnwetter. */
@@ -515,10 +514,6 @@
 .vsd-m-bar-btn.is-active { color: var(--steel-600, #3A6FA8); font-weight: 600; }
 .vsd-m-bar-btn:disabled { opacity: .45; cursor: default; }
 .vsd-m-bar-btn:focus-visible { outline: 2px solid var(--steel-600); outline-offset: -2px; }
-@media (max-width: 767px) {
-  /* „Über diese Ansicht" sitzt über der Fußleiste statt darauf. */
-  :root:has(.vsd-m-bar) .rsb[data-route="atmosphaere"] { bottom: calc(74px + env(safe-area-inset-bottom, 0px)); }
-}
 
 .vsd-m-map > .td-map-shell, .vsd-m-map .td-map { width: 100%; height: 100%; }
 .vsd-m-sheetwrap { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; justify-content: flex-end; }
