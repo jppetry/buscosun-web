@@ -20,7 +20,7 @@ export default function FusionExplainerRoute() {
   if (!enabled) return <NotFoundRoute />;
   return (
     <Suspense fallback={<AppLoader />}>
-      <FusionExplainerPage onBack={nav.goHome} />
+      <FusionExplainerPage onBack={nav.goHome} onOpenFeature={nav.openFeature} />
     </Suspense>
   );
 }

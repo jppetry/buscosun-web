@@ -6,6 +6,7 @@
 import { Fragment, lazy, Suspense } from 'react';
 const DachMapBackground = lazy(() => import('../DachMapBackground'));
 import { FUSION_BASE, FUSION_BASE_PUBLIC_LABEL, FUSION_CURRENT, FUSION_RELEASES, fusionName } from '../pointForecast/fusion/fusionRelease';
+import { FeatureRail, type RailFeature } from '../nav/featureRail';
 import StepPanel, { type StepNo } from './StepPanel';
 import TerrainFigure from './TerrainFigure';
 import OutputFigure from './OutputFigure';
@@ -33,7 +34,7 @@ function Section({ id, children }: { id: string; children: React.ReactNode }) {
   return <section className="fx-section" aria-labelledby={`${id}-h`} id={id}>{children}</section>;
 }
 
-export default function FusionExplainerPage({ onBack }: { onBack: () => void }) {
+export default function FusionExplainerPage({ onBack, onOpenFeature }: { onBack: () => void; onOpenFeature?: (id: RailFeature) => void }) {
   const stand = fusionName(FUSION_CURRENT);
   const stands = [
     { n: FUSION_BASE, date: S.s5.baseDate, label: FUSION_BASE_PUBLIC_LABEL },
@@ -45,6 +46,9 @@ export default function FusionExplainerPage({ onBack }: { onBack: () => void }) 
     <div className="fx-page">
       {/* Jan 06.11.: the same moving DACH map background as the start page. */}
       <Suspense fallback={null}><DachMapBackground /></Suspense>
+      {/* Same tool rail as every other feature; nothing is highlighted (the explainer is not a rail tool). */}
+      <FeatureRail active={'fusion' as RailFeature} onOpenFeature={onOpenFeature} onHome={onBack}
+        navClass="fx-rail" btnClass="fx-rail-btn" activeClass="is-active" spacerClass="fx-rail-spacer" />
       <header className="fx-topbar">
         <a className="fx-brand" href="/" onClick={(e) => { e.preventDefault(); onBack(); }}>
           <img src="/buscosun-mark.svg" width="26" height="26" alt="" aria-hidden="true" />
