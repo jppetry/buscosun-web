@@ -79,7 +79,7 @@ export default function GlacierMap({ features, ramp, selectedId, onSelect, regio
         map.setLayoutProperty('gl-hill', 'visibility', 'visible');
         map.dragRotate.enable(); map.touchZoomRotate.enableRotation(); map.touchPitch.enable();
         // first view: tilted, closer and centred on the glacier belt (a tilted fit of the 2D bounds shows mostly lowland)
-        if (first) map.easeTo({ center: [10.0, 46.5], zoom: map.getZoom() + 0.3, pitch: PITCH_3D, bearing: BEARING_3D, duration: 1200 });
+        if (first) map.easeTo({ center: [10.0, 46.5], zoom: map.getZoom() + 0.3, pitch: PITCH_3D, bearing: BEARING_3D, duration: animate ? 1200 : 0 });
         else map.easeTo({ pitch: PITCH_3D, bearing: BEARING_3D, duration: animate ? 700 : 0 });
       } else {
         map.setTerrain(null);
@@ -189,17 +189,9 @@ export default function GlacierMap({ features, ramp, selectedId, onSelect, regio
       map.on('moveend', refreshOutlines);
       refreshOutlines();
       syncSelected();
-      // 3D start: the flat map with its circles comes first (terrain holds back the whole frame until its DEM tiles are
-      // there); the hillshade fetches the DEM in 2D, and once it is loaded the camera tilts into the terrain view
-      if (viewRef.current === '3d') {
-        try { map.setLayoutProperty('gl-hill', 'visibility', 'visible'); } catch { /* no DEM layer — stays 2D */ }
-        const tilt = () => {
-          if (mapRef.current !== map || !map.getSource('gl-dem') || !map.isSourceLoaded('gl-dem')) return;
-          map.off('sourcedata', tilt);
-          if (viewRef.current === '3d' && !map.getTerrain()) apply3d(true, true, true);
-        };
-        map.on('sourcedata', tilt);
-      }
+      // 3D start: straight into the terrain view, no flat frame first and no camera flight afterwards (the page's start
+      // cover holds until the first complete frame, so waiting for the DEM tiles is not visible as an empty map).
+      if (viewRef.current === '3d') apply3d(true, false, true);
     });
     return () => { ready.current = false; onMap?.(null); map.remove(); if (mapRef.current === map) mapRef.current = null; loaded.current.clear(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
