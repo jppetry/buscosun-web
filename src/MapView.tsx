@@ -326,6 +326,9 @@ const FORECAST_HOURS = 24;
  * Slider bewegt — und dann nur für die aktuell aktiven Grid-Layer.
  */
 const NOWONLY_AHEAD_H = 2;
+/** Obergrenze des Zeit-Sliders der Wetterkarte in Stunden ab jetzt. */
+const MAP_SLIDER_MAX_H = 2;
+
 const START_NOW_ONLY = (() => {
   try {
     if (typeof window !== 'undefined') {
@@ -4737,7 +4740,8 @@ export default function MapView({
     // bei aktivem Niederschlag kurz (jetzt–2/3 h) statt bis 12/24 h.
     if (active.has('clouds')) horizon = Math.max(horizon, cloudsHorizonHours());
     if (active.has('nowcast')) horizon = Math.max(horizon, precipRadarHorizonHours(precipAvailability()));
-    return horizon;
+    // Jan 06.11.: der Slider der Wetterkarte geht in allen Ansichten nur bis +2 h (Profil und Einbettung unberührt).
+    return profile || embedded ? horizon : Math.min(horizon, MAP_SLIDER_MAX_H);
     // liest die Refs → nowcastTick triggert Neuberechnung.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [forecast, active, nowcastTick]);
