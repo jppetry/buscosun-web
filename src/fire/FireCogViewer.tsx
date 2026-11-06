@@ -1158,7 +1158,7 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
           <a href={fallbackUrl} target="_blank" rel="noopener">Im Copernicus Browser öffnen</a>
         </p>
       )}
-      {hasBands && (full || !isMobile) && (
+      {hasBands && (
         <div className="br-cog-mode" role="group" aria-label="Darstellung der 10-m-Ansicht">
           {(['tci', 'swir', 'dnbr'] as const).map((k) => (
             <button
