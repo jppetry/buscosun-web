@@ -12,14 +12,15 @@ import type maplibregl from 'maplibre-gl';
 import { FeatureRail, type RailFeature } from '../nav/featureRail';
 import ShareButton from '../share/ShareButton';
 import { useAppNav } from '../router/useAppNav';
+import AppLoader from '../router/AppLoader';
 import { useMediaQuery } from '../mobile/useIsMobile';
 import {
   glacierBasesFrom, loadCatalog, loadFeed, loadIndex, loadMelt, loadOfficial, loadOutline, loadPoints, loadSatLatest, loadStatus, loadSummary,
   type GlacierIndex, type GlacierPointsDoc, type GlacierSatIndex, type GlacierSatLatest, type GlacierSummary, type LoadedCatalog,
 } from './glacierClient';
-import { GLACIER_COUNTRIES, GLACIER_REGIONS, GLACIER_SAT_MAX_AGE_DAYS, type GlacierOfficialItem } from './glacierContract';
+import { GLACIER_REGIONS, type GlacierOfficialItem } from './glacierContract';
 import {
-  GLACIER_RAMPS, defsFor, fmt0, fmtRefYear, inLand, matchesQuery, metricValue, officialStandLabel, rankGlaciers, satAgeDays, seasonStatus,
+  GLACIER_RAMPS, defsFor, fmt0, fmtRefYear, inLand, matchesQuery, metricValue, rankGlaciers, seasonStatus,
 } from './glacierView';
 import {
   glacierIdOfSegment, glacierSegmentOf, GLACIER_LANDS, type GlacierLand, type GlacierMetric, type GlacierUrlState,
@@ -77,7 +78,6 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   const [stage, setStage] = useState<'map' | 'dossier'>(initial.dossier ? 'dossier' : 'map');
   const [sat, setSat] = useState<ReadonlyMap<string, GlacierSatLatest>>(() => new Map());
   const [meltToday, setMeltToday] = useState<ReadonlyMap<string, [number, number, number]> | null>(null);
-  const [meltRun, setMeltRun] = useState<{ runAt: string } | null>(null);
   const [feed, setFeed] = useState<GlacierFeedEvent[] | null>(null);
   const [favs, setFavs] = useState<string[]>(() => readFavs());
   const lastVisit = useRef<number | null | undefined>(undefined);
@@ -89,6 +89,27 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   // overview map: 3D terrain by default, 2D stays one click away; `?gl3d=0` or a terrain failure keeps it flat
   const [mapView, setMapView] = useState<'2d' | '3d'>(allow3d ? '3d' : '2d');
   const [map3dFailed, setMap3dFailed] = useState(false);
+
+  // Start cover like the fire radar (buscosun mark + ring): over the page until the map has its first complete frame and the
+  // data are in (held 400 ms so a gap between two loads does not end it), at the latest after 20 s. Shown once per visit.
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [pageShown, setPageShown] = useState(false);
+  useEffect(() => {
+    if (!mapInst) return;
+    const on = () => { if (mapInst.isStyleLoaded() && mapInst.areTilesLoaded()) setMapLoaded(true); };
+    mapInst.on('idle', on);
+    return () => { mapInst.off('idle', on); };
+  }, [mapInst]);
+  const coverReady = mapLoaded && load.s !== 'loading';
+  useEffect(() => {
+    if (pageShown || !coverReady) return;
+    const t = window.setTimeout(() => setPageShown(true), 400);
+    return () => window.clearTimeout(t);
+  }, [pageShown, coverReady]);
+  useEffect(() => {
+    const t = window.setTimeout(() => setPageShown(true), 20_000);
+    return () => window.clearTimeout(t);
+  }, []);
 
   // --- Data -----------------------------------------------------------------------------------------------------
   useEffect(() => {
@@ -112,7 +133,6 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
             if (!doc || ac.signal.aborted) return;
             const day = Math.min(doc.glaciers[0]?.idx.length ? doc.glaciers[0].idx.length - 1 : 0, Math.max(0, Math.floor((Date.now() - Date.parse(doc.runAt)) / 86_400_000)));
             setMeltToday(new Map(doc.glaciers.map((r) => [r.id, r.idx[day]])));
-            setMeltRun({ runAt: doc.runAt });
           }, () => { /* the metric stays locked */ });
         }
         // the change feed (GL-5)
@@ -179,8 +199,6 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
 
   const def = defs[metric];
   const season = seasonStatus(nowMs);
-  const officialStand = d ? officialStandLabel(d.official, nowMs) : null;
-  const maxYear = d?.summary ? Math.max(...GLACIER_COUNTRIES.flatMap((c) => d.summary!.countries[c].ba.map((r) => r[0]).concat(d.summary!.countries[c].len.map((r) => r[0])))) : null;
 
   // --- URL state -------------------------------------------------------------------------------------------------
   const stateNow = useCallback((patch: Partial<GlacierUrlState> = {}): GlacierUrlState => ({
@@ -265,22 +283,6 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
       </div>
     </aside>
   );
-  const satNewest = sat.size ? [...sat.values()].reduce((m, s) => (s.date > m ? s.date : m), '') : '';
-  const satAge = satNewest ? satAgeDays(satNewest, nowMs) : null;
-  const satChip = satNewest && satAge != null
-    ? satAge > GLACIER_SAT_MAX_AGE_DAYS
-      ? <span className="gl-chip is-satellite is-idle" title="Sentinel-2: die jüngste klare Szene ist älter als 20 Tage — keine Zahl, kein Farbwert"><i aria-hidden="true" />Sentinel-2 · keine klare Szene seit {satAge} Tagen</span>
-      : <span className="gl-chip is-satellite" title="Sentinel-2 L2A: jüngste klare Szene, Maske ≥ 70 % klar"><i aria-hidden="true" />Sentinel-2 · jüngste Szene {satNewest.slice(8, 10)}.{satNewest.slice(5, 7)}.</span>
-    : <span className="gl-chip is-satellite is-idle" title="Sentinel-2-Szenen: noch keine klare Szene im Datenspeicher"><i aria-hidden="true" />Sentinel-2 · nicht aktiv</span>;
-  const stand = (
-    <div className="gl-stand" aria-label="Stand je Herkunft">
-      {meltRun
-        ? <span className="gl-chip is-model" title="Schmelzindex (buscosun Fusion, Temperaturindex-Modell, ohne Einheit): jüngster Lauf"><i aria-hidden="true" />Modell · Lauf {meltRun.runAt.slice(8, 10)}.{meltRun.runAt.slice(5, 7)}. {meltRun.runAt.slice(11, 13)} UTC</span>
-        : <span className="gl-chip is-model is-idle" title="Schmelzrechnung (buscosun Fusion): kein frischer Lauf (älter als 30 Stunden oder nicht erreichbar)"><i aria-hidden="true" />Modell · nicht aktiv</span>}
-      {satChip}
-      <span className="gl-chip is-measured" title={`Jüngste amtliche Meldung je Messnetz; Längen- und Massenreihen aus dem WGMS (Schweiz: Meldungen des Messnetzes GLAMOS) und vom ÖAV reichen bis ${maxYear ?? '–'}`}><i aria-hidden="true" />Messung · {officialStand ?? `Reihen bis ${maxYear ?? '–'}`}</span>
-    </div>
-  );
   const topbar = (
     <header className="gl-topbar">
       <a className="gl-brand" href="/" onClick={(e) => { e.preventDefault(); nav.goHome(); }} aria-label="Zur Startseite">
@@ -297,7 +299,6 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
       {/* Mobile (Jan 2026-10-25, like the Brandradar's map row): logo left, 2D | 3D in the middle at the same height, share right. */}
       {isMobile && <div className="gl-m-topmid">{viewSeg}</div>}
       <div className="gl-grow" />
-      {!isMobile && stand}
       {!isMobile && <span className="gl-season">{season.label}</span>}
       <ShareButton className="gl-share" text={isMobile ? undefined : 'Teilen'} compact={isMobile} />
     </header>
@@ -346,6 +347,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
     const dossierOn = stage === 'dossier' && !!sel;
     return (
       <div className="gl-root is-mobile">
+        <AppLoader cover done={pageShown} />
         <div className={`gl-main${!dossierOn && !mTab ? ' is-floattop' : ''}`}>
           {topbar}
           <div className="gl-body">
@@ -353,7 +355,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
               <section className={`gl-map${dossierOn ? ' is-offstage' : ''}`} aria-label="Karte" aria-hidden={dossierOn ? true : undefined}>
                 {map}{note}
                 <MapGestureHint map={mapInst} feature="gletscher" subject="glacier" accent="#1E87A8" pickSpots={hintSpots} always enabled={!dossierOn && !mTab} />
-                <div className="gl-m-overlay"><span className="gl-season">{season.label}</span>{satChip}</div>
+                <div className="gl-m-overlay"><span className="gl-season">{season.label}</span></div>
                 {/* Compact legend above the bottom bar while no glacier card covers the map (Jan 2026-10-25). */}
                 {!sel && <div className="gl-m-maplegend">{legend}</div>}
                 <div className="gl-pill-slot">{pill}</div>
@@ -394,10 +396,6 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
                       {GLACIER_LANDS.map((l) => <button key={l} type="button" aria-pressed={land === l} onClick={() => setLand(l)}>{l === 'alle' ? 'Alle' : l.toUpperCase()}</button>)}
                     </div>
                   </div>
-                  <div className="gl-field">
-                    <div className="gl-label">Datenstand</div>
-                    {stand}
-                  </div>
                   <div className="gl-dock-foot">Bezugsjahre der Flächen: CH {fmtRefYear('2013-2018')} · AT 2021–23 · DE 2025</div>
                 </>
               )}
@@ -423,6 +421,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   }
   return (
     <div className="gl-root">
+      <AppLoader cover done={pageShown} />
       {rail}
       <div className="gl-main">
         {topbar}
