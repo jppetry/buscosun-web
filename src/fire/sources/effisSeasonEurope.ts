@@ -21,6 +21,7 @@
 
 import { assertDachAxis } from './wfsAxis';
 import { EUROPE_BOX } from '../fireRegion';
+import { takeWarmFire } from '../fireWarm';
 import {
   LANDCOVER_KEYS, dominantLandcover, parseBurntFeature, type BurntPolygon, type LandcoverKey,
 } from '../fireCorroboration';
@@ -95,10 +96,18 @@ let _list: Promise<EuropeSeason | null> | null = null;
 /** Die Liste, einmal je Sitzung. Fehler ⇒ `null`, still (die Seite sagt dann „nicht geladen"). */
 export function loadEffisSeasonEurope(): Promise<EuropeSeason | null> {
   if (!_list) {
-    _list = fetch(EFFIS_SEASON_EUROPE_URL)
+    // Zuerst die Antwort des Frühstarts (`fireWarm.ts`), sonst ein eigener Abruf; ein Fehlschlag wird einmal wiederholt.
+    const read = (res: Promise<Response>) => res
       .then((r) => (r.ok ? (r.json() as Promise<SeasonFile>) : null))
       .then((f) => (f ? decodeEuropeSeason(f) : null))
       .catch(() => null);
+    const own = read(takeWarmFire(EFFIS_SEASON_EUROPE_URL) ?? fetch(EFFIS_SEASON_EUROPE_URL))
+      .then((list) => list ?? new Promise<EuropeSeason | null>((resolve) => {
+        setTimeout(() => { void read(fetch(EFFIS_SEASON_EUROPE_URL)).then(resolve); }, 1_500);
+      }));
+    _list = own;
+    // Ein endgültiger Fehlschlag wird nicht für die Sitzung behalten: der nächste Aufruf versucht es neu.
+    void own.then((list) => { if (!list && _list === own) _list = null; });
   }
   return _list;
 }

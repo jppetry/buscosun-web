@@ -39,6 +39,7 @@
  */
 
 import { REGION_BOX, boxWsen, inBox, type FireRegion } from '../fireRegion';
+import { takeWarmFire } from '../fireWarm';
 
 /** Eigener Proxy-Pfad. Trägt den Schlüssel serverseitig ein — s. Kopf. */
 const FIRMS_PROXY = '/_firms';
@@ -568,6 +569,49 @@ const CACHE_TTL = 10 * 60_000;
 
 export function resetFirmsCache(): void { _cache.clear(); }
 
+/** Ein Abruf ohne Antwort endet nach dieser Zeit (gesetzt) — sonst wartete `allSettled` unbegrenzt auf eine hängende Verbindung. */
+const FIRMS_TIMEOUT_MS = 15_000;
+/** Pause vor dem EINEN zweiten Versuch nach Netzfehler, Zeitüberschreitung oder 502/504 (gesetzt). */
+const FIRMS_RETRY_MS = 800;
+
+/**
+ * Der CSV-Text eines Abrufs: zuerst die Antwort des Frühstarts (`fireWarm.ts`, läuft schon seit der Routen-Auflösung),
+ * sonst ein eigener Abruf mit Zeitgrenze. Ein Netzfehler, eine Zeitüberschreitung oder 502/504 wird EINMAL wiederholt;
+ * 503 (Proxy nicht konfiguriert) und 4xx sind Antworten, keine Aussetzer — die wiederholt nichts.
+ */
+async function firmsText(url: string, signal: AbortSignal | undefined): Promise<string> {
+  const warm = takeWarmFire(url);
+  if (warm) {
+    try {
+      const res = await warm;
+      if (res.ok) return await res.text();
+    } catch { /* der eigene Abruf unten versucht es neu */ }
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+  }
+  for (let attempt = 0; ; attempt++) {
+    const ac = new AbortController();
+    const onAbort = () => ac.abort();
+    signal?.addEventListener('abort', onAbort, { once: true });
+    const timer = setTimeout(() => ac.abort(), FIRMS_TIMEOUT_MS);
+    let retry = false;
+    try {
+      const res = await fetch(url, { signal: ac.signal });
+      if (res.ok) return await res.text();
+      if (attempt > 0 || (res.status !== 502 && res.status !== 504)) throw new Error(`FIRMS-Proxy: HTTP ${res.status}`);
+      retry = true;
+    } catch (e) {
+      if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+      const net = e instanceof TypeError || (e as Error)?.name === 'AbortError';
+      if (attempt > 0 || !net) throw (e as Error)?.name === 'AbortError' ? new Error('FIRMS-Proxy: keine Antwort (Zeitüberschreitung)') : e;
+      retry = true;
+    } finally {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
+    }
+    if (retry) await new Promise((resolve) => { setTimeout(resolve, FIRMS_RETRY_MS); });
+  }
+}
+
 async function fetchChunk(
   source: FirmsSource,
   chunk: FirmsChunk,
@@ -579,9 +623,8 @@ async function fetchChunk(
   const hit = _cache.get(url);
   if (hit && nowMs - hit.at < CACHE_TTL) return { rows: hit.rows, skipped: hit.skipped };
 
-  const res = await fetch(url, { signal });
-  if (!res.ok) throw new Error(`FIRMS-Proxy: HTTP ${res.status}`);
-  const { rows, skipped, header } = parseFirmsCsv(await res.text(), source);
+  const text = await firmsText(url, signal);
+  const { rows, skipped, header } = parseFirmsCsv(text, source);
   if (header.length && rows.length === 0 && skipped === 0 && !header.includes('latitude')) {
     throw new Error('FIRMS: unerwartetes Format');
   }

@@ -456,6 +456,9 @@ const PRECONNECT_BY_ROUTE = {
   wetterkarte: ['https://tiles.openfreemap.org', 'https://cdn.jsdelivr.net', 'https://s3.amazonaws.com'],
   warnungen: ['https://tiles.openfreemap.org', 'https://cdn.jsdelivr.net', 'https://s3.amazonaws.com'],
   regenradar: ['https://tiles.openfreemap.org', 'https://dataset.api.hub.geosphere.at', 'https://data.geo.admin.ch', 'https://cdn.jsdelivr.net'],
+  // Brandradar (Jan 06.11.): Basiskarte + EFFIS (Brandflächen der Woche). Der Eintrag schaltet auch die Vorladeliste frei —
+  // der FireRoute-Import steht in der `.then(…)`-Form (s. `routePreloadFiles`), bisher lud die Shell deshalb nichts vor.
+  waldbrand: ['https://tiles.openfreemap.org', 'https://maps.effis.emergency.copernicus.eu'],
 };
 const routerSrc = readFileSync(join(ROOT, 'src', 'router', 'router.tsx'), 'utf8');
 const indexJsName = (rawShell.match(/src="\/(assets\/index-[\w-]+\.js)"/) || [])[1];

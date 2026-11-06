@@ -16,6 +16,7 @@
  */
 import { warmLiveManifest } from '../sources/liveManifest';
 import { warmRvTar } from '../sources/radolanRuns';
+import { warmFireStart } from '../fire/fireWarm';
 import type { RouteId } from './routes';
 import { isDashboardSearch } from '../dashboard/viewKey';
 
@@ -80,5 +81,7 @@ export function warmRouteData(routeId: RouteId, pathname: string, search: string
   const started: string[] = [];
   for (const m of plan.manifests) if (warmLiveManifest(m, nowMs)) started.push(m);
   if (plan.rvTar) { const url = warmRvTar(nowMs); if (url) started.push(url); }
+  // Brandradar: satellite detections and the season list start while the page chunk still downloads (`src/fire/fireWarm.ts`).
+  if (routeId === 'waldbrand') started.push(...warmFireStart(pathname, search, typeof window !== 'undefined' ? window.location.hash : '', nowMs));
   return started;
 }
