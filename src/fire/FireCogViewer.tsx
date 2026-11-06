@@ -129,7 +129,8 @@ function putCls(key: string, cls: Uint8Array): void {
   if (_clsTiles.size >= CLS_CACHE_MAX) _clsTiles.delete(_clsTiles.keys().next().value as string);
   _clsTiles.set(key, cls);
 }
-const MAX_IN_FLIGHT = 4;
+/** Six = the browser's connection limit per host (the bucket speaks HTTP/1.1): the interim tiles and the first sharp ones load side by side. */
+const MAX_IN_FLIGHT = 6;
 let _inFlight = 0;
 const _queue: Array<() => void> = [];
 
@@ -146,11 +147,16 @@ function withSlot<T>(job: () => Promise<T>): Promise<T> {
   });
 }
 
+/** Keys of `_tiles` whose bitmap is there (not just asked for) — the status line says while the sharp level still loads. */
+const _ready = new Set<string>();
+
 function putBitmap(key: string, p: Promise<ImageBitmap>): Promise<ImageBitmap> {
   p.catch(() => _tiles.delete(key)); // Ausfall nicht merken — der nächste Blick versucht es neu
+  p.then(() => { if (_tiles.get(key) === p) _ready.add(key); }, () => undefined);
   if (_tiles.size >= TILE_CACHE_MAX) {
     const [oldKey, oldP] = _tiles.entries().next().value as [string, Promise<ImageBitmap>];
     _tiles.delete(oldKey);
+    _ready.delete(oldKey);
     void oldP.then((b) => b.close(), () => undefined);
   }
   _tiles.set(key, p);
@@ -483,7 +489,7 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
   // V-SAT-15: der zuletzt aufgelöste Transportweg der Landbedeckung — der Satz sagt beim
   // Spiegel ehrlich „37 m statt 10 m" (aufgefrischt im Draw, damit ein Latch-Kipp sichtbar wird).
   const [wcSrcVia, setWcSrcVia] = useState<WcVia | null>(null);
-  const [status, setStatus] = useState({ tiles: 0, mb: 0, mPerPx: 0, viewMpp: 0, edge: false });
+  const [status, setStatus] = useState({ tiles: 0, mb: 0, mPerPx: 0, viewMpp: 0, edge: false, sharp: false });
   /** SAT3: Detektions-Rechtecke ein-/ausblenden (Sitzungszustand, default an). */
   const [showDet, setShowDet] = useState(false);
   const showDetRef = useRef(false);
@@ -715,7 +721,8 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     // Über der Datenauflösung keine Glättung — echte Pixel statt weichgezeichneter Behauptung.
     const dataResM = m === 'tci' ? FULL_M_PER_PX : BAND_M_PER_PX;
-    ctx.imageSmoothingEnabled = mpp / dpr >= dataResM;
+    const smooth = mpp / dpr >= dataResM;
+    ctx.imageSmoothingEnabled = smooth;
 
     const fullW = d.ref.shape[1];
     const sameView = () => {
@@ -733,7 +740,7 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
       );
     };
     const budget = { n: 0 };
-    const frame = { deferred: false };
+    const frame = { deferred: false, sharpening: false };
     /** Set once this draw's own microtasks are through: a tile that arrives later is left to the next draw. */
     let late = false;
     /** A failed tile is asked again after a growing pause (4 s … 30 s), not in the next frame. */
@@ -762,13 +769,15 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
         const key = lv.key(t);
         lv.request(t).then(() => { _failed.delete(key); schedule(); }, () => retryLater(key));
       };
-      // Cold view (no level has this area yet): the tiles of the level two below the chosen one are asked FIRST —
-      // one 512² tile of ~0.4 MB instead of 1–4 tiles of ~2 MB, so a picture stands early and the chosen level
-      // sharpens it. A view that some level already covers (zoom, pan inside a loaded tile) asks for nothing extra.
+      // Cold view (no level has this area yet): the tiles of the level ONE below the chosen one are asked FIRST.
+      // Measured 06.11. on a cloud-free scene: a 10 m tile is 1.9 MB and took 9.5 s, the 20 m tile over the same
+      // ground 0.5 MB and 2.1 s — a nearly sharp picture stands early, the chosen level replaces it. Two levels
+      // below costs the same bytes per tile and showed coarse blocks for seconds. A view that some level already
+      // covers (zoom, pan inside a loaded tile) asks for nothing extra.
       if (!chosenOnly) {
         const upTo = sorted.filter((l) => l.ifd.width <= chosenW);
         const inView = (l: Lv) => { const f = l.ifd.width / fullW; return tilesFor(l.ifd, px0 * f, py0 * f, px1 * f, py1 * f); };
-        const pre = upTo.length >= 2 ? upTo[Math.max(0, upTo.length - 3)] : null;
+        const pre = upTo.length >= 2 ? upTo[upTo.length - 2] : null;
         if (pre && !upTo.some((l) => { const ts = inView(l); return ts.length > 0 && ts.every((t) => _tiles.has(l.key(t))); })) {
           for (const t of inView(pre)) {
             if (_tiles.has(pre.key(t)) || failedLately(pre.key(t)) || budget.n >= 12) continue;
@@ -783,6 +792,7 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
         const fac = lv.ifd.width / fullW;
         for (const t of tilesFor(lv.ifd, px0 * fac, py0 * fac, px1 * fac, py1 * fac)) {
           const cached = _tiles.get(lv.key(t));
+          if (!chosenOnly && lv.ifd.width === chosenW && !_ready.has(lv.key(t))) frame.sharpening = true;
           if (!cached) {
             if (lv.ifd.width === chosenW && budget.n < 12) {
               if (started >= maxStarts) { frame.deferred = true; continue; }
@@ -797,6 +807,8 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
             // A tile that arrives after this draw is not painted into it — a late coarse tile would cover the sharp one.
             // The next draw places all levels in order.
             if (late) { schedule(); return; }
+            // A level below the chosen one is an interim picture, stretched over the view: always smoothed, never blocks.
+            ctx.imageSmoothingEnabled = lv.ifd.width < chosenW || smooth;
             place(lv.ifd, t, bmp); drawOverlays();
           }, () => undefined);
         }
@@ -1040,10 +1052,10 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
       // trotzdem neu rendern (§10.3 — sonst stand „5 km" an einer 2-km-Sicht).
       const next = {
         tiles: bytesRef.current.tiles, mb: bytesRef.current.bytes / 1048576,
-        mPerPx: shownMPerPx, viewMpp: mpp, edge: s.edge,
+        mPerPx: shownMPerPx, viewMpp: mpp, edge: s.edge, sharp: frame.sharpening,
       };
       return s.tiles === next.tiles && s.mb === next.mb && s.mPerPx === next.mPerPx
-        && s.viewMpp === next.viewMpp ? s : next;
+        && s.viewMpp === next.viewMpp && s.sharp === next.sharp ? s : next;
     });
     // Queued after the callbacks of the tiles that were ready in this draw — they still paint, later ones redraw.
     queueMicrotask(() => { late = true; });
@@ -1267,6 +1279,7 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
           <span>
             {status.tiles} Kacheln · {status.mb < 0.05 ? '<0,1' : status.mb.toFixed(1).replace('.', ',')} MB geladen
             · ~{Math.round(status.mPerPx)} m/px
+            {status.sharp ? ' · schärfere Ebene lädt …' : ''}
             {estimate != null && status.mPerPx > FULL_M_PER_PX
               ? ` · volle 10 m hier ≈ ${Math.max(1, Math.round(estimate / 1048576))} MB`
               : ''}
