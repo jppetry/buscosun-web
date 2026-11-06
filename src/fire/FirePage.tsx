@@ -23,6 +23,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { FeatureRail, type RailFeature } from '../nav/featureRail';
 import FireMap, { type FireBasemap } from './FireMap';
+import AppLoader from '../router/AppLoader';
 import {
   FIRE_ALWAYS_ON, withFireAlwaysOn,
   FIRE_DECK_GROUPS, FIRE_DEFAULT_LAYERS, FIRE_MVP_LAYERS,
@@ -148,6 +149,10 @@ type MobileTab ='map' | 'layers' | 'fires' | 'time' | 'settings';
 
 /** Ladezustand je Layer — „Fehler" schaltet den Layer AB und verlinkt die
  *  amtliche Quelle, statt eine leere Fläche zu zeigen (Gate-Punkt WB-T2-6). */
+/** Start cover: how long "map loaded, nothing loading" must hold before it leaves, and its hard limit (`set`). */
+const PAGE_COVER_SETTLE_MS = 400;
+const PAGE_COVER_MAX_MS = 20_000;
+
 type LoadState =
   | { kind: 'idle' }
   | { kind: 'loading' }
@@ -413,6 +418,29 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   const [load, setLoad] = useState<Partial<Record<FireLayerId, LoadState>>>({});
   const setLayerLoad = useCallback((id: FireLayerId, s: LoadState) => {
     setLoad((prev) => ({ ...prev, [id]: s }));
+  }, []);
+
+  // Start cover (buscosun mark + ring, `AppLoader cover`): stays over the whole page until the map has its first
+  // complete frame AND no layer is loading any more (held for PAGE_COVER_SETTLE_MS, so a gap between two loads does not
+  // end it), at the latest after PAGE_COVER_MAX_MS. Shown once per page visit.
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [pageShown, setPageShown] = useState(false);
+  useEffect(() => {
+    if (!fireMapInst) return;
+    if (fireMapInst.loaded()) { setMapLoaded(true); return; }
+    const on = () => setMapLoaded(true);
+    fireMapInst.once('load', on);
+    return () => { fireMapInst.off('load', on); };
+  }, [fireMapInst]);
+  const layersBusy = Object.keys(load).length === 0 || Object.values(load).some((s) => s?.kind === 'loading');
+  useEffect(() => {
+    if (pageShown || !mapLoaded || layersBusy) return;
+    const t = window.setTimeout(() => setPageShown(true), PAGE_COVER_SETTLE_MS);
+    return () => window.clearTimeout(t);
+  }, [pageShown, mapLoaded, layersBusy]);
+  useEffect(() => {
+    const t = window.setTimeout(() => setPageShown(true), PAGE_COVER_MAX_MS);
+    return () => window.clearTimeout(t);
   }, []);
 
   const activeList = useMemo(() => [...active], [active]);
@@ -2627,6 +2655,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   return (
     <ThemeProvider theme={buscosunTheme}>
     <div className={`fire-root${isMobile ? ' is-mobile' : ''}${firesMode ? ' is-fires' : ''}`} data-tab={mobileTab}>
+      <AppLoader cover done={pageShown} />
       {linkNotice && (
         <FireLinkNotice kind={linkNotice} target={initialFire ?? null} onClose={() => setLinkNotice(null)} />
       )}
