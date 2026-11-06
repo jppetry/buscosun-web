@@ -650,7 +650,6 @@ function MobileDeck(ctx: DeckCtx) {
     hoehenwind: { eyebrow: '3D-Wetter · Schnitt', title: location?.name ?? 'Schnittlinie' },
   };
   const t = titles[deckLens];
-  const m = VIEW_META[deckLens];
   return (
     <div className="vsd-m-root">
       {/* Mobile head like the other features (Jan 06.11.): buscosun tile left (home), title, share tile right. */}
@@ -661,11 +660,7 @@ function MobileDeck(ctx: DeckCtx) {
         <div className="vsd-m-htext"><div className="vsd-m-eyebrow">{t.eyebrow}</div><div className="vsd-m-title">{t.title}</div></div>
         <ShareButton className="vsd-m-share" compact />
       </div>
-      <button type="button" className="vsd-m-fnbar" onClick={() => setSheetOpen(true)} aria-haspopup="dialog" aria-expanded={sheetOpen}>
-        <span className="vsd-m-fnbar-ic" aria-hidden="true">{m.icon()}</span>
-        <span className="vsd-m-fnbar-tx"><b>{m.label}</b><span>{m.sub}</span></span>
-        <span className="vsd-m-fnbar-cta"><IconSliders />Funktionen</span>
-      </button>
+      {/* No function bar above the content (Jan 06.11.): the sheet opens from "Ebenen" in the bottom bar. */}
       <div className="vsd-m-scroll vsd-scroll">
         {mapOpen ? <CutStageMobile {...ctx} /> : (
           <>
@@ -845,5 +840,4 @@ function IconTrash() { return <svg {...SI}><path d="M4 7 H20" /><path d="M9 7 V4
 function IconChevron() { return <svg {...SI} width={14} height={14}><path d="M9 6 L15 12 L9 18" /></svg>; }
 function IconTick() { return <svg {...SI} width={12} height={12} strokeWidth={2.6}><path d="M5 13 L10 18 L19 6" /></svg>; }
 function IconMapSmall() { return <svg {...SI} width={14} height={14}><path d="M3 6 L9 4 L15 6 L21 4 V18 L15 20 L9 18 L3 20 Z" /><path d="M9 4 V18 M15 6 V20" /></svg>; }
-function IconSliders() { return <svg {...SI} width={15} height={15}><path d="M4 7 H14 M18 7 H20 M4 17 H6 M10 17 H20" /><circle cx="16" cy="7" r="2" /><circle cx="8" cy="17" r="2" /></svg>; }
 function IconClose() { return <svg {...SI} width={18} height={18}><path d="M6 6 L18 18 M18 6 L6 18" /></svg>; }
