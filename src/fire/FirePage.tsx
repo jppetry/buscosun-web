@@ -427,10 +427,10 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   const [pageShown, setPageShown] = useState(false);
   useEffect(() => {
     if (!fireMapInst) return;
-    if (fireMapInst.loaded()) { setMapLoaded(true); return; }
-    const on = () => setMapLoaded(true);
-    fireMapInst.once('load', on);
-    return () => { fireMapInst.off('load', on); };
+    // `idle` = style, tiles and sources are loaded AND the frame is drawn (`load`/`loaded()` come earlier, with half-empty tiles).
+    const on = () => { if (fireMapInst.isStyleLoaded() && fireMapInst.areTilesLoaded()) setMapLoaded(true); };
+    fireMapInst.on('idle', on);
+    return () => { fireMapInst.off('idle', on); };
   }, [fireMapInst]);
   const layersBusy = Object.keys(load).length === 0 || Object.values(load).some((s) => s?.kind === 'loading');
   useEffect(() => {
