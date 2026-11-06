@@ -81,18 +81,34 @@ function emit(e: Entry, patch: Partial<ForecastState>) {
   for (const l of e.listeners) l(e.state);
 }
 
-function load(p: PlaceIn, e: Entry) {
+/** Ein Fehlstart ohne jede Ausgabe wird EINMAL von selbst wiederholt (gesetzt) — derselbe Weg, kein Rückfall (E-DB-17). */
+const AUTO_RETRY_MS = 3_000;
+
+function load(p: PlaceIn, e: Entry, attempt = 0) {
   const t0 = performance.now();
   try { performance.mark('dbd:fusion:start'); } catch { /* ohne Performance-API */ }
   let exceed: ((d: Dist, x: number) => number) | null = null;
   let sun: SunFn | null = null;
-  const onFc = (fc: PointForecast) => {
+  /** Endgültiger Fehlschlag ohne Ausgabe: beim ersten Mal still neu versuchen (schwache Leitung), danach benennen. */
+  const failed = (why: string): void => {
+    if (attempt === 0 && !e.state.fusion && !e.abort.signal.aborted) {
+      emit(e, { status: 'loading', error: null });
+      window.setTimeout(() => {
+        if (ENTRIES.get(placeKey(p)) !== e || e.abort.signal.aborted) return;
+        e.inflight = true;
+        load(p, e, 1);
+      }, AUTO_RETRY_MS);
+      return;
+    }
+    emit(e, { status: e.state.fusion ? 'ok' : 'error', error: e.state.fusion ? null : why });
+  };
+  const onFc = (fc: PointForecast, final = false) => {
     if (e.abort.signal.aborted || !exceed || !sun) return;
     const f = toFusionIn(fc, exceed, sun, p);
     if (!f) {
       const c = fc.cube as unknown as CubePathSummary | undefined;
       const why = [...(c?.errors ?? []), ...(c?.skips ?? [])].slice(0, 3).join(' · ') || 'Cube ohne Schritte';
-      emit(e, { status: e.state.fusion ? 'ok' : 'error', error: e.state.fusion ? null : why });
+      if (final) failed(why); else emit(e, { status: e.state.fusion ? 'ok' : 'error', error: e.state.fusion ? null : why });
       return;
     }
     const kind = f.emission ?? 'final';
@@ -101,15 +117,15 @@ function load(p: PlaceIn, e: Entry) {
   import('../../pointForecast/cubeSource')
     .then(({ getPointForecastFromCube, defaultCubeIo, exceedance, solarPosition }) => { exceed = exceedance; sun = solarPosition; return getPointForecastFromCube({
       lat: p.lat, lng: p.lon, country: p.country, hours: DASHBOARD_HOURS, signal: e.abort.signal,
-      includeRadarNowcast: true, pointSource: 'cube', onUpdate: onFc,
+      includeRadarNowcast: true, pointSource: 'cube', onUpdate: (fc: PointForecast) => onFc(fc),
     }, defaultCubeIo()); })
-    .then((fc) => { onFc(fc); e.loadedAt = Date.now(); e.inflight = false; })
+    .then((fc) => { e.loadedAt = Date.now(); e.inflight = false; onFc(fc, true); })
     .catch((err: unknown) => {
       e.inflight = false;
       if ((err as { name?: string })?.name === 'AbortError') return;
       // Kein Rückfall (E-DB-17): der Fehler wird benannt; eine schon gezeigte Ausgabe bleibt stehen.
       const why = err instanceof Error ? err.message : String(err);
-      emit(e, { status: e.state.fusion ? 'ok' : 'error', error: why });
+      if (e.state.fusion) emit(e, { status: 'ok', error: why }); else failed(why);
     });
 }
 

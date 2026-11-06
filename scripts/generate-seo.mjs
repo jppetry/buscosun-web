@@ -524,7 +524,11 @@ export function wetterkarteViewPreloads() {
   const route = new Set(routePreloadFiles('wetterkarte'));
   const pick = (chunks) => [...new Set(chunks.flatMap((c) => dynamicImportDeps(c)))]
     .filter((f) => !route.has(f) && !rawShell.includes(`/${f}"`) && (f.endsWith('.js') || f.endsWith('.css')));
-  return { map: pick(['MapView']), dashboard: pick(['DashboardView', 'forecastStore', 'cubeSource']) };
+  // Dashboard (Jan 06.11.): das Dekodier-Skript des Cube-Lesers ist ein Worker (`new Worker(new URL(…))`) und steht in keiner
+  // Vorladeliste von Vite — es ging erst raus, wenn der erste Chunk zu dekodieren war (eine Runde auf dem Weg zur ersten
+  // Ausgabe). Als Hinweis liegt es im HTTP-Cache (`/assets/*` ist immutable), wenn der Worker startet.
+  const workers = assetJs.filter((f) => /^decodeWorker-[\w-]+\.js$/.test(f)).map((f) => `assets/${f}`);
+  return { map: pick(['MapView']), dashboard: [...pick(['DashboardView', 'forecastStore', 'cubeSource']), ...workers.filter((f) => !route.has(f))] };
 }
 /** Inline script (ES5, no dependencies): same rule as `isDashboardSearch` in `src/dashboard/viewKey.ts`. */
 export function viewPreloadScript({ map, dashboard }) {
