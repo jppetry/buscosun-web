@@ -20,7 +20,7 @@
  * — und der Sichtbarkeits-Effekt wird nach dem Stil-Load erneut angewandt.
  */
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import { patchLibertyRefLength } from '../map/libertyStyle';
 import { WEATHER_BASEMAP_STYLE, firstBoundaryLayerId, germanBasemapLabels } from '../map/weatherBasemap';
@@ -100,6 +100,8 @@ const EUROPE_VIEW_BOX = {
  */
 const EUROPE_START_FOCUS = { west: -8, south: 37, east: 27, north: 61 };
 const EUROPE_FIT_PAD = 8;
+/** The loading cover leaves at the map's first `load`, at the latest after this long (stalled tiles must not hide the map for good). */
+const MAP_COVER_MAX_MS = 12_000;
 
 /** Normierte Mercator-Höhe (0 = Nordpol-Kante, 1 = Südkante der Weltkachel). */
 const mercatorY = (lat: number) => (1 - Math.asinh(Math.tan((lat * Math.PI) / 180)) / Math.PI) / 2;
@@ -430,6 +432,8 @@ export default function FireMap({
 }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
+  /** False until the map's first `load`: the cover (buscosun mark + ring) hides the tiles building up. */
+  const [mapShown, setMapShown] = useState(false);
 
   /**
    * Der jeweils AKTUELLE Anzeigezustand als Ref.
@@ -752,7 +756,11 @@ export default function FireMap({
     // Beide Ereignisse: LOAD einmal beim Start, STYLEDATA nach jedem
     // Basiskarten-Wechsel — MapLibre verwirft dabei alle eigenen Layer. IDLE
     // fängt den Rest ab. applyState ist idempotent, mehrfaches Auslösen ist folgenlos.
+    // Loading cover (logo + ring) until the first complete frame; the cap keeps it from staying on a stalled connection.
+    const coverCap = window.setTimeout(() => setMapShown(true), MAP_COVER_MAX_MS);
     map.on('load', () => {
+      window.clearTimeout(coverCap);
+      setMapShown(true);
       applyState(map);
       // Geräteklasse EINMAL bestimmen und melden. Sie steuert die
       // Abspielgeschwindigkeit — dieselbe Klassifikation wie beim
@@ -1014,6 +1022,7 @@ export default function FireMap({
       onMapRef?.(null);
       popupRef.current?.remove();
       popupRef.current = null;
+      window.clearTimeout(coverCap);
       map.remove();
       mapRef.current = null;
       rasterDayRef.current = null;
@@ -1149,7 +1158,16 @@ export default function FireMap({
     m.setFilter('fire-footprints-hover-line', ['==', ['get', 'id'], hoverFootprintId ?? '']);
   }, [hoverFootprintId]);
 
-  return <div className="fire-map" ref={hostRef} aria-label="Waldbrandkarte DACH" />;
+  return (
+    <>
+      <div className="fire-map" ref={hostRef} aria-label="Waldbrandkarte DACH" />
+      <div className={`fire-map-cover${mapShown ? ' is-done' : ''}`} role="status" aria-hidden={mapShown}>
+        <span className="fire-map-cover-ring" aria-hidden="true" />
+        <span className="fire-map-cover-mark" aria-hidden="true" />
+        <span className="fire-map-cover-sr">Karte lädt</span>
+      </div>
+    </>
+  );
 }
 
 /** Satellitenkürzel der Quelle → lesbarer Name. Unbekanntes bleibt stehen,

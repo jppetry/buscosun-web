@@ -299,6 +299,15 @@
 /* --- Karte ---------------------------------------------------------------- */
 .fire-center { flex: 1 1 auto; position: relative; min-width: 0; overflow: hidden; background: var(--br-map-bg); }
 .fire-map { position: absolute; inset: 0; }
+/* Ladeabdeckung: buscosun-Marke mit Ladekreis, bis die Karte ihr erstes vollständiges Bild hat (unter den Karten-Pillen, z-index 5). */
+.fire-map-cover { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; background: var(--sand-100, #EDE6D3); transition: opacity .3s ease, visibility 0s linear .3s; }
+.fire-map-cover.is-done { opacity: 0; visibility: hidden; pointer-events: none; }
+.fire-map-cover > * { grid-area: 1 / 1; }
+.fire-map-cover-ring { width: 104px; height: 104px; border-radius: 50%; border: 3px solid var(--sand-200, #E0D6BE); border-top-color: var(--terracotta-500, #C97B47); animation: fire-map-cover-spin .9s linear infinite; }
+.fire-map-cover.is-done .fire-map-cover-ring { animation: none; }
+.fire-map-cover-mark { width: 56px; height: 56px; background-color: var(--terracotta-500, #C97B47); -webkit-mask: url(/buscosun-mark.svg) center / contain no-repeat; mask: url(/buscosun-mark.svg) center / contain no-repeat; }
+.fire-map-cover-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@keyframes fire-map-cover-spin { to { transform: rotate(360deg); } }
 .fire-center .maplibregl-map { font-family: inherit; }
 .fire-center .maplibregl-ctrl-attrib,
 .fire-center details.maplibregl-ctrl-attrib.maplibregl-compact,
