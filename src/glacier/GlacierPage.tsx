@@ -16,7 +16,7 @@ import AppLoader from '../router/AppLoader';
 import { usePageCover } from '../router/usePageCover';
 import { useMediaQuery } from '../mobile/useIsMobile';
 import {
-  glacierBasesFrom, loadCatalog, loadFeed, loadIndex, loadMelt, loadOfficial, loadOutline, loadPoints, loadSatLatest, loadStatus, loadSummary,
+  glacierBasesFrom, loadCatalog, loadFeed, loadIndex, loadMelt, loadOfficial, loadOutline, loadPoints, loadSatLatest, loadStatus, loadSummary, takeGlacierStart,
   type GlacierIndex, type GlacierPointsDoc, type GlacierSatIndex, type GlacierSatLatest, type GlacierSummary, type LoadedCatalog,
 } from './glacierClient';
 import { GLACIER_REGIONS, type GlacierOfficialItem } from './glacierContract';
@@ -99,13 +99,22 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
     const ac = new AbortController();
     const run = async () => {
       try {
-        const [status, index] = await Promise.all([loadStatus(ac.signal, bases), loadIndex(ac.signal, bases)]);
+        // First run: pointer and kill switch may already be on their way (early start in the route wrapper, `warmGlacierStart`).
+        const warm = takeGlacierStart(bases);
+        const statusP = warm?.status ?? loadStatus(ac.signal, bases);
+        const index = (await (warm?.index ?? loadIndex(ac.signal, bases))) ?? (warm ? await loadIndex(ac.signal, bases) : null);
+        if (ac.signal.aborted) return;
+        // The documents start as soon as the pointer is in — they do not wait for the kill switch (up to 4 s on a slow raw host).
+        const docsP = index ? Promise.all([
+          loadCatalog(index.static.build, ac.signal, bases), loadPoints(index.static.build, ac.signal, bases), loadSummary(index.static.build, ac.signal, bases), loadOfficial(index.static.build, ac.signal, bases),
+        ]) : null;
+        const status = await statusP;
+        if (ac.signal.aborted) return;
         if (status?.killed) { setLoad({ s: 'killed', why: status.killReason ?? 'Die Gletscher-Daten sind abgeschaltet.' }); return; }
-        if (!index) { setLoad({ s: 'error', why: 'Der Datenspeicher antwortet nicht (index.json).' }); return; }
+        if (!index || !docsP) { setLoad({ s: 'error', why: 'Der Datenspeicher antwortet nicht (index.json).' }); return; }
         const build = index.static.build;
-        const [cat, points, summary, official] = await Promise.all([
-          loadCatalog(build, ac.signal, bases), loadPoints(build, ac.signal, bases), loadSummary(build, ac.signal, bases), loadOfficial(build, ac.signal, bases),
-        ]);
+        const [cat, points, summary, official] = await docsP;
+        if (ac.signal.aborted) return;
         if (!cat || !points) { setLoad({ s: 'error', why: 'Katalog oder Punktliste nicht ladbar.' }); return; }
         setLoad({ s: 'ready', d: { build, cat, points, summary, official: official ?? [], builtAt: index.builtAt, satIndex: index.sat ?? null, melt: index.melt ?? null, feed: index.feed ?? null } });
         // the satellite line is optional: a failure leaves "Ausaperung" locked and every other number untouched

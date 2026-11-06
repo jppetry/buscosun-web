@@ -42,7 +42,25 @@ export function glacierBasesFrom(search: string = typeof location !== 'undefined
 /** "Does not exist" (404, or 403 on both ways) — distinct from a hard failure. */
 export class GlacierNotThere extends Error {}
 export const GLACIER_RAW_HEDGE_MS = 2_500;
+/** No response headers on either way after this long ⇒ the read fails (and is retried) instead of hanging on a stalled connection (`set`). */
+export const GLACIER_STALL_MS = 20_000;
+/** Waits before the 2nd and 3rd attempt of a failed read (`set`; weak connections). */
+export const GLACIER_RETRY_MS: readonly number[] = [1_500, 4_000];
 const abortError = (signal: AbortSignal): unknown => signal.reason ?? new DOMException('Aborted', 'AbortError');
+
+/** Repeats a failed read (network, 5xx, stall) after `GLACIER_RETRY_MS`; "not there" and an abort are answers, not failures. */
+async function retrying<T>(read: () => Promise<T>, signal?: AbortSignal): Promise<T> {
+  for (let i = 0; ; i++) {
+    try { return await read(); } catch (e) {
+      if ((e as Error)?.name === 'AbortError' || e instanceof GlacierNotThere || i >= GLACIER_RETRY_MS.length) throw e;
+      await new Promise<void>((resolve, reject) => {
+        const t = setTimeout(() => { signal?.removeEventListener('abort', stop); resolve(); }, GLACIER_RETRY_MS[i]);
+        const stop = () => { clearTimeout(t); reject(abortError(signal!)); };
+        if (signal?.aborted) stop(); else signal?.addEventListener('abort', stop, { once: true });
+      });
+    }
+  }
+}
 
 /**
  * One file of `v1/`: the first source, after 2.5 s (or on 403/404/5xx/network) the second; a 404 on the first is checked once on
@@ -56,11 +74,18 @@ export function fetchGlacier(path: string, kind: 'json' | 'bytes', signal?: Abor
     let settled = false, bStarted = false;
     let errA: unknown = null, errB: unknown = null;
     let timer: ReturnType<typeof setTimeout> | null = null;
+    let headers = false;
+    const stall = setTimeout(() => {
+      if (headers) return;
+      finish(() => reject(new Error(`timeout ${a}`)));
+      acA.abort(); acB.abort();
+    }, GLACIER_STALL_MS);
     const onAbort = () => { acA.abort(); acB.abort(); finish(() => reject(abortError(signal!))); };
     function finish(fn: () => void) {
       if (settled) return;
       settled = true;
       if (timer) clearTimeout(timer);
+      clearTimeout(stall);
       signal?.removeEventListener('abort', onAbort);
       fn();
     }
@@ -71,6 +96,7 @@ export function fetchGlacier(path: string, kind: 'json' | 'bytes', signal?: Abor
       finish(() => reject(nt(errA) && nt(errB) ? errA : nt(errA) ? errB : errA));
     };
     const take = (res: Response, loser: AbortController) => {
+      headers = true;
       loser.abort();
       (kind === 'json' ? res.json() : res.arrayBuffer().then((x) => new Uint8Array(x))).then((j) => finish(() => resolve(j)), (e) => finish(() => reject(e)));
     };
@@ -149,9 +175,34 @@ export const resetGlacierClient = () => memo.clear();
 
 export async function loadIndex(signal?: AbortSignal, bases = glacierBasesFrom()): Promise<GlacierIndex | null> {
   try {
-    const j = await fetchGlacier(GLACIER_INDEX_PATH, 'json', signal, bases, 'raw') as GlacierIndex;
+    const j = await retrying(() => fetchGlacier(GLACIER_INDEX_PATH, 'json', signal, bases, 'raw'), signal) as GlacierIndex;
     return j?.kind === 'glacier/index' && GLACIER_BUILD_RE.test(j.static?.build ?? '') ? j : null;
   } catch (e) { if (isAbort(e)) throw e; return null; }
+}
+
+/**
+ * Early start of the page's first reads: pointer and kill switch at once, and — as soon as the pointer names the build — the four
+ * documents the map needs (catalogue, points, summary, official items; memoised, so the page's own calls find them running). The route
+ * wrapper calls this while the page chunk and MapLibre still download; the page takes pointer and switch once (`takeGlacierStart`).
+ */
+const START_TTL_MS = 60_000;
+let startWarm: { at: number; cdn: string; status: Promise<GlacierStatus | null>; index: Promise<GlacierIndex | null> } | null = null;
+export function warmGlacierStart(bases: GlacierBases = glacierBasesFrom()): void {
+  if (startWarm && startWarm.cdn === bases.cdn && Date.now() - startWarm.at < START_TTL_MS) return;
+  const status = loadStatus(undefined, bases).catch(() => null);
+  const index = loadIndex(undefined, bases).catch(() => null);
+  startWarm = { at: Date.now(), cdn: bases.cdn, status, index };
+  void index.then((ix) => {
+    if (!ix) return;
+    const b = ix.static.build;
+    void loadCatalog(b, undefined, bases); void loadPoints(b, undefined, bases); void loadSummary(b, undefined, bases); void loadOfficial(b, undefined, bases);
+  });
+}
+/** The early start's pointer and kill switch, once and only while fresh — else `null` (the page reads them itself). */
+export function takeGlacierStart(bases: GlacierBases = glacierBasesFrom()): { status: Promise<GlacierStatus | null>; index: Promise<GlacierIndex | null> } | null {
+  const w = startWarm;
+  startWarm = null;
+  return w && w.cdn === bases.cdn && Date.now() - w.at < START_TTL_MS ? { status: w.status, index: w.index } : null;
 }
 /** Kill switch: anything but an explicit `killed: true` counts as not killed (an unreachable file never hides the page). */
 export async function loadStatus(signal?: AbortSignal, bases = glacierBasesFrom()): Promise<GlacierStatus | null> {
@@ -174,9 +225,16 @@ export async function loadStatus(signal?: AbortSignal, bases = glacierBasesFrom(
  */
 function staticDoc<T>(build: string, file: string, _signal: AbortSignal | undefined, bases: GlacierBases): Promise<T | null> {
   const sb: GlacierBases = { cdn: bases.staticCdn ?? bases.cdn, raw: bases.staticRaw ?? bases.raw };
-  return once(`${sb.cdn}|${build}|${file}`, async () => {
-    try { return await fetchGlacier(glacierStaticPath(build, file), 'json', undefined, sb) as T; }
-    catch (e) { if (isAbort(e)) throw e; return null as T | null; }
+  const key = `${sb.cdn}|${build}|${file}`;
+  return once(key, async () => {
+    try { return await retrying(() => fetchGlacier(glacierStaticPath(build, file), 'json', undefined, sb)) as T; }
+    catch (e) {
+      if (isAbort(e)) throw e;
+      // A read that FAILED (network, stall) is not kept for the session: the next caller (the 30-min refresh, a reopened sheet) tries
+      // again. A file that is not there stays remembered — asking again would only repeat the 404.
+      if (!(e instanceof GlacierNotThere)) queueMicrotask(() => memo.delete(key));
+      return null as T | null;
+    }
   }) as Promise<T | null>;
 }
 

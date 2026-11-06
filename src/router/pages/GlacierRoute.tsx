@@ -7,13 +7,14 @@
  * Until Jan switches `GLACIER_LIVE` on (after Gate D) the page exists only with `?gl=1` / `localStorage.gl = '1'`
  * (`src/glacier/glacierFlag.ts`); without the flag the route answers like an unknown path. The page itself is a lazy chunk.
  */
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useNavigationType, useParams } from 'react-router';
 import NotFoundRoute from './NotFoundRoute';
 import AppLoader from '../AppLoader';
 import { glacierFlagFrom, rememberGlacierFlag } from '../../glacier/glacierFlag';
 import { buildGlacierUrl, parseGlacierUrl, type GlacierUrlState } from '../../glacier/glacierState';
 import GlacierLinkNotice from '../../glacier/GlacierLinkNotice';
+import { warmGlacierStart } from '../../glacier/glacierClient';
 
 const GlacierPage = lazy(() => import('../../glacier/GlacierPage'));
 const STATE_DEBOUNCE_MS = 300;
@@ -25,6 +26,8 @@ export default function GlacierRoute() {
   const navType = useNavigationType();
   const enabled = useMemo(() => glacierFlagFrom(loc.search), [loc.search]);
   useEffect(() => { rememberGlacierFlag(loc.search); }, [loc.search]);
+  // Early start: pointer, kill switch and the map's documents load while the page chunk and MapLibre still download.
+  useState(() => { if (enabled) { try { warmGlacierStart(); } catch { /* the page then reads them itself */ } } return null; });
 
   const parsed = useMemo(() => parseGlacierUrl(glacier ?? null, loc.search), [glacier, loc.search]);
   /** The first parse decides (the tidy-up navigation clears `invalid` right after arriving). */

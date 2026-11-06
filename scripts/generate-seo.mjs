@@ -459,6 +459,13 @@ const PRECONNECT_BY_ROUTE = {
   // Brandradar (Jan 06.11.): Basiskarte + EFFIS (Brandflächen der Woche). Der Eintrag schaltet auch die Vorladeliste frei —
   // der FireRoute-Import steht in der `.then(…)`-Form (s. `routePreloadFiles`), bisher lud die Shell deshalb nichts vor.
   waldbrand: ['https://tiles.openfreemap.org', 'https://maps.effis.emergency.copernicus.eu'],
+  // Gletscher (Jan 06.11.): Zeiger (raw), statische Dokumente (jsDelivr), Basiskarte, Gelände der 3D-Karte.
+  gletscher: ['https://raw.githubusercontent.com', 'https://cdn.jsdelivr.net', 'https://tiles.openfreemap.org', 'https://elevation-tiles-prod.s3.amazonaws.com'],
+};
+// Routen, deren Seite ein eigener Lazy-Chunk HINTER dem Route-Chunk ist (`lazy(() => import('…Page'))` im Wrapper): ohne diese
+// Liste lädt die Shell nur den kleinen Wrapper vor, Seite und MapLibre kämen erst in einer dritten Runde.
+const PAGE_CHUNKS_BY_ROUTE = {
+  gletscher: ['GlacierPage'],
 };
 const routerSrc = readFileSync(join(ROOT, 'src', 'router', 'router.tsx'), 'utf8');
 const indexJsName = (rawShell.match(/src="\/(assets\/index-[\w-]+\.js)"/) || [])[1];
@@ -521,12 +528,13 @@ export function viewPreloadScript({ map, dashboard }) {
     + `f=d?${arr(dashboard)}:${arr(map)},h=document.head;for(var i=0;i<f.length;i++){var l=document.createElement("link"),c=f[i].slice(-4)===".css";`
     + `l.rel=c?"preload":"modulepreload";if(c)l.as="style";l.crossOrigin="";l.href=f[i];h.appendChild(l)}}catch(e){}})()</script>`;
 }
-function routePreloadLinks(routeId) {
+function routePreloadLinks(routeId, extraChunks = []) {
   const seen = new Set();
   const links = [];
   for (const origin of PRECONNECT_BY_ROUTE[routeId] ?? []) links.push(`<link rel="preconnect" href="${origin}" crossorigin />`);
   // `/warnungen` shows the map only ⇒ the MapView chunks stay static hints there.
-  const files = routeId === 'warnungen' ? [...routePreloadFiles(routeId), ...dynamicImportDeps('MapView')] : routePreloadFiles(routeId);
+  const files = routeId === 'warnungen' ? [...routePreloadFiles(routeId), ...dynamicImportDeps('MapView')]
+    : [...routePreloadFiles(routeId), ...[...(PAGE_CHUNKS_BY_ROUTE[routeId] ?? []), ...extraChunks].flatMap((c) => dynamicImportDeps(c))];
   for (const f of files) {
     const href = `/${f}`;
     if (seen.has(href) || rawShell.includes(`href="${href}"`)) continue;   // index.html lädt ihn schon vor
@@ -603,7 +611,8 @@ let glacierShells = 0;
 const atlas = atlasPages();
 if (GLACIER_PAGES && GLACIER_DATA) {
   const glRoute = ROUTES.find((r) => r.id === 'gletscher');
-  const glPreload = routePreloadLinks('gletscher');
+  // Die Steckbrief-Seiten öffnen zusätzlich den Steckbrief-Chunk (`GlacierBrief`, lazy in der Seite).
+  const glPreload = routePreloadLinks('gletscher', ['GlacierBrief']);
   const glGate = flagGateScript('gl', GLACIER_LIVE);
   mkdirSync(join(DIST, '_gl'), { recursive: true });
   for (const g of PAGE_GLACIERS) {
