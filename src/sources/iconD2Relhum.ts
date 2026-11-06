@@ -41,7 +41,7 @@
 
 import {
   resolveLatestRun, fetchStepField, subsampledCorners,
-  D2_GRIB_PROXY_BASE, type GribField,
+  D2_GRIB_PROXY_BASE, fetchDecodeCached, type GribField,
 } from './iconD2Precip';
 
 export const ICON_D2_RELHUM_ATTRIBUTION =
@@ -191,6 +191,70 @@ export async function fetchIconD2Relhum(
   await Promise.all(workers);
 
   if (frames.length === 0) throw new Error('ICON-D2 relhum_2m: keine Frames erzeugt');
+  return { runAt, frames, uvBounds, vMin: 0, vMax: 1 };
+}
+
+// ---------------------------------------------------------------------------
+// Europa: ICON-EU (06.11.) — dieselbe Größe, dasselbe Bild, anderes Gitter
+// ---------------------------------------------------------------------------
+
+export const ICON_EU_RELHUM_ATTRIBUTION =
+  'Datenbasis: <a href="https://www.dwd.de/DE/leistungen/opendata/opendata.html" '
+  + 'target="_blank" rel="noopener">Deutscher Wetterdienst</a>, ICON-EU (relhum_2m), '
+  + 'Rasterdaten bildlich wiedergegeben · CC BY 4.0';
+
+const EU_BASE = '/_dwd_opendata/weather/nwp/icon-eu/grib';
+const pad2 = (n: number) => String(n).padStart(2, '0');
+const pad3 = (n: number) => String(n).padStart(3, '0');
+const euUrl = (run: string, step: number) =>
+  `${EU_BASE}/${run.slice(8, 10)}/relhum_2m/icon-eu_europe_regular-lat-lon_single-level_${run}_${pad3(step)}_RELHUM_2M.grib2.bz2`;
+
+/** Jüngster publizierter ICON-EU-Lauf (alle 3 h) per HEAD auf Schritt 0, rückwärts von jetzt. */
+async function resolveEuRun(signal?: AbortSignal): Promise<{ run: string; runAt: Date }> {
+  const now = new Date();
+  now.setUTCMinutes(0, 0, 0);
+  now.setUTCHours(now.getUTCHours() - (now.getUTCHours() % 3));
+  for (let back = 0; back < 8; back++) {
+    if (signal?.aborted) throw new Error('aborted');
+    const runAt = new Date(now.getTime() - back * 3 * 3_600_000);
+    const run = `${runAt.getUTCFullYear()}${pad2(runAt.getUTCMonth() + 1)}${pad2(runAt.getUTCDate())}${pad2(runAt.getUTCHours())}`;
+    try { if ((await fetch(euUrl(run, 0), { method: 'HEAD', signal })).ok) return { run, runAt }; } catch { /* nächster Lauf */ }
+  }
+  throw new Error('ICON-EU relhum_2m: kein publizierter Lauf gefunden');
+}
+
+/**
+ * Lädt `relhum_2m` von ICON-EU (0…+24 h stündlich, ≈ 7 km, 23,5° W–62,5° O, 29,5–70,5° N) — der
+ * Treiber der Europa-Ansicht, in der ICON-D2 (nur Mitteleuropa) nicht reicht. Gleiches Bild und
+ * gleiche Achsenumkehr wie `fetchIconD2Relhum`; Transport ist der offene `/_dwd_opendata`-Pfad
+ * (kein Edge-Zusatz, kein Warm-Cron).
+ */
+export async function fetchIconEuRelhum(
+  signal?: AbortSignal,
+  onProgress?: (partial: IconD2Relhum) => void,
+): Promise<IconD2Relhum> {
+  const { run, runAt } = await resolveEuRun(signal);
+  const wanted = Array.from({ length: MAX_STEP + 1 }, (_, i) => i);
+  const gridRef = await fetchDecodeCached(euUrl(run, 0), signal);
+  const ss = Math.max(1, Math.ceil(gridRef.ni / TARGET_WIDTH));
+  const c = subsampledCorners(gridRef, ss);
+  const uvBounds: [number, number, number, number] = [
+    lngToEquiX(c[0][0]), latToEquiY(c[0][1]), lngToEquiX(c[1][0]), latToEquiY(c[2][1]),
+  ];
+  const frames: IconD2RelhumFrame[] = [];
+  let ptr = 0;
+  const loadStep = async (step: number): Promise<void> => {
+    try {
+      const rh = step === 0 ? gridRef : await fetchDecodeCached(euUrl(run, step), signal);
+      frames.push({ validAt: new Date(runAt.getTime() + step * 3_600_000), stepHours: step, ...buildRelhumImage(rh, ss) });
+      frames.sort((a, b) => a.stepHours - b.stepHours);
+      if (onProgress) onProgress({ runAt, frames: [...frames], uvBounds, vMin: 0, vMax: 1 });
+    } catch { /* fehlender Schritt → überspringen */ }
+  };
+  await Promise.all(Array.from({ length: CONCURRENCY }, async () => {
+    while (ptr < wanted.length) { if (signal?.aborted) return; await loadStep(wanted[ptr++]); }
+  }));
+  if (frames.length === 0) throw new Error('ICON-EU relhum_2m: keine Frames erzeugt');
   return { runAt, frames, uvBounds, vMin: 0, vMax: 1 };
 }
 

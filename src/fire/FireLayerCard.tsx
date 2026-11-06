@@ -198,8 +198,8 @@ export const FIRE_LAYER_INFO: Record<FireLayerId, FireLayerInfo> = {
   fireWeather: {
     eyebrow: 'Aktuelle Lage · Treiber',
     label: 'Feuerwetter-Treiber',
-    short: 'ICON-D2 · relative Feuchte 2 m, 2,2 km, bis +24 h',
-    note: 'Eingefärbt ist die Trockenheit der Luft: je dunkler, desto trockener — denn trockene Luft lässt Streu schneller abtrocknen. Ein Treiber, kein Index und kein amtliches Warnprodukt. Die kumulativen FWI-Codes (FFMC, DMC, DC) sind NICHT enthalten; sie brauchen einen Tagesübertrag über Wochen, den eine reine Browser-App nicht leisten kann. Das Modellgebiet von ICON-D2 reicht über DACH hinaus — außerhalb von DE, AT und CH ist die Fläche abgedunkelt, weil diese Ansicht dort nichts aussagt.',
+    short: 'ICON-EU · relative Feuchte 2 m, ≈ 7 km, bis +24 h',
+    note: 'Eingefärbt ist die Trockenheit der Luft: je dunkler, desto trockener — denn trockene Luft lässt Streu schneller abtrocknen. Ein Treiber, kein Index und kein amtliches Warnprodukt. Die kumulativen FWI-Codes (FFMC, DMC, DC) sind NICHT enthalten; sie brauchen einen Tagesübertrag über Wochen, den eine reine Browser-App nicht leisten kann. Das Modellgebiet von ICON-EU deckt Europa ab (gröber als ICON-D2); ganz im Nordwesten und Norden fehlen Daten — dort bedeutet leer „nicht verfügbar“, nicht „keine Gefahr“.',
     legend: <><Bar css={DRYAIR} /><Scale from="feucht" to="trocken" /></>,
   },
   fireFuel: {

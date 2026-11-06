@@ -54,7 +54,7 @@ export function inDachBox(lat: number, lon: number): boolean {
  */
 export const EUROPE_LIMIT_NOTE: Partial<Record<string, string>> = {
   fireBurnt: 'Europa: das Archiv (Vorjahre) gibt es nur für DE/AT/CH. Die Saison außerhalb kommt aus einer EFFIS-Liste; Umrisse lädt die Karte ab Zoom 9 nach, bis dahin steht ein Punkt.',
-  fireWeather: 'Nur DE/AT/CH (ICON-D2-Gebiet) — außerhalb ist die Fläche abgedeckt: nicht verfügbar, nicht „keine Gefahr".',
+  fireWeather: 'Europa: ICON-EU (≈ 7 km), gröber als ICON-D2 in DE/AT/CH. Ganz im Nordwesten und Norden der Box fehlen Daten — dort heißt leer „nicht verfügbar“, nicht „keine Gefahr“.',
   fireSoilDryness: 'Nur DE/AT/CH (ICON-D2-Gebiet) — außerhalb ist die Fläche abgedeckt: nicht verfügbar, nicht „keine Trockenheit".',
 };
 

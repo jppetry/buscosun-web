@@ -96,7 +96,7 @@ import { historyEnabled, loadHistoryIndex, historyToGeoJSON, type HistoryLoad } 
 import type { HistoryIndexEntry, HistoryWindowKind } from './history/historyArtifacts';
 import { anomaliesToGeoJSON } from './anomaly/anomalyLayer';
 import { hiddenSiteCount } from './footprint/fireRegistry';
-import { fetchIconD2Relhum, type IconD2Relhum } from '../sources/iconD2Relhum';
+import { fetchIconD2Relhum, fetchIconEuRelhum, type IconD2Relhum } from '../sources/iconD2Relhum';
 import {
   fetchIconD2Smi, SOIL_MODE_LABEL, SOIL_MODE_FULL_LABEL,
   type IconD2Smi, type SoilDrynessMode,
@@ -263,6 +263,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   const [hotspotFootprints, setHotspotFootprints] = useState<GeoJSON.FeatureCollection | null>(null);
   const [hotspotProvider, setHotspotProvider] = useState<'firms' | 'gwis'>('firms');
   const [relhum, setRelhum] = useState<IconD2Relhum | null>(null);
+  const relhumRegionRef = useRef<FireRegion>(region);
   /** WT1 — Bodentrockenheit (ICON-D2 smi) der gewählten Tiefe. */
   const [smi, setSmi] = useState<IconD2Smi | null>(null);
   const [burntSeason, setBurntSeason] = useState<BurntRun | null>(null);
@@ -796,7 +797,9 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     if (!active.has('fireWeather')) return;
     const ac = new AbortController();
     setLayerLoad('fireWeather', { kind: 'loading' });
-    void fetchIconD2Relhum(ac.signal, (partial) => {
+    // Europa: ICON-EU (ganzes Gebiet); DACH bleibt bei ICON-D2 (2,2 km).
+    if (relhumRegionRef.current !== region) { relhumRegionRef.current = region; setRelhum(null); }
+    void (region === 'europe' ? fetchIconEuRelhum : fetchIconD2Relhum)(ac.signal, (partial) => {
       if (!ac.signal.aborted) setRelhum(partial);
     })
       .then((r) => {
@@ -814,7 +817,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
         setLayerLoad('fireWeather', { kind: 'error', message: (e as Error).message });
       });
     return () => ac.abort();
-  }, [active, setLayerLoad]);
+  }, [active, region, setLayerLoad]);
 
   /**
    * WT1 — Bodentrockenheit (ICON-D2 `smi`). Lazy wie alle Layer hier, und

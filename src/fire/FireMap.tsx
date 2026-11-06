@@ -34,7 +34,7 @@ import { readDeviceCaps, initialTier, type PerfTier } from '../wind/perfGovernor
 import {
 } from '../wind/iconD2WindSource';
 import { soilDrynessRamp, ICON_D2_SMI_ATTRIBUTION } from '../sources/iconD2Smi';
-import { drynessRamp, RELHUM_DRY_FROM, RELHUM_MAX, ICON_D2_RELHUM_ATTRIBUTION } from '../sources/iconD2Relhum';
+import { drynessRamp, RELHUM_DRY_FROM, RELHUM_MAX, ICON_D2_RELHUM_ATTRIBUTION, ICON_EU_RELHUM_ATTRIBUTION } from '../sources/iconD2Relhum';
 // TA5: Standort-Rauten (Symbol-Layer mit gezeichneten Sprites, Muster Ausbreitungspfeil).
 import {
   ANOMALY_SOURCE_ID, ANOMALY_LAYER_ID, ANOMALY_SEL_LAYER_ID, ANOMALY_IMAGE_ID, ANOMALY_IMAGE_IDS, ANOMALY_VARIANTS,
@@ -513,7 +513,7 @@ export default function FireMap({
     // Die DACH-Maske wird nur geholt/eingehängt, wenn sie etwas abdeckt (Region DACH oder
     // eine ICON-D2-Ebene an) — in Europa ohne Treiber-Ebene kostet sie sonst Ladezeit und
     // zeigt kurz den DACH-Ausschnitt, bevor ein späterer applyState sie ausblendet.
-    const wantDachMask = s.region === 'dach' || s.active.has('fireWeather') || s.active.has('fireSoilDryness');
+    const wantDachMask = s.region === 'dach' || s.active.has('fireSoilDryness');
     installLayers(m, basemapRef.current, wantDachMask, () => applyState(m));
 
     // EU-Raster: Die Kachel-URL trägt den Tag UND den Layer der Sub-Ansicht (E3),
@@ -582,6 +582,12 @@ export default function FireMap({
       if (src && src.attribution !== fpAttr) src.attribution = fpAttr;
     }
 
+    // Feuerwetter-Treiber: in Europa ICON-EU, sonst ICON-D2 — der Lizenzträger nennt das Modell, das zeichnet.
+    {
+      const wAttr = s.region === 'europe' ? ICON_EU_RELHUM_ATTRIBUTION : ICON_D2_RELHUM_ATTRIBUTION;
+      const src = m.getSource('fire-weather-attr') as { attribution?: string } | undefined;
+      if (src && src.attribution !== wAttr) src.attribution = wAttr;
+    }
     // BC1: die Hervorhebung des markierten Clusters. Als FILTER auf einem
     // eigenen Layer und nicht als Paint-Ausdruck: der Filter übersteht einen
     // Stilwechsel, weil `applyState` ihn ohnehin bei jedem Durchlauf setzt —
@@ -697,7 +703,7 @@ export default function FireMap({
     if (m.getLayer('fire-dach-mask-fill')) m.moveLayer('fire-dach-mask-fill');
     // Gebiet: in Europa deckt die DACH-Maske nur noch zu, solange eine DACH-only-Ebene
     // (ICON-D2-Treiber) an ist — sonst behauptete deren Fläche dort eine Aussage.
-    const dachOnlyOn = s.active.has('fireWeather') || s.active.has('fireSoilDryness');
+    const dachOnlyOn = s.active.has('fireSoilDryness'); // Feuerwetter gilt seit 06.11. für ganz Europa (ICON-EU)
     // In Europa liegt sie dann direkt ÜBER den Treiber-Rastern, nicht ganz oben — die
     // Brände außerhalb DACH (Punkte, Flächen) bleiben sichtbar. Solange noch kein
     // Treiber-Raster in der Karte hängt (lädt), gibt es nichts abzudecken.
@@ -705,7 +711,7 @@ export default function FireMap({
     if (s.region === 'europe' && dachOnlyOn && m.getLayer('fire-dach-mask-fill')) {
       // `getLayersOrder()`, nicht `getStyle().layers` — der Stil führt keine Custom-Layer.
       const ids = m.getLayersOrder().filter((id) => id !== 'fire-dach-mask-fill');
-      const top = Math.max(...['fire-weather-scalar', 'fire-soil-scalar'].map((id) => ids.indexOf(id)));
+      const top = Math.max(...['fire-soil-scalar'].map((id) => ids.indexOf(id)));
       const before = top >= 0 ? ids[top + 1] : undefined;
       if (before) m.moveLayer('fire-dach-mask-fill', before);
       dachMaskOn = top >= 0;

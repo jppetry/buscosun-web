@@ -81,12 +81,12 @@ export const BR_LAYER: Record<FireLayerId, BrLayerMeta> = {
     fallback: 'Fehlt die EFFIS-Kartierung (Ausfall oder noch nicht bearbeitet), bleibt die Form das Raster und die Fläche heißt ausdrücklich „geschätzt" — die Kartierung läuft 1–3 Tage nach.',
   },
   fireWeather: {
-    label: 'Feuerwetter-Treiber', shortLabel: 'Feuerwetter', sub: 'ICON-D2 rel. Feuchte', color: 'slate',
+    label: 'Feuerwetter-Treiber', shortLabel: 'Feuerwetter', sub: 'ICON-EU rel. Feuchte', color: 'slate',
     group: 'Aktuelle Lage', title: 'Feuerwetter-Treiber (Trockenheit der Luft)',
     question: 'Wie trocken ist die Luft — und damit wie schnell trocknet Streu ab?',
     unit: 'Relative Feuchte in 2 m, % (je dunkler, desto trockener)',
-    reference: 'DWD ICON-D2 · 2,2 km · stündlich bis +24 h ab Lauf',
-    limit: 'Ein Treiber, kein Index und kein amtliches Warnprodukt. Die kumulativen FWI-Codes (FFMC, DMC, DC) sind nicht enthalten. Außerhalb von DE, AT und CH ist die Fläche abgedunkelt.',
+    reference: 'DWD ICON-EU · ≈ 7 km · stündlich bis +24 h ab Lauf',
+    limit: 'Ein Treiber, kein Index und kein amtliches Warnprodukt. Die kumulativen FWI-Codes (FFMC, DMC, DC) sind nicht enthalten. Ganz im Nordwesten und Norden der Karte fehlen Modelldaten — dort bedeutet leer „nicht verfügbar“, nicht „keine Gefahr“.',
     fallback: NO_DATA,
   },
   fireSoilDryness: {

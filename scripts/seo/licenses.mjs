@@ -143,7 +143,7 @@ export const NON_MODEL_SOURCES = [
       { name: 'DWD Waldbrandgefahrenindex (WBI) und Graslandfeuerindex (GLFI)', operator: 'Deutscher Wetterdienst', license: 'GeoNutzV / CC BY 4.0',
         note: 'Amtliche Stufe 1–5 für Deutschland, 484 Stationen, Tag 0…+6. buscosun gibt die Stationswerte wieder; eine Fläche daraus wäre eigene Interpolation und ist als solche zu kennzeichnen. Ein offenes 1-km-Raster gibt es nicht (Pfad liefert 404).', ref: 'src/fire/sources/dwdFireIndex.ts' },
       { name: 'DWD ICON-D2 relhum_2m', operator: 'Deutscher Wetterdienst', license: 'GeoNutzV / CC BY 4.0',
-        note: 'Relative Feuchte 2 m als Feuerwetter-Treiber. Abgeleitete Darstellung ⇒ Pflichtform „Datenbasis: Deutscher Wetterdienst, Rasterdaten bildlich wiedergegeben".', ref: 'src/sources/iconD2Relhum.ts' },
+        note: 'Relative Feuchte 2 m als Feuerwetter-Treiber (Europa-Ansicht: ICON-EU, ≈ 7 km, gleiche Lizenz). Abgeleitete Darstellung ⇒ Pflichtform „Datenbasis: Deutscher Wetterdienst, Rasterdaten bildlich wiedergegeben".', ref: 'src/sources/iconD2Relhum.ts' },
       { name: 'DWD ICON-D2 smi (Bodenfeuchte-Index)', operator: 'Deutscher Wetterdienst', license: 'GeoNutzV / CC BY 4.0',
         note: 'Bodentrockenheit als Waldbrand-Treiber. Abgeleitete Darstellung ⇒ „Datenbasis: Deutscher Wetterdienst, Rasterdaten bildlich wiedergegeben".', ref: 'src/sources/iconD2Smi.ts' },
       { name: 'Copernicus EMS Rapid Mapping', operator: 'Europäische Union, Copernicus Emergency Management Service', license: 'klären',
