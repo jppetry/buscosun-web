@@ -121,6 +121,19 @@
 # DWD OpenData proxy — used by `src/sources/radolan.ts` to fetch RADOLAN-RY
 # live frames and RADVOR-RE nowcast forecasts as BZ2/GZIP binary streams.
 # Muss VOR dem SPA-Fallback stehen (Regeln werden von oben nach unten geprüft).
+# /quellen = Kurzadresse des zentralen Quellen- und Lizenzverzeichnisses (/lizenzen/).
+[[redirects]]
+  from   = "/quellen"
+  to     = "/lizenzen/"
+  status = 301
+  force  = true
+
+[[redirects]]
+  from   = "/quellen/"
+  to     = "/lizenzen/"
+  status = 301
+  force  = true
+
 [[redirects]]
   from   = "/_dwd_opendata/*"
   to     = "https://opendata.dwd.de/:splat"

@@ -306,9 +306,12 @@
   background: rgba(11, 14, 18, 0.6); color: #8B95A3; font-size: 11px; border-radius: 6px; padding: 1px 6px;
 }
 .fire-center .maplibregl-ctrl-attrib a { color: #A8B2C0; }
-/* Jans Auftrag 2026-10-24: kein ⓘ-Knopf mehr auf der Karte. */
-.fire-center .maplibregl-ctrl-attrib { display: none !important; }
-.fire-center .maplibregl-ctrl-attrib-button { filter: invert(0.7); }
+/* Quellenzeile (06.11.): Pflichtnennungen ohne Klick, eine Zeile; Hover/Fokus/Tippen klappt sie auf. */
+.fire-center .maplibregl-ctrl-attrib { max-width: min(760px, calc(100vw - 340px)); }
+.fire-center .maplibregl-ctrl-attrib-inner { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; line-height: 1.5; }
+.fire-center .maplibregl-ctrl-attrib:hover .maplibregl-ctrl-attrib-inner,
+.fire-center .maplibregl-ctrl-attrib:focus-within .maplibregl-ctrl-attrib-inner { white-space: normal; }
+.fire-center .maplibregl-ctrl-attrib a { text-decoration: underline; text-decoration-color: rgba(168, 178, 192, 0.4); }
 .fire-center .maplibregl-ctrl-bottom-right { bottom: 128px; right: 16px; }
 .fire-center .maplibregl-ctrl-bottom-left { bottom: 128px; left: 16px; }
 /* Zoom (NavigationControl, top-right) — Glass-Kasten unter dem Basemap-Umschalter. */
@@ -888,8 +891,9 @@
   .fire-center .maplibregl-ctrl-group { border-radius: 11px; }
   .fire-center .maplibregl-ctrl-group button { width: 40px; height: 40px; }
   .fire-center .maplibregl-ctrl-bottom-left, .fire-center .maplibregl-ctrl-bottom-right { bottom: calc(46vh + 8px); }
-  /* Der ⓘ-Knopf der Kartenquellen (MapLibre-Attribution) entfällt mobil auf der Karte (Jans Auftrag 2026-10-23). */
-  .fire-center .maplibregl-ctrl-attrib { display: none; }
+  /* Quellenzeile mobil: kleiner, über der Sheet-Kante; der Rest klappt beim Tippen auf. */
+  .fire-center .maplibregl-ctrl-attrib { max-width: calc(100vw - 24px); font-size: 10px; padding: 1px 5px; }
+  .fire-center .maplibregl-ctrl-bottom-right { right: 12px; }
   .br-m-basemaprow { display: flex; justify-content: center; flex: 1; min-width: 0; }
   .br-map-tl > .br-pill { margin-right: 49px; }
   .br-m-basemaprow .br-basemap button { min-height: 38px; }

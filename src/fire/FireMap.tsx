@@ -34,7 +34,7 @@ import { readDeviceCaps, initialTier, type PerfTier } from '../wind/perfGovernor
 import {
 } from '../wind/iconD2WindSource';
 import { soilDrynessRamp, ICON_D2_SMI_ATTRIBUTION } from '../sources/iconD2Smi';
-import { drynessRamp, RELHUM_DRY_FROM, RELHUM_MAX } from '../sources/iconD2Relhum';
+import { drynessRamp, RELHUM_DRY_FROM, RELHUM_MAX, ICON_D2_RELHUM_ATTRIBUTION } from '../sources/iconD2Relhum';
 // TA5: Standort-Rauten (Symbol-Layer mit gezeichneten Sprites, Muster Ausbreitungspfeil).
 import {
   ANOMALY_SOURCE_ID, ANOMALY_LAYER_ID, ANOMALY_SEL_LAYER_ID, ANOMALY_IMAGE_ID, ANOMALY_IMAGE_IDS, ANOMALY_VARIANTS,
@@ -163,7 +163,7 @@ export function basemapStyle(b: FireBasemap): string | maplibregl.StyleSpecifica
   if (b === 'satellite') {
     return rasterStyle(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      'Esri World Imagery');
+      'Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community');
   }
   if (b === 'terrain') {
     return rasterStyle(
@@ -193,7 +193,7 @@ const GL_LAYERS: Record<FireLayerId, string[]> = {
   ],
   // Custom-Layer (ScalarLayer), kein GeoJSON-Layer — deshalb kein Platzhalter
   // in installLayers; er wird in applyState eingehängt, sobald Daten da sind.
-  fireWeather: ['fire-weather-scalar'],
+  fireWeather: ['fire-weather-attrib', 'fire-weather-scalar'],
   // WB4 gebaut: Raster-Layer (Brennmaterial, Schutzgebiete) und die WFS-Flaechen.
   fireFuel: ['fire-fuel-raster'],
   // E2: zwei Zeitkörbe als ZWEI Quellen mit eigener Darstellung — Saison (live)
@@ -228,12 +228,12 @@ const GL_LAYERS: Record<FireLayerId, string[]> = {
  * zeichnet (`circle-radius: 0`) und dessen Sichtbarkeit über dieselbe Schleife
  * läuft wie die des echten Layers: an ⇒ Zeile da, aus ⇒ Zeile weg.
  *
- * `fireWeather` fehlt hier absichtlich: sein ScalarLayer wurde in WB2 ohne
- * Träger gebaut. Das ist eine echte Lücke, aber nicht die dieser Phase — sie
- * ist als eigener Punkt notiert, statt sie hier nebenbei mitzuändern.
+ * `fireWeather` trägt seit der Quellenzeile (06.11.) ebenfalls einen Träger:
+ * ohne ihn fehlte die DWD-Nennung der Feuchte-Fläche in der Leiste.
  */
 const ATTRIB_CARRIERS: readonly { layerId: string; sourceId: string; attribution: string }[] = [
   { layerId: 'fire-soil-attrib', sourceId: 'fire-soil-attr', attribution: ICON_D2_SMI_ATTRIBUTION },
+  { layerId: 'fire-weather-attrib', sourceId: 'fire-weather-attr', attribution: ICON_D2_RELHUM_ATTRIBUTION },
 ];
 
 /**
@@ -734,7 +734,13 @@ export default function FireMap({
       container: hostRef.current,
       style: basemapStyle(basemapRef.current),
       ...(region === 'europe' ? europeStartCamera(hostRef.current) : { bounds: DACH_BOUNDS, fitBoundsOptions: { padding: 24 } }),
-      attributionControl: { compact: true },
+      // Quellenzeile ohne Klick (Pflichtnennungen): eine Zeile, klein, halbtransparent. Der Link auf die
+      // zentrale Liste steht vorn, damit er beim Kürzen der Zeile sichtbar bleibt. Welche Quellen
+      // erscheinen, folgt den benutzten Layern (s. ATTRIB_CARRIERS).
+      attributionControl: {
+        compact: false,
+        customAttribution: '<a href="/lizenzen/" target="_blank" rel="noopener">Quellen &amp; Lizenzen</a> · bearbeitet',
+      },
       // Der Waldbrand-Blick ist ein Flächenblick — Neigung und Drehung würden
       // die Vergleichbarkeit der Länder nur stören.
       pitchWithRotate: false,
