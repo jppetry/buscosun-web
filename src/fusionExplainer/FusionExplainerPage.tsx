@@ -3,8 +3,8 @@
  * (`audit/fusion-erklaerung.md`). Command-Deck page, lazy chunk, namespace `.fx-`. Every graphic is a SCHEMA without measured data.
  * The stand always comes from the register (`fusionName(FUSION_CURRENT)`); the stands strip is built from `FUSION_RELEASES`.
  */
-import { Fragment } from 'react';
-import { DachMapPreview } from '../DachMapPreview';
+import { Fragment, lazy, Suspense } from 'react';
+const DachMapBackground = lazy(() => import('../DachMapBackground'));
 import { FUSION_BASE, FUSION_BASE_PUBLIC_LABEL, FUSION_CURRENT, FUSION_RELEASES, fusionName } from '../pointForecast/fusion/fusionRelease';
 import StepPanel, { type StepNo } from './StepPanel';
 import TerrainFigure from './TerrainFigure';
@@ -43,8 +43,8 @@ export default function FusionExplainerPage({ onBack }: { onBack: () => void }) 
 
   return (
     <div className="fx-page">
-      {/* Jan 04.11.: the decorative DACH map of the start page tile sits behind the whole page. */}
-      <div className="fx-bgmap" aria-hidden="true"><DachMapPreview mobile={typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches} /></div>
+      {/* Jan 06.11.: the same moving DACH map background as the start page. */}
+      <Suspense fallback={null}><DachMapBackground /></Suspense>
       <header className="fx-topbar">
         <a className="fx-brand" href="/" onClick={(e) => { e.preventDefault(); onBack(); }}>
           <img src="/buscosun-mark.svg" width="26" height="26" alt="" aria-hidden="true" />
