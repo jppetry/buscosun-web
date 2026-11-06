@@ -3,11 +3,10 @@
  * data situation per country, gap notice). AT/CH rows are static: no open road measurement exists there, and the
  * forecast points of AW-6 are not built — the rows say so instead of showing a made-up state.
  */
-import { useState } from 'react';
 import type { RoadPoint } from './roadContract';
 import type { RoadCorridor } from './roadClient';
 import type { RoadMapLayers } from './RoadMap';
-import { ROAD_CLASS_COLOR, ROAD_GAP_SHORT, corridorStatus, corridorTitle, dockEntries, dockFoldLabel, isGapCorridor, isHatched, type RoadSlotSummary } from './roadView';
+import { ROAD_CLASS_COLOR, ROAD_GAP_SHORT, corridorStatus, corridorTitle, dockEntries, isGapCorridor, isHatched, type RoadSlotSummary } from './roadView';
 
 export type RoadCountry = 'alle' | 'DE' | 'AT' | 'CH';
 
@@ -65,9 +64,9 @@ const LAYERS: ReadonlyArray<{ key: keyof RoadMapLayers; label: string; sub: stri
 export default function RoadDock(p: Props) {
   const showDE = p.country === 'alle' || p.country === 'DE';
   const rows = showDE ? p.corridors : [];
-  // V-AW-9: short sections (< 3 stations, not the main section of their motorway) fold under one row per motorway.
-  const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
-  const entries = dockEntries(rows, { query: p.query, selectedId: p.selectedId, open });
+  // Jan 06.11.: no fold row ("n kurze Abschnitte … · n Teilstücke ohne Messstelle") any more — every section stays listed.
+  const allOpen = new Set(rows.map((c) => c.road));
+  const entries = dockEntries(rows, { query: p.query, selectedId: p.selectedId, open: allOpen });
   const staticRows = STATIC_ROWS.filter((r) => p.country === 'alle' || r.cc === p.country);
   const roads = p.part !== 'layers', layersOn = p.part !== 'roads';
   const Tag = p.part === 'roads' ? 'div' : 'aside';
@@ -91,15 +90,7 @@ export default function RoadDock(p: Props) {
       </div>
       <div className="aw-dock-list">
         {entries.map((e) => {
-          if (e.kind === 'fold') {
-            return (
-              <button key={`fold-${e.road}`} type="button" className={`aw-road-more${e.open ? ' is-open' : ''}`} aria-expanded={e.open}
-                onClick={() => setOpen((s) => { const x = new Set(s); if (x.has(e.road)) x.delete(e.road); else x.add(e.road); return x; })}
-                title={e.hidden.map((c) => corridorTitle(c)).join(' · ')}>
-                {dockFoldLabel(e.road, e.hidden, e.open)}
-              </button>
-            );
-          }
+          if (e.kind === 'fold') return null;
           const c = e.corridor;
           const st = corridorStatus(c, p.byId);
           const on = c.id === p.selectedId;
