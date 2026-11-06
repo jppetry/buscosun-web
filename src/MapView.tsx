@@ -34,6 +34,8 @@ import { DACH_CITIES, PLACE_LABEL_MIN_ZOOM, TemperatureSampler, minZoomForRank, 
 import { LayerIcon } from './components/LayerIcon';
 import { LayerInfoPanel } from './components/LayerInfoPanel';
 import { useMediaQuery } from './mobile/useIsMobile';
+import AppLoader from './router/AppLoader';
+import { usePageCover } from './router/usePageCover';
 import {
   SATELLITE_PRODUCTS,
   satelliteSourceMeta,
@@ -725,6 +727,9 @@ export default function MapView({
   suspendedRef.current = suspended;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
+  // Start cover (buscosun mark + ring) until the map has its first complete frame; only on the full Wetterkarte page.
+  const [coverMap, setCoverMap] = useState<MapLibreMap | null>(null);
+  const pageShown = usePageCover(coverMap, true);
   const markerRef = useRef<Marker | null>(null);
 
   // Start-Layer: im Nur-Jetzt-Testmodus AUSSCHLIESSLICH Wind (Jans Vorgabe:
@@ -1844,6 +1849,7 @@ export default function MapView({
     else map.once('style.load', addLayers);
 
     mapRef.current = map;
+    setCoverMap(map);
     if (import.meta.env.DEV) {
       (window as unknown as { __map: MapLibreMap }).__map = map;
       // Phase HD gate G2 (`scripts/radar-hd-pixelcheck.mjs`): the radar frames the map draws right now, so the oracle
@@ -5789,6 +5795,7 @@ export default function MapView({
       inert={suspended || undefined}
       aria-hidden={suspended || undefined}
     >
+      {!suspended && !embedded && !profile && <AppLoader cover done={pageShown} />}
       {/* ---- Topbar (Desktop/Tablet) ---------------------------------------- */}
       {!isMobileMap && (
         <header className="mdk-topbar">

@@ -56,6 +56,8 @@ import './historyDeck.css';
 import { FeatureRail, type RailFeature } from '../nav/featureRail';
 // SH4: Teilen-Knopf (laedt Adapter und Sheet erst beim Klick).
 import ShareButton from '../share/ShareButton';
+import AppLoader from '../router/AppLoader';
+import { usePageCover } from '../router/usePageCover';
 
 // Same DACH map as behind the start page, behind the location search and the mode choice.
 const DachMapBackground = lazy(() => import('../DachMapBackground'));
@@ -118,6 +120,8 @@ export default function HistoryPage({ onBack, onOpenFeature, initialUrl, onUrlSt
   const [favTick, setFavTick] = useState(0);
   const [drillDate, setDrillDate] = useState<string | null>(null);
   const [modePicked, setModePicked] = useState(false);
+  // Start cover (buscosun mark + ring) while the station data of a stored place load; no map on this page.
+  const pageShown = usePageCover(null, status !== 'loading' && (status !== 'idle' || !loc), false);
   const [proOpen, setProOpen] = useState(false);
   const [dark, setDark] = useState<boolean>(() => { try { return localStorage.getItem('buscosun.history.dark.v1') === '1'; } catch { return false; } });
   const chartsRef = useRef<HTMLDivElement | null>(null);
@@ -233,6 +237,7 @@ export default function HistoryPage({ onBack, onOpenFeature, initialUrl, onUrlSt
   if (isMobile) {
     return (
       <div className="hd-m-root" data-theme={themeAttr}>
+        <AppLoader cover done={pageShown} />
         {view === 'onboard' && (
           <>
             <MobileBrandHead loc={null} onWechseln={undefined} />
@@ -292,6 +297,7 @@ export default function HistoryPage({ onBack, onOpenFeature, initialUrl, onUrlSt
   // ============================ DESKTOP / TABLET ============================
   return (
     <div className="hd-root" data-theme={themeAttr}>
+      <AppLoader cover done={pageShown} />
       <Topbar view={view} loc={loc} available={available} dark={dark} onToggleDark={toggleDark}
         onBrand={handleBack} onChangeLoc={changeLocation} onModeSwitch={backToMode}
         onSetMode={(mode) => { setDrillDate(null); patch({ mode }); }}

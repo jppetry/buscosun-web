@@ -67,6 +67,8 @@ const SnowArrivalPanel = lazy(() => import('../snowCap/SnowArrivalPanel'));
 // Phase P3D (on, `?p3d=0` off, audit/regenradar-punkt3d.md): 3D point view at the pointer in the dock (mobile: tap, sheet).
 import { usePointProbe, pointProbeEnabledFrom } from './pointProbe/usePointProbe';
 import PointProbeCard from './pointProbe/PointProbeCard';
+import AppLoader from '../router/AppLoader';
+import { usePageCover } from '../router/usePageCover';
 
 type DeckState =
   | { kind: 'loading' }
@@ -147,6 +149,9 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
   const [mTab, setMTab] = useState<MobileTab>('glance');
   const [mSnap, setMSnap] = useState<'peek' | 'full'>('peek');
   const mapRef = useRef<maplibregl.Map | null>(null);
+  // Start cover (buscosun mark + ring) until the map has its first frame and the nowcast is in (error ends it too).
+  const [coverMap, setCoverMap] = useState<maplibregl.Map | null>(null);
+  const pageShown = usePageCover(coverMap, state.kind !== 'loading');
   // Phase NS: Summen-Ansicht (Dock „Darstellung") und die Karte am Ort.
   const sumsOn = useMemo(() => sumsEnabledFrom(typeof window !== 'undefined' ? window.location.search : ''), []);
   // Phase RC: „Chance" nur mit `?rc=1` und nur, wo es das Dock „Darstellung" gibt (nicht mit `?sum=0`).
@@ -279,7 +284,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
   );
   // Main map always reported with the switch (camera link starts with the right view); mapRef as the other phases use it.
   const ztMapProps = z3dOn ? {
-    onMapReady: (m: maplibregl.Map | null) => { mapRef.current = m; setZtMainMap(m); },
+    onMapReady: (m: maplibregl.Map | null) => { mapRef.current = m; setCoverMap(m); setZtMainMap(m); },
     ...(ztActive ? { onProfileRadarPick: setZtRadar, onTimeChange: setSliderMs } : {}),
     ...(ztDesktop ? { stageAside: towerStage('desktop'), stage3d: '3d' as const } : {}),
   } : {};
@@ -325,7 +330,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
             <NowcastRadarMap location={location} nowcast={nowcast} reloadKey={reloadNonce}
               layers={layers} onLayersChange={setLayers} hideLayerbar compact snowMode={snowMode}
               initialView={initialView} onViewChange={onViewChange} sum={sumProp} onRadarStack={onRadarStack} {...chanceMapProps} {...timeMapProps}
-              {...zoMapProps} {...hzsMapProps} {...(zoOn ? { onMapReady: (m: maplibregl.Map | null) => { mapRef.current = m; } } : {})} {...ztMapProps} {...skMapProps} {...p3dMapProps} />
+              {...zoMapProps} {...hzsMapProps} {...(zoOn ? { onMapReady: (m: maplibregl.Map | null) => { mapRef.current = m; setCoverMap(m); } } : {})} {...ztMapProps} {...skMapProps} {...p3dMapProps} />
           </div>
           {view === 'height' && <div className="rr-hzs-pane">{hzsPanel('desktop')}</div>}
       </>
@@ -348,6 +353,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
   return (
     <div className={`rr-deck nc-page${isMobile ? ' is-mobile' : ''}`} data-mode={mode}
       style={{ ['--nc-blue']: '#3A6FA8' } as CSSProperties}>
+      <AppLoader cover done={pageShown} />
       {/* ---------- Top-Statusleiste (Desktop/Tablet) ---------- */}
       {!isMobile && (
         <div className="rr-topbar">
@@ -385,7 +391,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
             <NowcastRadarMap location={location} nowcast={nowcast} reloadKey={reloadNonce}
               layers={layers} onLayersChange={setLayers} hideLayerbar compact snowMode={snowMode}
               initialView={initialView} onViewChange={onViewChange} sum={sumProp} onRadarStack={onRadarStack} {...chanceMapProps} {...timeMapProps}
-              {...zoMapProps} {...hzsMapProps} onMapReady={(m) => { mapRef.current = m; }} {...ztMapProps} {...skMapProps} {...p3dMapProps} />
+              {...zoMapProps} {...hzsMapProps} onMapReady={(m) => { mapRef.current = m; setCoverMap(m); }} {...ztMapProps} {...skMapProps} {...p3dMapProps} />
           </div>
           <div className="rm-topfloat">
             {/* buscosun-Knopf oben links wie im Brandradar (Jans Auftrag 2026-10-23); die Suche rückt in die Mitte. */}

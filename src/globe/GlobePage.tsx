@@ -15,6 +15,8 @@ import { fhourForValidAt, validAtForFhour, type GlobeUrlState } from './globeUrl
 import ShareButton from '../share/ShareButton';
 import type { Height, OverlayKind } from './gfs';
 import { prefetch } from './gfsClient';
+import AppLoader from '../router/AppLoader';
+import { usePageCover } from '../router/usePageCover';
 import './globe.css';
 
 const COMPASS = ['N', 'NO', 'O', 'SO', 'S', 'SW', 'W', 'NW'];
@@ -93,6 +95,8 @@ export default function GlobePage({ onBack, initialUrl, initialFhour, onUrlState
   const [runInfo, setRunInfo] = useState<RunInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Start cover (buscosun mark + ring) until the first GFS field is in; later field changes keep the small status line.
+  const pageShown = usePageCover(null, !loading || !!error, false);
   const [playing, setPlaying] = useState(false);
   const viewRef = useRef<{ center: [number, number]; zoom: number } | null>(
     init?.center ? { center: [init.center.lon, init.center.lat], zoom: init.zoom ?? 2.2 } : null,
@@ -155,6 +159,7 @@ export default function GlobePage({ onBack, initialUrl, initialFhour, onUrlState
 
   return (
     <div className="gl-page">
+      <AppLoader cover done={pageShown} />
       <GlobeMap
         overlay={overlay} height={height} projection={projection} showParticles={showParticles}
         hd={hd} spinning={spinning} fhour={fhour} pinActive={pin !== null}
