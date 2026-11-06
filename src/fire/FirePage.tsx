@@ -2652,7 +2652,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
             {!isTablet && <span className="br-topdiv" aria-hidden="true" />}
             {!isTablet && <span className="br-topbar-sub">Brandradar · {inDossier ? (readoutTab === 'anomalies' ? 'Thermalanomalien' : 'Brände') : `${REGION_LABEL[region]}-Flächenblick`}</span>}
             {inDossier && dossierRecord && <span className="br-topbar-sub br-topbar-name">{recordName(dossierRecord)}</span>}
-            {!inDossier && stageSeg(false)}
+            {stageSeg(false)}
             {!inDossier && <FireRegionSearch compact={isTablet} onPick={focusRegion} />}
             <div className="br-topbar-right">
               {!isTablet && <span className="br-topbar-map">Karte: <strong>{basemapLabel}</strong></span>}
