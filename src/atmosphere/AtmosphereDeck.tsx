@@ -638,7 +638,7 @@ export function CutHintArt() {
 
 // ============================ Mobile ============================
 function MobileDeck(ctx: DeckCtx) {
-  const { deckLens, onBack, location, mapOpen } = ctx;
+  const { deckLens, onBack, location, mapOpen, hasCut, openMap, openSection } = ctx;
   const [sheetOpen, setSheetOpen] = useState(false);
   useEffect(() => {
     if (!sheetOpen) return;
@@ -685,18 +685,24 @@ function MobileDeck(ctx: DeckCtx) {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-/** Mobil: Kopf über dem Inhalt (Karte | Schnitt) — gleiche Logik wie die Bühne am Desktop. */
-function MobileStageSwitch({ ctx }: { ctx: DeckCtx }) {
-  const { isSection, mapOpen, hasCut, openMap, openSection } = ctx;
-  if (!isSection) return null;
-  return (
-    <div className="vsd-seg vsd-seg--wide" role="tablist" aria-label="Bühne">
-      <button type="button" role="tab" aria-selected={mapOpen} className={`vsd-seg-btn${mapOpen ? ' is-active' : ''}`} onClick={openMap}><IconMapSmall />Karte</button>
-      <button type="button" role="tab" aria-selected={!mapOpen} className={`vsd-seg-btn${!mapOpen ? ' is-active' : ''}`} onClick={openSection} disabled={!hasCut}><IconViewWind />Schnitt</button>
+      {/* Mobile bottom bar (Jan 06.11.): Karte | Schnitt | Ebenen — replaces the Karte/Schnitt switch above the content. */}
+      <nav className="vsd-m-bar" aria-label="Vertikalschnitt-Bereiche">
+        <button type="button" className={`vsd-m-bar-btn${mapOpen && !sheetOpen ? ' is-active' : ''}`} aria-current={mapOpen && !sheetOpen ? 'page' : undefined}
+          onClick={() => { setSheetOpen(false); openMap(); }}>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 4 3 6.5v13L9 17l6 2.5 6-2.5v-13L15 7 9 4zM9 4v13M15 7v12.5" /></svg>
+          <span>Karte</span>
+        </button>
+        <button type="button" className={`vsd-m-bar-btn${!mapOpen && !sheetOpen ? ' is-active' : ''}`} aria-current={!mapOpen && !sheetOpen ? 'page' : undefined}
+          onClick={() => { setSheetOpen(false); openSection(); }} disabled={!hasCut} title={hasCut ? undefined : 'Erst eine Schnittlinie zeichnen'}>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 20l5-8 4 4 4-8 5 12zM4 5h9M4 8.5h5" /></svg>
+          <span>Schnitt</span>
+        </button>
+        <button type="button" className={`vsd-m-bar-btn${sheetOpen ? ' is-active' : ''}`} aria-haspopup="dialog" aria-expanded={sheetOpen}
+          onClick={() => setSheetOpen((o) => !o)}>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m12 3 9 4.5-9 4.5-9-4.5L12 3zM3 12l9 4.5 9-4.5M3 16.5 12 21l9-4.5" /></svg>
+          <span>Ebenen</span>
+        </button>
+      </nav>
     </div>
   );
 }
@@ -707,7 +713,6 @@ function CutStageMobile(ctx: DeckCtx) {
   const center = location ? { lat: location.lat, lon: location.lon } : { lat: 47.42, lon: 10.98 };
   return (
     <>
-      <MobileStageSwitch ctx={ctx} />
       <div className="vsd-plot vsd-plot--map vsd-m-map">
         <ThreeDMap center={center} points={cutPoints} onChange={setCutPoints} />
       </div>
@@ -721,7 +726,6 @@ function HoehenwindMobile(ctx: DeckCtx) {
   const { sectionLayers } = useAtmosphere();
   return (
     <>
-      <MobileStageSwitch ctx={ctx} />
       <div className="vsd-plot" style={{ padding: 12 }}>
         {section
           ? <SectionChart section={section} layers={sectionLayers} picked={picked} onPick={setPicked} portrait />

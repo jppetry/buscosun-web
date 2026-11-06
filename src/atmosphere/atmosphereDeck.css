@@ -509,6 +509,17 @@
   .vsd-m-scroll { padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
 }
 
+/* Mobile Fußleiste (Jan 06.11.): Karte | Schnitt | Ebenen — Optik wie die Leiste im Autobahnwetter. */
+.vsd-m-bar { flex: 0 0 auto; display: flex; justify-content: space-around; padding: 10px 0 calc(8px + env(safe-area-inset-bottom, 0px)); background: var(--cream-50, #FAF6EA); border-top: 1px solid var(--sand-200, #E0D6BE); }
+.vsd-m-bar-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 64px; min-height: 44px; padding: 0 6px; background: none; border: 0; cursor: pointer; font: inherit; font-size: 10.5px; color: var(--stone-400, #A89A7A); }
+.vsd-m-bar-btn.is-active { color: var(--steel-600, #3A6FA8); font-weight: 600; }
+.vsd-m-bar-btn:disabled { opacity: .45; cursor: default; }
+.vsd-m-bar-btn:focus-visible { outline: 2px solid var(--steel-600); outline-offset: -2px; }
+@media (max-width: 767px) {
+  /* „Über diese Ansicht" sitzt über der Fußleiste statt darauf. */
+  :root:has(.vsd-m-bar) .rsb[data-route="atmosphaere"] { bottom: calc(74px + env(safe-area-inset-bottom, 0px)); }
+}
+
 .vsd-m-map > .td-map-shell, .vsd-m-map .td-map { width: 100%; height: 100%; }
 .vsd-m-sheetwrap { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; justify-content: flex-end; }
 .vsd-m-backdrop { position: absolute; inset: 0; background: rgba(44, 42, 38, .42); border: 0; padding: 0; cursor: pointer; }
