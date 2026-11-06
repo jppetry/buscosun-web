@@ -182,10 +182,41 @@ function failedLately(key: string): boolean {
   return f != null && Date.now() - f.at < tileRetryMs(f.n);
 }
 
+/**
+ * One tile is loaded as up to six byte ranges side by side and put together again — the same bytes, the same picture.
+ * The bucket sends about 0.2 MB/s per connection to Europe; measured 06.11. on a 1.9 MB tile: 2.5–2.8 s in six parts,
+ * 8.4–9.1 s in one. Pieces under 256 KB are not worth a request of their own (`set`).
+ */
+const PART_MIN_BYTES = 256 * 1024;
+const PARTS_MAX = 6;
+/** At most six part requests are out at once (the connection limit per host): a waiting part has no deadline running. */
+let _partsOut = 0;
+const _partQueue: Array<() => void> = [];
+
+async function fetchPart(href: string, from: number, to: number): Promise<Uint8Array> {
+  if (_partsOut >= PARTS_MAX) await new Promise<void>((go) => _partQueue.push(go)); // the slot is handed over
+  else _partsOut++;
+  try {
+    const r = await fetchSat(href, { headers: { Range: `bytes=${from}-${to}` } }, TILE_FETCH);
+    if (!r.ok && r.status !== 206) throw new Error(`HTTP ${r.status}`);
+    if (r.buf.byteLength !== to - from + 1) throw new Error('range length');
+    return new Uint8Array(r.buf);
+  } finally {
+    const next = _partQueue.shift();
+    if (next) next(); else _partsOut--;
+  }
+}
+
 async function fetchRange(href: string, offset: number, byteCount: number): Promise<Uint8Array> {
-  const r = await fetchSat(href, { headers: { Range: `bytes=${offset}-${offset + byteCount - 1}` } }, TILE_FETCH);
-  if (!r.ok && r.status !== 206) throw new Error(`HTTP ${r.status}`);
-  return new Uint8Array(r.buf);
+  const parts = Math.min(PARTS_MAX, Math.max(1, Math.ceil(byteCount / PART_MIN_BYTES)));
+  if (parts === 1) return fetchPart(href, offset, offset + byteCount - 1);
+  const size = Math.ceil(byteCount / parts);
+  const out = new Uint8Array(byteCount);
+  await Promise.all(Array.from({ length: parts }, async (_, i) => {
+    const at = i * size;
+    out.set(await fetchPart(href, offset + at, offset + Math.min(byteCount, at + size) - 1), at);
+  }));
+  return out;
 }
 
 function loadTile(
