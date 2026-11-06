@@ -6,7 +6,7 @@
  * contract's (`roadHzFreshness`): > 45 min grey, > 3 h "Gefahrenlage derzeit nicht verfügbar".
  */
 import { ROAD_SLOT_MS, roadStamp } from './roadContract';
-import { fetchRoadJson, RoadNotThere } from './roadClient';
+import { fetchRoadJson, roadRetry, RoadNotThere } from './roadClient';
 import { ROAD_SEGMENTS_PATH, parseRoadSegments, type RoadSegmentsFile } from './roadSegments';
 import { parseRoadHz, roadHzPath, type RoadHzFile } from './roadHazards';
 
@@ -17,7 +17,14 @@ export interface RoadHzLoad {
   error?: string;
 }
 
-const hzCache = new Map<string, RoadHzFile | null>();
+/** A slot that was "not there" is asked again after this long (`set`) — it may have been published in between. */
+const HZ_MISS_TTL_MS = 2 * 60_000;
+const hzStore = new Map<string, { file: RoadHzFile | null; at: number }>();
+const hzCache = {
+  has: (s: string) => { const e = hzStore.get(s); return !!e && (e.file != null || Date.now() - e.at < HZ_MISS_TTL_MS); },
+  get: (s: string) => hzStore.get(s)?.file ?? null,
+  set: (s: string, file: RoadHzFile | null) => { hzStore.set(s, { file, at: Date.now() }); },
+};
 
 /** The hazards of the measured slot (`stamp`), stepping back up to `maxBack` slots. */
 export async function loadRoadHz(stamp: string, signal?: AbortSignal, maxBack = 4): Promise<RoadHzLoad> {
@@ -27,7 +34,7 @@ export async function loadRoadHz(stamp: string, signal?: AbortSignal, maxBack = 
     const s = roadStamp(slotMs - back * ROAD_SLOT_MS);
     if (hzCache.has(s)) { const c = hzCache.get(s); if (c) return { file: c, reason: 'ok' }; continue; }
     try {
-      const j = await fetchRoadJson(roadHzPath(s), signal);
+      const j = await roadRetry(() => fetchRoadJson(roadHzPath(s), signal), signal);
       const file = parseRoadHz(j);
       if (!file) { hzCache.set(s, null); return { file: null, reason: 'invalid' }; }
       hzCache.set(s, file);
@@ -48,7 +55,7 @@ export async function loadRoadHzHistory(stamp: string, signal?: AbortSignal): Pr
   const one = async (ms: number): Promise<RoadHzFile | null> => {
     const s = roadStamp(ms);
     if (hzCache.has(s)) return hzCache.get(s) ?? null;
-    try { const f = parseRoadHz(await fetchRoadJson(roadHzPath(s), signal)); hzCache.set(s, f); return f; } catch { hzCache.set(s, null); return null; }
+    try { const f = parseRoadHz(await fetchRoadJson(roadHzPath(s), signal)); hzCache.set(s, f); return f; } catch (e) { if (e instanceof RoadNotThere) hzCache.set(s, null); return null; }
   };
   return Promise.all([one(slotMs - 3_600_000), one(slotMs - 2 * 3_600_000)]);
 }
@@ -57,7 +64,7 @@ let segmentsPromise: Promise<RoadSegmentsFile | null> | null = null;
 // No caller signal: the promise is shared, and an effect cleanup (StrictMode's double mount) would abort it for the next caller too.
 export function loadRoadSegments(): Promise<RoadSegmentsFile | null> {
   if (!segmentsPromise) {
-    segmentsPromise = fetchRoadJson(ROAD_SEGMENTS_PATH).then((j) => parseRoadSegments(j), () => { segmentsPromise = null; return null; });
+    segmentsPromise = roadRetry(() => fetchRoadJson(ROAD_SEGMENTS_PATH)).then((j) => parseRoadSegments(j), () => { segmentsPromise = null; return null; });
   }
   return segmentsPromise;
 }

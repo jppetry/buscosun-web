@@ -21,7 +21,7 @@ import ShareButton from '../share/ShareButton';
 import { useAppNav } from '../router/useAppNav';
 import { useMediaQuery } from '../mobile/useIsMobile';
 import type { CapAlert } from '../warnings/capAlerts';
-import { ROAD_DEAD_MS, roadFreshness, type RoadH24File, type RoadPoint } from './roadContract';
+import { ROAD_DEAD_MS, roadExpectedSlot, roadFreshness, roadStamp, type RoadH24File, type RoadPoint } from './roadContract';
 import { ROAD_CLASS_LABEL } from './roadClasses';
 import { loadRoadCorridors, loadRoadFc, loadRoadFcStation, loadRoadH24, loadRoadSlot, type RoadCorridor, type RoadFcLoad, type RoadFcStationLoad, type RoadSlotLoad } from './roadClient';
 import type { RoadFcPoint } from './roadFc';
@@ -75,6 +75,10 @@ export interface RoadPageProps {
 
 const DEFAULT_CORRIDOR = 'a8';
 const REFRESH_MS = 60_000;
+/** Weak connections: a slot read still running is left alone this long; a failed one is repeated after these waits. */
+const SLOT_HUNG_MS = 150_000;
+const SLOT_RETRY_MS = [5_000, 15_000] as const;
+const HZ_RETRY_MS = [5_000, 15_000, 45_000] as const;
 /** The pointer of the route forecast changes once an hour (plus the publish gate) — re-read every 10 min. */
 const FC_REFRESH_MS = 10 * 60_000;
 // V-AW-14: the radar layer is off by default (one more download and a GL layer only when asked for).
@@ -115,6 +119,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   const [hoverSeg, setHoverSeg] = useState<string | null>(null);
   const [segments, setSegments] = useState<RoadSegment[] | null | 'error'>(null);
   const [hzLoad, setHzLoad] = useState<{ slot: string; file: RoadHzFile | null; reason: string } | null>(null);
+  const [hzKept, setHzKept] = useState<RoadHzFile | null>(null);
   const [hzPrev, setHzPrev] = useState<{ slot: string; files: Array<RoadHzFile | null> } | null>(null);
   const [hzDir, setHzDir] = useState<0 | 1>(0);
   // AWD: the stage of the centre — map (default) or dossier (strip + detail of the open segment). Permalink `ds=1`; behind the hazard switch only.
@@ -157,18 +162,32 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   useEffect(() => {
     let ac = new AbortController();
     let alive = true;
+    let startedAt = 0;   // 0 = no read in flight
+    let fails = 0;
+    let retry = 0;
     const run = () => {
       const t = Date.now();
       setNowMs(t);
-      loadRoadSlot(t, ac.signal).then((l) => {
-        if (!alive) return;
+      startedAt = t;
+      const own = ac;
+      loadRoadSlot(t, own.signal).then((l) => {
+        if (!alive || own !== ac) return;
+        startedAt = 0;
         // A refresh never replaces a good slot by "nothing" — the shown slot stays and ages by the freshness rules.
         setLoad((prev) => (l.obs || !prev?.obs ? l : prev));
-      }, () => {});
+        // A read that failed on the network is repeated soon (weak connection), not only at the next minute.
+        if (!l.obs && l.reason === 'error' && fails < SLOT_RETRY_MS.length) retry = window.setTimeout(run, SLOT_RETRY_MS[fails++]);
+        else if (l.obs) fails = 0;
+      }, () => { if (own === ac) startedAt = 0; });
     };
     run();
-    const id = window.setInterval(() => { ac.abort(); ac = new AbortController(); run(); }, REFRESH_MS);
-    return () => { alive = false; ac.abort(); window.clearInterval(id); };
+    const id = window.setInterval(() => {
+      // A slow read is not cut off by the next tick (it would never finish on a weak connection); only a hung one is.
+      if (startedAt && Date.now() - startedAt < SLOT_HUNG_MS) { setNowMs(Date.now()); return; }
+      window.clearTimeout(retry);
+      ac.abort(); ac = new AbortController(); run();
+    }, REFRESH_MS);
+    return () => { alive = false; ac.abort(); window.clearInterval(id); window.clearTimeout(retry); };
   }, []);
 
   const obs = load?.obs ?? null;
@@ -181,13 +200,25 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
     loadRoadSegments().then((f) => { if (alive) setSegments(f ? f.segments : 'error'); }, () => { if (alive) setSegments('error'); });
     return () => { alive = false; };
   }, [hz]);
-  const hzSlot = hz ? obs?.slot ?? null : null;
+  // The hazard file does not wait for the measurements: until the slot is read, the expected slot of the clock is asked
+  // (same time gate; the reader steps back by itself) — the colours of the map need one round trip less.
+  const hzSlot = hz ? obs?.slot ?? roadStamp(roadExpectedSlot(nowMs)) : null;
+  const [hzTry, setHzTry] = useState(0);
+  const hzFails = useRef({ slot: '', n: 0 });
   useEffect(() => {
     if (!hzSlot) return;
     const ac = new AbortController();
-    loadRoadHz(hzSlot, ac.signal).then((l) => setHzLoad({ slot: hzSlot, file: l.file, reason: l.reason }), () => {});
-    return () => ac.abort();
-  }, [hzSlot]);
+    let timer = 0;
+    if (hzFails.current.slot !== hzSlot) hzFails.current = { slot: hzSlot, n: 0 };
+    loadRoadHz(hzSlot, ac.signal).then((l) => {
+      setHzLoad({ slot: hzSlot, file: l.file, reason: l.reason });
+      if (l.file) { setHzKept(l.file); hzFails.current.n = 0; return; }
+      // Not read (network) or not published yet: ask again, the shown file stays meanwhile.
+      const n = hzFails.current.n++;
+      if (l.reason !== 'invalid') timer = window.setTimeout(() => setHzTry((x) => x + 1), HZ_RETRY_MS[Math.min(n, HZ_RETRY_MS.length - 1)]);
+    }, () => {});
+    return () => { ac.abort(); window.clearTimeout(timer); };
+  }, [hzSlot, hzTry]);
   useEffect(() => {
     // The two earlier slots feed the plan table of the dossier only — a map click must not fetch them.
     if (!hzSlot || !segId || !inDossier) return;
@@ -195,11 +226,14 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
     loadRoadHzHistory(hzSlot, ac.signal).then((files) => setHzPrev({ slot: hzSlot, files }), () => {});
     return () => ac.abort();
   }, [hzSlot, segId, inDossier]);
-  const hzFile = hzLoad && hzLoad.slot === hzSlot ? hzLoad.file : null;
+  // While the next slot's file loads (or fails), the last good file stays on screen — it ages by its own slot time
+  // (grey after 45 min, gone after 3 h), so the coloured sections never blink away at a slot change.
+  const hzOwn = hzLoad && hzLoad.slot === hzSlot ? hzLoad : null;
+  const hzFile = hzOwn?.file ?? hzKept;
   const hzFresh = hzFile ? roadHzFreshness(hzFile.slotMs, nowMs, hzFile.killed) : 'dead';
   const segMap = useMemo(() => new Map((segments && segments !== 'error' ? segments : []).map((s) => [s.id, s] as const)), [segments]);
   const hzState: RoadHzPanelState = !hz ? 'loading' : segments === 'error' ? 'no-segments' : !segments || !hzSlot ? 'loading'
-    : !hzLoad || hzLoad.slot !== hzSlot ? 'loading' : !hzLoad.file ? (hzLoad.reason as 'not-there' | 'error' | 'invalid') : hzFresh === 'dead' ? 'dead' : hzFresh === 'stale' ? 'stale' : 'ok';
+    : !hzFile ? (!hzOwn ? 'loading' : (hzOwn.reason as 'not-there' | 'error' | 'invalid')) : hzFresh === 'dead' ? 'dead' : hzFresh === 'stale' ? 'stale' : 'ok';
   const hzShown = hzState === 'ok' || hzState === 'stale' ? hzFile : null;
   const hzGroups = useMemo(() => (hzShown ? hzGroupRows(hzShown, segMap, hzMode, hzFilter) : []), [hzShown, segMap, hzMode, hzFilter]);
   const hzOrder = useMemo(() => rowOrder(hzGroups), [hzGroups]);

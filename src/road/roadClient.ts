@@ -20,8 +20,27 @@ export class RoadNotThere extends Error {}
 /** p95 of the measured cold jsDelivr TTFB (AP0/AP1) — same hedge as the radar and the point reader. */
 export const ROAD_RAW_HEDGE_MS = 2_500;
 
+/** No response headers on either way after this long ⇒ the read fails (and may be retried) instead of hanging on a stalled connection (`set`). */
+export const ROAD_STALL_MS = 20_000;
+/** Waits before the 2nd, 3rd and 4th attempt of a failed read (`set`; weak connections). */
+export const ROAD_RETRY_MS: readonly number[] = [1_500, 4_000, 10_000];
+
 function abortError(signal: AbortSignal): unknown {
   return signal.reason ?? new DOMException('Aborted', 'AbortError');
+}
+
+/** Repeats a failed read (network, 5xx, stall) after `ROAD_RETRY_MS`; "not there" and an abort are answers, not failures. */
+export async function roadRetry<T>(read: () => Promise<T>, signal?: AbortSignal): Promise<T> {
+  for (let i = 0; ; i++) {
+    try { return await read(); } catch (e) {
+      if ((e as Error)?.name === 'AbortError' || e instanceof RoadNotThere || i >= ROAD_RETRY_MS.length) throw e;
+      await new Promise<void>((resolve, reject) => {
+        const t = setTimeout(() => { signal?.removeEventListener('abort', stop); resolve(); }, ROAD_RETRY_MS[i]);
+        const stop = () => { clearTimeout(t); reject(abortError(signal!)); };
+        if (signal?.aborted) stop(); else signal?.addEventListener('abort', stop, { once: true });
+      });
+    }
+  }
 }
 
 /**
@@ -40,11 +59,18 @@ export function fetchRoadJson(path: string, signal?: AbortSignal, bases: { cdn: 
     let cdnErr: unknown = null;
     let rawErr: unknown = null;
     let timer: ReturnType<typeof setTimeout> | null = null;
+    let headers = false;
+    const stall = setTimeout(() => {
+      if (headers) return;
+      finish(() => reject(new Error(`timeout ${cdn}`)));
+      acC.abort(); acR.abort();
+    }, ROAD_STALL_MS);
     const onAbort = () => { acC.abort(); acR.abort(); finish(() => reject(abortError(signal!))); };
     function finish(fn: () => void) {
       if (settled) return;
       settled = true;
       if (timer) clearTimeout(timer);
+      clearTimeout(stall);
       signal?.removeEventListener('abort', onAbort);
       fn();
     }
@@ -55,6 +81,7 @@ export function fetchRoadJson(path: string, signal?: AbortSignal, bases: { cdn: 
       finish(() => reject(notThere(cdnErr) && notThere(rawErr) ? cdnErr : notThere(cdnErr) ? rawErr : cdnErr));
     };
     const take = (res: Response, loser: AbortController) => {
+      headers = true;
       loser.abort();
       res.json().then((j) => finish(() => resolve(j)), (e) => finish(() => reject(e)));
     };
@@ -182,7 +209,7 @@ export function parseRoadCorridors(j: unknown): RoadCorridorsFile | null {
 }
 
 export async function loadRoadCorridors(signal?: AbortSignal): Promise<RoadCorridorsFile | null> {
-  try { return parseRoadCorridors(await fetchRoadJson(ROAD_CORRIDORS_PATH, signal)); } catch (e) {
+  try { return parseRoadCorridors(await roadRetry(() => fetchRoadJson(ROAD_CORRIDORS_PATH, signal), signal)); } catch (e) {
     if ((e as Error)?.name === 'AbortError') throw e;
     return null;
   }

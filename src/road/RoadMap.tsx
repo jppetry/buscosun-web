@@ -212,8 +212,12 @@ export default function RoadMap(props: Props) {
   const lastRef = useRef<{ corr?: unknown; pts?: unknown[]; warn?: unknown; fc?: unknown[]; segs?: unknown; sel?: string; hov?: string }>({});
   const rainRef = useRef<RainHold>({ layer: null, frame: null, validAtMs: null });
 
+  /** Set on `style.load`. NOT `map.isStyleLoaded()`: that is false while base map tiles or a GeoJSON source are still
+   *  loading, and an update arriving then was dropped until the next render (on a slow connection: lines late or gone). */
+  const styleReadyRef = useRef(false);
+
   function apply(map: maplibregl.Map) {
-    if (!map.isStyleLoaded()) return;
+    if (!styleReadyRef.current) return;
     const p = propsRef.current;
     // Test hook (verify:road-ui U2c): how often the sources were synced.
     if (hostRef.current) hostRef.current.dataset.applied = String((Number(hostRef.current.dataset.applied) || 0) + 1);
@@ -310,7 +314,8 @@ export default function RoadMap(props: Props) {
     });
     mapRef.current = map;
     if (import.meta.env.DEV) (window as unknown as { __roadMap?: maplibregl.Map }).__roadMap = map;
-    map.on('style.load', () => germanLabels(map));
+    // Sources and layers go in as soon as the style is there — not only at `load`, which waits for every base map tile.
+    map.on('style.load', () => { styleReadyRef.current = true; germanLabels(map); if (!map.getLayer('aw-points')) lastRef.current = {}; apply(map); });
     // Test hooks (no behaviour): time of the last idle frame and the visible bounds (verify:road-ui M3).
     map.on('idle', () => {
       if (!hostRef.current) return;
@@ -360,7 +365,7 @@ export default function RoadMap(props: Props) {
     });
     map.getCanvas().addEventListener('mouseleave', () => { setHoverSeg(''); setHoverCorr(''); });
     props.onMap?.(map);
-    return () => { props.onMap?.(null); map.remove(); mapRef.current = null; readyRef.current = false; };
+    return () => { props.onMap?.(null); map.remove(); mapRef.current = null; readyRef.current = false; styleReadyRef.current = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
