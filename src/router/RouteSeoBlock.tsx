@@ -56,6 +56,8 @@ export default function RouteSeoBlock() {
   }, [path]);
 
   if (!match || match.def.id === 'home' || match.def.meta.noindex || match.sub?.noindex) return null;
+  // Jan: no „Über diese Ansicht" chip on Autobahnwetter (the page text stays in the static route shell).
+  if (match.def.id === 'autobahnwetter') return null;
   if (staticPage) {
     // Derselbe Faktenblock wie im Roh-HTML, zugeklappt im gerenderten DOM. Die H1 trägt die Seite selbst (Name im Steckbrief),
     // deshalb steht die H1 des Blocks hier als Absatz (`rsb-h1`) — genau eine H1 je Seite.
