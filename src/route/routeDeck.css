@@ -667,13 +667,13 @@
 .rd-dropzone { flex: 1 1 auto; height: auto; min-height: 240px; }
 .rd-formats { width: 100%; flex: 0 0 auto; border-radius: 14px; }
 /* Dropzone kompakt, aber mittig in der Spalte */
-.rd-upload .rd-dropzone-card { flex: 0 0 auto; width: min(100%, 540px); margin-inline: auto; padding: 0; border: 0; background: none; box-sizing: border-box; }
+.rd-upload .rd-dropzone-card { flex: 0 0 auto; width: min(100%, 760px); margin-inline: auto; padding: 0; border: 0; background: none; box-sizing: border-box; }
 .rd-upload .rd-formats { box-sizing: border-box; }
 .rd-upload .rd-dropzone { width: 100%; box-sizing: border-box; border-radius: 14px; background: var(--rd-card); flex: 0 0 auto; min-height: 0; padding: 44px 24px; }
 .rd-upload .rd-dropzone-title { font-size: 25px; margin-top: 0; }
 .rd-upload .rd-dropzone-btn { margin-top: 16px; padding: 13px 32px; font-size: 16px; }
 .rd-upload .rd-dropzone-sub { margin-top: 14px; font-size: 13px; }
-.rd-upload .rd-formats { width: min(100%, 540px); margin-inline: auto; padding: 22px 24px; }
+.rd-upload .rd-formats { width: min(100%, 760px); margin-inline: auto; padding: 22px 24px; }
 .rd-upload .rd-formats-list { gap: 12px 18px; }
 .rd-upload .rd-format-row { font-size: 14px; }
 .rd-upload .rd-formats-note { font-size: 13px; }
