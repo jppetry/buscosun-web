@@ -461,11 +461,16 @@ const PRECONNECT_BY_ROUTE = {
   waldbrand: ['https://tiles.openfreemap.org', 'https://maps.effis.emergency.copernicus.eu'],
   // Gletscher (Jan 06.11.): Zeiger (raw), statische Dokumente (jsDelivr), Basiskarte, Gelände der 3D-Karte.
   gletscher: ['https://raw.githubusercontent.com', 'https://cdn.jsdelivr.net', 'https://tiles.openfreemap.org', 'https://elevation-tiles-prod.s3.amazonaws.com'],
+  // Autobahnwetter (Jan 06.11.): Messwerte/Gefahren (jsDelivr, raw als Ausweichweg und für den Prognose-Zeiger), Basiskarte.
+  // Der Eintrag schaltet auch die Vorladeliste frei (RoadRoute-Import in der `.then(…)`-Form).
+  autobahnwetter: ['https://cdn.jsdelivr.net', 'https://raw.githubusercontent.com', 'https://tiles.openfreemap.org'],
 };
 // Routen, deren Seite ein eigener Lazy-Chunk HINTER dem Route-Chunk ist (`lazy(() => import('…Page'))` im Wrapper): ohne diese
 // Liste lädt die Shell nur den kleinen Wrapper vor, Seite und MapLibre kämen erst in einer dritten Runde.
 const PAGE_CHUNKS_BY_ROUTE = {
   gletscher: ['GlacierPage'],
+  // Autobahnwetter: die Seite und die Gefahren-Leiste (lazy in der Seite, `ROAD_HZ_LIVE` ist an).
+  autobahnwetter: ['RoadPage', 'RoadHazardPanel'],
 };
 const routerSrc = readFileSync(join(ROOT, 'src', 'router', 'router.tsx'), 'utf8');
 const indexJsName = (rawShell.match(/src="\/(assets\/index-[\w-]+\.js)"/) || [])[1];

@@ -23,7 +23,7 @@ import { useMediaQuery } from '../mobile/useIsMobile';
 import type { CapAlert } from '../warnings/capAlerts';
 import { ROAD_DEAD_MS, roadExpectedSlot, roadFreshness, roadStamp, type RoadH24File, type RoadPoint } from './roadContract';
 import { ROAD_CLASS_LABEL } from './roadClasses';
-import { loadRoadCorridors, loadRoadFc, loadRoadFcStation, loadRoadH24, loadRoadSlot, type RoadCorridor, type RoadFcLoad, type RoadFcStationLoad, type RoadSlotLoad } from './roadClient';
+import { loadRoadCorridors, loadRoadFc, loadRoadFcStation, loadRoadH24, loadRoadSlot, takeWarmRoadCorridors, takeWarmRoadFc, takeWarmRoadSlot, type RoadCorridor, type RoadFcLoad, type RoadFcStationLoad, type RoadSlotLoad } from './roadClient';
 import type { RoadFcPoint } from './roadFc';
 import {
   ROAD_FC_AIR_COLOR, ROAD_FC_AIR_LABEL, ROAD_FC_LINE_COLOR, defaultRoadFcAxis, firstRoadFcAxis, isRoadFcAxisId, roadFcAirClass, roadFcAxisName, roadFcAxisPoints, roadFcBand, roadFcLine,
@@ -155,7 +155,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   // --- data ------------------------------------------------------------------------------------
   useEffect(() => {
     const ac = new AbortController();
-    loadRoadCorridors(ac.signal).then((f) => {
+    (takeWarmRoadCorridors() ?? loadRoadCorridors(ac.signal)).then((f) => {
       if (!f) { setCorrState('error'); return; }
       setCorridors(f.corridors.slice().sort((a, b) => roadNumber(a.road) - roadNumber(b.road) || b.stations.length - a.stations.length));
       setCorrState('ok');
@@ -174,7 +174,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
       setNowMs(t);
       startedAt = t;
       const own = ac;
-      loadRoadSlot(t, own.signal).then((l) => {
+      (takeWarmRoadSlot() ?? loadRoadSlot(t, own.signal)).then((l) => {
         if (!alive || own !== ac) return;
         startedAt = 0;
         // A refresh never replaces a good slot by "nothing" — the shown slot stays and ages by the freshness rules.
@@ -332,7 +332,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
     let ac = new AbortController();
     let alive = true;
     const run = () => {
-      loadRoadFc('corridor', fcCorridorId, Date.now(), ac.signal).then((l) => {
+      (takeWarmRoadFc(fcCorridorId) ?? loadRoadFc('corridor', fcCorridorId, Date.now(), ac.signal)).then((l) => {
         if (alive) setFcLoad((prev) => (l.file || prev?.corridor !== fcCorridorId || !prev.load.file ? { corridor: fcCorridorId, load: l } : prev));
       }, () => {});
     };

@@ -293,6 +293,48 @@ export async function loadRoadFcStation(run: RoadFcRunEntry, stationId: string, 
   return point ? { point, reason: 'ok', where: key } : { point: null, reason: 'not-in-run', where: key };
 }
 
+// --- Early start ---------------------------------------------------------------------------------
+
+/**
+ * Early start of the page's first reads (corridors, measured slot, the route forecast of the corridor in the link): the route
+ * wrapper calls `warmRoadStart` while the page chunk and MapLibre still download; the page takes each running answer once
+ * (`takeWarmRoad…`). Not taken, too old or another corridor ⇒ the page reads as before.
+ */
+const ROAD_WARM_TTL_MS = 60_000;
+let warmStart: {
+  at: number;
+  corridors: Promise<RoadCorridorsFile | null> | null;
+  slot: Promise<RoadSlotLoad> | null;
+  fc: { id: string; load: Promise<RoadFcLoad> } | null;
+} | null = null;
+export function warmRoadStart(corridorId: string | null, nowMs: number = Date.now()): void {
+  if (warmStart && nowMs - warmStart.at < ROAD_WARM_TTL_MS) return;
+  const quiet = <T>(p: Promise<T>): Promise<T> => { p.catch(() => { /* the page sees the failure when it takes the answer */ }); return p; };
+  warmStart = {
+    at: nowMs,
+    corridors: quiet(loadRoadCorridors()),
+    slot: quiet(loadRoadSlot(nowMs)),
+    fc: corridorId ? { id: corridorId, load: quiet(loadRoadFc('corridor', corridorId, nowMs)) } : null,
+  };
+}
+const warmNow = () => (warmStart && Date.now() - warmStart.at < ROAD_WARM_TTL_MS ? warmStart : null);
+export function takeWarmRoadCorridors(): Promise<RoadCorridorsFile | null> | null {
+  const p = warmNow()?.corridors ?? null;
+  if (warmStart) warmStart.corridors = null;
+  return p;
+}
+export function takeWarmRoadSlot(): Promise<RoadSlotLoad> | null {
+  const p = warmNow()?.slot ?? null;
+  if (warmStart) warmStart.slot = null;
+  return p;
+}
+export function takeWarmRoadFc(corridorId: string): Promise<RoadFcLoad> | null {
+  const f = warmNow()?.fc ?? null;
+  if (!f || f.id !== corridorId) return null;
+  if (warmStart) warmStart.fc = null;
+  return f.load;
+}
+
 /** Forecast of one corridor (`kind: 'corridor'`) or of the corridor-less stations of a state (`kind: 'state'`). */
 export async function loadRoadFc(kind: 'corridor' | 'state', id: string, nowMs: number, signal?: AbortSignal, index?: RoadFcIndex | null): Promise<RoadFcLoad> {
   const idx = index === undefined ? await loadRoadFcIndex(signal) : index;

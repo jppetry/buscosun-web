@@ -7,7 +7,7 @@
  * Until Gate C the page exists only with `?road=1` / `localStorage.road = '1'` (`src/road/roadFlag.ts`); without the
  * flag the route answers like an unknown path. The page itself is a lazy chunk of its own (`src/road/RoadPage.tsx`).
  */
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useNavigationType, useParams } from 'react-router';
 import NotFoundRoute from './NotFoundRoute';
 import AppLoader from '../AppLoader';
@@ -16,6 +16,8 @@ import { buildRoadUrl, parseRoadUrl, type RoadUrlState } from '../../road/roadSt
 import { roadLinkUrl, roadNormalizeSearch, roadSegIdFromLink } from '../../road/roadLink';
 import StaleLinkNotice from '../../share/StaleLinkNotice';
 import RoadLinkNotice from '../../road/RoadLinkNotice';
+import { warmRoadStart } from '../../road/roadClient';
+import { warmRoadHzStart } from '../../road/roadHzClient';
 
 const RoadPage = lazy(() => import('../../road/RoadPage'));
 const STATE_DEBOUNCE_MS = 300;
@@ -33,6 +35,11 @@ export default function RoadRoute() {
   // AW-6.2.9: the virtual road sensor behind its own switch (`ROAD_VS_LIVE = false`, `?roadvs=1`, E-VS-2) — off, the page fetches nothing of it.
   const vs = useMemo(() => roadVsFlagFrom(loc.search), [loc.search]);
   useEffect(() => { rememberRoadFlag(loc.search); rememberRoadHzFlag(loc.search); rememberRoadSurfaceFlag(loc.search); rememberRoadVsFlag(loc.search); }, [loc.search]);
+  // Early start: corridors, measured slot, the corridor's forecast and (hazard rail on) segments + hazards load while the page chunk and MapLibre still download.
+  useState(() => {
+    if (enabled) { try { warmRoadStart(road && /^[a-z0-9-]+$/.test(road) ? road : null); if (hz) warmRoadHzStart(); } catch { /* the page then reads them itself */ } }
+    return null;
+  });
 
   // Link on ONE segment (`/autobahnwetter/a8/km-034`, src/road/roadLink.ts): the path names the segment, the detail view opens on arrival.
   const nowRef = useRef(Date.now());

@@ -5,7 +5,7 @@
  * slots, like `loadRoadSlot`. The client checks the file with the contract (`parseRoadHz`); the freshness rules are the
  * contract's (`roadHzFreshness`): > 45 min grey, > 3 h "Gefahrenlage derzeit nicht verfügbar".
  */
-import { ROAD_SLOT_MS, roadStamp } from './roadContract';
+import { ROAD_SLOT_MS, roadExpectedSlot, roadStamp } from './roadContract';
 import { fetchRoadJson, roadRetry, RoadNotThere } from './roadClient';
 import { ROAD_SEGMENTS_PATH, parseRoadSegments, type RoadSegmentsFile } from './roadSegments';
 import { parseRoadHz, roadHzPath, type RoadHzFile } from './roadHazards';
@@ -26,8 +26,27 @@ const hzCache = {
   set: (s: string, file: RoadHzFile | null) => { hzStore.set(s, { file, at: Date.now() }); },
 };
 
+/** Early start (route wrapper): segments and the hazard file of the clock's expected slot, while the page chunk still downloads. */
+let hzWarm: { stamp: string; at: number; load: Promise<RoadHzLoad> } | null = null;
+export function warmRoadHzStart(nowMs: number = Date.now()): void {
+  if (hzWarm && nowMs - hzWarm.at < 60_000) return;
+  void loadRoadSegments();
+  const stamp = roadStamp(roadExpectedSlot(nowMs));
+  const load = loadRoadHz(stamp);
+  load.catch(() => { /* the page reads it itself */ });
+  hzWarm = { stamp, at: nowMs, load };
+}
+
 /** The hazards of the measured slot (`stamp`), stepping back up to `maxBack` slots. */
 export async function loadRoadHz(stamp: string, signal?: AbortSignal, maxBack = 4): Promise<RoadHzLoad> {
+  // The early start's answer for this slot, once; without a file the read below runs as usual.
+  const w = hzWarm;
+  if (w && w.stamp === stamp && Date.now() - w.at < 60_000) {
+    hzWarm = null;
+    const l = await w.load.catch(() => null);
+    if (signal?.aborted) throw signal.reason ?? new DOMException('Aborted', 'AbortError');
+    if (l?.file) return l;
+  }
   const slotMs = Date.UTC(2000 + +stamp.slice(0, 2), +stamp.slice(2, 4) - 1, +stamp.slice(4, 6), +stamp.slice(6, 8), +stamp.slice(8, 10));
   let error: string | undefined;
   for (let back = 0; back <= maxBack; back++) {
