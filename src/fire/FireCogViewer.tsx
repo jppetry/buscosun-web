@@ -29,7 +29,7 @@ import { dnbrTileRgba, swirTileRgba, DNBR_CLASSES } from './detail/burnIndex';
 import { floodScar, scarHa, seedsFromRects, SCAR_MIN_CLASS, type ScarResult } from './detail/burnScar';
 import { detectionPolysPx, type DetPoly } from './detail/satDetections';
 import type { FirmsRow } from './sources/firmsHotspots';
-import { fetchS2CogRef, fetchS2PreCogRef, type S2CogRef, type S2PreRef } from './detail/fireSatImagery';
+import { fetchS2CogRef, fetchS2PreCogRef, fetchSat, type S2CogRef, type S2PreRef, type SatFetchOpts } from './detail/fireSatImagery';
 import { pixelOf } from './detail/sentinelGeo';
 import { prepareWcSampler, wcEnabled, wcVia, type WcSampler, type WcVia } from './detail/worldCover';
 
@@ -157,10 +157,29 @@ function putBitmap(key: string, p: Promise<ImageBitmap>): Promise<ImageBitmap> {
   return p;
 }
 
+/**
+ * Deadlines of the range requests to the image bucket (`set`). A request that never answers held one of the four
+ * tile slots for good; now it is given up and asked once more. The body limit is wide — a 2 MB tile on a slow
+ * mobile link must not be cut off and loaded again from the start.
+ */
+const TILE_FETCH: SatFetchOpts = { firstByteMs: 10_000, totalMs: 120_000, tries: 2 };
+const HEADER_FETCH: SatFetchOpts = { firstByteMs: 8_000, totalMs: 20_000, tries: 2 };
+
+/**
+ * Tiles whose load failed, with the time and the count of failures in a row. The draw asked for a failed tile again
+ * in the very next frame — offline that was a request loop. Now the next try waits 4 s, 8 s, 16 s, at most 30 s.
+ */
+const _failed = new Map<string, { at: number; n: number }>();
+const tileRetryMs = (n: number): number => Math.min(30_000, 4_000 * 2 ** (n - 1));
+function failedLately(key: string): boolean {
+  const f = _failed.get(key);
+  return f != null && Date.now() - f.at < tileRetryMs(f.n);
+}
+
 async function fetchRange(href: string, offset: number, byteCount: number): Promise<Uint8Array> {
-  const r = await fetch(href, { headers: { Range: `bytes=${offset}-${offset + byteCount - 1}` } });
+  const r = await fetchSat(href, { headers: { Range: `bytes=${offset}-${offset + byteCount - 1}` } }, TILE_FETCH);
   if (!r.ok && r.status !== 206) throw new Error(`HTTP ${r.status}`);
-  return new Uint8Array(await r.arrayBuffer());
+  return new Uint8Array(r.buf);
 }
 
 function loadTile(
@@ -367,10 +386,10 @@ function fetchIfds(href: string, onBytes: (n: number) => void): Promise<CogIfd[]
   const p = (async () => {
     let end = COG_HEADER_BYTES;
     for (let i = 0; i < 3; i++) {
-      const r = await fetch(href, { headers: { Range: `bytes=0-${end - 1}` } });
+      const r = await fetchSat(href, { headers: { Range: `bytes=0-${end - 1}` } }, HEADER_FETCH);
       if (!r.ok && r.status !== 206) throw new Error(`HTTP ${r.status}`);
       onBytes(end);
-      const parsed = parseCogIfds(await r.arrayBuffer());
+      const parsed = parseCogIfds(r.buf);
       if (parsed.kind === 'ok') return parsed.ifds;
       if (parsed.kind === 'unsupported') throw new Error(`cog-unsupported: ${parsed.reason}`);
       end = Math.max(parsed.upTo, COG_HEADER_RETRY_BYTES);
@@ -715,6 +734,14 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
     };
     const budget = { n: 0 };
     const frame = { deferred: false };
+    /** Set once this draw's own microtasks are through: a tile that arrives later is left to the next draw. */
+    let late = false;
+    /** A failed tile is asked again after a growing pause (4 s … 30 s), not in the next frame. */
+    const retryLater = (key: string) => {
+      const n = (_failed.get(key)?.n ?? 0) + 1;
+      _failed.set(key, { at: Date.now(), n });
+      window.setTimeout(() => schedule(), tileRetryMs(n) + 50);
+    };
     /**
      * Eine Pyramide zeichnen: grob → fein bis zur gewählten Ebene; nur die gewählte fordert
      * fehlende Kacheln an (Deckel 12 je Bild). Overlays (`chosenOnly`) zeichnen NUR die gewählte
@@ -730,6 +757,26 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
     ) => {
       let started = 0;
       const sorted = [...levels].sort((a, b) => a.ifd.width - b.ifd.width);
+      type Lv = (typeof levels)[number];
+      const ask = (lv: Lv, t: CogTileRef) => {
+        const key = lv.key(t);
+        lv.request(t).then(() => { _failed.delete(key); schedule(); }, () => retryLater(key));
+      };
+      // Cold view (no level has this area yet): the tiles of the level two below the chosen one are asked FIRST —
+      // one 512² tile of ~0.4 MB instead of 1–4 tiles of ~2 MB, so a picture stands early and the chosen level
+      // sharpens it. A view that some level already covers (zoom, pan inside a loaded tile) asks for nothing extra.
+      if (!chosenOnly) {
+        const upTo = sorted.filter((l) => l.ifd.width <= chosenW);
+        const inView = (l: Lv) => { const f = l.ifd.width / fullW; return tilesFor(l.ifd, px0 * f, py0 * f, px1 * f, py1 * f); };
+        const pre = upTo.length >= 2 ? upTo[Math.max(0, upTo.length - 3)] : null;
+        if (pre && !upTo.some((l) => { const ts = inView(l); return ts.length > 0 && ts.every((t) => _tiles.has(l.key(t))); })) {
+          for (const t of inView(pre)) {
+            if (_tiles.has(pre.key(t)) || failedLately(pre.key(t)) || budget.n >= 12) continue;
+            budget.n++;
+            ask(pre, t);
+          }
+        }
+      }
       for (const lv of sorted) {
         if (lv.ifd.width > chosenW) continue;
         if (chosenOnly && lv.ifd.width !== chosenW) continue;
@@ -739,12 +786,19 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
           if (!cached) {
             if (lv.ifd.width === chosenW && budget.n < 12) {
               if (started >= maxStarts) { frame.deferred = true; continue; }
+              if (failedLately(lv.key(t))) continue;
               budget.n++; started++;
-              lv.request(t).then(() => schedule(), () => schedule());
+              ask(lv, t);
             }
             continue;
           }
-          void cached.then((bmp) => { if (sameView()) { place(lv.ifd, t, bmp); drawOverlays(); } }, () => undefined);
+          void cached.then((bmp) => {
+            if (!sameView()) return;
+            // A tile that arrives after this draw is not painted into it — a late coarse tile would cover the sharp one.
+            // The next draw places all levels in order.
+            if (late) { schedule(); return; }
+            place(lv.ifd, t, bmp); drawOverlays();
+          }, () => undefined);
         }
       }
     };
@@ -991,6 +1045,8 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
       return s.tiles === next.tiles && s.mb === next.mb && s.mPerPx === next.mPerPx
         && s.viewMpp === next.viewMpp ? s : next;
     });
+    // Queued after the callbacks of the tiles that were ready in this draw — they still paint, later ones redraw.
+    queueMicrotask(() => { late = true; });
   };
 
   const schedule = () => {

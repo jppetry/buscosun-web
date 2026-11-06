@@ -12,7 +12,7 @@
  */
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import {
-  cloudLabel, copernicusBrowserUrl, fetchSatImagery, PHASE_LABEL, SAT_ATTRIBUTION,
+  cloudLabel, copernicusBrowserUrl, fetchSat, fetchSatImagery, PHASE_LABEL, prefetchS2Day, S2_COG_ORIGIN, SAT_ATTRIBUTION,
   SAT_SOURCE_LABEL, sat10Enabled, satLabel, snapshotUrl, SNAP_H, SNAP_W, type SatImagery, type SatPhase, type SatScene,
 } from './detail/fireSatImagery';
 import { detectionRects30m } from './detail/satDetections';
@@ -62,10 +62,11 @@ function loadSnapshot(url: string): Promise<SnapState> {
   if (hit) return hit;
   const p = (async (): Promise<SnapState> => {
     try {
-      const r = await fetch(url);
+      // The image service renders on request and is sometimes silent: deadline 15 s for the head, one second try (`set`).
+      const r = await fetchSat(url, undefined, { firstByteMs: 15_000, totalMs: 40_000, tries: 2 });
       if (!r.ok) return { kind: 'error' };
       if (r.headers.get('Data-Present') === 'false') return { kind: 'nodata' };
-      return { kind: 'img', url: URL.createObjectURL(await r.blob()) };
+      return { kind: 'img', url: URL.createObjectURL(new Blob([r.buf], { type: r.headers.get('Content-Type') ?? 'image/jpeg' })) };
     } catch {
       return { kind: 'error' };
     }
@@ -78,6 +79,15 @@ function loadSnapshot(url: string): Promise<SnapState> {
   }
   _snaps.set(url, p);
   return p;
+}
+
+/** Opens the connection (DNS, TCP, TLS) to a host that is asked a moment later — a fresh hint each time, an idle socket closes after seconds. */
+function preconnect(origin: string): void {
+  if (typeof document === 'undefined') return;
+  document.head.querySelector(`link[rel="preconnect"][href="${origin}"]`)?.remove();
+  const l = document.createElement('link');
+  l.rel = 'preconnect'; l.href = origin; l.crossOrigin = 'anonymous';
+  document.head.appendChild(l);
 }
 
 const fmtDay = (dayIso: string): string => {
@@ -177,7 +187,15 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
   // Jans Auftrag 2026-10-14: an Sentinel-2-Tagen öffnet die 10-m-Ansicht von selbst; Landsat-Tage bleiben bei 30 m.
   useEffect(() => {
     if (scene?.sat !== 's2') { setCog10(false); return; }
-    setCog10(sat10Enabled());
+    const on = sat10Enabled();
+    setCog10(on);
+    // Cold start: viewer chunk, day search and the connection to the image bucket start together instead of one after the other.
+    if (on) {
+      void import('./FireCogViewer').catch(() => undefined);
+      prefetchS2Day(t.lat, t.lon, scene.dayIso);
+      preconnect(S2_COG_ORIGIN);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scene]);
 
   if (im.kind === 'loading') {

@@ -653,15 +653,13 @@ function MobileDeck(ctx: DeckCtx) {
   const m = VIEW_META[deckLens];
   return (
     <div className="vsd-m-root">
+      {/* Mobile head like the other features (Jan 06.11.): buscosun tile left (home), title, share tile right. */}
       <div className="vsd-m-header">
-        <div className="vsd-m-brandrow">
-          <img src="/buscosun-mark.svg" width={22} height={22} alt="" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} onClick={onBack} />
-          <div className="vsd-m-htext"><div className="vsd-m-eyebrow">{t.eyebrow}</div><div className="vsd-m-title">{t.title}</div></div>
-        </div>
-        <div className="vsd-m-actions">
-          <ShareButton className="vsd-m-share" compact />
-          <button className="vsd-m-back" onClick={onBack} aria-label="Zurück"><IconRailMap /></button>
-        </div>
+        <a className="vsd-m-logo" href="/" onClick={(e) => { e.preventDefault(); onBack(); }} aria-label="Zur Startseite">
+          <img src="/buscosun-mark.svg" width={22} height={22} alt="" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+        </a>
+        <div className="vsd-m-htext"><div className="vsd-m-eyebrow">{t.eyebrow}</div><div className="vsd-m-title">{t.title}</div></div>
+        <ShareButton className="vsd-m-share" compact />
       </div>
       <button type="button" className="vsd-m-fnbar" onClick={() => setSheetOpen(true)} aria-haspopup="dialog" aria-expanded={sheetOpen}>
         <span className="vsd-m-fnbar-ic" aria-hidden="true">{m.icon()}</span>
@@ -826,7 +824,6 @@ const fmtClock = (ms: number) => { const d = new Date(ms); return `${pad2(d.getH
 const fmtDayTime = (ms: number) => { const d = new Date(ms); const wd = d.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', ''); return `${wd} ${d.getDate()}. ${d.toLocaleDateString('de-DE', { month: 'short' }).replace('.', '')} · ${pad2(d.getHours())}:${pad2(d.getMinutes())} Uhr`; };
 
 // ---------------------------- Icons (aus der Vorlage) ----------------------------
-function IconRailMap() { return <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M12 3 L21 8 L12 13 L3 8 Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /><path d="M3 13 L12 18 L21 13" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /></svg>; }
 function IconPlay() { return <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5 L19 12 L7 19 Z" /></svg>; }
 function IconPause() { return <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>; }
 function IconRoute() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 4 H14 L18 8 V20 H6 Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /><path d="M9 16 C10 13 13 14 14 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>; }

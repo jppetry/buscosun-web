@@ -312,6 +312,58 @@ export function parseStacScenes(json: unknown): RawScene[] {
   return out;
 }
 
+/** Host of the Sentinel-2 COGs (10 m originals) — the block opens the connection while the day search still runs. */
+export const S2_COG_ORIGIN = 'https://sentinel-cogs.s3.us-west-2.amazonaws.com';
+
+export interface SatResponse { ok: boolean; status: number; headers: Headers; buf: ArrayBuffer }
+export interface SatFetchOpts { firstByteMs: number; totalMs: number; tries?: number }
+
+/**
+ * `fetch` for the remote imagery hosts (Earth Search, NASA Snapshot, the S3 COG bucket) with a deadline and a second try.
+ * Without it one hanging request left the block on "wird geladen …" for good and held a tile slot of the viewer.
+ * `firstByteMs` limits the wait for the response head, `totalMs` the whole body; a network error, a deadline, 429 and 5xx
+ * are tried again, any other status goes back to the caller. The abort signal is per attempt, never the caller's (GBP1 (3)).
+ */
+export async function fetchSat(url: string, init: RequestInit | undefined, opts: SatFetchOpts): Promise<SatResponse> {
+  const tries = opts.tries ?? 2;
+  let last: unknown = null;
+  for (let i = 0; i < tries; i++) {
+    if (i > 0) await new Promise((r) => setTimeout(r, 400 * i));
+    const ac = new AbortController();
+    const tFirst = setTimeout(() => ac.abort(), opts.firstByteMs);
+    const tTotal = setTimeout(() => ac.abort(), opts.totalMs);
+    try {
+      const r = await fetch(url, { ...init, signal: ac.signal });
+      clearTimeout(tFirst);
+      if ((r.status >= 500 || r.status === 429) && i + 1 < tries) {
+        last = new Error(`HTTP ${r.status}`);
+        void r.body?.cancel().catch(() => undefined);
+        continue;
+      }
+      return { ok: r.ok, status: r.status, headers: r.headers, buf: await r.arrayBuffer() };
+    } catch (e) {
+      last = e;
+    } finally {
+      clearTimeout(tFirst);
+      clearTimeout(tTotal);
+    }
+  }
+  throw last ?? new Error('fetch failed');
+}
+
+/** Deadlines of the STAC searches (`set`): the answers are small, a search that is silent for 8 s is tried again. */
+const STAC_FETCH: SatFetchOpts = { firstByteMs: 8_000, totalMs: 20_000, tries: 2 };
+
+async function stacPost(body: unknown): Promise<unknown> {
+  const r = await fetchSat(STAC_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  }, STAC_FETCH);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return JSON.parse(new TextDecoder().decode(r.buf));
+}
+
 const _cache = new Map<string, { at: number; p: Promise<SatImagery> }>();
 
 export function fetchSatImagery(
@@ -329,12 +381,7 @@ export function fetchSatImagery(
   const p = (async (): Promise<SatImagery> => {
     let raw: RawScene[] | null = null;
     try {
-      const r = await fetch(STAC_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(stacSearchBody(lat, lon, from, to)),
-      });
-      if (r.ok) raw = parseStacScenes(await r.json());
+      raw = parseStacScenes(await stacPost(stacSearchBody(lat, lon, from, to)));
     } catch { /* Ausfall wird unten ein Satz, kein stilles Loch */ }
     if (raw == null) {
       _cache.delete(key); // Totalausfall nicht für die Sitzung merken
@@ -354,6 +401,7 @@ export function fetchSatImagery(
 
 export function resetSatImageryCache(): void {
   _cache.clear();
+  _dayJsonCache.clear();
   _cogRefCache.clear();
   _preRefCache.clear();
 }
@@ -485,6 +533,29 @@ export function pickGranule(cands: readonly S2CogRef[]): S2CogRef | null {
   return cands.reduce((a, b) => (b.marginPx > a.marginPx ? b : a));
 }
 
+/** The raw answer of the day search — kept apart from the parsed reference, so it can start before the viewer chunk (and its projection code) is there. */
+const _dayJsonCache = new Map<string, { at: number; p: Promise<unknown> }>();
+const DAY_JSON_CACHE_MAX = 8;
+
+function stacDayJson(lat: number, lon: number, dayIso: string, nowMs: number): Promise<unknown> {
+  const key = `${lat.toFixed(3)},${lon.toFixed(3)}|${dayIso}`;
+  const hit = _dayJsonCache.get(key);
+  if (hit && nowMs - hit.at < SAT_TTL_MS) return hit.p;
+  const p = stacPost(stacDayBody(lat, lon, dayIso));
+  p.catch(() => { if (_dayJsonCache.get(key)?.p === p) _dayJsonCache.delete(key); }); // Totalausfall nicht für die Sitzung merken
+  if (_dayJsonCache.size >= DAY_JSON_CACHE_MAX) _dayJsonCache.delete(_dayJsonCache.keys().next().value as string);
+  _dayJsonCache.set(key, { at: nowMs, p });
+  return p;
+}
+
+/**
+ * Cold start of the 10 m view: the day search starts as soon as the scene is chosen, in parallel to the viewer chunk —
+ * `fetchS2CogRef` then finds the answer instead of asking for it. Only for a scene whose 10 m view opens anyway.
+ */
+export function prefetchS2Day(lat: number, lon: number, dayIso: string, nowMs: number = Date.now()): void {
+  void stacDayJson(lat, lon, dayIso, nowMs).catch(() => undefined);
+}
+
 const _cogRefCache = new Map<string, { at: number; p: Promise<S2CogRef | null> }>();
 
 /** On-demand (erst mit dem Klick auf „In 10 m ansehen"); Sitzungs-Cache ohne AbortSignal (GBP1 (3)). */
@@ -498,13 +569,7 @@ export function fetchS2CogRef(
   if (hit && nowMs - hit.at < SAT_TTL_MS) return hit.p;
   const p = (async (): Promise<S2CogRef | null> => {
     try {
-      const r = await fetch(STAC_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(stacDayBody(lat, lon, dayIso)),
-      });
-      if (!r.ok) throw new Error(String(r.status));
-      return pickGranule(parseS2CogCandidates(await r.json(), lat, lon, pixelOfFn));
+      return pickGranule(parseS2CogCandidates(await stacDayJson(lat, lon, dayIso, nowMs), lat, lon, pixelOfFn));
     } catch {
       _cogRefCache.delete(key); // Totalausfall nicht für die Sitzung merken
       return null;
@@ -578,23 +643,9 @@ export function fetchS2PreCogRef(
   if (hit && nowMs - hit.at < SAT_TTL_MS) return hit.p;
   const p = (async (): Promise<S2PreRef | null> => {
     try {
-      const r = await fetch(STAC_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(stacPreListBody(lat, lon, postDayIso)),
-      });
-      if (!r.ok) throw new Error(String(r.status));
-      const dayIso = pickPreDay(await r.json(), square);
+      const dayIso = pickPreDay(await stacPost(stacPreListBody(lat, lon, postDayIso)), square);
       if (dayIso == null) return null; // fachliche Absage — memoieren ist richtig
-      const cands = await (async () => {
-        const rd = await fetch(STAC_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(stacDayBody(lat, lon, dayIso)),
-        });
-        if (!rd.ok) throw new Error(String(rd.status));
-        return parseS2CogCandidates(await rd.json(), lat, lon, pixelOfFn);
-      })();
+      const cands = parseS2CogCandidates(await stacDayJson(lat, lon, dayIso, nowMs), lat, lon, pixelOfFn);
       const ref = cands.find((c) => c.square === square) ?? null;
       return ref ? { ref, dayIso } : null;
     } catch {

@@ -17,6 +17,7 @@ import { pickCountry } from '../pointForecast/clustering';
 import { AtmosphereProvider, useAtmosphere } from './atmosphereStore';
 import AtmosphereDeck, { CutHintArt, type DeckSub } from './AtmosphereDeck';
 import type { AtmosphereUrlState } from './atmosphereUrl';
+import ShareButton from '../share/ShareButton';
 import type { Lens } from './atmosphereState';
 import { FeatureRail, type RailFeature } from '../nav/featureRail';
 import '../threed/threed.css';
@@ -68,6 +69,8 @@ function AtmosphereShell({ onBack, onOpenFeature, initialSub, routeSub, onSubCha
         <span className="vsd-top-label">Atmosphäre · Vertikalschnitt</span>
         <div className="vsd-topright">
           <button type="button" className="vsd-toppill" onClick={onBack}>Zurück</button>
+          {/* Mobile only (CSS): share tile on the right, like the other features; „Zurück“ is the logo tile there. */}
+          <ShareButton className="vsd-intro-share" compact />
         </div>
       </div>
       <div className="vsd-body">
