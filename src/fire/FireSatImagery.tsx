@@ -211,6 +211,11 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
         </div>
       )}
 
+      <p className="br-sat-caption">
+        <strong>{fmtDay(scene.dayIso)}</strong> · {cog10 ? 'Sentinel-2, Original 10 m' : `${satLabel(scene.sat)} · ${cloudLabel(scene.cloudPct)}`}
+        {!cog10 && scene.phase && <> · {PHASE_LABEL[scene.phase]}</>}
+        {cog10 && <> · {cloudLabel(scene.cloudPct)}</>}
+      </p>
       <div className="br-sat-frame">
         {cog10 && (
           <Suspense fallback={<p className="br-sat-wait br-muted">10-m-Ansicht wird geladen …</p>}>
@@ -277,11 +282,6 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
           <p className="br-sat-wait br-muted">Der Bilddienst ist gerade nicht erreichbar — später erneut öffnen.</p>
         )}
       </div>
-      <p className="br-sat-caption">
-        <strong>{fmtDay(scene.dayIso)}</strong> · {cog10 ? 'Sentinel-2, Original 10 m' : `${satLabel(scene.sat)} · ${cloudLabel(scene.cloudPct)}`}
-        {!cog10 && scene.phase && <> · {PHASE_LABEL[scene.phase]}</>}
-        {cog10 && <> · {cloudLabel(scene.cloudPct)}</>}
-      </p>
       {!cog10 && scene.sat === 's2' && sat10Enabled() && (
         <p className="br-cog-open">
           <button type="button" onClick={() => setCog10(true)}>

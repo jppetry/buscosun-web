@@ -1233,7 +1233,7 @@
 .br-sat-dettoggle { position: absolute; left: 8px; bottom: 8px; padding: 5px 10px; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 999px; background: rgba(253, 251, 244, .92); color: var(--ink-900, #2C2A26); font-family: 'League Spartan', system-ui, sans-serif; font-size: 13px; font-weight: 700; letter-spacing: .05em; cursor: pointer; }
 .br-sat-dettoggle[aria-pressed='true'] { background: var(--ink-900, #2C2A26); color: #FDFBF4; border-color: var(--ink-900, #2C2A26); }
 .br-sat-detnote { margin: 6px 0 0; font-size: 13px; }
-.br-sat-caption { margin: 8px 0 0; font-size: 14.5px; color: var(--stone-600, #5C5447); }
+.br-sat-caption { margin: 0 0 8px; font-size: 14.5px; color: var(--stone-600, #5C5447); }
 .br-sat-caption strong { color: var(--ink-900, #2C2A26); }
 .br-sat-days { display: flex; gap: 6px; overflow-x: auto; margin-top: 10px; padding-bottom: 4px; }
 .br-sat-day { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 56px; padding: 6px 8px; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 8px; background: #FDFBF4; color: var(--ink-800, #3A3833); font-size: 13px; cursor: pointer; }
