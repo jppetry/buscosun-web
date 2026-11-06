@@ -118,7 +118,7 @@ export default function FusionExplainerPage({ onBack, onOpenFeature }: { onBack:
                   <li key={s.title} className="fx-src-row">
                     <div className="fx-src-label">
                       <div className="fx-src-title"><b>{s.title}</b><span className="fx-src-range">{s.range}</span></div>
-                      <div className="fx-src-source">{s.source}</div>
+                      {s.source && <div className="fx-src-source">{s.source}</div>}
                     </div>
                     <div className="fx-track" aria-hidden="true">
                       {(s.steps ?? [[s.from, s.to, 1] as const]).map(([a, b, o]) => (

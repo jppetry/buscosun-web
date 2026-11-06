@@ -106,15 +106,15 @@ export const PROOF_CARDS = [
 ] as const;
 
 /** Section 03 rows: title, source, range text, window in hours, colour. The anchor row carries four opacity steps. */
-export interface SourceRow { title: string; source: string; range: string; from: number; to: number; color: string; steps?: ReadonlyArray<readonly [from: number, to: number, opacity: number]> }
+export interface SourceRow { title: string; source?: string; range: string; from: number; to: number; color: string; steps?: ReadonlyArray<readonly [from: number, to: number, opacity: number]> }
 export const SOURCES: readonly SourceRow[] = [
-  { title: 'Radar', source: 'DWD · GeoSphere Austria · MeteoSchweiz', range: '0–2 h', from: 0, to: 2, color: '#3A6FA8' },
+  { title: 'Radar', range: '0–2 h', from: 0, to: 2, color: '#3A6FA8' },
   { title: 'Messungen als Anker', source: 'rund 3.000 Stationen, Einfluss klingt ab', range: '0–48 h', from: 0, to: 48, color: '#2C2A26', steps: [[0, 6, 0.9], [6, 12, 0.6], [12, 24, 0.35], [24, 48, 0.15]] },
-  { title: 'Stündliche Kurzfristläufe (Niederschlag)', source: 'DWD', range: '0–27 h', from: 0, to: 27, color: '#7A9466' },
-  { title: 'Regionalmodelle, 1–2 km', source: 'DWD · GeoSphere Austria · MeteoSchweiz', range: '0–48 h', from: 0, to: 48, color: '#C97B47' },
-  { title: 'Stationsvorhersage MOSMIX', source: 'DWD', range: '0–240 h', from: 0, to: 240, color: '#C8935F' },
-  { title: 'Europa- und Alpenmodelle, Ensembles', source: 'DWD · GeoSphere Austria · MeteoSchweiz', range: '48–120 h', from: 48, to: 120, color: '#6B7A8F' },
-  { title: 'Globale Modelle, Ensembles, KI-Modelle', source: 'DWD · ECMWF', range: '120–336 h', from: 120, to: 336, color: '#7C6BC4' },
+  { title: 'Stündliche Kurzfristläufe (Niederschlag)', range: '0–27 h', from: 0, to: 27, color: '#7A9466' },
+  { title: 'Regionalmodelle, 1–2 km', range: '0–48 h', from: 0, to: 48, color: '#C97B47' },
+  { title: 'Stationsvorhersage', range: '0–240 h', from: 0, to: 240, color: '#C8935F' },
+  { title: 'Europa- und Alpenmodelle, Ensembles', range: '48–120 h', from: 48, to: 120, color: '#6B7A8F' },
+  { title: 'Globale Modelle, Ensembles, KI-Modelle', range: '120–336 h', from: 120, to: 336, color: '#7C6BC4' },
 ];
 /** Axis ticks of section 03: hours, label, hidden on mobile. */
 export const SOURCE_TICKS: ReadonlyArray<readonly [h: number, label: string, mobileHidden?: true]> = [
