@@ -40,6 +40,8 @@ import SeaReadout, { findWarning, type SeaReadoutHour, type SeaTexts, type SeaWa
 import SeaMapCard from './SeaMapCard';
 import MapGestureHint, { type HintSpot } from '../map/MapGestureHint';
 import SeaLinkNotice from './SeaLinkNotice';
+import AppLoader from '../router/AppLoader';
+import { usePageCover } from '../router/usePageCover';
 import './seaDeck.css';
 
 export interface SeaPageProps {
@@ -71,6 +73,8 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   const [areas, setAreas] = useState<SeaAreas | null>(null);
   const [killed, setKilled] = useState(false);
   const [runLoad, setRunLoad] = useState<SeaRunLoad | null>(null);
+  // Start cover (buscosun mark + ring) until the map is drawn and the catalogue and the first run are in.
+  const pageShown = usePageCover(mapInst, catalog !== 'loading' && runLoad !== null);
   const [spotsDoc, setSpotsDoc] = useState<SeaSpotsDoc | null>(null);
   const [windPtr, setWindPtr] = useState<string | null>(null);
   const [texts, setTexts] = useState<Partial<Record<SeaTextProduct, import('./seaText').SeaTextDoc | null>>>({});
@@ -474,6 +478,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   if (isMobile) {
     return (
       <div className="sw-root is-mobile">
+        <AppLoader cover done={pageShown} />
         {unknownSpot && <SeaLinkNotice kind="unknown" slug={unknownSpot} onClose={() => setUnknownSpot(null)} />}
         <main className="sw-map is-mobile" aria-label="Karte">
           {map}
@@ -513,6 +518,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   // --- desktop / tablet -------------------------------------------------------------------------------------
   return (
     <div className="sw-root">
+      <AppLoader cover done={pageShown} />
       {unknownSpot && <SeaLinkNotice kind="unknown" slug={unknownSpot} onClose={() => setUnknownSpot(null)} />}
       <FeatureRail active={'sea' as RailFeature} onOpenFeature={(id) => nav.openFeature(id)} onHome={nav.goHome}
         navClass="sw-rail" btnClass="sw-rail-btn" activeClass="is-active" spacerClass="sw-rail-spacer" />

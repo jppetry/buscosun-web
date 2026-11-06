@@ -56,6 +56,8 @@ import {
   searchCorridors, slotSummary, activeRoadWarnings, defaultRoadStation, ROAD_WARN_REFRESH_MS,
 } from './roadView';
 import MapGestureHint, { type HintSpot } from '../map/MapGestureHint';
+import AppLoader from '../router/AppLoader';
+import { usePageCover } from '../router/usePageCover';
 import './roadDeck.css';
 
 export interface RoadPageProps {
@@ -94,6 +96,8 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   const [corridors, setCorridors] = useState<RoadCorridor[] | null>(null);
   const [corrState, setCorrState] = useState<'loading' | 'ok' | 'error'>('loading');
   const [load, setLoad] = useState<RoadSlotLoad | null>(null);
+  // Start cover (buscosun mark + ring) until the map is drawn and the corridors and the first slot are in.
+  const pageShown = usePageCover(mapInst, corrState !== 'loading' && load !== null);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [corridorId, setCorridorId] = useState<string | null>(initial.corridor ?? null);
   const [stId, setStId] = useState<string | null>(initial.st);
@@ -748,6 +752,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
     );
     return (
       <div className="aw-root is-mobile">
+        <AppLoader cover done={pageShown} />
         <RoadSegNotice notice={segNotice} onClose={() => setSegNotice(null)} />
         <main className="aw-map is-mobile" aria-label={inDossier ? 'Dossier' : 'Karte'}>
           <div className="aw-m-mapwrap" hidden={inDossier}>{map}</div>
@@ -800,6 +805,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   // --- desktop / tablet ------------------------------------------------------------------------------------
   return (
     <div className="aw-root">
+      <AppLoader cover done={pageShown} />
       <RoadSegNotice notice={segNotice} onClose={() => setSegNotice(null)} />
       <FeatureRail active={'road' as RailFeature} onOpenFeature={(id) => nav.openFeature(id)} onHome={nav.goHome}
         navClass="aw-rail" btnClass="aw-rail-btn" activeClass="is-active" spacerClass="aw-rail-spacer" />

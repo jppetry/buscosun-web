@@ -13,6 +13,7 @@ import { FeatureRail, type RailFeature } from '../nav/featureRail';
 import ShareButton from '../share/ShareButton';
 import { useAppNav } from '../router/useAppNav';
 import AppLoader from '../router/AppLoader';
+import { usePageCover } from '../router/usePageCover';
 import { useMediaQuery } from '../mobile/useIsMobile';
 import {
   glacierBasesFrom, loadCatalog, loadFeed, loadIndex, loadMelt, loadOfficial, loadOutline, loadPoints, loadSatLatest, loadStatus, loadSummary,
@@ -90,26 +91,8 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   const [mapView, setMapView] = useState<'2d' | '3d'>(allow3d ? '3d' : '2d');
   const [map3dFailed, setMap3dFailed] = useState(false);
 
-  // Start cover like the fire radar (buscosun mark + ring): over the page until the map has its first complete frame and the
-  // data are in (held 400 ms so a gap between two loads does not end it), at the latest after 20 s. Shown once per visit.
-  const [mapLoaded, setMapLoaded] = useState(false);
-  const [pageShown, setPageShown] = useState(false);
-  useEffect(() => {
-    if (!mapInst) return;
-    const on = () => { if (mapInst.isStyleLoaded() && mapInst.areTilesLoaded()) setMapLoaded(true); };
-    mapInst.on('idle', on);
-    return () => { mapInst.off('idle', on); };
-  }, [mapInst]);
-  const coverReady = mapLoaded && load.s !== 'loading';
-  useEffect(() => {
-    if (pageShown || !coverReady) return;
-    const t = window.setTimeout(() => setPageShown(true), 400);
-    return () => window.clearTimeout(t);
-  }, [pageShown, coverReady]);
-  useEffect(() => {
-    const t = window.setTimeout(() => setPageShown(true), 20_000);
-    return () => window.clearTimeout(t);
-  }, []);
+  // Start cover like the fire radar (buscosun mark + ring), see usePageCover.
+  const pageShown = usePageCover(mapInst, load.s !== 'loading');
 
   // --- Data -----------------------------------------------------------------------------------------------------
   useEffect(() => {
