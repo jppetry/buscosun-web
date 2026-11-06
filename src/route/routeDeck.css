@@ -678,9 +678,9 @@
 .rd-upload .rd-format-row { font-size: 14px; }
 .rd-upload .rd-formats-note { font-size: 13px; }
 .rd-intro .rd-howto { margin-top: 0; }
-/* Karte der Startseite hinter dem Upload-Screen (nur Desktop); Dock bleibt volle Karte, Bühne liegt auf der Karte */
+/* Startseiten-Hintergrund (DachMapBackground) hinter dem Upload-Screen (nur Desktop); Dock bleibt volle Karte, Bühne liegt auf der Karte */
 .rd-deck--map { position: relative; isolation: isolate; }
-.rd-backdrop-map { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.rd-deck--map > .deck-mapbg { z-index: 0; }
 .rd-deck--map > .rd-dock, .rd-deck--map > .rd-stage { position: relative; z-index: 1; }
 .rd-deck--map .rd-stage .rd-section-label { align-self: center; background: var(--rd-card); border: 1px solid var(--border-default); border-radius: 999px; padding: 6px 14px; }
 .rd-deck--map .rd-stage .rd-howto { align-self: center; width: min(100%, 760px); background: var(--rd-card); }

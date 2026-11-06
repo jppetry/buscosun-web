@@ -24,7 +24,7 @@ import type { ParsedFile } from './routeModel';
 import '../mobile/safeArea.css';
 import './routeDeck.css';
 
-const RouteBackdropMap = lazy(() => import('./RouteBackdropMap'));
+const DachMapBackground = lazy(() => import('../DachMapBackground'));
 
 /** Ansichtsmodus des Ergebnis-Screens — `3d` spiegelt sich als `/tourenplanung/3d`. */
 export type TourViewMode = '2d' | '3d';
@@ -190,7 +190,7 @@ export default function RoutePage({ onBack, onOpenFeature, view = '2d', onView, 
         <section className="rd-intro rd-deck rd-deck--map">
           {!isMobile && (
             <Suspense fallback={null}>
-              <RouteBackdropMap />
+              <DachMapBackground />
             </Suspense>
           )}
           <div className="rd-dock">
