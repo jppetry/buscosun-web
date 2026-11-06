@@ -668,6 +668,8 @@ function MobileDeck(ctx: DeckCtx) {
           </>
         )}
       </div>
+      {/* Time slider of the section docked just above the bottom bar (Jan 06.11.): it stays in reach while the content scrolls. */}
+      {!mapOpen && ctx.section && <div className="vsd-m-timedock"><TimeDeck data={ctx.data} timeMs={ctx.timeMs} setTimeMs={ctx.setTimeMs} /></div>}
       {sheetOpen && (
         <div className="vsd-m-sheetwrap">
           <button type="button" className="vsd-m-backdrop" aria-label="Funktionen schließen" onClick={() => setSheetOpen(false)} />
@@ -717,7 +719,7 @@ function CutStageMobile(ctx: DeckCtx) {
 }
 
 function HoehenwindMobile(ctx: DeckCtx) {
-  const { data, section, timeMs, setTimeMs, picked, setPicked } = ctx;
+  const { data, section, picked, setPicked } = ctx;
   const { sectionLayers } = useAtmosphere();
   return (
     <>
@@ -740,7 +742,6 @@ function HoehenwindMobile(ctx: DeckCtx) {
           </div>
         ) : <div className="vsd-pquery-empty">Tippe in den Schnitt für Werte an einem Punkt.</div>}
       </div>
-      {section && <TimeDeck data={data} timeMs={timeMs} setTimeMs={setTimeMs} />}
       <p className="vsd-m-caption">{dataOrigin(data)} · {sectionMethod(section)} · werbefrei. Keine amtliche Warnung, keine Freigabe für Flug oder Bergtour.</p>
     </>
   );

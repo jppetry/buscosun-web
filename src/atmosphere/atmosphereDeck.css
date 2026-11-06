@@ -514,6 +514,9 @@
 .vsd-m-bar-btn.is-active { color: var(--steel-600, #3A6FA8); font-weight: 600; }
 .vsd-m-bar-btn:disabled { opacity: .45; cursor: default; }
 .vsd-m-bar-btn:focus-visible { outline: 2px solid var(--steel-600); outline-offset: -2px; }
+/* Time slider of the section, docked between the scrolling content and the bottom bar. */
+.vsd-m-timedock { flex: 0 0 auto; padding: 6px 12px 8px; }
+.vsd-m-timedock .vsd-timedeck { margin-top: 0; }
 
 .vsd-m-map > .td-map-shell, .vsd-m-map .td-map { width: 100%; height: 100%; }
 .vsd-m-sheetwrap { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; justify-content: flex-end; }
