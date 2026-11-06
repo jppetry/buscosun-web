@@ -8,7 +8,7 @@
  * identisch. Vorlage: references/routenplaner.dc.html (T1/T8/T11).
  */
 
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import RouteUpload from './RouteUpload';
 import RouteResult from './RouteResult';
 import TourView from './TourView';
@@ -23,6 +23,8 @@ import { useIsMobile } from '../mobile/useIsMobile';
 import type { ParsedFile } from './routeModel';
 import '../mobile/safeArea.css';
 import './routeDeck.css';
+
+const RouteBackdropMap = lazy(() => import('./RouteBackdropMap'));
 
 /** Ansichtsmodus des Ergebnis-Screens — `3d` spiegelt sich als `/tourenplanung/3d`. */
 export type TourViewMode = '2d' | '3d';
@@ -185,7 +187,12 @@ export default function RoutePage({ onBack, onOpenFeature, view = '2d', onView, 
   return (
     <RouteDeckShell isMobile={isMobile} onHome={onBack} onOpenFeature={onOpenFeature} crumb={crumb} right={right} mobileHeader={mobileHeader} step={0} contentClass={status.kind === 'idle' ? 'rd-content--deck' : undefined}>
       {status.kind === 'idle' && (
-        <section className="rd-intro rd-deck">
+        <section className="rd-intro rd-deck rd-deck--map">
+          {!isMobile && (
+            <Suspense fallback={null}>
+              <RouteBackdropMap />
+            </Suspense>
+          )}
           <div className="rd-dock">
             <div className="rd-intro-head">
               <span className="rd-intro-eyebrow">Tourenplanung</span>
