@@ -185,23 +185,23 @@
    Verlauf, Schneefallgrenze mit ihren drei Zeichen (ohne Statuszeile, Jan 2026-10-24). Mobil ausgeblendet wie die frühere Kartenlegende. */
 .rl-dock {
   flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: flex-start;
-  gap: 0.35rem 0; font-variant-numeric: tabular-nums;
+  gap: 0.25rem 0; font-variant-numeric: tabular-nums;
 }
-.rl-dock .rl-sec { display: flex; align-items: center; gap: 0.15rem 0.6rem; padding: 0 0.75rem; }
+.rl-dock .rl-sec { display: flex; align-items: center; gap: 0.1rem 0.45rem; padding: 0 0.55rem; }
 .rl-dock .rl-sec + .rl-sec { border-left: 1px solid rgba(224,214,190,0.9); }
 .rl-dock .rl-sec:last-child { padding-right: 0; }
 /* Type one step smaller again (Jan 2026-11-07) — between the original 0.86/0.8 rem and the 1/0.92 rem of 2145a38d. */
-.rl-head { display: flex; flex-direction: column; align-items: flex-start; gap: 0.1rem; margin-bottom: 0; font-size: 0.85rem; font-weight: 700; letter-spacing: -0.01em; line-height: 1.1; color: var(--ink-900, #2C2A26); white-space: nowrap; }
+.rl-head { display: flex; flex-direction: column; align-items: flex-start; gap: 0.05rem; margin-bottom: 0; font-size: 0.85rem; font-weight: 700; letter-spacing: -0.01em; line-height: 1.1; color: var(--ink-900, #2C2A26); white-space: nowrap; }
 .rl-head span { font-size: 0.68rem; font-weight: 500; letter-spacing: 0.01em; text-transform: none; color: var(--stone-500, #8B7355); }
-.rl-scale { display: flex; gap: 3px; }
-.rl-seg { display: flex; flex-direction: column; gap: 0.2rem; min-width: 3.3rem; }
-.rl-seg i { display: block; height: 0.38rem; border-radius: 4px; }
+.rl-scale { display: flex; gap: 2px; }
+.rl-seg { display: flex; flex-direction: column; gap: 0.15rem; min-width: 2.7rem; }
+.rl-seg i { display: block; height: 0.3rem; border-radius: 4px; }
 .rl-seg b { font-size: 0.78rem; font-weight: 600; line-height: 1; color: var(--ink-800, #3A3833); white-space: nowrap; }
 .rl-seg small { font-size: 0.70rem; line-height: 1; color: var(--stone-500, #8B7355); white-space: nowrap; }
-.rl-grad { display: grid; grid-template-columns: auto auto; justify-content: space-between; row-gap: 0.2rem; min-width: 6rem; }
-.rl-grad i { grid-column: 1 / -1; height: 0.38rem; border-radius: 4px; }
+.rl-grad { display: grid; grid-template-columns: auto auto; justify-content: space-between; row-gap: 0.15rem; min-width: 4.8rem; }
+.rl-grad i { grid-column: 1 / -1; height: 0.3rem; border-radius: 4px; }
 .rl-grad small { font-size: 0.70rem; color: var(--stone-500, #8B7355); }
-.rl-sk { display: flex; flex-flow: row wrap; gap: 0.1rem 0.6rem; max-width: 16rem; }
+.rl-sk { display: flex; flex-flow: row wrap; gap: 0.05rem 0.45rem; max-width: 13rem; }
 .rl-sk .nc-radar-leg-item { font-size: 0.66rem; line-height: 1.2; white-space: nowrap; }
 /* Mobil: die Legende steht auf voller Breite unter dem Zeitstempel — Titel über der Skala, die fünf Stufen teilen sich
    die Zeile; weitere Abschnitte (Schnee, Graupel, Hagel, Schneefallgrenze) darunter. */
