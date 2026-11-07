@@ -946,6 +946,8 @@
 .dbd-minimap .maplibregl-ctrl-bottom-right { right: 0; bottom: 0; }
 .dbd-minimap .maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib.maplibregl-compact { margin: 0 4px 4px 0; }
 .dbd-mm-inner, .dbd-mm-map { position: absolute; inset: 0; }
+/* wie `.dbd-stage-in > .dbd-stage-map`: höhere Spezifität als `.maplibregl-map { position: relative }` aus maplibre-gl.css, sonst hat die Karte Höhe 0 (Karte leer, Quellenzeile über der Karte; gemessen 07.11.) */
+.dbd-mm-inner > .dbd-mm-map { position: absolute; inset: 0; }
 .dbd-mm-cap { position: absolute; left: 8px; bottom: 8px; z-index: 2; max-width: calc(100% - 100px); padding: 3px 8px; border-radius: 7px; font-size: 10.5px; line-height: 1.35; color: #EDF1F5; background: rgba(31, 41, 55, .82); box-shadow: 0 1px 3px rgba(0, 0, 0, .35); }
 /* Mobil: die Kartenkachel steht allein in der Spalte, braucht also eine eigene Höhe (Desktop bestimmt sie die Reihe). */
 @media (max-width: 767px) { .dbd-minimap { height: 220px; } }

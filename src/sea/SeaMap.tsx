@@ -12,6 +12,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { SEA_FIELD_COORDS, SEA_OUT_ROWS, CLASS_COLOR } from './seaView';
 import { SEA_MODELS } from './seaContract';
+import { MAP_SOURCES_LINK } from '../map/MapSourcesTile';
 import type { SeaClass } from './seaProfiles';
 import type { SeaAreaFeature } from './seaClient';
 
@@ -122,7 +123,8 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, gau
     if (!box.current) return;
     const map = new maplibregl.Map({
       container: box.current, style: STYLE, bounds: SEA_START_BOUNDS, fitBoundsOptions: { padding: 10 }, maxBounds: [[SEA_VIEW_BOUNDS[0] - 6, SEA_VIEW_BOUNDS[1] - 4], [SEA_VIEW_BOUNDS[2] + 6, SEA_VIEW_BOUNDS[3] + 4]],
-      attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false, maxZoom: 12, minZoom: 4,
+      attributionControl: { compact: false, customAttribution: `${MAP_SOURCES_LINK} · Seegang, Wind, Warnungen: DWD · Wasserstand: BSH · bearbeitet` },
+      dragRotate: false, pitchWithRotate: false, maxZoom: 12, minZoom: 4,
     });
     mapRef.current = map;
     map.touchZoomRotate.disableRotation();

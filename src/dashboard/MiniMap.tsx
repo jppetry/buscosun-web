@@ -28,6 +28,7 @@ import { fetchRzcLatest } from '../sources/meteoSwissRadar';
 import { fetchIncaGrid } from '../sources/geosphereIncaGrid';
 import { drapeCorners, drapeImageSliced, type DrapeBox, type TowerRadarPick } from '../nowcast/cellTowers/radarDrape';
 import type { PlaceIn } from './model/types';
+import { BASEMAP_SOURCE, CC_BY_URL, DWD_OPEN_DATA_URL, GEOSPHERE_CREDIT, MAP_SOURCES_LINK, MapSourcesTile, type MapSourceGroup } from '../map/MapSourcesTile';
 
 /** Same basemap, labels, orientation layers and DACH mask as the Wetterkarte (`MapView`), so the tile reads as a piece of it. */
 const STYLE_URL = WEATHER_BASEMAP_STYLE;
@@ -113,6 +114,7 @@ export default function MiniMap({ place }: { place: PlaceIn }) {
   const [windState, setWindState] = useState<Part>('loading');
   const [radarState, setRadarState] = useState<Part>('loading');
   const [tempState, setTempState] = useState<Part>('loading');
+  const [mapReady, setMapReady] = useState(false);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -121,11 +123,11 @@ export default function MiniMap({ place }: { place: PlaceIn }) {
     const ac = new AbortController();
     const map = new maplibregl.Map({
       container: host, style: STYLE_URL, center: [place.lon, place.lat], zoom: ZOOM,
-      interactive: false, fadeDuration: 0, attributionControl: { compact: true },
+      interactive: false, fadeDuration: 0,
+      // Source line over the full width like the Brandradar (Jan 07.11., `map/MapSourcesTile.tsx`); it stays open.
+      attributionControl: { compact: false, customAttribution: `${MAP_SOURCES_LINK} · Wind, Temperatur: DWD ICON-D2 · Radar: DWD, GeoSphere Austria, MeteoSchweiz · bearbeitet` },
     });
-    map.once('load', () => {
-      map.getContainer().querySelectorAll('details.maplibregl-ctrl-attrib[open]').forEach((d) => d.removeAttribute('open'));
-    });
+    map.once('idle', () => setMapReady(true));
     // German names and cream labels on an ink halo, exactly as in the Wetterkarte (`?orient=0` = the plain basemap).
     const orient = orientationEnabledFrom();
     map.on('style.load', () => {
@@ -250,9 +252,23 @@ export default function MiniMap({ place }: { place: PlaceIn }) {
     radarState === 'na' ? 'Radar: nicht verfügbar' : '',
     tempState === 'na' ? 'Temperatur: nicht verfügbar' : '',
   ].filter(Boolean).join(' · ');
+  const c = place.country;
+  const sources: MapSourceGroup[] = [
+    { title: 'Basiskarte', items: [BASEMAP_SOURCE] },
+    {
+      title: 'Ebenen',
+      items: [
+        { name: 'Deutscher Wetterdienst · ICON-D2', url: DWD_OPEN_DATA_URL, what: 'Wind in 10 m und Temperatur in 2 m (Modellfeld)', licence: 'CC BY 4.0', licenceUrl: CC_BY_URL, changed: 'eigene Farbskala', on: windState === 'ok' || tempState === 'ok' },
+        { name: 'Deutscher Wetterdienst · Radar (RADOLAN-RV)', url: DWD_OPEN_DATA_URL, what: 'Niederschlag jetzt in Deutschland', licence: 'CC BY 4.0', licenceUrl: CC_BY_URL, on: c === 'DE' && radarState === 'ok' },
+        { name: 'GeoSphere Austria · INCA', url: 'https://data.hub.geosphere.at', what: 'Niederschlag jetzt in Österreich', credit: GEOSPHERE_CREDIT, licence: 'CC BY 4.0', licenceUrl: CC_BY_URL, on: c === 'AT' && radarState === 'ok' },
+        { name: 'MeteoSchweiz · Radar (RZC)', url: 'https://www.meteoschweiz.admin.ch/', what: 'Niederschlag jetzt in der Schweiz', licence: 'CC BY 4.0', licenceUrl: CC_BY_URL, on: c === 'CH' && radarState === 'ok' },
+      ],
+    },
+  ];
   return (
-    <div className="dbd-mm-inner">
+    <div className="dbd-mm-inner msl-host">
       <div ref={hostRef} className="dbd-mm-map" role="img" aria-label={`Kartenausschnitt um ${place.name} mit Wind, Niederschlag und Temperatur`} />
+      {!noWebgl && <MapSourcesTile title="Quellen des Kartenausschnitts" groups={sources} ready={mapReady} />}
       {noWebgl ? <div className="dbd-mm-cap">Karte braucht WebGL — dieses Gerät bietet es nicht.</div> : cap ? <div className="dbd-mm-cap">{cap}</div> : null}
     </div>
   );

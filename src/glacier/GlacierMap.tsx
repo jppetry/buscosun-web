@@ -132,7 +132,7 @@ export default function GlacierMap({ features, ramp, selectedId, onSelect, regio
     if (!box.current) return;
     const map = new maplibregl.Map({
       container: box.current, style: STYLE, bounds: GLACIER_START_BOUNDS, fitBoundsOptions: { padding: 8 }, maxBounds: GLACIER_MAX_BOUNDS,
-      attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false, maxZoom: 15, minZoom: 4,
+      attributionControl: { compact: false, customAttribution: '<a href="/lizenzen/" target="_blank" rel="noopener">Quellen &amp; Lizenzen</a> · Inventare je nach Land · bearbeitet' }, dragRotate: false, pitchWithRotate: false, maxZoom: 15, minZoom: 4,
     });
     mapRef.current = map;
     map.touchZoomRotate.disableRotation();
@@ -141,7 +141,7 @@ export default function GlacierMap({ features, ramp, selectedId, onSelect, regio
       if (mapRef.current !== map) return;
       map.addImage('gl-novalue', dashedRing(), { pixelRatio: 2 });
       try {
-        map.addSource('gl-dem', { type: 'raster-dem', tiles: [DEM_TILES], encoding: 'terrarium', tileSize: 256, maxzoom: 14 });
+        map.addSource('gl-dem', { type: 'raster-dem', tiles: [DEM_TILES], encoding: 'terrarium', tileSize: 256, maxzoom: 14, attribution: 'Mapzen, AWS Terrain Tiles' });
         const firstSymbol = map.getStyle().layers.find((l) => l.type === 'symbol')?.id;
         map.addLayer({ id: 'gl-hill', type: 'hillshade', source: 'gl-dem', layout: { visibility: 'none' }, paint: { 'hillshade-exaggeration': 0.45, 'hillshade-shadow-color': '#4A4234', 'hillshade-accent-color': '#6B5A45', 'hillshade-illumination-anchor': 'map', 'hillshade-illumination-direction': 315 } }, firstSymbol);
       } catch { onFailRef.current?.(); }

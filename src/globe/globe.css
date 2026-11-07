@@ -99,7 +99,10 @@
 .glb-map canvas { outline: none; }
 .glb-map-fallback { display: grid; place-content: center; gap: 0.4rem; text-align: center; padding: 2rem; color: #c2c8d4; }
 .glb-map-fallback strong { color: #fff; }
-.glb-root .maplibregl-ctrl-bottom-right, .glb-root .maplibregl-ctrl-bottom-left { display: none; }
+/* Quellenzeile unten rechts: gemeinsames Muster der Kartenseiten (map/mapSources.css, Jan 07.11.); nur die linke Ecke bleibt leer. */
+.glb-root .maplibregl-ctrl-bottom-left { display: none; }
+/* Desktop: der Chip „Über diese Ansicht“ liegt fest unten rechts über der Bühne — der Knopf „Quellen“ steht links daneben. */
+@media (min-width: 768px) { .glb-stage { --msl-right: 172px; } }
 .glb-root .maplibregl-ctrl-top-right { top: 6px; right: 6px; }
 .glb-root .maplibregl-ctrl-group { background: rgba(250, 246, 234, 0.96); border: 1px solid var(--glb-line); border-radius: 12px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); overflow: hidden; }
 .glb-root .maplibregl-ctrl-group button { width: 36px; height: 36px; background-color: transparent; }

@@ -17,6 +17,7 @@ import maplibregl, { type CustomLayerInterface } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { RoadPoint } from './roadContract';
 import type { RoadClass } from './roadClasses';
+import { MAP_SOURCES_LINK } from '../map/MapSourcesTile';
 import type { RoadCorridor } from './roadClient';
 import { ROAD_CLASS_COLOR, f1, isGapCorridor } from './roadView';
 import { ROAD_FC_LINE_COLOR } from './roadFcView';
@@ -310,7 +311,7 @@ export default function RoadMap(props: Props) {
     const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     const map = new maplibregl.Map({
       container: hostRef.current, style: STYLE, bounds: DACH_BOUNDS, fitBoundsOptions: { padding: 24 },
-      attributionControl: { compact: true }, pitchWithRotate: false, dragRotate: false, fadeDuration: reduce ? 0 : 300,
+      attributionControl: { compact: false, customAttribution: `${MAP_SOURCES_LINK} · Messwerte, Radar, Warnungen: DWD · Achsen © GeoBasis-DE / BKG · bearbeitet` }, pitchWithRotate: false, dragRotate: false, fadeDuration: reduce ? 0 : 300,
     });
     mapRef.current = map;
     if (import.meta.env.DEV) (window as unknown as { __roadMap?: maplibregl.Map }).__roadMap = map;
@@ -325,7 +326,8 @@ export default function RoadMap(props: Props) {
     map.on('load', () => {
       readyRef.current = true;
       apply(map);
-      map.getContainer().querySelectorAll('details.maplibregl-ctrl-attrib[open]').forEach((d) => d.removeAttribute('open'));
+      // The source line stays open (shared source line of the map pages, `map/MapSourcesTile.tsx`); the old collapse
+      // of the attribution `details` is gone — it left a 2-px strip (like the Brandradar fix 66ee80f).
       const c = propsRef.current.corridor;
       if (c) map.fitBounds(boundsOf(c), { padding: propsRef.current.padding, duration: 0 });
     });

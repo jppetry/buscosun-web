@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { WindLayer } from '../wind/WindLayer';
+import { MAP_SOURCES_LINK } from '../map/MapSourcesTile';
 import { GLOBE_PARTICLE_RAMP } from '../wind/particlePreset';
 import { globeStyle, TEMP_BEFORE_ID } from './globeStyle';
 import { sampleTempC, type RecoloredTemp } from './tempRecolor';
@@ -143,7 +144,8 @@ export default function GlobeMap(props: Props) {
       // Eigener Natural-Earth-Style (Public Domain) — die Attribution nennt
       // deshalb v. a. die Wetterquelle (NOAA GFS) und ist unkritisch, wird aber
       // konsistent zu allen anderen Karten eingeblendet (V-105).
-      attributionControl: { compact: true }, dragRotate: false,
+      // Source line over the full width like the Brandradar (Jan 07.11., `map/MapSourcesTile.tsx`).
+      attributionControl: { compact: false, customAttribution: `${MAP_SOURCES_LINK} · Wetterdaten: NOAA GFS (Public Domain) · Umrisse: Natural Earth (Public Domain) · bearbeitet` }, dragRotate: false,
     });
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');

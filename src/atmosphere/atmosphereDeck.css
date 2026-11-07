@@ -436,6 +436,8 @@
 
 /* ---- Karte mit Schnitt-Anleitung ------------------------------------------ */
 .vsd-plot--map { position: relative; padding: 0; overflow: hidden; }
+/* Desktop: der Chip „Über diese Ansicht“ liegt fest unten rechts über der Schnittkarte — der Knopf „Quellen“ steht links daneben. */
+@media (min-width: 768px) { .vsd-plot--map { --msl-right: 172px; } }
 .vsd-center > .vsd-plot--map { min-height: 420px; }
 .vsd-guide {
   position: absolute; left: 16px; bottom: 16px; z-index: 3;

@@ -24,7 +24,8 @@ import {
   resolvePointSource, setPointSource,
   type ModelSource, type ModelSourceState,
 } from './fusion/modelSource';
-import { modelEntry, isWhitelisted, RADAR_SOURCE, type ModelId } from './fusion/modelCatalog';
+import { modelEntry, isWhitelisted, MODEL_CATALOG, RADAR_SOURCE, type ModelId } from './fusion/modelCatalog';
+import { BASEMAP_SOURCE, CC_BY_URL, MAP_SOURCES_LINK, MapSourcesTile, type MapSourceGroup } from './map/MapSourcesTile';
 import { lerpFrameImage } from './fusion/frameInterp';
 import { COUNTRY_PROFILES, DACH_VIEW } from './countryProfiles';
 import { loadDachMask } from './countryMask';
@@ -1324,6 +1325,8 @@ export default function MapView({
       fadeDuration: 0,
       // Phase RR: im Profil keine Attribution (ⓘ-Kachel, Jan 28.10.2026) — die Legende des Decks liegt unten.
       ...(profile && !RADAR_PROFILE.controls.attribution ? { attributionControl: false } : {}),
+      // Full map: source line over the whole width like the Brandradar (Jan 07.11., `map/MapSourcesTile.tsx`).
+      ...(!profile && !embedded ? { attributionControl: { compact: false, customAttribution: `${MAP_SOURCES_LINK} · Wetterdaten: DWD, GeoSphere Austria, MeteoSchweiz u. a. · bearbeitet` } } : {}),
     });
 
     if (!profile || RADAR_PROFILE.controls.scale) map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
@@ -5073,6 +5076,29 @@ export default function MapView({
   const activeEntry = modelEntry(activeModelId(modelSource));
   const activeModelName = activeEntry?.name ?? 'Native';
   const isNativeActive = activeEntry?.special === 'native';
+  // „Quellen" on the map (shared source line of the map pages, Brandradar concept, Jan 07.11.).
+  const plain = (html: string) => html.replace(/<[^>]+>/g, '');
+  const sourceGroups: MapSourceGroup[] = [
+    { title: 'Basiskarte', items: [BASEMAP_SOURCE] },
+    {
+      title: 'Wettermodelle',
+      note: 'Auswahl über „Modell“',
+      items: MODEL_CATALOG.filter((m) => m.ingested).map((m) => ({ name: m.name, what: m.operator, licence: m.attribution.replace(/^Daten:\s*/, ''), on: m.id === activeEntry?.id })),
+    },
+    {
+      title: 'Messungen, Radar, Satellit, Warnungen',
+      items: [
+        { name: 'Deutscher Wetterdienst · Open Data', url: 'https://opendata.dwd.de/', what: 'Radar (RADOLAN-RV), Stationen, ICON-Modelle', licence: 'GeoNutzV / CC BY 4.0', licenceUrl: CC_BY_URL, changed: 'Höhenkorrektur, Fusion, Nowcast, eigene Farbskalen', on: active.has('nowcast') || active.has('stations') },
+        { name: 'GeoSphere Austria Data Hub', url: 'https://data.hub.geosphere.at', what: 'INCA, TAWES-Stationen', credit: 'Datenquelle: GeoSphere Austria - https://data.hub.geosphere.at', licence: 'CC BY 4.0', licenceUrl: CC_BY_URL },
+        { name: 'MeteoSchweiz Open Data', url: 'https://www.meteoschweiz.admin.ch/', what: 'Radar (RZC), SMN-Stationen, ICON-CH', licence: 'CC BY 4.0', licenceUrl: CC_BY_URL },
+        { name: plain(LIGHTNING_ATTRIBUTION), url: 'https://opendata.dwd.de/', what: 'Ebene Blitze', on: active.has('lightning') },
+        { name: 'Satellit: DWD OpenData (EUMETSAT Meteosat) · CC BY 4.0', url: 'https://opendata.dwd.de/', what: 'Ebene Satellit', on: active.has('sat') },
+        { name: plain(DWD_WARNINGS_ATTRIBUTION), url: 'https://www.dwd.de/DE/wetter/warnungen/warnWetter_node.html', what: 'Amtliche Warnungen Deutschland · wörtlich zitiert', on: active.has('warnings') },
+        { name: plain(AT_WARNINGS_ATTRIBUTION), url: 'https://www.geosphere.at/', what: 'Amtliche Warnungen Österreich · wörtlich zitiert', on: active.has('warnings') },
+        { name: plain(CH_WARNINGS_ATTRIBUTION), url: 'https://www.meteoswiss.admin.ch/', what: 'Amtliche Warnungen Schweiz · wörtlich zitiert', on: active.has('warnings') },
+      ],
+    },
+  ];
   // Quellen-Pille/Modell-Karte: Native zeigt die Komposit-Zusammensetzung
   // (Vorlage: „ICON-D2 · MOSMIX · RADOLAN-RV · 2,2 km"), konkrete Modelle
   // Betreiber · Auflösung · Horizont.
@@ -5904,8 +5930,9 @@ export default function MapView({
         )}
 
         {/* ---- Karten-Bühne (dunkles Feld) ---------------------------------- */}
-        <main className="mdk-stage">
+        <main className="mdk-stage msl-host">
           <div ref={containerRef} className="map-container" />
+          <MapSourcesTile title="Quellen der Wetterkarte" groups={sourceGroups} ready={pageShown} />
 
           {!isMobileMap && (
             <>

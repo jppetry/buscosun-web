@@ -56,6 +56,7 @@ import {
   searchCorridors, slotSummary, activeRoadWarnings, defaultRoadStation, ROAD_WARN_REFRESH_MS,
 } from './roadView';
 import MapGestureHint, { type HintSpot } from '../map/MapGestureHint';
+import { BASEMAP_SOURCE, CC_BY_URL, MapSourcesTile, type MapSourceGroup } from '../map/MapSourcesTile';
 import AppLoader from '../router/AppLoader';
 import { usePageCover } from '../router/usePageCover';
 import './roadDeck.css';
@@ -648,6 +649,31 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
     surface, vs: vsView,
   };
   // AW-8 / AWD: the readout's Gefahren tab carries the rail (Lage) in both stages — the detail of the open segment lives in the dossier (E-AWD-1).
+  // „Quellen" on the map (shared source line of the map pages, Brandradar concept, Jan 07.11.); rows as in the readout tab „Quellen".
+  const sourceGroups: MapSourceGroup[] = [
+    { title: 'Basiskarte', items: [BASEMAP_SOURCE] },
+    {
+      title: 'Kartenebenen',
+      items: [
+        { name: 'Deutscher Wetterdienst · Glättemeldeanlagen der Länder (SWIS)', url: 'https://opendata.dwd.de/', what: 'Fahrbahntemperatur, -zustand, Wasserfilm, Luft, Sicht an den Messstellen · 15 min', licence: 'GeoNutzV', changed: 'geprüft, umkodiert', on: layers.zust || layers.temp },
+        { name: fcFile ? roadFcEngineName(fcFile) : 'buscosun Fusion', what: 'Wetterprognose 0–48 h an den Messstellen und alle 5 km entlang der Autobahn', licence: 'Datenbasis, bearbeitet', on: layers.fc },
+        { name: 'Deutscher Wetterdienst · Radar (RADOLAN-RV)', url: 'https://opendata.dwd.de/', what: 'Ebene „Niederschlag jetzt“: jüngste Analyse, alle 5 min', licence: 'CC BY 4.0', licenceUrl: CC_BY_URL, on: layers.rain },
+        { name: 'Deutscher Wetterdienst · Warnungen (CAP)', url: 'https://www.dwd.de/', what: 'Glätte, Glatteis, Nebel, Sturm · wörtlich zitiert', licence: 'GeoNutzV / CC BY 4.0', licenceUrl: CC_BY_URL, on: layers.warn },
+        { name: 'BKG DLM250 · © GeoBasis-DE / BKG', url: 'https://gdz.bkg.bund.de/', what: 'Autobahnachsen der Korridore', licence: 'dl-de/by-2.0', licenceUrl: 'https://www.govdata.de/dl-de/by-2-0' },
+        { name: 'OpenStreetMap-Mitwirkende', url: 'https://www.openstreetmap.org/copyright', what: hz ? 'Lage der Prognosepunkte, Abschnitte, Brücken, Tunnel, Einschnitte, Dämme, Betonbelag' : 'Lage der Prognosepunkte auf der Fahrbahn', licence: 'ODbL 1.0', licenceUrl: 'https://opendatacommons.org/licenses/odbl/1-0/' },
+        { name: 'GeoNames', url: 'https://www.geonames.org/', what: 'Ortsnamen der Korridore', licence: 'CC BY 4.0', licenceUrl: CC_BY_URL },
+      ],
+    },
+    ...(hz ? [{
+      title: 'Gefahren je Abschnitt',
+      items: [
+        { name: 'Gefahren je Abschnitt (buscosun)', what: 'Regeln über Messwerten (GMA), DWD RADOLAN-RV, KONRAD3D, ICON-D2 und der Streckenprognose · Prognose-Stufen in Erprobung', licence: 'Datenbasis, bearbeitet', on: true },
+        { name: 'ESA WorldCover 2021', url: 'https://esa-worldcover.org/', what: 'Wald- und Ackeranteil neben der Fahrbahn', licence: 'CC BY 4.0', licenceUrl: CC_BY_URL },
+        { name: 'Mapzen / AWS Terrain Tiles', url: 'https://registry.opendata.aws/terrain-tiles/', what: 'Höhe und Steigung der Achse' },
+      ],
+    }] : []),
+  ];
+  const sourceTile = <MapSourcesTile title="Quellen des Autobahnwetters" groups={sourceGroups} ready={pageShown} />;
   const hzNode = !hz ? undefined : (<Suspense fallback={<div className="aw-hz aw-hz-loading" role="status">Gefahren werden geladen …</div>}>
     <RoadHazardPanel file={hzShown} state={hzState} segments={segMap} mode={hzMode} filter={hzFilter} selectedId={segId} nowMs={nowMs}
       onMode={(m) => { setHzMode(m); if (m === 'now') setTime(0); else if (typeof m === 'number') setTime(m); }} onFilter={setHzFilter} onHour={(h) => setTime(h)}
@@ -754,8 +780,9 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
       <div className="aw-root is-mobile">
         <AppLoader cover done={pageShown} />
         <RoadSegNotice notice={segNotice} onClose={() => setSegNotice(null)} />
-        <main className="aw-map is-mobile" aria-label={inDossier ? 'Dossier' : 'Karte'}>
+        <main className="aw-map is-mobile msl-host" aria-label={inDossier ? 'Dossier' : 'Karte'}>
           <div className="aw-m-mapwrap" hidden={inDossier}>{map}</div>
+          {!inDossier && sourceTile}
           <MapGestureHint map={mapInst} feature="autobahn" subject="road" accent="#1F5FAE" pickSpots={hintSpots} always enabled={!inDossier && mobTab === 'map'} />
           <div className="aw-m-top">
             <button type="button" className="aw-m-brand" aria-label="Zur Startseite" onClick={nav.goHome}><img src="/buscosun-mark.svg" width={22} height={22} alt="" /></button>
@@ -836,8 +863,9 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
               <div className="aw-dossier-body">{dossier}</div>
             </main>
           )}
-          <main className={`aw-map${fcCells ? ' has-fc' : ''}${hz ? ' no-band' : ''}`} aria-label="Karte" hidden={inDossier}>
+          <main className={`aw-map msl-host${fcCells ? ' has-fc' : ''}${hz ? ' no-band' : ''}`} aria-label="Karte" hidden={inDossier}>
             {map}
+            {sourceTile}
             <MapGestureHint map={mapInst} feature="autobahn" subject="road" accent="#1F5FAE" pickSpots={hintSpots} always enabled={!inDossier} />
             <div className="aw-ov-left">{pill}{times}</div>
             <div className="aw-ov-right">

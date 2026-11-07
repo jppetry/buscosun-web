@@ -1,0 +1,75 @@
+/* Quellenzeile + Knopf „Quellen" einer Kartenseite — 1:1 die Optik des Brandradars (fireDeck.css `.br-src*` und
+   `.fire-center .maplibregl-ctrl-*`, Jan 06.11.), gemeinsam für Wetterkarte, Seewetter, Autobahnwetter, Gletscher (Jan 07.11.).
+   Der Kartenrahmen trägt `msl-host`; `--msl-bottom` hebt Streifen und Knopf über eine untere Leiste der Seite.
+   `.msl-host.msl-host` = höhere Spezifität als die Seiten-Regeln für `.maplibregl-ctrl-bottom-right`; die Hintergrund-Angaben
+   tragen `!important`, weil MapView.css die Attribution global mit `!important` hell färbt (bleibt nach einem Besuch der
+   Wetterkarte im Dokument). */
+
+/* Streifen ganz unten über die volle Kartenbreite. Ebene 41 = über Kartenkacheln, Legenden, Karten-Karten und
+   Gesten-Hinweis, über dem Knopf (40); Klicks gehen durch die Zeile auf die Karte, nur Links sind klickbar. */
+.msl-host.msl-host .maplibregl-ctrl-bottom-right {
+  bottom: var(--msl-bottom, 0px); right: 0; left: 0; z-index: 41;
+  transition: opacity 0.4s ease, visibility 0s linear 0s;
+}
+.msl-host.msl-host .maplibregl-ctrl-attrib,
+.msl-host.msl-host details.maplibregl-ctrl-attrib.maplibregl-compact,
+.msl-host.msl-host details.maplibregl-ctrl-attrib.maplibregl-compact-show {
+  display: block; width: 100%; max-width: none; box-sizing: border-box; margin: 0; padding: 1px 8px;
+  background: rgba(11, 14, 18, 0.6) !important; backdrop-filter: none; -webkit-backdrop-filter: none;
+  color: #8B95A3; font-size: 11px; line-height: 1.3; border-radius: 0;
+  white-space: normal; overflow-wrap: anywhere; pointer-events: none;
+}
+.msl-host.msl-host .maplibregl-ctrl-attrib-inner { display: inline; line-height: inherit; }
+.msl-host.msl-host .maplibregl-ctrl-attrib a {
+  color: #A8B2C0; pointer-events: auto; text-decoration: underline; text-decoration-color: rgba(168, 178, 192, 0.4);
+}
+/* 5 s nach vollständigem Laden blendet die Zeile aus (Uhr in MapSourcesTile); der Knopf bleibt. */
+.msl-host.msl-host:has(.msl.is-folded) .maplibregl-ctrl-bottom-right {
+  opacity: 0; visibility: hidden; transition: opacity 0.4s ease, visibility 0s linear 0.4s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .msl-host.msl-host .maplibregl-ctrl-bottom-right, .msl-host.msl-host:has(.msl.is-folded) .maplibregl-ctrl-bottom-right { transition: none; }
+}
+
+/* Knopf „Quellen" rechts in der Quellenzeile, die Kachel öffnet nach oben. Knopf und Kachel richten sich am Kartenrahmen
+   (`msl-host`) aus, nicht aneinander: so passt die Kachel auch in kleine Karten (Dashboard) — höchstens die Höhe der Karte
+   über der Zeile, darüber scrollt sie. `--msl-right` rückt Knopf und Kachel nach links, wo die Karte bis an den rechten
+   Bildschirmrand reicht und dort der feste Chip „Über diese Ansicht“ (routeSeoBlock.css, 146 px + 16 px Rand) liegt. */
+.msl { font-size: 11px; color: #A8B2C0; font-family: inherit; }
+.msl-btn {
+  position: absolute; right: var(--msl-right, 6px); bottom: var(--msl-bottom, 0px); z-index: 40;
+  display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 8px; border: 0; cursor: pointer;
+  background: rgba(11, 14, 18, 0.6); color: #C9D1DC; font: inherit; border-radius: 6px 6px 0 0;
+}
+.msl-btn:hover, .msl-btn[aria-expanded='true'] { background: rgba(11, 14, 18, 0.85); color: #fff; }
+.msl-btn:focus-visible { outline: 2px solid #fff; outline-offset: -2px; }
+.msl-tile {
+  position: absolute; right: var(--msl-right, 6px); bottom: calc(var(--msl-bottom, 0px) + 24px); z-index: 42;
+  width: min(400px, calc(100% - 12px)); max-height: min(70vh, 520px, calc(100% - var(--msl-bottom, 0px) - 32px)); overflow: auto; box-sizing: border-box;
+  padding: 10px 12px 11px; background: rgba(250, 246, 234, 0.94); backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  border: 1px solid color-mix(in srgb, var(--sand-200, #E0D6BE) 80%, #fff); border-radius: 13px;
+  box-shadow: 0 14px 32px -18px rgba(44, 42, 38, 0.55); color: var(--ink-900, #2C2A26); font-size: 12px; line-height: 1.35; text-align: left;
+}
+.msl-head { display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
+.msl-x { border: 0; background: none; font-size: 20px; line-height: 1; cursor: pointer; color: inherit; width: 32px; height: 32px; margin: -6px -8px -6px 0; }
+.msl-sec { margin: 9px 0 3px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.9px; text-transform: uppercase; color: var(--stone-400, #A89A7A); }
+.msl-secnote { font-weight: 400; letter-spacing: 0; text-transform: none; }
+.msl-tile ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.msl-row { display: flex; flex-direction: column; }
+.msl-name { font-weight: 700; }
+.msl-what, .msl-meta { color: var(--stone-600, #5C5447); }
+.msl-tile a { color: inherit; text-decoration-color: rgba(92, 84, 71, 0.5); }
+.msl-foot { margin: 9px 0 0; color: var(--stone-600, #5C5447); }
+.msl-hint { margin: 2px 0 0; color: var(--stone-600, #5C5447); font-size: 11px; }
+.msl-on {
+  display: inline-block; margin-left: 6px; padding: 0 5px; border-radius: 4px; vertical-align: 1px;
+  background: #B5651D; color: #fff; font-size: 9.5px; font-weight: 700; letter-spacing: 0.4px; line-height: 15px;
+}
+.msl-hint .msl-on { margin: 0 3px 0 0; }
+.msl-credit { color: var(--stone-600, #5C5447); font-style: italic; overflow-wrap: anywhere; }
+
+@media (max-width: 767px) {
+  .msl-host.msl-host .maplibregl-ctrl-attrib { font-size: 10px; padding: 1px 6px; }
+  .msl-btn { height: 26px; }
+  .msl-tile { bottom: calc(var(--msl-bottom, 0px) + 30px); max-height: min(70vh, 520px, calc(100% - var(--msl-bottom, 0px) - 38px)); }
+}

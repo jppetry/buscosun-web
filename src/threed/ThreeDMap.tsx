@@ -10,6 +10,10 @@ import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { GeoPoint } from './sectionGeometry';
+import { BASEMAP_SOURCE, MAP_SOURCES_LINK, MapSourcesTile, type MapSourceGroup } from '../map/MapSourcesTile';
+
+/** „Quellen" on the cut map (shared source line of the map pages, Brandradar concept, Jan 07.11.). */
+const CUT_MAP_SOURCES: MapSourceGroup[] = [{ title: 'Basiskarte', items: [BASEMAP_SOURCE] }];
 
 interface Props {
   center: GeoPoint;
@@ -24,6 +28,7 @@ export default function ThreeDMap({ center, points, onChange }: Props) {
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<maplibregl.Marker[]>([]);
   const [noWebgl, setNoWebgl] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
   const pointsRef = useRef<GeoPoint[]>(points);
   const onChangeRef = useRef(onChange);
   const prevLenRef = useRef(0);
@@ -49,11 +54,13 @@ export default function ThreeDMap({ center, points, onChange }: Props) {
       style: 'https://tiles.openfreemap.org/styles/liberty',
       center: [center.lon, center.lat],
       zoom: 10,
-      // ODbL-Pflichtattribution der Kartenkacheln (V-105).
-      attributionControl: { compact: true },
+      // ODbL-Pflichtattribution der Kartenkacheln (V-105) — als Quellenzeile über die volle Breite (Jan 07.11.).
+      attributionControl: { compact: false, customAttribution: MAP_SOURCES_LINK },
     });
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+    // First complete frame starts the 5-s clock of the source line.
+    map.once('idle', () => setMapReady(true));
 
     map.on('load', () => {
       map.addSource(LINE_SRC, { type: 'geojson', data: lineGeoJSON(pointsRef.current) });
@@ -124,8 +131,9 @@ export default function ThreeDMap({ center, points, onChange }: Props) {
     );
   }
   return (
-    <div className="td-map-shell">
+    <div className="td-map-shell msl-host">
       <div ref={containerRef} className="td-map" />
+      <MapSourcesTile title="Quellen der Karte" groups={CUT_MAP_SOURCES} ready={mapReady} />
       {points.length >= 2 && (
         <button type="button" className="td-map-fit" onClick={fitToLine} title="Schnittlinie einpassen" aria-label="Schnittlinie einpassen">⤢</button>
       )}

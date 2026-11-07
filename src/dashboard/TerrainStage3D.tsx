@@ -17,6 +17,7 @@ import { SnowCapLegend } from '../snowCap/SnowCapUi';
 import { compass16 } from './format';
 import { tempAt } from './model/rules';
 import type { TerrainVM } from './model/types';
+import { BASEMAP_SOURCE, CC_BY_URL, DWD_OPEN_DATA_URL, GEOSPHERE_CREDIT, MAP_SOURCES_LINK, MapSourcesTile, TERRAIN_SOURCE, type MapSourceGroup } from '../map/MapSourcesTile';
 
 // Gelände wie TowerStage / EventTerrainMap (keine zweite Wahrheit für das Relief).
 const DEM_SRC = 'dbd-dem';
@@ -254,6 +255,7 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
   const [showT, setShowT] = useState(true);
   const [showWind, setShowWind] = useState(true);
   const [showSnow, setShowSnow] = useState(true);
+  const [mapReady, setMapReady] = useState(false);
   const [info, setInfo] = useState(false);
   const [obs, setObs] = useState<{ state: 'idle' | 'loading' | 'ok' | 'error'; list: ObsT[]; winds: ObsW[]; fit: Array<{ elev: number; t: number }> }>({ state: 'idle', list: [], winds: [], fit: [] });
   const obsMarkersRef = useRef<maplibregl.Marker[]>([]);
@@ -277,7 +279,8 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
       maxPitch: 80,
       fadeDuration: 0,
       ...(coarse ? { pixelRatio: Math.min(window.devicePixelRatio || 1, 1.5) } : {}),
-      attributionControl: { compact: true },
+      // Source line over the full width like the Brandradar (Jan 07.11., `map/MapSourcesTile.tsx`); it stays open.
+      attributionControl: { compact: false, customAttribution: `${MAP_SOURCES_LINK} · Messwerte: DWD, GeoSphere Austria, MeteoSchweiz · Relief: Mapzen, AWS Terrain Tiles · bearbeitet` },
     });
     mapRef.current = m;
     // Probe hook for the CDP check, only with `?ztdebug=1` (same as TowerStage).
@@ -285,7 +288,7 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
     m.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
     // Das Stil-Sprite der Basiskarte kennt einige Symbole nicht (z. B. „circle-11"): ein leeres Bild statt einer Konsolenwarnung je Kachel.
     m.on('styleimagemissing', (e) => { if (!m.hasImage(e.id)) m.addImage(e.id, { width: 1, height: 1, data: new Uint8Array(4) }); });
-    m.once('load', () => { m.getContainer().querySelectorAll('details.maplibregl-ctrl-attrib[open]').forEach((d) => d.removeAttribute('open')); });
+    m.once('idle', () => setMapReady(true));
     m.on('load', () => {
       m.addSource(DEM_SRC, { type: 'raster-dem', tiles: [DEM_TILES], encoding: 'terrarium', tileSize: 256, maxzoom: 14 });
       m.setTerrain({ source: DEM_SRC, exaggeration: TOWER_EXAGGERATION });
@@ -416,9 +419,22 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
   // Farbskala der Temperaturschilder: Spanne der gemessenen Stationswerte (mindestens 1 K breit)
   const chipTs = obs.list.map((o) => o.t);
   const chipRange = chipTs.length ? { min: Math.min(...chipTs) - (Math.max(...chipTs) === Math.min(...chipTs) ? 0.5 : 0), max: Math.max(...chipTs) + (Math.max(...chipTs) === Math.min(...chipTs) ? 0.5 : 0) } : null;
+  const sources: MapSourceGroup[] = [
+    { title: 'Basiskarte und Relief', items: [BASEMAP_SOURCE, TERRAIN_SOURCE] },
+    {
+      title: 'Ebenen',
+      items: [
+        { name: 'Messstationen · DWD, GeoSphere Austria, MeteoSchweiz (Messdaten-Spiegel obs/v1)', url: DWD_OPEN_DATA_URL, what: 'Gemessene Temperatur und gemessener Wind rund um den Ort', credit: GEOSPHERE_CREDIT, licence: 'CC BY 4.0', licenceUrl: CC_BY_URL, on: showT || showWind },
+        { name: 'Geschätzte Temperaturen (buscosun)', what: 'An Orten und Gipfeln, aus dem Höhengradienten des Modellprofils oder der Messstationen', licence: 'Datenbasis, bearbeitet', on: showT },
+        { name: 'Windfeld (buscosun)', what: 'Pfeile aus dem gemessenen Wind der Stationen, abstandsgewichtet', licence: 'Datenbasis, bearbeitet', on: showWind },
+        ...(skOn ? [{ name: 'Schneefallgrenze (buscosun Fusion)', what: 'Als Fläche auf dem Relief', licence: 'Datenbasis, bearbeitet', on: showSnow }] : []),
+      ],
+    },
+  ];
   return (
-    <div className="dbd-stage-in">
+    <div className="dbd-stage-in msl-host">
       <div ref={boxRef} className="dbd-stage-map" />
+      {!noWebgl && <MapSourcesTile title="Quellen der 3D-Bühne" groups={sources} ready={mapReady} />}
       {noWebgl && <div className="dbd-stage-note">3D braucht WebGL — dieses Gerät bietet es nicht.</div>}
       <div className="dbd-stage-top">
         <div className="dbd-stage-layers" role="group" aria-label="Ebenen der Bühne">

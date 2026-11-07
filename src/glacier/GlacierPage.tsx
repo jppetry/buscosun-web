@@ -16,8 +16,8 @@ import AppLoader from '../router/AppLoader';
 import { usePageCover } from '../router/usePageCover';
 import { useMediaQuery } from '../mobile/useIsMobile';
 import {
-  glacierBasesFrom, loadCatalog, loadFeed, loadIndex, loadMelt, loadOfficial, loadOutline, loadPoints, loadSatLatest, loadStatus, loadSummary, takeGlacierStart,
-  type GlacierIndex, type GlacierPointsDoc, type GlacierSatIndex, type GlacierSatLatest, type GlacierSummary, type LoadedCatalog,
+  glacierBasesFrom, loadCatalog, loadFeed, loadIndex, loadMelt, loadOfficial, loadOutline, loadPoints, loadSatLatest, loadSources, loadStatus, loadSummary, takeGlacierStart,
+  type GlacierIndex, type GlacierPointsDoc, type GlacierSatIndex, type GlacierSatLatest, type GlacierSourceRow, type GlacierSummary, type LoadedCatalog,
 } from './glacierClient';
 import { GLACIER_REGIONS, type GlacierOfficialItem } from './glacierContract';
 import {
@@ -26,6 +26,7 @@ import {
 import {
   glacierIdOfSegment, glacierSegmentOf, GLACIER_LANDS, type GlacierLand, type GlacierMetric, type GlacierUrlState,
 } from './glacierState';
+import { GlacierSourcesTile } from './GlacierSourcesTile';
 import GlacierMap, { type GlacierMapFeature, type RegionBoxes } from './GlacierMap';
 import GlacierMapCard from './GlacierMapCard';
 import MapGestureHint, { type HintSpot } from '../map/MapGestureHint';
@@ -93,6 +94,15 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
 
   // Start cover like the fire radar (buscosun mark + ring), see usePageCover.
   const pageShown = usePageCover(mapInst, load.s !== 'loading');
+  // data sets for the „Quellen“ tile (optional: without them the tile still names the base map)
+  const [srcRows, setSrcRows] = useState<GlacierSourceRow[] | null>(null);
+  const buildId = load.s === 'ready' ? load.d.build : null;
+  useEffect(() => {
+    if (!buildId) return;
+    const ac = new AbortController();
+    loadSources(buildId, ac.signal, bases).then((r) => { if (!ac.signal.aborted) setSrcRows(r); }, () => { /* stays null */ });
+    return () => ac.abort();
+  }, [buildId, bases]);
 
   // --- Data -----------------------------------------------------------------------------------------------------
   useEffect(() => {
@@ -344,12 +354,13 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
           {topbar}
           <div className="gl-body">
             <div className="gl-center">
-              <section className={`gl-map${dossierOn ? ' is-offstage' : ''}`} aria-label="Karte" aria-hidden={dossierOn ? true : undefined}>
+              <section className={`gl-map msl-host${dossierOn ? ' is-offstage' : ''}`} aria-label="Karte" aria-hidden={dossierOn ? true : undefined}>
                 {map}{note}
                 <MapGestureHint map={mapInst} feature="gletscher" subject="glacier" accent="#1E87A8" pickSpots={hintSpots} always enabled={!dossierOn && !mTab} />
                 <div className="gl-m-overlay"><span className="gl-season">{season.label}</span></div>
                 {/* Compact legend above the bottom bar while no glacier card covers the map (Jan 2026-10-25). */}
                 {!sel && <div className="gl-m-maplegend">{legend}</div>}
+                <GlacierSourcesTile sources={srcRows} ready={pageShown} />
                 <div className="gl-pill-slot">{pill}</div>
               </section>
               {dossierOn && dossierStage}
@@ -420,10 +431,10 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
         <div className="gl-body">
           {dock}
           <div className="gl-center">
-            <section className={`gl-map${stage === 'dossier' ? ' is-offstage' : ''}`} aria-label="Karte aller Gletscher" aria-hidden={stage === 'dossier' ? true : undefined}>
+            <section className={`gl-map msl-host${stage === 'dossier' ? ' is-offstage' : ''}`} aria-label="Karte aller Gletscher" aria-hidden={stage === 'dossier' ? true : undefined}>
               {map}{zoom}{viewSeg}{legend}{pill}{note}
               <MapGestureHint map={mapInst} feature="gletscher" subject="glacier" accent="#1E87A8" pickSpots={hintSpots} always enabled={stage === 'map'} />
-              <div className="gl-attrib">Karte: OpenStreetMap-Mitwirkende · Inventare je nach Land</div>
+              <GlacierSourcesTile sources={srcRows} ready={pageShown} />
             </section>
             {stage === 'dossier' && dossierStage}
           </div>

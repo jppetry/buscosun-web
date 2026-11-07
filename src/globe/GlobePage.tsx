@@ -20,6 +20,7 @@ import type { Height, OverlayKind } from './gfs';
 import { prefetch } from './gfsClient';
 import AppLoader from '../router/AppLoader';
 import { usePageCover } from '../router/usePageCover';
+import { MapSourcesTile, type MapSourceGroup } from '../map/MapSourcesTile';
 import { useAppNav } from '../router/useAppNav';
 import { FeatureRail, type RailFeature } from '../nav/featureRail';
 import { useMediaQuery } from '../mobile/useIsMobile';
@@ -102,6 +103,12 @@ interface Props {
  *  - **Die Achsen stehen wie überall sonst** (`lat, lon`). Der alte Permalink
  *    speicherte `[lon, lat]`; die Übersetzung macht `decodeGlobeHash` (V-SH-3).
  */
+/** „Quellen" on the globe (shared source line of the map pages, Brandradar concept, Jan 07.11.). */
+const GLOBE_SOURCES: MapSourceGroup[] = [
+  { title: 'Wetterdaten', items: [{ name: 'NOAA GFS · AWS Open Data (noaa-gfs-bdp-pds)', url: 'https://registry.opendata.aws/noaa-gfs-bdp-pds/', what: 'Wind, Temperatur, Feuchte und Luftdruck, 1°, global, im Browser dekodiert', licence: 'Public Domain', changed: 'eigene Farbskalen', on: true }] },
+  { title: 'Karte', items: [{ name: 'Natural Earth', url: 'https://www.naturalearthdata.com/', what: 'Küstenlinien und Grenzen (1:50 Mio.)', licence: 'Public Domain', on: true }] },
+];
+
 export default function GlobePage({ onBack, initialUrl, initialFhour, onUrlState }: Props) {
   const init = initialUrl ?? null;
   const [overlay, setOverlay] = useState<OverlayKind>(init?.overlay ?? 'temp');
@@ -257,7 +264,8 @@ export default function GlobePage({ onBack, initialUrl, initialFhour, onUrlState
         )}
         <div className="glb-body">
           {!isMobile && <aside className="glb-dock" aria-label="Ebenen und Ansicht">{dock}</aside>}
-          <main className="glb-stage" aria-label="Globus">
+          <main className="glb-stage msl-host" aria-label="Globus">
+            <MapSourcesTile title="Quellen des 3D-Globus" groups={GLOBE_SOURCES} ready={pageShown} />
             <GlobeMap
               overlay={overlay} height={height} projection={projection} showParticles={showParticles}
               hd={hd} spinning={spinning} fhour={fhour} pinActive={pin !== null}

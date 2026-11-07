@@ -16,7 +16,8 @@ import { useAppNav } from '../router/useAppNav';
 import { useMediaQuery } from '../mobile/useIsMobile';
 import { seaFieldStepAt, seaCompStepAt, seaNoSeaAt, type SeaSpot } from './seaContract';
 import { seaDryRuleFrom, seaWaterLevelFrom } from './seaFlag';
-import { wlDistKm, wlNearest, type WlForecast, type WlGauge } from './waterLevel';
+import { WL_ATTRIBUTION, WL_LICENCE, WL_LICENCE_URL, WL_SERVICE_PAGE, wlDistKm, wlNearest, type WlForecast, type WlGauge } from './waterLevel';
+import { BASEMAP_SOURCE, CC_BY_URL, MapSourcesTile, type MapSourceGroup } from '../map/MapSourcesTile';
 import { WlCatalogMissing, loadGaugeCatalog, loadGaugeForecast } from './waterLevelClient';
 import { coastWarnStatus, seaTextFreshness, type SeaTextProduct } from './seaText';
 import {
@@ -389,6 +390,22 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   const profLabel = SEA_PROFILE_BY_ID[profile].label;
   const windEngine = spotsDoc?.wind?.engine ?? 'buscosun Fusion';
   const runTxt = run ? `CWAM ${run.run.slice(8, 10)} UTC` : '–';
+  // „Quellen" on the map (shared source line of the map pages, Brandradar concept, Jan 07.11.)
+  const sourceGroups: MapSourceGroup[] = [
+    { title: 'Basiskarte', items: [BASEMAP_SOURCE] },
+    {
+      title: 'Kartenebenen',
+      items: [
+        { name: 'Deutscher Wetterdienst · Wellenmodelle CWAM und EWAM', url: 'https://opendata.dwd.de/', what: 'Seegang: Wellenhöhe und Periode als Fläche und Pfeile', licence: 'GeoNutzV / CC BY 4.0', licenceUrl: CC_BY_URL, changed: 'eigene Farbskala, geprüft', on: !noData },
+        { name: windEngine, what: 'Wind und Böen an den Spots, berechnet aus Wettermodellen und Messungen (u. a. DWD)', licence: 'Datenbasis, bearbeitet', on: toggles.wind && !noData },
+        { name: 'Deutscher Wetterdienst · Seewetterdienst', url: 'https://opendata.dwd.de/', what: 'Warnstatus der Küstengebiete (Seewetterbericht)', licence: 'GeoNutzV / CC BY 4.0', licenceUrl: CC_BY_URL, on: toggles.warn },
+        { name: 'Seegebiete © GeoBasis-DE / BKG 2021, VMAP0', what: 'Umrisse der Warngebiete', changed: 'Daten modifiziert', on: toggles.warn },
+        { name: 'Deutscher Wetterdienst · Messstationen', url: 'https://opendata.dwd.de/', what: 'Wind und Böen gemessen', licence: 'GeoNutzV / CC BY 4.0', licenceUrl: CC_BY_URL, on: toggles.stations },
+        { name: 'Bundesamt für Seeschifffahrt und Hydrographie (BSH)', url: WL_SERVICE_PAGE, what: 'Wasserstandsvorhersage an den Pegeln', credit: WL_ATTRIBUTION, licence: WL_LICENCE, licenceUrl: WL_LICENCE_URL, on: water },
+      ],
+    },
+  ];
+  const sourceTile = <MapSourcesTile title="Quellen des Seewetters" groups={sourceGroups} ready={pageShown} />;
   const liveTone = !runLoad ? 'loading' : noData ? 'none' : freshness === 'stale' ? 'stale' : 'live';
   // Desktop: the hourly band lives in the dossier now, so the map foot is free (was 250 px for the band).
   const padding = isMobile ? { top: 130, bottom: 440, left: 24, right: 24 } : { top: 110, bottom: 40, left: 40, right: 230 };
@@ -480,8 +497,9 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
       <div className="sw-root is-mobile">
         <AppLoader cover done={pageShown} />
         {unknownSpot && <SeaLinkNotice kind="unknown" slug={unknownSpot} onClose={() => setUnknownSpot(null)} />}
-        <main className="sw-map is-mobile" aria-label="Karte">
+        <main className="sw-map is-mobile msl-host" aria-label="Karte">
           {map}
+          {sourceTile}
           <MapGestureHint map={mapInst} feature="seewetter" subject="sea" accent="#0F6E7A" pickSpots={hintSpots} always enabled={mobTab === 'map'} />
           <div className="sw-m-top">
             <button type="button" className="sw-m-brand" aria-label="Zur Startseite" onClick={nav.goHome}><img src="/buscosun-mark.svg" width={22} height={22} alt="" /></button>
@@ -542,8 +560,9 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
         </header>
         <div className="sw-body">
           {dockOf('layers')}
-          <main className={`sw-map${inDossier ? ' is-offstage' : ''}`} aria-label="Karte" aria-hidden={inDossier ? true : undefined}>
+          <main className={`sw-map msl-host${inDossier ? ' is-offstage' : ''}`} aria-label="Karte" aria-hidden={inDossier ? true : undefined}>
             {map}
+            {sourceTile}
             <MapGestureHint map={mapInst} feature="seewetter" subject="sea" accent="#0F6E7A" pickSpots={hintSpots} always enabled={!inDossier} />
             <div className="sw-ov-left">
               {usable && chips}            </div>
