@@ -12,6 +12,7 @@ import { useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
 import { basemapStyle, type FireBasemap } from './FireMap';
 import { patchRefLengthStyle } from '../map/libertyStyle';
+import { ExpandButton } from '../components/ExpandButton';
 
 /**
  * BD2f: strukturelles Ziel statt `FireRecord` — die Minikarte braucht nur Ort, Kasten und
@@ -131,16 +132,10 @@ export function FireMiniMap({ record, footprintFc, basemap, onClick, height, ari
   useEffect(() => { mapRef.current?.resize(); }, [height]);
 
   return (
-    <div
-      className="br-minimap"
-      style={{ height }}
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      aria-label={ariaLabel}
-      onClick={onClick}
-      onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
-    >
-      <div ref={elRef} className="br-minimap-canvas" />
+    <div className="br-minimap" style={{ height }} onClick={onClick}>
+      <div ref={elRef} className="br-minimap-canvas" role="img" aria-label={ariaLabel} />
+      {/* Jan 2026-11-07: the enlarge button (top right) is the keyboard/screen-reader way to the map stage, a click on the map still works. */}
+      {onClick && <ExpandButton expanded={false} onClick={onClick} label={ariaLabel} />}
     </div>
   );
 }

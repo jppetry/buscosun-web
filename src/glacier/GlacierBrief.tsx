@@ -217,7 +217,7 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
   const mapEl = (
     <section className="gl-map gl-sheet-map" aria-label="Karte des Gletschers">
       <GlacierSheetMap g={g} geometry={mapGeometry} earlier={earlier} showEarlier={showEarlier} snow={snow} showSnow={showSnow} dem={data?.dem ?? null}
-        view={view} basemap={basemap} compare={compare} onCompare={setCompare} onSnowShare={setSnowShare} onView3dFailed={() => setView3dFailed(true)} />
+        view={view} basemap={basemap} compare={compare} onCompare={setCompare} onSnowShare={setSnowShare} onView3dFailed={() => setView3dFailed(true)} gated={layout === 'dossier'} />
       {layout !== 'dossier' && (
         <div className="gl-legend gl-sheet-legend" aria-label="Legende">
           <div className="gl-legend-head"><b>Legende</b></div>

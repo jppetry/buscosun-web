@@ -1152,7 +1152,9 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const pinchRef = useRef<number | null>(null);
 
+  // Jan 2026-11-07: in place the picture neither pans nor zooms (the page scrolls over it) — that starts with the enlarge button (`full`).
   const onPointerDown = (e: React.PointerEvent) => {
+    if (!full) return;
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.current.size === 2) {
@@ -1190,7 +1192,7 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
   // Rad-Zoom braucht `passive: false` (React-onWheel kann den Seiten-Scroll nicht verhindern).
   useEffect(() => {
     const el = canvasRef.current;
-    if (!el || phase.kind !== 'ready') return;
+    if (!el || phase.kind !== 'ready' || !full) return;
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       const rect = el.getBoundingClientRect();
@@ -1250,7 +1252,8 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
           ref={canvasRef}
           onPointerDown={onPointerDown} onPointerMove={onPointerMove}
           onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
-          aria-label={`Sentinel-2-Original vom ${dayIso} (10 m) — ziehen verschiebt, Rad/Pinch zoomt`}
+          style={full ? undefined : { touchAction: 'auto', cursor: 'default' }}
+          aria-label={`Sentinel-2-Original vom ${dayIso} (10 m) — ${full ? 'ziehen verschiebt, Rad/Pinch zoomt' : 'zum Zoomen oben rechts vergrößern'}`}
         />
       )}
       {phase.kind === 'loading' && <p className="br-sat-wait br-muted">{phase.word}</p>}
@@ -1281,13 +1284,15 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
         </div>
       )}
       <div className="br-cog-ctrl" role="group" aria-label="10-m-Ansicht steuern">
-        <button type="button" onClick={resetView} aria-label="Ansicht auf den Brand zurücksetzen" title="Auf den Brand zurücksetzen">
-          <svg viewBox="0 0 18 18" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <circle cx="9" cy="9" r="5.2" /><circle cx="9" cy="9" r="1.3" fill="currentColor" stroke="none" />
-            <line x1="9" y1="1.2" x2="9" y2="3.4" /><line x1="9" y1="14.6" x2="9" y2="16.8" /><line x1="1.2" y1="9" x2="3.4" y2="9" /><line x1="14.6" y1="9" x2="16.8" y2="9" />
-          </svg>
-        </button>
-        <button type="button" onClick={() => setFull((f) => !f)} aria-label={full ? 'Vollbild verlassen' : 'Vollbild'} title={full ? 'Kleiner machen' : 'Vollbild'}>
+        {full && (
+          <button type="button" onClick={resetView} aria-label="Ansicht auf den Brand zurücksetzen" title="Auf den Brand zurücksetzen">
+            <svg viewBox="0 0 18 18" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="9" cy="9" r="5.2" /><circle cx="9" cy="9" r="1.3" fill="currentColor" stroke="none" />
+              <line x1="9" y1="1.2" x2="9" y2="3.4" /><line x1="9" y1="14.6" x2="9" y2="16.8" /><line x1="1.2" y1="9" x2="3.4" y2="9" /><line x1="14.6" y1="9" x2="16.8" y2="9" />
+            </svg>
+          </button>
+        )}
+        <button type="button" style={{ order: 9 }} onClick={() => setFull((f) => !f)} aria-label={full ? 'Vollbild verlassen' : 'Vergrößern — dann zoombar'} title={full ? 'Kleiner machen' : 'Vergrößern — dann zoombar'}>
           {full ? (
             /* corners pointing inward = make smaller */
             <svg viewBox="0 0 18 18" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

@@ -6,12 +6,14 @@
  * `basemap = 'satellit'` shows the mountain itself: the Esri World Imagery tiles of the Brandradar under the outlines (the style's own layers hidden,
  * the current outline with a white casing so it stays readable on rock and ice).
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { GlacierCatalogEntry } from './glacierContract';
 import type { GlacierDemGrid } from './glacierSatContract';
 import { bboxOf, clipAtLng, renderSnowZoneAsync } from './glacierGeo';
+import { ExpandButton, useExpandedFrame } from '../components/ExpandButton';
 
 const STYLE = 'https://tiles.openfreemap.org/styles/positron';
 const DEM_TILES = 'https://elevation-tiles-prod.s3.amazonaws.com/terrarium/{z}/{x}/{y}.png';
@@ -40,6 +42,8 @@ interface Props {
   onSnowShare?: (share: number | null) => void;
   onMap?: (m: maplibregl.Map | null) => void;
   onView3dFailed?: () => void;
+  /** Dossier: the map neither zooms nor pans in place (the page scrolls over it) — that starts with the enlarge button (top right). */
+  gated?: boolean;
 }
 
 /** 3D only: two buttons turn the view by 45° and a compass resets north (right mouse drag / two fingers still rotate freely). */
@@ -65,7 +69,7 @@ function makeRotateControl(): maplibregl.IControl {
   };
 }
 
-export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, snow, showSnow, dem, view, basemap, compare, onCompare, onSnowShare, onMap, onView3dFailed }: Props) {
+export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, snow, showSnow, dem, view, basemap, compare, onCompare, onSnowShare, onMap, onView3dFailed, gated = false }: Props) {
   const box = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const ready = useRef(false);
@@ -75,6 +79,25 @@ export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, sno
   const styleVis = useRef<Map<string, 'visible' | 'none'>>(new Map());
   const [dividerPx, setDividerPx] = useState<number | null>(null);
   const raf = useRef(0);
+
+  // Gated (dossier): the map lives in a host element that moves between its place in the card and the page root (enlarged); the map itself is never rebuilt.
+  const [full, setFull] = useState(false);
+  useExpandedFrame(full, () => setFull(false));
+  const slot = useRef<HTMLDivElement | null>(null);
+  const host = useMemo(() => {
+    if (!gated || typeof document === 'undefined') return null;
+    const d = document.createElement('div');
+    d.className = 'gl-sheet-map-wrap has-expand';
+    return d;
+  }, [gated]);
+  const interactive = useRef(!gated);
+  /** Pan, zoom, rotate on or off (off: the page scrolls over the map). */
+  const setInteractive = (on: boolean) => {
+    const m = mapRef.current;
+    interactive.current = on;
+    if (!m) return;
+    for (const h of [m.scrollZoom, m.boxZoom, m.dragPan, m.dragRotate, m.keyboard, m.doubleClickZoom, m.touchZoomRotate, m.touchPitch]) { if (on) h.enable(); else h.disable(); }
+  };
 
   /** Snow-zone image from the grid; re-made when the scene, the grid or the geometry change. */
   const snowGen = useRef(0);
@@ -145,7 +168,7 @@ export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, sno
     try {
       if (on) {
         if (!rotCtl.current) { rotCtl.current = makeRotateControl(); map.addControl(rotCtl.current, 'top-right'); }
-        map.dragRotate.enable(); map.touchZoomRotate.enableRotation();
+        if (interactive.current) { map.dragRotate.enable(); map.touchZoomRotate.enableRotation(); }
         map.setTerrain({ source: 'gls-dem', exaggeration: SHEET_EXAGGERATION });
         map.setLayoutProperty('gls-hill', 'visibility', latest.current.basemap === 'satellit' ? 'none' : 'visible');
         // Jan 04.11.: frame the whole glacier in the tilted camera. The bounds fit ignores the terrain height (the peaks sit nearer to the camera),
@@ -188,6 +211,7 @@ export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, sno
       },
     } : undefined);
     mapRef.current = map;
+    if (gated) setInteractive(false);
     onMap?.(map);
     map.on('load', () => {
       if (mapRef.current !== map) return;
@@ -228,6 +252,23 @@ export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, sno
   useEffect(() => { applyOutlines(); const w = box.current?.clientWidth ?? 0; setDividerPx(compare == null ? null : compare * w); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [compare]);
 
+  useLayoutEffect(() => {
+    if (!host) return;
+    const parent = full ? (slot.current?.closest('.gl-root') ?? document.body) : slot.current;
+    if (parent && host.parentElement !== parent) parent.appendChild(host);
+    host.classList.toggle('is-full', full);
+    mapRef.current?.resize();
+    const id = requestAnimationFrame(() => mapRef.current?.resize());
+    return () => cancelAnimationFrame(id);
+  }, [full, host]);
+  useEffect(() => () => { host?.remove(); }, [host]);
+  useEffect(() => {
+    if (!gated) return;
+    setInteractive(full);
+    if (!full && latest.current.view !== '3d') fit(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [full, gated]);
+
   // the divider is dragged with the pointer (mouse and touch), moved with the arrow keys
   const drag = useRef(false);
   const move = (clientX: number) => {
@@ -236,9 +277,9 @@ export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, sno
     onCompare(Math.min(0.97, Math.max(0.03, (clientX - r.left) / r.width)));
   };
 
-  return (
-    <div className="gl-sheet-map-wrap">
-      <div ref={box} className="gl-map-canvas" role="img" aria-label={`Karte des Gletschers ${g.name ?? g.id}${view === '3d' ? ', 3D-Ansicht' : ''}`} />
+  const inner = (
+    <>
+      <div ref={box} className="gl-map-canvas" role="img" aria-label={`Karte des Gletschers ${g.name ?? g.id}${view === '3d' ? ', 3D-Ansicht' : ''}${gated && !full ? ' — zum Zoomen oben rechts vergrößern' : ''}`} />
       {compare != null && dividerPx != null && (
         <div className="gl-divider" style={{ left: `${compare * 100}%` }}>
           <button type="button" className="gl-divider-handle" role="slider" aria-label="Vergleichsregler: früherer Umriss links, heutiger rechts" aria-valuemin={3} aria-valuemax={97} aria-valuenow={Math.round(compare * 100)}
@@ -250,6 +291,9 @@ export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, sno
           </button>
         </div>
       )}
-    </div>
+      {gated && <ExpandButton expanded={full} onClick={() => setFull((f) => !f)} label={full ? 'Kleiner machen' : 'Vergrößern — dann zoombar'} />}
+    </>
   );
+  if (gated && host) return <div ref={slot} className="gl-sheet-map-slot">{createPortal(inner, host)}</div>;
+  return <div className="gl-sheet-map-wrap">{inner}</div>;
 }

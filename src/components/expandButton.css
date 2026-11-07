@@ -1,0 +1,18 @@
+/* Enlarge button on dossier maps and pictures (top right) and the enlarged state of a picture frame. */
+.ui-expand {
+  position: absolute; top: 8px; right: 8px; z-index: 6; width: 34px; height: 34px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--sand-200, #E0D6BE); border-radius: 8px; background: #FDFBF4; color: var(--ink-900, #2C2A26);
+  cursor: pointer; box-shadow: 0 1px 4px rgba(44, 42, 38, 0.22);
+}
+.ui-expand:hover { background: #fff; border-color: var(--ink-900, #2C2A26); }
+.ui-expand:focus-visible { outline: 2px solid var(--ink-900, #2C2A26); outline-offset: 2px; }
+@media (max-width: 1023px) { .ui-expand { width: 44px; height: 44px; } }
+
+/* A picture frame (30 m snapshot) enlarged over the page: centred, the dimmed page as its own shadow. */
+.ui-frame-big.ui-frame-big {
+  position: fixed; inset: 0; margin: auto; z-index: 130; max-width: none; max-height: none;
+  width: min(96vw, 120vh); height: auto; aspect-ratio: 5 / 4; border-radius: 10px;
+  box-shadow: 0 0 0 200vmax rgba(20, 18, 14, 0.86);
+}
+.ui-frame-big .ui-expand { top: 10px; right: 10px; }

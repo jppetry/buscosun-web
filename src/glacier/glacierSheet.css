@@ -31,6 +31,11 @@
 .gl-sheet-map { flex: 1 1 auto; border-bottom: 0; }
 .gl-sheet-map-wrap { position: absolute; inset: 0; }
 .gl-sheet-map-wrap .gl-map-canvas { position: absolute; inset: 0; }
+/* Dossier (Jan 2026-11-07): the map sits in a host that can be enlarged over the page; the enlarge button is top right, the map's own top-right controls move below it. */
+.gl-sheet-map-slot { position: absolute; inset: 0; }
+.gl-sheet-map-wrap.has-expand .maplibregl-ctrl-top-right { top: 46px; }
+.gl-sheet-map-wrap.is-full { position: fixed; inset: 0; z-index: 120; background: #E9E2CF; }
+@media (max-width: 1023px) { .gl-sheet-map-wrap.has-expand .maplibregl-ctrl-top-right { top: 56px; } }
 .gl-sheet-legend { width: 260px; bottom: 44px; }
 .gl-map .gl-sheet-legend .gl-legend-head b { font-size: 13.5px; }
 .gl-map .gl-sheet-legend .gl-legend-row { font-size: 13px; }

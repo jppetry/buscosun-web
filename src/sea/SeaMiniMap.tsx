@@ -7,6 +7,7 @@
  */
 import { useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
+import { ExpandButton } from '../components/ExpandButton';
 
 export interface SeaMiniMapProps {
   spot: { id: string; name: string; lat: number; lon: number; normal: number; station: { name: string; lat: number; lon: number; km: number } | null };
@@ -99,9 +100,10 @@ export default function SeaMiniMap(p: SeaMiniMapProps) {
   useEffect(() => { mapRef.current?.resize(); }, [p.height]);
 
   return (
-    <div className="sw-minimap" style={{ height: p.height }} role={p.onClick ? 'button' : undefined} tabIndex={p.onClick ? 0 : undefined} aria-label={p.ariaLabel}
-      onClick={p.onClick} onKeyDown={p.onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); p.onClick!(); } } : undefined}>
-      <div ref={elRef} className="sw-minimap-canvas" />
+    <div className="sw-minimap" style={{ height: p.height }} onClick={p.onClick}>
+      <div ref={elRef} className="sw-minimap-canvas" role="img" aria-label={p.ariaLabel} />
+      {/* Jan 2026-11-07: the enlarge button (top right) is the keyboard/screen-reader way to the map stage, a click on the map still works. */}
+      {p.onClick && <ExpandButton expanded={false} onClick={p.onClick} label={p.ariaLabel} />}
     </div>
   );
 }

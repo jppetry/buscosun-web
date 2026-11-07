@@ -11,6 +11,8 @@
  * (Präzedenz: die markierte Brand-Kennung, `fireState.ts`).
  */
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { ExpandButton, useExpandedFrame } from '../components/ExpandButton';
 import {
   cloudLabel, copernicusBrowserUrl, fetchSat, fetchSatImagery, PHASE_LABEL, prefetchS2Day, S2_COG_ORIGIN, SAT_ATTRIBUTION,
   SAT_SOURCE_LABEL, sat10Enabled, satLabel, snapshotUrl, SNAP_H, SNAP_W, type SatImagery, type SatPhase, type SatScene,
@@ -104,10 +106,13 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
   const [cog10, setCog10] = useState(false);
   /** SAT3: Detektions-Rechtecke über dem 30-m-Bild (Sitzungszustand, default an). */
   const [showDet, setShowDet] = useState(false);
+  // Jan 2026-11-07: enlarge button on the 30 m picture (top right); the frame, its frames and rings scale together.
+  const [big, setBig] = useState(false);
+  useExpandedFrame(big, () => setBig(false));
 
   useEffect(() => {
     let alive = true;
-    setIm({ kind: 'loading' }); setSelDay(null); setSnap(null);
+    setIm({ kind: 'loading' }); setSelDay(null); setSnap(null); setBig(false);
     void fetchSatImagery(t.lat, t.lon, t.bbox, t.firstMs, t.lastMs, nowMs)
       .then((data) => { if (alive) setIm({ kind: 'ok', data }); });
     return () => { alive = false; };
@@ -234,7 +239,8 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
         {!cog10 && scene.phase && <> · {PHASE_LABEL[scene.phase]}</>}
         {cog10 && <> · {cloudLabel(scene.cloudPct)}</>}
       </p>
-      <div className="br-sat-frame">
+      {(() => { const frame = (
+      <div className={`br-sat-frame${big && !cog10 ? ' ui-frame-big' : ''}`}>
         {cog10 && (
           <Suspense fallback={<p className="br-sat-wait br-muted">10-m-Ansicht wird geladen …</p>}>
             <FireCogViewer
@@ -291,6 +297,7 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
             Detektionen{detRects.length > 0 ? ` · ${detRects.length}` : ' · keine im Bild'}
           </button>
         )}
+        {!cog10 && snap?.kind === 'img' && <ExpandButton expanded={big} onClick={() => setBig((b) => !b)} />}
         {!cog10 && snap?.kind === 'loading' && <p className="br-sat-wait br-muted">Bild wird geladen …</p>}
         {!cog10 && snap?.kind === 'nodata' && (
           <p className="br-sat-wait br-muted">Für den {fmtDay(scene.dayIso)} liegt noch kein Bild auf dem Bilddienst —
@@ -300,6 +307,7 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
           <p className="br-sat-wait br-muted">Der Bilddienst ist gerade nicht erreichbar — später erneut öffnen.</p>
         )}
       </div>
+      ); return big && !cog10 ? createPortal(frame, document.body) : frame; })()}
       {!cog10 && scene.sat === 's2' && sat10Enabled() && (
         <p className="br-cog-open">
           <button type="button" onClick={() => setCog10(true)}>

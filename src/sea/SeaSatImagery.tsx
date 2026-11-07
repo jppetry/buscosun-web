@@ -8,6 +8,8 @@
  * phases — the strip is simply the coast day by day, newest first chosen.
  */
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { ExpandButton, useExpandedFrame } from '../components/ExpandButton';
 import {
   CLOUD_OK_PCT, cloudLabel, copernicusBrowserUrl, fetchSatImagery, SAT_ATTRIBUTION, SAT_SOURCE_LABEL, sat10Enabled, satLabel,
   snapshotUrl, type SatImagery, type SatScene,
@@ -53,10 +55,13 @@ export default function SeaSatImagery({ lat, lon, name, nowMs }: { lat: number; 
   const [selDay, setSelDay] = useState<string | null>(null);
   const [snap, setSnap] = useState<SnapState | { kind: 'loading' } | null>(null);
   const [cog10, setCog10] = useState(false);
+  // Jan 2026-11-07: enlarge button on the 30 m picture (top right).
+  const [big, setBig] = useState(false);
+  useExpandedFrame(big, () => setBig(false));
 
   useEffect(() => {
     let alive = true;
-    setIm({ kind: 'loading' }); setSelDay(null); setSnap(null); setCog10(false);
+    setIm({ kind: 'loading' }); setSelDay(null); setSnap(null); setCog10(false); setBig(false);
     void fetchSatImagery(lat, lon, null, null, null, nowMs).then((data) => { if (alive) setIm({ kind: 'ok', data }); });
     return () => { alive = false; };
     // nowMs deliberately not a dependency — a tick does not reload (same as the Brandradar).
@@ -94,6 +99,23 @@ export default function SeaSatImagery({ lat, lon, name, nowMs }: { lat: number; 
   }
   const notes = data.notes.filter((n) => !isFireNote(n));
 
+  const frame = (
+    <div className={`sw-sat-frame${big && !cog10 ? ' ui-frame-big' : ''}`}>
+      {cog10 && (
+        <Suspense fallback={<p className="br-sat-wait br-muted">10-m-Ansicht wird geladen …</p>}>
+          <FireCogViewer key={scene.dayIso} lat={lat} lon={lon} dayIso={scene.dayIso} fireStartIso={null}
+            fallbackUrl={copernicusBrowserUrl(lat, lon, scene.dayIso)} onClose={() => setCog10(false)} />
+        </Suspense>
+      )}
+      {!cog10 && snap?.kind === 'img' && <img src={snap.url} alt={`Satellitenbild der Küste bei ${name} vom ${fmtDay(scene.dayIso)} (${satLabel(scene.sat)}, Echtfarbe, 30 m)`} />}
+      {!cog10 && snap?.kind === 'img' && <span className="sw-sat-pin" aria-hidden="true" />}
+      {!cog10 && snap?.kind === 'img' && <ExpandButton expanded={big} onClick={() => setBig((b) => !b)} />}
+      {!cog10 && snap?.kind === 'loading' && <p className="br-sat-wait br-muted">Bild wird geladen …</p>}
+      {!cog10 && snap?.kind === 'nodata' && <p className="br-sat-wait br-muted">Für den {fmtDay(scene.dayIso)} liegt noch kein Bild auf dem Bilddienst — frische Aufnahmen brauchen 2–3 Tage Verarbeitung. Anderen Tag wählen.</p>}
+      {!cog10 && snap?.kind === 'error' && <p className="br-sat-wait br-muted">Der Bilddienst ist gerade nicht erreichbar — später erneut öffnen.</p>}
+    </div>
+  );
+
   return (
     <>
       <p className="sw-sat-label">
@@ -101,19 +123,7 @@ export default function SeaSatImagery({ lat, lon, name, nowMs }: { lat: number; 
         <span>{cog10 ? 'Sentinel-2, 10 m' : `${satLabel(scene.sat)}, 30 m`}</span>
         <span>{cloudLabel(scene.cloudPct)}</span>
       </p>
-      <div className="sw-sat-frame">
-        {cog10 && (
-          <Suspense fallback={<p className="br-sat-wait br-muted">10-m-Ansicht wird geladen …</p>}>
-            <FireCogViewer key={scene.dayIso} lat={lat} lon={lon} dayIso={scene.dayIso} fireStartIso={null}
-              fallbackUrl={copernicusBrowserUrl(lat, lon, scene.dayIso)} onClose={() => setCog10(false)} />
-          </Suspense>
-        )}
-        {!cog10 && snap?.kind === 'img' && <img src={snap.url} alt={`Satellitenbild der Küste bei ${name} vom ${fmtDay(scene.dayIso)} (${satLabel(scene.sat)}, Echtfarbe, 30 m)`} />}
-        {!cog10 && snap?.kind === 'img' && <span className="sw-sat-pin" aria-hidden="true" />}
-        {!cog10 && snap?.kind === 'loading' && <p className="br-sat-wait br-muted">Bild wird geladen …</p>}
-        {!cog10 && snap?.kind === 'nodata' && <p className="br-sat-wait br-muted">Für den {fmtDay(scene.dayIso)} liegt noch kein Bild auf dem Bilddienst — frische Aufnahmen brauchen 2–3 Tage Verarbeitung. Anderen Tag wählen.</p>}
-        {!cog10 && snap?.kind === 'error' && <p className="br-sat-wait br-muted">Der Bilddienst ist gerade nicht erreichbar — später erneut öffnen.</p>}
-      </div>
+      {big && !cog10 ? createPortal(frame, document.body) : frame}
       {!cog10 && scene.sat === 's2' && sat10Enabled() && (
         <p className="sw-sat-open"><button type="button" className="sw-link" onClick={() => setCog10(true)}>In 10 m ansehen — lädt je nach Zoom ~1–10 MB</button></p>
       )}
