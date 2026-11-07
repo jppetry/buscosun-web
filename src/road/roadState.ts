@@ -8,8 +8,8 @@
  * Gate D). `st` is a station id or, since AW-6.1b, a forecast point of the corridor axis (`a8@70`).
  */
 
-export type RoadTab = 'station' | 'strecke' | 'quellen' | 'gefahren' | 'autobahnen';
-export const ROAD_TABS: readonly RoadTab[] = ['station', 'strecke', 'quellen', 'gefahren', 'autobahnen'];
+export type RoadTab = 'station' | 'strecke' | 'quellen' | 'gefahren' | 'autobahnen' | 'messpunkte';
+export const ROAD_TABS: readonly RoadTab[] = ['station', 'strecke', 'quellen', 'gefahren', 'autobahnen', 'messpunkte'];
 /** Time chips of the design (now, +1, +3, +6 h). */
 export const ROAD_TIMES = [0, 1, 3, 6] as const;
 /** AW-8: behind the hazard switch the time is hourly, 0 … 6 (one state for map, band, matrix and detail). */

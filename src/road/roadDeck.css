@@ -1171,3 +1171,26 @@ button.aw-prog-tile:not(:disabled):not(.is-on):hover { box-shadow: var(--aw-inse
   .aw-dv-road { grid-area: road; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 10px 12px; border-radius: 0; background: none; }
   .aw-dv-cap { grid-area: stage; z-index: 1; align-self: end; justify-self: end; max-width: 70%; margin: 0 8px 8px; }
 }
+
+/* Readout tab „Messpunkte" (Jan 2026-11-08): search, road kind, quantity filters, sort, rows with the current values. */
+.aw-stl .aw-dock-label { display: block; margin-bottom: 6px; }
+.aw-stl-kind { margin-top: 8px; }
+.aw-stl-kind button { font-size: 11px; }
+.aw-stl-filters { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.aw-stl-chip { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--aw-hair, #E0D6BE); border-radius: 999px; background: #fff; color: var(--ink-900, #2C2A26); font: inherit; font-size: 11px; padding: 4px 9px; cursor: pointer; }
+.aw-stl-chip span { font-size: 10px; color: var(--stone-500, #8B7355); font-variant-numeric: tabular-nums; }
+.aw-stl-chip.is-on { background: var(--ink-900, #2C2A26); border-color: var(--ink-900, #2C2A26); color: var(--cream-50, #FAF6EA); }
+.aw-stl-chip.is-on span { color: rgba(250, 246, 234, 0.75); }
+.aw-stl-sort { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
+.aw-stl-sort select { font: inherit; font-size: 11.5px; color: var(--ink-900, #2C2A26); background: #fff; border: 1px solid var(--aw-hair, #E0D6BE); border-radius: 8px; padding: 4px 6px; }
+.aw-stl-row { align-items: stretch; }
+.aw-stl-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.aw-stl-top .aw-road-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aw-stl-cls { flex: 0 0 auto; font-size: 9.5px; font-weight: 600; line-height: 1; padding: 3px 6px; border-radius: 999px; }
+.aw-stl-cls.is-hatched { background: repeating-linear-gradient(45deg, #F4F0E4 0 3px, #D9D0B8 3px 4.5px); color: var(--stone-600, #5C5447); }
+.aw-stl-vals { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.aw-stl-vals span { display: inline-flex; flex-direction: column; gap: 1px; }
+.aw-stl-vals small { font-size: 9px; color: var(--stone-500, #8B7355); }
+.aw-stl-vals b { font-size: 12px; font-weight: 600; color: var(--ink-900, #2C2A26); }
+.aw-stl-vals .is-hot b { color: #B5321F; }
+@media (max-width: 1023px) { .aw-stl-chip, .aw-stl-kind button, .aw-stl-sort select { min-height: 44px; } }

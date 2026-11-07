@@ -33,6 +33,7 @@ import RoadMap, { type RoadFcDot, type RoadMapLayers, type RoadRainState } from 
 import RoadDock, { type RoadCountry } from './RoadDock';
 import RoadBand from './RoadBand';
 import RoadReadout from './RoadReadout';
+import RoadStationList from './RoadStationList';
 import { useRoadVs } from './vs/useRoadVs';
 import { roadVsClassOf, roadVsMaySimulate, roadVsOriginText, roadVsText, roadVsValue } from './vs/roadVsView';
 import { ROAD_FORECAST_ENABLED, ROAD_HZ_TIMES, ROAD_TIMES, type RoadHzMode, type RoadTab, type RoadTime, type RoadUrlState } from './roadState';
@@ -477,6 +478,12 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   const hintSpots = useCallback((): HintSpot[] => [...mapPoints.filter((p) => inCorridor.has(p.id)), ...mapPoints.filter((p) => !inCorridor.has(p.id))]
     .filter((p) => p.n).slice(0, 40)
     .map((p) => ({ lng: p.lon, lat: p.lat, name: p.n, onPick: () => pickStationFromMap(p.id) })), [mapPoints, inCorridor, pickStationFromMap]);
+  // Jan 08.11.: a pick in the readout list „Messpunkte“ selects the point like a map click, centres it and keeps the list open.
+  const pickStationFromList = useCallback((p: RoadPoint) => {
+    pickStationFromMap(p.id); setTab('messpunkte'); setStage('map');
+    const m = mapRef.current;
+    if (m) m.easeTo({ center: [p.lon, p.lat], zoom: Math.max(m.getZoom(), 9), duration: 600 });
+  }, [pickStationFromMap]);
   const hzBack = useCallback(() => { setSegId(null); setDsChapter(1); }, []);
   const hzStep = useCallback((d: 1 | -1) => {
     if (!segId || !hzOrder.length) return;
@@ -883,6 +890,9 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
           <RoadReadout {...readoutProps} hz={hzNode} roads={(
             <RoadDock part="roads" corridors={filtered} byId={shownById} selectedId={corridor?.id ?? null} onPick={pickCorridor} query={query} onQuery={setQuery}
               country={country} onCountry={setCountry} layers={layers} onToggle={(k) => setLayers((l) => ({ ...l, [k]: !l[k] }))} summary={summary} hasData={!noData && !!obs} loading={dockLoading} />
+          )} stations={(
+            <RoadStationList points={shownPoints} slotMs={obs?.slotMs ?? null} stale={freshness === 'stale'} loading={loadingObs} noData={noData}
+              selectedId={axis ? null : point?.id ?? null} onPick={pickStationFromList} />
           )} />
         </div>
       </div>
