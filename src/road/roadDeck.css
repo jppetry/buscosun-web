@@ -1195,26 +1195,26 @@ button.aw-prog-tile:not(:disabled):not(.is-on):hover { box-shadow: var(--aw-inse
 .aw-stl-card:focus-visible { outline: 2px solid var(--aw-accent, #1F5FAE); outline-offset: 2px; }
 .aw-stl-hero { flex: 0 0 66px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border-radius: 10px;
   background: var(--stl-tint); border: 1px solid var(--stl-border); color: var(--stl-ink); font-variant-numeric: tabular-nums; }
-.aw-stl-hero b { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
-.aw-stl-hero small { font-size: 8.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.8; text-align: center; }
+.aw-stl-hero b { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
+.aw-stl-hero small { font-size: 9.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.8; text-align: center; }
 .aw-stl-hero.is-sub0 b { color: #1F4F8A; }
 .aw-stl-hero.is-hatched { background: repeating-linear-gradient(45deg, #F7F3E9 0 4px, #E6DECA 4px 5.5px); }
 .aw-stl-hero.is-hot { box-shadow: 0 0 0 2px color-mix(in srgb, var(--stl-accent) 55%, transparent); }
 .aw-stl-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; padding: 1px 2px 1px 0; }
 .aw-stl-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.aw-stl-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13.5px; font-weight: 700; letter-spacing: -0.01em; }
-.aw-stl-pill { flex: 0 0 auto; font-size: 9.5px; font-weight: 700; line-height: 1; padding: 4px 8px; border-radius: 999px; letter-spacing: 0.01em; }
+.aw-stl-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14.5px; line-height: 1.15; font-weight: 700; letter-spacing: -0.01em; }
+.aw-stl-pill { flex: 0 0 auto; font-size: 10.5px; font-weight: 700; line-height: 1; padding: 3px 7px; border-radius: 999px; letter-spacing: 0.01em; }
 .aw-stl-pill.is-hatched { background: repeating-linear-gradient(45deg, #F4F0E4 0 3px, #D9D0B8 3px 4.5px); color: var(--stone-600, #5C5447); }
-.aw-stl-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 8px; font-size: 10px; color: var(--stone-500, #8B7355); }
+.aw-stl-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; font-size: 11px; line-height: 1.2; color: var(--stone-500, #8B7355); }
 .aw-stl-meta > span:not(.aw-stl-shield) + span::before { content: ''; display: inline-block; width: 3px; height: 3px; margin-right: 8px; border-radius: 50%; background: currentColor; opacity: 0.5; vertical-align: middle; }
-.aw-stl-shield { font-size: 9.5px; font-weight: 700; line-height: 1; padding: 3px 5px; border-radius: 4px; background: #F2C230; color: #2C2A26; letter-spacing: 0.02em; }
+.aw-stl-shield { font-size: 10.5px; font-weight: 700; line-height: 1; padding: 2px 4px; border-radius: 4px; background: #F2C230; color: #2C2A26; letter-spacing: 0.02em; }
 .aw-stl-shield.is-a { background: #1F5FAE; color: #fff; }
 .aw-stl-metrics { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 4px; margin-top: 2px; font-variant-numeric: tabular-nums; }
-.aw-stl-m { display: grid; grid-template-columns: 13px 1fr; column-gap: 5px; align-items: center; padding: 4px 6px; border-radius: 8px; background: rgba(237, 230, 211, 0.45); color: var(--stone-500, #8B7355); }
+.aw-stl-m { display: grid; grid-template-columns: 13px 1fr; column-gap: 5px; align-items: center; padding: 3px 6px; border-radius: 8px; background: rgba(237, 230, 211, 0.45); color: var(--stone-500, #8B7355); }
 .aw-stl-m svg { grid-row: 1 / 3; }
-.aw-stl-m-k { font-size: 8.5px; line-height: 1.1; letter-spacing: 0.02em; }
-.aw-stl-m b { font-size: 12px; font-weight: 650; line-height: 1.15; color: var(--ink-900, #2C2A26); white-space: nowrap; }
-.aw-stl-m b i { font-style: normal; font-size: 9px; font-weight: 500; color: var(--stone-500, #8B7355); }
+.aw-stl-m-k { font-size: 10px; line-height: 1.05; letter-spacing: 0.02em; }
+.aw-stl-m b { font-size: 13px; font-weight: 650; line-height: 1.1; color: var(--ink-900, #2C2A26); white-space: nowrap; }
+.aw-stl-m b i { font-style: normal; font-size: 10px; font-weight: 500; color: var(--stone-500, #8B7355); }
 .aw-stl-m.is-hot { background: #FBE9E4; color: #B5321F; }
 .aw-stl-m.is-hot b { color: #8A1C1C; }
 @media (max-width: 1023px) { .aw-stl-chip, .aw-stl-kind button, .aw-stl-sort select { min-height: 44px; } }
