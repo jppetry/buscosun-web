@@ -94,7 +94,19 @@ export function FireMiniMap({ record, footprintFc, basemap, onClick, height, ari
       map.getContainer().querySelectorAll('details.maplibregl-ctrl-attrib[open]').forEach((d) => d.removeAttribute('open'));
     });
     map.on('style.load', install);
-    return () => { map.remove(); mapRef.current = null; };
+    // Mobile: the map is often created while its tab/card is hidden or still 0 px wide; the canvas then
+    // keeps its stale size and is only CSS-stretched (pixelated). Re-measure and re-fit whenever the box changes.
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      let first = true;
+      ro = new ResizeObserver(() => {
+        if (first) { first = false; return; }
+        map.resize();
+        if (map.getSource(SRC)) map.fitBounds(bboxRef.current as [number, number, number, number], { padding: 28, maxZoom: 12, duration: 0 });
+      });
+      ro.observe(el);
+    }
+    return () => { ro?.disconnect(); map.remove(); mapRef.current = null; };
     // Basemap-Wechsel läuft über setStyle unten; der Brand über setData.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
