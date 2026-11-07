@@ -98,12 +98,12 @@ export function shortLocationName(name: string): string {
   return name.split(',')[0];
 }
 
-/** Flaggen-Emoji zum Ländercode. */
+/** Country marker for the search UI: the plain code (DE/AT/CH) on every device — flag emoji render as flags on phones but as letters on Windows. */
 export function flagForCountry(cc: string): string {
   switch (cc.toLowerCase()) {
-    case 'de': return '🇩🇪';
-    case 'at': return '🇦🇹';
-    case 'ch': return '🇨🇭';
+    case 'de': return 'DE';
+    case 'at': return 'AT';
+    case 'ch': return 'CH';
     default: return '📍';
   }
 }
