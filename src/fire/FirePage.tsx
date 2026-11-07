@@ -67,7 +67,7 @@ import {
   HISTORY_DAYS, HISTORY_LATENCY_NOTE,
 } from './footprint/history';
 import {
-  buildFireRegistry, carryIds, sortRecords, filterRecords, footprintsToGeoJSON, DEFAULT_FILTER, STATUS_COLOR,
+  buildFireRegistry, carryIds, sortRecords, filterRecords, footprintsToGeoJSON, DEFAULT_FILTER,
   type FireRecord, type RecordFilter,
 } from './footprint/fireRegistry';
 import { FireFootprintPanel, type EffisScope } from './FireFootprintPanel';
@@ -2034,31 +2034,16 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
    * (`STATUS_COLOR`, `footprints-line`) und `anomalyLayer.ts`; die Wörter der Klassen kommen
    * aus `SITE_CLASS_LABEL`. Die Legende steht nur, solange der jeweilige Layer sichtbar ist.
    */
-  const legendFires = onlyKind === 'fires' && !history && (mapActive.has('fireFootprints') || mapActive.has('fireBurnt'));
+  // Jan 2026-11-07: the Brandflächen legend is gone; only the Thermalanomalien legend remains.
   const legendAnomalies = onlyKind === 'anomalies' && mapActive.has('fireAnomalies') && thermalSitesEnabled();
-  const mapLegend = (legendFires || legendAnomalies) ? (
-    <div className="br-maplegend" role="group" aria-label={legendFires ? 'Legende Brandflächen' : 'Legende Thermalanomalien'}>
-      <span className="br-eyebrow">{legendFires ? 'Legende · Brandflächen' : 'Legende · Thermalanomalien'}</span>
-      {legendFires ? (
-        <>
-          <span className="br-ml-row"><i className="br-ml-sw is-area" style={{ ['--c' as string]: STATUS_COLOR.active }} />aktiv zum Stand</span>
-          <span className="br-ml-row"><i className="br-ml-sw is-area" style={{ ['--c' as string]: STATUS_COLOR['no-signal'] }} />kein Signal zum Stand</span>
-          <span className="br-ml-row"><i className="br-ml-sw is-area" style={{ ['--c' as string]: STATUS_COLOR.out }} />beendet</span>
-          <span className="br-ml-row"><i className="br-ml-sw is-area" style={{ ['--c' as string]: STATIC_GREY }} />ortsfest (vermutlich Anlage)</span>
-          <span className="br-ml-row"><i className="br-ml-sw is-line" />durchgezogen: von EFFIS kartiert</span>
-          <span className="br-ml-row"><i className="br-ml-sw is-line is-dashed" />gestrichelt: Detektionsraster</span>
-          <span className="br-ml-row"><i className="br-ml-sw is-mark" />markierter Brand</span>
-          <span className="br-ml-note">Farben abgeleitet — nicht amtlich</span>
-        </>
-      ) : (
-        <>
-          <span className="br-ml-row"><i className="br-ml-dia is-a" />{SITE_CLASS_LABEL.A}</span>
-          <span className="br-ml-row"><i className="br-ml-dia is-b" />{SITE_CLASS_LABEL.B}</span>
-          <span className="br-ml-row"><i className="br-ml-dia is-c" />{SITE_CLASS_LABEL.C}</span>
-          <span className="br-ml-row"><i className="br-ml-dia is-dev" />weicht vom Anlagenmuster ab</span>
-          <span className="br-ml-note">Eigene Ableitung — kein Nachweis</span>
-        </>
-      )}
+  const mapLegend = legendAnomalies ? (
+    <div className="br-maplegend" role="group" aria-label="Legende Thermalanomalien">
+      <span className="br-eyebrow">Legende · Thermalanomalien</span>
+      <span className="br-ml-row"><i className="br-ml-dia is-a" />{SITE_CLASS_LABEL.A}</span>
+      <span className="br-ml-row"><i className="br-ml-dia is-b" />{SITE_CLASS_LABEL.B}</span>
+      <span className="br-ml-row"><i className="br-ml-dia is-c" />{SITE_CLASS_LABEL.C}</span>
+      <span className="br-ml-row"><i className="br-ml-dia is-dev" />weicht vom Anlagenmuster ab</span>
+      <span className="br-ml-note">Eigene Ableitung — kein Nachweis</span>
     </div>
   ) : null;
 
