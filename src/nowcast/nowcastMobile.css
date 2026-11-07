@@ -366,6 +366,8 @@
 
 /* Mobil entfällt: die Steuerzeile unter dem Zeit-Slider (Schritt, Play, Jetzt, Tempo, Schleife) — spart Platz; gescrubbt wird per Slider. */
 .rm-map .rdr-tl-controls { display: none; }
+/* Slider sits above the tab bar (it lay under it once the control row was gone). */
+.rm-map .rdr-timeline { margin-bottom: calc(var(--rm-tabbar-h, 60px) + var(--rm-safe-bottom, 0px) + 10px); }
 
 /* Mobil entfallen (Jans Auftrag 2026-10-23): die Zoom-Knöpfe + / − und der ⓘ-Knopf der Kartenquellen (MapLibre-Attribution)
    rechts unten; gezoomt wird per Geste. */
