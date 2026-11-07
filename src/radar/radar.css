@@ -191,18 +191,18 @@
 .rl-dock .rl-sec + .rl-sec { border-left: 1px solid rgba(224,214,190,0.9); }
 .rl-dock .rl-sec:last-child { padding-right: 0; }
 /* Type one step smaller again (Jan 2026-11-07) — between the original 0.86/0.8 rem and the 1/0.92 rem of 2145a38d. */
-.rl-head { display: flex; flex-direction: column; align-items: flex-start; gap: 0.1rem; margin-bottom: 0; font-size: 0.92rem; font-weight: 700; letter-spacing: -0.01em; line-height: 1.1; color: var(--ink-900, #2C2A26); white-space: nowrap; }
-.rl-head span { font-size: 0.74rem; font-weight: 500; letter-spacing: 0.01em; text-transform: none; color: var(--stone-500, #8B7355); }
+.rl-head { display: flex; flex-direction: column; align-items: flex-start; gap: 0.1rem; margin-bottom: 0; font-size: 0.85rem; font-weight: 700; letter-spacing: -0.01em; line-height: 1.1; color: var(--ink-900, #2C2A26); white-space: nowrap; }
+.rl-head span { font-size: 0.68rem; font-weight: 500; letter-spacing: 0.01em; text-transform: none; color: var(--stone-500, #8B7355); }
 .rl-scale { display: flex; gap: 4px; }
-.rl-seg { display: flex; flex-direction: column; gap: 0.28rem; min-width: 4.6rem; }
+.rl-seg { display: flex; flex-direction: column; gap: 0.28rem; min-width: 4.2rem; }
 .rl-seg i { display: block; height: 0.5rem; border-radius: 4px; }
-.rl-seg b { font-size: 0.85rem; font-weight: 600; line-height: 1; color: var(--ink-800, #3A3833); white-space: nowrap; }
-.rl-seg small { font-size: 0.76rem; line-height: 1; color: var(--stone-500, #8B7355); white-space: nowrap; }
+.rl-seg b { font-size: 0.78rem; font-weight: 600; line-height: 1; color: var(--ink-800, #3A3833); white-space: nowrap; }
+.rl-seg small { font-size: 0.70rem; line-height: 1; color: var(--stone-500, #8B7355); white-space: nowrap; }
 .rl-grad { display: grid; grid-template-columns: auto auto; justify-content: space-between; row-gap: 0.28rem; min-width: 7.5rem; }
 .rl-grad i { grid-column: 1 / -1; height: 0.5rem; border-radius: 4px; }
-.rl-grad small { font-size: 0.76rem; color: var(--stone-500, #8B7355); }
+.rl-grad small { font-size: 0.70rem; color: var(--stone-500, #8B7355); }
 .rl-sk { display: flex; flex-flow: row wrap; gap: 0.15rem 0.8rem; max-width: 19rem; }
-.rl-sk .nc-radar-leg-item { font-size: 0.72rem; line-height: 1.2; white-space: nowrap; }
+.rl-sk .nc-radar-leg-item { font-size: 0.66rem; line-height: 1.2; white-space: nowrap; }
 /* Mobil: die Legende steht auf voller Breite unter dem Zeitstempel — Titel über der Skala, die fünf Stufen teilen sich
    die Zeile; weitere Abschnitte (Schnee, Graupel, Hagel, Schneefallgrenze) darunter. */
 @media (max-width: 767px) {
@@ -210,12 +210,12 @@
   .rl-dock { flex: 1 1 100%; order: 3; justify-content: flex-start; flex-direction: column; flex-wrap: nowrap; gap: 0.55rem; }
   .rl-dock .rl-sec { flex-direction: column; align-items: stretch; gap: 0.35rem; padding: 0; }
   .rl-dock .rl-sec + .rl-sec { border-left: 0; border-top: 1px solid rgba(224,214,190,0.9); padding-top: 0.55rem; }
-  .rl-head { flex-direction: row; align-items: baseline; gap: 0.1rem 0.5rem; font-size: 0.88rem; }
-  .rl-head span { font-size: 0.72rem; }
+  .rl-head { flex-direction: row; align-items: baseline; gap: 0.1rem 0.5rem; font-size: 0.82rem; }
+  .rl-head span { font-size: 0.66rem; }
   .rl-scale { width: 100%; gap: 3px; }
   .rl-seg { flex: 1 1 0; min-width: 0; }
-  .rl-seg b { font-size: 0.76rem; overflow: hidden; text-overflow: ellipsis; }
-  .rl-seg small { font-size: 0.68rem; }
+  .rl-seg b { font-size: 0.70rem; overflow: hidden; text-overflow: ellipsis; }
+  .rl-seg small { font-size: 0.63rem; }
   .rl-grad { min-width: 0; width: 100%; }
 }
 
