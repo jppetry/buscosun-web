@@ -11,7 +11,8 @@ import ShareButton from '../share/ShareButton';
 import { GLACIER_COUNTRY_LABEL, GLACIER_REGIONS, type GlacierCatalogEntry, type GlacierOfficialItem } from './glacierContract';
 import type { GlacierBases, GlacierIndex } from './glacierClient';
 import { GLACIER_TABS, type GlacierTab, type GlacierUrlState, type GlacierLayer, type GlacierView } from './glacierState';
-import { loadSheetData, type SheetData } from './glacierSheetData';
+import { loadSheetData, pickGeometry, type SheetData } from './glacierSheetData';
+import { loadOutline } from './glacierClient';
 import GlacierSheetMap, { type SheetBasemap, type SheetSnow } from './GlacierSheetMap';
 import { TabHeute, TabSaison, TabLangzeit, TabTour, TabQuellen } from './GlacierSheetTabs';
 import GlacierHeuteBoard from './GlacierHeuteBoard';
@@ -75,6 +76,15 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
     void loadSheetData({ g, build, byId, satIndex, meltPointer: meltPointer ?? null, signal: ac.signal, bases }).then((d) => { if (!ac.signal.aborted) setData(d); }, (e) => { if (!ac.signal.aborted && (e as Error)?.name !== 'AbortError') setLoadError(String((e as Error)?.message ?? e)); });
     return () => ac.abort();
   }, [g, build, byId, satIndex, meltPointer, bases]);
+  // The map gets the glacier's outline as soon as the region's outline file is in — not once the whole sheet (epochs, grid, melt run,
+  // series) has arrived. Same memoised document as inside `loadSheetData`, so nothing is fetched twice.
+  const [earlyGeometry, setEarlyGeometry] = useState<{ id: string; geometry: GeoJSON.Geometry | null } | null>(null);
+  useEffect(() => {
+    let alive = true;
+    loadOutline(build, g.region, 3, undefined, bases).then((fc) => { if (alive) setEarlyGeometry({ id: g.id, geometry: pickGeometry(fc, g.id) }); }, () => { if (alive) setEarlyGeometry({ id: g.id, geometry: null }); });
+    return () => { alive = false; };
+  }, [g, build, bases]);
+  const mapGeometry = data?.geometry ?? (earlyGeometry?.id === g.id ? earlyGeometry.geometry : null);
 
   const view: GlacierView = allow3d && !view3dFailed ? state.v : '2d';
   const year = useMemo(() => {
@@ -206,7 +216,7 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
   );
   const mapEl = (
     <section className="gl-map gl-sheet-map" aria-label="Karte des Gletschers">
-      <GlacierSheetMap g={g} geometry={data?.geometry ?? null} earlier={earlier} showEarlier={showEarlier} snow={snow} showSnow={showSnow} dem={data?.dem ?? null}
+      <GlacierSheetMap g={g} geometry={mapGeometry} earlier={earlier} showEarlier={showEarlier} snow={snow} showSnow={showSnow} dem={data?.dem ?? null}
         view={view} basemap={basemap} compare={compare} onCompare={setCompare} onSnowShare={setSnowShare} onView3dFailed={() => setView3dFailed(true)} />
       {layout !== 'dossier' && (
         <div className="gl-legend gl-sheet-legend" aria-label="Legende">

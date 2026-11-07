@@ -176,15 +176,23 @@ export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, sno
     if (!box.current) return;
     const bb = geometry ? bboxOf(geometry) : null;
     const map = new maplibregl.Map({
-      container: box.current, style: STYLE, attributionControl: { compact: true }, maxPitch: 75, dragRotate: true, maxZoom: 16, minZoom: 8,
+      container: box.current, attributionControl: { compact: true }, maxPitch: 75, dragRotate: true, maxZoom: 16, minZoom: 8,
       ...(bb ? { bounds: [[bb[0], bb[1]], [bb[2], bb[3]]] as [[number, number], [number, number]], fitBoundsOptions: { padding: 48, maxZoom: 15 } } : { center: [g.lon, g.lat] as [number, number], zoom: 13 }),
     });
+    // Starting on imagery: the style's own layers go in hidden (their authored visibility is kept for "Karte"), so the vector tiles of the
+    // first frames — large at zoom 13–15 — are never fetched only to be hidden again on `load`. A source without a visible layer loads no tiles.
+    map.setStyle(STYLE, latest.current.basemap === 'satellit' ? {
+      transformStyle: (_prev, next) => {
+        for (const l of next.layers) styleVis.current.set(l.id, l.layout?.visibility === 'none' ? 'none' : 'visible');
+        return { ...next, layers: next.layers.map((l) => ({ ...l, layout: { ...(l.layout ?? {}), visibility: 'none' as const } })) as typeof next.layers };
+      },
+    } : undefined);
     mapRef.current = map;
     onMap?.(map);
     map.on('load', () => {
       if (mapRef.current !== map) return;
       const styleLayers = map.getStyle().layers ?? [];
-      for (const l of styleLayers) styleVis.current.set(l.id, l.layout?.visibility === 'none' ? 'none' : 'visible');
+      for (const l of styleLayers) if (!styleVis.current.has(l.id)) styleVis.current.set(l.id, l.layout?.visibility === 'none' ? 'none' : 'visible');
       map.addSource('gls-sat', { type: 'raster', tiles: [SAT_TILES], tileSize: 256, maxzoom: 19, attribution: 'Esri World Imagery' });
       map.addLayer({ id: 'gls-sat-l', type: 'raster', source: 'gls-sat', layout: { visibility: 'none' }, paint: { 'raster-fade-duration': 0 } }, styleLayers[0]?.id);
       map.addSource('gls-dem', { type: 'raster-dem', tiles: [DEM_TILES], encoding: 'terrarium', tileSize: 256, maxzoom: 14 });

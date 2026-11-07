@@ -27,8 +27,10 @@ export interface SheetData {
   missing: string[];
 }
 
-const pick = (fc: { features: Array<{ properties: { id?: string; ids?: string[] }; geometry: GeoJSON.Geometry }> } | null, id: string): GeoJSON.Geometry | null =>
+/** The glacier's geometry out of an outline document (by `id`, or a merged feature listing it in `ids`). */
+export const pickGeometry = (fc: { features: Array<{ properties: { id?: string; ids?: string[] }; geometry: GeoJSON.Geometry }> } | null, id: string): GeoJSON.Geometry | null =>
   fc?.features.find((f) => f.properties.id === id || f.properties.ids?.includes(id))?.geometry ?? null;
+const pick = pickGeometry;
 
 export async function loadSheetData(a: {
   g: GlacierCatalogEntry; build: string; byId: ReadonlyMap<string, GlacierCatalogEntry>; satIndex: GlacierSatIndex | null; meltPointer: GlacierMeltPointer | null; signal?: AbortSignal; bases: GlacierBases;
@@ -44,22 +46,26 @@ export async function loadSheetData(a: {
   const klassA = g.klass === 'A' && g.country !== 'DE';
   const satOk = g.klass !== 'C' && g.country !== 'DE';
   const catIds = new Set(byId.keys());
-  const [hypso, series, proj, clima, outline, report, sources, seasons, meltDoc] = await Promise.all([
+  // ONE wave: the earlier outlines hang on the report (it names the epoch years) and are chained behind it here; the elevation grid
+  // needs nothing else. Three waves in a row cost two extra round trips before the sheet (and its map) had anything.
+  const [hypso, series, proj, clima, outline, epochSet, sources, seasons, meltDoc, dem] = await Promise.all([
     guard('Höhenbänder', loadHypso(build, g.region, signal, bases)),
     guard('Reihen', loadSeries(build, g.region, signal, bases)),
     guard('Projektion', loadProj(build, g.region, signal, bases)),
     klassA ? guard('Schneegrenzen-Klimatologie', loadClima(build, g.region, byId, signal, bases)) : Promise.resolve(null),
     guard('Umriss', loadOutline(build, g.region, 3, signal, bases)),
-    loadReport(build, signal, bases).catch(() => null),
+    loadReport(build, signal, bases).catch(() => null).then(async (report) => {
+      const years = epochYearsOf(report, g.region);
+      const docs = await Promise.all(years.map((y) => loadEpoch(build, g.region, y, signal, bases).catch(() => null)));
+      return { years, docs };
+    }),
     guard('Quellen', loadSources(build, signal, bases)),
     satOk && satIndex ? loadSeasonRowsOf(g, satIndex, byId, signal, bases).catch(() => new Map<number, GlacierSeasonRow[]>()) : Promise.resolve(new Map<number, GlacierSeasonRow[]>()),
     meltPointer ? guard('Schmelzlauf', loadMelt(meltPointer.run, catIds, signal, bases)) : Promise.resolve(null),
+    klassA ? guard('Höhengitter', loadDemGrid(build, g.region, g.id, signal, bases)) : Promise.resolve(null),
   ]);
-  const years = epochYearsOf(report, g.region);
-  const epochDocs = await Promise.all(years.map((y) => loadEpoch(build, g.region, y, signal, bases).catch(() => null)));
   const epochs: SheetEpoch[] = [];
-  epochDocs.forEach((d, i) => { const geo = pick(d, g.id); if (geo && d) epochs.push({ year: years[i], source: d.source ?? '', geometry: geo }); });
-  const dem = klassA ? await guard('Höhengitter', loadDemGrid(build, g.region, g.id, signal, bases)) : null;
+  epochSet.docs.forEach((d, i) => { const geo = pick(d, g.id); if (geo && d) epochs.push({ year: epochSet.years[i], source: d.source ?? '', geometry: geo }); });
   const row = meltDoc?.glaciers.find((r) => r.id === g.id) ?? null;
   if (meltDoc && !row) missing.push('Schmelzlauf (Gletscher ohne Zeile)');
   return {

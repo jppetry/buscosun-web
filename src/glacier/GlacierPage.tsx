@@ -208,7 +208,14 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   }), [initial, briefSeg, sheet, land, metric, query, selSeg, stage]);
   useEffect(() => { onUrlState(stateNow()); }, [stateNow, onUrlState]);
 
-  const pick = useCallback((id: string) => setSelSeg(glacierSegmentOf(id)), []);
+  const pick = useCallback((id: string) => {
+    setSelSeg(glacierSegmentOf(id));
+    // Warm the dossier on the pick: its lazy chunk and the region's outline file (memoised in the client), so "Detailansicht" opens with
+    // the map drawable at once instead of fetching both only then.
+    void import('./GlacierBrief').catch(() => null);
+    const g = d?.cat.byId.get(id);
+    if (d && g) void loadOutline(d.build, g.region, 3, undefined, bases).catch(() => null);
+  }, [d, bases]);
   // Map hint: highlight candidates = the largest glaciers currently on the map.
   const hintSpots = useCallback((): HintSpot[] => features.filter((f) => f.name).sort((a, b) => b.km2 - a.km2).slice(0, 40)
     .map((f) => ({ lng: f.lon, lat: f.lat, name: f.name as string, onPick: () => pick(f.id) })), [features, pick]);
