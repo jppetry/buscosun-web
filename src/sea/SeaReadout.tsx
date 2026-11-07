@@ -428,7 +428,7 @@ export default function SeaReadout(p: Props) {
     const satCard = s && (
       <Card cls="is-cream">
         <div className="sw-card-head"><span className="sw-eyebrow">Satellit · Lage des Spots</span><span className="sw-unit">Esri World Imagery · Klick öffnet die Karte</span></div>
-        <SeaMiniMap spot={s} gauge={gauge} height={320} onClick={p.onMap} ariaLabel={`Satellitenbild: ${s.name}${p.onMap ? ' — zur Kartenbühne wechseln' : ''}`} />
+        <SeaMiniMap spot={s} gauge={gauge} height={320} onClick={p.onMap} ariaLabel={`Satellitenbild: ${s.name}`} />
         <div className="sw-ds-maplegend">
           <span><i style={{ background: '#0F6E7A' }} />{s.name} · Ufer zeigt nach {compass16(s.normal)} (gestrichelt)</span>
           {s.station && <span><i style={{ background: '#5F7A4C' }} />DWD-Station {stationName} · {s.station.km} km</span>}

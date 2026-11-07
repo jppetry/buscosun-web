@@ -5,9 +5,10 @@
  * Deliberately NOT a second `SeaMap` (field, arrows, areas, gauges — one data path); this one has a single GeoJSON
  * source built from the spot catalogue, no weather data.
  */
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import maplibregl from 'maplibre-gl';
-import { ExpandButton } from '../components/ExpandButton';
+import { ExpandButton, setMapInteractive, useExpandedFrame, useMapHost } from '../components/ExpandButton';
 
 export interface SeaMiniMapProps {
   spot: { id: string; name: string; lat: number; lon: number; normal: number; station: { name: string; lat: number; lon: number; km: number } | null };
@@ -65,12 +66,18 @@ export default function SeaMiniMap(p: SeaMiniMapProps) {
   dataRef.current = features(p);
   const boundsRef = useRef(bounds(p));
   boundsRef.current = bounds(p);
+  // Jan 2026-11-07: the enlarge button opens THIS map over the page (dossier stays); in place it neither pans nor zooms.
+  const [full, setFull] = useState(false);
+  useExpandedFrame(full, () => setFull(false));
+  const { slot, host } = useMapHost(full, () => mapRef.current?.resize());
+  useEffect(() => { if (mapRef.current) setMapInteractive(mapRef.current, full); }, [full]);
 
   useEffect(() => {
     const el = elRef.current;
     if (!el) return;
-    const map = new maplibregl.Map({ container: el, interactive: false, attributionControl: { compact: true }, style: STYLE, center: [p.spot.lon, p.spot.lat], zoom: 11 });
+    const map = new maplibregl.Map({ container: el, attributionControl: { compact: true }, style: STYLE, center: [p.spot.lon, p.spot.lat], zoom: 11 });
     mapRef.current = map;
+    setMapInteractive(map, false);
     map.on('style.load', () => {
       if (map.getSource(SRC)) return;
       map.addSource(SRC, { type: 'geojson', data: dataRef.current });
@@ -100,10 +107,12 @@ export default function SeaMiniMap(p: SeaMiniMapProps) {
   useEffect(() => { mapRef.current?.resize(); }, [p.height]);
 
   return (
-    <div className="sw-minimap" style={{ height: p.height }} onClick={p.onClick}>
-      <div ref={elRef} className="sw-minimap-canvas" role="img" aria-label={p.ariaLabel} />
-      {/* Jan 2026-11-07: the enlarge button (top right) is the keyboard/screen-reader way to the map stage, a click on the map still works. */}
-      {p.onClick && <ExpandButton expanded={false} onClick={p.onClick} label={p.ariaLabel} />}
+    <div ref={slot} className="sw-minimap" style={{ height: p.height, cursor: 'default' }}>
+      {host && createPortal(
+        <>
+          <div ref={elRef} className="sw-minimap-canvas" role="img" aria-label={p.ariaLabel} />
+          <ExpandButton expanded={full} onClick={() => setFull((f) => !f)} label={full ? 'Kleiner machen' : 'Karte vergrößern'} />
+        </>, host)}
     </div>
   );
 }

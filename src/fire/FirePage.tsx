@@ -2417,7 +2417,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   const miniMap = (height: number) => dossierRecord && (
     <FireMiniMap
       record={dossierRecord} footprintFc={history ? null : footprintFc} basemap={basemap} height={height}
-      ariaLabel={`Karte: ${recordTitle(dossierRecord)} — zur Kartenbühne wechseln`}
+      ariaLabel={`Karte: ${recordTitle(dossierRecord)}`}
       onClick={() => {
         setStage('map');
         if (isMobile) openTab('map');
@@ -2485,7 +2485,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                   <FireMiniMap
                     record={{ id: historyEntry.id, lat: historyEntry.lat, lon: historyEntry.lon, bbox: area ? area.bbox : historyAreaBbox(historyEntry.lat, historyEntry.lon) }}
                     footprintFc={area ? { type: 'FeatureCollection', features: area.features } : null} basemap={basemap} height={250}
-                    ariaLabel={`Karte: ${historyEntryName(historyEntry)} — zur Kartenbühne wechseln`}
+                    ariaLabel={`Karte: ${historyEntryName(historyEntry)}`}
                     onClick={() => setStage('map')}
                   />
                   <p className="br-ds-mapnote">

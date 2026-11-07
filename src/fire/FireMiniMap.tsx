@@ -8,11 +8,12 @@
  * markierten Brands aus dem vorhandenen `footprintFc` (oder, wenn der Brandflächen-Layer aus
  * ist, sein Bbox-Rechteck — und der Text sagt es), plus der Mittelpunkt.
  */
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import maplibregl from 'maplibre-gl';
 import { basemapStyle, type FireBasemap } from './FireMap';
 import { patchRefLengthStyle } from '../map/libertyStyle';
-import { ExpandButton } from '../components/ExpandButton';
+import { ExpandButton, setMapInteractive, useExpandedFrame, useMapHost } from '../components/ExpandButton';
 
 /**
  * BD2f: strukturelles Ziel statt `FireRecord` — die Minikarte braucht nur Ort, Kasten und
@@ -58,13 +59,18 @@ export function miniFeatures(r: MiniMapTarget, fc: GeoJSON.FeatureCollection | n
   return { fc: { type: 'FeatureCollection', features: [...shape, center] }, fromRegistry: own.length > 0 };
 }
 
-export function FireMiniMap({ record, footprintFc, basemap, onClick, height, ariaLabel }: FireMiniMapProps) {
+export function FireMiniMap({ record, footprintFc, basemap, height, ariaLabel }: FireMiniMapProps) {
   const elRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const dataRef = useRef(miniFeatures(record, footprintFc).fc);
   dataRef.current = miniFeatures(record, footprintFc).fc;
   const bboxRef = useRef(record.bbox);
   bboxRef.current = record.bbox;
+  // Jan 2026-11-07: the enlarge button opens THIS map over the page (dossier stays); in place it neither pans nor zooms.
+  const [full, setFull] = useState(false);
+  useExpandedFrame(full, () => setFull(false));
+  const { slot, host } = useMapHost(full, () => mapRef.current?.resize());
+  useEffect(() => { if (mapRef.current) setMapInteractive(mapRef.current, full); }, [full]);
 
   // Eine Instanz je Mount; der Stil wird bei Basemap-Wechsel getauscht (Layer neu gesetzt).
   useEffect(() => {
@@ -72,12 +78,12 @@ export function FireMiniMap({ record, footprintFc, basemap, onClick, height, ari
     if (!el) return;
     const map = new maplibregl.Map({
       container: el,
-      interactive: false,
       attributionControl: { compact: true },
       center: [record.lon, record.lat],
       zoom: 9,
     });
     mapRef.current = map;
+    setMapInteractive(map, false);
     // V-RL-3: derselbe Stil-Eingriff wie Regenradar/Gelände, hier VOR dem ersten Kachel-Parse (transformStyle).
     map.setStyle(basemapStyle(basemap), { transformStyle: (_prev, next) => patchRefLengthStyle(next) });
     const install = () => {
@@ -132,10 +138,12 @@ export function FireMiniMap({ record, footprintFc, basemap, onClick, height, ari
   useEffect(() => { mapRef.current?.resize(); }, [height]);
 
   return (
-    <div className="br-minimap" style={{ height }} onClick={onClick}>
-      <div ref={elRef} className="br-minimap-canvas" role="img" aria-label={ariaLabel} />
-      {/* Jan 2026-11-07: the enlarge button (top right) is the keyboard/screen-reader way to the map stage, a click on the map still works. */}
-      {onClick && <ExpandButton expanded={false} onClick={onClick} label={ariaLabel} />}
+    <div ref={slot} className="br-minimap" style={{ height, cursor: 'default' }}>
+      {host && createPortal(
+        <>
+          <div ref={elRef} className="br-minimap-canvas" role="img" aria-label={ariaLabel} />
+          <ExpandButton expanded={full} onClick={() => setFull((f) => !f)} label={full ? 'Kleiner machen' : 'Karte vergrößern'} />
+        </>, host)}
     </div>
   );
 }

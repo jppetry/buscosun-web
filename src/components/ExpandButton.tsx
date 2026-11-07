@@ -3,7 +3,7 @@
  * dossiers of Gletscher, Seewetter and Brandradar neither zoom nor pan in place (the page scrolls over them) — that starts
  * after this button is pressed. `useExpandedFrame` carries the Esc key and the scroll lock of the enlarged state.
  */
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import './expandButton.css';
 
 export function ExpandButton({ expanded, onClick, label }: { expanded: boolean; onClick: () => void; label?: string }) {
@@ -37,3 +37,31 @@ export function useExpandedFrame(active: boolean, close: () => void): void {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
 }
+
+/**
+ * A map that is enlarged over the page without being rebuilt: its DOM lives in a host element that moves between its place (`slot`)
+ * and the page body. Render the map's children with `createPortal(children, host)` inside the slot element.
+ */
+export function useMapHost(full: boolean, onResize: () => void) {
+  const slot = useRef<HTMLDivElement | null>(null);
+  const host = useMemo(() => (typeof document === 'undefined' ? null : document.createElement('div')), []);
+  const resize = useRef(onResize);
+  resize.current = onResize;
+  useLayoutEffect(() => {
+    if (!host) return;
+    const parent = full ? document.body : slot.current;
+    if (parent && host.parentElement !== parent) parent.appendChild(host);
+    host.className = full ? 'ui-map-host is-full' : 'ui-map-host';
+    resize.current();
+    const id = requestAnimationFrame(() => resize.current());
+    return () => cancelAnimationFrame(id);
+  }, [full, host]);
+  useEffect(() => () => { host?.remove(); }, [host]);
+  return { slot, host };
+}
+
+/** Pan, zoom and rotate of a MapLibre map on or off (off: the page scrolls over the map). */
+export function setMapInteractive(m: { scrollZoom: H; boxZoom: H; dragPan: H; dragRotate: H; keyboard: H; doubleClickZoom: H; touchZoomRotate: H; touchPitch: H }, on: boolean): void {
+  for (const h of [m.scrollZoom, m.boxZoom, m.dragPan, m.dragRotate, m.keyboard, m.doubleClickZoom, m.touchZoomRotate, m.touchPitch]) { if (on) h.enable(); else h.disable(); }
+}
+interface H { enable(): void; disable(): void }
