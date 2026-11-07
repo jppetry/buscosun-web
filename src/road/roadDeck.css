@@ -1176,45 +1176,13 @@ button.aw-prog-tile:not(:disabled):not(.is-on):hover { box-shadow: var(--aw-inse
 .aw-stl .aw-dock-label { display: block; margin-bottom: 6px; }
 .aw-stl-kind { margin-top: 8px; }
 .aw-stl-kind button { font-size: 11px; }
-.aw-stl-filters { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
-.aw-stl-chip { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--aw-hair, #E0D6BE); border-radius: 999px; background: #fff; color: var(--ink-900, #2C2A26); font: inherit; font-size: 11px; padding: 4px 9px; cursor: pointer; }
-.aw-stl-chip span { font-size: 10px; color: var(--stone-500, #8B7355); font-variant-numeric: tabular-nums; }
-.aw-stl-chip { box-shadow: var(--aw-shadow-s, none); transition: background 0.15s, border-color 0.15s; }
-.aw-stl-chip:hover { border-color: var(--stone-400, #A89A7A); }
-.aw-stl-chip.is-on { background: var(--aw-grad-ink, #2C2A26); border-color: var(--ink-900, #2C2A26); color: var(--cream-50, #FAF6EA); }
-.aw-stl-chip.is-on span { color: rgba(250, 246, 234, 0.75); }
 .aw-stl-sort { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
 .aw-stl-sort select { font: inherit; font-size: 11.5px; color: var(--ink-900, #2C2A26); background: #fff; border: 1px solid var(--aw-hair, #E0D6BE); border-radius: 8px; padding: 4px 6px; }
-/* Rows as cards (Jan 08.11.): class-tinted road tile on the left, name + class pill, shield · km · time, metric tiles with icons. */
-.aw-stl-list { gap: 8px; }
-.aw-stl-card { display: flex; align-items: stretch; gap: 10px; width: 100%; padding: 8px; text-align: left; font: inherit; color: var(--ink-900, #2C2A26); cursor: pointer; box-sizing: border-box;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--stl-tint) 70%, #fff) 0, #fff 38%); border: 1px solid var(--aw-hair, #E8E0CC); border-radius: 14px;
-  box-shadow: inset 3px 0 0 var(--stl-accent), var(--aw-shadow-s, 0 1px 3px rgba(44, 42, 38, 0.08)); transition: box-shadow 0.15s, transform 0.15s, border-color 0.15s; }
-.aw-stl-card:hover { transform: translateY(-1px); box-shadow: inset 3px 0 0 var(--stl-accent), var(--aw-shadow-m, 0 4px 14px rgba(44, 42, 38, 0.12)); }
-.aw-stl-card.is-active { border-color: color-mix(in srgb, var(--aw-accent, #1F5FAE) 50%, transparent); box-shadow: inset 3px 0 0 var(--stl-accent), 0 0 0 2px color-mix(in srgb, var(--aw-accent, #1F5FAE) 18%, transparent), var(--aw-shadow-m, 0 4px 14px rgba(44, 42, 38, 0.12)); }
-.aw-stl-card:focus-visible { outline: 2px solid var(--aw-accent, #1F5FAE); outline-offset: 2px; }
-.aw-stl-hero { flex: 0 0 66px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border-radius: 10px;
-  background: var(--stl-tint); border: 1px solid var(--stl-border); color: var(--stl-ink); font-variant-numeric: tabular-nums; }
-.aw-stl-hero b { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
-.aw-stl-hero small { font-size: 9.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.8; text-align: center; }
-.aw-stl-hero.is-sub0 b { color: #1F4F8A; }
-.aw-stl-hero.is-hatched { background: repeating-linear-gradient(45deg, #F7F3E9 0 4px, #E6DECA 4px 5.5px); }
-.aw-stl-hero.is-hot { box-shadow: 0 0 0 2px color-mix(in srgb, var(--stl-accent) 55%, transparent); }
-.aw-stl-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; padding: 1px 2px 1px 0; }
-.aw-stl-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.aw-stl-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14.5px; line-height: 1.15; font-weight: 700; letter-spacing: -0.01em; }
-.aw-stl-pill { flex: 0 0 auto; font-size: 10.5px; font-weight: 700; line-height: 1; padding: 3px 7px; border-radius: 999px; letter-spacing: 0.01em; }
-.aw-stl-pill.is-hatched { background: repeating-linear-gradient(45deg, #F4F0E4 0 3px, #D9D0B8 3px 4.5px); color: var(--stone-600, #5C5447); }
-.aw-stl-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; font-size: 11px; line-height: 1.2; color: var(--stone-500, #8B7355); }
-.aw-stl-meta > span:not(.aw-stl-shield) + span::before { content: ''; display: inline-block; width: 3px; height: 3px; margin-right: 8px; border-radius: 50%; background: currentColor; opacity: 0.5; vertical-align: middle; }
-.aw-stl-shield { font-size: 10.5px; font-weight: 700; line-height: 1; padding: 2px 4px; border-radius: 4px; background: #F2C230; color: #2C2A26; letter-spacing: 0.02em; }
-.aw-stl-shield.is-a { background: #1F5FAE; color: #fff; }
-.aw-stl-metrics { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 4px; margin-top: 2px; font-variant-numeric: tabular-nums; }
-.aw-stl-m { display: grid; grid-template-columns: 13px 1fr; column-gap: 5px; align-items: center; padding: 3px 6px; border-radius: 8px; background: rgba(237, 230, 211, 0.45); color: var(--stone-500, #8B7355); }
-.aw-stl-m svg { grid-row: 1 / 3; }
-.aw-stl-m-k { font-size: 10px; line-height: 1.05; letter-spacing: 0.02em; }
-.aw-stl-m b { font-size: 13px; font-weight: 650; line-height: 1.1; color: var(--ink-900, #2C2A26); white-space: nowrap; }
-.aw-stl-m b i { font-style: normal; font-size: 10px; font-weight: 500; color: var(--stone-500, #8B7355); }
-.aw-stl-m.is-hot { background: #FBE9E4; color: #B5321F; }
-.aw-stl-m.is-hot b { color: #8A1C1C; }
-@media (max-width: 1023px) { .aw-stl-chip, .aw-stl-kind button, .aw-stl-sort select { min-height: 44px; } }
+/* Rows in the look of the Gefahren rail (Jan 08.11.): .aw-hz-row with class bar, shield, lead value, chips, class pill. */
+.aw-stl-list { margin-top: 0; }
+.aw-stl-hatch { background: repeating-linear-gradient(45deg, #F4F0E4 0 3px, #D9D0B8 3px 4.5px); }
+.aw-hz-lv.aw-stl-hatch { border-color: #D9D0B8; color: var(--stone-600, #5C5447); }
+.aw-shield.aw-stl-shield { background: #F2C230; color: #2C2A26; border-color: #fff; box-shadow: 0 0 0 1px #C9A11F; }
+.aw-hz-row-haz.aw-stl-hot { color: #8A1C1C; }
+.aw-hz-val.aw-stl-hot { background: #FBE9E4; border-color: #E8C9BD; color: #8A1C1C; }
+@media (max-width: 1023px) { .aw-stl-kind button, .aw-stl-sort select { min-height: 44px; } }
