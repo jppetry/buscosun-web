@@ -43,6 +43,7 @@
  */
 
 import { DACH_VIEW } from '../countryProfiles';
+import { POINT_CDN_BASE, POINT_INDEX_URL } from './client/warmPoint';
 
 /**
  * Schema-Version des Containers UND des `point/`-Manifests. Änderung = neuer Leser.
@@ -1331,6 +1332,8 @@ export async function cubeSelfTest(): Promise<{ checks: CubeCheck[]; passed: num
     chunkPath('2026090900', TIER_BY_ID.t1, 3, 12) === 'point/2026090900/t1/03_12.bin',
     chunkPath('2026090900', TIER_BY_ID.t1, 3, 12));
   add('Stufen-ID ist das Verzeichnis', TIERS.every((t) => chunkPath('R', t, 0, 0).includes(`/${t.id}/`)));
+  // Jan 08.11. (V-DB-19): der Frühstart des Routers (`warmPoint.ts`, importfrei) baut die Index-URL selbst — sie bleibt dieselbe.
+  add('Frühstart-URL des Index = CDN-Basis + POINT_INDEX_PATH', POINT_INDEX_URL === `${POINT_CDN_BASE}/${POINT_INDEX_PATH}`, POINT_INDEX_URL);
   add('Stationsbündel liegen neben dem Cube, nicht darin',
     stationBundlePath('2026090900', 3, 12) === 'point/stations/2026090900/03_12.bin',
     stationBundlePath('2026090900', 3, 12));

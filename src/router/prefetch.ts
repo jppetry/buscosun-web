@@ -19,6 +19,7 @@ import { warmRvTar } from '../sources/radolanRuns';
 import { warmFireStart } from '../fire/fireWarm';
 import type { RouteId } from './routes';
 import { isDashboardSearch } from '../dashboard/viewKey';
+import { POINT_INDEX_URL, warmPointIndex } from '../point/client/warmPoint';
 
 export const GRIB_MANIFEST_PATH = '/latest-grib.json';
 // BW-13: WIND_MANIFEST_PATH ist entfallen — der Windlayer löst seinen Lauf aus
@@ -75,6 +76,15 @@ export function warmPlanFor(routeId: RouteId, pathname: string, search: string):
   }
 }
 
+/** Trägt die Dashboard-URL einen Ort (Koordinate in der Query oder ein Slug hinter `/wetterkarte`)? Ohne Ort zeigt die Seite das Suchformular. */
+export function hasDashboardPlace(pathname: string, search: string): boolean {
+  try {
+    const q = new URLSearchParams(search);
+    if (q.has('olat') && q.has('olon')) return true;
+  } catch { /* kein Query */ }
+  return pathname.split('/').filter(Boolean).length >= 2;
+}
+
 /** Stößt die Abrufe des Plans an; liefert, was wirklich gestartet wurde (Debug/Verifier). */
 export function warmRouteData(routeId: RouteId, pathname: string, search: string, nowMs: number = Date.now()): string[] {
   const plan = warmPlanFor(routeId, pathname, search);
@@ -84,6 +94,13 @@ export function warmRouteData(routeId: RouteId, pathname: string, search: string
   // solange der Index-Weg gilt — sonst startete auf diesen Routen gar nichts vor (V-BW-53).
   if ((routeId === 'wetterkarte' || routeId === 'warnungen') && plan.manifests.length > 0 && warmRepackIndex(nowMs)) started.push(DATA_INDEX_CDN_URL);
   if (plan.rvTar) { const url = warmRvTar(nowMs); if (url) started.push(url); }
+  // Dashboard (Jan 08.11., V-DB-19): die Werte kommen von buscosun Fusion — ihr Index startet hier (importfrei), der
+  // t1-Chunk des Orts aus einem kleinen Nachlade-Modul, sobald der Index da ist. Vorher ging beides erst nach dem
+  // Ausführen des Fusions-Chunks raus (mobil-4G ≈ 1,2 s), der Index davor in Reihe (audit/dashboard.md §11.4).
+  if (routeId === 'wetterkarte' && isDashboardSearch(search) && hasDashboardPlace(pathname, search)) {
+    if (warmPointIndex(nowMs)) started.push(POINT_INDEX_URL);
+    void import('../point/client/warmCube').then((m) => m.warmDashboardCube(pathname, search, nowMs)).catch(() => { /* Frühstart ist Bonus */ });
+  }
   // Brandradar: satellite detections and the season list start while the page chunk still downloads (`src/fire/fireWarm.ts`).
   if (routeId === 'waldbrand') started.push(...warmFireStart(pathname, search, typeof window !== 'undefined' ? window.location.hash : '', nowMs));
   return started;

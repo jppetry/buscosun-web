@@ -120,10 +120,9 @@ export interface RangeResult {
   whole: boolean;
 }
 
-/** Das Daten-Repo über jsDelivr — der Weg, den auch die Kartenlinie fährt. */
-export const POINT_CDN_BASE = 'https://cdn.jsdelivr.net/gh/jppetry/buscosun-data@main';
-/** Rohweg ohne CDN-Cache. Für Gegenproben unmittelbar nach einem Push (PD-A, §51). */
-export const POINT_RAW_BASE = 'https://raw.githubusercontent.com/jppetry/buscosun-data/main';
+// Jan 08.11. (V-DB-19): die Basis-URLs wohnen in `warmPoint.ts` (importfrei, Router-Chunk) und werden hier weitergereicht.
+import { POINT_CDN_BASE, takeWarmPoint } from './warmPoint';
+export { POINT_CDN_BASE, POINT_RAW_BASE } from './warmPoint';
 
 export function newStoreStats(): StoreStats {
   return { files: 0, bytes: 0, misses: 0, ms: 0, slow: 0, retries: 0, fallbacks: 0 };
@@ -200,7 +199,11 @@ export function httpStore(opts: HttpStoreOptions = {}, sharedStats?: StoreStats)
       // Bereiche eines Chunks bekamen ihr erstes Byte im Abstand je einer RTT (Lab 18.09.: 247 … 1 941 ms statt
       // alle bei ≈ 250 ms). Ohne HTTP-Cache keine Sperre; gespeichert wird ohnehin die geprüfte ganze Datei (IndexedDB).
       if (span && !fo.cache) init.cache = 'no-store';
-      const r = await f(url, init);
+      // Jan 08.11. (V-DB-19): eine vom Router vorgestartete Antwort (Index, t1-Chunk des Dashboards) wird EINMAL genommen
+      // statt neu geholt; die Fristen gelten weiter (ein Abbruch bricht das Lesen ihres Körpers ab, s. `readBody`).
+      const warmR = span ? null : takeWarmPoint(url);
+      const r = warmR ? await warmR : await f(url, init);
+      if (ac.signal.aborted) throw (why ?? (ac.signal.reason instanceof Error ? ac.signal.reason : new Error(`abgebrochen: ${path}`)));
       fo.onHeaders?.();
       if (r.status === 404) { stats.misses += 1; return null; }
       if (!r.ok) throw new Error(`${path}: HTTP ${r.status}`);
@@ -208,7 +211,8 @@ export function httpStore(opts: HttpStoreOptions = {}, sharedStats?: StoreStats)
       // Leitung, auf der Bytes laufen, ist kein toter Abruf.
       const arm = () => { clearTimeout(t); t = setTimeout(() => abortWith(new Error(`Frist ${stallMs} ms ohne Daten: ${path}`)), stallMs); };
       tMax = setTimeout(() => abortWith(new Error(`Frist ${bodyMaxMs} ms Gesamtdauer: ${path}`)), bodyMaxMs);
-      const b = await readBody(r, arm);
+      const b = await readBody(r, arm, ac.signal);
+      if (ac.signal.aborted) throw (why ?? (ac.signal.reason instanceof Error ? ac.signal.reason : new Error(`abgebrochen: ${path}`)));
       stats.files += 1;
       stats.bytes += b.length;
       if (span && r.status === 206 && b.length !== span[1] - span[0]) throw new Error(`${path}: Bereich ${span[0]}–${span[1]} lieferte ${b.length} B`);
@@ -266,11 +270,17 @@ export function httpStore(opts: HttpStoreOptions = {}, sharedStats?: StoreStats)
  * V-FI-40). Ohne lesbaren Strom (ältere Laufzeiten, Test-Attrappen) der ganze Körper auf einmal.
  * Ergebnis ist immer ein eigener, exakt großer Puffer.
  */
-async function readBody(r: Response, onChunk: () => void): Promise<Uint8Array> {
+async function readBody(r: Response, onChunk: () => void, signal?: AbortSignal): Promise<Uint8Array> {
   onChunk();
   const body = r.body as ReadableStream<Uint8Array> | null;
   if (!body || typeof body.getReader !== 'function') return new Uint8Array(await r.arrayBuffer());
   const reader = body.getReader();
+  // Eine vorgestartete Antwort hängt nicht am Signal des Abrufs — der Abbruch (Frist, Aufrufer weg) beendet ihr Lesen hier;
+  // der Aufrufer prüft danach `signal.aborted` (ein abgebrochener Strom endet mit `done`, nicht mit einem Fehler).
+  if (signal) {
+    const cancel = () => { reader.cancel(signal.reason).catch(() => { /* schon zu */ }); };
+    if (signal.aborted) cancel(); else signal.addEventListener('abort', cancel, { once: true });
+  }
   const parts: Uint8Array[] = [];
   let n = 0;
   for (;;) {
