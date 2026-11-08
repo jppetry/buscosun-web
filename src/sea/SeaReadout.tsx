@@ -71,7 +71,7 @@ type DsChapter = 'spot' | 'satellit' | 'allgemein';
 const DS_CHAPTERS: Array<[DsChapter, string, string, SeaTab]> = [
   ['spot', 'Am Spot', 'Stunde · Verlauf · Wasserstand · Amtlich', 'spot'],
   ['satellit', 'Satellit', 'Lage des Spots', 'spot'],
-  ['allgemein', 'Allgemein', 'Steckbrief · Datenquellen', 'quellen'],
+  ['allgemein', 'Allgemein', 'Steckbrief', 'quellen'],
 ];
 const chapterOf = (t: SeaTab): DsChapter => (t === 'quellen' ? 'allgemein' : 'spot');
 const SEC_AREA = 'sw-sec-seegebiet';
@@ -454,9 +454,6 @@ export default function SeaReadout(p: Props) {
                 {generalCard}
               </DsSection>
             ) : empty}
-            <DsSection title="Datenquellen" hint="Herkunft jedes Werts · Prüfer-Bilanz des Laufs · Modellabgleich · Lizenzen">
-              <div className="sw-ds-grid is-flow">{sourcesTab}</div>
-            </DsSection>
           </>
         )}
         {cur === 'satellit' && (s ? (
