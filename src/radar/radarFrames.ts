@@ -203,6 +203,9 @@ export function sessionPast(): { rv: RvPastFrame[]; rzc: RzcFrame[] } {
 export function withSessionPast(st: RadarStack): RadarStack {
   if (st.source === 'inca_grid') return st;
   const frames = [...pastFrames(st.source, st.runAtMs), ...st.frames.filter((f) => f.leadMinutes >= 0)].sort((a, b) => a.timeMs - b.timeMs);
+  // Jan 08.11.: the look-back now loads beside the current picture — when the stack already carries every cached frame
+  // (the seed finished first and `loadDe` read the cache), the same stack comes back and nothing re-renders.
+  if (frames.length === st.frames.length) return st;
   const nowIndex = frames.findIndex((f) => f.leadMinutes === 0);
   return { ...st, frames, nowIndex: nowIndex >= 0 ? nowIndex : st.nowIndex };
 }

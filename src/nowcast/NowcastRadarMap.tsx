@@ -355,39 +355,45 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
       setFramePos(best);
     };
 
+    // Look-back for every place (31.10.): the last 40 min of BOTH sources (RV + rzc) come from buscosun-data into the
+    // session cache — the same files for every place, whatever its country; slots the cache holds are skipped, so a
+    // 5-min refresh loads only the new one. Before, the look-back was loaded per place, only from the place's own source
+    // and only at the first grip into the past (BW-5: then 27 s of tars, now ≈ 9 + 9 small PNGs side by side).
+    // Jan 08.11. („dauert immer etwas bis minus 40 geladen ist"): the seed starts NOW, beside the current picture, instead
+    // of after the whole stack plus an idle wait of up to 2 s — the first picture keeps `priority: 'high'` (warm-up), the
+    // look-back shares the line with the forecast frames. Finishes it first, `loadDe` reads the cache and the stack
+    // arrives with its look-back; otherwise `withSessionPast` merges it when it comes. A failure stays repeatable (the
+    // grips into the past call `seed` again); a run in flight is never started twice. StrictMode-Mount 2 brings its own.
+    let seedP: Promise<boolean> | null = null;
+    const runSeed = (): Promise<boolean> | null => {
+      if (ac.signal.aborted) return null;
+      if (!seedP) seedP = seedPastAll(ac.signal).then((added) => { if (!added) seedP = null; return added; });
+      return seedP;
+    };
+    runSeed();
+
     getRadarStack(location.country, ac.signal)
       .then((st) => {
         if (ac.signal.aborted) return;
         setStack(st); setLoadErr(null); repin(st);
         onRadarStackRef.current?.(st);
-        // Look-back for every place (31.10.): once the current picture is in, the last 40 min of BOTH sources (RV + rzc)
-        // come from buscosun-data into the session cache — the same files for every place, whatever its country; slots
-        // the cache holds are skipped, so a 5-min refresh loads only the new one. Before, the look-back was loaded per
-        // place, only from the place's own source and only at the first grip into the past (BW-5: then 27 s of tars,
-        // now ≈ 9 + 9 small PNGs side by side). The grips still trigger it if the idle start has not run yet. The stack
-        // re-reads its own look-back from the cache (no second download); AT has no measured look-back of its own.
-        // `started` lebt je Effektlauf; StrictMode-Mount 2 bringt sein eigenes mit. Ein Fehlschlag bleibt wiederholbar.
-        let started = false;
-        const seed = () => {
-          if (started || ac.signal.aborted) return;
-          started = true;
-          void seedPastAll(ac.signal).then((added) => {
-            if (!added || ac.signal.aborted) { started = false; return; }
-            setPastTick((t) => t + 1);
-            const st2 = withSessionPast(st);
-            if (st2 === st) return;
-            const shownMs = st.frames[idxOf(st)]?.timeMs;
-            setStack(st2);
-            if (shownMs == null) return;
-            // sichtbaren Zeitpunkt auf den nächstgelegenen Frame des neuen Stacks remappen
-            let best = st2.nowIndex, bestD = Infinity;
-            st2.frames.forEach((f, k) => { const d = Math.abs(f.timeMs - shownMs); if (d < bestD) { bestD = d; best = k; } });
-            setFramePos(best);
-          });
+        // The stack re-reads its own look-back from the cache (no second download); AT has no measured look-back of its own.
+        const merge = (added: boolean) => {
+          if (!added || ac.signal.aborted) return;
+          setPastTick((t) => t + 1);
+          const st2 = withSessionPast(st);
+          if (st2 === st) return;
+          const shownMs = st.frames[idxOf(st)]?.timeMs;
+          setStack(st2);
+          if (shownMs == null) return;
+          // sichtbaren Zeitpunkt auf den nächstgelegenen Frame des neuen Stacks remappen
+          let best = st2.nowIndex, bestD = Infinity;
+          st2.frames.forEach((f, k) => { const d = Math.abs(f.timeMs - shownMs); if (d < bestD) { bestD = d; best = k; } });
+          setFramePos(best);
         };
+        const seed = () => { void runSeed()?.then(merge); };
         requestPastSeedRef.current = seed;
-        if (typeof requestIdleCallback === 'function') requestIdleCallback(seed, { timeout: 2000 });
-        else window.setTimeout(seed, 500);
+        seed();
       })
       // Fehler-Overlay nur beim Ortswechsel zeigen; ein fehlgeschlagener
       // Soft-Refresh behält still das bisherige Bild.

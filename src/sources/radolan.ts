@@ -27,7 +27,7 @@ import {
   // RD3 (audit §14): fertig aufbereitete Frame-PNGs vom Daten-Repo
   rvImgEligible, rvImgDir, rvStampToMs, RV_STEP_MIN, rvImgRawFirst, radarRawUrl,
   // NP-0a / Phase SE (V-SE-3): the look-back slot (`rv-past/<ts>/`, 24 slots) as the second image way of the analyses
-  rvPastEligible, rvPastDir,
+  rvPastEligible, rvPastDir, RV_IMG_GATE_MS,
 } from './radolanRuns';
 import { parseRvImgMeta, RadarImg404, fetchImgRes, radarRawHedgeCount, radarImgPoolSize, pooledAll, radarRawFirst, radarMarkRawFirst } from './radarImg';
 import { decodeGrayPng, decodeGrayAlphaPng } from './grayPng';
@@ -670,6 +670,10 @@ export async function fetchRvAnalysisSequence(
   const frames: RvAnalysisFrame[] = [];
   let hits = 0;   // fetched frames + slots the caller already holds (`have`)
   const one = async (ts: string): Promise<RvAnalysisFrame | null> => {
+    // Jan 08.11. (look-back speed): a run younger than the CDN gate is the one the current picture brings itself (its analysis
+    // goes into the session cache, `loadDe`) — the look-back never pulls its full tar (1,6–2,3 MB via Netlify) for that one
+    // frame. Measured: the newest guessed stamp is 3,3–8,3 min old, the gate is 4,5 min ⇒ roughly every fourth opening did.
+    if (Date.now() - rvStampToMs(ts) < RV_IMG_GATE_MS) return null;
     // RD3: für den Rückblick reicht der Analyse-Frame — 8–9 × f000.png (~30 KB)
     // statt 8 Voll-Tars (2,28 MiB gemessen); je Stempel Tar-Fallback.
     // V-SE-3: auch aus dem Rückblick-Slot (`rv-past`, 115 min) — vorher griff ab 55 min der Tar.
