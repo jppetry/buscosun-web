@@ -12,8 +12,6 @@ import type { SeaRunDoc, SeaPoiObs, SeaSpotsDoc } from './seaClient';
 import { fmtWind, unitLabel, MS_TO_KN, SHORE_LABEL, type SeaUnit, type SeaVerdict, type SeaWindow } from './seaProfiles';
 import { WindChart, SeaStateChart, WaterLevelChart, DRY_COLOUR, type SeaChartHour } from './SeaCharts';
 import SeaMiniMap from './SeaMiniMap';
-import SeaSatImagery from './SeaSatImagery';
-import { satEnabled } from '../fire/detail/fireSatImagery';
 import {
   WL_ATTRIBUTION_PRE, WL_ATTRIBUTION_POST, WL_CURVE_STALE_MS, WL_FORECAST_STALE_MS, WL_LICENCE, WL_LICENCE_URL,
   WL_MOS_WHY, WL_REGION_LABEL, WL_SERVICE_PAGE, WL_WARN_SERVICE, wlAt, wlCurveEnd, wlFill, wlHasCategory, wlNextEvents,
@@ -436,13 +434,6 @@ export default function SeaReadout(p: Props) {
         </div>
       </Card>
     );
-    // Same kill switch as the Brandradar (`?sat=0`, `localStorage.sat = '0'`): off ⇒ no card, no request.
-    const satDaysCard = s && satEnabled() && (
-      <Card cls="is-cream">
-        <div className="sw-card-head"><span className="sw-eyebrow">Satellit · Küste im Zeitverlauf</span><span className="sw-unit">Sentinel-2 / Landsat · Tag wählen</span></div>
-        <SeaSatImagery lat={s.lat} lon={s.lon} name={s.name} nowMs={p.nowMs} />
-      </Card>
-    );
     // In the dossier the link of the official card scrolls to the sea-area report on the same chapter.
     return (
       <div className="sw-ds" aria-label="Spot-Dossier" ref={dsRef}>
@@ -469,7 +460,7 @@ export default function SeaReadout(p: Props) {
           </>
         )}
         {cur === 'satellit' && (s ? (
-          <div className={`sw-ds-grid${satDaysCard ? '' : ' is-one'}`}>{satCard}{satDaysCard}</div>
+          <div className="sw-ds-grid is-one is-centered">{satCard}</div>
         ) : empty)}
         {cur === 'spot' && (
           <>
