@@ -663,6 +663,8 @@ function WaterLevelCard({ wl, selMs, nowMs, big = false }: { wl: SeaWaterLevel; 
         </>
       )}
 
+      <details className="sw-details sw-method">
+      <summary>Methodik · amtlicher Text · Quelle</summary>
       <div className="sw-official-meta sw-gap">
         Modellkurve {doc.curveAt == null ? 'ohne Stempel' : `${dateTime(doc.curveAt)}`}{stale.curve ? ' · älter als 3 h' : ''}
         {' · '}amtliche Vorhersage {doc.forecastAt == null ? 'ohne Stempel' : `${dateTime(doc.forecastAt)}`}{stale.forecast ? ' · älter als 12 h' : ''}
@@ -678,6 +680,7 @@ function WaterLevelCard({ wl, selMs, nowMs, big = false }: { wl: SeaWaterLevel; 
       {doc.info && <p className="sw-note">Hinweis des BSH zum Betrieb: {doc.info}</p>}
 
       <WaterLevelFooter doc={doc} />
+      </details>
     </Card>
   );
 }
