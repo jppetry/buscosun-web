@@ -1,5 +1,5 @@
 /**
- * GL-4 — Map of the glacier sheet: the glacier's outline (newest level), the earlier outline dashed, the snow zone of the newest clear scene as a
+ * GL-4 — Map of the glacier sheet: the glacier's outline (newest level), the earlier outline as a red line without fill, the snow zone of the newest clear scene as a
  * pixel image (white above the satellite snow line, ice blue below), a compare slider (earlier outline on one side of the divider, the current one on the
  * other) and the 3D view: the SAME map with Terrarium terrain (`setTerrain`) and a tilted camera — built-in MapLibre means, no shader, no custom layer.
  * `view = '3d'` falls back to 2D when WebGL terrain cannot be set up (`?gl3d=0` forces 2D in the page).
@@ -20,7 +20,7 @@ const DEM_TILES = 'https://elevation-tiles-prod.s3.amazonaws.com/terrarium/{z}/{
 /** Same imagery as the Brandradar's "Satellit" basemap (`src/fire/FireMap.tsx`). */
 const SAT_TILES = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 export type SheetBasemap = 'karte' | 'satellit';
-const LINE_INK = '#145A70', LINE_ON_SAT = '#5FD3F3', EARLIER_ON_SAT = '#F3F7F9';
+const LINE_INK = '#145A70', LINE_ON_SAT = '#5FD3F3', EARLIER_LINE = '#D62828', EARLIER_ON_SAT = '#FF4A4A';
 export const SHEET_EXAGGERATION = 1.3;
 const EMPTY: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
 const feat = (g: GeoJSON.Geometry | null): GeoJSON.FeatureCollection => (g ? { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: g }] } : EMPTY);
@@ -158,7 +158,7 @@ export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, sno
     map.setLayoutProperty('gls-now-casing-l', 'visibility', sat ? 'visible' : 'none');
     map.setLayoutProperty('gls-hill', 'visibility', latest.current.view === '3d' && !sat ? 'visible' : 'none');
     map.setPaintProperty('gls-now-line-l', 'line-color', sat ? LINE_ON_SAT : LINE_INK);
-    map.setPaintProperty('gls-earlier-line-l', 'line-color', sat ? EARLIER_ON_SAT : LINE_INK);
+    map.setPaintProperty('gls-earlier-line-l', 'line-color', sat ? EARLIER_ON_SAT : EARLIER_LINE);
   };
 
   const rotCtl = useRef<maplibregl.IControl | null>(null);
@@ -226,9 +226,8 @@ export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, sno
       const d = 0.002;
       map.addSource('gls-snow', { type: 'image', url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', coordinates: [[c0[0] - d, c0[1] + d], [c0[0] + d, c0[1] + d], [c0[0] + d, c0[1] - d], [c0[0] - d, c0[1] - d]] });
       map.addLayer({ id: 'gls-snow-img', type: 'raster', source: 'gls-snow', layout: { visibility: 'none' }, paint: { 'raster-fade-duration': 0, 'raster-resampling': 'nearest' } });
-      map.addLayer({ id: 'gls-earlier-fill-l', type: 'fill', source: 'gls-earlier-fill', paint: { 'fill-color': '#D9CFB5', 'fill-opacity': 0.62 } });
       map.addLayer({ id: 'gls-now-fill-l', type: 'fill', source: 'gls-now-fill', paint: { 'fill-color': '#7FC1D6', 'fill-opacity': 0.16 } });
-      map.addLayer({ id: 'gls-earlier-line-l', type: 'line', source: 'gls-earlier-line', paint: { 'line-color': '#145A70', 'line-width': 1.6, 'line-dasharray': [2, 2], 'line-opacity': 0.9 } });
+      map.addLayer({ id: 'gls-earlier-line-l', type: 'line', source: 'gls-earlier-line', paint: { 'line-color': EARLIER_LINE, 'line-width': 2, 'line-opacity': 0.95 } });
       map.addLayer({ id: 'gls-now-casing-l', type: 'line', source: 'gls-now', layout: { visibility: 'none' }, paint: { 'line-color': '#FFFFFF', 'line-width': 5, 'line-opacity': 0.75 } });
       map.addLayer({ id: 'gls-now-line-l', type: 'line', source: 'gls-now', paint: { 'line-color': LINE_INK, 'line-width': 2.4 } });
       ready.current = true;

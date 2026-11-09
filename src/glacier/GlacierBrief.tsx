@@ -210,7 +210,7 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
     <>
       <div className="gl-legend-row"><i className="gl-sw" style={{ background: '#fff', border: '1px solid #A9D4E2' }} />Schnee und Firn (Satellit)</div>
       <div className="gl-legend-row"><i className="gl-sw" style={{ background: '#A8D0E0' }} />Eis ohne Schnee (Satellit)</div>
-      <div className="gl-legend-row"><i className="gl-sw gl-sw-dash" style={basemap === 'satellit' ? { borderTopColor: '#B9C4CA' } : undefined} />Umriss früher</div>
+      <div className="gl-legend-row"><i className="gl-sw" style={{ background: basemap === 'satellit' ? '#FF4A4A' : '#D62828', height: 3 }} />Umriss früher</div>
       <div className="gl-legend-row"><i className="gl-sw" style={{ background: basemap === 'satellit' ? '#5FD3F3' : '#145A70', height: 3 }} />Umriss {fmtRefYear(g.area.refYear)}</div>
     </>
   );
