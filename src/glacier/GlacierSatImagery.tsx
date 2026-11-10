@@ -27,6 +27,30 @@ const fmtDayShort = (d: string) => `${d.slice(8, 10)}.${d.slice(5, 7)}.`;
 /** The fire module's note about the missing fire window does not apply here. */
 const isFireNote = (n: string) => n.startsWith('Brandzeitraum');
 
+/** Start picture: the newest Sentinel-2 day that is reasonably cloud-free, else the newest at all. */
+const pickS2Scene = (s2: readonly SatScene[]): SatScene | null =>
+  [...s2].reverse().find((s) => s.cloudPct != null && s.cloudPct <= CLOUD_OK_PCT) ?? s2.at(-1) ?? null;
+
+/**
+ * Jan 2026-11-10 (as in the Brandradar dossier): warm start of the 10 m picture while the dossier level "Heute" is open — scene
+ * search, the viewer chunk, then catalogue entry, header and the tiles of the start view (`warmCogView`). The component takes the
+ * same promises from the caches, so opening "Satellit" finds the picture loaded or in flight. Never throws.
+ */
+export async function warmGlacierSat(lat: number, lon: number, nowMs: number): Promise<void> {
+  if (!sat10Enabled()) return;
+  try {
+    const [data, viewer] = await Promise.all([fetchSatImagery(lat, lon, null, null, null, nowMs), import('../fire/FireCogViewer')]);
+    const scene = pickS2Scene(data.scenes.filter((s) => s.sat === 's2'));
+    if (!scene) return;
+    preconnect(S2_COG_ORIGIN);
+    // Size of `.gl-sat-frame`: full card width, 16:10 up to 560 px high; 4:5 below 768 px.
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 1280;
+    const w = Math.max(280, Math.min(900, vw - 32));
+    const h = vw < 768 ? Math.round(w * 1.25) : Math.min(560, Math.round(w / 1.6));
+    await viewer.warmCogView(lat, lon, scene.dayIso, null, null, w, h);
+  } catch { /* warm start is a bonus */ }
+}
+
 export default function GlacierSatImagery({ lat, lon, name, nowMs }: { lat: number; lon: number; name: string; nowMs: number }) {
   const [im, setIm] = useState<{ kind: 'loading' } | { kind: 'ok'; data: SatImagery }>({ kind: 'loading' });
   const [selDay, setSelDay] = useState<string | null>(null);
@@ -47,8 +71,7 @@ export default function GlacierSatImagery({ lat, lon, name, nowMs }: { lat: numb
   // Start picture: the newest Sentinel-2 day that is reasonably cloud-free, else the newest at all.
   const scene: SatScene | null = useMemo(() => {
     if (selDay) return s2.find((s) => s.dayIso === selDay) ?? null;
-    const clear = [...s2].reverse().find((s) => s.cloudPct != null && s.cloudPct <= CLOUD_OK_PCT);
-    return clear ?? s2.at(-1) ?? null;
+    return pickS2Scene(s2);
   }, [s2, selDay]);
 
   // The day is known: its image search and the connection to the image bucket start now, side by side with the viewer.

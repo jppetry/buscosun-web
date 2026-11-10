@@ -84,6 +84,17 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
     loadOutline(build, g.region, 3, undefined, bases).then((fc) => { if (alive) setEarlyGeometry({ id: g.id, geometry: pickGeometry(fc, g.id) }); }, () => { if (alive) setEarlyGeometry({ id: g.id, geometry: null }); });
     return () => { alive = false; };
   }, [g, build, bases]);
+  // Jan 2026-11-10 (as in the Brandradar): once the sheet has loaded, the 10 m picture of level "Satellit" starts loading in the
+  // background (idle, at the latest after 1.5 s) — not only when that level opens.
+  const sheetReady = layout === 'dossier' && data != null;
+  useEffect(() => {
+    if (!sheetReady) return;
+    const run = () => { void import('./GlacierSatImagery').then((m) => m.warmGlacierSat(g.lat, g.lon, nowMs)).catch(() => undefined); };
+    const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number; cancelIdleCallback?: (h: number) => void };
+    if (w.requestIdleCallback) { const h = w.requestIdleCallback(run, { timeout: 1500 }); return () => w.cancelIdleCallback?.(h); }
+    const h = window.setTimeout(run, 800); return () => window.clearTimeout(h);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sheetReady, g.id]);
   const mapGeometry = data?.geometry ?? (earlyGeometry?.id === g.id ? earlyGeometry.geometry : null);
 
   const view: GlacierView = allow3d && !view3dFailed ? state.v : '2d';
