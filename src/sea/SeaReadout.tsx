@@ -62,19 +62,18 @@ interface Props {
 
 const TABS: Array<[SeaTab, string]> = [['spot', 'Spot'], ['gebiet', 'Seegebiet'], ['quellen', 'Quellen']];
 /**
- * Dossier chapters (desktop centre stage), Jan 2026-11-10: Wasserstand · Wetter · Satellit & Amtlich · Allgemein. They replace
- * the tabs Spot · Seegebiet · Quellen there and take over their content; the URL keeps the tab keys (`tab=spot|gebiet|quellen`,
- * mobile uses them as tabs): `spot` ⇒ the first chapter (Wasserstand; Wetter when the water level is switched off, `?wl=0`),
- * `gebiet` ⇒ Satellit & Amtlich, scrolled to the official texts, `quellen` ⇒ Allgemein.
+ * Dossier chapters (desktop centre stage), Jan 2026-11-10: Wasserstand · Wetter · Satellit & Amtlich (the chapter Allgemein
+ * with the Steckbrief was deleted on Jan's word the same day). They replace the tabs Spot · Seegebiet · Quellen there; the URL
+ * keeps the tab keys (`tab=spot|gebiet|quellen`, mobile uses them as tabs): `spot` and `quellen` ⇒ the first chapter
+ * (Wasserstand; Wetter when the water level is switched off, `?wl=0`), `gebiet` ⇒ Satellit & Amtlich, scrolled to the official texts.
  */
-type DsChapter = 'wasser' | 'wetter' | 'lage' | 'allgemein';
+type DsChapter = 'wasser' | 'wetter' | 'lage';
 const DS_CHAPTERS: Array<[DsChapter, string, string, SeaTab]> = [
   ['wasser', 'Wasserstand', 'Nächster BSH-Pegel', 'spot'],
   ['wetter', 'Wetter', 'Wind und Seegang · Verlauf', 'spot'],
   ['lage', 'Satellit & Amtlich', 'Lage des Spots · Seewetterdienst', 'gebiet'],
-  ['allgemein', 'Allgemein', 'Steckbrief', 'quellen'],
 ];
-const chapterOf = (t: SeaTab): DsChapter => (t === 'quellen' ? 'allgemein' : t === 'gebiet' ? 'lage' : 'wasser');
+const chapterOf = (t: SeaTab): DsChapter => (t === 'gebiet' ? 'lage' : 'wasser');
 const SEC_AREA = 'sw-sec-seegebiet';
 function DsSection({ id, title, hint, side, children }: { id?: string; title: string; hint: string; side?: ReactNode; children: ReactNode }) {
   const tid = id ? `${id}-t` : undefined;
@@ -334,29 +333,6 @@ export default function SeaReadout(p: Props) {
         </div>
       </section>
     );
-    // Allgemein: the spot's facts, combined with what the sources say about them (report, station, gauge, model cell).
-    const w = p.spotsDoc?.wind;
-    const facts: Array<[string, ReactNode, ReactNode?]> = s ? [
-      ['Art', kindsText(s.kinds), `Profil ${p.profileLabel}`],
-      ['Meer', s.region === 'nordsee' ? 'Nordsee' : 'Ostsee', `Warnstatus: Deutsche ${s.wodlCoast === 'Nordseekueste' ? 'Nordseeküste' : 'Ostseeküste'} (WODL45)`],
-      ['Küstenabschnitt', s.coast?.name ?? '–', p.texts.fq51 ? `Küstenbericht FQDL51 · ${issued(p.texts.fq51)}` : 'Küstenbericht FQDL51 · nicht lesbar'],
-      ['Seegebiet', s.seaArea?.name ?? 'keins', s.seaArea ? (p.texts.fq50 ? `Seewetterbericht FQDL50 · ${issued(p.texts.fq50)}` : 'Seewetterbericht FQDL50 · nicht lesbar') : 'liegt in keinem Seegebiet des Berichts (z. B. Haff)'],
-      ['Ufer zeigt nach', `${compass16(s.normal)} · ${s.normal}°`, s.normalFrom === 'set' ? `gesetzt${s.normalWhy ? ` — ${s.normalWhy}` : ''}` : 'aus der Landmaske des Wellenmodells'],
-      ...(s.tidal ? [['Watt', 'ja', 'bei Niedrigwasser kann die Stelle trockenfallen'] as [string, ReactNode, ReactNode]] : []),
-      ['Wasserzelle', `${f1(s.cell.km)} km vom Spot`, `${s.cell.model.toUpperCase()} (900 m) · Seegang und Wind ${w?.engine ?? 'buscosun Fusion'} werden dort gelesen`],
-      ['Wassertemperatur', waterText(p.texts, s), p.texts.fx40 ? `Mittelfrist FXDL40 · ${issued(p.texts.fx40)}` : 'Mittelfrist FXDL40 · nicht lesbar'],
-      ['Messstation', stationName ? `DWD ${stationName}` : 'keine in der Nähe', s.station ? `${s.station.km} km vom Spot · stündlich · Messung an Land` : 'keine liefernde Station'],
-      ['Pegel', p.waterLevel == null ? 'ausgeschaltet' : gauge ? gauge.name : p.waterLevel.state === 'loading' ? 'lädt …' : 'keiner lesbar',
-        gauge && p.waterLevel?.km != null ? `BSH · ${f1(p.waterLevel.km)} km vom Spot` : 'BSH-Wasserstand'],
-      ['Lage', `${s.lat.toFixed(4)}° N · ${s.lon.toFixed(4)}° O`, 'WGS84'],
-    ] : [];
-    const generalCard = s && (
-      <section className="sw-card sw-facts" aria-label="Steckbrief des Spots">
-        {facts.map(([k, val, sub]) => (
-          <div key={k} className="sw-fact"><span className="sw-fact-k">{k}</span><strong>{val}</strong>{sub && <span className="sw-fact-s">{sub}</span>}</div>
-        ))}
-      </section>
-    );
     // Dashboard of the chosen hour (27.10.): Wind | Seegang | a column with shore, water and the land measurement.
     // Same values as before, one number per tile in front, everything else as one quiet line or row.
     const water = s ? waterRange(p.texts, s) : null;
@@ -449,15 +425,6 @@ export default function SeaReadout(p: Props) {
         </div>
         {headCard}
         {officialBanner}
-        {cur === 'allgemein' && (
-          <>
-            {s ? (
-              <DsSection title="Steckbrief" hint="Lage, Küste und Seegebiet, Wasserzelle des Modells, Messstation und Pegel — mit dem Stand der Quelle">
-                {generalCard}
-              </DsSection>
-            ) : empty}
-          </>
-        )}
         {cur === 'wasser' && (
           <>
             {s ? (
