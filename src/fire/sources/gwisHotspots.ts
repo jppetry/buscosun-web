@@ -83,6 +83,8 @@ export interface HotspotRun {
  *  neu abgefragt — ohne Cache wäre jedes Umschalten ein 1–2-s-Abruf. */
 const _cache = new Map<string, { run: HotspotRun; at: number }>();
 const CACHE_TTL = 5 * 60_000;
+/** No response headers after this long ⇒ the read fails (`set`, like the 20 s stall of the glacier, road and sea reads). */
+export const GWIS_STALL_MS = 20_000;
 
 /**
  * `acq_at` kommt als `"2026-08-13 00:07:00"` — ohne Zeitzone. Der Dienst führt
@@ -100,9 +102,25 @@ export async function fetchHotspots(windowH: number, signal?: AbortSignal, regio
   const cached = _cache.get(key);
   if (cached && Date.now() - cached.at < CACHE_TTL) return cached.run;
 
-  const res = await fetch(hotspotUrl(windowH, region), { signal });
-  if (!res.ok) throw new Error(`GWIS Hotspots: HTTP ${res.status}`);
-  const fc = (await res.json()) as GeoJSON.FeatureCollection;
+  // Load time (10.11.): GWIS is the fallback when every FIRMS read failed — it had no time limit, a stalled connection kept the
+  // layer loading for ever. After `GWIS_STALL_MS` it fails like any other read (the layer shows its error); a caller abort stays one.
+  const ac = new AbortController();
+  const onAbort = () => ac.abort(signal?.reason);
+  if (signal?.aborted) onAbort(); else signal?.addEventListener('abort', onAbort, { once: true });
+  const stall = setTimeout(() => ac.abort(new Error('GWIS Hotspots: keine Antwort')), GWIS_STALL_MS);
+  let fc: GeoJSON.FeatureCollection;
+  try {
+    const res = await fetch(hotspotUrl(windowH, region), { signal: ac.signal });
+    clearTimeout(stall);   // the limit is for the answer to start (a large window on a slow line may take longer to arrive)
+    if (!res.ok) throw new Error(`GWIS Hotspots: HTTP ${res.status}`);
+    fc = (await res.json()) as GeoJSON.FeatureCollection;
+  } catch (e) {
+    if (!signal?.aborted && ac.signal.aborted) throw ac.signal.reason;
+    throw e;
+  } finally {
+    clearTimeout(stall);
+    signal?.removeEventListener('abort', onAbort);
+  }
   const raw = Array.isArray(fc?.features) ? fc.features : [];
   // A0-1: gespiegelte Achsen ([lat,lon]) sind kein Datenzustand, sondern ein
   // Abruf-Fehler — verwerfen statt vor Somalia zeichnen (wfsAxis.ts).

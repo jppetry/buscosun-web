@@ -22,6 +22,7 @@ import { WlCatalogMissing, loadGaugeCatalog, loadGaugeForecast } from './waterLe
 import { coastWarnStatus, seaTextFreshness, type SeaTextProduct } from './seaText';
 import {
   loadAreas, loadCatalog, loadField, loadKillSwitch, loadLatestRun, loadPoi, loadSpots, loadText, windPointerOf, withWindRefresh,
+  SEA_PAGE_TEXTS, takeSeaChain, takeSeaStatic,
   type SeaAreas, type SeaCatalog, type SeaPoiObs, type SeaRunLoad, type SeaSpotsDoc,
 } from './seaClient';
 import {
@@ -57,7 +58,7 @@ export interface SeaPageProps {
 
 const DEFAULT_SPOT = 'st-peter-ording';
 const REFRESH_MS = 10 * 60_000;
-const TEXTS: SeaTextProduct[] = ['FQDL50', 'FQDL51', 'WODL45', 'FXDL40'];
+const TEXTS: readonly SeaTextProduct[] = SEA_PAGE_TEXTS;
 /** WL: `water` on by default (E-WL-1), `?wl=0` starts without it — the switch stays the named fallback. */
 const DEFAULT_TOGGLES: SeaToggles = { wind: true, warn: true, stations: false, water: true };
 const KIND_LABEL: Record<string, string> = { strand: 'Badestrand', kite: 'Kite-Spot', hafen: 'Hafen', revier: 'Revier' };
@@ -124,27 +125,38 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   // --- data -----------------------------------------------------------------------------------------
   useEffect(() => {
     const ac = new AbortController();
-    loadCatalog(ac.signal).then(setCatalog, () => setCatalog(null));
-    loadAreas(ac.signal).then(setAreas, () => {});
+    // Load time (10.11.): the route wrapper started both reads already (`warmSeaStart`); taken once, else read here.
+    const early = takeSeaStatic();
+    (early?.catalog ?? loadCatalog(ac.signal)).then(setCatalog, () => setCatalog(null));
+    (early?.areas ?? loadAreas(ac.signal)).then(setAreas, () => {});
     return () => ac.abort();
   }, []);
   useEffect(() => {
     let ac = new AbortController();
     let alive = true;
+    // The first round uses the early start of the route wrapper (its clock, its reads), the 10-min refreshes read themselves.
+    let early = takeSeaChain();
     const run = async () => {
-      const now = Date.now();
+      const start = early;
+      early = null;
+      const now = start?.nowMs ?? Date.now();
       setNowMs(now);
-      const k = await loadKillSwitch(ac.signal);
+      // Load time (10.11.): run and texts start together with the kill switch instead of after it (raw `status.json` ≤ 4 s,
+      // then the run, then the texts — three rounds in a row). A set kill switch still wins: the speculative reads are
+      // discarded and the page gets exactly what `killed = true` gives (no run, no texts).
+      const runP = start?.run ?? loadLatestRun(now, false, ac.signal).catch(() => null);
+      const textsP = start?.texts ?? Promise.all(TEXTS.map((p) => loadText(p, now, false, ac.signal).catch(() => null)));
+      const k = await (start?.kill ?? loadKillSwitch(ac.signal));
       if (!alive) return;
       setKilled(k.killed);
       // V-SW-2: the newest wind refresh — kept as its path (a string), so an unchanged pointer reloads nothing.
       const wp = windPointerOf(k.status);
       setWindPtr((prev) => (k.status == null ? prev : wp ? `${wp.run}|${wp.t1}|${wp.path}` : null));
-      const r = await loadLatestRun(now, k.killed, ac.signal).catch(() => null);
+      const r = k.killed ? await loadLatestRun(now, true, ac.signal).catch(() => null) : await runP;
       if (!alive || !r) return;
       // A refresh never replaces a good run by "nothing" — the shown run stays and ages by the freshness rules.
       setRunLoad((prev) => (r.run || !prev?.run || k.killed ? r : prev));
-      const texts = await Promise.all(TEXTS.map((p) => loadText(p, now, k.killed, ac.signal).catch(() => null)));
+      const texts = k.killed ? await Promise.all(TEXTS.map((p) => loadText(p, now, true, ac.signal).catch(() => null))) : await textsP;
       if (!alive) return;
       setTexts((prev) => Object.fromEntries(TEXTS.map((p, i) => [p, texts[i]?.doc ?? (k.killed ? null : prev[p] ?? null)])));
       setTextsLoading(false);

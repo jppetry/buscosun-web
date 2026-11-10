@@ -16,6 +16,7 @@ import { buildSeaUrl, parseSeaUrl, SEA_MAX_T, type SeaUrlState } from '../../sea
 import { absolutizeHourParam, normalizeHourSearch } from '../../share/hourOffset';
 import StaleLinkNotice from '../../share/StaleLinkNotice';
 import SeaLinkNotice from '../../sea/SeaLinkNotice';
+import { warmSeaStart } from '../../sea/seaClient';
 
 const SeaPage = lazy(() => import('../../sea/SeaPage'));
 const STATE_DEBOUNCE_MS = 300;
@@ -27,6 +28,9 @@ export default function SeaRoute() {
   const navType = useNavigationType();
   const enabled = useMemo(() => seaFlagFrom(loc.search), [loc.search]);
   useEffect(() => { rememberSeaFlag(loc.search); }, [loc.search]);
+  // Early start (load time 10.11.): catalogue, areas, kill switch, run and texts load while the page chunk and MapLibre still
+  // download (pattern GlacierRoute/RoadRoute); the page takes them once (`takeSeaStatic`/`takeSeaChain`).
+  useState(() => { if (enabled) { try { warmSeaStart(); } catch { /* the page then reads them itself */ } } return null; });
 
   // The time in a shared link is absolute (src/share/hourOffset.ts): turned into hours here, written back absolute below.
   const nowRef = useRef(Date.now());

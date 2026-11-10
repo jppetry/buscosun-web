@@ -2464,7 +2464,9 @@ export default function MapView({
         if (wd.frames[0]) saveWindNowCache(wd.frames[0], wd.uvBounds); // für den nächsten Sofort-Start
         updateStatus('wind', { ok: { model: 'DWD ICON-D2 u/v 10m · 2,2 km', fetchedAt: Date.now(), ref: runRef(wd.runAt) } });
       } catch {
-        // nicht fatal — beim nächsten Aufruf greift der Cache erneut.
+        // nicht fatal — beim nächsten Aufruf greift der Cache erneut. Ladezeit (10.11.): kein stiller Fehler mehr — der
+        // Layer-Status sagt es (der Sofort-Platzhalter aus dem Cache bleibt sonst unkommentiert als „aktuell" stehen).
+        if (!abort.signal.aborted && !iconD2WindRef.current) updateStatus('wind', { err: 'ICON-D2 Wind nicht erreichbar' });
       }
       } finally {
         // Nach dem NAHEN Horizont zurücksetzen (der ferne lädt im Hintergrund
@@ -2502,7 +2504,8 @@ export default function MapView({
         setNowcastTick((t) => t + 1);
         updateStatus('temp', { ok: { model: 'DWD ICON-D2 t_2m · 2,2 km', fetchedAt: Date.now(), ref: runRef(td.runAt) } });
       } catch {
-        // nicht fatal — die Fusion-Temperatur deckt weiter ab.
+        // nicht fatal — die Fusion-Temperatur deckt weiter ab. Ladezeit (10.11.): im Layer-Status benannt statt verschluckt.
+        if (!abort.signal.aborted && !iconD2TempRef.current) updateStatus('temp', { err: 'ICON-D2 Temperatur nicht erreichbar' });
       } finally {
         tempLoadingRef.current = false;
         // StrictMode-/Abort-Race: Läuft DIESER (abgebrochene) Installer aus,

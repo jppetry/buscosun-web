@@ -14,7 +14,15 @@ import { SEA_TEXT_PRODUCTS, seaExpectedIssues, seaTextFreshness, type SeaTextDoc
 
 /** "Does not exist" (404, or 403 on both ways) — distinct from a hard failure. */
 export class SeaNotThere extends Error {}
+/** Neither way answered within `SEA_STALL_MS` — the store is not reachable; stepping back to an older file would only wait again. */
+export class SeaStall extends Error {}
 export const SEA_RAW_HEDGE_MS = 2_500;
+/**
+ * No response headers on either way after this long ⇒ the read fails instead of hanging on a stalled connection (`set`, the
+ * glacier's `GLACIER_STALL_MS`). Before 10.11. a hanging CDN AND raw left the catalogue and the run „Lädt" for ever; now the
+ * page reaches its error text („Der Datenspeicher antwortet nicht" / „ist gerade nicht erreichbar").
+ */
+export const SEA_STALL_MS = 20_000;
 
 const abortError = (signal: AbortSignal): unknown => signal.reason ?? new DOMException('Aborted', 'AbortError');
 
@@ -26,11 +34,15 @@ export function fetchSea(path: string, kind: 'json' | 'bytes', signal?: AbortSig
     let settled = false, rawStarted = false;
     let cdnErr: unknown = null, rawErr: unknown = null;
     let timer: ReturnType<typeof setTimeout> | null = null;
+    let stall: ReturnType<typeof setTimeout> | null = null;
+    /** a usable response arrived (a 404 on one way does not end the watch over the other) */
+    const heard = () => { if (stall) { clearTimeout(stall); stall = null; } };
     const onAbort = () => { acC.abort(); acR.abort(); finish(() => reject(abortError(signal!))); };
     function finish(fn: () => void) {
       if (settled) return;
       settled = true;
       if (timer) clearTimeout(timer);
+      heard();
       signal?.removeEventListener('abort', onAbort);
       fn();
     }
@@ -48,17 +60,18 @@ export function fetchSea(path: string, kind: 'json' | 'bytes', signal?: AbortSig
       if (rawStarted || settled) return;
       rawStarted = true;
       fetch(raw, { signal: acR.signal }).then(
-        (res) => { if (settled) return; if (res.ok) { take(res, acC); return; } rawErr = res.status === 404 || res.status === 403 ? new SeaNotThere(`${res.status} ${raw}`) : new Error(`${res.status} ${raw}`); failed(); },
+        (res) => { if (settled) return; if (res.ok) { heard(); take(res, acC); return; } rawErr = res.status === 404 || res.status === 403 ? new SeaNotThere(`${res.status} ${raw}`) : new Error(`${res.status} ${raw}`); failed(); },
         (e) => { if (!settled) { rawErr = e; failed(); } },
       );
     };
     if (signal) { if (signal.aborted) { onAbort(); return; } signal.addEventListener('abort', onAbort, { once: true }); }
     timer = setTimeout(() => { timer = null; startRaw(); }, SEA_RAW_HEDGE_MS);
+    stall = setTimeout(() => { stall = null; acC.abort(); acR.abort(); finish(() => reject(new SeaStall(`stall ${path}`))); }, SEA_STALL_MS);
     fetch(cdn, { signal: acC.signal }).then(
       (res) => {
         if (settled) return;
         if (timer) { clearTimeout(timer); timer = null; }
-        if (res.ok) { take(res, acR); return; }
+        if (res.ok) { heard(); take(res, acR); return; }
         cdnErr = res.status === 403 || res.status === 404 ? new SeaNotThere(`${res.status} ${cdn}`) : new Error(`${res.status} ${cdn}`);
         startRaw(); failed();
       },
@@ -132,6 +145,7 @@ export async function loadLatestRun(nowMs: number, killed: boolean, signal?: Abo
     } catch (e) {
       if (isAbort(e)) throw e;
       if (!(e instanceof SeaNotThere)) hard = true;
+      if (e instanceof SeaStall) break;   // the store does not answer: no step back (it would wait SEA_STALL_MS again per run)
     }
   }
   return { run: null, freshness: 'dead', tried, reason: hard ? 'error' : 'none' };
@@ -258,6 +272,7 @@ export async function loadText(product: SeaTextProduct, nowMs: number, killed: b
       return { doc: j, freshness: seaTextFreshness(j, nowMs), tried };
     } catch (e) {
       if (isAbort(e)) throw e;
+      if (e instanceof SeaStall) break;   // as in loadLatestRun: an older issue would only wait again
     }
   }
   return { doc: null, freshness: 'none', tried };
@@ -290,4 +305,42 @@ export async function loadPoi(id: string, signal?: AbortSignal): Promise<SeaPoiO
     }
     return null;
   } catch (e) { if (isAbort(e)) throw e; return null; }
+}
+
+// --- Early start (load time 10.11.) ---------------------------------------------------------------------------------
+
+/** The official texts the page shows (Seewetterbericht, Vorhersage, Warnlage, Mittelfrist). */
+export const SEA_PAGE_TEXTS: readonly SeaTextProduct[] = ['FQDL50', 'FQDL51', 'WODL45', 'FXDL40'];
+/**
+ * The page's first reads start in the route wrapper (`SeaRoute`), while the page chunk and MapLibre still download — measured,
+ * the page asked for its data only ~1 s (desktop) after its chunk had arrived. Same reads, same clock, same order of decisions as
+ * the page's own start (the glacier's `warmGlacierStart`); the page takes them once and only while fresh, else reads itself.
+ */
+const SEA_START_TTL_MS = 60_000;
+interface SeaStatic { catalog: Promise<SeaCatalog | null>; areas: Promise<SeaAreas | null> }
+interface SeaChain { nowMs: number; kill: ReturnType<typeof loadKillSwitch>; run: Promise<SeaRunLoad | null>; texts: Promise<Array<SeaTextLoad | null>> }
+let seaStart: { at: number; stat: SeaStatic | null; chain: SeaChain | null } | null = null;
+export function warmSeaStart(nowMs = Date.now()): void {
+  if (seaStart && nowMs - seaStart.at < SEA_START_TTL_MS) return;
+  seaStart = {
+    at: nowMs,
+    stat: { catalog: loadCatalog().catch(() => null), areas: loadAreas().catch(() => null) },
+    chain: {
+      nowMs,
+      kill: loadKillSwitch(),
+      run: loadLatestRun(nowMs, false).catch(() => null),
+      texts: Promise.all(SEA_PAGE_TEXTS.map((p) => loadText(p, nowMs, false).catch(() => null))),
+    },
+  };
+}
+const startFresh = () => !!seaStart && Date.now() - seaStart.at < SEA_START_TTL_MS;
+/** Catalogue and areas of the early start, once — else `null`. */
+export function takeSeaStatic(): SeaStatic | null {
+  if (!startFresh()) return null;
+  const s = seaStart!.stat; seaStart!.stat = null; return s;
+}
+/** Kill switch, run and texts of the early start (with its clock), once — else `null`. */
+export function takeSeaChain(): SeaChain | null {
+  if (!startFresh()) return null;
+  const c = seaStart!.chain; seaStart!.chain = null; return c;
 }

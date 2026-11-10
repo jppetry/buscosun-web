@@ -222,15 +222,26 @@ export async function loadRoadCorridors(signal?: AbortSignal): Promise<RoadCorri
  * sticky edge 404, no `@main` lag — E-AW-20); `null` when it cannot be read.
  */
 export async function loadRoadFcIndex(signal?: AbortSignal): Promise<RoadFcIndex | null> {
+  // Load time (10.11.): a stalled raw connection used to keep the forecast pending for ever; after `ROAD_FC_INDEX_STALL_MS`
+  // the pointer counts as unreadable (`null`, the page's existing „no forecast" path) — the caller's abort stays an abort.
+  const ac = new AbortController();
+  const onAbort = () => ac.abort(signal?.reason);
+  if (signal?.aborted) onAbort(); else signal?.addEventListener('abort', onAbort, { once: true });
+  const stall = setTimeout(() => ac.abort(new Error('stall')), ROAD_FC_INDEX_STALL_MS);
   try {
-    const res = await fetch(`${ROAD_FC_RAW_BASE}/${ROAD_FC_INDEX_PATH}`, { signal, cache: 'no-cache' });
+    const res = await fetch(`${ROAD_FC_RAW_BASE}/${ROAD_FC_INDEX_PATH}`, { signal: ac.signal, cache: 'no-cache' });
     if (!res.ok) return null;
     return parseRoadFcIndex(await res.json());
   } catch (e) {
-    if ((e as Error)?.name === 'AbortError') throw e;
+    if (signal?.aborted) throw e;
     return null;
+  } finally {
+    clearTimeout(stall);
+    signal?.removeEventListener('abort', onAbort);
   }
 }
+/** No answer of the forecast pointer after this long ⇒ unreadable (`set`, like the 20 s stall of the other road reads). */
+export const ROAD_FC_INDEX_STALL_MS = 20_000;
 
 /** One immutable run file: jsDelivr with the raw hedge; a 404 at the CDN is checked once on raw (`@main` may lag). */
 async function fetchRoadFcFile(path: string, signal?: AbortSignal): Promise<(RoadFcFile & { dropped: number }) | null> {

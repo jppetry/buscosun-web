@@ -15,6 +15,15 @@
  * Es wird gecacht, was beim ersten Online-Besuch tatsächlich geladen wurde.
  */
 
+// v4 + Ladezeit (2026-11-10): (1) Nur `/assets/*` und `/fonts/*` sind wirklich gehasht bzw.
+// unveränderlich — sie kommen cache-first (vorher stale-while-revalidate: JEDES Laden holte jeden
+// Chunk ein zweites Mal und schrieb ihn neu in den Cache). (2) Die übrigen Dateien der Herkunft
+// (`/fire/effis-season-europe-v1.json`, `/countries/*`, `/params/*` …) tragen keinen Hash: sie
+// liefen bisher ebenfalls durch den nie ablaufenden Asset-Cache und zeigten nach einem Deploy
+// die ALTE Fassung zuerst — jetzt network-first (der HTTP-Cache revalidiert, 304), Cache nur
+// offline. (3) Der Offline-Rückfall für Daten hat eine Gültigkeitsdauer je Datenart (`maxAgeOf`):
+// ältere Einträge werden nicht mehr ausgeliefert, die Seite zeigt dann ihren Fehlerzustand statt
+// alter Wetter-, Brand- oder Verkehrsdaten.
 // v4 (2026-08-26, Phase BW-10): die Live-Manifeste `/latest-{grib,wind}.json`
 // gehen am Asset-Zweig VORBEI (network-first) — unter `ASSET_RE` bekamen sie
 // stale-while-revalidate aus einem Cache, der nie abläuft, und jede Sitzung sah
@@ -28,6 +37,9 @@ const VERSION = 'v4';
 const SHELL = `bsc-shell-${VERSION}`;
 const ASSETS = `bsc-assets-${VERSION}`;
 const DATA = `bsc-data-${VERSION}`;
+/** Abrufzeit je Eintrag in `DATA` (Schlüssel = URL, Inhalt = ms seit Epoche) — auch für opake Antworten, deren Kopfzeilen
+ *  nicht lesbar sind. Ein Eintrag ohne Zeit (aus der Zeit vor 10.11.) gilt als unbekannt alt und wird nicht ausgeliefert. */
+const META = `bsc-meta-${VERSION}`;
 const DATA_MAX = 350; // max. Einträge im Daten-/Kachel-Cache
 
 self.addEventListener('install', (event) => {
@@ -50,7 +62,7 @@ self.addEventListener('message', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.filter((k) => ![SHELL, ASSETS, DATA].includes(k)).map((k) => caches.delete(k)));
+    await Promise.all(keys.filter((k) => ![SHELL, ASSETS, DATA, META].includes(k)).map((k) => caches.delete(k)));
     await self.clients.claim();
   })());
 });
@@ -73,14 +85,35 @@ const ASSET_RE = /\.(?:js|mjs|css|woff2?|ttf|otf|wasm|png|svg|jpe?g|webp|gif|jso
  *  Bilder aus dem Index des Daten-Repos, und dessen Host (`DATA_CDN_HOST`) wird
  *  oben ohnehin unangetastet ans Netz durchgereicht. Bleibt das Grib-Manifest. */
 const LIVE_RE = /^\/latest-grib\.json$/;
-function isHashedAsset(url) {
+/** Gehasht (Vite) oder unveränderlich (Schriften): netlify.toml liefert beide `immutable` aus. */
+const IMMUTABLE_RE = /^\/(?:assets|fonts)\//;
+function isImmutable(url) {
+  return url.origin === self.location.origin && IMMUTABLE_RE.test(url.pathname);
+}
+/** Übrige statische Dateien der Herkunft — ohne Hash, ihr Inhalt wechselt mit dem Deploy. */
+function isStaticFile(url) {
   return url.origin === self.location.origin && ASSET_RE.test(url.pathname) && !LIVE_RE.test(url.pathname);
+}
+
+/**
+ * Gültigkeitsdauer des Offline-Rückfalls je Datenart. Basiskarte, Gelände, Satellitenszenen und Ortssuche ändern sich nicht
+ * mit dem Wetter: 30 Tage. Alles Übrige (Wetter, Warnungen, Brände, Verkehr, Seegang, Pegel) ist Live-Information: 1 Stunde —
+ * älter wird es offline nicht mehr gezeigt, die Seite meldet dann „nicht erreichbar".
+ */
+const STABLE_HOST_RE = /(?:^|\.)(?:tiles\.openfreemap\.org|elevation-tiles-prod\.s3\.amazonaws\.com|server\.arcgisonline\.com|sentinel-cogs\.s3\.us-west-2\.amazonaws\.com|nominatim\.openstreetmap\.org)$/;
+const DAY_MS = 24 * 3600 * 1000;
+function maxAgeOf(url) {
+  return STABLE_HOST_RE.test(url.hostname) ? 30 * DAY_MS : 3600 * 1000;
 }
 
 async function trim(cacheName, max) {
   const cache = await caches.open(cacheName);
   const keys = await cache.keys();
-  for (let i = 0; i < keys.length - max; i++) await cache.delete(keys[i]);
+  const meta = cacheName === DATA ? await caches.open(META) : null;
+  for (let i = 0; i < keys.length - max; i++) {
+    await cache.delete(keys[i]);
+    if (meta) await meta.delete(keys[i].url);
+  }
 }
 
 self.addEventListener('fetch', (event) => {
@@ -116,29 +149,52 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Gehashte Assets → stale-while-revalidate.
-  if (isHashedAsset(url)) {
+  // Gehashte / unveränderliche Assets → cache-first (der Name wechselt mit dem Inhalt).
+  if (isImmutable(url)) {
     event.respondWith((async () => {
       const cache = await caches.open(ASSETS);
       const hit = await cache.match(req);
-      const net = fetch(req).then((res) => { if (res && res.ok) cache.put(req, res.clone()); return res; }).catch(() => null);
-      return hit || (await net) || Response.error();
+      if (hit) return hit;
+      const res = await fetch(req);
+      if (res && res.ok) cache.put(req, res.clone()).catch(() => {});
+      return res;
     })());
     return;
   }
 
-  // Wetterdaten / Kacheln → network-first, Cache-Fallback.
+  // Ungehashte Dateien der Herkunft → network-first (HTTP-Revalidierung), Cache nur offline.
+  if (isStaticFile(url)) {
+    event.respondWith((async () => {
+      const cache = await caches.open(ASSETS);
+      try {
+        const res = await fetch(req);
+        if (res && res.ok) cache.put(req, res.clone()).catch(() => {});
+        return res;
+      } catch {
+        return (await cache.match(req)) || Response.error();
+      }
+    })());
+    return;
+  }
+
+  // Wetterdaten / Kacheln → network-first, Cache-Fallback nur innerhalb der Gültigkeitsdauer.
   event.respondWith((async () => {
     const cache = await caches.open(DATA);
     try {
       const net = await fetch(req);
       if (net && (net.ok || net.type === 'opaque')) {
-        cache.put(req, net.clone()).then(() => trim(DATA, DATA_MAX)).catch(() => {});
+        const at = String(Date.now());
+        cache.put(req, net.clone())
+          .then(() => caches.open(META)).then((meta) => meta.put(req.url, new Response(at)))
+          .then(() => trim(DATA, DATA_MAX)).catch(() => {});
       }
       return net;
     } catch {
       const hit = await cache.match(req);
-      return hit || Response.error();
+      if (!hit) return Response.error();
+      const stamp = await (await caches.open(META)).match(req.url);
+      const at = stamp ? Number(await stamp.text()) : NaN;
+      return Number.isFinite(at) && Date.now() - at <= maxAgeOf(url) ? hit : Response.error();
     }
   })());
 });

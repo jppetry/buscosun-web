@@ -721,8 +721,11 @@ const WIND_STORE = 'now';
 const WIND_CACHE_ID = 'v3';
 /** Alter localStorage-Key (PNG-DataURL) — wird beim Speichern best-effort aufgeräumt. */
 const LEGACY_WIND_CACHE_KEY = 'bc_wind_now_v2';
-/** Cache ignorieren, wenn älter (paar h alter Wind als 2-s-Platzhalter ist ok). */
-const WIND_CACHE_MAX_AGE_MS = 24 * 3_600_000;
+/**
+ * Cache ignorieren, wenn älter. Ladezeit/Aktualität (10.11.): 3 h statt 24 h — der Platzhalter ist der „jetzt"-Frame eines
+ * ICON-D2-Laufs (alle 3 h); ein Frame von gestern blieb bei einem Ladefehler als aktueller Wind stehen.
+ */
+export const WIND_CACHE_MAX_AGE_MS = 3 * 3_600_000;
 
 export interface CachedWindNow {
   image: HTMLImageElement | HTMLCanvasElement;
