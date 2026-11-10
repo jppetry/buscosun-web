@@ -99,6 +99,12 @@ const fmtDay = (dayIso: string): string => {
 const fmtDayShort = (dayIso: string): string => `${dayIso.slice(8, 10)}.${dayIso.slice(5, 7)}.`;
 
 /** The scene the block shows first: the after image documents the scar — else during, else before, else the newest. */
+/** The fire frame of the pictures: the fire bbox, without one a small box around the fire (~0.6 km). */
+const fireBoxAround = (lat: number, lon: number): readonly [number, number, number, number] => {
+  const dLat = 0.0027; const dLon = dLat / Math.max(0.2, Math.cos((lat * Math.PI) / 180));
+  return [lon - dLon, lat - dLat, lon + dLon, lat + dLat];
+};
+
 const startScene = (data: SatImagery): SatScene | null => data.pick.after ?? data.pick.during ?? data.pick.before ?? data.scenes.at(-1) ?? null;
 
 /**
@@ -106,14 +112,25 @@ const startScene = (data: SatImagery): SatScene | null => data.pick.after ?? dat
  * (the one the block would pick) and the day search of the 10 m view. The block takes the same promises from the caches
  * (`fetchSatImagery`, `loadSnapshot`, `stacDayJson`), so opening the chapter finds the picture ready. Never throws; a miss costs one request.
  */
-export function warmSatImagery(t: Pick<SatTarget, 'lat' | 'lon' | 'bbox' | 'firstMs' | 'lastMs'>, nowMs: number): void {
+export function warmSatImagery(t: Pick<SatTarget, 'lat' | 'lon' | 'bbox' | 'firstMs' | 'lastMs' | 'shape'>, nowMs: number): void {
   void (async () => {
     try {
       const data = await fetchSatImagery(t.lat, t.lon, t.bbox, t.firstMs, t.lastMs, nowMs);
       const scene = startScene(data);
       if (!scene) return;
-      void loadSnapshot(snapshotUrl(data.bbox, scene.dayIso, scene.sat));
-      if (scene.sat === 's2' && sat10Enabled()) { prefetchS2Day(t.lat, t.lon, scene.dayIso); preconnect(S2_COG_ORIGIN); }
+      // On a Sentinel-2 day the chapter shows the 10 m view, not the 30 m picture: its chunk and the tiles of its start view
+      // are what took long (≈ 2 MB per tile). On other days the 30 m picture is the one shown.
+      if (scene.sat === 's2' && sat10Enabled()) {
+        preconnect(S2_COG_ORIGIN);
+        const outline = t.bbox ?? fireBoxAround(t.lat, t.lon);
+        // Size of the chapter's picture frame (`.br-ds-satbild .br-sat-frame`: up to 820 px wide, 3:2 from 768 px, else 5:4).
+        const vw = typeof window !== 'undefined' ? window.innerWidth : 1280;
+        const w = Math.max(280, Math.min(820, vw - 32)), h = Math.round(w / (vw >= 768 ? 1.5 : 1.25));
+        const m = await import('./FireCogViewer');
+        await m.warmCogView(t.lat, t.lon, scene.dayIso, outline, polygonRings(t.shape), w, h);
+      } else {
+        void loadSnapshot(snapshotUrl(data.bbox, scene.dayIso, scene.sat));
+      }
     } catch { /* warm start is a bonus */ }
   })();
 }
@@ -155,9 +172,7 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
   );
   // Umrandung wie „Karte · markiert": die Brand-BBox, ohne BBox ein kleiner Kasten um den Brandort (~0,6 km) — es gibt sie bei JEDEM Brand.
   const outline = useMemo<readonly [number, number, number, number]>(() => {
-    if (t.bbox) return t.bbox;
-    const dLat = 0.0027; const dLon = dLat / Math.max(0.2, Math.cos((t.lat * Math.PI) / 180));
-    return [t.lon - dLon, t.lat - dLat, t.lon + dLon, t.lat + dLat];
+    return t.bbox ?? fireBoxAround(t.lat, t.lon);
   }, [t.bbox, t.lat, t.lon]);
   // Brand-BBox [W, S, O, N] → Bildpixel des Snapshots ([S, W, N, O], Plate-Carrée, linear in Grad).
   const bboxRect = useMemo(() => {

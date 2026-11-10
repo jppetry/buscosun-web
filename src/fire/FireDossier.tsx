@@ -95,10 +95,11 @@ export function FireDossier({ r, nowMs, atContext = null, breakpoint = 'desktop'
   useEffect(() => setChapter(1), [r?.id]);
   // Jan 2026-11-10: the satellite picture starts loading once the chapter "Brand" has had its moment (idle, at the latest after 1.5 s),
   // not only when the chapter "Satellit" opens — the picture then waits in the caches (`warmSatImagery`).
-  const warmKey = r && satEnabled() ? `${r.id}|${r.lat}|${r.lon}|${r.firstMs}|${r.lastMs}` : null;
+  // The fire's area arrives with the registry features; it frames the start view, so it is part of the key (one more warm start, cached tiles reused).
+  const warmKey = r && satEnabled() ? `${r.id}|${r.lat}|${r.lon}|${r.firstMs}|${r.lastMs}|${shape?.length ?? 0}` : null;
   useEffect(() => {
     if (!r || !warmKey) return;
-    const run = () => warmSatImagery({ lat: r.lat, lon: r.lon, bbox: r.bbox, firstMs: r.firstMs, lastMs: r.lastMs }, nowMs);
+    const run = () => warmSatImagery({ lat: r.lat, lon: r.lon, bbox: r.bbox, firstMs: r.firstMs, lastMs: r.lastMs, shape }, nowMs);
     const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number; cancelIdleCallback?: (h: number) => void };
     if (w.requestIdleCallback) { const h = w.requestIdleCallback(run, { timeout: 1500 }); return () => w.cancelIdleCallback?.(h); }
     const h = window.setTimeout(run, 800); return () => window.clearTimeout(h);

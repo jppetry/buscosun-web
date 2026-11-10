@@ -441,6 +441,50 @@ function fetchIfds(href: string, onBytes: (n: number) => void): Promise<CogIfd[]
   return p;
 }
 
+/**
+ * Jan 2026-11-10: warm start of the 10 m view while the dossier chapter "Brand" is still open — the same steps the viewer takes
+ * on mount (catalogue entry, header, start view framing the fire), then the true-colour tiles of that start view: first the
+ * level one below the chosen one (the interim picture), then the chosen level — at most 12 tiles, like one draw. Everything
+ * lands in the caches the viewer reads (`fetchS2CogRef`, `_headers`, `_tiles`, keys identical), so opening the chapter finds
+ * the picture loaded or in flight. The box size is not known before mount: `cssW`/`cssH` estimate it; a tile is ≈ 5 km wide,
+ * a few dozen pixels of error do not change the tile set. Never throws.
+ */
+export async function warmCogView(
+  lat: number, lon: number, dayIso: string,
+  fireBbox: readonly [number, number, number, number] | null, fireShape: readonly (readonly number[])[][] | null,
+  cssW: number, cssH: number,
+): Promise<number> {
+  try {
+    const ref = await fetchS2CogRef(lat, lon, dayIso, pixelOf);
+    if (!ref) return 0;
+    const fire = pixelOf(lat, lon, ref.epsg, ref.transform);
+    if (!fire) return 0;
+    const ifds = await fetchIfds(ref.href, () => undefined);
+    const d = { fire, bbox: bboxCornersPx(fireBbox, ref.epsg, ref.transform), shape: shapeRingsPx(fireShape, ref.epsg, ref.transform) };
+    const view = fitView(d, cssW, cssH) ?? { cx: fire.px, cy: fire.py, mpp: START_MPP };
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const fullW = ref.shape[1];
+    const k = view.mpp / FULL_M_PER_PX;
+    const px0 = view.cx - (cssW / 2) * k, px1 = view.cx + (cssW / 2) * k;
+    const py0 = view.cy - (cssH / 2) * k, py1 = view.cy + (cssH / 2) * k;
+    const chosen = pickLevel(ifds, view.mpp / dpr, FULL_M_PER_PX);
+    const upTo = [...ifds].sort((a, b) => a.width - b.width).filter((l) => l.width <= chosen.ifd.width);
+    const pre = upTo.length >= 2 ? upTo[upTo.length - 2] : null;
+    let n = 0;
+    for (const ifd of pre ? [pre, chosen.ifd] : [chosen.ifd]) {
+      const f = ifd.width / fullW;
+      for (const t of tilesFor(ifd, px0 * f, py0 * f, px1 * f, py1 * f)) {
+        if (n >= 12) return n;
+        n++;
+        void loadTile(ref.href, String(ifd.width), ifd, t.idx, t.offset, t.byteCount, () => undefined).catch(() => undefined);
+      }
+    }
+    return n;
+  } catch {
+    return 0;
+  }
+}
+
 // --- Viewer -----------------------------------------------------------------------------------
 
 type Phase =
