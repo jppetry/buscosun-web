@@ -62,18 +62,19 @@ interface Props {
 
 const TABS: Array<[SeaTab, string]> = [['spot', 'Spot'], ['gebiet', 'Seegebiet'], ['quellen', 'Quellen']];
 /**
- * Dossier chapters (desktop centre stage): Am Spot · Satellit · Allgemein. They replace the tabs Spot · Seegebiet ·
- * Quellen there and take over their content; the URL keeps the tab keys (`tab=spot|gebiet|quellen`, mobile uses them
- * as tabs): Allgemein ⇔ `quellen`, the others are written as `spot`. Am Spot holds the hour, the hourly band, the
- * water level (left out when it is switched off, `?wl=0`) and the official texts (`tab=gebiet` scrolls to them).
+ * Dossier chapters (desktop centre stage), Jan 2026-11-10: Wasserstand · Wetter · Satellit & Amtlich · Allgemein. They replace
+ * the tabs Spot · Seegebiet · Quellen there and take over their content; the URL keeps the tab keys (`tab=spot|gebiet|quellen`,
+ * mobile uses them as tabs): `spot` ⇒ the first chapter (Wasserstand; Wetter when the water level is switched off, `?wl=0`),
+ * `gebiet` ⇒ Satellit & Amtlich, scrolled to the official texts, `quellen` ⇒ Allgemein.
  */
-type DsChapter = 'spot' | 'satellit' | 'allgemein';
+type DsChapter = 'wasser' | 'wetter' | 'lage' | 'allgemein';
 const DS_CHAPTERS: Array<[DsChapter, string, string, SeaTab]> = [
-  ['spot', 'Am Spot', 'Stunde · Verlauf · Wasserstand · Amtlich', 'spot'],
-  ['satellit', 'Satellit', 'Lage des Spots', 'spot'],
+  ['wasser', 'Wasserstand', 'Nächster BSH-Pegel', 'spot'],
+  ['wetter', 'Wetter', 'Wind und Seegang · Verlauf', 'spot'],
+  ['lage', 'Satellit & Amtlich', 'Lage des Spots · Seewetterdienst', 'gebiet'],
   ['allgemein', 'Allgemein', 'Steckbrief', 'quellen'],
 ];
-const chapterOf = (t: SeaTab): DsChapter => (t === 'quellen' ? 'allgemein' : 'spot');
+const chapterOf = (t: SeaTab): DsChapter => (t === 'quellen' ? 'allgemein' : t === 'gebiet' ? 'lage' : 'wasser');
 const SEC_AREA = 'sw-sec-seegebiet';
 function DsSection({ id, title, hint, side, children }: { id?: string; title: string; hint: string; side?: ReactNode; children: ReactNode }) {
   const tid = id ? `${id}-t` : undefined;
@@ -128,7 +129,7 @@ function Card({ children, cls = '' }: { children: ReactNode; cls?: string }) { r
 
 export default function SeaReadout(p: Props) {
   const h = p.hour, s = p.spot, v = p.verdict;
-  // Dossier chapter: follows the URL tab, except right after a chapter click wrote the tab itself (Satellit ⇒ `spot`).
+  // Dossier chapter: follows the URL tab, except right after a chapter click wrote the tab itself (Wasserstand and Wetter both write `spot`).
   const [chapter, setChapter] = useState<DsChapter>(() => chapterOf(p.tab));
   const requestedTab = useRef<SeaTab | null>(null);
   const dsRef = useRef<HTMLDivElement | null>(null);
@@ -136,7 +137,7 @@ export default function SeaReadout(p: Props) {
     if (requestedTab.current === p.tab) { requestedTab.current = null; return; }
     requestedTab.current = null;
     setChapter(chapterOf(p.tab));
-    // `gebiet` (e.g. "ganzen Text lesen") lands on the official section of the chapter Am Spot.
+    // `gebiet` (e.g. "ganzen Text lesen") lands on the official section of the chapter Satellit & Amtlich.
     if (p.layout === 'dossier' && p.tab === 'gebiet') requestAnimationFrame(() => document.getElementById(SEC_AREA)?.scrollIntoView({ block: 'start' }));
   }, [p.tab, p.layout]);
   const windName = p.spotsDoc?.wind?.engine ?? 'buscosun Fusion';
@@ -291,8 +292,9 @@ export default function SeaReadout(p: Props) {
     const spread = h && h.windMs != null && h.gustMs != null ? h.gustMs - h.windMs : null;
     const gauge = p.waterLevel?.gauge ?? null;
     const stationName = s?.station ? s.station.name.charAt(0) + s.station.name.slice(1).toLowerCase() : null;
-    const chapters = DS_CHAPTERS;
-    const cur: DsChapter = chapter;
+    // Without the water level (`?wl=0`) its chapter is left out and Wetter is the first one.
+    const chapters = p.waterLevel ? DS_CHAPTERS : DS_CHAPTERS.filter(([k]) => k !== 'wasser');
+    const cur: DsChapter = chapter === 'wasser' && !p.waterLevel ? 'wetter' : chapter;
     const pick = (c: DsChapter, tab: SeaTab) => {
       // A new chapter starts at its top, not at the scroll position of the previous one.
       if (c !== cur) dsRef.current?.closest('.sw-ds-scroll')?.scrollTo({ top: 0 });
@@ -327,7 +329,7 @@ export default function SeaReadout(p: Props) {
           </div>
           <div className="sw-ds-headside">
             {p.onMap && <button type="button" className="sw-link sw-ds-back" onClick={p.onMap}>↗ Zur Karte</button>}
-            {cur === 'spot' && kpiRow}
+            {cur === 'wetter' && kpiRow}
           </div>
         </div>
       </section>
@@ -440,7 +442,7 @@ export default function SeaReadout(p: Props) {
         <div className="sw-ds-tabs" role="tablist" aria-label="Teilbereich des Dossiers" onKeyDown={onTabKey}>
           {chapters.map(([k, t, hint, tab], i) => (
             <button key={k} type="button" role="tab" data-ch={k} tabIndex={cur === k ? 0 : -1} aria-selected={cur === k} className={`sw-ds-tab${cur === k ? ' is-active' : ''}`} onClick={() => pick(k, tab)}>
-              <span className="sw-ds-tab-n" aria-hidden="true">{k === 'spot' && p.warning.status === 'unknown' && s ? '!' : i + 1}</span>
+              <span className="sw-ds-tab-n" aria-hidden="true">{k === 'lage' && p.warning.status === 'unknown' && s ? '!' : i + 1}</span>
               <span className="sw-ds-tab-tx"><span className="sw-ds-tab-t">{t}</span><span className="sw-ds-tab-h">{hint}</span></span>
             </button>
           ))}
@@ -456,19 +458,20 @@ export default function SeaReadout(p: Props) {
             ) : empty}
           </>
         )}
-        {cur === 'satellit' && (s ? (
-          <div className="sw-ds-grid is-one is-centered">{satCard}</div>
-        ) : empty)}
-        {cur === 'spot' && (
+        {cur === 'wasser' && (
+          <>
+            {s ? (
+              <DsSection id="sw-sec-wasser" title="Wasserstand" hint="Nächster BSH-Pegel">
+                {waterCardOf(true)}
+              </DsSection>
+            ) : empty}
+            {s && disclaimer}
+          </>
+        )}
+        {cur === 'wetter' && (
           <>
             {s ? (
               <>
-                {/* Jump bar: the chapter is long, so each section is one click away. */}
-                <nav className="sw-ds-jump" aria-label="Abschnitte von Am Spot">
-                  {([['sw-sec-stunde', 'Wind und Seegang'], ['sw-sec-verlauf', 'Verlauf und Stundenband'], ...(p.waterLevel ? [['sw-sec-wasser', 'Wasserstand']] : []), [SEC_AREA, 'Amtlich']] as Array<[string, string]>).map(([id, label]) => (
-                    <button key={id} type="button" className="sw-ds-jump-b" onClick={() => document.getElementById(id)?.scrollIntoView({ block: 'start' })}>{label}</button>
-                  ))}
-                </nav>
                 <DsSection id="sw-sec-stunde" title="Wind und Seegang" hint="Die gewählte Stunde auf einen Blick">
                   {nowCard}
                 </DsSection>
@@ -476,12 +479,17 @@ export default function SeaReadout(p: Props) {
                   {chartPanel}
                   {p.band}
                 </DsSection>
-                {p.waterLevel && (
-                  <DsSection id="sw-sec-wasser" title="Wasserstand" hint="Nächster BSH-Pegel">
-                    {waterCardOf(true)}
-                  </DsSection>
-                )}
               </>
+            ) : empty}
+            {s && disclaimer}
+          </>
+        )}
+        {cur === 'lage' && (
+          <>
+            {s ? (
+              <DsSection title="Satellit" hint="Lage des Spots, der Messstation und des Pegels">
+                <div className="sw-ds-grid is-one is-centered">{satCard}</div>
+              </DsSection>
             ) : empty}
             <DsSection id={SEC_AREA} title="Amtlich" hint="Seewetterdienst Hamburg im Wortlaut">
               <AreaDossier spot={s} texts={p.texts} />
@@ -888,7 +896,13 @@ function WarnRows({ text, own, onlyOwn }: { text: string; own?: string | null; o
         })}
       </dl>
       {hidden > 0 && (
-        <button type="button" className="sw-link sw-warn-more" onClick={() => document.getElementById(SEC_AREA)?.scrollIntoView({ block: 'start' })}>
+        <button type="button" className="sw-link sw-warn-more" onClick={() => {
+          // The official texts live in the dossier chapter Satellit & Amtlich: switch to it first when another chapter is open.
+          const el = document.getElementById(SEC_AREA);
+          if (el) { el.scrollIntoView({ block: 'start' }); return; }
+          document.querySelector<HTMLElement>('.sw-ds-tab[data-ch="lage"]')?.click();
+          requestAnimationFrame(() => requestAnimationFrame(() => document.getElementById(SEC_AREA)?.scrollIntoView({ block: 'start' })));
+        }}>
           {hidden} weitere {hidden === 1 ? 'Abschnitt' : 'Abschnitte'} der Meldung im Wortlaut ↓
         </button>
       )}
