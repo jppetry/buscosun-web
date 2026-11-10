@@ -98,6 +98,26 @@ const fmtDay = (dayIso: string): string => {
 };
 const fmtDayShort = (dayIso: string): string => `${dayIso.slice(8, 10)}.${dayIso.slice(5, 7)}.`;
 
+/** The scene the block shows first: the after image documents the scar — else during, else before, else the newest. */
+const startScene = (data: SatImagery): SatScene | null => data.pick.after ?? data.pick.during ?? data.pick.before ?? data.scenes.at(-1) ?? null;
+
+/**
+ * Jan 2026-11-10: starts the satellite picture while the dossier chapter "Brand" is still open — scene search, then the first picture
+ * (the one the block would pick) and the day search of the 10 m view. The block takes the same promises from the caches
+ * (`fetchSatImagery`, `loadSnapshot`, `stacDayJson`), so opening the chapter finds the picture ready. Never throws; a miss costs one request.
+ */
+export function warmSatImagery(t: Pick<SatTarget, 'lat' | 'lon' | 'bbox' | 'firstMs' | 'lastMs'>, nowMs: number): void {
+  void (async () => {
+    try {
+      const data = await fetchSatImagery(t.lat, t.lon, t.bbox, t.firstMs, t.lastMs, nowMs);
+      const scene = startScene(data);
+      if (!scene) return;
+      void loadSnapshot(snapshotUrl(data.bbox, scene.dayIso, scene.sat));
+      if (scene.sat === 's2' && sat10Enabled()) { prefetchS2Day(t.lat, t.lon, scene.dayIso); preconnect(S2_COG_ORIGIN); }
+    } catch { /* warm start is a bonus */ }
+  })();
+}
+
 export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
   const [im, setIm] = useState<{ kind: 'loading' } | { kind: 'ok'; data: SatImagery }>({ kind: 'loading' });
   const [selDay, setSelDay] = useState<string | null>(null);
@@ -125,7 +145,7 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
   const scene: SatScene | null = useMemo(() => {
     if (!data) return null;
     if (selDay) return data.scenes.find((s) => s.dayIso === selDay) ?? null;
-    return data.pick.after ?? data.pick.during ?? data.pick.before ?? data.scenes.at(-1) ?? null;
+    return startScene(data);
   }, [data, selDay]);
 
   // SAT3: die Rechtecke in Bildpixeln — Plate-Carrée, linear aus derselben BBox wie der Abruf.

@@ -211,8 +211,8 @@ add('[sat] Kill-Switch ?sat=0 im Modul, beide Einbauorte hängen daran (Rule 2)'
   && (dossier.match(/satEnabled\(\) &&/g) ?? []).length === 1 && (hpanel.match(/satEnabled\(\) &&/g) ?? []).length === 1);
 add('[sat] Data-Present wird VOR der Anzeige ausgewertet — „kein Bild" ist ein benannter Zustand',
   /Data-Present'\) === 'false'/.test(satc) && /nodata/.test(satc) && /noch kein Bild auf dem Bilddienst/.test(satc));
-add('[sat] Bilder strikt on-demand: genau EINE Abrufstelle, kein Vorladen (V-SAT-1)',
-  (satc.match(/loadSnapshot\(/g) ?? []).length === 2 && !/scenes\.map\([^)]*loadSnapshot/.test(satc));
+add('[sat] Bilder: eine Abrufstelle im Block + Frühstart des ERSTEN Bilds (Jan 10.11.), nie alle Szenen vorladen (V-SAT-1 abgelöst)',
+  (satc.match(/loadSnapshot\(/g) ?? []).length === 3 && /export function warmSatImagery/.test(satc) &&!/scenes\.map\([^)]*loadSnapshot/.test(satc));
 add('[sat] Ehrlichkeit: 30-m-Grenze und „Wolken je Szene, nicht am Brandort" stehen an der Karte',
   /keine sichtbare Narbe/.test(satc) && /nicht am Brandort/.test(satc) && /SAT_ATTRIBUTION/.test(satc));
 add('[sat] Deep-Link (10 m, Copernicus Browser) mit gewähltem Tag und rel="noopener"',
@@ -238,7 +238,7 @@ const cogv = readFileSync(join(ROOT, 'src', 'fire', 'FireCogViewer.tsx'), 'utf8'
 add('[cog] Viewer ist ein eigener Lazy-Chunk und lädt erst mit dem Klick (NerdPanel-Muster)',
   /lazy\(\(\) => import\('\.\/FireCogViewer'\)\)/.test(satc) && /\{cog10 && \(/.test(satc) && /<Suspense/.test(satc));
 add('[cog] Kill-Switch ?sat10=0 im Modul, der Einstiegsknopf hängt daran (Rule 2)',
-  /get\('sat10'\)/.test(satm) && (satc.match(/sat10Enabled\(\)/g) ?? []).length === 3);
+  /get\('sat10'\)/.test(satm) && (satc.match(/sat10Enabled\(\)/g) ?? []).length === 4);
 add('[cog] Kostenzahl steht am Knopf, BEVOR etwas lädt',
   /lädt je nach Zoom ~1–10 MB/.test(satc));
 add('[cog] Landsat ist ausgeschlossen UND der Grund steht als Satz im Fußtext',

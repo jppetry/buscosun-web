@@ -44,7 +44,7 @@ import {
   DetailSubline, DetailVerlauf, DriversBlock, FeaturesRow, RecordStats, DetailFactTiles, recordName, recordTitle,
   fireWindowAnchor, EFFIS_ANCHOR_NOTE,
 } from './FireFootprintPanel';
-import { SatImageryBlock } from './FireSatImagery';
+import { SatImageryBlock, warmSatImagery } from './FireSatImagery';
 import { satEnabled } from './detail/fireSatImagery';
 import {
   DossierBreakpointProvider, DossierCard, DossierGrid, DossierChapterTabs, type DossierChapter, FactList, Overline,
@@ -93,6 +93,17 @@ export function FireDossier({ r, nowMs, atContext = null, breakpoint = 'desktop'
   // Teilbereich (Reiter); ein anderer Brand beginnt wieder bei „Brand“.
   const [chapter, setChapter] = useState<DossierChapter>(1);
   useEffect(() => setChapter(1), [r?.id]);
+  // Jan 2026-11-10: the satellite picture starts loading once the chapter "Brand" has had its moment (idle, at the latest after 1.5 s),
+  // not only when the chapter "Satellit" opens — the picture then waits in the caches (`warmSatImagery`).
+  const warmKey = r && satEnabled() ? `${r.id}|${r.lat}|${r.lon}|${r.firstMs}|${r.lastMs}` : null;
+  useEffect(() => {
+    if (!r || !warmKey) return;
+    const run = () => warmSatImagery({ lat: r.lat, lon: r.lon, bbox: r.bbox, firstMs: r.firstMs, lastMs: r.lastMs }, nowMs);
+    const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number; cancelIdleCallback?: (h: number) => void };
+    if (w.requestIdleCallback) { const h = w.requestIdleCallback(run, { timeout: 1500 }); return () => w.cancelIdleCallback?.(h); }
+    const h = window.setTimeout(run, 800); return () => window.clearTimeout(h);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [warmKey]);
 
   if (!r) {
     return (
