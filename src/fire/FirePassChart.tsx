@@ -58,6 +58,11 @@ export interface FirePassChartProps {
    * Tablet über den Rand: die Mitte ist dort mit beiden Sidebars nur ~440 px breit.
    */
   wideWidth?: number;
+  /**
+   * Draw the dashed "jetzt" line and its legend chip (default). The history event passes `false`: its `nowMs` is the event's last
+   * detection, not the present — the line stood at a day in the past and was labelled "jetzt" (Jan 2026-11-10).
+   */
+  showNow?: boolean;
 }
 
 /** Was eine eigene nivo-Ebene an Skalen und Maßen bekommt. */
@@ -126,7 +131,7 @@ function LegendChip({ swatch, children }: { swatch: React.ReactNode; children: R
 
 interface HoverBar { key: string; x: number; y: number; lines: string[] }
 
-export function FirePassChart({ passes, nowMs, compact = false, wide = false, wideWidth = 380 }: FirePassChartProps) {
+export function FirePassChart({ passes, nowMs, compact = false, wide = false, wideWidth = 380, showNow = true }: FirePassChartProps) {
   const tl = useMemo(() => passTimeline(passes, nowMs), [passes, nowMs]);
   const rawId = useId().replace(/:/g, '');
   const patternId = `fp-hatch-${rawId}`;
@@ -147,7 +152,7 @@ export function FirePassChart({ passes, nowMs, compact = false, wide = false, wi
   const fontSize = wide ? 13 : 10;
   // Platz unten für Tag/Nacht-Zeichen + Zeitstempel + Achse; links für „100 MW".
   const margin = { left: wide ? 64 : 40, right: wide ? 30 : 12, top: 18, bottom: wide ? STAMP_DY + 10 : 30 };
-  const nowInside = nowMs >= tl.fromMs && nowMs <= tl.toMs;
+  const nowInside = showNow && nowMs >= tl.fromMs && nowMs <= tl.toMs;
   const yMax = Math.max(1, tl.yMaxMw) * 1.6;
   const yTicks = decades(Y_FLOOR, yMax);
 
@@ -386,7 +391,7 @@ export function FirePassChart({ passes, nowMs, compact = false, wide = false, wi
         <LegendChip swatch={<Box component="span" sx={{ width: 10, height: 10, borderRadius: '3px', bgcolor: 'fire.night' }} />}>Nacht</LegendChip>
         <LegendChip swatch={<Box component="span" sx={{ width: 10, height: 10, borderRadius: '50%', border: '1.5px solid', borderColor: 'text.disabled' }} />}>ohne FRP-Angabe</LegendChip>
         <LegendChip swatch={<Box component="span" sx={{ width: 14, height: 10, borderRadius: '3px', border: '1px solid', borderColor: 'divider', background: 'repeating-linear-gradient(45deg, currentColor 0 1px, transparent 1px 4px)', color: 'text.disabled' }} />}>mehr als {GAP_HOURS} h ohne Überflug</LegendChip>
-        <LegendChip swatch={<Box component="span" sx={{ width: 14, borderTop: '2px dashed', borderColor: 'fire.extreme' }} />}>jetzt</LegendChip>
+        {nowInside && <LegendChip swatch={<Box component="span" sx={{ width: 14, borderTop: '2px dashed', borderColor: 'fire.extreme' }} />}>jetzt</LegendChip>}
       </Box>
       <Typography component="figcaption" variant="caption" sx={{ display: 'block', mt: 1, lineHeight: 1.55 }} className="br-note">
         ΣFRP je Überflug (log-Achse, MW). Zwischen zwei Überflügen ist nichts beobachtet — die Balken sind Messpunkte, keine Kurve.

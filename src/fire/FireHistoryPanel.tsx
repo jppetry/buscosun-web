@@ -345,7 +345,7 @@ export function HistoryDossierBody({ entry, aside, head }: {
         </div>
         {shard.kind === 'loading' && <p className="br-note">Detail wird geladen … (eine Zelle, eine Datei)</p>}
         {shard.kind === 'error' && <p className="br-note">Detail nicht erreichbar ({shard.message}) — die Kennzahlen oben stammen aus dem Index.</p>}
-        {passes.length > 0 && <FirePassChart passes={passes} nowMs={entry.lastMs} wide wideWidth={4000} />}
+        {passes.length > 0 && <FirePassChart passes={passes} nowMs={entry.lastMs} wide wideWidth={4000} showNow={false} />}
         {passes.length === 1 && <p className="br-note">Ein einziger Überflug — es gibt keinen zeitlichen Verlauf, nur diesen Messpunkt.</p>}
         {/* BD3: übernommen aus der gestrichenen Inline-Karte — die Einzeldetektion ist die schwächste
             Aussage der Historie und muss auch im Dossier stehen. */}
