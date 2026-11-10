@@ -98,12 +98,13 @@ export async function openBrowser(chromePath, { timeoutMs = 60_000, extraArgs = 
     const off = on((msg) => {
       if (msg.sessionId !== sessionId) return;
       const p = msg.params;
-      if (msg.method === 'Network.requestWillBeSent') reqs.set(p.requestId, { url: p.request.url, t0: p.timestamp, wall0: p.wallTime, method: p.request.method, range: p.request.headers?.Range ?? p.request.headers?.range ?? null });
+      if (msg.method === 'Network.requestWillBeSent') reqs.set(p.requestId, { url: p.request.url, t0: p.timestamp, wall0: p.wallTime, method: p.request.method, type: p.type ?? null, range: p.request.headers?.Range ?? p.request.headers?.range ?? null });
+      else if (msg.method === 'Network.requestServedFromCache') { const r = reqs.get(p.requestId); if (r) r.fromMemory = true; }
       else if (msg.method === 'Network.responseReceived') {
         const r = reqs.get(p.requestId); if (!r) return;
         const h = p.response.headers || {};
         Object.assign(r, { status: p.response.status, xCache: h['x-cache'] ?? h['X-Cache'] ?? null, age: h.age ?? h.Age ?? null,
-          enc: h['content-encoding'] ?? null, fromCache: !!p.response.fromDiskCache, protocol: p.response.protocol,
+          enc: h['content-encoding'] ?? null, fromCache: !!p.response.fromDiskCache, fromSw: !!p.response.fromServiceWorker, protocol: p.response.protocol,
           ttfbMs: p.response.timing ? Math.round(p.response.timing.receiveHeadersEnd) : null });
       } else if (msg.method === 'Network.loadingFinished') {
         const r = reqs.get(p.requestId); if (!r) return;
