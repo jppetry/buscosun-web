@@ -137,7 +137,8 @@ export default function MinuteChart({ series, rangeH, variant, height, curve = t
   const ruc = series.ruc;
   const rucEndVisible = ruc != null && ruc.toMs < endMs && geom.bars.some((b) => b.fromMs >= ruc.toMs);
   // Phase RUC: with the layer the seam names the 5-min form; WITHOUT it the three seam texts are the literals of the stand before RUC (review C1).
-  const rucFull = ruc ? `${ruc.label} · Stundensumme ${series.fusionLabel}` : null;
+  // Jan 11.11.: short labels in the chart — the legend under the big chart names product, run and sums.
+  const rucFull = ruc ? '5-min-Form' : null;
   const rucMini = ruc ? 'RUC 5 min' : null;
 
   const onMove = (e: PointerEvent<SVGRectElement>) => {
@@ -259,7 +260,7 @@ export default function MinuteChart({ series, rangeH, variant, height, curve = t
             return <rect key={`p${b.fromMs}`} x={x0} y={yBase + 24} width={w} height={6} rx={2} className="mv-pwet" style={{ fillOpacity: 0.12 + 0.8 * b.pWet }} />;
           })}
           {full && geom.stripBars.some((b) => b.pWet != null) && (
-            <text x={pad.l} y={yBase + 42} className="mv-striplabel">Regenchance je Stunde · buscosun Fusion</text>
+            <text x={pad.l} y={yBase + 42} className="mv-striplabel">Regenchance je Stunde</text>
           )}
           {/* E-RUC-11: trace spans (below the rain gate) — a dotted mark on the baseline, the hint text where it fits (full variant) */}
           {full && geom.hints.map((x) => {
@@ -300,14 +301,14 @@ export default function MinuteChart({ series, rangeH, variant, height, curve = t
             <g>
               <line x1={X(seamMs)} x2={X(seamMs)} y1={pad.t - 2} y2={yBase} className="mv-seam" />
               {seamRoomLeft && !seamRoomRight ? (
-                <text x={seamX - 5} y={pad.t + (full ? 10 : 7)} className="mv-seamlabel" textAnchor="end">{rucFull ? (full ? `Radar · ${radarRes} bis ${fmtClock(seamMs)} · danach ${rucFull} ▸` : `Radar · ${rucMini} ▸`) : (full ? `Radar · ${radarRes} bis ${fmtClock(seamMs)} · danach ${series.fusionLabel} ▸` : `Radar · ${series.fusionLabel} ▸`)}</text>
+                <text x={seamX - 5} y={pad.t + (full ? 10 : 7)} className="mv-seamlabel" textAnchor="end">{rucFull ? (full ? `Radar bis ${fmtClock(seamMs)} · dann ${rucFull} ▸` : `Radar · ${rucMini} ▸`) : (full ? `Radar · ${radarRes} bis ${fmtClock(seamMs)} · danach ${series.fusionLabel} ▸` : `Radar · ${series.fusionLabel} ▸`)}</text>
               ) : seamRoomLeft ? (
                 <>
-                  <text x={seamX - 5} y={pad.t + (full ? 10 : 7)} className="mv-seamlabel" textAnchor="end">{full ? `Radar · ${radarRes} bis ${fmtClock(seamMs)}` : 'Radar'}</text>
+                  <text x={seamX - 5} y={pad.t + (full ? 10 : 7)} className="mv-seamlabel" textAnchor="end">{full ? (rucFull ? `Radar bis ${fmtClock(seamMs)}` : `Radar · ${radarRes} bis ${fmtClock(seamMs)}`) : 'Radar'}</text>
                   <text x={seamX + 5} y={pad.t + (full ? 10 : 7)} className="mv-seamlabel">{rucFull ? (full ? rucFull : rucMini) : (full ? `${series.fusionLabel} · Stundenmittel` : series.fusionLabel)}</text>
                 </>
               ) : (
-                <text x={seamX + 5} y={pad.t + (full ? 10 : 7)} className="mv-seamlabel">{rucFull ? (full ? `◂ Radar bis ${fmtClock(seamMs)} · ab hier ${rucFull}` : `◂ Radar · ${rucMini}`) : (full ? `◂ Radar bis ${fmtClock(seamMs)} · ab hier ${series.fusionLabel} als Stundenmittel` : `◂ Radar · ${series.fusionLabel}`)}</text>
+                <text x={seamX + 5} y={pad.t + (full ? 10 : 7)} className="mv-seamlabel">{rucFull ? (full ? `◂ Radar bis ${fmtClock(seamMs)} · dann ${rucFull}` : `◂ Radar · ${rucMini}`) : (full ? `◂ Radar bis ${fmtClock(seamMs)} · ab hier ${series.fusionLabel} als Stundenmittel` : `◂ Radar · ${series.fusionLabel}`)}</text>
               )}
             </g>
           )}
@@ -319,9 +320,9 @@ export default function MinuteChart({ series, rangeH, variant, height, curve = t
             <g>
               <line x1={X(ruc.toMs)} x2={X(ruc.toMs)} y1={pad.t - 2} y2={yBase} className="mv-seam" />
               {/* E-RUC-14: in the 27-h view the second seam sits near the right edge — the label then stands left of it */}
-              {pad.l + plotW - X(ruc.toMs) >= 330
-                ? <text x={X(ruc.toMs) + 5} y={pad.t + 10} className="mv-seamlabel">{`◂ 5-min-Form bis ${fmtClock(ruc.toMs)} · ab hier ${series.fusionLabel} als Stundenmittel`}</text>
-                : <text x={X(ruc.toMs) - 5} y={pad.t + 10} className="mv-seamlabel" textAnchor="end">{`5-min-Form bis ${fmtClock(ruc.toMs)} · danach ${series.fusionLabel} als Stundenmittel ▸`}</text>}
+              {pad.l + plotW - X(ruc.toMs) >= 170
+                ? <text x={X(ruc.toMs) + 5} y={pad.t + 10} className="mv-seamlabel">{`◂ ab ${fmtClock(ruc.toMs)} Stundenmittel`}</text>
+                : <text x={X(ruc.toMs) - 5} y={pad.t + 10} className="mv-seamlabel" textAnchor="end">{`5-min-Form bis ${fmtClock(ruc.toMs)} ▸`}</text>}
             </g>
           )}
 
