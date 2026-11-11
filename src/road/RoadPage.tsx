@@ -802,8 +802,10 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
         {mobTab !== 'map' && (mobTab !== 'hazards' || hz) && (
           <div className="aw-m-dock aw-m-page" role="dialog" aria-label={mobTab === 'roads' ? 'Autobahn wählen' : mobTab === 'hazards' ? 'Gefahren' : mobTab === 'stations' ? 'Messpunkte' : 'Ebenen'}>
             <div className="aw-m-dock-head">
+              <button type="button" className="aw-m-brand" aria-label="Zur Startseite" onClick={nav.goHome}><img src="/buscosun-mark.svg" width={22} height={22} alt="" /></button>
               <strong>{mobTab === 'roads' ? 'Autobahn wählen' : mobTab === 'hazards' ? 'Gefahren' : mobTab === 'stations' ? 'Messpunkte' : 'Ebenen'}</strong>
               {mobTab === 'roads' && <button type="button" onClick={() => setDir((d) => (d ? 0 : 1))} aria-label="Fahrtrichtung wechseln">⇄ Richtung</button>}
+              <ShareButton className="aw-m-share" compact />
             </div>
             {mobTab === 'roads' && (
               <div className="aw-m-page-body">

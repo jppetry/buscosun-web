@@ -323,6 +323,7 @@
   .aw-m-dock { position: absolute; inset: 0; z-index: 6; background: var(--cream-50, #FAF6EA); display: flex; flex-direction: column; }
   .aw-m-dock-head { display: flex; align-items: center; gap: 8px; padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 10px; border-bottom: 1px solid var(--sand-200, #E0D6BE); }
   .aw-m-dock-head strong { font-size: 15px; flex: 1; }
+  .aw-m-dock-head .aw-m-brand { padding: 0; min-width: 44px; width: 44px; border-radius: 12px; }
   .aw-m-dock-head button { min-width: 44px; height: 44px; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 10px; background: #fff; font: inherit; font-size: 12px; font-weight: 600; color: var(--ink-900, #2C2A26); cursor: pointer; padding: 0 10px; }
   .aw-m-dock .aw-dock { width: auto; flex: 1; border: 0; }
   .aw-m-dock .aw-road, .aw-m-dock .aw-layer, .aw-m-dock .aw-seg button { min-height: 44px; }
