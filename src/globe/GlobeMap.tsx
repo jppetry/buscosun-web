@@ -221,7 +221,8 @@ export default function GlobeMap(props: Props) {
         // bisherige Globus-Tempo (früher: speedFactor 0.24 gegen 0.038).
         // `setGlobeMode` sorgt dafür, dass speedRefZoom auch wirklich der
         // Bezugszoom ist (getZoom() ist auf dem Globus kein Mercator-Zoom).
-        speedPxPerMs: 6, speedRefZoom: 2,
+        // Jan 11.11.: a quarter slower (4,5 instead of 6) — still strictly linear in the GRIB wind speed.
+        speedPxPerMs: 4.5, speedRefZoom: 2,
         particleColor: [0.86, 0.92, 1.0, 0.84], speedTint: 0.62, colorRamp: PARTICLE_RAMP,
         windPngUrl: '', windJsonUrl: '',
       });
