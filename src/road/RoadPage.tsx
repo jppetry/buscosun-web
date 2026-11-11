@@ -116,7 +116,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   const [warn, setWarn] = useState<{ state: 'off' | 'loading' | 'ok' | 'error'; alerts: CapAlert[]; at: number | null }>({ state: 'off', alerts: [], at: null });
   const [pointWarnings, setPointWarnings] = useState<CapAlert[]>([]);
   /** Mobile bottom bar: the page above the map (Karte = none). */
-  const [mobTab, setMobTab] = useState<'map' | 'roads' | 'hazards' | 'layers'>('map');
+  const [mobTab, setMobTab] = useState<'map' | 'roads' | 'hazards' | 'stations' | 'layers'>('map');
   const firstCorridor = useRef(true);
   // AW-8: rail state — window, group filter, open segment, hovered row; the hazard file and the segments.
   const [hzMode, setHzMode] = useState<RoadHzMode>('now');
@@ -480,7 +480,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
     .map((p) => ({ lng: p.lon, lat: p.lat, name: p.n, onPick: () => pickStationFromMap(p.id) })), [mapPoints, inCorridor, pickStationFromMap]);
   // Jan 08.11.: a pick in the readout list „Messpunkte“ selects the point like a map click, centres it and keeps the list open.
   const pickStationFromList = useCallback((p: RoadPoint) => {
-    pickStationFromMap(p.id); setTab('messpunkte'); setStage('map');
+    pickStationFromMap(p.id); setTab('messpunkte'); setStage('map'); setMobTab('map');
     const m = mapRef.current;
     if (m) m.easeTo({ center: [p.lon, p.lat], zoom: Math.max(m.getZoom(), 9), duration: 600 });
   }, [pickStationFromMap]);
@@ -800,9 +800,9 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
           {inDossier && <div className="aw-m-dossier">{dossier}</div>}
         </main>
         {mobTab !== 'map' && (mobTab !== 'hazards' || hz) && (
-          <div className="aw-m-dock aw-m-page" role="dialog" aria-label={mobTab === 'roads' ? 'Autobahn wählen' : mobTab === 'hazards' ? 'Gefahren' : 'Ebenen'}>
+          <div className="aw-m-dock aw-m-page" role="dialog" aria-label={mobTab === 'roads' ? 'Autobahn wählen' : mobTab === 'hazards' ? 'Gefahren' : mobTab === 'stations' ? 'Messpunkte' : 'Ebenen'}>
             <div className="aw-m-dock-head">
-              <strong>{mobTab === 'roads' ? 'Autobahn wählen' : mobTab === 'hazards' ? 'Gefahren' : 'Ebenen'}</strong>
+              <strong>{mobTab === 'roads' ? 'Autobahn wählen' : mobTab === 'hazards' ? 'Gefahren' : mobTab === 'stations' ? 'Messpunkte' : 'Ebenen'}</strong>
               {mobTab === 'roads' && <button type="button" onClick={() => setDir((d) => (d ? 0 : 1))} aria-label="Fahrtrichtung wechseln">⇄ Richtung</button>}
             </div>
             {mobTab === 'roads' && (
@@ -812,6 +812,12 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
               </div>
             )}
             {mobTab === 'hazards' && <div className="aw-m-page-body aw-dossier-list">{hzNode}</div>}
+            {mobTab === 'stations' && (
+              <div className="aw-m-page-body">
+                <RoadStationList points={shownPoints} slotMs={obs?.slotMs ?? null} stale={freshness === 'stale'} loading={loadingObs} noData={noData}
+                  selectedId={axis ? null : point?.id ?? null} onPick={pickStationFromList} />
+              </div>
+            )}
             {mobTab === 'layers' && (
               <RoadDock part="layers" corridors={filtered} byId={shownById} selectedId={corridor?.id ?? null} onPick={pickCorridor} query={query} onQuery={setQuery}
                 country={country} onCountry={setCountry} layers={layers} onToggle={(k) => setLayers((l) => ({ ...l, [k]: !l[k] }))} summary={summary} hasData={!noData && !!obs} loading={dockLoading} />
@@ -823,6 +829,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
             ['map', 'Karte', <path key="p" d="M9 4 3 6.5v13L9 17l6 2.5 6-2.5v-13L15 7 9 4zM9 4v13M15 7v12.5" />],
             ['roads', 'Autobahnen', <path key="p" d="M8 3 4.5 21M16 3l3.5 18M12 4v3M12 10.5v3M12 17v3" />],
             ...(hz ? [['hazards', 'Gefahren', <path key="p" d="M12 3.5 2.8 19.5h18.4L12 3.5zM12 10v4.5M12 17.2v.1" />] as const] : []),
+            ['stations', 'Messpunkte', <path key="p" d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11zM12 12.2a2.2 2.2 0 1 0 0-4.4 2.2 2.2 0 0 0 0 4.4z" />],
             ['layers', 'Ebenen', <path key="p" d="m12 3 9 4.5-9 4.5-9-4.5L12 3zM3 12l9 4.5 9-4.5M3 16.5 12 21l9-4.5" />],
           ] as const).map(([id, label, icon]) => (
             <button key={id} type="button" className={`aw-bar-btn${mobTab === id ? ' is-active' : ''}`} aria-current={mobTab === id ? 'page' : undefined}
