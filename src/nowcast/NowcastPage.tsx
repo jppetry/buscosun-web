@@ -172,9 +172,6 @@ export default function NowcastPage({ onBack, onOpenFeature, initialLocation, on
           </div>
         </section>
 
-        <div className="rt-trust" style={{ marginTop: '1.6rem' }}>
-          <span className="dot nc-dot-static">●</span> DWD RADOLAN-RV (Radar-Nowcast) · buscosun Fusion (Punkt-Cube) · keine Tracker
-        </div>
       </main>
     </div>
     </div>
