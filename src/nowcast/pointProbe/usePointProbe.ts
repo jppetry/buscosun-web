@@ -3,7 +3,7 @@
  *
  *  - Hover is coalesced per animation frame; the radar value comes at once from the frames the map already shows
  *    (`ProfileRadarPick`, per country on its native grid — no new fetch), the point values from buscosun Fusion on the
- *    cube after `PROBE_POINT_DEBOUNCE_MS` of rest, cached per `PROBE_CACHE_CELL_DEG` cell, older calls aborted.
+ *    cube after `PROBE_POINT_DEBOUNCE_MS` of rest, cached per `PROBE_CACHE_CELL_DEG` cell, one request at a time (never aborted by a move).
  *  - A click pins the point (the map's marker moves there anyway); a click on the pinned point or Esc releases it.
  *  - Time follows the slider: the pick carries the shown radar time, the point values take the Fusion hour containing it.
  */
@@ -199,40 +199,61 @@ export function usePointProbe(i: ProbeInputs): {
     return null;
   }, [at, country, pick, stack, sliderMs, rvRunAtMs]);
 
-  // Point values of buscosun Fusion: debounced, cached per cell, aborted when the pointer moves on.
+  // Point values of buscosun Fusion, cached per cell. Jan 11.11.: single flight instead of abort-on-move — a started
+  // request always finishes (and lands in the cache); then the cell under the pointer NOW is fetched next. Before,
+  // every cell change aborted the running request, so while the pointer moved no value ever arrived.
   const cacheRef = useRef(new Map<string, PointBundle>());
   const [bundle, setBundle] = useState<{ key: string; b: PointBundle | null; status: 'loading' | 'ready' | 'gap'; reason: string | null } | null>(null);
   const key = at ? cellKey(at.lat, at.lon) : null;
   const center = at ? cellCenter(at.lat, at.lon) : null;
   const cLat = center?.lat, cLon = center?.lon;
+  const wantRef = useRef<{ key: string; lat: number; lon: number; country: Country } | null>(null);
+  const busyRef = useRef(false);
+  const unmountAcRef = useRef(new AbortController());
+  useEffect(() => () => unmountAcRef.current.abort(), []);
+  const pump = useCallback(() => {
+    if (busyRef.current) return;
+    const w = wantRef.current;
+    if (!w || cacheRef.current.has(w.key)) return;
+    busyRef.current = true;
+    const signal = unmountAcRef.current.signal;
+    import('../../pointForecast/cubeSource')
+      .then(() => getPointForecast({ lat: w.lat, lng: w.lon, country: w.country, hours: PROBE_HOURS, signal, includeRadarNowcast: false, pointSource: 'cube' }))
+      .then((fc) => {
+        if (signal.aborted) return;
+        const v2 = (fc.cube as { v2?: PointForecastV2 } | undefined)?.v2 ?? null;
+        const b: PointBundle = { fc, v2 };
+        cacheRef.current.set(w.key, b);
+        if (cacheRef.current.size > 128) { const k0 = cacheRef.current.keys().next().value; if (k0 !== undefined) cacheRef.current.delete(k0); }
+        if (wantRef.current?.key === w.key) setBundle({ key: w.key, b, status: 'ready', reason: null });
+      })
+      .catch((e: unknown) => {
+        if (signal.aborted || (e as { name?: string })?.name === 'AbortError') return;
+        if (wantRef.current?.key === w.key) setBundle({ key: w.key, b: null, status: 'gap', reason: `buscosun Fusion nicht verfügbar (${e instanceof Error ? e.message : String(e)})` });
+      })
+      .finally(() => {
+        busyRef.current = false;
+        if (signal.aborted) return;
+        const next = wantRef.current;
+        if (!next) return;
+        const hit = cacheRef.current.get(next.key);
+        if (hit) setBundle({ key: next.key, b: hit, status: 'ready', reason: null });
+        else pump();
+      });
+  }, []);
   useEffect(() => {
-    if (!key || cLat == null || cLon == null || !country) { setBundle(null); return; }
+    if (!key || cLat == null || cLon == null || !country) { wantRef.current = null; setBundle(null); return; }
     const hit = cacheRef.current.get(key);
-    if (hit) { setBundle({ key, b: hit, status: 'ready', reason: null }); return; }
+    if (hit) { wantRef.current = { key, lat: cLat, lon: cLon, country }; setBundle({ key, b: hit, status: 'ready', reason: null }); return; }
     if (pfSourceFrom(typeof window !== 'undefined' ? window.location.search : '') === 'live') {
       setBundle({ key, b: null, status: 'gap', reason: 'buscosun Fusion abgeschaltet (?pf=live)' }); return;
     }
-    const ac = new AbortController();
-    let alive = true;
-    const t = window.setTimeout(() => {
-      setBundle({ key, b: null, status: 'loading', reason: null });
-      import('../../pointForecast/cubeSource')
-        .then(() => getPointForecast({ lat: cLat, lng: cLon, country, hours: PROBE_HOURS, signal: ac.signal, includeRadarNowcast: false, pointSource: 'cube' }))
-        .then((fc) => {
-          if (!alive || ac.signal.aborted) return;
-          const v2 = (fc.cube as { v2?: PointForecastV2 } | undefined)?.v2 ?? null;
-          const b: PointBundle = { fc, v2 };
-          cacheRef.current.set(key, b);
-          if (cacheRef.current.size > 64) { const k0 = cacheRef.current.keys().next().value; if (k0 !== undefined) cacheRef.current.delete(k0); }
-          setBundle({ key, b, status: 'ready', reason: null });
-        })
-        .catch((e: unknown) => {
-          if (!alive || ac.signal.aborted || (e as { name?: string })?.name === 'AbortError') return;
-          setBundle({ key, b: null, status: 'gap', reason: `buscosun Fusion nicht verfügbar (${e instanceof Error ? e.message : String(e)})` });
-        });
-    }, PROBE_POINT_DEBOUNCE_MS);
-    return () => { alive = false; ac.abort(); window.clearTimeout(t); };
-  }, [key, cLat, cLon, country]);
+    wantRef.current = { key, lat: cLat, lon: cLon, country };
+    setBundle({ key, b: null, status: 'loading', reason: null });
+    // Short rest before the first request (a pass over the map does not start one per cell); a running request is never cut.
+    const t = window.setTimeout(pump, PROBE_POINT_DEBOUNCE_MS);
+    return () => window.clearTimeout(t);
+  }, [key, cLat, cLon, country, pump]);
 
   const timeMs = radar?.frameMs ?? sliderMs ?? null;
   const point = useMemo<ProbeState['point']>(() => {

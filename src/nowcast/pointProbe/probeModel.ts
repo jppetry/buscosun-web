@@ -29,7 +29,7 @@ export const PROBE_DRY_MMH = 0.06;
 /** A cell counts as „am Zeiger" inside its hull or within this distance of its centroid (km, `set`). */
 export const CELL_NEAR_KM = 10;
 /** Debounce of the point values after the pointer rests (ms) and the cell size of the point cache (°). */
-export const PROBE_POINT_DEBOUNCE_MS = 200;
+export const PROBE_POINT_DEBOUNCE_MS = 120;
 export const PROBE_CACHE_CELL_DEG = 0.02;
 /** A frame older than the radar's newest measurement by less than this is still „gemessen" (ms). */
 export const PROBE_MEASURED_TOL_MS = 60_000;
