@@ -1648,6 +1648,14 @@
   .br-m-scroll .br-layer-sub { font-size: 12px; margin-top: 1px; }
   .br-m-scroll .br-layerwrap > .br-layer-info { top: 9px; }
   .br-m-scroll .br-layerwrap > .br-layer-info::before { width: 22px; height: 22px; background: var(--sand-100, #EDE6D3); border-color: transparent; color: var(--stone-500, #8B7355); }
+  /* Steckbrief-Knopf mobil (Jan 11.11.): Pfeil nach unten = einklappt/zugeklappt, nach oben = offen, statt des „i“. */
+  .br-m-scroll .br-layerwrap > .br-layer-info::before {
+    content: ''; width: 26px; height: 26px; border-radius: 50%; border: 0;
+    background: var(--sand-100, #EDE6D3) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14' fill='none' stroke='%238B7355' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 5.2l4 4 4-4'/%3E%3C/svg%3E") center / 14px 14px no-repeat;
+    transition: transform .2s ease, background-color .2s ease;
+  }
+  .br-m-scroll .br-layerwrap > .br-layer-info[aria-expanded='true']::before { transform: rotate(180deg); background-color: color-mix(in srgb, var(--br-acc) 16%, #fff); }
+  @media (prefers-reduced-motion: reduce) { .br-m-scroll .br-layerwrap > .br-layer-info::before { transition: none; } }
   .br-m-scroll .br-layerwrap > .br-seg button { border-radius: 10px; }
 
   /* Brände: Chips als Pillen, Kacheln als weiche Karten */
