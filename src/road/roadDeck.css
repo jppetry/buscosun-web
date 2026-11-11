@@ -528,6 +528,12 @@ button.aw-prog-tile:disabled { cursor: default; }
   .aw-hz-modes button, .aw-hz-chips button, .aw-hz-dirs button, .aw-hz-back, .aw-hz-nav .aw-icon-btn { min-height: 44px; }
   .aw-hz-nav .aw-icon-btn { width: 44px; }
   .aw-hz-nav { top: 0; }
+  /* Gefahrenlage mobil: nie breiter als der Bildschirm (Jan 11.11.) — das Sheet scrollt nur senkrecht, die Spalten schrumpfen, Überlanges wird gekürzt statt zu verbreitern. */
+  .aw-sheet { overflow-x: hidden; }
+  .aw-sheet-readout, .aw-sheet-readout .aw-readout, .aw-hz, .aw-hz-group, .aw-hz-rows, .aw-hz-row, .aw-hz-row-body { min-width: 0; max-width: 100%; box-sizing: border-box; }
+  .aw-hz { overflow-x: clip; }
+  .aw-hz-subrow { flex-wrap: wrap; }
+  .aw-hz-modes { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
 }
 .aw-legend i.is-bar { width: 16px; height: 5px; border-radius: 3px; }
 .aw-legend i.is-bar.is-dotted { background: none; border-top: 5px dotted #8B8474; height: 0; border-radius: 0; }
