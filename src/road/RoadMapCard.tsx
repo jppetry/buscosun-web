@@ -6,7 +6,7 @@
  */
 import { useEffect, type CSSProperties, type ReactNode } from 'react';
 import type { HzRow } from './roadHzView';
-import { EV_LABEL } from './roadHzView';
+import { EV_LABEL, HZ_GROUP_ICON } from './roadHzView';
 import type { RoadSegment } from './roadSegments';
 import type { RoadLevel } from './roadHazards';
 import { AW_HATCH, AW_SEV, AW_SEV_TINT, AW_UNKNOWN_TINT } from './roadNivoTheme';
@@ -91,14 +91,27 @@ export default function RoadMapCard({ seg, row, station, ...actions }: Actions &
   station?: RoadCardStation | null;
 }) {
   const lv = row ? row.best.lv : null;
+  // „Aquaplaning · km 223–230 · beide Richtungen“: what, then where — shown as the card's lead block (Jan 11.11.).
+  const [what, ...where] = row ? row.sub.split(' · ') : [];
+  const tint = lv ? AW_SEV_TINT[lv] : AW_UNKNOWN_TINT;
   return (
     <Shell {...actions} label={`Abschnitt ${seg.name}`} shields={seg.shields} eyebrow="Abschnitt" name={seg.name}
       sub={`km ${Math.round(seg.kmFrom)}–${Math.round(seg.kmTo)} · ${Math.round(seg.lengthKm)} km`} accent={lv ? AW_SEV[lv].bg : '#8B8474'}>
       {station && <StationRow st={station} withName />}
+      {row && (
+        <div className="aw-mapcard-what" style={{ background: tint.bg, borderColor: tint.border, color: tint.ink }}>
+          <span className="aw-mapcard-what-ic" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d={HZ_GROUP_ICON[row.group]} /></svg>
+          </span>
+          <span className="aw-mapcard-what-tx">
+            <b>{what}</b>
+            {where.length > 0 && <span>{where.join(' · ')}</span>}
+          </span>
+        </div>
+      )}
       {row ? (
         <div className="aw-mapcard-body">
           {levelChip(lv, lv === null ? 'keine gültige Messung' : EV_LABEL[row.best.ev ?? 'p'])}
-          <span className="aw-mapcard-haz">{row.sub}</span>
           <span className="aw-mapcard-strip" aria-hidden="true">
             {row.strip.map((l, i) => <span key={i} style={{ background: l === null ? AW_HATCH : AW_SEV[l].bg }} />)}
           </span>
