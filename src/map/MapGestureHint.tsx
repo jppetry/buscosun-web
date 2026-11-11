@@ -50,10 +50,10 @@ const TEXTS: Record<HintSubject, { sub: string; pick: string; pickSub: string; t
     sub: 'Das Wetter über Deutschland, Österreich und der Schweiz — so findest du dich zurecht:',
     pick: 'Ebenen zuschalten', pickSub: 'Wind, Temperatur, Niederschlag und mehr über das Ebenen-Menü',
     steps: [
-      { b: 'Ebenen zuschalten', mouse: 'Wind, Temperatur, Niederschlag, Wolken und mehr in der Leiste links — mehrere gleichzeitig möglich.', touch: 'Wind, Temperatur, Niederschlag, Wolken und mehr über „Layer“ unten — mehrere gleichzeitig möglich.' },
-      { b: 'Hineinzoomen', mouse: 'Mit dem Mausrad näher heran: die Windpartikel zeigen die Strömung dann bis in einzelne Täler.', touch: 'Mit zwei Fingern näher heran: die Windpartikel zeigen die Strömung dann bis in einzelne Täler.' },
-      { b: 'Zeit wählen', mouse: 'Der Regler unten führt Stunde für Stunde durch die Vorhersage, ▶ spielt sie ab.', touch: 'Der Regler unten führt Stunde für Stunde durch die Vorhersage, ▶ spielt sie ab.' },
-      { b: 'Ort suchen', mouse: 'Oben ins Suchfeld tippen (⌘K) — die Karte fliegt hin und zeigt die Vorhersage dort.', touch: 'Oben ins Suchfeld tippen — die Karte fliegt hin und zeigt die Vorhersage dort.' },
+      { b: 'Ebenen zuschalten', mouse: 'Wind, Temperatur, Niederschlag, Wolken und mehr in der Leiste links — mehrere gleichzeitig möglich.', touch: 'Unten auf „Layer“ tippen: Wind, Temperatur, Niederschlag, Wolken und mehr — mehrere gleichzeitig möglich.' },
+      { b: 'Hineinzoomen', mouse: 'Mit dem Mausrad näher heran: die Windpartikel zeigen die Strömung dann bis in einzelne Täler.', touch: 'Zwei Finger auseinanderziehen: die Windpartikel zeigen die Strömung dann bis in einzelne Täler.' },
+      { b: 'Zeit wählen', mouse: 'Der Regler unten führt Stunde für Stunde durch die Vorhersage, ▶ spielt sie ab.', touch: 'Den Zeitregler unten ziehen: Stunde für Stunde durch die Vorhersage, ▶ spielt sie ab.' },
+      { b: 'Ort suchen', mouse: 'Oben ins Suchfeld tippen (⌘K) — die Karte fliegt hin und zeigt die Vorhersage dort.', touch: 'Oben ins Suchfeld tippen und einen Ort wählen — die Karte fliegt hin und zeigt die Vorhersage dort.' },
     ],
   },
   sea: {

@@ -149,9 +149,16 @@
   .bs-hint.is-weather .bs-hint-art { width: 112px; height: 112px; }
   .bs-hint.is-weather .bs-hint-title { font-size: 22px; }
   .bs-hint.is-weather .bs-hint-sub { font-size: 14px; }
+  .bs-hint.is-weather .bs-hint-content { max-width: calc(100% - 24px); box-sizing: border-box; }
   .bs-hint-steps { gap: 6px; }
   .bs-hint-steps li { padding: 7px 10px 7px 8px; gap: 10px; }
   .bs-hint-steps .bs-hint-click-txt span { font-size: 12.5px; }
+}
+
+/* Niedrige Handys: ohne Bild, damit alle vier Schritte und der Knopf ins Bild passen. */
+@media (max-width: 767px) and (max-height: 720px) {
+  .bs-hint.is-weather .bs-hint-art { display: none; }
+  .bs-hint.is-weather { padding-bottom: 12px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
