@@ -188,6 +188,10 @@
   .glb-root .maplibregl-ctrl-top-right { top: calc(62px + env(safe-area-inset-top, 0px)); right: 2px; }
   .glb-root .maplibregl-ctrl-group button { width: 44px; height: 44px; }
   .glb-ov-tl { left: 12px; top: calc(68px + env(safe-area-inset-top, 0px)); width: min(210px, calc(100vw - 84px)); gap: 6px; }
+  /* Jan 11.11.: readout and legend in the top row, between the logo (44 px) and the share button (44 px). */
+  .glb-ov-tl.is-mid { left: 64px; right: 64px; top: calc(12px + env(safe-area-inset-top, 0px)); width: auto; }
+  .glb-m-mid { flex: 1; min-width: 0; pointer-events: none; }
+  .glb-ov-tl.is-mid .glb-readout { min-height: 44px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; }
   .glb-card { padding: 8px 10px; border-radius: 10px; }
   .glb-readout-loc { font-size: 14px; }
   .glb-readout-row { font-size: 13px; }

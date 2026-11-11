@@ -13,7 +13,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import GlobeMap, { type PickInfo, type Projection, type RunInfo } from './GlobeMap';
-import { fhourForValidAt, validAtForFhour, type GlobeUrlState } from './globeUrl';
+import { GLOBE_DEFAULTS, fhourForValidAt, validAtForFhour, type GlobeUrlState } from './globeUrl';
 // SH4: Teilen-Knopf (laedt Adapter und Sheet erst beim Klick).
 import ShareButton from '../share/ShareButton';
 import type { Height, OverlayKind } from './gfs';
@@ -111,7 +111,7 @@ const GLOBE_SOURCES: MapSourceGroup[] = [
 
 export default function GlobePage({ onBack, initialUrl, initialFhour, onUrlState }: Props) {
   const init = initialUrl ?? null;
-  const [overlay, setOverlay] = useState<OverlayKind>(init?.overlay ?? 'temp');
+  const [overlay, setOverlay] = useState<OverlayKind>(init?.overlay ?? GLOBE_DEFAULTS.overlay);
   const [height, setHeight] = useState<Height>(init?.height ?? 'sfc');
   const [projection, setProjection] = useState<Projection>(init?.projection ?? 'globe');
   const [showParticles, setShowParticles] = useState(init?.particles ?? true);
@@ -279,14 +279,15 @@ export default function GlobePage({ onBack, initialUrl, initialFhour, onUrlState
             {isMobile && (
               <div className="glb-m-top">
                 <button type="button" className="glb-m-brand" aria-label="Zur Startseite" onClick={onBack}><img src="/buscosun-mark.svg" width={22} height={22} alt="" /></button>
-                <div style={{ flex: 1 }} />
+                {/* Jan 11.11.: the place readout (and the legend under it) sits between the logo and the share button. */}
+                <div className="glb-m-mid" />
                 <ShareButton className="glb-m-share" compact />
               </div>
             )}
             {loading && <div className="glb-loading"><span className="glb-spinner" /> GFS-Daten werden geladen …</div>}
             {error && <div className="glb-error" role="alert">{error}</div>}
 
-            <div className="glb-ov-tl">
+            <div className={`glb-ov-tl${isMobile ? ' is-mid' : ''}`}>
               <div className="glb-card glb-readout">
                 <div className="glb-eyebrow">Ort</div>
                 {readout ? (

@@ -29,7 +29,7 @@ export const GLOBE_FH_STEP = 3;
 export const GLOBE_FH_MAX = 120;
 
 export const GLOBE_DEFAULTS = {
-  overlay: 'temp' as OverlayKind,
+  overlay: 'wind' as OverlayKind,   // Jan 11.11.2026: wind is the start view (was temperature)
   height: 'sfc' as Height,
   projection: 'globe' as Projection,
   particles: true,
@@ -214,7 +214,7 @@ export function decodeGlobeHash(hash: string): { state: GlobeUrlState; fhour: nu
 export interface GlobeUrlCheck { name: string; ok: boolean; detail?: string }
 
 const base = (over: Partial<GlobeUrlState> = {}): GlobeUrlState => ({
-  overlay: 'temp', height: 'sfc', validAtMs: null, center: null, zoom: null,
+  overlay: GLOBE_DEFAULTS.overlay, height: 'sfc', validAtMs: null, center: null, zoom: null,
   pin: null, projection: 'globe', particles: true, hd: false, ...over,
 });
 
@@ -226,18 +226,18 @@ export function verifyGlobeUrl(): { checks: GlobeUrlCheck[]; passed: number; fai
   add('Standardzustand schreibt nichts', buildGlobeSearch(base()) === '', buildGlobeSearch(base()));
 
   const s = base({
-    overlay: 'wind', height: '500', validAtMs: Date.UTC(2026, 8, 13, 12, 0),
+    overlay: 'temp', height: '500', validAtMs: Date.UTC(2026, 8, 13, 12, 0),
     center: { lat: 51.2, lon: 10.4 }, zoom: 2.6, pin: { lat: 48.14, lon: 11.58 },
     projection: 'flat', particles: false, hd: true,
   });
   const q = buildGlobeSearch(s);
   add('voller Zustand bleibt lesbar',
-    q === '?feld=wind&hoehe=500&t=2026-09-13T12:00Z&c=51.2,10.4&z=2.6&pin=48.14,11.58&flach=1&partikel=0&hd=1', q);
+    q === '?feld=temperatur&hoehe=500&t=2026-09-13T12:00Z&c=51.2,10.4&z=2.6&pin=48.14,11.58&flach=1&partikel=0&hd=1', q);
   add('keine unnötige Prozentkodierung', !/%3A|%2C/i.test(q));
 
   const back = parseGlobeQuery(q, now);
   add('Rundlauf: Feld, Höhe, Projektion, Partikel, HD',
-    back.overlay === 'wind' && back.height === '500' && back.projection === 'flat' && !back.particles && back.hd);
+    back.overlay === 'temp' && back.height === '500' && back.projection === 'flat' && !back.particles && back.hd);
   add('Rundlauf: Zeit, Kamera, Pin', back.validAtMs === Date.UTC(2026, 8, 13, 12, 0)
     && back.center?.lat === 51.2 && back.zoom === 2.6 && back.pin?.lat === 48.14 && back.pin.lon === 11.58);
   add('Rundlauf ist ein Fixpunkt', buildGlobeSearch(back) === q);
@@ -252,7 +252,8 @@ export function verifyGlobeUrl(): { checks: GlobeUrlCheck[]; passed: number; fai
     && legacy.state.center?.lat === 51.2 && legacy.state.center.lon === 10.4,
     JSON.stringify(legacy?.state.pin));
   add('Alt-Link: die Vorhersagestunde bleibt eine Stunde (der Lauf ist noch unbekannt)', legacy?.fhour === 24);
-  add('Alt-Link: Standardwerte bleiben Standard', buildGlobeSearch({ ...legacy!.state, center: null, zoom: null, pin: null }) === '');
+  // The old link names its field (`ov: 'temp'`), so it keeps temperature now that wind is the start view (Jan 11.11.2026).
+  add('Alt-Link: Standardwerte bleiben Standard, das genannte Feld bleibt', buildGlobeSearch({ ...legacy!.state, center: null, zoom: null, pin: null }) === '?feld=temperatur');
   add('Kein `#g=` ⇒ null', decodeGlobeHash('#atm=x') === null && decodeGlobeHash('') === null);
   add('kaputtes `#g=` ⇒ null, kein Wurf', decodeGlobeHash('#g=%7Bnope') === null);
 
@@ -268,7 +269,7 @@ export function verifyGlobeUrl(): { checks: GlobeUrlCheck[]; passed: number; fai
   const bad = parseGlobeQuery('?feld=quatsch&hoehe=999&t=gestern&c=abc&z=99&pin=200,0&flach=2&partikel=7&hd=9&fremd=1', now);
   add('jeder unbrauchbare Wert wird gemeldet',
     ['feld', 'hoehe', 't', 'c', 'z', 'pin', 'flach', 'partikel', 'hd'].every((k) => bad.invalid.includes(k)), bad.invalid.join(','));
-  add('und fällt auf den Standard zurück', bad.overlay === 'temp' && bad.height === 'sfc' && bad.center === null && bad.pin === null && bad.projection === 'globe');
+  add('und fällt auf den Standard zurück', bad.overlay === GLOBE_DEFAULTS.overlay && bad.height === 'sfc' && bad.center === null && bad.pin === null && bad.projection === 'globe');
   add('Fremdschlüssel bleiben erhalten', bad.extra.some(([k]) => k === 'fremd'));
   add('vergangene Zeit wird gemeldet und verworfen (V-SH-2)',
     (() => { const r = parseGlobeQuery('?t=2026-09-11T12:00Z', now); return r.timePast && r.validAtMs === null; })());

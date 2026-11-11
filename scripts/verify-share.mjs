@@ -458,12 +458,12 @@ add('[ort] kaputtes Segment wird gar nicht erst als Slug gelesen',
   add('[SH4] Wetterarchiv-Titel nennt den Ort', hiUrl.copy.title === 'Wetterarchiv Stuttgart', hiUrl.copy.title);
 
   // Globus: kein Ort, aber absolute Zeit und gerade Achsen.
-  const gl = parseShareUrl('/globus', '?feld=wind&t=2026-09-13T12:00Z&pin=48.14,11.58', NOW);
+  const gl = parseShareUrl('/globus', '?feld=temperatur&t=2026-09-13T12:00Z&pin=48.14,11.58', NOW);
   add('[SH4] Globus wird als teilbar erkannt', gl?.routeId === 'globus' && gl.place === null);
   add('[SH4] Globus liest die absolute Zeit', gl.validAtMs === Date.UTC(2026, 8, 13, 12, 0));
   const glUrl = buildShareUrl(gl, O, NOW);
   add('[SH4] Globus-Link bleibt lesbar',
-    glUrl.url === O + '/globus?feld=wind&t=2026-09-13T12:00Z&pin=48.14,11.58', glUrl.url);
+    glUrl.url === O + '/globus?feld=temperatur&t=2026-09-13T12:00Z&pin=48.14,11.58', glUrl.url);
   add('[SH4] Globus-Titel nennt die Zeit', /^Globus — /.test(glUrl.copy.title), glUrl.copy.title);
 
   for (const [name, u] of [['Event', evUrl], ['Wetterarchiv', hiUrl], ['Globus', glUrl]]) {
