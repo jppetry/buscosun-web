@@ -179,7 +179,8 @@ export default function GlobePage({ onBack, initialUrl, initialFhour, onUrlState
     const run = runInfo?.run;
     if (!run) return;
     const sel = { height, overlay };
-    for (const ahead of [FH_STEP, FH_STEP * 2, FH_STEP * 3]) {
+    // three steps ahead (playback) and one back (slider to and fro)
+    for (const ahead of [FH_STEP, FH_STEP * 2, FH_STEP * 3, -FH_STEP]) {
       const next = fhour + ahead > FH_MAX ? (fhour + ahead) - FH_MAX - FH_STEP : fhour + ahead;
       if (next >= 0 && next <= FH_MAX) prefetch(run, next, sel);
     }

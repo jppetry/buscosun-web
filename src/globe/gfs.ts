@@ -37,9 +37,39 @@ function runPath(run: GfsRun, fhour: number): string {
 
 let cachedRun: { run: GfsRun; at: number } | null = null;
 
+const RUN_STEP_MS = 6 * 3_600_000;
+function runAt(ms: number): GfsRun {
+  const d = new Date(ms);
+  return { date: `${d.getUTCFullYear()}${pad2(d.getUTCMonth() + 1)}${pad2(d.getUTCDate())}`, hour: pad2(d.getUTCHours()) };
+}
+/**
+ * Fast path of the run resolution: the last five 6-hourly runs by the clock, probed AT ONCE (the idx of f000, first
+ * bytes) — one round trip instead of two bucket listings and up to eight probes in a row. Same rule as the listing path:
+ * the newest run whose f000 idx exists. The server's `Date` header guards against a wrong device clock: if the server's
+ * time allows a newer 6-h slot than the newest candidate, or no candidate answers, the listing path decides (null).
+ */
+async function resolveByClock(signal?: AbortSignal): Promise<GfsRun | null> {
+  const newest = Math.floor(Date.now() / RUN_STEP_MS) * RUN_STEP_MS;
+  const cands = [0, 1, 2, 3, 4].map((k) => runAt(newest - k * RUN_STEP_MS));
+  let serverMs: number | null = null;
+  const hits = await Promise.all(cands.map(async (run) => {
+    try {
+      const res = await fetch(`${runPath(run, 0)}.idx`, { method: 'GET', headers: { Range: 'bytes=0-64' }, signal });
+      const d = Date.parse(res.headers.get('date') ?? '');
+      if (Number.isFinite(d)) serverMs = Math.max(serverMs ?? 0, d);
+      return res.ok || res.status === 206;
+    } catch { return false; }
+  }));
+  if (serverMs != null && Math.floor(serverMs / RUN_STEP_MS) * RUN_STEP_MS > newest) return null;
+  const i = hits.indexOf(true);
+  return i < 0 ? null : cands[i];
+}
+
 /** Findet den jüngsten publizierten GFS-Lauf (idx der f000 vorhanden). */
 export async function resolveLatestGfsRun(signal?: AbortSignal): Promise<GfsRun> {
   if (cachedRun && Date.now() - cachedRun.at < 10 * 60_000) return cachedRun.run;
+  const quick = await resolveByClock(signal);
+  if (quick) { cachedRun = { run: quick, at: Date.now() }; return quick; }
   // Neuesten Tag aus dem Bucket-Listing holen.
   const ym = new Date();
   // Bucket nach Tagen listen (Prefix grob über die letzten ~2 Monate).
@@ -122,6 +152,29 @@ export async function fetchGfsGrid(run: GfsRun, fhour: number, match: string, si
   gridCache.set(key, grid);
   if (gridCache.size > GRID_CACHE_MAX) gridCache.delete(gridCache.keys().next().value!);
   return grid;
+}
+
+/**
+ * Two fields at once: when their records lie back to back in the file (UGRD/VGRD always do), ONE range request carries
+ * both — the bytes and the decoded values are the same as with two requests. Otherwise two requests as before.
+ */
+export async function fetchGfsGridPair(run: GfsRun, fhour: number, matchA: string, matchB: string, signal?: AbortSignal): Promise<[GfsGrid, GfsGrid]> {
+  const keyA = `${run.date}${run.hour}/${fhour}/${matchA}`, keyB = `${run.date}${run.hour}/${fhour}/${matchB}`;
+  const hitA = gridCache.get(keyA), hitB = gridCache.get(keyB);
+  if (hitA && hitB) return [hitA, hitB];
+  const lines = await loadIdx(run, fhour, signal);
+  const ra = findRange(lines, matchA), rb = findRange(lines, matchB);
+  if (hitA || hitB || !ra || !rb || ra.end == null || ra.end + 1 !== rb.start) {
+    return Promise.all([fetchGfsGrid(run, fhour, matchA, signal), fetchGfsGrid(run, fhour, matchB, signal)]);
+  }
+  const res = await fetch(runPath(run, fhour), { headers: { Range: `bytes=${ra.start}-${rb.end ?? ''}` }, signal });
+  if (!res.ok && res.status !== 206) throw new Error(`GFS Range ${res.status}`);
+  const raw = new Uint8Array(await res.arrayBuffer());
+  const split = rb.start - ra.start;
+  const a = decodeGribGfs(raw.subarray(0, split)), b = decodeGribGfs(raw.subarray(split));
+  gridCache.set(keyA, a); gridCache.set(keyB, b);
+  while (gridCache.size > GRID_CACHE_MAX) gridCache.delete(gridCache.keys().next().value!);
+  return [a, b];
 }
 
 // --- GRIB2-Decoder (GDT 0 lat-lon · DRT 0/1 simple ODER DRT 3 complex+diff) --
@@ -296,8 +349,44 @@ function fieldNames(h: Height) {
   return { u: `:UGRD:${h} mb:`, v: `:VGRD:${h} mb:`, t: `:TMP:${h} mb:`, rh: `:RH:${h} mb:` };
 }
 
+/** Mercator limit of the map (the overlay picture ends there; beyond it the pole caps carry the data). */
+export const OVERLAY_MERC_LAT = 85.05112878;
+/** Overlay picture: square Web-Mercator world, rows linear in Mercator y — MapLibre stretches an image source linearly in
+ *  Mercator space, so only this layout puts every colour at its latitude (an equirectangular picture is shifted poleward). */
+export const OVERLAY_W = 720, OVERLAY_H = 720;
+/** Pole caps beyond the Mercator limit: one picture per pole, rows linear in Mercator y like the overlay (Mercator y runs
+ *  on past the limit; the pole itself lies at infinity, hence 89,9°). The picture spans from CAP_LAT_MAX to the OPPOSITE
+ *  Mercator limit, transparent inside the limit — MapLibre only draws an image whose centre lies inside the world square.
+ *  GFS reaches 90°, so the cap shows real values, sampled like the overlay. */
+export const CAP_LAT_MAX = 89.97, CAP_W = 360;
+/** Rows beyond the limit (data) and inside it (transparent). The limit falls exactly on a row boundary, so the cap meets
+ *  the overlay without a gap; the transparent rest only keeps the picture's centre inside the world square. */
+export const CAP_TOP = 128, CAP_REST = 150, CAP_H = CAP_TOP + CAP_REST;
+/** Rows by which a cap reaches under the overlay (same colours there) — closes the hairline between the two meshes. */
+export const CAP_OVERLAP = 3;
+/** Base colour of the sphere under the overlay (`globeStyle.ts` OCEAN, #1b3a5c) and the overlay's opacity over it. */
+export const GLOBE_BASE_RGB: readonly [number, number, number] = [27, 58, 92];
+export const OVERLAY_OPACITY = 0.82;
+const mercY = (lat: number) => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
+const latOfMercY = (my: number) => (Math.atan(Math.sinh(my)) * 180) / Math.PI;
+/** Latitude of the centre of cap row `y` (row 0 = nearest the pole for the north cap, = the limit for the south cap). */
+export function capRowLat(y: number, south: boolean): number {
+  const a = mercY(CAP_LAT_MAX), dy = (a - mercY(OVERLAY_MERC_LAT)) / CAP_TOP;
+  // north: row 0 at CAP_LAT_MAX, going south; south: the mirror image (last row at −CAP_LAT_MAX)
+  return south ? -latOfMercY(a - (CAP_H - 1 - y + 0.5) * dy) : latOfMercY(a - (y + 0.5) * dy);
+}
+/** Latitude where a cap picture ends on the far side (inside the world; north cap: positive value means north). */
+export function capFarLat(): number {
+  const a = mercY(CAP_LAT_MAX), dy = (a - mercY(OVERLAY_MERC_LAT)) / CAP_TOP;
+  return latOfMercY(a - CAP_H * dy);
+}
+
 export interface GlobeRaw {
   run: GfsRun; fhour: number; validMs: number; w: number; h: number;
+  /** Size of `overlayRGBA` (Mercator layout, see OVERLAY_W/H). */
+  ovW: number; ovH: number;
+  /** Pole-cap pictures (CAP_W × CAP_H RGBA, see `capRowLat`), null without an overlay. */
+  capN: Uint8ClampedArray | null; capS: Uint8ClampedArray | null;
   windRGBA: Uint8ClampedArray;
   windMeta: { width: number; height: number; uMin: number; uMax: number; vMin: number; vMax: number };
   windU: Float32Array; windV: Float32Array;
@@ -306,10 +395,83 @@ export interface GlobeRaw {
   overlayRGBA: Uint8ClampedArray | null;
 }
 
-function resampleScalar(g: GfsGrid, w: number, h: number): Float32Array {
-  const out = new Float32Array(w * h);
-  for (let y = 0; y < h; y++) { const lat = 90 - (y / (h - 1)) * 180; for (let x = 0; x < w; x++) { out[y * w + x] = sampleGfs(g, -180 + (x / (w - 1)) * 360, lat); } }
+/**
+ * Bilinear sampling of a whole picture with the weights hoisted out of the pixel loop: one table per column (longitude)
+ * and per row (latitude). The arithmetic per sample is EXACTLY `sampleGfs` (same expressions, same order), so the
+ * values are bit-identical — only the per-pixel modulo/floor work is gone. A NaN corner falls back to `sampleGfs`.
+ */
+interface AxisTable { i0: Int32Array; i1: Int32Array; t: Float64Array }
+function lngTable(ni: number, lngs: Float64Array): AxisTable {
+  const n = lngs.length, i0 = new Int32Array(n), i1 = new Int32Array(n), t = new Float64Array(n);
+  for (let k = 0; k < n; k++) {
+    const gLon = ((lngs[k] % 360) + 360) % 360, fx = (gLon / 360) * ni;
+    i0[k] = Math.floor(fx) % ni; i1[k] = (i0[k] + 1) % ni; t[k] = fx - Math.floor(fx);
+  }
+  return { i0, i1, t };
+}
+function latTable(nj: number, lats: Float64Array): AxisTable {
+  const n = lats.length, i0 = new Int32Array(n), i1 = new Int32Array(n), t = new Float64Array(n);
+  for (let k = 0; k < n; k++) {
+    const fy = Math.max(0, Math.min(nj - 1, 90 - lats[k]));
+    i0[k] = Math.floor(fy); i1[k] = Math.min(nj - 1, i0[k] + 1); t[k] = fy - i0[k];
+  }
+  return { i0, i1, t };
+}
+function sampleGrid<T extends Float32Array | Float64Array>(g: GfsGrid, lngs: Float64Array, lats: Float64Array, cols: AxisTable, rows: AxisTable, out: T): T {
+  const { values, ni } = g, w = lngs.length, h = lats.length;
+  for (let y = 0; y < h; y++) {
+    const r0 = rows.i0[y] * ni, r1 = rows.i1[y] * ni, ty = rows.t[y];
+    for (let x = 0; x < w; x++) {
+      const x0 = cols.i0[x], x1 = cols.i1[x], tx = cols.t[x];
+      const v00 = values[r0 + x0], v10 = values[r0 + x1], v01 = values[r1 + x0], v11 = values[r1 + x1];
+      if (v00 !== v00 || v10 !== v10 || v01 !== v01 || v11 !== v11) { out[y * w + x] = sampleGfs(g, lngs[x], lats[y]); continue; }
+      const top = v00 + (v10 - v00) * tx, bot = v01 + (v11 - v01) * tx;
+      out[y * w + x] = top + (bot - top) * ty;
+    }
+  }
   return out;
+}
+/** Colour of `x` on a ramp, blended over the sphere's base colour, written to `out[o..o+3]` — the math of `ramp` without the array per pixel. */
+function rampBlendInto(stops: Array<[number, [number, number, number]]>, x: number, out: Uint8ClampedArray, o: number): void {
+  let r: number, g: number, b: number;
+  const last = stops[stops.length - 1];
+  if (x <= stops[0][0]) { [r, g, b] = stops[0][1]; }
+  else if (x >= last[0]) { [r, g, b] = last[1]; }
+  else {
+    r = last[1][0]; g = last[1][1]; b = last[1][2];
+    for (let i = 0; i < stops.length - 1; i++) {
+      const x0 = stops[i][0], x1 = stops[i + 1][0];
+      if (x >= x0 && x <= x1) { const c0 = stops[i][1], c1 = stops[i + 1][1], t = (x - x0) / (x1 - x0); r = c0[0] + (c1[0] - c0[0]) * t; g = c0[1] + (c1[1] - c0[1]) * t; b = c0[2] + (c1[2] - c0[2]) * t; break; }
+    }
+  }
+  const k = OVERLAY_OPACITY;
+  out[o] = r * k + GLOBE_BASE_RGB[0] * (1 - k); out[o + 1] = g * k + GLOBE_BASE_RGB[1] * (1 - k); out[o + 2] = b * k + GLOBE_BASE_RGB[2] * (1 - k); out[o + 3] = 255;
+}
+const axis = (n: number, f: (k: number) => number) => { const a = new Float64Array(n); for (let k = 0; k < n; k++) a[k] = f(k); return a; };
+
+/** Latitude of the centre of overlay row `y` (Mercator rows, north first). */
+export function overlayRowLat(y: number): number {
+  return latOfMercY(mercY(OVERLAY_MERC_LAT) * (1 - (2 * (y + 0.5)) / OVERLAY_H));
+}
+/** Colour the globe shows at a geographic point: the overlay picture inside the Mercator limit, the pole-cap cell beyond
+ *  (for the before/after proof and tests). */
+export function overlayColorAt(raw: Pick<GlobeRaw, 'overlayRGBA' | 'ovW' | 'ovH' | 'capN' | 'capS'>, lng: number, lat: number): [number, number, number] | null {
+  if (!raw.overlayRGBA) return null;
+  const cap = lat >= OVERLAY_MERC_LAT ? raw.capN : lat <= -OVERLAY_MERC_LAT ? raw.capS : null;
+  if (cap) {
+    const a = mercY(CAP_LAT_MAX), dy = (a - mercY(OVERLAY_MERC_LAT)) / CAP_TOP, m = mercY(Math.min(CAP_LAT_MAX, Math.abs(lat)));
+    const r = Math.min(CAP_TOP - 1, Math.max(0, Math.floor((a - m) / dy)));
+    const y = lat > 0 ? r : CAP_H - 1 - r;
+    const x = Math.min(CAP_W - 1, Math.max(0, Math.floor(((lng + 180) / 360) * CAP_W)));
+    const o = (y * CAP_W + x) * 4;
+    return [cap[o], cap[o + 1], cap[o + 2]];
+  }
+  const yMax = mercY(OVERLAY_MERC_LAT);
+  const my = mercY(lat);
+  const y = Math.min(raw.ovH - 1, Math.max(0, Math.floor(((1 - my / yMax) / 2) * raw.ovH)));
+  const x = Math.min(raw.ovW - 1, Math.max(0, Math.floor(((lng + 180) / 360) * raw.ovW)));
+  const o = (y * raw.ovW + x) * 4;
+  return [raw.overlayRGBA[o], raw.overlayRGBA[o + 1], raw.overlayRGBA[o + 2]];
 }
 
 export function runValidMs(run: GfsRun, fhour: number): number {
@@ -322,9 +484,7 @@ export function runValidMs(run: GfsRun, fhour: number): number {
  *  aus dem Cache rendert (flüssiges Abspielen). Best-effort (Fehler ignoriert). */
 export async function prefetchFields(run: GfsRun, fhour: number, sel: GlobeSel): Promise<void> {
   const f = fieldNames(sel.height);
-  const jobs: Promise<unknown>[] = [
-    fetchGfsGrid(run, fhour, f.u), fetchGfsGrid(run, fhour, f.v), fetchGfsGrid(run, fhour, f.t),
-  ];
+  const jobs: Promise<unknown>[] = [fetchGfsGridPair(run, fhour, f.u, f.v), fetchGfsGrid(run, fhour, f.t)];
   if (sel.overlay === 'rh') jobs.push(fetchGfsGrid(run, fhour, f.rh));
   if (sel.overlay === 'mslp') jobs.push(fetchGfsGrid(run, fhour, ':PRMSL:mean sea level:'));
   await Promise.allSettled(jobs);
@@ -332,15 +492,24 @@ export async function prefetchFields(run: GfsRun, fhour: number, sel: GlobeSel):
 
 /** Lädt + verarbeitet alle Globus-Felder zu ROHEN Buffern (kein document/canvas)
  *  → im Worker lauffähig, Buffer per Transfer zurück an den Main-Thread. */
-export async function buildGlobeData(run: GfsRun, fhour: number, sel: GlobeSel, signal?: AbortSignal): Promise<GlobeRaw> {
+export async function buildGlobeData(run: GfsRun, fhour: number, sel: GlobeSel, signal?: AbortSignal, isStale?: () => boolean): Promise<GlobeRaw> {
   const f = fieldNames(sel.height);
   const W = 720, H = 361, N = W * H;
-  const base = await Promise.all([
-    fetchGfsGrid(run, fhour, f.u, signal),
-    fetchGfsGrid(run, fhour, f.v, signal),
-    fetchGfsGrid(run, fhour, f.t, signal),
-  ]);
-  const u = resampleScalar(base[0], W, H), v = resampleScalar(base[1], W, H), tK = resampleScalar(base[2], W, H);
+  // The overlay's own field (humidity, pressure) starts with the others instead of after them.
+  const extraMatch = sel.overlay === 'rh' ? f.rh : sel.overlay === 'mslp' ? ':PRMSL:mean sea level:' : null;
+  const extraP = extraMatch ? fetchGfsGrid(run, fhour, extraMatch, signal) : null;
+  extraP?.catch(() => { /* reported by the await below */ });
+  const [uv, tG] = await Promise.all([fetchGfsGridPair(run, fhour, f.u, f.v, signal), fetchGfsGrid(run, fhour, f.t, signal)]);
+  const base = [uv[0], uv[1], tG];
+  const extra = extraP ? await extraP : null;
+  // A newer request has arrived meanwhile (slider drag): the fields are cached, the pictures are not needed.
+  if (isStale?.()) throw new Error('stale');
+  // Readout grids (equirectangular, 720 × 361): the same values as before, sampled with hoisted weights.
+  const eqLng = axis(W, (x) => -180 + (x / (W - 1)) * 360), eqLat = axis(H, (y) => 90 - (y / (H - 1)) * 180);
+  const eqCols = lngTable(base[0].ni, eqLng), eqRows = latTable(base[0].nj, eqLat);
+  const u = sampleGrid(base[0], eqLng, eqLat, eqCols, eqRows, new Float32Array(N));
+  const v = sampleGrid(base[1], eqLng, eqLat, eqCols, eqRows, new Float32Array(N));
+  const tK = sampleGrid(base[2], eqLng, eqLat, eqCols, eqRows, new Float32Array(N));
 
   // Wind-RGBA (u→R, v→G, normiert) + Meta.
   let uMin = Infinity, uMax = -Infinity, vMin = Infinity, vMax = -Infinity;
@@ -351,25 +520,44 @@ export async function buildGlobeData(run: GfsRun, fhour: number, sel: GlobeSel, 
   const tempC = new Float32Array(N);
   for (let i = 0; i < N; i++) tempC[i] = tK[i] - 273.15;
 
-  // Overlay-RGBA je nach Auswahl.
+  // Overlay: colour of the field at (lng, lat), sampled straight from the native GFS grid (same bilinear rule as before).
   let overlayRGBA: Uint8ClampedArray | null = null;
+  let capN: Uint8ClampedArray | null = null, capS: Uint8ClampedArray | null = null;
   if (sel.overlay !== 'none') {
-    overlayRGBA = new Uint8ClampedArray(N * 4);
-    if (sel.overlay === 'wind') {
-      for (let i = 0; i < N; i++) { const c = ramp(WIND_RAMP, Math.hypot(u[i], v[i])); const o = i * 4; overlayRGBA[o] = c[0]; overlayRGBA[o + 1] = c[1]; overlayRGBA[o + 2] = c[2]; overlayRGBA[o + 3] = 255; }
-    } else if (sel.overlay === 'temp') {
-      for (let i = 0; i < N; i++) { const c = ramp(TEMP_STOPS, tempC[i]); const o = i * 4; overlayRGBA[o] = c[0]; overlayRGBA[o + 1] = c[1]; overlayRGBA[o + 2] = c[2]; overlayRGBA[o + 3] = 255; }
-    } else if (sel.overlay === 'rh') {
-      const rhG = await fetchGfsGrid(run, fhour, f.rh, signal); const rh = resampleScalar(rhG, W, H);
-      for (let i = 0; i < N; i++) { const c = ramp(RH_STOPS, rh[i]); const o = i * 4; overlayRGBA[o] = c[0]; overlayRGBA[o + 1] = c[1]; overlayRGBA[o + 2] = c[2]; overlayRGBA[o + 3] = 255; }
-    } else if (sel.overlay === 'mslp') {
-      const pG = await fetchGfsGrid(run, fhour, ':PRMSL:mean sea level:', signal); const p = resampleScalar(pG, W, H);
-      for (let i = 0; i < N; i++) { const c = ramp(MSLP_STOPS, p[i] / 100); const o = i * 4; overlayRGBA[o] = c[0]; overlayRGBA[o + 1] = c[1]; overlayRGBA[o + 2] = c[2]; overlayRGBA[o + 3] = 255; }
-    }
+    // The overlay lies at OVERLAY_OPACITY over the sphere's one base colour. That blend is done here per pixel and the
+    // layers are drawn opaque — the picture is the same as with a translucent layer, but the pole caps may overlap the
+    // overlay by a few rows without a visible ring (a translucent overlap would blend twice).
+    const stops = sel.overlay === 'wind' ? WIND_RAMP : sel.overlay === 'temp' ? TEMP_STOPS : sel.overlay === 'rh' ? RH_STOPS : MSLP_STOPS;
+    const fields: GfsGrid[] = sel.overlay === 'wind' ? [base[0], base[1]] : sel.overlay === 'temp' ? [base[2]]
+      : [extra!];
+    const ov = sel.overlay;
+    /** One picture: the field(s) sampled at the pixel centres (doubles, like `sampleGfs`), then value → colour. */
+    const paint = (lngs: Float64Array, lats: Float64Array, out: Uint8ClampedArray, rowOn: (y: number) => boolean) => {
+      const w = lngs.length, h = lats.length;
+      const cols = lngTable(fields[0].ni, lngs), rows = latTable(fields[0].nj, lats);
+      const a = sampleGrid(fields[0], lngs, lats, cols, rows, new Float64Array(w * h));
+      const b = fields[1] ? sampleGrid(fields[1], lngs, lats, cols, rows, new Float64Array(w * h)) : null;
+      for (let y = 0; y < h; y++) {
+        if (!rowOn(y)) continue;
+        for (let x = 0; x < w; x++) {
+          const i = y * w + x;
+          const val = ov === 'wind' ? Math.hypot(a[i], b![i]) : ov === 'temp' ? a[i] - 273.15 : ov === 'mslp' ? a[i] / 100 : a[i];
+          rampBlendInto(stops, val, out, i * 4);
+        }
+      }
+    };
+    // Picture in Mercator rows (pixel centres), ±OVERLAY_MERC_LAT.
+    overlayRGBA = new Uint8ClampedArray(OVERLAY_W * OVERLAY_H * 4);
+    paint(axis(OVERLAY_W, (x) => -180 + ((x + 0.5) / OVERLAY_W) * 360), axis(OVERLAY_H, overlayRowLat), overlayRGBA, () => true);
+    // Pole caps beyond the Mercator limit — real GFS values up to 90°; inside the limit transparent (the overlay is there).
+    capN = new Uint8ClampedArray(CAP_W * CAP_H * 4); capS = new Uint8ClampedArray(CAP_W * CAP_H * 4);
+    const capLng = axis(CAP_W, (x) => -180 + ((x + 0.5) / CAP_W) * 360);
+    paint(capLng, axis(CAP_H, (y) => capRowLat(y, false)), capN, (y) => y < CAP_TOP + CAP_OVERLAP);
+    paint(capLng, axis(CAP_H, (y) => capRowLat(y, true)), capS, (y) => y >= CAP_REST - CAP_OVERLAP);
   }
 
   return {
-    run, fhour, validMs: runValidMs(run, fhour), w: W, h: H,
+    run, fhour, validMs: runValidMs(run, fhour), w: W, h: H, ovW: OVERLAY_W, ovH: OVERLAY_H, capN, capS,
     windRGBA, windMeta: { width: W, height: H, uMin, uMax, vMin, vMax },
     windU: u, windV: v, tempC, overlay: sel.overlay, overlayRGBA,
   };

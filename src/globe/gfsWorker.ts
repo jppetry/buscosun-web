@@ -15,6 +15,9 @@ type InMsg =
 
 const ctx = self as unknown as DedicatedWorkerGlobalScope;
 
+/** Id of the newest `load` — an older one that is still waiting for its fields skips the pictures (slider drag). */
+let latestLoad = 0;
+
 ctx.onmessage = async (e: MessageEvent<InMsg>) => {
   const msg = e.data;
   try {
@@ -22,9 +25,11 @@ ctx.onmessage = async (e: MessageEvent<InMsg>) => {
       const run = await resolveLatestGfsRun();
       ctx.postMessage({ kind: 'run', id: msg.id, run });
     } else if (msg.kind === 'load') {
-      const raw = await buildGlobeData(msg.run, msg.fhour, msg.sel);
+      latestLoad = msg.id;
+      const raw = await buildGlobeData(msg.run, msg.fhour, msg.sel, undefined, () => latestLoad !== msg.id);
       const transfers: Transferable[] = [raw.windRGBA.buffer, raw.windU.buffer, raw.windV.buffer, raw.tempC.buffer];
       if (raw.overlayRGBA) transfers.push(raw.overlayRGBA.buffer);
+      if (raw.capN && raw.capS) transfers.push(raw.capN.buffer, raw.capS.buffer);
       ctx.postMessage({ kind: 'data', id: msg.id, raw }, transfers);
     } else if (msg.kind === 'prefetch') {
       await prefetchFields(msg.run, msg.fhour, msg.sel);  // nur Cache füllen, keine Antwort

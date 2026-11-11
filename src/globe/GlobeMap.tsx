@@ -21,12 +21,35 @@ import { globeStyle, TEMP_BEFORE_ID } from './globeStyle';
 import { sampleTempC, type RecoloredTemp } from './tempRecolor';
 import { sampleWind, type WindGrid, type WindSample } from './windSample';
 import { resolveRun, loadGlobe } from './gfsClient';
-import type { GfsRun, GlobeRaw, Height, OverlayKind } from './gfs';
+import { CAP_H, CAP_LAT_MAX, CAP_W, OVERLAY_MERC_LAT, capFarLat, type GfsRun, type GlobeRaw, type Height, type OverlayKind } from './gfs';
 
 const OV_SRC = 'globe-ov', OV_LAYER = 'globe-ov';
-const MERC_LAT = 85.05112878;
-const WORLD: [[number, number], [number, number], [number, number], [number, number]] =
-  [[-180, MERC_LAT], [180, MERC_LAT], [180, -MERC_LAT], [-180, -MERC_LAT]];
+const CAP_N = 'globe-cap-n', CAP_S = 'globe-cap-s';
+const MERC_LAT = OVERLAY_MERC_LAT;
+type Quad = [[number, number], [number, number], [number, number], [number, number]];
+const WORLD: Quad = [[-180, MERC_LAT], [180, MERC_LAT], [180, -MERC_LAT], [-180, -MERC_LAT]];
+// Pole caps (globe only): from the Mercator limit to 89,9° — Mercator y runs on beyond the limit, so the same kind of
+// picture (rows linear in Mercator y) lies correctly there too. Real GFS values, no fill colour.
+// Each cap picture spans to the opposite limit (transparent inside the limit) so that its centre lies inside the world.
+const CAP_N_QUAD: Quad = [[-180, CAP_LAT_MAX], [180, CAP_LAT_MAX], [180, capFarLat()], [-180, capFarLat()]];
+const CAP_S_QUAD: Quad = [[-180, -capFarLat()], [180, -capFarLat()], [180, -CAP_LAT_MAX], [-180, -CAP_LAT_MAX]];
+// Opaque: the 0,82 blend over the sphere's base colour is already in the pixels (`gfs.ts` OVERLAY_OPACITY).
+const OV_PAINT = { 'raster-opacity': 1, 'raster-resampling': 'linear', 'raster-fade-duration': 0 } as const;
+// Caps: nearest, so the transparent part ends exactly at the limit (linear would fade the edge row into a thin ring).
+const CAP_PAINT = { ...OV_PAINT, 'raster-resampling': 'nearest' } as const;
+
+/**
+ * Particle look per overlay, so the flow reads on every layer without hiding the data: on the dark sphere the speed tint
+ * as before; on the wind overlay white (the colour already says the speed); on the light overlays (temperature, pressure)
+ * dark ink; on humidity white.
+ */
+const PARTICLE_LOOK: Record<OverlayKind, { color: [number, number, number, number]; tint: number; size: number }> = {
+  none: { color: [0.86, 0.92, 1.0, 0.84], tint: 0.62, size: 1.7 },
+  wind: { color: [1, 1, 1, 0.95], tint: 0, size: 1.8 },
+  temp: { color: [0.07, 0.08, 0.12, 0.9], tint: 0, size: 1.9 },
+  rh: { color: [1, 1, 1, 0.95], tint: 0, size: 1.8 },
+  mslp: { color: [0.07, 0.08, 0.12, 0.9], tint: 0, size: 1.9 },
+};
 
 // WG-1: EINE Definition, geteilt mit der Wetterkarte (Werte unveraendert).
 const PARTICLE_RAMP = GLOBE_PARTICLE_RAMP;
@@ -60,6 +83,22 @@ function rgbaCanvas(rgba: Uint8ClampedArray, w: number, h: number): HTMLCanvasEl
   return cv;
 }
 
+/** One canvas source + raster layer, created on first use; later calls repaint the canvas and re-upload it once
+ *  (no PNG encode/decode on the main thread, as `toDataURL` + image source did). */
+function paintCanvasLayer(map: maplibregl.Map, id: string, quad: Quad, rgba: Uint8ClampedArray, w: number, h: number, canvases: Map<string, HTMLCanvasElement>, before: string | undefined, paint: typeof OV_PAINT | typeof CAP_PAINT = OV_PAINT) {
+  let cv = canvases.get(id);
+  if (!cv) { cv = document.createElement('canvas'); cv.width = w; cv.height = h; canvases.set(id, cv); }
+  cv.getContext('2d')!.putImageData(new ImageData(rgba, w, h), 0, 0);
+  if (!map.getSource(id)) {
+    map.addSource(id, { type: 'canvas', canvas: cv, coordinates: quad, animate: false });
+    map.addLayer({ id, type: 'raster', source: id, paint }, before);
+  } else {
+    const src = map.getSource(id) as maplibregl.CanvasSource;
+    src.play(); src.pause();   // `pause` uploads the canvas once
+    map.triggerRepaint();
+  }
+}
+
 export default function GlobeMap(props: Props) {
   const { overlay, height, projection, showParticles, hd, spinning, fhour } = props;
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -75,6 +114,8 @@ export default function GlobeMap(props: Props) {
   const cbRef = useRef(props);
   const loadSeqRef = useRef(0);
   const pinLLRef = useRef<{ lat: number; lng: number } | null>(null);
+  const canvasesRef = useRef(new Map<string, HTMLCanvasElement>());
+  const overlayOnRef = useRef(false);
   const [noWebgl, setNoWebgl] = useState(false);
   spinningRef.current = spinning;
   cbRef.current = props;
@@ -101,20 +142,35 @@ export default function GlobeMap(props: Props) {
     windGridRef.current = { u: raw.windU, v: raw.windV, width: raw.w, height: raw.h };
     windRef.current?.setWindData(windCv, raw.windMeta);
 
+    const before = map.getLayer(TEMP_BEFORE_ID) ? TEMP_BEFORE_ID : undefined;
     if (raw.overlayRGBA) {
-      const url = rgbaCanvas(raw.overlayRGBA, raw.w, raw.h).toDataURL();
-      if (!map.getSource(OV_SRC)) {
-        map.addSource(OV_SRC, { type: 'image', url, coordinates: WORLD });
-        map.addLayer({ id: OV_LAYER, type: 'raster', source: OV_SRC, paint: { 'raster-opacity': 0.82, 'raster-resampling': 'linear', 'raster-fade-duration': 0 } }, map.getLayer(TEMP_BEFORE_ID) ? TEMP_BEFORE_ID : undefined);
-      } else (map.getSource(OV_SRC) as maplibregl.ImageSource).updateImage({ url, coordinates: WORLD });
-      map.setLayoutProperty(OV_LAYER, 'visibility', 'visible');
-    } else if (map.getLayer(OV_LAYER)) {
-      map.setLayoutProperty(OV_LAYER, 'visibility', 'none');
+      // caps first (below), then the overlay on top of their overlap rows
+      if (raw.capN && raw.capS) {
+        paintCanvasLayer(map, CAP_N, CAP_N_QUAD, raw.capN, CAP_W, CAP_H, canvasesRef.current, map.getLayer(OV_LAYER) ? OV_LAYER : before, CAP_PAINT);
+        paintCanvasLayer(map, CAP_S, CAP_S_QUAD, raw.capS, CAP_W, CAP_H, canvasesRef.current, map.getLayer(OV_LAYER) ? OV_LAYER : before, CAP_PAINT);
+      }
+      paintCanvasLayer(map, OV_SRC, WORLD, raw.overlayRGBA, raw.ovW, raw.ovH, canvasesRef.current, before);
     }
+    overlayOnRef.current = !!raw.overlayRGBA;
+    syncOverlayVisibility(map);
+    applyParticleLook(raw.overlay);
     cbRef.current.onRunInfo?.({ run: raw.run, fhour: raw.fhour, validMs: raw.validMs });
     // Gepinnten Readout mit den frischen Werten (neue Zeit/Höhe) aktualisieren.
     const pll = pinLLRef.current;
     if (pll) cbRef.current.onPin?.({ lat: pll.lat, lng: pll.lng, tempC: sampleTempC(tempGridRef.current!, pll.lng, pll.lat), wind: sampleWind(windGridRef.current!, pll.lng, pll.lat) });
+  };
+
+  /** Overlay on/off; the pole caps only on the globe (in the flat view they would lie outside the world square). */
+  const syncOverlayVisibility = (map: maplibregl.Map) => {
+    const on = overlayOnRef.current;
+    if (map.getLayer(OV_LAYER)) map.setLayoutProperty(OV_LAYER, 'visibility', on ? 'visible' : 'none');
+    const caps = on && cbRef.current.projection === 'globe';
+    for (const id of [CAP_N, CAP_S]) if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', caps ? 'visible' : 'none');
+  };
+  const applyParticleLook = (ov: OverlayKind) => {
+    const w = windRef.current; if (!w) return;
+    const look = PARTICLE_LOOK[ov];
+    w.particleColor = look.color; w.speedTint = look.tint; w.setPointSize(look.size);
   };
 
   const loadData = (map: maplibregl.Map, run: GfsRun) => {
@@ -225,6 +281,8 @@ export default function GlobeMap(props: Props) {
     const map = mapRef.current; if (!map) return;
     try { map.setProjection({ type: projection === 'globe' ? 'globe' : 'mercator' }); } catch { /* version */ }
     windRef.current?.setGlobeMode(projection === 'globe');
+    syncOverlayVisibility(map);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projection]);
   useEffect(() => { windRef.current?.setShowParticles(showParticles); }, [showParticles]);
   useEffect(() => { windRef.current?.setDensityMultiplier(hd ? 2.2 : 1); }, [hd]);

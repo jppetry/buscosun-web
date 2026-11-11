@@ -16,7 +16,6 @@ const COAST = '#ffffff';            // kräftige weiße Küstenlinie
 const COAST_CASING = 'rgba(8,12,20,0.55)'; // dunkler Saum für Kontrast
 const BORDER = '#f3eee0';           // dezente Ländergrenzen
 const GRATICULE = '#9fb0c0';
-const POLE_COLD = '#5566a6';
 
 export function graticuleGeoJSON(stepDeg = 30): GeoJSON.FeatureCollection<GeoJSON.MultiLineString> {
   const lines: number[][][] = [];
@@ -68,8 +67,9 @@ export function globeStyle(): StyleSpecification {
       // Ozeanblaue Kugel-Füllung: scheint durch, wenn nur Wind aktiv ist; wird vom
       // Temperatur-Overlay (deckend) verdeckt, sobald Temp eingeblendet wird.
       { id: 'ocean', type: 'fill', source: 'ocean', paint: { 'fill-color': OCEAN, 'fill-opacity': 1 } },
-      // Das Temperatur-Overlay wird zur Laufzeit VOR 'poles' eingefügt.
-      { id: 'poles', type: 'fill', source: 'poles', paint: { 'fill-color': POLE_COLD, 'fill-opacity': 0.92 } },
+      // Polkappen jenseits der Mercator-Grenze: dieselbe Kugelfarbe wie der Ozean (kein eigener Farbfleck). Das Daten-Overlay
+      // und seine Polkappen-Bilder werden zur Laufzeit DARÜBER eingefügt (vor 'graticule').
+      { id: 'poles', type: 'fill', source: 'poles', paint: { 'fill-color': OCEAN, 'fill-opacity': 1 } },
       { id: 'graticule', type: 'line', source: 'graticule', paint: { 'line-color': GRATICULE, 'line-width': 0.5, 'line-opacity': 0.16 } },
       { id: 'borders', type: 'line', source: 'borders', paint: { 'line-color': BORDER, 'line-width': 0.7, 'line-opacity': 0.62, 'line-dasharray': [2, 1.6] } },
       // Küstenlinie: dunkler Saum + kräftiger weißer Kern.
@@ -80,4 +80,4 @@ export function globeStyle(): StyleSpecification {
 }
 
 /** Layer-ID, VOR der das Temperatur-Overlay eingefügt wird (unter Kappen/Linien). */
-export const TEMP_BEFORE_ID = 'poles';
+export const TEMP_BEFORE_ID = 'graticule';
