@@ -47,13 +47,14 @@ const TEXTS: Record<HintSubject, { sub: string; pick: string; pickSub: string; t
   },
   weather: {
     title: 'Willkommen auf der Wetterkarte',
-    sub: 'Das Wetter über Deutschland, Österreich und der Schweiz — so findest du dich zurecht:',
+    sub: 'Das Wetter über Deutschland, Österreich und der Schweiz. So findest du dich zurecht:',
     pick: 'Ebenen zuschalten', pickSub: 'Wind, Temperatur, Niederschlag und mehr über das Ebenen-Menü',
+    // `mouse` = desktop layout, `touch` = mobile layout (bottom bar). No dashes in these lines (Jan 11.11.).
     steps: [
-      { b: 'Ebenen zuschalten', mouse: 'Wind, Temperatur, Niederschlag, Wolken und mehr in der Leiste links — mehrere gleichzeitig möglich.', touch: 'Unten auf „Layer“ tippen: Wind, Temperatur, Niederschlag, Wolken und mehr — mehrere gleichzeitig möglich.' },
-      { b: 'Hineinzoomen', mouse: 'Mit dem Mausrad näher heran: die Windpartikel zeigen die Strömung dann bis in einzelne Täler.', touch: 'Zwei Finger auseinanderziehen: die Windpartikel zeigen die Strömung dann bis in einzelne Täler.' },
-      { b: 'Zeit wählen', mouse: 'Der Regler unten führt Stunde für Stunde durch die Vorhersage, ▶ spielt sie ab.', touch: 'Den Zeitregler unten ziehen: Stunde für Stunde durch die Vorhersage, ▶ spielt sie ab.' },
-      { b: 'Ort suchen', mouse: 'Oben ins Suchfeld tippen (⌘K) — die Karte fliegt hin und zeigt die Vorhersage dort.', touch: 'Oben ins Suchfeld tippen und einen Ort wählen — die Karte fliegt hin und zeigt die Vorhersage dort.' },
+      { b: 'Ebenen zuschalten', mouse: 'Wind, Temperatur, Niederschlag, Wolken und mehr in der Leiste links. Mehrere lassen sich gleichzeitig zeigen.', touch: 'Unten auf „Layer“ tippen und Wind, Temperatur, Niederschlag, Wolken und mehr wählen. Mehrere lassen sich gleichzeitig zeigen.' },
+      { b: 'Hineinzoomen', mouse: 'Mit dem Mausrad näher heran, dann zeigen die Windpartikel die Strömung bis in einzelne Täler.', touch: 'Näher heranzoomen, dann zeigen die Windpartikel die Strömung bis in einzelne Täler.' },
+      { b: 'Zeit wählen', mouse: 'Der Regler unten führt Stunde für Stunde durch die Vorhersage, ▶ spielt sie ab.', touch: 'Den Zeitregler unten ziehen und Stunde für Stunde durch die Vorhersage gehen, ▶ spielt sie ab.' },
+      { b: 'Ort suchen', mouse: 'Oben einen Ort ins Suchfeld eingeben (⌘K). Die Karte fliegt hin und zeigt die Vorhersage dort.', touch: 'Oben ins Suchfeld tippen und einen Ort wählen. Die Karte fliegt hin und zeigt die Vorhersage dort.' },
     ],
   },
   sea: {
@@ -89,6 +90,8 @@ export default function MapGestureHint({ map, feature, accent = '#B5651D', enabl
   const rootRef = useRef<HTMLDivElement | null>(null);
   const textRef = useRef<HTMLDivElement | null>(null);
   const touch = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+  /** Mobile layout of the page (bottom bar instead of the side bar) — decides the step wording, independent of the pointer. */
+  const compact = touch || (typeof window !== 'undefined' && window.matchMedia('(max-width: 767px), (max-height: 430px) and (orientation: landscape)').matches);
 
   const close = useCallback(() => {
     if (always) dismissed.current = true; else markSeen(feature);
@@ -217,7 +220,7 @@ export default function MapGestureHint({ map, feature, accent = '#B5651D', enabl
             {txt.steps.map((st, i) => (
               <li key={st.b} style={{ ['--i' as string]: i }}>
                 <span className="bs-hint-step-n" aria-hidden="true">{i + 1}</span>
-                <span className="bs-hint-click-txt"><b>{st.b}</b><span>{touch ? st.touch : st.mouse}</span></span>
+                <span className="bs-hint-click-txt"><b>{st.b}</b><span>{compact ? st.touch : st.mouse}</span></span>
               </li>
             ))}
           </ol>
