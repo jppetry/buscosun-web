@@ -422,7 +422,7 @@ export function FireFootprintPanel(p: FootprintPanelProps) {
           type="button" className={`br-chip is-ink${p.effisScope === 'season' ? ' is-active' : ''}`}
           aria-pressed={p.effisScope === 'season'}
           disabled={!state.seasonLoaded}
-          title={state.seasonLoaded ? 'Alle kartierten Flächen der laufenden Saison' : 'Saison-Korb ist nicht geladen (Layer „Frühere Brandflächen" einschalten)'}
+          title={state.seasonLoaded ? 'Alle kartierten Flächen der laufenden Saison' : 'Saison-Korb ist nicht geladen (Ebene „Frühere Brandflächen" einschalten)'}
           onClick={() => state.seasonLoaded && p.onEffisScope('season')}
         >
           ganze Saison

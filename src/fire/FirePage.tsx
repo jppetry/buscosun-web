@@ -2349,7 +2349,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     <>
       {lagging.length > 0 && (
         <p className="br-box is-lag">
-          {lagging.length === 1 ? 'Ein Layer folgt' : `${lagging.length} Layer folgen`} dem
+          {lagging.length === 1 ? 'Eine Ebene folgt' : `${lagging.length} Ebenen folgen`} dem
           Regler nicht und {lagging.length === 1 ? 'zeigt' : 'zeigen'} weiter den {hourly ? 'jetzigen' : 'heutigen'} Stand.
         </p>
       )}
@@ -2570,8 +2570,8 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     <nav className="br-bar safe-pad-bottom" aria-label="Brandradar-Bereiche">
       {([
         ['map', 'Karte', <IcoBarMap key="i" />],
-        ['layers', 'Layer', <IcoBarLayers key="i" />],
         ['fires', 'Brände', <IcoBarFire key="i" />],
+        ['layers', 'Ebenen', <IcoBarLayers key="i" />],
         ['settings', 'Einstellungen', <IcoBarSettings key="i" />],
       ] as const).map(([id, label, icon]) => (
         <button
@@ -2641,11 +2641,11 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
       {timeCardMobile}
       {lagging.length > 0 && (
         <p className="br-box is-lag">
-          {lagging.length === 1 ? 'Ein Layer folgt' : `${lagging.length} Layer folgen`} dem Regler nicht.
+          {lagging.length === 1 ? 'Eine Ebene folgt' : `${lagging.length} Ebenen folgen`} dem Regler nicht.
         </p>
       )}
       {dailyOnly.length > 0 && hourly && time.hour > 0 && (
-        <p className="br-note">Tages-Layer zeigen auf der Stundenachse den Tageswert für {dayLabel(dayForLayers, nowMs)}.</p>
+        <p className="br-note">Tages-Ebenen zeigen auf der Stundenachse den Tageswert für {dayLabel(dayForLayers, nowMs)}.</p>
       )}
     </>
   );
@@ -2705,9 +2705,9 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
           {/* BD2d (Jans Auftrag 2026-08-31): die Sidebars bleiben in JEDER Bühne —
               das Dossier ersetzt nur die Karte in der Mitte. */}
           {!isMobile && (
-            <aside className="br-dock" aria-label="Layer">
+            <aside className="br-dock" aria-label="Ebenen">
               <div className="br-dock-head">
-                <span className="br-eyebrow">Layer</span>
+                <span className="br-eyebrow">Ebenen</span>
                 {!isTablet && <span className="br-count">{switchableCount} aktiv</span>}
               </div>
               {dockGroups(false)}
@@ -2777,7 +2777,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
             </div>
 
             {!isMobile && mapCardEl && <div className="br-map-card">{mapCardEl}</div>}
-            {!isMobile && !mapCardEl && !inDossier && mapLegend}
+            {!mapCardEl && !inDossier && (!isMobile || mobileTab === 'map') && mapLegend}
             {!mapCardEl && !inDossier && (!isMobile || mobileTab === 'map') && pointLegend}
 
             {/* Oben rechts: Rückblick-Fenster (24 h / 7 d / Monat / Saison) — der Zeit-Regler
@@ -2818,13 +2818,13 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
           {isMobile && (
             <>
               {mobileTab === 'layers' && (
-                <section className="br-m-page" aria-label="Layer">
+                <section className="br-m-page" aria-label="Ebenen">
                   <header className="br-m-head">
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       {mobileBrand}
                       <div>
-                        <div className="br-eyebrow">Brandradar · Layer</div>
-                        <h1 className="br-m-title">Layer</h1>
+                        <div className="br-eyebrow">Brandradar · Ebenen</div>
+                        <h1 className="br-m-title">Ebenen</h1>
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -2834,7 +2834,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                   </header>
                   <div className="br-m-scroll">
                     {dockGroups(true)}
-                    <p className="br-note">Blockierte Layer bleiben sichtbar: die Größe existiert, nur die Quelle ist nicht erreichbar.</p>
+                    <p className="br-note">Blockierte Ebenen bleiben sichtbar: die Größe existiert, nur die Quelle ist nicht erreichbar.</p>
                   </div>
                 </section>
               )}
@@ -2961,7 +2961,7 @@ function LayerStatus(
 
     return (
       <p className="fire-layer-status is-error">
-        Keine Daten — der Layer zeigt nichts an (nicht: keine Gefahr).{' '}
+        Keine Daten — die Ebene zeigt nichts an (nicht: keine Gefahr).{' '}
         {src
           ? <>
               <a href={src.url} target="_blank" rel="noopener">{src.name}</a> beim {src.operator}.

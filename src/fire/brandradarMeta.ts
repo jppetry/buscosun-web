@@ -50,7 +50,7 @@ export const BR_GROUP_COLOR: Record<string, BrColor> = {
   'Ausbaustufe 2': 'stone',
 };
 
-const NO_DATA = 'Antwortet die Quelle nicht, zeigt der Layer nichts und die Zeile sagt „keine Daten" — nicht „keine Gefahr".';
+const NO_DATA = 'Antwortet die Quelle nicht, zeigt die Ebene nichts und die Zeile sagt „keine Daten" — nicht „keine Gefahr".';
 
 export const BR_LAYER: Record<FireLayerId, BrLayerMeta> = {
   fireDanger: {
@@ -69,7 +69,7 @@ export const BR_LAYER: Record<FireLayerId, BrLayerMeta> = {
     unit: 'Feuerstrahlungsleistung (FRP) in MW je Pixel · Konfidenz hoch/nominal/gering',
     reference: 'NASA FIRMS / LANCE · VIIRS 375 m (NRT) · 24 h / 7 Tage · Rückfall: Copernicus GWIS',
     limit: 'Satellitendetektion, keine Einsatzmeldung und kein amtliches Warnprodukt. Der Punkt ist die Pixelmitte, nicht der Brandort; kleine Bodenfeuer unter der Pixelgröße bleiben unsichtbar — „keine Hotspots" heißt nicht „keine Brände".',
-    fallback: 'Fällt FIRMS aus, zeigt der Layer GWIS-Punkte ohne Intensität und sagt das — eine ärmere Anzeige wird nie als volle ausgegeben.',
+    fallback: 'Fällt FIRMS aus, zeigt die Ebene GWIS-Punkte ohne Intensität und sagt das — eine ärmere Anzeige wird nie als volle ausgegeben.',
   },
   fireFootprints: {
     label: 'Brandflächen je Brand', shortLabel: 'Brandflächen', sub: 'Registry · EFFIS-Kartierung', color: 'stone',

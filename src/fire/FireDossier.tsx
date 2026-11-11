@@ -287,7 +287,7 @@ export function DossierMapNote({ r, fromRegistry }: { r: FireRecord; fromRegistr
           : r.areaHa.kind === 'upper-bound'
             ? 'Gezeichnet ist das Detektionsraster (Satellitenabdeckung), keine Brandfläche.'
             : 'Keine Fläche — nur der Ort der Detektionen.'}
-      {!fromRegistry && ' Der Brandflächen-Layer ist aus; gezeigt wird der umschließende Kasten.'}
+      {!fromRegistry && ' Die Brandflächen-Ebene ist aus; gezeigt wird der umschließende Kasten.'}
     </Typography>
   );
 }

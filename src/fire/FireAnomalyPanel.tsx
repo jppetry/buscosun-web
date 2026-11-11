@@ -214,7 +214,7 @@ export function FireAnomalyPanel(p: AnomalyPanelProps) {
         Anlagenzuordnung per Abstand ≤ {p.sites ? de(p.sites.file.rule.joinRadiusM) : '1 500'} m zu E-PRTR (EEA, CC-BY 4.0), MaStR (DL-DE/BY-2.0) und BFE (OPEN BY) — eigene Ableitung, kein Nachweis.
         Anlagen, die nach {p.sites?.file.archive.to?.slice(0, 7) ?? '2026-05'} entstanden sind, fehlen; stillgelegte bleiben gelistet, bis die Liste neu gebaut wird.
         Klasse C („Tagessignal") ist keine Wärmequelle: nur Tagdetektionen über Jahre — Reflexion ist wahrscheinlicher.
-        {p.onClose && <> <button type="button" className="br-link" onClick={p.onClose}>Zu den Layern</button></>}
+        {p.onClose && <> <button type="button" className="br-link" onClick={p.onClose}>Zu den Ebenen</button></>}
       </p>
     </div>
   );

@@ -155,7 +155,7 @@ export function FireHistoryPanel(p: HistoryPanelProps) {
           <p className="br-note br-history-foot">
             {file.limits.map((l, i) => <span key={i}>{l} </span>)}
             <button type="button" className="br-link" onClick={p.onLeave}>Zurück zu 24 h / 7 Tagen</button>
-            {p.onClose && <> · <button type="button" className="br-link" onClick={p.onClose}>Zu den Layern</button></>}
+            {p.onClose && <> · <button type="button" className="br-link" onClick={p.onClose}>Zu den Ebenen</button></>}
           </p>
         </>
       )}

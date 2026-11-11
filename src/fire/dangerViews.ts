@@ -117,7 +117,7 @@ export const DANGER_VIEWS: Record<DangerView, DangerViewMeta> = {
     answers: 'Wie ausgetrocknet sind tiefe, verdichtete organische Auflagen — die Größe mit dem längsten Gedächtnis (~52 Tage)?',
     unit: 'Drought Code (DC), dimensionslos',
     reference: 'ECMWF-Vorhersage, Tageswert (Bezug 12 UTC), ~8 km · Copernicus EMS GWIS',
-    limitation: 'Ein Feuerwetter-Code, keine gemessene oder modellierte Feuchte des Erdbodens. Die Copernicus-EDO-Größe dazu (Bodenfeuchte-Anomalie) ist wegen ungültigem CORS nicht abrufbar und seit 2026-08-22 kein Layer mehr — dieser Code ersetzt sie nicht. Modellwert, kein amtliches Warnprodukt.',
+    limitation: 'Ein Feuerwetter-Code, keine gemessene oder modellierte Feuchte des Erdbodens. Die Copernicus-EDO-Größe dazu (Bodenfeuchte-Anomalie) ist wegen ungültigem CORS nicht abrufbar und seit 2026-08-22 keine Ebene mehr — dieser Code ersetzt sie nicht. Modellwert, kein amtliches Warnprodukt.',
     classes: CLS(['< 256,1', '256,1–334,1', '334,1–450,6', '450,6–600,0', '600,0–749,4', '> 749,4']),
   },
   isi: {
