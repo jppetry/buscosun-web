@@ -313,7 +313,7 @@ export function RoadRouteCard(p: RoadRouteCardProps) {
 
         <div className="aw-ds-listcol">
           {p.segs.length > 0 && (
-            <div className="aw-ds-bar" role="group" aria-label="Abschnitte im Maßstab der Strecke">
+            <div className={`aw-ds-bar${p.segs.length > 40 ? ' is-dense' : ''}`} role="group" aria-label="Abschnitte im Maßstab der Strecke">
               {p.segs.map((s) => {
                 const st = p.states.get(s.id);
                 return (
@@ -335,7 +335,17 @@ export function RoadRouteCard(p: RoadRouteCardProps) {
                   <span className="aw-ds-item-n" style={{ background: lvColor(st) }}>{i + 1}</span>
                   <span className="aw-ds-item-body">
                     <strong>{s.name}</strong>
-                    <em>{r ? `${dec(s.lengthKm, 1)} km · ${r.sub}` : `km ${Math.round(s.kmFrom)}–${Math.round(s.kmTo)} · ${dec(s.lengthKm, 1)} km`}</em>
+                    {/* Jan 11.11.: with a hazard the tile says what and why (the measured or forecast values behind the level). */}
+                    {r && (() => {
+                      const [what, ...where] = r.sub.split(' · ');
+                      return (
+                        <>
+                          <span className="aw-ds-item-haz" style={lv ? { color: AW_SEV_TINT[lv].ink } : undefined}><b>{what}</b>{r.vals.length > 0 && <> · {r.vals.join(' · ')}</>}</span>
+                          <em>{[...where, `${dec(s.lengthKm, 1)} km`].join(' · ')}</em>
+                        </>
+                      );
+                    })()}
+                    {!r && <em>{`km ${Math.round(s.kmFrom)}–${Math.round(s.kmTo)} · ${dec(s.lengthKm, 1)} km`}</em>}
                   </span>
                   <span className="aw-ds-item-lv" style={lv || (st && st.unknown) ? { background: tint.bg, borderColor: tint.border, color: tint.ink } : undefined}>
                     {lvText(st)}{r && r.best.ev && lv ? <small>{EV_LABEL[r.best.ev]}</small> : null}
