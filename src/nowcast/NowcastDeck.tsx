@@ -15,7 +15,8 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type
 import type maplibregl from 'maplibre-gl';
 import type { Location } from '../types';
 import { flagForCountry } from '../geocode';
-import { Hd250Switch } from '../components/Hd250Switch';   // Phase RA-250: 1 km | 250 m (DE only)
+import { Hd250Switch } from '../components/Hd250Switch';
+import { RADAR_HD250_OFFERED } from '../scalar/radarHd250';   // Phase RA-250: 1 km | 250 m (DE only)
 import { RadarAttribution } from '../components/RadarAttribution';   // Phase HDR: radar sources + licences from the constants
 import type { RadarLayerId } from '../radar/radarModel';
 import type { SnowMode } from '../sources/iconD2Snow';
@@ -506,7 +507,7 @@ function Dock({ layers, toggleLayer, activeLayerCount, country, probeCard = null
           );
         })}
       </div>
-      {layers.includes('precip') && country === 'DE' && <Hd250Switch segClass="rr-seg" btnClass="rr-seg-btn" eyebrowClass="rr-eyebrow" />}
+      {RADAR_HD250_OFFERED && layers.includes('precip') && country === 'DE' && <Hd250Switch segClass="rr-seg" btnClass="rr-seg-btn" eyebrowClass="rr-eyebrow" />}
       {probeCard}
     </div>
   );
@@ -765,7 +766,7 @@ function LayerPanel({ layers, toggleLayer, nowcast, place, country }: {
           );
         })}
       </div>
-      {layers.includes('precip') && country === 'DE' && <Hd250Switch segClass="rm-seg" btnClass="" eyebrowClass="rm-seclabel" />}
+      {RADAR_HD250_OFFERED && layers.includes('precip') && country === 'DE' && <Hd250Switch segClass="rm-seg" btnClass="" eyebrowClass="rm-seclabel" />}
     </>
   );
 }

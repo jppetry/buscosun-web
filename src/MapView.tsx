@@ -145,7 +145,7 @@ import { fetchRzcNowcast, fetchInca5m, type RzcNowcast, type Inca5mGrid } from '
 import { radarNcFlagFrom, RZC_NC_LABEL, INCA_5M_LABEL, RZC_NC_UNKNOWN_WORD } from './sources/radarNowcastImg';
 import { radarImgStamp as ncRadarImgStamp } from './sources/radarImg';
 // Phase R250 (`audit/radar-250m.md`): the RV analyses on 250-m tiles (DWD site radars) above the DE 1-km layer, `?hd250=0` = off.
-import { radarHd250FlagFrom, HD250_TILE_LIST, hd250LayerId, hd250VisibleTiles, hd250TileMesh, hd250TileCorners, hd250TileMask, hd250TileFlow, HD250_TILE_WARP_N, RADAR_HD250_MIN_ZOOM, onRadarHd250Pref, publishRadarHd250Note, radarHd250NoteText, type RadarHd250Note } from './scalar/radarHd250';
+import { RADAR_HD250_OFFERED, radarHd250FlagFrom, HD250_TILE_LIST, hd250LayerId, hd250VisibleTiles, hd250TileMesh, hd250TileCorners, hd250TileMask, hd250TileFlow, HD250_TILE_WARP_N, RADAR_HD250_MIN_ZOOM, onRadarHd250Pref, publishRadarHd250Note, radarHd250NoteText, type RadarHd250Note } from './scalar/radarHd250';
 import { hd250Store, type Hd250TileState } from './scalar/radarHd250Store';
 import { HD250_TILE_W, HD250_TILE_H, HD250_FACTOR } from './sources/radarHd250';
 /** Phase R250: a dry tile on one side of a mix (the slot has no file for it = every cell 0). */
@@ -1038,10 +1038,10 @@ export default function MapView({
   // Phase RA-250 (`audit/radar-aufloesung.md` §6): the tiles are a SWITCH (off by default) — React state so the layer panel
   // can flip it at run time; the ref mirrors it for the draw code. `hd250Note` = what the tile layer does for the drawn frame
   // (status line, switch); `rvClutterCells` (Phase SE, E-SE-3) = cells the mirror's echo filter took out of the shown RV slot.
-  const [hd250On, setHd250On] = useState(() => hdRef.current.on && radarHd250FlagFrom());
+  const [hd250On, setHd250On] = useState(() => hdRef.current.on && RADAR_HD250_OFFERED && radarHd250FlagFrom());
   const hd250Ref = useRef(hd250On);
   hd250Ref.current = hd250On;
-  useEffect(() => onRadarHd250Pref((on) => setHd250On(hdRef.current.on && on)), []);
+  useEffect(() => onRadarHd250Pref((on) => setHd250On(hdRef.current.on && RADAR_HD250_OFFERED && on)), []);
   const hd250NoteRef = useRef<RadarHd250Note>(null);
   const [hd250Note, setHd250Note] = useState<RadarHd250Note>(null);
   const [rvClutterCells, setRvClutterCells] = useState(0);
@@ -2339,7 +2339,7 @@ export default function MapView({
       const noteWords = radarHd250NoteText(hd250NoteRef.current, hd250Ref.current);
       const hd250Text = !nowcastRef.current || !hdRef.current.on ? ''
         : hd250Ref.current ? ` · DE 250 m (Standortradare, ab Zoom ${RADAR_HD250_MIN_ZOOM})${hd250NoteRef.current && noteWords ? ` · ${noteWords}` : ''}`
-        : hd250NoteRef.current === 'avail' ? ` · ${noteWords} (DE)` : '';
+        : hd250NoteRef.current === 'avail' && RADAR_HD250_OFFERED ? ` · ${noteWords} (DE)` : '';
       // ND-6: a country radar that failed is named — the empty area is „nicht erreichbar", not „trocken".
       const failText = (['DE', 'AT', 'CH'] as const).filter((c) => radarFailRef.current[c]).map((c) => `${c}: ${radarFailRef.current[c]}`).join(' · ');
       const model = parts.length ? `DACH-Komposit · ${parts.join(' · ')}${gridText}${hd250Text}${rminText}${clutterText}${failText ? ` · ${failText}` : ''}` : '';

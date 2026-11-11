@@ -22,6 +22,11 @@ import type { QuadCorners } from './RainLayer';
  * History: default on from zoom 9 (E-R250-1, 09.10.), off unless asked for (Phase RA-250, Jan 13.10.), on again (HDR).
  */
 export const RADAR_HD250_DEFAULT_ON = true;
+/**
+ * Jan 11.11.2026: the 250-m picture is not mature yet — the radar stays on 1 km for everyone and the switch
+ * „1 km | 250 m“ is hidden. `false` overrides the default, `localStorage.radarhd250` and `?hd250=1`; `true` = as before.
+ */
+export const RADAR_HD250_OFFERED = false;
 export const RADAR_HD250_STORE_KEY = 'radarhd250';
 export const RADAR_HD250_QUERY_KEY = 'hd250';
 /**
