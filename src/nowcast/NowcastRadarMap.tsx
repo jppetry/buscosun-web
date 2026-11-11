@@ -538,6 +538,8 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   }, [stack, layerSet]);
 
   // Phase RB (an, `?rb=0` aus): dieselbe Spanne als Label am Ortsmarker — für den Punkt am Marker (kann vom Ort der Seite abweichen).
+  // Jan 11.11.2026: the label at the place marker on the map („Regen –14:00“) is off; the rain window stays in the panel.
+  const RR_MARKER_LABEL = false;
   const rbOn = useMemo(() => rainWindowEnabledFrom(typeof window !== 'undefined' ? window.location.search : ''), []);
   const markerLabel = useMemo(() => {
     if (!rbOn || !stack || !pointNowcast) return null;
@@ -737,7 +739,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
               onMapReady={(m) => { mapRef.current = m; setMapInst(m); onMapReady?.(m); }}
               {...(onDataReady ? { onDataReady } : {})}
               initialView={initialView} onViewChange={onViewChange}
-              {...(markerLabel ? { profileMarkerLabel: markerLabel } : {})}
+              {...(RR_MARKER_LABEL && markerLabel ? { profileMarkerLabel: markerLabel } : {})}
               {...(zoAffectsCellId !== undefined ? { profileAffectsCellId: zoAffectsCellId } : {})}
               {...(onProfileRadarPick ? { onProfileRadarPick } : {})}
               {...(stageAside && stage3d === '3d' ? { suspended: true } : {})}
