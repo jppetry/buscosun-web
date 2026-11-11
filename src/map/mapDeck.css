@@ -1090,7 +1090,7 @@
 @media (min-width: 768px) {
   .mdk-stage { --msl-bottom: 0px; }
   .mdk-stage .maplibregl-ctrl-bottom-right { bottom: 0; }
-  .mdk-timedeck { bottom: 44px; }
-  .mdk-winddeck { bottom: 184px; }
-  .mdk-stage .maplibregl-ctrl-bottom-left { bottom: 198px; }
+  .mdk-timedeck { bottom: 28px; }
+  .mdk-winddeck { bottom: 168px; }
+  .mdk-stage .maplibregl-ctrl-bottom-left { bottom: 182px; }
 }
