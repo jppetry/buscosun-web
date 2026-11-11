@@ -942,6 +942,11 @@ button.aw-prog-tile:not(:disabled):not(.is-on):hover { box-shadow: var(--aw-inse
 .aw-hz-xsgrid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin-top: 4px; }
 .aw-hz-xscol, .aw-hz-txtcol { min-width: 0; }
 .aw-hz-txtcol .aw-hz-nowchips { margin-top: 0; }
+/* Die Gefahren jetzt neben dem Fahrerblick: groß und als Kacheln, damit sofort klar ist, was auf der Strecke liegt (Jan 11.11.). */
+.aw-hz-txtcol .aw-hz-nowchips { display: flex; flex-direction: column; gap: 7px; }
+.aw-hz-txtcol .aw-hz-chip { display: flex; align-items: center; gap: 9px; width: 100%; box-sizing: border-box; padding: 10px 13px; border-radius: 12px; border-width: 1px; font-size: 16px; font-weight: 700; letter-spacing: -0.1px; line-height: 1.2; box-shadow: 0 6px 16px -12px rgba(44, 42, 38, 0.45); }
+.aw-hz-txtcol .aw-hz-chip > :first-child { transform: scale(1.25); }
+.aw-hz-txtcol .aw-hz-nowchips + .aw-hz-text { margin-top: 12px; }
 .aw-hz-txtcol > .aw-hz-text:first-child { margin-top: 0; }
 .aw-dossier-body .aw-hz-xsgrid { grid-template-columns: minmax(0, 440px) minmax(0, 1fr); gap: 20px; align-items: start; margin-top: 14px; }
 .aw-dossier-body .aw-hz-xs { border-radius: 12px; overflow: hidden; box-shadow: 0 10px 22px -16px rgba(44, 42, 38, 0.5); }
