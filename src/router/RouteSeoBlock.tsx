@@ -62,6 +62,8 @@ export default function RouteSeoBlock() {
   if (match.def.id === 'gletscher') return null;
   // Jan 2026-11-10: same for Globus and Historie (Wetterarchiv).
   if (match.def.id === 'globus' || match.def.id === 'wetterarchiv') return null;
+  // Jan 2026-11-11: same for the Regenradar.
+  if (match.def.id === 'regenradar') return null;
   if (staticPage) {
     // Derselbe Faktenblock wie im Roh-HTML, zugeklappt im gerenderten DOM. Die H1 trägt die Seite selbst (Name im Steckbrief),
     // deshalb steht die H1 des Blocks hier als Absatz (`rsb-h1`) — genau eine H1 je Seite.
