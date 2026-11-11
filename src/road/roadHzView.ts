@@ -68,7 +68,10 @@ export function bestInWindow(e: HzEntry, win: [number, number], group: RoadHazar
       if (l >= 1 && (!best || l > best.lv! || (l === best.lv && (EV_RANK[ev] > EV_RANK[best.ev ?? '-'] || (EV_RANK[ev] === EV_RANK[best.ev ?? '-'] && ROAD_HAZARD_RANK[def.id] < ROAD_HAZARD_RANK[best.id]))))) best = { id: def.id, lv: l, ev: ev === '-' ? null : ev, hour: i };
     }
   }
-  return best ?? unknown;
+  // Jan 11.11.: an unknown input is NOT a hazard — a segment with only gaps gets no row, no count and no map mark.
+  // (`unknown` stays collected for the detail article, which still names what is missing.)
+  void unknown;
+  return best;
 }
 
 export interface HzRow {
@@ -163,7 +166,7 @@ export function hzCounts(file: RoadHzFile, mode: RoadHzMode): { byGroup: Record<
 export interface HzMatrixCell { group: RoadHazardGroup; hour: number; n: number; max: RoadLevel; unknown: number }
 export function hzMatrix(file: RoadHzFile): HzMatrixCell[][] {
   const s = roadHzSummary(file);
-  return ROAD_HAZARD_GROUPS.map((g) => s.matrix[g.id].map((c, i) => ({ group: g.id, hour: i, n: c.n, max: c.max, unknown: c.unknown })));
+  return ROAD_HAZARD_GROUPS.map((g) => s.matrix[g.id].map((c, i) => ({ group: g.id, hour: i, n: c.n, max: c.max, unknown: 0 })));
 }
 
 /** Ordered ids of the rows shown (the detail's "n / N" and prev/next). */
@@ -173,11 +176,12 @@ export const rowOrder = (groups: readonly HzGroupRows[]) => { const out: string[
 export function segMapState(e: HzEntry | undefined, mode: RoadHzMode, filter: RoadHazardGroup | null): { lv: RoadLevel; unknown: boolean } {
   if (!e) return { lv: 0, unknown: false };
   const win = windowOf(mode);
-  let lv: RoadLevel = 0, unknown = false;
+  let lv: RoadLevel = 0;
+  const unknown = false;   // Jan 11.11.: unknown is no hazard mark on the map
   for (const [hid, arr] of Object.entries(e.lv)) {
     const def = ROAD_HAZARD_BY_ID[hid as RoadHazardId];
     if (!def || (filter && def.group !== filter)) continue;
-    for (let i = win[0]; i <= win[1]; i++) { const l = arr[i]; if (l === null) unknown = true; else if (l > lv) lv = l; }
+    for (let i = win[0]; i <= win[1]; i++) { const l = arr[i]; if (l !== null && l > lv) lv = l; }
   }
   return { lv, unknown };
 }
