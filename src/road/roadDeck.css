@@ -1213,3 +1213,6 @@ button.aw-prog-tile:not(:disabled):not(.is-on):hover { box-shadow: var(--aw-inse
 .aw-hz-row-haz.aw-stl-hot { color: #8A1C1C; }
 .aw-hz-val.aw-stl-hot { background: #FBE9E4; border-color: #E8C9BD; color: #8A1C1C; }
 @media (max-width: 1023px) { .aw-stl-kind button, .aw-stl-sort select { min-height: 44px; } }
+
+/* Schwellen-Balken: „jetzt“ vom virtuellen Fahrbahnsensor (keine Messung) — rot umrandet wie die berechneten Marker (Jan 11.11.). */
+.aw-hz-thr-now.is-vs { box-shadow: 0 0 0 2px #D32F2F, 0 2px 6px rgba(44, 42, 38, 0.4); }

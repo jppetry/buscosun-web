@@ -161,7 +161,7 @@ export function ThresholdBullets({ rows }: { rows: BulletRow[] }) {
         const cutsP = r.cuts.map(P);
         const zones = [0, ...cutsP, 1];
         const lvNow = r.value == null ? null : cutsP.filter((c) => P(r.value as number) >= c).length;
-        const status = lvNow == null ? 'keine Messung' : lvNow === 0 ? 'unter der ersten Schwelle' : `Stufe ${lvNow} erreicht`;
+        const status = (lvNow == null ? 'keine Messung' : lvNow === 0 ? 'unter der ersten Schwelle' : `Stufe ${lvNow} erreicht`) + (lvNow != null && r.computed ? ' (berechnet)' : '');
         const summary = `${r.label}: jetzt ${r.valueText}, ${status}, ${r.fcText}`;
         return (
           <div key={r.id} className="aw-hz-thr" role="img" aria-label={summary}>
@@ -175,7 +175,7 @@ export function ThresholdBullets({ rows }: { rows: BulletRow[] }) {
                 <span key={i} className="aw-hz-thr-zone" style={{ left: `${z * 100}%`, width: `${(zones[i + 1] - z) * 100}%`, background: i === 0 ? '#EDE6D3' : AW_SEV[Math.min(3, i) as 1 | 2 | 3].bg, opacity: i === 0 ? 1 : 0.7 }} />
               ))}
               {r.fc != null && <span className="aw-hz-thr-fc" style={{ left: `${P(r.fc) * 100}%` }} title={r.fcText} />}
-              {r.value != null && <span className="aw-hz-thr-now" style={{ left: `${P(r.value) * 100}%` }} />}
+              {r.value != null && <span className={`aw-hz-thr-now${r.computed ? ' is-vs' : ''}`} style={{ left: `${P(r.value) * 100}%` }} title={r.computed ? 'berechnet — virtueller Fahrbahnsensor, keine Messung' : undefined} />}
             </div>
             <div className="aw-hz-thr-ticks" aria-hidden="true">
               {cutsP.map((c, i) => <span key={i} style={{ left: `${c * 100}%` }}>{cutText(r.id, r.cuts[i])}</span>)}

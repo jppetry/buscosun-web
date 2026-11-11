@@ -236,25 +236,35 @@ export function planRows(e: HzEntry, prev: ReadonlyArray<HzEntry | null | undefi
 }
 
 /** Bullet rows (Messgrößen gegen Schwellen): value, forecast marker, the level cuts — the axis runs "ungünstig = rechts". */
-export interface BulletRow { id: string; label: string; lo: number; hi: number; cuts: readonly number[]; value: number | null; fc: number | null; valueText: string; fcText: string }
-export function bulletRows(xs: CrossSection, seg: RoadSegment, fcHours: ReadonlyArray<{ fx: number | null; dd: number | null; vis: number | null; rs?: number | null } | null>, rsName = 'buscosun Fusion — Fahrbahn'): BulletRow[] {
+export interface BulletRow { id: string; label: string; lo: number; hi: number; cuts: readonly number[]; value: number | null; fc: number | null; valueText: string; fcText: string;
+  /** The „jetzt“ value is computed by the virtual road sensor (no measurement) — marked „berechnet“. */
+  computed?: boolean }
+export function bulletRows(xs: CrossSection, seg: RoadSegment, fcHours: ReadonlyArray<{ fx: number | null; dd: number | null; vis: number | null; rs?: number | null; wf?: number | null; fog150?: number | null } | null>, rsName = 'buscosun Fusion — Fahrbahn', vsNow: { tf: number | null; wf: number | null } | null = null): BulletRow[] {
   const st = xs.station;
   const cross = (gustKmh: number, dir: number | null) => (dir == null || !seg.bearings.length ? gustKmh : Math.max(...seg.bearings.map((b) => gustKmh * Math.abs(Math.sin(((dir - b) * Math.PI) / 180)))));
   const gustNow = st?.wg != null ? Math.round(st.wg * 3.6) : null;
   const crossNow = gustNow != null ? Math.round(cross(gustNow, st?.wd ?? null)) : null;
-  let crossFc: number | null = null, visFc: number | null = null, rsFc: number | null = null;
+  let crossFc: number | null = null, visFc: number | null = null, rsFc: number | null = null, wfFc: number | null = null, fogFc: number | null = null;
   for (const h of fcHours) {
     if (!h) continue;
+    // Jan 11.11.: the virtual road sensor's water film and fog probability (P(Sicht < 150 m)) over the window.
+    if (h.wf != null && (wfFc == null || h.wf > wfFc)) wfFc = h.wf;
+    if (h.fog150 != null && (fogFc == null || h.fog150 > fogFc)) fogFc = h.fog150;
     if (h.rs != null && (rsFc == null || h.rs < rsFc)) rsFc = h.rs;
     if (h.fx != null) { const c = Math.round(cross(h.fx * 3.6, h.dd)); if (crossFc == null || c > crossFc) crossFc = c; }
     if (h.vis != null && (visFc == null || h.vis < visFc)) visFc = h.vis;
   }
   const visTxt = (v: number) => (v < 1000 ? `${Math.round(v)} m` : `${(v / 1000).toFixed(1).replace('.', ',')} km`);
   const f1 = (v: number) => (Math.abs(v) < 0.05 ? '±0,0' : (v < 0 ? '−' : '+') + Math.abs(v).toFixed(1).replace('.', ','));
+  const mm = (v: number) => `${v.toFixed(2).replace('.', ',')} mm`;
+  // Without a measurement the „jetzt“ marker takes the virtual road sensor's value of the current hour (marked „berechnet“).
+  const rsNow = st?.rs ?? vsNow?.tf ?? null, rsComp = st?.rs == null && rsNow != null;
+  const wfNow = st?.wf ?? vsNow?.wf ?? null, wfComp = st?.wf == null && wfNow != null;
+  const fogTxt = fogFc != null ? ` · Sicht unter 150 m: bis ${Math.round(fogFc)} % (${rsName}, berechnet)` : '';
   return [
-    { id: 'rs', label: 'Fahrbahntemperatur', lo: 6, hi: -6, cuts: [ROAD_HZ_T.nass.l1Tf, ROAD_HZ_T.reif.l1Tf, ROAD_HZ_T.reif.l2Tf], value: st?.rs ?? null, fc: rsFc, valueText: st?.rs != null ? `${f1(st.rs)} °C` : '—', fcText: rsFc != null ? `${rsName}: min. ${f1(rsFc)} °C bis +6 h (berechnet)` : 'keine Fahrbahnprognose (Gate D)' },
-    { id: 'wf', label: 'Wasserfilm', lo: 0, hi: 3, cuts: ROAD_HZ_T.aqua.filmMm, value: st?.wf ?? null, fc: null, valueText: st?.wf != null ? `${st.wf.toFixed(2).replace('.', ',')} mm` : '—', fcText: 'keine Prognose' },
-    { id: 'vis', label: 'Sichtweite', lo: 600, hi: 0, cuts: ROAD_HZ_T.nebel.visM, value: st?.vis != null ? Math.min(600, st.vis) : null, fc: visFc != null ? Math.min(600, visFc) : null, valueText: st?.vis != null ? visTxt(st.vis) : '—', fcText: visFc != null ? `Prognose min. ${visTxt(visFc)} (MOSMIX)` : 'keine Sichtprognose' },
+    { id: 'rs', label: 'Fahrbahntemperatur', lo: 6, hi: -6, cuts: [ROAD_HZ_T.nass.l1Tf, ROAD_HZ_T.reif.l1Tf, ROAD_HZ_T.reif.l2Tf], value: rsNow, fc: rsFc, computed: rsComp, valueText: rsNow != null ? `${f1(rsNow)} °C${rsComp ? ' · berechnet' : ''}` : '—', fcText: rsFc != null ? `${rsName}: min. ${f1(rsFc)} °C bis +6 h (berechnet)` : 'keine Fahrbahnprognose (Gate D)' },
+    { id: 'wf', label: 'Wasserfilm', lo: 0, hi: 3, cuts: ROAD_HZ_T.aqua.filmMm, value: wfNow, fc: wfFc, computed: wfComp, valueText: wfNow != null ? `${mm(wfNow)}${wfComp ? ' · berechnet' : ''}` : '—', fcText: wfFc != null ? `${rsName}: max. ${mm(wfFc)} bis +6 h (berechnet)` : 'keine Prognose' },
+    { id: 'vis', label: 'Sichtweite', lo: 600, hi: 0, cuts: ROAD_HZ_T.nebel.visM, value: st?.vis != null ? Math.min(600, st.vis) : null, fc: visFc != null ? Math.min(600, visFc) : null, valueText: st?.vis != null ? visTxt(st.vis) : '—', fcText: `${visFc != null ? `Prognose min. ${visTxt(visFc)} (MOSMIX)` : 'keine Sichtprognose'}${fogTxt}` },
     { id: 'quer', label: 'Böe quer zur Fahrbahn', lo: 0, hi: 100, cuts: ROAD_HZ_T.quer.crossKmh, value: crossNow, fc: crossFc, valueText: crossNow != null ? `${crossNow} km/h` : '—', fcText: crossFc != null ? `Prognose max. ${crossFc} km/h` : 'keine Prognose' },
   ];
 }

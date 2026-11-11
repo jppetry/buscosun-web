@@ -108,14 +108,18 @@ export default function RoadHazardDetail(p: RoadHazardDetailProps) {
     const vsFile = p.vs?.file ?? null;
     const vsTf = vsFile ? seg.points.flatMap((id) => { const pt = p.vs!.byId.get(id); const v = pt ? roadVsValue(pt, vsFile, ms) : null; return v ? [v.tf] : []; }) : [];
     const rs = vsFile ? (vsTf.length ? Math.min(...vsTf) : null) : p.surface && p.vs?.reason !== 'lädt' ? dec1('rs', 'min') : null;
-    return { t: dec1('t', 'min'), td: dec1('td', 'first'), fx: dec1('fx', 'max'), dd: dec1('dd', 'first'), vis: dec1('vs', 'min'), rr: dec1('rr', 'max'), rs };
+    // Jan 11.11.: water film (max) and fog probability P(Sicht < 150 m) (max) of the virtual road sensor over the segment's points.
+    const vsVals = vsFile ? seg.points.flatMap((id) => { const pt = p.vs!.byId.get(id); const v = pt ? roadVsValue(pt, vsFile, ms) : null; return v ? [v] : []; }) : [];
+    const wfs = vsVals.flatMap((v) => (v.filmMm != null ? [v.filmMm] : [])), fogs = vsVals.flatMap((v) => (v.vis[2] != null ? [v.vis[2]] : []));
+    const wf = wfs.length ? Math.max(...wfs) : null, fog150 = fogs.length ? Math.max(...fogs) : null;
+    return { t: dec1('t', 'min'), td: dec1('td', 'first'), fx: dec1('fx', 'max'), dd: dec1('dd', 'first'), vis: dec1('vs', 'min'), rr: dec1('rr', 'max'), rs, wf, fog150 };
   }), [file.hours, p.fcFile, seg.points, p.surface, p.vs]);
   const rsVs = !!p.vs?.file;
   const fusion = file.inputs.fc?.fusion ?? null;
   const xs = useMemo(() => crossSectionOf(seg, p.byId, file.slotMs, fusion, fcHours[0] ? { t: fcHours[0].t, td: fcHours[0].td } : null), [seg, p.byId, file.slotMs, fusion, fcHours]);
   const narrative: Narrative | null = useMemo(() => (entry ? roadNarrative(seg, entry, { stationName: (id) => p.byId.get(id)?.n ?? null, hm, slotMs: file.slotMs, hours: file.hours, fusion }) : null), [entry, seg, p.byId, file, fusion]);
   const plan = useMemo(() => (entry ? planRows(entry, p.prev.map((f) => (f === undefined ? undefined : f ? f.seg[seg.id] ?? null : null))) : []), [entry, p.prev, seg.id]);
-  const bullets = useMemo(() => bulletRows(xs, seg, fcHours, rsVs ? ROAD_VS_NAME : undefined), [xs, seg, fcHours, rsVs]);
+  const bullets = useMemo(() => bulletRows(xs, seg, fcHours, rsVs ? ROAD_VS_NAME : undefined, rsVs && fcHours[0] ? { tf: fcHours[0].rs, wf: fcHours[0].wf } : null), [xs, seg, fcHours, rsVs]);
   const wind = useMemo(() => windSectors(seg, xs.station, fcHours), [seg, xs.station, fcHours]);
   const mainSt = xs.station?.id ?? segmentMainStation(seg, p.byId);
   const temp = useMemo(() => tempSeriesOf(p.ring, mainSt, file.slotMs, fcHours.map((h) => (h ? { t: h.t, td: h.td, rs: h.rs } : null))), [p.ring, mainSt, file.slotMs, fcHours]);
