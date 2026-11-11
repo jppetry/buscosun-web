@@ -159,6 +159,8 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, gau
       map.addSource('sw-spots', { type: 'geojson', data: EMPTY });
       map.addLayer({ id: 'sw-spots', type: 'symbol', source: 'sw-spots', layout: { 'icon-image': ['concat', 'sw-dot-', ['get', 'cls'], ['case', ['==', ['get', 'sel'], 1], '-sel', '']], 'icon-allow-overlap': true, 'icon-ignore-placement': true, 'symbol-sort-key': ['get', 'sel'] } });
       map.on('click', 'sw-spots', (e) => { const id = e.features?.[0]?.properties?.id; if (id) onSelectRef.current(String(id)); });
+      // Right click (or long press on touch) on a spot opens the same info card as a left click — with the way to the dossier.
+      map.on('contextmenu', 'sw-spots', (e) => { e.originalEvent.preventDefault(); const id = e.features?.[0]?.properties?.id; if (id) onSelectRef.current(String(id)); });
       map.on('mouseenter', 'sw-spots', () => { map.getCanvas().style.cursor = 'pointer'; });
       map.on('mouseleave', 'sw-spots', () => { map.getCanvas().style.cursor = ''; });
       ready.current = true;
