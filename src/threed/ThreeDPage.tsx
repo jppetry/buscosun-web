@@ -10,6 +10,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import type { Location } from '../types';
 import { geocodeDACH, flagForCountry } from '../geocode';
+import { useLocationSuggest } from '../useLocationSuggest';
 import { LocationSearchSheet, useSearchSheet } from '../components/LocationSearchSheet';
 import ThreeDMap from './ThreeDMap';
 import SectionView from './SectionView';
@@ -266,6 +267,7 @@ function ThreeDLocationField({ value, onChange }: { value: Location | null; onCh
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  useLocationSuggest(query, setResults);
   const sheet = useSearchSheet();   // phone / tablet: full-screen search page instead of the inline dropdown
 
   async function search() {

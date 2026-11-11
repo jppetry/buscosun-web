@@ -11,6 +11,7 @@
 import { lazy, Suspense, useRef, useState, type KeyboardEvent } from 'react';
 import type { Location } from '../types';
 import { geocodeDACH, flagForCountry } from '../geocode';
+import { useLocationSuggest } from '../useLocationSuggest';
 import { LocationSearchSheet, useSearchSheet } from '../components/LocationSearchSheet';
 import { tourFileToCutLine } from '../threed/tourImport';
 import { pickCountry } from '../pointForecast/clustering';
@@ -196,6 +197,7 @@ function LocationField() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  useLocationSuggest(query, setResults);
   const sheet = useSearchSheet();   // phone / tablet: full-screen search page instead of the inline dropdown
 
   async function search() {

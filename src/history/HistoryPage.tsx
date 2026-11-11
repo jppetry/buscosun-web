@@ -14,6 +14,7 @@
 
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
 import { geocodeDACH, flagForCountry } from '../geocode';
+import { useLocationSuggest } from '../useLocationSuggest';
 import { LocationSearchSheet, useSearchSheet } from '../components/LocationSearchSheet';
 import { defaultHistorySource } from './historySource';
 import type { DailyRecord } from './historyModel';
@@ -1045,6 +1046,7 @@ function LocationSearch({ onPick }: { onPick: (l: HistoryLocation) => void }) {
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const sheet = useSearchSheet();   // phone / tablet: full-screen search page instead of the inline dropdown
+  useLocationSuggest(query, (l) => setResults(l.map((f) => ({ name: f.name, lat: f.lat, lon: f.lon, country: f.country }))));
 
   async function search() {
     const q = query.trim(); if (q.length < 2) return;

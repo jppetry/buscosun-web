@@ -10,6 +10,7 @@
  * verdrahtet, nur nach Vorlage angeordnet.
  */
 
+import { useLocationSuggest } from '../useLocationSuggest';
 import { useState, useRef, useEffect, lazy, Suspense, type KeyboardEvent } from 'react';
 import type { Location } from '../types';
 import { geocodeDACH, flagForCountry } from '../geocode';
@@ -280,6 +281,7 @@ function LocationField({ value, onChange }: { value: Location | null; onChange: 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const abortRef = useRef<AbortController | null>(null);
+  useLocationSuggest(query, setResults);
 
   const runSearch = async () => {
     const q = query.trim();

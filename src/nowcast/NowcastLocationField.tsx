@@ -5,6 +5,7 @@
 import { useRef, useState, type KeyboardEvent } from 'react';
 import type { Location } from '../types';
 import { geocodeDACH, flagForCountry } from '../geocode';
+import { useLocationSuggest } from '../useLocationSuggest';
 import { LocationSearchSheet, useSearchSheet } from '../components/LocationSearchSheet';
 
 export default function NowcastLocationField({ value, onChange, showCountryCode = false }: { value: Location | null; onChange: (l: Location | null) => void; showCountryCode?: boolean }) {
@@ -13,6 +14,7 @@ export default function NowcastLocationField({ value, onChange, showCountryCode 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  useLocationSuggest(query, setResults);
   const sheet = useSearchSheet();   // phone / tablet: full-screen search page instead of the inline dropdown
 
   async function search() {

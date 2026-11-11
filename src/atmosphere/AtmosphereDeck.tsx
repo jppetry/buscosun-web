@@ -13,6 +13,7 @@
  * Funktionserhalt: SectionChart bleibt verdrahtet.
  */
 
+import { useLocationSuggest } from '../useLocationSuggest';
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { Location } from '../types';
 import { geocodeDACH, flagForCountry } from '../geocode';
@@ -785,6 +786,7 @@ function LocationChip() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Location[]>([]);
   const acRef = useRef<AbortController | null>(null);
+  useLocationSuggest(query, setResults);
   async function search() {
     const q = query.trim(); if (!q) return;
     acRef.current?.abort(); const ac = new AbortController(); acRef.current = ac;

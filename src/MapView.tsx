@@ -1,3 +1,4 @@
+import { useLocationSuggest } from './useLocationSuggest';
 import { Fragment, Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { LayerKey } from './map/layerTypes';
 import { LAYER_CATALOG, LAYER_OPTION_ORDER } from './map/layerCatalog';
@@ -6326,6 +6327,7 @@ function DeckSearch({ placeholder, onSelect, compact = false }: {
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const acRef = useRef<AbortController | null>(null);
+  useLocationSuggest(q, setHits);
 
   useEffect(() => {
     if (compact) return;

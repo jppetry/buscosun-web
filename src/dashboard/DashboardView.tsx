@@ -8,6 +8,7 @@
  * Die Kacheln zeichnen `buildDashboardVM(...)` — rein, geprüft von `verify:dashboard`. Im Entwicklungsmodus liefert
  * `?dbfixture=vorlage` die Werte der Vorlage (Pixel-Diff, §5.7); im Produktions-Bau ist der Zweig entfernt.
  */
+import { useLocationSuggest } from '../useLocationSuggest';
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import './dashboard.css';
 import ViewToggle, { ViewBar, type DashboardView as View } from './ViewToggle';
@@ -370,6 +371,7 @@ function DeckBarSearch({ placeholder, onSelect }: { placeholder: string; onSelec
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const acRef = useRef<AbortController | null>(null);
+  useLocationSuggest(q, setHits);
   useEffect(() => {
     const kd = (e: globalThis.KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); inputRef.current?.focus(); }
@@ -441,6 +443,7 @@ function DashSearch({ label, onSelect }: { label: string; onSelect: (l: Location
   const [hits, setHits] = useState<Location[] | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const acRef = useRef<AbortController | null>(null);
+  useLocationSuggest(q, setHits, focus);
   const search = async () => {
     const query = q.trim();
     if (!query) return;

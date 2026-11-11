@@ -9,6 +9,7 @@
 import { useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import type { Location } from '../types';
 import { geocodeDACH, flagForCountry } from '../geocode';
+import { useLocationSuggest } from '../useLocationSuggest';
 import ForecastDeck from './ForecastDeck';
 import type { ForecastUrlState, ParsedForecastQuery } from './forecastUrl';
 import '../intro/intro.css';
@@ -131,6 +132,7 @@ function ForecastLocationField({ value, onChange }: { value: Location | null; on
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  useLocationSuggest(query, setResults);
 
   async function search() {
     const q = query.trim();
