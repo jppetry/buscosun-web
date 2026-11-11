@@ -24,8 +24,8 @@ export default function RouteHikerIcon() {
       <circle cx="210" cy="12.7" r="3.6" fill="var(--terracotta-500)" />
       <circle cx="440" cy="28.2" r="3.6" fill="var(--steel-600)" />
       <g>
-        <animateMotion dur="16s" repeatCount="indefinite" path={ROUTE} calcMode="linear" />
-        <animate attributeName="opacity" dur="16s" repeatCount="indefinite" values="0;1;1;0" keyTimes="0;0.05;0.95;1" />
+        <animateMotion dur="24s" repeatCount="indefinite" path={ROUTE} calcMode="linear" />
+        <animate attributeName="opacity" dur="24s" repeatCount="indefinite" values="0;1;1;0" keyTimes="0;0.05;0.95;1" />
         <ellipse className="tile-hiker-glow" cx="0" cy="-11" rx="17" ry="15" fill="url(#hiker-glow)" />
         <g className="tile-hiker" transform="scale(1.5)">
           <g className="tile-hiker-body">
