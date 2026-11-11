@@ -1085,3 +1085,12 @@
 @media (max-width: 767px) {
   .mdk-legends .confidence-legend[aria-label="Amtliche Wetterwarnungen"] { display: none; }
 }
+
+/* Desktop: Quellenzeile ganz am unteren Kartenrand, UNTER dem Zeit-Deck (Jan 11.11.); Zeit-Deck, Wind-Deck und Maßstab rücken 26 px hoch. */
+@media (min-width: 768px) {
+  .mdk-stage { --msl-bottom: 0px; }
+  .mdk-stage .maplibregl-ctrl-bottom-right { bottom: 0; }
+  .mdk-timedeck { bottom: 44px; }
+  .mdk-winddeck { bottom: 184px; }
+  .mdk-stage .maplibregl-ctrl-bottom-left { bottom: 198px; }
+}
