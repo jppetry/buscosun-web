@@ -1122,3 +1122,31 @@
   .dbd-wd-hero .dbd-rose-headline { font-size: 20px; }
   .dbd-wd-hours { grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 5px; }
 }
+
+/* ============================================================================
+   Jan 11.11.: erste Reihe auf dem Desktop flacher; Karte und Warnungen mit Symbol „groß anzeigen" (`expandDialog.tsx`)
+   ============================================================================ */
+@media (min-width: 1280px) {
+  /* Jetzt: die vier Werte als eine schmale Zeile statt 2 × 2 Kästen — die Reihe wird um eine Kastenzeile niedriger */
+  .dbd-row1 > .dbd-now { padding: 14px 16px; }
+  .dbd-now-main { margin-top: 8px; gap: 10px 16px; }
+  .dbd-now-grid { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; padding-top: 8px; border-top: 1px solid var(--dbd-hair); }
+  .dbd-now-grid > div { padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none; }
+  .dbd-now-grid .dbd-kv-l { font-size: 10px; letter-spacing: .4px; white-space: nowrap; }
+  .dbd-now-grid .dbd-kv-v { font-size: 14px; white-space: nowrap; }
+  .dbd-nowcast-chart { min-height: 120px; }
+  /* Kopf der Warnkachel ist mit dem Symbol höher: das Scrollfeld beginnt darunter */
+  .dbd-warntile-scroll { top: 56px; }
+}
+/* Symbol „groß anzeigen": größer als das alte 28-px-Symbol, Trefferfläche ≥ 44 px über ::after */
+.dbd-xp-open { width: 36px; height: 36px; flex: none; }
+.dbd-warntile-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.dbd-mm-open { position: absolute; top: 10px; right: 10px; z-index: 3; background: rgba(255, 255, 255, .92); }
+/* Dialoge */
+.dbd-xp-dialog.is-wide { width: min(1180px, 100%); }
+.dbd-xp-map { position: relative; height: min(72vh, 720px); margin-top: 14px; }
+.dbd-xp-warn { margin-top: 14px; }
+.dbd-xp-warn .dbd-warn { margin-top: 0; }
+@media (max-width: 767px) {
+  .dbd-xp-map { height: 62vh; }
+}

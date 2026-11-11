@@ -19,6 +19,7 @@ import type { CellsIn, DashboardVM, DashInputs, HailIn, IconD2In, NowcastIn, Pla
 import { subscribeDashboardForecast, retryDashboardForecast, coversWindow, type ForecastState } from './data/forecastStore';
 import { loadCells, loadHail, loadIconD2, loadNowcast, loadPollen, loadTerrain, loadUv, loadWarnings, warnChannel } from './data/extras';
 import { NowcastDetail } from './nowcastDetail';
+import { ExpandIcon, MapDetail, WarningsDetail } from './expandDialog';
 import { DayDetail } from './dayDetail';
 import { FeatureRail } from '../nav/featureRail';
 import ShareButton from '../share/ShareButton';
@@ -258,6 +259,10 @@ function DashboardPage({ vm, place, range, onRange, onSelectView, onSelectLocati
   const clockDate = `${clock.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '')} · ${clock.getDate()} ${clock.toLocaleDateString('de-DE', { month: 'short' }).replace('.', '')}`.toUpperCase();
   const [ncOpen, setNcOpen] = useState(false);
   const ncOpener = useRef<HTMLButtonElement>(null);
+  // Jan 11.11.: map and warnings tiles open a large view.
+  const [xp, setXp] = useState<'map' | 'warn' | null>(null);
+  const mapOpener = useRef<HTMLButtonElement>(null);
+  const warnOpener = useRef<HTMLButtonElement>(null);
   const [dayIdx, setDayIdx] = useState<number | null>(null);
   const dayOpener = useRef<HTMLElement | null>(null);
   // Mobil sitzt der Chip „Über diese Ansicht" im Dashboard unten (dashboard.css) — Klasse am body, solange es offen ist.
@@ -334,12 +339,15 @@ function DashboardPage({ vm, place, range, onRange, onSelectView, onSelectLocati
                   {(vm.status === 'ok' || vm.status === 'error') && place && (
                     <Suspense fallback={null}><MiniMap key={`${place.country}:${place.lat}:${place.lon}`} place={{ name: place.name, lat: place.lat, lon: place.lon, country: place.country }} /></Suspense>
                   )}
+                  {place && (
+                    <button ref={mapOpener} type="button" className="dbd-rose-open dbd-xp-open dbd-mm-open" onClick={() => setXp('map')} aria-haspopup="dialog" aria-label="Karte groß anzeigen" title="Groß anzeigen: größerer Kartenausschnitt, verschiebbar"><ExpandIcon /></button>
+                  )}
                 </section>
               )}
               {/* Jan 20.10.: der Radar-Nowcast steht in der Mitte der ersten Reihe (vorher eigene Reihe darunter). */}
               <NowcastTile vm={vm.nowcast} rootRef={refs?.nowcast} onDetail={() => setNcOpen(true)} detailRef={ncOpener} />
               {/* Jan 25.10.: die amtlichen Warnungen stehen jetzt hier (vorher die Windrose, davor eine Zeile in der Jetzt-Kachel). */}
-              <WarningsTile vm={vm.warning} />
+              <WarningsTile vm={vm.warning} onDetail={() => setXp('warn')} detailRef={warnOpener} />
             </div>
             <ForecastZone vm={vm.zone} range={range} onRange={onRange} onDay={(i, el) => { dayOpener.current = el; setDayIdx(i); }} />
             </div>
@@ -354,6 +362,8 @@ function DashboardPage({ vm, place, range, onRange, onSelectView, onSelectLocati
       {dayIdx != null && vm.zone.days[dayIdx] && (
         <DayDetail days={vm.zone.days} index={dayIdx} onIndex={setDayIdx} onClose={() => { setDayIdx(null); dayOpener.current?.focus(); }} />
       )}
+      {xp === 'map' && place && <MapDetail place={{ name: place.name, lat: place.lat, lon: place.lon, country: place.country }} onClose={() => { setXp(null); mapOpener.current?.focus(); }} />}
+      {xp === 'warn' && <WarningsDetail vm={vm.warning} onClose={() => { setXp(null); warnOpener.current?.focus(); }} />}
       {ncOpen && <NowcastDetail vm={vm.nowcastDetail} onClose={() => { setNcOpen(false); ncOpener.current?.focus(); }} />}
     </div>
   );

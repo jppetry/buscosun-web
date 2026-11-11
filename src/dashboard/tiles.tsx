@@ -141,10 +141,17 @@ export function WarningStrip({ vm }: { vm: WarningVM }) {
  * Kachel „Amtliche Warnungen" (Jan 25.10.: ersetzt die Windrose in der ersten Reihe). Dieselbe wörtliche Darstellung wie die
  * frühere Zeile in der Jetzt-Kachel (`WarningStrip`) — nichts zusammengefasst, nichts umformuliert; lange Texte scrollen in der Kachel.
  */
-export function WarningsTile({ vm }: { vm: WarningVM }) {
+export function WarningsTile({ vm, onDetail, detailRef }: { vm: WarningVM; onDetail?: () => void; detailRef?: RefObject<HTMLButtonElement | null> }) {
   return (
     <section className="dbd-tile dbd-warntile" aria-label="Amtliche Warnungen">
-      <span className="dbd-eyebrow">AMTLICHE WARNUNGEN</span>
+      <div className="dbd-warntile-head">
+        <span className="dbd-eyebrow">AMTLICHE WARNUNGEN</span>
+        {onDetail && (
+          <button ref={detailRef} type="button" className="dbd-rose-open dbd-xp-open" onClick={onDetail} aria-haspopup="dialog" aria-label="Warnungen groß anzeigen" title="Groß anzeigen: alle Meldungen in voller Länge">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" /></svg>
+          </button>
+        )}
+      </div>
       <div className="dbd-warntile-scroll"><WarningStrip vm={vm} /></div>
     </section>
   );

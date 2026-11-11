@@ -108,7 +108,8 @@ function paintTempLabels(map: maplibregl.Map, markers: Map<string, maplibregl.Ma
   }
 }
 
-export default function MiniMap({ place }: { place: PlaceIn }) {
+/** `zoom`/`interactive`: the large view (Jan 11.11., `expandDialog.tsx`) shows a wider section the user can move; the radar picture grows with it. */
+export default function MiniMap({ place, zoom = ZOOM, interactive = false }: { place: PlaceIn; zoom?: number; interactive?: boolean }) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const [noWebgl, setNoWebgl] = useState(false);
   const [windState, setWindState] = useState<Part>('loading');
@@ -122,8 +123,8 @@ export default function MiniMap({ place }: { place: PlaceIn }) {
     if (!supportsWebGL()) { setNoWebgl(true); return; }
     const ac = new AbortController();
     const map = new maplibregl.Map({
-      container: host, style: STYLE_URL, center: [place.lon, place.lat], zoom: ZOOM,
-      interactive: false, fadeDuration: 0,
+      container: host, style: STYLE_URL, center: [place.lon, place.lat], zoom,
+      interactive, dragRotate: false, pitchWithRotate: false, touchPitch: false, fadeDuration: 0,
       // Source line over the full width like the Brandradar (Jan 07.11., `map/MapSourcesTile.tsx`); it stays open.
       attributionControl: { compact: false, customAttribution: `${MAP_SOURCES_LINK} · Wind, Temperatur: DWD ICON-D2 · Radar: DWD, GeoSphere Austria, MeteoSchweiz · bearbeitet` },
     });
@@ -143,7 +144,8 @@ export default function MiniMap({ place }: { place: PlaceIn }) {
       // Radar picture (canvas source, drawn once the frame is there) below the wind particles.
       const canvas = document.createElement('canvas');
       canvas.width = 2; canvas.height = 2;
-      const box: DrapeBox = { west: place.lon - BOX_LON, east: place.lon + BOX_LON, south: place.lat - BOX_LAT, north: place.lat + BOX_LAT };
+      const k = Math.max(1, 2 ** (ZOOM - zoom)) * (interactive ? 1.6 : 1);
+      const box: DrapeBox = { west: place.lon - BOX_LON * k, east: place.lon + BOX_LON * k, south: place.lat - BOX_LAT * k, north: place.lat + BOX_LAT * k };
       map.addSource(SRC_RADAR, { type: 'canvas', canvas, animate: false, coordinates: drapeCorners(box) });
       // Like the Wetterkarte: the weather picture goes in right below the first boundary layer, the orientation layers
       // (built-up areas, water, rivers, motorways, place dots) above it, boundaries and labels on top.
