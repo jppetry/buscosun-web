@@ -18,6 +18,7 @@
  */
 import { useLayoutEffect, useRef, useState } from 'react';
 import type { RoadPoint } from './roadContract';
+import type { RoadClass } from './roadClasses';
 import type { RoadCorridor } from './roadClient';
 import { ROAD_CLASS_COLOR, ROAD_GAP_TEXT, ROAD_GAP_TITLE, bandSegments, dec, isGapCorridor, isHatched, kmIn, kmTicks, pickBandLabels, shieldText, corridorRouteText } from './roadView';
 import { ROAD_CLASS_LABEL } from './roadClasses';
@@ -38,11 +39,13 @@ interface Props {
   fcWhy?: string;
   /** AWD: the strip stands in the flow of the dossier instead of floating over the map foot (CSS only). */
   inline?: boolean;
+  /** Road class of the virtual road sensor (buscosun Fusion) at a forecast point, `null` = none — fills stretches without a sensor. */
+  vsClassAt?: (pointId: string) => RoadClass | null;
 }
 
 const COUNTRY: Record<string, string> = { AT: 'AT', CH: 'CH', CZ: 'CZ', PL: 'PL', FR: 'FR', NL: 'NL', BE: 'BE', DK: 'DK', LU: 'LU' };
 
-export default function RoadBand({ corridor: c, byId, dir, selectedId, standLabel, zust, onPick, fc, fcLabel, fcWhy, inline = false }: Props) {
+export default function RoadBand({ corridor: c, byId, dir, selectedId, standLabel, zust, onPick, fc, fcLabel, fcWhy, inline = false, vsClassAt }: Props) {
   const len = c.lengthKm;
   // AF-5: a section without a measuring station has no measured bar — the forecast row takes its place.
   const gap = isGapCorridor(c);
@@ -89,12 +92,13 @@ export default function RoadBand({ corridor: c, byId, dir, selectedId, standLabe
   const townFit = fit.key === townsKey ? fit : null;
   const ticks = kmTicks(len);
   const borders = c.borders.map((b) => ({ km: kmIn(c, b.km, dir), country: COUNTRY[b.country] ?? b.country }));
-  // Jan 11.11.: where no sensor measures (no station within 10 km, or no valid measurement) the bar takes the air
-  // forecast of buscosun Fusion for that stretch — still hatched, so „kein Sensor“ stays visible.
-  const fillOf = (fromKm: number, toKm: number) => (fc ?? [])
-    .filter((f) => f.cls !== 'gap' && f.toKm > fromKm && f.fromKm < toKm)
-    .map((f) => ({ id: f.id, fromKm: Math.max(fromKm, f.fromKm), toKm: Math.min(toKm, f.toKm), color: ROAD_FC_AIR_COLOR[f.cls as Exclude<typeof f.cls, 'gap'>] }));
-  const hasFill = !gap && !!fc && segs.some((g) => (g.cls === 'gap' || isHatched(g.cls)) && fillOf(g.fromKm, g.toKm).length > 0);
+  // Jan 11.11.: where no sensor measures (no station within 10 km, or no valid measurement) the bar takes the road class
+  // of the virtual road sensor (buscosun Fusion) at the forecast points of that stretch — same colours as a measurement,
+  // marked „berechnet“ by a red line at the foot. Only where the virtual sensor has no value does the hatch remain.
+  const fillOf = (fromKm: number, toKm: number) => (vsClassAt ? (fc ?? []) : [])
+    .filter((f) => f.toKm > fromKm && f.fromKm < toKm)
+    .flatMap((f) => { const k = vsClassAt!(f.id); return k && !isHatched(k) ? [{ id: f.id, fromKm: Math.max(fromKm, f.fromKm), toKm: Math.min(toKm, f.toKm), cls: k }] : []; });
+  const hasFill = !gap && segs.some((g) => (g.cls === 'gap' || isHatched(g.cls)) && fillOf(g.fromKm, g.toKm).length > 0);
   return (
     <section className={`aw-band${inline ? ' is-inline' : ''}`} aria-label="Streckenband">
       <div className="aw-band-head">
@@ -109,10 +113,13 @@ export default function RoadBand({ corridor: c, byId, dir, selectedId, standLabe
               const noSensor = g.cls === 'gap' || isHatched(g.cls);
               const fill = noSensor ? fillOf(g.fromKm, g.toKm) : [];
               if (fill.length) {
-                return fill.map((f) => (
-                  <div key={`${i}-${f.id}`} className="aw-band-seg is-gap is-fusion" style={{ left: pct(f.fromKm), width: pct(f.toKm - f.fromKm), ['--aw-fill' as string]: f.color }}
-                    title={`km ${dec(f.fromKm, 0)}–${dec(f.toKm, 0)}: kein Sensor — Farbe aus der Prognose von buscosun Fusion`} />
-                ));
+                return [
+                  <div key={i} className="aw-band-seg is-gap" style={{ left: pct(g.fromKm), width: pct(g.toKm - g.fromKm) }} />,
+                  ...fill.map((f) => (
+                    <div key={`${i}-${f.id}`} className="aw-band-seg is-vs" style={{ left: pct(f.fromKm), width: pct(f.toKm - f.fromKm), background: zust ? ROAD_CLASS_COLOR[f.cls] : '#8B95A3' }}
+                      title={`km ${dec(f.fromKm, 0)}–${dec(f.toKm, 0)}: kein Sensor — ${ROAD_CLASS_LABEL[f.cls].label}, berechnet (virtueller Fahrbahnsensor, buscosun Fusion)`} />
+                  )),
+                ];
               }
               return (
                 <div
@@ -209,7 +216,7 @@ export default function RoadBand({ corridor: c, byId, dir, selectedId, standLabe
         <div className="aw-band-legend">
           <span><i className="aw-sw" style={{ background: '#5E97D1' }} />Messung DWD</span>
           <span><i className="aw-sw is-gap" />keine Messung im 10-km-Umkreis</span>
-          {hasFill && <span><i className="aw-sw is-gap is-fusion" />kein Sensor: Luft-Prognose buscosun Fusion</span>}
+          {hasFill && <span><i className="aw-sw is-vs" />kein Sensor: berechnet (virtueller Fahrbahnsensor)</span>}
           {(c.unbuilt?.length ?? 0) > 0 && <span><i className="aw-sw is-unbuilt" />ohne Fahrbahn (OSM)</span>}
           <span className="aw-band-legend-note">{shieldText(c.road)}: Messpunkt, nicht Strecke</span>
         </div>

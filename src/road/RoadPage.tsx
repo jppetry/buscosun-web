@@ -607,6 +607,8 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
     }
     return out;
   }, [vsView, mapPoints, vsRings, Math.round(fcMs / 3_600_000)]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Streckenband (Jan 11.11.): road class of the virtual road sensor at a forecast point — fills stretches without a sensor.
+  const vsClassAt = useCallback((id: string) => { const pt = vsView.file ? vsView.byId.get(id) : undefined; const v = pt && vsView.file ? roadVsValue(pt, vsView.file, fcMs) : null; return v ? roadVsClassOf(v) : null; }, [vsView, Math.round(fcMs / 3_600_000)]); // eslint-disable-line react-hooks/exhaustive-deps
   const vsAtSel = (id: string | null | undefined) => { const pt = id && vsView.file ? vsView.byId.get(id) : undefined; return pt && vsView.file ? roadVsValue(pt, vsView.file, fcMs) : null; };
   // Phase FB: a station of the open corridor without a road measurement takes the computed road temperature of the nearest
   // forecast point of the axis (≤ 6 km) — on the map as „~+1,2°“, never as a road class (D-04).
@@ -707,7 +709,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
           selectedId={segId} onPick={pickSegment} segNote={segments === 'error' ? 'Die Abschnitte sind nicht ladbar.' : !segments ? 'Abschnitte werden geladen …' : hzShown ? null : hzWhy} />
       )}
       {openSeg && <RoadPickBar seg={openSeg} state={segStates.get(openSeg.id)} onOpen={() => setDsChapter(2)} />}
-      {corridor && <RoadBand inline corridor={corridor} byId={shownById} dir={dir} selectedId={axis?.id ?? point?.id ?? null} standLabel={standLabel} zust={layers.zust} onPick={pickStation} fc={fcCells} fcLabel={fcBandLabel} fcWhy={fcLabel} />}
+      {corridor && <RoadBand vsClassAt={vsClassAt} inline corridor={corridor} byId={shownById} dir={dir} selectedId={axis?.id ?? point?.id ?? null} standLabel={standLabel} zust={layers.zust} onPick={pickStation} fc={fcCells} fcLabel={fcBandLabel} fcWhy={fcLabel} />}
       {!openSeg && noSeg}
       {/* Mobile has no readout column in this stage: the hazard list is a second way into a segment. */}
       {isMobile && !openSeg && <div className="aw-dossier-list">{hzNode}</div>}
@@ -894,7 +896,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
             {emptyMap}{corrFail}
             {mapCardEl && <div className="aw-map-card">{mapCardEl}</div>}
             {/* AWD: with the hazard switch the strip lives in the dossier only; without it the map keeps its strip (rollback = the page of before). */}
-            {corridor && !hz && <RoadBand corridor={corridor} byId={shownById} dir={dir} selectedId={axis?.id ?? point?.id ?? null} standLabel={standLabel} zust={layers.zust} onPick={pickStation} fc={fcCells} fcLabel={fcBandLabel} fcWhy={fcLabel} />}
+            {corridor && !hz && <RoadBand vsClassAt={vsClassAt} corridor={corridor} byId={shownById} dir={dir} selectedId={axis?.id ?? point?.id ?? null} standLabel={standLabel} zust={layers.zust} onPick={pickStation} fc={fcCells} fcLabel={fcBandLabel} fcWhy={fcLabel} />}
           </main>
           <RoadReadout {...readoutProps} hz={hzNode} roads={(
             <RoadDock part="roads" corridors={filtered} byId={shownById} selectedId={corridor?.id ?? null} onPick={pickCorridor} query={query} onQuery={setQuery}
