@@ -49,7 +49,7 @@ export const SITE = {
   // JSON-LD, OG-URLs und Sitemaps; bei Änderung hier UND in robots.txt/llms.txt.
   url: 'https://buscosun.com',
   tagline: 'Wetter für Deutschland, Österreich & die Schweiz',
-  description: 'DACH-Wetter aus amtlichen Quellen (DWD · GeoSphere · MeteoSwiss), höhenkorrigiert und ohne Tracker: interaktive Karte, Tourenplanung, bester Event-Tag, 6-Stunden-Nowcast, Modellvergleich, Lawinen-Deeplinks und mehr.',
+  description: 'DACH-Wetter aus amtlichen Quellen (DWD · GeoSphere · MeteoSwiss), höhenkorrigiert und ohne Tracker: interaktive Karte, Regenradar, Tourenplanung, 6-Stunden-Nowcast, Atmosphäre, Lawinen-Deeplinks und mehr.',
 };
 
 const FLAG = { DE: '🇩🇪', AT: '🇦🇹', CH: '🇨🇭' };
@@ -125,8 +125,6 @@ export function placeFacts(place) {
   } else {
     facts.push(`UV wird für ${place.name} per Klarhimmel-Modell geschätzt; Pollen sind optional über Open-Meteo/CAMS zuschaltbar (kein amtlicher AT/CH-Feed).`);
   }
-  facts.push(`Der Modellvergleich zeigt für ${place.name} den Unsicherheits-Spread mehrerer Wettermodelle (ICON-D2, MOSMIX, ICON-EU) ehrlich an, statt eine Scheingenauigkeit vorzutäuschen.`);
-  facts.push(`Für Vorhaben im Freien ermittelt die Event-Planung den besten der nächsten sieben Tage in ${place.name} — inklusive Plan-B-Tag, Foto-Licht und Astro-Nacht.`);
   return facts;
 }
 
@@ -142,7 +140,7 @@ export function placeLead(place) {
   const base =
     `Das Wetter für ${place.name} (${place.region}, ${COUNTRY_NAME[place.country]}, rund ${place.ele} m — ${elevationBand(place.ele)}) ` +
     `zeigt buscosun höhenkorrigiert aus amtlichen Quellen: ${shortSource(place.country)}. ` +
-    `Temperaturen werden über ein digitales Geländemodell auf die tatsächliche Höhe umgerechnet; Karte, Stundenverlauf, 6-Stunden-Nowcast und Modellvergleich sind kostenlos und ohne Tracker abrufbar.`;
+    `Temperaturen werden über ein digitales Geländemodell auf die tatsächliche Höhe umgerechnet; Karte, Stundenverlauf und 6-Stunden-Nowcast sind kostenlos und ohne Tracker abrufbar.`;
   const alpine = isAlpine(place)
     ? ` Für die Höhenlage von ${place.name} sind zudem Schneefallgrenze, Höhenwind und – im Alpenraum – Föhn relevant.`
     : '';
@@ -245,7 +243,7 @@ export function webAppJsonLd() {
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
     description: SITE.description,
     inLanguage: ['de-DE', 'de-AT', 'de-CH'],
-    featureList: ['2D-Wetterkarte', 'Tourenplanung', 'Event-Tag-Vergleich', '6-Stunden-Nowcast', 'Modellvergleich', 'Vertikalschnitt der Atmosphäre', 'Wetterhistorie'],
+    featureList: ['2D-Wetterkarte', 'Tourenplanung', '6-Stunden-Nowcast', 'Vertikalschnitt der Atmosphäre', 'Wetterhistorie'],
   };
 }
 
@@ -418,8 +416,6 @@ export function renderPlacePage(place) {
     // (`/regenradar/muenchen`). Die übrigen Ansichten bekommen ihre Slug-Form in
     // SH3–SH5, wenn ihr Zustand vom Fragment in die Query wandert.
     ['Regenradar', TABLE_SLUGS.has(place.slug) ? `/regenradar/${place.slug}` + (String(place.country).toLowerCase() === 'de' ? '' : `?land=${String(place.country).toLowerCase()}`) : buildRadarUrl(freePlace(place), { slug: toSlug(place.name), inTable: false }, null)],
-    ['Vorhersage & Modellvergleich', `/vorhersage?${placeQuery}`],
-    ['Bester Tag für ein Vorhaben', `/eventplanung?${placeQuery}`],
     ['Wetter entlang einer Tour', '/tourenplanung'],
     ['Atmosphäre & Höhenwind', `/atmosphaere/querschnitt?${placeQuery}`],
     ['Wetterarchiv & Klima', `/wetterarchiv?${placeQuery}`],
@@ -508,8 +504,8 @@ export function renderHomeRootContent(places) {
   const lead =
     'buscosun ist eine kostenlose, tracker-freie Wetter-Web-App für Deutschland, Österreich und die Schweiz. ' +
     'Alle Vorhersagen stammen aus amtlichen Quellen (DWD, GeoSphere Austria, MeteoSwiss) und werden über ein ' +
-    'digitales Geländemodell höhenkorrigiert. Karte, Tourenplanung, bester Event-Tag, 6-Stunden-Nowcast, ' +
-    'Modellvergleich und 3D-Atmosphäre laufen direkt im Browser, ohne Konto und ohne Werbung.';
+    'digitales Geländemodell höhenkorrigiert. Karte, Tourenplanung, 6-Stunden-Nowcast ' +
+    'und 3D-Atmosphäre laufen direkt im Browser, ohne Konto und ohne Werbung.';
   return `<div id="seo-fallback">
       <h1>buscosun — ${escapeHtml(SITE.tagline)}</h1>
       <p>${escapeHtml(lead)}</p>
@@ -518,8 +514,6 @@ export function renderHomeRootContent(places) {
         <li><a href="/wetterkarte">Interaktive 2D-Wetterkarte</a> (Wind, Niederschlag, Temperatur, Wolken, Satellit, Blitze)</li>
         <li><a href="/regenradar">Regenradar</a> und 6-Stunden-Nowcast aus Radar &amp; ICON-D2</li>
         <li><a href="/tourenplanung">Tourenplanung</a> mit Wetter entlang der Route</li>
-        <li><a href="/eventplanung">Event-Planung</a>: bester Tag im 7-Tage-Vergleich</li>
-        <li><a href="/funktionen/modellvergleich/">Modellvergleich</a>: welches Modell lag an deinem Ort zuletzt am nächsten</li>
       </ul>
       <h2>Spezialthemen</h2>
       <ul>
@@ -947,7 +941,7 @@ export function renderMethodikHub(pages, updated) {
   const head = headBlock({
     ogImage: ogImageOr('methodik', DEFAULT_OG_IMAGE),
     title: `Methodik — wie buscosun rechnet | ${SITE.name}`,
-    description: 'Höhenkorrektur, Quellenmix, Radar-Nowcast, Konfidenz, Event-Bewertung, Tourenplanung, E-Bike-Reichweite, Brandradar, Wettermodelle — die Rechenwege von buscosun mit Konstanten und Grenzen.',
+    description: 'Höhenkorrektur, Quellenmix, Radar-Nowcast, Tourenplanung, E-Bike-Reichweite, Brandradar, Wettermodelle — die Rechenwege von buscosun mit Konstanten und Grenzen.',
     canonicalPath: '/methodik/', locale: 'de-DE',
     jsonLd: [{ '@context': 'https://schema.org', '@type': 'CollectionPage', name: 'Methodik', url: SITE.url + '/methodik/', description: 'Die Rechenwege von buscosun, offengelegt.', dateModified: updated }],
   });
@@ -987,7 +981,7 @@ export function renderFunktionenHub(tools) {
   const stubs = tools.filter((t) => t.status !== 'full').map(card).join('\n      ');
   const head = headBlock({
     title: `Funktionen — was buscosun kann | ${SITE.name}`,
-    description: 'Alle buscosun-Funktionen im Überblick: interaktive Wetterkarte, Vertikalschnitt der Atmosphäre, Tourenplanung, bester Event-Tag, Nowcast, Modellvergleich, Globus und Historie — kostenlos und ohne Tracker.',
+    description: 'Alle buscosun-Funktionen im Überblick: interaktive Wetterkarte, Vertikalschnitt der Atmosphäre, Tourenplanung, Nowcast, Globus und Historie — kostenlos und ohne Tracker.',
     canonicalPath: '/funktionen/', locale: 'de-DE', ogImage: '/og/funktionen.png',
     jsonLd: [{
       '@context': 'https://schema.org', '@type': 'CollectionPage',
@@ -1007,7 +1001,7 @@ ${head}
     <main class="wrap">
       <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › Funktionen</nav>
       <h1>buscosun-Funktionen</h1>
-      <p class="lead">Alle Werkzeuge von buscosun auf einen Blick — interaktive Wetterkarte, Vertikalschnitt der Atmosphäre, Tourenplanung, bester Event-Tag, Nowcast, Modellvergleich, Globus und Wetterhistorie. Alles höhenkorrigiert, aus amtlichen Quellen, kostenlos und ohne Tracker.</p>
+      <p class="lead">Alle Werkzeuge von buscosun auf einen Blick — interaktive Wetterkarte, Vertikalschnitt der Atmosphäre, Tourenplanung, Nowcast, Globus und Wetterhistorie. Alles höhenkorrigiert, aus amtlichen Quellen, kostenlos und ohne Tracker.</p>
       <h2>Ausführlich vorgestellt</h2>
       <div class="cards">
       ${full}

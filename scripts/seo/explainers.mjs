@@ -504,8 +504,8 @@ const EXPLAINERS_BASE = [
         html:
           '<p><strong>buscosun hat keinen Biowetter-Index.</strong> Es gibt keine Kopfschmerz-, Migräne-, Rheuma- ' +
           'oder Kreislaufvorhersage, keine Bewertung in Stufen wie „hohe Belastung", und es wird auch keine geben, ' +
-          'solange dafür keine belastbare Grundlage existiert. Statt einer solchen Zahl zeigt die ' +
-          '<a href="/vorhersage">Vorhersage</a> die Größen, aus denen sich jeder selbst ein Bild machen kann.</p>' +
+          'solange dafür keine belastbare Grundlage existiert. Statt einer solchen Zahl zeigt buscosun die Größen, ' +
+          'aus denen sich jeder selbst ein Bild machen kann.</p>' +
           '<ul>' +
           '<li><strong>UV-Index</strong>: Für Deutschland stammt er vom DWD, der ein Tagesmaximum für 38 ' +
           'Vorhersageorte auf der ganzzahligen WHO-Skala 0 bis 11+ veröffentlicht; buscosun verteilt diesen ' +
@@ -677,22 +677,10 @@ const EXPLAINERS_BASE = [
         id: 'buscosun',
         h2: 'So zeigt es buscosun',
         html:
-          '<p>Die <a href="/vorhersage">Vorhersage-Seite</a> stellt fünf unabhängige Modelle nebeneinander: ICON ' +
-          '(DWD), ECMWF, GFS (NOAA), GEM (Kanada) und Météo-France, dazu die Läufe der letzten Tage als Ghost-Linien. ' +
-          'Die Linie zeigt den Konsens, das Band den Spread. Ein Konfidenz-Score je Tag entsteht aus dieser Streuung ' +
-          'und der Vorlaufzeit und wird in drei Stufen ausgewiesen: <strong>hohe Sicherheit ab 70 %, mittlere ab ' +
-          '40 %, darunter niedrige</strong>. Als Faustzahl gilt eine Temperatur-Streuung von 0,6 °C als scharf und ' +
-          '4 °C als unsicher; die Einigkeitsanzeige stuft bis 1,2 °C als hoch und bis 2,8 °C als gemischt ein, beim ' +
-          'Wind bei 5 und 12 km/h.</p>' +
-          '<p>Der Rückblick prüft die eigene Arbeit nach: Über die letzten 30 Tage vergleicht buscosun Vorhersagen ' +
-          'mit einem und drei Tagen Vorlauf gegen das eingetretene Wetter — als mittlere absolute Abweichung für ' +
-          'Temperatur und Wind, als Ja/Nein-Treffer für Regen. Dabei wird ausdrücklich gesagt, dass die Referenz der ' +
-          '<strong>Konsens der Modell-Analysen</strong> ist und nicht eine Stationsmessung; die Reihung der Quellen ' +
-          'ist damit belastbar, die absoluten Werte sind eine Untergrenze. Als Fläche zeigt der Layer ' +
+          '<p>Als Fläche zeigt der Layer ' +
           '<a href="/wetterkarte/sicherheit">Vorhersage-Sicherheit</a>, wo es unsicher ist, und ' +
           '<a href="/validierung">Validierung</a> rechnet die Kalibrierung des Regen-Nowcasts live gegen das später ' +
-          'beobachtete Radar nach. Die Details stehen unter ' +
-          '<a href="/methodik/konfidenz-und-trefferquote/">Methodik: Konfidenz und Trefferquote</a>.</p>',
+          'beobachtete Radar nach.</p>',
       },
       {
         id: 'grenzen',

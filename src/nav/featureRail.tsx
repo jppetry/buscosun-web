@@ -6,7 +6,6 @@
  * eigenen CSS-Klassen mit, damit ihr jeweiliges Design unangetastet bleibt.
  */
 
-import { EVENT_PLANNER_VISIBLE } from './eventVisibility';
 import type { MouseEvent, ReactNode } from 'react';
 import { Link } from 'react-router';
 import { pathForFeature } from '../router/routes';
@@ -15,7 +14,7 @@ import { seaFlagFrom } from '../sea/seaFlag';
 import { glacierFlagFrom } from '../glacier/glacierFlag';
 
 export type RailFeature =
-  | 'map2d' | 'nowcast' | 'route' | 'event' | 'forecast' | 'history' | 'atmosphere' | 'globe'
+  | 'map2d' | 'nowcast' | 'route' | 'history' | 'atmosphere' | 'globe'
   | 'fire' | 'road' | 'sea' | 'glacier' | 'feedback';
 
 export function IconRailMap({ size = 21 }: { size?: number }) {
@@ -42,23 +41,6 @@ export function IconRailTour({ size = 21 }: { size?: number }) {
       <circle cx="6" cy="20" r="1.8" fill="currentColor" />
       <path d="M16 2.5 C14 2.5 12.4 4.1 12.4 6.1 C12.4 8.8 16 11.5 16 11.5 C16 11.5 19.6 8.8 19.6 6.1 C19.6 4.1 18 2.5 16 2.5 Z" stroke="currentColor" strokeWidth="1.3" />
       <circle cx="16" cy="6.1" r="1.3" fill="currentColor" />
-    </svg>
-  );
-}
-export function IconRailEvent({ size = 21 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect x="3.5" y="5" width="17" height="15" rx="2.5" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M3.5 9.5 H20.5 M8 3.5 V6 M16 3.5 V6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <circle cx="12" cy="14.5" r="1.6" fill="currentColor" />
-    </svg>
-  );
-}
-export function IconRailForecast({ size = 21 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M12 12 L12 6.5 M12 12 L16 14.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   );
 }
@@ -146,8 +128,6 @@ export const FEATURE_RAIL_ITEMS: Array<{ id: RailFeature; label: string; icon: R
   { id: 'map2d', label: 'Wetterkarte', icon: <IconRailMap /> },
   { id: 'nowcast', label: 'Regenradar', icon: <IconRailRadar /> },
   { id: 'route', label: 'Tourenplanung', icon: <IconRailTour /> },
-  { id: 'event', label: 'Event-Planung', icon: <IconRailEvent /> },
-  { id: 'forecast', label: 'Konfidenz & Modelle', icon: <IconRailForecast /> },
   { id: 'history', label: 'Historie · Klima seit 1940', icon: <IconRailHistory /> },
   { id: 'feedback', label: 'Ideen & Vorschläge', icon: <IconRailFeedback /> },
   { id: 'globe', label: '3D-Globus', icon: <IconRailGlobe /> },
@@ -196,7 +176,7 @@ export function FeatureRail({
           Deck-Handler übernimmt (preventDefault), nur ohne Handler navigiert der
           Link selbst. Optik über dieselben Klassen; die Decks setzen display/
           color/border auf der Klasse, nicht auf dem Tag. */}
-      {FEATURE_RAIL_ITEMS.filter((it) => (it.id !== 'event' || EVENT_PLANNER_VISIBLE || active === 'event') && (it.id !== 'road' || active === 'road' || roadFlagFrom()) && (it.id !== 'sea' || active === 'sea' || seaFlagFrom()) && (it.id !== 'glacier' || active === 'glacier' || glacierFlagFrom())).map((it) => {
+      {FEATURE_RAIL_ITEMS.filter((it) => (it.id !== 'road' || active === 'road' || roadFlagFrom()) && (it.id !== 'sea' || active === 'sea' || seaFlagFrom()) && (it.id !== 'glacier' || active === 'glacier' || glacierFlagFrom())).map((it) => {
         const isActive = it.id === active;
         const to = pathForFeature(it.id);
         const onClick = (e: MouseEvent<HTMLAnchorElement>) => {

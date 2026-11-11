@@ -23,7 +23,6 @@ import {
   lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState,
   type CSSProperties, type FormEvent, type ReactNode,
 } from 'react';
-import { EVENT_PLANNER_VISIBLE } from './nav/eventVisibility';
 import type { Location, NominatimResult } from './types';
 import type { FeatureInfo } from './App';
 import { pathForFeature } from './router/routes';
@@ -87,9 +86,7 @@ type Category = 'radar' | 'planen' | 'verstehen' | 'erkunden';
 const FEATURE: Record<string, FeatureInfo> = {
   map2d:      { id: 'map2d',      eyebrow: 'Wetterkarte',   title: 'Die ganze DACH-Wetterkarte' },
   route:      { id: 'route',      eyebrow: 'Tourenplanung', title: 'Wetter entlang deiner Route' },
-  event:      { id: 'event',      eyebrow: 'Event-Planung', title: 'Welcher Tag passt am besten?' },
   nowcast:    { id: 'nowcast',    eyebrow: 'Regenradar',    title: 'Regnet es in 40 Minuten?' },
-  forecast:   { id: 'forecast',   eyebrow: 'Vorhersage',    title: 'Konfidenz & Modelle' },
   history:    { id: 'history',    eyebrow: 'Historie',      title: 'Klima seit 1940' },
   atmosphere: { id: 'atmosphere', eyebrow: 'Atmosphäre',    title: 'Die Atmosphäre über dir' },
   globe:      { id: 'globe',      eyebrow: '3D-Globus',     title: 'Das Wetter der ganzen Erde' },
@@ -110,28 +107,25 @@ const FEATURE: Record<string, FeatureInfo> = {
  * die kleinste Fassung, die nicht wieder auseinanderläuft — die Kacheln selbst
  * stehen als handgelegtes Raster im JSX und lassen sich nicht zählen.
  */
-const TOOL_TILE_COUNT = 13;
-/** Kachel „Konfidenz & Modelle“ vorerst ausgeblendet (Jan, 2026-10-23); die Seite bleibt über Palette und Rail erreichbar. */
-const FORECAST_TILE_HIDDEN = true;
+/** Vorhersage (Konfidenz & Modelle) und Event-Planung sind gelöscht (Jan, 2026-11-11). */
+const TOOL_TILE_COUNT = 12;
 /** Autobahnwetter- und Seewetter-Kachel zählen, solange ihr Flag an ist (`ROAD_LIVE`/`SEA_LIVE`; `?road=0`, `?sea=0` blenden aus). */
-const toolTileCount = () => TOOL_TILE_COUNT - (FORECAST_TILE_HIDDEN ? 1 : 0) - (roadFlagFrom() ? 0 : 1) - (seaFlagFrom() ? 0 : 1) - (glacierFlagFrom() ? 0 : 1);
+const toolTileCount = () => TOOL_TILE_COUNT - (roadFlagFrom() ? 0 : 1) - (seaFlagFrom() ? 0 : 1) - (glacierFlagFrom() ? 0 : 1);
 
 interface PaletteEntry { num: string; label: string; hint: string; feature: FeatureInfo; }
 const PALETTE: PaletteEntry[] = [
   { num: '01', label: 'Wetterkarte',            hint: 'Wind · Regen · Blitze',      feature: FEATURE.map2d },
   { num: '02', label: 'Tourenplanung',          hint: 'Wetter pro km · E-Bike',     feature: FEATURE.route },
-  { num: '03', label: 'Event-Planung',          hint: 'Bester Tag · Plan B',        feature: FEATURE.event },
-  { num: '04', label: 'Regenradar / Nowcast',   hint: 'Gemessenes Radar',           feature: FEATURE.nowcast },
-  { num: '05', label: 'Vorhersage & Konfidenz', hint: 'Modell · Spread',            feature: FEATURE.forecast },
-  { num: '06', label: 'Historie',               hint: 'Klima seit 1940',            feature: FEATURE.history },
-  { num: '07', label: 'Atmosphäre',             hint: 'Höhenwind · Schnitt',        feature: FEATURE.atmosphere },
-  { num: '08', label: '3D-Globus',              hint: 'Live-Wind (GFS)',            feature: FEATURE.globe },
-  { num: '09', label: 'Brandradar',            hint: 'Satellit · Brände · Rückblick', feature: FEATURE.fire },
-  { num: '10', label: 'Feedback',               hint: 'Ideen & Vorschläge',         feature: FEATURE.feedback },
-  { num: '11', label: 'Validierung',            hint: 'Wie gut ist der Nowcast?',   feature: FEATURE.validation },
-  { num: '12', label: 'Autobahn Monitor',        hint: 'Glätte · Fahrbahn · DWD',    feature: FEATURE.road },
-  { num: '13', label: 'Seewetter',              hint: 'Küste · Segeln · Kiten · Wellen', feature: FEATURE.sea },
-  { num: '14', label: 'Gletscherbericht',      hint: 'Schmelze · Schneegrenze · Messreihen', feature: FEATURE.glacier },
+  { num: '03', label: 'Regenradar / Nowcast',   hint: 'Gemessenes Radar',           feature: FEATURE.nowcast },
+  { num: '04', label: 'Historie',               hint: 'Klima seit 1940',            feature: FEATURE.history },
+  { num: '05', label: 'Atmosphäre',             hint: 'Höhenwind · Schnitt',        feature: FEATURE.atmosphere },
+  { num: '06', label: '3D-Globus',              hint: 'Live-Wind (GFS)',            feature: FEATURE.globe },
+  { num: '07', label: 'Brandradar',            hint: 'Satellit · Brände · Rückblick', feature: FEATURE.fire },
+  { num: '08', label: 'Feedback',               hint: 'Ideen & Vorschläge',         feature: FEATURE.feedback },
+  { num: '09', label: 'Validierung',            hint: 'Wie gut ist der Nowcast?',   feature: FEATURE.validation },
+  { num: '10', label: 'Autobahn Monitor',        hint: 'Glätte · Fahrbahn · DWD',    feature: FEATURE.road },
+  { num: '11', label: 'Seewetter',              hint: 'Küste · Segeln · Kiten · Wellen', feature: FEATURE.sea },
+  { num: '12', label: 'Gletscherbericht',      hint: 'Schmelze · Schneegrenze · Messreihen', feature: FEATURE.glacier },
 ];
 
 // ============================================================================
@@ -293,10 +287,9 @@ function Hero({ onSelect, onOpenFeature, inputRef, tour, activeCat, onCatChange,
 function HeroQuad({ activeCat, onOpenFeature }: { activeCat: 'alle' | Category; onOpenFeature: (f: FeatureInfo) => void }) {
   const tile = makeTile(activeCat, onOpenFeature);
   return (
-    <div className="deck-quad" aria-label="Werkzeuge · Waldbrand, Nowcast, Vorhersage, Gletscher">
+    <div className="deck-quad" aria-label="Werkzeuge · Waldbrand, Nowcast, Gletscher">
       {tile(['erkunden'], 'tile-fire q-tile', FEATURE.fire, 'Brandradar öffnen', TILE_FIRE)}
       {tile(['radar'], 'tile-nowcast q-tile', FEATURE.nowcast, 'Regenradar / Nowcast öffnen', TILE_NOWCAST)}
-      {!FORECAST_TILE_HIDDEN && tile(['verstehen'], 'tile-forecast t-cream q-tile', FEATURE.forecast, 'Vorhersage & Konfidenz öffnen', TILE_FORECAST)}
       {glacierFlagFrom() && tile(['planen'], 'tile-glacier q-tile', FEATURE.glacier, 'Gletscherbericht öffnen', TILE_GLACIER)}
     </div>
   );
@@ -408,26 +401,6 @@ const TILE_ROAD = (
       <p className="tile-desc sm">
         Fahrbahn von rund 1.200 DWD-Glättemeldeanlagen, alle 15 Minuten, je Autobahn als Streckenband.
       </p>
-    </div>
-  </>
-);
-
-const TILE_FORECAST = (
-  <>
-    <div className="tile-eyebrow">VORHERSAGE</div>
-    {/* Kein Zahlenwert und kein wertbehafteter Bogen: die echte Trefferquote
-        rechnet erst confidence/hitRate.ts nach dem Öffnen der Seite. Ein
-        gefüllter Ring hier wäre eine Behauptung ohne Messung (D-04). */}
-    <div className="tile-donut-row">
-      <svg width="58" height="58" viewBox="0 0 56 56" aria-hidden="true">
-        <circle cx="28" cy="28" r="22" fill="none" stroke="var(--sand-200)" strokeWidth="6" />
-        <circle cx="28" cy="28" r="22" fill="none" stroke="var(--sage-600)" strokeWidth="6" strokeLinecap="round" strokeDasharray="3 11" transform="rotate(-90 28 28)" />
-      </svg>
-      <div className="tile-donut-val tile-donut-val-text">Trefferquote<span>30-Tage-Rückblick, je Modell</span></div>
-    </div>
-    <div>
-      <div className="tile-title tile-title-sm">Konfidenz &amp; Modelle</div>
-      <p className="tile-desc sm">ICON-D2 + MOSMIX + ICON-EU, Unsicherheitsband, Hit-Rate-Rückblick. Einfach/Experte.</p>
     </div>
   </>
 );
@@ -772,28 +745,12 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
           <RouteHikerIcon />
         </>)}
 
-      {/* 03 · EVENT-PLANUNG — weiß, span 2 */}
-      {EVENT_PLANNER_VISIBLE && tile(['planen'], 'tile-event t-w2', FEATURE.event, 'Event-Planung öffnen',
-        <>
-          <div>
-            <div className="tile-eyebrow">EVENT-PLANUNG</div>
-            <div className="tile-title tile-title-lg">Welcher Tag passt am besten?</div>
-            <p className="tile-desc">Anlass + Ort + Zeitfenster → 7-Tage-Score. Phasen (Trauung/Empfang/Abendfeier) einzeln bewertet, Plan B, Regen-/Wind-/Hitze-Hazards, Foto-Licht & Astro-Nacht.</p>
-          </div>
-          <div className="tile-bars">
-            {[40, 64, 100, 52, 76, 34, 58].map((h, i) => (
-              <span key={i} className={`tile-bar${h === 100 ? ' is-best' : h >= 64 ? ' is-mid' : ''}`} style={{ height: `${h}%` }} />
-            ))}
-          </div>
-        </>)}
-
       {/* 04 + 05: auf Desktop im Hero (HeroQuad); auf ≤1024 px hier im Grid an
           ihrer angestammten Stelle — so bleibt die schmale Ansicht wie zuvor. */}
       {narrow && (
         <>
           {tile(['erkunden'], `tile-fire${half}`, FEATURE.fire, 'Brandradar öffnen', TILE_FIRE)}
           {tile(['radar'], `tile-nowcast${half}`, FEATURE.nowcast, 'Regenradar / Nowcast öffnen', TILE_NOWCAST)}
-          {!FORECAST_TILE_HIDDEN && tile(['verstehen'], `tile-forecast t-cream${half}`, FEATURE.forecast, 'Vorhersage & Konfidenz öffnen', TILE_FORECAST)}
         </>
       )}
 
@@ -898,8 +855,7 @@ function DeckFooter({ onOpenFeature }: { onOpenFeature: (f: FeatureInfo) => void
             <div className="deck-footer-links">
               <button type="button" onClick={() => onOpenFeature(FEATURE.map2d)}>Wetterkarte</button> ·{' '}
               <button type="button" onClick={() => onOpenFeature(FEATURE.nowcast)}>Nowcast</button><br />
-              <button type="button" onClick={() => onOpenFeature(FEATURE.route)}>Touren</button>
-              {EVENT_PLANNER_VISIBLE && <>{' · '}<button type="button" onClick={() => onOpenFeature(FEATURE.event)}>Event</button></>}<br />
+              <button type="button" onClick={() => onOpenFeature(FEATURE.route)}>Touren</button><br />
               <button type="button" onClick={() => onOpenFeature(FEATURE.history)}>Historie</button> ·{' '}
               <button type="button" onClick={() => onOpenFeature(FEATURE.atmosphere)}>Atmosphäre</button>
             </div>
@@ -968,7 +924,7 @@ function CommandPalette({ open, onClose, onOpenFeature }: {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const entries = PALETTE.filter((p) => (p.feature.id !== 'event' || EVENT_PLANNER_VISIBLE) && (p.feature.id !== 'road' || roadFlagFrom()) && (p.feature.id !== 'sea' || seaFlagFrom()) && (p.feature.id !== 'glacier' || glacierFlagFrom()));
+    const entries = PALETTE.filter((p) => (p.feature.id !== 'road' || roadFlagFrom()) && (p.feature.id !== 'sea' || seaFlagFrom()) && (p.feature.id !== 'glacier' || glacierFlagFrom()));
     if (!q) return entries;
     return entries.filter((p) => `${p.label} ${p.hint} ${p.feature.eyebrow}`.toLowerCase().includes(q));
   }, [query]);

@@ -16,8 +16,8 @@
 
 import type { IntroArt } from './introArt';
 import {
-  FlowArt, MapArt, RadarArt, RouteArt, EventArt, ForecastArt, GlobeArt, AtmosphereArt, StartArt,
-  MapDetail, RadarDetail, RouteDetail, EventDetail, ForecastDetail, GlobeDetail, AtmosphereDetail,
+  FlowArt, MapArt, RadarArt, RouteArt, GlobeArt, AtmosphereArt, StartArt,
+  MapDetail, RadarDetail, RouteDetail, GlobeDetail, AtmosphereDetail,
 } from './introArt';
 
 export interface IntroStep {
@@ -104,36 +104,6 @@ export const INTRO_STEPS: IntroStep[] = [
     accent: '--sage-600',
     Illustration: RouteArt,
     Detail: RouteDetail,
-  },
-  {
-    id: 'event',
-    eyebrow: 'Event-Planung',
-    title: 'Welcher Tag passt am besten?',
-    body: 'Sag uns, wann du etwas vorhast – wir nennen dir den besten Tag dafür.',
-    capabilities: [
-      'Anlass, Ort und Zeitfenster festlegen',
-      'Bester Tag aus dem Vergleich – inklusive Plan B',
-      'Phasen (z. B. Trauung, Empfang) einzeln bewertet',
-    ],
-    howTo: 'Anlass wählen und die besten Tage anzeigen lassen.',
-    accent: '--amber-500',
-    Illustration: EventArt,
-    Detail: EventDetail,
-  },
-  {
-    id: 'forecast',
-    eyebrow: 'Vorhersage',
-    title: 'Mehrere Modelle, ehrlicher Spread',
-    body: 'Statt einer einzelnen Zahl siehst du, wie sicher die Vorhersage wirklich ist.',
-    capabilities: [
-      'Mehrere Wettermodelle nebeneinander',
-      'Unsicherheitsband statt Scheingenauigkeit',
-      'Klar als Tendenz markiert, wenn es unsicher wird',
-    ],
-    howTo: 'Auf die Spannweite achten – eng heißt sicher.',
-    accent: '--steel-600',
-    Illustration: ForecastArt,
-    Detail: ForecastDetail,
   },
   {
     id: 'globe',

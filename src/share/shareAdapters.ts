@@ -61,23 +61,21 @@ import { ROAD_CORRIDOR_SLUG_RE, ROAD_KM_SLUG_RE, describeRoadLink, roadLinkParts
 
 export type ShareRouteId =
   | 'wetterkarte' | 'warnungen' | 'regenradar'
-  | 'waldbrand' | 'atmosphaere' | 'eventplanung' | 'wetterarchiv' | 'globus' | 'vorhersage' | 'gletscher' | 'autobahnwetter' | 'seewetter';
+  | 'waldbrand' | 'atmosphaere' | 'wetterarchiv' | 'globus' | 'gletscher' | 'autobahnwetter' | 'seewetter';
 
 export const SHARE_ROUTES: readonly ShareRouteId[] = [
-  'wetterkarte', 'warnungen', 'regenradar', 'waldbrand', 'atmosphaere', 'eventplanung', 'wetterarchiv', 'globus', 'vorhersage', 'gletscher', 'autobahnwetter', 'seewetter',
+  'wetterkarte', 'warnungen', 'regenradar', 'waldbrand', 'atmosphaere', 'wetterarchiv', 'globus', 'gletscher', 'autobahnwetter', 'seewetter',
 ];
 
 /** Seiten, deren URL übernommen (und nur gefiltert) statt neu gebaut wird. */
 const PASSTHROUGH: ReadonlySet<ShareRouteId> = new Set([
-  'waldbrand', 'atmosphaere', 'eventplanung', 'wetterarchiv', 'globus', 'vorhersage', 'gletscher', 'autobahnwetter', 'seewetter',
+  'waldbrand', 'atmosphaere', 'wetterarchiv', 'globus', 'gletscher', 'autobahnwetter', 'seewetter',
 ]);
 
 /** Welche Durchreiche-Seite trägt den Ort im Pfad — und an welcher Stelle? */
 const PLACE_SEGMENT: Readonly<Partial<Record<ShareRouteId, 1 | 2>>> = {
   atmosphaere: 2,     // hinter der Linse
-  eventplanung: 2,    // hinter dem Anlass
   wetterarchiv: 1,    // direkt hinter der Route
-  vorhersage: 1,      // dito
 };
 
 /** Sicht bzw. Linse im Pfad → Kurzname für den Titel. */
@@ -90,10 +88,6 @@ const VIEW_LABEL: Readonly<Record<string, string>> = {
   thermalanomalien: 'Thermalanomalien',
   // Atmosphäre
   querschnitt: 'Querschnitt',
-  // Eventplanung (Anlass)
-  grillen: 'Grillen', hochzeit: 'Hochzeit', wandern: 'Wandern', drohne: 'Drohnenflug',
-  fotografie: 'Fotografie', sterne: 'Sternenhimmel', radtour: 'Radtour', picknick: 'Picknick',
-  laufen: 'Laufen', baden: 'Baden',
 };
 
 /** Kurzname der Ansicht für Titel und Nachricht. */
@@ -103,10 +97,8 @@ export const SHARE_FEATURE_LABEL: Readonly<Record<ShareRouteId, string>> = {
   regenradar: 'Regenradar',
   waldbrand: 'Brandradar',
   atmosphaere: 'Atmosphäre',
-  eventplanung: 'Event-Planung',
   wetterarchiv: 'Wetterarchiv',
   globus: 'Globus',
-  vorhersage: 'Vorhersage',
   gletscher: 'Gletscher',
   autobahnwetter: 'Autobahnwetter',
   seewetter: 'Seewetter',

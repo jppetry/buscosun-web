@@ -188,7 +188,7 @@ export function sunSection(place) {
           <thead><tr><th>Monat (15.)</th><th>Aufgang</th><th>Untergang</th><th>Tageslänge</th><th>Goldene Stunde abends</th><th>Blaue Stunde abends</th></tr></thead>
           <tbody>${body}</tbody>
         </table>
-        <p class="note">Reine Astronomie für den 15. des Monats, Referenzjahr ${SUN_REFERENCE_YEAR}, mitteleuropäische Zeit mit Sommerzeit. Von Jahr zu Jahr verschieben sich die Zeiten um wenige Minuten. Berücksichtigt ist die Standard-Refraktion am Horizont (−0,833°), nicht die Abschattung durch Berge: In einem engen Tal verschwindet die Sonne früher hinter dem Grat — diese Verdeckung rechnet die <a href="/eventplanung/fotografie">Event-Planung</a> aus dem Geländemodell für eine aufgezogene Fläche.</p>
+        <p class="note">Reine Astronomie für den 15. des Monats, Referenzjahr ${SUN_REFERENCE_YEAR}, mitteleuropäische Zeit mit Sommerzeit. Von Jahr zu Jahr verschieben sich die Zeiten um wenige Minuten. Berücksichtigt ist die Standard-Refraktion am Horizont (−0,833°), nicht die Abschattung durch Berge: In einem engen Tal verschwindet die Sonne früher hinter dem Grat.</p>
       </section>
 `;
 }

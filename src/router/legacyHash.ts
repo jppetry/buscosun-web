@@ -26,7 +26,6 @@ export const LEGACY_PREFIXES: ReadonlyArray<readonly [prefix: string, path: stri
   ['#mobiletest', '/mobiletest', false],
   ['#m=', '/wetterkarte', false],
   ['#wb=', '/waldbrand', true],
-  ['#ev=', '/eventplanung', true],
   ['#h=', '/wetterarchiv', true],
   ['#g=', '/globus', true],
   ['#val', '/validierung', false],
@@ -111,7 +110,7 @@ export function verifyLegacyHash(): { checks: Array<{ name: string; ok: boolean;
   add('#m= Übersicht mit wind+temp, h=3 → kein Ort, l=temperatur, t', resolveLegacyHash(multi, now) === '/wetterkarte/wind?t=2026-08-22T15:00Z&l=temperatur', resolveLegacyHash(multi, now) ?? 'null');
   add('#m= unlesbar → /wetterkarte', resolveLegacyHash('#m=%7Bkaputt', now) === '/wetterkarte');
   add('#wb= behält Payload', resolveLegacyHash('#wb=%7B%22b%22%3A1%2C%22d%22%3A0%2C%22w%22%3A24%7D', now) === '/waldbrand#wb=%7B%22b%22%3A1%2C%22d%22%3A0%2C%22w%22%3A24%7D');
-  add('#ev= / #h= / #atm= / #3d= / #g= behalten Payload', resolveLegacyHash('#ev=x', now) === '/eventplanung#ev=x' && resolveLegacyHash('#h=v=tmean', now) === '/wetterarchiv#h=v=tmean' && resolveLegacyHash('#atm=x', now) === '/atmosphaere#atm=x' && resolveLegacyHash('#3d=x', now) === '/atmosphaere#3d=x' && resolveLegacyHash('#g=x', now) === '/globus#g=x');
+  add('#h= / #atm= / #3d= / #g= behalten Payload', resolveLegacyHash('#h=v=tmean', now) === '/wetterarchiv#h=v=tmean' && resolveLegacyHash('#atm=x', now) === '/atmosphaere#atm=x' && resolveLegacyHash('#3d=x', now) === '/atmosphaere#3d=x' && resolveLegacyHash('#g=x', now) === '/globus#g=x');
   add('#val / #mobiletest ohne Payload', resolveLegacyHash('#val', now) === '/validierung' && resolveLegacyHash('#mobiletest', now) === '/mobiletest');
   add('Vorrang: #mobiletest vor #m=', resolveLegacyHash('#mobiletest', now) !== '/wetterkarte');
   add('Fremder Hash ⇒ null', resolveLegacyHash('#foo', now) === null && resolveLegacyHash('', now) === null && resolveLegacyHash('#', now) === null);

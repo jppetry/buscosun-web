@@ -367,7 +367,7 @@ export function sunSectionV3(place) {
           <thead><tr><th>Stichtag</th><th>Aufgang</th><th>Untergang</th><th>Tageslänge</th><th>Sonnenhöhe mittags</th><th>Goldene Stunde abends</th></tr></thead>
           <tbody>${body}</tbody>
         </table>
-        <p class="note">Reine Astronomie, Referenzjahr ${SUN_REFERENCE_YEAR}, mitteleuropäische Zeit mit Sommerzeit.${shade} Die Sonnenzeiten für die kommenden Tage zeigt die <a href="/eventplanung/fotografie">Event-Planung</a>.</p>
+        <p class="note">Reine Astronomie, Referenzjahr ${SUN_REFERENCE_YEAR}, mitteleuropäische Zeit mit Sommerzeit.${shade}</p>
       </section>
 `;
 }

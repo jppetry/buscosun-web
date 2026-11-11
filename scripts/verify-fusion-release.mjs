@@ -155,12 +155,9 @@ const NAME_RE = /buscosun Fusion \d/;
     ...[
       ['route', 'src/pointForecast/weatherEnrichment.ts', 'Wetter je Abschnitt'],
       ['route', 'src/route/windSampling.ts', 'Wind der Tourzeit'],
-      ['event', 'src/event/EventResult.tsx', 'Tage bewerten'],
-      ['event', 'src/event/eventZoneScan.ts', 'Ecken der Fläche'],
-      ['event', 'src/event/eventAltLocation.ts', 'besserer Ort'],
       ['section', 'src/threed/buildCrossSection.ts', 'Anker des Schnitts'],
       ['section', 'src/atmosphere/TalwindPanel.tsx', 'Talwind'],
-      ['notify', 'src/notifications/useNotifications.tsx', 'Abo-Prüfung'],
+      // event + notify: the event planner and its notifications are deleted (Jan 11.11.).
     ].map(([id, file, what]) => {
       const part = FUSION_PARTS.find((p) => p.id === id);
       return { part: `${part.name} (${what})`, file, gate: part, how: `getFusionForecast(…, '${id}') — ${part.on ? 'an' : 'aus bis zur Messung (§8.4), rechnet den Live-Pfad'}`, ok: (p) => has(p, `getFusionForecast(`, `}, '${id}')`) };

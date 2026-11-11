@@ -35,7 +35,7 @@ export const SITE_URL = 'https://buscosun.com';
 export const SITE_NAME = 'buscosun';
 
 export type RouteId =
-  | 'home' | 'wetterkarte' | 'warnungen' | 'regenradar' | 'vorhersage' | 'tourenplanung' | 'eventplanung'
+  | 'home' | 'wetterkarte' | 'warnungen' | 'regenradar' | 'tourenplanung'
   | 'wetterarchiv' | 'atmosphaere' | 'globus' | 'waldbrand' | 'autobahnwetter' | 'seewetter' | 'gletscher' | 'buscosun-fusion' | 'feedback' | 'validierung' | 'mobiletest';
 
 export interface RouteMeta {
@@ -113,32 +113,14 @@ const RETIRED_ATMOSPHERE_RE = new RegExp(`^/atmosphaere/(?:${ATMOSPHERE_RETIRED_
 
 export const FIRE_VIEW_SLUGS = ['gefahrenindex', 'aktive-braende', 'trockenheit', 'historie', 'thermalanomalien'] as const;
 
-/**
- * SEO/GEO 2026 (E7): Anlass-Sub-Routen der Event-Planung. Der Slug ist deutsch, der Wert die id
- * des Anlasses in "src/event/eventModel.ts" (EVENT_ACTIVITIES). Die Sub-Route waehlt den Anlass
- * im Wizard vor — der uebrige Zustand bleibt wie bisher im Fragment "#ev=".
- */
-export const EVENT_ACTIVITY_SLUGS: Readonly<Record<string, string>> = {
-  grillen: 'bbq',
-  hochzeit: 'wedding',
-  wandern: 'hiking',
-  drohne: 'drone',
-  fotografie: 'photo',
-  sterne: 'stargazing',
-  radtour: 'cycling',
-  picknick: 'picnic',
-  laufen: 'running',
-  baden: 'swimming',
-};
-
 export const ROUTES: readonly RouteDef[] = [
   {
     id: 'home', path: '/', aliases: [], featureId: null, subs: null,
     meta: {
       title: 'Wetter DE · AT · CH',
-      description: 'DACH-Wetter: Karte, Regenradar, Tourenplanung, Event-Tag, Vorhersage, Historie — höhenkorrigiert, ohne Tracker.',
+      description: 'DACH-Wetter: Karte, Regenradar, Tourenplanung, Historie, Atmosphäre und Brandradar — höhenkorrigiert, ohne Tracker.',
       h1: 'Wetter für Deutschland, Österreich & die Schweiz',
-      lead: 'buscosun ist eine kostenlose, tracker-freie Wetter-Web-App für Deutschland, Österreich und die Schweiz: interaktive Wetterkarte, Regenradar, Tourenplanung, Event-Planung, Vorhersage mit Konfidenz, Klimahistorie, Atmosphäre und Brandradar — aus amtlichen Quellen (DWD, GeoSphere Austria, MeteoSwiss), über ein Geländemodell höhenkorrigiert, ohne Konto und ohne Werbung.',
+      lead: 'buscosun ist eine kostenlose, tracker-freie Wetter-Web-App für Deutschland, Österreich und die Schweiz: interaktive Wetterkarte, Regenradar, Tourenplanung, Klimahistorie, Atmosphäre und Brandradar — aus amtlichen Quellen (DWD, GeoSphere Austria, MeteoSwiss), über ein Geländemodell höhenkorrigiert, ohne Konto und ohne Werbung.',
     },
   },
   {
@@ -169,15 +151,6 @@ export const ROUTES: readonly RouteDef[] = [
     },
   },
   {
-    id: 'vorhersage', path: '/vorhersage', aliases: ['/wettervorhersage', '/forecast'], featureId: 'forecast', subs: null, place: true,
-    meta: {
-      title: 'Wettervorhersage mit Konfidenz & Modellvergleich',
-      description: 'Vorhersage für jeden Ort in DACH mit ausgewiesener Sicherheit — mehrere Modelle im Vergleich, ehrlich statt scheingenau.',
-      h1: 'Wettervorhersage mit Konfidenz und Modellvergleich',
-      lead: 'Die Vorhersage von buscosun stellt mehrere Wettermodelle nebeneinander und weist aus, wie sicher eine Aussage ist — aus der Streuung der Modelle und der Vorlaufzeit. Statt einer scheingenauen Zahl siehst du, wo sich die Modelle einig sind und wo nicht. Der Rückblick reiht die Modelle je Ort danach, wie nah sie in den letzten 7, 14 oder 30 Tagen lagen, gemessen am Konsens der Modell-Analysen und nicht an Stationen.',
-    },
-  },
-  {
     id: 'tourenplanung', path: '/tourenplanung', aliases: ['/touren', '/tour'], featureId: 'route', subParam: 'view',
     subs: [
       {
@@ -193,28 +166,6 @@ export const ROUTES: readonly RouteDef[] = [
       description: 'GPX hochladen und das Wetter Kilometer für Kilometer entlang deiner Rad-, Wander- oder E-Bike-Tour sehen — mit Zeitplan und Höhenprofil.',
       h1: 'Wetter entlang deiner Route',
       lead: 'Die Tourenplanung von buscosun liest eine GPX-Datei ein und berechnet für jeden Streckenabschnitt, welches Wetter dich zur voraussichtlichen Ankunftszeit erwartet — Temperatur, Wind, Regen und Böen, höhenkorrigiert über das Geländemodell, für Wandern, Rennrad, Gravel und E-Bike.',
-    },
-  },
-  {
-    id: 'eventplanung', path: '/eventplanung', aliases: ['/events', '/event'], featureId: 'event', subParam: 'view', place: true,
-    // SEO/GEO 2026 (E7): je Anlass ein kanonischer Pfad — der Wizard oeffnet mit vorgewaehltem Anlass.
-    subs: [
-      { slug: 'grillen', title: 'Grillwetter — der beste Tag zum Grillen', description: 'Welcher Tag der kommenden Woche ist warm, trocken und windstill genug für Grillabend, Gartenfest oder Hoffest?', updated: CONTENT_UPDATED },
-      { slug: 'hochzeit', title: 'Hochzeitswetter mit Plan B', description: 'Trauung, Empfang und Abendfeier einzeln bewertet, dazu die Schwelle, ab der ein Plan B nötig wird — für die Hochzeit im Freien.', updated: CONTENT_UPDATED },
-      { slug: 'wandern', title: 'Wanderwetter — der beste Tag für die Tour', description: 'Trocken, mild, gute Sicht: welcher der nächsten Tage sich für die Wanderung eignet, mit ehrlicher Sicherheit je Tag.', updated: CONTENT_UPDATED },
-      { slug: 'drohne', title: 'Drohnenwetter — Böen, Regen und Bewölkung', description: 'Der beste Tag für den Drohnenflug: Böen zählen am schwersten, dazu Regen und Bewölkung. Eine Tagesbewertung, keine Freigabe auf Flughöhe.', updated: '2026-11-01' },
-      { slug: 'fotografie', title: 'Fotowetter — Licht, Wolken und Stimmung', description: 'Wolkenlicht statt blankem Himmel: welcher Tag weiches Licht verspricht, dazu goldene und blaue Stunde für jedes Datum.', updated: CONTENT_UPDATED },
-      { slug: 'sterne', title: 'Sternenwetter — klare Nächte finden', description: 'Wolken, Mond, astronomische Dunkelheit und Tau-Risiko für die Kernnacht — welche Nacht der Woche sich zum Beobachten eignet.', updated: CONTENT_UPDATED },
-      { slug: 'radtour', title: 'Radwetter — der beste Tag für die Ausfahrt', description: 'Wind wiegt schwer, Regen noch schwerer: welcher Tag sich für Rennrad, Gravel oder die E-Bike-Tour anbietet.', updated: CONTENT_UPDATED },
-      { slug: 'picknick', title: 'Picknickwetter — mild, trocken, sonnig', description: 'Der beste Tag für Picknick, Kindergeburtstag im Freien oder das Treffen im Park — mild, trocken und wenig bewölkt.', updated: CONTENT_UPDATED },
-      { slug: 'laufen', title: 'Laufwetter — kühl und trocken', description: 'Wann es kühl und trocken genug für den langen Lauf, den Firmenlauf oder das Training im Freien wird.', updated: CONTENT_UPDATED },
-      { slug: 'baden', title: 'Badewetter — heiß und sonnig', description: 'Welcher Tag heiß und sonnig genug für Freibad, Badesee oder Strandtag wird — die Temperatur zählt hier am schwersten.', updated: CONTENT_UPDATED },
-    ],
-    meta: {
-      title: 'Event-Planung — der beste Tag',
-      description: 'Welcher Tag passt am besten? buscosun bewertet Wetterfenster für Hochzeit, Grillabend, Drohnenflug oder Outdoor-Event und schlägt einen Plan B vor.',
-      h1: 'Welcher Tag passt am besten zu deinem Event?',
-      lead: 'Die Event-Planung von buscosun vergleicht die kommenden Tage für deinen Anlass — Gartenfest, Hochzeit, Fotoshooting, Drohnenflug oder Sport im Freien — anhand der Kriterien, die für genau diesen Anlass zählen, und nennt ehrlich, wie sicher die Einschätzung ist, inklusive Plan B.',
     },
   },
   {
@@ -351,7 +302,7 @@ export const ROUTES: readonly RouteDef[] = [
       description: 'Messwerte statt Versprechen: wie gut der buscosun-Nowcast gegen das gemessene Radar abschneidet.',
       h1: 'Wie gut ist der KI-Nowcast wirklich?',
       lead: 'Diese Seite legt offen, wie gut der Nowcast von buscosun im Vergleich zum gemessenen Radar abschneidet — mit den Kennzahlen, die auch die Wetterdienste verwenden, und ohne die Fälle zu verschweigen, in denen er danebenliegt. Beim Aufruf rechnet sie ein echtes Hindcast: aus beobachteten RADOLAN-Analysen wird vorhergesagt und gegen die spätere Beobachtung verifiziert — Brier Skill Score, Kalibrierungsfehler, Trefferquote und Reliability-Diagramm je Vorlaufminute.',
-      // SEO/GEO 2026 (E3): indexierbar — die Seite ist der Beleg für die Konfidenz-Aussagen (/methodik/konfidenz-und-trefferquote/).
+      // SEO/GEO 2026 (E3): indexierbar — die Seite ist der Beleg für die Nowcast-Aussagen.
     },
   },
   {
@@ -376,8 +327,6 @@ export const FEATURE_PATH: Readonly<Record<FeatureId, string>> = {
   map2d: '/wetterkarte',
   nowcast: '/regenradar',
   route: '/tourenplanung',
-  event: '/eventplanung',
-  forecast: '/vorhersage',
   history: '/wetterarchiv',
   atmosphere: '/atmosphaere',
   globe: '/globus',
@@ -576,6 +525,7 @@ export function verifyRoutes(): { checks: RouteCheck[]; passed: number; failed: 
   add('/wetterkarte/warnungen → /warnungen (kanonisch + Meta), Client normalisiert NICHT (kein Remount)', canonicalPath('/wetterkarte/warnungen') === '/warnungen' && normalizePath('/wetterkarte/warnungen') === null && metaForPath('/wetterkarte/warnungen').routeId === 'warnungen');
   add('Sub-Route wird erkannt', routeForPath('/wetterkarte/temperatur')?.sub?.slug === 'temperatur' && routeForPath('/atmosphaere/querschnitt')?.sub?.slug === 'querschnitt' && routeForPath('/waldbrand/aktive-braende')?.sub?.slug === 'aktive-braende');
   add('unbekannte Sub-Route bleibt auf der Route, aber noindex', routeForPath('/wetterkarte/xyz')?.sub === null && metaForPath('/wetterkarte/xyz').noindex);
+  add('Vorhersage und Eventplanung sind gelöscht (Jan 11.11.): keine Route, kein Alias', ['/vorhersage', '/vorhersage/muenchen', '/wettervorhersage', '/forecast', '/eventplanung', '/eventplanung/grillen', '/events', '/event'].every((p) => routeForPath(p) === null && aliasTarget(p) === null) && !sitemapPaths().some((x) => /^\/(vorhersage|eventplanung)/.test(x.path)));
   add('unbekannter Pfad ⇒ null', routeForPath('/nope') === null && routeForPath('/wetterkarte/a/b') === null && routeForPath('/wetterkarte/wind/a/b') === null);
   // --- SH1: Ort-Slug als letztes Segment -----------------------------------
   add('[SH1] /wetterkarte/wind/muenchen ⇒ Layer wind + Ort muenchen',
@@ -593,7 +543,7 @@ export function verifyRoutes(): { checks: RouteCheck[]; passed: number; failed: 
     metaForPath('/wetterkarte/wind/muenchen').title === metaForPath('/wetterkarte/wind').title
     && !metaForPath('/wetterkarte/wind/muenchen').noindex && !metaForPath('/regenradar/muenchen').noindex);
   add('[SH1] jede place-Route ist auch eine echte Route und hat keinen subParam-Konflikt',
-    ROUTES.filter((r) => r.place).map((r) => r.id).join(',') === 'wetterkarte,warnungen,regenradar,vorhersage,eventplanung,wetterarchiv,atmosphaere');
+    ROUTES.filter((r) => r.place).map((r) => r.id).join(',') === 'wetterkarte,warnungen,regenradar,wetterarchiv,atmosphaere');
   // SH3: die Atmosphäre trägt den Ort hinter der Linse.
   add('[SH3] /atmosphaere/querschnitt/innsbruck ⇒ Linse + Ort',
     (() => { const m = routeForPath('/atmosphaere/querschnitt/innsbruck'); return m?.sub?.slug === 'querschnitt' && m.placeSlug === 'innsbruck'; })());
@@ -617,7 +567,7 @@ export function verifyRoutes(): { checks: RouteCheck[]; passed: number; failed: 
   add('[ATM] Gegenprobe: der Querschnitt selbst bleibt stehen, ein ähnlicher Slug ist kein Redirect, ein Tippfehler bleibt 404', normalizePath('/atmosphaere/querschnitt') === null && normalizePath('/atmosphaere/querschnitt/innsbruck') === null && aliasTarget('/atmosphaere/fliegenx') === null && routeForPath('/atmosphaere/fliegenx/innsbruck') === null && aliasTarget('/atmosphaere/fliegen/a/b') === null);
   // SEO/GEO 2026 (E1): jede indexierbare Sub-Route trägt eigenen Text für ihre Shell.
   const subs = indexableSubRoutes();
-  add(`${34 + SEA_SPOT_COUNT} indexierbare Sub-Routen mit eigener Shell (18 Layer + 1 Atmosphäre + 5 Brand-Sichten + 10 Event-Anlässe + ${SEA_SPOT_COUNT} Seewetter-Spots), nach der Autobahn-Freischaltung 20 mehr`, subs.length === (ROAD_INDEXABLE ? 54 : 34) + SEA_SPOT_COUNT, String(subs.length));
+  add(`${24 + SEA_SPOT_COUNT} indexierbare Sub-Routen mit eigener Shell (18 Layer + 1 Atmosphäre + 5 Brand-Sichten + ${SEA_SPOT_COUNT} Seewetter-Spots), nach der Autobahn-Freischaltung 20 mehr`, subs.length === (ROAD_INDEXABLE ? 44 : 24) + SEA_SPOT_COUNT, String(subs.length));
   const longDesc = subs.filter((x) => x.sub.description.length > 160).map((x) => `${x.path} (${x.sub.description.length})`);
   add('Sub-Routen-Descriptions sind paarweise verschieden und ≤ 160 Zeichen', new Set(subs.map((x) => x.sub.description)).size === subs.length && longDesc.length === 0, longDesc.join(', '));
   add('Shell-Dateinamen sind eindeutig und flach', new Set(subs.map((x) => x.shell)).size === subs.length && subs.every((x) => /^\/[a-z]+--[a-z0-9-]+\.html$/.test(x.shell)));

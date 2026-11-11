@@ -82,7 +82,7 @@ export const METHODIK_PAGES = [
       { q: 'Wie weit reicht die Punktvorhersage?', a: 'Standard 24 Stunden im Panel; die Quellen tragen bis etwa 10 Tage (MOSMIX), darüber hinaus nur der GFS-Schwanz bis 372 h, wenn er angefragt wird.' },
       { q: 'Was bedeutet die Konfidenz in Prozent?', a: 'Wie einig sich die Quellen sind, abgeschwächt mit der Vorlaufzeit — 80 % heißt hohe Einigkeit, unter 50 % niedrige.' },
     ],
-    related: ['/wetterkarte', '/vorhersage', '/methodik/konfidenz-und-trefferquote/', '/wissen/modellvergleich-unsicherheit/'],
+    related: ['/wetterkarte', '/validierung', '/wissen/modellvergleich-unsicherheit/'],
   },
   {
     slug: 'regenradar-nowcast',
@@ -104,53 +104,6 @@ export const METHODIK_PAGES = [
       { q: 'Gibt es die Regenwahrscheinlichkeit auch für Österreich?', a: 'Nein. Das Flow-Ensemble braucht Radarframes im 5-Minuten-Takt (RADOLAN) und ist auf Deutschland begrenzt.' },
     ],
     related: ['/regenradar', '/wetterkarte/niederschlag', '/wetterkarte/zellbahnen', '/wetterkarte/regen-chance', '/validierung'],
-  },
-  {
-    slug: 'konfidenz-und-trefferquote',
-    title: 'Konfidenz und Trefferquote',
-    h1: 'Wie buscosun sagt, wie sicher eine Vorhersage ist — und es nachprüft',
-    description: 'Modellvergleich, Ensemble-Spread, Stabilität seit gestern, Trefferquote der letzten 30 Tage und die Live-Validierung des Nowcasts gegen das Radar.',
-    answer: 'buscosun weist Unsicherheit an vier Stellen aus: als Konfidenz-Score je Tag aus der Streuung von fünf Wettermodellen und der Vorlaufzeit, als Stabilität gegenüber den Vorläufen, als Trefferquote der eigenen Vorhersage über die letzten 30 Tage und als Live-Validierung des Regen-Nowcasts gegen das später beobachtete Radar mit Brier Score, Reliability und Skill. Stabil heißt dabei ausdrücklich nicht automatisch richtig.',
-    sections: [
-      { h2: 'Modellvergleich und Konfidenz-Score', html: p('Die Vorhersage-Seite holt fünf Modelle über die Open-Meteo-Schnittstelle (ICON/DWD, ECMWF IFS, GFS, GEM, Météo-France) sowie das ICON-Ensemble mit bis zu 40 Mitgliedern und die Vorläufe der letzten drei Tage. Der Konfidenz-Score je Tag entsteht aus der Streuung der Modelle und der Vorlaufzeit und wird als hoch, mittel oder niedrig gezeigt. Ein Leave-one-out-Vergleich markiert Ausreißer-Modelle mit ⚠. Regenwahrscheinlichkeit ist hier die Modell-Einigkeit: der Anteil der Modelle mit mindestens 0,5 mm am Tag.') },
-      { h2: 'Stabilität seit gestern', html: p('Aus den Vorläufen („vor 3 Tagen", „vorgestern", „gestern") ergibt sich, ob die Vorhersage stabil oder wechselhaft ist. Ein durchgehender Trend zählt nicht als wechselhaft — nur echtes Hin und Her. Die Seite sagt ausdrücklich: Stabil heißt nicht automatisch richtig.') },
-      { h2: 'Trefferquote der letzten 30 Tage', html: p('Für Temperatur, Niederschlag und Wind vergleicht buscosun die Vorhersagen mit Vorlauf 1 und 3 Tage gegen den Konsens der Modell-Analysen je Stunde — als mittleren absoluten Fehler für Temperatur und Wind, als Ja/Nein-Trefferquote für Regen. Eine Mindest-Datenbasis schützt vor Zufallsaussagen; das Ergebnis bekommt ein Laien-Label und fließt als Faktor in die Konfidenz ein. Ehrlich benannt: Die „Wahrheit" ist hier ein Analysen-Konsens, keine Stationsmessung.') },
-      { h2: 'Die Validierungsseite', html: p('Die Seite /validierung rechnet beim Aufruf ein echtes Hindcast: Aus den ältesten beobachteten RADOLAN-Analysen wird das Bewegungsfeld geschätzt, 15 gestörte Varianten laufen vorwärts, und das Ergebnis wird gegen die später tatsächlich beobachtete Analyse verifiziert. Ausgewiesen werden Brier Skill Score (gegen Klimatologie), Expected Calibration Error (unter 0,05 gut, unter 0,1 brauchbar), Brier Score gegen die Basisrate, Critical Success Index und ein Reliability-Diagramm je Vorlaufminute. Die Werte schwanken mit der Wetterlage — das ist kein Fehler, sondern der Punkt.') },
-      { h2: 'Unsicherheit als Fläche', html: p('Der Layer „Sicherheit" auf der Wetterkarte zeigt, wo die Vorhersage unsicher ist: bei aktivem Niederschlag den echten Spread des 15-Member-Flow-Ensembles (Deutschland), sonst die Abweichung von der 30-jährigen DWD-Stationsklimatologie multipliziert mit der Übereinstimmung zweier aufeinanderfolgender ICON-D2-Läufe.') },
-      { h2: 'Grenzen', html: ul(['Fünf Modelle sind kein Ensemble; Einigkeit kann gemeinsamer Irrtum sein.', 'Die Trefferquote nutzt Analysen als Referenz, keine Stationsmessung.', 'Die Validierung misst nur das Flow-Ensemble (0–60 min, DE), nicht den Temperatur-Schleier.', 'Alle Aussagen sind Wahrscheinlichkeiten. ' + NO_WARNING]) },
-    ],
-    faqs: [
-      { q: 'Was heißt „Konfidenz hoch"?', a: 'Die Modelle streuen wenig und der Vorlauf ist kurz. Es ist ein Maß für Einigkeit, kein Versprechen.' },
-      { q: 'Wie berechnet buscosun die Trefferquote?', a: 'Vorhersagen mit 1 und 3 Tagen Vorlauf über die letzten 30 Tage gegen den Konsens der Modell-Analysen — MAE für Temperatur und Wind, Ja/Nein-Treffer für Regen.' },
-      { q: 'Was ist der Brier Score?', a: 'Der mittlere quadratische Fehler einer Wahrscheinlichkeitsvorhersage; 0 wäre perfekt. Der Skill Score vergleicht ihn mit der Klimatologie.' },
-    ],
-    related: ['/vorhersage', '/validierung', '/wetterkarte/sicherheit', '/wissen/modellvergleich-unsicherheit/'],
-  },
-  {
-    slug: 'event-bewertung',
-    title: 'Event-Bewertung',
-    h1: 'Wie buscosun den besten Tag für ein Event findet',
-    description: 'Anlass-Profile, Score 0–100, Konfidenz, Phasen, Plan B, Ausweichort, Event-Fläche mit Gelände, Foto-Licht und Astro-Nacht — die Rechenregeln der Event-Planung.',
-    answer: 'Die Event-Planung bewertet die nächsten sieben Tage für einen Anlass mit einem Score von 0 bis 100 aus vier Faktoren — Niederschlag, Temperatur, Wind, Bewölkung — mit anlassabhängigen Gewichten und Idealtemperaturen. Jeder Tag trägt eine Konfidenz aus Quellen-Einigkeit mal Vorlauf; unter 0,55 gilt nur noch eine Tendenz. Phasen werden einzeln bewertet und der Tag zählt die schwächste. Plan B, Ausweichort im Umkreis von 22 km, Event-Fläche mit Geländekennzahlen, Foto-Licht und Astro-Nacht bauen auf derselben Punktvorhersage auf.',
-    sections: [
-      { h2: 'Die Anlass-Profile', html: table(['Anlass', 'Ideal-Temperatur', 'Regen', 'Temp', 'Wind', 'Wolken', 'Fenster'], [
-        ['Wandern', '12–22 °C', '1,0', '0,6', '0,4', '0,25', 'Tag'], ['Radtour', '12–24 °C', '1,0', '0,5', '0,7', '0,2', 'Tag'], ['Grillen', '19–30 °C', '1,0', '0,7', '0,5', '0,5 (wenig)', 'Tag'],
-        ['Drohne', '2–30 °C', '0,9', '0,1', '1,0', '0,4', 'Tag'], ['Fotografie', '2–28 °C', '0,7', '0,15', '0,25', '1,0 (weich)', 'Tag'], ['Picknick', '17–28 °C', '1,0', '0,7', '0,5', '0,45 (wenig)', 'Tag'],
-        ['Laufen', '5–17 °C', '0,8', '0,6', '0,4', '0,15', 'Tag'], ['Baden', '24–34 °C', '0,8', '1,0', '0,4', '0,6 (wenig)', 'Tag'], ['Sterne', '0–30 °C', '0,9', '0,15', '0,2', '1,0 (wenig)', 'Kernnacht 22–4 Uhr'],
-        ['Hochzeit, freier Anlass', '14–26 °C', '1,0', '0,5', '0,4', '0,3', 'Tag'],
-      ]) + p('Die Gewichte lassen sich je Anlass feinjustieren (Idealtemperatur und alle vier Gewichte). Bewertet wird das gewählte Tageszeitfenster: ganzer Tag 8–20 Uhr, Vormittag, Nachmittag, Abend 18–23 Uhr oder Kernnacht.') },
-      { h2: 'Score, Konfidenz, Tendenz', html: p('Für jeden Tag fasst buscosun die Stunden des Fensters zusammen (Tmax/Tmin, Regensumme und Regenstunden über 0,1 mm/h, Böen, Bewölkung, UV, gefühlte Temperatur, die schlimmste Einzelstunde als Spitze). Jeder Faktor liefert einen Teilscore 0–1 mit Bewertung gut/ok/schlecht und einem Satzbaustein; der Score ist die gewichtete Summe, dazu der entscheidende Negativfaktor. Die Konfidenz ist Quellen-Einigkeit mal Vorlauf; unter der Schwelle 0,55 wird der Tag als Tendenz gekennzeichnet. Tage jenseits des Horizonts der Quelle (AT/CH etwa 60 h) werden nicht bewertet, sondern als „keine Vorhersage" ausgewiesen — keine Null, die wie eine Aussage aussieht.') },
-      { h2: 'Phasen, Plan B, Ausweichort', html: p('Eine Hochzeit hat drei Phasen (Trauung 13–15, Empfang 15–18, Abendfeier 18–23 Uhr); jede wird einzeln bewertet, der Tag zählt die schwächste. Plan B löst aus, wenn die Regensumme im Fenster (Standard 3 mm), die Böen (Standard 13 m/s) oder der Gesamtscore (Standard 50) eine Schwelle reißen — mit Ausweichoption Zelt, Halle, Unterstand oder nur warnen. Die Ausweichort-Suche fragt auf Knopfdruck acht Himmelsrichtungen im Radius von 22 km mit demselben Anlassprofil ab und schlägt nur vor, was mindestens 6 Punkte besser ist.') },
-      { h2: 'Die Event-Fläche und das Gelände', html: p('Statt eines Punktes lässt sich ein Rechteck aufziehen (0,05 bis 60 km Kante). Bewertet werden vier um 10 % nach innen gerückte Ecken und die Mitte — nacheinander abgefragt, weil parallele Abrufe bei GeoSphere HTTP 429 auslösten. Gemessen: Über flachem Gelände ergibt der Punktforecast bei 8 km Kante nur 0,16 K Spanne; dort sagt die App „uniform", statt Nachkommastellen als Ortsauflösung auszugeben. In Zell am See (6 km, Gebirge) waren es 3,82 K — dort trägt die Fläche. Die Gelände-Bühne zeigt Höhenlage, Neigung, tiefsten und exponiertesten Punkt aus dem 30-m-Raster (ohne Gebäude und Bewuchs), Windpfeile zur Böen-Spitzenstunde und die Stunde, in der die Sonne je Phase hinter dem Grat verschwindet (Horizont aus dem DEM im 30-km-Umkreis; ein Grat unter 1° gilt als Sonnenuntergang).') },
-      { h2: 'Foto-Licht und Astro-Nacht', html: p('Sonnenstand und Lichtfenster sind reine Astronomie (NOAA-Verfahren, etwa eine Minute genau): blaue Stunde bei Sonnenhöhe −6° bis −4°, goldene Stunde −4° bis +6°, Auf- und Untergang bei −0,833°. Sie gelten für jedes Datum, auch Monate voraus. Lichtqualität (weich, hart, dramatisch) und Nebel- bzw. Abendrot-Chance sind Wahrscheinlichkeiten aus Bedeckung und Schichtung — erst im Vorhersagehorizont. Die Astro-Nacht bewertet 21 bis 6 Uhr: Mondphase und -höhe (Schlyter), Wolkenschichten, Tau-Risiko aus dem Taupunkt (Magnus) und die astronomische Dunkelheit. Die Lichtverschmutzung ist eine Offline-Schätzung aus der Nähe zu Städten (additives 1/d^2,5-Modell, auf Bortle 1–9 abgebildet) — kein VIIRS-Atlas, keine Messung.') },
-      { h2: 'Grenzen', html: ul(['Sieben Tage Horizont, weil MOSMIX ihn trägt; darüber hinaus nichts.', 'Die Lichtverschmutzung ist eine Schätzung aus Stadtnähe, kein Messwert.', 'Keine Milchstraßen-Sichtbarkeit, keine Meteorstrom- oder Polarlicht-Prognose.', 'Benachrichtigungen funktionieren nur bei geöffneter App (kein Server); der Kalender-Export (.ics) ist der backend-freie Ersatz.']) },
-    ],
-    faqs: [
-      { q: 'Wie entsteht der Score von 0 bis 100?', a: 'Gewichtete Summe von vier Teilscores (Regen, Temperatur, Wind, Wolken) mit anlassabhängigen Gewichten und Idealtemperaturen.' },
-      { q: 'Was bedeutet „nur Tendenz"?', a: 'Die Konfidenz (Quellen-Einigkeit mal Vorlauf) liegt unter 0,55; der Tag wird gezeigt, aber nicht als verlässlich bewertet.' },
-      { q: 'Kann ich die goldene Stunde für einen Termin in drei Monaten sehen?', a: 'Ja, die Lichtfenster sind reine Astronomie und gelten für jedes Datum; eine Wetterwahrscheinlichkeit gibt es erst im Vorhersagehorizont.' },
-    ],
-    related: ['/eventplanung', '/funktionen/event-tag/', '/methodik/punktvorhersage-quellenmix/'],
   },
   {
     slug: 'tourenplanung-zeitmodell',
@@ -254,7 +207,7 @@ export function buildWettermodellePage() {
       { q: 'Warum kommt der Höhenwind aus ICON-EU?', a: 'ICON-D2 veröffentlicht Druckflächen nur im ikosaedrischen Gitter; der eingebaute Decoder liest nur reguläre Gitter, ICON-EU liefert sie mit ~7 km.' },
       { q: 'Nutzt buscosun KI-Modelle?', a: 'AIFS und AICON stehen im Katalog als KI-Modelle (Kennzeichnung [KI]); sie sind global und grob und werden nie automatisch gewählt.' },
     ],
-    related: ['/wetterkarte', '/lizenzen/', '/methodik/punktvorhersage-quellenmix/', '/vorhersage'],
+    related: ['/wetterkarte', '/lizenzen/', '/methodik/punktvorhersage-quellenmix/'],
   };
 }
 
@@ -278,9 +231,7 @@ export function buildUeberPage() {
       { h2: 'Was buscosun kann', html: ul([
         '<a href="/wetterkarte">Wetterkarte</a> mit 19 Layern (Wind, Böen, Radar, höhenkorrigierte Temperatur, Gewitterpotenzial, Zellbahnen, Hagel, amtliche Warnungen …) und Modellwahl je Land',
         '<a href="/regenradar">Regenradar</a> aus drei Landesradaren mit Nowcast bis 2 Stunden',
-        '<a href="/vorhersage">Vorhersage mit Konfidenz</a>, Modellvergleich und Trefferquote',
         '<a href="/tourenplanung">Tourenplanung</a>: Wetter je Kilometer zur Ankunftszeit, E-Bike-Reichweite, 3D-Schnitt',
-        '<a href="/eventplanung">Event-Planung</a>: bester Tag, Phasen, Plan B, Foto-Licht, Astro-Nacht',
         '<a href="/wetterarchiv">Wetterarchiv</a> seit 1940 mit Klimastreifen und Kenntagen',
         '<a href="/atmosphaere">Atmosphäre</a>: Vertikalschnitt mit Höhenwind, Böen und Wolkenbasis',
         '<a href="/waldbrand">Brandradar</a>: Waldbrandgefahr, aktive Brände aus Satellitendaten, Brandnarben',
@@ -375,7 +326,7 @@ export function buildOrtsseitenPage() {
       { h2: 'Sonnenzeiten', html: ul([
         'Berechnet wird die Sonnenhöhe minutengenau für den 15. des Monats (Referenzjahr 2026) in mitteleuropäischer Zeit mit Sommerzeit; von Jahr zu Jahr verschieben sich die Zeiten um wenige Minuten.',
         'Auf- und Untergang gelten bei −0,833° Sonnenhöhe (Standard-Refraktion). Die goldene Stunde am Abend beginnt bei 6° Sonnenhöhe und endet bei −4°; daran schließt die blaue Stunde bis −6° an.',
-        'Nicht berücksichtigt ist die Abschattung durch Berge. In einem engen Tal verschwindet die Sonne früher hinter dem Grat; die <a href="/eventplanung/fotografie">Event-Planung</a> rechnet diese Verdeckung für kommende Tage aus dem Geländemodell.',
+        'Nicht berücksichtigt ist die Abschattung durch Berge. In einem engen Tal verschwindet die Sonne früher hinter dem Grat.',
       ]) },
       { h2: 'Wann ein Vergleich mit einem Nachbarort erscheint', html: p(`Ein Satz wie „Im Jahresmittel ist es in X um 1,4 K kälter als in Y“ erscheint nur, wenn alle Bedingungen erfüllt sind: Y liegt höchstens ${COMPARE.maxKm} km entfernt und mindestens ${COMPARE.minHeightDiffM} m höher oder tiefer; der Unterschied beträgt mindestens ${String(COMPARE.minTempDiffK).replace('.', ',')} K bei der Jahrestemperatur, ${pct(COMPARE.minPrecipRel)} beim Jahresniederschlag oder ${COMPARE.minFrostDays} Frosttage; und die Richtung passt zur Höhe (höher gelegene Orte sind kälter, niederschlagsreicher und frostreicher). Alles andere bleibt ungesagt, weil Unterschiede zwischen nahen Rasterzellen sonst Rechenartefakte wären.`) },
       { h2: 'Wann eine Ortsseite einen Modul-Abschnitt bekommt', html: ul([

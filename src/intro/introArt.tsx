@@ -152,50 +152,6 @@ export const RouteArt: IntroArt = ({ accent }) => (
   </Frame>
 );
 
-/* 4 · Event-Planung — Score-Donut + 7 Tage-Balken, bester Tag markiert */
-export const EventArt: IntroArt = ({ accent }) => {
-  const C = 2 * Math.PI * 26;
-  const filled = C * 0.78;
-  return (
-    <Frame accent={accent}>
-      <g transform="translate(86 100)">
-        <circle r="26" stroke={SAND2} strokeWidth="7" />
-        <circle r="26" stroke="currentColor" strokeWidth="7" strokeDasharray={`${filled} ${C}`} transform="rotate(-90)" />
-        <circle r="3.5" cx="0" cy="-26" fill="currentColor" stroke="none" transform="rotate(-90)" />
-      </g>
-      {/* 7 day bars */}
-      <g transform="translate(150 64)" strokeWidth="1.5">
-        {[26, 34, 40, 56, 44, 30, 24].map((h, i) => {
-          const best = i === 3;
-          return (
-            <g key={i} transform={`translate(${i * 22} ${64 - h})`}>
-              <rect width="15" height={h} rx="3.5" fill={best ? 'currentColor' : '#fff'} stroke={best ? 'none' : SAND2} />
-              {best && <path d="M 4 8 L 7 11 L 12 4" stroke="#fff" strokeWidth="2" fill="none" />}
-            </g>
-          );
-        })}
-      </g>
-    </Frame>
-  );
-};
-
-/* 5 · Vorhersage — Mehrmodell-Spread-Fächer mit Caliper */
-export const ForecastArt: IntroArt = ({ accent }) => (
-  <Frame accent={accent}>
-    <line x1="44" y1="150" x2="280" y2="150" stroke={SAND2} strokeDasharray="3 5" />
-    <path d="M 56 110 L 256 54 L 256 150 L 56 110 Z" fill="currentColor" opacity="0.12" stroke="none" />
-    <path d="M 56 110 L 256 54" stroke="currentColor" opacity="0.6" />
-    <path d="M 56 110 L 256 150" stroke="currentColor" opacity="0.6" />
-    <path d="M 56 110 L 256 104" stroke={INK} />
-    <circle cx="56" cy="110" r="5" fill={INK} stroke="none" />
-    <g stroke={INK} strokeWidth="1.5">
-      <line x1="270" y1="54" x2="270" y2="150" />
-      <line x1="265" y1="54" x2="275" y2="54" />
-      <line x1="265" y1="150" x2="275" y2="150" />
-    </g>
-  </Frame>
-);
-
 /* 6 · 3D-Globus — Kugel mit Gitter, Atmosphäre, Jetstream-Bändern */
 export const GlobeArt: IntroArt = ({ accent }) => (
   <Frame accent={accent}>
@@ -320,35 +276,6 @@ export const RouteDetail: IntroArt = ({ accent }) => (
     <g transform="translate(280 40)" stroke="var(--steel-600)" strokeWidth="1.6">
       <line x1="-4" y1="0" x2="-6" y2="8" /><line x1="2" y1="0" x2="0" y2="8" />
     </g>
-  </DetailFrame>
-);
-
-/* event · Ranking-Zeile mit Score */
-export const EventDetail: IntroArt = ({ accent }) => (
-  <DetailFrame accent={accent}>
-    <rect x="20" y="20" width="280" height="56" rx="12" fill="#fff" stroke={SAND2} strokeWidth="1.5" />
-    <circle cx="44" cy="48" r="12" fill="var(--sage-600)" stroke="none" />
-    <text x="44" y="52" fontSize="11" fill="#fff" textAnchor="middle" stroke="none" fontWeight="700">1</text>
-    <text x="66" y="44" fontSize="11" fill={T_INK} stroke="none" fontWeight="600">So, 14. Juni</text>
-    <text x="66" y="61" fontSize="9" fill={T_STONE} stroke="none">trocken &amp; mild</text>
-    <rect x="176" y="43" width="80" height="8" rx="4" fill={SAND2} stroke="none" />
-    {/* Score ≥ 70 = „gut" → terracotta (wie scoreColor im Event-Ergebnis) */}
-    <rect x="176" y="43" width="64" height="8" rx="4" fill="var(--terracotta-500)" stroke="none" />
-    <text x="284" y="52" fontSize="14" fill="var(--terracotta-500)" textAnchor="end" stroke="none" fontWeight="600">82</text>
-  </DetailFrame>
-);
-
-/* forecast · Wert mit Unsicherheitsband */
-export const ForecastDetail: IntroArt = ({ accent }) => (
-  <DetailFrame accent={accent}>
-    <text x="20" y="50" fontSize="26" fill={T_INK} stroke="none" fontWeight="600">18°</text>
-    <text x="74" y="50" fontSize="13" fill={T_STONE} stroke="none">± 1,2°</text>
-    {/* spread band — Konsens/Konfidenz in sage (wie das Unsicherheitsband) */}
-    <line x1="150" y1="40" x2="296" y2="40" stroke={SAND2} strokeWidth="6" strokeLinecap="round" />
-    <line x1="196" y1="40" x2="250" y2="40" stroke="var(--sage-600)" strokeWidth="6" strokeLinecap="round" />
-    <circle cx="223" cy="40" r="5" fill="#fff" stroke="var(--sage-600)" strokeWidth="2" />
-    <text x="150" y="66" fontSize="9" fill={T_STONE} stroke="none">5 Modelle</text>
-    <text x="296" y="66" fontSize="9" fill="var(--sage-600)" textAnchor="end" stroke="none" fontWeight="600">hohe Sicherheit</text>
   </DetailFrame>
 );
 

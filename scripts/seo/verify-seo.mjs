@@ -154,13 +154,13 @@ for (const rel of ['wetterkarte.html', 'regenradar.html', 'waldbrand.html', 'atm
 }
 // 5) Sub-Routen-Shells (SEO/GEO 2026, E1): jede indexierbare Sub-Route hat eine
 // EIGENE flache Shell mit eigenem Title/Canonical/H1/Lead — vorher teilten sie die
-// Eltern-Shell (SEO-AUDIT.md §2). 34 = 18 Layer + 1 Atmosphäre + 5 Brand-Sichten + 10 Event-Anlässe (E7);
+// Eltern-Shell (SEO-AUDIT.md §2). 24 = 18 Layer + 1 Atmosphäre + 5 Brand-Sichten (die 10 Event-Anlässe sind seit Jan 11.11. gelöscht);
 // die exakte Menge prüft verify-routing gegen die Routen-Tabelle. Nach der Autobahn-Freischaltung (ROAD_INDEXABLE) kommen 20 Unterseiten dazu.
 // Phase SS: dazu je Seewetter-Spot eine Shell (die Zahl liest die Prüfung aus der Namenstabelle, nicht aus dist/).
 console.log('\nSub-Routen-Shells:');
 const subShells = readdirSync(DIST).filter((f) => /^[a-z]+--[a-z0-9-]+\.html$/.test(f)).sort();
 const seaSpotCount = (readFileSync(join(ROOT, 'src', 'sea', 'seaSpotNames.ts'), 'utf8').match(/^ {2}"[a-z0-9-]+": \[/gm) || []).length;
-const subShellsWanted = (subShells.some((f) => f.startsWith('autobahnwetter--')) ? 54 : 34) + seaSpotCount;
+const subShellsWanted = (subShells.some((f) => f.startsWith('autobahnwetter--')) ? 44 : 24) + seaSpotCount;
 if (seaSpotCount < 50) fail('src/sea/seaSpotNames.ts', `nur ${seaSpotCount} Spots gelesen — Format der Namenstabelle geändert?`);
 if (subShells.length !== subShellsWanted) fail('dist/', `erwartet ${subShellsWanted} Sub-Routen-Shells, gefunden ${subShells.length}`);
 else ok('dist/', `${subShellsWanted} Sub-Routen-Shells vorhanden`);
@@ -395,7 +395,8 @@ console.log('\nZielgruppen & Glossar:');
     else ok('glossar/', 'DefinedTermSet vorhanden');
   }
   const audienceDirs = existsSync(join(DIST, 'fuer')) ? readdirSync(join(DIST, 'fuer'), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name) : [];
-  if (audienceDirs.length < 16) fail('fuer/', `erwartet ≥ 16 Zielgruppen-Seiten, gefunden ${audienceDirs.length}`);
+  // 16 until Jan 11.11.: Veranstalter, Hochzeit, Fotografen and Astronomie went with the event planner.
+  if (audienceDirs.length < 12) fail('fuer/', `erwartet ≥ 12 Zielgruppen-Seiten, gefunden ${audienceDirs.length}`);
   else ok('fuer/', `${audienceDirs.length} Zielgruppen-Seiten`);
   const descs = new Map();
   for (const name of audienceDirs) {

@@ -143,7 +143,7 @@ export const AUDIENCES = [
         `Setze Startzeit und Pausen; das Ergebnis zeigt Wind zur Fahrtrichtung, Regen und Temperatur je Kilometer zur Ankunftszeit — Details im ${a('/methodik/tourenplanung-zeitmodell/', 'Zeitmodell')}.`,
         `Für die Trainingsrunde ohne Datei: ${a('/wetterkarte/wind', 'Windkarte')} und ${a('/wetterkarte/boeen', 'Böenkarte')} — Richtung und Spitzen bis morgen.`,
         `Kurz vor dem Losfahren das ${a('/regenradar', 'Regenradar')}: Ankunftszeit des Regens am Standort in Minuten.`,
-        `Mehrtagesfenster fürs Bikepacking: ${a('/vorhersage', 'Modellvergleich')} mit Konfidenz je Tag — und warum ${a('/wissen/modellvergleich-unsicherheit/', 'stabil nicht automatisch richtig heißt')}.`,
+        `Mehrtagesfenster fürs Bikepacking: ${a('/wetterkarte', 'Wetterkarte')} mit Zeit-Schieber — und warum ${a('/wissen/modellvergleich-unsicherheit/', 'stabil nicht automatisch richtig heißt')}.`,
       ]) },
       { h2: 'Was buscosun hier nicht kann', html: ul([
         'Kein Routing: buscosun berechnet keine Strecke, sondern liest deine Datei. Kein Strava- oder Komoot-Import, kein Live-Tracking.',
@@ -269,10 +269,8 @@ export const AUDIENCES = [
     sections: [
       { h2: 'Was du hier bekommst', html:
         p('Auf der Wetterkarte liefert die <strong>Böenkarte</strong> (ICON-D2 vmax_10m, 2,2 km) die Spitzen in 10 m Höhe als Fläche bis 24 Stunden voraus, die Windkarte die Richtung; im Wind-Panel lässt sich auf die Druckflächen 850, 700 und 500 hPa umschalten. Das Regenradar sagt, ob und wann Regen am Standort ankommt.') +
-        p('Für die Höhe gibt es den <strong>Vertikalschnitt</strong>: Du ziehst auf der Karte eine Linie über dein Einsatzgebiet und siehst darüber Mittelwind und auf Wunsch Böen und Windscherung über dem Geländeprofil. Ein Klick in den Schnitt nennt für diesen Punkt die Höhe, den Abstand über Grund, Mittelwind, Böe, Richtung und Temperatur. Die Stufen liegen 150 m auseinander, gezählt ab Meereshöhe. Für die untersten 120 m über Grund ist das grob: Du liest die nächste Stufe ab, keine Rechnung für deine eingestellte Flughöhe.') +
-        p('In der <strong>Event-Planung</strong> hat der Anlass „Drohne" ein eigenes Profil: Idealtemperatur 2–30 °C, Wind mit vollem Gewicht 1,0, Regen 0,9, Wolken 0,4. So findet buscosun den besten Flugtag der nächsten sieben Tage, mit Konfidenz je Tag.') },
+        p('Für die Höhe gibt es den <strong>Vertikalschnitt</strong>: Du ziehst auf der Karte eine Linie über dein Einsatzgebiet und siehst darüber Mittelwind und auf Wunsch Böen und Windscherung über dem Geländeprofil. Ein Klick in den Schnitt nennt für diesen Punkt die Höhe, den Abstand über Grund, Mittelwind, Böe, Richtung und Temperatur. Die Stufen liegen 150 m auseinander, gezählt ab Meereshöhe. Für die untersten 120 m über Grund ist das grob: Du liest die nächste Stufe ab, keine Rechnung für deine eingestellte Flughöhe.') },
       { h2: 'So nutzt du buscosun als Drohnenpilot', html: ol([
-        `Suche den besten Flugtag in der ${a('/eventplanung/drohne', 'Event-Planung')} mit dem Anlass Drohne; ${a('/methodik/event-bewertung/', 'so entsteht der Score')}.`,
         `Prüfe am Flugtag die ${a('/wetterkarte/boeen', 'Böenkarte')} für die Fläche um den Standort und die ${a('/wetterkarte/wind', 'Windkarte')} für die Richtung.`,
         `Ziehe im ${a('/atmosphaere/querschnitt', 'Vertikalschnitt')} eine Linie über das Einsatzgebiet, schalte Böen zu und tippe in den Schnitt, um Wind und Böe nahe deiner Flughöhe abzulesen.`,
         `Vergleiche den Wert selbst mit dem Grenzwert aus deiner Betriebsanleitung; ${a('/wissen/windgrenzwerte-arbeit-drohne/', 'Windgrenzwerte für Arbeit und Drohne')} erklärt den Hintergrund.`,
@@ -288,7 +286,7 @@ export const AUDIENCES = [
         NO_PUSH,
       ]) },
       { h2: 'Datenquellen und Länder', html:
-        p('Böen und Wind kommen für Deutschland, Österreich und die Schweiz aus ICON-D2 (DWD, CC BY 4.0), die Werte je Höhe im Vertikalschnitt aus dem Höhen-Cube mit den ICON-D2-Modellflächen. Die Event-Planung nutzt den Punktforecast, der je Land Stationen (DWD, TAWES, SMN), MOSMIX und für AT/CH C-LAEF mischt. Der Höhenwind der Druckflächen auf der Windkarte stammt aus ICON-EU. Amtliche Warnungen erscheinen als Flächen nur für Deutschland und die Schweiz; für Österreich nennt das Panel GeoSphere Austria. Das Regenradar reicht in Deutschland 2 Stunden (RADOLAN-RV), in Österreich 3 Stunden (INCA), in der Schweiz nur bis jetzt.') },
+        p('Böen und Wind kommen für Deutschland, Österreich und die Schweiz aus ICON-D2 (DWD, CC BY 4.0), die Werte je Höhe im Vertikalschnitt aus dem Höhen-Cube mit den ICON-D2-Modellflächen. Der Höhenwind der Druckflächen auf der Windkarte stammt aus ICON-EU. Amtliche Warnungen erscheinen als Flächen nur für Deutschland und die Schweiz; für Österreich nennt das Panel GeoSphere Austria. Das Regenradar reicht in Deutschland 2 Stunden (RADOLAN-RV), in Österreich 3 Stunden (INCA), in der Schweiz nur bis jetzt.') },
     ],
     faqs: [
       { q: 'Welchen Windgrenzwert soll ich ansetzen?', a: 'Den aus der Betriebsanleitung deines Geräts. buscosun kennt dein Modell nicht und prüft keinen Grenzwert; du vergleichst den Modellwert selbst.' },
@@ -296,7 +294,7 @@ export const AUDIENCES = [
       { q: 'Zeigt buscosun Flugverbotszonen?', a: 'Nein. Luftraum- und Geo-Zonen-Daten gibt es nicht; dafür sind die Luftfahrtbehörden und deren Karten zuständig.' },
       { q: 'Kann buscosun mich warnen, wenn der Wind auffrischt?', a: 'Nein. Es prüft keinen Grenzwert, und ohne Server gibt es keine Push-Benachrichtigung.' },
     ],
-    related: ['/atmosphaere/querschnitt', '/eventplanung/drohne', '/wetterkarte/boeen', '/wissen/windgrenzwerte-arbeit-drohne/', '/wetterkarte/wind', '/fuer/bau-und-kran/'],
+    related: ['/atmosphaere/querschnitt', '/wetterkarte/boeen', '/wissen/windgrenzwerte-arbeit-drohne/', '/wetterkarte/wind', '/fuer/bau-und-kran/'],
   },
   // ---------------------------------------------------------------------------
   // Belege: wie Drohne (crossSection.ts, iconD2GustSource.ts), capAlerts.ts /
@@ -368,7 +366,7 @@ export const AUDIENCES = [
         `Bei Gewitterlage die ${a('/wetterkarte/hagel', 'Hagelkarte')} (CH: MESHS/POH, DE: KONRAD-Zellen) mit den ${a('/wetterkarte/zellbahnen', 'Zellbahnen')} und der ${a('/wetterkarte/blitze', 'Blitzkarte')}; Hintergrund ${a('/wissen/hagel-meshs-poh/', 'MESHS und POH')}.`,
         `Für Dürre und Beregnung die ${a('/waldbrand/trockenheit', 'Bodentrockenheit')} in Oberboden und Wurzelzone, dazu ${a('/wissen/trockenperioden/', 'Trockenperioden')} im Archiv.`,
         `Im ${a('/wetterarchiv', 'Wetterarchiv')} den Standort wählen: Wachstumsgradtage, frostfreie Periode und mittleres Datum des letzten Frosts — ${a('/wissen/wachstumsgradtage-heizgradtage/', 'so werden sie gerechnet')}.`,
-        `Für Heu und Ernte das ${a('/regenradar', 'Regenradar')} (Ankunftszeit in Minuten) und die ${a('/vorhersage', 'Modellvergleich-Vorhersage')} mit Konfidenz je Tag.`,
+        `Für Heu und Ernte das ${a('/regenradar', 'Regenradar')} (Ankunftszeit in Minuten).`,
         `Für Wind bei Ausbringung die ${a('/wetterkarte/wind', 'Windkarte')} und ${a('/wetterkarte/boeen', 'Böenkarte')}; amtliche Lage wörtlich unter ${a('/warnungen', 'Warnungen')}.`,
       ]) },
       { h2: 'Was buscosun hier nicht kann', html: ul([
@@ -388,185 +386,6 @@ export const AUDIENCES = [
       { q: 'Ist die Bodenfeuchte gemessen?', a: 'Nein, sie ist der Modellindex SMI aus ICON-D2 (0 Welkepunkt, 1 Feldkapazität) für 0–9 cm und 0–81 cm. Ein Messnetz gibt es nicht.' },
     ],
     related: ['/wetterkarte/hagel', '/waldbrand/trockenheit', '/wetterarchiv', '/wissen/wachstumsgradtage-heizgradtage/', '/wissen/trockenperioden/', '/wissen/kenntage-hitzetage-frosttage/'],
-  },
-  // ---------------------------------------------------------------------------
-  // Belege: src/event/eventModel.ts (10 Anlässe + freier Anlass, Horizont 7 Tage,
-  // Plan B Regen 3 mm / Böen 13 m/s / Score 50, Zelt/Halle/Unterstand/nur warnen),
-  // methodik.mjs (Fläche 0,05–60 km, Ecken 10 % nach innen, 30-m-DEM, Grat
-  // 30 km / 1°, Ausweichort 8 Richtungen 22 km ≥ 6 Punkte, RELIABLE 0,55,
-  // AT/CH ~60 h), radar/konrad3d.ts, capAlerts.ts, NULL_BACKEND (FEATURE-INVENTAR E9).
-  // ---------------------------------------------------------------------------
-  {
-    slug: 'veranstalter',
-    title: 'Für Veranstalter',
-    h1: 'buscosun für Veranstalter, Vereine und Festivals: bester Tag, Plan B, Festwiese im Gelände, Gewitterzellen',
-    description: 'Sieben Tage nach Anlass bewertet, Plan B mit eigener Schwelle, Festwiese als Fläche mit Gelände, Zellbahnen und Warnungen wörtlich — kein Sicherheitskonzept.',
-    answer: 'buscosun bewertet für Veranstalter die nächsten sieben Tage nach Anlass mit einem Score von 0 bis 100 und einer Konfidenz je Tag, bewertet Phasen einzeln, löst Plan B ab einstellbaren Schwellen aus, sucht Ausweichorte im Umkreis von 22 km und bewertet die Festwiese als Fläche mit Geländekennzahlen, Windpfeilen und der Stunde, in der die Sonne hinter dem Grat verschwindet. Am Veranstaltungstag zeigen Zellbahnen, Böen und wörtlich zitierte Warnungen die Lage.',
-    jsonLdType: 'WebPage',
-    sections: [
-      { h2: 'Was du hier bekommst', html:
-        p('Der <strong>Event-Wizard</strong> führt in fünf Schritten von Ort und Fläche über Anlass und Zeitfenster zu Plan B. Zehn Anlässe haben eigene Gewichte und Idealtemperaturen — Grillen, Hochzeit, Wandern, Drohne, Fotografie, Sterne, Radtour, Picknick, Laufen, Baden — plus ein freier Anlass; jedes Gewicht lässt sich feinjustieren. Bewertet wird das gewählte Fenster (ganzer Tag 8–20 Uhr, Vormittag, Nachmittag, Abend 18–23 Uhr oder Kernnacht) als gewichtete Summe aus Regen, Temperatur, Wind und Wolken, mit dem entscheidenden Negativfaktor im Klartext. Die Konfidenz ist Quellen-Einigkeit mal Vorlauf; unter 0,55 heißt es „nur Tendenz". Tage jenseits des Quellenhorizonts (AT/CH etwa 60 Stunden) werden als „keine Vorhersage" gezeigt, nicht als Null.') +
-        p('<strong>Plan B</strong> löst aus, wenn die Regensumme im Fenster (Standard 3 mm, 0,5–15), die Spitzenböe (Standard 13 m/s, 6–25 — Zelt und Pavillon) oder der Gesamtscore (Standard 50) die Schwelle reißen, mit Ausweichoption Zelt/Pavillon, Innenraum/Halle, Unterstand oder nur warnen. Die <strong>Ausweichort-Suche</strong> fragt acht Himmelsrichtungen im Radius von 22 km mit demselben Profil ab und schlägt nur vor, was mindestens 6 Punkte besser ist. Für Auf- und Abbau stehen Phasen zur Verfügung, die einzeln bewertet werden; der Tag zählt die schwächste.') +
-        p('Die <strong>Event-Fläche</strong> ersetzt den Punkt durch ein Rechteck (0,05 bis 60 km Kante): Bewertet werden vier um 10 % nach innen gerückte Ecken und die Mitte, und wo das Gelände flach ist, sagt die App „uniform", statt Nachkommastellen als Ortsauflösung auszugeben. Die Gelände-Bühne zeigt Höhenlage, Neigung, tiefsten und exponiertesten Punkt aus dem 30-m-Raster, Windpfeile zur Böen-Spitzenstunde und je Phase die Stunde, in der die Sonne hinter dem Grat verschwindet (Horizont aus dem DEM im 30-km-Umkreis). Am Tag selbst: KONRAD3D-Zellbahnen mit Ankunftszeit (DE), Gewitterpotenzial, Böenkarte, Regenradar und amtliche Warnungen wörtlich. Der Termin geht als .ics in den Kalender.') },
-      { h2: 'So nutzt du buscosun als Veranstalter', html: ol([
-        `Starte die ${a('/eventplanung', 'Event-Planung')}, setze den Ort und ziehe die Festwiese als Rechteck auf.`,
-        `Wähle den Anlass (oder einen freien) und das Zeitfenster; lege Phasen für Aufbau, Programm und Abbau an — jede wird einzeln bewertet.`,
-        `Stelle Plan B ein: Regen-, Böen- oder Score-Schwelle und die Ausweichoption; lass bei Bedarf Ausweichorte im 22-km-Umkreis suchen.`,
-        `Prüfe die Gelände-Bühne: exponierteste Ecke, Windpfeile zur Böenspitze, Sonne hinter dem Grat je Phase; ${a('/methodik/event-bewertung/', 'so entsteht der Score')}.`,
-        `Am Veranstaltungstag: ${a('/wetterkarte/zellbahnen', 'Zellbahnen')}, ${a('/wetterkarte/gewitter', 'Gewitterpotenzial')}, ${a('/wetterkarte/boeen', 'Böenkarte')}, ${a('/regenradar', 'Regenradar')} und ${a('/warnungen', 'Warnungen')} wörtlich.`,
-      ]) },
-      { h2: 'Was buscosun hier nicht kann', html: ul([
-        'Kein Sicherheitskonzept, keine Blitz-Abstandsalarmierung, keine Evakuierungsempfehlung. Die Entscheidung über Abbruch oder Räumung bleibt bei Veranstalter und Behörden. ' + NO_WARNING,
-        'Sieben Tage Horizont, weil MOSMIX ihn trägt; für Österreich und die Schweiz gibt es Bewertungen nur bis etwa 60 Stunden. Termine Monate voraus lassen sich nicht bewerten.',
-        'Kein B2B-Produkt: kein Konto, keine Team-Freigabe, keine API, kein Dokumentations-Export außer .ics und Permalink.',
-        'Die Gelände-Bühne kennt weder Gebäude noch Bühnenaufbauten noch Bäume; Windpfeile gelten für das freie Gelände aus dem 2,2-km-Modell.',
-        'Zellbahnen und Blitzkarte sind Deutschland-fokussiert; amtliche Warnflächen gibt es nur für DE und CH.',
-        NO_PUSH,
-      ]) },
-      { h2: 'Datenquellen und Länder', html:
-        p('Die Bewertung läuft auf dem Punktforecast: Stationen (DWD, TAWES, SMN), MOSMIX (DACH, rund 10 Tage) und für AT/CH C-LAEF (bis 60 Stunden) — daher der kürzere Horizont dort. Das Gelände stammt aus Terrarium-Höhenkacheln (rund 30 m). Ecken und Mitte werden nacheinander abgefragt, weil parallele Abrufe bei GeoSphere HTTP 429 auslösten. KONRAD3D-Zellbahnen und die Blitzkarte sind DWD-Produkte für Deutschland; das Gewitterpotenzial (ICON-D2) deckt DACH ab. Amtliche Warnungen: DWD für Deutschland, MeteoSchweiz über MeteoAlarm für die Schweiz, Österreich nur als Verweis auf GeoSphere.') },
-    ],
-    faqs: [
-      { q: 'Wann löst Plan B aus?', a: 'Wenn im Zeitfenster die Regensumme (Standard 3 mm), die Spitzenböe (Standard 13 m/s) oder der Gesamtscore (Standard 50) die Schwelle reißt; die Werte sind einstellbar.' },
-      { q: 'Wie weit voraus kann ich planen?', a: 'Sieben Tage; in Österreich und der Schweiz bewertet buscosun nur bis etwa 60 Stunden und zeigt darüber hinaus „keine Vorhersage" statt einer Zahl.' },
-      { q: 'Warnt buscosun bei Gewitter am Veranstaltungstag?', a: 'Nein. Es zeigt KONRAD-Zellbahnen mit Ankunftszeit (DE), Gewitterpotenzial und die amtlichen Warnungen wörtlich — bei geöffneter App, ohne Push.' },
-      { q: 'Bewertet buscosun die ganze Festwiese oder nur einen Punkt?', a: 'Die Fläche: vier nach innen gerückte Ecken und die Mitte. Bei flachem Gelände sagt die App „uniform", weil der Punktforecast dort keine Ortsauflösung hergibt.' },
-    ],
-    related: ['/eventplanung', '/funktionen/event-tag/', '/methodik/event-bewertung/', '/wetterkarte/zellbahnen', '/warnungen', '/fuer/hochzeit/'],
-  },
-  // ---------------------------------------------------------------------------
-  // Belege: src/event/eventModel.ts (WEDDING_PHASES Trauung 13–15, Empfang 15–18,
-  // Abendfeier 18–23; Plan B Standards; EVENT_HORIZON_DAYS 7), methodik.mjs
-  // (Hochzeit 14–26 °C, Gewichte 1,0/0,5/0,4/0,3; RELIABLE 0,55; Ausweichort;
-  // Foto-Licht NOAA), src/photo/sun.ts (blau −6…−4°, golden −4…+6°, Horizont
-  // −0,833°), FEATURE-INVENTAR E2/E3 (`wedding` nutzt Default-Profil).
-  // ---------------------------------------------------------------------------
-  {
-    slug: 'hochzeit',
-    title: 'Für Hochzeit',
-    h1: 'buscosun für die Hochzeit im Freien: Trauung, Empfang und Abendfeier einzeln bewertet, Plan B eingebaut',
-    description: 'Trauung, Empfang und Abendfeier einzeln bewertet, der Tag zählt die schwächste Phase — dazu Plan B, Ausweichort im Umkreis und die goldene Stunde.',
-    answer: 'buscosun bewertet für eine Hochzeit im Freien die nächsten sieben Tage in drei Phasen — Trauung 13–15 Uhr, Empfang 15–18 Uhr, Abendfeier 18–23 Uhr, frei anpassbar —, wobei der Tag die schwächste Phase zählt. Plan B löst ab einstellbaren Schwellen für Regen, Böen oder Gesamtwertung aus, die Ausweichort-Suche fragt den Umkreis von 22 km ab, und die goldene Stunde für die Paarfotos gilt astronomisch für jedes Datum, auch Monate voraus.',
-    jsonLdType: 'WebPage',
-    sections: [
-      { h2: 'Was du hier bekommst', html:
-        p('Der Anlass <strong>Hochzeit</strong> in der Event-Planung legt drei Phasen an — Trauung 13 bis 15 Uhr, Empfang 15 bis 18 Uhr, Abendfeier 18 bis 23 Uhr —, die sich verschieben, umbenennen und ergänzen lassen. Jede Phase wird einzeln bewertet (Regen, Temperatur, Wind, Wolken; Idealtemperatur 14–26 °C, Regen mit Gewicht 1,0, Temperatur 0,5, Wind 0,4, Wolken 0,3), und der Tag zählt die schwächste Phase — eine trockene Trauung rettet keinen verregneten Empfang. Die Hochzeitskarten für Wind, Hitze und Abendkälte erscheinen bei der Phase Trauung. Jeder Tag trägt eine Konfidenz aus Quellen-Einigkeit mal Vorlauf; unter 0,55 heißt es ausdrücklich „nur Tendenz".') +
-        p('<strong>Plan B</strong> ist eingebaut: Ab einer Regensumme im Fenster (Standard 3 mm), einer Spitzenböe (Standard 13 m/s — die Grenze für Zelt und Pavillon) oder einer Gesamtwertung unter 50 Punkten schlägt buscosun den Ausweichplan vor, den du hinterlegt hast: Zelt/Pavillon, Innenraum/Halle, Unterstand oder nur ein Hinweis. Die <strong>Ausweichort-Suche</strong> fragt auf Knopfdruck acht Himmelsrichtungen im Radius von 22 km mit demselben Profil ab und nennt nur Orte, die mindestens 6 Punkte besser sind. Statt eines Punktes lässt sich die Wiese oder der Garten als Fläche aufziehen; die Gelände-Bühne zeigt dann, wo es exponiert ist und in welcher Stunde die Sonne je Phase hinter dem Grat verschwindet.') +
-        p('Für die Paarfotos rechnet das <strong>Foto-Licht</strong> Sonnenstand und Lichtfenster rein astronomisch (NOAA-Verfahren, etwa eine Minute genau): blaue Stunde bei Sonnenhöhe −6° bis −4°, goldene Stunde −4° bis +6°, Auf- und Untergang bei −0,833°. Diese Zeiten gelten für jedes Datum — auch für den Termin im nächsten Sommer. Lichtqualität und Abendrot-Chance kommen erst im Vorhersagehorizont dazu. Der Termin geht als .ics in den Kalender.') },
-      { h2: 'So nutzt du buscosun für die Hochzeit', html: ol([
-        `Öffne die ${a('/eventplanung', 'Event-Planung')}, setze den Ort der Feier (oder ziehe die Wiese als Fläche auf) und wähle den Anlass Hochzeit.`,
-        `Passe die drei Phasen an euren Ablauf an — Trauung, Empfang, Abendfeier — und lege die Plan-B-Schwelle mit eurer Ausweichoption fest.`,
-        `Lies die Bewertung je Phase und die Konfidenz; bei „nur Tendenz" noch nicht entscheiden, sondern näher am Termin erneut prüfen.`,
-        `Lass Ausweichorte im 22-km-Umkreis suchen und die goldene Stunde für die Fotos anzeigen — ${a('/wissen/goldene-blaue-stunde/', 'so entstehen die Lichtfenster')}.`,
-        `Am Tag selbst das ${a('/regenradar', 'Regenradar')} mit Ankunftszeit und die ${a('/warnungen', 'amtlichen Warnungen')}; Rechenweg unter ${a('/methodik/event-bewertung/', 'Event-Bewertung')}.`,
-      ]) },
-      { h2: 'Was buscosun hier nicht kann', html: ul([
-        'Keine Wettervorhersage für einen Termin in Monaten: Der Horizont ist sieben Tage, weil MOSMIX ihn trägt; in Österreich und der Schweiz etwa 60 Stunden. Vorher gibt es nur die astronomischen Lichtzeiten und die Klimastatistik des Ortes im Archiv.',
-        'Keine Location-Datenbank und keine Kontakte zu Zeltverleih oder Hallen — Plan B ist deine hinterlegte Option, kein Buchungsservice.',
-        'Die Hochzeitsgewichte entsprechen dem freien Standardprofil (14–26 °C); wer es strenger will, justiert die Gewichte selbst.',
-        'Die Gelände-Bühne kennt weder Gebäude noch Zelte noch Bäume; Schatten kommt nur vom Gelände.',
-        NO_PUSH + ' Der Kalender-Export (.ics) ist der Ersatz.',
-        NO_WARNING,
-      ]) },
-      { h2: 'Datenquellen und Länder', html:
-        p('Die Bewertung nutzt den Punktforecast aus Stationen (DWD, TAWES, SMN), MOSMIX (DACH, rund 10 Tage) und für Österreich und die Schweiz C-LAEF (bis 60 Stunden) — deshalb bewertet buscosun dort nur die ersten zweieinhalb Tage und zeigt danach „keine Vorhersage" statt einer Zahl. Das Gelände stammt aus Terrarium-Höhenkacheln (rund 30 m). Die Lichtzeiten sind Astronomie ohne Länderunterschied. Amtliche Warnungen erscheinen als Flächen nur für Deutschland und die Schweiz.') },
-    ],
-    faqs: [
-      { q: 'Kann ich das Wetter für unsere Hochzeit in vier Monaten sehen?', a: 'Nein, die Bewertung reicht sieben Tage. Die goldene und blaue Stunde für den Termin gelten astronomisch schon jetzt; die Klimastatistik des Ortes zeigt das Wetterarchiv.' },
-      { q: 'Was heißt „der Tag zählt die schwächste Phase"?', a: 'Trauung, Empfang und Abendfeier werden einzeln bewertet; die Tageswertung ist die niedrigste der drei, damit ein trockener Nachmittag den verregneten Abend nicht kaschiert.' },
-      { q: 'Wann schlägt buscosun Plan B vor?', a: 'Standardmäßig ab 3 mm Regen im Fenster, 13 m/s Spitzenböe oder unter 50 Punkten Gesamtwertung — alle drei Schwellen sind einstellbar, die Ausweichoption hinterlegst du selbst.' },
-      { q: 'Wann ist die goldene Stunde am Hochzeitstag?', a: 'Bei Sonnenhöhe −4° bis +6°, morgens und abends; buscosun rechnet sie für jedes Datum etwa minutengenau nach dem NOAA-Verfahren.' },
-    ],
-    related: ['/eventplanung', '/methodik/event-bewertung/', '/funktionen/event-tag/', '/wissen/goldene-blaue-stunde/', '/fuer/veranstalter/', '/fuer/fotografen/'],
-  },
-  // ---------------------------------------------------------------------------
-  // Belege: src/photo/sun.ts (BLUE −6…−4, GOLD −4…+6, HORIZON −0,833, ASTRO −18),
-  // photoLight.ts (Lichtqualität aus Bedeckung + Schichtung, Nebel-/Abendrot-
-  // Chance als Wahrscheinlichkeit), methodik.mjs (Fotografie-Profil 2–28 °C,
-  // Wolken 1,0 weich), FEATURE-INVENTAR
-  // A6 (Wolken 3-schichtig, nicht im Dock), A7 (Satellit), E7.
-  // ---------------------------------------------------------------------------
-  {
-    slug: 'fotografen',
-    title: 'Für Fotografen',
-    updated: '2026-11-01',
-    h1: 'buscosun für Landschafts- und Hobbyfotografen: goldene Stunde, Nebel-Chance, Abendrot-Chance',
-    description: 'Goldene und blaue Stunde minutengenau für jedes Datum, Lichtqualität, Nebel- und Abendrot-Chance sowie Wolken in drei Stockwerken.',
-    answer: 'buscosun rechnet Fotografen Sonnenauf- und -untergang, blaue und goldene Stunde rein astronomisch für jedes Datum und ergänzt im Vorhersagehorizont die Lichtqualität (weich, hart, dramatisch) aus Bedeckung und Schichtung sowie eine Nebel-Chance am Morgen und eine Abendrot-Chance am Abend — jede Lichtaussage mit Wahrscheinlichkeit, keine Garantie. Ob ein Standort über dem Nebel liegt, sagt buscosun nicht.',
-    jsonLdType: 'WebPage',
-    sections: [
-      { h2: 'Was du hier bekommst', html:
-        p('Das <strong>Foto-Licht</strong> im Event-Anlass Fotografie berechnet Sonnenstand und Lichtfenster nach dem NOAA-Verfahren, etwa eine Minute genau: blaue Stunde bei Sonnenhöhe −6° bis −4°, goldene Stunde −4° bis +6°, Auf- und Untergang bei −0,833° (Standard-Refraktion), astronomische Dunkelheit unter −18°. Diese Zeiten sind reine Astronomie und gelten für jedes Datum, auch Monate voraus — für die Planung einer Reise oder eines Shootings ohne Wettervorhersage. Das Anlass-Profil Fotografie gewichtet Wolken mit 1,0 („weich"), Regen 0,7, Wind 0,25, Temperatur 0,15 bei Idealtemperatur 2–28 °C.') +
-        p('Im Vorhersagehorizont kommen Heuristiken aus dem Punktforecast dazu: die <strong>Lichtqualität</strong> — weiches Porträtlicht, reizvolle Wolkenstimmung oder flau und hart — aus Gesamtbedeckung und der Verteilung auf tiefe, mittlere und hohe Wolken; die <strong>Nebel-Chance</strong> am Morgen und die <strong>Abendrot-Chance</strong> am Abend aus Bewölkung, Feuchte und Wind. Jede Aussage trägt eine Wahrscheinlichkeit, keine Garantie — Licht ist nicht garantierbar, und der Code sagt das.') +
-        p('Auf der Wetterkarte liegen die <strong>Wolken in drei Stockwerken</strong> (tief, mittel, hoch aus ICON-D2) übereinander, das Meteosat-Satellitenbild zeigt die reale Bewölkung, und die höhenkorrigierte Temperaturkarte hilft bei Raureif- und Frostfragen im Tal. Die Event-Fläche mit Gelände-Bühne nennt für einen Standort die Stunde, in der die Sonne hinter dem Grat verschwindet.') },
-      { h2: 'So nutzt du buscosun als Fotograf', html: ol([
-        `Öffne die ${a('/eventplanung', 'Event-Planung')}, wähle den Anlass Fotografie und den Ort — das Foto-Licht zeigt die Lichtfenster je Tag, ${a('/wissen/goldene-blaue-stunde/', 'so entstehen sie')}.`,
-        `Für Nebelbilder im Herbst die Nebel-Chance am Morgen; Hintergrund ${a('/wissen/nebel-hochnebel-nebelobergrenze/', 'Nebel, Hochnebel, Nebelobergrenze')}.`,
-        `Prüfe die ${a('/wetterkarte/bewoelkung', 'Bewölkungskarte')} in drei Stockwerken und das ${a('/wetterkarte/satellit', 'Satellitenbild')} für die reale Lage.`,
-        `Für Standorte im Gebirge die ${a('/wetterkarte/temperatur', 'Temperaturkarte')} (höhenkorrigiert) und die Gelände-Bühne der Event-Fläche mit Sonne hinter dem Grat.`,
-        `Die Rechenregeln stehen in ${a('/methodik/event-bewertung/', 'Event-Bewertung')} (Abschnitt Foto-Licht und Astro-Nacht).`,
-      ]) },
-      { h2: 'Was buscosun hier nicht kann', html: ul([
-        'Keine Sichtweite und keine Fernsicht-Prognose — keine Quelle der Punkt-Kette führt sie. Ob der Gipfel 100 km weit sichtbar ist, sagt buscosun nicht.',
-        'Lichtqualität, Nebel- und Abendrot-Chance sind Heuristiken aus Bedeckung, Schichtung, Feuchte und Wind — Wahrscheinlichkeiten, keine Garantien, und nur innerhalb des Vorhersagehorizonts (sieben Tage, AT/CH etwa 60 Stunden).',
-        'Keine Polarlicht- oder Meteorstrom-Prognose, keine Milchstraßen-Sichtbarkeit (siehe die Seite für Astronomie).',
-        'Keine Webcams, keine Standortdatenbank, kein Fotospot-Verzeichnis, keine Sonnenrichtungs-Überlagerung auf der Karte.',
-        'Keine Nebelobergrenze und keine Inversionshöhe: Ob ein Standort über dem Nebel liegt, musst du aus Webcams und Erfahrung ableiten.',
-      ]) },
-      { h2: 'Datenquellen und Länder', html:
-        p('Die Lichtzeiten sind Astronomie ohne Länderunterschied. Lichtqualität und Chancen laufen auf dem Punktforecast: Stationen (DWD, TAWES, SMN), MOSMIX und für Österreich und die Schweiz C-LAEF (bis 60 Stunden) — dort ist der Horizont für Wetteraussagen kürzer. Die Wolkenstockwerke kommen aus ICON-D2 (DWD, 2,2 km, DACH), das Satellitenbild vom DWD-Kartendienst (EUMETSAT Meteosat, 3-Stunden-Takt).') },
-    ],
-    faqs: [
-      { q: 'Kann ich die goldene Stunde für einen Termin in drei Monaten sehen?', a: 'Ja. Die Lichtfenster sind reine Astronomie (NOAA-Verfahren, etwa minutengenau) und gelten für jedes Datum; eine Wetterwahrscheinlichkeit gibt es erst im Vorhersagehorizont.' },
-      { q: 'Wie zuverlässig ist die Abendrot-Chance?', a: 'Sie ist eine Heuristik aus Bewölkung, Schichtung, Feuchte und Wind und wird als Wahrscheinlichkeit gezeigt. Licht ist nicht garantierbar; der Code sagt das ausdrücklich.' },
-      { q: 'Sagt buscosun, ob ich über dem Nebel stehe?', a: 'Nein. Eine Nebelobergrenze oder Inversionshöhe zeigt buscosun nicht. Die Nebel-Chance am Morgen ist eine Heuristik für den Punkt; sie sagt nichts darüber, wo die Nebeldecke endet.' },
-      { q: 'Wo liegt die blaue Stunde?', a: 'Bei Sonnenhöhe −6° bis −4°, morgens vor und abends nach der goldenen Stunde (−4° bis +6°).' },
-    ],
-    related: ['/eventplanung', '/wissen/goldene-blaue-stunde/', '/wissen/nebel-hochnebel-nebelobergrenze/', '/wetterkarte/bewoelkung', '/wetterkarte/satellit', '/fuer/astronomie/'],
-  },
-  // ---------------------------------------------------------------------------
-  // Belege: src/astro/astroNight.ts (Nacht 21–06 Uhr, Magnus-Taupunkt, Wolken-
-  // schichten, Schlyter-Mond, Score), src/astro/lightPollution.ts (1/d^2,5-
-  // Modell, Bortle 1–9, Kern ≈ 8, ~30 km ≈ 3–4, abgelegen ≈ 2, „grobe Heuristik"),
-  // src/photo/sun.ts (ASTRO_NIGHT −18°), methodik.mjs (Sterne-Profil 0–30 °C,
-  // Wolken 1,0 wenig, Kernnacht 22–4 Uhr; keine Milchstraße/Meteore/Polarlicht).
-  // ---------------------------------------------------------------------------
-  {
-    slug: 'astronomie',
-    title: 'Für Astronomie',
-    h1: 'buscosun für Hobby-Astronomen und Astrofotografen: klare, dunkle, mondarme Nacht finden',
-    description: 'Astro-Nacht mit Mondphase, Wolkenstockwerken, Tau-Risiko und astronomischer Dunkelheit; die Lichtverschmutzung ist eine Bortle-Schätzung, keine Messung.',
-    answer: 'buscosun bewertet für Sternfreunde jede Nacht der nächsten sieben Tage von 21 bis 6 Uhr: Mondphase und Mondhöhe, Bewölkung in drei Stockwerken, Tau-Risiko aus dem Taupunkt und die astronomische Dunkelheit unter −18° Sonnenhöhe ergeben einen Nacht-Score mit Konfidenz. Die Lichtverschmutzung ist eine Offline-Schätzung aus der Nähe zu Städten auf der Bortle-Skala — kein Messatlas. Milchstraßen-Sichtbarkeit, Meteorströme und Polarlicht prognostiziert buscosun nicht.',
-    jsonLdType: 'WebPage',
-    sections: [
-      { h2: 'Was du hier bekommst', html:
-        p('Der Event-Anlass <strong>Sterne</strong> bewertet die Kernnacht (22 bis 4 Uhr, Profil: Wolken mit Gewicht 1,0 „wenig", Regen 0,9, Wind 0,2, Temperatur 0,15 bei 0–30 °C) und öffnet die <strong>Astro-Nacht</strong>: Für die Stunden von 21 bis 6 Uhr des Folgetags führt buscosun die mehrschichtige Bewölkung (tief, mittel, hoch), die Mondphase und Mondhöhe nach Schlyter, das Tau- und Feuchterisiko aus dem Taupunkt nach Magnus und die astronomische Dunkelheit (Sonne unter −18°) zu einem Nacht-Score zusammen, der die Nächte der Woche ordnet. Die Konfidenz kommt aus der Event-Bewertung: Quellen-Einigkeit mal Vorlauf.') +
-        p('Die <strong>Lichtverschmutzung</strong> ist bewusst eine grobe, ehrliche Schätzung: ein additives 1/d^2,5-Modell aus der Nähe zu Städten, logarithmisch auf die Bortle-Skala 1 (exzellent dunkel) bis 9 (innerstädtisch) abgebildet und so kalibriert, dass ein Großstadtkern etwa Klasse 8 erhält, 30 km Abstand etwa 3 bis 4 und abgelegene Lagen etwa 2. Die Ausgabe nennt die nächste Stadt und ihre Entfernung, damit die Schätzung nachvollziehbar bleibt. Ein VIIRS-Atlas oder eine Messung steckt nicht dahinter.') +
-        p('Auf der Wetterkarte zeigen die <strong>Wolken in drei Stockwerken</strong> aus ICON-D2, wo Zirren die Transparenz kosten, und das Meteosat-Satellitenbild die reale Lage. Die Astro-Zeiten sind Astronomie und gelten für jedes Datum; die Wolkenaussage erst im Vorhersagehorizont. Der Termin geht als .ics in den Kalender.') },
-      { h2: 'So nutzt du buscosun in der Astronomie', html: ol([
-        `Öffne die ${a('/eventplanung', 'Event-Planung')}, wähle den Anlass Sterne und deinen Beobachtungsort — die Astro-Nacht ordnet die Nächte der Woche.`,
-        `Lies je Nacht Mondphase, Mondhöhe, Wolkenstockwerke, Tau-Risiko und Dunkelheitsfenster; Bortle-Schätzung und nächste Stadt stehen daneben — ${a('/wissen/lichtverschmutzung-bortle/', 'was die Klassen bedeuten')}.`,
-        `Prüfe am Abend die ${a('/wetterkarte/bewoelkung', 'Bewölkungskarte')} (hoch, mittel, tief) und das ${a('/wetterkarte/satellit', 'Satellitenbild')}.`,
-        `Bei Standorten im Gebirge: ${a('/wetterkarte/temperatur', 'Temperaturkarte')} für die Nachtkälte. Ob ein Standort über dem Nebel liegt, sagt buscosun nicht.`,
-        `Der Rechenweg steht in ${a('/methodik/event-bewertung/', 'Event-Bewertung')} (Abschnitt Foto-Licht und Astro-Nacht).`,
-      ]) },
-      { h2: 'Was buscosun hier nicht kann', html: ul([
-        'Keine Milchstraßen-Sichtbarkeit: buscosun kennt weder die Position des galaktischen Zentrums noch die Transparenz — nur Wolken, Mond und Dunkelheit.',
-        'Keine Meteorstrom- und keine Polarlicht-Prognose; kein Seeing, keine Transparenz, kein Jetstream-Index.',
-        'Die Bortle-Klasse ist eine Schätzung aus Stadtnähe (1/d^2,5-Modell), kein VIIRS-Atlas, keine Messung — für Nachbarorte kann sie gleich ausfallen, obwohl ein Hügel dazwischenliegt.',
-        'Sieben Tage Horizont; in Österreich und der Schweiz etwa 60 Stunden. Die Dunkelheitszeiten gelten astronomisch, die Wolkenaussage nicht.',
-        'Kein Teleskop-Steuerung, kein Objektkatalog, keine Sichtbarkeitstabelle für Planeten oder Deep-Sky-Objekte.',
-      ]) },
-      { h2: 'Datenquellen und Länder', html:
-        p('Mond und Dunkelheit sind Astronomie ohne Länderunterschied. Die Bewölkung in drei Stockwerken kommt aus dem Punktforecast (Stationen DWD/TAWES/SMN, MOSMIX, für AT/CH C-LAEF bis 60 Stunden) und auf der Karte aus ICON-D2 (DWD, 2,2 km, DACH). Die Lichtverschmutzung rechnet auf einer Städteliste im Gerät, ohne Netzabruf und ohne Länderunterschied. Das Satellitenbild stammt vom DWD-Kartendienst (Meteosat, 3-Stunden-Takt).') },
-    ],
-    faqs: [
-      { q: 'Ist die Bortle-Klasse gemessen?', a: 'Nein. Sie ist eine Offline-Schätzung aus der Entfernung zu Städten (additives 1/d^2,5-Modell), kalibriert auf Großstadtkern ≈ 8 und abgelegen ≈ 2. buscosun nennt die nächste Stadt dazu.' },
-      { q: 'Zeigt buscosun, wann die Milchstraße sichtbar ist?', a: 'Nein. Es bewertet Wolken, Mondphase und -höhe, Tau-Risiko und astronomische Dunkelheit — nicht die Lage des galaktischen Zentrums.' },
-      { q: 'Wann beginnt die astronomische Dunkelheit?', a: 'Wenn die Sonne mehr als 18° unter dem Horizont steht; buscosun rechnet die Fenster je Nacht für jedes Datum.' },
-      { q: 'Wie wird das Tau-Risiko berechnet?', a: 'Aus der Differenz von Temperatur und Taupunkt (Magnus-Formel) in den Nachtstunden — je kleiner, desto eher beschlägt die Optik.' },
-    ],
-    related: ['/eventplanung', '/wissen/lichtverschmutzung-bortle/', '/methodik/event-bewertung/', '/wetterkarte/bewoelkung', '/fuer/fotografen/'],
   },
   // ---------------------------------------------------------------------------
   // Belege: methodik.mjs Brandradar (FIRMS VIIRS 375 m, GWIS-Notbetrieb, 39 %
@@ -634,7 +453,7 @@ export const AUDIENCES = [
         p('In der <strong>Tourenplanung</strong> erscheint ein Föhn-Hinweis mit Kilometerspanne, wenn Streckenabschnitte Föhnverdacht melden. Das ist eine transparente Heuristik aus Windrichtung (Südsektor), Windstärke, Böigkeit und trockener Luft, nur für den Alpenraum, und keine amtliche Aussage. Die Wissensseiten erklären <a href="/wissen/foehn/">Föhn</a> und <a href="/wissen/temperaturinversion/">Inversion</a> allgemeinverständlich.') },
       { h2: 'So nutzt du buscosun bei Wetterfühligkeit', html: ol([
         `Prüfe auf der ${a('/wetterkarte/wind', 'Windkarte')} in 850 hPa den Südwind über den Alpen und auf der ${a('/wetterkarte/boeen', 'Böenkarte')} die Böen im Tal.`,
-        `Lies für deinen Ort — etwa ${a('/wetter/innsbruck/', 'Innsbruck')}, ${a('/wetter/chur/', 'Chur')}, ${a('/wetter/garmisch-partenkirchen/', 'Garmisch')} oder ${a('/wetter/muenchen/', 'München')} — Temperatur, Feuchte und Wind je Stunde in der ${a('/vorhersage', 'Vorhersage')}.`,
+        `Lies für deinen Ort — etwa ${a('/wetter/innsbruck/', 'Innsbruck')}, ${a('/wetter/chur/', 'Chur')}, ${a('/wetter/garmisch-partenkirchen/', 'Garmisch')} oder ${a('/wetter/muenchen/', 'München')} — Temperatur, Feuchte und Wind je Stunde.`,
         `Ziehe im ${a('/atmosphaere/querschnitt', 'Vertikalschnitt')} eine Linie quer über den Kamm, um den Wind in der Höhe zu sehen.`,
         `Fahre im Zeit-Schieber voraus, um zu sehen, wann der Höhenwind dreht.`,
         `Hintergrund: ${a('/wissen/foehn/', 'Föhn')}, ${a('/wissen/temperaturinversion/', 'Temperaturinversion')} und ${a('/wissen/biowetter/', 'warum buscosun kein Biowetter zeigt')}.`,

@@ -314,13 +314,7 @@ export const EXPLAINERS_EXTRA = [
         id: 'buscosun',
         h2: 'So zeigt es buscosun',
         html:
-          '<p>In der <a href="/eventplanung">Eventplanung</a> mit dem Anlass <strong>Fotografie</strong> berechnet ' +
-          'buscosun für jeden Tag die exakten Zeitfenster der blauen und goldenen Stunde morgens und abends im ' +
-          'Minutenraster und bewertet dazu die <strong>Lichtstimmung</strong> aus dem Punktforecast: Aus den drei ' +
-          'Wolkenschichten entsteht eine Einordnung in „hart", „flach", „dramatisch" oder „weich". Für den Morgen ' +
-          'wird die Nebelchance aus den Stunden zwei Stunden vor bis eine Stunde nach Sonnenaufgang geschätzt, für den ' +
-          'Abend die Chance auf Abendrot im gleichen Fenster um den Sonnenuntergang. Die angezeigte Wahrscheinlichkeit ' +
-          'ist die Lichtqualität, gedämpft um die Modell-Konfidenz — bei unsicherer Vorhersage sinkt sie sichtbar. ' +
+          '<p>buscosun rechnet die Fenster der blauen und goldenen Stunde rein astronomisch im Minutenraster. ' +
           'Die Ortsseiten wie <a href="/wetter/hallstatt/">Hallstatt</a> oder <a href="/wetter/zermatt/">Zermatt</a> ' +
           'nennen die Sonnenzeiten; wer die Nacht plant, findet unter <a href="/wissen/lichtverschmutzung-bortle/">Lichtverschmutzung</a> ' +
           'das Gegenstück für Sternenfotografie.</p>',
@@ -382,19 +376,9 @@ export const EXPLAINERS_EXTRA = [
         id: 'buscosun',
         h2: 'So schätzt es buscosun — ehrlich als Näherung',
         html:
-          '<p>buscosun hat <strong>keinen Satellitenatlas</strong> der Lichtverschmutzung eingebunden. Die Bortle-Angabe ' +
-          'in der <a href="/eventplanung">Eventplanung</a> (Anlass Sterne) ist eine <strong>Offline-Schätzung</strong>: ' +
-          'Aus einer kuratierten Liste von 35 Großstädten in Deutschland, Österreich und der Schweiz mit Einwohnerzahlen ' +
-          'wird die Aufhellung als Summe von Einwohner geteilt durch (Distanz + 4 km) hoch 2,5 gerechnet und ' +
-          'logarithmisch auf die Klassen 1 bis 9 abgebildet — kalibriert so, dass ein Großstadtkern etwa 8, rund ' +
-          '30 km Abstand etwa 3–4 und abgelegene Lagen etwa 2 ergeben. Das trennt dunkle von aufgehellten Standorten, ' +
-          'ersetzt aber keine Messung; Kleinstädte, Gewerbegebiete und Skigebiete fehlen dem Modell.</p>' +
-          '<p>Die Nachtbewertung kombiniert das mit dem Wetter: Fenster der <a href="/glossar/#astronomische-dunkelheit">astronomischen ' +
-          'Dunkelheit</a> (Sonne unter −18°), Bewölkung in drei Schichten zwischen 21 und 6 Uhr, Mondstörung als ' +
-          'Beleuchtungsgrad mal Anteil der Nacht über dem Horizont und das Taurisiko für Optik. Der Nacht-Score ist ' +
-          'das Produkt aus Wolkenqualität, Mondfaktor und Taufaktor; Sommernächte ohne astronomische Dunkelheit werden ' +
-          'als solche benannt. Orte wie <a href="/wetter/brocken/">Brocken</a>, <a href="/wetter/obergurgl/">Obergurgl</a> ' +
-          'oder <a href="/wetter/scuol/">Scuol</a> haben eigene Ortsseiten mit Nachtwerten.</p>',
+          '<p>buscosun zeigt <strong>keine Lichtverschmutzung</strong> und keine Bortle-Klasse an: Es gibt weder einen ' +
+          'Satellitenatlas noch eine eigene Schätzung in der App. Für die Wolken in der Nacht hilft die ' +
+          '<a href="/wetterkarte/bewoelkung">Bewölkungskarte</a> in drei Stockwerken.</p>',
       },
     ],
     faqs: [

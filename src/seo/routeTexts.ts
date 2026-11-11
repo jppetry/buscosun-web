@@ -68,7 +68,6 @@ const ROUTE_TEXTS: Readonly<Record<string, RouteText>> = {
     ],
     official: { text: 'Amtliche Warnungen geben der Deutsche Wetterdienst, GeoSphere Austria und MeteoSchweiz heraus; sie stehen auf buscosun im Wortlaut unter', label: 'Amtliche Warnungen', href: '/warnungen' },
     links: [
-      { label: 'Vorhersage und Konfidenz', href: '/vorhersage' },
       { label: 'Wie gut ist der Nowcast?', href: '/validierung' },
     ],
   },
@@ -140,7 +139,6 @@ const ROUTE_TEXTS: Readonly<Record<string, RouteText>> = {
     ],
     links: [
       { label: 'So funktioniert die Wetterhistorie', href: '/funktionen/historie/' },
-      { label: 'Welches Modell lag an deinem Ort zuletzt am nächsten?', href: '/funktionen/modellvergleich/' },
       { label: 'Klimastreifen erklärt', href: '/wissen/klimastreifen/' },
       { label: 'Trockenperioden erklärt', href: '/wissen/trockenperioden/' },
       { label: 'Trockenheit aktuell: Boden und Feuerwetter', href: '/waldbrand/trockenheit' },

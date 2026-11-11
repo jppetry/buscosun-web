@@ -53,9 +53,7 @@ export const EVENTS = [
         id: 'buscosun',
         h2: 'Eine Omega-Lage in buscosun erkennen',
         html:
-          '<p>Im <a href="/funktionen/modellvergleich/">Modellvergleich</a> zeigt sich eine Blockadelage daran, ' +
-          'dass die Modelle über mehrere Tage ungewöhnlich einig sind — der Unsicherheits-Spread bleibt klein. ' +
-          'Auf der <a href="/funktionen/wetterkarte/">Wetterkarte</a> lässt sich das stabile Hoch über die ' +
+          '<p>Auf der <a href="/funktionen/wetterkarte/">Wetterkarte</a> lässt sich das stabile Hoch über die ' +
           'Wolken- und Windlayer verfolgen. Hinweis: buscosun ordnet die Wetterlage ein und gibt keine amtlichen ' +
           'Warnungen heraus — diese veröffentlicht ausschließlich der Wetterdienst.</p>',
       },

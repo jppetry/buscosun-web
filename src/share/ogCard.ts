@@ -53,8 +53,8 @@ export interface OgCardStyle {
  * sie gegeneinander.
  */
 export const OG_CARD_ROUTES: readonly string[] = [
-  'wetterkarte', 'warnungen', 'regenradar', 'vorhersage', 'tourenplanung',
-  'eventplanung', 'wetterarchiv', 'atmosphaere', 'globus', 'waldbrand',
+  'wetterkarte', 'warnungen', 'regenradar', 'tourenplanung',
+  'wetterarchiv', 'atmosphaere', 'globus', 'waldbrand',
   'feedback', 'validierung', 'seewetter', 'gletscher', 'autobahnwetter',
 ];
 
@@ -67,9 +67,7 @@ export const OG_CARD_STYLE: Readonly<Record<string, OgCardStyle>> = {
   wetterkarte:   { eyebrow: 'Wetterkarte',   accent: '#C97B47', motif: 'karte' },   // terracotta-500
   warnungen:     { eyebrow: 'Amtliche Warnungen', accent: '#B4552F', motif: 'warn' },
   regenradar:    { eyebrow: 'Regenradar',    accent: '#3A6FA8', motif: 'radar' },   // steel-600
-  vorhersage:    { eyebrow: 'Vorhersage',    accent: '#3A6FA8', motif: 'punkt' },
   tourenplanung: { eyebrow: 'Tourenplanung', accent: '#7A9466', motif: 'route' },   // sage-600
-  eventplanung:  { eyebrow: 'Event-Planung', accent: '#7A9466', motif: 'event' },
   wetterarchiv:  { eyebrow: 'Wetterarchiv',  accent: '#8B7355', motif: 'archiv' },  // stone-500
   atmosphaere:   { eyebrow: 'Atmosphäre',    accent: '#3A6FA8', motif: 'luft' },
   globus:        { eyebrow: '3D-Globus',     accent: '#5C5447', motif: 'globus' },  // stone-600

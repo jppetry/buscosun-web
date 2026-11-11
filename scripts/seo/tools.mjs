@@ -338,90 +338,6 @@ export const TOOLS = [
     datePublished: PUBLISHED, dateModified: MODIFIED_E4,
   },
   {
-    slug: 'event-tag', title: 'Bester Event-Tag', h1: 'Event-Planung: der beste Tag der Woche',
-    status: 'full', deepLink: '/eventplanung',
-    answer:
-      'Die Event-Planung vergleicht die nächsten sieben Tage und nennt den besten Tag für ein Vorhaben im ' +
-      'Freien — mit Phasen, Plan-B-Schwelle, Ausweichort, Foto-Licht und Astro-Nacht. Statt einer allgemeinen ' +
-      'Tagesübersicht bewertet sie gezielt die Bedingungen für Hochzeit, Grillfest, Fototour oder ' +
-      'Sternbeobachtung.',
-    bullets: [
-      'Zehn Anlassprofile plus freier Anlass — von Grillen und Hochzeit über Drohne und Fotografie bis Sterne',
-      'Score 0 bis 100 aus vier Faktoren (Regen, Temperatur, Wind, Wolken) mit anlassabhängigen Gewichten',
-      'Zeitfenster wählbar: ganzer Tag, Vormittag, Nachmittag, Abend oder Kernnacht — Phasen einzeln bewertet',
-      'Plan B mit eigenen Schwellen und Ausweichort im Umkreis von 22 km',
-      'Event-Fläche statt Punkt: Rechteck mit vier Ecken plus Mitte, dazu Gelände, Horizont und Sonnenuntergang am Grat',
-      'Kalender-Export (.ics) je Phase, mit Score, Faktoren und Erinnerung einen Tag vorher',
-    ],
-    sections: [
-      {
-        id: 'so-gehts',
-        h2: "So geht's",
-        html:
-          '<ol>' +
-          '<li><strong>Anlass wählen.</strong> Jeder Anlass bringt eine eigene Wunschtemperatur und eigene Gewichte ' +
-          'mit: Beim Drohnenflug zählt der Wind am stärksten, bei der Fotografie die Bewölkung, beim Baden die ' +
-          'Temperatur. Für alles andere gibt es den freien Anlass, dessen Gewichte sich von Hand einstellen ' +
-          'lassen.</li>' +
-          '<li><strong>Ort und Fenster festlegen.</strong> Ganzer Tag (8–20 Uhr), Vormittag, Nachmittag, Abend ' +
-          '(18–23 Uhr) oder Kernnacht (22–4 Uhr). Statt eines Punktes lässt sich auch ein Rechteck von 0,05 bis 60 km ' +
-          'Kantenlänge aufziehen; bewertet werden dann vier um 10 % nach innen gerückte Ecken und die Mitte.</li>' +
-          '<li><strong>Sieben Tage vergleichen.</strong> Für jeden Tag entsteht ein Score von 0 bis 100 als ' +
-          'gewichtete Summe der vier Teilbewertungen, dazu der entscheidende Negativfaktor im Klartext. Ab 70 Punkten ' +
-          'gilt ein Tag als gut, ab 45 als brauchbar.</li>' +
-          '<li><strong>Verlässlichkeit prüfen.</strong> Jeder Tag trägt eine Konfidenz aus Quellen-Einigkeit mal ' +
-          'Vorlaufzeit. Unterhalb von 0,55 wird der Tag als bloße <em>Tendenz</em> gekennzeichnet; Tage jenseits des ' +
-          'Quellenhorizonts erscheinen als „keine Vorhersage" statt als Null.</li>' +
-          '<li><strong>Plan B setzen.</strong> Schwellen für Regenmenge (Standard 3 mm im Fenster), Böen (Standard ' +
-          '13 m/s) und Gesamtscore (Standard 50), dazu die Ausweichoption Zelt, Halle, Unterstand oder nur warnen. ' +
-          'Auf Knopfdruck sucht die App in acht Himmelsrichtungen im Radius von 22 km einen besseren Ort und schlägt ' +
-          'nur vor, was mindestens 6 Punkte gewinnt.</li>' +
-          '<li><strong>In den Kalender legen.</strong> Der .ics-Export schreibt je Phase einen Termin mit Score, ' +
-          'Faktoren, Risiken und Quellenhinweis sowie einer Erinnerung einen Tag vorher.</li>' +
-          '</ol>',
-      },
-      {
-        id: 'phasen',
-        h2: 'Phasen, Licht und Gelände',
-        html:
-          '<p>Ein größeres Vorhaben hat selten nur einen Zeitpunkt. Eine Hochzeit wird deshalb in drei Phasen ' +
-          'bewertet — Trauung 13–15, Empfang 15–18, Abendfeier 18–23 Uhr — und der Tag zählt die <strong>schwächste ' +
-          'davon</strong>, nicht den Durchschnitt. Sonnenstand und Lichtfenster sind reine Astronomie und gelten ' +
-          'deshalb für jedes Datum, auch Monate voraus: blaue Stunde, goldene Stunde, Auf- und Untergang. Die ' +
-          'Wetterwahrscheinlichkeit dazu gibt es erst im Vorhersagehorizont. Die Astro-Nacht bewertet Mondphase und ' +
-          '-höhe, Wolkenschichten, Taurisiko und die astronomische Dunkelheit.</p>' +
-          '<p>Die Gelände-Bühne zieht das digitale Höhenmodell hinzu: Höhenlage, Neigung, tiefster und exponiertester ' +
-          'Punkt der Fläche, Windpfeile zur Böen-Spitzenstunde — und die Stunde, in der die Sonne je Phase hinter dem ' +
-          'Grat verschwindet. Der Horizont wird dafür im Umkreis von 30 km abgetastet; ein Grat ab 1° Höhe gilt als ' +
-          'Sonnenuntergang. Wie die Bewertung im Detail rechnet, steht unter ' +
-          '<a href="/methodik/event-bewertung/">Methodik: Event-Bewertung</a>.</p>',
-      },
-      {
-        id: 'grenzen',
-        h2: 'Was das Werkzeug nicht kann',
-        html:
-          '<p>Der Horizont endet nach <strong>sieben Tagen</strong>, weil die Stationsvorhersage ihn trägt — für ' +
-          'einen Termin in drei Wochen gibt es keine Wetteraussage, nur die Lichtfenster. Für Österreich und die ' +
-          'Schweiz reicht die feinauflösende Quelle nur etwa 60 Stunden; danach werden Tage ausdrücklich als „keine ' +
-          'Vorhersage" ausgewiesen. Über flachem Gelände bringt die Fläche kaum Zusatzinformation — gemessen 0,16 K ' +
-          'Spanne bei 8 km Kante —, und die App sagt dann „uniform", statt Nachkommastellen als Ortsauflösung ' +
-          'auszugeben.</p>' +
-          '<p>Der Score ist eine <strong>Bewertung, keine Genehmigung</strong>: Er kennt weder Veranstaltungsauflagen ' +
-          'noch Bodenverhältnisse, Zufahrten oder Lärmschutz. Die Lichtverschmutzung für die Astro-Nacht ist eine ' +
-          'Offline-Schätzung aus der Nähe zu Städten, kein Messwert; Milchstraßen-Sichtbarkeit, Meteorströme und ' +
-          'Polarlichter fehlen bewusst. Benachrichtigungen funktionieren nur bei geöffneter App, weil buscosun keinen ' +
-          'Server hat — der Kalender-Export ist der Ersatz dafür. Amtliche Warnungen gibt buscosun nicht heraus.</p>',
-      },
-    ],
-    faqs: [
-      { q: 'Wie findet die Event-Planung den besten Tag?', a: 'Sie bewertet jeden der nächsten sieben Tage im gewählten Zeitfenster mit einem Score von 0 bis 100, der sich aus Regen, Temperatur, Wind und Bewölkung zusammensetzt — gewichtet nach Anlass. Genannt werden der beste Tag, der ausschlaggebende Negativfaktor und eine Alternative.' },
-      { q: 'Was bedeutet „nur Tendenz" bei einem Tag?', a: 'Die Konfidenz dieses Tages liegt unter 0,55. Sie entsteht aus der Einigkeit der Quellen mal der Vorlaufzeit. Der Tag wird weiterhin gezeigt, aber nicht als verlässliche Bewertung ausgegeben — hinter einer solchen Zahl steckt zu wenig Sicherheit.' },
-      { q: 'Kann ich die goldene Stunde für einen Termin in drei Monaten sehen?', a: 'Ja. Sonnenstand, blaue und goldene Stunde sind reine Astronomie und lassen sich für jedes Datum berechnen. Eine Wetteraussage dazu gibt es dagegen erst innerhalb des Sieben-Tage-Horizonts der Vorhersage.' },
-    ],
-    relatedExplainers: ['modellvergleich-unsicherheit', 'gewitter-unwetter', 'windboeen-sturm', 'biowetter'],
-    datePublished: PUBLISHED, dateModified: MODIFIED_E4,
-  },
-  {
     slug: 'nowcast', title: '6-Stunden-Nowcast', h1: 'Nowcast: Regenvorhersage für die nächsten 6 Stunden',
     status: 'full', deepLink: '/regenradar',
     answer:
@@ -503,89 +419,6 @@ export const TOOLS = [
     datePublished: PUBLISHED, dateModified: MODIFIED_E4,
   },
   {
-    slug: 'modellvergleich', title: 'Modellvergleich je Ort', h1: 'Modellvergleich: welches Wettermodell lag an deinem Ort zuletzt am nächsten?',
-    status: 'full', deepLink: '/vorhersage',
-    answer:
-      'Der Modellvergleich stellt für deinen Ort fünf unabhängige Wettermodelle — ICON (DWD), ECMWF, GFS (NOAA), GEM (Kanada) ' +
-      'und Météo-France — nebeneinander, zeigt den Unsicherheits-Spread und reiht die Modelle danach, wie nah sie dort ' +
-      'in den letzten 7, 14 oder 30 Tagen lagen. Gemessen wird am Konsens der Modell-Analysen, nicht an Stationen. ' +
-      'Statt einer Scheingenauigkeit macht er sichtbar, wie verlässlich die Vorhersage gerade ist — eng ' +
-      'beieinander heißt sicher, weit auseinander heißt Vorsicht.',
-    bullets: [
-      'Fünf unabhängige Modelle über sieben Tage: ICON (DWD), ECMWF, GFS (NOAA), GEM (Kanada), Météo-France',
-      'Konsenslinie plus Spread-Band für Temperatur, Niederschlag, Wind und Bewölkung',
-      'Konfidenz je Tag in drei Stufen: hohe Sicherheit ab 70 %, mittlere ab 40 %, darunter niedrig',
-      'Stabilität gegenüber den früheren Läufen — mit dem ausdrücklichen Hinweis, dass stabil nicht richtig heißt',
-      'Reihung je Ort: welches Modell zuletzt am nächsten lag, über 7, 14 oder 30 Tage, gemessen am Konsens der Modell-Analysen und nicht an Stationen',
-      'Ausreißer-Modelle werden markiert, Quellen lassen sich einzeln ein- und ausblenden',
-    ],
-    sections: [
-      {
-        id: 'so-gehts',
-        h2: "So geht's",
-        html:
-          '<ol>' +
-          '<li><strong>Ort wählen.</strong> Für ihn werden die fünf Modelle sowie die Läufe der letzten Tage ' +
-          'geladen.</li>' +
-          '<li><strong>Auf das Band achten, nicht auf die Linie.</strong> Die durchgezogene Linie ist der Konsens, ' +
-          'das Band darum der Spread. Ein schmales Band heißt: Die Wetterlage ist gut bestimmt. Ein breites Band ' +
-          'heißt: Entscheidung besser offenhalten.</li>' +
-          '<li><strong>Metrik umschalten.</strong> Temperatur, Niederschlag, Wind und Wolkendichte werden getrennt ' +
-          'bewertet. Als hohe Einigkeit gelten bis 1,2 °C Streuung bei der Temperatur, bis 5 km/h beim Wind und bis ' +
-          '10 Prozentpunkte bei der Bewölkung; darüber steht „überwiegende Einigkeit", darüber hinaus „Vorhersagen ' +
-          'uneinig".</li>' +
-          '<li><strong>Konfidenz und Stabilität lesen.</strong> Der Konfidenz-Score entsteht aus der Streuung und der ' +
-          'Vorlaufzeit. Die Stabilität vergleicht die letzten Läufe: Erst ab drei vorliegenden Läufen wird geurteilt, ' +
-          'und nur echtes Hin und Her ab 2 °C zählt als wechselhaft — ein durchgehender Trend nicht.</li>' +
-          '<li><strong>Rückblick prüfen.</strong> Der Trefferquoten-Panel zeigt für Temperatur, Niederschlag und Wind, ' +
-          'wie nah die Vorhersagen mit einem und drei Tagen Vorlauf zuletzt lagen — als mittlere Abweichung ' +
-          'beziehungsweise als Ja/Nein-Trefferquote.</li>' +
-          '</ol>',
-      },
-      {
-        id: 'ehrlichkeit',
-        h2: 'Woran gemessen wird',
-        html:
-          '<p>Der Rückblick misst gegen das eingetretene Wetter — genauer gegen den <strong>Konsens der ' +
-          'Modell-Analysen</strong> je Stunde. Das ist eine faire, quellenunabhängige Referenz für den Vergleich der ' +
-          'Quellen untereinander, fällt aber milder aus als ein Abgleich mit Stationsmessungen. buscosun sagt das im ' +
-          'Panel ausdrücklich: Die Reihung der Quellen ist belastbar, die absoluten Werte sind eine Untergrenze der ' +
-          'tatsächlichen Abweichung. Solange weniger als fünf Tage Datenbasis vorliegen, wird die Reihung als noch ' +
-          'unsicher gekennzeichnet.</p>' +
-          '<p>Die Reihung gilt für diesen Ort und diesen Zeitraum. „Zuletzt am besten“ heißt nicht „das genaueste Modell“: ' +
-          'An einem anderen Ort, bei einer anderen Größe oder in der nächsten Wetterlage kann die Reihenfolge anders aussehen.</p>' +
-          '<p>Auch „Regen" ist definiert statt vorausgesetzt: Ein Tag zählt ab einer Tagessumme von 1 mm als nass, ' +
-          'eine Stunde ab 0,2 mm — überall in der App gleich. Die Regenwahrscheinlichkeit auf dieser Seite ist ' +
-          'entsprechend die Modell-Einigkeit, also der Anteil der Modelle mit nennenswertem Niederschlag. Eine Fläche ' +
-          'dazu zeigt der Layer <a href="/wetterkarte/sicherheit">Vorhersage-Sicherheit</a>; die Kalibrierung des ' +
-          'Regen-Nowcasts rechnet <a href="/validierung">Validierung</a> live nach. Hintergrund: ' +
-          '<a href="/methodik/konfidenz-und-trefferquote/">Methodik: Konfidenz und Trefferquote</a> sowie ' +
-          '<a href="/wissen/modellvergleich-unsicherheit/">Modellvergleich &amp; Unsicherheit</a>.</p>',
-      },
-      {
-        id: 'grenzen',
-        h2: 'Was das Werkzeug nicht kann',
-        html:
-          '<p>Fünf Modelle sind <strong>kein Ensemble</strong>. Sie teilen ähnliche Beobachtungsdaten und können sich ' +
-          'gemeinsam irren; Einigkeit ist deshalb ein Indiz, kein Beweis. Der Vergleich sagt auch nicht, welches ' +
-          'Modell „das beste" ist — die Rangfolge wechselt mit Wetterlage, Ort und Variable, und über 30 Tage ist sie ' +
-          'eine Momentaufnahme, keine Bestenliste.</p>' +
-          '<p>Die Modelle kommen hier als globale beziehungsweise regionale Läufe ohne die Höhenkorrektur der Karte; ' +
-          'in Bergregionen sind sie deshalb gröber als die <a href="/wetterkarte/temperatur">Temperaturkarte</a>. Der ' +
-          'Rückblick nutzt Analysen statt Messungen als Referenz, die Live-Validierung deckt nur den Regen-Nowcast in ' +
-          'Deutschland ab. Alle Aussagen bleiben Wahrscheinlichkeiten — und buscosun gibt keine amtlichen Warnungen ' +
-          'heraus; maßgeblich bleiben DWD, GeoSphere Austria und MeteoSchweiz.</p>',
-      },
-    ],
-    faqs: [
-      { q: 'Welche Modelle vergleicht buscosun?', a: 'Fünf unabhängige globale beziehungsweise regionale Modelle mit DACH-Abdeckung: ICON vom DWD, ECMWF, GFS von der NOAA, GEM aus Kanada und Météo-France. Dazu kommen die Läufe der letzten Tage als Vergleich gegen die eigene Vorgeschichte.' },
-      { q: 'Was bringt ein Modellvergleich?', a: 'Er zeigt die Streuung mehrerer Wettermodelle als Maß für die Vorhersageunsicherheit, statt eine einzelne Zahl als sicher auszugeben. Eng beieinander liegende Modelle sprechen für eine gut bestimmte Wetterlage, weit auseinanderlaufende für Vorsicht.' },
-      { q: 'Bedeutet eine stabile Vorhersage, dass sie eintrifft?', a: 'Nein. Stabilität heißt nur, dass sich die Vorhersage von Lauf zu Lauf kaum verändert hat; alle Läufe können denselben Fehler wiederholen. Deshalb steht neben der Stabilität immer auch der Trefferquoten-Rückblick der letzten Wochen.' },
-    ],
-    relatedExplainers: ['modellvergleich-unsicherheit', 'hoehenkorrektur-lapse-rate', 'gewitter-unwetter'],
-    datePublished: PUBLISHED, dateModified: MODIFIED_E4,
-  },
-  {
     slug: 'globus', title: '3D-Wetterglobus', h1: '3D-Wetterglobus: das Wetter der ganzen Erde',
     status: 'full', deepLink: '/globus',
     answer:
@@ -643,7 +476,7 @@ export const TOOLS = [
           'Zirkulation: Tiefdruckgebiete, Fronten, den Jetstream, Passate, tropische Wirbelstürme in ihrer Zugbahn. ' +
           'Er zeigt <em>nicht</em> das Wetter über einem Tal, einer Stadt oder einem Gipfel. Für DACH ist die ' +
           '<a href="/wetterkarte">Wetterkarte</a> mit 2,2 Kilometern Gitterweite und Höhenkorrektur die richtige ' +
-          'Ansicht, für den Ortsbezug die <a href="/vorhersage">Vorhersage</a>.</p>' +
+          'Ansicht.</p>' +
           '<p>Es gibt hier bewusst weder Radar noch Niederschlagsflächen, keine Warnungen und keine Stationswerte. ' +
           'Beim Hochsampeln des groben Gitters können an Rändern Kachelstrukturen sichtbar werden. Der Globus ' +
           'braucht WebGL; ohne Grafikbeschleunigung erscheint ein ehrlicher Hinweis statt einer leeren Kugel. Und ' +
@@ -726,9 +559,8 @@ export const TOOLS = [
           'gegen eine feste Klimanormale; wer den Zeitraum ändert, ändert auch die Farbskala.</p>' +
           '<p>Einzelne Jahre sind Wetter, kein Klima — ein warmer Sommer belegt nichts, ein Trend über Jahrzehnte ' +
           'schon eher. Windrichtungen fehlen in der Standardquelle, weshalb die Windrose dort leer bleibt. Und aus ' +
-          'einer Zeitreihe lässt sich keine Zukunft ablesen: Für die kommenden Tage ist die ' +
-          '<a href="/vorhersage">Vorhersage</a> zuständig, für die Einordnung eines laufenden Tages die ' +
-          '<a href="/wetterkarte">Wetterkarte</a>.</p>',
+          'einer Zeitreihe lässt sich keine Zukunft ablesen: Für die kommenden Tage und die Einordnung eines laufenden ' +
+          'Tages ist die <a href="/wetterkarte">Wetterkarte</a> zuständig.</p>',
       },
     ],
     faqs: [
@@ -739,7 +571,6 @@ export const TOOLS = [
     seeAlso: [
       { label: 'Trockenheit aktuell: Boden und Feuerwetter', href: '/waldbrand/trockenheit' },
       { label: 'Waldbrand-Historie seit 2020', href: '/waldbrand/historie' },
-      { label: 'Welches Modell lag an deinem Ort zuletzt am nächsten?', href: '/funktionen/modellvergleich/' },
     ],
     relatedExplainers: ['hoehenkorrektur-lapse-rate', 'modellvergleich-unsicherheit', 'schneefallgrenze'],
     datePublished: PUBLISHED, dateModified: MODIFIED_E4,

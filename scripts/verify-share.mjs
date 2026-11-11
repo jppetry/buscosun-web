@@ -29,8 +29,6 @@ import { verifyAtmosphereUrl, parseAtmosphereQuery } from '../src/atmosphere/atm
 import { verifyFireUrl, parseFireQuery } from '../src/fire/fireUrl.ts';
 import { verifyGlobeUrl, parseGlobeQuery } from '../src/globe/globeUrl.ts';
 import { verifyHistoryUrl } from '../src/history/historyUrl.ts';
-import { verifyEventUrl } from '../src/event/eventUrl.ts';
-import { verifyForecastUrl } from '../src/confidence/forecastUrl.ts';
 import { verifyTourUrl } from '../src/route/tourUrl.ts';
 import { placeBySlug, slugForPlace, resolveRoutePlace, PLACE_TABLE_SIZE } from '../src/share/placeTable.ts';
 import {
@@ -60,8 +58,6 @@ for (const c of verifyAtmosphereUrl().checks) add(`[atmUrl] ${c.name}`, c.ok, c.
 for (const c of verifyFireUrl().checks) add(`[fireUrl] ${c.name}`, c.ok, c.detail);
 for (const c of verifyGlobeUrl().checks) add(`[globeUrl] ${c.name}`, c.ok, c.detail);
 for (const c of verifyHistoryUrl().checks) add(`[histUrl] ${c.name}`, c.ok, c.detail);
-for (const c of verifyEventUrl().checks) add(`[eventUrl] ${c.name}`, c.ok, c.detail);
-for (const c of verifyForecastUrl().checks) add(`[fcUrl] ${c.name}`, c.ok, c.detail);
 for (const c of verifyTourUrl().checks) add(`[tourUrl] ${c.name}`, c.ok, c.detail);
 for (const c of verifyUrlState().checks) add(`[urlState] ${c.name}`, c.ok, c.detail);
 
@@ -237,7 +233,7 @@ for (const [name, { u }] of built) {
   const many = Array.from({ length: 30 }, (_, k) => `47.${k + 10},11`).join(';');
   add('[schnitt] höchstens 24 Punkte wie auf der Seite', parseShareUrl('/atmosphaere/querschnitt', `?schnitt=${many}`, NOW4)?.cut?.points.length === 24 && atmUrl.parseAtmosphereQuery(`?schnitt=${many}`, NOW4).cut.length === 24);
 }
-add('[route] alle zwölf teilbaren Seiten sind abgedeckt (SH1 + SH3 + SH4 + SH5 + Gletscher + Autobahnwetter + Seewetter)', SHARE_ROUTES.join(',') === 'wetterkarte,warnungen,regenradar,waldbrand,atmosphaere,eventplanung,wetterarchiv,globus,vorhersage,gletscher,autobahnwetter,seewetter', SHARE_ROUTES.join(','));
+add('[route] alle zehn teilbaren Seiten sind abgedeckt (SH1 + SH3 + SH4 + Gletscher + Autobahnwetter + Seewetter; Vorhersage und Eventplanung gelöscht, Jan 11.11.)', SHARE_ROUTES.join(',') === 'wetterkarte,warnungen,regenradar,waldbrand,atmosphaere,wetterarchiv,globus,gletscher,autobahnwetter,seewetter', SHARE_ROUTES.join(','));
 {
   // Seewetter: der Spot steht im Pfad, die Zeit absolut; die Namenstabelle ist aus der Handliste generiert.
   const NOW3 = Date.UTC(2026, 10, 2, 14, 37);
@@ -436,16 +432,8 @@ add('[ort] kaputtes Segment wird gar nicht erst als Slug gelesen',
 {
   const O = SITE_URL;
 
-  // Eventplanung: Anlass im Pfad, Ort als Slug, Zeitraum lesbar.
-  const ev = parseShareUrl('/eventplanung/hochzeit/konstanz', '?von=2026-09-18&bis=2026-09-25', NOW);
-  add('[SH4] Event wird als teilbar erkannt', ev?.routeId === 'eventplanung' && ev.viewSlug === 'hochzeit');
-  add('[SH4] Event löst den Ort aus dem Pfad auf', ev.place?.name === 'Konstanz');
-  const evUrl = buildShareUrl(ev, O, NOW);
-  add('[SH4] Event-Link bleibt lesbar',
-    evUrl.url === O + '/eventplanung/hochzeit/konstanz?von=2026-09-18&bis=2026-09-25', evUrl.url);
-  add('[SH4] Event-Titel nennt Anlass und Ort',
-    evUrl.copy.title === 'Event-Planung Konstanz — Hochzeit', evUrl.copy.title);
-  add('[SH4] Event-Link ist deutlich kürzer als der alte Hash (340 Zeichen)', evUrl.url.length < 120, String(evUrl.url.length));
+  // Eventplanung is deleted (Jan 11.11.): its paths are no share route any more.
+  add('[SH4] Eventplanung ist gelöscht: kein teilbarer Pfad', parseShareUrl('/eventplanung/hochzeit/konstanz', '?von=2026-09-18&bis=2026-09-25', NOW)?.routeId !== 'eventplanung' && !routeForPath('/eventplanung'));
 
   // Wetterarchiv: der Ort steht DIREKT hinter der Route, es gibt keine Sicht.
   const hi = parseShareUrl('/wetterarchiv/stuttgart', '?groesse=tmax&diagramm=kenntage', NOW);
@@ -466,7 +454,7 @@ add('[ort] kaputtes Segment wird gar nicht erst als Slug gelesen',
     glUrl.url === O + '/globus?feld=temperatur&t=2026-09-13T12:00Z&pin=48.14,11.58', glUrl.url);
   add('[SH4] Globus-Titel nennt die Zeit', /^Globus — /.test(glUrl.copy.title), glUrl.copy.title);
 
-  for (const [name, u] of [['Event', evUrl], ['Wetterarchiv', hiUrl], ['Globus', glUrl]]) {
+  for (const [name, u] of [['Wetterarchiv', hiUrl], ['Globus', glUrl]]) {
     add(`[SH4] ${name}: höchstens 2 Prozentzeichen`, (u.url.match(/%/g) ?? []).length <= 2, u.url);
     add(`[SH4] ${name}: unter der Zielgröße`, u.url.length <= SHARE_URL_SOFT_MAX, String(u.url.length));
     add(`[SH4] ${name}: der Pfad ist eine bekannte Route`, !!routeForPath(u.path.split('?')[0]), u.path);
@@ -488,19 +476,8 @@ add('[ort] kaputtes Segment wird gar nicht erst als Slug gelesen',
 {
   const O = SITE_URL;
 
-  const fc = parseShareUrl('/vorhersage/stuttgart', '?tag=2026-09-14&groesse=regen', NOW);
-  add('[SH5] Vorhersage wird als teilbar erkannt', fc?.routeId === 'vorhersage');
-  add('[SH5] Vorhersage: Segment 1 ist der ORT, keine Sicht',
-    fc.place?.name === 'Stuttgart' && fc.viewSlug === null, `${fc.place?.name} / ${fc.viewSlug}`);
-  const fcUrl = buildShareUrl(fc, O, NOW);
-  add('[SH5] Vorhersage-Link bleibt lesbar',
-    fcUrl.url === O + '/vorhersage/stuttgart?tag=2026-09-14&groesse=regen', fcUrl.url);
-  add('[SH5] Vorhersage-Titel nennt den Ort', fcUrl.copy.title === 'Vorhersage Stuttgart', fcUrl.copy.title);
-  add('[SH5] Vorhersage-Link ist ein Fixpunkt',
-    buildShareUrl(parseShareUrl('/vorhersage/stuttgart', '?tag=2026-09-14&groesse=regen', NOW), O, NOW).url === fcUrl.url);
-  add('[SH5] Vorhersage: höchstens 2 Prozentzeichen und unter der Zielgröße',
-    (fcUrl.url.match(/%/g) ?? []).length <= 2 && fcUrl.url.length <= SHARE_URL_SOFT_MAX, fcUrl.url);
-  add('[SH5] Vorhersage: der Pfad ist eine bekannte Route', !!routeForPath(fcUrl.path.split('?')[0]));
+  // Vorhersage is deleted (Jan 11.11.): its paths are no share route any more.
+  add('[SH5] Vorhersage ist gelöscht: kein teilbarer Pfad', parseShareUrl('/vorhersage/stuttgart', '?tag=2026-09-14&groesse=regen', NOW)?.routeId !== 'vorhersage' && !routeForPath('/vorhersage'));
 
   // Die Tourenplanung bleibt bewusst draußen (E-4) — beide Sichten.
   add('[SH5] Tourenplanung liefert KEINEN Schnappschuss (die Strecke passt in keine URL)',
@@ -573,12 +550,12 @@ add('[ort] kaputtes Segment wird gar nicht erst als Slug gelesen',
   add('[SH6] die Start-Route hat keine App-Karte (sie behält /og/home.png)', ogCardPath('home') === null);
 
   // (d) Der Ort-Fehler, den SH6 gefunden hat: `Number(null)` ist 0, nicht NaN.
-  const stPlace = parseShareUrl('/vorhersage/stuttgart', '', NOW);
+  const stPlace = parseShareUrl('/wetterarchiv/stuttgart', '', NOW);
   add('[SH6] Ortssegment ohne olat/olon ⇒ echte Koordinaten aus der Tabelle, kein 0°/0°',
     Math.abs(stPlace.place.lat - 48.776) < 0.01 && Math.abs(stPlace.place.lon - 9.183) < 0.01,
     JSON.stringify(stPlace.place));
   add('[SH6] … und der Cache-Schlüssel nennt den Ort, nicht den Atlantik',
-    canonicalShareKey(stPlace) === 'vorhersage|o:stuttgart', canonicalShareKey(stPlace));
+    canonicalShareKey(stPlace) === 'wetterarchiv|o:stuttgart', canonicalShareKey(stPlace));
 
   // (d2) Die geteilte Zeit ist absolut — auf die Minute, nicht auf das
   //      10-Minuten-Raster der Slider-Stunde (gefunden an der echten

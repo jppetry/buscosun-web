@@ -745,9 +745,9 @@ if (hsurfGreys.length >= 2) {
     snowDepth: lit('src/sources/iconD2Snow.ts', /const MAX_STEP = (\d+);/),
     snowFresh: lit('src/sources/iconD2Snow.ts', /const MAX_STEP = (\d+);/),
     precip: lit('src/sources/iconD2Precip.ts', /const PRECIP_MAX_STEP = (\d+);/),
-    cape: lit('src/event/EventResult.tsx', /Math\.min\((\d+), Math\.max\(3, Math\.ceil\(hoursToEnd\)/),
+    // cape: its only client cap was the event planner (deleted Jan 11.11.); no client cap left to compare.
   };
-  const capDiff = Object.keys(RM.FAMILIES).filter((f) => RM.FAMILIES[f].maxStep !== clientCaps[f]);
+  const capDiff = Object.keys(RM.FAMILIES).filter((f) => f in clientCaps && RM.FAMILIES[f].maxStep !== clientCaps[f]);
   add('Producer-Caps == Client-Caps (alle Familien)',
     capDiff.length === 0,
     capDiff.length ? capDiff.map((f) => `${f}: Liste ${RM.FAMILIES[f].maxStep} ≠ Client ${clientCaps[f]}`).join(' · ')

@@ -9,8 +9,7 @@ export const LEGAL_UPDATED = '2026-11-02';
  * Berechtigungen) — die juristische Prüfung des Textes bleibt Jans Aufgabe.
  *
  * Warum die Seiten nötig sind: Die App fordert aktiv den Standort an
- * (`src/nowcast/NowcastPage.tsx`), kann Benachrichtigungen anfragen
- * (`src/notifications/notificationTransport.ts`), speichert 21 Einträge im
+ * (`src/nowcast/NowcastPage.tsx`), speichert Einträge im
  * Browser und kontaktiert rund 30 fremde Server. Bis 2026-08-01 gab es dazu
  * keine einzige Informationsseite.
  *
@@ -98,9 +97,9 @@ export const STORAGE_GROUPS = [
   { purpose: 'Gemerkte Orte und zuletzt besuchte Orte',
     keys: ['buscosun.favorites.v1', 'buscosun.history.favorites.v1', 'buscosun.history.recents.v1', 'buscosun.radar.lastview.v1'] },
   { purpose: 'Anzeige-Einstellungen (Ansichten, Modellwahl, Dunkelmodus)',
-    keys: ['buscosun.atm.lens.v1', 'buscosun.forecast.compareMetric.v1', 'buscosun.forecast.compareSel.v1', 'buscosun.forecast.distMode.v1', 'buscosun.history.dark.v1', 'buscosun.threed.gonogo.v1', 'fusion2d.default', 'bs-temp-labels-v1', 'buscosun.vsd.limit.*'] },
+    keys: ['buscosun.atm.lens.v1', 'buscosun.history.dark.v1', 'buscosun.threed.gonogo.v1', 'fusion2d.default', 'bs-temp-labels-v1', 'buscosun.vsd.limit.*'] },
   { purpose: 'Selbst gesetzte Schwellenwerte und Hinweise',
-    keys: ['buscosun.notify.settings.v1', 'buscosun.notify.subscriptions.v1', 'buscosun.notify.delivered.v1', 'buscosun.nowcast.alerts.config.v1', 'buscosun.nowcast.alerts.locs.v1', 'buscosun.nowcast.alerts.state.v1'] },
+    keys: ['buscosun.nowcast.alerts.config.v1', 'buscosun.nowcast.alerts.locs.v1', 'buscosun.nowcast.alerts.state.v1'] },
   { purpose: 'Einwilligung und Einführung',
     keys: ['buscosun.optin.openMeteo.v1', 'buscosun.intro.seen.v1'] },
   { purpose: 'Zwischenspeicher für Wetterdaten (Beschleunigung)',

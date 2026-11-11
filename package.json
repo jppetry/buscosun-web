@@ -35,7 +35,6 @@
     "verify:cell-towers": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-cell-towers.mjs",
     "verify:radar-sampling": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-radar-sampling.mjs",
     "verify:layer-geometry": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-layer-geometry.mjs",
-    "verify:event-zone": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-event-zone.mjs",
     "verify:route-3d": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-route-3d.mjs",
     "verify:repack": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-repack.mjs",
     "verify:repack-publish": "node scripts/verify-repack-publish.mjs",
