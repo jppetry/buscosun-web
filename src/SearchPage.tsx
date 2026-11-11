@@ -329,7 +329,7 @@ function makeTile(activeCat: 'alle' | Category, onOpenFeature: (f: FeatureInfo) 
 // unverändert gegenüber dem ursprünglichen Bento-Grid.
 const TILE_NOWCAST = (
   <>
-    <div className="tile-eyebrow">04 · NOWCAST</div>
+    <div className="tile-eyebrow">NOWCAST</div>
     {/* Radar-Glyphe mit Nachleuchten, Echos und Zeiger-Folgen
         (audit/startseite-radar-icon.md). */}
     <div className="tile-radar">
@@ -348,7 +348,7 @@ const TILE_NOWCAST = (
 // samt Ehrlichkeitshinweis bleibt; die früheren Langtexte des Bandes sind hier gekürzt.
 const TILE_FIRE = (
   <>
-    <div className="tile-eyebrow">10 · WALDBRAND</div>
+    <div className="tile-eyebrow">WALDBRAND</div>
     <div className="tile-flame">
       <FireIcon />
     </div>
@@ -365,7 +365,7 @@ const TILE_FIRE = (
 // und Boot; Kernaussage samt Ehrlichkeitshinweis. Auf ≤1024 px bleibt die Vollbreiten-Kachel mit Seekarte (SW_TILE_STYLE).
 const TILE_SEA = (
   <>
-    <div className="tile-eyebrow">12 · SEEWETTER</div>
+    <div className="tile-eyebrow">SEEWETTER</div>
     <div className="tile-coast-art">
       <SeaIcon />
     </div>
@@ -382,7 +382,7 @@ const TILE_SEA = (
 // samt Ehrlichkeitshinweis. Auf ≤1024 px bleibt die Vollbreiten-Kachel mit Vorschaukarte (GL_TILE_STYLE).
 const TILE_GLACIER = (
   <>
-    <div className="tile-eyebrow">13 · GLETSCHER</div>
+    <div className="tile-eyebrow">GLETSCHER</div>
     <div className="tile-glacier-art">
       <GlacierIcon />
     </div>
@@ -399,7 +399,7 @@ const TILE_GLACIER = (
 // ≤1024 px bleibt die Vollbreiten-Kachel am Ende des Bento-Rasters (AW_TILE_STYLE).
 const TILE_ROAD = (
   <>
-    <div className="tile-eyebrow">11 · AUTOBAHNWETTER</div>
+    <div className="tile-eyebrow">AUTOBAHNWETTER</div>
     <div className="tile-road-icon">
       <RoadIcon />
     </div>
@@ -414,7 +414,7 @@ const TILE_ROAD = (
 
 const TILE_FORECAST = (
   <>
-    <div className="tile-eyebrow">05 · VORHERSAGE</div>
+    <div className="tile-eyebrow">VORHERSAGE</div>
     {/* Kein Zahlenwert und kein wertbehafteter Bogen: die echte Trefferquote
         rechnet erst confidence/hitRate.ts nach dem Öffnen der Seite. Ein
         gefüllter Ring hier wäre eine Behauptung ohne Messung (D-04). */}
@@ -434,7 +434,7 @@ const TILE_FORECAST = (
 
 const TILE_HISTORY = (
   <>
-    <div className="tile-eyebrow">06 · HISTORIE</div>
+    <div className="tile-eyebrow">HISTORIE</div>
     <div className="tile-stripes" aria-hidden="true">
       {['#3A6FA8', '#4A6E93', '#6B7A8F', '#8B8A80', '#A89A7A', '#C9A878', '#D4A373', '#C97B47', '#B96A3C', '#A85E2E'].map((c, i) => (
         <span key={i} style={{ background: c }} />
@@ -450,7 +450,7 @@ const TILE_HISTORY = (
 const TILE_THREED = (
   <>
     <div className="tile-head">
-      <div className="tile-eyebrow">07 · 3D-WETTER</div>
+      <div className="tile-eyebrow">3D-WETTER</div>
       <span className="tile-badge badge-solid">Höhenwind</span>
     </div>
     <svg viewBox="0 0 220 70" preserveAspectRatio="none" className="tile-terrain-svg" aria-hidden="true">
@@ -751,7 +751,7 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
       {tile(['radar'], 'tile-karte t-lg', FEATURE.map2d, 'Wetterkarte öffnen',
         <>
           <div className="tile-karte-text">
-            <div className="tile-eyebrow">01 · WETTERKARTE</div>
+            <div className="tile-eyebrow">WETTERKARTE</div>
             <div className="tile-title tile-title-xl">{mobile ? 'Die ganze DACH-Wetterkarte' : <>Die ganze<br />DACH-Wetterkarte</>}</div>
             <p className="tile-desc">Wind, Niederschlag, Temperatur (höhenkorrigiert), Wolken, Satellit, Blitze und Stationen — mit Zeit-Slider und Modellwahl je Land. Direkt-Einstieg ohne Ortssuche.</p>
           </div>
@@ -763,7 +763,7 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
         <>
           <div className="tile-head">
             <div>
-              <div className="tile-eyebrow">02 · TOURENPLANUNG</div>
+              <div className="tile-eyebrow">TOURENPLANUNG</div>
               <div className="tile-title tile-title-lg">Wetter entlang deiner Route</div>
             </div>
             <span className="tile-badge badge-mono-ghost">E-BIKE</span>
@@ -776,7 +776,7 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
       {EVENT_PLANNER_VISIBLE && tile(['planen'], 'tile-event t-w2', FEATURE.event, 'Event-Planung öffnen',
         <>
           <div>
-            <div className="tile-eyebrow">03 · EVENT-PLANUNG</div>
+            <div className="tile-eyebrow">EVENT-PLANUNG</div>
             <div className="tile-title tile-title-lg">Welcher Tag passt am besten?</div>
             <p className="tile-desc">Anlass + Ort + Zeitfenster → 7-Tage-Score. Phasen (Trauung/Empfang/Abendfeier) einzeln bewertet, Plan B, Regen-/Wind-/Hitze-Hazards, Foto-Licht & Astro-Nacht.</p>
           </div>
@@ -805,7 +805,7 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
       {/* 08 · GLOBUS */}
       {tile(['erkunden'], 'tile-globus t-half', FEATURE.globe, '3D-Globus öffnen',
         <>
-          <div className="tile-eyebrow">08 · GLOBUS</div>
+          <div className="tile-eyebrow">GLOBUS</div>
           <div className="tile-center">
             <GlobeIcon />
           </div>
@@ -828,7 +828,7 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
             </svg>
           </div>
           <div className="tile-feedback-body">
-            <div className="tile-eyebrow">09 · FEEDBACK</div>
+            <div className="tile-eyebrow">FEEDBACK</div>
             <div className="tile-title tile-title-lg">Ideen, Wünsche & Fehler melden</div>
             <p className="tile-desc on-ink">Was sollen wir verbessern, was fehlt dir? Schick uns deine Anregung direkt per E-Mail — ohne Konto, ohne Tracker. Jede Rückmeldung fließt in die nächste Ausbaustufe.</p>
           </div>

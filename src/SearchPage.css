@@ -441,6 +441,10 @@
 /* Innen-Bausteine */
 .tile-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .tile-eyebrow { font-family: var(--font-mono); font-size: 10px; letter-spacing: 2px; color: var(--stone-400); }
+/* Nummern der Kacheln (Jan 11.11.): gezählt in der Reihenfolge, in der die Kacheln zu sehen sind (Hero, dann Raster),
+   nur sichtbare Kacheln zählen — ausgeblendete (`display: none` oder nicht gerendert) lassen keine Lücke. */
+.deck-main { counter-reset: deck-tile; }
+.deck-tile .tile-eyebrow::before { counter-increment: deck-tile; content: counter(deck-tile, decimal-leading-zero) " · "; }
 .tile-title { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.3px; margin-top: 8px; line-height: 1.05; color: inherit; }
 .tile-title-xl { font-size: 27px; letter-spacing: -0.6px; }
 .tile-title-lg { font-size: 24px; letter-spacing: -0.5px; }
