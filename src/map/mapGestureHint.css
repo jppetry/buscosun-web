@@ -14,6 +14,8 @@
 .bs-hint.is-glacier { --bs-hint-veil: rgba(14, 34, 42, 0.66); --bs-hint-panel: rgba(12, 44, 56, 0.66); }
 /* Seewetter: Schleier und Textfeld im Ton des Features (Seewetter-Petrol). */
 .bs-hint.is-sea { --bs-hint-veil: rgba(10, 30, 34, 0.66); --bs-hint-panel: rgba(11, 60, 68, 0.68); }
+/* Wetterkarte: Schleier und Textfeld im Ton des Features (Stahlblau). */
+.bs-hint.is-weather { --bs-hint-veil: rgba(16, 28, 44, 0.66); --bs-hint-panel: rgba(24, 48, 78, 0.66); }
 /* Autobahn: Schleier und Textfeld im Ton des Features (Autobahn-Blau). */
 .bs-hint.is-road { --bs-hint-veil: rgba(14, 26, 44, 0.66); --bs-hint-panel: rgba(18, 40, 76, 0.68); }
 

@@ -26,6 +26,7 @@ import {
   type ModelSource, type ModelSourceState,
 } from './fusion/modelSource';
 import { modelEntry, isWhitelisted, MODEL_CATALOG, RADAR_SOURCE, type ModelId } from './fusion/modelCatalog';
+import MapGestureHint from './map/MapGestureHint';
 import { BASEMAP_SOURCE, CC_BY_URL, MAP_SOURCES_LINK, MapSourcesTile, type MapSourceGroup } from './map/MapSourcesTile';
 import { lerpFrameImage } from './fusion/frameInterp';
 import { COUNTRY_PROFILES, DACH_VIEW } from './countryProfiles';
@@ -731,6 +732,8 @@ export default function MapView({
   suspendedRef.current = suspended;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
+  /** Instance for the intro hint of the Wetterkarte (state, so the hint mounts once the map exists). */
+  const [hintMap, setHintMap] = useState<MapLibreMap | null>(null);
   // Start cover (buscosun mark + ring) until the map has its first complete frame; only on the full Wetterkarte page.
   const [coverMap, setCoverMap] = useState<MapLibreMap | null>(null);
   const markerRef = useRef<Marker | null>(null);
@@ -1863,6 +1866,7 @@ export default function MapView({
     else map.once('style.load', addLayers);
 
     mapRef.current = map;
+    if (!profile && !embedded) setHintMap(map);
     setCoverMap(map);
     if (import.meta.env.DEV) {
       (window as unknown as { __map: MapLibreMap }).__map = map;
@@ -2771,6 +2775,7 @@ export default function MapView({
       if (profile) profileCbRef.current.onMapReady?.(null);
       map.remove();
       mapRef.current = null;
+      setHintMap(null);
     };
   }, []);
 
@@ -5937,6 +5942,9 @@ export default function MapView({
         <main className="mdk-stage msl-host">
           <div ref={containerRef} className="map-container" />
           <MapSourcesTile title="Quellen der Wetterkarte" groups={sourceGroups} ready={pageShown} />
+          {!profile && !embedded && !suspended && (
+            <MapGestureHint map={hintMap} feature="wetterkarte" subject="weather" accent="#3A6FA8" always enabled={!isMobileMap || mobileTab === 'karte'} />
+          )}
 
           {!isMobileMap && (
             <>
