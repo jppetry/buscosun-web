@@ -725,8 +725,9 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   ) : noSeg;
   const dossier = !inDossier ? null : (
     <>
-      {corridor && <RoadDossierHead corridor={corridor} dir={dir} byId={shownById} states={segStates} hzOk={!!hzShown} segCount={corrSegs.length} standLabel={standLabel} />}
+      {/* Jan 11.11.: the chapter tabs stand above the corridor head. */}
       <RoadDossierTabs value={dsChapter} onChange={setDsChapter} segName={openSeg?.name ?? null} />
+      {corridor && <RoadDossierHead corridor={corridor} dir={dir} byId={shownById} states={segStates} hzOk={!!hzShown} segCount={corrSegs.length} standLabel={standLabel} />}
       {dossierBody}
     </>
   );
