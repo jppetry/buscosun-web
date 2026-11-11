@@ -126,6 +126,15 @@ export default function MinuteSeriesCard({ nowcast, place, variant }: { nowcast:
       ? `Minuten gibt es bis zum letzten Radarbild; danach zeigt die ${curve ? 'Kurve' : 'Stufenlinie'} die 5-min-Form von ${RUC_LABEL} (Lauf ${rucRunUtc})${curve ? ', zwischen den 5-min-Summen zur Minute interpoliert, ohne dass sich eine 5-min-Summe ändert' : ''}, deren Stundensumme der Wert von ${series.fusionLabel} ist (rechnet der RUC eine Stunde trocken, liegt die Summe gleichmäßig in ihr); jenseits der 5-min-Form (Lauf + ${RUC_HORIZON_H} h) zeigt jeder Balken das Stundenmittel, der Streifen darunter die Regenchance der Stunde.`
       : `Minuten gibt es nur bis zum letzten Radarbild; danach zeigt jeder Balken das Stundenmittel von ${series.fusionLabel}, der Streifen darunter die Regenchance der Stunde.`) + gateNote;
 
+  // Jan 11.11.: in the bar view the sources read as a legend — one row per layer with its swatch, then the short notes.
+  const legend: Array<{ cls: string; name: string; what: string }> = bars ? [
+    ...(series.radar ? [{ cls: 'radar', name: 'Radar', what: `${series.radar.product}, ein Balken je Bild (alle ${series.radar.frameStepMin} min), gemessen bis ${fmtClock(series.radar.toMs)}` }] : []),
+    ...(ruc ? [{ cls: 'ruc', name: `5-min-Form ${RUC_LABEL}`, what: `Lauf ${rucRunUtc}, ein Balken je 5 min bis ${fmtClock(ruc.toMs)}. Die Stundensumme kommt von ${series.fusionLabel}; rechnet der RUC eine Stunde trocken, liegt die Summe gleichmäßig in ihr.` }] : []),
+    { cls: 'fusion', name: `Stundenmittel ${series.fusionLabel}`, what: `ein Balken je Stunde bis +${MV_VIEW_H} h${ruc ? `, jenseits der 5-min-Form (Lauf + ${RUC_HORIZON_H} h)` : ''}` },
+    { cls: 'pwet', name: 'Regenchance', what: 'der Streifen unter dem Verlauf, je Stunde' },
+  ] : [];
+  const legendNote = `Nichts ist interpoliert.${gateNote}`;
+
   return (
     <>
       <section className={`mv-card mv-card--${variant} mv-tone-${h.tone}`} aria-label="Minutenverlauf" data-origin={series.radar ? (ruc ? 'radar+ruc+fusion' : 'radar+fusion') : (ruc ? 'ruc+fusion' : 'fusion')}>
@@ -167,10 +176,25 @@ export default function MinuteSeriesCard({ nowcast, place, variant }: { nowcast:
             <div className="mv-modal-chart">
               <MinuteChart series={series} rangeH={rangeH} variant="full" curve={curve} bars={bars} />
             </div>
-            <div className="mv-modal-foot">
-              <span>● {sourceLine}</span>
-              <span>{footNote}</span>
-            </div>
+            {legend.length ? (
+              <div className="mv-modal-foot mv-legend">
+                <h3 className="mv-legend-title">So liest du den Verlauf</h3>
+                <ul className="mv-legend-rows">
+                  {legend.map((r) => (
+                    <li key={r.cls} className="mv-legend-row">
+                      <span className={`mv-legend-sw mv-legend-sw--${r.cls}`} aria-hidden="true" />
+                      <span className="mv-legend-tx"><b>{r.name}</b><span>{r.what}</span></span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mv-legend-note">{legendNote}</p>
+              </div>
+            ) : (
+              <div className="mv-modal-foot">
+                <span>● {sourceLine}</span>
+                <span>{footNote}</span>
+              </div>
+            )}
           </div>
         </div>,
         document.body,
