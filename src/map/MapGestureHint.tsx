@@ -30,7 +30,9 @@ interface Props {
 }
 
 export type HintSubject = 'fire' | 'glacier' | 'road' | 'sea' | 'weather';
-const TEXTS: Record<HintSubject, { sub: string; pick: string; pickSub: string }> = {
+/** A numbered step of a guided intro (Wetterkarte): bold lead, then the line for mouse or for touch. */
+interface HintStep { b: string; mouse: string; touch: string }
+const TEXTS: Record<HintSubject, { sub: string; pick: string; pickSub: string; title?: string; steps?: readonly HintStep[] }> = {
   fire: {
     sub: 'Zoome hinein, um einzelne Brände und Brandflächen genauer zu sehen.',
     pick: 'Brände anklicken', pickSub: 'zeigt nähere Infos zum jeweiligen Brand',
@@ -44,8 +46,15 @@ const TEXTS: Record<HintSubject, { sub: string; pick: string; pickSub: string }>
     pick: 'Strecken und Messstellen anklicken', pickSub: 'zeigt nähere Infos zu Fahrbahn und Wetter dort',
   },
   weather: {
-    sub: 'Schalte verschiedene Ebenen zu und zoome hinein, um die Windpartikel genau zu sehen.',
+    title: 'Willkommen auf der Wetterkarte',
+    sub: 'Das Wetter über Deutschland, Österreich und der Schweiz — so findest du dich zurecht:',
     pick: 'Ebenen zuschalten', pickSub: 'Wind, Temperatur, Niederschlag und mehr über das Ebenen-Menü',
+    steps: [
+      { b: 'Ebenen zuschalten', mouse: 'Wind, Temperatur, Niederschlag, Wolken und mehr in der Leiste links — mehrere gleichzeitig möglich.', touch: 'Wind, Temperatur, Niederschlag, Wolken und mehr über „Layer“ unten — mehrere gleichzeitig möglich.' },
+      { b: 'Hineinzoomen', mouse: 'Mit dem Mausrad näher heran: die Windpartikel zeigen die Strömung dann bis in einzelne Täler.', touch: 'Mit zwei Fingern näher heran: die Windpartikel zeigen die Strömung dann bis in einzelne Täler.' },
+      { b: 'Zeit wählen', mouse: 'Der Regler unten führt Stunde für Stunde durch die Vorhersage, ▶ spielt sie ab.', touch: 'Der Regler unten führt Stunde für Stunde durch die Vorhersage, ▶ spielt sie ab.' },
+      { b: 'Ort suchen', mouse: 'Oben ins Suchfeld tippen (⌘K) — die Karte fliegt hin und zeigt die Vorhersage dort.', touch: 'Oben ins Suchfeld tippen — die Karte fliegt hin und zeigt die Vorhersage dort.' },
+    ],
   },
   sea: {
     sub: 'Zoome hinein, um einzelne Küstenabschnitte und Spots genauer zu sehen.',
@@ -199,10 +208,20 @@ export default function MapGestureHint({ map, feature, accent = '#B5651D', enabl
             </>
           )}
         </div>
-        <div className="bs-hint-title">Karte erkunden</div>
+        <div className="bs-hint-title">{txt.title ?? 'Karte erkunden'}</div>
         <div className="bs-hint-sub">
           {txt.sub}
         </div>
+        {txt.steps ? (
+          <ol className="bs-hint-steps">
+            {txt.steps.map((st, i) => (
+              <li key={st.b} style={{ ['--i' as string]: i }}>
+                <span className="bs-hint-step-n" aria-hidden="true">{i + 1}</span>
+                <span className="bs-hint-click-txt"><b>{st.b}</b><span>{touch ? st.touch : st.mouse}</span></span>
+              </li>
+            ))}
+          </ol>
+        ) : (
         <div className="bs-hint-click">
           <span className="bs-hint-click-tile">
             <span className="bs-hint-ripple" />
@@ -213,6 +232,7 @@ export default function MapGestureHint({ map, feature, accent = '#B5651D', enabl
             <span>{txt.pickSub}</span>
           </span>
         </div>
+        )}
         <div className="bs-hint-cta">Los geht’s</div>
       </div>
       {spot && (
