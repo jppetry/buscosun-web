@@ -199,7 +199,7 @@ export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, sno
     if (!box.current) return;
     const bb = geometry ? bboxOf(geometry) : null;
     const map = new maplibregl.Map({
-      container: box.current, attributionControl: { compact: true }, maxPitch: 75, dragRotate: true, maxZoom: 16, minZoom: 8,
+      container: box.current, attributionControl: { compact: false }, maxPitch: 75, dragRotate: true, maxZoom: 16, minZoom: 8,
       ...(bb ? { bounds: [[bb[0], bb[1]], [bb[2], bb[3]]] as [[number, number], [number, number]], fitBoundsOptions: { padding: 48, maxZoom: 15 } } : { center: [g.lon, g.lat] as [number, number], zoom: 13 }),
     });
     // Starting on imagery: the style's own layers go in hidden (their authored visibility is kept for "Karte"), so the vector tiles of the

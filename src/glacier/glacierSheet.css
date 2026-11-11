@@ -31,6 +31,10 @@
 .gl-sheet-map { flex: 1 1 auto; border-bottom: 0; }
 .gl-sheet-map-wrap { position: absolute; inset: 0; }
 .gl-sheet-map-wrap .gl-map-canvas { position: absolute; inset: 0; }
+/* Quellenangabe der Info-Karte (z. B. „Esri World Imagery“) ganz unten rechts, klein und ruhig (Jan 11.11.). */
+.gl-map-canvas .maplibregl-ctrl-bottom-right { right: 0; bottom: 0; }
+.gl-map-canvas .maplibregl-ctrl-attrib { margin: 0; padding: 1px 6px; font-size: 10px; line-height: 1.4; background: rgba(255, 255, 255, 0.72); color: #4A4A44; border-radius: 6px 0 0 0; }
+.gl-map-canvas .maplibregl-ctrl-attrib a { color: inherit; }
 /* Dossier (Jan 2026-11-07): the map sits in a host that can be enlarged over the page; the enlarge button is top right, the map's own top-right controls move below it. */
 .gl-sheet-map-slot { position: absolute; inset: 0; }
 .gl-sheet-map-wrap.has-expand .maplibregl-ctrl-top-right { top: 46px; }
