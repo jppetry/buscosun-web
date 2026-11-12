@@ -13,6 +13,8 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 // Phase WBS (audit/seo-waldbrand.md): Prüfungen der Waldbrand-Regionsseiten.
 import { verifyFireRegions } from './verifyFireRegions.mjs';
+import { gitLastmod, historyUnreliable } from './gitDate.mjs';
+import { SITEMAP_SOURCES, SITEMAP_ALWAYS_USED } from './sitemapSources.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const DIST = join(ROOT, 'dist');
@@ -214,13 +216,26 @@ console.log('\nSitemap:');
   if (locs.some((l) => l.includes('?') || l.includes('#'))) fail('sitemap.xml', 'URL mit Query/Hash');
   if (/<changefreq>/.test(sm)) fail('sitemap.xml', 'changefreq vorhanden (seit E1 entfernt — Google ignoriert es)');
   else ok('sitemap.xml', 'kein changefreq');
-  // lastmod kommt aus Git (seo/gitDate.mjs). Ohne belastbaren Verlauf (flacher Clone) fehlt
-  // das Feld überall — das ist erlaubt, ein Platzhalter oder das Build-Datum nicht.
+  // lastmod comes from Git (seo/gitDate.mjs). The verifier recomputes the date of every page group
+  // from Git and compares by VALUE: a build date or placeholder is not a group date and fails, also
+  // when it is spread over several days. Identical dates are correct when one commit touched every
+  // source file (2026-11-11: two pages deleted, every page lost a link) — the old "at least two
+  // different dates" rule failed that honest case. Without reliable history the field must be absent.
+  const groupDates = Object.fromEntries(Object.entries(SITEMAP_SOURCES).map(([k, files]) => [k, gitLastmod(files)]));
+  const allowed = new Set(Object.values(groupDates).filter(Boolean));
+  const modSet = new Set(mods);
+  const foreign = [...modSet].filter((d) => !allowed.has(d));
+  const unused = SITEMAP_ALWAYS_USED.filter((k) => groupDates[k] && !modSet.has(groupDates[k]));
+  const noDate = Object.keys(groupDates).filter((k) => !groupDates[k]);
   if (mods.some((d) => !/^\d{4}-\d{2}-\d{2}$/.test(d))) fail('sitemap.xml', 'lastmod ist kein ISO-Datum');
-  else if (mods.length === 0) ok('sitemap.xml', 'kein lastmod (Git-Verlauf nicht belastbar) — erlaubt');
   else if (mods.length > locs.length) fail('sitemap.xml', 'mehr lastmod als URLs');
-  else if (new Set(mods).size < 2) fail('sitemap.xml', 'alle lastmod identisch — Build-Datum statt Git-Datum?');
-  else ok('sitemap.xml', `lastmod aus Git (${mods.length} von ${locs.length} URLs, ${new Set(mods).size} verschiedene Daten)`);
+  else if (historyUnreliable()) {
+    if (mods.length) fail('sitemap.xml', `${mods.length} lastmod ohne belastbaren Git-Verlauf — Build-Datum oder Platzhalter?`);
+    else ok('sitemap.xml', 'kein lastmod (Git-Verlauf nicht belastbar) — erlaubt');
+  } else if (foreign.length) fail('sitemap.xml', `lastmod ist kein Git-Datum einer Seitengruppe: ${foreign.join(', ')} (Git: ${[...allowed].sort().join(', ')}) — Build-Datum statt Git-Datum?`);
+  else if (unused.length) fail('sitemap.xml', `Git-Datum fehlt in der Sitemap: ${unused.map((k) => `${k} ${groupDates[k]}`).join(', ')}`);
+  else if (noDate.length) fail('sitemap.xml', `kein Git-Datum für: ${noDate.map((k) => `${k} (${SITEMAP_SOURCES[k].join(', ')})`).join('; ')}`);
+  else ok('sitemap.xml', `lastmod = Git-Datum der Seitengruppe (${mods.length} von ${locs.length} URLs, ${modSet.size} verschiedene Daten: ${[...modSet].sort().join(', ')})`);
   const subUrls = subShells.map((f) => { const [r, sl] = f.replace(/\.html$/, '').split('--'); return `https://buscosun.com/${r}/${sl}`; });
   const missing = subUrls.filter((u) => !locs.includes(u));
   if (missing.length) fail('sitemap.xml', `Sub-Routen fehlen: ${missing.join(', ')}`);

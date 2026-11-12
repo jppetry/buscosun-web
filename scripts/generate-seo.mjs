@@ -41,7 +41,8 @@ import { GLACIER_LIVE } from '../src/glacier/glacierFlag.ts';
 import { FUSION_EXPLAINER_LIVE } from '../src/fusionExplainer/fxFlag.ts';
 import { flagGateScript } from './seo/flagGate.mjs';
 import { PLACES_UPDATED } from './seo/places.mjs';
-import { gitLastmod, maxLastmod } from './seo/gitDate.mjs';
+import { gitLastmod, maxLastmod, historyUnreliable } from './seo/gitDate.mjs';
+import { SITEMAP_SOURCES } from './seo/sitemapSources.mjs';
 // Phase WBS (audit/seo-waldbrand.md): Waldbrandgefahr nach Land und Region aus dem Saison-Index des Brandarchivs.
 import { writeFireRegionPages, fireRegionsLlms } from './seo/fireRegionPages.mjs';
 import { FIRE_REGION_SOURCES, FIRE_BASE } from './seo/fireRegions.mjs';
@@ -256,22 +257,9 @@ const FIRE_REGION_PATHS = writeFireRegionPages(DIST);
 // die Orte in EINER Datei stehen. Die redaktionellen `dateModified`-Felder je Eintrag
 // bleiben für JSON-LD und Feed; die Sitemap liest sie nicht mehr.
 // `changefreq`/`priority` bleiben weg bzw. minimal: Google ignoriert changefreq seit Jahren.
-const LM = {
-  routes: gitLastmod(['src/router/routes.ts', 'src/seo/subRouteTexts.ts']),
-  // Phase SA: die Autobahnwetter-Seiten haben eigene Quelldateien (Texte, erzeugte Zahlen) — ein Commit dort soll nur sie
-  // als geändert melden, nicht alle App-Routen; und ein Commit an routes.ts betrifft sie mit.
-  road: gitLastmod(['src/router/routes.ts', 'src/seo/routeTexts.ts', 'src/road/roadSeo.ts', 'src/road/roadSeoTexts.ts', 'src/road/roadSeoFacts.ts']),
-  places: gitLastmod(['scripts/seo/places.mjs', 'scripts/seo/placeContent.mjs', 'scripts/seo/data/place-climate.json', 'scripts/seo/data/place-terrain.json', 'scripts/seo/data/place-modules.json']),
-  explainers: gitLastmod(['scripts/seo/explainers.mjs', 'scripts/seo/explainers-extra.mjs']),
-  tools: gitLastmod(['scripts/seo/tools.mjs']),
-  events: gitLastmod(['scripts/seo/events.mjs']),
-  legal: gitLastmod(['scripts/seo/legal.mjs', 'scripts/seo/licenses.mjs']),
-  methodik: gitLastmod(['scripts/seo/methodik.mjs']),
-  glossary: gitLastmod(['scripts/seo/glossary.mjs']),
-  audiences: gitLastmod(['scripts/seo/audiences.mjs']),
-  // Phase SS: Seewetter-Hub und Spot-Seiten — Tabelle, Steckbriefe, Texte (nicht die Prognose, die erst die App zeigt).
-  sea: gitLastmod(['src/router/routes.ts', 'src/sea/seaSeo.ts', 'src/sea/seaSeoText.ts', 'src/sea/seaSpotFacts.ts', 'src/seo/routeTexts.ts']),
-};
+const LM = Object.fromEntries(Object.entries(SITEMAP_SOURCES).map(([k, files]) => [k, gitLastmod(files)]));
+// A group without a Git date gets no lastmod — say which files are affected instead of dropping it silently.
+if (!historyUnreliable()) for (const [k, d] of Object.entries(LM)) if (!d) console.warn(`[generate-seo] no Git date for sitemap group "${k}": ${SITEMAP_SOURCES[k].join(', ')}`);
 /**
  * SEO/GEO 2026 (E9): `sitemap.xml` ist jetzt ein **Sitemap-Index** auf zwei Teillisten —
  * `sitemap-pages.xml` (App-Routen, Hubs, Erklärungen, Methodik, Zielgruppen, Werkzeuge,
