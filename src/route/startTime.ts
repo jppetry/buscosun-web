@@ -4,7 +4,8 @@
  * <input type="datetime-local">.
  */
 
-export const FORECAST_HORIZON_H = 240; // 10 Tage
+/** End of buscosun Fusion (336 h = 14 days; Jan 11.11., V-TE-1 — was 240 h). Beyond it there is no value, not a weaker one. */
+export const FORECAST_HORIZON_H = 336; // 14 Tage
 
 export type HorizonState = 'past' | 'ok' | 'far_future';
 

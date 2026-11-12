@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup v1 · Tourenplanung · Ergebnis mit Routen-Slider — buscosun</title>
+<!--
+  ============================================================================
+  buscosun · „Wetter entlang deiner Route" · Ergebnis-Seite · MOCKUP v1
+  ----------------------------------------------------------------------------
+  Nur Mockup — kein Produktivcode. ALLE Wetter-, Zeit- und Kennwerte sind
+  PLATZHALTER aus einem synthetischen Feld (siehe Abschnitt „MOCK-DATEN" im
+  Skript). Die Felder selbst entsprechen 1:1 dem, was die App heute liefert:
+  SampleETA (tourTiming.ts) + SampleWeather (pointForecast/types.ts) +
+  EnrichmentMeta.startWindow (weatherEnrichment.ts).
+
+  Aufbau (jeder Bereich ist ein eigenes Modul, im Markup + CSS + JS gleich benannt):
+    M1  Kopf          — Titel, Kurzurteil, Kennzahlen
+    M2  Plan-Leiste   — Startzeit + Routenparameter (inline änderbar)
+    M3  Terrain-Karte — RouteTerrainMap (hier als Skizze) + Positionsmarker
+    M4  Routen-Slider — Position auf der Route, Wind-/Regen-/Wechsel-Spuren
+    M5  Positions-Panel (rechts) — alle Parameter am gewählten Punkt + Datenbezug
+    M6  Wind entlang der Route
+    M7  Wetterwechsel entlang der Route
+    M8  Startfenster ±2 h
+  Mobil: gleiche Module, gestapelt; Slider klebt unter der Karte; Plan als Sheet.
+  ============================================================================
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* =================== Tokens (aus src/designTokens.css, Auszug) =================== */
+:root{
+  --sand-50:#F5F1E8;--sand-100:#EDE6D3;--sand-200:#E0D6BE;--sand-300:#D9CEB0;--cream-50:#FAF6EA;
+  --ink-900:#2C2A26;--ink-800:#3A3833;--stone-600:#5C5447;--stone-500:#8B7355;--stone-400:#A89A7A;
+  --sage-600:#7A9466;--terracotta-500:#C97B47;--terracotta-700:#A85E2E;--amber-500:#D4A373;
+  --steel-600:#3A6FA8;--steel-50:#E8F0FA;--slate-500:#6B7A8F;
+  --border-default:#E0D6BE;--border-medium:#D9D0B8;--border-strong:#C4B896;
+  --rd-content-bg:#EDE6D3;--rd-card:#FAF6EA;--rd-red:#A8431F;--rd-sage-strong:#5F7A4C;--rd-sage-tint:#EFF3E8;
+  --rd-neutral-chip:#EFECE2;--rd-rail-icon:#E0A567;--rd-warn-tint:#FBF3E7;--rd-warn-border:#EAD9BE;--rd-warn-ink:#9A5A2A;
+  --nc-int-light:#9DC3E6;
+  /* Wind zur Fahrtrichtung — EINE Farbskala für Karte, Slider, Panel, Diagramm */
+  --w-head:#A8431F;--w-cross:#C97B47;--w-tail:#5F7A4C;--w-calm:#B9AE93;
+  --shadow-card:0 4px 16px rgba(44,42,38,.06);--shadow-float:0 8px 32px rgba(44,42,38,.10);
+  --font-base:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-display:"Space Grotesk",var(--font-base);
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:var(--font-base);color:var(--ink-900);background:#d9d2bf;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit}
+
+/* =================== Mockup-Rahmen (nicht Teil des Designs) =================== */
+.mk-bar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:8px 16px;background:#2C2A26;color:#F5F1E8;font-size:12.5px}
+.mk-bar b{font-family:var(--font-display);letter-spacing:.2px}
+.mk-seg{display:inline-flex;gap:2px;padding:2px;border-radius:8px;background:#47433B}
+.mk-seg button{border:0;border-radius:6px;background:none;color:#D9CEB0;padding:4px 10px;cursor:pointer;font-size:12px;font-weight:600}
+.mk-seg button.on{background:#F5F1E8;color:#2C2A26}
+.mk-bar label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.mk-note{margin-left:auto;color:#B7AE9C}
+.mk-ph-flag{display:inline-flex;align-items:center;gap:6px;background:#5a4a2a;color:#F4C969;border-radius:6px;padding:3px 8px;font-weight:600}
+.mk-stage{padding:0}
+.mk-stage.is-mobile{display:flex;justify-content:center;padding:24px 0 40px}
+.mk-stage.is-mobile .app{width:390px;height:844px;border:10px solid #2C2A26;border-radius:44px;overflow:hidden;box-shadow:0 30px 60px rgba(0,0,0,.25)}
+
+/* Platzhalter-Markierung: jeder Beispielwert trägt .ph */
+body.show-ph .ph{text-decoration:underline dashed #D4A373 1.5px;text-underline-offset:3px}
+body.show-ph .ph-card{position:relative}
+body.show-ph .m3.ph-card::after{top:auto;bottom:12px;right:12px}
+svg text{font-family:var(--font-base)}
+.m4-mini{display:none}
+body.show-ph .ph-card::after{content:"Platzhalter";position:absolute;top:-8px;right:14px;font:600 9.5px/1 var(--font-mono);letter-spacing:.8px;text-transform:uppercase;color:#9A5A2A;background:#FBF3E7;border:1px dashed #D4A373;border-radius:5px;padding:3px 5px;pointer-events:none;z-index:4}
+
+/* =================== App-Shell (Command-Deck, wie RouteDeckShell) =================== */
+.app{container-type:inline-size;container-name:app;background:var(--rd-content-bg);min-height:calc(100vh - 42px)}
+.shell{display:flex;flex-direction:column;height:100%;min-height:inherit}
+.topbar{height:58px;display:flex;align-items:center;gap:16px;padding:0 20px;background:linear-gradient(180deg,var(--rd-card),#F4EEDF);border-bottom:1px solid var(--border-default);box-shadow:0 8px 18px -16px rgba(44,42,38,.35);position:relative;z-index:3}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:19px;letter-spacing:-.4px}
+.brand i{width:24px;height:24px;border-radius:7px;background:conic-gradient(from 200deg,var(--terracotta-500),var(--amber-500),var(--terracotta-500));display:block}
+.tdiv{width:1px;height:26px;background:var(--border-default)}
+.crumb{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--stone-500)}
+.crumb button{border:0;background:none;color:var(--terracotta-500);font-weight:600;font-size:12px;cursor:pointer;padding:0}
+.steps{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--stone-500)}
+.steps span{display:flex;align-items:center;gap:6px}
+.steps span+span::before{content:"";width:16px;height:1px;background:var(--border-strong)}
+.steps i{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:11px;background:var(--rd-sage-tint);color:var(--rd-sage-strong)}
+.steps .now{color:var(--ink-900)} .steps .now i{background:var(--terracotta-500);color:var(--rd-card)}
+.live{display:flex;align-items:center;gap:6px;font:600 10.5px var(--font-mono);letter-spacing:1.2px;color:var(--stone-500)}
+.live::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--sage-600);box-shadow:0 0 0 3px rgba(122,148,102,.2)}
+.body{display:flex;flex:1;min-height:0}
+.rail{width:58px;flex:0 0 auto;background:var(--ink-900);display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:6px}
+.rail b{width:38px;height:38px;border-radius:10px;display:block;opacity:.35;background:radial-gradient(circle at 50% 50%,#8B7355 0 4px,transparent 5px)}
+.rail b.on{opacity:1;background:var(--ink-800) radial-gradient(circle at 50% 50%,var(--rd-rail-icon) 0 5px,transparent 6px);position:relative}
+.rail b.on::before{content:"";position:absolute;left:-10px;top:9px;bottom:9px;width:3px;border-radius:2px;background:var(--terracotta-500)}
+.content{flex:1;min-width:0;padding:20px 26px 28px;overflow:auto}
+
+/* gemeinsame Bausteine */
+.card{background:var(--rd-card);border:1px solid var(--border-default);border-radius:14px;box-shadow:var(--shadow-card)}
+.eyebrow{font-size:11px;letter-spacing:2.5px;color:var(--terracotta-500);font-weight:700;text-transform:uppercase}
+.label{font-size:10.5px;letter-spacing:1.8px;color:var(--stone-400);font-weight:700;text-transform:uppercase}
+.num{font-family:var(--font-display);font-variant-numeric:tabular-nums}
+.muted{color:var(--stone-500)}
+.chip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border-default);background:var(--rd-card);border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600;color:var(--stone-600);cursor:pointer;white-space:nowrap}
+.chip.on{background:var(--terracotta-500);border-color:var(--terracotta-500);color:#fff}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:0 0 auto}
+.seg{display:inline-flex;gap:2px;padding:3px;border-radius:10px;background:var(--rd-neutral-chip);border:1px solid var(--border-default)}
+.seg button{border:0;border-radius:7px;background:none;padding:5px 11px;font-size:12px;font-weight:600;color:var(--stone-600);cursor:pointer}
+.seg button.on{background:var(--terracotta-500);color:#fff}
+
+/* =================== M1 Kopf =================== */
+.m1{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap}
+.m1-titles{flex:1 1 300px;min-width:0}
+.m1 h1{margin:5px 0 0;font:700 26px/1.1 var(--font-display);letter-spacing:-.6px}
+.m1 .verdict{margin:6px 0 0;font-size:14px;color:var(--stone-600)}
+.m1 .verdict b{color:var(--ink-900)}
+.kpis{display:flex;margin:0;border-radius:14px;background:var(--rd-card);border:1px solid var(--border-default);overflow:hidden}
+.kpis div{padding:8px 15px} .kpis div+div{border-left:1px solid var(--border-default)}
+.kpis dt{font-size:9.5px;font-weight:700;letter-spacing:1.5px;color:var(--stone-400);text-transform:uppercase}
+.kpis dd{margin:3px 0 0;font:700 16px var(--font-display);white-space:nowrap}
+
+/* =================== M2 Plan-Leiste =================== */
+.m2{margin-top:14px;padding:10px 12px;display:flex;align-items:stretch;gap:0;flex-wrap:wrap}
+.m2-item{display:flex;flex-direction:column;gap:5px;padding:4px 14px;min-width:0;border-left:1px solid var(--border-default)}
+.m2-item:first-child{border-left:0;padding-left:4px}
+.m2-item .row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.m2 input[type=datetime-local],.m2 select{border:1px solid var(--border-default);background:#fff;border-radius:8px;padding:5px 8px;font-size:13px;color:var(--ink-900)}
+.m2 input[type=range]{accent-color:var(--terracotta-500);width:120px}
+.m2 .val{font:600 13px var(--font-display);min-width:58px}
+.m2-more{margin-left:auto;align-self:center;border:0;background:none;color:var(--terracotta-500);font-weight:600;font-size:12.5px;cursor:pointer;padding:6px 8px}
+.m2-ext{flex-basis:100%;display:none;gap:0;flex-wrap:wrap;margin-top:8px;padding-top:10px;border-top:1px dashed var(--border-default)}
+.m2.open .m2-ext{display:flex}
+.m2-busy{display:none;align-items:center;gap:6px;font-size:12px;color:var(--stone-500);align-self:center;padding:0 8px}
+.m2-busy.on{display:flex}
+.m2-busy::before{content:"";width:12px;height:12px;border-radius:50%;border:2px solid var(--terracotta-500);border-right-color:transparent;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* =================== Haupt-Raster: Karte+Slider | Panel =================== */
+.main{display:grid;grid-template-columns:minmax(0,1fr) 372px;gap:14px;margin-top:14px;align-items:start}
+.mapcol{display:flex;flex-direction:column;min-width:0;overflow:hidden}
+
+/* M3 Terrain-Karte */
+.m3{position:relative;height:clamp(300px,calc(100vh - 520px),540px);background:#E9E1CC;border-radius:14px 14px 0 0;overflow:hidden}
+.m3 svg{width:100%;height:100%;display:block}
+.m3-tools{position:absolute;top:10px;left:10px;right:10px;display:flex;gap:8px;align-items:center;pointer-events:none}
+.m3-tools>*{pointer-events:auto}
+.m3-tools .seg{background:rgba(250,246,234,.94)}
+.m3-legend{position:absolute;right:10px;top:52px;background:rgba(250,246,234,.94);border:1px solid var(--border-default);border-radius:9px;padding:7px 10px;font-size:11.5px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.m3-legend span{display:inline-flex;align-items:center;gap:5px}
+.m3-legend i{width:16px;height:4px;border-radius:2px;display:inline-block}
+.m3-note{position:absolute;left:10px;bottom:10px;font:500 10px var(--font-mono);color:var(--stone-500);background:rgba(250,246,234,.85);padding:3px 6px;border-radius:5px}
+.m3-pos{position:absolute;transform:translate(-50%,-100%);pointer-events:none;transition:left .12s,top .12s}
+.m3-pos .tag{background:var(--ink-900);color:var(--cream-50);border-radius:9px;padding:5px 9px;font-size:11.5px;white-space:nowrap;box-shadow:var(--shadow-float)}
+.m3-pos .tag b{font-family:var(--font-display)}
+.m3-pos .stem{width:2px;height:14px;background:var(--ink-900);margin:0 auto}
+
+/* M4 Routen-Slider */
+.m4{border-top:1px solid var(--border-default);padding:10px 16px 12px;background:var(--rd-card);border-radius:0 0 14px 14px}
+.m4-head{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.m4-head .where{font-size:13px;color:var(--stone-600)} .m4-head .where b{font:700 14px var(--font-display);color:var(--ink-900)}
+.m4-btns{margin-left:auto;display:flex;gap:6px}
+.ibtn{width:32px;height:32px;border-radius:50%;border:1px solid var(--border-default);background:#fff;color:var(--stone-600);cursor:pointer;display:grid;place-items:center}
+.ibtn.play{background:var(--terracotta-500);border-color:var(--terracotta-500);color:#fff}
+.m4-track{position:relative;height:104px;cursor:pointer;touch-action:none;user-select:none}
+.m4-track svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.m4-thumb{position:absolute;top:0;bottom:0;width:0;pointer-events:none}
+.m4-thumb .line{position:absolute;top:0;bottom:16px;left:-1px;width:2px;background:var(--ink-900)}
+.m4-thumb .knob{position:absolute;bottom:4px;left:-11px;width:22px;height:22px;border-radius:50%;background:var(--terracotta-500);border:3px solid #fff;box-shadow:0 2px 8px rgba(44,42,38,.35)}
+.m4 input[type=range]{position:absolute;opacity:0;inset:0;width:100%;height:100%;margin:0;cursor:pointer}
+.m4-axis{display:flex;justify-content:space-between;font:500 10.5px var(--font-mono);color:var(--stone-500);margin-top:4px;white-space:nowrap}
+.m4-lanes{display:flex;gap:14px;font-size:11px;color:var(--stone-500);margin-top:6px;flex-wrap:wrap}
+.m4-lanes span{display:inline-flex;align-items:center;gap:5px}
+
+/* M5 Positions-Panel */
+.m5{padding:16px 16px 14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.m5-where{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.m5-where .big{font:700 15px var(--font-display)}
+.m5-hero{display:flex;align-items:center;gap:14px}
+.m5-hero .temp{font:600 46px/1 var(--font-display);letter-spacing:-1.5px}
+.m5-hero .cond{font-size:14px;font-weight:600}
+.m5-hero .feel{font-size:12.5px;color:var(--stone-500);margin-top:3px}
+.m5-wind{display:flex;gap:12px;align-items:center;padding:10px 12px;border-radius:12px;border:1px solid var(--border-default);background:#fff}
+.m5-wind .rel{font:700 15px var(--font-display)}
+.m5-wind .sub{font-size:12px;color:var(--stone-500);margin-top:2px;line-height:1.4}
+.m5-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+.m5-p{padding:8px 0;border-top:1px solid var(--border-default);min-width:0}
+.m5-p .k{display:flex;justify-content:space-between;align-items:center;font-size:10.5px;letter-spacing:1.2px;font-weight:700;color:var(--stone-400);text-transform:uppercase}
+.m5-p .v{font:700 17px var(--font-display);margin-top:3px;white-space:nowrap}
+.m5-p .s{font-size:11.5px;color:var(--stone-500);margin-top:1px}
+.conf{display:inline-flex;gap:2px} .conf i{width:4px;height:9px;border-radius:1px;background:var(--sand-200)} .conf i.on{background:var(--sage-600)}
+.m5-ref{font-size:11.5px;color:var(--stone-600);background:var(--sand-50);border:1px solid var(--border-default);border-radius:10px;padding:9px 11px;line-height:1.55}
+.m5-ref .ok{color:var(--rd-sage-strong);font-weight:700}
+.m5-next{display:flex;gap:10px;align-items:center;font-size:12.5px;padding:9px 11px;border-radius:10px;background:var(--rd-warn-tint);border:1px solid var(--rd-warn-border);cursor:pointer}
+.m5-next b{color:var(--rd-warn-ink)}
+.badge{font:600 10px var(--font-mono);letter-spacing:.5px;border-radius:5px;padding:2px 5px;background:var(--steel-50);color:var(--steel-600)}
+
+/* M6–M8 Analyse */
+.ana{display:grid;grid-template-columns:1.15fr 1fr;gap:14px;margin-top:14px}
+.m6,.m7,.m8{padding:16px 18px}
+.m8{grid-column:1/-1}
+.sec-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.sec-h h2{margin:4px 0 0;font:700 18px var(--font-display);letter-spacing:-.3px}
+.sec-h .lead{font-size:13px;color:var(--stone-600);margin-top:4px;flex-basis:100%}
+.share{display:flex;height:12px;border-radius:6px;overflow:hidden;margin:14px 0 6px}
+.share-k{display:flex;gap:14px;font-size:12px;color:var(--stone-600);flex-wrap:wrap}
+.share-k span{display:inline-flex;align-items:center;gap:5px}
+.chart{width:100%;height:auto;display:block;margin-top:10px;overflow:visible;cursor:crosshair}
+.m7-ranges{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.rng{display:grid;grid-template-columns:96px 1fr 76px;gap:10px;align-items:center;font-size:12.5px}
+.rng .bar{position:relative;height:26px}
+.rng svg{width:100%;height:26px;display:block;overflow:visible;cursor:crosshair}
+.rng .d{font:700 12.5px var(--font-display);text-align:right}
+.ev{display:flex;flex-direction:column;gap:6px;margin-top:14px}
+.ev button{display:flex;gap:10px;align-items:center;text-align:left;border:1px solid var(--border-default);background:#fff;border-radius:10px;padding:8px 10px;cursor:pointer;font-size:12.5px;color:var(--ink-900)}
+.ev button:hover{border-color:var(--terracotta-500)}
+.ev .km{font:600 11px var(--font-mono);color:var(--stone-500);min-width:86px}
+.idx{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;border-radius:999px;padding:4px 10px;background:var(--rd-warn-tint);color:var(--rd-warn-ink);border:1px solid var(--rd-warn-border)}
+.m8-chart{width:100%;height:auto;display:block;margin-top:10px}
+.m8-row{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.btn{border:0;border-radius:10px;background:var(--terracotta-500);color:#fff;font-weight:600;font-size:13px;padding:9px 14px;cursor:pointer}
+.btn.ghost{background:#fff;border:1px solid var(--border-default);color:var(--stone-600)}
+.foot{margin-top:18px;font-size:11.5px;color:var(--stone-500);display:flex;gap:8px;align-items:center}
+.foot::before{content:"●";color:var(--terracotta-500)}
+
+/* Mobile-Bausteine (nur im Container < 760 px sichtbar) */
+.mhead,.mplan,.sheet{display:none}
+
+/* =================== Responsiv (Container-Query: greift im Handy-Rahmen UND im schmalen Fenster) =================== */
+@container app (max-width: 1180px){
+  .main{grid-template-columns:minmax(0,1fr) 330px}
+  .steps span:not(.now) em{display:none}
+}
+@container app (max-width: 980px){
+  .main{grid-template-columns:1fr}
+  .ana{grid-template-columns:1fr}
+  .m5{display:grid;grid-template-columns:1fr 1fr;gap:12px 18px}
+  .m5>.full{grid-column:1/-1}
+}
+@container app (max-width: 760px){
+  .topbar,.rail,.m2,.m1 .kpis{display:none}
+  .shell{height:100%}
+  .content{padding:0 0 30px}
+  .mhead{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--rd-card);border-bottom:1px solid var(--border-default);position:relative;z-index:6}
+  .mhead .back{width:36px;height:36px;border-radius:50%;border:1px solid var(--border-default);background:#fff;display:grid;place-items:center}
+  .mhead .t1{font-size:10.5px;letter-spacing:1.6px;font-weight:700;color:var(--terracotta-500);text-transform:uppercase}
+  .mhead .t2{font:700 16px var(--font-display)}
+  .m1{padding:12px 14px 0}
+  .m1 h1,.m1 .eyebrow{display:none}
+  .m4-track{height:66px}
+  .m4-axis span:nth-child(2),.m4-axis span:nth-child(4){display:none}
+  .m4-head .where{display:none}
+  .m4-mini{display:flex;gap:10px;align-items:center;font-size:12.5px;color:var(--stone-600);min-width:0}
+  .m4-mini b{font:700 17px var(--font-display);color:var(--ink-900)}
+  .m1 .verdict{margin:0;font-size:13.5px}
+  .mplan{display:flex;gap:8px;overflow-x:auto;padding:10px 14px 2px;scrollbar-width:none}
+  .mplan .chip{padding:7px 11px;font-size:12.5px}
+  .main{margin-top:10px;gap:0}
+  .mapcol{display:contents}
+  .m3{height:300px;border-radius:0}
+  .m3-legend{font-size:10.5px;gap:8px;padding:5px 8px;left:10px;right:auto;top:auto;bottom:8px}
+  .m3-note{display:none}
+  .m4{position:sticky;top:0;z-index:5;border-radius:0;box-shadow:0 10px 18px -14px rgba(44,42,38,.45);padding:8px 14px 10px}
+  .m4-lanes{display:none}
+  .m5{margin:12px 14px 0;display:flex}
+  .m5-hero .temp{font-size:40px}
+  .ana{margin:12px 14px 0;gap:12px}
+  .m6,.m7,.m8{padding:14px}
+  .rng{grid-template-columns:78px 1fr 62px}
+  .foot{margin:16px 14px 0}
+  .sheet{position:absolute;inset:0;z-index:20;display:block;pointer-events:none}
+  .sheet .scrim{position:absolute;inset:0;background:rgba(44,42,38,.35);opacity:0;transition:opacity .2s}
+  .sheet .panel{position:absolute;left:0;right:0;bottom:0;background:var(--rd-card);border-radius:20px 20px 0 0;padding:10px 16px 22px;transform:translateY(100%);transition:transform .25s;max-height:80%;overflow:auto}
+  .sheet.open{pointer-events:auto} .sheet.open .scrim{opacity:1} .sheet.open .panel{transform:none}
+  .sheet .grab{width:40px;height:4px;border-radius:2px;background:var(--border-strong);margin:0 auto 12px}
+  .sheet .m2-item{border:0;padding:10px 0;border-top:1px solid var(--border-default)}
+  .sheet input[type=range]{width:100%;accent-color:var(--terracotta-500)}
+  .sheet select,.sheet input[type=datetime-local]{border:1px solid var(--border-default);background:#fff;border-radius:8px;padding:8px;font-size:14px;width:100%}
+}
+.app{position:relative}
+</style>
+</head>
+<body class="show-ph">
+
+<!-- ===== Mockup-Leiste (gehört NICHT zum Design) ===== -->
+<div class="mk-bar">
+  <b>Mockup v1</b>
+  <span class="mk-seg" role="group" aria-label="Vorschau"><button id="mkDesk" class="on">Desktop</button><button id="mkMob">Mobil</button></span>
+  <label><input type="checkbox" id="mkPh" checked> Platzhalter markieren</label>
+  <span class="mk-ph-flag">Alle Werte = Platzhalter (synthetisch)</span>
+  <span class="mk-note">Strecke: Freiburg–Schauinsland (test-routes/de-hilly-schauinsland.gpx) · Kein Produktivcode</span>
+</div>
+
+<div class="mk-stage" id="stage">
+<div class="app" id="app">
+<div class="shell">
+
+  <!-- Desktop-Topbar (wie RouteDeckShell) -->
+  <header class="topbar">
+    <div class="brand"><i></i>buscosun</div>
+    <div class="tdiv"></div>
+    <div class="crumb"><button>‹ Andere Strecke</button><span>· Ergebnis · <span id="crumbType">Gravel</span></span></div>
+    <div class="steps"><span><i>✓</i><em>Strecke</em></span><span><i>✓</i><em>Bewegungsart</em></span><span class="now"><i>3</i><em>Wetter</em></span></div>
+    <div class="live">DATEN LIVE</div>
+  </header>
+
+  <!-- Mobile-Kopf -->
+  <header class="mhead">
+    <span class="back">‹</span>
+    <div><div class="t1">Ergebnis · <span class="jType">Gravel</span></div><div class="t2">Freiburg–Schauinsland</div></div>
+  </header>
+
+  <div class="body">
+    <nav class="rail"><b></b><b></b><b class="on"></b><b></b><b></b><b></b><b></b></nav>
+    <main class="content" id="scroller">
+
+      <!-- ===== M1 Kopf ===== -->
+      <section class="m1" data-module="M1">
+        <div class="m1-titles">
+          <span class="eyebrow">Ergebnis · <span class="jType">Gravel</span></span>
+          <h1>Freiburg–Schauinsland</h1>
+          <p class="verdict ph" id="verdict"></p>
+        </div>
+        <dl class="kpis">
+          <div><dt>Start</dt><dd class="ph" id="kStart"></dd></div>
+          <div><dt>Ankunft</dt><dd class="ph" id="kEnd"></dd></div>
+          <div><dt>Dauer</dt><dd class="ph" id="kDur"></dd></div>
+          <div><dt>Distanz</dt><dd>9,7 km</dd></div>
+          <div><dt>Aufstieg</dt><dd>1006 hm</dd></div>
+        </dl>
+      </section>
+
+      <!-- ===== M2 Plan-Leiste (Desktop) — Startzeit + Routenparameter ===== -->
+      <section class="m2 card" id="m2" data-module="M2"></section>
+
+      <!-- Mobile: Plan als Chip-Zeile → Sheet -->
+      <div class="mplan" id="mplan"></div>
+
+      <!-- ===== Haupt-Raster ===== -->
+      <div class="main">
+        <div class="mapcol card">
+          <!-- ===== M3 Terrain-Karte ===== -->
+          <div class="m3 ph-card" id="m3" data-module="M3">
+            <svg id="mapSvg" viewBox="0 0 900 420" preserveAspectRatio="xMidYMid slice" aria-label="Terrain-Karte mit Route"></svg>
+            <div class="m3-tools">
+              <span class="seg"><button class="on">Gelände</button><button>Karte</button></span>
+              <span class="seg" style="margin-left:auto"><button class="on" data-colorby="wind">Wind</button><button data-colorby="temp">Temperatur</button><button data-colorby="rain">Regen</button></span>
+            </div>
+            <div class="m3-legend" id="mapLegend"></div>
+            <div class="m3-note">Skizze · im Produkt: RouteTerrainMap (MapLibre + DEM, 64° Neigung)</div>
+            <div class="m3-pos" id="mapPos"><div class="tag"></div><div class="stem"></div></div>
+          </div>
+          <!-- ===== M4 Routen-Slider ===== -->
+          <div class="m4" id="m4" data-module="M4">
+            <div class="m4-head">
+              <span class="where" id="sliderWhere"></span>
+              <span class="m4-mini" id="sliderMini"></span>
+              <div class="m4-btns">
+                <button class="ibtn" id="stepPrev" title="Vorheriger Punkt">‹</button>
+                <button class="ibtn play" id="play" title="Tour abspielen">▶</button>
+                <button class="ibtn" id="stepNext" title="Nächster Punkt">›</button>
+              </div>
+            </div>
+            <div class="m4-track" id="track">
+              <svg id="trackSvg" preserveAspectRatio="none"></svg>
+              <div class="m4-thumb" id="thumb"><div class="line"></div><div class="knob"></div></div>
+              <input type="range" id="range" min="0" max="59" step="1" value="24" aria-label="Position auf der Route">
+            </div>
+            <div class="m4-axis" id="axis"></div>
+            <div class="m4-lanes">
+              <span><i class="dot" style="background:var(--w-head)"></i>Gegen</span>
+              <span><i class="dot" style="background:var(--w-cross)"></i>Seite</span>
+              <span><i class="dot" style="background:var(--w-tail)"></i>Rücken</span>
+              <span><i class="dot" style="background:var(--nc-int-light)"></i>Regen</span>
+              <span>◆ Wetterwechsel</span>
+              <span>| Pause</span>
+              <span class="muted">Ziehen, klicken oder ← → · Werte gelten für Ort <em>und</em> Ankunftszeit</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== M5 Positions-Panel ===== -->
+        <aside class="m5 card ph-card" id="m5" data-module="M5"></aside>
+      </div>
+
+      <!-- ===== Analyse: M6 Wind · M7 Wechsel · M8 Startfenster ===== -->
+      <div class="ana">
+        <section class="m6 card ph-card" id="m6" data-module="M6"></section>
+        <section class="m7 card ph-card" id="m7" data-module="M7"></section>
+        <section class="m8 card ph-card" id="m8" data-module="M8"></section>
+      </div>
+
+      <div class="foot">Quellen: DWD · GeoSphere · MeteoSwiss — buscosun Fusion, höhenkorrigiert. Mockup v1.</div>
+    </main>
+  </div>
+</div>
+
+<!-- Mobile: Plan-Sheet -->
+<div class="sheet" id="sheet"><div class="scrim" id="scrim"></div><div class="panel"><div class="grab"></div><div class="label">Plan anpassen</div><div id="sheetBody"></div><button class="btn" style="width:100%;margin-top:12px" id="sheetDone">Fertig</button></div></div>
+</div><!-- /app -->
+</div><!-- /stage -->
+
+<script>
+/* ============================================================================
+   MOCK-DATEN — alles hier ist PLATZHALTER.
+   Struktur wie im Produkt:
+     samples[i] = SampleETA { dist, lat, lon, ele, etaMs, arrivalOffsetMin, segmentSpeedKmh,
+                              weather: SampleWeather { temperatureC, apparentTempC, windSpeedMps,
+                              windDirectionDeg, gustMps, relativeHumidityPct, cloudCoverPct, uvIndex,
+                              precipitationMmH, precipitationSource, precipitationType, snowLineM,
+                              foehn, warnings[], confidence{…}, cellId, sourcesUsed[], isInterpolated,
+                              validityFlags[] } }
+   Das Wetter kommt hier aus einem SYNTHETISCHEN Feld W(km, Uhrzeit), damit der
+   Mockup zeigt, dass sich Werte mit Startzeit/Tempo verschieben (Ort UND Zeit).
+   ============================================================================ */
+const ROUTE_CTRL = [[47.995,7.849,278],[47.970,7.865,480],[47.945,7.880,820],[47.924,7.893,1100],[47.914,7.897,1284]];
+const N = 60;
+const BASE_DATE = new Date(2026,10,11,16,7); // Mi 11.11.2026 16:07 (Platzhalter „jetzt")
+const MOVEMENT = [
+  {id:'wandern',label:'Wandern',cat:'foot',flat:4.5,climb:400},
+  {id:'bergwandern',label:'Bergwandern',cat:'foot',flat:4,climb:350},
+  {id:'jogging',label:'Jogging',cat:'foot',flat:10,climb:700},
+  {id:'trail',label:'Trail-Running',cat:'foot',flat:8.5,climb:600},
+  {id:'rennrad',label:'Rennrad',cat:'bike',flat:27,climb:3},
+  {id:'gravel',label:'Gravel',cat:'bike',flat:20,climb:3},
+  {id:'mtb',label:'MTB Cross-Country',cat:'bike',flat:16,climb:3},
+  {id:'ebike',label:'E-Bike Trekking',cat:'bike',flat:22,climb:5},
+];
+const state = {
+  startMs: BASE_DATE.getTime(), type:'gravel', flat:20, climb:3, pace:1.0, dir:'forward',
+  breaks:true, breakEvery:45, breakMin:5, maxDown:45, idx:24, colorBy:'wind', playing:false
+};
+
+/* ---------- Strecke (Geometrie aus der Test-GPX) ---------- */
+function buildRoute(){
+  const pts=[];
+  for(let k=0;k<4;k++){const a=ROUTE_CTRL[k],b=ROUTE_CTRL[k+1];for(let j=(k?1:0);j<=40;j++){const f=j/40;pts.push({lat:a[0]+(b[0]-a[0])*f,lon:a[1]+(b[1]-a[1])*f,ele:a[2]+(b[2]-a[2])*f});}}
+  let d=0;pts.forEach((p,i)=>{if(i){d+=hav(pts[i-1],p);}p.dist=d;});
+  return pts;
+}
+function hav(a,b){const R=6371000,r=Math.PI/180;const dl=(b.lat-a.lat)*r,dn=(b.lon-a.lon)*r;const x=Math.sin(dl/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(x));}
+function bearing(a,b){const r=Math.PI/180;const y=Math.sin((b.lon-a.lon)*r)*Math.cos(b.lat*r);const x=Math.cos(a.lat*r)*Math.sin(b.lat*r)-Math.sin(a.lat*r)*Math.cos(b.lat*r)*Math.cos((b.lon-a.lon)*r);return (Math.atan2(y,x)/r+360)%360;}
+let ROUTE = buildRoute();
+const TOTAL = ROUTE[ROUTE.length-1].dist;
+function atDist(pts,d){let i=1;while(i<pts.length-1&&pts[i].dist<d)i++;const a=pts[i-1],b=pts[i];const f=(d-a.dist)/Math.max(1,b.dist-a.dist);return {lat:a.lat+(b.lat-a.lat)*f,lon:a.lon+(b.lon-a.lon)*f,ele:a.ele+(b.ele-a.ele)*f,brg:bearing(a,b)};}
+function routeFor(dir){ if(dir==='forward') return ROUTE; const r=[...ROUTE].reverse().map(p=>({...p})); r.forEach(p=>p.dist=TOTAL-p.dist); return r; }
+
+/* ---------- Synthetisches Wetterfeld W(lat/lon/ele, Uhrzeit) — PLATZHALTER ---------- */
+function field(p, tMs){
+  const h=(tMs-new Date(2026,10,11,16,0).getTime())/3.6e6;  // Stunden ab 16:00
+  const s=(p.lat-47.995)/(47.914-47.995)*9.7;                 // Lage entlang Nord→Süd (km-Äquivalent)
+  const rain = 1.1*Math.exp(-((s-(2.0+10*(h-0.1)))**2)/(2*1.6**2)) + 1.2*Math.exp(-((s-(-14+9*h))**2)/(2*1.4**2));
+  const T = 12.9 - 0.0042*(p.ele-278) - 0.8*Math.max(-2,Math.min(h,4)) - (rain>0.3?0.6:0);
+  // Wind dreht mit der Höhe: Talwind aus N (Rücken), am Hang aus W (Seite), oben aus SSW (Gegen)
+  const a=Math.max(0,Math.min(1,(p.ele-420)/260)), b=Math.max(0,Math.min(1,(p.ele-820)/220));
+  const dir = ((375*(1-a) + 280*a)*(1-b) + 200*b + 10*h + 360)%360;
+  const ws = 4.3 + 0.004*(p.ele-278) + 1.1*Math.max(-1,Math.min(h,2));
+  const gust = ws*1.65+0.8;
+  const cloud = Math.max(55,Math.min(100, 100 - Math.max(0,(h-0.9))*40 + rain*20));
+  const rh = Math.min(98, 80 + rain*12 + Math.max(0,(p.ele-600))*0.004);
+  const app = T<=10 && ws>1.3 ? 13.12+0.6215*T-11.37*(ws*3.6)**0.16+0.3965*T*(ws*3.6)**0.16 : T - 0.35*ws;
+  return {temperatureC:T, apparentTempC:app, windSpeedMps:ws, windDirectionDeg:dir, gustMps:gust,
+    relativeHumidityPct:rh, cloudCoverPct:cloud, uvIndex:0, precipitationMmH: rain<0.05?0:rain,
+    precipitationSource: h<1.9?'radar':'nwp', precipitationType: rain<0.05?'none':(T<1.5?'sleet':'rain'),
+    snowLineM: 2310-60*Math.max(-2,Math.min(h,4)), foehn:null, warnings:[],
+    confidence:{temperature:.86-.03*h,wind:.74-.04*h,gust:.6,humidity:.8,precipitation:h<1.9?.82:.58,clouds:.66,snowLine:.5,uvIndex:.9},
+    cellId: s<3.3?1:(s<6.6?2:3), sourcesUsed:['ICON-D2','MOSMIX', h<1.9?'RADOLAN-RV':'ICON-D2-RUC'], isInterpolated:true,
+    validityFlags: h<1.9&&rain>=0.05?['ok','radar_override']:['ok']};
+}
+
+/* ---------- Mock-Timing (vereinfachter Ersatz für computeTimingIterated) ---------- */
+function headComp(brg, from, ws){return -ws*Math.cos((from-brg)*Math.PI/180);} // >0 Rücken, <0 Gegen
+function computeSamples(){
+  const mv=MOVEMENT.find(m=>m.id===state.type); const pts=routeFor(state.dir);
+  const step=TOTAL/(N-1); const out=[]; let t=state.startMs, moving=0, lastSec=0, nextBreak=state.breakEvery*60, breaks=[];
+  for(let i=0;i<N;i++){
+    const d=i*step; const g=atDist(pts,d);
+    if(i>0){
+      const prev=out[i-1]; const dEle=g.ele-prev.ele; const len=step;
+      let sec;
+      if(mv.cat==='bike'){ const up=Math.max(0,dEle); const climbRate=600+150*state.climb; sec=(len/1000)/(state.flat*state.pace)*3600 + up/climbRate*3600*0.92;
+        if(dEle<0) sec=Math.max(sec*0.6,(len/1000)/state.maxDown*3600);
+      } else { const up=Math.max(0,dEle), dn=Math.max(0,-dEle); sec=(len/1000)/(state.flat*state.pace)*3600 + up/(mv.climb)*3600 + dn/800*3600; }
+      // Wind-Iteration (einfach): Wind am Ort zur vorläufigen Ankunftszeit
+      const w=field(g,t+sec*1000); const c=headComp(g.brg,w.windDirectionDeg,w.windSpeedMps);
+      const f=mv.cat==='bike'?Math.min(1.4,Math.max(.5,1+.04*c)):Math.min(1.2,Math.max(.7,1+.012*c));
+      sec/=f; moving+=sec; t+=sec*1000; lastSec=sec;
+      if(state.breaks && moving>=nextBreak && d<TOTAL-200){ breaks.push({dist:d,min:state.breakMin}); t+=state.breakMin*60000; nextBreak+=state.breakEvery*60; }
+    }
+    const w=field(g,t);
+    out.push({index:i,dist:d,lat:g.lat,lon:g.lon,ele:g.ele,brg:g.brg,etaMs:t,arrivalOffsetMin:(t-state.startMs)/60000,
+      segmentSpeedKmh:i?(step/1000)/(lastSec/3600):state.flat, weather:w});
+  }
+  return {samples:out, breaks, arrivalMs:t, movingMin:moving/60};
+}
+
+/* ---------- abgeleitete Größen (so auch aus echten Daten berechenbar) ---------- */
+function windRel(s){const w=s.weather; if(w.windSpeedMps<4) return 'calm'; const c=headComp(s.brg,w.windDirectionDeg,w.windSpeedMps); return c>0.7?'tail':(c<-0.7?'head':'cross');}
+const REL={head:{c:'var(--w-head)',hex:'#A8431F',t:'Gegenwind'},cross:{c:'var(--w-cross)',hex:'#C97B47',t:'Seitenwind'},tail:{c:'var(--w-tail)',hex:'#5F7A4C',t:'Rückenwind'},calm:{c:'var(--w-calm)',hex:'#B9AE93',t:'kaum Wind'}};
+function changeEvents(S){
+  const ev=[]; let wet=S[0].weather.precipitationMmH>=0.1;
+  for(let i=1;i<S.length;i++){const w=S[i].weather;const nowWet=w.precipitationMmH>=0.1;
+    if(nowWet!==wet){ev.push({i,kind:'rain',txt:nowWet?'Regen setzt ein':'Regen hört auf',icon:nowWet?'☂':'☀'});wet=nowWet;}}
+  // Temperatursturz ≥ 2 K innerhalb von 2 km
+  let ref=0; for(let i=1;i<S.length;i++){ if(S[i].dist-S[ref].dist>2000) ref++; const dT=S[i].weather.temperatureC-S[ref].weather.temperatureC; if(Math.abs(dT)>=2){ev.push({i,kind:'temp',txt:(dT<0?'Abkühlung ':'Erwärmung ')+fmt(Math.abs(dT),1)+' K auf '+fmt((S[i].dist-S[ref].dist)/1000,1)+' km',icon:'🌡'}); ref=i;} }
+  // Böen über 10 m/s (36 km/h) — erstmals
+  const g=S.findIndex(s=>s.weather.gustMps>=10); if(g>0) ev.push({i:g,kind:'gust',txt:'Böen ab '+fmt(S[g].weather.gustMps,1)+' m/s ('+Math.round(S[g].weather.gustMps*3.6)+' km/h)',icon:'≋'});
+  // Wechsel zu Gegenwind
+  let prev=windRel(S[0]); for(let i=1;i<S.length;i++){const r=windRel(S[i]); if(r==='head'&&prev!=='head'&&-headComp(S[i].brg,S[i].weather.windDirectionDeg,S[i].weather.windSpeedMps)>=2){ev.push({i,kind:'wind',txt:'Ab hier Gegenwind ('+fmt(-headComp(S[i].brg,S[i].weather.windDirectionDeg,S[i].weather.windSpeedMps),1)+' m/s)',icon:'⟵'});} prev=r;}
+  return ev.sort((a,b)=>a.i-b.i);
+}
+
+/* ---------- Formatierung ---------- */
+const fmt=(v,d=0)=>v.toLocaleString('de-DE',{minimumFractionDigits:d,maximumFractionDigits:d});
+const clock=ms=>new Date(ms).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+const dayClock=ms=>new Date(ms).toLocaleString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).replace(',',' ·');
+const dur=min=>{const h=Math.floor(min/60),m=Math.round(min%60);return h?`${h} h ${String(m).padStart(2,'0')} min`:`${m} min`;};
+const compass=d=>['N','NO','O','SO','S','SW','W','NW'][Math.round(d/45)%8];
+const conf=v=>{const n=Math.round(v*5);return '<span class="conf" title="Verlässlichkeit '+Math.round(v*100)+' %">'+[0,1,2,3,4].map(k=>'<i class="'+(k<n?'on':'')+'"></i>').join('')+'</span>';};
+const ico={
+  rain:'<svg width="40" height="40" viewBox="0 0 40 40"><path d="M12 24a7 7 0 0 1-.9-13.9A9 9 0 0 1 28.5 12 6 6 0 0 1 28 24z" fill="#D9D0B8" stroke="#8B7355" stroke-width="1.4"/><path d="M15 28l-2 5M21 28l-2 5M27 28l-2 5" stroke="#3A6FA8" stroke-width="2" stroke-linecap="round"/></svg>',
+  cloud:'<svg width="40" height="40" viewBox="0 0 40 40"><path d="M12 28a7 7 0 0 1-.9-13.9A9 9 0 0 1 28.5 16 6 6 0 0 1 28 28z" fill="#E0D6BE" stroke="#8B7355" stroke-width="1.4"/></svg>',
+  part:'<svg width="40" height="40" viewBox="0 0 40 40"><circle cx="14" cy="14" r="6" fill="#F4C969"/><path d="M14 30a6 6 0 0 1-.8-11.9A8 8 0 0 1 29 20a5 5 0 0 1-.5 10z" fill="#EDE6D3" stroke="#8B7355" stroke-width="1.4"/></svg>'
+};
+function condOf(w){ if(w.precipitationMmH>=0.1) return {i:ico.rain,t:w.precipitationMmH>=1?'Regen':'Leichter Regen'}; if(w.cloudCoverPct>=85) return {i:ico.cloud,t:'Bedeckt'}; return {i:ico.part,t:'Wolkig'}; }
+
+/* =================== Rendering =================== */
+let R=null, EV=[], M6W=640;
+function recompute(busy){
+  R=computeSamples(); EV=changeEvents(R.samples);
+  if(busy){ document.querySelectorAll('.m2-busy').forEach(b=>b.classList.add('on')); setTimeout(()=>document.querySelectorAll('.m2-busy').forEach(b=>b.classList.remove('on')),450); }
+  renderM1(); renderM2(); renderMPlan(); renderMap(); renderTrack(); renderM6(); renderM7(); renderM8(); setIdx(state.idx);
+}
+
+/* ----- M1 ----- */
+function renderM1(){
+  const S=R.samples, wet=S.filter(s=>s.weather.precipitationMmH>=0.1); const temps=S.map(s=>s.weather.temperatureC);
+  const head=S.filter(s=>windRel(s)==='head').length/S.length;
+  const firstWet=wet[0];
+  document.getElementById('verdict').innerHTML = (firstWet?(firstWet.index===0?`<b>Regen schon am Start, trocken ab km ${fmt((S.find((s,i)=>i>0&&s.weather.precipitationMmH<0.1)||S[N-1]).dist/1000,1)}</b>`:`<b>Regen ab km ${fmt(firstWet.dist/1000,1)} gegen ${clock(firstWet.etaMs)} Uhr</b>`):'<b>Trocken</b>')+
+    ` · ${fmt(Math.min(...temps),0)} bis ${fmt(Math.max(...temps),0)} °C · ${Math.round(head*100)} % der Strecke Gegenwind`;
+  kStart.textContent=dayClock(state.startMs); kEnd.textContent=clock(R.arrivalMs)+' Uhr'; kDur.textContent=dur((R.arrivalMs-state.startMs)/60000);
+  document.querySelectorAll('.jType').forEach(e=>e.textContent=MOVEMENT.find(m=>m.id===state.type).label); crumbType.textContent=MOVEMENT.find(m=>m.id===state.type).label;
+}
+
+/* ----- M2 Plan-Leiste (gleiches Markup für Desktop-Leiste und Mobile-Sheet) ----- */
+function planItems(){
+  const mv=MOVEMENT.find(m=>m.id===state.type); const local=new Date(state.startMs-new Date(state.startMs).getTimezoneOffset()*60000).toISOString().slice(0,16);
+  const quick=[['Jetzt',0],['+30 min',30],['Morgen 07:00','t7'],['Sa 09:00','s9']];
+  const core=`
+  <div class="m2-item"><span class="label">Start</span><div class="row">
+     <input type="datetime-local" data-k="start" value="${local}">
+     ${quick.map(q=>`<button class="chip" data-quick="${q[1]}">${q[0]}</button>`).join('')}</div></div>
+  <div class="m2-item"><span class="label">Bewegungsart</span><div class="row"><select data-k="type">${MOVEMENT.map(m=>`<option value="${m.id}" ${m.id===state.type?'selected':''}>${m.label}</option>`).join('')}</select></div></div>
+  <div class="m2-item"><span class="label">Grundtempo</span><div class="row"><input type="range" data-k="flat" min="${mv.cat==='bike'?10:3}" max="${mv.cat==='bike'?38:14}" step="0.5" value="${state.flat}"><span class="val">${fmt(state.flat,1)} km/h</span></div></div>
+  <div class="m2-item"><span class="label">Richtung</span><div class="row"><span class="seg"><button data-dir="forward" class="${state.dir==='forward'?'on':''}">Hinweg</button><button data-dir="reverse" class="${state.dir==='reverse'?'on':''}">Rückwärts</button></span></div></div>`;
+  const ext = mv.cat==='bike' ? `
+  <div class="m2-item"><span class="label">Bergfitness</span><div class="row"><input type="range" data-k="climb" min="1" max="5" step="1" value="${state.climb}"><span class="val">${state.climb} / 5</span></div></div>
+  <div class="m2-item"><span class="label">Max. Abfahrt</span><div class="row"><input type="range" data-k="maxDown" min="20" max="70" step="5" value="${state.maxDown}"><span class="val">${state.maxDown} km/h</span></div></div>`
+  : `<div class="m2-item"><span class="label">Steigleistung</span><div class="row"><input type="range" data-k="climbFoot" min="200" max="900" step="50" value="${mv.climb}"><span class="val">${mv.climb} hm/h</span></div></div>`;
+  const ext2 = `
+  <div class="m2-item"><span class="label">Tempo-Faktor</span><div class="row"><input type="range" data-k="pace" min="0.7" max="1.3" step="0.05" value="${state.pace}"><span class="val">${Math.round(state.pace*100)} %</span></div></div>
+  <div class="m2-item"><span class="label">Pausen</span><div class="row"><label class="chip ${state.breaks?'on':''}"><input type="checkbox" data-k="breaks" ${state.breaks?'checked':''} hidden>Auto</label>
+     <span class="muted" style="font-size:12px">alle</span><input type="range" data-k="breakEvery" min="20" max="120" step="5" value="${state.breakEvery}" style="width:90px"><span class="val">${state.breakEvery} min · ${state.breakMin} min</span></div></div>`;
+  return {core, ext:ext+ext2};
+}
+function renderM2(){
+  const p=planItems();
+  m2.innerHTML = p.core + `<span class="m2-busy">wird neu berechnet …</span><button class="m2-more" id="m2more">${m2.classList.contains('open')?'Weniger ▴':'Mehr Parameter ▾'}</button><div class="m2-ext">${p.ext}</div>`;
+  bindPlan(m2);
+  sheetBody.innerHTML = p.core + p.ext + '<span class="m2-busy">wird neu berechnet …</span>'; bindPlan(sheetBody);
+}
+function bindPlan(root){
+  root.querySelectorAll('[data-k]').forEach(el=>{
+    const ev = el.type==='range'?'change':'change';
+    if(el.type==='range') el.addEventListener('input',()=>{ const v=el.nextElementSibling; if(v&&v.classList.contains('val')){ const k=el.dataset.k; v.textContent = k==='flat'?fmt(+el.value,1)+' km/h':k==='pace'?Math.round(el.value*100)+' %':k==='climb'?el.value+' / 5':k==='maxDown'?el.value+' km/h':k==='breakEvery'?el.value+' min · '+state.breakMin+' min':el.value+' hm/h'; }});
+    el.addEventListener(ev,()=>{
+      const k=el.dataset.k;
+      if(k==='start'){ state.startMs=new Date(el.value).getTime(); }
+      else if(k==='type'){ state.type=el.value; const mv=MOVEMENT.find(m=>m.id===el.value); state.flat=mv.flat; if(mv.cat==='bike') state.climb=mv.climb; }
+      else if(k==='breaks'){ state.breaks=el.checked; }
+      else if(k==='climbFoot'){ MOVEMENT.find(m=>m.id===state.type).climb=+el.value; }
+      else state[k]=+el.value;
+      recompute(true);
+    });
+  });
+  root.querySelectorAll('[data-quick]').forEach(b=>b.onclick=()=>{
+    const q=b.dataset.quick; const base=BASE_DATE.getTime();
+    if(q==='t7'){const d=new Date(base);d.setDate(d.getDate()+1);d.setHours(7,0,0,0);state.startMs=d.getTime();}
+    else if(q==='s9'){const d=new Date(base);do{d.setDate(d.getDate()+1);}while(d.getDay()!==6);d.setHours(9,0,0,0);state.startMs=d.getTime();}
+    else state.startMs=base+(+q)*60000;
+    recompute(true);
+  });
+  root.querySelectorAll('[data-dir]').forEach(b=>b.onclick=()=>{state.dir=b.dataset.dir;recompute(true);});
+  const more=root.querySelector('#m2more'); if(more) more.onclick=()=>{m2.classList.toggle('open');more.textContent=m2.classList.contains('open')?'Weniger ▴':'Mehr Parameter ▾';};
+}
+function renderMPlan(){
+  const mv=MOVEMENT.find(m=>m.id===state.type);
+  mplan.innerHTML=`<button class="chip on" data-open>✎ Plan anpassen</button><button class="chip ph" data-open>${dayClock(state.startMs)}</button><button class="chip" data-open>${mv.label} · ${fmt(state.flat,0)} km/h</button><button class="chip" data-open>${state.dir==='forward'?'Hinweg':'Rückwärts'}</button><button class="chip ph" data-open>Ankunft ${clock(R.arrivalMs)}</button>`;
+  mplan.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>sheet.classList.add('open'));
+}
+scrim.onclick=sheetDone.onclick=()=>sheet.classList.remove('open');
+
+/* ----- M3 Terrain-Karte (Skizze: Relief + Route + Färbung + Windpfeile) ----- */
+const MAP={W:900,H:420};
+function H(u,v){ // Gelände 0..1 (Platzhalter-Relief, Gipfel = Schauinsland)
+  return .1 + .78*Math.exp(-(((u-.63)**2)/.035+((v-.22)**2)/.06)) + .22*Math.exp(-(((u-.2)**2)/.02+((v-.35)**2)/.05))
+    + .025*Math.sin(u*9+v*4)*Math.sin(v*7+1) + .1*Math.exp(-(((u-.92)**2)/.02+((v-.5)**2)/.08));
+}
+function proj(u,v,h){ const sc=.62+.5*v; return [MAP.W/2+(u-.5)*MAP.W*1.25*sc, 74+v*325 - h*160*sc]; }
+function routeUV(p){ const u=.36+(p.lon-7.849)/(7.897-7.849)*.27, v=.9-(47.995-p.lat)/(47.995-47.914)*.68; return [u,v]; }
+function renderMap(){
+  const svg=mapSvg; let s='';
+  s+=`<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EEF1F4"/><stop offset="1" stop-color="#F3EBD8"/></linearGradient>
+      <linearGradient id="haze" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EEF1F4" stop-opacity=".55"/><stop offset=".45" stop-color="#EEF1F4" stop-opacity="0"/></linearGradient>
+      <filter id="sh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity=".35"/></filter></defs>`;
+  s+=`<rect width="${MAP.W}" height="${MAP.H}" fill="url(#sky)"/>`;
+  // Schattiertes Relief: Gitter aus Vierecken, hinten → vorne gezeichnet (Hillshade + Höhenstufen)
+  const rows=72, cols=120, U0=-.18, U1=1.18;
+  const col=h=>{ // Höhenstufen: Tal sand · Wald grün · Kuppe hell
+    const st=[[0,[226,216,190]],[.2,[176,186,148]],[.45,[132,154,112]],[.7,[150,160,120]],[.9,[214,204,176]]];
+    let k=0; while(k<st.length-2&&h>st[k+1][0])k++; const f=Math.max(0,Math.min(1,(h-st[k][0])/(st[k+1][0]-st[k][0])));
+    return st[k][1].map((c,j)=>c+(st[k+1][1][j]-c)*f); };
+  for(let r=0;r<rows;r++){ const v0=r/rows, v1=(r+1)/rows;
+    for(let k=0;k<cols;k++){ const u0=U0+k/cols*(U1-U0), u1=U0+(k+1)/cols*(U1-U0);
+      const h00=H(u0,v0),h10=H(u1,v0),h01=H(u0,v1),h11=H(u1,v1);
+      const dx=(h10-h00+h11-h01)/2*cols/2.2, dy=(h01-h00+h11-h10)/2*rows/2.2;
+      const shade=Math.max(.78,Math.min(1.12,1 + (-dx*.55 - dy*.35)));
+      const c=col((h00+h11)/2).map(x=>Math.round(Math.min(255,x*shade)));
+      const a=proj(u0,v0,h00),b=proj(u1,v0,h10),cc=proj(u1,v1,h11),d=proj(u0,v1,h01);
+      s+=`<path d="M${a[0].toFixed(1)} ${a[1].toFixed(1)}L${b[0].toFixed(1)} ${b[1].toFixed(1)}L${cc[0].toFixed(1)} ${cc[1].toFixed(1)}L${d[0].toFixed(1)} ${d[1].toFixed(1)}Z" fill="rgb(${c})" stroke="rgb(${c})" stroke-width=".6"/>`;
+    }
+  }
+  // Dunst nach hinten (Tiefe)
+  s+=`<rect width="${MAP.W}" height="${MAP.H}" fill="url(#haze)"/>`;
+  // Orte (Platzhalter-Beschriftung)
+  [['Freiburg im Breisgau',.34,.95],['Günterstal',.43,.66],['Horben',.56,.52],['Schauinsland 1284 m',.63,.18],['Kirchzarten',.86,.6]].forEach(([n,u,v])=>{const [x,y]=proj(u,v,H(u,v));s+=`<text x="${x}" y="${y-8}" font-size="${11+v*5}" font-family="Space Grotesk, sans-serif" font-weight="600" fill="#2C2A26" text-anchor="middle" paint-order="stroke" stroke="rgba(250,246,234,.85)" stroke-width="3">${n}</text>`;});
+  // Route
+  const S=R.samples, pts=S.map(p=>{const [u,v]=routeUV(p);return proj(u,v,H(u,v)+.012);});
+  s+=`<path d="M${pts.map(p=>p.map(n=>n.toFixed(1)).join(' ')).join('L')}" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/>`;
+  for(let i=1;i<pts.length;i++){ s+=`<line x1="${pts[i-1][0]}" y1="${pts[i-1][1]}" x2="${pts[i][0]}" y2="${pts[i][1]}" stroke="${segColor(S[i])}" stroke-width="5.5" stroke-linecap="round"/>`; }
+  // Windpfeile (zeigen, wohin der Wind weht)
+  for(let i=4;i<S.length;i+=8){ const [x,y]=pts[i]; const w=S[i].weather; const to=(w.windDirectionDeg+180)%360; const rel=windRel(S[i]);
+    s+=`<g transform="translate(${x+((i/8)%2?28:-28)} ${y-6}) rotate(${to-15})" filter="url(#sh)"><path d="M0 -13 L6 4 L0 0 L-6 4Z" fill="${REL[rel].hex}" stroke="#fff" stroke-width="1.2"/></g>`; }
+  // Start/Ziel
+  const [sx,sy]=pts[0],[ex,ey]=pts[pts.length-1];
+  s+=`<circle cx="${sx}" cy="${sy}" r="7" fill="#5F7A4C" stroke="#fff" stroke-width="2.5"/><circle cx="${ex}" cy="${ey}" r="7" fill="#A8431F" stroke="#fff" stroke-width="2.5"/>`;
+  // Pausen
+  R.breaks.forEach(b=>{const i=Math.round(b.dist/(TOTAL/(N-1)));const [x,y]=pts[i];s+=`<rect x="${x-5}" y="${y-5}" width="10" height="10" rx="2" fill="#fff" stroke="#5C5447" stroke-width="1.6"/>`;});
+  s+=`<circle id="mapDot" r="9" fill="#C97B47" stroke="#fff" stroke-width="3" filter="url(#sh)"/>`;
+  svg.innerHTML=s; MAP.pts=pts;
+  // Schmale Karte (mobil): Ausschnitt auf die Strecke legen statt mittig zu beschneiden
+  const narrow=m3.clientWidth/m3.clientHeight < 1.6; MAP.vx=narrow?195:0; MAP.vw=narrow?560:MAP.W;
+  svg.setAttribute('viewBox',`${MAP.vx} 0 ${MAP.vw} ${MAP.H}`);
+  const lg={wind:`<span><i style="background:var(--w-head)"></i>Gegen</span><span><i style="background:var(--w-cross)"></i>Seite</span><span><i style="background:var(--w-tail)"></i>Rücken</span><span><i style="background:var(--w-calm)"></i>&lt; 4 m/s</span>`,
+    temp:`<span><i style="background:linear-gradient(90deg,#3A6FA8,#9DC3E6,#D4A373,#C97B47)"></i>kalt → warm</span>`,
+    rain:`<span><i style="background:#3A6FA8"></i>Regen</span><span><i style="background:#D9CEB0"></i>trocken</span>`}[state.colorBy];
+  mapLegend.innerHTML=`<b class="label" style="letter-spacing:1px">Strecke nach</b>${lg}<span class="muted">· ▲ Wind weht dorthin · □ Pause</span>`;
+}
+function segColor(s){
+  if(state.colorBy==='wind') return REL[windRel(s)].hex;
+  if(state.colorBy==='rain') return s.weather.precipitationMmH>=0.1?'#3A6FA8':'#D9CEB0';
+  const T=s.weather.temperatureC; const f=Math.max(0,Math.min(1,(T-4)/10));
+  const c=[[58,111,168],[157,195,230],[212,163,115],[201,123,71]]; const k=Math.min(2,Math.floor(f*3)), g=f*3-k;
+  const m=c[k].map((a,j)=>Math.round(a+(c[k+1][j]-a)*g)); return `rgb(${m})`;
+}
+document.querySelectorAll('[data-colorby]').forEach(b=>b.onclick=()=>{state.colorBy=b.dataset.colorby;document.querySelectorAll('[data-colorby]').forEach(x=>x.classList.toggle('on',x===b));renderMap();setIdx(state.idx);});
+
+/* ----- M4 Routen-Slider ----- */
+function renderTrack(){
+  const S=R.samples, W=1000, Hh=104; const x=i=>i/(N-1)*W;
+  const eMin=Math.min(...S.map(s=>s.ele)), eMax=Math.max(...S.map(s=>s.ele));
+  const y=e=>86-(e-eMin)/(eMax-eMin)*52;
+  let s=`<svg viewBox="0 0 ${W} ${Hh}" preserveAspectRatio="none">`;
+  // Spur 1: Wind zur Fahrtrichtung (Band oben, Höhe = Stärke)
+  S.forEach((p,i)=>{ if(!i) return; const c=Math.abs(headComp(p.brg,p.weather.windDirectionDeg,p.weather.windSpeedMps)); const h=4+Math.min(10,c*1.6);
+    s+=`<rect x="${x(i-1)}" y="${14-h}" width="${x(i)-x(i-1)+.5}" height="${h}" fill="${REL[windRel(p)].hex}" opacity=".9"/>`; });
+  // Spur 2: Höhenprofil + Regen
+  S.forEach((p,i)=>{ if(!i) return; const r=p.weather.precipitationMmH; if(r>=0.1) s+=`<rect x="${x(i-1)}" y="20" width="${x(i)-x(i-1)+.5}" height="${66}" fill="#9DC3E6" opacity="${Math.min(.75,.25+r*.4)}"/>`; });
+  s+=`<path d="M0 86 ${S.map((p,i)=>`L${x(i)} ${y(p.ele)}`).join(' ')} L${W} 86Z" fill="#E7DCC6" stroke="#C97B47" stroke-width="1.6" vector-effect="non-scaling-stroke"/>`;
+  s+=`<line x1="0" y1="86.5" x2="${W}" y2="86.5" stroke="#C4B896" vector-effect="non-scaling-stroke"/>`;
+  // Pausen
+  R.breaks.forEach(b=>{const xx=b.dist/TOTAL*W; s+=`<line x1="${xx}" x2="${xx}" y1="22" y2="86" stroke="#5C5447" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"/>`;});
+  s+='</svg>';
+  // Wechsel-Marker als HTML (nicht verzerrt)
+  let marks=EV.map(e=>`<span title="${e.txt}" style="position:absolute;left:${x(e.i)/10}%;top:16px;transform:translate(-50%,0);font-size:11px;color:#9A5A2A;pointer-events:none">◆</span>`).join('');
+  trackSvg.outerHTML=s.replace('<svg','<svg id="trackSvg"'); track.insertAdjacentHTML('beforeend','');
+  track.querySelectorAll('.evmark').forEach(n=>n.remove());
+  const holder=document.createElement('div'); holder.className='evmark'; holder.style.cssText='position:absolute;inset:0;pointer-events:none'; holder.innerHTML=marks; track.insertBefore(holder,thumb);
+  // Achse: Uhrzeit + km
+  const ticks=[0,.25,.5,.75,1].map(f=>{const i=Math.round(f*(N-1));return `<span>${clock(S[i].etaMs)} · ${fmt(S[i].dist/1000,1)} km</span>`;});
+  axis.innerHTML=ticks.join('');
+}
+range.addEventListener('input',()=>setIdx(+range.value));
+stepPrev.onclick=()=>setIdx(Math.max(0,state.idx-1)); stepNext.onclick=()=>setIdx(Math.min(N-1,state.idx+1));
+let timer=null; play.onclick=()=>{ if(timer){clearInterval(timer);timer=null;play.textContent='▶';return;} play.textContent='❚❚'; if(state.idx>=N-1) setIdx(0); timer=setInterval(()=>{ if(state.idx>=N-1){clearInterval(timer);timer=null;play.textContent='▶';return;} setIdx(state.idx+1);},160); };
+
+function setIdx(i){
+  state.idx=i; range.value=i; const S=R.samples, s=S[i];
+  thumb.style.left=(i/(N-1)*100)+'%';
+  sliderWhere.innerHTML=`<b class="ph">km ${fmt(s.dist/1000,1)}</b> · <span class="ph">${clock(s.etaMs)} Uhr</span> · ${fmt(s.ele,0)} m ü. M.`;
+  { const w=s.weather, rel=windRel(s); sliderMini.innerHTML=`<b class="ph">${fmt(w.temperatureC,1)}°</b><span><span class="ph">km ${fmt(s.dist/1000,1)} · ${clock(s.etaMs)}</span><br><span style="color:${REL[rel].hex};font-weight:700">${REL[rel].t}</span>${w.precipitationMmH>=0.1?' · <span class="ph" style="color:#3A6FA8;font-weight:700">'+fmt(w.precipitationMmH,1)+' mm/h</span>':' · trocken'}</span>`; }
+  // Karte: Marker + Tag
+  const [px,py]=MAP.pts[i]; const dot=document.getElementById('mapDot'); dot.setAttribute('cx',px); dot.setAttribute('cy',py);
+  const box=mapSvg.getBoundingClientRect(); const vb=MAP; const sc=Math.max(box.width/vb.vw,box.height/vb.H); const ox=(box.width-vb.vw*sc)/2-vb.vx*sc, oy=(box.height-vb.H*sc)/2;
+  mapPos.style.left=(ox+px*sc)+'px'; mapPos.style.top=(oy+py*sc-12)+'px';
+  mapPos.querySelector('.tag').innerHTML=`<b>${fmt(s.weather.temperatureC,1)} °C</b> · ${clock(s.etaMs)} · km ${fmt(s.dist/1000,1)}`;
+  renderM5(); markCharts();
+}
+
+/* ----- M5 Positions-Panel ----- */
+function renderM5(){
+  const S=R.samples, s=S[state.idx], w=s.weather; const c=condOf(w); const rel=windRel(s);
+  const comp=headComp(s.brg,w.windDirectionDeg,w.windSpeedMps);
+  const nxt=EV.find(e=>e.i>state.idx);
+  const leadH=(s.etaMs-BASE_DATE.getTime())/3.6e6;
+  // Kompass: Fahrtrichtung (Pfeil ink) vs. Windrichtung (wohin er weht, farbig)
+  const dial=`<svg width="64" height="64" viewBox="-32 -32 64 64" aria-hidden="true">
+    <circle r="29" fill="#FAF6EA" stroke="#E0D6BE"/>${['N','O','S','W'].map((t,k)=>`<text x="${Math.sin(k*Math.PI/2)*22}" y="${-Math.cos(k*Math.PI/2)*22+3}" font-size="8" text-anchor="middle" fill="#A89A7A" font-family="IBM Plex Mono">${t}</text>`).join('')}
+    <g transform="rotate(${s.brg})"><path d="M0 -17 L5 -6 L1.6 -6 L1.6 12 L-1.6 12 L-1.6 -6 L-5 -6Z" fill="#2C2A26"/></g>
+    <g transform="rotate(${(w.windDirectionDeg+180)%360})"><path d="M0 -24 L6 -13 L2 -13 L2 2 L-2 2 L-2 -13 L-6 -13Z" fill="${REL[rel].hex}" opacity=".9"/></g></svg>`;
+  m5.innerHTML=`
+   <div class="m5-where full"><div><div class="label">An deiner Position</div><div class="big ph">km ${fmt(s.dist/1000,1)} von 9,7 · ${clock(s.etaMs)} Uhr</div></div>
+     <div class="muted ph" style="font-size:12px;text-align:right">${fmt(s.ele,0)} m ü. M.<br>+${dur(s.arrivalOffsetMin)} ab Start</div></div>
+   <div class="m5-hero full">${c.i}<div><div class="temp ph">${fmt(w.temperatureC,1)}°</div></div><div><div class="cond">${c.t}</div><div class="feel ph">gefühlt ${fmt(w.apparentTempC,1)} °C</div><div class="feel">${conf(w.confidence.temperature)}</div></div></div>
+   <div class="m5-wind full">${dial}<div><div class="rel" style="color:${REL[rel].hex}">${REL[rel].t}${rel!=='calm'?' <span class="ph">'+fmt(Math.abs(comp),1)+' m/s</span>':''}</div>
+      <div class="sub ph">Wind ${fmt(w.windSpeedMps,1)} m/s aus ${compass(w.windDirectionDeg)} (${Math.round(w.windDirectionDeg)}°) · Böen ${fmt(w.gustMps,1)} m/s (${Math.round(w.gustMps*3.6)} km/h)</div>
+      <div class="sub">Du fährst Richtung ${compass(s.brg)} · Tempo hier <span class="ph">${fmt(s.segmentSpeedKmh,1)} km/h</span></div></div></div>
+   <div class="m5-grid full">
+     ${p('Niederschlag',fmt(w.precipitationMmH,1)+' mm/h',(w.precipitationType==='none'?'trocken':({rain:'Regen',sleet:'Schneeregen',snow:'Schnee'})[w.precipitationType])+' · <span class="badge">'+(w.precipitationSource==='radar'?'RADAR':'MODELL')+'</span>',w.confidence.precipitation)}
+     ${p('Bewölkung',fmt(w.cloudCoverPct,0)+' %',w.cloudCoverPct>=85?'bedeckt':'wolkig',w.confidence.clouds)}
+     ${p('Luftfeuchte',fmt(w.relativeHumidityPct,0)+' %','relativ',w.confidence.humidity)}
+     ${p('Böen',fmt(w.gustMps,1)+' m/s',Math.round(w.gustMps*3.6)+' km/h',w.confidence.gust)}
+     ${p('Schneefallgrenze',fmt(w.snowLineM,0)+' m',fmt(w.snowLineM-s.ele,0)+' m über dir',w.confidence.snowLine)}
+     ${p('UV-Index',fmt(w.uvIndex,0),'tiefe Sonne',w.confidence.uvIndex)}
+     ${p('Warnungen','keine','DWD-CAP am Ort zur Zeit',1)}
+     ${p('Föhn','—','kein Föhnsignal',null)}
+   </div>
+   ${nxt?`<div class="m5-next full" id="m5next"><span>${nxt.icon}</span><span>Nächster Wechsel: <b>${nxt.txt}</b><br><span class="muted ph">km ${fmt(S[nxt.i].dist/1000,1)} · ${clock(S[nxt.i].etaMs)} Uhr — antippen zum Springen</span></span></div>`:''}
+   <div class="m5-ref full"><span class="ok">✓ Werte gehören zu Ort und Zeit</span><br>
+     <span class="ph">${s.lat.toFixed(4)}° N, ${s.lon.toFixed(4)}° O · ${fmt(s.ele,0)} m (DEM, höhenkorrigiert)</span><br>
+     Ankunft <span class="ph">${clock(s.etaMs)}</span> = Start ${clock(state.startMs)} + Fahrzeit inkl. Wind${R.breaks.filter(b=>b.dist<s.dist).length?' + '+R.breaks.filter(b=>b.dist<s.dist).length+' Pause':''} · zwischen den Stundenwerten interpoliert<br>
+     Quellen: <span class="ph">${w.sourcesUsed.join(' · ')}</span> · Cluster #${w.cellId} · Vorlauf <span class="ph">${fmt(leadH,1)} h</span></div>`;
+  const n=document.getElementById('m5next'); if(n) n.onclick=()=>setIdx(nxt.i);
+}
+function p(k,v,s,c){return `<div class="m5-p"><div class="k">${k}${c!=null?conf(c):''}</div><div class="v ph">${v}</div><div class="s">${s}</div></div>`;}
+
+/* ----- M6 Wind entlang der Route (nivo-Stil: diverging area) ----- */
+function renderM6(){
+  const S=R.samples; const comps=S.map(s=>headComp(s.brg,s.weather.windDirectionDeg,s.weather.windSpeedMps));
+  const cnt={head:0,cross:0,tail:0,calm:0}; S.forEach(s=>cnt[windRel(s)]++);
+  const pct=k=>Math.round(cnt[k]/S.length*100);
+  let worst=0; comps.forEach((c,i)=>{if(c<comps[worst])worst=i;});
+  // „Wind kostet dich ~x min": Vergleich mit Fahrzeit ohne Wind (Iteration 1 existiert in computeTimingIterated → muss zusätzlich zurückgegeben werden)
+  const W=Math.max(300,(m6.clientWidth||700)-36),Hc=170,pad=30; M6W=W; const max=Math.max(4,...comps.map(Math.abs))*1.1; const x=i=>pad+i/(N-1)*(W-pad-6), y=c=>Hc/2-12 - c/max*(Hc/2-24);
+  let line=comps.map((c,i)=>`${i?'L':'M'}${x(i).toFixed(1)} ${y(c).toFixed(1)}`).join(' ');
+  let svg=`<svg class="chart" id="m6chart" viewBox="0 0 ${W} ${Hc}">
+    <defs><clipPath id="cTop"><rect x="0" y="0" width="${W}" height="${y(0)}"/></clipPath><clipPath id="cBot"><rect x="0" y="${y(0)}" width="${W}" height="${Hc}"/></clipPath></defs>
+    ${[-max*.66,-max*.33,max*.33,max*.66].map(v=>`<line x1="${pad}" x2="${W}" y1="${y(v)}" y2="${y(v)}" stroke="#EDE6D3"/><text x="${pad-6}" y="${y(v)+3}" font-size="9" text-anchor="end" fill="#A89A7A" font-family="IBM Plex Mono">${fmt(v,0)}</text>`).join('')}
+    <path d="${line} L${x(N-1)} ${y(0)} L${x(0)} ${y(0)}Z" fill="#5F7A4C" opacity=".28" clip-path="url(#cTop)"/>
+    <path d="${line} L${x(N-1)} ${y(0)} L${x(0)} ${y(0)}Z" fill="#A8431F" opacity=".28" clip-path="url(#cBot)"/>
+    <path d="${line}" fill="none" stroke="#2C2A26" stroke-width="1.6"/>
+    <line x1="${pad}" x2="${W}" y1="${y(0)}" y2="${y(0)}" stroke="#8B7355"/>
+    <text x="${pad+4}" y="14" font-size="10" fill="#5F7A4C" font-weight="700">▲ Rückenwind (m/s)</text>
+    <text x="${pad+4}" y="${Hc-24}" font-size="10" fill="#A8431F" font-weight="700">▼ Gegenwind</text>
+    ${comps[worst]<-0.7?`<circle cx="${x(worst)}" cy="${y(comps[worst])}" r="4" fill="#A8431F"/><text x="${x(worst)}" y="${y(comps[worst])+15}" font-size="10" text-anchor="${worst>N*.8?'end':worst<N*.2?'start':'middle'}" fill="#A8431F" font-weight="700">stärkster Gegenwind ${fmt(comps[worst],1)} m/s</text>`:''}
+    ${[0,.25,.5,.75,1].map(f=>{const i=Math.round(f*(N-1));return `<text x="${x(i)}" y="${Hc-4}" font-size="9" text-anchor="middle" fill="#A89A7A" font-family="IBM Plex Mono">${fmt(S[i].dist/1000,1)} km</text>`;}).join('')}
+    <line id="m6mark" y1="20" y2="${Hc-16}" stroke="#C97B47" stroke-width="2"/>
+  </svg>`;
+  m6.innerHTML=`<div class="sec-h"><div><div class="eyebrow">Wind</div><h2>Gegen- oder Rückenwind?</h2></div>
+    <span class="lead ph">${cnt.head?`${pct('head')} % der Strecke Gegenwind — am stärksten bei km ${fmt(S[worst].dist/1000,1)} (${clock(S[worst].etaMs)} Uhr).`:`Kein nennenswerter Gegenwind — ${pct('tail')} % der Strecke schiebt dich der Wind.`}</span></div>
+    <div class="share">${['head','cross','tail','calm'].map(k=>cnt[k]?`<div style="width:${cnt[k]/S.length*100}%;background:${REL[k].hex}"></div>`:'').join('')}</div>
+    <div class="share-k">${['head','cross','tail','calm'].map(k=>`<span><i class="dot" style="background:${REL[k].hex}"></i>${REL[k].t} <b class="ph">${pct(k)} %</b></span>`).join('')}</div>
+    ${svg}
+    <div class="muted" style="font-size:11.5px;margin-top:6px">Komponente des Winds entlang deiner Fahrtrichtung, je Punkt zur Ankunftszeit. Unter 4 m/s gilt „kaum Wind" (Schwelle wie heute im Ergebnis). Klick setzt die Position.</div>`;
+  bindChartClick(document.getElementById('m6chart'),pad,W-6);
+}
+
+/* ----- M7 Wetterwechsel ----- */
+function renderM7(){
+  const S=R.samples; const series=[
+    {k:'Temperatur',u:'°C',d:1,v:s=>s.weather.temperatureC,col:'#C97B47'},
+    {k:'Regen',u:'mm/h',d:1,v:s=>s.weather.precipitationMmH,col:'#3A6FA8',bar:true},
+    {k:'Wind',u:'m/s',d:1,v:s=>s.weather.windSpeedMps,col:'#5C5447'},
+    {k:'Bewölkung',u:'%',d:0,v:s=>s.weather.cloudCoverPct,col:'#8B7355'},
+  ];
+  // Veränderungs-Index: Spannweiten relativ zu Alltagsschwellen (ΔT 4 K, Wind 5 m/s, Regenwechsel, Bewölkung 40 %) — Konzept, Schwellen zur Diskussion
+  const span=f=>{const a=S.map(f);return Math.max(...a)-Math.min(...a);};
+  const score=Math.min(1,(span(series[0].v)/4+span(series[2].v)/5+(EV.filter(e=>e.kind==='rain').length?1:0)+span(series[3].v)/40)/4);
+  const label=score<.34?'gering':score<.67?'mäßig':'stark';
+  m7.innerHTML=`<div class="sec-h"><div><div class="eyebrow">Veränderung</div><h2>Wie stark ändert sich das Wetter?</h2></div>
+    <span class="idx ph" style="margin-left:auto">Wechsel ${label} · ${EV.length} Ereignisse</span>
+    <span class="lead">Verlauf von Start bis Ziel — jeweils zur Uhrzeit, zu der du dort bist. ◆ markiert starke Wechsel.</span></div>
+    <div class="m7-ranges">${series.map((se,si)=>{
+      const a=S.map(se.v), mn=Math.min(...a), mx=Math.max(...a)||1, W=300, x=i=>i/(N-1)*W, y=v=>23-(mx===mn?.5:(v-mn)/(mx-mn))*19;
+      const path=se.bar? a.map((v,i)=>v>0.05?`<rect x="${x(i)}" y="${y(v)}" width="${W/N+.3}" height="${23-y(v)}" fill="${se.col}" opacity=".7"/>`:'').join('')
+        : `<path d="${a.map((v,i)=>`${i?'L':'M'}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ')}" fill="none" stroke="${se.col}" stroke-width="1.8" vector-effect="non-scaling-stroke"/>`;
+      const ev=EV.filter(e=>(si===0&&e.kind==='temp')||(si===1&&e.kind==='rain')||(si===2&&(e.kind==='gust'||e.kind==='wind'))).map(e=>`<line x1="${x(e.i)}" x2="${x(e.i)}" y1="0" y2="7" stroke="#9A5A2A" stroke-width="3" vector-effect="non-scaling-stroke"/>`).join('');
+      const d=a[a.length-1]-a[0];
+      return `<div class="rng"><span>${se.k}</span><div class="bar"><svg viewBox="0 0 ${W} 26" preserveAspectRatio="none" data-chart>${path}${ev}<line class="m7mark" y1="0" y2="26" stroke="#C97B47" stroke-width="2" vector-effect="non-scaling-stroke"/></svg></div>
+        <span class="d ph">${se.bar?(Math.max(...a)<0.1?'trocken':fmt(mn,1)+'–'+fmt(mx,1)+' '+se.u):(d>=0?'+':'')+fmt(d,se.d)+' '+se.u}</span></div>`;}).join('')}</div>
+    <div class="ev">${EV.map(e=>`<button data-i="${e.i}"><span class="km ph">km ${fmt(S[e.i].dist/1000,1)} · ${clock(S[e.i].etaMs)}</span><span>${e.icon}</span><span class="ph">${e.txt}</span></button>`).join('')||'<span class="muted">Keine starken Wechsel entlang der Route.</span>'}</div>`;
+  m7.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>setIdx(+b.dataset.i));
+  m7.querySelectorAll('svg[data-chart]').forEach(sv=>bindChartClick(sv,0,300));
+}
+
+/* ----- M8 Startfenster ±2 h (aus EnrichmentMeta.startWindow — liegt heute schon vor) ----- */
+function renderM8(){
+  const offs=[]; for(let m=-120;m<=120;m+=15) offs.push(m);
+  const S=R.samples; const durs=S.map((s,i)=>((S[Math.min(N-1,i+1)].etaMs-S[Math.max(0,i-1)].etaMs)/2)/60000);
+  const rows=offs.map(o=>{ let wet=0,gust=0,minApp=99; S.forEach((s,i)=>{const w=field(s,s.etaMs+o*60000); if(w.precipitationMmH>=0.1) wet+=durs[i]; gust=Math.max(gust,w.gustMps); minApp=Math.min(minApp,w.apparentTempC);});
+    return {o,wet,gust,minApp,past:state.startMs+o*60000<BASE_DATE.getTime()-60000}; });
+  const valid=rows.filter(r=>!r.past); const best=!valid.length?rows.find(r=>r.o===0):valid.reduce((a,b)=>(b.wet<a.wet-0.5||(Math.abs(b.wet-a.wet)<=.5&&b.gust<a.gust))?b:a,valid[0]);
+  const cur=rows.find(r=>r.o===0); const W=Math.max(300,(m8.clientWidth||900)-36),Hc=120,maxW=Math.max(10,...rows.map(r=>r.wet)); const bw=W/rows.length;
+  const svg=`<svg class="m8-chart" viewBox="0 0 ${W} ${Hc}">${rows.map((r,k)=>{const h=r.wet/maxW*76; const col=r.past?'#E0D6BE':(r===best?'#5F7A4C':(r.o===0?'#C97B47':'#9DC3E6'));
+      return `<g data-off="${r.o}" style="cursor:${r.past?'default':'pointer'}"><rect x="${k*bw+3}" y="${88-Math.max(2,h)}" width="${bw-6}" height="${Math.max(2,h)}" rx="3" fill="${col}"/><rect x="${k*bw}" y="0" width="${bw}" height="${Hc}" fill="transparent"/>
+        ${k%(W<600?4:2)===0?`<text x="${k*bw+bw/2}" y="104" font-size="10" text-anchor="middle" fill="#8B7355" font-family="IBM Plex Mono">${clock(state.startMs+r.o*60000)}</text>`:''}
+        ${r.wet>0.5&&W>=600?`<text x="${k*bw+bw/2}" y="${84-h}" font-size="9.5" text-anchor="middle" fill="#5C5447">${Math.round(r.wet)}′</text>`:''}</g>`;}).join('')}
+      <line x1="0" x2="${W}" y1="88" y2="88" stroke="#C4B896"/></svg>`;
+  m8.innerHTML=`<div class="m8-row"><div style="flex:1 1 320px"><div class="eyebrow">Startzeit</div><h2 style="margin:4px 0 0;font:700 18px var(--font-display)">Besser früher oder später los?</h2>
+      <div class="muted" style="font-size:13px;margin-top:4px">Minuten im Regen je Startzeit (±2 h, 15-min-Raster). Fahrzeiten bleiben fest — Näherung wie in <code>evaluateStartOffsets</code>.</div></div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div class="m5-ref" style="padding:8px 12px"><span class="label">Jetzt geplant</span><br><b class="ph">${clock(state.startMs)} · ${Math.round(cur.wet)} min nass · Böen ${fmt(cur.gust,1)} m/s</b></div>
+        ${best.o!==0?`<div class="m5-ref" style="padding:8px 12px;background:var(--rd-sage-tint);border-color:#C3D2AF"><span class="label" style="color:var(--rd-sage-strong)">Empfehlung</span><br><b class="ph">${clock(state.startMs+best.o*60000)} · ${Math.round(best.wet)} min nass</b></div>
+        <button class="btn" id="takeBest">Startzeit übernehmen</button>`:'<span class="idx" style="background:var(--rd-sage-tint);color:var(--rd-sage-strong);border-color:#C3D2AF">Deine Startzeit ist schon die beste</span>'}
+      </div></div>${svg}`;
+  const tb=document.getElementById('takeBest'); if(tb) tb.onclick=()=>{state.startMs+=best.o*60000;recompute(true);};
+  m8.querySelectorAll('[data-off]').forEach(g=>g.onclick=()=>{const o=+g.dataset.off; if(state.startMs+o*60000<BASE_DATE.getTime()-60000) return; state.startMs+=o*60000; recompute(true);});
+}
+
+/* ----- Diagramm-Klick → Position; Marker synchron ----- */
+function bindChartClick(svg,x0,x1){ svg.addEventListener('click',e=>{const b=svg.getBoundingClientRect(); const vb=svg.viewBox.baseVal; const xv=(e.clientX-b.left)/b.width*vb.width; const f=Math.max(0,Math.min(1,(xv-x0)/(x1-x0))); setIdx(Math.round(f*(N-1)));}); }
+function markCharts(){
+  const f=state.idx/(N-1); const m6m=document.getElementById('m6mark'); if(m6m){const xx=30+f*(M6W-36); m6m.setAttribute('x1',xx); m6m.setAttribute('x2',xx);}
+  document.querySelectorAll('.m7mark').forEach(l=>{l.setAttribute('x1',f*300);l.setAttribute('x2',f*300);});
+}
+
+/* ----- Slider: Ziehen auf der ganzen Spur (Pointer) ----- */
+track.addEventListener('pointerdown',e=>{ const mv=ev=>{const b=track.getBoundingClientRect(); setIdx(Math.round(Math.max(0,Math.min(1,(ev.clientX-b.left)/b.width))*(N-1)));}; mv(e); track.setPointerCapture(e.pointerId); track.onpointermove=mv; track.onpointerup=()=>{track.onpointermove=null;}; });
+
+/* ----- Mockup-Leiste ----- */
+mkPh.onchange=()=>document.body.classList.toggle('show-ph',mkPh.checked);
+mkDesk.onclick=()=>{stage.classList.remove('is-mobile');mkDesk.classList.add('on');mkMob.classList.remove('on');setTimeout(()=>recompute(false),50);};
+mkMob.onclick=()=>{stage.classList.add('is-mobile');mkMob.classList.add('on');mkDesk.classList.remove('on');setTimeout(()=>recompute(false),50);};
+let rz; window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>recompute(false),120);});
+if(new URLSearchParams(location.search).get('view')==='mobile') mkMob.onclick();
+
+recompute(false);
+</script>
+</body>
+</html>

@@ -3255,3 +3255,25 @@ Querschnitt zurück. Kein Datenprodukt, kein Datenvertrag, kein Schalter einer a
    audit/autobahn-fahrerblick reference/fahrerblick CLAUDE.md MANUELLE-SCHRITTE.md` und
    `git commit -m "feat(road): driver's view of the road surface, on by default (ROAD_XS_VIEW)"`. **Push = live für alle.**
 7. **Rückweg:** je Besucher `?xsview=schematic`; für alle `ROAD_XS_VIEW = 'schematic'` und ein Push.
+
+## 88. Neue Ergebnisansicht „Wetter entlang deiner Route" (Phase TE, `audit/tour-ergebnis.md`), 2026-11-11
+
+Gebaut und uncommitted, **an seit 11.11. (dein Wort: „einschalten")** (`TOUR_RESULT_V2 = true` in `src/route/tourResultFlag.ts`);
+`?tourv=1` erzwingt das alte Ergebnis. Horizont des Routenplaners 14 Tage statt 10 (V-TE-1, dein Wort). Datenvertrag neu:
+`EnrichmentMeta.clusterFusion` (Stand von buscosun Fusion je Cluster, nur Durchreichung). Ohne Schalter ändert sich am Ergebnis nichts.
+
+1. **Sichtprüfung — in dieser Session nicht gemacht** (Session-Regel „kein Browser"). Desktop 1440 × 900 und iPhone 12 Pro,
+   Schalter an UND aus (aus muss dem heutigen Ergebnis gleichen), Strecken `test-routes/de-hilly-schauinsland.gpx`,
+   `at-alpine-patscherkofel.gpx`, `ch-alpine-scheidegg.gpx`, `de-flat-berlin.gpx`; ein Rad, eine Fuß-Art, E-Bike; ein Start nach
+   mehr als 2 h (kein Radar) und einer über 10 Tage (Horizont-Hinweis). Screenshots über `scripts/lib/headlessShot.mjs`.
+2. **Laufzeitbeleg des Stands.** Konsole an einer Testroute: `window.__samples` und im Datenbezug des Panels „Stand" — erwartet
+   „buscosun Fusion 14"; mit `?rucm=0` „buscosun Fusion 13" mit Rückfall-Hinweis; mit `?pf=live` „Live-Punktvorhersage".
+   An drei Positionen je Strecke: Panelwert = Wert des eingerasteten Samples; Startzeit ändern ⇒ ETAs und Werte wandern, bis
+   dahin Wartezustand.
+3. **Echte Samples für den Verifier.** `verify:tour-result` (51/51) rechnet Geometrie und Zeit echt, setzt die Wetterwerte aber
+   je Prüfung an die Schwelle. Einen echten Satz (`copy(JSON.stringify(window.__samples))` nach dem Wetter) als Fixture ablegen,
+   wenn du die Ableitungen auch gegen echte Werte prüfen willst.
+4. **Real-Device** (Mittelklasse-Android): Slider-Ziehen über der Gelände-Karte, Tab-Wechsel, Plan-Sheet.
+5. **Entschieden 11.11.:** eingeschaltet; Horizont 336 h; V-TE-2 (Rottöne) bleibt vorerst. Offen: V-TE-6 (Einfärben der Gelände-Karte).
+6. **Bekannt rot, nicht aus dieser Phase:** `verify:route-3d` 585/589 (Abhängigkeitsliste, PDF-Knöpfe der 3D-Ansicht),
+   `verify:fusion-release` 31/32 (C7, ICON-D2 in `AtmospherePage.tsx`), `verify-seo` im Build 1738/1739 („alle lastmod identisch").

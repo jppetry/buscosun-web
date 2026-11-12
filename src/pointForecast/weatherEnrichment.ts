@@ -30,7 +30,7 @@
  */
 
 import { getFusionForecast } from './fusionForecast';
-import { fusionSourceOf, type FusionSource } from './fusion/fusionRelease';
+import { fusionSourceOf, fusionVersionOfNotes, type FusionSource } from './fusion/fusionRelease';
 import { createRadarNowcastSampler, type RadarNowcastSampler } from './radarNowcast';
 import { createWarningChecker, type WarningChecker } from './warningsCrossCheck';
 import { classifyPrecipitation, type PrecipitationType } from './precipType';
@@ -134,6 +134,11 @@ export interface EnrichmentMeta {
   countries: Country[];
   /** Welcher Weg die Punktvorhersagen geliefert hat (buscosun Fusion / Live-Rückfall) — für die Quellenzeile (V-FR-10). */
   pointSource: FusionSource | null;
+  /**
+   * Phase TE (E-TE-3): Stand von buscosun Fusion je Cluster (Index = `SampleWeather.cellId`), gelesen aus der
+   * Stufen-Notiz der Vorhersage; `null` = Live-Rückfall oder keine Vorhersage. Nur Durchreichung.
+   */
+  clusterFusion: Array<number | null>;
   /**
    * Strukturelle Variablen-Abdeckung — unabhängig vom Fetch-Erfolg. Trennt
    * „Datenlücke" (Quelle ausgefallen) von „im Land gar nicht verfügbar":
@@ -369,6 +374,7 @@ export async function enrichSampleWeather(
       uvEstimated,
       countries,
       pointSource: fusionSourceOf(forecasts),
+      clusterFusion: Array.from(forecasts, (f) => fusionVersionOfForecast(f)),
       coverage: {
         snowLine: countries.some((c) => c === 'AT' || c === 'CH'),
         uvIndex: countries.includes('DE'),
@@ -687,9 +693,25 @@ function emptyMeta(elapsedMs: number): EnrichmentMeta {
     clusterCount: 0, pointForecastCalls: 0, pointForecastFailed: 0,
     radarOverrides: 0, warningHits: 0, beyondHorizonCount: 0,
     elevationCorrected: 0, uvEstimated: 0, countries: [], pointSource: null, coverage: { snowLine: false, uvIndex: false },
-    radar: [], startWindow: [],
+    radar: [], startWindow: [], clusterFusion: [],
     elapsedMs,
   };
+}
+
+/**
+ * Phase TE (`audit/tour-ergebnis.md` E-TE-3): the stand of buscosun Fusion a forecast was computed with, read from the stage
+ * note of the cube path (`cube.notes` / `cube.v2.provenance.notes`). `null` = live path, no stage, or no forecast.
+ * Pass-through only — no value of the forecast is touched.
+ */
+export function fusionVersionOfForecast(fc: Pick<PointForecast, 'cube'> | null | undefined): number | null {
+  const cube = fc?.cube;
+  if (!cube) return null;
+  const notes: string[] = [];
+  const n1 = cube.notes;
+  if (Array.isArray(n1)) for (const x of n1) if (typeof x === 'string') notes.push(x);
+  const n2 = (cube.v2 as { provenance?: { notes?: unknown } } | undefined)?.provenance?.notes;
+  if (Array.isArray(n2)) for (const x of n2) if (typeof x === 'string') notes.push(x);
+  return fusionVersionOfNotes(notes);
 }
 
 // ---------------------------------------------------------------------------

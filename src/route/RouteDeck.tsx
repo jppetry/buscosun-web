@@ -56,6 +56,29 @@ export function DeckSectionBar({ items }: { items: readonly DeckBarItem[] }) {
   );
 }
 
+/**
+ * Bottom-Bar als Ansichts-Umschalter (Phase TE, neues Ergebnis): gleicher Look wie `DeckSectionBar`, aber jede
+ * Schaltfläche wählt eine eigene Ansicht statt zu scrollen. `badges[id]`: Zahl als Plakette, `'dot'` = kleiner Punkt.
+ */
+export function DeckTabBar({ items, active, onSelect, badges }: { items: readonly DeckBarItem[]; active: string; onSelect: (id: string) => void; badges?: Record<string, string | undefined> }) {
+  return (
+    <nav className="rd-m-bar te-tabbar" aria-label="Ansichten des Ergebnisses">
+      {items.map((it) => {
+        const b = badges?.[it.id];
+        return (
+          <button key={it.id} type="button" className={`rd-m-bar-btn${active === it.id ? ' is-active' : ''}`} aria-pressed={active === it.id} onClick={() => onSelect(it.id)}>
+            <span className="te-tab-ic">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{it.icon}</svg>
+              {b === 'dot' ? <i className="te-tab-dot" aria-label="bessere Startzeit möglich" /> : b ? <i className="te-tab-badge" aria-label={`${b} Wechsel`}>{b}</i> : null}
+            </span>
+            <span>{it.label}</span>
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
 /* ============================ Rail-/Deck-Icons (SVG-Pfade aus der Vorlage) ============================ */
 export function IconRailMap({ size = 21 }: { size?: number }) {
   return (

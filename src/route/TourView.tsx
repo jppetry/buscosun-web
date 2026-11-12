@@ -13,23 +13,30 @@ import SpeedProfileConfig from './SpeedProfileConfig';
 import StartTimeConfig from './StartTimeConfig';
 import BreaksConfig from './BreaksConfig';
 import { getMovementType, MOVEMENT_TYPES, type MovementId } from './movementTypes';
-import RouteDeckShell, { DeckLive, DeckSectionBar, IconChevLeft, type DeckBarItem, type RailFeature } from './RouteDeck';
+import RouteDeckShell, { DeckLive, DeckSectionBar, DeckTabBar, IconChevLeft, type DeckBarItem, type RailFeature } from './RouteDeck';
 import { MODELS } from './movementModels';
 import { formatHM, type SpeedProfile } from './speedModel';
 import { BREAK_DEFAULTS, defaultBreakConfig, type BreakConfig } from './breaks';
-import { computeTimingIterated, type Milestone, type SampleETA, type TourTiming } from './tourTiming';
+import { computeTimingIterated, type Milestone, type SampleETA } from './tourTiming';
 import { isLoop, reverseTourTrack, type TourTrack } from './tourTrack';
 import { formatStart, horizonState } from './startTime';
-import { createWindSampler, type WindSampler } from './windSampling';
+import { createWindSampler } from './windSampling';
 import { bearingAtDist, headwindComponentMps } from './windEffect';
 import EbikeBatteryPanel from './EbikeBatteryPanel';
 import { batterySocAtDist, computeEbikeBattery, DEFAULT_EBIKE_CONFIG, type EbikeConfig } from './ebikeBattery';
-import { enrichSampleWeather, START_OFFSETS_MIN, type EnrichmentMeta } from '../pointForecast/weatherEnrichment';
+import { enrichSampleWeather, START_OFFSETS_MIN } from '../pointForecast/weatherEnrichment';
 import { packTour, saveTour, tourStoreEnabled, TOUR_SAVE_DEBOUNCE_MS, type StoredPlan } from './tourStore';
 import { computeWeatherAggregate } from './weatherAggregate';
 import { WeatherStatGrid, WarningBanner, FoehnBanner, tourVerdict } from './WeatherSummary';
 import TourWeatherStrip from './TourWeatherStrip';
 import RouteScrubber from './RouteScrubber';
+import { QuellenOverlay, QualityRow, TimeOverview, Timeline, WindLegend, type WeatherState, type WindState } from './tourResultParts';
+import { tourResultV2On } from './tourResultFlag';
+import { RESULT_TABS, type ResultTab } from './tourResultTabs';
+import { summarizeStartWindow, weatherChanges } from './tourResultModel';
+/** Phase TE: the new result (`?tourv=2`) is its own chunk — with the switch off nothing of it loads. */
+const V2_FETCH_DEBOUNCE_MS = 400;
+const TourResultV2 = lazy(() => import('./TourResultV2'));
 // Die 3D-Ansicht lädt erst beim Umschalten (eigener Chunk) — das 2D-Ergebnis
 // zahlt nichts dafür. Muster wie `EventZoneMap` (EZ, Entscheidung E7).
 const Route3DView = lazy(() => import('./route3d/Route3DView'));
@@ -56,7 +63,7 @@ import type { TourViewMode } from './RoutePage';
 import type { TourUrlState } from './tourUrl';
 import { clock } from './tourUi';
 import {
-  IconLoop, IconWarning, IconCheck, IconArrowRight,
+  IconLoop, IconWarning, IconArrowRight,
   IconCalendar, IconRoute, IconBookmark,
 } from './routeIcons';
 import { useIsMobile } from '../mobile/useIsMobile';
@@ -80,11 +87,6 @@ export interface RestoredTour {
   /** Eintrag löschen und zurück zum Upload. */
   onDiscard: () => void;
 }
-type WindState = { kind: 'pending' } | { kind: 'ready'; sampler: WindSampler } | { kind: 'unavailable' };
-type WeatherState =
-  | { kind: 'idle' } | { kind: 'loading' }
-  | { kind: 'ready'; samples: SampleETA[]; meta: EnrichmentMeta }
-  | { kind: 'error'; message: string };
 
 export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeature, isMobile: isMobileProp, view = '2d', onView, restore, initialUrl, onUrlState }: { track: TourTrack; fileLabel?: string; onBack?: () => void; onHome?: () => void; onOpenFeature?: (id: RailFeature) => void; isMobile?: boolean; view?: TourViewMode; onView?: (v: TourViewMode) => void; restore?: RestoredTour; initialUrl?: TourUrlState | null; onUrlState?: (s: TourUrlState) => void }) {
   const isMobileHook = useIsMobile();
@@ -183,6 +185,17 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
     .map((s) => `${s.lat.toFixed(3)},${s.lon.toFixed(3)},${Math.round(s.etaMs / 300_000)}`)
     .join('|'), [enrichedSamples]);
 
+  // Phase TE (E-TE-6): with the new view the plan is edited in place — a slider pull would fetch on every step.
+  // The fetch waits 400 ms for the plan to settle; with the switch off the key IS the fingerprint (unchanged).
+  const v2 = useMemo(() => tourResultV2On(), []);
+  const [settledFp, setSettledFp] = useState(sampleFingerprint);
+  useEffect(() => {
+    if (!v2) return;
+    const id = setTimeout(() => setSettledFp(sampleFingerprint), V2_FETCH_DEBOUNCE_MS);
+    return () => clearTimeout(id);
+  }, [v2, sampleFingerprint]);
+  const fetchKey = v2 ? settledFp : sampleFingerprint;
+
   const [weatherState, setWeatherState] = useState<WeatherState>({ kind: 'idle' });
   useEffect(() => {
     if (!weatherRequested || enrichedSamples.length === 0) { setWeatherState({ kind: 'idle' }); return; }
@@ -197,11 +210,11 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
       terrain: eff.meta.terrain,
       startOffsetsMin: START_OFFSETS_MIN,
     })
-      .then(({ samples, meta }) => { if (!cancelled) setWeatherState({ kind: 'ready', samples, meta }); })
+      .then(({ samples, meta }) => { if (!cancelled) setWeatherState({ kind: 'ready', samples, meta, fp: sampleFingerprint }); })
       .catch((err) => { if (!cancelled) setWeatherState({ kind: 'error', message: err instanceof Error ? err.message : String(err) }); });
     return () => { cancelled = true; ctrl.abort(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sampleFingerprint, weatherRequested]);
+  }, [fetchKey, weatherRequested]);
 
   // Plan im Geraetespeicher halten (V-R3D-1). Entprellt, weil jeder Reglerzug
   // sonst eine eigene Transaktion auslöst; das Wetter bleibt außen vor.
@@ -212,6 +225,8 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
     return () => clearTimeout(id);
   }, [track, fileLabel, direction, typeId, profile, breakCfg, startMs, ebikeCfg, weatherRequested]);
 
+  // Phase TE: values belong to the plan on screen only when they were fetched for exactly these samples (V-R3D-3).
+  const wxFresh = weatherState.kind === 'ready' && weatherState.fp === sampleFingerprint;
   const displaySamples: SampleETA[] = weatherState.kind === 'ready' ? weatherState.samples : enrichedSamples;
   const agg = useMemo(() => computeWeatherAggregate(displaySamples), [displaySamples]);
   const verdict = useMemo(() => tourVerdict(displaySamples, agg), [displaySamples, agg]);
@@ -268,6 +283,8 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
   const showResult = weatherRequested;
   const in3d = showResult && view === '3d';
   const show3d = in3d && weatherState.kind === 'ready';
+  // Phase TE: with the new view the fetch waits for the plan to settle — until then the 3D scene waits too (V-R3D-3).
+  const scene3dFresh = !v2 || wxFresh;
   const viewToggle = onView ? (
     <span className="r3-toggle" role="group" aria-label="Ansicht">
       <button type="button" className={view === '2d' ? 'is-on' : undefined} aria-pressed={view === '2d'} onClick={() => onView('2d')}>2D</button>
@@ -289,6 +306,62 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
   const homeFn = onHome ?? onBack ?? (() => {});
   const backToPrev = onBack ?? (() => {});
   const tourName = eff.meta.name || 'Deine Tour';
+
+  /* ===== Phase TE: new result view behind `?tourv=2` (audit/tour-ergebnis.md) ===== */
+  const [tab, setTab] = useState<ResultTab>('map');
+  const [planOpen, setPlanOpen] = useState(false);
+  const [dockEl, setDockEl] = useState<HTMLDivElement | null>(null);
+  const v2Badges = useMemo(() => {
+    if (!v2 || !wxFresh || weatherState.kind !== 'ready') return null;
+    return {
+      changes: weatherChanges(weatherState.samples, eff.points).length,
+      betterStart: summarizeStartWindow(weatherState.meta.startWindow, START_OFFSETS_MIN, startMs, Date.now()).betterExists,
+    };
+  }, [v2, wxFresh, weatherState, eff.points, startMs]);
+  const resultV2 = v2 && type && profile && breakCfg && timing && timingResult ? (
+    <Suspense fallback={<p className="rd-status rd-status--busy" role="status">Ergebnis wird geladen …</p>}>
+      <TourResultV2
+        isMobile={isMobile}
+        tourName={tourName}
+        type={type}
+        profile={profile}
+        breakCfg={breakCfg}
+        ebikeCfg={ebikeCfg}
+        ebikeResult={ebikeResult}
+        track={eff}
+        loop={loop}
+        direction={direction}
+        startMs={startMs}
+        timing={timing}
+        timingResult={timingResult}
+        windState={windState}
+        weatherState={weatherState}
+        wxFresh={wxFresh}
+        planSamples={enrichedSamples}
+        mapBreaks={mapBreaks}
+        mapWaypoints={mapWaypoints}
+        weatherMarkers={weatherMarkers}
+        resultMap={resultMap}
+        onResultMap={setResultMap}
+        viewToggle={viewToggle}
+        initialDistM={scrubDistM}
+        onDist={setScrubDistM}
+        onPos={handleScrubPos}
+        onStart={setStartMs}
+        onType={selectType}
+        onProfile={setProfile}
+        onBreaks={setBreakCfg}
+        onEbike={setEbikeCfg}
+        onDirection={flipDirection}
+        onReplan={() => setWeatherRequested(false)}
+        tab={tab}
+        onTab={setTab}
+        planOpen={planOpen}
+        onPlanOpen={setPlanOpen}
+        dockEl={dockEl}
+      />
+    </Suspense>
+  ) : null;
 
   /* ===== Richtungs-Umschalter / Startzeit (geteilt Desktop + Mobile) ===== */
   const directionBlock = loop ? (
@@ -489,7 +562,7 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
       )}
 
       {horizonState(timing?.arrivalMs ?? startMs) === 'far_future' && (
-        <p className="rd-note rd-note--warn"><IconWarning size={14} /> Die Ankunft liegt über 10 Tage in der Zukunft — reduzierte Vorhersage-Konfidenz.</p>
+        <p className="rd-note rd-note--warn"><IconWarning size={14} /> Die Ankunft liegt über 14 Tage in der Zukunft — so weit reicht die Vorhersage nicht.</p>
       )}
 
       <div className="rd-footer"><span className="dot">●</span> Wetter, das seine Arbeit zeigt.</div>
@@ -498,7 +571,10 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
 
   /* ===== Body je Zustand (Mobile kombiniert Bewegungsart + Konfiguration) ===== */
   let body: ReactNode;
-  if (show3d && weatherState.kind === 'ready' && timing) {
+  if (in3d && !scene3dFresh) {
+    // Phase TE: the values on hand belong to another plan — the frame stays, the scene waits (V-R3D-3).
+    body = <ThreeDStandby state={{ kind: 'loading' }} onBack2d={() => onView?.('2d')} />;
+  } else if (show3d && weatherState.kind === 'ready' && timing) {
     body = (
       <Suspense fallback={<p className="rd-status">3D-Ansicht wird geladen …</p>}>
         <Route3DView
@@ -524,7 +600,7 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
     // Rahmen bleibt stehen, die Szene wartet — kein Rückfall auf 2D.
     body = <ThreeDStandby state={weatherState} onBack2d={() => onView?.('2d')} />;
   } else if (showResult) {
-    body = resultBody;
+    body = resultV2 ?? resultBody;
   } else if (isMobile) {
     body = (
       <>
@@ -616,6 +692,15 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
       </div>
       {viewToggle}
     </>
+  ) : showResult && resultV2 && timing ? (
+    <>
+      <button type="button" className="rd-m-back" onClick={() => setWeatherRequested(false)} aria-label="Planung anpassen"><IconChevLeft /></button>
+      <div className="rd-m-htext te-m-htext">
+        <div className="rd-m-title">{tourName}</div>
+        <div className="te-m-sub">{type ? `${type.label} · ` : ''}{formatStart(startMs)} → {clock(timing.arrivalMs)}</div>
+      </div>
+      <button type="button" className="te-m-plan" onClick={() => setPlanOpen(true)} aria-haspopup="dialog">✎ Plan</button>
+    </>
   ) : showResult ? (
     <>
       <button type="button" className="rd-m-back" onClick={() => setWeatherRequested(false)} aria-label="Planung anpassen"><IconChevLeft /></button>
@@ -647,7 +732,12 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
       mobileHeader={mobileHeader}
       contentClass={showResult ? 'rd-content--result' : deckScreen ? 'rd-content--deck' : undefined}
       step={showResult ? 3 : type ? 2 : 1}
-      mobileBar={showResult && !in3d && weatherState.kind === 'ready' && timing ? <DeckSectionBar items={RESULT_SECTIONS} /> : undefined}
+      mobileBar={showResult && !in3d && resultV2 ? (
+        <>
+          <div ref={setDockEl} className="te-m-dock" />
+          <DeckTabBar items={RESULT_TABS} active={tab} onSelect={(id) => setTab(id as ResultTab)} badges={{ chg: v2Badges?.changes ? String(v2Badges.changes) : undefined, start: v2Badges?.betterStart ? 'dot' : undefined }} />
+        </>
+      ) : showResult && !in3d && weatherState.kind === 'ready' && timing ? <DeckSectionBar items={RESULT_SECTIONS} /> : undefined}
     >
       {!deckScreen && restoreNote}
       {body}
@@ -662,108 +752,6 @@ const RESULT_SECTIONS: readonly DeckBarItem[] = [
   { id: 'rd-sec-course', label: 'Verlauf', icon: <path d="M3 18c3 0 4-9 7-9s3 6 6 6 3-8 5-8" /> },
   { id: 'rd-sec-plan', label: 'Zeitplan', icon: <><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></> },
 ];
-
-/* ===== Quellen-Overlay auf der Karte ===== */
-function QuellenOverlay({ meta }: { meta: EnrichmentMeta }) {
-  return (
-    <div className="rt-quellen">
-      <span className="rt-eyebrow">Quellen</span>
-      <div>{meta.countries.join(' · ')} — live, höhenkorrigiert</div>
-      {meta.radarOverrides > 0 && <div>{meta.radarOverrides} Punkte Radar-Nowcast</div>}
-      <div>{meta.elevationCorrected} Punkte höhenkorrigiert{meta.uvEstimated > 0 ? ` · ${meta.uvEstimated} UV geschätzt` : ''}</div>
-    </div>
-  );
-}
-
-/* ===== Bearing-Wind-Legende auf der Karte (Mockup route-03) ===== */
-function WindLegend() {
-  return (
-    <div className="rt-windlegend">
-      <span className="rt-eyebrow">Wind zur Route</span>
-      <div className="rt-windlegend-keys">
-        <span><i style={{ background: '#5e8048' }} /> Rücken</span>
-        <span><i style={{ background: '#C97B47' }} /> Seite</span>
-        <span><i style={{ background: '#A8431F' }} /> Gegen</span>
-      </div>
-    </div>
-  );
-}
-
-/* ===== Zeit-Übersicht ===== */
-function TimeOverview({ timing, startMs, category }: { timing: TourTiming; startMs: number; category: 'foot' | 'bike' }) {
-  return (
-    <div className="rt-card rt-timeover">
-      <span className="rt-eyebrow">Zeit-Übersicht</span>
-      <dl style={{ margin: '0.6rem 0 0' }}>
-        <div className="rt-timeover-row"><dt>Start</dt><dd>{formatStart(startMs)}</dd></div>
-        <div className="rt-timeover-row"><dt>{category === 'bike' ? 'Fahrzeit' : 'Gehzeit'}</dt><dd>{formatHM(timing.movingSec)}</dd></div>
-        {timing.breakCount > 0 && <div className="rt-timeover-row"><dt>Pausen</dt><dd>{timing.breakCount} · {formatHM(timing.breakSec)}</dd></div>}
-        <div className="rt-timeover-row is-total"><dt>Gesamtdauer</dt><dd>{formatHM(timing.totalSec)}</dd></div>
-        <div className="rt-timeover-row"><dt>Ankunft</dt><dd>{formatStart(timing.arrivalMs)}</dd></div>
-      </dl>
-    </div>
-  );
-}
-
-/* ===== Zeitplan-Timeline ===== */
-function Timeline({ milestones }: { milestones: Milestone[] }) {
-  return (
-    <div className="rt-tl">
-      {milestones.map((m, i) => (
-        <div key={i} className="rt-tl-leg">
-          <span className={`rt-tl-dot rt-tl-dot-${m.kind}`} aria-hidden="true" />
-          <div className="rt-tl-kind">{kindLabel(m.kind)}</div>
-          <div className="rt-tl-main">
-            {clock(m.arrivalMs)}{m.departureMs != null ? ` → ${clock(m.departureMs)}` : ''} · {m.label}
-          </div>
-          <div className="rt-tl-meta">
-            {(m.dist / 1000).toFixed(1).replace('.', ',')} km{m.durationSec != null ? ` · +${Math.round(m.durationSec / 60)} min` : ''}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-function kindLabel(k: Milestone['kind']): string {
-  return k === 'start' ? 'Start' : k === 'end' ? 'Ziel' : k === 'meal' ? 'Mahlzeit' : k === 'custom' ? 'Pause' : 'Pause';
-}
-
-/* ===== Daten-Herkunft & Qualität ===== */
-function QualityRow({ meta, result, windState }: { meta: EnrichmentMeta; result: ReturnType<typeof computeTimingIterated>; windState: WindState }) {
-  const okClusters = meta.clusterCount - meta.pointForecastFailed;
-  const drift = result.driftLog.length ? result.driftLog[result.driftLog.length - 1].maxDriftSec : 0;
-  return (
-    <div className="rt-card rt-quality">
-      <div className="rt-quality-grid">
-        <div>
-          <h4>Wind-Iteration</h4>
-          {result.windApplied ? (
-            <>
-              <span className="rt-quality-conv"><span className="live-dot" style={{ width: 9, height: 9 }} /> {result.converged ? 'konvergiert' : 'nicht konvergiert'}</span>
-              <div className="rt-quality-line" style={{ marginTop: '0.35rem' }}>nach {result.iterations} Iterationen · letzte Drift {Math.round(drift)} s</div>
-              {windState.kind === 'ready' && <div className="rt-quality-line">Quelle {windState.sampler.country}: {windState.sampler.clusterCount} Cluster, {windState.sampler.hourCount} h Tiefe</div>}
-            </>
-          ) : <div className="rt-quality-line">Timing ohne Wind berechnet (nicht verfügbar).</div>}
-        </div>
-        <div>
-          <h4>Wetter-Abruf</h4>
-          <div className="rt-quality-line"><strong>{okClusters}/{meta.clusterCount} Cluster</strong> · {meta.pointForecastCalls} Calls</div>
-          {meta.radarOverrides > 0 && <div className="rt-quality-line">{meta.radarOverrides} Punkte mit Radar-Nowcast</div>}
-          <div className="rt-quality-line">{meta.elevationCorrected} höhenkorrigiert{meta.uvEstimated > 0 ? ` · ${meta.uvEstimated} UV geschätzt` : ''}</div>
-          <div className="rt-quality-line" style={{ color: 'var(--stone-500)' }}>{meta.elapsedMs} ms</div>
-        </div>
-        <div>
-          <h4>Abdeckung</h4>
-          <div className="rt-cov-row"><span>Temperatur, Wind</span><span className="ok"><IconCheck size={14} /></span></div>
-          <div className="rt-cov-row"><span>Niederschlag (Radar + NWP)</span><span className="ok"><IconCheck size={14} /></span></div>
-          <div className="rt-cov-row"><span>Schneefallgrenze</span><span className="muted">{meta.coverage.snowLine ? <IconCheck size={14} /> : 'nur AT/CH'}</span></div>
-          <div className="rt-cov-row"><span>UV-Index</span><span className="muted">{meta.coverage.uvIndex ? 'DE gemessen' : 'AT/CH geschätzt'}</span></div>
-        </div>
-      </div>
-      <div className="rt-quality-note">Quellen: DWD (Deutschland) · GeoSphere (Österreich) · MeteoSwiss (Schweiz) · live, höhenkorrigiert, ohne Tracker.</div>
-    </div>
-  );
-}
 
 /**
  * Wartefeld INNERHALB der 3D-Ansicht (V-R3D-3). Es trägt bewusst keine

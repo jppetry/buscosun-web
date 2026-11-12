@@ -1,6 +1,6 @@
 /**
  * Start-Zeitpunkt: DateTime-Picker (lokale Browser-Zeitzone), Quick-Optionen
- * und Hinweise zu Vorhersage-Horizont (>10 Tage) bzw. Vergangenheit.
+ * und Hinweise zu Vorhersage-Horizont (>14 Tage) bzw. Vergangenheit.
  */
 
 import { useMemo } from 'react';
@@ -40,7 +40,7 @@ export default function StartTimeConfig({ value, onChange }: Props) {
       />
 
       {horizon === 'far_future' && (
-        <p className="tp-note tp-note-warn"><IconWarning size={14} /> Mehr als 10 Tage in der Zukunft — die Vorhersage-Konfidenz ist deutlich reduziert.</p>
+        <p className="tp-note tp-note-warn"><IconWarning size={14} /> Mehr als 14 Tage in der Zukunft — so weit reicht die Vorhersage nicht.</p>
       )}
       {horizon === 'past' && (
         <p className="tp-note">
