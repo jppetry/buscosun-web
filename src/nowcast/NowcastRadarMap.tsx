@@ -835,7 +835,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
             </div>
           </div>
           {layerSet.has('snow') && (
-            <div className="rl-sec">
+            <div className="rl-sec rl-sec-snow">
               <div className="rl-head">{snowMode === 'fresh' ? 'Neuschnee' : 'Schneedecke'} <span>ICON-D2</span></div>
               <div className="rl-grad"><i style={{ background: 'linear-gradient(90deg,#d6e8fa,#78a6e6,#4660be)' }} /><small>0</small><small>{snowMode === 'fresh' ? '50 cm' : '150 cm'}</small></div>
             </div>

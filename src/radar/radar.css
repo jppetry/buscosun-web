@@ -217,6 +217,11 @@
   .rl-seg b { font-size: 0.70rem; overflow: hidden; text-overflow: ellipsis; }
   .rl-seg small { font-size: 0.63rem; }
   .rl-grad { min-width: 0; width: 100%; }
+  /* Jan 2026-11-13: rain intensity and snow side by side on the phone (was two stacked rows); every other section keeps its own row. */
+  .rl-dock { flex-direction: row; flex-wrap: wrap; align-items: flex-start; }
+  .rl-dock .rl-sec { flex: 1 1 100%; }
+  .rl-dock .rl-sec:first-child { flex: 1 1 0; min-width: 0; }
+  .rl-dock .rl-sec.rl-sec-snow { flex: 0 0 5.6rem; border-top: 0; padding-top: 0; border-left: 1px solid rgba(224,214,190,0.9); padding-left: 0.55rem; }
 }
 
 /* Niederschlagsart-Hinweis (Schneefallgrenze) */
