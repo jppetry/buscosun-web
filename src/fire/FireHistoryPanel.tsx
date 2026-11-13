@@ -36,7 +36,16 @@ export interface HistoryPanelProps {
   inSheet: boolean;
   compact?: boolean;
   kind: HistoryWindowKind;
+  /** Already filtered by the page (months, minimum area, countries) — the map shows the same entries. */
   load: HistoryLoad;
+  /** Minimum area in ha (0 = any) — see `historyAreaHa`. */
+  minHa: number;
+  onMinHa: (ha: number) => void;
+  /** ISO codes of the chosen countries; empty = all. */
+  countries: readonly string[];
+  onCountries: (codes: readonly string[]) => void;
+  /** [ISO code, events] of every country in the file, most events first. */
+  countryOptions: ReadonlyArray<readonly [string, number]>;
   selectedId: string | null;
   onSelect: (entry: HistoryIndexEntry) => void;
   onClearSelect: () => void;
@@ -70,9 +79,37 @@ export function historyEntryName(e: HistoryIndexEntry): string {
   return `${e.lat.toFixed(2)}° N, ${e.lon.toFixed(2)}° O`;
 }
 
+/**
+ * The area an event is filtered by: the mapped area (EFFIS), else the estimate. An event that only carries the raster upper
+ * bound („≤ x ha") has no area in this sense — an upper bound does not show that a fire reached a minimum size.
+ */
+export function historyAreaHa(e: HistoryIndexEntry): number | null {
+  if (e.anomalyKind === 'site') return null;
+  if (e.areaHa != null && e.areaKind === 'mapped') return e.areaHa;
+  return e.estHa;
+}
+/** Steps of the minimum-area filter in ha; 0 = any area. */
+const AREA_STEPS = [0, 10, 50, 100, 500] as const;
+/** Countries that always get a chip (the product's region); every other country sits in the select. */
+const CHIP_COUNTRIES = ['DE', 'AT', 'CH'] as const;
+const AREA_FILTER_TITLE = 'Kartierte Fläche (EFFIS), sonst die Schätzung. Ereignisse, die nur eine Obergrenze aus dem Raster tragen, zählen nicht.';
+
 export function FireHistoryPanel(p: HistoryPanelProps) {
   const [sort, setSort] = useState<HistorySort>('strength');
   const [shown, setShown] = useState(CLUSTER_PAGE);
+  const filtered = p.minHa > 0 || p.countries.length > 0;
+  const toggleCountry = (code: string) => {
+    p.onCountries(p.countries.includes(code) ? p.countries.filter((c) => c !== code) : [...p.countries, code]);
+    setShown(CLUSTER_PAGE);
+  };
+  const countryChips = [
+    ...CHIP_COUNTRIES.filter((c) => p.countryOptions.some(([code]) => code === c)),
+    ...p.countries.filter((c) => !(CHIP_COUNTRIES as readonly string[]).includes(c)),
+  ];
+  const countryRest = p.countryOptions
+    .filter(([code]) => !countryChips.includes(code))
+    .map(([code, n]) => ({ code, n, label: historyCountryLabel(code) }))
+    .sort((a, b) => a.label.localeCompare(b.label, 'de'));
 
   const file: HistoryIndexFile | null = p.load.kind === 'ok' ? p.load.file : null;
   const rows = useMemo(() => {
@@ -103,7 +140,29 @@ export function FireHistoryPanel(p: HistoryPanelProps) {
               <button key={id} type="button" className={`br-chip is-ink${sort === id ? ' is-active' : ''}`} aria-pressed={sort === id} onClick={() => { setSort(id); setShown(CLUSTER_PAGE); }}>{l}</button>
             ))}
           </div>
-          {rows.length === 0 && <p className="br-empty">Keine Ereignisse dieser Art im Stand vom {historyStandLabel(file.evaluatedAt)} — kleine Brände fehlen dem Satelliten systematisch.</p>}
+          <div className="br-chiprow" role="group" aria-label="Mindestfläche">
+            {!p.inSheet && <span className="br-chiprow-lbl">Fläche:</span>}
+            {AREA_STEPS.map((ha) => (
+              <button key={ha} type="button" className={`br-chip is-ink${p.minHa === ha ? ' is-active' : ''}`} aria-pressed={p.minHa === ha} title={ha > 0 ? AREA_FILTER_TITLE : undefined}
+                onClick={() => { p.onMinHa(ha); setShown(CLUSTER_PAGE); }}>{ha === 0 ? 'Jede Fläche' : `ab ${de(ha)} ha`}</button>
+            ))}
+          </div>
+          <div className="br-chiprow" role="group" aria-label="Länder">
+            {!p.inSheet && <span className="br-chiprow-lbl">Land:</span>}
+            <button type="button" className={`br-chip is-ink${p.countries.length === 0 ? ' is-active' : ''}`} aria-pressed={p.countries.length === 0} onClick={() => { p.onCountries([]); setShown(CLUSTER_PAGE); }}>Alle Länder</button>
+            {countryChips.map((code) => (
+              <button key={code} type="button" className={`br-chip is-ink${p.countries.includes(code) ? ' is-active' : ''}`} aria-pressed={p.countries.includes(code)} onClick={() => toggleCountry(code)}>{historyCountryLabel(code)}</button>
+            ))}
+            {countryRest.length > 0 && (
+              <select className="br-chip br-chip-select" value="" aria-label="Weiteres Land hinzufügen" onChange={(e) => { if (e.target.value) toggleCountry(e.target.value); }}>
+                <option value="">Weitere …</option>
+                {countryRest.map((c) => <option key={c.code} value={c.code}>{c.label} ({de(c.n)})</option>)}
+              </select>
+            )}
+          </div>
+          {rows.length === 0 && (filtered
+            ? <p className="br-empty">Kein Brand passt zu dieser Auswahl (Fläche, Land) im Stand vom {historyStandLabel(file.evaluatedAt)}.</p>
+            : <p className="br-empty">Keine Ereignisse dieser Art im Stand vom {historyStandLabel(file.evaluatedAt)} — kleine Brände fehlen dem Satelliten systematisch.</p>)}
           <ol className="br-firelist">
             {rows.slice(0, shown).map((e) => {
               const color = e.anomalyKind === 'site' ? STATIC_GREY : clusterColor(e.frpSumMw ?? 0);

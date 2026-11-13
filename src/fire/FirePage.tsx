@@ -91,7 +91,7 @@ import { loadClcMaskFor, landcoverAt, toAssessmentLandcover, type ClcMask } from
 import { loadThermalSitesFor, siteAt, thermalSitesEnabled, SITE_CLASS_LABEL, type ThermalSite, type ThermalSitesIndex } from './anomaly/thermalSites';
 import { siteLabel } from './anomaly/classify';
 import { FireAnomalyPanel, AnomalySiteCards, siteStatTiles, siteName } from './FireAnomalyPanel';
-import { FireHistoryPanel, HistoryDossierBody, historyStatTiles, historyEntryName } from './FireHistoryPanel';
+import { FireHistoryPanel, HistoryDossierBody, historyStatTiles, historyEntryName, historyAreaHa } from './FireHistoryPanel';
 import { historyEnabled, loadHistoryIndex, historyToGeoJSON, type HistoryLoad } from './history/historyLoad';
 import type { HistoryIndexEntry, HistoryWindowKind } from './history/historyArtifacts';
 import { anomaliesToGeoJSON } from './anomaly/anomalyLayer';
@@ -328,16 +328,32 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   const [historyRaw, setHistoryLoad] = useState<HistoryLoad>({ kind: 'idle' });
   /** Mobile Einstellungen: Monatsbereich der Saison (0-basiert, März = 2 … Oktober = 9); voll = unverändert. */
   const [histMonths, setHistMonths] = useState<[number, number]>([SEASON_FIRST_MONTH, SEASON_LAST_MONTH]);
+  /** Historie filters of the „Brände" list (Jan 2026-11-13): minimum area in ha (0 = any) and countries (empty = all). They cut list, map and count alike. */
+  const [histMinHa, setHistMinHa] = useState(0);
+  const [histCountries, setHistCountries] = useState<readonly string[]>([]);
   const historyLoad = useMemo<HistoryLoad>(() => {
-    if (history !== 'season' || historyRaw.kind !== 'ok') return historyRaw;
+    if (historyRaw.kind !== 'ok') return historyRaw;
     const [lo, hi] = histMonths;
-    if (lo <= SEASON_FIRST_MONTH && hi >= SEASON_LAST_MONTH) return historyRaw;
+    const byMonth = history === 'season' && !(lo <= SEASON_FIRST_MONTH && hi >= SEASON_LAST_MONTH);
+    if (!byMonth && histMinHa <= 0 && histCountries.length === 0) return historyRaw;
     const entries = historyRaw.entries.filter((e) => {
-      const m = new Date(e.firstMs).getUTCMonth();
-      return m >= lo && m <= hi;
+      if (byMonth) {
+        const m = new Date(e.firstMs).getUTCMonth();
+        if (m < lo || m > hi) return false;
+      }
+      if (histMinHa > 0 && (historyAreaHa(e) ?? -1) < histMinHa) return false;
+      if (histCountries.length > 0 && (e.country == null || !histCountries.includes(e.country))) return false;
+      return true;
     });
     return { ...historyRaw, entries, file: { ...historyRaw.file, counts: { ...historyRaw.file.counts, total: entries.length } } };
-  }, [history, historyRaw, histMonths]);
+  }, [history, historyRaw, histMonths, histMinHa, histCountries]);
+  /** Countries that occur in the loaded file (fires only), most events first — the options of the country filter. */
+  const historyCountryOptions = useMemo(() => {
+    if (historyRaw.kind !== 'ok') return [];
+    const n = new Map<string, number>();
+    for (const e of historyRaw.entries) if (e.country != null && e.anomalyKind !== 'site') n.set(e.country, (n.get(e.country) ?? 0) + 1);
+    return [...n].sort((a, b) => b[1] - a[1]);
+  }, [historyRaw]);
   const [selectedHistory, setSelectedHistory] = useState<string | null>(null);
   useEffect(() => {
     if (!history) { setHistoryLoad({ kind: 'idle' }); setSelectedHistory(null); return; }
@@ -2247,6 +2263,11 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
       compact={isTablet}
       kind={history ?? 'month'}
       load={historyLoad}
+      minHa={histMinHa}
+      onMinHa={setHistMinHa}
+      countries={histCountries}
+      onCountries={setHistCountries}
+      countryOptions={historyCountryOptions}
       selectedId={selectedHistory}
       onSelect={(e: HistoryIndexEntry) => selectHistory(e.id)}
       onClearSelect={() => { setSelectedHistory(null); setFocusBbox(null); }}

@@ -673,6 +673,8 @@
 .br-chip.is-ghost { color: var(--stone-400, #A89A7A); border-style: dashed; }
 .br-chip.is-ghost.is-active { color: var(--ink-900, #2C2A26); background: var(--sand-50, #F5F1E8); border-style: solid; }
 .br-chip:disabled { opacity: .5; cursor: not-allowed; }
+/* A select in the chip row (country filter of the Historie list): reads like a chip, opens the full country list. */
+.br-chip-select { max-width: 150px; padding-right: 4px; }
 .br-filters { margin-top: 4px; padding: 2px 0 6px; border-bottom: 1px dashed var(--sand-200, #E0D6BE); }
 .br-filters .br-chip.is-ink.is-active .fire-fp-dot { outline: 1px solid rgba(255,255,255,.6); }
 .br-fires > .br-box.is-stale, .br-fires > .br-empty { margin-top: 12px; }
