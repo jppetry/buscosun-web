@@ -1287,6 +1287,9 @@
    ungefüllt war es bei ~10 px Kantenlänge praktisch unsichtbar (§13.6). */
 .br-sat-det rect.is-after { fill: rgba(255, 176, 138, .14); stroke-dasharray: 5 3; }
 .br-sat-dettoggle { position: absolute; left: 8px; bottom: 8px; padding: 5px 10px; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 999px; background: rgba(253, 251, 244, .92); color: var(--ink-900, #2C2A26); font-family: 'League Spartan', system-ui, sans-serif; font-size: 13px; font-weight: 700; letter-spacing: .05em; cursor: pointer; }
+/* Image credit bottom right inside the satellite image (30 m frame: absolute; 10 m viewer: right end of the status line). */
+.br-sat-credit { position: absolute; right: 8px; bottom: 8px; padding: 2px 7px; border-radius: 6px; background: rgba(44, 42, 38, 0.78); color: #EDE6D3; font-size: 12px; line-height: 1.4; white-space: nowrap; pointer-events: none; }
+.br-sat-credit.is-inline { position: static; margin-left: auto; flex: 0 0 auto; align-self: flex-end; }
 .br-sat-dettoggle[aria-pressed='true'] { background: var(--ink-900, #2C2A26); color: #FDFBF4; border-color: var(--ink-900, #2C2A26); }
 .br-sat-detnote { margin: 6px 0 0; font-size: 13px; }
 .br-sat-caption { margin: 0 0 8px; font-size: 14.5px; color: var(--stone-600, #5C5447); }

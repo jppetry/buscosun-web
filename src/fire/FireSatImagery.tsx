@@ -287,6 +287,7 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
               fireBbox={outline}
               fireShape={rings}
               onClose={() => setCog10(false)}
+              credit={`Copernicus Sentinel-2 · ${scene.dayIso.slice(0, 4)}`}
             />
           </Suspense>
         )}
@@ -332,6 +333,7 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
             Detektionen{detRects.length > 0 ? ` · ${detRects.length}` : ' · keine im Bild'}
           </button>
         )}
+        {!cog10 && snap?.kind === 'img' && <span className="br-sat-credit">NASA GIBS · HLS (Sentinel-2/Landsat)</span>}
         {!cog10 && snap?.kind === 'img' && <ExpandButton expanded={big} onClick={() => setBig((b) => !b)} />}
         {!cog10 && snap?.kind === 'loading' && <p className="br-sat-wait br-muted">Bild wird geladen …</p>}
         {!cog10 && snap?.kind === 'nodata' && (

@@ -57,6 +57,8 @@ export interface CogViewerProps {
   onClose: () => void;
   /** Which display modes the switch offers (default: all three). With one mode the switch is not shown (Gletscher: Echtfarbe only). */
   modes?: readonly CogMode[];
+  /** Short image credit at the right end of the status line (bottom right of the image); none when omitted. */
+  credit?: string;
 }
 
 const FULL_M_PER_PX = 10;
@@ -554,7 +556,7 @@ function shapeRingsPx(rings: readonly (readonly number[])[][] | null, epsg: numb
   return out;
 }
 
-export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallbackUrl, detections = null, fireBbox = null, fireShape = null, onClose, modes = ALL_COG_MODES }: CogViewerProps) {
+export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallbackUrl, detections = null, fireBbox = null, fireShape = null, onClose, modes = ALL_COG_MODES, credit }: CogViewerProps) {
   const [phase, setPhase] = useState<Phase>({ kind: 'loading', word: 'Szene wird gesucht …' });
   const [full, setFull] = useState(false);
   // Mobil ist das Bild inline zu klein für die Moduswahl — sie erscheint nur im Vollbild.
@@ -1368,6 +1370,7 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
               ? ` · volle 10 m hier ≈ ${Math.max(1, Math.round(estimate / 1048576))} MB`
               : ''}
           </span>
+          {credit && <span className="br-sat-credit is-inline">{credit}</span>}
         </div>
       )}
       {phase.kind === 'ready' && (
