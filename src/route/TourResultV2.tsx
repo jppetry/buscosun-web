@@ -251,13 +251,15 @@ export default function TourResultV2(p: TourResultV2Props) {
         <div className="rt-fc-sec">
           <span className="rd-label">Wetter · gesamte Tour</span>
           {/* The verdict of the head and the total ascent, repeated where the tour's weather is read in detail. */}
-          {(verdict || ascent != null) && (
-            <p className="te-tw-sum">
-              {verdict && <><b>{verdict.lead}</b>{verdict.rest ? <span className="te-mute"> {verdict.rest}</span> : null}</>}
-              {ascent != null && <span className="te-tw-hm">Anstieg <b>{ascent} hm</b> ↑</span>}
-            </p>
-          )}
-          <WeatherStatGrid agg={agg} />
+          <div className="te-tw-body">
+            {(verdict || ascent != null) && (
+              <p className="te-tw-sum">
+                {verdict && <><b>{verdict.lead}</b>{verdict.rest ? <span className="te-mute"> {verdict.rest}</span> : null}</>}
+                {ascent != null && <span className="te-tw-hm">Anstieg <b>{ascent} hm</b> ↑</span>}
+              </p>
+            )}
+            <WeatherStatGrid agg={agg} />
+          </div>
         </div>
       )}
       {(agg.warnings.count > 0 || agg.foehn) && (
@@ -384,19 +386,22 @@ export default function TourResultV2(p: TourResultV2Props) {
       </div>
 
       <section className="te-details" aria-label="Details">
-        <h2 className="te-details-h">Details</h2>
-        <div className="te-details-grid">
-          <div className="te-details-col">{tourWeather}{actions}</div>
-          <div className="te-details-col te-details-col--wide">{strip}</div>
+        {/* From the answer to the evidence, every block full width: the whole tour in figures, the points along the way,
+            the curves beside the two time cards, the provenance last. */}
+        <div className="te-details-head">
+          <h2 className="te-details-h">Details</h2>
+          {actions}
         </div>
-        <div className="rd-analysis-grid rd-analysis-grid--lr">
+        <div className={ready ? 'te-tw te-card' : 'te-tw'}>{tourWeather}</div>
+        {strip}
+        <div className="te-details-split">
           {profileChart}
-          {timeOverview}
+          <div className="te-details-side">
+            {timeOverview}
+            {timeline}
+          </div>
         </div>
-        <div className="rd-analysis-grid rd-analysis-grid--rl">
-          {timeline}
-          {quality}
-        </div>
+        {quality}
       </section>
       {sources}
       <div className="rd-footer"><span className="dot">●</span> Wetter, das seine Arbeit zeigt.</div>

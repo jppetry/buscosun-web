@@ -113,8 +113,11 @@
 .te-dial { flex: 0 0 auto; }
 .te-wind-rel { font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .te-wind-sub { font-size: 12.5px; color: var(--stone-600); margin-top: 3px; line-height: 1.4; }
-.te-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.te-tile { background: #fff; border-radius: var(--te-r-sm); padding: 11px 12px; min-width: 0; }
+/* figures as a ruled ledger (the same language as the tour ledger in Details): every cell carries a top and a left rule,
+   shifted by 1 px so the outer left ones are clipped */
+.te-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 0; overflow: hidden; border-top: 1px solid var(--border-default); }
+.te-tile { margin: -1px 0 0 -1px; padding: 11px 14px 10px; min-width: 0; border-top: 1px solid var(--border-default); border-left: 1px solid var(--border-default); }
+.te-tile:nth-child(odd) { padding-left: 3px; }
 .te-tile-k { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--stone-500); }
 .te-tile-v { font-size: 21px; font-weight: 600; margin-top: 4px; white-space: nowrap; color: var(--ink-900); }
 .te-tile-s { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--stone-500); margin-top: 1px; }
@@ -158,9 +161,10 @@
 .te-keys span { display: inline-flex; align-items: center; gap: 5px; }
 .te-keys i { width: 10px; height: 10px; border-radius: 3px; }
 .te-chart { display: block; width: 100%; height: 110px; margin-top: 12px; border-radius: 10px; cursor: crosshair; }
-.te-deltas { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
-.te-delta { display: flex; flex-direction: column; padding: 9px 11px; border-radius: var(--te-r-sm); background: #fff; font-size: 12px; color: var(--stone-500); }
-.te-delta b { margin-top: 2px; font-size: 17px; font-weight: 600; color: var(--ink-900); }
+.te-deltas { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin-top: 14px; overflow: hidden; border-top: 1px solid var(--border-default); border-bottom: 1px solid var(--border-default); }
+.te-delta { display: flex; flex-direction: column; margin: -1px 0 0 -1px; padding: 10px 14px 9px; border-top: 1px solid var(--border-default); border-left: 1px solid var(--border-default); font-size: 12.5px; color: var(--stone-500); }
+.te-delta:nth-child(odd) { padding-left: 1px; }
+.te-delta b { margin-top: 2px; font-size: 21px; font-weight: 600; letter-spacing: -0.2px; color: var(--ink-900); }
 .te-tl { display: flex; flex-direction: column; gap: 2px; margin-top: 12px; }
 .te-tl button { display: grid; grid-template-columns: 46px 20px 1fr; gap: 8px; align-items: center; min-height: 44px; padding: 6px; border: 0; border-radius: 10px; background: none; font: inherit; font-size: 13px; text-align: left; color: var(--ink-900); cursor: pointer; }
 .te-tl button:hover { background: #fff; }
@@ -180,14 +184,43 @@
 .te-bars-axis { display: flex; justify-content: space-between; margin-top: 4px; font-size: 10.5px; color: var(--stone-500); }
 
 /* ---------- details ---------- */
-.te-details { margin-top: 26px; }
-.te-details-h { margin: 0 0 12px; font-size: 18px; font-weight: 600; color: var(--ink-900); }
-.te-details-grid { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 16px; align-items: start; }
-.te-details-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-.te-details .rd-analysis-grid { margin-top: 16px; }
+/* Details: one card language (the surface of the analysis cards above), every block full width.
+   The whole tour reads as a ruled ledger of figures, not as boxes inside a box. */
+.te-details { margin-top: 30px; display: flex; flex-direction: column; gap: 18px; }
+.te-details-head { display: flex; align-items: center; justify-content: space-between; gap: 12px 20px; flex-wrap: wrap; margin-bottom: -4px; }
+.te-details-h { margin: 0; font-size: 22px; line-height: 1.1; font-weight: 600; letter-spacing: -0.3px; color: var(--ink-900); }
+.te-root .te-details-head .rt-fc-actions { margin: 0; padding: 0; gap: 8px; flex-wrap: wrap; }
+.te-root .te-details-head .rt-act { flex: 0 0 auto; min-height: 38px; padding: 0 16px; border: 0; border-radius: 99px; background: var(--rd-card); box-shadow: var(--te-sh-1); font-size: 13.5px; font-weight: 500; }
+.te-root .te-details-head .rt-act:hover { box-shadow: var(--te-sh-2); }
+.te-root .te-details-head .rt-act-primary { background: var(--terracotta-500); color: var(--rd-card); }
+.te-root .te-details-head .rt-act-primary:hover { background: var(--terracotta-700); }
+.te-root .te-details > .rd-panel,
+.te-root .te-details-split > .rd-panel,
+.te-root .te-details-side > .rt-card,
+.te-root .te-details > .rt-quality-sec { border: 0; border-radius: var(--te-r-lg); background: var(--rd-card); box-shadow: var(--te-sh-1); padding: 20px; }
+.te-details-split { display: grid; grid-template-columns: minmax(0, 1fr) clamp(260px, 26%, 340px); gap: 18px; align-items: stretch; }
+.te-details-side { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+/* the schedule takes the rest of the column, so both columns end on one line */
+.te-details-side > .rt-timeline { flex: 1 1 auto; }
+.te-root .te-details .rt-quality { margin-top: 8px; border: 0; border-radius: 0; background: none; box-shadow: none; padding: 0; }
+
+/* Wetter · gesamte Tour: the verdict as the headline, the figures as a ledger beside it */
+.te-tw-body { display: flex; flex-direction: column; gap: 0.6rem; }
 .te-tw-sum { margin: 0; font-size: 13.5px; line-height: 1.45; color: var(--ink-900); }
 .te-tw-sum b { font-weight: 600; }
 .te-tw-hm { display: block; margin-top: 2px; color: var(--stone-600); }
+.te-details .te-tw-body { display: grid; grid-template-columns: minmax(220px, 290px) minmax(0, 1fr); gap: 28px; align-items: center; margin-top: 6px; }
+.te-details .te-tw-sum > b:first-child { display: block; font-size: 22px; line-height: 1.15; letter-spacing: -0.3px; }
+.te-details .te-tw-sum > .te-mute { display: block; margin-top: 6px; font-size: 14px; }
+.te-details .te-tw-hm { margin-top: 12px; font-size: 13.5px; }
+/* every cell carries a top and a left rule; the grid is shifted by 1 px so the outer ones are clipped — works for any column count */
+.te-details .te-tw .rt-statgrid { overflow: hidden; }
+.te-root .te-details .te-tw .rt-statgrid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; margin: 0; }
+.te-root .te-details .te-tw .rt-stat { margin: -1px 0 0 -1px; padding: 13px 18px 12px; border: 0; border-top: 1px solid var(--border-default); border-left: 1px solid var(--border-default); border-radius: 0; background: none; box-shadow: none; }
+.te-root .te-details .te-tw .rt-stat-label { font-size: 12.5px; letter-spacing: 0; text-transform: none; font-weight: 500; color: var(--stone-500); }
+.te-root .te-details .te-tw .rt-stat-value { margin-top: 3px; font-size: 21px; font-weight: 600; letter-spacing: -0.2px; color: var(--ink-900); white-space: nowrap; }
+.te-root .te-details .te-tw .rt-stat-sub { margin-top: 2px; font-size: 12.5px; }
+.te-details .te-tw .rt-fc-banners { margin-top: 16px; }
 .te-wait { display: flex; flex-direction: column; gap: 10px; }
 .te-sources { margin: 18px 0 0; font-size: 12px; color: var(--stone-500); line-height: 1.5; }
 
@@ -208,8 +241,10 @@
 
 /* ---------- ≤ 1439 px ---------- */
 @media (max-width: 1439px) {
+  .te-details .te-tw-body { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .te-root .te-details .te-tw .rt-statgrid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .te-root .te-details .te-tw .rt-stat-value { font-size: 19px; }
   .te-main { grid-template-columns: minmax(0, 1fr) 330px; }
-  .te-details-grid { grid-template-columns: 300px minmax(0, 1fr); }
 }
 
 /* ---------- ≤ 767 px: one view per tab ---------- */
@@ -225,7 +260,6 @@
   .te-m .te-panel, .te-m .te-card { padding: 16px; }
   .te-m .te-hero-t { font-size: 52px; }
   .te-m .te-ana { display: block; }
-  .te-details-grid { grid-template-columns: minmax(0, 1fr); }
   .te-m .te-stage .r3-tpanel-chips { margin-top: 2px; }
   .te-m .te-ov--tl { left: 10px; top: 10px; }
   .te-m .te-ov--tr { right: 10px; top: 10px; }
