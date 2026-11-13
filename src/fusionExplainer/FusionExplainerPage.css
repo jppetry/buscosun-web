@@ -227,3 +227,11 @@
 @media (max-width: 767px) {
   .fx-rail { display: none; }
 }
+
+/* Reading sheet (Jan 2026-11-13): headings, intros and lists stood directly on the moving map and were hard to read.
+   The content column and the topbar now lie on a sand sheet that lets the map through only faintly; its left and right
+   edges fade out, so the map stays visible in the page margins and no box edge shows. */
+.fx-main::before, .fx-topbar::before {
+  content: ''; position: absolute; inset: 0 -56px; z-index: -1; pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(245, 241, 232, 0.9) 56px, rgba(245, 241, 232, 0.9) calc(100% - 56px), transparent);
+}
