@@ -466,6 +466,17 @@ button.hd-tile:hover .hd-tile-open { background: var(--terracotta-700); }
 .hd-m-explore .hi-datenav-fields .hi-dl-month { font-size: 14px; padding: 6px 4px; border: none; background: transparent; }
 .hd-m-explore .hi-year-in { width: 60px; }
 .hd-m-explore .hi-datenav-label { display: none; }
+
+/* Datumsleiste lesbar: größere, dunkle, fette Zahlen, kräftiger Rahmen, deutliche Pfeile, Datum als Zeile */
+.hd-explore .hi-datenav .hi-btn-sm, .hd-m-explore .hi-datenav .hi-btn-sm { color: var(--ink-900, #2C2A26); border: 1.5px solid var(--steel-600, #4A6E93); font-size: 1.5rem; font-weight: 600; line-height: 1; }
+.hd-explore .hi-datenav-fields, .hd-m-explore .hi-datenav-fields { border: 1.5px solid var(--steel-600, #4A6E93); }
+.hd-explore .hi-datenav-fields .hi-thr-in, .hd-explore .hi-datenav-fields .hi-dl-month,
+.hd-m-explore .hi-datenav-fields .hi-thr-in, .hd-m-explore .hi-datenav-fields .hi-dl-month { font-size: 18px; font-weight: 700; color: var(--ink-900, #2C2A26); }
+.hd-explore .hi-year-in { width: 78px; }
+.hd-m-explore .hi-year-in { width: 72px; }
+.hd-explore .hi-datenav-label { font-size: 16px; font-weight: 600; color: var(--ink-900, #2C2A26); }
+.hd-m-explore .hi-datenav { flex-wrap: wrap; }
+.hd-m-explore .hi-datenav-label { display: block; flex-basis: 100%; text-align: center; font-size: 16px; font-weight: 600; color: var(--ink-900, #2C2A26); margin: 2px 0 0; }
 .hd-m-explore .hi-hero { border-radius: 15px; border-color: var(--hd-hot-border); padding: 18px; margin-bottom: 12px; gap: 14px; }
 .hd-m-explore .hi-hero-date { font-size: 12px; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--stone-500); }
 .hd-m-explore .hi-hero-big { font-size: 44px; font-weight: 700; letter-spacing: -1.5px; line-height: 1; }
