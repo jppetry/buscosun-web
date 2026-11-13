@@ -170,6 +170,11 @@ export default function TourResultV2(p: TourResultV2Props) {
 
   const scrubMarker = useMemo(() => (cur ? { lat: cur.lat, lon: cur.lon } : null), [cur]);
   const showTerrain = ready && p.resultMap === 'terrain';
+  // Loading (Jan 2026-11-13): while the weather is being computed the flat map is NOT mounted as a stand-in for the terrain view —
+  // it fetched its own style, sprites, fonts and vector tiles only to be thrown away seconds later. The terrain chunk is fetched
+  // right away instead, so it is there when the values arrive. Without weather values (error) the flat map shows the track.
+  const waitTerrain = busy && p.resultMap === 'terrain';
+  useEffect(() => { if (p.resultMap === 'terrain') void import('./route3d/RouteTerrainPanel').catch(() => { /* the lazy boundary reports it */ }); }, [p.resultMap]);
   const stage = (
     <div className={`te-stage${isMobile ? ' is-mobile' : ''}`}>
       {showTerrain ? (
@@ -185,6 +190,8 @@ export default function TourResultV2(p: TourResultV2Props) {
             isMobile={isMobile}
           />
         </Suspense>
+      ) : waitTerrain ? (
+        <div className="rd-mapwait te-mapbox">Gelände wird geladen …</div>
       ) : (
         <div className="rd-mapwrap te-mapbox">
           <RouteMap
