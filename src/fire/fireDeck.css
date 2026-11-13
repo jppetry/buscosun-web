@@ -1885,3 +1885,9 @@
   .br-set-card .br-basemap { gap: 4px; padding: 4px; background: var(--sand-100, #EDE6D3); border: 0; border-radius: 14px; backdrop-filter: none; -webkit-backdrop-filter: none; }
   .br-set-card .br-basemap button { flex: 1 1 0; min-height: 44px; font-size: 14px; border-radius: 11px; }
 }
+/* Jan 2026-11-13, phone: the share button sits at the right edge of the top row; the zoom buttons move below it. */
+@media (max-width: 767px) {
+  .br-m-maprow { padding-right: 0; }
+  .fire-center .maplibregl-ctrl-top-right { top: 60px; }
+  .br-map-tl > .br-views { margin-right: 49px; }
+}
