@@ -225,11 +225,23 @@
 .te-sources { margin: 18px 0 0; font-size: 12px; color: var(--stone-500); line-height: 1.5; }
 
 /* ---------- mobile shell parts (header, dock, tab bar, sheet) ---------- */
-.te-m-htext { flex: 1 1 auto; }
-.te-m-sub { font-size: 12px; color: var(--stone-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
-.te-m-plan { flex: 0 0 auto; margin-left: auto; min-height: 44px; padding: 0 15px; border: 0; border-radius: 99px; background: var(--ink-900); color: var(--rd-card); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+/* head like the mobile views of the other features: mark | subject | one action — three boxes, no continuous bar */
+.rd-m-header:has(.te-m-brand) { align-items: stretch; gap: 9px; padding-bottom: 2px; background: transparent; border-bottom: 0; }
+.te-m-brand, .te-m-plan, .te-m-htext { border: 1px solid var(--border-default); border-radius: 14px; background: var(--rd-card); box-shadow: 0 1px 2px rgba(44, 42, 38, 0.04), 0 6px 20px rgba(44, 42, 38, 0.06); }
+.te-m-brand, .te-m-plan { flex: 0 0 auto; width: 46px; min-height: 46px; display: flex; align-items: center; justify-content: center; padding: 0; color: var(--ink-900); cursor: pointer; }
+.te-m-brand:active, .te-m-plan:active { background: var(--sand-100); }
+.te-m-htext { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; justify-content: center; padding: 5px 14px; }
+.te-m-sub { font-size: 12px; color: var(--stone-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
 .te-m-dock { flex: 0 0 auto; }
 .te-m-slider { padding: 10px 16px 8px; padding-left: max(16px, env(safe-area-inset-left, 0)); padding-right: max(16px, env(safe-area-inset-right, 0)); border-radius: 20px 20px 0 0; background: var(--rd-card); border-top: 1px solid var(--border-default); box-shadow: 0 -10px 28px rgba(44, 42, 38, 0.10); }
+.te-m-slider .te-slider.rdr-timeline { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0; border: 0; background: none; }
+.te-m-slider .rdr-tl-top, .te-m-slider .rdr-tl-track { grid-column: 1 / -1; }
+.te-m-slider .rdr-tl-top { align-items: center; margin-bottom: 2px; }
+.te-m-slider .te-s-axis { display: contents; }
+.te-m-slider .te-s-axis span { grid-row: 3; }
+.te-m-slider .te-s-axis span:first-child { grid-column: 1; }
+.te-m-slider .te-s-axis span:last-child { grid-column: 3; text-align: right; }
+.te-m-slider .rdr-tl-controls { grid-column: 2; grid-row: 3; margin-top: 4px; }
 .te-tab-ic { position: relative; display: inline-flex; }
 .te-tab-badge { position: absolute; top: -4px; left: calc(100% - 8px); min-width: 16px; height: 16px; padding: 0 4px; border-radius: 99px; background: var(--terracotta-500); color: #fff; font-style: normal; font-size: 10px; font-weight: 600; line-height: 16px; text-align: center; }
 .te-tab-dot { position: absolute; top: 0; left: calc(100% - 4px); width: 9px; height: 9px; border-radius: 50%; background: var(--rd-sage-strong); }
@@ -251,12 +263,16 @@
 @media (max-width: 767px) {
   .te-tabbar .rd-m-bar-btn { flex: 1 1 0; min-width: 0; padding: 0 2px; font-size: 11px; }
   .te-m { display: flex; flex-direction: column; gap: 12px; }
-  .te-m .te-verdict { display: flex; margin-top: 0; font-size: 12.5px; white-space: nowrap; overflow: hidden; }
-  .te-m .te-verdict > span, .te-m .te-verdict > b { overflow: hidden; text-overflow: ellipsis; }
+  .te-m .te-verdict { display: block; margin-top: 0; padding: 8px 13px; font-size: 13px; line-height: 1.35; }
+  .te-m .te-verdict i { display: inline-block; margin-right: 8px; vertical-align: 1px; }
   .te-m-top { display: flex; flex-direction: column; gap: 8px; }
   .te-m-top .te-horizon, .te-m-top .te-status { margin: 0; }
   .te-m-view { display: flex; flex-direction: column; gap: 14px; }
-  .te-m-view--map .te-stage { --te-map-h: max(260px, calc(100dvh - 330px)); }
+  /* the map runs edge to edge like on the other feature pages; its height leaves room for head, verdict, dock and tab bar */
+  .te-m-view--map .te-stage { --te-map-h: max(260px, calc(100dvh - 372px)); margin: 0 -16px; }
+  .te-m .te-stage .r3-tpanel-map, .te-m .te-stage .rd-mapwrap.te-mapbox, .te-m .te-stage .rd-mapwait.te-mapbox { border-radius: 0; box-shadow: none; }
+  .te-m .te-stage .r3-tpanel-note { padding: 0 16px; }
+  .te-m .te-verdict { border-radius: 14px; }
   .te-m .te-panel, .te-m .te-card { padding: 16px; }
   .te-m .te-hero-t { font-size: 52px; }
   .te-m .te-ana { display: block; }

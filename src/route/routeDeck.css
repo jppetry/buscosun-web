@@ -825,7 +825,8 @@
 .wp-key { display: inline-block; width: 16px; height: 0; vertical-align: middle; border-top: 2px solid; }
 .wp-key.is-dashed { border-top-style: dashed; }
 .wp-key-bar { display: inline-block; width: 8px; height: 12px; border-radius: 2px; vertical-align: middle; }
-.wp-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* `display: block`: a table ignores width and overflow — as a table it was 470 px wide and made the phone page scroll sideways */
+.wp-sr { display: block; position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 @media (max-width: 767px) {
   .rd-verdict { font-size: 15px; }

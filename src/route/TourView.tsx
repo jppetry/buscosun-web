@@ -693,13 +693,18 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
       {viewToggle}
     </>
   ) : showResult && resultV2 && timing ? (
+    // Like the mobile views of the other features: the buscosun mark on the left (home), the subject in the middle, one
+    // action on the right. The action is the plan, not "Teilen": a tour lives in this browser and has no link to share.
+    // The way back to the detailed planning is the link inside the plan sheet.
     <>
-      <button type="button" className="rd-m-back" onClick={() => setWeatherRequested(false)} aria-label="Planung anpassen"><IconChevLeft /></button>
+      <button type="button" className="te-m-brand" onClick={homeFn} aria-label="Zur Startseite"><img src="/buscosun-mark.svg" width={22} height={22} alt="" /></button>
       <div className="rd-m-htext te-m-htext">
         <div className="rd-m-title">{tourName}</div>
         <div className="te-m-sub">{type ? `${type.label} · ` : ''}{formatStart(startMs)} → {clock(timing.arrivalMs)}</div>
       </div>
-      <button type="button" className="te-m-plan" onClick={() => setPlanOpen(true)} aria-haspopup="dialog">✎ Plan</button>
+      <button type="button" className="te-m-plan" onClick={() => setPlanOpen(true)} aria-haspopup="dialog" aria-label="Plan ändern" title="Plan ändern">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4Z" /><path d="M13.5 6.5l4 4" /></svg>
+      </button>
     </>
   ) : showResult ? (
     <>
@@ -731,7 +736,7 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
       right={showResult ? <DeckLive /> : undefined}
       mobileHeader={mobileHeader}
       contentClass={showResult ? 'rd-content--result' : deckScreen ? 'rd-content--deck' : undefined}
-      step={showResult ? 3 : type ? 2 : 1}
+      step={isMobile && showResult && resultV2 && !in3d ? undefined : showResult ? 3 : type ? 2 : 1}
       mobileBar={showResult && !in3d && resultV2 ? (
         <>
           <div ref={setDockEl} className="te-m-dock" />
