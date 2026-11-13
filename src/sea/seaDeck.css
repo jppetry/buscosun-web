@@ -88,6 +88,9 @@
 .sw-dock-label { display: block; margin-bottom: 6px; }
 .sw-search { display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 9px; padding: 0 10px; height: 36px; }
 .sw-search input { border: 0; outline: none; background: transparent; font-size: 15px; color: var(--ink-900, #2C2A26); width: 100%; min-width: 0; }
+/* The focus ring belongs to the rounded field, not to the bare input inside it (the generic .sw-root input ring drew a square frame). */
+.sw-root .sw-search input:focus-visible { outline: none; }
+.sw-search:focus-within { border-color: var(--sw-accent, #0F6E7A); box-shadow: 0 0 0 3px color-mix(in srgb, var(--sw-accent, #0F6E7A) 16%, transparent); }
 .sw-dock-revier { margin-top: 10px; }
 .sw-dock-revier button.is-active { background: var(--ink-900, #2C2A26); }
 .sw-dock-head { display: flex; align-items: center; justify-content: space-between; margin: 16px 0 8px; }
