@@ -230,6 +230,9 @@
 .te-m-brand, .te-m-plan, .te-m-htext { border: 1px solid var(--border-default); border-radius: 14px; background: var(--rd-card); box-shadow: 0 1px 2px rgba(44, 42, 38, 0.04), 0 6px 20px rgba(44, 42, 38, 0.06); }
 .te-m-brand, .te-m-plan { flex: 0 0 auto; width: 46px; min-height: 46px; display: flex; align-items: center; justify-content: center; padding: 0; color: var(--ink-900); cursor: pointer; }
 .te-m-brand:active, .te-m-plan:active { background: var(--sand-100); }
+/* two actions on the right (plan, share): a little narrower so the tour name keeps its room */
+.rd-m-header:has(.te-m-share) { gap: 7px; }
+.rd-m-header:has(.te-m-share) .te-m-plan { width: 44px; }
 .te-m-htext { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; justify-content: center; padding: 5px 14px; }
 .te-m-sub { font-size: 12px; color: var(--stone-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
 .te-m-dock { flex: 0 0 auto; }

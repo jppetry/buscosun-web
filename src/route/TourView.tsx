@@ -309,6 +309,29 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
 
   /* ===== Phase TE: new result view behind `?tourv=2` (audit/tour-ergebnis.md) ===== */
   const [tab, setTab] = useState<ResultTab>('map');
+  /**
+   * "Teilen" in the mobile head of the result. A tour has no link (the track lives in this browser, a GPX fits no URL —
+   * a shared link would open an empty planner), so what is shared is the plan in words: name, time, distance and the
+   * verdict of the fresh weather — like the report of the 3D view. Native share sheet first, the clipboard as fallback.
+   */
+  const [shareDone, setShareDone] = useState(false);
+  const shareTour = async () => {
+    if (!timing) return;
+    const lines = [
+      tourName,
+      `${type ? `${type.label} · ` : ''}${formatStart(startMs)} → ${clock(timing.arrivalMs)} (${formatHM(timing.totalSec)})`,
+      `${distKm} km${eff.meta.elevationAvailable ? ` · ${eff.meta.ascentM} hm hoch` : ''}`,
+      ...(wxFresh && verdict ? [`${verdict.lead}${verdict.rest ? ` ${verdict.rest}` : ''}`] : []),
+      'Wetter entlang der Route: buscosun.com/tourenplanung',
+    ];
+    const text = lines.join('\n');
+    try {
+      if (navigator.share) { await navigator.share({ text }); return; }
+      await navigator.clipboard.writeText(text);
+      setShareDone(true);
+      window.setTimeout(() => setShareDone(false), 2000);
+    } catch { /* cancelled or refused — a cancel is a decision, not a failure */ }
+  };
   const [planOpen, setPlanOpen] = useState(false);
   const [dockEl, setDockEl] = useState<HTMLDivElement | null>(null);
   const v2Badges = useMemo(() => {
@@ -694,7 +717,7 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
     </>
   ) : showResult && resultV2 && timing ? (
     // Like the mobile views of the other features: the buscosun mark on the left (home), the subject in the middle, one
-    // action on the right. The action is the plan, not "Teilen": a tour lives in this browser and has no link to share.
+    // actions on the right: the plan and "Teilen" (the plan in words — a tour has no link, see `shareTour`).
     // The way back to the detailed planning is the link inside the plan sheet.
     <>
       <button type="button" className="te-m-brand" onClick={homeFn} aria-label="Zur Startseite"><img src="/buscosun-mark.svg" width={22} height={22} alt="" /></button>
@@ -704,6 +727,16 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
       </div>
       <button type="button" className="te-m-plan" onClick={() => setPlanOpen(true)} aria-haspopup="dialog" aria-label="Plan ändern" title="Plan ändern">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4Z" /><path d="M13.5 6.5l4 4" /></svg>
+      </button>
+      <button type="button" className="te-m-plan te-m-share" onClick={() => { void shareTour(); }} aria-label={shareDone ? 'Tour in die Zwischenablage kopiert' : 'Tour teilen'} title="Tour teilen">
+        {shareDone ? (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+        ) : (
+          <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="15" cy="4.5" r="2.2" /><circle cx="5" cy="10" r="2.2" /><circle cx="15" cy="15.5" r="2.2" />
+            <line x1="6.95" y1="8.95" x2="13.05" y2="5.55" /><line x1="6.95" y1="11.05" x2="13.05" y2="14.45" />
+          </svg>
+        )}
       </button>
     </>
   ) : showResult ? (
