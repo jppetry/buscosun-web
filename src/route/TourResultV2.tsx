@@ -210,7 +210,7 @@ export default function TourResultV2(p: TourResultV2Props) {
       </div>
       {p.viewToggle && <div className="te-ov te-ov--tr te-glass-wrap" title="3D zeigt Wind, Regen und Wolkenbasis über dem Höhenprofil — Strecke und Zeit bleiben erhalten.">{p.viewToggle}</div>}
       {!ready && <div className="te-stage-wait" role="status">{errorMsg ? 'Ohne Wetterwerte — nur die Strecke.' : 'Wetter wird für diesen Plan gerechnet …'}</div>}
-      {!isMobile && <div className="te-slider-wrap te-glass">{slider}</div>}
+      {!isMobile && <div className="te-slider-wrap">{slider}</div>}
     </div>
   );
 

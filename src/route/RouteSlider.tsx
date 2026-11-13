@@ -14,9 +14,12 @@ import type { Milestone, SampleETA } from './tourTiming';
 import type { TourPoint } from './tourTrack';
 import { nearestSampleIndex, TOUR_WET_MMH, windRelationAt, WIND_REL_COLOR, type WeatherChange } from './tourResultModel';
 import { clock } from './tourUi';
-import { IconPause, IconPlay } from './routeIcons';
+// Look of the Regenradar time line (radar/RadarTimeline): the same classes and icons, so both stay alike.
+import { IconPause, IconPlay, IconStepBack, IconStepForward } from '../radar/radarIcons';
+import '../radar/radar.css';
 
-const VW = 1000, VH = 64, BAND_H = 5, PROF_T = 14, PROF_B = 52;
+/** Profile zone in viewBox units (drawn 44 px high like the rain profile of the radar); the wind band is the 6 px base line. */
+const VW = 1000, VH = 100, PROF_T = 8, PROF_B = 100;
 /** Play steps one sample per tick (ms). */
 const PLAY_TICK_MS = 160;
 
@@ -61,10 +64,10 @@ function RouteSlider({ samples, wx, points, milestones, events, idx, onIdx, comp
         const a = x(i > 0 ? (wx[i - 1].dist + s.dist) / 2 : d0);
         const b = x(i < wx.length - 1 ? (s.dist + wx[i + 1].dist) / 2 : d1);
         const r = windRelationAt(s, points);
-        band.push(<rect key={`b${i}`} x={a} y={0} width={Math.max(0.6, b - a + 0.4)} height={BAND_H} fill={r ? WIND_REL_COLOR[r.rel] : 'var(--sand-200, #E0D6BE)'} />);
+        band.push(<rect key={`b${i}`} x={a} y={0} width={Math.max(0.6, b - a + 0.4)} height={10} fill={r ? WIND_REL_COLOR[r.rel] : 'var(--sand-200, #E0D6BE)'} />);
         const mm = s.weather?.precipitationMmH;
         if (mm != null && mm >= TOUR_WET_MMH) {
-          rain.push(<rect key={`r${i}`} x={a} y={PROF_T - 2} width={Math.max(0.6, b - a + 0.4)} height={PROF_B - PROF_T + 2} fill="var(--steel-600, #3A6FA8)" opacity={Math.min(0.42, 0.14 + mm * 0.18)} />);
+          rain.push(<rect key={`r${i}`} x={a} y={0} width={Math.max(0.6, b - a + 0.4)} height={VH} fill="var(--steel-600, #3A6FA8)" opacity={Math.min(0.42, 0.14 + mm * 0.18)} />);
         }
       });
     }
@@ -73,15 +76,26 @@ function RouteSlider({ samples, wx, points, milestones, events, idx, onIdx, comp
     const area = line ? `${line}L${VW} ${PROF_B} L0 ${PROF_B} Z` : '';
     const breaks = milestones.filter((m) => m.kind === 'rest' || m.kind === 'meal' || m.kind === 'custom');
     return (
-      <svg viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="none" aria-hidden="true">
-        {band}
-        {rain}
-        {area && <path d={area} fill="rgba(201, 123, 71, 0.16)" />}
-        {line && <path d={line} fill="none" stroke="var(--terracotta-500, #C97B47)" strokeWidth={1.8} vectorEffect="non-scaling-stroke" />}
-        {breaks.map((m, i) => (
-          <line key={`p${i}`} x1={x(m.dist)} x2={x(m.dist)} y1={PROF_T} y2={PROF_B} stroke="var(--stone-600, #5C5447)" strokeDasharray="2 3" vectorEffect="non-scaling-stroke" />
-        ))}
-      </svg>
+      <>
+        <svg className="rdr-tl-profile" viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="teSlElev" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#C97B47" stopOpacity="0.5" />
+              <stop offset="1" stopColor="#C97B47" stopOpacity="0.04" />
+            </linearGradient>
+          </defs>
+          {rain}
+          {area && <path d={area} fill="url(#teSlElev)" />}
+          {line && <path d={line} fill="none" stroke="var(--terracotta-700, #A85E2E)" strokeWidth={2} vectorEffect="non-scaling-stroke" />}
+          {breaks.map((m, i) => (
+            <line key={`p${i}`} x1={x(m.dist)} x2={x(m.dist)} y1={0} y2={VH} stroke="var(--stone-600, #5C5447)" strokeDasharray="2 3" vectorEffect="non-scaling-stroke" />
+          ))}
+        </svg>
+        {/* base line like the measured/forecast strip of the radar — here it carries the wind relation */}
+        <svg className="te-band" viewBox={`0 0 ${VW} 10`} preserveAspectRatio="none" aria-hidden="true">
+          {band.length ? band : <rect x={0} y={0} width={VW} height={10} fill="var(--sand-200, #E0D6BE)" />}
+        </svg>
+      </>
     );
   }, [samples, wx, points, milestones, n, x, d0, d1]);
 
@@ -124,20 +138,18 @@ function RouteSlider({ samples, wx, points, milestones, events, idx, onIdx, comp
   const left = `${(x(cur.dist) / VW) * 100}%`;
 
   return (
-    <div className={`te-slider${compact ? ' is-compact' : ''}`}>
-      <div className="te-s-head">
-        <div className="te-s-readout">{readout}</div>
-        <div className="te-s-btns">
-          <button type="button" className="te-ib" aria-label="Vorheriger Punkt" onClick={() => { setPlaying(false); onIdx(Math.max(0, idx - 1)); }}>‹</button>
-          <button type="button" className="te-ib te-ib--play" aria-label={playing ? 'Anhalten' : 'Tour abspielen'} aria-pressed={playing} onClick={() => setPlaying((p) => !p)}>
-            {playing ? <IconPause size={16} /> : <IconPlay size={16} />}
-          </button>
-          <button type="button" className="te-ib" aria-label="Nächster Punkt" onClick={() => { setPlaying(false); onIdx(Math.min(n - 1, idx + 1)); }}>›</button>
+    <div className={`te-slider rdr-timeline${compact ? ' is-compact' : ''}`}>
+      <div className="rdr-tl-top">
+        <div className="rdr-tl-stamp">
+          <strong>{clock(cur.etaMs)}</strong>
+          <span className="rdr-tl-status is-fc">km {kmStr(cur.dist)} von {kmStr(d1)}{Number.isFinite(cur.ele) ? ` · ${Math.round(cur.ele)} m` : ''}</span>
         </div>
+        {/* Desktop: the stamp carries km, time and elevation (what the readout said); mobile keeps its value readout. */}
+        {compact && <div className="te-s-readout">{readout}</div>}
       </div>
       <div
         ref={trackRef}
-        className="te-track"
+        className="rdr-tl-track te-track"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         title="Werte gelten für den nächstgelegenen Rechenpunkt der Strecke — zwischen den Punkten wird nicht interpoliert."
@@ -146,7 +158,7 @@ function RouteSlider({ samples, wx, points, milestones, events, idx, onIdx, comp
         {wx && events.map((e, i) => (
           <span key={i} className="te-evm" style={{ left: `${(x(e.dist) / VW) * 100}%` }} title={`${clock(e.etaMs)} · km ${kmStr(e.dist)}: ${e.text}`} />
         ))}
-        <span className="te-thumb" style={{ left }} aria-hidden="true"><i className="te-thumb-ln" /><i className="te-thumb-kn" /></span>
+        <span className="rdr-tl-thumb" style={{ left }} aria-hidden="true" />
         <input
           type="range"
           className="te-range"
@@ -161,6 +173,13 @@ function RouteSlider({ samples, wx, points, milestones, events, idx, onIdx, comp
       </div>
       <div className="te-s-axis">
         {axis.map((s, i) => <span key={i}>{clock(s.etaMs)} · {kmStr(s.dist)} km</span>)}
+      </div>
+      <div className="rdr-tl-controls">
+        <button type="button" className="rdr-tl-btn" title="Vorheriger Punkt" aria-label="Vorheriger Punkt" onClick={() => { setPlaying(false); onIdx(Math.max(0, idx - 1)); }}><IconStepBack size={16} /></button>
+        <button type="button" className="rdr-tl-btn rdr-tl-play" title={playing ? 'Anhalten' : 'Tour abspielen'} aria-label={playing ? 'Anhalten' : 'Tour abspielen'} aria-pressed={playing} onClick={() => setPlaying((p) => !p)}>
+          {playing ? <IconPause size={16} /> : <IconPlay size={16} />}
+        </button>
+        <button type="button" className="rdr-tl-btn" title="Nächster Punkt" aria-label="Nächster Punkt" onClick={() => { setPlaying(false); onIdx(Math.min(n - 1, idx + 1)); }}><IconStepForward size={16} /></button>
       </div>
     </div>
   );
