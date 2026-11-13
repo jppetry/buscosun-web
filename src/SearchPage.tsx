@@ -332,7 +332,9 @@ const TILE_NOWCAST = (
       <div className="tile-title tile-title-sm">Regnet es in 40 Min?</div>
       {/* D-14: radar-only. Die Modellhälfte 2–12 h wurde mit N1 entfernt —
           der Text versprach sie weiterhin. */}
-      <p className="tile-desc sm">Gemessenes Radar: jetzt bis 2 h. Blitz- &amp; Sturm-Alerts, alpine Tal/Grat-Trennung.</p>
+      {/* Jan 2026-11-13: text follows what /regenradar shows today (5-min frames with look-back and +2 h in all three
+          countries, rain start at the place, lightning, storm cells with arrival window). */}
+      <p className="tile-desc sm">Radar in 5-Minuten-Bildern, 2 h zurück und 2 h voraus in DE, AT und CH. Regenbeginn am Ort, Blitze, Gewitterzellen mit Ankunftszeit.</p>
     </div>
   </>
 );
