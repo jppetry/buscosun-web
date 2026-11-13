@@ -11,11 +11,16 @@ import { parseCountry } from './countryProfiles';
 export function nominatimToLocation(r: NominatimResult): Location | null {
   const country = parseCountry(r.address?.country_code);
   if (!country) return null;
+  const bb = r.boundingbox?.map(Number);
+  const bbox = bb && bb.length === 4 && bb.every(Number.isFinite) && bb[1] > bb[0] && bb[3] > bb[2]
+    ? [bb[2], bb[0], bb[3], bb[1]] as [number, number, number, number]
+    : undefined;
   return {
     name: r.display_name,
     lat: parseFloat(r.lat),
     lon: parseFloat(r.lon),
     country,
+    ...(bbox ? { bbox } : {}),
   };
 }
 
@@ -36,6 +41,8 @@ export async function geocodeDACH(query: string, signal?: AbortSignal): Promise<
 interface PhotonFeature {
   geometry?: { coordinates?: [number, number] };
   properties?: {
+    /** Photon order: [minLon, maxLat, maxLon, minLat]; only on areas. */
+    extent?: [number, number, number, number];
     osm_id?: number; name?: string; street?: string; housenumber?: string; postcode?: string;
     city?: string; district?: string; locality?: string; county?: string; state?: string; country?: string; countrycode?: string;
   };
@@ -69,7 +76,8 @@ export async function suggestDACH(query: string, signal?: AbortSignal): Promise<
     const display = [head, place || null, p.state, p.country].filter(Boolean).join(', ');
     if (seen.has(display)) continue;
     seen.add(display);
-    out.push({ display_name: display, lat: String(c[1]), lon: String(c[0]), place_id: p.osm_id ?? out.length, address: { country_code: cc } });
+    out.push({ display_name: display, lat: String(c[1]), lon: String(c[0]), place_id: p.osm_id ?? out.length, address: { country_code: cc },
+      ...(p.extent?.length === 4 ? { boundingbox: [String(p.extent[3]), String(p.extent[1]), String(p.extent[0]), String(p.extent[2])] as [string, string, string, string] } : {}) });
   }
   return out;
 }

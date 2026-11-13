@@ -2786,8 +2786,25 @@ export default function MapView({
     // country-default overview already framed the area on first load, and
     // when the user navigates from one location to another we don't want
     // their zoom level reset on every search.
+    // (Jan 2026-11-13: the deck search moves the camera itself, `onDeckSearchSelect`; a location that arrives over the
+    // route — link, back button — still leaves the camera alone.)
+    if (overview) { if (!profile) { markerRef.current?.remove(); markerRef.current = null; } return; }
     if (markerRef.current) markerRef.current.setLngLat([location.lon, location.lat]);
-  }, [location.lat, location.lon]);
+    else if (!profile) markerRef.current = new maplibregl.Marker({ color: '#4a7dff' }).setLngLat([location.lon, location.lat]).addTo(map);
+  }, [location.lat, location.lon, overview, profile]);
+
+  // Jan 2026-11-13: a hit of the deck search frames the map on it — a region on its extent, a place on a town-level zoom.
+  const onDeckSearchSelect = useCallback((l: Location) => {
+    const map = mapRef.current;
+    if (map) {
+      const narrow = map.getContainer().clientWidth < 768;
+      // Same free edges as the DACH overview: time deck / bottom sheet below, search bar above.
+      const padding = narrow ? { top: 70, bottom: 190, left: 14, right: 14 } : { top: 58, bottom: 130, left: 34, right: 34 };
+      if (l.bbox) map.fitBounds([[l.bbox[0], l.bbox[1]], [l.bbox[2], l.bbox[3]]], { padding, maxZoom: SEARCH_PLACE_ZOOM, duration: 900 });
+      else map.flyTo({ center: [l.lon, l.lat], zoom: SEARCH_PLACE_ZOOM, duration: 900 });
+    }
+    onSelectLocation?.(l);
+  }, [onSelectLocation]);
 
   // Re-fetch the forecast whenever the user picks a different model in the
   // selector — the load function is held in a ref so the heavy map-setup
@@ -5850,7 +5867,7 @@ export default function MapView({
           </button>
           {onOpenDashboard && <ViewToggle active="karte" onSelect={(v) => { if (v === 'dashboard') onOpenDashboard(); }} />}
           <span className="mdk-topdiv" aria-hidden="true" />
-          <DeckSearch placeholder={overview ? 'Deutschland · Österreich · Schweiz' : location.name} onSelect={onSelectLocation} />
+          <DeckSearch placeholder={overview ? 'Deutschland · Österreich · Schweiz' : location.name} onSelect={onDeckSearchSelect} />
           {MODEL_SWITCHER_VISIBLE && (
             <div className="mdk-countries" role="tablist" aria-label="Land (Modellwahl)">
               {(['DE', 'AT', 'CH'] as Country[]).map(c => (
@@ -5980,7 +5997,7 @@ export default function MapView({
                 <button type="button" className="mdk-m-brand" aria-label="Zur Startseite" onClick={onBack}>
                   <img src="/buscosun-mark.svg" width={22} height={22} alt="" />
                 </button>
-                <DeckSearch placeholder={overview ? 'Ort suchen …' : location.name} onSelect={onSelectLocation} compact />
+                <DeckSearch placeholder={overview ? 'Ort suchen …' : location.name} onSelect={onDeckSearchSelect} compact />
                 {MODEL_SWITCHER_VISIBLE && (
                   <div style={{ position: 'relative', flex: '0 0 auto' }}>
                     <button
@@ -6321,6 +6338,9 @@ const READOUT_ORDER: LayerKey[] = (() => {
   const docked = DECK_GROUPS.flatMap(g => g.layers.map(l => l.key));
   return [...docked, ...LAYER_OPTIONS.map(o => o.key).filter(k => !docked.includes(k))];
 })();
+
+/** Zoom of a search hit without an extent, and the closest zoom for one with an extent (town level). */
+const SEARCH_PLACE_ZOOM = 10;
 
 /** Ortssuche im Deck-Kopf (Desktop-Topbar + mobiler Float) — geocodeDACH,
  *  Enter sucht, Auswahl setzt die Karten-Location (App.tsx). ⌘K fokussiert. */

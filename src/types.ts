@@ -7,6 +7,8 @@ export interface Location {
   lon: number;
   /** Country derived from Nominatim's address.country_code (uppercased). */
   country: Country;
+  /** Extent of the hit [west, south, east, north] when the geocoder gives one (regions, towns). Only set on fresh search hits — not kept in the URL. */
+  bbox?: [number, number, number, number];
 }
 
 export interface NominatimResult {
@@ -15,4 +17,6 @@ export interface NominatimResult {
   lon: string;
   place_id: number;
   address?: { country_code?: string };
+  /** Nominatim order: [south, north, west, east], as strings. */
+  boundingbox?: [string, string, string, string];
 }
