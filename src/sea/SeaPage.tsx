@@ -420,7 +420,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   const sourceTile = <MapSourcesTile title="Quellen des Seewetters" groups={sourceGroups} ready={pageShown} />;
   const liveTone = !runLoad ? 'loading' : noData ? 'none' : freshness === 'stale' ? 'stale' : 'live';
   // Desktop: the hourly band lives in the dossier now, so the map foot is free (was 250 px for the band).
-  const padding = isMobile ? { top: 130, bottom: 440, left: 24, right: 24 } : { top: 110, bottom: 40, left: 40, right: 230 };
+  const padding = isMobile ? { top: 76, bottom: 440, left: 24, right: 24 } : { top: 110, bottom: 40, left: 40, right: 230 };
   const fieldNote = fStep != null && fStep !== lead ? ` · Karte zeigt +${fStep} h (${fKind === 'c' ? 'Komponenten' : 'ab 48 h'} dreistündlich)` : '';
 
   // --- pieces -----------------------------------------------------------------------------------------------
@@ -515,10 +515,9 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
           <MapGestureHint map={mapInst} feature="seewetter" subject="sea" accent="#0F6E7A" pickSpots={hintSpots} always enabled={mobTab === 'map'} />
           <div className="sw-m-top">
             <button type="button" className="sw-m-brand" aria-label="Zur Startseite" onClick={nav.goHome}><img src="/buscosun-mark.svg" width={22} height={22} alt="" /></button>
-            <div style={{ flex: 1 }} />
+            <div className="sw-m-times">{chips}</div>
             <ShareButton className="sw-m-share" compact />
           </div>
-          <div className="sw-m-times">{chips}</div>
           <div className="sw-m-legend"><div className="sw-legend-ramp" style={{ background: cssGradient(layer === 'per' ? PER_STOPS : HS_STOPS) }} /><div className="sw-legend-ticks"><span>0</span><span>{layer === 'per' ? '6' : '3'}</span><span>{layer === 'per' ? '12 s' : '6 m'}</span></div></div>
           {emptyMap}{catFail}
           {cardEl && <div className="sw-map-card">{cardEl}</div>}
