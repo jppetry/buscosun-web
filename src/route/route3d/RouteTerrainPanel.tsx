@@ -23,7 +23,6 @@ import {
   NO_INVERSION_NOTE, type TerrainLayerFlags,
 } from './routeSection';
 import RouteTerrainMap from './RouteTerrainMap';
-import { TerrainChipButton } from './Route3DView';
 import './route3d.css';
 
 interface Props {
@@ -60,6 +59,8 @@ export default function RouteTerrainPanel({
   );
 
   const toggle = (k: keyof TerrainLayerFlags) => setTLayers((p) => ({ ...p, [k]: !p[k] }));
+  const [lyrOpen, setLyrOpen] = useState(false);
+  const activeCount = chips.filter((c) => tLayers[c.key]).length;
 
   if (!routeSection) {
     return (
@@ -89,20 +90,38 @@ export default function RouteTerrainPanel({
           onPickDist={onPickDist}
           isMobile={isMobile}
         />
-      </div>
-
-      <div className="r3-chiprow r3-tpanel-chips">
-        <div className="r3-chips" role="group" aria-label="Ebenen der Gelände-Ansicht">
-          <span className="r3-chipgrp">Am Boden</span>
-          {chips.filter((c) => c.group === 'ground').map((c) => (
-            <TerrainChipButton key={c.key} chip={c} on={tLayers[c.key]} onToggle={toggle} />
-          ))}
-          <span className="r3-chipgrp">In der Luft</span>
-          {chips.filter((c) => c.group === 'air').map((c) => (
-            <TerrainChipButton key={c.key} chip={c} on={tLayers[c.key]} onToggle={toggle} />
-          ))}
-        </div>
-        <span className="r3-res" title={resolutionNote(terrain)}>Auflösung {resolutionChip(terrain)}</span>
+        {/* Ebenen als Layer-Panel wie in den anderen Ansichten: Desktop links am Kartenrand, mobil in der unteren Leiste. */}
+        {isMobile && (
+          <button type="button" className="r3-lyr-bar r3-lyr-glass" aria-expanded={lyrOpen} aria-controls="r3-lyr-sheet" onClick={() => setLyrOpen((v) => !v)}>
+            <span className="r3-lyr-bar-t">Ebenen</span>
+            <span className="r3-lyr-bar-n">{activeCount} an</span>
+            <span className="r3-lyr-bar-c" aria-hidden="true">{lyrOpen ? '▾' : '▴'}</span>
+          </button>
+        )}
+        {(!isMobile || lyrOpen) && (
+          <div id="r3-lyr-sheet" className={`r3-lyr r3-lyr-glass${isMobile ? ' is-sheet' : ''}`} role="group" aria-label="Ebenen der Gelände-Ansicht">
+            {(['ground', 'air'] as const).map((g) => (
+              <div key={g} className="r3-lyr-group">
+                <span className="r3-lyr-grp">{g === 'ground' ? 'Am Boden' : 'In der Luft'}</span>
+                {chips.filter((c) => c.group === g).map((c) => (
+                  <button
+                    key={c.key}
+                    type="button"
+                    className={`r3-lyr-item${tLayers[c.key] ? ' is-on' : ''}${c.ok ? '' : ' is-empty'}`}
+                    aria-pressed={tLayers[c.key]}
+                    title={c.ok ? undefined : c.note}
+                    disabled={c.disabled === true}
+                    onClick={() => toggle(c.key)}
+                  >
+                    <span className="r3-lyr-dot" style={{ background: c.dot }} />
+                    <span className="r3-lyr-lab">{c.label}{!c.ok && <small>{c.empty ?? 'ohne Daten'}</small>}</span>
+                  </button>
+                ))}
+              </div>
+            ))}
+            <span className="r3-lyr-res" title={resolutionNote(terrain)}>Auflösung {resolutionChip(terrain)}</span>
+          </div>
+        )}
       </div>
 
       <p className="r3-tpanel-note">

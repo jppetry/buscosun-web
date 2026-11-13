@@ -693,3 +693,26 @@
   .r3-report-main, .r3-report-print { min-height: 44px; flex: 1 1 auto; }
   .r3-status-word { font-size: 19px; }
 }
+
+/* Ebenen-Panel der Gelände-Ansicht (RouteTerrainPanel): Desktop links am Kartenrand, mobil Leiste unten + Sheet. */
+.r3-lyr-glass { background: rgba(250, 246, 234, 0.88); backdrop-filter: blur(12px) saturate(1.2); -webkit-backdrop-filter: blur(12px) saturate(1.2); border: 1px solid rgba(255, 255, 255, 0.55); box-shadow: 0 1px 2px rgba(44, 42, 38, 0.06), 0 8px 24px rgba(44, 42, 38, 0.14); }
+.r3-lyr { position: absolute; left: 14px; top: 64px; z-index: 6; width: 232px; max-height: calc(100% - 150px); overflow-y: auto; border-radius: 14px; padding: 8px; display: flex; flex-direction: column; gap: 6px; scrollbar-width: thin; }
+.r3-lyr-group { display: flex; flex-direction: column; gap: 2px; }
+.r3-lyr-grp { padding: 4px 8px 2px; font-size: 10.5px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--stone-500); }
+.r3-lyr-item { display: flex; align-items: center; gap: 9px; width: 100%; min-height: 40px; padding: 6px 8px; border: none; border-radius: 10px; background: transparent; color: var(--ink-900); font: inherit; font-size: 13.5px; line-height: 1.25; text-align: left; cursor: pointer; transition: background 0.12s; }
+.r3-lyr-item:hover:not(:disabled) { background: rgba(44, 42, 38, 0.07); }
+.r3-lyr-item.is-on { background: var(--ink-900); color: #fff; }
+.r3-lyr-item.is-empty { opacity: 0.62; }
+.r3-lyr-item:disabled { cursor: not-allowed; opacity: 0.45; }
+.r3-lyr-dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
+.r3-lyr-lab { display: flex; flex-direction: column; min-width: 0; }
+.r3-lyr-lab small { font-size: 11px; font-weight: 600; opacity: 0.8; }
+.r3-lyr-res { padding: 2px 8px 0; font-size: 11px; color: var(--stone-500); }
+.r3-lyr-bar { display: none; }
+@media (max-width: 767px) {
+  .r3-lyr-bar { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 7; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border-radius: 14px; font: inherit; font-size: 14px; font-weight: 600; color: var(--ink-900); cursor: pointer; }
+  .r3-lyr-bar-n { color: var(--stone-500); font-weight: 500; }
+  .r3-lyr-bar-c { margin-left: auto; }
+  .r3-lyr.is-sheet { left: 10px; right: 10px; top: auto; bottom: 62px; width: auto; max-height: calc(100% - 80px); }
+  .r3-lyr.is-sheet .r3-lyr-item { min-height: 44px; }
+}
