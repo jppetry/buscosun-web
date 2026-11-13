@@ -1307,7 +1307,8 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
           <a href={fallbackUrl} target="_blank" rel="noopener">Im Copernicus Browser öffnen</a>
         </p>
       )}
-      {hasBands && modes.length > 1 && (
+      {/* Jan 2026-11-13: on mobile the mode buttons only show in the enlarged view — the inline window is too small for them. */}
+      {hasBands && modes.length > 1 && (full || !isMobile) && (
         <div className="br-cog-mode" role="group" aria-label="Darstellung der 10-m-Ansicht">
           {modes.map((k) => (
             <button
