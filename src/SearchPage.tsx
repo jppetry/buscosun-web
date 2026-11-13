@@ -289,8 +289,9 @@ function HeroQuad({ activeCat, onOpenFeature }: { activeCat: 'alle' | Category; 
   return (
     <div className="deck-quad" aria-label="Werkzeuge · Waldbrand, Nowcast, Gletscher">
       {tile(['erkunden'], 'tile-fire q-tile', FEATURE.fire, 'Brandradar öffnen', TILE_FIRE)}
-      {tile(['radar'], 'tile-nowcast q-tile', FEATURE.nowcast, 'Regenradar / Nowcast öffnen', TILE_NOWCAST)}
+      {/* Jan 2026-11-13: Gletscher and Regenradar swapped places (all widths; narrow widths via `order` in SearchPage.css). */}
       {glacierFlagFrom() && tile(['planen'], 'tile-glacier q-tile', FEATURE.glacier, 'Gletscherbericht öffnen', TILE_GLACIER)}
+      {tile(['radar'], 'tile-nowcast q-tile', FEATURE.nowcast, 'Regenradar / Nowcast öffnen', TILE_NOWCAST)}
     </div>
   );
 }
@@ -778,6 +779,9 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
           </div>
         </>)}
 
+      {/* Jan 2026-11-13: Vertikalschnitt and Feedback swapped places. */}
+      {threedTile}{historyTile}
+
       {/* 09 · FEEDBACK (an Stelle des Mock-Tiles „KI-Meteorologe") — dunkel, span 2 */}
       {tile([], 'tile-feedback t-half t-ink2', FEATURE.feedback, 'Feedback geben',
         <>
@@ -794,7 +798,6 @@ function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | C
           <span className="tile-badge badge-mono-ghost">E-MAIL</span>
         </>)}
 
-      {historyTile}{threedTile}
 
       {/* 10 · WALDBRAND steht seit 2026-10-03 (Jan) links neben dem Regenradar: auf Desktop im
           Hero (HeroQuad), auf ≤1024 px im narrow-Block oben (TILE_FIRE). */}

@@ -831,8 +831,9 @@
 
   .deck-bento { grid-template-columns: repeat(3, 1fr); }
   /* Reihenfolge exakt wie tablet.dc.html: karte, nowcast, vorhersage, tour, event, historie, 3d, globus, feedback */
+  /* Jan 2026-11-13: Gletscher <-> Regenradar and Vertikalschnitt <-> Feedback swapped. */
   .tile-karte   { order: 1; }
-  .tile-nowcast { order: 2; }
+  .tile-glacier { order: 2; }
   .tile-forecast{ order: 3; }
   /* Waldbrand (seit 2026-10-03 eine normale Kachel) steht direkt unter der Karten-Reihe vor den
      Planungswerkzeugen; Raster 3 Spalten: 3+3+3+3+3 Zellen (Feedback unten über 2 Spalten). */
@@ -843,12 +844,12 @@
   /* Tablet (Jan 04.11.): Gletscher · Autobahn · Seewetter sind dieselben kompakten Kacheln wie auf Handy und Desktop (die alten
      Vollbreiten-Kacheln mit Tags und Vorschaukarte entfallen). Raster mit 3 Spalten, jede Reihe geht auf:
      Karte (2×2) | Regenradar · Waldbrand — Tour (2) | Historie — Gletscher · Autobahn · See — 3D-Wetter · Globus · Feedback. */
-  .tile-glacier { order: 8; }
+  .tile-nowcast { order: 8; }
   .tile-road    { order: 9; }
   .tile-coast   { order: 10; }
-  .tile-threed  { order: 11; }
+  .tile-feedback{ order: 11; }
   .tile-globus  { order: 12; }
-  .tile-feedback{ order: 13; }
+  .tile-threed  { order: 13; }
   /* Tablet-Spans: alles außer Karte und Tour eine Spalte */
   .tile-event, .tile-history, .tile-glacier, .tile-road, .tile-coast, .tile-threed, .tile-globus, .tile-feedback { grid-column: span 1; }
   .tile-glacier, .tile-road, .tile-coast { min-height: 230px; }
@@ -917,16 +918,17 @@
      Gletscher|Autobahn · See|Globus · Historie|3D-Wetter, zuletzt Feedback. Texte werden nicht gekürzt (Ehrlichkeitshinweise bleiben). */
   .tile-fire, .tile-nowcast, .tile-glacier, .tile-road, .tile-coast, .tile-globus, .tile-history, .tile-threed { padding: 14px; border-radius: 16px; }
   .tile-karte { order: 1; }
+  /* Jan 2026-11-13: Gletscher <-> Regenradar swapped; Feedback (full width) moved ahead of the pair Historie | Vertikalschnitt, which is now last. */
   .tile-fire { order: 2; }
-  .tile-nowcast { order: 3; }
+  .tile-glacier { order: 3; }
   .tile-tour { order: 4; }
-  .tile-glacier { order: 5; }
+  .tile-nowcast { order: 5; }
   .tile-road { order: 6; }
   .tile-coast { order: 7; }
   .tile-globus { order: 8; }
-  .tile-history { order: 9; }
-  .tile-threed { order: 10; }
-  .tile-feedback { order: 11; }
+  .tile-feedback { order: 9; }
+  .tile-history { order: 10; }
+  .tile-threed { order: 11; }
   .tile-threed .tile-head { flex-wrap: wrap; gap: 4px 8px; }
   /* Vertikalschnitt glyph: the fixed 52 px height squashed the 220 × 70 drawing (preserveAspectRatio none) on the narrow half tile — keep its own ratio. */
   .tile-threed .tile-terrain-svg { height: auto; aspect-ratio: 220 / 70; margin-bottom: 14px; }   /* air between the glyph and the title */
