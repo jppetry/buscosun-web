@@ -160,7 +160,7 @@ export function TabLangzeit({ g, area, length, lengthTotal, proj, compareYear, c
         <button type="button" className="gl-btn" disabled={!hasSeries} onClick={onCsv} title={hasSeries ? 'Längen-, Bilanz- und Flächenreihen als CSV mit Quelle je Reihe' : 'Für diesen Gletscher gibt es keine Reihe'}>Reihen als CSV</button>
         <button type="button" className="gl-btn" disabled={!length} onClick={() => { const svg = document.querySelector<SVGSVGElement>('#gl-tabpanel .gl-chart-s svg'); if (svg) void exportSvgAsPng(svg, { filename: `${g.id}-laenge.png`, title: `${g.name ?? g.id}: Längenänderung der Zunge, kumuliert`, source: 'Quelle: Messnetz (gemessen) · buscosun.com/gletscher' }).catch(() => { /* download refused */ }); }}>Grafik als Bild</button>
       </div>
-      <h3 className="gl-h3">Wann ist er weg?</h3>
+      <h3 className="gl-h3">Wie entwickelt sich der Gletscher?</h3>
       {proj ? (
         <>
           <ProjectionChart view={proj} />
