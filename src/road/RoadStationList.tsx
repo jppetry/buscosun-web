@@ -6,6 +6,8 @@
 import { useMemo, useState } from 'react';
 import type { RoadPoint } from './roadContract';
 import { ROAD_CLASS_LABEL } from './roadClasses';
+import { useSearchSheet } from '../components/LocationSearchSheet';
+import { ListSearchSheet } from '../components/ListSearchSheet';
 import { ROAD_CLASS_COLOR, ROAD_CLASS_TINT, conditionText, f1, hm, isCritical, isHatched, shieldText, visText } from './roadView';
 
 type FilterKey = 'alle' | 'glaette' | 'rs0' | 'nass' | 'nd' | 'sicht' | 'wind';
@@ -77,6 +79,7 @@ export default function RoadStationList(p: Props) {
   const [kind, setKind] = useState<KindKey>('alle');
   const [sort, setSort] = useState<SortKey>('kalt');
   const [limit, setLimit] = useState(PAGE);
+  const sheet = useSearchSheet();   // phone / tablet: full-screen search page instead of typing in the list
 
   const live = useMemo(() => p.points.filter((x) => roadPointDelivers(x, p.slotMs)), [p.points, p.slotMs]);
   const counts = useMemo(() => new Map(FILTERS.map((f) => [f.key, live.filter(f.test).length] as const)), [live]);
@@ -98,8 +101,19 @@ export default function RoadStationList(p: Props) {
       <label htmlFor="aw-stl-search" className="aw-eyebrow aw-dock-label">Messpunkt suchen</label>
       <div className="aw-search">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8B7355" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="M16 16l4.5 4.5" /></svg>
-        <input id="aw-stl-search" type="search" placeholder="Name, A 8, B 17 …" value={query} onChange={(e) => { setQuery(e.target.value); setLimit(PAGE); }} autoComplete="off" />
+        <input id="aw-stl-search" type="search" placeholder="Name, A 8, B 17 …" value={query} onChange={(e) => { setQuery(e.target.value); setLimit(PAGE); }} onFocus={sheet.openSheet} autoComplete="off" />
       </div>
+      {sheet.open && (
+        <ListSearchSheet label="Messpunkt suchen" placeholder="Name, A 8, B 17 …" query={query} onQuery={(q) => { setQuery(q); setLimit(PAGE); }}
+          inputRef={sheet.inputRef} onClose={sheet.close} accent="#1F5FAE" accentDark="#174A88"
+          empty={query.trim() ? `Kein Messpunkt passt zu „${query}“.` : 'Kein Messpunkt mit aktuellen Werten erfüllt diesen Filter.'}
+          rows={rows.map((x) => ({
+            id: x.id, name: x.n,
+            sub: `${ok(x, 'rs', x.rs) ? `Fahrbahn ${f1(x.rs)} °C` : 'keine Fahrbahntemperatur'} · ${ROAD_CLASS_LABEL[x.cls].short}`,
+            lead: x.road ? <span className={`aw-shield${x.kind === 'A' ? '' : ' aw-stl-shield'}`}>{shieldText(x.road)}</span> : undefined,
+          }))}
+          onPick={(id) => { sheet.close(); const x = rows.find((r) => r.id === id); if (x) p.onPick(x); }} />
+      )}
       <div role="group" aria-label="Straßenart" className="aw-seg aw-stl-kind">
         {([['alle', 'Alle'], ['A', 'Autobahn'], ['other', 'Bundes-/Landesstraße']] as const).map(([k, l]) => (
           <button key={k} type="button" aria-pressed={kind === k} className={kind === k ? 'is-active' : ''} onClick={() => { setKind(k); setLimit(PAGE); }}>{l}</button>

@@ -8,6 +8,8 @@ import { useId, useState, type CSSProperties, type ReactElement } from 'react';
 import { SEA_PROFILES, SEA_PROFILE_BY_ID, limitsChanged, limitsSummary, type SeaClass, type SeaLimits, type SeaProfileId } from './seaProfiles';
 import { CLASS_COLOR, CLASS_SHORT, HS_STOPS, LAYER_LABEL, PER_STOPS, cssGradient } from './seaView';
 import { SEA_LAYERS, SEA_REVIERE, type SeaLayer, type SeaRevier } from './seaState';
+import { useSearchSheet } from '../components/LocationSearchSheet';
+import { ListSearchSheet } from '../components/ListSearchSheet';
 
 export interface SeaDockSpot { id: string; name: string; sub: string; cls: SeaClass; reason: string }
 export interface SeaToggles { wind: boolean; warn: boolean; stations: boolean; water: boolean }
@@ -49,6 +51,7 @@ const TOGGLE_ICON: Record<keyof SeaToggles, ReactElement> = {
 export default function SeaDock(p: Props) {
   const [open, setOpen] = useState(false);
   const sid = useId();
+  const sheet = useSearchSheet();   // phone / tablet: full-screen search page instead of typing in the dock
   const base = SEA_PROFILE_BY_ID[p.profile].limits;
   const changed = limitsChanged(p.profile, p.limits);
   const toggles: Array<[keyof SeaToggles, string, string]> = [
@@ -63,8 +66,18 @@ export default function SeaDock(p: Props) {
       <label htmlFor={`${sid}-q`} className="sw-dock-h sw-dock-sec sw-dock-label sw-dock-first">Spot, Hafen oder Ort</label>
       <div className="sw-search">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8B7355" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="M16 16l4.5 4.5" /></svg>
-        <input id={`${sid}-q`} type="search" placeholder="Fehmarn, Büsum, Schilksee …" value={p.query} onChange={(e) => p.onQuery(e.target.value)} />
+        <input id={`${sid}-q`} type="search" placeholder="Fehmarn, Büsum, Schilksee …" value={p.query} onChange={(e) => p.onQuery(e.target.value)} onFocus={sheet.openSheet} />
       </div>
+      {sheet.open && (
+        <ListSearchSheet label="Spot suchen" placeholder="Fehmarn, Büsum, Schilksee …" query={p.query} onQuery={p.onQuery}
+          inputRef={sheet.inputRef} onClose={sheet.close} accent="#0F6E7A" accentDark="#0A525B"
+          empty={p.loading ? 'Spots laden …' : 'Kein Spot passt zur Suche.'}
+          rows={p.spots.map((s) => ({
+            id: s.id, name: s.name, sub: s.sub,
+            lead: <span className={`sw-dot${s.cls === 'keine' ? ' is-hatched' : ''}`} style={s.cls !== 'keine' ? { background: CLASS_COLOR[s.cls] } : { background: 'repeating-linear-gradient(135deg, #8B8474 0 2px, #EDE6D3 2px 4px)' }} />,
+          }))}
+          onPick={(id) => { sheet.close(); p.onPick(id); }} />
+      )}
       <div role="group" aria-label="Revier" className="sw-seg sw-dock-revier">
         {SEA_REVIERE.map((r) => <button key={r} type="button" aria-pressed={p.revier === r} className={p.revier === r ? 'is-active' : ''} onClick={() => p.onRevier(r)}>{REVIER_LABEL[r]}</button>)}
       </div>

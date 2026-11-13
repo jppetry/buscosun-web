@@ -6,6 +6,8 @@
 import type { RoadPoint } from './roadContract';
 import type { RoadCorridor } from './roadClient';
 import type { RoadMapLayers } from './RoadMap';
+import { useSearchSheet } from '../components/LocationSearchSheet';
+import { ListSearchSheet } from '../components/ListSearchSheet';
 import { ROAD_CLASS_COLOR, ROAD_GAP_SHORT, corridorStatus, corridorTitle, dockEntries, isGapCorridor, isHatched, type RoadSlotSummary } from './roadView';
 
 export type RoadCountry = 'alle' | 'DE' | 'AT' | 'CH';
@@ -70,14 +72,26 @@ export default function RoadDock(p: Props) {
   const staticRows = STATIC_ROWS.filter((r) => p.country === 'alle' || r.cc === p.country);
   const roads = p.part !== 'layers', layersOn = p.part !== 'roads';
   const Tag = p.part === 'roads' ? 'div' : 'aside';
+  const sheet = useSearchSheet();   // phone / tablet: full-screen search page instead of typing in the dock
   return (
     <Tag className={p.part === 'roads' ? 'aw-roads' : `aw-dock${p.part ? ` is-${p.part}` : ''}`} aria-label={p.part === 'roads' ? 'Autobahnen' : p.part === 'layers' ? 'Ebenen' : 'Autobahnen und Ebenen'}>
       {roads && <>
       <label htmlFor="aw-search" className="aw-eyebrow aw-dock-label">Autobahn oder Messstelle</label>
       <div className="aw-search">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8B7355" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="M16 16l4.5 4.5" /></svg>
-        <input id="aw-search" type="search" placeholder="A 8, Irschenberg, Holzkirchen …" value={p.query} onChange={(e) => p.onQuery(e.target.value)} autoComplete="off" />
+        <input id="aw-search" type="search" placeholder="A 8, Irschenberg, Holzkirchen …" value={p.query} onChange={(e) => p.onQuery(e.target.value)} onFocus={sheet.openSheet} autoComplete="off" />
       </div>
+      {sheet.open && (
+        <ListSearchSheet label="Autobahn suchen" placeholder="A 8, Irschenberg, Holzkirchen …" query={p.query} onQuery={p.onQuery}
+          inputRef={sheet.inputRef} onClose={sheet.close} accent="#1F5FAE" accentDark="#174A88"
+          empty={p.query.trim() ? `Keine Autobahn passt zu „${p.query}“.` : p.loading?.corridors ? 'Autobahnen laden …' : 'Keine Autobahn geladen.'}
+          rows={entries.flatMap((e) => (e.kind === 'fold' ? [] : [{
+            id: e.corridor.id, name: corridorTitle(e.corridor),
+            sub: isGapCorridor(e.corridor) ? `${ROAD_GAP_SHORT} · keine Messstelle` : `${e.corridor.stations.length} Messpunkte`,
+            lead: e.corridor.shields.map((s) => <span key={s} className="aw-shield">{s}</span>),
+          }]))}
+          onPick={(id) => { sheet.close(); p.onPick(id); }} />
+      )}
       <div role="group" aria-label="Land" className="aw-seg aw-dock-country">
         {(['alle', 'DE', 'AT', 'CH'] as const).map((c) => (
           <button key={c} type="button" aria-pressed={p.country === c} className={p.country === c ? 'is-active' : ''} onClick={() => p.onCountry(c)}>{c === 'alle' ? 'Alle' : c}</button>
