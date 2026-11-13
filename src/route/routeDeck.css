@@ -57,17 +57,17 @@
 .rd-crumb { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .rd-back {
   display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer;
-  font: inherit; font-size: 12px; font-weight: 600; color: var(--terracotta-500); padding: 0; white-space: nowrap;
+  font: inherit; font-size: 14.5px; font-weight: 600; color: var(--terracotta-500); padding: 0; white-space: nowrap;
 }
 .rd-back:hover { color: var(--terracotta-700); }
 .rd-crumb-txt {
-  font-size: 13px; color: var(--stone-500); font-weight: 500;
+  font-size: 15px; color: var(--stone-500); font-weight: 500;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
 }
 .rd-topright { margin-left: auto; display: flex; align-items: center; gap: 14px; flex: 0 0 auto; }
 .rd-live { display: flex; align-items: center; gap: 7px; }
 .rd-live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--sage-600); flex: 0 0 auto; }
-.rd-live-txt { font-size: 11px; letter-spacing: 1.5px; color: var(--rd-sage-strong); font-weight: 600; white-space: nowrap; }
+.rd-live-txt { font-size: 13px; letter-spacing: 1.5px; color: var(--rd-sage-strong); font-weight: 600; white-space: nowrap; }
 .rd-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--sand-200); color: var(--stone-600); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
 
 /* ============================ Body + Rail ============================ */
@@ -625,9 +625,9 @@
 .rd-crumb { flex: 0 1 auto; }
 .rd-steps { list-style: none; margin: 0 0 0 auto; padding: 0; display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
 .rd-steps + .rd-topright { margin-left: 0; }
-.rd-step { display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; color: var(--stone-500); white-space: nowrap; }
+.rd-step { display: flex; align-items: center; gap: 8px; font-size: 14.5px; font-weight: 600; color: var(--stone-500); white-space: nowrap; }
 .rd-step + .rd-step::before { content: ''; width: 16px; height: 1px; margin-right: 1px; background: var(--border-strong); }
-.rd-step i { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-style: normal; font-size: 11px; font-weight: 700; background: var(--sand-200); color: var(--stone-600); }
+.rd-step i { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-style: normal; font-size: 13px; font-weight: 700; background: var(--sand-200); color: var(--stone-600); }
 .rd-step.is-done i { background: var(--rd-sage-tint); color: var(--rd-sage-strong); }
 .rd-step.is-now { color: var(--ink-900); }
 .rd-step.is-now i { background: var(--terracotta-500); color: var(--rd-card); }
