@@ -332,7 +332,7 @@ const TILE_NOWCAST = (
       <div className="tile-title tile-title-sm">Regnet es in 40 Min?</div>
       {/* D-14: radar-only. Die Modellhälfte 2–12 h wurde mit N1 entfernt —
           der Text versprach sie weiterhin. */}
-      <p className="tile-desc sm">Gemessenes Radar: jetzt bis 2 h (AT 3 h, CH 0,5 h). Blitz- &amp; Sturm-Alerts, alpine Tal/Grat-Trennung.</p>
+      <p className="tile-desc sm">Gemessenes Radar: jetzt bis 2 h. Blitz- &amp; Sturm-Alerts, alpine Tal/Grat-Trennung.</p>
     </div>
   </>
 );
