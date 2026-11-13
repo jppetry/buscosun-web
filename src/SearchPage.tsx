@@ -409,7 +409,7 @@ const TILE_HISTORY = (
   <>
     <div className="tile-eyebrow">HISTORIE</div>
     <div className="tile-stripes" aria-hidden="true">
-      {['#3A6FA8', '#4A6E93', '#6B7A8F', '#8B8A80', '#A89A7A', '#C9A878', '#D4A373', '#C97B47', '#B96A3C', '#A85E2E'].map((c, i) => (
+      {['#08306B', '#2171B5', '#6BAED6', '#C6DBEF', '#9ECAE1', '#2171B5', '#FCBBA1', '#FB6A4A', '#EF3B2C', '#CB181D', '#A50F15', '#67000D'].map((c, i) => (
         <span key={i} style={{ background: c }} />
       ))}
     </div>

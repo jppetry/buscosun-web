@@ -548,7 +548,7 @@
 
 /* Historie */
 .tile-history { justify-content: space-between; min-height: 210px; padding: 22px; }
-.tile-stripes { display: flex; gap: 1.5px; height: 46px; border-radius: 5px; overflow: hidden; }
+.tile-stripes { display: flex; gap: 0; flex: 1 1 auto; min-height: 84px; margin: 6px 0 14px; border-radius: 8px; overflow: hidden; }
 .tile-stripes span { flex: 1; }
 
 /* 3D-Wetter */
