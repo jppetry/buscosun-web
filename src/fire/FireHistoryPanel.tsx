@@ -38,9 +38,9 @@ export interface HistoryPanelProps {
   kind: HistoryWindowKind;
   /** Already filtered by the page (months, minimum area, countries) — the map shows the same entries. */
   load: HistoryLoad;
-  /** Minimum area in ha (0 = any) — see `historyAreaHa`. */
-  minHa: number;
-  onMinHa: (ha: number) => void;
+  /** Area range in ha, both ends inclusive; [0, Infinity] = any — see `historyAreaHa`. */
+  areaRange: readonly [number, number];
+  onAreaRange: (r: readonly [number, number]) => void;
   /** ISO codes of the chosen countries; empty = all. */
   countries: readonly string[];
   onCountries: (codes: readonly string[]) => void;
@@ -88,18 +88,25 @@ export function historyAreaHa(e: HistoryIndexEntry): number | null {
   if (e.areaHa != null && e.areaKind === 'mapped') return e.areaHa;
   return e.estHa;
 }
-/** Steps of the minimum-area filter in ha; 0 = any area. */
-const AREA_STEPS: readonly number[] = [0, 5, 10, 20, 50, 100, 200, 500, 1000];
+/** Stops of the area range in ha; the first means „no lower bound", the last „no upper bound". */
+const AREA_STEPS: readonly number[] = [0, 5, 10, 20, 50, 100, 200, 500, 1000, Infinity];
+const AREA_LAST = AREA_STEPS.length - 1;
 /** Countries that always get a chip (the product's region); every other country sits in the select. */
 const CHIP_COUNTRIES = ['DE', 'AT', 'CH'] as const;
-const AREA_FILTER_TITLE = 'Kartierte Fläche (EFFIS), sonst die Schätzung. Ereignisse, die nur eine Obergrenze aus dem Raster tragen, zählen nicht.';
+const AREA_FILTER_TITLE = 'Kartierte Fläche (EFFIS), sonst die Schätzung. Ereignisse, die nur eine Obergrenze aus dem Raster tragen, zählen bei gesetzter Grenze nicht.';
 
 export function FireHistoryPanel(p: HistoryPanelProps) {
   const [sort, setSort] = useState<HistorySort>('strength');
   const [shown, setShown] = useState(CLUSTER_PAGE);
-  const filtered = p.minHa > 0 || p.countries.length > 0;
-  const areaIdx = Math.max(0, AREA_STEPS.indexOf(p.minHa));
-  const areaLabel = p.minHa > 0 ? `ab ${de(p.minHa)} ha` : 'Jede Fläche';
+  const [haLo, haHi] = p.areaRange;
+  const filtered = haLo > 0 || haHi < Infinity || p.countries.length > 0;
+  const areaLo = Math.max(0, AREA_STEPS.indexOf(haLo));
+  const areaHi = AREA_STEPS.indexOf(haHi) < 0 ? AREA_LAST : AREA_STEPS.indexOf(haHi);
+  const areaLabel = haLo > 0 && haHi < Infinity ? `${de(haLo)} – ${de(haHi)} ha` : haLo > 0 ? `ab ${de(haLo)} ha` : haHi < Infinity ? `bis ${de(haHi)} ha` : 'Jede Fläche';
+  // Two thumbs on one track, at least one stop apart; a thumb that pushes against the other takes it along (like the month range).
+  const setArea = (lo: number, hi: number) => { p.onAreaRange([AREA_STEPS[lo] ?? 0, AREA_STEPS[hi] ?? Infinity]); setShown(CLUSTER_PAGE); };
+  const setAreaLo = (v: number) => { const lo = Math.min(v, AREA_LAST - 1); setArea(lo, Math.max(areaHi, lo + 1)); };
+  const setAreaHi = (v: number) => { const hi = Math.max(v, 1); setArea(Math.min(areaLo, hi - 1), hi); };
   const toggleCountry = (code: string) => {
     p.onCountries(p.countries.includes(code) ? p.countries.filter((c) => c !== code) : [...p.countries, code]);
     setShown(CLUSTER_PAGE);
@@ -142,18 +149,18 @@ export function FireHistoryPanel(p: HistoryPanelProps) {
               <button key={id} type="button" className={`br-chip is-ink${sort === id ? ' is-active' : ''}`} aria-pressed={sort === id} onClick={() => { setSort(id); setShown(CLUSTER_PAGE); }}>{l}</button>
             ))}
           </div>
-          {/* Minimum area as a slider over fixed steps (same track and thumb as the month range above the list). */}
-          <div className="br-arange" role="group" aria-label="Mindestfläche" title={AREA_FILTER_TITLE}>
+          {/* Area range as two thumbs over fixed stops (same track and thumbs as the month range above the list). */}
+          <div className="br-arange" role="group" aria-label="Fläche von – bis" title={AREA_FILTER_TITLE}>
             <div className="br-arange-head">
               <span className="br-chiprow-lbl">Fläche in ha</span>
               <strong className="br-mrange-val">{areaLabel}</strong>
             </div>
-            <div className="br-mrange-track" style={{ ['--lo' as string]: areaIdx / (AREA_STEPS.length - 1), ['--hi' as string]: 1 }}>
-              <input type="range" min={0} max={AREA_STEPS.length - 1} step={1} value={areaIdx} aria-label="Mindestfläche" aria-valuetext={areaLabel}
-                onChange={(e) => { p.onMinHa(AREA_STEPS[Number(e.target.value)] ?? 0); setShown(CLUSTER_PAGE); }} />
+            <div className="br-mrange-track" style={{ ['--lo' as string]: areaLo / AREA_LAST, ['--hi' as string]: areaHi / AREA_LAST }}>
+              <input type="range" min={0} max={AREA_LAST} step={1} value={areaLo} aria-label="Kleinste Fläche" aria-valuetext={haLo > 0 ? `ab ${de(haLo)} ha` : 'keine Untergrenze'} onChange={(e) => setAreaLo(Number(e.target.value))} />
+              <input type="range" min={0} max={AREA_LAST} step={1} value={areaHi} aria-label="Größte Fläche" aria-valuetext={haHi < Infinity ? `bis ${de(haHi)} ha` : 'keine Obergrenze'} onChange={(e) => setAreaHi(Number(e.target.value))} />
             </div>
             <div className="br-mrange-ticks" aria-hidden="true" style={{ ['--n' as string]: AREA_STEPS.length }}>
-              {AREA_STEPS.map((ha) => <span key={ha}>{de(ha)}</span>)}
+              {AREA_STEPS.map((ha) => <span key={ha}>{ha === Infinity ? 'mehr' : de(ha)}</span>)}
             </div>
           </div>
           <div className="br-chiprow" role="group" aria-label="Länder">
