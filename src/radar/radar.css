@@ -259,6 +259,8 @@
 .rdr-tl-legend2 { display: flex; gap: 0.7rem; font-size: 0.68rem; color: var(--stone-500, #8B7355); padding-top: 0.3rem; }
 .rdr-tl-key { display: flex; align-items: center; gap: 0.3rem; }
 .rdr-tl-key i { width: 1rem; height: 0.35rem; border-radius: 2px; }
+/* Phone: no key „gemessen | Vorhersage“ in the time bar (Jan 2026-11-13) — the status next to the clock names it per frame. */
+@media (max-width: 767px) { .rdr-tl-key { display: none; } }
 .rdr-k-meas { background: #3c7a2f; }
 .rdr-k-fc { background-image: repeating-linear-gradient(90deg, var(--rdr-blue) 0 3px, transparent 3px 6px); }
 
