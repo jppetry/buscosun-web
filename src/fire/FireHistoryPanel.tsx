@@ -31,7 +31,6 @@ import { fetchFireWeatherArchive, type FireWeatherAtPoint } from './detail/fireW
 import { LANDCOVER_LABEL, LANDCOVER_KEYS } from './fireCorroboration';
 
 export type HistorySort = 'strength' | 'recency' | 'area';
-export type HistoryClass = 'fires' | 'sites' | 'all';
 
 export interface HistoryPanelProps {
   inSheet: boolean;
@@ -73,21 +72,19 @@ export function historyEntryName(e: HistoryIndexEntry): string {
 
 export function FireHistoryPanel(p: HistoryPanelProps) {
   const [sort, setSort] = useState<HistorySort>('strength');
-  const [cls, setCls] = useState<HistoryClass>('fires');
   const [shown, setShown] = useState(CLUSTER_PAGE);
 
   const file: HistoryIndexFile | null = p.load.kind === 'ok' ? p.load.file : null;
   const rows = useMemo(() => {
     if (p.load.kind !== 'ok') return [];
-    let list = p.load.entries;
-    if (cls === 'fires') list = list.filter((e) => e.anomalyKind !== 'site');
-    else if (cls === 'sites') list = list.filter((e) => e.anomalyKind === 'site');
+    // Jan 2026-11-13: fires only, no „Zeigen: Brände | Anlagen | Alle“ row — the page already separates fires from thermal anomalies (own tab).
+    const list = p.load.entries.filter((e) => e.anomalyKind !== 'site');
     const sorted = [...list];
     if (sort === 'recency') sorted.sort((a, b) => b.lastMs - a.lastMs);
     else if (sort === 'area') sorted.sort((a, b) => (b.areaHa ?? b.estHa ?? 0) - (a.areaHa ?? a.estHa ?? 0));
     // 'strength' = Reihenfolge der Datei (Summe FRP absteigend)
     return sorted;
-  }, [p.load, cls, sort]);
+  }, [p.load, sort]);
 
   return (
     <div className={`br-fires br-history${p.inSheet ? ' in-sheet' : ''}${p.compact ? ' is-compact' : ''}`}>
@@ -104,12 +101,6 @@ export function FireHistoryPanel(p: HistoryPanelProps) {
             {!p.inSheet && <span className="br-chiprow-lbl">Sortieren:</span>}
             {([['strength', 'Stärke'], ['recency', 'Zuletzt'], ['area', 'Fläche']] as const).map(([id, l]) => (
               <button key={id} type="button" className={`br-chip is-ink${sort === id ? ' is-active' : ''}`} aria-pressed={sort === id} onClick={() => { setSort(id); setShown(CLUSTER_PAGE); }}>{l}</button>
-            ))}
-          </div>
-          <div className="br-chiprow" role="group" aria-label="Art">
-            {!p.inSheet && <span className="br-chiprow-lbl">Zeigen:</span>}
-            {([['fires', 'Brände'], ['sites', 'Anlagen'], ['all', 'Alle']] as const).map(([id, l]) => (
-              <button key={id} type="button" className={`br-chip is-red${cls === id ? ' is-active' : ''}`} aria-pressed={cls === id} onClick={() => { setCls(id); setShown(CLUSTER_PAGE); }}>{l}</button>
             ))}
           </div>
           {rows.length === 0 && <p className="br-empty">Keine Ereignisse dieser Art im Stand vom {historyStandLabel(file.evaluatedAt)} — kleine Brände fehlen dem Satelliten systematisch.</p>}
