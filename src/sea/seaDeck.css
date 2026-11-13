@@ -342,6 +342,8 @@
 .sw-minimap-canvas { position: absolute; inset: 0; }
 .sw-minimap:focus-visible { outline: 2px solid var(--sw-accent, #0F6E7A); outline-offset: 2px; }
 .sw-minimap .maplibregl-ctrl-bottom-right, .sw-minimap .maplibregl-ctrl-bottom-left { bottom: 0; }
+/* Phone: no attribution button on the excerpt; the card head right above names the source ("Esri World Imagery"). */
+@media (max-width: 767px) { .sw-minimap .maplibregl-ctrl-attrib { display: none; } }
 .sw-ds-maplegend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; font-size: 12.5px; color: var(--stone-600, #5C5447); }
 .sw-ds-maplegend span { display: flex; align-items: center; gap: 5px; }
 .sw-ds-maplegend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
