@@ -162,6 +162,8 @@
   color: var(--stone-500, #8B7355);
 }
 .br-search-box:focus-within { border-color: var(--stone-400, #A89A7A); }
+/* Focus shows on the rounded box (as on the Wetterkarte); the generic .fire-root input ring drew a square frame inside it. */
+.fire-root .br-search-input:focus-visible { outline: none; }
 .br-search-input {
   flex: 1; min-width: 0; border: 0; outline: none; background: transparent;
   font: inherit; font-size: 14px; color: var(--ink-900, #2C2A26); padding: 0;

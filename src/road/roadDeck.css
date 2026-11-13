@@ -579,6 +579,8 @@ button.aw-prog-tile:disabled { cursor: default; }
 /* Search */
 .aw-search { border-color: var(--aw-hair); border-radius: 12px; box-shadow: var(--aw-inset), var(--aw-shadow-s); transition: box-shadow 0.15s, border-color 0.15s; }
 .aw-search:focus-within { border-color: color-mix(in srgb, var(--aw-accent) 45%, transparent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--aw-accent) 14%, transparent), var(--aw-shadow-s); }
+/* The ring above is the focus mark; the generic .aw-root input ring drew a square frame inside the rounded field. */
+.aw-root .aw-search input:focus-visible { outline: none; }
 
 /* Dock rows: roads and layers */
 .aw-road, .aw-layer:not(.is-blocked) { background: var(--aw-glass); border-color: var(--aw-hair); border-radius: 12px; box-shadow: var(--aw-inset), var(--aw-shadow-s); transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s; }
