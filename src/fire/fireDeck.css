@@ -1331,11 +1331,13 @@
 .br-cog-method[open] > summary { margin-bottom: 4px; }
 .br-cog-mode { position: absolute; top: 8px; left: 8px; display: flex; gap: 6px; }
 .br-cog-mode button { padding: 7px 12px; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 999px; background: #FDFBF4; color: var(--ink-900, #2C2A26); font-family: 'League Spartan', system-ui, sans-serif; font-size: 13px; font-weight: 700; letter-spacing: .04em; cursor: pointer; }
-.br-cog-mode button.is-active { background: var(--ink-900, #2C2A26); color: #FDFBF4; border-color: var(--ink-900, #2C2A26); }
+/* The chosen mode keeps a light rim: an ink pill without it vanished on the dark image and on the ink page of the enlarged view. */
+.br-cog-mode button, .br-cog-over button { box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35); }
+.br-cog-mode button.is-active { background: var(--ink-900, #2C2A26); color: #FDFBF4; border-color: #FDFBF4; box-shadow: 0 0 0 1px #FDFBF4, 0 1px 4px rgba(0, 0, 0, 0.35); }
 /* SAT3: Overlay-Umschalter (Detektionen) in zweiter Reihe unter den Modus-Chips. */
 .br-cog-over { position: absolute; top: 48px; left: 8px; display: flex; gap: 6px; }
 .br-cog-over button { padding: 5px 10px; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 999px; background: #FDFBF4; color: var(--ink-900, #2C2A26); font-family: 'League Spartan', system-ui, sans-serif; font-size: 13px; font-weight: 700; letter-spacing: .04em; cursor: pointer; }
-.br-cog-over button.is-active { background: var(--ink-900, #2C2A26); color: #FDFBF4; border-color: var(--ink-900, #2C2A26); }
+.br-cog-over button.is-active { background: var(--ink-900, #2C2A26); color: #FDFBF4; border-color: #FDFBF4; box-shadow: 0 0 0 1px #FDFBF4, 0 1px 4px rgba(0, 0, 0, 0.35); }
 .br-cog-legend { display: flex; flex-wrap: wrap; gap: 10px; padding: 3px 7px; border-radius: 6px; background: var(--ink-900, #2C2A26); font-size: 13px; color: #EDE6D3; }
 .br-cog-legend i { display: inline-block; width: 14px; height: 10px; margin-right: 4px; border: 1px solid #EDE6D3; }
 /* Verlauf: der Chart auf voller Panelbreite, die Zeilen darunter. */
