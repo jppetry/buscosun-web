@@ -34,13 +34,8 @@ export function Rich({ parts }: { parts: Array<string | { b: string }> }) {
 export function NowCard({ vm, warning, aside }: { vm: NowVM; warning?: WarningVM; aside?: ReactNode }) {
   return (
     <section className="dbd-card dbd-sand-card dbd-now" aria-label="Jetzt">
-      <div className="dbd-now-top">
-        <div className="dbd-now-head">
-          <span className="dbd-eyebrow">JETZT · MESSWERT ALS ANKER</span>
-          <Val v={vm.source} className="dbd-now-src" long />
-        </div>
-        {aside}
-      </div>
+      {/* Jan 2026-11-13: the head („JETZT · MESSWERT ALS ANKER" + source line) is gone; the row keeps the wind badge on the right. */}
+      {aside && <div className="dbd-now-top">{aside}</div>}
       <div className="dbd-now-main">
         <div className="dbd-now-temp"><b><Val v={vm.temp} /></b><span className="dbd-unit">{vm.unit}</span></div>
         <WeatherIcon icon={vm.icon} size={52} variant="now" stroke={2.2} />

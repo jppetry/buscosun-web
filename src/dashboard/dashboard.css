@@ -1071,6 +1071,7 @@
    Windrichtung in der Jetzt-Kachel und Wind-Detailansicht (Jan 31.10., `windDetail.tsx`)
    ============================================================================ */
 .dbd-now-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.dbd-now-top > :only-child { margin-left: auto; }
 .dbd-now-top > .dbd-now-head { min-width: 0; }
 .dbd-wd-badge {
   flex: none; display: flex; align-items: center; gap: 14px; padding: 12px 12px 12px 12px; margin: -4px -4px 0 0; min-width: 218px;
