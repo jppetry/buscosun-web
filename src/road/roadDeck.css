@@ -689,6 +689,9 @@ button.aw-prog-tile:not(:disabled):not(.is-on):hover { box-shadow: var(--aw-inse
    The dossier replaces only the map in the centre: dock and readout stay. The map stays mounted behind it (`hidden`). */
 .aw-map[hidden], .aw-m-mapwrap[hidden], .aw-sheet[hidden] { display: none; }
 .aw-stage-seg { flex: 0 0 auto; width: 176px; }
+/* Jan 2026-11-13: in the top bar the switch sits right after the brand and has the size of the Wetterkarte switch „Dashboard | Karte“. */
+.aw-topbar > .aw-stage-seg { width: auto; }
+.aw-topbar > .aw-stage-seg button { flex: 0 0 auto; font-size: 12.5px; padding: 6px 14px; }
 .aw-dossier-stage { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; background: var(--cream-50, #FAF6EA); overflow: hidden; }
 .aw-dossier-head { flex: 0 0 auto; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; padding: 12px 24px; border-bottom: 1px solid var(--sand-200, #E0D6BE); }
 /* overflow-x: the hidden chart tables (aw-visually-hidden) are tables — they ignore width: 1px and would add a horizontal scrollbar. */

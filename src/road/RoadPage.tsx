@@ -861,10 +861,10 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
             <img src="/buscosun-mark.svg" width={22} height={22} alt="" />
             <span>buscosun</span>
           </a>
+          {stageSeg}
           <span className="aw-topdiv" aria-hidden="true" />
           <span className="aw-topbar-sub">Autobahnwetter DACH</span>
           <div className="aw-topbar-right">
-            {stageSeg}
             <span className={`aw-live is-${liveTone}`} role="status"><span className="aw-live-dot" aria-hidden="true"><span /><span /></span>{liveTone === 'live' ? 'Live' : liveTone === 'stale' ? 'Veraltet' : loadingObs ? 'Lädt' : 'Keine Daten'}</span>
             <span className="aw-topbar-stand">
               {obs && !noData ? <>Messung <strong>{hm(obs.slotMs)}</strong> · {summary.activeGroups} von {summary.totalGroups} DWD-Reihen</> : loadingObs ? 'Messung lädt …' : 'derzeit keine Messdaten'}
