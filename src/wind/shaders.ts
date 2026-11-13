@@ -220,6 +220,8 @@ uniform float u_speed_ref;
 uniform float u_speed_min;
 // Bezugsrechteck der Positionskodierung — s. drawVert/updateFrag.
 uniform vec4 u_bounds;
+// 1 = direction from a lengthened probe step (see main), 0 = the step itself as before 2026-11-13.
+uniform float u_precise;
 
 varying vec2 v_particle_pos;
 varying float v_cross;
@@ -230,6 +232,10 @@ ${MERC_TABLE_GLSL}
 // equirect Y spannt 180°, X spannt 360° → die N-S-Komponente braucht den
 // Faktor 2, sonst ist die Advektion anisotrop (s. advection.ts, NS_ASPECT).
 const float NS_ASPECT = 2.0;
+// Shortest probe step (equirect units) for the segment direction. One frame of wind is ~0.5 px; from about zoom 10 that
+// is below the float32 spacing of an absolute position (6e-8 near x = 0.5), so posA - step lost its east-west part and
+// the streak pointed due north/south or fell back to east. 2e-5 keeps ~300 float steps in the difference.
+const float FD_MIN_STEP = 2.0e-5;
 
 vec2 decodePos(vec4 color) {
   vec2 local = vec2(color.r / 255.0 + color.b, color.g / 255.0 + color.a);
@@ -270,16 +276,21 @@ void main() {
   v_particle_pos = posA;
   v_cross = a_vert.z * (u_half_width + u_aa_edge);
 
-  vec2 posB = posA - advectStep(posA);
+  // The tail is one step upwind. Its direction is taken from a probe k times longer along the same straight step
+  // (k = 1 wherever the step is long enough, i.e. unchanged at low zoom); the tail itself sits at 1/k of the probe.
+  vec2 stepv = advectStep(posA);
+  float stepLen = length(stepv);
+  float k = (u_precise > 0.5 && stepLen > 0.0) ? max(1.0, FD_MIN_STEP / stepLen) : 1.0;
   vec4 clipA = projectEqui(posA);
-  vec4 clipB = projectEqui(posB);
-  if (clipA.w <= 0.0 || clipB.w <= 0.0) {
+  vec4 clipFar = projectEqui(posA - stepv * k);
+  vec4 clipB = mix(clipA, clipFar, 1.0 / k);
+  if (clipA.w <= 0.0 || clipFar.w <= 0.0 || clipB.w <= 0.0) {
     gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
     return;
   }
 
   // Screen-space segment vector in trail-buffer px (NDC spans 2 → ×0.5).
-  vec2 dirPx = (clipA.xy / clipA.w - clipB.xy / clipB.w) * u_viewport * 0.5;
+  vec2 dirPx = (clipA.xy / clipA.w - clipFar.xy / clipFar.w) * u_viewport * 0.5 / k;
   float len = length(dirPx);
   // Near-zero motion falls back to a fixed direction so calm-area particles
   // still rasterize as a tiny dash (never NaN).
@@ -319,6 +330,8 @@ uniform float u_speed_gamma;
 uniform float u_speed_ref;
 uniform float u_speed_min;
 uniform vec4 u_bounds;
+// 1 = direction from a lengthened probe step (see main), 0 = the step itself as before 2026-11-13.
+uniform float u_precise;
 
 varying vec2 v_particle_pos;
 varying float v_cross;
@@ -326,6 +339,10 @@ varying float v_cross;
 const float MERC_MAX_LAT = 85.05112878;
 ${MERC_TABLE_GLSL}
 const float NS_ASPECT = 2.0;
+// Shortest probe step (equirect units) for the segment direction. One frame of wind is ~0.5 px; from about zoom 10 that
+// is below the float32 spacing of an absolute position (6e-8 near x = 0.5), so posA - step lost its east-west part and
+// the streak pointed due north/south or fell back to east. 2e-5 keeps ~300 float steps in the difference.
+const float FD_MIN_STEP = 2.0e-5;
 
 vec2 decodePos(vec4 color) {
   vec2 local = vec2(color.r / 255.0 + color.b, color.g / 255.0 + color.a);
@@ -363,15 +380,20 @@ void main() {
   v_particle_pos = posA;
   v_cross = a_vert.z * (u_half_width + u_aa_edge);
 
-  vec2 posB = posA - advectStep(posA);
+  // The tail is one step upwind. Its direction is taken from a probe k times longer along the same straight step
+  // (k = 1 wherever the step is long enough, i.e. unchanged at low zoom); the tail itself sits at 1/k of the probe.
+  vec2 stepv = advectStep(posA);
+  float stepLen = length(stepv);
+  float k = (u_precise > 0.5 && stepLen > 0.0) ? max(1.0, FD_MIN_STEP / stepLen) : 1.0;
   vec4 clipA = projectEqui(posA);
-  vec4 clipB = projectEqui(posB);
-  if (clipA.w <= 0.0 || clipB.w <= 0.0) {
+  vec4 clipFar = projectEqui(posA - stepv * k);
+  vec4 clipB = mix(clipA, clipFar, 1.0 / k);
+  if (clipA.w <= 0.0 || clipFar.w <= 0.0 || clipB.w <= 0.0) {
     gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
     return;
   }
 
-  vec2 dirPx = (clipA.xy / clipA.w - clipB.xy / clipB.w) * u_viewport * 0.5;
+  vec2 dirPx = (clipA.xy / clipA.w - clipFar.xy / clipFar.w) * u_viewport * 0.5 / k;
   float len = length(dirPx);
   vec2 dirN = len > 0.0001 ? dirPx / len : vec2(1.0, 0.0);
   vec2 perpN = vec2(-dirN.y, dirN.x);
@@ -563,6 +585,8 @@ uniform float u_sub_steps;     // Advektions-Sub-Schritte (gekrümmte, glatte Pf
 // Z3 — Umverteilung bei Rechteckwechsel (audit/windpartikel-rauszoom.md), 0/1.
 // Bei 0 ist dieser Shader rechnerisch identisch zum Stand vor Z3 (Rule 2).
 uniform float u_redistribute;
+// 1 = the step is added in the coordinates of the encoding rectangle (2026-11-13), 0 = to the absolute position as before.
+uniform float u_precise;
 // Bezugsrechteck der Positionskodierung, equirect (x0,y0,x1,y1):
 //   u_bounds_prev = Rechteck, mit dem der EINGEHENDE Zustand kodiert wurde
 //   u_bounds      = Rechteck, mit dem der AUSGEHENDE Zustand kodiert wird
@@ -653,8 +677,12 @@ void main() {
 
   // Dekodieren: bounds-relativ [0,1]² → absolute equirect-Position.
   vec2 spanPrev = max(u_bounds_prev.zw - u_bounds_prev.xy, vec2(1e-9));
-  vec2 pos = u_bounds_prev.xy
-      + vec2(color.r / 255.0 + color.b, color.g / 255.0 + color.a) * spanPrev;
+  vec2 localPrev = vec2(color.r / 255.0 + color.b, color.g / 255.0 + color.a);
+  vec2 pos = u_bounds_prev.xy + localPrev * spanPrev;
+  // The way of this frame, kept apart from the absolute position: one frame of wind is ~0.5 px, and from about zoom 10
+  // that is below the float32 spacing of an absolute position (6e-8 near x = 0.5, a quarter of that in y). Added to pos
+  // directly, the east-west part was rounded away first — particles ran due north/south, closer in they stood still.
+  vec2 moved = vec2(0.0);
 
   // Advektion in Sub-Schritten: der Gesamt-Schritt wird auf N Teilschritte
   // verteilt, der Wind bei jedem Teilschritt NEU abgetastet. So folgen die
@@ -673,20 +701,27 @@ void main() {
   float hasWindAny = 0.0;
   for (int i = 0; i < MAX_SUB_STEPS; i++) {
     if (float(i) >= steps) break;
-    vec2 dispVel = dispVelocity(pos, speed_t, hasWind);
+    vec2 at = pos + moved;   // only for the wind lookup and the latitude — float32 is ample there
+    vec2 dispVel = dispVelocity(at, speed_t, hasWind);
     hasWindAny = max(hasWindAny, hasWind);
-    float distortion = max(0.05, cos(radians(pos.y * 180.0 - 90.0)));
+    float distortion = max(0.05, cos(radians(at.y * 180.0 - 90.0)));
     vec2 offset = vec2(dispVel.x / distortion, -NS_ASPECT * dispVel.y)
         * u_step_scale / steps;
-    pos = pos + offset;
+    moved += offset;
   }
   hasWind = hasWindAny;
 
   // Kodieren: absolute equirect-Position → bounds-relativ [0,1]².
   vec2 span = max(u_bounds.zw - u_bounds.xy, vec2(1e-9));
-  vec2 local = (pos - u_bounds.xy) / span;
+  // Re-encode without going through the absolute position: old local coordinate, rectangle change, way of this frame —
+  // each term is small against the rectangle, none is rounded on the world grid. With an unchanged rectangle this is
+  // exactly localPrev + moved / span.
+  vec2 posEnd = pos + moved;
+  vec2 local = u_precise > 0.5
+      ? localPrev * (spanPrev / span) + (u_bounds_prev.xy - u_bounds.xy) / span + moved / span
+      : (posEnd - u_bounds.xy) / span;
 
-  vec2 seed = (pos + v_tex_pos) * u_rand_seed;
+  vec2 seed = (posEnd + v_tex_pos) * u_rand_seed;
 
   // Lebensdauer/Recycling. Zellen MIT Wind sollen lange leben, damit sie
   // sichtbare Streifen ziehen. Nur ECHTE Flaute (hasWind = 0) wird aggressiv

@@ -174,6 +174,11 @@ export interface WindLayerOptions {
    *  Default true. `false` = Alt-Verhalten (Shader rechnerisch identisch,
    *  Auffrisch-Puls nach zoomend springt wieder ein) — Rule-2-Fallback. */
   zoomRedistribute?: boolean;
+  /** Advection step in the coordinates of the encoding rectangle and segment direction from a lengthened probe
+   *  (2026-11-13): above about zoom 10 the per-frame step is below the float32 spacing of an absolute position, the
+   *  east-west part was lost and particles ran due north/south or stood still. Default true; `false` (or `?windprec=0`
+   *  in the address) = the calculation as before — Rule 2 fallback. */
+  preciseStep?: boolean;
   pointSize?: number;
   /** Zuschlag auf die Punktgröße beim Rauszoomen (Points-Stil): × (1 + Wert · t), t = 0 ab Zoom 6 bis 1 bei Zoom 3,5.
    *  Default 0 = unverändert (Globus). Die Wetterkarte setzt ihn in `weatherWindPreset.ts`. */
@@ -280,6 +285,7 @@ export class WindLayer implements CustomLayerInterface {
   dropRateBump: number;
   zoomDropBoost: number;
   private zoomRedistribute: boolean;
+  private preciseStep: boolean;
   pointSize: number;
   showHeatmap: boolean;
   heatmapOpacity: number;
@@ -1184,6 +1190,8 @@ export class WindLayer implements CustomLayerInterface {
     this.dropRateBump = options.dropRateBump ?? 0.01;
     this.zoomDropBoost = Math.max(0, options.zoomDropBoost ?? 0);
     this.zoomRedistribute = options.zoomRedistribute ?? true;
+    this.preciseStep = options.preciseStep
+      ?? !(typeof window !== 'undefined' && /[?&]windprec=0(&|$)/.test(window.location?.search ?? ''));
     this.pointSize = options.pointSize ?? 1.5;
     this.zoomOutPointBoost = Math.max(0, options.zoomOutPointBoost ?? 0);
     this.showHeatmap = options.showHeatmap ?? true;
@@ -2321,6 +2329,7 @@ export class WindLayer implements CustomLayerInterface {
     // `s.gamma/refMs/minMs`) ist damit stillgelegt — Tempo kommt für BEIDE Stile
     // aus speedPxPerMs, sonst würden Kopf und Schweif auseinanderlaufen.
     gl.uniform1f(p.u_step_scale as WebGLUniformLocation, this.advectionStepScale(s.headFrames));
+    gl.uniform1f(p.u_precise as WebGLUniformLocation, this.preciseStep ? 1 : 0);
     gl.uniform1f(p.u_speed_gamma as WebGLUniformLocation, this.speedGamma);
     gl.uniform1f(p.u_speed_ref as WebGLUniformLocation, this.speedRef);
     gl.uniform1f(p.u_speed_min as WebGLUniformLocation, this.speedMin);
@@ -2378,6 +2387,7 @@ export class WindLayer implements CustomLayerInterface {
     gl.uniform1f(p.u_drop_rate_bump as WebGLUniformLocation, this.dropRateBump * dropScale);
     // Z3 — Umverteilung bei Rechteckwechsel (s. zoomRedistribute).
     gl.uniform1f(p.u_redistribute as WebGLUniformLocation, this.zoomRedistribute ? 1 : 0);
+    gl.uniform1f(p.u_precise as WebGLUniformLocation, this.preciseStep ? 1 : 0);
     // Frame-rate-DETERMINISTIC advection (cross-device parity of speed AND
     // direction). u_dt_scale already normalizes the AVERAGE speed, but a single
     // Euler step of size ∝ dt makes a low-fps device take big steps that cut
