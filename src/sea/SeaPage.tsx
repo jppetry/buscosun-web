@@ -519,7 +519,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
             <ShareButton className="sw-m-share" compact />
           </div>
           {/* The legend sits just above the bottom bar and gives its place to the info card while one is open. */}
-          {!cardEl && <div className="sw-m-legend"><div className="sw-legend-ramp" style={{ background: cssGradient(layer === 'per' ? PER_STOPS : HS_STOPS) }} /><div className="sw-legend-ticks"><span>0</span><span>{layer === 'per' ? '6' : '3'}</span><span>{layer === 'per' ? '12 s' : '6 m'}</span></div></div>}
+          {!cardEl && <div className="sw-m-legend">{legend}</div>}
           {emptyMap}{catFail}
           {cardEl && <div className="sw-map-card">{cardEl}</div>}
         </main>
