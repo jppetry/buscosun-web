@@ -27,6 +27,19 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="buscosun" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <!-- Boot cover (2026-11-13): the built shells carry crawlable text in #root (`#seo-fallback`, scripts/generate-seo.mjs).
+         Until the app mounted, that text showed as bare unstyled HTML. It stays in the DOM, but lies under the brand loader
+         (same look as src/router/AppLoader.tsx); React replaces the #root content on mount, the cover goes with it.
+         Without JavaScript the text is the page: the noscript rule removes the cover. -->
+    <style>
+      #seo-fallback{height:100vh;overflow:hidden}
+      #seo-fallback::before{content:"";position:fixed;inset:0;z-index:2147483000;background:#FAF6EA}
+      #seo-fallback::after{content:"";position:fixed;left:50%;top:50%;z-index:2147483001;width:104px;height:104px;margin:-52px 0 0 -52px;box-sizing:border-box;border-radius:50%;border:3px solid #E0D6BE;border-top-color:#C97B47;animation:boot-spin .9s linear infinite}
+      #seo-fallback>:first-child::before{content:"";position:fixed;left:50%;top:50%;z-index:2147483002;width:56px;height:56px;margin:-28px 0 0 -28px;background:#C97B47;-webkit-mask:url(/buscosun-mark.svg) center/contain no-repeat;mask:url(/buscosun-mark.svg) center/contain no-repeat}
+      @keyframes boot-spin{to{transform:rotate(360deg)}}
+      @media (prefers-reduced-motion:reduce){#seo-fallback::after{animation:none}}
+    </style>
+    <noscript><style>#seo-fallback{height:auto;overflow:visible}#seo-fallback::before,#seo-fallback::after,#seo-fallback>:first-child::before{display:none}</style></noscript>
   </head>
   <body>
     <div id="root"></div>
