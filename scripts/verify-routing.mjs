@@ -24,14 +24,14 @@ import { verifySubRouteTexts, subRouteText } from '../src/seo/subRouteTexts.ts';
 import { seaSpotSeoTexts } from '../src/sea/seaSeoText.ts';
 import { routeText } from '../src/seo/routeTexts.ts';
 import { ROUTES as ROUTE_LIST_FOR_TEXT, ROUTE_TEXT_IDS } from '../src/router/routes.ts';
-import { verifyUrlState, mapPathForPlace } from '../src/router/urlState.ts';
+import { verifyUrlState, mapPathForPlace, mapPathForPlaceDefault, LAYER_SLUGS, DEFAULT_MAP_LAYER, DEFAULT_MAP_LAYERS } from '../src/router/urlState.ts';
 // SH1 (Teilen): Ort-Slug im Pfad — reine Regel + Tabelle.
 import { verifyPlaceSlug, toSlug } from '../src/share/placeSlug.ts';
 import { verifyShareSchema } from '../src/share/shareSchema.ts';
 import { placeBySlug, slugForPlace, PLACE_TABLE_SIZE } from '../src/share/placeTable.ts';
 import { verifyLegacyHash } from '../src/router/legacyHash.ts';
 import { verifyFireRouteView } from '../src/fire/fireRouteView.ts';
-import { SITE, mapPermalink } from './seo/content.mjs';
+import { SITE, mapPermalink, dashboardPermalink } from './seo/content.mjs';
 import { TOOLS } from './seo/tools.mjs';
 import { PLACES } from './seo/places.mjs';
 // LE1/H2 — Frühstart der Datenabrufe + Shell-Preloads (audit/layer-erstbild.md §4)
@@ -67,13 +67,24 @@ add('[seo] SITE_URL ≡ content.mjs SITE.url', SITE_URL === SITE.url, `${SITE_UR
 const muc = { name: 'München', lat: 48.13743, lon: 11.57549, country: 'DE', slug: 'muenchen' };
 // SH1: beide Seiten schreiben jetzt den Ort als Pfad-Slug. Die App bekommt die
 // Ortstabelle injiziert (eager-Budget), der Generator kennt sie per Konstruktion.
-add('[seo] mapPermalink (Geo-Seiten) ≡ mapPathForPlace (App)',
-  mapPermalink(muc) === mapPathForPlace(muc, 'temp', slugForPlace(muc)),
-  `${mapPermalink(muc)} vs ${mapPathForPlace(muc, 'temp', slugForPlace(muc))}`);
-add('[seo] und zwar in der kurzen Slug-Form', mapPermalink(muc) === '/wetterkarte/temperatur/muenchen', mapPermalink(muc));
+// Jan 2026-11-13: the place pages link to the map with its own start settings (precipitation + wind) and to the dashboard.
+add('[seo] mapPermalink (Geo-Seiten) ≡ mapPathForPlaceDefault (App)',
+  mapPermalink(muc) === mapPathForPlaceDefault(muc, slugForPlace(muc)),
+  `${mapPermalink(muc)} vs ${mapPathForPlaceDefault(muc, slugForPlace(muc))}`);
+add('[seo] und zwar in der kurzen Slug-Form mit den Start-Layern der Karte', mapPermalink(muc) === '/wetterkarte/wind/muenchen?l=niederschlag', mapPermalink(muc));
+add('[seo] dashboardPermalink = derselbe Link mit ansicht=dashboard', dashboardPermalink(muc) === '/wetterkarte/wind/muenchen?l=niederschlag&ansicht=dashboard' && isDashboardSearch(dashboardPermalink(muc).split('?')[1]), dashboardPermalink(muc));
 {
-  const bad = PLACES.filter((p) => mapPermalink(p) !== mapPathForPlace(p, 'temp', slugForPlace(p)));
-  add('[seo] mapPermalink ≡ mapPathForPlace für ALLE Orte der Liste', bad.length === 0, bad.slice(0, 3).map((p) => p.slug).join(', '));
+  const bad = PLACES.filter((p) => mapPermalink(p) !== mapPathForPlaceDefault(p, slugForPlace(p)));
+  add('[seo] mapPermalink ≡ mapPathForPlaceDefault für ALLE Orte der Liste', bad.length === 0, bad.slice(0, 3).map((p) => p.slug).join(', '));
+  // Every place link parses back to the map's default layers and the place itself.
+  const off = PLACES.filter((p) => {
+    const [path, q = ''] = mapPermalink(p).split('?');
+    const r = routeForPath(path);
+    const want = DEFAULT_MAP_LAYERS.filter((k) => k !== DEFAULT_MAP_LAYER).map((k) => LAYER_SLUGS[k]).sort().join(',');
+    const got = (new URLSearchParams(q).get('l') ?? '').split(',').sort().join(',');
+    return !r || !path.startsWith('/wetterkarte/' + LAYER_SLUGS[DEFAULT_MAP_LAYER] + '/') || got !== want;
+  });
+  add('[seo] jeder Orts-Link ist eine Route auf dem Start-Layer und trägt die übrigen Start-Layer in l=', off.length === 0, off.slice(0, 3).map((p) => p.slug).join(', '));
 }
 const badLinks = TOOLS.filter((t) => !routeForPath(t.deepLink.split('?')[0]));
 add('[seo] jeder tools.mjs-deepLink zeigt auf eine Route (kein Hash mehr)', badLinks.length === 0 && TOOLS.every((t) => !t.deepLink.includes('#')), badLinks.map((t) => `${t.slug}→${t.deepLink}`).join(', '));

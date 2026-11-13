@@ -446,6 +446,22 @@ export function mapPathForPlace(
   }, 0);
 }
 
+/**
+ * Deep link to a place with the map's own start settings (`DEFAULT_MAP_LAYER` + `DEFAULT_MAP_LAYERS`: precipitation
+ * and wind) — the link of the place pages (`scripts/seo/content.mjs`, Jan 2026-11-13). `extra` carries e.g.
+ * `ansicht=dashboard`.
+ */
+export function mapPathForPlaceDefault(
+  loc: Location,
+  slug?: { slug: string; inTable: boolean } | null,
+  extra: ReadonlyArray<[string, string]> = [],
+): string {
+  return buildMapUrl({
+    primary: DEFAULT_MAP_LAYER, layers: [...DEFAULT_MAP_LAYERS], place: loc,
+    placeSlug: slug?.slug ?? null, placeInTable: !!slug?.inTable,
+  }, 0, '/wetterkarte', extra);
+}
+
 // --- Regenradar: Ort + Kamera -----------------------------------------------------
 
 /** Vollständige Regenradar-URL: Ort-Slug im Pfad, Kamera in der Query. */

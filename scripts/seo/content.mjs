@@ -14,7 +14,8 @@ import { nearestPlaces, toSlug } from './places.mjs';
 import { crumbsFor } from './regions.mjs';
 // Phase 3: Orte der zweiten Welle stehen nicht in der Ortstabelle der App (`placeSlugs.json`); ihr Karten-Link trägt den Ort
 // in der Query — exakt so, wie ihn `mapPathForPlace` für einen freien Ort schreibt (`verify:routing` prüft die Parität).
-import { mapPathForPlace, buildRadarUrl } from '../../src/router/urlState.ts';
+import { mapPathForPlaceDefault, buildRadarUrl } from '../../src/router/urlState.ts';
+import { DASH_VIEW_KEY, DASH_VIEW_DASHBOARD } from '../../src/dashboard/viewKey.ts';
 const TABLE_SLUGS = new Set(JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'src', 'router', 'placeSlugs.json'), 'utf8')).map((r) => r[0]));
 const freePlace = (p) => ({ name: p.name, lat: p.lat, lon: p.lon, country: p.country });
 import { climateSection, sunSection, unknownsSection, climateHighlights, placeDescription, CLIMA_YEARS } from './climate.mjs';
@@ -69,24 +70,19 @@ const coord4 = (n) => {
 };
 
 /**
- * Deep-Link in die App am Ort (Phase RT1: Pfad + Query statt `#m=`). Muss
- * byte-gleich zu `mapPathForPlace(place, 'temp')` aus src/router/urlState.ts
- * sein — `scripts/verify-routing.mjs` prüft die Parität (Lehre V-80: eine
- * abgetippte Zweitfassung driftet). Alte `/#m=`-Links migriert der Client.
+ * Deep link into the app at the place: the weather map with its own start settings (precipitation + wind active,
+ * Jan 2026-11-13 — before: temperature only). Built by `mapPathForPlaceDefault` of src/router/urlState.ts itself, so
+ * there is no hand-typed second version to drift (lesson V-80). The place is a readable slug in the path (SH1); for
+ * the places of the table the slug carries name, point and country, only a country other than DE is written.
  */
-export function mapPermalink(place) {
-  // SH1 („Teilen"): Der Ort steht als lesbarer Slug im Pfad. Für die Orte DIESER
-  // Liste ist der Slug per Konstruktion ein Tabellentreffer (`placeSlugs.json`
-  // wird aus ihr erzeugt) und die Koordinate identisch — Name, Punkt und Land
-  // kommen also aus der Tabelle, `ort`/`olat`/`olon` entfallen. Nur `land` wird
-  // geschrieben, wenn es von DE abweicht: `src/router/prefetch.ts` liegt im
-  // index-Chunk, kennt die Tabelle nicht und entscheidet daran den Frühstart.
-  //
-  // Muss zeichengleich zu `mapPathForPlace()` in `src/router/urlState.ts` sein —
-  // `verify:routing` prüft genau das.
-  if (!TABLE_SLUGS.has(place.slug)) return mapPathForPlace(freePlace(place), 'temp', { slug: toSlug(place.name), inTable: false });
-  const land = String(place.country).toLowerCase();
-  return `/wetterkarte/temperatur/${place.slug}` + (land === 'de' ? '' : `?land=${land}`);
+export function mapPermalink(place, extra = []) {
+  const slug = TABLE_SLUGS.has(place.slug) ? { slug: place.slug, inTable: true } : { slug: toSlug(place.name), inTable: false };
+  return mapPathForPlaceDefault(freePlace(place), slug, extra);
+}
+
+/** The same place in the dashboard view (`ansicht=dashboard`). */
+export function dashboardPermalink(place) {
+  return mapPermalink(place, [[DASH_VIEW_KEY, DASH_VIEW_DASHBOARD]]);
 }
 
 /** Höhenband (Richtwert) aus der Höhe. */
@@ -364,6 +360,8 @@ h1{font-size:2rem;margin:.2rem 0 .3rem}.sub{color:var(--stone);margin:0 0 .6rem}
 p.lead{font-size:1.05rem;margin:0 0 1.2rem}
 .cta{display:inline-block;background:var(--ink);color:#fff;text-decoration:none;font-weight:600;padding:.7rem 1.2rem;border-radius:999px;margin:.5rem 0 1.5rem}
 .cta:hover{background:var(--terra)}
+.cta-row{display:flex;flex-wrap:wrap;gap:.5rem;margin:.5rem 0 1.5rem}.cta-row .cta{margin:0}
+.cta-alt{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 2px var(--ink)}.cta-alt:hover{color:#fff;box-shadow:none}
 section{margin:1.8rem 0}h2{font-size:1.2rem;border-bottom:1px solid var(--border);padding-bottom:.3rem}
 ul.facts{padding-left:1.1rem}details{border:1px solid var(--border);border-radius:10px;padding:.6rem .9rem;margin:.5rem 0;background:#fff}
 summary{font-weight:600;cursor:pointer}.links{display:flex;flex-wrap:wrap;gap:.5rem}
@@ -438,7 +436,7 @@ ${head}
       <h1>Wetter ${escapeHtml(place.name)}</h1>
       <p class="sub">${FLAG[place.country]} ${escapeHtml(place.region)} · ${COUNTRY_NAME[place.country]} · rund ${place.ele} m</p>
       <p class="lead">${escapeHtml(placeLeadV3(place))}</p>
-      <a class="cta" href="${mapPermalink(place)}">Wetter für ${escapeHtml(place.name)} auf der interaktiven Karte öffnen →</a>
+      <p class="cta-row"><a class="cta" href="${escapeHtml(dashboardPermalink(place))}">Wetter-Dashboard für ${escapeHtml(place.name)}</a> <a class="cta cta-alt" href="${escapeHtml(mapPermalink(place))}">Interaktive Wetterkarte für ${escapeHtml(place.name)}</a></p>
 
 ${lageSection(place)}
 ${climateSectionV3(place)}${sunSectionV3(place)}${moduleHtml}
