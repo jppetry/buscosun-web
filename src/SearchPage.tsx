@@ -334,7 +334,7 @@ const TILE_NOWCAST = (
           der Text versprach sie weiterhin. */}
       {/* Jan 2026-11-13: text follows what /regenradar shows today (5-min frames with look-back and +2 h in all three
           countries, rain start at the place, lightning, storm cells with arrival window). */}
-      <p className="tile-desc sm">Radar in 5-Minuten-Bildern, 2 h zurück und 2 h voraus in DE, AT und CH. Regenbeginn am Ort, Blitze, Gewitterzellen mit Ankunftszeit.</p>
+      <p className="tile-desc sm">Radar im 5-Minuten-Takt, 2 h zurück und 2 h voraus. Mit Regenbeginn am Ort, Blitzen und Gewitterzellen.</p>
     </div>
   </>
 );
