@@ -134,7 +134,8 @@ export function FireHistoryPanel(p: HistoryPanelProps) {
 
   return (
     <div className={`br-fires br-history${p.inSheet ? ' in-sheet' : ''}${p.compact ? ' is-compact' : ''}`}>
-      {p.regionNote && <p className="br-note">{p.regionNote}</p>}
+      {/* Folded by default (Jan 2026-11-13): the note stays one tap away instead of standing above the list. */}
+      {p.regionNote && <NoteFold label="Hinweis zu den Europa-Daten"><p className="br-note">{p.regionNote}</p></NoteFold>}
       {p.load.kind === 'loading' && <p className="br-empty">Historie wird geladen … (statische Datei, einmal je Sitzung)</p>}
       {p.load.kind === 'error' && (
         <p className="br-empty">Kein Stand verfügbar — die Historie-Datei ist nicht erreichbar ({p.load.message}). Das ist ein Ausfall, kein leerer Monat.
