@@ -15,8 +15,6 @@ import { CLOSING, FOOTER, HERO, PROOF_CARDS, SECTIONS as S, SOURCES, SOURCE_TICK
 import './FusionExplainerPage.css';
 
 const minus = (n: number) => (n < 0 ? `−${Math.abs(n)}` : String(n));
-/** `2026-10-01` → `01.10.` */
-const ddmm = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`;
 /** Section 03 axis: square-root scale over 0–336 h, so the first hours get room. */
 const pos = (h: number) => Math.sqrt(h / 336) * 100;
 
@@ -36,9 +34,10 @@ function Section({ id, children }: { id: string; children: React.ReactNode }) {
 
 export default function FusionExplainerPage({ onBack, onOpenFeature }: { onBack: () => void; onOpenFeature?: (id: RailFeature) => void }) {
   const stand = fusionName(FUSION_CURRENT);
+  // Jan 2026-11-13: the strip shows number and label only — no release dates. The base stand keeps its word („Grundstand").
   const stands = [
-    { n: FUSION_BASE, date: S.s5.baseDate, label: FUSION_BASE_PUBLIC_LABEL },
-    ...FUSION_RELEASES.filter((r) => r.n <= FUSION_CURRENT).map((r) => ({ n: r.n, date: ddmm(r.date), label: r.publicLabel ?? '' })),
+    { n: FUSION_BASE, tag: S.s5.baseDate, label: FUSION_BASE_PUBLIC_LABEL },
+    ...FUSION_RELEASES.filter((r) => r.n <= FUSION_CURRENT).map((r) => ({ n: r.n, tag: '', label: r.publicLabel ?? '' })),
   ];
   const r = OUTPUT.readout;
 
@@ -184,7 +183,7 @@ export default function FusionExplainerPage({ onBack, onOpenFeature }: { onBack:
               {stands.map((s) => (
                 <li key={s.n} className={`fx-stand${s.n === FUSION_CURRENT ? ' is-current' : ''}`} aria-current={s.n === FUSION_CURRENT ? 'true' : undefined}>
                   <span className="fx-stand-n">{s.n}</span>
-                  <span className="fx-stand-date">{s.date}</span>
+                  {s.tag && <span className="fx-stand-date">{s.tag}</span>}
                   <span className="fx-stand-label">{s.label}</span>
                 </li>
               ))}
