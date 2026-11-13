@@ -117,7 +117,7 @@ export default function GlacierSatImagery({ lat, lon, name, nowMs }: { lat: numb
       </p>
       <div className="gl-sat-frame">
         <Suspense fallback={<p className="br-sat-wait br-muted">10-m-Ansicht wird geladen …</p>}>
-          <FireCogViewer key={scene.dayIso} lat={lat} lon={lon} dayIso={scene.dayIso} fireStartIso={null} modes={GL_COG_MODES}
+          <FireCogViewer key={scene.dayIso} lat={lat} lon={lon} dayIso={scene.dayIso} fireStartIso={null} modes={GL_COG_MODES} credit={`Copernicus Sentinel-2 · ${scene.dayIso.slice(0, 4)}`}
             fallbackUrl={copernicusBrowserUrl(lat, lon, scene.dayIso)} onClose={() => { /* the picture stays: nothing to close here */ }} />
         </Suspense>
       </div>
