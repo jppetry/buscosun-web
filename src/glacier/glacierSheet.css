@@ -40,9 +40,9 @@
 .gl-sheet-map-wrap.has-expand .maplibregl-ctrl-top-right { top: 46px; }
 .gl-sheet-map-wrap.is-full { position: fixed; inset: 0; z-index: 120; background: #E9E2CF; }
 @media (max-width: 1023px) { .gl-sheet-map-wrap.has-expand .maplibregl-ctrl-top-right { top: 56px; } }
-.gl-sheet-legend { width: 260px; bottom: 44px; }
-.gl-map .gl-sheet-legend .gl-legend-head b { font-size: 13.5px; }
-.gl-map .gl-sheet-legend .gl-legend-row { font-size: 13px; }
+.gl-sheet-legend { width: 290px; bottom: 44px; }
+.gl-map .gl-sheet-legend .gl-legend-head b { font-size: 15.5px; }
+.gl-map .gl-sheet-legend .gl-legend-row { font-size: 15px; }
 .gl-sw { display: inline-block; width: 18px; height: 10px; border-radius: 2px; flex: 0 0 auto; }
 .gl-sw-dash { border-top: 2px dashed #145A70; height: 0; }
 .gl-sheet-status { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; background: rgba(250,246,234,.96); border-top: 1px solid var(--gl-line-strong); padding: 8px 14px; font-size: 12.5px; font-weight: 600; }
@@ -204,8 +204,8 @@
 .gl-ds-fold-hint { font-size: 13px; color: var(--gl-muted); }
 .gl-ds-foldbody { display: flex; flex-direction: column; gap: 10px; padding: 0 18px 16px; border-top: 1px solid var(--gl-line); padding-top: 14px; }
 .gl-ds-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 18px; padding: 11px 14px; border-top: 1px solid var(--gl-line); font-size: 14px; color: var(--gl-muted); }
-.gl-ds-legend b { font-size: 14px; font-weight: 700; color: var(--gl-ink); }
-.gl-ds-legend .gl-legend-row { font-size: 14px; gap: 8px; }
+.gl-ds-legend b { font-size: 16px; font-weight: 700; color: var(--gl-ink); }
+.gl-ds-legend .gl-legend-row { font-size: 16px; gap: 8px; }
 /* Level "Heute" of the dossier as a dashboard (GlacierHeuteBoard): hero with the key figures, gauge + three tiles, 14-day bars + satellite ring, tour grid */
 .gl-hb { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .gl-hb-card { background: #fff; border: 1px solid var(--gl-line); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
