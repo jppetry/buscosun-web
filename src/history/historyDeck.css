@@ -564,3 +564,10 @@ button.hd-tile:hover .hd-tile-open { background: var(--terracotta-700); }
 [data-theme="dark"] .hd-tile--terra .hd-tile-kind, [data-theme="dark"] .hd-tile-flag { color: #E3A57A; }
 [data-theme="dark"] .hd-tile--steel .hd-tile-ico { background: rgba(58, 111, 168, 0.2); color: #8FB3DA; }
 [data-theme="dark"] .hd-tile--steel .hd-tile-kind { color: #8FB3DA; }
+
+/* Jan 2026-11-13: the rail runs through to the top edge; the top bar starts right of it.
+   The top bar is content-box: 64 px + 1 px border + safe area. */
+@media (min-width: 768px) {
+  .hd-root > .hd-topbar { margin-left: 58px; }
+  .hd-body > .hd-rail { margin-top: calc(-65px - env(safe-area-inset-top, 0px)); padding-top: calc(14px + env(safe-area-inset-top, 0px)); position: relative; z-index: 31; }
+}

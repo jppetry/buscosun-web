@@ -1094,3 +1094,10 @@
   .mdk-winddeck { bottom: 160px; }
   .mdk-stage .maplibregl-ctrl-bottom-left { bottom: 174px; }
 }
+
+/* Jan 2026-11-13: the rail runs through to the top edge (as in the dashboard); the top bar starts right of it.
+   The rail stays a child of .mdk-body and is pulled up by the top bar height (64 px, border-box). */
+@media (min-width: 768px) {
+  .mdk-root > .mdk-topbar { margin-left: 58px; }
+  .mdk-body > .mdk-rail { margin-top: -64px; position: relative; z-index: 31; }
+}
