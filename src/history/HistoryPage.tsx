@@ -431,13 +431,19 @@ function Topbar({ view, loc, available, dark, onToggleDark, onBrand, onChangeLoc
 function ModeHead({ loc, available, recordCount }: { loc: HistoryLocation; available: { min: number; max: number } | null; recordCount: number }) {
   const years = available ? available.max - available.min + 1 : null;
   const station = defaultHistorySource.lastStation;
+  // Collapsible: folded, only the title line stays. Remembered per browser.
+  const [folded, setFolded] = useState(() => { try { return localStorage.getItem("hdHeadFolded") === "1"; } catch { return false; } });
+  const toggle = () => setFolded((v) => { try { localStorage.setItem("hdHeadFolded", v ? "0" : "1"); } catch { /* private mode */ } return !v; });
   return (
-    <div className="hd-modehead">
+    <div className={`hd-modehead${folded ? " is-folded" : ""}`}>
       <div className="hd-modehead-main">
         <h1 className="hd-modehead-title">{shortLoc(loc.name)}{years ? <span> · {years} Jahre Wetter</span> : null}</h1>
-        <p className="hd-modehead-sub">Was möchtest du sehen? Einen bestimmten Tag nachschlagen oder die Veränderung über die Jahrzehnte.</p>
+        {!folded && <p className="hd-modehead-sub">Was möchtest du sehen? Einen bestimmten Tag nachschlagen oder die Veränderung über die Jahrzehnte.</p>}
       </div>
-      <dl className="hd-modehead-facts">
+      <button type="button" className="hd-modehead-fold" onClick={toggle} aria-expanded={!folded} aria-label={folded ? "Angaben ausklappen" : "Angaben einklappen"} title={folded ? "Ausklappen" : "Einklappen"}>
+        <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 10l4-4 4 4" /></svg>
+      </button>
+      <dl className="hd-modehead-facts" hidden={folded}>
         <div><dt>Zeitraum</dt><dd>{available ? `${available.min}–${available.max}` : '—'}</dd></div>
         <div><dt>Tage im Archiv</dt><dd>{recordCount > 0 ? recordCount.toLocaleString('de-DE') : '—'}</dd></div>
         <div><dt>{defaultHistorySource.kind === 'reanalysis' ? 'Quelle' : 'Station'}</dt><dd>{station ? `${station.name} · ${station.distanceKm} km` : defaultHistorySource.kind === 'reanalysis' ? 'ERA5' : 'DWD'}</dd></div>
