@@ -668,7 +668,7 @@ const ChangeCard = memo(function ChangeCard({ events, delta, ready, busy, onJump
           <h2 className="te-card-h">Wetter ändert sich {delta.level === 'kaum' ? 'kaum' : delta.level}</h2>
           <p className="te-lead">{events.length ? `${events.length} Wechsel entlang der Strecke.` : 'Kein Wechsel über den Schwellen.'} Start → Ziel:</p>
           <div className="te-deltas">
-            <div className="te-delta"><span>Temperatur</span><b>{delta.tempK != null ? `${signed(delta.tempK)} K` : '—'}</b></div>
+            <div className="te-delta"><span>Temperatur</span><b>{delta.tempK != null ? `${signed(delta.tempK)} °C` : '—'}</b></div>
             <div className="te-delta"><span>Wind</span><b>{delta.windMps != null ? `${signed(delta.windMps)} m/s` : '—'}</b></div>
             <div className="te-delta"><span>Nass-Anteil</span><b>{delta.wetShare != null ? `${signed(delta.wetShare * 100, 0)} %-Pkt.` : '—'}</b></div>
             <div className="te-delta"><span>Bewölkung</span><b>{delta.cloudPct != null ? `${signed(delta.cloudPct, 0)} %` : '—'}</b></div>

@@ -142,7 +142,7 @@ export function weatherChanges(samples: SampleETA[], points: Pt[]): WeatherChang
     const dT = t - t0;
     if (Math.abs(dT) >= TEMP_CHANGE_K) {
       const dKm = (s.dist - samples[ref].dist) / 1000;
-      ev.push({ kind: dT < 0 ? 'cooling' : 'warming', ...at(s), index: i, text: `${dT < 0 ? 'Abkühlung' : 'Erwärmung'} ${fmt1(Math.abs(dT))} K auf ${fmt1(dKm)} km` });
+      ev.push({ kind: dT < 0 ? 'cooling' : 'warming', ...at(s), index: i, text: `${dT < 0 ? 'Abkühlung' : 'Erwärmung'} ${fmt1(Math.abs(dT))} °C auf ${fmt1(dKm)} km` });
       ref = i;
     }
   });
