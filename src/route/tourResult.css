@@ -17,21 +17,23 @@
 .te-lbl { display: block; font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--stone-400); font-weight: 700; }
 
 /* ---------- head + plan pills ---------- */
-.te-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px 24px; flex-wrap: wrap; }
-.te-head-l { min-width: 0; }
-.te-title { margin: 4px 0 0; font-size: 30px; line-height: 1.05; font-weight: 700; letter-spacing: -0.6px; color: var(--ink-900); }
-.te-sum { margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 14px; color: var(--stone-600); }
+/* compact head: title, key figures and verdict share one wrapping row; the eyebrow keeps its own line */
+.te-head { display: flex; align-items: center; justify-content: space-between; gap: 8px 24px; flex-wrap: wrap; }
+.te-head-l { flex: 1 1 360px; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 14px; }
+.te-head-l > .rd-eyebrow, .te-head-l > .te-horizon { flex-basis: 100%; }
+.te-title { margin: 0; font-size: 26px; line-height: 1.05; font-weight: 700; letter-spacing: -0.6px; color: var(--ink-900); }
+.te-sum { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 14px; color: var(--stone-600); }
 .te-sum b { color: var(--ink-900); font-weight: 600; }
-.te-verdict { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; margin-top: 10px; padding: 7px 13px; border-radius: 99px; background: var(--rd-card); box-shadow: var(--te-sh-1); font-size: 13.5px; color: var(--ink-900); }
+.te-verdict { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; margin-top: 3px; padding: 5px 12px; border-radius: 99px; background: var(--rd-card); box-shadow: var(--te-sh-1); font-size: 13.5px; color: var(--ink-900); }
 .te-verdict i { flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; }
 .te-verdict b { font-weight: 600; }
 .te-verdict.is-wait { color: var(--stone-500); }
 .te-horizon { margin: 10px 0 0; }
 .te-status { margin: 12px 0 0; }
 
-.te-head-r { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.te-head-r { position: relative; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
 .te-pills { position: relative; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
-.te-pill { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border: 0; border-radius: 99px; background: var(--rd-card); box-shadow: var(--te-sh-1); font: inherit; font-size: 13.5px; font-weight: 500; color: var(--ink-900); white-space: nowrap; cursor: pointer; }
+.te-pill { display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 0 14px; border: 0; border-radius: 99px; background: var(--rd-card); box-shadow: var(--te-sh-1); font: inherit; font-size: 13.5px; font-weight: 500; color: var(--ink-900); white-space: nowrap; cursor: pointer; }
 .te-pill:hover { box-shadow: var(--te-sh-2); }
 .te-pill.is-on { background: var(--ink-900); color: var(--rd-card); }
 .te-pill.is-static { cursor: default; box-shadow: none; background: transparent; color: var(--rd-sage-strong); font-weight: 600; }
@@ -41,7 +43,7 @@
 .te-pill-ic .mv-icon { width: 18px; height: 18px; }
 .te-chev { font-size: 10px; opacity: 0.55; }
 .te-pop { position: absolute; z-index: 30; top: calc(100% + 8px); right: 0; width: min(380px, 90vw); max-height: min(70dvh, 620px); overflow: auto; padding: 16px; border-radius: var(--te-r-md); background: var(--rd-card); box-shadow: var(--te-sh-2); text-align: left; }
-.te-busy-row { min-height: 18px; }
+.te-busy-row { position: absolute; right: 0; top: 100%; white-space: nowrap; }
 .te-busy { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--stone-500); }
 .te-busy::before { content: ''; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--terracotta-500); border-right-color: transparent; animation: te-spin 0.7s linear infinite; }
 @keyframes te-spin { to { transform: rotate(360deg); } }
