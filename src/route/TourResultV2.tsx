@@ -251,6 +251,13 @@ export default function TourResultV2(p: TourResultV2Props) {
       {agg.hasData && (
         <div className="rt-fc-sec">
           <span className="rd-label">Wetter · gesamte Tour</span>
+          {/* The verdict of the head and the total ascent, repeated where the tour's weather is read in detail. */}
+          {(verdict || ascent != null) && (
+            <p className="te-tw-sum">
+              {verdict && <><b>{verdict.lead}</b>{verdict.rest ? <span className="te-mute"> {verdict.rest}</span> : null}</>}
+              {ascent != null && <span className="te-tw-hm">Anstieg <b>{ascent} hm</b> ↑</span>}
+            </p>
+          )}
           <WeatherStatGrid agg={agg} />
         </div>
       )}

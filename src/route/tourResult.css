@@ -185,6 +185,9 @@
 .te-details-grid { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 16px; align-items: start; }
 .te-details-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .te-details .rd-analysis-grid { margin-top: 16px; }
+.te-tw-sum { margin: 0; font-size: 13.5px; line-height: 1.45; color: var(--ink-900); }
+.te-tw-sum b { font-weight: 600; }
+.te-tw-hm { display: block; margin-top: 2px; color: var(--stone-600); }
 .te-wait { display: flex; flex-direction: column; gap: 10px; }
 .te-sources { margin: 18px 0 0; font-size: 12px; color: var(--stone-500); line-height: 1.5; }
 
