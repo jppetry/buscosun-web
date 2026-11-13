@@ -1735,6 +1735,26 @@
 }
 .br-mrange-ticks { display: flex; justify-content: space-between; padding: 0 2px; font-size: 11px; color: var(--stone-500, #8B7355); }
 
+/* Minimum-area slider of the Historie list: the single-thumb sibling of the month range (same track, same thumb).
+   One thumb only, so the whole track takes the pointer; the red part runs from the thumb to the right end („ab x ha"). */
+.br-arange { margin-top: 9px; --thumb: 28px; }
+.br-arange-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.br-arange .br-mrange-val { font-size: 13px; }
+.br-arange .br-mrange-track input[type='range'] { pointer-events: auto; cursor: pointer; }
+/* Each number sits under its thumb stop: equal cells whose centres are the stops (--n = number of steps, set inline). */
+.br-arange .br-mrange-ticks {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); padding: 0; text-align: center; white-space: nowrap;
+  margin: 0 calc(var(--thumb) / 2 - (100% - var(--thumb)) / (2 * (var(--n) - 1)));
+}
+@media (min-width: 768px) {
+  .br-arange, .br-arange .br-mrange-track { --thumb: 20px; }
+  .br-arange .br-mrange-track { height: 32px; }
+  .br-arange .br-mrange-track input[type='range'] { height: 32px; }
+  .br-arange .br-mrange-track input[type='range']::-webkit-slider-runnable-track { height: 32px; }
+  .br-arange .br-mrange-track input[type='range']::-moz-range-track { height: 32px; }
+  .br-arange .br-mrange-track input[type='range']::-webkit-slider-thumb { margin-top: 6px; }
+}
+
 /* Desktop/Tablet: die Karte steht im Readout zwischen Reitern und Brände-Liste. */
 @media (min-width: 768px) {
   .br-readout .br-mrange {

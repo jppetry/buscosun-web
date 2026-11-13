@@ -89,7 +89,7 @@ export function historyAreaHa(e: HistoryIndexEntry): number | null {
   return e.estHa;
 }
 /** Steps of the minimum-area filter in ha; 0 = any area. */
-const AREA_STEPS = [0, 10, 50, 100, 500] as const;
+const AREA_STEPS: readonly number[] = [0, 5, 10, 20, 50, 100, 200, 500, 1000];
 /** Countries that always get a chip (the product's region); every other country sits in the select. */
 const CHIP_COUNTRIES = ['DE', 'AT', 'CH'] as const;
 const AREA_FILTER_TITLE = 'Kartierte Fläche (EFFIS), sonst die Schätzung. Ereignisse, die nur eine Obergrenze aus dem Raster tragen, zählen nicht.';
@@ -98,6 +98,8 @@ export function FireHistoryPanel(p: HistoryPanelProps) {
   const [sort, setSort] = useState<HistorySort>('strength');
   const [shown, setShown] = useState(CLUSTER_PAGE);
   const filtered = p.minHa > 0 || p.countries.length > 0;
+  const areaIdx = Math.max(0, AREA_STEPS.indexOf(p.minHa));
+  const areaLabel = p.minHa > 0 ? `ab ${de(p.minHa)} ha` : 'Jede Fläche';
   const toggleCountry = (code: string) => {
     p.onCountries(p.countries.includes(code) ? p.countries.filter((c) => c !== code) : [...p.countries, code]);
     setShown(CLUSTER_PAGE);
@@ -140,12 +142,19 @@ export function FireHistoryPanel(p: HistoryPanelProps) {
               <button key={id} type="button" className={`br-chip is-ink${sort === id ? ' is-active' : ''}`} aria-pressed={sort === id} onClick={() => { setSort(id); setShown(CLUSTER_PAGE); }}>{l}</button>
             ))}
           </div>
-          <div className="br-chiprow" role="group" aria-label="Mindestfläche">
-            {!p.inSheet && <span className="br-chiprow-lbl">Fläche:</span>}
-            {AREA_STEPS.map((ha) => (
-              <button key={ha} type="button" className={`br-chip is-ink${p.minHa === ha ? ' is-active' : ''}`} aria-pressed={p.minHa === ha} title={ha > 0 ? AREA_FILTER_TITLE : undefined}
-                onClick={() => { p.onMinHa(ha); setShown(CLUSTER_PAGE); }}>{ha === 0 ? 'Jede Fläche' : `ab ${de(ha)} ha`}</button>
-            ))}
+          {/* Minimum area as a slider over fixed steps (same track and thumb as the month range above the list). */}
+          <div className="br-arange" role="group" aria-label="Mindestfläche" title={AREA_FILTER_TITLE}>
+            <div className="br-arange-head">
+              <span className="br-chiprow-lbl">Fläche in ha</span>
+              <strong className="br-mrange-val">{areaLabel}</strong>
+            </div>
+            <div className="br-mrange-track" style={{ ['--lo' as string]: areaIdx / (AREA_STEPS.length - 1), ['--hi' as string]: 1 }}>
+              <input type="range" min={0} max={AREA_STEPS.length - 1} step={1} value={areaIdx} aria-label="Mindestfläche" aria-valuetext={areaLabel}
+                onChange={(e) => { p.onMinHa(AREA_STEPS[Number(e.target.value)] ?? 0); setShown(CLUSTER_PAGE); }} />
+            </div>
+            <div className="br-mrange-ticks" aria-hidden="true" style={{ ['--n' as string]: AREA_STEPS.length }}>
+              {AREA_STEPS.map((ha) => <span key={ha}>{de(ha)}</span>)}
+            </div>
           </div>
           <div className="br-chiprow" role="group" aria-label="Länder">
             {!p.inSheet && <span className="br-chiprow-lbl">Land:</span>}
