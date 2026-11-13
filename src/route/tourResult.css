@@ -60,6 +60,10 @@
 .te-stage .rd-mapwrap.te-mapbox { height: var(--te-map-h); border-radius: var(--te-r-lg); box-shadow: var(--te-sh-1); }
 .te-stage .r3-tpanel-map { border-radius: var(--te-r-lg); }
 .te-stage .r3-tpanel-map .r3-tmap-shell { height: var(--te-map-h); }
+/* the layer dock sits left of the map: the overlays of the stage start at the map, not at the dock */
+.te-stage .r3-lyr-dock { border-radius: var(--te-r-lg); }
+.te-stage:has(.r3-lyr-dock) .te-ov--tl { left: 266px; }
+.te-stage:has(.r3-lyr-dock) .te-slider-wrap { left: 266px; }
 .te-stage .rd-mapwait.te-mapbox { height: var(--te-map-h); display: grid; place-items: center; border-radius: var(--te-r-lg); background: var(--sand-100); }
 .te-stage .rt-quellen { top: 62px; left: 14px; }
 .te-stage .rt-windlegend { bottom: auto; top: 62px; right: 14px; }

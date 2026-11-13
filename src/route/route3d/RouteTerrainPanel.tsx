@@ -62,6 +62,37 @@ export default function RouteTerrainPanel({
   const [lyrOpen, setLyrOpen] = useState(false);
   const activeCount = chips.filter((c) => tLayers[c.key]).length;
 
+  // One list for the desktop dock and the mobile sheet: a row per layer with a switch (like the layer dock of the Wetterkarte).
+  const layerRows = (
+    <>
+      {(['ground', 'air'] as const).map((g) => (
+        <div key={g} className="r3-lyr-group">
+          <span className="r3-lyr-grp">{g === 'ground' ? 'Am Boden' : 'In der Luft'}</span>
+          {chips.filter((c) => c.group === g).map((c) => (
+            <button
+              key={c.key}
+              type="button"
+              role="switch"
+              aria-checked={tLayers[c.key]}
+              className={`r3-lyr-row${tLayers[c.key] ? ' is-on' : ' is-off'}`}
+              title={c.ok ? undefined : c.note}
+              disabled={c.disabled === true}
+              onClick={() => toggle(c.key)}
+            >
+              <span className="r3-lyr-dot" style={{ background: c.dot }} />
+              <span className="r3-lyr-tx">
+                <span className="r3-lyr-label">{c.label}</span>
+                {!c.ok && <span className="r3-lyr-sub">{c.empty ?? 'ohne Daten'}</span>}
+              </span>
+              <span className="r3-lyr-switch" aria-hidden="true"><span className="r3-lyr-knob" /></span>
+            </button>
+          ))}
+        </div>
+      ))}
+      <span className="r3-lyr-res" title={resolutionNote(terrain)}>Auflösung {resolutionChip(terrain)}</span>
+    </>
+  );
+
   if (!routeSection) {
     return (
       <div className="r3-tmap-fallback r3-tpanel-empty">
@@ -77,51 +108,38 @@ export default function RouteTerrainPanel({
     // Falz (auf 1440 x 900 gemessen). In der 3D-Ansicht ist es umgekehrt: dort
     // steht die Buehne ohnehin oben.
     <div className="r3-tpanel">
-      <div className="r3-tpanel-map">
-        <RouteTerrainMap
-          points={points}
-          section={routeSection.section}
-          layers={tLayers}
-          wet={windows}
-          tempSegments={ground.tempSegments}
-          warnSegments={ground.warnSegments}
-          arrows={ground.arrows}
-          markerM={markerM}
-          onPickDist={onPickDist}
-          isMobile={isMobile}
-        />
-        {/* Ebenen als Layer-Panel wie in den anderen Ansichten: Desktop links am Kartenrand, mobil in der unteren Leiste. */}
-        {isMobile && (
-          <button type="button" className="r3-lyr-bar r3-lyr-glass" aria-expanded={lyrOpen} aria-controls="r3-lyr-sheet" onClick={() => setLyrOpen((v) => !v)}>
-            <span className="r3-lyr-bar-t">Ebenen</span>
-            <span className="r3-lyr-bar-n">{activeCount} an</span>
-            <span className="r3-lyr-bar-c" aria-hidden="true">{lyrOpen ? '▾' : '▴'}</span>
-          </button>
+      <div className={`r3-tpanel-body${isMobile ? '' : ' has-dock'}`}>
+        {/* Ebenen wie in den anderen Ansichten: Desktop eine eigene Leiste links neben der Karte, mobil Leiste unten + Sheet. */}
+        {!isMobile && (
+          <aside className="r3-lyr-dock" aria-label="Ebenen der Gelände-Ansicht">
+            <div className="r3-lyr-head">Ebenen <span className="r3-lyr-count">{activeCount} an</span></div>
+            {layerRows}
+          </aside>
         )}
-        {(!isMobile || lyrOpen) && (
-          <div id="r3-lyr-sheet" className={`r3-lyr r3-lyr-glass${isMobile ? ' is-sheet' : ''}`} role="group" aria-label="Ebenen der Gelände-Ansicht">
-            {(['ground', 'air'] as const).map((g) => (
-              <div key={g} className="r3-lyr-group">
-                <span className="r3-lyr-grp">{g === 'ground' ? 'Am Boden' : 'In der Luft'}</span>
-                {chips.filter((c) => c.group === g).map((c) => (
-                  <button
-                    key={c.key}
-                    type="button"
-                    className={`r3-lyr-item${tLayers[c.key] ? ' is-on' : ''}${c.ok ? '' : ' is-empty'}`}
-                    aria-pressed={tLayers[c.key]}
-                    title={c.ok ? undefined : c.note}
-                    disabled={c.disabled === true}
-                    onClick={() => toggle(c.key)}
-                  >
-                    <span className="r3-lyr-dot" style={{ background: c.dot }} />
-                    <span className="r3-lyr-lab">{c.label}{!c.ok && <small>{c.empty ?? 'ohne Daten'}</small>}</span>
-                  </button>
-                ))}
-              </div>
-            ))}
-            <span className="r3-lyr-res" title={resolutionNote(terrain)}>Auflösung {resolutionChip(terrain)}</span>
-          </div>
-        )}
+        <div className="r3-tpanel-map">
+          <RouteTerrainMap
+            points={points}
+            section={routeSection.section}
+            layers={tLayers}
+            wet={windows}
+            tempSegments={ground.tempSegments}
+            warnSegments={ground.warnSegments}
+            arrows={ground.arrows}
+            markerM={markerM}
+            onPickDist={onPickDist}
+            isMobile={isMobile}
+          />
+          {isMobile && (
+            <button type="button" className="r3-lyr-bar r3-lyr-glass" aria-expanded={lyrOpen} aria-controls="r3-lyr-sheet" onClick={() => setLyrOpen((v) => !v)}>
+              <span className="r3-lyr-bar-t">Ebenen</span>
+              <span className="r3-lyr-bar-n">{activeCount} an</span>
+              <span className="r3-lyr-bar-c" aria-hidden="true">{lyrOpen ? '▾' : '▴'}</span>
+            </button>
+          )}
+          {isMobile && lyrOpen && (
+            <div id="r3-lyr-sheet" className="r3-lyr-sheet r3-lyr-glass" role="group" aria-label="Ebenen der Gelände-Ansicht">{layerRows}</div>
+          )}
+        </div>
       </div>
 
       <p className="r3-tpanel-note">
