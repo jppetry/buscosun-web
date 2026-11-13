@@ -465,7 +465,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   );
   const dockOf = (show: 'all' | 'layers' | 'picker') => (
     <SeaDock show={show} query={query} onQuery={setQuery} revier={revier} onRevier={setRevier} profile={profile} onProfile={setProfile} limits={limits} onLimits={setLimits}
-      spots={dockSpots} selectedId={spot?.id ?? null} onPick={pickSpot} total={spots.length} layer={layer} onLayer={setLayer}
+      spots={dockSpots} selectedId={spot?.id ?? null} onPick={pickSpotFromMap} total={spots.length} layer={layer} onLayer={setLayer}
       toggles={toggles} onToggle={(kk) => setToggles((x) => ({ ...x, [kk]: !x[kk] }))} loading={catalog === 'loading'} />
   );
   const readout = (
