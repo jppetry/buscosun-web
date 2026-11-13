@@ -2644,15 +2644,15 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
           </p>
         </>
       ) : (
-        <p className="br-note">Der Monatsbereich wirkt auf das Rückblick-Fenster „Saison". Wähle es oben, um einzelne Monate einzugrenzen.</p>
+        <p className="br-note">Der Monatsbereich wirkt auf das Rückblick-Fenster „Saison". Wähle es oben über der Karte, um einzelne Monate einzugrenzen.</p>
       )}
     </div>
   );
   const settingsCards = (
     <>
       <div className="br-set-card">
-        <div className="br-set-head"><span className="br-eyebrow">Rückblick</span></div>
-        {windowSeg ?? <span className="br-muted">Detektionen aus — kein Rückblickfenster</span>}
+        <div className="br-set-head"><span className="br-eyebrow">Basiskarte</span></div>
+        {basemapSeg}
       </div>
       <div className="br-set-card">
         <div className="br-set-head"><span className="br-eyebrow">Anzeige in der Liste</span></div>
@@ -2778,8 +2778,8 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                   <button type="button" className="br-m-brand" aria-label="Zur Startseite" onClick={onBack}>
                     <img src="/buscosun-mark.svg" width={22} height={22} alt="" />
                   </button>
-                  {/* Mobil: Straßen | Satellit auf Höhe des Logos (Jans Auftrag 2026-10-23), die Quellen-Pille rückt darunter. */}
-                  <div className="br-m-basemaprow">{basemapSeg}</div>
+                  {/* Jan 2026-11-13: the look-back window sits between brand mark and share button; Straßen | Satellit moved to the settings page. */}
+                  <div className="br-m-basemaprow br-m-windowrow">{windowBar}</div>
                   <ShareButton className="br-m-share" compact />
                 </div>
               )}
