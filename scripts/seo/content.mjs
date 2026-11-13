@@ -428,7 +428,8 @@ export function renderPlacePage(place) {
 <html lang="de">
   <head>
 ${head}
-    <style>${PAGE_CSS}</style>
+    <style>${PAGE_CSS}
+body{background:var(--sand) url(/seo-bg-dach.svg) no-repeat center top/max(100vw,1300px) auto}</style>
   </head>
   <body>
     <main class="wrap">
