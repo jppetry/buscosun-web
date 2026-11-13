@@ -70,6 +70,8 @@ export interface SatScene {
   cloudPct: number | null;
   /** Anteil Pixel ohne Daten (0 = vollständig); `null`, wenn die Quelle ihn nicht nennt (Landsat). */
   nodataPct: number | null;
+  /** `s2:snow_ice_percentage` of the scene in percent (per granule, like the cloud share); absent or `null` when the source does not name it. */
+  snowPct?: number | null;
   /** Lage zum Brandzeitraum; `null`, wenn der Zeitraum unbekannt ist (reine EFFIS-Einträge). */
   phase: SatPhase | null;
 }
@@ -136,7 +138,7 @@ export function stacSearchBody(lat: number, lon: number, fromMs: number, toMs: n
     datetime: `${new Date(fromMs).toISOString()}/${new Date(toMs).toISOString()}`,
     limit: 100,
     fields: {
-      include: ['collection', 'properties.datetime', 'properties.eo:cloud_cover', 'properties.s2:nodata_pixel_percentage'],
+      include: ['collection', 'properties.datetime', 'properties.eo:cloud_cover', 'properties.s2:nodata_pixel_percentage', 'properties.s2:snow_ice_percentage'],
       exclude: ['geometry', 'links', 'assets'],
     },
   };
@@ -194,7 +196,7 @@ export function copernicusBrowserUrl(lat: number, lon: number, dayIso: string): 
 
 // --- Reiner Kern ------------------------------------------------------------------------------
 
-export interface RawScene { ms: number; sat: SatKind; cloudPct: number | null; nodataPct?: number | null }
+export interface RawScene { ms: number; sat: SatKind; cloudPct: number | null; nodataPct?: number | null; snowPct?: number | null }
 
 /**
  * Aus rohen Szenen die Tagesliste + Auto-Wahl. Regeln (SAT0 §2/§4):
@@ -234,7 +236,7 @@ export function classifyScenes(
   };
 
   const scenes: SatScene[] = [...byDay.entries()]
-    .map(([dayIso, s]) => ({ dayIso, ms: s.ms, sat: s.sat, cloudPct: s.cloudPct, nodataPct: s.nodataPct ?? null, phase: phaseOf(dayIso) }))
+    .map(([dayIso, s]) => ({ dayIso, ms: s.ms, sat: s.sat, cloudPct: s.cloudPct, nodataPct: s.nodataPct ?? null, snowPct: s.snowPct ?? null, phase: phaseOf(dayIso) }))
     .sort((a, b) => a.ms - b.ms);
 
   const inPhase = (p: SatPhase) => scenes.filter((s) => s.phase === p);
@@ -291,7 +293,7 @@ export function classifyScenes(
 
 // --- Abruf mit Sitzungs-Cache -----------------------------------------------------------------
 
-interface StacFeature { collection?: string; properties?: { datetime?: string; 'eo:cloud_cover'?: number; 's2:nodata_pixel_percentage'?: number } }
+interface StacFeature { collection?: string; properties?: { datetime?: string; 'eo:cloud_cover'?: number; 's2:nodata_pixel_percentage'?: number; 's2:snow_ice_percentage'?: number } }
 
 export function parseStacScenes(json: unknown): RawScene[] {
   const feats = (json as { features?: StacFeature[] } | null)?.features;
@@ -302,11 +304,13 @@ export function parseStacScenes(json: unknown): RawScene[] {
     if (!Number.isFinite(ms)) continue;
     const cc = f?.properties?.['eo:cloud_cover'];
     const nd = f?.properties?.['s2:nodata_pixel_percentage'];
+    const sn = f?.properties?.['s2:snow_ice_percentage'];
     out.push({
       ms,
       sat: String(f?.collection ?? '').startsWith('landsat') ? 'landsat' : 's2',
       cloudPct: typeof cc === 'number' && Number.isFinite(cc) ? cc : null,
       nodataPct: typeof nd === 'number' && Number.isFinite(nd) ? nd : null,
+      snowPct: typeof sn === 'number' && Number.isFinite(sn) ? sn : null,
     });
   }
   return out;
