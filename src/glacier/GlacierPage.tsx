@@ -200,6 +200,8 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
       .sort((a, b) => b.area.km2 - a.area.km2 || (a.id < b.id ? -1 : 1))
       .map((g) => ({ g, value: values.get(g.id) }));
   }, [allRanked, glaciers, land, query, values, pass]);
+  // Rows of the phone / tablet search page: the list's glaciers in the list's order.
+  const listGlaciers = useMemo(() => [...allRanked.map((r) => r.g), ...allRest.map((r) => r.g)], [allRanked, allRest]);
 
   const def = defs[metric];
   const season = seasonStatus(nowMs);
@@ -288,7 +290,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
     <aside className="gl-readout" aria-label="Gletscher der Auswahl">
       <div className="gl-readout-head"><h2>Gletscher</h2><p>Alle Gletscher der Auswahl, jeder Wert mit Herkunft</p></div>
       <div className="gl-readout-scroll">
-        {d && <GlacierFilters query={query} onQuery={setQuery} filter={filter} onFilter={setFilter} land={land} count={allRanked.length + allRest.length} />}
+        {d && <GlacierFilters query={query} onQuery={setQuery} filter={filter} onFilter={setFilter} land={land} count={allRanked.length + allRest.length} glaciers={listGlaciers} onPick={pick} />}
         {d && <GlacierList ranked={allRanked} rest={allRest} def={def} hint={rankHint} selectedId={selId} onPick={pick} onOpen={(id) => { pick(id); setStage('dossier'); }} />}
         {d && <FollowList ids={favs} byId={d.cat.byId} valueText={favValue} onPick={pick} onUnfollow={follow} fresh={fresh} />}
       </div>
@@ -386,7 +388,8 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
               <div className="gl-m-scroll">
               {mTab === 'glacier' && (
                 <>
-                  {d && <GlacierFilters query={query} onQuery={setQuery} filter={filter} onFilter={setFilter} land={land} count={allRanked.length + allRest.length} />}
+                  {d && <GlacierFilters query={query} onQuery={setQuery} filter={filter} onFilter={setFilter} land={land} count={allRanked.length + allRest.length}
+                    glaciers={listGlaciers} onPick={(id) => { pick(id); setMTab(null); }} />}
                   {d && <GlacierList ranked={allRanked} rest={allRest} def={def} hint={rankHint} selectedId={selId} onPick={(id) => { pick(id); setMTab(null); }}
                     onOpen={(id) => { pick(id); setStage('dossier'); setMTab(null); }} />}
                   {d && <FollowList ids={favs} byId={d.cat.byId} valueText={favValue} onPick={(id) => { pick(id); setMTab(null); }} onUnfollow={follow} fresh={fresh} />}

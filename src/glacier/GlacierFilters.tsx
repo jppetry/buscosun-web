@@ -6,7 +6,9 @@
 import { GLACIER_REGIONS, type GlacierCatalogEntry, type GlacierClass } from './glacierContract';
 import type { GlacierLatest } from './glacierClient';
 import type { GlacierLand } from './glacierState';
-import { fmt0 } from './glacierView';
+import { displayName, fmt0, fmtKm2 } from './glacierView';
+import { useSearchSheet } from '../components/LocationSearchSheet';
+import { ListSearchSheet } from '../components/ListSearchSheet';
 
 export type GlacierTrait = 'series' | 'lead' | 'debris' | 'named' | 'status';
 export interface GlacierFilter { klass: GlacierClass[]; region: string; traits: GlacierTrait[] }
@@ -44,17 +46,33 @@ interface Props {
   filter: GlacierFilter; onFilter: (f: GlacierFilter) => void;
   land: GlacierLand;
   count: number;
+  /** The glaciers of the list below, in its order (already narrowed by `query` and the filters) — rows of the phone / tablet search page. */
+  glaciers?: readonly GlacierCatalogEntry[];
+  /** Pick from the search page; without it the field searches inline only. */
+  onPick?: (id: string) => void;
 }
 
-export default function GlacierFilters({ query, onQuery, filter, onFilter, land, count }: Props) {
+export default function GlacierFilters({ query, onQuery, filter, onFilter, land, count, glaciers, onPick }: Props) {
+  const sheet = useSearchSheet();   // phone / tablet: full-screen search page instead of typing in the list
   const regions = Object.entries(GLACIER_REGIONS).filter(([, r]) => land === 'alle' || r.country.toLowerCase() === land);
   const active = filterActive(filter) || query.trim() !== '';
   return (
     <section className="gl-rfilter" aria-label="Gletscher suchen und filtern">
       <label className="gl-rsearch">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
-        <input type="search" placeholder="Gletscher suchen: Name, Inventar-Nr. …" value={query} onChange={(e) => onQuery(e.target.value)} aria-label="Gletscher suchen" autoComplete="off" />
+        <input type="search" placeholder="Gletscher suchen: Name, Inventar-Nr. …" value={query} onChange={(e) => onQuery(e.target.value)} onFocus={onPick ? sheet.openSheet : undefined} aria-label="Gletscher suchen" autoComplete="off" />
       </label>
+      {sheet.open && onPick && (
+        <ListSearchSheet label="Gletscher suchen" placeholder="Name, Inventar-Nr. …" query={query} onQuery={onQuery}
+          inputRef={sheet.inputRef} onClose={sheet.close} accent="#1E87A8" accentDark="#145A70"
+          empty={query.trim() ? `Kein Gletscher passt zu „${query}“.` : 'Kein Gletscher in der Auswahl.'}
+          rows={(glaciers ?? []).map((g) => ({
+            id: g.id, name: displayName(g),
+            sub: `${GLACIER_REGIONS[g.region]?.label ?? g.country} · ${fmtKm2(g.area.km2)}`,
+            lead: <span style={{ minWidth: 24, textAlign: 'center', fontSize: 12, fontWeight: 700, color: '#145A70' }}>{g.country}</span>,
+          }))}
+          onPick={(id) => { sheet.close(); onPick(id); }} />
+      )}
       <div className="gl-rf-row">
         <span className="gl-rf-lbl" id="gl-rf-klass">Klasse</span>
         <div className="gl-rf-chips" role="group" aria-labelledby="gl-rf-klass">
