@@ -59,6 +59,8 @@ const REFRESH_MS = 30 * 60_000;
 
 type Loaded = {
   build: string; cat: LoadedCatalog; points: GlacierPointsDoc; summary: GlacierSummary | null; official: GlacierOfficialItem[]; builtAt: string; satIndex: GlacierSatIndex | null; melt: GlacierIndex['melt'] | null; feed: GlacierIndex['feed'] | null;
+  /** Phase GW: pointer to the newest run with "Wetter am Gletscher". */
+  weather: GlacierIndex['weather'] | null;
 };
 
 export default function GlacierPage({ initial, onUrlState, onGlacier, popState }: GlacierPageProps) {
@@ -126,7 +128,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
         const [cat, points, summary, official] = await docsP;
         if (ac.signal.aborted) return;
         if (!cat || !points) { setLoad({ s: 'error', why: 'Katalog oder Punktliste nicht ladbar.' }); return; }
-        setLoad({ s: 'ready', d: { build, cat, points, summary, official: official ?? [], builtAt: index.builtAt, satIndex: index.sat ?? null, melt: index.melt ?? null, feed: index.feed ?? null } });
+        setLoad({ s: 'ready', d: { build, cat, points, summary, official: official ?? [], builtAt: index.builtAt, satIndex: index.sat ?? null, melt: index.melt ?? null, feed: index.feed ?? null, weather: index.weather ?? null } });
         // the satellite line is optional: a failure leaves "Ausaperung" locked and every other number untouched
         if (index.sat) loadSatLatest(index.sat, cat.byId, ac.signal, bases).then((m) => { if (!ac.signal.aborted) setSat(m); }, () => { /* stays locked */ });
         // the melt line (GL-3): only a FRESH run (≤ 30 h) colours the map; its index is today's value, never a unit
@@ -317,7 +319,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
     <div className="gl-ds-stage">
       {sel && d ? (
         <Suspense fallback={<div className="gl-empty" role="status">Dossier wird geladen …</div>}>
-          <GlacierBrief key={sel.id} layout="dossier" g={sel} build={d.build} byId={d.cat.byId} satIndex={d.satIndex} meltPointer={d.melt} official={d.official} nowMs={nowMs} isMobile={isMobile} bases={bases}
+          <GlacierBrief key={sel.id} layout="dossier" g={sel} build={d.build} byId={d.cat.byId} satIndex={d.satIndex} meltPointer={d.melt} weatherPointer={d.weather} official={d.official} nowMs={nowMs} isMobile={isMobile} bases={bases}
             state={sheet} onState={(patch) => setSheet((s) => ({ ...s, ...patch }))} onBack={() => setStage('map')} allow3d={allow3d} followed={favs.includes(sel.id)} onFollow={() => follow(sel.id)}
             onOpenSheet={GLACIER_BRIEF_READY ? openBrief : undefined} />
         </Suspense>
@@ -345,7 +347,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
         ) : !bg ? (
           <div className="gl-main"><div className="gl-empty gl-sheet-state" role="status"><strong>Diesen Gletscher gibt es im Atlas nicht.</strong> <button type="button" className="gl-btn" onClick={closeBrief}>Zur DACH-Lage</button></div></div>
         ) : (
-          <Suspense fallback={<div className="gl-main"><div className="gl-empty gl-sheet-state" role="status">Steckbrief wird geladen …</div></div>}><GlacierBrief key={bg.id} g={bg} build={d!.build} byId={d!.cat.byId} satIndex={d!.satIndex} meltPointer={d!.melt} official={d!.official} nowMs={nowMs} isMobile={isMobile} bases={bases}
+          <Suspense fallback={<div className="gl-main"><div className="gl-empty gl-sheet-state" role="status">Steckbrief wird geladen …</div></div>}><GlacierBrief key={bg.id} g={bg} build={d!.build} byId={d!.cat.byId} satIndex={d!.satIndex} meltPointer={d!.melt} weatherPointer={d!.weather} official={d!.official} nowMs={nowMs} isMobile={isMobile} bases={bases}
             state={sheet} onState={(patch) => setSheet((s) => ({ ...s, ...patch }))} onBack={closeBrief} allow3d={allow3d} followed={favs.includes(bg.id)} onFollow={() => follow(bg.id)} /></Suspense>
         )}
       </div>

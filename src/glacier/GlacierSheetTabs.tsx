@@ -30,7 +30,7 @@ function Stat({ label, children, origin, note }: { label: string; children: Reac
 }
 
 // --- Heute -------------------------------------------------------------------------------------------------------------------------------
-export function TabHeute({ g, melt, meltWhy, season, nowMs, neighbourName }: { g: GlacierCatalogEntry; melt: MeltView | null; meltWhy: string | null; season: SeasonSummary | null; nowMs: number; neighbourName: string | null }) {
+export function TabHeute({ g, melt, meltWhy, season, nowMs, neighbourName, weather = null }: { g: GlacierCatalogEntry; melt: MeltView | null; meltWhy: string | null; season: SeasonSummary | null; nowMs: number; neighbourName: string | null; /** Phase GW: the card "Wetter am Gletscher" (`null` = off). */ weather?: ReactNode }) {
   const ok = melt && melt.fresh && melt.todayIdx;
   return (
     <>
@@ -57,6 +57,7 @@ export function TabHeute({ g, melt, meltWhy, season, nowMs, neighbourName }: { g
           <p className="gl-fine">Balken = Median, Strich = 10.–90. Perzentil von {40} Szenarien mit zeitlich korrelierter Temperaturabweichung. {neighbourName ? `Antrieb vom Nachbarn ${neighbourName} (kleiner Gletscher ohne eigenen Punkt), eigene Höhenbänder.` : 'Antrieb am eigenen Punkt in der Medianhöhe des Gletschers.'}</p>
         </>
       )}
+      {weather}
       <SatCard g={g} season={season} nowMs={nowMs} />
     </>
   );

@@ -129,6 +129,7 @@
     "verify:glacier-publish": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-publish.mjs",
     "verify:glacier-sat": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-sat.mjs",
     "verify:glacier-melt": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-melt.mjs",
+    "verify:glacier-weather": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-weather.mjs",
     "verify:glacier-sheet": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-sheet.mjs",
     "verify:glacier-feed": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-feed.mjs",
     "verify:fire-fwi": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fire-fwi.mjs",

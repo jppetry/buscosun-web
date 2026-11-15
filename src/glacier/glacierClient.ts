@@ -15,6 +15,10 @@ import {
 } from './glacierContract';
 import { glacierSeasonPath, seasonProblems, climaProblems, type GlacierSeasonDoc, type GlacierSeasonRow, type GlacierSatCatalogRow } from './glacierSatContract';
 import { glacierMeltRunPath, meltProblems, type GlacierMeltDoc } from './glacierMeltContract';
+import {
+  glacierWeatherRunPath, glacierWeatherHourlyPath, weatherProblems, weatherHourlyProblems,
+  type GlacierWeatherDoc, type GlacierWeatherHourlyDoc, type GlacierWeatherPointer,
+} from './glacierWeatherContract';
 import type { GlacierDemGrid } from './glacierSatContract';
 import { feedProblems, glacierFeedPath, previousWeekKey, type GlacierFeedDoc, type GlacierFeedEvent } from './glacierFeedContract';
 
@@ -135,6 +139,8 @@ export interface GlacierIndex {
   sat?: GlacierSatIndex;
   /** Melt line (GL-3): pointer to the newest run. */
   melt?: GlacierMeltPointer;
+  /** Phase GW: pointer to the newest run with "Wetter am Gletscher" (written by the melt run). */
+  weather?: GlacierWeatherPointer;
   /** Feed line (GL-5): pointer to the newest week document. */
   feed?: GlacierFeedPointer;
 }
@@ -311,6 +317,26 @@ export function loadMelt(run: string, catalogIds: ReadonlySet<string> | undefine
 }
 
 /** All season rows of ONE glacier, per year, from the season documents the index names (every year, its region only). */
+/** Phase GW — the daily weather document of one run, through the contract rules; unreadable or violating ⇒ `null` ("Keine Daten"). */
+export function loadWeather(run: string, catalogIds: ReadonlySet<string> | undefined, bases = glacierBasesFrom()): Promise<GlacierWeatherDoc | null> {
+  return once(`${bases.cdn}|wx|${run}`, async () => {
+    try {
+      const d = await fetchGlacier(glacierWeatherRunPath(run), 'json', undefined, bases) as GlacierWeatherDoc;
+      return weatherProblems(d, catalogIds).length === 0 ? d : null;
+    } catch (e) { if (isAbort(e)) throw e; return null; }
+  });
+}
+/** Phase GW — the hourly chunk of one region (48 h); it must belong to `daily` (same run, same stand of buscosun Fusion). */
+export function loadWeatherHourly(daily: GlacierWeatherDoc, region: string, bases = glacierBasesFrom()): Promise<GlacierWeatherHourlyDoc | null> {
+  return once(`${bases.cdn}|wxh|${daily.run}|${region}`, async () => {
+    if (!daily.regions.includes(region)) return null;
+    try {
+      const d = await fetchGlacier(glacierWeatherHourlyPath(daily.run, region), 'json', undefined, bases) as GlacierWeatherHourlyDoc;
+      return weatherHourlyProblems(d, daily).length === 0 ? d : null;
+    } catch (e) { if (isAbort(e)) throw e; return null; }
+  });
+}
+
 export async function loadSeasonRowsOf(g: GlacierCatalogEntry, sat: GlacierSatIndex, byId: ReadonlyMap<string, GlacierCatalogEntry>, signal?: AbortSignal, bases = glacierBasesFrom()): Promise<Map<number, GlacierSeasonRow[]>> {
   const out = new Map<number, GlacierSeasonRow[]>();
   const years = Object.keys(sat.seasons ?? {}).filter((y) => /^\d{4}$/.test(y)).sort();

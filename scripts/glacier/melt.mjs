@@ -5,7 +5,7 @@
  *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/melt.mjs \
  *        --data=<v1 dir of the glacier data repo> --cube=<checkout of buscosun-data with point/> --out=<dir> [--patch=<dir>] [--archive-out=<dir>]
- *        [--calibration=<json>] [--now=<iso>] [--only=<ids>] [--limit=N] [--classes=A,B,C] [--always]
+ *        [--calibration=<json>] [--now=<iso>] [--only=<ids>] [--limit=N] [--classes=A,B,C] [--always] [--weather=0]
  *
  * Rules (each one tested in verify:glacier-melt):
  *  - needs `public/climaGrid.json` (the climatology of buscosun Fusion): without it the engine runs WITHOUT distributions and would write nothing true — the job is RED (V-SW-18);
@@ -15,6 +15,10 @@
  *  - a spread of a sum is the quantile of the sums of K scenarios, never a sum of hourly quantiles; the hourly p10/p90 are single-hour spreads only;
  *  - the unit "mm w. e." is written ONLY when the calibration says `gate.unit === true` (Gate C passed); otherwise the file carries the unitless index and no
  *    millimetre field at all.
+ *
+ * Phase GW ("Wetter am Gletscher", `--weather=0` switches it off): the SAME Fusion answers also give the weather at the glacier — `melt/wx/<run>.json` (daily, 14 days)
+ * and `melt/wx/<run>/<region>.json` (hourly, 48 h), contract `src/glacier/glacierWeatherContract.ts`, core `lib/weathercore.mjs`. No extra Fusion call; a failure of
+ * this part never touches the melt document (the weather is then not written and the status names why).
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, copyFileSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
@@ -31,6 +35,10 @@ import {
   glacierMeltRunPath, GLACIER_MELT_STATE_PATH, meltIndexOf, meltProblems, meltLeadDoc,
 } from '../../src/glacier/glacierMeltContract.ts';
 import { MELT, bandsOf, emptyState, simulate, cosZenith, clearSky, cloudFactor, scenarioPaths, quantile } from './lib/meltcore.mjs';
+import {
+  GLACIER_WEATHER_DAYS, GLACIER_WEATHER_HOURS, GLACIER_WEATHER_RUN_RE, glacierWeatherRunPath, glacierWeatherHourlyPath, weatherProblems, weatherHourlyProblems,
+} from '../../src/glacier/glacierWeatherContract.ts';
+import { weatherSeriesOf, weatherOfGlacier, weatherHead, WEATHER_PHASE_RULE } from './lib/weathercore.mjs';
 
 const H = 3_600_000;
 /** Snow water (mm) given to a band the satellite saw snow-covered (`set`); a band seen snow-free is emptied. */
@@ -48,6 +56,8 @@ const J = (p) => JSON.parse(readFileSync(p, 'utf8'));
 const readJson = (p) => { try { return J(p); } catch { return null; } };
 const r1 = (x) => Math.round(x * 10) / 10;
 const stamp = (ms) => new Date(ms).toISOString().replace(/[-:T]/g, '').slice(0, 10);
+/** Run id `yyyymmddhh` → ms UTC. */
+const runMs = (run) => Date.UTC(+run.slice(0, 4), +run.slice(4, 6) - 1, +run.slice(6, 8), +run.slice(8, 10));
 
 /** Temperature lapse of the free atmosphere between the reference elevation and the freezing level (K/m, positive downward), standard when not usable. */
 export function lapseOf(tRef, zRef, freezeM) {
@@ -250,6 +260,8 @@ export async function main(opts) {
   const t0Ms = Math.floor(nowMs / H) * H;
   const run = stamp(t0Ms);
   const log = opts.log ?? (() => {});
+  // Phase GW: weather at the glacier from the same answers (`--weather=0` = the run exactly as before)
+  const wxOn = !(opts.weather === '0' || opts.weather === 0 || opts.weather === false);
   // calibration: the parameters and whether Gate C released the unit
   const cal = J(resolve(opts.calibration ?? join(dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), 'melt-calibration.json')));
   const unit = cal.gate?.unit === true;
@@ -310,11 +322,15 @@ export async function main(opts) {
     cubeRuns = { t1: r.t1?.run ?? cubeRuns.t1, t2: r.t2?.run ?? cubeRuns.t2, t3: r.t3?.run ?? cubeRuns.t3, stations: r.stations?.run ?? cubeRuns.stations };
     const f = forcingFromForecast(fc, { lat: g.lat, lon: g.lon, zRef: zMed, t0Ms });
     f.from = 'own';
+    // Phase GW: the weather series of the same answer (wind, gusts, direction, p10/p90 of the temperature, snowfall line)
+    if (wxOn) { try { f.wx = weatherSeriesOf(fc, { t0Ms, hours: GLACIER_MELT_HOURS }); } catch { f.wx = null; } }
     forcings.set(g.id, f);
     return f;
   };
 
   const rows = [], nextState = {};
+  // Phase GW: rows of the weather document, hourly rows per region, skips with their reason
+  const wxRows = [], wxSkipped = [], wxHourly = new Map();
   let nudged = 0;
   const tStart = Date.now();
   const mk = (g, hyp, f) => {
@@ -349,6 +365,16 @@ export async function main(opts) {
       const out = runGlacier({ g, hyp, forcing: f, params, state: st, ela, run, unit });
       rows.push(out.row);
       nextState[g.id] = [out.next.swe, out.next.aS];
+      if (wxOn) {
+        // weather at tongue, median and top from the forcing this glacier just ran on; its own try: the melt row above stays whatever happens here
+        try {
+          const zb = bandsOf(hyp).zb;
+          const z = [zb[0], g.z[1], zb[zb.length - 1]];
+          const w = weatherOfGlacier({ id: g.id, z, tz: z.map((zz) => tempAt(f, zz)), from: f.from ?? 'own', p: f.p, n: f.n, wx: f.wx });
+          if (w.skip) wxSkipped.push({ id: g.id, reason: w.skip });
+          else { wxRows.push(w.row); if (!wxHourly.has(g.region)) wxHourly.set(g.region, {}); wxHourly.get(g.region)[g.id] = w.hourly; }
+        } catch (e) { wxSkipped.push({ id: g.id, reason: `error: ${String(e?.message ?? e).split('\n')[0]}` }); }
+      }
     } catch (e) { skipped.push({ id: g.id, reason: `error: ${String(e?.message ?? e).split('\n')[0]}` }); }
   }
   if (!rows.length) throw new Error(`kein Gletscher mit Ergebnis (${skipped.length} übersprungen, z. B. ${skipped[0]?.reason ?? '—'})`);
@@ -373,9 +399,23 @@ export async function main(opts) {
   }
   writeFileSync(join(outDir, glacierMeltRunPath(run)), JSON.stringify(doc));
   writeFileSync(join(outDir, GLACIER_MELT_STATE_PATH), JSON.stringify({ schema: 1, kind: 'glacier/melt-state', atMs: t0Ms + MELT_STATE_ADVANCE_H * H, g: nextState }));
+  // Phase GW: the weather documents of this run (after the melt document, which is complete at this point)
+  let weather = null;
+  if (wxOn) {
+    try {
+      weather = writeWeather({ outDir, dataDir, run, runAt: doc.runAt, nowMs, version: engine.version, cube: cubeRuns, build, rows: wxRows, skipped: wxSkipped, hourly: wxHourly, catalogIds: new Set(catAll.map((g) => g.id)) });
+    } catch (e) { weather = { error: String(e?.message ?? e).split('\n')[0] }; }
+    if (weather.error) log(`Wetter am Gletscher nicht geschrieben: ${weather.error}`);
+  }
   mkdirSync(patchDir, { recursive: true });
-  writeFileSync(join(patchDir, 'index-patch.json'), JSON.stringify({ melt: { run, runAt: doc.runAt, engine: { name: engine.name, version: engine.version }, cube: cubeRuns, unit, build } }));
-  writeFileSync(join(patchDir, 'status-patch.json'), JSON.stringify({ lines: { melt: { at: doc.runAt, glaciers: rows.length, skipped: skipped.length, unit, seconds: Math.round((Date.now() - tStart) / 1000) } } }));
+  writeFileSync(join(patchDir, 'index-patch.json'), JSON.stringify({
+    melt: { run, runAt: doc.runAt, engine: { name: engine.name, version: engine.version }, cube: cubeRuns, unit, build },
+    ...(weather && !weather.error ? { weather: weather.pointer } : {}),
+  }));
+  writeFileSync(join(patchDir, 'status-patch.json'), JSON.stringify({ lines: {
+    melt: { at: doc.runAt, glaciers: rows.length, skipped: skipped.length, unit, seconds: Math.round((Date.now() - tStart) / 1000) },
+    ...(weather ? { weather: weather.error ? { at: doc.runAt, error: weather.error } : { at: doc.runAt, glaciers: weather.glaciers, skipped: weather.skipped, files: weather.files, bytes: weather.bytes } } : {}),
+  } }));
   if (opts['archive-out'] || opts.archiveOut) {
     // the lead glaciers' rows of this run for the archive branch (Gate E: model against measurement) — add only, the name carries the run
     const ao = resolve(opts['archive-out'] ?? opts.archiveOut);
@@ -384,11 +424,45 @@ export async function main(opts) {
     writeFileSync(join(ao, `melt-${run}.json`), JSON.stringify(meltLeadDoc(doc, leads)));
   }
   log(`${rows.length} Gletscher, ${skipped.length} übersprungen, Einheit ${unit ? 'freigegeben' : 'gesperrt (nur Index)'}, ${Math.round((Date.now() - tStart) / 1000)} s`);
-  return { run, glaciers: rows.length, skipped: skipped.length, unit, outDir, patchDir, engine, cube: cubeRuns };
+  return { run, glaciers: rows.length, skipped: skipped.length, unit, outDir, patchDir, engine, cube: cubeRuns, ...(weather ? { weather: weather.error ? { error: weather.error } : { glaciers: weather.glaciers, skipped: weather.skipped, files: weather.files, bytes: weather.bytes } } : {}) };
+}
+
+/**
+ * Phase GW — writes `melt/wx/<run>.json` and one hourly chunk per region into the output tree, next to the weather runs of the last 72 h. Throws with a reason
+ * when there is nothing true to write (no stand of buscosun Fusion in the answer, no row, a contract violation); the caller keeps the melt run.
+ */
+export function writeWeather({ outDir, dataDir, run, runAt, nowMs, version, cube, build, rows, skipped, hourly, catalogIds }) {
+  if (!Number.isInteger(version)) throw new Error('die Antwort von buscosun Fusion nennt ihren Stand nicht');
+  if (!rows.length) throw new Error(`kein Gletscher mit Wetter (${skipped.length} übersprungen, z. B. ${skipped[0]?.reason ?? '—'})`);
+  const head = weatherHead({ run, runAt, engine: { name: fusionName(version), version, stageCurrent: version === FUSION_CURRENT } });
+  const regions = [...hourly.keys()].sort();
+  const doc = {
+    ...head, kind: 'glacier/weather', cube, days: GLACIER_WEATHER_DAYS, hours: GLACIER_WEATHER_HOURS,
+    rules: { phase: WEATHER_PHASE_RULE, lapse: 'freezing-level', sums: 'expected', day: 'from-run-hour', wind: 'free-height' },
+    regions, build, glaciers: rows, skipped,
+  };
+  const problems = weatherProblems(doc, catalogIds);
+  if (problems.length) throw new Error(`Vertrag verletzt: ${problems.slice(0, 5).join('; ')}`);
+  const chunks = regions.map((region) => ({ region, doc: { ...head, kind: 'glacier/weather-hourly', region, hours: GLACIER_WEATHER_HOURS, glaciers: hourly.get(region) } }));
+  for (const c of chunks) { const pr = weatherHourlyProblems(c.doc, doc); if (pr.length) throw new Error(`Vertrag verletzt (${c.region}): ${pr.slice(0, 5).join('; ')}`); }
+  // output tree = everything that stays in `melt/wx/`: the earlier runs of the last 72 h (document + chunk folder), then this run
+  const wxIn = join(dataDir, 'melt', 'wx'), wxOut = join(outDir, 'melt', 'wx');
+  mkdirSync(wxOut, { recursive: true });
+  for (const f of existsSync(wxIn) ? readdirSync(wxIn) : []) {
+    const id = f.replace(/\.json$/, '');
+    if (!GLACIER_WEATHER_RUN_RE.test(id) || id === run || nowMs - runMs(id) > GLACIER_MELT_KEEP_MS) continue;
+    if (f.endsWith('.json')) copyFileSync(join(wxIn, f), join(wxOut, f));
+    else { mkdirSync(join(wxOut, f), { recursive: true }); for (const c of readdirSync(join(wxIn, f))) copyFileSync(join(wxIn, f, c), join(wxOut, f, c)); }
+  }
+  let bytes = 0;
+  const put = (rel, d) => { const s = JSON.stringify(d); mkdirSync(dirname(join(outDir, rel)), { recursive: true }); writeFileSync(join(outDir, rel), s); bytes += Buffer.byteLength(s); };
+  put(glacierWeatherRunPath(run), doc);
+  for (const c of chunks) put(glacierWeatherHourlyPath(run, c.region), c.doc);
+  return { pointer: { run, runAt, engine: { name: head.engine.name, version }, build, regions }, glaciers: rows.length, skipped: skipped.length, files: 1 + chunks.length, bytes };
 }
 
 if (process.argv[1] && /(^|[\\/])melt\.mjs$/.test(process.argv[1])) {
   if (!args.data || !args.cube || !args.out) { console.error('--data=<v1> --cube=<buscosun-data> --out=<Ordner> fehlen'); process.exit(2); }
-  main({ data: args.data, cube: args.cube, out: args.out, patch: args.patch, 'archive-out': args['archive-out'], calibration: args.calibration, now: args.now, only: args.only, limit: args.limit, classes: args.classes, always: !!args.always, log: (m) => console.error(m) })
+  main({ data: args.data, cube: args.cube, out: args.out, patch: args.patch, 'archive-out': args['archive-out'], calibration: args.calibration, now: args.now, only: args.only, limit: args.limit, classes: args.classes, always: !!args.always, weather: args.weather, log: (m) => console.error(m) })
     .then((r) => console.log(JSON.stringify(r))).catch((e) => { console.error(e.message ?? e); process.exit(1); });
 }

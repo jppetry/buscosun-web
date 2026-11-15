@@ -16,6 +16,8 @@ import { loadOutline } from './glacierClient';
 import GlacierSheetMap, { type SheetBasemap, type SheetSnow } from './GlacierSheetMap';
 import { TabHeute, TabSaison, TabLangzeit, TabTour, TabQuellen } from './GlacierSheetTabs';
 import GlacierHeuteBoard from './GlacierHeuteBoard';
+import GlacierWeatherCard from './GlacierWeatherCard';
+import { glacierWeatherFrom } from './glacierFlag';
 import { fmt0, fmt2, fmtKm2, fmtRefYear, displayName, fmtSigned } from './glacierView';
 import {
   areaChange, cumulativeLength, longestLength, massRows, latestMass, meltView, seasonSummary, sourceRows, dateDe, dateDeLong, STATE_TEXT, seriesCsv, type SeasonSummary,
@@ -46,6 +48,8 @@ export interface SheetProps {
   byId: ReadonlyMap<string, GlacierCatalogEntry>;
   satIndex: GlacierSatIndex | null;
   meltPointer: GlacierIndex['melt'] | null;
+  /** Phase GW: pointer to the newest run with "Wetter am Gletscher" (`null` = the data store names none). */
+  weatherPointer?: GlacierIndex['weather'] | null;
   official: readonly GlacierOfficialItem[];
   nowMs: number;
   isMobile: boolean;
@@ -62,7 +66,7 @@ export interface SheetProps {
   onOpenSheet?: () => void;
 }
 
-export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, official, nowMs, isMobile, bases, state, onState, onBack, allow3d, followed, onFollow, layout = 'page', onOpenSheet }: SheetProps) {
+export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, weatherPointer = null, official, nowMs, isMobile, bases, state, onState, onBack, allow3d, followed, onFollow, layout = 'page', onOpenSheet }: SheetProps) {
   const [data, setData] = useState<SheetData | null>(null);
   const [compare, setCompare] = useState<number | null>(null);
   const [snowShare, setSnowShare] = useState<number | null>(null);
@@ -148,9 +152,11 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
       ))}
     </div>
   );
+  // Phase GW (on, `?glw=0` = the sheet as before): the weather at the glacier, one card for the tab "Heute" and the Heute board
+  const weatherCard = glacierWeatherFrom() ? <GlacierWeatherCard g={g} pointer={weatherPointer} byId={byId} nowMs={nowMs} bases={bases} /> : null;
   /** `noMap`: the dossier shows the map only on the level Heute — the before/after card of Langzeit needs it and is left out then. */
   const tabBody = (t: GlacierTab, d: SheetData, noMap = false) => (
-    t === 'heute' ? <TabHeute g={g} melt={mv} meltWhy={meltWhy} season={season} nowMs={nowMs} neighbourName={neighbourName} />
+    t === 'heute' ? <TabHeute g={g} melt={mv} meltWhy={meltWhy} season={season} nowMs={nowMs} neighbourName={neighbourName} weather={weatherCard} />
     : t === 'saison' ? <TabSaison g={g} data={d} year={year} selDate={selScene?.date ?? null} mass={mass} />
     : t === 'langzeit' ? <TabLangzeit g={g} area={area} length={length} proj={d.proj} compareYear={earlier?.year ?? null} compareOn={compare != null} onCompare={(on) => setCompare(on ? 0.5 : null)} noCompare={noMap} official={official} status={g.status ?? null} hasSeries={d.series.length > 0}
         onCsv={() => { const text = seriesCsv(g, d.series, new Date(nowMs).toISOString().slice(0, 10)); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' })); a.download = `${g.id}-reihen.csv`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }} />
@@ -317,7 +323,7 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, of
             {notReady ? <>{level === 0 && <section className="gl-hb-card gl-hb-hero" aria-label="Gletscher auf einen Blick">{headBlock}</section>}{notReady}</> : (data && (
               <>
                 {data.missing.length > 0 && <p className="gl-fine gl-missing" role="note">Nicht ladbar: {data.missing.join(', ')}.</p>}
-                {level === 0 ? <GlacierHeuteBoard g={g} melt={mv} meltWhy={meltWhy} season={season} nowMs={nowMs} neighbourName={neighbourName} head={headBlock} /> : LEVELS[level].tabs.map((t) => (
+                {level === 0 ? <GlacierHeuteBoard g={g} melt={mv} meltWhy={meltWhy} season={season} nowMs={nowMs} neighbourName={neighbourName} head={headBlock} weather={weatherCard} /> : LEVELS[level].tabs.map((t) => (
                   <Fragment key={t}>
                     {t === 'saison' && (
                       <section className="gl-ds-card gl-ds-sec" data-tab="sat10" aria-label="Sentinel-2 in 10 m">

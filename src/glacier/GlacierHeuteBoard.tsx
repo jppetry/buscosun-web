@@ -76,8 +76,10 @@ function SatPanel({ g, season, nowMs }: { g: GlacierCatalogEntry; season: Season
   );
 }
 
-export default function GlacierHeuteBoard({ g, melt, meltWhy, season, nowMs, neighbourName, head }: {
+export default function GlacierHeuteBoard({ g, melt, meltWhy, season, nowMs, neighbourName, head, weather = null }: {
   g: GlacierCatalogEntry; melt: MeltView | null; meltWhy: string | null; season: SeasonSummary | null; nowMs: number; neighbourName: string | null; head: ReactNode;
+  /** Phase GW: the card "Wetter am Gletscher" (`null` = off). */
+  weather?: ReactNode;
 }) {
   const ok = melt && melt.fresh && melt.todayIdx ? melt : null;
   const t = ok?.todayIdx ?? null;
@@ -128,6 +130,8 @@ export default function GlacierHeuteBoard({ g, melt, meltWhy, season, nowMs, nei
           </div>
         )}
       </section>
+
+      {weather ? <div className="gl-hb-wx">{weather}</div> : null}
 
       <section className="gl-hb-row gl-hb-row--week" aria-label="Die nächsten 14 Tage">
         {ok && (

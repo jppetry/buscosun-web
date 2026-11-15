@@ -351,3 +351,66 @@
   .gl-ds-lay, .gl-ds-maptools .gl-input { height: 44px; }
   .gl-ds-time { gap: 8px; }
 }
+
+/* ---- Phase GW: "Wetter am Gletscher" (GlacierWeatherCard, tab "Heute" and the Heute board) ---------------------------------------
+   Tokens `--gl-wx-*` on the card; the three elevations keep one colour each in table, chart and legend. */
+.gl-wx {
+  --gl-wx-l0: var(--gl-accent-dark); --gl-wx-l1: var(--gl-ink); --gl-wx-l2: var(--gl-faint);
+  --gl-wx-rain: #3A6FA8; --gl-wx-snow: #B9D7E6; --gl-wx-wind: var(--gl-ink); --gl-wx-gust: var(--gl-loss);
+  gap: 10px; min-width: 0;
+}
+.gl-wx .gl-honest { margin: 0; font-size: 12px; line-height: 1.4; color: var(--gl-faint); }
+.gl-wx-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; min-width: 0; }
+.gl-wx-table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.gl-wx-table th, .gl-wx-table td { padding: 7px 8px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--gl-line); }
+.gl-wx-table thead th { font-size: 11.5px; font-weight: 600; color: var(--gl-muted); }
+.gl-wx-table th[scope='row'], .gl-wx-table thead th:first-child { text-align: left; font-weight: 600; color: var(--gl-ink); }
+.gl-wx-table tbody tr:last-child th, .gl-wx-table tbody tr:last-child td { border-bottom: 0; }
+.gl-wx-levels th[scope='row'] span { display: block; font-size: 11.5px; font-weight: 500; color: var(--gl-muted); }
+.gl-wx-levels td .gl-num { font-size: 15px; }
+.gl-wx-levels td b.gl-num { font-size: 19px; }
+.gl-wx-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.gl-wx-more { border-top: 1px solid var(--gl-line); }
+.gl-wx-more > summary {
+  min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; list-style: none;
+  font-size: 13.5px; font-weight: 700; color: var(--gl-ink);
+}
+.gl-wx-more > summary::-webkit-details-marker { display: none; }
+.gl-wx-more > summary::before { content: '+'; flex: none; width: 18px; font-weight: 600; color: var(--gl-muted); }
+.gl-wx-more[open] > summary::before { content: '\2212'; }
+.gl-wx-more > summary .gl-chip { margin-left: auto; }
+.gl-wx-more > summary:focus-visible { outline: 2px solid var(--gl-accent); outline-offset: 2px; border-radius: 8px; }
+.gl-wx-more[open] { padding-bottom: 6px; }
+.gl-wx-chart { display: block; width: 100%; height: auto; }
+.gl-wx-tick { font-size: 10.5px; fill: var(--gl-muted); font-family: inherit; }
+.gl-wx-grid { stroke: var(--gl-line); stroke-width: 1; }
+.gl-wx-grid.is-day { stroke: var(--gl-line-strong); }
+.gl-wx-zero { stroke: var(--gl-muted); stroke-width: 1; stroke-dasharray: 4 4; }
+.gl-wx-base { stroke: var(--gl-line-strong); stroke-width: 1; }
+.gl-wx-now { stroke: var(--gl-accent); stroke-width: 1.5; }
+.gl-wx-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.gl-wx-line.is-l0 { stroke: var(--gl-wx-l0); }
+.gl-wx-line.is-l1 { stroke: var(--gl-wx-l1); }
+.gl-wx-line.is-l2 { stroke: var(--gl-wx-l2); }
+.gl-wx-line.is-wind { stroke: var(--gl-wx-wind); }
+.gl-wx-line.is-gust { stroke: var(--gl-wx-gust); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.gl-wx-rain { fill: var(--gl-wx-rain); }
+.gl-wx-snow { fill: var(--gl-wx-snow); stroke: var(--gl-wx-rain); stroke-width: 0.5; }
+.gl-wx-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 11.5px; color: var(--gl-muted); }
+.gl-wx-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.gl-wx-legend i { width: 14px; height: 3px; border-radius: 2px; background: var(--gl-ink); }
+.gl-wx-legend i.is-l0 { background: var(--gl-wx-l0); }
+.gl-wx-legend i.is-l1 { background: var(--gl-wx-l1); }
+.gl-wx-legend i.is-l2 { background: var(--gl-wx-l2); }
+.gl-wx-legend i.is-rain { height: 9px; width: 9px; background: var(--gl-wx-rain); }
+.gl-wx-legend i.is-snow { height: 9px; width: 9px; background: var(--gl-wx-snow); outline: 1px solid var(--gl-wx-rain); }
+.gl-wx-legend i.is-wind { background: var(--gl-wx-wind); }
+.gl-wx-legend i.is-gust { background: var(--gl-wx-gust); }
+/* In the Heute board the card takes the look of the board's cards. */
+.gl-hb-wx { min-width: 0; }
+.gl-hb-wx .gl-card { border-radius: 18px; border-color: var(--gl-hair); box-shadow: var(--gl-shadow-m); background: var(--gl-glass); padding: 14px 16px; }
+@media (max-width: 767px) {
+  .gl-wx-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .gl-wx-table th, .gl-wx-table td { padding: 8px 6px; }
+  .gl-hb-wx .gl-card { border-radius: 16px; padding: 12px; }
+}

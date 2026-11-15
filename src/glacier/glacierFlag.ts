@@ -38,6 +38,15 @@ export function rememberGlacierFlag(search: string = typeof location !== 'undefi
   try { localStorage.setItem('gl', q); } catch { /* private mode: the query still works per page */ }
 }
 
+/** Phase GW — "Wetter am Gletscher" in the sheet (tab "Heute"): on (Jan's task of 15.11.2026). */
+export const GLACIER_WEATHER_LIVE = true;
+/** `?glw=0|1` beats `GLACIER_WEATHER_LIVE`; `?glw=0` = the sheet exactly as before. */
+export function glacierWeatherFrom(search: string = typeof location !== 'undefined' ? location.search : '', live: boolean = GLACIER_WEATHER_LIVE): boolean {
+  let q: string | null = null;
+  try { q = new URLSearchParams(search).get('glw'); } catch { /* broken query = no vote */ }
+  return q === '0' ? false : q === '1' ? true : live;
+}
+
 /** `?gl3d=0` = the 3D stage is off (fallback to the 2D map), like `?z3d=0` for the cell towers. */
 export function glacier3dFrom(search: string = typeof location !== 'undefined' ? location.search : ''): boolean {
   try { return new URLSearchParams(search).get('gl3d') !== '0'; } catch { return true; }
