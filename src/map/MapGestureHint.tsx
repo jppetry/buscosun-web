@@ -111,7 +111,9 @@ const WX_ICON = {
   width: 15, height: 15, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor',
   strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true,
 } as const;
-const WX_LABEL_FONT = "'League Spartan', system-ui, sans-serif";
+/** No-break space: keeps "▶" with the word after it. */
+const NBSP = String.fromCharCode(160);
+const WX_LABEL_FONT ="'League Spartan', system-ui, sans-serif";
 /** Fallback when the caller does not pass `mobileLayout` (same query as `MOBILE_MAP_MEDIA_QUERY` in MapView). */
 const MOBILE_LAYOUT_QUERY = '(max-width: 767px), (max-height: 430px) and (orientation: landscape)';
 
@@ -266,9 +268,8 @@ export default function MapGestureHint({ map, feature, accent = '#B5651D', enabl
                     <div className="bs-wx-row is-on"><i style={{ background: 'var(--terracotta-500, #C97B47)' }} />Temperatur<span className="bs-wx-tg" /></div>
                     <div className="bs-wx-row is-r4"><i style={{ background: 'var(--slate-500, #6B7A8F)' }} />Wolken<span className="bs-wx-tg" /></div>
                     <div className="bs-wx-mbar">
-                      <svg {...WX_ICON}><rect x="4" y="4" width="7" height="9" rx="1.5" /><rect x="14" y="4" width="6" height="5" rx="1.5" /><rect x="14" y="12" width="6" height="8" rx="1.5" /><rect x="4" y="16" width="7" height="4" rx="1.5" /></svg>
                       <svg {...WX_ICON}><path d="M12 3 3 8l9 5 9-5-9-5Z" /><path d="m3 13 9 5 9-5" /></svg>
-                      <span><svg {...WX_ICON}><path d="M4 7h16M4 12h16M4 17h16" /></svg></span>
+                      <span><svg {...WX_ICON}><rect x="3" y="5" width="18" height="6" rx="2" /><rect x="3" y="13" width="18" height="6" rx="2" /></svg>Layer</span>
                     </div>
                   </div>
                 </div>
@@ -287,11 +288,11 @@ export default function MapGestureHint({ map, feature, accent = '#B5651D', enabl
                   ))}
                   <g className="bs-wx-lbl" fontFamily={WX_LABEL_FONT} fontSize={12} fontWeight={600} fill="#E9EDF0" stroke="#3E4143" strokeWidth={3} paintOrder="stroke">
                     <text x="156" y="66">München</text>
-                    <text x="322" y="110">Innsbruck</text>
+                    <text className="bs-wx-lbl2" x="322" y="110">Innsbruck</text>
                   </g>
                   <g className="bs-wx-lbl" fontFamily={WX_LABEL_FONT} fontSize={12} fontWeight={700} fill="#F3E36B" stroke="#3E4143" strokeWidth={3} paintOrder="stroke">
                     <text x="214" y="66">7°</text>
-                    <text x="384" y="110">9°</text>
+                    <text className="bs-wx-lbl2" x="384" y="110">9°</text>
                   </g>
                 </svg>
                 <div className="bs-wx-shade" aria-hidden="true" />
@@ -313,7 +314,7 @@ export default function MapGestureHint({ map, feature, accent = '#B5651D', enabl
                 </div>
                 <div className="bs-wx-tx">
                   <b>Zeit wählen</b>
-                  <p>Der Regler unten zeigt die nächsten Stunden, ▶ spielt sie ab.</p>
+                  <p>Der Regler unten zeigt die nächsten Stunden, ▶{NBSP}spielt sie ab.</p>
                 </div>
               </div>
               <div className="bs-wx-t bs-wx-t4">

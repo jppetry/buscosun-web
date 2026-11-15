@@ -149,6 +149,11 @@
   display: block; padding: 0; color: var(--ink-900, #2C2A26);
   container: bswx / size;
 }
+/* The source line of the map (map/mapSources.css, levels 40 to 42) would run across the card: while this intro is
+   open it lies under the veil like the rest of the map. The other hints keep it above them. */
+.msl-host.msl-host:has(> .bs-wx) .maplibregl-ctrl-bottom-right,
+.msl-host:has(> .bs-wx) .msl-btn,
+.msl-host:has(> .bs-wx) .msl-tile { z-index: 29; }
 /* Mobile layout: the stage runs under the bottom bar. The hint ends above it, so "Layer" stays visible and tappable. */
 .bs-hint.bs-wx.is-mob { bottom: calc(var(--mdk-bar-h, 64px) + env(safe-area-inset-bottom, 0px)); }
 
@@ -231,13 +236,15 @@
   border-top: 1px solid var(--sand-200, #E0D6BE); color: var(--stone-400, #A89A7A);
 }
 .bs-wx.is-mob .bs-wx-mbar { display: flex; }
-.bs-wx-mbar span { display: flex; padding: 3px 8px; border-radius: 8px; background: var(--terracotta-50, #FAEEDA); color: var(--terracotta-700, #A85E2E); }
+.bs-wx-mbar span { display: flex; align-items: center; gap: 4px; padding: 3px 8px; font-size: 11px; font-weight: 600; border-radius: 8px; background: var(--terracotta-50, #FAEEDA); color: var(--terracotta-700, #A85E2E); }
 
 /* 2 · Zoom: wind particles on the dark map grey */
 .bs-wx-t2 { grid-column: 1 / -1; background: #4B4E50; color: var(--cream-50, #FAF6EA); }
 .bs-wx-t2 p { color: rgba(250, 246, 234, 0.88); }
 .bs-wx-field { position: absolute; left: -12%; top: 0; width: 124%; height: 100%; animation: bs-wx-drift 9s ease-in-out infinite alternate; }
 .bs-wx-shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(44, 46, 48, 0) 12%, rgba(36, 38, 40, 0.92) 80%); }
+/* The second place label only where the tile is wide enough to keep it clear of the text. */
+.bs-wx-lbl2 { display: none; }
 .bs-wx-badge {
   position: absolute; right: 10px; top: 10px; height: 30px; padding: 0 12px; border-radius: 999px;
   background: rgba(250, 246, 234, 0.94); color: var(--ink-900, #2C2A26); font-size: 13px; font-weight: 600;
@@ -247,6 +254,9 @@
 /* 3 · Time and 4 · Place: white pill with slider or search field */
 .bs-wx-t3 { background: var(--sage-50, #F0F4EA); }
 .bs-wx-t4 { background: var(--terracotta-50, #FAEEDA); }
+/* Side by side: both start at the top, so the two titles stand on one line whatever the line count below. */
+.bs-wx-t3, .bs-wx-t4 { justify-content: flex-start; }
+.bs-wx-t3 .bs-wx-ill, .bs-wx-t4 .bs-wx-ill { flex: none; }
 .bs-wx-pill {
   width: 100%; height: 36px; padding: 0 12px 0 10px; border-radius: 18px; background: #fff; box-shadow: 0 6px 18px rgba(44, 42, 38, 0.12);
   display: flex; align-items: center; gap: 8px; font-size: 14px; white-space: nowrap; overflow: hidden;
@@ -337,6 +347,9 @@
   .bs-wx-row.is-r1 { display: flex; }
   .bs-wx.is-desk .bs-wx-mock-eb { display: block; }
   .bs-wx-t2 { grid-column: 2 / 4; }
+  .bs-wx-lbl2 { display: inline; }
+  .bs-wx-t3, .bs-wx-t4 { justify-content: flex-end; }
+  .bs-wx-t3 .bs-wx-ill, .bs-wx-t4 .bs-wx-ill { flex: 1; }
   .bs-wx-badge { right: 12px; top: 12px; }
   .bs-wx-note { display: block; }
   .bs-wx-go { width: auto; flex: none; margin-left: auto; }
@@ -365,7 +378,9 @@
   .bs-wx-bento { grid-area: 2 / 1 / 3 / 3; align-self: stretch; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto auto; gap: 8px; }
   .bs-wx-t, .bs-wx-t1 { padding: 10px 12px; border-radius: 18px; }
   .bs-wx-t1, .bs-wx-t2 { grid-column: auto; grid-row: auto; }
-  .bs-wx-t2 { padding-right: 132px; justify-content: flex-start; }
+  /* The badge shares the line of the title; the text below runs the full width. */
+  .bs-wx-t2 { justify-content: flex-start; }
+  .bs-wx-t2 p { margin-top: 12px; }
   .bs-wx-shade { background: rgba(36, 38, 40, 0.62); }
   .bs-wx-t b { font-size: 16px; }
   .bs-wx-t p { font-size: 13px; }
