@@ -241,7 +241,7 @@ export default function HistoryPage({ onBack, onOpenFeature, initialUrl, onUrlSt
         <AppLoader cover done={pageShown} />
         {view === 'onboard' && (
           <>
-            <MobileBrandHead loc={null} onWechseln={undefined} />
+            <MobileBrandHead loc={null} onWechseln={undefined} onBrand={handleBack} />
             <div className="hd-m-scroll hd-m-scroll--map">
               {mapBg}
               <div className="hd-m-onboard"><Onboarding onPick={applyLocation} deck /></div>
@@ -251,20 +251,20 @@ export default function HistoryPage({ onBack, onOpenFeature, initialUrl, onUrlSt
 
         {view !== 'onboard' && status === 'loading' && (
           <>
-            <MobileBrandHead loc={loc} onWechseln={changeLocation} />
+            <MobileBrandHead loc={loc} onWechseln={changeLocation} onBrand={handleBack} />
             <div className="hd-m-scroll"><div className="hd-m-panel"><span className="ev-spinner" /> Stationsdaten werden geladen …</div></div>
           </>
         )}
         {view !== 'onboard' && status === 'error' && (
           <>
-            <MobileBrandHead loc={loc} onWechseln={changeLocation} />
+            <MobileBrandHead loc={loc} onWechseln={changeLocation} onBrand={handleBack} />
             <div className="hd-m-scroll"><div className="hd-m-panel">⚠ {errMsg}<br /><button type="button" className="hd-m-chip" style={{ marginTop: 10 }} onClick={() => setLoc(loc ? { ...loc } : null)}>Erneut versuchen</button></div></div>
           </>
         )}
 
         {view === 'modus' && status === 'ready' && days && (
           <>
-            <MobileBrandHead loc={loc} onWechseln={changeLocation} />
+            <MobileBrandHead loc={loc} onWechseln={changeLocation} onBrand={handleBack} />
             <div className="hd-m-scroll hd-m-scroll--map">
               {mapBg}
               <MobileModeChoice available={available} warmingDelta={warmingDelta} hottest={recordSet?.warmestDay ?? null}
@@ -275,7 +275,7 @@ export default function HistoryPage({ onBack, onOpenFeature, initialUrl, onUrlSt
 
         {view === 'change' && days && (
           <>
-            <MobileHeader eyebrow={`Veränderung · ${shortLoc(loc!.name)}`} title="Wie hat es sich verändert?" accent="terra" onBack={backToMode} />
+            <MobileHeader eyebrow={`Veränderung · ${shortLoc(loc!.name)}`} title="Wie hat es sich verändert?" accent="terra" onBack={backToMode} onBrand={handleBack} />
             <div className="hd-m-scroll">
               <MobileChange settings={settings} patch={patch} days={days} workDays={workDays} meta={meta} normal={normal} normalPeriod={normalPeriod} range={range} available={available} recordSet={recordSet} />
             </div>
@@ -284,7 +284,7 @@ export default function HistoryPage({ onBack, onOpenFeature, initialUrl, onUrlSt
 
         {view === 'explore' && days && (
           <>
-            <MobileHeader eyebrow={`Rückblick · ${shortLoc(loc!.name)}`} title="Wie war das Wetter?" accent="steel" onBack={backToMode} />
+            <MobileHeader eyebrow={`Rückblick · ${shortLoc(loc!.name)}`} title="Wie war das Wetter?" accent="steel" onBack={backToMode} onBrand={handleBack} />
             <div className="hd-m-scroll hd-m-explore">
               <ExploreView days={days} lat={loc!.lat} lon={loc!.lon} settings={settings} patch={patch} available={available} normalPeriod={normalPeriod} />
               <Provenance kind={defaultHistorySource.kind} label={defaultHistorySource.label} compact station={defaultHistorySource.lastStation} modelFilled={modelFilledSummary(days)} />
@@ -879,29 +879,40 @@ function ExploreDrill({ days, settings, patch, available, normalPeriod }: {
 
 // ============================ MOBILE ============================
 
-function MobileBrandHead({ loc, onWechseln }: { loc: HistoryLocation | null; onWechseln?: () => void }) {
+function MobileBrandBtn({ onBrand }: { onBrand: () => void }) {
+  return (
+    <button type="button" className="hd-m-brandbtn" aria-label="Zur Startseite" onClick={onBrand}>
+      <img src="/buscosun-mark.svg" width={22} height={22} alt="" />
+    </button>
+  );
+}
+
+function MobileBrandHead({ loc, onWechseln, onBrand }: { loc: HistoryLocation | null; onWechseln?: () => void; onBrand: () => void }) {
   return (
     <header className="hd-m-modehead">
+      <MobileBrandBtn onBrand={onBrand} />
       <div className="hd-m-brand">
-        <img src="/buscosun-mark.svg" width={22} height={22} alt="" />
         <div>
           <div className="hd-m-brand-eyebrow">KLIMA-RÜCKBLICK</div>
           <div className="hd-m-brand-loc">{loc ? `${flagForCountry(loc.country ?? 'DE')} ${shortLoc(loc.name)}` : 'Standort wählen'}</div>
         </div>
       </div>
       {loc && onWechseln && <button type="button" className="hd-m-switch" onClick={onWechseln}>Wechseln</button>}
+      {loc && <ShareButton className="hd-m-share" compact />}
     </header>
   );
 }
 
-function MobileHeader({ eyebrow, title, accent, onBack }: { eyebrow: string; title: string; accent: 'steel' | 'terra'; onBack: () => void }) {
+function MobileHeader({ eyebrow, title, accent, onBack, onBrand }: { eyebrow: string; title: string; accent: 'steel' | 'terra'; onBack: () => void; onBrand: () => void }) {
   return (
     <header className="hd-m-header">
+      <MobileBrandBtn onBrand={onBrand} />
       <button type="button" className="hd-m-back" onClick={onBack} aria-label="Zurück zur Modus-Wahl"><IconChevronLeft /></button>
       <div className="hd-m-htext">
         <div className={`hd-m-eyebrow hd-m-eyebrow--${accent}`}>{eyebrow}</div>
         <div className="hd-m-title">{title}</div>
       </div>
+      <ShareButton className="hd-m-share" compact />
     </header>
   );
 }

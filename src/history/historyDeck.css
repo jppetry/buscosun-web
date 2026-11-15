@@ -411,7 +411,10 @@ button.hd-tile:hover .hd-tile-open { background: var(--terracotta-700); }
 
 /* Modus-Wahl-Kopf */
 .hd-m-modehead { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 18px 12px; padding-top: max(env(safe-area-inset-top), 10px); border-bottom: 1px solid var(--border-default); }
-.hd-m-brand { display: flex; align-items: center; gap: 9px; }
+.hd-m-brand { display: flex; align-items: center; gap: 9px; flex: 1; min-width: 0; }
+.hd-m-brandbtn { width: 44px; height: 44px; flex: 0 0 auto; border-radius: 12px; border: 1px solid var(--border-default); background: var(--cream-50); padding: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.hd-m-brandbtn img { display: block; }
+.hd-m-share { width: 44px; height: 44px; border-radius: 12px; flex: 0 0 auto; }
 .hd-m-brand img { display: block; flex: 0 0 auto; }
 .hd-m-brand-eyebrow { font-size: 9px; letter-spacing: 1.5px; color: var(--stone-500); font-weight: 700; }
 .hd-m-brand-loc { font-size: 15px; font-weight: 700; color: var(--ink-900); }
@@ -550,7 +553,7 @@ button.hd-tile:hover .hd-tile-open { background: var(--terracotta-700); }
 [data-theme="dark"] .hd-onboard-card { background: #26231E; border-color: #3A362F; }
 [data-theme="dark"] .hd-onboard-title { color: #F0E9DA; }
 [data-theme="dark"] .hd-onboard-recent { background: #2A2722; border-color: #3A362F; color: #F0E9DA; }
-[data-theme="dark"] .hd-brandmark, [data-theme="dark"] .hd-m-brand img { filter: invert(1) hue-rotate(180deg); }
+[data-theme="dark"] .hd-brandmark, [data-theme="dark"] .hd-m-brand img, [data-theme="dark"] .hd-m-brandbtn img { filter: invert(1) hue-rotate(180deg); }
 [data-theme="dark"] .hd-kenn-note strong { color: #F0E9DA; }
 [data-theme="dark"] .hd-seg:not(.hd-seg--on), [data-theme="dark"] .hd-toggle, [data-theme="dark"] .hd-stage-meta, [data-theme="dark"] .hd-stage-axis span { color: #C9C0AE; }
 [data-theme="dark"] .hd-kenn-chip:not(.hd-kenn-chip--on) { background: #3A362F; color: #C9C0AE; }
