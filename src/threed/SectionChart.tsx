@@ -28,7 +28,7 @@ const LANDSCAPE_WIDE = { W: 1200, H: 430 };
 const PORTRAIT = { W: 560, H: 600 };
 const BASE_PAD_L = 54, BASE_PAD_R = 16, PAD_T = 16, PAD_B = 42;
 /** Portrait on a phone: the viewBox follows the real width (1 unit = 1 CSS px), so labels and arrows stay readable. */
-const PORTRAIT_MIN_W = 280, PORTRAIT_MAX_W = 560, PORTRAIT_ASPECT = 0.65;
+const PORTRAIT_MIN_W = 280, PORTRAIT_MAX_W = 560, PORTRAIT_ASPECT = 0.715;
 const NARROW_PAD_L = 42, NARROW_PAD_R = 10;
 
 export interface PickedPoint {
