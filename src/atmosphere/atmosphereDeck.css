@@ -503,7 +503,7 @@
 .vsd-m-fnbar-tx b { font-size: 14px; font-weight: 700; color: var(--ink-900); }
 .vsd-m-fnbar-tx span { font-size: 11px; color: var(--stone-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .vsd-m-fnbar-cta { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--steel-600); background: var(--sand-50); border: 1px solid var(--border-default); border-radius: 9px; padding: 8px 10px; }
-.vsd-m-map { height: 56vh; min-height: 300px; }
+.vsd-m-map { height: 47.6vh; min-height: 255px; }
 @media (max-width: 767px) {
   /* The global chip „Über diese Ansicht" (RouteSeoBlock) is not shown on the phone in the Vertikalschnitt (Jan 06.11.),
      so the scroll area no longer keeps room for it. */
