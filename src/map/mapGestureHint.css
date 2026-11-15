@@ -87,23 +87,6 @@
   border: 2px solid #fff; opacity: 0; animation: bs-hint-ripple 1.6s ease-out infinite; pointer-events: none;
 }
 
-/* Geführte Einleitung (Wetterkarte): nummerierte Schritte, nacheinander eingeblendet. */
-.bs-hint-steps {
-  list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px;
-  width: min(460px, 100%); text-align: left;
-}
-.bs-hint-steps li {
-  display: flex; align-items: center; gap: 12px; padding: 8px 14px 8px 9px; border-radius: 14px;
-  background: rgba(250, 246, 234, 0.10); border: 1px solid rgba(250, 246, 234, 0.22);
-  animation: bs-hint-in 380ms ease both; animation-delay: calc(160ms + var(--i, 0) * 110ms);
-}
-.bs-hint-step-n {
-  flex: none; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  background: var(--bs-hint-accent); color: #fff; font-size: 14px; font-weight: 700;
-}
-.bs-hint-steps .bs-hint-click-txt b { font-size: 15px; }
-.bs-hint-steps .bs-hint-click-txt span { font-size: 13.5px; line-height: 1.35; }
-
 .bs-hint-cta {
   display: inline-flex; align-items: center; height: 42px; padding: 0 22px; border-radius: 999px;
   background: #FAF6EA; color: #2C2A26; font-size: 15px; font-weight: 600;
@@ -145,25 +128,255 @@
   .bs-hint-title { font-size: 26px; }
   .bs-hint-sub { font-size: 15px; }
   .bs-hint-cta { height: 44px; }
-  /* Wetterkarte: vier Schritte brauchen Platz — Bild kleiner, Schritte enger. */
-  .bs-hint.is-weather .bs-hint-art { width: 112px; height: 112px; }
-  .bs-hint.is-weather .bs-hint-title { font-size: 22px; }
-  .bs-hint.is-weather .bs-hint-sub { font-size: 14px; }
-  .bs-hint.is-weather .bs-hint-content { max-width: calc(100% - 24px); box-sizing: border-box; }
-  .bs-hint-steps { gap: 6px; }
-  .bs-hint-steps li { padding: 7px 10px 7px 8px; gap: 10px; }
-  .bs-hint-steps .bs-hint-click-txt span { font-size: 12.5px; }
-}
-
-/* Niedrige Handys: ohne Bild, damit alle vier Schritte und der Knopf ins Bild passen. */
-@media (max-width: 767px) and (max-height: 720px) {
-  .bs-hint.is-weather .bs-hint-art { display: none; }
-  .bs-hint.is-weather { padding-bottom: 12px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .bs-hint-veil, .bs-hint-content, .bs-hint-spot,
-  .bs-hint-wheel, .bs-hint-chev, .bs-hint-finger, .bs-hint-ripple, .bs-hint-steps li { animation: none; }
+  .bs-hint-wheel, .bs-hint-chev, .bs-hint-finger, .bs-hint-ripple { animation: none; }
   .bs-hint-ripple { opacity: 0.5; transform: scale(1.4); }
   .bs-hint-breathe { animation: none; }
+}
+
+/* ==========================================================================
+   Wetterkarte (subject="weather"): bento card `bs-wx-*`.
+   The hint lives inside `.mdk-stage`, and the stage is far narrower than the viewport as long as the page
+   keeps rail, dock and readout (≈ 460 px on a 1024 px tablet). So the card picks its grid from the WIDTH AND
+   HEIGHT OF THE STAGE: the hint root is a size container, every layout switch below is a container query.
+   No viewport breakpoint here. Base = narrow card docked to the bottom; wider and lower forms follow.
+   Motion uses transform and opacity only.
+   ========================================================================== */
+.bs-hint.bs-wx {
+  display: block; padding: 0; color: var(--ink-900, #2C2A26);
+  container: bswx / size;
+}
+/* Mobile layout: the stage runs under the bottom bar. The hint ends above it, so "Layer" stays visible and tappable. */
+.bs-hint.bs-wx.is-mob { bottom: calc(var(--mdk-bar-h, 64px) + env(safe-area-inset-bottom, 0px)); }
+
+.bs-wx-lay {
+  position: absolute; z-index: 1; pointer-events: none;
+  top: max(8px, env(safe-area-inset-top, 0px)); bottom: 8px;
+  left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px));
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.bs-wx-card, .bs-wx-card * { box-sizing: border-box; }
+.bs-wx-card {
+  position: relative; pointer-events: auto;
+  width: 100%; max-width: 520px; max-height: 100%; overflow: hidden;
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 16px 12px 12px; border-radius: 28px;
+  background: var(--cream-50, #FAF6EA);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+  animation: bs-hint-in 380ms ease both;
+}
+
+.bs-wx-head { flex: none; padding: 0 44px 0 4px; }
+.bs-wx-eyebrow {
+  display: block; font-size: 11px; font-weight: 600; letter-spacing: 2.2px; text-transform: uppercase;
+  color: var(--steel-600, #3A6FA8);
+}
+.bs-wx-h { margin: 4px 0 0; padding: 0; font: inherit; font-size: 26px; font-weight: 700; letter-spacing: -0.3px; line-height: 1.1; color: inherit; }
+
+.bs-wx-x {
+  position: absolute; right: 6px; top: 6px; z-index: 2; width: 44px; height: 44px; margin: 0; padding: 0; border: 0; border-radius: 50%;
+  background: none; color: var(--stone-600, #5C5447); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; appearance: none; -webkit-appearance: none;
+}
+.bs-wx-x:hover { background: rgba(44, 42, 38, 0.07); color: var(--ink-900, #2C2A26); }
+.bs-wx-x:focus-visible { outline: 2px solid var(--steel-600, #3A6FA8); outline-offset: -3px; }
+
+/* --- Bento ----------------------------------------------------------------- */
+.bs-wx-bento {
+  flex: 0 1 auto; min-height: 0; overflow: hidden;
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto 124px auto; gap: 8px;
+}
+.bs-wx-t {
+  position: relative; overflow: hidden; min-width: 0; border-radius: 22px; padding: 12px;
+  display: flex; flex-direction: column; justify-content: flex-end; gap: 3px;
+}
+.bs-wx-tx { position: relative; min-width: 0; }
+.bs-wx-t b { display: block; font-size: 17px; font-weight: 600; letter-spacing: -0.2px; line-height: 1.15; }
+.bs-wx-t p { margin: 3px 0 0; font-size: 13.5px; line-height: 1.3; color: var(--stone-600, #5C5447); }
+.bs-wx-ill { flex: 1; min-height: 0; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; }
+
+/* 1 · Layers: text left, small replica of the layer list right */
+.bs-wx-t1 {
+  grid-column: 1 / -1; background: var(--steel-50, #E8F0FA);
+  flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 12px 12px 14px;
+}
+.bs-wx-t1 .bs-wx-tx { flex: 1; }
+.bs-wx-t1 .bs-wx-ill { order: 2; flex: none; width: 152px; margin: 0; }
+.bs-wx-mock {
+  width: 100%; padding: 8px; border-radius: 14px; background: #fff; box-shadow: 0 6px 18px rgba(44, 42, 38, 0.12);
+  display: flex; flex-direction: column; gap: 5px; font-size: 12px;
+}
+.bs-wx-mock-eb { display: none; margin: 2px 0 3px 2px; font-size: 9.5px; font-weight: 600; letter-spacing: 2.2px; text-transform: uppercase; color: var(--stone-600, #5C5447); }
+.bs-wx-row {
+  height: 27px; padding: 0 8px; border-radius: 8px; background: var(--sand-50, #F5F1E8);
+  display: flex; align-items: center; gap: 7px; white-space: nowrap;
+}
+.bs-wx-row i { flex: none; width: 8px; height: 8px; border-radius: 50%; }
+.bs-wx-row.is-r1, .bs-wx-row.is-r4 { display: none; }
+.bs-wx.is-desk .bs-wx-row.is-r4 { display: flex; }
+/* Switch: the colour fades in (opacity), the knob slides (transform). */
+.bs-wx-tg { flex: none; margin-left: auto; position: relative; overflow: hidden; width: 26px; height: 15px; border-radius: 8px; background: var(--sand-300, #D9CEB0); }
+.bs-wx-tg::before { content: ''; position: absolute; inset: 0; background: var(--steel-600, #3A6FA8); opacity: 0; }
+.bs-wx-tg::after { content: ''; position: absolute; left: 2px; top: 2px; width: 11px; height: 11px; border-radius: 50%; background: #fff; }
+.bs-wx-row.is-on .bs-wx-tg::before { opacity: 1; }
+.bs-wx-row.is-on .bs-wx-tg::after { transform: translateX(11px); }
+.bs-wx-row.is-ani .bs-wx-tg::before { animation: bs-wx-tg-bg 3s ease-in-out infinite; }
+.bs-wx-row.is-ani .bs-wx-tg::after { animation: bs-wx-tg-knob 3s ease-in-out infinite; }
+/* Mini bottom bar with "Layer" highlighted: only where the page really has the bottom bar. */
+.bs-wx-mbar {
+  display: none; align-items: center; justify-content: space-around; height: 26px; margin-top: 2px;
+  border-top: 1px solid var(--sand-200, #E0D6BE); color: var(--stone-400, #A89A7A);
+}
+.bs-wx.is-mob .bs-wx-mbar { display: flex; }
+.bs-wx-mbar span { display: flex; padding: 3px 8px; border-radius: 8px; background: var(--terracotta-50, #FAEEDA); color: var(--terracotta-700, #A85E2E); }
+
+/* 2 · Zoom: wind particles on the dark map grey */
+.bs-wx-t2 { grid-column: 1 / -1; background: #4B4E50; color: var(--cream-50, #FAF6EA); }
+.bs-wx-t2 p { color: rgba(250, 246, 234, 0.88); }
+.bs-wx-field { position: absolute; left: -12%; top: 0; width: 124%; height: 100%; animation: bs-wx-drift 9s ease-in-out infinite alternate; }
+.bs-wx-shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(44, 46, 48, 0) 12%, rgba(36, 38, 40, 0.92) 80%); }
+.bs-wx-badge {
+  position: absolute; right: 10px; top: 10px; height: 30px; padding: 0 12px; border-radius: 999px;
+  background: rgba(250, 246, 234, 0.94); color: var(--ink-900, #2C2A26); font-size: 13px; font-weight: 600;
+  display: flex; align-items: center; gap: 6px; white-space: nowrap;
+}
+
+/* 3 · Time and 4 · Place: white pill with slider or search field */
+.bs-wx-t3 { background: var(--sage-50, #F0F4EA); }
+.bs-wx-t4 { background: var(--terracotta-50, #FAEEDA); }
+.bs-wx-pill {
+  width: 100%; height: 36px; padding: 0 12px 0 10px; border-radius: 18px; background: #fff; box-shadow: 0 6px 18px rgba(44, 42, 38, 0.12);
+  display: flex; align-items: center; gap: 8px; font-size: 14px; white-space: nowrap; overflow: hidden;
+}
+.bs-wx-play { flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--ink-900, #2C2A26); display: flex; align-items: center; justify-content: center; }
+.bs-wx-track { flex: 1; position: relative; height: 4px; border-radius: 2px; background: var(--sand-300, #D9CEB0); }
+/* The runner is as wide as the track minus the knob, so translateX(0…100 %) carries the knob from end to end. */
+.bs-wx-run { position: absolute; left: 0; right: 16px; top: 0; height: 100%; transform: translateX(18%); animation: bs-wx-knob 4s ease-in-out infinite alternate; }
+.bs-wx-run::after {
+  content: ''; position: absolute; left: 0; top: -6px; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--sage-600, #7A9466); border: 3px solid var(--sage-50, #F0F4EA);
+}
+.bs-wx-lens { flex: none; color: var(--terracotta-500, #C97B47); }
+.bs-wx-caret { flex: none; width: 1.5px; height: 16px; margin-left: -6px; background: var(--terracotta-500, #C97B47); animation: bs-wx-blink 1s steps(1) infinite; }
+
+/* --- Footer ---------------------------------------------------------------- */
+.bs-wx-foot { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.bs-wx-note { display: none; font-size: 14.5px; line-height: 1.35; color: var(--stone-600, #5C5447); }
+.bs-wx-go {
+  width: 100%; height: 50px; margin: 0; padding: 0 28px; border: 0; border-radius: 999px; cursor: pointer;
+  background: var(--ink-900, #2C2A26); color: var(--cream-50, #FAF6EA);
+  font: inherit; font-size: 16px; font-weight: 600; white-space: nowrap; appearance: none; -webkit-appearance: none;
+}
+.bs-wx-go:hover { background: var(--ink-800, #3A3833); }
+.bs-wx-go:focus-visible { outline: 2px solid var(--steel-600, #3A6FA8); outline-offset: 2px; }
+
+/* --- Edge pill: points at the dock, left edge of the stage (wide forms of the desktop layout only) ------- */
+.bs-wx-edge {
+  display: none; position: absolute; z-index: 1; left: 0; top: 16px; height: 40px; padding: 0 14px 0 10px;
+  align-items: center; gap: 8px; border-radius: 0 999px 999px 0; pointer-events: none; white-space: nowrap;
+  background: var(--steel-600, #3A6FA8); color: #fff; font-size: 15px; font-weight: 600;
+  animation: bs-wx-nudge 1.6s ease-in-out infinite;
+}
+
+@keyframes bs-wx-tg-bg { 0%, 40% { opacity: 0; } 50%, 90% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes bs-wx-tg-knob { 0%, 40% { transform: translateX(0); } 50%, 90% { transform: translateX(11px); } 100% { transform: translateX(0); } }
+@keyframes bs-wx-drift { from { transform: translateX(-4%); } to { transform: translateX(4%); } }
+@keyframes bs-wx-knob { from { transform: translateX(4%); } to { transform: translateX(92%); } }
+@keyframes bs-wx-blink { 50% { opacity: 0; } }
+@keyframes bs-wx-nudge { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-5px); } }
+
+/* --- Narrow card, low stage: first without the illustrations of tiles 1, 3, 4 … ------------------------- */
+@container bswx (width < 700px) and (height < 610px) {
+  .bs-wx-t1 .bs-wx-ill, .bs-wx-t3 .bs-wx-ill, .bs-wx-t4 .bs-wx-ill { display: none; }
+  .bs-wx-bento { grid-template-rows: auto 104px auto; }
+}
+/* … then shorter: flat zoom tile without its line, tighter type. */
+@container bswx (width < 700px) and (height < 500px) {
+  .bs-wx-card { gap: 8px; padding: 12px 10px 10px; border-radius: 24px; }
+  .bs-wx-h { font-size: 21px; margin-top: 2px; }
+  .bs-wx-bento { grid-template-rows: auto 62px auto; gap: 6px; }
+  .bs-wx-t { padding: 10px; border-radius: 18px; }
+  .bs-wx-t1 { padding: 10px 12px; }
+  .bs-wx-t b { font-size: 15.5px; }
+  .bs-wx-t p { font-size: 12.5px; }
+  .bs-wx-t2 p, .bs-wx-lbl { display: none; }
+  .bs-wx-badge { right: 8px; top: 8px; height: 28px; }
+  .bs-wx-go { height: 46px; }
+}
+/* Very narrow stage (desktop layout on a 768 px tablet leaves ≈ 200 px): one column, text only. */
+@container bswx (width < 330px) {
+  .bs-wx-card { padding: 14px 10px 10px; }
+  .bs-wx-h { font-size: 22px; }
+  .bs-wx-bento { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
+  .bs-wx-t1, .bs-wx-t2 { grid-column: auto; }
+  .bs-wx-t1 .bs-wx-ill, .bs-wx-t3 .bs-wx-ill, .bs-wx-t4 .bs-wx-ill, .bs-wx-lbl { display: none; }
+  .bs-wx-t2 { padding-top: 46px; }
+}
+
+/* --- Wide card, centred in the stage: 1.15fr 1fr 1fr, layers tile over both rows, footer line ------------ */
+@container bswx (width >= 700px) {
+  .bs-wx-lay { top: max(16px, env(safe-area-inset-top, 0px)); bottom: 16px; left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); align-items: center; }
+  /* The card never reaches the edge pill: its area starts below it. */
+  .bs-wx.is-desk .bs-wx-lay { top: 70px; }
+  .bs-wx.is-desk .bs-wx-edge { display: flex; }
+  .bs-wx-card { max-width: 800px; gap: 20px; padding: 28px; border-radius: 32px; }
+  .bs-wx-head { padding: 0 40px 0 0; }
+  .bs-wx-h { margin-top: 6px; font-size: clamp(32px, 5cqw, 40px); letter-spacing: -0.8px; }
+  .bs-wx-x { right: 10px; top: 10px; }
+  .bs-wx-bento { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: clamp(160px, 24cqh, 200px) clamp(180px, 22cqh, 190px); gap: 10px; }
+  .bs-wx-t { padding: 16px; }
+  .bs-wx-t b { font-size: 18px; }
+  .bs-wx-t p { font-size: 14.5px; }
+  .bs-wx-t1 { grid-column: 1; grid-row: 1 / 3; flex-direction: column; align-items: stretch; justify-content: flex-end; gap: 3px; padding: 16px; }
+  .bs-wx-t1 .bs-wx-tx { flex: none; }
+  .bs-wx-t1 .bs-wx-ill { order: 0; flex: 1; width: auto; margin: 0 0 10px; }
+  .bs-wx-mock { padding: 10px; font-size: 13px; }
+  .bs-wx-row.is-r1 { display: flex; }
+  .bs-wx.is-desk .bs-wx-mock-eb { display: block; }
+  .bs-wx-t2 { grid-column: 2 / 4; }
+  .bs-wx-badge { right: 12px; top: 12px; }
+  .bs-wx-note { display: block; }
+  .bs-wx-go { width: auto; flex: none; margin-left: auto; }
+}
+/* Wide but lower: zoom tile as a band on top, three text tiles below, no illustrations in tiles 1, 3, 4. */
+@container bswx (width >= 700px) and (height < 660px) {
+  .bs-wx-card { gap: 14px; padding: 22px; border-radius: 28px; }
+  .bs-wx-h { font-size: 30px; }
+  .bs-wx-bento { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: 120px auto; }
+  .bs-wx-t { padding: 14px; justify-content: flex-start; }
+  .bs-wx-t p { font-size: 14px; }
+  .bs-wx-t1 { grid-column: 1; grid-row: 2; justify-content: flex-start; padding: 14px; }
+  .bs-wx-t2 { grid-column: 1 / -1; grid-row: 1; justify-content: flex-end; }
+  .bs-wx-t1 .bs-wx-ill, .bs-wx-t3 .bs-wx-ill, .bs-wx-t4 .bs-wx-ill { display: none; }
+  .bs-wx-go { height: 48px; }
+}
+/* Wide and very low (landscape phone, flat window): two by two, button up in the head row. */
+@container bswx (width >= 700px) and (height < 550px) {
+  .bs-wx-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto minmax(0, 1fr); align-items: center; gap: 10px 12px; padding: 12px; border-radius: 24px; }
+  .bs-wx-head { grid-area: 1 / 1; padding: 0 0 0 4px; }
+  .bs-wx-h { margin-top: 2px; font-size: 24px; letter-spacing: -0.3px; }
+  .bs-wx-foot { grid-area: 1 / 2; margin-right: 46px; }
+  .bs-wx-note { display: none; }
+  .bs-wx-go { height: 44px; padding: 0 22px; }
+  .bs-wx-x { right: 8px; top: 12px; }
+  .bs-wx-bento { grid-area: 2 / 1 / 3 / 3; align-self: stretch; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto auto; gap: 8px; }
+  .bs-wx-t, .bs-wx-t1 { padding: 10px 12px; border-radius: 18px; }
+  .bs-wx-t1, .bs-wx-t2 { grid-column: auto; grid-row: auto; }
+  .bs-wx-t2 { padding-right: 132px; justify-content: flex-start; }
+  .bs-wx-shade { background: rgba(36, 38, 40, 0.62); }
+  .bs-wx-t b { font-size: 16px; }
+  .bs-wx-t p { font-size: 13px; }
+  .bs-wx-lbl { display: none; }
+  .bs-wx-badge { right: 8px; top: 8px; height: 28px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bs-wx-card, .bs-wx-edge, .bs-wx-field, .bs-wx-run, .bs-wx-caret,
+  .bs-wx-row.is-ani .bs-wx-tg::before, .bs-wx-row.is-ani .bs-wx-tg::after { animation: none; }
+  /* At rest: the "Wind" switch shown on, knob at its place, caret steady. */
+  .bs-wx-row.is-ani .bs-wx-tg::before { opacity: 1; }
+  .bs-wx-row.is-ani .bs-wx-tg::after { transform: translateX(11px); }
 }

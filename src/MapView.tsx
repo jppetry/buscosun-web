@@ -5961,7 +5961,7 @@ export default function MapView({
           <div ref={containerRef} className="map-container" />
           <MapSourcesTile title="Quellen der Wetterkarte" groups={sourceGroups} ready={pageShown} />
           {!profile && !embedded && !suspended && (
-            <MapGestureHint map={hintMap} feature="wetterkarte" subject="weather" accent="#3A6FA8" always enabled={!isMobileMap || mobileTab === 'karte'} />
+            <MapGestureHint map={hintMap} feature="wetterkarte" subject="weather" accent="#3A6FA8" always enabled={!isMobileMap || mobileTab === 'karte'} mobileLayout={isMobileMap} />
           )}
 
           {!isMobileMap && (

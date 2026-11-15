@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import './mapGestureHint.css';
 
@@ -27,12 +27,13 @@ interface Props {
   always?: boolean;
   /** Wortlaut und Farbton je Feature; Standard `fire` (Brandradar). */
   subject?: HintSubject;
+  /** Wetterkarte only: the page is in its mobile layout (bottom bar instead of the dock on the left). Says WHERE things are. */
+  mobileLayout?: boolean;
 }
 
 export type HintSubject = 'fire' | 'glacier' | 'road' | 'sea' | 'weather';
-/** A numbered step of a guided intro (Wetterkarte): bold lead, then the line for mouse or for touch. */
-interface HintStep { b: string; mouse: string; touch: string }
-const TEXTS: Record<HintSubject, { sub: string; pick: string; pickSub: string; title?: string; steps?: readonly HintStep[] }> = {
+/** The Wetterkarte has its own card (`bs-wx-*`) and is not in this table. */
+const TEXTS: Record<Exclude<HintSubject, 'weather'>, { sub: string; pick: string; pickSub: string }> = {
   fire: {
     sub: 'Zoome hinein, um einzelne Brände und Brandflächen genauer zu sehen.',
     pick: 'Brände anklicken', pickSub: 'zeigt nähere Infos zum jeweiligen Brand',
@@ -45,23 +46,74 @@ const TEXTS: Record<HintSubject, { sub: string; pick: string; pickSub: string; t
     sub: 'Zoome hinein, um einzelne Streckenabschnitte und Messstellen genauer zu sehen.',
     pick: 'Strecken und Messstellen anklicken', pickSub: 'zeigt nähere Infos zu Fahrbahn und Wetter dort',
   },
-  weather: {
-    title: 'Willkommen auf der Wetterkarte',
-    sub: 'Das Wetter über Deutschland, Österreich und der Schweiz. So findest du dich zurecht:',
-    pick: 'Ebenen zuschalten', pickSub: 'Wind, Temperatur, Niederschlag und mehr über das Ebenen-Menü',
-    // `mouse` = desktop layout, `touch` = mobile layout (bottom bar). No dashes in these lines (Jan 11.11.).
-    steps: [
-      { b: 'Ebenen zuschalten', mouse: 'Wind, Temperatur, Niederschlag, Wolken und mehr in der Leiste links. Mehrere lassen sich gleichzeitig zeigen.', touch: 'Unten auf „Layer“ tippen und Wind, Temperatur, Niederschlag, Wolken und mehr wählen. Mehrere lassen sich gleichzeitig zeigen.' },
-      { b: 'Hineinzoomen', mouse: 'Mit dem Mausrad näher heran, dann zeigen die Windpartikel die Strömung bis in einzelne Täler.', touch: 'Näher heranzoomen, dann zeigen die Windpartikel die Strömung bis in einzelne Täler.' },
-      { b: 'Zeit wählen', mouse: 'Der Regler unten führt Stunde für Stunde durch die Vorhersage, ▶ spielt sie ab.', touch: 'Den Zeitregler unten ziehen und Stunde für Stunde durch die Vorhersage gehen, ▶ spielt sie ab.' },
-      { b: 'Ort suchen', mouse: 'Oben einen Ort ins Suchfeld eingeben (⌘K). Die Karte fliegt hin und zeigt die Vorhersage dort.', touch: 'Oben ins Suchfeld tippen und einen Ort wählen. Die Karte fliegt hin und zeigt die Vorhersage dort.' },
-    ],
-  },
   sea: {
     sub: 'Zoome hinein, um einzelne Küstenabschnitte und Spots genauer zu sehen.',
     pick: 'Spots anklicken', pickSub: 'zeigt nähere Infos zu Wind, Wellen und Wetter dort',
   },
 };
+
+/* --- Wetterkarte: wind illustration of the zoom tile ------------------------------------------------------------
+   The look of the real layer, zoomed out: every particle is a short dotted trail (5 to 8 dots, bright head, fading
+   tail) along a gently curved flow. Built once from a seeded generator, so it is the same picture on every render,
+   and drawn as one path per trail position and colour (16 paths instead of ~1400 circles). No canvas, no map. */
+const WX_FIELD_W = 520;
+const WX_FIELD_H = 220;
+const WX_TRAIL_MAX = 8;
+/** `particleColor` of `wind/weatherWindPreset.ts` ([0.86, 0.92, 1.0]) and the cooler tint of the slower particles. */
+const WX_DOT_COLORS = ['#DBEBFF', '#9CC6EE'] as const;
+interface WxDotLayer { d: string; c: string; w: number; o: number }
+
+function mulberry32(seed: number): () => number {
+  let a = seed | 0;
+  return () => {
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+let wxFieldCache: WxDotLayer[] | null = null;
+function wxField(): WxDotLayer[] {
+  if (wxFieldCache) return wxFieldCache;
+  const rnd = mulberry32(20261115);
+  const d: string[][] = WX_DOT_COLORS.map(() => Array.from({ length: WX_TRAIL_MAX }, () => ''));
+  const flow = (x: number, y: number) => 0.62 + 0.5 * Math.sin(x / 150 + y / 95) + 0.28 * Math.cos(y / 60 - x / 240);
+  const stepX = 31;
+  const stepY = 26;
+  for (let gy = -1; gy * stepY < WX_FIELD_H + stepY; gy++) {
+    for (let gx = -1; gx * stepX < WX_FIELD_W + stepX; gx++) {
+      let x = (gx + rnd()) * stepX;
+      let y = (gy + rnd()) * stepY;
+      const n = 5 + Math.floor(rnd() * 4);
+      const c = rnd() < 0.28 ? 1 : 0;
+      const step = 3.1 + rnd() * 0.6;
+      // k = 0 is the head; the trail runs back against the flow. A tiny segment with round caps draws a dot.
+      for (let k = 0; k < n; k++) {
+        d[c][k] += `M${x.toFixed(1)} ${y.toFixed(1)}h.01`;
+        const a = flow(x, y);
+        x -= Math.cos(a) * step;
+        y -= Math.sin(a) * step;
+      }
+    }
+  }
+  const out: WxDotLayer[] = [];
+  WX_DOT_COLORS.forEach((c, ci) => {
+    for (let k = 0; k < WX_TRAIL_MAX; k++) {
+      if (d[ci][k]) out.push({ d: d[ci][k], c, w: +(2 * (1.5 - 0.094 * k)).toFixed(2), o: +(0.95 * 0.75 ** k).toFixed(2) });
+    }
+  });
+  wxFieldCache = out;
+  return out;
+}
+
+const WX_ICON = {
+  width: 15, height: 15, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor',
+  strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true,
+} as const;
+const WX_LABEL_FONT = "'League Spartan', system-ui, sans-serif";
+/** Fallback when the caller does not pass `mobileLayout` (same query as `MOBILE_MAP_MEDIA_QUERY` in MapView). */
+const MOBILE_LAYOUT_QUERY = '(max-width: 767px), (max-height: 430px) and (orientation: landscape)';
 
 const storageKey = (feature: string) => `bs.hint.zoom.${feature}`;
 const seen = (feature: string): boolean => {
@@ -81,17 +133,18 @@ const spotLabelW = (name: string) => 170 + name.length * 7.5;
  * Kartenfläche, die Karte darunter atmet per CSS-Transform (kein echter Zoom), in der Mitte steht,
  * wie man zoomt (Mausrad bzw. zwei Finger) und dass die Punkte klickbar sind. Schließt bei Klick,
  * Mausrad, Pinch, erstem echtem Zoom oder Klick auf den Leuchtpunkt — und kommt dann nie wieder.
+ *
+ * Wetterkarte (`subject="weather"`): same veil and same closing rules, but a bento card with four tiles
+ * (layers, zoom, time, place), a close button, a "Los geht’s" button and Escape.
  */
-export default function MapGestureHint({ map, feature, accent = '#B5651D', enabled = true, pickSpots, always = false, subject = 'fire' }: Props) {
-  const txt = TEXTS[subject];
+export default function MapGestureHint({ map, feature, accent = '#B5651D', enabled = true, pickSpots, always = false, subject = 'fire', mobileLayout }: Props) {
+  const wxHeadId = useId();
   const [open, setOpen] = useState(false);
   const dismissed = useRef(false);
   const [spot, setSpot] = useState<{ x: number; y: number; dx: number; dy: number; flip: boolean; s: HintSpot } | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const textRef = useRef<HTMLDivElement | null>(null);
   const touch = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
-  /** Mobile layout of the page (bottom bar instead of the side bar) — decides the step wording, independent of the pointer. */
-  const compact = touch || (typeof window !== 'undefined' && window.matchMedia('(max-width: 767px), (max-height: 430px) and (orientation: landscape)').matches);
 
   const close = useCallback(() => {
     if (always) dismissed.current = true; else markSeen(feature);
@@ -166,7 +219,127 @@ export default function MapGestureHint({ map, feature, accent = '#B5651D', enabl
     return () => { map.off('resize', placeSpot); };
   }, [map, open, placeSpot]);
 
+  // Wetterkarte: Escape closes too (the card is no modal, focus is not trapped).
+  useEffect(() => {
+    if (!open || subject !== 'weather') return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
+    window.addEventListener('keydown', onKey);
+    return () => { window.removeEventListener('keydown', onKey); };
+  }, [open, subject, close]);
+
   if (!open) return null;
+
+  // Wetterkarte: bento card instead of the gesture stage. Two independent axes for the wording: the LAYOUT of the
+  // page (dock on the left or bottom bar) says where things are, the POINTER (fine or coarse) names the gesture.
+  // Which grid the card uses follows the size of the stage (container queries in the CSS), not the viewport.
+  if (subject === 'weather') {
+    const mob = mobileLayout ?? (typeof window !== 'undefined' && window.matchMedia(MOBILE_LAYOUT_QUERY).matches);
+    return (
+      <div
+        ref={rootRef}
+        className={`bs-hint bs-wx${touch ? ' is-touch' : ' is-mouse'} is-weather ${mob ? 'is-mob' : 'is-desk'}`}
+        style={{ ['--bs-hint-accent' as string]: accent }}
+        onWheel={close}
+        onTouchStart={(e) => { if (e.touches.length > 1) close(); }}
+      >
+        <button type="button" className="bs-hint-veil" aria-label="Hinweis schließen" tabIndex={-1} onClick={close} />
+        <div className="bs-wx-edge">
+          <svg {...WX_ICON} width={18} height={18}><path d="m14 5-7 7 7 7" /></svg>
+          Wetterlayer hier ein und ausblenden
+        </div>
+        <div className="bs-wx-lay">
+          <section className="bs-wx-card" aria-labelledby={wxHeadId}>
+            <header className="bs-wx-head">
+              <span className="bs-wx-eyebrow">Wetterkarte</span>
+              <h2 className="bs-wx-h" id={wxHeadId}>So nutzt du die Karte</h2>
+            </header>
+            <button type="button" className="bs-wx-x" aria-label="Hinweis schließen" onClick={close}>
+              <svg {...WX_ICON} width={20} height={20}><path d="M6 6l12 12M18 6 6 18" /></svg>
+            </button>
+            <div className="bs-wx-bento">
+              <div className="bs-wx-t bs-wx-t1">
+                <div className="bs-wx-ill" aria-hidden="true">
+                  <div className="bs-wx-mock">
+                    <span className="bs-wx-mock-eb">Wetterlayer</span>
+                    <div className="bs-wx-row is-r1 is-on"><i style={{ background: 'var(--steel-600, #3A6FA8)' }} />Niederschlag<span className="bs-wx-tg" /></div>
+                    <div className="bs-wx-row is-ani"><i style={{ background: 'var(--sage-600, #7A9466)' }} />Wind<span className="bs-wx-tg" /></div>
+                    <div className="bs-wx-row is-on"><i style={{ background: 'var(--terracotta-500, #C97B47)' }} />Temperatur<span className="bs-wx-tg" /></div>
+                    <div className="bs-wx-row is-r4"><i style={{ background: 'var(--slate-500, #6B7A8F)' }} />Wolken<span className="bs-wx-tg" /></div>
+                    <div className="bs-wx-mbar">
+                      <svg {...WX_ICON}><rect x="4" y="4" width="7" height="9" rx="1.5" /><rect x="14" y="4" width="6" height="5" rx="1.5" /><rect x="14" y="12" width="6" height="8" rx="1.5" /><rect x="4" y="16" width="7" height="4" rx="1.5" /></svg>
+                      <svg {...WX_ICON}><path d="M12 3 3 8l9 5 9-5-9-5Z" /><path d="m3 13 9 5 9-5" /></svg>
+                      <span><svg {...WX_ICON}><path d="M4 7h16M4 12h16M4 17h16" /></svg></span>
+                    </div>
+                  </div>
+                </div>
+                <div className="bs-wx-tx">
+                  <b>Wetterlayer ein und ausblenden</b>
+                  <p>{mob
+                    ? 'Unten auf „Layer“ tippen. Mehrere gleichzeitig möglich.'
+                    : `In der Leiste links Wind, Temperatur, Niederschlag und mehr ${touch ? 'antippen' : 'anklicken'}. Mehrere gleichzeitig möglich.`}</p>
+                </div>
+              </div>
+              <div className="bs-wx-t bs-wx-t2">
+                <svg className="bs-wx-field" viewBox={`0 0 ${WX_FIELD_W} ${WX_FIELD_H}`} preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                  <path d="M83 0 C114 88 52 132 104 220" stroke="#E9EDF0" strokeOpacity={0.6} strokeWidth={1.6} strokeDasharray="5 5" fill="none" />
+                  {wxField().map((l, i) => (
+                    <path key={i} d={l.d} stroke={l.c} strokeOpacity={l.o} strokeWidth={l.w} strokeLinecap="round" fill="none" />
+                  ))}
+                  <g className="bs-wx-lbl" fontFamily={WX_LABEL_FONT} fontSize={12} fontWeight={600} fill="#E9EDF0" stroke="#3E4143" strokeWidth={3} paintOrder="stroke">
+                    <text x="156" y="66">München</text>
+                    <text x="322" y="110">Innsbruck</text>
+                  </g>
+                  <g className="bs-wx-lbl" fontFamily={WX_LABEL_FONT} fontSize={12} fontWeight={700} fill="#F3E36B" stroke="#3E4143" strokeWidth={3} paintOrder="stroke">
+                    <text x="214" y="66">7°</text>
+                    <text x="384" y="110">9°</text>
+                  </g>
+                </svg>
+                <div className="bs-wx-shade" aria-hidden="true" />
+                <span className="bs-wx-badge">
+                  <svg {...WX_ICON}><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4M8 11h6M11 8v6" /></svg>
+                  {touch ? 'Zwei Finger' : 'Mausrad'}
+                </span>
+                <div className="bs-wx-tx">
+                  <b>Hineinzoomen</b>
+                  <p>Je näher, desto feiner zeigen die Windpartikel die Strömung, bis in einzelne Täler.</p>
+                </div>
+              </div>
+              <div className="bs-wx-t bs-wx-t3">
+                <div className="bs-wx-ill" aria-hidden="true">
+                  <div className="bs-wx-pill">
+                    <span className="bs-wx-play"><svg width="9" height="9" viewBox="0 0 12 12"><path d="M3 1.5v9l7-4.5Z" fill="#FAF6EA" /></svg></span>
+                    <div className="bs-wx-track"><span className="bs-wx-run" /></div>
+                  </div>
+                </div>
+                <div className="bs-wx-tx">
+                  <b>Zeit wählen</b>
+                  <p>Der Regler unten zeigt die nächsten Stunden, ▶ spielt sie ab.</p>
+                </div>
+              </div>
+              <div className="bs-wx-t bs-wx-t4">
+                <div className="bs-wx-ill" aria-hidden="true">
+                  <div className="bs-wx-pill">
+                    <svg {...WX_ICON} width={16} height={16} className="bs-wx-lens"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
+                    Innsbruck<i className="bs-wx-caret" />
+                  </div>
+                </div>
+                <div className="bs-wx-tx">
+                  <b>Ort suchen</b>
+                  <p>Oben eingeben, die Karte fliegt hin und zeigt die Vorhersage dort.</p>
+                </div>
+              </div>
+            </div>
+            <footer className="bs-wx-foot">
+              <span className="bs-wx-note">Schließt auch beim ersten Zoomen oder Klick auf die Karte.</span>
+              <button type="button" className="bs-wx-go" onClick={close}>Los geht’s</button>
+            </footer>
+          </section>
+        </div>
+      </div>
+    );
+  }
+
+  const txt = TEXTS[subject];
 
   return (
     <div
@@ -211,20 +384,10 @@ export default function MapGestureHint({ map, feature, accent = '#B5651D', enabl
             </>
           )}
         </div>
-        <div className="bs-hint-title">{txt.title ?? 'Karte erkunden'}</div>
+        <div className="bs-hint-title">Karte erkunden</div>
         <div className="bs-hint-sub">
           {txt.sub}
         </div>
-        {txt.steps ? (
-          <ol className="bs-hint-steps">
-            {txt.steps.map((st, i) => (
-              <li key={st.b} style={{ ['--i' as string]: i }}>
-                <span className="bs-hint-step-n" aria-hidden="true">{i + 1}</span>
-                <span className="bs-hint-click-txt"><b>{st.b}</b><span>{compact ? st.touch : st.mouse}</span></span>
-              </li>
-            ))}
-          </ol>
-        ) : (
         <div className="bs-hint-click">
           <span className="bs-hint-click-tile">
             <span className="bs-hint-ripple" />
@@ -235,7 +398,6 @@ export default function MapGestureHint({ map, feature, accent = '#B5651D', enabl
             <span>{txt.pickSub}</span>
           </span>
         </div>
-        )}
         <div className="bs-hint-cta">Los geht’s</div>
       </div>
       {spot && (
