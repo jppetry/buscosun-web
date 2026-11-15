@@ -82,7 +82,7 @@ export default function ShareButton({ className, label = 'Diese Ansicht teilen',
 
     const s = mod.shareSnapshot();
     if (!s) return;                                // Seite (noch) nicht teilbar
-    if (mod.canNativeShare() && window.matchMedia('(max-width: 767px)').matches) {
+    if (mod.canNativeShare() && window.matchMedia('(max-width: 767px), (max-width: 1439px) and (pointer: coarse)').matches) {
       const r = await mod.tryNativeShare(s);
       if (r === 'shared' || r === 'cancelled') return;
     }

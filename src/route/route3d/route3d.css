@@ -612,7 +612,7 @@
 }
 
 /* ===== Mobil: Karte niedriger, Bedienelemente 44 px ===== */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .r3-tmap-shell { height: 340px; }
   .r3-tmap-fit { width: 44px; height: 44px; }
   .r3-stagesw button { min-height: 44px; padding: 0 16px; }
@@ -640,7 +640,7 @@
 }
 
 /* ===== Mobil ===== */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .r3-root--m { gap: 12px; }
   .r3-head { flex-direction: column; gap: 10px; }
   .r3-head-side { align-items: flex-start; max-width: none; }
@@ -719,7 +719,7 @@
 .r3-lyr-row.is-on .r3-lyr-knob { transform: translateX(15px); }
 .r3-lyr-res { display: block; margin: 0 2px; font-size: 11px; color: var(--stone-500, #8B7355); }
 .r3-lyr-bar, .r3-lyr-sheet { display: none; }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .r3-lyr-glass { background: rgba(250, 246, 234, 0.92); backdrop-filter: blur(12px) saturate(1.2); -webkit-backdrop-filter: blur(12px) saturate(1.2); border: 1px solid rgba(255, 255, 255, 0.55); box-shadow: 0 1px 2px rgba(44, 42, 38, 0.06), 0 8px 24px rgba(44, 42, 38, 0.14); }
   .r3-lyr-bar { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 7; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border-radius: 14px; font: inherit; font-size: 14px; font-weight: 600; color: var(--ink-900, #2C2A26); cursor: pointer; }
   .r3-lyr-bar-n { color: var(--stone-500, #8B7355); font-weight: 500; }

@@ -195,7 +195,7 @@
 .sh-stale-x:hover { color: var(--shp-ink); }
 .sh-stale-x:focus-visible { outline: 2px solid var(--shp-accent); outline-offset: -4px; }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   /*
    * Mobil bleibt der Hinweis OBEN — der erste Versuch setzte ihn unten ueber
    * die Bottom-Bar, und dort legte er sich genau auf den Zeit-Schieber des
@@ -217,7 +217,7 @@
 }
 
 /* ── Mobil: Bottom-Sheet (Breakpoint 767 px wie im ganzen Repo) ──────────── */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .sh-sheet--mobile {
     left: 0; right: 0; bottom: 0; top: auto;
     width: auto; max-height: 82vh;

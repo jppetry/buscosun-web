@@ -8,7 +8,7 @@
 .sk-sw-band { background: repeating-linear-gradient(45deg, #4F5FB8 0 1.5px, #FBFCFF 1.5px 5px); border: 1px solid #C9D3F4; }
 .sk-sw-line { height: 3px; box-shadow: 0 0 0 1.5px #FFFFFF; }
 .nc-radar-snownote.sk-legend-m { display: none; }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   /* above the "Punktabfrage" pill (bottom: 34vh + 12px), clear of the search bar and source chips at the top */
   .rm-map .nc-radar-snownote.sk-legend-m { display: block; top: auto; bottom: calc(34vh + 64px); left: 12px; max-width: calc(100% - 24px); font-size: 0.64rem; }
   /* Der Statussatz (Quelle, Lauf, Gültigkeit) entfällt mobil; Hinweise auf fehlende Daten (.sk-warn) bleiben. */
@@ -34,7 +34,7 @@
 .sk-legend-key { display: flex; flex-wrap: wrap; gap: 0.2rem 0.7rem; font-size: 10.5px; color: var(--stone-600, #5C5447); margin-top: 6px; }
 .sk-legend-key > span { display: inline-flex; align-items: center; gap: 0.3rem; }
 /* Mobile: 3-h cells as 44 × 44 px targets in a horizontally scrolling row (16 × 44 px does not fit 390 px). */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .sk-bar { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 44px; height: 44px; gap: 2px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; }
 }
 
@@ -57,4 +57,4 @@
 .skc-kind--band { fill: #9AA4DC; }
 .skc-kind--rain { fill: #D7CFBD; }
 .skc-kind--gap { fill: #EDE6D3; }
-@media (max-width: 767px) { .sk-hero { font-size: 20px; } }
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) { .sk-hero { font-size: 20px; } }

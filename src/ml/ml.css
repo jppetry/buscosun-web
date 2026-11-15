@@ -83,6 +83,6 @@
 .ml-day-temp { font-size: 0.68rem; color: var(--stone-600, #5C5447); }
 .ml-day-flag { position: absolute; top: 3px; right: 5px; font-size: 0.7rem; color: var(--stone-400, #A89A7A); }
 
-@media (max-width: 720px) {
+@media (max-width: 720px), (min-width: 768px) and (max-width: 1439px) and (pointer: coarse) {
   .ml-grid { grid-template-columns: 1fr; }
 }

@@ -240,7 +240,7 @@
 /* ============================================================================
    Tablet 768–1024 px — schmaleres Dock/Readout, Rail bleibt
    ============================================================================ */
-@media (max-width: 1024px) {
+@media (max-width: 1024px), (max-width: 1439px) and (pointer: coarse) {
   .rr-dock { width: 186px; padding: 14px 11px; }
   .rr-readout { width: 300px; }
 }

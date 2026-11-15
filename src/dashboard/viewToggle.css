@@ -32,7 +32,7 @@
 
 /* Untere Leiste Dashboard | Karte (nur mobil) — Maße wie `.mdk-bar` (mapDeck.css), Farben wie `.br-bar`. */
 .vt-nav { display: none; }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .vt-nav {
     display: flex; align-items: stretch;
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;

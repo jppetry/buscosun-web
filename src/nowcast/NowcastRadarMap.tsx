@@ -616,7 +616,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   }, [mapInst]);
   const skStageMap = snowCap?.stageMap ?? null;
   const skBeforeId3d = useCallback(() => (skStageMap?.getLayer('zt-cone') ? 'zt-cone' : undefined), [skStageMap]);
-  const skMobile = typeof window !== 'undefined' && !!window.matchMedia?.('(max-width: 767px)').matches;
+  const skMobile = typeof window !== 'undefined' && !!window.matchMedia?.('(max-width: 767px), (max-width: 1439px) and (pointer: coarse)').matches;
   const snowCap2d = useSnowCap(mapInst, skActive && !snowCap?.mapHidden, skTimeMs, { palette: SK_PALETTE_2D, beforeId: skBeforeId2d, prefix: 'sk', mobile: skMobile });
   const snowCap3d = useSnowCap(snowCap?.stageMap ?? null, skActive, skTimeMs, { palette: SK_PALETTE_3D, beforeId: skBeforeId3d, prefix: 'sk3', mobile: skMobile });
   const skHoverRef = useRef<((lat: number, lon: number) => string | null) | null>(null);

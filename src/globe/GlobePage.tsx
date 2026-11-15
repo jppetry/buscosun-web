@@ -188,7 +188,7 @@ export default function GlobePage({ onBack, initialUrl, initialFhour, onUrlState
 
   // --- Command-Deck shell ------------------------------------------------------------------------------
   const nav = useAppNav();
-  const isMobile = useMediaQuery('(max-width: 767px)');
+  const isMobile = useMediaQuery('(max-width: 767px), (max-width: 1439px) and (pointer: coarse)');
   const [mobTab, setMobTab] = useState<'map' | 'layers'>('map');
   const liveTone = error ? 'none' : loading ? 'loading' : 'live';
 

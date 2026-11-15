@@ -360,7 +360,7 @@
 /* Mobil entfallen (Jans Auftrag 2026-10-23): die Pille „Punktabfrage & Datenqualität" auf der Karte und der Chip
    „Über diese Ansicht" (RouteSeoBlock) des Regenradars. Die Quellen-Pille `.rm-sourcepill` ist aus dem Markup. */
 .rm-map .nc-radar-morebox { display: none; }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .rsb[data-route="regenradar"] { display: none; }
 }
 

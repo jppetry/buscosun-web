@@ -142,8 +142,8 @@
 .dbd-shell { flex: 1 0 auto; display: flex; align-items: flex-start; min-width: 0; }
 .dbd-shell > .mdk-rail { position: sticky; top: 0; height: 100dvh; align-self: flex-start; z-index: 31; }
 .dbd-shell-main { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 100dvh; }
-@media (min-width: 768px) { .dbd-top { display: none; } }
-@media (max-width: 767px) { .dbd-deckbar, .dbd-shell > .mdk-rail { display: none; } }
+@media (min-width: 768px) and (pointer: fine), (min-width: 768px) and (pointer: none), (min-width: 1440px) { .dbd-top { display: none; } }
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) { .dbd-deckbar, .dbd-shell > .mdk-rail { display: none; } }
 
 /* ---- Inhalt ------------------------------------------------------------------ */
 /* Unten Platz für den globalen Chip „Über diese Ansicht" (RouteSeoBlock, fest unten rechts) — ohne ihn läge er am
@@ -432,7 +432,7 @@
 .dbd-dd-arrow path { fill: #2F7F78; }
 .dbd-dd-strip { font-size: 8.5px; letter-spacing: 1px; text-transform: uppercase; font-weight: 700; fill: var(--dbd-eyebrow); }
 .dbd-dd-foot { margin: 14px 0 0; font-size: 11.5px; line-height: 1.55; color: var(--dbd-muted); }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .dbd-dd-title { font-size: 22px; }
   .dbd-dd-hero { align-items: flex-start; }
   .dbd-dd-pv { margin-left: 0; text-align: left; width: 100%; }
@@ -474,18 +474,18 @@
 .dbd-nc-ep-v { color: var(--dbd-ink); }
 .dbd-nc-ep-s { text-align: right; font-size: 11px; color: var(--dbd-muted); }
 .dbd-nc-more { margin-top: 6px; font-size: 11.5px; color: var(--dbd-muted); }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .dbd-nc-eps li { grid-template-columns: 1fr auto; gap: 4px 10px; }
   .dbd-nc-ep-bar { grid-column: 1 / -1; order: 5; }
   .dbd-nc-ep-l { grid-column: 1 / 2; }
   .dbd-nc-ep-v { grid-column: 1 / -1; }
   .dbd-nc-ep-s { text-align: right; grid-row: 1; grid-column: 2; }
 }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .dbd-nc-headline { font-size: 22px; }
   .dbd-nc-seg button { padding: 6px 10px; }
 }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .dbd-rose-dialog { padding: 16px 14px 18px; border-radius: 14px; }
   .dbd-rose-dlg-main { flex-direction: column; align-items: stretch; gap: 14px; }
   .dbd-rose-dlg-main .dbd-rose-svg { align-self: center; width: min(320px, 100%); }
@@ -554,7 +554,7 @@
 /* ============================================================================
    Tablet 768–1279 px (Vorlage #vt)
    ============================================================================ */
-@media (max-width: 1279px) {
+@media (max-width: 1279px), (max-width: 1439px) and (pointer: coarse) {
   .dbd-run { display: none; }
   .dbd-row1 { grid-template-columns: 1fr 1fr; }
   .dbd-row1 > .dbd-now { grid-column: 1 / -1; }
@@ -567,7 +567,7 @@
 /* ============================================================================
    Mobile < 768 px (Vorlage #vm) — einspaltig, Umschalter volle Breite, 44-px-Ziele
    ============================================================================ */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   /* Kopf wie die anderen mobilen Ansichten (`.mdk-m-topfloat`): einzelne Kacheln auf dem Sand, keine durchgehende Leiste. */
   .dbd-top {
     height: auto; flex-direction: column; align-items: stretch; gap: 8px;
@@ -655,8 +655,8 @@
 .dbf-sw { display: inline-block; width: 14px; height: 2px; background: var(--dbd-ink); }
 .dbf-sw--band { height: 8px; background: rgba(44, 42, 38, .12); border-radius: 2px; }
 .dbf-sw--gust { background: var(--dbd-muted); height: 0; border-top: 1.5px dashed var(--dbd-muted); }
-@media (max-width: 1279px) { .dbd-row4 { grid-template-columns: 1fr 1fr; } }
-@media (max-width: 767px) { .dbd-row4 { grid-template-columns: 1fr; } .dbf-kpis b { font-size: 16px; } }
+@media (max-width: 1279px), (max-width: 1439px) and (pointer: coarse) { .dbd-row4 { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) { .dbd-row4 { grid-template-columns: 1fr; } .dbf-kpis b { font-size: 16px; } }
 
 /* ---- Jan 17.10.: Terrain-Feld — Gelände am Punkt (P97) und Schichtung je Druckfläche (P16/P98) ---------- */
 .dbd-terrain-row { display: grid; grid-template-columns: 1.15fr 1fr; gap: 14px; margin-top: 14px; }
@@ -744,7 +744,7 @@
 .dbd-stage-leg-more .sk-leg-status { flex-basis: 100%; color: var(--dbd-muted); }
 .dbd-stage-leg-more .sk-leg-status.sk-warn { color: #B4501F; }
 .dbd-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .dbd-stage { min-height: 420px; }
   .dbd-stage-layers button { padding: 6px 10px 6px 8px; font-size: 12px; }
   .dbd-stage-leg-i { white-space: normal; }
@@ -773,9 +773,9 @@
 .dbd-stage-pin.is-place em { font-style: normal; font-size: 10px; font-weight: 700; color: var(--dbd-ink); line-height: 1.1; align-self: end; }
 .dbd-stage-pin.is-place small { font-size: 8.5px; font-weight: 600; color: var(--dbd-muted); line-height: 1.1; font-variant-numeric: tabular-nums; align-self: start; }
 .dbd-stage-pin.is-place.is-peak em::before { content: '▲ '; font-size: 7px; vertical-align: 1px; color: var(--dbd-muted); }
-@media (max-width: 767px) { .dbd-stage { min-height: 360px; } }
-@media (max-width: 1279px) { .dbd-terrain-row { grid-template-columns: 1fr; } }
-@media (max-width: 767px) { .dbd-site-grid { grid-template-columns: 1fr; } .dbd-site-vis { flex-direction: row; justify-content: center; gap: 12px; } .dbd-site-row { grid-template-columns: 80px 1fr; font-size: 12px; } }
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) { .dbd-stage { min-height: 360px; } }
+@media (max-width: 1279px), (max-width: 1439px) and (pointer: coarse) { .dbd-terrain-row { grid-template-columns: 1fr; } }
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) { .dbd-site-grid { grid-template-columns: 1fr; } .dbd-site-vis { flex-direction: row; justify-content: center; gap: 12px; } .dbd-site-row { grid-template-columns: 80px 1fr; font-size: 12px; } }
 
 /* ===== Card concept (Brandradar map card): glass surfaces, soft layered shadows, accent glow, gradient active states.
  * Colours and measures stay; only surfaces, depth and active states. Topbar/rail are the map chrome copy and stay 1:1. */
@@ -867,7 +867,7 @@
 .dbd-search-box { border-color: var(--dbd-hair); border-radius: 12px; box-shadow: var(--dbd-inset), var(--dbd-shadow-s); }
 .dbd-search-box:focus-within { box-shadow: 0 0 0 3px rgba(44, 42, 38, .08), var(--dbd-shadow-s); }
 .dbd-search-drop { border-color: rgba(255, 255, 255, .6); border-radius: 12px; background: rgba(250, 246, 234, .94); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); box-shadow: var(--dbd-shadow-l); }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .dbd-search-box { height: 46px; padding: 0 13px; border-radius: 14px; background: var(--dbd-cream); }
   .dbd-now-grid > div { padding: 7px 9px; }
 }
@@ -913,7 +913,7 @@
 .dbd-warn-row .dbd-warn-meta { margin: 5px 0 0 18px; }
 .dbd-warn-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--dbd-wl, #9EC5E5); box-shadow: 0 0 0 2px #FFFBF4; }
 .dbd-warn-note { display: block; margin-top: 8px; font-size: 10.5px; color: var(--dbd-muted); }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .dbd-warn.is-rich { padding: 12px 12px 11px 14px; gap: 10px; }
   .dbd-warn-badge { width: 30px; height: 30px; border-radius: 10px; }
 }
@@ -921,7 +921,7 @@
 /* ============================================================================
    Desktop ≥ 1280 px: Jetzt-Kachel schmaler (Werte als 2 × 2), daneben der Kartenausschnitt mit Wind und Niederschlag
    ============================================================================ */
-@media (min-width: 1280px) {
+@media (min-width: 1280px) and (pointer: fine), (min-width: 1280px) and (pointer: none), (min-width: 1440px) {
   .dbd-row1 { grid-template-columns: 1.5fr 1.1fr 1.15fr .95fr; }
   .dbd-row1 > * { min-width: 0; }
   .dbd-now-main { flex-wrap: wrap; gap: 14px 18px; }
@@ -932,7 +932,7 @@
 .dbd-warntile-scroll { overflow-y: auto; max-height: 340px; overscroll-behavior: contain; }
 .dbd-warntile .dbd-warn { margin-top: 0; }
 .dbd-warntile .dbd-warn:not(.is-active) { border: 0; background: transparent; padding: 0; flex-wrap: wrap; }
-@media (min-width: 1280px) {
+@media (min-width: 1280px) and (pointer: fine), (min-width: 1280px) and (pointer: none), (min-width: 1440px) {
   /* Die Reihe bestimmen die anderen Kacheln; die Warnungen füllen den Rest und scrollen. */
   .dbd-warntile { position: relative; min-height: 180px; }
   .dbd-warntile-scroll { position: absolute; left: 15px; right: 15px; top: 40px; bottom: 12px; max-height: none; }
@@ -950,7 +950,7 @@
 .dbd-mm-inner > .dbd-mm-map { position: absolute; inset: 0; }
 .dbd-mm-cap { position: absolute; left: 8px; bottom: 8px; z-index: 2; max-width: calc(100% - 100px); padding: 3px 8px; border-radius: 7px; font-size: 10.5px; line-height: 1.35; color: #EDF1F5; background: rgba(31, 41, 55, .82); box-shadow: 0 1px 3px rgba(0, 0, 0, .35); }
 /* Mobil: die Kartenkachel steht allein in der Spalte, braucht also eine eigene Höhe (Desktop bestimmt sie die Reihe). */
-@media (max-width: 767px) { .dbd-minimap { height: 220px; } }
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) { .dbd-minimap { height: 220px; } }
 .dbd-mm-pin { width: 12px; height: 12px; border-radius: 50%; background: var(--terracotta-500, #C2542B); border: 2px solid #fff; box-shadow: 0 0 0 4px rgba(194, 84, 43, .25), 0 1px 4px rgba(44, 42, 38, .4); }
 /* Temperaturwerte wie `.temp-label` der Wetterkarte (MapView.css), die im Dashboard noch nicht geladen sein muss. */
 .dbd-mm-temp { position: absolute; top: 0; left: 0; display: inline-flex; align-items: center; gap: .24rem; font-family: var(--font-base); font-size: .82rem; font-weight: 700; line-height: 1; white-space: nowrap; pointer-events: none; font-variant-numeric: tabular-nums; letter-spacing: -.015em; text-shadow: 0 0 2px rgba(0, 0, 0, .95), 0 1px 3px rgba(0, 0, 0, .75), 0 0 7px rgba(0, 0, 0, .5); }
@@ -1023,7 +1023,7 @@
 .dbd-legend > span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 
 /* Tablet 768–1279 px: jede Tageskarte quer über die volle Breite — Kopf links, die vier Tageszeiten und Kennzahlen rechts */
-@media (min-width: 768px) and (max-width: 1279px) {
+@media (min-width: 768px) and (max-width: 1279px) and (pointer: fine), (min-width: 768px) and (max-width: 1279px) and (pointer: none) {
   .dbd-days { grid-template-columns: 1fr; gap: 10px; }
   .dbd-day { display: grid; grid-template-columns: minmax(190px, 28%) minmax(0, 1fr); grid-template-rows: auto 1fr; }
   .dbd-day-head { grid-column: 1; grid-row: 1 / span 2; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 12px; border-bottom: 0; border-right: 1px solid var(--dbd-hair); }
@@ -1040,7 +1040,7 @@
 }
 
 /* Mobil < 768 px */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   /* Tageskarten nebeneinander zum Wischen; die nächste Karte schaut rechts herein */
   .dbd-days {
     display: flex; gap: 10px; margin: 12px -16px 0; padding: 2px 16px 8px; overflow-x: auto; overscroll-behavior-x: contain;
@@ -1115,7 +1115,7 @@
 .dbd-wd-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 14px; font-size: 11.5px; color: var(--dbd-muted); }
 .dbd-wd-legend i { display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 3px; vertical-align: -1px; border: 1px solid rgba(37, 80, 110, .25); }
 .dbd-wd-notes { margin-top: 10px; }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .dbd-wd-badge { gap: 10px; min-width: 0; padding: 9px 9px 9px 9px; }
   .dbd-wd-badge .dbd-wd-compass { width: 54px; height: 54px; }
   .dbd-wd-badge-v { font-size: 23px; }
@@ -1127,7 +1127,7 @@
 /* ============================================================================
    Jan 11.11.: erste Reihe auf dem Desktop flacher; Karte und Warnungen mit Symbol „groß anzeigen" (`expandDialog.tsx`)
    ============================================================================ */
-@media (min-width: 1280px) {
+@media (min-width: 1280px) and (pointer: fine), (min-width: 1280px) and (pointer: none), (min-width: 1440px) {
   /* Jetzt: die vier Werte als eine schmale Zeile statt 2 × 2 Kästen — die Reihe wird um eine Kastenzeile niedriger */
   .dbd-row1 > .dbd-now { padding: 14px 16px; }
   .dbd-now-main { margin-top: 8px; gap: 10px 16px; }
@@ -1148,12 +1148,12 @@
 .dbd-xp-map { position: relative; height: min(72vh, 720px); margin-top: 14px; }
 .dbd-xp-warn { margin-top: 14px; }
 .dbd-xp-warn .dbd-warn { margin-top: 0; }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .dbd-xp-map { height: 62vh; }
 }
 
 /* Tageskarten der Prognose, Desktop und Tablet (Jan 2026-11-13): the figures a step larger — temperatures, rain chance, wind and the three day values. */
-@media (min-width: 768px) {
+@media (min-width: 768px) and (pointer: fine), (min-width: 768px) and (pointer: none), (min-width: 1440px) {
   .dbd-day-max { font-size: 29px; }
   .dbd-day-min { font-size: 17px; }
   .dbd-phase-t { font-size: 20px; }

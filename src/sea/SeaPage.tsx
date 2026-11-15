@@ -67,7 +67,7 @@ const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,
 
 export default function SeaPage({ initial, onUrlState, onSpot, popState, openDossier }: SeaPageProps) {
   const nav = useAppNav();
-  const isMobile = useMediaQuery('(max-width: 767px)');
+  const isMobile = useMediaQuery('(max-width: 767px), (max-width: 1439px) and (pointer: coarse)');
   const mapRef = useRef<maplibregl.Map | null>(null);
   const [mapInst, setMapInst] = useState<maplibregl.Map | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());

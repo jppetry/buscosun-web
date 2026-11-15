@@ -58,7 +58,7 @@
 
 /* Onboarding-Fragen (E2/E15) */
 .hi-questions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.85rem; margin: 0.8rem 0 1.1rem; }
-@media (max-width: 820px) { .hi-questions { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 820px), (max-width: 1439px) and (pointer: coarse) { .hi-questions { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 520px) { .hi-questions { grid-template-columns: 1fr; } }
 .hi-qtile { text-align: left; border: 1px solid var(--sand-200, #E0D6BE); background: var(--cream-50, #FBF7EE); border-radius: 16px;
   padding: 1.15rem 1.25rem; cursor: pointer; display: flex; flex-direction: column; gap: 0.6rem; min-height: 108px;
@@ -114,7 +114,7 @@
 .hi-mc-lead { margin: 0.4rem 0 1.05rem; font-size: 0.92rem; color: var(--stone-600, #5C5447); }
 .hi-mc-lead strong { color: var(--ink-900, #2C2A26); font-weight: 600; }
 .hi-mtiles { display: grid; grid-template-columns: 1fr 1fr; gap: 1.1rem; }
-@media (max-width: 720px) { .hi-mtiles { grid-template-columns: 1fr; } }
+@media (max-width: 720px), (min-width: 768px) and (max-width: 1439px) and (pointer: coarse) { .hi-mtiles { grid-template-columns: 1fr; } }
 
 /* Feature-/Intro-Kachel-Look: Sand-Karte mit Line-Art-Vorschau oben + Text. */
 .hi-mtile { font: inherit; color: inherit; text-align: left; width: 100%; appearance: none; -webkit-appearance: none;
@@ -221,7 +221,7 @@
 .hi-hero-tag { font-size: 0.95rem; font-weight: 500; margin-top: 0.15rem; }
 
 .hi-x-metrics { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.7rem; margin-bottom: 1.1rem; }
-@media (max-width: 860px) { .hi-x-metrics { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 860px), (max-width: 1439px) and (pointer: coarse) { .hi-x-metrics { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 480px) { .hi-x-metrics { grid-template-columns: repeat(2, 1fr); } }
 .hi-x-metric { background: var(--hi-cardc); border: 1px solid var(--sand-200, #E0D6BE); border-radius: 16px; padding: 0.85rem 0.95rem; display: flex; flex-direction: column; gap: 0.25rem; box-shadow: var(--hi-shadow); }
 .hi-x-mlabel { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--hi-eyebrow); }
@@ -310,7 +310,7 @@
 /* Rekorde (E8) */
 .hi-records { margin-top: 1rem; }
 .hi-rec-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.7rem; margin: 0.5rem 0 1rem; }
-@media (max-width: 720px) { .hi-rec-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 720px), (min-width: 768px) and (max-width: 1439px) and (pointer: coarse) { .hi-rec-grid { grid-template-columns: repeat(2, 1fr); } }
 .hi-rec-card { background: var(--hi-cardc); border: 1px solid var(--sand-200, #E0D6BE); border-radius: 16px; padding: 0.85rem 0.95rem; display: flex; flex-direction: column; gap: 0.2rem; box-shadow: var(--hi-shadow); }
 .hi-rec-label { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--stone-500, #8B7355); }
 .hi-rec-val { font-size: 1.6rem; font-weight: 300; color: var(--ink-900, #2C2A26); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
@@ -345,7 +345,7 @@
 .hi-day-head h3 { margin: 0; font-size: 1.2rem; font-weight: 400; letter-spacing: -0.01em; }
 .hi-day-badge { background: #F6E3DA; color: #B5532A; border: 1px solid #E0B6A4; border-radius: 999px; padding: 0.1rem 0.6rem; font-size: 0.72rem; font-weight: 700; }
 .hi-day-metrics { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.6rem; margin: 0.8rem 0; }
-@media (max-width: 820px) { .hi-day-metrics { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 820px), (max-width: 1439px) and (pointer: coarse) { .hi-day-metrics { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 480px) { .hi-day-metrics { grid-template-columns: repeat(2, 1fr); } }
 .hi-day-metric { background: var(--cream-50, #FBF7EE); border: 1px solid var(--sand-200, #E0D6BE); border-radius: 10px; padding: 0.5rem 0.6rem; display: flex; flex-direction: column; gap: 0.1rem; }
 .hi-day-mlabel { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--stone-500, #8B7355); }
@@ -368,12 +368,12 @@
 .hi-pro-title { font-size: 0.95rem; font-weight: 500; letter-spacing: -0.01em; color: var(--ink-900, #2C2A26); }
 .hi-compare-search { max-width: 320px; }
 .hi-idx-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.7rem; margin-bottom: 0.9rem; }
-@media (max-width: 720px) { .hi-idx-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 720px), (min-width: 768px) and (max-width: 1439px) and (pointer: coarse) { .hi-idx-grid { grid-template-columns: repeat(2, 1fr); } }
 .hi-idx-card { background: var(--cream-50, #FBF7EE); border: 1px solid var(--sand-200, #E0D6BE); border-radius: 12px; padding: 0.7rem 0.85rem; display: flex; flex-direction: column; gap: 0.15rem; }
 .hi-idx-val { font-size: 1.45rem; font-weight: 300; color: var(--ink-900, #2C2A26); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
 .hi-idx-chart { margin-top: 0.3rem; }
 .hi-export-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; }
-@media (max-width: 720px) { .hi-export-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 720px), (min-width: 768px) and (max-width: 1439px) and (pointer: coarse) { .hi-export-grid { grid-template-columns: 1fr 1fr; } }
 .hi-export-btn { text-align: left; border: 1px solid var(--sand-200, #E0D6BE); background: var(--cream-50, #FBF7EE); border-radius: 12px; padding: 0.65rem 0.8rem; cursor: pointer; display: flex; flex-direction: column; gap: 0.15rem; }
 .hi-export-btn:hover { border-color: var(--hi-blue); }
 .hi-export-btn strong { font-size: 0.86rem; color: var(--ink-900, #2C2A26); }

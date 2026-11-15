@@ -766,7 +766,7 @@
 /* ============================================================================
    Tablet 768–1439 px — Rail + Dock bleiben, schmaler; kompakter Kopf
    ============================================================================ */
-@media (max-width: 1439px) and (min-width: 768px) {
+@media (max-width: 1439px) and (min-width: 768px) and (pointer: fine), (max-width: 1439px) and (min-width: 768px) and (pointer: none) {
   .mdk-topbar { gap: 12px; padding: 0 14px; }
   .mdk-search { max-width: 340px; }
   .mdk-kbd { display: none; }
@@ -788,7 +788,7 @@
    Mobile <768 px (bzw. kurzes Landscape — deckungsgleich mit
    MOBILE_MAP_MEDIA_QUERY in MapView.tsx) — Vollkarte · Sheet · Bottom-Bar
    ============================================================================ */
-@media (max-width: 767px), (max-height: 430px) and (orientation: landscape) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse), (max-height: 430px) and (orientation: landscape) {
   .mdk-topbar, .mdk-rail, .mdk-dock, .mdk-readout { display: none; }
   .mdk-body { position: relative; }
   .mdk-stage { position: absolute; inset: 0; }
@@ -1082,12 +1082,12 @@
 }
 
 /* Mobil: Warnungs-Legende komplett ausgeblendet (Desktop unverändert) */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .mdk-legends .confidence-legend[aria-label="Amtliche Wetterwarnungen"] { display: none; }
 }
 
 /* Desktop: Quellenzeile ganz am unteren Kartenrand, UNTER dem Zeit-Deck (Jan 11.11.); Zeit-Deck, Wind-Deck und Maßstab rücken 26 px hoch. */
-@media (min-width: 768px) {
+@media (min-width: 768px) and (pointer: fine), (min-width: 768px) and (pointer: none), (min-width: 1440px) {
   .mdk-stage { --msl-bottom: 0px; }
   .mdk-stage .maplibregl-ctrl-bottom-right { bottom: 0; }
   .mdk-timedeck { bottom: 20px; }
@@ -1097,7 +1097,7 @@
 
 /* Jan 2026-11-13: the rail runs through to the top edge (as in the dashboard); the top bar starts right of it.
    The rail stays a child of .mdk-body and is pulled up by the top bar height (64 px, border-box). */
-@media (min-width: 768px) {
+@media (min-width: 768px) and (pointer: fine), (min-width: 768px) and (pointer: none), (min-width: 1440px) {
   .mdk-root > .mdk-topbar { margin-left: 58px; }
   .mdk-body > .mdk-rail { margin-top: -64px; position: relative; z-index: 31; }
 }

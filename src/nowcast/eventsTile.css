@@ -44,7 +44,7 @@
 .ed-alpine .nc-block-head { margin: 0 0 8px; }
 
 @media (max-width: 1439px) { .ed-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .ed-tile { margin: 0 0 14px; }
   .ed-row { grid-template-columns: 64px 1fr; }
   .ed-when b { font-size: 13.5px; }
@@ -92,7 +92,7 @@
 .ed-panel .ed-fact span { font-size: 11.5px; }
 .ed-panel .mv-modal-foot { margin-top: 16px; padding: 10px 14px; border-radius: 14px; background: color-mix(in srgb, var(--sand-100, #EFE8D6) 60%, transparent); }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .ed-panel { border-radius: 0; padding: calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)); box-shadow: none; }
   .ed-panel .mv-modal-title { font-size: 24px; }
   .ed-panel .ed-kpis { gap: 10px; }
@@ -126,7 +126,7 @@
 .ed-panel .ed-fact { grid-template-columns: 128px minmax(0, 1fr); font-size: 13.5px; line-height: 1.45; }
 .ed-panel .ed-fact span { font-size: 13px; }
 .ed-panel .mv-modal-foot { font-size: 12.5px; line-height: 1.5; color: var(--stone-600, #5C5447); }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .ed-panel .ed-row { grid-template-columns: 74px minmax(0, 1fr); gap: 0 10px; padding: 11px 10px 11px 28px; }
   .ed-panel .ed-when b { font-size: 17px; }
   .ed-panel .ed-title { font-size: 15px; }

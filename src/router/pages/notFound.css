@@ -55,6 +55,6 @@
   color: var(--terracotta-700, #A85E2E); text-decoration: none; font-size: 0.92rem;
 }
 .nf-tools a:hover { text-decoration: underline; }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .nf-card { padding: 1.5rem 1.25rem; border-radius: 14px; }
 }

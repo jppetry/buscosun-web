@@ -49,7 +49,7 @@
 .zt-facts-foot { margin: 9px 0 0; font-size: 11px; line-height: 1.4; color: var(--stone-600, #6F5E45); }
 
 /* Mobile: the stage lives in the sheet tab "3D" */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .zt-mobile { display: flex; flex-direction: column; gap: 10px; }
   .zt-stage--mobile { flex: 0 0 auto; height: 56vh; border-radius: 14px; border: 1px solid var(--sand-200, #E0D6BE); }
   .zt-stage--mobile .zt-reset span { display: none; }

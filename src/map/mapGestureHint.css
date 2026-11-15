@@ -121,7 +121,7 @@
 @keyframes bs-hint-finger-b { 0%, 100% { transform: translate(3.5px, -3.5px); } 50% { transform: translate(12px, -12px); } }
 
 /* --- Mobil: unten ausgerichtet ------------------------------------------ */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .bs-hint { align-items: flex-end; padding-bottom: 34px; box-sizing: border-box; }
   .bs-hint-content { gap: 11px; padding: 16px; border-radius: 22px; }
   .bs-hint-art { width: 136px; height: 136px; }

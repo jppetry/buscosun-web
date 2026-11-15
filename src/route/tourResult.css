@@ -263,7 +263,7 @@
 }
 
 /* ---------- ≤ 767 px: one view per tab ---------- */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .te-tabbar .rd-m-bar-btn { flex: 1 1 0; min-width: 0; padding: 0 2px; font-size: 11px; }
   .te-m { display: flex; flex-direction: column; gap: 12px; }
   .te-m .te-verdict { display: block; margin-top: 0; padding: 8px 13px; font-size: 13px; line-height: 1.35; }

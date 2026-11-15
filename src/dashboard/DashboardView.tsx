@@ -55,7 +55,7 @@ const REFRESH_EXTRAS_MS = 5 * 60_000;
 /** So long after the whole forecast the loading ring still waits for warnings, nowcast and the map tile (set). */
 const COMPLETE_GRACE_MS = 2_500;
 /** The map tile exists on desktop ≥ 1280 px and on phones < 768 px (`DashboardPage`). */
-const MAP_TILE_QUERY = '(min-width: 1280px), (max-width: 767px)';
+const MAP_TILE_QUERY = '(min-width: 1280px), (max-width: 767px), (max-width: 1439px) and (pointer: coarse)';
 
 /** Kartenausschnitt neben der Jetzt-Kachel (nur Desktop, erst nach der Fusion): eigener Chunk mit MapLibre. */
 const MiniMap = lazy(() => import('./MiniMap'));
@@ -267,7 +267,7 @@ function FixtureDashboard(props: Props) {
 type Refs = { nowcast: RefObject<HTMLElement | null>; terrain: RefObject<HTMLElement | null>; icond2: RefObject<HTMLElement | null> } | null;
 
 function useTablet(): boolean {
-  const q = '(min-width: 768px) and (max-width: 1279px)';
+  const q = '(min-width: 768px) and (max-width: 1279px) and (pointer: fine), (min-width: 768px) and (max-width: 1279px) and (pointer: none)';
   const [m, setM] = useState(() => typeof window !== 'undefined' && window.matchMedia(q).matches);
   useEffect(() => {
     const mq = window.matchMedia(q);
@@ -294,8 +294,8 @@ function DashboardPage({ vm, place, range, onRange, onSelectView, onSelectLocati
 }) {
   const tablet = useTablet();
   // Kartenkachel: Desktop ≥ 1280 px und Mobil < 768 px (Tablet bleibt bei zwei Spalten ohne Karte).
-  const wide = useMedia('(min-width: 1280px)');
-  const phone = useMedia('(max-width: 767px)');
+  const wide = useMedia('(min-width: 1280px) and (pointer: fine), (min-width: 1280px) and (pointer: none), (min-width: 1440px)');
+  const phone = useMedia('(max-width: 767px), (max-width: 1439px) and (pointer: coarse)');
   // Uhr der Topbar im Format der Kartenebene (Zeit, Wochentag · Tag Monat)
   const clock = new Date(useNow(15_000));
   const clockTime = clock.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });

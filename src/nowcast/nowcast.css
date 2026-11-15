@@ -298,7 +298,7 @@
 .nc-page .nc-loc-section.is-compact .ev-loc-chip { max-width: none; }
 
 /* ===== Mobile / Tablet ===== */
-@media (max-width: 760px) {
+@media (max-width: 760px), (min-width: 768px) and (max-width: 1439px) and (pointer: coarse) {
   .nc-page .rt-intro { margin-top: 1.6rem; }
   .nc-page .rt-intro h1 { font-size: clamp(2rem, 8.5vw, 2.7rem); }
 
@@ -402,12 +402,12 @@
 .nc-page--map .nc-intro-search .ev-search-input { font-size: 1rem; }
 .nc-page--map .nc-intro-search .ev-search-go { padding: 0.7rem 1.35rem; font-size: 0.86rem; font-weight: 600; }
 .nc-page--map .rt-trust { background: rgba(250, 246, 234, 0.82); border-radius: 999px; padding: 0.45rem 1rem; width: fit-content; max-width: 100%; margin-left: auto; margin-right: auto; }
-@media (max-width: 760px) {
+@media (max-width: 760px), (min-width: 768px) and (max-width: 1439px) and (pointer: coarse) {
   .nc-page--map .nc-intro-copy { padding: 24px 20px 22px; border-radius: 18px; }
 }
 .nc-page--map .nc-intro-title:focus, .rm-idle--map .rm-idle-title:focus { outline: none; }
 
 /* Mobil dieselbe Ortswahl-Seite wie am Desktop; nur die Werkzeug-Rail entfällt (Zurück über das Logo). */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .nc-idle-rail { display: none; }
 }

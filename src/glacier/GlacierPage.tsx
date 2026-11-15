@@ -65,7 +65,7 @@ type Loaded = {
 
 export default function GlacierPage({ initial, onUrlState, onGlacier, popState }: GlacierPageProps) {
   const nav = useAppNav();
-  const isMobile = useMediaQuery('(max-width: 767px)');
+  const isMobile = useMediaQuery('(max-width: 767px), (max-width: 1439px) and (pointer: coarse)');
   const bases = useMemo(() => glacierBasesFrom(), []);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const [mapInst, setMapInst] = useState<maplibregl.Map | null>(null);

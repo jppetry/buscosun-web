@@ -95,11 +95,11 @@
 .intro-howto-ic { flex: none; margin-top: 1px; color: var(--intro-accent); display: inline-flex; }
 .intro-howto strong { color: var(--ink-900); font-weight: 600; }
 
-@media (min-width: 721px) {
+@media (min-width: 721px) and (pointer: fine), (min-width: 721px) and (pointer: none), (min-width: 721px) and (max-width: 767px), (min-width: 1440px) {
   .intro-stage { grid-template-columns: 1.05fr 1fr; gap: 2rem; }
   .intro-copy { text-align: left; }
 }
-@media (max-width: 720px) {
+@media (max-width: 720px), (min-width: 768px) and (max-width: 1439px) and (pointer: coarse) {
   .intro-dialog { padding: 1.5rem 1.2rem 1.1rem; gap: 1rem; }
   .intro-copy { text-align: center; align-items: center; }
   .intro-body { max-width: 38ch; }

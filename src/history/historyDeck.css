@@ -513,7 +513,7 @@ button.hd-tile:hover .hd-tile-open { background: var(--terracotta-700); }
 .hd-m-onboard .hd-onboard-recent { min-height: 44px; }
 
 /* Touch-Targets ≥44px */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .hd-m-chip, .hd-m-tile-pick { min-height: 44px; }
 }
 
@@ -570,7 +570,7 @@ button.hd-tile:hover .hd-tile-open { background: var(--terracotta-700); }
 
 /* Jan 2026-11-13: the rail runs through to the top edge; the top bar starts right of it.
    The top bar is content-box: 64 px + 1 px border + safe area. */
-@media (min-width: 768px) {
+@media (min-width: 768px) and (pointer: fine), (min-width: 768px) and (pointer: none), (min-width: 1440px) {
   .hd-root > .hd-topbar { margin-left: 58px; }
   .hd-body > .hd-rail { margin-top: calc(-65px - env(safe-area-inset-top, 0px)); padding-top: calc(14px + env(safe-area-inset-top, 0px)); position: relative; z-index: 31; }
 }

@@ -20,4 +20,4 @@
 .pp-unpin { font: inherit; font-size: 10.5px; font-weight: 600; color: var(--steel-600, #3A6FA8); background: none; border: 0; cursor: pointer; padding: 0 2px; }
 .pp-unpin:hover { color: var(--nc-blue-dark, #28507A); }
 
-@media (max-width: 767px) { .pp-card { margin: 0 0 12px; } .pp-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } .pp-tile { grid-template-columns: 1fr; grid-template-areas: 'ico' 'k' 'v' 's'; row-gap: 2px; } }
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) { .pp-card { margin: 0 0 12px; } .pp-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } .pp-tile { grid-template-columns: 1fr; grid-template-areas: 'ico' 'k' 'v' 's'; row-gap: 2px; } }

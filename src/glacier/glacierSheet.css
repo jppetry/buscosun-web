@@ -39,7 +39,7 @@
 .gl-sheet-map-slot { position: absolute; inset: 0; }
 .gl-sheet-map-wrap.has-expand .maplibregl-ctrl-top-right { top: 46px; }
 .gl-sheet-map-wrap.is-full { position: fixed; inset: 0; z-index: 120; background: #E9E2CF; }
-@media (max-width: 1023px) { .gl-sheet-map-wrap.has-expand .maplibregl-ctrl-top-right { top: 56px; } }
+@media (max-width: 1023px), (max-width: 1439px) and (pointer: coarse) { .gl-sheet-map-wrap.has-expand .maplibregl-ctrl-top-right { top: 56px; } }
 .gl-sheet-legend { width: 290px; bottom: 44px; }
 .gl-map .gl-sheet-legend .gl-legend-head b { font-size: 15.5px; }
 .gl-map .gl-sheet-legend .gl-legend-row { font-size: 15px; }
@@ -85,7 +85,7 @@
 .gl-lic span { color: var(--gl-muted); }
 .gl-unused { margin: 0; padding-left: 16px; }
 .gl-sheet-state { padding: 24px; }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .gl-sheet-top { gap: 8px; padding: 0 10px; }
   .gl-sheet-title h1 { font-size: 18px; }
   .gl-sheet-title h1 .gl-chip { display: none; }
@@ -105,7 +105,7 @@
   .gl-chart-s { height: 180px; }
   .gl-divider-handle { width: 48px; height: 48px; }
 }
-@media (min-width: 768px) and (max-width: 1279px) {
+@media (min-width: 768px) and (max-width: 1279px) and (pointer: fine), (min-width: 768px) and (max-width: 1279px) and (pointer: none) {
   .gl-sheet-body { overflow-y: auto; flex-wrap: wrap; align-content: flex-start; }
   .gl-sheet-left { width: 230px; height: 600px; }
   .gl-sheet-readout { width: 100%; }
@@ -173,7 +173,7 @@
 .br-cog-mode button.is-active, .br-cog-over button.is-active { background: var(--ink-900, #2C2A26); color: #FDFBF4; border-color: var(--ink-900, #2C2A26); }
 .br-cog-legend { display: flex; flex-wrap: wrap; gap: 10px; padding: 3px 7px; border-radius: 6px; background: var(--ink-900, #2C2A26); font-size: 14px; color: #EDE6D3; }
 .br-cog-legend i { display: inline-block; width: 14px; height: 10px; margin-right: 4px; border: 1px solid #EDE6D3; }
-@media (max-width: 767px) { .gl-sat-frame { aspect-ratio: 4 / 5; } .br-cog-ctrl button { width: 44px; height: 44px; } }
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) { .gl-sat-frame { aspect-ratio: 4 / 5; } .br-cog-ctrl button { width: 44px; height: 44px; } }
 .gl-ds-steps { position: sticky; top: 0; z-index: 5; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 6px; background: #fff; border: 1px solid var(--gl-line); border-radius: 14px; box-shadow: 0 4px 14px rgba(44,42,38,.06); }
 .gl-ds-step { display: flex; align-items: center; gap: 11px; min-height: 54px; padding: 8px 14px; border: 0; border-radius: 10px; background: transparent; color: var(--gl-ink); text-align: left; cursor: pointer; font: inherit; transition: background .15s; }
 .gl-ds-step:hover { background: var(--gl-panel); }
@@ -267,7 +267,7 @@
 .gl-hb-tourtile small { font-size: 11px; color: var(--gl-faint); }
 .gl-hb-links { display: flex; flex-wrap: wrap; gap: 8px; }
 .gl-hb-links .gl-btn { text-decoration: none; }
-@media (min-width: 768px) and (max-width: 1279px) {
+@media (min-width: 768px) and (max-width: 1279px) and (pointer: fine), (min-width: 768px) and (max-width: 1279px) and (pointer: none) {
   .gl-hb-row--melt, .gl-hb-row--week { grid-template-columns: minmax(0, 1fr); }
   .gl-hb-tourgrid { grid-template-columns: minmax(0, 1fr); }
   .gl-ds-kf { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -328,7 +328,7 @@
 
 /* Dossier on the phone (Jan 26.10.): "Detailansicht" opens the dossier level over the map, above the bottom bar. One column, the four
    key figures as 2 × 2, the level stepper as three compact touch targets, buttons ≥ 44 px. Desktop and tablet are untouched. */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   /* no top padding on the scroller: the sticky level bar would stop 10 px below the edge and let the content shine through above it */
   .gl-ds-stage { padding: 0 10px 18px; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
   .gl-ds { gap: 10px; padding-top: 10px; }
@@ -409,7 +409,7 @@
 /* In the Heute board the card takes the look of the board's cards. */
 .gl-hb-wx { min-width: 0; }
 .gl-hb-wx .gl-card { border-radius: 18px; border-color: var(--gl-hair); box-shadow: var(--gl-shadow-m); background: var(--gl-glass); padding: 14px 16px; }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .gl-wx-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .gl-wx-table th, .gl-wx-table td { padding: 8px 6px; }
   .gl-hb-wx .gl-card { border-radius: 16px; padding: 12px; }

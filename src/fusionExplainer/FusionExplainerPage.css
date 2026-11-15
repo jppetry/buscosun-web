@@ -173,7 +173,7 @@
 .fx-footer { font-size: 12px; line-height: 1.5; color: var(--stone-600); margin-top: 24px; max-width: 760px; }
 
 /* ── Mobile ─────────────────────────────────────────────────────────────── */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .fx-topbar { padding: 8px 16px; }
   .fx-topbar-kicker { display: none; }
   .fx-brand { margin-right: auto; }
@@ -221,10 +221,10 @@
 }
 .fx-rail-btn:hover { color: #b79a72; }
 .fx-rail-spacer { margin-top: auto; }
-@media (min-width: 768px) {
+@media (min-width: 768px) and (pointer: fine), (min-width: 768px) and (pointer: none), (min-width: 1440px) {
   .fx-page { padding-left: 62px; }
 }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .fx-rail { display: none; }
 }
 

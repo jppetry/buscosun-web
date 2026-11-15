@@ -101,7 +101,7 @@
   0% { transform: scale(1); opacity: 0.75; }
   100% { transform: scale(3.6); opacity: 0; }
 }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .deck-mapbg svg { width: 330vw; transform: translate(var(--dmb-x-m), var(--dmb-y)); }
   .deck-mapbg.is-ready { opacity: 0.36; }
   .deck-mapbg-city.is-t3 text, .deck-mapbg-area.is-abroad { display: none; }
@@ -813,7 +813,7 @@
    TABLET (768–1024) — 3-Spalten-Bento, Hero zweispaltig, per `order` umsortiert.
    Range-Query (min 768), damit `order`/Spans NICHT in den Mobile-Bereich lecken.
    ============================================================================ */
-@media (min-width: 768px) and (max-width: 1024px) {
+@media (min-width: 768px) and (max-width: 1024px) and (pointer: fine), (min-width: 768px) and (max-width: 1024px) and (pointer: none) {
   .deck { --deck-pad-x: 28px; }
   .deck-h1 { font-size: 52px; letter-spacing: -1.8px; }
   .deck-hero { padding-top: 20px; }
@@ -866,7 +866,7 @@
 /* ============================================================================
    MOBILE (≤767) — 1–2-Spalten + Bottom-Tab-Bar
    ============================================================================ */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .deck { --deck-pad-x: 18px; --deck-glass-in: 12px; padding-bottom: env(safe-area-inset-bottom, 0px); }
 
   /* Command-Bar: nur Logo + LIVE + DE (⌘K-Trigger versteckt) */

@@ -410,7 +410,7 @@ export default function TerrainStage3D({ vm, nowMs }: { vm: TerrainVM; nowMs: nu
 
   // --- Schneefallgrenze als Fläche (Phase SK) ----------------------------------------------------------------------
   const skOn = typeof window !== 'undefined' && snowCapEnabledFrom(window.location.search);
-  const skMobile = typeof window !== 'undefined' && !!window.matchMedia?.('(max-width: 767px)').matches;
+  const skMobile = typeof window !== 'undefined' && !!window.matchMedia?.('(max-width: 767px), (max-width: 1439px) and (pointer: coarse)').matches;
   const snow = useSnowCap(map, skOn && showSnow, nowMs, { palette: SK_PALETTE_3D, beforeId: () => undefined, prefix: 'dsk3', mobile: skMobile });
 
   const reset = () => mapRef.current?.easeTo({ pitch: STAGE_PITCH, bearing, center: c ? [c.lon, c.lat] : undefined, zoom: ZOOM_OF[vm.halfKm], duration: 600 });

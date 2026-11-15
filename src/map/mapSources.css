@@ -68,7 +68,7 @@
 .msl-hint .msl-on { margin: 0 3px 0 0; }
 .msl-credit { color: var(--stone-600, #5C5447); font-style: italic; overflow-wrap: anywhere; }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .msl-host.msl-host .maplibregl-ctrl-attrib { font-size: 10px; padding: 1px 6px; }
   .msl-btn { height: 26px; }
   .msl-tile { bottom: calc(var(--msl-bottom, 0px) + 30px); max-height: min(70vh, 520px, calc(100% - var(--msl-bottom, 0px) - 38px)); }

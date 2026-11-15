@@ -279,7 +279,7 @@
 }
 
 /* --- Mobile (≤ 767 px): full-screen map, top pill + share, time chips, bottom sheet ---- */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   /* Der globale Chip „Über diese Ansicht“ (RouteSeoBlock) entfällt mobil im Autobahnwetter. */
   .rsb[data-route="autobahnwetter"] { display: none; }
   .aw-root.is-mobile { display: block; position: relative; background: #0B0E12; }
@@ -366,7 +366,7 @@ button.aw-prog-tile:disabled { cursor: default; }
 .aw-table-name em.is-fc { color: #28507A; }
 .aw-table-chip.is-fc { background: #EAF1F7; color: #28507A; font-weight: 600; }
 .aw-miniband.is-fc { height: 6px; margin-top: 3px; }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   button.aw-prog-tile { min-height: 44px; }
 }
 .aw-map.has-fc .maplibregl-ctrl-bottom-right, .aw-map.has-fc .maplibregl-ctrl-bottom-left { bottom: 204px; }
@@ -391,7 +391,7 @@ button.aw-prog-tile:disabled { cursor: default; }
 }
 .aw-legend-rain { display: inline-flex; align-items: center; gap: 4px; }
 .aw-legend-rain i { width: 22px; height: 6px; border-radius: 3px; background: linear-gradient(90deg, rgba(95,165,235,0.8), rgba(60,200,120,0.9), rgba(240,150,50,0.9), rgba(190,40,95,0.9)); }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .aw-m-dock .aw-road-more { min-height: 44px; }
 }
 .aw-band-unbuilt { position: absolute; top: 22px; height: 14px; background: repeating-linear-gradient(45deg, rgba(44, 42, 38, 0.55) 0 2px, transparent 2px 6px); pointer-events: auto; border-radius: 2px; }
@@ -522,7 +522,7 @@ button.aw-prog-tile:disabled { cursor: default; }
 .aw-hz-notobs { margin-top: 10px; padding: 10px 11px; border-radius: 9px; background: #F4F0E4; border: 1px solid #D9D0B8; font-size: 12px; line-height: 1.5; color: var(--stone-600, #5C5447); }
 .aw-hz-notobs strong { color: var(--ink-900, #2C2A26); }
 .aw-hz-src { margin-top: 12px; }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   /* Lage-Matrix: passt in die Bildschirmbreite statt seitwärts zu scrollen — schmale Namensspalte, 32-px-Zeilen zum Antippen. */
   .aw-hz-matrix-card { padding: 12px 10px 10px; }
   .aw-hz-matrix-head { grid-template-columns: 92px repeat(7, minmax(0, 1fr)); gap: 2px; }
@@ -674,7 +674,7 @@ button.aw-prog-tile:not(:disabled):not(.is-on):hover { box-shadow: var(--aw-inse
 .aw-hz-legend-matrix { border-top-color: var(--aw-hair); }
 
 /* Mobile: sheet, dock overlay, buttons */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .aw-sheet { background: linear-gradient(180deg, rgba(250, 246, 234, 0.96), #F6F1E4); border-top-color: rgba(255, 255, 255, 0.6); border-radius: 22px 22px 0 0; -webkit-backdrop-filter: blur(16px) saturate(1.3); backdrop-filter: blur(16px) saturate(1.3); box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.12), 0 -14px 38px rgba(0, 0, 0, 0.32); }
   .aw-m-top .aw-pill { border-radius: 16px; }
   .aw-m-share { border-radius: 16px; }
@@ -714,7 +714,7 @@ button.aw-prog-tile:not(:disabled):not(.is-on):hover { box-shadow: var(--aw-inse
   .aw-dossier-head { padding: 10px 16px; }
   .aw-dossier-body { padding: 14px 16px 28px; }
 }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .aw-m-stage { position: absolute; left: 12px; top: calc(118px + env(safe-area-inset-top, 0px)); z-index: 3; }
   .aw-m-stage .aw-stage-seg { width: 200px; }
   .aw-stage-seg button { min-height: 44px; }
@@ -777,7 +777,7 @@ button.aw-prog-tile:not(:disabled):not(.is-on):hover { box-shadow: var(--aw-inse
 .aw-mapcard-cta-arrow { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; background: rgba(255, 255, 255, 0.16); }
 .aw-mapcard-cta svg { transition: transform .15s ease-out; }
 .aw-mapcard-cta:hover svg { transform: translateX(2px); }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .aw-map-card { left: 12px; right: 12px; width: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
   .aw-mapcard-close { width: 44px; height: 44px; margin: -8px -8px 0 0; background: transparent; }
   .aw-mapcard-cta { min-height: 44px; }
@@ -885,7 +885,7 @@ button.aw-prog-tile:not(:disabled):not(.is-on):hover { box-shadow: var(--aw-inse
   .aw-ds-svgwrap { height: 420px; }
   .aw-ds-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .aw-ds-head, .aw-ds-card { padding: 14px 14px 16px; }
   .aw-m-dossier .aw-card:not(.aw-warn) { padding: 14px; }
   .aw-ds-headrow { flex-direction: column; gap: 10px; }
@@ -947,7 +947,7 @@ button.aw-prog-tile:not(:disabled):not(.is-on):hover { box-shadow: var(--aw-inse
 .aw-ds-pick-cta:hover { transform: translateY(-1px); }
 @media (prefers-reduced-motion: reduce) { .aw-ds-tab, .aw-ds-pick-cta { transition: none; } .aw-ds-pick-cta:hover { transform: none; } }
 @media (max-width: 1439px) { .aw-ds-tabs { top: -14px; box-shadow: 0 -14px 0 0 var(--sand-50, #F5F1E8), 0 12px 24px -18px rgba(44, 42, 38, 0.4); } .aw-ds-tab-h { display: none; } }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .aw-ds-tabs { top: 0; padding: 3px; gap: 3px; border-radius: 13px; box-shadow: 0 -14px 0 0 var(--sand-50, #F5F1E8), 0 12px 24px -18px rgba(44, 42, 38, 0.4); }
   .aw-ds-tab { padding: 4px 6px; min-height: 44px; gap: 6px; flex-direction: row; justify-content: center; }
   .aw-ds-tab-t { font-size: 12.5px; text-align: center; }
@@ -967,7 +967,7 @@ button.aw-prog-tile:not(:disabled):not(.is-on):hover { box-shadow: var(--aw-inse
 .aw-ds-tiles:not(.is-seg) .aw-ds-tile-v { margin-top: 1px; font-size: 18px; }
 .aw-ds-tiles:not(.is-seg) .aw-ds-tile-s { margin-top: 1px; font-size: 12px; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 @media (max-width: 1439px) { .aw-ds-title { font-size: 19px; } }
-@media (max-width: 767px) { .aw-ds-head { padding: 10px 12px 12px; } .aw-ds-title { font-size: 17px; } .aw-ds-tiles:not(.is-seg) .aw-ds-tile-v { font-size: 16px; } }
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) { .aw-ds-head { padding: 10px 12px 12px; } .aw-ds-title { font-size: 17px; } .aw-ds-tiles:not(.is-seg) .aw-ds-tile-v { font-size: 16px; } }
 /* segment chapter: cross-section beside its text, calmer direction switch, a larger timetable (dossier only) */
 .aw-hz-xsgrid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin-top: 4px; }
 .aw-hz-xscol, .aw-hz-txtcol { min-width: 0; }
@@ -996,7 +996,7 @@ button.aw-prog-tile:not(:disabled):not(.is-on):hover { box-shadow: var(--aw-inse
 .aw-dossier-body .aw-hz-plan-cell.is-past, .aw-m-dossier .aw-hz-plan-cell.is-past { opacity: 0.55; }
 .aw-dossier-body .aw-hz-legend, .aw-m-dossier .aw-hz-legend { margin-top: 12px; font-size: 12px; }
 @media (max-width: 1439px) { .aw-dossier-body .aw-hz-xsgrid { grid-template-columns: minmax(0, 1fr); gap: 12px; } .aw-dossier-body .aw-hz-txtcol { padding-top: 0; } .aw-dossier-body .aw-hz-xs { max-width: 520px; } }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .aw-m-dossier .aw-hz-plan { grid-template-columns: 96px repeat(9, minmax(0, 1fr)); gap: 2px; }
   .aw-m-dossier .aw-hz-plan-name { font-size: 12px; }
   .aw-m-dossier .aw-hz-plan-name svg { display: none; }
@@ -1039,7 +1039,7 @@ button.aw-prog-tile:not(:disabled):not(.is-on):hover { box-shadow: var(--aw-inse
 .aw-hz-thr-legend i { width: 16px; height: 9px; border-radius: 3px; display: inline-block; }
 .aw-hz-thr-legend i.is-now { width: 12px; height: 12px; border-radius: 50%; background: #2C2A26; border: 2px solid #fff; box-shadow: 0 0 0 1px #C9BE9E; }
 .aw-hz-thr-legend i.is-fc { width: 3px; height: 14px; border-radius: 2px; background: var(--aw-accent, #1F5FAE); }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .aw-hz-tstats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .aw-hz-tstats b { font-size: 17px; }
   .aw-m-dossier .aw-hz-chart-box { height: 240px; }
@@ -1051,7 +1051,7 @@ button.aw-prog-tile:not(:disabled):not(.is-on):hover { box-shadow: var(--aw-inse
 .aw-dock.is-layers .aw-dock-h-layers { margin-top: 0; }
 
 /* Mobile bottom bar (Karte · Autobahnen · Gefahren · Ebenen) like the Brandradar: the map and the briefing sheet end above it, the pages cover the map. */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .aw-root.is-mobile { --aw-bar-h: calc(64px + env(safe-area-inset-bottom, 0px)); }
   .aw-root.is-mobile .aw-map.is-mobile { bottom: var(--aw-bar-h); }
   .aw-root.is-mobile .aw-map.is-mobile .maplibregl-ctrl-bottom-right, .aw-root.is-mobile .aw-map.is-mobile .maplibregl-ctrl-bottom-left { bottom: 0; }
@@ -1065,7 +1065,7 @@ button.aw-prog-tile:not(:disabled):not(.is-on):hover { box-shadow: var(--aw-inse
   .aw-bar-btn.is-active { color: var(--steel-600, #3A6FA8); font-weight: 600; }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .aw-m-brand { width: 44px; height: 44px; flex: 0 0 auto; align-self: center; border-radius: 12px; padding: 0; cursor: pointer; display: flex; align-items: center; justify-content: center;
     background: var(--surface-glass-strong, #FAF6EA); border: 1px solid var(--sand-200, #E0D6BE); box-shadow: var(--shadow-card); }
 }
@@ -1150,7 +1150,7 @@ button.aw-prog-tile:not(:disabled):not(.is-on):hover { box-shadow: var(--aw-inse
 .aw-hz-group-head { gap: 9px; text-transform: none; letter-spacing: 0; font-size: 14px; padding-bottom: 8px; }
 .aw-hz-group-ic { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 9px; color: var(--aw-accent, #1F5FAE); background: color-mix(in srgb, var(--aw-accent, #1F5FAE) 10%, #fff); }
 .aw-hz-group-n { font-size: 12px; }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .aw-sheet-readout .aw-readout > .aw-tabs { position: static; margin: 0; padding: 3px; border: 1px solid var(--aw-hair, #E8E0CC); border-radius: 11px; background: var(--aw-glass); backdrop-filter: none; }
 }
 
@@ -1210,7 +1210,7 @@ button.aw-prog-tile:not(:disabled):not(.is-on):hover { box-shadow: var(--aw-inse
 .aw-dv-cap { max-width: 44%; padding: 3px 8px; border-radius: 7px; font-size: 12px; color: var(--dv-src, #F2F2F2); text-align: right; text-wrap: balance; }
 @media (max-width: 1439px) { .aw-dossier-body .aw-dv { max-width: 520px; } }
 /* Mobile: the road panel leaves the picture and stands below it; the note stays in the corner. */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .aw-dv { grid-template: "stage" auto "road" auto / minmax(0, 1fr); }
   .aw-dv-top { padding: 8px; gap: 6px; }
   .aw-dv-airbox { max-width: 52%; padding: 5px 8px; }
@@ -1233,7 +1233,7 @@ button.aw-prog-tile:not(:disabled):not(.is-on):hover { box-shadow: var(--aw-inse
 .aw-shield.aw-stl-shield { background: #F2C230; color: #2C2A26; border-color: #fff; box-shadow: 0 0 0 1px #C9A11F; }
 .aw-hz-row-haz.aw-stl-hot { color: #8A1C1C; }
 .aw-hz-val.aw-stl-hot { background: #FBE9E4; border-color: #E8C9BD; color: #8A1C1C; }
-@media (max-width: 1023px) { .aw-stl-kind button, .aw-stl-sort select { min-height: 44px; } }
+@media (max-width: 1023px), (max-width: 1439px) and (pointer: coarse) { .aw-stl-kind button, .aw-stl-sort select { min-height: 44px; } }
 
 /* Schwellen-Balken: „jetzt“ vom virtuellen Fahrbahnsensor (keine Messung) — rot umrandet wie die berechneten Marker (Jan 11.11.). */
 .aw-hz-thr-now.is-vs { box-shadow: 0 0 0 2px #D32F2F, 0 2px 6px rgba(44, 42, 38, 0.4); }

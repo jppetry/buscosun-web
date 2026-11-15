@@ -39,7 +39,7 @@
 .fb-m-share { width: 44px; height: 44px; border-radius: 12px; flex: 0 0 auto; }
 .fb-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .fb-page .rt-nav { display: none; }
   .fb-m-head {
     position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between;

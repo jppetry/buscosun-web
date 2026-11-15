@@ -47,7 +47,7 @@
 .atm-profile-box { grid-area: profile; }
 .atm-nerd    { grid-area: nerd; }
 
-@media (min-width: 1024px) {
+@media (min-width: 1024px) and (pointer: fine), (min-width: 1024px) and (pointer: none), (min-width: 1440px) {
   .atm-grid {
     grid-template-columns: 1.15fr 1fr; align-items: start;
     grid-template-areas:
@@ -56,7 +56,7 @@
       "nerd    nerd";
   }
 }
-@media (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) and (pointer: fine), (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) and (pointer: none) {
   .atm-grid {
     grid-template-columns: 1fr 1fr; align-items: start;
     grid-template-areas:
@@ -105,12 +105,12 @@
   color: var(--atm-accent-dark); border-radius: 10px; font: inherit; font-size: 0.78rem;
   font-weight: 600; cursor: pointer;
 }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .atm-globe { min-height: 0; }
   .atm-globe.is-collapsed { height: 140px; }
   .atm-globe:not(.is-collapsed) { height: 70vh; }
 }
-@media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) and (pointer: fine), (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) and (pointer: none) {
   .atm-globe { min-height: 0; height: 45vh; }
 }
 
@@ -262,9 +262,9 @@
 .atm-scrub-rel { display: block; font-size: 0.7rem; color: var(--stone-500, #8B7355); }
 .atm-scrub-end { font-size: 0.72rem; font-weight: 600; color: var(--stone-500, #8B7355); white-space: nowrap; }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .atm-scrub { position: sticky; bottom: 0; z-index: 5; margin-top: 1rem; }
 }
-@media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) and (pointer: fine), (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) and (pointer: none) {
   .atm-scrub { position: sticky; bottom: 0; z-index: 5; }
 }

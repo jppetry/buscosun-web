@@ -29,7 +29,7 @@
 /* Layout: 2D = Karte groß; 3D = Karte schmal + Schnitt breit */
 .td-layout { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-top: 0.6rem; }
 .td-layout.is-3d { grid-template-columns: 340px 1fr; align-items: start; }
-@media (max-width: 900px) { .td-layout.is-3d { grid-template-columns: 1fr; } }
+@media (max-width: 900px), (max-width: 1439px) and (pointer: coarse) { .td-layout.is-3d { grid-template-columns: 1fr; } }
 
 .td-map-card { padding: 0; overflow: hidden; }
 .td-map { width: 100%; height: 420px; }
@@ -48,7 +48,7 @@
 .td-terrain-card { padding: 0; overflow: hidden; }
 .td-map-shell-3d { width: 100%; }
 .td-map-3d { width: 100%; height: 560px; }
-@media (max-width: 760px) { .td-map-3d { height: 440px; } }
+@media (max-width: 760px), (min-width: 768px) and (max-width: 1439px) and (pointer: coarse) { .td-map-3d { height: 440px; } }
 .td-terrain-foot { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem;
   padding: 0.6rem 0.9rem; border-top: 1px solid var(--sand-200, #E0D6BE); font-size: 0.76rem; color: var(--stone-600, #6F5E45); }
 .td-terrain-card .td-legend { padding: 0.7rem 0.9rem; border-top: 1px solid var(--sand-200, #E0D6BE); }

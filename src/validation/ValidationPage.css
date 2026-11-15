@@ -168,7 +168,7 @@
 }
 .val-caveat strong { color: var(--ink-900, #2c2a26); }
 
-@media (max-width: 720px) {
+@media (max-width: 720px), (min-width: 768px) and (max-width: 1439px) and (pointer: coarse) {
   .val-cards { grid-template-columns: 1fr; }
   .val-twocol { grid-template-columns: 1fr; gap: 1.6rem; }
   .val-reliability { max-width: 320px; margin: 0 auto; }

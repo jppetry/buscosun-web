@@ -219,7 +219,7 @@
 .gl-foot-note { font-size: 11px; color: var(--gl-faint); line-height: 1.4; }
 
 /* Mobile (≤ 767 px): header 56 · map 330 · metric chips · one scrolling column */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .gl-root { flex-direction: column; }
   .gl-rail-desktop { display: none; }
   .gl-main { flex: 1; min-height: 0; }
@@ -299,9 +299,9 @@
   .gl-seg2 button { min-height: 44px; padding: 0 16px; }
   .gl-rank button { min-height: 48px; }
 }
-@media (min-width: 768px) { .gl-m-chips, .gl-m-only { display: none; } }
+@media (min-width: 768px) and (pointer: fine), (min-width: 768px) and (pointer: none), (min-width: 1440px) { .gl-m-chips, .gl-m-only { display: none; } }
 /* Tablet / small desktop (768–1279 px): dock + map side by side, the readout stacks underneath, the body scrolls */
-@media (min-width: 768px) and (max-width: 1279px) {
+@media (min-width: 768px) and (max-width: 1279px) and (pointer: fine), (min-width: 768px) and (max-width: 1279px) and (pointer: none) {
   .gl-body { flex-wrap: wrap; overflow-y: auto; align-content: flex-start; }
   .gl-dock { width: 230px; height: 600px; }
   .gl-center { flex: 1 1 0; min-width: 0; height: 600px; }
@@ -327,7 +327,7 @@
 .gl-m-scroll { display: flex; flex-direction: column; gap: 12px; padding: 12px; }
 .gl-m-legend .gl-legend { position: static; width: auto; max-width: none; }
 .gl-pill-slot { display: contents; }
-@media (max-width: 767px) { .gl-m-legend .gl-legend { display: flex; } }
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) { .gl-m-legend .gl-legend { display: flex; } }
 .gl-readout-scroll .gl-rank { overflow: visible; }
 
 /* GL-5: follow, change feed, followed list */
@@ -342,7 +342,7 @@
 .gl-fav-main span { font-size: 12px; color: var(--gl-muted); }
 .gl-new { background: var(--gl-tint); border-color: #BFDCE6; }
 .gl-changes li > span { line-height: 1.35; }
-@media (max-width: 767px) { .gl-star { width: 44px; height: 44px; } }
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) { .gl-star { width: 44px; height: 44px; } }
 
 /* "Alle Gletscher" in the readout: one tile per glacier, built like the fire list of the Brandradar (the dock keeps search, country, metric) */
 .gl-dock-foot { margin-top: auto; }
@@ -381,7 +381,7 @@
 .gl-all-more { display: flex; gap: 8px; padding-top: 4px; }
 .gl-all-more .gl-btn { flex: 1; justify-content: center; height: 36px; font-size: 13px; }
 @media (prefers-reduced-motion: reduce) { .gl-tile { transition: none; } .gl-tile:hover { transform: none; } }
-@media (min-width: 768px) and (max-width: 1279px) {
+@media (min-width: 768px) and (max-width: 1279px) and (pointer: fine), (min-width: 768px) and (max-width: 1279px) and (pointer: none) {
   .gl-readout-scroll > .gl-all { grid-column: 1 / -1; }
   .gl-all-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
 }
@@ -401,7 +401,7 @@
 .gl-view-seg { position: absolute; right: 14px; top: 96px; z-index: 2; flex-direction: column; background: #fff; border: 1px solid var(--gl-line-strong); border-radius: 10px; }
 .gl-view-seg button { width: 32px; height: 28px; padding: 0; font-size: 12.5px; }
 .gl-view-seg button[aria-pressed="true"] { background: var(--gl-ink); color: #FAF6EA; }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .gl-view-seg { top: 50px; right: 10px; flex-direction: row; }
   .gl-view-seg button { width: 44px; min-height: 44px; padding: 0; }
 }
@@ -496,7 +496,7 @@
 .gl-metric.is-locked .gl-switch { opacity: .45; }
 .gl-metric-about { margin: 6px 4px 0; padding: 8px 10px; border-left: 3px solid var(--gl-accent); border-radius: 0 8px 8px 0; background: var(--gl-tint); font-size: 12.5px; line-height: 1.5; color: var(--gl-ink); }
 .gl-metric-about .gl-chip { margin-left: 4px; vertical-align: 1px; white-space: nowrap; }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   /* Phone: the whole row is the touch target (≥ 48 px); the description gets the full line width. */
   .gl-metric-about { font-size: 13px; margin-inline: 2px; }
 }

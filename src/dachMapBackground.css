@@ -47,7 +47,7 @@
   0% { transform: scale(1); opacity: 0.75; }
   100% { transform: scale(3.6); opacity: 0; }
 }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .deck-mapbg svg { width: 330vw; transform: translate(var(--dmb-x-m), var(--dmb-y)); }
   .deck-mapbg.is-ready { opacity: 0.36; }
   .deck-mapbg-city.is-t3 text, .deck-mapbg-area.is-abroad { display: none; }

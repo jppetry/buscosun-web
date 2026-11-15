@@ -127,7 +127,7 @@
 /* Phase RR: `MapView.css` hebt mobil ALLE MapLibre-Ecksteuerungen über das Sheet der Wetterkarte (bottom 152 px, ohne
    Scope). Das Regenradar hat dort kein Sheet über der Karte — Attribution und Knöpfe bleiben am Bühnenrand wie bei der
    alten Karte. Gleiche Media Query wie die Regel, die hier aufgehoben wird. */
-@media (max-width: 767px), (max-height: 430px) and (orientation: landscape) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse), (max-height: 430px) and (orientation: landscape) {
   .nc-radar-stage > .map-view-profile .maplibregl-ctrl-bottom-left,
   .nc-radar-stage > .map-view-profile .maplibregl-ctrl-bottom-right { bottom: 0; }
 }
@@ -205,7 +205,7 @@
 .rl-sk .nc-radar-leg-item { font-size: 0.66rem; line-height: 1.2; white-space: nowrap; }
 /* Mobil: die Legende steht auf voller Breite unter dem Zeitstempel — Titel über der Skala, die fünf Stufen teilen sich
    die Zeile; weitere Abschnitte (Schnee, Graupel, Hagel, Schneefallgrenze) darunter. */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .rdr-tl-top { flex-wrap: wrap; }
   .rl-dock { flex: 1 1 100%; order: 3; justify-content: flex-start; flex-direction: column; flex-wrap: nowrap; gap: 0.55rem; }
   .rl-dock .rl-sec { flex-direction: column; align-items: stretch; gap: 0.35rem; padding: 0; }
@@ -265,7 +265,7 @@
 .rdr-tl-key { display: flex; align-items: center; gap: 0.3rem; }
 .rdr-tl-key i { width: 1rem; height: 0.35rem; border-radius: 2px; }
 /* Phone: no key „gemessen | Vorhersage“ in the time bar (Jan 2026-11-13) — the status next to the clock names it per frame. */
-@media (max-width: 767px) { .rdr-tl-key { display: none; } }
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) { .rdr-tl-key { display: none; } }
 .rdr-k-meas { background: #3c7a2f; }
 .rdr-k-fc { background-image: repeating-linear-gradient(90deg, var(--rdr-blue) 0 3px, transparent 3px 6px); }
 
@@ -390,7 +390,7 @@
 .ev-spinner { width: 1rem; height: 1rem; border: 2px solid var(--sand-200, #E0D6BE); border-top-color: var(--rdr-blue); border-radius: 999px; display: inline-block; animation: rdr-spin 0.8s linear infinite; }
 @keyframes rdr-spin { to { transform: rotate(360deg); } }
 
-@media (max-width: 720px) {
+@media (max-width: 720px), (min-width: 768px) and (max-width: 1439px) and (pointer: coarse) {
   .nc-radar { padding: 0.85rem 0.85rem 0.75rem; }
   .nc-radar-stage { height: 60vh; }
   .rdr-tl-stamp strong { font-size: 1.15rem; }

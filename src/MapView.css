@@ -245,7 +245,7 @@
   color: var(--stone-600);
 }
 /* Phase RA-250: the 1 km | 250 m switch — on the phone each button is a 44-px target (the dock's segments are 41 px). */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .hd250-seg button { min-height: 44px; }
 }
 /* Phase RA-250: the words next to the 1 km | 250 m switch (what the tile layer does for the drawn frame). */
@@ -319,7 +319,7 @@
   font-weight: 600;
   color: var(--sage-600, #5e7a4f);
 }
-@media (max-width: 767px), (max-height: 430px) and (orientation: landscape) { .layer-info { display: none; } }
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse), (max-height: 430px) and (orientation: landscape) { .layer-info { display: none; } }
 
 /* ============ SAT PRODUCT SWITCH · im .left-rails-Stack unter dem Layer-Rail ============ */
 .sat-product-switch {
@@ -1400,7 +1400,7 @@
 .temp-label-rank-4 { font-size: 0.64rem; font-weight: 600; opacity: 0.92; }
 
 /* ============ RESPONSIVE ============ */
-@media (max-width: 1024px) and (min-width: 768px) {
+@media (max-width: 1024px) and (min-width: 768px) and (pointer: fine), (max-width: 1024px) and (min-width: 768px) and (pointer: none) {
   /* Tablet: PFC dockt unten quer als breite Sheet — Layer-Rail bleibt links */
   .pfc-panel { top: auto; bottom: 1rem; right: 1rem; left: calc(56px + 2rem); }
   .pfc-toggle { writing-mode: horizontal-tb; border-radius: 12px 12px 0 0; padding: 0.4rem 0.85rem; }
@@ -1503,7 +1503,7 @@
    ============================================================================ */
 .map-sheet, .map-sheet-scrim { display: none; }
 
-@media (max-width: 767px), (max-height: 430px) and (orientation: landscape) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse), (max-height: 430px) and (orientation: landscape) {
   /* Topbar kompakt: 44px-Icon-Back + Location-Pill (unverändert aus Phase 1) */
   .map-topbar { top: calc(0.55rem + env(safe-area-inset-top, 0px)); left: 0.55rem; right: 0.55rem; gap: 0.4rem; }
   .back-btn { padding: 0; width: 44px; height: 44px; justify-content: center; font-size: 0; }

@@ -282,7 +282,7 @@
    auseinanderreißen. Senkrechtes Padding vergrößert bei einem Inline-Element die Trefferfläche (13 → 25 px),
    ohne den Zeilenfall zu ändern; das bleibt unter 44 px und ist in audit/wasserstand-bsh.md §9 benannt. */
 .sw-disclaimer a { color: var(--sw-accent-dark, #0B5560); text-decoration: underline; padding: 6px 1px; }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .sw-wl-events li { flex-wrap: wrap; gap: 2px 8px; }
   .sw-wl-ev { flex-basis: 100%; }
 }
@@ -343,7 +343,7 @@
 .sw-minimap:focus-visible { outline: 2px solid var(--sw-accent, #0F6E7A); outline-offset: 2px; }
 .sw-minimap .maplibregl-ctrl-bottom-right, .sw-minimap .maplibregl-ctrl-bottom-left { bottom: 0; }
 /* Phone: no attribution button on the excerpt; the card head right above names the source ("Esri World Imagery"). */
-@media (max-width: 767px) { .sw-minimap .maplibregl-ctrl-attrib { display: none; } }
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) { .sw-minimap .maplibregl-ctrl-attrib { display: none; } }
 .sw-ds-maplegend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; font-size: 12.5px; color: var(--stone-600, #5C5447); }
 .sw-ds-maplegend span { display: flex; align-items: center; gap: 5px; }
 .sw-ds-maplegend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
@@ -454,7 +454,7 @@
 .sw-ar-bftcell em { font-style: normal; font-size: 11.5px; line-height: 1.3; color: var(--stone-600, #5C5447); }
 .sw-ar-bftcell.is-hot strong, .sw-ar-bftcell.is-hot span, .sw-ar-bftcell.is-hot em { color: #fff; }
 /* Mobile tab Seegebiet: the same view in one column, label above its text. */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .sw-ar-grid, .sw-ar-mid { grid-template-columns: minmax(0, 1fr); }
   .sw-ar-statusrow, .sw-ar-days { grid-template-columns: minmax(0, 1fr); }
   .sw-ar-row { grid-template-columns: minmax(0, 1fr); gap: 4px; }
@@ -607,7 +607,7 @@
 }
 
 /* --- Mobile (≤ 767 px): full-screen map, spot pill + share, chips, bottom sheet ------------------------ */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   /* Der globale Chip „Über diese Ansicht“ (RouteSeoBlock) entfällt mobil im Seewetter. */
   .rsb[data-route="seewetter"] { display: none; }
   .sw-root.is-mobile { display: block; position: relative; background: var(--sw-map-bg, #0B0E12); }
@@ -753,7 +753,7 @@
 .sw-mapcard-cta:hover { transform: translateY(-1px); box-shadow: 0 10px 20px -8px color-mix(in srgb, var(--sw-accent, #0F6E7A) 80%, transparent); }
 .sw-mapcard-cta-arrow { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; background: rgba(255, 255, 255, 0.18); }
 @media (prefers-reduced-motion: reduce) { .sw-mapcard { animation: none; } .sw-mapcard-close, .sw-mapcard-cta { transition: none; } }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .sw-map-card { left: 12px; right: 12px; width: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
   .sw-mapcard-close { width: 44px; height: 44px; margin: -8px -8px 0 0; background: transparent; }
   .sw-mapcard-cta { min-height: 44px; }
@@ -894,7 +894,7 @@
 @media (prefers-reduced-motion: reduce) { .sw-seabar-t i { transition: none; } }
 
 /* Mobile bottom bar (Karte · Spot · Ebenen) like the Brandradar: the map ends above it, the pages cover the map. */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .sw-root.is-mobile { --sw-bar-h: calc(64px + env(safe-area-inset-bottom, 0px)); }
   .sw-root.is-mobile .sw-map.is-mobile { bottom: var(--sw-bar-h); }
   .sw-root.is-mobile .sw-map.is-mobile .maplibregl-ctrl-bottom-right, .sw-root.is-mobile .sw-map.is-mobile .maplibregl-ctrl-bottom-left { bottom: 0; }
@@ -967,7 +967,7 @@
 .sw-switch span { top: 2.5px; left: 2.5px; width: 15px; height: 15px; }
 .sw-toggle.is-on .sw-switch span { transform: translateX(14px); }
 @media (max-width: 1439px) { .sw-dock { width: 252px; } }
-@media (max-width: 767px) { .sw-m-dock .sw-dock { width: auto; } }
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) { .sw-m-dock .sw-dock { width: auto; } }
 
 /* Spot-Auswahl (rechts auf dem Desktop, Seite „Spot“ mobil): Suchfeld, Revier-Schalter, Profil-Chips, Spotkarten mit Klassenpunkt. */
 .sw-dock-picker { --sw-dk-line: color-mix(in srgb, var(--sand-200, #E0D6BE) 75%, transparent);
@@ -1004,7 +1004,7 @@
 .sw-dock-picker .sw-spot-sub { margin-top: 1px; }
 .sw-dock-picker .sw-note { padding: 14px; border-radius: 14px; border: 1px dashed var(--sw-dk-line); text-align: center; font-size: 13px; color: var(--stone-500, #8B7355); }
 .sw-readout.is-picker { background: linear-gradient(180deg, var(--sand-100, #EDE6D3) 0%, color-mix(in srgb, var(--sand-100, #EDE6D3) 70%, var(--cream-50, #FAF6EA)) 100%); padding: 18px 16px 58px; }
-@media (max-width: 767px) { .sw-m-dock .sw-dock-picker { flex: 1; min-height: 0; overflow-y: auto; padding: 18px 14px 20px; background: linear-gradient(180deg, var(--cream-50, #FAF6EA) 0%, color-mix(in srgb, var(--cream-50, #FAF6EA) 70%, var(--sand-100, #EDE6D3)) 100%); } }
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) { .sw-m-dock .sw-dock-picker { flex: 1; min-height: 0; overflow-y: auto; padding: 18px 14px 20px; background: linear-gradient(180deg, var(--cream-50, #FAF6EA) 0%, color-mix(in srgb, var(--cream-50, #FAF6EA) 70%, var(--sand-100, #EDE6D3)) 100%); } }
 
 /* Dossier „Am Spot“ als Dashboard (Jan 30.10.): Kopf mit Zeit-Chips rechts, eine Kennzahlen-Leiste (Wind, Böen, Seegang, Wasser, Messung),
    darunter drei ruhige Detail-Kacheln; Verlauf vor dem Stundenband. Ruhigere Flächen: weiß mit Haarlinie, keine Farbverläufe in den Kacheln. */
@@ -1073,7 +1073,7 @@
   .sw-body.is-dossier > .sw-readout.is-picker { display: none; }
 }
 /* Phone: one column. Head = name, place and run; the water glass opens its chapter. */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .sw-m-dossier .sw-ds { gap: 12px; }
   .sw-m-dossier .sw-ds .sw-card { padding: 14px; }
   .sw-m-dossier .sw-card-head { flex-wrap: wrap; gap: 2px 8px; }

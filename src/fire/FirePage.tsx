@@ -1444,7 +1444,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   // --- Brand-Link: den Brand finden, markieren, Dossier öffnen --------------------
   // Reihenfolge und Regeln stehen in `fireLink.ts`: erst das Live-Fenster (7 Tage), dann die Saison-Historie,
   // sonst „nicht mehr in den Daten". Es wird nie ein Nachbar geraten.
-  const isMobileLink = useMediaQuery('(max-width: 767px)');
+  const isMobileLink = useMediaQuery('(max-width: 767px), (max-width: 1439px) and (pointer: coarse)');
   const giveUpOnLink = useCallback((target: FireLinkTarget) => {
     setLinkStatus('gone');
     setLinkNotice(target.kind === 'effis' ? 'gone-effis' : 'gone');
@@ -1522,7 +1522,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
 
 
   // Breakpoint 767 px — die Projekt-Konvention, kein Ad-hoc-Wert (CLAUDE.md).
-  const isMobile = useMediaQuery('(max-width: 767px)');
+  const isMobile = useMediaQuery('(max-width: 767px), (max-width: 1439px) and (pointer: coarse)');
   /**
    * Die Karte zeigt nur, wofür der Schalter Brände | Thermalanomalien steht (mobil das Segment, auf
    * Desktop und Tablet der Reiter rechts; Jans Auftrag 2026-10-23): bei „Brände" ohne die Anlagen-Rauten,
@@ -1713,7 +1713,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   const isTablet = useMediaQuery('(max-width: 1439px)');
   // Desktop mit Maus: der Steckbrief erscheint beim Überfahren der Layer-Zeile (statt über den „i"-Knopf).
   // `any-hover`: Hybridgeräte (Touch-Laptop) melden für den Primärzeiger oft `hover: none`, haben aber eine Maus.
-  const hoverInfo = useMediaQuery('(min-width: 768px) and (any-hover: hover)');
+  const hoverInfo = useMediaQuery('(min-width: 768px) and (any-hover: hover) and (pointer: fine), (min-width: 768px) and (any-hover: hover) and (pointer: none), (min-width: 1440px) and (any-hover: hover)');
   const [hoverCard, setHoverCard] = useState<{ id: FireLayerId; top: number; left: number; maxH: number } | null>(null);
   const hoverTimer = useRef<number | undefined>(undefined);
   const showHoverCard = (id: FireLayerId, el: HTMLElement) => {

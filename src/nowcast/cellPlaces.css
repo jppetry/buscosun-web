@@ -44,7 +44,7 @@
 .zo-fusion-note { font-size: 10.5px; color: var(--stone-500, #8B7355); margin: 4px 0 0; }
 .zo-foot { font-size: 10.5px; color: var(--stone-500, #8B7355); margin: 10px 0 0; line-height: 1.4; }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .zo-card { margin-top: 0; margin-bottom: 14px; border-radius: 16px; padding: 14px 14px 12px; }
   .zo-eyebrow, .zo-label, .zo-fusion-head { font-size: 11px; }
   .zo-sentence { font-size: 19px; }
@@ -69,4 +69,4 @@
 .zo-stop.is-chosen .zo-stop-dot { border-color: var(--terracotta-500, #C97B47); background: var(--terracotta-500, #C97B47); }
 .zo-stop.is-chosen .zo-stop-label { border-color: var(--terracotta-500, #C97B47); color: var(--ink-900, #2C2A26); }
 .zo-stop.is-compact .zo-stop-label { display: none; }
-@media (max-width: 767px) { .zo-stop-label { font-size: 12px; padding: 4px 7px; } }
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) { .zo-stop-label { font-size: 12px; padding: 4px 7px; } }

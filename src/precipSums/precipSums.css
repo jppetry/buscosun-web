@@ -62,7 +62,7 @@
 .ns-strip-lbl--now { fill: var(--ink-900, #2C2A26); font-weight: 700; }
 .ns-card-foot { font-size: 10px; color: var(--stone-400, #A89A7A); margin-top: 2px; }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   /* Die Intensitäts-Legende ist mobil ausgeblendet (`.rm-map .nc-radar-legend`); die Summe braucht ihre Skala —
      knapp, über der Bottom-Sheet-Kante. */
   /* über der Leiste „Punktabfrage & Datenqualität" (≈ 2,6 rem) und der Sheet-Kante (34 vh) */

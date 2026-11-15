@@ -859,7 +859,7 @@
 /* ==========================================================================
    Tablet 768–1439 px (Vorlage B3): Topbar 54, Rail 54, Dock 214, Readout 266.
    ========================================================================== */
-@media (max-width: 1439px) and (min-width: 768px) {
+@media (max-width: 1439px) and (min-width: 768px) and (pointer: fine), (max-width: 1439px) and (min-width: 768px) and (pointer: none) {
   .br-topbar { height: 54px; gap: 14px; padding: 0 16px; }
   .br-brand-name { font-size: 18.5px; }
   .br-live { gap: 7px; letter-spacing: 1px; }
@@ -921,7 +921,7 @@
    Mobil ≤ 767 px (Vorlage B4–B6): Karte + Bottom-Sheet, Layer-Tab, Brände-Tab,
    sticky Bottom-Bar Karte · Layer · Brände · Zeit.
    ========================================================================== */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .fire-root { --br-bar-h: calc(64px + var(--safe-bottom, 0px)); }
   .fire-body { display: block; }
   .fire-body .fire-center { position: absolute; inset: 0; bottom: var(--br-bar-h); }
@@ -1071,10 +1071,10 @@
 .fire-li-site.is-B { background: #9A9186; box-shadow: 0 0 0 1px #9A9186; }
 .fire-li-site.is-C { background: transparent; box-shadow: 0 0 0 1px var(--stone-400, #A89A7A); }
 .fire-li-site.is-dev { background: var(--br-red); box-shadow: 0 0 0 1px var(--br-red); }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .br-fires-seg button { min-height: 44px; }
 }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   /* TA4: die beiden Textlinks der Standortliste als echte Touch-Ziele (≥ 44 px). */
   .br-anomalies .br-link { display: inline-block; min-height: 44px; line-height: 44px; padding: 0 6px; }
 }
@@ -1109,7 +1109,7 @@
 .br-history-chart figcaption { margin-top: 4px; }
 
 /* BD1: im Sheet (mobil) zwei Kennzahl-Spalten, Chart auf Sheet-Breite */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .br-fires.is-sheet .br-fire-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px; }
   .br-fires.is-sheet .br-detail { margin: 0 8px 10px; }
 }
@@ -1187,7 +1187,7 @@
 .br-ds-tab.is-active { background: var(--ink-900, #2C2A26); color: var(--cream-50, #FAF6EA); }
 .br-ds-tab.is-active .br-ds-tab-n { background: var(--cream-50, #FAF6EA); color: var(--ink-900, #2C2A26); border-color: var(--cream-50, #FAF6EA); }
 @media (max-width: 1439px) { .br-ds-tabs { top: -10px; } }
-@media (max-width: 767px) { .br-ds-tabs { padding: 4px; gap: 4px; } .br-ds-tab { padding: 6px 6px; min-height: 44px; gap: 6px; } .br-ds-tab-h { display: none; } .br-ds-tab-t { font-size: 14px; } .br-ds-tab-n { width: 20px; height: 20px; font-size: 12px; } }
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) { .br-ds-tabs { padding: 4px; gap: 4px; } .br-ds-tab { padding: 6px 6px; min-height: 44px; gap: 6px; } .br-ds-tab-h { display: none; } .br-ds-tab-t { font-size: 14px; } .br-ds-tab-n { width: 20px; height: 20px; font-size: 12px; } }
 /* --- Left dock, subtly in the concept of the map info card (Jans Auftrag 2026-10-23) ---
    Same surfaces as the right sidebar, toned down: glass layer rows with a faint shadow,
    the accent of the group as a soft glow when a layer is on, icons in a tinted square,
@@ -1306,7 +1306,7 @@
 .br-ds-satbild .br-sat-frame { max-width: min(100%, 820px); margin-inline: auto; }
 .br-ds-satbild .br-sat-caption, .br-ds-satbild > .br-note, .br-ds-satbild .br-sat-detnote { text-align: center; }
 .br-ds-satbild .br-sat-days { width: fit-content; max-width: 100%; margin-inline: auto; }
-@media (min-width: 768px) {
+@media (min-width: 768px) and (pointer: fine), (min-width: 768px) and (pointer: none), (min-width: 1440px) {
   .br-ds-satbild .br-sat-frame { aspect-ratio: 3 / 2; max-height: 70vh; }
 }
 .br-ds-satbild .fire-fp-reasons { margin-top: 10px; font-size: 14px; }
@@ -1405,7 +1405,7 @@
 .br-ds .MuiCardContent-root > dl.MuiStack-root { display: flex; }
 
 
-@media (max-width: 1439px) and (min-width: 768px) {
+@media (max-width: 1439px) and (min-width: 768px) and (pointer: fine), (max-width: 1439px) and (min-width: 768px) and (pointer: none) {
   .br-stage-seg button { font-size: 12.5px; padding: 5px 10px; min-width: 56px; }
   .br-ds-scroll { padding: 14px 14px 18px; }
   .br-ds { gap: 12px; }
@@ -1425,7 +1425,7 @@
   .br-ds-foot { padding: 8px 12px 10px; }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   /* Mobil: das Dossier als eigene Seite — Kartenstreifen, Segment, Kennzahlen zweispaltig, Bottom-Bar bleibt. */
   .br-m-dossier { display: flex; }
   .br-m-dshead { flex-direction: column; align-items: stretch; gap: 6px; padding-bottom: 12px; }
@@ -1602,7 +1602,7 @@
 .br-drvchart svg { display: block; }
 
 /* Mobil/Tablet: Rose und Zeilen untereinander, Rose zentriert. */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .br-drv-wind { flex-direction: column; align-items: center; }
   .br-rose-cap { max-width: none; }
 }
@@ -1621,7 +1621,7 @@
 /* --- Mobil: Layer- und Brände-Kacheln in der Sprache der Desktop-Kachel (.br-mapcard) -------
    Weiche Karten (16 px), Akzent-Glühen von links oben, tonale Icon-Kachel, ruhiger Schatten.
    Nur ≤ 767 px; Desktop und Tablet bleiben unberührt. */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .br-m-head { background: var(--cream-50, #FAF6EA); border-bottom: 0; box-shadow: 0 10px 24px -18px rgba(44, 42, 38, 0.35); position: relative; z-index: 1; }
   .br-m-title { font-size: 24px; letter-spacing: -0.5px; }
   .br-m-head .br-count.is-bordered { border: 0; background: var(--sand-100, #EDE6D3); border-radius: 999px; padding: 6px 12px; font-weight: 600; }
@@ -1698,7 +1698,7 @@
 }
 
 /* --- Mobil: Seite „Einstellungen" (Rückblick, Anzeige, Monatsbereich der Saison) ------------ */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .br-set-card {
     display: flex; flex-direction: column; gap: 12px; padding: 14px; margin-bottom: 12px;
     background: #fff; border: 1px solid color-mix(in srgb, var(--sand-200, #E0D6BE) 80%, transparent); border-radius: 18px;
@@ -1749,7 +1749,7 @@
   display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); padding: 0; text-align: center; white-space: nowrap;
   margin: 0 calc(var(--thumb) / 2 - (100% - var(--thumb)) / (2 * (var(--n) - 1)));
 }
-@media (min-width: 768px) {
+@media (min-width: 768px) and (pointer: fine), (min-width: 768px) and (pointer: none), (min-width: 1440px) {
   .br-arange, .br-arange .br-mrange-track { --thumb: 20px; }
   .br-arange .br-mrange-track { height: 32px; }
   .br-arange .br-mrange-track input[type='range'] { height: 32px; }
@@ -1759,7 +1759,7 @@
 }
 
 /* Desktop/Tablet: die Karte steht im Readout zwischen Reitern und Brände-Liste. */
-@media (min-width: 768px) {
+@media (min-width: 768px) and (pointer: fine), (min-width: 768px) and (pointer: none), (min-width: 1440px) {
   .br-readout .br-mrange {
     display: flex; flex-direction: column; gap: 6px; margin-top: 12px; padding: 12px 14px 10px;
     background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 16px;
@@ -1785,7 +1785,7 @@
 .br-layerwrap.has-seg > .br-layer-legend { background: #fff; }
 @keyframes br-legend-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .br-layer-legend { animation: none; } }
-@media (max-width: 767px) { .br-layer-legend { padding: 11px 13px 12px; border-radius: 12px; } }
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) { .br-layer-legend { padding: 11px 13px 12px; border-radius: 12px; } }
 
 /* Kompakte Klassen-Legende: Stufenbalken + enge Liste, Bezug eingeklappt */
 .fire-li-stepbar { display: flex; height: 7px; margin: 5px 0 4px; border-radius: 4px; overflow: hidden; }
@@ -1814,7 +1814,7 @@
 .br-layer-legend .fire-li-partner, .br-layer-legend .fire-li-refd > summary { font-size: 12px; }
 .br-layer-legend .fire-li-ref { font-size: 12.5px; line-height: 1.45; }
 .br-layer-legend .fire-li-cls-name { min-width: 78px; color: var(--ink-900, #2C2A26); }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .br-layer-legend-head { font-size: 12px; }
   .br-layer-legend .fire-li-row, .br-layer-legend .fire-li-classes li, .br-layer-legend .fire-li-lc { font-size: 15px; line-height: 1.4; }
   .br-layer-legend .fire-li-unit, .br-layer-legend .fire-li-scale { font-size: 15px; }
@@ -1844,17 +1844,17 @@
 .br-stage-seg button { font-size: 15px; font-weight: 600; padding: 7px 16px; min-width: 76px; border-radius: 7px; }
 .br-map-tr .br-seg { padding: 4px; border-radius: 10px; }
 .br-map-tr .br-seg button { font-size: 14.5px; font-weight: 600; padding: 7px 13px; border-radius: 7px; }
-@media (max-width: 1439px) and (min-width: 768px) {
+@media (max-width: 1439px) and (min-width: 768px) and (pointer: fine), (max-width: 1439px) and (min-width: 768px) and (pointer: none) {
   .br-stage-seg button { font-size: 14px; padding: 6px 13px; min-width: 66px; }
   .br-map-tr .br-seg button { font-size: 13.5px; padding: 6px 11px; }
 }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .br-map-tr .br-seg button { font-size: 13.5px; padding: 6px 11px; }
 }
 
 /* Kleiner Desktop: die Punkt-Legende nutzt die volle Kartenbreite statt 100 % − 298 px; die Flächen-Legende
    (links unten) rückt dann über sie, statt dass beide nebeneinander gequetscht werden. */
-@media (min-width: 768px) and (max-width: 1599px) {
+@media (min-width: 768px) and (max-width: 1599px) and (pointer: fine), (min-width: 768px) and (max-width: 1599px) and (pointer: none), (min-width: 1440px) and (max-width: 1599px) {
   .br-pointlegend { left: 16px; right: 16px; width: auto; max-width: none; }
   .br-pointlegend .br-pl-grid { gap: 6px 22px; }
   .br-maplegend:has(~ .br-pointlegend) { bottom: 128px; }
@@ -1877,7 +1877,7 @@
 @media (prefers-reduced-motion: reduce) { .br-hovercard { animation: none; } }
 
 /* Jan 2026-11-13, phone: look-back window in the top row of the map (between brand mark and share button), Straßen | Satellit on the settings page. */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .br-m-windowrow { justify-content: flex-start; overflow-x: auto; scrollbar-width: none; border-radius: 10px; }
   .br-m-windowrow::-webkit-scrollbar { display: none; }
   .br-m-windowrow .br-seg { margin: 0 auto; background: var(--br-glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-radius: 10px; padding: 3px; }
@@ -1886,7 +1886,7 @@
   .br-set-card .br-basemap button { flex: 1 1 0; min-height: 44px; font-size: 14px; border-radius: 11px; }
 }
 /* Jan 2026-11-13, phone: the share button sits at the right edge of the top row; the zoom buttons move below it. */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .br-m-maprow { padding-right: 0; }
   .fire-center .maplibregl-ctrl-top-right { top: 60px; }
   .br-map-tl > .br-views { margin-right: 49px; }

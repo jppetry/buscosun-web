@@ -115,7 +115,7 @@ const WX_ICON = {
 const NBSP = String.fromCharCode(160);
 const WX_LABEL_FONT ="'League Spartan', system-ui, sans-serif";
 /** Fallback when the caller does not pass `mobileLayout` (same query as `MOBILE_MAP_MEDIA_QUERY` in MapView). */
-const MOBILE_LAYOUT_QUERY = '(max-width: 767px), (max-height: 430px) and (orientation: landscape)';
+const MOBILE_LAYOUT_QUERY = '(max-width: 767px), (max-width: 1439px) and (pointer: coarse), (max-height: 430px) and (orientation: landscape)';
 
 const storageKey = (feature: string) => `bs.hint.zoom.${feature}`;
 const seen = (feature: string): boolean => {

@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 
-/** Session-wide breakpoint convention (see CLAUDE.md): mobile <= 767px, tablet 768–1024px, desktop > 1024px. */
-export const MOBILE_BREAKPOINT_QUERY = '(max-width: 767px)';
+/**
+ * Phone layout: up to 767 px, and — Jan 15.11.2026 — on touch tablets (`pointer: coarse`) up to 1439 px, portrait and landscape.
+ * A mouse device keeps the tablet/desktop layout from 768 px. The stylesheets carry the same clause on their width queries.
+ */
+export const MOBILE_BREAKPOINT_QUERY = '(max-width: 767px), (max-width: 1439px) and (pointer: coarse)';
 
 function readMatch(query: string): boolean {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;

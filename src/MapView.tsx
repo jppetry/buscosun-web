@@ -664,7 +664,7 @@ const MODEL_ID_TO_CHOICE: Partial<Record<ModelId, ModelChoice>> = {
  *  bleiben, sonst weichen Render-Ort (JSX) und Darstellung (CSS) voneinander
  *  ab (z. B. Landscape 844×390). Steuert nur den Render-Ort des Punkt-
  *  Forecasts (Desktop-Panel vs. „Vorhersage"-Segment im Sheet). */
-const MOBILE_MAP_MEDIA_QUERY = '(max-width: 767px), (max-height: 430px) and (orientation: landscape)';
+const MOBILE_MAP_MEDIA_QUERY = '(max-width: 767px), (max-width: 1439px) and (pointer: coarse), (max-height: 430px) and (orientation: landscape)';
 
 const SAT_PRODUCT_LABELS: Record<SatelliteProduct, string> = {
   eu_rgb: 'EU',

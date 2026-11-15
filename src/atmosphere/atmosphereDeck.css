@@ -280,7 +280,7 @@
    der Schnitt-Plot nimmt den Rest — Chips, Legende und Zeitverlauf behalten
    ihre Inhaltshöhe. Kein Scrollen mehr auf Desktop-Höhen ab ~700 px.
    --------------------------------------------------------------------------- */
-@media (min-width: 768px) {
+@media (min-width: 768px) and (pointer: fine), (min-width: 768px) and (pointer: none), (min-width: 1440px) {
   .vsd-center { display: flex; flex-direction: column; }
   .vsd-center > * { flex: 0 0 auto; }
   .vsd-center > .vsd-plot { flex: 1 1 auto; min-height: 240px; display: flex; }
@@ -437,7 +437,7 @@
 /* ---- Karte mit Schnitt-Anleitung ------------------------------------------ */
 .vsd-plot--map { position: relative; padding: 0; overflow: hidden; }
 /* Desktop: der Chip „Über diese Ansicht“ liegt fest unten rechts über der Schnittkarte — der Knopf „Quellen“ steht links daneben. */
-@media (min-width: 768px) { .vsd-plot--map { --msl-right: 172px; } }
+@media (min-width: 768px) and (pointer: fine), (min-width: 768px) and (pointer: none), (min-width: 1440px) { .vsd-plot--map { --msl-right: 172px; } }
 .vsd-center > .vsd-plot--map { min-height: 420px; }
 .vsd-guide {
   position: absolute; left: 16px; bottom: 16px; z-index: 3;
@@ -504,7 +504,7 @@
 .vsd-m-fnbar-tx span { font-size: 11px; color: var(--stone-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .vsd-m-fnbar-cta { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--steel-600); background: var(--sand-50); border: 1px solid var(--border-default); border-radius: 9px; padding: 8px 10px; }
 .vsd-m-map { height: 47.6vh; min-height: 255px; }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   /* The global chip „Über diese Ansicht" (RouteSeoBlock) is not shown on the phone in the Vertikalschnitt (Jan 06.11.),
      so the scroll area no longer keeps room for it. */
   .rsb[data-route="atmosphaere"] { display: none; }
@@ -580,7 +580,7 @@
 .vsd-intro-caps li { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; line-height: 1.45; color: var(--stone-600); }
 .vsd-intro-caps-mark { flex: 0 0 auto; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--evd-sage-tint, #E6EDDD); color: var(--sage-600); margin-top: 1px; }
 .vsd-intro-trust { display: flex; align-items: center; gap: 8px; margin: 4px 0 0; font-size: 11.5px; color: var(--stone-500); }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .vsd-intro-root .vsd-rail, .vsd-intro-root .vsd-top-label, .vsd-intro-root .vsd-topdivider { display: none; }
   .vsd-intro-root .vsd-topbar { height: 56px; padding: 0 16px; }
   .vsd-intro-stage { padding: 6px 12px calc(76px + env(safe-area-inset-bottom)); }
@@ -641,7 +641,7 @@
 /* Detailansicht: als Leiste, nicht als zweite große Karte */
 .vsd-atm .atm-nerd { padding: 6px 8px; }
 
-@media (min-width: 768px) {
+@media (min-width: 768px) and (pointer: fine), (min-width: 768px) and (pointer: none), (min-width: 1440px) {
   .vsd-atm-grid {
     gap: 14px; align-items: stretch;
     grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr);
@@ -662,7 +662,7 @@
   .vsd-atm--foehn .atm-foehn > :nth-child(3) { grid-column: 1 / -1; }
   .vsd-atm-grid { grid-template-columns: minmax(0, 1.7fr) minmax(340px, 1fr); }
 }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .vsd-atm-grid { gap: 12px; }
   .vsd-atm .atm-thermal-card { min-height: 0; height: 62vh; }
   .vsd-atm .atm-thermal-cap { max-width: none; right: 12px; }
@@ -689,7 +689,7 @@
 .vsd-panel--fit { display: flex; justify-content: center; padding: 14px 18px; }
 .vsd-panel--fit svg { width: 100%; max-height: max(240px, calc(100dvh - 500px)); }
 .vsd-gng .vsd-info { margin-top: 0; }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   /* Mobil: Flughöhe in voller Breite der Zahl (dreistellig wurde abgeschnitten). */
   .vsd-m-root .vsd-fh-box { padding: 8px 12px; }
   .vsd-m-root .vsd-fh-box input { width: 62px; font-size: 24px; }
@@ -773,7 +773,7 @@
    Am Desktop bleibt der Kopf, wie er war (der Teilen-Knopf der Ortswahl ist dort aus). Steht am Dateiende, damit die
    Regeln nach dem Mobil-Block der Ortswahl oben gelten. */
 .vsd-topright .vsd-intro-share { display: none; }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
   .vsd-intro-root .vsd-topbar { padding: 0 12px; }
   .vsd-intro-root .vsd-brandwrap { position: relative; width: 44px; height: 44px; flex: 0 0 auto; justify-content: center; border-radius: 11px; background: #fff; border: 1px solid var(--border-default); box-sizing: border-box; }
   .vsd-intro-root .vsd-brandwrap img { width: 22px; height: 22px; }

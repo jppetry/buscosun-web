@@ -7,7 +7,7 @@
 }
 .ui-expand:hover { background: #fff; border-color: var(--ink-900, #2C2A26); }
 .ui-expand:focus-visible { outline: 2px solid var(--ink-900, #2C2A26); outline-offset: 2px; }
-@media (max-width: 1023px) { .ui-expand { width: 44px; height: 44px; } }
+@media (max-width: 1023px), (max-width: 1439px) and (pointer: coarse) { .ui-expand { width: 44px; height: 44px; } }
 
 /* A picture frame (30 m snapshot) enlarged over the page: centred, the dimmed page as its own shadow. */
 .ui-frame-big.ui-frame-big {

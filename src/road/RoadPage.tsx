@@ -92,7 +92,7 @@ const EMPTY_FC_BY_ID: ReadonlyMap<string, RoadFcPoint> = new Map();
 
 export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz = false, surface = false, vs = false }: RoadPageProps) {
   const nav = useAppNav();
-  const isMobile = useMediaQuery('(max-width: 767px)');
+  const isMobile = useMediaQuery('(max-width: 767px), (max-width: 1439px) and (pointer: coarse)');
   const mapRef = useRef<maplibregl.Map | null>(null);
   const [mapInst, setMapInst] = useState<maplibregl.Map | null>(null);
   const [corridors, setCorridors] = useState<RoadCorridor[] | null>(null);

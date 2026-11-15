@@ -39,9 +39,9 @@ import { DachMapPreview } from './DachMapPreview';
 const DachMapBackground = lazy(() => import('./DachMapBackground'));
 // Mobil + kleine Tablets (≤1024 px): die vier Werkzeug-Kacheln stehen wieder
 // im Bento-Grid statt als Quadrat neben der Suche (Jan, 2026-08-09).
-const NARROW_QUERY = '(max-width: 1024px)';
+const NARROW_QUERY = '(max-width: 1024px), (max-width: 1439px) and (pointer: coarse)';
 /** Mobil (≤ 767 px, Projekt-Breakpoint): dieselben kompakten Kacheln wie am Desktop, im 2-Spalten-Raster. */
-const MOBILE_QUERY = '(max-width: 767px)';
+const MOBILE_QUERY = '(max-width: 767px), (max-width: 1439px) and (pointer: coarse)';
 import { warmMapData } from './fusion/loadFusedForecast';
 import { flagForCountry, suggestDACH } from './geocode';
 import { getFavorites, removeFavorite, subscribeFavorites } from './favorites';
