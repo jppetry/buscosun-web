@@ -1,9 +1,9 @@
 /**
  * Phase ZT (`audit/zelltuerme-3d.md`, E-ZT-9): switch and view of the 3D stage "Zelltürme auf Gelände".
  *
- * On by default since Jan's go (09.10.2026, "du kannst das featur einschalten"); `?z3d=0` (also `false`/`off`) is the
- * named fallback = the Regenradar exactly as before ZT. The start view stays "Karte" — the 3D chunk loads only when
- * "Karte + 3D", "3D" or the mobile tab is chosen.
+ * Off by default since Jan's word of 15.11.2026 (the 3D view leaves the Regenradar: no topbar switch, no mobile tab);
+ * the code stays and `?z3d=1` (also `true`/`on`) brings the view back. It was on by default from 09.10. to 15.11.2026.
+ * The start view stays "Karte" — the 3D chunk loads only when "3D" or the mobile tab is chosen.
  * `?ansicht3d=map|split|3d` opens the page in that view (read once at mount).
  * Import-free on purpose: the deck reads it eagerly, everything else of ZT is a lazy chunk.
  */
@@ -13,10 +13,10 @@ export type View3d = 'map' | 'split' | '3d';
 export const VIEW3D_PARAM = 'ansicht3d';
 const VIEWS: readonly View3d[] = ['map', '3d']; // 'split' ("Karte + 3D") is no longer offered; `?ansicht3d=split` ⇒ map
 
-/** On unless `?z3d=0` (also `false`/`off`). */
+/** Off unless `?z3d=1` (also `true`/`on`). */
 export function towers3dEnabledFrom(search: string): boolean {
   const v = new URLSearchParams(search).get('z3d');
-  return !(v === '0' || v === 'false' || v === 'off');
+  return v === '1' || v === 'true' || v === 'on';
 }
 
 /** View from the URL; unknown or missing ⇒ `map`. */

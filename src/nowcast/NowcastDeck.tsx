@@ -59,6 +59,8 @@ import { heightTimeEnabledFrom } from './heightTime/heightTimeFlag';
 const HeightTimePanel = lazy(() => import('./heightTime/HeightTimePanel'));
 // Phase ZT (audit/zelltuerme-3d.md): 3D stage — on by default (Jan 09.10.), `?z3d=0` = before; lazy chunk. Snow + snow line only (cell towers dropped).
 import { towers3dEnabledFrom, view3dFrom, VIEW3D_LABEL, type View3d } from './cellTowers/towerFlag';
+// Bottom bar: the same two icons as the bottom bar of the Wetterkarte ("Karte" = layer stack, "Layer" = rows).
+import { IcoLayers, IcoRows } from '../map/deckIcons';
 import type { ProfileRadarPick } from '../MapView';
 import './cellTowers/cellTowersShell.css';
 const TowerStage = lazy(() => import('./cellTowers/TowerStage'));
@@ -565,7 +567,6 @@ function MinusIcon() { return <svg width="20" height="20" viewBox="0 0 24 24" fi
 function TabGlanceIcon() { return <svg width="23" height="23" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.7"/><path d="M12 3 A9 9 0 0 1 21 12" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg>; }
 function TabTimelineIcon() { return <svg width="23" height="23" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 12 H21" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/><circle cx="9" cy="12" r="3.2" fill="var(--cream-50,#FAF6EA)" stroke="currentColor" strokeWidth="1.7"/><path d="M3 6 H21 M3 18 H21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeOpacity=".45"/></svg>; }
 function TabChartIcon() { return <svg width="23" height="23" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 20 V11 M12 20 V5 M19 20 V14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>; }
-function TabLayerIcon() { return <svg width="23" height="23" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 L21 8 L12 13 L3 8 Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/><path d="M3 12 L12 17 L21 12 M3 16 L12 21 L21 16" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/></svg>; }
 function TabDetailIcon() { return <svg width="23" height="23" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.7"/><rect x="13" y="4" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.7"/><rect x="4" y="13" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.7"/><rect x="13" y="13" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.7"/></svg>; }
 
 // --- Bottom-Tab-Bar (fix am unteren Rand, über dem Panel-Sheet) -------------
@@ -573,7 +574,7 @@ const MOBILE_TABS: Array<{ id: MobileTab; label: string; icon: ReactNode }> = [
   { id: 'glance', label: 'Schnellblick', icon: <TabGlanceIcon /> },
   { id: 'events', label: 'Ereignisse', icon: <TabTimelineIcon /> },
   { id: 'chart', label: 'Diagramm', icon: <TabChartIcon /> },
-  { id: 'layer', label: 'Layer', icon: <TabLayerIcon /> },
+  { id: 'layer', label: 'Layer', icon: <IcoRows size={23} /> },
   { id: 'detail', label: 'Detail', icon: <TabDetailIcon /> },
 ];
 
@@ -585,12 +586,15 @@ function TabHeightIcon() { return <svg width="23" height="23" viewBox="0 0 24 24
 const TOWERS_TAB: { id: MobileTab; label: string; icon: ReactNode } = { id: '3d', label: '3D', icon: <Tab3dIcon /> };
 function Tab3dIcon() { return <svg width="23" height="23" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 19 L8 12 L11 15 L15 9 L21 19 Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/><path d="M10 12 V4 H14 V10" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></svg>; }
 
+/** "Karte" on the far left (Jan 15.11.): back to the map from any full-page tab. The map is the state `glance` (no sheet). */
+const MAP_TAB: { id: MobileTab; label: string; icon: ReactNode } = { id: 'glance', label: 'Karte', icon: <IcoLayers size={23} /> };
+
 function MobileTabBar({ tab, onSelect, withHeight = false, with3d = false }: { tab: MobileTab; onSelect: (t: MobileTab) => void; withHeight?: boolean; with3d?: boolean }) {
   // Ohne die Reiter Schnellblick, Detail und Höhe (Jans Aufträge 2026-10-23): der Rest behält seine Reihenfolge.
   const visible = MOBILE_TABS.filter((t) => t.id !== 'glance' && t.id !== 'detail');
   const base = withHeight ? [...visible.slice(0, 2), HEIGHT_TAB, ...visible.slice(2)] : visible;
-  const tabs = (with3d ? [...base.slice(0, withHeight ? 3 : 2), TOWERS_TAB, ...base.slice(withHeight ? 3 : 2)] : base)
-    .filter((t) => t.id !== 'height');
+  const tabs = [MAP_TAB, ...(with3d ? [...base.slice(0, withHeight ? 3 : 2), TOWERS_TAB, ...base.slice(withHeight ? 3 : 2)] : base)
+    .filter((t) => t.id !== 'height')];
   return (
     <nav className="rm-tabbar" aria-label="Regenradar-Bereiche">
       {tabs.map((t) => (

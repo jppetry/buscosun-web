@@ -213,8 +213,8 @@ const runOct8 = fx('konrad3d-20261008T143000.xml');
 
 // ---------------------------------------------------------------------------- G
 {
-  add('G1 on by default (missing, 1, other) — `?z3d=0`/false/off = the Regenradar before ZT', towers3dEnabledFrom('') && towers3dEnabledFrom('?z3d=1') && towers3dEnabledFrom('?a=1&z3d=on') && towers3dEnabledFrom('?z3d=2')
-    && !towers3dEnabledFrom('?z3d=0') && !towers3dEnabledFrom('?a=1&z3d=false') && !towers3dEnabledFrom('?z3d=off'));
+  add('G1 off by default (Jan 15.11.: missing, 0, other) — `?z3d=1`/true/on brings the 3D view back', !towers3dEnabledFrom('') && towers3dEnabledFrom('?z3d=1') && towers3dEnabledFrom('?a=1&z3d=on') && towers3dEnabledFrom('?z3d=true')
+    && !towers3dEnabledFrom('?z3d=2') && !towers3dEnabledFrom('?z3d=0') && !towers3dEnabledFrom('?a=1&z3d=false') && !towers3dEnabledFrom('?z3d=off'));
   add('G2 `?ansicht3d=` views, unknown ⇒ map', view3dFrom('?ansicht3d=split') === 'split' && view3dFrom('?ansicht3d=3d') === '3d' && view3dFrom('?ansicht3d=x') === 'map' && view3dFrom('') === 'map');
   const deck = read('src/nowcast/NowcastDeck.tsx');
   add('G3 deck: stage lazy (no static import of TowerStage), flag read, props only with the flag',
