@@ -99,7 +99,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   const [wlDoc, setWlDoc] = useState<WlForecast | null | 'loading' | 'error'>(null);
   const [gaugePick, setGaugePick] = useState<string | null>(null);
   const [mobTab, setMobTab] = useState<'map' | 'spot' | 'layers'>('map');
-  /** Desktop centre stage: the map (default) or the spot dossier — like the Brandradar (BD2), the map stays mounted. */
+  /** Centre stage: the map (default) or the spot dossier — like the Brandradar (BD2), the map stays mounted. Mobile: the dossier is a full-screen page over the map. */
   const [stage, setStage] = useState<'map' | 'dossier'>(openDossier && !isMobile ? 'dossier' : 'map');
   /** The spot a MAP click picked: its preview card (bottom left) stays until closed, the detail opens or another spot is picked. */
   // A link on a spot: mobile opens on the map with the spot's preview card (its detail), the desktop on the dossier.
@@ -476,7 +476,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
       limitKn={lim} limitLabel={limits.gustMax != null ? `Böen ${limits.gustMax} kn` : limits.windMax != null ? `Wind ${limits.windMax} kn` : ''} unit={unit}
       run={run} spotsDoc={spotsDoc} freshness={freshness} texts={seaTexts} poi={poi} nowMs={nowMs} noData={noData} warning={warning}
       dry={{ hours: dryHours, of: spotHours.length, classed: dryRule }} waterLevel={waterLevel}
-      layout={isMobile ? 'aside' : 'dossier'} band={isMobile ? undefined : band} chips={isMobile ? undefined : (usable && chips)} onMap={isMobile ? undefined : () => setStage('map')} />
+      layout="dossier" band={band} chips={isMobile ? undefined : (usable && chips)} onMap={() => setStage('map')} />
   );
   const inDossier = stage === 'dossier';
   // The compact preview of the map-picked spot — the same numbers as the briefing and the callout.
@@ -491,7 +491,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
       reason={!noData && verdict && verdict.cls !== 'passt' ? verdict.reasons[0] ?? null : null}
       window={noData || !usable || !wins.next ? null : `Nächstes Fenster ${dayShort(wins.next.from)} ${hh(wins.next.from)}–${hh(wins.next.to)} Uhr`}
       official={null}
-      onOpenDossier={() => { setMapCard(null); if (!isMobile) setStage('dossier'); }}
+      onOpenDossier={() => { setMapCard(null); setStage('dossier'); }}
       onClose={() => setMapCard(null)} />
   ) : null;
   const stageSeg = (
@@ -508,6 +508,14 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
 
   // --- mobile ----------------------------------------------------------------------------------------------
   if (isMobile) {
+    // The top row (brand · time chips · share) sits over the map, and at the head of the dossier page while that is open.
+    const mTop = (
+      <div className="sw-m-top">
+        <button type="button" className="sw-m-brand" aria-label="Zur Startseite" onClick={nav.goHome}><img src="/buscosun-mark.svg" width={22} height={22} alt="" /></button>
+        <div className="sw-m-times">{chips}</div>
+        <ShareButton className="sw-m-share" compact />
+      </div>
+    );
     return (
       <div className="sw-root is-mobile">
         <AppLoader cover done={pageShown} />
@@ -515,17 +523,20 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
         <main className="sw-map is-mobile msl-host" aria-label="Karte">
           {map}
           {sourceTile}
-          <MapGestureHint map={mapInst} feature="seewetter" subject="sea" accent="#0F6E7A" pickSpots={hintSpots} always enabled={mobTab === 'map'} />
-          <div className="sw-m-top">
-            <button type="button" className="sw-m-brand" aria-label="Zur Startseite" onClick={nav.goHome}><img src="/buscosun-mark.svg" width={22} height={22} alt="" /></button>
-            <div className="sw-m-times">{chips}</div>
-            <ShareButton className="sw-m-share" compact />
-          </div>
+          <MapGestureHint map={mapInst} feature="seewetter" subject="sea" accent="#0F6E7A" pickSpots={hintSpots} always enabled={mobTab === 'map' && !inDossier} />
+          {!inDossier && mTop}
           {/* The legend sits just above the bottom bar and gives its place to the info card while one is open. */}
           {!cardEl && <div className="sw-m-legend">{legend}</div>}
           {emptyMap}{catFail}
           {cardEl && <div className="sw-map-card">{cardEl}</div>}
         </main>
+        {/* „Detailansicht öffnen“ on the phone: the spot dossier as a full-screen page over the map (the map stays mounted). */}
+        {inDossier && (
+          <div className="sw-m-dossier" role="region" aria-label="Spot-Dossier">
+            {mTop}
+            <div className="sw-ds-scroll">{readout}</div>
+          </div>
+        )}
         {mobTab !== 'map' && (
           <div className="sw-m-dock" role="dialog" aria-label={mobTab === 'spot' ? 'Spot und Profil wählen' : 'Ebenen'}>
             <div className="sw-m-dock-head"><strong>{mobTab === 'spot' ? 'Spot und Profil' : 'Ebenen'}</strong></div>
@@ -538,7 +549,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
             ['spot', 'Spot', <g key="p"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z" /><circle cx="12" cy="10" r="2.3" /></g>],
             ['layers', 'Ebenen', <path key="p" d="m12 3 9 4.5-9 4.5-9-4.5L12 3zM3 12l9 4.5 9-4.5M3 16.5 12 21l9-4.5" />],
           ] as const).map(([id, label, icon]) => (
-            <button key={id} type="button" className={`sw-bar-btn${mobTab === id ? ' is-active' : ''}`} aria-current={mobTab === id ? 'page' : undefined} onClick={() => setMobTab(id)}>
+            <button key={id} type="button" className={`sw-bar-btn${mobTab === id && !(id === 'map' && inDossier) ? ' is-active' : ''}`} aria-current={mobTab === id && !(id === 'map' && inDossier) ? 'page' : undefined} onClick={() => { setMobTab(id); if (id === 'map') setStage('map'); }}>
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{icon}</svg>
               <span>{label}</span>
             </button>

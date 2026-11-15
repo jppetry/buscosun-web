@@ -899,6 +899,22 @@
   .sw-root.is-mobile .sw-map.is-mobile { bottom: var(--sw-bar-h); }
   .sw-root.is-mobile .sw-map.is-mobile .maplibregl-ctrl-bottom-right, .sw-root.is-mobile .sw-map.is-mobile .maplibregl-ctrl-bottom-left { bottom: 0; }
   .sw-root.is-mobile .sw-m-dock { bottom: var(--sw-bar-h); }
+  /* „Detailansicht öffnen“ on the phone: the spot dossier as a full-screen page over the map, above the bottom bar.
+     Head = the page's top row (brand · time chips · share); the dossier itself is the desktop one in a single column
+     (its container queries read this box). */
+  .sw-m-dossier { position: absolute; left: 0; right: 0; top: 0; bottom: var(--sw-bar-h); z-index: 5; display: flex; flex-direction: column;
+    background: var(--sand-50, #F5F1E8); container-type: inline-size; }
+  .sw-m-dossier .sw-m-top { position: static; flex: 0 0 auto; padding: calc(12px + env(safe-area-inset-top, 0px)) 12px 8px; }
+  .sw-m-dossier .sw-ds-scroll { padding: 4px 12px 24px; }
+  .sw-m-dossier .sw-ds-tabs { top: -4px; gap: 4px; padding: 4px; }
+  .sw-m-dossier .sw-ds-tab { min-height: 44px; padding: 4px; gap: 5px; justify-content: center; }
+  .sw-m-dossier .sw-ds-tab-n { width: 18px; height: 18px; font-size: 12px; }
+  .sw-m-dossier .sw-ds-tab-t { font-size: 12.5px; letter-spacing: 0; }
+  .sw-m-dossier .sw-ds-head { padding: 14px; }
+  .sw-m-dossier .sw-ds-title { font-size: 23px; flex-wrap: wrap; }
+  .sw-m-dossier .sw-ds-back, .sw-m-dossier .sw-seg button, .sw-m-dossier .sw-link { min-height: 44px; }
+  .sw-m-dossier .sw-dash-grid.is-detail { grid-template-columns: minmax(0, 1fr); }
+  .sw-m-dossier .sw-dash-grid.is-detail > .sw-tile.is-shore { grid-column: auto; }
   .sw-bar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 8; display: flex; justify-content: space-around; padding: 10px 0 calc(8px + env(safe-area-inset-bottom, 0px)); box-sizing: border-box;
     background: var(--cream-50, #FAF6EA); border-top: 1px solid var(--sand-200, #E0D6BE); }
   .sw-bar-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 64px; min-height: 44px; padding: 0 6px; background: none; border: 0; cursor: pointer;
