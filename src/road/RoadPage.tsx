@@ -524,7 +524,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
         return (
           <button key={h} type="button" aria-pressed={h === t} className={h === t ? 'is-active' : ''} disabled={!enabled} onClick={() => setTimeShared(h)}
             title={enabled ? (h === 0 ? undefined : hzOverview ? `Gefahren für ${hm(nowMs + h * 3_600_000)} — die Messpunkte zeigen weiter die Messung; Wetterprognose nach Wahl einer Autobahn` : `Wetterprognose von ${roadFcEngineName(fcFile)} für ${hm(nowMs + h * 3_600_000)} (${fcLabel})${gap ? '' : ' — Karte und Band zeigen weiter die Messung'}`) : `Wetterprognose derzeit nicht verfügbar (${fcLabel}).`}>
-            {h === 0 ? `Jetzt${!gap && obs && !noData ? ` · ${hm(obs.slotMs)}` : ''}` : `+${h} h`}
+            {h === 0 ? `Jetzt${!isMobile && !gap && obs && !noData ?` · ${hm(obs.slotMs)}` : ''}` : `+${h} h`}
           </button>
         );
       })}
