@@ -21,7 +21,7 @@ import { BASEMAP_SOURCE, CC_BY_URL, MapSourcesTile, type MapSourceGroup } from '
 import { WlCatalogMissing, loadGaugeCatalog, loadGaugeForecast } from './waterLevelClient';
 import { coastWarnStatus, seaTextFreshness, type SeaTextProduct } from './seaText';
 import {
-  loadAreas, loadCatalog, loadField, loadKillSwitch, loadLatestRun, loadPoi, loadSpots, loadText, windPointerOf, withWindRefresh,
+  loadAreas, loadCatalog, loadField, loadKillSwitch, loadLatestRun, loadStationObs, loadSpots, loadText, windPointerOf, withWindRefresh,
   SEA_PAGE_TEXTS, takeSeaChain, takeSeaStatic,
   type SeaAreas, type SeaCatalog, type SeaPoiObs, type SeaRunLoad, type SeaSpotsDoc,
 } from './seaClient';
@@ -309,15 +309,18 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   }, [field, noData, half, layer]);
   const arrows = useMemo(() => (field && !noData ? waveArrows(field.rgba, field.width, half) : null), [field, noData, half]);
 
-  // POI measurement of the spot's station.
+  // Measurement of the spot's station: `obs/v1` first, the DWD POI file as fallback (`loadStationObs`).
   const stationId = spot?.station?.id ?? null;
+  const spotKey = spot?.id ?? null;
   useEffect(() => {
-    if (!stationId) { setPoi(null); return; }
+    const st = spot?.station ?? null;
+    if (!st) { setPoi(null); return; }
     const ac = new AbortController();
     setPoi('loading');
-    loadPoi(stationId, ac.signal).then(setPoi, () => {});
+    loadStationObs(st, spot, ac.signal).then(setPoi, () => {});
     return () => ac.abort();
-  }, [stationId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the spot object is stable per id
+  }, [stationId, spotKey]);
 
   // --- URL ------------------------------------------------------------------------------------------------
   const urlState: SeaUrlState = { spot: spotInUrl ? (spot?.id ?? spotId) : null, p: profile, t, l: layer, u: unit, tab, rv: revier };

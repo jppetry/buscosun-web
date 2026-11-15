@@ -281,7 +281,56 @@ export const SEA_TEXT_TITLES = Object.fromEntries(Object.values(SEA_TEXT_PRODUCT
 
 // --- Measurement at the coast (DWD POI) ------------------------------------------------------------------
 
-export interface SeaPoiObs { t: number; ffMs: number | null; ddDeg: number | null; fxMs: number | null }
+export interface SeaPoiObs {
+  t: number; ffMs: number | null; ddDeg: number | null; fxMs: number | null;
+  /** Where the row came from: the mirror product `obs/v1` (10-min values, gust of the 10-min interval) or the DWD POI file (gust of the last hour). */
+  src?: 'obs' | 'poi';
+  /** Set when the `obs/v1` station is another site than the spot's POI station: its name and its distance from the spot. */
+  site?: { name: string; km: number };
+}
+
+/** `?seaobs=0` ⇒ the old way only (DWD POI file through the proxy). */
+function seaObsEnabled(): boolean {
+  try { return new URLSearchParams(window.location.search).get('seaobs') !== '0'; } catch { return true; }
+}
+/** An `obs/v1` station within this distance of the POI station's position counts as its match … */
+export const SEA_OBS_MATCH_KM = 3;
+/** … and within this one as the same site (beyond it the readout names the `obs/v1` station and its own distance). */
+export const SEA_OBS_SAME_SITE_KM = 2;
+
+/**
+ * Wind and gust at the spot's station: the mirror product `obs/v1` first (nearest DE station with wind within `SEA_OBS_MATCH_KM`
+ * of the POI station's position — the ids differ: WMO number here, DWD station id there), the DWD POI file as the named
+ * fallback (no match, no fresh wind value, product not readable, `?seaobs=0`).
+ */
+export async function loadStationObs(
+  station: { id: string; lat: number; lon: number }, spot: { lat: number; lon: number } | null, signal?: AbortSignal, nowMs = Date.now(),
+): Promise<SeaPoiObs | null> {
+  if (seaObsEnabled()) {
+    try {
+      const { loadObsStore, obsVarsOf, obsDistanceM, OBS_VAR_MAX_AGE_MS } = await import('../sources/obsStore');
+      const store = await loadObsStore({ signal });
+      let best: { id: string; name: string; lat: number; lon: number } | null = null, bestM = SEA_OBS_MATCH_KM * 1000;
+      for (const st of store.catalog.stations) {
+        if (st.country !== 'DE' || !st.vars.includes('ff')) continue;
+        const m = obsDistanceM(station.lat, station.lon, st.lat, st.lon);
+        if (m <= bestM) { bestM = m; best = st; }
+      }
+      const r = best ? obsVarsOf(store.latest.stations[best.id], nowMs) : null;
+      const ff = r?.vars.ff, fx = r?.vars.fx, dd = r?.vars.dd;
+      const lead = ff ?? fx;
+      if (best && lead && nowMs - lead.ms <= OBS_VAR_MAX_AGE_MS) {
+        const other = bestM > SEA_OBS_SAME_SITE_KM * 1000;
+        return {
+          t: lead.ms, ffMs: ff?.v ?? null, ddDeg: dd?.v ?? null, fxMs: fx?.v ?? null, src: 'obs',
+          ...(other ? { site: { name: best.name, km: spot ? Math.round(obsDistanceM(spot.lat, spot.lon, best.lat, best.lon) / 100) / 10 : Math.round(bestM / 100) / 10 } } : {}),
+        };
+      }
+    } catch (e) { if (isAbort(e)) throw e; }
+  }
+  const poi = await loadPoi(station.id, signal);
+  return poi ? { ...poi, src: 'poi' } : null;
+}
 /**
  * Newest hourly POI row of a DWD station (`weather_reports/poi/<id>-BEOB.csv`) through the existing opendata proxy
  * (`/_dwd_opendata`, no CORS at the DWD). km/h → m/s; "---" = no value. Measured, not a forecast (provenance `measured`).

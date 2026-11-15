@@ -263,7 +263,7 @@ export default function SeaReadout(p: Props) {
               : (
                 <>
                   <div className="sw-meas">{fmtWind(p.poi.ffMs, p.unit)} {unitLabel(p.unit)} aus {compass16(p.poi.ddDeg)} · Böen {fmtWind(p.poi.fxMs, p.unit)} {unitLabel(p.unit)}</div>
-                  <div className="sw-note">DWD-Station {s.station.name.charAt(0) + s.station.name.slice(1).toLowerCase()}, {s.station.km} km vom Spot · gemessen {hm(p.poi.t)} Uhr (10-min-Mittel, Böe der letzten Stunde) · Messung an Land, nicht auf dem Wasser</div>
+                  <div className="sw-note">DWD-Station {p.poi.site ? p.poi.site.name : s.station.name.charAt(0) + s.station.name.slice(1).toLowerCase()}, {p.poi.site ? p.poi.site.km : s.station.km} km vom Spot · gemessen {hm(p.poi.t)} Uhr (10-min-Mittel, {p.poi.src === 'obs' ? 'Böe der letzten 10 Minuten' : 'Böe der letzten Stunde'}) · Messung an Land, nicht auf dem Wasser</div>
                 </>
               )}
       </Card>
