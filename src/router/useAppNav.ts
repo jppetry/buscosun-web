@@ -15,6 +15,7 @@ import { mapPathForPlace } from './urlState';
 // importiert, der Start-Chunk bleibt unberührt (`src/share/placeTable.ts`).
 import { slugForPlace } from '../share/placeTable';
 import { DASH_VIEW_DASHBOARD, DASH_VIEW_KEY } from '../dashboard/viewKey';
+import { warmRouteData } from './prefetch';
 
 export interface AppNav {
   goHome: () => void;
@@ -31,7 +32,12 @@ export function useAppNav(): AppNav {
     openFeature: (f) => { void navigate(pathForFeature(typeof f === 'string' ? f : f.id)); },
     selectLocation: (loc) => {
       const path = mapPathForPlace(loc, undefined, slugForPlace(loc));
-      void navigate(`${path}${path.includes('?') ? '&' : '?'}${DASH_VIEW_KEY}=${DASH_VIEW_DASHBOARD}`);
+      const url = `${path}${path.includes('?') ? '&' : '?'}${DASH_VIEW_KEY}=${DASH_VIEW_DASHBOARD}`;
+      // The data of the dashboard start with the click, next to the route chunk: the router's own early start reads the
+      // address BEFORE the navigation (still the start page) and fires only on a direct link.
+      const q = url.indexOf('?');
+      try { warmRouteData('wetterkarte', url.slice(0, q), url.slice(q)); } catch { /* early start is a bonus */ }
+      void navigate(url);
     },
   }), [navigate]);
 }

@@ -43,9 +43,19 @@ interface Props {
    * fusion failed, or no place is chosen. The route loads the map's JS in the background then.
    */
   onSettled?: () => void;
+  /**
+   * Called once when the dashboard is complete (Jan 15.11.): the forecast spans the whole window AND the tiles of the
+   * first row have answered (warnings, radar nowcast if in view, map tile) — or the fusion failed, or no place is chosen.
+   * The tiles get at most `COMPLETE_GRACE_MS` after the forecast. The route holds the loading ring until then.
+   */
+  onComplete?: () => void;
 }
 
 const REFRESH_EXTRAS_MS = 5 * 60_000;
+/** So long after the whole forecast the loading ring still waits for warnings, nowcast and the map tile (set). */
+const COMPLETE_GRACE_MS = 2_500;
+/** The map tile exists on desktop ≥ 1280 px and on phones < 768 px (`DashboardPage`). */
+const MAP_TILE_QUERY = '(min-width: 1280px), (max-width: 767px)';
 
 /** Kartenausschnitt neben der Jetzt-Kachel (nur Desktop, erst nach der Fusion): eigener Chunk mit MapLibre. */
 const MiniMap = lazy(() => import('./MiniMap'));
@@ -125,9 +135,11 @@ function LiveDashboard(props: Props) {
     setAxisDeg(typeof d === 'number' && Number.isFinite(d) ? Math.round(d) : 270);
   }, [fc?.fusion, axisDeg, s0]);
 
-  // Staffel 2: Warnungen, UV, Pollen — nach der ersten Fusion-Ausgabe (nie vor dem t1-Chunk).
+  // Staffel 2: Warnungen, UV, Pollen — seit 15.11. sofort, neben der Fusion (vorher erst nach ihrer ersten Ausgabe): der
+  // Ladekreis steht, bis auch die Warnkachel geantwortet hat, die kleinen Abrufe in Reihe hinter die Fusion zu stellen
+  // verlängerte nur die Wartezeit. Der Radar-Nowcast (Staffel 3, viele Bilder) bleibt hinter der ersten Ausgabe.
   useEffect(() => {
-    if (!place || !fusionReady) return;
+    if (!place) return;
     const ac = new AbortController();
     const run = () => {
       loadWarnings(place, Date.now(), ac.signal).then(setWarnings).catch(() => {});
@@ -138,7 +150,7 @@ function LiveDashboard(props: Props) {
     const t = window.setInterval(() => loadWarnings(place, Date.now(), ac.signal).then(setWarnings).catch(() => {}), REFRESH_EXTRAS_MS);
     return () => { ac.abort(); window.clearInterval(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [placeKey, fusionReady]);
+  }, [placeKey]);
 
   // Staffel 3: nur bei Sichtbarkeit.
   useEffect(() => {
@@ -189,6 +201,35 @@ function LiveDashboard(props: Props) {
     if (!place || fc?.status === 'error' || whole) { settledRef.current = true; onSettled(); }
   }, [place, fc?.status, whole, onSettled]);
 
+  // Vollständig (Ladekreis der Route): ganzes Fenster + die Kacheln der ersten Reihe, die höchstens COMPLETE_GRACE_MS
+  // nach der Vorhersage bekommen. Fehler und „kein Ort" zeigen ihren Zustand sofort.
+  const mapTile = useMedia(MAP_TILE_QUERY);
+  const [mapReady, setMapReady] = useState(false);
+  const onMapReady = useCallback(() => setMapReady(true), []);
+  // Der Chunk der Kartenkachel (MapLibre) lädt neben der Fusion, gemountet wird sie weiter erst mit der ersten Ausgabe.
+  useEffect(() => {
+    const saveData = (navigator as { connection?: { saveData?: boolean } }).connection?.saveData === true;
+    if (mapTile && place && !saveData) void import('./MiniMap').catch(() => { /* lazy() versucht es beim Mount erneut */ });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const coreDone = !place || fc?.status === 'error' || whole;
+  const tilesDone = warnings.state !== 'loading' && (!nowcastSeen || nowcast.state !== 'loading') && (!mapTile || mapReady);
+  const [graceOver, setGraceOver] = useState(false);
+  useEffect(() => {
+    if (!coreDone || graceOver) return;
+    const t = window.setTimeout(() => setGraceOver(true), COMPLETE_GRACE_MS);
+    return () => window.clearTimeout(t);
+  }, [coreDone, graceOver]);
+  const complete = coreDone && (!place || fc?.status === 'error' || tilesDone || graceOver);
+  const completeRef = useRef(false);
+  const { onComplete } = props;
+  useEffect(() => {
+    if (completeRef.current || !complete) return;
+    completeRef.current = true;
+    try { performance.mark('dbd:complete'); } catch { /* ohne Performance-API */ }
+    onComplete?.();
+  }, [complete, onComplete]);
+
   // Messpunkte für die Latenzmessung (Performance-Timeline, kein Netz).
   const marked = useRef<string>('');
   useEffect(() => {
@@ -199,7 +240,7 @@ function LiveDashboard(props: Props) {
   const retry = useCallback(() => { if (place) retryDashboardForecast(place); }, [place]);
   return (
     <DashboardPage
-      {...props} vm={vm} onHalfKm={setHalfKm} onRetry={retry}
+      {...props} vm={vm} onHalfKm={setHalfKm} onRetry={retry} onMapReady={onMapReady}
       refs={{ nowcast: nowcastRef, terrain: terrainRef, icond2: icond2Ref }}
       log={pfLogFrom(typeof window !== 'undefined' ? window.location.search : '') ? fc : null}
     />
@@ -213,6 +254,8 @@ function LiveDashboard(props: Props) {
 function FixtureDashboard(props: Props) {
   const [vm, setVm] = useState<DashboardVM | null>(null);
   useEffect(() => { void import('./fixture').then((m) => setVm(m.templateVM())); }, []);
+  const { onComplete } = props;
+  useEffect(() => { if (vm) onComplete?.(); }, [vm, onComplete]);
   if (!vm) return <div className="dbd-root" />;
   return <DashboardPage {...props} vm={vm} onHalfKm={() => {}} onRetry={() => {}} refs={null} log={null} />;
 }
@@ -246,8 +289,8 @@ function useMedia(q: string): boolean {
   return m;
 }
 
-function DashboardPage({ vm, place, range, onRange, onSelectView, onSelectLocation, onBack, onOpenFeature, onRetry, refs, log }: Props & {
-  vm: DashboardVM; onHalfKm: (km: 10 | 20 | 50) => void; onRetry: () => void; refs: Refs; log: ForecastState | null;
+function DashboardPage({ vm, place, range, onRange, onSelectView, onSelectLocation, onBack, onOpenFeature, onRetry, onMapReady, refs, log }: Props & {
+  vm: DashboardVM; onHalfKm: (km: 10 | 20 | 50) => void; onRetry: () => void; onMapReady?: () => void; refs: Refs; log: ForecastState | null;
 }) {
   const tablet = useTablet();
   // Kartenkachel: Desktop ≥ 1280 px und Mobil < 768 px (Tablet bleibt bei zwei Spalten ohne Karte).
@@ -337,7 +380,7 @@ function DashboardPage({ vm, place, range, onRange, onSelectView, onSelectLocati
               {(wide || phone) && (
                 <section className="dbd-card dbd-minimap" aria-label="Karte: Wind, Niederschlag und Temperatur am Ort">
                   {(vm.status === 'ok' || vm.status === 'error') && place && (
-                    <Suspense fallback={null}><MiniMap key={`${place.country}:${place.lat}:${place.lon}`} place={{ name: place.name, lat: place.lat, lon: place.lon, country: place.country }} /></Suspense>
+                    <Suspense fallback={null}><MiniMap key={`${place.country}:${place.lat}:${place.lon}`} place={{ name: place.name, lat: place.lat, lon: place.lon, country: place.country }} onReady={onMapReady} /></Suspense>
                   )}
                   {place && (
                     <button ref={mapOpener} type="button" className="dbd-rose-open dbd-xp-open dbd-mm-open" onClick={() => setXp('map')} aria-haspopup="dialog" aria-label="Karte groß anzeigen" title="Groß anzeigen: größerer Kartenausschnitt, verschiebbar"><ExpandIcon /></button>

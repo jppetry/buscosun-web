@@ -15,6 +15,7 @@ import type { FusionIn, PlaceIn } from '../model/types';
 import { pWetOf } from '../model/build';
 import type { Dist } from '../../pointForecast/fusion/dist';
 import type { TierId } from '../../point/cubeFormat';
+import { readSnapshot, writeSnapshot } from './forecastSnapshot';
 
 export const DASHBOARD_HOURS = 336;
 const TIER_IDS: readonly TierId[] = ['t1', 't2', 't3'];
@@ -37,8 +38,14 @@ export interface ForecastState {
   startedAt: number;
 }
 
-interface Entry { state: ForecastState; listeners: Set<(s: ForecastState) => void>; abort: AbortController; timer: number | null; loadedAt: number; inflight: boolean }
+interface Entry { state: ForecastState; listeners: Set<(s: ForecastState) => void>; abort: AbortController; timer: number | null; loadedAt: number; inflight: boolean; /** The answer shown is the kept one of the last visit, no live answer yet. */ snapshot: boolean; /** Timers: a held partial answer, the pending write of the kept answer. */ hold: ReturnType<typeof setTimeout> | null; save: ReturnType<typeof setTimeout> | null }
 const ENTRIES = new Map<string, Entry>();
+
+/**
+ * The build that writes and reads the kept answers (`forecastSnapshot.ts`): the address of this module. Its file name
+ * carries the hash of this chunk, which changes with the model and (through the import address) with the Fusion chunk.
+ */
+const SNAPSHOT_STAMP = import.meta.url;
 
 export const placeKey = (p: PlaceIn) => `${p.country}:${p.lat.toFixed(4)}:${p.lon.toFixed(4)}`;
 
@@ -81,8 +88,20 @@ function emit(e: Entry, patch: Partial<ForecastState>) {
   for (const l of e.listeners) l(e.state);
 }
 
-/** Ein Fehlstart ohne jede Ausgabe wird EINMAL von selbst wiederholt (gesetzt) — derselbe Weg, kein Rückfall (E-DB-17). */
-const AUTO_RETRY_MS = 3_000;
+/**
+ * Ein Fehlstart ohne jede Ausgabe wird EINMAL von selbst wiederholt (gesetzt) — derselbe Weg, kein Rückfall (E-DB-17).
+ * 1,2 s statt 3 s (Jan 15.11.): der Fehlschlag kommt meist erst nach den Fristen des Lesers, die Seite wartet solange
+ * unter dem Ladekreis.
+ */
+const AUTO_RETRY_MS = 1_200;
+/**
+ * A partial answer (the first paint: t1 only) is held back while a whole window is on screen — the kept answer of the last
+ * visit or the one before a refresh — because the 14 days would shrink to two and grow back. If no whole answer follows
+ * within this time (set; the reader's limits are 8 s per file), the partial one is shown after all: it is the newer truth.
+ */
+const PARTIAL_HOLD_MS = 10_000;
+/** The answer is kept this long after the last whole output of a load (set) — the later outputs (anchor, radar) replace the earlier. */
+const SNAPSHOT_SAVE_MS = 1_500;
 
 function load(p: PlaceIn, e: Entry, attempt = 0) {
   const t0 = performance.now();
@@ -91,8 +110,9 @@ function load(p: PlaceIn, e: Entry, attempt = 0) {
   let sun: SunFn | null = null;
   /** Endgültiger Fehlschlag ohne Ausgabe: beim ersten Mal still neu versuchen (schwache Leitung), danach benennen. */
   const failed = (why: string): void => {
-    if (attempt === 0 && !e.state.fusion && !e.abort.signal.aborted) {
-      emit(e, { status: 'loading', error: null });
+    // A kept answer on screen is no live answer: the load is repeated as if nothing were shown, the answer stays meanwhile.
+    if (attempt === 0 && (!e.state.fusion || e.snapshot) && !e.abort.signal.aborted) {
+      if (!e.state.fusion) emit(e, { status: 'loading', error: null });
       window.setTimeout(() => {
         if (ENTRIES.get(placeKey(p)) !== e || e.abort.signal.aborted) return;
         e.inflight = true;
@@ -100,6 +120,8 @@ function load(p: PlaceIn, e: Entry, attempt = 0) {
       }, AUTO_RETRY_MS);
       return;
     }
+    // Still only the kept answer: this was no load — the next wake-up (online, foreground) or tick tries again at once.
+    if (e.snapshot) e.loadedAt = 0;
     emit(e, { status: e.state.fusion ? 'ok' : 'error', error: e.state.fusion ? null : why });
   };
   const onFc = (fc: PointForecast, final = false) => {
@@ -112,7 +134,21 @@ function load(p: PlaceIn, e: Entry, attempt = 0) {
       return;
     }
     const kind = f.emission ?? 'final';
-    emit(e, { status: 'ok', fusion: f, error: null, emissions: [...e.state.emissions, { kind, ms: Math.round(performance.now() - t0) }] });
+    const emissions = [...e.state.emissions, { kind, ms: Math.round(performance.now() - t0) }];
+    const show = (x: FusionIn) => { e.snapshot = false; emit(e, { status: 'ok', fusion: x, error: null }); };
+    if (e.hold != null) { clearTimeout(e.hold); e.hold = null; }
+    // `PARTIAL_HOLD_MS`: the cube path RETURNS its first paint (t1 only) and delivers the whole window as an update.
+    if (e.state.fusion && coversWindow(e.state.fusion) && !coversWindow(f)) {
+      e.state = { ...e.state, emissions };
+      e.hold = setTimeout(() => { e.hold = null; if (ENTRIES.get(placeKey(p)) === e && !e.abort.signal.aborted) show(f); }, PARTIAL_HOLD_MS);
+      return;
+    }
+    e.state = { ...e.state, emissions };
+    show(f);
+    if (coversWindow(f)) {
+      if (e.save != null) clearTimeout(e.save);
+      e.save = setTimeout(() => { e.save = null; if (!e.abort.signal.aborted && e.state.fusion === f) void writeSnapshot(placeKey(p), SNAPSHOT_STAMP, f); }, SNAPSHOT_SAVE_MS);
+    }
   };
   import('../../pointForecast/cubeSource')
     .then(({ getPointForecastFromCube, defaultCubeIo, exceedance, solarPosition }) => { exceed = exceedance; sun = solarPosition; return getPointForecastFromCube({
@@ -125,7 +161,7 @@ function load(p: PlaceIn, e: Entry, attempt = 0) {
       if ((err as { name?: string })?.name === 'AbortError') return;
       // Kein Rückfall (E-DB-17): der Fehler wird benannt; eine schon gezeigte Ausgabe bleibt stehen.
       const why = err instanceof Error ? err.message : String(err);
-      if (e.state.fusion) emit(e, { status: 'ok', error: why }); else failed(why);
+      if (e.state.fusion && !e.snapshot) emit(e, { status: 'ok', error: why }); else failed(why);
     });
 }
 
@@ -139,11 +175,21 @@ export function prefetchDashboardForecast(p: PlaceIn): void {
   hit?.abort.abort();
   const e: Entry = {
     state: { status: 'loading', fusion: hit?.state.fusion ?? null, error: null, emissions: [], startedAt: Date.now() },
-    listeners: hit?.listeners ?? new Set(), abort: new AbortController(), timer: hit?.timer ?? null, loadedAt: 0, inflight: true,
+    listeners: hit?.listeners ?? new Set(), abort: new AbortController(), timer: hit?.timer ?? null, loadedAt: 0, inflight: true, snapshot: hit?.snapshot ?? false, hold: null, save: null,
   };
   ENTRIES.set(key, e);
   if (e.state.fusion) e.state.status = 'ok';
   load(p, e);
+  // Warm start: nothing in memory for this place ⇒ show the kept answer of the last visit until the fresh one is whole.
+  // Read next to the load, never before it; a live answer that came first stays.
+  if (!hit) {
+    void readSnapshot(key, SNAPSHOT_STAMP).then((snap) => {
+      if (!snap || ENTRIES.get(key) !== e || e.abort.signal.aborted || e.state.fusion) return;
+      try { performance.mark('dbd:fusion:snapshot'); } catch { /* ohne Performance-API */ }
+      e.snapshot = true;
+      emit(e, { status: 'ok', fusion: snap.fusion, error: null, emissions: [...e.state.emissions, { kind: 'snapshot', ms: Date.now() - e.state.startedAt }] });
+    });
+  }
 }
 
 /** Meldet jeden neuen Stand; hält den Eintrag frisch (alle 10 min neu, wie das Panel), solange jemand zuhört. */
@@ -159,7 +205,18 @@ export function subscribeDashboardForecast(p: PlaceIn, cb: (s: ForecastState) =>
       if (cur && cur.listeners.size) { cur.loadedAt = 0; prefetchDashboardForecast(p); }
     }, REFRESH_MS);
   }
+  // Back online or back in the foreground (a phone throttles the timer in the background): an error state loads again by
+  // itself, an answer older than the refresh period is renewed. `prefetch` decides — a running or fresh load is left alone.
+  const wake = () => {
+    if (document.visibilityState === 'hidden') return;
+    const cur = ENTRIES.get(key);
+    if (cur && cur.listeners.size) prefetchDashboardForecast(p);
+  };
+  window.addEventListener('online', wake);
+  document.addEventListener('visibilitychange', wake);
   return () => {
+    window.removeEventListener('online', wake);
+    document.removeEventListener('visibilitychange', wake);
     const cur = ENTRIES.get(key);
     if (!cur) return;
     cur.listeners.delete(cb);

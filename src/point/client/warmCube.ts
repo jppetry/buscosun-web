@@ -9,9 +9,18 @@
  * t1 ist die Stufe am Fensteranfang, sobald der Index einen t1-Lauf nennt: sie trägt 0–48 h, ihre Läufe bleiben ≥ 9 h im
  * Repo, das Dashboard-Fenster beginnt jetzt — `tiersForWindow` entscheidet im Leser gleich. Nennt der Index keinen t1-Lauf,
  * wird nichts vorgestartet (der Leser fällt auf t2/t3). Ein Fehlgriff hier kostet nur einen unnötigen Abruf, nie ein Ergebnis.
+ *
+ * Jan 2026-11-15 (Ladezeit des Dashboards): vorgestartet wird jetzt ALLES, was der Leser für das ganze Fenster holt und
+ * dessen Adresse ohne Rechnung feststeht — nicht mehr nur t1. In Node gemessen (München, kalt, 15.11.): der Leser fragt
+ * t2/t3 erst an, wenn t1 da ist (≈ 0,44 s nach dem Start), die Tabellen der Lernstufe und den Stationskatalog erst mit
+ * dem Start der Fusion, also nach dem Laden ihres Chunks. Hier starten sie mit der Route:
+ *   - sofort (Adresse fest): `fusion.client.json`, `stack.client.json`, das Klimatologieprodukt, der Stationskatalog;
+ *   - mit dem Index: die Chunks ALLER Stufen am Ort (t1 `high`, t2/t3 `low` — dieselbe Priorität wie im Leser).
+ * Was der Cache des Lesers schon hält (`defaultCachePolicy`, dieselbe Regel), wird nicht geholt. Dazu ein `preconnect` zu
+ * den beiden fremden Origins des Lesers (Gelände, RUC-Zeiger), damit deren Verbindungsaufbau nicht erst mit dem Abruf beginnt.
  */
-import { TIER_BY_ID, cellOf, chunkOf, chunkPath } from '../cubeFormat';
-import { idbBackend } from './cache';
+import { TIERS, POINT_CLIMA_PATH, POINT_LEARNED_PATH, POINT_STACK_PATH, STATION_CATALOG_PATH, cellOf, chunkOf, chunkPath } from '../cubeFormat';
+import { defaultCachePolicy, idbBackend, type CacheBackend } from './cache';
 import { resolveRoutePlace } from '../../share/placeTable';
 import type { Country, Location } from '../../types';
 import { POINT_CDN_BASE, POINT_INDEX_URL, peekWarmPoint, warmPointFile, warmPointIndex } from './warmPoint';
@@ -33,35 +42,75 @@ export function dashboardPlaceOf(pathname: string, search: string): Location | n
   return resolveRoutePlace(slug, queryPlace).place;
 }
 
-interface IndexLite { latestByTier?: { t1?: { run?: string; runAt?: string | null } | null } }
+interface IndexLite { latestByTier?: Partial<Record<string, { run?: string; runAt?: string | null } | null>> }
+
+/** Files of the reader whose address needs no index: the tables of the newest stage and the station catalogue (all `low`/as in the reader). */
+const FIXED_FILES: ReadonlyArray<{ path: string; priority: 'high' | 'low' }> = [
+  { path: POINT_LEARNED_PATH, priority: 'low' },
+  { path: POINT_STACK_PATH, priority: 'low' },
+  { path: POINT_CLIMA_PATH, priority: 'low' },
+  { path: STATION_CATALOG_PATH, priority: 'high' },
+];
+/** Foreign origins of the reader besides the CDN: terrain tiles (`terrain.ts`) and the raw path (RUC pointer, fallback). */
+const PRECONNECT = ['https://s3.amazonaws.com', 'https://raw.githubusercontent.com'];
+
+let backend: CacheBackend | null | undefined;
+/** Does the reader's cache hold the file and still accept it? Same rule as `cachedStore` (`defaultCachePolicy`). */
+async function cached(path: string, url: string, nowMs: number): Promise<boolean> {
+  const ttl = defaultCachePolicy(path, POINT_CDN_BASE);
+  if (ttl == null) return false;
+  try {
+    if (backend === undefined) backend = idbBackend();
+    const hit = await backend?.get(url);
+    return !!hit && (ttl === Infinity || nowMs - hit.storedAt < ttl);
+  } catch { return false; /* ohne Cache-Auskunft: vorstarten */ }
+}
+
+async function warmFile(path: string, priority: 'high' | 'low', nowMs: number): Promise<string | null> {
+  const url = `${POINT_CDN_BASE}/${path}`;
+  if (await cached(path, url, nowMs)) return null;
+  return warmPointFile(url, { priority }, Date.now()) ? url : null;
+}
+
+function preconnect(): void {
+  try {
+    if (typeof document === 'undefined' || !document.head) return;
+    for (const href of PRECONNECT) {
+      if (document.head.querySelector(`link[rel="preconnect"][href="${href}"]`)) continue;
+      const l = document.createElement('link');
+      l.rel = 'preconnect'; l.href = href; l.crossOrigin = 'anonymous';
+      document.head.appendChild(l);
+    }
+  } catch { /* a hint, never a reason to skip the early start */ }
+}
 
 /**
- * Startet den t1-Chunk des Orts vor. Liefert die URL, die vorgestartet wurde, `null` wenn nichts zu tun war (kein Ort,
- * kein t1-Lauf, Punkt außerhalb des Gitters, Chunk schon im IndexedDB-Cache, Index nicht lesbar).
+ * Startet die Dateien des Lesers für den Ort vor. Liefert die URLs, die vorgestartet wurden (leer: kein Ort, alles schon
+ * im IndexedDB-Cache, Index nicht lesbar). Die festen Dateien starten sofort, die Chunks der Stufen mit dem Index.
  */
-export async function warmDashboardCube(pathname: string, search: string, nowMs: number = Date.now()): Promise<string | null> {
+export async function warmDashboardCube(pathname: string, search: string, nowMs: number = Date.now()): Promise<string[]> {
   const place = dashboardPlaceOf(pathname, search);
-  if (!place) return null;
+  if (!place) return [];
+  preconnect();
+  const fixed = Promise.all(FIXED_FILES.map((f) => warmFile(f.path, f.priority, nowMs)));
   const idxP = peekWarmPoint(POINT_INDEX_URL, nowMs) ?? warmPointIndex(nowMs);
-  if (!idxP) return null;
-  let index: IndexLite | null = null;
-  try {
-    const r = await idxP;
-    if (!r.ok) return null;
-    index = (await r.clone().json()) as IndexLite;   // der Klon: der Leser liest den Körper des Originals
-  } catch { return null; }
-  const t1 = index?.latestByTier?.t1;
-  if (!t1?.run || !t1.runAt) return null;
-  const tier = TIER_BY_ID.t1;
-  const cell = cellOf(tier, place.lat, place.lon);
-  if (!cell) return null;
-  const ch = chunkOf(cell.iy, cell.ix);
-  const path = chunkPath(t1.run, tier, ch.cy, ch.cx);
-  const url = `${POINT_CDN_BASE}/${path}`;
-  // Schon im Cache des Lesers (`cachedStore`: Chunks liegen unbegrenzt, Schlüssel = Basis/Pfad)? Dann kein Abruf.
-  try {
-    const hit = await idbBackend()?.get(url);
-    if (hit) return null;
-  } catch { /* ohne Cache-Auskunft: vorstarten */ }
-  return warmPointFile(url, { priority: 'high' }, Date.now()) ? url : null;
+  const chunks = (async (): Promise<Array<string | null>> => {
+    if (!idxP) return [];
+    let index: IndexLite | null = null;
+    try {
+      const r = await idxP;
+      if (!r.ok) return [];
+      index = (await r.clone().json()) as IndexLite;   // der Klon: der Leser liest den Körper des Originals
+    } catch { return []; }
+    return Promise.all(TIERS.map((tier) => {
+      const latest = index?.latestByTier?.[tier.id];
+      if (!latest?.run || !latest.runAt) return null;
+      const cell = cellOf(tier, place.lat, place.lon);
+      if (!cell) return null;
+      const ch = chunkOf(cell.iy, cell.ix);
+      return warmFile(chunkPath(latest.run, tier, ch.cy, ch.cx), tier.id === 't1' ? 'high' : 'low', nowMs);
+    }));
+  })();
+  const all = await Promise.all([fixed, chunks]);
+  return all.flat().filter((u): u is string => !!u);
 }

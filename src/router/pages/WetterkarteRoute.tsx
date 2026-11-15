@@ -55,6 +55,8 @@ type MapViewComponent = typeof MapViewLazy | NonNullable<ReturnType<typeof loade
 const CAM_DEBOUNCE_MS = 300;
 /** E-DB-20: the map's JS follows the dashboard at the latest this long after it opened, even without a forecast. */
 const BACKGROUND_MAP_FALLBACK_MS = 15_000;
+/** The loading ring over the dashboard leaves at the latest after this long — the same limit as the covers of the feature pages (`usePageCover`). */
+const DASH_COVER_MAX_MS = 20_000;
 
 interface UrlRefs {
   layers: LayerKey[];
@@ -280,6 +282,15 @@ export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: Laye
     else t = window.setTimeout(go, 200);
     return () => { if (idle) window.cancelIdleCallback(idle); if (t) window.clearTimeout(t); };
   }, [view, dashSettled]);
+  // Jan 15.11.: the buscosun loading ring stays over the dashboard until it is complete (`DashboardView.onComplete`), once per
+  // visit of this route — later switches between map and dashboard find the data in memory and show no ring again.
+  const [dashShown, setDashShown] = useState(false);
+  const onDashComplete = useCallback(() => setDashShown(true), []);
+  useEffect(() => {
+    if (view !== 'dashboard' || dashShown) return;
+    const t = window.setTimeout(() => setDashShown(true), DASH_COVER_MAX_MS);
+    return () => window.clearTimeout(t);
+  }, [view, dashShown]);
   const onRangeChange = useCallback((r: DashRange) => {
     const s = st.current!;
     s.extra = withDashState(s.extra, { range: r });
@@ -307,9 +318,11 @@ export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: Laye
             onBack={nav.goHome}
             onOpenFeature={nav.openFeature}
             onSettled={onDashSettled}
+            onComplete={onDashComplete}
           />
         </Suspense>
       )}
+      {view === 'dashboard' && <AppLoader cover done={dashShown} />}
       {MapComp && <Suspense fallback={<AppLoader />}><MapComp
         suspended={view === 'dashboard'}
         onOpenDashboard={dashEnabled ? onOpenDashboard : undefined}

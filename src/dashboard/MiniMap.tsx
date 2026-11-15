@@ -109,7 +109,11 @@ function paintTempLabels(map: maplibregl.Map, markers: Map<string, maplibregl.Ma
 }
 
 /** `zoom`/`interactive`: the large view (Jan 11.11., `expandDialog.tsx`) shows a wider section the user can move; the radar picture grows with it. */
-export default function MiniMap({ place, zoom = ZOOM, interactive = false }: { place: PlaceIn; zoom?: number; interactive?: boolean }) {
+export default function MiniMap({ place, zoom = ZOOM, interactive = false, onReady }: {
+  place: PlaceIn; zoom?: number; interactive?: boolean;
+  /** Called when the tile has nothing left to load: basemap drawn and wind, radar and temperature each there or named unavailable (or no WebGL). */
+  onReady?: () => void;
+}) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const [noWebgl, setNoWebgl] = useState(false);
   const [windState, setWindState] = useState<Part>('loading');
@@ -247,6 +251,9 @@ export default function MiniMap({ place, zoom = ZOOM, interactive = false }: { p
     // One map per place; the caller re-mounts on a place change (key).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const settled = noWebgl || (mapReady && windState !== 'loading' && radarState !== 'loading' && tempState !== 'loading');
+  useEffect(() => { if (settled) onReady?.(); }, [settled, onReady]);
 
   // Only an unavailable source is announced; the routine "Wind ICON-D2 · 10 m · Radar jetzt" line is gone.
   const cap = [

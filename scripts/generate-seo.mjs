@@ -521,7 +521,9 @@ export function wetterkarteViewPreloads() {
   // Vorladeliste von Vite — es ging erst raus, wenn der erste Chunk zu dekodieren war (eine Runde auf dem Weg zur ersten
   // Ausgabe). Als Hinweis liegt es im HTTP-Cache (`/assets/*` ist immutable), wenn der Worker startet.
   const workers = assetJs.filter((f) => /^decodeWorker-[\w-]+\.js$/.test(f)).map((f) => `assets/${f}`);
-  return { map: pick(['MapView']), dashboard: [...pick(['DashboardView', 'forecastStore', 'cubeSource']), ...workers.filter((f) => !route.has(f))] };
+  // Jan 15.11.: dazu das kleine Frühstart-Modul (`warmCube`) — der Start-Chunk lädt es, sobald die Route feststeht, und erst
+  // mit ihm gehen Tabellen und Cube-Chunks des Orts raus; als Hinweis ist es dann schon da.
+  return { map: pick(['MapView']), dashboard: [...pick(['DashboardView', 'forecastStore', 'cubeSource', 'warmCube']), ...workers.filter((f) => !route.has(f))] };
 }
 /** Inline script (ES5, no dependencies): same rule as `isDashboardSearch` in `src/dashboard/viewKey.ts`. */
 export function viewPreloadScript({ map, dashboard }) {

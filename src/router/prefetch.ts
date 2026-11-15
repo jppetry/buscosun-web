@@ -99,7 +99,14 @@ export function warmRouteData(routeId: RouteId, pathname: string, search: string
   // Ausführen des Fusions-Chunks raus (mobil-4G ≈ 1,2 s), der Index davor in Reihe (audit/dashboard.md §11.4).
   if (routeId === 'wetterkarte' && isDashboardSearch(search) && hasDashboardPlace(pathname, search)) {
     if (warmPointIndex(nowMs)) started.push(POINT_INDEX_URL);
-    void import('../point/client/warmCube').then((m) => m.warmDashboardCube(pathname, search, nowMs)).catch(() => { /* Frühstart ist Bonus */ });
+    // Jan 15.11.: dazu die übrigen Dateien des Lesers (t2/t3, Tabellen, Stationskatalog) und der Start von buscosun Fusion
+    // selbst — vorher erst im Effekt der Route, also nach Route-Chunk und erstem Render. Derselbe Eintrag je Ort
+    // (`forecastStore`), die Route und das Dashboard übernehmen ihn.
+    void import('../point/client/warmCube').then((m) => {
+      void m.warmDashboardCube(pathname, search, nowMs).catch(() => { /* Frühstart ist Bonus */ });
+      const p = m.dashboardPlaceOf(pathname, search);
+      return p && import('../dashboard/data/forecastStore').then((s) => s.prefetchDashboardForecast({ name: p.name, lat: p.lat, lon: p.lon, country: p.country }));
+    }).catch(() => { /* Frühstart ist Bonus */ });
   }
   // Brandradar: satellite detections and the season list start while the page chunk still downloads (`src/fire/fireWarm.ts`).
   if (routeId === 'waldbrand') started.push(...warmFireStart(pathname, search, typeof window !== 'undefined' ? window.location.hash : '', nowMs));
