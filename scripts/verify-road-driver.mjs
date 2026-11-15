@@ -9,7 +9,8 @@
  *
  *   A  switch: `ROAD_XS_VIEW`, `?xsview=` beats the stored vote beats the constant, anything else is no vote
  *   B  8 surface kinds without a hazard: aria-label, every HUD text of the cross-section, the honesty note, no weather
- *      plane, „unbekannt“ / „nicht gemessen“ not painted as a state
+ *      plane, „unbekannt“ / „nicht gemessen“ not painted as a state; nass / feucht with and without a film value
+ *      (label, puddle factor — V-DV-13); glare of the low sun per surface kind (C9, V-DV-14)
  *   C  16 hazards × level 1…max × now / „ab“: tag word for word like the schematic view, tint of the level, the weather
  *      plane dimmed when ahead, levels change the scene
  *   D  the hazard never repaints the surface (sensor truth)
@@ -40,7 +41,7 @@ await build({
   stdin: {
     resolveDir: ROOT, loader: 'ts',
     contents: `
-      export { default as RoadDriverView, DV_HUD, DV_CHIP, DV_NOTE, driverTag } from './src/road/RoadDriverView.tsx';
+      export { default as RoadDriverView, DV_HUD, DV_CHIP, DV_NOTE, driverTag, dvPuddleFactor } from './src/road/RoadDriverView.tsx';
       export { default as RoadCrossSection } from './src/road/RoadCrossSection.tsx';
       export { crossSectionOf, HZ_SHORT } from './src/road/roadHzView.ts';
       export { ROAD_HAZARDS, COND } from './src/road/roadHazards.ts';
@@ -131,10 +132,46 @@ const allMarkup = [];
     wrong.length === 0 && /stroke-dasharray="6 4"/.test(ng) && !/stroke-dasharray="6 4"/.test(un) && KIND_IDS.filter((k) => /stroke-dasharray="6 4"/.test(render(KINDS[k]))).length === 1
     && /aw-dv-chip is-hatch/.test(un) && /aw-dv-chip is-dash/.test(ng) && /Fahrbahn: Sensor verworfen/.test(un) && /Fahrbahn: keine Messung/.test(ng),
     wrong.join(' ') || 'Marker je Zustand stimmen');
-  const half = render({ ...KINDS.nass, filmMm: 0.1 }), full = render(KINDS.nass), none = render({ ...KINDS.nass, filmMm: 0 });
+  const half = render({ ...KINDS.nass, filmMm: 0.1 }), full = render(KINDS.nass), zero = render({ ...KINDS.nass, filmMm: 0 });
   const pud = (s) => Number(/<g opacity="([0-9.]+)"><ellipse[^>]*fill="#C3CCD4"/.exec(s)?.[1]);
-  add('B3 „nass“: die Filmhöhe skaliert die Pfützen (≥ 0,2 mm voll, 0,1 mm halb, ohne Filmwert ein Drittel — nie null)',
-    pud(full) === 0.9 && Math.abs(pud(half) - 0.45) < 0.01 && pud(none) > 0.3 && pud(none) < pud(half), `0,45 mm ${pud(full)} · 0,1 mm ${pud(half)} · 0 mm ${pud(none)}`);
+  add('B3 „nass“ mit gemessenem Film: die Filmhöhe skaliert die Pfützen (≥ 0,2 mm voll, 0,1 mm halb, gemessene 0,00 mm ein Drittel — nie null)',
+    KINDS.nass.filmMeasured === true && pud(full) === 0.9 && Math.abs(pud(half) - 0.45) < 0.01 && pud(zero) > 0.3 && pud(zero) < pud(half), `0,45 mm ${pud(full)} · 0,1 mm ${pud(half)} · 0 mm ${pud(zero)}`);
+
+  // V-DV-13: nass / feucht with and without a film value — label and puddle factor, through the real crossSectionOf().
+  const wet = { rs: 4.8, ta: 5.6, td: 4.3, rh: 96 }, damp = { rs: 3.4, ta: 4.1, td: 3.2, rh: 94 };
+  const F = {
+    nassOhne: xsOf(st({ ...wet, cond: COND.wet, wf: null })), nassMit: KINDS.nass, nassNurFilm: xsOf(st({ ...wet, cond: null, wf: 0.25 })),
+    feuchtOhne: xsOf(st({ ...damp, cond: COND.damp, wf: null })), feuchtMit: KINDS.feucht,
+  };
+  const noWfKey = (() => { const p = st({ ...wet, cond: COND.wet }); delete p.wf; return xsOf(p); })();
+  const lab = Object.entries(F).map(([k, x]) => `${k}: ${x.kind} „${x.label}“ ${x.filmMeasured ? 'gemessen' : 'ohne Filmwert'} ${x.filmMm}`);
+  add('B4 Beschriftung (V-DV-13): nass ohne Filmwert „nass (Sensor)“, feucht ohne Filmwert „feucht (Sensor)“; mit Filmwert unverändert „Wasserfilm x,xx mm“ / „feucht · Film x,xx mm“; filmMeasured nur bei wf != null, filmMm bleibt eine Zahl',
+    F.nassOhne.kind === 'nass' && F.nassOhne.label === 'nass (Sensor)' && F.nassOhne.filmMeasured === false && F.nassOhne.filmMm === 0
+    && noWfKey.kind === 'nass' && noWfKey.label === 'nass (Sensor)' && noWfKey.filmMeasured === false && noWfKey.filmMm === 0
+    && F.nassMit.label === 'Wasserfilm 0,45 mm' && F.nassMit.filmMeasured === true && F.nassMit.filmMm === 0.45
+    && F.nassNurFilm.kind === 'nass' && F.nassNurFilm.label === 'Wasserfilm 0,25 mm' && F.nassNurFilm.filmMeasured === true
+    && F.feuchtOhne.kind === 'feucht' && F.feuchtOhne.label === 'feucht (Sensor)' && F.feuchtOhne.filmMeasured === false && F.feuchtOhne.filmMm === 0
+    && F.feuchtMit.label === 'feucht · Film 0,08 mm' && F.feuchtMit.filmMeasured === true && F.feuchtMit.filmMm === 0.08
+    && KIND_IDS.every((k) => typeof KINDS[k].filmMm === 'number' && typeof KINDS[k].filmMeasured === 'boolean')
+    && ['reif', 'eis', 'schnee', 'unbekannt', 'nichtgemessen'].every((k) => KINDS[k].filmMeasured === false) && !/0,00 mm/.test(render(F.nassOhne) + render(F.feuchtOhne)),
+    lab.join(' · '));
+  const pf = M.dvPuddleFactor, near = (a, b) => Math.abs(a - b) < 0.006;
+  const chipOf = (s) => /class="aw-dv-chip[^"]*">([^<]+)</.exec(s)?.[1];
+  const hasPud = (s) => /fill="#C3CCD4"/.test(s);
+  add('B5 Pfützenfaktor (V-DV-13): ohne Filmwert 1 (volle Pfützen, Deckkraft 0,9), mit Filmwert max(0,35, min(1, Film / 0,2)); „feucht“ malt mit und ohne Filmwert keine Pfützen; Chip und aria-label tragen die neue Beschriftung',
+    pf(0, false) === 1 && pf(0.45, false) === 1 && pf(0, true) === 0.35 && near(pf(0.05, true), 0.35) && near(pf(0.1, true), 0.5) && pf(0.2, true) === 1 && pf(0.45, true) === 1
+    && pud(render(F.nassOhne)) === 0.9 && pud(render(noWfKey)) === 0.9 && pud(render(F.nassMit)) === 0.9 && near(pud(render({ ...F.nassMit, filmMm: 0.1 })), 0.45) && near(pud(render({ ...F.nassMit, filmMm: 0 })), 0.9 * 0.35)
+    && near(pud(render({ ...F.nassOhne, filmMm: 0 })), 0.9) && !hasPud(render(F.feuchtOhne)) && !hasPud(render(F.feuchtMit))
+    && chipOf(render(F.nassOhne)) === 'nass (Sensor)' && chipOf(render(F.feuchtOhne)) === 'feucht (Sensor)' && chipOf(render(F.nassMit)) === 'Wasserfilm 0,45 mm'
+    && render(F.nassOhne).includes('aria-label="Fahrbahn aus Fahrersicht: nass (Sensor), Fahrbahn +4,8 °C"'),
+    `Faktor ohne Filmwert ${pf(0, false)} · gemessen 0 / 0,1 / 0,2 / 0,45 mm: ${[0, 0.1, 0.2, 0.45].map((v) => pf(v, true)).join(' / ')} · Deckkraft nass ohne ${pud(render(F.nassOhne))}, mit 0,45 mm ${pud(render(F.nassMit))}`);
+  // the schematic view keeps working: film height of the layer stays the minimum 2 without a value (rect y = 64 − 2)
+  const oldNo = renderOld(F.nassOhne), oldYes = renderOld(F.nassMit);
+  const filmH = (s) => Number(/<rect x="0" y="[0-9.]+" width="338" height="([0-9.]+)" fill="#5E97D1"/.exec(s)?.[1]);
+  add('B6 Querschnitt (V-DV-13): „nass“ ohne Filmwert behält die Mindesthöhe 2 der Wasserschicht und nennt „nass (Sensor)“; mit 0,45 mm bleibt die Höhe 9 (0,45 × 22, gedeckelt) und „Wasserfilm 0,45 mm“',
+    filmH(oldNo) === 2 && filmH(oldYes) === 9 && oldNo.includes('nass (Sensor)') && !/Wasserfilm 0,00/.test(oldNo) && oldYes.includes('Wasserfilm 0,45 mm') && !badNumbers(oldNo),
+    `Höhe ohne Filmwert ${filmH(oldNo)} · mit 0,45 mm ${filmH(oldYes)}`);
+  allMarkup.push(render(F.nassOhne), render(F.feuchtOhne), render(F.nassNurFilm));
 }
 
 // --- C: 16 hazards × levels × now / ahead ---------------------------------------------------------------------
@@ -190,6 +227,15 @@ for (const hz of ROAD_HAZARDS) for (let lv = 1; lv <= hz.max; lv++) for (const a
   add('C8 Gischt: Lkw mit Rückleuchten und Gischtfahne; gespiegelt nur auf feuchter, nasser oder vereister Fahrbahn',
     KIND_IDS.every((k) => /fill="#D23A30"/.test(render(KINDS[k], { id: 'gischt', lv: 1, at: null, ev: null })) && /aw-dv-spray/.test(render(KINDS[k], { id: 'gischt', lv: 1, at: null, ev: null })))
     && KIND_IDS.every((k) => lorry(k) === ['feucht', 'nass', 'eis'].includes(k)), KIND_IDS.filter(lorry).join(' '));
+  // V-DV-14: glare of the low sun per surface kind — snow like wet / ice, frost like damp, the rest as before.
+  const glare = (k, lv) => /fill="url\(#awDvGlare[^"]*\)" opacity="([0-9.]+)"/.exec(render(KINDS[k], { id: 'sonne', lv, at: null, ev: null }))?.[1] ?? null;
+  const WANT = { nass: ['1.00', '1.00'], eis: ['1.00', '1.00'], schnee: ['1.00', '1.00'], feucht: ['0.75', '0.75'], reif: ['0.75', '0.75'], trocken: ['0.55', '0.65'], unbekannt: ['0.55', '0.65'], nichtgemessen: ['0.55', '0.65'] };
+  const got = Object.fromEntries(KIND_IDS.map((k) => [k, [glare(k, 1), glare(k, 2)]]));
+  const off = KIND_IDS.filter((k) => !WANT[k] || got[k][0] !== WANT[k][0] || got[k][1] !== WANT[k][1]);
+  const sunMax = ROAD_HAZARDS.find((x) => x.id === 'sonne')?.max;
+  add('C9 Tiefe Sonne (V-DV-14), Blendung je Zustand für Stufe 1 / 2: nass, Eis, Schnee 1; feucht, Reif 0,75; trocken, unbekannt, nicht gemessen 0,55 / 0,65 (unverändert); ohne Sonne keine Blendung',
+    off.length === 0 && Object.keys(WANT).length === KIND_IDS.length && sunMax === 2 && !/awDvGlare/.test(render(KINDS.schnee)) && !/awDvGlare/.test(render(KINDS.schnee, { id: 'nebel', lv: 2, at: null, ev: null })),
+    off.map((k) => `${k}: ${got[k].join('/')} statt ${WANT[k]?.join('/')}`).join(' | ') || KIND_IDS.map((k) => `${k} ${got[k].join('/')}`).join(' · '));
 }
 
 // --- D: the hazard never repaints the surface ------------------------------------------------------------------
@@ -296,6 +342,13 @@ if (args.dump) {
   page('zustaende-desktop', kinds, 3, '440px'); page('gefahren-desktop', hazards, 3, '440px'); page('voraus-desktop', ahead, 2, '440px'); page('stufen-desktop', levels, 3, '440px');
   // the schematic view of the same 16 scenes — for the comparison of what a scene paints at rest (audit/autobahn-fahrerblick/page.mjs --only=idle)
   page('querschnitt-desktop', ROAD_HAZARDS.map((hz) => { const lv = Math.min(2, hz.max); return `<figure><figcaption>${esc(`Gefahr: ${hz.id} · Stufe ${lv} · Fahrbahn ${base[hz.id]}`)}</figcaption>${renderOld(KINDS[base[hz.id]], { id: hz.id, lv, at: null, ev: null })}</figure>`; }), 3, '440px');
+  // follow-up V-DV-13 / V-DV-14 (audit §9): wet without / with a film value, low sun on snow and on a dry road
+  const sun1 = { id: 'sonne', lv: 1, at: null, ev: null };
+  const follow = [
+    fig('nass ohne Filmwert (Sensor meldet nur den Zustand)', xsOf(st({ rs: 4.8, ta: 5.6, td: 4.3, rh: 96, cond: COND.wet, wf: null })), null), fig('nass · Wasserfilm 0,45 mm', KINDS.nass, null),
+    fig('Schnee + tiefe Sonne Stufe 1', KINDS.schnee, sun1), fig('trocken + tiefe Sonne Stufe 1 (unverändert)', KINDS.trocken, sun1),
+  ];
+  page('nachtrag-desktop', follow, 2, '440px'); page('nachtrag-mobil', follow, 1, 'minmax(0,1fr)');
   page('zustaende-mobil', kinds, 1, 'minmax(0,1fr)'); page('gefahren-mobil', hazards, 1, 'minmax(0,1fr)'); page('voraus-mobil', ahead, 1, 'minmax(0,1fr)');
   console.log(`  Galerie: ${dir}`);
 }

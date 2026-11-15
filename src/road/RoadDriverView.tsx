@@ -222,7 +222,8 @@ function hazardLook(id: RoadHazardId, lv: number, kind: SurfaceKind): HzLook {
     case 'schnee': o.sky = 'S'; o.drifts.push({ k: 'snow1', op: 1, dur: L(3) ? 2.2 : 3.2 }); if (L(2)) o.drifts.push({ k: 'snow2', op: 1, dur: L(3) ? 1.8 : 2.6 }); if (L(3)) o.drifts.push({ k: 'snow3', op: 1, dur: 1.5 }); wind(2, 0.6); break;
     case 'nebel': o.sky = 'G'; o.fog = lv; break;
     case 'gischt': o.sky = 'G'; o.truck = true; o.spray = L(2) ? [0.75, 0.9] : [0.4, 0.6]; o.truckRefl = kind === 'nass' || kind === 'feucht' || kind === 'eis'; break;
-    case 'sonne': o.sky = 'U'; o.sun = per(lv, [100, 125, 125]); o.glare = kind === 'nass' || kind === 'eis' ? 1 : kind === 'feucht' ? 0.75 : 0.45 + lv * 0.1; break;
+    // V-DV-14: snow throws the low sun back like a wet or icy road, frost like a damp one.
+    case 'sonne': o.sky = 'U'; o.sun = per(lv, [100, 125, 125]); o.glare = kind === 'nass' || kind === 'eis' || kind === 'schnee' ? 1 : kind === 'feucht' || kind === 'reif' ? 0.75 : 0.45 + lv * 0.1; break;
     case 'quer': o.sky = L(3) ? 'G' : 'C'; o.sock = lv; wind(1); break;
     case 'baum': o.sky = 'G'; wind(1); o.drifts.push({ k: 'leaves', op: per(lv, [0.7, 1, 1]), dur: per(lv, [2.6, 2.2, 2.2]) }); o.branch = true; o.roadLeaves = per(lv, [8, 16, 16]); break;
     case 'staub': o.sky = 'T'; o.dust = true; o.drifts.push({ k: 'dust', op: 1, dur: 0.5 }, { k: 'wind1', op: 0.5, dur: 0.75 }); break;
@@ -268,7 +269,7 @@ export default function RoadDriverView({ xs, fx = null }: { xs: CrossSection; fx
   return (
     <div className="aw-dv" style={vars}>
       <div className="aw-dv-stage">
-        <Still uid={uid} kind={kind} film={xs.filmMm} hz={hz?.id ?? null} lv={lv} ahead={ahead}
+        <Still uid={uid} kind={kind} film={xs.filmMm} filmMeasured={xs.filmMeasured} hz={hz?.id ?? null} lv={lv} ahead={ahead}
           label={`Fahrbahn aus Fahrersicht: ${xs.label}, ${xs.roadText}${tag ? `; Szene: ${tag}` : ''}`} />
         {hz && <Weather uid={uid} kind={kind} hz={hz.id} lv={lv} ahead={ahead} />}
       </div>
@@ -325,11 +326,16 @@ const Asphalt = memo(function Asphalt({ uid }: { uid: string }) {
   );
 });
 
+/**
+ * „nass“: a measured film height scales the puddles (≥ 0.2 mm = full, never below 0.35). Without a film value the
+ * sensor word alone says „wet“ — full puddles, no scaling by a number nobody measured (V-DV-13).
+ */
+export const dvPuddleFactor = (filmMm: number, filmMeasured: boolean): number => (filmMeasured ? Math.max(0.35, Math.min(1, filmMm / 0.2)) : 1);
+
 /** Markings and the overlay of the surface kind (film, reflection, puddles, frost, ice, snow, hatch, desaturation). */
-const Surface = memo(function Surface({ uid, kind, film }: { uid: string; kind: SurfaceKind; film: number }) {
+const Surface = memo(function Surface({ uid, kind, film, filmMeasured }: { uid: string; kind: SurfaceKind; film: number; filmMeasured: boolean }) {
   const k = KIND[kind];
-  // „nass“: the film height scales the puddles (≥ 0.2 mm = full; the sensor word alone keeps a third).
-  const pud = k.pud * Math.max(0.35, Math.min(1, film / 0.2));
+  const pud = k.pud * dvPuddleFactor(film, filmMeasured);
   return (
     <>
       {k.mark && <g fill="#ECEAE2"><polygon points={G.edgeR} /><polygon points={G.edgeL} />{G.dashes.map((d, i) => <polygon key={i} points={d} />)}</g>}
@@ -383,7 +389,7 @@ const Rails = memo(function Rails({ snow }: { snow: boolean }) {
   );
 });
 
-const Still = memo(function Still({ uid, kind, film, hz, lv, ahead, label }: { uid: string; kind: SurfaceKind; film: number; hz: RoadHazardId | null; lv: number; ahead: boolean; label: string }) {
+const Still = memo(function Still({ uid, kind, film, filmMeasured, hz, lv, ahead, label }: { uid: string; kind: SurfaceKind; film: number; filmMeasured: boolean; hz: RoadHazardId | null; lv: number; ahead: boolean; label: string }) {
   const k = KIND[kind];
   const h = hz ? hazardLook(hz, lv, kind) : NO_HZ;
   /** A hazard that only starts later is drawn faint (0.7), like `is-ahead` of the cross-section. */
@@ -426,7 +432,7 @@ const Still = memo(function Still({ uid, kind, film, hz, lv, ahead, label }: { u
       <g clipPath={url('Road')}>
         <Asphalt uid={uid} />
         {h.joints && <g opacity={dim}>{G.joints.map((j, i) => <polyline key={i} points={j} fill="none" stroke="#2E2C29" strokeWidth="0.9" opacity="0.55" />)}</g>}
-        <Surface uid={uid} kind={kind} film={film} />
+        <Surface uid={uid} kind={kind} film={film} filmMeasured={filmMeasured} />
         {/* what the hazard puts on the road — the surface state below stays the sensor's */}
         {hz && (
           <g opacity={dim}>

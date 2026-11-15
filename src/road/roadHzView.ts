@@ -195,6 +195,8 @@ export interface CrossSection {
   roadText: string;
   air: string; dew: string; rh: string; src: string;
   filmMm: number;
+  /** V-DV-13: the station reports a water film (`wf != null`). Without it `filmMm` is 0 and no film number is shown. */
+  filmMeasured: boolean;
   /** The station that carries the section (coldest valid road), or null. */
   station: RoadPoint | null;
 }
@@ -210,15 +212,18 @@ export function crossSectionOf(seg: RoadSegment, byId: ReadonlyMap<string, RoadP
     kind = c === COND.frost ? 'reif' : c === COND.ice || c === COND.slippery ? 'eis' : c === COND.snow ? 'schnee' : c === COND.wet || (st.wf != null && st.wf >= 0.2) ? 'nass' : condWet(c) || (st.wf != null && st.wf > 0) ? 'feucht' : c === COND.dry ? 'trocken' : 'unbekannt';
   } else if (rejected) kind = 'unbekannt';
   const film = st?.wf ?? 0;
+  // V-DV-13: a film number only when the station measured one — the sensor word alone is named as such.
+  const filmMeasured = st?.wf != null;
   const label: Record<SurfaceKind, string> = {
-    reif: 'Reif (Sensor)', eis: 'Eis (Sensor)', schnee: 'Schnee (Sensor)', nass: `Wasserfilm ${film.toFixed(2).replace('.', ',')} mm`, feucht: `feucht · Film ${film.toFixed(2).replace('.', ',')} mm`,
+    reif: 'Reif (Sensor)', eis: 'Eis (Sensor)', schnee: 'Schnee (Sensor)',
+    nass: filmMeasured ? `Wasserfilm ${film.toFixed(2).replace('.', ',')} mm` : 'nass (Sensor)', feucht: filmMeasured ? `feucht · Film ${film.toFixed(2).replace('.', ',')} mm` : 'feucht (Sensor)',
     trocken: 'trocken (Sensor)', unbekannt: 'Zustand unbekannt', nichtgemessen: 'Zustand nicht gemessen',
   };
   const air = st?.ta != null ? `Luft ${f1(st.ta)} °C` : airFc?.t != null ? `Luft ${f1(airFc.t)} °C (Prognose)` : 'Luft —';
   const dew = st?.td != null ? `Taupunkt ${f1(st.td)} °C` : airFc?.td != null ? `Taupunkt ${f1(airFc.td)} °C (Prognose)` : 'Taupunkt —';
   return {
     kind, label: label[kind], roadText: st && st.rs != null ? `Fahrbahn ${f1(st.rs)} °C` : rejected ? 'Fahrbahn: Sensor verworfen' : 'Fahrbahn: keine Messung',
-    air, dew, rh: st?.rh != null ? `${Math.round(st.rh)} % rel. Feuchte` : '— % rel. Feuchte', filmMm: film,
+    air, dew, rh: st?.rh != null ? `${Math.round(st.rh)} % rel. Feuchte` : '— % rel. Feuchte', filmMm: film, filmMeasured,
     src: st ? `GMA ${st.n} · ${slotMs != null ? hm(slotMs) : hm(st.t)}` : fusion ? `Prognose · ${fusion}` : 'keine Messung', station: st,
   };
 }

@@ -1,7 +1,7 @@
 # Autobahnwetter — „Fahrerblick" für „Was auf der Fahrbahn liegt" (Phase DV)
 
 > Stand: 2026-11-06 · Auftrag: Jan, 06.11. (Startprompt „Phase DV") · Vorlage: `reference/fahrerblick/FahrerblickSzene.dc.html` (Design-Canvas-Mock, kein Produktionscode)
-> Phase **DV**, Entscheidungen `E-DV-n`, Setzungen `S-DV-n`, Befunde `V-DV-n`. Stand: **umgesetzt 06.11., uncommitted, Schalter AN seit 06.11. (E-DV-1)** (§6 Umsetzung und Gate, §8 Einschalten; Jans Schritte `MANUELLE-SCHRITTE.md` §87).
+> Phase **DV**, Entscheidungen `E-DV-n`, Setzungen `S-DV-n`, Befunde `V-DV-n`. Stand: **umgesetzt 06.11., Schalter AN seit 06.11. (E-DV-1)** (§6 Umsetzung und Gate, §8 Einschalten; Jans Schritte `MANUELLE-SCHRITTE.md` §87). **Nachtrag 15.11.:** zwei Korrekturen V-DV-13 (nass ohne Filmwert) und V-DV-14 (tiefe Sonne auf Schnee), §9.
 
 ## 0. Auftrag
 
@@ -230,6 +230,8 @@ der Verifier an HEAD ebenso abbricht (die Seite wurde nach seinem letzten Stand 
 | V-DV-10 | `verify:road-ui` (Browser, eingefrorener Datenbestand) kennt den Fahrerblick nicht; die Prüfung in der Seite läuft über `audit/autobahn-fahrerblick/page.mjs` mit Live-Daten und steht nicht in `package.json`. | Regression beim Umlegen des Schalters würde der Dauerprüfer nicht sehen. | Vor dem Umlegen einen Block „X" in `verify:road-ui`: Detail mit `?xsview=driver` auf dem Fixture-Abschnitt A8-034 (Reif Stufe 3) — ein `.aw-dv`, Marke, kein `.aw-hz-xs`. |
 | V-DV-11 | In der echten Seite malt der Querschnitt in Ruhe 467 ms je 3 s auf dem Hauptthread (Szene Aquaplaning Stufe 2), der Fahrerblick 0 ms. | Akku und Flüssigkeit auf dem Telefon, solange der Querschnitt Voreinstellung bleibt. | Die Technik von S-DV-2 auf den Querschnitt übertragen — oder den Schalter umlegen. |
 | V-DV-12 | `verify:road-ui` bricht am Produktions-Build in Block D ab (Seite ohne Leiste, keine Bandmarken im Fixture-Lauf) und liefert keine Zahl. Ob das an HEAD schon so ist, ist nicht geprüft. | Der Dauerprüfer der Autobahn-Seite ist blind, solange er abbricht. | An sauberem HEAD laufen lassen; wenn dort rot: Block B–F an die heutige Seite anpassen (Voreinstellung der Strecke, Startabdeckung). Eigene kleine Phase. |
+| V-DV-13 | „nass" ohne Filmwert: `crossSectionOf()` setzt `film = st?.wf ?? 0`. Meldet der Sensor den Zustand nass (`COND.wet`) ohne Wasserfilm, steht im Chip und im aria-label „Wasserfilm 0,00 mm" — eine Zahl, die niemand gemessen hat —, und der Fahrerblick schrumpft die Pfützen auf 35 %, als wäre fast kein Wasser da. Dasselbe bei „feucht" ohne Filmwert („feucht · Film 0,00 mm"). | Ehrlichkeit: kein Wert ohne Herkunft. Eine nasse Fahrbahn sieht nass aus, auch wenn nur das Wort gemessen ist. | **Behoben 15.11. (§9):** `CrossSection.filmMeasured` (wahr nur bei `st.wf != null`), Beschriftung ohne Filmwert „nass (Sensor)" / „feucht (Sensor)", Pfützenfaktor 1 ohne Filmwert (`dvPuddleFactor`). `filmMm` bleibt eine Zahl; der Querschnitt bleibt bei der Mindesthöhe 2. |
+| V-DV-14 | Tiefe Sonne auf Schnee: `hazardLook('sonne')` gibt der Blendung 1 für nass/Eis, 0,75 für feucht, sonst 0,45 + Stufe × 0,1 — Schnee und Reif bekommen den Wert von trockenem Asphalt (0,55 / 0,65), obwohl Schnee das Licht am stärksten zurückwirft. | Das Bild zeigt die Lage des Fahrers: tiefe Sonne auf Schnee blendet stärker als auf Asphalt. | **Behoben 15.11. (§9):** nass/Eis/Schnee → 1, feucht/Reif → 0,75, sonst unverändert. |
 
 ## 8. Einschalten (E-DV-1, Jan 06.11.2026)
 
@@ -256,3 +258,82 @@ Was sich mit dem Einschalten ändert:
 - V-DV-10 und V-DV-11 sind damit anders gewichtet: der Dauerprüfer sollte den Fahrerblick kennen, bevor gepusht wird; der
   Querschnitt malt nur noch für Besucher mit `?xsview=schematic`.
 - Die Abschnitte §3, §5 und §6 beschreiben den Stand am Gate (Schalter aus); die Messungen dort gelten unverändert.
+
+## 9. Nachtrag 15.11.2026 — zwei Korrekturen (V-DV-13, V-DV-14)
+
+Auftrag Jan, 15.11.: zwei Befunde am Fahrerblick beheben, sonst nichts ändern (Schalter, Daten, andere Komponenten, HUD,
+Geometrie). Beide Befunde stehen in §7 und wurden dort vor dem ersten Edit eingetragen.
+
+### 9.1 Was geändert ist
+
+| Datei | Änderung |
+|---|---|
+| `src/road/roadHzView.ts` | `CrossSection.filmMeasured: boolean` (wahr nur bei `st.wf != null`); `filmMm` bleibt eine Zahl (0 ohne Filmwert). Beschriftung ohne Filmwert: „nass (Sensor)" bzw. „feucht (Sensor)"; mit Filmwert unverändert „Wasserfilm x,xx mm" / „feucht · Film x,xx mm". |
+| `src/road/RoadDriverView.tsx` | `dvPuddleFactor(filmMm, filmMeasured)`: ohne Filmwert 1, sonst wie bisher `max(0,35, min(1, Film / 0,2))`; `Surface`/`Still` reichen `filmMeasured` durch. `hazardLook('sonne')`: Blendung nass/Eis/**Schnee** → 1, feucht/**Reif** → 0,75, sonst unverändert 0,45 + Stufe × 0,1. |
+| `scripts/verify-road-driver.mjs` | B3 neu gefasst (gemessener Film), neu B4 (Beschriftung), B5 (Pfützenfaktor), B6 (Querschnitt), C9 (Blendung je Zustand, Stufe 1/2); Galerie-Seiten `nachtrag-desktop` / `nachtrag-mobil` in `--dump`. |
+| `audit/autobahn-fahrerblick/head-compare.mjs`, `nachtrag-shots.mjs` | Werkzeuge für §9.3 (Markup-Vergleich gegen HEAD, Bilder über `scripts/lib/headlessShot.mjs`). |
+
+Nicht angefasst: `RoadCrossSection.tsx` (liest weiter `filmMm`; ohne Filmwert `max(2, 0 × 22)` = Mindesthöhe 2), `roadDeck.css`,
+`roadFlag.ts`, `RoadHazardDetail.tsx`, Daten und Schalter. Einzige Erzeugerin von `CrossSection` ist `crossSectionOf()`.
+
+Ein gemessener Filmwert von 0,00 mm bei Sensorwort „nass" bleibt wie beauftragt „Wasserfilm 0,00 mm" mit Pfützenfaktor 0,35 —
+das ist eine Messung, kein fehlender Wert.
+
+### 9.2 Prüfläufe (15.11., alle neu gelaufen)
+
+| Prüfung | Ergebnis |
+|---|---|
+| `npm run typecheck` | grün (Exit 0) |
+| `npm run build` | grün (Exit 0; SEO-/Routing-Prüfung 280/280) |
+| `npm run budget` | **grün**: eagerJs 114,3 KB (Grenze 115), eagerCss 2,4 KB (2,5), largestChunk 278,4 KB (302), totalJs 1 952 KB (1 985). Der Arbeitsbaum trug dabei fremde, uncommittete Änderungen der Gletscher-Linie; ein Basis-Build ohne diese Korrektur wurde nicht gemessen (kein Delta). |
+| `verify:road-driver` | **30/30** (neu gezählt; 223 gerenderte Szenen, 84 Fälle Gefahr × Stufe × jetzt/ab, 128 Paare Zustand × Gefahr, 304 bewegte Schichten, 1 983 `url(#…)`-Verweise, 15 Kontrastpaare, kleinster Kontrast 4,77 : 1) |
+| `verify:road-ui` gegen den Produktions-Build (`vite preview`, `--base=http://127.0.0.1:4188`) | **abgebrochen, kein Ergebnis — nicht grün.** Dieselbe Ausnahme an derselben Stelle wie am 06.11. (§6.6, V-DV-12): `verify-road-ui.mjs:300`, Block D, `.aw-band-tick[3]` gibt es nicht. Block D öffnet die Seite mit `roadhz=0`; dort wird die Detailansicht (und damit `crossSectionOf()` und der Fahrerblick) nicht montiert. Der Abbruch liegt vor jedem Schritt, der die geänderten Stellen erreicht. **Nicht gegengeprüft:** ein Lauf an sauberem HEAD. |
+| `audit/autobahn-fahrerblick/head-compare.mjs` (Arbeitsbaum gegen `git archive HEAD src`) | 1 020 Szenen je Ansicht (12 Fixtures × 85 Szenen). Fahrerblick: 178 Szenen mit anderem Markup als HEAD = 2 × 85 (nass / feucht ohne Filmwert) + 8 (Schnee und Reif × tiefe Sonne, Stufe 1/2, jetzt/ab). Querschnitt: 170 = 2 × 85 (nur die Beschriftung). **0 unerwartete, 0 fehlende Unterschiede** — alle übrigen Szenen sind byte-gleich. |
+
+Gegenprobe aus demselben Lauf (was HEAD an den zwei Stellen zeigte): nass ohne Filmwert „Wasserfilm 0,00 mm", Pfützen 0,32;
+feucht ohne Filmwert „feucht · Film 0,00 mm"; Blendung Schnee 0,55, Reif 0,55, trocken 0,55. Neu: „nass (Sensor)", Pfützen 0,90;
+„feucht (Sensor)"; Blendung Schnee 1,00, Reif 0,75, trocken 0,55.
+
+### 9.3 Bilder
+
+`verify:road-driver --dump` (echte Komponente über die echte `crossSectionOf()`, echtes CSS, selbst gehostete Schriften) und
+`audit/autobahn-fahrerblick/nachtrag-shots.mjs` über `scripts/lib/headlessShot.mjs`; Ablage
+`%TEMP%\dv-shots\nachtrag-2026-11-15\png\` (nicht im Repo, 10 PNG): `nachtrag-desktop-viewport` (1440 × 900, DPR 1),
+`nachtrag-mobil-viewport` (390 × 844, DPR 3, Mobil-Emulation), dazu je Szene ein Ausschnitt in beiden Größen:
+
+| Szene | Chip | Pfützen | Blendung |
+|---|---|---|---|
+| nass ohne Filmwert | „nass (Sensor)" | 0,90 | — |
+| nass, Wasserfilm 0,45 mm | „Wasserfilm 0,45 mm" | 0,90 | — |
+| Schnee + tiefe Sonne Stufe 1 | „Schnee (Sensor)" | — | 1,00 |
+| trocken + tiefe Sonne Stufe 1 | „trocken (Sensor)" | — | 0,55 (wie HEAD, Markup byte-gleich) |
+
+In der Seite gemessen: Bühne 440 × 247 px (Desktop) bzw. 366 × 206 px (Mobil), Chip-Schrift 12 px, League Spartan geladen, kein
+HUD-Feld außerhalb der Karte. Angesehen: Übersicht Desktop, „nass ohne Filmwert" und „Schnee + Sonne" mobil.
+
+**Abweichung vom Auftrag:** die Bilder stammen aus der Galerie, nicht aus der echten Seite mit `?xsview=driver`. Den
+Sensorzustand kann keine Adresse erzwingen (`?xsfx=` erzwingt nur die Gefahr, §6.3); „nass ohne Filmwert" und „Schnee" hängen
+an den Live-Daten. Die Galerie rendert immer den Fahrerblick. Die Bilder zeigen den Stillstand (dieser Rechner meldet
+`prefers-reduced-motion: reduce`, V-DV-3) — die vier Szenen tragen ohnehin keine bewegte Schicht.
+
+### 9.4 Die fünf Selbstverifikations-Fragen
+
+1. **Funktionserhalt, einzeln.** Luft, Taupunkt, Feuchte, Quelle, Fahrbahntext, Zustand, Note: B1 für alle acht Zustände. Marke,
+   Farbe, Dimmung voraus, Stufen: C1–C8. Zustand bleibt der des Sensors: B2, D1. Querschnitt: H2, B6 (Mindesthöhe 2 ohne
+   Filmwert). Geändert ist nur der beauftragte Wortlaut ohne Filmwert („Wasserfilm 0,00 mm" → „nass (Sensor)", „feucht · Film
+   0,00 mm" → „feucht (Sensor)") — er steht im Chip, im aria-label und im Querschnitt. Alles andere ist gegen HEAD byte-gleich
+   (§9.2, 1 020 Szenen je Ansicht).
+2. **Desktop pixelgleich.** Kein CSS geändert (`git diff` auf `roadDeck.css` leer). Markup gegen HEAD: außer den beauftragten
+   Szenen byte-gleich, in beiden Ansichten (§9.2). **Nicht gemacht:** ein Pixelvergleich in der echten Seite.
+3. **Touch-Ziele ≥ 44 px.** Unverändert: das Bild trägt kein bedienbares Element, es kommt keines hinzu.
+4. **Konsole sauber.** Galerie-Seiten ohne Fehler geladen; kein NaN / undefined / Infinity im Markup (E1, 223 Szenen). **Nicht
+   geprüft:** die Konsole der echten Seite — `verify:road-ui` bricht vorher ab, `page.mjs` (Live-Daten) ist für diesen Nachtrag
+   nicht gelaufen.
+5. **Keine Long Tasks > 200 ms.** Nicht neu gemessen. Die Änderung fügt kein Element und keinen Filter hinzu: ohne Filmwert
+   ändert sich eine Deckkraft (0,32 → 0,90), bei Sonne auf Schnee/Reif eine Deckkraft (0,55 → 1 bzw. 0,75). Die Messung aus
+   §6.4 gilt weiter; Real-Device bleibt offen (V-DV-7).
+
+### 9.5 Offen
+
+- `verify:road-ui` ist weiter kein Beleg (V-DV-12) — der Gate-Punkt „`verify:road-ui` grün" ist **nicht erfüllt**.
+- Push = live für alle, Jans Gate (`MANUELLE-SCHRITTE.md` §87, Punkt 8).

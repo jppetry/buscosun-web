@@ -3255,6 +3255,17 @@ Querschnitt zurück. Kein Datenprodukt, kein Datenvertrag, kein Schalter einer a
    audit/autobahn-fahrerblick reference/fahrerblick CLAUDE.md MANUELLE-SCHRITTE.md` und
    `git commit -m "feat(road): driver's view of the road surface, on by default (ROAD_XS_VIEW)"`. **Push = live für alle.**
 7. **Rückweg:** je Besucher `?xsview=schematic`; für alle `ROAD_XS_VIEW = 'schematic'` und ein Push.
+8. **Nachtrag 15.11. (V-DV-13, V-DV-14; `audit/autobahn-fahrerblick.md` §9) — Push ist dein Schritt, Push = live für alle.**
+   Zwei Korrekturen am Bild „Was auf der Fahrbahn liegt": meldet der Sensor „nass" oder „feucht" ohne Wasserfilm, steht dort
+   jetzt „nass (Sensor)" bzw. „feucht (Sensor)" statt „Wasserfilm 0,00 mm", und die Pfützen sind voll statt auf ein Drittel
+   geschrumpft; tiefe Sonne blendet auf Schnee so stark wie auf nasser Fahrbahn, auf Reif wie auf feuchter. Kein Schalter, kein
+   Datenprodukt, kein CSS geändert.
+   - Geprüft: typecheck, build, budget grün; `verify:road-driver` 30/30; Markup aller übrigen Szenen byte-gleich zu HEAD
+     (1 020 Szenen je Ansicht). **Nicht grün:** `verify:road-ui` bricht weiter in Block D ab (Punkt 3, V-DV-12) — vor dem Push klären.
+   - Ansehen: `%TEMP%\dv-shots\nachtrag-2026-11-15\png\` (Desktop 1440 × 900, Mobil 390 × 844). In der echten Seite siehst du
+     „nass (Sensor)" nur an einem Abschnitt, dessen Messstelle gerade nass ohne Wasserfilm meldet; Sonne auf Schnee mit
+     `?xsfx=sonne:1` (Dev-Server) an einem Abschnitt mit Schnee.
+   - Danach: `git push origin main`.
 
 ## 88. Neue Ergebnisansicht „Wetter entlang deiner Route" (Phase TE, `audit/tour-ergebnis.md`), 2026-11-11
 
