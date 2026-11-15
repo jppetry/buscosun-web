@@ -619,13 +619,10 @@ function HeroSearch({ onSelect, inputRef }: HeroSearchProps) {
   );
 }
 
+/** Country marker of a search hit: the plain code like everywhere else (`flagForCountry`) — flag emoji render as flags on phones only. */
 function flagFor(cc?: string): string {
-  switch (cc?.toLowerCase()) {
-    case 'de': return '🇩🇪';
-    case 'at': return '🇦🇹';
-    case 'ch': return '🇨🇭';
-    default: return '';
-  }
+  const c = cc?.toUpperCase();
+  return c === 'DE' || c === 'AT' || c === 'CH' ? c : '';
 }
 
 // ---------------------------------------------------------------------------
