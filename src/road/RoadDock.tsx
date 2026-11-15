@@ -8,7 +8,7 @@ import type { RoadCorridor } from './roadClient';
 import type { RoadMapLayers } from './RoadMap';
 import { useSearchSheet } from '../components/LocationSearchSheet';
 import { ListSearchSheet } from '../components/ListSearchSheet';
-import { ROAD_CLASS_COLOR, ROAD_GAP_SHORT, corridorStatus, corridorTitle, dockEntries, isGapCorridor, isHatched, type RoadSlotSummary } from './roadView';
+import { ROAD_CLASS_COLOR, ROAD_GAP_SHORT, corridorStatus, corridorTitle, isGapCorridor, isHatched, type RoadSlotSummary } from './roadView';
 
 export type RoadCountry = 'alle' | 'DE' | 'AT' | 'CH';
 
@@ -66,9 +66,17 @@ const LAYERS: ReadonlyArray<{ key: keyof RoadMapLayers; label: string; sub: stri
 export default function RoadDock(p: Props) {
   const showDE = p.country === 'alle' || p.country === 'DE';
   const rows = showDE ? p.corridors : [];
-  // Jan 06.11.: no fold row ("n kurze Abschnitte … · n Teilstücke ohne Messstelle") any more — every section stays listed.
-  const allOpen = new Set(rows.map((c) => c.road));
-  const entries = dockEntries(rows, { query: p.query, selectedId: p.selectedId, open: allOpen });
+  // Jan 15.11.: one row per motorway. The row opens the selected section of that motorway, else its longest section with
+  // measuring stations; the other sections stay reachable on the map and in the search (a query lists every matching section).
+  const searching = p.query.trim().length > 0;
+  const byRoad = new Map<string, RoadCorridor[]>();
+  for (const c of rows) { const k = searching ? c.id : c.road; if (!byRoad.has(k)) byRoad.set(k, []); byRoad.get(k)!.push(c); }
+  const entries = [...byRoad.values()].map((sections) => {
+    const measured = sections.filter((c) => !isGapCorridor(c));
+    const corridor = sections.find((c) => c.id === p.selectedId)
+      ?? (measured.length ? measured : sections).reduce((a, b) => (b.lengthKm > a.lengthKm ? b : a));
+    return { corridor, sections, stations: sections.flatMap((c) => c.stations), gap: !measured.length };
+  });
   const staticRows = STATIC_ROWS.filter((r) => p.country === 'alle' || r.cc === p.country);
   const roads = p.part !== 'layers', layersOn = p.part !== 'roads';
   const Tag = p.part === 'roads' ? 'div' : 'aside';
@@ -85,11 +93,11 @@ export default function RoadDock(p: Props) {
         <ListSearchSheet label="Autobahn suchen" placeholder="A 8, Irschenberg, Holzkirchen …" query={p.query} onQuery={p.onQuery}
           inputRef={sheet.inputRef} onClose={sheet.close} accent="#1F5FAE" accentDark="#174A88"
           empty={p.query.trim() ? `Keine Autobahn passt zu „${p.query}“.` : p.loading?.corridors ? 'Autobahnen laden …' : 'Keine Autobahn geladen.'}
-          rows={entries.flatMap((e) => (e.kind === 'fold' ? [] : [{
+          rows={entries.map((e) => ({
             id: e.corridor.id, name: corridorTitle(e.corridor),
-            sub: isGapCorridor(e.corridor) ? `${ROAD_GAP_SHORT} · keine Messstelle` : `${e.corridor.stations.length} Messpunkte`,
+            sub: e.gap ? `${ROAD_GAP_SHORT} · keine Messstelle` : `${e.stations.length} Messpunkte`,
             lead: e.corridor.shields.map((s) => <span key={s} className="aw-shield">{s}</span>),
-          }]))}
+          }))}
           onPick={(id) => { sheet.close(); p.onPick(id); }} />
       )}
       <div role="group" aria-label="Land" className="aw-seg aw-dock-country">
@@ -100,20 +108,20 @@ export default function RoadDock(p: Props) {
 
       <div className="aw-dock-head">
         <span className="aw-dock-h">Autobahnen</span>
-        <span className="aw-count">{rows.length + staticRows.length}</span>
+        <span className="aw-count">{entries.length + staticRows.length}</span>
       </div>
       <div className="aw-dock-list">
         {entries.map((e) => {
-          if (e.kind === 'fold') return null;
           const c = e.corridor;
-          const st = corridorStatus(c, p.byId);
-          const on = c.id === p.selectedId;
-          // AF-5: a section without a measuring station — no count of measurements, no class dot (D-04).
-          const gap = isGapCorridor(c);
+          const st = corridorStatus({ ...c, stations: e.stations }, p.byId);
+          const on = e.sections.some((x) => x.id === p.selectedId);
+          // AF-5: a motorway without a measuring station — no count of measurements, no class dot (D-04).
+          const gap = e.gap;
           const parts = [`${st.measured} gemessen`];
           if (st.critical) parts.push(`${st.critical} kritisch`);
           if (st.unknown) parts.push(`${st.unknown} ohne Zustand`);
           if (st.nodata) parts.push(`${st.nodata} ohne Messung`);
+          if (e.sections.length > 1) parts.push(`${e.sections.length} Abschnitte`);
           return (
             <button key={c.id} type="button" className={`aw-road${on ? ' is-active' : ''}`} aria-pressed={on} onClick={() => p.onPick(c.id)}>
               <span className="aw-road-shields">{c.shields.map((s) => <span key={s} className="aw-shield">{s}</span>)}</span>

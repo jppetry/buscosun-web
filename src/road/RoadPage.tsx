@@ -325,7 +325,8 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
   const inCorridor = useMemo(() => new Set(corridor?.stations.map((s) => s.id) ?? []), [corridor]);
   // AF-5: a section without a measuring station — the page shows its forecast only.
   const gap = corridor ? isGapCorridor(corridor) : false;
-  const mapPoints = useMemo(() => shownPoints.filter((p) => p.kind === 'A' || layers.bl || inCorridor.has(p.id)), [shownPoints, layers.bl, inCorridor]);
+  // The selected point is always drawn: a federal/state road point picked in the list „Messpunkte“ gets its marker and ring even with the layer off.
+  const mapPoints = useMemo(() => shownPoints.filter((p) => p.kind === 'A' || layers.bl || inCorridor.has(p.id) || p.id === stId), [shownPoints, layers.bl, inCorridor, stId]);
 
   // Route forecast of the corridor (AW-6.1b): pointer + one immutable file; a failed refresh keeps the shown run.
   const fcCorridorId = corridor?.id ?? null;
