@@ -292,6 +292,11 @@
   .aw-m-share { width: 44px; height: 44px; border-radius: 12px; flex: 0 0 auto; }
   .aw-m-times { position: absolute; left: 12px; top: calc(74px + env(safe-area-inset-top, 0px)); z-index: 3; }
   .aw-m-times .aw-times button { height: 36px; padding: 0 10px; font-size: 12px; }
+  /* Dossier: the time chips take the place of the road pill in the top row (the road is in the dossier head). */
+  .aw-m-top-times { flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; align-self: center; }
+  .aw-m-top-times::-webkit-scrollbar { display: none; }
+  .aw-m-top-times .aw-times { width: max-content; }
+  .aw-m-top-times .aw-times button { height: 40px; padding: 0 10px; font-size: 12px; }
   .aw-sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 4; background: var(--cream-50, #FAF6EA); border-top: 1px solid var(--sand-200, #E0D6BE); border-radius: 18px 18px 0 0; padding: 0 16px calc(22px + env(safe-area-inset-bottom, 0px)); box-sizing: border-box; box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.35); overflow-y: auto; }
   .aw-sheet.is-peek { max-height: 414px; }
   .aw-sheet.is-open { max-height: 78vh; max-height: 78dvh; }
@@ -714,7 +719,7 @@ button.aw-prog-tile:not(:disabled):not(.is-on):hover { box-shadow: var(--aw-inse
   .aw-m-stage .aw-stage-seg { width: 200px; }
   .aw-stage-seg button { min-height: 44px; }
   .aw-hz-open { min-height: 44px; }
-  .aw-m-dossier { position: absolute; inset: 0; z-index: 2; overflow-y: auto; overflow-x: hidden; background: var(--cream-50, #FAF6EA); padding: calc(176px + env(safe-area-inset-top, 0px)) 12px calc(24px + env(safe-area-inset-bottom, 0px)); box-sizing: border-box; }
+  .aw-m-dossier { position: absolute; inset: 0; z-index: 2; overflow-y: auto; overflow-x: hidden; background: var(--cream-50, #FAF6EA); padding: calc(72px + env(safe-area-inset-top, 0px)) 12px calc(24px + env(safe-area-inset-bottom, 0px)); box-sizing: border-box; }
   .aw-m-dossier .aw-hz-nav { top: 0; }
   .aw-dossier-list { margin-top: 12px; }
 }
