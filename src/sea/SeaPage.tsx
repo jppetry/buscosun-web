@@ -522,7 +522,8 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
         {unknownSpot && <SeaLinkNotice kind="unknown" slug={unknownSpot} onClose={() => setUnknownSpot(null)} />}
         <main className="sw-map is-mobile msl-host" aria-label="Karte">
           {map}
-          {sourceTile}
+          {/* The sources tile floats above every page layer — it belongs to the map, not to the dossier page over it. */}
+          {!inDossier && sourceTile}
           <MapGestureHint map={mapInst} feature="seewetter" subject="sea" accent="#0F6E7A" pickSpots={hintSpots} always enabled={mobTab === 'map' && !inDossier} />
           {!inDossier && mTop}
           {/* The legend sits just above the bottom bar and gives its place to the info card while one is open. */}
@@ -572,7 +573,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
             <img src="/buscosun-mark.svg" width={22} height={22} alt="" /><span>buscosun</span>
           </a>
           <span className="sw-topdiv" aria-hidden="true" />
-          <span className="sw-topbar-sub">Seewetter Nord- und Ostsee{inDossier && spot ? ` · ${spot.name}` : ''}</span>
+          <span className="sw-topbar-sub">Seewetter Nord- und Ostsee{inDossier && spot ? <span className="sw-topbar-spot"> · {spot.name}</span> : null}</span>
           {stageSeg}
           <div className="sw-topbar-right">
             <span className={`sw-live is-${liveTone}`} role="status"><span className="sw-live-dot" aria-hidden="true"><span /><span /></span>{liveTone === 'live' ? 'Aktuell' : liveTone === 'stale' ? 'Veraltet' : liveTone === 'loading' ? 'Lädt' : 'Keine Daten'}</span>
@@ -584,7 +585,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
             <ShareButton className="sw-share" text="Teilen" />
           </div>
         </header>
-        <div className="sw-body">
+        <div className={`sw-body${inDossier ? ' is-dossier' : ''}`}>
           {dockOf('layers')}
           <main className={`sw-map msl-host${inDossier ? ' is-offstage' : ''}`} aria-label="Karte" aria-hidden={inDossier ? true : undefined}>
             {map}

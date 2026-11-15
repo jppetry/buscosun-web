@@ -321,7 +321,7 @@ export default function SeaReadout(p: Props) {
       <section className="sw-card sw-ds-head" aria-label="Spot-Dossier · Kopf">
         <div className="sw-ds-headrow">
           <div className="sw-ds-headtx">
-            <div className="sw-eyebrow is-accent">Spot-Dossier · {kindsText(s.kinds)} · Profil {p.profileLabel}</div>
+            <div className="sw-eyebrow is-accent"><span className="sw-ds-eb-pre">Spot-Dossier · </span>{kindsText(s.kinds)} · Profil {p.profileLabel}</div>
             <h2 className="sw-ds-title">{s.name}<span className="sw-badge">{s.region === 'nordsee' ? 'NORDSEE' : 'OSTSEE'}</span></h2>
             <div className="sw-ds-sub">{[s.coast?.name, s.seaArea ? `Seegebiet ${s.seaArea.name}` : null, s.tidal ? 'Watt' : null].filter(Boolean).join(' · ')} · Ufer zeigt nach {compass16(s.normal)} ({s.normal}°{s.normalFrom === 'set' ? ', gesetzt' : ''})</div>
             <div className={`sw-chip${p.freshness !== 'live' ? ' is-stale' : ''}`}><i />Welle Modell {runLabel(p.run)} · Wind {windName}{p.freshness === 'stale' ? ' · veraltet' : ''}</div>

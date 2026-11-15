@@ -1042,3 +1042,76 @@
 }
 .sw-ds .sw-sec-tx p { font-size: 12.5px; }
 .sw-ds .sw-card, .sw-ds .sw-card.sw-chartpanel { border-radius: 16px; }
+
+/* --- Spot dossier on tablet and phone (15.11.) ---------------------------------------------------------- */
+/* The two-column rule of the wide water card outranked the container rule above, so value and glass never stacked. */
+@container (max-width: 640px) {
+  .sw-ds .sw-card.is-wide .sw-wl-top { grid-template-columns: minmax(0, 1fr); }
+}
+/* Tablet / laptop: the layer dock acts on the map, which is off stage while the dossier is open — its width goes to the
+   dossier. Upright (tablet portrait) the spot list leaves as well; "Karte" in the topbar brings both back. */
+@media (max-width: 1439px) {
+  .sw-body.is-dossier > .sw-dock { display: none; }
+  .sw-topbar-spot { display: none; }
+  .sw-ds .sw-ds-headrow { flex-wrap: nowrap; }
+  .sw-ds .sw-ds-headside { align-items: flex-end; }
+  .sw-ds .sw-ds-back { min-height: 44px; padding: 0 14px; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 999px; background: #fff; font-weight: 600; text-decoration: none; white-space: nowrap; }
+  .sw-ds .sw-details summary { min-height: 44px; }
+  /* Touch: chapter tabs, time chips, the link to the full message and the hour buttons of the band reach 44 px. */
+  .sw-ds .sw-ds-tab, .sw-ds .sw-warn-more, .sw-ds .sw-ds-kpibar .sw-times button { min-height: 44px; }
+  .sw-ds .sw-band-table th, .sw-ds .sw-band-table td { width: 44px; min-width: 44px; max-width: 44px; }
+  .sw-ds .sw-band-table thead th button { height: 44px; }
+  .sw-ds .sw-card.is-wide .sw-wl-top .sw-vals > div:last-child strong { font-size: 15px; font-weight: 600; line-height: 1.4; }
+  /* Five hour figures fit one row on an upright tablet (was four and one left over). */
+  .sw-ds .sw-kpis { grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); }
+}
+/* Four tide times: two by two instead of three and one left over. */
+@container (max-width: 900px) {
+  .sw-ds .sw-card.is-wide .sw-wl-events { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 1439px) and (orientation: portrait) {
+  .sw-body.is-dossier > .sw-readout.is-picker { display: none; }
+}
+/* Phone: one column. Head = name, place and run; the water glass opens its chapter. */
+@media (max-width: 767px) {
+  .sw-m-dossier .sw-ds { gap: 12px; }
+  .sw-m-dossier .sw-ds .sw-card { padding: 14px; }
+  .sw-m-dossier .sw-card-head { flex-wrap: wrap; gap: 2px 8px; }
+  .sw-m-dossier .sw-ds-eb-pre { display: none; }
+  .sw-m-dossier .sw-ds .sw-ds-head { padding: 14px; }
+  .sw-m-dossier .sw-ds .sw-ds-title { font-size: 24px; flex-wrap: wrap; }
+  .sw-m-dossier .sw-ds-sub { font-size: 14px; line-height: 1.4; }
+  .sw-m-dossier .sw-ds-head .sw-chip { align-items: flex-start; padding: 5px 9px; line-height: 1.3; }
+  .sw-m-dossier .sw-ds-head .sw-chip i { flex: 0 0 auto; margin-top: 4px; }
+  /* Hour and way back are already on the page: the time chips in the top row, „Karte“ in the bottom bar. */
+  .sw-m-dossier .sw-ds .sw-ds-headside { display: none; }
+  /* The map's source line and button float above every page layer — they belong to the map below, not to this page. */
+  .sw-root.is-mobile:has(.sw-m-dossier) .msl-host.msl-host .maplibregl-ctrl-bottom-right { display: none; }
+  /* Official message: the mark sits in the title row, the wording gets the full width. */
+  .sw-m-dossier .sw-ds .sw-card.sw-warnbar { display: block; padding: 14px 14px 14px 18px; }
+  .sw-m-dossier .sw-warnbar-ic { position: absolute; top: 14px; left: 18px; width: 32px; height: 32px; border-radius: 10px; }
+  .sw-m-dossier .sw-warnbar-head { flex-direction: column; flex-wrap: nowrap; align-items: flex-start; justify-content: center; gap: 0; min-height: 32px; padding-left: 42px; }
+  .sw-m-dossier .sw-ds .sw-warn-rows { grid-template-columns: minmax(0, 1fr); }
+  .sw-m-dossier .sw-warn-more { min-height: 44px; }
+  /* Hour figures: two per row, a fifth one (land measurement) over the full width. */
+  .sw-m-dossier .sw-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .sw-m-dossier .sw-kpi { padding: 12px 14px; }
+  .sw-m-dossier .sw-kpi:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .sw-m-dossier .sw-kpi-v strong { font-size: 30px; }
+  .sw-m-dossier .sw-kpi-v strong.is-text { font-size: 20px; }
+  /* Water level: glass first, then value and reference; the tide times as rows (time left, height right). */
+  .sw-m-dossier .sw-ds .sw-card.is-wide .sw-wl-top { display: flex; flex-direction: column-reverse; gap: 8px; }
+  .sw-m-dossier .sw-ds .sw-wl-fill { padding: 12px 14px 12px 4px; gap: 10px; }
+  .sw-m-dossier .sw-wl-fill svg { margin-right: -38px; }
+  .sw-m-dossier .sw-card.is-wide .sw-wl-fill-txt { font-size: 13px; }
+  .sw-m-dossier .sw-card.is-wide .sw-wl-fill-txt strong { font-size: 28px; }
+  .sw-m-dossier .sw-card.is-wide .sw-wl-fill-txt strong small { display: block; font-size: 12.5px; }
+  .sw-m-dossier .sw-card.is-wide .sw-wl-top .sw-vals > div:last-child strong { font-size: 14px; font-weight: 500; line-height: 1.4; }
+  .sw-m-dossier .sw-ds .sw-card.is-wide .sw-wl-events { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .sw-m-dossier .sw-ds .sw-card.is-wide .sw-wl-events li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0 12px; padding: 9px 12px; }
+  .sw-m-dossier .sw-ds .sw-card.is-wide .sw-wl-events .sw-wl-ev { grid-column: 1; font-weight: 600; color: var(--ink-900, #2C2A26); }
+  .sw-m-dossier .sw-ds .sw-card.is-wide .sw-wl-events .sw-wl-cm { grid-column: 2; grid-row: 1 / span 3; text-align: right; font-size: 17px; }
+  .sw-m-dossier .sw-ds .sw-card.is-wide .sw-wl-events em { grid-column: 1; }
+  .sw-m-dossier .sw-card.is-wide .sw-official-meta { font-size: 13.5px; }
+  .sw-m-dossier .sw-card.is-wide .sw-chart-legend { font-size: 13px; gap: 4px 14px; }
+}
