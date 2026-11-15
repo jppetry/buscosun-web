@@ -905,10 +905,10 @@
   .tile-map { min-height: 262px; }
   /* Wetterkarte mobil (Jan 01.11.: 40 % niedriger, vorher 358 / 396): Text links, die gezeichnete Karte rechts daneben auf voller Höhe.
      Mindesthöhe, damit der Text auch auf schmalen Geräten (320 px) nicht abgeschnitten wird. */
-  .tile-karte.t-lg { aspect-ratio: 358 / 192; min-height: 190px; width: 100%; }   /* width: without it min-height × ratio made the tile wider than the column (≈ 354 px) */
-  .tile-karte-text { left: 18px; top: 16px; width: calc(54% - 22px); }
+  .tile-karte.t-lg { aspect-ratio: 358 / 236; min-height: 232px; width: 100%; }   /* width: without it min-height × ratio made the tile wider than the column (≈ 354 px) */
+  .tile-karte-text { left: 18px; top: 16px; width: calc(50% - 24px); }
   /* Karte füllt die Höhe der Kachel (minus 6 px Rand oben und unten) und skaliert mit ihr (Jan 01.11.: Kachel noch −10 %, Karte kleiner). */
-  .tile-karte-svg { --wk-left: 0px; left: auto; right: 6px; top: 6px; width: 46%; height: calc(100% - 12px); }
+  .tile-karte-svg { --wk-left: 0px; left: auto; right: 4px; top: 6px; width: 48%; height: calc(100% - 12px); }
   .tile-karte-text .tile-title-xl { font-size: 18px; margin-top: 6px; }
   .tile-karte-text .tile-desc { font-size: 12px; line-height: 1.4; margin-top: 8px; }
   .tile-tour, .tile-event, .tile-nowcast, .tile-forecast, .tile-fire, .tile-history, .tile-threed, .tile-globus,

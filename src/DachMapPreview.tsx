@@ -25,7 +25,7 @@ const FRAME = {
   narrow: {
     // Mobil: nur der Kartenbereich (Land + Beschriftungen), rechts neben dem Text; Koordinaten bleiben die des Bezugsrahmens 358 × 396.
     box: '76 128 214 268', align: 'xMidYMid meet', x: 84, y: 134, k: 1, label: 8.5,
-    cities: ['Hamburg', 'Berlin', 'Frankfurt', 'München', 'Wien', 'Zürich', 'Bern'],
+    cities: ['Hamburg', 'Berlin', 'Frankfurt', 'München', 'Wien', 'Bern'],
     clouds: [{ x: 152, y: 212, s: 0.7, cls: 'is-a', storm: true }, { x: 190, y: 288, s: 0.6, cls: 'is-b', storm: false }],
   },
 } as const;
