@@ -183,6 +183,7 @@ import {
   IcoRows, IcoArrowRight, IcoPlay, IcoPause, IcoPlus, IcoMinus,
 } from './map/deckIcons';
 import { geocodeDACH } from './geocode';
+import { LocationSearchSheet, useSearchSheet } from './components/LocationSearchSheet';
 import { lzEnabled } from './sources/loadTuning';
 import { prefetchNowLayers } from './sources/layerPrefetch';
 import type { RepackFamily } from './sources/repackSource';
@@ -6356,6 +6357,7 @@ function DeckSearch({ placeholder, onSelect, compact = false }: {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const acRef = useRef<AbortController | null>(null);
   useLocationSuggest(q, setHits);
+  const sheet = useSearchSheet();   // phone / tablet: full-screen search page instead of the inline dropdown
 
   useEffect(() => {
     if (compact) return;
@@ -6409,12 +6411,20 @@ function DeckSearch({ placeholder, onSelect, compact = false }: {
             if (e.key === 'Enter') { e.preventDefault(); void run(); }
             if (e.key === 'Escape') { setQ(''); reset(); }
           }}
+          onFocus={sheet.openSheet}
           disabled={busy}
         />
         {compact
           ? <span className="mdk-m-live-dot" aria-hidden="true" />
           : <span className="mdk-kbd" aria-hidden="true">⌘K</span>}
       </div>
+      {sheet.open && (
+        <LocationSearchSheet
+          inputRef={sheet.inputRef} onClose={sheet.close} placeholder="Stadt, Adresse oder PLZ …"
+          accent="var(--mdk-accent, #3A6FA8)"
+          onPick={(l) => { sheet.close(); setQ(''); reset(); onSelect?.(l); }}
+        />
+      )}
       {(hits.length > 0 || err) && (
         <div className="mdk-search-drop" role="listbox" aria-label="Suchergebnisse">
           {err && <div className="mdk-search-err">⚠ {err}</div>}
