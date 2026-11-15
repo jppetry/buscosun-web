@@ -6,7 +6,7 @@
  *    can be picked on the map, on the proportional bar or in the list.
  * No map engine: the drawing is a few hundred SVG paths, so the dossier opens at once and costs no second WebGL context.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import type { RoadCorridor } from './roadClient';
 import type { RoadPoint } from './roadContract';
 import type { RoadSegment } from './roadSegments';
@@ -139,11 +139,17 @@ export interface RoadRouteCardProps {
   segNote: string | null;
 }
 
+/** Where the bar's drag handle exists: phone and tablet widths, and any touch screen (same query as the CSS of `.aw-ds-thumb`). */
+const BAR_DRAG_MEDIA = '(max-width: 1439px), (pointer: coarse)';
+
 const lvText = (s: SegState | undefined) => (!s ? 'keine Auswertung' : s.lv > 0 ? `Stufe ${s.lv}` : s.unknown ? 'unbekannt' : 'keine Gefahr');
 
 export function RoadRouteCard(p: RoadRouteCardProps) {
   const { corridor: c } = p;
   const [hover, setHover] = useState<string | null>(null);
+  const barRef = useRef<HTMLDivElement>(null);
+  const dragPointer = useRef<number | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
   const [outline, setOutline] = useState<number[][][][] | null>(null);
   useEffect(() => { let alive = true; loadOutline().then((o) => { if (alive) setOutline(o); }); return () => { alive = false; }; }, []);
 
@@ -225,6 +231,42 @@ export function RoadRouteCard(p: RoadRouteCardProps) {
 
   const total = p.segs.reduce((a, s) => a + s.lengthKm, 0) || 1;
   const fS = u * 0.032;
+
+  // Phone / tablet (Jan 15.11.): the proportional bar carries a handle on the selected segment — press and drag along the bar,
+  // the segment under the finger is previewed (map, caption) and picked on release. A vertical swipe stays a page scroll.
+  const barGap = p.segs.length > 40 ? 1 : 2; // the bar's CSS gap (`is-dense` = 1 px)
+  const segAtX = (clientX: number): string | null => {
+    const el = barRef.current;
+    if (!el || !p.segs.length) return null;
+    const r = el.getBoundingClientRect();
+    const inner = r.width - barGap * (p.segs.length - 1);
+    const x = clientX - r.left;
+    let acc = 0;
+    for (const s of p.segs) { acc += (s.lengthKm / total) * inner + barGap; if (x < acc - barGap / 2) return s.id; }
+    return p.segs[p.segs.length - 1].id;
+  };
+  const onBarDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (!window.matchMedia?.(BAR_DRAG_MEDIA).matches || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    const id = segAtX(e.clientX);
+    if (!id) return;
+    dragPointer.current = e.pointerId;
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* capture is a convenience */ }
+    setDragId(id); setHover(id);
+  };
+  const onBarMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (dragPointer.current !== e.pointerId) return;
+    const id = segAtX(e.clientX);
+    if (id && id !== dragId) { setDragId(id); setHover(id); }
+  };
+  const endBarDrag = (e: ReactPointerEvent<HTMLDivElement>, pick: boolean) => {
+    if (dragPointer.current !== e.pointerId) return;
+    dragPointer.current = null;
+    const id = pick ? segAtX(e.clientX) ?? dragId : null;
+    setDragId(null); setHover(null);
+    if (id && id !== p.selectedId) p.onPick(id);
+  };
+  const thumbIdx = p.segs.findIndex((s) => s.id === (dragId ?? p.selectedId));
+  const thumbAt = thumbIdx < 0 ? 0 : (p.segs.slice(0, thumbIdx).reduce((a, s) => a + s.lengthKm, 0) + p.segs[thumbIdx].lengthKm / 2) / total;
   return (
     <section className="aw-ds-card aw-ds-route" aria-label="Streckenkarte und Abschnitte">
       <div className="aw-ds-cardhead">
@@ -313,15 +355,21 @@ export function RoadRouteCard(p: RoadRouteCardProps) {
 
         <div className="aw-ds-listcol">
           {p.segs.length > 0 && (
-            <div className={`aw-ds-bar${p.segs.length > 40 ? ' is-dense' : ''}`} role="group" aria-label="Abschnitte im Maßstab der Strecke">
-              {p.segs.map((s) => {
-                const st = p.states.get(s.id);
-                return (
-                  <button key={s.id} type="button" className={`aw-ds-bar-seg${s.id === p.selectedId ? ' is-on' : ''}`} style={{ flexGrow: s.lengthKm / total, background: lvColor(st) }}
-                    title={`${s.name} · ${lvText(st)}`} aria-label={`${s.name}, ${lvText(st)}`} aria-pressed={s.id === p.selectedId}
-                    onClick={() => p.onPick(s.id)} onMouseEnter={() => setHover(s.id)} onMouseLeave={() => setHover(null)} />
-                );
-              })}
+            <div className="aw-ds-barwrap" onPointerDown={onBarDown} onPointerMove={onBarMove} onPointerUp={(e) => endBarDrag(e, true)} onPointerCancel={(e) => endBarDrag(e, false)}>
+              <div ref={barRef} className={`aw-ds-bar${p.segs.length > 40 ? ' is-dense' : ''}`} role="group" aria-label="Abschnitte im Maßstab der Strecke">
+                {p.segs.map((s) => {
+                  const st = p.states.get(s.id);
+                  return (
+                    <button key={s.id} type="button" className={`aw-ds-bar-seg${s.id === p.selectedId ? ' is-on' : ''}`} style={{ flexGrow: s.lengthKm / total, background: lvColor(st) }}
+                      title={`${s.name} · ${lvText(st)}`} aria-label={`${s.name}, ${lvText(st)}`} aria-pressed={s.id === p.selectedId}
+                      onClick={() => p.onPick(s.id)} onMouseEnter={() => setHover(s.id)} onMouseLeave={() => setHover(null)} />
+                  );
+                })}
+              </div>
+              {thumbIdx >= 0 && (
+                <span className={`aw-ds-thumb${dragId ? ' is-drag' : ''}`} aria-hidden="true"
+                  style={{ left: `calc((100% - ${barGap * (p.segs.length - 1)}px) * ${thumbAt.toFixed(5)} + ${thumbIdx * barGap}px)` }}><i /><i /></span>
+              )}
             </div>
           )}
           <div className="aw-ds-list" ref={listRef}>

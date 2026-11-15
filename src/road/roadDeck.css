@@ -842,6 +842,17 @@ button.aw-prog-tile:not(:disabled):not(.is-on):hover { box-shadow: var(--aw-inse
 .aw-ds-listcol { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .aw-ds-bar { display: flex; gap: 2px; height: 16px; min-width: 0; overflow: hidden; }
 /* Sehr lange Autobahnen (Jan 11.11., A 7 mit 85 Abschnitten): kein Mindestmaß je Abschnitt, schmalere Fugen — der Balken bleibt in der Spalte. */
+/* Phone / tablet: drag handle on the selected segment (press and drag along the bar); desktop keeps the plain bar. */
+.aw-ds-barwrap { position: relative; min-width: 0; }
+.aw-ds-thumb { display: none; }
+@media (max-width: 1439px), (pointer: coarse) {
+  .aw-ds-barwrap { padding: 11px 0; touch-action: pan-y; cursor: grab; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+  .aw-ds-barwrap .aw-ds-bar { height: 22px; }
+  .aw-ds-thumb { position: absolute; top: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 50%; background: #fff; border: 2px solid var(--ink-900, #2C2A26); box-shadow: 0 4px 10px -4px rgba(44, 42, 38, 0.55); display: flex; align-items: center; justify-content: center; gap: 3px; pointer-events: none; transition: left .1s ease-out, transform .12s; }
+  .aw-ds-thumb i { width: 2px; height: 10px; border-radius: 1px; background: var(--ink-900, #2C2A26); }
+  .aw-ds-thumb.is-drag { transform: scale(1.18); }
+}
+@media (prefers-reduced-motion: reduce) { .aw-ds-thumb { transition: none; } }
 .aw-ds-bar.is-dense { gap: 1px; }
 .aw-ds-bar.is-dense .aw-ds-bar-seg { border-radius: 1px; }
 .aw-ds-bar-seg { flex: 1 1 0; min-width: 0; height: 100%; border: 0; border-radius: 4px; padding: 0; cursor: pointer; opacity: .9; transition: transform .12s, opacity .12s; }
