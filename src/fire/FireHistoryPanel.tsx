@@ -29,7 +29,7 @@ import { FlameIcon, IndustryIcon } from './fireIcons';
 import { FireProfileBlock } from './dossier/FireProfileBlock';
 import { fetchFireWeatherArchive, type FireWeatherAtPoint } from './detail/fireWeatherAtPoint';
 import { LANDCOVER_LABEL, LANDCOVER_KEYS, effisPlaceName } from './fireCorroboration';
-import { CountryChips, historyCountryLabel } from './FireCountryChips';
+import { CountryChips, FilterSummary, FilterToggle, historyCountryLabel } from './FireCountryChips';
 
 export { historyCountryLabel };
 
@@ -90,6 +90,8 @@ const AREA_FILTER_TITLE = 'Kartierte Fläche (EFFIS), sonst die Schätzung. Erei
 export function FireHistoryPanel(p: HistoryPanelProps) {
   const [sort, setSort] = useState<HistorySort>('strength');
   const [shown, setShown] = useState(CLUSTER_PAGE);
+  /** Phone: area range and countries fold open under the tool row (closed at the start). */
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [haLo, haHi] = p.areaRange;
   const filtered = haLo > 0 || haHi < Infinity || p.countries.length > 0;
   const areaLo = Math.max(0, AREA_STEPS.indexOf(haLo));
@@ -99,6 +101,39 @@ export function FireHistoryPanel(p: HistoryPanelProps) {
   const setArea = (lo: number, hi: number) => { p.onAreaRange([AREA_STEPS[lo] ?? 0, AREA_STEPS[hi] ?? Infinity]); setShown(CLUSTER_PAGE); };
   const setAreaLo = (v: number) => { const lo = Math.min(v, AREA_LAST - 1); setArea(lo, Math.max(areaHi, lo + 1)); };
   const setAreaHi = (v: number) => { const hi = Math.max(v, 1); setArea(Math.min(areaLo, hi - 1), hi); };
+
+  /** The set filters in words (phone: the line under the tool row). */
+  const filterParts = [
+    ...(p.countries.length > 0 ? [p.countries.map((c) => historyCountryLabel(c)).join(', ')] : []),
+    ...(haLo > 0 || haHi < Infinity ? [areaLabel] : []),
+  ];
+  const sortRow = (
+    <div className="br-chiprow" role="group" aria-label="Sortierung">
+      {!p.inSheet && <span className="br-chiprow-lbl">Sortieren:</span>}
+      {([['strength', 'Stärke'], ['recency', 'Zuletzt'], ['area', 'Fläche']] as const).map(([id, l]) => (
+        <button key={id} type="button" className={`br-chip is-ink${sort === id ? ' is-active' : ''}`} aria-pressed={sort === id} onClick={() => { setSort(id); setShown(CLUSTER_PAGE); }}>{l}</button>
+      ))}
+    </div>
+  );
+  /* Area range as two thumbs over fixed stops (same track and thumbs as the month range above the list). */
+  const areaRow = (
+    <div className="br-arange" role="group" aria-label="Fläche von – bis" title={AREA_FILTER_TITLE}>
+      <div className="br-arange-head">
+        <span className="br-chiprow-lbl">Fläche in ha</span>
+        <strong className="br-mrange-val">{areaLabel}</strong>
+      </div>
+      <div className="br-mrange-track" style={{ ['--lo' as string]: areaLo / AREA_LAST, ['--hi' as string]: areaHi / AREA_LAST }}>
+        <input type="range" min={0} max={AREA_LAST} step={1} value={areaLo} aria-label="Kleinste Fläche" aria-valuetext={haLo > 0 ? `ab ${de(haLo)} ha` : 'keine Untergrenze'} onChange={(e) => setAreaLo(Number(e.target.value))} />
+        <input type="range" min={0} max={AREA_LAST} step={1} value={areaHi} aria-label="Größte Fläche" aria-valuetext={haHi < Infinity ? `bis ${de(haHi)} ha` : 'keine Obergrenze'} onChange={(e) => setAreaHi(Number(e.target.value))} />
+      </div>
+      <div className="br-mrange-ticks" aria-hidden="true" style={{ ['--n' as string]: AREA_STEPS.length }}>
+        {AREA_STEPS.map((ha) => <span key={ha}>{ha === Infinity ? 'mehr' : de(ha)}</span>)}
+      </div>
+    </div>
+  );
+  const countryRow = (
+    <CountryChips countries={p.countries} options={p.countryOptions} showLabel onChange={(codes) => { p.onCountries(codes); setShown(CLUSTER_PAGE); }} />
+  );
 
   const file: HistoryIndexFile | null = p.load.kind === 'ok' ? p.load.file : null;
   const rows = useMemo(() => {
@@ -124,27 +159,18 @@ export function FireHistoryPanel(p: HistoryPanelProps) {
       )}
       {file && (
         <>
-          <div className="br-chiprow" role="group" aria-label="Sortierung">
-            {!p.inSheet && <span className="br-chiprow-lbl">Sortieren:</span>}
-            {([['strength', 'Stärke'], ['recency', 'Zuletzt'], ['area', 'Fläche']] as const).map(([id, l]) => (
-              <button key={id} type="button" className={`br-chip is-ink${sort === id ? ' is-active' : ''}`} aria-pressed={sort === id} onClick={() => { setSort(id); setShown(CLUSTER_PAGE); }}>{l}</button>
-            ))}
-          </div>
-          {/* Area range as two thumbs over fixed stops (same track and thumbs as the month range above the list). */}
-          <div className="br-arange" role="group" aria-label="Fläche von – bis" title={AREA_FILTER_TITLE}>
-            <div className="br-arange-head">
-              <span className="br-chiprow-lbl">Fläche in ha</span>
-              <strong className="br-mrange-val">{areaLabel}</strong>
-            </div>
-            <div className="br-mrange-track" style={{ ['--lo' as string]: areaLo / AREA_LAST, ['--hi' as string]: areaHi / AREA_LAST }}>
-              <input type="range" min={0} max={AREA_LAST} step={1} value={areaLo} aria-label="Kleinste Fläche" aria-valuetext={haLo > 0 ? `ab ${de(haLo)} ha` : 'keine Untergrenze'} onChange={(e) => setAreaLo(Number(e.target.value))} />
-              <input type="range" min={0} max={AREA_LAST} step={1} value={areaHi} aria-label="Größte Fläche" aria-valuetext={haHi < Infinity ? `bis ${de(haHi)} ha` : 'keine Obergrenze'} onChange={(e) => setAreaHi(Number(e.target.value))} />
-            </div>
-            <div className="br-mrange-ticks" aria-hidden="true" style={{ ['--n' as string]: AREA_STEPS.length }}>
-              {AREA_STEPS.map((ha) => <span key={ha}>{ha === Infinity ? 'mehr' : de(ha)}</span>)}
-            </div>
-          </div>
-          <CountryChips countries={p.countries} options={p.countryOptions} showLabel={!p.inSheet} onChange={(codes) => { p.onCountries(codes); setShown(CLUSTER_PAGE); }} />
+          {p.inSheet ? (
+            <>
+              <div className="br-toolrow">
+                {sortRow}
+                <FilterToggle open={filtersOpen} count={filterParts.length} onClick={() => setFiltersOpen((v) => !v)} />
+              </div>
+              <FilterSummary parts={filterParts} onReset={() => { p.onAreaRange([0, Infinity]); p.onCountries([]); setShown(CLUSTER_PAGE); }} />
+              {filtersOpen && <div className="br-filters br-filterfold">{areaRow}{countryRow}</div>}
+            </>
+          ) : (
+            <>{sortRow}{areaRow}{countryRow}</>
+          )}
           {rows.length === 0 && (filtered
             ? <p className="br-empty">Kein Brand passt zu dieser Auswahl (Fläche, Land) im Stand vom {historyStandLabel(file.evaluatedAt)}.</p>
             : <p className="br-empty">Keine Ereignisse dieser Art im Stand vom {historyStandLabel(file.evaluatedAt)} — kleine Brände fehlen dem Satelliten systematisch.</p>)}

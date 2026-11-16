@@ -55,3 +55,31 @@ export function CountryChips({ countries, options, onChange, showLabel, title }:
     </div>
   );
 }
+
+/**
+ * Phone list (Jan 2026-11-16): sorting and ONE button „Filter“ share a row; the filters themselves fold open below it,
+ * so the first fire stands higher on the screen. `count` = number of set filters, shown on the button.
+ */
+export function FilterToggle({ open, count, onClick }: { open: boolean; count: number; onClick: () => void }) {
+  return (
+    <button type="button" className={`br-filterbtn${open || count > 0 ? ' is-active' : ''}`} aria-expanded={open} onClick={onClick}>
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
+        <path d="M2 4h11M4 7.5h7M6 11h3" />
+      </svg>
+      Filter{count > 0 ? <span className="br-filterbtn-n">{count}</span> : null}
+    </button>
+  );
+}
+
+/** The set filters in words, with the way back to „everything“ — stands under the tool row while a filter is set. */
+export function FilterSummary({ parts, onReset }: { parts: readonly string[]; onReset: () => void }) {
+  if (parts.length === 0) return null;
+  return (
+    <div className="br-filtersum" role="status">
+      <span className="br-filtersum-tx">{parts.join(' · ')}</span>
+      <button type="button" className="br-filtersum-x" onClick={onReset} aria-label="Alle Filter zurücksetzen" title="Alle Filter zurücksetzen">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" /></svg>
+      </button>
+    </div>
+  );
+}

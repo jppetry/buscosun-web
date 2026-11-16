@@ -72,7 +72,7 @@ import { HISTORY_DAYS } from './footprint/history';
 import { LEVEL_LABEL } from './fireAssessment';
 import { ageText, clockLabel } from '../dataAge';
 import { windowLabel } from './fireTime';
-import { CountryChips } from './FireCountryChips';
+import { CountryChips, FilterSummary, FilterToggle, historyCountryLabel } from './FireCountryChips';
 import type { AtWarnContext } from './sources/geosphereWarnContext';
 import { BR_BADGE_LABEL, badgeOf } from './brandradarMeta';
 import { siteLabel } from './anomaly/classify';
@@ -383,6 +383,48 @@ export function FireFootprintPanel(p: FootprintPanelProps) {
     { id: 'strength', label: 'Stärke', title: 'Summe der Feuerstrahlungsleistung — die Rangfolge der früheren Cluster-Liste. Einträge ohne Detektion stehen hinten.' },
     { id: 'status', label: 'Status' },
   ];
+  /** The set filters in words (phone: the line under the tool row). */
+  const filterParts = [
+    ...(filter.countries && filter.countries.size > 0 ? [[...filter.countries].map((c) => historyCountryLabel(c)).join(', ')] : []),
+    ...(filter.minAreaHa > 0 ? [`ab ${filter.minAreaHa} ha`] : []),
+    ...(filter.status && filter.status.size > 0 ? [[...filter.status].map((k) => STATUS_LABEL[k]).join(', ')] : []),
+  ];
+  const sortRow = (
+    <div className="br-chiprow" role="group" aria-label="Sortierung">
+      {!p.inSheet && <span className="br-chiprow-lbl">Sortieren:</span>}
+      {SORTS.map((s) => (
+        <button
+          key={s.id} type="button" className={`br-chip is-red${p.sort === s.id ? ' is-active' : ''}`}
+          aria-pressed={p.sort === s.id} title={s.title} onClick={() => p.onSort(s.id)}
+        >
+          {s.label}
+        </button>
+      ))}
+    </div>
+  );
+  const scopeChips = (
+    <>
+      <button type="button" className={`br-chip is-ink${p.effisScope === 'week' ? ' is-active' : ''}`} aria-pressed={p.effisScope === 'week'} onClick={() => p.onEffisScope('week')}>
+        {HISTORY_DAYS} Tage
+      </button>
+      <button
+        type="button" className={`br-chip is-ink${p.effisScope === 'season' ? ' is-active' : ''}`}
+        aria-pressed={p.effisScope === 'season'}
+        disabled={!state.seasonLoaded}
+        title={state.seasonLoaded ? 'Alle kartierten Flächen der laufenden Saison' : 'Saison-Korb ist nicht geladen (Ebene „Frühere Brandflächen" einschalten)'}
+        onClick={() => state.seasonLoaded && p.onEffisScope('season')}
+      >
+        ganze Saison
+      </button>
+    </>
+  );
+  const countryRow = (
+    <CountryChips
+      countries={filter.countries ? [...filter.countries] : []} options={p.countryOptions ?? []} showLabel
+      title="Einträge ohne Landeszuordnung (Umrisse noch nicht geladen) bleiben bei jedem Filter sichtbar — nichts wird behauptet."
+      onChange={(codes) => p.onFilter({ ...filter, countries: codes.length ? new Set(codes) : null })}
+    />
+  );
 
   return (
     <div className={`br-fires${p.inSheet ? ' is-sheet' : ''}`}>
@@ -397,50 +439,46 @@ export function FireFootprintPanel(p: FootprintPanelProps) {
         </div>
       )}
 
-      <div className="br-chiprow" role="group" aria-label="Sortierung">
-        {!p.inSheet && <span className="br-chiprow-lbl">Sortieren:</span>}
-        {SORTS.map((s) => (
-          <button
-            key={s.id} type="button" className={`br-chip is-red${p.sort === s.id ? ' is-active' : ''}`}
-            aria-pressed={p.sort === s.id} title={s.title} onClick={() => p.onSort(s.id)}
-          >
-            {s.label}
-          </button>
-        ))}
-      </div>
-      <div className="br-chiprow" role="group" aria-label="Umfang der EFFIS-Kartierungen">
-        {!p.inSheet && <span className="br-chiprow-lbl">Umfang:</span>}
-        <button type="button" className={`br-chip is-ink${p.effisScope === 'week' ? ' is-active' : ''}`} aria-pressed={p.effisScope === 'week'} onClick={() => p.onEffisScope('week')}>
-          {HISTORY_DAYS} Tage
-        </button>
-        <button
-          type="button" className={`br-chip is-ink${p.effisScope === 'season' ? ' is-active' : ''}`}
-          aria-pressed={p.effisScope === 'season'}
-          disabled={!state.seasonLoaded}
-          title={state.seasonLoaded ? 'Alle kartierten Flächen der laufenden Saison' : 'Saison-Korb ist nicht geladen (Ebene „Frühere Brandflächen" einschalten)'}
-          onClick={() => state.seasonLoaded && p.onEffisScope('season')}
-        >
-          ganze Saison
-        </button>
-        <button
-          type="button" className={`br-chip is-ghost${filtersOpen || filtered ? ' is-active' : ''}`}
-          aria-expanded={filtersOpen} onClick={() => setFiltersOpen((v) => !v)}
-        >
-          Filter{filtered ? ' ·' : ''}
-        </button>
-      </div>
-
-      {/* The country row of the history list (month/season), always visible: one filter for all four windows. */}
-      <CountryChips
-        countries={filter.countries ? [...filter.countries] : []} options={p.countryOptions ?? []} showLabel={!p.inSheet}
-        title="Einträge ohne Landeszuordnung (Umrisse noch nicht geladen) bleiben bei jedem Filter sichtbar — nichts wird behauptet."
-        onChange={(codes) => p.onFilter({ ...filter, countries: codes.length ? new Set(codes) : null })}
-      />
+      {p.inSheet ? (
+        <>
+          {/* Phone: sorting and ONE button „Filter“ in a row; scope, countries, minimum area and status fold open below. */}
+          <div className="br-toolrow">
+            {sortRow}
+            <FilterToggle open={filtersOpen} count={filterParts.length} onClick={() => setFiltersOpen((v) => !v)} />
+          </div>
+          <FilterSummary parts={filterParts} onReset={() => p.onFilter({ ...filter, minAreaHa: 0, status: null, countries: null })} />
+        </>
+      ) : (
+        <>
+          {sortRow}
+          <div className="br-chiprow" role="group" aria-label="Umfang der EFFIS-Kartierungen">
+            <span className="br-chiprow-lbl">Umfang:</span>
+            {scopeChips}
+            <button
+              type="button" className={`br-chip is-ghost${filtersOpen || filtered ? ' is-active' : ''}`}
+              aria-expanded={filtersOpen} onClick={() => setFiltersOpen((v) => !v)}
+            >
+              Filter{filtered ? ' ·' : ''}
+            </button>
+          </div>
+          {/* The country row of the history list (month/season), always visible: one filter for all four windows. */}
+          {countryRow}
+        </>
+      )}
 
       {p.scopeNote && p.effisScope === 'season' && <p className="br-note">{p.scopeNote}</p>}
 
       {filtersOpen && (
-        <div className="br-filters">
+        <div className={`br-filters${p.inSheet ? ' br-filterfold' : ''}`}>
+          {p.inSheet && (
+            <>
+              <div className="br-chiprow" role="group" aria-label="Umfang der EFFIS-Kartierungen">
+                <span className="br-chiprow-lbl">Umfang:</span>
+                {scopeChips}
+              </div>
+              {countryRow}
+            </>
+          )}
           <div className="br-chiprow" role="group" aria-label="Mindestfläche">
             <span className="br-chiprow-lbl">Mindestfläche:</span>
             {[0, 1, 5, 20].map((ha) => (
