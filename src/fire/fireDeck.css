@@ -1437,6 +1437,7 @@
   .br-m-dsback:active { background: var(--sand-200, #E0D6BE); }
   .br-m-dsback:focus-visible { outline: 2px solid var(--br-terra); outline-offset: 2px; }
   .br-m-dshead .br-m-title { margin: 4px 0 0; font-size: 20px; text-align: center; overflow-wrap: anywhere; }
+  .br-m-dstail { font-size: 15.5px; font-weight: 500; letter-spacing: 0; color: var(--stone-600, #5C5447); }
   .br-m-dsmeta { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; }
   .br-m-dsbadge { display: inline-block; font-size: 12px; font-weight: 700; color: var(--cream-50, #FAF6EA); background: var(--br-red); border-radius: 6px; padding: 3px 8px; letter-spacing: .04em; text-transform: uppercase; }
   .br-m-dsregion { display: block; margin: 0; font-size: 15.5px; color: var(--stone-600, #5C5447); text-align: center; }

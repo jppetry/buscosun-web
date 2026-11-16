@@ -2508,15 +2508,18 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     </button>
   );
   const mobileShare = <ShareButton className="br-m-share" compact />;
-  /** Mobil, Dossier-Kopf (Jan 2026-11-16): der Zurück-Knopf mittig zwischen Logo und Teilen, der Name des Brands zentriert darunter. */
-  const dsHeadRow = (backLabel: string, name: string) => (
+  /**
+   * Mobil, Dossier-Kopf (Jan 2026-11-16): der Zurück-Knopf mittig zwischen Logo und Teilen, der Name des Brands zentriert
+   * darunter; `tail` (Land/Region bzw. Standortklasse) steht in derselben Zeile hinter dem Namen — der Kopf bleibt niedrig.
+   */
+  const dsHeadRow = (backLabel: string, name: string, tail?: string | null) => (
     <>
       <div className="br-m-dshead-row">
         {mobileBrand}
         <button type="button" className="br-m-dsback" onClick={() => setStage('map')}>{backLabel}</button>
         {mobileShare}
       </div>
-      <h1 className="br-m-title">{name}</h1>
+      <h1 className="br-m-title">{name}{tail ? <span className="br-m-dstail"> · {tail}</span> : null}</h1>
     </>
   );
   /** Topbar-/Kopf-Segment „Karte | Dossier" (Desktop, Tablet, Mobil). */
@@ -2975,8 +2978,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
               {mobileTab === 'fires' && inDossier && !dossierRecord && readoutTab === 'anomalies' && dossierSite && (
                 <section className="br-m-page br-m-dossier" aria-label={`Standort ${siteName(dossierSite)}`}>
                   <header className="br-m-head br-m-dshead">
-                    {dsHeadRow('← Thermalanomalien', siteName(dossierSite))}
-                    <p className="br-m-dsregion">{SITE_CLASS_LABEL[dossierSite.cls]}</p>
+                    {dsHeadRow('← Thermalanomalien', siteName(dossierSite), SITE_CLASS_LABEL[dossierSite.cls])}
                   </header>
                   <div className="br-m-scroll">{siteDossier(true)}</div>
                 </section>
@@ -2984,7 +2986,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
               {mobileTab === 'fires' && inDossier && dossierRecord && (
                 <section className="br-m-page br-m-dossier" aria-label={`Dossier ${recordTitle(dossierRecord)}`}>
                   <header className="br-m-head br-m-dshead">
-                    {dsHeadRow('← Brände', recordName(dossierRecord))}
+                    {dsHeadRow('← Brände', recordName(dossierRecord), regionLabel(dossierRecord))}
                     <div className="br-m-dsmeta">
                       <span className="br-m-dsbadge">{BR_BADGE_LABEL[badgeOf(dossierRecord.status.kind, dossierRecord.suspectedStatic, dossierRecord.anomaly?.kind ?? null)]}</span>
                       <span className={`br-live is-${firms.tone}`} role="status">
@@ -2992,7 +2994,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                         {firms.label}
                       </span>
                     </div>
-                    <p className="br-m-dsregion">{regionLabel(dossierRecord)}</p>
                   </header>
                   <div className="br-m-scroll">
                     <FireDossier
@@ -3014,8 +3015,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
               {mobileTab === 'fires' && inDossier && history && historyEntry && (
                 <section className="br-m-page br-m-dossier" aria-label={`Dossier ${historyEntryName(historyEntry)}`}>
                   <header className="br-m-head br-m-dshead">
-                    {dsHeadRow('← Brände', historyEntryName(historyEntry))}
-                    <p className="br-m-dsregion">{historyEntry.country}</p>
+                    {dsHeadRow('← Brände', historyEntryName(historyEntry), historyEntry.country)}
                   </header>
                   <div className="br-m-scroll">{historyDossier}</div>
                 </section>
