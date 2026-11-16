@@ -1429,11 +1429,17 @@
   /* Mobil: das Dossier als eigene Seite — Kartenstreifen, Segment, Kennzahlen zweispaltig, Bottom-Bar bleibt. */
   .br-m-dossier { display: flex; }
   .br-m-dshead { flex-direction: column; align-items: stretch; gap: 6px; padding-bottom: 12px; }
-  .br-m-dshead-row { display: flex; align-items: center; justify-content: space-between; }
-  .br-m-dsback { margin: 0; font-size: 16.5px; min-height: 44px; display: inline-flex; align-items: center; }
-  .br-m-dshead .br-m-title { display: flex; align-items: center; gap: 10px; }
+  /* Back button in the middle between brand mark and share button, the name of the fire centred below (Jan 2026-11-16). */
+  .br-m-dshead-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; }
+  .br-m-dshead-row > :first-child { justify-self: start; }
+  .br-m-dshead-row > :last-child { justify-self: end; }
+  .br-m-dsback { margin: 0; min-height: 44px; padding: 0 20px; display: inline-flex; align-items: center; font: inherit; font-size: 16.5px; font-weight: 700; color: var(--ink-900, #2C2A26); background: var(--sand-100, #EDE6D3); border: 1px solid var(--sand-200, #E0D6BE); border-radius: 999px; cursor: pointer; white-space: nowrap; }
+  .br-m-dsback:active { background: var(--sand-200, #E0D6BE); }
+  .br-m-dsback:focus-visible { outline: 2px solid var(--br-terra); outline-offset: 2px; }
+  .br-m-dshead .br-m-title { margin: 4px 0 0; font-size: 20px; text-align: center; overflow-wrap: anywhere; }
+  .br-m-dsmeta { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; }
   .br-m-dsbadge { display: inline-block; font-size: 12px; font-weight: 700; color: var(--cream-50, #FAF6EA); background: var(--br-red); border-radius: 6px; padding: 3px 8px; letter-spacing: .04em; text-transform: uppercase; }
-  .br-m-dsregion { display: block; margin: 0; font-size: 15.5px; color: var(--stone-600, #5C5447); }
+  .br-m-dsregion { display: block; margin: 0; font-size: 15.5px; color: var(--stone-600, #5C5447); text-align: center; }
   .br-stage-seg.is-big { margin: 8px 0 0; }
   .br-stage-seg.is-big button { flex: 1; min-height: 44px; font-size: 15.5px; }
   .br-ds-mapstrip { display: block; position: relative; }

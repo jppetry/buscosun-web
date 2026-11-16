@@ -2508,17 +2508,16 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     </button>
   );
   const mobileShare = <ShareButton className="br-m-share" compact />;
-  /** Mobil, Dossier-Kopf: Logo, Zurück-Link und Name des Brands in EINER Reihe (Name kürzt mit …). */
-  const dsHeadRow = (backLabel: string, name: string, right?: ReactNode) => (
-    <div className="br-m-dshead-row" style={{ gap: 10 }}>
-      {mobileBrand}
-      <button type="button" className="br-link br-m-dsback" style={{ flex: '0 0 auto' }} onClick={() => setStage('map')}>{backLabel}</button>
-      <h1 className="br-m-title" style={{ flex: 1, minWidth: 0, margin: 0, fontSize: 18 }}>
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
-      </h1>
-      {right}
-      {mobileShare}
-    </div>
+  /** Mobil, Dossier-Kopf (Jan 2026-11-16): der Zurück-Knopf mittig zwischen Logo und Teilen, der Name des Brands zentriert darunter. */
+  const dsHeadRow = (backLabel: string, name: string) => (
+    <>
+      <div className="br-m-dshead-row">
+        {mobileBrand}
+        <button type="button" className="br-m-dsback" onClick={() => setStage('map')}>{backLabel}</button>
+        {mobileShare}
+      </div>
+      <h1 className="br-m-title">{name}</h1>
+    </>
   );
   /** Topbar-/Kopf-Segment „Karte | Dossier" (Desktop, Tablet, Mobil). */
   const stageSeg = (big: boolean) => (
@@ -2985,13 +2984,14 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
               {mobileTab === 'fires' && inDossier && dossierRecord && (
                 <section className="br-m-page br-m-dossier" aria-label={`Dossier ${recordTitle(dossierRecord)}`}>
                   <header className="br-m-head br-m-dshead">
-                    {dsHeadRow('← Brände', recordName(dossierRecord), (
+                    {dsHeadRow('← Brände', recordName(dossierRecord))}
+                    <div className="br-m-dsmeta">
+                      <span className="br-m-dsbadge">{BR_BADGE_LABEL[badgeOf(dossierRecord.status.kind, dossierRecord.suspectedStatic, dossierRecord.anomaly?.kind ?? null)]}</span>
                       <span className={`br-live is-${firms.tone}`} role="status">
                         <span className="br-live-dot" aria-hidden="true"><span /><span /></span>
                         {firms.label}
                       </span>
-                    ))}
-                    <div><span className="br-m-dsbadge">{BR_BADGE_LABEL[badgeOf(dossierRecord.status.kind, dossierRecord.suspectedStatic, dossierRecord.anomaly?.kind ?? null)]}</span></div>
+                    </div>
                     <p className="br-m-dsregion">{regionLabel(dossierRecord)}</p>
                   </header>
                   <div className="br-m-scroll">
