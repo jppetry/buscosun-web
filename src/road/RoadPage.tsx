@@ -800,6 +800,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
             {inDossier ? <div className="aw-m-top-times">{times}</div> : mPill}<ShareButton className="aw-m-share" compact /></div>
           {!inDossier && <div className="aw-m-times">{times}</div>}
           {!inDossier && emptyMap}
+          {!inDossier && <div className="aw-ov-legend aw-m-legend">{legend}</div>}
           {mapCardEl && <div className="aw-map-card">{mapCardEl}</div>}
           {inDossier && <div className="aw-m-dossier">{dossier}</div>}
         </main>
