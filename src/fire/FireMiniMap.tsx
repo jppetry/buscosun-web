@@ -103,11 +103,18 @@ export function FireMiniMap({ record, footprintFc, basemap, height, ariaLabel }:
     map.on('style.load', install);
     // Mobile: the map is often created while its tab/card is hidden or still 0 px wide; the canvas then
     // keeps its stale size and is only CSS-stretched (pixelated). Re-measure and re-fit whenever the box changes.
+    // Compared against the size the map was built with, not „skip the first callback“: a box that was 0 px at the
+    // start reports nothing then, so its first callback is the one that shows the card (MapLibre's own observer skips it too).
     let ro: ResizeObserver | null = null;
     if (typeof ResizeObserver !== 'undefined') {
-      let first = true;
+      let w = el.clientWidth;
+      let h = el.clientHeight;
       ro = new ResizeObserver(() => {
-        if (first) { first = false; return; }
+        const nw = el.clientWidth;
+        const nh = el.clientHeight;
+        if (!nw || !nh || (nw === w && nh === h)) return;
+        w = nw;
+        h = nh;
         map.resize();
         if (map.getSource(SRC)) map.fitBounds(bboxRef.current as [number, number, number, number], { padding: 28, maxZoom: 12, duration: 0 });
       });
