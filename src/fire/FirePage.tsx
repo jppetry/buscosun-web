@@ -1253,26 +1253,31 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     }
     return m;
   }, [records]);
+  /** The live filter with the country choice of the page: ONE choice (`histCountries`) for 24 h, 7 d, month and season. */
+  const liveFilter = useMemo<RecordFilter>(
+    () => ({ ...fpFilter, countries: histCountries.length > 0 ? new Set(histCountries) : null }),
+    [fpFilter, histCountries],
+  );
   const panelRecords = useMemo(() => {
-    const filtered = filterRecords(records, fpFilter);
+    const filtered = filterRecords(records, liveFilter);
     // „Detektionen" (Vorlage) sortiert lokal nach der Zahl im Fenster — Einträge
     // ohne Detektion hinten; die Registry-Sorten bleiben unverändert.
     if (fpSort === 'hotspots') {
       return [...filtered].sort((a, b) => (b.hotspots ?? -1) - (a.hotspots ?? -1) || a.id.localeCompare(b.id));
     }
     return sortRecords(filtered, fpSort);
-  }, [records, fpFilter, fpSort]);
+  }, [records, liveFilter, fpSort]);
   /**
    * Country filter of the live list (24 h / 7 d) on the map — it cut the list only, the map kept drawing every country.
    * Same rule as `filterRecords`: a fire without a country stays. Hulls, zones and areas go by the id of the fire;
    * a single detection carries no fire id, so it goes when it lies in the box of a hidden fire and in no box of a shown one.
    */
-  // Month/season view: the map draws the live fires on top of the history points, so the country chips of the
-  // history list (`histCountries`) cut them too — otherwise „Deutschland“ still showed the 24-h fires of every country.
-  const countryWant = useMemo<ReadonlySet<string> | null>(() => {
-    const want = history ? (histCountries.length > 0 ? new Set(histCountries) : null) : fpFilter.countries;
-    return want && want.size > 0 ? want : null;
-  }, [history, histCountries, fpFilter.countries]);
+  // The map draws the live fires in every window (in month/season on top of the history points), so the one country
+  // choice cuts them everywhere — otherwise „Deutschland“ still showed the 24-h fires of every country.
+  const countryWant = useMemo<ReadonlySet<string> | null>(
+    () => (histCountries.length > 0 ? new Set(histCountries) : null),
+    [histCountries],
+  );
   /** The layer „Frühere Brandflächen“ (EFFIS season, week, archive) under the same country filter; an area without a country stays. */
   const burntCut = useMemo(() => {
     if (!countryWant) return null;
@@ -2376,11 +2381,11 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     </div>
   );
 
-  /** Länder der Einträge, häufigste zuerst — die Filter-Chips des Panels. */
+  /** [Land, Einträge] der Live-Einträge, häufigste zuerst — die Filter-Chips des Panels; DE/AT/CH stehen immer zur Wahl. */
   const countryOptions = useMemo(() => {
-    const n = new Map<string, number>();
+    const n = new Map<string, number>([['DE', 0], ['AT', 0], ['CH', 0]]);
     for (const r of records) if (r.country) n.set(r.country, (n.get(r.country) ?? 0) + 1);
-    return [...n.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([c]) => c);
+    return [...n.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
   }, [records]);
   /** Europa: woher die Saison außerhalb DE/AT/CH kommt — und ob die Liste eine Lücke lässt. */
   const europeSeasonNote = useMemo<string | null>(() => {
@@ -2404,9 +2409,9 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
       nowMs={nowMs}
       windowH={time.windowH}
       sort={fpSort} onSort={setFpSort}
-      filter={fpFilter} onFilter={setFpFilter}
+      filter={liveFilter} onFilter={(f) => { setHistCountries(f.countries ? [...f.countries] : []); setFpFilter({ ...f, countries: null }); }}
       effisScope={registrySeason ? fpEffisScope : 'week'} onEffisScope={setFpEffisScope}
-      countries={countryOptions}
+      countryOptions={countryOptions}
       scopeNote={europeSeasonNote}
       shown={shownFootprints} onShowMore={() => setShownFootprints((n) => n + CLUSTER_PAGE)}
       hoverId={hoverFootprint} onHover={setHoverFootprint}

@@ -29,6 +29,9 @@ import { FlameIcon, IndustryIcon } from './fireIcons';
 import { FireProfileBlock } from './dossier/FireProfileBlock';
 import { fetchFireWeatherArchive, type FireWeatherAtPoint } from './detail/fireWeatherAtPoint';
 import { LANDCOVER_LABEL, LANDCOVER_KEYS, effisPlaceName } from './fireCorroboration';
+import { CountryChips, historyCountryLabel } from './FireCountryChips';
+
+export { historyCountryLabel };
 
 export type HistorySort = 'strength' | 'recency' | 'area';
 
@@ -56,16 +59,6 @@ export interface HistoryPanelProps {
   regionNote?: string;
 }
 
-const COUNTRY_LABEL: Record<string, string> = { DE: 'Deutschland', AT: 'Österreich', CH: 'Schweiz', XK: 'Kosovo' };
-let _regionNames: Intl.DisplayNames | null | undefined;
-/** Landesname zum ISO-Code (Europa-Box); `null` = kein Land bestimmt — das wird gesagt, nicht geraten. */
-export function historyCountryLabel(code: string | null): string {
-  if (code == null) return 'ohne Landangabe';
-  const fixed = COUNTRY_LABEL[code];
-  if (fixed) return fixed;
-  if (_regionNames === undefined) { try { _regionNames = new Intl.DisplayNames(['de'], { type: 'region' }); } catch { _regionNames = null; } }
-  try { return _regionNames?.of(code) ?? code; } catch { return code; }
-}
 const de = (n: number, frac = 0) => n.toLocaleString('de-DE', { maximumFractionDigits: frac });
 const fmtDay = (ms: number) => new Date(ms).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
 
@@ -92,8 +85,6 @@ export function historyAreaHa(e: HistoryIndexEntry): number | null {
 /** Stops of the area range in ha; the first means „no lower bound", the last „no upper bound". */
 const AREA_STEPS: readonly number[] = [0, 5, 10, 20, 50, 100, 200, 500, 1000, Infinity];
 const AREA_LAST = AREA_STEPS.length - 1;
-/** Countries that always get a chip (the product's region); every other country sits in the select. */
-const CHIP_COUNTRIES = ['DE', 'AT', 'CH'] as const;
 const AREA_FILTER_TITLE = 'Kartierte Fläche (EFFIS), sonst die Schätzung. Ereignisse, die nur eine Obergrenze aus dem Raster tragen, zählen bei gesetzter Grenze nicht.';
 
 export function FireHistoryPanel(p: HistoryPanelProps) {
@@ -108,18 +99,6 @@ export function FireHistoryPanel(p: HistoryPanelProps) {
   const setArea = (lo: number, hi: number) => { p.onAreaRange([AREA_STEPS[lo] ?? 0, AREA_STEPS[hi] ?? Infinity]); setShown(CLUSTER_PAGE); };
   const setAreaLo = (v: number) => { const lo = Math.min(v, AREA_LAST - 1); setArea(lo, Math.max(areaHi, lo + 1)); };
   const setAreaHi = (v: number) => { const hi = Math.max(v, 1); setArea(Math.min(areaLo, hi - 1), hi); };
-  const toggleCountry = (code: string) => {
-    p.onCountries(p.countries.includes(code) ? p.countries.filter((c) => c !== code) : [...p.countries, code]);
-    setShown(CLUSTER_PAGE);
-  };
-  const countryChips = [
-    ...CHIP_COUNTRIES.filter((c) => p.countryOptions.some(([code]) => code === c)),
-    ...p.countries.filter((c) => !(CHIP_COUNTRIES as readonly string[]).includes(c)),
-  ];
-  const countryRest = p.countryOptions
-    .filter(([code]) => !countryChips.includes(code))
-    .map(([code, n]) => ({ code, n, label: historyCountryLabel(code) }))
-    .sort((a, b) => a.label.localeCompare(b.label, 'de'));
 
   const file: HistoryIndexFile | null = p.load.kind === 'ok' ? p.load.file : null;
   const rows = useMemo(() => {
@@ -165,19 +144,7 @@ export function FireHistoryPanel(p: HistoryPanelProps) {
               {AREA_STEPS.map((ha) => <span key={ha}>{ha === Infinity ? 'mehr' : de(ha)}</span>)}
             </div>
           </div>
-          <div className="br-chiprow" role="group" aria-label="Länder">
-            {!p.inSheet && <span className="br-chiprow-lbl">Land:</span>}
-            <button type="button" className={`br-chip is-ink${p.countries.length === 0 ? ' is-active' : ''}`} aria-pressed={p.countries.length === 0} onClick={() => { p.onCountries([]); setShown(CLUSTER_PAGE); }}>Alle Länder</button>
-            {countryChips.map((code) => (
-              <button key={code} type="button" className={`br-chip is-ink${p.countries.includes(code) ? ' is-active' : ''}`} aria-pressed={p.countries.includes(code)} onClick={() => toggleCountry(code)}>{historyCountryLabel(code)}</button>
-            ))}
-            {countryRest.length > 0 && (
-              <select className="br-chip br-chip-select" value="" aria-label="Weiteres Land hinzufügen" onChange={(e) => { if (e.target.value) toggleCountry(e.target.value); }}>
-                <option value="">Weitere …</option>
-                {countryRest.map((c) => <option key={c.code} value={c.code}>{c.label} ({de(c.n)})</option>)}
-              </select>
-            )}
-          </div>
+          <CountryChips countries={p.countries} options={p.countryOptions} showLabel={!p.inSheet} onChange={(codes) => { p.onCountries(codes); setShown(CLUSTER_PAGE); }} />
           {rows.length === 0 && (filtered
             ? <p className="br-empty">Kein Brand passt zu dieser Auswahl (Fläche, Land) im Stand vom {historyStandLabel(file.evaluatedAt)}.</p>
             : <p className="br-empty">Keine Ereignisse dieser Art im Stand vom {historyStandLabel(file.evaluatedAt)} — kleine Brände fehlen dem Satelliten systematisch.</p>)}

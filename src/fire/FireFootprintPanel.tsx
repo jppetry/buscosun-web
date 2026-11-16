@@ -72,7 +72,7 @@ import { HISTORY_DAYS } from './footprint/history';
 import { LEVEL_LABEL } from './fireAssessment';
 import { ageText, clockLabel } from '../dataAge';
 import { windowLabel } from './fireTime';
-import type { Country } from '../types';
+import { CountryChips } from './FireCountryChips';
 import type { AtWarnContext } from './sources/geosphereWarnContext';
 import { BR_BADGE_LABEL, badgeOf } from './brandradarMeta';
 import { siteLabel } from './anomaly/classify';
@@ -129,8 +129,8 @@ export interface FootprintPanelProps {
   placesLoaded?: boolean;
   /** GWBA1 A3: GeoSphere-Warnkontext je AT-Brand — Zitat, nie Bestätigung. */
   atContextFor?: (r: FireRecord) => AtWarnContext | null;
-  /** Länder der Einträge (häufigste zuerst) für den Land-Filter; ohne Angabe DE/AT/CH. */
-  countries?: readonly string[];
+  /** [Land, Einträge] für den Land-Filter, häufigste zuerst — dieselbe Zeile wie in der Historie (`CountryChips`). */
+  countryOptions?: ReadonlyArray<readonly [string, number]>;
   /** Europa: Herkunft und Stand der Saison außerhalb DE/AT/CH — steht unter „Umfang". */
   scopeNote?: string | null;
 }
@@ -327,11 +327,6 @@ export function FireFootprintPanel(p: FootprintPanelProps) {
     if (next.has(k)) next.delete(k); else next.add(k);
     p.onFilter({ ...filter, status: next.size ? next : null });
   };
-  const setCountry = (c: string) => {
-    const next = new Set(filter.countries ?? []);
-    if (next.has(c)) next.delete(c); else next.add(c);
-    p.onFilter({ ...filter, countries: next.size ? next : null });
-  };
 
   // --- Leer-/Lade-/Fehlerzustände: jeder mit Grund -----------------------------
   let stateBox: ReactNode = null;
@@ -379,7 +374,7 @@ export function FireFootprintPanel(p: FootprintPanelProps) {
   // neben dem Kasten „kein Layer an" läsen sie sich wie eine Behauptung.
   const list = anySource ? records.slice(0, p.shown) : [];
   const remaining = Math.max(0, records.length - p.shown);
-  const filtered = filter.minAreaHa > 0 || filter.status || filter.countries;
+  const filtered = filter.minAreaHa > 0 || filter.status;
 
   const SORTS: readonly { id: PanelSort; label: string; title?: string }[] = [
     { id: 'area', label: 'Fläche' },
@@ -435,6 +430,13 @@ export function FireFootprintPanel(p: FootprintPanelProps) {
         </button>
       </div>
 
+      {/* The country row of the history list (month/season), always visible: one filter for all four windows. */}
+      <CountryChips
+        countries={filter.countries ? [...filter.countries] : []} options={p.countryOptions ?? []} showLabel={!p.inSheet}
+        title="Einträge ohne Landeszuordnung (Umrisse noch nicht geladen) bleiben bei jedem Filter sichtbar — nichts wird behauptet."
+        onChange={(codes) => p.onFilter({ ...filter, countries: codes.length ? new Set(codes) : null })}
+      />
+
       {p.scopeNote && p.effisScope === 'season' && <p className="br-note">{p.scopeNote}</p>}
 
       {filtersOpen && (
@@ -463,21 +465,6 @@ export function FireFootprintPanel(p: FootprintPanelProps) {
                 <StatusDot status={k} isStatic={false} />{STATUS_LABEL[k]}
               </button>
             ))}
-          </div>
-          <div className="br-chiprow" role="group" aria-label="Land">
-            <span className="br-chiprow-lbl">Land:</span>
-            {(p.countries && p.countries.length > 0 ? p.countries : (['DE', 'AT', 'CH'] as Country[])).map((c) => (
-              <button
-                key={c} type="button"
-                className={`br-chip is-ink${!filter.countries || filter.countries.has(c) ? ' is-active' : ''}`}
-                aria-pressed={!filter.countries || filter.countries.has(c)}
-                title={c === 'outside' ? 'außerhalb DE/AT/CH, ohne belegte Landeszuordnung' : undefined}
-                onClick={() => setCountry(c)}
-              >
-                {c === 'outside' ? 'außerhalb' : c}
-              </button>
-            ))}
-            <span className="br-muted" title="Einträge ohne Landeszuordnung (Umrisse noch nicht geladen) bleiben bei jedem Filter sichtbar — nichts wird behauptet.">unbekannt bleibt</span>
           </div>
         </div>
       )}
