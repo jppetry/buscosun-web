@@ -557,7 +557,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
         </div>
       )}
       {hz && hzShown && (
-        <div className="aw-legend-sec">
+        <div className="aw-legend-sec is-hz">
           <span className="aw-eyebrow">Gefahren · {hzMode === 'p6' ? 'bis +6 h' : t === 0 ? 'jetzt' : `+${t} h`}</span>
           {([1, 2, 3] as const).map((l) => <span key={l}><i className="is-bar" style={{ background: AW_SEV[l].bg }} />Stufe {l}</span>)}
           <span><i className="is-bar is-dotted" />unbekannt</span>
