@@ -292,7 +292,8 @@
   .aw-m-share { width: 44px; height: 44px; border-radius: 12px; flex: 0 0 auto; }
   /* Without a chosen motorway there is no pill between brand and share: the share button still sits at the right edge. */
   .aw-m-top .aw-m-share { margin-left: auto; }
-  .aw-m-times { position: absolute; left: 12px; top: calc(74px + env(safe-area-inset-top, 0px)); z-index: 3; }
+  .aw-m-times { position: absolute; left: 12px; right: 12px; top: calc(74px + env(safe-area-inset-top, 0px)); z-index: 3; display: flex; justify-content: center; pointer-events: none; }
+  .aw-m-times > * { pointer-events: auto; max-width: 100%; }
   .aw-m-times .aw-times button { height: 36px; padding: 0 10px; font-size: 12px; }
   /* Dossier: the time chips take the place of the road pill in the top row (the road is in the dossier head). */
   .aw-m-top-times { flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; align-self: center; }
