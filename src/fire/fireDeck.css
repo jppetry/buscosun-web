@@ -1911,3 +1911,49 @@
   .br-m-scroll .br-firelist .br-stat-val { font-size: 16.5px; }
   .br-m-scroll .br-firelist .br-stat-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
 }
+
+/* --- Phone list „Brände“: sorting, area range and countries as ONE card (Jan 2026-11-16) ----------------------
+   Three loose rows on the sand ground read as scattered buttons. In the card each control has its line, a hairline
+   apart: sorting as a switch (one choice of three) with its word in front, the area range with its value, the
+   countries as a strip that runs out under a fade when it is longer than the card. Everything stays visible.
+   Outside the phone layout the wrappers have no box (`display: contents`): desktop and tablet are unchanged. */
+.br-filtercard, .br-sortseg-track { display: contents; }
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
+  .br-m-scroll .br-filtercard {
+    display: block; padding: 2px 14px; background: #fff; border-radius: 18px;
+    border: 1px solid color-mix(in srgb, var(--sand-200, #E0D6BE) 80%, transparent);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 10px 22px -16px rgba(44, 42, 38, 0.28), 0 2px 6px rgba(44, 42, 38, 0.04);
+  }
+  .br-m-scroll .br-filtercard > .br-chiprow, .br-m-scroll .br-filtercard > .br-arange { margin-top: 0; padding: 10px 0; }
+  .br-m-scroll .br-filtercard > * + * { border-top: 1px solid color-mix(in srgb, var(--sand-200, #E0D6BE) 70%, transparent); }
+  /* Chips on the white card: a sand ground instead of an outline; the chosen one keeps its ink or red. */
+  .br-m-scroll .br-filtercard .br-chip:not(.is-active) { background: var(--sand-50, #F5F1E8); border-color: transparent; }
+  .br-m-scroll .br-filtercard .br-chip.is-ghost:not(.is-active) { background: none; border-color: var(--sand-200, #E0D6BE); }
+  /* A strip longer than the card runs out under a fade; the spacer keeps the last chip clear of it. */
+  .br-m-scroll .br-filtercard > .br-chiprow {
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 22px), transparent);
+    mask-image: linear-gradient(90deg, #000 calc(100% - 22px), transparent);
+  }
+  .br-m-scroll .br-filtercard > .br-chiprow::after { content: ''; flex: 0 0 14px; }
+
+  /* Sorting: a switch in a sand groove, the chosen option a white key. */
+  .br-m-scroll .br-filtercard > .br-sortseg { gap: 12px; overflow: visible; -webkit-mask-image: none; mask-image: none; }
+  .br-m-scroll .br-filtercard > .br-sortseg::after { content: none; }
+  .br-m-scroll .br-filtercard .br-sortseg .br-chiprow-lbl { flex: 0 0 auto; font-size: 13px; color: var(--stone-500, #8B7355); }
+  .br-m-scroll .br-filtercard .br-sortseg-track { display: flex; flex: 1 1 auto; min-width: 0; gap: 2px; padding: 3px; border-radius: 12px; background: var(--sand-100, #EDE6D3); }
+  .br-m-scroll .br-filtercard .br-sortseg .br-chip {
+    flex: 1 1 0; justify-content: center; min-width: 0; min-height: 34px; padding: 0 6px; border: 0; border-radius: 9px;
+    background: none; font-size: 13px; font-weight: 500; color: var(--stone-600, #5C5447);
+  }
+  .br-m-scroll .br-filtercard .br-sortseg .br-chip.is-active {
+    background: #fff; color: var(--ink-900, #2C2A26); font-weight: 700; box-shadow: 0 1px 3px rgba(44, 42, 38, 0.2);
+  }
+
+  /* Area range: word and value on one line, the stops below; the stops inside a set range stand out. */
+  .br-m-scroll .br-filtercard > .br-arange { padding-bottom: 9px; }
+  .br-m-scroll .br-filtercard .br-arange-head .br-chiprow-lbl { font-size: 13px; color: var(--stone-500, #8B7355); }
+  .br-m-scroll .br-filtercard .br-arange .br-mrange-val { font-size: 14px; font-weight: 700; }
+  .br-m-scroll .br-filtercard .br-mrange-track { margin: -2px 0 -5px; }
+  .br-m-scroll .br-filtercard .br-arange .br-mrange-ticks { font-size: 10.5px; color: var(--stone-400, #A89A7A); font-variant-numeric: tabular-nums; }
+  .br-m-scroll .br-filtercard .br-arange .br-mrange-ticks .is-in { color: var(--ink-900, #2C2A26); font-weight: 600; }
+}

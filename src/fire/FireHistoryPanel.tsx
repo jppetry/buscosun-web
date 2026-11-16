@@ -124,11 +124,15 @@ export function FireHistoryPanel(p: HistoryPanelProps) {
       )}
       {file && (
         <>
-          <div className="br-chiprow" role="group" aria-label="Sortierung">
-            {!p.inSheet && <span className="br-chiprow-lbl">Sortieren:</span>}
-            {([['strength', 'Stärke'], ['recency', 'Zuletzt'], ['area', 'Fläche']] as const).map(([id, l]) => (
-              <button key={id} type="button" className={`br-chip is-ink${sort === id ? ' is-active' : ''}`} aria-pressed={sort === id} onClick={() => { setSort(id); setShown(CLUSTER_PAGE); }}>{l}</button>
-            ))}
+          {/* Phone: the three controls stand in ONE card (`br-filtercard`, fireDeck.css); elsewhere the wrapper has no box. */}
+          <div className="br-filtercard">
+          <div className="br-chiprow br-sortseg" role="group" aria-label="Sortierung">
+            <span className="br-chiprow-lbl">{p.inSheet ? 'Sortieren' : 'Sortieren:'}</span>
+            <span className="br-sortseg-track">
+              {([['strength', 'Stärke'], ['recency', 'Zuletzt'], ['area', 'Fläche']] as const).map(([id, l]) => (
+                <button key={id} type="button" className={`br-chip is-ink${sort === id ? ' is-active' : ''}`} aria-pressed={sort === id} onClick={() => { setSort(id); setShown(CLUSTER_PAGE); }}>{l}</button>
+              ))}
+            </span>
           </div>
           {/* Area range as two thumbs over fixed stops (same track and thumbs as the month range above the list). */}
           <div className="br-arange" role="group" aria-label="Fläche von – bis" title={AREA_FILTER_TITLE}>
@@ -141,10 +145,11 @@ export function FireHistoryPanel(p: HistoryPanelProps) {
               <input type="range" min={0} max={AREA_LAST} step={1} value={areaHi} aria-label="Größte Fläche" aria-valuetext={haHi < Infinity ? `bis ${de(haHi)} ha` : 'keine Obergrenze'} onChange={(e) => setAreaHi(Number(e.target.value))} />
             </div>
             <div className="br-mrange-ticks" aria-hidden="true" style={{ ['--n' as string]: AREA_STEPS.length }}>
-              {AREA_STEPS.map((ha) => <span key={ha}>{ha === Infinity ? 'mehr' : de(ha)}</span>)}
+              {AREA_STEPS.map((ha, i) => <span key={ha} className={(haLo > 0 || haHi < Infinity) && i >= areaLo && i <= areaHi ? 'is-in' : undefined}>{ha === Infinity ? 'mehr' : de(ha)}</span>)}
             </div>
           </div>
           <CountryChips countries={p.countries} options={p.countryOptions} showLabel={!p.inSheet} onChange={(codes) => { p.onCountries(codes); setShown(CLUSTER_PAGE); }} />
+          </div>
           {rows.length === 0 && (filtered
             ? <p className="br-empty">Kein Brand passt zu dieser Auswahl (Fläche, Land) im Stand vom {historyStandLabel(file.evaluatedAt)}.</p>
             : <p className="br-empty">Keine Ereignisse dieser Art im Stand vom {historyStandLabel(file.evaluatedAt)} — kleine Brände fehlen dem Satelliten systematisch.</p>)}

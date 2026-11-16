@@ -397,6 +397,8 @@ export function FireFootprintPanel(p: FootprintPanelProps) {
         </div>
       )}
 
+      {/* Phone: sorting, scope and countries stand in ONE card (`br-filtercard`, fireDeck.css); elsewhere the wrapper has no box. */}
+      <div className="br-filtercard">
       <div className="br-chiprow" role="group" aria-label="Sortierung">
         {!p.inSheet && <span className="br-chiprow-lbl">Sortieren:</span>}
         {SORTS.map((s) => (
@@ -436,6 +438,7 @@ export function FireFootprintPanel(p: FootprintPanelProps) {
         title="Einträge ohne Landeszuordnung (Umrisse noch nicht geladen) bleiben bei jedem Filter sichtbar — nichts wird behauptet."
         onChange={(codes) => p.onFilter({ ...filter, countries: codes.length ? new Set(codes) : null })}
       />
+      </div>
 
       {p.scopeNote && p.effisScope === 'season' && <p className="br-note">{p.scopeNote}</p>}
 
