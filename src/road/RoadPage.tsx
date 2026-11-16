@@ -814,7 +814,7 @@ export default function RoadPage({ initial, onUrlState, onCorridor, popState, hz
             </div>
             {mobTab === 'roads' && (
               <div className="aw-m-page-body">
-                <RoadDock part="roads" corridors={filtered} byId={shownById} selectedId={corridor?.id ?? null} onPick={pickCorridor} query={query} onQuery={setQuery}
+                <RoadDock part="roads" corridors={filtered} byId={shownById} selectedId={corridor?.id ?? null} onPick={pickCorridorFromMap} query={query} onQuery={setQuery}
                   country={country} onCountry={setCountry} layers={layers} onToggle={(k) => setLayers((l) => ({ ...l, [k]: !l[k] }))} summary={summary} hasData={!noData && !!obs} loading={dockLoading} />
               </div>
             )}
