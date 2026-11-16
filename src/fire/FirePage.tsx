@@ -1262,6 +1262,44 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     }
     return sortRecords(filtered, fpSort);
   }, [records, fpFilter, fpSort]);
+  /**
+   * Country filter of the live list (24 h / 7 d) on the map — it cut the list only, the map kept drawing every country.
+   * Same rule as `filterRecords`: a fire without a country stays. Hulls, zones and areas go by the id of the fire;
+   * a single detection carries no fire id, so it goes when it lies in the box of a hidden fire and in no box of a shown one.
+   */
+  const countryCut = useMemo(() => {
+    const want = fpFilter.countries;
+    if (history || !want || want.size === 0) return null;
+    const CELL = 0.25;
+    const PAD = 0.003;
+    const ids = new Set<string>();
+    const clusterIds = new Set<string>();
+    const zoneIds = new Set<string>();
+    const hidden = new Map<string, FireRecord[]>();
+    const shown = new Map<string, FireRecord[]>();
+    const put = (m: Map<string, FireRecord[]>, r: FireRecord) => {
+      for (let x = Math.floor((r.bbox[0] - PAD) / CELL); x <= Math.floor((r.bbox[2] + PAD) / CELL); x++) {
+        for (let y = Math.floor((r.bbox[1] - PAD) / CELL); y <= Math.floor((r.bbox[3] + PAD) / CELL); y++) {
+          const k = `${x},${y}`;
+          const l = m.get(k);
+          if (l) l.push(r); else m.set(k, [r]);
+        }
+      }
+    };
+    for (const r of records) {
+      const hide = r.country != null && !want.has(r.country);
+      if (hide) {
+        ids.add(r.id);
+        if (r.sources.cluster) clusterIds.add(r.sources.cluster.id);
+        for (const z of r.sources.zones) zoneIds.add(z.id);
+      }
+      if (r.sources.cluster) put(hide ? hidden : shown, r);
+    }
+    if (ids.size === 0) return null;
+    const inAny = (m: Map<string, FireRecord[]>, lat: number, lon: number) =>
+      m.get(`${Math.floor(lon / CELL)},${Math.floor(lat / CELL)}`)?.some((r) => lon >= r.bbox[0] - PAD && lon <= r.bbox[2] + PAD && lat >= r.bbox[1] - PAD && lat <= r.bbox[3] + PAD) ?? false;
+    return { ids, clusterIds, zoneIds, hides: (lat: number, lon: number) => inAny(hidden, lat, lon) && !inAny(shown, lat, lon) };
+  }, [records, fpFilter.countries, history]);
   recordsRef.current = records;
   panelRecordsRef.current = panelRecords;
   // Nur im DEV-Build: Registry für die Verifikation über den Automations-Browser
@@ -1346,6 +1384,34 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   const mapClusters = useMemo<readonly FireCluster[]>(
     () => (thermalSites ? clusterList.map((c) => (!c.mostlyStatic && greySiteAt(c.lat, c.lon) ? { ...c, mostlyStatic: true } : c)) : clusterList),
     [clusterList, thermalSites, greySiteAt],
+  );
+  // The same four inputs with the country filter of the live list applied (`countryCut`); without a filter the same objects.
+  const cutHotspots = useMemo<GeoJSON.FeatureCollection | null>(
+    () => (countryCut && mapHotspots
+      ? { ...mapHotspots, features: mapHotspots.features.filter((f) => f.geometry.type !== 'Point' || !countryCut.hides(f.geometry.coordinates[1], f.geometry.coordinates[0])) }
+      : mapHotspots),
+    [mapHotspots, countryCut],
+  );
+  const cutHotspotFootprints = useMemo<GeoJSON.FeatureCollection | null>(
+    () => (countryCut && mapHotspotFootprints
+      ? {
+        ...mapHotspotFootprints,
+        features: mapHotspotFootprints.features.filter((f) => {
+          if (f.geometry.type !== 'Polygon') return true;
+          const [[w, s], , [e, n]] = f.geometry.coordinates[0];
+          return !countryCut.hides((s + n) / 2, (w + e) / 2);
+        }),
+      }
+      : mapHotspotFootprints),
+    [mapHotspotFootprints, countryCut],
+  );
+  const cutZones = useMemo<readonly FireZone[]>(
+    () => (countryCut ? mapZonesShown.filter((z) => !countryCut.zoneIds.has(z.id)) : mapZonesShown),
+    [mapZonesShown, countryCut],
+  );
+  const cutClusters = useMemo<readonly FireCluster[]>(
+    () => (countryCut ? mapClusters.filter((c) => !countryCut.clusterIds.has(c.id)) : mapClusters),
+    [mapClusters, countryCut],
   );
 
   /** Auswahl aus der Panel-Liste: markieren, Cluster-Auswahl nullen, hinfahren. */
@@ -1541,10 +1607,10 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     () => (onlyKind === 'fires' ? withoutFeatures(historyFc, (p) => p?.site === 1) : onlyKind === 'anomalies' ? null : historyFc),
     [historyFc, onlyKind],
   );
-  const mapFootprintFc = useMemo(
-    () => (onlyKind === 'fires' ? withoutFeatures(footprintFc, (p) => p?.anomaly === 'site') : onlyKind === 'anomalies' ? null : footprintFc),
-    [footprintFc, onlyKind],
-  );
+  const mapFootprintFc = useMemo(() => {
+    const fc = onlyKind === 'fires' ? withoutFeatures(footprintFc, (p) => p?.anomaly === 'site') : onlyKind === 'anomalies' ? null : footprintFc;
+    return countryCut ? withoutFeatures(fc, (p) => countryCut.ids.has(String(p?.id))) : fc;
+  }, [footprintFc, onlyKind, countryCut]);
   // Startwert `half` (Vorlage B4): Karte oben, Zeit-Deck und Legende im Sheet sichtbar.
   const [sheetSnap, setSheetSnap] = useState<BottomSheetSnap>('half');
   // Eine Kartenauswahl macht die Brandliste sichtbar — sonst wäre der Klick
@@ -2744,10 +2810,10 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
           <main className={`fire-center${inDossier && !isMobile ? ' is-offstage' : ''}`} aria-hidden={inDossier && !isMobile ? true : undefined}>
             <FireMap
               active={mapActive} basemap={basemap} day={committedDay} isoDate={committedIso}
-              hotspots={onlyKind === 'anomalies' ? null : mapHotspots}
-              hotspotFootprints={onlyKind === 'anomalies' ? null : mapHotspotFootprints} hotspotProvider={hotspotProvider}
-              fireZones={onlyKind === 'anomalies' ? NO_ZONES : mapZonesShown} zoneEstimates={zoneEstimates}
-              clusters={onlyKind === 'anomalies' ? NO_CLUSTERS : mapClusters} selectedClusterId={selectedCluster}
+              hotspots={onlyKind === 'anomalies' ? null : cutHotspots}
+              hotspotFootprints={onlyKind === 'anomalies' ? null : cutHotspotFootprints} hotspotProvider={hotspotProvider}
+              fireZones={onlyKind === 'anomalies' ? NO_ZONES : cutZones} zoneEstimates={zoneEstimates}
+              clusters={onlyKind === 'anomalies' ? NO_CLUSTERS : cutClusters} selectedClusterId={selectedCluster}
               focusNonce={focusNonce} onSelectCluster={selectFromMap}
               footprintFc={mapFootprintFc} hoverFootprintId={hoverFootprint} selectedFootprintId={selectedFootprint}
               anomalyFc={onlyKind === 'fires' ? null : anomalyFc} selectedSiteId={selectedSite} onSelectSite={selectSiteFromMap}
