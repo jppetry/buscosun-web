@@ -1268,8 +1268,10 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
    * a single detection carries no fire id, so it goes when it lies in the box of a hidden fire and in no box of a shown one.
    */
   const countryCut = useMemo(() => {
-    const want = fpFilter.countries;
-    if (history || !want || want.size === 0) return null;
+    // Month/season view: the map draws the live fires on top of the history points, so the country chips of the
+    // history list (`histCountries`) cut them too — otherwise „Deutschland“ still showed the 24-h fires of every country.
+    const want: ReadonlySet<string> | null = history ? (histCountries.length > 0 ? new Set(histCountries) : null) : fpFilter.countries;
+    if (!want || want.size === 0) return null;
     const CELL = 0.25;
     const PAD = 0.003;
     const ids = new Set<string>();
@@ -1299,7 +1301,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     const inAny = (m: Map<string, FireRecord[]>, lat: number, lon: number) =>
       m.get(`${Math.floor(lon / CELL)},${Math.floor(lat / CELL)}`)?.some((r) => lon >= r.bbox[0] - PAD && lon <= r.bbox[2] + PAD && lat >= r.bbox[1] - PAD && lat <= r.bbox[3] + PAD) ?? false;
     return { ids, clusterIds, zoneIds, hides: (lat: number, lon: number) => inAny(hidden, lat, lon) && !inAny(shown, lat, lon) };
-  }, [records, fpFilter.countries, history]);
+  }, [records, fpFilter.countries, history, histCountries]);
   recordsRef.current = records;
   panelRecordsRef.current = panelRecords;
   // Nur im DEV-Build: Registry für die Verifikation über den Automations-Browser
