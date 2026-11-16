@@ -1901,59 +1901,13 @@
    The text stays in the DOM for crawlers. */
 .rsb[data-route="waldbrand"] { display: none; }
 
-/* --- Phone list „Brände“ (Jan 2026-11-16): one tool row, filters folded, cards without tiles ------------------
-   Sorting and the button „Filter“ share a row; area, countries (and scope, minimum area, status in the live list)
-   fold open below. A fire card carries its four figures in two plain columns, and the way into the dossier is the
-   arrow at the top right instead of a text button — three to four fires fit on a screen instead of not quite two. */
-.br-filterbtn, .br-filtersum { display: none; }
+/* Phone list „Brände“ (Jan 2026-11-16): fire cards without tiles — four figures in two plain columns.
+   Filters stay always visible; „Zur Detailansicht“ stays the text button. */
 @media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
-  .br-toolrow { display: flex; align-items: center; gap: 8px; }
-  .br-toolrow > .br-chiprow { flex: 1 1 auto; min-width: 0; }
-  .br-filterbtn {
-    display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; min-height: 36px; padding: 0 13px;
-    font: inherit; font-size: 12.5px; font-weight: 600; color: var(--ink-900, #2C2A26); cursor: pointer;
-    background: #fff; border: 1px solid color-mix(in srgb, var(--sand-200, #E0D6BE) 80%, transparent); border-radius: 999px;
-    position: relative;
-  }
-  .br-filterbtn::after { content: ''; position: absolute; inset: -4px 0; }
-  .br-filterbtn.is-active { background: var(--ink-900, #2C2A26); border-color: var(--ink-900, #2C2A26); color: var(--cream-50, #FAF6EA); }
-  .br-filterbtn:focus-visible, .br-filtersum-x:focus-visible { outline: 2px solid var(--br-terra); outline-offset: 2px; }
-  .br-filterbtn-n {
-    min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--br-red); color: #fff;
-    font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; font-variant-numeric: tabular-nums;
-  }
-  .br-filtersum { display: flex; align-items: center; gap: 6px; margin-top: 6px; padding-left: 2px; min-height: 32px; }
-  .br-filtersum-tx { flex: 1 1 auto; min-width: 0; font-size: 13px; font-weight: 600; color: var(--ink-900, #2C2A26); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .br-filtersum-x {
-    flex: 0 0 auto; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; position: relative;
-    border: 0; border-radius: 50%; background: var(--sand-200, #E0D6BE); color: var(--stone-600, #5C5447); cursor: pointer; padding: 0;
-  }
-  .br-filtersum-x::after { content: ''; position: absolute; inset: -6px; }
-  .br-m-scroll .br-filterfold {
-    margin-top: 8px; padding: 12px 12px 10px; border: 1px solid color-mix(in srgb, var(--sand-200, #E0D6BE) 80%, transparent);
-    border-radius: 16px; background: var(--cream-50, #FAF6EA);
-  }
-  .br-m-scroll .br-filterfold > .br-arange { margin-top: 0; }
-  .br-m-scroll .br-filterfold > .br-chiprow:first-child { margin-top: 0; }
-  .br-m-scroll .br-filterfold .br-chiprow { margin-top: 10px; overflow: visible; padding-bottom: 0; }
-  .br-m-scroll .br-filterfold .br-chiprow > .br-chiprow-lbl { flex: 0 0 100%; font-size: 12px; color: var(--stone-500, #8B7355); }
-
-  /* Fire cards */
   .br-m-scroll .br-firelist { gap: 10px; margin-top: 12px; }
   .br-m-scroll .br-firelist .br-fire-btn { padding: 12px 14px; gap: 9px; }
-  .br-m-scroll .br-firelist .br-fire-top { padding-right: 34px; min-height: 26px; }
   .br-m-scroll .br-firelist .br-fire-stats { gap: 9px 16px; padding-top: 9px; border-top: 1px solid color-mix(in srgb, var(--sand-200, #E0D6BE) 70%, transparent); }
   .br-m-scroll .br-firelist .br-stat { background: none; border: 0; border-radius: 0; padding: 0; }
   .br-m-scroll .br-firelist .br-stat-val { font-size: 16.5px; }
   .br-m-scroll .br-firelist .br-stat-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
-  .br-m-scroll .br-firelist .br-fire.has-cta .br-fire-chips, .br-m-scroll .br-firelist .br-fire.has-cta .br-fire-meta { min-height: 0; padding-right: 0; }
-  .br-m-scroll .br-firelist .br-fire-meta:empty, .br-m-scroll .br-firelist .br-fire-chips:empty { display: none; }
-  .br-m-scroll .br-firelist .br-fire-meta .br-chip { min-height: 0; margin-left: 0; }
-  /* „Zur Detailansicht“ becomes the arrow at the top right; its words stay as the name of the button. */
-  .br-m-scroll .br-firelist .br-fire-cta {
-    top: 10px; right: 10px; bottom: auto; width: 30px; height: 30px; padding: 0; font-size: 0; color: transparent;
-    border-radius: 50%;
-    background: var(--sand-100, #EDE6D3) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14' fill='none' stroke='%235C5447' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5.2 3l4 4-4 4'/%3E%3C/svg%3E") center / 14px 14px no-repeat;
-  }
-  .br-m-scroll .br-firelist .br-fire-cta::after { content: ''; position: absolute; inset: -7px; }
 }
