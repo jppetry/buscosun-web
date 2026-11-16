@@ -955,8 +955,6 @@
   .br-pl-sub { display: none; }
   /* Mobil sitzt die Kachel knapp über der Bottom-Bar statt im oberen Stapel. */
   .br-mapcard { position: fixed; left: 12px; right: auto; bottom: calc(var(--br-bar-h) + 10px); z-index: 6; width: min(320px, calc(100vw - 24px)); max-width: none; max-height: calc(100vh - var(--br-bar-h) - 150px); max-height: calc(100dvh - var(--br-bar-h) - 150px); }
-  /* Der globale Chip „Über diese Ansicht" (RouteSeoBlock) entfällt mobil im Brandradar. */
-  .rsb[data-route="waldbrand"] { display: none; }
   .br-mapcard-close { width: 44px; height: 44px; margin: -8px -8px 0 0; }
   .br-mapcard-cta { min-height: 44px; }
   .br-views { background: none; border: 0; padding: 0 0 2px; gap: 5px; border-radius: 0; max-width: none; }
@@ -1898,3 +1896,7 @@
   .fire-center .maplibregl-ctrl-top-right { top: 60px; }
   .br-map-tl > .br-views { margin-right: 49px; }
 }
+
+/* Jan 2026-11-16: no „Über diese Ansicht" chip in the Brandradar, on any width (it was hidden on the phone only).
+   The text stays in the DOM for crawlers. */
+.rsb[data-route="waldbrand"] { display: none; }
