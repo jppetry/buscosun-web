@@ -267,25 +267,24 @@ export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: Laye
     void import('../../dashboard/data/forecastStore').then((m) => m.prefetchDashboardForecast(p)).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, place?.lat, place?.lon, place?.country]);
-  // E-DB-20: dashboard first, then the map's JS in the background — once the dashboard has its forecast (whole window,
-  // error, or no place: `onSettled`), at the latest after BACKGROUND_MAP_FALLBACK_MS. Only the JS; mounted on the switch.
-  const [dashSettled, setDashSettled] = useState(false);
-  const onDashSettled = useCallback(() => setDashSettled(true), []);
+  // Jan 15.11.: the buscosun loading ring stays over the dashboard until it is complete (`DashboardView.onComplete`), once per
+  // visit of this route — later switches between map and dashboard find the data in memory and show no ring again.
+  const [dashShown, setDashShown] = useState(false);
+  const onDashComplete = useCallback(() => setDashShown(true), []);
+  // E-DB-20: dashboard first, then the map's JS in the background. Since 16.11. it waits for the COMPLETE dashboard (ring
+  // gone), not only for the whole forecast: the big map chunk no longer loads while warnings and nowcast are still on
+  // the line. At the latest after BACKGROUND_MAP_FALLBACK_MS. Only the JS; mounted on the switch.
   useEffect(() => {
     if (view !== 'dashboard' || loadedMapView()) return;
     // A failed load stays silent here; `loadMapView` forgets it, so the switch to the map tries again.
     const go = () => { void loadMapView().catch(() => {}); };
     let idle = 0;
     let t = 0;
-    if (!dashSettled) t = window.setTimeout(go, BACKGROUND_MAP_FALLBACK_MS);
+    if (!dashShown) t = window.setTimeout(go, BACKGROUND_MAP_FALLBACK_MS);
     else if (typeof window.requestIdleCallback === 'function') idle = window.requestIdleCallback(go, { timeout: 2000 }); // not in Safari
     else t = window.setTimeout(go, 200);
     return () => { if (idle) window.cancelIdleCallback(idle); if (t) window.clearTimeout(t); };
-  }, [view, dashSettled]);
-  // Jan 15.11.: the buscosun loading ring stays over the dashboard until it is complete (`DashboardView.onComplete`), once per
-  // visit of this route — later switches between map and dashboard find the data in memory and show no ring again.
-  const [dashShown, setDashShown] = useState(false);
-  const onDashComplete = useCallback(() => setDashShown(true), []);
+  }, [view, dashShown]);
   useEffect(() => {
     if (view !== 'dashboard' || dashShown) return;
     const t = window.setTimeout(() => setDashShown(true), DASH_COVER_MAX_MS);
@@ -317,7 +316,6 @@ export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: Laye
             onSelectLocation={onSelectLocation}
             onBack={nav.goHome}
             onOpenFeature={nav.openFeature}
-            onSettled={onDashSettled}
             onComplete={onDashComplete}
           />
         </Suspense>
