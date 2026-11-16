@@ -67,7 +67,7 @@ import {
   HISTORY_DAYS, HISTORY_LATENCY_NOTE,
 } from './footprint/history';
 import {
-  buildFireRegistry, carryIds, sortRecords, filterRecords, footprintsToGeoJSON, DEFAULT_FILTER,
+  buildFireRegistry, carryIds, sortRecords, filterRecords, footprintsToGeoJSON, countryFromEffis, DEFAULT_FILTER,
   type FireRecord, type RecordFilter,
 } from './footprint/fireRegistry';
 import { FireFootprintPanel, type EffisScope } from './FireFootprintPanel';
@@ -1267,11 +1267,30 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
    * Same rule as `filterRecords`: a fire without a country stays. Hulls, zones and areas go by the id of the fire;
    * a single detection carries no fire id, so it goes when it lies in the box of a hidden fire and in no box of a shown one.
    */
+  // Month/season view: the map draws the live fires on top of the history points, so the country chips of the
+  // history list (`histCountries`) cut them too — otherwise „Deutschland“ still showed the 24-h fires of every country.
+  const countryWant = useMemo<ReadonlySet<string> | null>(() => {
+    const want = history ? (histCountries.length > 0 ? new Set(histCountries) : null) : fpFilter.countries;
+    return want && want.size > 0 ? want : null;
+  }, [history, histCountries, fpFilter.countries]);
+  /** The layer „Frühere Brandflächen“ (EFFIS season, week, archive) under the same country filter; an area without a country stays. */
+  const burntCut = useMemo(() => {
+    if (!countryWant) return null;
+    const hidden = new Set<string>();
+    for (const p of burntLookup.values()) {
+      const c = countryFromEffis(p.country);
+      if (c != null && !countryWant.has(c)) hidden.add(p.id);
+    }
+    if (hidden.size === 0) return null;
+    return {
+      season: filterFeaturesById(burntSplit.seasonFc, hidden, false),
+      week: filterFeaturesById(burntSplit.weekFc, hidden, false),
+      archive: filterFeaturesById(burntArchive?.features ?? null, hidden, false),
+    };
+  }, [countryWant, burntLookup, burntSplit, burntArchive]);
   const countryCut = useMemo(() => {
-    // Month/season view: the map draws the live fires on top of the history points, so the country chips of the
-    // history list (`histCountries`) cut them too — otherwise „Deutschland“ still showed the 24-h fires of every country.
-    const want: ReadonlySet<string> | null = history ? (histCountries.length > 0 ? new Set(histCountries) : null) : fpFilter.countries;
-    if (!want || want.size === 0) return null;
+    const want = countryWant;
+    if (!want) return null;
     const CELL = 0.25;
     const PAD = 0.003;
     const ids = new Set<string>();
@@ -1301,7 +1320,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     const inAny = (m: Map<string, FireRecord[]>, lat: number, lon: number) =>
       m.get(`${Math.floor(lon / CELL)},${Math.floor(lat / CELL)}`)?.some((r) => lon >= r.bbox[0] - PAD && lon <= r.bbox[2] + PAD && lat >= r.bbox[1] - PAD && lat <= r.bbox[3] + PAD) ?? false;
     return { ids, clusterIds, zoneIds, hides: (lat: number, lon: number) => inAny(hidden, lat, lon) && !inAny(shown, lat, lon) };
-  }, [records, fpFilter.countries, history, histCountries]);
+  }, [records, countryWant]);
   recordsRef.current = records;
   panelRecordsRef.current = panelRecords;
   // Nur im DEV-Build: Registry für die Verifikation über den Automations-Browser
@@ -2824,8 +2843,8 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
               onSelectBurnt={openDossierForEffis} onSelectZone={openDossierForZone}
               onSelectDetection={openDossierForDetection}
               dangerView={dangerView}
-              burntSeason={burntSplit.seasonFc} burntArchive={burntArchive?.features ?? null}
-              burntWeekFc={burntSplit.weekFc}
+              burntSeason={burntCut ? burntCut.season : burntSplit.seasonFc} burntArchive={burntCut ? burntCut.archive : burntArchive?.features ?? null}
+              burntWeekFc={burntCut ? burntCut.week : burntSplit.weekFc}
               burntBuckets={burntBuckets} burntLookup={burntLookup} burntWeek={burntWeek}
               fireEvents={fireEvents} emsActs={emsActs} atContexts={atContexts} clcMask={clcMask} region={region} onMapRef={setFireMapInst}
               weather={weather} soil={soil}
