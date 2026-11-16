@@ -25,6 +25,7 @@
 import type { HistoryEvent, HistoryDetection } from './historyEvents';
 import { seasonWindow, SEASON_FROM_MONTH, SEASON_TO_MONTH } from './historyEvents';
 import { EUROPE_BOX, inBox, type LonLatBox } from '../fireRegion';
+import { effisPlaceName } from '../fireCorroboration';
 
 export const HISTORY_ARTIFACT_VERSION = 1 as const;
 export const HISTORY_BASE_URL = '/fire/bh';
@@ -209,6 +210,9 @@ export function rowOf(e: HistoryEvent): IndexRow {
 export function entryOf(row: IndexRow, fields: readonly string[] = INDEX_FIELDS): HistoryIndexEntry {
   const o: Record<string, unknown> = {};
   fields.forEach((k, i) => { o[k] = row[i]; });
+  // Files built before carry the EFFIS placeholder „N.A.“ as a name (outside the EU): read it as „no name“.
+  o.placeName = effisPlaceName(o.placeName);
+  o.placeDistrict = effisPlaceName(o.placeDistrict);
   return o as unknown as HistoryIndexEntry;
 }
 

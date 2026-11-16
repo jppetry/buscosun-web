@@ -23,7 +23,7 @@ import { assertDachAxis } from './wfsAxis';
 import { EUROPE_BOX } from '../fireRegion';
 import { takeWarmFire } from '../fireWarm';
 import {
-  LANDCOVER_KEYS, dominantLandcover, parseBurntFeature, type BurntPolygon, type LandcoverKey,
+  LANDCOVER_KEYS, dominantLandcover, effisPlaceName, parseBurntFeature, type BurntPolygon, type LandcoverKey,
 } from '../fireCorroboration';
 
 export const EFFIS_SEASON_EUROPE_URL = '/fire/effis-season-europe-v1.json';
@@ -78,8 +78,8 @@ export function decodeEuropeSeason(f: SeasonFile): EuropeSeason | null {
       lastUpdateMs: upd == null ? null : upd * 60_000,
       areaHa: numOr(r[c.ha]),
       country: typeof r[c.cc] === 'string' && r[c.cc] ? String(r[c.cc]) : null,
-      province: prov != null && prov >= 0 ? f.provinces[prov] ?? null : null,
-      commune: typeof r[c.com] === 'string' && r[c.com] ? String(r[c.com]) : null,
+      province: prov != null && prov >= 0 ? effisPlaceName(f.provinces[prov]) : null,
+      commune: effisPlaceName(r[c.com]),
       landcover,
       percNa2k: numOr(r[c.na2k]),
       polys: [],

@@ -121,6 +121,16 @@ const num = (v: unknown): number | null => {
   return Number.isFinite(n) ? n : null;
 };
 
+/**
+ * A commune or province name from EFFIS — or `null`. Outside the EU (Algeria, Morocco, Ukraine …) EFFIS writes the
+ * placeholder „N.A.“ into `COMMUNE`/`PROVINCE`; that is no name. The same placeholder sits in history files built before.
+ */
+export function effisPlaceName(v: unknown): string | null {
+  if (typeof v !== 'string') return null;
+  const s = v.trim();
+  return !s || /^N\.\s?A\.?$/i.test(s) || /^N\/A$/i.test(s) ? null : s;
+}
+
 /** Ein GeoJSON-Feature des EFFIS-WFS → `BurntPolygon`; `null`, wenn keine Fläche. */
 export function parseBurntFeature(f: GeoJSON.Feature): BurntPolygon | null {
   const g = f.geometry;
@@ -141,8 +151,8 @@ export function parseBurntFeature(f: GeoJSON.Feature): BurntPolygon | null {
     lastUpdateMs: parseEffisDate(p.LASTUPDATE),
     areaHa: num(p.AREA_HA),
     country: typeof p.COUNTRY === 'string' ? p.COUNTRY : null,
-    province: typeof p.PROVINCE === 'string' ? p.PROVINCE : null,
-    commune: typeof p.COMMUNE === 'string' ? p.COMMUNE : null,
+    province: effisPlaceName(p.PROVINCE),
+    commune: effisPlaceName(p.COMMUNE),
     landcover,
     percNa2k: num(p.PERCNA2K),
     polys,

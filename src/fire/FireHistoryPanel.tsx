@@ -28,7 +28,7 @@ import { Stat } from './FireFootprintPanel';
 import { FlameIcon, IndustryIcon } from './fireIcons';
 import { FireProfileBlock } from './dossier/FireProfileBlock';
 import { fetchFireWeatherArchive, type FireWeatherAtPoint } from './detail/fireWeatherAtPoint';
-import { LANDCOVER_LABEL, LANDCOVER_KEYS } from './fireCorroboration';
+import { LANDCOVER_LABEL, LANDCOVER_KEYS, effisPlaceName } from './fireCorroboration';
 
 export type HistorySort = 'strength' | 'recency' | 'area';
 
@@ -76,7 +76,8 @@ function spanLabel(e: HistoryIndexEntry): string {
 
 export function historyEntryName(e: HistoryIndexEntry): string {
   if (e.placeName) return e.placeDistrict && e.placeDistrict !== e.placeName ? `${e.placeName} (${e.placeDistrict})` : e.placeName;
-  return `${e.lat.toFixed(2)}° N, ${e.lon.toFixed(2)}° O`;
+  if (e.placeDistrict) return e.placeDistrict;
+  return`${e.lat.toFixed(2)}° N, ${e.lon.toFixed(2)}° O`;
 }
 
 /**
@@ -463,7 +464,7 @@ export function HistoryDossierBody({ entry, aside, head }: {
           {ev?.effis && (
             <>
               <dt>Kartierung</dt>
-              <dd>EFFIS {num(ev.effis.areaHa, ' ha')}{ev.effis.percNa2k != null ? ` · Natura 2000 ${num(ev.effis.percNa2k, ' %')}` : ''}{(ev.effis.province || ev.effis.commune) ? ` · ${[ev.effis.commune, ev.effis.province].filter(Boolean).join(', ')}` : ''}</dd>
+              <dd>EFFIS {num(ev.effis.areaHa, ' ha')}{ev.effis.percNa2k != null ? ` · Natura 2000 ${num(ev.effis.percNa2k, ' %')}` : ''}{(() => { const at = [effisPlaceName(ev.effis.commune), effisPlaceName(ev.effis.province)].filter(Boolean).join(', '); return at ? ` · ${at}` : ''; })()}</dd>
               {lcRows.length > 0 && (
                 <>
                   <dt>Landbedeckung</dt>
