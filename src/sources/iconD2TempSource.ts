@@ -54,6 +54,32 @@ const DEM_MAX = TEMP_DEM_MAX;
  *  löst scharfe 3000er (Sonnblick/Zugspitze) besser auf, kostet aber ~4× Tiles/
  *  Bandbreite beim Erststart → bewusst nicht Default. */
 const DEM_ZOOM = 7;
+/** Rows of the height picture over the whole ICON-D2 domain (columns follow the aspect ratio, `demGrid.ts`). */
+const DEM_ROWS = 700;
+
+/**
+ * The part of the full height picture (DEM_ROWS rows over `bounds`) that covers `box`, cut on the SAME cells: edges on
+ * cell boundaries, so every cell centre — and with it the height the labels read — is the one of the full picture. At
+ * least 64 cells each way (the builder's floor for columns). A map tile that shows a small section needs ≤ 4 Terrarium
+ * tiles this way instead of the 90 of the domain (dashboard `MiniMap`).
+ */
+function demSubGrid(bounds: ForecastBounds, box: ForecastBounds): { bounds: ForecastBounds; rows: number } {
+  const lonSpan = bounds.lngMax - bounds.lngMin;
+  const latSpan = Math.max(0.01, bounds.latMax - bounds.latMin);
+  const cols = Math.max(64, Math.round(DEM_ROWS * (lonSpan / latSpan)));
+  const dLat = latSpan / DEM_ROWS, dLng = lonSpan / cols;
+  const span = (lo: number, hi: number, n: number): [number, number] => {
+    let a = Math.max(0, Math.min(n, Math.floor(lo))), b = Math.max(0, Math.min(n, Math.ceil(hi)));
+    while (b - a < 64 && (a > 0 || b < n)) { if (a > 0) a--; if (b - a < 64 && b < n) b++; }
+    return [a, b];
+  };
+  const [i0, i1] = span((box.lngMin - bounds.lngMin) / dLng, (box.lngMax - bounds.lngMin) / dLng, cols);
+  const [j0, j1] = span((box.latMin - bounds.latMin) / dLat, (box.latMax - bounds.latMin) / dLat, DEM_ROWS);
+  return {
+    bounds: { lngMin: bounds.lngMin + i0 * dLng, lngMax: bounds.lngMin + i1 * dLng, latMin: bounds.latMin + j0 * dLat, latMax: bounds.latMin + j1 * dLat },
+    rows: j1 - j0,
+  };
+}
 
 export interface IconD2TempFrame {
   validAt: Date;
@@ -73,6 +99,8 @@ export interface IconD2Temp {
   vMax: number;
   /** Hochaufgelöstes DEM-Bild (R = Höhe/DEM_MAX) über DENSELBEN uvBounds. */
   demImage: HTMLCanvasElement;
+  /** Only with `opts.demBox`: the height picture covers this part of the domain, not `uvBounds`. */
+  demUvBounds?: [number, number, number, number];
 }
 
 function lngToEquiX(lng: number): number { return (lng + 180) / 360; }
@@ -86,8 +114,8 @@ const demCache = new Map<string, HTMLCanvasElement>();
  * Baut ein hochaufgelöstes DEM-Bild (Terrarium) über die ICON-Bounds, north-up,
  * R = Höhe/DEM_MAX. Sampling-Raster proportional zum Bounds-Seitenverhältnis.
  */
-async function buildDemImage(bounds: ForecastBounds, signal?: AbortSignal): Promise<HTMLCanvasElement> {
-  const key = `${bounds.lngMin.toFixed(2)},${bounds.latMin.toFixed(2)},${bounds.lngMax.toFixed(2)},${bounds.latMax.toFixed(2)}`;
+async function buildDemImage(bounds: ForecastBounds, signal?: AbortSignal, rows = DEM_ROWS): Promise<HTMLCanvasElement> {
+  const key = `${bounds.lngMin.toFixed(2)},${bounds.latMin.toFixed(2)},${bounds.lngMax.toFixed(2)},${bounds.latMax.toFixed(2)}${rows === DEM_ROWS ? '' : `,${rows}`}`;
   const cached = demCache.get(key);
   if (cached) return cached;
 
@@ -101,7 +129,7 @@ async function buildDemImage(bounds: ForecastBounds, signal?: AbortSignal): Prom
   // RK-1 (audit/karte-ruckler.md): dieselbe Rechnung in `demGrid.ts`, byte-gleich, aber ohne
   // den 2-s-Block — vorher stand die Karte auf jeder Ansicht kurz nach dem Laden still.
   const tiles = await loadElevationTiles(bounds, DEM_ZOOM, signal);
-  const { width, height, rgba } = await buildDemRgba(tiles, bounds, 700, DEM_MAX, { signal });
+  const { width, height, rgba } = await buildDemRgba(tiles, bounds, rows, DEM_MAX, { signal });
 
   const canvas = document.createElement('canvas');
   canvas.width = width; canvas.height = height;
@@ -137,7 +165,9 @@ export async function fetchIconD2Temp(
   /** `nowOnly` (Testmodus „startnow", MapView): lädt NUR das Fenster von „jetzt"
    *  bis „jetzt + aheadHours" (`stepsForNowWindow`); 0 = Jetzt-Bracket. DEM/hsurf
    *  (invariant, fürs Rendering nötig) laden unverändert. */
-  opts?: { nowOnly?: boolean; aheadHours?: number },
+  /** `demBox`: the height picture only over this section (cut on the cells of the full picture, `demSubGrid`) — for a
+   *  caller that samples a small fixed section (dashboard map tile). The result then carries `demUvBounds`. */
+  opts?: { nowOnly?: boolean; aheadHours?: number; demBox?: ForecastBounds },
 ): Promise<IconD2Temp> {
   const { runStr, runAt, steps } = await resolveLatestRun('t_2m', signal, 'temp');
   const capped = steps.filter((s) => s <= MAX_STEP);
@@ -186,7 +216,11 @@ export async function fetchIconD2Temp(
     // derselben `uv`; verschiedene Bounds wären ein Versatz in der Höhenkorrektur.
     bounds = { lngMin: c[0][0], lngMax: c[1][0], latMin: c[2][1], latMax: c[0][1] };
   }
-  const demImage = await buildDemImage(bounds, signal);
+  const sub = opts?.demBox ? demSubGrid(bounds, opts.demBox) : null;
+  const demImage = sub ? await buildDemImage(sub.bounds, signal, sub.rows) : await buildDemImage(bounds, signal);
+  const demPart: { demUvBounds?: [number, number, number, number] } = sub
+    ? { demUvBounds: [lngToEquiX(sub.bounds.lngMin), latToEquiY(sub.bounds.latMax), lngToEquiX(sub.bounds.lngMax), latToEquiY(sub.bounds.latMin)] }
+    : {};
 
   const frames: IconD2TempFrame[] = [];
 
@@ -203,7 +237,7 @@ export async function fetchIconD2Temp(
         })();
       frames.push({ validAt: new Date(runAt.getTime() + step * 3_600_000), stepHours: step, ...built });
       frames.sort((a, b) => a.stepHours - b.stepHours);
-      if (onProgress) onProgress({ runAt, frames: [...frames], uvBounds, vMin: TEMP_VMIN, vMax: TEMP_VMAX, demImage });
+      if (onProgress) onProgress({ runAt, frames: [...frames], uvBounds, vMin: TEMP_VMIN, vMax: TEMP_VMAX, demImage, ...demPart });
     } catch {
       // Einzelner Schritt fehlt → überspringen.
     }
@@ -220,7 +254,7 @@ export async function fetchIconD2Temp(
   await Promise.all(workers);
 
   if (frames.length === 0) throw new Error('ICON-D2 Temp: keine Frames erzeugt');
-  return { runAt, frames, uvBounds, vMin: TEMP_VMIN, vMax: TEMP_VMAX, demImage };
+  return { runAt, frames, uvBounds, vMin: TEMP_VMIN, vMax: TEMP_VMAX, demImage, ...demPart };
 }
 
 // Hinweis: Frame-Wahl nach Vorlauf-Schritt (`tempFrameAtHour`) wurde entfernt.

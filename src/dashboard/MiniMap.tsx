@@ -21,6 +21,7 @@ import { loadDachMask } from '../countryMask';
 import { weatherWindOptions, WEATHER_WIND_DENSITY } from '../wind/weatherWindPreset';
 import { fetchIconD2Wind, loadWindNowCache, windFrameAtValidTime } from '../wind/iconD2WindSource';
 import { fetchIconD2Temp } from '../sources/iconD2TempSource';
+import { CITY_TEMPS_ON, cityTempAt, loadCityTemps } from '../sources/cityTemps';
 import { frameAtValidTime } from '../sources/frameAtValidTime';
 import { DACH_CITIES, PLACE_LABEL_MIN_ZOOM, TemperatureSampler, loadTempLabelCache, minZoomForRank, saveTempLabelCache, tempLabelColor, visiblePlaceLabels, type City } from '../temperatureLabels';
 import { fetchRvLatestAnalysis } from '../sources/radolan';
@@ -73,7 +74,7 @@ async function loadRadarPick(country: PlaceIn['country'], signal: AbortSignal): 
 }
 
 /** Paints the Wetterkarte's temperature labels (`MapView`) for the visible part of this map. */
-function paintTempLabels(map: maplibregl.Map, markers: Map<string, maplibregl.Marker>, getTemp: (c: City) => number | null) {
+function paintTempLabels(map: maplibregl.Map, markers: Map<string, maplibregl.Marker>, getTemp: (c: City) => number | null, getPlaceTemp: (c: City) => number | null = getTemp) {
   const keep = new Set<string>();
   const put = (key: string, lng: number, lat: number, t: number, rank: number) => {
     let m = markers.get(key);
@@ -99,7 +100,7 @@ function paintTempLabels(map: maplibregl.Map, markers: Map<string, maplibregl.Ma
   }
   if (zoom >= PLACE_LABEL_MIN_ZOOM) {
     for (const p of visiblePlaceLabels(map, keep)) {
-      const t = getTemp({ name: p.name, lat: p.lat, lng: p.lng, rank: 4 });
+      const t = getPlaceTemp({ name: p.name, lat: p.lat, lng: p.lng, rank: 4 });
       if (t != null && Number.isFinite(t)) put(p.key, p.lng, p.lat, t, 4);
     }
   }
@@ -196,7 +197,9 @@ export default function MiniMap({ place, zoom = ZOOM, interactive = false, onRea
       void (async () => {
         const markers = new Map<string, maplibregl.Marker>();
         let getTemp: ((c: City) => number | null) | null = null;
-        const repaint = () => { if (getTemp && !ac.signal.aborted) paintTempLabels(map, markers, getTemp); };
+        // The basemap's own places (zoom ≥ 8.2): undefined = the same getter as the cities (as before).
+        let getPlaceTemp: ((c: City) => number | null) | undefined;
+        const repaint = () => { if (getTemp && !ac.signal.aborted) paintTempLabels(map, markers, getTemp, getPlaceTemp); };
         map.on('moveend', repaint);
         const cached = loadTempLabelCache();
         if (cached) {
@@ -205,13 +208,54 @@ export default function MiniMap({ place, zoom = ZOOM, interactive = false, onRea
           setTempState('ok');
         }
         try {
-          const td = await fetchIconD2Temp(ac.signal, undefined, { nowOnly: true, aheadHours: 0 });
+          // City temperatures from buscosun Fusion: one small file of the data repo (`sources/cityTemps.ts`) instead of the
+          // t_2m grid with its 90 height tiles. No file (missing, stale, `?ct=0`) ⇒ the grid as before, below.
+          const ct = CITY_TEMPS_ON ? await loadCityTemps() : null;
+          if (ac.signal.aborted) return;
+          let fromFile = false;
+          if (ct) {
+            const nowMs = Date.now();
+            const fused: Record<string, number> = {};
+            for (const c of DACH_CITIES) { const t = cityTempAt(ct, c.name, nowMs); if (t != null) fused[c.name] = t; }
+            if (Object.keys(fused).length >= 8) {
+              saveTempLabelCache(fused);
+              getTemp = (c) => fused[c.name] ?? null;
+              getPlaceTemp = () => null;
+              fromFile = true;
+              repaint();
+              setTempState('ok');
+            }
+          }
+          // With the file the grid only serves the basemap's own places (zoom ≥ 8.2, in no list). The large view loads it
+          // once it is zoomed in that far; the fixed tile needs the height picture only over its own section (≤ 4 tiles).
+          if (fromFile && interactive && map.getZoom() < PLACE_LABEL_MIN_ZOOM) {
+            await new Promise<void>((resolve) => {
+              const on = () => { if (map.getZoom() >= PLACE_LABEL_MIN_ZOOM) { map.off('moveend', on); resolve(); } };
+              map.on('moveend', on);
+              ac.signal.addEventListener('abort', () => { map.off('moveend', on); resolve(); }, { once: true });
+            });
+            if (ac.signal.aborted) return;
+          }
+          const view = map.getBounds();
+          const padLon = (view.getEast() - view.getWest()) / 2, padLat = (view.getNorth() - view.getSouth()) / 2;
+          const demBox = fromFile && !interactive
+            ? { lngMin: view.getWest() - padLon, lngMax: view.getEast() + padLon, latMin: view.getSouth() - padLat, latMax: view.getNorth() + padLat }
+            : undefined;
+          const td = await fetchIconD2Temp(ac.signal, undefined, { nowOnly: true, aheadHours: 0, ...(demBox ? { demBox } : {}) });
           if (ac.signal.aborted) return;
           const f = frameAtValidTime(td.frames, Date.now());
+          const demUv = td.demUvBounds ?? td.uvBounds;
           const sampler = new TemperatureSampler({
             tempImage: f.image, tempUvBounds: td.uvBounds, vMin: td.vMin, vMax: td.vMax,
-            demImage: td.demImage, demUvBounds: td.uvBounds, demMax: 4500, lapseRatePerM: 0.0065,
+            demImage: td.demImage, demUvBounds: demUv, demMax: 4500, lapseRatePerM: 0.0065,
           });
+          if (fromFile) {
+            // Outside the height picture the sampler would answer without the height correction — no value there instead.
+            const inDem = (c: City) => { const u = (c.lng + 180) / 360, v = (90 - c.lat) / 180; return u >= demUv[0] && u <= demUv[2] && v >= demUv[1] && v <= demUv[3]; };
+            getPlaceTemp = (c) => (inDem(c) ? sampler.sample(c.lng, c.lat) : null);
+            repaint();
+            return;
+          }
           const full: Record<string, number> = {};
           for (const c of DACH_CITIES) { const t = sampler.sample(c.lng, c.lat); if (t != null && Number.isFinite(t)) full[c.name] = t; }
           // Same guard as the Wetterkarte: a degraded grid neither replaces the cache nor the values shown.

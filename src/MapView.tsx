@@ -61,6 +61,7 @@ import { sampleTempAt, sampleGustAt, sampleWindAt, sampleCloudsAt, sampleDemAt }
 import { runLayerQA, runSnowlineQA, type SampleApi } from './qa/layerQA';
 import { fetchIconEuPressureWind, WIND_PRESSURE_LEVELS, type WindPressureLevel } from './wind/iconEuPressureWind';
 import { fetchIconD2Temp, fetchTempRunSpread, type IconD2Temp, type IconD2TempSpread } from './sources/iconD2TempSource';
+import { CITY_TEMPS_ON, CITY_TEMPS_REFRESH_MS, cityTempAt, cityTempsFresh, loadCityTemps, type CityTemps } from './sources/cityTemps';
 import { fetchIconD2Gust, type IconD2Gust } from './sources/iconD2GustSource';
 // Gewitterpotenzial (Feature F1): fusioniert cape_ml×cin_ml×lpi zu einem 0–100-
 // Index — flächige Vorwarnung 0–12 h vor dem ersten Radarecho. Lazy beim Aktivieren.
@@ -1149,6 +1150,23 @@ export default function MapView({
   const installStationsRef = useRef<(() => void | Promise<void>) | null>(null);
   const stationsLoadedRef = useRef(false);
   const [nowcastTick, setNowcastTick] = useState(0);
+  // City temperatures from buscosun Fusion (`sources/cityTemps.ts`): one small file instead of the t_2m grid with its 90
+  // height tiles. 'pending' until the file answered; null = not there, stale or `?ct=0` ⇒ the labels sample the grid as before.
+  const cityTempsWanted = CITY_TEMPS_ON && (!profile || RADAR_PROFILE.tempLabels);
+  const [cityTemps, setCityTemps] = useState<CityTemps | null | 'pending'>(cityTempsWanted ? 'pending' : null);
+  useEffect(() => {
+    if (!cityTempsWanted) return;
+    let dead = false;
+    const pull = () => {
+      void loadCityTemps().then((ct) => {
+        // a refresh that fails keeps the run on screen while it is still fresh
+        if (!dead) setCityTemps((prev) => ct ?? (prev && prev !== 'pending' && cityTempsFresh(prev, Date.now()) ? prev : null));
+      });
+    };
+    pull();
+    const id = window.setInterval(pull, CITY_TEMPS_REFRESH_MS);
+    return () => { dead = true; window.clearInterval(id); };
+  }, [cityTempsWanted]);
   // Aktuelles Land frisch für Mount-Effekt-Closures (deren deps sind []).
   const countryRef = useRef(location.country);
   countryRef.current = location.country;
@@ -2873,7 +2891,8 @@ export default function MapView({
   useEffect(() => {
     // Phase RR: das Niederschlags-Profil zeigt diese Layer nie — kein Vorab-Abruf (RADAR_PROFILE.prefetch).
     if (prefetchDoneRef.current || embedded || (profile && !RADAR_PROFILE.prefetch) || !lzEnabled()) return;
-    if (!iconD2WindRef.current && !iconD2TempRef.current) return;
+    // With the city temperatures from the file the t_2m grid no longer loads at the start — the file stands in as "first picture there".
+    if (!iconD2WindRef.current && !iconD2TempRef.current && !(cityTemps && cityTemps !== 'pending')) return;
     prefetchDoneRef.current = true;
     const abort = new AbortController();
     prefetchAbortRef.current = abort;
@@ -2890,7 +2909,7 @@ export default function MapView({
     if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(run, { timeout: 4000 });
     else window.setTimeout(run, 1500);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nowcastTick]);
+  }, [nowcastTick, cityTemps]);
 
   // Rotationspotenzial lazy laden (Feature F5, Jans HARTE Vorgabe): erst beim ersten
   // Aktivieren die ICON-D2-uh_max/uh_max_low/sdi_2-Felder ziehen — nie eager am Start.
@@ -2952,6 +2971,18 @@ export default function MapView({
       if (active.has('temp')) {
         void installTempRef.current?.();
       } else if (!profile || RADAR_PROFILE.tempLabels || active.has('snowline')) {
+        // City temperatures from the file (`cityTemps`): the grid and its 90 height tiles no longer load at the start.
+        // The snow line still needs the grid at once; otherwise it loads only for the basemap's own places, which get a
+        // temperature from zoom `PLACE_LABEL_MIN_ZOOM` and stand in no list. No file (null) ⇒ exactly as before, below.
+        if (!active.has('snowline') && cityTemps !== null) {
+          if (cityTemps === 'pending') return;
+          const map = mapRef.current;
+          if (!map) return;
+          const check = () => { if (!iconD2TempRef.current && map.getZoom() >= PLACE_LABEL_MIN_ZOOM) void installTempRef.current?.(); };
+          check();
+          map.on('moveend', check);
+          return () => { map.off('moveend', check); };
+        }
         // Phase RR: im Niederschlags-Profil gibt es keine Stadt-Temperaturen — das t_2m-Gitter lädt dort nur, solange die
         // Schneefallgrenze es braucht (sie rechnet auf genau diesem Feld). Ohne Profil unverändert.
         // Stadt-Temperatur-Labels sind dauerhaft sichtbar (windy-Stil) → das
@@ -2966,7 +2997,7 @@ export default function MapView({
         ric(() => { if (!iconD2TempRef.current) void installTempRef.current?.(); });
       }
     }
-  }, [active]);
+  }, [active, cityTemps]);
 
   // Rasterer laden, sobald ein aktiver Layer auf ein Modell OHNE nativen
   // GRIB2-Pfad auflöst. Der Temperatur-Layer allein fordert ihn NICHT mehr an —
@@ -4497,7 +4528,9 @@ export default function MapView({
     // Live-Sampler (frisches Gitter) oder der Sofort-Cache (Kaltstart). Es werden
     // AUSSCHLIESSLICH Orte aus `DACH_CITIES` beschriftet — keine frei im Gitter
     // platzierten Zahlen, jede Temperatur klebt an einem echten Ort.
-    const paint = (getTemp: (c: City) => number | null) => {
+    // `getPlaceTemp`: the basemap's own places (zoom ≥ 8.2) — they stand in no list, so their value never comes from the
+    // city file (a village may share a city's name); default = the same getter as the cities.
+    const paint = (getTemp: (c: City) => number | null, getPlaceTemp: (c: City) => number | null = getTemp) => {
       const zoom = map.getZoom();
       const keep = new Set<string>();
 
@@ -4519,7 +4552,7 @@ export default function MapView({
       // sind. Der Wert kommt aus demselben DEM-korrigierten Sampler.
       if (zoom >= PLACE_LABEL_MIN_ZOOM) {
         for (const place of visiblePlaceLabels(map, keep)) {
-          const t = getTemp({ name: place.name, lat: place.lat, lng: place.lng, rank: 4 });
+          const t = getPlaceTemp({ name: place.name, lat: place.lat, lng: place.lng, rank: 4 });
           if (t == null || !Number.isFinite(t)) continue;
           writeMarker(ensureMarker(place.key, place.lng, place.lat), t, 'temp-label-rank-4');
           keep.add(place.key);
@@ -4549,6 +4582,22 @@ export default function MapView({
 
     const atHour0 = Math.round(forecastHour) === 0;
 
+    // City temperatures from buscosun Fusion (`sources/cityTemps.ts`) — on every layer, also under the temperature layer
+    // (Jan 17.11.: a place shows the same number everywhere). The grid sampler stays for the basemap's own places and for a
+    // city the file does not carry. Same guard as below: a degraded file neither paints nor replaces the cache.
+    if (cityTemps && cityTemps !== 'pending') {
+      const ct = cityTemps;
+      const targetMs = Date.now() + forecastHour * 3600_000;
+      const full: Record<string, number> = {};
+      for (const c of DACH_CITIES) { const t = cityTempAt(ct, c.name, targetMs); if (t != null) full[c.name] = t; }
+      if (Object.keys(full).length >= 8) {
+        if (atHour0) saveTempLabelCache(full);
+        const sampler = samplerOpts ? new TemperatureSampler(samplerOpts) : null;
+        const fromGrid = (c: City) => (sampler ? sampler.sample(c.lng, c.lat) : null);
+        return renderWhenReady(() => paint((c) => full[c.name] ?? fromGrid(c), fromGrid));
+      }
+    }
+
     if (samplerOpts) {
       // Frische Daten da → einmal alle Städte sampeln. Nur wenn das Gitter
       // tatsächlich Abdeckung liefert (genug endliche Werte), live rendern und —
@@ -4575,7 +4624,7 @@ export default function MapView({
       return renderWhenReady(() => paint((c) => cached[c.name] ?? null));
     }
     removeAll();
-  }, [forecast, forecastHour, active, nowcastTick]);
+  }, [forecast, forecastHour, active, nowcastTick, cityTemps]);
 
   // Switch satellite tile template whenever the user picks a different
   // product. `setTiles` is the cheap path that keeps the existing source +

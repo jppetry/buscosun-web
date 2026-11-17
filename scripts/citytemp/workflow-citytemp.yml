@@ -1,0 +1,91 @@
+# ============================================================================
+# citytemp.yml — Stadt-Temperaturen der Kartenlabels aus buscosun Fusion
+#
+# VORLAGE. Diese Datei wird in `buscosun-web/scripts/citytemp/workflow-citytemp.yml` GEPFLEGT und liegt im Daten-Repo
+# als `.github/workflows/citytemp.yml`. Der Code lebt in `buscosun-web` (`scripts/citytemp/city-temps.mjs`, Vertrag
+# `src/sources/cityTemps.ts`) und wird bei jedem Lauf frisch geklont.
+#
+# Was der Job tut: buscosun Fusion (neuester Stand des Registers) an jeder Stadt der Liste `DACH_CITIES`, +0 … +48 h
+# stündlich, aus dem Punkt-Cube (`point/`), dem Radar-Stundenmittel (`radar/img`), dem ICON-D2-RUC (`ruc/`) und den
+# Messungen (`obs/v1`) DIESES Checkouts. Ergebnis: EINE Datei `citytemp/v1/latest.json` (einige zehn KB). Die
+# Wetterkarte und die Karten-Kachel des Dashboards lesen sie statt des Temperaturgitters mit 90 Höhenkacheln.
+#
+# Geschrieben wird NUR unter `citytemp/v1/`. Gelände und Rauigkeit je Stadt liegen einmalig in
+# `citytemp/v1/static/geo.json` (gebaut mit `--build-geo`; fehlt die Datei, baut der Lauf sie selbst neu).
+#
+# Takt: zweimal je Stunde (:27, :57) — die Messungen ändern den Anker der ersten Stunden. GitHub startet Zeitpläne
+# verspätet; der Client zeigt eine Datei, die älter als 3 h ist, nicht mehr und fällt auf das Gitter zurück.
+#
+# Rot: Exit 3 = Lauf nicht veröffentlicht (mehr als 10 % der Städte ohne Ergebnis, Tabellen der Lernstufe nicht
+# gelesen, kein Lauf der Stufe 1). Die vorige Datei bleibt. Aus: Repo-Variable CITYTEMP=0.
+# ============================================================================
+
+name: citytemp
+
+on:
+  schedule:
+    - cron: '27,57 * * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: citytemp
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  citytemp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: |
+            point
+            radar/img
+            ruc
+            obs
+            citytemp
+          sparse-checkout-cone-mode: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Git identity
+        run: |
+          git config user.name  'buscosun-citytemp[bot]'
+          git config user.email 'citytemp@users.noreply.github.com'
+
+      - name: Checkout producer (buscosun-web, public, sparse)
+        id: app
+        run: |
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-web.git "$RUNNER_TEMP/app"
+          cd "$RUNNER_TEMP/app"
+          git sparse-checkout set --no-cone scripts src public/climaGrid.json package.json
+          git checkout --quiet
+          for f in scripts/citytemp/city-temps.mjs src/sources/cityTemps.ts; do
+            if [ ! -f "$f" ]; then
+              echo "producer not on main yet ($f fehlt in buscosun-web main) — Ende ohne Fehler."
+              echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          done
+          echo "ready=1" >> "$GITHUB_OUTPUT"
+
+      # Dieselben zwei Parser-Pakete wie in road-fc (die Leser des Clients laden sie beim Import).
+      - name: Parser packages (bz2, jsfive)
+        if: steps.app.outputs.ready == '1'
+        run: npm install --prefix "$RUNNER_TEMP" --no-save --no-audit --no-fund bz2@1 jsfive@0.4
+
+      - name: Compute and publish
+        if: steps.app.outputs.ready == '1'
+        env:
+          CITYTEMP: ${{ vars.CITYTEMP }}
+        run: |
+          cd "$RUNNER_TEMP/app"
+          node --experimental-strip-types --disable-warning=ExperimentalWarning --import ./scripts/lib/register-ts.mjs \
+            scripts/citytemp/city-temps.mjs --data="$GITHUB_WORKSPACE" --publish
