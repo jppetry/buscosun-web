@@ -15,8 +15,13 @@ import ShareButton from '../share/ShareButton';
 import { useAppNav } from '../router/useAppNav';
 import { useMediaQuery } from '../mobile/useIsMobile';
 import { seaFieldStepAt, seaCompStepAt, seaNoSeaAt, type SeaSpot } from './seaContract';
-import { seaDryRuleFrom, seaWaterLevelFrom } from './seaFlag';
-import { WL_ATTRIBUTION, WL_LICENCE, WL_LICENCE_URL, WL_SERVICE_PAGE, wlDistKm, wlNearest, type WlForecast, type WlGauge } from './waterLevel';
+import { seaDryRuleFrom, seaTideWindowFrom, seaWaterLevelFrom } from './seaFlag';
+import { WL_ATTRIBUTION, WL_LICENCE, WL_LICENCE_URL, WL_SERVICE_PAGE, wlAt, wlDistKm, wlNearest, wlNearestWithCurve, type WlForecast, type WlGauge } from './waterLevel';
+import {
+  encodeTideParam, loadTideThreshold, parseTideParam, saveTideThreshold, tideHours, tideRefOf, tideRefs, tideSeries, tideSideText, tideVerdict, tideWindows,
+  type TideThreshold,
+} from './tideWindow';
+import { TideControl, TideWindows, type SeaTideView } from './SeaTideWindow';
 import { BASEMAP_SOURCE, CC_BY_URL, MapSourcesTile, type MapSourceGroup } from '../map/MapSourcesTile';
 import { WlCatalogMissing, loadGaugeCatalog, loadGaugeForecast } from './waterLevelClient';
 import { coastWarnStatus, seaTextFreshness, type SeaTextProduct } from './seaText';
@@ -26,11 +31,11 @@ import {
   type SeaAreas, type SeaCatalog, type SeaPoiObs, type SeaRunLoad, type SeaSpotsDoc,
 } from './seaClient';
 import {
-  SEA_PROFILE_BY_ID, loadLimits, saveLimits, nextAndLongest, fmtWind, unitLabel, SEA_UNITS, MS_TO_KN,
+  SEA_PROFILE_BY_ID, loadLimits, saveLimits, nextAndLongest, fmtWind, unitLabel, SEA_UNITS, MS_TO_KN, windows as verdictWindows,
   type SeaLimits, type SeaProfileId, type SeaUnit, type SeaVerdict,
 } from './seaProfiles';
 import { SeaVerdictCache } from './seaVerdicts';
-import { SEA_TIME_CHIPS, type SeaLayer, type SeaRevier, type SeaTab, type SeaUrlState } from './seaState';
+import { SEA_MAX_T, SEA_TIME_CHIPS, type SeaLayer, type SeaRevier, type SeaTab, type SeaUrlState } from './seaState';
 import {
   CLASS_COLOR, CLASS_LABEL, CLASS_SHORT, DRY_VALUE, HS_STOPS, LAYER_LABEL, PER_STOPS, H, compass16, cssGradient, dayShort, f1, hh, hm, tzLabel, waveArrows,
 } from './seaView';
@@ -63,6 +68,8 @@ const TEXTS: readonly SeaTextProduct[] = SEA_PAGE_TEXTS;
 const DEFAULT_TOGGLES: SeaToggles = { wind: true, warn: true, stations: false, water: true };
 const KIND_LABEL: Record<string, string> = { strand: 'Badestrand', kite: 'Kite-Spot', hafen: 'Hafen', revier: 'Revier' };
 export const kindsLabel = (kinds: readonly string[]) => kinds.map((x) => KIND_LABEL[x] ?? x).join(', ');
+/** Phase TF (E-TF-1): how many gauges are asked for a curve when the catalogue's hint `has.curve` proves wrong live. */
+const TIDE_CURVE_TRIES = 3;
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'ss');
 
 export default function SeaPage({ initial, onUrlState, onSpot, popState, openDossier }: SeaPageProps) {
@@ -98,7 +105,15 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   const [wlCat, setWlCat] = useState<{ gauges: WlGauge[]; why: string | null; state: 'loading' | 'ok' | 'missing' | 'error' }>({ gauges: [], why: null, state: 'loading' });
   const [wlDoc, setWlDoc] = useState<WlForecast | null | 'loading' | 'error'>(null);
   const [gaugePick, setGaugePick] = useState<string | null>(null);
-  const [mobTab, setMobTab] = useState<'map' | 'spot' | 'layers'>('map');
+  const [mobTab, setMobTab] = useState<'map' | 'spot' | 'layers' | 'tide'>('map');
+  // Phase TF (`audit/tidenfenster.md`): off by default, `?tf=1` — read once, like `?wl=0`.
+  const tideOn = useMemo(() => seaTideWindowFrom(), []);
+  /** The threshold a link carried (`tw=`), until the user sets one of their own. */
+  const linkTide = useRef(tideOn ? parseTideParam(initial.tw) : null);
+  const [tide, setTide] = useState<TideThreshold | null>(null);
+  const [wlCurveDoc, setWlCurveDoc] = useState<WlForecast | null | 'loading' | 'error'>(null);
+  /** Gauges whose LIVE answer carried no curve although the catalogue said so (V-WL-11). */
+  const [noCurveIds, setNoCurveIds] = useState<readonly string[]>([]);
   /** Centre stage: the map (default) or the spot dossier — like the Brandradar (BD2), the map stays mounted. Mobile: the dossier is a full-screen page over the map. */
   const [stage, setStage] = useState<'map' | 'dossier'>(openDossier && !isMobile ? 'dossier' : 'map');
   /** The spot a MAP click picked: its preview card (bottom left) stays until closed, the detail opens or another spot is picked. */
@@ -228,6 +243,77 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
     if (!spots.some((s) => s.id === initial.spot)) { setUnknownSpot(initial.spot); setStage('map'); }
   }, [spots]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // --- WL-4: gauge of this spot, its live forecast, and what the card is allowed to claim ----------------
+  const nearestGauge = useMemo(() => (water && spot && wlCat.gauges.length ? wlNearest(wlCat.gauges, spot.lat, spot.lon) : null), [water, spot, wlCat.gauges]);
+  const gauge = useMemo(() => (gaugePick ? wlCat.gauges.find((g) => g.id === gaugePick) ?? null : null) ?? nearestGauge?.gauge ?? null, [gaugePick, wlCat.gauges, nearestGauge]);
+  const gaugeKm = useMemo(() => (gauge && spot ? wlDistKm(spot.lat, spot.lon, gauge.lat, gauge.lon) : null), [gauge, spot]);
+  const gaugeId = gauge?.id ?? null;
+  // The reader's TTL is 10 min, the page refreshes on the same beat — so one tick asks once.
+  const wlTick = Math.floor(nowMs / REFRESH_MS);
+  useEffect(() => {
+    if (!water || !gaugeId) { setWlDoc(null); return; }
+    const ac = new AbortController();
+    setWlDoc((prev) => (prev && prev !== 'error' && prev !== 'loading' && prev.id === gaugeId ? prev : 'loading'));
+    loadGaugeForecast(gaugeId, ac.signal).then(
+      (d) => { if (!ac.signal.aborted) setWlDoc(d ?? 'error'); },
+      (e) => { if (!ac.signal.aborted && (e as Error)?.name !== 'AbortError') setWlDoc('error'); },
+    );
+    return () => ac.abort();
+  }, [water, gaugeId, wlTick]);
+
+  // --- Phase TF: the gauge that carries the curve (E-WL-10, E-TF-1) ------------------------------------------------
+  const tideActive = tideOn && water;
+  const gaugeDoc = wlDoc && wlDoc !== 'loading' && wlDoc !== 'error' && wlDoc.id === gaugeId ? wlDoc : null;
+  // The live answer decides whether the gauge carries a curve; until it is in, the catalogue's hint.
+  const curveAlt = useMemo(() => {
+    if (!tideActive || !gauge || !spot) return null;
+    const own = gaugeDoc ? gaugeDoc.curve.length > 0 : gauge.has.curve;
+    return own ? null : wlNearestWithCurve(wlCat.gauges, spot.lat, spot.lon, new Set([gauge.id, ...noCurveIds]));
+  }, [tideActive, gauge, spot, gaugeDoc, wlCat.gauges, noCurveIds]);
+  const curveAltId = curveAlt?.gauge.id ?? null;
+  useEffect(() => { setNoCurveIds((x) => (x.length ? [] : x)); }, [gaugeId]);
+  useEffect(() => {
+    if (!curveAltId) { setWlCurveDoc(null); return; }
+    const ac = new AbortController();
+    setWlCurveDoc((prev) => (prev && prev !== 'error' && prev !== 'loading' && prev.id === curveAltId ? prev : 'loading'));
+    loadGaugeForecast(curveAltId, ac.signal).then(
+      (d) => {
+        if (ac.signal.aborted) return;
+        // A live answer without a curve rules this gauge out; the next nearest is asked — `TIDE_CURVE_TRIES` at most.
+        if (d && d.curve.length === 0) setNoCurveIds((x) => (x.length < TIDE_CURVE_TRIES - 1 && !x.includes(curveAltId) ? [...x, curveAltId] : x));
+        setWlCurveDoc(d ?? 'error');
+      },
+      (e) => { if (!ac.signal.aborted && (e as Error)?.name !== 'AbortError') setWlCurveDoc('error'); },
+    );
+    return () => ac.abort();
+  }, [curveAltId, wlTick]);
+  const curveAltDoc = curveAlt && wlCurveDoc && wlCurveDoc !== 'loading' && wlCurveDoc !== 'error' && wlCurveDoc.id === curveAlt.gauge.id ? wlCurveDoc : null;
+  // The gauge whose curve the tide window reads: the other gauge when there is one, else the spot's gauge itself.
+  const tideGauge = tideActive ? (curveAlt ? curveAlt.gauge : gauge) : null;
+  const tideKm = curveAlt ? curveAlt.km : gaugeKm;
+  const tideDoc = curveAlt ? curveAltDoc : gaugeDoc;
+  const tideGaugeId = tideGauge?.id ?? null;
+  // A link names the gauge its threshold belongs to: when the page would read another one, that gauge is picked, as by hand.
+  const linkGaugeDone = useRef(false);
+  useEffect(() => {
+    const lt = linkTide.current;
+    if (linkGaugeDone.current || !lt || !tideGaugeId) return;
+    linkGaugeDone.current = true;
+    if (tideGaugeId !== lt.gaugeId && wlCat.gauges.some((g) => g.id === lt.gaugeId)) setGaugePick(lt.gaugeId);
+  }, [tideGaugeId, wlCat.gauges]);
+  // The threshold belongs to ONE gauge (E-TF-2): the link's for its gauge, else what this browser stored for it.
+  useEffect(() => {
+    if (!tideGaugeId) { setTide(null); return; }
+    const lt = linkTide.current;
+    setTide(lt && lt.gaugeId === tideGaugeId ? lt.threshold : loadTideThreshold(tideGaugeId));
+  }, [tideGaugeId]);
+  const setTideThreshold = useCallback((th: TideThreshold | null) => {
+    if (!tideGaugeId) return;
+    linkTide.current = null;
+    saveTideThreshold(tideGaugeId, th);
+    setTide(th);
+  }, [tideGaugeId]);
+
   // --- hour axis ------------------------------------------------------------------------------------
   const nowHour = Math.floor(nowMs / H) * H;
   const usable = !noData && !!run && !!spotsDoc;
@@ -257,8 +343,30 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   const verdictAt = useCallback((sp: SeaSpot, kk: number): SeaVerdict => verdicts.at(sp, kk), [verdicts]);
 
   const spotHours = useMemo(() => (spot && usable ? Array.from({ length: nHours }, (_, kk) => hourOf(spot.id, kk)!) : []), [spot, usable, nHours, hourOf]);
-  const spotVerdicts = useMemo(() => (spot && usable ? verdicts.row(spot) : []), [spot, usable, verdicts]);
-  const wins = useMemo(() => nextAndLongest(spot && usable ? verdicts.windows(spot) : [], nowMs), [spot, usable, verdicts, nowMs]);
+  // Phase TF: series, windows and hours of the tide window — null without the switch, without a curve or without a threshold.
+  const tideModel = useMemo(() => {
+    if (!tideDoc || !tideGauge) return null;
+    const refs = tideRefs({ region: tideDoc.region, zeroNhnCm: tideDoc.zeroNhnCm ?? tideGauge.zeroNhnCm, chartDatumCm: tideDoc.chartDatumCm ?? tideGauge.chartDatumCm, mhwCm: tideDoc.mhwCm, mlwCm: tideDoc.mlwCm });
+    const series = tideSeries(tideDoc.curve);
+    const ref = tide ? tideRefOf(refs, tide.ref) : null;
+    const on = tide && ref && series.points.length > 1 ? tide : null;
+    const horizon = nowHour + SEA_MAX_T * H;
+    return {
+      name: tideDoc.name, refs, end: series.end,
+      windows: on ? tideWindows(series.points, on, ref!.offsetCm, nowMs).filter((w) => w.from < horizon) : null,
+      hours: on ? tideHours(series.points, on, ref!.offsetCm, Array.from({ length: nHours }, (_, kk) => nowHour + kk * H)) : null,
+      mode: on ? on.mode : null,
+    };
+  }, [tideDoc, tideGauge, tide, nowMs, nowHour, nHours]);
+  // The classes of the chosen spot take the water level in ONLY with a threshold set (E-TF-5).
+  const tideFeed = tideModel?.hours && tideModel.mode ? tideModel : null;
+  const spotVerdicts = useMemo(() => {
+    const base = spot && usable ? verdicts.row(spot) : [];
+    return tideFeed ? base.map((v, i) => tideVerdict(v, tideFeed.hours![i], tideFeed.mode!, tideFeed.name)) : base;
+  }, [spot, usable, verdicts, tideFeed]);
+  const wins = useMemo(() => nextAndLongest(
+    spot && usable ? (tideFeed ? verdictWindows(spotVerdicts, spotVerdicts.map((_, kk) => nowHour + kk * H)) : verdicts.windows(spot)) : [], nowMs,
+  ), [spot, usable, verdicts, nowMs, tideFeed, spotVerdicts, nowHour]);
   const hour = spotHours[k] ?? null;
   const verdict = spot ? (spotVerdicts[k] ?? verdictAt(spot, k)) : null;
 
@@ -323,7 +431,9 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   }, [stationId, spotKey]);
 
   // --- URL ------------------------------------------------------------------------------------------------
-  const urlState: SeaUrlState = { spot: spotInUrl ? (spot?.id ?? spotId) : null, p: profile, t, l: layer, u: unit, tab, rv: revier };
+  // TF: the threshold travels with its gauge (`tw`); until the gauge is known the link's own value stays in the address.
+  const tw = !tideOn || !tideGaugeId ? initial.tw : tide ? encodeTideParam(tide, tideGaugeId) : null;
+  const urlState: SeaUrlState = { spot: spotInUrl ? (spot?.id ?? spotId) : null, p: profile, t, l: layer, u: unit, tab, rv: revier, tw, tf: initial.tf };
   const urlKey = JSON.stringify(urlState);
   useEffect(() => { if (!firstSpot.current) onUrlState(urlState); }, [urlKey]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -346,49 +456,42 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
     .filter((s) => revier === 'alle' || s.region === revier)
     .filter((s) => !query.trim() || norm(`${s.name} ${s.coast?.name ?? ''} ${s.seaArea?.name ?? ''}`).includes(norm(query.trim())))
     .map((s) => {
-      const v = verdictAt(s, k);
+      // TF: the chosen spot shows the class WITH its water level threshold, like the band and the dossier.
+      const own = !!tideFeed && s.id === spot?.id;
+      const v = own ? spotVerdicts[k] ?? verdictAt(s, k) : verdictAt(s, k);
       let win = '';
       if (usable) {
-        const nw = nextAndLongest(verdicts.windows(s), nowMs).next;
+        const nw = own ? wins.next : nextAndLongest(verdicts.windows(s), nowMs).next;
         win = nw ? ` · Fenster ${dayShort(nw.from)} ${hh(nw.from)}:00` : ' · kein Fenster im Lauf';
       }
       return { id: s.id, name: s.name, sub: `${kindsLabel(s.kinds)}${win}`, cls: v.cls, reason: v.reasons[0] ?? '' };
     }),
-  [spots, revier, query, verdictAt, verdicts, k, usable, nowMs]);
+  [spots, revier, query, verdictAt, verdicts, k, usable, nowMs, tideFeed, spot, spotVerdicts, wins]);
   const mapSpots: SeaMapSpot[] = useMemo(() => spots.filter((s) => revier === 'alle' || s.region === revier).map((s) => {
     const h = usable ? hourOf(s.id, k) : null;
-    return { id: s.id, name: s.name, lon: s.lon, lat: s.lat, cls: verdictAt(s, k).cls, windTo: h?.windDir == null ? null : (h.windDir + 180) % 360, windKn: h?.windMs == null ? null : h.windMs * MS_TO_KN };
-  }), [spots, revier, usable, hourOf, k, verdictAt]);
+    return { id: s.id, name: s.name, lon: s.lon, lat: s.lat, cls: (tideFeed && s.id === spot?.id ? spotVerdicts[k] ?? verdictAt(s, k) : verdictAt(s, k)).cls, windTo: h?.windDir == null ? null : (h.windDir + 180) % 360, windKn: h?.windMs == null ? null : h.windMs * MS_TO_KN };
+  }), [spots, revier, usable, hourOf, k, verdictAt, tideFeed, spot, spotVerdicts]);
   // Map hint: highlight candidates = the spots of the shown region, the picked one first.
   const hintSpots = useCallback((): HintSpot[] => spots.filter((s) => revier === 'alle' || s.region === revier)
     .sort((a, b) => Number(b.id === spotId) - Number(a.id === spotId)).slice(0, 40)
     .map((s) => ({ lng: s.lon, lat: s.lat, name: s.name, onPick: () => pickSpotFromMap(s.id) })), [spots, revier, spotId, pickSpotFromMap]);
-  // --- WL-4: gauge of this spot, its live forecast, and what the card is allowed to claim ----------------
-  const nearestGauge = useMemo(() => (water && spot && wlCat.gauges.length ? wlNearest(wlCat.gauges, spot.lat, spot.lon) : null), [water, spot, wlCat.gauges]);
-  const gauge = useMemo(() => (gaugePick ? wlCat.gauges.find((g) => g.id === gaugePick) ?? null : null) ?? nearestGauge?.gauge ?? null, [gaugePick, wlCat.gauges, nearestGauge]);
-  const gaugeKm = useMemo(() => (gauge && spot ? wlDistKm(spot.lat, spot.lon, gauge.lat, gauge.lon) : null), [gauge, spot]);
-  const gaugeId = gauge?.id ?? null;
-  // The reader's TTL is 10 min, the page refreshes on the same beat — so one tick asks once.
-  const wlTick = Math.floor(nowMs / REFRESH_MS);
-  useEffect(() => {
-    if (!water || !gaugeId) { setWlDoc(null); return; }
-    const ac = new AbortController();
-    setWlDoc((prev) => (prev && prev !== 'error' && prev !== 'loading' && prev.id === gaugeId ? prev : 'loading'));
-    loadGaugeForecast(gaugeId, ac.signal).then(
-      (d) => { if (!ac.signal.aborted) setWlDoc(d ?? 'error'); },
-      (e) => { if (!ac.signal.aborted && (e as Error)?.name !== 'AbortError') setWlDoc('error'); },
-    );
-    return () => ac.abort();
-  }, [water, gaugeId, wlTick]);
-
   const waterLevel: SeaWaterLevel | null = useMemo(() => {
     if (!water) return null;
     if (wlCat.state === 'missing' || wlCat.state === 'error') return { state: wlCat.state, gauge: null, km: null, doc: null, why: wlCat.why };
     if (wlCat.state === 'loading' || wlDoc === 'loading') return { state: 'loading', gauge, km: gaugeKm, doc: null, why: null };
     if (!gauge) return { state: 'missing', gauge: null, km: null, doc: null, why: 'Im Pegelkatalog des BSH steht kein Pegel.' };
     if (wlDoc === 'error' || !wlDoc) return { state: 'error', gauge, km: gaugeKm, doc: null, why: `Die Wasserstandsvorhersage für ${gauge.name} ist gerade nicht lesbar. Das heißt nicht, dass der Wasserstand unauffällig ist.` };
-    return { state: 'ok', gauge, km: gaugeKm, doc: wlDoc, why: null };
-  }, [water, wlCat, wlDoc, gauge, gaugeKm]);
+    // TF (E-WL-10): the nearest gauge WITH a curve rides along as its own gauge — named, with its own distance and answer.
+    const curve: SeaWaterLevel | null = !curveAlt ? null
+      : curveAltDoc ? { state: 'ok', gauge: curveAlt.gauge, km: curveAlt.km, doc: curveAltDoc, why: null }
+        : wlCurveDoc === 'error' ? { state: 'error', gauge: curveAlt.gauge, km: curveAlt.km, doc: null, why: `Der Verlauf am Pegel ${curveAlt.gauge.name} ist gerade nicht lesbar. Das heißt nicht, dass der Wasserstand unauffällig ist.` }
+          : { state: 'loading', gauge: curveAlt.gauge, km: curveAlt.km, doc: null, why: null };
+    return { state: 'ok', gauge, km: gaugeKm, doc: wlDoc, why: null, ...(curve ? { curve } : {}) };
+  }, [water, wlCat, wlDoc, gauge, gaugeKm, curveAlt, curveAltDoc, wlCurveDoc]);
+  const tideView: SeaTideView | null = useMemo(() => (tideActive ? {
+    threshold: tide, onThreshold: setTideThreshold, gaugeName: tideModel?.name ?? tideGauge?.name ?? null, km: tideKm,
+    refs: tideModel?.refs ?? [{ ref: 'pnp', label: 'Pegelnull', over: 'Pegelnull', offsetCm: 0 }], windows: tideModel?.windows ?? null, end: tideModel?.end ?? null,
+  } : null), [tideActive, tide, setTideThreshold, tideModel, tideGauge, tideKm]);
 
   const mapGauges: SeaMapGauge[] | null = useMemo(() => (water && wlCat.gauges.length
     ? wlCat.gauges
@@ -464,7 +567,8 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   const band = spot && usable && bandHours.length > 0 && (
     <SeaBand hours={bandHours} unit={unit} selected={k} onPick={setT} compact={isMobile}
       title={`${spot.name} · ${profLabel}`} sub={`${dayShort(bandHours[0].t)} ${hh(bandHours[0].t)} bis ${dayShort(bandHours[bandHours.length - 1].t)} ${hh(bandHours[bandHours.length - 1].t)} Uhr · ${tzLabel(validMs)}`}
-      footnote={`Welle: Modell ${runTxt} · Wind/Böen: ${windEngine}`} />
+      footnote={`Welle: Modell ${runTxt} · Wind/Böen: ${windEngine}`}
+      tide={tideFeed ? { hours: tideFeed.hours!, side: tideSideText(tideFeed.mode!, tideFeed.name) } : null} />
   );
   const dockOf = (show: 'all' | 'layers' | 'picker') => (
     <SeaDock show={show} query={query} onQuery={setQuery} revier={revier} onRevier={setRevier} profile={profile} onProfile={setProfile} limits={limits} onLimits={setLimits}
@@ -475,7 +579,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
     <SeaReadout tab={tab} onTab={setTab} spot={spot} hour={hour} verdict={verdict} profileLabel={profLabel} windows={wins} chartHours={chartHours}
       limitKn={lim} limitLabel={limits.gustMax != null ? `Böen ${limits.gustMax} kn` : limits.windMax != null ? `Wind ${limits.windMax} kn` : ''} unit={unit}
       run={run} spotsDoc={spotsDoc} freshness={freshness} texts={seaTexts} poi={poi} nowMs={nowMs} noData={noData} warning={warning}
-      dry={{ hours: dryHours, of: spotHours.length, classed: dryRule }} waterLevel={waterLevel}
+      dry={{ hours: dryHours, of: spotHours.length, classed: dryRule }} waterLevel={waterLevel} tide={tideView}
       layout="dossier" band={band} chips={isMobile ? undefined : (usable && chips)} onMap={() => setStage('map')} />
   );
   const inDossier = stage === 'dossier';
@@ -538,10 +642,24 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
             <div className="sw-ds-scroll">{readout}</div>
           </div>
         )}
-        {mobTab !== 'map' && (
+        {mobTab !== 'map' && mobTab !== 'tide' && (
           <div className="sw-m-dock" role="dialog" aria-label={mobTab === 'spot' ? 'Spot und Profil wählen' : 'Ebenen'}>
             <div className="sw-m-dock-head"><strong>{mobTab === 'spot' ? 'Spot und Profil' : 'Ebenen'}</strong></div>
             {dockOf(mobTab === 'spot' ? 'picker' : 'layers')}
+          </div>
+        )}
+        {mobTab === 'tide' && tideView && (
+          <div className="sw-m-dock sw-tf-sheet" role="dialog" aria-label="Schwelle für den Wasserstand">
+            <div className="sw-m-dock-head"><strong>Deine Schwelle am Pegel</strong></div>
+            <div className="sw-tf-sheet-body">
+              {tideDoc ? (
+                <>
+                  <TideControl view={tideView} atCm={(() => { const pt = wlAt(tideDoc.curve, validMs); return pt?.forecast ?? pt?.measured ?? null; })()} />
+                  <TideWindows view={tideView} />
+                </>
+              ) : <p className="sw-note">{tideGauge ? `Der Verlauf am Pegel ${tideGauge.name} lädt oder ist gerade nicht lesbar — ohne Kurve gibt es kein Fenster.` : 'Für diesen Spot ist noch kein Pegel gewählt.'}</p>}
+              <button type="button" className="sw-link sw-tf-open" onClick={() => { setTab('spot'); setStage('dossier'); setMobTab('map'); }}>Verlauf und Stundenband im Dossier öffnen</button>
+            </div>
           </div>
         )}
         <nav className="sw-bar" aria-label="Seewetter-Bereiche">
@@ -549,6 +667,8 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
             ['map', 'Karte', <path key="p" d="M9 4 3 6.5v13L9 17l6 2.5 6-2.5v-13L15 7 9 4zM9 4v13M15 7v12.5" />],
             ['spot', 'Spot', <g key="p"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z" /><circle cx="12" cy="10" r="2.3" /></g>],
             ['layers', 'Ebenen', <path key="p" d="m12 3 9 4.5-9 4.5-9-4.5L12 3zM3 12l9 4.5 9-4.5M3 16.5 12 21l9-4.5" />],
+            // Phase TF: the threshold control lives in the bottom bar on the phone (only with the switch on).
+            ...(tideView ? [['tide', 'Schwelle', <g key="p"><path d="M3 15c2-2.4 4-2.4 6 0s4 2.4 6 0 4-2.4 6 0" /><path d="M3 8.5h18" strokeDasharray="3 3" /><path d="M12 19.5v-2M12 6V3.5" /></g>] as const] : []),
           ] as const).map(([id, label, icon]) => (
             <button key={id} type="button" className={`sw-bar-btn${mobTab === id && !(id === 'map' && inDossier) ? ' is-active' : ''}`} aria-current={mobTab === id && !(id === 'map' && inDossier) ? 'page' : undefined} onClick={() => { setMobTab(id); if (id === 'map') setStage('map'); }}>
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{icon}</svg>

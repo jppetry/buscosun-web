@@ -28,7 +28,17 @@ interface Props {
   sub: string;
   footnote: string;
   compact?: boolean;
+  /** Phase TF: the tide window per hour of the band (same length as `hours`); absent = no threshold set or switch off. */
+  tide?: SeaBandTide | null;
 }
+
+/** Phase TF — one row "Pegel": is the hour on the allowed side of the user's threshold at the gauge (`tideWindow.ts`). */
+export interface SeaBandTide {
+  hours: ReadonlyArray<{ state: 'in' | 'part' | 'out' | 'none'; tideOnly: boolean }>;
+  /** "über deiner Schwelle am Pegel X" — the words of the row. */
+  side: string;
+}
+const TIDE_CELL: Record<'in' | 'part' | 'out' | 'none', string> = { in: 'ganze Stunde', part: 'zum Teil', out: 'nicht', none: 'keine Kurve für diese Stunde' };
 
 const Arrow = ({ to, color }: { to: number | null; color: string }) => (to == null ? <span className="sw-band-none">–</span> : (
   <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -36,7 +46,7 @@ const Arrow = ({ to, color }: { to: number | null; color: string }) => (to == nu
   </svg>
 ));
 
-export default function SeaBand({ hours, unit, selected, onPick, title, sub, footnote, compact = false }: Props) {
+export default function SeaBand({ hours, unit, selected, onPick, title, sub, footnote, compact = false, tide = null }: Props) {
   const scroller = useRef<HTMLDivElement | null>(null);
   // Keep the selected hour in view.
   useEffect(() => {
@@ -102,6 +112,20 @@ export default function SeaBand({ hours, unit, selected, onPick, title, sub, foo
               <th scope="row" className="sw-band-lab">Wellen</th>
               {hours.map((h, i) => <td key={h.t} className={cls(h, i)}><Arrow to={h.dir == null || h.hs == null || h.hs < 0.05 ? null : (h.dir + 180) % 360} color="#0F6E7A" /></td>)}
             </tr>
+            {tide && (
+              <tr className="sw-band-prof sw-band-tide">
+                <th scope="row" className="sw-band-lab" title={`Wasserstand ${tide.side}`}>Pegel</th>
+                {hours.map((h, i) => {
+                  const c = tide.hours[i] ?? { state: 'none' as const, tideOnly: false };
+                  const words = `${TIDE_CELL[c.state]}${c.state === 'none' ? '' : ` ${tide.side}`}${c.tideOnly ? ' (nur Gezeit)' : ''}`;
+                  return (
+                    <td key={h.t} className={cls(h, i)} title={words}>
+                      <span className={`sw-band-bar sw-tf-cell is-${c.state}${c.tideOnly ? ' is-tide' : ''}${c.state === 'none' ? ' is-hatched' : ''}`}><span className="sw-sr">{words}</span></span>
+                    </td>
+                  );
+                })}
+              </tr>
+            )}
             <tr className="sw-band-prof">
               <th scope="row" className="sw-band-lab">Profil</th>
               {hours.map((h, i) => (
@@ -119,6 +143,7 @@ export default function SeaBand({ hours, unit, selected, onPick, title, sub, foo
         <span>Pfeile zeigen, wohin Wind und Wellen laufen</span>
         <span>dunkler Grund = Nacht</span>
         {hours.some((h) => h.dry) && <span className="sw-band-foot-dry">{DRY_GLYPH} = Modellzelle ohne Wasser, {DRY_VALUE}</span>}
+        {tide && <span className="sw-band-foot-tide">Zeile Pegel: gefüllt = Wasserstand {tide.side}, halb = zum Teil, hohl = nur Gezeit</span>}
         <span className="sw-band-foot-note">{footnote}</span>
       </div>
     </section>

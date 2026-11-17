@@ -1115,3 +1115,63 @@
   .sw-m-dossier .sw-card.is-wide .sw-official-meta { font-size: 13.5px; }
   .sw-m-dossier .sw-card.is-wide .sw-chart-legend { font-size: 13px; gap: 4px 14px; }
 }
+
+/* ── Phase TF — Tidenfenster (audit/tidenfenster.md). Alles hinter `?tf=1`; ohne den Schalter rendert keine dieser Klassen. ──
+   Der Regler ist ein Satz zum Ausfüllen; Fenster aus Messung/Modellkurve sind gefüllt, „nur Gezeit“ ist hohl umrandet. */
+.sw-tf { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--sand-200, #E0D6BE); }
+.sw-tf-sentence { display: flex; flex-wrap: wrap; align-items: center; gap: 7px 8px; font-size: 14.5px; line-height: 1.35; color: var(--ink-900, #2C2A26); }
+.sw-tf-sentence strong { font-weight: 700; }
+.sw-seg.sw-tf-mode { display: inline-flex; flex: none; }
+.sw-seg.sw-tf-mode button { flex: none; padding: 6px 12px; }
+.sw-tf-num { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; }
+.sw-tf-num input { width: 78px; height: 34px; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 8px; padding: 0 9px; background: #fff; color: var(--sw-accent-dark, #0B5560); font-size: 16px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+.sw-tf-num input[aria-invalid="true"] { border-color: var(--stone-500, #8B7355); border-style: dashed; color: var(--stone-500, #8B7355); }
+.sw-tf-ref select { height: 34px; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 8px; padding: 0 8px; background: #fff; color: var(--ink-900, #2C2A26); font-family: inherit; font-size: 14.5px; font-weight: 600; cursor: pointer; }
+.sw-root .sw-tf-ref select:focus-visible { outline: 2px solid var(--sw-accent, #0F6E7A); outline-offset: 2px; }
+.sw-tf-hint { margin: 7px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--stone-500, #8B7355); }
+.sw-tf-clear { margin-left: 6px; }
+.sw-tf-mobile { display: none; }
+.sw-tf-wins { margin-top: 12px; }
+.sw-tf-wins-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; }
+.sw-tf-wins-h strong { font-size: 14.5px; font-weight: 700; color: var(--sw-accent-dark, #0B5560); }
+.sw-tf-wins-h span { font-size: 12.5px; color: var(--stone-500, #8B7355); }
+.sw-tf-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.sw-tf-list li { display: inline-flex; align-items: baseline; gap: 7px; padding: 5px 12px; border-radius: 999px; border: 1.25px solid transparent; background: var(--sw-tint, #E3F0F1); color: var(--sw-accent-dark, #0B5560); font-size: 13.5px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sw-tf-list li.is-tide { background: transparent; border: 1.25px dashed var(--sw-accent, #0F6E7A); }
+.sw-tf-list li em { font-style: normal; font-size: 11.5px; font-weight: 500; color: var(--stone-600, #5C5447); }
+.sw-tf-foot { margin: 9px 0 0; max-width: 84ch; font-size: 12px; line-height: 1.5; color: var(--stone-500, #8B7355); }
+.sw-chart-legend i.sw-tf-leg { height: 10px; border-radius: 2px; }
+.sw-chart-legend i.sw-tf-leg.is-win { background: rgba(15, 110, 122, 0.2); border-top: 2px solid var(--sw-accent, #0F6E7A); }
+.sw-chart-legend i.sw-tf-leg.is-tide { background: transparent; border: 1.25px dashed var(--sw-accent, #0F6E7A); }
+.sw-chart-legend i.sw-tf-leg.is-dev { background: rgba(185, 138, 62, 0.4); }
+.sw-tf-devline strong { color: var(--ink-900, #2C2A26); font-variant-numeric: tabular-nums; }
+.sw-tf-altnote { margin-top: 8px; }
+.sw-card.is-wide .sw-tf-sentence { font-size: 17px; gap: 8px 10px; }
+.sw-card.is-wide .sw-tf-ref select { font-size: 16px; height: 38px; }
+.sw-card.is-wide .sw-tf-num input { height: 38px; width: 86px; font-size: 18px; }
+.sw-card.is-wide .sw-seg.sw-tf-mode button { font-size: 15px; padding: 8px 14px; }
+.sw-card.is-wide .sw-tf-hint, .sw-card.is-wide .sw-tf-wins-h span { font-size: 14px; }
+.sw-card.is-wide .sw-tf-wins-h strong { font-size: 17px; }
+.sw-card.is-wide .sw-tf-list li { font-size: 15.5px; padding: 6px 14px; }
+.sw-card.is-wide .sw-tf-list li em { font-size: 13px; }
+.sw-card.is-wide .sw-tf-foot { font-size: 13.5px; }
+/* Stundenband, Zeile „Pegel“: gefüllt = ganze Stunde im Fenster, halb = zum Teil, blass = nicht, hohl = nur Gezeit, schraffiert = keine Kurve. */
+.sw-tf-cell.is-in { background: var(--sw-accent, #0F6E7A); }
+.sw-tf-cell.is-part { background: linear-gradient(90deg, var(--sw-accent, #0F6E7A) 0 50%, rgba(15, 110, 122, 0.16) 50% 100%); }
+.sw-tf-cell.is-out { background: rgba(44, 42, 38, 0.07); }
+.sw-tf-cell.is-tide.is-in { background: transparent; box-shadow: inset 0 0 0 1.5px var(--sw-accent, #0F6E7A); }
+.sw-tf-cell.is-tide.is-part { background: linear-gradient(90deg, rgba(15, 110, 122, 0.3) 0 50%, transparent 50% 100%); box-shadow: inset 0 0 0 1.5px rgba(15, 110, 122, 0.55); }
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
+  /* Phone: the control lives behind „Schwelle“ in the bottom bar; the card only states the threshold. */
+  .sw-m-dossier .sw-tf-inline { display: none; }
+  .sw-m-dossier .sw-tf-mobile { display: block; margin: 0; font-size: 14px; line-height: 1.45; color: var(--stone-600, #5C5447); }
+  .sw-m-dossier .sw-card.is-wide .sw-tf-wins-h strong { font-size: 15px; }
+  .sw-m-dossier .sw-card.is-wide .sw-tf-wins-h span, .sw-m-dossier .sw-card.is-wide .sw-tf-foot { font-size: 12.5px; }
+  .sw-m-dossier .sw-card.is-wide .sw-tf-list li { font-size: 14px; padding: 6px 12px; }
+  .sw-tf-sheet-body { flex: 1; min-height: 0; overflow-y: auto; padding: 18px 16px calc(20px + env(safe-area-inset-bottom, 0px)); }
+  .sw-tf-sheet .sw-tf-sentence { font-size: 16px; gap: 10px 8px; }
+  .sw-tf-sheet .sw-tf-num input, .sw-tf-sheet .sw-tf-ref select { height: 44px; font-size: 16px; }
+  .sw-tf-sheet .sw-seg.sw-tf-mode button { padding: 0 14px; font-size: 15px; }
+  .sw-tf-sheet .sw-tf-hint { font-size: 13.5px; }
+  .sw-tf-sheet .sw-tf-open { display: block; margin-top: 14px; text-align: left; }
+}

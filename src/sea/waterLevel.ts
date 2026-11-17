@@ -435,6 +435,17 @@ export function wlNearest(gauges: readonly WlGauge[], lat: number, lon: number):
 }
 
 /**
+ * Phase TF (E-WL-10, `audit/tidenfenster.md`): the gauge nearest to the spot that carries a CURVE — 43 of 82 North
+ * Sea gauges carry none (V-WL-6), and without a curve there is no fill level, no chart and no window. `exclude` holds
+ * the gauges already ruled out (the nearest one, and any whose LIVE answer came without a curve — the catalogue's
+ * `has.curve` is a hint, V-WL-11). The caller names the gauge and its distance; heights stay at the gauge they
+ * belong to.
+ */
+export function wlNearestWithCurve(gauges: readonly WlGauge[], lat: number, lon: number, exclude: ReadonlySet<string> = new Set()): { gauge: WlGauge; km: number } | null {
+  return wlNearest(gauges.filter((g) => g.has.curve && !exclude.has(g.id)), lat, lon);
+}
+
+/**
  * The curve point at or just before `t`, but only if it is no older than `maxGapMs` — the page's hour axis
  * runs to +78 h while the BSH curve ends at +54 h (median), so without this the last point of the curve
  * would be labelled as the value of an hour hours later. Beyond the curve the answer is null, and the card

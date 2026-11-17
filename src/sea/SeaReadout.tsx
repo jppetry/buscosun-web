@@ -10,7 +10,10 @@ import type { SeaTextDoc, WodlCoast, WodlSeaArea } from './seaText';
 import { WODL_AREA_IDS } from './seaText';
 import type { SeaRunDoc, SeaPoiObs, SeaSpotsDoc } from './seaClient';
 import { fmtWind, unitLabel, MS_TO_KN, SHORE_LABEL, type SeaUnit, type SeaVerdict, type SeaWindow } from './seaProfiles';
-import { WindChart, SeaStateChart, WaterLevelChart, DRY_COLOUR, type SeaChartHour } from './SeaCharts';
+import { WindChart, SeaStateChart, WaterLevelChart, DRY_COLOUR, type SeaChartHour, type WlChartTide } from './SeaCharts';
+import { TideControl, TideLegend, TideWindows, type SeaTideView } from './SeaTideWindow';
+import { TIDE_DEVIATION_LABEL, tideDeviationCm, tideRefOf, tideThresholdText, tideWindowLines } from './tideWindow';
+import { SEA_MAX_T } from './seaState';
 import SeaMiniMap from './SeaMiniMap';
 import {
   WL_ATTRIBUTION_PRE, WL_ATTRIBUTION_POST, WL_CURVE_STALE_MS, WL_FORECAST_STALE_MS, WL_LICENCE, WL_LICENCE_URL,
@@ -49,6 +52,8 @@ interface Props {
   dry: { hours: number; of: number; classed: boolean };
   /** WL-4: water level at the nearest BSH gauge; `null` = switched off (`?wl=0`). */
   waterLevel: SeaWaterLevel | null;
+  /** Phase TF: threshold, windows and control of the tide window; null/absent = switch off (`?tf=1` switches it on). */
+  tide?: SeaTideView | null;
   /** Desktop: the spot picker (search, Revier, profile, spot list) rendered above the tabs. */
   head?: ReactNode;
   /** `dossier` = the centre stage (desktop): chapter tabs, head card with key tiles, the hourly band, two columns. */
@@ -251,7 +256,15 @@ export default function SeaReadout(p: Props) {
         </Card>
   );
   const chartCard = chartCardOf();
-  const waterCardOf = (big = false) => s && p.waterLevel && <WaterLevelCard wl={p.waterLevel} selMs={h?.t ?? p.nowMs} nowMs={p.nowMs} big={big} />;
+  // Phase TF (E-WL-10): when the nearest gauge carries no curve, a second card shows the curve of the nearest gauge that
+  // does — two cards, two named gauges, no height carried from one to the other.
+  const curveWl = p.tide ? p.waterLevel?.curve ?? null : null;
+  const waterCardOf = (big = false) => s && p.waterLevel && (curveWl ? (
+    <>
+      <WaterLevelCard wl={p.waterLevel} selMs={h?.t ?? p.nowMs} nowMs={p.nowMs} big={big} alt={curveWl.gauge ? { name: curveWl.gauge.name, km: curveWl.km } : null} />
+      <WaterLevelCard wl={curveWl} selMs={h?.t ?? p.nowMs} nowMs={p.nowMs} big={big} tide={p.tide} part="curve" near={p.waterLevel.gauge?.name ?? null} />
+    </>
+  ) : <WaterLevelCard wl={p.waterLevel} selMs={h?.t ?? p.nowMs} nowMs={p.nowMs} big={big} tide={p.tide} />);
   const waterCard = waterCardOf();
   const officialCard = s && <OfficialCard spot={s} texts={p.texts} warning={p.warning} onArea={() => p.onTab('gebiet')} nowMs={p.nowMs} />;
   const measuredCard = s && (
@@ -499,6 +512,8 @@ export interface SeaWaterLevel {
   doc: WlForecast | null;
   /** Why there is nothing to show — named, never silent. */
   why: string | null;
+  /** Phase TF (E-WL-10): the nearest gauge WITH a curve, when `gauge` carries none — its own gauge, distance and answer. */
+  curve?: SeaWaterLevel | null;
 }
 
 /** The service sends centimetres, sometimes with a half (12.5) — German decimal comma, no invented digits. */
@@ -509,12 +524,22 @@ const WL_STALE = (doc: WlForecast, nowMs: number) => ({
   forecast: doc.forecastAt != null && nowMs - doc.forecastAt > WL_FORECAST_STALE_MS,
 });
 
-function WaterLevelCard({ wl, selMs, nowMs, big = false }: { wl: SeaWaterLevel; selMs: number; nowMs: number; big?: boolean }) {
+function WaterLevelCard({ wl, selMs, nowMs, big = false, tide = null, part = 'all', alt = null, near = null }: {
+  wl: SeaWaterLevel; selMs: number; nowMs: number; big?: boolean;
+  /** Phase TF: threshold control, windows and deviation — only on the card of the gauge that carries the curve. */
+  tide?: SeaTideView | null;
+  /** Phase TF (E-WL-10): `curve` = the card of the nearest gauge WITH a curve — value, fill level, chart, windows; the high/low water times and the official text stay on the nearest gauge's card. */
+  part?: 'all' | 'curve';
+  /** On the nearest gauge's card: the gauge whose curve the card below shows. */
+  alt?: { name: string; km: number | null } | null;
+  /** On the curve card: the nearest gauge, which carries no curve. */
+  near?: string | null;
+}) {
   const doc = wl.doc, g = wl.gauge;
-  const cls = big ? 'is-cream is-wide' : 'is-cream';
+  const cls = `${big ? 'is-cream is-wide' : 'is-cream'}${part === 'curve' ? ' sw-tf-curvecard' : ''}`;
   const head = (
     <div className="sw-card-head">
-      <span className="sw-eyebrow is-accent-dark">Wasserstand · amtlich (BSH)</span>
+      <span className="sw-eyebrow is-accent-dark">{part === 'curve' ? 'Verlauf · nächster Pegel mit Kurve (BSH)' : 'Wasserstand · amtlich (BSH)'}</span>
       <span className="sw-unit">cm über Pegelnull</span>
     </div>
   );
@@ -541,7 +566,8 @@ function WaterLevelCard({ wl, selMs, nowMs, big = false }: { wl: SeaWaterLevel; 
   // what the card says instead of repeating the last one.
   const beyond = shown == null && curveEnd != null && selMs > curveEnd;
   const events = wlNextEvents(doc.events, nowMs, 4);
-  const window = doc.curve.filter((pt) => pt.t >= nowMs - 6 * 3_600_000 && pt.t <= nowMs + 48 * 3_600_000);
+  // TF (E-TF-7): with the tide window the chart reaches as far as the page's hour axis, so every window of the band is in it.
+  const window = doc.curve.filter((pt) => pt.t >= nowMs - 6 * 3_600_000 && pt.t <= nowMs + (tide ? SEA_MAX_T : 48) * 3_600_000);
   // WL-5: the fill level — the chosen hour's value; beyond the curve the latest value at "now" (named as such).
   const fillPt = at ?? (beyond ? wlAt(doc.curve, nowMs) : null);
   const fill = wlFill(fillPt, window, { region: doc.region, mhwCm: doc.mhwCm, mlwCm: doc.mlwCm, zeroNhnCm: g?.zeroNhnCm ?? doc.zeroNhnCm });
@@ -554,6 +580,16 @@ function WaterLevelCard({ wl, selMs, nowMs, big = false }: { wl: SeaWaterLevel; 
     doc.mhwCm != null ? `${highLabel} ${doc.mhwCm} cm` : null,
     doc.mlwCm != null ? `${lowLabel} ${doc.mlwCm} cm` : null,
   ].filter(Boolean).join(' · ');
+  // Phase TF — everything below is null without the switch.
+  const tideInfo = tide?.threshold ? tideRefOf(tide.refs, tide.threshold.ref) : null;
+  const chartTide: WlChartTide | null = tide ? {
+    // The threshold on the chart's axis (cm above gauge zero): the user's number counted from the delivered height of its reference.
+    lineCm: tide.threshold && tideInfo ? tide.threshold.cm + tideInfo.offsetCm : null,
+    lineLabel: tide.threshold && tideInfo ? `Schwelle ${tideThresholdText(tide.threshold, tideInfo)}` : '',
+    windows: (tide.windows ?? []).map((w) => ({ from: w.from, to: w.to, tideOnly: w.tideOnly, label: tideWindowLines(w) })),
+    deviation: window.some((pt) => pt.forecast != null && pt.tide != null),
+  } : null;
+  const deviation = tide ? tideDeviationCm(at) : null;
 
   return (
     <Card cls={cls}>
@@ -561,6 +597,11 @@ function WaterLevelCard({ wl, selMs, nowMs, big = false }: { wl: SeaWaterLevel; 
       <div className="sw-official-meta">
         Pegel {doc.name}{wl.km != null ? ` · ${f1(wl.km)} km vom Spot` : ''}{doc.area ? ` · ${doc.area}` : ''} · {WL_REGION_LABEL[doc.region]}
       </div>
+      {part === 'curve' && (
+        <p className="sw-note sw-tf-altnote">
+          {near ? `Der nächste Pegel ${near} führt keinen Verlauf. ` : ''}Verlauf, Füllstand und Fenster stehen deshalb am nächsten Pegel mit Kurve: {doc.name}{wl.km != null ? `, ${f1(wl.km)} km vom Spot` : ''}. Jede Höhe gilt nur an diesem Pegel — zwischen Pegeln wird nichts umgerechnet.
+        </p>
+      )}
 
       {category && (
         <div className="sw-wl-cat">
@@ -587,7 +628,7 @@ function WaterLevelCard({ wl, selMs, nowMs, big = false }: { wl: SeaWaterLevel; 
         <p className="sw-note">Der Verlauf des BSH reicht bis {dayShort(curveEnd!)} {hm(curveEnd!)} Uhr — für die gewählte Stunde gibt es dort keinen Wert. Die Hoch- und Niedrigwasserzeiten unten reichen weiter.</p>
       )}
 
-      {events.length > 0 && (
+      {part === 'all' && events.length > 0 && (
         <>
           <ul className="sw-wl-events">
             {events.map((e) => {
@@ -620,21 +661,35 @@ function WaterLevelCard({ wl, selMs, nowMs, big = false }: { wl: SeaWaterLevel; 
           )}
         </>
       )}
-      {doc.events.length === 0 && doc.curve.length > 0 && (
+      {part === 'all' && doc.events.length === 0 && doc.curve.length > 0 && (
         <p className="sw-note">Dieser Pegel führt keine Hoch-/Niedrigwasserzeiten — in der {WL_REGION_LABEL[doc.region]} gibt das BSH dort nur den Verlauf aus.</p>
       )}
       {doc.curve.length === 0 && (
-        <p className="sw-note">Für diesen Pegel liefert das BSH keinen Verlauf, nur die Hoch- und Niedrigwasserzeiten oben.</p>
+        <p className="sw-note">Für diesen Pegel liefert das BSH keinen Verlauf{part === 'all' ? ', nur die Hoch- und Niedrigwasserzeiten oben' : ''}.{alt ? ` Verlauf, Füllstand und Fenster zeigt die Karte darunter vom Pegel ${alt.name}${alt.km != null ? ` (${f1(alt.km)} km vom Spot)` : ''}.` : ''}</p>
+      )}
+
+      {tide && doc.curve.length > 0 && (
+        <section className="sw-tf" aria-label="Tidenfenster">
+          <div className="sw-tf-inline"><TideControl view={tide} atCm={shown} /></div>
+          <p className="sw-tf-mobile">
+            {tide.threshold && tideInfo ? `Deine Schwelle: ${tideThresholdText(tide.threshold, tideInfo)}.` : 'Noch keine Schwelle gesetzt.'} Ändern: „Schwelle“ in der Leiste unten.
+          </p>
+          <TideWindows view={tide} />
+        </section>
       )}
 
       {window.length > 1 && (
         <>
-          <WaterLevelChart points={window} selMs={selMs} nowMs={nowMs} mhwCm={doc.mhwCm} mlwCm={doc.mlwCm} highLabel={highLabel} lowLabel={lowLabel} big={big} />
+          <WaterLevelChart points={window} selMs={selMs} nowMs={nowMs} mhwCm={doc.mhwCm} mlwCm={doc.mlwCm} highLabel={highLabel} lowLabel={lowLabel} big={big} tide={chartTide} />
           <div className="sw-chart-legend">
             <span><i style={{ background: '#2C2A26' }} />gemessen</span>
             <span><i style={{ background: '#0F6E7A' }} />Vorhersage</span>
             {window.some((pt) => pt.tide != null) && <span><i style={{ background: '#7A9466' }} />Gezeit</span>}
+            {chartTide && <TideLegend hasWindows={chartTide.windows.some((w) => !w.tideOnly)} hasTideOnly={chartTide.windows.some((w) => w.tideOnly)} hasDeviation={chartTide.deviation} />}
           </div>
+          {deviation != null && (
+            <p className="sw-note sw-tf-devline">{TIDE_DEVIATION_LABEL}: <strong>{cmSigned(deviation)} cm</strong> zur gewählten Stunde — Vorhersage minus Gezeitenvorausberechnung an diesem Pegel.</p>
+          )}
         </>
       )}
 
@@ -645,13 +700,13 @@ function WaterLevelCard({ wl, selMs, nowMs, big = false }: { wl: SeaWaterLevel; 
         {' · '}amtliche Vorhersage {doc.forecastAt == null ? 'ohne Stempel' : `${dateTime(doc.forecastAt)}`}{stale.forecast ? ' · älter als 12 h' : ''}
       </div>
 
-      {doc.text && (
+      {part === 'all' && doc.text && (
         <>
           <div className="sw-official-meta sw-gap">Amtlicher Text{doc.area ? ` · ${doc.area}` : ''}{doc.forecastAt != null ? ` · ${dateTime(doc.forecastAt)}` : ''} · wörtlich</div>
           <p className="sw-official">{doc.text}</p>
         </>
       )}
-      {doc.textAdditional && <p className="sw-official">{doc.textAdditional}</p>}
+      {part === 'all' && doc.textAdditional && <p className="sw-official">{doc.textAdditional}</p>}
       {doc.info && <p className="sw-note">Hinweis des BSH zum Betrieb: {doc.info}</p>}
 
       <WaterLevelFooter doc={doc} />

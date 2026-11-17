@@ -138,18 +138,68 @@ export function WindChart({ hours, selMs, limitKn, limitLabel, big }: { hours: r
 export interface WlChartPoint { t: number; forecast: number | null; measured: number | null; tide: number | null }
 const WL_COLOUR: Record<string, string> = { Vorhersage: '#0F6E7A', Gemessen: '#2C2A26', Gezeit: '#7A9466' };
 
-export function WaterLevelChart({ points, selMs, nowMs, mhwCm, mlwCm, highLabel = 'MThw', lowLabel = 'MTnw', big }: {
+/**
+ * Phase TF (`audit/tidenfenster.md`) — what the tide window adds to the chart, all optional: the windows as bands with
+ * their time, the user's threshold as a line (ink, not a warning colour — it is the user's own number) and the area
+ * between model curve and tidal prediction. `lineCm` is the threshold on the chart's own axis (cm above gauge zero).
+ */
+export interface WlChartTide {
+  lineCm: number | null; lineLabel: string;
+  /** `label` = the window's time on two short lines (start, end), so it fits a band of a few hours on a 78-h axis. */
+  windows: ReadonlyArray<{ from: number; to: number; tideOnly: boolean; label: readonly [string, string] }>;
+  /** Shade the area between model curve and tidal prediction ("Abweichung von der Gezeit (eigene Rechnung)"). */
+  deviation: boolean;
+}
+
+export function WaterLevelChart({ points, selMs, nowMs, mhwCm, mlwCm, highLabel = 'MThw', lowLabel = 'MTnw', big, tide }: {
   points: readonly WlChartPoint[]; selMs: number; nowMs: number; mhwCm: number | null; mlwCm: number | null;
   /** V-WL-14: the reference words of the region — MThw/MTnw in the North Sea, MHW/MNW in the tideless Baltic. */
-  highLabel?: string; lowLabel?: string; big?: boolean;
+  highLabel?: string; lowLabel?: string; big?: boolean; tide?: WlChartTide | null;
 }) {
   const gid = useId();
   if (points.length < 2) return null;
   const pts = (f: (p: WlChartPoint) => number | null) => points.map((p) => ({ x: new Date(p.t), y: f(p) }));
   const vals = points.flatMap((p) => [p.forecast, p.measured, p.tide]).filter((v): v is number => v != null);
-  const lo = Math.min(...vals, mlwCm ?? Infinity), hi = Math.max(...vals, mhwCm ?? -Infinity);
+  const lo = Math.min(...vals, mlwCm ?? Infinity, tide?.lineCm ?? Infinity), hi = Math.max(...vals, mhwCm ?? -Infinity, tide?.lineCm ?? -Infinity);
   const pad = Math.max(20, (hi - lo) * 0.12);
   const min = points[0].t, max = points[points.length - 1].t;
+  const font = "'League Spartan', system-ui, sans-serif";
+  // TF: windows as bands — filled = read from measurement/model curve, hollow = tidal prediction only; the time on top where it fits.
+  const Bands = ({ xScale, innerHeight }: Ctx) => (!tide || !tide.windows.length ? null : (
+    <g className="sw-tf-bands">{tide.windows.filter((w) => w.to > min && w.from < max).map((w) => {
+      const x0 = xScale(new Date(Math.max(w.from, min))), x1 = xScale(new Date(Math.min(w.to, max)));
+      const wd = Math.max(1.5, x1 - x0), fs = big ? 11.5 : 9.5, fits = wd >= Math.max(w.label[0].length, w.label[1].length) * fs * 0.5 + 4;
+      return (
+        <g key={`${w.from}${w.tideOnly ? 't' : 'c'}`} data-tide={w.tideOnly ? '1' : '0'}>
+          {w.tideOnly
+            ? <rect x={x0 + 0.75} y={0.75} width={Math.max(0, wd - 1.5)} height={innerHeight - 1.5} rx={4} fill="#0F6E7A" fillOpacity={0.03} stroke="#0F6E7A" strokeOpacity={0.55} strokeWidth={1.25} strokeDasharray="4 3" />
+            : <rect x={x0} y={0} width={wd} height={innerHeight} rx={4} fill="#0F6E7A" fillOpacity={0.13} />}
+          <rect x={x0} y={0} width={wd} height={3} rx={1.5} fill="#0F6E7A" fillOpacity={w.tideOnly ? 0.45 : 0.9} />
+          {fits && (
+            <text x={x0 + wd / 2} y={fs + 6} textAnchor="middle" fontSize={fs} fontWeight={600} fill="#0B5560" fontFamily={font}>
+              <tspan x={x0 + wd / 2}>{w.label[0]}</tspan><tspan x={x0 + wd / 2} dy={fs + 1.5}>{w.label[1]}</tspan>
+            </text>
+          )}
+        </g>
+      );
+    })}</g>
+  ));
+  const Threshold = ({ yScale, innerWidth }: Ctx) => (tide?.lineCm == null ? null : (
+    <g className="sw-tf-line">
+      <line x1={0} x2={innerWidth} y1={yScale(tide.lineCm)} y2={yScale(tide.lineCm)} stroke="#2C2A26" strokeWidth={1.5} strokeDasharray="7 4" />
+      <text x={4} y={yScale(tide.lineCm) - 5} fontSize={big ? 12.5 : 10.5} fontWeight={700} fill="#2C2A26" fontFamily={font} paintOrder="stroke" stroke="#FAF6EA" strokeWidth={3}>{tide.lineLabel}</text>
+    </g>
+  ));
+  // TF: the area between model curve and tidal prediction, on the lines' own curve so it meets them exactly (pattern: gust band).
+  const Deviation = ({ series, lineGenerator }: Ctx) => {
+    if (!tide?.deviation) return null;
+    const f = series.find((x) => x.id === 'Vorhersage'), g = series.find((x) => x.id === 'Gezeit');
+    if (!f || !g) return null;
+    const ok = f.data.map((d, i) => [d, g.data[i]] as const).filter(([a, b]) => a?.data.y != null && b?.data.y != null);
+    if (ok.length < 2) return null;
+    const top = lineGenerator(ok.map(([a]) => a.position)), bot = lineGenerator(ok.map(([, b]) => b.position).reverse());
+    return top && bot ? <path className="sw-tf-dev" d={`${top}${bot.replace(/^M/, 'L')}Z`} fill="#B98A3E" fillOpacity={0.3} /> : null;
+  };
   const Ref = ({ yScale, innerWidth }: Ctx) => (
     <g>{([[mhwCm, highLabel], [mlwCm, lowLabel]] as Array<[number | null, string]>).filter(([v]) => v != null).map(([v, label]) => (
       <g key={label}>
@@ -182,7 +232,7 @@ export function WaterLevelChart({ points, selMs, nowMs, mhwCm, mlwCm, highLabel 
         yScale={{ type: 'linear', min: Math.floor((lo - pad) / 10) * 10, max: Math.ceil((hi + pad) / 10) * 10 }}
         theme={theme(big)} animate={false} enablePoints={false} isInteractive={false}
         enableGridX={false} gridYValues={4} axisBottom={axisX(true, big)} axisLeft={{ tickSize: 0, tickPadding: big ? 8 : 4, tickValues: 4, format: (v: number) => String(v) }}
-        layers={[Ref, 'grid', Area, 'lines', 'axes', Now, Sel] as never}
+        layers={(tide ? [Bands, Ref, 'grid', Deviation, 'lines', Threshold, 'axes', Now, Sel] : [Ref, 'grid', Area, 'lines', 'axes', Now, Sel]) as never}
       />
     </div>
   );

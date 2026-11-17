@@ -3288,3 +3288,23 @@ Gebaut und uncommitted, **an seit 11.11. (dein Wort: „einschalten")** (`TOUR_R
 5. **Entschieden 11.11.:** eingeschaltet; Horizont 336 h; V-TE-2 (Rottöne) bleibt vorerst. Offen: V-TE-6 (Einfärben der Gelände-Karte).
 6. **Bekannt rot, nicht aus dieser Phase:** `verify:route-3d` 585/589 (Abhängigkeitsliste, PDF-Knöpfe der 3D-Ansicht),
    `verify:fusion-release` 31/32 (C7, ICON-D2 in `AtmospherePage.tsx`), `verify-seo` im Build 1738/1739 („alle lastmod identisch").
+
+## 89. Tidenfenster auf `/seewetter` (Phase TF, `audit/tidenfenster.md`), 2026-11-18
+
+Gebaut, lokal committet, **aus** (`SEA_TIDE_WINDOW_LIVE = false` in `src/sea/seaFlag.ts`); `?tf=1` schaltet ein. Ohne den
+Schalter ist die Seite die von vorher. Kein Daten-Repo, kein Workflow, keine Abhängigkeit angefasst.
+
+1. **Ansehen** (Desktop 1440 × 900 und iPhone): `/seewetter/cuxhaven-duhnen?tf=1` → Kapitel „Wasserstand“ → im Satz eine
+   Schwelle eintragen (z. B. mindestens 550 cm über Pegelnull) → Fensterliste, Bänder mit Zeit und Schwellenlinie im
+   Diagramm, Fläche „Abweichung von der Gezeit (eigene Rechnung)“; Kapitel „Wetter“ → Zeile „Pegel“ im Stundenband, Klasse
+   und Fenster des Profils ändern sich. `/seewetter/st-peter-ording?tf=1` → zwei Karten (Süderoogsand ohne Verlauf,
+   darunter Eider-Sperrwerk mit Entfernung). `/seewetter/kiel-schilksee?tf=1` → keine Gezeit, ab ≈ +49 h „keine Daten“.
+   Mobil: Knopf „Schwelle“ in der unteren Leiste. Belege: `audit/tidenfenster/bilder/`.
+2. **Teilen prüfen:** Schwelle setzen, „Teilen“ → der Link trägt `tw=…` und `tf=1`; in einem privaten Fenster öffnen.
+3. **Entscheiden:** E-TF-1…7 (gesetzt, `audit/tidenfenster.md` §2), vor allem die 10 cm für „knapp“ (E-TF-5) und dass die
+   Klasse mit Wasserstand nur für den gewählten Spot gilt (V-TF-7).
+4. **Einschalten** (dein Wort): `SEA_TIDE_WINDOW_LIVE = true`, dann `git push origin main`. Rückfall danach `?tf=0`.
+5. **CI:** `node scripts/ci-run.mjs verify:sea-tide-window` in `.github/workflows/ci.yml` neben `verify:sea-waterlevel`
+   eintragen (V-TF-6) — Workflows habe ich nicht angefasst.
+6. **Bekannt rot, nicht aus dieser Phase:** `verify:sea-ui` bricht an HEAD in B0 ab (V-TF-5, Selektor aus der Zeit vor dem
+   Dossier-Umbau). Konsole, Touch-Ziele und Pixelgleichheit ohne Schalter sind deshalb **nicht** gemessen. Real-Device offen.

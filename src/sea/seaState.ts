@@ -26,9 +26,15 @@ export interface SeaUrlState {
   u: SeaUnit;
   tab: SeaTab;
   rv: SeaRevier;
+  /** Phase TF: the tide threshold as written in the link (`tw=min.550.pnp.<gauge>`, `tideWindow.ts`); null = none. */
+  tw: string | null;
+  /** Phase TF: `tf=1` stays in the address while the tide window is not live, so a shared link shows what was shared. */
+  tf: boolean;
 }
 
-export const SEA_DEFAULT_STATE: SeaUrlState = { spot: null, p: 'kite', t: 0, l: 'hs', u: 'kn', tab: 'spot', rv: 'alle' };
+export const SEA_DEFAULT_STATE: SeaUrlState = { spot: null, p: 'kite', t: 0, l: 'hs', u: 'kn', tab: 'spot', rv: 'alle', tw: null, tf: false };
+/** Phase TF: form of `tw` — mode, whole cm, reference, gauge id (read by `parseTideParam` in `tideWindow.ts`; kept here so the route wrapper stays free of the tide module). */
+export const SEA_TW_RE = /^(min|max)\.(-?\d{1,4})\.(pnp|nhn|skn|mhw)\.([a-z0-9][a-z0-9_-]{0,63})$/;
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export function parseSeaUrl(slug: string | null | undefined, search: string): { state: SeaUrlState; invalid: string[] } {
@@ -48,6 +54,9 @@ export function parseSeaUrl(slug: string | null | undefined, search: string): { 
   if (tab != null) { if ((SEA_TABS as readonly string[]).includes(tab)) state.tab = tab as SeaTab; else invalid.push('tab'); }
   const rv = q.get('rv');
   if (rv != null) { if ((SEA_REVIERE as readonly string[]).includes(rv)) state.rv = rv as SeaRevier; else invalid.push('rv'); }
+  const tw = q.get('tw');
+  if (tw != null) { if (SEA_TW_RE.test(tw)) state.tw = tw; else invalid.push('tw'); }
+  if (q.get('tf') === '1') state.tf = true;
   return { state, invalid };
 }
 
@@ -60,6 +69,8 @@ export function buildSeaUrl(s: SeaUrlState, extra: ReadonlyArray<[string, string
   if (s.u !== 'kn') q.push(['u', s.u]);
   if (s.tab !== 'spot') q.push(['tab', s.tab]);
   if (s.rv !== 'alle') q.push(['rv', s.rv]);
+  if (s.tw) q.push(['tw', s.tw]);
+  if (s.tf) q.push(['tf', '1']);
   q.push(...extra);
   const qs = q.length ? `?${q.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&')}` : '';
   return `/seewetter${s.spot ? `/${s.spot}` : ''}${qs}`;

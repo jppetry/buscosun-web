@@ -48,6 +48,18 @@ export function seaWaterLevelFrom(search: string = typeof location !== 'undefine
   try { return new URLSearchParams(search).get('wl') !== '0'; } catch { return true; }
 }
 
+/**
+ * Phase TF — tide windows (`audit/tidenfenster.md`): OFF by default (Rule 2), `?tf=1` switches the page's threshold
+ * control, the windows in chart and hourly band, the gauge-with-curve fallback (E-WL-10) and the deviation area on;
+ * `?tf=0` switches them off once the flag is live. Without it the page is the one before TF.
+ */
+export const SEA_TIDE_WINDOW_LIVE = false;
+export function seaTideWindowFrom(search: string = typeof location !== 'undefined' ? location.search : '', live: boolean = SEA_TIDE_WINDOW_LIVE): boolean {
+  let q: string | null = null;
+  try { q = new URLSearchParams(search).get('tf'); } catch { /* broken query = no vote */ }
+  return q === '1' ? true : q === '0' ? false : live;
+}
+
 /** Remembers an explicit `?sea=0|1` for the session's later navigations (the query is gone after the first click). */
 export function rememberSeaFlag(search: string = typeof location !== 'undefined' ? location.search : ''): void {
   let q: string | null = null;
