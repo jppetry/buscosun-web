@@ -276,14 +276,17 @@ const sentences = [];
   // Andere Phasen (z. B. ZT) ergänzen MapView parallel — maßgeblich für ZO sind die Zeilen der Zellbahnen: ohne die
   // V-ZO-4-Zeilen stehen sie wortgleich und in derselben Reihenfolge wie an HEAD. Rest = fremde Phasen, nur benannt.
   const cellLines = (t) => t.split('\n').filter((l) => /affects|buildCellFeatures|cellLocationRelevance|cellsRelevance|CELLS_SOURCE_ID|cellRelevanceText/.test(l));
-  const zo4Ok = (t) => { const s = stripZo4(t); return s != null && JSON.stringify(cellLines(s)) === JSON.stringify(cellLines(mvHead)); };
+  // Since ZO is committed, HEAD carries the V-ZO-4 lines itself: both sides are compared without them (before the commit HEAD
+  // had none and was compared as it was — a comparison that could no longer hold afterwards).
+  const headStripped = stripZo4(mvHead) ?? mvHead;
+  const zo4Ok = (t) => { const s = stripZo4(t); return s != null && JSON.stringify(cellLines(s)) === JSON.stringify(cellLines(headStripped)); };
   const mvCur = lf(read('src/MapView.tsx'));
   const mvStripped = stripZo4(mvCur);
   const foreign = mvStripped == null ? null : (() => {
     const a = new Set(mvHead.split('\n')); return mvStripped.split('\n').filter((l) => !a.has(l)).length;
   })();
   add('H2 MapView.tsx nur additiv: ohne die Zeilen von `profileAffectsCellId` die Zellbahnen wortgleich zu HEAD (ohne Prop die alte Regel)',
-    zo4Ok(mvCur), mvStripped === mvHead ? 'sonst byte-gleich zu HEAD' : `${foreign ?? '?'} Zeilen anderer Phasen (nicht ZO)`);
+    zo4Ok(mvCur), mvStripped === headStripped ? 'sonst byte-gleich zu HEAD' : `${foreign ?? '?'} Zeilen anderer Phasen (nicht ZO)`);
   add('H2b Gegenprobe: eine geänderte Zellbahn-Zeile fiele auf',
     !zo4Ok(mvCur.replace("affectsCellId = profile && profileAffectsCellId !== undefined ? profileAffectsCellId : (rel?.cellId ?? null)", "affectsCellId = profileAffectsCellId ?? null"))
     && !zo4Ok(mvCur.replace('const fc = buildCellFeatures(cellsRun, { affectsCellId });', 'const fc = buildCellFeatures(cellsRun, { affectsCellId: null });')));
@@ -337,8 +340,8 @@ const sentences = [];
   add('I4 Leiste als Hinweis in Sand/Ink (kein Bordeaux), Grundklasse unverändert',
     hint !== '' && !/7e0028/i.test(hint) && /250,246,234/.test(hint) && /ink-900/.test(hint)
     && !cssDiff.split('\n').some((l) => /^-(?!--)/.test(l)) && /\.nc-radar-eta \{[^}]*#7e0028/.test(css));
-  add('I5 Hinweis-Klasse nur mit Schalter', /className="nc-radar-eta nc-radar-eta--hint"/.test(map)
-    && /nc-radar-eta--quiet\$\{zoOn \? ' nc-radar-eta--hint' : ''\}/.test(map)
+  // The quiet variant (KONRAD3D empty-state note) left the map on 14.10. (`bd5c23e6`) — two forms remain.
+  add('I5 Hinweis-Klasse nur mit Schalter', /zoOn && cellsOn && zoLeiste && \(\s*<div className="nc-radar-eta nc-radar-eta--hint">/.test(map)
     && /!zoOn && cellsOn && cellRel && \(\s*<div className="nc-radar-eta">/.test(map));
 }
 

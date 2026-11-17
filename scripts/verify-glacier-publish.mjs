@@ -267,7 +267,8 @@ add('P2 zweite Linie (sat) auf `main`: index.json trägt BEIDE Zeiger (static un
 // W: the workflow templates (the data repos carry copies; GitHub itself is not available here) ---------------------------------------------------------------------------
 {
   const names = ['static', 'sat', 'melt', 'feed'];
-  const yml = Object.fromEntries([...names, 'archiv'].map((n) => [n, readFileSync(join(HERE, 'glacier', `workflow-glacier-${n}.yml`), 'utf8')]));
+  // Line endings normalised: a Windows checkout (autocrlf) hands the templates out with CRLF, W11 splits on `run: |\n`.
+  const yml = Object.fromEntries([...names, 'archiv'].map((n) => [n, readFileSync(join(HERE, 'glacier', `workflow-glacier-${n}.yml`), 'utf8').replace(/\r\n/g, '\n')]));
   const ok = (f) => names.every((n) => f(yml[n], n));
   add('W1 die vier Vorlagen im Daten-Repo teilen die Concurrency-Gruppe `glacier-publish` ohne Abbruch laufender Läufe; der Archiv-Workflow hat seine eigene', ok((y) => /concurrency:\s*\n\s*group: glacier-publish\s*\n\s*cancel-in-progress: false/.test(y)) && /group: glacier-archiv\s*\n\s*cancel-in-progress: false/.test(yml.archiv));
   add('W2 Producer-Wächter: Standard `feat/gletscher` über die Repo-Variable GLACIER_PRODUCER_REF, `git ls-remote --exit-code --heads`, „producer not on <ref> yet“ und Ende grün (exit 0), Zweig ohne Rebase geklont — in allen fünf',

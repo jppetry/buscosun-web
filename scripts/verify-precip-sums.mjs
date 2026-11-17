@@ -373,8 +373,11 @@ console.log('\n== G Verdrahtung ==');
 {
   const deck = readFileSync(join(ROOT, 'src/nowcast/NowcastDeck.tsx'), 'utf8');
   const map = readFileSync(join(ROOT, 'src/nowcast/NowcastRadarMap.tsx'), 'utf8');
-  add('G1 Deck: Dock „Darstellung" (Desktop) und Reiter Layer (mobil), Karte am Ort im Readout und im Schnellblick',
-    (deck.match(/<SumControls /g) ?? []).length === 2 && (deck.match(/<PointSumCard /g) ?? []).length === 2 && /variant="dock"/.test(deck) && /variant="mobile"/.test(deck));
+  // Jan 16.10. (`43fc758f`: the sum tile left the readout) and 21.10. (`6a149ba5`: the switch „Darstellung" is hidden in dock
+  // and layer panel): the deck renders neither any more; the building blocks stay in `PrecipSumsUi.tsx`.
+  const sumsUi = readFileSync(join(ROOT, 'src/precipSums/PrecipSumsUi.tsx'), 'utf8');
+  add('G1 Deck: Schalter „Darstellung" und Summenkarte am Ort sind ausgeblendet (kein `<SumControls`/`<PointSumCard` im Deck), die Bausteine bleiben in PrecipSumsUi',
+    !/<SumControls /.test(deck) && !/<PointSumCard /.test(deck) && /export function SumControls\(/.test(sumsUi) && /export function PointSumCard\(/.test(sumsUi));
   // Jan 13.10. (audit/regenradar-altanzeigen.md): "Kennzahlen · 6 h" (with the tile "Summe 6 h" and its band line) is removed.
   add('G2 `?sum=0`: Deck reicht weder Auswahl noch Summen weiter; die Kachel „Summe 6 h" samt Band-Zeile ist entfernt',
     /sumsOn \? sumSel : null/.test(deck) && /sumsOn \? sumSel : undefined/.test(deck) && !/sumMinMm/.test(deck) && !/Summe 6 h/.test(deck));

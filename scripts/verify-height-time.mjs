@@ -192,7 +192,8 @@ console.log('\nH Verdrahtung');
   const map = readFileSync(join(ROOT, 'src/nowcast/NowcastRadarMap.tsx'), 'utf8');
   add('H1 Deck: Schalter aus der URL, Panel als Lazy-Chunk', /heightTimeEnabledFrom\(/.test(deck) && /lazy\(\(\) => import\('\.\/heightTime\/HeightTimePanel'\)\)/.test(deck) && !/from '\.\/heightTime\/(heightTimeModel|HeightTimeChart|useHeightTime)'/.test(deck));
   add('H2 mit ?hzs=0 keine neuen Karten-Props (hzsMapProps/timeMapProps leer)', /const hzsMapProps = hzsOn \? \{ onPointChange: setHzsPoint \} : \{\};/.test(deck) && /const timeMapProps = hzsVisible \? \{ onTimeChange: setSliderMs \} : \{\};/.test(deck));
-  add('H3 Ansicht „Karte + Höhe" und Reiter „Höhe" fallen mit ?hzs=0 weg', /\{hzsOn && <button[\s\S]{0,260}?>Karte \+ Höhe<\/button>\}/.test(deck) && /withHeight=\{hzsOn\}/.test(deck) && /withHeight \? \[\.\.\.MOBILE_TABS/.test(deck));
+  // The switch is its own two-button toggle above the map now (desktop only), the mobile tab list is built from `visible`.
+  add('H3 Ansicht „Karte + Höhe" und Reiter „Höhe" fallen mit ?hzs=0 weg', /\{!isMobile && hzsOn && \([\s\S]{0,900}?>Karte \+ Höhe<\/button>/.test(deck) && /withHeight=\{hzsOn\}/.test(deck) && /withHeight \? \[\.\.\.visible\.slice\(0, 2\), HEIGHT_TAB/.test(deck));
   add('H4 Karte: onPointChange optional, nur gemeldet, nichts sonst', /onPointChange\?: \(p:/.test(map) && /onPointChangeRef\.current\?\.\(point\)/.test(map));
   // Phase guard only on request (`--phase`): later phases may change buscosun Fusion legitimately — no permanent red.
   if (process.argv.includes('--phase')) {

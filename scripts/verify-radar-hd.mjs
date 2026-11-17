@@ -171,7 +171,7 @@ for (const g of GRIDS) {
 {
   const rain = readFileSync(new URL('../src/scalar/RainLayer.ts', import.meta.url), 'utf8');
   add('E1 RainLayer: filter option defaults to bspline (pre-HD path), uniform branch 0 = sampleBicubic', /options\.filter \?\? 'bspline'/.test(rain) && /return sampleBicubic\(sm, uv\);/.test(rain) && /if \(u_filter == 1\) return sampleCatmull\(sm, uv\);/.test(rain));
-  add('E2 RainLayer: mask optional, NEAREST, discard only with u_mask_on', /mask\?: Uint8Array \| null/.test(rain) && /TEXTURE_MAG_FILTER, gl\.NEAREST/.test(rain) && /u_mask_on > 0\.5 &&/.test(rain));
+  add('E2 RainLayer: mask optional, NEAREST, discard only with u_mask_on', /mask\?: Uint8Array \| null/.test(rain) && /TEXTURE_MAG_FILTER, gl\.NEAREST/.test(rain) && /if \(u_mask_on > 0\.5\) \{[^}]*discard;/.test(rain));
   add('E3 RainLayer: Catmull-Rom 16 taps clamped to the inner 2×2 (lo/hi)', /return clamp\(s, lo, hi\);/.test(rain) && /i >= 1 && i <= 2 && j >= 1 && j <= 2/.test(rain));
   const mv = readFileSync(new URL('../src/MapView.tsx', import.meta.url), 'utf8');
   add('E4 MapView: HD layers exist only with the switch; composite layer hidden only with the switch', /hd\.on \? \[/.test(mv) && /modelSourceRef\.current\.radar && !hdRef\.current\.on/.test(mv));

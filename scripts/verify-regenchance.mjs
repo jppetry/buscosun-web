@@ -252,7 +252,9 @@ console.log('\n== G Verdrahtung ==');
   add('G2 Dock: dritte Taste und Schwellen nur mit `chance`-Angabe — ohne sie dieselben zwei Tasten wie vor RC',
     /\{chance && <button type="button" role="tab" aria-selected=\{sel\.mode === 'chance'\}/.test(ui) && /\{chance && sel\.mode === 'chance' && chance\.thresholdSeg\}/.test(ui));
   add('G3 Karte: „Chance" nur mit `chance`-Prop; Intensitäts-Ebene ruht wie in „Summe"; eigene Legende statt Intensitäts-Legende',
-    /const chanceMode = sum\?\.mode === 'chance' && !!chance;/.test(map) && /sumMode \|\| chanceMode \? layers\.filter\(\(l\) => l !== 'precip'\)/.test(map) && /\{!sumMode && !chanceMode && <div className="nc-radar-legend">/.test(map));
+    /const chanceMode = sum\?\.mode === 'chance' && !!chance;/.test(map) && /sumMode \|\| chanceMode \? layers\.filter\(\(l\) => l !== 'precip'\)/.test(map)
+    // Jan 24.10.: the intensity legend sits in the time strip (`const legend = …`), no longer on the map
+    && /const legend = !sumMode && !chanceMode \? \(/.test(map) && /\{chanceMode && chance && <ChanceLegend /.test(map));
   add('G4 Rechenteil lazy: Engine nur per `import()`, kein statischer Import außerhalb des Chunks',
     /import\('\.\/chanceMapEngine'\)/.test(hook) && !/^import (?!type)[^;]*'\.\/chanceMapEngine'/m.test(hook) && !/from '\.\.\/precipChance\/chanceMapEngine'/.test(deck + map));
   add('G5 Nutzer-Zeit beendet die Wahl aus der Leiste (Slider, Schritt, „jetzt", Abspielen)',

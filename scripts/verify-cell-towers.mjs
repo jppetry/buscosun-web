@@ -215,17 +215,19 @@ const runOct8 = fx('konrad3d-20261008T143000.xml');
 {
   add('G1 off by default (Jan 15.11.: missing, 0, other) — `?z3d=1`/true/on brings the 3D view back', !towers3dEnabledFrom('') && towers3dEnabledFrom('?z3d=1') && towers3dEnabledFrom('?a=1&z3d=on') && towers3dEnabledFrom('?z3d=true')
     && !towers3dEnabledFrom('?z3d=2') && !towers3dEnabledFrom('?z3d=0') && !towers3dEnabledFrom('?a=1&z3d=false') && !towers3dEnabledFrom('?z3d=off'));
-  add('G2 `?ansicht3d=` views, unknown ⇒ map', view3dFrom('?ansicht3d=split') === 'split' && view3dFrom('?ansicht3d=3d') === '3d' && view3dFrom('?ansicht3d=x') === 'map' && view3dFrom('') === 'map');
+  // "Karte + 3D" (`split`) is no longer offered since 14.10. (`94d19631`): `?ansicht3d=split` opens the map.
+  add('G2 `?ansicht3d=` views: 3d, split and unknown ⇒ map', view3dFrom('?ansicht3d=3d') === '3d' && view3dFrom('?ansicht3d=split') === 'map' && view3dFrom('?ansicht3d=x') === 'map' && view3dFrom('') === 'map');
   const deck = read('src/nowcast/NowcastDeck.tsx');
   add('G3 deck: stage lazy (no static import of TowerStage), flag read, props only with the flag',
     /lazy\(\(\) => import\('\.\/cellTowers\/TowerStage'\)\)/.test(deck) && !/^import TowerStage/m.test(deck)
     && /const z3dOn = useMemo\(\(\) => towers3dEnabledFrom\(/.test(deck) && /const ztMapProps = z3dOn \?/.test(deck) && /\{\.\.\.ztMapProps\}/.test(deck));
-  add('G3b deck: topbar switch, slim dock and tab "3D" only with the flag', /\{z3dOn && \(\s*<div className="zt-viewseg"/.test(deck) && /if \(!z3dOn\) return dock;/.test(deck) && /with3d=\{z3dOn\}/.test(deck));
+  // The slim dock of the split view went with that view (14.10.).
+  add('G3b deck: topbar switch and tab "3D" only with the flag', /\{z3dOn && \(\s*<div className="zt-viewseg"/.test(deck) && /with3d=\{z3dOn\}/.test(deck));
   const stage = read('src/nowcast/cellTowers/TowerStage.tsx');
   add('G4 stage: no custom layer, no shader source (built-in 3D only)', !/type:\s*'custom'/.test(stage) && !/renderingMode/.test(stage) && !/gl_Position|precision highp/.test(stage));
-  add('G5 tower source `maxzoom: 7` (no tile seam, spike)', /addSource\(SRC_TOWERS, \{ type: 'geojson', data: emptyFc\(\), maxzoom: 7 \}\)/.test(stage));
-  const iCore = stage.indexOf("id: 'zt-tower-core'"), iTower = stage.indexOf("id: 'zt-tower', type: 'fill-extrusion'");
-  add('G6 core layer added before (= below) the tower layer', iCore > 0 && iTower > iCore);
+  // 14.10. (`94d19631`): the 3D view shows snow and the snow line only — the cell towers left the stage. The former checks
+  // G5 (tower source `maxzoom: 7`) and G6 (core layer below the tower layer) went with them; this one holds the new state.
+  add('G5 stage carries no tower source or tower layer any more (snow and snow line only)', !/SRC_TOWERS/.test(stage) && !/zt-tower/.test(stage) && !/fill-extrusion/.test(stage) && /id: 'zt-snow'/.test(stage));
   add('G7 terrain exaggeration of the stage = tower factor', /setTerrain\(\{ source: DEM_SRC, exaggeration: TOWER_EXAGGERATION \}\)/.test(stage));
 
   // G8: NowcastRadarMap and MapView only additive — strip the ZT lines; ZT must not have removed a HEAD line.
@@ -254,7 +256,9 @@ const runOct8 = fx('konrad3d-20261008T143000.xml');
   // HEAD lines right next to a ZT block — the Gegenprobe changes one character there.
   const anchors = { 'src/MapView.tsx': '  suspended = false, onOpenDashboard,\n', 'src/nowcast/NowcastRadarMap.tsx': '      {/* Zeitachse (Scrubber) · Punkt-Streifen · Datenqualität.\n' };
   for (const [p, strip, label] of [['src/MapView.tsx', stripZtMapView, 'G8'], ['src/nowcast/NowcastRadarMap.tsx', stripZtRadarMap, 'G9']]) {
-    const head = lf(execFileSync('git', ['show', `HEAD:${p}`], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 << 20 }));
+    // Since ZT is committed, HEAD carries the ZT lines itself: it is compared without them (before the commit `strip` found
+    // nothing in HEAD and left it as it was).
+    const head = strip(lf(execFileSync('git', ['show', `HEAD:${p}`], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 << 20 })));
     const cur = lf(read(p));
     const stripped = strip(cur);
     const dCur = diffCounts(head, cur), dStr = diffCounts(head, stripped);

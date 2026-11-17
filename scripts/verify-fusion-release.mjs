@@ -286,12 +286,16 @@ const NAME_RE = /buscosun Fusion \d/;
   // fallback; no part calls itself ICON-D2 (the cut never read pressure levels). Counter-probe on the pattern.
   const fr = await import('../src/pointForecast/fusion/fusionRelease.ts');
   const { sourceNote } = await import('../src/route/route3d/model.ts');
-  const ORIGIN_FILES = ['src/atmosphere/AtmosphereDeck.tsx', 'src/atmosphere/GoNoGoReport.tsx', 'src/atmosphere/AtmospherePage.tsx', 'src/threed/SectionView.tsx', 'src/threed/TerrainView.tsx', 'src/threed/GoNoGoPanel.tsx', 'src/threed/ThreeDPage.tsx'];
+  const ORIGIN_FILES = ['src/atmosphere/AtmosphereDeck.tsx', 'src/atmosphere/GoNoGoReport.tsx', 'src/threed/SectionView.tsx', 'src/threed/TerrainView.tsx', 'src/threed/GoNoGoPanel.tsx', 'src/threed/ThreeDPage.tsx'];
   const D2 = /ICON-D2/;
   const d2Probe = [codeOf("const a = 'aus ICON-D2-Druckflächen';"), codeOf('// ICON-D2 im Kommentar')].map((t) => D2.test(t));
   add('C7 Gegenprobe: das Muster trifft „ICON-D2" im Text, nicht im Kommentar', d2Probe[0] && !d2Probe[1]);
   const d2Hits = ORIGIN_FILES.filter((p) => D2.test(codeOf(src(p))));
-  add(`C7 Schnitt, Go/No-Go, 3D und Einstieg nennen kein ICON-D2 mehr (${ORIGIN_FILES.length} Dateien)`, d2Hits.length === 0, d2Hits.join(', '));
+  add(`C7 Schnitt, Go/No-Go und 3D nennen kein ICON-D2 mehr (${ORIGIN_FILES.length} Dateien)`, d2Hits.length === 0, d2Hits.join(', '));
+  // The entry page: since the height cube `atmo/v1` (19.10.2026, `atmosphere/atmoContract.ts`) the height DOES come from
+  // ICON-D2 model levels. The page may name them — but only in the same sentence as buscosun Fusion (the ground wind), never alone.
+  const entryD2 = codeOf(src('src/atmosphere/AtmospherePage.tsx')).split('\n').filter((l) => D2.test(l));
+  add('C7 Einstieg nennt ICON-D2 nur zusammen mit buscosun Fusion (Höhe aus den Modellflächen, `atmo/v1`)', entryD2.every((l) => /buscosun Fusion/.test(l)), `${entryD2.length} Zeile(n)`);
   add('C7 Herkunft folgt dem Weg: alles Cube ⇒ neuester Stand, alles live ⇒ „Live-Punktvorhersage", gemischt ⇒ beides; 3D-Route ebenso, live mit den Länder-Stacks',
     fr.fusionSourceOf([{ cube: {} }, { cube: {} }]) === 'fusion' && fr.fusionSourceOf([{}, null]) === 'live' && fr.fusionSourceOf([{ cube: {} }, {}]) === 'mixed' && fr.fusionSourceOf([null]) === null
     && fr.fusionSourceText('fusion') === FUSION_NAME && fr.fusionSourceText('live') === 'Live-Punktvorhersage' && fr.fusionSourceText('mixed').startsWith(FUSION_NAME) && fr.fusionSourceText(null) === FUSION_BRAND

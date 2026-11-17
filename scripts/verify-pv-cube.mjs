@@ -1807,9 +1807,15 @@ function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
   // findet den Import im Gate-Skript (sonst wäre die Abwesenheit nichts wert).
   const pat = /from\s+['"][^'"]*profileColumn(\.ts)?['"]/;
   const walk = (d) => readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(`${d}/${e.name}`) : /\.(ts|tsx)$/.test(e.name) ? [`${d}/${e.name}`] : []));
-  const importers = walk('src').filter((f) => !f.endsWith('profileColumn.ts') && pat.test(readFileSync(f, 'utf8')));
+  // The hypsometric formula alone (`hypsometricHeight`: the height of a pressure level) is no part of the gated profile —
+  // the Höhen-Zeit-Schnitt (`nowcast/heightTime/heightTimeModel.ts`, since 2026-10-09) reads the zero-degree level with it.
+  // An importer counts when it takes anything else from the module (the profile itself, its constants).
+  const namesPat = /import\s+(?:type\s+)?\{([^}]*)\}\s+from\s+['"][^'"]*profileColumn(?:\.ts)?['"]/g;
+  const onlyFormula = (text) => [...text.matchAll(namesPat)].every((m) => m[1].split(',').map((s) => s.trim()).filter(Boolean).every((n) => n === 'hypsometricHeight'))
+    && [...text.matchAll(new RegExp(pat, 'g'))].length === [...text.matchAll(namesPat)].length;
+  const importers = walk('src').filter((f) => { if (f.endsWith('profileColumn.ts')) return false; const t = readFileSync(f, 'utf8'); return pat.test(t) && !onlyFormula(t); });
   const probe = pat.test(readFileSync('audit/fusion-vollform/pressure-profile-shadow.mjs', 'utf8'));
-  add('(21) Gate rot ⇒ nicht verdrahtet: kein App-Modul unter src/ importiert `profileColumn` (Gegenprobe: das Muster findet den Import im Gate-Skript)',
+  add('(21) Gate rot ⇒ nicht verdrahtet: kein App-Modul unter src/ importiert das Profil aus `profileColumn` (nur die hypsometrische Formel ist frei; Gegenprobe: das Muster findet den Import im Gate-Skript)',
     importers.length === 0 && probe, importers.join(', ') || 'keiner');
 }
 
