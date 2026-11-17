@@ -3304,7 +3304,7 @@ Schalter ist die Seite die von vorher. Kein Daten-Repo, kein Workflow, keine Abh
 3. **Entscheiden:** E-TF-1…7 (gesetzt, `audit/tidenfenster.md` §2), vor allem die 10 cm für „knapp“ (E-TF-5) und dass die
    Klasse mit Wasserstand nur für den gewählten Spot gilt (V-TF-7).
 4. **Einschalten** (dein Wort): `SEA_TIDE_WINDOW_LIVE = true`, dann `git push origin main`. Rückfall danach `?tf=0`.
-5. **CI:** `node scripts/ci-run.mjs verify:sea-tide-window` in `.github/workflows/ci.yml` neben `verify:sea-waterlevel`
-   eintragen (V-TF-6) — Workflows habe ich nicht angefasst.
+5. **CI:** erledigt 18.11. (dein Wort) — Schritt „Verifier — Tidenfenster“ steht in `.github/workflows/ci.yml` hinter
+   „Verifier — Wasserstand BSH“ (V-TF-6); er läuft auf GitHub erst mit dem Push.
 6. **Bekannt rot, nicht aus dieser Phase:** `verify:sea-ui` bricht an HEAD in B0 ab (V-TF-5, Selektor aus der Zeit vor dem
    Dossier-Umbau). Konsole, Touch-Ziele und Pixelgleichheit ohne Schalter sind deshalb **nicht** gemessen. Real-Device offen.

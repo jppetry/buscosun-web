@@ -189,6 +189,11 @@ jobs:
       - name: Verifier — Wasserstand BSH
         if: ${{ !cancelled() }}
         run: node scripts/ci-run.mjs verify:sea-waterlevel
+      # TF: Tidenfenster — Schwelle, Fenster, Stunden, Klassen, Pegel mit Kurve. Netzfrei gegen
+      # echte BSH-Antworten vom 17.11.2026 (audit/tidenfenster.md).
+      - name: Verifier — Tidenfenster
+        if: ${{ !cancelled() }}
+        run: node scripts/ci-run.mjs verify:sea-tide-window
       # GL: Gletscher-Monitor DACH — Datenvertrag (Pfade, Klassen, Flächenstempel mit Bezugsjahr, Umriss-Stufen ±3 %, amtliche Sätze wörtlich)
       # an einem echten Auszug des Baums, der Baum-Prüfer im Fixture-Modus, und der Publisher gegen ein echtes lokales Remote
       # (Linien teilen ein Repo, abgelehnter Push heilt, nie Force, Archiv nur Hinzufügen; audit/gletscher.md) — netzfrei.
