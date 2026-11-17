@@ -164,6 +164,10 @@ export default function MiniMap({ place, zoom = ZOOM, interactive = false, onRea
       // multiply the density per pixel on this small tile), so the particles per area equal the Wetterkarte at this zoom.
       const wind = new WindLayer({ ...weatherWindOptions(coarse), minParticles: 50, maxParticles: 48000 });
       wind.setDensityMultiplier(WEATHER_WIND_DENSITY);
+      // As in the Wetterkarte with the precipitation layer on: no wind colouring (heatmap) under the radar picture — two
+      // colour scales would overlap. The particles stay. Off from the start (the radar picture belongs to this tile); it
+      // comes back only when the radar turns out unavailable.
+      wind.setShowHeatmap(false);
       map.addLayer(wind);
 
       // DACH mask: everything outside DE · AT · CH · LI is sand, as in the Wetterkarte. It lies above the whole basemap
@@ -273,7 +277,7 @@ export default function MiniMap({ place, zoom = ZOOM, interactive = false, onRea
       void (async () => {
         const pick = await loadRadarPick(place.country, ac.signal);
         if (ac.signal.aborted) return;
-        if (!pick) { setRadarState('na'); return; }
+        if (!pick) { setRadarState('na'); wind.setShowHeatmap(true); return; }
         const ratio = ((mercY(box.north) - mercY(box.south)) * 180 / Math.PI) / (box.east - box.west);
         const w = PICTURE_PX, h = Math.max(32, Math.round(PICTURE_PX * ratio));
         const rgba = await drapeImageSliced(pick, box, w, h, () => ac.signal.aborted);
