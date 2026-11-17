@@ -103,27 +103,22 @@ add('D2 Familie: `claef` ist highres wie `arome_at`', familyOf('claef') === 'hig
   add('D8 Termin 04.11. im Register mit `resolved` und Beleg', !!c && c.on === '2026-11-04' && !!c.resolved && /geosphereNwp/.test(c.resolved.evidence));
 }
 
-// ── E: live gegen beide Datensätze (ohne Netz ⊘) ─────────────────────────────
+// ── E: live gegen den Datensatz v2 (ohne Netz ⊘) ─────────────────────────────
+// v1 endete am 04.11.2026 (Register, D8): sein letzter Lauf 2026-11-04T03Z antwortet noch, trägt aber keine 40 künftigen
+// Stunden mehr — die Prüfung „beide Datensätze" (E1) und der Vergleich v1 ↔ v2 (E3) sind damit entfallen.
 try {
   const pts = ['lat_lon=47.267,11.393', 'lat_lon=46.628,14.309', 'lat_lon=48.208,16.373'];
-  const [r1, r2] = await Promise.all(['v1', 'v2'].map((v) => fetch(geoSphereNwpUrl(v, pts), { signal: AbortSignal.timeout(25_000) })));
-  if (!r1.ok || !r2.ok) throw new Error(`HTTP ${r1.status}/${r2.status}`);
-  const [j1, j2] = await Promise.all([r1.json(), r2.json()]);
-  add('E1 live: beide Datensätze antworten für drei Punkte mit 40…61 Stunden (61 je Lauf, vergangene Stunden fallen weg)', j1.features.length === 3 && j2.features.length === 3
-    && j1.timestamps.length >= 40 && j1.timestamps.length <= 61 && j2.timestamps.length >= 40 && j2.timestamps.length <= 61, `v1 ${j1.reference_time} · v2 ${j2.reference_time}`);
-  // Die beiden Datensätze werden Minuten versetzt veröffentlicht; um einen Laufwechsel herum tragen sie verschiedene Läufe.
-  const sameRun = j1.reference_time === j2.reference_time;
-  if (!sameRun) skip('E3 live: Temperaturvergleich', `verschiedene Läufe (v1 ${j1.reference_time}, v2 ${j2.reference_time})`);
+  const r2 = await fetch(geoSphereNwpUrl('v2', pts), { signal: AbortSignal.timeout(25_000) });
+  if (!r2.ok) throw new Error(`HTTP ${r2.status}`);
+  const j2 = await r2.json();
+  add('E1 live: v2 antwortet für drei Punkte mit 40…61 Stunden (61 je Lauf, vergangene Stunden fallen weg)', j2.features.length === 3
+    && j2.timestamps.length >= 40 && j2.timestamps.length <= 61, `v2 ${j2.reference_time}`);
   const g2 = j2.features.map((f) => j2.timestamps.map((_, h) => readGeoSphereHour(f.properties.parameters, h, 'v2'))).flat();
   add('E2 live v2: alle Stunden belegt, Bewölkung 0…100, Böe ≥ 0, Niederschlag ab Stunde 1 belegt',
     g2.every((g) => g.temperature != null && g.cloudTotalPct >= 0 && g.cloudTotalPct <= 100 && g.gust >= 0)
     && j2.features.every((f) => readGeoSphereHour(f.properties.parameters, 1, 'v2').precipitation != null));
-  if (sameRun) {
-    const dT = j1.features.map((f, i) => Math.abs(readGeoSphereHour(f.properties.parameters, 6, 'v1').temperature - readGeoSphereHour(j2.features[i].properties.parameters, 6, 'v2').temperature));
-    add('E3 live: Temperatur bei +6 h zwischen v1 und v2 an jedem Punkt unter 5 K', dT.every((d) => d < 5), dT.map((d) => d.toFixed(1)).join(' / ') + ' K');
-  }
 } catch (e) {
-  skip('E live gegen beide Datensätze', String(e.message ?? e));
+  skip('E live gegen den Datensatz v2', String(e.message ?? e));
 }
 
 const passed = checks.filter((c) => c.ok).length;
