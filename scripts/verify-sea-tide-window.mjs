@@ -50,15 +50,15 @@ const pageSrc = src('SeaPage.tsx'), readoutSrc = src('SeaReadout.tsx'), chartSrc
 const uiSrc = src('SeaTideWindow.tsx'), ruleSrc = src('tideWindow.ts');
 
 // --- A: the switch (Rule 2: default off, named fallback) ----------------------------------------------
-add('A1 Voreingestellt AUS: SEA_TIDE_WINDOW_LIVE = false; ?tf=1 schaltet ein, ?tf=0 schaltet auch einen Live-Stand aus',
-  SEA_TIDE_WINDOW_LIVE === false && seaTideWindowFrom('') === false && seaTideWindowFrom('?tf=1') === true
-  && seaTideWindowFrom('?tf=0', true) === false && seaTideWindowFrom('', true) === true && seaTideWindowFrom('?tf=2') === false
-  && seaTideWindowFrom('?wl=0&tf=1') === true);
-add('A2 Ohne Schalter bekommt keine Anzeige etwas: Sicht, Zeile im Band und zweiter Pegel hängen an tideActive/tideFeed',
+add('A1 Eingeschaltet für alle seit 18.11. (E-TF-8): SEA_TIDE_WINDOW_LIVE = true; ?tf=0 ist der Rückfall, ?tf=1 schaltet einen Aus-Stand ein',
+  SEA_TIDE_WINDOW_LIVE === true && seaTideWindowFrom('') === true && seaTideWindowFrom('?tf=0') === false
+  && seaTideWindowFrom('?tf=1', false) === true && seaTideWindowFrom('', false) === false && seaTideWindowFrom('?tf=2', false) === false
+  && seaTideWindowFrom('?wl=0&tf=0') === false && seaTideWindowFrom('?x=1') === true);
+add('A2 Mit ?tf=0 bekommt keine Anzeige etwas: Sicht, Zeile im Band und zweiter Pegel hängen an tideActive/tideFeed',
   /const tideActive = tideOn && water;/.test(pageSrc) && /tideActive \? \{/.test(pageSrc) && /tide=\{tideView\}/.test(pageSrc)
   && /if \(!tideActive \|\| !gauge \|\| !spot\) return null;/.test(pageSrc) && /tide=\{tideFeed \? /.test(pageSrc)
   && /const tideGauge = tideActive \? /.test(pageSrc));
-add('A3 Ohne Schalter bleiben Diagramm und Kartenfenster wie vor TF (alte Ebenenfolge, 48 h)',
+add('A3 Mit ?tf=0 bleiben Diagramm und Kartenfenster wie vor TF (alte Ebenenfolge, 48 h)',
   /\(tide \? \[Bands, Ref, 'grid', Deviation, 'lines', Threshold, 'axes', Now, Sel\] : \[Ref, 'grid', Area, 'lines', 'axes', Now, Sel\]\)/.test(chartSrc)
   && /nowMs \+ \(tide \? SEA_MAX_T : 48\) \* 3_600_000/.test(readoutSrc) && SEA_MAX_T === 78);
 

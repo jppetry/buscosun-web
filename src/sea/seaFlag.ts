@@ -49,11 +49,12 @@ export function seaWaterLevelFrom(search: string = typeof location !== 'undefine
 }
 
 /**
- * Phase TF — tide windows (`audit/tidenfenster.md`): OFF by default (Rule 2), `?tf=1` switches the page's threshold
- * control, the windows in chart and hourly band, the gauge-with-curve fallback (E-WL-10) and the deviation area on;
- * `?tf=0` switches them off once the flag is live. Without it the page is the one before TF.
+ * Phase TF — tide windows (`audit/tidenfenster.md`): the page's threshold control, the windows in chart and hourly
+ * band, the gauge-with-curve fallback (E-WL-10) and the deviation area. Built default-off (Rule 2) and switched ON for
+ * everyone on Jan's word, 18.11.2026 ("schalte es immer ein", E-TF-8) — before the visual check on a real device and
+ * with `verify:sea-ui` red at HEAD (V-TF-5). `?tf=0` is the named fallback: the page as it was before TF.
  */
-export const SEA_TIDE_WINDOW_LIVE = false;
+export const SEA_TIDE_WINDOW_LIVE = true;
 export function seaTideWindowFrom(search: string = typeof location !== 'undefined' ? location.search : '', live: boolean = SEA_TIDE_WINDOW_LIVE): boolean {
   let q: string | null = null;
   try { q = new URLSearchParams(search).get('tf'); } catch { /* broken query = no vote */ }
