@@ -277,9 +277,7 @@ var OG_CARD_ROUTES = [
   "wetterkarte",
   "warnungen",
   "regenradar",
-  "vorhersage",
   "tourenplanung",
-  "eventplanung",
   "wetterarchiv",
   "atmosphaere",
   "globus",
@@ -516,9 +514,9 @@ var ROUTES = [
     subs: null,
     meta: {
       title: "Wetter DE · AT · CH",
-      description: "DACH-Wetter: Karte, Regenradar, Tourenplanung, Event-Tag, Vorhersage, Historie — höhenkorrigiert, ohne Tracker.",
+      description: "DACH-Wetter: Karte, Regenradar, Tourenplanung, Historie, Atmosphäre und Brandradar — höhenkorrigiert, ohne Tracker.",
       h1: "Wetter für Deutschland, Österreich & die Schweiz",
-      lead: "buscosun ist eine kostenlose, tracker-freie Wetter-Web-App für Deutschland, Österreich und die Schweiz: interaktive Wetterkarte, Regenradar, Tourenplanung, Event-Planung, Vorhersage mit Konfidenz, Klimahistorie, Atmosphäre und Brandradar — aus amtlichen Quellen (DWD, GeoSphere Austria, MeteoSwiss), über ein Geländemodell höhenkorrigiert, ohne Konto und ohne Werbung."
+      lead: "buscosun ist eine kostenlose, tracker-freie Wetter-Web-App für Deutschland, Österreich und die Schweiz: interaktive Wetterkarte, Regenradar, Tourenplanung, Klimahistorie, Atmosphäre und Brandradar — aus amtlichen Quellen (DWD, GeoSphere Austria, MeteoSwiss), über ein Geländemodell höhenkorrigiert, ohne Konto und ohne Werbung."
     }
   },
   {
@@ -565,20 +563,6 @@ var ROUTES = [
     }
   },
   {
-    id: "vorhersage",
-    path: "/vorhersage",
-    aliases: ["/wettervorhersage", "/forecast"],
-    featureId: "forecast",
-    subs: null,
-    place: true,
-    meta: {
-      title: "Wettervorhersage mit Konfidenz & Modellvergleich",
-      description: "Vorhersage für jeden Ort in DACH mit ausgewiesener Sicherheit — mehrere Modelle im Vergleich, ehrlich statt scheingenau.",
-      h1: "Wettervorhersage mit Konfidenz und Modellvergleich",
-      lead: "Die Vorhersage von buscosun stellt mehrere Wettermodelle nebeneinander und weist aus, wie sicher eine Aussage ist — aus der Streuung der Modelle und der Vorlaufzeit. Statt einer scheingenauen Zahl siehst du, wo sich die Modelle einig sind und wo nicht. Der Rückblick reiht die Modelle je Ort danach, wie nah sie in den letzten 7, 14 oder 30 Tagen lagen, gemessen am Konsens der Modell-Analysen und nicht an Stationen."
-    }
-  },
-  {
     id: "tourenplanung",
     path: "/tourenplanung",
     aliases: ["/touren", "/tour"],
@@ -598,33 +582,6 @@ var ROUTES = [
       description: "GPX hochladen und das Wetter Kilometer für Kilometer entlang deiner Rad-, Wander- oder E-Bike-Tour sehen — mit Zeitplan und Höhenprofil.",
       h1: "Wetter entlang deiner Route",
       lead: "Die Tourenplanung von buscosun liest eine GPX-Datei ein und berechnet für jeden Streckenabschnitt, welches Wetter dich zur voraussichtlichen Ankunftszeit erwartet — Temperatur, Wind, Regen und Böen, höhenkorrigiert über das Geländemodell, für Wandern, Rennrad, Gravel und E-Bike."
-    }
-  },
-  {
-    id: "eventplanung",
-    path: "/eventplanung",
-    aliases: ["/events", "/event"],
-    featureId: "event",
-    subParam: "view",
-    place: true,
-    // SEO/GEO 2026 (E7): je Anlass ein kanonischer Pfad — der Wizard oeffnet mit vorgewaehltem Anlass.
-    subs: [
-      { slug: "grillen", title: "Grillwetter — der beste Tag zum Grillen", description: "Welcher Tag der kommenden Woche ist warm, trocken und windstill genug für Grillabend, Gartenfest oder Hoffest?", updated: CONTENT_UPDATED },
-      { slug: "hochzeit", title: "Hochzeitswetter mit Plan B", description: "Trauung, Empfang und Abendfeier einzeln bewertet, dazu die Schwelle, ab der ein Plan B nötig wird — für die Hochzeit im Freien.", updated: CONTENT_UPDATED },
-      { slug: "wandern", title: "Wanderwetter — der beste Tag für die Tour", description: "Trocken, mild, gute Sicht: welcher der nächsten Tage sich für die Wanderung eignet, mit ehrlicher Sicherheit je Tag.", updated: CONTENT_UPDATED },
-      { slug: "drohne", title: "Drohnenwetter — Böen, Regen und Bewölkung", description: "Der beste Tag für den Drohnenflug: Böen zählen am schwersten, dazu Regen und Bewölkung. Eine Tagesbewertung, keine Freigabe auf Flughöhe.", updated: "2026-11-01" },
-      { slug: "fotografie", title: "Fotowetter — Licht, Wolken und Stimmung", description: "Wolkenlicht statt blankem Himmel: welcher Tag weiches Licht verspricht, dazu goldene und blaue Stunde für jedes Datum.", updated: CONTENT_UPDATED },
-      { slug: "sterne", title: "Sternenwetter — klare Nächte finden", description: "Wolken, Mond, astronomische Dunkelheit und Tau-Risiko für die Kernnacht — welche Nacht der Woche sich zum Beobachten eignet.", updated: CONTENT_UPDATED },
-      { slug: "radtour", title: "Radwetter — der beste Tag für die Ausfahrt", description: "Wind wiegt schwer, Regen noch schwerer: welcher Tag sich für Rennrad, Gravel oder die E-Bike-Tour anbietet.", updated: CONTENT_UPDATED },
-      { slug: "picknick", title: "Picknickwetter — mild, trocken, sonnig", description: "Der beste Tag für Picknick, Kindergeburtstag im Freien oder das Treffen im Park — mild, trocken und wenig bewölkt.", updated: CONTENT_UPDATED },
-      { slug: "laufen", title: "Laufwetter — kühl und trocken", description: "Wann es kühl und trocken genug für den langen Lauf, den Firmenlauf oder das Training im Freien wird.", updated: CONTENT_UPDATED },
-      { slug: "baden", title: "Badewetter — heiß und sonnig", description: "Welcher Tag heiß und sonnig genug für Freibad, Badesee oder Strandtag wird — die Temperatur zählt hier am schwersten.", updated: CONTENT_UPDATED }
-    ],
-    meta: {
-      title: "Event-Planung — der beste Tag",
-      description: "Welcher Tag passt am besten? buscosun bewertet Wetterfenster für Hochzeit, Grillabend, Drohnenflug oder Outdoor-Event und schlägt einen Plan B vor.",
-      h1: "Welcher Tag passt am besten zu deinem Event?",
-      lead: "Die Event-Planung von buscosun vergleicht die kommenden Tage für deinen Anlass — Gartenfest, Hochzeit, Fotoshooting, Drohnenflug oder Sport im Freien — anhand der Kriterien, die für genau diesen Anlass zählen, und nennt ehrlich, wie sicher die Einschätzung ist, inklusive Plan B."
     }
   },
   {
@@ -814,7 +771,7 @@ var ROUTES = [
       description: "Messwerte statt Versprechen: wie gut der buscosun-Nowcast gegen das gemessene Radar abschneidet.",
       h1: "Wie gut ist der KI-Nowcast wirklich?",
       lead: "Diese Seite legt offen, wie gut der Nowcast von buscosun im Vergleich zum gemessenen Radar abschneidet — mit den Kennzahlen, die auch die Wetterdienste verwenden, und ohne die Fälle zu verschweigen, in denen er danebenliegt. Beim Aufruf rechnet sie ein echtes Hindcast: aus beobachteten RADOLAN-Analysen wird vorhergesagt und gegen die spätere Beobachtung verifiziert — Brier Skill Score, Kalibrierungsfehler, Trefferquote und Reliability-Diagramm je Vorlaufminute."
-      // SEO/GEO 2026 (E3): indexierbar — die Seite ist der Beleg für die Konfidenz-Aussagen (/methodik/konfidenz-und-trefferquote/).
+      // SEO/GEO 2026 (E3): indexierbar — die Seite ist der Beleg für die Nowcast-Aussagen.
     }
   },
   {
@@ -1047,10 +1004,8 @@ var SHARE_ROUTES = [
   "regenradar",
   "waldbrand",
   "atmosphaere",
-  "eventplanung",
   "wetterarchiv",
   "globus",
-  "vorhersage",
   "gletscher",
   "autobahnwetter",
   "seewetter"
@@ -1058,10 +1013,8 @@ var SHARE_ROUTES = [
 var PASSTHROUGH = /* @__PURE__ */ new Set([
   "waldbrand",
   "atmosphaere",
-  "eventplanung",
   "wetterarchiv",
   "globus",
-  "vorhersage",
   "gletscher",
   "autobahnwetter",
   "seewetter"
@@ -1069,12 +1022,8 @@ var PASSTHROUGH = /* @__PURE__ */ new Set([
 var PLACE_SEGMENT = {
   atmosphaere: 2,
   // hinter der Linse
-  eventplanung: 2,
-  // hinter dem Anlass
-  wetterarchiv: 1,
+  wetterarchiv: 1
   // direkt hinter der Route
-  vorhersage: 1
-  // dito
 };
 var VIEW_LABEL = {
   // Waldbrand
@@ -1084,18 +1033,7 @@ var VIEW_LABEL = {
   historie: "Historie",
   thermalanomalien: "Thermalanomalien",
   // Atmosphäre
-  querschnitt: "Querschnitt",
-  // Eventplanung (Anlass)
-  grillen: "Grillen",
-  hochzeit: "Hochzeit",
-  wandern: "Wandern",
-  drohne: "Drohnenflug",
-  fotografie: "Fotografie",
-  sterne: "Sternenhimmel",
-  radtour: "Radtour",
-  picknick: "Picknick",
-  laufen: "Laufen",
-  baden: "Baden"
+  querschnitt: "Querschnitt"
 };
 var SHARE_FEATURE_LABEL = {
   wetterkarte: "Wetterkarte",
@@ -1103,10 +1041,8 @@ var SHARE_FEATURE_LABEL = {
   regenradar: "Regenradar",
   waldbrand: "Brandradar",
   atmosphaere: "Atmosphäre",
-  eventplanung: "Event-Planung",
   wetterarchiv: "Wetterarchiv",
   globus: "Globus",
-  vorhersage: "Vorhersage",
   gletscher: "Gletscher",
   autobahnwetter: "Autobahnwetter",
   seewetter: "Seewetter"
