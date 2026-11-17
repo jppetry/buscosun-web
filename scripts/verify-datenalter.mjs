@@ -114,10 +114,8 @@ add('alle drei Statusflächen gehen über den gemeinsamen `statusStamp`',
 add('V-20: Manifest-Hinweis ist verdrahtet (Desktop-Pille + Mobil-Screen)',
   (src.match(/manifestNote/g) ?? []).length >= 4, `${(src.match(/manifestNote/g) ?? []).length} Vorkommen`);
 
-const panel = readFileSync(join(ROOT, 'src', 'confidence', 'HitRatePanel.tsx'), 'utf8');
-add('V-21: UI benennt den Analyse-Konsens als Referenz',
-  /Konsens der Modell-Analysen/.test(panel) && /nicht eine Stationsmessung/.test(panel));
-add('V-21: UI behauptet nicht mehr „echtes Wetter"', !/am echten Wetter/.test(panel));
+// V-21 (HitRatePanel: „Konsens der Modell-Analysen", kein „echtes Wetter") is gone with its surface: the Vorhersage page
+// (model comparison) was deleted on 2026-11-11 (`5c97f884`), `src/confidence/HitRatePanel.tsx` no longer exists.
 
 // --- Ausgabe ----------------------------------------------------------------
 let failed = 0;
