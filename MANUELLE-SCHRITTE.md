@@ -3291,8 +3291,9 @@ Gebaut und uncommitted, **an seit 11.11. (dein Wort: „einschalten")** (`TOUR_R
 
 ## 89. Tidenfenster auf `/seewetter` (Phase TF, `audit/tidenfenster.md`), 2026-11-18
 
-Gebaut, lokal committet, **aus** (`SEA_TIDE_WINDOW_LIVE = false` in `src/sea/seaFlag.ts`); `?tf=1` schaltet ein. Ohne den
-Schalter ist die Seite die von vorher. Kein Daten-Repo, kein Workflow, keine Abhängigkeit angefasst.
+Gebaut, lokal committet, **an für alle seit 18.11. (dein Wort: „schalte es immer ein“, E-TF-8)** (`SEA_TIDE_WINDOW_LIVE = true`
+in `src/sea/seaFlag.ts`); `?tf=0` zeigt die Seite wie vor TF. Sichtbar wird es mit dem Push. Kein Daten-Repo, keine
+Abhängigkeit angefasst. In den Adressen unter Punkt 1 ist `?tf=1` nicht mehr nötig.
 
 1. **Ansehen** (Desktop 1440 × 900 und iPhone): `/seewetter/cuxhaven-duhnen?tf=1` → Kapitel „Wasserstand“ → im Satz eine
    Schwelle eintragen (z. B. mindestens 550 cm über Pegelnull) → Fensterliste, Bänder mit Zeit und Schwellenlinie im
@@ -3303,7 +3304,8 @@ Schalter ist die Seite die von vorher. Kein Daten-Repo, kein Workflow, keine Abh
 2. **Teilen prüfen:** Schwelle setzen, „Teilen“ → der Link trägt `tw=…` und `tf=1`; in einem privaten Fenster öffnen.
 3. **Entscheiden:** E-TF-1…7 (gesetzt, `audit/tidenfenster.md` §2), vor allem die 10 cm für „knapp“ (E-TF-5) und dass die
    Klasse mit Wasserstand nur für den gewählten Spot gilt (V-TF-7).
-4. **Einschalten** (dein Wort): `SEA_TIDE_WINDOW_LIVE = true`, dann `git push origin main`. Rückfall danach `?tf=0`.
+4. **Push:** `git push origin main` — damit ist das Tidenfenster live. Eingeschaltet wurde VOR der Sichtprüfung (Punkt 1) und
+   ohne Real-Device; Rückfall je Besucher `?tf=0`, für alle `SEA_TIDE_WINDOW_LIVE = false` und ein Push.
 5. **CI:** erledigt 18.11. (dein Wort) — Schritt „Verifier — Tidenfenster“ steht in `.github/workflows/ci.yml` hinter
    „Verifier — Wasserstand BSH“ (V-TF-6); er läuft auf GitHub erst mit dem Push.
 6. **Bekannt rot, nicht aus dieser Phase:** `verify:sea-ui` bricht an HEAD in B0 ab (V-TF-5, Selektor aus der Zeit vor dem
