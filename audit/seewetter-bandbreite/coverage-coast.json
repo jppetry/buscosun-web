@@ -1,0 +1,1505 @@
+{
+ "rule": {
+  "model": "fusion-12x",
+  "coastKm": 10,
+  "wideKm": 25,
+  "maxLeadH": 78,
+  "bins": [
+   [
+    1,
+    6
+   ],
+   [
+    7,
+    24
+   ],
+   [
+    25,
+    48
+   ],
+   [
+    49,
+    78
+   ]
+  ],
+  "truth": "W1 (Prüfstand)",
+  "protocol": "P1"
+ },
+ "issues": 38,
+ "first": "2026-09-14",
+ "last": "2026-10-21",
+ "stations": {
+  "coast10": [
+   {
+    "id": "10015",
+    "name": "HELGOLAND",
+    "role": "A"
+   },
+   {
+    "id": "10020",
+    "name": "LIST/SYLT",
+    "role": "A"
+   },
+   {
+    "id": "10028",
+    "name": "ST. PETER ORDING",
+    "role": "A"
+   },
+   {
+    "id": "10042",
+    "name": "OLPENITZ",
+    "role": "B"
+   },
+   {
+    "id": "10046",
+    "name": "KIEL-H.",
+    "role": "A"
+   },
+   {
+    "id": "10055",
+    "name": "WESTERMARKELSDORF",
+    "role": "A"
+   },
+   {
+    "id": "10091",
+    "name": "ARKONA",
+    "role": "B"
+   },
+   {
+    "id": "10093",
+    "name": "PUTBUS",
+    "role": "A"
+   },
+   {
+    "id": "10113",
+    "name": "NORDERNEY",
+    "role": "B"
+   },
+   {
+    "id": "10131",
+    "name": "CUXHAVEN",
+    "role": "A"
+   },
+   {
+    "id": "10152",
+    "name": "PELZERHAKEN",
+    "role": "A"
+   },
+   {
+    "id": "10161",
+    "name": "BOLTENHAGEN",
+    "role": "B"
+   },
+   {
+    "id": "10170",
+    "name": "WARNEMUENDE",
+    "role": "B"
+   },
+   {
+    "id": "10193",
+    "name": "UECKERMUENDE",
+    "role": "B"
+   }
+  ],
+  "coast25": [
+   {
+    "id": "10015",
+    "name": "HELGOLAND",
+    "role": "A"
+   },
+   {
+    "id": "10020",
+    "name": "LIST/SYLT",
+    "role": "A"
+   },
+   {
+    "id": "10028",
+    "name": "ST. PETER ORDING",
+    "role": "A"
+   },
+   {
+    "id": "10035",
+    "name": "SCHLESWIG",
+    "role": "A"
+   },
+   {
+    "id": "10042",
+    "name": "OLPENITZ",
+    "role": "B"
+   },
+   {
+    "id": "10046",
+    "name": "KIEL-H.",
+    "role": "A"
+   },
+   {
+    "id": "10055",
+    "name": "WESTERMARKELSDORF",
+    "role": "A"
+   },
+   {
+    "id": "10091",
+    "name": "ARKONA",
+    "role": "B"
+   },
+   {
+    "id": "10093",
+    "name": "PUTBUS",
+    "role": "A"
+   },
+   {
+    "id": "10097",
+    "name": "GREIFSWALDER OIE",
+    "role": "B"
+   },
+   {
+    "id": "10113",
+    "name": "NORDERNEY",
+    "role": "B"
+   },
+   {
+    "id": "10124",
+    "name": "LEUCHTTURM A. WESER",
+    "role": "A"
+   },
+   {
+    "id": "10130",
+    "name": "ELPERSBUETTEL",
+    "role": "A"
+   },
+   {
+    "id": "10131",
+    "name": "CUXHAVEN",
+    "role": "A"
+   },
+   {
+    "id": "10146",
+    "name": "QUICKBORN",
+    "role": "A"
+   },
+   {
+    "id": "10147",
+    "name": "HAMBURG-FU.",
+    "role": "B"
+   },
+   {
+    "id": "10152",
+    "name": "PELZERHAKEN",
+    "role": "A"
+   },
+   {
+    "id": "10156",
+    "name": "LUEBECK",
+    "role": "A"
+   },
+   {
+    "id": "10161",
+    "name": "BOLTENHAGEN",
+    "role": "B"
+   },
+   {
+    "id": "10170",
+    "name": "WARNEMUENDE",
+    "role": "B"
+   },
+   {
+    "id": "10180",
+    "name": "BARTH",
+    "role": "B"
+   },
+   {
+    "id": "10184",
+    "name": "GREIFSWALD",
+    "role": "A"
+   },
+   {
+    "id": "10193",
+    "name": "UECKERMUENDE",
+    "role": "B"
+   }
+  ],
+  "deAll": [
+   {
+    "id": "10015",
+    "name": "HELGOLAND",
+    "role": "A"
+   },
+   {
+    "id": "10020",
+    "name": "LIST/SYLT",
+    "role": "A"
+   },
+   {
+    "id": "10022",
+    "name": "LECK",
+    "role": "A"
+   },
+   {
+    "id": "10028",
+    "name": "ST. PETER ORDING",
+    "role": "A"
+   },
+   {
+    "id": "10035",
+    "name": "SCHLESWIG",
+    "role": "A"
+   },
+   {
+    "id": "10042",
+    "name": "OLPENITZ",
+    "role": "B"
+   },
+   {
+    "id": "10046",
+    "name": "KIEL-H.",
+    "role": "A"
+   },
+   {
+    "id": "10055",
+    "name": "WESTERMARKELSDORF",
+    "role": "A"
+   },
+   {
+    "id": "10091",
+    "name": "ARKONA",
+    "role": "B"
+   },
+   {
+    "id": "10093",
+    "name": "PUTBUS",
+    "role": "A"
+   },
+   {
+    "id": "10097",
+    "name": "GREIFSWALDER OIE",
+    "role": "B"
+   },
+   {
+    "id": "10113",
+    "name": "NORDERNEY",
+    "role": "B"
+   },
+   {
+    "id": "10124",
+    "name": "LEUCHTTURM A. WESER",
+    "role": "A"
+   },
+   {
+    "id": "10129",
+    "name": "BREMERHAVEN",
+    "role": "A"
+   },
+   {
+    "id": "10130",
+    "name": "ELPERSBUETTEL",
+    "role": "A"
+   },
+   {
+    "id": "10131",
+    "name": "CUXHAVEN",
+    "role": "A"
+   },
+   {
+    "id": "10139",
+    "name": "BREMERVOERDE",
+    "role": "B"
+   },
+   {
+    "id": "10142",
+    "name": "ITZEHOE",
+    "role": "A"
+   },
+   {
+    "id": "10146",
+    "name": "QUICKBORN",
+    "role": "A"
+   },
+   {
+    "id": "10147",
+    "name": "HAMBURG-FU.",
+    "role": "B"
+   },
+   {
+    "id": "10150",
+    "name": "DOERNICK",
+    "role": "A"
+   },
+   {
+    "id": "10152",
+    "name": "PELZERHAKEN",
+    "role": "A"
+   },
+   {
+    "id": "10156",
+    "name": "LUEBECK",
+    "role": "A"
+   },
+   {
+    "id": "10161",
+    "name": "BOLTENHAGEN",
+    "role": "B"
+   },
+   {
+    "id": "10162",
+    "name": "SCHWERIN",
+    "role": "A"
+   },
+   {
+    "id": "10168",
+    "name": "GOLDBERG",
+    "role": "B"
+   },
+   {
+    "id": "10170",
+    "name": "WARNEMUENDE",
+    "role": "B"
+   },
+   {
+    "id": "10180",
+    "name": "BARTH",
+    "role": "B"
+   },
+   {
+    "id": "10184",
+    "name": "GREIFSWALD",
+    "role": "A"
+   },
+   {
+    "id": "10193",
+    "name": "UECKERMUENDE",
+    "role": "B"
+   },
+   {
+    "id": "10200",
+    "name": "EMDEN-FLUGPLATZ",
+    "role": "A"
+   },
+   {
+    "id": "10210",
+    "name": "FRIESOYTHE-ALTENOYTH",
+    "role": "A"
+   },
+   {
+    "id": "10224",
+    "name": "BREMEN",
+    "role": "B"
+   },
+   {
+    "id": "10235",
+    "name": "SOLTAU",
+    "role": "B"
+   },
+   {
+    "id": "10249",
+    "name": "BOIZENBURG",
+    "role": "A"
+   },
+   {
+    "id": "10253",
+    "name": "LUECHOW",
+    "role": "A"
+   },
+   {
+    "id": "10261",
+    "name": "SEEHAUSEN",
+    "role": "B"
+   },
+   {
+    "id": "10264",
+    "name": "MARNITZ",
+    "role": "A"
+   },
+   {
+    "id": "10267",
+    "name": "KYRITZ",
+    "role": "A"
+   },
+   {
+    "id": "10268",
+    "name": "WAREN",
+    "role": "A"
+   },
+   {
+    "id": "10271",
+    "name": "NEURUPPIN-ALT RUPPIN",
+    "role": "A"
+   },
+   {
+    "id": "10281",
+    "name": "TROLLENHAGEN",
+    "role": "A"
+   },
+   {
+    "id": "10282",
+    "name": "FELDBERG/MECKLENBURG",
+    "role": "A"
+   },
+   {
+    "id": "10289",
+    "name": "GRUENOW",
+    "role": "A"
+   },
+   {
+    "id": "10291",
+    "name": "ANGERMUENDE",
+    "role": "A"
+   },
+   {
+    "id": "10303",
+    "name": "LINGEN-BACCUM",
+    "role": "A"
+   },
+   {
+    "id": "10309",
+    "name": "AHAUS",
+    "role": "A"
+   },
+   {
+    "id": "10312",
+    "name": "BELM",
+    "role": "A"
+   },
+   {
+    "id": "10315",
+    "name": "MUENSTER/OSNABR.",
+    "role": "B"
+   },
+   {
+    "id": "10321",
+    "name": "DIEPHOLZ",
+    "role": "A"
+   },
+   {
+    "id": "10325",
+    "name": "BAD SALZUFLEN",
+    "role": "A"
+   },
+   {
+    "id": "10338",
+    "name": "HANNOVER",
+    "role": "A"
+   },
+   {
+    "id": "10343",
+    "name": "CELLE",
+    "role": "B"
+   },
+   {
+    "id": "10348",
+    "name": "BRAUNSCHWG.",
+    "role": "A"
+   },
+   {
+    "id": "10356",
+    "name": "UMMENDORF",
+    "role": "A"
+   },
+   {
+    "id": "10359",
+    "name": "GARDELEGEN",
+    "role": "A"
+   },
+   {
+    "id": "10361",
+    "name": "MAGDEBURG",
+    "role": "A"
+   },
+   {
+    "id": "10365",
+    "name": "GENTHIN",
+    "role": "A"
+   },
+   {
+    "id": "10368",
+    "name": "WIESENBURG",
+    "role": "B"
+   },
+   {
+    "id": "10376",
+    "name": "BARUTH",
+    "role": "A"
+   },
+   {
+    "id": "10379",
+    "name": "POTSDAM",
+    "role": "A"
+   },
+   {
+    "id": "10384",
+    "name": "BERLIN-TEMPELHOF",
+    "role": "B"
+   },
+   {
+    "id": "10385",
+    "name": "BERLIN-BRANDENBURG",
+    "role": "B"
+   },
+   {
+    "id": "10393",
+    "name": "LINDENBERG",
+    "role": "A"
+   },
+   {
+    "id": "10396",
+    "name": "MANSCHNOW",
+    "role": "A"
+   },
+   {
+    "id": "10400",
+    "name": "DUESSELDORF",
+    "role": "A"
+   },
+   {
+    "id": "10410",
+    "name": "ESSEN",
+    "role": "A"
+   },
+   {
+    "id": "10418",
+    "name": "LUEDENSCHEID",
+    "role": "A"
+   },
+   {
+    "id": "10424",
+    "name": "WERL",
+    "role": "A"
+   },
+   {
+    "id": "10427",
+    "name": "K.ASTEN",
+    "role": "A"
+   },
+   {
+    "id": "10430",
+    "name": "BAD LIPPSPRINGE",
+    "role": "A"
+   },
+   {
+    "id": "10433",
+    "name": "LUEDGE",
+    "role": "A"
+   },
+   {
+    "id": "10435",
+    "name": "WARBURG",
+    "role": "A"
+   },
+   {
+    "id": "10441",
+    "name": "SCHAUENBURG-ELGERSH.",
+    "role": "A"
+   },
+   {
+    "id": "10442",
+    "name": "ALFELD",
+    "role": "A"
+   },
+   {
+    "id": "10444",
+    "name": "GOETTINGEN",
+    "role": "A"
+   },
+   {
+    "id": "10449",
+    "name": "LEINEFELDE",
+    "role": "A"
+   },
+   {
+    "id": "10452",
+    "name": "BRAUNLAGE",
+    "role": "A"
+   },
+   {
+    "id": "10453",
+    "name": "BROCKEN",
+    "role": "A"
+   },
+   {
+    "id": "10454",
+    "name": "WERNIGERODE",
+    "role": "B"
+   },
+   {
+    "id": "10458",
+    "name": "HARZGERODE",
+    "role": "B"
+   },
+   {
+    "id": "10460",
+    "name": "ARTERN",
+    "role": "A"
+   },
+   {
+    "id": "10469",
+    "name": "LEIPZIG/SCHKEUDITZ",
+    "role": "B"
+   },
+   {
+    "id": "10471",
+    "name": "LEIPZIG",
+    "role": "A"
+   },
+   {
+    "id": "10474",
+    "name": "WITTENBERG",
+    "role": "A"
+   },
+   {
+    "id": "10480",
+    "name": "OSCHATZ",
+    "role": "A"
+   },
+   {
+    "id": "10488",
+    "name": "DRESDEN/FLUGHAFEN",
+    "role": "A"
+   },
+   {
+    "id": "10490",
+    "name": "DOBERLUG-KIRCHHAIN",
+    "role": "A"
+   },
+   {
+    "id": "10495",
+    "name": "HOYERSWERDA",
+    "role": "A"
+   },
+   {
+    "id": "10496",
+    "name": "COTTBUS",
+    "role": "A"
+   },
+   {
+    "id": "10499",
+    "name": "GOERLITZ",
+    "role": "A"
+   },
+   {
+    "id": "10505",
+    "name": "AACHEN-ORSBACH",
+    "role": "A"
+   },
+   {
+    "id": "10506",
+    "name": "NUERBURG-BARWEILER",
+    "role": "A"
+   },
+   {
+    "id": "10513",
+    "name": "KOELN/BONN",
+    "role": "A"
+   },
+   {
+    "id": "10519",
+    "name": "BONN-ROLEBER",
+    "role": "A"
+   },
+   {
+    "id": "10520",
+    "name": "ANDERNACH",
+    "role": "A"
+   },
+   {
+    "id": "10526",
+    "name": "B.MARIENBG.",
+    "role": "B"
+   },
+   {
+    "id": "10532",
+    "name": "GIESSEN",
+    "role": "A"
+   },
+   {
+    "id": "10534",
+    "name": "HOHERODSKOPF (VOGELS",
+    "role": "A"
+   },
+   {
+    "id": "10537",
+    "name": "NEU-ULRICHSTEIN",
+    "role": "A"
+   },
+   {
+    "id": "10540",
+    "name": "EISENACH",
+    "role": "A"
+   },
+   {
+    "id": "10542",
+    "name": "BAD HERSFELD",
+    "role": "B"
+   },
+   {
+    "id": "10544",
+    "name": "WASSERKUPPE",
+    "role": "B"
+   },
+   {
+    "id": "10548",
+    "name": "MEININGEN",
+    "role": "B"
+   },
+   {
+    "id": "10552",
+    "name": "SCHMUECKE",
+    "role": "A"
+   },
+   {
+    "id": "10554",
+    "name": "ERFURT",
+    "role": "A"
+   },
+   {
+    "id": "10557",
+    "name": "NEUHAUS A.R.",
+    "role": "B"
+   },
+   {
+    "id": "10564",
+    "name": "SCHLEIZ",
+    "role": "A"
+   },
+   {
+    "id": "10565",
+    "name": "OSTERFELD",
+    "role": "A"
+   },
+   {
+    "id": "10567",
+    "name": "GERA",
+    "role": "A"
+   },
+   {
+    "id": "10569",
+    "name": "PLAUEN",
+    "role": "B"
+   },
+   {
+    "id": "10574",
+    "name": "CARLSFELD",
+    "role": "A"
+   },
+   {
+    "id": "10577",
+    "name": "CHEMNITZ",
+    "role": "A"
+   },
+   {
+    "id": "10578",
+    "name": "FICHTELBERG",
+    "role": "B"
+   },
+   {
+    "id": "10579",
+    "name": "MARIENBERG",
+    "role": "A"
+   },
+   {
+    "id": "10582",
+    "name": "ZINNWALD-G.",
+    "role": "A"
+   },
+   {
+    "id": "10591",
+    "name": "LICHTENHAIN",
+    "role": "B"
+   },
+   {
+    "id": "10609",
+    "name": "TRIER",
+    "role": "B"
+   },
+   {
+    "id": "10615",
+    "name": "DEUSELBACH",
+    "role": "A"
+   },
+   {
+    "id": "10616",
+    "name": "HAHN",
+    "role": "A"
+   },
+   {
+    "id": "10628",
+    "name": "GEISENHEIM",
+    "role": "A"
+   },
+   {
+    "id": "10635",
+    "name": "KL.FELDBG./TS.",
+    "role": "A"
+   },
+   {
+    "id": "10637",
+    "name": "FRANKFURT/M",
+    "role": "B"
+   },
+   {
+    "id": "10641",
+    "name": "OFFENBACH-WETTERPARK",
+    "role": "A"
+   },
+   {
+    "id": "10646",
+    "name": "NEUHUETTEN/SPESSART",
+    "role": "A"
+   },
+   {
+    "id": "10648",
+    "name": "MICHELSTADT-V.",
+    "role": "A"
+   },
+   {
+    "id": "10655",
+    "name": "WUERZBURG",
+    "role": "B"
+   },
+   {
+    "id": "10658",
+    "name": "KISSINGEN",
+    "role": "A"
+   },
+   {
+    "id": "10671",
+    "name": "LAUTERTAL-OBERLAUTER",
+    "role": "B"
+   },
+   {
+    "id": "10675",
+    "name": "BAMBERG",
+    "role": "B"
+   },
+   {
+    "id": "10685",
+    "name": "HOF",
+    "role": "A"
+   },
+   {
+    "id": "10686",
+    "name": "WUNSIEDEL-SCHOENBRUN",
+    "role": "A"
+   },
+   {
+    "id": "10688",
+    "name": "WEIDEN",
+    "role": "A"
+   },
+   {
+    "id": "10704",
+    "name": "BERUS",
+    "role": "B"
+   },
+   {
+    "id": "10706",
+    "name": "THOLEY",
+    "role": "A"
+   },
+   {
+    "id": "10708",
+    "name": "SAARBRUECKEN",
+    "role": "B"
+   },
+   {
+    "id": "10724",
+    "name": "WEINBIET",
+    "role": "A"
+   },
+   {
+    "id": "10729",
+    "name": "MANNHEIM",
+    "role": "A"
+   },
+   {
+    "id": "10731",
+    "name": "RHEINSTETTEN",
+    "role": "A"
+   },
+   {
+    "id": "10733",
+    "name": "WAIBSTADT",
+    "role": "B"
+   },
+   {
+    "id": "10736",
+    "name": "MUEHLACKER",
+    "role": "A"
+   },
+   {
+    "id": "10738",
+    "name": "STUTTGART-ECHT.",
+    "role": "A"
+   },
+   {
+    "id": "10739",
+    "name": "STUTTGART-SCHN.",
+    "role": "A"
+   },
+   {
+    "id": "10742",
+    "name": "OEHRINGEN",
+    "role": "A"
+   },
+   {
+    "id": "10747",
+    "name": "KAISERSBACH-CRONHUET",
+    "role": "A"
+   },
+   {
+    "id": "10756",
+    "name": "FEUCHTWANGEN",
+    "role": "B"
+   },
+   {
+    "id": "10761",
+    "name": "WEISSENBURG-EMETZH.",
+    "role": "A"
+   },
+   {
+    "id": "10763",
+    "name": "NUERNBERG",
+    "role": "A"
+   },
+   {
+    "id": "10765",
+    "name": "ROTH",
+    "role": "A"
+   },
+   {
+    "id": "10776",
+    "name": "REGENSBURG",
+    "role": "A"
+   },
+   {
+    "id": "10777",
+    "name": "GELBELSEE",
+    "role": "A"
+   },
+   {
+    "id": "10782",
+    "name": "WALDMUENCHEN",
+    "role": "B"
+   },
+   {
+    "id": "10788",
+    "name": "STRAUBING",
+    "role": "A"
+   },
+   {
+    "id": "10791",
+    "name": "GR.ARBER",
+    "role": "A"
+   },
+   {
+    "id": "10796",
+    "name": "ZWIESEL",
+    "role": "A"
+   },
+   {
+    "id": "10803",
+    "name": "FREIBURG",
+    "role": "A"
+   },
+   {
+    "id": "10805",
+    "name": "LAHR",
+    "role": "A"
+   },
+   {
+    "id": "10815",
+    "name": "FREUDENST.",
+    "role": "A"
+   },
+   {
+    "id": "10818",
+    "name": "KLIPPENECK",
+    "role": "B"
+   },
+   {
+    "id": "10827",
+    "name": "MESSSTETTEN",
+    "role": "B"
+   },
+   {
+    "id": "10836",
+    "name": "STOETTEN",
+    "role": "B"
+   },
+   {
+    "id": "10840",
+    "name": "ULM-MAEHRINGEN",
+    "role": "B"
+   },
+   {
+    "id": "10850",
+    "name": "HARBURG",
+    "role": "A"
+   },
+   {
+    "id": "10852",
+    "name": "AUGSBURG",
+    "role": "A"
+   },
+   {
+    "id": "10863",
+    "name": "WEIHENSTEPHAN",
+    "role": "A"
+   },
+   {
+    "id": "10865",
+    "name": "MUENCHEN STADT",
+    "role": "A"
+   },
+   {
+    "id": "10870",
+    "name": "MUENCHEN-FL.",
+    "role": "B"
+   },
+   {
+    "id": "10872",
+    "name": "GOTTFRIEDING",
+    "role": "A"
+   },
+   {
+    "id": "10875",
+    "name": "MUEHLDORF",
+    "role": "A"
+   },
+   {
+    "id": "10895",
+    "name": "FUERSTENZELL",
+    "role": "A"
+   },
+   {
+    "id": "10908",
+    "name": "FELDBERG/S.",
+    "role": "A"
+   },
+   {
+    "id": "10929",
+    "name": "KONSTANZ",
+    "role": "A"
+   },
+   {
+    "id": "10945",
+    "name": "LEUTKIRCH-HERLAZHFN.",
+    "role": "A"
+   },
+   {
+    "id": "10946",
+    "name": "KEMPTEN",
+    "role": "A"
+   },
+   {
+    "id": "10948",
+    "name": "OBERSTDORF",
+    "role": "A"
+   },
+   {
+    "id": "10961",
+    "name": "ZUGSPITZE",
+    "role": "A"
+   },
+   {
+    "id": "10962",
+    "name": "HOHENPEISS.BG",
+    "role": "A"
+   },
+   {
+    "id": "10963",
+    "name": "GARMISCH",
+    "role": "B"
+   },
+   {
+    "id": "10982",
+    "name": "CHIEMING",
+    "role": "B"
+   }
+  ]
+ },
+ "rows": [
+  {
+   "set": "coast10",
+   "var": "ws",
+   "lead": "1–6 h",
+   "n": 3168,
+   "pairs": 532,
+   "cov80": 75.4,
+   "cov50": 49.1,
+   "below": 14.3,
+   "above": 10.3,
+   "widthKn": 4.7,
+   "band80": [
+    76.6,
+    83.4
+   ]
+  },
+  {
+   "set": "coast10",
+   "var": "ws",
+   "lead": "7–24 h",
+   "n": 9367,
+   "pairs": 532,
+   "cov80": 77.5,
+   "cov50": 49.9,
+   "below": 13.7,
+   "above": 8.8,
+   "widthKn": 6.1,
+   "band80": [
+    76.6,
+    83.4
+   ]
+  },
+  {
+   "set": "coast10",
+   "var": "ws",
+   "lead": "25–48 h",
+   "n": 11623,
+   "pairs": 518,
+   "cov80": 74.4,
+   "cov50": 46.7,
+   "below": 14.4,
+   "above": 11.2,
+   "widthKn": 5.8,
+   "band80": [
+    76.6,
+    83.4
+   ]
+  },
+  {
+   "set": "coast10",
+   "var": "ws",
+   "lead": "49–78 h",
+   "n": 4984,
+   "pairs": 504,
+   "cov80": 76.4,
+   "cov50": 48.3,
+   "below": 9.4,
+   "above": 14.2,
+   "widthKn": 6.7,
+   "band80": [
+    76.5,
+    83.5
+   ]
+  },
+  {
+   "set": "coast10",
+   "var": "gust",
+   "lead": "1–6 h",
+   "n": 3168,
+   "pairs": 532,
+   "cov80": 76.6,
+   "cov50": 49.7,
+   "below": 7,
+   "above": 16.4,
+   "widthKn": 5.6,
+   "band80": [
+    76.6,
+    83.4
+   ]
+  },
+  {
+   "set": "coast10",
+   "var": "gust",
+   "lead": "7–24 h",
+   "n": 9367,
+   "pairs": 532,
+   "cov80": 77.5,
+   "cov50": 49.4,
+   "below": 9.2,
+   "above": 13.3,
+   "widthKn": 6.8,
+   "band80": [
+    76.6,
+    83.4
+   ]
+  },
+  {
+   "set": "coast10",
+   "var": "gust",
+   "lead": "25–48 h",
+   "n": 11623,
+   "pairs": 518,
+   "cov80": 76.4,
+   "cov50": 47.6,
+   "below": 10.3,
+   "above": 13.4,
+   "widthKn": 7.3,
+   "band80": [
+    76.6,
+    83.4
+   ]
+  },
+  {
+   "set": "coast10",
+   "var": "gust",
+   "lead": "49–78 h",
+   "n": 4983,
+   "pairs": 504,
+   "cov80": 74.1,
+   "cov50": 46.9,
+   "below": 2.4,
+   "above": 23.5,
+   "widthKn": 9.5,
+   "band80": [
+    76.5,
+    83.5
+   ]
+  },
+  {
+   "set": "coast25",
+   "var": "ws",
+   "lead": "1–6 h",
+   "n": 5194,
+   "pairs": 871,
+   "cov80": 74.9,
+   "cov50": 49,
+   "below": 11.8,
+   "above": 13.3,
+   "widthKn": 4.5,
+   "band80": [
+    77.3,
+    82.7
+   ]
+  },
+  {
+   "set": "coast25",
+   "var": "ws",
+   "lead": "7–24 h",
+   "n": 15381,
+   "pairs": 873,
+   "cov80": 77.5,
+   "cov50": 50.3,
+   "below": 10.8,
+   "above": 11.7,
+   "widthKn": 5.8,
+   "band80": [
+    77.3,
+    82.7
+   ]
+  },
+  {
+   "set": "coast25",
+   "var": "ws",
+   "lead": "25–48 h",
+   "n": 19253,
+   "pairs": 850,
+   "cov80": 74.6,
+   "cov50": 47.5,
+   "below": 11.7,
+   "above": 13.7,
+   "widthKn": 5.6,
+   "band80": [
+    77.3,
+    82.7
+   ]
+  },
+  {
+   "set": "coast25",
+   "var": "ws",
+   "lead": "49–78 h",
+   "n": 8170,
+   "pairs": 827,
+   "cov80": 75.9,
+   "cov50": 48.5,
+   "below": 8.2,
+   "above": 15.9,
+   "widthKn": 6.5,
+   "band80": [
+    77.3,
+    82.7
+   ]
+  },
+  {
+   "set": "coast25",
+   "var": "gust",
+   "lead": "1–6 h",
+   "n": 5194,
+   "pairs": 871,
+   "cov80": 76.7,
+   "cov50": 50.6,
+   "below": 6.4,
+   "above": 16.8,
+   "widthKn": 5.6,
+   "band80": [
+    77.3,
+    82.7
+   ]
+  },
+  {
+   "set": "coast25",
+   "var": "gust",
+   "lead": "7–24 h",
+   "n": 15378,
+   "pairs": 873,
+   "cov80": 77.7,
+   "cov50": 49.5,
+   "below": 8.5,
+   "above": 13.9,
+   "widthKn": 6.8,
+   "band80": [
+    77.3,
+    82.7
+   ]
+  },
+  {
+   "set": "coast25",
+   "var": "gust",
+   "lead": "25–48 h",
+   "n": 19250,
+   "pairs": 850,
+   "cov80": 76,
+   "cov50": 47.7,
+   "below": 9.5,
+   "above": 14.5,
+   "widthKn": 7.3,
+   "band80": [
+    77.3,
+    82.7
+   ]
+  },
+  {
+   "set": "coast25",
+   "var": "gust",
+   "lead": "49–78 h",
+   "n": 8167,
+   "pairs": 827,
+   "cov80": 73.9,
+   "cov50": 47.7,
+   "below": 2.2,
+   "above": 23.9,
+   "widthKn": 9.4,
+   "band80": [
+    77.3,
+    82.7
+   ]
+  },
+  {
+   "set": "deAll",
+   "var": "ws",
+   "lead": "1–6 h",
+   "n": 40217,
+   "pairs": 6733,
+   "cov80": 84,
+   "cov50": 57.2,
+   "below": 6.8,
+   "above": 9.1,
+   "widthKn": 4.1,
+   "band80": [
+    79,
+    81
+   ]
+  },
+  {
+   "set": "deAll",
+   "var": "ws",
+   "lead": "7–24 h",
+   "n": 118939,
+   "pairs": 6744,
+   "cov80": 84,
+   "cov50": 56.9,
+   "below": 6.8,
+   "above": 9.2,
+   "widthKn": 5.2,
+   "band80": [
+    79,
+    81
+   ]
+  },
+  {
+   "set": "deAll",
+   "var": "ws",
+   "lead": "25–48 h",
+   "n": 150883,
+   "pairs": 6568,
+   "cov80": 82.7,
+   "cov50": 55.5,
+   "below": 7.3,
+   "above": 10,
+   "widthKn": 5.1,
+   "band80": [
+    79,
+    81
+   ]
+  },
+  {
+   "set": "deAll",
+   "var": "ws",
+   "lead": "49–78 h",
+   "n": 63008,
+   "pairs": 6390,
+   "cov80": 85.3,
+   "cov50": 58.2,
+   "below": 5.7,
+   "above": 9,
+   "widthKn": 5.9,
+   "band80": [
+    79,
+    81
+   ]
+  },
+  {
+   "set": "deAll",
+   "var": "gust",
+   "lead": "1–6 h",
+   "n": 40213,
+   "pairs": 6732,
+   "cov80": 83.5,
+   "cov50": 59.3,
+   "below": 4.7,
+   "above": 11.7,
+   "widthKn": 5.7,
+   "band80": [
+    79,
+    81
+   ]
+  },
+  {
+   "set": "deAll",
+   "var": "gust",
+   "lead": "7–24 h",
+   "n": 118885,
+   "pairs": 6744,
+   "cov80": 82.2,
+   "cov50": 55.4,
+   "below": 7,
+   "above": 10.8,
+   "widthKn": 6.8,
+   "band80": [
+    79,
+    81
+   ]
+  },
+  {
+   "set": "deAll",
+   "var": "gust",
+   "lead": "25–48 h",
+   "n": 150826,
+   "pairs": 6568,
+   "cov80": 82,
+   "cov50": 55.4,
+   "below": 7.2,
+   "above": 10.8,
+   "widthKn": 7.1,
+   "band80": [
+    79,
+    81
+   ]
+  },
+  {
+   "set": "deAll",
+   "var": "gust",
+   "lead": "49–78 h",
+   "n": 62937,
+   "pairs": 6390,
+   "cov80": 82,
+   "cov50": 58.1,
+   "below": 1.7,
+   "above": 16.3,
+   "widthKn": 9.3,
+   "band80": [
+    79,
+    81
+   ]
+  }
+ ]
+}

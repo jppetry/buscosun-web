@@ -43,6 +43,8 @@ import { colourFieldAsync } from './seaFieldClient';
 import SeaMap, { type SeaMapArea, type SeaMapGauge, type SeaMapSpot } from './SeaMap';
 import SeaDock, { type SeaToggles } from './SeaDock';
 import SeaBand, { type SeaBandHour } from './SeaBand';
+import SeaGustOdds from './SeaGustOdds';
+import { gustOverLimit, mostText, q5At } from './windBand';
 import SeaReadout, { findWarning, type SeaReadoutHour, type SeaTexts, type SeaWaterLevel } from './SeaReadout';
 import SeaMapCard from './SeaMapCard';
 import MapGestureHint, { type HintSpot } from '../map/MapGestureHint';
@@ -331,6 +333,8 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
       t: nowHour + kk * H, windMs: s.wind[i], gustMs: s.gust[i], windDir: s.windDir[i], hs: s.hs[i], dir: s.dir[i], tm: s.tm[i],
       ws: s.ws[i], wsDir: s.wsDir[i], wsPer: s.wsPer[i], wsPeak: s.wsPeak[i], sw: s.sw[i], swDir: s.swDir[i], swPer: s.swPer[i], swPeak: s.swPeak[i],
       dry: seaNoSeaAt(s, i),
+      // Phase SU: the hour's quantiles, `null` when the spot file carries none (then nothing of the band is drawn).
+      windQ: q5At(spotsDoc?.quantiles?.[id]?.wind, i), gustQ: q5At(spotsDoc?.quantiles?.[id]?.gust, i),
     };
   }, [spotsDoc, firstIdx, nowHour]);
   // V-SW-10: verdicts per spot are computed once per (spots document, limits by content, axis); hour, layer, revier,
@@ -501,8 +505,13 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
 
   const stations = useMemo(() => (toggles.stations ? [...new Map(spots.filter((s) => s.station).map((s) => [s.station!.id, { id: s.station!.id, name: s.station!.name, lon: s.station!.lon, lat: s.station!.lat }])).values()] : null), [spots, toggles.stations]);
 
-  const bandHours: SeaBandHour[] = spotHours.map((h, i) => ({ t: h.t, windMs: h.windMs, gustMs: h.gustMs, windDir: h.windDir, hs: h.hs, dir: h.dir, tm: h.tm, dry: h.dry, cls: spotVerdicts[i].cls, reason: spotVerdicts[i].reasons.join(' · '), daylight: spotVerdicts[i].daylight }));
-  const chartHours = spotHours.map((h, i) => ({ t: h.t, windMs: h.windMs, gustMs: h.gustMs, hs: h.hs, ws: h.ws, sw: h.sw, dry: h.dry, daylight: spotVerdicts[i].daylight }));
+  // Phase SU: how often gusts lie above the profile's gust limit, per hour (`null` without quantiles or without a gust limit).
+  const bandHours: SeaBandHour[] = spotHours.map((h, i) => ({ t: h.t, windMs: h.windMs, gustMs: h.gustMs, windDir: h.windDir, hs: h.hs, dir: h.dir, tm: h.tm, dry: h.dry, cls: spotVerdicts[i].cls, reason: spotVerdicts[i].reasons.join(' · '), daylight: spotVerdicts[i].daylight, over: gustOverLimit(h.gustQ, limits.gustMax) }));
+  const bandOver = limits.gustMax != null && bandHours.some((h) => h.over) ? { limitKn: limits.gustMax } : null;
+  const chartHours = spotHours.map((h, i) => ({
+    t: h.t, windMs: h.windMs, gustMs: h.gustMs, hs: h.hs, ws: h.ws, sw: h.sw, dry: h.dry, daylight: spotVerdicts[i].daylight,
+    windBand: h.windQ ? [h.windQ.q10, h.windQ.q90] as const : null, gustBand: h.gustQ ? [h.gustQ.q10, h.gustQ.q90] as const : null,
+  }));
   const dryHours = spotHours.reduce((a, h) => a + (h.dry ? 1 : 0), 0);
   const lim = limits.gustMax ?? limits.windMax;
   const profLabel = SEA_PROFILE_BY_ID[profile].label;
@@ -568,7 +577,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
     <SeaBand hours={bandHours} unit={unit} selected={k} onPick={setT} compact={isMobile}
       title={`${spot.name} · ${profLabel}`} sub={`${dayShort(bandHours[0].t)} ${hh(bandHours[0].t)} bis ${dayShort(bandHours[bandHours.length - 1].t)} ${hh(bandHours[bandHours.length - 1].t)} Uhr · ${tzLabel(validMs)}`}
       footnote={`Welle: Modell ${runTxt} · Wind/Böen: ${windEngine}`}
-      tide={tideFeed ? { hours: tideFeed.hours!, side: tideSideText(tideFeed.mode!, tideFeed.name) } : null} />
+      tide={tideFeed ? { hours: tideFeed.hours!, side: tideSideText(tideFeed.mode!, tideFeed.name) } : null} over={bandOver} />
   );
   const dockOf = (show: 'all' | 'layers' | 'picker') => (
     <SeaDock show={show} query={query} onQuery={setQuery} revier={revier} onRevier={setRevier} profile={profile} onProfile={setProfile} limits={limits} onLimits={setLimits}
@@ -577,7 +586,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   );
   const readout = (
     <SeaReadout tab={tab} onTab={setTab} spot={spot} hour={hour} verdict={verdict} profileLabel={profLabel} windows={wins} chartHours={chartHours}
-      limitKn={lim} limitLabel={limits.gustMax != null ? `Böen ${limits.gustMax} kn` : limits.windMax != null ? `Wind ${limits.windMax} kn` : ''} unit={unit}
+      limitKn={lim} limitLabel={limits.gustMax != null ? `Böen ${limits.gustMax} kn` : limits.windMax != null ? `Wind ${limits.windMax} kn` : ''} gustLimitKn={limits.gustMax} unit={unit}
       run={run} spotsDoc={spotsDoc} freshness={freshness} texts={seaTexts} poi={poi} nowMs={nowMs} noData={noData} warning={warning}
       dry={{ hours: dryHours, of: spotHours.length, classed: dryRule }} waterLevel={waterLevel} tide={tideView}
       layout="dossier" band={band} chips={isMobile ? undefined : (usable && chips)} onMap={() => setStage('map')} />
@@ -589,7 +598,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
       verdict={noData ? 'keine Daten' : CLASS_LABEL[verdict?.cls ?? 'keine']} color={!noData && verdict && verdict.cls !== 'keine' ? CLASS_COLOR[verdict.cls] : null}
       stats={!hour || noData ? [] : [
         { l: 'Wind', v: `${fmtWind(hour.windMs, unit)} ${unitLabel(unit)}`, s: `aus ${compass16(hour.windDir)}` },
-        { l: 'Böen', v: `${fmtWind(hour.gustMs, unit)} ${unitLabel(unit)}` },
+        { l: 'Böen', v: `${fmtWind(hour.gustMs, unit)} ${unitLabel(unit)}`, s: mostText(hour.gustQ, unit) ?? undefined },
         { l: 'Welle', v: hour.dry ? DRY_VALUE : f1(hour.hs, ' m'), s: !hour.dry && hour.tm != null ? `${f1(hour.tm)} s` : undefined },
       ]}
       reason={!noData && verdict && verdict.cls !== 'passt' ? verdict.reasons[0] ?? null : null}
@@ -620,8 +629,10 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
         <ShareButton className="sw-m-share" compact />
       </div>
     );
+    // Phase SU: dots and sentence of the chosen hour sit on the bottom bar while a spot is being looked at (its card or dossier).
+    const barOver = (inDossier || cardEl) && usable && limits.gustMax != null ? gustOverLimit(hour?.gustQ, limits.gustMax) : null;
     return (
-      <div className="sw-root is-mobile">
+      <div className={`sw-root is-mobile${barOver ? ' has-odds' : ''}`}>
         <AppLoader cover done={pageShown} />
         {unknownSpot && <SeaLinkNotice kind="unknown" slug={unknownSpot} onClose={() => setUnknownSpot(null)} />}
         <main className="sw-map is-mobile msl-host" aria-label="Karte">
@@ -662,6 +673,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
             </div>
           </div>
         )}
+        {barOver && limits.gustMax != null && <SeaGustOdds over={barOver} limitKn={limits.gustMax} where="bar" />}
         <nav className="sw-bar" aria-label="Seewetter-Bereiche">
           {([
             ['map', 'Karte', <path key="p" d="M9 4 3 6.5v13L9 17l6 2.5 6-2.5v-13L15 7 9 4zM9 4v13M15 7v12.5" />],

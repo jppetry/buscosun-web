@@ -221,7 +221,7 @@ sea/v1/status.json                          Linien, letzter Lauf, letzte Ausgabe
 sea/v1/run/cwam/<lauf>/run.json             Lauf, Schritte, Gitter, Maskenhash, Prüfer-Bilanz (zuletzt geschrieben)
 sea/v1/run/cwam/<lauf>/f/<sss>.png          630 × 387 RGBA: R = Hs (5 cm; 254 = ≥ 12,70 m, 255 = kein Wert), G = Richtung (kommt aus, 256 Stufen), B = Tm−1,0 (0,1 s; 255 = kein Wert), A = 255 Wasser / 0 Land
 sea/v1/run/cwam/<lauf>/c/<sss>.png          1260 × 387, links Windsee, rechts Dünung, Kanäle wie f
-sea/v1/spots/<lauf>.json                    Stundenreihen je Spot: Welle (Modell CWAM), Wind/Böe/Richtung (buscosun Fusion), Herkunft je Spalte
+sea/v1/spots/<lauf>.json                    Stundenreihen je Spot: Welle (Modell CWAM), Wind/Böe/Richtung (buscosun Fusion), Herkunft je Spalte; optional `q` je Spot: q10 … q90 von Wind und Böe (0,1 m/s, auch in <lauf>-w<t1>.json)
 sea/v1/text/<produkt>/<YYMMDDHHMM>.json     FQDL50, FQDL51, WODL45, FXDL40: raw (Latin-1, Zeichen für Zeichen), Anzeigetext, Gliederung
 sea/v1/quarantine/<lauf|text-datei>.json    Verworfenes mit Regel (nur Diagnose)
 sea/v1/static/spots.json                    Spotkatalog: Lage, Ufernormale (aus der CWAM-Maske), Seegebiet, Küstenabschnitt, Station, Gitterzelle

@@ -60,9 +60,13 @@ const inv = parseInventory(SEA_PARAMS.flatMap((p) => SEA_MODELS.cwam.steps.map((
 const nowMs = T('2026-10-07T05:10:00Z');
 
 // Wind stand-in: the shape of `spotWind` (buscosun Fusion needs the cube; tested live in the run of §6, not here).
+// Phase SU: the stand-in also carries the optional quantiles (`q`), as `spotWindSeries` returns them — a band of ± 6 / ± 12
+// (wind) and ± 8 / ± 15 (gust) around the value, also at hour 42 where the gust lies below the wind.
+const qCols = (f, a, b) => Object.fromEntries([['q10', -b], ['q25', -a], ['q50', 0], ['q75', a], ['q90', b]].map(([k, d]) => [k, SEA_SPOT_STEPS.map((h) => (h < 5 ? null : f(h) + d))]));
 const windOk = async ({ spots }) => ({
   series: Object.fromEntries(spots.map((s) => [s.id, {
     wind: SEA_SPOT_STEPS.map((h) => (h < 5 ? null : 80 + h)), gust: SEA_SPOT_STEPS.map((h) => (h < 5 ? null : h === 42 ? 60 : 110 + h)), windDir: SEA_SPOT_STEPS.map((h) => (h < 5 ? null : (h * 7) % 360)),
+    q: { wind: qCols((h) => 80 + h, 6, 12), gust: qCols((h) => (h === 42 ? 60 : 110 + h), 8, 15) },
   }])),
   failed: [], meta: { engine: 'buscosun Fusion 9', version: 9, computedAt: new Date(nowMs).toISOString(), runs: { t1: '2026100703' } },
 });
@@ -118,6 +122,11 @@ add('A5 Spot-Reihe = Feldwert an der Zelle (Hs cm, Periode 0,1 s), Herkunft je S
 add('A6 Böe unter Wind (Stunde 42 im Stand-in) wird null, gezählt; WAM-Wind (sp_10m) steht nirgends in Datei oder Lauf',
   sp.v.gust[42] === null && sp.gustDropped === 1 && !JSON.stringify(spots).includes('sp_10m') && !JSON.stringify(runDoc).includes('"sp_10m"'),
   `gust[42] ${sp.v.gust[42]} · dropped ${sp.gustDropped}`);
+// Phase SU (audit/seewetter-bandbreite.md): the run's spot file carries the quantiles next to `v`; the dropped gust takes its own.
+add('A6b Spanne im Lauf: `q` je Spot (q10 … q90 von Wind und Böe, 0,1 m/s) neben `v`, schema 1; an Stunde 42 sind mit der Böe ihre fünf Quantile null, die des Winds bleiben',
+  spots.schema === 1 && spots.quantiles?.spots === 2 && Object.keys(sp.v).length === 14 && sp.q.wind.q10[42] === 80 + 42 - 12 && sp.q.wind.q90[42] === 80 + 42 + 12
+  && ['q10', 'q25', 'q50', 'q75', 'q90'].every((k) => sp.q.gust[k][42] === null) && sp.q.gust.q90[43] === 110 + 43 + 15 && sp.q.gust.q10[4] === null && res.bandSpots === 2,
+  `wind q10–q90 [42] ${sp.q?.wind.q10[42]}–${sp.q?.wind.q90[42]} · gust q10 [42] ${sp.q?.gust.q10[42]} · [43] ${sp.q?.gust.q10[43]}–${sp.q?.gust.q90[43]}`);
 add('A7 run.json zuletzt geschrieben (nach spots und PNGs) und Lauf erneut nicht fällig', dueRun(inv, store, nowMs).run === null, JSON.stringify(dueRun(inv, store, nowMs)));
 // Without wind: the waves are published, the spot says so.
 const store2 = join(tmp, 'store2');

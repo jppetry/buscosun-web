@@ -10,7 +10,7 @@ import type { SeaTextDoc, WodlCoast, WodlSeaArea } from './seaText';
 import { WODL_AREA_IDS } from './seaText';
 import type { SeaRunDoc, SeaPoiObs, SeaSpotsDoc } from './seaClient';
 import { fmtWind, unitLabel, MS_TO_KN, SHORE_LABEL, type SeaUnit, type SeaVerdict, type SeaWindow } from './seaProfiles';
-import { WindChart, SeaStateChart, WaterLevelChart, DRY_COLOUR, type SeaChartHour, type WlChartTide } from './SeaCharts';
+import { WindChart, SeaStateChart, WaterLevelChart, BAND_FILL, DRY_COLOUR, type SeaChartHour, type WlChartTide } from './SeaCharts';
 import { TideControl, TideLegend, TideWindows, type SeaTideView } from './SeaTideWindow';
 import { TIDE_DEVIATION_LABEL, tideDeviationCm, tideRefOf, tideThresholdText, tideWindowLines } from './tideWindow';
 import { SEA_MAX_T } from './seaState';
@@ -22,6 +22,8 @@ import {
 } from './waterLevel';
 import { BFT_ROWS, CLASS_COLOR, CLASS_LABEL, DRY_VALUE, compass16, dateTime, dayDate, dryHourText, dryNote, f1, hm, hh, utcHm, dayShort } from './seaView';
 import type { SeaTab } from './seaState';
+import SeaGustOdds from './SeaGustOdds';
+import { BAND_LEGEND, BAND_NOTE, gustOverLimit, mostText, type SeaQ5 } from './windBand';
 
 export interface SeaReadoutHour {
   t: number; windMs: number | null; gustMs: number | null; windDir: number | null;
@@ -29,6 +31,8 @@ export interface SeaReadoutHour {
   sw: number | null; swDir: number | null; swPer: number | null; swPeak: number | null;
   /** V-SW-20: no sea state at the model cell this hour. */
   dry: boolean;
+  /** Phase SU: q10 … q90 of wind and gust at this hour (m/s); absent or `null` = the spot file carries none. */
+  windQ?: SeaQ5 | null; gustQ?: SeaQ5 | null;
 }
 export interface SeaTexts { fq50: SeaTextDoc | null; fq51: SeaTextDoc | null; wodl: SeaTextDoc | null; fx40: SeaTextDoc | null; stale: Record<string, boolean>; loading: boolean }
 
@@ -41,6 +45,8 @@ interface Props {
   windows: { next: SeaWindow | null; longest: SeaWindow | null };
   chartHours: readonly SeaChartHour[];
   limitKn: number | null; limitLabel: string;
+  /** Phase SU: the profile's gust limit (kn) — the limit "über Grenze" is counted against; `null` = no gust limit. */
+  gustLimitKn?: number | null;
   unit: SeaUnit;
   run: SeaRunDoc | null; spotsDoc: SeaSpotsDoc | null; freshness: 'live' | 'stale' | 'dead';
   texts: SeaTexts;
@@ -145,6 +151,10 @@ export default function SeaReadout(p: Props) {
     if (p.layout === 'dossier' && p.tab === 'gebiet') requestAnimationFrame(() => document.getElementById(SEC_AREA)?.scrollIntoView({ block: 'start' }));
   }, [p.tab, p.layout]);
   const windName = p.spotsDoc?.wind?.engine ?? 'buscosun Fusion';
+  // Phase SU: the span of the chosen hour and how often gusts lie above the gust limit — all `null` without quantiles in the file.
+  const windMost = h ? mostText(h.windQ, p.unit) : null, gustMost = h ? mostText(h.gustQ, p.unit) : null;
+  const gustOver = h && p.gustLimitKn != null ? gustOverLimit(h.gustQ, p.gustLimitKn) : null;
+  const hasBand = p.chartHours.some((c) => c.windBand || c.gustBand);
   const officialBanner = s && p.warning.status === 'unknown' && (
     <section className="sw-card is-warn sw-warnbar" aria-label="Amtliche Meldung">
       <span className="sw-warnbar-ic" aria-hidden="true">
@@ -189,6 +199,7 @@ export default function SeaReadout(p: Props) {
                 <div className="sw-eyebrow">Wind {dayShort(h.t)} {hh(h.t)} Uhr · {windName}</div>
                 <div className="sw-hero-big">{h.windMs == null ? '–' : `${fmtWind(h.windMs, p.unit)} ${unitLabel(p.unit)}`}</div>
                 <div className="sw-hero-sub">{h.windMs == null ? 'kein Wind für diese Stunde berechnet' : `aus ${compass16(h.windDir)}${h.windDir != null ? ` (${Math.round(h.windDir)}°)` : ''} · Böen ${fmtWind(h.gustMs, p.unit)} ${unitLabel(p.unit)}`}</div>
+                {(windMost || gustMost) && <div className="sw-hero-sub sw-most">{[windMost ? `Wind ${windMost}` : null, gustMost ? `Böen ${gustMost}` : null].filter(Boolean).join(' · ')} · {BAND_LEGEND}</div>}
                 <div className="sw-eyebrow sw-gap">Seegang · Modell CWAM</div>
                 <div className={`sw-hero-mid${h.dry ? ' is-dry' : ''}`}>{h.dry ? DRY_VALUE : h.hs == null ? '–' : `${f1(h.hs)} m`}</div>
                 <div className="sw-hero-sub">{h.dry ? dryHourText(s.region) : h.hs == null ? 'kein Wert an der Wasserzelle' : `aus ${compass16(h.dir)} · Periode ${h.tm == null ? '–' : `${f1(h.tm)} s`}`}</div>
@@ -202,6 +213,7 @@ export default function SeaReadout(p: Props) {
                 <span><strong>{CLASS_LABEL[v.cls]}</strong><em>{v.reasons.join(' · ')}{v.shore ? ` · Wind ${SHORE_LABEL[v.shore]}` : ''}</em></span>
               </div>
             )}
+            {gustOver && p.gustLimitKn != null && <SeaGustOdds over={gustOver} limitKn={p.gustLimitKn} where="readout" />}
             <div className="sw-vals">
               <div><span>Windsee · Modell</span><strong>{h.dry || h.ws == null ? '–' : `${f1(h.ws)} m · ${h.wsPer == null ? '–' : `${f1(h.wsPer)} s`}`}</strong></div>
               <div><span>Dünung · Modell</span><strong>{h.dry || h.sw == null ? '–' : `${f1(h.sw)} m · ${h.swPer == null ? '–' : `${f1(h.swPer)} s`} aus ${compass16(h.swDir)}`}</strong></div>
@@ -234,6 +246,7 @@ export default function SeaReadout(p: Props) {
         <div><span className="sw-tile-h"><span>Verlauf</span><em>bis {dayShort(lastT)} {hh(lastT)} Uhr</em></span><span className="sw-unit">Welle {runLabel(p.run)} · Wind {windName}</span></div>
         <div className="sw-chartpanel-leg">
           <span><i style={{ background: '#2C2A26' }} />Wind</span><span><i className="is-band" />Böen-Band</span>
+          {hasBand && <span className="sw-su-leg" title={BAND_NOTE}><i className="is-most is-wind" /><i className="is-most is-gust" />Wind und Böen meist</span>}
           {p.limitKn != null && p.limitLabel && <span><i className="is-limit" />Grenze</span>}
           <span><i style={{ background: '#0F6E7A' }} />Seegang gesamt</span><span><i style={{ background: '#3E9284' }} />Windsee</span><span><i style={{ background: '#7A9466' }} />Dünung</span>
           {p.dry.hours > 0 && <span><i style={{ background: DRY_COLOUR, height: 5 }} />Modellzelle ohne Wasser</span>}
@@ -250,6 +263,7 @@ export default function SeaReadout(p: Props) {
           <SeaStateChart hours={p.chartHours} selMs={h?.t ?? p.chartHours[0].t} big={big} />
           <div className="sw-chart-legend">
             <span><i style={{ background: '#2C2A26' }} />Wind (kn)</span><span><i style={{ background: 'rgba(139,115,85,0.4)', height: 6 }} />Böen-Band</span>
+            {hasBand && <span title={BAND_NOTE}><i style={{ background: BAND_FILL.gust, height: 9 }} />Wind und Böen meist ({BAND_LEGEND})</span>}
             <span><i style={{ background: '#0F6E7A' }} />Seegang gesamt</span><span><i style={{ background: '#3E9284' }} />Windsee</span><span><i style={{ background: '#7A9466' }} />Dünung (m)</span>
             {p.dry.hours > 0 && <span><i style={{ background: DRY_COLOUR, height: 5 }} />Modellzelle ohne Wasser</span>}
           </div>
@@ -363,11 +377,13 @@ export default function SeaReadout(p: Props) {
               <article className="sw-kpi">
                 <span className="sw-kpi-l">Wind</span>
                 <div className="sw-kpi-v"><strong>{h.windMs == null ? '–' : fmtWind(h.windMs, p.unit)}</strong>{h.windMs != null && <span>{unitLabel(p.unit)}</span>}{h.windMs != null && h.windDir != null && <RunArrow from={h.windDir} cls="sw-tile-arrow" />}</div>
+                {windMost && <span className="sw-kpi-most">{windMost}</span>}
                 <small>{h.windMs == null ? 'für diese Stunde nicht berechnet' : `aus ${compass16(h.windDir)}${h.windDir != null ? ` · ${Math.round(h.windDir)}°` : ''}${v?.shore ? ` · ${SHORE_LABEL[v.shore]}` : ''}`}</small>
               </article>
               <article className="sw-kpi">
                 <span className="sw-kpi-l">Böen</span>
                 <div className="sw-kpi-v"><strong>{h.gustMs == null ? '–' : fmtWind(h.gustMs, p.unit)}</strong>{h.gustMs != null && <span>{unitLabel(p.unit)}</span>}</div>
+                {gustMost && <span className="sw-kpi-most">{gustMost}</span>}
                 {limitPct != null && <i className={`sw-kpi-meter${limitPct >= 100 ? ' is-over' : ''}`} aria-hidden="true"><b style={{ width: `${limitPct}%` }} /></i>}
                 <small>{spread == null ? 'für diese Stunde nicht berechnet' : `Spanne ${fmtWind(spread, p.unit)} ${unitLabel(p.unit)}`}{p.limitKn != null && p.limitLabel ? ` · Grenze ${p.limitLabel}` : ''}</small>
               </article>
@@ -389,8 +405,10 @@ export default function SeaReadout(p: Props) {
                 </article>
               )}
             </div>
+            {gustOver && p.gustLimitKn != null && <SeaGustOdds over={gustOver} limitKn={p.gustLimitKn} where="readout" />}
             <p className="sw-kpi-note">
               Wind {windName} · Seegang Modell CWAM{s.station && p.poi && p.poi !== 'loading' ? ` · Messung: DWD-Station ${stationName}, ${s.station.km} km vom Spot (10-min-Mittel, Böe der letzten Stunde), an Land, nicht auf dem Wasser` : ''}
+              {(windMost || gustMost) && <span className="sw-su-note"> · {BAND_NOTE}</span>}
             </p>
             <div className="sw-dash-grid is-detail">
               <article className="sw-tile is-wind">
@@ -1088,7 +1106,7 @@ function SourcesTab({ spot, run, spotsDoc, texts, freshness, wl }: { spot: SeaSp
   const b = run?.balance;
   const rows: Array<[string, string, string, string]> = [
     [run ? (freshness === 'live' ? 'aktuell' : 'veraltet') : 'fehlt', 'Seegang · DWD CWAM (Modell, 900 m)', run ? `Lauf ${runLabel(run)}, 0–78 h, Windsee und Dünung getrennt; veröffentlicht ${dateTime(Date.parse(run.builtAt))}` : 'kein Lauf lesbar', run ? 'ok' : 'off'],
-    [w?.engine ? 'aktuell' : 'fehlt', `Wind und Böen · ${w?.engine ?? 'buscosun Fusion'}`, w?.computedAt ? `gerechnet ${dateTime(Date.parse(w.computedAt))} an der Wasserzelle des Spots (Höhe 0 m), Würfel t1 ${w.runs?.t1 ?? '–'} · t2 ${w.runs?.t2 ?? '–'}; der Antriebswind des Wellenmodells wird nie gezeigt` : 'keine Windreihe in diesem Lauf', w?.engine ? 'ok' : 'off'],
+    [w?.engine ? 'aktuell' : 'fehlt', `Wind und Böen · ${w?.engine ?? 'buscosun Fusion'}`, w?.computedAt ? `gerechnet ${dateTime(Date.parse(w.computedAt))} an der Wasserzelle des Spots (Höhe 0 m), Würfel t1 ${w.runs?.t1 ?? '–'} · t2 ${w.runs?.t2 ?? '–'}; der Antriebswind des Wellenmodells wird nie gezeigt${spotsDoc?.quantiles ? `; Spanne „meist“ aus der Verteilung derselben Rechnung (${BAND_LEGEND})` : ''}` : 'keine Windreihe in diesem Lauf', w?.engine ? 'ok' : 'off'],
     [texts.fq50 ? 'amtlich' : 'fehlt', 'Seewetterbericht Nord- und Ostsee (FQDL50)', texts.fq50 ? `wörtlich, ${issued(texts.fq50)}` : 'nicht lesbar', texts.fq50 ? 'ok' : 'off'],
     [texts.fq51 ? 'amtlich' : 'fehlt', 'Küstenbericht (FQDL51)', texts.fq51 ? `wörtlich, ${issued(texts.fq51)}` : 'nicht lesbar', texts.fq51 ? 'ok' : 'off'],
     [texts.wodl ? 'amtlich' : 'fehlt', 'Warnstatus Küste (WODL45)', texts.wodl ? `wörtlich, ${issued(texts.wodl)}; „keine Warnung“ nur aus dem exakten Satz` : 'nicht lesbar ⇒ Status unbekannt', texts.wodl ? 'ok' : 'off'],

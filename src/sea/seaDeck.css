@@ -1175,3 +1175,38 @@
   .sw-tf-sheet .sw-tf-hint { font-size: 13.5px; }
   .sw-tf-sheet .sw-tf-open { display: block; margin-top: 14px; text-align: left; }
 }
+
+/* Phase SU — Bandbreite von Wind und Böen (audit/seewetter-bandbreite.md). EIN Farbton für „über Grenze“: der der
+   Grenzlinie im Diagramm. Keine Ampel, keine Prozentwerte — Deckkraft bzw. gefüllte Punkte = Zehntel. */
+.sw-root { --sw-over: #9A5A2A; }
+.sw-kpi-most { font-size: 13.5px; font-weight: 600; color: var(--stone-600, #5C5447); font-variant-numeric: tabular-nums; }
+.sw-hero-sub.sw-most { margin-top: 3px; font-variant-numeric: tabular-nums; }
+.sw-odds { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 0; padding: 11px 16px; border-radius: 14px; background: #fff; border: 1px solid var(--sand-200, #E0D6BE);
+  font-size: 15px; line-height: 1.35; color: var(--ink-900, #2C2A26); }
+.sw-card > .sw-odds { margin-top: 10px; padding: 9px 11px; border-radius: 10px; font-size: 13.5px; }
+.sw-odds-dots { display: inline-flex; flex: 0 0 auto; gap: 5px; }
+.sw-odds-dots i { box-sizing: border-box; width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid #CFC3A6; }
+.sw-odds-dots i.is-on { background: var(--sw-over); border-color: var(--sw-over); }
+.sw-odds-dots i.is-more { border-color: var(--sw-over); background: color-mix(in srgb, var(--sw-over) 30%, transparent); }
+.sw-odds-dots i.is-less { background: color-mix(in srgb, var(--sw-over) 24%, transparent); }
+.sw-odds-tx { font-weight: 600; font-variant-numeric: tabular-nums; }
+.sw-odds.is-bar { display: none; }
+/* Stundenband, Zeile „über Grenze“: blasse Spur, darüber der Farbton mit Deckkraft = Zehntel; schraffiert = keine Spanne. */
+.sw-su-cell { position: relative; overflow: hidden; background: rgba(44, 42, 38, 0.07); }
+.sw-su-cell > i { position: absolute; inset: 0; background: var(--sw-over); }
+.sw-su-cell.is-often { box-shadow: inset 0 0 0 1.5px #6E3D18; }
+.sw-chartpanel-leg i.is-most { width: 9px; height: 11px; border-radius: 2px; }
+.sw-chartpanel-leg i.is-most.is-wind { background: rgba(44, 42, 38, 0.24); }
+.sw-chartpanel-leg i.is-most.is-gust { margin-left: -4px; background: rgba(139, 115, 85, 0.42); }
+.sw-chartpanel-leg .sw-su-leg { gap: 0; }
+.sw-chartpanel-leg .sw-su-leg i.is-gust { margin-right: 6px; }
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
+  /* Phone: dots and sentence sit on the bottom bar (the map, the sheets and the dossier end above them); the line in the dossier is left out. */
+  .sw-root.is-mobile.has-odds { --sw-bar-h: calc(64px + 46px + env(safe-area-inset-bottom, 0px)); }
+  .sw-root.is-mobile .sw-odds.is-bar { display: flex; flex-wrap: nowrap; position: absolute; left: 0; right: 0; bottom: calc(64px + env(safe-area-inset-bottom, 0px)); z-index: 8;
+    box-sizing: border-box; height: 46px; gap: 10px; padding: 0 14px; border: 0; border-top: 1px solid var(--sand-200, #E0D6BE); border-radius: 0; background: var(--cream-50, #FAF6EA);
+    font-size: 12.5px; line-height: 1.25; }
+  .sw-root.is-mobile .sw-odds.is-bar .sw-odds-dots { gap: 3px; }
+  .sw-root.is-mobile .sw-odds.is-bar .sw-odds-dots i { width: 9px; height: 9px; }
+  .sw-m-dossier .sw-odds.is-readout { display: none; }
+}

@@ -11,6 +11,7 @@
  *   sea/v1/run/<model>/<run>/f/<sss>.png       total sea: R = Hs (5 cm), G = direction (256 steps), B = Tm−1,0 (0.1 s), A = water
  *   sea/v1/run/<model>/<run>/c/<sss>.png       components, double width: left wind sea, right swell, channels as f
  *   sea/v1/spots/<run>.json                    hourly series per spot: waves from CWAM, wind/gust from buscosun Fusion
+ *                                              (phase SU: optional `q` per spot — q10 … q90 of wind and gust, also in `-w<t1>`)
  *   sea/v1/spots/<run>-w<t1>.json              wind/gust/direction of that run again on a newer t1 cube (V-SW-2; pointer `status.wind` = newest; all of a kept run stay, V-SW-15)
  *   sea/v1/text/<product>/<issue>.json         bulletin: raw (verbatim), header, issue time, display text, structure
  *   sea/v1/quarantine/<run|issue>.json         rejected runs/bulletins with rule and raw value (diagnosis only)
@@ -442,6 +443,99 @@ export type SeaWindVar = typeof SEA_WIND_VARS[number];
 export function mergeSpotWind<T>(base: Record<SeaWindVar, (T | null)[]>, upd: Record<SeaWindVar, (T | null)[]>, from: number): Record<SeaWindVar, (T | null)[]> {
   const out = {} as Record<SeaWindVar, (T | null)[]>;
   for (const v of SEA_WIND_VARS) out[v] = base[v].map((x, i) => (i >= from ? (upd[v][i] ?? null) : x));
+  return out;
+}
+
+// --- Wind and gust band (phase SU, audit/seewetter-bandbreite.md) --------------------------------
+
+/**
+ * Optional per spot, next to `v`: `q.wind` / `q.gust` = five columns (q10 … q90) of the hourly distribution buscosun Fusion
+ * computes anyway, on the run's hour axis, encoded like the means (0.1 m/s, integer, `null` = no value). A file without
+ * `q` is a valid file (every run before phase SU); the page then shows no band. `schema` and path stay as they are.
+ */
+export const SEA_Q_KEYS = Object.freeze(['q10', 'q25', 'q50', 'q75', 'q90'] as const);
+export type SeaQKey = typeof SEA_Q_KEYS[number];
+export const SEA_Q_PROBS: Readonly<Record<SeaQKey, number>> = Object.freeze({ q10: 0.1, q25: 0.25, q50: 0.5, q75: 0.75, q90: 0.9 });
+export const SEA_Q_VARS = Object.freeze(['wind', 'gust'] as const);
+export type SeaQVar = typeof SEA_Q_VARS[number];
+export type SeaQColumns<T = number> = Record<SeaQKey, (T | null)[]>;
+export type SeaSpotQuantiles<T = number> = Partial<Record<SeaQVar, SeaQColumns<T>>>;
+
+export const emptyQColumns = <T = number>(hours = SEA_SPOT_STEPS.length): SeaQColumns<T> =>
+  Object.fromEntries(SEA_Q_KEYS.map((k) => [k, new Array<T | null>(hours).fill(null)])) as SeaQColumns<T>;
+
+/**
+ * An hour without a mean carries no quantiles: where `v.wind[i]` / `v.gust[i]` is `null` (never computed, or the gust
+ * dropped by `sanitizeGust`), all five quantiles of that variable become `null`; so does an hour with only some of the
+ * five. Returns how many hours lost their quantiles. Works on encoded and on decoded columns; mutates `q`.
+ */
+export function dropQuantilesWithoutMean<T>(v: Record<SeaQVar, (T | null)[]>, q: SeaSpotQuantiles<T> | null | undefined): number {
+  let n = 0;
+  if (!q) return n;
+  for (const name of SEA_Q_VARS) {
+    const cols = q[name];
+    if (!cols) continue;
+    const hours = cols.q10.length;
+    for (let i = 0; i < hours; i++) {
+      const some = SEA_Q_KEYS.some((k) => cols[k][i] != null), all = SEA_Q_KEYS.every((k) => cols[k][i] != null);
+      if (some && (v[name][i] == null || !all)) { for (const k of SEA_Q_KEYS) cols[k][i] = null; n++; }
+    }
+  }
+  return n;
+}
+
+/** Does any hour of `q` carry a band? */
+export const hasQuantiles = (q: SeaSpotQuantiles<unknown> | null | undefined): boolean =>
+  !!q && SEA_Q_VARS.some((name) => q[name]?.q10?.some((x) => x != null));
+
+/**
+ * Value lock of the encoded quantile columns of one spot (producer before writing, client before display): five columns
+ * of the run's length per variable, integers 0–800 (0.1 m/s), ordered q10 ≤ q25 ≤ q50 ≤ q75 ≤ q90, all five or none per
+ * hour, and none where the mean is missing. A spot that fails is shown WITHOUT band (its series stays).
+ */
+export function spotQuantileProblems(q: unknown, v: Partial<Record<SeaQVar, (number | null)[]>>, hours = SEA_SPOT_STEPS.length): string[] {
+  const out: string[] = [];
+  if (q == null || typeof q !== 'object') return ['q: kein Objekt'];
+  for (const name of Object.keys(q)) if (!(SEA_Q_VARS as readonly string[]).includes(name)) out.push(`q.${name}: unbekannte Größe`);
+  for (const name of SEA_Q_VARS) {
+    const cols = (q as SeaSpotQuantiles)[name];
+    if (cols == null) continue;
+    const bad = SEA_Q_KEYS.filter((k) => !Array.isArray(cols[k]) || cols[k].length !== hours);
+    if (bad.length) { out.push(`q.${name}: ${bad.join(',')} fehlt oder Länge ≠ ${hours}`); continue; }
+    for (let i = 0; i < hours; i++) {
+      const x = SEA_Q_KEYS.map((k) => cols[k][i]);
+      const set = x.filter((y) => y != null).length;
+      if (set === 0) continue;
+      if (set !== SEA_Q_KEYS.length) { out.push(`q.${name}[${i}]: ${set} von 5 Quantilen`); continue; }
+      if (x.some((y) => !Number.isInteger(y) || (y as number) < 0 || (y as number) > 800)) { out.push(`q.${name}[${i}] = ${x.join('/')}`); continue; }
+      if (x.some((y, j) => j > 0 && (y as number) < (x[j - 1] as number))) out.push(`q.${name}[${i}] nicht geordnet: ${x.join('/')}`);
+      if (v[name]?.[i] == null) out.push(`q.${name}[${i}] ohne Mittelwert`);
+    }
+  }
+  return out;
+}
+
+/**
+ * The quantiles that go with `mergeSpotWind`: from hour `from` on they come from the refresh (also its nulls, also when
+ * the refresh carries none — a wind without its own band shows no band), before it the run's own stay. Pure.
+ */
+export function mergeSpotQuantiles<T>(base: SeaSpotQuantiles<T> | null | undefined, upd: SeaSpotQuantiles<T> | null | undefined, from: number, hours = SEA_SPOT_STEPS.length): SeaSpotQuantiles<T> {
+  const out: SeaSpotQuantiles<T> = {};
+  for (const name of SEA_Q_VARS) {
+    const b = base?.[name], u = upd?.[name];
+    if (!b && !u) continue;
+    out[name] = Object.fromEntries(SEA_Q_KEYS.map((k) => [k, Array.from({ length: hours }, (_, i) => (i >= from ? u?.[k][i] : b?.[k][i]) ?? null)])) as SeaQColumns<T>;
+  }
+  return out;
+}
+
+/** Encoded quantile columns → m/s (the scale of the means). */
+export function decodeSpotQuantiles(q: SeaSpotQuantiles): SeaSpotQuantiles {
+  const out: SeaSpotQuantiles = {};
+  for (const name of SEA_Q_VARS) {
+    const cols = q[name];
+    if (cols) out[name] = Object.fromEntries(SEA_Q_KEYS.map((k) => [k, cols[k].map((x) => decodeSpotValue(name, x))])) as SeaQColumns;
+  }
   return out;
 }
 

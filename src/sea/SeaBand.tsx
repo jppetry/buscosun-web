@@ -11,12 +11,15 @@
 import { useEffect, useRef, type KeyboardEvent } from 'react';
 import { fmtWind, unitLabel, type SeaClass, type SeaUnit } from './seaProfiles';
 import { CLASS_COLOR, CLASS_SHORT, DRY_GLYPH, DRY_VALUE, berlinHour, dayShort, f1, hh, tzLabel } from './seaView';
+import { BAND_LEGEND, overOpacity, overSentence, type SeaOver } from './windBand';
 
 export interface SeaBandHour {
   t: number; windMs: number | null; gustMs: number | null; windDir: number | null;
   hs: number | null; dir: number | null; tm: number | null; cls: SeaClass; reason: string; daylight: boolean;
   /** V-SW-20: no sea state at the model cell this hour (shown as ∅, never as 0,0). */
   dry?: boolean;
+  /** Phase SU: how often gusts lie above the profile's gust limit this hour; `null`/absent = no span for this hour. */
+  over?: SeaOver | null;
 }
 
 interface Props {
@@ -30,6 +33,8 @@ interface Props {
   compact?: boolean;
   /** Phase TF: the tide window per hour of the band (same length as `hours`); absent = no threshold set or switch off. */
   tide?: SeaBandTide | null;
+  /** Phase SU: the row "über Grenze" (gust limit in knots); absent = no gust limit or no hour with a span. */
+  over?: { limitKn: number } | null;
 }
 
 /** Phase TF — one row "Pegel": is the hour on the allowed side of the user's threshold at the gauge (`tideWindow.ts`). */
@@ -46,7 +51,8 @@ const Arrow = ({ to, color }: { to: number | null; color: string }) => (to == nu
   </svg>
 ));
 
-export default function SeaBand({ hours, unit, selected, onPick, title, sub, footnote, compact = false, tide = null }: Props) {
+export default function SeaBand({ hours, unit, selected, onPick, title, sub, footnote, compact = false, tide = null, over = null }: Props) {
+  const overKn = over ? String(Math.round(over.limitKn * 10) / 10).replace('.', ',') : '';
   const scroller = useRef<HTMLDivElement | null>(null);
   // Keep the selected hour in view.
   useEffect(() => {
@@ -71,7 +77,7 @@ export default function SeaBand({ hours, unit, selected, onPick, title, sub, foo
       </div>
       <div className="sw-band-scroll" ref={scroller}>
         <table className="sw-band-table">
-          <caption className="sw-sr">Stundenwerte am Spot: Uhrzeit, Wind, Böen, Seegang, Periode, Wellenrichtung und Einordnung nach deinem Profil. Eine Stunde wählen setzt Karte und Details auf diese Zeit.</caption>
+          <caption className="sw-sr">Stundenwerte am Spot: Uhrzeit, Wind, Böen, Seegang, Periode, Wellenrichtung{over ? `, wie oft Böen über ${overKn} kn liegen` : ''} und Einordnung nach deinem Profil. Eine Stunde wählen setzt Karte und Details auf diese Zeit.</caption>
           <thead>
             <tr className="sw-band-days" aria-hidden="true">
               <th className="sw-band-lab" />
@@ -112,6 +118,22 @@ export default function SeaBand({ hours, unit, selected, onPick, title, sub, foo
               <th scope="row" className="sw-band-lab">Wellen</th>
               {hours.map((h, i) => <td key={h.t} className={cls(h, i)}><Arrow to={h.dir == null || h.hs == null || h.hs < 0.05 ? null : (h.dir + 180) % 360} color="#0F6E7A" /></td>)}
             </tr>
+            {over && (
+              <tr className="sw-band-prof sw-band-over">
+                <th scope="row" className="sw-band-lab" title={`Wie oft Böen über ${overKn} kn liegen, je Stunde · ${BAND_LEGEND}`}>über Grenze</th>
+                {hours.map((h, i) => {
+                  const o = h.over ?? null;
+                  const words = o ? overSentence(o, over.limitKn) : 'keine Spanne für diese Stunde';
+                  return (
+                    <td key={h.t} className={cls(h, i)} title={words}>
+                      <span className={`sw-band-bar sw-su-cell${o ? ` is-${o.kind}` : ' is-hatched'}`} data-over={o ? (o.kind === 'tenths' ? o.tenths : o.kind) : undefined}>
+                        {o && <i style={{ opacity: overOpacity(o) }} />}<span className="sw-sr">{words}</span>
+                      </span>
+                    </td>
+                  );
+                })}
+              </tr>
+            )}
             {tide && (
               <tr className="sw-band-prof sw-band-tide">
                 <th scope="row" className="sw-band-lab" title={`Wasserstand ${tide.side}`}>Pegel</th>
@@ -143,6 +165,7 @@ export default function SeaBand({ hours, unit, selected, onPick, title, sub, foo
         <span>Pfeile zeigen, wohin Wind und Wellen laufen</span>
         <span>dunkler Grund = Nacht</span>
         {hours.some((h) => h.dry) && <span className="sw-band-foot-dry">{DRY_GLYPH} = Modellzelle ohne Wasser, {DRY_VALUE}</span>}
+        {over && <span className="sw-band-foot-over">Zeile über Grenze: je kräftiger, desto öfter Böen über {overKn} kn in vergleichbaren Lagen</span>}
         {tide && <span className="sw-band-foot-tide">Zeile Pegel: gefüllt = Wasserstand {tide.side}, halb = zum Teil, hohl = nur Gezeit</span>}
         <span className="sw-band-foot-note">{footnote}</span>
       </div>

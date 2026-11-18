@@ -3,6 +3,7 @@
  * SW Gate D — daily archive of the sea line in `buscosun-archiv` `sea/v1/` (pattern road/v1, append-only):
  *   sea/v1/<YYYY-MM-DD>/spots-<run>.json.gz   spot series of every published CWAM run (waves + buscosun Fusion wind)
  *   sea/v1/<YYYY-MM-DD>/spots-<run>-w<t1>.json.gz   wind refresh of that run on a newer t1 cube (V-SW-2), as found in the store
+ *                                               (phase SU: both carry the optional quantiles `q` per spot; index → `band`)
  *   sea/v1/<YYYY-MM-DD>/poi.json.gz            hourly POI measurements of the coastal stations of the catalogue
  *                                               (mean wind, direction, gust of the last hour) — the truth for Gate D
  *   sea/v1/<YYYY-MM-DD>/text.json.gz           every text issue of that day (display text + raw + issue time)
@@ -17,7 +18,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, rename
 import { join, resolve, dirname } from 'node:path';
 import { gzipSync, gunzipSync } from 'node:zlib';
 import { fileURLToPath } from 'node:url';
-import { SEA_SPOT_CATALOG_PATH, SEA_SPOTS_WIND_RE, seaRunMs } from '../../src/sea/seaContract.ts';
+import { SEA_SPOT_CATALOG_PATH, SEA_SPOTS_WIND_RE, seaRunMs, hasQuantiles } from '../../src/sea/seaContract.ts';
 import { SEA_TEXT_STAGE1, seaIssueMs } from '../../src/sea/seaText.ts';
 
 const SELF = fileURLToPath(import.meta.url);
@@ -56,6 +57,16 @@ export function parsePoi(text) {
   return out;
 }
 
+/**
+ * Phase SU: the spot files are archived whole, so the optional quantiles (`q` per spot) are carried as they are. The
+ * index names the files that hold them (`band`) — the later evaluation of the band against the POI measurements reads
+ * exactly those, without opening every file.
+ */
+function noteBand(entry, key, doc) {
+  if (!Object.values(doc?.spots ?? {}).some((s) => hasQuantiles(s?.q))) return;
+  (entry.band ??= []).includes(key) || entry.band.push(key);
+}
+
 export async function archiveSea({ storeDir, archiveDir, nowMs = Date.now(), poi = true, fetchImpl = fetch, log = () => {} }) {
   const index = readJson(join(archiveDir, 'index.json')) ?? { schema: 1, product: 'sea-archive', days: {} };
   const touch = (d, k) => { const e = (index.days[d] ??= { spots: [], poiStations: 0, texts: 0 }); return e; };
@@ -66,8 +77,10 @@ export async function archiveSea({ storeDir, archiveDir, nowMs = Date.now(), poi
     const run = f.slice(0, 10), d = day(seaRunMs(run));
     const dst = join(archiveDir, d, `spots-${run}.json.gz`);
     if (existsSync(dst)) continue;
-    writeGz(dst, readJson(join(sdir, f)));
+    const doc = readJson(join(sdir, f));
+    writeGz(dst, doc);
     const e = touch(d); if (!e.spots.includes(run)) e.spots.push(run);
+    noteBand(e, run, doc);
     spotsAdded++;
   }
   // V-SW-2/V-SW-15: the wind refreshes in the store — since V-SW-15 all of a kept run stay ≥ 12 h, so every 6-h pass sees each one.
@@ -75,8 +88,10 @@ export async function archiveSea({ storeDir, archiveDir, nowMs = Date.now(), poi
     const key = f.slice(0, -'.json'.length), d = day(seaRunMs(f.slice(0, 10)));
     const dst = join(archiveDir, d, `spots-${key}.json.gz`);
     if (existsSync(dst)) continue;
-    writeGz(dst, readJson(join(sdir, f)));
+    const doc = readJson(join(sdir, f));
+    writeGz(dst, doc);
     const e = touch(d); (e.wind ??= []).includes(key) || e.wind.push(key);
+    noteBand(e, key, doc);
     spotsAdded++;
   }
   // Text issues, merged per day by `<product>/<issue>`.
@@ -120,7 +135,7 @@ export async function archiveSea({ storeDir, archiveDir, nowMs = Date.now(), poi
     }
   }
   index.updatedAt = new Date(nowMs).toISOString();
-  for (const e of Object.values(index.days)) { e.spots.sort(); e.wind?.sort(); }
+  for (const e of Object.values(index.days)) { e.spots.sort(); e.wind?.sort(); e.band?.sort(); }
   mkdirSync(archiveDir, { recursive: true });
   writeFileSync(join(archiveDir, 'index.json'), JSON.stringify(index, null, 1) + '\n');
   return { spotsAdded, textsAdded, poiRows, days: Object.keys(index.days).length };

@@ -32,7 +32,10 @@ import {
   seaQuarantinePath, newCounts, cleanHs, cleanDir, cleanPeriod, cleanPeakWindSea, validateSeaRun, packMask,
   encodeHs, encodeDir, encodePeriod, encodeSpotValue, spotSeriesProblems, sanitizeGust,
   seaSpotsWindPath, SEA_SPOTS_WIND_RE, mergeSpotWind,
+  SEA_Q_KEYS, SEA_Q_VARS, emptyQColumns, dropQuantilesWithoutMean, hasQuantiles, spotQuantileProblems,
 } from '../../src/sea/seaContract.ts';
+// Phase SU: read-only use of the engine's distribution (`dist.ts` is pure and imports nothing).
+import { quantiles } from '../../src/pointForecast/fusion/dist.ts';
 
 const SELF = fileURLToPath(import.meta.url);
 const H = 3_600_000;
@@ -222,14 +225,46 @@ export async function deriveFields({ model = MODEL, run, cacheDir, outRunDir, sp
  */
 export function spotWindSeries(steps, runMs) {
   const w = new Array(SEA_SPOT_STEPS.length).fill(null), g = w.slice(), d = w.slice();
+  const q = { wind: emptyQColumns(), gust: emptyQColumns() };
+  const qs = { wind: stepQuantiles(steps, 'wind'), gust: stepQuantiles(steps, 'gust') };
   let n = 0;
-  for (const st of steps ?? []) {
+  (steps ?? []).forEach((st, k) => {
     const i = (st.validAtMs - runMs) / H;
-    if (!Number.isInteger(i) || i < 0 || i >= SEA_SPOT_STEPS.length) continue;
+    if (!Number.isInteger(i) || i < 0 || i >= SEA_SPOT_STEPS.length) return;
     w[i] = encodeSpotValue('wind', st.vars?.wind?.mean); g[i] = encodeSpotValue('gust', st.vars?.gust?.mean); d[i] = encodeSpotValue('windDir', st.vars?.windDir?.mean);
     if (w[i] != null) n++;
-  }
-  return n ? { wind: w, gust: g, windDir: d } : null;
+    for (const name of SEA_Q_VARS) { const x = qs[name][k]; if (x) for (const key of SEA_Q_KEYS) q[name][key][i] = encodeSpotValue(name, x[key]); }
+  });
+  if (!n) return null;
+  // Phase SU: no band at an hour without a mean; a spot without one band at all carries no `q` (the old file shape).
+  dropQuantilesWithoutMean({ wind: w, gust: g }, q);
+  return { wind: w, gust: g, windDir: d, ...(hasQuantiles(q) ? { q } : {}) };
+}
+
+/**
+ * Phase SU — the five quantiles of one variable per engine step (same order as `steps`), or `null` where there is no
+ * distribution. buscosun Fusion is only READ: an hour with its own computation carries `dist` (`quantiles()` of
+ * `fusion/dist.ts`); an interpolated hour carries p10/p50/p90 only (the engine's linear interpolation of its
+ * neighbours) — q25/q75 are interpolated here by the same rule between the nearest hours WITH a distribution, and held
+ * inside the engine's own q10/q50/q90.
+ */
+export function stepQuantiles(steps, name) {
+  const list = steps ?? [];
+  const own = list.map((st) => { const dist = st.vars?.[name]?.dist; return dist ? quantiles(dist) : null; });
+  return list.map((st, k) => {
+    if (own[k]) return own[k];
+    const vv = st.vars?.[name];
+    if (!vv || vv.p10 == null || vv.p50 == null || vv.p90 == null) return null;
+    let a = k - 1, b = k + 1;
+    while (a >= 0 && !own[a]) a--;
+    while (b < list.length && !own[b]) b++;
+    if (a < 0 || b >= list.length) return null;
+    const f = (st.validAtMs - list[a].validAtMs) / (list[b].validAtMs - list[a].validAtMs);
+    if (!(f > 0 && f < 1)) return null;
+    const lerp = (key) => own[a][key] + (own[b][key] - own[a][key]) * f;
+    const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
+    return { q10: vv.p10, q25: clamp(lerp('q25'), vv.p10, vv.p50), q50: vv.p50, q75: clamp(lerp('q75'), vv.p50, vv.p90), q90: vv.p90 };
+  });
 }
 
 export async function spotWind({ dataDir, spots, geoDoc, nowMs, runMs, log = () => {} }) {
@@ -270,6 +305,25 @@ export async function spotWind({ dataDir, spots, geoDoc, nowMs, runMs, log = () 
     meta: { engine: fusionName(version ?? FUSION_CURRENT), version: version ?? null, stageCurrent: version === FUSION_CURRENT, computedAt: new Date(nowMs).toISOString(), hoursFrom: new Date(t0).toISOString(), runs },
   };
 }
+
+/**
+ * Phase SU — the quantile columns of one spot as they are written: none at an hour whose mean is missing (a gust dropped
+ * by `sanitizeGust` takes its quantiles with it), and none at all when the value lock fails (the series is written
+ * without band, the reason goes to `problems`). `v` = the spot's final wind columns, AFTER `sanitizeGust`.
+ */
+export function spotBand(v, q, id, problems) {
+  if (!q) return null;
+  dropQuantilesWithoutMean(v, q);
+  if (!hasQuantiles(q)) return null;
+  const pr = spotQuantileProblems(q, v);
+  if (pr.length) { problems.push(`${id}: ${pr.slice(0, 2).join('; ')}`); return null; }
+  return q;
+}
+/** Doc-level description of the optional `q` (written only when at least one spot carries it). */
+export const bandDoc = (spots, problems) => ({
+  keys: SEA_Q_KEYS, vars: SEA_Q_VARS, unit: '0.1 m/s', spots, ...(problems.length ? { problems } : {}),
+  from: 'buscosun Fusion: Verteilung je Stunde (quantiles); interpolierte Stunden q10/q50/q90 aus der Ausgabe, q25/q75 linear zwischen den Nachbarstunden mit Verteilung',
+});
 
 // --- status, retention ------------------------------------------------------------------------------------
 export function readStatus(storeDir) {
@@ -357,14 +411,19 @@ export async function buildRun({ storeDir, dataDir = null, cacheDir, run, inv = 
     wind: wind?.meta ? { ...wind.meta, failed: wind.failed } : { engine: null, failed: wind?.failed ?? cat.spots.map((s) => ({ id: s.id, error: 'kein Cube-Checkout' })) },
     spots: {},
   };
-  const problems = [];
+  const problems = [], bandProblems = [];
+  let bandSpots = 0;
   for (const sp of cat.spots) {
-    const v = { ...r.series[sp.id], ...(wind?.series[sp.id] ?? { wind: new Array(SEA_SPOT_STEPS.length).fill(null), gust: new Array(SEA_SPOT_STEPS.length).fill(null), windDir: new Array(SEA_SPOT_STEPS.length).fill(null) }) };
+    const ws = wind?.series[sp.id] ?? null;
+    const v = { ...r.series[sp.id], wind: ws?.wind ?? new Array(SEA_SPOT_STEPS.length).fill(null), gust: ws?.gust ?? new Array(SEA_SPOT_STEPS.length).fill(null), windDir: ws?.windDir ?? new Array(SEA_SPOT_STEPS.length).fill(null) };
     const gustDropped = sanitizeGust(v);
     const pr = spotSeriesProblems(v);
     if (pr.length) { problems.push(`${sp.id}: ${pr.slice(0, 2).join('; ')}`); continue; }
-    spotsDoc.spots[sp.id] = { cell: [sp.cell.i, sp.cell.j], v, ...(gustDropped ? { gustDropped } : {}) };
+    const q = spotBand(v, ws?.q, sp.id, bandProblems);
+    if (q) bandSpots++;
+    spotsDoc.spots[sp.id] = { cell: [sp.cell.i, sp.cell.j], v, ...(q ? { q } : {}), ...(gustDropped ? { gustDropped } : {}) };
   }
+  if (bandSpots) spotsDoc.quantiles = bandDoc(bandSpots, bandProblems);
   // EWAM cross check, observation only (plan: median |ΔHs| > 0.3 m ⇒ log, no stop).
   let check = null;
   if (ewam) { try { check = await ewamCheck({ run, cacheDir, cwamDir: cacheDir, fetchImpl }); } catch (e) { check = { error: e.message }; } }
@@ -390,7 +449,7 @@ export async function buildRun({ storeDir, dataDir = null, cacheDir, run, inv = 
   st.field.recent = [recent, ...(st.field.recent ?? [])].slice(0, 14);
   const removed = pruneRuns(storeDir);
   writeStatus(storeDir, st, nowMs);
-  return { built: true, run, mb: recent.mb, buildS: runDoc.buildS, wind: runDoc.wind, windSpots: Object.keys(wind?.series ?? {}).length, windError: wind?.failed?.[0]?.error ?? null, spotProblems: problems.length, removed, check };
+  return { built: true, run, mb: recent.mb, buildS: runDoc.buildS, wind: runDoc.wind, windSpots: Object.keys(wind?.series ?? {}).length, bandSpots, bandProblems: bandProblems.length, windError: wind?.failed?.[0]?.error ?? null, spotProblems: problems.length, removed, check };
 }
 
 // --- wind refresh on a newer t1 cube (V-SW-2) ---------------------------------------------------------------
@@ -431,7 +490,8 @@ export async function windRefresh({ storeDir, dataDir, nowMs = Date.now(), index
   const t1 = wind.meta?.runs?.t1 ?? null;
   if (!t1 || (due.usedT1 && t1 <= due.usedT1)) return { built: false, run, reason: `Rechnung trug t1 ${t1 ?? '–'}, nicht neuer als ${due.usedT1}` };
   const from = Math.max(0, Math.round((Math.floor(nowMs / H) * H - runMs) / H));
-  const spots = {}, rejected = [];
+  const spots = {}, rejected = [], bandProblems = [];
+  let bandSpots = 0;
   for (const [id, sp] of Object.entries(base.spots)) {
     const w = wind.series[id];
     if (!w) { rejected.push(`${id}: keine Rechnung`); continue; }
@@ -439,17 +499,19 @@ export async function windRefresh({ storeDir, dataDir, nowMs = Date.now(), index
     const gustDropped = sanitizeGust(v);
     const pr = spotSeriesProblems({ ...sp.v, ...mergeSpotWind(sp.v, v, from) });
     if (pr.length) { rejected.push(`${id}: ${pr.slice(0, 2).join('; ')}`); continue; }
-    spots[id] = { v, ...(gustDropped ? { gustDropped } : {}) };
+    const q = spotBand(v, w.q, id, bandProblems);
+    if (q) bandSpots++;
+    spots[id] = { v, ...(q ? { q } : {}), ...(gustDropped ? { gustDropped } : {}) };
   }
   const path = seaSpotsWindPath(run, t1);
-  const doc = { schema: 1, product: 'sea-spots-wind', model: MODEL, run, runMs, t1, from, wind: { ...wind.meta, failed: wind.failed }, rejected, spots };
+  const doc = { schema: 1, product: 'sea-spots-wind', model: MODEL, run, runMs, t1, from, wind: { ...wind.meta, failed: wind.failed }, rejected, ...(bandSpots ? { quantiles: bandDoc(bandSpots, bandProblems) } : {}), spots };
   const text = JSON.stringify(doc) + '\n';
   writeAtomic(join(storeDir, path), text);
   st.wind = { run, t1, path, from, engine: wind.meta?.engine ?? null, version: wind.meta?.version ?? null, computedAt: wind.meta?.computedAt ?? null, spots: Object.keys(spots).length, rejected: rejected.length, buildS: Math.round((Date.now() - started) / 1000), bytes: Buffer.byteLength(text) };
   const removed = pruneRuns(storeDir);
   writeStatus(storeDir, st, nowMs);
-  log(`Wind ${run} neu mit t1 ${t1}: ${Object.keys(spots).length} Spots ab Stunde ${from}, ${rejected.length} abgelehnt, ${st.wind.buildS} s`);
-  return { built: true, run, t1, from, path, spots: Object.keys(spots).length, rejected, removed };
+  log(`Wind ${run} neu mit t1 ${t1}: ${Object.keys(spots).length} Spots ab Stunde ${from} (${bandSpots} mit Spanne), ${rejected.length} abgelehnt, ${st.wind.buildS} s`);
+  return { built: true, run, t1, from, path, spots: Object.keys(spots).length, bandSpots, bandProblems, rejected, removed };
 }
 
 /** The newest t1 run of a cube index document (`point/index.json`). */
@@ -511,7 +573,7 @@ async function main() {
     storeDir, dataDir: args.data === 'cdn' ? 'cdn' : typeof args.data === 'string' ? resolve(args.data) : null, cacheDir: resolve(String(args.cache ?? '.sea-cache')),
     run: due.run, inv, nowMs, ewam: args.ewam !== '0', log,
   });
-  log(res.built ? `Lauf ${res.run} gebaut: ${res.mb} MB, ${res.buildS} s, Wind ${res.wind?.engine ?? 'ohne'}` : `Lauf ${res.run ?? '–'} NICHT gebaut: ${res.reason}`);
+  log(res.built ? `Lauf ${res.run} gebaut: ${res.mb} MB, ${res.buildS} s, Wind ${res.wind?.engine ?? 'ohne'}, Spanne an ${res.bandSpots} Spots` : `Lauf ${res.run ?? '–'} NICHT gebaut: ${res.reason}`);
   console.log(JSON.stringify(res));
   // V-SW-18: the waves are published either way; a run with a cube checkout and not one spot with wind ends red.
   if (res.built && args.data && res.windSpots === 0) { log(`FEHLER: Lauf ${res.run} ohne Wind an jedem Spot — ${res.windError ?? 'Grund unbekannt'}`); process.exitCode = 1; }

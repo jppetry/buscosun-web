@@ -9,7 +9,13 @@ import { ResponsiveLine } from '@nivo/line';
 import { MS_TO_KN, fmtWind } from './seaProfiles';
 import { dayShort, hh } from './seaView';
 
-export interface SeaChartHour { t: number; windMs: number | null; gustMs: number | null; hs: number | null; ws: number | null; sw: number | null; daylight: boolean; dry?: boolean }
+export interface SeaChartHour {
+  t: number; windMs: number | null; gustMs: number | null; hs: number | null; ws: number | null; sw: number | null; daylight: boolean; dry?: boolean;
+  /** Phase SU: the span q10–q90 of wind and gust at this hour (m/s); absent or `null` = the spot file carries none. */
+  windBand?: readonly [number, number] | null; gustBand?: readonly [number, number] | null;
+}
+/** Phase SU: the two spans in the colours of their lines (ink = wind, stone = gusts). */
+export const BAND_FILL = Object.freeze({ wind: 'rgba(44,42,38,0.10)', gust: 'rgba(139,115,85,0.17)' });
 /** V-SW-20: hours without sea state at the model cell — a sand strip on the time axis, the lines pause there. */
 export const DRY_COLOUR = '#C9A871';
 type Pos = { x: number; y: number };
@@ -89,10 +95,28 @@ const SERIES_COLOUR: Record<string, string> = { 'Böen': '#8B7355', Wind: '#2C2A
 const colourOf = (s: { id: string | number }) => SERIES_COLOUR[String(s.id)] ?? '#2C2A26';
 const axisX = (show: boolean, big?: boolean) => (show ? { tickSize: 0, tickPadding: big ? 8 : 4, tickValues: 'every 12 hours', format: (d: Date) => `${dayShort(+d)} ${hh(+d)}` } : null);
 
+/**
+ * Phase SU — the runs of consecutive hours that carry a span, in knots (q10 = `lo`, q90 = `hi`). An hour without a
+ * span ends a run (a gap is never bridged) and a single hour is no band. Pure, so the verifier reads what is drawn.
+ */
+export function bandRuns(hours: readonly SeaChartHour[], key: 'windBand' | 'gustBand'): Array<Array<{ t: number; lo: number; hi: number }>> {
+  const runs: Array<Array<{ t: number; lo: number; hi: number }>> = [];
+  let run: Array<{ t: number; lo: number; hi: number }> = [];
+  for (const h of hours) {
+    const b = h[key];
+    if (b) run.push({ t: h.t, lo: b[0] * MS_TO_KN, hi: b[1] * MS_TO_KN });
+    else { if (run.length > 1) runs.push(run); run = []; }
+  }
+  if (run.length > 1) runs.push(run);
+  return runs;
+}
+
 export function WindChart({ hours, selMs, limitKn, limitLabel, big }: { hours: readonly SeaChartHour[]; selMs: number; limitKn: number | null; limitLabel: string; big?: boolean }) {
   const gid = useId();
   const pts = (f: (h: SeaChartHour) => number | null) => hours.map((h) => ({ x: new Date(h.t), y: f(h) }));
-  const maxY = Math.max(10, ...hours.map((h) => kn(h.gustMs) ?? kn(h.windMs) ?? 0), limitKn ?? 0) * 1.1;
+  // Phase SU: without one span in the data everything below is exactly the chart as it was.
+  const spread = hours.some((h) => h.windBand || h.gustBand);
+  const maxY = Math.max(10, ...hours.map((h) => kn(h.gustMs) ?? kn(h.windMs) ?? 0), ...hours.map((h) => kn(h.gustBand?.[1] ?? h.windBand?.[1] ?? null) ?? 0), limitKn ?? 0) * 1.1;
   // Gust band between the two curves (the same monotone curve as the lines, so the band meets them exactly).
   const Band = ({ series, lineGenerator }: Ctx) => {
     const g = series.find((s) => s.id === 'Böen'), w = series.find((s) => s.id === 'Wind');
@@ -101,7 +125,21 @@ export function WindChart({ hours, selMs, limitKn, limitLabel, big }: { hours: r
     if (ok.length < 2) return null;
     const top = lineGenerator(ok.map(([a]) => a.position));
     const bot = lineGenerator(ok.map(([, b]) => b.position).reverse());
-    return top && bot ? <path d={`${top}${bot.replace(/^M/, 'L')}Z`} fill="rgba(139,115,85,0.2)" /> : null;
+    // With the two spans behind it the area between the lines steps back, so the spans stay readable.
+    return top && bot ? <path d={`${top}${bot.replace(/^M/, 'L')}Z`} fill={spread ? 'rgba(139,115,85,0.09)' : 'rgba(139,115,85,0.2)'} /> : null;
+  };
+  // Phase SU: the span q10–q90 of one series as a translucent band BEHIND the lines, on the lines' own curve. Runs of
+  // hours with a span are drawn each for itself (an hour without one is a gap, never bridged).
+  const Spread = (key: 'windBand' | 'gustBand', fill: string) => ({ xScale, yScale, lineGenerator }: Ctx) => {
+    const runs = bandRuns(hours, key);
+    if (!runs.length) return null;
+    return (
+      <g className={`sw-su-band is-${key === 'windBand' ? 'wind' : 'gust'}`}>{runs.map((r) => {
+        const x = (t: number) => xScale(new Date(t));
+        const top = lineGenerator(r.map((p) => ({ x: x(p.t), y: yScale(p.hi) }))), bot = lineGenerator(r.map((p) => ({ x: x(p.t), y: yScale(p.lo) })).reverse());
+        return top && bot ? <path key={r[0].t} d={`${top}${bot.replace(/^M/, 'L')}Z`} fill={fill} /> : null;
+      })}</g>
+    );
   };
   const Limit = ({ yScale, innerWidth }: Ctx) => (limitKn == null ? null : (
     <g>
@@ -113,9 +151,9 @@ export function WindChart({ hours, selMs, limitKn, limitLabel, big }: { hours: r
     // The pill rounds the unrounded hour value, like the tiles (the line itself carries 0.1 kn).
     const ms = hours.find((h) => h.t === selMs)?.windMs;
     return big && id === 'Wind' && ms != null ? `${fmtWind(ms, 'kn')} kn` : null;
-  }), [areaLayer('Wind', `${gid}w`, '#2C2A26', 0.14), Band, Limit]);
+  }), [...(spread ? [Spread('gustBand', BAND_FILL.gust), Spread('windBand', BAND_FILL.wind)] : []), areaLayer('Wind', `${gid}w`, '#2C2A26', spread ? 0.08 : 0.14), Band, Limit]);
   return (
-    <div className="sw-chart" style={{ height: big ? 236 : 92 }} role="img" aria-label="Verlauf Wind und Böen in Knoten (buscosun Fusion)">
+    <div className="sw-chart" style={{ height: big ? 236 : 92 }} role="img" aria-label={`Verlauf Wind und Böen in Knoten (buscosun Fusion)${spread ? ', mit der Spanne, in der Wind und Böen meist liegen' : ''}`}>
       <ResponsiveLine
         data={drawn([{ id: 'Böen', data: pts((h) => kn(h.gustMs)) }, { id: 'Wind', data: pts((h) => kn(h.windMs)) }])}
         colors={colourOf} lineWidth={big ? 2.5 : 2} curve={CURVE} margin={big ? { top: 26, right: 8, bottom: 4, left: 36 } : { top: 6, right: 6, bottom: 2, left: 28 }}

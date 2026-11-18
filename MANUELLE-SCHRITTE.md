@@ -3310,3 +3310,38 @@ Abhängigkeit angefasst. In den Adressen unter Punkt 1 ist `?tf=1` nicht mehr n�
    „Verifier — Wasserstand BSH“ (V-TF-6); er läuft auf GitHub erst mit dem Push.
 6. **Bekannt rot, nicht aus dieser Phase:** `verify:sea-ui` bricht an HEAD in B0 ab (V-TF-5, Selektor aus der Zeit vor dem
    Dossier-Umbau). Konsole, Touch-Ziele und Pixelgleichheit ohne Schalter sind deshalb **nicht** gemessen. Real-Device offen.
+
+## 90. Bandbreite von Wind und Böen auf `/seewetter` (Phase SU, `audit/seewetter-bandbreite.md`), 2026-11-18
+
+Gebaut und lokal committet, **ohne Schalter an für alle (dein Wort 18.11., Ausnahme von Rule 2)**. Sichtbar wird es in
+zwei Schritten: mit dem Push von `buscosun-web` schreibt der Producer (`sea.yml` checkt `main` aus) die Quantile, und die
+Seite zeigt sie, sobald eine Datei sie trägt. Bis dahin — und für jede alte Datei — sieht die Seite aus wie heute.
+
+**Pushes in die Daten-Repos in dieser Phase: keine.** `buscosun-data` und `buscosun-archiv` wurden nicht angefasst (nur
+gelesen: `status.json`, Katalog, eine Spot-Datei per GET in einen Scratch-Ordner). Der Workflow braucht keine Änderung:
+er checkt `scripts` und `src` ganz aus, das Archiv-Skript liest weiter nur `src/sea`.
+
+1. **Push:** `git push origin main`. Danach, ohne Handgriff: die nächste Wind-Auffrischung (≤ 3 h, Cron `sea.yml`)
+   schreibt `spots/<lauf>-w<t1>.json` mit `q` ⇒ Spanne ab deren Stunde; der nächste Wellenlauf (≤ 12 h) trägt sie ganz.
+   Prüfen: `https://raw.githubusercontent.com/jppetry/buscosun-data/main/sea/v1/status.json` → `wind.path` öffnen →
+   ein Spot hat `v` UND `q`, das Dokument `quantiles.spots: 56`. Im Actions-Log steht „… (56 mit Spanne)“.
+2. **Ansehen** (Desktop 1440 × 900, iPhone): `/seewetter/st-peter-ording?p=kite` → Kapitel „Wetter“. Erwartet: an Wind
+   und Böen „meist a–b kn“; darunter zehn Punkte und „Böen über 33 kn: in etwa n von 10 vergleichbaren Lagen“; im
+   Verlauf zwei blasse Bänder um die Linien; im Stundenband die Zeile „über Grenze“ (kräftiger = öfter). Mobil: Punkte und
+   Satz in der unteren Leiste, solange Spot-Kachel oder Dossier offen sind. Belege: `audit/seewetter-bandbreite/shots/`.
+   Vor dem ersten Lauf mit Quantilen lokal ansehen: `npm run build`, `npx vite preview --host 127.0.0.1 --port 5212
+   --strictPort`, dann `audit/seewetter-bandbreite/shots.mjs --store=<Kopie von sea/v1 mit lokaler Auffrischung>`.
+3. **Entscheiden** (`audit/seewetter-bandbreite.md` §3): **E-SU-4** — die Legende sagt „meist = 8 von 10 Fällen“ und
+   daneben die gemessene Zahl („an 14 Küstenstationen im Herbst 2026 rund 3 von 4“; Schritt 0: 74–78 % statt 80 %).
+   Soll der zweite Satz bleiben, kürzer werden oder das Wort „meist“ an der Küste anders erklärt werden? **E-SU-5** —
+   das bisherige Böen-Band bleibt, tritt mit den Spannen aber zurück. **E-SU-3** — q25/q75 an interpolierten Stunden.
+4. **Rückfall:** es gibt keinen Schalter. Für alle: den Commit zurücknehmen und pushen — die Seite zeigt dann auch Dateien
+   mit Quantilen wie heute (ein alter Client übersieht `q`). Nur die Daten ohne Quantile: nicht vorgesehen.
+5. **CI (V-SU-4):** `node scripts/ci-run.mjs verify:sea-wind-band` in `.github/workflows/ci.yml` hinter „Verifier —
+   Tidenfenster“ eintragen — Workflows habe ich nicht angefasst.
+6. **Offen:** Real-Device; kein Pixelvergleich gegen HEAD auf alter Datei (V-SU-5); Auswertung der Spanne an den Spots
+   gegen die POI-Messungen nach ≥ 14 Tagen Archiv (V-SU-2); Dateigröße (V-SU-3: Auffrischung 50 → 208 KB roh).
+7. **Beschreibung im Daten-Repo:** die Vorlage `scripts/repack-repo/README.md` nennt `q` in der Zeile `sea/v1/spots/`;
+   das README von `buscosun-data` folgt ihr mit dem nächsten Publish des Repack-Jobs nach deinem Push (von mir nicht kopiert).
+8. **Nebenbei gesehen, nicht Teil der Phase (V-SU-9):** am 18.11. 00:33 UTC stand `point/index.json` bei t1 `2026111715`
+   (t2 `2026111718`) — die t1-Läufe 18 und 21 UTC fehlten. Bitte den Punkt-Cron ansehen.

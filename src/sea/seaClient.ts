@@ -8,7 +8,8 @@ import {
   SEA_CDN_BASE, SEA_RAW_BASE, SEA_MAX_STEP_BACK, SEA_RUN_EVERY_MS, SEA_SPOT_CATALOG_PATH, SEA_AREAS_PATH, SEA_STATUS_PATH, SEA_SPOT_VARS,
   SEA_MODELS, seaExpectedRun, seaRunStamp, seaRunMs, seaRunJsonPath, seaSpotsPath, seaFieldPath, seaCompPath, seaFreshness, spotSeriesProblems,
   decodeSpotValue, encodeSpotValue, spotCatalogProblems, seaTextPath, seaSpotsWindPath, mergeSpotWind, SEA_WIND_VARS,
-  type SeaSpot, type SeaSpotVar, type SeaFreshness, type SeaWindVar,
+  spotQuantileProblems, decodeSpotQuantiles, mergeSpotQuantiles, dropQuantilesWithoutMean, hasQuantiles,
+  type SeaSpot, type SeaSpotVar, type SeaFreshness, type SeaWindVar, type SeaSpotQuantiles,
 } from './seaContract';
 import { SEA_TEXT_PRODUCTS, seaExpectedIssues, seaTextFreshness, type SeaTextDoc, type SeaTextProduct } from './seaText';
 
@@ -163,19 +164,40 @@ export interface SeaSpotsDoc {
   rejected: string[];
   /** V-SW-2: hour index from which wind/gust/direction come from a later computation (`wind` then describes that one). */
   windFrom?: number;
+  /**
+   * Phase SU: q10 … q90 of wind and gust per spot (m/s), only for spots whose file carries them AND whose columns pass the
+   * value lock. A spot without an entry (every file before phase SU, a failed lock) is shown without band.
+   */
+  quantiles?: Record<string, SeaSpotQuantiles>;
+}
+/** One spot of a spot file as it is stored (encoded columns). */
+export interface SeaSpotRaw { v: Record<SeaSpotVar, (number | null)[]>; q?: SeaSpotQuantiles; gustDropped?: number }
+
+/** Phase SU: the stored quantile columns of a spot, checked against its own stored wind columns → m/s, or `null`. */
+export function readSpotQuantiles(q: unknown, v: Partial<Record<'wind' | 'gust', (number | null)[]>>): SeaSpotQuantiles | null {
+  if (q == null) return null;
+  if (spotQuantileProblems(q, v).length || !hasQuantiles(q as SeaSpotQuantiles)) return null;
+  return decodeSpotQuantiles(q as SeaSpotQuantiles);
+}
+
+/** Pure part of `loadSpots`: a stored spot file → the checked, decoded document (or `null` when it is not one of this run). */
+export function parseSpotsDoc(j: unknown, run: string): SeaSpotsDoc | null {
+  const d = j as { product?: string; run?: string; runMs?: number; steps?: number; wind?: SeaSpotsDoc['wind']; spots?: Record<string, SeaSpotRaw> } | null;
+  if (d?.product !== 'sea-spots-series' || d.run !== run || !d.spots) return null;
+  const series: Record<string, SeaSeries> = {}, gustDropped: Record<string, number> = {}, quantiles: Record<string, SeaSpotQuantiles> = {};
+  const rejected: string[] = [];
+  for (const [id, s] of Object.entries(d.spots)) {
+    if (spotSeriesProblems(s.v).length) { rejected.push(id); continue; }
+    series[id] = Object.fromEntries(SEA_SPOT_VARS.map((k) => [k, s.v[k].map((q) => decodeSpotValue(k, q))])) as SeaSeries;
+    if (s.gustDropped) gustDropped[id] = s.gustDropped;
+    const q = readSpotQuantiles(s.q, s.v);
+    if (q) quantiles[id] = q;
+  }
+  return { run, runMs: d.runMs ?? seaRunMs(run), steps: d.steps ?? 79, wind: d.wind ?? { engine: null, failed: [] }, series, gustDropped, rejected, ...(Object.keys(quantiles).length ? { quantiles } : {}) };
 }
 export async function loadSpots(run: string, signal?: AbortSignal): Promise<SeaSpotsDoc | null> {
   try {
-    const j = await fetchSea(seaSpotsPath(run), 'json', signal) as { product?: string; run?: string; runMs?: number; steps?: number; wind?: SeaSpotsDoc['wind']; spots?: Record<string, { v: Record<SeaSpotVar, (number | null)[]>; gustDropped?: number }> };
-    if (j?.product !== 'sea-spots-series' || j.run !== run || !j.spots) return null;
-    const series: Record<string, SeaSeries> = {}, gustDropped: Record<string, number> = {};
-    const rejected: string[] = [];
-    for (const [id, s] of Object.entries(j.spots)) {
-      if (spotSeriesProblems(s.v).length) { rejected.push(id); continue; }
-      series[id] = Object.fromEntries(SEA_SPOT_VARS.map((k) => [k, s.v[k].map((q) => decodeSpotValue(k, q))])) as SeaSeries;
-      if (s.gustDropped) gustDropped[id] = s.gustDropped;
-    }
-    return { run, runMs: j.runMs ?? seaRunMs(run), steps: j.steps ?? 79, wind: j.wind ?? { engine: null, failed: [] }, series, gustDropped, rejected };
+    return parseSpotsDoc(await fetchSea(seaSpotsPath(run), 'json', signal), run);
   } catch (e) { if (isAbort(e)) throw e; return null; }
 }
 
@@ -194,15 +216,19 @@ export function windPointerOf(status: Record<string, unknown> | null | undefined
 export async function withWindRefresh(doc: SeaSpotsDoc, ptr: SeaWindPointer | null, signal?: AbortSignal): Promise<SeaSpotsDoc> {
   if (!ptr || ptr.run !== doc.run) return doc;
   try {
-    const j = await fetchSea(ptr.path, 'json', signal) as { product?: string; run?: string; t1?: string; from?: number; wind?: SeaSpotsDoc['wind']; spots?: Record<string, { v: Record<SeaWindVar, (number | null)[]>; gustDropped?: number }> };
+    const j = await fetchSea(ptr.path, 'json', signal) as { product?: string; run?: string; t1?: string; from?: number; wind?: SeaSpotsDoc['wind']; spots?: Record<string, SeaWindRaw> };
     if (j?.product !== 'sea-spots-wind' || j.run !== doc.run || j.t1 !== ptr.t1 || !j.spots || !Number.isInteger(j.from)) return doc;
     return mergeWindDoc(doc, { from: j.from as number, wind: j.wind ?? null, spots: j.spots });
   } catch (e) { if (isAbort(e)) throw e; return doc; }
 }
 
+/** One spot of a wind refresh as it is stored (encoded wind columns, phase SU: optional quantiles). */
+export interface SeaWindRaw { v: Record<SeaWindVar, (number | null)[]>; q?: SeaSpotQuantiles; gustDropped?: number }
+
 /** Pure part of `withWindRefresh` (encoded refresh columns onto a decoded doc). */
-export function mergeWindDoc(doc: SeaSpotsDoc, upd: { from: number; wind: SeaSpotsDoc['wind'] | null; spots: Record<string, { v: Record<SeaWindVar, (number | null)[]>; gustDropped?: number }> }): SeaSpotsDoc {
+export function mergeWindDoc(doc: SeaSpotsDoc, upd: { from: number; wind: SeaSpotsDoc['wind'] | null; spots: Record<string, SeaWindRaw> }): SeaSpotsDoc {
   const series: Record<string, SeaSeries> = { ...doc.series }, gustDropped = { ...doc.gustDropped };
+  const quantiles: Record<string, SeaSpotQuantiles> = { ...(doc.quantiles ?? {}) };
   let applied = 0;
   for (const [id, s] of Object.entries(doc.series)) {
     const u = upd.spots[id]?.v;
@@ -213,10 +239,16 @@ export function mergeWindDoc(doc: SeaSpotsDoc, upd: { from: number; wind: SeaSpo
     if (spotSeriesProblems(encoded).length) continue;
     series[id] = merged;
     if (upd.spots[id].gustDropped) gustDropped[id] = upd.spots[id].gustDropped as number; else delete gustDropped[id];
+    // Phase SU: the band follows the wind — from `from` on the refresh's own quantiles (none ⇒ no band there), before it the run's.
+    const q = mergeSpotQuantiles(doc.quantiles?.[id], readSpotQuantiles(upd.spots[id].q, u), upd.from, s.wind.length);
+    dropQuantilesWithoutMean(merged, q);
+    if (hasQuantiles(q)) quantiles[id] = q; else delete quantiles[id];
     applied++;
   }
   if (!applied) return doc;
-  return { ...doc, series, gustDropped, wind: upd.wind ? { ...upd.wind, failed: upd.wind.failed ?? [] } : doc.wind, windFrom: upd.from };
+  const out: SeaSpotsDoc = { ...doc, series, gustDropped, wind: upd.wind ? { ...upd.wind, failed: upd.wind.failed ?? [] } : doc.wind, windFrom: upd.from };
+  if (Object.keys(quantiles).length) out.quantiles = quantiles; else delete out.quantiles;
+  return out;
 }
 
 // --- Fields ------------------------------------------------------------------------------------------
