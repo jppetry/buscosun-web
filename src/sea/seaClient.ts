@@ -16,6 +16,8 @@ import {
   DMI_OBS_MAX_AGE_MS, DMI_OBS_PARAMS, SEA_DMI_PRODUCT, dmiObsLatest, dmiObsUrl, dmiWindOnAxis, seaDmiProblems, seaDmiStale,
   type SeaDmiDoc, type SeaDmiPointer,
 } from './seaDmi';
+import { seaCurrentFieldPath } from './seaContract';
+import { SEA_CURRENT_FIELD, SEA_CURRENT_WHY, currentLoadOf, seaCurrentDead, type SeaCurrentLoad, type SeaCurrentPointer } from './seaCurrent';
 
 /** "Does not exist" (404, or 403 on both ways) — distinct from a hard failure. */
 export class SeaNotThere extends Error {}
@@ -459,6 +461,52 @@ export function withDmiWind(doc: SeaSpotsDoc, spots: readonly SeaSpot[], dmi: Se
   }
   if (Object.keys(windBy).length) out.windBy = windBy;
   return out;
+}
+
+// --- Phase ST: surface current of the BSH (audit/seewetter-stroemung.md) ----------------------------------------------
+
+/**
+ * The current file `status.current` points to — checked, or the reason there is none. A run older than
+ * `SEA_CURRENT_DEAD_MS`, an unreadable or unreachable file is "keine Daten": never an older file in its place.
+ */
+export async function loadCurrent(ptr: SeaCurrentPointer | null, nowMs: number, signal?: AbortSignal): Promise<SeaCurrentLoad> {
+  if (!ptr || seaCurrentDead(ptr.run, nowMs)) return currentLoadOf(ptr, null, nowMs);
+  try {
+    return currentLoadOf(ptr, await fetchSea(ptr.path, 'json', signal), nowMs);
+  } catch (e) {
+    if (isAbort(e)) throw e;
+    return { doc: null, state: 'error', why: SEA_CURRENT_WHY.net };
+  }
+}
+
+const currentFieldCache = new Map<string, Promise<Uint8ClampedArray | null>>();
+/** `current/<run>/f/<hhh>.png` (90 × 55) → exact RGBA bytes (same canvas path as `loadField`), or null. */
+export function loadCurrentField(run: string, hour: number, signal?: AbortSignal): Promise<Uint8ClampedArray | null> {
+  const path = seaCurrentFieldPath(run, hour);
+  const hit = currentFieldCache.get(path);
+  if (hit) return hit;
+  const { nx: width, ny: height } = SEA_CURRENT_FIELD;
+  const p = (async () => {
+    try {
+      const bytes = await fetchSea(path, 'bytes', signal) as Uint8Array;
+      const bmp = await createImageBitmap(new Blob([bytes as BlobPart], { type: 'image/png' }), { colorSpaceConversion: 'none', premultiplyAlpha: 'none' });
+      try {
+        if (bmp.width !== width || bmp.height !== height) return null;
+        const canvas = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(width, height) : Object.assign(document.createElement('canvas'), { width, height });
+        const ctx = canvas.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D | null;
+        if (!ctx) return null;
+        ctx.drawImage(bmp, 0, 0);
+        return ctx.getImageData(0, 0, width, height).data;
+      } finally { bmp.close(); }
+    } catch (e) {
+      currentFieldCache.delete(path);
+      if (isAbort(e)) throw e;
+      return null;
+    }
+  })();
+  currentFieldCache.set(path, p);
+  if (currentFieldCache.size > 80) currentFieldCache.delete(currentFieldCache.keys().next().value as string);
+  return p;
 }
 
 // --- Early start (load time 10.11.) ---------------------------------------------------------------------------------

@@ -229,6 +229,8 @@ sea/v1/static/areas.json                    Seegebiete und Küstenabschnitte (DW
 sea/v1/static/mask-cwam.hash                sha256 der Landmaske
 sea/v1/static/spot-geo.json                 Gelände/Rauhigkeit an den Spot-Zellen (nur für den Producer; Höhe über Wasser = 0)
 sea/v1/static/spots-dk.json                 dänische Spots (Phase DK), gleiche Form wie spots.json: country DK, kein deutscher Küstenabschnitt, DMI-Station, `dk` = woher Wind und Wasserstand kommen
+sea/v1/current/<lauf>.json                  Strömung am Spot (Phase ST): je Spot stündlich Geschwindigkeit (cm/s) und „setzt nach“ (Grad), Stauwasser-Zeiten aus den 15-min-Schritten, Modellzelle mit Abstand; Quelle BSH-Strömungsvorhersage (Pakete db und wb, Mittel der oberen 5 m), CC BY 4.0; Zeiger in status.json → `current`
+sea/v1/current/<lauf>/f/<hhh>.png           ausgedünntes Stundenfeld der Strömung für die Kartenebene: 90 × 55 Zellen (jede siebte CWAM-Zelle, abgetastet), R = cm/s (254 = ≥ 2,54 m/s, 255 = kein Wert), G = „setzt nach“ in 256 Stufen, A = 255 mit Wert
 sea/v1/dmi/<YYYYMMDDHHmm>.json              DMI für die dänischen Spots: Wasserstand des Sturmflutmodells DKSS (cm gegen das Mittelwasser des Modells) und, außerhalb des Punkt-Cubes, Wind aus HARMONIE; `failed` nennt, was DMI nicht lieferte. Zeiger: status.json `dmi`. Quelle opendataapi.dmi.dk, CC BY 4.0
 ```
 

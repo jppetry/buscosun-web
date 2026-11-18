@@ -4,6 +4,7 @@
  *   sea/v1/<YYYY-MM-DD>/spots-<run>.json.gz   spot series of every published CWAM run (waves + buscosun Fusion wind)
  *   sea/v1/<YYYY-MM-DD>/spots-<run>-w<t1>.json.gz   wind refresh of that run on a newer t1 cube (V-SW-2), as found in the store
  *                                               (phase SU: both carry the optional quantiles `q` per spot; index → `band`)
+ *   sea/v1/<YYYY-MM-DD>/current-<run>.json.gz  phase ST: surface current of the BSH at the spots (hourly speed, sets towards, slack water)
  *   sea/v1/<YYYY-MM-DD>/poi.json.gz            hourly POI measurements of the coastal stations of the catalogue
  *                                               (mean wind, direction, gust of the last hour) — the truth for Gate D
  *   sea/v1/<YYYY-MM-DD>/text.json.gz           every text issue of that day (display text + raw + issue time)
@@ -18,7 +19,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, rename
 import { join, resolve, dirname } from 'node:path';
 import { gzipSync, gunzipSync } from 'node:zlib';
 import { fileURLToPath } from 'node:url';
-import { SEA_SPOT_CATALOG_PATH, SEA_SPOTS_WIND_RE, seaRunMs, hasQuantiles } from '../../src/sea/seaContract.ts';
+import { SEA_SPOT_CATALOG_PATH, SEA_SPOTS_WIND_RE, SEA_CURRENT_DIR, SEA_CURRENT_RE, seaRunMs, hasQuantiles } from '../../src/sea/seaContract.ts';
 import { SEA_TEXT_STAGE1, seaIssueMs } from '../../src/sea/seaText.ts';
 
 const SELF = fileURLToPath(import.meta.url);
@@ -70,7 +71,7 @@ function noteBand(entry, key, doc) {
 export async function archiveSea({ storeDir, archiveDir, nowMs = Date.now(), poi = true, fetchImpl = fetch, log = () => {} }) {
   const index = readJson(join(archiveDir, 'index.json')) ?? { schema: 1, product: 'sea-archive', days: {} };
   const touch = (d, k) => { const e = (index.days[d] ??= { spots: [], poiStations: 0, texts: 0 }); return e; };
-  let spotsAdded = 0, textsAdded = 0, poiRows = 0;
+  let spotsAdded = 0, textsAdded = 0, poiRows = 0, currentAdded = 0;
   // Spot series of every run in the store.
   const sdir = join(storeDir, 'spots');
   for (const f of existsSync(sdir) ? readdirSync(sdir).filter((x) => /^\d{10}\.json$/.test(x)) : []) {
@@ -93,6 +94,19 @@ export async function archiveSea({ storeDir, archiveDir, nowMs = Date.now(), poi
     const e = touch(d); (e.wind ??= []).includes(key) || e.wind.push(key);
     noteBand(e, key, doc);
     spotsAdded++;
+  }
+  // Phase ST: the surface current of the BSH at the spots (`current/<run>.json`, origin `bsh`) — whole, once per run. The
+  // store keeps two runs (≥ 12 h each as the newest), the 6-hourly pass sees every one. The thinned map field is not archived.
+  const cdir = join(storeDir, SEA_CURRENT_DIR);
+  for (const f of existsSync(cdir) ? readdirSync(cdir).filter((x) => SEA_CURRENT_RE.test(x)) : []) {
+    const run = f.slice(0, 10), d = day(seaRunMs(run));
+    const dst = join(archiveDir, d, `current-${run}.json.gz`);
+    if (existsSync(dst)) continue;
+    const doc = readJson(join(cdir, f));
+    if (doc?.product !== 'sea-current' || doc.run !== run) continue;
+    writeGz(dst, doc);
+    const e = touch(d); (e.current ??= []).includes(run) || e.current.push(run);
+    currentAdded++;
   }
   // Text issues, merged per day by `<product>/<issue>`.
   const byDay = {};
@@ -135,10 +149,10 @@ export async function archiveSea({ storeDir, archiveDir, nowMs = Date.now(), poi
     }
   }
   index.updatedAt = new Date(nowMs).toISOString();
-  for (const e of Object.values(index.days)) { e.spots.sort(); e.wind?.sort(); e.band?.sort(); }
+  for (const e of Object.values(index.days)) { e.spots.sort(); e.wind?.sort(); e.band?.sort(); e.current?.sort(); }
   mkdirSync(archiveDir, { recursive: true });
   writeFileSync(join(archiveDir, 'index.json'), JSON.stringify(index, null, 1) + '\n');
-  return { spotsAdded, textsAdded, poiRows, days: Object.keys(index.days).length };
+  return { spotsAdded, textsAdded, poiRows, currentAdded, days: Object.keys(index.days).length };
 }
 
 async function main() {

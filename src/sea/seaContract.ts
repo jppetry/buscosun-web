@@ -564,6 +564,40 @@ export function spotSeriesProblems(series: Partial<Record<SeaSpotVar, (number | 
   return out;
 }
 
+// --- Current at the spot (phase ST, audit/seewetter-stroemung.md) ---------------------------------
+
+/**
+ * Two more columns per spot, in a file of their own (`current/<run>.json`, like the wind refresh — the wave run's file
+ * stays as it is): `cur` = speed of the surface current in cm/s, `curTo` = the direction the current SETS TOWARDS in
+ * degrees (the nautical convention for currents; wind and waves on this page are "comes from"). One value per whole hour
+ * of the file's own axis, `null` = no current at the model cell that hour (dry in the model) or no data.
+ * Source: BSH operational model, mean of the upper 5 m — origin `bsh`, never mixed into the model/Fusion columns.
+ */
+export const SEA_CURRENT_VARS = Object.freeze(['cur', 'curTo'] as const);
+export type SeaCurrentVar = typeof SEA_CURRENT_VARS[number];
+export const SEA_CURRENT_ORIGIN: Readonly<Record<SeaCurrentVar, 'bsh'>> = Object.freeze({ cur: 'bsh', curTo: 'bsh' });
+/** Value limits: 0–500 cm/s (the fastest cell of the measured run: 184 cm/s), 0–359°. */
+export const SEA_CURRENT_LIMITS: Readonly<Record<SeaCurrentVar, readonly [number, number]>> = Object.freeze({ cur: [0, 500], curTo: [0, 359] });
+export const SEA_CURRENT_DIR = 'current';
+export const seaCurrentPath = (run: string) => `${SEA_CURRENT_DIR}/${run}.json`;
+/** Thinned hourly field of a run, hour `h` of the file's axis (0-based). */
+export const seaCurrentFieldPath = (run: string, h: number) => `${SEA_CURRENT_DIR}/${run}/f/${String(h).padStart(3, '0')}.png`;
+export const SEA_CURRENT_RE = /^(\d{10})\.json$/;
+
+/** Value lock of the two encoded current columns of one spot (producer before writing, client before display). */
+export function currentSeriesProblems(series: Partial<Record<SeaCurrentVar, (number | null)[]>>, hours: number): string[] {
+  const out: string[] = [];
+  for (const v of SEA_CURRENT_VARS) {
+    const a = series[v], [lo, hi] = SEA_CURRENT_LIMITS[v];
+    if (!Array.isArray(a) || a.length !== hours) { out.push(`${v}: Länge ${Array.isArray(a) ? a.length : '–'} statt ${hours}`); continue; }
+    a.forEach((x, i) => { if (x != null && (!Number.isInteger(x) || x < lo || x > hi)) out.push(`${v}[${i}] = ${x}`); });
+  }
+  const c = series.cur, d = series.curTo;
+  // Speed and direction belong together: an hour carries both or neither.
+  if (Array.isArray(c) && Array.isArray(d) && c.length === d.length) c.forEach((x, i) => { if ((x == null) !== (d[i] == null)) out.push(`Stunde ${i}: Geschwindigkeit ohne Richtung oder umgekehrt`); });
+  return out;
+}
+
 // --- Spot catalogue (static/spots.json, E-SW-5) --------------------------------------------------
 
 export type SeaSpotKind = 'strand' | 'kite' | 'hafen' | 'revier';

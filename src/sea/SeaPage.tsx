@@ -27,7 +27,7 @@ import { WlCatalogMissing, loadGaugeCatalog, loadGaugeForecast } from './waterLe
 import { coastWarnStatus, seaTextFreshness, type SeaTextProduct } from './seaText';
 import { DMI_CREDIT, DMI_HOST, DMI_LICENCE, DMI_LICENCE_URL, DMI_NAME, DMI_WIND_LABEL, dmiPointerOf } from './seaDmi';
 import {
-  loadAreas, loadCatalog, loadDmi, loadField, loadKillSwitch, loadLatestRun, loadStationObs, loadSpots, loadText, windPointerOf, withDmiWind, withWindRefresh,
+  loadAreas, loadCatalog, loadCurrent, loadCurrentField, loadDmi, loadField, loadKillSwitch, loadLatestRun, loadStationObs, loadSpots, loadText, windPointerOf, withDmiWind, withWindRefresh,
   SEA_DMI_NONE, SEA_PAGE_TEXTS, takeSeaChain, takeSeaStatic,
   type SeaAreas, type SeaCatalog, type SeaDmiLoad, type SeaPoiObs, type SeaRunLoad, type SeaSpotsDoc,
 } from './seaClient';
@@ -54,6 +54,11 @@ import SeaGustOdds from './SeaGustOdds';
 import { gustOverLimit, mostText, overSentence, q5At } from './windBand';
 import SeaReadout, { findWarning, type SeaDmiWater, type SeaReadoutHour, type SeaTexts, type SeaWaterLevel } from './SeaReadout';
 import SeaMapCard from './SeaMapCard';
+import SeaCurrentPanel, { DriftArrow } from './SeaCurrentPanel';
+import {
+  BSH_CURRENT_CHANGED, BSH_CURRENT_CREDIT, BSH_CURRENT_LICENCE, BSH_CURRENT_LICENCE_URL, BSH_CURRENT_NAME, BSH_CURRENT_PAGE, SEA_CURRENT_MODEL_NOTE, SEA_CURRENT_WHY,
+  currentArrows, currentFieldHour, currentOnAxis, currentPointerOf, currentViewOf, type SeaCurrentLoad,
+} from './seaCurrent';
 import MapGestureHint, { type HintSpot } from '../map/MapGestureHint';
 import SeaLinkNotice from './SeaLinkNotice';
 import AppLoader from '../router/AppLoader';
@@ -74,7 +79,7 @@ const DEFAULT_SPOT = 'st-peter-ording';
 const REFRESH_MS = 10 * 60_000;
 const TEXTS: readonly SeaTextProduct[] = SEA_PAGE_TEXTS;
 /** WL: `water` on by default (E-WL-1), `?wl=0` starts without it — the switch stays the named fallback. */
-const DEFAULT_TOGGLES: SeaToggles = { wind: true, warn: true, stations: false, water: true };
+const DEFAULT_TOGGLES: SeaToggles = { wind: true, warn: true, stations: false, water: true, current: false };
 const KIND_LABEL: Record<string, string> = { strand: 'Badestrand', kite: 'Kite-Spot', hafen: 'Hafen', revier: 'Revier' };
 export const kindsLabel = (kinds: readonly string[]) => kinds.map((x) => KIND_LABEL[x] ?? x).join(', ');
 /** Phase TF (E-TF-1): how many gauges are asked for a curve when the catalogue's hint `has.curve` proves wrong live. */
@@ -98,6 +103,10 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   // Phase DK: pointer to the newest DMI file (`status.dmi`, kept as a string like the wind pointer; '' = none) and what the page read from it.
   const [dmiPtr, setDmiPtr] = useState<string | null>(null);
   const [dmi, setDmi] = useState<SeaDmiLoad | 'loading'>('loading');
+  // Phase ST: pointer to the newest current file of the BSH (`status.current`, a string like the others; '' = none) and what the page read.
+  const [curPtr, setCurPtr] = useState<string | null>(null);
+  const [current, setCurrent] = useState<SeaCurrentLoad | 'loading'>('loading');
+  const [currents, setCurrents] = useState<GeoJSON.FeatureCollection | null>(null);
   const [texts, setTexts] = useState<Partial<Record<SeaTextProduct, import('./seaText').SeaTextDoc | null>>>({});
   const [textsLoading, setTextsLoading] = useState(true);
   const [spotId, setSpotId] = useState<string>(initial.spot ?? DEFAULT_SPOT);
@@ -194,6 +203,9 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
       // DK: unreadable status ⇒ the pointer stays; on the very first read it becomes "none" so the card does not load for ever.
       const dp = dmiPointerOf(k.status);
       setDmiPtr((prev) => (k.status == null ? prev ?? '' : dp ? `${dp.stamp}|${dp.path}|${dp.builtAt}` : ''));
+      // ST: the same rule for the current file.
+      const cp = currentPointerOf(k.status);
+      setCurPtr((prev) => (k.status == null ? prev ?? '' : cp ? `${cp.run}|${cp.path}|${cp.builtAt}|${cp.field ? 1 : 0}` : ''));
       const r = k.killed ? await loadLatestRun(now, true, ac.signal).catch(() => null) : await runP;
       if (!alive || !r) return;
       // A refresh never replaces a good run by "nothing" — the shown run stays and ages by the freshness rules.
@@ -267,6 +279,16 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
     return () => ac.abort();
   }, [needsDmi, dmiPtr, killed, dmiTick]); // eslint-disable-line react-hooks/exhaustive-deps
   const dmiDoc = dmi !== 'loading' ? dmi.doc : null;
+  // --- Phase ST: the current file of the BSH — one small read per pointer and refresh tick; missing, too old or unreadable ⇒ "keine Daten".
+  useEffect(() => {
+    if (curPtr == null) return;     // null = status.json not read yet
+    if (killed) { setCurrent({ doc: null, state: 'none', why: SEA_CURRENT_WHY.killed }); return; }
+    const [crun, cpath, cbuilt, cfield] = curPtr.split('|');
+    const ac = new AbortController();
+    loadCurrent(curPtr ? { run: crun, path: cpath, builtAt: cbuilt, field: cfield === '1' } : null, nowMs, ac.signal).then((d) => { if (!ac.signal.aborted) setCurrent(d); }, () => {});
+    return () => ac.abort();
+  }, [curPtr, killed, dmiTick]); // eslint-disable-line react-hooks/exhaustive-deps
+  const curDoc = current !== 'loading' ? current.doc : null;
   // The series the page works with: the run's file, with the DMI wind at the spots outside the point cube (E-DK-5).
   const spotsDoc = useMemo(() => (rawSpotsDoc ? withDmiWind(rawSpotsDoc, spots, dmiDoc) : null), [rawSpotsDoc, spots, dmiDoc]);
   // A link on a spot: the map centres on it once (also behind the dossier, so „Zur Karte" lands at the spot).
@@ -422,6 +444,23 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   ), [spot, usable, verdicts, nowMs, tideFeed, spotVerdicts, nowHour]);
   const hour = spotHours[k] ?? null;
   const verdict = spot ? (spotVerdicts[k] ?? verdictAt(spot, k)) : null;
+  // Phase ST: the spot's current on the hour axis of the wave run, and what the readout says for the chosen hour.
+  const spotCur = useMemo(() => {
+    const e = spot && curDoc ? curDoc.spots[spot.id] : null;
+    return e && curDoc && run ? currentOnAxis(curDoc, e, run.runMs, 79) : null;
+  }, [spot, curDoc, run]);
+  const hourWindDir = hour?.windDir ?? null, hourWindKn = hour?.windMs != null ? hour.windMs * MS_TO_KN : null;
+  const currentView = useMemo(() => (spot ? currentViewOf({ load: current, spotId: spot.id, tMs: validMs, nowMs, windFromDeg: hourWindDir, windKn: hourWindKn }) : null),
+    [spot, current, validMs, nowMs, hourWindDir, hourWindKn]);
+  // Map layer „Strömung“: the thinned field of the chosen hour as arrows; outside the run or unreadable ⇒ no arrows.
+  const curFieldHour = toggles.current && curDoc ? currentFieldHour(curDoc, validMs) : null;
+  const curFieldKey = curDoc && curFieldHour != null ? `${curDoc.run}/${curFieldHour}` : null;
+  useEffect(() => {
+    if (!curFieldKey || !curDoc || curFieldHour == null) { setCurrents(null); return; }
+    const ac = new AbortController();
+    loadCurrentField(curDoc.run, curFieldHour, ac.signal).then((rgba) => { if (!ac.signal.aborted) setCurrents(rgba ? currentArrows(rgba) : null); }, () => {});
+    return () => ac.abort();
+  }, [curFieldKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Phase SP: trip planner (`seaPlanner.ts` computes, this block only feeds it) -----------------------------
   const planWin = useMemo(() => (plan && usable ? planWindow(plan.startMs, plan.endMs, nowHour, nHours) : null), [plan, usable, nowHour, nHours]);
@@ -680,7 +719,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   const stations = useMemo(() => (toggles.stations ? [...new Map(spots.filter((s) => s.station).map((s) => [s.station!.id, { id: s.station!.id, name: s.station!.name, lon: s.station!.lon, lat: s.station!.lat }])).values()] : null), [spots, toggles.stations]);
 
   // Phase SU: how often gusts lie above the profile's gust limit, per hour (`null` without quantiles or without a gust limit).
-  const bandHours: SeaBandHour[] = spotHours.map((h, i) => ({ t: h.t, windMs: h.windMs, gustMs: h.gustMs, windDir: h.windDir, hs: h.hs, dir: h.dir, tm: h.tm, dry: h.dry, cls: spotVerdicts[i].cls, reason: spotVerdicts[i].reasons.join(' · '), daylight: spotVerdicts[i].daylight, over: gustOverLimit(h.gustQ, limits.gustMax) }));
+  const bandHours: SeaBandHour[] = spotHours.map((h, i) => ({ t: h.t, windMs: h.windMs, gustMs: h.gustMs, windDir: h.windDir, hs: h.hs, dir: h.dir, tm: h.tm, dry: h.dry, cls: spotVerdicts[i].cls, reason: spotVerdicts[i].reasons.join(' · '), daylight: spotVerdicts[i].daylight, over: gustOverLimit(h.gustQ, limits.gustMax), curKn: spotCur?.kn[firstIdx + i] ?? null, curTo: spotCur?.to[firstIdx + i] ?? null }));
   const bandOver = limits.gustMax != null && bandHours.some((h) => h.over) ? { limitKn: limits.gustMax } : null;
   const chartHours = spotHours.map((h, i) => ({
     t: h.t, windMs: h.windMs, gustMs: h.gustMs, hs: h.hs, ws: h.ws, sw: h.sw, dry: h.dry, daylight: spotVerdicts[i].daylight,
@@ -706,6 +745,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
         { name: 'Seegebiete © GeoBasis-DE / BKG 2021, VMAP0', what: 'Umrisse der Warngebiete', changed: 'Daten modifiziert', on: toggles.warn },
         { name: 'Deutscher Wetterdienst · Messstationen', url: 'https://opendata.dwd.de/', what: 'Wind und Böen gemessen', licence: 'GeoNutzV / CC BY 4.0', licenceUrl: CC_BY_URL, on: toggles.stations },
         { name: 'Bundesamt für Seeschifffahrt und Hydrographie (BSH)', url: WL_SERVICE_PAGE, what: 'Wasserstandsvorhersage an den Pegeln', credit: WL_ATTRIBUTION, licence: WL_LICENCE, licenceUrl: WL_LICENCE_URL, on: water },
+        { name: `${BSH_CURRENT_NAME} · Strömungsvorhersage`, url: BSH_CURRENT_PAGE, what: `Oberflächenströmung: Wert am Spot, Stauwasser, Pfeile auf der Karte (${SEA_CURRENT_MODEL_NOTE})`, credit: BSH_CURRENT_CREDIT, licence: BSH_CURRENT_LICENCE, licenceUrl: BSH_CURRENT_LICENCE_URL, changed: BSH_CURRENT_CHANGED, on: toggles.current || !!spotCur },
         // Phase DK — only listed when the catalogue carries Danish spots.
         ...(hasDk ? [{ name: DMI_NAME, url: DMI_HOST, what: 'Dänische Spots: Wasserstand des Sturmflutmodells DKSS, Wind aus HARMONIE außerhalb des Punkt-Cubes, Messungen der Stationen', credit: DMI_CREDIT, licence: DMI_LICENCE, licenceUrl: DMI_LICENCE_URL, changed: 'eigene Darstellung, auf Stunden und cm gerundet', on: water || toggles.stations || toggles.wind }] : []),
       ],
@@ -740,6 +780,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
       <div className="sw-legend-side">
         <div className="sw-legend-row"><svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true" fill="none" stroke="#2C2A26" strokeWidth="1.6" strokeLinecap="round"><path d="M2 6h13M11 2l4 4-4 4" /></svg>Wellen laufen in Pfeilrichtung</div>
         <div className="sw-legend-row"><i className="is-hatched" />Wasser ohne gültigen Wert</div>
+        {toggles.current && <div className="sw-legend-row sw-st-legend"><DriftArrow to={90} size={16} />{currents ? 'Strom setzt in Pfeilrichtung (Modell des BSH)' : current === 'loading' ? 'Strömung lädt' : 'Strömung: keine Daten für diese Stunde'}</div>}
       </div>
       <div className="sw-legend-spot">
         <div className="sw-eyebrow">Spot · {profLabel}</div>
@@ -811,13 +852,13 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   const map = (
     <SeaMap field={coloured} arrows={arrows} spots={noData ? mapSpots.map((s) => ({ ...s, cls: 'keine' as const, windTo: null })) : mapSpots} selectedId={spot?.id ?? null}
       stations={stations} gauges={mapGauges} selectedGaugeId={gaugeId ?? (dmiSpot && spot ? `dmi:${spot.id}` : null)} onGauge={pickGauge} areas={mapAreas} showWind={toggles.wind && !noData} padding={padding} onSelect={pickSpotFromMap} onMap={(m) => { mapRef.current = m; setMapInst(m); }}
-      plan={mapPlan} />
+      plan={mapPlan} currents={toggles.current ? currents : null} />
   );
   const band = spot && usable && bandHours.length > 0 && (
     <SeaBand hours={bandHours} unit={unit} selected={k} onPick={setT} compact={isMobile}
       title={`${spot.name} · ${profLabel}`} sub={`${dayShort(bandHours[0].t)} ${hh(bandHours[0].t)} bis ${dayShort(bandHours[bandHours.length - 1].t)} ${hh(bandHours[bandHours.length - 1].t)} Uhr · ${tzLabel(validMs)}`}
       footnote={`Welle: Modell ${runTxt} · Wind/Böen: ${spotWindName}`}
-      tide={tideFeed ? { hours: tideFeed.hours!, side: tideSideText(tideFeed.mode!, tideFeed.name) } : null} over={bandOver} plan={bandPlan} />
+      tide={tideFeed ? { hours: tideFeed.hours!, side: tideSideText(tideFeed.mode!, tideFeed.name) } : null} over={bandOver} plan={bandPlan} current={!!spotCur} />
   );
   const planner = planOpen && spot ? (
     <SeaPlanPanel spotName={spot.name} limitsText={`${profLabel}, ${limitsSummary(limits)}`} profile={profile} onProfile={setProfile}
@@ -849,7 +890,8 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
       limitKn={lim} limitLabel={limits.gustMax != null ? `Böen ${limits.gustMax} kn` : limits.windMax != null ? `Wind ${limits.windMax} kn` : ''} gustLimitKn={limits.gustMax} unit={unit}
       run={run} spotsDoc={spotsDoc} freshness={freshness} texts={seaTexts} poi={poi} nowMs={nowMs} noData={noData ?? noSeriesText} warning={warning}
       dry={{ hours: dryHours, of: spotHours.length, classed: dryRule }} waterLevel={waterLevel} dmiWater={dmiWater} tide={tideView}
-      layout="dossier" band={band} chips={isMobile ? undefined : (usable && chips)} onMap={() => setStage('map')} />
+      layout="dossier" band={band} chips={isMobile ? undefined : (usable && chips)} onMap={() => setStage('map')}
+      current={spot && currentView ? <SeaCurrentPanel view={currentView} tMs={validMs} windFrom={hourWindDir} windKn={hourWindKn} tidal={!!spot.tidal} /> : undefined} />
   );
   const inDossier = stage === 'dossier';
   // The compact preview of the map-picked spot — the same numbers as the briefing and the callout.

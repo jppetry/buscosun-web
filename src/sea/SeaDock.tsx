@@ -12,7 +12,7 @@ import { useSearchSheet } from '../components/LocationSearchSheet';
 import { ListSearchSheet } from '../components/ListSearchSheet';
 
 export interface SeaDockSpot { id: string; name: string; sub: string; cls: SeaClass; reason: string; /** Phase DK: a Danish spot — the name carries the pennant. */ dk?: boolean }
-export interface SeaToggles { wind: boolean; warn: boolean; stations: boolean; water: boolean }
+export interface SeaToggles { wind: boolean; warn: boolean; stations: boolean; water: boolean; /** Phase ST: map layer „Strömung“ (off by default). */ current: boolean }
 
 interface Props {
   query: string; onQuery: (q: string) => void;
@@ -50,6 +50,8 @@ const TOGGLE_ICON: Record<keyof SeaToggles, ReactElement> = {
   warn: <path d="M12 3.5 2.8 19.5h18.4L12 3.5zM12 10v4.5M12 17.2v.1" />,
   stations: <><circle cx="12" cy="12" r="2.2" /><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2" /></>,
   water: <path d="M12 3.2s6.3 6.5 6.3 10.6a6.3 6.3 0 0 1-12.6 0C5.7 9.7 12 3.2 12 3.2zM9.2 14.2a3 3 0 0 0 2.6 2.4" />,
+  // Phase ST: the drift arrow — a float and where it goes.
+  current: <><path d="M6 18.5 17.5 7M10.5 6.5h7.5V14" /><circle cx="5" cy="19.5" r="1.9" fill="currentColor" stroke="none" /></>,
 };
 
 export default function SeaDock(p: Props) {
@@ -63,6 +65,7 @@ export default function SeaDock(p: Props) {
     ['warn', 'Warnstatus Küste', 'DWD Seewetterdienst · deutsche Gebiete'],
     ['stations', 'Messstationen', 'DWD · Wind und Böen gemessen'],
     ['water', 'Wasserstand-Vorhersage', 'BSH · Pegel, CC BY 4.0'],
+    ['current', 'Strömung', 'BSH-Modell · Pfeile, wohin der Strom setzt'],
   ];
   // Phase DK: with Danish spots in the catalogue the two layers also carry DMI stations and DMI model points — named here.
   if (p.hasDk) {

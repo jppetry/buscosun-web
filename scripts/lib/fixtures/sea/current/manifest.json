@@ -1,0 +1,73 @@
+{
+ "recorded": "2026-11-18T08:11:50.807Z",
+ "run": "2026111800",
+ "source": "BSH Strömungsvorhersage, Pakete db und wb (CC BY 4.0)",
+ "cuts": {
+  "run/Current_db_2026111800_00.grb2": {
+   "from": "Current_db_2026111800_00.grb2",
+   "fromBytes": 12004493,
+   "fromSha256": "fa162c8acb1e025eaba814bf433aadb4c69ccfe92d3cc878afcae0c0e7fc672d",
+   "offset": 252460,
+   "length": 254199,
+   "messages": 4,
+   "times": [
+    "2026-11-18T00:45:00.000Z",
+    "2026-11-18T01:00:00.000Z"
+   ]
+  },
+  "run/Current_wb_2026111800_00.grb2": {
+   "from": "Current_wb_2026111800_00.grb2",
+   "fromBytes": 15073695,
+   "fromSha256": "137b23237e932b468932726aa4f3659c733b35f8a47870197f229c18c2a9eae1",
+   "offset": 312291,
+   "length": 312019,
+   "messages": 4,
+   "times": [
+    "2026-11-18T00:45:00.000Z",
+    "2026-11-18T01:00:00.000Z"
+   ]
+  }
+ },
+ "files": {
+  "doc.json": {
+   "bytes": 36776,
+   "sha256": "4eee282a473a2d1f96f76dad2a7385a21bbf1a97b4f9836576c32170ace36523"
+  },
+  "filebox-nordsee.xml": {
+   "bytes": 14507,
+   "sha256": "0cd5cfdd14f7449623d7936871e7f0c2cc27727f8d28577aef9bfa72da40c9b6"
+  },
+  "filebox-ostsee.xml": {
+   "bytes": 20092,
+   "sha256": "17a8563f296d3f0cc49551947f03e97272a3d620fafd8175997dae7f89f5374f"
+  },
+  "ftp-nordsee.txt": {
+   "bytes": 2688,
+   "sha256": "4e1a3ca83c17f743ebb6fee59f94227a27110231cf3ca12bddfe099734686fe9"
+  },
+  "ftp-ostsee.txt": {
+   "bytes": 3768,
+   "sha256": "be5c1f4c5c6f54cc973c5cca093cefa735db129e752bf8523a3b2140f805d324"
+  },
+  "reference-eccodes.json": {
+   "bytes": 9694,
+   "sha256": "6e789e92ce03074f6bb05f53b51f2f50839d2125a3edb36b600f8376b5f96ee4"
+  },
+  "reference-request.json": {
+   "bytes": 399,
+   "sha256": "2a5d8dfd34234e531676eb4d7ce117e8e199c87e8856b6da91463bde2c4b4a55"
+  },
+  "series.json": {
+   "bytes": 32887,
+   "sha256": "429bec4071982747375efbae844d846fba7b685606c56b3b6bdc97319f869a75"
+  },
+  "run/Current_db_2026111800_00.grb2": {
+   "bytes": 254199,
+   "sha256": "8e626e598c54dcdd1aa9e4a6676b750d443ee43347141e7d78ca2452c486275b"
+  },
+  "run/Current_wb_2026111800_00.grb2": {
+   "bytes": 312019,
+   "sha256": "2bb4704aba9c1d52d3efb912ef809a5219feef7605e2edae9cadccd73b63e44c"
+  }
+ }
+}

@@ -76,6 +76,8 @@ interface Props {
   chips?: ReactNode;
   /** Dossier only: back to the map stage. */
   onMap?: () => void;
+  /** Phase ST: the card of the section „Strömung“ (`SeaCurrentPanel.tsx`); absent = no section. */
+  current?: ReactNode;
 }
 
 const TABS: Array<[SeaTab, string]> = [['spot', 'Spot'], ['gebiet', 'Seegebiet'], ['quellen', 'Quellen']];
@@ -495,6 +497,11 @@ export default function SeaReadout(p: Props) {
                 <DsSection id="sw-sec-stunde" title="Wind und Seegang" hint="Die gewählte Stunde auf einen Blick">
                   {nowCard}
                 </DsSection>
+                {p.current && (
+                  <DsSection id="sw-sec-strom" title="Strömung" hint="Modell des BSH an der nächsten Wasserzelle mit Strom">
+                    {p.current}
+                  </DsSection>
+                )}
                 <DsSection id="sw-sec-verlauf" title="Verlauf und Stundenband" hint="Eine Stunde im Band wählen setzt Karte und Werte auf diese Zeit">
                   {chartPanel}
                   {p.band}

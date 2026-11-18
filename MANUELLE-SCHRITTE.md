@@ -3442,3 +3442,74 @@ Beides wirkt auf die heutige Seite und den heutigen Producer **nicht**: sie kenn
 9. **Offen:** Sichtprüfung und Real-Device (Punkt 2); Konsole, Touch-Ziele am Gerät, Long Tasks und Pixelgleichheit der
    Seite ohne dänische Spots sind **nicht** gemessen; `verify:sea-ui` nicht gelaufen (Browser, bricht an HEAD in B0 ab).
    Befunde V-DK-2 … 12, vor allem V-DK-4 (Windrichtung ab +38 h nur dreistündlich an fünf Spots).
+
+## 93. Strömung am Spot und „Wind gegen Strom“ auf `/seewetter` (Phase ST, `audit/seewetter-stroemung.md`), 2026-11-18
+
+Oberflächenströmung des BSH an jedem Spot: Zeile „Strom kn“ im Stundenband, Abschnitt „Strömung“ im Dossier (Knoten,
+„setzt nach“, nächstes Stauwasser, Abstand der Modellzelle), Hinweis „Wind gegen Strom“, wählbare Kartenebene
+„Strömung“. **Ohne Schalter an für alle (dein Wort 18.11., Ausnahme von Rule 2).** Lokal committet, sichtbar mit dem Push
+von `buscosun-web`. **Ich habe die Seite nicht im Browser geöffnet und keine Bilder gemacht (dein Wort 18.11.)** —
+Aussehen, Kompassscheibe, Bandzeile, Pfeile auf der Karte und das Telefon sind ungesehen; geprüft sind Daten, Rechnung
+und Markup.
+
+**Pushes in die Daten-Repos in dieser Phase** (nur Workflows der Seewetter-Linie, ohne Force, je Push nachgeprüft — §5 des Audits):
+
+| Repo | Commit | Inhalt |
+|---|---|---|
+| `buscosun-data` | `c23fcc38` | `.github/workflows/sea-current-probe.yml` (neu): Einmal-Messung, ob ein Runner das BSH über FTP und Filebox erreicht; liest nur, schreibt nichts. Lief einmal durch seinen eigenen Push (Lauf 44258195377, grün) |
+| `buscosun-data` | `86655a8a` | dieselbe Datei wieder entfernt |
+| `buscosun-data` | `945b6a65` | `.github/workflows/sea.yml`: Schritt „Currents“ (continue-on-error, überspringt sich, solange `sea-current.mjs` nicht auf `main` liegt), Fehlerbedingung, eine Kopfzeile |
+| `buscosun-archiv` | — | kein Push (der Archiv-Workflow braucht keine Änderung) |
+
+Alle drei wirken auf die heutige Seite und den heutigen Producer **nicht**.
+
+1. **Lizenz — bitte entscheiden (E-ST-1).** Deine Vorgabe war DL-DE BY 2.0 laut GDI-BSH-Katalog. Gefunden habe ich etwas
+   anderes: im Datenverzeichnis selbst liegt eine `LICENSE.txt` („Creative Commons Attribution 4.0 … Recommended
+   attribution: Data provided by Bundesamt fuer Seeschifffahrt und Hydrographie (BSH), CC BY 4.0“), die README sagt
+   dasselbe, und der Katalogeintrag der Modellströmungen (900 m, Serie 2026) nennt ebenfalls CC BY 4.0. Die
+   Download-Seite „Strömungsvorhersagen für Segler“ nennt keine Lizenz. DL-DE BY 2.0 habe ich nirgends belegt gefunden.
+   Die Seite nennt jetzt „Strömung: Bundesamt für Seeschifffahrt und Hydrographie (BSH)“ (dein Wortlaut), dazu „CC BY 4.0“
+   als Link und den Vermerk der Änderung — das genügt beiden Lizenzen. Wenn du es anders willst: `BSH_CURRENT_LICENCE`,
+   `BSH_CURRENT_LICENCE_URL` in `src/sea/seaCurrent.ts`.
+2. **Bestätigungsmail an opmod@bsh.de** (dein Auftrag). Vorschlag: „Wir zeigen auf buscosun.com (Seewetter) die
+   Oberflächenströmung aus Ihren GRIB2-Dateien der Strömungsvorhersage (Pakete db und wb) an 64 Küstenorten: stündliche
+   Geschwindigkeit und Richtung, daraus abgelesene Stauwasserzeiten und ausgedünnte Pfeile auf einer Karte. Vermerk:
+   ‚Strömung: Bundesamt für Seeschifffahrt und Hydrographie (BSH), CC BY 4.0, verändert‘ mit Link auf die Lizenz, dazu
+   ‚Modell, Mittel der oberen 5 m, keine Navigationsgrundlage‘. Wir lesen zweimal täglich je einen Lauf (≈ 80 MB) über
+   die Filebox, ersatzweise über FTP. Bitte bestätigen Sie, dass die LICENSE.txt im Datenverzeichnis (CC BY 4.0) für
+   diese Nutzung gilt, und ob der Abruf in dieser Form für Sie in Ordnung ist.“
+3. **Ansehen** (Desktop 1440 × 900, iPhone), lokal `npm run build`, `npx vite preview --host 127.0.0.1 --port 5212 --strictPort`.
+   **Vor dem Push gibt es im Daten-Repo keine Strömungsdatei** — der Abschnitt zeigt dann „Keine Daten. Im Datenspeicher
+   liegt noch keine Strömungsvorhersage des BSH.“, die Bandzeile fehlt, die Kartenebene zeigt nichts. Mit Werten siehst
+   du es erst nach Punkt 4 (oder lokal: `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs
+   scripts/sea/sea-current.mjs --store=<Kopie von sea/v1>` schreibt die Datei in eine Kopie des Speichers).
+   - `/seewetter/sylt-hoernum` → „Wetter“: Abschnitt „Strömung“ zwischen „Wind und Seegang“ und „Verlauf“ — Scheibe links
+     (Petrol-Pfeil ab der Mitte = wohin der Strom setzt, Tinte-Pfeil zur Mitte = woher der Wind kommt), Wert in kn,
+     „setzt nach …“, rechts Stauwasser, Modellzelle, Lauf. Im Stundenband die Zeile „Strom kn“ (Pfeil mit Punkt über der
+     Zahl; unter 0,1 kn nur der Punkt).
+   - eine Stunde mit Wind gegen Strom (Sylt, Elbe, Pellworm bei über 10 kn Wind): Petrol-Leiste „Wind gegen Strom“ mit
+     Satz, darunter die gesetzten Schwellen; der Ring der Scheibe ist dann gestrichelt.
+   - `/seewetter/cuxhaven-duhnen` oder `/husum`: Stunden mit „kein Strom“ (Zelle fällt im Modell trocken), Zeile „Ohne
+     Strom in … % der Zeit“, Zusatz „Priele sind im Modell nicht aufgelöst.“
+   - ein Ostsee-Spot (z. B. `/seewetter/warnemuende`): fast durchgehend 0,0–0,2 kn — ist die Zeile dort so richtig (V-ST-5)?
+   - „Auf der Karte“ → „Strömung“ an: aqua Pfeile mit Punkt über der See, ab Zoom 7,5 dichter; Legende nennt sie.
+   - Worauf ich ohne Bild nicht antworten kann: liest man die Scheibe auf Anhieb (zwei Pfeile, zwei Lesarten); ist die
+     Bandzeile mit 34 px zu hoch; sind die Pfeile der Karte zu dicht oder zu dünn; bricht die Karte auf dem Telefon sauber um.
+4. **Push:** `git push origin main`. Danach, ohne Handgriff: der nächste `sea.yml`-Lauf (alle 15 min) liest den neuesten
+   Lauf des BSH (≈ 80 MB, ≈ 2–3 min) und schreibt `sea/v1/current/<lauf>.json`, 72 Bilder und `status.current`.
+   Prüfen: `https://raw.githubusercontent.com/jppetry/buscosun-data/main/sea/v1/status.json` trägt `current`; in
+   `buscosun-data` → Actions → `sea` ist der Schritt „Currents“ grün (er ist rot, wenn das BSH nicht antwortet oder der
+   Lauf nicht lesbar ist — alles andere wird trotzdem veröffentlicht).
+5. **Den ersten 12-UTC-Lauf ansehen (V-ST-1)**, gegen 18–19 UTC nach dem Push: `status.current.run` endet auf `12`;
+   `t0` und `hours` sagen, ab wann und wie weit er reicht. Diesen Lauf habe ich für `db`/`wb` nicht beobachten können.
+6. **CI:** `node scripts/ci-run.mjs verify:sea-current` in `.github/workflows/ci.yml` hinter „Verifier — Tidenfenster“
+   eintragen (Workflows von `buscosun-web` habe ich nicht angefasst).
+7. **Entscheiden** (`audit/seewetter-stroemung.md` §2): **E-ST-7** Zelle bis 3 km, höchstens 50 % ohne Strom. **E-ST-9**
+   Stauwasser-Regel (gesetzt, nicht geeicht — V-ST-3). **E-ST-10** Schwellen 120° / 10 kn / 0,5 kn. **E-ST-11** Kartenebene
+   ab Werk aus. **E-ST-12** 30 h bis „keine Daten“.
+8. **Rückfall:** es gibt keinen Schalter. Schnell und ohne Deploy: Repo-Variable `SEA_KILL=1` hält die ganze Linie an;
+   nur die Strömung: `current` aus `sea/v1/status.json` nehmen (der Producer schreibt es beim nächsten Lauf wieder — dann
+   zusätzlich den Schritt „Currents“ in `sea.yml` auskommentieren). Ganz: den Commit zurücknehmen und pushen.
+9. **Offen:** Sichtprüfung und Real-Device (Punkt 3); Konsole, Touch-Ziele am Gerät, Long Tasks und Pixelgleichheit der
+   übrigen Seite sind **nicht** gemessen; `verify:sea-ui` nicht gelaufen (Browser, bricht an HEAD in B0 ab). Befunde
+   V-ST-1 … 13, vor allem V-ST-1 (12-UTC-Lauf), V-ST-3 (Stauwasser-Regel) und V-ST-11 (Güte des Modells ungeprüft).

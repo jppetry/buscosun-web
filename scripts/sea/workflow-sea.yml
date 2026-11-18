@@ -13,6 +13,7 @@
 # Dazwischen (V-SW-2): nennt point/index.json einen neueren t1-Lauf als der Wind des
 # veröffentlichten Laufs, wird nur die Windreihe neu gerechnet (spots/<lauf>-w<t1>.json).
 # Dänische Spots (Phase DK): höchstens stündlich Wasserstand und Wind des DMI (dmi/<stempel>.json).
+# Strömung (Phase ST): zweimal täglich der neue Lauf der BSH-Strömungsvorhersage (current/<lauf>.json + Kartenfeld).
 # Der Radar-Spiegel bleibt unberührt.
 #
 # ── Leerlauf bis zum Push von buscosun-web ────────────────────────────────
@@ -191,6 +192,29 @@ jobs:
           echo "summary=$(tail -1 ../dmi.log)" >> "$GITHUB_OUTPUT"
           exit $RC
 
+      # Phase ST (audit/seewetter-stroemung.md): Oberflächenströmung des BSH an den Spots — Pakete db (Deutsche Bucht) und wb
+      # (Westliche Ostsee), GRIB2 unkomprimiert, über die BSH-Filebox (HTTPS), FTP über curl als Rückfall. Gefragt wird nur, wenn nach
+      # der Uhr ein neuerer Lauf beim BSH liegen kann (ab Lauf + 4 h) und er noch nicht gebaut ist; dann ≈ 80 MB Abruf und ≈ 1–2 min.
+      # Fällt das BSH aus oder ist der Lauf nicht lesbar, bleibt der Schritt rot und alles andere wird veröffentlicht; die Seite
+      # zeigt „keine Daten“, sobald der letzte Lauf älter als 30 h ist. Nie ein alter Wert an seiner Stelle.
+      - name: Currents (BSH surface current at the spots)
+        id: current
+        if: steps.app.outputs.ready == '1'
+        continue-on-error: true
+        run: |
+          cd app
+          if [ ! -f scripts/sea/sea-current.mjs ]; then
+            echo "sea-current.mjs noch nicht auf main — die Strömung wartet auf den Push, Schritt übersprungen."
+            exit 0
+          fi
+          # Kein `| tee`: ohne pipefail verschluckte die Pipe den Exit-Code des Producers.
+          set +e
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/sea/sea-current.mjs --store=../store > ../current.log 2>&1
+          RC=$?
+          cat ../current.log
+          echo "summary=$(tail -1 ../current.log)" >> "$GITHUB_OUTPUT"
+          exit $RC
+
       - name: Publish (sea/ only, never --force)
         if: steps.app.outputs.ready == '1'
         run: |
@@ -200,7 +224,7 @@ jobs:
           node app/scripts/sea/sea-publish.mjs --repo=data --store=store --message="$MSG"
 
       - name: Field run failed
-        if: steps.field.outcome == 'failure' || steps.text.outcome == 'failure' || steps.wind.outcome == 'failure' || steps.gauges.outcome == 'failure' || steps.dmi.outcome == 'failure'
+        if: steps.field.outcome == 'failure' || steps.text.outcome == 'failure' || steps.wind.outcome == 'failure' || steps.gauges.outcome == 'failure' || steps.dmi.outcome == 'failure' || steps.current.outcome == 'failure'
         run: |
-          echo "Text-, Feld-, Pegel- oder DMI-Schritt rot (siehe oben); veröffentlicht wurde, was gültig war."
+          echo "Text-, Feld-, Pegel-, DMI- oder Strömungsschritt rot (siehe oben); veröffentlicht wurde, was gültig war."
           exit 1

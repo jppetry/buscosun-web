@@ -73,6 +73,8 @@ interface Props {
   callout?: { lon: number; lat: number; name: string; line: string; color: string | null } | null;
   /** Phase SP: the open trip planner; null/absent = closed (no marker, empty source). */
   plan?: SeaMapPlan | null;
+  /** Phase ST: arrows of the surface current (`seaCurrent.currentArrows`), or null (layer off, no field for this hour). */
+  currents?: GeoJSON.FeatureCollection | null;
 }
 
 function dotImage(cls: SeaClass, big: boolean): ImageData {
@@ -122,6 +124,20 @@ function arrowImage(color: string, w = 2.2): ImageData {
   return g.getImageData(0, 0, px, px);
 }
 
+/** Phase ST: the drift arrow — a float (dot) and where it goes; aqua, so it is never read as a wave or wind arrow. */
+function driftImage(): ImageData {
+  const px = 28, c = document.createElement('canvas');
+  c.width = px; c.height = px;
+  const g = c.getContext('2d')!;
+  const draw = (color: string, w: number, r: number) => {
+    g.strokeStyle = color; g.fillStyle = color; g.lineWidth = w; g.lineCap = 'round'; g.lineJoin = 'round';
+    g.beginPath(); g.moveTo(14, 18); g.lineTo(14, 4); g.moveTo(9, 9); g.lineTo(14, 4); g.lineTo(19, 9); g.stroke();
+    g.beginPath(); g.arc(14, 22.5, r, 0, Math.PI * 2); g.fill();
+  };
+  draw('#0B0E12', 4.6, 3.6);
+  draw('#6FD3DC', 2.2, 2.6);
+  return g.getImageData(0, 0, px, px);
+}
 /** The canvas the field is drawn into once per change; MapLibre gets it as an object URL. */
 async function fieldUrl(field: Uint8ClampedArray): Promise<string> {
   const w = SEA_MODELS.cwam.grid.ni, h = SEA_OUT_ROWS;
@@ -134,7 +150,7 @@ async function fieldUrl(field: Uint8ClampedArray): Promise<string> {
 const EMPTY: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
 const TRANSPARENT_PX = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4AWMAAQAABQABNtCI3QAAAABJRU5ErkJggg==';
 
-export default function SeaMap({ field, arrows, spots, selectedId, stations, gauges, selectedGaugeId, onGauge, areas, showWind, padding, onSelect, onMap, callout, plan = null }: Props) {
+export default function SeaMap({ field, arrows, spots, selectedId, stations, gauges, selectedGaugeId, onGauge, areas, showWind, padding, onSelect, onMap, callout, plan = null, currents = null }: Props) {
   const planRef = useRef<SeaMapPlan | null>(plan);
   planRef.current = plan;
   const planMarks = useRef<{ boat: maplibregl.Marker; label: maplibregl.Marker; launch: maplibregl.Marker; badge: HTMLElement; drift: HTMLElement; hull: HTMLElement } | null>(null);
@@ -147,14 +163,14 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, gau
   onSelectRef.current = onSelect;
   const onGaugeRef = useRef(onGauge);
   onGaugeRef.current = onGauge;
-  const latest = useRef({ field, arrows, spots, selectedId, stations, gauges, selectedGaugeId, areas, showWind });
-  latest.current = { field, arrows, spots, selectedId, stations, gauges, selectedGaugeId, areas, showWind };
+  const latest = useRef({ field, arrows, spots, selectedId, stations, gauges, selectedGaugeId, areas, showWind, currents });
+  latest.current = { field, arrows, spots, selectedId, stations, gauges, selectedGaugeId, areas, showWind, currents };
 
   useEffect(() => {
     if (!box.current) return;
     const map = new maplibregl.Map({
       container: box.current, style: STYLE, bounds: SEA_START_BOUNDS, fitBoundsOptions: { padding: 10 }, maxBounds: [[SEA_VIEW_BOUNDS[0] - 6, SEA_VIEW_BOUNDS[1] - 4], [SEA_VIEW_BOUNDS[2] + 6, SEA_VIEW_BOUNDS[3] + 4]],
-      attributionControl: { compact: false, customAttribution: `${MAP_SOURCES_LINK} · Seegang, Wind, Warnungen: DWD · Wasserstand: BSH · bearbeitet` },
+      attributionControl: { compact: false, customAttribution: `${MAP_SOURCES_LINK} · Seegang, Wind, Warnungen: DWD · Wasserstand, Strömung: BSH · bearbeitet` },
       dragRotate: false, pitchWithRotate: false, maxZoom: 12, minZoom: 4,
     });
     mapRef.current = map;
@@ -167,6 +183,7 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, gau
       map.addImage('sw-gauge-sel', gaugeImage(true), { pixelRatio: 2 });
       map.addImage('sw-wave', arrowImage('#F3EDDF', 2), { pixelRatio: 2 });
       map.addImage('sw-wind', arrowImage('#FAF6EA', 2.8), { pixelRatio: 2 });
+      map.addImage('sw-drift', driftImage(), { pixelRatio: 2 });
       const labels = map.getStyle()?.layers?.find((l) => l.type === 'symbol')?.id;
       map.addSource('sw-field', { type: 'image', url: TRANSPARENT_PX, coordinates: SEA_FIELD_COORDS });
       map.addLayer({ id: 'sw-field', type: 'raster', source: 'sw-field', paint: { 'raster-opacity': 1, 'raster-resampling': 'nearest', 'raster-fade-duration': 0 } }, labels);
@@ -175,6 +192,13 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, gau
       map.addLayer({ id: 'sw-areas-line', type: 'line', source: 'sw-areas', paint: { 'line-color': ['match', ['get', 'status'], 'unknown', '#E39A3B', '#7FC4CC'], 'line-width': ['match', ['get', 'kind'], 'coast', 1.6, 1], 'line-opacity': 0.75, 'line-dasharray': [3, 2] } });
       map.addSource('sw-arrows', { type: 'geojson', data: EMPTY });
       map.addLayer({ id: 'sw-arrows', type: 'symbol', source: 'sw-arrows', layout: { 'icon-image': 'sw-wave', 'icon-rotate': ['get', 'rot'], 'icon-rotation-alignment': 'map', 'icon-size': ['*', 0.85, ['get', 's']], 'icon-allow-overlap': true, 'icon-ignore-placement': true }, paint: { 'icon-opacity': 0.7 } });
+      // Phase ST: surface current as a symbol layer like `sw-arrows` (no particles, no shader). Every second cell from zoom 7.5 on.
+      map.addSource('sw-current', { type: 'geojson', data: EMPTY });
+      map.addLayer({
+        id: 'sw-current', type: 'symbol', source: 'sw-current', filter: ['any', ['==', ['get', 'lod'], 0], ['>=', ['zoom'], 7.5]],
+        layout: { 'icon-image': 'sw-drift', 'icon-rotate': ['get', 'rot'], 'icon-rotation-alignment': 'map', 'icon-size': ['get', 's'], 'icon-allow-overlap': true, 'icon-ignore-placement': true },
+        paint: { 'icon-opacity': 0.92 },
+      });
       map.addSource('sw-stations', { type: 'geojson', data: EMPTY });
       map.addLayer({ id: 'sw-stations', type: 'symbol', source: 'sw-stations', layout: { 'icon-image': 'sw-ring', 'icon-allow-overlap': true } });
       map.addSource('sw-gauges', { type: 'geojson', data: EMPTY });
@@ -221,6 +245,7 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, gau
     if (!map || !ready.current) return;
     const s = latest.current;
     (map.getSource('sw-arrows') as maplibregl.GeoJSONSource | undefined)?.setData(s.field && s.arrows ? s.arrows : EMPTY);
+    (map.getSource('sw-current') as maplibregl.GeoJSONSource | undefined)?.setData(s.currents ?? EMPTY);
     (map.getSource('sw-spots') as maplibregl.GeoJSONSource | undefined)?.setData({
       type: 'FeatureCollection',
       features: s.spots.map((p) => ({ type: 'Feature', properties: { id: p.id, cls: p.cls, sel: p.id === s.selectedId ? 1 : 0 }, geometry: { type: 'Point', coordinates: [p.lon, p.lat] } })),
@@ -240,7 +265,7 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, gau
     });
   }
 
-  useEffect(sync, [arrows, spots, selectedId, stations, gauges, selectedGaugeId, areas, showWind, field]);
+  useEffect(sync, [arrows, spots, selectedId, stations, gauges, selectedGaugeId, areas, showWind, field, currents]);
 
   // --- Phase SP: trip planner --------------------------------------------------------------------------------
   /** Ring, line, label and hull for a boat position — also while the boat is dragged (no React state per move). */

@@ -12,6 +12,8 @@ import { useEffect, useRef, type KeyboardEvent, type PointerEvent } from 'react'
 import { fmtWind, unitLabel, type SeaClass, type SeaUnit } from './seaProfiles';
 import { CLASS_COLOR, CLASS_SHORT, DRY_GLYPH, DRY_VALUE, berlinHour, dayShort, f1, hh, tzLabel } from './seaView';
 import { BAND_LEGEND, overOpacity, overSentence, type SeaOver } from './windBand';
+import { CURRENT_DIR_MIN_KN, DriftArrow } from './SeaCurrentPanel';
+import { SEA_CURRENT_MODEL_NOTE } from './seaCurrent';
 
 export interface SeaBandHour {
   t: number; windMs: number | null; gustMs: number | null; windDir: number | null;
@@ -20,6 +22,8 @@ export interface SeaBandHour {
   dry?: boolean;
   /** Phase SU: how often gusts lie above the profile's gust limit this hour; `null`/absent = no span for this hour. */
   over?: SeaOver | null;
+  /** Phase ST: surface current at the spot's model cell (kn, sets towards); `null`/absent = no value this hour. */
+  curKn?: number | null; curTo?: number | null;
 }
 
 interface Props {
@@ -37,6 +41,8 @@ interface Props {
   over?: { limitKn: number } | null;
   /** Phase SP: the trip window as a row of its own ("Fenster"); absent = planner closed, and the band's markup is unchanged. */
   plan?: SeaBandPlan | null;
+  /** Phase ST: the row "Strom" — only where the spot carries a current series (BSH). */
+  current?: boolean;
 }
 
 /**
@@ -63,7 +69,7 @@ const Arrow = ({ to, color }: { to: number | null; color: string }) => (to == nu
   </svg>
 ));
 
-export default function SeaBand({ hours, unit, selected, onPick, title, sub, footnote, compact = false, tide = null, over = null, plan = null }: Props) {
+export default function SeaBand({ hours, unit, selected, onPick, title, sub, footnote, compact = false, tide = null, over = null, plan = null, current = false }: Props) {
   const overKn = over ? String(Math.round(over.limitKn * 10) / 10).replace('.', ',') : '';
   const scroller = useRef<HTMLDivElement | null>(null);
   // Phase SP: the hour under a pointer is read from the row's first cell (its left edge and width follow the scroll).
@@ -134,7 +140,7 @@ export default function SeaBand({ hours, unit, selected, onPick, title, sub, foo
       </div>
       <div className="sw-band-scroll" ref={scroller}>
         <table className="sw-band-table">
-          <caption className="sw-sr">Stundenwerte am Spot: Uhrzeit, Wind, Böen, Seegang, Periode, Wellenrichtung{over ? `, wie oft Böen über ${overKn} kn liegen` : ''} und Einordnung nach deinem Profil. Eine Stunde wählen setzt Karte und Details auf diese Zeit.</caption>
+          <caption className="sw-sr">Stundenwerte am Spot: Uhrzeit, Wind, Böen, Seegang, Periode, Wellenrichtung{current ? ', Strömung' : ''}{over ? `, wie oft Böen über ${overKn} kn liegen` : ''} und Einordnung nach deinem Profil. Eine Stunde wählen setzt Karte und Details auf diese Zeit.</caption>
           <thead>
             <tr className="sw-band-days" aria-hidden="true">
               <th className="sw-band-lab" />
@@ -194,6 +200,24 @@ export default function SeaBand({ hours, unit, selected, onPick, title, sub, foo
               <th scope="row" className="sw-band-lab">Wellen</th>
               {hours.map((h, i) => <td key={h.t} className={cls(h, i)}><Arrow to={h.dir == null || h.hs == null || h.hs < 0.05 ? null : (h.dir + 180) % 360} color="#0F6E7A" /></td>)}
             </tr>
+            {current && (
+              <tr className="sw-band-cur">
+                <th scope="row" className="sw-band-lab" title={`Strömung in Knoten; der Pfeil mit Punkt zeigt, wohin der Strom setzt. ${SEA_CURRENT_MODEL_NOTE}`}>Strom kn</th>
+                {hours.map((h, i) => {
+                  const kn = h.curKn ?? null, dir = kn != null && kn >= CURRENT_DIR_MIN_KN ? h.curTo ?? null : null;
+                  return (
+                    <td key={h.t} className={cls(h, i)}>
+                      {kn == null ? <span className="sw-band-none">–</span> : (
+                        <>
+                          {dir != null ? <DriftArrow to={dir} /> : <i className="sw-st-calm" aria-hidden="true" />}
+                          <span className="sw-st-kn">{f1(kn)}</span>
+                        </>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            )}
             {over && (
               <tr className="sw-band-prof sw-band-over">
                 <th scope="row" className="sw-band-lab" title={`Wie oft Böen über ${overKn} kn liegen, je Stunde · ${BAND_LEGEND}`}>über Grenze</th>
@@ -240,6 +264,7 @@ export default function SeaBand({ hours, unit, selected, onPick, title, sub, foo
       <div className="sw-band-foot">
         <span>Pfeile zeigen, wohin Wind und Wellen laufen</span>
         <span>dunkler Grund = Nacht</span>
+        {current && <span className="sw-band-foot-cur">Zeile Strom: der Pfeil mit Punkt zeigt, wohin der Strom setzt; {SEA_CURRENT_MODEL_NOTE}</span>}
         {hours.some((h) => h.dry) && <span className="sw-band-foot-dry">{DRY_GLYPH} = Modellzelle ohne Wasser, {DRY_VALUE}</span>}
         {over && <span className="sw-band-foot-over">Zeile über Grenze: je kräftiger, desto öfter Böen über {overKn} kn in vergleichbaren Lagen</span>}
         {plan && <span className="sw-band-foot-plan">Zeile Fenster: S = Start, R = Rückkehr; {plan.touch ? 'die beiden Griffe ziehen' : 'über die Zeile ziehen oder einen Griff verschieben'}</span>}

@@ -1116,3 +1116,18 @@ Für die dänischen Spots des Seewetters. Gemessen am 18.11.2026 (`audit/seewett
 | Fehlerverhalten | Punkt auf Land: **200 mit lauter `null`**. Zu viele Abrufe: **429** mit JSON-Körper („Server is busy. Please try again later.“ — gemessen nach ≈ 40 Abrufen in einer Minute). Unbekannter Parameter: 400 mit JSON-Körper. EDR hält nur die letzten 24 h |
 | Texte, Warnungen | werden **nicht** wiedergegeben — nur Links (`www.dmi.dk/varsler`, `/farvandsudsigter`, `/vandstand`) |
 | Kontrakt-Sonde | `verify:sea-dk` (netzfrei gegen byte-gleiche Antworten vom 18.11.2026, `scripts/lib/fixtures/sea/dk/`) |
+
+### 8.12 BSH Strömungsvorhersage (GRIB2, Filebox und FTP) — *✅ IN BENUTZUNG (Phase ST 2026-11-18, `src/sea/seaCurrent.ts`)*
+
+Oberflächenströmung für die Spots des Seewetters. Gemessen am 18.11.2026 (`audit/seewetter-stroemung.md` §1).
+
+| | |
+|---|---|
+| Zugang | HTTPS: öffentliche Freigabe der BSH-Filebox, WebDAV ohne Anmeldung — `PROPFIND` (Depth 1) und `GET` auf `https://filebox.bsh.de/remote.php/dav/public-files/Z8k9NMB3dKVpOXA/grib2/{Nordsee,Ostsee}/`. Rückfall: `ftp://ftp.bsh.de/Stroemungsvorhersagen/grib2/…` (anonym, über `curl`). Kein CORS — **nur über den Producer** `scripts/sea/sea-current.mjs`, nie aus dem Browser |
+| Lizenz | **CC BY 4.0** laut `LICENSE.txt` und `README_en_de.txt` im Datenverzeichnis („Data provided by Bundesamt fuer Seeschifffahrt und Hydrographie (BSH), CC BY 4.0“) und laut GDI-BSH-Katalog für die Modellströmungen. Die BSH-Seite „Strömungsvorhersagen für Segler“ nennt keine Lizenz. Vermerk je Merkmal: „Strömung: Bundesamt für Seeschifffahrt und Hydrographie (BSH)“ mit Link auf die Lizenz und Vermerk der Änderung |
+| Dateien | `Current_<paket>_<YYYYMMDDHH>_<VV>.grb2`, benutzt werden nur `db` (Deutsche Bucht) und `wb` (Westliche Ostsee), unkomprimiert — **nie GRIB1, nie `.bz2`**. Zwei Läufe am Tag, drei Tagesdateien, 15-min-Schritte 00:15 … 24:00 UTC, ≈ 80 MB je Lauf; Lauf 00 UTC gemessen ab +5:30 h (FTP) bzw. +5:52 h (Filebox). Im Verzeichnis liegt nur der neueste Lauf |
+| Inhalt | u und v der Strömung in m/s (Disziplin 10, Kategorie 1, Nummer 2 und 3), Mittel der oberen 5 m. Gitter = CWAM-Raster (`db` Spalten 0–239, `wb` 218–629, Zeilen S → N). Die Zeit steht als Referenzzeit in jeder Nachricht |
+| Packung | **Template 5.40 (JPEG 2000, JasPer)**, 12 bit, Bitmap — der gemeinsame Dekoder `src/sources/gribDecode.ts` liest sie nicht; eigener Leser nur im Producer (`scripts/sea/bshGrib.mjs`, `jp2k.mjs`), gegen ecCodes und OpenJPEG Wert für Wert geprüft |
+| Zelle ohne Strom | kein Fehlwert, sondern der gepackte Wert nächst 0: unter 1 mm/s = kein Strom (gemessen) |
+| Fehlerverhalten | fehlender, unvollständiger oder unlesbarer Lauf ⇒ nichts geschrieben, Schritt rot, drei Versuche; die Seite zeigt nach 30 h „keine Daten“ — nie ein älterer Wert |
+| Kontrakt-Sonde | `verify:sea-current` (netzfrei gegen byte-gleiche Ausschnitte echter Dateien und die echten Verzeichnislisten vom 18.11.2026, `scripts/lib/fixtures/sea/current/`) |

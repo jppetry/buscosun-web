@@ -1241,6 +1241,66 @@
   .sw-dk-links a { justify-content: center; }
 }
 
+/* ── Phase ST — Strömung am Spot und „Wind gegen Strom“ (audit/seewetter-stroemung.md). EIN Zeichen trägt die Phase:
+   der Drift-Pfeil (Punkt = Schwimmer, Pfeil = wohin er treibt). Strom wird „setzt nach“ gelesen, Wind und Welle „kommt
+   aus“ — der Punkt hält beides auseinander, ohne dritten Farbton: Strom im Petrol der BSH-Werte, Wind in Tinte. ── */
+.sw-root { --sw-st: #0F6E7A; --sw-st-wind: #2C2A26; }
+/* Stundenband, Zeile „Strom“: Pfeil über der Zahl in Knoten; unter 0,1 kn nur der Schwimmer. */
+.sw-band-table tr.sw-band-cur td { height: 34px; color: var(--sw-st); }
+.sw-band-table tr.sw-band-cur td svg { margin: 0 auto 2px; }
+.sw-st-kn { display: block; font-size: 11px; font-weight: 600; line-height: 1; color: var(--ink-900, #2C2A26); font-variant-numeric: tabular-nums; }
+.sw-st-calm { display: block; width: 5px; height: 5px; margin: 4.5px auto 6.5px; border-radius: 50%; background: currentColor; opacity: 0.55; }
+.sw-st-legend svg { flex: none; color: #6FD3DC; }
+/* Karte des Abschnitts „Strömung“: Kompassscheibe | Wert der Stunde | Fakten. */
+.sw-st { display: flex; flex-direction: column; gap: 12px; }
+.sw-st-main { display: grid; grid-template-columns: 132px minmax(170px, 1fr) minmax(280px, 1.5fr); gap: 24px; align-items: center; }
+.sw-st-dial { display: block; width: 132px; height: 132px; }
+.sw-st-dial-ring { fill: #fff; stroke: var(--sand-200, #E0D6BE); stroke-width: 1.5; }
+.sw-st-dial-tick { stroke: var(--stone-400, #A89A7A); stroke-width: 1.5; }
+.sw-st-dial-n { font-family: inherit; font-size: 11px; font-weight: 700; fill: var(--stone-500, #8B7355); }
+.sw-st-dial-wind path, .sw-st-dial-cur path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.sw-st-dial-wind path { stroke: var(--sw-st-wind); stroke-width: 3; }
+.sw-st-dial-cur path { stroke: var(--sw-st); stroke-width: 4.5; }
+.sw-st-dial-float { fill: var(--sw-st); stroke: #fff; stroke-width: 1.5; }
+.sw-st-dial.is-against .sw-st-dial-ring { stroke: var(--sw-st); stroke-dasharray: 3 4; }
+.sw-st-now { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.sw-st-when { font-size: 13px; font-weight: 600; color: var(--stone-500, #8B7355); }
+.sw-st-val { font-size: 44px; line-height: 1.05; font-weight: 700; color: var(--ink-900, #2C2A26); font-variant-numeric: tabular-nums; }
+.sw-st-val span { margin-left: 6px; font-size: 18px; font-weight: 600; color: var(--stone-500, #8B7355); }
+.sw-st-val.is-text { font-size: 26px; }
+.sw-st-dir { font-size: 15.5px; line-height: 1.4; color: var(--stone-600, #5C5447); max-width: 46ch; }
+.sw-st-key { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin-top: 6px; font-size: 12px; color: var(--stone-500, #8B7355); }
+.sw-st-key i { display: inline-block; width: 14px; border-radius: 2px; }
+.sw-st-key i.is-cur { height: 4.5px; background: var(--sw-st); }
+.sw-st-key i.is-wind { height: 3px; margin-left: 10px; background: var(--sw-st-wind); }
+.sw-st-facts { margin: 0; }
+.sw-st-facts > div { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; padding: 8px 0; border-top: 1px solid var(--sand-200, #E0D6BE); }
+.sw-st-facts > div:first-child { border-top: 0; }
+.sw-st-facts dt { font-size: 13px; line-height: 1.5; color: var(--stone-500, #8B7355); }
+.sw-st-facts dd { margin: 0; font-size: 15px; line-height: 1.4; font-weight: 600; color: var(--ink-900, #2C2A26); }
+/* „Wind gegen Strom“ erklärt und ändert nichts: Petrol-Leiste, kein Bernstein. */
+.sw-st-wac { padding: 12px 16px; border-left: 4px solid var(--sw-st); border-radius: 0 12px 12px 0; background: var(--sw-tint, #E3F0F1); }
+.sw-st-wac strong { display: block; font-size: 16px; font-weight: 700; color: var(--sw-accent-dark, #0B5560); }
+.sw-st-wac p { margin: 4px 0 0; max-width: 78ch; font-size: 14.5px; line-height: 1.5; color: var(--ink-900, #2C2A26); }
+.sw-st-wac p.sw-st-wac-quiet { font-size: 12.5px; color: var(--stone-600, #5C5447); }
+.sw-st-empty { display: flex; flex-direction: column; gap: 4px; font-size: 15px; line-height: 1.5; color: var(--stone-600, #5C5447); }
+.sw-st-empty strong { font-size: 18px; color: var(--ink-900, #2C2A26); }
+.sw-card.is-wide .sw-st-note { margin: 0; font-size: 13px; }
+.sw-st .sw-st-src { margin: 0; }
+@media (max-width: 1439px) {
+  .sw-st-main { grid-template-columns: 112px minmax(0, 1fr); }
+  .sw-st-dial { width: 112px; height: 112px; }
+  .sw-st-facts { grid-column: 1 / -1; }
+}
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
+  .sw-st-main { grid-template-columns: 96px minmax(0, 1fr); gap: 14px; }
+  .sw-st-dial { width: 96px; height: 96px; }
+  .sw-st-val { font-size: 36px; }
+  .sw-st-facts > div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .sw-st-src a { display: inline-block; min-height: 44px; line-height: 44px; }
+  .sw-band.is-compact .sw-band-table tr.sw-band-cur td { height: 40px; }
+}
+
 /* ── Phase SP — „Ausfahrt planen“ (audit/seewetter-planer.md). Ohne geöffneten Planer rendert davon nur der Knopf über
    der Legende (Desktop) bzw. der Eintrag „Ausfahrt“ der unteren Leiste (mobil).
    Ein Bild trägt den Planer: die Leine vom Start zur Rückkehr — auf der Karte gestrichelt vom Boot zum Startort, im

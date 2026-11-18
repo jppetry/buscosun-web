@@ -1,3 +1,4 @@
 audit/seewetter/fixtures/** -text
 public/fire/*.bin -text
 scripts/lib/fixtures/sea/dk/** -text
+scripts/lib/fixtures/sea/current/** -text
