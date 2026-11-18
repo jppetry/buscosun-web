@@ -8,7 +8,7 @@
  * draws cells into one SVG/canvas — no table semantics for screen readers, no sticky label column inside the scroll
  * container and no focusable cell per hour. Recorded in audit/seewetter.md §10 (E-SW-17).
  */
-import { useEffect, useRef, type KeyboardEvent } from 'react';
+import { useEffect, useRef, type KeyboardEvent, type PointerEvent } from 'react';
 import { fmtWind, unitLabel, type SeaClass, type SeaUnit } from './seaProfiles';
 import { CLASS_COLOR, CLASS_SHORT, DRY_GLYPH, DRY_VALUE, berlinHour, dayShort, f1, hh, tzLabel } from './seaView';
 import { BAND_LEGEND, overOpacity, overSentence, type SeaOver } from './windBand';
@@ -35,6 +35,18 @@ interface Props {
   tide?: SeaBandTide | null;
   /** Phase SU: the row "über Grenze" (gust limit in knots); absent = no gust limit or no hour with a span. */
   over?: { limitKn: number } | null;
+  /** Phase SP: the trip window as a row of its own ("Fenster"); absent = planner closed, and the band's markup is unchanged. */
+  plan?: SeaBandPlan | null;
+}
+
+/**
+ * Phase SP — the window start → return on the band's hours (`seaPlanner.ts`). Mouse: drag across the row sets both ends;
+ * the two grips move one end each and are the only way on touch (`touch`), because there the band scrolls sideways.
+ */
+export interface SeaBandPlan {
+  start: number; end: number;
+  onChange: (start: number, end: number) => void;
+  touch?: boolean;
 }
 
 /** Phase TF — one row "Pegel": is the hour on the allowed side of the user's threshold at the gauge (`tideWindow.ts`). */
@@ -51,9 +63,54 @@ const Arrow = ({ to, color }: { to: number | null; color: string }) => (to == nu
   </svg>
 ));
 
-export default function SeaBand({ hours, unit, selected, onPick, title, sub, footnote, compact = false, tide = null, over = null }: Props) {
+export default function SeaBand({ hours, unit, selected, onPick, title, sub, footnote, compact = false, tide = null, over = null, plan = null }: Props) {
   const overKn = over ? String(Math.round(over.limitKn * 10) / 10).replace('.', ',') : '';
   const scroller = useRef<HTMLDivElement | null>(null);
+  // Phase SP: the hour under a pointer is read from the row's first cell (its left edge and width follow the scroll).
+  const planRow = useRef<HTMLTableRowElement | null>(null);
+  const drag = useRef<{ mode: 'start' | 'end' | 'span'; anchor: number } | null>(null);
+  const hourAtX = (x: number): number | null => {
+    const c0 = planRow.current?.querySelector<HTMLElement>('[data-ph="0"]');
+    if (!c0) return null;
+    const r = c0.getBoundingClientRect();
+    return r.width > 0 ? Math.max(0, Math.min(hours.length - 1, Math.floor((x - r.left) / r.width))) : null;
+  };
+  const planMove = (mode: 'start' | 'end' | 'span', anchor: number, j: number) => {
+    if (!plan) return;
+    const last = hours.length - 1;
+    let a = plan.start, b = plan.end;
+    if (mode === 'start') a = Math.min(j, b - 1);
+    else if (mode === 'end') b = Math.max(j, a + 1);
+    else { a = Math.min(anchor, j); b = Math.max(anchor, j); if (b === a) { if (a < last) b = a + 1; else a = b - 1; } }
+    if (a >= 0 && b <= last && b > a && (a !== plan.start || b !== plan.end)) plan.onChange(a, b);
+  };
+  const onPlanDown = (e: PointerEvent<HTMLTableRowElement>) => {
+    if (!plan) return;
+    const grip = (e.target as HTMLElement).closest<HTMLElement>('[data-grip]');
+    const j = hourAtX(e.clientX);
+    if (grip) drag.current = { mode: grip.dataset.grip === 'end' ? 'end' : 'start', anchor: 0 };
+    else if (e.pointerType !== 'touch' && !plan.touch && j != null) { drag.current = { mode: 'span', anchor: j }; planMove('span', j, j); }
+    else return;
+    e.preventDefault();
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* the drag still works while the pointer stays on the row */ }
+  };
+  const onPlanMove = (e: PointerEvent<HTMLTableRowElement>) => {
+    const d = drag.current;
+    if (!d) return;
+    const sc = scroller.current;
+    if (sc) {
+      const r = sc.getBoundingClientRect();
+      if (e.clientX > r.right - 28) sc.scrollLeft += 14; else if (e.clientX < r.left + 90) sc.scrollLeft -= 14;
+    }
+    const j = hourAtX(e.clientX);
+    if (j != null) planMove(d.mode, d.anchor, j);
+  };
+  const onPlanUp = () => { drag.current = null; };
+  const onGripKey = (e: KeyboardEvent<HTMLButtonElement>, which: 'start' | 'end') => {
+    if (!plan || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+    e.preventDefault();
+    planMove(which, 0, (which === 'start' ? plan.start : plan.end) + (e.key === 'ArrowRight' ? 1 : -1));
+  };
   // Keep the selected hour in view.
   useEffect(() => {
     const el = scroller.current?.querySelector<HTMLElement>(`[data-h="${selected}"]`);
@@ -66,7 +123,7 @@ export default function SeaBand({ hours, unit, selected, onPick, title, sub, foo
     if (e.key === 'ArrowRight' && i + 1 < hours.length) { e.preventDefault(); onPick(i + 1); scroller.current?.querySelector<HTMLElement>(`[data-h="${i + 1}"] button`)?.focus(); }
     if (e.key === 'ArrowLeft' && i > 0) { e.preventDefault(); onPick(i - 1); scroller.current?.querySelector<HTMLElement>(`[data-h="${i - 1}"] button`)?.focus(); }
   };
-  const cls = (h: SeaBandHour, i: number) => `${h.daylight ? '' : 'is-night'}${i === selected ? ' is-sel' : ''}${i > 0 && berlinHour(h.t) === 0 ? ' is-day' : ''}`;
+  const cls = (h: SeaBandHour, i: number) => `${h.daylight ? '' : 'is-night'}${i === selected ? ' is-sel' : ''}${i > 0 && berlinHour(h.t) === 0 ? ' is-day' : ''}${plan && i >= plan.start && i <= plan.end ? ' is-plan' : ''}`;
   const tz = hours.length ? tzLabel(hours[0].t) : 'MESZ';
   return (
     <section className={`sw-band${compact ? ' is-compact' : ''}`} aria-label="Stundenband">
@@ -94,6 +151,25 @@ export default function SeaBand({ hours, unit, selected, onPick, title, sub, foo
             </tr>
           </thead>
           <tbody>
+            {plan && (
+              <tr className={`sw-band-planrow${plan.touch ? ' is-touch' : ''}`} ref={planRow}
+                onPointerDown={onPlanDown} onPointerMove={onPlanMove} onPointerUp={onPlanUp} onPointerCancel={onPlanUp}>
+                <th scope="row" className="sw-band-lab" title="Dein Fenster: Start bis Rückkehr">Fenster</th>
+                {hours.map((h, i) => {
+                  const inWin = i >= plan.start && i <= plan.end, end = i === plan.start ? 'start' : i === plan.end ? 'end' : null;
+                  return (
+                    <td key={h.t} data-ph={i} className={`${cls(h, i)}${inWin ? ' is-in' : ''}${end ? ` is-${end}` : ''}`}>
+                      {end ? (
+                        <button type="button" className="sw-pl-grip" data-grip={end} onKeyDown={(e) => onGripKey(e, end)}
+                          aria-label={`${end === 'start' ? 'Start' : 'Rückkehr'} ${dayShort(h.t)} ${hh(h.t)} Uhr. Ziehen oder mit den Pfeiltasten verschieben.`}>
+                          <span aria-hidden="true">{end === 'start' ? 'S' : 'R'}</span>
+                        </button>
+                      ) : inWin ? <span className="sw-pl-span"><span className="sw-sr">im Fenster</span></span> : null}
+                    </td>
+                  );
+                })}
+              </tr>
+            )}
             <tr>
               <th scope="row" className="sw-band-lab">Wind</th>
               {hours.map((h, i) => <td key={h.t} className={cls(h, i)}><Arrow to={h.windDir == null ? null : (h.windDir + 180) % 360} color="#2C2A26" /></td>)}
@@ -166,6 +242,7 @@ export default function SeaBand({ hours, unit, selected, onPick, title, sub, foo
         <span>dunkler Grund = Nacht</span>
         {hours.some((h) => h.dry) && <span className="sw-band-foot-dry">{DRY_GLYPH} = Modellzelle ohne Wasser, {DRY_VALUE}</span>}
         {over && <span className="sw-band-foot-over">Zeile über Grenze: je kräftiger, desto öfter Böen über {overKn} kn in vergleichbaren Lagen</span>}
+        {plan && <span className="sw-band-foot-plan">Zeile Fenster: S = Start, R = Rückkehr; {plan.touch ? 'die beiden Griffe ziehen' : 'über die Zeile ziehen oder einen Griff verschieben'}</span>}
         {tide && <span className="sw-band-foot-tide">Zeile Pegel: gefüllt = Wasserstand {tide.side}, halb = zum Teil, hohl = nur Gezeit</span>}
         <span className="sw-band-foot-note">{footnote}</span>
       </div>

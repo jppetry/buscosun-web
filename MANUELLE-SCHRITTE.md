@@ -3345,3 +3345,40 @@ er checkt `scripts` und `src` ganz aus, das Archiv-Skript liest weiter nur `src/
    das README von `buscosun-data` folgt ihr mit dem nächsten Publish des Repack-Jobs nach deinem Push (von mir nicht kopiert).
 8. **Nebenbei gesehen, nicht Teil der Phase (V-SU-9):** am 18.11. 00:33 UTC stand `point/index.json` bei t1 `2026111715`
    (t2 `2026111718`) — die t1-Läufe 18 und 21 UTC fehlten. Bitte den Punkt-Cron ansehen.
+
+## 91. „Ausfahrt planen“ auf `/seewetter` (Phase SP, `audit/seewetter-planer.md`), 2026-11-18
+
+Gebaut und lokal committet, **ohne Schalter an für alle (dein Wort 18.11., Ausnahme von Rule 2)**. Sichtbar wird es mit
+dem Push von `buscosun-web`. **Ich habe die Seite nicht im Browser geöffnet und keine Bilder gemacht (dein Wort 18.11.)** —
+Aussehen, Ziehen des Boots und der Griffe, Blatt auf dem Telefon sind ungesehen; geprüft ist die Rechnung und das Markup.
+
+**Pushes in die Daten-Repos in dieser Phase: keine.** `buscosun-data` und `buscosun-archiv` wurden weder beschrieben noch
+gelesen — der Planer rechnet nur mit dem, was die Seite schon lädt (Spot-Reihe, Katalog, Pegelkurve).
+
+1. **Ansehen** (Desktop 1440 × 900, iPhone), lokal `npm run build`, `npx vite preview --host 127.0.0.1 --port 5212 --strictPort`:
+   - `/seewetter` → Knopf „Ausfahrt planen“ rechts unten über der Legende → der Planer fragt nach dem Spot → Spot wählen.
+   - `/seewetter/st-peter-ording?p=jolle` → „Ausfahrt planen“: Boot vor dem Spot (ziehbar, bleibt im gestrichelten Kreis von
+     5 km), gestrichelte Linie zum Startort mit „x km zum Startort, Wind schräg von vorn“, drei Winkel am Boot (hellblau =
+     Wind von See, orange = vom Land), Abzeichen mit Zeit und Wind. Am Kartenfuß das Stundenband mit der Zeile „Fenster“:
+     über die Zeile ziehen oder die Griffe S und R verschieben. Rechts: Schiene Start → Rückkehr mit den Befunden an ihrer
+     Stunde, „Im ganzen Fenster“, Hinweise, Fuß „Amtliche Warnungen gehen vor.“. „Fenster abspielen“ führt die Zeit durch.
+   - `/seewetter/cuxhaven-duhnen` (Watt): Hinweis „… nicht zur Wasserkante“, in der Karte „Rückkehr“ der Wasserstand am Pegel.
+   - Telefon: vierter Eintrag „Ausfahrt“ der unteren Leiste → Blatt über dem Kartenfuß („Alle Befunde zeigen“ öffnet es),
+     im Band zwei Griffe; „Karte“ zeigt Karte und Legende, das Boot bleibt.
+   - Worauf ich ohne Bild nicht antworten kann: liegen Abzeichen und Linienbeschriftung übereinander, wenn das Boot nah am
+     Startort ist; verdeckt das Band am Desktop zu viel Karte; ist das Blatt mit 46 % der Höhe richtig; greifen die Griffe
+     auf dem Telefon, ohne dass das Band mitscrollt.
+2. **Teilen prüfen:** Fenster und Boot setzen → „Teilen“ → der Link trägt `p=…` und `pl=<Start>_<Rückkehr>_<Breite>_<Länge>`
+   (Zeiten als UTC-Stunde) → in einem privaten Fenster öffnen: derselbe Plan. Ein Link von gestern beginnt „jetzt“ und sagt es.
+3. **Entscheiden** (`audit/seewetter-planer.md` §2): **E-SP-2** Radius 5 km (gesetzt; Alternative 3 km). **E-SP-5** kein
+   Abstand zum Ufer, nirgends (strenger als dein Auftrag). **E-SP-4** Fenster öffnet mit 3 h. **E-SP-8** das Boot lässt sich
+   auf Land ziehen (keine Küstenlinie in den Daten, V-SP-1). **E-SP-9** der Anteil „über Grenze“ steht nur in den Karten
+   Start und Rückkehr, je für diese eine Stunde.
+4. **Push:** `git push origin main`. Kein Workflow, kein Daten-Repo, keine Edge Function ist betroffen (`shareParser.js`
+   kennt keine Seewetter-Parameter; `verify:share` nicht berührt).
+5. **Rückfall:** es gibt keinen Schalter. Für alle: den Commit zurücknehmen und pushen. Alte Links mit `pl=` öffnen dann die
+   Seite ohne Planer (der Schlüssel wird als unbekannt übergangen).
+6. **CI (V-SP-4):** `node scripts/ci-run.mjs verify:sea-planner` in `.github/workflows/ci.yml` hinter „Verifier —
+   Tidenfenster“ eintragen — Workflows habe ich nicht angefasst (dort fehlt auch `verify:sea-wind-band`, V-SU-4).
+7. **Offen:** Sichtprüfung und Real-Device (Punkt 1); Konsole, Touch-Ziele, Long Tasks und Pixelgleichheit der Seite ohne
+   Planer sind **nicht** gemessen; `verify:sea-ui` nicht gelaufen (Browser-Prüfung, bricht an HEAD in B0 ab, V-TF-5).

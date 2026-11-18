@@ -30,11 +30,15 @@ export interface SeaUrlState {
   tw: string | null;
   /** Phase TF: `tf=1` stays in the address while the tide window is not live, so a shared link shows what was shared. */
   tf: boolean;
+  /** Phase SP: the trip planner as written in the link (`pl=<start>_<return>_<lat>_<lon>`, `seaPlanner.ts`); null = planner closed. */
+  pl: string | null;
 }
 
-export const SEA_DEFAULT_STATE: SeaUrlState = { spot: null, p: 'kite', t: 0, l: 'hs', u: 'kn', tab: 'spot', rv: 'alle', tw: null, tf: false };
+export const SEA_DEFAULT_STATE: SeaUrlState = { spot: null, p: 'kite', t: 0, l: 'hs', u: 'kn', tab: 'spot', rv: 'alle', tw: null, tf: false, pl: null };
 /** Phase TF: form of `tw` — mode, whole cm, reference, gauge id (read by `parseTideParam` in `tideWindow.ts`; kept here so the route wrapper stays free of the tide module). */
 export const SEA_TW_RE = /^(min|max)\.(-?\d{1,4})\.(pnp|nhn|skn|mhw)\.([a-z0-9][a-z0-9_-]{0,63})$/;
+/** Phase SP: form of `pl` — start and return as full UTC hours (YYYYMMDDHH), boat position in degrees (read by `parsePlanParam` in `seaPlanner.ts`). */
+export const SEA_PL_RE = /^(\d{10})_(\d{10})_(\d{1,2}\.\d{1,5})_(\d{1,3}\.\d{1,5})$/;
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export function parseSeaUrl(slug: string | null | undefined, search: string): { state: SeaUrlState; invalid: string[] } {
@@ -57,6 +61,8 @@ export function parseSeaUrl(slug: string | null | undefined, search: string): { 
   const tw = q.get('tw');
   if (tw != null) { if (SEA_TW_RE.test(tw)) state.tw = tw; else invalid.push('tw'); }
   if (q.get('tf') === '1') state.tf = true;
+  const pl = q.get('pl');
+  if (pl != null) { if (SEA_PL_RE.test(pl)) state.pl = pl; else invalid.push('pl'); }
   return { state, invalid };
 }
 
@@ -71,6 +77,7 @@ export function buildSeaUrl(s: SeaUrlState, extra: ReadonlyArray<[string, string
   if (s.rv !== 'alle') q.push(['rv', s.rv]);
   if (s.tw) q.push(['tw', s.tw]);
   if (s.tf) q.push(['tf', '1']);
+  if (s.pl) q.push(['pl', s.pl]);
   q.push(...extra);
   const qs = q.length ? `?${q.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&')}` : '';
   return `/seewetter${s.spot ? `/${s.spot}` : ''}${qs}`;

@@ -31,7 +31,7 @@ import {
   type SeaAreas, type SeaCatalog, type SeaPoiObs, type SeaRunLoad, type SeaSpotsDoc,
 } from './seaClient';
 import {
-  SEA_PROFILE_BY_ID, loadLimits, saveLimits, nextAndLongest, fmtWind, unitLabel, SEA_UNITS, MS_TO_KN, windows as verdictWindows,
+  SEA_PROFILE_BY_ID, SHORE_LABEL, limitsSummary, loadLimits, saveLimits, nextAndLongest, fmtWind, unitLabel, SEA_UNITS, MS_TO_KN, windows as verdictWindows,
   type SeaLimits, type SeaProfileId, type SeaUnit, type SeaVerdict,
 } from './seaProfiles';
 import { SeaVerdictCache } from './seaVerdicts';
@@ -40,11 +40,17 @@ import {
   CLASS_COLOR, CLASS_LABEL, CLASS_SHORT, DRY_VALUE, HS_STOPS, LAYER_LABEL, PER_STOPS, H, compass16, cssGradient, dayShort, f1, hh, hm, tzLabel, waveArrows,
 } from './seaView';
 import { colourFieldAsync } from './seaFieldClient';
-import SeaMap, { type SeaMapArea, type SeaMapGauge, type SeaMapSpot } from './SeaMap';
+import SeaMap, { type SeaMapArea, type SeaMapGauge, type SeaMapPlan, type SeaMapSpot } from './SeaMap';
+import SeaPlanPanel, { type SeaPlanCard } from './SeaPlanPanel';
+import {
+  DRIFT_SIDE_LABEL, PLAN_ASK_SPOT, PLAN_COLOUR_NOTE, PLAN_CUT_NOTE, PLAN_DRIFT_NOTE, PLAN_HOURLY_NOTE, PLAN_LINE_NOTE, PLAN_MOVED_NOTE, PLAN_RADIUS_NOTE, PLAN_TIDAL_NOTE, REL_LABEL,
+  SEA_PLAN_DEFAULT_H, SEA_PLAN_RADIUS_KM, badgeText, clampToRadius, defaultBoat, defaultWindow, driftOf, encodePlanParam, lineLabel, parsePlanParam, planBearingDeg, planClock, planDistKm,
+  planEvents, planFindings, planSummary, planWindow, radiusBounds, relativeWind, sunAround, sunLine, type PlanLink,
+} from './seaPlanner';
 import SeaDock, { type SeaToggles } from './SeaDock';
 import SeaBand, { type SeaBandHour } from './SeaBand';
 import SeaGustOdds from './SeaGustOdds';
-import { gustOverLimit, mostText, q5At } from './windBand';
+import { gustOverLimit, mostText, overSentence, q5At } from './windBand';
 import SeaReadout, { findWarning, type SeaReadoutHour, type SeaTexts, type SeaWaterLevel } from './SeaReadout';
 import SeaMapCard from './SeaMapCard';
 import MapGestureHint, { type HintSpot } from '../map/MapGestureHint';
@@ -107,7 +113,16 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   const [wlCat, setWlCat] = useState<{ gauges: WlGauge[]; why: string | null; state: 'loading' | 'ok' | 'missing' | 'error' }>({ gauges: [], why: null, state: 'loading' });
   const [wlDoc, setWlDoc] = useState<WlForecast | null | 'loading' | 'error'>(null);
   const [gaugePick, setGaugePick] = useState<string | null>(null);
-  const [mobTab, setMobTab] = useState<'map' | 'spot' | 'layers' | 'tide'>('map');
+  const [mobTab, setMobTab] = useState<'map' | 'spot' | 'layers' | 'tide' | 'plan'>('map');
+  // Phase SP (`audit/seewetter-planer.md`): the trip planner. `plan` = open (window in absolute time, boat position);
+  // `linkPl` = what a link carried until the spot is known; `planAsk` = the planner waits for a spot to launch from;
+  // `planPick` = "Spot wechseln" (desktop: the picker shows while the plan stays).
+  const [plan, setPlan] = useState<PlanLink | null>(null);
+  const [linkPl, setLinkPl] = useState<PlanLink | null>(() => parsePlanParam(initial.pl));
+  const [planAsk, setPlanAsk] = useState(false);
+  const [planPick, setPlanPick] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [planSheetOpen, setPlanSheetOpen] = useState(false);
   // Phase TF (`audit/tidenfenster.md`): off by default, `?tf=1` — read once, like `?wl=0`.
   const tideOn = useMemo(() => seaTideWindowFrom(), []);
   /** The threshold a link carried (`tw=`), until the user sets one of their own. */
@@ -117,10 +132,10 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   /** Gauges whose LIVE answer carried no curve although the catalogue said so (V-WL-11). */
   const [noCurveIds, setNoCurveIds] = useState<readonly string[]>([]);
   /** Centre stage: the map (default) or the spot dossier — like the Brandradar (BD2), the map stays mounted. Mobile: the dossier is a full-screen page over the map. */
-  const [stage, setStage] = useState<'map' | 'dossier'>(openDossier && !isMobile ? 'dossier' : 'map');
+  const [stage, setStage] = useState<'map' | 'dossier'>(openDossier && !isMobile && !initial.pl ? 'dossier' : 'map');
   /** The spot a MAP click picked: its preview card (bottom left) stays until closed, the detail opens or another spot is picked. */
   // A link on a spot: mobile opens on the map with the spot's preview card (its detail), the desktop on the dossier.
-  const [mapCard, setMapCard] = useState<string | null>(openDossier && isMobile ? initial.spot : null);
+  const [mapCard, setMapCard] = useState<string | null>(openDossier && isMobile && !initial.pl ? initial.spot : null);
   useEffect(() => { if (stage === 'dossier') setMapCard(null); }, [stage]);
   const firstSpot = useRef(true);
   /**
@@ -135,6 +150,9 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   useEffect(() => {
     if (!popState) return;
     setSpotId(popState.spot ?? DEFAULT_SPOT); setSpotInUrl(!!popState.spot); setProfile(popState.p); setT(popState.t); setLayer(popState.l); setUnit(popState.u); setTab(popState.tab); setRevier(popState.rv);
+    // SP: back/forward restores the plan of that address as it was (boat included) — the spot change is not a new pick.
+    planSpot.current = popState.spot ?? null;
+    setPlan(popState.spot ? parsePlanParam(popState.pl) : null); setLinkPl(null); setPlaying(false);
   }, [popKey]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { setLimitsState(loadLimits(profile)); }, [profile]);
   const setLimits = useCallback((l: SeaLimits | null) => { saveLimits(profile, l); setLimitsState(l ?? SEA_PROFILE_BY_ID[profile].limits); }, [profile]);
@@ -374,6 +392,88 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   const hour = spotHours[k] ?? null;
   const verdict = spot ? (spotVerdicts[k] ?? verdictAt(spot, k)) : null;
 
+  // --- Phase SP: trip planner (`seaPlanner.ts` computes, this block only feeds it) -----------------------------
+  const planWin = useMemo(() => (plan && usable ? planWindow(plan.startMs, plan.endMs, nowHour, nHours) : null), [plan, usable, nowHour, nHours]);
+  const kRef = useRef(k);
+  kRef.current = k;
+  const startPlan = useCallback((sp: SeaSpot) => {
+    const w = defaultWindow(kRef.current, nHours), b = defaultBoat(sp);
+    setPlan({ startMs: nowHour + (w?.start ?? 0) * H, endMs: nowHour + (w?.end ?? SEA_PLAN_DEFAULT_H) * H, lat: b.lat, lon: b.lon });
+    setLinkPl(null); setPlanAsk(false); setPlanPick(false); setStage('map'); setMapCard(null); setMobTab('plan'); setPlanSheetOpen(false);
+  }, [nHours, nowHour]);
+  /** „Ausfahrt planen“ — never disabled: without a chosen spot the planner asks for one first. */
+  const openPlanner = useCallback(() => {
+    if (plan) { setStage('map'); setMobTab('plan'); setPlanPick(false); return; }
+    if (!spotInUrl || !spot) { setPlanAsk(true); setStage('map'); setMapCard(null); setMobTab('spot'); return; }
+    startPlan(spot);
+  }, [plan, spotInUrl, spot, startPlan]);
+  const closePlanner = useCallback(() => { setPlan(null); setLinkPl(null); setPlanAsk(false); setPlanPick(false); setPlaying(false); setMobTab('map'); }, []);
+  // A spot picked while the planner asks for one starts the plan there; picked while a plan is open, the boat moves in front of it.
+  const planSpot = useRef<string | null>(null);
+  useEffect(() => {
+    if (!spot) return;
+    if (planAsk && spotInUrl) startPlan(spot);
+    else if (plan && planSpot.current && planSpot.current !== spot.id) {
+      const b = defaultBoat(spot);
+      setPlan((p) => p && { ...p, lat: b.lat, lon: b.lon });
+      setPlanPick(false); setMapCard(null); setMobTab('plan');
+    }
+    planSpot.current = spot.id;
+  }, [spot?.id, spotInUrl, planAsk]); // eslint-disable-line react-hooks/exhaustive-deps
+  // A link with a plan: opened once the spot of the path is known (the boat is held inside that spot's radius).
+  useEffect(() => {
+    if (!linkPl || !spot || catalog === 'loading') return;
+    if (!initial.spot) { setLinkPl(null); setPlanAsk(true); setMobTab('spot'); return; }
+    if (spot.id !== initial.spot) { setLinkPl(null); return; }
+    const c = clampToRadius(spot, linkPl);
+    setPlan({ startMs: linkPl.startMs, endMs: linkPl.endMs, lat: Math.round(c.lat * 1e4) / 1e4, lon: Math.round(c.lon * 1e4) / 1e4 });
+    setLinkPl(null); setStage('map'); setMapCard(null); setMobTab('plan');
+  }, [linkPl, spot, catalog]); // eslint-disable-line react-hooks/exhaustive-deps
+  const planOpen = !!plan;
+  // The phone's „Ausfahrt“ page exists only with a plan (closed by the back button ⇒ back to the map).
+  useEffect(() => { if (!planOpen) { setMobTab((m) => (m === 'plan' ? 'map' : m)); setPlaying(false); } }, [planOpen]);
+  // The map shows the whole radius when the planner opens or its spot changes (the padding of the planner layout is set by then).
+  useEffect(() => {
+    if (!planOpen || !spot || !mapInst) return;
+    const [w, s, e, n] = radiusBounds(spot);
+    mapInst.fitBounds([[w, s], [e, n]], { padding: 24, maxZoom: 12, duration: 600 });
+  }, [planOpen, spot?.id, mapInst, isMobile]); // eslint-disable-line react-hooks/exhaustive-deps
+  /** Window in hours of the axis → the plan (absolute time); the map's hour follows the end that moved. */
+  const setPlanHours = useCallback((a: number, b: number) => {
+    if (!planWin || b <= a || a < 0 || b > nHours - 1) return;
+    setPlaying(false);
+    setPlan((p) => p && { ...p, startMs: nowHour + a * H, endMs: nowHour + b * H });
+    if (a !== planWin.start) setT(a); else if (b !== planWin.end) setT(b);
+  }, [planWin, nHours, nowHour]);
+  // „Abspielen“: the existing hour (`t`) walks through the window once, an hour per step.
+  useEffect(() => {
+    if (!playing || !planWin) return;
+    const id = window.setInterval(() => {
+      const cur = kRef.current;
+      if (cur >= planWin.end) setPlaying(false); else setT(Math.max(planWin.start, cur + 1));
+    }, 900);
+    return () => window.clearInterval(id);
+  }, [playing, planWin?.start, planWin?.end]); // eslint-disable-line react-hooks/exhaustive-deps
+  const togglePlay = useCallback(() => {
+    if (!planWin) return;
+    if (!playing && (kRef.current < planWin.start || kRef.current >= planWin.end)) setT(planWin.start);
+    setPlaying((x) => !x);
+  }, [planWin, playing]);
+  const planModel = useMemo(() => {
+    if (!plan || !spot) return null;
+    const boat = clampToRadius(spot, plan);
+    const km = planDistKm(boat, spot), course = km < 0.05 ? null : planBearingDeg(boat, spot);
+    if (!planWin) return { boat, km, course, win: null };
+    const f = planFindings(spotHours, planWin.start, planWin.end, { normal: spot.normal, windMaxKn: limits.windMax, gustMaxKn: limits.gustMax });
+    const startT = nowHour + planWin.start * H, endT = nowHour + planWin.end * H;
+    const sun = sunAround(endT, spot.lat, spot.lon);
+    return {
+      boat, km, course, win: planWin, startT, endT,
+      events: planEvents(f, unit, sun.sunset, startT, endT),
+      summary: [...planSummary(f, unit, { windMaxKn: limits.windMax, gustMaxKn: limits.gustMax }), sunLine(endT, sun)],
+    };
+  }, [plan, spot, planWin, spotHours, limitsKey, unit, nowHour]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // --- texts, warnings ------------------------------------------------------------------------------
   const stale = Object.fromEntries(TEXTS.map((p) => [p, !!texts[p] && seaTextFreshness(texts[p]!, nowMs) !== 'live'])) as Record<string, boolean>;
   const seaTexts: SeaTexts = { fq50: texts.FQDL50 ?? null, fq51: texts.FQDL51 ?? null, wodl: texts.WODL45 ?? null, fx40: texts.FXDL40 ?? null, stale, loading: textsLoading };
@@ -437,7 +537,9 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   // --- URL ------------------------------------------------------------------------------------------------
   // TF: the threshold travels with its gauge (`tw`); until the gauge is known the link's own value stays in the address.
   const tw = !tideOn || !tideGaugeId ? initial.tw : tide ? encodeTideParam(tide, tideGaugeId) : null;
-  const urlState: SeaUrlState = { spot: spotInUrl ? (spot?.id ?? spotId) : null, p: profile, t, l: layer, u: unit, tab, rv: revier, tw, tf: initial.tf };
+  // SP: the open plan travels as `pl`; a link's own value stays in the address until its spot is known.
+  const pl = plan ? encodePlanParam(plan) : linkPl ? initial.pl : null;
+  const urlState: SeaUrlState = { spot: spotInUrl ? (spot?.id ?? spotId) : null, p: profile, t, l: layer, u: unit, tab, rv: revier, tw, tf: initial.tf, pl };
   const urlKey = JSON.stringify(urlState);
   useEffect(() => { if (!firstSpot.current) onUrlState(urlState); }, [urlKey]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -453,7 +555,13 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
     const s = spots.find((x) => x.id === id);
     if (s) mapRef.current?.easeTo({ center: [s.lon, s.lat], zoom: Math.max(mapRef.current.getZoom(), 7.5), duration: 600 });
   }, [spots, isMobile]);
-  const pickSpotFromMap = useCallback((id: string) => { pickSpot(id); setMapCard(id); }, [pickSpot]);
+  // SP: with the planner open (or asking for a spot) a picked spot is the launch point — no preview card.
+  const planBusy = planOpen || planAsk;
+  const pickSpotFromMap = useCallback((id: string) => {
+    pickSpot(id);
+    if (!planBusy) setMapCard(id);
+    else if (planOpen && id === spot?.id) { setPlanPick(false); setMobTab('plan'); }   // „Spot wechseln“ and the same spot again
+  }, [pickSpot, planBusy, planOpen, spot?.id]);
 
   // --- lists ----------------------------------------------------------------------------------------------
   const dockSpots = useMemo(() => spots
@@ -535,7 +643,9 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   const sourceTile = <MapSourcesTile title="Quellen des Seewetters" groups={sourceGroups} ready={pageShown} />;
   const liveTone = !runLoad ? 'loading' : noData ? 'none' : freshness === 'stale' ? 'stale' : 'live';
   // Desktop: the hourly band lives in the dossier now, so the map foot is free (was 250 px for the band).
-  const padding = isMobile ? { top: 76, bottom: 440, left: 24, right: 24 } : { top: 110, bottom: 40, left: 40, right: 230 };
+  // SP: with the planner open the foot of the map carries the hour band (desktop) or the sheet (phone).
+  const padding = isMobile ? { top: 76, bottom: planOpen && mobTab === 'plan' ? 380 : 440, left: 24, right: 24 }
+    : planOpen ? { top: 110, bottom: 330, left: 40, right: 40 } : { top: 110, bottom: 40, left: 40, right: 230 };
   const fieldNote = fStep != null && fStep !== lead ? ` · Karte zeigt +${fStep} h (${fKind === 'c' ? 'Komponenten' : 'ab 48 h'} dreistündlich)` : '';
 
   // --- pieces -----------------------------------------------------------------------------------------------
@@ -569,15 +679,94 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   );
   const emptyMap = noData && <div className="sw-map-note" role="status"><strong>Keine Daten.</strong> {noData} Es wird keine Seegangsfläche gezeigt.</div>;
   const catFail = catalog === null && <div className="sw-map-note" role="status"><strong>Spotkatalog nicht ladbar.</strong> Der Datenspeicher antwortet nicht.</div>;
+  // --- Phase SP: what the planner shows (map, band row, findings) --------------------------------------------------
+  const planHour = noData ? null : hour;
+  const planDrift = spot && planHour ? driftOf(planHour.windDir, spot.normal) : null;
+  const planWindDir = planHour?.windDir ?? null;
+  const boatLat = planModel?.boat.lat ?? null, boatLon = planModel?.boat.lon ?? null;
+  const planBadge = `${planClock(validMs)}: ${badgeText(planHour, unit)}`;
+  const mapPlan: SeaMapPlan | null = useMemo(() => (spot && boatLat != null && boatLon != null ? {
+    launch: { lon: spot.lon, lat: spot.lat }, boat: { lon: boatLon, lat: boatLat }, radiusKm: SEA_PLAN_RADIUS_KM,
+    driftTo: planDrift?.toDeg ?? null, side: planDrift?.side ?? null, badge: planBadge,
+    lineLabel: lineLabel({ lat: boatLat, lon: boatLon }, spot, planWindDir),
+    labelAt: (lat: number, lon: number) => lineLabel({ lat, lon }, spot, planWindDir),
+    onBoat: (lat: number, lon: number) => setPlan((p) => p && { ...p, lat: Math.round(lat * 1e4) / 1e4, lon: Math.round(lon * 1e4) / 1e4 }),
+  } : null), [spot, boatLat, boatLon, planDrift?.toDeg, planDrift?.side, planBadge, planWindDir]);
+  const bandPlan = planModel?.win ? { start: planModel.win.start, end: planModel.win.end, onChange: setPlanHours, touch: isMobile } : null;
+  const planCard = (kk: number, isReturn: boolean): SeaPlanCard | null => {
+    const h = spotHours[kk], v = spotVerdicts[kk], w = planModel?.win;
+    if (!spot || !h || !v || !w) return null;
+    const lines: string[] = [];
+    if (v.shore) lines.push(`Uferwinkel: ${SHORE_LABEL[v.shore]} (${DRIFT_SIDE_LABEL[driftOf(h.windDir, spot.normal)!.side]})`);
+    const rel = relativeWind(h.windDir, planModel?.course ?? null);
+    if (rel) lines.push(`Wind zum Rückweg in dieser Stunde: ${REL_LABEL[rel]}`);
+    if (h.dry) lines.push(`Seegang: ${DRY_VALUE}`); else if (h.hs != null) lines.push(`Welle ${f1(h.hs, ' m')}`);
+    lines.push(`${profLabel}: ${CLASS_SHORT[v.cls]}${v.cls !== 'passt' && v.reasons[0] ? ` (${v.reasons[0]})` : ''}`);
+    // SU: the share above the gust limit belongs to this ONE hour — never added up over the window (E-SP-9).
+    const o = limits.gustMax != null ? gustOverLimit(h.gustQ, limits.gustMax) : null;
+    if (o && limits.gustMax != null) lines.push(`Nur diese Stunde: ${overSentence(o, limits.gustMax)}`);
+    // Water level at the return — only where a gauge curve exists.
+    if (isReturn && tideDoc && tideDoc.curve.length > 0) {
+      const pt = wlAt(tideDoc.curve, h.t), cm = pt?.forecast ?? pt?.measured ?? pt?.tide ?? null;
+      const at = `Wasserstand am Pegel ${tideDoc.name}${tideKm != null ? ` (${f1(tideKm)} km vom Spot)` : ''}`;
+      lines.push(cm == null ? `${at}: Die Kurve reicht nicht bis zur Rückkehr.`
+        : `${at}: ${Math.round(cm)} cm über Pegelnull (${pt?.forecast != null ? 'Kurve des BSH' : pt?.measured != null ? 'gemessen' : 'nur Gezeit'})`);
+    }
+    return {
+      when: planClock(h.t), wind: badgeText(h, unit), lines, color: v.cls === 'keine' ? null : CLASS_COLOR[v.cls],
+      canEarlier: isReturn ? w.end > w.start + 1 : w.start > 0, canLater: isReturn ? w.end < nHours - 1 : w.start < w.end - 1,
+    };
+  };
+  const playBtn = planModel?.win ? (
+    <button type="button" className={`sw-pl-play${playing ? ' is-on' : ''}`} aria-pressed={playing} onClick={togglePlay}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">{playing ? <path d="M7 5h4v14H7zM13 5h4v14h-4z" /> : <path d="M8 5v14l11-7z" />}</svg>
+      {playing ? 'Anhalten' : 'Fenster abspielen'}
+    </button>
+  ) : null;
+  const planOfficial = warning.status === 'unknown' ? {
+    why: warning.why,
+    texts: [
+      ...(warning.area && warning.area.status === 'unknown' && warning.area.text ? [{ head: `Seegebiet ${warning.area.name} (WODL45, englischer Teil):`, text: warning.area.text }] : []),
+      ...(warning.coast && warning.coast.status === 'unknown' && warning.coast.text ? [{ head: `${spot?.wodlCoast === 'Ostseekueste' ? 'Ostseeküste' : 'Nordseeküste'} (WODL45):`, text: warning.coast.text }] : []),
+    ],
+  } : null;
+  const planAskBox = (planAsk || (planPick && planOpen)) && (
+    <div className="sw-pl-ask" role="status">
+      <strong>Ausfahrt planen</strong>
+      <p>{PLAN_ASK_SPOT}</p>
+      <button type="button" className="sw-link" onClick={() => { if (planPick) { setPlanPick(false); setMobTab('plan'); } else { setPlanAsk(false); setMobTab('map'); } }}>{planPick ? 'Zurück zum Planer' : 'Abbrechen'}</button>
+    </div>
+  );
   const map = (
     <SeaMap field={coloured} arrows={arrows} spots={noData ? mapSpots.map((s) => ({ ...s, cls: 'keine' as const, windTo: null })) : mapSpots} selectedId={spot?.id ?? null}
-      stations={stations} gauges={mapGauges} selectedGaugeId={gaugeId} onGauge={setGaugePick} areas={mapAreas} showWind={toggles.wind && !noData} padding={padding} onSelect={pickSpotFromMap} onMap={(m) => { mapRef.current = m; setMapInst(m); }} />
+      stations={stations} gauges={mapGauges} selectedGaugeId={gaugeId} onGauge={setGaugePick} areas={mapAreas} showWind={toggles.wind && !noData} padding={padding} onSelect={pickSpotFromMap} onMap={(m) => { mapRef.current = m; setMapInst(m); }}
+      plan={mapPlan} />
   );
   const band = spot && usable && bandHours.length > 0 && (
     <SeaBand hours={bandHours} unit={unit} selected={k} onPick={setT} compact={isMobile}
       title={`${spot.name} · ${profLabel}`} sub={`${dayShort(bandHours[0].t)} ${hh(bandHours[0].t)} bis ${dayShort(bandHours[bandHours.length - 1].t)} ${hh(bandHours[bandHours.length - 1].t)} Uhr · ${tzLabel(validMs)}`}
       footnote={`Welle: Modell ${runTxt} · Wind/Böen: ${windEngine}`}
-      tide={tideFeed ? { hours: tideFeed.hours!, side: tideSideText(tideFeed.mode!, tideFeed.name) } : null} over={bandOver} />
+      tide={tideFeed ? { hours: tideFeed.hours!, side: tideSideText(tideFeed.mode!, tideFeed.name) } : null} over={bandOver} plan={bandPlan} />
+  );
+  const planner = planOpen && spot ? (
+    <SeaPlanPanel spotName={spot.name} limitsText={`${profLabel}, ${limitsSummary(limits)}`} profile={profile} onProfile={setProfile}
+      noData={noData ?? (usable ? null : 'Die Stundenreihe des Spots lädt oder ist gerade nicht lesbar.')} official={planOfficial}
+      start={planModel?.win ? planCard(planModel.win.start, false) : null} ret={planModel?.win ? planCard(planModel.win.end, true) : null}
+      onShift={(which, by) => { const w = planModel?.win; if (w) setPlanHours(which === 'start' ? w.start + by : w.start, which === 'end' ? w.end + by : w.end); }}
+      events={planModel?.win ? planModel.events : []}
+      span={planModel?.win ? `${planModel.win.end - planModel.win.start} ${planModel.win.end - planModel.win.start === 1 ? 'Stunde' : 'Stunden'}, ${planClock(planModel.startT)} bis ${planClock(planModel.endT)}` : ''}
+      now={`Karte zeigt ${planClock(validMs)}${k < (planModel?.win?.start ?? 0) || k > (planModel?.win?.end ?? 0) ? ' (außerhalb deines Fensters)' : ''}: ${mapPlan?.lineLabel ?? ''}${planDrift ? `. ${DRIFT_SIDE_LABEL[planDrift.side]} (${SHORE_LABEL[planDrift.shore]})` : ''}.`}
+      summary={planModel?.win ? planModel.summary : []}
+      notes={[PLAN_LINE_NOTE, PLAN_RADIUS_NOTE, PLAN_DRIFT_NOTE, PLAN_COLOUR_NOTE, PLAN_HOURLY_NOTE, ...(spot.tidal ? [PLAN_TIDAL_NOTE] : [])]}
+      moved={planModel?.win?.moved ? PLAN_MOVED_NOTE : planModel?.win?.cut ? PLAN_CUT_NOTE : null}
+      play={playBtn} band={isMobile ? band : null}
+      onChangeSpot={() => { setPlanPick(true); setMobTab('spot'); }} onClose={closePlanner} />
+  ) : null;
+  const planBtn = (
+    <button type="button" className="sw-pl-open" onClick={openPlanner}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 17l2.2 3.5h13.6L21 17H3zM12 3v11M12 4.5l6 7.5h-6" /></svg>
+      Ausfahrt planen
+    </button>
   );
   const dockOf = (show: 'all' | 'layers' | 'picker') => (
     <SeaDock show={show} query={query} onQuery={setQuery} revier={revier} onRevier={setRevier} profile={profile} onProfile={setProfile} limits={limits} onLimits={setLimits}
@@ -593,7 +782,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   );
   const inDossier = stage === 'dossier';
   // The compact preview of the map-picked spot — the same numbers as the briefing and the callout.
-  const cardEl = mapCard && spot && spot.id === mapCard && !inDossier ? (
+  const cardEl = mapCard && spot && spot.id === mapCard && !inDossier && !planOpen ? (
     <SeaMapCard badge={pillBadge} name={spot.name} sub={`${spot.seaArea?.name ?? spot.coast?.name ?? ''} · ${kindsLabel(spot.kinds)} · Profil ${profLabel}`}
       verdict={noData ? 'keine Daten' : CLASS_LABEL[verdict?.cls ?? 'keine']} color={!noData && verdict && verdict.cls !== 'keine' ? CLASS_COLOR[verdict.cls] : null}
       stats={!hour || noData ? [] : [
@@ -641,8 +830,9 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
           {!inDossier && sourceTile}
           <MapGestureHint map={mapInst} feature="seewetter" subject="sea" accent="#0F6E7A" pickSpots={hintSpots} always enabled={mobTab === 'map' && !inDossier} />
           {!inDossier && mTop}
-          {/* The legend sits just above the bottom bar and gives its place to the info card while one is open. */}
-          {!cardEl && <div className="sw-m-legend">{legend}</div>}
+          {/* The legend sits just above the bottom bar and gives its place to the info card while one is open — and to the
+              planner's sheet („Karte“ in the bottom bar shows map and legend again, the boat stays). */}
+          {!cardEl && !(planOpen && mobTab === 'plan') && <div className="sw-m-legend">{legend}</div>}
           {emptyMap}{catFail}
           {cardEl && <div className="sw-map-card">{cardEl}</div>}
         </main>
@@ -653,10 +843,20 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
             <div className="sw-ds-scroll">{readout}</div>
           </div>
         )}
-        {mobTab !== 'map' && mobTab !== 'tide' && (
+        {mobTab !== 'map' && mobTab !== 'tide' && mobTab !== 'plan' && (
           <div className="sw-m-dock" role="dialog" aria-label={mobTab === 'spot' ? 'Spot und Profil wählen' : 'Ebenen'}>
             <div className="sw-m-dock-head"><strong>{mobTab === 'spot' ? 'Spot und Profil' : 'Ebenen'}</strong></div>
+            {mobTab === 'spot' && planAskBox}
             {dockOf(mobTab === 'spot' ? 'picker' : 'layers')}
+          </div>
+        )}
+        {/* Phase SP: the planner as a sheet over the foot of the map — the boat stays in reach above it. */}
+        {mobTab === 'plan' && planner && !inDossier && (
+          <div className={`sw-pl-sheet${planSheetOpen ? ' is-open' : ''}`} role="region" aria-label="Ausfahrt planen">
+            <button type="button" className="sw-pl-sheetgrip" aria-expanded={planSheetOpen} onClick={() => setPlanSheetOpen((o) => !o)}>
+              <span aria-hidden="true" />{planSheetOpen ? 'Karte zeigen' : 'Alle Befunde zeigen'}
+            </button>
+            <div className="sw-pl-sheetbody">{planner}</div>
           </div>
         )}
         {mobTab === 'tide' && tideView && (
@@ -679,10 +879,12 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
             ['map', 'Karte', <path key="p" d="M9 4 3 6.5v13L9 17l6 2.5 6-2.5v-13L15 7 9 4zM9 4v13M15 7v12.5" />],
             ['spot', 'Spot', <g key="p"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z" /><circle cx="12" cy="10" r="2.3" /></g>],
             ['layers', 'Ebenen', <path key="p" d="m12 3 9 4.5-9 4.5-9-4.5L12 3zM3 12l9 4.5 9-4.5M3 16.5 12 21l9-4.5" />],
+            // Phase SP: the trip planner — never disabled; without a chosen spot it asks for one first.
+            ['plan', 'Ausfahrt', <path key="p" d="M3 17l2.2 3.5h13.6L21 17H3zM12 3v11M12 4.5l6 7.5h-6" />],
             // Phase TF: the threshold control lives in the bottom bar on the phone (only with the switch on).
             ...(tideView ? [['tide', 'Schwelle', <g key="p"><path d="M3 15c2-2.4 4-2.4 6 0s4 2.4 6 0 4-2.4 6 0" /><path d="M3 8.5h18" strokeDasharray="3 3" /><path d="M12 19.5v-2M12 6V3.5" /></g>] as const] : []),
           ] as const).map(([id, label, icon]) => (
-            <button key={id} type="button" className={`sw-bar-btn${mobTab === id && !(id === 'map' && inDossier) ? ' is-active' : ''}`} aria-current={mobTab === id && !(id === 'map' && inDossier) ? 'page' : undefined} onClick={() => { setMobTab(id); if (id === 'map') setStage('map'); }}>
+            <button key={id} type="button" className={`sw-bar-btn${mobTab === id && !(id === 'map' && inDossier) ? ' is-active' : ''}`} aria-current={mobTab === id && !(id === 'map' && inDossier) ? 'page' : undefined} onClick={() => { if (id === 'plan') { openPlanner(); return; } setMobTab(id); if (id === 'map') setStage('map'); }}>
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{icon}</svg>
               <span>{label}</span>
             </button>
@@ -719,13 +921,19 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
         </header>
         <div className={`sw-body${inDossier ? ' is-dossier' : ''}`}>
           {dockOf('layers')}
-          <main className={`sw-map msl-host${inDossier ? ' is-offstage' : ''}`} aria-label="Karte" aria-hidden={inDossier ? true : undefined}>
+          <main className={`sw-map msl-host${inDossier ? ' is-offstage' : ''}${planOpen ? ' is-plan' : ''}`} aria-label="Karte" aria-hidden={inDossier ? true : undefined}>
             {map}
             {sourceTile}
             <MapGestureHint map={mapInst} feature="seewetter" subject="sea" accent="#0F6E7A" pickSpots={hintSpots} always enabled={!inDossier} />
             <div className="sw-ov-left">
               {usable && chips}            </div>
-            <div className="sw-ov-right">{legend}</div>
+            {planOpen ? (
+              // Phase SP: the foot of the map carries the hour band with the row „Fenster“; the legend folds above it.
+              <div className="sw-pl-dock">
+                <details className="sw-pl-legend"><summary>Legende</summary>{legend}</details>
+                {!inDossier && band}
+              </div>
+            ) : <div className="sw-ov-right">{planBtn}{legend}</div>}
             {emptyMap}{catFail}
             {cardEl && <div className="sw-map-card">{cardEl}</div>}
           </main>
@@ -734,7 +942,9 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
               <div className="sw-ds-scroll">{readout}</div>
             </main>
           )}
-          <aside className="sw-readout is-picker" aria-label="Spots und Profil">{dockOf('picker')}</aside>
+          {planner && !planPick
+            ? <aside className="sw-readout is-plan" aria-label="Ausfahrt planen">{planner}</aside>
+            : <aside className="sw-readout is-picker" aria-label="Spots und Profil">{planAskBox}{dockOf('picker')}</aside>}
         </div>
       </div>
     </div>

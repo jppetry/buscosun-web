@@ -125,6 +125,7 @@
     "verify:sea-waterlevel": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-sea-waterlevel.mjs",
     "verify:sea-tide-window": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-sea-tide-window.mjs",
     "verify:sea-wind-band": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-sea-wind-band.mjs",
+    "verify:sea-planner": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-sea-planner.mjs",
     "verify:glacier-contract": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-contract.mjs",
     "verify:glacier-static": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-static.mjs",
     "verify:glacier-ui": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-ui.mjs",
