@@ -1083,6 +1083,8 @@ Kategorie und gehört in dieselbe Legende.
 [BSH Strömungsvorhersage für Segler (GRIB2, Pakete db und wb; CC BY 4.0 laut LICENSE.txt im Datenverzeichnis; Filebox und FTP)](https://www.bsh.de/DE/DATEN/Vorhersagen/Stroemungen/Oberflaechenstroemung_fuer_Segler/oberflaechenstroemung_fuer_segler_node.html) ·
 [DMI Open Data (Dänemark: Sturmflutmodell DKSS, HARMONIE, metObs; CC BY 4.0, ohne Schlüssel)](https://opendataapi.dmi.dk/v1/forecastedr/collections) ·
 [DMI Nutzungsbedingungen](https://www.dmi.dk/friedata/dokumentation/terms-of-use) ·
+[DMI oceanObs (gemessene Wassertemperatur `tw`, Phase WT; CC BY 4.0, ohne Schlüssel)](https://opendataapi.dmi.dk/v2/oceanObs/collections/observation/items?parameterId=tw&limit=1) ·
+[WSV PEGELONLINE REST-API (gemessene Wassertemperatur `WT`, Phase WT; DL-DE Zero 2.0)](https://www.pegelonline.wsv.de/webservice/dokuRestapi) ·
 [GeoSphere Dataset API](https://dataset.api.hub.geosphere.at/v1/datasets) ·
 [GeoSphere Warn-API OpenAPI](https://openapi.hub.geosphere.at/warnapi/v1/openapi.json) ·
 [GeoSphere Data Hub warnungen-v1](https://data.hub.geosphere.at/dataset/warnungen-v1) ·

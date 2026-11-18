@@ -3513,3 +3513,72 @@ Alle drei wirken auf die heutige Seite und den heutigen Producer **nicht**.
 9. **Offen:** Sichtprüfung und Real-Device (Punkt 3); Konsole, Touch-Ziele am Gerät, Long Tasks und Pixelgleichheit der
    übrigen Seite sind **nicht** gemessen; `verify:sea-ui` nicht gelaufen (Browser, bricht an HEAD in B0 ab). Befunde
    V-ST-1 … 13, vor allem V-ST-1 (12-UTC-Lauf), V-ST-3 (Stauwasser-Regel) und V-ST-11 (Güte des Modells ungeprüft).
+
+## 95. Wassertemperatur auf `/seewetter` (Phase WT, `audit/seewetter-wassertemperatur.md`), 2026-11-18
+
+Wassertemperatur an jedem Spot, zweigeteilt: **gemessen** an der nächsten Station (WSV PEGELONLINE oder DMI, höchstens
+20 km — 23 von 64 Spots haben eine) und **gerechnet** vom Sturmflutmodell DKSS des DMI (alle 64 Spots, fünf Tage). Dazu
+ein Diagramm (fünf Tage Messung, fünf Tage Modell), deine Schwelle in °C, „Verlauf seit 19.10.2026“ aus der eigenen
+Ablage und an vier dänischen Stationen ein Jahresgang aus 9–10 Messjahren. **Ohne Schalter an für alle (dein Wort 18.11.,
+Ausnahme von Rule 2).** Lokal committet, sichtbar mit dem Push von `buscosun-web`. **Ich habe die Seite nicht im Browser
+geöffnet und keine Bilder gemacht (dein Wort 18.11.)** — Aussehen, Diagramme und das Telefon sind ungesehen; geprüft sind
+Daten, Rechnung, Wortlaute und Markup.
+
+**Pushes in die Daten-Repos in dieser Phase** (nur die Seewetter-Linie, ohne Force, je Push nachgeprüft — §5 des Audits):
+
+| Repo | Commit | Inhalt |
+|---|---|---|
+| `buscosun-data` | `385bea5d` | `sea/v1/static/watertemp.json` (Katalog: Modellpunkt und Station je Spot) und `sea/v1/static/wtemp-season.json` (Jahresgang an vier DMI-Stationen), beide neu |
+| `buscosun-archiv` | `c23a4161` | 32 Tagesdateien `sea/v1/<tag>/wtemp.json.gz` (Stundenwerte von 18 Stationen, 18.10.–18.11.), `sea/v1/wtemp-daily.json` (neu), `sea/v1/index.json` (je Tag ein Zähler mehr) |
+
+Beide wirken auf die heutige Seite und den heutigen Producer **nicht**. Kein Workflow geändert.
+
+1. **Zur Reihenfolge:** die Messung von Schritt 0 lief gut eine Stunde; in dieser Zeit habe ich schon Code geschrieben —
+   also Code vor der fertigen schriftlichen Diagnose, entgegen der Regel. Grenzen und Regeln sind aus den Messwerten
+   gesetzt; der Katalog ist nur, was gemessen wurde.
+2. **Ansehen** (Desktop 1440 × 900, iPhone), lokal `npm run build`, `npx vite preview --host 127.0.0.1 --port 5212 --strictPort`.
+   Katalog, Jahresgang und Ablage liegen schon in den Repos; **die Modelldatei gibt es erst nach dem Push** — bis dahin
+   steht in der Modellhälfte „keine Daten. Im Datenspeicher liegt noch keine Datei …“ (lokal mit Werten:
+   `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/sea/sea-dmi.mjs --only=wtemp --store=<Kopie von sea/v1>`).
+   - `/seewetter/sylt-list` → „Wasserstand“, darunter der Abschnitt „Wassertemperatur“: links „Gemessen, hh:mm Uhr“ mit
+     Wert, „am WSV-Pegel List auf Sylt (Nordsee), 0,4 km vom Spot“ und dem Vermerk der WSV; rechts „Modell, ‹gewählte
+     Stunde›“ mit Wert und dem Satz zum offenen Wasser; dazwischen eine gestrichelte Naht. Darunter das Diagramm (Tinte =
+     gemessen, Petrol = Modell, Naht „jetzt“), der Satz zur Schwelle, „Verlauf seit 19.10.2026“.
+   - `/seewetter/gedser`: DMI-Station im Hafen, darunter „Jahresgang an der Station Gedser Havn II“ (Fläche = Spanne der
+     Jahre, dünne Linie = Mittel, kräftige Linie = dieses Jahr). Messung und Modell liegen hier ≈ 3 K auseinander (§1.5).
+   - `/seewetter/binz` (keine Station): links „keine Station in der Nähe“, rechts das Modell.
+   - `/seewetter/cuxhaven-duhnen` oder `/hvide-sande`: Modellpunkt 3–4 km vom Spot — steht in der kleinen Zeile.
+   - Schwelle „über 18“ eintragen: Linie im Diagramm (oder der Hinweis „oberhalb des Ausschnitts“), zwei Sätze, `wt=over.18`
+     in der Adresse; neu laden ⇒ die Zahl ist noch da; „Schwelle löschen“.
+   - `?wl=0`: der Abschnitt steht dann unter „Wetter“.
+   - Worauf ich ohne Bild nicht antworten kann: trägt die Naht (liest man links/rechts als Messung/Modell); ist die
+     Karte zu lang; sind drei Diagramme untereinander an Gedser zu viel; bricht sie auf dem Telefon sauber um (dort
+     Messung oben, Modell unten); sitzt der Abschnitt im Kapitel „Wasserstand“ richtig.
+3. **Push:** `git push origin main`. Danach, ohne Handgriff:
+   - der nächste `sea.yml`-Lauf (alle 15 min) fragt im Schritt „DMI“ die 64 Punkte ab (≈ 6 min, nur beim ersten Mal und
+     viermal am Tag bei einem neuen DKSS-Lauf) und schreibt `sea/v1/wtemp/<stempel>.json` und `status.wtemp`;
+   - der nächste `sea-archiv`-Lauf (alle 6 h) legt die Messwerte weiter ab und schließt die Lücke seit dem 18.11.
+     (höchstens 31 Tage — also bitte vor dem 19.12. pushen, sonst reißt die Reihe).
+4. **Prüfen nach dem Push:** `https://raw.githubusercontent.com/jppetry/buscosun-data/main/sea/v1/status.json` trägt
+   `wtemp` mit `spots: 64` und `failed: 0` (steht dort eine Zahl > 0, holt der nächste stündliche Durchgang die Spots
+   nach — V-WT-15). In `buscosun-data` → Actions → `sea` ist der Schritt „DMI“ grün; er dauert beim ersten Mal ≈ 6 min
+   (V-WT-2: in dieser Zeit warten die Texte). In `buscosun-archiv` wächst `sea/v1/wtemp-daily.json`.
+5. **Budget:** `totalJs` von Hand auf 2 004 gehoben (Notiz in `budget.json`); die Phase kostet 13,0 KB gzip. **Im
+   Arbeitsbaum liegt daneben die uncommittete Radar-Linie (§94)** — mit ihr zusammen misst der Bau 2 004,2 und ist rot;
+   wer sie committet, hebt die Ratsche mit eigener Notiz (V-WT-14).
+6. **CI:** `node scripts/ci-run.mjs verify:sea-watertemp` in `.github/workflows/ci.yml` hinter „Verifier — Tidenfenster“
+   eintragen (Workflows von `buscosun-web` habe ich nicht angefasst).
+7. **Entscheiden** (`audit/seewetter-wassertemperatur.md` §2): **E-WT-2** Station bis 20 km (mit 15 km fielen sechs Spots
+   weg). **E-WT-3** Modellpunkt = nächster Punkt mit Wasser in jeder Stunde, bis 5 km. **E-WT-4** WSV-Stationen nur an
+   Nordsee, Jade, Weser, Elbe, kein Siel. **E-WT-6** EINE Schwelle für alle Spots, streng. **E-WT-8** Jahresgang
+   ungeglättet, Jahr ab 347 vollen Tagen, „I“- und „II“-Stationen nicht zusammengelegt. **E-WT-9** Ablage der nächsten
+   Station je Spot bis 40 km (18 Stationen). **E-WT-10** Ort des Abschnitts.
+8. **Rückfall:** es gibt keinen Schalter. Ohne Deploy: `sea/v1/static/watertemp.json` im Daten-Repo löschen ⇒ die Seite
+   zeigt keine Wassertemperatur mehr, der Producer fragt nichts (der Archivlauf legt dann auch nichts mehr ab). Ganz:
+   den Commit zurücknehmen und pushen. Die Pushes in die Daten-Repos sind einzeln rücknehmbar (`git revert 385bea5d`
+   bzw. `c23a4161`) — nötig ist das für den Rückfall nicht.
+9. **Offen:** Sichtprüfung und Real-Device (Punkt 2); Konsole, Touch-Ziele am Gerät, Long Tasks und Pixelgleichheit der
+   übrigen Seite sind **nicht** gemessen; `verify:sea-ui` nicht gelaufen (Browser, bricht an HEAD in B0 ab). Befunde
+   V-WT-1 … 15, vor allem V-WT-1 (das Modell lag an Häfen und im Watt 0,4–3,1 K unter der Messung — nach 14 Tagen aus der
+   Ablage auswerten), V-WT-2 (64 Abrufe vor dem Veröffentlichen der Texte), V-WT-5 (deutsche Ostsee ohne Messung) und
+   V-WT-6 (Jahresgang jeden Januar neu bauen).

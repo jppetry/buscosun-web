@@ -1,0 +1,195 @@
+{
+ "about": "Fixtures von verify:sea-watertemp — jede Antwort byte-gleich vom echten Dienst (opendataapi.dmi.dk, CC BY 4.0; pegelonline.wsv.de, DL-DE Zero 2.0), aufgezeichnet von scripts/sea/spike/wt-record-fixtures.mjs.",
+ "recordedAt": "2026-11-18T18:27:16.275Z",
+ "obsNowMs": 1795026436275,
+ "spots": [
+  "helgoland",
+  "sylt-list",
+  "buesum",
+  "gedser",
+  "langeland-bagenkop",
+  "middelfart",
+  "hvide-sande",
+  "elbe-wittenbergen"
+ ],
+ "land": {
+  "id": "kiel-schilksee",
+  "coll": "dkss_idw"
+ },
+ "runs": {
+  "dkss_idw": {
+   "id": "2026-11-18T120000Z",
+   "t0": 1795003200000
+  },
+  "dkss_lb": {
+   "id": "2026-11-18T120000Z",
+   "t0": 1795003200000
+  },
+  "dkss_nsbs": {
+   "id": "2026-11-18T120000Z",
+   "t0": 1795003200000
+  },
+  "dkss_ws": {
+   "id": "2026-11-18T120000Z",
+   "t0": 1795003200000
+  }
+ },
+ "files": {
+  "instances-dkss_idw.json": {
+   "what": "DKSS dkss_idw: Liste der Läufe",
+   "url": "https://opendataapi.dmi.dk/v1/forecastedr/collections/dkss_idw/instances",
+   "status": 200,
+   "bytes": 196033,
+   "sha256": "9b9f134e16ea80b6492b15a4c795469302531a2231451c2a4715ea0ff8081746",
+   "at": "2026-11-18T18:26:13.959Z"
+  },
+  "instances-dkss_lb.json": {
+   "what": "DKSS dkss_lb: Liste der Läufe",
+   "url": "https://opendataapi.dmi.dk/v1/forecastedr/collections/dkss_lb/instances",
+   "status": 200,
+   "bytes": 164142,
+   "sha256": "3f22c6770340312f60b5a3efd0ddb9cf98159c7b49ca8bcf17799ab7982f51d7",
+   "at": "2026-11-18T18:26:19.959Z"
+  },
+  "instances-dkss_nsbs.json": {
+   "what": "DKSS dkss_nsbs: Liste der Läufe",
+   "url": "https://opendataapi.dmi.dk/v1/forecastedr/collections/dkss_nsbs/instances",
+   "status": 200,
+   "bytes": 190781,
+   "sha256": "7456b1c8a5b92c2346985d1db713dffb56ffd639eac1012cd0972c64d6c875cc",
+   "at": "2026-11-18T18:26:25.984Z"
+  },
+  "instances-dkss_ws.json": {
+   "what": "DKSS dkss_ws: Liste der Läufe",
+   "url": "https://opendataapi.dmi.dk/v1/forecastedr/collections/dkss_ws/instances",
+   "status": 200,
+   "bytes": 98826,
+   "sha256": "c061f58be755e0b60a910f15b42deb4ec76a2f26ecfa26cb84009333a48f92c3",
+   "at": "2026-11-18T18:26:27.545Z"
+  },
+  "wt-helgoland.json": {
+   "what": "DKSS dkss_ws, Lauf 2026-11-18T120000Z, am Punkt des Katalogs",
+   "url": "https://opendataapi.dmi.dk/v1/forecastedr/collections/dkss_ws/instances/2026-11-18T120000Z/position?coords=POINT(7.92363%2054.18759)&crs=crs84&parameter-name=water-temperature&f=CoverageJSON",
+   "status": 200,
+   "bytes": 5959,
+   "sha256": "50f3f6004bae9028fb7160c6d98269f66d571d97e396c2c8ecb2119f7879c6f3",
+   "at": "2026-11-18T18:26:34.273Z"
+  },
+  "wt-sylt-list.json": {
+   "what": "DKSS dkss_ws, Lauf 2026-11-18T120000Z, am Punkt des Katalogs",
+   "url": "https://opendataapi.dmi.dk/v1/forecastedr/collections/dkss_ws/instances/2026-11-18T120000Z/position?coords=POINT(8.43752%2055.01256)&crs=crs84&parameter-name=water-temperature&f=CoverageJSON",
+   "status": 200,
+   "bytes": 5892,
+   "sha256": "9342acf7f50866fece9ad9395de57def01ed00e36674e60122d3246a16c7b7a3",
+   "at": "2026-11-18T18:26:40.031Z"
+  },
+  "wt-buesum.json": {
+   "what": "DKSS dkss_ws, Lauf 2026-11-18T120000Z, am Punkt des Katalogs",
+   "url": "https://opendataapi.dmi.dk/v1/forecastedr/collections/dkss_ws/instances/2026-11-18T120000Z/position?coords=POINT(8.8403%2054.12926)&crs=crs84&parameter-name=water-temperature&f=CoverageJSON",
+   "status": 200,
+   "bytes": 5906,
+   "sha256": "fe6a4157e3a6d04770ef0617607752636592131d47b579b16b681b1c96b88901",
+   "at": "2026-11-18T18:26:51.568Z"
+  },
+  "wt-gedser.json": {
+   "what": "DKSS dkss_idw, Lauf 2026-11-18T120000Z, am Punkt des Katalogs",
+   "url": "https://opendataapi.dmi.dk/v1/forecastedr/collections/dkss_idw/instances/2026-11-18T120000Z/position?coords=POINT(11.92366%2054.57091)&crs=crs84&parameter-name=water-temperature&f=CoverageJSON",
+   "status": 200,
+   "bytes": 5892,
+   "sha256": "9e2f5c2842997daa6d0abe3321b9f086766462f7e02ce6fe0b839d06030e3eb9",
+   "at": "2026-11-18T18:26:58.056Z"
+  },
+  "wt-langeland-bagenkop.json": {
+   "what": "DKSS dkss_idw, Lauf 2026-11-18T120000Z, am Punkt des Katalogs",
+   "url": "https://opendataapi.dmi.dk/v1/forecastedr/collections/dkss_idw/instances/2026-11-18T120000Z/position?coords=POINT(10.65976%2054.75424)&crs=crs84&parameter-name=water-temperature&f=CoverageJSON",
+   "status": 200,
+   "bytes": 5873,
+   "sha256": "cd55165171dabb3fd20ed52845882e69b3bd30306e4f606bf9410b1002e3c03d",
+   "at": "2026-11-18T18:26:59.945Z"
+  },
+  "wt-middelfart.json": {
+   "what": "DKSS dkss_lb, Lauf 2026-11-18T120000Z, am Punkt des Katalogs",
+   "url": "https://opendataapi.dmi.dk/v1/forecastedr/collections/dkss_lb/instances/2026-11-18T120000Z/position?coords=POINT(9.7292%2055.48754)&crs=crs84&parameter-name=water-temperature&f=CoverageJSON",
+   "status": 200,
+   "bytes": 5872,
+   "sha256": "ee5fbcccc14589ed3b386c5a8f7ea01bb35a9e8a7398fc1457cdb153b1cef7a2",
+   "at": "2026-11-18T18:27:06.459Z"
+  },
+  "wt-hvide-sande.json": {
+   "what": "DKSS dkss_nsbs, Lauf 2026-11-18T120000Z, am Punkt des Katalogs",
+   "url": "https://opendataapi.dmi.dk/v1/forecastedr/collections/dkss_nsbs/instances/2026-11-18T120000Z/position?coords=POINT(8.11807%2055.95419)&crs=crs84&parameter-name=water-temperature&f=CoverageJSON",
+   "status": 200,
+   "bytes": 5836,
+   "sha256": "695f67e2e19a63ec85aa18fa4a73eff93e00675da22c5d6fdafafd44d2808409",
+   "at": "2026-11-18T18:27:10.856Z"
+  },
+  "wt-elbe-wittenbergen.json": {
+   "what": "DKSS dkss_ws, Lauf 2026-11-18T120000Z, am Punkt des Katalogs",
+   "url": "https://opendataapi.dmi.dk/v1/forecastedr/collections/dkss_ws/instances/2026-11-18T120000Z/position?coords=POINT(9.75697%2053.54595)&crs=crs84&parameter-name=water-temperature&f=CoverageJSON",
+   "status": 200,
+   "bytes": 5902,
+   "sha256": "93d72ce181529e17b5354bad6c4c259e219e77f50a4f441dcbacb4e2abf3eaae",
+   "at": "2026-11-18T18:27:14.384Z"
+  },
+  "wt-land-kiel-schilksee.json": {
+   "what": "DKSS dkss_idw an der Wasserzelle von kiel-schilksee: 200, lauter null (Land im Modell)",
+   "url": "https://opendataapi.dmi.dk/v1/forecastedr/collections/dkss_idw/instances/2026-11-18T120000Z/position?coords=POINT(10.17364%2054.42925)&crs=crs84&parameter-name=water-temperature&f=CoverageJSON",
+   "status": 200,
+   "bytes": 5361,
+   "sha256": "e54532e4dd87000844cefe077041fac549a7d2945497cc12e319101e24bb8258",
+   "at": "2026-11-18T18:27:16.275Z"
+  },
+  "obs-wsv-71160198.json": {
+   "what": "PEGELONLINE WT D1 Hanskalbsand Oberfläche, die Tage der Seite",
+   "url": "https://www.pegelonline.wsv.de/webservices/rest-api/v2/stations/71160198/WT/measurements.json?start=P5D",
+   "status": 200,
+   "bytes": 103610,
+   "sha256": "d97409feda1295edcd2f6ae6c217f646850fb896d5459c4a76fffe0c92dc6768",
+   "at": "2026-11-18T18:27:16.439Z"
+  },
+  "obs-dmi-31623.json": {
+   "what": "DMI oceanObs tw Gedser Havn II, die Tage der Seite",
+   "url": "https://opendataapi.dmi.dk/v2/oceanObs/collections/observation/items?stationId=31623&parameterId=tw&datetime=2026-11-13T18:00:00Z/..&limit=1000",
+   "status": 200,
+   "bytes": 188266,
+   "sha256": "4ee54b3a26f07795d130cdd09a585318e9d6fd9d4f2536f19dc10ae24871b83a",
+   "at": "2026-11-18T18:27:18.043Z"
+  },
+  "obs-wsv-9570070-pt6h.json": {
+   "what": "PEGELONLINE WT List auf Sylt, sechs Stunden in 1-min-Werten",
+   "url": "https://www.pegelonline.wsv.de/webservices/rest-api/v2/stations/9570070/WT/measurements.json?start=PT6H",
+   "status": 200,
+   "bytes": 25490,
+   "sha256": "bf71569711b79f1a89eb5c4f7bc15f4ed8e7da34f6443f7ad32fd02f1381e524",
+   "at": "2026-11-18T18:27:18.131Z"
+  },
+  "obs-wsv-5940060-stale.json": {
+   "what": "PEGELONLINE WT Fahrenholz UP: der letzte Wert ist Tage alt",
+   "url": "https://www.pegelonline.wsv.de/webservices/rest-api/v2/stations/5940060/WT/measurements.json?start=P5D",
+   "status": 200,
+   "bytes": 2,
+   "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "at": "2026-11-18T18:27:18.194Z"
+  },
+  "obs-dmi-31616-empty.json": {
+   "what": "DMI oceanObs Gedser Havn I: Station „Active“, aber kein tw in fünf Tagen",
+   "url": "https://opendataapi.dmi.dk/v2/oceanObs/collections/observation/items?stationId=31616&parameterId=tw&datetime=2026-11-13T18:00:00Z/..&limit=1000",
+   "status": 200,
+   "bytes": 328,
+   "sha256": "44094e036ff9bb649fd4283a0fbf870469d4ef9f424903152ce496bcb95d9b87",
+   "at": "2026-11-18T18:27:19.746Z"
+  },
+  "watertemp.json": {
+   "what": "Katalog der Wassertemperatur, wie build-watertemp.mjs ihn schrieb",
+   "bytes": 9475,
+   "sha256": "1ef97ead3fbe260aa3751366376fb167f906bff7b5350f1c56ee4e03dc351c1c",
+   "at": "2026-11-18T17:57:48.521Z"
+  },
+  "wtemp-season.json": {
+   "what": "Jahresgang an den Stationen mit fünf vollen Jahren, wie build-wtemp-season.mjs ihn schrieb",
+   "bytes": 22818,
+   "sha256": "7eed1c3d0fb3439827030c869d9dd494ae77eccf2374e3cb4e59bc0008ea1f08",
+   "at": "2026-11-18T18:26:11.715Z"
+  }
+ }
+}

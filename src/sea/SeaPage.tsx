@@ -55,6 +55,9 @@ import { gustOverLimit, mostText, overSentence, q5At } from './windBand';
 import SeaReadout, { findWarning, type SeaDmiWater, type SeaReadoutHour, type SeaTexts, type SeaWaterLevel } from './SeaReadout';
 import SeaMapCard from './SeaMapCard';
 import SeaCurrentPanel, { DriftArrow } from './SeaCurrentPanel';
+import SeaWaterTempPanel from './SeaWaterTempPanel';
+import { useSeaWaterTemp, wtPointerKey } from './useSeaWaterTemp';
+import { WSV_CREDIT, WSV_LICENCE, WSV_LICENCE_URL, WSV_NAME, WSV_PAGE, WT_MODEL_NOTE } from './seaWaterTemp';
 import {
   BSH_CURRENT_CHANGED, BSH_CURRENT_CREDIT, BSH_CURRENT_LICENCE, BSH_CURRENT_LICENCE_URL, BSH_CURRENT_NAME, BSH_CURRENT_PAGE, SEA_CURRENT_MODEL_NOTE, SEA_CURRENT_WHY,
   currentArrows, currentFieldHour, currentOnAxis, currentPointerOf, currentViewOf, type SeaCurrentLoad,
@@ -107,6 +110,8 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   const [curPtr, setCurPtr] = useState<string | null>(null);
   const [current, setCurrent] = useState<SeaCurrentLoad | 'loading'>('loading');
   const [currents, setCurrents] = useState<GeoJSON.FeatureCollection | null>(null);
+  // Phase WT: pointer to the newest water temperature file of the DMI model (`status.wtemp`, a string like the others; '' = none).
+  const [wtPtr, setWtPtr] = useState<string | null>(null);
   const [texts, setTexts] = useState<Partial<Record<SeaTextProduct, import('./seaText').SeaTextDoc | null>>>({});
   const [textsLoading, setTextsLoading] = useState(true);
   const [spotId, setSpotId] = useState<string>(initial.spot ?? DEFAULT_SPOT);
@@ -206,6 +211,8 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
       // ST: the same rule for the current file.
       const cp = currentPointerOf(k.status);
       setCurPtr((prev) => (k.status == null ? prev ?? '' : cp ? `${cp.run}|${cp.path}|${cp.builtAt}|${cp.field ? 1 : 0}` : ''));
+      // WT: the same rule for the water temperature file.
+      setWtPtr((prev) => (k.status == null ? prev ?? '' : wtPointerKey(k.status)));
       const r = k.killed ? await loadLatestRun(now, true, ac.signal).catch(() => null) : await runP;
       if (!alive || !r) return;
       // A refresh never replaces a good run by "nothing" — the shown run stays and ages by the freshness rules.
@@ -453,6 +460,8 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   const currentView = useMemo(() => (spot ? currentViewOf({ load: current, spotId: spot.id, tMs: validMs, nowMs, windFromDeg: hourWindDir, windKn: hourWindKn }) : null),
     [spot, current, validMs, nowMs, hourWindDir, hourWindKn]);
   // Map layer „Strömung“: the thinned field of the chosen hour as arrows; outside the run or unreadable ⇒ no arrows.
+  // Phase WT: model, measurement, own record and the user's threshold of the water temperature at the spot (no view without the catalogue file).
+  const wtemp = useSeaWaterTemp({ spotId: spot?.id ?? null, ptr: wtPtr, killed, nowMs, tick: dmiTick, tMs: validMs, linkWt: initial.wt });
   const curFieldHour = toggles.current && curDoc ? currentFieldHour(curDoc, validMs) : null;
   const curFieldKey = curDoc && curFieldHour != null ? `${curDoc.run}/${curFieldHour}` : null;
   useEffect(() => {
@@ -609,7 +618,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   const tw = !tideOn || !tideGaugeId ? initial.tw : tide ? encodeTideParam(tide, tideGaugeId) : null;
   // SP: the open plan travels as `pl`; a link's own value stays in the address until its spot is known.
   const pl = plan ? encodePlanParam(plan) : linkPl ? initial.pl : null;
-  const urlState: SeaUrlState = { spot: spotInUrl ? (spot?.id ?? spotId) : null, p: profile, t, l: layer, u: unit, tab, rv: revier, tw, tf: initial.tf, pl };
+  const urlState: SeaUrlState = { spot: spotInUrl ? (spot?.id ?? spotId) : null, p: profile, t, l: layer, u: unit, tab, rv: revier, tw, tf: initial.tf, pl, wt: wtemp.wt };
   const urlKey = JSON.stringify(urlState);
   useEffect(() => { if (!firstSpot.current) onUrlState(urlState); }, [urlKey]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -746,6 +755,11 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
         { name: 'Deutscher Wetterdienst · Messstationen', url: 'https://opendata.dwd.de/', what: 'Wind und Böen gemessen', licence: 'GeoNutzV / CC BY 4.0', licenceUrl: CC_BY_URL, on: toggles.stations },
         { name: 'Bundesamt für Seeschifffahrt und Hydrographie (BSH)', url: WL_SERVICE_PAGE, what: 'Wasserstandsvorhersage an den Pegeln', credit: WL_ATTRIBUTION, licence: WL_LICENCE, licenceUrl: WL_LICENCE_URL, on: water },
         { name: `${BSH_CURRENT_NAME} · Strömungsvorhersage`, url: BSH_CURRENT_PAGE, what: `Oberflächenströmung: Wert am Spot, Stauwasser, Pfeile auf der Karte (${SEA_CURRENT_MODEL_NOTE})`, credit: BSH_CURRENT_CREDIT, licence: BSH_CURRENT_LICENCE, licenceUrl: BSH_CURRENT_LICENCE_URL, changed: BSH_CURRENT_CHANGED, on: toggles.current || !!spotCur },
+        // Phase WT — listed while the water temperature catalogue is there: the model and the measurement, each with its own source.
+        ...(wtemp.on ? [
+          { name: `${DMI_NAME} · Sturmflutmodell DKSS`, url: DMI_HOST, what: `Wassertemperatur am Spot aus dem Modell (${WT_MODEL_NOTE})`, credit: DMI_CREDIT, licence: DMI_LICENCE, licenceUrl: DMI_LICENCE_URL, changed: 'eigene Darstellung, auf Stunden und 0,1 °C gerundet', on: true },
+          { name: WSV_NAME, url: WSV_PAGE, what: 'Wassertemperatur gemessen an Pegeln der deutschen Nordseeküste, an dänischen Spots an Stationen des DMI', credit: WSV_CREDIT, licence: WSV_LICENCE, licenceUrl: WSV_LICENCE_URL, changed: 'Rohwerte, im Verlauf auf volle Stunden ausgedünnt', on: true },
+        ] : []),
         // Phase DK — only listed when the catalogue carries Danish spots.
         ...(hasDk ? [{ name: DMI_NAME, url: DMI_HOST, what: 'Dänische Spots: Wasserstand des Sturmflutmodells DKSS, Wind aus HARMONIE außerhalb des Punkt-Cubes, Messungen der Stationen', credit: DMI_CREDIT, licence: DMI_LICENCE, licenceUrl: DMI_LICENCE_URL, changed: 'eigene Darstellung, auf Stunden und cm gerundet', on: water || toggles.stations || toggles.wind }] : []),
       ],
@@ -891,7 +905,8 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
       run={run} spotsDoc={spotsDoc} freshness={freshness} texts={seaTexts} poi={poi} nowMs={nowMs} noData={noData ?? noSeriesText} warning={warning}
       dry={{ hours: dryHours, of: spotHours.length, classed: dryRule }} waterLevel={waterLevel} dmiWater={dmiWater} tide={tideView}
       layout="dossier" band={band} chips={isMobile ? undefined : (usable && chips)} onMap={() => setStage('map')}
-      current={spot && currentView ? <SeaCurrentPanel view={currentView} tMs={validMs} windFrom={hourWindDir} windKn={hourWindKn} tidal={!!spot.tidal} /> : undefined} />
+      current={spot && currentView ? <SeaCurrentPanel view={currentView} tMs={validMs} windFrom={hourWindDir} windKn={hourWindKn} tidal={!!spot.tidal} /> : undefined}
+      waterTemp={spot && wtemp.view ? <SeaWaterTempPanel view={wtemp.view} /> : undefined} />
   );
   const inDossier = stage === 'dossier';
   // The compact preview of the map-picked spot — the same numbers as the briefing and the callout.

@@ -1116,6 +1116,10 @@ Für die dänischen Spots des Seewetters. Gemessen am 18.11.2026 (`audit/seewett
 | Fehlerverhalten | Punkt auf Land: **200 mit lauter `null`**. Zu viele Abrufe: **429** mit JSON-Körper („Server is busy. Please try again later.“ — gemessen nach ≈ 40 Abrufen in einer Minute). Unbekannter Parameter: 400 mit JSON-Körper. EDR hält nur die letzten 24 h |
 | Texte, Warnungen | werden **nicht** wiedergegeben — nur Links (`www.dmi.dk/varsler`, `/farvandsudsigter`, `/vandstand`) |
 | Kontrakt-Sonde | `verify:sea-dk` (netzfrei gegen byte-gleiche Antworten vom 18.11.2026, `scripts/lib/fixtures/sea/dk/`) |
+| Wassertemperatur (Phase WT, `src/sea/seaWaterTemp.ts`) | DKSS-Parameter **`water-temperature`** (°C) in denselben Collections — ohne Tiefenzusatz = oberste Modellschicht (gemessen gleich `water-temperature-1m` bzw. `-4m`). Für deutsche UND dänische Spots, am Punkt des Katalogs `sea/v1/static/watertemp.json`. Trockenfallende Wattzellen liefern für diese Stunden `null` |
+| Läufe (Phase WT) | `GET /v1/forecastedr/collections/<collection>/instances` listet die Läufe (`2026-11-18T120000Z`, die letzten 24 h); `…/instances/<lauf>/position?…` bindet eine Abfrage an EINEN Lauf. Der Producer fragt je Teilmodell höchstens stündlich die Liste und jeden Spot **einmal je DKSS-Lauf** |
+| Messung Wassertemperatur (Phase WT) | `GET /v2/oceanObs/collections/observation/items?stationId=<id>&parameterId=tw&datetime=<von>/..&limit=<n>` — 10-min-Werte, Rohdaten; direkt im Browser (`loadWtObs`) und im Archiv. Von zwei Stationen am selben Ort („… I“ / „… II“) liefert oft nur eine. Historie lückenhaft (`audit/seewetter-wassertemperatur.md` §1.4) |
+| Kontrakt-Sonde (Phase WT) | `verify:sea-watertemp` (netzfrei gegen byte-gleiche Antworten vom 18.11.2026, `scripts/lib/fixtures/sea/wt/`) |
 
 ### 8.12 BSH Strömungsvorhersage (GRIB2, Filebox und FTP) — *✅ IN BENUTZUNG (Phase ST 2026-11-18, `src/sea/seaCurrent.ts`)*
 
@@ -1131,3 +1135,19 @@ Oberflächenströmung für die Spots des Seewetters. Gemessen am 18.11.2026 (`au
 | Zelle ohne Strom | kein Fehlwert, sondern der gepackte Wert nächst 0: unter 1 mm/s = kein Strom (gemessen) |
 | Fehlerverhalten | fehlender, unvollständiger oder unlesbarer Lauf ⇒ nichts geschrieben, Schritt rot, drei Versuche; die Seite zeigt nach 30 h „keine Daten“ — nie ein älterer Wert |
 | Kontrakt-Sonde | `verify:sea-current` (netzfrei gegen byte-gleiche Ausschnitte echter Dateien und die echten Verzeichnislisten vom 18.11.2026, `scripts/lib/fixtures/sea/current/`) |
+
+### 8.13 WSV PEGELONLINE — Wassertemperatur `WT` — *✅ IN BENUTZUNG (Phase WT 2026-11-18, `src/sea/seaWaterTemp.ts`)*
+
+Gemessene Wassertemperatur an Pegeln der deutschen Nordseeküste, der Elbe, Weser und Jade. Gemessen am 18.11.2026
+(`audit/seewetter-wassertemperatur.md` §1.3).
+
+| | |
+|---|---|
+| Host | `https://www.pegelonline.wsv.de/webservices/rest-api/v2` — ohne Schlüssel, ohne Anmeldung |
+| Lizenz | **DL-DE Zero 2.0** („Die Daten sind unter der Lizenz DL-DE->Zero-2.0 …“, Seite `webservice/ueberblick`; keine Gewähr für Richtigkeit und Aktualität). Vermerk je Merkmal: „WSV PEGELONLINE, DL-DE Zero 2.0“ |
+| CORS | `Access-Control-Allow-Origin: *`, `Allow-Methods: GET,OPTIONS`, `Max-Age: 600` — mit `Origin: https://buscosun.com` geprüft |
+| Stationsliste | `GET /stations.json?timeseries=WT&includeTimeseries=true&includeCurrentMeasurement=true` — 141 Stationen mit `WT` bundesweit; an der Ostseeküste **keine** |
+| Messreihe | `GET /stations/<nummer>/WT/measurements.json?start=P<n>D` → `[{ timestamp, value }]`, aufsteigend, Ortszeit mit Versatz. Reihe heißt „WASSERTEMPERATUR ROHDATEN“ (ungeprüft). Takt je Station 1, 5, 15 oder 60 min (`equidistance`). **Reicht 31 Tage zurück**, nicht weiter; keine Kennwerte (`characteristicValues` leer) |
+| Benutzung | direkt im Browser (`loadWtObs`: die letzten 5 Tage der Station des Spots) und alle 6 h im Archiv (`sea-archive.mjs`, 2 Tage je Station des Katalogs). Nie über einen Proxy |
+| Auffälligkeiten | einzelne Stationen liefern offenkundig falsche Werte innerhalb plausibler Grenzen (18.11.: Glückstadt 24,1 °C, Kollmar 12,5 °C bei ≈ 8 °C der Nachbarn) — keine davon steht im Katalog; die Werteprüfung (−2,5 … 32 °C) erkennt so etwas nicht (V-WT-3) |
+| Kontrakt-Sonde | `verify:sea-watertemp` (netzfrei gegen byte-gleiche Antworten vom 18.11.2026, `scripts/lib/fixtures/sea/wt/`) |

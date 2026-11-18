@@ -21,7 +21,7 @@
  *   E  display without a browser: the hourly band of HEAD and of this tree are byte-equal on an old file; row, dots and
  *      chart runs with quantiles; classes and windows never read the quantiles
  */
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, dirname, resolve } from 'node:path';
@@ -287,7 +287,10 @@ await build({
       // HEAD's SeaBand.tsx lies in a temp folder: its relative imports are the modules of src/sea, packages come from the repo.
       b.onResolve({ filter: /.*/ }, (a) => {
         if (!a.importer.startsWith(headDir)) return null;
-        return a.path.startsWith('./') ? { path: join(ROOT, 'src', 'sea', `${a.path.slice(2)}.ts`) } : b.resolve(a.path, { resolveDir: ROOT, kind: a.kind });
+        if (!a.path.startsWith('./')) return b.resolve(a.path, { resolveDir: ROOT, kind: a.kind });
+        // A module of src/sea is a `.ts` or — since the band imports the drift arrow of `SeaCurrentPanel.tsx` (phase ST) — a `.tsx` file.
+        const base = join(ROOT, 'src', 'sea', a.path.slice(2));
+        return { path: existsSync(`${base}.ts`) ? `${base}.ts` : `${base}.tsx` };
       });
     },
   }],

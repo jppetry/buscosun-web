@@ -78,6 +78,8 @@ interface Props {
   onMap?: () => void;
   /** Phase ST: the card of the section „Strömung“ (`SeaCurrentPanel.tsx`); absent = no section. */
   current?: ReactNode;
+  /** Phase WT: the card „Wassertemperatur“ (`SeaWaterTempPanel.tsx`); absent = no section (no catalogue file). */
+  waterTemp?: ReactNode;
 }
 
 const TABS: Array<[SeaTab, string]> = [['spot', 'Spot'], ['gebiet', 'Seegebiet'], ['quellen', 'Quellen']];
@@ -316,6 +318,7 @@ export default function SeaReadout(p: Props) {
       {windowCard}
       {chartCard}
       {waterCard}
+      {p.waterTemp}
       {officialCard}
       {measuredCard}
       {disclaimer}
@@ -487,6 +490,11 @@ export default function SeaReadout(p: Props) {
                 {waterCardOf(true)}
               </DsSection>
             ) : empty}
+            {s && p.waterTemp && (
+              <DsSection id="sw-sec-wtemp" title="Wassertemperatur" hint="Gemessen an der nächsten Station und gerechnet vom Modell des DMI — getrennt">
+                {p.waterTemp}
+              </DsSection>
+            )}
             {s && disclaimer}
           </>
         )}
@@ -500,6 +508,12 @@ export default function SeaReadout(p: Props) {
                 {p.current && (
                   <DsSection id="sw-sec-strom" title="Strömung" hint="Modell des BSH an der nächsten Wasserzelle mit Strom">
                     {p.current}
+                  </DsSection>
+                )}
+                {/* Phase WT: without the chapter Wasserstand (`?wl=0`) the water temperature stands here. */}
+                {!hasWater && p.waterTemp && (
+                  <DsSection id="sw-sec-wtemp" title="Wassertemperatur" hint="Gemessen an der nächsten Station und gerechnet vom Modell des DMI — getrennt">
+                    {p.waterTemp}
                   </DsSection>
                 )}
                 <DsSection id="sw-sec-verlauf" title="Verlauf und Stundenband" hint="Eine Stunde im Band wählen setzt Karte und Werte auf diese Zeit">

@@ -36,13 +36,17 @@ export interface SeaUrlState {
   tf: boolean;
   /** Phase SP: the trip planner as written in the link (`pl=<start>_<return>_<lat>_<lon>`, `seaPlanner.ts`); null = planner closed. */
   pl: string | null;
+  /** Phase WT: the user's water temperature threshold as written in the link (`wt=over.18` / `wt=under.12.5`, `waterTemp.ts`); null = none. */
+  wt: string | null;
 }
 
-export const SEA_DEFAULT_STATE: SeaUrlState = { spot: null, p: 'kite', t: 0, l: 'hs', u: 'kn', tab: 'spot', rv: 'alle', tw: null, tf: false, pl: null };
+export const SEA_DEFAULT_STATE: SeaUrlState = { spot: null, p: 'kite', t: 0, l: 'hs', u: 'kn', tab: 'spot', rv: 'alle', tw: null, tf: false, pl: null, wt: null };
 /** Phase TF: form of `tw` — mode, whole cm, reference, gauge id (read by `parseTideParam` in `tideWindow.ts`; kept here so the route wrapper stays free of the tide module). */
 export const SEA_TW_RE = /^(min|max)\.(-?\d{1,4})\.(pnp|nhn|skn|mhw)\.([a-z0-9][a-z0-9_-]{0,63})$/;
 /** Phase SP: form of `pl` — start and return as full UTC hours (YYYYMMDDHH), boat position in degrees (read by `parsePlanParam` in `seaPlanner.ts`). */
 export const SEA_PL_RE = /^(\d{10})_(\d{10})_(\d{1,2}\.\d{1,5})_(\d{1,3}\.\d{1,5})$/;
+/** Phase WT: form of `wt` — side and degrees Celsius with at most one decimal (read by `parseWtParam` in `waterTemp.ts`). */
+export const SEA_WT_RE = /^(over|under)\.(-?\d{1,2}(?:\.\d)?)$/;
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export function parseSeaUrl(slug: string | null | undefined, search: string): { state: SeaUrlState; invalid: string[] } {
@@ -67,6 +71,8 @@ export function parseSeaUrl(slug: string | null | undefined, search: string): { 
   if (q.get('tf') === '1') state.tf = true;
   const pl = q.get('pl');
   if (pl != null) { if (SEA_PL_RE.test(pl)) state.pl = pl; else invalid.push('pl'); }
+  const wt = q.get('wt');
+  if (wt != null) { if (SEA_WT_RE.test(wt)) state.wt = wt; else invalid.push('wt'); }
   return { state, invalid };
 }
 
@@ -82,6 +88,7 @@ export function buildSeaUrl(s: SeaUrlState, extra: ReadonlyArray<[string, string
   if (s.tw) q.push(['tw', s.tw]);
   if (s.tf) q.push(['tf', '1']);
   if (s.pl) q.push(['pl', s.pl]);
+  if (s.wt) q.push(['wt', s.wt]);
   q.push(...extra);
   const qs = q.length ? `?${q.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&')}` : '';
   return `/seewetter${s.spot ? `/${s.spot}` : ''}${qs}`;

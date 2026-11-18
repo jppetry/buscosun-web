@@ -12,9 +12,21 @@
  * goes to `failed` with DMI's own reason — the page then says "keine Daten" there; nothing old is carried over.
  * Nothing is written when the result equals the last file, and nothing at all when not one spot answered.
  *
+ * Phase WT (`audit/seewetter-wassertemperatur.md`) — the same line, a second product:
+ *
+ *   water temperature  DKSS parameter `water-temperature` at the point `static/watertemp.json` names per spot (German
+ *                      and Danish) → `sea/v1/wtemp/<YYYYMMDDHHmm>.json` (`seaWaterTemp.ts`) and the pointer `status.wtemp`
+ *
+ * A spot is asked at most ONCE PER DKSS RUN: at most hourly one request per sub-model lists its runs (`/instances`);
+ * only a spot that has no entry of the newest run is asked, with the query pinned to that run. Same pause and retries
+ * as above; after `WT_GIVE_UP` requests in a row without an answer the pass stops asking (DMI is down). A spot whose
+ * request failed keeps the entry of the run before while that run is younger than `SEA_WT_STALE_MS` (the page shows the
+ * run's own time) and is named in `failed`; beyond that the page says "keine Daten".
+ *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/sea/sea-dmi.mjs --store=<sea/v1 working copy>
- *     [--force]   ask DMI even if the last file is younger than SEA_DMI_REFRESH_MS   [--now=<iso>]
- * Kill switch: SEA_KILL=1 (nothing asked, nothing written). Last stdout line = JSON summary.
+ *     [--force]   ask DMI even if the last file is younger than SEA_DMI_REFRESH_MS / SEA_WT_CHECK_MS   [--now=<iso>]
+ *     [--only=dmi|wtemp]   one of the two products
+ * Kill switch: SEA_KILL=1 (nothing asked, nothing written). Last stdout line = JSON summary (`wtemp` = the second product).
  */
 import { existsSync, readdirSync, rmSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -25,6 +37,10 @@ import {
   SEA_DMI_PRODUCT, SEA_DMI_DIR, SEA_DMI_RE, SEA_DMI_KEPT, SEA_DMI_REFRESH_MS,
   dmiPositionUrl, dmiWlEntry, dmiWindEntry, seaDmiPath, seaDmiStamp, seaDmiProblems, dmiPointerOf, DmiAnswerError,
 } from '../../src/sea/seaDmi.ts';
+import {
+  SEA_WT_CATALOG_PATH, SEA_WT_PRODUCT, SEA_WT_DIR, SEA_WT_RE, SEA_WT_KEPT, SEA_WT_CHECK_MS, WT_PARAM,
+  wtCatalogOf, dmiInstancesUrl, dmiInstancePositionUrl, dmiNewestInstance, wtEntry, wtEntryProblems, wtEntryStale, seaWtProblems, seaWtPath, seaWtStamp, wtPointerOf,
+} from '../../src/sea/seaWaterTemp.ts';
 import { readCatalog, readStatus, writeStatus, writeAtomic } from './sea-derive.mjs';
 import { readFileSync } from 'node:fs';
 
@@ -140,12 +156,124 @@ export async function buildDmi({ storeDir, nowMs = Date.now(), force = false, fe
   return { built: true, stamp: doc.stamp, path, wl: st.dmi.wl, wind: st.dmi.wind, failed: doc.failed, bytes: st.dmi.bytes, removed };
 }
 
+// --- Phase WT: water temperature of DKSS at the spots (audit/seewetter-wassertemperatur.md) ------------------------------
+
+/** After this many requests in a row without an answer (network, 429, 5xx after all retries) the pass asks no further. */
+export const WT_GIVE_UP = 3;
+const noAnswer = (res) => !res || !!res.error || res.status === 429 || res.status >= 500 || res.status === 0;
+
+/** `static/watertemp.json` of the store, checked — or null (the phase's fallback: without the file nothing is asked). */
+export function readWtCatalog(storeDir) {
+  try { return wtCatalogOf(JSON.parse(readFileSync(join(storeDir, SEA_WT_CATALOG_PATH), 'utf8'))); } catch { return null; }
+}
+
+/**
+ * One pass over the catalogue's model points. `prev` = the last written document (or null). Per sub-model one request
+ * for its newest run; a spot is asked only when it has no entry of that run — pinned to the run, so "once per run" holds
+ * even when the pass is repeated. Pure with respect to the store. Returns the document and the number of requests.
+ */
+export async function collectWaterTemp({ cat, spots, prev = null, nowMs, fetchImpl = fetch, log = () => {}, pauseMs, tries, backoffMs }) {
+  const opts = { fetchImpl, log, ...(pauseMs != null ? { pauseMs } : {}), ...(tries != null ? { tries } : {}), ...(backoffMs ? { backoffMs } : {}) };
+  const pos = new Map(spots.map((s) => [s.id, s]));
+  const byColl = new Map();
+  for (const [id, e] of Object.entries(cat.spots)) if (e.model && pos.has(id)) (byColl.get(e.model.coll) ?? byColl.set(e.model.coll, []).get(e.model.coll)).push(id);
+  const runs = {}, entries = {}, failed = [];
+  let asked = 0, down = 0;
+  const ask = async (url) => { asked++; const res = await fetchDmi(url, opts); down = noAnswer(res) ? down + 1 : 0; return res; };
+  for (const coll of [...byColl.keys()].sort()) {
+    const ids = byColl.get(coll);
+    // The entry of the run before stays while it is not stale and belongs to the same sub-model.
+    const kept = (id) => { const pe = prev?.spots?.[id]; return pe && pe.coll === coll && !wtEntryStale(pe, nowMs) && wtEntryProblems(id, pe).length === 0 ? pe : null; };
+    let inst = null, why = null, res = null;
+    if (down < WT_GIVE_UP) {
+      try { res = await ask(dmiInstancesUrl(coll)); inst = dmiNewestInstance(res?.json); } catch (e) { why = `Liste der Läufe von ${coll}: ${reason(res, e)}`; }
+    } else why = `nicht gefragt: das DMI antwortete zuvor ${WT_GIVE_UP}-mal nicht`;
+    if (inst) runs[coll] = inst.t0; else if (Number.isFinite(prev?.runs?.[coll])) runs[coll] = prev.runs[coll];
+    for (const id of ids) {
+      const pe = kept(id);
+      if (inst && pe && pe.t0 === inst.t0) { entries[id] = pe; continue; }          // already asked for this run
+      if (pe) entries[id] = pe;
+      if (!inst) { failed.push({ id, error: why }); continue; }
+      if (down >= WT_GIVE_UP) { failed.push({ id, error: `nicht gefragt: das DMI antwortete zuvor ${WT_GIVE_UP}-mal nicht` }); continue; }
+      const m = cat.spots[id].model;
+      let r = null;
+      try {
+        r = await ask(dmiInstancePositionUrl(coll, inst.id, m.lat, m.lon, [WT_PARAM]));
+        const e = wtEntry(r?.json, coll, pos.get(id), inst.t0);
+        const pr = wtEntryProblems(id, e);
+        if (pr.length) throw new DmiAnswerError(`Werteprüfung: ${pr[0]}`);
+        entries[id] = e;
+      } catch (e) { failed.push({ id, error: reason(r, e) }); }
+    }
+  }
+  const stamp = seaWtStamp(nowMs);
+  const doc = {
+    schema: 1, product: SEA_WT_PRODUCT, stamp, builtAt: new Date(nowMs).toISOString(),
+    source: `${DMI_HOST}/v1/forecastedr`, licence: DMI_LICENCE, credit: DMI_CREDIT, terms: DMI_TERMS_URL,
+    param: WT_PARAM, unit: '0.1 °C', runs, spots: entries, failed,
+  };
+  return { doc, asked };
+}
+
+const wtContent = (d) => JSON.stringify({ runs: d?.runs ?? null, spots: d?.spots ?? null, failed: d?.failed ?? null });
+
+export function pruneWaterTemp(storeDir, keep = SEA_WT_KEPT) {
+  const dir = join(storeDir, SEA_WT_DIR);
+  if (!existsSync(dir)) return [];
+  const files = readdirSync(dir).filter((f) => SEA_WT_RE.test(f)).sort();
+  const removed = files.slice(0, Math.max(0, files.length - keep));
+  for (const f of removed) rmSync(join(dir, f), { force: true });
+  return removed;
+}
+
+export async function buildWaterTemp({ storeDir, nowMs = Date.now(), force = false, fetchImpl = fetch, log = () => {}, killed = process.env.SEA_KILL === '1', pauseMs, tries, backoffMs }) {
+  if (killed) return { built: false, reason: 'Kill-Schalter SEA_KILL=1' };
+  const cat = readWtCatalog(storeDir);
+  if (!cat) return { built: false, reason: `kein Katalog der Wassertemperatur im Speicher (${SEA_WT_CATALOG_PATH})` };
+  const spots = readCatalog(storeDir)?.spots ?? [];
+  const st = readStatus(storeDir);
+  const ptr = wtPointerOf(st);
+  if (!force && ptr && nowMs - Date.parse(ptr.checkedAt) < SEA_WT_CHECK_MS) return { built: false, reason: `zuletzt vor weniger als ${SEA_WT_CHECK_MS / 60_000} min nach einem neuen DKSS-Lauf gesehen (${ptr.checkedAt})` };
+  let prev = null;
+  if (ptr) { try { const j = JSON.parse(readFileSync(join(storeDir, ptr.path), 'utf8')); prev = seaWtProblems(j).length ? null : j; } catch { prev = null; } }
+  const { doc, asked } = await collectWaterTemp({ cat, spots, prev, nowMs, fetchImpl, log, pauseMs, tries, backoffMs });
+  const got = Object.keys(doc.spots).length;
+  // Not one entry: the store stays as it is (the last file's runs age and are no longer shown after SEA_WT_STALE_MS).
+  if (!got) throw new Error(`DMI lieferte für keinen Spot eine Wassertemperatur: ${doc.failed.map((f) => `${f.id}: ${f.error}`).slice(0, 3).join(' | ')}`);
+  const problems = seaWtProblems(doc);
+  if (problems.length) throw new Error(`sea-watertemp verletzt die Werteprüfung: ${problems.slice(0, 3).join('; ')}`);
+  const checkedAt = new Date(nowMs).toISOString();
+  if (prev && wtContent(prev) === wtContent(doc)) {
+    st.wtemp = { ...st.wtemp, checkedAt };
+    writeStatus(storeDir, st, nowMs);
+    return { built: false, reason: `kein neuer DKSS-Lauf seit ${ptr.stamp}`, asked, spots: got, failed: doc.failed.length };
+  }
+  const path = seaWtPath(doc.stamp);
+  const text = JSON.stringify(doc) + '\n';
+  writeAtomic(join(storeDir, path), text);
+  st.wtemp = { stamp: doc.stamp, path, builtAt: doc.builtAt, checkedAt, spots: got, failed: doc.failed.length, bytes: Buffer.byteLength(text) };
+  const removed = pruneWaterTemp(storeDir);
+  writeStatus(storeDir, st, nowMs);
+  log(`Wassertemperatur ${doc.stamp}: ${got} Spots, ${doc.failed.length} ohne neue Antwort, ${asked} Abrufe, ${st.wtemp.bytes} B`);
+  return { built: true, stamp: doc.stamp, path, spots: got, failed: doc.failed, asked, bytes: st.wtemp.bytes, removed };
+}
+
 async function main() {
   const args = Object.fromEntries(process.argv.slice(2).map((a) => { const m = /^--([^=]+)(?:=(.*))?$/.exec(a); return m ? [m[1], m[2] ?? true] : [a, true]; }));
   const log = (m) => console.log(`[sea-dmi] ${m}`);
-  const res = await buildDmi({ storeDir: resolve(String(args.store ?? 'sea/v1')), nowMs: typeof args.now === 'string' ? Date.parse(args.now) : Date.now(), force: !!args.force, log });
-  if (!res.built) log(`nichts geschrieben: ${res.reason}`);
-  console.log(JSON.stringify(res));
+  const common = { storeDir: resolve(String(args.store ?? 'sea/v1')), nowMs: typeof args.now === 'string' ? Date.parse(args.now) : Date.now(), force: !!args.force, log };
+  // Two products, one after the other; a failure of one does not keep the other from being written. Either failing ⇒ exit ≠ 0.
+  let rc = 0, res = null, wt = null;
+  if (args.only !== 'wtemp') {
+    try { res = await buildDmi(common); if (!res.built) log(`nichts geschrieben: ${res.reason}`); }
+    catch (e) { rc = 1; res = { built: false, error: String(e?.message ?? e) }; log(`DMI-Datei der dänischen Spots: ${res.error}`); }
+  }
+  if (args.only !== 'dmi') {
+    try { wt = await buildWaterTemp(common); if (!wt.built) log(`Wassertemperatur, nichts geschrieben: ${wt.reason}`); }
+    catch (e) { rc = 1; wt = { built: false, error: String(e?.message ?? e) }; log(`Wassertemperatur: ${wt.error}`); }
+  }
+  console.log(JSON.stringify({ ...(res ?? {}), wtemp: wt }));
+  process.exitCode = rc;
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === SELF) await main();
