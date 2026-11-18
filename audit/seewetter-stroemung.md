@@ -188,3 +188,8 @@ Push im nächsten 15-min-Lauf (der Lauf 2026111800 liegt dann schon beim BSH).
 | **V-ST-11** | Die Güte der Strömungsvorhersage selbst ist ungeprüft (kein Vergleich mit Messungen) | Skizze: Strömungsmessungen der MARNET-Stationen des BSH (FINO, Kiel Leuchtturm, Darßer Schwelle) gegen die Modellzelle, im Seewetter-Archiv |
 | **V-ST-12** | `verify:sea-current` steht nicht im CI-Workflow von `buscosun-web` (Workflows dort sind Jans Schritt, wie bei DK, SU, SP) | `MANUELLE-SCHRITTE.md` §93.6 |
 | **V-ST-13** | Die README im FTP-Verzeichnis nennt Dateigrößen von „ca. 3 MB“ (`db`) und „ca. 5 MB“ (`wb`) und Zeiten „gegen 10:00 und 22:00 Uhr lokal“; gemessen sind 11–15 MB je Tag und 05:30 UTC | Nur vermerkt — maßgeblich ist, was im Verzeichnis liegt |
+
+**Erster Lauf mit dem neuen Schritt:** `sea` Nr. 3451 (18.11. 08:16:34 UTC, GitHub-API `actions/runs/44265587742/jobs`):
+Job `success` in 39 s; Schritt 14 „Currents (BSH surface current at the spots)“ `success` (überspringt sich, der Producer
+liegt noch nicht auf `main`), „Publish“ `success`. Danach: `status.json` ohne `current` (erwartet), `lastPublishedRun`
+2026111800, `spots.json` 25 567 B unverändert.
