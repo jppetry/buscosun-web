@@ -112,7 +112,7 @@ Drei Spots dieses Laufs sind unverändert die Fixtures `scripts/lib/fixtures/sea
 | `verify:sea-wind-band` (neu, 5 s, netzfrei) | **41/41** — A Vertrag an der echten Datei + 8 Negativkontrollen · B Producer (Quantile = `quantiles()`, interpolierte Stunde, verworfene Böe mit Gegenprobe, Auffrischung mit und ohne Verteilung, Archiv) · C Client (zwei alte Dateien wie bisher, kaputter Spot verliert nur seine Spanne, Zusammenführen) · D Rechnung (28 764 echte Fälle monoton, Ränder, Wortlaut ohne Prozent) · E Anzeige (Stundenband HEAD = dieser Baum auf alter Datei, Byte für Byte; Zeile, Punkte, Band-Läufe) |
 | `verify:sea-derive` | **70/70** (69 + A6b: der ganze Lauf auf den CWAM-Ausschnitten trägt `q` neben `v`; an der Stunde der verworfenen Böe sind ihre fünf Quantile `null`, die des Winds bleiben) |
 | `verify:sea-contract` · `-decode` · `-text` · `-waterlevel` · `-tide-window` · `-seo` | 30/30 · 13/13 · 35/35 · 63/63 · 49/49 · 23/23 |
-| `verify:sea-ui` | an HEAD rot (V-TF-5, bricht in B0 ab); der Lauf auf diesem Baum war beim Commit der Phase noch nicht fertig — Ergebnis im Nachtrag unter dieser Tabelle, sobald er vorliegt |
+| `verify:sea-ui` | **rot, wie an HEAD** (V-TF-5): bricht auf diesem Baum an derselben Stelle ab — B0 „Deck nicht bereit“ auf `/seewetter?sea=1` (der Selektor `.sw-spot-title` existiert seit dem Dossier-Umbau nicht), Seitenfehler `[]`, 270 s. Keine Prüfung dieser Phase wird erreicht; HEAD selbst wurde dafür nicht eigens gebaut |
 | `npm run typecheck` | grün |
 | `npm run build` | grün (280/280 Shell-Prüfungen) |
 | `npm run budget` | grün: eagerJs 114,4 / 115 KB · eagerCss 2,4 / 2,5 KB · largestChunk 278,4 / 302 KB · totalJs 1 966,9 / 1 985 KB (Zuwachs gegen HEAD nicht einzeln gemessen) |
