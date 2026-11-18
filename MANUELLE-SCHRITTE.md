@@ -3382,3 +3382,63 @@ gelesen — der Planer rechnet nur mit dem, was die Seite schon lädt (Spot-Reih
    Tidenfenster“ eintragen — Workflows habe ich nicht angefasst (dort fehlt auch `verify:sea-wind-band`, V-SU-4).
 7. **Offen:** Sichtprüfung und Real-Device (Punkt 1); Konsole, Touch-Ziele, Long Tasks und Pixelgleichheit der Seite ohne
    Planer sind **nicht** gemessen; `verify:sea-ui` nicht gelaufen (Browser-Prüfung, bricht an HEAD in B0 ab, V-TF-5).
+
+## 92. Dänische Küste auf `/seewetter` (Phase DK, `audit/seewetter-daenemark.md`), 2026-11-18
+
+Acht dänische Spots (Rømø, Fanø, Hvide Sande, Als Kegnæs, Langeland Bagenkop, Ærø Marstal, Middelfart, Gedser), Revier-Chip
+„Dänemark“, **ohne Schalter an für alle (dein Wort 18.11., Ausnahme von Rule 2)**. Lokal committet, sichtbar mit dem Push
+von `buscosun-web`. **Ich habe die Seite nicht im Browser geöffnet und keine Bilder gemacht (dein Wort 18.11.)** — Aussehen,
+Karte, Wimpel, die neue Wasserstandskarte und das Telefon sind ungesehen; geprüft sind Daten, Rechnung und Markup.
+
+**Pushes in die Daten-Repos in dieser Phase** (nur `sea/` und `sea.yml`, ohne Force, je Push nachgeprüft — §5 des Audits):
+
+| Repo | Commit | Inhalt |
+|---|---|---|
+| `buscosun-data` | `8c16adbf` | `sea/v1/static/spots-dk.json` (neu: die acht Spots als eigene Datei), `sea/v1/static/spot-geo.json` (+16 Einträge, die 112 alten unverändert) |
+| `buscosun-data` | `550b09e5` | `.github/workflows/sea.yml`: Schritt „DMI“ (continue-on-error, überspringt sich, solange `sea-dmi.mjs` nicht auf `main` liegt) |
+| `buscosun-archiv` | — | kein Push |
+
+Beides wirkt auf die heutige Seite und den heutigen Producer **nicht**: sie kennen `spots-dk.json` nicht (E-DK-7).
+
+1. **`npm run edge:share`** — das Bündel `netlify/edge-shared/shareParser.js` kennt die acht neuen Spot-Namen nicht
+   (`verify:share` 516/517, rot nur SH6). Ich baue Edge-Bündel nicht (E-DK-8). Ohne den Schritt zeigen geteilte Links auf
+   dänische Spots die allgemeine Seewetter-Vorschau; alles andere geht.
+2. **Ansehen** (Desktop 1440 × 900, iPhone), lokal `npm run build`, `npx vite preview --host 127.0.0.1 --port 5212 --strictPort`.
+   Die Spots stehen schon im Daten-Repo; die Stundenreihen kommen erst nach dem Push (Punkt 3), bis dahin sagt jeder dänische
+   Spot „trägt der veröffentlichte Seegangslauf noch keine Stundenreihe“.
+   - `/seewetter` → Chip „Dänemark“: acht Spots mit Wimpel in der Liste, die Karte stellt sich auf Hvide Sande … Gedser.
+     Der Startausschnitt reicht jetzt bis 12,0° O / 56,08° N (vorher 11,6 / 55,9).
+   - `/seewetter/gedser` → Dossier „Wasserstand“: Karte „Wasserstand · Modell des DMI (DKSS)“ (Wert mit Vorzeichen, Verlauf,
+     Bezug, Vermerk „DMI, CC BY 4.0“). Vor dem Push steht dort „Keine Daten … noch keine Datei“.
+   - `/seewetter/roemoe` und `/seewetter/als-kegnaes`: BSH-Pegel List (14,5 km) bzw. Kalkgrund (7,0 km), wie an deutschen Spots.
+   - `/seewetter/hvide-sande` → „Wetter“: Wind „DMI HARMONIE“, ohne Spanne, ab +60 h „keine Daten des DMI“.
+   - Jeder dänische Spot → „Satellit & Amtlich“: Karte „Kein amtlicher Warnstatus an diesem Spot“ mit zwei Links zum DMI
+     anstelle des Küstenberichts; „Wetter“: Zeile „Kalibrierung für Deutschland, in Dänemark nicht geprüft“; Kachel „An
+     Land gemessen“ mit DMI-Station (ohne Wert der letzten Stunde: „keine Daten“).
+   - Ebene „Messstationen“ an: Ringe der DMI-Stationen; Ebene „Wasserstand“: Rauten der DMI-Modellpunkte (Klick wählt den Spot).
+   - Worauf ich ohne Bild nicht antworten kann: sitzt der Wimpel in Liste und Kopf richtig; bricht der Kopf auf dem Telefon
+     sauber um; ist die DMI-Karte ohne Glas zu leer; stimmen die drei von Hand gesetzten Lagen (Rømø Lakolk, Fanø Bad,
+     Ærø Marstal — V-DK-11).
+3. **Push:** `git push origin main`. Danach, ohne Handgriff:
+   - der nächste `sea.yml`-Lauf (alle 15 min) schreibt `sea/v1/dmi/<stempel>.json` und `status.dmi` ⇒ DMI-Wasserstand und
+     der Wind von Hvide Sande erscheinen;
+   - derselbe oder der folgende `sea.yml`-Lauf baut den schon veröffentlichten Seegangslauf **einmal** neu (E-DK-9: der
+     Katalog trägt acht Spots ohne Reihe; 82 MB, ≈ 1 min) ⇒ Welle, Wind, Klassen an den dänischen Spots. Nur in der halben
+     Stunde vor 04:07/16:07 UTC wartet er auf den neuen Lauf. Bis dahin sagt die Seite, dass die Reihe noch fehlt;
+   - Prüfen: `https://raw.githubusercontent.com/jppetry/buscosun-data/main/sea/v1/status.json` trägt `dmi`; der Lauf in
+     `buscosun-data` → Actions → `sea` zeigt den Schritt „DMI“ grün.
+4. **Entscheiden** (`audit/seewetter-daenemark.md` §2): **E-DK-2** BSH-Pegel bis 20 km (gesetzt). **E-DK-3** Middelfart =
+   Marina, damit im Punkt-Cube. **E-DK-6** kein Tidenfenster und kein Glas an den sechs DKSS-Spots. **E-DK-7** eigene
+   Katalogdatei. Dazu die Namen der Spots („Rømø Lakolk“, „Fanø Bad“, „Als Kegnæs“, „Langeland Bagenkop“, „Ærø Marstal“).
+5. **Rückfall:** es gibt keinen Schalter. Schnell und ohne Deploy: `sea/v1/static/spots-dk.json` im Daten-Repo löschen ⇒
+   Seite und Producer sind die alten (die acht Spot-Adressen fallen dann auf „unbekannter Spot“). Ganz: den Commit
+   zurücknehmen und pushen.
+6. **CI:** `node scripts/ci-run.mjs verify:sea-dk` in `.github/workflows/ci.yml` hinter „Verifier — Tidenfenster“ eintragen
+   (Workflows von `buscosun-web` habe ich nicht angefasst; dort fehlen weiter `verify:sea-wind-band` und `verify:sea-planner`).
+7. **Suchmaschinen:** `sitemap-seewetter.xml` trägt 65 Adressen; `npm run build && node scripts/seo/indexnow.mjs --only=/seewetter`
+   bzw. die acht neuen Adressen in der Search Console.
+8. **Nicht von mir, aber gesehen:** die Live-Datei `sea.yml` trägt `git sparse-checkout set point` statt `point ruc` — der
+   Schritt aus §78 (buscosun Fusion 14) ist im Daten-Repo nicht eingespielt. Ich habe nur die Zeilen dieser Phase gesetzt.
+9. **Offen:** Sichtprüfung und Real-Device (Punkt 2); Konsole, Touch-Ziele am Gerät, Long Tasks und Pixelgleichheit der
+   Seite ohne dänische Spots sind **nicht** gemessen; `verify:sea-ui` nicht gelaufen (Browser, bricht an HEAD in B0 ab).
+   Befunde V-DK-2 … 12, vor allem V-DK-4 (Windrichtung ab +38 h nur dreistündlich an fünf Spots).

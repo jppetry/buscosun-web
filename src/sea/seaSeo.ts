@@ -19,11 +19,12 @@ const REGION = { nordsee: 'Nordsee', ostsee: 'Ostsee' } as const;
 
 /** Sub-route rows (same shape as `SubRoute` in `routes.ts`). */
 export function seaSeoSubs() {
-  return Object.entries(SEA_SPOT_NAMES).map(([slug, [name, region]]) => ({
+  return Object.entries(SEA_SPOT_NAMES).map(([slug, [name, region, country]]) => ({
     slug,
     label: name,
     title: `Seewetter ${name} — Wind, Wellen, Böen`,
-    description: `Seewetter ${name} (${REGION[region]}): Wind und Böen, Wellenhöhe mit Windsee und Dünung, Wasserstand und DWD-Seewetterbericht, stündlich bis 78 h.`,
+    // Phase DK: a Danish spot names its country instead of the sea (the description stays within 160 characters).
+    description: `Seewetter ${name}${country === 'DK' ? ', Dänemark' : ` (${REGION[region]})`}: Wind und Böen, Wellenhöhe mit Windsee und Dünung, Wasserstand und DWD-Seewetterbericht, stündlich bis 78 h.`,
     updated: SEA_SEO_UPDATED,
   }));
 }

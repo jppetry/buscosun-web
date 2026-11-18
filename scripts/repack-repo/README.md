@@ -228,6 +228,8 @@ sea/v1/static/spots.json                    Spotkatalog: Lage, Ufernormale (aus 
 sea/v1/static/areas.json                    Seegebiete und Küstenabschnitte (DWD-Warngebiete; © GeoBasis-DE / BKG 2021, Daten modifiziert; VMAP0)
 sea/v1/static/mask-cwam.hash                sha256 der Landmaske
 sea/v1/static/spot-geo.json                 Gelände/Rauhigkeit an den Spot-Zellen (nur für den Producer; Höhe über Wasser = 0)
+sea/v1/static/spots-dk.json                 dänische Spots (Phase DK), gleiche Form wie spots.json: country DK, kein deutscher Küstenabschnitt, DMI-Station, `dk` = woher Wind und Wasserstand kommen
+sea/v1/dmi/<YYYYMMDDHHmm>.json              DMI für die dänischen Spots: Wasserstand des Sturmflutmodells DKSS (cm gegen das Mittelwasser des Modells) und, außerhalb des Punkt-Cubes, Wind aus HARMONIE; `failed` nennt, was DMI nicht lieferte. Zeiger: status.json `dmi`. Quelle opendataapi.dmi.dk, CC BY 4.0
 ```
 
 **Schritte.** `f/` stündlich 0–48 h, dann dreistündlich bis 78 h (59 Bilder), `c/` dreistündlich (27), Spots

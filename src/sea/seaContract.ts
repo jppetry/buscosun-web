@@ -16,6 +16,8 @@
  *   sea/v1/text/<product>/<issue>.json         bulletin: raw (verbatim), header, issue time, display text, structure
  *   sea/v1/quarantine/<run|issue>.json         rejected runs/bulletins with rule and raw value (diagnosis only)
  *   sea/v1/static/spots.json                   spot catalogue (E-SW-5)
+ *   sea/v1/static/spots-dk.json                the Danish spots (phase DK), same shape
+ *   sea/v1/dmi/<YYYYMMDDHHmm>.json             DMI water level and wind for Danish spots (phase DK, `seaDmi.ts`)
  *   sea/v1/static/areas.json                   DWD sea areas and coast sections (E-SW-13)
  *   sea/v1/static/mask-<model>.hash            sha256 of the land/sea bitmap per model
  *   sea/v1/static/spot-geo.json                producer-only terrain/z0 at the spot cells (E-SW-11)
@@ -24,6 +26,7 @@
  * derives the expected run/issue from the clock and steps back on 404. The one pointer is `status.wind` (the newest
  * wind refresh), read from `status.json`, which the client fetches raw and uncached anyway (kill switch).
  */
+import { dkBlockProblems, type SeaSpotDk } from './seaDmi';
 
 // --- Paths -------------------------------------------------------------------------------------
 
@@ -53,6 +56,11 @@ export const seaQuarantinePath = (key: string) => `quarantine/${key}.json`;
 export const seaMaskHashPath = (model: SeaModel) => `static/mask-${model}.hash`;
 export const SEA_STATUS_PATH = 'status.json';
 export const SEA_SPOT_CATALOG_PATH = 'static/spots.json';
+/**
+ * Phase DK: the Danish spots live in a file of their own. A page or producer that does not know the file is exactly the
+ * one before the phase (56 German spots); removing the file is the phase's fallback (E-DK-1). Same document shape.
+ */
+export const SEA_SPOT_CATALOG_DK_PATH = 'static/spots-dk.json';
 export const SEA_AREAS_PATH = 'static/areas.json';
 /** Producer-only: terrain/z0 cache entries at the spot cells (E-SW-11), never read by the client. */
 export const SEA_SPOT_GEO_PATH = 'static/spot-geo.json';
@@ -564,7 +572,11 @@ export interface SeaSpot {
   /** URL slug, `/seewetter/<id>`. */
   id: string;
   name: string;
+  /** The sea the spot lies at — also for a Danish spot (phase DK: `country` names the land, `region` stays the sea). */
   region: SeaRegion;
+  /** Phase DK: absent = Germany. A Danish spot carries `dk`, no German coast section and no WODL45 coast block. */
+  country?: 'DK';
+  dk?: SeaSpotDk;
   kinds: SeaSpotKind[];
   /** Hand-set position of the spot (beach/harbour), WGS84. */
   lat: number; lon: number;
@@ -583,11 +595,20 @@ export interface SeaSpot {
   /** FQDL50 sea area (DWD WARNCELLID 4…), FQDL51 coast section (5…), WODL45 coast block. */
   seaArea: { id: string; name: string } | null;
   coast: { id: string; name: string } | null;
-  wodlCoast: 'Nordseekueste' | 'Ostseekueste';
-  /** Nearest DWD POI station delivering wind and gust (SW-0 §2.6), with distance. */
-  station: { id: string; name: string; km: number; lat: number; lon: number } | null;
+  wodlCoast: 'Nordseekueste' | 'Ostseekueste' | null;
+  /**
+   * Nearest station delivering wind and gust, with distance: a DWD POI station (SW-0 §2.6), or — `net: 'dmi'`, Danish
+   * spots — a DMI metObs station (`id` = its stationId).
+   */
+  station: { id: string; name: string; km: number; lat: number; lon: number; net?: 'dmi' } | null;
   /** Wadden-sea spot: the model computes with the tide, the water level itself is not shown (hint at the value). */
   tidal?: boolean;
+}
+
+/** The catalogue a reader works with: the German spots, then the Danish ones of `dk` (only `country: 'DK'`, no id twice). */
+export function mergeSpotCatalogs(base: readonly SeaSpot[], dk: readonly SeaSpot[] | null | undefined): SeaSpot[] {
+  const ids = new Set(base.map((s) => s.id));
+  return [...base, ...(dk ?? []).filter((s) => s?.country === 'DK' && !ids.has(s.id))];
 }
 
 export function spotCatalogProblems(spots: SeaSpot[]): string[] {
@@ -602,6 +623,13 @@ export function spotCatalogProblems(spots: SeaSpot[]): string[] {
     if (!(s.normal >= 0 && s.normal < 360)) out.push(`${s.id}: Ufernormale ${s.normal}`);
     if (!(s.cell.i >= 0 && s.cell.i < g.ni && s.cell.j >= 0 && s.cell.j < g.nj)) out.push(`${s.id}: Zelle außerhalb`);
     if (!(s.cell.km >= 0 && s.cell.km <= SEA_SPOT_MAX_CELL_KM)) out.push(`${s.id}: Zelle ${s.cell.km} km entfernt`);
+    // Phase DK: a Danish spot names how it is served and never carries a German coast section or warning block.
+    if (s.country === 'DK') {
+      out.push(...dkBlockProblems(s.id, s.dk));
+      if (s.coast != null || s.wodlCoast != null) out.push(`${s.id}: deutscher Küstenabschnitt an einem dänischen Spot`);
+      if (s.station && s.station.net !== 'dmi') out.push(`${s.id}: Station ohne Netz DMI`);
+    } else if (s.country != null) out.push(`${s.id}: Land ${String(s.country)} unbekannt`);
+    else if (s.dk != null || s.station?.net != null) out.push(`${s.id}: dk-Angaben an einem deutschen Spot`);
   }
   return out;
 }

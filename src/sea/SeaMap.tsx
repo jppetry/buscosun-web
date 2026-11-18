@@ -21,7 +21,8 @@ const STYLE = 'https://tiles.openfreemap.org/styles/dark';
 /** CWAM domain (plus a little margin). */
 export const SEA_VIEW_BOUNDS: [number, number, number, number] = [6.1, 53.2, 14.95, 56.5];
 /** First view: German Bight and western Baltic (design map: Esbjerg … Lübeck). */
-export const SEA_START_BOUNDS: [number, number, number, number] = [6.4, 53.4, 11.6, 55.9];
+/** Phase DK: widened only as far as the Danish spots need (Hvide Sande 56.00° N, Gedser 11.93° E; before: 11.6 / 55.9). */
+export const SEA_START_BOUNDS: [number, number, number, number] = [6.4, 53.4, 12.0, 56.08];
 const CLASSES: SeaClass[] = ['passt', 'knapp', 'ausserhalb', 'keine'];
 
 export interface SeaMapSpot { id: string; name: string; lon: number; lat: number; cls: SeaClass; windTo: number | null; windKn: number | null }

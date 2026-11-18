@@ -1211,6 +1211,36 @@
   .sw-m-dossier .sw-odds.is-readout { display: none; }
 }
 
+/* ── Phase DK — dänische Küste (audit/seewetter-daenemark.md) ─────────────────────────────────────────────────
+   Ein neues Zeichen: der Gastland-Wimpel (Dannebrog) am Namen jedes dänischen Spots — Liste, Dossierkopf, Karte „kein
+   Warnstatus“. Alles andere nutzt die vorhandenen Karten, Chips und das Wasserstands-Diagramm. */
+.sw-root { --sw-dk-red: #C8102E; --sw-dk-white: #fff; }
+.sw-dk-flag {
+  display: inline-block; width: 15px; height: 11px; margin-left: 6px; vertical-align: -1px; border-radius: 1.5px; flex: none;
+  background:
+    linear-gradient(var(--sw-dk-white), var(--sw-dk-white)) 4.5px 0 / 2px 100% no-repeat,
+    linear-gradient(var(--sw-dk-white), var(--sw-dk-white)) 0 4.5px / 100% 2px no-repeat,
+    var(--sw-dk-red);
+  box-shadow: 0 0 0 1px rgba(44, 42, 38, 0.14);
+}
+.sw-dk-tag { display: inline-flex; align-items: center; gap: 6px; margin-left: 10px; font-size: 13px; font-weight: 600; letter-spacing: 0; color: var(--stone-500, #8B7355); vertical-align: 2px; }
+.sw-dk-tag .sw-dk-flag, .sw-unit .sw-dk-flag { margin-left: 0; margin-right: 6px; }
+/* „Kein amtlicher Warnstatus“ ist eine Abwesenheit, keine Meldung: neutrale Karte, gestrichelter Rand, kein Bernstein. */
+.sw-dk-nowarn { background: var(--cream-50, #FAF6EA); border: 1px dashed var(--sand-300, #CFC3A6); }
+.sw-dk-links { list-style: none; margin: 10px 0 8px; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.sw-dk-links a {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 10px; font-size: 14px; font-weight: 600;
+  color: var(--sw-accent-dark, #0B5560); background: #fff; border: 1px solid var(--sand-200, #E0D6BE); text-decoration: none;
+}
+.sw-dk-links a:hover { background: var(--sw-tint, #E3F0F1); border-color: var(--sw-accent, #0F6E7A); }
+.sw-dk-links a:focus-visible { outline: 2px solid var(--sw-accent, #0F6E7A); outline-offset: 2px; }
+.sw-dk-wl .sw-vals strong { font-variant-numeric: tabular-nums; }
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
+  .sw-dk-tag { display: flex; margin: 4px 0 0; }
+  .sw-dk-links { flex-direction: column; }
+  .sw-dk-links a { justify-content: center; }
+}
+
 /* ── Phase SP — „Ausfahrt planen“ (audit/seewetter-planer.md). Ohne geöffneten Planer rendert davon nur der Knopf über
    der Legende (Desktop) bzw. der Eintrag „Ausfahrt“ der unteren Leiste (mobil).
    Ein Bild trägt den Planer: die Leine vom Start zur Rückkehr — auf der Karte gestrichelt vom Boot zum Startort, im

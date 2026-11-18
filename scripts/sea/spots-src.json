@@ -56,6 +56,14 @@
   { "id": "lubmin", "name": "Lubmin (Greifswalder Bodden)", "region": "ostsee", "kinds": [ "kite", "revier" ], "lat": 54.135, "lon": 13.612 },
   { "id": "zinnowitz", "name": "Usedom Zinnowitz", "region": "ostsee", "kinds": [ "strand" ], "lat": 54.08, "lon": 13.915 },
   { "id": "heringsdorf", "name": "Usedom Heringsdorf", "region": "ostsee", "kinds": [ "strand" ], "lat": 53.955, "lon": 14.17 },
-  { "id": "ueckermuende", "name": "Ueckermünde (Stettiner Haff)", "region": "ostsee", "kinds": [ "strand", "revier" ], "lat": 53.745, "lon": 14.05 }
+  { "id": "ueckermuende", "name": "Ueckermünde (Stettiner Haff)", "region": "ostsee", "kinds": [ "strand", "revier" ], "lat": 53.745, "lon": 14.05 },
+  { "id": "roemoe", "name": "Rømø Lakolk", "country": "DK", "region": "nordsee", "kinds": [ "strand", "kite" ], "lat": 55.146, "lon": 8.465 },
+  { "id": "fanoe", "name": "Fanø Bad", "country": "DK", "region": "nordsee", "kinds": [ "strand", "kite" ], "lat": 55.433, "lon": 8.352 },
+  { "id": "hvide-sande", "name": "Hvide Sande", "country": "DK", "region": "nordsee", "kinds": [ "strand", "kite", "hafen" ], "lat": 56.003, "lon": 8.112 },
+  { "id": "als-kegnaes", "name": "Als Kegnæs", "country": "DK", "region": "ostsee", "kinds": [ "strand", "kite" ], "lat": 54.851, "lon": 9.988 },
+  { "id": "langeland-bagenkop", "name": "Langeland Bagenkop", "country": "DK", "region": "ostsee", "kinds": [ "hafen", "strand" ], "lat": 54.752, "lon": 10.67 },
+  { "id": "aeroe-marstal", "name": "Ærø Marstal", "country": "DK", "region": "ostsee", "kinds": [ "hafen", "revier" ], "lat": 54.853, "lon": 10.523 },
+  { "id": "middelfart", "name": "Middelfart (Kleiner Belt)", "country": "DK", "region": "ostsee", "kinds": [ "hafen", "revier" ], "lat": 55.4925, "lon": 9.729 },
+  { "id": "gedser", "name": "Gedser", "country": "DK", "region": "ostsee", "kinds": [ "hafen", "strand" ], "lat": 54.572, "lon": 11.928 }
  ]
 }

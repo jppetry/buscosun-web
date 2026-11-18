@@ -23,10 +23,12 @@ export const SEA_SPOT_SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const REGION_LABEL = { nordsee: 'Nordsee', ostsee: 'Ostsee' } as const;
 
 /** Name und Revier eines Spots aus der Kennung; `null`, wenn der Slug unlesbar oder (noch) nicht in der Tabelle ist. */
-export function seaSpotLabel(id: string | null | undefined): { name: string; region: 'nordsee' | 'ostsee'; regionLabel: string } | null {
+export function seaSpotLabel(id: string | null | undefined): { name: string; region: 'nordsee' | 'ostsee'; regionLabel: string; dk?: boolean } | null {
   if (!id || id.length > 40 || !SEA_SPOT_SLUG_RE.test(id)) return null;
   const row = SEA_SPOT_NAMES[id];
-  return row ? { name: row[0], region: row[1], regionLabel: REGION_LABEL[row[1]] } : null;
+  if (!row) return null;
+  // Phase DK: ein dänischer Spot sagt es im Revier; Wind und Wasserstand kommen dort teils vom DMI (steht in der Beschreibung).
+  return row[2] === 'DK' ? { name: row[0], region: row[1], regionLabel: `${REGION_LABEL[row[1]]}, Dänemark`, dk: true } : { name: row[0], region: row[1], regionLabel: REGION_LABEL[row[1]] };
 }
 
 /** Titel + Beschreibung; `null` ohne bekannten Spot (die Vorschau fällt dann auf die allgemeine Seewetter-Vorschau zurück). */
@@ -35,7 +37,7 @@ export function describeSeaLink(id: string | null | undefined, whenText: string 
   if (!l) return null;
   return {
     title: `${l.name} — Seewetter ${l.regionLabel}${whenText ? ` · Prognose ${whenText}` : ''}`,
-    description: `Wind, Böen und Seegang am Spot ${l.name} (${l.regionLabel}): Modellwerte des DWD und buscosun Fusion, bewertet mit eigenen Grenzen je Profil. `
+    description: `Wind, Böen und Seegang am Spot ${l.name} (${l.regionLabel}): Modellwerte des DWD${l.dk ? ', des DMI' : ''} und buscosun Fusion, bewertet mit eigenen Grenzen je Profil. `
       + 'Der Link zeigt immer die aktuelle Lage. Keine amtliche Warnung, kein Ersatz für den Seewetterbericht des Seewetterdienstes Hamburg und nicht für die Navigation.',
   };
 }

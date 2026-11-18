@@ -11,7 +11,7 @@ import { SEA_LAYERS, SEA_REVIERE, type SeaLayer, type SeaRevier } from './seaSta
 import { useSearchSheet } from '../components/LocationSearchSheet';
 import { ListSearchSheet } from '../components/ListSearchSheet';
 
-export interface SeaDockSpot { id: string; name: string; sub: string; cls: SeaClass; reason: string }
+export interface SeaDockSpot { id: string; name: string; sub: string; cls: SeaClass; reason: string; /** Phase DK: a Danish spot — the name carries the pennant. */ dk?: boolean }
 export interface SeaToggles { wind: boolean; warn: boolean; stations: boolean; water: boolean }
 
 interface Props {
@@ -23,11 +23,15 @@ interface Props {
   layer: SeaLayer; onLayer: (l: SeaLayer) => void;
   toggles: SeaToggles; onToggle: (k: keyof SeaToggles) => void;
   loading: boolean;
+  /** Phase DK: the catalogue carries Danish spots — only then the Revier „Dänemark“ is offered. */
+  hasDk?: boolean;
   /** Desktop splits the dock: `layers` stays in the left column, `picker` (search, Revier, profile, spots) moves into the readout. */
   show?: 'all' | 'layers' | 'picker';
 }
 
-const REVIER_LABEL: Record<SeaRevier, string> = { alle: 'Alle', nordsee: 'Nordsee', ostsee: 'Ostsee' };
+const REVIER_LABEL: Record<SeaRevier, string> = { alle: 'Alle', nordsee: 'Nordsee', ostsee: 'Ostsee', daenemark: 'Dänemark' };
+/** Phase DK: the courtesy pennant of a Danish spot (decorative — the Revier and the dossier say „Dänemark“ in words). */
+export const DkPennant = () => <i className="sw-dk-flag" aria-hidden="true" />;
 const LIMIT_FIELDS: Array<[keyof SeaLimits, string, string, number]> = [
   ['windMin', 'Wind ab', 'kn', 1], ['windMax', 'Wind bis', 'kn', 1], ['gustMax', 'Böen bis', 'kn', 1], ['spreadMax', 'Böenspanne bis', 'kn', 1],
   ['hsMax', 'Welle bis', 'm', 0.1], ['wsMax', 'Windsee bis', 'm', 0.1],
@@ -56,10 +60,15 @@ export default function SeaDock(p: Props) {
   const changed = limitsChanged(p.profile, p.limits);
   const toggles: Array<[keyof SeaToggles, string, string]> = [
     ['wind', 'Wind an den Spots', 'buscosun Fusion · Pfeile'],
-    ['warn', 'Warnstatus Küste', 'DWD Seewetterdienst · Gebiete'],
+    ['warn', 'Warnstatus Küste', 'DWD Seewetterdienst · deutsche Gebiete'],
     ['stations', 'Messstationen', 'DWD · Wind und Böen gemessen'],
     ['water', 'Wasserstand-Vorhersage', 'BSH · Pegel, CC BY 4.0'],
   ];
+  // Phase DK: with Danish spots in the catalogue the two layers also carry DMI stations and DMI model points — named here.
+  if (p.hasDk) {
+    toggles[2][2] = 'DWD und DMI · Wind und Böen gemessen';
+    toggles[3][2] = 'BSH-Pegel und DMI-Modellpunkte, CC BY 4.0';
+  }
   const show = p.show ?? 'all';
   const picker = show !== 'layers' && (
     <>
@@ -79,7 +88,7 @@ export default function SeaDock(p: Props) {
           onPick={(id) => { sheet.close(); p.onPick(id); }} />
       )}
       <div role="group" aria-label="Revier" className="sw-seg sw-dock-revier">
-        {SEA_REVIERE.map((r) => <button key={r} type="button" aria-pressed={p.revier === r} className={p.revier === r ? 'is-active' : ''} onClick={() => p.onRevier(r)}>{REVIER_LABEL[r]}</button>)}
+        {SEA_REVIERE.filter((r) => r !== 'daenemark' || p.hasDk || p.revier === r).map((r) => <button key={r} type="button" aria-pressed={p.revier === r} className={p.revier === r ? 'is-active' : ''} onClick={() => p.onRevier(r)}>{REVIER_LABEL[r]}</button>)}
       </div>
 
       <div className="sw-dock-head">
@@ -120,7 +129,7 @@ export default function SeaDock(p: Props) {
         {p.spots.map((s) => (
           <button key={s.id} type="button" aria-pressed={p.selectedId === s.id} className={`sw-spot${p.selectedId === s.id ? ' is-active' : ''}`} onClick={() => p.onPick(s.id)} title={`${CLASS_SHORT[s.cls]}: ${s.reason}`}>
             <span className={`sw-dot sw-spot-dot${s.cls === 'keine' ? ' is-hatched' : ''}`} style={s.cls !== 'keine' ? { background: CLASS_COLOR[s.cls], '--sw-dot': CLASS_COLOR[s.cls] } as CSSProperties : undefined} aria-label={CLASS_SHORT[s.cls]} role="img" />
-            <span className="sw-spot-body"><span className="sw-spot-name">{s.name}</span><span className="sw-spot-sub">{s.sub}</span></span>
+            <span className="sw-spot-body"><span className="sw-spot-name">{s.name}{s.dk && <DkPennant />}</span><span className="sw-spot-sub">{s.sub}</span></span>
             <svg className="sw-spot-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
           </button>
         ))}

@@ -27,7 +27,7 @@ import { decompressBz2 } from '../lib/bz2.mjs';
 import { encodePng } from '../lib/png.mjs';
 import {
   SEA_MODELS, SEA_PARAMS, SEA_PARAMS_READ, SEA_F_STEPS, SEA_C_STEPS, SEA_SPOT_STEPS, SEA_SPOT_VARS, SEA_SPOT_ORIGIN, SEA_RETENTION,
-  SEA_INVENTORY_URL, SEA_BUILD_MAX_AGE_MS, SEA_STATUS_PATH, SEA_SPOT_CATALOG_PATH, SEA_SPOT_GEO_PATH, SEA_WATER, SEA_NULL,
+  SEA_INVENTORY_URL, SEA_BUILD_MAX_AGE_MS, SEA_STATUS_PATH, SEA_SPOT_CATALOG_PATH, SEA_SPOT_CATALOG_DK_PATH, mergeSpotCatalogs, SEA_SPOT_GEO_PATH, SEA_WATER, SEA_NULL,
   seaGribUrl, seaGribPath, seaRunMs, seaRunStamp, seaRunDir, seaRunJsonPath, seaFieldPath, seaCompPath, seaSpotsPath, seaMaskHashPath,
   seaQuarantinePath, newCounts, cleanHs, cleanDir, cleanPeriod, cleanPeakWindSea, validateSeaRun, packMask,
   encodeHs, encodeDir, encodePeriod, encodeSpotValue, spotSeriesProblems, sanitizeGust,
@@ -51,6 +51,13 @@ export function writeAtomic(file, data) {
   renameSync(tmp, file);
 }
 const sha256 = (b) => createHash('sha256').update(b).digest('hex');
+/** The catalogue of the store: `static/spots.json` plus — phase DK — the Danish spots of `static/spots-dk.json` when the file is there. */
+export function readCatalog(storeDir) {
+  const cat = readJson(join(storeDir, SEA_SPOT_CATALOG_PATH));
+  if (!cat?.spots?.length) return null;
+  const dk = readJson(join(storeDir, SEA_SPOT_CATALOG_DK_PATH));
+  return { ...cat, spots: mergeSpotCatalogs(cat.spots, dk?.product === 'sea-spots' ? dk.spots : null) };
+}
 
 // --- inventory ----------------------------------------------------------------------------------------
 export function parseInventory(text) {
@@ -74,7 +81,21 @@ export async function fetchInventory(fetchImpl = fetch) {
   return parseInventory(Buffer.from(await decompressBz2(Buffer.from(await r.arrayBuffer()))).toString('utf8'));
 }
 
-/** The run to build now: newest complete CWAM run, younger than SEA_BUILD_MAX_AGE_MS, without run.json in the store. */
+/**
+ * Phase DK: catalogue spots the published spot file of `run` does not carry — without those the run itself rejected
+ * (`run.json` → `spotProblems`). Empty when the file or the catalogue is not readable (nothing to conclude).
+ */
+export function missingSpots(storeDir, run, model = MODEL) {
+  const cat = readCatalog(storeDir), doc = readJson(join(storeDir, seaSpotsPath(run)));
+  if (!cat?.spots?.length || !doc?.spots) return [];
+  const rejected = new Set((readJson(join(storeDir, seaRunJsonPath(model, run)))?.spotProblems ?? []).map((p) => String(p).split(':')[0]));
+  return cat.spots.map((s) => s.id).filter((id) => !doc.spots[id] && !rejected.has(id));
+}
+
+/**
+ * The run to build now: newest complete CWAM run, younger than SEA_BUILD_MAX_AGE_MS, without run.json in the store —
+ * or (phase DK) published but without series for spots the catalogue has gained since, and not yet rebuilt.
+ */
 export function dueRun(inv, storeDir, nowMs, model = MODEL) {
   const want = SEA_PARAMS.length * SEA_MODELS[model].steps.length;
   const cands = [...inv.values()].filter((e) => e.model === model).sort((a, b) => (a.run < b.run ? 1 : -1));
@@ -83,7 +104,13 @@ export function dueRun(inv, storeDir, nowMs, model = MODEL) {
     if (!Number.isFinite(runMs) || nowMs - runMs > SEA_BUILD_MAX_AGE_MS) continue;
     const done = existsSync(join(storeDir, seaRunJsonPath(model, e.run)));
     if (e.files.size !== want) return { run: null, newest: e.run, reason: `${e.run}: ${e.files.size}/${want} im Inventar`, files: e.files.size };
-    if (done) return { run: null, newest: e.run, reason: `${e.run} schon veröffentlicht`, files: e.files.size };
+    if (done) {
+      // Phase DK: the catalogue grew after the run was published (new spots) ⇒ the run is built again, ONCE (`rebuiltFor`),
+      // so new spots do not wait up to 12 h for the next wave run. A spot the run rejected is not "missing".
+      const missing = missingSpots(storeDir, e.run, model);
+      if (missing.length && readStatus(storeDir).field?.rebuiltFor !== e.run) return { run: e.run, files: e.files.size, completeAt: new Date(e.last).toISOString(), rebuild: missing };
+      return { run: null, newest: e.run, reason: `${e.run} schon veröffentlicht`, files: e.files.size };
+    }
     return { run: e.run, files: e.files.size, completeAt: new Date(e.last).toISOString() };
   }
   return { run: null, reason: 'kein Lauf im Inventar jünger als 30 h' };
@@ -285,6 +312,8 @@ export async function spotWind({ dataDir, spots, geoDoc, nowMs, runMs, log = () 
   const out = {}, failed = [];
   let runs = null, version = null;
   for (const sp of spots) {
+    // Phase DK: a spot outside the point cube gets its wind from DMI (`sea-dmi.mjs`), never from here — not a failure.
+    if (sp.dk?.wind === 'dmi') continue;
     const p = seaCellCentre('cwam', sp.cell.i, sp.cell.j);
     try {
       clearCubeForecastCache();
@@ -374,10 +403,13 @@ export async function buildRun({ storeDir, dataDir = null, cacheDir, run, inv = 
   const st = readStatus(storeDir);
   st.killSwitch = killed;
   if (killed) { writeStatus(storeDir, st, nowMs); return { built: false, reason: 'Kill-Schalter SEA_KILL=1' }; }
-  const cat = readJson(join(storeDir, SEA_SPOT_CATALOG_PATH));
+  const cat = readCatalog(storeDir);
   if (!cat?.spots?.length) throw new Error(`${SEA_SPOT_CATALOG_PATH} fehlt im Speicher`);
   const runMs = seaRunMs(run);
   const started = Date.now();
+  // Phase DK: building a run that is already published is the one rebuild `dueRun` allows — marked before the work, so a
+  // rebuild that fails is not tried again every 15 minutes.
+  if (existsSync(join(storeDir, seaRunJsonPath(MODEL, run)))) { st.field.rebuiltFor = run; writeStatus(storeDir, st, nowMs); }
   // `fileOf` (verifier): the GRIB files come from elsewhere, nothing is downloaded.
   const dl = fileOf ? { bytes: 0 } : await downloadRun({ run, inv, cacheDir, fetchImpl, log });
   const work = join(cacheDir, `build-${MODEL}-${run}`);
@@ -401,14 +433,14 @@ export async function buildRun({ storeDir, dataDir = null, cacheDir, run, inv = 
   let wind = null;
   if (dataDir && (dataDir === 'cdn' || existsSync(join(dataDir, 'point', 'index.json')))) {
     const geoDoc = readJson(join(storeDir, SEA_SPOT_GEO_PATH));
-    try { wind = await windImpl({ dataDir, spots: cat.spots, geoDoc, nowMs, runMs, log }); } catch (e) { log(`Wind fehlgeschlagen: ${e.message}`); wind = { series: {}, failed: cat.spots.map((s) => ({ id: s.id, error: e.message })), meta: null }; }
+    try { wind = await windImpl({ dataDir, spots: cat.spots, geoDoc, nowMs, runMs, log }); } catch (e) { log(`Wind fehlgeschlagen: ${e.message}`); wind = { series: {}, failed: cat.spots.filter((s) => s.dk?.wind !== 'dmi').map((s) => ({ id: s.id, error: e.message })), meta: null }; }
   } else log('Wind: kein Cube-Checkout (--data) — Reihen ohne Wind');
   const spotsDoc = {
     schema: 1, product: 'sea-spots-series', model: MODEL, run, runMs, t0: new Date(runMs).toISOString(), stepH: 1, steps: SEA_SPOT_STEPS.length,
     vars: SEA_SPOT_VARS, origin: SEA_SPOT_ORIGIN,
     units: { hs: 'cm', ws: 'cm', sw: 'cm', dir: 'deg', wsDir: 'deg', swDir: 'deg', windDir: 'deg', tm: '0.1 s', wsPer: '0.1 s', wsPeak: '0.1 s', swPer: '0.1 s', swPeak: '0.1 s', wind: '0.1 m/s', gust: '0.1 m/s' },
     wave: { source: `DWD CWAM, Lauf ${run}`, license: 'Deutscher Wetterdienst, GeoNutzV' },
-    wind: wind?.meta ? { ...wind.meta, failed: wind.failed } : { engine: null, failed: wind?.failed ?? cat.spots.map((s) => ({ id: s.id, error: 'kein Cube-Checkout' })) },
+    wind: wind?.meta ? { ...wind.meta, failed: wind.failed } : { engine: null, failed: wind?.failed ?? cat.spots.filter((s) => s.dk?.wind !== 'dmi').map((s) => ({ id: s.id, error: 'kein Cube-Checkout' })) },
     spots: {},
   };
   const problems = [], bandProblems = [];
@@ -481,7 +513,7 @@ export async function windRefresh({ storeDir, dataDir, nowMs = Date.now(), index
   const { run } = due;
   const runMs = seaRunMs(run);
   const base = readJson(join(storeDir, seaSpotsPath(run)));
-  const cat = readJson(join(storeDir, SEA_SPOT_CATALOG_PATH));
+  const cat = readCatalog(storeDir);
   const geoDoc = readJson(join(storeDir, SEA_SPOT_GEO_PATH));
   const started = Date.now();
   const wind = await windImpl({ dataDir, spots: cat.spots, geoDoc, nowMs, runMs, log });
@@ -567,7 +599,8 @@ async function main() {
   }
   const inv = await fetchInventory();
   const due = typeof args.run === 'string' ? { run: args.run } : dueRun(inv, storeDir, nowMs);
-  if (args.check) { console.log(JSON.stringify({ due: due.run ?? null, reason: due.reason ?? null })); return; }
+  if (args.check) { console.log(JSON.stringify({ due: due.run ?? null, reason: due.reason ?? null, ...(due.rebuild ? { rebuild: due.rebuild.length } : {}) })); return; }
+  if (due.rebuild) log(`Lauf ${due.run} wird einmal neu gebaut: ${due.rebuild.length} Spots des Katalogs ohne Reihe (${due.rebuild.slice(0, 4).join(', ')}${due.rebuild.length > 4 ? ' …' : ''})`);
   if (!due.run) { log(`nichts zu tun: ${due.reason}`); console.log(JSON.stringify({ built: false, reason: due.reason })); return; }
   const res = await buildRun({
     storeDir, dataDir: args.data === 'cdn' ? 'cdn' : typeof args.data === 'string' ? resolve(args.data) : null, cacheDir: resolve(String(args.cache ?? '.sea-cache')),

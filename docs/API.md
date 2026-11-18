@@ -1099,3 +1099,20 @@ verweisen auf `https://www.sturmflutwarndienst.de` — buscosun warnt nicht.
 **Nur die OGC API.** `wasserstand.bsh.de` wird ausschließlich als Deep-Link je Pegel verlinkt, nie abgerufen;
 interne Endpoints unter `www2.bsh.de/aktdat/…` werden nicht benutzt (die Parameterdoku ist ein Link).
 `verify:sea-waterlevel` C1–C3 prüft das am Quelltext, mit Gegenprobe.
+
+### 8.11 DMI Open Data (Dänemark) — *✅ IN BENUTZUNG (Phase DK 2026-11-18, `src/sea/seaDmi.ts`)*
+
+Für die dänischen Spots des Seewetters. Gemessen am 18.11.2026 (`audit/seewetter-daenemark.md` §1).
+
+| | |
+|---|---|
+| Host | `https://opendataapi.dmi.dk` — **ohne API-Schlüssel** (DMI: seit 02.12.2025 nicht mehr verlangt) |
+| Lizenz | **CC BY 4.0** (`https://www.dmi.dk/friedata/dokumentation/terms-of-use`): Namensnennung, Link auf die Lizenz, Änderungen angeben, kein Eindruck einer Empfehlung durch DMI. Vermerk je Merkmal: „DMI, CC BY 4.0“ |
+| CORS | `Access-Control-Allow-Origin: *` auf `metObs`, `oceanObs`, `forecastedr` (Preflight `GET`, `Max-Age: 1800`) |
+| Vorhersage | EDR `GET /v1/forecastedr/collections/<collection>/position?coords=POINT(<lon>%20<lat>)&crs=crs84&parameter-name=<a,b>&f=CoverageJSON` — die Antwort nennt den getroffenen Gitterpunkt. **Nie `/grib`.** Nur über den Producer `scripts/sea/sea-dmi.mjs` (höchstens stündlich, nacheinander, drei Versuche) |
+| Wasserstand | Sturmflutmodell DKSS, Parameter `sea-mean-deviation` (m, „Deviation of sea level from mean“); Collections `dkss_lb` · `dkss_idw` · `dkss_ws` · `dkss_nsbs` (fein → grob); 4 Läufe/Tag, stündlich, +120 h. Bezugshöhe in der Doku nicht genannt; gemessen ≈ DVR90 (Modell 1–4 cm darunter, am groben Gitter einmal 8 cm) |
+| Wind (außerhalb des Punkt-Cubes) | HARMONIE DINI `harmonie_dini_sf`: `wind-speed-10m`, `gust-wind-speed-10m`, `wind-dir-10m`; alle 3 h, stündlich, +60 h |
+| Messung | `GET /v2/metObs/collections/observation/items?stationId=<id>&parameterId=<p>&datetime=<von>/..&limit=6` — `wind_speed`, `wind_dir` (10-min-Mittel), `wind_max` (höchstes 3-s-Mittel der letzten 10 min); Rohdaten ohne Qualitätskontrolle. Direkt im Browser (`loadDmiStationObs`), nur Werte der letzten Stunde |
+| Fehlerverhalten | Punkt auf Land: **200 mit lauter `null`**. Zu viele Abrufe: **429** mit JSON-Körper („Server is busy. Please try again later.“ — gemessen nach ≈ 40 Abrufen in einer Minute). Unbekannter Parameter: 400 mit JSON-Körper. EDR hält nur die letzten 24 h |
+| Texte, Warnungen | werden **nicht** wiedergegeben — nur Links (`www.dmi.dk/varsler`, `/farvandsudsigter`, `/vandstand`) |
+| Kontrakt-Sonde | `verify:sea-dk` (netzfrei gegen byte-gleiche Antworten vom 18.11.2026, `scripts/lib/fixtures/sea/dk/`) |

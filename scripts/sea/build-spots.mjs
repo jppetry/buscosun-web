@@ -2,6 +2,8 @@
 /**
  * SW-2 — builds the static files of the sea line (E-SW-5, E-SW-13):
  *   static/spots.json   the spot catalogue: hand list `scripts/sea/spots-src.json` + what is computed here
+ *   static/spots-dk.json   phase DK: the Danish spots of the same hand list as a file of their own (`SEA_SPOT_CATALOG_DK_PATH`;
+ *                       a reader that does not know the file sees the 56 German spots as before)
  *   static/areas.json   DWD sea areas (FQDL50) and coast sections (FQDL51/WODL45) as simplified GeoJSON
  *
  * Computed per spot (reproducible, no OSM):
@@ -13,9 +15,15 @@
  *   seaArea / coast   point in polygon of the cell centre in the DWD shapes (nearest polygon edge as fallback)
  *   station  nearest DWD POI station that delivered wind, direction and gust (SW-0 probe, fill ≥ 0.8)
  *
+ * Phase DK (`country: 'DK'` in the hand list, audit/seewetter-daenemark.md): the same cell, normal and sea area; NO
+ * coast section and NO WODL45 block (`coast: null`, `wodlCoast: null`), no DLM250 snap (Germany only). The station is
+ * the nearest DMI metObs station that delivered wind and gust in the step-0 measurement, and `dk` says how the spot is
+ * served: inside the point cube or not, the BSH gauge with a curve within `DK_BSH_NEAR_KM` or the DMI DKSS point —
+ * all read from the measurement file `--dk` (`scripts/sea/spike/dk-probe.mjs`), nothing is searched here.
+ *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/sea/build-spots.mjs
  *     [--grib=scripts/lib/fixtures/sea/cwam-2026100700] [--shapes=<cache dir>] [--poi=audit/seewetter/spike/poi-probe.json]
- *     [--dry=<dry map, default the fixture | 0>]
+ *     [--dry=<dry map, default the fixture | 0>]  [--dk=audit/seewetter-daenemark/spike/dk-probe.json]
  *     [--out=<dir>]   (default: print a summary only)  [--geo]  also writes static/spot-geo.json (network: Terrarium + WorldCover)
  *
  *   static/spot-geo.json   producer-only cache entries of the client readers `loadTerrainAtPoint`/`loadZ0AtPoint` at every
@@ -30,6 +38,8 @@ import { decodeGrib2 } from '../../src/sources/gribDecode.ts';
 import { decompressBz2 } from '../lib/bz2.mjs';
 import { SEA_MODELS, seaCellCentre, seaCellOf, spotCatalogProblems, SEA_SPOT_MAX_CELL_KM, SEA_SPOT_MAX_DRY_SHARE } from '../../src/sea/seaContract.ts';
 import { SEA_AREA_IDS, SEA_COAST_IDS } from '../../src/sea/seaText.ts';
+import { DK_BSH_NEAR_KM } from '../../src/sea/seaDmi.ts';
+import { CUBE_DOMAIN } from '../../src/point/cubeFormat.ts';
 import { maskVectorNormal } from './shoreNormal.mjs';
 import { readDryMap } from './build-dry-map.mjs';
 
@@ -191,10 +201,28 @@ export function pickSpotCell(fields, lat, lon, dry = null) {
   return { best: best ?? nearest, nearest };
 }
 
+/** Phase DK: the step-0 measurement the Danish spots are served from. */
+export const DK_PROBE_FILE = 'audit/seewetter-daenemark/spike/dk-probe.json';
+
 /** The reference run of the dry map (V-SW-20): one whole CWAM run at spring tide (new moon 10.10.2026). */
 export const DRY_MAP_FIXTURE = 'scripts/lib/fixtures/sea/cwam-dry-2026101100.json';
 
-export async function buildSpots({ gribDir, shapesCache = null, poiFile, src, dry = null }) {
+/** Phase DK: station and `dk` block of a Danish spot from the step-0 measurement (`row` = its row, `cc` = cell centre). */
+export function dkServing(row, cc) {
+  if (!row) throw new Error('kein Messwert aus dk-probe.json — erst scripts/sea/spike/dk-probe.mjs laufen lassen');
+  const cube = cc.lat <= CUBE_DOMAIN.latMax && cc.lat >= CUBE_DOMAIN.latMin && cc.lon >= CUBE_DOMAIN.lonMin && cc.lon <= CUBE_DOMAIN.lonMax;
+  const g = row.bsh?.nearestCurve ?? null;
+  const wl = g && g.km <= DK_BSH_NEAR_KM ? { from: 'bsh', gauge: g.id, name: g.name, km: g.km }
+    : row.wl ? { from: 'dmi', coll: row.wl.coll, lat: row.wl.lat, lon: row.wl.lon, km: row.wl.km } : null;
+  const st = row.station ?? null;
+  return {
+    station: st ? { id: st.id, name: st.name, km: st.km, lat: st.lat, lon: st.lon, net: 'dmi' } : null,
+    dk: { cube, wind: cube ? 'fusion' : 'dmi', wl },
+  };
+}
+
+export async function buildSpots({ gribDir, shapesCache = null, poiFile, src, dry = null, dkFile = null }) {
+  const dkRows = Object.fromEntries((dkFile && existsSync(dkFile) ? JSON.parse(readFileSync(dkFile, 'utf8')).rows : []).map((r) => [r.id, r]));
   const g = SEA_MODELS.cwam.grid;
   const fields = [];
   for (const s of [10, 24, 34, 58]) fields.push(decodeGrib2(new Uint8Array(await decompressBz2(readFileSync(join(gribDir, `CWAM_SWH_2026100700_${String(s).padStart(3, '0')}.grib2.bz2`))))).values);
@@ -217,14 +245,16 @@ export async function buildSpots({ gribDir, shapesCache = null, poiFile, src, dr
     };
     const sea = find(shapes.sea, SEA_IDS), coast = find(shapes.coast, COAST_IDS);
     const st = poi.map((p) => ({ p, d: km(s.lat, s.lon, p.lat, p.lon) })).sort((x, y) => x.d - y.d)[0];
+    const dk = s.country === 'DK' ? dkServing(dkRows[s.id], cc) : null;
     spots.push({
-      id: s.id, name: s.name, region: s.region, kinds: s.kinds, lat: s.lat, lon: s.lon,
+      id: s.id, name: s.name, region: s.region, ...(dk ? { country: 'DK' } : {}), kinds: s.kinds, lat: s.lat, lon: s.lon,
       ...(Number.isFinite(s.normal) ? { normal: s.normal, normalFrom: 'set', normalMask: normal, normalWhy: s.normalWhy } : { normal, normalFrom: 'mask' }),
       cell: best ? { model: 'cwam', i: best.i, j: best.j, km: +best.km.toFixed(2), ...(best.dry != null ? { dry: +best.dry.toFixed(2) } : {}) } : { model: 'cwam', i: -1, j: -1, km: 99 },
       seaArea: sea ? { id: sea.id, name: sea.name } : null,
-      coast: coast ? { id: coast.id, name: coast.name } : null,
-      wodlCoast: s.region === 'nordsee' ? 'Nordseekueste' : 'Ostseekueste',
-      station: st ? { id: st.p.id, name: st.p.name, km: +st.d.toFixed(1), lat: st.p.lat, lon: st.p.lon } : null,
+      coast: !dk && coast ? { id: coast.id, name: coast.name } : null,
+      wodlCoast: dk ? null : s.region === 'nordsee' ? 'Nordseekueste' : 'Ostseekueste',
+      station: dk ? dk.station : st ? { id: st.p.id, name: st.p.name, km: +st.d.toFixed(1), lat: st.p.lat, lon: st.p.lon } : null,
+      ...(dk ? { dk: dk.dk } : {}),
       ...(s.tidal ? { tidal: true } : {}),
       _how: { sea: sea?.how ?? null, coast: coast?.how ?? null, nearest: nearest && best && (nearest.i !== best.i || nearest.j !== best.j) ? nearest : null },
     });
@@ -247,14 +277,25 @@ async function main() {
     shapesCache: typeof args.shapes === 'string' ? resolve(args.shapes) : null,
     poiFile: resolve(ROOT, String(args.poi ?? 'audit/seewetter/spike/poi-probe.json')), src,
     dry: args.dry === '0' ? null : readDryMap(resolve(ROOT, String(args.dry ?? DRY_MAP_FIXTURE))),
+    dkFile: resolve(ROOT, String(args.dk ?? DK_PROBE_FILE)),
   });
-  for (const s of spots) console.log(`${s.id.padEnd(22)} cell ${String(s.cell.i).padStart(3)}/${String(s.cell.j).padStart(3)} ${s.cell.km.toFixed(2)} km${s.cell.dry ? ` trocken ${Math.round(s.cell.dry * 100)} %` : ''}${s._how.nearest ? ` (statt ${s._how.nearest.i}/${s._how.nearest.j} ${s._how.nearest.km.toFixed(2)} km, trocken ${Math.round(s._how.nearest.dry * 100)} %)` : ''} · Ufer ${String(s.normal).padStart(3)}° · ${s.seaArea?.name ?? '–'} (${s._how.sea}) · ${s.coast?.name ?? '–'} (${s._how.coast}) · ${s.station?.name ?? '–'} ${s.station?.km ?? ''} km`);
+  for (const s of spots) console.log(`${s.id.padEnd(22)} cell ${String(s.cell.i).padStart(3)}/${String(s.cell.j).padStart(3)} ${s.cell.km.toFixed(2)} km${s.cell.dry ? ` trocken ${Math.round(s.cell.dry * 100)} %` : ''}${s._how.nearest ? ` (statt ${s._how.nearest.i}/${s._how.nearest.j} ${s._how.nearest.km.toFixed(2)} km, trocken ${Math.round(s._how.nearest.dry * 100)} %)` : ''} · Ufer ${String(s.normal).padStart(3)}° · ${s.seaArea?.name ?? '–'} (${s._how.sea}) · ${s.coast?.name ?? '–'} (${s._how.coast}) · ${s.station?.name ?? '–'} ${s.station?.km ?? ''} km${s.dk ? ` · DK: Wind ${s.dk.wind}, Wasserstand ${s.dk.wl ? (s.dk.wl.from === 'bsh' ? `BSH ${s.dk.wl.name} ${s.dk.wl.km} km` : `DMI ${s.dk.wl.coll} ${s.dk.wl.km} km`) : '–'}` : ''}`);
   const problems = spotCatalogProblems(spots);
   console.log(`\n${spots.length} Spots, ${problems.length} Befunde${problems.length ? `: ${problems.join(' | ')}` : ''} (Zelle ≤ ${SEA_SPOT_MAX_CELL_KM} km)`);
   if (typeof args.out === 'string') {
     mkdirSync(args.out, { recursive: true });
-    const doc = { schema: 1, product: 'sea-spots', built: new Date().toISOString(), about: src.about, from: { grib: 'CWAM 2026100700 swh +10/24/34/58 h', ...(args.dry === '0' ? {} : { dry: String(args.dry ?? DRY_MAP_FIXTURE).split('/').pop() }), poi: 'audit/seewetter/spike/poi-probe.json', shapes: SHAPE_URLS }, spots: spots.map(({ _how, ...s }) => s) };
+    const from = { grib: 'CWAM 2026100700 swh +10/24/34/58 h', ...(args.dry === '0' ? {} : { dry: String(args.dry ?? DRY_MAP_FIXTURE).split('/').pop() }) };
+    const all = spots.map(({ _how, ...s }) => s);
+    const doc = { schema: 1, product: 'sea-spots', built: new Date().toISOString(), about: src.about, from: { ...from, poi: 'audit/seewetter/spike/poi-probe.json', shapes: SHAPE_URLS }, spots: all.filter((s) => s.country !== 'DK') };
     writeFileSync(join(args.out, 'spots.json'), JSON.stringify(doc) + '\n');
+    // Phase DK: the Danish spots as a file of their own (E-DK-1 — without it the catalogue is the one before the phase).
+    const dkDoc = {
+      schema: 1, product: 'sea-spots', part: 'dk', built: doc.built,
+      about: 'Dänische Spots des Seewetters (Phase DK, audit/seewetter-daenemark.md). Gleiche Form wie static/spots.json; country DK, kein deutscher Küstenabschnitt (coast und wodlCoast null), Station = DMI metObs (net dmi), dk = wie der Spot versorgt wird: Wind aus buscosun Fusion (im Punkt-Cube) oder DMI HARMONIE, Wasserstand vom BSH-Pegel mit Kurve bis 20 km oder vom DMI-Sturmflutmodell DKSS. Messdaten und Vorhersagen des DMI: CC BY 4.0.',
+      from: { ...from, dk: String(args.dk ?? DK_PROBE_FILE), shapes: SHAPE_URLS }, spots: all.filter((s) => s.country === 'DK'),
+    };
+    writeFileSync(join(args.out, 'spots-dk.json'), JSON.stringify(dkDoc) + '\n');
+    doc.spots = all;   // the terrain entries below (--geo) cover every spot
     writeFileSync(join(args.out, 'areas.json'), JSON.stringify(areas) + '\n');
     if (args.geo) {
       const { installNodeShims } = await import('../punktarchiv/lib/nodeShims.mjs');
@@ -263,7 +304,7 @@ async function main() {
       writeFileSync(join(args.out, 'spot-geo.json'), JSON.stringify(geo) + '\n');
       console.log(`spot-geo.json: ${geo.entries.length} Einträge, ${geo.failed.length} Spots unvollständig, ${geo.entries.filter(([, v]) => v.elevationRead != null).length} Höhen auf 0 gesetzt`);
     }
-    console.log(`geschrieben: ${join(args.out, 'spots.json')} · ${join(args.out, 'areas.json')}`);
+    console.log(`geschrieben: ${join(args.out, 'spots.json')} (${all.length - dkDoc.spots.length}) · ${join(args.out, 'spots-dk.json')} (${dkDoc.spots.length}) · ${join(args.out, 'areas.json')}`);
   }
   if (problems.length) process.exitCode = 1;
 }

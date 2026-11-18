@@ -14,13 +14,14 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const src = JSON.parse(readFileSync(join(ROOT, 'scripts/sea/spots-src.json'), 'utf8'));
-const rows = src.spots.map((s) => [s.id, s.name, s.region]);
-const body = rows.map(([id, name, region]) => `  ${JSON.stringify(id)}: [${JSON.stringify(name)}, ${JSON.stringify(region)}],`).join('\n');
+// Phase DK: ein dänischer Spot trägt als drittes Feld sein Land ('DK'); deutsche Zeilen bleiben zweistellig.
+const rows = src.spots.map((s) => [s.id, s.name, s.region, s.country === 'DK' ? 'DK' : null]);
+const body = rows.map(([id, name, region, country]) => `  ${JSON.stringify(id)}: [${JSON.stringify(name)}, ${JSON.stringify(region)}${country ? `, ${JSON.stringify(country)}` : ''}],`).join('\n');
 const out = `/**
  * GENERIERT von \`scripts/sea/gen-spot-names.mjs\` aus \`scripts/sea/spots-src.json\` — nicht von Hand ändern.
- * Kennung (\`/seewetter/<id>\`) → [Name, Revier]; nur für Link-Vorschauen ohne Katalog (Teilen-Sheet, Edge Function).
+ * Kennung (\`/seewetter/<id>\`) → [Name, Revier], bei einem dänischen Spot [Name, Revier, 'DK'] (Phase DK); nur für Link-Vorschauen ohne Katalog (Teilen-Sheet, Edge Function).
  */
-export const SEA_SPOT_NAMES: Readonly<Record<string, readonly [name: string, region: 'nordsee' | 'ostsee']>> = {
+export const SEA_SPOT_NAMES: Readonly<Record<string, readonly [name: string, region: 'nordsee' | 'ostsee', country?: 'DK']>> = {
 ${body}
 };
 `;

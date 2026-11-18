@@ -1,0 +1,120 @@
+{
+ "about": "Fixtures von verify:sea-dk — jede Antwort byte-gleich vom echten DMI-Dienst (opendataapi.dmi.dk, CC BY 4.0), aufgezeichnet von scripts/sea/spike/dk-record-fixtures.mjs.",
+ "recordedAt": "2026-11-18T02:24:24.773Z",
+ "obsNowMs": 1794968664773,
+ "files": {
+  "wl-fanoe.json": {
+   "what": "DKSS dkss_ws am Punkt des Katalogs",
+   "url": "https://opendataapi.dmi.dk/v1/forecastedr/collections/dkss_ws/position?coords=POINT(8.3542%2055.4292)&crs=crs84&parameter-name=sea-mean-deviation&f=CoverageJSON",
+   "status": 200,
+   "bytes": 6117,
+   "sha256": "32bfbe28d42f697f65eb25d4c0d001bb4ee6860ee6530d5c126a883bfb576a1d",
+   "at": "2026-11-18T02:24:02.730Z"
+  },
+  "wl-hvide-sande.json": {
+   "what": "DKSS dkss_nsbs am Punkt des Katalogs",
+   "url": "https://opendataapi.dmi.dk/v1/forecastedr/collections/dkss_nsbs/position?coords=POINT(8.1181%2055.9542)&crs=crs84&parameter-name=sea-mean-deviation&f=CoverageJSON",
+   "status": 200,
+   "bytes": 6130,
+   "sha256": "9ea7e8766fb0dd7c6411723de4baa2f4da1c5ad32312c91b9453b3a77b328eed",
+   "at": "2026-11-18T02:24:04.765Z"
+  },
+  "wind-hvide-sande.json": {
+   "what": "HARMONIE DINI an der Wasserzelle",
+   "url": "https://opendataapi.dmi.dk/v1/forecastedr/collections/harmonie_dini_sf/position?coords=POINT(8.11807%2056.00419)&crs=crs84&parameter-name=wind-speed-10m,gust-wind-speed-10m,wind-dir-10m&f=CoverageJSON",
+   "status": 200,
+   "bytes": 5941,
+   "sha256": "91b1cb29717d1c94f1263e44a11ba50a2ac89dadbfad94f619a8f6d476a529d8",
+   "at": "2026-11-18T02:24:10.715Z"
+  },
+  "wl-langeland-bagenkop.json": {
+   "what": "DKSS dkss_idw am Punkt des Katalogs",
+   "url": "https://opendataapi.dmi.dk/v1/forecastedr/collections/dkss_idw/position?coords=POINT(10.6598%2054.7542)&crs=crs84&parameter-name=sea-mean-deviation&f=CoverageJSON",
+   "status": 200,
+   "bytes": 6093,
+   "sha256": "e19133d08886a55f2ac53cd38db656754dbf5e2a4486b2242f2272313bb68a5e",
+   "at": "2026-11-18T02:24:12.648Z"
+  },
+  "wl-aeroe-marstal.json": {
+   "what": "DKSS dkss_idw am Punkt des Katalogs",
+   "url": "https://opendataapi.dmi.dk/v1/forecastedr/collections/dkss_idw/position?coords=POINT(10.5348%2054.8542)&crs=crs84&parameter-name=sea-mean-deviation&f=CoverageJSON",
+   "status": 200,
+   "bytes": 6102,
+   "sha256": "4f4fd33a24000e116dc9171beb8f07b67bdf5188d5aacbd9c92bf622a9de6abe",
+   "at": "2026-11-18T02:24:16.688Z"
+  },
+  "wl-middelfart.json": {
+   "what": "DKSS dkss_lb am Punkt des Katalogs",
+   "url": "https://opendataapi.dmi.dk/v1/forecastedr/collections/dkss_lb/position?coords=POINT(9.7292%2055.4875)&crs=crs84&parameter-name=sea-mean-deviation&f=CoverageJSON",
+   "status": 200,
+   "bytes": 6091,
+   "sha256": "90515db34463562dba19938236c3ebe502d387d26eff0a1961e20dfe3ba259d3",
+   "at": "2026-11-18T02:24:18.694Z"
+  },
+  "wl-gedser.json": {
+   "what": "DKSS dkss_idw am Punkt des Katalogs",
+   "url": "https://opendataapi.dmi.dk/v1/forecastedr/collections/dkss_idw/position?coords=POINT(11.9237%2054.5709)&crs=crs84&parameter-name=sea-mean-deviation&f=CoverageJSON",
+   "status": 200,
+   "bytes": 6082,
+   "sha256": "a2a3810416529d48f307857a5151d3e1a75510e254d44f05266922a27fdcb0b4",
+   "at": "2026-11-18T02:24:24.773Z"
+  },
+  "obs-06058-wind.json": {
+   "what": "metObs Hvide Sande, wind_speed",
+   "url": "https://opendataapi.dmi.dk/v2/metObs/collections/observation/items?stationId=06058&parameterId=wind_speed&datetime=2026-11-18T01:24:24Z/..&limit=6",
+   "status": 200,
+   "bytes": 2200,
+   "sha256": "e5a64b0cc49bab5906d85fff79d6dd4df44b196c299dda451ba807029522baa5",
+   "at": "2026-11-18T02:24:26.331Z"
+  },
+  "obs-06058-dir.json": {
+   "what": "metObs Hvide Sande, wind_dir",
+   "url": "https://opendataapi.dmi.dk/v2/metObs/collections/observation/items?stationId=06058&parameterId=wind_dir&datetime=2026-11-18T01:24:24Z/..&limit=6",
+   "status": 200,
+   "bytes": 2180,
+   "sha256": "207c2fbb7449efa88d038d891d08855b82de30d3bdf3b27a3b835bbb1dc292ab",
+   "at": "2026-11-18T02:24:27.895Z"
+  },
+  "obs-06058-gust.json": {
+   "what": "metObs Hvide Sande, wind_max",
+   "url": "https://opendataapi.dmi.dk/v2/metObs/collections/observation/items?stationId=06058&parameterId=wind_max&datetime=2026-11-18T01:24:24Z/..&limit=6",
+   "status": 200,
+   "bytes": 2185,
+   "sha256": "eca4327bfa2ac7225664ffe07697469940789e3282b8ffbd3ed962c5df7e4c1f",
+   "at": "2026-11-18T02:24:29.469Z"
+  },
+  "edr-429-dkss_idw.json": {
+   "what": "EDR unter Last: HTTP 429, DMIs eigener Fehlerkörper (Messung 18.11. 01:45 UTC)",
+   "url": "https://opendataapi.dmi.dk/v1/forecastedr/collections/dkss_idw/position?coords=POINT(10.53476%2054.85423)&crs=crs84&parameter-name=sea-mean-deviation&f=CoverageJSON",
+   "status": 429,
+   "bytes": 193,
+   "sha256": "6d29db8bebaa245c4453d564a68ac9b13042953e345f07874bccce9eebff8a05",
+   "at": "2026-11-18T01:45:00Z",
+   "kept": true
+  },
+  "edr-land-dkss_nsbs-hvide-sande.json": {
+   "what": "DKSS Nordsee am Zellpunkt von Hvide Sande: 200, lauter null (Land im Modell)",
+   "url": "https://opendataapi.dmi.dk/v1/forecastedr/collections/dkss_nsbs/position?coords=POINT(8.11807%2056.00419)&crs=crs84&parameter-name=sea-mean-deviation&f=CoverageJSON",
+   "status": 200,
+   "bytes": 5401,
+   "sha256": "1397cad76b4ee1314320bdbe378fddc8ff31b87d1d51a6ef4696477fa21ad813",
+   "at": "2026-11-18T01:45:00Z",
+   "kept": true
+  },
+  "metobs-06088-wind_speed-empty.json": {
+   "what": "metObs Nordby (Fanø): Station „Active“, aber kein Wert in 3 Stunden",
+   "url": "https://opendataapi.dmi.dk/v2/metObs/collections/observation/items?stationId=06088&parameterId=wind_speed&datetime=2026-11-17T22:44:40Z/..&limit=100",
+   "status": 200,
+   "bytes": 333,
+   "sha256": "ac0acc40f63ed7d8aafa1990a9db3663c7e84c3c80ff33b3f2f2d2faf3e9b07f",
+   "at": "2026-11-18T01:45:00Z",
+   "kept": true
+  },
+  "spots-dk.json": {
+   "what": "Katalog der dänischen Spots, wie build-spots.mjs ihn schrieb",
+   "bytes": 5008,
+   "sha256": "cfac53f16293f94dea5a126202a76ada7d7f5554f7ba04102b0ab2faff2f12b9",
+   "at": "2026-11-18T02:03:08.739Z"
+  }
+ }
+}

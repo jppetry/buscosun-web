@@ -24,6 +24,11 @@ import { BFT_ROWS, CLASS_COLOR, CLASS_LABEL, DRY_VALUE, compass16, dateTime, day
 import type { SeaTab } from './seaState';
 import SeaGustOdds from './SeaGustOdds';
 import { BAND_LEGEND, BAND_NOTE, gustOverLimit, mostText, type SeaQ5 } from './windBand';
+import {
+  DK_FUSION_NOTE, DK_NO_WARNING, DMI_CREDIT, DMI_LICENCE, DMI_LICENCE_URL, DMI_SEA_FORECAST_URL, DMI_TERMS_URL, DMI_WARN_URL, DMI_WATER_LEVEL_URL,
+  DMI_WIND_LABEL, DMI_WL_COLLECTION_LABEL, DMI_WL_REFERENCE, DMI_WL_REFERENCE_NOTE, dmiWlAt, dmiWlEnd, dmiWlPoints, type SeaDmiWl,
+} from './seaDmi';
+import { DkPennant } from './SeaDock';
 
 export interface SeaReadoutHour {
   t: number; windMs: number | null; gustMs: number | null; windDir: number | null;
@@ -58,6 +63,8 @@ interface Props {
   dry: { hours: number; of: number; classed: boolean };
   /** WL-4: water level at the nearest BSH gauge; `null` = switched off (`?wl=0`). */
   waterLevel: SeaWaterLevel | null;
+  /** Phase DK: water level of the DMI storm surge model at a Danish spot without a BSH gauge nearby; `null` = not such a spot (or `?wl=0`). */
+  dmiWater?: SeaDmiWater | null;
   /** Phase TF: threshold, windows and control of the tide window; null/absent = switch off (`?tf=1` switches it on). */
   tide?: SeaTideView | null;
   /** Desktop: the spot picker (search, Revier, profile, spot list) rendered above the tabs. */
@@ -150,7 +157,11 @@ export default function SeaReadout(p: Props) {
     // `gebiet` (e.g. "ganzen Text lesen") lands on the official section of the chapter Satellit & Amtlich.
     if (p.layout === 'dossier' && p.tab === 'gebiet') requestAnimationFrame(() => document.getElementById(SEC_AREA)?.scrollIntoView({ block: 'start' }));
   }, [p.tab, p.layout]);
-  const windName = p.spotsDoc?.wind?.engine ?? 'buscosun Fusion';
+  // Phase DK: outside the point cube the spot's wind is DMI's (named so); inside it buscosun Fusion with the note on its calibration.
+  const dk = s?.country === 'DK';
+  const dmiWind = !!s && !!p.spotsDoc?.windBy?.[s.id];
+  const windName = dmiWind ? DMI_WIND_LABEL : p.spotsDoc?.wind?.engine ?? 'buscosun Fusion';
+  const stationNet = s?.station?.net === 'dmi' ? 'DMI' : 'DWD';
   // Phase SU: the span of the chosen hour and how often gusts lie above the gust limit — all `null` without quantiles in the file.
   const windMost = h ? mostText(h.windQ, p.unit) : null, gustMost = h ? mostText(h.gustQ, p.unit) : null;
   const gustOver = h && p.gustLimitKn != null ? gustOverLimit(h.gustQ, p.gustLimitKn) : null;
@@ -295,7 +306,7 @@ export default function SeaReadout(p: Props) {
               )}
       </Card>
   );
-  const disclaimer = <p className="sw-disclaimer">Kein amtliches Warnprodukt. Die Profile vergleichen Modell und Rechnung mit deinen Grenzen und sind keine Sicherheitsbewertung und kein Ersatz für die Navigation — die Entscheidung bleibt bei dir. Verbindlich sind die Meldungen des Seewetterdienstes Hamburg. Daten: Deutscher Wetterdienst (GeoNutzV).</p>;
+  const disclaimer = <p className="sw-disclaimer">Kein amtliches Warnprodukt. Die Profile vergleichen Modell und Rechnung mit deinen Grenzen und sind keine Sicherheitsbewertung und kein Ersatz für die Navigation — die Entscheidung bleibt bei dir. Verbindlich sind die Meldungen des Seewetterdienstes Hamburg{dk ? ', in dänischen Gewässern die des DMI' : ''}. Daten: Deutscher Wetterdienst (GeoNutzV){dk ? <>; dänische Messungen und Vorhersagen: <a href={DMI_TERMS_URL} target="_blank" rel="noreferrer">{DMI_CREDIT}</a>, eigene Darstellung</> : null}.</p>;
   const spotTab = s && (
     <>
       {officialBanner}
@@ -317,10 +328,12 @@ export default function SeaReadout(p: Props) {
     // The hour card shows the same facts as the spot card (hour values, compass, verdict, model values) for the wide stage.
     const spread = h && h.windMs != null && h.gustMs != null ? h.gustMs - h.windMs : null;
     const gauge = p.waterLevel?.gauge ?? null;
-    const stationName = s?.station ? s.station.name.charAt(0) + s.station.name.slice(1).toLowerCase() : null;
+    // DWD POI names come in capitals; DMI names are written as they are.
+    const stationName = s?.station ? (s.station.net === 'dmi' ? s.station.name : s.station.name.charAt(0) + s.station.name.slice(1).toLowerCase()) : null;
     // Without the water level (`?wl=0`) its chapter is left out and Wetter is the first one.
-    const chapters = p.waterLevel ? DS_CHAPTERS : DS_CHAPTERS.filter(([k]) => k !== 'wasser');
-    const cur: DsChapter = chapter === 'wasser' && !p.waterLevel ? 'wetter' : chapter;
+    const hasWater = !!p.waterLevel || !!p.dmiWater;
+    const chapters = hasWater ? DS_CHAPTERS : DS_CHAPTERS.filter(([k]) => k !== 'wasser');
+    const cur: DsChapter = chapter === 'wasser' && !hasWater ? 'wetter' : chapter;
     const pick = (c: DsChapter, tab: SeaTab) => {
       // A new chapter starts at its top, not at the scroll position of the previous one.
       if (c !== cur) dsRef.current?.closest('.sw-ds-scroll')?.scrollTo({ top: 0 });
@@ -349,7 +362,7 @@ export default function SeaReadout(p: Props) {
         <div className="sw-ds-headrow">
           <div className="sw-ds-headtx">
             <div className="sw-eyebrow is-accent"><span className="sw-ds-eb-pre">Spot-Dossier · </span>{kindsText(s.kinds)} · Profil {p.profileLabel}</div>
-            <h2 className="sw-ds-title">{s.name}<span className="sw-badge">{s.region === 'nordsee' ? 'NORDSEE' : 'OSTSEE'}</span></h2>
+            <h2 className="sw-ds-title">{s.name}<span className="sw-badge">{s.region === 'nordsee' ? 'NORDSEE' : 'OSTSEE'}</span>{dk && <span className="sw-dk-tag"><DkPennant />Dänemark</span>}</h2>
             <div className="sw-ds-sub">{[s.coast?.name, s.seaArea ? `Seegebiet ${s.seaArea.name}` : null, s.tidal ? 'Watt' : null].filter(Boolean).join(' · ')} · Ufer zeigt nach {compass16(s.normal)} ({s.normal}°{s.normalFrom === 'set' ? ', gesetzt' : ''})</div>
             <div className={`sw-chip${p.freshness !== 'live' ? ' is-stale' : ''}`}><i />Welle Modell {runLabel(p.run)} · Wind {windName}{p.freshness === 'stale' ? ' · veraltet' : ''}</div>
           </div>
@@ -378,7 +391,7 @@ export default function SeaReadout(p: Props) {
                 <span className="sw-kpi-l">Wind</span>
                 <div className="sw-kpi-v"><strong>{h.windMs == null ? '–' : fmtWind(h.windMs, p.unit)}</strong>{h.windMs != null && <span>{unitLabel(p.unit)}</span>}{h.windMs != null && h.windDir != null && <RunArrow from={h.windDir} cls="sw-tile-arrow" />}</div>
                 {windMost && <span className="sw-kpi-most">{windMost}</span>}
-                <small>{h.windMs == null ? 'für diese Stunde nicht berechnet' : `aus ${compass16(h.windDir)}${h.windDir != null ? ` · ${Math.round(h.windDir)}°` : ''}${v?.shore ? ` · ${SHORE_LABEL[v.shore]}` : ''}`}</small>
+                <small>{h.windMs == null ? (dmiWind ? 'keine Daten des DMI für diese Stunde' : 'für diese Stunde nicht berechnet') : `aus ${compass16(h.windDir)}${h.windDir != null ? ` · ${Math.round(h.windDir)}°` : ''}${v?.shore ? ` · ${SHORE_LABEL[v.shore]}` : ''}`}</small>
               </article>
               <article className="sw-kpi">
                 <span className="sw-kpi-l">Böen</span>
@@ -404,10 +417,18 @@ export default function SeaReadout(p: Props) {
                   <small>aus {compass16(p.poi.ddDeg)} · Böen {fmtWind(p.poi.fxMs, p.unit)} {unitLabel(p.unit)} · {hm(p.poi.t)} Uhr</small>
                 </article>
               )}
+              {/* Phase DK: a DMI station without a value of the last hour says so — never an older value. */}
+              {s.station?.net === 'dmi' && p.poi === null && (
+                <article className="sw-kpi is-meas">
+                  <span className="sw-kpi-l">An Land gemessen</span>
+                  <div className="sw-kpi-v"><strong className="is-text">keine Daten</strong></div>
+                  <small>DMI-Station {stationName}, {s.station.km} km: kein Wert der letzten Stunde lesbar</small>
+                </article>
+              )}
             </div>
             {gustOver && p.gustLimitKn != null && <SeaGustOdds over={gustOver} limitKn={p.gustLimitKn} where="readout" />}
             <p className="sw-kpi-note">
-              Wind {windName} · Seegang Modell CWAM{s.station && p.poi && p.poi !== 'loading' ? ` · Messung: DWD-Station ${stationName}, ${s.station.km} km vom Spot (10-min-Mittel, Böe der letzten Stunde), an Land, nicht auf dem Wasser` : ''}
+              Wind {windName}{dmiWind ? ` (Wettermodell des DMI, ${DMI_CREDIT}; ohne Spanne, reicht 60 Stunden)` : dk ? ` (${DK_FUSION_NOTE})` : ''} · Seegang Modell CWAM{s.station && p.poi && p.poi !== 'loading' ? ` · Messung: ${stationNet}-Station ${stationName}, ${s.station.km} km vom Spot (${p.poi.src === 'dmi' ? `10-min-Mittel, Böe der letzten 10 Minuten; Rohwert ohne Prüfung, ${DMI_CREDIT}` : '10-min-Mittel, Böe der letzten Stunde'}), an Land, nicht auf dem Wasser` : ''}
               {(windMost || gustMost) && <span className="sw-su-note"> · {BAND_NOTE}</span>}
             </p>
             <div className="sw-dash-grid is-detail">
@@ -438,7 +459,7 @@ export default function SeaReadout(p: Props) {
         <SeaMiniMap spot={s} gauge={gauge} height={320} onClick={p.onMap} ariaLabel={`Satellitenbild: ${s.name}`} />
         <div className="sw-ds-maplegend">
           <span><i style={{ background: '#0F6E7A' }} />{s.name} · Ufer zeigt nach {compass16(s.normal)} (gestrichelt)</span>
-          {s.station && <span><i style={{ background: '#5F7A4C' }} />DWD-Station {stationName} · {s.station.km} km</span>}
+          {s.station && <span><i style={{ background: '#5F7A4C' }} />{stationNet}-Station {stationName} · {s.station.km} km</span>}
           {gauge && <span><i style={{ background: '#2C2A26' }} />Pegel {gauge.name}{p.waterLevel?.km != null ? ` · ${f1(p.waterLevel.km)} km` : ''}</span>}
         </div>
       </Card>
@@ -459,7 +480,8 @@ export default function SeaReadout(p: Props) {
         {cur === 'wasser' && (
           <>
             {s ? (
-              <DsSection id="sw-sec-wasser" title="Wasserstand" hint="Nächster BSH-Pegel">
+              <DsSection id="sw-sec-wasser" title="Wasserstand" hint={p.dmiWater ? 'Sturmflutmodell des DMI am Spot' : dk ? 'BSH-Pegel in der Nähe' : 'Nächster BSH-Pegel'}>
+                {p.dmiWater && <DmiWaterCard wl={p.dmiWater} selMs={h?.t ?? p.nowMs} nowMs={p.nowMs} />}
                 {waterCardOf(true)}
               </DsSection>
             ) : empty}
@@ -1029,12 +1051,14 @@ function AreaDossier({ spot, texts }: { spot: SeaSpot | null; texts: SeaTexts })
   return (
     <div className="sw-ar">
       <div className="sw-ar-grid">
-        <section className="sw-card is-official sw-ar-card">
-          <div className="sw-card-head"><span className="sw-eyebrow is-accent-dark">Küstenbericht</span><span className="sw-unit">wörtlich</span></div>
-          <h4 className="sw-ar-title">{sec?.name ?? spot?.coast?.name ?? 'Küste'}</h4>
-          <div className="sw-ar-meta">{texts.fq51 ? issued(texts.fq51) : texts.loading ? 'lädt' : 'nicht lesbar'}{texts.stale.FQDL51 ? ' · veraltet' : ''}</div>
-          {sec ? <><BftChip wind={sec.wind} /><ReportRows a={sec} /></> : <p className="sw-note">Küstenbericht: {texts.loading ? 'lädt' : 'kein Abschnitt für diesen Spot lesbar'}</p>}
-        </section>
+        {spot?.country === 'DK' ? <DkNoWarnCard /> : (
+          <section className="sw-card is-official sw-ar-card">
+            <div className="sw-card-head"><span className="sw-eyebrow is-accent-dark">Küstenbericht</span><span className="sw-unit">wörtlich</span></div>
+            <h4 className="sw-ar-title">{sec?.name ?? spot?.coast?.name ?? 'Küste'}</h4>
+            <div className="sw-ar-meta">{texts.fq51 ? issued(texts.fq51) : texts.loading ? 'lädt' : 'nicht lesbar'}{texts.stale.FQDL51 ? ' · veraltet' : ''}</div>
+            {sec ? <><BftChip wind={sec.wind} /><ReportRows a={sec} /></> : <p className="sw-note">Küstenbericht: {texts.loading ? 'lädt' : 'kein Abschnitt für diesen Spot lesbar'}</p>}
+          </section>
+        )}
 
         <section className="sw-card is-official sw-ar-card">
           <div className="sw-card-head"><span className="sw-eyebrow is-accent-dark">Seewetterbericht · Seegebiet</span><span className="sw-unit">Windstärke in Beaufort</span></div>
@@ -1154,8 +1178,116 @@ function SourcesTab({ spot, run, spotsDoc, texts, freshness, wl }: { spot: SeaSp
   );
 }
 
+// --- Phase DK (audit/seewetter-daenemark.md) -----------------------------------------------------------------------
+
+/** Water level of the DMI storm surge model at a Danish spot: the entry of the DMI file, or why there is none. */
+export interface SeaDmiWater {
+  state: 'loading' | 'ok' | 'none';
+  entry: SeaDmiWl | null;
+  /** Build time of the file the entry comes from. */
+  builtAt: string | null;
+  why: string | null;
+}
+
+const cmSignedDk = (cm: number) => `${cm > 0 ? '+' : cm < 0 ? '−' : '±'}${Math.abs(cm).toLocaleString('de-DE')} cm`;
+
+/**
+ * The DMI card of the chapter Wasserstand. A model value at a model point — not a gauge, not official, no warning: the
+ * card names the sub-model, the distance of its grid point, the reference level (and how it was measured), and links
+ * DMI's own pages. No value ⇒ "Keine Daten" with the reason; the hour beyond the end of the run shows no value.
+ */
+function DmiWaterCard({ wl, selMs, nowMs }: { wl: SeaDmiWater; selMs: number; nowMs: number }) {
+  const e = wl.entry;
+  const head = (
+    <div className="sw-card-head">
+      <span className="sw-eyebrow is-accent-dark">Wasserstand · Modell des DMI (DKSS)</span>
+      <span className="sw-unit">cm gegen das Mittelwasser des Modells</span>
+    </div>
+  );
+  const foot = (
+    <p className="sw-disclaimer">
+      Wasserstand: Sturmflutmodell DKSS, <a href={DMI_TERMS_URL} target="_blank" rel="noreferrer">DMI</a>,{' '}
+      <a href={DMI_LICENCE_URL} target="_blank" rel="noreferrer">{DMI_LICENCE}</a>, eigene Darstellung (ganze Stunden, auf cm gerundet)
+      {' · '}<a href={DMI_WATER_LEVEL_URL} target="_blank" rel="noreferrer">Wasserstand beim DMI</a>
+      {' · '}<a href={DMI_WARN_URL} target="_blank" rel="noreferrer">Warnungen des DMI</a>
+      . Modellrechnung an einem Gitterpunkt, keine Messung und keine amtliche Warnung — buscosun warnt nicht.
+    </p>
+  );
+  if (wl.state !== 'ok' || !e) {
+    return (
+      <Card cls="is-cream is-wide sw-dk-wl">
+        {head}
+        <div className="sw-note">{wl.state === 'loading' ? 'Wasserstand lädt …' : wl.why ?? 'Keine Daten.'}</div>
+        {foot}
+      </Card>
+    );
+  }
+  const at = dmiWlAt(e, selMs);
+  const end = dmiWlEnd(e);
+  const pts = dmiWlPoints(e).filter((pt) => pt.t >= nowMs - 6 * 3_600_000 && pt.t <= nowMs + SEA_MAX_T * 3_600_000);
+  const hi = pts.reduce<{ t: number; cm: number } | null>((a, x) => (!a || x.cm > a.cm ? x : a), null);
+  const lo = pts.reduce<{ t: number; cm: number } | null>((a, x) => (!a || x.cm < a.cm ? x : a), null);
+  return (
+    <Card cls="is-cream is-wide sw-dk-wl">
+      {head}
+      <div className="sw-official-meta">
+        {DMI_WL_COLLECTION_LABEL[e.coll]} · Modellpunkt {f1(e.km)} km vom Spot{wl.builtAt ? ` · abgerufen ${dateTime(Date.parse(wl.builtAt))}` : ''}
+      </div>
+      <div className="sw-wl-top">
+        <div className="sw-vals">
+          <div>
+            <span>Modell · zur gewählten Stunde ({dayShort(selMs)} {hh(selMs)} Uhr)</span>
+            <strong>{at == null ? '–' : cmSignedDk(at)}</strong>
+          </div>
+          <div>
+            <span>Spanne im gezeigten Verlauf</span>
+            <strong>{hi && lo ? `${cmSignedDk(lo.cm)} (${dayShort(lo.t)} ${hh(lo.t)} Uhr) bis ${cmSignedDk(hi.cm)} (${dayShort(hi.t)} ${hh(hi.t)} Uhr)` : '–'}</strong>
+          </div>
+        </div>
+      </div>
+      {at == null && end != null && selMs > end && (
+        <p className="sw-note">Der Lauf des DMI reicht bis {dayShort(end)} {hh(end)} Uhr — für die gewählte Stunde gibt es keinen Wert.</p>
+      )}
+      {pts.length > 1 && (
+        <>
+          <WaterLevelChart points={pts.map((pt) => ({ t: pt.t, forecast: pt.cm, measured: null, tide: null }))} selMs={selMs} nowMs={nowMs} mhwCm={null} mlwCm={null} big />
+          <div className="sw-chart-legend"><span><i style={{ background: '#0F6E7A' }} />Modell DKSS (DMI), stündlich</span></div>
+        </>
+      )}
+      <p className="sw-note">{DMI_WL_REFERENCE}: {DMI_WL_REFERENCE_NOTE} Eine Zahl wie „+40 cm“ heißt: 40 cm über diesem Mittelwasser — sie ist keine Wassertiefe und nicht mit den Pegelhöhen des BSH (cm über Pegelnull) vergleichbar.</p>
+      {foot}
+    </Card>
+  );
+}
+
+/** In place of the German coast report at a Danish spot: no official warning status here — said plainly, DMI linked, never quoted. */
+function DkNoWarnCard() {
+  return (
+    <section className="sw-card sw-ar-card sw-dk-nowarn" aria-label="Kein amtlicher Warnstatus an diesem Spot">
+      <div className="sw-card-head"><span className="sw-eyebrow">Warnstatus</span><span className="sw-unit"><DkPennant />Dänemark</span></div>
+      <h4 className="sw-ar-title">Kein amtlicher Warnstatus an diesem Spot</h4>
+      <p className="sw-note">{DK_NO_WARNING} Dass hier nichts steht, heißt nicht „keine Warnung“.</p>
+      <ul className="sw-dk-links">
+        <li><a href={DMI_WARN_URL} target="_blank" rel="noreferrer">Warnungen des DMI öffnen</a></li>
+        <li><a href={DMI_SEA_FORECAST_URL} target="_blank" rel="noreferrer">Seewetterbericht des DMI öffnen (dänisch)</a></li>
+      </ul>
+      <p className="sw-note">Der Seewetterbericht des Deutschen Wetterdienstes für das Seegebiet steht daneben, im Wortlaut wie an den deutschen Spots.</p>
+    </section>
+  );
+}
+
 export const findWarning = (doc: SeaTextDoc | null, spot: SeaSpot | null, stale: boolean): Props['warning'] => {
   if (!spot) return { coast: null, area: null, status: 'none', why: '' };
+  // Phase DK: a Danish spot has no German coast block — never a coast status, never "keine Warnung". Only a message for the
+  // DWD sea area the spot lies in is put in front (verbatim, as everywhere); the dossier says that DMI warns in Denmark.
+  if (spot.country === 'DK') {
+    const name = doc?.parts.kind === 'warnings' ? Object.entries(WODL_AREA_IDS).find(([, id]) => id === spot.seaArea?.id)?.[0] : null;
+    const area = name && doc?.parts.kind === 'warnings' ? doc.parts.seaAreas.find((a) => a.name === name) ?? null : null;
+    return {
+      coast: null, area, status: !stale && area?.status === 'unknown' ? 'unknown' : 'none',
+      why: 'Für das Seegebiet des Deutschen Wetterdienstes, in dem dieser Spot liegt, steht eine Meldung im Warnbericht. Sie steht hier im Wortlaut. Für die dänische Küste selbst warnt das DMI, nicht der Seewetterdienst Hamburg.',
+    };
+  }
   if (!doc || doc.parts.kind !== 'warnings') return { coast: null, area: null, status: 'unknown', why: 'Der Warnstatus des Seewetterdienstes ist derzeit nicht lesbar — das heißt nicht „keine Warnung“.' };
   const coast = doc.parts.coasts.find((c) => c.coast === spot.wodlCoast) ?? null;
   const areaName = Object.entries(WODL_AREA_IDS).find(([, id]) => id === spot.seaArea?.id)?.[0];

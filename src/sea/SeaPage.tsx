@@ -25,17 +25,18 @@ import { TideControl, TideWindows, type SeaTideView } from './SeaTideWindow';
 import { BASEMAP_SOURCE, CC_BY_URL, MapSourcesTile, type MapSourceGroup } from '../map/MapSourcesTile';
 import { WlCatalogMissing, loadGaugeCatalog, loadGaugeForecast } from './waterLevelClient';
 import { coastWarnStatus, seaTextFreshness, type SeaTextProduct } from './seaText';
+import { DMI_CREDIT, DMI_HOST, DMI_LICENCE, DMI_LICENCE_URL, DMI_NAME, DMI_WIND_LABEL, dmiPointerOf } from './seaDmi';
 import {
-  loadAreas, loadCatalog, loadField, loadKillSwitch, loadLatestRun, loadStationObs, loadSpots, loadText, windPointerOf, withWindRefresh,
-  SEA_PAGE_TEXTS, takeSeaChain, takeSeaStatic,
-  type SeaAreas, type SeaCatalog, type SeaPoiObs, type SeaRunLoad, type SeaSpotsDoc,
+  loadAreas, loadCatalog, loadDmi, loadField, loadKillSwitch, loadLatestRun, loadStationObs, loadSpots, loadText, windPointerOf, withDmiWind, withWindRefresh,
+  SEA_DMI_NONE, SEA_PAGE_TEXTS, takeSeaChain, takeSeaStatic,
+  type SeaAreas, type SeaCatalog, type SeaDmiLoad, type SeaPoiObs, type SeaRunLoad, type SeaSpotsDoc,
 } from './seaClient';
 import {
   SEA_PROFILE_BY_ID, SHORE_LABEL, limitsSummary, loadLimits, saveLimits, nextAndLongest, fmtWind, unitLabel, SEA_UNITS, MS_TO_KN, windows as verdictWindows,
   type SeaLimits, type SeaProfileId, type SeaUnit, type SeaVerdict,
 } from './seaProfiles';
 import { SeaVerdictCache } from './seaVerdicts';
-import { SEA_MAX_T, SEA_TIME_CHIPS, type SeaLayer, type SeaRevier, type SeaTab, type SeaUrlState } from './seaState';
+import { SEA_MAX_T, SEA_TIME_CHIPS, seaInRevier, type SeaLayer, type SeaRevier, type SeaTab, type SeaUrlState } from './seaState';
 import {
   CLASS_COLOR, CLASS_LABEL, CLASS_SHORT, DRY_VALUE, HS_STOPS, LAYER_LABEL, PER_STOPS, H, compass16, cssGradient, dayShort, f1, hh, hm, tzLabel, waveArrows,
 } from './seaView';
@@ -51,7 +52,7 @@ import SeaDock, { type SeaToggles } from './SeaDock';
 import SeaBand, { type SeaBandHour } from './SeaBand';
 import SeaGustOdds from './SeaGustOdds';
 import { gustOverLimit, mostText, overSentence, q5At } from './windBand';
-import SeaReadout, { findWarning, type SeaReadoutHour, type SeaTexts, type SeaWaterLevel } from './SeaReadout';
+import SeaReadout, { findWarning, type SeaDmiWater, type SeaReadoutHour, type SeaTexts, type SeaWaterLevel } from './SeaReadout';
 import SeaMapCard from './SeaMapCard';
 import MapGestureHint, { type HintSpot } from '../map/MapGestureHint';
 import SeaLinkNotice from './SeaLinkNotice';
@@ -92,8 +93,11 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   const [runLoad, setRunLoad] = useState<SeaRunLoad | null>(null);
   // Start cover (buscosun mark + ring) until the map is drawn and the catalogue and the first run are in.
   const pageShown = usePageCover(mapInst, catalog !== 'loading' && runLoad !== null);
-  const [spotsDoc, setSpotsDoc] = useState<SeaSpotsDoc | null>(null);
+  const [rawSpotsDoc, setSpotsDoc] = useState<SeaSpotsDoc | null>(null);
   const [windPtr, setWindPtr] = useState<string | null>(null);
+  // Phase DK: pointer to the newest DMI file (`status.dmi`, kept as a string like the wind pointer; '' = none) and what the page read from it.
+  const [dmiPtr, setDmiPtr] = useState<string | null>(null);
+  const [dmi, setDmi] = useState<SeaDmiLoad | 'loading'>('loading');
   const [texts, setTexts] = useState<Partial<Record<SeaTextProduct, import('./seaText').SeaTextDoc | null>>>({});
   const [textsLoading, setTextsLoading] = useState(true);
   const [spotId, setSpotId] = useState<string>(initial.spot ?? DEFAULT_SPOT);
@@ -187,6 +191,9 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
       // V-SW-2: the newest wind refresh — kept as its path (a string), so an unchanged pointer reloads nothing.
       const wp = windPointerOf(k.status);
       setWindPtr((prev) => (k.status == null ? prev : wp ? `${wp.run}|${wp.t1}|${wp.path}` : null));
+      // DK: unreadable status ⇒ the pointer stays; on the very first read it becomes "none" so the card does not load for ever.
+      const dp = dmiPointerOf(k.status);
+      setDmiPtr((prev) => (k.status == null ? prev ?? '' : dp ? `${dp.stamp}|${dp.path}|${dp.builtAt}` : ''));
       const r = k.killed ? await loadLatestRun(now, true, ac.signal).catch(() => null) : await runP;
       if (!alive || !r) return;
       // A refresh never replaces a good run by "nothing" — the shown run stays and ages by the freshness rules.
@@ -247,6 +254,21 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
           : freshness === 'dead' ? `Der letzte geprüfte Lauf (${run.run.slice(8, 10)} UTC vom ${run.run.slice(6, 8)}.${run.run.slice(4, 6)}.) ist älter als 30 Stunden.` : null;
   const spots: SeaSpot[] = useMemo(() => (catalog && catalog !== 'loading' ? catalog.spots : []), [catalog]);
   const spot = useMemo(() => spots.find((s) => s.id === spotId) ?? spots.find((s) => s.id === DEFAULT_SPOT) ?? spots[0] ?? null, [spots, spotId]);
+  // --- Phase DK: the DMI file (water level; wind outside the point cube) — read only when the catalogue carries a spot that needs it.
+  const needsDmi = useMemo(() => spots.some((s) => s.dk?.wind === 'dmi' || s.dk?.wl?.from === 'dmi'), [spots]);
+  const hasDk = useMemo(() => spots.some((s) => s.country === 'DK'), [spots]);
+  const dmiTick = Math.floor(nowMs / REFRESH_MS);
+  useEffect(() => {
+    if (!needsDmi || dmiPtr == null) return;     // null = status.json not read yet
+    if (killed) { setDmi(SEA_DMI_NONE); return; }
+    const [stamp, path, builtAt] = dmiPtr.split('|');
+    const ac = new AbortController();
+    loadDmi(dmiPtr ? { stamp, path, builtAt } : null, nowMs, ac.signal).then((d) => { if (!ac.signal.aborted) setDmi(d); }, () => {});
+    return () => ac.abort();
+  }, [needsDmi, dmiPtr, killed, dmiTick]); // eslint-disable-line react-hooks/exhaustive-deps
+  const dmiDoc = dmi !== 'loading' ? dmi.doc : null;
+  // The series the page works with: the run's file, with the DMI wind at the spots outside the point cube (E-DK-5).
+  const spotsDoc = useMemo(() => (rawSpotsDoc ? withDmiWind(rawSpotsDoc, spots, dmiDoc) : null), [rawSpotsDoc, spots, dmiDoc]);
   // A link on a spot: the map centres on it once (also behind the dossier, so „Zur Karte" lands at the spot).
   const flewToLink = useRef(false);
   useEffect(() => {
@@ -264,7 +286,14 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   }, [spots]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- WL-4: gauge of this spot, its live forecast, and what the card is allowed to claim ----------------
-  const nearestGauge = useMemo(() => (water && spot && wlCat.gauges.length ? wlNearest(wlCat.gauges, spot.lat, spot.lon) : null), [water, spot, wlCat.gauges]);
+  // Phase DK: a Danish spot without a BSH gauge nearby reads the DMI model instead — no German gauge 40–110 km away is put in its place.
+  const dkWl = spot?.dk?.wl ?? null;
+  const dmiSpot = dkWl?.from === 'dmi';
+  const nearestGauge = useMemo(() => {
+    if (!water || !spot || !wlCat.gauges.length || dmiSpot) return null;
+    const named = dkWl?.from === 'bsh' ? wlCat.gauges.find((g) => g.id === dkWl.gauge) : null;
+    return named ? { gauge: named, km: wlDistKm(spot.lat, spot.lon, named.lat, named.lon) } : wlNearest(wlCat.gauges, spot.lat, spot.lon);
+  }, [water, spot, wlCat.gauges, dmiSpot, dkWl]);
   const gauge = useMemo(() => (gaugePick ? wlCat.gauges.find((g) => g.id === gaugePick) ?? null : null) ?? nearestGauge?.gauge ?? null, [gaugePick, wlCat.gauges, nearestGauge]);
   const gaugeKm = useMemo(() => (gauge && spot ? wlDistKm(spot.lat, spot.lon, gauge.lat, gauge.lon) : null), [gauge, spot]);
   const gaugeId = gauge?.id ?? null;
@@ -364,7 +393,9 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
     [usable, spotsDoc, limitsKey, firstIdx, nowHour, nHours, dryRule]); // eslint-disable-line react-hooks/exhaustive-deps
   const verdictAt = useCallback((sp: SeaSpot, kk: number): SeaVerdict => verdicts.at(sp, kk), [verdicts]);
 
-  const spotHours = useMemo(() => (spot && usable ? Array.from({ length: nHours }, (_, kk) => hourOf(spot.id, kk)!) : []), [spot, usable, nHours, hourOf]);
+  // A spot the published run does not carry yet (a new catalogue entry until the next wave run) has no hours — said in words, never a crash.
+  const noSeries = usable && !!spot && !spotsDoc!.series[spot.id];
+  const spotHours = useMemo(() => (spot && usable && !noSeries ? Array.from({ length: nHours }, (_, kk) => hourOf(spot.id, kk)!) : []), [spot, usable, noSeries, nHours, hourOf]);
   // Phase TF: series, windows and hours of the tide window — null without the switch, without a curve or without a threshold.
   const tideModel = useMemo(() => {
     if (!tideDoc || !tideGauge) return null;
@@ -383,7 +414,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   // The classes of the chosen spot take the water level in ONLY with a threshold set (E-TF-5).
   const tideFeed = tideModel?.hours && tideModel.mode ? tideModel : null;
   const spotVerdicts = useMemo(() => {
-    const base = spot && usable ? verdicts.row(spot) : [];
+    const base = spot && usable && !noSeries ? verdicts.row(spot) : [];
     return tideFeed ? base.map((v, i) => tideVerdict(v, tideFeed.hours![i], tideFeed.mode!, tideFeed.name)) : base;
   }, [spot, usable, verdicts, tideFeed]);
   const wins = useMemo(() => nextAndLongest(
@@ -565,8 +596,8 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
 
   // --- lists ----------------------------------------------------------------------------------------------
   const dockSpots = useMemo(() => spots
-    .filter((s) => revier === 'alle' || s.region === revier)
-    .filter((s) => !query.trim() || norm(`${s.name} ${s.coast?.name ?? ''} ${s.seaArea?.name ?? ''}`).includes(norm(query.trim())))
+    .filter((s) => seaInRevier(s, revier))
+    .filter((s) => !query.trim() || norm(`${s.name} ${s.coast?.name ?? ''} ${s.seaArea?.name ?? ''}${s.country === 'DK' ? ' Dänemark Danmark' : ''}`).includes(norm(query.trim())))
     .map((s) => {
       // TF: the chosen spot shows the class WITH its water level threshold, like the band and the dossier.
       const own = !!tideFeed && s.id === spot?.id;
@@ -576,19 +607,21 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
         const nw = own ? wins.next : nextAndLongest(verdicts.windows(s), nowMs).next;
         win = nw ? ` · Fenster ${dayShort(nw.from)} ${hh(nw.from)}:00` : ' · kein Fenster im Lauf';
       }
-      return { id: s.id, name: s.name, sub: `${kindsLabel(s.kinds)}${win}`, cls: v.cls, reason: v.reasons[0] ?? '' };
+      return { id: s.id, name: s.name, sub: `${kindsLabel(s.kinds)}${win}`, cls: v.cls, reason: v.reasons[0] ?? '', ...(s.country === 'DK' ? { dk: true } : {}) };
     }),
   [spots, revier, query, verdictAt, verdicts, k, usable, nowMs, tideFeed, spot, spotVerdicts, wins]);
-  const mapSpots: SeaMapSpot[] = useMemo(() => spots.filter((s) => revier === 'alle' || s.region === revier).map((s) => {
+  const mapSpots: SeaMapSpot[] = useMemo(() => spots.filter((s) => seaInRevier(s, revier)).map((s) => {
     const h = usable ? hourOf(s.id, k) : null;
     return { id: s.id, name: s.name, lon: s.lon, lat: s.lat, cls: (tideFeed && s.id === spot?.id ? spotVerdicts[k] ?? verdictAt(s, k) : verdictAt(s, k)).cls, windTo: h?.windDir == null ? null : (h.windDir + 180) % 360, windKn: h?.windMs == null ? null : h.windMs * MS_TO_KN };
   }), [spots, revier, usable, hourOf, k, verdictAt, tideFeed, spot, spotVerdicts]);
   // Map hint: highlight candidates = the spots of the shown region, the picked one first.
-  const hintSpots = useCallback((): HintSpot[] => spots.filter((s) => revier === 'alle' || s.region === revier)
+  const hintSpots = useCallback((): HintSpot[] => spots.filter((s) => seaInRevier(s, revier))
     .sort((a, b) => Number(b.id === spotId) - Number(a.id === spotId)).slice(0, 40)
     .map((s) => ({ lng: s.lon, lat: s.lat, name: s.name, onPick: () => pickSpotFromMap(s.id) })), [spots, revier, spotId, pickSpotFromMap]);
   const waterLevel: SeaWaterLevel | null = useMemo(() => {
     if (!water) return null;
+    // DK: at a spot served by the DMI model there is no BSH card — unless a gauge was picked by hand on the map.
+    if (dmiSpot && !gauge) return null;
     if (wlCat.state === 'missing' || wlCat.state === 'error') return { state: wlCat.state, gauge: null, km: null, doc: null, why: wlCat.why };
     if (wlCat.state === 'loading' || wlDoc === 'loading') return { state: 'loading', gauge, km: gaugeKm, doc: null, why: null };
     if (!gauge) return { state: 'missing', gauge: null, km: null, doc: null, why: 'Im Pegelkatalog des BSH steht kein Pegel.' };
@@ -599,17 +632,50 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
         : wlCurveDoc === 'error' ? { state: 'error', gauge: curveAlt.gauge, km: curveAlt.km, doc: null, why: `Der Verlauf am Pegel ${curveAlt.gauge.name} ist gerade nicht lesbar. Das heißt nicht, dass der Wasserstand unauffällig ist.` }
           : { state: 'loading', gauge: curveAlt.gauge, km: curveAlt.km, doc: null, why: null };
     return { state: 'ok', gauge, km: gaugeKm, doc: wlDoc, why: null, ...(curve ? { curve } : {}) };
-  }, [water, wlCat, wlDoc, gauge, gaugeKm, curveAlt, curveAltDoc, wlCurveDoc]);
+  }, [water, wlCat, wlDoc, gauge, gaugeKm, curveAlt, curveAltDoc, wlCurveDoc, dmiSpot]);
+  // Phase DK: the water level of the DMI storm surge model at this spot — the entry of the file, or why there is none.
+  const dmiWater: SeaDmiWater | null = useMemo(() => {
+    if (!water || !spot || !dmiSpot) return null;
+    if (dmi === 'loading') return { state: 'loading', entry: null, builtAt: null, why: null };
+    const entry = dmi.doc?.wl.spots[spot.id] ?? null;
+    if (entry) return { state: 'ok', entry, builtAt: dmi.doc!.builtAt, why: null };
+    const failed = dmi.doc?.failed.find((f) => f.id === spot.id && f.what === 'wl');
+    return {
+      state: 'none', entry: null, builtAt: dmi.doc?.builtAt ?? null,
+      why: dmi.doc ? `Keine Daten: das DMI hat für diesen Punkt beim letzten Abruf nichts geliefert${failed ? ` („${failed.error}“)` : ''}. Das heißt nicht, dass der Wasserstand unauffällig ist.`
+        : `Keine Daten. ${dmi.why ?? ''} Das heißt nicht, dass der Wasserstand unauffällig ist.`,
+    };
+  }, [water, spot, dmiSpot, dmi]);
   const tideView: SeaTideView | null = useMemo(() => (tideActive ? {
     threshold: tide, onThreshold: setTideThreshold, gaugeName: tideModel?.name ?? tideGauge?.name ?? null, km: tideKm,
     refs: tideModel?.refs ?? [{ ref: 'pnp', label: 'Pegelnull', over: 'Pegelnull', offsetCm: 0 }], windows: tideModel?.windows ?? null, end: tideModel?.end ?? null,
   } : null), [tideActive, tide, setTideThreshold, tideModel, tideGauge, tideKm]);
 
-  const mapGauges: SeaMapGauge[] | null = useMemo(() => (water && wlCat.gauges.length
-    ? wlCat.gauges
-      .filter((g) => revier === 'alle' || (revier === 'nordsee' ? g.region === 'north_sea' : g.region === 'baltic_sea'))
-      .map((g) => ({ id: g.id, name: g.name, lon: g.lon, lat: g.lat }))
-    : null), [water, wlCat.gauges, revier]);
+  // Phase DK: the DMI model points are markers like the gauges (id `dmi:<spot>`; a click picks the spot they belong to).
+  // Revier „Dänemark“ shows them and the BSH gauges the Danish spots read.
+  const mapGauges: SeaMapGauge[] | null = useMemo(() => {
+    if (!water) return null;
+    const dkBsh = new Set(spots.flatMap((s) => (s.dk?.wl?.from === 'bsh' ? [s.dk.wl.gauge] : [])));
+    const bsh = water && wlCat.gauges.length
+      ? wlCat.gauges
+        .filter((g) => revier === 'alle' || (revier === 'daenemark' ? dkBsh.has(g.id) : revier === 'nordsee' ? g.region === 'north_sea' : g.region === 'baltic_sea'))
+        .map((g) => ({ id: g.id, name: g.name, lon: g.lon, lat: g.lat }))
+      : [];
+    const dk = spots.filter((s) => s.dk?.wl?.from === 'dmi' && seaInRevier(s, revier)).map((s) => {
+      const e = dmiDoc?.wl.spots[s.id], w = s.dk!.wl as { lat: number; lon: number };
+      return { id: `dmi:${s.id}`, name: `DMI-Modellpunkt ${s.name}`, lon: e?.lon ?? w.lon, lat: e?.lat ?? w.lat };
+    });
+    return bsh.length + dk.length ? [...bsh, ...dk] : null;
+  }, [water, wlCat.gauges, revier, spots, dmiDoc]);
+  const pickGauge = useCallback((id: string) => { if (id.startsWith('dmi:')) pickSpotFromMap(id.slice(4)); else setGaugePick(id); }, [pickSpotFromMap]);
+  // The chip „Dänemark“ fits the map to the Danish spots (only when the Revier changes to it).
+  useEffect(() => {
+    if (revier !== 'daenemark' || !mapInst) return;
+    const dk = spots.filter((s) => s.country === 'DK');
+    if (!dk.length) return;
+    const lons = dk.map((s) => s.lon), lats = dk.map((s) => s.lat);
+    mapInst.fitBounds([[Math.min(...lons), Math.min(...lats)], [Math.max(...lons), Math.max(...lats)]], { padding: 56, maxZoom: 9, duration: 600 });
+  }, [revier, mapInst, hasDk]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const stations = useMemo(() => (toggles.stations ? [...new Map(spots.filter((s) => s.station).map((s) => [s.station!.id, { id: s.station!.id, name: s.station!.name, lon: s.station!.lon, lat: s.station!.lat }])).values()] : null), [spots, toggles.stations]);
 
@@ -624,7 +690,10 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   const lim = limits.gustMax ?? limits.windMax;
   const profLabel = SEA_PROFILE_BY_ID[profile].label;
   const windEngine = spotsDoc?.wind?.engine ?? 'buscosun Fusion';
+  // Phase DK: at a spot outside the point cube the wind is DMI's — named as such wherever the spot's wind is named.
+  const spotWindName = spot && spotsDoc?.windBy?.[spot.id] ? DMI_WIND_LABEL : windEngine;
   const runTxt = run ? `CWAM ${run.run.slice(8, 10)} UTC` : '–';
+  const noSeriesText = noSeries && spot ? `Für ${spot.name} trägt der veröffentlichte Seegangslauf noch keine Stundenreihe. Sie kommt mit dem nächsten Lauf (zweimal täglich, gegen 04 und 16 Uhr UTC plus Rechenzeit).` : null;
   // „Quellen" on the map (shared source line of the map pages, Brandradar concept, Jan 07.11.)
   const sourceGroups: MapSourceGroup[] = [
     { title: 'Basiskarte', items: [BASEMAP_SOURCE] },
@@ -637,6 +706,8 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
         { name: 'Seegebiete © GeoBasis-DE / BKG 2021, VMAP0', what: 'Umrisse der Warngebiete', changed: 'Daten modifiziert', on: toggles.warn },
         { name: 'Deutscher Wetterdienst · Messstationen', url: 'https://opendata.dwd.de/', what: 'Wind und Böen gemessen', licence: 'GeoNutzV / CC BY 4.0', licenceUrl: CC_BY_URL, on: toggles.stations },
         { name: 'Bundesamt für Seeschifffahrt und Hydrographie (BSH)', url: WL_SERVICE_PAGE, what: 'Wasserstandsvorhersage an den Pegeln', credit: WL_ATTRIBUTION, licence: WL_LICENCE, licenceUrl: WL_LICENCE_URL, on: water },
+        // Phase DK — only listed when the catalogue carries Danish spots.
+        ...(hasDk ? [{ name: DMI_NAME, url: DMI_HOST, what: 'Dänische Spots: Wasserstand des Sturmflutmodells DKSS, Wind aus HARMONIE außerhalb des Punkt-Cubes, Messungen der Stationen', credit: DMI_CREDIT, licence: DMI_LICENCE, licenceUrl: DMI_LICENCE_URL, changed: 'eigene Darstellung, auf Stunden und cm gerundet', on: water || toggles.stations || toggles.wind }] : []),
       ],
     },
   ];
@@ -658,7 +729,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
       ))}
     </div>
   );
-  const pillBadge = spot ? (spot.region === 'nordsee' ? 'NORDSEE' : 'OSTSEE') : '';
+  const pillBadge = spot ? `${spot.country === 'DK' ? 'DÄNEMARK · ' : ''}${spot.region === 'nordsee' ? 'NORDSEE' : 'OSTSEE'}` : '';
   const legend = (
     <div className="sw-legend sw-legend-bar" aria-label="Legende">
       <div className="sw-legend-main">
@@ -739,13 +810,13 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   );
   const map = (
     <SeaMap field={coloured} arrows={arrows} spots={noData ? mapSpots.map((s) => ({ ...s, cls: 'keine' as const, windTo: null })) : mapSpots} selectedId={spot?.id ?? null}
-      stations={stations} gauges={mapGauges} selectedGaugeId={gaugeId} onGauge={setGaugePick} areas={mapAreas} showWind={toggles.wind && !noData} padding={padding} onSelect={pickSpotFromMap} onMap={(m) => { mapRef.current = m; setMapInst(m); }}
+      stations={stations} gauges={mapGauges} selectedGaugeId={gaugeId ?? (dmiSpot && spot ? `dmi:${spot.id}` : null)} onGauge={pickGauge} areas={mapAreas} showWind={toggles.wind && !noData} padding={padding} onSelect={pickSpotFromMap} onMap={(m) => { mapRef.current = m; setMapInst(m); }}
       plan={mapPlan} />
   );
   const band = spot && usable && bandHours.length > 0 && (
     <SeaBand hours={bandHours} unit={unit} selected={k} onPick={setT} compact={isMobile}
       title={`${spot.name} · ${profLabel}`} sub={`${dayShort(bandHours[0].t)} ${hh(bandHours[0].t)} bis ${dayShort(bandHours[bandHours.length - 1].t)} ${hh(bandHours[bandHours.length - 1].t)} Uhr · ${tzLabel(validMs)}`}
-      footnote={`Welle: Modell ${runTxt} · Wind/Böen: ${windEngine}`}
+      footnote={`Welle: Modell ${runTxt} · Wind/Böen: ${spotWindName}`}
       tide={tideFeed ? { hours: tideFeed.hours!, side: tideSideText(tideFeed.mode!, tideFeed.name) } : null} over={bandOver} plan={bandPlan} />
   );
   const planner = planOpen && spot ? (
@@ -771,13 +842,13 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   const dockOf = (show: 'all' | 'layers' | 'picker') => (
     <SeaDock show={show} query={query} onQuery={setQuery} revier={revier} onRevier={setRevier} profile={profile} onProfile={setProfile} limits={limits} onLimits={setLimits}
       spots={dockSpots} selectedId={spot?.id ?? null} onPick={pickSpotFromMap} total={spots.length} layer={layer} onLayer={setLayer}
-      toggles={toggles} onToggle={(kk) => setToggles((x) => ({ ...x, [kk]: !x[kk] }))} loading={catalog === 'loading'} />
+      toggles={toggles} onToggle={(kk) => setToggles((x) => ({ ...x, [kk]: !x[kk] }))} loading={catalog === 'loading'} hasDk={hasDk} />
   );
   const readout = (
     <SeaReadout tab={tab} onTab={setTab} spot={spot} hour={hour} verdict={verdict} profileLabel={profLabel} windows={wins} chartHours={chartHours}
       limitKn={lim} limitLabel={limits.gustMax != null ? `Böen ${limits.gustMax} kn` : limits.windMax != null ? `Wind ${limits.windMax} kn` : ''} gustLimitKn={limits.gustMax} unit={unit}
-      run={run} spotsDoc={spotsDoc} freshness={freshness} texts={seaTexts} poi={poi} nowMs={nowMs} noData={noData} warning={warning}
-      dry={{ hours: dryHours, of: spotHours.length, classed: dryRule }} waterLevel={waterLevel} tide={tideView}
+      run={run} spotsDoc={spotsDoc} freshness={freshness} texts={seaTexts} poi={poi} nowMs={nowMs} noData={noData ?? noSeriesText} warning={warning}
+      dry={{ hours: dryHours, of: spotHours.length, classed: dryRule }} waterLevel={waterLevel} dmiWater={dmiWater} tide={tideView}
       layout="dossier" band={band} chips={isMobile ? undefined : (usable && chips)} onMap={() => setStage('map')} />
   );
   const inDossier = stage === 'dossier';

@@ -10,12 +10,16 @@
  * Quelle ist der veröffentlichte Katalog des Daten-Repos (`sea/v1/static/spots.json`, `gauges.json`) — dieselbe Datei,
  * die die Seite lädt —, dazu `scripts/seo/data/place-modules.json` (Ort → nächster Spot). Läuft NICHT im Build.
  *
- *   node scripts/sea/gen-spot-seo.mjs [--data=../buscosun-data]
+ *   node scripts/sea/gen-spot-seo.mjs [--data=../buscosun-data] [--dk=<spots-dk.json>]
+ *
+ * Phase DK: die dänischen Spots stehen in `sea/v1/static/spots-dk.json` (eigene Datei); `--dk` nennt sie, solange sie
+ * noch nicht im Checkout des Daten-Repos liegt. Ihre Steckbriefe tragen `country: 'DK'`, keinen Küstenabschnitt und
+ * `dk` (woher Wind und Wasserstand kommen).
  *
  * Neue oder umbenannte Spots ⇒ zuerst den Katalog im Daten-Repo bauen, dann dieses Skript; `verify:sea-seo` prüft, dass
  * Steckbriefe, Namenstabelle (`seaSpotNames.ts`) und Handliste (`spots-src.json`) dieselben Kennungen tragen.
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PLACES_ALL } from '../seo/places.mjs';
@@ -66,7 +70,12 @@ for (const [slug, rec] of Object.entries(modules.places)) {
   placesOfSpot.get(id).push({ slug, name: nameOfPlace.get(slug), km: rec.sea.spot.km });
 }
 
-const spots = cat.spots;
+const dkFile = typeof args.dk === 'string' ? resolve(ROOT, args.dk) : join(DATA, 'sea/v1/static/spots-dk.json');
+const dkCat = existsSync(dkFile) ? J(dkFile) : null;
+const ids = new Set(cat.spots.map((s) => s.id));
+const spots = [...cat.spots, ...(dkCat?.spots ?? []).filter((s) => s.country === 'DK' && !ids.has(s.id))];
+/** Teilmodelle des DMI-Sturmflutmodells in Worten (wie `DMI_WL_COLLECTION_LABEL` in `src/sea/seaDmi.ts`). */
+const DKSS = { dkss_lb: 'Kleiner Belt', dkss_idw: 'Innere dänische Gewässer', dkss_ws: 'Wattenmeer', dkss_nsbs: 'Nordsee–Ostsee' };
 const rows = spots.map((s) => {
   const g = gauges.gauges.map((x) => [km(s.lat, s.lon, x.lat, x.lon), x]).sort((a, b) => a[0] - b[0])[0];
   const near = spots.filter((o) => o.id !== s.id && o.region === s.region)
@@ -74,13 +83,14 @@ const rows = spots.map((s) => {
     .map(([d, o]) => [o.id, r1(d)]);
   const places = (placesOfSpot.get(s.id) ?? []).sort((a, b) => a.km - b.km || a.name.localeCompare(b.name, 'de')).slice(0, 6).map((p) => [p.slug, p.name]);
   return {
-    id: s.id, name: s.name, region: s.region, kinds: s.kinds, lat: s.lat, lon: s.lon,
+    id: s.id, name: s.name, region: s.region, ...(s.country === 'DK' ? { country: 'DK' } : {}), kinds: s.kinds, lat: s.lat, lon: s.lon,
     normal: s.normal, normalSet: s.normalFrom === 'set',
     seaArea: s.seaArea?.name ?? null, coast: s.coast?.name ?? null, wodl: s.wodlCoast,
-    station: s.station ? [stationName(s.station.name), r1(s.station.km)] : null,
+    station: s.station ? [s.station.net === 'dmi' ? s.station.name : stationName(s.station.name), r1(s.station.km)] : null,
     cellKm: r1(s.cell.km), tidal: !!s.tidal,
-    gauge: g && g[0] <= GAUGE_MAX_KM ? [g[1].name, r1(g[0])] : null,
+    gauge: s.country === 'DK' ? (s.dk?.wl?.from === 'bsh' ? [s.dk.wl.name, r1(s.dk.wl.km)] : null) : g && g[0] <= GAUGE_MAX_KM ? [g[1].name, r1(g[0])] : null,
     near, places,
+    ...(s.country === 'DK' ? { dk: { wind: s.dk.wind, wl: s.dk.wl ? (s.dk.wl.from === 'dmi' ? ['dmi', DKSS[s.dk.wl.coll] ?? s.dk.wl.coll, r1(s.dk.wl.km)] : ['bsh', s.dk.wl.name, r1(s.dk.wl.km)]) : null } } : {}),
   };
 });
 
@@ -95,7 +105,11 @@ const head = `/**
  */
 export interface SeaSpotFact {
   id: string; name: string; region: 'nordsee' | 'ostsee'; kinds: readonly string[]; lat: number; lon: number;
-  normal: number; normalSet: boolean; seaArea: string | null; coast: string | null; wodl: 'Nordseekueste' | 'Ostseekueste';
+  /** Phase DK: fehlt = Deutschland. Ein dänischer Spot hat keinen Küstenabschnitt (coast, wodl null), seine Station ist eine des DMI. */
+  country?: 'DK';
+  /** Phase DK: Wind aus buscosun Fusion (im Punkt-Cube) oder DMI HARMONIE; Wasserstand vom BSH-Pegel oder vom DMI-Modell DKSS [Art, Name, km]. */
+  dk?: { wind: 'fusion' | 'dmi'; wl: readonly [from: 'bsh' | 'dmi', name: string, km: number] | null };
+  normal: number; normalSet: boolean; seaArea: string | null; coast: string | null; wodl: 'Nordseekueste' | 'Ostseekueste' | null;
   station: readonly [name: string, km: number] | null; cellKm: number; tidal: boolean;
   gauge: readonly [name: string, km: number] | null;
   near: ReadonlyArray<readonly [id: string, km: number]>;

@@ -1,8 +1,8 @@
 /**
  * GENERIERT von `scripts/sea/gen-spot-names.mjs` aus `scripts/sea/spots-src.json` — nicht von Hand ändern.
- * Kennung (`/seewetter/<id>`) → [Name, Revier]; nur für Link-Vorschauen ohne Katalog (Teilen-Sheet, Edge Function).
+ * Kennung (`/seewetter/<id>`) → [Name, Revier], bei einem dänischen Spot [Name, Revier, 'DK'] (Phase DK); nur für Link-Vorschauen ohne Katalog (Teilen-Sheet, Edge Function).
  */
-export const SEA_SPOT_NAMES: Readonly<Record<string, readonly [name: string, region: 'nordsee' | 'ostsee']>> = {
+export const SEA_SPOT_NAMES: Readonly<Record<string, readonly [name: string, region: 'nordsee' | 'ostsee', country?: 'DK']>> = {
   "borkum": ["Borkum Nordstrand", "nordsee"],
   "juist": ["Juist", "nordsee"],
   "norderney": ["Norderney Nordstrand", "nordsee"],
@@ -59,4 +59,12 @@ export const SEA_SPOT_NAMES: Readonly<Record<string, readonly [name: string, reg
   "zinnowitz": ["Usedom Zinnowitz", "ostsee"],
   "heringsdorf": ["Usedom Heringsdorf", "ostsee"],
   "ueckermuende": ["Ueckermünde (Stettiner Haff)", "ostsee"],
+  "roemoe": ["Rømø Lakolk", "nordsee", "DK"],
+  "fanoe": ["Fanø Bad", "nordsee", "DK"],
+  "hvide-sande": ["Hvide Sande", "nordsee", "DK"],
+  "als-kegnaes": ["Als Kegnæs", "ostsee", "DK"],
+  "langeland-bagenkop": ["Langeland Bagenkop", "ostsee", "DK"],
+  "aeroe-marstal": ["Ærø Marstal", "ostsee", "DK"],
+  "middelfart": ["Middelfart (Kleiner Belt)", "ostsee", "DK"],
+  "gedser": ["Gedser", "ostsee", "DK"],
 };

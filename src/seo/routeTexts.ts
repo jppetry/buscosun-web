@@ -97,14 +97,14 @@ const ROUTE_TEXTS: Readonly<Record<string, RouteText>> = {
   },
   '/seewetter': {
     body: [
-      `Die Ansicht beantwortet drei Fragen für einen Spot an der deutschen Küste. Wie weht es, mit welchen Böen? Wie hoch läuft die See, getrennt nach Windsee und Dünung? Wie steht das Wasser am nächsten Pegel? Das Stundenband zeigt die kommenden Stunden, die Karte das Seegangsfeld, und jeder der ${SEA_SPOT_COUNT} Spots hat eine eigene Seite mit Steckbrief, etwa St. Peter-Ording, Sylt Westerland, Laboe, Fehmarn Grüner Brink oder Warnemünde.`,
-      'Die Quellen werden nicht verrechnet. Der Seegang stammt aus dem Küstenmodell CWAM des DWD, der Wind am Spot aus buscosun Fusion, der Wasserstand aus der offenen Schnittstelle des BSH. Seewetterbericht und Warnstatus des Seewetterdienstes Hamburg erscheinen unverändert im Wortlaut, die Wassertemperatur von Nord- und Ostsee als Spanne aus der amtlichen Mittelfrist. Texte und Spots werden alle 15 Minuten auf neue Ausgaben geprüft; jeder Wert nennt seinen Stand.',
+      `Die Ansicht beantwortet drei Fragen für einen Spot an der deutschen Küste oder an der dänischen Küste zwischen Hvide Sande und Gedser. Wie weht es, mit welchen Böen? Wie hoch läuft die See, getrennt nach Windsee und Dünung? Wie steht das Wasser am nächsten Pegel? Das Stundenband zeigt die kommenden Stunden, die Karte das Seegangsfeld, und jeder der ${SEA_SPOT_COUNT} Spots hat eine eigene Seite mit Steckbrief, etwa St. Peter-Ording, Sylt Westerland, Laboe, Fehmarn Grüner Brink oder Warnemünde.`,
+      'Die Quellen werden nicht verrechnet. Der Seegang stammt aus dem Küstenmodell CWAM des DWD, der Wind am Spot aus buscosun Fusion, der Wasserstand aus der offenen Schnittstelle des BSH. Seewetterbericht und Warnstatus des Seewetterdienstes Hamburg erscheinen unverändert im Wortlaut, die Wassertemperatur von Nord- und Ostsee als Spanne aus der amtlichen Mittelfrist. An den dänischen Spots kommen Messungen, der Wasserstand ohne nahen BSH-Pegel und der Wind nördlich von 55,5° Nord vom dänischen Wetterdienst DMI (CC BY 4.0); einen Warnstatus für die dänische Küste zeigt die Seite nicht und verweist dafür auf das DMI. Texte und Spots werden alle 15 Minuten auf neue Ausgaben geprüft; jeder Wert nennt seinen Stand.',
       'Grenzen: In Häfen, Förden und hinter Sandbänken löst das Modell die Wellen nur grob auf, Strömungen sind nicht Teil der Anzeige, und eine Zelle ohne Wasser im Modell zeigt „kein Seegang“ statt 0 Meter. Binnenseen wie der Bodensee und Reviere im Mittelmeer fehlen. Die Ansicht entscheidet keine Ausfahrt.',
     ],
     facts: [
-      { label: 'Quellen', text: 'DWD CWAM (Seegang) · buscosun Fusion (Wind, Böen) · BSH (Wasserstand, CC BY 4.0) · Seewetterdienst Hamburg des DWD (Seewetterbericht und Warnungen im Wortlaut)' },
+      { label: 'Quellen', text: 'DWD CWAM (Seegang) · buscosun Fusion (Wind, Böen) · BSH (Wasserstand, CC BY 4.0) · Seewetterdienst Hamburg des DWD (Seewetterbericht und Warnungen im Wortlaut) · DMI (dänische Spots: Messungen, Wasserstand, Wind bei Hvide Sande; CC BY 4.0)' },
       { label: 'Aktualisierung', text: 'Prüfung alle 15 Minuten; CWAM-Läufe um 00 und 12 UTC, rund 4 Stunden nach dem Start vollständig; Horizont 78 Stunden' },
-      { label: 'Abdeckung', text: `deutsche Nord- und Ostseeküste, ${SEA_SPOT_COUNT} Spots von Borkum bis Ueckermünde` },
+      { label: 'Abdeckung', text: `deutsche Nord- und Ostseeküste von Borkum bis Ueckermünde und dänische Küste von Hvide Sande bis Gedser, zusammen ${SEA_SPOT_COUNT} Spots` },
       { label: 'Grenze', text: 'kein amtliches Warnprodukt, keine Sicherheitsbewertung, keine Strömung, keine Binnenseen' },
     ],
     faq: [

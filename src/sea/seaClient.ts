@@ -5,13 +5,17 @@
  * to the newest wind refresh (raw, short timeout, never blocking — unreachable = not killed, no refresh).
  */
 import {
-  SEA_CDN_BASE, SEA_RAW_BASE, SEA_MAX_STEP_BACK, SEA_RUN_EVERY_MS, SEA_SPOT_CATALOG_PATH, SEA_AREAS_PATH, SEA_STATUS_PATH, SEA_SPOT_VARS,
+  SEA_CDN_BASE, SEA_RAW_BASE, SEA_MAX_STEP_BACK, SEA_RUN_EVERY_MS, SEA_SPOT_CATALOG_PATH, SEA_SPOT_CATALOG_DK_PATH, mergeSpotCatalogs, SEA_AREAS_PATH, SEA_STATUS_PATH, SEA_SPOT_VARS,
   SEA_MODELS, seaExpectedRun, seaRunStamp, seaRunMs, seaRunJsonPath, seaSpotsPath, seaFieldPath, seaCompPath, seaFreshness, spotSeriesProblems,
   decodeSpotValue, encodeSpotValue, spotCatalogProblems, seaTextPath, seaSpotsWindPath, mergeSpotWind, SEA_WIND_VARS,
   spotQuantileProblems, decodeSpotQuantiles, mergeSpotQuantiles, dropQuantilesWithoutMean, hasQuantiles,
   type SeaSpot, type SeaSpotVar, type SeaFreshness, type SeaWindVar, type SeaSpotQuantiles,
 } from './seaContract';
 import { SEA_TEXT_PRODUCTS, seaExpectedIssues, seaTextFreshness, type SeaTextDoc, type SeaTextProduct } from './seaText';
+import {
+  DMI_OBS_MAX_AGE_MS, DMI_OBS_PARAMS, SEA_DMI_PRODUCT, dmiObsLatest, dmiObsUrl, dmiWindOnAxis, seaDmiProblems, seaDmiStale,
+  type SeaDmiDoc, type SeaDmiPointer,
+} from './seaDmi';
 
 /** "Does not exist" (404, or 403 on both ways) — distinct from a hard failure. */
 export class SeaNotThere extends Error {}
@@ -88,11 +92,15 @@ const isAbort = (e: unknown) => (e as Error)?.name === 'AbortError';
 export interface SeaCatalog { spots: SeaSpot[]; problems: string[] }
 export async function loadCatalog(signal?: AbortSignal): Promise<SeaCatalog | null> {
   try {
+    // Phase DK: the Danish spots are a file of their own; missing or unreadable ⇒ the page is the one before the phase.
+    const dkP = (fetchSea(SEA_SPOT_CATALOG_DK_PATH, 'json', signal) as Promise<{ product?: string; spots?: SeaSpot[] }>).catch((e) => { if (isAbort(e)) throw e; return null; });
     const j = await fetchSea(SEA_SPOT_CATALOG_PATH, 'json', signal) as { product?: string; spots?: SeaSpot[] };
     if (j?.product !== 'sea-spots' || !Array.isArray(j.spots)) return null;
-    const problems = spotCatalogProblems(j.spots);
+    const dk = await dkP;
+    const spots = mergeSpotCatalogs(j.spots, dk?.product === 'sea-spots' && Array.isArray(dk.spots) ? dk.spots : null);
+    const problems = spotCatalogProblems(spots);
     const bad = new Set(problems.map((p) => p.split(':')[0]));
-    return { spots: j.spots.filter((s) => !bad.has(s.id)), problems };
+    return { spots: spots.filter((s) => !bad.has(s.id)), problems };
   } catch (e) { if (isAbort(e)) throw e; return null; }
 }
 
@@ -164,6 +172,8 @@ export interface SeaSpotsDoc {
   rejected: string[];
   /** V-SW-2: hour index from which wind/gust/direction come from a later computation (`wind` then describes that one). */
   windFrom?: number;
+  /** Phase DK: spots whose wind columns come from DMI HARMONIE (outside the point cube) — set by `withDmiWind`. */
+  windBy?: Record<string, 'dmi'>;
   /**
    * Phase SU: q10 … q90 of wind and gust per spot (m/s), only for spots whose file carries them AND whose columns pass the
    * value lock. A spot without an entry (every file before phase SU, a failed lock) is shown without band.
@@ -316,7 +326,7 @@ export const SEA_TEXT_TITLES = Object.fromEntries(Object.values(SEA_TEXT_PRODUCT
 export interface SeaPoiObs {
   t: number; ffMs: number | null; ddDeg: number | null; fxMs: number | null;
   /** Where the row came from: the mirror product `obs/v1` (10-min values, gust of the 10-min interval) or the DWD POI file (gust of the last hour). */
-  src?: 'obs' | 'poi';
+  src?: 'obs' | 'poi' | 'dmi';
   /** Set when the `obs/v1` station is another site than the spot's POI station: its name and its distance from the spot. */
   site?: { name: string; km: number };
 }
@@ -336,8 +346,10 @@ export const SEA_OBS_SAME_SITE_KM = 2;
  * fallback (no match, no fresh wind value, product not readable, `?seaobs=0`).
  */
 export async function loadStationObs(
-  station: { id: string; lat: number; lon: number }, spot: { lat: number; lon: number } | null, signal?: AbortSignal, nowMs = Date.now(),
+  station: { id: string; lat: number; lon: number; net?: 'dmi' }, spot: { lat: number; lon: number } | null, signal?: AbortSignal, nowMs = Date.now(),
 ): Promise<SeaPoiObs | null> {
+  // Phase DK: a DMI station is read at DMI (CORS open) — never matched against the German stations of `obs/v1` or the DWD POI files.
+  if (station.net === 'dmi') return loadDmiStationObs(station.id, signal, nowMs);
   if (seaObsEnabled()) {
     try {
       const { loadObsStore, obsVarsOf, obsDistanceM, OBS_VAR_MAX_AGE_MS } = await import('../sources/obsStore');
@@ -386,6 +398,67 @@ export async function loadPoi(id: string, signal?: AbortSignal): Promise<SeaPoiO
     }
     return null;
   } catch (e) { if (isAbort(e)) throw e; return null; }
+}
+
+// --- Phase DK: DMI (audit/seewetter-daenemark.md) ---------------------------------------------------------------
+
+/**
+ * Wind, direction and gust of a DMI metObs station, live from `opendataapi.dmi.dk` (no key, CORS open, CC BY 4.0): three
+ * small reads, the newest value of each not older than `DMI_OBS_MAX_AGE_MS`. No wind AND no gust ⇒ `null` ("keine Messung"),
+ * never an older value. DMI publishes these as raw values without quality control — the readout says so.
+ */
+export async function loadDmiStationObs(stationId: string, signal?: AbortSignal, nowMs = Date.now()): Promise<SeaPoiObs | null> {
+  const from = nowMs - DMI_OBS_MAX_AGE_MS;
+  const one = async (parameterId: string) => {
+    try {
+      const res = await fetch(dmiObsUrl(stationId, parameterId, from), { signal });
+      return res.ok ? dmiObsLatest(await res.json(), parameterId, nowMs) : null;
+    } catch (e) { if (isAbort(e)) throw e; return null; }
+  };
+  const [ff, dd, fx] = await Promise.all([one(DMI_OBS_PARAMS.wind), one(DMI_OBS_PARAMS.dir), one(DMI_OBS_PARAMS.gust)]);
+  const lead = ff ?? fx;
+  if (!lead) return null;
+  // DMI: direction 0 means calm — no direction then.
+  return { t: lead.t, ffMs: ff?.value ?? null, ddDeg: dd && dd.value > 0 ? dd.value : null, fxMs: fx?.value ?? null, src: 'dmi' };
+}
+
+/** What the page knows about the DMI file: the checked document, or why there is none ("keine Daten", never an old curve). */
+export interface SeaDmiLoad { doc: SeaDmiDoc | null; state: 'ok' | 'none' | 'stale' | 'error'; why: string | null }
+export const SEA_DMI_NONE: SeaDmiLoad = { doc: null, state: 'none', why: 'Im Datenspeicher liegt noch keine Datei mit den Vorhersagen des DMI.' };
+export async function loadDmi(ptr: SeaDmiPointer | null, nowMs: number, signal?: AbortSignal): Promise<SeaDmiLoad> {
+  if (!ptr) return SEA_DMI_NONE;
+  if (seaDmiStale(ptr.builtAt, nowMs)) return { doc: null, state: 'stale', why: 'Die letzte Datei mit den Vorhersagen des DMI ist älter als 12 Stunden und wird nicht mehr gezeigt.' };
+  try {
+    const j = await fetchSea(ptr.path, 'json', signal) as SeaDmiDoc;
+    if (j?.product !== SEA_DMI_PRODUCT || j.stamp !== ptr.stamp || seaDmiProblems(j).length) return { doc: null, state: 'error', why: 'Die Datei mit den Vorhersagen des DMI ist nicht lesbar (unerwartete Form).' };
+    return seaDmiStale(j.builtAt, nowMs) ? { doc: null, state: 'stale', why: 'Die letzte Datei mit den Vorhersagen des DMI ist älter als 12 Stunden und wird nicht mehr gezeigt.' } : { doc: j, state: 'ok', why: null };
+  } catch (e) {
+    if (isAbort(e)) throw e;
+    return { doc: null, state: 'error', why: 'Die Datei mit den Vorhersagen des DMI ist gerade nicht erreichbar.' };
+  }
+}
+
+/**
+ * The spot series with the DMI wind of the spots that lie outside the point cube (`dk.wind === 'dmi'`): their three wind
+ * columns come from the DMI file on the run's hour axis, without band; `windBy[id] = 'dmi'` names the source at the spot.
+ * A spot the file does not carry keeps its (empty) columns — the page says "keine Daten". Pure.
+ */
+export function withDmiWind(doc: SeaSpotsDoc, spots: readonly SeaSpot[], dmi: SeaDmiDoc | null): SeaSpotsDoc {
+  if (!spots.some((sp) => sp.dk?.wind === 'dmi' && doc.series[sp.id])) return doc;
+  const out: SeaSpotsDoc = { ...doc, series: { ...doc.series } };
+  const windBy: Record<string, 'dmi'> = {};
+  for (const sp of spots) {
+    if (sp.dk?.wind !== 'dmi') continue;
+    const s = doc.series[sp.id], e = dmi?.wind.spots[sp.id];
+    if (!s) continue;
+    const empty = () => new Array<number | null>(s.wind.length).fill(null);
+    const w = e ? dmiWindOnAxis(e, doc.runMs, s.wind.length) : { wind: empty(), gust: empty(), windDir: empty() };
+    out.series[sp.id] = { ...s, ...w };
+    windBy[sp.id] = 'dmi';
+    if (out.quantiles?.[sp.id]) { out.quantiles = { ...out.quantiles }; delete out.quantiles[sp.id]; }
+  }
+  if (Object.keys(windBy).length) out.windBy = windBy;
+  return out;
 }
 
 // --- Early start (load time 10.11.) ---------------------------------------------------------------------------------

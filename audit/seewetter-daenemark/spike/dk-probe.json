@@ -1,0 +1,1563 @@
+{
+ "at": "2026-11-18T01:57:38.312Z",
+ "busy": [],
+ "cubeLatMax": 55.5,
+ "cwamGrid": {
+  "ni": 630,
+  "nj": 387,
+  "lat1": 56.445835,
+  "lon1": 6.173611,
+  "lat2": 53.229168,
+  "lon2": 14.909722,
+  "di": 0.013889,
+  "dj": 0.008333
+ },
+ "stations": {
+  "metWind": 45,
+  "oceanDvr": 20
+ },
+ "rows": [
+  {
+   "id": "roemoe",
+   "name": "Rømø Lakolk",
+   "lat": 55.146,
+   "lon": 8.465,
+   "cwam": {
+    "i": 165,
+    "j": 156,
+    "km": 0.02,
+    "dry": 0.11,
+    "lat": 55.14589,
+    "lon": 8.4653,
+    "nearestOther": null
+   },
+   "cube": {
+    "spot": true,
+    "cell": true,
+    "latMax": 55.5
+   },
+   "bsh": {
+    "nearest": {
+     "id": "list_hafen",
+     "name": "List, Sylt, Hafen",
+     "curve": true,
+     "km": 14.5
+    },
+    "nearestCurve": {
+     "id": "list_hafen",
+     "name": "List, Sylt, Hafen",
+     "curve": true,
+     "km": 14.5
+    }
+   },
+   "dkss": [
+    {
+     "coll": "dkss_nsbs",
+     "inBox": true,
+     "status": 200,
+     "cors": "*",
+     "bytes": 6081,
+     "ms": 1161,
+     "grid": {
+      "lat": 55.125,
+      "lon": 8.45846,
+      "km": 2.36
+     },
+     "n": 121,
+     "values": 121,
+     "t0": "2026-11-17T18:00:00.000Z",
+     "t1": "2026-11-22T18:00:00.000Z",
+     "min": -0.41,
+     "max": 1.31
+    },
+    {
+     "coll": "dkss_idw",
+     "inBox": false
+    },
+    {
+     "coll": "dkss_ws",
+     "inBox": true,
+     "status": 200,
+     "cors": "*",
+     "bytes": 6119,
+     "ms": 4838,
+     "grid": {
+      "lat": 55.14193,
+      "lon": 8.45848,
+      "km": 0.62
+     },
+     "n": 121,
+     "values": 121,
+     "t0": "2026-11-17T18:00:00.000Z",
+     "t1": "2026-11-22T18:00:00.000Z",
+     "min": -1.15,
+     "max": 1.31
+    },
+    {
+     "coll": "dkss_lb",
+     "inBox": false
+    }
+   ],
+   "wl": {
+    "coll": "dkss_ws",
+    "lat": 55.1459,
+    "lon": 8.4653,
+    "grid": {
+     "lat": 55.14193,
+     "lon": 8.45848
+    },
+    "km": 0.62,
+    "n": 121
+   },
+   "harmonie": {
+    "status": 200,
+    "cors": "*",
+    "bytes": 5929,
+    "ms": 1112,
+    "grid": {
+     "lat": 55.14067,
+     "lon": 8.46075,
+     "km": 0.65
+    },
+    "t0": "2026-11-17T21:00:00.000Z",
+    "t1": "2026-11-20T09:00:00.000Z",
+    "n": 61,
+    "wind": 61,
+    "gust": 61,
+    "dir": 61
+   },
+   "metObs": [
+    {
+     "id": "06096",
+     "name": "Rømø/Juvre",
+     "owner": "DMI",
+     "lat": 55.1904,
+     "lon": 8.5599,
+     "km": 7.8,
+     "wind": 18,
+     "gust": 18,
+     "last": "2026-11-18T01:50:00Z"
+    },
+    {
+     "id": "06088",
+     "name": "Nordby",
+     "owner": "DMI",
+     "lat": 55.4426,
+     "lon": 8.3869,
+     "km": 33.3,
+     "wind": 0,
+     "gust": 0,
+     "last": null
+    },
+    {
+     "id": "06080",
+     "name": "Esbjerg Lufthavn",
+     "owner": "Havne Kommuner mv",
+     "lat": 55.5281,
+     "lon": 8.5627,
+     "km": 42.9,
+     "wind": 18,
+     "gust": 18,
+     "last": "2026-11-18T01:50:00Z"
+    }
+   ],
+   "oceanObs": [
+    {
+     "id": "25149",
+     "name": "Esbjerg Havn I",
+     "owner": "DMI",
+     "lat": 55.4606,
+     "lon": 8.4431,
+     "km": 35,
+     "n": 18,
+     "last": "2026-11-18T01:50:00Z",
+     "cm": 13
+    },
+    {
+     "id": "23293",
+     "name": "Fredericia Havn",
+     "owner": "DMI",
+     "lat": 55.5595,
+     "lon": 9.753,
+     "km": 93.5,
+     "n": 18,
+     "last": "2026-11-18T01:50:00Z",
+     "cm": 47
+    }
+   ],
+   "station": {
+    "id": "06096",
+    "name": "Rømø/Juvre",
+    "owner": "DMI",
+    "lat": 55.1904,
+    "lon": 8.5599,
+    "km": 7.8,
+    "wind": 18,
+    "gust": 18,
+    "last": "2026-11-18T01:50:00Z"
+   }
+  },
+  {
+   "id": "fanoe",
+   "name": "Fanø Bad",
+   "lat": 55.433,
+   "lon": 8.352,
+   "cwam": {
+    "i": 157,
+    "j": 122,
+    "km": 0.44,
+    "dry": 0.3,
+    "lat": 55.42921,
+    "lon": 8.35418,
+    "nearestOther": null
+   },
+   "cube": {
+    "spot": true,
+    "cell": true,
+    "latMax": 55.5
+   },
+   "bsh": {
+    "nearest": {
+     "id": "list_hafen",
+     "name": "List, Sylt, Hafen",
+     "curve": true,
+     "km": 46.6
+    },
+    "nearestCurve": {
+     "id": "list_hafen",
+     "name": "List, Sylt, Hafen",
+     "curve": true,
+     "km": 46.6
+    }
+   },
+   "dkss": [
+    {
+     "coll": "dkss_nsbs",
+     "inBox": true,
+     "status": 200,
+     "cors": "*",
+     "bytes": 5392,
+     "ms": 6085,
+     "grid": {
+      "lat": 55.425,
+      "lon": 8.37512,
+      "km": 1.4
+     },
+     "n": 121,
+     "values": 0,
+     "t0": "2026-11-17T18:00:00.000Z",
+     "t1": "2026-11-22T18:00:00.000Z",
+     "min": null,
+     "max": null
+    },
+    {
+     "coll": "dkss_idw",
+     "inBox": false
+    },
+    {
+     "coll": "dkss_ws",
+     "inBox": true,
+     "status": 200,
+     "cors": "*",
+     "bytes": 6117,
+     "ms": 6088,
+     "grid": {
+      "lat": 55.4253,
+      "lon": 8.34739,
+      "km": 0.61
+     },
+     "n": 121,
+     "values": 121,
+     "t0": "2026-11-17T18:00:00.000Z",
+     "t1": "2026-11-22T18:00:00.000Z",
+     "min": -1.05,
+     "max": 1.23
+    },
+    {
+     "coll": "dkss_lb",
+     "inBox": false
+    }
+   ],
+   "wl": {
+    "coll": "dkss_ws",
+    "lat": 55.4292,
+    "lon": 8.3542,
+    "grid": {
+     "lat": 55.4253,
+     "lon": 8.34739
+    },
+    "km": 0.61,
+    "n": 121
+   },
+   "harmonie": {
+    "status": 200,
+    "cors": "*",
+    "bytes": 5921,
+    "ms": 1037,
+    "grid": {
+     "lat": 55.43241,
+     "lon": 8.35657,
+     "km": 0.39
+    },
+    "t0": "2026-11-17T21:00:00.000Z",
+    "t1": "2026-11-20T09:00:00.000Z",
+    "n": 61,
+    "wind": 61,
+    "gust": 61,
+    "dir": 61
+   },
+   "metObs": [
+    {
+     "id": "06088",
+     "name": "Nordby",
+     "owner": "DMI",
+     "lat": 55.4426,
+     "lon": 8.3869,
+     "km": 2.4,
+     "wind": 0,
+     "gust": 0,
+     "last": null
+    },
+    {
+     "id": "06080",
+     "name": "Esbjerg Lufthavn",
+     "owner": "Havne Kommuner mv",
+     "lat": 55.5281,
+     "lon": 8.5627,
+     "km": 17,
+     "wind": 18,
+     "gust": 18,
+     "last": "2026-11-18T01:50:00Z"
+    },
+    {
+     "id": "06081",
+     "name": "Blåvandshuk Fyr",
+     "owner": "DMI",
+     "lat": 55.5575,
+     "lon": 8.0828,
+     "km": 21.9,
+     "wind": 18,
+     "gust": 18,
+     "last": "2026-11-18T01:50:00Z"
+    }
+   ],
+   "oceanObs": [
+    {
+     "id": "25149",
+     "name": "Esbjerg Havn I",
+     "owner": "DMI",
+     "lat": 55.4606,
+     "lon": 8.4431,
+     "km": 6.5,
+     "n": 18,
+     "last": "2026-11-18T01:50:00Z",
+     "cm": 13
+    },
+    {
+     "id": "23293",
+     "name": "Fredericia Havn",
+     "owner": "DMI",
+     "lat": 55.5595,
+     "lon": 9.753,
+     "km": 89.4,
+     "n": 18,
+     "last": "2026-11-18T01:50:00Z",
+     "cm": 47
+    }
+   ],
+   "station": {
+    "id": "06080",
+    "name": "Esbjerg Lufthavn",
+    "owner": "Havne Kommuner mv",
+    "lat": 55.5281,
+    "lon": 8.5627,
+    "km": 17,
+    "wind": 18,
+    "gust": 18,
+    "last": "2026-11-18T01:50:00Z"
+   }
+  },
+  {
+   "id": "hvide-sande",
+   "name": "Hvide Sande",
+   "lat": 56.003,
+   "lon": 8.112,
+   "cwam": {
+    "i": 140,
+    "j": 53,
+    "km": 0.4,
+    "dry": 0,
+    "lat": 56.00419,
+    "lon": 8.11807,
+    "nearestOther": null
+   },
+   "cube": {
+    "spot": false,
+    "cell": false,
+    "latMax": 55.5
+   },
+   "bsh": {
+    "nearest": {
+     "id": "list_hafen",
+     "name": "List, Sylt, Hafen",
+     "curve": true,
+     "km": 111.6
+    },
+    "nearestCurve": {
+     "id": "list_hafen",
+     "name": "List, Sylt, Hafen",
+     "curve": true,
+     "km": 111.6
+    }
+   },
+   "dkss": [
+    {
+     "coll": "dkss_nsbs",
+     "inBox": true,
+     "status": 200,
+     "cors": "*",
+     "bytes": 5401,
+     "ms": 5938,
+     "grid": {
+      "lat": 56.025,
+      "lon": 8.12512,
+      "km": 2.36
+     },
+     "n": 121,
+     "values": 0,
+     "t0": "2026-11-17T18:00:00.000Z",
+     "t1": "2026-11-22T18:00:00.000Z",
+     "min": null,
+     "max": null
+    },
+    {
+     "coll": "dkss_idw",
+     "inBox": false
+    },
+    {
+     "coll": "dkss_ws",
+     "inBox": false
+    },
+    {
+     "coll": "dkss_lb",
+     "inBox": false
+    }
+   ],
+   "wl": {
+    "coll": "dkss_nsbs",
+    "lat": 55.9542,
+    "lon": 8.1181,
+    "grid": {
+     "lat": 55.975,
+     "lon": 8.12512
+    },
+    "km": 3.27,
+    "n": 121
+   },
+   "harmonie": {
+    "status": 200,
+    "cors": "*",
+    "bytes": 5941,
+    "ms": 5973,
+    "grid": {
+     "lat": 56.00226,
+     "lon": 8.10483,
+     "km": 0.85
+    },
+    "t0": "2026-11-17T21:00:00.000Z",
+    "t1": "2026-11-20T09:00:00.000Z",
+    "n": 61,
+    "wind": 61,
+    "gust": 61,
+    "dir": 61
+   },
+   "metObs": [
+    {
+     "id": "06058",
+     "name": "Hvide Sande",
+     "owner": "DMI",
+     "lat": 56.0072,
+     "lon": 8.1413,
+     "km": 1.9,
+     "wind": 18,
+     "gust": 18,
+     "last": "2026-11-18T01:50:00Z"
+    },
+    {
+     "id": "06066",
+     "name": "Stauning Lufthavn",
+     "owner": "Harbours & municipalities",
+     "lat": 55.9912,
+     "lon": 8.3538,
+     "km": 15.1,
+     "wind": 0,
+     "gust": 0,
+     "last": null
+    },
+    {
+     "id": "06082",
+     "name": "Borris",
+     "owner": "DMI",
+     "lat": 55.9591,
+     "lon": 8.6242,
+     "km": 32.2,
+     "wind": 18,
+     "gust": 18,
+     "last": "2026-11-18T01:50:00Z"
+    }
+   ],
+   "oceanObs": [
+    {
+     "id": "25149",
+     "name": "Esbjerg Havn I",
+     "owner": "DMI",
+     "lat": 55.4606,
+     "lon": 8.4431,
+     "km": 63.8,
+     "n": 18,
+     "last": "2026-11-18T01:50:00Z",
+     "cm": 13
+    },
+    {
+     "id": "23293",
+     "name": "Fredericia Havn",
+     "owner": "DMI",
+     "lat": 55.5595,
+     "lon": 9.753,
+     "km": 113.8,
+     "n": 18,
+     "last": "2026-11-18T01:50:00Z",
+     "cm": 47
+    }
+   ],
+   "station": {
+    "id": "06058",
+    "name": "Hvide Sande",
+    "owner": "DMI",
+    "lat": 56.0072,
+    "lon": 8.1413,
+    "km": 1.9,
+    "wind": 18,
+    "gust": 18,
+    "last": "2026-11-18T01:50:00Z"
+   }
+  },
+  {
+   "id": "als-kegnaes",
+   "name": "Als Kegnæs",
+   "lat": 54.851,
+   "lon": 9.988,
+   "cwam": {
+    "i": 275,
+    "j": 191,
+    "km": 0.48,
+    "dry": 0,
+    "lat": 54.85423,
+    "lon": 9.99309,
+    "nearestOther": null
+   },
+   "cube": {
+    "spot": true,
+    "cell": true,
+    "latMax": 55.5
+   },
+   "bsh": {
+    "nearest": {
+     "id": "kalkgrund",
+     "name": "Leuchtturm Kalkgrund",
+     "curve": true,
+     "km": 7
+    },
+    "nearestCurve": {
+     "id": "kalkgrund",
+     "name": "Leuchtturm Kalkgrund",
+     "curve": true,
+     "km": 7
+    }
+   },
+   "dkss": [
+    {
+     "coll": "dkss_nsbs",
+     "inBox": true,
+     "status": 200,
+     "cors": "*",
+     "bytes": 6094,
+     "ms": 1080,
+     "grid": {
+      "lat": 54.875,
+      "lon": 9.95847,
+      "km": 3.2
+     },
+     "n": 121,
+     "values": 121,
+     "t0": "2026-11-17T18:00:00.000Z",
+     "t1": "2026-11-22T18:00:00.000Z",
+     "min": -0.01,
+     "max": 0.61
+    },
+    {
+     "coll": "dkss_idw",
+     "inBox": true,
+     "status": 200,
+     "cors": "*",
+     "bytes": 6109,
+     "ms": 4898,
+     "grid": {
+      "lat": 54.85388,
+      "lon": 9.99276,
+      "km": 0.04
+     },
+     "n": 121,
+     "values": 121,
+     "t0": "2026-11-17T18:00:00.000Z",
+     "t1": "2026-11-22T18:00:00.000Z",
+     "min": -0.01,
+     "max": 0.6
+    },
+    {
+     "coll": "dkss_ws",
+     "inBox": true,
+     "status": 200,
+     "cors": "*",
+     "bytes": 5398,
+     "ms": 6096,
+     "grid": {
+      "lat": 54.85856,
+      "lon": 9.98606,
+      "km": 0.66
+     },
+     "n": 121,
+     "values": 0,
+     "t0": "2026-11-17T18:00:00.000Z",
+     "t1": "2026-11-22T18:00:00.000Z",
+     "min": null,
+     "max": null
+    },
+    {
+     "coll": "dkss_lb",
+     "inBox": false
+    }
+   ],
+   "wl": {
+    "coll": "dkss_idw",
+    "lat": 54.8542,
+    "lon": 9.9931,
+    "grid": {
+     "lat": 54.85388,
+     "lon": 9.99276
+    },
+    "km": 0.04,
+    "n": 121
+   },
+   "harmonie": {
+    "status": 200,
+    "cors": "*",
+    "bytes": 5924,
+    "ms": 5907,
+    "grid": {
+     "lat": 54.86341,
+     "lon": 9.98812,
+     "km": 1.07
+    },
+    "t0": "2026-11-17T21:00:00.000Z",
+    "t1": "2026-11-20T09:00:00.000Z",
+    "n": 61,
+    "wind": 61,
+    "gust": 61,
+    "dir": 61
+   },
+   "metObs": [
+    {
+     "id": "06119",
+     "name": "Kegnæs Fyr",
+     "owner": "DMI",
+     "lat": 54.8527,
+     "lon": 9.9881,
+     "km": 0.2,
+     "wind": 18,
+     "gust": 18,
+     "last": "2026-11-18T01:50:00Z"
+    },
+    {
+     "id": "06118",
+     "name": "Sønderborg Lufthavn",
+     "owner": "Havne Kommuner mv",
+     "lat": 54.9616,
+     "lon": 9.793,
+     "km": 17.5,
+     "wind": 18,
+     "gust": 18,
+     "last": "2026-11-18T01:50:00Z"
+    },
+    {
+     "id": "06124",
+     "name": "Elvira Madigan Airport",
+     "owner": "DMI",
+     "lat": 55.0144,
+     "lon": 10.5693,
+     "km": 41.3,
+     "wind": 18,
+     "gust": 18,
+     "last": "2026-11-18T01:50:00Z"
+    }
+   ],
+   "oceanObs": [
+    {
+     "id": "26457",
+     "name": "Fynshav Havn I",
+     "owner": "DMI",
+     "lat": 54.9944,
+     "lon": 9.9856,
+     "km": 15.9,
+     "n": 18,
+     "last": "2026-11-18T01:50:00Z",
+     "cm": 43
+    },
+    {
+     "id": "28548",
+     "name": "Bagenkop Havn",
+     "owner": "DMI",
+     "lat": 54.7517,
+     "lon": 10.6724,
+     "km": 45.2,
+     "n": 18,
+     "last": "2026-11-18T01:50:00Z",
+     "cm": 43
+    }
+   ],
+   "station": {
+    "id": "06119",
+    "name": "Kegnæs Fyr",
+    "owner": "DMI",
+    "lat": 54.8527,
+    "lon": 9.9881,
+    "km": 0.2,
+    "wind": 18,
+    "gust": 18,
+    "last": "2026-11-18T01:50:00Z"
+   }
+  },
+  {
+   "id": "langeland-bagenkop",
+   "name": "Langeland Bagenkop",
+   "lat": 54.752,
+   "lon": 10.67,
+   "cwam": {
+    "i": 323,
+    "j": 203,
+    "km": 0.7,
+    "dry": 0,
+    "lat": 54.75424,
+    "lon": 10.65976,
+    "nearestOther": null
+   },
+   "cube": {
+    "spot": true,
+    "cell": true,
+    "latMax": 55.5
+   },
+   "bsh": {
+    "nearest": {
+     "id": "kiel-leuchtturm",
+     "name": "Leuchtturm Kiel",
+     "curve": true,
+     "km": 37.9
+    },
+    "nearestCurve": {
+     "id": "kiel-leuchtturm",
+     "name": "Leuchtturm Kiel",
+     "curve": true,
+     "km": 37.9
+    }
+   },
+   "dkss": [
+    {
+     "coll": "dkss_nsbs",
+     "inBox": true,
+     "status": 200,
+     "cors": "*",
+     "bytes": 6102,
+     "ms": 2959,
+     "grid": {
+      "lat": 54.775,
+      "lon": 10.62514,
+      "km": 3.2
+     },
+     "n": 121,
+     "values": 121,
+     "t0": "2026-11-17T18:00:00.000Z",
+     "t1": "2026-11-22T18:00:00.000Z",
+     "min": 0.04,
+     "max": 0.58
+    },
+    {
+     "coll": "dkss_idw",
+     "inBox": true,
+     "status": 200,
+     "cors": "*",
+     "bytes": 6093,
+     "ms": 2966,
+     "grid": {
+      "lat": 54.75386,
+      "lon": 10.65942,
+      "km": 0.05
+     },
+     "n": 121,
+     "values": 121,
+     "t0": "2026-11-17T18:00:00.000Z",
+     "t1": "2026-11-22T18:00:00.000Z",
+     "min": 0.04,
+     "max": 0.58
+    },
+    {
+     "coll": "dkss_ws",
+     "inBox": false
+    },
+    {
+     "coll": "dkss_lb",
+     "inBox": false
+    }
+   ],
+   "wl": {
+    "coll": "dkss_idw",
+    "lat": 54.7542,
+    "lon": 10.6598,
+    "grid": {
+     "lat": 54.75386,
+     "lon": 10.65942
+    },
+    "km": 0.05,
+    "n": 121
+   },
+   "harmonie": {
+    "status": 200,
+    "cors": "*",
+    "bytes": 5923,
+    "ms": 1167,
+    "grid": {
+     "lat": 54.76036,
+     "lon": 10.65102,
+     "km": 0.88
+    },
+    "t0": "2026-11-17T21:00:00.000Z",
+    "t1": "2026-11-20T09:00:00.000Z",
+    "n": 61,
+    "wind": 61,
+    "gust": 61,
+    "dir": 61
+   },
+   "metObs": [
+    {
+     "id": "06138",
+     "name": "Langø",
+     "owner": "DMI",
+     "lat": 54.8205,
+     "lon": 10.9939,
+     "km": 22.1,
+     "wind": 18,
+     "gust": 18,
+     "last": "2026-11-18T01:50:00Z"
+    },
+    {
+     "id": "06124",
+     "name": "Elvira Madigan Airport",
+     "owner": "DMI",
+     "lat": 55.0144,
+     "lon": 10.5693,
+     "km": 29.9,
+     "wind": 18,
+     "gust": 18,
+     "last": "2026-11-18T01:50:00Z"
+    },
+    {
+     "id": "06141",
+     "name": "Abed",
+     "owner": "DMI",
+     "lat": 54.8275,
+     "lon": 11.3292,
+     "km": 43.1,
+     "wind": 11,
+     "gust": 11,
+     "last": "2026-11-18T00:40:00Z"
+    }
+   ],
+   "oceanObs": [
+    {
+     "id": "28548",
+     "name": "Bagenkop Havn",
+     "owner": "DMI",
+     "lat": 54.7517,
+     "lon": 10.6724,
+     "km": 0.2,
+     "n": 18,
+     "last": "2026-11-18T01:50:00Z",
+     "cm": 43
+    },
+    {
+     "id": "31573",
+     "name": "Rødbyhavns Havn I",
+     "owner": "DMI",
+     "lat": 54.6561,
+     "lon": 11.3475,
+     "km": 44.8,
+     "n": 18,
+     "last": "2026-11-18T01:50:00Z",
+     "cm": 46
+    }
+   ],
+   "station": {
+    "id": "06138",
+    "name": "Langø",
+    "owner": "DMI",
+    "lat": 54.8205,
+    "lon": 10.9939,
+    "km": 22.1,
+    "wind": 18,
+    "gust": 18,
+    "last": "2026-11-18T01:50:00Z"
+   }
+  },
+  {
+   "id": "aeroe-marstal",
+   "name": "Ærø Marstal",
+   "lat": 54.853,
+   "lon": 10.523,
+   "cwam": {
+    "i": 314,
+    "j": 191,
+    "km": 0.76,
+    "dry": 0.23,
+    "lat": 54.85423,
+    "lon": 10.53476,
+    "nearestOther": null
+   },
+   "cube": {
+    "spot": true,
+    "cell": true,
+    "latMax": 55.5
+   },
+   "bsh": {
+    "nearest": {
+     "id": "schleimuende",
+     "name": "Schleimünde",
+     "curve": true,
+     "km": 37.1
+    },
+    "nearestCurve": {
+     "id": "schleimuende",
+     "name": "Schleimünde",
+     "curve": true,
+     "km": 37.1
+    }
+   },
+   "dkss": [
+    {
+     "coll": "dkss_nsbs",
+     "inBox": true,
+     "status": 200,
+     "cors": "*",
+     "bytes": 6094,
+     "ms": 1169,
+     "grid": {
+      "lat": 54.875,
+      "lon": 10.54181,
+      "km": 2.35
+     },
+     "n": 121,
+     "values": 121,
+     "t0": "2026-11-17T18:00:00.000Z",
+     "t1": "2026-11-22T18:00:00.000Z",
+     "min": 0.05,
+     "max": 0.58
+    },
+    {
+     "coll": "dkss_idw",
+     "inBox": true,
+     "status": 200,
+     "cors": "*",
+     "bytes": 6102,
+     "ms": 6654,
+     "grid": {
+      "lat": 54.85388,
+      "lon": 10.53442,
+      "km": 0.04
+     },
+     "n": 121,
+     "values": 121,
+     "t0": "2026-11-17T18:00:00.000Z",
+     "t1": "2026-11-22T18:00:00.000Z",
+     "min": 0.04,
+     "max": 0.58
+    },
+    {
+     "coll": "dkss_ws",
+     "inBox": false
+    },
+    {
+     "coll": "dkss_lb",
+     "inBox": false
+    }
+   ],
+   "wl": {
+    "coll": "dkss_idw",
+    "lat": 54.8542,
+    "lon": 10.5348,
+    "grid": {
+     "lat": 54.85388,
+     "lon": 10.53442
+    },
+    "km": 0.04,
+    "n": 121
+   },
+   "harmonie": {
+    "status": 200,
+    "cors": "*",
+    "bytes": 5932,
+    "ms": 1107,
+    "grid": {
+     "lat": 54.8535,
+     "lon": 10.53352,
+     "km": 0.11
+    },
+    "t0": "2026-11-17T21:00:00.000Z",
+    "t1": "2026-11-20T09:00:00.000Z",
+    "n": 61,
+    "wind": 61,
+    "gust": 61,
+    "dir": 61
+   },
+   "metObs": [
+    {
+     "id": "06124",
+     "name": "Elvira Madigan Airport",
+     "owner": "DMI",
+     "lat": 55.0144,
+     "lon": 10.5693,
+     "km": 18.2,
+     "wind": 18,
+     "gust": 18,
+     "last": "2026-11-18T01:50:00Z"
+    },
+    {
+     "id": "06138",
+     "name": "Langø",
+     "owner": "DMI",
+     "lat": 54.8205,
+     "lon": 10.9939,
+     "km": 30.4,
+     "wind": 18,
+     "gust": 18,
+     "last": "2026-11-18T01:50:00Z"
+    },
+    {
+     "id": "06119",
+     "name": "Kegnæs Fyr",
+     "owner": "DMI",
+     "lat": 54.8527,
+     "lon": 9.9881,
+     "km": 34.2,
+     "wind": 18,
+     "gust": 18,
+     "last": "2026-11-18T01:50:00Z"
+    }
+   ],
+   "oceanObs": [
+    {
+     "id": "28548",
+     "name": "Bagenkop Havn",
+     "owner": "DMI",
+     "lat": 54.7517,
+     "lon": 10.6724,
+     "km": 14.8,
+     "n": 18,
+     "last": "2026-11-18T01:50:00Z",
+     "cm": 43
+    },
+    {
+     "id": "26457",
+     "name": "Fynshav Havn I",
+     "owner": "DMI",
+     "lat": 54.9944,
+     "lon": 9.9856,
+     "km": 37.8,
+     "n": 18,
+     "last": "2026-11-18T01:50:00Z",
+     "cm": 43
+    }
+   ],
+   "station": {
+    "id": "06124",
+    "name": "Elvira Madigan Airport",
+    "owner": "DMI",
+    "lat": 55.0144,
+    "lon": 10.5693,
+    "km": 18.2,
+    "wind": 18,
+    "gust": 18,
+    "last": "2026-11-18T01:50:00Z"
+   }
+  },
+  {
+   "id": "middelfart",
+   "name": "Middelfart (Kleiner Belt)",
+   "lat": 55.4925,
+   "lon": 9.729,
+   "cwam": {
+    "i": 256,
+    "j": 115,
+    "km": 0.55,
+    "dry": 0,
+    "lat": 55.48754,
+    "lon": 9.7292,
+    "nearestOther": null
+   },
+   "cube": {
+    "spot": true,
+    "cell": true,
+    "latMax": 55.5
+   },
+   "bsh": {
+    "nearest": {
+     "id": "fynshav",
+     "name": "Fynshav Havn",
+     "curve": true,
+     "km": 57.7
+    },
+    "nearestCurve": {
+     "id": "fynshav",
+     "name": "Fynshav Havn",
+     "curve": true,
+     "km": 57.7
+    }
+   },
+   "dkss": [
+    {
+     "coll": "dkss_nsbs",
+     "inBox": true,
+     "status": 200,
+     "cors": "*",
+     "bytes": 6102,
+     "ms": 1109,
+     "grid": {
+      "lat": 55.475,
+      "lon": 9.70847,
+      "km": 1.91
+     },
+     "n": 121,
+     "values": 121,
+     "t0": "2026-11-17T18:00:00.000Z",
+     "t1": "2026-11-22T18:00:00.000Z",
+     "min": 0.07,
+     "max": 0.57
+    },
+    {
+     "coll": "dkss_idw",
+     "inBox": true,
+     "status": 200,
+     "cors": "*",
+     "bytes": 6083,
+     "ms": 4908,
+     "grid": {
+      "lat": 55.48732,
+      "lon": 9.72888,
+      "km": 0.03
+     },
+     "n": 121,
+     "values": 121,
+     "t0": "2026-11-17T18:00:00.000Z",
+     "t1": "2026-11-22T18:00:00.000Z",
+     "min": 0.07,
+     "max": 0.58
+    },
+    {
+     "coll": "dkss_ws",
+     "inBox": true,
+     "status": 200,
+     "cors": "*",
+     "bytes": 5398,
+     "ms": 1201,
+     "grid": {
+      "lat": 55.49197,
+      "lon": 9.7361,
+      "km": 0.66
+     },
+     "n": 121,
+     "values": 0,
+     "t0": "2026-11-17T18:00:00.000Z",
+     "t1": "2026-11-22T18:00:00.000Z",
+     "min": null,
+     "max": null
+    },
+    {
+     "coll": "dkss_lb",
+     "inBox": true,
+     "status": 200,
+     "cors": "*",
+     "bytes": 6091,
+     "ms": 6002,
+     "grid": {
+      "lat": 55.48773,
+      "lon": 9.72911,
+      "km": 0.02
+     },
+     "n": 121,
+     "values": 121,
+     "t0": "2026-11-17T18:00:00.000Z",
+     "t1": "2026-11-22T18:00:00.000Z",
+     "min": 0.07,
+     "max": 0.58
+    }
+   ],
+   "wl": {
+    "coll": "dkss_lb",
+    "lat": 55.4875,
+    "lon": 9.7292,
+    "grid": {
+     "lat": 55.48773,
+     "lon": 9.72911
+    },
+    "km": 0.02,
+    "n": 121
+   },
+   "harmonie": {
+    "status": 200,
+    "cors": "*",
+    "bytes": 5928,
+    "ms": 5997,
+    "grid": {
+     "lat": 55.49774,
+     "lon": 9.72627,
+     "km": 1.15
+    },
+    "t0": "2026-11-17T21:00:00.000Z",
+    "t1": "2026-11-20T09:00:00.000Z",
+    "n": 61,
+    "wind": 61,
+    "gust": 61,
+    "dir": 61
+   },
+   "metObs": [
+    {
+     "id": "06108",
+     "name": "Kolding Lufthavn",
+     "owner": "Havne Kommuner mv",
+     "lat": 55.4376,
+     "lon": 9.3338,
+     "km": 25.6,
+     "wind": 18,
+     "gust": 18,
+     "last": "2026-11-18T01:50:00Z"
+    },
+    {
+     "id": "06123",
+     "name": "Assens/Torø",
+     "owner": "DMI",
+     "lat": 55.2444,
+     "lon": 9.8882,
+     "km": 29.4,
+     "wind": 18,
+     "gust": 18,
+     "last": "2026-11-18T01:50:00Z"
+    },
+    {
+     "id": "06120",
+     "name": "H. C. Andersen Airport",
+     "owner": "Havne Kommuner mv",
+     "lat": 55.4749,
+     "lon": 10.3305,
+     "km": 37.9,
+     "wind": 18,
+     "gust": 18,
+     "last": "2026-11-18T01:50:00Z"
+    }
+   ],
+   "oceanObs": [
+    {
+     "id": "23293",
+     "name": "Fredericia Havn",
+     "owner": "DMI",
+     "lat": 55.5595,
+     "lon": 9.753,
+     "km": 7.6,
+     "n": 18,
+     "last": "2026-11-18T01:50:00Z",
+     "cm": 47
+    },
+    {
+     "id": "23132",
+     "name": "Juelsminde Havn",
+     "owner": "DMI",
+     "lat": 55.7156,
+     "lon": 10.0163,
+     "km": 30.7,
+     "n": 18,
+     "last": "2026-11-18T01:50:00Z",
+     "cm": 43
+    }
+   ],
+   "station": {
+    "id": "06108",
+    "name": "Kolding Lufthavn",
+    "owner": "Havne Kommuner mv",
+    "lat": 55.4376,
+    "lon": 9.3338,
+    "km": 25.6,
+    "wind": 18,
+    "gust": 18,
+    "last": "2026-11-18T01:50:00Z"
+   }
+  },
+  {
+   "id": "gedser",
+   "name": "Gedser",
+   "lat": 54.572,
+   "lon": 11.928,
+   "cwam": {
+    "i": 414,
+    "j": 225,
+    "km": 0.31,
+    "dry": 0,
+    "lat": 54.57091,
+    "lon": 11.92366,
+    "nearestOther": null
+   },
+   "cube": {
+    "spot": true,
+    "cell": true,
+    "latMax": 55.5
+   },
+   "bsh": {
+    "nearest": {
+     "id": "althagen",
+     "name": "Althagen",
+     "curve": true,
+     "km": 38.8
+    },
+    "nearestCurve": {
+     "id": "althagen",
+     "name": "Althagen",
+     "curve": true,
+     "km": 38.8
+    }
+   },
+   "dkss": [
+    {
+     "coll": "dkss_nsbs",
+     "inBox": true,
+     "status": 200,
+     "cors": "*",
+     "bytes": 5398,
+     "ms": 6067,
+     "grid": {
+      "lat": 54.575,
+      "lon": 11.95849,
+      "km": 2.29
+     },
+     "n": 121,
+     "values": 0,
+     "t0": "2026-11-17T18:00:00.000Z",
+     "t1": "2026-11-22T18:00:00.000Z",
+     "min": null,
+     "max": null
+    },
+    {
+     "coll": "dkss_idw",
+     "inBox": true,
+     "status": 200,
+     "cors": "*",
+     "bytes": 6082,
+     "ms": 5972,
+     "grid": {
+      "lat": 54.5705,
+      "lon": 11.92328,
+      "km": 0.05
+     },
+     "n": 121,
+     "values": 121,
+     "t0": "2026-11-17T18:00:00.000Z",
+     "t1": "2026-11-22T18:00:00.000Z",
+     "min": 0.11,
+     "max": 0.59
+    },
+    {
+     "coll": "dkss_ws",
+     "inBox": false
+    },
+    {
+     "coll": "dkss_lb",
+     "inBox": false
+    }
+   ],
+   "wl": {
+    "coll": "dkss_idw",
+    "lat": 54.5709,
+    "lon": 11.9237,
+    "grid": {
+     "lat": 54.5705,
+     "lon": 11.92328
+    },
+    "km": 0.05,
+    "n": 121
+   },
+   "harmonie": {
+    "status": 200,
+    "cors": "*",
+    "bytes": 5933,
+    "ms": 1125,
+    "grid": {
+     "lat": 54.57082,
+     "lon": 11.91563,
+     "km": 0.52
+    },
+    "t0": "2026-11-17T21:00:00.000Z",
+    "t1": "2026-11-20T09:00:00.000Z",
+    "n": 61,
+    "wind": 61,
+    "gust": 61,
+    "dir": 61
+   },
+   "metObs": [
+    {
+     "id": "06149",
+     "name": "Gedser",
+     "owner": "DMI",
+     "lat": 54.5687,
+     "lon": 11.9435,
+     "km": 1.1,
+     "wind": 18,
+     "gust": 18,
+     "last": "2026-11-18T01:50:00Z"
+    },
+    {
+     "id": "06143",
+     "name": "Lolland Falster Airport",
+     "owner": "Harbours & municipalities",
+     "lat": 54.6977,
+     "lon": 11.4451,
+     "km": 34.1,
+     "wind": 17,
+     "gust": 17,
+     "last": "2026-11-18T01:50:00Z"
+    },
+    {
+     "id": "06147",
+     "name": "Vindebæk Kyst",
+     "owner": "DMI",
+     "lat": 54.879,
+     "lon": 12.1841,
+     "km": 37.9,
+     "wind": 18,
+     "gust": 18,
+     "last": "2026-11-18T01:50:00Z"
+    }
+   ],
+   "oceanObs": [
+    {
+     "id": "31616",
+     "name": "Gedser Havn I",
+     "owner": "DMI",
+     "lat": 54.5721,
+     "lon": 11.9245,
+     "km": 0.2,
+     "n": 17,
+     "last": "2026-11-18T01:50:00Z",
+     "cm": 49
+    },
+    {
+     "id": "31573",
+     "name": "Rødbyhavns Havn I",
+     "owner": "DMI",
+     "lat": 54.6561,
+     "lon": 11.3475,
+     "km": 38.5,
+     "n": 18,
+     "last": "2026-11-18T01:50:00Z",
+     "cm": 46
+    }
+   ],
+   "station": {
+    "id": "06149",
+    "name": "Gedser",
+    "owner": "DMI",
+    "lat": 54.5687,
+    "lon": 11.9435,
+    "km": 1.1,
+    "wind": 18,
+    "gust": 18,
+    "last": "2026-11-18T01:50:00Z"
+   }
+  }
+ ],
+ "ref": [
+  {
+   "station": "23293",
+   "name": "Fredericia Havn",
+   "coll": "dkss_nsbs",
+   "gridKm": 2.99,
+   "hours": 7,
+   "meanCm": -7.7,
+   "sdCm": 7.6,
+   "run0": "2026-11-17T18:00:00.000Z"
+  },
+  {
+   "station": "23293",
+   "name": "Fredericia Havn",
+   "coll": "dkss_lb",
+   "gridKm": 0.09,
+   "hours": 7,
+   "meanCm": -2.6,
+   "sdCm": 4.9,
+   "run0": "2026-11-17T18:00:00.000Z"
+  },
+  {
+   "station": "25149",
+   "name": "Esbjerg Havn I",
+   "coll": "dkss_ws",
+   "gridKm": 0.81,
+   "hours": 8,
+   "meanCm": -3.5,
+   "sdCm": 13.8,
+   "run0": "2026-11-17T18:00:00.000Z"
+  },
+  {
+   "station": "28234",
+   "name": "Slipshavn",
+   "coll": "dkss_nsbs",
+   "gridKm": 2.61,
+   "hours": 8,
+   "meanCm": -0.6,
+   "sdCm": 3.5,
+   "run0": "2026-11-17T18:00:00.000Z"
+  },
+  {
+   "station": "28548",
+   "name": "Bagenkop Havn",
+   "coll": "dkss_idw",
+   "gridKm": 0.25,
+   "hours": 8,
+   "meanCm": -0.6,
+   "sdCm": 1.9,
+   "run0": "2026-11-17T18:00:00.000Z"
+  },
+  {
+   "station": "29393",
+   "name": "Korsør Havn I",
+   "coll": "dkss_nsbs",
+   "gridKm": 1.25,
+   "hours": 8,
+   "meanCm": -3.3,
+   "sdCm": 2.2,
+   "run0": "2026-11-17T18:00:00.000Z"
+  },
+  {
+   "station": "31616",
+   "name": "Gedser Havn I",
+   "coll": "dkss_idw",
+   "gridKm": 0.19,
+   "hours": 8,
+   "meanCm": -1.5,
+   "sdCm": 1.6,
+   "run0": "2026-11-17T18:00:00.000Z"
+  }
+ ]
+}

@@ -12,8 +12,12 @@ export type SeaTab = 'spot' | 'gebiet' | 'quellen';
 export const SEA_TABS: readonly SeaTab[] = ['spot', 'gebiet', 'quellen'];
 export type SeaLayer = 'hs' | 'ws' | 'sw' | 'per';
 export const SEA_LAYERS: readonly SeaLayer[] = ['hs', 'ws', 'sw', 'per'];
-export type SeaRevier = 'alle' | 'nordsee' | 'ostsee';
-export const SEA_REVIERE: readonly SeaRevier[] = ['alle', 'nordsee', 'ostsee'];
+/** `daenemark` (phase DK) filters by the spot's country; `nordsee`/`ostsee` by its sea — a Danish spot is in both lists. */
+export type SeaRevier = 'alle' | 'nordsee' | 'ostsee' | 'daenemark';
+export const SEA_REVIERE: readonly SeaRevier[] = ['alle', 'nordsee', 'ostsee', 'daenemark'];
+/** Is a spot of the catalogue in the chosen Revier? */
+export const seaInRevier = (s: { region: string; country?: string }, rv: SeaRevier): boolean =>
+  rv === 'alle' || (rv === 'daenemark' ? s.country === 'DK' : s.region === rv);
 /** Time chips of the design: now, +6, +12, +24, +48, +72 h. */
 export const SEA_TIME_CHIPS = [0, 6, 12, 24, 48, 72] as const;
 export const SEA_MAX_T = 78;

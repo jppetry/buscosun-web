@@ -1243,7 +1243,8 @@ export function seaSpotDirectory() {
   const KIND = { strand: 'Badestrand', kite: 'Kite-Spot', hafen: 'Hafen', revier: 'Revier' };
   const out = [];
   for (const [region, label] of [['nordsee', 'Nordsee'], ['ostsee', 'Ostsee']]) {
-    const spots = SEA_SPOT_FACTS.filter((x) => x.region === region);
+    // Phase DK: dänische Spots haben keinen Küstenabschnitt des DWD — sie stehen unten in einem eigenen Abschnitt.
+    const spots = SEA_SPOT_FACTS.filter((x) => x.region === region && x.country !== 'DK');
     const coasts = [...new Set(spots.map((x) => x.coast ?? ''))].sort((a, b) => SEA_COAST_ORDER.indexOf(a) - SEA_COAST_ORDER.indexOf(b));
     const areas = [...new Set(spots.map((x) => x.seaArea).filter(Boolean))].map(dwdName);
     out.push(`<h3 id="${region}">${label} · Seegebiet${areas.length > 1 ? 'e' : ''} ${escapeHtml(areas.join(', '))}</h3>`);
@@ -1252,6 +1253,11 @@ export function seaSpotDirectory() {
       const list = spots.filter((x) => (x.coast ?? '') === c).map((x) => `<li><a href="/seewetter/${x.id}">${escapeHtml(x.name)}</a> — ${escapeHtml(x.kinds.map((k) => KIND[k] ?? k).join(', '))}${areas.length > 1 && x.seaArea ? `, Seegebiet ${escapeHtml(dwdName(x.seaArea))}` : ''}</li>`);
       out.push(`<h4 id="${anchorOf(c || label)}">${escapeHtml(c ? `Küstenabschnitt ${dwdName(c)}` : label)}</h4>\n      <ul>\n        ${list.join('\n        ')}\n      </ul>`);
     }
+  }
+  const dk = SEA_SPOT_FACTS.filter((x) => x.country === 'DK');
+  if (dk.length) {
+    const list = dk.map((x) => `<li><a href="/seewetter/${x.id}">${escapeHtml(x.name)}</a> — ${escapeHtml(x.kinds.map((k) => KIND[k] ?? k).join(', '))}, ${x.region === 'nordsee' ? 'Nordsee' : 'Ostsee'}${x.seaArea ? `, Seegebiet ${escapeHtml(dwdName(x.seaArea))} (DWD)` : ''}</li>`);
+    out.push(`<h3 id="daenemark">Dänemark · Nordsee und Ostsee</h3>\n      <p>Seegang aus dem Wellenmodell des DWD wie an den deutschen Spots; Messungen und teils Wasserstand und Wind vom dänischen Wetterdienst DMI (CC BY 4.0). Kein Warnstatus für die dänische Küste.</p>\n      <ul>\n        ${list.join('\n        ')}\n      </ul>`);
   }
   return `<h2>Alle ${SEA_SPOT_FACTS.length} Spots nach Revier und Küstenabschnitt</h2>\n      ${out.join('\n      ')}`;
 }

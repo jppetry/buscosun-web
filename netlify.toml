@@ -881,6 +881,39 @@
   from   = "/seewetter/ueckermuende"
   to     = "/seewetter--ueckermuende.html"
   status = 200
+# Phase DK (audit/seewetter-daenemark.md): die acht dänischen Spots, je eine eigene Shell wie die deutschen.
+[[redirects]]
+  from   = "/seewetter/roemoe"
+  to     = "/seewetter--roemoe.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/fanoe"
+  to     = "/seewetter--fanoe.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/hvide-sande"
+  to     = "/seewetter--hvide-sande.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/als-kegnaes"
+  to     = "/seewetter--als-kegnaes.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/langeland-bagenkop"
+  to     = "/seewetter--langeland-bagenkop.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/aeroe-marstal"
+  to     = "/seewetter--aeroe-marstal.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/middelfart"
+  to     = "/seewetter--middelfart.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/gedser"
+  to     = "/seewetter--gedser.html"
+  status = 200
 [[redirects]]
   from   = "/seewetter/*"
   to     = "/seewetter.html"
