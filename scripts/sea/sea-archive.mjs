@@ -6,7 +6,11 @@
  *                                               (phase SU: both carry the optional quantiles `q` per spot; index → `band`)
  *   sea/v1/<YYYY-MM-DD>/current-<run>.json.gz  phase ST: surface current of the BSH at the spots (hourly speed, sets towards, slack water)
  *   sea/v1/<YYYY-MM-DD>/poi.json.gz            hourly POI measurements of the coastal stations of the catalogue
- *                                               (mean wind, direction, gust of the last hour) — the truth for Gate D
+ *                                               (mean wind, direction, gust of the last hour) — the truth for Gate D;
+ *                                               phase SG: rows written from then on also carry visibility, temperature,
+ *                                               dew point and precipitation of the last hour (`vv tt td rr`)
+ *   sea/v1/<YYYY-MM-DD>/vis-dmi.json.gz        phase SG: measured visibility of the DMI stations of the Danish spots, full hours
+ *                                               (the spot files carry the hint columns `s`; index → `sight` names them)
  *   sea/v1/<YYYY-MM-DD>/text.json.gz           every text issue of that day (display text + raw + issue time)
  *   sea/v1/<YYYY-MM-DD>/wtemp.json.gz          phase WT: hourly measured water temperature of the stations of `static/watertemp.json`
  *                                               (WSV PEGELONLINE `WT`, DMI oceanObs `tw`) — our own record, from which a season curve can grow
@@ -25,13 +29,15 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, rename
 import { join, resolve, dirname } from 'node:path';
 import { gzipSync, gunzipSync } from 'node:zlib';
 import { fileURLToPath } from 'node:url';
-import { SEA_SPOT_CATALOG_PATH, SEA_SPOTS_WIND_RE, SEA_CURRENT_DIR, SEA_CURRENT_RE, seaRunMs, hasQuantiles } from '../../src/sea/seaContract.ts';
+import { SEA_SPOT_CATALOG_PATH, SEA_SPOT_CATALOG_DK_PATH, SEA_SPOTS_WIND_RE, SEA_CURRENT_DIR, SEA_CURRENT_RE, seaRunMs, hasQuantiles, hasSight } from '../../src/sea/seaContract.ts';
+// Phase SG — `seaSightObs.ts` imports nothing at all (the archive workflow checks out `src/sea` only).
+import { POI_SIGHT_COLS, DMI_VIS_PARAM } from '../../src/sea/seaSightObs.ts';
 import { SEA_TEXT_STAGE1, seaIssueMs } from '../../src/sea/seaText.ts';
 import {
   SEA_WT_CATALOG_PATH, SEA_WT_ARCHIVE_PRODUCT, SEA_WT_DAILY_FILE, SEA_WT_DAILY_PRODUCT, SEA_WT_DIR, SEA_WT_RE, SEA_WT_PRODUCT, WT_DAY_MIN_HOURS, WSV_CREDIT,
   wtCatalogOf, wtObsUrl, wtObsOf, wtHourly, wtDayStat,
 } from '../../src/sea/seaWaterTemp.ts';
-import { DMI_CREDIT } from '../../src/sea/seaDmi.ts';
+import { DMI_CREDIT, dmiObsUrl } from '../../src/sea/seaDmi.ts';
 
 const SELF = fileURLToPath(import.meta.url);
 const POI_BASE = 'https://opendata.dwd.de/weather/weather_reports/poi/';
@@ -45,7 +51,10 @@ function writeGz(file, obj) {
   renameSync(tmp, file);
 }
 
-/** POI CSV → hourly rows { t, ff, dd, fx } in m/s and degrees (the file states km/h). */
+/**
+ * POI CSV → hourly rows { t, ff, dd, fx } in m/s and degrees (the file states km/h); phase SG: plus `vv` (visibility, km as
+ * the file states it), `tt`/`td` (°C) and `rr` (mm of the last hour) — a key is absent where the station has no value.
+ */
 export function parsePoi(text) {
   const rows = text.split('\n').map((l) => l.trim()).filter(Boolean);
   const head = rows[0].split(';');
@@ -53,6 +62,7 @@ export function parsePoi(text) {
     ff: head.indexOf('mean_wind_speed_during last_10_min_at_10_meters_above_ground'),
     dd: head.indexOf('mean_wind_direction_during_last_10 min_at_10_meters_above_ground'),
     fx: head.indexOf('maximum_wind_speed_last_hour'),
+    vv: head.indexOf(POI_SIGHT_COLS.vis), tt: head.indexOf(POI_SIGHT_COLS.t), td: head.indexOf(POI_SIGHT_COLS.td), rr: head.indexOf(POI_SIGHT_COLS.rr),
   };
   const unit = rows[1].split(';');
   const kmh = (c) => unit[c] === 'km/h';
@@ -64,7 +74,10 @@ export function parsePoi(text) {
     if (!/^\d\d\.\d\d\.\d\d$/.test(d) || !/^\d\d:\d\d$/.test(t)) continue;
     const ms = Date.UTC(2000 + +d.slice(6, 8), +d.slice(3, 5) - 1, +d.slice(0, 2), +t.slice(0, 2), +t.slice(3, 5));
     const v = (k) => { const x = ci[k] >= 0 ? num(c[ci[k]]) : null; return x == null || !Number.isFinite(x) ? null : k !== 'dd' && kmh(ci[k]) ? Math.round((x / 3.6) * 10) / 10 : x; };
-    out.push({ t: new Date(ms).toISOString(), ff: v('ff'), dd: v('dd'), fx: v('fx') });
+    const row = { t: new Date(ms).toISOString(), ff: v('ff'), dd: v('dd'), fx: v('fx') };
+    // Visibility only in the unit the contract knows; another unit in the file's second line ⇒ no value, never a wrong one.
+    for (const k of ['vv', 'tt', 'td', 'rr']) { const x = ci[k] >= 0 && (k !== 'vv' || unit[ci[k]] === 'km') ? num(c[ci[k]]) : null; if (x != null && Number.isFinite(x)) row[k] = x; }
+    out.push(row);
   }
   return out;
 }
@@ -77,6 +90,56 @@ export function parsePoi(text) {
 function noteBand(entry, key, doc) {
   if (!Object.values(doc?.spots ?? {}).some((s) => hasQuantiles(s?.q))) return;
   (entry.band ??= []).includes(key) || entry.band.push(key);
+}
+
+/** Phase SG: the index names the spot files that carry the hint columns `s` — the later check against measured visibility reads exactly those. */
+function noteSight(entry, key, doc) {
+  if (!Object.values(doc?.spots ?? {}).some((s) => hasSight(s?.s))) return;
+  (entry.sight ??= []).includes(key) || entry.sight.push(key);
+}
+
+const POI_SG_UNITS = { vv: 'km (Sichtweite)', tt: '°C', td: '°C (Taupunkt)', rr: 'mm (Niederschlag der letzten Stunde)' };
+
+/**
+ * Phase SG: measured visibility of the DMI stations of the Danish spots (metObs, 10-minute mean, metres) — the value at the
+ * full hour, merged per UTC day by hour, never replaced. One read per station and pass (the last 26 h; the pass runs every
+ * 6 h). A station without visibility (three of eight on 18.11.2026) simply has no rows.
+ */
+export async function archiveDmiVisibility({ storeDir, archiveDir, index, nowMs, fetchImpl = fetch, log = () => {}, pauseMs = 500 }) {
+  const dk = readJson(join(storeDir, SEA_SPOT_CATALOG_DK_PATH));
+  const ids = [...new Set((dk?.spots ?? []).filter((s) => s?.station?.net === 'dmi').map((s) => s.station.id))].sort();
+  const merged = {};
+  let answered = 0;
+  for (const id of ids) {
+    try {
+      if (pauseMs) await sleep(pauseMs);
+      const r = await fetchImpl(dmiObsUrl(id, DMI_VIS_PARAM, nowMs - 26 * 3_600_000, 300), { headers: { 'user-agent': WT_UA, accept: 'application/json' }, signal: AbortSignal.timeout(60_000) });
+      if (!r.ok) { log(`DMI-Sicht ${id}: HTTP ${r.status}`); continue; }
+      const j = await r.json();
+      answered++;
+      for (const f of Array.isArray(j?.features) ? j.features : []) {
+        const p = f?.properties, t = Date.parse(String(p?.observed));
+        if (p?.parameterId !== DMI_VIS_PARAM || typeof p.value !== 'number' || !(p.value >= 0 && p.value <= 100_000) || !Number.isFinite(t) || t % 3_600_000 !== 0 || t > nowMs) continue;
+        ((merged[day(t)] ??= {})[id] ??= []).push({ t: new Date(t).toISOString(), m: Math.round(p.value) });
+      }
+    } catch (e) { log(`DMI-Sicht ${id}: ${String(e?.message ?? e).split('\n')[0]}`); }
+  }
+  let rows = 0;
+  for (const [d, sts] of Object.entries(merged)) {
+    const file = join(archiveDir, d, 'vis-dmi.json.gz');
+    const doc = readGz(file) ?? { schema: 1, product: 'sea-archive-vis-dmi', day: d, unit: 'm', about: 'Gemessene Sichtweite (10-Minuten-Mittel zur vollen Stunde) der DMI-Stationen der dänischen Spots. Rohwerte des DMI ohne Prüfung.', source: DMI_CREDIT, stations: {} };
+    let n = 0;
+    for (const [id, list] of Object.entries(sts)) {
+      const have = new Map((doc.stations[id] ?? []).map((x) => [x.t, x]));
+      for (const x of list) if (!have.has(x.t)) { have.set(x.t, x); n++; }
+      doc.stations[id] = [...have.values()].sort((a, b) => (a.t < b.t ? -1 : 1));
+    }
+    if (!n) continue;
+    writeGz(file, doc);
+    rows += n;
+    (index.days[d] ??= { spots: [], poiStations: 0, texts: 0 }).visDmiStations = Object.keys(doc.stations).length;
+  }
+  return { visDmiRows: rows, visDmiStations: answered };
 }
 
 /** Days of measurements one pass asks for per station at least: the pass runs every 6 h, two days overlap eightfold. */
@@ -169,7 +232,7 @@ export async function archiveWaterTemp({ storeDir, archiveDir, index, nowMs, day
   return { wtRows, wtStations: answered, wtDays: touched.length, wtAsked: days };
 }
 
-export async function archiveSea({ storeDir, archiveDir, nowMs = Date.now(), poi = true, wtemp = true, wtempDays = null, fetchImpl = fetch, log = () => {} }) {
+export async function archiveSea({ storeDir, archiveDir, nowMs = Date.now(), poi = true, wtemp = true, wtempDays = null, visDmi = poi, fetchImpl = fetch, log = () => {} }) {
   const index = readJson(join(archiveDir, 'index.json')) ?? { schema: 1, product: 'sea-archive', days: {} };
   const touch = (d, k) => { const e = (index.days[d] ??= { spots: [], poiStations: 0, texts: 0 }); return e; };
   let spotsAdded = 0, textsAdded = 0, poiRows = 0, currentAdded = 0, wtModelAdded = 0;
@@ -183,6 +246,7 @@ export async function archiveSea({ storeDir, archiveDir, nowMs = Date.now(), poi
     writeGz(dst, doc);
     const e = touch(d); if (!e.spots.includes(run)) e.spots.push(run);
     noteBand(e, run, doc);
+    noteSight(e, run, doc);
     spotsAdded++;
   }
   // V-SW-2/V-SW-15: the wind refreshes in the store — since V-SW-15 all of a kept run stay ≥ 12 h, so every 6-h pass sees each one.
@@ -194,6 +258,7 @@ export async function archiveSea({ storeDir, archiveDir, nowMs = Date.now(), poi
     writeGz(dst, doc);
     const e = touch(d); (e.wind ??= []).includes(key) || e.wind.push(key);
     noteBand(e, key, doc);
+    noteSight(e, key, doc);
     spotsAdded++;
   }
   // Phase ST: the surface current of the BSH at the spots (`current/<run>.json`, origin `bsh`) — whole, once per run. The
@@ -258,17 +323,21 @@ export async function archiveSea({ storeDir, archiveDir, nowMs = Date.now(), poi
         for (const x of rows) if (!have.has(x.t)) { have.set(x.t, x); poiRows++; }
         doc.stations[id] = [...have.values()].sort((a, b) => (a.t < b.t ? -1 : 1));
       }
+      // Phase SG: the day file names the four new columns (rows stored before the phase stay as they are).
+      doc.units = { ...doc.units, ...POI_SG_UNITS };
       writeGz(file, doc);
       touch(d).poiStations = Object.keys(doc.stations).length;
     }
   }
   // Phase WT: measured water temperature of the catalogue stations (skips itself without the catalogue file).
   const wt = wtemp ? await archiveWaterTemp({ storeDir, archiveDir, index, nowMs, days: wtempDays, fetchImpl, log }) : { wtRows: 0, wtStations: 0, wtDays: 0 };
+  // Phase SG: measured visibility of the DMI stations (skips itself without the Danish catalogue; off together with `--poi=0`).
+  const vd = visDmi ? await archiveDmiVisibility({ storeDir, archiveDir, index, nowMs, fetchImpl, log }) : { visDmiRows: 0, visDmiStations: 0 };
   index.updatedAt = new Date(nowMs).toISOString();
-  for (const e of Object.values(index.days)) { e.spots.sort(); e.wind?.sort(); e.band?.sort(); e.current?.sort(); e.wtempModel?.sort(); }
+  for (const e of Object.values(index.days)) { e.spots.sort(); e.wind?.sort(); e.band?.sort(); e.sight?.sort(); e.current?.sort(); e.wtempModel?.sort(); }
   mkdirSync(archiveDir, { recursive: true });
   writeFileSync(join(archiveDir, 'index.json'), JSON.stringify(index, null, 1) + '\n');
-  return { spotsAdded, textsAdded, poiRows, currentAdded, wtModelAdded, ...wt, days: Object.keys(index.days).length };
+  return { spotsAdded, textsAdded, poiRows, currentAdded, wtModelAdded, ...wt, ...vd, days: Object.keys(index.days).length };
 }
 
 async function main() {

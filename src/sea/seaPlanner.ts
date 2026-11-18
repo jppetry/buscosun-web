@@ -159,7 +159,20 @@ export function defaultWindow(k: number, nHours: number): { start: number; end: 
 // --- Findings over the window -----------------------------------------------------------------------------------
 
 /** The hourly values the planner reads (the page's hour fits). */
-export interface PlanHour { t: number; windMs: number | null; gustMs: number | null; windDir: number | null }
+export interface PlanHour {
+  t: number; windMs: number | null; gustMs: number | null; windDir: number | null;
+  /** Phase SG: shower/thunderstorm hint of the hour (0 none · 1 "Schauer möglich" · 2 "Gewitter möglich"); `null`/absent = no statement. */
+  conv?: number | null;
+}
+/** Phase SG: what the hint says inside the window. A hint from model values — it never touches the limits or the classes. */
+export interface PlanConv {
+  /** Hours of the window with a statement (0, 1 or 2). */
+  known: number;
+  /** First hour with "Schauer möglich" or "Gewitter möglich", and its class. */
+  first: { t: number; cls: 1 | 2 } | null;
+  /** First hour with "Gewitter möglich" (may be the same hour as `first`). */
+  firstThunder: number | null;
+}
 export interface PlanPeak { ms: number; t: number }
 export interface PlanShoreChange { t: number; from: ShoreAngle; to: ShoreAngle }
 export interface PlanFindings {
@@ -185,6 +198,7 @@ export interface PlanFindings {
     /** Turn of the direction start → return, −180 < x ≤ 180; positive = to the right (clockwise). */
     turnDeg: number | null;
   };
+  conv: PlanConv;
 }
 
 const finite = (x: number | null | undefined): x is number => x != null && Number.isFinite(x);
@@ -202,10 +216,17 @@ export function planFindings(
     hours: b - a + 1, missingWind: 0, missingGust: 0, missingDir: 0, maxWind: null, maxGust: null, overWind: null, overGust: null,
     shore: { start: null, end: null, changes: [], firstObliqueOff: null, firstOff: null },
     wind: { start: null, end: null, deltaMs: null, turnDeg: null },
+    conv: { known: 0, first: null, firstThunder: null },
   };
   let lastShore: ShoreAngle | null = null;
   for (let k = a; k <= b; k++) {
     const h = hours[k] ?? null;
+    const cv = h?.conv;
+    if (cv === 0 || cv === 1 || cv === 2) {
+      out.conv.known++;
+      if (cv !== 0 && !out.conv.first) out.conv.first = { t: h!.t, cls: cv };
+      if (cv === 2 && out.conv.firstThunder == null) out.conv.firstThunder = h!.t;
+    }
     const w = finite(h?.windMs) ? h!.windMs! : null, g = finite(h?.gustMs) ? h!.gustMs! : null, d = finite(h?.windDir) ? h!.windDir! : null;
     if (w == null) out.missingWind++;
     else {
@@ -315,7 +336,21 @@ export function badgeText(h: PlanHour | null | undefined, unit: SeaUnit): string
   return `${val(h.windMs, unit)}${gust}${finite(h.windDir) ? `, aus ${compass16(h.windDir)}` : ''}`;
 }
 
-export type PlanEventKind = 'maxWind' | 'maxGust' | 'overWind' | 'overGust' | 'shore' | 'sunset';
+export type PlanEventKind = 'maxWind' | 'maxGust' | 'overWind' | 'overGust' | 'shore' | 'sunset' | 'conv';
+export const PLAN_CONV_NOTE = 'Hinweis aus Modellwerten, keine Warnung';
+/** Phase SG: the one line about showers and thunderstorms — the first hour of the window with a hint. */
+export function planConvText(c: PlanConv): string | null {
+  if (!c.first) return null;
+  const later = c.first.cls === 1 && c.firstThunder != null ? `, Gewitter möglich ab ${clock(c.firstThunder)}` : '';
+  return `${c.first.cls === 2 ? 'Gewitter' : 'Schauer'} möglich ab ${clock(c.first.t)} (erste Stunde im Fenster)${later}. ${PLAN_CONV_NOTE}.`;
+}
+/** Phase SG: the line of the summary — said only where the hint does not cover the window or finds nothing. */
+export function planConvSummary(f: PlanFindings): string | null {
+  const c = f.conv;
+  if (c.known === 0) return 'Schauer und Gewitter: keine Daten für die Stunden dieses Fensters.';
+  if (c.known < f.hours) return `Schauer und Gewitter: für ${f.hours - c.known} von ${f.hours} Stunden des Fensters gibt es keine Aussage (der Hinweis reicht nicht so weit).`;
+  return c.first ? null : 'Schauer und Gewitter: in keiner Stunde des Fensters ein Hinweis.';
+}
 export interface PlanEvent { t: number; kind: PlanEventKind; text: string; /** The hour label ("15:00", for sunset the minute). */ at: string; warn: boolean }
 
 /**
@@ -335,12 +370,14 @@ export function planEvents(f: PlanFindings, unit: SeaUnit, sunset: number | null
     ev.push({ t: c.t, kind: 'shore', at: at(c.t), warn: off, text: `Wind ab ${clock(c.t)} ${SHORE_LABEL[c.to]}${first ? ' (erste Stunde im Fenster)' : ''}, davor ${SHORE_LABEL[c.from]}` });
   }
   if (sunset != null && sunset >= startT && sunset <= endT) ev.push({ t: sunset, kind: 'sunset', at: hm(sunset), warn: false, text: 'Sonnenuntergang' });
-  const order: PlanEventKind[] = ['sunset', 'shore', 'overWind', 'overGust', 'maxWind', 'maxGust'];
+  const convText = planConvText(f.conv);
+  if (convText && f.conv.first) ev.push({ t: f.conv.first.t, kind: 'conv', at: at(f.conv.first.t), warn: false, text: convText });
+  const order: PlanEventKind[] = ['sunset', 'shore', 'conv', 'overWind', 'overGust', 'maxWind', 'maxGust'];
   return ev.sort((x, y) => x.t - y.t || order.indexOf(x.kind) - order.indexOf(y.kind));
 }
 
 /** What holds for the window as a whole — each line an answer from hourly values, none from the per-hour shares. */
-export function planSummary(f: PlanFindings, unit: SeaUnit, limits: { windMaxKn?: number | null; gustMaxKn?: number | null }): string[] {
+export function planSummary(f: PlanFindings, unit: SeaUnit, limits: { windMaxKn?: number | null; gustMaxKn?: number | null; conv?: boolean }): string[] {
   const out: string[] = [];
   if (f.missingWind === f.hours) out.push('Für keine Stunde des Fensters liegt ein Windwert vor.');
   else if (f.missingWind > 0 || f.missingGust > 0) {
@@ -370,6 +407,9 @@ export function planSummary(f: PlanFindings, unit: SeaUnit, limits: { windMaxKn?
     const turned = turn == null ? '' : Math.abs(turn) < 5 ? ' Die Richtung bleibt fast gleich.' : ` Der Wind dreht um ${Math.round(Math.abs(turn))}° nach ${turn > 0 ? 'rechts' : 'links'}.`;
     out.push(`Wind zum Start ${val(s.windMs, unit)}${dirs}, zur Rückkehr ${val(e.windMs, unit)}${dirE}.${turned}`);
   }
+  // Phase SG (`conv: true` = the page shows the hint): one line where the hint is missing, short or finds nothing.
+  const cs = limits.conv ? planConvSummary(f) : null;
+  if (cs) out.push(cs);
   return out;
 }
 

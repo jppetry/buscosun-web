@@ -27,7 +27,7 @@ import { WlCatalogMissing, loadGaugeCatalog, loadGaugeForecast } from './waterLe
 import { coastWarnStatus, seaTextFreshness, type SeaTextProduct } from './seaText';
 import { DMI_CREDIT, DMI_HOST, DMI_LICENCE, DMI_LICENCE_URL, DMI_NAME, DMI_WIND_LABEL, dmiPointerOf } from './seaDmi';
 import {
-  loadAreas, loadCatalog, loadCurrent, loadCurrentField, loadDmi, loadField, loadKillSwitch, loadLatestRun, loadStationObs, loadSpots, loadText, windPointerOf, withDmiWind, withWindRefresh,
+  loadAreas, loadCatalog, loadCurrent, loadCurrentField, loadDmi, loadField, loadKillSwitch, loadLatestRun, loadStationObs, loadStationVisibility, loadSpots, loadText, windPointerOf, withDmiWind, withWindRefresh,
   SEA_DMI_NONE, SEA_PAGE_TEXTS, takeSeaChain, takeSeaStatic,
   type SeaAreas, type SeaCatalog, type SeaDmiLoad, type SeaPoiObs, type SeaRunLoad, type SeaSpotsDoc,
 } from './seaClient';
@@ -57,6 +57,8 @@ import SeaMapCard from './SeaMapCard';
 import SeaCurrentPanel, { DriftArrow } from './SeaCurrentPanel';
 import SeaWaterTempPanel from './SeaWaterTempPanel';
 import { useSeaWaterTemp, wtPointerKey } from './useSeaWaterTemp';
+import SeaSightPanel from './SeaSightPanel';
+import { officialSight, sightConvAt, sightHintAt, type SightObs } from './seaSight';
 import { WSV_CREDIT, WSV_LICENCE, WSV_LICENCE_URL, WSV_NAME, WSV_PAGE, WT_MODEL_NOTE } from './seaWaterTemp';
 import {
   BSH_CURRENT_CHANGED, BSH_CURRENT_CREDIT, BSH_CURRENT_LICENCE, BSH_CURRENT_LICENCE_URL, BSH_CURRENT_NAME, BSH_CURRENT_PAGE, SEA_CURRENT_MODEL_NOTE, SEA_CURRENT_WHY,
@@ -411,6 +413,8 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
       dry: seaNoSeaAt(s, i),
       // Phase SU: the hour's quantiles, `null` when the spot file carries none (then nothing of the band is drawn).
       windQ: q5At(spotsDoc?.quantiles?.[id]?.wind, i), gustQ: q5At(spotsDoc?.quantiles?.[id]?.gust, i),
+      // Phase SG: the two hints of the hour, `null` where there is no statement (old file, beyond the reach, repack too old).
+      vis: sightHintAt(spotsDoc?.sight, id, i).code, conv: sightConvAt(spotsDoc?.sight, id, i, nowHour + kk * H, nowHour).cls,
     };
   }, [spotsDoc, firstIdx, nowHour]);
   // V-SW-10: verdicts per spot are computed once per (spots document, limits by content, axis); hour, layer, revier,
@@ -549,7 +553,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
     return {
       boat, km, course, win: planWin, startT, endT,
       events: planEvents(f, unit, sun.sunset, startT, endT),
-      summary: [...planSummary(f, unit, { windMaxKn: limits.windMax, gustMaxKn: limits.gustMax }), sunLine(endT, sun)],
+      summary: [...planSummary(f, unit, { windMaxKn: limits.windMax, gustMaxKn: limits.gustMax, conv: true }), sunLine(endT, sun)],
     };
   }, [plan, spot, planWin, spotHours, limitsKey, unit, nowHour]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -612,6 +616,21 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
     return () => ac.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the spot object is stable per id
   }, [stationId, spotKey]);
+
+  // Phase SG: measured visibility of the same station — its own read (the wind above comes from `obs/v1`, which carries no visibility).
+  const [visObs, setVisObs] = useState<SightObs | null | 'loading'>(null);
+  const visKey = useRef<string | null>(null);
+  useEffect(() => {
+    const st = spot?.station ?? null;
+    if (!st) { visKey.current = null; setVisObs(null); return; }
+    const ac = new AbortController();
+    // „lädt" only for another station; the 10-minute refresh replaces the value when the answer is there (an answer
+    // without a fresh value is `null` = "keine Daten" — the reader itself never returns a value past its age limit).
+    if (visKey.current !== st.id) { visKey.current = st.id; setVisObs('loading'); }
+    loadStationVisibility(st, ac.signal).then((o) => { if (!ac.signal.aborted) setVisObs(o); }, () => {});
+    return () => ac.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the spot object is stable per id; `dmiTick` refreshes with the page
+  }, [stationId, spotKey, dmiTick]);
 
   // --- URL ------------------------------------------------------------------------------------------------
   // TF: the threshold travels with its gauge (`tw`); until the gauge is known the link's own value stays in the address.
@@ -728,7 +747,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   const stations = useMemo(() => (toggles.stations ? [...new Map(spots.filter((s) => s.station).map((s) => [s.station!.id, { id: s.station!.id, name: s.station!.name, lon: s.station!.lon, lat: s.station!.lat }])).values()] : null), [spots, toggles.stations]);
 
   // Phase SU: how often gusts lie above the profile's gust limit, per hour (`null` without quantiles or without a gust limit).
-  const bandHours: SeaBandHour[] = spotHours.map((h, i) => ({ t: h.t, windMs: h.windMs, gustMs: h.gustMs, windDir: h.windDir, hs: h.hs, dir: h.dir, tm: h.tm, dry: h.dry, cls: spotVerdicts[i].cls, reason: spotVerdicts[i].reasons.join(' · '), daylight: spotVerdicts[i].daylight, over: gustOverLimit(h.gustQ, limits.gustMax), curKn: spotCur?.kn[firstIdx + i] ?? null, curTo: spotCur?.to[firstIdx + i] ?? null }));
+  const bandHours: SeaBandHour[] = spotHours.map((h, i) => ({ t: h.t, windMs: h.windMs, gustMs: h.gustMs, windDir: h.windDir, hs: h.hs, dir: h.dir, tm: h.tm, dry: h.dry, cls: spotVerdicts[i].cls, reason: spotVerdicts[i].reasons.join(' · '), daylight: spotVerdicts[i].daylight, over: gustOverLimit(h.gustQ, limits.gustMax), curKn: spotCur?.kn[firstIdx + i] ?? null, curTo: spotCur?.to[firstIdx + i] ?? null, vis: h.vis ?? null, conv: h.conv ?? null }));
   const bandOver = limits.gustMax != null && bandHours.some((h) => h.over) ? { limitKn: limits.gustMax } : null;
   const chartHours = spotHours.map((h, i) => ({
     t: h.t, windMs: h.windMs, gustMs: h.gustMs, hs: h.hs, ws: h.ws, sw: h.sw, dry: h.dry, daylight: spotVerdicts[i].daylight,
@@ -872,7 +891,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
     <SeaBand hours={bandHours} unit={unit} selected={k} onPick={setT} compact={isMobile}
       title={`${spot.name} · ${profLabel}`} sub={`${dayShort(bandHours[0].t)} ${hh(bandHours[0].t)} bis ${dayShort(bandHours[bandHours.length - 1].t)} ${hh(bandHours[bandHours.length - 1].t)} Uhr · ${tzLabel(validMs)}`}
       footnote={`Welle: Modell ${runTxt} · Wind/Böen: ${spotWindName}`}
-      tide={tideFeed ? { hours: tideFeed.hours!, side: tideSideText(tideFeed.mode!, tideFeed.name) } : null} over={bandOver} plan={bandPlan} current={!!spotCur} />
+      tide={tideFeed ? { hours: tideFeed.hours!, side: tideSideText(tideFeed.mode!, tideFeed.name) } : null} over={bandOver} plan={bandPlan} current={!!spotCur} sight />
   );
   const planner = planOpen && spot ? (
     <SeaPlanPanel spotName={spot.name} limitsText={`${profLabel}, ${limitsSummary(limits)}`} profile={profile} onProfile={setProfile}
@@ -906,7 +925,13 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
       dry={{ hours: dryHours, of: spotHours.length, classed: dryRule }} waterLevel={waterLevel} dmiWater={dmiWater} tide={tideView}
       layout="dossier" band={band} chips={isMobile ? undefined : (usable && chips)} onMap={() => setStage('map')}
       current={spot && currentView ? <SeaCurrentPanel view={currentView} tMs={validMs} windFrom={hourWindDir} windKn={hourWindKn} tidal={!!spot.tidal} /> : undefined}
-      waterTemp={spot && wtemp.view ? <SeaWaterTempPanel view={wtemp.view} /> : undefined} />
+      waterTemp={spot && wtemp.view ? <SeaWaterTempPanel view={wtemp.view} /> : undefined}
+      sight={spot && usable && !noSeries ? <SeaSightPanel view={{
+        tMs: validMs, nowMs, obs: visObs, engine: spotWindName,
+        station: spot.station ? { name: spot.station.net === 'dmi' ? spot.station.name : spot.station.name.charAt(0) + spot.station.name.slice(1).toLowerCase(), km: spot.station.km, net: spot.station.net === 'dmi' ? 'DMI' : 'DWD' } : null,
+        official: officialSight(spot, seaTexts.fq50, seaTexts.fq51, stale, textsLoading),
+        hint: sightHintAt(spotsDoc?.sight, spot.id, firstIdx + k), conv: sightConvAt(spotsDoc?.sight, spot.id, firstIdx + k, validMs, nowMs),
+      }} /> : undefined} />
   );
   const inDossier = stage === 'dossier';
   // The compact preview of the map-picked spot — the same numbers as the briefing and the callout.

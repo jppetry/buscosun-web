@@ -1,0 +1,202 @@
+{
+ "at": "2026-11-18T19:39:37.492Z",
+ "classesKm": [
+  "≥ 10",
+  "4–10",
+  "< 4"
+ ],
+ "ruleOnMeasured": {
+  "pairs": 549,
+  "sameClassPct": 31.1,
+  "table": [
+   [
+    124,
+    102,
+    179
+   ],
+   [
+    4,
+    27,
+    87
+   ],
+   [
+    0,
+    6,
+    20
+   ]
+  ],
+  "lowLimiting": {
+   "feuchte": 29,
+   "niederschlag": 257
+  },
+  "measuredBelow1km": 1,
+  "ofThoseDiagnosedBelow4km": 1
+ },
+ "hintOnFusion": {
+  "pairs": 0,
+  "sameClassPct": null,
+  "table": [
+   [
+    0,
+    0,
+    0
+   ],
+   [
+    0,
+    0,
+    0
+   ],
+   [
+    0,
+    0,
+    0
+   ]
+  ]
+ },
+ "perStation": [
+  {
+   "id": "10113",
+   "name": "NORDERNEY",
+   "pairs": 25,
+   "sameClass": 44
+  },
+  {
+   "id": "10124",
+   "name": "LEUCHTTURM A. WESER",
+   "pairs": 0,
+   "sameClass": null
+  },
+  {
+   "id": "10129",
+   "name": "BREMERHAVEN",
+   "pairs": 25,
+   "sameClass": 44
+  },
+  {
+   "id": "10131",
+   "name": "CUXHAVEN",
+   "pairs": 25,
+   "sameClass": 44
+  },
+  {
+   "id": "10015",
+   "name": "HELGOLAND",
+   "pairs": 25,
+   "sameClass": 68
+  },
+  {
+   "id": "10130",
+   "name": "ELPERSBUETTEL",
+   "pairs": 24,
+   "sameClass": 33.3
+  },
+  {
+   "id": "10028",
+   "name": "ST. PETER ORDING",
+   "pairs": 25,
+   "sameClass": 48
+  },
+  {
+   "id": "10022",
+   "name": "LECK",
+   "pairs": 25,
+   "sameClass": 8
+  },
+  {
+   "id": "10020",
+   "name": "LIST/SYLT",
+   "pairs": 0,
+   "sameClass": null
+  },
+  {
+   "id": "10147",
+   "name": "HAMBURG-FU.",
+   "pairs": 25,
+   "sameClass": 28
+  },
+  {
+   "id": "10035",
+   "name": "SCHLESWIG",
+   "pairs": 25,
+   "sameClass": 32
+  },
+  {
+   "id": "10042",
+   "name": "OLPENITZ",
+   "pairs": 25,
+   "sameClass": 20
+  },
+  {
+   "id": "10046",
+   "name": "KIEL-H.",
+   "pairs": 25,
+   "sameClass": 28
+  },
+  {
+   "id": "10150",
+   "name": "DOERNICK",
+   "pairs": 25,
+   "sameClass": 16
+  },
+  {
+   "id": "10055",
+   "name": "WESTERMARKELSDORF",
+   "pairs": 25,
+   "sameClass": 20
+  },
+  {
+   "id": "10152",
+   "name": "PELZERHAKEN",
+   "pairs": 25,
+   "sameClass": 20
+  },
+  {
+   "id": "10161",
+   "name": "BOLTENHAGEN",
+   "pairs": 25,
+   "sameClass": 16
+  },
+  {
+   "id": "10170",
+   "name": "WARNEMUENDE",
+   "pairs": 25,
+   "sameClass": 8
+  },
+  {
+   "id": "10180",
+   "name": "BARTH",
+   "pairs": 25,
+   "sameClass": 32
+  },
+  {
+   "id": "10091",
+   "name": "ARKONA",
+   "pairs": 25,
+   "sameClass": 32
+  },
+  {
+   "id": "10093",
+   "name": "PUTBUS",
+   "pairs": 25,
+   "sameClass": 40
+  },
+  {
+   "id": "10097",
+   "name": "GREIFSWALDER OIE",
+   "pairs": 25,
+   "sameClass": 32
+  },
+  {
+   "id": "10184",
+   "name": "GREIFSWALD",
+   "pairs": 25,
+   "sameClass": 40
+  },
+  {
+   "id": "10193",
+   "name": "UECKERMUENDE",
+   "pairs": 25,
+   "sameClass": 32
+  }
+ ]
+}

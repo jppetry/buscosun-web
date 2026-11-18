@@ -9,8 +9,11 @@ import {
   SEA_MODELS, seaExpectedRun, seaRunStamp, seaRunMs, seaRunJsonPath, seaSpotsPath, seaFieldPath, seaCompPath, seaFreshness, spotSeriesProblems,
   decodeSpotValue, encodeSpotValue, spotCatalogProblems, seaTextPath, seaSpotsWindPath, mergeSpotWind, SEA_WIND_VARS,
   spotQuantileProblems, decodeSpotQuantiles, mergeSpotQuantiles, dropQuantilesWithoutMean, hasQuantiles,
-  type SeaSpot, type SeaSpotVar, type SeaFreshness, type SeaWindVar, type SeaSpotQuantiles,
+  spotSightProblems, mergeSpotSight, hasSight, sightMetaOf,
+  type SeaSpot, type SeaSpotVar, type SeaFreshness, type SeaWindVar, type SeaSpotQuantiles, type SeaSightColumns,
 } from './seaContract';
+import { DMI_VIS_PARAM, SIGHT_RANGE_M, poiSightLatest, type SightObs } from './seaSightObs';
+import type { SeaSightData } from './seaSight';
 import { SEA_TEXT_PRODUCTS, seaExpectedIssues, seaTextFreshness, type SeaTextDoc, type SeaTextProduct } from './seaText';
 import {
   DMI_OBS_MAX_AGE_MS, DMI_OBS_PARAMS, SEA_DMI_PRODUCT, dmiObsLatest, dmiObsUrl, dmiWindOnAxis, seaDmiProblems, seaDmiStale,
@@ -181,9 +184,21 @@ export interface SeaSpotsDoc {
    * value lock. A spot without an entry (every file before phase SU, a failed lock) is shown without band.
    */
   quantiles?: Record<string, SeaSpotQuantiles>;
+  /**
+   * Phase SG: the hint columns (showers/thunderstorms, sight) of the spots whose file carries them and whose columns pass
+   * the value lock, with the document block that names their source and reach. Absent = a file from before the phase.
+   */
+  sight?: SeaSightData;
 }
 /** One spot of a spot file as it is stored (encoded columns). */
-export interface SeaSpotRaw { v: Record<SeaSpotVar, (number | null)[]>; q?: SeaSpotQuantiles; gustDropped?: number }
+export interface SeaSpotRaw { v: Record<SeaSpotVar, (number | null)[]>; q?: SeaSpotQuantiles; s?: SeaSightColumns; gustDropped?: number }
+
+/** Phase SG: the stored hint columns of a spot, or `null` (absent, value lock failed, not one statement). */
+export function readSpotSight(s: unknown, hours: number): SeaSightColumns | null {
+  if (s == null || spotSightProblems(s, hours).length || !hasSight(s as SeaSightColumns)) return null;
+  const c = s as SeaSightColumns;
+  return { conv: c.conv.slice(), vis: c.vis.slice() };
+}
 
 /** Phase SU: the stored quantile columns of a spot, checked against its own stored wind columns → m/s, or `null`. */
 export function readSpotQuantiles(q: unknown, v: Partial<Record<'wind' | 'gust', (number | null)[]>>): SeaSpotQuantiles | null {
@@ -194,18 +209,21 @@ export function readSpotQuantiles(q: unknown, v: Partial<Record<'wind' | 'gust',
 
 /** Pure part of `loadSpots`: a stored spot file → the checked, decoded document (or `null` when it is not one of this run). */
 export function parseSpotsDoc(j: unknown, run: string): SeaSpotsDoc | null {
-  const d = j as { product?: string; run?: string; runMs?: number; steps?: number; wind?: SeaSpotsDoc['wind']; spots?: Record<string, SeaSpotRaw> } | null;
+  const d = j as { product?: string; run?: string; runMs?: number; steps?: number; wind?: SeaSpotsDoc['wind']; sight?: unknown; spots?: Record<string, SeaSpotRaw> } | null;
   if (d?.product !== 'sea-spots-series' || d.run !== run || !d.spots) return null;
   const series: Record<string, SeaSeries> = {}, gustDropped: Record<string, number> = {}, quantiles: Record<string, SeaSpotQuantiles> = {};
   const rejected: string[] = [];
+  const sightMeta = sightMetaOf(d.sight), sightSpots: Record<string, SeaSightColumns> = {};
   for (const [id, s] of Object.entries(d.spots)) {
     if (spotSeriesProblems(s.v).length) { rejected.push(id); continue; }
+    const sg = sightMeta ? readSpotSight(s.s, s.v.wind.length) : null;
+    if (sg) sightSpots[id] = sg;
     series[id] = Object.fromEntries(SEA_SPOT_VARS.map((k) => [k, s.v[k].map((q) => decodeSpotValue(k, q))])) as SeaSeries;
     if (s.gustDropped) gustDropped[id] = s.gustDropped;
     const q = readSpotQuantiles(s.q, s.v);
     if (q) quantiles[id] = q;
   }
-  return { run, runMs: d.runMs ?? seaRunMs(run), steps: d.steps ?? 79, wind: d.wind ?? { engine: null, failed: [] }, series, gustDropped, rejected, ...(Object.keys(quantiles).length ? { quantiles } : {}) };
+  return { run, runMs: d.runMs ?? seaRunMs(run), steps: d.steps ?? 79, wind: d.wind ?? { engine: null, failed: [] }, series, gustDropped, rejected, ...(Object.keys(quantiles).length ? { quantiles } : {}), ...(sightMeta ? { sight: { spots: sightSpots, meta: sightMeta } } : {}) };
 }
 export async function loadSpots(run: string, signal?: AbortSignal): Promise<SeaSpotsDoc | null> {
   try {
@@ -228,17 +246,19 @@ export function windPointerOf(status: Record<string, unknown> | null | undefined
 export async function withWindRefresh(doc: SeaSpotsDoc, ptr: SeaWindPointer | null, signal?: AbortSignal): Promise<SeaSpotsDoc> {
   if (!ptr || ptr.run !== doc.run) return doc;
   try {
-    const j = await fetchSea(ptr.path, 'json', signal) as { product?: string; run?: string; t1?: string; from?: number; wind?: SeaSpotsDoc['wind']; spots?: Record<string, SeaWindRaw> };
+    const j = await fetchSea(ptr.path, 'json', signal) as { product?: string; run?: string; t1?: string; from?: number; wind?: SeaSpotsDoc['wind']; sight?: unknown; spots?: Record<string, SeaWindRaw> };
     if (j?.product !== 'sea-spots-wind' || j.run !== doc.run || j.t1 !== ptr.t1 || !j.spots || !Number.isInteger(j.from)) return doc;
-    return mergeWindDoc(doc, { from: j.from as number, wind: j.wind ?? null, spots: j.spots });
+    return mergeWindDoc(doc, { from: j.from as number, wind: j.wind ?? null, sight: j.sight, spots: j.spots });
   } catch (e) { if (isAbort(e)) throw e; return doc; }
 }
 
 /** One spot of a wind refresh as it is stored (encoded wind columns, phase SU: optional quantiles). */
-export interface SeaWindRaw { v: Record<SeaWindVar, (number | null)[]>; q?: SeaSpotQuantiles; gustDropped?: number }
+export interface SeaWindRaw { v: Record<SeaWindVar, (number | null)[]>; q?: SeaSpotQuantiles; s?: SeaSightColumns; gustDropped?: number }
 
 /** Pure part of `withWindRefresh` (encoded refresh columns onto a decoded doc). */
-export function mergeWindDoc(doc: SeaSpotsDoc, upd: { from: number; wind: SeaSpotsDoc['wind'] | null; spots: Record<string, SeaWindRaw> }): SeaSpotsDoc {
+export function mergeWindDoc(doc: SeaSpotsDoc, upd: { from: number; wind: SeaSpotsDoc['wind'] | null; sight?: unknown; spots: Record<string, SeaWindRaw> }): SeaSpotsDoc {
+  // Phase SG: the hints follow the wind — from `from` on the refresh's own columns; a refresh without the block shows none.
+  const sightMeta = sightMetaOf(upd.sight), sightSpots: Record<string, SeaSightColumns> = {};
   const series: Record<string, SeaSeries> = { ...doc.series }, gustDropped = { ...doc.gustDropped };
   const quantiles: Record<string, SeaSpotQuantiles> = { ...(doc.quantiles ?? {}) };
   let applied = 0;
@@ -255,11 +275,14 @@ export function mergeWindDoc(doc: SeaSpotsDoc, upd: { from: number; wind: SeaSpo
     const q = mergeSpotQuantiles(doc.quantiles?.[id], readSpotQuantiles(upd.spots[id].q, u), upd.from, s.wind.length);
     dropQuantilesWithoutMean(merged, q);
     if (hasQuantiles(q)) quantiles[id] = q; else delete quantiles[id];
+    const sg = sightMeta ? readSpotSight(upd.spots[id].s, s.wind.length) : null;
+    if (sg) { const m = mergeSpotSight(doc.sight?.spots[id], sg, upd.from, s.wind.length); if (hasSight(m)) sightSpots[id] = m; }
     applied++;
   }
   if (!applied) return doc;
   const out: SeaSpotsDoc = { ...doc, series, gustDropped, wind: upd.wind ? { ...upd.wind, failed: upd.wind.failed ?? [] } : doc.wind, windFrom: upd.from };
   if (Object.keys(quantiles).length) out.quantiles = quantiles; else delete out.quantiles;
+  if (sightMeta) out.sight = { spots: sightSpots, meta: sightMeta }; else delete out.sight;
   return out;
 }
 
@@ -399,6 +422,26 @@ export async function loadPoi(id: string, signal?: AbortSignal): Promise<SeaPoiO
       if (o.ffMs != null || o.fxMs != null) return o;
     }
     return null;
+  } catch (e) { if (isAbort(e)) throw e; return null; }
+}
+
+// --- Phase SG: measured visibility of the spot's station (audit/seewetter-sicht-konvektion.md) --------------------
+
+/**
+ * Measured visibility at the spot's station, or `null` ("keine Daten" — never an older value): a DWD station from its POI
+ * file through the opendata proxy (newest row with a visibility, at most `SIGHT_POI_MAX_AGE_MS` old; two of the 24
+ * catalogue stations report none), a DMI station from metObs (10-minute mean, at most `DMI_OBS_MAX_AGE_MS` old; three of
+ * the eight report none).
+ */
+export async function loadStationVisibility(station: { id: string; net?: 'dmi' }, signal?: AbortSignal, nowMs = Date.now()): Promise<SightObs | null> {
+  try {
+    if (station.net === 'dmi') {
+      const res = await fetch(dmiObsUrl(station.id, DMI_VIS_PARAM, nowMs - DMI_OBS_MAX_AGE_MS), { signal });
+      const o = res.ok ? dmiObsLatest(await res.json(), DMI_VIS_PARAM, nowMs) : null;
+      return o && o.value >= SIGHT_RANGE_M[0] && o.value <= SIGHT_RANGE_M[1] ? { t: o.t, visM: Math.round(o.value), src: 'dmi' } : null;
+    }
+    const res = await fetch(`/_dwd_opendata/weather/weather_reports/poi/${encodeURIComponent(station.id)}-BEOB.csv`, { signal });
+    return res.ok ? poiSightLatest(await res.text(), nowMs) : null;
   } catch (e) { if (isAbort(e)) throw e; return null; }
 }
 

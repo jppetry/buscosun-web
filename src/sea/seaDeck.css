@@ -1367,6 +1367,63 @@
   .sw-wt-src a, .sw-wt-more a { display: inline-block; min-height: 44px; line-height: 44px; }
 }
 
+/* ── Phase SG — Sicht und Schauer-/Gewitter-Hinweis (audit/seewetter-sicht-konvektion.md). Steht VOR dem Planer: dessen
+   Prüfer liest die letzte Media Query der Datei als die des Planers.
+   One drawn idea: the VEIL. The less a hint expects to see, the denser the cell — a hairline horizon for "gut", a half
+   veil for "eingeschränkt möglich", a dense veil for "Nebel möglich". Haze grey-blue, never a class colour: the hints do
+   not touch passt / knapp / außerhalb. No statement = the page's hatch ("keine Daten"). */
+.sw-root { --sw-sg: #5B6E7E; --sw-sg-ink: #2C2A26; }
+.sw-sg-cell.is-gut { background: linear-gradient(to top, color-mix(in srgb, var(--sw-sg) 55%, transparent) 0 1.5px, transparent 1.5px); }
+.sw-sg-cell.is-eingeschraenkt { background: color-mix(in srgb, var(--sw-sg) 42%, transparent); }
+.sw-sg-cell.is-nebel { background: var(--sw-sg); }
+/* The mark at a convective hour sits in the corner of the gust cell: the row keeps its height and the number its place. */
+.sw-band-table td.has-conv { position: relative; }
+.sw-sg-mark { display: inline-block; color: var(--sw-sg-ink); line-height: 0; }
+.sw-band-table td.has-conv .sw-sg-mark { position: absolute; top: 0; right: 0; }
+.sw-band-table td.has-conv .sw-sg-mark svg { display: block; margin: 0; width: 7px; height: 7px; }
+.sw-ds .sw-band-table td.has-conv .sw-sg-mark svg { width: 8px; height: 8px; }
+.sw-band-foot { flex-wrap: wrap; row-gap: 2px; }
+.sw-band-foot-sg .sw-sg-mark { vertical-align: -1px; margin: 0 1px 0 2px; }
+.sw-band-foot-sg .sw-sg-mark svg { display: inline-block; }
+
+.sw-sg { display: flex; flex-direction: column; gap: 0; }
+.sw-sg-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.sw-sg-half { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 2px 24px 2px 0; }
+.sw-sg-half.is-hint { padding: 2px 0 2px 24px; border-left: 1.5px dashed var(--stone-400, #A89A7A); }
+.sw-sg-kind { font-size: 13.5px; font-weight: 600; color: var(--stone-500, #8B7355); }
+.sw-sg-half.is-hint .sw-sg-kind { color: var(--sw-accent-dark, #0B5560); }
+.sw-sg-val { font-size: 44px; line-height: 1.05; font-weight: 700; color: var(--ink-900, #2C2A26); font-variant-numeric: tabular-nums; }
+.sw-sg-val.is-text { font-size: 24px; line-height: 1.25; color: var(--stone-600, #5C5447); }
+.sw-sg-val.is-hintval { display: flex; align-items: center; gap: 10px; color: var(--ink-900, #2C2A26); }
+.sw-sg-veil { flex: none; display: block; width: 46px; height: 22px; border-radius: 3px; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sw-sg) 35%, transparent); }
+.sw-sg-sub { font-size: 14.5px; line-height: 1.5; color: var(--stone-600, #5C5447); max-width: 62ch; }
+.sw-sg-src { font-size: 12px; line-height: 1.5; color: var(--stone-500, #8B7355); max-width: 78ch; }
+.sw-sg-block { display: flex; flex-direction: column; gap: 4px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--sand-200, #E0D6BE); }
+.sw-sg .sw-sg-official { margin: 0; font-size: 15px; max-width: 78ch; }
+.sw-sg-day { color: var(--stone-500, #8B7355); }
+.sw-sg-none { margin: 0; font-size: 15px; line-height: 1.5; color: var(--stone-600, #5C5447); max-width: 70ch; }
+.sw-sg-none strong { color: var(--ink-900, #2C2A26); }
+.sw-sg-conv { margin: 0; font-size: 15px; line-height: 1.5; color: var(--stone-600, #5C5447); max-width: 78ch; }
+.sw-sg-conv strong { font-size: 20px; font-weight: 700; color: var(--ink-900, #2C2A26); }
+.sw-sg-conv .sw-sg-mark { margin-right: 7px; vertical-align: 1px; }
+.sw-sg-conv .sw-sg-mark svg { width: 14px; height: 14px; }
+.sw-sg-rules { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--sand-200, #E0D6BE); font-size: 13px; }
+.sw-sg-rules summary { cursor: pointer; color: var(--sw-accent-dark, #0B5560); font-weight: 600; min-height: 28px; display: flex; align-items: center; }
+.sw-sg-rules summary:focus-visible { outline: 2px solid var(--sw-accent, #0F6E7A); outline-offset: 2px; border-radius: 4px; }
+.sw-sg-rules p { margin: 6px 0 0; line-height: 1.55; color: var(--stone-600, #5C5447); max-width: 78ch; }
+.sw-card.sw-sg:not(.is-wide) .sw-sg-val { font-size: 34px; }
+.sw-card.sw-sg:not(.is-wide) .sw-sg-val.is-text { font-size: 20px; }
+.sw-card.sw-sg:not(.is-wide) .sw-sg-half { padding-right: 14px; }
+.sw-card.sw-sg:not(.is-wide) .sw-sg-half.is-hint { padding: 2px 0 2px 14px; }
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
+  .sw-sg-pair { grid-template-columns: minmax(0, 1fr); }
+  .sw-sg-half, .sw-card.sw-sg:not(.is-wide) .sw-sg-half { padding: 0 0 14px; }
+  .sw-sg-half.is-hint, .sw-card.sw-sg:not(.is-wide) .sw-sg-half.is-hint { padding: 14px 0 0; border-left: 0; border-top: 1.5px dashed var(--stone-400, #A89A7A); }
+  .sw-sg-val { font-size: 38px; }
+  .sw-sg-rules summary { min-height: 44px; }
+  .sw-band.is-compact .sw-band-table td.has-conv .sw-sg-mark svg { width: 9px; height: 9px; }
+}
+
 /* ── Phase SP — „Ausfahrt planen“ (audit/seewetter-planer.md). Ohne geöffneten Planer rendert davon nur der Knopf über
    der Legende (Desktop) bzw. der Eintrag „Ausfahrt“ der unteren Leiste (mobil).
    Ein Bild trägt den Planer: die Leine vom Start zur Rückkehr — auf der Karte gestrichelt vom Boot zum Startort, im

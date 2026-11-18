@@ -3,3 +3,5 @@ public/fire/*.bin -text
 scripts/lib/fixtures/sea/dk/** -text
 scripts/lib/fixtures/sea/current/** -text
 scripts/lib/fixtures/sea/wt/** -text
+
+scripts/lib/fixtures/sea/sight/** -text

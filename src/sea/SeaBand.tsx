@@ -14,6 +14,8 @@ import { CLASS_COLOR, CLASS_SHORT, DRY_GLYPH, DRY_VALUE, berlinHour, dayShort, f
 import { BAND_LEGEND, overOpacity, overSentence, type SeaOver } from './windBand';
 import { CURRENT_DIR_MIN_KN, DriftArrow } from './SeaCurrentPanel';
 import { SEA_CURRENT_MODEL_NOTE } from './seaCurrent';
+import { visClassOfCode } from './seaContract';
+import { CONV_LABEL, GUST_CONV_LEGEND, VIS_ROW_KEY, VIS_ROW_NOTE, visCellWords } from './seaSight';
 
 export interface SeaBandHour {
   t: number; windMs: number | null; gustMs: number | null; windDir: number | null;
@@ -24,6 +26,8 @@ export interface SeaBandHour {
   over?: SeaOver | null;
   /** Phase ST: surface current at the spot's model cell (kn, sets towards); `null`/absent = no value this hour. */
   curKn?: number | null; curTo?: number | null;
+  /** Phase SG: sight hint (code 0–4 of the contract) and shower/thunderstorm hint (0–2) of the hour; `null`/absent = no statement. */
+  vis?: number | null; conv?: number | null;
 }
 
 interface Props {
@@ -43,6 +47,25 @@ interface Props {
   plan?: SeaBandPlan | null;
   /** Phase ST: the row "Strom" — only where the spot carries a current series (BSH). */
   current?: boolean;
+  /** Phase SG: the row "Sicht" (hint classes; hatched where there is no statement) and the marks in the row "Böen". */
+  sight?: boolean;
+}
+
+/**
+ * Phase SG — the mark at a convective hour in the row "Böen": rain strokes for "Schauer möglich", a bolt for "Gewitter
+ * möglich". Ink, not a class colour: it is a hint and changes neither the number nor passt / knapp / außerhalb.
+ */
+export function ConvMark({ cls }: { cls: 1 | 2 }) {
+  return (
+    <span className={`sw-sg-mark is-${cls}`}>
+      <svg width="8" height="8" viewBox="0 0 8 8" aria-hidden="true">
+        {cls === 2
+          ? <path d="M5.2 0 1.4 4.5h2.1L2.6 8l4-4.7H4.4z" fill="currentColor" />
+          : <path d="M2.2 0.8 1.2 3.6M4.7 0.8 3.7 3.6M7.2 0.8 6.2 3.6M3.3 4.6 2.5 7.2M5.8 4.6 5 7.2" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" fill="none" />}
+      </svg>
+      <span className="sw-sr">, {CONV_LABEL[cls]}</span>
+    </span>
+  );
 }
 
 /**
@@ -69,7 +92,7 @@ const Arrow = ({ to, color }: { to: number | null; color: string }) => (to == nu
   </svg>
 ));
 
-export default function SeaBand({ hours, unit, selected, onPick, title, sub, footnote, compact = false, tide = null, over = null, plan = null, current = false }: Props) {
+export default function SeaBand({ hours, unit, selected, onPick, title, sub, footnote, compact = false, tide = null, over = null, plan = null, current = false, sight = false }: Props) {
   const overKn = over ? String(Math.round(over.limitKn * 10) / 10).replace('.', ',') : '';
   const scroller = useRef<HTMLDivElement | null>(null);
   // Phase SP: the hour under a pointer is read from the row's first cell (its left edge and width follow the scroll).
@@ -140,7 +163,7 @@ export default function SeaBand({ hours, unit, selected, onPick, title, sub, foo
       </div>
       <div className="sw-band-scroll" ref={scroller}>
         <table className="sw-band-table">
-          <caption className="sw-sr">Stundenwerte am Spot: Uhrzeit, Wind, Böen, Seegang, Periode, Wellenrichtung{current ? ', Strömung' : ''}{over ? `, wie oft Böen über ${overKn} kn liegen` : ''} und Einordnung nach deinem Profil. Eine Stunde wählen setzt Karte und Details auf diese Zeit.</caption>
+          <caption className="sw-sr">Stundenwerte am Spot: Uhrzeit, Wind, Böen, Seegang, Periode, Wellenrichtung{current ? ', Strömung' : ''}{sight ? ', Hinweis zur Sicht' : ''}{over ? `, wie oft Böen über ${overKn} kn liegen` : ''} und Einordnung nach deinem Profil. Eine Stunde wählen setzt Karte und Details auf diese Zeit.</caption>
           <thead>
             <tr className="sw-band-days" aria-hidden="true">
               <th className="sw-band-lab" />
@@ -186,7 +209,10 @@ export default function SeaBand({ hours, unit, selected, onPick, title, sub, foo
             </tr>
             <tr className="is-soft">
               <th scope="row" className="sw-band-lab">Böen</th>
-              {hours.map((h, i) => <td key={h.t} className={cls(h, i)}>{fmtWind(h.gustMs, unit)}</td>)}
+              {hours.map((h, i) => {
+                const cv = sight && (h.conv === 1 || h.conv === 2) ? h.conv : null;
+                return <td key={h.t} className={`${cls(h, i)}${cv ? ' has-conv' : ''}`} title={cv ? `${CONV_LABEL[cv]}. ${GUST_CONV_LEGEND}` : undefined}>{fmtWind(h.gustMs, unit)}{cv && <ConvMark cls={cv} />}</td>;
+              })}
             </tr>
             <tr className="is-mid">
               <th scope="row" className="sw-band-lab">Welle m</th>
@@ -200,6 +226,19 @@ export default function SeaBand({ hours, unit, selected, onPick, title, sub, foo
               <th scope="row" className="sw-band-lab">Wellen</th>
               {hours.map((h, i) => <td key={h.t} className={cls(h, i)}><Arrow to={h.dir == null || h.hs == null || h.hs < 0.05 ? null : (h.dir + 180) % 360} color="#0F6E7A" /></td>)}
             </tr>
+            {sight && (
+              <tr className="sw-band-prof sw-band-sight">
+                <th scope="row" className="sw-band-lab" title={`${VIS_ROW_NOTE}. ${VIS_ROW_KEY}.`}>Sicht</th>
+                {hours.map((h, i) => {
+                  const c = visClassOfCode(h.vis), words = visCellWords(h.vis);
+                  return (
+                    <td key={h.t} className={cls(h, i)} title={words}>
+                      <span className={`sw-band-bar sw-sg-cell${c ? ` is-${c}` : ' is-hatched'}`}><span className="sw-sr">{words}</span></span>
+                    </td>
+                  );
+                })}
+              </tr>
+            )}
             {current && (
               <tr className="sw-band-cur">
                 <th scope="row" className="sw-band-lab" title={`Strömung in Knoten; der Pfeil mit Punkt zeigt, wohin der Strom setzt. ${SEA_CURRENT_MODEL_NOTE}`}>Strom kn</th>
@@ -267,6 +306,8 @@ export default function SeaBand({ hours, unit, selected, onPick, title, sub, foo
         {current && <span className="sw-band-foot-cur">Zeile Strom: der Pfeil mit Punkt zeigt, wohin der Strom setzt; {SEA_CURRENT_MODEL_NOTE}</span>}
         {hours.some((h) => h.dry) && <span className="sw-band-foot-dry">{DRY_GLYPH} = Modellzelle ohne Wasser, {DRY_VALUE}</span>}
         {over && <span className="sw-band-foot-over">Zeile über Grenze: je kräftiger, desto öfter Böen über {overKn} kn in vergleichbaren Lagen</span>}
+        {sight && <span className="sw-band-foot-sg">{VIS_ROW_NOTE}; {VIS_ROW_KEY}</span>}
+        {sight && hours.some((h) => h.conv === 1 || h.conv === 2) && <span className="sw-band-foot-sg">Zeile Böen: <ConvMark cls={1} /> Schauer möglich, <ConvMark cls={2} /> Gewitter möglich. {GUST_CONV_LEGEND}</span>}
         {plan && <span className="sw-band-foot-plan">Zeile Fenster: S = Start, R = Rückkehr; {plan.touch ? 'die beiden Griffe ziehen' : 'über die Zeile ziehen oder einen Griff verschieben'}</span>}
         {tide && <span className="sw-band-foot-tide">Zeile Pegel: gefüllt = Wasserstand {tide.side}, halb = zum Teil, hohl = nur Gezeit</span>}
         <span className="sw-band-foot-note">{footnote}</span>

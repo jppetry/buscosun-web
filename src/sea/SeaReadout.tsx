@@ -29,6 +29,7 @@ import {
   DMI_WIND_LABEL, DMI_WL_COLLECTION_LABEL, DMI_WL_REFERENCE, DMI_WL_REFERENCE_NOTE, dmiWlAt, dmiWlEnd, dmiWlPoints, type SeaDmiWl,
 } from './seaDmi';
 import { DkPennant } from './SeaDock';
+import { CONV_RULE, VIS_CHECK_NOTE, VIS_RULE } from './seaSight';
 
 export interface SeaReadoutHour {
   t: number; windMs: number | null; gustMs: number | null; windDir: number | null;
@@ -38,6 +39,8 @@ export interface SeaReadoutHour {
   dry: boolean;
   /** Phase SU: q10 … q90 of wind and gust at this hour (m/s); absent or `null` = the spot file carries none. */
   windQ?: SeaQ5 | null; gustQ?: SeaQ5 | null;
+  /** Phase SG: sight hint (code 0–4) and shower/thunderstorm hint (0–2) of the hour; `null`/absent = no statement. */
+  vis?: number | null; conv?: number | null;
 }
 export interface SeaTexts { fq50: SeaTextDoc | null; fq51: SeaTextDoc | null; wodl: SeaTextDoc | null; fx40: SeaTextDoc | null; stale: Record<string, boolean>; loading: boolean }
 
@@ -80,6 +83,8 @@ interface Props {
   current?: ReactNode;
   /** Phase WT: the card „Wassertemperatur“ (`SeaWaterTempPanel.tsx`); absent = no section (no catalogue file). */
   waterTemp?: ReactNode;
+  /** Phase SG: the card „Sicht" (measured, official line, hint, shower/thunderstorm hint) — `SeaSightPanel`. */
+  sight?: ReactNode;
 }
 
 const TABS: Array<[SeaTab, string]> = [['spot', 'Spot'], ['gebiet', 'Seegebiet'], ['quellen', 'Quellen']];
@@ -317,6 +322,7 @@ export default function SeaReadout(p: Props) {
       {spotCard}
       {windowCard}
       {chartCard}
+      {p.sight}
       {waterCard}
       {p.waterTemp}
       {officialCard}
@@ -505,6 +511,11 @@ export default function SeaReadout(p: Props) {
                 <DsSection id="sw-sec-stunde" title="Wind und Seegang" hint="Die gewählte Stunde auf einen Blick">
                   {nowCard}
                 </DsSection>
+                {p.sight && (
+                  <DsSection id="sw-sec-sicht" title="Sicht, Schauer und Gewitter" hint="Gemessen, amtlich und als Hinweis aus Modellwerten — getrennt">
+                    {p.sight}
+                  </DsSection>
+                )}
                 {p.current && (
                   <DsSection id="sw-sec-strom" title="Strömung" hint="Modell des BSH an der nächsten Wasserzelle mit Strom">
                     {p.current}
@@ -1157,6 +1168,7 @@ function SourcesTab({ spot, run, spotsDoc, texts, freshness, wl }: { spot: SeaSp
     [texts.wodl ? 'amtlich' : 'fehlt', 'Warnstatus Küste (WODL45)', texts.wodl ? `wörtlich, ${issued(texts.wodl)}; „keine Warnung“ nur aus dem exakten Satz` : 'nicht lesbar ⇒ Status unbekannt', texts.wodl ? 'ok' : 'off'],
     [texts.fx40 ? 'amtlich' : 'fehlt', 'Mittelfrist und Wassertemperatur (FXDL40)', texts.fx40 ? `wörtlich, ${issued(texts.fx40)}` : 'nicht lesbar', texts.fx40 ? 'ok' : 'off'],
     [spot?.station ? 'gemessen' : '–', `Messung · DWD-Station ${spot?.station?.name ?? '–'}`, spot?.station ? `${spot.station.km} km vom Spot, stündlich (POI)` : '', spot?.station ? 'ok' : 'off'],
+    ...sightSourceRows(spot, spotsDoc),
     [wl ? (wl.state === 'ok' ? 'amtlich' : wl.state === 'loading' ? 'lädt' : 'fehlt') : 'aus', 'Wasserstand-Vorhersage (BSH)',
       `erlaubt · ${WL_LICENCE} (EU High-Value-Dataset, ohne Registrierung, kommerziell nutzbar) · ausschließlich über die offizielle OGC API`
       + (!wl ? ' · mit ?wl=0 ausgeschaltet' : wl.state === 'ok' && wl.doc
@@ -1197,6 +1209,23 @@ function SourcesTab({ spot, run, spotsDoc, texts, freshness, wl }: { spot: SeaSp
       <p className="sw-disclaimer">Lizenzen: Deutscher Wetterdienst (GeoNutzV); Seegebiete © GeoBasis-DE / BKG 2021 (Daten modifiziert), VMAP0; Kartengrundlage OpenFreeMap / OpenStreetMap-Mitwirkende.</p>
     </>
   );
+}
+
+// --- Phase SG (audit/seewetter-sicht-konvektion.md) ----------------------------------------------------------------
+
+/** The three source rows of phase SG: measured visibility, the sight hint, the shower/thunderstorm hint. */
+function sightSourceRows(spot: SeaSpot | null, spotsDoc: SeaSpotsDoc | null): Array<[string, string, string, string]> {
+  const m = spotsDoc?.sight?.meta ?? null, has = !!(spot && spotsDoc?.sight?.spots[spot.id]);
+  const dmi = spot?.station?.net === 'dmi';
+  const c = m?.conv;
+  return [
+    [spot?.station ? 'gemessen' : '–', `Sichtweite · ${dmi ? 'DMI' : 'DWD'}-Station ${spot?.station?.name ?? '–'}`,
+      spot?.station ? (dmi ? `${spot.station.km} km vom Spot, Mittel der letzten 10 Minuten (metObs, ${DMI_CREDIT}); nicht jede Station meldet Sicht` : `${spot.station.km} km vom Spot, stündlich aus den Stationsmeldungen des DWD (POI); nicht jede Station meldet Sicht`) : '', spot?.station ? 'ok' : 'off'],
+    [has && m?.vis.state === 'ok' ? 'Hinweis' : 'fehlt', 'Sicht-Hinweis · eigene Rechnung auf buscosun Fusion',
+      has && m?.vis.state === 'ok' ? `${VIS_RULE} ${VIS_CHECK_NOTE}` : 'die Stundenreihe dieses Laufs trägt den Hinweis für diesen Spot nicht', has && m?.vis.state === 'ok' ? 'ok' : 'off'],
+    [has && c?.state === 'ok' ? 'Hinweis' : 'fehlt', 'Schauer und Gewitter · DWD ICON-D2 (Gewitterpotenzial, CAPE)',
+      c?.state === 'ok' ? `Modelllauf ${c.run.slice(6, 8)}.${c.run.slice(4, 6)}. ${c.run.slice(8, 10)} UTC, Gewitter bis ${dateTime(c.thunderTo)}, Schauer bis ${dateTime(c.capeTo)}; mit der Regenchance von buscosun Fusion. ${CONV_RULE}` : c?.state === 'none' ? c.why : 'die Stundenreihe dieses Laufs trägt den Hinweis nicht', has && c?.state === 'ok' ? 'ok' : 'off'],
+  ];
 }
 
 // --- Phase DK (audit/seewetter-daenemark.md) -----------------------------------------------------------------------

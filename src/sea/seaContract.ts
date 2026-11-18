@@ -11,7 +11,8 @@
  *   sea/v1/run/<model>/<run>/f/<sss>.png       total sea: R = Hs (5 cm), G = direction (256 steps), B = Tm−1,0 (0.1 s), A = water
  *   sea/v1/run/<model>/<run>/c/<sss>.png       components, double width: left wind sea, right swell, channels as f
  *   sea/v1/spots/<run>.json                    hourly series per spot: waves from CWAM, wind/gust from buscosun Fusion
- *                                              (phase SU: optional `q` per spot — q10 … q90 of wind and gust, also in `-w<t1>`)
+ *                                              (phase SU: optional `q` per spot — q10 … q90 of wind and gust, also in `-w<t1>`;
+ *                                              phase SG: optional `s` per spot — hint classes for showers/thunderstorms and sight)
  *   sea/v1/spots/<run>-w<t1>.json              wind/gust/direction of that run again on a newer t1 cube (V-SW-2; pointer `status.wind` = newest; all of a kept run stay, V-SW-15)
  *   sea/v1/text/<product>/<issue>.json         bulletin: raw (verbatim), header, issue time, display text, structure
  *   sea/v1/quarantine/<run|issue>.json         rejected runs/bulletins with rule and raw value (diagnosis only)
@@ -563,6 +564,115 @@ export function spotSeriesProblems(series: Partial<Record<SeaSpotVar, (number | 
   if (g && w) g.forEach((x, i) => { if (x != null && w[i] != null && x + SEA_GUST_BELOW_WIND < (w[i] as number)) out.push(`gust[${i}] ${x} < wind ${w[i]}`); });
   return out;
 }
+
+// --- Sight hint and shower/thunderstorm hint (phase SG, audit/seewetter-sicht-konvektion.md) -------
+
+/**
+ * Optional per spot, next to `v` and `q`: `s.conv` and `s.vis` — one small integer per hour of the run's axis (`null` = no
+ * statement for that hour). Written with every wind computation (`buildRun`, `windRefresh`); a file without `s` is a
+ * valid file (every run before phase SG) and the page then says "keine Daten". Both are HINTS from model values, never a
+ * warning and never an input of the profile classes.
+ *
+ *   conv  0 = no hint · 1 = "Schauer möglich" · 2 = "Gewitter möglich" — only for hours the ICON-D2 repack covers
+ *   vis   0 = "gut" · 1–3 = "eingeschränkt möglich" (1 humidity, 2 precipitation, 3 both) · 4 = "Nebel möglich"
+ */
+export const SEA_SIGHT_VARS = Object.freeze(['conv', 'vis'] as const);
+export type SeaSightVar = typeof SEA_SIGHT_VARS[number];
+export type SeaSightColumns<T = number> = Record<SeaSightVar, (T | null)[]>;
+export const SEA_SIGHT_MAX: Readonly<Record<SeaSightVar, number>> = Object.freeze({ conv: 2, vis: 4 });
+
+/**
+ * Shower/thunderstorm hint (E-SG-4) — every threshold `set`, not measured (the run of step 0 was calm at every spot):
+ * `thunderStorm`/`thunderShower` are the index levels "erhöht"/"gering" of the weather map (`thunderLevelOf`),
+ * `capeShowerJkg` the first support point of `capeScore`, `rainChance` the rain edge of the displays (`RAIN_GATE_P`).
+ * The repack carries the thunder index for run + 0…12 h and CAPE for run + 0…27 h; a run older than `maxRunAgeH` is not read.
+ */
+export const SEA_CONV = Object.freeze({ thunderShower: 8, thunderStorm: 30, capeShowerJkg: 100, rainChance: 0.3, thunderMaxLeadH: 12, capeMaxLeadH: 27, maxRunAgeH: 12 });
+/** Value scales of the two repack families as the producer of the repack writes them (checked against the index, else no read). */
+export const SEA_REPACK_SCALE = Object.freeze({ thunder: [0, 100] as const, cape: [0, 4000] as const });
+export type SeaConvClass = 0 | 1 | 2;
+/**
+ * The class of one hour. `thunder` (0–100) and `capeJkg` are `null` where the repack has no step for the hour; without
+ * both, or without the rain chance of buscosun Fusion, there is no statement (`null`). Beyond the thunder horizon only
+ * CAPE speaks, so the class is "Schauer möglich" at most.
+ */
+export function convClassOf(x: { thunder: number | null; capeJkg: number | null; pWet: number | null }): SeaConvClass | null {
+  const th = x.thunder != null && Number.isFinite(x.thunder) ? x.thunder : null, ca = x.capeJkg != null && Number.isFinite(x.capeJkg) ? x.capeJkg : null;
+  if ((th == null && ca == null) || x.pWet == null || !Number.isFinite(x.pWet)) return null;
+  if (x.pWet < SEA_CONV.rainChance) return 0;
+  if (th != null && th >= SEA_CONV.thunderStorm) return 2;
+  return (ca != null && ca >= SEA_CONV.capeShowerJkg) || (th != null && th >= SEA_CONV.thunderShower) ? 1 : 0;
+}
+
+/**
+ * Sight hint (E-SG-5) from the two parts of the road line's diagnosis (`roadVsVis.ts`, only read): `humidityM` =
+ * `hazeVisibilityM(T, Td)`, `precipM` = `precipVisibilityM(rain, snow)` (`null` = no precipitation). Measured at 22 coastal
+ * stations over 25 h (549 pairs, measured inputs): the precipitation part lies 5–15 times below the measured visibility,
+ * so it only answers "below 10 km: yes/no" and its kilometres are never shown; "Nebel möglich" comes from the humidity
+ * part alone. Without temperature or dew point there is no class.
+ */
+export const SEA_VIS = Object.freeze({ reducedM: 10_000, fogM: 4_000 });
+export type SeaVisCode = 0 | 1 | 2 | 3 | 4;
+export function visCodeOf(humidityM: number | null, precipM: number | null): SeaVisCode | null {
+  if (humidityM == null || !Number.isFinite(humidityM)) return null;
+  if (humidityM < SEA_VIS.fogM) return 4;
+  const h = humidityM < SEA_VIS.reducedM, p = precipM != null && Number.isFinite(precipM) && precipM < SEA_VIS.reducedM;
+  return h && p ? 3 : p ? 2 : h ? 1 : 0;
+}
+/** The three coarse classes the page shows. */
+export type SeaVisClass = 'gut' | 'eingeschraenkt' | 'nebel';
+export const visClassOfCode = (c: number | null | undefined): SeaVisClass | null => (c == null ? null : c === 0 ? 'gut' : c === 4 ? 'nebel' : c >= 1 && c <= 3 ? 'eingeschraenkt' : null);
+
+export const emptySightColumns = <T = number>(hours = SEA_SPOT_STEPS.length): SeaSightColumns<T> =>
+  Object.fromEntries(SEA_SIGHT_VARS.map((k) => [k, new Array<T | null>(hours).fill(null)])) as SeaSightColumns<T>;
+/** Does any hour of `s` carry a statement? */
+export const hasSight = (s: Partial<SeaSightColumns<unknown>> | null | undefined): boolean => !!s && SEA_SIGHT_VARS.some((k) => Array.isArray(s[k]) && s[k]!.some((x) => x != null));
+
+/** Value lock of the two columns of one spot (producer before writing, client before display). A spot that fails is shown without them. */
+export function spotSightProblems(s: unknown, hours = SEA_SPOT_STEPS.length): string[] {
+  const out: string[] = [];
+  if (s == null || typeof s !== 'object') return ['s: kein Objekt'];
+  for (const name of Object.keys(s)) if (!(SEA_SIGHT_VARS as readonly string[]).includes(name)) out.push(`s.${name}: unbekannte Spalte`);
+  for (const name of SEA_SIGHT_VARS) {
+    const a = (s as Partial<SeaSightColumns>)[name];
+    if (!Array.isArray(a) || a.length !== hours) { out.push(`s.${name}: Länge ${Array.isArray(a) ? a.length : '–'} statt ${hours}`); continue; }
+    a.forEach((x, i) => { if (x != null && (!Number.isInteger(x) || x < 0 || x > SEA_SIGHT_MAX[name])) out.push(`s.${name}[${i}] = ${x}`); });
+  }
+  return out;
+}
+
+/**
+ * The columns that go with `mergeSpotWind`: from hour `from` on they come from the refresh (also its nulls, also when the
+ * refresh carries none — a newer wind without a hint shows no hint), before it the run's own stay. Pure.
+ */
+export function mergeSpotSight<T>(base: Partial<SeaSightColumns<T>> | null | undefined, upd: Partial<SeaSightColumns<T>> | null | undefined, from: number, hours = SEA_SPOT_STEPS.length): SeaSightColumns<T> {
+  return Object.fromEntries(SEA_SIGHT_VARS.map((k) => [k, Array.from({ length: hours }, (_, i) => (i >= from ? upd?.[k]?.[i] : base?.[k]?.[i]) ?? null)])) as SeaSightColumns<T>;
+}
+
+/**
+ * Document block `sight` of a spot file: where the columns come from. `conv.state: 'none'` names why the repack gave
+ * nothing (never a silent gap); `thunderTo`/`capeTo` are the last valid hours (ms) the two families reach.
+ */
+export interface SeaSightMeta {
+  conv: { state: 'ok'; run: string; runMs: number; thunderTo: number; capeTo: number; source: string } | { state: 'none'; why: string };
+  vis: { state: 'ok' | 'none'; why?: string };
+  spots: number;
+  problems?: string[];
+}
+const ms = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
+/** The checked block, or `null` (old file, malformed block). */
+export function sightMetaOf(raw: unknown): SeaSightMeta | null {
+  const d = raw as { conv?: Record<string, unknown>; vis?: Record<string, unknown>; spots?: unknown } | null;
+  if (!d || typeof d !== 'object' || !d.conv || !d.vis) return null;
+  const c = d.conv;
+  const conv: SeaSightMeta['conv'] | null = c.state === 'ok' && typeof c.run === 'string' && /^\d{10}$/.test(c.run) && ms(c.runMs) && ms(c.thunderTo) && ms(c.capeTo)
+    ? { state: 'ok', run: c.run, runMs: c.runMs, thunderTo: c.thunderTo, capeTo: c.capeTo, source: typeof c.source === 'string' ? c.source : '' }
+    : c.state === 'none' && typeof c.why === 'string' ? { state: 'none', why: c.why } : null;
+  if (!conv || (d.vis.state !== 'ok' && d.vis.state !== 'none')) return null;
+  return { conv, vis: { state: d.vis.state, ...(typeof d.vis.why === 'string' ? { why: d.vis.why } : {}) }, spots: ms(d.spots) ? d.spots : 0 };
+}
+/** A repack run older than this at display time carries no hour of the thunder index any more — shown as "keine Daten". */
+export const seaConvStale = (runMs: number, nowMs: number): boolean => !Number.isFinite(runMs) || nowMs - runMs > SEA_CONV.maxRunAgeH * 3_600_000;
 
 // --- Current at the spot (phase ST, audit/seewetter-stroemung.md) ---------------------------------
 

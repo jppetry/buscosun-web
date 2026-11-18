@@ -3582,3 +3582,49 @@ Beide wirken auf die heutige Seite und den heutigen Producer **nicht**. Kein Wor
    V-WT-1 … 15, vor allem V-WT-1 (das Modell lag an Häfen und im Watt 0,4–3,1 K unter der Messung — nach 14 Tagen aus der
    Ablage auswerten), V-WT-2 (64 Abrufe vor dem Veröffentlichen der Texte), V-WT-5 (deutsche Ostsee ohne Messung) und
    V-WT-6 (Jahresgang jeden Januar neu bauen).
+
+## 96. Sicht und Schauer-/Gewitter-Hinweis auf `/seewetter` (Phase SG, `audit/seewetter-sicht-konvektion.md`), 2026-11-18
+
+Ohne Schalter an für alle (deine Entscheidung). Lokal auf `main` committet, **nicht gepusht**. In die Daten-Repos habe ich
+in dieser Phase **nichts** gepusht (kein Workflow geändert; der Producer liest den ICON-D2-Repack über
+`raw.githubusercontent`).
+
+1. **Zuerst, außerhalb der Phase (V-SG-9):** der t1-Würfel von buscosun Fusion steht. `point/index.json` nennt für t1 seit dem
+   17.11. 15 UTC den Lauf `2026111715` (t2: `2026111812`), der Workflow `point` endet trotzdem grün; `sea/v1/status.json`
+   → `wind` ist vom 17.11. 17:38 UTC. Solange das so ist, rechnet die Seelinie Wind und Hinweise nur mit jedem Wellenlauf
+   (≈ 04:10 und 16:10 UTC) statt alle 3 h. Bitte den Punkt-Cron ansehen.
+2. **Sichtprüfung (von mir nicht im Browser gesehen):** `/seewetter/<spot>` → Kapitel „Wetter“.
+   - Stundenband: neue dünne Zeile „Sicht“ (Strich = gut, Schleier = eingeschränkt möglich, dichter Schleier = Nebel
+     möglich, Schraffur = keine Daten) unter „Wellen“; sitzt sie ruhig, ist das Band nicht zu hoch geworden, bricht der
+     Fuß sauber um (V-SG-10)? Die Marke in der Zeile „Böen“ (Regenstriche / Blitz in der Zellenecke) siehst du erst an
+     einem Tag mit Schauern — oder im Prüfer-Markup (`verify:sea-sight` J8).
+   - Karte „Sicht, Schauer und Gewitter“ zwischen „Wind und Seegang“ und „Strömung“: links die gemessene Sicht, rechts
+     der Hinweis, darunter die amtliche Zeile „Sicht/Wetter“ und der Schauer-Hinweis; mobil untereinander.
+   - **Vor dem Push** steht in Zeile und Karte beim Hinweis „keine Daten“ (die Live-Dateien tragen die Spalten noch nicht);
+     Messung und amtliche Zeile siehst du sofort. Mit echten Spalten ansehen: lokal
+     `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/sea/sea-derive.mjs --store=<Kopie von sea/v1> --data=cdn --wind`
+     (≈ 90 s) — ich habe die Datei nicht veröffentlicht.
+   - Spots ohne gemessene Sicht: alle an List/Sylt und Leuchtturm Alte Weser (6), Langeland Bagenkop, Middelfart, Gedser.
+3. **Push:** `git push origin main`. Danach, ohne Handgriff: die nächste Windrechnung in `sea.yml` (neuer t1-Lauf, sonst
+   der nächste Wellenlauf) schreibt die Spalten `s` und den Block `sight` in `spots/<lauf>.json` bzw. `-w<t1>.json`; der
+   nächste `sea-archiv`-Lauf legt POI-Zeilen mit Sicht, Temperatur, Taupunkt, Niederschlag und `vis-dmi.json.gz` ab.
+4. **Prüfen nach dem Push:** `https://raw.githubusercontent.com/jppetry/buscosun-data/main/sea/v1/status.json` → `wind.path`
+   öffnen: das Dokument trägt `sight` mit `conv.state: "ok"` und einem `run` der letzten Stunden, die Spots `s`. Steht
+   dort `conv.state: "none"`, nennt `why` den Grund (Repack nicht lesbar oder älter als 12 h) — der Wind ist davon
+   unberührt. Der Schritt „Wind refresh“ dauert ≈ 12 s länger (41 kleine Abrufe).
+5. **Budget:** `totalJs` von Hand 2 004 → 2 010 (Notiz in `budget.json`); die Phase kostet 5,8 KB gzip, gemessen im
+   sauberen Baum. Mit der uncommitteten Radar-Linie (§94) zusammen liegt der Bau darüber — wer sie committet, hebt mit
+   eigener Notiz.
+6. **CI:** `node scripts/ci-run.mjs verify:sea-sight` in `.github/workflows/ci.yml` eintragen (V-SG-11).
+7. **Entscheiden** (`audit/seewetter-sicht-konvektion.md` §3): **E-SG-4** Schwellen Schauer/Gewitter (Index 8 / 30, CAPE
+   100 J/kg, Regenchance 30 % — gesetzt). **E-SG-5** der Regen-Teil der Sicht-Diagnose sagt nur „unter 10 km möglich“,
+   Kilometer nennt der Hinweis nie. **E-SG-6** eine Zelle am Spot statt Umkreis. **E-SG-7** gemessene Sicht höchstens 3 h
+   (DWD) bzw. 1 h (DMI) alt. **E-SG-9** Planer: ein Eintrag im Zeitstrahl.
+8. **Rückfall:** kein Schalter auf der Seite. Ohne Deploy von `buscosun-web`: in `sea.yml` (Daten-Repo) unter `env:` die Zeile
+   `SEA_SIGHT: '0'` setzen ⇒ der Producer schreibt keine Spalten mehr, die Seite zeigt beim Hinweis „keine Daten“ (Messung und amtliche Zeile
+   bleiben). Ganz: den Commit zurücknehmen und pushen.
+9. **Offen:** Sichtprüfung und Real-Device (Punkt 2); Konsole, Touch-Ziele am Gerät, Long Tasks, Pixelgleichheit der
+   übrigen Seite **nicht** gemessen; `verify:sea-ui` nicht gelaufen (Browser). V-SG-1 … 12, vor allem **V-SG-3** (mit
+   Vorhersagewerten nur 22 Stationsstunden geprüft, buscosun Fusion dort 1,1 K zu trocken ⇒ „Nebel möglich“ zu selten;
+   nach 14 Tagen aus der Ablage auswerten), **V-SG-1** (Schwellen an Schauerlagen messen) und **V-SG-4** (der Regen-Teil
+   von `roadVsVis.ts` rechnet 5–15-mal zu kurze Sicht — betrifft auch den virtuellen Fahrbahnsensor).

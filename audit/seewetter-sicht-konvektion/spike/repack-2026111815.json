@@ -1,0 +1,4503 @@
+{
+ "at": "2026-11-18T19:38:32.879Z",
+ "summary": {
+  "run": "2026111815",
+  "thunderSteps": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12
+  ],
+  "capeSteps": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13,
+   14,
+   15,
+   16,
+   17,
+   18,
+   19,
+   20,
+   21,
+   22,
+   23,
+   24,
+   25,
+   26,
+   27
+  ],
+  "thunderGrid": [
+   608,
+   373
+  ],
+  "capeGrid": [
+   1215,
+   746
+  ],
+  "spots": 64,
+  "thunderRange": [
+   0,
+   1
+  ],
+  "capeRange": [
+   0,
+   47
+  ],
+  "outside": [],
+  "maxDiffThunder": 1,
+  "maxDiffCape": 16,
+  "spotsWithThunderGe": {
+   "1": 26,
+   "10": 0,
+   "20": 0,
+   "30": 0,
+   "40": 0
+  },
+  "spotsWithCapeGe": {
+   "50": 0,
+   "100": 0,
+   "200": 0,
+   "400": 0,
+   "800": 0
+  }
+ },
+ "spots": [
+  {
+   "id": "borkum",
+   "country": "DE",
+   "cellKm": 0.44,
+   "thunderCell": [
+    0,
+    1
+   ],
+   "thunderSpot": [
+    0,
+    1
+   ],
+   "capeCell": [
+    0,
+    16
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    1,
+    1,
+    0,
+    0,
+    1,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    16,
+    16,
+    0,
+    16,
+    16,
+    0,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "juist",
+   "country": "DE",
+   "cellKm": 0.86,
+   "thunderCell": [
+    0,
+    1
+   ],
+   "thunderSpot": [
+    0,
+    1
+   ],
+   "capeCell": [
+    0,
+    31
+   ],
+   "capeSpot": [
+    0,
+    31
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    16,
+    16,
+    31,
+    16,
+    16,
+    16,
+    0,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "norderney",
+   "country": "DE",
+   "cellKm": 0.55,
+   "thunderCell": [
+    0,
+    1
+   ],
+   "thunderSpot": [
+    0,
+    1
+   ],
+   "capeCell": [
+    0,
+    31
+   ],
+   "capeSpot": [
+    0,
+    31
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    31,
+    16,
+    16,
+    0,
+    0,
+    0,
+    0,
+    31,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "norddeich",
+   "country": "DE",
+   "cellKm": 0.37,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    16
+   ],
+   "capeSpot": [
+    0,
+    0
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 16,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "langeoog",
+   "country": "DE",
+   "cellKm": 0.46,
+   "thunderCell": [
+    0,
+    1
+   ],
+   "thunderSpot": [
+    0,
+    1
+   ],
+   "capeCell": [
+    0,
+    31
+   ],
+   "capeSpot": [
+    0,
+    31
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 16,
+   "outside": 0,
+   "thunder": [
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    31,
+    16,
+    0,
+    0,
+    31,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "spiekeroog",
+   "country": "DE",
+   "cellKm": 0.63,
+   "thunderCell": [
+    0,
+    1
+   ],
+   "thunderSpot": [
+    0,
+    1
+   ],
+   "capeCell": [
+    0,
+    31
+   ],
+   "capeSpot": [
+    0,
+    31
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 16,
+   "outside": 0,
+   "thunder": [
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    31,
+    0,
+    0,
+    0,
+    16,
+    0,
+    0,
+    0,
+    0,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "wangerooge",
+   "country": "DE",
+   "cellKm": 1,
+   "thunderCell": [
+    0,
+    1
+   ],
+   "thunderSpot": [
+    0,
+    1
+   ],
+   "capeCell": [
+    0,
+    31
+   ],
+   "capeSpot": [
+    0,
+    31
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    0,
+    0,
+    0,
+    16,
+    0,
+    16,
+    0,
+    16,
+    16,
+    31,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "schillig",
+   "country": "DE",
+   "cellKm": 0.66,
+   "thunderCell": [
+    0,
+    1
+   ],
+   "thunderSpot": [
+    0,
+    1
+   ],
+   "capeCell": [
+    0,
+    31
+   ],
+   "capeSpot": [
+    0,
+    31
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 16,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    16,
+    16,
+    0,
+    31,
+    0,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "wilhelmshaven",
+   "country": "DE",
+   "cellKm": 0.39,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    16
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    16,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "dangast",
+   "country": "DE",
+   "cellKm": 1.15,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    16
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    0,
+    0,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "cuxhaven-duhnen",
+   "country": "DE",
+   "cellKm": 1.35,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    0
+   ],
+   "capeSpot": [
+    0,
+    0
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "helgoland",
+   "country": "DE",
+   "cellKm": 0.59,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    16
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    16,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "buesum",
+   "country": "DE",
+   "cellKm": 0.52,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    0
+   ],
+   "capeSpot": [
+    0,
+    0
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "st-peter-ording",
+   "country": "DE",
+   "cellKm": 2.03,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    0
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 16,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "pellworm",
+   "country": "DE",
+   "cellKm": 0.77,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    0
+   ],
+   "capeSpot": [
+    0,
+    0
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "husum",
+   "country": "DE",
+   "cellKm": 1.24,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    0
+   ],
+   "capeSpot": [
+    0,
+    0
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "amrum",
+   "country": "DE",
+   "cellKm": 0.24,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    0
+   ],
+   "capeSpot": [
+    0,
+    0
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "foehr-wyk",
+   "country": "DE",
+   "cellKm": 0.44,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    0
+   ],
+   "capeSpot": [
+    0,
+    0
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "sylt-hoernum",
+   "country": "DE",
+   "cellKm": 0.69,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    0
+   ],
+   "capeSpot": [
+    0,
+    0
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "sylt-westerland",
+   "country": "DE",
+   "cellKm": 0.83,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    0
+   ],
+   "capeSpot": [
+    0,
+    0
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "sylt-list",
+   "country": "DE",
+   "cellKm": 0.63,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    0
+   ],
+   "capeSpot": [
+    0,
+    0
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "elbe-wittenbergen",
+   "country": "DE",
+   "cellKm": 0.53,
+   "thunderCell": [
+    0,
+    1
+   ],
+   "thunderSpot": [
+    0,
+    1
+   ],
+   "capeCell": [
+    0,
+    31
+   ],
+   "capeSpot": [
+    0,
+    31
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    31,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "flensburg",
+   "country": "DE",
+   "cellKm": 0.75,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    16
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "holnis",
+   "country": "DE",
+   "cellKm": 0.59,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    16
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "schleimuende",
+   "country": "DE",
+   "cellKm": 0.12,
+   "thunderCell": [
+    0,
+    1
+   ],
+   "thunderSpot": [
+    0,
+    1
+   ],
+   "capeCell": [
+    0,
+    31
+   ],
+   "capeSpot": [
+    0,
+    31
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    31,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    16
+   ]
+  },
+  {
+   "id": "damp",
+   "country": "DE",
+   "cellKm": 0.92,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    16
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    16
+   ]
+  },
+  {
+   "id": "eckernfoerde",
+   "country": "DE",
+   "cellKm": 0.79,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    16
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    16,
+    0,
+    0,
+    0,
+    0,
+    16
+   ]
+  },
+  {
+   "id": "kiel-schilksee",
+   "country": "DE",
+   "cellKm": 0.17,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    16
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "laboe",
+   "country": "DE",
+   "cellKm": 0.6,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    16
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    16,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "schoenberger-strand",
+   "country": "DE",
+   "cellKm": 0.55,
+   "thunderCell": [
+    0,
+    1
+   ],
+   "thunderSpot": [
+    0,
+    1
+   ],
+   "capeCell": [
+    0,
+    31
+   ],
+   "capeSpot": [
+    0,
+    31
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    16,
+    16,
+    31,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    16,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "hohwacht",
+   "country": "DE",
+   "cellKm": 0.82,
+   "thunderCell": [
+    0,
+    1
+   ],
+   "thunderSpot": [
+    0,
+    1
+   ],
+   "capeCell": [
+    0,
+    31
+   ],
+   "capeSpot": [
+    0,
+    31
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    16,
+    31,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "heiligenhafen",
+   "country": "DE",
+   "cellKm": 0.4,
+   "thunderCell": [
+    0,
+    1
+   ],
+   "thunderSpot": [
+    0,
+    1
+   ],
+   "capeCell": [
+    0,
+    16
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    1,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0
+   ],
+   "cape": [
+    0,
+    16,
+    0,
+    16,
+    0,
+    0,
+    0,
+    16,
+    16,
+    0,
+    0,
+    16,
+    16,
+    16,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    16,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "grossenbrode",
+   "country": "DE",
+   "cellKm": 0.64,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    16
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 16,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    16,
+    16,
+    16,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    16,
+    16,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "fehmarn-gruener-brink",
+   "country": "DE",
+   "cellKm": 0.49,
+   "thunderCell": [
+    0,
+    1
+   ],
+   "thunderSpot": [
+    0,
+    1
+   ],
+   "capeCell": [
+    0,
+    16
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 16,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    16,
+    0,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "fehmarn-wulfen",
+   "country": "DE",
+   "cellKm": 0.87,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    16
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 16,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "fehmarn-burgtiefe",
+   "country": "DE",
+   "cellKm": 0.65,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    16
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "groemitz",
+   "country": "DE",
+   "cellKm": 0.24,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    16
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    0,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    16,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "pelzerhaken",
+   "country": "DE",
+   "cellKm": 0.53,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    16
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "scharbeutz",
+   "country": "DE",
+   "cellKm": 0.21,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    0
+   ],
+   "capeSpot": [
+    0,
+    0
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "travemuende",
+   "country": "DE",
+   "cellKm": 0.48,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    16
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "boltenhagen",
+   "country": "DE",
+   "cellKm": 0.48,
+   "thunderCell": [
+    0,
+    1
+   ],
+   "thunderSpot": [
+    0,
+    1
+   ],
+   "capeCell": [
+    0,
+    31
+   ],
+   "capeSpot": [
+    0,
+    31
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    31,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "poel",
+   "country": "DE",
+   "cellKm": 1.24,
+   "thunderCell": [
+    0,
+    1
+   ],
+   "thunderSpot": [
+    0,
+    1
+   ],
+   "capeCell": [
+    0,
+    47
+   ],
+   "capeSpot": [
+    0,
+    47
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    0,
+    31,
+    47,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "rerik",
+   "country": "DE",
+   "cellKm": 1.63,
+   "thunderCell": [
+    0,
+    1
+   ],
+   "thunderSpot": [
+    0,
+    1
+   ],
+   "capeCell": [
+    0,
+    47
+   ],
+   "capeSpot": [
+    0,
+    31
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 16,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    1,
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    0,
+    47,
+    31,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    16,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "kuehlungsborn",
+   "country": "DE",
+   "cellKm": 1.26,
+   "thunderCell": [
+    0,
+    1
+   ],
+   "thunderSpot": [
+    0,
+    1
+   ],
+   "capeCell": [
+    0,
+    31
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 16,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    1,
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1
+   ],
+   "cape": [
+    0,
+    0,
+    16,
+    16,
+    31,
+    0,
+    0,
+    0,
+    16,
+    0,
+    0,
+    0,
+    31,
+    16,
+    16,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    16,
+    16,
+    16,
+    0
+   ]
+  },
+  {
+   "id": "warnemuende",
+   "country": "DE",
+   "cellKm": 0.46,
+   "thunderCell": [
+    0,
+    1
+   ],
+   "thunderSpot": [
+    0,
+    1
+   ],
+   "capeCell": [
+    0,
+    31
+   ],
+   "capeSpot": [
+    0,
+    31
+   ],
+   "maxDiffThunder": 1,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1
+   ],
+   "cape": [
+    0,
+    0,
+    0,
+    0,
+    16,
+    16,
+    0,
+    0,
+    16,
+    16,
+    31,
+    16,
+    31,
+    16,
+    16,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    16,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "graal-mueritz",
+   "country": "DE",
+   "cellKm": 0.42,
+   "thunderCell": [
+    0,
+    1
+   ],
+   "thunderSpot": [
+    0,
+    1
+   ],
+   "capeCell": [
+    0,
+    31
+   ],
+   "capeSpot": [
+    0,
+    31
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    16,
+    0,
+    31,
+    0,
+    16,
+    0,
+    0,
+    0,
+    16,
+    0,
+    16,
+    0,
+    0,
+    31,
+    16,
+    16,
+    0,
+    0,
+    0,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    16
+   ]
+  },
+  {
+   "id": "ahrenshoop",
+   "country": "DE",
+   "cellKm": 0.44,
+   "thunderCell": [
+    0,
+    1
+   ],
+   "thunderSpot": [
+    0,
+    1
+   ],
+   "capeCell": [
+    0,
+    16
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 16,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1
+   ],
+   "cape": [
+    0,
+    0,
+    0,
+    0,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    16,
+    16,
+    16,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "zingst",
+   "country": "DE",
+   "cellKm": 0.46,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    31
+   ],
+   "capeSpot": [
+    0,
+    31
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    16,
+    0,
+    0,
+    0,
+    0,
+    16,
+    0,
+    0,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    31,
+    16,
+    0,
+    0,
+    0,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "hiddensee",
+   "country": "DE",
+   "cellKm": 0.64,
+   "thunderCell": [
+    0,
+    1
+   ],
+   "thunderSpot": [
+    0,
+    1
+   ],
+   "capeCell": [
+    0,
+    16
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    16,
+    0,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    16,
+    16,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "juliusruh",
+   "country": "DE",
+   "cellKm": 1.05,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    16
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 16,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    16,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    16,
+    16,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "binz",
+   "country": "DE",
+   "cellKm": 0.62,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    16
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 16,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    0,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    16,
+    0,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "goehren",
+   "country": "DE",
+   "cellKm": 0.81,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    16
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 16,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    0,
+    0,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    16,
+    0,
+    16,
+    16,
+    16,
+    0,
+    16,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "lubmin",
+   "country": "DE",
+   "cellKm": 0.49,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    16
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    16,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    16,
+    0
+   ]
+  },
+  {
+   "id": "zinnowitz",
+   "country": "DE",
+   "cellKm": 0.57,
+   "thunderCell": [
+    0,
+    1
+   ],
+   "thunderSpot": [
+    0,
+    1
+   ],
+   "capeCell": [
+    0,
+    16
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    16,
+    0,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    16,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    16
+   ]
+  },
+  {
+   "id": "heringsdorf",
+   "country": "DE",
+   "cellKm": 0.88,
+   "thunderCell": [
+    0,
+    1
+   ],
+   "thunderSpot": [
+    0,
+    1
+   ],
+   "capeCell": [
+    0,
+    47
+   ],
+   "capeSpot": [
+    0,
+    47
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    31,
+    47,
+    16,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "ueckermuende",
+   "country": "DE",
+   "cellKm": 1.32,
+   "thunderCell": [
+    0,
+    1
+   ],
+   "thunderSpot": [
+    0,
+    1
+   ],
+   "capeCell": [
+    0,
+    47
+   ],
+   "capeSpot": [
+    0,
+    31
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 16,
+   "outside": 0,
+   "thunder": [
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    47,
+    31,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "roemoe",
+   "country": "DK",
+   "cellKm": 0.02,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    0
+   ],
+   "capeSpot": [
+    0,
+    0
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "fanoe",
+   "country": "DK",
+   "cellKm": 0.44,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    0
+   ],
+   "capeSpot": [
+    0,
+    0
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "hvide-sande",
+   "country": "DK",
+   "cellKm": 0.4,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    0
+   ],
+   "capeSpot": [
+    0,
+    0
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "als-kegnaes",
+   "country": "DK",
+   "cellKm": 0.48,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    16
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "langeland-bagenkop",
+   "country": "DK",
+   "cellKm": 0.7,
+   "thunderCell": [
+    0,
+    1
+   ],
+   "thunderSpot": [
+    0,
+    1
+   ],
+   "capeCell": [
+    0,
+    16
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    16,
+    0,
+    0,
+    0,
+    0,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "aeroe-marstal",
+   "country": "DK",
+   "cellKm": 0.76,
+   "thunderCell": [
+    0,
+    1
+   ],
+   "thunderSpot": [
+    0,
+    1
+   ],
+   "capeCell": [
+    0,
+    16
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    16,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "middelfart",
+   "country": "DK",
+   "cellKm": 0.55,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    16
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": "gedser",
+   "country": "DK",
+   "cellKm": 0.31,
+   "thunderCell": [
+    0,
+    0
+   ],
+   "thunderSpot": [
+    0,
+    0
+   ],
+   "capeCell": [
+    0,
+    16
+   ],
+   "capeSpot": [
+    0,
+    16
+   ],
+   "maxDiffThunder": 0,
+   "maxDiffCape": 0,
+   "outside": 0,
+   "thunder": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "cape": [
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    16,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    16,
+    0,
+    0,
+    0
+   ]
+  }
+ ]
+}

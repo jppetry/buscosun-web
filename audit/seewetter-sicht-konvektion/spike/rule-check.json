@@ -1,0 +1,44 @@
+{
+ "at": "2026-11-18T20:06:38.228Z",
+ "input": "measured T, Td, RR of the same station and hour (POI)",
+ "pairs": 549,
+ "stations": 22,
+ "gut": {
+  "n": 128,
+  "measured": {
+   "ge10": 124,
+   "km4to10": 4,
+   "km1to4": 0,
+   "lt1": 0
+  },
+  "above10Pct": 97,
+  "below10Pct": 3,
+  "below4Pct": 0
+ },
+ "eingeschraenkt": {
+  "n": 371,
+  "measured": {
+   "ge10": 263,
+   "km4to10": 94,
+   "km1to4": 14,
+   "lt1": 0
+  },
+  "above10Pct": 71,
+  "below10Pct": 29,
+  "below4Pct": 4
+ },
+ "nebel": {
+  "n": 50,
+  "measured": {
+   "ge10": 18,
+   "km4to10": 20,
+   "km1to4": 11,
+   "lt1": 1
+  },
+  "above10Pct": 36,
+  "below10Pct": 64,
+  "below4Pct": 24
+ },
+ "below10Total": 144,
+ "below10InLowerClassesPct": 97
+}

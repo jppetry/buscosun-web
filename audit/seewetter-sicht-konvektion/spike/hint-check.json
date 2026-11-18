@@ -1,0 +1,35 @@
+{
+ "at": "2026-11-18T20:26:05.610Z",
+ "input": "buscosun Fusion t2m, td2m, precip at the station position (computed before the measurement)",
+ "pairs": 22,
+ "leadsH": {
+  "0": 22
+ },
+ "table": {
+  "classes": [
+   "≥ 10 km",
+   "4–10 km",
+   "< 4 km"
+  ],
+  "gut": [
+   15,
+   2,
+   0
+  ],
+  "eingeschraenkt": [
+   4,
+   0,
+   1
+  ],
+  "nebel": [
+   0,
+   0,
+   0
+  ]
+ },
+ "spreadFusionMinusMeasuredK": {
+  "median": 1.13,
+  "p10": 0.52,
+  "p90": 1.77
+ }
+}

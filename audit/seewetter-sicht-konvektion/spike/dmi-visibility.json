@@ -1,0 +1,173 @@
+{
+ "at": "2026-11-18T19:37:54.822Z",
+ "stations": [
+  {
+   "id": "06096",
+   "name": "Rømø/Juvre",
+   "spots": [
+    "roemoe"
+   ],
+   "visibility": {
+    "n": 144,
+    "minM": 4998,
+    "maxM": 50000,
+    "newest": "2026-11-18T19:30:00Z",
+    "newestAgeMin": 8
+   },
+   "visib_mean_last10min": {
+    "n": 144,
+    "minM": 5037,
+    "maxM": 50000,
+    "newest": "2026-11-18T19:30:00Z",
+    "newestAgeMin": 8
+   }
+  },
+  {
+   "id": "06080",
+   "name": "Esbjerg Lufthavn",
+   "spots": [
+    "fanoe"
+   ],
+   "visibility": {
+    "n": 142,
+    "minM": 3300,
+    "maxM": 75000,
+    "newest": "2026-11-18T19:30:00Z",
+    "newestAgeMin": 8
+   },
+   "visib_mean_last10min": {
+    "n": 142,
+    "minM": 3300,
+    "maxM": 50000,
+    "newest": "2026-11-18T19:30:00Z",
+    "newestAgeMin": 8
+   }
+  },
+  {
+   "id": "06058",
+   "name": "Hvide Sande",
+   "spots": [
+    "hvide-sande"
+   ],
+   "visibility": {
+    "n": 144,
+    "minM": 5179,
+    "maxM": 50000,
+    "newest": "2026-11-18T19:30:00Z",
+    "newestAgeMin": 8
+   },
+   "visib_mean_last10min": {
+    "n": 144,
+    "minM": 6473,
+    "maxM": 50000,
+    "newest": "2026-11-18T19:30:00Z",
+    "newestAgeMin": 8
+   }
+  },
+  {
+   "id": "06119",
+   "name": "Kegnæs Fyr",
+   "spots": [
+    "als-kegnaes"
+   ],
+   "visibility": {
+    "n": 144,
+    "minM": 2955,
+    "maxM": 50000,
+    "newest": "2026-11-18T19:30:00Z",
+    "newestAgeMin": 8
+   },
+   "visib_mean_last10min": {
+    "n": 144,
+    "minM": 3834,
+    "maxM": 46812,
+    "newest": "2026-11-18T19:30:00Z",
+    "newestAgeMin": 8
+   }
+  },
+  {
+   "id": "06138",
+   "name": "Langø",
+   "spots": [
+    "langeland-bagenkop"
+   ],
+   "visibility": {
+    "n": 0,
+    "minM": null,
+    "maxM": null,
+    "newest": null,
+    "newestAgeMin": null
+   },
+   "visib_mean_last10min": {
+    "n": 0,
+    "minM": null,
+    "maxM": null,
+    "newest": null,
+    "newestAgeMin": null
+   }
+  },
+  {
+   "id": "06124",
+   "name": "Elvira Madigan Airport",
+   "spots": [
+    "aeroe-marstal"
+   ],
+   "visibility": {
+    "n": 144,
+    "minM": 2344,
+    "maxM": 50000,
+    "newest": "2026-11-18T19:30:00Z",
+    "newestAgeMin": 8
+   },
+   "visib_mean_last10min": {
+    "n": 144,
+    "minM": 2382,
+    "maxM": 49296,
+    "newest": "2026-11-18T19:30:00Z",
+    "newestAgeMin": 8
+   }
+  },
+  {
+   "id": "06108",
+   "name": "Kolding Lufthavn",
+   "spots": [
+    "middelfart"
+   ],
+   "visibility": {
+    "n": 0,
+    "minM": null,
+    "maxM": null,
+    "newest": null,
+    "newestAgeMin": null
+   },
+   "visib_mean_last10min": {
+    "n": 0,
+    "minM": null,
+    "maxM": null,
+    "newest": null,
+    "newestAgeMin": null
+   }
+  },
+  {
+   "id": "06149",
+   "name": "Gedser",
+   "spots": [
+    "gedser"
+   ],
+   "visibility": {
+    "n": 0,
+    "minM": null,
+    "maxM": null,
+    "newest": null,
+    "newestAgeMin": null
+   },
+   "visib_mean_last10min": {
+    "n": 0,
+    "minM": null,
+    "maxM": null,
+    "newest": null,
+    "newestAgeMin": null
+   }
+  }
+ ]
+}

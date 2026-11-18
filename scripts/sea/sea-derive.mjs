@@ -16,6 +16,8 @@
  *     [--now=<iso>] [--ewam=0]
  *     [--wind-check]   V-SW-2: is a wind refresh of the published run due (newer t1 run in the cube index, read raw)?
  *     [--wind --data=<cube checkout|cdn>]   compute it: `spots/<run>-w<t1>.json` + `status.wind`, nothing else changes
+ *     [--repack=<buscosun-data checkout>]   phase SG: read the ICON-D2 repack (index.json, runs/) from a directory instead of
+ *                                           raw.githubusercontent; SEA_SIGHT=0 writes no hint columns at all
  * Kill switch: SEA_KILL=1 (status.killSwitch, nothing built). Last stdout line = JSON summary.
  */
 import { mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync, rmSync, renameSync, statSync, cpSync } from 'node:fs';
@@ -36,6 +38,8 @@ import {
 } from '../../src/sea/seaContract.ts';
 // Phase SU: read-only use of the engine's distribution (`dist.ts` is pure and imports nothing).
 import { quantiles } from '../../src/pointForecast/fusion/dist.ts';
+// Phase SG: the hint columns `s` (showers/thunderstorms from the published ICON-D2 repack, sight from the road line's diagnosis).
+import { sightFor, fusionSightSteps, httpRepack, dirRepack } from './sea-sight.mjs';
 
 const SELF = fileURLToPath(import.meta.url);
 const H = 3_600_000;
@@ -309,7 +313,7 @@ export async function spotWind({ dataDir, spots, geoDoc, nowMs, runMs, log = () 
   if (!(await io.clima())) throw new Error('Klimatologie von buscosun Fusion fehlt (public/climaGrid.json nicht im Checkout des Producers) — kein Wind an den Spots');
   const t0 = Math.floor(nowMs / H) * H;
   const hours = Math.max(1, Math.round((runMs + 78 * H - t0) / H) + 1);
-  const out = {}, failed = [];
+  const out = {}, failed = [], sightIn = {};
   let runs = null, version = null;
   for (const sp of spots) {
     // Phase DK: a spot outside the point cube gets its wind from DMI (`sea-dmi.mjs`), never from here — not a failure.
@@ -323,6 +327,8 @@ export async function spotWind({ dataDir, spots, geoDoc, nowMs, runMs, log = () 
       const series = spotWindSeries(steps, runMs);
       if (!series) { failed.push({ id: sp.id, error: 'buscosun Fusion ohne Windwert an jeder Stunde des Laufs' }); continue; }
       out[sp.id] = series;
+      // Phase SG: temperature, dew point, precipitation and rain chance of the same steps — read, nothing computed again.
+      sightIn[sp.id] = fusionSightSteps(steps);
       version ??= fusionVersionOfNotes(fc.cube.notes);
       const r = fc.cube.v2.provenance?.runs ?? {};
       runs ??= { t1: r.t1?.run ?? null, t2: r.t2?.run ?? null, t3: r.t3?.run ?? null, stations: r.stations?.run ?? null };
@@ -330,7 +336,7 @@ export async function spotWind({ dataDir, spots, geoDoc, nowMs, runMs, log = () 
   }
   log(`Wind: ${Object.keys(out).length}/${spots.length} Spots, ${failed.length} ohne`);
   return {
-    series: out, failed,
+    series: out, failed, sightIn,
     meta: { engine: fusionName(version ?? FUSION_CURRENT), version: version ?? null, stageCurrent: version === FUSION_CURRENT, computedAt: new Date(nowMs).toISOString(), hoursFrom: new Date(t0).toISOString(), runs },
   };
 }
@@ -353,6 +359,15 @@ export const bandDoc = (spots, problems) => ({
   keys: SEA_Q_KEYS, vars: SEA_Q_VARS, unit: '0.1 m/s', spots, ...(problems.length ? { problems } : {}),
   from: 'buscosun Fusion: Verteilung je Stunde (quantiles); interpolierte Stunden q10/q50/q90 aus der Ausgabe, q25/q75 linear zwischen den Nachbarstunden mit Verteilung',
 });
+
+/**
+ * Phase SG — the hint columns after a wind computation (`sea-sight.mjs`), or `null`: producer switch `SEA_SIGHT=0`, a wind
+ * without the engine's steps (verifier stand-ins, a failed computation), or any error. Never stops the wind.
+ */
+export async function spotSight({ wind, spots, runMs, nowMs, repack, log = () => {} }) {
+  if (process.env.SEA_SIGHT === '0' || !wind?.sightIn) return null;
+  try { return await sightFor({ sightIn: wind.sightIn, spots, runMs, nowMs, reader: repack, log }); } catch (e) { log(`Hinweise fehlgeschlagen: ${String(e?.message ?? e).split('\n')[0]}`); return null; }
+}
 
 // --- status, retention ------------------------------------------------------------------------------------
 export function readStatus(storeDir) {
@@ -399,7 +414,7 @@ export function pruneRuns(storeDir, model = MODEL) {
 }
 
 // --- the whole run ----------------------------------------------------------------------------------------
-export async function buildRun({ storeDir, dataDir = null, cacheDir, run, inv = null, nowMs = Date.now(), ewam = true, fetchImpl = fetch, log = () => {}, killed = process.env.SEA_KILL === '1', windImpl = spotWind, fileOf = null }) {
+export async function buildRun({ storeDir, dataDir = null, cacheDir, run, inv = null, nowMs = Date.now(), ewam = true, fetchImpl = fetch, log = () => {}, killed = process.env.SEA_KILL === '1', windImpl = spotWind, fileOf = null, repack = httpRepack() }) {
   const st = readStatus(storeDir);
   st.killSwitch = killed;
   if (killed) { writeStatus(storeDir, st, nowMs); return { built: false, reason: 'Kill-Schalter SEA_KILL=1' }; }
@@ -435,6 +450,7 @@ export async function buildRun({ storeDir, dataDir = null, cacheDir, run, inv = 
     const geoDoc = readJson(join(storeDir, SEA_SPOT_GEO_PATH));
     try { wind = await windImpl({ dataDir, spots: cat.spots, geoDoc, nowMs, runMs, log }); } catch (e) { log(`Wind fehlgeschlagen: ${e.message}`); wind = { series: {}, failed: cat.spots.filter((s) => s.dk?.wind !== 'dmi').map((s) => ({ id: s.id, error: e.message })), meta: null }; }
   } else log('Wind: kein Cube-Checkout (--data) — Reihen ohne Wind');
+  const sight = await spotSight({ wind, spots: cat.spots, runMs, nowMs, repack, log });
   const spotsDoc = {
     schema: 1, product: 'sea-spots-series', model: MODEL, run, runMs, t0: new Date(runMs).toISOString(), stepH: 1, steps: SEA_SPOT_STEPS.length,
     vars: SEA_SPOT_VARS, origin: SEA_SPOT_ORIGIN,
@@ -453,9 +469,10 @@ export async function buildRun({ storeDir, dataDir = null, cacheDir, run, inv = 
     if (pr.length) { problems.push(`${sp.id}: ${pr.slice(0, 2).join('; ')}`); continue; }
     const q = spotBand(v, ws?.q, sp.id, bandProblems);
     if (q) bandSpots++;
-    spotsDoc.spots[sp.id] = { cell: [sp.cell.i, sp.cell.j], v, ...(q ? { q } : {}), ...(gustDropped ? { gustDropped } : {}) };
+    spotsDoc.spots[sp.id] = { cell: [sp.cell.i, sp.cell.j], v, ...(q ? { q } : {}), ...(sight?.spots[sp.id] ? { s: sight.spots[sp.id] } : {}), ...(gustDropped ? { gustDropped } : {}) };
   }
   if (bandSpots) spotsDoc.quantiles = bandDoc(bandSpots, bandProblems);
+  if (sight) spotsDoc.sight = sight.doc;
   // EWAM cross check, observation only (plan: median |ΔHs| > 0.3 m ⇒ log, no stop).
   let check = null;
   if (ewam) { try { check = await ewamCheck({ run, cacheDir, cwamDir: cacheDir, fetchImpl }); } catch (e) { check = { error: e.message }; } }
@@ -481,7 +498,7 @@ export async function buildRun({ storeDir, dataDir = null, cacheDir, run, inv = 
   st.field.recent = [recent, ...(st.field.recent ?? [])].slice(0, 14);
   const removed = pruneRuns(storeDir);
   writeStatus(storeDir, st, nowMs);
-  return { built: true, run, mb: recent.mb, buildS: runDoc.buildS, wind: runDoc.wind, windSpots: Object.keys(wind?.series ?? {}).length, bandSpots, bandProblems: bandProblems.length, windError: wind?.failed?.[0]?.error ?? null, spotProblems: problems.length, removed, check };
+  return { built: true, run, mb: recent.mb, buildS: runDoc.buildS, wind: runDoc.wind, windSpots: Object.keys(wind?.series ?? {}).length, sightSpots: sight?.doc.spots ?? 0, sightConv: sight?.doc.conv.state ?? null, bandSpots, bandProblems: bandProblems.length, windError: wind?.failed?.[0]?.error ?? null, spotProblems: problems.length, removed, check };
 }
 
 // --- wind refresh on a newer t1 cube (V-SW-2) ---------------------------------------------------------------
@@ -506,7 +523,7 @@ export function windDue(storeDir, indexT1) {
  * `spots/<run>-w<t1>.json` + `status.wind`. From the computation hour on, the three wind columns replace the run's own
  * (`mergeSpotWind`); a spot whose merged series fails the value lock keeps the run's wind (listed in `rejected`).
  */
-export async function windRefresh({ storeDir, dataDir, nowMs = Date.now(), indexT1, log = () => {}, windImpl = spotWind }) {
+export async function windRefresh({ storeDir, dataDir, nowMs = Date.now(), indexT1, log = () => {}, windImpl = spotWind, repack = httpRepack() }) {
   const due = windDue(storeDir, indexT1);
   if (!due.due) return { built: false, ...due };
   const st = readStatus(storeDir);
@@ -522,6 +539,7 @@ export async function windRefresh({ storeDir, dataDir, nowMs = Date.now(), index
   const t1 = wind.meta?.runs?.t1 ?? null;
   if (!t1 || (due.usedT1 && t1 <= due.usedT1)) return { built: false, run, reason: `Rechnung trug t1 ${t1 ?? '–'}, nicht neuer als ${due.usedT1}` };
   const from = Math.max(0, Math.round((Math.floor(nowMs / H) * H - runMs) / H));
+  const sight = await spotSight({ wind, spots: cat.spots, runMs, nowMs, repack, log });
   const spots = {}, rejected = [], bandProblems = [];
   let bandSpots = 0;
   for (const [id, sp] of Object.entries(base.spots)) {
@@ -533,17 +551,17 @@ export async function windRefresh({ storeDir, dataDir, nowMs = Date.now(), index
     if (pr.length) { rejected.push(`${id}: ${pr.slice(0, 2).join('; ')}`); continue; }
     const q = spotBand(v, w.q, id, bandProblems);
     if (q) bandSpots++;
-    spots[id] = { v, ...(q ? { q } : {}), ...(gustDropped ? { gustDropped } : {}) };
+    spots[id] = { v, ...(q ? { q } : {}), ...(sight?.spots[id] ? { s: sight.spots[id] } : {}), ...(gustDropped ? { gustDropped } : {}) };
   }
   const path = seaSpotsWindPath(run, t1);
-  const doc = { schema: 1, product: 'sea-spots-wind', model: MODEL, run, runMs, t1, from, wind: { ...wind.meta, failed: wind.failed }, rejected, ...(bandSpots ? { quantiles: bandDoc(bandSpots, bandProblems) } : {}), spots };
+  const doc = { schema: 1, product: 'sea-spots-wind', model: MODEL, run, runMs, t1, from, wind: { ...wind.meta, failed: wind.failed }, rejected, ...(bandSpots ? { quantiles: bandDoc(bandSpots, bandProblems) } : {}), ...(sight ? { sight: sight.doc } : {}), spots };
   const text = JSON.stringify(doc) + '\n';
   writeAtomic(join(storeDir, path), text);
   st.wind = { run, t1, path, from, engine: wind.meta?.engine ?? null, version: wind.meta?.version ?? null, computedAt: wind.meta?.computedAt ?? null, spots: Object.keys(spots).length, rejected: rejected.length, buildS: Math.round((Date.now() - started) / 1000), bytes: Buffer.byteLength(text) };
   const removed = pruneRuns(storeDir);
   writeStatus(storeDir, st, nowMs);
   log(`Wind ${run} neu mit t1 ${t1}: ${Object.keys(spots).length} Spots ab Stunde ${from} (${bandSpots} mit Spanne), ${rejected.length} abgelehnt, ${st.wind.buildS} s`);
-  return { built: true, run, t1, from, path, spots: Object.keys(spots).length, bandSpots, bandProblems, rejected, removed };
+  return { built: true, run, t1, from, path, spots: Object.keys(spots).length, bandSpots, bandProblems, sightSpots: sight?.doc.spots ?? 0, sightConv: sight?.doc.conv.state ?? null, rejected, removed };
 }
 
 /** The newest t1 run of a cube index document (`point/index.json`). */
@@ -579,6 +597,7 @@ async function main() {
   const storeDir = resolve(String(args.store ?? 'sea/v1'));
   const nowMs = typeof args.now === 'string' ? Date.parse(args.now) : Date.now();
   const log = (m) => console.log(`[sea-derive] ${m}`);
+  const repack = typeof args.repack === 'string' ? dirRepack(resolve(args.repack)) : httpRepack();
   // V-SW-2: wind refresh. `--wind-check` reads the cube index raw (no checkout) and prints whether a refresh is due;
   // `--wind --data=<cube checkout>` computes it from that checkout's index.
   const rawIndexT1 = async () => {
@@ -592,7 +611,7 @@ async function main() {
     if (typeof args.data !== 'string') throw new Error('--wind braucht --data=<Cube-Checkout>');
     const dataDir = args.data === 'cdn' ? 'cdn' : resolve(args.data);
     const t1 = dataDir === 'cdn' ? await rawIndexT1() : indexT1Of(readJson(join(dataDir, 'point', 'index.json')));
-    const res = await windRefresh({ storeDir, dataDir, nowMs, indexT1: t1, log });
+    const res = await windRefresh({ storeDir, dataDir, nowMs, indexT1: t1, log, repack });
     log(res.built ? `Wind-Auffrischung ${res.run} · t1 ${res.t1} geschrieben` : `keine Wind-Auffrischung: ${res.reason}`);
     console.log(JSON.stringify(res));
     return;
@@ -604,7 +623,7 @@ async function main() {
   if (!due.run) { log(`nichts zu tun: ${due.reason}`); console.log(JSON.stringify({ built: false, reason: due.reason })); return; }
   const res = await buildRun({
     storeDir, dataDir: args.data === 'cdn' ? 'cdn' : typeof args.data === 'string' ? resolve(args.data) : null, cacheDir: resolve(String(args.cache ?? '.sea-cache')),
-    run: due.run, inv, nowMs, ewam: args.ewam !== '0', log,
+    run: due.run, inv, nowMs, ewam: args.ewam !== '0', log, repack,
   });
   log(res.built ? `Lauf ${res.run} gebaut: ${res.mb} MB, ${res.buildS} s, Wind ${res.wind?.engine ?? 'ohne'}, Spanne an ${res.bandSpots} Spots` : `Lauf ${res.run ?? '–'} NICHT gebaut: ${res.reason}`);
   console.log(JSON.stringify(res));
