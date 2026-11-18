@@ -16,6 +16,8 @@ import { MAP_SOURCES_LINK } from '../map/MapSourcesTile';
 import type { SeaClass } from './seaProfiles';
 import type { SeaAreaFeature } from './seaClient';
 import { clampToRadius, planBearingDeg, planDestination, radiusRing, type DriftSide } from './seaPlanner';
+import type { SeaUvGrid } from './seaCurrent';
+import type { RippleKeepOut, SeaRippleLayer } from './SeaRippleLayer';
 
 const STYLE = 'https://tiles.openfreemap.org/styles/dark';
 /** CWAM domain (plus a little margin). */
@@ -75,6 +77,15 @@ interface Props {
   plan?: SeaMapPlan | null;
   /** Phase ST: arrows of the surface current (`seaCurrent.currentArrows`), or null (layer off, no field for this hour). */
   currents?: GeoJSON.FeatureCollection | null;
+  /**
+   * Phase SR: the u/v field of the chosen hour while the main layer „Strömung“ is chosen — drawn as moving ripples on
+   * a 2D canvas above the map canvas (`SeaRippleLayer`, its own lazy chunk). null = layer off or no data: no canvas work.
+   */
+  ripple?: SeaUvGrid | null;
+  /** The map is on stage; off stage the ripple loop stops. */
+  rippleOn?: boolean;
+  /** SR: the field image is a smooth colour area (the current), not a field of cells — it is resampled linearly. */
+  fieldSmooth?: boolean;
 }
 
 function dotImage(cls: SeaClass, big: boolean): ImageData {
@@ -150,7 +161,9 @@ async function fieldUrl(field: Uint8ClampedArray): Promise<string> {
 const EMPTY: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
 const TRANSPARENT_PX = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4AWMAAQAABQABNtCI3QAAAABJRU5ErkJggg==';
 
-export default function SeaMap({ field, arrows, spots, selectedId, stations, gauges, selectedGaugeId, onGauge, areas, showWind, padding, onSelect, onMap, callout, plan = null, currents = null }: Props) {
+export default function SeaMap({ field, arrows, spots, selectedId, stations, gauges, selectedGaugeId, onGauge, areas, showWind, padding, onSelect, onMap, callout, plan = null, currents = null, ripple = null, rippleOn = true, fieldSmooth = false }: Props) {
+  const rippleLayer = useRef<SeaRippleLayer | null>(null);
+  const rippleWant = useRef<{ grid: SeaUvGrid | null; on: boolean; keep: RippleKeepOut[] }>({ grid: null, on: true, keep: [] });
   const planRef = useRef<SeaMapPlan | null>(plan);
   planRef.current = plan;
   const planMarks = useRef<{ boat: maplibregl.Marker; label: maplibregl.Marker; launch: maplibregl.Marker; badge: HTMLElement; drift: HTMLElement; hull: HTMLElement } | null>(null);
@@ -163,8 +176,8 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, gau
   onSelectRef.current = onSelect;
   const onGaugeRef = useRef(onGauge);
   onGaugeRef.current = onGauge;
-  const latest = useRef({ field, arrows, spots, selectedId, stations, gauges, selectedGaugeId, areas, showWind, currents });
-  latest.current = { field, arrows, spots, selectedId, stations, gauges, selectedGaugeId, areas, showWind, currents };
+  const latest = useRef({ field, arrows, spots, selectedId, stations, gauges, selectedGaugeId, areas, showWind, currents, fieldSmooth });
+  latest.current = { field, arrows, spots, selectedId, stations, gauges, selectedGaugeId, areas, showWind, currents, fieldSmooth };
 
   useEffect(() => {
     if (!box.current) return;
@@ -233,6 +246,8 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, gau
       if (urlRef.current?.startsWith('blob:')) URL.revokeObjectURL(urlRef.current);
       markerRef.current?.remove();
       if (planMarks.current) { planMarks.current.boat.remove(); planMarks.current.label.remove(); planMarks.current.launch.remove(); planMarks.current = null; }
+      rippleLayer.current?.destroy();
+      rippleLayer.current = null;
       if (mapRef.current === map) mapRef.current = null;
       onMap?.(null);
       map.remove();
@@ -244,6 +259,7 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, gau
     const map = mapRef.current;
     if (!map || !ready.current) return;
     const s = latest.current;
+    if (map.getLayer('sw-field')) map.setPaintProperty('sw-field', 'raster-resampling', s.fieldSmooth ? 'linear' : 'nearest');
     (map.getSource('sw-arrows') as maplibregl.GeoJSONSource | undefined)?.setData(s.field && s.arrows ? s.arrows : EMPTY);
     (map.getSource('sw-current') as maplibregl.GeoJSONSource | undefined)?.setData(s.currents ?? EMPTY);
     (map.getSource('sw-spots') as maplibregl.GeoJSONSource | undefined)?.setData({
@@ -265,7 +281,7 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, gau
     });
   }
 
-  useEffect(sync, [arrows, spots, selectedId, stations, gauges, selectedGaugeId, areas, showWind, field, currents]);
+  useEffect(sync, [arrows, spots, selectedId, stations, gauges, selectedGaugeId, areas, showWind, field, currents, fieldSmooth]);
 
   // --- Phase SP: trip planner --------------------------------------------------------------------------------
   /** Ring, line, label and hull for a boat position — also while the boat is dragged (no React state per move). */
@@ -328,6 +344,33 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, gau
     drawPlan(p.boat.lat, p.boat.lon);
   }
   useEffect(syncPlan, [plan?.launch.lon, plan?.launch.lat, plan?.boat.lon, plan?.boat.lat, plan?.radiusKm, plan?.driftTo, plan?.side, plan?.badge, plan?.lineLabel, !plan]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // --- Phase SR: ripples of the surface current ----------------------------------------------------------------
+  // Spots, gauges and stations lie in the map canvas below the ripple canvas: the layer leaves a circle free around each.
+  const keepOut: RippleKeepOut[] = ripple ? [
+    ...spots.map((p) => ({ lon: p.lon, lat: p.lat, r: p.id === selectedId ? 13 : 9 })),
+    ...(gauges ?? []).map((p) => ({ lon: p.lon, lat: p.lat, r: 8 })),
+    ...(stations ?? []).map((p) => ({ lon: p.lon, lat: p.lat, r: 7 })),
+  ] : [];
+  rippleWant.current = { grid: ripple, on: rippleOn, keep: keepOut };
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const apply = () => {
+      const l = rippleLayer.current, w = rippleWant.current;
+      if (!l) return;
+      l.setKeepOut(w.keep); l.setActive(w.on); l.setField(w.grid);
+    };
+    if (rippleLayer.current || !ripple) { apply(); return; }
+    // The canvas layer is loaded when the layer is first chosen — nobody else pays for it.
+    let alive = true;
+    void import('./SeaRippleLayer').then((m) => {
+      if (!alive || mapRef.current !== map) return;
+      rippleLayer.current ??= new m.SeaRippleLayer(map);
+      apply();
+    }, () => {});
+    return () => { alive = false; };
+  }, [ripple, rippleOn, spots, selectedId, gauges, stations]);
 
   // Field image: redrawn only when the coloured field changes.
   useEffect(() => {

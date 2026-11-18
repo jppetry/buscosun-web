@@ -692,6 +692,8 @@ export const SEA_CURRENT_DIR = 'current';
 export const seaCurrentPath = (run: string) => `${SEA_CURRENT_DIR}/${run}.json`;
 /** Thinned hourly field of a run, hour `h` of the file's axis (0-based). */
 export const seaCurrentFieldPath = (run: string, h: number) => `${SEA_CURRENT_DIR}/${run}/f/${String(h).padStart(3, '0')}.png`;
+/** Phase SR: hourly u/v field of a run (map layer „Strömung“), hour `h` of the file's axis (0-based). */
+export const seaCurrentUvPath = (run: string, h: number) => `${SEA_CURRENT_DIR}/${run}/uv/${String(h).padStart(3, '0')}.png`;
 export const SEA_CURRENT_RE = /^(\d{10})\.json$/;
 
 /** Value lock of the two encoded current columns of one spot (producer before writing, client before display). */

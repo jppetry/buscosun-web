@@ -256,6 +256,75 @@ export function currentArrows(rgba: ArrayLike<number>): GeoJSON.FeatureCollectio
   return { type: 'FeatureCollection', features };
 }
 
+// --- Hourly u/v field (phase SR, map layer „Strömung“ as ripples — audit/seewetter-riffel.md) -------------------------
+
+/**
+ * `current/<run>/uv/<hhh>.png`: every `stride`-th CWAM cell (315 × 194, ≈ 1.8 km), one PNG per whole hour, next to the
+ * thinned arrow field. A cell is SAMPLED, never averaged. The components are kept, not speed and bearing: between two
+ * hours the page mixes u and v linearly, so a turning current passes through zero instead of swinging round the compass.
+ *
+ * R = u (towards east), G = v (towards north) as signed values `(byte − 128) × stepMs`, byte 1–255 (± 2.54 m/s;
+ * measured maximum of two runs 2.04 m/s). B = the mark: 0 = value, 255 = no value (no water point of the model).
+ * ALPHA IS ALWAYS 255 — never data in alpha: a canvas read premultiplies, and alpha below 255 would change R and G.
+ * A water cell without current (below `BSH_CURRENT_ZERO_MS`) is the value 0 / 0 — still water, not a hole.
+ *
+ * Stride 2 is the finest stride whose run stays within `SEA_CURRENT_UV_MAX_RUN_BYTES` (measured 18.11.2026 on run
+ * 2026111812: stride 1 = 6.98 MB, stride 2 = 2.47 MB, stride 3 = 1.32 MB per run).
+ */
+export const SEA_CURRENT_UV = (() => {
+  const g = SEA_MODELS.cwam.grid, stride = 2, off = 0;
+  return Object.freeze({ stride, off, nx: Math.floor((g.ni - 1 - off) / stride) + 1, ny: Math.floor((g.nj - 1 - off) / stride) + 1, stepMs: 0.02 });
+})();
+/** Added size per run the u/v field may cost (`set`: just under a third of a wave run of 13.5 MB). */
+export const SEA_CURRENT_UV_MAX_RUN_BYTES = 4_000_000;
+export const SEA_CURRENT_UV_VALUE = 0;
+export const SEA_CURRENT_UV_NULL = 255;
+const uvByte = (ms: number) => Math.max(1, Math.min(255, 128 + Math.round(ms / SEA_CURRENT_UV.stepMs)));
+/** CWAM cell (i from west, j from north) of u/v cell (x, y), and its position. */
+export function currentUvCell(x: number, y: number): { i: number; j: number; lat: number; lon: number } {
+  const g = SEA_MODELS.cwam.grid, f = SEA_CURRENT_UV, i = f.off + x * f.stride, j = f.off + y * f.stride;
+  return { i, j, lat: g.lat1 - j * g.dj, lon: g.lon1 + i * g.di };
+}
+/** Fractional u/v grid coordinates of a position (x from west, y from north); may lie outside the grid. */
+export function currentUvXY(lat: number, lon: number): { x: number; y: number } {
+  const g = SEA_MODELS.cwam.grid, f = SEA_CURRENT_UV;
+  return { x: ((lon - g.lon1) / g.di - f.off) / f.stride, y: ((g.lat1 - lat) / g.dj - f.off) / f.stride };
+}
+/** One pixel: `u`/`v` in m/s, or `null` for "no water point here". Alpha is 255 in both cases. */
+export function encodeUvPixel(out: Uint8Array | Uint8ClampedArray, o: number, uv: { u: number; v: number } | null): void {
+  out[o + 3] = 255;
+  if (!uv || !Number.isFinite(uv.u) || !Number.isFinite(uv.v)) { out[o] = 0; out[o + 1] = 0; out[o + 2] = SEA_CURRENT_UV_NULL; return; }
+  out[o] = uvByte(uv.u); out[o + 1] = uvByte(uv.v); out[o + 2] = SEA_CURRENT_UV_VALUE;
+}
+export function decodeUvPixel(rgba: ArrayLike<number>, o: number): { u: number; v: number } | null {
+  return rgba[o + 2] !== SEA_CURRENT_UV_VALUE ? null : { u: (rgba[o] - 128) * SEA_CURRENT_UV.stepMs, v: (rgba[o + 1] - 128) * SEA_CURRENT_UV.stepMs };
+}
+/** The decoded field: components in m/s, `ok` = 1 where the model has a water point. */
+export interface SeaUvGrid { nx: number; ny: number; u: Float32Array; v: Float32Array; ok: Uint8Array }
+/**
+ * RGBA bytes of one u/v image → the grid, or `null` for anything that is not the contract's image: wrong size, an
+ * alpha other than 255 (then R and G cannot be trusted), a mark that is neither value nor null, a value byte 0.
+ */
+export function decodeUvField(rgba: ArrayLike<number>): SeaUvGrid | null {
+  const { nx, ny, stepMs } = SEA_CURRENT_UV, n = nx * ny;
+  if (rgba.length !== n * 4) return null;
+  const u = new Float32Array(n), v = new Float32Array(n), ok = new Uint8Array(n);
+  for (let p = 0, o = 0; p < n; p++, o += 4) {
+    if (rgba[o + 3] !== 255) return null;
+    const mark = rgba[o + 2];
+    if (mark === SEA_CURRENT_UV_NULL) continue;
+    if (mark !== SEA_CURRENT_UV_VALUE || rgba[o] === 0 || rgba[o + 1] === 0) return null;
+    ok[p] = 1; u[p] = (rgba[o] - 128) * stepMs; v[p] = (rgba[o + 1] - 128) * stepMs;
+  }
+  return { nx, ny, u, v, ok };
+}
+/** Hour index of the u/v field for a valid time, or `null` (no field in this run, or the time lies outside it). */
+export function currentUvHour(doc: Pick<SeaCurrentDoc, 't0' | 'uv'>, tMs: number): number | null {
+  if (!doc.uv) return null;
+  const k = (Math.floor(tMs / H) * H - doc.t0) / H;
+  return Number.isInteger(k) && k >= 0 && k < doc.uv.hours ? k : null;
+}
+
 // --- Product `sea/v1/current/<run>.json` ----------------------------------------------------------------------------
 
 export const SEA_CURRENT_PRODUCT = 'sea-current';
@@ -281,6 +350,8 @@ export interface SeaCurrentDoc {
   failed: { id: string; error: string }[];
   /** The thinned hourly field next to the file, or `null` (then the map layer has nothing to show). */
   field: { hours: number; nx: number; ny: number; stride: number; off: number; bytes: number } | null;
+  /** Phase SR: the hourly u/v field next to the file; absent or `null` = none (a run built before the phase, or `SEA_CURRENT_UV=0`). */
+  uv?: { hours: number; nx: number; ny: number; stride: number; off: number; stepMs: number; bytes: number } | null;
 }
 
 /** Value lock of the product (producer before writing, client before display). */
@@ -294,6 +365,12 @@ export function seaCurrentProblems(doc: unknown): string[] {
   if (!Number.isInteger(d.hours) || (d.hours as number) < 1 || (d.hours as number) > 120) out.push(`hours ${String(d.hours)}`);
   if (d.licence !== BSH_CURRENT_LICENCE || d.credit !== BSH_CURRENT_CREDIT) out.push('Quellenvermerk');
   if (!Array.isArray(d.failed)) out.push('failed');
+  // SR: a u/v field must be the contract's grid and coding — a foreign one would put every ripple in the wrong place.
+  if (d.uv != null) {
+    const f = SEA_CURRENT_UV, x = d.uv;
+    if (x.nx !== f.nx || x.ny !== f.ny || x.stride !== f.stride || x.off !== f.off || x.stepMs !== f.stepMs) out.push('uv: fremdes Gitter oder fremde Stufe');
+    if (!Number.isInteger(x.hours) || x.hours < 1 || x.hours > (d.hours as number)) out.push(`uv: hours ${String(x.hours)}`);
+  }
   if (!d.spots || typeof d.spots !== 'object') { out.push('spots'); return out; }
   const hours = d.hours as number;
   for (const [id, s] of Object.entries(d.spots)) {
@@ -310,11 +387,11 @@ export function seaCurrentProblems(doc: unknown): string[] {
 }
 
 /** `status.json` → `current`: the newest run. Anything malformed counts as "none". */
-export interface SeaCurrentPointer { run: string; path: string; builtAt: string; field: boolean }
+export interface SeaCurrentPointer { run: string; path: string; builtAt: string; field: boolean; /** Phase SR: the run carries the hourly u/v field. */ uv?: boolean }
 export function currentPointerOf(status: Record<string, unknown> | null | undefined): SeaCurrentPointer | null {
-  const p = status?.current as (Partial<SeaCurrentPointer> & { field?: unknown }) | undefined;
+  const p = status?.current as (Partial<SeaCurrentPointer> & { field?: unknown; uv?: unknown }) | undefined;
   if (!p || typeof p.run !== 'string' || typeof p.path !== 'string' || typeof p.builtAt !== 'string') return null;
-  return p.path === seaCurrentPath(p.run) && Number.isFinite(Date.parse(p.builtAt)) ? { run: p.run, path: p.path, builtAt: p.builtAt, field: !!p.field } : null;
+  return p.path === seaCurrentPath(p.run) && Number.isFinite(Date.parse(p.builtAt)) ? { run: p.run, path: p.path, builtAt: p.builtAt, field: !!p.field, uv: !!p.uv } : null;
 }
 
 // --- Reading the product on the page --------------------------------------------------------------------------------

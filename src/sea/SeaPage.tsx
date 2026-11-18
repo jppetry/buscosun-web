@@ -27,7 +27,7 @@ import { WlCatalogMissing, loadGaugeCatalog, loadGaugeForecast } from './waterLe
 import { coastWarnStatus, seaTextFreshness, type SeaTextProduct } from './seaText';
 import { DMI_CREDIT, DMI_HOST, DMI_LICENCE, DMI_LICENCE_URL, DMI_NAME, DMI_WIND_LABEL, dmiPointerOf } from './seaDmi';
 import {
-  loadAreas, loadCatalog, loadCurrent, loadCurrentField, loadDmi, loadField, loadKillSwitch, loadLatestRun, loadStationObs, loadStationVisibility, loadSpots, loadText, windPointerOf, withDmiWind, withWindRefresh,
+  loadAreas, loadCatalog, loadCurrent, loadCurrentField, loadCurrentUv, loadDmi, loadField, loadKillSwitch, loadLatestRun, loadStationObs, loadStationVisibility, loadSpots, loadText, windPointerOf, withDmiWind, withWindRefresh,
   SEA_DMI_NONE, SEA_PAGE_TEXTS, takeSeaChain, takeSeaStatic,
   type SeaAreas, type SeaCatalog, type SeaDmiLoad, type SeaPoiObs, type SeaRunLoad, type SeaSpotsDoc,
 } from './seaClient';
@@ -38,7 +38,7 @@ import {
 import { SeaVerdictCache } from './seaVerdicts';
 import { SEA_MAX_T, SEA_TIME_CHIPS, seaInRevier, type SeaLayer, type SeaRevier, type SeaTab, type SeaUrlState } from './seaState';
 import {
-  CLASS_COLOR, CLASS_LABEL, CLASS_SHORT, DRY_VALUE, HS_STOPS, LAYER_LABEL, PER_STOPS, H, compass16, cssGradient, dayShort, f1, hh, hm, tzLabel, waveArrows,
+  CLASS_COLOR, CLASS_LABEL, CLASS_SHORT, DRY_VALUE, HS_STOPS, LAYER_LABEL, PER_STOPS, H, compass16, cssGradient, dateTime, dayShort, f1, hh, hm, tzLabel, waveArrows,
 } from './seaView';
 import { colourFieldAsync } from './seaFieldClient';
 import SeaMap, { type SeaMapArea, type SeaMapGauge, type SeaMapPlan, type SeaMapSpot } from './SeaMap';
@@ -48,7 +48,8 @@ import {
   SEA_PLAN_DEFAULT_H, SEA_PLAN_RADIUS_KM, badgeText, clampToRadius, defaultBoat, defaultWindow, driftOf, encodePlanParam, lineLabel, parsePlanParam, planBearingDeg, planClock, planDistKm,
   planEvents, planFindings, planSummary, planWindow, radiusBounds, relativeWind, sunAround, sunLine, type PlanLink,
 } from './seaPlanner';
-import SeaDock, { type SeaToggles } from './SeaDock';
+import SeaDock, { RippleKey, type SeaToggles } from './SeaDock';
+import { RIPPLE_LEGEND_LINE, RIPPLE_MOTION_NOTE, RIPPLE_STILL_NOTE, RIPPLE_WHY, colourCurrentArea, rippleHours } from './seaRipples';
 import SeaBand, { type SeaBandHour } from './SeaBand';
 import SeaGustOdds from './SeaGustOdds';
 import { gustOverLimit, mostText, overSentence, q5At } from './windBand';
@@ -62,7 +63,7 @@ import { officialSight, sightConvAt, sightHintAt, type SightObs } from './seaSig
 import { WSV_CREDIT, WSV_LICENCE, WSV_LICENCE_URL, WSV_NAME, WSV_PAGE, WT_MODEL_NOTE } from './seaWaterTemp';
 import {
   BSH_CURRENT_CHANGED, BSH_CURRENT_CREDIT, BSH_CURRENT_LICENCE, BSH_CURRENT_LICENCE_URL, BSH_CURRENT_NAME, BSH_CURRENT_PAGE, SEA_CURRENT_MODEL_NOTE, SEA_CURRENT_WHY,
-  currentArrows, currentFieldHour, currentOnAxis, currentPointerOf, currentViewOf, type SeaCurrentLoad,
+  currentArrows, currentFieldHour, currentOnAxis, currentPointerOf, currentUvHour, currentViewOf, type SeaCurrentLoad, type SeaUvGrid,
 } from './seaCurrent';
 import MapGestureHint, { type HintSpot } from '../map/MapGestureHint';
 import SeaLinkNotice from './SeaLinkNotice';
@@ -112,6 +113,10 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   const [curPtr, setCurPtr] = useState<string | null>(null);
   const [current, setCurrent] = useState<SeaCurrentLoad | 'loading'>('loading');
   const [currents, setCurrents] = useState<GeoJSON.FeatureCollection | null>(null);
+  // Phase SR: the u/v field of the chosen hour while the main layer „Strömung“ is chosen (`audit/seewetter-riffel.md`).
+  const [uv, setUv] = useState<{ key: string; grid: SeaUvGrid } | null>(null);
+  const [uvState, setUvState] = useState<'idle' | 'loading' | 'error'>('idle');
+  const stillMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   // Phase WT: pointer to the newest water temperature file of the DMI model (`status.wtemp`, a string like the others; '' = none).
   const [wtPtr, setWtPtr] = useState<string | null>(null);
   const [texts, setTexts] = useState<Partial<Record<SeaTextProduct, import('./seaText').SeaTextDoc | null>>>({});
@@ -212,7 +217,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
       setDmiPtr((prev) => (k.status == null ? prev ?? '' : dp ? `${dp.stamp}|${dp.path}|${dp.builtAt}` : ''));
       // ST: the same rule for the current file.
       const cp = currentPointerOf(k.status);
-      setCurPtr((prev) => (k.status == null ? prev ?? '' : cp ? `${cp.run}|${cp.path}|${cp.builtAt}|${cp.field ? 1 : 0}` : ''));
+      setCurPtr((prev) => (k.status == null ? prev ?? '' : cp ? `${cp.run}|${cp.path}|${cp.builtAt}|${cp.field ? 1 : 0}|${cp.uv ? 1 : 0}` : ''));
       // WT: the same rule for the water temperature file.
       setWtPtr((prev) => (k.status == null ? prev ?? '' : wtPointerKey(k.status)));
       const r = k.killed ? await loadLatestRun(now, true, ac.signal).catch(() => null) : await runP;
@@ -474,6 +479,33 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
     loadCurrentField(curDoc.run, curFieldHour, ac.signal).then((rgba) => { if (!ac.signal.aborted) setCurrents(rgba ? currentArrows(rgba) : null); }, () => {});
     return () => ac.abort();
   }, [curFieldKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Phase SR — main layer „Strömung“: the u/v field of the chosen hour, and the hour after it warmed for „Abspielen“.
+  // Nothing is read while another layer is chosen. Outside the run, without a field or unreadable ⇒ "keine Daten".
+  const isCur = layer === 'cur';
+  const uvHour = isCur && curDoc ? currentUvHour(curDoc, validMs) : null;
+  const uvKey = curDoc && uvHour != null ? `${curDoc.run}/${uvHour}` : null;
+  useEffect(() => {
+    if (!uvKey || !curDoc?.uv || uvHour == null) { setUv(null); setUvState('idle'); return; }
+    const ac = new AbortController(), runId = curDoc.run;
+    const [first, ...next] = rippleHours(uvHour, curDoc.uv.hours);
+    setUvState('loading');
+    loadCurrentUv(runId, first, ac.signal).then((grid) => {
+      if (ac.signal.aborted) return;
+      if (!grid) { setUv(null); setUvState('error'); return; }
+      setUv({ key: uvKey, grid });
+      setUvState('idle');
+      for (const h of next) void loadCurrentUv(runId, h).catch(() => {});
+    }, () => {});
+    return () => ac.abort();
+  }, [uvKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  // A. The colour area of the layer, in the image form of the wave area (it takes its place in the map's image source).
+  const curArea = useMemo(() => (isCur && uv ? colourCurrentArea(uv.grid) : null), [isCur, uv]);
+  /** Why the layer shows nothing — in words, with the reason; `null` while it loads or draws. */
+  const curWhy: string | null = !isCur || current === 'loading' ? null
+    : !curDoc ? (current.why ?? SEA_CURRENT_WHY.none)
+      : !curDoc.uv ? RIPPLE_WHY.noField
+        : uvHour == null ? `${RIPPLE_WHY.outside} Er reicht von ${dateTime(curDoc.t0)} bis ${dateTime(curDoc.t0 + (curDoc.uv.hours - 1) * H)} Uhr.`
+          : uvState === 'error' ? RIPPLE_WHY.unreadable : null;
 
   // --- Phase SP: trip planner (`seaPlanner.ts` computes, this block only feeds it) -----------------------------
   const planWin = useMemo(() => (plan && usable ? planWindow(plan.startMs, plan.endMs, nowHour, nHours) : null), [plan, usable, nowHour, nHours]);
@@ -581,7 +613,8 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   const lead = idxOf(k);
   const fKind: 'f' | 'c' = layer === 'ws' || layer === 'sw' ? 'c' : 'f';
   const fStep = fKind === 'f' ? seaFieldStepAt(lead) : seaCompStepAt(lead);
-  const fieldKey = usable && run && fStep != null ? `${run.run}/${fKind}/${fStep}/${layer}` : null;
+  // SR: the layer „Strömung“ reads no wave field — its area comes from the u/v field (`curArea`).
+  const fieldKey = usable && run && fStep != null && !isCur ? `${run.run}/${fKind}/${fStep}/${layer}` : null;
   useEffect(() => {
     if (!fieldKey || !run || fStep == null) { setField(null); return; }
     const ac = new AbortController();
@@ -773,7 +806,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
         { name: 'Seegebiete © GeoBasis-DE / BKG 2021, VMAP0', what: 'Umrisse der Warngebiete', changed: 'Daten modifiziert', on: toggles.warn },
         { name: 'Deutscher Wetterdienst · Messstationen', url: 'https://opendata.dwd.de/', what: 'Wind und Böen gemessen', licence: 'GeoNutzV / CC BY 4.0', licenceUrl: CC_BY_URL, on: toggles.stations },
         { name: 'Bundesamt für Seeschifffahrt und Hydrographie (BSH)', url: WL_SERVICE_PAGE, what: 'Wasserstandsvorhersage an den Pegeln', credit: WL_ATTRIBUTION, licence: WL_LICENCE, licenceUrl: WL_LICENCE_URL, on: water },
-        { name: `${BSH_CURRENT_NAME} · Strömungsvorhersage`, url: BSH_CURRENT_PAGE, what: `Oberflächenströmung: Wert am Spot, Stauwasser, Pfeile auf der Karte (${SEA_CURRENT_MODEL_NOTE})`, credit: BSH_CURRENT_CREDIT, licence: BSH_CURRENT_LICENCE, licenceUrl: BSH_CURRENT_LICENCE_URL, changed: BSH_CURRENT_CHANGED, on: toggles.current || !!spotCur },
+        { name: `${BSH_CURRENT_NAME} · Strömungsvorhersage`, url: BSH_CURRENT_PAGE, what: `Oberflächenströmung: Wert am Spot, Stauwasser, Riffel und Pfeile auf der Karte (${SEA_CURRENT_MODEL_NOTE})`, credit: BSH_CURRENT_CREDIT, licence: BSH_CURRENT_LICENCE, licenceUrl: BSH_CURRENT_LICENCE_URL, changed: BSH_CURRENT_CHANGED, on: toggles.current || !!spotCur || isCur },
         // Phase WT — listed while the water temperature catalogue is there: the model and the measurement, each with its own source.
         ...(wtemp.on ? [
           { name: `${DMI_NAME} · Sturmflutmodell DKSS`, url: DMI_HOST, what: `Wassertemperatur am Spot aus dem Modell (${WT_MODEL_NOTE})`, credit: DMI_CREDIT, licence: DMI_LICENCE, licenceUrl: DMI_LICENCE_URL, changed: 'eigene Darstellung, auf Stunden und 0,1 °C gerundet', on: true },
@@ -803,26 +836,46 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
     </div>
   );
   const pillBadge = spot ? `${spot.country === 'DK' ? 'DÄNEMARK · ' : ''}${spot.region === 'nordsee' ? 'NORDSEE' : 'OSTSEE'}` : '';
+  const curRunTxt = curDoc ? `BSH-Lauf ${curDoc.run.slice(8, 10)} UTC vom ${curDoc.run.slice(6, 8)}.${curDoc.run.slice(4, 6)}.` : '';
   const legend = (
-    <div className="sw-legend sw-legend-bar" aria-label="Legende">
-      <div className="sw-legend-main">
-        <div className="sw-eyebrow">{layer === 'per' ? 'Periode Tm s' : `Seegang Hs · ${LAYER_LABEL[layer]}`}</div>
-        <div className="sw-legend-ramp" style={{ background: cssGradient(layer === 'per' ? PER_STOPS : HS_STOPS) }} />
-        <div className="sw-legend-ticks">{layer === 'per' ? <><span>0</span><span>3</span><span>6</span><span>9</span><span>12 s</span></> : <><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6 m</span></>}</div>
-      </div>
+    <div className={`sw-legend sw-legend-bar${isCur ? ' is-cur' : ''}`} aria-label="Legende">
+      {isCur ? (
+        // Phase SR: the key is drawn with the layer's own fronts — what moves on the map is what the legend shows.
+        <div className="sw-legend-main">
+          <div className="sw-eyebrow">Strömung an der Oberfläche</div>
+          <RippleKey className="sw-rp-key" />
+          <div className="sw-legend-ticks sw-rp-ticks"><span>0,2</span><span>0,5</span><span>1</span><span>2 kn</span></div>
+        </div>
+      ) : (
+        <div className="sw-legend-main">
+          <div className="sw-eyebrow">{layer === 'per' ? 'Periode Tm s' : `Seegang Hs · ${LAYER_LABEL[layer]}`}</div>
+          <div className="sw-legend-ramp" style={{ background: cssGradient(layer === 'per' ? PER_STOPS : HS_STOPS) }} />
+          <div className="sw-legend-ticks">{layer === 'per' ? <><span>0</span><span>3</span><span>6</span><span>9</span><span>12 s</span></> : <><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6 m</span></>}</div>
+        </div>
+      )}
       <div className="sw-legend-side">
-        <div className="sw-legend-row"><svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true" fill="none" stroke="#2C2A26" strokeWidth="1.6" strokeLinecap="round"><path d="M2 6h13M11 2l4 4-4 4" /></svg>Wellen laufen in Pfeilrichtung</div>
-        <div className="sw-legend-row"><i className="is-hatched" />Wasser ohne gültigen Wert</div>
+        {isCur ? <>
+          <div className="sw-legend-row sw-rp-line">{RIPPLE_LEGEND_LINE}</div>
+          <div className="sw-legend-row sw-rp-line">{RIPPLE_MOTION_NOTE}</div>
+        </> : <>
+          <div className="sw-legend-row"><svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true" fill="none" stroke="#2C2A26" strokeWidth="1.6" strokeLinecap="round"><path d="M2 6h13M11 2l4 4-4 4" /></svg>Wellen laufen in Pfeilrichtung</div>
+          <div className="sw-legend-row"><i className="is-hatched" />Wasser ohne gültigen Wert</div>
+        </>}
         {toggles.current && <div className="sw-legend-row sw-st-legend"><DriftArrow to={90} size={16} />{currents ? 'Strom setzt in Pfeilrichtung (Modell des BSH)' : current === 'loading' ? 'Strömung lädt' : 'Strömung: keine Daten für diese Stunde'}</div>}
       </div>
       <div className="sw-legend-spot">
         <div className="sw-eyebrow">Spot · {profLabel}</div>
         <div className="sw-legend-classes">{(['passt', 'knapp', 'ausserhalb', 'keine'] as const).map((c) => <span key={c}><i className={c === 'keine' ? 'is-hatched' : ''} style={c !== 'keine' ? { background: CLASS_COLOR[c] } : undefined} />{CLASS_SHORT[c]}</span>)}</div>
       </div>
-      <div className="sw-legend-note">{noData ? 'Keine Fläche: kein gültiger Lauf.' : `Modell ${runTxt}, Vorlauf +${lead} h${fieldNote}. Wind an den Spots: ${windEngine}.`}{fieldState === 'error' ? ' Feld nicht ladbar.' : ''}</div>
+      {isCur
+        ? <div className="sw-legend-note">{curWhy ? `Strömung: keine Daten. ${curWhy}` : current === 'loading' || uvState === 'loading' ? 'Strömung lädt.' : `${SEA_CURRENT_MODEL_NOTE}. ${curRunTxt}`}{!curWhy && stillMotion ? ` ${RIPPLE_STILL_NOTE}` : ''}</div>
+        : <div className="sw-legend-note">{noData ? 'Keine Fläche: kein gültiger Lauf.' : `Modell ${runTxt}, Vorlauf +${lead} h${fieldNote}. Wind an den Spots: ${windEngine}.`}{fieldState === 'error' ? ' Feld nicht ladbar.' : ''}</div>}
     </div>
   );
-  const emptyMap = noData && <div className="sw-map-note" role="status"><strong>Keine Daten.</strong> {noData} Es wird keine Seegangsfläche gezeigt.</div>;
+  // SR: with the layer „Strömung“ chosen the note on the map speaks of the current, not of the wave area.
+  const emptyMap = isCur
+    ? curWhy && <div className="sw-map-note" role="status"><strong>Keine Daten.</strong> {curWhy} Es werden keine Riffel gezeigt.</div>
+    : noData && <div className="sw-map-note" role="status"><strong>Keine Daten.</strong> {noData} Es wird keine Seegangsfläche gezeigt.</div>;
   const catFail = catalog === null && <div className="sw-map-note" role="status"><strong>Spotkatalog nicht ladbar.</strong> Der Datenspeicher antwortet nicht.</div>;
   // --- Phase SP: what the planner shows (map, band row, findings) --------------------------------------------------
   const planHour = noData ? null : hour;
@@ -883,7 +936,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
     </div>
   );
   const map = (
-    <SeaMap field={coloured} arrows={arrows} spots={noData ? mapSpots.map((s) => ({ ...s, cls: 'keine' as const, windTo: null })) : mapSpots} selectedId={spot?.id ?? null}
+    <SeaMap field={isCur ? curArea : coloured} arrows={isCur ? null : arrows} ripple={isCur && uv ? uv.grid : null} rippleOn={stage !== 'dossier'} fieldSmooth={isCur} spots={noData ? mapSpots.map((s) => ({ ...s, cls: 'keine' as const, windTo: null })) : mapSpots} selectedId={spot?.id ?? null}
       stations={stations} gauges={mapGauges} selectedGaugeId={gaugeId ?? (dmiSpot && spot ? `dmi:${spot.id}` : null)} onGauge={pickGauge} areas={mapAreas} showWind={toggles.wind && !noData} padding={padding} onSelect={pickSpotFromMap} onMap={(m) => { mapRef.current = m; setMapInst(m); }}
       plan={mapPlan} currents={toggles.current ? currents : null} />
   );

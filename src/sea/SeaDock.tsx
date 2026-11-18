@@ -8,6 +8,7 @@ import { useId, useState, type CSSProperties, type ReactElement } from 'react';
 import { SEA_PROFILES, SEA_PROFILE_BY_ID, limitsChanged, limitsSummary, type SeaClass, type SeaLimits, type SeaProfileId } from './seaProfiles';
 import { CLASS_COLOR, CLASS_SHORT, HS_STOPS, LAYER_LABEL, PER_STOPS, cssGradient } from './seaView';
 import { SEA_LAYERS, SEA_REVIERE, type SeaLayer, type SeaRevier } from './seaState';
+import { CUR_STOPS, LEGEND_SPEEDS, RIPPLE_RGB, frontHalfWidth, legendFront, rgbCss } from './seaRipples';
 import { useSearchSheet } from '../components/LocationSearchSheet';
 import { ListSearchSheet } from '../components/ListSearchSheet';
 
@@ -44,7 +45,41 @@ const LAYER_ICON: Record<SeaLayer, ReactElement> = {
   ws: <path d={WIND_PATH} />,
   sw: <path d="M2 14c3.4-7 6.6-7 10 0s6.6 7 10 0" />,
   per: <><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></>,
+  // Phase SR: two fronts across the flow, tip downstream (to the right) — the sign of the ripple layer.
+  cur: <path d="M6.5 5.5c3.4 2.6 3.4 10.4 0 13M12.5 4c4.6 3.4 4.6 12.6 0 16M19 8.5c1.6 2 1.6 5 0 7" />,
 };
+
+/**
+ * Phase SR: the key of the layer „Strömung“ — the colour of the area by speed, and on it four fronts drawn with the
+ * layer's own geometry (`legendFront`): larger and lighter = stronger, tip downstream. Used by the dock tile and the legend.
+ */
+export function RippleKey({ width = 250, height = 40, className }: { width?: number; height?: number; className?: string }) {
+  // useId carries colons; a plain id keeps the url(#…) reference of the gradient safe in every browser.
+  const id = `rk${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
+  const max = CUR_STOPS[CUR_STOPS.length - 1][0];
+  const scale = +Math.min(1, (height - 4) / (2 * frontHalfWidth(LEGEND_SPEEDS[LEGEND_SPEEDS.length - 1], 0) + 2)).toFixed(3);
+  return (
+    <svg className={className} viewBox={`0 0 ${width} ${height}`} width={width} height={height} aria-hidden="true">
+      <defs>
+        <linearGradient id={id} x1="0" x2="1" y1="0" y2="0">
+          {CUR_STOPS.map(([v, c]) => <stop key={v} offset={`${((v / max) * 100).toFixed(1)}%`} stopColor={c} />)}
+        </linearGradient>
+      </defs>
+      <rect width={width} height={height} rx={Math.min(8, height / 2)} fill={`url(#${id})`} />
+      {LEGEND_SPEEDS.map((v, i) => {
+        // Drawn at the origin and placed by a transform: a low key (the dock tile) shrinks the fronts as a whole.
+        const f = legendFront(v, 0, 0);
+        return f && (
+          <g key={v} fill="none" strokeLinecap="round" strokeLinejoin="round" transform={`translate(${(((i + 0.5) / LEGEND_SPEEDS.length) * width - 4).toFixed(1)} ${height / 2}) scale(${scale})`}>
+            <path d={f.relief} stroke={rgbCss(RIPPLE_RGB.relief)} strokeWidth={f.width + 0.6} opacity={0.5 * f.a} />
+            <path d={f.whole} stroke={rgbCss(RIPPLE_RGB.front)} strokeWidth={f.width} opacity={0.55 * f.a} />
+            <path d={f.crest} stroke={rgbCss(RIPPLE_RGB.crest)} strokeWidth={f.width} opacity={f.a} />
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
 const TOGGLE_ICON: Record<keyof SeaToggles, ReactElement> = {
   wind: <path d={WIND_PATH} />,
   warn: <path d="M12 3.5 2.8 19.5h18.4L12 3.5zM12 10v4.5M12 17.2v.1" />,
@@ -65,7 +100,8 @@ export default function SeaDock(p: Props) {
     ['warn', 'Warnstatus Küste', 'DWD Seewetterdienst · deutsche Gebiete'],
     ['stations', 'Messstationen', 'DWD · Wind und Böen gemessen'],
     ['water', 'Wasserstand-Vorhersage', 'BSH · Pegel, CC BY 4.0'],
-    ['current', 'Strömung', 'BSH-Modell · Pfeile, wohin der Strom setzt'],
+    // SR: the ripple layer is the main layer „Strömung“; this switch is its arrow option and says so.
+    ['current', 'Strömungspfeile', 'BSH-Modell · Pfeile, wohin der Strom setzt'],
   ];
   // Phase DK: with Danish spots in the catalogue the two layers also carry DMI stations and DMI model points — named here.
   if (p.hasDk) {
@@ -142,11 +178,13 @@ export default function SeaDock(p: Props) {
   const layers = show !== 'picker' && (
     <>
       <div className={`sw-dock-h sw-dock-sec${show === 'all' ? ' sw-dock-h-layers' : ''}`}>Ebenen</div>
-      <div role="group" aria-label="Seegang-Ebene" className="sw-layers sw-layer-tiles">
+      <div role="group" aria-label="Ebene der Karte" className="sw-layers sw-layer-tiles">
         {SEA_LAYERS.map((l) => (
-          <button key={l} type="button" aria-pressed={p.layer === l} className={p.layer === l ? 'is-active' : ''} onClick={() => p.onLayer(l)}>
-            <span className="sw-layer-top"><svg {...ICON_PROPS}>{LAYER_ICON[l]}</svg><span>{LAYER_LABEL[l]}</span></span>
-            <span className="sw-layer-ramp" style={{ background: cssGradient(l === 'per' ? PER_STOPS : HS_STOPS) }} aria-hidden="true" />
+          <button key={l} type="button" aria-pressed={p.layer === l} className={`${p.layer === l ? 'is-active' : ''}${l === 'cur' ? ' sw-rp-tile' : ''}`} onClick={() => p.onLayer(l)}>
+            <span className="sw-layer-top"><svg {...ICON_PROPS}>{LAYER_ICON[l]}</svg><span>{LAYER_LABEL[l]}</span>{l === 'cur' && <span className="sw-rp-tile-sub">BSH-Modell · bewegte Riffel</span>}</span>
+            {l === 'cur'
+              ? <RippleKey className="sw-rp-tile-key" width={222} height={26} />
+              : <span className="sw-layer-ramp" style={{ background: cssGradient(l === 'per' ? PER_STOPS : HS_STOPS) }} aria-hidden="true" />}
           </button>
         ))}
       </div>

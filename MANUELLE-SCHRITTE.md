@@ -3628,3 +3628,51 @@ in dieser Phase **nichts** gepusht (kein Workflow geändert; der Producer liest 
    Vorhersagewerten nur 22 Stationsstunden geprüft, buscosun Fusion dort 1,1 K zu trocken ⇒ „Nebel möglich“ zu selten;
    nach 14 Tagen aus der Ablage auswerten), **V-SG-1** (Schwellen an Schauerlagen messen) und **V-SG-4** (der Regen-Teil
    von `roadVsVis.ts` rechnet 5–15-mal zu kurze Sicht — betrifft auch den virtuellen Fahrbahnsensor).
+
+## 97. Strömungs-Riffel: fünfte Hauptebene „Strömung“ auf der Karte von `/seewetter` (Phase SR, `audit/seewetter-riffel.md`), 2026-11-18
+
+Ohne Schalter an für alle (deine Entscheidung), wählbar, nicht Voreinstellung. Lokal auf `main` committet, **nicht
+gepusht**. **Pushes in `buscosun-data` und `buscosun-archiv` in dieser Phase: keine** — der Workflow `sea.yml` braucht keine
+Änderung (Schritt „Currents“ ruft denselben Producer, „Publish“ nimmt `sea/` ganz).
+
+1. **Woher die Daten kommen — vor dem Push zeigt die Ebene „Keine Daten“.** Im Datenspeicher liegt noch kein Lauf der
+   Strömung (der Producer der Phase ST ist selbst noch nicht gepusht). Nach `git push origin main` baut der nächste
+   15-min-Lauf von `sea.yml` den neuesten BSH-Lauf samt u/v-Feld (≈ 65 s, +2,5 MB je Lauf, zwei Läufe bleiben liegen).
+   Prüfen: `https://raw.githubusercontent.com/jppetry/buscosun-data/main/sea/v1/status.json` → `current.uv: true`,
+   `current.uvBytes` ≈ 2,47 Mio.; steht dort `uvOver: true`, lag der Lauf über der Grenze von 4 MB (E-SR-2).
+   **Wenn du die Ebene VOR dem Push sehen willst:** sag es — der lokal gebaute Lauf 2026111812 liegt bereit
+   (2,9 MB; Speicher-Kopie im Scratchpad der Sitzung), ich habe ihn bewusst nicht veröffentlicht (wie in Phase ST).
+2. **Abends steht „Keine Daten“ für „Jetzt“ (V-SR-1, gilt auch für die Zeile „Strom“ der Phase ST):** der 12-UTC-Lauf des
+   BSH beginnt erst am Folgetag 01:00 UTC. Zwischen ≈ 17:30 UTC und 01:00 UTC liegt „jetzt“ vor dem Lauf — dann einen
+   späteren Zeit-Chip wählen (+6 h, +12 h). Die Karte sagt das mit dem Zeitraum des Laufs.
+3. **Sichtprüfung (von mir nicht im Browser gesehen, weder Bild noch Bewegung):** `/seewetter?l=cur` oder Dock →
+   „Ebenen“ → Kachel „Strömung“.
+   - **Dein Chrome meldet „reduzierte Bewegung“** ⇒ dort steht nach Auftrag EIN Standbild (die Legende sagt es). Für die
+     Bewegung: DevTools → Rendering → „Emulate CSS media feature prefers-reduced-motion“ → `no-preference`.
+   - Fronten: geordnete Bögen quer zum Strom, Spitze stromab, bis zu drei hintereinander, helle Front mit dunkler Linie
+     stromauf; größer und heller bei mehr Strom. Unterscheiden sie sich klar von Windpartikeln?
+   - Kontrast: der eigene Wasserton `rgb(28,80,102)` ist **gerechnet, nicht gesehen** (E-SR-6). Zu hell oder zu dunkel?
+     Eine Zahl in `RIPPLE_RGB.water` (`src/sea/seaRipples.ts`).
+   - Stauwasser: in der Deutschen Bucht mit dem Stundenband oder „Fenster abspielen“ (Planer) durch die Tide gehen —
+     Fronten und Fäden sollen ausblenden, die Fläche glatt werden, dann in Gegenrichtung wiederkommen.
+   - Ruhiges Wasser (fast die ganze Ostsee) bleibt leer — gewollt.
+   - Die Farbfläche wechselt beim Stundenwechsel in einem Schritt, die Riffel mischen 0,8 s (V-SR-2).
+   - Um Spots, Pegel und Stationen bleibt ein kleiner Kreis frei; Sprechblase und Boot liegen über den Riffeln.
+   - Dock: fünfte Kachel über die ganze Breite mit den vier Bögen; der Schalter darunter heißt jetzt „Strömungspfeile“.
+   - Mobil: Legende über der unteren Leiste, Kachel im Blatt „Ebenen“.
+4. **Bildrate: ungemessen.** Regelung nur über das `FrameGovernor`-Muster (Maus 60 → 45 → 30 Bilder, dann halbe Fäden,
+   zuletzt 60 % der Pakete; Touch 30 → 24 → 20). Bitte am Desktop UND an einem Mittelklasse-Android ansehen. Ruckelt es
+   dort, ist das der Befund, bei dem ich nach Auftrag anhalte — kein Wechsel zu WebGL ohne dein Wort. Stellschrauben
+   ohne Umbau: `RIPPLE.areaCap` (heute 4 ⇒ bis 520 Fäden / 760 Pakete), `RIPPLE_LADDER`.
+5. **Push:** `git push origin main` (trägt die lokalen Commits seit TF mit).
+6. **Budget:** `totalJs` am sauberen HEAD 2 010 → 2 019 (Notiz in `budget.json`); die Phase kostet 9,4 KB gzip, alles
+   lazy (4,2 KB erst beim Wählen der Ebene). Im Arbeitsbaum steht 2 024, weil die uncommittete Radar-Linie (§94) ihre
+   eigene Anhebung auf 2 015 daneben trägt — wer sie committet, behält ihre Notiz und die Summe.
+7. **CI:** `node scripts/ci-run.mjs verify:sea-ripples` in `.github/workflows/ci.yml` eintragen (V-SR-8).
+8. **Entscheiden** (`audit/seewetter-riffel.md` §3): **E-SR-2** Schrittweite 2 (1,8 km; Schrittweite 1 kostete 7 MB je
+   Lauf) und Grenze 4 MB. **E-SR-6** Wasserton. **E-SR-9** Deckel × 4. **E-SR-12** Name „Strömungspfeile“.
+   **E-SR-13** keine Seegangspfeile unter der Ebene „Strömung“.
+9. **Rückfall:** kein Schalter auf der Seite. Ohne Deploy: in `sea.yml` (Daten-Repo) unter `env:` `SEA_CURRENT_UV: '0'`
+   ⇒ kein u/v-Feld mehr, die Ebene sagt „Keine Daten“, alles andere bleibt. Ganz: den Commit zurücknehmen und pushen.
+10. **Offen:** Sichtprüfung, Bildrate und Real-Device (Punkte 3 und 4); Konsole, Touch-Ziele am Gerät, Long Tasks und
+    Pixelgleichheit der übrigen Seite **nicht** gemessen; `verify:sea-ui` nicht gelaufen (Browser). V-SR-1 … 10.

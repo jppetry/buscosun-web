@@ -1,0 +1,19 @@
+{
+ "recorded": "2026-11-18",
+ "note": "Two hourly u/v images of the real BSH run 2026111812 (hours 6 and 9 of the axis = 2026-11-19 07:00 and 10:00 UTC), written by scripts/sea/sea-current.mjs from the day files of the BSH filebox. Byte-exact copies of the local producer run of phase SR.",
+ "run": "2026111812",
+ "t0": "2026-11-19T01:00:00Z",
+ "producer": "scripts/sea/sea-current.mjs",
+ "runUvBytes": 2468697,
+ "runUvImages": 72,
+ "files": {
+  "uv-2026111812-006.png": {
+   "bytes": 35211,
+   "sha256": "8327a76093d1681e7088826ab9f5db701e6a306c596c4f7bccbf8dd1f548a73b"
+  },
+  "uv-2026111812-009.png": {
+   "bytes": 35877,
+   "sha256": "f1c92ea69af6e1055e1e5c4da389a137bdedd2bdab49a831cd5e96b24380f0da"
+  }
+ }
+}

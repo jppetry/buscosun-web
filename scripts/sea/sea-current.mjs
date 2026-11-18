@@ -5,7 +5,9 @@
  *
  *   sea/v1/current/<run>.json          per spot: hourly speed (cm/s) and "sets towards" (deg), slack-water times from the
  *                                      15-min steps, the model cell and its distance (`src/sea/seaCurrent.ts`)
- *   sea/v1/current/<run>/f/<hhh>.png   thinned hourly field for the map layer "Strömung" (90 × 55 cells, sampled)
+ *   sea/v1/current/<run>/f/<hhh>.png   thinned hourly field for the arrows "Strömungspfeile" (90 × 55 cells, sampled)
+ *   sea/v1/current/<run>/uv/<hhh>.png  phase SR: hourly u/v field for the map layer "Strömung" (ripples; 315 × 194 cells,
+ *                                      sampled; R = u, G = v signed, B = mark, alpha always 255 — `SEA_CURRENT_UV`)
  *   status.json → `current`            pointer to the newest run, like the wind refresh
  *
  * Reads over HTTPS from the BSH filebox (the public share the BSH page links to, WebDAV `PROPFIND` + `GET`); FTP through
@@ -21,7 +23,8 @@
  *     [--force]          also build when the clock says nothing new can be there, and a run already published
  *     [--files=<dir>]    read the day files from a local directory instead of the BSH (measurement, verifier)
  *     [--now=<iso>]
- * Kill switch: SEA_KILL=1 (nothing asked, nothing written). Last stdout line = JSON summary.
+ * Kill switch: SEA_KILL=1 (nothing asked, nothing written). SEA_CURRENT_UV=0 builds the run without the u/v field (the
+ * map layer "Strömung" then says "keine Daten", everything else is as before). Last stdout line = JSON summary.
  */
 import { existsSync, readdirSync, readFileSync, rmSync, statSync, mkdtempSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -29,12 +32,13 @@ import { tmpdir } from 'node:os';
 import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { SEA_MODELS, SEA_CURRENT_DIR, SEA_CURRENT_ORIGIN, SEA_CURRENT_RE, seaCurrentPath, seaCurrentFieldPath, seaRunMs } from '../../src/sea/seaContract.ts';
+import { SEA_MODELS, SEA_CURRENT_DIR, SEA_CURRENT_ORIGIN, SEA_CURRENT_RE, seaCurrentPath, seaCurrentFieldPath, seaCurrentUvPath, seaRunMs } from '../../src/sea/seaContract.ts';
 import {
   BSH_CURRENT_CHANGED, BSH_CURRENT_CREDIT, BSH_CURRENT_FILEBOX, BSH_CURRENT_FILE_RE, BSH_CURRENT_FTP, BSH_CURRENT_LICENCE, BSH_CURRENT_PACKAGES, BSH_CURRENT_PKGS,
   BSH_CURRENT_STEP_MS, BSH_CURRENT_ZERO_MS, SEA_CURRENT_FIELD, SEA_CURRENT_KEPT, SEA_CURRENT_MAX_CELL_KM, SEA_CURRENT_MAX_DRY_SHARE, SEA_CURRENT_MAX_TRIES,
   SEA_CURRENT_MODEL_NOTE, SEA_CURRENT_PRODUCT, SEA_CURRENT_SETTLE_MS, bshGridProblems, bshIndexOfCwam, currentDistKm, currentExpectedRun, currentFieldCell,
   currentFlow, currentFlowAt, currentPointerOf, encodeCurrent, encodeCurrentPixel, seaCurrentDead, seaCurrentProblems, slackTimes,
+  SEA_CURRENT_UV, SEA_CURRENT_UV_MAX_RUN_BYTES, SEA_CURRENT_UV_NULL, currentUvCell, encodeUvPixel,
 } from '../../src/sea/seaCurrent.ts';
 import { bshMessages, bshField, BshGribError } from './bshGrib.mjs';
 import { encodePng } from '../lib/png.mjs';
@@ -160,14 +164,15 @@ function candidates(pkg, water, sp) {
 
 /**
  * All day files of one package → the 15-min series at the candidate cells and the thinned hourly pixels.
- * `hourly(tMs)` returns the RGBA buffer of that hour's field (or null when no field is wanted).
+ * `hourly(tMs)` returns the RGBA buffer of that hour's field (or null when no field is wanted), `hourlyUv(tMs)` the
+ * buffer of that hour's u/v field (phase SR; every pixel starts as "no value").
  */
-function readPackage(pkg, buffers, spots, hourly, log) {
+function readPackage(pkg, buffers, spots, hourly, hourlyUv, log) {
   let grid = null, water = null, points = 0, slots = null, series = null;
   const cand = new Map();          // spot id → candidates
   const steps = [];                // valid times as they complete
   const pending = new Map();       // t → { u?, v? }
-  const fx = SEA_CURRENT_FIELD, thin = [];
+  const fx = SEA_CURRENT_FIELD, thin = [], ux = SEA_CURRENT_UV, thinUv = [];
   for (const raw of buffers) {
     for (const m of bshMessages(raw)) {
       const f = bshField(raw, m.offset, m.length);
@@ -182,6 +187,7 @@ function readPackage(pkg, buffers, spots, hourly, log) {
         for (const sp of spots) { const c = candidates(pkg, water, sp); cand.set(sp.id, c); for (const x of c) if (!slots.has(x.k)) slots.set(x.k, slots.size); }
         series = { u: [], v: [] };
         for (let y = 0; y < fx.ny; y++) for (let x = 0; x < fx.nx; x++) { const c = currentFieldCell(x, y), k = bshIndexOfCwam(pkg, c.i, c.j); if (k >= 0 && water[k]) thin.push([(y * fx.nx + x) * 4, k]); }
+        for (let y = 0; y < ux.ny; y++) for (let x = 0; x < ux.nx; x++) { const c = currentUvCell(x, y), k = bshIndexOfCwam(pkg, c.i, c.j); if (k >= 0 && water[k]) thinUv.push([(y * ux.nx + x) * 4, k]); }
       } else if (f.grid.ni !== grid.ni || f.grid.nj !== grid.nj || f.pack.n !== points) throw new BshGribError('BSH-GRIB: Gitter oder Maske wechselt innerhalb des Laufs');
       const e = pending.get(f.t) ?? {};
       const key = f.num === 2 ? 'u' : 'v';
@@ -194,6 +200,10 @@ function readPackage(pkg, buffers, spots, hourly, log) {
       steps.push(f.t); series.u.push(su); series.v.push(sv);
       const img = f.t % H === 0 ? hourly(f.t) : null;
       if (img) for (const [o, k] of thin) if (img[o + 3] === 0) encodeCurrentPixel(img, o, currentFlow(e.u[k], e.v[k]));
+      // SR: the components themselves. A water point without current is 0 / 0 (still water), not "no value"; where the
+      // packages overlap the first one (db) stands, as in the thinned field.
+      const uvImg = f.t % H === 0 ? hourlyUv(f.t) : null;
+      if (uvImg) for (const [o, k] of thinUv) if (uvImg[o + 2] === SEA_CURRENT_UV_NULL) encodeUvPixel(uvImg, o, currentFlow(e.u[k], e.v[k]) ? { u: e.u[k], v: e.v[k] } : { u: 0, v: 0 });
     }
   }
   if (pending.size) throw new BshGribError(`BSH-GRIB: ${pending.size} Zeitschritte mit nur einer der beiden Komponenten`);
@@ -208,11 +218,13 @@ function readPackage(pkg, buffers, spots, hourly, log) {
  * One run from its day files (`buffers.db`, `buffers.wb`, day order) → the spot entries, the axis and the field PNGs.
  * Pure with respect to the store; throws `BshGribError` for a run this reader refuses.
  */
-export function readRun({ buffers, spots, field = true, log = () => {} }) {
-  const fx = SEA_CURRENT_FIELD, imgs = new Map();
+export function readRun({ buffers, spots, field = true, uv = true, log = () => {} }) {
+  const fx = SEA_CURRENT_FIELD, imgs = new Map(), ux = SEA_CURRENT_UV, uvImgs = new Map();
   const hourly = field ? (tMs) => imgs.get(tMs) ?? imgs.set(tMs, new Uint8Array(fx.nx * fx.ny * 4)).get(tMs) : () => null;
+  const blankUv = () => { const img = new Uint8Array(ux.nx * ux.ny * 4); for (let o = 0; o < img.length; o += 4) encodeUvPixel(img, o, null); return img; };
+  const hourlyUv = uv ? (tMs) => uvImgs.get(tMs) ?? uvImgs.set(tMs, blankUv()).get(tMs) : () => null;
   const pk = {};
-  for (const pkg of BSH_CURRENT_PKGS) pk[pkg] = readPackage(pkg, buffers[pkg], spots, hourly, log);
+  for (const pkg of BSH_CURRENT_PKGS) pk[pkg] = readPackage(pkg, buffers[pkg], spots, hourly, hourlyUv, log);
   const t = pk.db.t;
   if (t.length !== pk.wb.t.length || t.some((x, i) => x !== pk.wb.t[i])) throw new BshGribError('BSH-GRIB: die Pakete db und wb tragen verschiedene Zeitachsen');
   const hoursIdx = t.map((x, i) => (x % H === 0 ? i : -1)).filter((i) => i >= 0);
@@ -243,7 +255,9 @@ export function readRun({ buffers, spots, field = true, log = () => {} }) {
   }
   const pngs = field ? hoursIdx.map((i) => { const img = imgs.get(t[i]); return img ? encodePng(fx.nx, fx.ny, img, 4) : null; }) : [];
   if (field && pngs.some((p) => !p)) throw new BshGribError('BSH-GRIB: Stunde ohne Feld');
-  return { t0, hours: hoursIdx.length, steps: t.length, first: t[0], last: t[t.length - 1], spots: out, failed, pngs };
+  const uvPngs = uv ? hoursIdx.map((i) => { const img = uvImgs.get(t[i]); return img ? encodePng(ux.nx, ux.ny, img, 4) : null; }) : [];
+  if (uv && uvPngs.some((p) => !p)) throw new BshGribError('BSH-GRIB: Stunde ohne u/v-Feld');
+  return { t0, hours: hoursIdx.length, steps: t.length, first: t[0], last: t[t.length - 1], spots: out, failed, pngs, uvPngs };
 }
 
 // --- store --------------------------------------------------------------------------------------------------------
@@ -262,7 +276,7 @@ export function pruneCurrent(storeDir, keep = SEA_CURRENT_KEPT) {
   return removed;
 }
 
-export async function buildCurrent({ storeDir, nowMs = Date.now(), force = false, sources = [fileboxSource(), ftpSource()], field = true, log = () => {}, killed = process.env.SEA_KILL === '1' }) {
+export async function buildCurrent({ storeDir, nowMs = Date.now(), force = false, sources = [fileboxSource(), ftpSource()], field = true, uv = process.env.SEA_CURRENT_UV !== '0', log = () => {}, killed = process.env.SEA_KILL === '1' }) {
   if (killed) return { built: false, reason: 'Kill-Schalter SEA_KILL=1' };
   const cat = readCatalog(storeDir);
   if (!cat?.spots?.length) throw new Error('Spotkatalog fehlt im Speicher');
@@ -291,9 +305,13 @@ export async function buildCurrent({ storeDir, nowMs = Date.now(), force = false
       buffers[pkg].push(b); files.push({ name: f.name, bytes: b.length, sha256: sha256(b) });
     }
     const dlS = Math.round((Date.now() - started) / 1000);
-    const r = readRun({ buffers, spots: cat.spots, field, log });
+    const r = readRun({ buffers, spots: cat.spots, field, uv, log });
     if (!Object.keys(r.spots).length) throw new Error(`kein Spot mit Strömung — ${r.failed[0]?.error ?? 'Grund unbekannt'}`);
-    const fieldBytes = r.pngs.reduce((a, p) => a + p.length, 0);
+    const fieldBytes = r.pngs.reduce((a, p) => a + p.length, 0), uvBytes = r.uvPngs.reduce((a, p) => a + p.length, 0);
+    // SR: the named limit of the u/v field. A run over it is still published (nothing is thinned behind the contract's
+    // back) — the status says so, and the stride is then a decision, not a silent change.
+    const uvOver = uvBytes > SEA_CURRENT_UV_MAX_RUN_BYTES;
+    if (uvOver) log(`u/v-Feld ${uvBytes} B über der Grenze von ${SEA_CURRENT_UV_MAX_RUN_BYTES} B je Lauf`);
     const doc = {
       schema: 1, product: SEA_CURRENT_PRODUCT, run: pick.run, builtAt: new Date(nowMs).toISOString(), t0: r.t0, hours: r.hours, stepMin: 15,
       source: `${src.base} (BSH, Pakete db und wb, GRIB2)`, via: src.name, licence: BSH_CURRENT_LICENCE, credit: BSH_CURRENT_CREDIT, note: SEA_CURRENT_MODEL_NOTE, changed: BSH_CURRENT_CHANGED,
@@ -302,21 +320,23 @@ export async function buildCurrent({ storeDir, nowMs = Date.now(), force = false
       bsh: { settledAt: pick.settledAt, days: pick.days, steps: r.steps, first: new Date(r.first).toISOString(), last: new Date(r.last).toISOString() },
       files, spots: r.spots, failed: r.failed,
       field: field ? { hours: r.hours, nx: SEA_CURRENT_FIELD.nx, ny: SEA_CURRENT_FIELD.ny, stride: SEA_CURRENT_FIELD.stride, off: SEA_CURRENT_FIELD.off, bytes: fieldBytes } : null,
+      uv: uv ? { hours: r.hours, nx: SEA_CURRENT_UV.nx, ny: SEA_CURRENT_UV.ny, stride: SEA_CURRENT_UV.stride, off: SEA_CURRENT_UV.off, stepMs: SEA_CURRENT_UV.stepMs, bytes: uvBytes } : null,
     };
     const problems = seaCurrentProblems(doc);
     if (problems.length) throw new Error(`sea-current verletzt die Werteprüfung: ${problems.slice(0, 3).join('; ')}`);
     // Field first, the file after it, the pointer last — a reader never follows a pointer into a half-written run.
     rmSync(join(storeDir, SEA_CURRENT_DIR, pick.run), { recursive: true, force: true });
     r.pngs.forEach((png, h) => writeAtomic(join(storeDir, seaCurrentFieldPath(pick.run, h)), png));
+    r.uvPngs.forEach((png, h) => writeAtomic(join(storeDir, seaCurrentUvPath(pick.run, h)), png));
     const text = JSON.stringify(doc) + '\n', path = seaCurrentPath(pick.run);
     writeAtomic(join(storeDir, path), text);
     const st2 = readStatus(storeDir);
-    st2.current = { run: pick.run, path, builtAt: doc.builtAt, t0: doc.t0, hours: doc.hours, spots: Object.keys(doc.spots).length, failed: doc.failed.length, field: !!doc.field, via: src.name, bytes: Buffer.byteLength(text), fieldBytes, buildS: Math.round((Date.now() - started) / 1000) };
+    st2.current = { run: pick.run, path, builtAt: doc.builtAt, t0: doc.t0, hours: doc.hours, spots: Object.keys(doc.spots).length, failed: doc.failed.length, field: !!doc.field, uv: !!doc.uv, via: src.name, bytes: Buffer.byteLength(text), fieldBytes, uvBytes, ...(uvOver ? { uvOver: true } : {}), buildS: Math.round((Date.now() - started) / 1000) };
     delete st2.currentTry;
     const removed = pruneCurrent(storeDir);
     writeStatus(storeDir, st2, nowMs);
-    log(`Strömung ${pick.run} über ${src.name}: ${st2.current.spots} Spots, ${doc.failed.length} ohne Zelle, ${doc.hours} h ab ${new Date(doc.t0).toISOString()}, Datei ${st2.current.bytes} B, Feld ${fieldBytes} B in ${r.pngs.length} Bildern, Abruf ${dlS} s, gesamt ${st2.current.buildS} s`);
-    return { built: true, run: pick.run, via: src.name, path, spots: st2.current.spots, failed: doc.failed, hours: doc.hours, bytes: st2.current.bytes, fieldBytes, downloadMB: +(files.reduce((a, f) => a + f.bytes, 0) / 1e6).toFixed(1), buildS: st2.current.buildS, removed };
+    log(`Strömung ${pick.run} über ${src.name}: ${st2.current.spots} Spots, ${doc.failed.length} ohne Zelle, ${doc.hours} h ab ${new Date(doc.t0).toISOString()}, Datei ${st2.current.bytes} B, Feld ${fieldBytes} B in ${r.pngs.length} Bildern, u/v-Feld ${uvBytes} B in ${r.uvPngs.length} Bildern, Abruf ${dlS} s, gesamt ${st2.current.buildS} s`);
+    return { built: true, run: pick.run, via: src.name, path, spots: st2.current.spots, failed: doc.failed, hours: doc.hours, bytes: st2.current.bytes, fieldBytes, uvBytes, downloadMB: +(files.reduce((a, f) => a + f.bytes, 0) / 1e6).toFixed(1), buildS: st2.current.buildS, removed };
   } catch (e) {
     const st2 = readStatus(storeDir);
     const n = st2.currentTry?.run === pick.run ? st2.currentTry.n + 1 : 1;

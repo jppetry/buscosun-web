@@ -19,8 +19,8 @@ import {
   DMI_OBS_MAX_AGE_MS, DMI_OBS_PARAMS, SEA_DMI_PRODUCT, dmiObsLatest, dmiObsUrl, dmiWindOnAxis, seaDmiProblems, seaDmiStale,
   type SeaDmiDoc, type SeaDmiPointer,
 } from './seaDmi';
-import { seaCurrentFieldPath } from './seaContract';
-import { SEA_CURRENT_FIELD, SEA_CURRENT_WHY, currentLoadOf, seaCurrentDead, type SeaCurrentLoad, type SeaCurrentPointer } from './seaCurrent';
+import { seaCurrentFieldPath, seaCurrentUvPath } from './seaContract';
+import { SEA_CURRENT_FIELD, SEA_CURRENT_UV, SEA_CURRENT_WHY, currentLoadOf, decodeUvField, seaCurrentDead, type SeaCurrentLoad, type SeaCurrentPointer, type SeaUvGrid } from './seaCurrent';
 
 /** "Does not exist" (404, or 403 on both ways) — distinct from a hard failure. */
 export class SeaNotThere extends Error {}
@@ -588,4 +588,40 @@ export function takeSeaStatic(): SeaStatic | null {
 export function takeSeaChain(): SeaChain | null {
   if (!startFresh()) return null;
   const c = seaStart!.chain; seaStart!.chain = null; return c;
+}
+
+// --- Phase SR: hourly u/v field of the current (audit/seewetter-riffel.md) -----------------------------------------------
+
+const currentUvCache = new Map<string, Promise<SeaUvGrid | null>>();
+/**
+ * `current/<run>/uv/<hhh>.png` (315 × 194) → the decoded grid, or null (missing, unreachable, not the contract's image).
+ * Same canvas path as `loadField`; the image carries alpha 255 everywhere, so the read loses nothing. The page asks
+ * only for the chosen hour and the one after it; a handful of grids stay in memory (≈ 0.55 MB each).
+ */
+export function loadCurrentUv(run: string, hour: number, signal?: AbortSignal): Promise<SeaUvGrid | null> {
+  const path = seaCurrentUvPath(run, hour);
+  const hit = currentUvCache.get(path);
+  if (hit) return hit;
+  const { nx: width, ny: height } = SEA_CURRENT_UV;
+  const p = (async () => {
+    try {
+      const bytes = await fetchSea(path, 'bytes', signal) as Uint8Array;
+      const bmp = await createImageBitmap(new Blob([bytes as BlobPart], { type: 'image/png' }), { colorSpaceConversion: 'none', premultiplyAlpha: 'none' });
+      try {
+        if (bmp.width !== width || bmp.height !== height) return null;
+        const canvas = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(width, height) : Object.assign(document.createElement('canvas'), { width, height });
+        const ctx = canvas.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D | null;
+        if (!ctx) return null;
+        ctx.drawImage(bmp, 0, 0);
+        return decodeUvField(ctx.getImageData(0, 0, width, height).data);
+      } finally { bmp.close(); }
+    } catch (e) {
+      currentUvCache.delete(path);
+      if (isAbort(e)) throw e;
+      return null;
+    }
+  })();
+  currentUvCache.set(path, p);
+  if (currentUvCache.size > 6) currentUvCache.delete(currentUvCache.keys().next().value as string);
+  return p;
 }

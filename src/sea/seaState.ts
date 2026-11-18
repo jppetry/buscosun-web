@@ -10,8 +10,9 @@ import { isProfileId, type SeaProfileId, type SeaUnit } from './seaProfiles';
 
 export type SeaTab = 'spot' | 'gebiet' | 'quellen';
 export const SEA_TABS: readonly SeaTab[] = ['spot', 'gebiet', 'quellen'];
-export type SeaLayer = 'hs' | 'ws' | 'sw' | 'per';
-export const SEA_LAYERS: readonly SeaLayer[] = ['hs', 'ws', 'sw', 'per'];
+/** `cur` (phase SR) = surface current of the BSH as ripples; the other four are wave fields of CWAM. */
+export type SeaLayer = 'hs' | 'ws' | 'sw' | 'per' | 'cur';
+export const SEA_LAYERS: readonly SeaLayer[] = ['hs', 'ws', 'sw', 'per', 'cur'];
 /** `daenemark` (phase DK) filters by the spot's country; `nordsee`/`ostsee` by its sea — a Danish spot is in both lists. */
 export type SeaRevier = 'alle' | 'nordsee' | 'ostsee' | 'daenemark';
 export const SEA_REVIERE: readonly SeaRevier[] = ['alle', 'nordsee', 'ostsee', 'daenemark'];
