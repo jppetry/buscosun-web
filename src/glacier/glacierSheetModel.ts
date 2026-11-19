@@ -12,6 +12,7 @@ import { GLACIER_FORBIDDEN_TOUR_WORDS, glacierForbiddenWords, glacierMeltFresh }
 import { glacierFlagsOfMask, type GlacierSeasonRow, type GlacierSatFlag } from './glacierSatContract';
 import { GLACIER_SAT_MAX_AGE_DAYS } from './glacierContract';
 import type { GlacierMeltDoc, GlacierMeltRow, Triple } from './glacierMeltContract';
+import type { GlacierElevBlock, GlacierElevDoc, GlacierElevSource } from './glacierElevContract';
 
 export const SHEET_DAY_MS = 86_400_000;
 export const isoDoy = (iso: string): number => { const d = Date.parse(`${iso}T12:00:00Z`); return Math.floor((d - Date.UTC(new Date(d).getUTCFullYear(), 0, 0)) / SHEET_DAY_MS); };
@@ -145,6 +146,56 @@ export function projectionSentence(v: ProjectionView): string {
   return `Unter 10 % des Volumens von 2020: ${v.range.from}–${v.range.to == null ? 'nach 2100' : v.range.to}, je nach Szenario und Klimamodell (nie ein einzelnes Jahr).`;
 }
 
+// --- elevation change 2000–2019 (phase GH, Hugonnet et al. 2021) ------------------------------------------------------------------------------
+
+/** One period: the data set's value and 1-sigma uncertainty (m per year). `rangeOnly` = the uncertainty is at least as large as the value. */
+export interface ElevRate { label: string; from: number; to: number; v: number; err: number; lo: number; hi: number; rangeOnly: boolean }
+export interface ElevView {
+  /** 2000–2019. */
+  total: ElevRate;
+  /** The four five-year periods in order; `null` = the table carries no number for it. */
+  periods: Array<ElevRate | null>;
+  rgi: string;
+  km2: number;
+  ref: string;
+  source: GlacierElevSource;
+}
+/** The block of one glacier as the sheet shows it — nothing is computed beyond `value ± uncertainty` (no density, no mass, no extrapolation). */
+export function elevView(doc: Pick<GlacierElevDoc, 'periods' | 'ref' | 'source'> | null | undefined, b: GlacierElevBlock | null | undefined): ElevView | null {
+  if (!doc || !b || !Array.isArray(b.r) || !b.r[0]) return null;
+  const rate = (i: number): ElevRate | null => {
+    const x = b.r[i], p = doc.periods[i];
+    if (!x || !p) return null;
+    return { label: p.label, from: p.from, to: p.to, v: x[0], err: x[1], lo: x[0] - x[1], hi: x[0] + x[1], rangeOnly: x[1] >= Math.abs(x[0]) };
+  };
+  const total = rate(0);
+  if (!total) return null;
+  return { total, periods: doc.periods.slice(1).map((_, i) => rate(i + 1)), rgi: b.rgi, km2: b.km2, ref: doc.ref, source: doc.source };
+}
+/** One decimal; two when the uncertainty is below 0.05 m per year (a "± 0,0" would claim an exact value). */
+export const elevDecimals = (err: number): 1 | 2 => (err < 0.05 ? 2 : 1);
+/** German number with a typographic minus; `signed` puts a plus before a gain. A value that rounds to zero carries no sign. */
+export function elevNum(v: number, nd: number, signed = true): string {
+  const r = Math.round(Math.abs(v) * 10 ** nd) / 10 ** nd;
+  const s = r.toFixed(nd).replace('.', ',');
+  return r === 0 ? s : v < 0 ? `−${s}` : signed ? `+${s}` : s;
+}
+/**
+ * The figure of one period: `value` is what stands large, `note` the small line next to it. With the uncertainty as large as the value only
+ * the range is shown — no single number and no direction.
+ */
+export function elevFigure(r: ElevRate): { value: string; note: string } {
+  const nd = elevDecimals(r.err);
+  if (r.rangeOnly) return { value: `${elevNum(r.lo, nd)} bis ${elevNum(r.hi, nd)} m pro Jahr`, note: 'nur die Spanne: die Unsicherheit ist so groß wie der Wert' };
+  return { value: `${elevNum(r.v, nd)} m pro Jahr`, note: `± ${elevNum(r.err, nd, false)}` };
+}
+/** Plain sentence under the figure; a direction ("gesunken"/"gestiegen") only when the value stands clear of its uncertainty. */
+export function elevSentence(v: ElevView): string {
+  const t = v.total, nd = elevDecimals(t.err);
+  if (t.rangeOnly) return `Für ${t.label} lässt die Messung keine Richtung erkennen: die Höhenänderung liegt zwischen ${elevNum(t.lo, nd)} und ${elevNum(t.hi, nd)} m pro Jahr.`;
+  return `Die Oberfläche ist von ${t.from} bis ${t.to} im Mittel um ${elevNum(Math.abs(t.v), nd, false)} m pro Jahr ${t.v < 0 ? 'gesunken' : 'gestiegen'} (± ${elevNum(t.err, nd, false)} m).`;
+}
+
 // --- melt (index) -----------------------------------------------------------------------------------------------------------------------------
 
 export interface MeltView {
@@ -214,6 +265,8 @@ export interface SourceRow { what: string; origin: GlacierOrigin; stand: string;
 export function sourceRows(a: {
   g: GlacierCatalogEntry; hasLength: boolean; hasMass: boolean; area: ReturnType<typeof areaChange>; melt: MeltView | null; season: SeasonSummary | null; clima: boolean; proj: boolean; anomaly: boolean;
   mass: MassRow | null; lengthSeries: GlacierSeries | null; nowMs: number;
+  /** Phase GH: the elevation-change block, when the glacier has one. */
+  elev?: ElevView | null;
 }): SourceRow[] {
   const r: SourceRow[] = [];
   r.push({ what: `Fläche ${a.g.area.km2 >= 1 ? a.g.area.km2.toFixed(2).replace('.', ',') : a.g.area.km2.toFixed(3).replace('.', ',')} km² und Höhen`, origin: 'official', stand: `Bezugsjahr ${a.g.area.refYear}`, source: `Inventar ${a.g.area.source} — ${a.g.zSource}` });
@@ -224,6 +277,7 @@ export function sourceRows(a: {
   if (a.clima) r.push({ what: 'Band der Schneegrenze 2000–2025 (p10–p90)', origin: 'measured', stand: '2000–2025', source: 'TSLA (Sommer et al., Zenodo 18223929, CC BY 4.0), aus Satellitenbildern' });
   if (a.anomaly) r.push({ what: 'Albedo-Anomalie des Eises', origin: 'satellite', stand: 'eigene Szenen früherer Jahre', source: 'Sentinel-2 L2A, Mittel der Szenen im selben Zeitfenster' });
   if (a.melt) r.push({ what: 'Schmelzindex, Nullgradgrenze, Nächte ohne Frost, Eisanteil', origin: 'model', stand: `Lauf ${dateDeLong(a.melt.runAt.slice(0, 10))} ${a.melt.runAt.slice(11, 16)} UTC`, source: `${a.melt.engine} · Temperaturindex-Modell je 50-m-Band; nicht in mm geeicht (Gate C nicht bestanden)` });
+  if (a.elev) r.push({ what: `Höhenänderung der Oberfläche ${a.elev.total.label} und je Fünfjahreszeitraum, mit Unsicherheit (1 σ)`, origin: 'satellite', stand: `${a.elev.total.label} (die Reihe endet ${a.elev.total.to})`, source: `${a.elev.source.attribution} · ${a.elev.source.licence} · Werte unverändert, bezogen auf den Umriss RGI 6.0 (${a.elev.rgi})` });
   if (a.proj) r.push({ what: 'Volumen bis 2100', origin: 'model', stand: 'Szenarien SSP1-2.6 … SSP5-8.5', source: 'GloGEM, CMIP6 (Zekollari et al. 2024), Spanne über 12 Klimamodelle' });
   return r;
 }

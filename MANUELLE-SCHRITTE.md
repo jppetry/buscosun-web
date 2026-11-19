@@ -3803,3 +3803,36 @@ und `buscosun-archiv` in dieser Phase: keine** — die Phase liest nur Dateien, 
    `src/pointForecast/fusion/fusionRelease.ts` den Teil `sea` auf `on: false` — dann steht dort „keine Daten“.
 10. **Offen:** Punkte 2 bis 4; Pixelgleichheit der übrigen Seite nicht gemessen; `verify:sea-ui` nicht gelaufen
     (Browser-Prüfer, an HEAD rot). V-AM-1 … 15.
+
+## 105. Gletscher: Höhenänderung 2000–2019 je Gletscher nach Hugonnet et al. 2021 (Phase GH, `audit/gletscher-hugonnet.md`), 2026-11-19
+
+Ohne Schalter an für alle (dein Wort vom 19.11.). Lokal committet, nicht gepusht. Ich habe die Seite nicht im Browser gesehen.
+
+**Pushs in `buscosun-data` (von mir, nur die statische Gletscher-Linie, ohne Force, je danach geprüft):**
+
+| Ziel | Commit | Inhalt |
+| --- | --- | --- |
+| Zweig `glacier` | `b1f55b3b45df835df310a8d5d8da5928aa0a23bf` | 27 neue Dateien `glacier/v1/static/20261012-1/dhdt/` (26 Regionen + Bericht, 271 KB) |
+| `main` | `4d9136a6c653a7953b7b711d08e0cabcd36db4f7` | `glacier/v1/index.json`: `static.dhdt = "20261012-1"` |
+
+1. **Ansehen** (dein Dev-Server, die Daten liegen schon im Speicher): `/gletscher/ch-grosser-aletschgletscher` → links im
+   Steckbrief „Höhenänderung 2000–2019: −1,4 m pro Jahr · ± 0,1“; Reiter „Langzeit“ → Karte „Höhenänderung der Oberfläche“
+   mit vier Säulen und Strichen; Reiter „Quellen“ → Zeile und Lizenz „Hugonnet et al. 2021 … CC BY 4.0“.
+   `/gletscher/de-blaueis` → nur eine Spanne („−1,0 bis +0,3 m pro Jahr“), vier gestrichelte Rahmen statt Säulen.
+   Ein Gletscher ohne Zahl (z. B. `/gletscher/at-obersulzbach-kees` oder `/gletscher/ch-claridenfirn`: beide liegen über
+   mehreren RGI-Gletschern) → Seite wie bisher, keine leere Karte.
+   Im Dossier der Lageseite steht die Karte in der Ebene „Langzeit“.
+2. **Push** `buscosun-web` (`main`). Erst damit sieht die Produktion die Zahl; bis dahin überliest sie den neuen Schlüssel.
+3. **Zurück ohne Deploy:** in `buscosun-data` `glacier/v1/index.json` den Schlüssel `static.dhdt` entfernen.
+4. **Bestätigen oder kippen:** E-GH-1 (1 : 1, Hälfte beider Flächen ⇒ 1 081 von 2 199 Gletschern, 83–90 % der Fläche),
+   E-GH-3 (die Fixture trägt 49 Originalzeilen der Tabelle mit Quellenangabe), E-GH-4 (eine Nachkommastelle),
+   V-GH-5 (zwei Gletscher von 0,03 km² sagen „gestiegen“).
+5. **Budget:** im Commit 2 044 → 2 047 (gemessen +2,5 KB gzip im Lazy-Chunk des Steckbriefs, HEAD + GH = 2 046,1 KB). Der
+   Arbeitsbaum mit den fremden Linien steht bei 2 060 gegen 2 054 und bleibt rot (schon vor dieser Phase: 2 057,4 gegen 2 051).
+6. **Neuer statischer Build:** danach `rgi_bridge.py` und `hugonnet.mjs` laufen lassen und das Paket mit
+   `glacier-publish.mjs --line=static --index-patch=…` einspielen (Befehle im Kopf der Skripte); sonst zeigt die Seite
+   still wieder den Stand ohne Höhenänderung (V-GH-3).
+7. **Liegen geblieben auf deinem Rechner:** `Downloads\time_series_11.tar` (24 MB, Kopie im Cache
+   `C:\dev\buscosun-glacier-cache\raw\hugonnet\`), der Klon `C:\dev\buscosun-data-gh` (nur für diese Pushs; kann weg).
+8. **Offen:** `verify:glacier-ui` (Browser) bricht am Suchfeld der Lageseite ab — an HEAD gegenprüfen (V-GH-6);
+   Real-Device; Pixelvergleich nicht gemacht.

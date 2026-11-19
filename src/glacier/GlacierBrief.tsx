@@ -20,7 +20,7 @@ import GlacierWeatherCard from './GlacierWeatherCard';
 import { glacierWeatherFrom } from './glacierFlag';
 import { fmt0, fmt2, fmtKm2, fmtRefYear, displayName, fmtSigned } from './glacierView';
 import {
-  areaChange, cumulativeLength, longestLength, massRows, latestMass, meltView, seasonSummary, sourceRows, dateDe, dateDeLong, STATE_TEXT, seriesCsv, type SeasonSummary,
+  areaChange, cumulativeLength, longestLength, massRows, latestMass, meltView, seasonSummary, sourceRows, dateDe, dateDeLong, STATE_TEXT, seriesCsv, elevFigure, type SeasonSummary,
 } from './glacierSheetModel';
 import type { GlacierSatIndex } from './glacierClient';
 
@@ -45,6 +45,8 @@ function copernicusUrl(lat: number, lon: number, dayIso: string): string {
 export interface SheetProps {
   g: GlacierCatalogEntry;
   build: string;
+  /** Phase GH: the build the pointer names for the elevation-change files (`index.static.dhdt`); the sheet asks only when it is `build`. */
+  elevBuild?: string | null;
   byId: ReadonlyMap<string, GlacierCatalogEntry>;
   satIndex: GlacierSatIndex | null;
   meltPointer: GlacierIndex['melt'] | null;
@@ -66,7 +68,7 @@ export interface SheetProps {
   onOpenSheet?: () => void;
 }
 
-export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, weatherPointer = null, official, nowMs, isMobile, bases, state, onState, onBack, allow3d, followed, onFollow, layout = 'page', onOpenSheet }: SheetProps) {
+export default function GlacierBrief({ g, build, elevBuild = null, byId, satIndex, meltPointer, weatherPointer = null, official, nowMs, isMobile, bases, state, onState, onBack, allow3d, followed, onFollow, layout = 'page', onOpenSheet }: SheetProps) {
   const [data, setData] = useState<SheetData | null>(null);
   const [compare, setCompare] = useState<number | null>(null);
   const [snowShare, setSnowShare] = useState<number | null>(null);
@@ -77,9 +79,9 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, we
   useEffect(() => {
     const ac = new AbortController();
     setData(null); setCompare(null); setSnowShare(null); setLoadError(null);
-    void loadSheetData({ g, build, byId, satIndex, meltPointer: meltPointer ?? null, signal: ac.signal, bases }).then((d) => { if (!ac.signal.aborted) setData(d); }, (e) => { if (!ac.signal.aborted && (e as Error)?.name !== 'AbortError') setLoadError(String((e as Error)?.message ?? e)); });
+    void loadSheetData({ g, build, byId, satIndex, meltPointer: meltPointer ?? null, signal: ac.signal, bases, elevBuild }).then((d) => { if (!ac.signal.aborted) setData(d); }, (e) => { if (!ac.signal.aborted && (e as Error)?.name !== 'AbortError') setLoadError(String((e as Error)?.message ?? e)); });
     return () => ac.abort();
-  }, [g, build, byId, satIndex, meltPointer, bases]);
+  }, [g, build, byId, satIndex, meltPointer, bases, elevBuild]);
   // The map gets the glacier's outline as soon as the region's outline file is in — not once the whole sheet (epochs, grid, melt run,
   // series) has arrived. Same memoised document as inside `loadSheetData`, so nothing is fetched twice.
   const [earlyGeometry, setEarlyGeometry] = useState<{ id: string; geometry: GeoJSON.Geometry | null } | null>(null);
@@ -135,7 +137,9 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, we
   const showEarlier = state.e.includes('o'), showSnow = state.e.includes('s');
   const toggleLayer = (l: GlacierLayer) => onState({ e: state.e.includes(l) ? state.e.filter((x) => x !== l) : [...state.e, l] });
 
-  const rows = useMemo(() => (data ? sourceRows({ g, hasLength: !!length, hasMass: !!mass, area, melt: mv, season, clima: !!data.clima, proj: !!data.proj, anomaly: false, mass, lengthSeries, nowMs }) : []), [data, g, length, mass, area, mv, season, lengthSeries, nowMs]);
+  const rows = useMemo(() => (data ? sourceRows({ g, hasLength: !!length, hasMass: !!mass, area, melt: mv, season, clima: !!data.clima, proj: !!data.proj, anomaly: false, mass, lengthSeries, nowMs, elev: data.elev }) : []), [data, g, length, mass, area, mv, season, lengthSeries, nowMs]);
+  // Phase GH: the one figure of the Steckbrief — elevation change of the whole period, or its range when the uncertainty is as large as the value
+  const elevFig = data?.elev ? { ...elevFigure(data.elev.total), label: data.elev.total.label, to: data.elev.total.to, range: data.elev.total.rangeOnly } : null;
 
   const neighbourName = mv && mv.forcing !== 'own' ? displayName(byId.get(mv.forcing) ?? g) : null;
   const region = GLACIER_REGIONS[g.region]?.label ?? g.region;
@@ -158,10 +162,10 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, we
   const tabBody = (t: GlacierTab, d: SheetData, noMap = false) => (
     t === 'heute' ? <TabHeute g={g} melt={mv} meltWhy={meltWhy} season={season} nowMs={nowMs} neighbourName={neighbourName} weather={weatherCard} />
     : t === 'saison' ? <TabSaison g={g} data={d} year={year} selDate={selScene?.date ?? null} mass={mass} />
-    : t === 'langzeit' ? <TabLangzeit g={g} area={area} length={length} proj={d.proj} compareYear={earlier?.year ?? null} compareOn={compare != null} onCompare={(on) => setCompare(on ? 0.5 : null)} noCompare={noMap} official={official} status={g.status ?? null} hasSeries={d.series.length > 0}
+    : t === 'langzeit' ? <TabLangzeit g={g} area={area} length={length} proj={d.proj} elev={d.elev} compareYear={earlier?.year ?? null} compareOn={compare != null} onCompare={(on) => setCompare(on ? 0.5 : null)} noCompare={noMap} official={official} status={g.status ?? null} hasSeries={d.series.length > 0}
         onCsv={() => { const text = seriesCsv(g, d.series, new Date(nowMs).toISOString().slice(0, 10)); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' })); a.download = `${g.id}-reihen.csv`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }} />
     : t === 'tour' ? <TabTour g={g} melt={mv} season={season} nowMs={nowMs} bandZ={g.z} />
-    : <TabQuellen rows={rows} sources={d.sources} />
+    : <TabQuellen rows={rows} sources={d.elev && d.sources ? [...d.sources, d.elev.source] : d.sources} elev={!!d.elev} />
   );
   const notReady = loadError ? <div className="gl-empty" role="status"><strong>Keine Daten.</strong> Der Steckbrief ist nicht ladbar ({loadError}).</div> : !data ? <div className="gl-empty" role="status">Steckbrief wird geladen …</div> : null;
   const panel = notReady ?? (data && (
@@ -199,6 +203,7 @@ export default function GlacierBrief({ g, build, byId, satIndex, meltPointer, we
         <dt>Höhe</dt>
         <dd><span className="gl-num" data-origin="official">{fmt0(g.z[0])} – {fmt0(g.z[2])} m</span><small>Median {fmt0(g.z[1])} m · {g.zSource}</small></dd>
         {mass && <><dt>Bilanz {mass.year - 1}/{String(mass.year).slice(2)}</dt><dd><span className="gl-num" data-origin="measured">{mass.ba != null ? `${fmt0(mass.ba)} mm w. e.` : '—'}</span><small>gemessen{mass.ela != null ? ` · Gleichgewichtslinie ${fmt0(mass.ela)} m` : ''}{mass.aar != null ? ` · AAR ${fmt2(mass.aar)}` : ''}</small></dd></>}
+        {elevFig && <><dt>Höhenänderung {elevFig.label}</dt><dd><span className={`gl-num${elevFig.range ? ' is-range' : ''}`} data-origin="satellite">{elevFig.value}</span><small>{elevFig.note}</small><small>Satellit · Hugonnet et al. 2021 · endet {elevFig.to}</small></dd></>}
         <dt>Inventar-Nummern</dt>
         <dd className="gl-ids">{[g.inv.glims && `GLIMS ${g.inv.glims}`, g.inv.sgi && `SGI ${g.inv.sgi}`, g.inv.agi5 != null && `AGI 5 ${g.inv.agi5}`, g.inv.rgi6 && g.inv.rgi6, g.inv.wgms && `WGMS ${g.inv.wgms}`].filter(Boolean).map((x) => <code key={String(x)}>{String(x)}</code>)}</dd>
       </dl>

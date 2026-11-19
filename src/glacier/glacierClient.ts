@@ -21,6 +21,7 @@ import {
 } from './glacierWeatherContract';
 import type { GlacierDemGrid } from './glacierSatContract';
 import { feedProblems, glacierFeedPath, previousWeekKey, type GlacierFeedDoc, type GlacierFeedEvent } from './glacierFeedContract';
+import { elevProblems, glacierElevFile, type GlacierElevDoc } from './glacierElevContract';
 
 export interface GlacierBases {
   cdn: string; raw: string;
@@ -134,7 +135,8 @@ export interface GlacierIndex {
   schema: 1;
   kind: 'glacier/index';
   builtAt: string;
-  static: { build: string };
+  /** `dhdt` (phase GH) names the build that carries the elevation-change files `dhdt/<region>.json`; they are read only when it is this `build`. */
+  static: { build: string; dhdt?: string };
   /** Satellite line (GL-2): newest scene per tile and, per year and region, the stand of the season document. */
   sat?: GlacierSatIndex;
   /** Melt line (GL-3): pointer to the newest run. */
@@ -271,6 +273,15 @@ export const loadEpoch = (build: string, region: string, year: number | string, 
 export const loadHypso = (build: string, region: string, signal?: AbortSignal, bases = glacierBasesFrom()) => staticDoc<GlacierHypsoDoc>(build, glacierHypsoFile(region), signal, bases);
 export const loadSeries = (build: string, region: string, signal?: AbortSignal, bases = glacierBasesFrom()) => staticDoc<GlacierSeriesDoc>(build, glacierSeriesFile(region), signal, bases);
 export const loadProj = (build: string, region: string, signal?: AbortSignal, bases = glacierBasesFrom()) => staticDoc<GlacierProjDoc>(build, glacierProjFile(region), signal, bases);
+
+/**
+ * Phase GH — elevation change per glacier (Hugonnet et al. 2021) of one region, through the contract rules; a violating document is dropped
+ * whole. Callers ask only when the pointer says the build carries the files (`index.static.dhdt === build`).
+ */
+export async function loadElev(build: string, region: string, byId: ReadonlyMap<string, GlacierCatalogEntry>, signal?: AbortSignal, bases = glacierBasesFrom()): Promise<GlacierElevDoc | null> {
+  const d = await staticDoc<GlacierElevDoc>(build, glacierElevFile(region), signal, bases);
+  return d && d.build === build && elevProblems(d, region, byId).length === 0 ? d : null;
+}
 
 /** One season document (immutable name = stand), through the contract rules before it reaches the page. */
 export function loadSeasonDoc(year: number | string, region: string, stand: string, byId: ReadonlyMap<string, GlacierCatalogEntry>, _signal?: AbortSignal, bases = glacierBasesFrom()): Promise<GlacierSeasonDoc | null> {

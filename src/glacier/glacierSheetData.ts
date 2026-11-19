@@ -3,19 +3,21 @@
  * (`missing`), it never blocks the others and never invents a value. All documents go through the client's contract rules.
  */
 import {
-  loadOutline, loadEpoch, loadHypso, loadSeries, loadProj, loadClima, loadDemGrid, loadMelt, loadSeasonRowsOf, loadReport, loadSources, epochYearsOf,
+  loadOutline, loadEpoch, loadHypso, loadSeries, loadProj, loadClima, loadDemGrid, loadMelt, loadSeasonRowsOf, loadReport, loadSources, loadElev, epochYearsOf,
   type GlacierBases, type GlacierHypsoDoc, type GlacierSatIndex, type GlacierMeltPointer, type GlacierSourceRow,
 } from './glacierClient';
 import type { GlacierCatalogEntry, GlacierSeries } from './glacierContract';
 import type { GlacierDemGrid, GlacierSeasonRow } from './glacierSatContract';
 import type { GlacierMeltDoc, GlacierMeltRow } from './glacierMeltContract';
-import { projectionView, type ClimaEntry, type ProjectionView } from './glacierSheetModel';
+import { projectionView, elevView, type ClimaEntry, type ProjectionView, type ElevView } from './glacierSheetModel';
 
 export interface SheetEpoch { year: number; source: string; geometry: GeoJSON.Geometry }
 export interface SheetData {
   hyp: GlacierHypsoDoc['glaciers'][string] | null;
   series: GlacierSeries[];
   proj: ProjectionView | null;
+  /** Phase GH: elevation change 2000–2019 (Hugonnet et al. 2021); `null` = this glacier has no block (the sheet shows nothing in its place). */
+  elev: ElevView | null;
   clima: { entry: ClimaEntry; doy0: number; bin: number } | null;
   geometry: GeoJSON.Geometry | null;
   epochs: SheetEpoch[];
@@ -34,6 +36,8 @@ const pick = pickGeometry;
 
 export async function loadSheetData(a: {
   g: GlacierCatalogEntry; build: string; byId: ReadonlyMap<string, GlacierCatalogEntry>; satIndex: GlacierSatIndex | null; meltPointer: GlacierMeltPointer | null; signal?: AbortSignal; bases: GlacierBases;
+  /** Phase GH: the build the pointer names for the elevation-change files (`index.static.dhdt`); anything but `build` ⇒ not asked for. */
+  elevBuild?: string | null;
 }): Promise<SheetData> {
   const { g, build, byId, satIndex, meltPointer, signal, bases } = a;
   const missing: string[] = [];
@@ -48,7 +52,7 @@ export async function loadSheetData(a: {
   const catIds = new Set(byId.keys());
   // ONE wave: the earlier outlines hang on the report (it names the epoch years) and are chained behind it here; the elevation grid
   // needs nothing else. Three waves in a row cost two extra round trips before the sheet (and its map) had anything.
-  const [hypso, series, proj, clima, outline, epochSet, sources, seasons, meltDoc, dem] = await Promise.all([
+  const [hypso, series, proj, clima, outline, epochSet, sources, seasons, meltDoc, dem, elev] = await Promise.all([
     guard('Höhenbänder', loadHypso(build, g.region, signal, bases)),
     guard('Reihen', loadSeries(build, g.region, signal, bases)),
     guard('Projektion', loadProj(build, g.region, signal, bases)),
@@ -63,6 +67,7 @@ export async function loadSheetData(a: {
     satOk && satIndex ? loadSeasonRowsOf(g, satIndex, byId, signal, bases).catch(() => new Map<number, GlacierSeasonRow[]>()) : Promise.resolve(new Map<number, GlacierSeasonRow[]>()),
     meltPointer ? guard('Schmelzlauf', loadMelt(meltPointer.run, catIds, signal, bases)) : Promise.resolve(null),
     klassA ? guard('Höhengitter', loadDemGrid(build, g.region, g.id, signal, bases)) : Promise.resolve(null),
+    a.elevBuild === build ? guard('Höhenänderung', loadElev(build, g.region, byId, signal, bases)) : Promise.resolve(null),
   ]);
   const epochs: SheetEpoch[] = [];
   epochSet.docs.forEach((d, i) => { const geo = pick(d, g.id); if (geo && d) epochs.push({ year: epochSet.years[i], source: d.source ?? '', geometry: geo }); });
@@ -71,6 +76,7 @@ export async function loadSheetData(a: {
   return {
     hyp: hypso?.glaciers[g.id] ?? null, series: (series?.glaciers[g.id] ?? []).map((s) => ({ ...s, id: g.id })) as GlacierSeries[],
     proj: proj ? projectionView(proj, proj.glaciers[g.id]) : null,
+    elev: elevView(elev, elev?.glaciers[g.id]),
     clima: klassA && clima?.glaciers[g.id] ? { entry: clima.glaciers[g.id] as ClimaEntry, doy0: clima.doy0, bin: clima.bin } : null,
     geometry: pick(outline, g.id), epochs, dem, seasons, melt: meltDoc && row ? { doc: meltDoc, row } : null, sources, missing,
   };

@@ -6,7 +6,7 @@
 import { useMemo } from 'react';
 import { ResponsiveLine } from '@nivo/line';
 import { fmt0, fmt1 } from './glacierView';
-import { dateDe, type Scene, type CumPoint, type ProjectionView } from './glacierSheetModel';
+import { dateDe, elevDecimals, elevNum, type Scene, type CumPoint, type ProjectionView, type ElevRate, type ElevView } from './glacierSheetModel';
 import type { Triple } from './glacierMeltContract';
 
 const THEME = {
@@ -178,6 +178,62 @@ export function FreezeChart({ zf, zRange, labels }: { zf: ReadonlyArray<number |
         tooltip={({ point }) => <div className="gl-tip"><b>{labels[(point.data as { x: number }).x]}</b>: Nullgradgrenze bis {fmt0((point.data as { y: number }).y)} m<small>Modell · Tagesmaximum</small></div>}
       />
     </div>
+  );
+}
+
+// --- elevation change per five-year period (plain SVG, phase GH) ----------------------------------------------------------------------------
+/**
+ * Four columns, one per five-year period, hanging from the zero line (a sinking surface points down), each with its 1-sigma whisker. A period
+ * whose uncertainty is as large as its value gets NO column: only the dashed frame of its range — there is no single number to draw.
+ * The dashed line across is the mean of the whole period (left out when that is a range itself).
+ */
+export function ElevBars({ view }: { view: ElevView }) {
+  const W = 360, H = 176, L = 36, R = 8, T = 16, B = 40;
+  const shown = [view.total, ...view.periods].filter((r): r is ElevRate => r != null);
+  const lo = Math.min(0, ...shown.map((r) => r.lo)), hi = Math.max(0, ...shown.map((r) => r.hi));
+  const step = niceStep(hi - lo || 1, 4);
+  const k0 = Math.floor(lo / step + 1e-9), k1 = Math.ceil(hi / step - 1e-9);
+  const y0 = k0 * step, y1 = Math.max(k1, k0 + 1) * step;
+  const y = (v: number) => T + (H - T - B) * (1 - (v - y0) / (y1 - y0));
+  const ticks: number[] = [];
+  for (let k = k0; k * step <= y1 + 1e-9; k++) ticks.push(Math.round(k * step * 1000) / 1000);
+  // decimals the tick step needs (0.25 → 2, 0.5 → 1, 2.5 → 1, 2 → 0): a tick label never rounds its own value
+  const tickNd = [0, 1, 2].find((nd) => Math.abs(step * 10 ** nd - Math.round(step * 10 ** nd)) < 1e-9) ?? 2;
+  const cw = (W - L - R) / view.periods.length, bw = cw * 0.44;
+  const text = (r: ElevRate) => { const nd = elevDecimals(r.err); return r.rangeOnly ? `${elevNum(r.lo, nd)} bis ${elevNum(r.hi, nd)}` : `${elevNum(r.v, nd)} ± ${elevNum(r.err, nd, false)}`; };
+  const spoken = view.periods.map((r, i) => (r ? `${r.label}: ${r.rangeOnly ? `Spanne ${text(r)}` : text(r)} m pro Jahr` : `Zeitraum ${i + 1}: kein Wert`)).join('; ');
+  return (
+    <svg className="gl-bars gl-elevbars" viewBox={`0 0 ${W} ${H}`} role="img" data-origin="satellite" preserveAspectRatio="xMidYMid meet" fontFamily={FONT}
+      aria-label={`Höhenänderung der Oberfläche je Fünfjahreszeitraum in m pro Jahr, mit Unsicherheit (1 Sigma): ${spoken}. Mittel ${view.total.label}: ${view.total.rangeOnly ? `Spanne ${text(view.total)}` : text(view.total)} m pro Jahr.`}>
+      <text x={L - 4} y={9} fontSize="9" textAnchor="end" fill="#5C5447">m/Jahr</text>
+      {ticks.map((v) => (
+        <g key={v}>
+          <line x1={L} x2={W - R} y1={y(v)} y2={y(v)} stroke={v === 0 ? '#9D8F6E' : '#E8DFC9'} strokeWidth={v === 0 ? 1.3 : 1} />
+          <text x={L - 4} y={y(v) + 3} fontSize="9" textAnchor="end" fill="#5C5447">{elevNum(v, tickNd, false)}</text>
+        </g>
+      ))}
+      {!view.total.rangeOnly && <line x1={L} x2={W - R} y1={y(view.total.v)} y2={y(view.total.v)} stroke="#4B3D96" strokeWidth={1.2} strokeDasharray="5 3" />}
+      {view.periods.map((r, i) => {
+        const cx = L + cw * (i + 0.5), x = cx - bw / 2;
+        const label = r?.label ?? view.total.label;
+        return (
+          <g key={i} data-range-only={r ? r.rangeOnly : undefined}>
+            {r == null ? null : r.rangeOnly ? (
+              <rect x={x} y={y(r.hi)} width={bw} height={Math.max(1, y(r.lo) - y(r.hi))} rx={3} fill="#EEEBF8" stroke="#6B5BB8" strokeWidth={1.2} strokeDasharray="3 2.5" />
+            ) : (
+              <>
+                <rect x={x} y={Math.min(y(0), y(r.v))} width={bw} height={Math.max(0.5, Math.abs(y(r.v) - y(0)))} rx={2} fill="#6B5BB8" />
+                <line x1={cx} x2={cx} y1={y(r.hi)} y2={y(r.lo)} stroke="#2C2A26" strokeWidth={1.2} />
+                <line x1={cx - 5} x2={cx + 5} y1={y(r.hi)} y2={y(r.hi)} stroke="#2C2A26" strokeWidth={1.2} />
+                <line x1={cx - 5} x2={cx + 5} y1={y(r.lo)} y2={y(r.lo)} stroke="#2C2A26" strokeWidth={1.2} />
+              </>
+            )}
+            <text x={cx} y={H - 22} fontSize="10" textAnchor="middle" fill="#5C5447">{r ? label : '—'}</text>
+            <text x={cx} y={H - 8} fontSize="10" fontWeight={700} textAnchor="middle" fill="#2C2A26">{r ? text(r) : 'kein Wert'}</text>
+          </g>
+        );
+      })}
+    </svg>
   );
 }
 

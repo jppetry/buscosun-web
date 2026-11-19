@@ -8,9 +8,10 @@ import { OriginChip, LockNote } from './GlacierParts';
 import { fmt0, fmt2, fmtKm2, fmtRefYear, fmtSigned } from './glacierView';
 import {
   dateDe, dateDeLong, STATE_TEXT, indexWord, projectionSentence, tourLines, tourProblems, TOUR_DISCLAIMER, NOT_USED_SOURCES, againstBand, climaBand, albedoAnomaly, sourceRows, seasonSummary,
-  type MeltView, type SeasonSummary, type ProjectionView, type MassRow, type SourceRow,
+  elevFigure, elevSentence,
+  type MeltView, type SeasonSummary, type ProjectionView, type MassRow, type SourceRow, type ElevView,
 } from './glacierSheetModel';
-import { SeasonChart, LengthChart, ProjectionChart, FreezeChart, MeltBars } from './GlacierCharts';
+import { SeasonChart, LengthChart, ProjectionChart, FreezeChart, MeltBars, ElevBars } from './GlacierCharts';
 import type { GlacierCatalogEntry, GlacierOfficialItem, GlacierSeries } from './glacierContract';
 import type { SheetData } from './glacierSheetData';
 import { exportSvgAsPng } from '../imageExport';
@@ -127,7 +128,33 @@ export function TabSaison({ g, data, year, selDate, mass }: { g: GlacierCatalogE
 }
 
 // --- Langzeit ----------------------------------------------------------------------------------------------------------------------------
-export function TabLangzeit({ g, area, length, lengthTotal, proj, compareYear, compareOn, onCompare, noCompare, official, status, onCsv, hasSeries }: {
+/**
+ * Phase GH — elevation change of the surface 2000–2019 (Hugonnet et al. 2021): the figure of the whole period and the four five-year
+ * columns. Rendered only for a glacier that has the block; period, origin and the end of the series stand at the numbers.
+ */
+export function ElevCard({ elev }: { elev: ElevView }) {
+  const f = elevFigure(elev.total);
+  const anyRange = elev.periods.some((r) => r?.rangeOnly);
+  return (
+    <section className="gl-card gl-elev" aria-label="Höhenänderung der Oberfläche" data-elev-rgi={elev.rgi}>
+      <div className="gl-card-head"><b>HÖHENÄNDERUNG DER OBERFLÄCHE · {elev.total.label}</b><OriginChip origin="satellite" /></div>
+      <div className="gl-big"><span className={`gl-num${elev.total.rangeOnly ? ' is-range' : elev.total.v < 0 ? '' : ' is-gain'}`} data-origin="satellite">{f.value}</span><span>{f.note}</span></div>
+      <p>{elevSentence(elev)}</p>
+      <ElevBars view={elev} />
+      <div className="gl-legend-lines gl-elev-legend" aria-hidden="true">
+        <span><i className="gl-elev-col" />Mittel je fünf Jahre</span>
+        <span><i className="gl-elev-whisker" />Unsicherheit (1 σ)</span>
+        {anyRange ? <span><i className="gl-elev-range" />nur Spanne</span> : null}
+        {elev.total.rangeOnly ? null : <span><i className="gl-elev-mean" />Mittel {elev.total.label}</span>}
+      </div>
+      <p className="gl-fine">Aus Satellitenbildern abgeleitet (ASTER-Stereobilder; Hugonnet et al. 2021), gemittelt über den Umriss des Inventars RGI 6.0 von etwa 2003 ({fmtKm2(elev.km2)}). Die Reihe endet {elev.total.to}. Sie ist nicht der Schmelzindex und keine Vorhersage.{anyRange || elev.total.rangeOnly ? ' Wo die Unsicherheit so groß ist wie der Wert, steht nur die Spanne.' : ''}</p>
+    </section>
+  );
+}
+
+export function TabLangzeit({ g, area, length, lengthTotal, proj, elev = null, compareYear, compareOn, onCompare, noCompare, official, status, onCsv, hasSeries }: {
+  /** Phase GH: elevation change 2000–2019; `null` = no block for this glacier (nothing is shown in its place). */
+  elev?: ElevView | null;
   g: GlacierCatalogEntry; area: { from: [number, number]; to: [number, number]; pct: number } | null; length: { points: { year: number; cum: number }[]; total: number; from: number; to: number; gaps: number } | null;
   lengthTotal?: number; proj: ProjectionView | null; compareYear: number | null; compareOn: boolean; onCompare: (on: boolean) => void; noCompare?: boolean;
   official: readonly GlacierOfficialItem[]; status: GlacierCatalogEntry['status'] | null; onCsv: () => void; hasSeries: boolean;
@@ -149,6 +176,7 @@ export function TabLangzeit({ g, area, length, lengthTotal, proj, compareYear, c
       </div>
       {length && <><h3 className="gl-h3">Längenänderung der Zunge, kumuliert</h3><LengthChart points={length.points} /></>}
       {!length && <p className="gl-fine">Für diesen Gletscher gibt es keine Längenmessreihe.</p>}
+      {elev && <ElevCard elev={elev} />}
       {statusItem && (
         <section className="gl-card" aria-label="Amtlicher Status">
           <div className="gl-card-head"><b>AMTLICHER STATUS</b><OriginChip origin="official" /></div>
@@ -206,7 +234,7 @@ export function TabTour({ g, melt, season, nowMs, bandZ }: { g: GlacierCatalogEn
 }
 
 // --- Quellen ------------------------------------------------------------------------------------------------------------------------------
-export function TabQuellen({ rows, sources }: { rows: readonly SourceRow[]; sources: ReadonlyArray<{ id: string; label: string; licence: string; attribution: string; url: string; refYear: string; used: string }> | null }) {
+export function TabQuellen({ rows, sources, elev = false }: { rows: readonly SourceRow[]; sources: ReadonlyArray<{ id: string; label: string; licence: string; attribution: string; url: string; refYear: string; used: string }> | null; /** Phase GH: the sheet shows the elevation change of Hugonnet et al. 2021. */ elev?: boolean }) {
   return (
     <>
       <h3 className="gl-h3">Jede Zahl in diesem Steckbrief, mit Herkunft und Stand</h3>
@@ -219,7 +247,7 @@ export function TabQuellen({ rows, sources }: { rows: readonly SourceRow[]; sour
         <ul className="gl-lic">{sources.map((s) => <li key={s.id}><b>{s.label}</b><span>{s.licence} · Bezugsjahr {fmtRefYear(s.refYear)} · {s.used}</span><a href={s.url} target="_blank" rel="noopener noreferrer">Quelle ↗</a></li>)}</ul>
       ) : <p className="gl-fine">Die Quellenliste ist gerade nicht ladbar.</p>}
       <ul className="gl-fine gl-unused">{NOT_USED_SOURCES.map((n) => <li key={n.text}><strong>{n.kind === 'linked' ? 'Nur verlinkt:' : 'Nicht genutzt:'}</strong> {n.text.split(':')[0]}</li>)}</ul>
-      <p className="gl-fine">Herkunft: <strong>gemessen</strong> = Messnetz oder Behörde, <strong>Satellit</strong> = aus Sentinel-2 gerechnet, <strong>Modell</strong> = gerechnet, <strong>amtlich</strong> = Inventar oder Meldung einer Behörde. Kein Wert ohne Herkunft.</p>
+      <p className="gl-fine">Herkunft: <strong>gemessen</strong> = Messnetz oder Behörde, <strong>Satellit</strong> = aus Sentinel-2 gerechnet{elev ? '; die Höhenänderung 2000–2019 stammt aus ASTER-Stereobildern, ausgewertet von Hugonnet et al. (2021), Werte unverändert' : ''},<strong>Modell</strong> = gerechnet, <strong>amtlich</strong> = Inventar oder Meldung einer Behörde. Kein Wert ohne Herkunft.</p>
     </>
   );
 }

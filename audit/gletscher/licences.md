@@ -21,6 +21,7 @@ höchstens verlinkt/zitiert. Wörtliche Zitate in „…“; URL = Fundstelle.
 | MeteoSwiss OGD, GeoSphere, SLF IMIS | bereits im Repo genutzt (CC BY 4.0, `QUELLENMATRIX.md` §5) | `QUELLENMATRIX.md` §5, `src/sources/obsStore.ts` | **grün** (Bestand) |
 | BAdW (deutsche Gletscher) | Pressetexte ohne Datenlizenz | konzept | **rot für Daten** — nur Zitat mit Datum und Link |
 | OGGM-Projektionen | Lizenz nicht gefunden | konzept | **rot**, nicht geladen |
-| Länder-DGMs (Tirol, BEV, Bayern), Hugonnet 2021, GI1–GI3 | Lizenz sekundär/offen | konzept | in Stufe 1 **nicht benötigt**, nicht geladen |
+| Länder-DGMs (Tirol, BEV, Bayern), GI1–GI3 | Lizenz sekundär/offen | konzept | in Stufe 1 **nicht benötigt**, nicht geladen |
+| **Hugonnet et al. 2021** — Höhenänderung je Gletscher 2000–2019 (Theia/SEDOO, doi:10.6096/13), Phase GH | Primärseite, Reiter „Download“: „This work is licensed under a Creative Commons Attribution 4.0 International License.“ · „Data is freely open for download.“ Metadatensatz: `registrationNeeded: false`, `authenticationNeeded: false`. Die Theia-Produkttabelle nennt daneben „CC-BY-NC 4.0“, DataCite gar nichts | `https://www.sedoo.fr/theia-publication-products/?uuid=c428c5b9-df8f-4f86-9b75-e04c778e29b9` (gelesen 19.11.2026, Satz geändert 2026-02-09), `https://www.theia-land.fr/en/products/` | **grün** (die Primärseite des Datensatzes entscheidet; Einzelheiten `audit/gletscher-hugonnet.md` §1). Nur die Pro-Gletscher-Tabelle der Region 11, nur im Cache; Zitat: Hugonnet et al. (2021), Theia, doi:10.6096/13 |
 | Gletscherseen AT (Buckel & Otto 2018, PANGAEA 885931) | CC BY-NC-SA 3.0 | konzept | **rot**, nicht geladen |
 | TanDEM-X EDEM, Webcams | nicht-kommerziell / Rechte vorbehalten | konzept | **rot**, nicht geladen |
