@@ -20,6 +20,14 @@ const add = (name, ok, detail) => checks.push({ name, ok: !!ok, detail });
 
 const CDN = 'https://cdn.jsdelivr.net/gh/jppetry/buscosun-data@main/radar';
 const RAW = 'https://raw.githubusercontent.com/jppetry/buscosun-data/main/radar';
+/** Phase RN: every address of the RV product at the DWD (tar and directory listing, through the Netlify rewrite). */
+const DWD = '/_dwd_opendata/weather/radar/composite/rv/';
+/** Runs `fn` with a stubbed `localStorage` (only the given keys answer) and restores the real one. */
+const withLS = (kv, fn) => {
+  const real = globalThis.localStorage;
+  globalThis.localStorage = { getItem: (k) => (k in kv ? kv[k] : null) };
+  try { return fn(); } finally { if (real === undefined) delete globalThis.localStorage; else globalThis.localStorage = real; }
+};
 
 // ── gestelltes fetch ─────────────────────────────────────────────────────────
 // Regeln: [prefix-or-regex, behaviour] — behaviour { status, body, delayMs, hang }
@@ -38,6 +46,11 @@ globalThis.fetch = (input, init = {}) => {
     const onAbort = () => { rec.aborted = true; reject(sig.reason ?? new DOMException('Aborted', 'AbortError')); };
     if (sig) { if (sig.aborted) return onAbort(); sig.addEventListener('abort', onAbort, { once: true }); }
     if (b.hang) return;                                   // keine Kopfzeilen, nie
+    // Phase RN: headers at once, a body that never ends (measured 18.11. at jsDelivr) — only the caller's signal ends it
+    if (b.bodyHang) {
+      const body = new ReadableStream({ start(c) { sig?.addEventListener('abort', () => { try { c.error(sig.reason ?? new Error('aborted')); } catch { /* closed */ } }, { once: true }); } });
+      return resolve(new Response(body, { status: 200 }));
+    }
     if (b.netError) return setTimeout(() => reject(new TypeError('Failed to fetch')), b.delayMs ?? 0);
     setTimeout(() => {
       const body = typeof b.body === 'function' ? b.body(url) : b.body;
@@ -304,8 +317,11 @@ if (nowcast && runs && mod) {
       r.ok && r.v.frames.length === 25 && reqs(/composite_rv_|DE1200_RV/).length === 0 && rawReqs.includes('f005.png') && rawReqs.includes('f120.png') && cdnLast === 0,
       r.ok ? `${r.ms} ms, raw: ${rawReqs.length} Dateien (${rawReqs.slice(0, 3).join(',')}…), f120 am CDN ${cdnLast}×` : `${r.e?.message}`);
   }
-  // B3 = Lauf #8: Slot nicht Bild-berechtigt, vorgestarteter roher Tar am CDN hängt ⇒ nach der CDN-Frist Netlify, CDN nicht erneut
+  // B3 = Lauf #8: Slot nicht Bild-berechtigt, vorgestarteter roher Tar am CDN hängt ⇒ nach der CDN-Frist Netlify, CDN nicht erneut.
+  // Seit Phase RN ist der DWD-Weg der benannte Rückfall hinter `rvdwd=1` — hier mit dem Schalter, unverändert geprüft.
   {
+    const realLS = globalThis.localStorage;
+    globalThis.localStorage = { getItem: (k) => (k === 'rvdwd' ? '1' : null) };
     const s = nextSlot(); const ts = stampOf(s); setClock(s + 254_000);
     runs._resetRadarCdn(); runs._resetWarmRv(); reset();
     const cdnTar = runs.rvTarCdnUrl(ts), netlifyTar = runs.rvTarUrl(ts);
@@ -314,10 +330,11 @@ if (nowcast && runs && mod) {
     const p = nowcast.fetchRvNowcast();
     const r = await outcome(p, 30_000);
     const nl = reqs(netlifyTar)[0];
-    add('B3 (#8) vorgestarteter Tar hängt ⇒ Netlify nach der CDN-Frist (≈ 8 s) statt nie',
+    add('B3 (#8, Schalter rvdwd=1) vorgestarteter Tar hängt ⇒ Netlify nach der CDN-Frist (≈ 8 s) statt nie',
       !!nl && nl.at >= runs.RADAR_CDN_DEADLINE_MS - 300 && nl.at <= runs.RADAR_CDN_DEADLINE_MS + 1500,
       nl ? `Netlify @${nl.at} ms` : `kein Netlify-Abruf (${r.ok ? 'ok' : r.e?.message} nach ${r.ms} ms)`);
     add('B3 der hängende CDN-Tar wird nicht ein zweites Mal angefragt', reqs(cdnTar).length === 1, `${reqs(cdnTar).length}×`);
+    if (realLS === undefined) delete globalThis.localStorage; else globalThis.localStorage = realLS;
   }
   // B4 (V-AW-25): ein Bild 404 am CDN, raw hat es (am Edge festgehaltener 404) ⇒ nur dieses über raw, kein 9,6-MB-Tar
   {
@@ -337,6 +354,145 @@ if (nowcast && runs && mod) {
     const r = await outcome(nowcast.fetchRvNowcast(), 30_000);
     add('B5 Gegenprobe: Bild auf beiden Wegen 404 ⇒ Rückfall auf den rohen Tar wie bisher, kein harter CDN-Fehler',
       reqs(`${RAW}/img/v1/rv/${ts}/f060.png`).length === 1 && reqs(runs.rvTarCdnUrl(ts)).length >= 1 && failureCount() === 0, `tar=${reqs(runs.rvTarCdnUrl(ts)).length} (${r.ok ? 'ok' : 'Fehler erwartet'})`);
+    add('B5 (RN) der rohe Tar ist der des Daten-Repos — kein Abruf beim DWD', reqs(DWD).length === 0, `DWD-Abrufe ${reqs(DWD).length}`);
+  }
+
+  // ── R: Phase RN (audit/radar-nur-datenrepo.md) — das DWD-Komposit NUR aus dem Daten-Repo ─────────────────────────────
+  // Gegenprobe des Musters zuerst: `DWD` trifft die Adresse, die der alte Weg anfragt (sonst wäre „0 Abrufe" leer).
+  add('R0 Muster-Gegenprobe: der DWD-Weg (Tar und Listing) liegt unter dem geprüften Präfix',
+    runs.rvTarUrl('2610011200').startsWith(DWD) && runs.RV_DIR.startsWith(DWD) && !runs.rvTarCdnUrl('2610011200').startsWith(DWD), runs.rvTarUrl('2610011200'));
+  add('R0 Schalter: Voreinstellung aus; Query schlägt Speicher; `radarcdn=0` heißt weiter DWD-Weg',
+    runs.RV_DWD_DIRECT_DEFAULT === false && runs.rvDwdFlagFrom('', null) === false && runs.rvDwdFlagFrom('?rvdwd=1', null) === true
+    && runs.rvDwdFlagFrom('', '1') === true && runs.rvDwdFlagFrom('?rvdwd=0', '1') === false && runs.rvDwdDirect() === false
+    && withLS({ radarcdn: '0' }, () => runs.rvDwdDirect()) === true && withLS({ rvdwd: '1' }, () => runs.rvDwdDirect()) === true);
+  {
+    const s = nextSlot(); const ts = stampOf(s), prev = stampOf(s - 300_000);
+    runs._resetRadarCdn();
+    add('R1 rvRepoRuns: vor dem Bild-Gate (220 s) der Slot davor, ab dem Gate (270 s) der Slot selbst; nie mehr als das Spiegel-Fenster',
+      runs.rvRepoRuns(1, s + 220_000)[0] === prev && runs.rvRepoRuns(1, s + 269_000)[0] === prev && runs.rvRepoRuns(1, s + 270_000)[0] === ts
+      // window: ages 400 s + k·300 s ≤ RADAR_CDN_WINDOW_MS (55 min) ⇒ k = 0…9
+      && runs.rvRepoRuns(40, s + 400_000).length === 10 && runs.rvRepoRuns(40, s + 400_000).every((t) => runs.rvImgEligible(t, s + 400_000)),
+      `220 s → ${runs.rvRepoRuns(1, s + 220_000)[0]}, 270 s → ${runs.rvRepoRuns(1, s + 270_000)[0]}, Fenster ${runs.rvRepoRuns(40, s + 400_000).length}`);
+    add('R1 mit `radarimg=0` zählt das Gate des Repo-Tars (240 s): 230 s ⇒ Slot davor, 250 s ⇒ der Slot; Frühstart = Repo-Tar',
+      withLS({ radarimg: '0' }, () => runs.rvRepoRuns(1, s + 230_000)[0] === prev && runs.rvRepoRuns(1, s + 250_000)[0] === ts && runs.rvRepoGateMs() === runs.RV_CDN_GATE_MS)
+      && runs.rvRepoGateMs() === runs.RV_IMG_GATE_MS);
+    reset(); runs._resetWarmRv(); rules = [['', { status: 404 }]];
+    const wImgOff = withLS({ radarimg: '0' }, () => runs.warmRvTar(s + 250_000));
+    add('R1 Frühstart mit `radarimg=0`: der Tar des Daten-Repos, kein DWD-Abruf', wImgOff === runs.rvTarCdnUrl(ts) && reqs(DWD).length === 0 && log.length === 1, `${wImgOff}`);
+    runs._resetWarmRv();
+  }
+  // R2: Seite öffnet im Fenster VOR dem Gate des jüngsten Slots (250 s). Früher: Tar vom DWD. Jetzt: der Slot davor aus dem
+  // Daten-Repo; der junge Slot wird NICHT angefragt (obwohl er hier schon auf raw läge — ein 404 dort hielte der Edge fest).
+  {
+    const s = nextSlot(); const ts = stampOf(s), prev = stampOf(s - 300_000); setClock(s + 250_000);
+    runs._resetRadarCdn(); runs._resetWarmRv(); reset();
+    rules = [...imgRules(prev, CDN), ...imgRules(prev, RAW), ...imgRules(ts, RAW)];
+    const warmUrl = runs.warmRvTar(Date.now());
+    const warmReqs = log.map((x) => x.url);
+    const r = await outcome(nowcast.fetchRvNowcast(), 20_000);
+    add('R2 Frühstart vor dem Gate: meta + g000 + f000 des Slots DAVOR (CDN, er ist älter als 6 min), kein DWD-Tar',
+      warmUrl === `${CDN}/img/v1/rv/${prev}/meta.json` && warmReqs.length === 3 && warmReqs.every((u) => u.startsWith(`${CDN}/img/v1/rv/${prev}/`)), `warm=${warmUrl?.replace(CDN, 'CDN')} (${warmReqs.length})`);
+    add('R2 vor dem Gate ⇒ der Slot davor aus dem Daten-Repo (25 Frames), 0 Abrufe beim DWD, 0 Abrufe des jungen Slots, kein Tar',
+      r.ok && r.v.frames.length === 25 && r.v.runAt.getTime() === s - 300_000 && reqs(DWD).length === 0
+      && reqs(new RegExp(`/rv/${ts}/`)).length === 0 && reqs(/composite_rv_/).length === 0,
+      r.ok ? `Lauf ${stampOf(r.v.runAt.getTime())}, DWD ${reqs(DWD).length}, junger Slot ${reqs(new RegExp(`/rv/${ts}/`)).length}` : r.e?.message);
+    const fu = r.ok ? nowcast.rvFollowUpInMs(r.v.runAt.getTime()) : null;
+    add('R3 Nachlade-Termin: Gate − Alter + 10 s (hier ≈ 30 s); mit dem jüngsten Lauf in der Hand keiner; mit DWD-Weg keiner',
+      fu != null && Math.abs(fu - (runs.RV_IMG_GATE_MS - 250_000 + nowcast.RV_FOLLOW_PAD_MS)) < 3000 && nowcast.rvFollowUpInMs(s) === null
+      && withLS({ rvdwd: '1' }, () => nowcast.rvFollowUpInMs(s - 300_000)) === null, `${fu} ms`);
+    // 25 s später (Alter 275 s): der junge Slot ist über dem Gate und auf raw da ⇒ der Leser nimmt ihn (die 60 s des letzten
+    // Laufs verschlucken das Nachladen nicht), raw zuerst, kein DWD.
+    setClock(s + 275_000); const n0 = log.length;
+    const r2 = await outcome(nowcast.fetchRvNowcast(), 20_000);
+    const after = log.slice(n0);
+    add('R3 am Gate ⇒ der junge Slot (raw zuerst, ND-7), nicht der gehaltene; 0 Abrufe beim DWD',
+      r2.ok && r2.v.runAt.getTime() === s && after.length > 0 && after.every((x) => x.url.startsWith(`${RAW}/img/v1/rv/${ts}/`)) && reqs(DWD).length === 0,
+      r2.ok ? `Lauf ${stampOf(r2.v.runAt.getTime())}, ${after.length} Abrufe` : r2.e?.message);
+    add('R3 danach kein Nachlade-Termin mehr (der Lauf ist der jüngste)', r2.ok && nowcast.rvFollowUpInMs(r2.v.runAt.getTime()) === null);
+  }
+  // R4: der Spiegel ist spät (ND §1.3: 19 % der Slots nach 270 s). Am Gate ist der junge Slot auf beiden Wegen 404 ⇒ das
+  // gehaltene Bild bleibt (dasselbe Objekt, kein zweiter Download), kein DWD; nächster Versuch nach RV_FOLLOW_RETRY_MS.
+  {
+    const s = nextSlot(); const ts = stampOf(s), prev = stampOf(s - 300_000); setClock(s + 250_000);
+    runs._resetRadarCdn(); runs._resetWarmRv(); reset();
+    rules = [...imgRules(prev, CDN), ...imgRules(prev, RAW)];
+    const r1 = await outcome(nowcast.fetchRvNowcast(), 20_000);
+    setClock(s + 281_000); const n0 = log.length;
+    const r2 = await outcome(nowcast.fetchRvNowcast(), 20_000);
+    const after = log.slice(n0);
+    add('R4 Spiegel spät: junger Slot 404 auf beiden Wegen ⇒ das gehaltene Bild (dasselbe Objekt), nur die zwei meta-Sonden, 0 DWD, kein harter Fehler',
+      r1.ok && r2.ok && r2.v === r1.v && after.length === 2 && after.every((x) => x.url.endsWith(`/rv/${ts}/meta.json`)) && reqs(DWD).length === 0 && failureCount() === 0,
+      r2.ok ? `Abrufe danach: ${after.map((x) => x.url.split('/radar/')[1]).join(', ')}` : r2.e?.message);
+    const n1 = log.length;
+    const r3 = await outcome(nowcast.fetchRvNowcast(), 20_000);
+    add('R4 ein zweiter Leser gleich danach fragt nicht noch einmal (innerhalb 60 s, kein neuer Slot über dem Gate)', r3.ok && r3.v === r1.v && log.length === n1, `${log.length - n1} Abrufe`);
+    const fu = nowcast.rvFollowUpInMs(s - 300_000);
+    add('R4 Nachlade-Termin nach dem Gate: RV_FOLLOW_RETRY_MS (70 s, über den 60 s des raw-404), bis RV_FOLLOW_LATE_MS hinter dem Gate, dann keiner',
+      fu === nowcast.RV_FOLLOW_RETRY_MS && nowcast.RV_FOLLOW_RETRY_MS > 60_000
+      && nowcast.rvFollowUpInMs(s - 300_000, s + runs.RV_IMG_GATE_MS + nowcast.RV_FOLLOW_LATE_MS + 1000) === null, `${fu} ms`);
+  }
+  // R5: der Spiegel steht (alles 404). Früher: DWD-Tar, dann das Listing. Jetzt: RV_REPO_TRIES Slots, dann ein benannter Fehler.
+  {
+    const s = nextSlot(); setClock(s + 400_000);
+    runs._resetRadarCdn(); runs._resetWarmRv(); reset();
+    const r = await outcome(nowcast.fetchRvNowcast(), 30_000);
+    const slots = new Set(log.map((x) => /\/rv\/(\d{10})\//.exec(x.url)?.[1]).filter(Boolean));
+    add('R5 Spiegel steht ⇒ RvNotInRepo nach RV_REPO_TRIES (6) Slots; kein Tar, kein Listing, 0 Abrufe beim DWD; kein Sitzungs-Latch',
+      !r.ok && r.e instanceof nowcast.RvNotInRepo && slots.size === nowcast.RV_REPO_TRIES && nowcast.RV_REPO_TRIES === 6 && reqs(DWD).length === 0 && reqs(/composite_rv_/).length === 0 && failureCount() === 0,
+      `${r.ok ? 'ok?!' : r.e?.constructor?.name}, Slots ${slots.size}, DWD ${reqs(DWD).length}`);
+  }
+  // R6: der Sitzungs-Latch ist zu (zwei harte CDN-Fehler). Früher hieß das: alles über den DWD. Jetzt bleibt das Daten-Repo
+  // der Weg — raw zuerst (jsDelivr hat gerade versagt), das CDN nur als Hedge.
+  {
+    const s = nextSlot(); const ts = stampOf(s); setClock(s + 400_000);
+    runs._resetRadarCdn(); runs._resetWarmRv(); reset();
+    runs.noteRadarCdnFailure(); runs.noteRadarCdnFailure();
+    rules = [[new RegExp(`^${CDN.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/`), { hang: true }], ...imgRules(ts, RAW)];
+    const latched = !runs.radarCdnUsable();
+    const r = await outcome(nowcast.fetchRvNowcast(), 20_000);
+    add('R6 Latch zu ⇒ RV bleibt lesbar: Slot über raw zuerst, kein CDN-Abruf, 0 Abrufe beim DWD (Schalter rvdwd=1: Latch sperrt wie bisher)',
+      latched && r.ok && r.v.frames.length === 25 && reqs(CDN).length === 0 && reqs(DWD).length === 0
+      && withLS({ rvdwd: '1' }, () => runs.rvImgEligible(ts)) === false,
+      r.ok ? `${r.ms} ms, CDN ${reqs(CDN).length}, DWD ${reqs(DWD).length}` : r.e?.message);
+    runs._resetRadarCdn();
+  }
+  // R7: Rückblick. Ein Slot fehlt im Daten-Repo ⇒ er fehlt in der Reihe; früher kam für ihn der ganze Tar (DWD).
+  {
+    const s = nextSlot(); setClock(s + 400_000);
+    runs._resetRadarCdn(); runs._resetWarmRv(); reset();
+    const stamps = [0, 1, 2, 3, 4].map((i) => stampOf(s - i * 300_000));
+    rules = stamps.filter((_, i) => i !== 2).flatMap((t) => [...imgRules(t, CDN), ...imgRules(t, RAW)]);
+    const r = await outcome(nowcast.fetchRvAnalysisSequence(4), 30_000);
+    add('R7 Rückblick: fehlender Slot ⇒ ausgelassen (4 von 5 Analysen), kein Tar, kein Listing, 0 Abrufe beim DWD',
+      r.ok && r.v.frames.length === 4 && !r.v.frames.some((f) => f.validAt.getTime() === s - 600_000) && reqs(/composite_rv_/).length === 0 && reqs(DWD).length === 0,
+      r.ok ? `${r.v.frames.length} Analysen, DWD ${reqs(DWD).length}` : r.e?.message);
+  }
+  // R9 = Mitschnitt vom 18.11. (audit §1.4): ein Bild bekommt am CDN die Kopfzeilen, der Inhalt kommt nie. Der Hedge greift
+  // nur bis zu den Kopfzeilen ⇒ die Frist (8 s) verwirft den Slot. Früher: Repo-Tar am selben CDN, dann der DWD. Jetzt:
+  // derselbe Slot noch einmal über raw.githubusercontent — nicht der Slot davor, kein Tar, kein DWD.
+  {
+    const s = nextSlot(); const ts = stampOf(s); setClock(s + 400_000);
+    runs._resetRadarCdn(); runs._resetWarmRv(); reset();
+    rules = [[`${CDN}/img/v1/rv/${ts}/f060.png`, { bodyHang: true }], ...imgRules(ts, CDN), ...imgRules(ts, RAW), ...imgRules(stampOf(s - 300_000), CDN)];
+    const r = await outcome(nowcast.fetchRvNowcast(), 40_000);
+    add('R9 Bild ohne Inhalt am CDN ⇒ nach der Frist DERSELBE Slot über raw (alle 26 Dateien), kein Tar, 0 Abrufe beim DWD, ein harter CDN-Fehler gezählt',
+      r.ok && r.v.frames.length === 25 && r.v.runAt.getTime() === s && reqs(`${RAW}/img/v1/rv/${ts}/`).length === 26
+      && reqs(/composite_rv_/).length === 0 && reqs(DWD).length === 0 && r.ms >= runs.RADAR_CDN_DEADLINE_MS - 300 && r.ms < runs.RADAR_CDN_DEADLINE_MS + 6000 && failureCount() === 1,
+      r.ok ? `Lauf ${stampOf(r.v.runAt.getTime())}, ${r.ms} ms, raw ${reqs(`${RAW}/img/v1/rv/${ts}/`).length}` : `${r.e?.message} nach ${r.ms} ms`);
+  }
+  // R8: der benannte Rückfall. Mit `rvdwd=1` ist alles wie vor RN — der junge Slot kommt als Tar vom DWD (Frühstart und Leser).
+  {
+    const realLS = globalThis.localStorage;
+    globalThis.localStorage = { getItem: (k) => (k === 'rvdwd' ? '1' : null) };
+    const s = nextSlot(); const ts = stampOf(s); setClock(s + 220_000);
+    runs._resetRadarCdn(); runs._resetWarmRv(); reset();
+    rules = [[runs.rvTarUrl(ts), { status: 404, delayMs: 20 }]];
+    const warmUrl = runs.warmRvTar(Date.now());
+    const r = await outcome(nowcast.fetchRvNowcast(), 30_000);
+    add('R8 Schalter rvdwd=1 ⇒ Frühstart und Leser fragen den jungen Slot beim DWD an, nach den Fehlgriffen das Listing (wie vor RN)',
+      warmUrl === runs.rvTarUrl(ts) && reqs(runs.rvTarUrl(ts)).length === 1 && reqs(runs.RV_DIR).some((x) => x.url === runs.RV_DIR) && !r.ok && !(r.e instanceof nowcast.RvNotInRepo),
+      `warm=${warmUrl}, Listing ${reqs(runs.RV_DIR).filter((x) => x.url === runs.RV_DIR).length}×`);
+    if (realLS === undefined) delete globalThis.localStorage; else globalThis.localStorage = realLS;
   }
   Date.now = realNow;
 }

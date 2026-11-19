@@ -1,0 +1,11 @@
+﻿newest guessed 2611181825, age 374 s; rvRepoRuns(3) = 2611181825, 2611181820, 2611181815
+[buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: Slot 2611181820 · Lauf 18.11.2026, 19:20:00 · 25 Frames (0…+120 min) · Quelle Daten-Repo (PNG)
+read: run 2611181820 · 25 frames · 32660 ms
+longest event-loop stall 41 ms; CDN usable afterwards: false
+  CDN:img/v1/rv/2611181825  26 requests  @422…6218 ms  {"200":25,"200 ABORTED":1}
+  CDN:rv  1 requests  @20127…20127 ms  {"ERR Error":1}
+  RAW:img/v1/rv/2611181820  26 requests  @28130…31231 ms  {"200":26}
+    @422 ms  hdr@975  200  CDN:img/v1/rv/2611181825/meta.json
+    @1914 ms  hdr@2468  200 ABORTED  CDN:img/v1/rv/2611181825/g015.png
+    @20127 ms  hdr@–  ERR Error  CDN:rv/composite_rv_20261118_1825.tar
+    @28130 ms  hdr@28488  200  RAW:img/v1/rv/2611181820/meta.json

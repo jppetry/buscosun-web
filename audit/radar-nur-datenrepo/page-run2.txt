@@ -1,0 +1,14 @@
+﻿
+=== default (repo only) — opened 18:38:24 UTC (newest slot 204 s old, image gate 270 s), stayed 115 s, visibility visible
+requests total 448; RV at the DWD: 0; RV in the data repo: 53
+  repo rv/2611181830  first 18:38:24  27 requests  hosts {"jsdelivr":27}  status {"200":27}
+  repo rv/2611181835  first 18:39:40  26 requests  hosts {"raw":26}  status {"200":26}
+  console 18:38:42  [buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: Slot 2611181830 · Lauf 18.11.2026, 19:30:00 · 25 Frames (0…+120 min) · Quelle Daten-Repo (PNG)
+  console 18:39:42  [buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: Slot 2611181835 · Lauf 18.11.2026, 19:35:00 · 25 Frames (0…+120 min) · Quelle Daten-Repo (PNG)
+  console errors: 0
+
+=== negative control ?rvdwd=1 — opened 18:38:25 UTC (newest slot 204 s old, image gate 270 s), stayed 115 s, visibility visible
+requests total 372; RV at the DWD: 1; RV in the data repo: 0
+  DWD  18:38:25  200  6256976 B  /_dwd_opendata/weather/radar/composite/rv/composite_rv_20261118_1835.tar
+  console 18:38:33  [buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: composite_rv_20261118_1835.tar · Lauf 18.11.2026, 19:35:00 · 25 Frames (0…+120 min) · Quelle DWD (Netlify)
+  console errors: 0

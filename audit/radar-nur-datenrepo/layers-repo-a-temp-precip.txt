@@ -1,0 +1,15 @@
+﻿
+=== A default, both hosts reachable — opened 21:51:03 UTC, stayed 120 s
+  wind         at the DWD:   0   data repo:   0 {}
+  temp         at the DWD:   0   data repo:   3 {"jsdelivr 200":3}
+  gust         at the DWD:   0   data repo:   2 {"jsdelivr 200":2}
+  thunder      at the DWD:   0   data repo:   2 {"jsdelivr 200":2}
+  lightningfc  at the DWD:   0   data repo:   2 {"jsdelivr 200":2}
+  snow         at the DWD:   0   data repo:   2 {"jsdelivr 200":2}
+  rotation     at the DWD:   0   data repo:   2 {"jsdelivr 200":2}
+  precip       at the DWD:   0   data repo:   1 {"jsdelivr 200":1}
+  konrad3d     at the DWD:   0   data repo:   0 {}
+  these products at the DWD in total: 0; other requests through the DWD proxies: 0
+  index / pointer of the data repo: 1  {"jsdelivr 200":1}
+    asked at: 21:51:03
+  console errors: 0

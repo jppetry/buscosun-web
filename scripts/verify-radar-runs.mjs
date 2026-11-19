@@ -278,7 +278,15 @@ add('am Ende ist keine Entdopplung mehr offen', _inFlightCount() === 0, `${_inFl
   // (das prüft der Code selbst: `noteRadarCdnFailure` steht nur im catch-Zweig).
   _resetRadarCdn();
   for (let i = 0; i < RADAR_CDN_FAIL_LATCH; i++) noteRadarCdnFailure();
-  add('[rd2] nach dem Latch keine CDN-Berechtigung mehr', !radarCdnUsable() && !rvCdnEligible(ts, slot + RV_CDN_GATE_MS));
+  // Phase RN (audit/radar-nur-datenrepo.md): der Latch übergibt an den DWD-Weg — den gibt es nur noch mit `rvdwd=1`. Ohne
+  // ihn bleibt das Daten-Repo der Weg des RV-Produkts (raw zuerst), sonst lüde nach zwei CDN-Fehlern 5 min lang gar nichts.
+  {
+    globalThis.localStorage = { getItem: (k) => (k === 'rvdwd' ? '1' : null) };
+    const offWithDwd = !radarCdnUsable() && !rvCdnEligible(ts, slot + RV_CDN_GATE_MS);
+    delete globalThis.localStorage;
+    add('[rd2] nach dem Latch keine CDN-Berechtigung mehr (mit DWD-Weg, Schalter rvdwd=1)', offWithDwd);
+    add('[rn] nach dem Latch bleibt das Daten-Repo der Weg, solange der DWD-Weg aus ist (Voreinstellung)', !radarCdnUsable() && rvCdnEligible(ts, slot + RV_CDN_GATE_MS));
+  }
   _resetRadarCdn();
   add('[rd2] Reset stellt die Berechtigung wieder her', radarCdnUsable());
 

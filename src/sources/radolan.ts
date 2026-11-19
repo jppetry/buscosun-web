@@ -28,6 +28,8 @@ import {
   rvImgEligible, rvImgDir, rvStampToMs, RV_STEP_MIN, rvImgRawFirst, radarRawUrl,
   // NP-0a / Phase SE (V-SE-3): the look-back slot (`rv-past/<ts>/`, 24 slots) as the second image way of the analyses
   rvPastEligible, rvPastDir, RV_IMG_GATE_MS,
+  // Phase RN (audit/radar-nur-datenrepo.md): the composite from the data repo only — switch, candidates, gate
+  rvDwdDirect, rvRepoRuns, rvRepoGateMs, radarCdnUsable,
 } from './radolanRuns';
 import { parseRvImgMeta, RadarImg404, fetchImgRes, radarRawHedgeCount, radarImgPoolSize, pooledAll, radarRawFirst, radarMarkRawFirst } from './radarImg';
 import { decodeGrayPng, decodeGrayAlphaPng } from './grayPng';
@@ -109,6 +111,14 @@ const RUN_CACHE_TTL = 60_000;
 // (Takt, Verzug und `guessRvRuns` selbst: `radolanRuns.ts`.)
 /** Kandidaten, die vor dem Listing-Fallback durchprobiert werden. */
 const RV_GUESS_TRIES = 3;
+/**
+ * Phase RN: candidates while the DWD way is off — the six newest slots readable in the data repo (≈ 30 min back). There is
+ * no listing and no direct way behind them, so the reader reaches further back than the three of the DWD way: a mirror that
+ * stalls for a quarter of an hour still gives the run it pushed last (its frames reach +120 min). set.
+ */
+export const RV_REPO_TRIES = 6;
+/** RN: a run the data repo does not hold (yet) — the reader takes the next candidate. Never thrown with the DWD way on. */
+export class RvNotInRepo extends Error {}
 
 /** Listet das RV-Verzeichnis und liefert die Zeitstempel (absteigend). */
 async function listRvRuns(signal?: AbortSignal): Promise<string[]> {
@@ -150,6 +160,7 @@ async function fetchRvBytesCached(ts: string, signal?: AbortSignal, priority: Re
   // Die Adressen kommen aus `radolanRuns.ts` (derselbe Resolver wie der Frühstart).
   const netlifyUrl = rvTarUrl(ts);
   const cdnUrl = rvTarCdnUrl(ts);
+  const direct = rvDwdDirect();   // RN: off ⇒ the Netlify URL is never requested (a cached copy of an earlier session is still read)
   const cache = await rvCache();
   // LE1/H2: hat der Router den Tar schon vorgestartet (beim Laden des Seiten-
   // Chunks), nehmen wir dessen Antwort — sie hat die Cache-API selbst befragt.
@@ -157,7 +168,7 @@ async function fetchRvBytesCached(ts: string, signal?: AbortSignal, priority: Re
   // `Date.now()` kann der Slot das Gate passiert haben ⇒ beide Schlüssel probieren.
   let warmWasCdn = true;
   let warm = takeWarmRvTar(cdnUrl);
-  if (!warm) { warmWasCdn = false; warm = takeWarmRvTar(netlifyUrl); }
+  if (!warm && direct) { warmWasCdn = false; warm = takeWarmRvTar(netlifyUrl); }
   // NL-1: der vorgestartete CDN-Abruf steht unter derselben Frist wie ein eigener (Kopfzeilen UND
   // Körper). Läuft sie ab, war das ein harter CDN-Fehler — und derselbe Tar wird am CDN nicht noch
   // einmal 8 s lang versucht, sondern gleich über Netlify geholt (gemessen: > 30 s ohne Frist).
@@ -214,6 +225,8 @@ async function fetchRvBytesCached(ts: string, signal?: AbortSignal, priority: Re
       noteRadarCdnFailure();
     } finally { dl.done(); }
   }
+  // RN: the data repo was the last way — „not there" is the answer, the reader takes an older slot.
+  if (!direct) throw new RvNotInRepo(`RADOLAN-RV ${ts}: nicht im Daten-Repo`);
   // LE2/H7: der Tar ist das Erstbild (DE) ⇒ `'high'` wie im Frühstart; als
   // Nachbarquelle (AT/CH-Ort) reicht der Aufrufer `'low'` durch.
   const res = await fetch(netlifyUrl, { signal, priority });
@@ -312,13 +325,16 @@ function publishRvAnalysisEarly(a: RvAnalysisEarly): void {
  * CDN-Frist, übernimmt der Tar-Weg (Verbraucher brauchen den kompletten
  * 25-Frame-Stapel). `null` = Rückfall; harte Fehler zählen in den Sitzungs-Latch.
  */
-async function fetchRvFromImg(ts: string, signal?: AbortSignal, priority?: RequestPriority): Promise<RvNowcast | null> {
+async function fetchRvFromImg(ts: string, signal?: AbortSignal, priority?: RequestPriority, why?: { absent?: boolean; hard?: boolean }): Promise<RvNowcast | null> {
   const dir = rvImgDir(ts);
   // ND-7: a slot younger than the CDN's `@main` lag reads raw first (CDN = hedge); measured §1.4 — the CDN answers 404 at the gate.
+  // RN: so does every slot while the latch is closed and the DWD way is off (`rvImgRawFirst`).
   if (rvImgRawFirst(ts)) radarMarkRawFirst(dir);
   const dl = radarCdnDeadline(signal);
+  let metaSeen = false;   // RN: a 404 of the slot's `meta.json` on both ways = the slot is not mirrored (`why.absent`)
   try {
     const metaRes = await imgRes(`${dir}/meta.json`, dl.signal, priority);
+    metaSeen = true;
     const meta = parseRvImgMeta(await metaRes.json());
     if (!meta || meta.stamp !== ts) return null; // Drift/fremder Slot ⇒ benannter Rohweg
     dl.touch();   // Phase PF (M8): progress — the deadline measures a hanging CDN, not a slow slot
@@ -382,7 +398,8 @@ async function fetchRvFromImg(ts: string, signal?: AbortSignal, priority?: Reque
     return { runAt: new Date(meta.runAtMs), frames, corners: DE1200_CORNERS, ...(cl ? { clutter: { cells: cl.cells, wet: cl.wet } } : {}) };
   } catch (err) {
     if (signal?.aborted) throw err;             // Abbruch des Aufrufers bleibt ein Abbruch
-    if (!(err instanceof RadarImg404)) noteRadarCdnFailure();
+    if (!(err instanceof RadarImg404)) { noteRadarCdnFailure(); if (why) why.hard = true; }
+    else if (!metaSeen && why) why.absent = true;
     return null;
   } finally { dl.done(); }
 }
@@ -399,6 +416,8 @@ async function fetchRvFromImg(ts: string, signal?: AbortSignal, priority?: Reque
 async function fetchRvAnalysisFromImg(ts: string, signal?: AbortSignal): Promise<RvAnalysisFrame | null> {
   const dirs = [...(rvImgEligible(ts) ? [rvImgDir(ts)] : []), ...(rvPastEligible(ts) ? [rvPastDir(ts)] : [])];
   if (!dirs.length) return null;
+  // RN: eligible although the latch is closed = repo only — jsDelivr just failed twice, these slots read raw first.
+  if (!radarCdnUsable()) for (const d of dirs) radarMarkRawFirst(d);
   const dual = radarDualFlagFrom();
   const validAt = new Date(rvStampToMs(ts));
   const dl = radarCdnDeadline(signal);
@@ -551,13 +570,33 @@ async function fetchRvDecoded(ts: string, signal?: AbortSignal, priority?: Reque
 async function fetchRvTar(ts: string, signal?: AbortSignal, priority?: RequestPriority): Promise<RvNowcast> {
   // RD3: gegatterte Slots zuerst als fertige Frames (kein bz2, kein Tar-Dekode);
   // jeder Fehlschlag fällt still auf den Tar-Weg zurück.
+  const why: { absent?: boolean; hard?: boolean } = {};
   if (rvImgEligible(ts)) {
-    const viaImg = await fetchRvFromImg(ts, signal, priority);
+    const dir = rvImgDir(ts);
+    const rawFromStart = rvImgRawFirst(ts) || radarRawFirst(`${dir}/meta.json`);
+    let viaImg = await fetchRvFromImg(ts, signal, priority, why);
+    // Phase RN (audit §3.5): the slot failed HARD on the CDN-first way (a hanging body, a deadline — measured 18.11.: jsDelivr
+    // sent the headers of one frame and never its body) and there is no DWD way behind it any more ⇒ the same slot once
+    // more with raw.githubusercontent as the first way (the data repo's second host). Not for „not mirrored" (404 on both
+    // ways) and not when the slot read raw first from the start (then raw is what failed).
+    if (!viaImg && why.hard && !rawFromStart && !rvDwdDirect() && !signal?.aborted && radarRawUrl(dir)) {
+      radarMarkRawFirst(dir);
+      why.hard = false;
+      viaImg = await fetchRvFromImg(ts, signal, priority, why);
+    }
     if (viaImg) { _lastRvVia = 'img'; return viaImg; }
     // Phase RL (29.10.2026): the slot became image-eligible but the mirror does not carry it yet — the run read on the tar
     // way moments ago is the same run (measured: the 9,6-MB tar of slot 1500 decoded twice, 7 s apart, under the same switch).
     const l = _rvLast;
     if (l && l.ts === ts && l.via !== 'img' && l.dual === radarDualFlagFrom()) { _lastRvVia = l.via; return l.nc; }
+  }
+  // Phase RN: without the DWD way the tar of the data repo is the only other way — and only where it can help: the image
+  // way is switched off (`?radarimg=0`), or the slot is there but not readable as images (a frame missing, a meta this
+  // client cannot read). „Not mirrored" has no tar either (both come with the same push), and after a hard failure on
+  // both hosts the tar would hang on the same CDN. Everything else is „not in the repo" ⇒ the caller takes an older slot.
+  // A slot before the gate of the way in use is never asked (a 404 there would be pinned at the edge).
+  if (!rvDwdDirect() && (why.absent || why.hard || !rvCdnEligible(ts) || Date.now() - rvStampToMs(ts) < rvRepoGateMs())) {
+    throw new RvNotInRepo(`RADOLAN-RV ${ts}: nicht im Daten-Repo`);
   }
   // RD2: die Wegwahl (CDN vs. Netlify) liegt in `fetchRvBytesCached`/`rvTarUrlFor`
   // — der Frühstart in `radolanRuns.ts` nimmt denselben Resolver.
@@ -581,16 +620,34 @@ async function fetchRvTar(ts: string, signal?: AbortSignal, priority?: RequestPr
  * the log plane), and only under the same dual switch. Dropped after one slot step, so the frames (≈ 66 MB) do not
  * outlive the page.
  */
-let _rvLast: { ts: string; at: number; via: 'img' | 'cdn' | 'dwd'; dual: boolean; nc: RvNowcast } | null = null;
+let _rvLast: { ts: string; at: number; checkedAt: number; via: 'img' | 'cdn' | 'dwd'; dual: boolean; nc: RvNowcast } | null = null;
 const RV_LAST_KEEP_MS = RV_STEP_MIN * 60_000;
 function rvLastReusable(nowMs: number = Date.now()): RvNowcast | null {
   const l = _rvLast;
   if (!l || nowMs - l.at >= RV_LAST_KEEP_MS) return null;
   if (l.dual !== radarDualFlagFrom() || (l.via !== 'img' && rvImgEligible(l.ts, nowMs))) return null;
+  if (!rvDwdDirect()) {
+    // Phase RN: the held run is handed on while it is the newest one readable in the data repo — or, for RUN_CACHE_TTL
+    // after the last look, while no NEWER slot has passed its gate since that look (then there is nothing new to ask
+    // for). Before, the 60 s alone decided; with a slot held back until its gate that would swallow the follow-up load.
+    const first = rvRepoRuns(1, nowMs)[0];
+    if (first === l.ts) return l.nc;
+    return nowMs - l.checkedAt < RUN_CACHE_TTL && rvRepoRuns(1, l.checkedAt)[0] === first ? l.nc : null;
+  }
   return nowMs - l.at < RUN_CACHE_TTL || guessRvRuns(1, nowMs)[0] === l.ts ? l.nc : null;
 }
+/** RN: the run this session holds, if it is `ts` under the same dual switch (a mirrored slot is immutable) — read as image
+ *  frames, or on the tar way while the image way cannot give it (the image way carries the log plane, it wins when open). */
+function rvHeld(ts: string): RvNowcast | null {
+  const l = _rvLast;
+  if (!l || l.ts !== ts || l.dual !== radarDualFlagFrom() || Date.now() - l.at >= RV_LAST_KEEP_MS) return null;
+  if (l.via !== 'img' && rvImgEligible(ts)) return null;
+  l.checkedAt = Date.now();
+  return l.nc;
+}
 function rememberRvLast(ts: string, nc: RvNowcast): void {
-  const entry = { ts, at: Date.now(), via: _lastRvVia, dual: radarDualFlagFrom(), nc };
+  const now = Date.now();
+  const entry = { ts, at: now, checkedAt: now, via: _lastRvVia, dual: radarDualFlagFrom(), nc };
   _rvLast = entry;
   const t = setTimeout(() => { if (_rvLast === entry) _rvLast = null; }, RV_LAST_KEEP_MS);
   (t as unknown as { unref?: () => void }).unref?.();   // Node (verifiers): the timer must not hold the process
@@ -609,6 +666,29 @@ export async function fetchRvNowcast(signal?: AbortSignal, opts?: RvFetchOptions
   }
   // Entdopplung: Karte und Punktforecast fragen beim Mount gleichzeitig (§24.3).
   return shareInFlight('radolan-rv-nowcast', () => loadRvNowcast(opts?.priority), signal);
+}
+
+/**
+ * Phase RN (audit/radar-nur-datenrepo.md §3.3): when should a consumer that holds the run of `runAtMs` ask again, ahead
+ * of its regular 5-min tick? The newest slot is not offered before its gate (it used to come from the DWD then), so a
+ * page opened in that window draws the slot before it — and a tick that is phase-locked to the opening would stay one
+ * slot behind for the whole session. Answer: `gate − age + RV_FOLLOW_PAD_MS` while the newer slot waits for its gate;
+ * after the gate, while the mirror may still be late (measured p90 of the push 321 s, ND §1.3), once more every
+ * `RV_FOLLOW_RETRY_MS` until `RV_FOLLOW_LATE_MS` behind the gate. `null` = nothing to wait for (the held run is the
+ * newest, or the DWD way is on and delivers the newest itself). All three numbers are set; the retry step stays clear of
+ * the ≈ 60 s raw.githubusercontent holds a 404 at its edge (measured 18.11., audit §1.3).
+ */
+export const RV_FOLLOW_PAD_MS = 10_000;
+export const RV_FOLLOW_RETRY_MS = 70_000;
+export const RV_FOLLOW_LATE_MS = 90_000;
+export function rvFollowUpInMs(runAtMs: number, nowMs: number = Date.now()): number | null {
+  if (rvDwdDirect()) return null;
+  const newest = rvStampToMs(guessRvRuns(1, nowMs)[0]);
+  if (!(newest > runAtMs)) return null;
+  const gate = rvRepoGateMs();
+  const age = nowMs - newest;
+  if (age < gate) return gate - age + RV_FOLLOW_PAD_MS;
+  return age < gate + RV_FOLLOW_LATE_MS ? RV_FOLLOW_RETRY_MS : null;
 }
 
 /** LE2/H7: Netzpriorität des Tar-Abrufs — `'low'` für die Nachbarquelle (AT/CH-Ort). */
@@ -642,6 +722,18 @@ async function loadRvNowcast(priority?: RequestPriority): Promise<RvNowcast> {
     return null;
   };
 
+  // Phase RN: without the DWD way the candidates are the slots readable in the data repo, newest first — no `known` run
+  // (a newer slot may have passed its gate since), no listing. A candidate this session already holds ends the search
+  // without a download: a newer slot was asked for and is not mirrored yet, the picture stays (`rvHeld`).
+  if (!rvDwdDirect()) {
+    for (const ts of rvRepoRuns(RV_REPO_TRIES)) {
+      const held = rvHeld(ts);
+      if (held) return held;
+      const got = await attempt([ts]);
+      if (got) return got;
+    }
+    throw lastErr ?? new RvNotInRepo('RADOLAN-RV: kein Lauf im Daten-Repo lesbar');
+  }
   // 1) bekannter Lauf aus der letzten Minute · 2) gerechnete Kandidaten ·
   // 3) das Verzeichnis-Listing als benannter Fallback.
   const known = _runCache && Date.now() - _runCache.at < RUN_CACHE_TTL ? [_runCache.ts] : [];
@@ -681,6 +773,9 @@ export async function fetchRvAnalysisSequence(
       const viaImg = await fetchRvAnalysisFromImg(ts, signal);
       if (viaImg) return viaImg;
     }
+    // Phase RN: without the DWD way a look-back slot is its analysis image in the data repo or nothing — no tar (the
+    // repo's tar would be 0,8–2,3 MB for one frame, and behind the mirror's retention there is none).
+    if (!rvDwdDirect()) return null;
     try {
       const nc = await fetchRvTar(ts, signal); // Tar-Cache greift; _000 = Analyse
       const a = nc.frames.find((f) => f.leadMinutes === 0);
@@ -706,7 +801,8 @@ export async function fetchRvAnalysisSequence(
   // mehr als gebraucht, damit ein noch nicht veröffentlichter jüngster Lauf die
   // Reihe nicht verkürzt. Das Listing bleibt der benannte Fallback.
   await take(guessRvRuns(count + 1));
-  if (hits < 3) { frames.length = 0; hits = 0; await take((await listRvRuns(signal)).slice(0, count + 1)); }
+  // (RN: the listing is the DWD's directory — only with the DWD way; the data repo's slots are all computable.)
+  if (hits < 3 && rvDwdDirect()) { frames.length = 0; hits = 0; await take((await listRvRuns(signal)).slice(0, count + 1)); }
   if (hits < 3) throw new Error('RADOLAN-RV: zu wenige Analysen für ein Hindcast');
   frames.sort((a, b) => a.validAt.getTime() - b.validAt.getTime()); // aufsteigend
   return { frames, corners: DE1200_CORNERS };

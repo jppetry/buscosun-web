@@ -511,31 +511,86 @@ export function repackEnabled(): boolean {
 // Laden
 // ---------------------------------------------------------------------------
 
-interface RepackState { broken: boolean; reason: string; firstDone: boolean; loaded: number }
-const state: RepackState = { broken: false, reason: '', firstDone: false, loaded: 0 };
+interface RepackState { broken: boolean; reason: string; firstDone: boolean; loaded: number; brokenAt: number; rawRescues: number }
+const state: RepackState = { broken: false, reason: '', firstDone: false, loaded: 0, brokenAt: 0, rawRescues: 0 };
 
 /** Zustand für Verifier/Diagnose. Nie für Steuerung von außen gedacht. */
-export function repackStatus(): Readonly<RepackState> { return { ...state }; }
+export function repackStatus(): Readonly<RepackState> { return { ...state, broken: brokenNow() }; }
 /** Nur für Tests/Verifier: Sitzungsgedächtnis zurücksetzen. */
 export function resetRepackState(): void {
-  state.broken = false; state.reason = ''; state.firstDone = false; state.loaded = 0;
+  state.broken = false; state.reason = ''; state.firstDone = false; state.loaded = 0; state.brokenAt = 0; state.rawRescues = 0;
+}
+
+// ---------------------------------------------------------------------------
+// Phase RN-2 (audit/radar-nur-datenrepo.md §8, Jan 18.11.2026): the data repo has TWO hosts, and a failure is not final
+//
+// Measured 18.11. 19:38 UTC: jsDelivr answered `index.json` after 7,4 s and 4,2 s and a run pointer after 24,0 s (otherwise
+// 0,1–0,5 s; raw.githubusercontent 0,3 s for the same files). The first deadline is 3 s, there was no second attempt and no
+// second host — so ONE slow answer sent the whole session to GRIB (`/_dwd_grib`), for every layer, until the page was
+// reloaded. Now:
+//   · a file that fails on jsDelivr (deadline, network, 403/5xx; an image also on 404) is asked ONCE more on
+//     raw.githubusercontent — same repo, same ref, same path (`repackRawUrl`); switch `?repackraw=0|1` / `localStorage.repackraw`;
+//   · „broken" is what both hosts say, and it expires after `REPACK_BROKEN_MS` — the next load tries the repo again instead of
+//     staying on GRIB for hours (the pattern of the radar latch since ND-5).
+// ---------------------------------------------------------------------------
+/** The data repo on raw.githubusercontent (CORS `*`; a 200 is held 5 min at its edge, a 404 ≈ 60 s — audit §1.3). */
+export const DATA_RAW_BASE = 'https://raw.githubusercontent.com/jppetry/buscosun-data';
+/** How long a failed repo way stays closed before it is tried again. set (as `RADAR_CDN_LATCH_MS`). */
+export const REPACK_BROKEN_MS = 5 * 60_000;
+
+/** Switch of the second host: `?repackraw=0|1` beats `localStorage.repackraw` (D-31). Default on. */
+export function repackRawFlagFrom(search: string, stored: string | null): boolean {
+  const q = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search).get('repackraw');
+  if (q === '1') return true;
+  if (q === '0') return false;
+  return stored !== '0';
+}
+function repackRawEnabled(): boolean {
+  if (typeof window === 'undefined') return true;
+  let stored: string | null = null;
+  try { stored = window.localStorage?.getItem('repackraw') ?? null; } catch { /* wie repackEnabled */ }
+  try { return repackRawFlagFrom(window.location.search, stored); } catch { return true; }
+}
+/**
+ * The same file on raw.githubusercontent: `<cdn>@<ref>/<path>` → `<raw>/<ref>/<path>` (ref = branch or commit). `null` for
+ * any other URL, without a ref, or with the switch off.
+ */
+export function repackRawUrl(url: string | undefined): string | null {
+  if (!url || !url.startsWith(`${DATA_CDN_BASE}@`) || !repackRawEnabled()) return null;
+  const rest = url.slice(DATA_CDN_BASE.length + 1);
+  const cut = rest.indexOf('/');
+  return cut > 0 ? `${DATA_RAW_BASE}/${rest.slice(0, cut)}${rest.slice(cut)}` : null;
+}
+
+/** Is the repo way closed right now? Reopens after `REPACK_BROKEN_MS` (the first request then runs under the short deadline again). */
+function brokenNow(nowMs: number = Date.now()): boolean {
+  if (state.broken && nowMs - state.brokenAt >= REPACK_BROKEN_MS) { state.broken = false; state.firstDone = false; }
+  return state.broken;
+}
+/**
+ * RN-2: a caller without a GRIB way behind it (precipitation, `iconD2Precip.ts`) asks again — the latch is opened and JSON
+ * answers that failed are forgotten (the index keeps a failed fetch for its 60-s TTL otherwise).
+ */
+export function retryRepackNow(): void {
+  state.broken = false; state.firstDone = false;
+  if (indexCache?.settled && !indexCache.ok) { indexCache = null; indexRefresh = null; }
+  if (pointerCache?.failed) pointerCache = null;
 }
 
 /**
- * Ein Fehlschlag gilt für die ganze Sitzung. Das ist keine Bequemlichkeit,
- * sondern folgt aus der Ablage: alle Dateien hängen an EINEM Commit. Ist der
- * weg (force-gepusht, Repo umbenannt, CDN aus), sind sie alle weg — jeder
- * weitere Schritt würde die Frist nur erneut bezahlen.
+ * Ein Fehlschlag schließt den Weg für ALLE Familien — das folgt aus der Ablage: alle Dateien hängen an EINEM Commit. Ist
+ * der weg (force-gepusht, Repo umbenannt, beide Hosts aus), sind sie alle weg — jeder weitere Schritt würde die Frist nur
+ * erneut bezahlen. Seit RN-2 gilt das für `REPACK_BROKEN_MS`, nicht mehr bis zum Neuladen.
  */
 function markBroken(reason: string): void {
-  if (state.broken) return;
+  if (brokenNow()) return;
   state.broken = true;
+  state.brokenAt = Date.now();
   state.reason = reason;
   if (typeof console !== 'undefined') {
-    // Genau EINE Zeile je Sitzung, und nur bei echter Verschlechterung: der
-    // Abschnitt war da, die Bilder nicht. Ein FEHLENDER Abschnitt ist der
-    // Normalfall (§22.4) und sagt hier nichts.
-    console.info(`[repack] CDN nicht nutzbar (${reason}) → GRIB für diese Sitzung.`);
+    // EINE Zeile je Vorfall, und nur bei echter Verschlechterung: der Abschnitt war da, die Bilder nicht — auf beiden
+    // Hosts. Ein FEHLENDER Abschnitt ist der Normalfall (§22.4) und sagt hier nichts.
+    console.info(`[repack] Daten-Repo nicht nutzbar (${reason}) → GRIB für ${Math.round(REPACK_BROKEN_MS / 60_000)} min, dann ein neuer Versuch.`);
   }
 }
 
@@ -567,9 +622,14 @@ interface DecodedImage { data: Uint8ClampedArray; width: number; height: number 
  * hat A = 0 außerhalb der Domäne — ohne die Option würden dort R/G genullt).
  * Chrome war auch ohne die Optionen exakt; sie stehen als Absicherung.
  */
-async function loadRgba(url: string, signal: AbortSignal | undefined, expect: RepackGrid, priority: RequestPriority = 'high', fallbackUrl?: string): Promise<DecodedImage | null> {
-  const first = !state.firstDone;
-  const { signal: sig, rearm, done } = withDeadline(first ? FIRST_TIMEOUT_MS : STEP_TIMEOUT_MS, signal);
+/**
+ * ONE attempt for an image on one host: headers under `ms`, then the body under its own deadline. `fail` names the reason
+ * (never thrown), so the caller can decide about a second host before the way counts as broken.
+ */
+async function fetchImageBlob(
+  url: string, signal: AbortSignal | undefined, ms: number, priority: RequestPriority, fallbackUrl?: string | null,
+): Promise<{ blob: Blob } | { fail: string }> {
+  const { signal: sig, rearm, done } = withDeadline(ms, signal);
   let blob: Blob;
   try {
     // LE2/H7: die Repack-Bilder SIND das Erstbild der Wetterkarte ⇒ `'high'`;
@@ -582,23 +642,41 @@ async function loadRgba(url: string, signal: AbortSignal | undefined, expect: Re
     if (res.status === 404 && fallbackUrl && fallbackUrl !== url) {
       res = await fetch(fallbackUrl, { signal: sig, cache: 'default', priority });
     }
-    if (!res.ok) { markBroken(`HTTP ${res.status}`); return null; }
+    if (!res.ok) return { fail: `HTTP ${res.status}` };
     // BW-10: die Kopfzeilen sind da — die Frist hat ihre Frage beantwortet
     // („antwortet das CDN?"). Der Körper bekommt seine eigene, bandbreiten-
     // tolerante Frist: bei 12 parallelen Abrufen teilen sich 3 MB die Leitung,
     // und eine 6-s-Frist darauf hieße auf 3G „CDN kaputt" (§29.2).
     rearm(BODY_TIMEOUT_MS);
     blob = await res.blob();
+    return { blob };
   } catch (e) {
-    // Abbruch DURCH DEN AUFRUFER (Layer abgewählt, Seite verlassen) ist kein
-    // Defekt des Wegs — sonst würde ein Layer-Wechsel den Rest der Sitzung
-    // auf GRIB zwingen.
-    if (!signal?.aborted) markBroken((e as Error)?.name === 'TimeoutError' ? 'Frist abgelaufen' : String((e as Error)?.name || e));
-    return null;
+    return { fail: (e as Error)?.name === 'TimeoutError' ? 'Frist abgelaufen' : String((e as Error)?.name || e) };
   } finally {
     done();
-    state.firstDone = true;
   }
+}
+
+async function loadRgba(url: string, signal: AbortSignal | undefined, expect: RepackGrid, priority: RequestPriority = 'high', fallbackUrl?: string): Promise<DecodedImage | null> {
+  const first = !state.firstDone;
+  let got = await fetchImageBlob(url, signal, first ? FIRST_TIMEOUT_MS : STEP_TIMEOUT_MS, priority, fallbackUrl);
+  state.firstDone = true;
+  // RN-2: jsDelivr did not deliver (deadline, network, status) ⇒ the same file ONCE more on raw.githubusercontent. Only when
+  // that fails too is the way broken. Abbruch DURCH DEN AUFRUFER (Layer abgewählt, Seite verlassen) ist kein Defekt des
+  // Wegs — sonst würde ein Layer-Wechsel die anderen Layer auf GRIB zwingen.
+  if ('fail' in got && !signal?.aborted) {
+    const raw = repackRawUrl(url);
+    if (raw) {
+      const again = await fetchImageBlob(raw, signal, STEP_TIMEOUT_MS, priority, repackRawUrl(fallbackUrl));
+      if ('blob' in again) { got = again; state.rawRescues++; }
+      else got = { fail: `${got.fail}; raw: ${again.fail}` };
+    }
+  }
+  if ('fail' in got) {
+    if (!signal?.aborted) markBroken(got.fail);
+    return null;
+  }
+  const blob = got.blob;
 
   try {
     const bmp = await createImageBitmap(blob, { colorSpaceConversion: 'none', premultiplyAlpha: 'none' });
@@ -625,7 +703,7 @@ async function loadRgba(url: string, signal: AbortSignal | undefined, expect: Re
 }
 
 /** True, solange der Weg in dieser Sitzung nutzbar ist. */
-export function repackUsable(): boolean { return repackEnabled() && !state.broken; }
+export function repackUsable(): boolean { return repackEnabled() && !brokenNow(); }
 
 /**
  * BW-10 (§29.3 Hebel 2): die Verbindung zum Daten-CDN aufbauen, WÄHREND das
@@ -657,7 +735,7 @@ export async function loadWindStep(
   step: number,
   signal?: AbortSignal,
 ): Promise<{ rgba: Uint8ClampedArray; width: number; height: number; uMin: number; uMax: number; vMin: number; vMax: number } | null> {
-  if (state.broken || !section.wind) return null;
+  if (brokenNow() ||!section.wind) return null;
   const entry = section.wind.steps.find((s) => s.step === step);
   if (!entry) return null;
   const img = await loadRgba(stepUrl(section, entry.file), signal, section.grid, 'high', stepUrlPinned(section, entry.file));
@@ -670,9 +748,11 @@ export async function loadWindStep(
 
 /** Orographie — einmal je Commit, nicht je Schritt (lauf-invariant, BW-1 §20.2). */
 const hsurfCache = new Map<string, Promise<Uint8Array | null>>();
+/** Nur für Tests/Verifier: das Orographie-Bild vergessen (es bleibt sonst je Adresse für die ganze Sitzung). */
+export function resetRepackHsurfCache(): void { hsurfCache.clear(); }
 
 export async function loadHsurfGrey(section: RepackSection, signal?: AbortSignal): Promise<Uint8Array | null> {
-  if (state.broken || !section.temp?.hsurf) return null;
+  if (brokenNow() ||!section.temp?.hsurf) return null;
   const url = repoUrl(section, section.temp.hsurf.url);
   let p = hsurfCache.get(url);
   if (!p) {
@@ -705,7 +785,7 @@ export async function loadTempStep(
   hsurfGrey: Uint8Array | null,
   signal?: AbortSignal,
 ): Promise<{ rgba: Uint8ClampedArray; width: number; height: number } | null> {
-  if (state.broken || !section.temp) return null;
+  if (brokenNow() ||!section.temp) return null;
   const entry = section.temp.steps.find((s) => s.step === step);
   if (!entry) return null;
   const img = await loadRgba(stepUrl(section, entry.file), signal, section.grid, 'high', stepUrlPinned(section, entry.file));
@@ -725,7 +805,7 @@ export async function loadScalarStep(
   signal?: AbortSignal,
 ): Promise<{ rgba: Uint8ClampedArray; width: number; height: number } | null> {
   const fam = section[family];
-  if (state.broken || !fam) return null;
+  if (brokenNow() ||!fam) return null;
   const entry = fam.steps.find((s) => s.step === step);
   if (!entry) return null;
   const img = await loadRgba(stepUrl(section, entry.file), signal, section.grid, 'high', stepUrlPinned(section, entry.file));
@@ -755,7 +835,7 @@ export async function loadGridStep(
   priority?: RequestPriority,
 ): Promise<{ values: Uint8Array; width: number; height: number } | null> {
   const fam = section[family];
-  if (state.broken || !fam) return null;
+  if (brokenNow() ||!fam) return null;
   const entry = fam.steps.find((s) => s.step === step);
   if (!entry) return null;
   const img = await loadRgba(stepUrl(section, entry.file), signal, fam.grid, priority, stepUrlPinned(section, entry.file));
@@ -872,8 +952,8 @@ export function repackRunPointerUrl(run: string): string {
   return `${REPACK_CDN_BASE}@main/runs/${run}/index.json`;
 }
 
-let pointerCache: { at: number; run: string; p: Promise<unknown> } | null = null;
-let indexCache: { at: number; p: Promise<unknown>; ok: boolean } | null = null;
+let pointerCache: { at: number; run: string; p: Promise<unknown>; failed?: boolean } | null = null;
+let indexCache: { at: number; p: Promise<unknown>; ok: boolean; settled?: boolean } | null = null;
 let indexRefresh: Promise<unknown> | null = null;
 /** Nur für Tests/Verifier. */
 export function resetRepackIndexCache(): void { pointerCache = null; indexCache = null; indexRefresh = null; }
@@ -889,45 +969,64 @@ export function resetRepackIndexCache(): void { pointerCache = null; indexCache 
  */
 export const INDEX_STALE_MAX_MS = 15 * 60_000;
 
-function startIndexFetch(at: number): { at: number; p: Promise<unknown>; ok: boolean } {
-  const entry = { at, p: fetchCdnJson(REPACK_INDEX_CDN_URL), ok: false };
-  entry.p.then((v) => { entry.ok = v != null; }, () => { entry.ok = false; });
+function startIndexFetch(at: number): { at: number; p: Promise<unknown>; ok: boolean; settled?: boolean } {
+  const entry: { at: number; p: Promise<unknown>; ok: boolean; settled?: boolean } = { at, p: fetchCdnJson(REPACK_INDEX_CDN_URL), ok: false };
+  entry.p.then((v) => { entry.ok = v != null; entry.settled = true; }, () => { entry.ok = false; entry.settled = true; });
   return entry;
 }
 
+/** What one JSON attempt says: the document, „not there" (404 — a real answer, no second host), or a failure. */
+type JsonTry = { doc: unknown } | 'absent' | 'failed';
+async function fetchJsonOnce(url: string, ms: number): Promise<JsonTry> {
+  const { signal, done } = withDeadline(ms);
+  try {
+    const res = await fetch(url, { signal, cache: 'no-store' });
+    if (res.status === 404) return 'absent';
+    if (!res.ok) return 'failed';
+    return { doc: await res.json() as unknown };
+  } catch {
+    return 'failed';
+  } finally {
+    done();
+  }
+}
+
 /**
- * Ein CDN-JSON, `null` bei JEDEM Problem — und das ist kein Defekt des
+ * Ein JSON des Daten-Repos, `null` bei JEDEM Problem — und das ist kein Defekt des
  * Repack-Wegs (`markBroken` bleibt unberührt): die Bilder können trotzdem
  * liegen, der Manifest-Abschnitt sagt dann, wo. Frist wie der erste Bildabruf.
+ * RN-2: scheitert jsDelivr (Frist, Netz, 403/5xx — nicht 404), EIN zweiter Versuch auf raw.githubusercontent.
  */
 async function fetchCdnJson(url: string): Promise<unknown> {
+  let first: JsonTry | null = null;
   // Frühstart (`liveManifest.ts`): der Index läuft womöglich schon, seit die Route feststand. Dieselbe Frist wie der eigene
-  // Abruf; eine hängende Antwort ist wie dort `null`, eine gescheiterte (Netz, Status, JSON) fällt auf den eigenen Abruf.
+  // Abruf; eine hängende Antwort gilt wie dort als gescheitert, eine gescheiterte (Netz, Status, JSON) fällt auf den eigenen Abruf.
   const warm = takeWarmRepackIndex(url);
   if (warm) {
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
       const res = await Promise.race([warm, new Promise<null>((resolve) => { timer = setTimeout(() => resolve(null), FIRST_TIMEOUT_MS); })]);
-      if (res === null) return null;
-      if (res.ok) return await res.json() as unknown;
+      if (res === null) first = 'failed';
+      else if (res.ok) first = { doc: await res.json() as unknown };
     } catch { /* eigener Abruf unten */ } finally { clearTimeout(timer); }
   }
-  const { signal, done } = withDeadline(FIRST_TIMEOUT_MS);
-  try {
-    const res = await fetch(url, { signal, cache: 'no-store' });
-    if (!res.ok) return null;
-    return await res.json() as unknown;
-  } catch {
-    return null;
-  } finally {
-    done();
-  }
+  if (!first) first = await fetchJsonOnce(url, FIRST_TIMEOUT_MS);
+  if (typeof first === 'object') return first.doc;
+  if (first === 'absent') return null;
+  const raw = repackRawUrl(url);
+  if (!raw) return null;
+  const second = await fetchJsonOnce(raw, STEP_TIMEOUT_MS);
+  if (typeof second !== 'object') return null;
+  state.rawRescues++;
+  return second.doc;
 }
 /** Zeiger des Laufs — EIN geteiltes Promise je Lauf und TTL-Fenster. */
 function cdnPointer(run: string): Promise<unknown> {
   const now = Date.now();
   if (!pointerCache || pointerCache.run !== run || now - pointerCache.at >= INDEX_TTL_MS) {
-    pointerCache = { at: now, run, p: fetchCdnJson(repackRunPointerUrl(run)) };
+    const entry: NonNullable<typeof pointerCache> = { at: now, run, p: fetchCdnJson(repackRunPointerUrl(run)) };
+    entry.p.then((v) => { entry.failed = v == null; }, () => { entry.failed = true; });
+    pointerCache = entry;
   }
   return pointerCache.p;
 }

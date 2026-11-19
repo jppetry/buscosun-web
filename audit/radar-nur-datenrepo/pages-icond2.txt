@@ -1,0 +1,21 @@
+﻿
+=== /regenradar/muenchen — opened 19:37:21 UTC, stayed 45 s
+ICON requests to the DWD: 3
+  19:38:31  200  19080 B  /_dwd_opendata/weather/nwp/icon-d2/grib/18/tot_prec/
+  19:38:35  200  1962162 B  /_dwd_grib/weather/nwp/icon-d2/grib/18/tot_prec/icon-d2_germany_regular-lat-lon_single-level_2026111818_001_2d_tot_prec.grib2.bz2
+  19:38:35  200  2329228 B  /_dwd_grib/weather/nwp/icon-d2/grib/18/tot_prec/icon-d2_germany_regular-lat-lon_single-level_2026111818_002_2d_tot_prec.grib2.bz2
+data repo (outside radar/): 2 requests
+  [cdn@main]/  ×1  {"net::ERR_ABORTED":1}  first 19:38:27  e.g. index.json
+  [cdn@main]/runs/2026111818/  ×1  {"net::ERR_ABORTED":1}  first 19:38:32  e.g. index.json
+  page: {"search":"?lat=48.137&lon=11.575&z=8","path":"/regenradar/muenchen","repack":null,"repackidx":null,"repackrun":null}
+
+=== /wetterkarte/niederschlag/muenchen — opened 19:38:03 UTC, stayed 45 s
+ICON requests to the DWD: 2
+  19:38:37  200  1962162 B  /_dwd_grib/weather/nwp/icon-d2/grib/18/tot_prec/icon-d2_germany_regular-lat-lon_single-level_2026111818_001_2d_tot_prec.grib2.bz2
+  19:38:37  200  2329228 B  /_dwd_grib/weather/nwp/icon-d2/grib/18/tot_prec/icon-d2_germany_regular-lat-lon_single-level_2026111818_002_2d_tot_prec.grib2.bz2
+data repo (outside radar/): 4 requests
+  [cdn@main]/  ×1  {"200":1}  first 19:38:05  e.g. index.json
+  [raw main]/citytemp/v1/  ×1  {"200":1}  first 19:38:08  e.g. latest.json
+  [cdn@main]/runs/2026111818/  ×2  {"200":1,"net::ERR_ABORTED":1}  first 19:38:09  e.g. gust-001.png
+  console 19:38:37 [info]  [repack] CDN nicht nutzbar (Frist abgelaufen) → GRIB für diese Sitzung.
+  page: {"search":"?lat=50.2&lon=10.5&z=5.3","path":"/wetterkarte/niederschlag/muenchen","repack":null,"repackidx":null,"repackrun":null}

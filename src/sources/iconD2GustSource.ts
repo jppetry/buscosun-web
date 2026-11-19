@@ -16,7 +16,8 @@ import { resolveLatestRun, fetchStepField, subsampledCorners, D2_GRIB_PROXY_BASE
 import { stepsForNowWindow } from './frameAtValidTime';
 import { buildGustRgba, GUST_VMIN, GUST_VMAX } from './scalarFrameBuild';
 export { GUST_VMIN, GUST_VMAX } from './scalarFrameBuild';
-import { resolveRepackForRun, loadScalarStep, uvBoundsOf, REPACK_CONCURRENCY } from './repackSource';
+import { resolveRepackForRun, loadScalarStep, uvBoundsOf, REPACK_CONCURRENCY, type RepackSection } from './repackSource';
+import { d2DwdDirect, resolveRepoRun, pumpSteps, IconD2NotInRepo } from './iconD2Repo';
 
 export const ICON_D2_GUST_ATTRIBUTION =
   'Windböen: <a href="https://www.dwd.de/EN/ourservices/opendata/opendata.html" ' +
@@ -77,14 +78,24 @@ export async function fetchIconD2Gust(
    *  von „jetzt" bis „jetzt + aheadHours" (`stepsForNowWindow`); 0 = Jetzt-Bracket. */
   opts?: { nowOnly?: boolean; aheadHours?: number },
 ): Promise<IconD2Gust> {
-  const { runStr, runAt, steps } = await resolveLatestRun('vmax_10m', signal, 'gust');
-  const capped = steps.filter((s) => s <= MAX_STEP);
-  const wanted = opts?.nowOnly ? stepsForNowWindow(capped, runAt, opts.aheadHours ?? 0) : capped;
-
-  // BW-6c: liegen die Bilder für GENAU DIESEN Lauf im Daten-CDN? Geprüft
-  // gegen `runStr`, den Lauf, den die Auflösung wirklich geliefert hat (§22.4).
-  // Mit Abschnitt entfällt der GRIB-Abruf, der sonst nur der Geometrie diente.
-  const section = await resolveRepackForRun(runStr, 'gust', wanted);
+  // Phase RN-3 (audit/radar-nur-datenrepo.md §9): run, section and every image from the data repo only — no listing, no GRIB
+  // (`?d2dwd=1` = the chain as before).
+  const repoOnly = !d2DwdDirect();
+  const pick = (steps: number[], runAt: Date): number[] => {
+    const capped = steps.filter((s) => s <= MAX_STEP);
+    return opts?.nowOnly ? stepsForNowWindow(capped, runAt, opts.aheadHours ?? 0) : capped;
+  };
+  let runStr: string, runAt: Date, wanted: number[], section: RepackSection | null;
+  if (repoOnly) {
+    ({ runStr, runAt, wanted, section } = await resolveRepoRun('gust', 'Böen', pick, signal));
+  } else {
+    const r = await resolveLatestRun('vmax_10m', signal, 'gust');
+    runStr = r.runStr; runAt = r.runAt; wanted = pick(r.steps, r.runAt);
+    // BW-6c: liegen die Bilder für GENAU DIESEN Lauf im Daten-CDN? Geprüft
+    // gegen `runStr`, den Lauf, den die Auflösung wirklich geliefert hat (§22.4).
+    // Mit Abschnitt entfällt der GRIB-Abruf, der sonst nur der Geometrie diente.
+    section = await resolveRepackForRun(runStr, 'gust', wanted);
+  }
   let uvBounds: [number, number, number, number];
   if (section) {
     uvBounds = uvBoundsOf(section);
@@ -102,11 +113,12 @@ export async function fetchIconD2Gust(
 
   const frames: IconD2GustFrame[] = [];
 
-  const loadStep = async (step: number): Promise<void> => {
+  const loadStep = async (step: number): Promise<boolean> => {
     try {
       // BW-6c: 120 KB fertiges Bild statt 1 100 KB GRIB + Decode. `null` heißt
-      // immer „nimm GRIB“ — Schritt nicht abgelegt, Frist abgelaufen, Weg aus.
+      // „nimm GRIB“ — Schritt nicht abgelegt, Frist abgelaufen, Weg aus. RN-3: ohne DWD-Weg heißt es „noch einmal“.
       const png = section ? await loadScalarStep(section, 'gust', step, signal) : null;
+      if (!png && repoOnly) return false;
       const built = png
         ? { image: rgbaToCanvas(png.rgba, png.width, png.height), width: png.width, height: png.height }
         : await (async () => {
@@ -116,21 +128,16 @@ export async function fetchIconD2Gust(
       frames.push({ validAt: new Date(runAt.getTime() + step * 3_600_000), stepHours: step, ...built });
       frames.sort((a, b) => a.stepHours - b.stepHours);
       if (onProgress) onProgress({ runAt, frames: [...frames], uvBounds, vMin: GUST_VMIN, vMax: GUST_VMAX });
+      return true;
     } catch {
       // Einzelner Schritt fehlt → überspringen.
+      return false;
     }
   };
 
-  let ptr = 0;
-  const workers = Array.from({ length: Math.min(section ? REPACK_CONCURRENCY : CONCURRENCY, wanted.length) }, async () => {
-    while (ptr < wanted.length) {
-      if (signal?.aborted) return;
-      await loadStep(wanted[ptr++]);
-    }
-  });
-  await Promise.all(workers);
+  await pumpSteps(wanted, loadStep, section ? REPACK_CONCURRENCY : CONCURRENCY, signal, repoOnly ? 'Böen' : undefined);
 
-  if (frames.length === 0) throw new Error('ICON-D2 Gust: keine Frames erzeugt');
+  if (frames.length === 0) throw repoOnly ? new IconD2NotInRepo('ICON-D2 Böen: kein Bild aus dem Daten-Repo lesbar') : new Error('ICON-D2 Gust: keine Frames erzeugt');
   return { runAt, frames, uvBounds, vMin: GUST_VMIN, vMax: GUST_VMAX };
 }
 

@@ -1,0 +1,10 @@
+﻿[18:28:20 UTC] newest guessed slot 2611181825, age 201 s (image gate 270 s) — rvDwdDirect=false
+  rvRepoRuns(3) = 2611181820, 2611181815, 2611181810
+[buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: Slot 2611181815 · Lauf 18.11.2026, 19:15:00 · 25 Frames (0…+120 min) · Quelle Daten-Repo (PNG)
+  read #1: run 2611181815 · 25 frames · 22856 ms · {"requests":29,"hosts":{"cdn.jsdelivr.net":3,"raw.githubusercontent.com":26},"status":{"200":29},"dwd":0}
+  rvFollowUpInMs = 56579 ms
+[buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: Slot 2611181825 · Lauf 18.11.2026, 19:25:00 · 25 Frames (0…+120 min) · Quelle Daten-Repo (PNG)
+[18:29:45 UTC] read #2 (slot 2611181825 now 285 s old): run 2611181825 · same object as before: false · 5229 ms · {"requests":26,"hosts":{"raw.githubusercontent.com":26},"status":{"200":26},"dwd":0}
+  rvFollowUpInMs = null
+TOTAL {"requests":55,"hosts":{"cdn.jsdelivr.net":3,"raw.githubusercontent.com":52},"status":{"200":55},"dwd":0}
+RESULT: 0 requests to the DWD

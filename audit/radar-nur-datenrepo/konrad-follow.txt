@@ -1,0 +1,11 @@
+waiting 215 s — opening at 21:44:48 UTC (slot boundary + 288 s)
+
+=== default — opened 21:44:48 UTC, stayed 85 s
+KONRAD3D at the DWD: 0
+  21:44:48  200  /assets/dwdKonrad3d-DXAwMiut.js
+  21:44:49  net::ERR_ABORTED cdn.jsdelivr.net/gh/jppetry/buscosun-data@main/radar/img/v1/konrad3d/20261118T213500/cells.json
+  21:44:52  200  raw.githubusercontent.com/jppetry/buscosun-data/main/radar/img/v1/konrad3d/20261118T213500/cells.json
+  21:45:40  200  raw.githubusercontent.com/jppetry/buscosun-data/main/radar/img/v1/konrad3d/20261118T214000/cells.json
+  console 21:44:52  [buscosun] Zellbahnen-Layer → KONRAD3D-Datei: KONRAD3D_20261118T213500.xml · Messzeit 18.11.2026, 22:35:00 · 0 Zellen
+  console 21:45:40  [buscosun] Zellbahnen-Layer → KONRAD3D-Datei: KONRAD3D_20261118T214000.xml · Messzeit 18.11.2026, 22:40:00 · 0 Zellen
+  console errors: 0

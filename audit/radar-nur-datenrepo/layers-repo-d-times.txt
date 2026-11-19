@@ -1,0 +1,56 @@
+
+=== D default, jsDelivr + raw blocked — opened 21:38:06 UTC, stayed 150 s
+  wind         at the DWD:   0   data repo:   0 {}
+  temp         at the DWD:   0   data repo:   0 {}
+  gust         at the DWD:   0   data repo:   0 {}
+  thunder      at the DWD:   0   data repo:   0 {}
+  lightningfc  at the DWD:   0   data repo:   0 {}
+  snow         at the DWD:   0   data repo:   0 {}
+  rotation     at the DWD:   0   data repo:   0 {}
+  precip       at the DWD:   0   data repo:   0 {}
+  konrad3d     at the DWD:   0   data repo:   6 {"jsdelivr ":3,"raw ":3}
+  these products at the DWD in total: 0; other requests through the DWD proxies: 0
+  index / pointer of the data repo: 23  {"jsdelivr ":12,"raw ":11}
+    asked at: 21:38:06 21:38:07 21:38:10 21:38:18 21:38:43 21:38:52 21:39:22 21:39:23 21:39:31 21:39:32 21:39:33 21:39:56 21:39:57 21:40:06
+  console 21:38:07 [info]  [repack] Böen: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:38:07 [info]  [repack] Gewitterpotenzial: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:38:07 [info]  [repack] Blitz-Vorhersage: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:38:07 [info]  [repack] Schnee: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:38:07 [info]  [repack] Rotationspotenzial: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:38:07 [info]  [repack] Schnee: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:38:07 [info]  [repack] Temperatur: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:38:07 [info]  [repack] Wind: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:38:11 [info]  [repack] Böen: Versuch 2/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:38:11 [info]  [repack] Gewitterpotenzial: Versuch 2/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:38:11 [info]  [repack] Blitz-Vorhersage: Versuch 2/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:38:11 [info]  [repack] Schnee: Versuch 2/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:38:11 [info]  [repack] Rotationspotenzial: Versuch 2/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:38:11 [info]  [repack] Schnee: Versuch 2/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:38:11 [info]  [repack] Temperatur: Versuch 2/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:38:11 [info]  [repack] Wind: Versuch 2/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:38:40 [info]  [repack] Niederschlag-Forecast: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Niederschlags-Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:38:44 [info]  [repack] Niederschlag-Forecast: Versuch 2/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Niederschlags-Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:39:20 [info]  [repack] Böen: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:39:20 [info]  [repack] Gewitterpotenzial: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:39:20 [info]  [repack] Blitz-Vorhersage: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:39:20 [info]  [repack] Rotationspotenzial: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:39:20 [info]  [repack] Schnee: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:39:20 [info]  [repack] Temperatur: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:39:20 [info]  [repack] Wind: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:39:23 [info]  [repack] Böen: Versuch 2/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:39:23 [info]  [repack] Gewitterpotenzial: Versuch 2/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:39:23 [info]  [repack] Blitz-Vorhersage: Versuch 2/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:39:23 [info]  [repack] Rotationspotenzial: Versuch 2/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:39:23 [info]  [repack] Schnee: Versuch 2/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:39:23 [info]  [repack] Temperatur: Versuch 2/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:39:24 [info]  [repack] Wind: Versuch 2/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:39:53 [info]  [repack] Niederschlag-Forecast: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Niederschlags-Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:39:57 [info]  [repack] Niederschlag-Forecast: Versuch 2/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Niederschlags-Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:40:33 [info]  [repack] Böen: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:40:33 [info]  [repack] Gewitterpotenzial: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:40:33 [info]  [repack] Blitz-Vorhersage: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:40:33 [info]  [repack] Rotationspotenzial: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:40:33 [info]  [repack] Schnee: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:40:33 [info]  [repack] Temperatur: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:40:35 [info]  [repack] Wind: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console errors: 0

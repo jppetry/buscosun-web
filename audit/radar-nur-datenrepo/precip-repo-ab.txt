@@ -1,0 +1,25 @@
+﻿
+=== A default, both hosts reachable — opened 20:02:05 UTC, stayed 45 s
+ICON-D2 tot_prec at the DWD: 0
+precip images of the data repo: 1  {"jsdelivr 200":1}
+index / pointer of the data repo: 1  {"jsdelivr 200":1}  at 20:02:32
+  console errors: 0
+
+=== B default, jsDelivr blocked — opened 20:03:13 UTC, stayed 45 s
+ICON-D2 tot_prec at the DWD: 0
+precip images of the data repo: 2  {"jsdelivr ":1,"raw 200":1}
+index / pointer of the data repo: 3  {"jsdelivr ":2,"raw 200":1}  at 20:03:13 20:03:14 20:03:14
+  console errors: 0
+
+=== C control ?precipdwd=1, jsDelivr + raw blocked — opened 20:03:58 UTC, stayed 45 s
+ICON-D2 tot_prec at the DWD: 0
+precip images of the data repo: 0  {}
+index / pointer of the data repo: 5  {"jsdelivr ":3,"raw ":2}  at 20:03:58 20:03:59 20:03:59 20:04:00 20:04:00
+  console errors: 0
+
+=== D default, jsDelivr + raw blocked — opened 20:04:43 UTC, stayed 45 s
+ICON-D2 tot_prec at the DWD: 0
+precip images of the data repo: 0  {}
+index / pointer of the data repo: 5  {"jsdelivr ":3,"raw ":2}  at 20:04:43 20:04:45 20:04:45 20:04:45 20:04:45
+  console 20:05:25 [info]  [repack] Niederschlag-Forecast: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Niederschlags-Lauf) → noch einmal aus dem Daten-Repo.
+  console errors: 0

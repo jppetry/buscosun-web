@@ -99,6 +99,40 @@ export function radarCdnEnabled(
   return s !== '0';
 }
 
+// ---------------------------------------------------------------------------
+// Phase RN — the DWD composite (RV) comes from the data repo ONLY (audit/radar-nur-datenrepo.md, E-RN-1, Jan 18.11.2026)
+// ---------------------------------------------------------------------------
+// Until RN the reader took the tar straight from the DWD (Netlify rewrite `RV_DIR`) whenever the mirror was not there yet:
+// for the newest slot before its gate (≈ every fourth opening), after a miss on the image way, behind the session latch,
+// for old look-back slots, and the directory listing as the last way. Now nothing of the RV product is asked from the DWD:
+// a slot that is not readable in the data repo yet is not offered (`rvRepoRuns`), the one before it is drawn, and the
+// consumer asks again when the newer one passes its gate (`rvFollowUpInMs`, radolan.ts). The old way stays as the named
+// fallback behind `?rvdwd=1` / `localStorage.rvdwd = '1'` (D-31: query beats storage); `?radarcdn=0` — "no radar from the
+// CDN" — still means the DWD way, as before.
+export const RV_DWD_DIRECT_DEFAULT = false;
+/** The explicit switch alone: `?rvdwd=0|1` beats `localStorage.rvdwd`; without a vote `RV_DWD_DIRECT_DEFAULT`. */
+export function rvDwdFlagFrom(
+  search: string = typeof location !== 'undefined' ? location.search : '',
+  stored?: string | null,
+): boolean {
+  let q: string | null = null;
+  try { q = new URLSearchParams(search).get('rvdwd'); } catch { /* kaputte Query = kein Votum */ }
+  if (q === '0') return false;
+  if (q === '1') return true;
+  let s = stored;
+  if (s === undefined) {
+    try { s = typeof localStorage !== 'undefined' ? localStorage.getItem('rvdwd') : null; } catch { s = null; }
+  }
+  return s === '1' ? true : s === '0' ? false : RV_DWD_DIRECT_DEFAULT;
+}
+/** May the RV reader ask the DWD (through Netlify)? Only with the switch, or when every radar CDN way is switched off. */
+export function rvDwdDirect(): boolean { return rvDwdFlagFrom() || !radarCdnEnabled(); }
+/**
+ * RN: the session latch closes the CDN ways so that the DIRECT way takes over. Without a direct way there is nothing to take
+ * over — the repo ways of RV stay open and read raw.githubusercontent first while the latch is closed (`rvImgRawFirst`).
+ */
+function rvRepoWayOpen(): boolean { return radarCdnUsable() || !rvDwdDirect(); }
+
 /** Harter CDN-Fehler (Netz/Timeout — NICHT 404). Ab RADAR_CDN_FAIL_LATCH innerhalb von RADAR_CDN_LATCH_MS: CDN-Wege für
  *  RADAR_CDN_LATCH_MS zu (ND-5), danach zählt die Sitzung neu. */
 export function noteRadarCdnFailure(nowMs: number = Date.now()): void {
@@ -110,7 +144,7 @@ export function radarCdnUsable(nowMs: number = Date.now()): boolean { return now
 
 /** Darf DIESER Lauf jetzt vom CDN angefragt werden? (Gate + Fenster + Schalter + Latch) */
 export function rvCdnEligible(ts: string, nowMs: number = Date.now()): boolean {
-  if (!radarCdnUsable() || !radarCdnEnabled()) return false;
+  if (!rvRepoWayOpen() || !radarCdnEnabled()) return false;
   const age = nowMs - rvStampToMs(ts);
   return age >= RV_CDN_GATE_MS && age <= RADAR_CDN_WINDOW_MS;
 }
@@ -226,15 +260,29 @@ export function radarRawUrl(url: string): string | null {
 export const RV_IMG_CDN_READY_MS = 360_000;
 export function rvImgRawFirst(ts: string, nowMs: number = Date.now()): boolean {
   if (!rvImgEligible(ts, nowMs) || !radarRawFlagFrom()) return false;
-  return nowMs - rvStampToMs(ts) < RV_IMG_CDN_READY_MS;
+  // RN: eligible although the latch is closed = repo only — the CDN just failed twice, raw is the first way (the CDN its hedge).
+  return nowMs - rvStampToMs(ts) < RV_IMG_CDN_READY_MS || !radarCdnUsable();
 }
 
-/** Darf DIESER Lauf jetzt als Bild-Slot angefragt werden? (Gate + Fenster + beide Schalter + Latch) */
+/** Darf DIESER Lauf jetzt als Bild-Slot angefragt werden? (Gate + Fenster + beide Schalter + Latch; RN: der Latch nur mit DWD-Weg) */
 export function rvImgEligible(ts: string, nowMs: number = Date.now()): boolean {
-  if (!radarCdnUsable() || !radarCdnEnabled() || !radarImgEnabled()) return false;
+  if (!rvRepoWayOpen() || !radarCdnEnabled() || !radarImgEnabled()) return false;
   const age = nowMs - rvStampToMs(ts);
   return age >= RV_IMG_GATE_MS && age <= RADAR_CDN_WINDOW_MS;
 }
+
+/**
+ * Phase RN: the `count` newest RV runs that are READABLE IN THE DATA REPO right now, newest first — the candidates of the
+ * reader and of the warm-up while the DWD way is off. A slot before its gate is left out (asking early would pin a 404 at
+ * the edge, and there is no other way to it any more); so is one behind the mirror's retention. With the image way
+ * switched off (`?radarimg=0`) the repo's tar is the way and its gate counts.
+ */
+export function rvRepoRuns(count: number, nowMs: number = Date.now()): string[] {
+  const readable = radarImgEnabled() ? rvImgEligible : rvCdnEligible;
+  return guessRvRuns(count + 1, nowMs).filter((ts) => readable(ts, nowMs)).slice(0, count);
+}
+/** The gate of the way `rvRepoRuns` reads (image slot, or the repo's tar with `?radarimg=0`). */
+export function rvRepoGateMs(): number { return radarImgEnabled() ? RV_IMG_GATE_MS : RV_CDN_GATE_MS; }
 
 // NP-0a (audit/np0-datenprodukte.md §8, E-NP0-1): Rückblick 2 h. Die gemessene Analyse `f000.png` jedes RV-Slots
 // liegt zusätzlich unter `radar/img/v1/rv-past/<YYMMDDHHMM>/f000.png` — 24 Slots (Altersregel im Spiegel), während die
@@ -252,7 +300,7 @@ export function rvPastDir(ts: string): string {
 
 /** Darf die Analyse DIESES Laufs jetzt aus dem Rückblick geholt werden? (Gate wie der Bild-Slot, Fenster 115 min) */
 export function rvPastEligible(ts: string, nowMs: number = Date.now()): boolean {
-  if (!radarCdnUsable() || !radarCdnEnabled() || !radarImgEnabled()) return false;
+  if (!rvRepoWayOpen() || !radarCdnEnabled() || !radarImgEnabled()) return false;
   const age = nowMs - rvStampToMs(ts);
   return age >= RV_IMG_GATE_MS && age <= RADAR_PAST_WINDOW_MS;
 }
@@ -296,7 +344,13 @@ export const RV_WARM_TTL_MS = RV_STEP_MIN * 60_000;
  */
 export function warmRvTar(nowMs: number = Date.now()): string | null {
   if (typeof fetch !== 'function') return null;
-  const ts = guessRvRuns(1, nowMs)[0];
+  // RN: forget warm answers nobody took (a slot that was warmed and then not read) — the map is keyed by URL and only `take` removed.
+  for (const [k, w] of warm) if (nowMs - w.at >= RV_WARM_TTL_MS) warm.delete(k);
+  const direct = rvDwdDirect();
+  // RN: without the DWD way the warm-up starts the slot the reader will take — the newest one readable in the data repo
+  // (before the gate of the newest: the one before it). Nothing readable (mirror window empty, switches) ⇒ no warm-up.
+  const ts = direct ? guessRvRuns(1, nowMs)[0] : rvRepoRuns(1, nowMs)[0];
+  if (!ts) return null;
   // RD3: ist der jüngste plausible Slot schon Bild-berechtigt, wärmt der Frühstart
   // meta.json + f000.png (Erstbild-Frame) statt des ganzen Tars — der Leser nimmt
   // beide über dieselben URL-Schlüssel entgegen.
@@ -318,7 +372,8 @@ export function warmRvTar(nowMs: number = Date.now()): string | null {
   // hat, sonst Netlify. Der Leser probiert beim `take` beide URL-Schlüssel.
   // EX-3: in der Lieferform, die der Leser zuerst versucht (HDF5; der Schalter `rvfmt` ist ein
   // Diagnoseweg und wirkt erst im Leser).
-  const url = rvTarUrlFor(ts, nowMs);
+  // RN: without the DWD way only the repo's tar (`?radarimg=0`; `rvRepoRuns` offered the slot because its tar gate has passed).
+  const url = direct ? rvTarUrlFor(ts, nowMs) : rvTarCdnUrl(ts);
   const cur = warm.get(url);
   if (cur && nowMs - cur.at < RV_WARM_TTL_MS) return url;
   const p = (async (): Promise<WarmRvTar> => {

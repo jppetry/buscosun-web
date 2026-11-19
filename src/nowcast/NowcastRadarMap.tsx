@@ -32,7 +32,7 @@ import { frameIntensities } from '../radar/PointStrip';
 import { getRadarStack, seedPastAll, sessionPast, withSessionPast, type RadarStack } from '../radar/radarFrames';
 import { computeRainWindow, rainWindowEnabledFrom } from './rainWindow';
 import { radarTimesAt } from './rainWindowRadar';
-import { fetchKonrad3d } from '../sources/dwdKonrad3d';
+import { fetchKonrad3d, konradFollowUpInMs } from '../sources/dwdKonrad3d';
 import type { Konrad3dRun } from '../radar/konrad3d';
 import { buildCellFeatures, cellLocationRelevance, cellRelevanceText } from '../radar/cellPolygons';
 import { CELLS_POLL_MS, CELLS_DOT_LAYER_ID } from '../radar/cellLayers';
@@ -41,7 +41,7 @@ import { cellPlacesEnabledFrom, cellPlaceVerdict, cellPlaceSentence, type CellPa
 import { CellPlaceStops } from './cellPlaceStops';
 import { fetchIconD2Snow, type IconD2Snow, type SnowMode } from '../sources/iconD2Snow';
 import type { CompositeSources } from '../scalar/precipComposite';
-import { fetchRvNowcast } from '../sources/radolan';
+import { fetchRvNowcast, rvFollowUpInMs } from '../sources/radolan';
 import { RadarAttribution } from '../components/RadarAttribution';   // Phase HDR: licences from the constants
 import { fetchIncaGrid } from '../sources/geosphereIncaGrid';
 import { fetchRzcLatest } from '../sources/meteoSwissRadar';
@@ -322,6 +322,11 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
     }, 5 * 60_000);
     return () => window.clearInterval(id);
   }, []);
+  // Phase RN (audit/radar-nur-datenrepo.md): the DWD composite comes from the data repo only — its newest slot is not
+  // there before its gate. The reader says when to ask again (`rvFollowUpInMs`); this tick reloads the stack then, ahead
+  // of the 5-min tick above (phase-locked to the mount, it would stay one slot behind). Its own state, so the sums and
+  // the other consumers of `autoTick` do not reload with it.
+  const [followTick, setFollowTick] = useState(0);
 
   // Phase NS: Summen-Ansicht. In „Summe" zeigt die Karte statt der Intensität die Summe (eigene Ebenen); die übrigen
   // Ebenen (Zellbahnen, Blitze, Schnee …) bleiben, wie sie sind.
@@ -372,9 +377,13 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
     };
     runSeed();
 
+    let followTimer = 0;
     getRadarStack(location.country, ac.signal)
       .then((st) => {
         if (ac.signal.aborted) return;
+        // Phase RN: a newer RV slot is waiting for its gate ⇒ one silent reload when it has passed.
+        const followIn = st.source === 'radolan_rv' ? rvFollowUpInMs(st.runAtMs) : null;
+        if (followIn != null) followTimer = window.setTimeout(() => { if (document.visibilityState === 'visible') setFollowTick((t) => t + 1); }, followIn);
         setStack(st); setLoadErr(null); repin(st);
         onRadarStackRef.current?.(st);
         // The stack re-reads its own look-back from the cache (no second download); AT has no measured look-back of its own.
@@ -400,8 +409,8 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
       .catch((err) => {
         if (!ac.signal.aborted && isLocChange) { setLoadErr(err instanceof Error ? err.message : 'Radar nicht erreichbar'); onRadarStackRef.current?.(null); }
       });
-    return () => ac.abort();
-  }, [location.lat, location.lon, location.country, reloadKey, autoTick]);
+    return () => { window.clearTimeout(followTimer); ac.abort(); };
+  }, [location.lat, location.lon, location.country, reloadKey, autoTick, followTick]);
 
   // Punktforecast für angetippte Punkte (≠ Heimat) nachladen.
   useEffect(() => {
@@ -452,11 +461,17 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
     if (!cellsOn) { setCellsRun(null); return; }
     const abort = new AbortController();
     let stopped = false;
+    // Phase RN-4 (audit/radar-nur-datenrepo.md §10): repo only — the slot the DWD already has is read when it passes its
+    // gate (`konradFollowUpInMs`), ahead of the 5-min poll. Same as `MapView`.
+    let cellsFollowTimer = 0;
     const load = async () => {
       if (stopped || document.visibilityState !== 'visible') return;
       try {
         const run = await fetchKonrad3d(abort.signal);
         if (stopped) return;
+        window.clearTimeout(cellsFollowTimer);
+        const followIn = konradFollowUpInMs(run);
+        if (followIn != null) cellsFollowTimer = window.setTimeout(() => { void load(); }, followIn);
         console.log(`[buscosun] Regenradar Zellbahnen → KONRAD3D-Datei: ${run.file} · Messzeit ${new Date(run.refMs).toLocaleString('de-DE')} · ${run.cells.length} Zellen`);
         setCellsRun(run);
       } catch {
@@ -469,7 +484,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
     const onVisible = () => { if (document.visibilityState === 'visible') void load(); };
     document.addEventListener('visibilitychange', onVisible);
     return () => {
-      stopped = true; abort.abort(); window.clearInterval(timer);
+      stopped = true; abort.abort(); window.clearInterval(timer); window.clearTimeout(cellsFollowTimer);
       document.removeEventListener('visibilitychange', onVisible);
       setCellsRun(null);
     };

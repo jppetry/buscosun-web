@@ -24,6 +24,7 @@ import {
   type RepackSection,
 } from '../sources/repackSource';
 import type { DataTextureFormat, PackedTexture } from './glUtil';
+import { d2DwdDirect, resolveRepoRun, pumpSteps, IconD2NotInRepo } from '../sources/iconD2Repo';
 
 export const ICON_D2_WIND_ATTRIBUTION =
   'Wind: <a href="https://www.dwd.de/EN/ourservices/opendata/opendata.html" ' +
@@ -264,6 +265,10 @@ export async function fetchIconD2Wind(
    *  Der Scan-Fallback setzt ihn zurück — dort stimmt der Lauf nicht mehr. */
   let section: RepackSection | null = null;
 
+  // Phase RN-3 (audit/radar-nur-datenrepo.md §9): run, section and every image from the data repo only — no speculative
+  // GRIB, no listing, no `/_dwd_wind` (`?d2dwd=1` = the chain as before, „Notweg" included).
+  const repoOnly = !d2DwdDirect();
+
   const loadStep = async (rs: string, ra: Date, step: number): Promise<boolean> => {
     try {
       // BW-3: liegt das fertige Bild im Daten-CDN, ist es der kurze Weg — 242 KB
@@ -272,6 +277,7 @@ export async function fetchIconD2Wind(
       // `null` heißt hier IMMER „nimm GRIB": Schritt (noch) nicht abgelegt,
       // Frist abgelaufen, Weg abgeschaltet — der Aufrufer merkt keinen Unterschied.
       const png = section ? await loadWindStep(section, step, signal) : null;
+      if (!png && repoOnly) return false;   // RN-3: no GRIB behind it — `pumpSteps` asks again
       let b: WindFrameBytes;
       if (png) {
         b = png;
@@ -306,6 +312,28 @@ export async function fetchIconD2Wind(
       return false;
     }
   };
+
+  if (repoOnly) {
+    const r = await resolveRepoRun('wind', 'Wind', (steps, ra) => {
+      const capped = steps.filter((s) => s <= MAX_STEP);
+      return nowOnly ? stepsForNowWindow(capped, ra, aheadH) : capped;
+    }, signal, (run) => (runCoversNow(run.runAt.getTime(), run.steps, Date.now()) ? null : 'der Lauf im Daten-Repo deckt „jetzt" nicht mehr'));
+    section = r.section;
+    const near = nowOnly ? r.wanted : r.wanted.filter((s) => s <= NEAR_STEP);
+    const far = nowOnly ? [] : r.wanted.filter((s) => s > NEAR_STEP);
+    const one = (step: number) => loadStep(r.runStr, r.runAt, step);
+    await pumpSteps(near, one, REPACK_CONCURRENCY, signal, 'Wind');
+    if (!uvBounds || frames.length === 0) throw new IconD2NotInRepo('ICON-D2 Wind: kein Bild aus dem Daten-Repo lesbar');
+    // Far horizon in the background, as below (half the concurrency, the promise does not wait for it).
+    if (far.length && !signal?.aborted) {
+      void pumpSteps(far, one, Math.ceil(REPACK_CONCURRENCY / 2), signal, 'Wind')
+        .then(() => { if (!signal?.aborted) onSettled?.(); })
+        .catch(() => {});
+    } else {
+      onSettled?.();
+    }
+    return { runAt: r.runAt, frames, uvBounds };
+  }
 
   // Bounded-Concurrency-Pump über eine Schrittliste (bereits spekulativ geladene
   // Schritte überspringen).

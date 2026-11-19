@@ -34,7 +34,8 @@ import {
 } from './iconD2Precip';
 import { buildLpiRgba, LPI_VMIN, LPI_VMAX } from './scalarFrameBuild';
 export { LPI_VMIN, LPI_VMAX } from './scalarFrameBuild';
-import { resolveRepackForRun, loadScalarStep, uvBoundsOf, REPACK_CONCURRENCY } from './repackSource';
+import { resolveRepackForRun, loadScalarStep, uvBoundsOf, REPACK_CONCURRENCY, type RepackSection } from './repackSource';
+import { d2DwdDirect, resolveRepoRun, pumpSteps, IconD2NotInRepo } from './iconD2Repo';
 import { stepsForNowWindow } from './frameAtValidTime';
 
 export const ICON_D2_LPI_ATTRIBUTION =
@@ -109,16 +110,26 @@ export async function fetchIconD2Lpi(
    *  ohne die Option alle Schritte, wie bisher. */
   opts?: { nowOnly?: boolean; aheadHours?: number },
 ): Promise<IconD2Lpi> {
-  const { runStr, runAt, steps } = await resolveLatestRun('lpi_max', signal, 'lightningfc');
-  // t+0 auslassen: `lpi_max` ist dort als Intervall-Maximum strukturell 0.
-  const capped = steps.filter((s) => s >= MIN_STEP && s <= MAX_STEP);
-  const wanted = opts?.nowOnly ? stepsForNowWindow(capped, runAt, opts.aheadHours ?? 0) : capped;
-  if (wanted.length === 0) throw new Error('ICON-D2 Blitz-Vorhersage: keine Schritte im Horizont');
-
-  // BW-6c: liegen die Bilder für GENAU DIESEN Lauf im Daten-CDN? Geprüft
-  // gegen `runStr`, den Lauf, den die Auflösung wirklich geliefert hat (§22.4).
-  // Mit Abschnitt entfällt der GRIB-Abruf, der sonst nur der Geometrie diente.
-  const section = await resolveRepackForRun(runStr, 'lightningfc', wanted);
+  // Phase RN-3 (audit/radar-nur-datenrepo.md §9): run, section and every image from the data repo only — no listing, no GRIB
+  // (`?d2dwd=1` = the chain as before).
+  const repoOnly = !d2DwdDirect();
+  const pick = (steps: number[], runAt: Date): number[] => {
+    // t+0 auslassen: `lpi_max` ist dort als Intervall-Maximum strukturell 0.
+    const capped = steps.filter((s) => s >= MIN_STEP && s <= MAX_STEP);
+    return opts?.nowOnly ? stepsForNowWindow(capped, runAt, opts.aheadHours ?? 0) : capped;
+  };
+  let runStr: string, runAt: Date, wanted: number[], section: RepackSection | null;
+  if (repoOnly) {
+    ({ runStr, runAt, wanted, section } = await resolveRepoRun('lightningfc', 'Blitz-Vorhersage', pick, signal));
+  } else {
+    const r = await resolveLatestRun('lpi_max', signal, 'lightningfc');
+    runStr = r.runStr; runAt = r.runAt; wanted = pick(r.steps, r.runAt);
+    if (wanted.length === 0) throw new Error('ICON-D2 Blitz-Vorhersage: keine Schritte im Horizont');
+    // BW-6c: liegen die Bilder für GENAU DIESEN Lauf im Daten-CDN? Geprüft
+    // gegen `runStr`, den Lauf, den die Auflösung wirklich geliefert hat (§22.4).
+    // Mit Abschnitt entfällt der GRIB-Abruf, der sonst nur der Geometrie diente.
+    section = await resolveRepackForRun(runStr, 'lightningfc', wanted);
+  }
   let uvBounds: [number, number, number, number];
   if (section) {
     uvBounds = uvBoundsOf(section);
@@ -136,10 +147,11 @@ export async function fetchIconD2Lpi(
 
   const frames: IconD2LpiFrame[] = [];
 
-  const loadStep = async (step: number): Promise<void> => {
+  const loadStep = async (step: number): Promise<boolean> => {
     try {
       // BW-6c: fertiges Bild aus dem Daten-CDN, sonst GRIB (s. Böen).
       const png = section ? await loadScalarStep(section, 'lightningfc', step, signal) : null;
+      if (!png && repoOnly) return false;   // RN-3: no GRIB behind it — `pumpSteps` asks again
       const built = png
         ? { image: rgbaToCanvas(png.rgba, png.width, png.height), width: png.width, height: png.height }
         : await (async () => {
@@ -149,21 +161,15 @@ export async function fetchIconD2Lpi(
       frames.push({ validAt: new Date(runAt.getTime() + step * 3_600_000), stepHours: step, ...built });
       frames.sort((a, b) => a.stepHours - b.stepHours);
       if (onProgress) onProgress({ runAt, frames: [...frames], uvBounds, vMin: LPI_VMIN, vMax: LPI_VMAX });
+      return true;
     } catch {
       // `lpi_max` des Schritts fehlt → Schritt überspringen (Muster Böen/Temp).
+      return false;
     }
   };
 
-  // Bounded-Concurrency-Pump über die Schritte.
-  let ptr = 0;
-  const workers = Array.from({ length: Math.min(section ? REPACK_CONCURRENCY : CONCURRENCY, wanted.length) }, async () => {
-    while (ptr < wanted.length) {
-      if (signal?.aborted) return;
-      await loadStep(wanted[ptr++]);
-    }
-  });
-  await Promise.all(workers);
+  await pumpSteps(wanted, loadStep, section ? REPACK_CONCURRENCY : CONCURRENCY, signal, repoOnly ? 'Blitz-Vorhersage' : undefined);
 
-  if (frames.length === 0) throw new Error('ICON-D2 Blitz-Vorhersage: keine Frames erzeugt');
+  if (frames.length === 0) throw repoOnly ? new IconD2NotInRepo('ICON-D2 Blitz-Vorhersage: kein Bild aus dem Daten-Repo lesbar') : new Error('ICON-D2 Blitz-Vorhersage: keine Frames erzeugt');
   return { runAt, frames, uvBounds, vMin: LPI_VMIN, vMax: LPI_VMAX };
 }

@@ -293,13 +293,27 @@ add('[warm] E-DB-20: /wetterkarte/niederschlag/<ort>?ansicht=dashboard startet n
       const u = warmRvTar(T4);
       return guessRvRuns(1, T4)[0] === ts0 && u === `${rvImgDir(ts0)}/meta.json` && calls.length === c0 + 3 && calls.slice(c0).every((c) => c.url.startsWith(`${rvImgDir(ts0)}/`));
     })());
-    // Vor dem Bild-Gate (Rat 3,5 min alt) bleibt es der Tar mit der Resolver-URL (RD2) —
-    // bei T2 unter BEIDEN Gates ⇒ die Netlify-URL, exakt wie bisher.
-    add('[warm] RV: vor dem Bild-Gate wärmt der Frühstart den Tar (Resolver-URL, Netlify bei T2)', await (async () => {
+    // Phase RN (audit/radar-nur-datenrepo.md): vor dem Bild-Gate (Rat 3,5 min alt) fragt der Frühstart NICHT mehr den Tar
+    // beim DWD an — er wärmt den Slot davor aus dem Daten-Repo (8,5 min alt ⇒ CDN), denselben, den der Leser nimmt.
+    add('[warm] RV (RN): vor dem Bild-Gate wärmt der Frühstart den Slot davor aus dem Daten-Repo (meta + g000 + f000), kein DWD-Abruf', await (async () => {
       _resetWarmRv(); const c0 = calls.length;
       const T2 = Date.UTC(2026, 7, 28, 12, 28, 30);
+      const [young, prev] = guessRvRuns(2, T2);
       const u2 = warmRvTar(T2);
-      return u2 === rvTarUrlFor(guessRvRuns(1, T2)[0], T2) && !u2.includes('/img/') && calls.length === c0 + 1;
+      const mine = calls.slice(c0);
+      return u2 === `${rvImgDir(prev)}/meta.json` && mine.length === 3 && mine.every((c) => c.url.startsWith(`${rvImgDir(prev)}/`))
+        && !mine.some((c) => c.url.includes('_dwd_opendata') || c.url.includes(young));
+    })());
+    // Der benannte Rückfall: mit `rvdwd=1` bleibt es vor dem Bild-Gate der Tar mit der Resolver-URL (RD2) — bei T2 unter
+    // BEIDEN Gates ⇒ die Netlify-URL, exakt wie vor RN (zugleich die Gegenprobe: das Muster `_dwd_opendata` trifft).
+    add('[warm] RV: Schalter rvdwd=1 ⇒ vor dem Bild-Gate der Tar (Resolver-URL, Netlify bei T2) wie vor RN', await (async () => {
+      _resetWarmRv(); const c0 = calls.length;
+      const T2 = Date.UTC(2026, 7, 28, 12, 28, 30);
+      const realLS = globalThis.localStorage;
+      globalThis.localStorage = { getItem: (k) => (k === 'rvdwd' ? '1' : null) };
+      let u2;
+      try { u2 = warmRvTar(T2); } finally { if (realLS === undefined) delete globalThis.localStorage; else globalThis.localStorage = realLS; }
+      return u2 === rvTarUrlFor(guessRvRuns(1, T2)[0], T2) && u2.includes('_dwd_opendata') && !u2.includes('/img/') && calls.length === c0 + 1;
     })());
     _resetWarmRv(); calls.length = 0;
     const url2 = warmRvTar(T);

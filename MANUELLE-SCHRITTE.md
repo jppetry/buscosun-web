@@ -3514,6 +3514,87 @@ Alle drei wirken auf die heutige Seite und den heutigen Producer **nicht**.
    übrigen Seite sind **nicht** gemessen; `verify:sea-ui` nicht gelaufen (Browser, bricht an HEAD in B0 ab). Befunde
    V-ST-1 … 13, vor allem V-ST-1 (12-UTC-Lauf), V-ST-3 (Stauwasser-Regel) und V-ST-11 (Güte des Modells ungeprüft).
 
+## 94. Das DWD-Komposit nur noch aus dem Daten-Repo (Phase RN, `audit/radar-nur-datenrepo.md`), 2026-11-18
+
+Der Client holt das Radar-Komposit des DWD (RV) nicht mehr direkt beim DWD, sondern nur noch aus `buscosun-data`
+(jsDelivr oder raw.githubusercontent). **An für alle (dein Wort 18.11.)**, uncommitted, wirkt mit dem Push von
+`buscosun-web`. Kein Push in ein Daten-Repo, keine Änderung am Spiegel, an Edge Functions oder an `netlify.toml`.
+
+1. **Commit und Push** von `buscosun-web`. Dateien dieser Phase: `src/sources/radolan.ts`, `src/sources/radolanRuns.ts`,
+   `src/MapView.tsx` (nur der Nachlade-Timer in `loadRv`), `src/nowcast/NowcastRadarMap.tsx`, `src/share/shareSchema.ts`,
+   `scripts/verify-radar-fallback.mjs`, `scripts/verify-radar-runs.mjs`, `scripts/verify-routing.mjs`,
+   `audit/radar-nur-datenrepo.md` + Ordner, `CLAUDE.md`, diese Datei. Im selben Arbeitsbaum liegt die uncommittete
+   Wassertemperatur-Linie (`src/sea/…`) — sie gehört nicht dazu.
+2. **`npm run edge:share`** (steht schon aus §92 an): `rvdwd` ist neu in der Sperrliste der teilbaren Schlüssel; das
+   Edge-Bündel bekommt es mit demselben Lauf.
+3. **Nach dem Push in Produktion ansehen:** Wetterkarte mit Niederschlag an einem deutschen Ort, DevTools → Netzwerk, Filter
+   `composite_rv`. Erwartet: kein Treffer, auch wenn du ≈ 3,5–4,5 min nach einer vollen Fünf-Minuten-Marke öffnest. Die
+   Konsole nennt „Quelle Daten-Repo (PNG)", nie „DWD (Netlify)". Ein offener Tab mit dem alten Bündel holt noch direkt.
+4. **Preis, den du kennen solltest:** bei etwa jedem vierten Aufruf ist das erste Radarbild 5 min älter als bisher und
+   springt nach höchstens ≈ 80 s auf den neuen Slot. Und: **steht der Spiegel, gibt es kein frisches deutsches Radar mehr** —
+   die Karte zeichnet den letzten gepushten Lauf (bis ≈ 30 min alt), danach „RADOLAN-RV nicht erreichbar".
+5. **Entscheiden (E-RN-2):** soll der Client ab einem benannten Alter des jüngsten Repo-Slots (Vorschlag 15 min) von selbst
+   zum DWD zurückfallen? Heute nicht, weil dein Auftrag „nur aus dem Daten-Repo" lautete.
+6. **Entscheiden (E-RN-3, E-RN-4):** den Schalter `rvdwd` und den DWD-Code später löschen; den rohen Tar `radar/rv/` im
+   Spiegel später weglassen (erst wenn keine alten Client-Bündel mehr laufen).
+7. **Rückweg:** je Browser `?rvdwd=1` oder `localStorage.rvdwd = '1'`. Für alle: `RV_DWD_DIRECT_DEFAULT = true` in
+   `src/sources/radolanRuns.ts` und pushen, oder den Commit zurücknehmen.
+8. **Offen:** Real-Device, Messung in Produktion und auf mobiler Leitung, Pixelvergleich und Long Tasks sind nicht gemacht.
+   Befunde V-RN-1 … 7, vor allem V-RN-1 (raw hält ein 404 ≈ 60 s — betrifft die CH-Sonde), V-RN-3 (kein Altershinweis für
+   RV) und V-RN-4 (E-ND-3: das Bild-Gate liegt unter p90 des Spiegel-Verzugs).
+
+**Zweiter Teil am selben Tag (RN-2, Audit §8): auch der ICON-D2-Niederschlag nur noch aus dem Daten-Repo (dein Wort
+18.11.), an für alle, uncommitted.**
+
+9. **Dateien dazu** (zum selben Commit oder einem eigenen): `src/sources/repackSource.ts`, `src/sources/iconD2Precip.ts`,
+   `src/MapView.tsx` (Wiederholung in `installIconD2`), `src/share/shareSchema.ts`, `scripts/verify-precip-repo.mjs` (neu),
+   `package.json` (eine Zeile `verify:precip-repo` — die Datei trägt daneben fremde Änderungen), `audit/radar-nur-datenrepo/`.
+10. **Warum es zum DWD ging:** jsDelivr antwortete auf Index, Zeiger oder ein Bild später als die Frist (gemessen 4–24 s
+    gegen 3 s), es gab keinen zweiten Versuch, und ein einziger Fehlschlag stellte alle Layer bis zum Neuladen auf GRIB.
+11. **Was jetzt gilt:** jede Datei einmal noch über raw.githubusercontent; die Sperre läuft nach 5 min ab (alle Layer). Der
+    Niederschlag lädt nie mehr Listing oder GRIB: drei Versuche, dann nach 60 s wieder, höchstens dreimal je Seitenaufruf.
+12. **Preis:** sind jsDelivr UND raw nicht erreichbar, fehlt die Niederschlagsvorhersage hinter dem Radar, und die Karte sagt
+    das nicht eigens (V-RN-9). Die übrigen ICON-D2-Layer mit Bildern im Repo sind seit RN-3 ebenfalls umgestellt (Punkt 17);
+    Wolken, Feuchte u. a. haben gar keine Bilder im Repo und holen immer GRIB (V-RN-10).
+13. **In Produktion ansehen:** DevTools → Netzwerk, Filter `tot_prec`: kein Treffer. Zum Nachstellen eines CDN-Ausfalls
+    `cdn.jsdelivr.net` im Netzwerk-Tab blockieren — die Bilder kommen dann von `raw.githubusercontent.com`.
+14. **Rückweg:** je Browser `?precipdwd=1`; für alle `PRECIP_DWD_DEFAULT = true` in `src/sources/iconD2Precip.ts`. Den zweiten
+    Host schaltet `?repackraw=0` ab.
+15. **Budget (erledigt, siehe Punkt 22):** die Grenze `totalJs` ist inzwischen von Hand gehoben, mit Notiz in `budget.json`.
+
+**Dritter und vierter Teil am selben Tag (RN-3, RN-4, Audit §9 und §10): auch die übrigen ICON-D2-Layer mit Bildern im Repo
+und die Zellbahnen (KONRAD3D) nur noch aus dem Daten-Repo (dein „ja mache das“ vom 18.11.), an für alle, uncommitted.**
+
+16. **Dateien dazu:** neu `src/sources/iconD2Repo.ts`, `scripts/verify-repo-only.mjs`; geändert `src/sources/iconD2GustSource.ts`,
+    `iconD2Thunder.ts`, `iconD2Rotation.ts`, `iconD2Lpi.ts`, `iconD2Snow.ts`, `iconD2TempSource.ts`, `iconD2Precip.ts`,
+    `repackSource.ts`, `dwdKonrad3d.ts`, `src/wind/iconD2WindSource.ts`, `src/MapView.tsx`, `src/nowcast/NowcastRadarMap.tsx`,
+    `src/share/shareSchema.ts`, `package.json` (Zeile `verify:repo-only`), `budget.json` (Grenze + Notiz),
+    `audit/radar-nur-datenrepo/`. Im selben Arbeitsbaum liegt die uncommittete Linie SR (`src/sea/…`, §97) — sie gehört nicht
+    dazu; `package.json`, `budget.json`, `CLAUDE.md` und diese Datei tragen Zeilen beider Linien.
+17. **Was jetzt gilt:** Wind, Temperatur, Böen, Gewitter, Rotation, Blitzprognose und Schnee laden weder Listing noch GRIB.
+    Scheitert etwas, fragt der Client dieselbe Datei über raw.githubusercontent, dann bis zu dreimal neu (3 s und 8 s Pause),
+    und die Karte fragt nach 60 s wieder (höchstens dreimal je Layer). Zellbahnen und Hagel DE lesen die `cells.json` der drei
+    jüngsten Slots aus dem Repo; im Fenster kurz vor dem Gate kommt erst der Slot davor und 20–65 s später der neue.
+18. **Preis:** sind jsDelivr UND raw nicht erreichbar, haben diese Layer keine Daten (Status „… nicht erreichbar“). Steht der
+    Repack länger als einen Tag oder der Radar-Spiegel länger als 10 min, gibt es den Layer bzw. die Zellbahnen nicht — einen
+    Notweg zum DWD gibt es nicht mehr (E-RN-2, deine Entscheidung). Bei den Zellbahnen ist der erste Stand in ≈ 15 % der
+    Aufrufe 5 min älter als bisher, bis zum Nachladen.
+19. **`npm run edge:share`** (steht schon an): `d2dwd` und `konraddwd` sind neu in der Sperrliste der teilbaren Schlüssel.
+20. **In Produktion ansehen:** DevTools → Netzwerk, Filter `_dwd_`. Mit Wind, Temperatur, Böen, Gewitter, Blitzprognose,
+    Schnee, Rotation, Niederschlag und Zellbahnen an: kein Treffer. Treffer gibt es weiter für Wolken, relative Feuchte,
+    Bodenfeuchte, EPS, Höhenwind (ICON-EU) und „Sicherheit“ — dafür liegen keine Bilder im Repo. Zum Nachstellen eines
+    CDN-Ausfalls `cdn.jsdelivr.net` im Netzwerk-Tab blockieren: die Dateien kommen dann von `raw.githubusercontent.com`.
+    Ein Tag mit Gewitterzellen ist noch nicht gesehen (alle Läufe des Abends: 0 Zellen).
+21. **Rückweg:** je Browser `?d2dwd=1` (die sieben Layer) bzw. `?konraddwd=1` (Zellbahnen); für alle `D2_DWD_DEFAULT = true`
+    in `src/sources/iconD2Repo.ts` (gilt dann auch für den Niederschlag) bzw. `KONRAD_DWD_DEFAULT = true` in
+    `src/sources/dwdKonrad3d.ts`.
+22. **Budget:** `totalJs` 2023,2 KB gegen 2024 KB, grün. Die Grenze habe ich von Hand von 2010 auf 2015 gehoben (Anteil RN bis
+    RN-4 geschätzt +5,3 KB, Notiz in `budget.json`); die Linie SR hat danach +9 gesetzt. `eagerJs` 114,9 von 115 KB.
+23. **Bekannt rot bis zum Commit:** `verify:cell-towers` G10 vergleicht `dwdKonrad3d.ts` mit HEAD. Im Dev-Server laden Böen,
+    Gewitter, Blitzprognose und Rotation aus einem Link nicht (StrictMode, Bestand, V-RN-13) — im fertigen Build schon.
+24. **Offen:** Produktion, Real-Device, mobile Leitung, Pixelvergleich und Long Tasks sind nicht gemacht. V-RN-12 (das
+    KONRAD-Gate von 330 s liegt knapp hinter dem Spiegel: Commit 303–328 s nach der Slot-Zeit), V-RN-13 … 18.
+
 ## 95. Wassertemperatur auf `/seewetter` (Phase WT, `audit/seewetter-wassertemperatur.md`), 2026-11-18
 
 Wassertemperatur an jedem Spot, zweigeteilt: **gemessen** an der nächsten Station (WSV PEGELONLINE oder DMI, höchstens

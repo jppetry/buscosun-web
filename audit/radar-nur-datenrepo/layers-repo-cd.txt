@@ -1,0 +1,43 @@
+
+=== C control d2dwd=1 konraddwd=1 precipdwd=1, jsDelivr + raw blocked — opened 21:32:42 UTC, stayed 150 s
+  wind         at the DWD:   6   data repo:   0 {}
+  temp         at the DWD:   5   data repo:   0 {}
+  gust         at the DWD:   5   data repo:   0 {}
+  thunder      at the DWD:   8   data repo:   0 {}
+  lightningfc  at the DWD:   4   data repo:   0 {}
+  snow         at the DWD:   8   data repo:   0 {}
+  rotation     at the DWD:   8   data repo:   0 {}
+  precip       at the DWD:   3   data repo:   0 {}
+  konrad3d     at the DWD:   2   data repo:   1 {"jsdelivr ":1}
+  these products at the DWD in total: 49; other requests through the DWD proxies: 0
+  index / pointer of the data repo: 7  {"jsdelivr ":4,"raw ":3}
+  console 21:32:45 [log]  [buscosun] Zellbahnen-Layer → KONRAD3D-Datei: KONRAD3D_20261118T212500.xml · Messzeit 18.11.2026, 22:25:00 · 0 Zellen
+  console errors: 0
+
+=== D default, jsDelivr + raw blocked — opened 21:35:15 UTC, stayed 150 s
+  wind         at the DWD:   0   data repo:   0 {}
+  temp         at the DWD:   0   data repo:   0 {}
+  gust         at the DWD:   0   data repo:   0 {}
+  thunder      at the DWD:   0   data repo:   0 {}
+  lightningfc  at the DWD:   0   data repo:   0 {}
+  snow         at the DWD:   0   data repo:   0 {}
+  rotation     at the DWD:   0   data repo:   0 {}
+  precip       at the DWD:   0   data repo:   0 {}
+  konrad3d     at the DWD:   0   data repo:   6 {"jsdelivr ":3,"raw ":3}
+  these products at the DWD in total: 0; other requests through the DWD proxies: 0
+  index / pointer of the data repo: 21  {"jsdelivr ":11,"raw ":10}
+  console 21:35:16 [info]  [repack] Böen: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:35:16 [info]  [repack] Gewitterpotenzial: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:35:16 [info]  [repack] Blitz-Vorhersage: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:35:16 [info]  [repack] Schnee: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:35:16 [info]  [repack] Rotationspotenzial: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:35:16 [info]  [repack] Schnee: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:35:16 [info]  [repack] Temperatur: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:35:16 [info]  [repack] Wind: Versuch 1/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:35:20 [info]  [repack] Böen: Versuch 2/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:35:20 [info]  [repack] Gewitterpotenzial: Versuch 2/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:35:20 [info]  [repack] Blitz-Vorhersage: Versuch 2/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:35:20 [info]  [repack] Schnee: Versuch 2/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:35:20 [info]  [repack] Rotationspotenzial: Versuch 2/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console 21:35:20 [info]  [repack] Schnee: Versuch 2/3 ohne Ergebnis (Index des Daten-Repos nicht lesbar oder ohne Lauf) → noch einmal aus dem Daten-Repo.
+  console errors: 0

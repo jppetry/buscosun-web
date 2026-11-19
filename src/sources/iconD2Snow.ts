@@ -34,7 +34,8 @@ import {
 } from './iconD2Precip';
 import { buildSnowDepthRgba, buildSnowFreshRgba, SNOW_DEPTH_VMAX_CM, SNOW_FRESH_VMAX_CM } from './scalarFrameBuild';
 export { SNOW_DEPTH_VMAX_CM, SNOW_FRESH_VMAX_CM } from './scalarFrameBuild';
-import { resolveRepackForRun, loadScalarStep, uvBoundsOf, REPACK_CONCURRENCY } from './repackSource';
+import { resolveRepackForRun, loadScalarStep, uvBoundsOf, REPACK_CONCURRENCY, type RepackSection } from './repackSource';
+import { d2DwdDirect, resolveRepoRun, pumpSteps, IconD2NotInRepo } from './iconD2Repo';
 import { stepsForNowWindow } from './frameAtValidTime';
 
 export type SnowMode = 'depth' | 'fresh';
@@ -125,16 +126,27 @@ export async function fetchIconD2Snow(
   const vMax = mode === 'depth' ? SNOW_DEPTH_VMAX_CM : SNOW_FRESH_VMAX_CM;
   // Lauf/Steps über den jeweils Pflicht-Param auflösen (immer publiziert).
   const anchorParam = mode === 'depth' ? 'h_snow' : 'snow_gsp';
-  const { runStr, runAt, steps } = await resolveLatestRun(anchorParam, signal, mode === 'depth' ? 'snowDepth' : 'snowFresh');
-  // Neuschnee: Step 0 ist als Akkumulation strukturell 0 → auslassen (minStepHours=1).
-  const capped = steps.filter((s) => s <= MAX_STEP && (mode === 'depth' || s >= 1));
-  const wanted = opts?.nowOnly ? stepsForNowWindow(capped, runAt, opts.aheadHours ?? 0) : capped;
-  if (wanted.length === 0) throw new Error('ICON-D2 Schnee: keine Schritte im Horizont');
-
-  // BW-6c: liegen die Bilder für GENAU DIESEN Lauf im Daten-CDN? Geprüft
-  // gegen `runStr`, den Lauf, den die Auflösung wirklich geliefert hat (§22.4).
-  // Mit Abschnitt entfällt der GRIB-Abruf, der sonst nur der Geometrie diente.
-  const section = await resolveRepackForRun(runStr, mode === 'depth' ? 'snowDepth' : 'snowFresh', wanted);
+  // Phase RN-3 (audit/radar-nur-datenrepo.md §9): run, section and every image from the data repo only — no listing, no GRIB
+  // (`?d2dwd=1` = the chain as before).
+  const repoOnly = !d2DwdDirect();
+  const family = mode === 'depth' ? 'snowDepth' : 'snowFresh';
+  const pick = (steps: number[], runAt: Date): number[] => {
+    // Neuschnee: Step 0 ist als Akkumulation strukturell 0 → auslassen (minStepHours=1).
+    const capped = steps.filter((s) => s <= MAX_STEP && (mode === 'depth' || s >= 1));
+    return opts?.nowOnly ? stepsForNowWindow(capped, runAt, opts.aheadHours ?? 0) : capped;
+  };
+  let runStr: string, runAt: Date, wanted: number[], section: RepackSection | null;
+  if (repoOnly) {
+    ({ runStr, runAt, wanted, section } = await resolveRepoRun(family, 'Schnee', pick, signal));
+  } else {
+    const r = await resolveLatestRun(anchorParam, signal, family);
+    runStr = r.runStr; runAt = r.runAt; wanted = pick(r.steps, r.runAt);
+    if (wanted.length === 0) throw new Error('ICON-D2 Schnee: keine Schritte im Horizont');
+    // BW-6c: liegen die Bilder für GENAU DIESEN Lauf im Daten-CDN? Geprüft
+    // gegen `runStr`, den Lauf, den die Auflösung wirklich geliefert hat (§22.4).
+    // Mit Abschnitt entfällt der GRIB-Abruf, der sonst nur der Geometrie diente.
+    section = await resolveRepackForRun(runStr, family, wanted);
+  }
   let uvBounds: [number, number, number, number];
   if (section) {
     uvBounds = uvBoundsOf(section);
@@ -152,13 +164,15 @@ export async function fetchIconD2Snow(
 
   const frames: IconD2SnowFrame[] = [];
 
-  const loadStep = async (step: number): Promise<void> => {
+  const loadStep = async (step: number): Promise<boolean> => {
     try {
       let built: Omit<IconD2SnowFrame, 'validAt' | 'stepHours'>;
       // BW-6c: fertiges Bild aus dem Daten-CDN (je Modus eigene Familie), sonst GRIB.
       const png = section ? await loadScalarStep(section, mode === 'depth' ? 'snowDepth' : 'snowFresh', step, signal) : null;
       if (png) {
         built = { image: rgbaToCanvas(png.rgba, png.width, png.height), width: png.width, height: png.height };
+      } else if (repoOnly) {
+        return false;   // RN-3: no GRIB behind it — `pumpSteps` asks again
       } else if (mode === 'depth') {
         const hsnow = await fetchStepField(runStr, 'h_snow', step, signal, D2_GRIB_PROXY_BASE);
         built = buildDepthImage(hsnow, ssOf(hsnow));
@@ -174,21 +188,15 @@ export async function fetchIconD2Snow(
       frames.push({ validAt: new Date(runAt.getTime() + step * 3_600_000), stepHours: step, ...built });
       frames.sort((a, b) => a.stepHours - b.stepHours);
       if (onProgress) onProgress({ runAt, mode, frames: [...frames], uvBounds, vMin: 0, vMax });
+      return true;
     } catch {
       // Anker-Feld des Schritts fehlt → Schritt überspringen (Muster Böen/Temp).
+      return false;
     }
   };
 
-  // Bounded-Concurrency-Pump über die Schritte.
-  let ptr = 0;
-  const workers = Array.from({ length: Math.min(section ? REPACK_CONCURRENCY : CONCURRENCY, wanted.length) }, async () => {
-    while (ptr < wanted.length) {
-      if (signal?.aborted) return;
-      await loadStep(wanted[ptr++]);
-    }
-  });
-  await Promise.all(workers);
+  await pumpSteps(wanted, loadStep, section ? REPACK_CONCURRENCY : CONCURRENCY, signal, repoOnly ? 'Schnee' : undefined);
 
-  if (frames.length === 0) throw new Error('ICON-D2 Schnee: keine Frames erzeugt');
+  if (frames.length === 0) throw repoOnly ? new IconD2NotInRepo('ICON-D2 Schnee: kein Bild aus dem Daten-Repo lesbar') : new Error('ICON-D2 Schnee: keine Frames erzeugt');
   return { runAt, mode, frames, uvBounds, vMin: 0, vMax };
 }

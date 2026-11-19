@@ -29,6 +29,8 @@ import {
   type RepackSection,
 } from './repackSource';
 import type { ForecastBounds } from './openMeteoForecast';
+import { d2DwdDirect, resolveRepoRun, pumpSteps, pause, IconD2NotInRepo, D2_REPO_TRIES, D2_REPO_RETRY_MS } from './iconD2Repo';
+import { retryRepackNow } from './repackSource';
 
 // Die Normierung lebt in `tempFrameBuild.ts` (DOM-frei, von Client UND
 // Repack-Producer importiert). Hier nur weitergereicht, damit die bisherigen
@@ -169,19 +171,38 @@ export async function fetchIconD2Temp(
    *  caller that samples a small fixed section (dashboard map tile). The result then carries `demUvBounds`. */
   opts?: { nowOnly?: boolean; aheadHours?: number; demBox?: ForecastBounds },
 ): Promise<IconD2Temp> {
-  const { runStr, runAt, steps } = await resolveLatestRun('t_2m', signal, 'temp');
-  const capped = steps.filter((s) => s <= MAX_STEP);
-  const wanted = opts?.nowOnly ? stepsForNowWindow(capped, runAt, opts.aheadHours ?? 0) : capped;
-
-  // BW-3: liegen die Bilder für GENAU DIESEN Lauf im Daten-CDN? Geprüft wird
-  // gegen `runStr`, also gegen den Lauf, den die Auflösung wirklich geliefert
-  // hat — der Directory-Scan kann am Manifest vorbeigehen (§22.4).
-  let section: RepackSection | null = await resolveRepackForRun(runStr, 'temp', wanted);
+  // Phase RN-3 (audit/radar-nur-datenrepo.md §9): run, section, orography and every image from the data repo only — no
+  // listing, no GRIB (`?d2dwd=1` = the chain as before).
+  const repoOnly = !d2DwdDirect();
+  const pick = (steps: number[], runAt: Date): number[] => {
+    const capped = steps.filter((s) => s <= MAX_STEP);
+    return opts?.nowOnly ? stepsForNowWindow(capped, runAt, opts.aheadHours ?? 0) : capped;
+  };
+  let runStr: string, runAt: Date, wanted: number[], section: RepackSection | null;
+  if (repoOnly) {
+    ({ runStr, runAt, wanted, section } = await resolveRepoRun('temp', 'Temperatur', pick, signal));
+  } else {
+    const r = await resolveLatestRun('t_2m', signal, 'temp');
+    runStr = r.runStr; runAt = r.runAt; wanted = pick(r.steps, r.runAt);
+    // BW-3: liegen die Bilder für GENAU DIESEN Lauf im Daten-CDN? Geprüft wird
+    // gegen `runStr`, also gegen den Lauf, den die Auflösung wirklich geliefert
+    // hat — der Directory-Scan kann am Manifest vorbeigehen (§22.4).
+    section = await resolveRepackForRun(runStr, 'temp', wanted);
+  }
   // Orographie: EINE Datei je Commit statt 647 KB GRIB je Lauf. Scheitert sie,
   // ist der ganze Weg als kaputt vermerkt → sauber auf GRIB zurückfallen,
   // statt 25 Schritte ohne Höhenkorrektur zu zeichnen.
-  const hsurfGrey = section ? await loadHsurfGrey(section, signal) : null;
-  if (section && !repackUsable()) section = null;
+  let hsurfGrey = section ? await loadHsurfGrey(section, signal) : null;
+  if (repoOnly) {
+    // RN-3: no GRIB orography behind it — the picture is asked again, and without it there is no temperature layer (25 steps
+    // without height correction would be wrong, not just coarse). A section WITHOUT an orography entry stays as before.
+    for (let i = 1; !hsurfGrey && section?.temp?.hsurf && i < D2_REPO_TRIES && !signal?.aborted; i++) {
+      await pause(D2_REPO_RETRY_MS[Math.min(i - 1, D2_REPO_RETRY_MS.length - 1)], signal);
+      retryRepackNow();
+      hsurfGrey = await loadHsurfGrey(section, signal);
+    }
+    if (!hsurfGrey && section?.temp?.hsurf) throw new IconD2NotInRepo('ICON-D2 Temperatur: Orographie nicht aus dem Daten-Repo lesbar');
+  } else if (section && !repackUsable()) section = null;
 
   // hsurf als GRIB-Feld: im Repack-Pfad gar nicht, sonst einmalig — und dort
   // erst, wenn ein Schritt den Fallback wirklich braucht. Phase T2-2: wie die
@@ -224,11 +245,12 @@ export async function fetchIconD2Temp(
 
   const frames: IconD2TempFrame[] = [];
 
-  const loadStep = async (step: number): Promise<void> => {
+  const loadStep = async (step: number): Promise<boolean> => {
     try {
       // BW-3: 98 KB fertiges Bild statt 1 050 KB GRIB + Decode. `null` heißt
       // immer „nimm GRIB“ — Schritt nicht abgelegt, Frist abgelaufen, Weg aus.
       const png = section ? await loadTempStep(section, step, hsurfGrey, signal) : null;
+      if (!png && repoOnly) return false;   // RN-3: no GRIB behind it — `pumpSteps` asks again
       const built = png
         ? { image: rgbaToCanvas(png.rgba, png.width, png.height), width: png.width, height: png.height }
         : await (async () => {
@@ -238,22 +260,17 @@ export async function fetchIconD2Temp(
       frames.push({ validAt: new Date(runAt.getTime() + step * 3_600_000), stepHours: step, ...built });
       frames.sort((a, b) => a.stepHours - b.stepHours);
       if (onProgress) onProgress({ runAt, frames: [...frames], uvBounds, vMin: TEMP_VMIN, vMax: TEMP_VMAX, demImage, ...demPart });
+      return true;
     } catch {
       // Einzelner Schritt fehlt → überspringen.
+      return false;
     }
   };
 
   // Bounded-Concurrency-Pump über die Schritte.
-  let ptr = 0;
-  const workers = Array.from({ length: Math.min(section ? REPACK_CONCURRENCY : CONCURRENCY, wanted.length) }, async () => {
-    while (ptr < wanted.length) {
-      if (signal?.aborted) return;
-      await loadStep(wanted[ptr++]);
-    }
-  });
-  await Promise.all(workers);
+  await pumpSteps(wanted, loadStep, section ? REPACK_CONCURRENCY : CONCURRENCY, signal, repoOnly ? 'Temperatur' : undefined);
 
-  if (frames.length === 0) throw new Error('ICON-D2 Temp: keine Frames erzeugt');
+  if (frames.length === 0) throw repoOnly ? new IconD2NotInRepo('ICON-D2 Temperatur: kein Bild aus dem Daten-Repo lesbar') : new Error('ICON-D2 Temp: keine Frames erzeugt');
   return { runAt, frames, uvBounds, vMin: TEMP_VMIN, vMax: TEMP_VMAX, demImage, ...demPart };
 }
 

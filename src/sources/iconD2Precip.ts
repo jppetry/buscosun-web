@@ -24,7 +24,14 @@ import { decodeGrib2, type GribField } from './gribDecode';
 import { decodeGridStep, type GridToU8Kind, type DecodedGridStep } from './gribGridDecode';
 import { resolveRunFromManifest, GRIB_MANIFEST_URL } from './gribManifest';
 import { stepsForNowWindow } from './frameAtValidTime';
-import { repackUsable, resolveRepackForRun, loadPrecipStep, precipStepsUsable, preconnectDataCdn, resolveRunFromRepackIndex, type RepackFamily } from './repackSource';
+import {
+  repackUsable, resolveRepackForRun, loadPrecipStep, precipStepsUsable, preconnectDataCdn, resolveRunFromRepackIndex, type RepackFamily,
+  // Phase RN-2: the precipitation from the data repo only — the retry, the reason of a failure
+  retryRepackNow, repackStatus,
+} from './repackSource';
+// Phase RN-2/RN-3: the switches of the DWD way, the pause between attempts and the named error live in `iconD2Repo.ts`.
+import { D2_DWD_DEFAULT, dwdFlagFrom, dwdDirect, d2DwdDirect, pause, IconD2NotInRepo } from './iconD2Repo';
+export { IconD2NotInRepo };
 
 // Reiner GRIB2-Decoder lebt jetzt in ./gribDecode (browser-unabhängig, headless
 // gegen eccodes verifizierbar). Re-Export hält bestehende Importpfade stabil
@@ -136,6 +143,12 @@ export async function resolveLatestRun(
       runCache.set(param, { at: Date.now(), info });
       sharedRun = { runStr: info.runStr, runAt: info.runAt, at: Date.now() };
       return info;
+    }
+    // Phase RN-3 (audit/radar-nur-datenrepo.md §9): while the reader of this family is repo-only, its run is never asked
+    // from the DWD — neither the frozen manifest nor the directory listing below. The repo-only readers resolve the run
+    // themselves (`resolveRepoRun`, with retries); this guard holds for every other caller (dashboard, refresh coordinator).
+    if (!(family === 'precip' ? precipDwdDirect() : d2DwdDirect())) {
+      throw new IconD2NotInRepo(`ICON-D2 ${param}: Lauf nicht aus dem Index des Daten-Repos lesbar`);
     }
   }
 
@@ -590,6 +603,8 @@ export async function fetchIconD2Precip(
   /** `nowOnly` (Testmodus „startnow", MapView): nur das Fenster „jetzt" … „+ahead". */
   opts?: { nowOnly?: boolean; aheadHours?: number },
 ): Promise<IconD2Precip> {
+  // Phase RN-2 (E-RN-5, Jan 18.11.2026): the precipitation forecast comes from the data repo ONLY — see below.
+  if (!precipDwdDirect()) return fetchPrecipRepoOnly(signal, onProgress, opts);
   // BW-6c: fertige Raten-Bilder aus dem Daten-CDN — ALLES ODER NICHTS (s. u.).
   // `null` heißt „nimm GRIB": kein Abschnitt, Schrittfolge passt nicht, Weg aus.
   const viaCdn = await fetchPrecipRepack(signal, onProgress, opts).catch(() => null);
@@ -599,6 +614,51 @@ export async function fetchIconD2Precip(
 
 const PRECIP_MAX_STEP = 27;
 const PRECIP_CDN_CONCURRENCY = 3;
+
+// ---------------------------------------------------------------------------
+// Phase RN-2 — ICON-D2 precipitation from the data repo only (audit/radar-nur-datenrepo.md §8, E-RN-5, Jan 18.11.2026)
+// ---------------------------------------------------------------------------
+// Until RN-2 every miss on the repo way ended at the DWD: the run from the directory listing (`/_dwd_opendata`), the
+// fields as GRIB (`/_dwd_grib`, 2,0–2,3 MB per step) — and one slow CDN answer was enough (measured 18.11.: jsDelivr 4–24 s
+// for the index and a pointer against a 3-s deadline). Now the run comes from the repo's index, the frames are its
+// images, and a failure is REPEATED instead of handed to the DWD: every file once more on raw.githubusercontent
+// (`repackSource.ts`), and the whole load up to `PRECIP_REPO_TRIES` times with the pauses of `PRECIP_REPO_RETRY_MS`.
+// After that a named error (`IconD2NotInRepo`) — the radar still covers „jetzt" … +2 h, the caller may ask again later.
+// Named fallback (Rule 2): `?precipdwd=1` / `localStorage.precipdwd = '1'` is the chain as before. The diagnosis switches
+// that take the repo's index away (`?repack=0`, `?repackidx=0`, `?repackrun=0`) keep meaning that chain as well.
+// What it costs, named: the run is the newest REPACKED one — while the producer has not repacked a new DWD run yet
+// (measured 18.11.: run 18 UTC in the index at 19:07 UTC), the map stays on the run before.
+export const PRECIP_DWD_DEFAULT = D2_DWD_DEFAULT;
+/** The explicit switch alone: `?precipdwd=0|1` beats `localStorage.precipdwd`; without a vote `PRECIP_DWD_DEFAULT`. */
+export function precipDwdFlagFrom(search: string, stored: string | null): boolean { return dwdFlagFrom('precipdwd', search, stored); }
+/** May the precipitation reader ask the DWD? With the switch, without a browser (Node, verifiers), or when the repo's index way is switched off. */
+export function precipDwdDirect(): boolean { return dwdDirect('precipdwd'); }
+/** Attempts of one precipitation load on the repo way, and the pauses between them. set. */
+export const PRECIP_REPO_TRIES = 3;
+export const PRECIP_REPO_RETRY_MS: readonly number[] = [3_000, 8_000];
+// `IconD2NotInRepo` (re-exported above): the forecast is not readable from the data repo right now, after all attempts.
+
+async function fetchPrecipRepoOnly(
+  signal?: AbortSignal,
+  onProgress?: (partial: IconD2Precip) => void,
+  opts?: { nowOnly?: boolean; aheadHours?: number },
+): Promise<IconD2Precip> {
+  preconnectDataCdn();
+  const why: { text?: string } = {};
+  for (let i = 0; i < PRECIP_REPO_TRIES; i++) {
+    if (i > 0) {
+      await pause(PRECIP_REPO_RETRY_MS[Math.min(i - 1, PRECIP_REPO_RETRY_MS.length - 1)], signal);
+      retryRepackNow();   // open the latch, forget failed index/pointer answers — this caller has no GRIB way to fall back to
+    }
+    const got = await fetchPrecipRepack(signal, onProgress, opts, why).catch((e) => { why.text = String((e as Error)?.message ?? e); return null; });
+    if (got) return got;
+    if (signal?.aborted) throw signal.reason ?? new DOMException('Aborted', 'AbortError');
+    if (typeof console !== 'undefined' && i < PRECIP_REPO_TRIES - 1) {
+      console.info(`[repack] Niederschlag-Forecast: Versuch ${i + 1}/${PRECIP_REPO_TRIES} ohne Ergebnis (${why.text ?? 'unbekannt'}) → noch einmal aus dem Daten-Repo.`);
+    }
+  }
+  throw new IconD2NotInRepo(`ICON-D2 Niederschlag: nach ${PRECIP_REPO_TRIES} Versuchen nicht aus dem Daten-Repo lesbar (${why.text ?? 'unbekannt'})`);
+}
 
 /**
  * Niederschlag aus dem Daten-CDN (BW-6c, `audit/bandbreite.md` §25.4 (3)).
@@ -616,16 +676,21 @@ async function fetchPrecipRepack(
   signal?: AbortSignal,
   onProgress?: (partial: IconD2Precip) => void,
   opts?: { nowOnly?: boolean; aheadHours?: number },
+  /** RN-2: set = the repo-only reader. The run then comes from the repo's index alone (no manifest, no DWD listing), and
+   *  `why.text` says what was missing when the answer is `null`. */
+  why?: { text?: string },
 ): Promise<IconD2Precip | null> {
-  if (!repackUsable()) return null;
-  const resolved = await resolveLatestRun('tot_prec', signal, 'precip');
+  const no = (text: string): null => { if (why) why.text = text; return null; };
+  if (!repackUsable()) return no('Daten-Repo-Weg gesperrt');
+  const resolved = why ? await resolveRunFromRepackIndex('precip', signal) : await resolveLatestRun('tot_prec', signal, 'precip');
+  if (!resolved) return no('Index des Daten-Repos nicht lesbar oder ohne Niederschlags-Lauf');
   const { runStr, runAt } = resolved;
   const capped = resolved.steps.filter((s) => s <= PRECIP_MAX_STEP);
   const steps = opts?.nowOnly ? stepsForNowWindow(capped, runAt, opts.aheadHours ?? 0) : capped;
   const section = await resolveRepackForRun(runStr, 'precip', steps);
-  if (!section?.precip) return null;
+  if (!section?.precip) return no(`kein Abschnitt für Lauf ${runStr}`);
   const usable = precipStepsUsable(section, steps);
-  if (!usable) return null;
+  if (!usable) return no(`Schrittfolge von Lauf ${runStr} nicht gedeckt`);
 
   const c = section.precip.grid.corners;
   const corners: QuadCorners = [c.nw, c.ne, c.se, c.sw];
@@ -646,6 +711,6 @@ async function fetchPrecipRepack(
     }
   });
   await Promise.all(workers);
-  if (failed || signal?.aborted || frames.length === 0) return null;
+  if (failed || signal?.aborted || frames.length === 0) return no(failed ? `Bild von Lauf ${runStr} nicht ladbar (${repackStatus().reason || 'unbekannt'})` : 'keine Frames');
   return { runAt, frames, corners };
 }

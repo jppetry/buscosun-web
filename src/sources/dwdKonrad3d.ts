@@ -20,7 +20,7 @@ import {
   RADAR_CDN_BASE, radarCdnEnabled, radarCdnUsable, noteRadarCdnFailure, radarCdnDeadline,
   radarImgEnabled,
 } from './radolanRuns';
-import { konradImgUrl, parseKonradImgJson } from './radarImg';
+import { konradImgUrl, parseKonradImgJson, fetchImgRes, radarMarkRawFirst, RadarImg404 } from './radarImg';
 
 const KONRAD3D_DIR = '/_dwd_opendata/weather/radar/konrad3d/';
 
@@ -91,6 +91,120 @@ async function fetchKonrad3dFromCdn(signal?: AbortSignal): Promise<Konrad3dRun |
   return null;
 }
 
+// ---------------------------------------------------------------------------
+// Phase RN-4 — KONRAD3D from the data repo only (audit/radar-nur-datenrepo.md §10, E-RN-7, Jan 18.11.2026)
+// ---------------------------------------------------------------------------
+// Until RN-4 the reader went to the DWD (listing 79 KB + XML 0,6–0,8 MB through `/_dwd_opendata`) in the 45 s of every
+// 5 min in which the DWD has a slot the gate still holds back, after a 404 on both candidates, after any network error (it
+// had no second host) and behind the radar latch. Now it reads the newest slot that passed its gate, then the two before
+// it — each as `cells.json` (the XML of the same stamp only when the JSON is unreadable or with `?radarimg=0`), on jsDelivr
+// AND raw.githubusercontent (`fetchImgRes`: hedge after 2,5 s, at once after an error). A slot younger than
+// `KONRAD_CDN_READY_MS` reads raw first: the mirror commits a slot 303–326 s after the slot time (measured 18.11.) and
+// jsDelivr resolves `@main` 31–90 s after the push. A hard failure is repeated once on the same slot, raw first. Nothing
+// is asked before the gate (raw holds a 404 ≈ 60 s, audit §1.3) — a consumer that got the slot before the DWD's newest asks
+// again when that one passes its gate (`konradFollowUpInMs`).
+// Named fallback (Rule 2): `?konraddwd=1` / `localStorage.konraddwd = '1'` (D-31: query beats storage); `?radarcdn=0` —
+// "no radar from the CDN" — still means the DWD way.
+export const KONRAD_DWD_DEFAULT = false;
+/** The explicit switch alone: `?konraddwd=0|1` beats `localStorage.konraddwd`; without a vote `KONRAD_DWD_DEFAULT`. */
+export function konradDwdFlagFrom(
+  search: string = typeof location !== 'undefined' ? location.search : '',
+  stored?: string | null,
+): boolean {
+  let q: string | null = null;
+  try { q = new URLSearchParams(search).get('konraddwd'); } catch { /* kaputte Query = kein Votum */ }
+  if (q === '0') return false;
+  if (q === '1') return true;
+  let s = stored;
+  if (s === undefined) {
+    try { s = typeof localStorage !== 'undefined' ? localStorage.getItem('konraddwd') : null; } catch { s = null; }
+  }
+  return s === '1' ? true : s === '0' ? false : KONRAD_DWD_DEFAULT;
+}
+/** May the KONRAD3D reader ask the DWD (through Netlify)? Only with the switch, or when every radar CDN way is switched off. */
+export function konradDwdDirect(): boolean { return konradDwdFlagFrom() || !radarCdnEnabled(); }
+
+/** A slot younger than this reads raw.githubusercontent first (commit ≤ 326 s measured + jsDelivr `@main` lag ≤ 90 s + reserve). set. */
+export const KONRAD_CDN_READY_MS = 450_000;
+/** Slots the repo-only reader tries, newest first (the mirror keeps 24). */
+export const KONRAD_REPO_SLOTS = 3;
+/** Hard failures (network, deadline — on both hosts) after which one call gives up. set. */
+export const KONRAD_REPO_HARD_MAX = 3;
+/** RN-4: no KONRAD3D slot readable from the data repo right now. Never thrown with the DWD way on. */
+export class KonradNotInRepo extends Error {}
+
+/** Slot time (ms) of a stamp `YYYYMMDDTHHMM00` — also read out of a file name (`KONRAD3D_<stamp>.xml`). NaN for anything else. */
+export function konradStampMs(stamp: string): number {
+  const m = /(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})/.exec(stamp);
+  return m ? Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) : NaN;
+}
+
+/**
+ * RN-4: when should a consumer that holds `run` ask again, ahead of its regular 5-min poll? The newest slot is not offered
+ * before its gate (it used to come from the DWD then, 45 s of every 5 min), so a poll that is phase-locked to the opening
+ * would stay one slot behind. Answer: `gate − age + pad` while the slot the DWD already has waits for its gate; after the
+ * gate, while the mirror may still be late, once more after `KONRAD_FOLLOW_RETRY_MS` (clear of the ≈ 60 s raw holds a 404)
+ * until `KONRAD_FOLLOW_LATE_MS` behind the gate. `null` = nothing to wait for, or the DWD way is on. All three numbers set.
+ */
+export const KONRAD_FOLLOW_PAD_MS = 20_000;   // commit 303–328 s after the slot (15 slots, 18.11.) + push ⇒ ask at 350 s
+export const KONRAD_FOLLOW_RETRY_MS = 70_000;
+export const KONRAD_FOLLOW_LATE_MS = 90_000;
+export function konradFollowUpInMs(run: { file: string }, nowMs: number = Date.now()): number | null {
+  if (konradDwdDirect()) return null;
+  const newest = konradStampMs(guessKonradStamps(1, nowMs, KONRAD_PUBLISH_LAG_MIN * 60_000)[0]);   // what the DWD has by now
+  if (!(newest > konradStampMs(run.file))) return null;
+  const age = nowMs - newest;
+  if (age < KONRAD_CDN_GATE_MS) return KONRAD_CDN_GATE_MS - age + KONRAD_FOLLOW_PAD_MS;
+  return age < KONRAD_CDN_GATE_MS + KONRAD_FOLLOW_LATE_MS ? KONRAD_FOLLOW_RETRY_MS : null;
+}
+
+/** One slot from the data repo. `null` = not there (404 on both hosts, or a file without a reference time); throws on a hard failure. */
+async function fetchKonradSlotFromRepo(stamp: string, rawFirst: boolean, signal?: AbortSignal): Promise<Konrad3dRun | null> {
+  const dl = radarCdnDeadline(signal);
+  try {
+    if (radarImgEnabled()) {
+      const url = konradImgUrl(stamp);
+      if (rawFirst) radarMarkRawFirst(url.slice(0, url.lastIndexOf('/')));
+      const res = await fetchImgRes(url, dl.signal, 'low');
+      const run = parseKonradImgJson(await res.json().catch(() => null));
+      if (run && run.refMs > 0) return run as Konrad3dRun;
+      // JSON there but unreadable (schema drift) ⇒ the XML of the SAME stamp, from the repo as well
+    }
+    const res = await fetchImgRes(konradCdnUrl(stamp), dl.signal, 'low');
+    const run = parseKonrad3d(await res.text(), `KONRAD3D_${stamp}.xml`);
+    return run.refMs === 0 ? null : run;
+  } catch (err) {
+    if (err instanceof RadarImg404) return null;
+    throw err;
+  } finally { dl.done(); }
+}
+
+async function fetchKonrad3dRepoOnly(signal?: AbortSignal): Promise<Konrad3dRun> {
+  const now = Date.now();
+  let hard = 0;
+  let last: unknown = null;
+  for (const stamp of guessKonradStamps(KONRAD_REPO_SLOTS, now)) {
+    // a young slot — and every slot while the radar latch is closed — reads raw first, the CDN is its hedge
+    let rawFirst = now - konradStampMs(stamp) < KONRAD_CDN_READY_MS || !radarCdnUsable(now);
+    for (let attempt = 0; attempt < 2 && hard < KONRAD_REPO_HARD_MAX; attempt++) {
+      try {
+        const run = await fetchKonradSlotFromRepo(stamp, rawFirst, signal);
+        if (run) return run;
+        break;                                  // not there ⇒ the slot before it
+      } catch (err) {
+        if (signal?.aborted) throw err;
+        hard++; last = err; rawFirst = true;    // hard failure ⇒ the same slot once more, raw first
+        noteRadarCdnFailure();
+      }
+    }
+    if (hard >= KONRAD_REPO_HARD_MAX) break;
+  }
+  const why = hard
+    ? `${hard} Fehlversuche, zuletzt: ${last instanceof Error ? last.message : String(last)}`
+    : `keiner der ${KONRAD_REPO_SLOTS} jüngsten Slots liegt im Spiegel`;
+  throw new KonradNotInRepo(`KONRAD3D: nicht aus dem Daten-Repo lesbar (${why})`);
+}
+
 export const KONRAD3D_ATTRIBUTION =
   'Zellbahnen: <a href="https://www.dwd.de/EN/ourservices/opendata/opendata.html" ' +
   'target="_blank" rel="noopener">DWD KONRAD3D</a> · CC BY 4.0';
@@ -107,7 +221,7 @@ const LIST_CACHE_TTL = 60_000;
 /** Cache des **geparsten** Laufs. Zwei Layer (Zellbahnen + Hagel) speisen sich aus
  *  derselben Datei; ohne diesen Cache lüde jeder von ihnen dieselben ~0,6 MB
  *  einzeln. TTL = Publikationstakt (5 min) minus Sicherheitsabstand. */
-let _runCache: { run: Konrad3dRun; at: number } | null = null;
+let _runCache: { run: Konrad3dRun; at: number; want: string } | null = null;
 const RUN_CACHE_TTL = 60_000;
 
 /** Listet das KONRAD3D-Verzeichnis und liefert die Dateinamen, jüngster zuerst. */
@@ -146,11 +260,20 @@ async function fetchOne(file: string, signal?: AbortSignal): Promise<Konrad3dRun
  * das die richtige Antwort (`run.cells.length === 0`).
  */
 export async function fetchKonrad3d(signal?: AbortSignal): Promise<Konrad3dRun> {
-  if (_runCache && Date.now() - _runCache.at < RUN_CACHE_TTL) return _runCache.run;
+  // RN-4: repo only. The cache then also asks WHICH slot is due — a follow-up at the gate must not get the run of a
+  // minute ago back (`konradFollowUpInMs` fires 20–65 s after a load, the TTL is 60 s).
+  const repoOnly = !konradDwdDirect();
+  const want = repoOnly ? guessKonradStamps(1)[0] : '';
+  if (_runCache && Date.now() - _runCache.at < RUN_CACHE_TTL && _runCache.want === want) return _runCache.run;
+  if (repoOnly) {
+    const run = await fetchKonrad3dRepoOnly(signal);
+    _runCache = { run, at: Date.now(), want };
+    return run;
+  }
   // RD2: erst der gerechnete CDN-Weg (ohne Listing); `null` ⇒ Listing + Proxy wie bisher.
   const viaCdn = await fetchKonrad3dFromCdn(signal);
   if (viaCdn) {
-    _runCache = { run: viaCdn, at: Date.now() };
+    _runCache = { run: viaCdn, at: Date.now(), want };
     return viaCdn;
   }
   let files: string[];
@@ -166,7 +289,7 @@ export async function fetchKonrad3d(signal?: AbortSignal): Promise<Konrad3dRun> 
     try {
       const run = await fetchOne(file, signal);
       _listCache = { file, at: Date.now() };
-      _runCache = { run, at: Date.now() };
+      _runCache = { run, at: Date.now(), want };
       return run;
     } catch (err) {
       if (signal?.aborted) throw err;
@@ -176,3 +299,6 @@ export async function fetchKonrad3d(signal?: AbortSignal): Promise<Konrad3dRun> 
   }
   throw lastErr instanceof Error ? lastErr : new Error('KONRAD3D: Abruf fehlgeschlagen');
 }
+
+/** Nur für Verifier/Tests. */
+export function _resetKonrad3d(): void { _runCache = null; _listCache = null; }

@@ -1,0 +1,20 @@
+﻿
+=== /regenradar/muenchen — opened 19:28:24 UTC (newest RV slot 204 s old; image gate 270 s), stayed 150 s, visibility visible
+requests 738; to the DWD 14, of these radar 4; radar files from the data repo 215
+  DWD       maps.dwd.de/geoserver/dwd/Accumulated_Flash_Area/  ×1  16393 B  first 19:28:35  e.g. https://maps.dwd.de/geoserver/dwd/Accumulated_Flash_Area/wms?service=WMS&version=1.3.0&request=GetCapabilities
+  DWD       maps.dwd.de/geoserver/dwd/  ×6  43469 B  first 19:28:36  e.g. https://maps.dwd.de/geoserver/dwd/wms?service=WMS&version=1.1.0&request=GetMap&layers=dwd%3AAccumulated_Flash_Area&styles=&bbox=1252344.271424327,6105
+  DWD RADAR /_dwd_opendata/weather/radar/konrad3d/  ×4  178111 B  first 19:28:40  e.g. /_dwd_opendata/weather/radar/konrad3d/
+  DWD       /_dwd_opendata/weather/nwp/icon-d2/grib/<n>/tot_prec/  ×1  19080 B  first 19:28:52  e.g. /_dwd_opendata/weather/nwp/icon-d2/grib/18/tot_prec/
+  DWD       /_dwd_grib/weather/nwp/icon-d2/grib/<n>/tot_prec/  ×2  4291390 B  first 19:28:55  e.g. /_dwd_grib/weather/nwp/icon-d2/grib/18/tot_prec/icon-d2_germany_regular-lat-lon_single-level_2026111818_001_2d_tot_prec.grib2.bz2
+  data repo radar: {"img/v1/rv":131,"img/v1/konrad3d":4,"img/v1/rzc":32,"img/v1/inca-5m":2,"img/v1/inca":46}
+  console 19:28:40  [buscosun] Zellbahnen-Layer → KONRAD3D-Datei: KONRAD3D_20261118T192000.xml · Messzeit 18.11.2026, 20:20:00 · 1 Zellen
+  console 19:28:40  [buscosun] Zellbahnen gezeichnet → 1 Zellen, 20 Features ({"cone":1,"cone-step":12,"hull":1,"path":1,"mark":3,"arrow":1,"dot":1}) · Ausdünnung: Trichterstufen erst ab z6 und ab sev 0.5 (0 Zelle(n) dar
+  console 19:28:40  [buscosun] Regenradar Zellbahnen → KONRAD3D-Datei: KONRAD3D_20261118T192000.xml · Messzeit 18.11.2026, 20:20:00 · 1 Zellen
+  console 19:28:47  [buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: Slot 2611181920 · Lauf 18.11.2026, 20:20:00 · 25 Frames (0…+120 min) · Quelle Daten-Repo (PNG)
+  console 19:29:43  [buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: Slot 2611181925 · Lauf 18.11.2026, 20:25:00 · 25 Frames (0…+120 min) · Quelle Daten-Repo (PNG)
+  console errors: 0
+
+=== /wetterkarte/muenchen?ansicht=dashboard — opened 19:28:26 UTC (newest RV slot 206 s old; image gate 270 s), stayed 150 s, visibility visible
+requests 396; to the DWD 0, of these radar 0; radar files from the data repo 21
+  data repo radar: {"img/v1/rv":7,"img/v1/inca":9,"img/v1/rzc":5}
+  console errors: 0

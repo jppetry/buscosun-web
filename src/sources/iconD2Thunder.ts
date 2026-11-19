@@ -27,7 +27,8 @@ import {
 } from './iconD2Precip';
 import { buildThunderRgba, THUNDER_VMIN, THUNDER_VMAX } from './scalarFrameBuild';
 export { THUNDER_VMIN, THUNDER_VMAX } from './scalarFrameBuild';
-import { resolveRepackForRun, loadScalarStep, uvBoundsOf, REPACK_CONCURRENCY } from './repackSource';
+import { resolveRepackForRun, loadScalarStep, uvBoundsOf, REPACK_CONCURRENCY, type RepackSection } from './repackSource';
+import { d2DwdDirect, resolveRepoRun, pumpSteps, IconD2NotInRepo } from './iconD2Repo';
 import { stepsForNowWindow } from './frameAtValidTime';
 
 export const ICON_D2_THUNDER_ATTRIBUTION =
@@ -116,16 +117,26 @@ export async function fetchIconD2Thunder(
    *  ohne die Option alle Schritte, wie bisher. */
   opts?: { nowOnly?: boolean; aheadHours?: number },
 ): Promise<IconD2Thunder> {
-  // cape_ml ist der Energieanker & immer publizierte Param → löst Lauf/Steps auf.
-  const { runStr, runAt, steps } = await resolveLatestRun('cape_ml', signal, 'thunder');
-  const capped = steps.filter((s) => s <= MAX_STEP);
-  const wanted = opts?.nowOnly ? stepsForNowWindow(capped, runAt, opts.aheadHours ?? 0) : capped;
-  if (wanted.length === 0) throw new Error('ICON-D2 Gewitter: keine Schritte im Horizont');
-
-  // BW-6c: liegen die Bilder für GENAU DIESEN Lauf im Daten-CDN? Geprüft
-  // gegen `runStr`, den Lauf, den die Auflösung wirklich geliefert hat (§22.4).
-  // Mit Abschnitt entfällt der GRIB-Abruf, der sonst nur der Geometrie diente.
-  const section = await resolveRepackForRun(runStr, 'thunder', wanted);
+  // Phase RN-3 (audit/radar-nur-datenrepo.md §9): run, section and every image from the data repo only — no listing, no GRIB
+  // (`?d2dwd=1` = the chain as before).
+  const repoOnly = !d2DwdDirect();
+  const pick = (steps: number[], runAt: Date): number[] => {
+    const capped = steps.filter((s) => s <= MAX_STEP);
+    return opts?.nowOnly ? stepsForNowWindow(capped, runAt, opts.aheadHours ?? 0) : capped;
+  };
+  let runStr: string, runAt: Date, wanted: number[], section: RepackSection | null;
+  if (repoOnly) {
+    ({ runStr, runAt, wanted, section } = await resolveRepoRun('thunder', 'Gewitterpotenzial', pick, signal));
+  } else {
+    // cape_ml ist der Energieanker & immer publizierte Param → löst Lauf/Steps auf.
+    const r = await resolveLatestRun('cape_ml', signal, 'thunder');
+    runStr = r.runStr; runAt = r.runAt; wanted = pick(r.steps, r.runAt);
+    if (wanted.length === 0) throw new Error('ICON-D2 Gewitter: keine Schritte im Horizont');
+    // BW-6c: liegen die Bilder für GENAU DIESEN Lauf im Daten-CDN? Geprüft
+    // gegen `runStr`, den Lauf, den die Auflösung wirklich geliefert hat (§22.4).
+    // Mit Abschnitt entfällt der GRIB-Abruf, der sonst nur der Geometrie diente.
+    section = await resolveRepackForRun(runStr, 'thunder', wanted);
+  }
   let uvBounds: [number, number, number, number];
   if (section) {
     uvBounds = uvBoundsOf(section);
@@ -143,13 +154,14 @@ export async function fetchIconD2Thunder(
 
   const frames: IconD2ThunderFrame[] = [];
 
-  const loadStep = async (step: number): Promise<void> => {
+  const loadStep = async (step: number): Promise<boolean> => {
     try {
       // Die drei Felder desselben Laufs/Schritts parallel. cin_ml/lpi dürfen
       // fehlen (→ als 0 behandelt); cape_ml ist Pflicht (Energieanker).
       // BW-6c: EIN fertiges Score-Bild (≈ 30 KB) statt DREI GRIBs (≈ 3 MB) —
       // der Score ist im Producer mit demselben `buildThunderRgba` gerechnet.
       const png = section ? await loadScalarStep(section, 'thunder', step, signal) : null;
+      if (!png && repoOnly) return false;   // RN-3: no GRIB behind it — `pumpSteps` asks again
       const built = png
         ? { image: rgbaToCanvas(png.rgba, png.width, png.height), width: png.width, height: png.height }
         : await (async () => {
@@ -163,21 +175,15 @@ export async function fetchIconD2Thunder(
       frames.push({ validAt: new Date(runAt.getTime() + step * 3_600_000), stepHours: step, ...built });
       frames.sort((a, b) => a.stepHours - b.stepHours);
       if (onProgress) onProgress({ runAt, frames: [...frames], uvBounds, vMin: THUNDER_VMIN, vMax: THUNDER_VMAX });
+      return true;
     } catch {
       // cape_ml des Schritts fehlt → Schritt überspringen (Muster Böen/Temp).
+      return false;
     }
   };
 
-  // Bounded-Concurrency-Pump über die Schritte (je Schritt 3 Felder).
-  let ptr = 0;
-  const workers = Array.from({ length: Math.min(section ? REPACK_CONCURRENCY : CONCURRENCY, wanted.length) }, async () => {
-    while (ptr < wanted.length) {
-      if (signal?.aborted) return;
-      await loadStep(wanted[ptr++]);
-    }
-  });
-  await Promise.all(workers);
+  await pumpSteps(wanted, loadStep, section ? REPACK_CONCURRENCY : CONCURRENCY, signal, repoOnly ? 'Gewitterpotenzial' : undefined);
 
-  if (frames.length === 0) throw new Error('ICON-D2 Gewitter: keine Frames erzeugt');
+  if (frames.length === 0) throw repoOnly ? new IconD2NotInRepo('ICON-D2 Gewitterpotenzial: kein Bild aus dem Daten-Repo lesbar') : new Error('ICON-D2 Gewitter: keine Frames erzeugt');
   return { runAt, frames, uvBounds, vMin: THUNDER_VMIN, vMax: THUNDER_VMAX };
 }

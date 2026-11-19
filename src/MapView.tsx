@@ -48,10 +48,10 @@ import { lightningTileTemplate, LIGHTNING_ATTRIBUTION, LIGHTNING_LAYER_LOCAL } f
 import { fetchWmsLatestTime } from './sources/wmsTime';
 // RADOLAN-RV 0–2 h Niederschlags-Nowcast (DWD OpenData, binär dekodiert zu
 // mm/h) — speist den dedizierten "Nowcast"-Button über den Forecast-Slider.
-import { fetchRvNowcast, onRvAnalysisEarly, de1200WarpMesh, DE1200_WARP_N, type RvNowcast, type RvAnalysisEarly } from './sources/radolan';
+import { fetchRvNowcast, onRvAnalysisEarly, rvFollowUpInMs, de1200WarpMesh, DE1200_WARP_N, type RvNowcast, type RvAnalysisEarly } from './sources/radolan';
 // ICON-D2 2,2-km-Niederschlags-Forecast (GRIB2 → mm/h) — Hauptlayer ab +2 h,
 // hinter dem RADOLAN-RV-Nowcast, beide unter dem "Niederschlag"-Button.
-import { fetchIconD2Precip, resolveLatestRun, type IconD2Precip } from './sources/iconD2Precip';
+import { fetchIconD2Precip, resolveLatestRun, IconD2NotInRepo, type IconD2Precip } from './sources/iconD2Precip';
 // Wolken: DWD ICON-D2 Bewölkungsgrad (CLCT) als Gitter, 0–27 h, gleiche
 // GRIB2-Pipeline wie der Niederschlag.
 import { fetchIconD2CloudStack, type IconD2CloudStack } from './sources/iconD2Clouds';
@@ -78,7 +78,7 @@ import { fetchIconD2Rotation, type IconD2Rotation } from './sources/iconD2Rotati
 // Zellbahnen (Phase Z1, E3): DWD KONRAD3D — amtlich erkannte Konvektionszellen
 // mit amtlicher Zugspur und amtlicher Unsicherheitsellipse. Lazy beim Aktivieren,
 // Polling nur bei aktivem Layer UND sichtbarem Tab (~0,6 MB je 5 min).
-import { fetchKonrad3d, KONRAD3D_HAIL_ATTRIBUTION } from './sources/dwdKonrad3d';
+import { fetchKonrad3d, konradFollowUpInMs, KONRAD3D_HAIL_ATTRIBUTION } from './sources/dwdKonrad3d';
 import {
   buildCellFeatures, cellFeatureCounts, cellLocationRelevance, cellRelevanceText,
   type CellFeatureProperties,
@@ -2265,12 +2265,19 @@ export default function MapView({
       setNowcastTick((t) => t + 1);
       setCompositeStatus();
     };
+    // Phase RN (audit/radar-nur-datenrepo.md): the composite comes from the data repo only, so the newest slot is not there
+    // before its gate — the reader says when to ask again (`rvFollowUpInMs`), ahead of the 5-min tick below (which is
+    // phase-locked to the mount and would otherwise stay one slot behind for the whole session).
+    let rvFollowTimer = 0;
     const loadRv = async () => {
       const offEarly = onRvAnalysisEarly((a) => { void onEarlyRv(a); });
       try {
         nowcastRef.current = await fetchRvNowcast(abort.signal, prioFor('DE'));
         earlyRvRef.current = null;
         delete radarFailRef.current.DE;
+        window.clearTimeout(rvFollowTimer);
+        const followIn = rvFollowUpInMs(nowcastRef.current.runAt.getTime());
+        if (followIn != null) rvFollowTimer = window.setTimeout(() => { if (!abort.signal.aborted && document.visibilityState === 'visible') void loadRv(); }, followIn);
         if (compositorRef.current) await compositorRef.current.primeDe(nowcastRef.current);
         if (nowcastRef.current.frames[0]) hdMask('DE', 'radolan', nowcastRef.current.corners, nowcastRef.current.frames[0].width, nowcastRef.current.frames[0].height);
         hoistRain();
@@ -2384,6 +2391,19 @@ export default function MapView({
     // Haupttreiber der verbliebenen Blockade NACH dem GRIB-Worker-Offload,
     // nicht der Decode selbst). Nur der ERSTE Frame tickt (sofort sichtbar);
     // der finale Tick nach dem `await` liefert ohnehin den vollständigen Stand.
+    // Phase RN-2/RN-3 (audit/radar-nur-datenrepo.md §8, §9): the ICON-D2 layers with images in the data repo come from there
+    // only. When one was not readable after the reader's own attempts (`IconD2NotInRepo`), the map asks again a minute later —
+    // three times at most per layer and mount (before, GRIB from the DWD stepped in; the 30-min refresh below only renews a
+    // layer that is already there).
+    const d2Retry = new Map<string, { left: number; timer: number }>();
+    const retryNotInRepo = (key: string, err: unknown, again: () => void): void => {
+      if (!(err instanceof IconD2NotInRepo) || abort.signal.aborted) return;
+      const r = d2Retry.get(key) ?? { left: 3, timer: 0 };
+      d2Retry.set(key, r);
+      if (r.left-- <= 0) return;
+      window.clearTimeout(r.timer);
+      r.timer = window.setTimeout(() => { if (!abort.signal.aborted) again(); }, 60_000);
+    };
     const installIconD2 = async () => {
       try {
         let firstD2 = true;
@@ -2404,8 +2424,9 @@ export default function MapView({
         if (compositorRef.current) await compositorRef.current.primeD2(d2);
         setNowcastTick((t) => t + 1);
         setCompositeStatus();
-      } catch {
+      } catch (err) {
         // nicht fatal — die „jetzt"-Quelle deckt 0 h weiter ab.
+        retryNotInRepo('precip', err, () => { void installIconD2(); });
       }
     };
 
@@ -2487,10 +2508,11 @@ export default function MapView({
         setNowcastTick((t) => t + 1);
         if (wd.frames[0]) saveWindNowCache(wd.frames[0], wd.uvBounds); // für den nächsten Sofort-Start
         updateStatus('wind', { ok: { model: 'DWD ICON-D2 u/v 10m · 2,2 km', fetchedAt: Date.now(), ref: runRef(wd.runAt) } });
-      } catch {
+      } catch (err) {
         // nicht fatal — beim nächsten Aufruf greift der Cache erneut. Ladezeit (10.11.): kein stiller Fehler mehr — der
         // Layer-Status sagt es (der Sofort-Platzhalter aus dem Cache bleibt sonst unkommentiert als „aktuell" stehen).
         if (!abort.signal.aborted && !iconD2WindRef.current) updateStatus('wind', { err: 'ICON-D2 Wind nicht erreichbar' });
+        retryNotInRepo('wind', err, () => { void installWindRef.current?.(); });
       }
       } finally {
         // Nach dem NAHEN Horizont zurücksetzen (der ferne lädt im Hintergrund
@@ -2527,9 +2549,10 @@ export default function MapView({
         layerRefs.current.temp?.setDem(td.demImage);
         setNowcastTick((t) => t + 1);
         updateStatus('temp', { ok: { model: 'DWD ICON-D2 t_2m · 2,2 km', fetchedAt: Date.now(), ref: runRef(td.runAt) } });
-      } catch {
+      } catch (err) {
         // nicht fatal — die Fusion-Temperatur deckt weiter ab. Ladezeit (10.11.): im Layer-Status benannt statt verschluckt.
         if (!abort.signal.aborted && !iconD2TempRef.current) updateStatus('temp', { err: 'ICON-D2 Temperatur nicht erreichbar' });
+        retryNotInRepo('temp', err, () => { void installTempRef.current?.(); });
       } finally {
         tempLoadingRef.current = false;
         // StrictMode-/Abort-Race: Läuft DIESER (abgebrochene) Installer aus,
@@ -2555,8 +2578,9 @@ export default function MapView({
         iconD2GustRef.current = gd;
         setNowcastTick((t) => t + 1);
         updateStatus('gust', { ok: { model: 'DWD ICON-D2 vmax_10m · 2,2 km', fetchedAt: Date.now(), ref: runRef(gd.runAt) } });
-      } catch {
+      } catch (err) {
         updateStatus('gust', { err: 'ICON-D2 Böen nicht erreichbar' });
+        retryNotInRepo('gust', err, () => { void installGust(); });
       }
     };
     installGustRef.current = installGust;
@@ -2574,8 +2598,9 @@ export default function MapView({
         iconD2ThunderRef.current = td;
         setNowcastTick((t) => t + 1);
         updateStatus('thunder', { ok: { model: 'DWD ICON-D2 cape_ml·cin_ml·lpi · 2,2 km', fetchedAt: Date.now(), ref: runRef(td.runAt) } });
-      } catch {
+      } catch (err) {
         updateStatus('thunder', { err: 'ICON-D2 Gewitterpotenzial nicht erreichbar' });
+        retryNotInRepo('thunder', err, () => { void installThunder(); });
       }
     };
     installThunderRef.current = installThunder;
@@ -2593,8 +2618,9 @@ export default function MapView({
         iconD2LightningFcRef.current = ld;
         setNowcastTick((t) => t + 1);
         updateStatus('lightningfc', { ok: { model: 'DWD ICON-D2 lpi_max · 2,2 km', fetchedAt: Date.now(), ref: runRef(ld.runAt) } });
-      } catch {
+      } catch (err) {
         updateStatus('lightningfc', { err: 'ICON-D2 Blitz-Vorhersage nicht erreichbar' });
+        retryNotInRepo('lightningfc', err, () => { void installLightningFc(); });
       }
     };
     installLightningFcRef.current = installLightningFc;
@@ -2618,8 +2644,11 @@ export default function MapView({
         iconD2SnowRef.current = sd;
         setNowcastTick((t) => t + 1);
         updateStatus('snow', { ok: { model: mode === 'depth' ? 'DWD ICON-D2 h_snow · 2,2 km' : 'DWD ICON-D2 snow_gsp · 2,2 km', fetchedAt: Date.now(), ref: runRef(sd.runAt) } });
-      } catch {
-        if (seq === snowSeqRef.current) updateStatus('snow', { err: 'ICON-D2 Schnee nicht erreichbar' });
+      } catch (err) {
+        if (seq === snowSeqRef.current) {
+          updateStatus('snow', { err: 'ICON-D2 Schnee nicht erreichbar' });
+          retryNotInRepo('snow', err, () => { void installSnow(); });
+        }
       }
     };
     installSnowRef.current = installSnow;
@@ -2638,8 +2667,9 @@ export default function MapView({
         iconD2RotationRef.current = rd;
         setNowcastTick((t) => t + 1);
         updateStatus('rotation', { ok: { model: 'DWD ICON-D2 uh_max·uh_max_low·sdi_2 · 2,2 km', fetchedAt: Date.now(), ref: runRef(rd.runAt) } });
-      } catch {
+      } catch (err) {
         updateStatus('rotation', { err: 'ICON-D2 Rotationspotenzial nicht erreichbar' });
+        retryNotInRepo('rotation', err, () => { void installRotation(); });
       }
     };
     installRotationRef.current = installRotation;
@@ -2788,6 +2818,8 @@ export default function MapView({
       window.clearInterval(t3);
       window.clearInterval(t4);
       window.clearInterval(t9);
+      window.clearTimeout(rvFollowTimer);
+      for (const r of d2Retry.values()) window.clearTimeout(r.timer);
       window.clearInterval(tD2);
       window.clearInterval(t7);
       markerRef.current?.remove();
@@ -3157,6 +3189,9 @@ export default function MapView({
     if (!map) return;
     const abort = new AbortController();
     let stopped = false;
+    // Phase RN-4 (audit/radar-nur-datenrepo.md §10): the cells come from the data repo only; the slot the DWD already has
+    // is read when it passes its gate — the reader says when (`konradFollowUpInMs`), ahead of the 5-min poll.
+    let followTimer = 0;
 
     const load = async () => {
       // Hintergrund-Tab: nicht abrufen (rAF/Netz sparen) — der
@@ -3164,6 +3199,9 @@ export default function MapView({
       if (stopped || document.visibilityState !== 'visible') return;
       try {
         const run = await fetchKonrad3d(abort.signal);
+        window.clearTimeout(followTimer);
+        const followIn = konradFollowUpInMs(run);
+        if (followIn != null && !stopped) followTimer = window.setTimeout(() => { void load(); }, followIn);
         // Welche KONRAD3D-Datei liegt gerade auf der Karte? (Muster radolan.ts:297)
         console.log(
           `[buscosun] Zellbahnen-Layer → KONRAD3D-Datei: ${run.file}` +
@@ -3199,6 +3237,7 @@ export default function MapView({
       stopped = true;
       abort.abort();
       window.clearInterval(timer);
+      window.clearTimeout(followTimer);
       document.removeEventListener('visibilitychange', onVisible);
       // Layer aus ⇒ Quelle leeren: beim nächsten Einschalten darf kein alter
       // Stand aufblitzen, bevor der frische Lauf da ist (D-04).
@@ -3277,12 +3316,16 @@ export default function MapView({
     if (!map) return;
     const abort = new AbortController();
     let stopped = false;
+    let followTimer = 0;   // RN-4: as for the cell tracks above
 
     const load = async () => {
       if (stopped || document.visibilityState !== 'visible') return;
       try {
         const run = await fetchKonrad3d(abort.signal);
         if (stopped) return;
+        window.clearTimeout(followTimer);
+        const followIn = konradFollowUpInMs(run);
+        if (followIn != null) followTimer = window.setTimeout(() => { void load(); }, followIn);
         const fc = buildHailCellFeatures(run);
         (map.getSource(HAIL_DE_SOURCE_ID) as maplibregl.GeoJSONSource | undefined)?.setData(fc);
         const count = fc.features.filter((f) => f.properties?.kind === 'dot').length;
@@ -3301,6 +3344,7 @@ export default function MapView({
       stopped = true;
       abort.abort();
       window.clearInterval(timer);
+      window.clearTimeout(followTimer);
       document.removeEventListener('visibilitychange', onVisible);
       // V-RR-9: Karte beim Abbau der Komponente schon entfernt ⇒ nicht mehr anfassen.
       if (mapRef.current === map) {

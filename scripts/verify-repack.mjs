@@ -1450,9 +1450,14 @@ if (hsurfGreys.length >= 2) {
       // Argument ('low'); die geprüfte Eigenschaft ist unverändert.
       /loadGridStep\(section, 'cape', step, signal[,)]/.test(rf('src/sources/iconD2Cape.ts', 'utf8'))
       && /if \(!wanted\.every\(\(s\) => have\.has\(s\)\)\) return null;/.test(rf('src/sources/iconD2Cape.ts', 'utf8')));
-    add('Client precip: prüft die Schrittfolge (`precipStepsUsable`) und fällt als GANZES auf GRIB zurück',
+    // Phase RN-2 (audit/radar-nur-datenrepo.md §8): die Familie gibt weiter als GANZES auf (nie gemischt) — `no(…)` liefert
+    // `null` und nennt den Grund. Was danach kommt, entscheidet der Aufrufer: mit `precipdwd=1` GRIB wie bisher, sonst die
+    // Wiederholung aus dem Daten-Repo (`fetchPrecipRepoOnly`, geprüft in `verify:precip-repo`).
+    add('Client precip: prüft die Schrittfolge (`precipStepsUsable`) und gibt als GANZES auf (dann GRIB mit `precipdwd=1`, sonst Wiederholung)',
       /precipStepsUsable\(section, steps\)/.test(src) && /loadPrecipStep\(section, step, signal\)/.test(src)
-      && /if \(failed \|\| signal\?\.aborted \|\| frames\.length === 0\) return null;/.test(src));
+      && /if \(failed \|\| signal\?\.aborted \|\| frames\.length === 0\) return no\(/.test(src)
+      && /const no = \(text: string\): null => \{ if \(why\) why\.text = text; return null; \};/.test(src)
+      && /if \(viaCdn\) return viaCdn;\s*return fetchIconD2Grid\('tot_prec'/.test(src));
   }
 
   // ── Die Bytes, je Familie, über die Läufe aus (3) ────────────────────────

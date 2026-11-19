@@ -66,7 +66,7 @@ export function shareLengthVerdict(url: string): ShareLengthVerdict {
  * Netlify). Ein geteilter Link trägt den Zustand, nicht die Werkstatt.
  */
 export const SHARE_BLOCKED_KEYS: ReadonlySet<string> = new Set([
-  'lz', 'radarcdn', 'radarimg', 'repackrun', 'bh', 'ta', 'afEst', 'tour', 'anchor',
+  'lz', 'radarcdn', 'radarimg', 'rvdwd', 'precipdwd', 'd2dwd', 'konraddwd', 'repackraw', 'repackrun', 'bh', 'ta', 'afEst', 'tour', 'anchor',
   'startnow', 'fast', 'embed', 'debug', 'qa',
 ]);
 
