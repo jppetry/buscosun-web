@@ -1,0 +1,24 @@
+{
+ "recorded": "2026-11-19",
+ "note": "Phase AM. wind.json: buscosun Fusion at the sample points of the leg Laboe → 54.62 N 10.30 E → Marstal, the client cube path run in Node as sea-derive.mjs runs it. f-*.png: byte-exact copies of the CWAM field images of run 2026111812 for 19.11.2026 07:00 and 10:00 UTC — the hours of the two recorded u/v images of the BSH run (../ripples/).",
+ "run": "2026111812",
+ "fusion": 14,
+ "t1": "2026111715",
+ "producer": "scripts/sea/spike/trip-record-fixtures.mjs",
+ "files": {
+  "f-2026111812-019.png": {
+   "bytes": 107544,
+   "sha256": "d27b5a2e38f8b24256ace9ad952f423f9045788ab91ec595f9b4991e33da63b2",
+   "path": "sea/v1/run/cwam/2026111812/f/019.png"
+  },
+  "f-2026111812-022.png": {
+   "bytes": 112215,
+   "sha256": "06caca15e744ba2e33763ca2828f59faf7ef53efffb2c6925ab83f001c969f09",
+   "path": "sea/v1/run/cwam/2026111812/f/022.png"
+  },
+  "wind.json": {
+   "bytes": 62551,
+   "sha256": "04c8d9e538a17ba8c799fb497bcd295133fc4f816705ebf5b54540ff9b97da79"
+  }
+ }
+}

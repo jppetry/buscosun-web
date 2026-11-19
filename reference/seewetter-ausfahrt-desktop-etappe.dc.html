@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Ausfahrt planen, Desktop, Etappe</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F6E7A}a:hover{color:#0A4F58}
+</style>
+</helmet>
+<div style="font-family: 'League Spartan', system-ui, sans-serif; color: #2C2A26; background: #FAF6EA; min-height: 980px; display: flex; flex-direction: column; font-size: 16px; line-height: 1.35">
+
+<header style="display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 12px 24px; border-bottom: 1px solid #D9D0B8">
+<div style="display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap">
+<span style="font-size: 24px; font-weight: 600">buscosun</span>
+<span style="font-size: 18px; color: #6B6152">Seewetter · Ausfahrt planen</span>
+</div>
+<div style="display: flex; gap: 10px; flex-wrap: wrap">
+<button type="button" style="min-height: 44px; padding: 0 18px; border-radius: 10px; border: 1px solid #2C2A26; background: transparent; color: #2C2A26; font: inherit; font-size: 16px">Link teilen</button>
+<button type="button" style="min-height: 44px; padding: 0 18px; border-radius: 10px; border: 1px solid #2C2A26; background: #2C2A26; color: #FAF6EA; font: inherit; font-size: 16px">Planer schließen</button>
+</div>
+</header>
+
+<div style="display: flex; flex-wrap: wrap; flex: 1">
+
+<aside style="flex: 1 1 290px; max-width: 340px; box-sizing: border-box; padding: 20px 24px; border-right: 1px solid #D9D0B8; display: flex; flex-direction: column; gap: 22px">
+<section style="display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 500; color: #6B6152">Wer fährt?</h2>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<button type="button" aria-pressed="true" style="min-height: 44px; padding: 0 16px; border-radius: 22px; border: 1px solid #2C2A26; background: #2C2A26; color: #FAF6EA; font: inherit">Segeln</button>
+<button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 22px; border: 1px solid #A99C80; background: transparent; color: #2C2A26; font: inherit">Motorboot</button>
+<button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 22px; border: 1px solid #A99C80; background: transparent; color: #2C2A26; font: inherit">Kite · Wing · Surf</button>
+<button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 22px; border: 1px solid #A99C80; background: transparent; color: #2C2A26; font: inherit">Boot · Kajak</button>
+<button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 22px; border: 1px solid #A99C80; background: transparent; color: #2C2A26; font: inherit">Brandung</button>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 500; color: #6B6152">Art der Ausfahrt</h2>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border: 1px solid #A99C80; border-radius: 10px; overflow: hidden">
+<button type="button" style="min-height: 44px; border: 0; background: transparent; color: #2C2A26; font: inherit">Vor Ort</button>
+<button type="button" aria-pressed="true" style="min-height: 44px; border: 0; background: #0F6E7A; color: #FFFFFF; font: inherit; font-weight: 500">Etappe</button>
+<button type="button" style="min-height: 44px; border: 0; background: transparent; color: #2C2A26; font: inherit">Strand</button>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 500; color: #6B6152">Etappe</h2>
+<div style="display: flex; flex-direction: column; gap: 0; border: 1px solid #D9D0B8; border-radius: 12px; background: #F3EDDC">
+<div style="display: flex; justify-content: space-between; gap: 12px; padding: 12px 14px; border-bottom: 1px solid #D9D0B8"><span style="color: #6B6152">Start</span><span style="font-weight: 500">Laboe</span></div>
+<div style="display: flex; justify-content: space-between; gap: 12px; padding: 12px 14px; border-bottom: 1px solid #D9D0B8"><span style="color: #6B6152">Wegpunkte</span><span style="font-weight: 500">2 gesetzt</span></div>
+<div style="display: flex; justify-content: space-between; gap: 12px; padding: 12px 14px; border-bottom: 1px solid #D9D0B8"><span style="color: #6B6152">Ziel</span><span style="font-weight: 500">Marstal</span></div>
+<div style="display: flex; justify-content: space-between; gap: 12px; padding: 12px 14px; border-bottom: 1px solid #D9D0B8"><span style="color: #6B6152">Fahrt</span><span style="font-weight: 500">5,0 kn</span></div>
+<div style="display: flex; justify-content: space-between; gap: 12px; padding: 12px 14px"><span style="color: #6B6152">Strecke · Dauer</span><span style="font-weight: 500">29 sm · 5 h 48 min</span></div>
+</div>
+<button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px dashed #6B6152; background: transparent; color: #2C2A26; font: inherit; text-align: left">Wegpunkt auf der Karte setzen</button>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 500; color: #6B6152">Abfahrt vergleichen</h2>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<button type="button" style="min-height: 48px; padding: 0 14px; border-radius: 10px; border: 1px solid #D9D0B8; background: transparent; color: #2C2A26; font: inherit; display: flex; justify-content: space-between; align-items: center"><span>Sa 06:00</span><span style="color: #6B6152">kein Hinweis</span></button>
+<button type="button" aria-pressed="true" style="min-height: 48px; padding: 0 14px; border-radius: 10px; border: 2px solid #0F6E7A; background: #E6F0F0; color: #2C2A26; font: inherit; display: flex; justify-content: space-between; align-items: center"><span style="font-weight: 500">Sa 08:00</span><span style="color: #9A3A22">2 Hinweise</span></button>
+<button type="button" style="min-height: 48px; padding: 0 14px; border-radius: 10px; border: 1px solid #D9D0B8; background: transparent; color: #2C2A26; font: inherit; display: flex; justify-content: space-between; align-items: center"><span>Sa 10:00</span><span style="color: #9A3A22">4 Hinweise</span></button>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 6px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 500; color: #6B6152">Deine Grenzen</h2>
+<p style="margin: 0">Wind bis 22 kn · Böen bis 27 kn · Welle bis 1,5 m</p>
+</section>
+</aside>
+
+<section style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column">
+<div style="position: relative; height: 540px; background: #D5E8EA; overflow: hidden">
+<svg viewBox="0 0 760 540" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Karte der Kieler Bucht mit der Etappe von Laboe nach Marstal" style="position: absolute; inset: 0; width: 100%; height: 100%">
+<rect x="0" y="0" width="760" height="540" fill="#D5E8EA"></rect>
+<path d="M200 300 C320 240 480 250 620 300 C560 340 380 360 240 350 Z" fill="#C6DEE1"></path>
+<path d="M0 540 L0 338 C70 326 130 360 190 380 C225 392 246 420 252 484 L262 540 Z" fill="#EFE9DA" stroke="#B9AC90" stroke-width="2"></path>
+<path d="M286 540 L290 452 C296 420 316 402 350 396 C430 382 520 402 600 390 C660 382 720 402 760 394 L760 540 Z" fill="#EFE9DA" stroke="#B9AC90" stroke-width="2"></path>
+<path d="M20 64 C70 34 150 54 170 114 C180 164 120 204 70 184 C30 169 0 114 20 64 Z" fill="#EFE9DA" stroke="#B9AC90" stroke-width="2"></path>
+<path d="M330 100 C380 74 470 88 525 122 C540 134 520 150 490 146 C430 138 360 136 330 120 Z" fill="#EFE9DA" stroke="#B9AC90" stroke-width="2"></path>
+<path d="M640 24 C670 34 690 114 684 204 C680 254 660 266 650 234 C640 164 624 64 640 24 Z" fill="#EFE9DA" stroke="#B9AC90" stroke-width="2"></path>
+<text x="70" y="124" font-size="14" fill="#6B6152" text-anchor="middle">Als</text>
+<text x="420" y="118" font-size="14" fill="#6B6152" text-anchor="middle">Ærø</text>
+<text x="662" y="130" font-size="14" fill="#6B6152" text-anchor="middle">Langeland</text>
+<text x="110" y="460" font-size="14" fill="#6B6152" text-anchor="middle">Schleswig-Holstein</text>
+<polyline points="300,410 330,338 430,226 522,138" fill="none" stroke="#FAF6EA" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"></polyline>
+<polyline points="300,410 330,338 430,226" fill="none" stroke="#2C2A26" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></polyline>
+<polyline points="430,226 522,138" fill="none" stroke="#B5482E" stroke-width="4" stroke-linecap="round"></polyline>
+<circle cx="300" cy="410" r="7" fill="#2C2A26" stroke="#FAF6EA" stroke-width="2"></circle>
+<circle cx="330" cy="338" r="5" fill="#FAF6EA" stroke="#2C2A26" stroke-width="2"></circle>
+<circle cx="430" cy="226" r="5" fill="#FAF6EA" stroke="#2C2A26" stroke-width="2"></circle>
+<circle cx="522" cy="138" r="7" fill="#2C2A26" stroke="#FAF6EA" stroke-width="2"></circle>
+<g transform="translate(398 262) rotate(-48)">
+<circle cx="0" cy="0" r="22" fill="none" stroke="#0F6E7A" stroke-width="1.5" stroke-dasharray="3 4"></circle>
+<path d="M16 0 Q6 -8 -11 -6.5 L-11 6.5 Q6 8 16 0 Z" fill="#FFFFFF" stroke="#2C2A26" stroke-width="1.6"></path>
+<rect x="-15.5" y="-2.5" width="4.5" height="5" fill="#2C2A26"></rect>
+</g>
+<g stroke="#2C2A26" stroke-width="2" fill="#2C2A26" opacity="0.75">
+<line x1="244" y1="300" x2="276" y2="312"></line><path d="M282 314 L272 316 L275 307 Z"></path>
+<line x1="330" y1="196" x2="364" y2="214"></line><path d="M370 217 L360 218 L364 209 Z"></path>
+<line x1="440" y1="120" x2="470" y2="146"></line><path d="M475 150 L465 148 L471 141 Z"></path>
+</g>
+<text x="236" y="292" font-size="13" fill="#2C2A26">12 kn</text>
+<text x="322" y="188" font-size="13" fill="#2C2A26">17 kn</text>
+<text x="432" y="112" font-size="13" fill="#2C2A26">19 kn</text>
+<g stroke="#0F6E7A" stroke-width="2" fill="#0F6E7A">
+<line x1="560" y1="170" x2="536" y2="196" stroke-dasharray="2 4"></line><path d="M532 201 L534 191 L541 197 Z"></path>
+</g>
+<text x="566" y="168" font-size="13" fill="#0F6E7A">Strom 0,8 kn</text>
+<rect x="250" y="418" width="64" height="24" rx="12" fill="#FFFFFF" stroke="#D9D0B8"></rect><text x="282" y="435" font-size="14" fill="#2C2A26" text-anchor="middle">Laboe</text>
+<rect x="534" y="120" width="74" height="24" rx="12" fill="#FFFFFF" stroke="#D9D0B8"></rect><text x="571" y="137" font-size="14" fill="#2C2A26" text-anchor="middle">Marstal</text>
+<rect x="414" y="268" width="104" height="24" rx="12" fill="#2C2A26"></rect><text x="466" y="285" font-size="14" fill="#FAF6EA" text-anchor="middle">11:00 · 15 sm</text>
+</svg>
+<div style="position: absolute; left: 16px; bottom: 14px; background: #FAF6EA; border: 1px solid #D9D0B8; border-radius: 10px; padding: 8px 12px; font-size: 14px; color: #2C2A26; display: flex; gap: 14px; flex-wrap: wrap">
+<span><span style="display: inline-block; width: 22px; height: 4px; background: #2C2A26; vertical-align: middle; margin-right: 6px"></span>innerhalb deiner Grenzen</span>
+<span><span style="display: inline-block; width: 22px; height: 4px; background: #B5482E; vertical-align: middle; margin-right: 6px"></span>darüber</span>
+</div>
+</div>
+
+<div style="padding: 16px 24px 20px; display: flex; flex-direction: column; gap: 10px; border-top: 1px solid #D9D0B8">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap">
+<h2 style="margin: 0; font-size: 18px; font-weight: 600">Entlang der Etappe</h2>
+<span style="font-size: 14px; color: #6B6152">Stundenwerte am jeweiligen Ort der Route, gerade Linie zwischen den Wegpunkten</span>
+</div>
+<div style="overflow-x: auto">
+<div style="display: grid; grid-template-columns: 132px repeat(6, minmax(0, 1fr)); min-width: 720px; font-size: 15px; row-gap: 0">
+<div style="padding: 8px 0; color: #6B6152">Uhr</div><div style="padding: 8px 6px; text-align: center">08:00</div><div style="padding: 8px 6px; text-align: center">09:00</div><div style="padding: 8px 6px; text-align: center">10:00</div><div style="padding: 8px 6px; text-align: center; background: #DCEBEC; font-weight: 600; border-radius: 8px 8px 0 0">11:00</div><div style="padding: 8px 6px; text-align: center">12:00</div><div style="padding: 8px 6px; text-align: center">13:48</div>
+<div style="padding: 8px 0; color: #6B6152; border-top: 1px solid #E4DCC6">Ort</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">Laboe</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">5 sm</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">10 sm</div><div style="padding: 8px 6px; text-align: center; background: #DCEBEC; border-top: 1px solid #C6DEE1">15 sm</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">20 sm</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">Marstal</div>
+<div style="padding: 8px 0; color: #6B6152; border-top: 1px solid #E4DCC6">Wind zum Kurs</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">von hinten</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">von hinten</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">seitlich</div><div style="padding: 8px 6px; text-align: center; background: #DCEBEC; border-top: 1px solid #C6DEE1">schräg von vorn</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">schräg von vorn</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">schräg von vorn</div>
+<div style="padding: 8px 0; color: #6B6152; border-top: 1px solid #E4DCC6">Wind kn</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">11</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">12</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">14</div><div style="padding: 8px 6px; text-align: center; background: #DCEBEC; border-top: 1px solid #C6DEE1">17</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">19</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">18</div>
+<div style="padding: 8px 0; color: #6B6152; border-top: 1px solid #E4DCC6">Böen kn</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">15</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">17</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">20</div><div style="padding: 8px 6px; text-align: center; background: #DCEBEC; border-top: 1px solid #C6DEE1">24</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6; color: #9A3A22; font-weight: 600">28</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">26</div>
+<div style="padding: 8px 0; color: #6B6152; border-top: 1px solid #E4DCC6">Welle m</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">0,4</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">0,5</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">0,7</div><div style="padding: 8px 6px; text-align: center; background: #DCEBEC; border-top: 1px solid #C6DEE1">0,9 von vorn</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">1,1 von vorn</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">0,8</div>
+<div style="padding: 8px 0; color: #6B6152; border-top: 1px solid #E4DCC6">Strom kn</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">0,2 mit</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">0,3 mit</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">0,1</div><div style="padding: 8px 6px; text-align: center; background: #DCEBEC; border-top: 1px solid #C6DEE1">0,5 gegen</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">0,8 gegen</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">0,4 gegen</div>
+<div style="padding: 8px 0; color: #6B6152; border-top: 1px solid #E4DCC6">Wetter</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">–</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">–</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">–</div><div style="padding: 8px 6px; text-align: center; background: #DCEBEC; border-top: 1px solid #C6DEE1; border-radius: 0 0 8px 8px">–</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">Schauer möglich</div><div style="padding: 8px 6px; text-align: center; border-top: 1px solid #E4DCC6">–</div>
+</div>
+</div>
+</div>
+</section>
+
+<aside style="flex: 1 1 340px; max-width: 400px; box-sizing: border-box; padding: 20px 24px; border-left: 1px solid #D9D0B8; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h2 style="margin: 0; font-size: 22px; font-weight: 600">Laboe → Marstal</h2>
+<p style="margin: 0; color: #6B6152">Sa 08:00 bis 13:48 · Segeln</p>
+<p style="margin: 0; color: #9A3A22; font-weight: 500">2 Hinweise über deiner Grenze</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<div style="background: #F3EDDC; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 14px; color: #6B6152">Abfahrt 08:00</span>
+<span style="font-size: 22px; font-weight: 600">11 kn</span>
+<span style="font-size: 15px">Böen 15 · von hinten</span>
+<span style="font-size: 15px">Welle 0,4 m</span>
+</div>
+<div style="background: #F3EDDC; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; box-shadow: inset 0 0 0 2px #0F6E7A">
+<span style="font-size: 14px; color: #6B6152">Ankunft 13:48</span>
+<span style="font-size: 22px; font-weight: 600">18 kn</span>
+<span style="font-size: 15px">Böen 26 · schräg von vorn</span>
+<span style="font-size: 15px">Welle 0,8 m</span>
+</div>
+</div>
+
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+<li style="padding: 11px 0; border-top: 1px solid #E4DCC6; color: #9A3A22; font-weight: 500">Böen bis 28 kn um 12 Uhr, über deiner Grenze 27 kn</li>
+<li style="padding: 11px 0; border-top: 1px solid #E4DCC6; color: #9A3A22; font-weight: 500">Wind gegen Strom von 12 bis 13 Uhr vor Ærø</li>
+<li style="padding: 11px 0; border-top: 1px solid #E4DCC6">Wind bis 19 kn um 12 Uhr, ab 11 Uhr schräg von vorn</li>
+<li style="padding: 11px 0; border-top: 1px solid #E4DCC6">Welle bis 1,1 m bei 4 s, ab 11 Uhr von vorn</li>
+<li style="padding: 11px 0; border-top: 1px solid #E4DCC6">Schauer möglich um 12 Uhr</li>
+<li style="padding: 11px 0; border-top: 1px solid #E4DCC6">Ankunft 2 h 30 min vor Sonnenuntergang</li>
+<li style="padding: 11px 0; border-top: 1px solid #E4DCC6">Wasserstand in Marstal bei Ankunft −12 cm, Modell des DMI</li>
+</ul>
+
+<div style="background: #F3EDDC; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 14px; color: #6B6152">Amtlich · Seegebiete auf der Route</span>
+<span>[Warnstatus des DWD für Belte und Sund, wörtlich]</span>
+</div>
+
+<p style="margin: 0; font-size: 14px; color: #6B6152">Keine Aussage über Sicherheit. Amtliche Warnungen gehen vor. Die Route ist eine gerade Linie zwischen den Wegpunkten und kennt keine Fahrwasser.</p>
+</aside>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":980}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

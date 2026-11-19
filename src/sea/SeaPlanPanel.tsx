@@ -7,6 +7,8 @@
 import type { ReactNode } from 'react';
 import { SEA_PROFILES, type SeaProfileId } from './seaProfiles';
 import { PLAN_FOOTER, type PlanEvent } from './seaPlanner';
+import SeaTripSwitch from './SeaTripSwitch';
+import type { TripMode } from './seaTrip';
 
 export interface SeaPlanCard {
   /** "Sa 14:00". */
@@ -45,6 +47,8 @@ export interface SeaPlanPanelProps {
   band?: ReactNode;
   onChangeSpot: () => void;
   onClose: () => void;
+  /** Phase AM: this planner is the mode „Vor Ort“ of three — the switch „Art der Ausfahrt“ sits under the head. */
+  onMode?: (m: TripMode) => void;
 }
 
 const Stepper = ({ label, onShift, canEarlier, canLater }: { label: string; onShift: (by: -1 | 1) => void; canEarlier: boolean; canLater: boolean }) => (
@@ -85,6 +89,7 @@ export default function SeaPlanPanel(p: SeaPlanPanelProps) {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
         </button>
       </header>
+      {p.onMode && <SeaTripSwitch mode="ort" onMode={p.onMode} />}
 
       {p.official && (
         <div className="sw-pl-official" role="note">

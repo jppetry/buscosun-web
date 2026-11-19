@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Ausfahrt planen, mobil, Brandungsangeln</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F6E7A}a:hover{color:#0A4F58}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; font-family: 'League Spartan', system-ui, sans-serif; color: #2C2A26; background: #FAF6EA; display: flex; flex-direction: column; font-size: 16px; line-height: 1.3; overflow: hidden">
+
+<div style="position: relative; height: 262px; background: #D5E8EA; overflow: hidden; flex: none">
+<svg viewBox="0 0 390 262" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Küstenkarte: Uferabschnitte nach Windrichtung gefärbt, fünf Strände markiert" style="position: absolute; inset: 0; width: 100%; height: 100%">
+<rect x="0" y="0" width="390" height="262" fill="#D5E8EA"></rect>
+<path d="M0 262 L0 156 C60 146 150 160 232 150 C250 190 262 226 272 262 Z" fill="#EFE9DA"></path>
+<path d="M232 58 C262 34 330 36 362 62 C378 80 360 104 322 106 C282 108 240 100 232 58 Z" fill="#EFE9DA"></path>
+<path d="M0 156 C60 146 150 160 232 150" fill="none" stroke="#5FA3AB" stroke-width="6" stroke-linecap="round"></path>
+<path d="M232 150 C250 190 262 226 272 262" fill="none" stroke="#0F6E7A" stroke-width="6" stroke-linecap="round"></path>
+<path d="M240 96 C282 108 322 106 356 96" fill="none" stroke="#B9AC90" stroke-width="6" stroke-linecap="round"></path>
+<path d="M232 58 C232 76 236 88 240 96" fill="none" stroke="#6B4A2B" stroke-width="6" stroke-linecap="round"></path>
+<path d="M232 58 C262 34 330 36 362 62 C374 76 368 88 356 96" fill="none" stroke="#5FA3AB" stroke-width="6" stroke-linecap="round"></path>
+<g stroke="#2C2A26" stroke-width="2.2" fill="#2C2A26" opacity="0.7">
+<line x1="150" y1="40" x2="112" y2="70"></line><path d="M106 75 L109 64 L117 71 Z"></path>
+<line x1="338" y1="150" x2="300" y2="180"></line><path d="M294 185 L297 174 L305 181 Z"></path>
+<line x1="60" y1="70" x2="22" y2="100"></line><path d="M16 105 L19 94 L27 101 Z"></path>
+</g>
+<g font-size="13" text-anchor="middle" fill="#2C2A26">
+<circle cx="256" cy="204" r="12" fill="#FFFFFF" stroke="#2C2A26" stroke-width="1.6"></circle><text x="256" y="209">1</text>
+<circle cx="92" cy="152" r="12" fill="#FFFFFF" stroke="#2C2A26" stroke-width="1.6"></circle><text x="92" y="157">2</text>
+<circle cx="188" cy="152" r="12" fill="#FFFFFF" stroke="#2C2A26" stroke-width="1.6"></circle><text x="188" y="157">3</text>
+<circle cx="300" cy="104" r="12" fill="#FFFFFF" stroke="#2C2A26" stroke-width="1.6"></circle><text x="300" y="109">4</text>
+<circle cx="232" cy="74" r="12" fill="#FFFFFF" stroke="#2C2A26" stroke-width="1.6"></circle><text x="232" y="79">5</text>
+</g>
+<text x="300" y="76" font-size="13" fill="#6B6152" text-anchor="middle">Fehmarn</text>
+<text x="100" y="214" font-size="13" fill="#6B6152" text-anchor="middle">Ostholstein</text>
+</svg>
+<div style="position: absolute; left: 12px; top: 12px; right: 12px; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px">
+<div style="background: #FFFFFF; border: 1px solid #D9D0B8; border-radius: 12px; padding: 7px 11px; display: flex; flex-direction: column">
+<span style="font-weight: 600">19:00 · 4 Bft aus Nordost</span>
+<span style="font-size: 14px; color: #6B6152">Ufer nach Windrichtung gefärbt</span>
+</div>
+<button type="button" aria-label="Planer schließen" style="width: 44px; height: 44px; border-radius: 22px; border: 1px solid #D9D0B8; background: #FFFFFF; color: #2C2A26; display: flex; align-items: center; justify-content: center; padding: 0">
+<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M3 3 L15 15 M15 3 L3 15" stroke="#2C2A26" stroke-width="2" stroke-linecap="round" fill="none"></path></svg>
+</button>
+</div>
+<div style="position: absolute; left: 12px; bottom: 26px; background: #FAF6EA; border: 1px solid #D9D0B8; border-radius: 10px; padding: 5px 9px; font-size: 13px; color: #2C2A26; display: flex; gap: 10px">
+<span><span style="display: inline-block; width: 14px; height: 5px; background: #0F6E7A; vertical-align: middle; margin-right: 4px"></span>von See</span>
+<span><span style="display: inline-block; width: 14px; height: 5px; background: #B9AC90; vertical-align: middle; margin-right: 4px"></span>seitlich</span>
+<span><span style="display: inline-block; width: 14px; height: 5px; background: #6B4A2B; vertical-align: middle; margin-right: 4px"></span>von Land</span>
+</div>
+</div>
+
+<div style="flex: 1; min-height: 0; background: #FAF6EA; border-radius: 20px 20px 0 0; margin-top: -16px; position: relative; box-shadow: 0 -1px 0 #D9D0B8; padding: 8px 16px 0; display: flex; flex-direction: column; gap: 10px">
+<div style="width: 44px; height: 5px; border-radius: 3px; background: #B9AC90; align-self: center"></div>
+
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+<div style="display: flex; flex-direction: column">
+<span style="font-size: 19px; font-weight: 600">Heute 17 bis 21 Uhr</span>
+<span style="font-size: 15px; color: #6B6152">Wind von See an 3 von 5 Stränden</span>
+</div>
+<button type="button" style="min-height: 44px; padding: 0 14px; border-radius: 22px; border: 1px solid #2C2A26; background: #2C2A26; color: #FAF6EA; font: inherit; font-size: 15px">Brandung</button>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); background: #F3EDDC; border-radius: 12px; padding: 6px 4px">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 5px 0; min-height: 48px"><span style="font-size: 13px; color: #6B6152">16</span><span style="font-size: 15px">3</span><span style="font-size: 12px; color: #6B6152">hell</span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 5px 0; min-height: 48px; background: #DCEBEC; box-shadow: inset 3px 0 0 #0F6E7A"><span style="font-size: 13px; font-weight: 600">17</span><span style="font-size: 15px">4</span><span style="font-size: 12px; color: #6B6152">Dämm.</span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 5px 0; min-height: 48px; background: #DCEBEC"><span style="font-size: 13px; font-weight: 600">18</span><span style="font-size: 15px">4</span><span style="font-size: 12px; color: #6B6152">dunkel</span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 5px 0; min-height: 48px; background: #C6DEE1"><span style="font-size: 13px; font-weight: 600">19</span><span style="font-size: 15px; font-weight: 600">4</span><span style="font-size: 12px; color: #2C2A26">dunkel</span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 5px 0; min-height: 48px; background: #DCEBEC"><span style="font-size: 13px; font-weight: 600">20</span><span style="font-size: 15px">4</span><span style="font-size: 12px; color: #6B6152">dunkel</span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 5px 0; min-height: 48px; background: #DCEBEC; box-shadow: inset -3px 0 0 #0F6E7A"><span style="font-size: 13px; font-weight: 600">21</span><span style="font-size: 15px">3</span><span style="font-size: 12px; color: #6B6152">dunkel</span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 5px 0; min-height: 48px"><span style="font-size: 13px; color: #6B6152">22</span><span style="font-size: 15px">3</span><span style="font-size: 12px; color: #6B6152">dunkel</span></div>
+</div>
+
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+<li style="border-top: 1px solid #E4DCC6"><a href="#strand-1" style="display: flex; align-items: center; gap: 12px; min-height: 58px; color: #2C2A26; text-decoration: none">
+<span style="width: 26px; height: 26px; border-radius: 13px; border: 1.6px solid #2C2A26; display: flex; align-items: center; justify-content: center; font-size: 14px; flex: none">1</span>
+<span style="display: flex; flex-direction: column; flex: 1; min-width: 0"><span style="font-weight: 600">Dahme</span><span style="font-size: 14px; color: #6B6152">4 Bft · Welle 0,5 m · Pegel +8 cm</span></span>
+<span style="font-size: 14px; color: #0F6E7A; font-weight: 600">auflandig</span></a></li>
+<li style="border-top: 1px solid #E4DCC6"><a href="#strand-2" style="display: flex; align-items: center; gap: 12px; min-height: 58px; color: #2C2A26; text-decoration: none">
+<span style="width: 26px; height: 26px; border-radius: 13px; border: 1.6px solid #2C2A26; display: flex; align-items: center; justify-content: center; font-size: 14px; flex: none">2</span>
+<span style="display: flex; flex-direction: column; flex: 1; min-width: 0"><span style="font-weight: 600">Weissenhäuser Strand</span><span style="font-size: 14px; color: #6B6152">4 Bft · Welle 0,4 m · Pegel +6 cm</span></span>
+<span style="font-size: 14px; color: #0F6E7A; font-weight: 600">schräg auflandig</span></a></li>
+<li style="border-top: 1px solid #E4DCC6"><a href="#strand-3" style="display: flex; align-items: center; gap: 12px; min-height: 58px; color: #2C2A26; text-decoration: none">
+<span style="width: 26px; height: 26px; border-radius: 13px; border: 1.6px solid #2C2A26; display: flex; align-items: center; justify-content: center; font-size: 14px; flex: none">3</span>
+<span style="display: flex; flex-direction: column; flex: 1; min-width: 0"><span style="font-weight: 600">Heiligenhafen</span><span style="font-size: 14px; color: #6B6152">3 Bft · Welle 0,3 m · Pegel +5 cm</span></span>
+<span style="font-size: 14px; color: #0F6E7A; font-weight: 600">schräg auflandig</span></a></li>
+<li style="border-top: 1px solid #E4DCC6"><a href="#strand-4" style="display: flex; align-items: center; gap: 12px; min-height: 58px; color: #2C2A26; text-decoration: none">
+<span style="width: 26px; height: 26px; border-radius: 13px; border: 1.6px solid #2C2A26; display: flex; align-items: center; justify-content: center; font-size: 14px; flex: none">4</span>
+<span style="display: flex; flex-direction: column; flex: 1; min-width: 0"><span style="font-weight: 600">Fehmarn Südstrand</span><span style="font-size: 14px; color: #6B6152">3 Bft · Welle 0,2 m · Pegel +5 cm</span></span>
+<span style="font-size: 14px; color: #6B6152; font-weight: 600">seitlich</span></a></li>
+<li style="border-top: 1px solid #E4DCC6; border-bottom: 1px solid #E4DCC6"><a href="#strand-5" style="display: flex; align-items: center; gap: 12px; min-height: 58px; color: #2C2A26; text-decoration: none">
+<span style="width: 26px; height: 26px; border-radius: 13px; border: 1.6px solid #2C2A26; display: flex; align-items: center; justify-content: center; font-size: 14px; flex: none">5</span>
+<span style="display: flex; flex-direction: column; flex: 1; min-width: 0"><span style="font-weight: 600">Fehmarn Wallnau</span><span style="font-size: 14px; color: #6B6152">3 Bft · Welle 0,1 m · Pegel +4 cm</span></span>
+<span style="font-size: 14px; color: #6B4A2B; font-weight: 600">ablandig</span></a></li>
+</ul>
+
+<p style="margin: 0; font-size: 13px; color: #6B6152">Wasser 9 °C, Modell des DMI. Gezeigt wird nur die Windrichtung zum Ufer, keine Fangprognose.</p>
+</div>
+
+<nav aria-label="Ansichten" style="flex: none; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid #D9D0B8; background: #FAF6EA">
+<button type="button" style="min-height: 60px; border: 0; background: transparent; color: #6B6152; font: inherit; font-size: 13px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px">
+<svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M3 5 L8 3 L14 5 L19 3 V17 L14 19 L8 17 L3 19 Z M8 3 V17 M14 5 V19" stroke="#6B6152" stroke-width="1.6" fill="none" stroke-linejoin="round"></path></svg>Karte</button>
+<button type="button" style="min-height: 60px; border: 0; background: transparent; color: #6B6152; font: inherit; font-size: 13px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px">
+<svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M11 20 C6 14 4 11 4 8 A7 7 0 0 1 18 8 C18 11 16 14 11 20 Z" stroke="#6B6152" stroke-width="1.6" fill="none"></path><circle cx="11" cy="8" r="2.5" stroke="#6B6152" stroke-width="1.6" fill="none"></circle></svg>Spot</button>
+<button type="button" style="min-height: 60px; border: 0; background: transparent; color: #6B6152; font: inherit; font-size: 13px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px">
+<svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M11 3 L19 7 L11 11 L3 7 Z M3 11 L11 15 L19 11 M3 15 L11 19 L19 15" stroke="#6B6152" stroke-width="1.6" fill="none" stroke-linejoin="round"></path></svg>Ebenen</button>
+<button type="button" aria-current="page" style="min-height: 60px; border: 0; background: transparent; color: #0F6E7A; font: inherit; font-size: 13px; font-weight: 600; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px">
+<svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M3 14 H19 L16 19 H6 Z M11 3 V12 M11 4 L17 11 H11" stroke="#0F6E7A" stroke-width="1.6" fill="none" stroke-linejoin="round" stroke-linecap="round"></path></svg>Ausfahrt</button>
+</nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

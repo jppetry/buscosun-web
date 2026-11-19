@@ -37,15 +37,22 @@ export interface SeaUrlState {
   tf: boolean;
   /** Phase SP: the trip planner as written in the link (`pl=<start>_<return>_<lat>_<lon>`, `seaPlanner.ts`); null = planner closed. */
   pl: string | null;
+  /** Phase AM: a leg as written in the link (`et=<departure>_<speed × 10>_<points>`, `seaTrip.ts`); null = no leg. */
+  et: string | null;
+  /** Phase AM: the Strand window as written in the link (`sd=<start>_<end>`, `seaTrip.ts`); null = Strand closed. */
+  sd: string | null;
   /** Phase WT: the user's water temperature threshold as written in the link (`wt=over.18` / `wt=under.12.5`, `waterTemp.ts`); null = none. */
   wt: string | null;
 }
 
-export const SEA_DEFAULT_STATE: SeaUrlState = { spot: null, p: 'kite', t: 0, l: 'hs', u: 'kn', tab: 'spot', rv: 'alle', tw: null, tf: false, pl: null, wt: null };
+export const SEA_DEFAULT_STATE: SeaUrlState = { spot: null, p: 'kite', t: 0, l: 'hs', u: 'kn', tab: 'spot', rv: 'alle', tw: null, tf: false, pl: null, et: null, sd: null, wt: null };
 /** Phase TF: form of `tw` — mode, whole cm, reference, gauge id (read by `parseTideParam` in `tideWindow.ts`; kept here so the route wrapper stays free of the tide module). */
 export const SEA_TW_RE = /^(min|max)\.(-?\d{1,4})\.(pnp|nhn|skn|mhw)\.([a-z0-9][a-z0-9_-]{0,63})$/;
 /** Phase SP: form of `pl` — start and return as full UTC hours (YYYYMMDDHH), boat position in degrees (read by `parsePlanParam` in `seaPlanner.ts`). */
 export const SEA_PL_RE = /^(\d{10})_(\d{10})_(\d{1,2}\.\d{1,5})_(\d{1,3}\.\d{1,5})$/;
+/** Phase AM: forms of `et` and `sd` (read by `parseEtappeParam` / `parseStrandParam` in `seaTrip.ts`). */
+export const SEA_ET_RE = /^(\d{10})_(\d{1,3})_((?:\d{6}x\d{4,6})(?:\.\d{6}x\d{4,6}){0,11})$/;
+export const SEA_SD_RE = /^(\d{10})_(\d{10})$/;
 /** Phase WT: form of `wt` — side and degrees Celsius with at most one decimal (read by `parseWtParam` in `waterTemp.ts`). */
 export const SEA_WT_RE = /^(over|under)\.(-?\d{1,2}(?:\.\d)?)$/;
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -72,6 +79,10 @@ export function parseSeaUrl(slug: string | null | undefined, search: string): { 
   if (q.get('tf') === '1') state.tf = true;
   const pl = q.get('pl');
   if (pl != null) { if (SEA_PL_RE.test(pl)) state.pl = pl; else invalid.push('pl'); }
+  const et = q.get('et');
+  if (et != null) { if (SEA_ET_RE.test(et)) state.et = et; else invalid.push('et'); }
+  const sd = q.get('sd');
+  if (sd != null) { if (SEA_SD_RE.test(sd)) state.sd = sd; else invalid.push('sd'); }
   const wt = q.get('wt');
   if (wt != null) { if (SEA_WT_RE.test(wt)) state.wt = wt; else invalid.push('wt'); }
   return { state, invalid };
@@ -89,6 +100,8 @@ export function buildSeaUrl(s: SeaUrlState, extra: ReadonlyArray<[string, string
   if (s.tw) q.push(['tw', s.tw]);
   if (s.tf) q.push(['tf', '1']);
   if (s.pl) q.push(['pl', s.pl]);
+  if (s.et) q.push(['et', s.et]);
+  if (s.sd) q.push(['sd', s.sd]);
   if (s.wt) q.push(['wt', s.wt]);
   q.push(...extra);
   const qs = q.length ? `?${q.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&')}` : '';

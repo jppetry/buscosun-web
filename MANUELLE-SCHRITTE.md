@@ -3676,3 +3676,49 @@ gepusht**. **Pushes in `buscosun-data` und `buscosun-archiv` in dieser Phase: ke
    ⇒ kein u/v-Feld mehr, die Ebene sagt „Keine Daten“, alles andere bleibt. Ganz: den Commit zurücknehmen und pushen.
 10. **Offen:** Sichtprüfung, Bildrate und Real-Device (Punkte 3 und 4); Konsole, Touch-Ziele am Gerät, Long Tasks und
     Pixelgleichheit der übrigen Seite **nicht** gemessen; `verify:sea-ui` nicht gelaufen (Browser). V-SR-1 … 10.
+
+## 98. „Ausfahrt planen“ in drei Modi: Etappe · Vor Ort · Strand auf `/seewetter` (Phase AM, `audit/seewetter-ausfahrt.md`), 2026-11-19
+
+Ohne Schalter an für alle (deine Entscheidung). Lokal auf `main` committet, **nicht gepusht**. **Pushes in `buscosun-data`
+und `buscosun-archiv` in dieser Phase: keine** — die Phase liest nur Dateien, die es schon gibt, und den Punkt-Cube.
+
+1. **Push:** `git push origin main` (trägt die lokalen Commits seit TF mit). Danach ist der Planer für alle der mit drei
+   Modi; alte `pl=`-Links öffnen weiter „Vor Ort“.
+2. **Strom fehlt bis zum Push (V-AM-3).** Im Datenspeicher liegt keine Strömung (`sea/v1/current/` gibt es nicht — der
+   Schritt „Currents“ wartet auf die Commits der Phasen ST/SR auf `origin/main`). Bis dahin steht in der Spalte „Strom“
+   „keine Daten“ und es gibt keinen Hinweis „Wind gegen Strom“. Nach dem Push und dem ersten BSH-Lauf mit u/v-Feld bitte
+   eine Etappe in der Deutschen Bucht ansehen (dort ist der Strom groß genug für „mit / gegen / quer“).
+3. **Sichtprüfung.** Ich habe den Build im Browser gesehen (Chromium, 1440 × 900 und 390 × 844, Live-Daten vom 19.11.;
+   Bilder in `audit/seewetter-ausfahrt/`). **Nicht** geprüft: Punkte mit der Maus oder dem Finger ziehen, Real-Device,
+   Tablet. Bitte ansehen:
+   - `/seewetter?p=yacht` → „Ausfahrt planen“ ⇒ öffnet als Etappe. Zwei Klicks auf die Karte = Start und Ziel; ein Klick
+     auf einen Spot rastet an seiner Wasserzelle ein und trägt seinen Namen.
+   - Punkt ziehen, „Wegpunkt auf der Karte setzen“, in der Liste „löschen“, „Richtung umkehren“.
+   - Tabelle am Kartenfuß: Spalte anklicken ⇒ das Boot springt, die Stunde der Karte folgt.
+   - „Abfahrt vergleichen“: drei Zeiten mit der Zahl der Hinweise über deinen Grenzen.
+   - Profil Kite ⇒ „Ausfahrt planen“ öffnet „Vor Ort“ wie bisher, mit dem Umschalter darüber.
+   - Strand: Fenster heute 17–22 Uhr, Stundenleiste, Liste; die Spot-Marken tragen die Farbe der Windseite.
+   - Telefon: Eintrag „Ausfahrt“ der unteren Leiste; die Tabelle rollt im Blatt seitwärts.
+4. **Tablet (V-AM-6):** kein dritter Breakpoint (dein Auftrag). Mit Finger gilt das Blatt. Mit **Maus** bei 834 px
+   bleibt der Desktop-Aufbau und lässt nur 144 px Karte (gerechnet, nicht angesehen). Entscheiden, ob der Aufbau der
+   Tablet-Vorlage gebaut werden soll.
+5. **Entscheiden** (`audit/seewetter-ausfahrt.md` §2, alles gesetzte Werte): **E-AM-2** Wind der Etappe über den
+   Cube-Pfad OHNE Rückfall auf den Live-Pfad (sonst wäre es ein Ersatz). **E-AM-3** Probenpunkte alle ≤ 5 km, höchstens
+   24. **E-AM-4** Werte der Ankunft = nächste volle Stunde. **E-AM-5** Strom mit / gegen / quer ab 45° / 135°, Klasse ab
+   0,2 kn. **E-AM-7** Schauer-Hinweis vom nächsten Spot bis 15 km. **E-AM-9** Fahrt beim Öffnen 5 / 12 / 4 kn.
+   **E-AM-11** Strand-Fenster 17–22 Uhr. **E-AM-13** Pegel bis 20 km, höchstens 12 je Liste.
+   Abweichung von der Vorlage: „Wind gegen Strom“ ist ein fetter Hinweis, **nicht rot** und nicht gezählt (Rot heißt
+   nur „über deiner Grenze“). Wenn du es rot und gezählt willst: ein Wort.
+6. **Zwei Befunde außerhalb der Phase, die du kennen solltest:**
+   - **V-AM-1:** der t1-Cube steht seit 17.11. 15 UTC (V-SG-9). Folge auf der Etappe: an Punkten ohne Station fehlt die
+     Windrichtung ab etwa +15 h — die Tabelle sagt „Richtung fehlt“. Das behebt der Punkt-Cron, nicht die Seite.
+   - **V-AM-5:** der Cube-Leser fragt eine fehlende Stationskachel an jedem Probenpunkt neu (bei einer Etappe in
+     dänischen Gewässern 17 × `404` in der Konsole). Beheben hieße, den Punkt-Leser anzufassen — nicht ohne dein Wort.
+7. **Budget:** `totalJs` am sauberen HEAD 2 019 → 2 039 (Notiz in `budget.json`). Die Phase kostet 20,0 KB gzip, isoliert
+   gemessen, alles lazy (5,6 KB erst beim Öffnen von Etappe oder Strand; 13,6 KB im Chunk der Seewetter-Seite, V-AM-11).
+   Im Arbeitsbaum steht 2 044, weil die uncommittete Radar-Linie (§94) ihre Anhebung daneben trägt.
+8. **CI:** `node scripts/ci-run.mjs verify:sea-trip` in `.github/workflows/ci.yml` eintragen (V-AM-12).
+9. **Rückfall:** kein Schalter. Ganz: den Commit zurücknehmen und pushen. Nur den Wind der Etappe abschalten: in
+   `src/pointForecast/fusion/fusionRelease.ts` den Teil `sea` auf `on: false` — dann steht dort „keine Daten“.
+10. **Offen:** Punkte 2 bis 4; Pixelgleichheit der übrigen Seite nicht gemessen; `verify:sea-ui` nicht gelaufen
+    (Browser-Prüfer, an HEAD rot). V-AM-1 … 15.

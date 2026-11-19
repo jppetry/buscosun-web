@@ -1583,4 +1583,178 @@
   .sw-band.is-compact .sw-band-planrow td { height: 44px; }
   .sw-band.is-compact .sw-pl-grip { width: 44px; height: 44px; margin: -22px 0 0 -22px; display: flex; align-items: center; justify-content: center; }
   .sw-band.is-compact .sw-pl-grip span { width: 30px; height: 30px; font-size: 13px; }
+  /* Phase AM (rules below this block): every mode is the sheet of the planner. */
+  /* Phone and touch tablet: every mode is the sheet of the planner; the table scrolls sideways, its first column stays. */
+  .sw-pl-sheet .sw-am-in { gap: 16px; padding-bottom: 14px; }
+  .sw-pl-sheet .sw-am-modeseg button, .sw-pl-sheet .sw-am-shift button, .sw-pl-sheet .sw-am-win button, .sw-pl-sheet .sw-am-order button,
+  .sw-pl-sheet .sw-am-ways button, .sw-pl-sheet .sw-am-tools button, .sw-pl-sheet .sw-am-table thead button, .sw-pl-sheet .sw-am-notes > summary { min-height: 44px; }
+  .sw-pl-sheet .sw-am-shift button, .sw-pl-sheet .sw-am-win button { min-width: 44px; justify-content: center; }
+  .sw-pl-sheet .sw-am-cmp button { min-height: 48px; }
+  .sw-pl-sheet .sw-am-speed input { height: 44px; width: 72px; }
+  .sw-pl-sheet .sw-am-tablebox { background: transparent; border: 0; border-top: 1px solid var(--sand-200, #E0D6BE); border-radius: 0; box-shadow: none; padding: 12px 0; }
+  .sw-pl-sheet .sw-am-key { margin-left: 0; }
+  .sw-pl-sheet .sw-am-strip button { min-height: 60px; }
+  .sw-pl-sheet.is-strand:not(.is-open) { max-height: 62vh; max-height: 62dvh; }
+  .sw-root .sw-am-pt { width: 44px; height: 44px; }
 }
+
+/* ── Phase AM (audit/seewetter-ausfahrt.md): der Planer in drei Modi — Vor Ort | Etappe | Strand.
+   Ein Bild trägt die Etappe: der Strang. Auf der Karte dunkel innerhalb deiner Grenzen, rot darüber, gestrichelt, wo
+   ein Wert fehlt — und derselbe Strang liegt flach über den Spalten der Tabelle. Rot (--sw-out) heißt hier nur „über
+   deiner Grenze“. Strand nimmt die zwei Bedeutungsfarben des Planers (Wind von See / vom Land, --sw-pl-*). Abschnitts-
+   namen in normaler Schreibung, keine Versalien. Keine neue Bewegung. ── */
+.sw-am-mode h3, .sw-am-sec h3 { margin: 0 0 8px; font-size: 15px; font-weight: 500; color: var(--stone-600, #5C5447); }
+.sw-am-modeseg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--border-strong, #C4B896); border-radius: 10px; overflow: hidden; background: #fff; }
+.sw-am-modeseg button { min-height: 40px; border: 0; background: transparent; color: var(--ink-900, #2C2A26); font-size: 15px; cursor: pointer; }
+.sw-am-modeseg button + button { border-left: 1px solid var(--sand-200, #E0D6BE); }
+.sw-am-modeseg button.is-active { background: var(--sw-accent, #0F6E7A); color: #fff; font-weight: 600; }
+.sw-root .sw-am-modeseg button:focus-visible { outline-offset: -3px; }
+.sw-am-mode p { margin: 6px 0 0; font-size: 13px; line-height: 1.4; color: var(--stone-600, #5C5447); }
+.sw-am-fine { margin: 6px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--stone-600, #5C5447); }
+
+/* Eingabe der Etappe (Desktop links; die Ebenen klappen darunter zu). */
+.sw-dock.sw-am-dockin { width: 318px; padding: 18px 16px 58px; }
+.sw-am-in { display: flex; flex-direction: column; gap: 20px; color: var(--ink-900, #2C2A26); }
+.sw-am-box { margin: 0; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 12px; background: var(--sand-100, #EDE6D3); }
+.sw-am-box > div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 10px 12px; }
+.sw-am-box > div + div { border-top: 1px solid var(--sand-200, #E0D6BE); }
+.sw-am-box dt { color: var(--stone-600, #5C5447); font-size: 14.5px; white-space: nowrap; }
+.sw-am-box dd { margin: 0; font-size: 15px; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+.sw-am-box > .sw-am-ways { display: block; padding: 4px 12px 8px; }
+.sw-am-ways ol { list-style: decimal inside; margin: 0; padding: 0; font-size: 13.5px; }
+.sw-am-ways li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 2px 0; }
+.sw-am-ways button, .sw-am-tools button { border: 0; background: transparent; color: var(--sw-accent-dark, #0B5560); font-size: 13px; font-weight: 600; cursor: pointer; min-height: 28px; padding: 0 2px; }
+.sw-am-speed input { width: 62px; height: 32px; box-sizing: border-box; border: 1px solid var(--border-strong, #C4B896); border-radius: 8px; background: #fff; padding: 0 6px; font-size: 15px; font-weight: 600; text-align: right; color: inherit; font-variant-numeric: tabular-nums; }
+.sw-am-add { width: 100%; min-height: 44px; margin-top: 10px; padding: 0 14px; border: 1px dashed var(--stone-600, #5C5447); border-radius: 10px; background: transparent; color: var(--ink-900, #2C2A26); font-size: 15px; text-align: left; cursor: pointer; }
+.sw-am-add.is-on { border-style: solid; border-color: var(--sw-accent, #0F6E7A); background: var(--sw-tint, #E3F0F1); font-weight: 600; }
+.sw-am-ask { margin: 10px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--sw-tint, #E3F0F1); border: 1px solid #BFD9DC; font-size: 14px; line-height: 1.45; }
+.sw-am-tools { display: flex; justify-content: space-between; gap: 10px; margin-top: 6px; }
+.sw-am-cmp { display: flex; flex-direction: column; gap: 8px; }
+.sw-am-cmp button { min-height: 46px; padding: 0 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 10px; background: transparent; color: var(--ink-900, #2C2A26); font-size: 15px; cursor: pointer; font-variant-numeric: tabular-nums; }
+.sw-am-cmp button.is-active { border: 2px solid var(--sw-accent, #0F6E7A); background: var(--sw-tint, #E3F0F1); padding: 0 13px; }
+.sw-am-cmp button.is-active span:first-child { font-weight: 600; }
+.sw-am-cmp button span:last-child { font-size: 14px; color: var(--stone-600, #5C5447); text-align: right; }
+.sw-am-cmp button span.is-over { color: #8A3320; font-weight: 600; }
+.sw-am-cmp button:disabled { cursor: default; opacity: 0.6; }
+.sw-am-shift { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 13.5px; color: var(--stone-600, #5C5447); }
+.sw-am-shift span { flex: 1 1 auto; }
+.sw-am-shift button, .sw-am-win button { display: inline-flex; align-items: center; gap: 3px; height: 32px; padding: 0 9px; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 8px; background: #fff; color: var(--ink-900, #2C2A26); font-size: 13.5px; cursor: pointer; }
+.sw-am-shift button:disabled, .sw-am-win button:disabled { opacity: 0.35; cursor: default; }
+.sw-am-limits { margin: 0; font-size: 14.5px; line-height: 1.45; }
+.sw-am-layers { border-top: 1px solid var(--sand-200, #E0D6BE); padding-top: 12px; }
+.sw-am-layers > summary { cursor: pointer; font-size: 15px; font-weight: 500; color: var(--stone-600, #5C5447); min-height: 28px; }
+.sw-am-layers .sw-dock { width: auto; padding: 8px 0 0; border: 0; background: transparent; overflow: visible; }
+
+/* Karte: Punkte der Etappe (HTML-Marker) und das Boot zur gewählten Stunde. */
+/* No `position` on the marker elements themselves: MapLibre places them absolutely (their children hang on that). */
+.sw-am-pt { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: grab; touch-action: none; }
+.sw-am-pt:active { cursor: grabbing; }
+.sw-am-pt i { display: block; box-sizing: border-box; width: 13px; height: 13px; border-radius: 50%; background: #FAF6EA; border: 2.5px solid #2C2A26; box-shadow: 0 0 0 1.5px rgba(250, 246, 234, 0.9); }
+.sw-am-pt.is-start i, .sw-am-pt.is-end i { width: 17px; height: 17px; background: #2C2A26; border: 2.5px solid #FAF6EA; box-shadow: 0 0 0 1.5px #2C2A26; }
+.sw-am-pt span { position: absolute; left: 50%; top: 100%; transform: translateX(-50%); white-space: nowrap; pointer-events: none; background: #fff; color: #2C2A26; border: 1px solid #D9D0B8; border-radius: 12px; padding: 1px 9px;
+  font-family: 'League Spartan', var(--font-base, system-ui, sans-serif); font-size: 13.5px; line-height: 1.4; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35); }
+.sw-am-pt:focus-visible { outline: 2px solid #FAF6EA; outline-offset: 0; border-radius: 50%; }
+.sw-am-boat { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.sw-am-boat::before { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 1.5px dashed #7FC4CC; }
+.sw-am-boatlabel { position: absolute; left: 100%; top: 50%; transform: translateY(-50%); margin-left: 6px; white-space: nowrap; background: #2C2A26; color: #FAF6EA; border-radius: 12px; padding: 2px 10px;
+  font-family: 'League Spartan', var(--font-base, system-ui, sans-serif); font-size: 13.5px; font-weight: 600; line-height: 1.4; font-variant-numeric: tabular-nums; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); }
+
+/* Tabelle „Entlang der Etappe“ am Kartenfuß: oben der Strang, darunter die Stundenwerte. */
+.sw-am-foot .sw-am-tablebox { align-self: stretch; }
+.sw-am-tablebox { background: rgba(250, 246, 234, 0.97); border: 1px solid var(--sand-200, #E0D6BE); border-radius: 14px; padding: 12px 14px 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); color: var(--ink-900, #2C2A26); }
+.sw-am-tablebox > header { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 14px; margin-bottom: 6px; }
+.sw-am-tablebox h3 { margin: 0; font-size: 18px; font-weight: 600; }
+.sw-am-tablebox > header > span { font-size: 13px; color: var(--stone-600, #5C5447); }
+.sw-am-key { list-style: none; display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 0 auto; padding: 0; font-size: 13px; }
+.sw-am-key li { display: inline-flex; align-items: center; gap: 6px; }
+.sw-am-key i { display: inline-block; width: 22px; height: 4px; background: var(--ink-900, #2C2A26); }
+.sw-am-key i.is-over { background: var(--sw-out, #B5482E); }
+.sw-am-key i.is-missing { background: repeating-linear-gradient(90deg, var(--ink-900, #2C2A26) 0 5px, transparent 5px 9px); }
+.sw-am-key.is-shore { margin: 0; }
+.sw-am-key.is-shore i { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid var(--ink-900, #2C2A26); }
+.sw-am-key i.is-see { background: var(--sw-pl-sea, #7FC4CC); }
+.sw-am-key i.is-quer { background: var(--sw-pl-along, #F3EDDF); }
+.sw-am-key i.is-land { background: var(--sw-pl-land, #E39A3B); }
+.sw-am-scroll { overflow-x: auto; }
+.sw-am-table { border-collapse: collapse; width: 100%; font-size: 14.5px; font-variant-numeric: tabular-nums; }
+.sw-am-table th[scope="row"] { position: sticky; left: 0; z-index: 1; background: #FAF6EA; text-align: left; font-weight: 400; color: var(--stone-600, #5C5447); padding: 6px 14px 6px 0; white-space: nowrap; }
+.sw-am-table td, .sw-am-table th[scope="col"] { padding: 6px 5px; text-align: center; min-width: 66px; font-weight: 400; }
+.sw-am-table tbody td, .sw-am-table tbody th { border-top: 1px solid #E4DCC6; }
+.sw-am-table .is-sel { background: #DCEBEC; }
+.sw-am-table thead th.is-sel { border-radius: 8px 8px 0 0; }
+.sw-am-table thead button { border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; padding: 2px 4px; min-height: 28px; }
+.sw-am-table thead th.is-sel button { font-weight: 600; }
+.sw-am-table small { font-size: 12.5px; color: var(--stone-600, #5C5447); }
+.sw-am-table .is-over { color: #8A3320; font-weight: 700; }
+.sw-am-table .is-wac { font-weight: 700; }
+.sw-am-nd { font-size: 12px; color: var(--stone-500, #8B7355); white-space: nowrap; }
+.sw-am-strand th, .sw-am-strand td { padding: 0 0 6px; min-width: 0; }
+.sw-am-strand i { display: block; height: 4px; background: var(--ink-900, #2C2A26); }
+.sw-am-strand .is-over i { background: var(--sw-out, #B5482E); }
+.sw-am-strand .is-missing i { background: repeating-linear-gradient(90deg, var(--ink-900, #2C2A26) 0 5px, transparent 5px 9px); }
+.sw-am-strand .is-first i { margin-left: 50%; border-radius: 2px 0 0 2px; }
+.sw-am-strand .is-last i { margin-right: 50%; border-radius: 0 2px 2px 0; }
+
+/* Befunde der Etappe (rechts): Kopf, zwei Karten, Liste, amtlicher Kasten, Fuß. */
+.sw-pl.sw-am-res, .sw-pl.sw-am-strandp { gap: 14px; }
+.sw-am-revier { margin-top: -4px; }
+.sw-am-count { font-weight: 600; }
+.sw-pl-head p.sw-am-count.is-over { color: #8A3320; }
+.sw-am-load { margin: 0; font-size: 13.5px; line-height: 1.45; color: var(--stone-600, #5C5447); }
+.sw-am-load.is-none { color: var(--ink-900, #2C2A26); padding: 8px 10px; border: 1px dashed var(--border-strong, #C4B896); border-radius: 10px; }
+.sw-am-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.sw-am-card { background: var(--sand-100, #EDE6D3); border-radius: 12px; padding: 11px 13px; display: flex; flex-direction: column; gap: 2px; font-size: 14.5px; line-height: 1.35; font-variant-numeric: tabular-nums; }
+.sw-am-card.is-sel { box-shadow: inset 0 0 0 2px var(--sw-accent, #0F6E7A); }
+.sw-am-card-k { font-size: 14px; color: var(--stone-600, #5C5447); }
+.sw-am-card strong { font-size: 22px; font-weight: 600; letter-spacing: -0.3px; }
+.sw-am-findings { list-style: none; margin: 0; padding: 0; font-size: 15px; line-height: 1.4; }
+.sw-am-findings li { padding: 10px 0; border-top: 1px solid #E4DCC6; }
+.sw-am-findings li.is-over { color: #8A3320; font-weight: 600; }
+.sw-am-findings li.is-hint { font-weight: 600; }
+.sw-am-findings li.is-missing { color: var(--stone-600, #5C5447); font-size: 14px; }
+.sw-am-official { background: var(--sand-100, #EDE6D3); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.sw-am-official h3 { margin: 0; font-size: 14px; font-weight: 500; color: var(--stone-600, #5C5447); }
+.sw-am-official h4 { margin: 0; font-size: 15px; font-weight: 600; }
+.sw-am-official > div + div { border-top: 1px solid var(--sand-200, #E0D6BE); padding-top: 10px; }
+.sw-am-official .sw-official { margin-top: 3px; }
+.sw-am-notes { font-size: 13px; color: var(--stone-600, #5C5447); }
+.sw-am-notes > summary { cursor: pointer; font-weight: 600; color: var(--sw-accent-dark, #0B5560); min-height: 28px; }
+.sw-am-notes ul { margin: 6px 0 0; padding: 0 0 0 18px; display: flex; flex-direction: column; gap: 5px; line-height: 1.45; max-width: 62ch; }
+.sw-am-safe { margin: 0; font-size: 13.5px; line-height: 1.45; color: var(--stone-600, #5C5447); }
+
+/* Strand: Fenster, Stundenleiste mit hell / Dämmerung / dunkel, Liste nach Stunden mit Wind von See. */
+.sw-am-win { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13.5px; color: var(--stone-600, #5C5447); }
+.sw-am-win > span { display: inline-flex; align-items: center; gap: 5px; }
+.sw-am-win em { font-style: normal; margin-right: 2px; }
+.sw-am-strip { list-style: none; margin: 0; padding: 5px 4px; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(42px, 1fr); background: var(--sand-100, #EDE6D3); border-radius: 12px; overflow-x: auto; }
+.sw-am-strip li { position: relative; }
+.sw-am-strip li.is-in { background: #DCEBEC; }
+.sw-am-strip li.is-sel { background: #C6DEE1; }
+.sw-am-strip button { width: 100%; min-height: 58px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 4px 0 7px; border: 0; background: transparent; color: var(--ink-900, #2C2A26); cursor: pointer; font-variant-numeric: tabular-nums; }
+.sw-am-strip span { font-size: 13px; color: var(--stone-600, #5C5447); }
+.sw-am-strip li.is-in span { color: inherit; font-weight: 600; }
+.sw-am-strip strong { font-size: 15px; font-weight: 500; }
+.sw-am-strip li.is-sel strong { font-weight: 700; }
+.sw-am-strip small { font-size: 12px; color: var(--stone-600, #5C5447); }
+/* Licht der Stunde als Fußlinie: hell offen, Dämmerung halb, dunkel voll — kein neuer Farbton. */
+.sw-am-strip li::after { content: ''; position: absolute; left: 3px; right: 3px; bottom: 2px; height: 3px; border-radius: 2px; background: transparent; }
+.sw-am-strip li.is-daemmerung::after { background: var(--stone-400, #A89A7A); }
+.sw-am-strip li.is-dunkel::after { background: var(--ink-900, #2C2A26); }
+.sw-am-order { display: flex; gap: 3px; background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 8px; padding: 3px; }
+.sw-am-order button { flex: 1; border: 0; border-radius: 5px; background: transparent; color: var(--stone-600, #5C5447); font-size: 13.5px; padding: 7px 0; cursor: pointer; }
+.sw-am-order button.is-active { background: var(--ink-900, #2C2A26); color: var(--cream-50, #FAF6EA); font-weight: 600; }
+.sw-am-list { list-style: none; margin: 0; padding: 0; }
+.sw-am-list li { border-top: 1px solid #E4DCC6; }
+.sw-am-list li:last-child { border-bottom: 1px solid #E4DCC6; }
+.sw-am-list button { width: 100%; min-height: 58px; display: flex; align-items: center; gap: 12px; padding: 7px 4px; border: 0; background: transparent; color: var(--ink-900, #2C2A26); text-align: left; cursor: pointer; }
+.sw-am-list button.is-sel { background: var(--sw-tint, #E3F0F1); }
+.sw-am-rank { flex: 0 0 auto; width: 26px; height: 26px; box-sizing: border-box; border-radius: 50%; border: 1.6px solid var(--ink-900, #2C2A26); display: flex; align-items: center; justify-content: center; font-size: 14px; font-variant-numeric: tabular-nums; }
+.sw-am-rowtx { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.sw-am-rowtx strong { font-size: 15.5px; font-weight: 600; }
+.sw-am-rowtx span { font-size: 13.5px; line-height: 1.35; color: var(--stone-600, #5C5447); font-variant-numeric: tabular-nums; }
+.sw-am-shore { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; font-size: 14px; font-weight: 600; color: var(--stone-600, #5C5447); text-align: right; }
+.sw-am-shore small { font-size: 12px; font-weight: 400; }
+.sw-am-shore.is-see { color: var(--sw-accent-dark, #0B5560); }
+.sw-am-shore.is-land { color: #9A5A2A; }
+
+@media (max-width: 1439px) { .sw-dock.sw-am-dockin { width: 288px; } }

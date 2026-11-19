@@ -162,6 +162,9 @@ const NAME_RE = /buscosun Fusion \d/;
       const part = FUSION_PARTS.find((p) => p.id === id);
       return { part: `${part.name} (${what})`, file, gate: part, how: `getFusionForecast(…, '${id}') — ${part.on ? 'an' : 'aus bis zur Messung (§8.4), rechnet den Live-Pfad'}`, ok: (p) => has(p, `getFusionForecast(`, `}, '${id}')`) };
     }),
+    // Phase AM (audit/seewetter-ausfahrt.md): wind at the sample points of a leg on /seewetter. The part has no live path behind it —
+    // off or `?pf=live` is "keine Daten" — so it asks for the cube itself instead of going through `getFusionForecast` (which falls back).
+    { part: 'Seewetter · Etappe (Wind an den Probenpunkten)', file: 'src/sea/seaTripData.ts', gate: FUSION_PARTS.find((p) => p.id === 'sea'), how: "fusionPathFor('sea') ⇒ pointSource: 'cube', kein Live-Pfad dahinter", ok: (p) => has(p, "fusionPathFor('sea'", "pointSource: 'cube'", "import('../pointForecast/cubeSource')") },
   ];
   const bad = PARTS.filter((x) => !x.ok(x.file));
   add(`C1 jeder der ${PARTS.length} Plattformteile hängt am Register`, bad.length === 0, bad.map((x) => x.part).join(', '));

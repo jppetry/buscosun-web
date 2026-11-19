@@ -1,0 +1,3269 @@
+{
+ "at": "2026-11-19T00:41:51.792Z",
+ "leg": {
+  "from": "laboe",
+  "to": "aeroe-marstal",
+  "km": 54.1,
+  "nm": 29.21,
+  "course": 22.2,
+  "points": [
+   {
+    "name": "Laboe",
+    "lat": 54.4043,
+    "lon": 10.2153
+   },
+   {
+    "name": "3 sm",
+    "lat": 54.4543,
+    "lon": 10.2505
+   },
+   {
+    "name": "6 sm",
+    "lat": 54.5043,
+    "lon": 10.2857
+   },
+   {
+    "name": "10 sm",
+    "lat": 54.5543,
+    "lon": 10.321
+   },
+   {
+    "name": "13 sm",
+    "lat": 54.6043,
+    "lon": 10.3564
+   },
+   {
+    "name": "16 sm",
+    "lat": 54.6543,
+    "lon": 10.3919
+   },
+   {
+    "name": "19 sm",
+    "lat": 54.7043,
+    "lon": 10.4275
+   },
+   {
+    "name": "23 sm",
+    "lat": 54.7543,
+    "lon": 10.4632
+   },
+   {
+    "name": "26 sm",
+    "lat": 54.8043,
+    "lon": 10.4989
+   },
+   {
+    "name": "Marstal",
+    "lat": 54.8542,
+    "lon": 10.5348
+   }
+  ]
+ },
+ "a": {
+  "leg": [
+   {
+    "name": "Laboe",
+    "lat": 54.4043,
+    "lon": 10.2153,
+    "ok": true,
+    "steps": 31,
+    "wind": 31,
+    "gust": 31,
+    "dir": 25,
+    "tiers": [
+     "t1",
+     "station",
+     "clima"
+    ],
+    "stage": 14,
+    "hTrue": 2.2,
+    "errors": 0,
+    "firstError": null,
+    "sources": [
+     "cube-t1",
+     "mosmix"
+    ],
+    "h": [
+     {
+      "h": 1,
+      "windKn": 6,
+      "gustKn": 13.7,
+      "dir": 289
+     },
+     {
+      "h": 3,
+      "windKn": 5.1,
+      "gustKn": 10.9,
+      "dir": 295
+     },
+     {
+      "h": 6,
+      "windKn": 3,
+      "gustKn": 6.2,
+      "dir": 319
+     },
+     {
+      "h": 12,
+      "windKn": 4.3,
+      "gustKn": 9.8,
+      "dir": 70
+     },
+     {
+      "h": 24,
+      "windKn": 5,
+      "gustKn": 10.1,
+      "dir": 0
+     }
+    ],
+    "ms": 841,
+    "requests": 18,
+    "bytes": 1521991,
+    "byKind": {
+     "data:ruc/v1": "2 / 11 KB",
+     "data:point/fusion": "1 / 135 KB",
+     "data:point/static": "5 / 71 KB",
+     "data:point/stack": "1 / 66 KB",
+     "data:point/index": "1 / 33 KB",
+     "s3.amazonaws.com": "3 / 255 KB",
+     "data:point/stations": "3 / 503 KB",
+     "data:point": "2 / 412 KB"
+    },
+    "failed": []
+   },
+   {
+    "name": "3 sm",
+    "lat": 54.4543,
+    "lon": 10.2505,
+    "ok": true,
+    "steps": 31,
+    "wind": 31,
+    "gust": 31,
+    "dir": 29,
+    "tiers": [
+     "t1",
+     "station",
+     "clima"
+    ],
+    "stage": 14,
+    "hTrue": 0,
+    "errors": 0,
+    "firstError": null,
+    "sources": [
+     "cube-t1",
+     "mosmix"
+    ],
+    "h": [
+     {
+      "h": 1,
+      "windKn": 13,
+      "gustKn": 15.5,
+      "dir": 298
+     },
+     {
+      "h": 3,
+      "windKn": 11.1,
+      "gustKn": 13.3,
+      "dir": 295
+     },
+     {
+      "h": 6,
+      "windKn": 6.5,
+      "gustKn": 8.2,
+      "dir": 314
+     },
+     {
+      "h": 12,
+      "windKn": 10.5,
+      "gustKn": 12.8,
+      "dir": 72
+     },
+     {
+      "h": 24,
+      "windKn": 14.3,
+      "gustKn": 19,
+      "dir": 4
+     }
+    ],
+    "ms": 190,
+    "requests": 1,
+    "bytes": 38746,
+    "byKind": {
+     "s3.amazonaws.com": "1 / 38 KB"
+    },
+    "failed": []
+   },
+   {
+    "name": "6 sm",
+    "lat": 54.5043,
+    "lon": 10.2857,
+    "ok": true,
+    "steps": 31,
+    "wind": 31,
+    "gust": 31,
+    "dir": 29,
+    "tiers": [
+     "t1",
+     "station",
+     "clima"
+    ],
+    "stage": 14,
+    "hTrue": 0,
+    "errors": 0,
+    "firstError": null,
+    "sources": [
+     "cube-t1",
+     "mosmix"
+    ],
+    "h": [
+     {
+      "h": 1,
+      "windKn": 16.6,
+      "gustKn": 21.1,
+      "dir": 299
+     },
+     {
+      "h": 3,
+      "windKn": 13.4,
+      "gustKn": 16.9,
+      "dir": 299
+     },
+     {
+      "h": 6,
+      "windKn": 7.6,
+      "gustKn": 11,
+      "dir": 315
+     },
+     {
+      "h": 12,
+      "windKn": 10.8,
+      "gustKn": 14.6,
+      "dir": 71
+     },
+     {
+      "h": 24,
+      "windKn": 14,
+      "gustKn": 19.1,
+      "dir": 4
+     }
+    ],
+    "ms": 157,
+    "requests": 5,
+    "bytes": 396386,
+    "byKind": {
+     "data:ruc/v1": "1 / 16 KB",
+     "data:point/static": "2 / 1 KB",
+     "data:point/stations": "1 / 22 KB",
+     "data:point": "1 / 348 KB"
+    },
+    "failed": []
+   },
+   {
+    "name": "10 sm",
+    "lat": 54.5543,
+    "lon": 10.321,
+    "ok": true,
+    "steps": 31,
+    "wind": 31,
+    "gust": 31,
+    "dir": 29,
+    "tiers": [
+     "t1",
+     "station",
+     "clima"
+    ],
+    "stage": 14,
+    "hTrue": 0,
+    "errors": 0,
+    "firstError": null,
+    "sources": [
+     "cube-t1",
+     "mosmix"
+    ],
+    "h": [
+     {
+      "h": 1,
+      "windKn": 14,
+      "gustKn": 17.2,
+      "dir": 299
+     },
+     {
+      "h": 3,
+      "windKn": 10.7,
+      "gustKn": 14.1,
+      "dir": 301
+     },
+     {
+      "h": 6,
+      "windKn": 5.5,
+      "gustKn": 6.6,
+      "dir": 319
+     },
+     {
+      "h": 12,
+      "windKn": 10.2,
+      "gustKn": 12.7,
+      "dir": 70
+     },
+     {
+      "h": 24,
+      "windKn": 14.3,
+      "gustKn": 19,
+      "dir": 4
+     }
+    ],
+    "ms": 173,
+    "requests": 1,
+    "bytes": 34830,
+    "byKind": {
+     "s3.amazonaws.com": "1 / 34 KB"
+    },
+    "failed": []
+   },
+   {
+    "name": "13 sm",
+    "lat": 54.6043,
+    "lon": 10.3564,
+    "ok": true,
+    "steps": 31,
+    "wind": 31,
+    "gust": 31,
+    "dir": 29,
+    "tiers": [
+     "t1",
+     "station",
+     "clima"
+    ],
+    "stage": 14,
+    "hTrue": 0,
+    "errors": 0,
+    "firstError": null,
+    "sources": [
+     "cube-t1",
+     "mosmix"
+    ],
+    "h": [
+     {
+      "h": 1,
+      "windKn": 14.4,
+      "gustKn": 17.5,
+      "dir": 300
+     },
+     {
+      "h": 3,
+      "windKn": 11.5,
+      "gustKn": 14.9,
+      "dir": 302
+     },
+     {
+      "h": 6,
+      "windKn": 6.1,
+      "gustKn": 7.2,
+      "dir": 319
+     },
+     {
+      "h": 12,
+      "windKn": 10,
+      "gustKn": 12.3,
+      "dir": 69
+     },
+     {
+      "h": 24,
+      "windKn": 14.3,
+      "gustKn": 19,
+      "dir": 4
+     }
+    ],
+    "ms": 193,
+    "requests": 1,
+    "bytes": 33055,
+    "byKind": {
+     "s3.amazonaws.com": "1 / 32 KB"
+    },
+    "failed": []
+   },
+   {
+    "name": "16 sm",
+    "lat": 54.6543,
+    "lon": 10.3919,
+    "ok": true,
+    "steps": 31,
+    "wind": 31,
+    "gust": 31,
+    "dir": 16,
+    "tiers": [
+     "t1",
+     "clima"
+    ],
+    "stage": 14,
+    "hTrue": 0,
+    "errors": 0,
+    "firstError": null,
+    "sources": [
+     "cube-t1"
+    ],
+    "h": [
+     {
+      "h": 1,
+      "windKn": 13.2,
+      "gustKn": 17.3,
+      "dir": 301
+     },
+     {
+      "h": 3,
+      "windKn": 9.6,
+      "gustKn": 15,
+      "dir": 314
+     },
+     {
+      "h": 6,
+      "windKn": 4.7,
+      "gustKn": 7,
+      "dir": 349
+     },
+     {
+      "h": 12,
+      "windKn": 7.9,
+      "gustKn": 11.5,
+      "dir": 43
+     },
+     {
+      "h": 24,
+      "windKn": 7.8,
+      "gustKn": 12.4,
+      "dir": null
+     }
+    ],
+    "ms": 285,
+    "requests": 2,
+    "bytes": 80570,
+    "byKind": {
+     "s3.amazonaws.com": "2 / 79 KB"
+    },
+    "failed": []
+   },
+   {
+    "name": "19 sm",
+    "lat": 54.7043,
+    "lon": 10.4275,
+    "ok": true,
+    "steps": 31,
+    "wind": 31,
+    "gust": 31,
+    "dir": 16,
+    "tiers": [
+     "t1",
+     "clima"
+    ],
+    "stage": 14,
+    "hTrue": 0,
+    "errors": 0,
+    "firstError": null,
+    "sources": [
+     "cube-t1"
+    ],
+    "h": [
+     {
+      "h": 1,
+      "windKn": 13.9,
+      "gustKn": 17.5,
+      "dir": 302
+     },
+     {
+      "h": 3,
+      "windKn": 9.9,
+      "gustKn": 15.6,
+      "dir": 315
+     },
+     {
+      "h": 6,
+      "windKn": 4.9,
+      "gustKn": 7.4,
+      "dir": 346
+     },
+     {
+      "h": 12,
+      "windKn": 7.6,
+      "gustKn": 11.1,
+      "dir": 38
+     },
+     {
+      "h": 24,
+      "windKn": 7.8,
+      "gustKn": 12.4,
+      "dir": null
+     }
+    ],
+    "ms": 66,
+    "requests": 0,
+    "bytes": 0,
+    "byKind": {},
+    "failed": []
+   },
+   {
+    "name": "23 sm",
+    "lat": 54.7543,
+    "lon": 10.4632,
+    "ok": true,
+    "steps": 31,
+    "wind": 31,
+    "gust": 31,
+    "dir": 16,
+    "tiers": [
+     "t1",
+     "clima"
+    ],
+    "stage": 14,
+    "hTrue": 0,
+    "errors": 0,
+    "firstError": null,
+    "sources": [
+     "cube-t1"
+    ],
+    "h": [
+     {
+      "h": 1,
+      "windKn": 13.1,
+      "gustKn": 16.7,
+      "dir": 306
+     },
+     {
+      "h": 3,
+      "windKn": 10,
+      "gustKn": 15.9,
+      "dir": 316
+     },
+     {
+      "h": 6,
+      "windKn": 4.9,
+      "gustKn": 7.7,
+      "dir": 342
+     },
+     {
+      "h": 12,
+      "windKn": 7.3,
+      "gustKn": 10.8,
+      "dir": 33
+     },
+     {
+      "h": 24,
+      "windKn": 7.8,
+      "gustKn": 12.4,
+      "dir": null
+     }
+    ],
+    "ms": 188,
+    "requests": 1,
+    "bytes": 71829,
+    "byKind": {
+     "s3.amazonaws.com": "1 / 70 KB"
+    },
+    "failed": []
+   },
+   {
+    "name": "26 sm",
+    "lat": 54.8043,
+    "lon": 10.4989,
+    "ok": true,
+    "steps": 31,
+    "wind": 31,
+    "gust": 31,
+    "dir": 16,
+    "tiers": [
+     "t1",
+     "clima"
+    ],
+    "stage": 14,
+    "hTrue": 0,
+    "errors": 0,
+    "firstError": null,
+    "sources": [
+     "cube-t1"
+    ],
+    "h": [
+     {
+      "h": 1,
+      "windKn": 11.2,
+      "gustKn": 15.7,
+      "dir": 304
+     },
+     {
+      "h": 3,
+      "windKn": 9.4,
+      "gustKn": 15.3,
+      "dir": 316
+     },
+     {
+      "h": 6,
+      "windKn": 4.9,
+      "gustKn": 7.7,
+      "dir": 341
+     },
+     {
+      "h": 12,
+      "windKn": 6.9,
+      "gustKn": 10.7,
+      "dir": 30
+     },
+     {
+      "h": 24,
+      "windKn": 7.8,
+      "gustKn": 12.4,
+      "dir": null
+     }
+    ],
+    "ms": 184,
+    "requests": 1,
+    "bytes": 84321,
+    "byKind": {
+     "s3.amazonaws.com": "1 / 82 KB"
+    },
+    "failed": []
+   },
+   {
+    "name": "Marstal",
+    "lat": 54.8542,
+    "lon": 10.5348,
+    "ok": true,
+    "steps": 31,
+    "wind": 31,
+    "gust": 31,
+    "dir": 16,
+    "tiers": [
+     "t1",
+     "clima"
+    ],
+    "stage": 14,
+    "hTrue": 0,
+    "errors": 0,
+    "firstError": null,
+    "sources": [
+     "cube-t1"
+    ],
+    "h": [
+     {
+      "h": 1,
+      "windKn": 11.3,
+      "gustKn": 15.9,
+      "dir": 301
+     },
+     {
+      "h": 3,
+      "windKn": 9.2,
+      "gustKn": 15.1,
+      "dir": 317
+     },
+     {
+      "h": 6,
+      "windKn": 5,
+      "gustKn": 7.8,
+      "dir": 340
+     },
+     {
+      "h": 12,
+      "windKn": 6.8,
+      "gustKn": 10.7,
+      "dir": 27
+     },
+     {
+      "h": 24,
+      "windKn": 7.8,
+      "gustKn": 12.4,
+      "dir": null
+     }
+    ],
+    "ms": 643,
+    "requests": 3,
+    "bytes": 187045,
+    "byKind": {
+     "s3.amazonaws.com": "3 / 183 KB"
+    },
+    "failed": []
+   }
+  ],
+  "total": {
+   "requests": 33,
+   "distinct": 33,
+   "bytes": 2448773,
+   "ms": 2930,
+   "first": {
+    "requests": 18,
+    "bytes": 1521991,
+    "ms": 841
+   },
+   "rest": {
+    "requests": 15,
+    "bytes": 926782,
+    "ms": 2079
+   },
+   "byKind": {
+    "data:ruc/v1": {
+     "n": 3,
+     "kb": 27
+    },
+    "data:point/fusion": {
+     "n": 1,
+     "kb": 135
+    },
+    "data:point/static": {
+     "n": 7,
+     "kb": 72
+    },
+    "data:point/stack": {
+     "n": 1,
+     "kb": 66
+    },
+    "data:point/index": {
+     "n": 1,
+     "kb": 33
+    },
+    "s3.amazonaws.com": {
+     "n": 13,
+     "kb": 773
+    },
+    "data:point/stations": {
+     "n": 4,
+     "kb": 525
+    },
+    "data:point": {
+     "n": 3,
+     "kb": 760
+    }
+   },
+   "largest": [
+    "361 KB gh/jppetry/buscosun-data@main/point/stations/catalog.json",
+    "351 KB gh/jppetry/buscosun-data@main/point/2026111715/t1/11_05.bin",
+    "348 KB gh/jppetry/buscosun-data@main/point/2026111715/t1/11_06.bin",
+    "135 KB gh/jppetry/buscosun-data@main/point/fusion.client.json",
+    "97 KB elevation-tiles-prod/terrarium/11/1081/653.png",
+    "87 KB gh/jppetry/buscosun-data@main/point/stations/2026111821/stations.json",
+    "82 KB elevation-tiles-prod/terrarium/8/135/80.png",
+    "82 KB elevation-tiles-prod/terrarium/8/135/81.png"
+   ]
+  },
+  "north": [
+   {
+    "name": "55.30N 10.85E",
+    "lat": 55.3,
+    "lon": 10.85,
+    "ok": true,
+    "steps": 31,
+    "wind": 31,
+    "gust": 31,
+    "dir": 16,
+    "tiers": [
+     "t1",
+     "clima"
+    ],
+    "stage": 14,
+    "hTrue": 4.3,
+    "errors": 0,
+    "firstError": null,
+    "sources": [
+     "cube-t1"
+    ],
+    "h": [
+     {
+      "h": 1,
+      "windKn": 13.2,
+      "gustKn": 18.9,
+      "dir": 305
+     },
+     {
+      "h": 3,
+      "windKn": 10.7,
+      "gustKn": 17.1,
+      "dir": 298
+     },
+     {
+      "h": 6,
+      "windKn": 7.6,
+      "gustKn": 12,
+      "dir": 296
+     },
+     {
+      "h": 12,
+      "windKn": 6.9,
+      "gustKn": 11.8,
+      "dir": 351
+     },
+     {
+      "h": 24,
+      "windKn": 7.9,
+      "gustKn": 12.4,
+      "dir": null
+     }
+    ],
+    "ms": 167,
+    "requests": 7,
+    "bytes": 383859,
+    "byKind": {
+     "s3.amazonaws.com": "2 / 154 KB",
+     "data:ruc/v1": "1 / 8 KB",
+     "data:point/static": "2 / 1 KB",
+     "data:point/stations": "1 / 8 KB",
+     "data:point": "1 / 204 KB"
+    },
+    "failed": []
+   },
+   {
+    "name": "55.45N 10.85E",
+    "lat": 55.45,
+    "lon": 10.85,
+    "ok": true,
+    "steps": 31,
+    "wind": 31,
+    "gust": 31,
+    "dir": 29,
+    "tiers": [
+     "t1",
+     "station",
+     "clima"
+    ],
+    "stage": 14,
+    "hTrue": 0,
+    "errors": 0,
+    "firstError": null,
+    "sources": [
+     "cube-t1",
+     "mosmix"
+    ],
+    "h": [
+     {
+      "h": 1,
+      "windKn": 14.9,
+      "gustKn": 20.7,
+      "dir": 324
+     },
+     {
+      "h": 3,
+      "windKn": 11.6,
+      "gustKn": 19,
+      "dir": 324
+     },
+     {
+      "h": 6,
+      "windKn": 8.6,
+      "gustKn": 13.6,
+      "dir": 326
+     },
+     {
+      "h": 12,
+      "windKn": 6.8,
+      "gustKn": 10.9,
+      "dir": 7
+     },
+     {
+      "h": 24,
+      "windKn": 6.7,
+      "gustKn": 12.1,
+      "dir": 320
+     }
+    ],
+    "ms": 251,
+    "requests": 1,
+    "bytes": 50401,
+    "byKind": {
+     "s3.amazonaws.com": "1 / 49 KB"
+    },
+    "failed": []
+   },
+   {
+    "name": "55.50N 10.85E",
+    "lat": 55.5,
+    "lon": 10.85,
+    "ok": true,
+    "steps": 31,
+    "wind": 31,
+    "gust": 31,
+    "dir": 29,
+    "tiers": [
+     "t1",
+     "station",
+     "clima"
+    ],
+    "stage": 14,
+    "hTrue": 0,
+    "errors": 0,
+    "firstError": null,
+    "sources": [
+     "cube-t1",
+     "mosmix"
+    ],
+    "h": [
+     {
+      "h": 1,
+      "windKn": 15,
+      "gustKn": 21.1,
+      "dir": 328
+     },
+     {
+      "h": 3,
+      "windKn": 11.9,
+      "gustKn": 18.9,
+      "dir": 326
+     },
+     {
+      "h": 6,
+      "windKn": 8.8,
+      "gustKn": 14.1,
+      "dir": 328
+     },
+     {
+      "h": 12,
+      "windKn": 6.8,
+      "gustKn": 10.7,
+      "dir": 8
+     },
+     {
+      "h": 24,
+      "windKn": 6.7,
+      "gustKn": 12.1,
+      "dir": 320
+     }
+    ],
+    "ms": 180,
+    "requests": 1,
+    "bytes": 54678,
+    "byKind": {
+     "s3.amazonaws.com": "1 / 53 KB"
+    },
+    "failed": []
+   },
+   {
+    "name": "55.55N 10.85E",
+    "lat": 55.55,
+    "lon": 10.85,
+    "ok": true,
+    "steps": 0,
+    "wind": 0,
+    "gust": 0,
+    "dir": 0,
+    "tiers": [],
+    "stage": 14,
+    "hTrue": 0,
+    "errors": 0,
+    "firstError": null,
+    "sources": [
+     "mosmix"
+    ],
+    "h": [
+     {
+      "h": 1,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 3,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 6,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 12,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 24,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     }
+    ],
+    "ms": 37,
+    "requests": 0,
+    "bytes": 0,
+    "byKind": {},
+    "failed": []
+   },
+   {
+    "name": "55.60N 10.85E",
+    "lat": 55.6,
+    "lon": 10.85,
+    "ok": true,
+    "steps": 0,
+    "wind": 0,
+    "gust": 0,
+    "dir": 0,
+    "tiers": [],
+    "stage": 14,
+    "hTrue": 0,
+    "errors": 0,
+    "firstError": null,
+    "sources": [
+     "mosmix"
+    ],
+    "h": [
+     {
+      "h": 1,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 3,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 6,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 12,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 24,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     }
+    ],
+    "ms": 198,
+    "requests": 2,
+    "bytes": 132322,
+    "byKind": {
+     "s3.amazonaws.com": "2 / 129 KB"
+    },
+    "failed": []
+   },
+   {
+    "name": "55.80N 10.85E",
+    "lat": 55.8,
+    "lon": 10.85,
+    "ok": true,
+    "steps": 0,
+    "wind": 0,
+    "gust": 0,
+    "dir": 0,
+    "tiers": [],
+    "stage": 14,
+    "hTrue": 0,
+    "errors": 0,
+    "firstError": null,
+    "sources": [],
+    "h": [
+     {
+      "h": 1,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 3,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 6,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 12,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 24,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     }
+    ],
+    "ms": 202,
+    "requests": 1,
+    "bytes": 45527,
+    "byKind": {
+     "s3.amazonaws.com": "1 / 44 KB"
+    },
+    "failed": []
+   },
+   {
+    "name": "56.00N 10.85E",
+    "lat": 56,
+    "lon": 10.85,
+    "ok": true,
+    "steps": 0,
+    "wind": 0,
+    "gust": 0,
+    "dir": 0,
+    "tiers": [],
+    "stage": 14,
+    "hTrue": 0,
+    "errors": 0,
+    "firstError": null,
+    "sources": [],
+    "h": [
+     {
+      "h": 1,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 3,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 6,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 12,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 24,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     }
+    ],
+    "ms": 185,
+    "requests": 1,
+    "bytes": 48031,
+    "byKind": {
+     "s3.amazonaws.com": "1 / 47 KB"
+    },
+    "failed": []
+   },
+   {
+    "name": "56.30N 11.20E",
+    "lat": 56.3,
+    "lon": 11.2,
+    "ok": true,
+    "steps": 0,
+    "wind": 0,
+    "gust": 0,
+    "dir": 0,
+    "tiers": [],
+    "stage": 14,
+    "hTrue": 0,
+    "errors": 0,
+    "firstError": null,
+    "sources": [],
+    "h": [
+     {
+      "h": 1,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 3,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 6,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 12,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 24,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     }
+    ],
+    "ms": 161,
+    "requests": 2,
+    "bytes": 126324,
+    "byKind": {
+     "s3.amazonaws.com": "2 / 123 KB"
+    },
+    "failed": []
+   },
+   {
+    "name": "55.45N 7.90E",
+    "lat": 55.45,
+    "lon": 7.9,
+    "ok": true,
+    "steps": 31,
+    "wind": 31,
+    "gust": 31,
+    "dir": 16,
+    "tiers": [
+     "t1",
+     "clima"
+    ],
+    "stage": 14,
+    "hTrue": 0,
+    "errors": 0,
+    "firstError": null,
+    "sources": [
+     "cube-t1"
+    ],
+    "h": [
+     {
+      "h": 1,
+      "windKn": 5.9,
+      "gustKn": 10.3,
+      "dir": 86
+     },
+     {
+      "h": 3,
+      "windKn": 7.2,
+      "gustKn": 11.6,
+      "dir": 77
+     },
+     {
+      "h": 6,
+      "windKn": 9.8,
+      "gustKn": 13.2,
+      "dir": 75
+     },
+     {
+      "h": 12,
+      "windKn": 9.8,
+      "gustKn": 14.1,
+      "dir": 56
+     },
+     {
+      "h": 24,
+      "windKn": 7.8,
+      "gustKn": 12.4,
+      "dir": null
+     }
+    ],
+    "ms": 626,
+    "requests": 8,
+    "bytes": 342751,
+    "byKind": {
+     "s3.amazonaws.com": "3 / 139 KB",
+     "data:ruc/v1": "1 / 1 KB",
+     "data:point/static": "2 / 1 KB",
+     "data:point/stations": "1 / 0 KB",
+     "data:point": "1 / 195 KB"
+    },
+    "failed": [
+     "404 .net/gh/jppetry/buscosun-data@main/point/stations/2026111821/12_03.bin"
+    ]
+   },
+   {
+    "name": "55.55N 7.90E",
+    "lat": 55.55,
+    "lon": 7.9,
+    "ok": true,
+    "steps": 0,
+    "wind": 0,
+    "gust": 0,
+    "dir": 0,
+    "tiers": [],
+    "stage": 14,
+    "hTrue": 0,
+    "errors": 0,
+    "firstError": null,
+    "sources": [],
+    "h": [
+     {
+      "h": 1,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 3,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 6,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 12,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 24,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     }
+    ],
+    "ms": 190,
+    "requests": 2,
+    "bytes": 85299,
+    "byKind": {
+     "s3.amazonaws.com": "2 / 83 KB"
+    },
+    "failed": []
+   },
+   {
+    "name": "55.80N 7.90E",
+    "lat": 55.8,
+    "lon": 7.9,
+    "ok": true,
+    "steps": 0,
+    "wind": 0,
+    "gust": 0,
+    "dir": 0,
+    "tiers": [],
+    "stage": 14,
+    "hTrue": 0,
+    "errors": 0,
+    "firstError": null,
+    "sources": [],
+    "h": [
+     {
+      "h": 1,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 3,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 6,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 12,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 24,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     }
+    ],
+    "ms": 285,
+    "requests": 3,
+    "bytes": 112348,
+    "byKind": {
+     "s3.amazonaws.com": "3 / 110 KB"
+    },
+    "failed": []
+   },
+   {
+    "name": "56.20N 7.90E",
+    "lat": 56.2,
+    "lon": 7.9,
+    "ok": true,
+    "steps": 0,
+    "wind": 0,
+    "gust": 0,
+    "dir": 0,
+    "tiers": [],
+    "stage": 14,
+    "hTrue": 0,
+    "errors": 0,
+    "firstError": null,
+    "sources": [],
+    "h": [
+     {
+      "h": 1,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 3,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 6,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 12,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     },
+     {
+      "h": 24,
+      "windKn": null,
+      "gustKn": null,
+      "dir": null
+     }
+    ],
+    "ms": 187,
+    "requests": 2,
+    "bytes": 64565,
+    "byKind": {
+     "s3.amazonaws.com": "2 / 63 KB"
+    },
+    "failed": []
+   }
+  ]
+ },
+ "b": {
+  "run": "2026111812",
+  "current": null,
+  "fieldBytes": [
+   109041,
+   107209,
+   105751,
+   109327,
+   107643
+  ],
+  "uvBytes": [],
+  "rows": [
+   {
+    "h": 1,
+    "lead": 13,
+    "step": 13,
+    "name": "Laboe",
+    "wave": {
+     "hs": 0.35000000000000003,
+     "dir": 0,
+     "per": 3.5
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 1,
+    "lead": 13,
+    "step": 13,
+    "name": "3 sm",
+    "wave": {
+     "hs": 0.55,
+     "dir": 351.5625,
+     "per": 3.5
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 1,
+    "lead": 13,
+    "step": 13,
+    "name": "6 sm",
+    "wave": {
+     "hs": 0.65,
+     "dir": 340.3125,
+     "per": 3.3000000000000003
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 1,
+    "lead": 13,
+    "step": 13,
+    "name": "10 sm",
+    "wave": {
+     "hs": 0.7000000000000001,
+     "dir": 333.28125,
+     "per": 3.3000000000000003
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 1,
+    "lead": 13,
+    "step": 13,
+    "name": "13 sm",
+    "wave": {
+     "hs": 0.8,
+     "dir": 330.46875,
+     "per": 3.4000000000000004
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 1,
+    "lead": 13,
+    "step": 13,
+    "name": "16 sm",
+    "wave": {
+     "hs": 0.8,
+     "dir": 324.84375,
+     "per": 3.4000000000000004
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 1,
+    "lead": 13,
+    "step": 13,
+    "name": "19 sm",
+    "wave": {
+     "hs": 0.75,
+     "dir": 317.8125,
+     "per": 3.3000000000000003
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 1,
+    "lead": 13,
+    "step": 13,
+    "name": "23 sm",
+    "wave": {
+     "hs": 0.65,
+     "dir": 306.5625,
+     "per": 3.2
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 1,
+    "lead": 13,
+    "step": 13,
+    "name": "26 sm",
+    "wave": {
+     "hs": 0.4,
+     "dir": 293.90625,
+     "per": 2.6
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 1,
+    "lead": 13,
+    "step": 13,
+    "name": "Marstal",
+    "wave": {
+     "hs": 0.2,
+     "dir": 345.9375,
+     "per": 1.7000000000000002
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 1,
+    "lead": 13,
+    "step": 13,
+    "name": "55.30N 10.85E",
+    "wave": {
+     "hs": 0.6000000000000001,
+     "dir": 12.65625,
+     "per": 3.5
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 1,
+    "lead": 13,
+    "step": 13,
+    "name": "55.45N 10.85E",
+    "wave": {
+     "hs": 0.8,
+     "dir": 351.5625,
+     "per": 3.4000000000000004
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 1,
+    "lead": 13,
+    "step": 13,
+    "name": "55.50N 10.85E",
+    "wave": {
+     "hs": 0.8500000000000001,
+     "dir": 348.75,
+     "per": 3.5
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 1,
+    "lead": 13,
+    "step": 13,
+    "name": "55.55N 10.85E",
+    "wave": {
+     "hs": 0.8500000000000001,
+     "dir": 344.53125,
+     "per": 3.5
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 1,
+    "lead": 13,
+    "step": 13,
+    "name": "55.60N 10.85E",
+    "wave": {
+     "hs": 0.8500000000000001,
+     "dir": 343.125,
+     "per": 3.4000000000000004
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 1,
+    "lead": 13,
+    "step": 13,
+    "name": "55.80N 10.85E",
+    "wave": {
+     "hs": 1.05,
+     "dir": 8.4375,
+     "per": 4.2
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 1,
+    "lead": 13,
+    "step": 13,
+    "name": "56.00N 10.85E",
+    "wave": {
+     "hs": 1.05,
+     "dir": 25.3125,
+     "per": 4.2
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 1,
+    "lead": 13,
+    "step": 13,
+    "name": "56.30N 11.20E",
+    "wave": {
+     "hs": 1.25,
+     "dir": 12.65625,
+     "per": 4.2
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 1,
+    "lead": 13,
+    "step": 13,
+    "name": "55.45N 7.90E",
+    "wave": {
+     "hs": 0.75,
+     "dir": 334.6875,
+     "per": 5.5
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 1,
+    "lead": 13,
+    "step": 13,
+    "name": "55.55N 7.90E",
+    "wave": {
+     "hs": 0.8,
+     "dir": 334.6875,
+     "per": 5.800000000000001
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 1,
+    "lead": 13,
+    "step": 13,
+    "name": "55.80N 7.90E",
+    "wave": {
+     "hs": 0.8500000000000001,
+     "dir": 347.34375,
+     "per": 5.7
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 1,
+    "lead": 13,
+    "step": 13,
+    "name": "56.20N 7.90E",
+    "wave": {
+     "hs": 0.9,
+     "dir": 352.96875,
+     "per": 5.800000000000001
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 3,
+    "lead": 15,
+    "step": 15,
+    "name": "Laboe",
+    "wave": {
+     "hs": 0.30000000000000004,
+     "dir": 0,
+     "per": 3.4000000000000004
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 3,
+    "lead": 15,
+    "step": 15,
+    "name": "3 sm",
+    "wave": {
+     "hs": 0.45,
+     "dir": 354.375,
+     "per": 3.3000000000000003
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 3,
+    "lead": 15,
+    "step": 15,
+    "name": "6 sm",
+    "wave": {
+     "hs": 0.5,
+     "dir": 343.125,
+     "per": 3.2
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 3,
+    "lead": 15,
+    "step": 15,
+    "name": "10 sm",
+    "wave": {
+     "hs": 0.5,
+     "dir": 336.09375,
+     "per": 3.1
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 3,
+    "lead": 15,
+    "step": 15,
+    "name": "13 sm",
+    "wave": {
+     "hs": 0.55,
+     "dir": 330.46875,
+     "per": 3.1
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 3,
+    "lead": 15,
+    "step": 15,
+    "name": "16 sm",
+    "wave": {
+     "hs": 0.55,
+     "dir": 323.4375,
+     "per": 3
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 3,
+    "lead": 15,
+    "step": 15,
+    "name": "19 sm",
+    "wave": {
+     "hs": 0.5,
+     "dir": 317.8125,
+     "per": 2.9000000000000004
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 3,
+    "lead": 15,
+    "step": 15,
+    "name": "23 sm",
+    "wave": {
+     "hs": 0.45,
+     "dir": 306.5625,
+     "per": 2.8000000000000003
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 3,
+    "lead": 15,
+    "step": 15,
+    "name": "26 sm",
+    "wave": {
+     "hs": 0.25,
+     "dir": 296.71875,
+     "per": 2.2
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 3,
+    "lead": 15,
+    "step": 15,
+    "name": "Marstal",
+    "wave": {
+     "hs": 0.15000000000000002,
+     "dir": 345.9375,
+     "per": 1.6
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 3,
+    "lead": 15,
+    "step": 15,
+    "name": "55.30N 10.85E",
+    "wave": {
+     "hs": 0.5,
+     "dir": 14.0625,
+     "per": 3.3000000000000003
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 3,
+    "lead": 15,
+    "step": 15,
+    "name": "55.45N 10.85E",
+    "wave": {
+     "hs": 0.65,
+     "dir": 348.75,
+     "per": 3.2
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 3,
+    "lead": 15,
+    "step": 15,
+    "name": "55.50N 10.85E",
+    "wave": {
+     "hs": 0.7000000000000001,
+     "dir": 344.53125,
+     "per": 3.2
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 3,
+    "lead": 15,
+    "step": 15,
+    "name": "55.55N 10.85E",
+    "wave": {
+     "hs": 0.75,
+     "dir": 340.3125,
+     "per": 3.3000000000000003
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 3,
+    "lead": 15,
+    "step": 15,
+    "name": "55.60N 10.85E",
+    "wave": {
+     "hs": 0.75,
+     "dir": 337.5,
+     "per": 3.2
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 3,
+    "lead": 15,
+    "step": 15,
+    "name": "55.80N 10.85E",
+    "wave": {
+     "hs": 0.9,
+     "dir": 5.625,
+     "per": 4
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 3,
+    "lead": 15,
+    "step": 15,
+    "name": "56.00N 10.85E",
+    "wave": {
+     "hs": 0.8500000000000001,
+     "dir": 18.28125,
+     "per": 4
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 3,
+    "lead": 15,
+    "step": 15,
+    "name": "56.30N 11.20E",
+    "wave": {
+     "hs": 1.1,
+     "dir": 5.625,
+     "per": 4.1000000000000005
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 3,
+    "lead": 15,
+    "step": 15,
+    "name": "55.45N 7.90E",
+    "wave": {
+     "hs": 0.65,
+     "dir": 333.28125,
+     "per": 5.4
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 3,
+    "lead": 15,
+    "step": 15,
+    "name": "55.55N 7.90E",
+    "wave": {
+     "hs": 0.7000000000000001,
+     "dir": 330.46875,
+     "per": 5.800000000000001
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 3,
+    "lead": 15,
+    "step": 15,
+    "name": "55.80N 7.90E",
+    "wave": {
+     "hs": 0.75,
+     "dir": 344.53125,
+     "per": 5.7
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 3,
+    "lead": 15,
+    "step": 15,
+    "name": "56.20N 7.90E",
+    "wave": {
+     "hs": 0.75,
+     "dir": 351.5625,
+     "per": 5.6000000000000005
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 6,
+    "lead": 18,
+    "step": 18,
+    "name": "Laboe",
+    "wave": {
+     "hs": 0.2,
+     "dir": 0,
+     "per": 3
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 6,
+    "lead": 18,
+    "step": 18,
+    "name": "3 sm",
+    "wave": {
+     "hs": 0.25,
+     "dir": 355.78125,
+     "per": 2.9000000000000004
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 6,
+    "lead": 18,
+    "step": 18,
+    "name": "6 sm",
+    "wave": {
+     "hs": 0.25,
+     "dir": 350.15625,
+     "per": 2.8000000000000003
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 6,
+    "lead": 18,
+    "step": 18,
+    "name": "10 sm",
+    "wave": {
+     "hs": 0.25,
+     "dir": 341.71875,
+     "per": 2.7
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 6,
+    "lead": 18,
+    "step": 18,
+    "name": "13 sm",
+    "wave": {
+     "hs": 0.25,
+     "dir": 336.09375,
+     "per": 2.6
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 6,
+    "lead": 18,
+    "step": 18,
+    "name": "16 sm",
+    "wave": {
+     "hs": 0.25,
+     "dir": 327.65625,
+     "per": 2.5
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 6,
+    "lead": 18,
+    "step": 18,
+    "name": "19 sm",
+    "wave": {
+     "hs": 0.25,
+     "dir": 319.21875,
+     "per": 2.4000000000000004
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 6,
+    "lead": 18,
+    "step": 18,
+    "name": "23 sm",
+    "wave": {
+     "hs": 0.2,
+     "dir": 307.96875,
+     "per": 2.3000000000000003
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 6,
+    "lead": 18,
+    "step": 18,
+    "name": "26 sm",
+    "wave": {
+     "hs": 0.1,
+     "dir": 278.4375,
+     "per": 2.1
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 6,
+    "lead": 18,
+    "step": 18,
+    "name": "Marstal",
+    "wave": {
+     "hs": 0.1,
+     "dir": 0,
+     "per": 1.4000000000000001
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 6,
+    "lead": 18,
+    "step": 18,
+    "name": "55.30N 10.85E",
+    "wave": {
+     "hs": 0.30000000000000004,
+     "dir": 15.46875,
+     "per": 3
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 6,
+    "lead": 18,
+    "step": 18,
+    "name": "55.45N 10.85E",
+    "wave": {
+     "hs": 0.4,
+     "dir": 351.5625,
+     "per": 2.9000000000000004
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 6,
+    "lead": 18,
+    "step": 18,
+    "name": "55.50N 10.85E",
+    "wave": {
+     "hs": 0.4,
+     "dir": 345.9375,
+     "per": 2.9000000000000004
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 6,
+    "lead": 18,
+    "step": 18,
+    "name": "55.55N 10.85E",
+    "wave": {
+     "hs": 0.45,
+     "dir": 341.71875,
+     "per": 3
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 6,
+    "lead": 18,
+    "step": 18,
+    "name": "55.60N 10.85E",
+    "wave": {
+     "hs": 0.45,
+     "dir": 337.5,
+     "per": 3
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 6,
+    "lead": 18,
+    "step": 18,
+    "name": "55.80N 10.85E",
+    "wave": {
+     "hs": 0.65,
+     "dir": 7.03125,
+     "per": 3.8000000000000003
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 6,
+    "lead": 18,
+    "step": 18,
+    "name": "56.00N 10.85E",
+    "wave": {
+     "hs": 0.65,
+     "dir": 14.0625,
+     "per": 3.7
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 6,
+    "lead": 18,
+    "step": 18,
+    "name": "56.30N 11.20E",
+    "wave": {
+     "hs": 0.75,
+     "dir": 4.21875,
+     "per": 3.8000000000000003
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 6,
+    "lead": 18,
+    "step": 18,
+    "name": "55.45N 7.90E",
+    "wave": {
+     "hs": 0.55,
+     "dir": 338.90625,
+     "per": 5
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 6,
+    "lead": 18,
+    "step": 18,
+    "name": "55.55N 7.90E",
+    "wave": {
+     "hs": 0.65,
+     "dir": 331.875,
+     "per": 5.4
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 6,
+    "lead": 18,
+    "step": 18,
+    "name": "55.80N 7.90E",
+    "wave": {
+     "hs": 0.65,
+     "dir": 343.125,
+     "per": 5.300000000000001
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 6,
+    "lead": 18,
+    "step": 18,
+    "name": "56.20N 7.90E",
+    "wave": {
+     "hs": 0.6000000000000001,
+     "dir": 347.34375,
+     "per": 5.7
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 12,
+    "lead": 24,
+    "step": 24,
+    "name": "Laboe",
+    "wave": {
+     "hs": 0.1,
+     "dir": 4.21875,
+     "per": 2.2
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 12,
+    "lead": 24,
+    "step": 24,
+    "name": "3 sm",
+    "wave": {
+     "hs": 0.1,
+     "dir": 5.625,
+     "per": 2.1
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 12,
+    "lead": 24,
+    "step": 24,
+    "name": "6 sm",
+    "wave": {
+     "hs": 0.1,
+     "dir": 2.8125,
+     "per": 2
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 12,
+    "lead": 24,
+    "step": 24,
+    "name": "10 sm",
+    "wave": {
+     "hs": 0.1,
+     "dir": 5.625,
+     "per": 1.8
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 12,
+    "lead": 24,
+    "step": 24,
+    "name": "13 sm",
+    "wave": {
+     "hs": 0.1,
+     "dir": 11.25,
+     "per": 1.6
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 12,
+    "lead": 24,
+    "step": 24,
+    "name": "16 sm",
+    "wave": {
+     "hs": 0.1,
+     "dir": 354.375,
+     "per": 1.6
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 12,
+    "lead": 24,
+    "step": 24,
+    "name": "19 sm",
+    "wave": {
+     "hs": 0.1,
+     "dir": 329.0625,
+     "per": 1.7000000000000002
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 12,
+    "lead": 24,
+    "step": 24,
+    "name": "23 sm",
+    "wave": {
+     "hs": 0.05,
+     "dir": 313.59375,
+     "per": 1.8
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 12,
+    "lead": 24,
+    "step": 24,
+    "name": "26 sm",
+    "wave": {
+     "hs": 0.05,
+     "dir": 282.65625,
+     "per": 1.6
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 12,
+    "lead": 24,
+    "step": 24,
+    "name": "Marstal",
+    "wave": {
+     "hs": 0,
+     "dir": 26.71875,
+     "per": 1.6
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 12,
+    "lead": 24,
+    "step": 24,
+    "name": "55.30N 10.85E",
+    "wave": {
+     "hs": 0.15000000000000002,
+     "dir": 4.21875,
+     "per": 2.8000000000000003
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 12,
+    "lead": 24,
+    "step": 24,
+    "name": "55.45N 10.85E",
+    "wave": {
+     "hs": 0.15000000000000002,
+     "dir": 357.1875,
+     "per": 2.9000000000000004
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 12,
+    "lead": 24,
+    "step": 24,
+    "name": "55.50N 10.85E",
+    "wave": {
+     "hs": 0.2,
+     "dir": 352.96875,
+     "per": 3
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 12,
+    "lead": 24,
+    "step": 24,
+    "name": "55.55N 10.85E",
+    "wave": {
+     "hs": 0.2,
+     "dir": 348.75,
+     "per": 3
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 12,
+    "lead": 24,
+    "step": 24,
+    "name": "55.60N 10.85E",
+    "wave": {
+     "hs": 0.2,
+     "dir": 348.75,
+     "per": 3.1
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 12,
+    "lead": 24,
+    "step": 24,
+    "name": "55.80N 10.85E",
+    "wave": {
+     "hs": 0.35000000000000003,
+     "dir": 18.28125,
+     "per": 3.5
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 12,
+    "lead": 24,
+    "step": 24,
+    "name": "56.00N 10.85E",
+    "wave": {
+     "hs": 0.35000000000000003,
+     "dir": 23.90625,
+     "per": 3.4000000000000004
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 12,
+    "lead": 24,
+    "step": 24,
+    "name": "56.30N 11.20E",
+    "wave": {
+     "hs": 0.45,
+     "dir": 4.21875,
+     "per": 3.2
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 12,
+    "lead": 24,
+    "step": 24,
+    "name": "55.45N 7.90E",
+    "wave": {
+     "hs": 0.5,
+     "dir": 0,
+     "per": 4.800000000000001
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 12,
+    "lead": 24,
+    "step": 24,
+    "name": "55.55N 7.90E",
+    "wave": {
+     "hs": 0.5,
+     "dir": 330.46875,
+     "per": 5.5
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 12,
+    "lead": 24,
+    "step": 24,
+    "name": "55.80N 7.90E",
+    "wave": {
+     "hs": 0.5,
+     "dir": 337.5,
+     "per": 5.6000000000000005
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 12,
+    "lead": 24,
+    "step": 24,
+    "name": "56.20N 7.90E",
+    "wave": {
+     "hs": 0.45,
+     "dir": 327.65625,
+     "per": 7.300000000000001
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 24,
+    "lead": 36,
+    "step": 36,
+    "name": "Laboe",
+    "wave": {
+     "hs": 0.2,
+     "dir": 26.71875,
+     "per": 2.6
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 24,
+    "lead": 36,
+    "step": 36,
+    "name": "3 sm",
+    "wave": {
+     "hs": 0.5,
+     "dir": 54.84375,
+     "per": 2.9000000000000004
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 24,
+    "lead": 36,
+    "step": 36,
+    "name": "6 sm",
+    "wave": {
+     "hs": 0.5,
+     "dir": 54.84375,
+     "per": 2.8000000000000003
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 24,
+    "lead": 36,
+    "step": 36,
+    "name": "10 sm",
+    "wave": {
+     "hs": 0.45,
+     "dir": 54.84375,
+     "per": 2.8000000000000003
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 24,
+    "lead": 36,
+    "step": 36,
+    "name": "13 sm",
+    "wave": {
+     "hs": 0.45,
+     "dir": 56.25,
+     "per": 2.7
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 24,
+    "lead": 36,
+    "step": 36,
+    "name": "16 sm",
+    "wave": {
+     "hs": 0.35000000000000003,
+     "dir": 57.65625,
+     "per": 2.6
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 24,
+    "lead": 36,
+    "step": 36,
+    "name": "19 sm",
+    "wave": {
+     "hs": 0.30000000000000004,
+     "dir": 61.875,
+     "per": 2.5
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 24,
+    "lead": 36,
+    "step": 36,
+    "name": "23 sm",
+    "wave": {
+     "hs": 0.25,
+     "dir": 67.5,
+     "per": 2.3000000000000003
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 24,
+    "lead": 36,
+    "step": 36,
+    "name": "26 sm",
+    "wave": {
+     "hs": 0.15000000000000002,
+     "dir": 67.5,
+     "per": 2
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 24,
+    "lead": 36,
+    "step": 36,
+    "name": "Marstal",
+    "wave": {
+     "hs": 0.1,
+     "dir": 60.46875,
+     "per": 1.4000000000000001
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 24,
+    "lead": 36,
+    "step": 36,
+    "name": "55.30N 10.85E",
+    "wave": {
+     "hs": 0.15000000000000002,
+     "dir": 54.84375,
+     "per": 2
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 24,
+    "lead": 36,
+    "step": 36,
+    "name": "55.45N 10.85E",
+    "wave": {
+     "hs": 0.1,
+     "dir": 52.03125,
+     "per": 2
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 24,
+    "lead": 36,
+    "step": 36,
+    "name": "55.50N 10.85E",
+    "wave": {
+     "hs": 0.1,
+     "dir": 25.3125,
+     "per": 2.2
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 24,
+    "lead": 36,
+    "step": 36,
+    "name": "55.55N 10.85E",
+    "wave": {
+     "hs": 0.05,
+     "dir": 1.40625,
+     "per": 2.3000000000000003
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 24,
+    "lead": 36,
+    "step": 36,
+    "name": "55.60N 10.85E",
+    "wave": {
+     "hs": 0.05,
+     "dir": 354.375,
+     "per": 2.4000000000000004
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 24,
+    "lead": 36,
+    "step": 36,
+    "name": "55.80N 10.85E",
+    "wave": {
+     "hs": 0.15000000000000002,
+     "dir": 22.5,
+     "per": 2.9000000000000004
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 24,
+    "lead": 36,
+    "step": 36,
+    "name": "56.00N 10.85E",
+    "wave": {
+     "hs": 0.15000000000000002,
+     "dir": 19.6875,
+     "per": 2.1
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 24,
+    "lead": 36,
+    "step": 36,
+    "name": "56.30N 11.20E",
+    "wave": {
+     "hs": 0.30000000000000004,
+     "dir": 286.875,
+     "per": 2.3000000000000003
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 24,
+    "lead": 36,
+    "step": 36,
+    "name": "55.45N 7.90E",
+    "wave": {
+     "hs": 0.30000000000000004,
+     "dir": 312.1875,
+     "per": 6.800000000000001
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 24,
+    "lead": 36,
+    "step": 36,
+    "name": "55.55N 7.90E",
+    "wave": {
+     "hs": 0.35000000000000003,
+     "dir": 313.59375,
+     "per": 7.800000000000001
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 24,
+    "lead": 36,
+    "step": 36,
+    "name": "55.80N 7.90E",
+    "wave": {
+     "hs": 0.30000000000000004,
+     "dir": 319.21875,
+     "per": 7.800000000000001
+    },
+    "cur": "outside the run"
+   },
+   {
+    "h": 24,
+    "lead": 36,
+    "step": 36,
+    "name": "56.20N 7.90E",
+    "wave": {
+     "hs": 0.35000000000000003,
+     "dir": 313.59375,
+     "per": 7.9
+    },
+    "cur": "outside the run"
+   }
+  ],
+  "currentFixture": [
+   {
+    "hour": 6,
+    "name": "Laboe",
+    "cur": {
+     "kn": 0.05,
+     "to": 225
+    }
+   },
+   {
+    "hour": 6,
+    "name": "3 sm",
+    "cur": {
+     "kn": 0.13,
+     "to": 285
+    }
+   },
+   {
+    "hour": 6,
+    "name": "6 sm",
+    "cur": {
+     "kn": 0.15,
+     "to": 293
+    }
+   },
+   {
+    "hour": 6,
+    "name": "10 sm",
+    "cur": {
+     "kn": 0.19,
+     "to": 256
+    }
+   },
+   {
+    "hour": 6,
+    "name": "13 sm",
+    "cur": {
+     "kn": 0.22,
+     "to": 249
+    }
+   },
+   {
+    "hour": 6,
+    "name": "16 sm",
+    "cur": {
+     "kn": 0.1,
+     "to": 258
+    }
+   },
+   {
+    "hour": 6,
+    "name": "19 sm",
+    "cur": {
+     "kn": 0.16,
+     "to": 267
+    }
+   },
+   {
+    "hour": 6,
+    "name": "23 sm",
+    "cur": {
+     "kn": 0.49,
+     "to": 275
+    }
+   },
+   {
+    "hour": 6,
+    "name": "26 sm",
+    "cur": {
+     "kn": 0.34,
+     "to": 275
+    }
+   },
+   {
+    "hour": 6,
+    "name": "Marstal",
+    "cur": {
+     "kn": 0.03,
+     "to": 315
+    }
+   },
+   {
+    "hour": 6,
+    "name": "55.30N 10.85E",
+    "cur": {
+     "kn": 0.38,
+     "to": 167
+    }
+   },
+   {
+    "hour": 6,
+    "name": "55.45N 10.85E",
+    "cur": {
+     "kn": 1.13,
+     "to": 191
+    }
+   },
+   {
+    "hour": 6,
+    "name": "55.50N 10.85E",
+    "cur": {
+     "kn": 1.19,
+     "to": 182
+    }
+   },
+   {
+    "hour": 6,
+    "name": "55.55N 10.85E",
+    "cur": {
+     "kn": 0.99,
+     "to": 185
+    }
+   },
+   {
+    "hour": 6,
+    "name": "55.60N 10.85E",
+    "cur": {
+     "kn": 0.93,
+     "to": 180
+    }
+   },
+   {
+    "hour": 6,
+    "name": "55.80N 10.85E",
+    "cur": {
+     "kn": 0.72,
+     "to": 220
+    }
+   },
+   {
+    "hour": 6,
+    "name": "56.00N 10.85E",
+    "cur": {
+     "kn": 0.63,
+     "to": 218
+    }
+   },
+   {
+    "hour": 6,
+    "name": "56.30N 11.20E",
+    "cur": {
+     "kn": 0.16,
+     "to": 227
+    }
+   },
+   {
+    "hour": 6,
+    "name": "55.45N 7.90E",
+    "cur": {
+     "kn": 0.64,
+     "to": 349
+    }
+   },
+   {
+    "hour": 6,
+    "name": "55.55N 7.90E",
+    "cur": {
+     "kn": 0.92,
+     "to": 353
+    }
+   },
+   {
+    "hour": 6,
+    "name": "55.80N 7.90E",
+    "cur": {
+     "kn": 0.47,
+     "to": 13
+    }
+   },
+   {
+    "hour": 6,
+    "name": "56.20N 7.90E",
+    "cur": {
+     "kn": 0.66,
+     "to": 358
+    }
+   },
+   {
+    "hour": 9,
+    "name": "Laboe",
+    "cur": {
+     "kn": 0.05,
+     "to": 225
+    }
+   },
+   {
+    "hour": 9,
+    "name": "3 sm",
+    "cur": {
+     "kn": 0.11,
+     "to": 295
+    }
+   },
+   {
+    "hour": 9,
+    "name": "6 sm",
+    "cur": {
+     "kn": 0.13,
+     "to": 334
+    }
+   },
+   {
+    "hour": 9,
+    "name": "10 sm",
+    "cur": {
+     "kn": 0.18,
+     "to": 310
+    }
+   },
+   {
+    "hour": 9,
+    "name": "13 sm",
+    "cur": {
+     "kn": 0.11,
+     "to": 290
+    }
+   },
+   {
+    "hour": 9,
+    "name": "16 sm",
+    "cur": {
+     "kn": 0.12,
+     "to": 351
+    }
+   },
+   {
+    "hour": 9,
+    "name": "19 sm",
+    "cur": {
+     "kn": 0.15,
+     "to": 350
+    }
+   },
+   {
+    "hour": 9,
+    "name": "23 sm",
+    "cur": {
+     "kn": 0.28,
+     "to": 317
+    }
+   },
+   {
+    "hour": 9,
+    "name": "26 sm",
+    "cur": {
+     "kn": 0.21,
+     "to": 328
+    }
+   },
+   {
+    "hour": 9,
+    "name": "Marstal",
+    "cur": {
+     "kn": 0,
+     "to": 0
+    }
+   },
+   {
+    "hour": 9,
+    "name": "55.30N 10.85E",
+    "cur": {
+     "kn": 0.09,
+     "to": 169
+    }
+   },
+   {
+    "hour": 9,
+    "name": "55.45N 10.85E",
+    "cur": {
+     "kn": 0.44,
+     "to": 220
+    }
+   },
+   {
+    "hour": 9,
+    "name": "55.50N 10.85E",
+    "cur": {
+     "kn": 0.28,
+     "to": 214
+    }
+   },
+   {
+    "hour": 9,
+    "name": "55.55N 10.85E",
+    "cur": {
+     "kn": 0.23,
+     "to": 236
+    }
+   },
+   {
+    "hour": 9,
+    "name": "55.60N 10.85E",
+    "cur": {
+     "kn": 0.26,
+     "to": 222
+    }
+   },
+   {
+    "hour": 9,
+    "name": "55.80N 10.85E",
+    "cur": {
+     "kn": 0.24,
+     "to": 259
+    }
+   },
+   {
+    "hour": 9,
+    "name": "56.00N 10.85E",
+    "cur": {
+     "kn": 0.33,
+     "to": 256
+    }
+   },
+   {
+    "hour": 9,
+    "name": "56.30N 11.20E",
+    "cur": {
+     "kn": 0.04,
+     "to": 270
+    }
+   },
+   {
+    "hour": 9,
+    "name": "55.45N 7.90E",
+    "cur": {
+     "kn": 0.8,
+     "to": 307
+    }
+   },
+   {
+    "hour": 9,
+    "name": "55.55N 7.90E",
+    "cur": {
+     "kn": 1.05,
+     "to": 341
+    }
+   },
+   {
+    "hour": 9,
+    "name": "55.80N 7.90E",
+    "cur": {
+     "kn": 0.58,
+     "to": 0
+    }
+   },
+   {
+    "hour": 9,
+    "name": "56.20N 7.90E",
+    "cur": {
+     "kn": 0.77,
+     "to": 358
+    }
+   }
+  ]
+ },
+ "c": {
+  "features": [
+   {
+    "id": "401000003",
+    "name": "Suedwestliche Nordsee",
+    "kind": "sea",
+    "polys": 10
+   },
+   {
+    "id": "401000008",
+    "name": "Deutsche Bucht",
+    "kind": "sea",
+    "polys": 35
+   },
+   {
+    "id": "401000009",
+    "name": "Fischer",
+    "kind": "sea",
+    "polys": 2
+   },
+   {
+    "id": "401000011",
+    "name": "Skagerrak",
+    "kind": "sea",
+    "polys": 58
+   },
+   {
+    "id": "401000012",
+    "name": "Kattegat",
+    "kind": "sea",
+    "polys": 22
+   },
+   {
+    "id": "401000013",
+    "name": "Belte und Sund",
+    "kind": "sea",
+    "polys": 36
+   },
+   {
+    "id": "401000014",
+    "name": "Westliche Ostsee",
+    "kind": "sea",
+    "polys": 9
+   },
+   {
+    "id": "401000015",
+    "name": "Boddengewaesser Ost",
+    "kind": "sea",
+    "polys": 2
+   },
+   {
+    "id": "401000016",
+    "name": "Suedliche Ostsee",
+    "kind": "sea",
+    "polys": 11
+   },
+   {
+    "id": "401000017",
+    "name": "Suedoestliche Ostsee",
+    "kind": "sea",
+    "polys": 1
+   },
+   {
+    "id": "501000001",
+    "name": "Ostfriesische Kueste",
+    "kind": "coast",
+    "polys": 10
+   },
+   {
+    "id": "501000002",
+    "name": "Helgoland",
+    "kind": "coast",
+    "polys": 2
+   },
+   {
+    "id": "501000003",
+    "name": "Elbmuendung",
+    "kind": "coast",
+    "polys": 4
+   },
+   {
+    "id": "501000004",
+    "name": "Elbe von Hamburg bis Cuxhaven",
+    "kind": "coast",
+    "polys": 1
+   },
+   {
+    "id": "501000005",
+    "name": "Nordfriesische Kueste",
+    "kind": "coast",
+    "polys": 10
+   },
+   {
+    "id": "501000006",
+    "name": "Flensburg bis Fehmarn",
+    "kind": "coast",
+    "polys": 1
+   },
+   {
+    "id": "501000007",
+    "name": "Oestlich Fehmarn bis Ruegen",
+    "kind": "coast",
+    "polys": 6
+   },
+   {
+    "id": "501000008",
+    "name": "Boddengewaesser Ost und oestlich Ruegen",
+    "kind": "coast",
+    "polys": 4
+   }
+  ],
+  "samples": 110,
+  "crossed": [
+   {
+    "id": "401000014",
+    "name": "Westliche Ostsee",
+    "kind": "sea",
+    "fromKm": 0,
+    "toKm": 46.7,
+    "samples": 95
+   },
+   {
+    "id": "501000006",
+    "name": "Flensburg bis Fehmarn",
+    "kind": "coast",
+    "fromKm": 0,
+    "toKm": 33.7,
+    "samples": 69
+   },
+   {
+    "id": "401000013",
+    "name": "Belte und Sund",
+    "kind": "sea",
+    "fromKm": 47.1,
+    "toKm": 54.1,
+    "samples": 15
+   }
+  ]
+ }
+}

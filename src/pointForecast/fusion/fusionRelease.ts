@@ -318,7 +318,7 @@ export const fusionProductBehind = (engine: { name?: unknown; version?: unknown 
  * before. E-FR-3 (Jan 06.10.2026): every part is switched on after its measurement (§8.4), not before. A new stand needs nothing
  * here — every part that is on follows it by itself; a new part is a new line. `?pf=cube` / `?pf=live` force all parts.
  */
-export type FusionPartId = 'route' | 'event' | 'section' | 'notify';
+export type FusionPartId = 'route' | 'event' | 'section' | 'notify' | 'sea';
 export interface FusionPart { id: FusionPartId; name: string; on: boolean; ref: string }
 export const FUSION_PARTS: readonly FusionPart[] = Object.freeze([
   // E-FR-7 (Jan 06.10.2026: „nutze es einfach, die Zeit ist erstmal nicht so wichtig"): on despite K2 cold (+0,7 s, §8.6).
@@ -330,6 +330,9 @@ export const FUSION_PARTS: readonly FusionPart[] = Object.freeze([
   { id: 'event', name: 'Eventplaner', on: true, ref: 'audit/fusion-release.md §8.11' },
   { id: 'section', name: 'Vertikalschnitt / 3D / Föhn', on: true, ref: 'audit/fusion-release.md §8.11' },
   { id: 'notify', name: 'Benachrichtigungen', on: true, ref: 'audit/fusion-release.md §8.11' },
+  // Phase AM (Jan 19.11.2026): wind and gusts at the sample points of a leg on /seewetter. This part has NO live path behind it
+  // (`src/sea/seaTripData.ts`): off, `?pf=live` or a failed cube read is "keine Daten", never another model.
+  { id: 'sea', name: 'Seewetter · Etappe', on: true, ref: 'audit/seewetter-ausfahrt.md §1.2' },
 ] as const);
 export const fusionPartOn = (id: FusionPartId): boolean => FUSION_PARTS.find((p) => p.id === id)?.on === true;
 
