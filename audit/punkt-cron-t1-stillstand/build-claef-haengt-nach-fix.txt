@@ -1,0 +1,32 @@
+START 08:59:28
+08:59:29 
+08:59:29 ── Stufe t1 · 0.05° · 201×241 · 49 Schritte 0–48 h
+08:59:42   t1: h_model je Quelle — ifs_hres, aifs_single · 208 Chunks, 35 KiB geschrieben — erstmals gebaut
+08:59:42      ifs_hres: added
+08:59:42      aifs_single: added
+09:00:09   t1: Druckflaechen (Raster 1 h) — t925 17 · rh925 17 · t850 17 · rh850 17 · t700 17 · rh700 17
+09:03:34   ⚠ t1: claef t2m @ +0 h: http://127.0.0.1:18765/v1/grid/forecast/nwp-v2-1h-1km?parameters=2t&start=2026-11-19T03:00&end=2026-11-19T18:00&bbox=45.500,5.500,51.488,17.500&output_format=netcdf: Frist von 120 s abgelaufen (timeout)
+09:07:34   ⚠ t1: claef td2m @ +0 h: http://127.0.0.1:18765/v1/grid/forecast/nwp-v2-1h-1km?parameters=2t&start=2026-11-19T03:00&end=2026-11-19T18:00&bbox=45.500,5.500,51.488,17.500&output_format=netcdf: Frist von 120 s abgelaufen (timeout)
+09:07:34   ⚠ t1: claef fällt für diese Stufe heraus — 481 s in fehlgeschlagenen oder langsamen Abrufen dieser Stufe (Budget 300 s)
+09:08:00   t1: hModEff je Schritt — 823497 Zellen aus tragenden Quellen, 1550112 Rueckfall (alle Hoehen), 0 ohne Hoehe · nativ — · abgeleitet ifs_hres+aifs_single
+09:08:05   Speicher: Heap max 29 von 4144 MiB · extern max 339 MiB · RSS max 561 MiB
+09:08:05   Netz je Quelle: ifs_hres 105.0 MiB/53 · aifs_single 29.5 MiB/26 · claef 0.0 MiB/1
+09:08:05   Zeit je Phase: discover 4 s · fields 507 s · encode 5 s · gesamt 517 s
+09:08:05   Zeit je Block (überlappend): ensemble 0 s · quantiles 0 s · profile 0 s · orography 9 s · pressure 35 s · fields 507 s
+09:08:05   Worker-Pool: workers · 3/3 Worker · 328 Aufträge · Wartezeit 29 s
+09:08:05   Zeit je Quelle: claef 481 s/4 (Netz 2 s) · ifs_hres 67 s/241 (Netz 41 s) · aifs_single 37 s/91 (Netz 28 s)
+09:08:05   ⚠ herausgefallen claef: 481 s in fehlgeschlagenen oder langsamen Abrufen dieser Stufe (Budget 300 s)
+09:08:06   zugeordnet: claef@2026111903 (49 Std.)
+09:08:06   zusätzlich gelesen (Mittel + σ): ifs_hres@2026111900 (17 Std.) · aifs_single@2026111900 (8 Std.)
+09:08:06   übersprungen inca: liegt unter radar/img/v1/inca, Leser seit PD-B3. Traegt Ostoesterreich allein (⚠¹). Nicht im Cube — s. radvor_rv.
+09:08:06   übersprungen radvor_rv: liegt als UNVERAENDERTES tar.bz2 unter radar/rv und als Werte-PNG unter radar/img/v1/rv. Seit PD-B3 gibt es den Leser (scripts/point/nowcastReader.mjs); er gehoert NICHT in den Cube, weil dessen Achse am Modelllauf haengt (§36.4).
+09:08:06   übersprungen combiprecip: liegt unter radar/img/v1/rzc, Leser seit PD-B3. Nicht im Cube — s. radvor_rv.
+09:08:06   208 Chunks · 2.59 MiB · Median 13.3 KiB
+09:08:06   mit Werten (21/61, KiB im Container): gust 156 · u10 153 · v10 151 · ps 145 · t2m 132 · rh700 129 · td2m 128 · rh850 124 · rh925 121 · clct 117 · t700 117 · t850 113 · t925 109 · v10_sd 76 · u10_sd 76 · ps_sd 68 · clct_sd 68 · t2m_sd 64 · td2m_sd 63 · hModEff 47 · srcCount 18
+09:08:06   durchgehend MISSING: t2m_sd_ens, t2m_q10, t2m_q90, t2m_ens, td2m_sd_ens, u10_sd_ens, u10_q10, u10_q90, u10_ens, v10_sd_ens, v10_q10, v10_q90, v10_ens, gust_sd, gust_sd_ens, gust_q10, gust_q90, precip, precip_sd, precip_sd_ens, precip_q10, precip_q90, precip_ens, clct_sd_ens, clct_q10, clct_q90, ps_sd_ens, snowlmt, snowlmt_sd, snowlmt_sd_ens, snowlmt_q10, snowlmt_q90, clcl, clcm, clch, gammaEff, zBase, zInv, dTInv, ensCount
+09:08:06   ms: Felder 511214 · gesamt 516541
+09:08:06 
+09:08:06 1 Stufe(n) · 208 Chunks · 2.59 MiB
+09:08:06 Netz: 80 Dateien (134.6 MiB), 354 aus dem Cache, 0 nicht vorhanden
+09:08:06 Manifest: C:\Users\User\AppData\Local\Temp\claude\c71f0a7be8715222\9425b255-413e-4c29-94d0-29f59f5241e9\scratchpad\t1\out-e2e\2026111903\run.json
+END 09:08:06

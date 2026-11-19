@@ -1,0 +1,22 @@
+START 06:18:43
+06:18:46 (node:11192) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+06:18:46 (Use `node --trace-warnings ...` to show where the warning was created)
+06:18:47 
+06:18:47 ── Stufe t1 · 0.05° · 201×241 · 49 Schritte 0–48 h
+06:19:50 [bz2] bzip2-Binary (REPACK_BZIP2=1)
+06:20:25   t1: z0 je Quelle — icon_d2, icon_ch1_eps, icon_eu · 208 Chunks, 203 KiB geschrieben — erstmals gebaut · ohne z0: claef, ifs_hres, aifs_single
+06:20:32   t1: h_model je Quelle — icon_d2, icon_ch1_eps, icon_eu, ifs_hres, aifs_single · 208 Chunks, 187 KiB geschrieben — erstmals gebaut
+06:20:33      icon_d2: added
+06:20:33      icon_ch1_eps: added
+06:20:33      icon_eu: added
+06:20:33      ifs_hres: added
+06:20:34      aifs_single: added
+06:23:04   t1: Profil aus icon_d2 — 49 Stunden (Raster 1 h), 0 ohne, Inversionsanteil 31.4 %
+06:25:00   ⚠ t1: claef t2m @ +3 h: https://dataset.api.hub.geosphere.at/v1/grid/forecast/nwp-v2-1h-1km?parameters=2t&start=2026-11-19T00:00&end=2026-11-19T15:00&bbox=45.500,5.500,51.488,17.500&output_format=netcdf: terminated
+06:25:34   t1: Druckflaechen (Raster 1 h) — t925 37 · rh925 37 · t850 49 · rh850 49 · t700 49 · rh700 49
+06:26:21   t1: Quantile aus claef_eps — 49 Stunden, 0 ohne, 7 Größen
+06:29:21   t1: σ_ens aus icon_d2_eps — 9 Stunden (Raster 6 h) [0 6 12 18 24 30 36 42 48], t2m+u10+v10+gust+precip, 20 Member, Niederschlag ohne Rate 1×, 35040 negative Differenzen auf 0
+07:04:40   ⚠ t1: claef u10 @ +3 h: https://dataset.api.hub.geosphere.at/v1/grid/forecast/nwp-v2-1h-1km?parameters=10u&start=2026-11-19T00:00&end=2026-11-19T15:00&bbox=45.500,5.500,51.488,17.500&output_format=netcdf: HTTP 502
+07:08:49   ⚠ t1: claef v10 @ +3 h: https://dataset.api.hub.geosphere.at/v1/grid/forecast/nwp-v2-1h-1km?parameters=10v&start=2026-11-19T00:00&end=2026-11-19T15:00&bbox=45.500,5.500,51.488,17.500&output_format=netcdf: HTTP 502
+07:11:02   ⚠ t1: claef gust @ +3 h: https://dataset.api.hub.geosphere.at/v1/grid/forecast/nwp-v2-1h-1km?parameters=10fg&start=2026-11-19T00:00&end=2026-11-19T15:00&bbox=45.500,5.500,51.488,17.500&output_format=netcdf: HTTP 502
+END 07:58:57

@@ -63,6 +63,7 @@ import { adapterFor, ingestableFor, PENDING, DECLINED } from './adapters/index.m
 import { netStats, resetNetStats, netDiff, clearCache, runIso, poolStats, poolClose } from './adapters/shared.mjs';
 import { PROFILE_PARAMS } from './profile.mjs';
 import { runLanes, orderedSettle, sequentialSettle } from './lanes.mjs';
+import { noteLostTime } from './sourceBudget.mjs';
 import { writeStaticHmodel } from './staticHmodel.mjs';
 import { writeStaticZ0mod, z0modEnabled, collectZ0mod } from './staticZ0mod.mjs';
 import { QUANTILE_VALUE_OFFSET } from './adapters/ensembleStats.mjs';
@@ -250,8 +251,11 @@ export async function buildTier(tierId, opts = {}) {
     // die Netzzeit; die Differenz ist Dekodieren und Nachbarindex. Ohne diese Zahl bleibt
     // „der Bau ließe sich kürzen" eine Vermutung.
     const tc = Date.now();
+    let ok = false;
     try {
-      return await fn();
+      const v = await fn();
+      ok = true;
+      return v;
     } catch (e) {
       c.errors = (c.errors ?? 0) + 1;
       c.firstError ??= `${what}: ${e.message}`;
@@ -265,6 +269,16 @@ export async function buildTier(tierId, opts = {}) {
     } finally {
       c.msWall = (c.msWall ?? 0) + (Date.now() - tc);
       c.calls = (c.calls ?? 0) + 1;
+      const dt = Date.now() - tc;
+      // PT1 (audit/punkt-cron-t1-stillstand.md): die Zahl der Fehler begrenzt nichts, wenn schon der
+      // einzelne Fehler Minuten dauert — t1 stand vom 17. bis 19.11.2026 an einer hängenden Quelle.
+      // Daneben gilt deshalb ein ZEITbudget je Quelle und Stufe (Regel in sourceBudget.mjs).
+      const why = c.dropped ? null : noteLostTime(c, ok, dt);
+      if (why) {
+        c.dropped = { reason: why, errors: c.errors ?? 0, firstError: c.firstError ?? null };
+        dropped.push([c.id, why]);
+        console.log(`  ⚠ ${tierId}: ${c.id} fällt für diese Stufe heraus — ${why}`);
+      }
     }
   };
   // PD-F1: Wandzeit je Phase der Stufe — Laufsuche, Felder, Ensemble, Quantile, Profil,

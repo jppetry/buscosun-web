@@ -97,6 +97,62 @@ function maybeInjectFault(url) {
 const THROTTLE_MAX_WAIT_MS = 10 * 60_000;
 
 // ---------------------------------------------------------------------------
+// Fristen (PT1, audit/punkt-cron-t1-stillstand.md)
+// ---------------------------------------------------------------------------
+//
+// Vom 17. bis 19.11.2026 lief jeder t1-Job in die Job-Frist von 45 Minuten: GeoSphere
+// `nwp-v2-1h-1km` hing oder antwortete mit 502/503, und hier hatte kein Abruf eine Frist.
+// Im Nachbau wartete der Producer 39 Minuten an EINER Adresse. Drei Grenzen, alle hier:
+//
+//   1. Jeder Abruf hat eine Frist für Kopf UND Körper (`FETCH_TIMEOUT_MS`). Eine abgelaufene
+//      Frist ist ein FEHLER — nie „nicht vorhanden“ (`AbortError` ≠ absent, BW-13).
+//   2. Eine Adresse bekommt keinen neuen Versuch mehr, sobald ihre Fehlversuche zusammen
+//      `URL_FAIL_BUDGET_MS` gekostet haben. Schnelle Fehler behalten so ihre fünf Versuche,
+//      ein Hänger bekommt zwei — höchstens 2,5 Fristen je Adresse.
+//   3. 503 OHNE `Retry-After` ist ein Ausfall hinter dem Gateway (GeoSphere: „failure to get a
+//      peer from the ring-balancer“), keine Bitte um Geduld: gewartet wird höchstens
+//      `OUTAGE_MAX_WAIT_MS`, nicht zehn Minuten. 429 und 503 MIT `Retry-After` bleiben Drosselung.
+//
+// Die Werte sind GESETZT. Anhalt für die Frist: im letzten guten t1-Lauf (2026111715) brauchte
+// die größte Dateiklasse (ICON-D2-EPS, 23,5 MiB) im Mittel 9,8 s je Datei, `claef` 4,2 s.
+// Das Zeitbudget je QUELLE steht in `../sourceBudget.mjs`.
+const envSeconds = (name, dflt) => {
+  const v = Number(process.env[name]);
+  return Math.round((Number.isFinite(v) && v > 0 ? v : dflt) * 1000);
+};
+export const FETCH_TIMEOUT_MS = envSeconds('POINT_FETCH_TIMEOUT_S', 120);
+export const URL_FAIL_BUDGET_MS = Math.round(1.5 * FETCH_TIMEOUT_MS);
+export const OUTAGE_MAX_WAIT_MS = envSeconds('POINT_OUTAGE_WAIT_S', 60);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+/**
+ * Die Frist EINES Abrufs. Wird im Aufruf von `fetch` ausgewertet, läuft also ab dem Start des
+ * Abrufs und nicht ab dem Warten im Takt des Hosts; `clock.t` merkt diesen Start.
+ */
+function deadline(clock) {
+  clock.t = Date.now();
+  return AbortSignal.timeout(FETCH_TIMEOUT_MS);
+}
+/** Einen Fehlversuch buchen. `true` = die Adresse hat ihr Zeitbudget verbraucht, kein weiterer Versuch. */
+function spent(clock, st) {
+  if (clock.t) { st.failMs += Date.now() - clock.t; clock.t = 0; }
+  return st.failMs >= URL_FAIL_BUDGET_MS;
+}
+/** Eine abgelaufene Frist beim Namen nennen — `fetch` meldet sie als DOMException „TimeoutError“. */
+function named(e) {
+  return e?.name === 'TimeoutError' ? new Error(`Frist von ${FETCH_TIMEOUT_MS / 1000} s abgelaufen (timeout)`) : e;
+}
+/** 503 ohne `Retry-After`: ein Ausfall, keine Drosselung. */
+const isOutage = (res) => res.status === 503 && !res.headers?.get?.('retry-after');
+/** Wartezeit im Ausfall — 1, 2, 4, 8, 16 s, zusammen höchstens `OUTAGE_MAX_WAIT_MS`. `null` = aufgeben. */
+function outageWait(st) {
+  const wait = Math.min(16_000, 1000 * 2 ** st.outages++);
+  st.outageMs += wait;
+  return st.outageMs > OUTAGE_MAX_WAIT_MS ? null : wait;
+}
+const outageError = (st) => new Error(`HTTP 503 (Ausfall, kein Retry-After; ${st.outages} Antworten)`);
+const freshTry = () => ({ failMs: 0, outages: 0, outageMs: 0 });
+
+// ---------------------------------------------------------------------------
 // Taktung je Host
 // ---------------------------------------------------------------------------
 //
@@ -229,14 +285,23 @@ export async function fetchBytes(url, opts = {}) {
 async function fetchBytesNet(url, { range = null, decompress = false, forceBinary = false }, p, ps) {
   let lastError = null;
   let throttleWait = 0;
+  const clock = { t: 0 }, st = freshTry();   // PT1: Frist je Abruf, Zeitbudget je Adresse, Ausfall-Wartezeit
   // Fünf Fehlversuche — aber ein 429/503 ist KEIN Fehlversuch (s. o.): er zählt gegen
   // `THROTTLE_MAX_WAIT_MS`, nicht gegen `i`. Erst wenn die Quelle uns zehn Minuten lang
   // vertröstet hat, ist das ein Befund, der geworfen werden darf.
   for (let i = 0; i < 5;) {
     const t0 = Date.now();
     try {
-      const res = await paced(url, () => fetch(url, range ? { headers: { range: `bytes=${range}` } } : undefined));
+      const res = await paced(url, () => fetch(url, { ...(range ? { headers: { range: `bytes=${range}` } } : {}), signal: deadline(clock) }));
       if (res.status === 404) { net.absent++; ps.absent++; return null; }
+      if (isOutage(res)) {
+        // PT1: Ausfall hinter dem Gateway — kurz warten, dann ist es ein Befund über die Quelle.
+        const wait = outageWait(st);
+        lastError = outageError(st);
+        if (wait == null) break;
+        await sleep(wait);
+        continue;
+      }
       if (res.status === 429 || res.status === 503) {
         net.throttled++; ps.throttled++;
         const wait = retryAfterMs(res, Math.min(4, Math.floor(throttleWait / 15_000)));
@@ -258,8 +323,9 @@ async function fetchBytesNet(url, { range = null, decompress = false, forceBinar
       writeFileSync(p, out);
       return out;
     } catch (e) {
-      lastError = e;
+      lastError = named(e);
       i++;
+      if (spent(clock, st)) break;
       await new Promise((r) => setTimeout(r, 400 * i));
     }
   }
@@ -301,11 +367,19 @@ export async function fetchJson(url) {
   maybeInjectFault(url);
   return memoInflight(`JSON#${url}`, ps, async () => {
     let lastError = null, throttleWait = 0;
+    const clock = { t: 0 }, st = freshTry();   // PT1, wie in fetchBytesNet
     for (let i = 0; i < 5;) {
       const t0 = Date.now();
       try {
-        const res = await paced(url, () => fetch(url));
+        const res = await paced(url, () => fetch(url, { signal: deadline(clock) }));
         if (res.status === 404) { net.absent++; ps.absent++; return null; }
+        if (isOutage(res)) {
+          const wait = outageWait(st);
+          lastError = outageError(st);
+          if (wait == null) break;
+          await sleep(wait);
+          continue;
+        }
         if (res.status === 429 || res.status === 503) {
           net.throttled++; ps.throttled++;
           const wait = retryAfterMs(res, Math.min(4, Math.floor(throttleWait / 15_000)));
@@ -321,7 +395,8 @@ export async function fetchJson(url) {
         net.files++; net.bytes += text.length; net.ms += dt; ps.files++; ps.bytes += text.length; ps.ms += dt;
         return JSON.parse(text);
       } catch (e) {
-        lastError = e; i++;
+        lastError = named(e); i++;
+        if (spent(clock, st)) break;
         await new Promise((r) => setTimeout(r, 400 * i));
       }
     }
@@ -440,10 +515,18 @@ export async function headOk(url) {
 }
 async function headOkNet(url, ps) {
   let throttleWait = 0;
+  const clock = { t: 0 }, st = freshTry();   // PT1, wie in fetchBytesNet
   for (let i = 0; i < 4;) {
     try {
       net.probes++; ps.probes++;
-      const r = await paced(url, () => fetch(url, { method: 'HEAD' }));
+      const r = await paced(url, () => fetch(url, { method: 'HEAD', signal: deadline(clock) }));
+      if (isOutage(r)) {
+        // Ein Ausfall ist so wenig „gibt es nicht“ wie eine Drosselung — nach der Wartezeit werfen.
+        const wait = outageWait(st);
+        if (wait == null) throw new Error(`${url}: HEAD 503 (Ausfall, kein Retry-After; ${st.outages} Antworten)`);
+        await sleep(wait);
+        continue;
+      }
       if (r.status === 429 || r.status === 503) {
         // Ein gedrosselter HEAD, der als `false` zurückkäme, hieße „Lauf gibt es nicht" —
         // die stille Variante des Fehlers (PD-C2). Deshalb zählt auch hier die Wartezeit.
@@ -456,8 +539,9 @@ async function headOkNet(url, ps) {
       }
       return r.ok;
     } catch (e) {
-      if (/gedrosselt|POINT_FAULT_INJECT/.test(e.message)) throw e;
+      if (/gedrosselt|Ausfall|POINT_FAULT_INJECT/.test(e.message)) throw e;
       i++;
+      if (spent(clock, st)) break;
       await new Promise((x) => setTimeout(x, 300 * i));
     }
   }
@@ -586,19 +670,29 @@ export async function fetchRanges(url, ranges, { cacheKey = null, maxPerRequest 
     const group = todo.slice(g, g + maxPerRequest);
     const header = 'bytes=' + group.map((i) => `${ranges[i].offset}-${ranges[i].offset + ranges[i].length - 1}`).join(',');
     let lastError = null, done = false, throttleWait = 0;
+    const clock = { t: 0 }, st = freshTry();   // PT1, wie in fetchBytesNet
     for (let a = 0; a < 5 && !done;) {
       const t0 = Date.now();
       const ac = new AbortController();
       let res;
       try {
-        res = await paced(url, () => fetch(url, { headers: { range: header }, signal: ac.signal }));
+        res = await paced(url, () => fetch(url, { headers: { range: header }, signal: AbortSignal.any([ac.signal, deadline(clock)]) }));
       } catch (e) {
-        lastError = e;
+        lastError = named(e);
         a++;
+        if (spent(clock, st)) break;
         await new Promise((r) => setTimeout(r, 400 * a));
         continue;
       }
       if (res.status === 404) { ac.abort(); net.absent++; ps.absent++; return null; }
+      if (isOutage(res)) {
+        ac.abort();
+        const wait = outageWait(st);
+        lastError = outageError(st);
+        if (wait == null) break;
+        await sleep(wait);
+        continue;
+      }
       if (res.status === 429 || res.status === 503) {
         ac.abort();
         // Wie in fetchBytes: Drosselung zählt gegen die Wartezeit, nicht gegen die Versuche.

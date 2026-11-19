@@ -1,0 +1,10 @@
+hang-proxy on 18765
+08:59:29 metadata 200 2968 B
+08:59:33 HANG #1 /v1/grid/forecast/nwp-v2-1h-1km?parameters=2t&start=2026-11-19T03:00&end=2026-11-19T18:00&
+09:01:33 client gave up on #1
+09:01:34 HANG #2 /v1/grid/forecast/nwp-v2-1h-1km?parameters=2t&start=2026-11-19T03:00&end=2026-11-19T18:00&
+09:03:34 client gave up on #2
+09:03:34 HANG #3 /v1/grid/forecast/nwp-v2-1h-1km?parameters=2t&start=2026-11-19T03:00&end=2026-11-19T18:00&
+09:05:34 client gave up on #3
+09:05:34 HANG #4 /v1/grid/forecast/nwp-v2-1h-1km?parameters=2t&start=2026-11-19T03:00&end=2026-11-19T18:00&
+09:07:34 client gave up on #4

@@ -151,6 +151,7 @@
     "wc:mirror": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/fire/wc/build-wc-mirror.mjs",
     "verify:pv-fusion": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-pv-fusion.mjs",
     "verify:point-data": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-point-data.mjs",
+    "verify:point-fetch": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-point-fetch.mjs",
     "verify:point-client": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-point-client.mjs",
     "verify:obs-reader": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-obs-reader.mjs",
     "point:cube": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/build-point-cube.mjs",
