@@ -6,7 +6,8 @@
  *   - for 2000–2019, the two decades and the four five-year periods,
  *   - plus the cumulative elevation change in yearly steps, 1 January 2000 … 1 January 2020.
  *
- * Produced by `scripts/glacier/hugonnet.mjs --product=hugonnet`. NOT read by the client yet: no pointer key, no display.
+ * Produced by `scripts/glacier/hugonnet.mjs --product=hugonnet`. The client reads a region's file only when the pointer names the build
+ * (`index.static.hugonnet === static.build`, `loadHugonnet`); the sheet shows it in the card "Höhe, Volumen und Masse" (tab Langzeit).
  * Every number is the tables' own. The mass quantities are the data set's conversion (its numbers give dmdtda / dhdt = 0.85,
  * i.e. 850 kg/m³), never ours.
  *

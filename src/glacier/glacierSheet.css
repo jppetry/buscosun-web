@@ -424,3 +424,70 @@
   .gl-wx-table th, .gl-wx-table td { padding: 8px 6px; }
   .gl-hb-wx .gl-card { border-radius: 16px; padding: 12px; }
 }
+
+/* ---- Phase GH, second product: height, volume and mass 2000–2019 (HugonnetCard, CumulChart) ---------------------------------------
+   The satellite family of the origin chips carries every mark. The plot is an SVG without text that stretches with the card; axis
+   labels and the period ladder are HTML in the same grid column, so a period's button sits under its years at every width.
+   One column by default (sheet, phone); the dossier on a wide screen puts the four yearly means beside the chart. */
+.gl-hug { gap: 10px; min-width: 0; }
+.gl-hug .gl-big .gl-num.is-gain, .gl-hug .gl-big .gl-num.is-range { color: var(--gl-ink); }
+.gl-hug .gl-big .gl-num.is-range { font-size: 18px; white-space: normal; }
+.gl-hug-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; min-width: 0; }
+.gl-ds .gl-hug-body { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+.gl-hug-figcol, .gl-hug-side { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.gl-hug-fig { display: grid; grid-template-columns: 38px minmax(0, 1fr); column-gap: 6px; row-gap: 6px; min-width: 0; }
+.gl-hug-fig.is-bare { grid-template-columns: minmax(0, 1fr); }
+.gl-hug-fig .gl-hug-cap { grid-column: 2; grid-row: 1; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; min-height: 18px; font-size: 12.5px; color: var(--gl-muted); }
+.gl-hug-cap b { color: var(--gl-ink); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.gl-hug-y { grid-column: 1; grid-row: 2; position: relative; font-size: 11.5px; color: var(--gl-muted); font-variant-numeric: tabular-nums; }
+.gl-hug-y span { position: absolute; right: 0; transform: translateY(-50%); white-space: nowrap; }
+.gl-hug-plot { grid-column: 2; grid-row: 2; position: relative; height: 200px; touch-action: pan-y; cursor: crosshair; }
+.gl-hug-plot svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; overflow: visible; }
+.gl-hug-plot svg * { vector-effect: non-scaling-stroke; }
+.gl-hug-span { fill: color-mix(in srgb, var(--gl-ink) 6%, transparent); }
+.gl-hug-grid { stroke: var(--gl-line); stroke-width: 1; }
+.gl-hug-zero { stroke: var(--gl-faint); stroke-width: 1.3; }
+.gl-hug-loss { fill: color-mix(in srgb, var(--gl-prov-satellite-dot) 10%, transparent); }
+.gl-hug-band { fill: color-mix(in srgb, var(--gl-prov-satellite-line) 62%, transparent); }
+.gl-hug-line { fill: none; stroke: var(--gl-prov-satellite-dot); stroke-width: 1.6; stroke-linejoin: round; }
+.gl-hug-line.is-sel { stroke: var(--gl-prov-satellite-text); stroke-width: 3.2; stroke-linecap: round; }
+.gl-hug-cursor { stroke: var(--gl-ink); stroke-width: 1; stroke-dasharray: 3 3; }
+.gl-hug-dot { position: absolute; width: 11px; height: 11px; margin: -5.5px 0 0 -5.5px; box-sizing: border-box; border-radius: 50%; background: #fff; border: 2.4px solid var(--gl-prov-satellite-text); pointer-events: none; }
+.gl-hug-x { grid-column: 2; grid-row: 3; position: relative; height: 16px; font-size: 11.5px; color: var(--gl-muted); font-variant-numeric: tabular-nums; }
+.gl-hug-x span { position: absolute; top: 0; transform: translateX(-50%); }
+.gl-hug-x span:first-child { transform: none; }
+.gl-hug-x span:last-child { transform: translateX(-100%); }
+.gl-hug-ladder { grid-column: 2; grid-row: 4; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+.gl-hug-fig.is-bare .gl-hug-ladder { grid-column: 1; grid-row: 1; }
+.gl-hug-ladder button { height: 32px; min-width: 0; padding: 0 4px; border: 1px solid var(--gl-hair); border-radius: 9px; background: var(--gl-surface); color: var(--gl-muted); font: inherit; font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; transition: background .15s, color .15s, border-color .15s; }
+.gl-hug-ladder button.is-w4 { grid-column: span 4; }
+.gl-hug-ladder button.is-w2 { grid-column: span 2; }
+.gl-hug-ladder button:hover:not([disabled]) { border-color: var(--gl-prov-satellite-dot); color: var(--gl-ink); }
+.gl-hug-ladder button[aria-pressed="true"] { background: var(--gl-prov-satellite-text); border-color: var(--gl-prov-satellite-text); color: #fff; box-shadow: var(--gl-shadow-s); }
+.gl-hug-ladder button[disabled] { opacity: .45; cursor: not-allowed; }
+.gl-hug-ladder button:focus-visible { outline: 2px solid var(--gl-accent); outline-offset: 2px; }
+.gl-hug-legend { white-space: normal; gap: 6px 12px; font-size: 12px; color: var(--gl-muted); }
+.gl-hug-legend i.gl-hug-k-line { background: var(--gl-prov-satellite-dot); }
+.gl-hug-legend i.gl-hug-k-band { width: 12px; height: 10px; background: var(--gl-prov-satellite-line); }
+.gl-hug-legend i.gl-hug-k-sel { height: 4px; background: var(--gl-prov-satellite-text); }
+.gl-hug-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.gl-hug-tile { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 10px 12px; border: 1px solid var(--gl-hair); border-left: 3px solid var(--gl-prov-satellite-dot); border-radius: 14px; background: var(--gl-surface); box-shadow: var(--gl-shadow-s); }
+.gl-hug-tile-l { font-size: 11.5px; color: var(--gl-muted); line-height: 1.25; }
+.gl-hug-tile .gl-num { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 5px; font-size: 20px; line-height: 1.2; color: var(--gl-ink); }
+.gl-hug-tile .gl-num.is-loss { color: var(--gl-loss); }
+.gl-hug-tile .gl-num.is-range { font-size: 15px; }
+.gl-hug-tile .gl-num small { font-size: 12.5px; font-weight: 600; color: var(--gl-muted); white-space: nowrap; }
+.gl-hug-tile-n { font-size: 12px; color: var(--gl-muted); font-variant-numeric: tabular-nums; }
+.gl-hug-tile-h { font-size: 11px; color: var(--gl-faint); line-height: 1.3; }
+@media (min-width: 768px) and (max-width: 1279px) and (pointer: fine), (min-width: 768px) and (max-width: 1279px) and (pointer: none) {
+  .gl-ds .gl-hug-body { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+}
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
+  .gl-ds .gl-hug-body { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .gl-hug-fig { grid-template-columns: 32px minmax(0, 1fr); column-gap: 4px; }
+  .gl-hug-plot { height: 180px; }
+  .gl-hug-ladder button { height: 44px; font-size: 13px; }
+  .gl-hug-tile { padding: 10px; }
+  .gl-hug-tile .gl-num { font-size: 18px; }
+}
+@media (prefers-reduced-motion: reduce) { .gl-hug-ladder button { transition: none; } }

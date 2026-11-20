@@ -17,7 +17,7 @@ import {
   GLACIER_ELEV_PERIODS, GLACIER_ELEV_SOURCE, GLACIER_ELEV_END_YEAR, GLACIER_ELEV_REPORT_FILE, HUGONNET_RATES_COLUMNS, parseHugonnetRates, elevMatch, elevBlockOf, elevProblems, glacierElevFile,
 } from '../src/glacier/glacierElevContract.ts';
 import { GLACIER_MATCH_MIN_OVERLAP, GLACIER_REGIONS } from '../src/glacier/glacierContract.ts';
-import { elevView, elevFigure, elevSentence, elevNum, elevDecimals, sourceRows } from '../src/glacier/glacierSheetModel.ts';
+import { elevView, elevFigure, elevSentence, elevNum, elevDecimals, sourceRows, hugonnetView, hugFigure, hugCumFigure, hugSentence } from '../src/glacier/glacierSheetModel.ts';
 import {
   GLACIER_HUGONNET_PERIODS, GLACIER_HUGONNET_QUANTITIES, GLACIER_HUGONNET_REPORT_FILE, HUGONNET_CUMUL_COLUMNS, cumulYearly, glacierHugonnetFile, hugonnetProblems, parseHugonnetCumul,
 } from '../src/glacier/glacierHugonnetContract.ts';
@@ -180,14 +180,14 @@ const blocks = Object.assign({}, ...[...built.docs.values()].map((d) => d.glacie
   const data = src('glacierSheetData.ts'), tabs = src('GlacierSheetTabs.tsx'), brief = src('GlacierBrief.tsx'), page = src('GlacierPage.tsx'), client = src('glacierClient.ts'), charts = src('GlacierCharts.tsx');
   const gate = /a\.elevBuild === build \? guard\('Höhenänderung', loadElev\(build, g\.region, byId, signal, bases\)\) : Promise\.resolve\(null\)/;
   add('W1 Zeiger: die Datei wird nur gefragt, wenn der Zeiger genau diesen Build nennt (static.dhdt === static.build) — sonst kein Abruf, keine fehlende Datei in der Konsole',
-    gate.test(data) && /elevBuild: index\.static\.dhdt \?\? null/.test(page) && (page.match(/elevBuild=\{d!?\.elevBuild\}/g) ?? []).length === 2 && /static: \{ build: string; dhdt\?: string \}/.test(client) && !gate.test(data.replace('a.elevBuild === build ?', 'true ?')),
+    gate.test(data) && /elevBuild: index\.static\.dhdt \?\? null/.test(page) && (page.match(/elevBuild=\{d!?\.elevBuild\}/g) ?? []).length === 2 && /build: string; dhdt\?: string;/.test(client) && !gate.test(data.replace('a.elevBuild === build ?', 'true ?')),
     'Bedingung an beiden Stellen der Seite verdrahtet');
   add('W2 Zeiger-Flickwerk: der Producer setzt nur static.dhdt und lässt static.build stehen; ein späterer Build ohne Hugonnet-Schritt nennt dann einen anderen Build als dhdt',
     JSON.stringify(mergePatch({ static: { build: '20261012-1' }, sat: { a: 1 } }, { static: { dhdt: '20261012-1' } })) === JSON.stringify({ static: { build: '20261012-1', dhdt: '20261012-1' }, sat: { a: 1 } })
     && mergePatch({ static: { build: '20261012-1', dhdt: '20261012-1' } }, { static: { build: '20270101-1' } }).static.dhdt !== '20270101-1', 'dhdt bleibt beim alten Build');
   add('W3 Ohne Block unverändert: die Karte im Reiter Langzeit, die Zeile im Steckbrief und die Lizenzzeile hängen je an der Bedingung „Block vorhanden“; der geprüfte Client verwirft ein verletztes Dokument ganz',
-    /\{elev && <ElevCard elev=\{elev\} \/>\}/.test(tabs) && /\{elevFig && <><dt>Höhenänderung \{elevFig\.label\}<\/dt>/.test(brief) && /const elevFig = data\?\.elev \? /.test(brief) && /sources=\{d\.elev && d\.sources \? \[\.\.\.d\.sources, d\.elev\.source\] : d\.sources\}/.test(brief)
-    && /d && d\.build === build && elevProblems\(d, region, byId\)\.length === 0 \? d : null/.test(client) && !/\{elev && <ElevCard/.test(tabs.replace('{elev && <ElevCard', '{<ElevCard')),
+    /\{elev && \(hug \? <HugonnetCard hug=\{hug\} elev=\{elev\} \/> : <ElevCard elev=\{elev\} \/>\)\}/.test(tabs) && /\{elevFig && <><dt>Höhenänderung \{elevFig\.label\}<\/dt>/.test(brief) && /const elevFig = data\?\.elev \? /.test(brief) && /sources=\{d\.elev && d\.sources \? \[\.\.\.d\.sources, \(d\.hug \?\? d\.elev\)\.source\] : d\.sources\}/.test(brief)
+    && /d && d\.build === build && elevProblems\(d, region, byId\)\.length === 0 \? d : null/.test(client) && !/\{elev && \(hug \?/.test(tabs.replace('{elev && (hug ?', '{(hug ?')),
     'vier Bedingungen gefunden');
   add('W4 Zeitraum und Herkunft an jeder Zahl: Karte und Steckbrief tragen data-origin="satellite", den Zeitraum, „endet“ und den Satz „nicht der Schmelzindex und keine Vorhersage“; die Grafik zeichnet für eine Spanne keinen gefüllten Balken',
     /HÖHENÄNDERUNG DER OBERFLÄCHE · \{elev\.total\.label\}/.test(tabs) && /Die Reihe endet \{elev\.total\.to\}/.test(tabs) && /nicht der Schmelzindex und keine Vorhersage/.test(tabs) && /Hugonnet et al\. 2021 · endet \{elevFig\.to\}/.test(brief)
@@ -288,11 +288,35 @@ const blocks = Object.assign({}, ...[...built.docs.values()].map((d) => d.glacie
   add('H8 Gegenproben am Dokument: dreizehn Verstöße werden je für sich bemerkt; das unveränderte Dokument besteht, unter einer anderen Region nicht', Object.values(cases).every(Boolean) && hugonnetProblems(doc, 'ch-mitte-west', idSet).length === 0 && hugonnetProblems(doc, 'ch-west', idSet).length > 0,
     Object.entries(cases).filter(([, v]) => !v).map(([k]) => k).join(', ') || 'alle bemerkt');
 
-  // not shown yet: no file of the page reads the second product (counter-probe: the pattern finds the producer)
-  const pat = /from ['"][^'"]*glacierHugonnetContract|['"`]hugonnet\/|static\.hugonnet/;
+  // shown behind the pointer: the file is asked for only when `static.hugonnet` names this build, and the card needs both blocks
   const srcDir = join(ROOT, 'src', 'glacier');
-  const readers = readdirSync(srcDir).filter((f) => /\.(ts|tsx)$/.test(f) && f !== 'glacierHugonnetContract.ts' && pat.test(readFileSync(join(srcDir, f), 'utf8')));
-  add('H9 Noch keine Anzeige: keine Datei der Seite liest das zweite Produkt, kein Zeiger wird gefragt (Gegenprobe: dasselbe Muster findet den Producer)', readers.length === 0 && pat.test(readFileSync(join(HERE, 'glacier', 'hugonnet.mjs'), 'utf8')), readers.join(', ') || 'kein Leser in src/glacier');
+  const S = (f) => readFileSync(join(srcDir, f), 'utf8');
+  const hgate = /a\.hugBuild === build \? guard\('Volumen und Masse', loadHugonnet\(build, g\.region, byId, signal, bases\)\) : Promise\.resolve\(null\)/;
+  const fetchers = readdirSync(srcDir).filter((f) => /\.(ts|tsx)$/.test(f) && /glacierHugonnetFile\(/.test(S(f)) && f !== 'glacierHugonnetContract.ts');
+  add('H9 Anzeige hinter dem Zeiger: die Datei wird nur gefragt, wenn static.hugonnet genau diesen Build nennt; nur der geprüfte Client holt sie und verwirft ein verletztes Dokument ganz; die Karte braucht beide Blöcke',
+    hgate.test(S('glacierSheetData.ts')) && !hgate.test(S('glacierSheetData.ts').replace('a.hugBuild === build ?', 'true ?')) && /hugBuild: index\.static\.hugonnet \?\? null/.test(S('GlacierPage.tsx')) && (S('GlacierPage.tsx').match(/hugBuild=\{d!?\.hugBuild\}/g) ?? []).length === 2
+    && JSON.stringify(fetchers) === '["glacierClient.ts"]' && /d && d\.build === build && hugonnetProblems\(d, region, byId\)\.length === 0 \? d : null/.test(S('glacierClient.ts')),
+    `Abruf in ${fetchers.join(', ')}`);
+
+  // the card's numbers are the document's: only the prefix of the unit changes, a range replaces a number whose uncertainty is as large
+  const hv = hugonnetView(doc, doc.glaciers[P.trend]);
+  const F = (k, i = 0) => hugFigure(hv.periods[i].q[k]);
+  const txt = (f) => `${f.value} ${f.unit} ${f.note}`;
+  const small = hugFigure({ key: 'dmdt', v: -0.000177, err: 0.00005, rangeOnly: false }), smallV = hugFigure({ key: 'dvoldt', v: -208717, err: 60000, rangeOnly: false });
+  const rng = hugFigure({ key: 'dmdtda', v: -0.1, err: 0.3, rangeOnly: true });
+  const cumF = hugCumFigure(hv.last);
+  add('H10 Zahlen der Karte: je Zeitraum die vier Größen des Dokuments mit ihrer Unsicherheit; m³ und Gt erscheinen nur mit anderem Vorsatz (Mio. m³, Mio. t, bei kleinen Gletschern m³ und t); ist die Unsicherheit so groß wie der Wert, steht nur die Spanne',
+    hv.periods.length === 7 && hv.periods.every((p, i) => p && ['dhdt', 'dmdtda', 'dvoldt', 'dmdt'].every((k, j) => p.q[k].v === t.r[i][2 * j] && p.q[k].err === t.r[i][2 * j + 1]) && p.label === PF[i].label)
+    && txt(F('dhdt')) === '−1,4 m ± 0,1' && txt(F('dmdtda')) === '−1,2 m w. e. ± 0,1' && txt(F('dvoldt')) === '−117,1 Mio. m³ ± 8,9' && txt(F('dmdt')) === '−100 Mio. t ± 10' && txt(F('dmdt', 2)) === '−101 Mio. t ± 14' && txt(hugFigure({ key: 'dmdt', v: -0.047899, err: 0.004, rangeOnly: false })) === '−47,9 Mio. t ± 4,0'
+    && txt(small) === '−177.000 t ± 50.000' && txt(smallV) === '−208.717 m³ ± 60.000' && rng.range && rng.value === '−0,4 bis +0,2' && rng.note === 'nur die Spanne'
+    && hugonnetView(doc, undefined) === null && hugonnetView({ ...doc, quantities: [...doc.quantities].reverse() }, doc.glaciers[P.trend]) === null,
+    `${txt(F('dmdtda'))} · ${txt(F('dvoldt'))} · ${txt(F('dmdt'))} · klein ${txt(small)}`);
+  const noSeries = hugonnetView(doc, { ...doc.glaciers[P.trend], c: null });
+  add('H11 Jahresreihe der Karte: 21 Punkte mit den Daten des Dokuments, die große Zahl ist der letzte Punkt mit seiner Unsicherheit, der Satz nennt beide Daten; ohne Reihe gibt es weder Zahl noch Satz, die Mittel je Zeitraum bleiben',
+    hv.series.length === 21 && hv.series.every((p, i) => p && p.t === doc.series.times[i] && p.v === t.c[i][0] && p.err === t.c[i][1]) && hv.year0 === 2000 && hv.last.t === '2020-01-01' && hv.last.v === t.c[20][0]
+    && cumF.value === '−28,5 m' && cumF.note === '± 1,2' && !cumF.range && /^Am 01\.01\.2020 lag die Oberfläche im Mittel 28,5 m tiefer als am 01\.01\.2000 \(± 1,2 m\)\.$/.test(hugSentence(hv))
+    && noSeries && noSeries.series === null && noSeries.last === null && hugSentence(noSeries) === null && noSeries.periods.every(Boolean),
+    `${cumF.value} ${cumF.note} · ${hugSentence(hv)}`);
 }
 
 // D — the complete local tree (optional)

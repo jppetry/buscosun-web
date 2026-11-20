@@ -22,6 +22,7 @@ import {
 import type { GlacierDemGrid } from './glacierSatContract';
 import { feedProblems, glacierFeedPath, previousWeekKey, type GlacierFeedDoc, type GlacierFeedEvent } from './glacierFeedContract';
 import { elevProblems, glacierElevFile, type GlacierElevDoc } from './glacierElevContract';
+import { hugonnetProblems, glacierHugonnetFile, type GlacierHugonnetDoc } from './glacierHugonnetContract';
 
 export interface GlacierBases {
   cdn: string; raw: string;
@@ -136,7 +137,11 @@ export interface GlacierIndex {
   kind: 'glacier/index';
   builtAt: string;
   /** `dhdt` (phase GH) names the build that carries the elevation-change files `dhdt/<region>.json`; they are read only when it is this `build`. */
-  static: { build: string; dhdt?: string };
+  static: {
+    build: string; dhdt?: string;
+    /** Phase GH, second product: the build that carries `hugonnet/<region>.json` (mass balance, volume, mass, yearly series); read only when it is this `build`. */
+    hugonnet?: string;
+  };
   /** Satellite line (GL-2): newest scene per tile and, per year and region, the stand of the season document. */
   sat?: GlacierSatIndex;
   /** Melt line (GL-3): pointer to the newest run. */
@@ -281,6 +286,15 @@ export const loadProj = (build: string, region: string, signal?: AbortSignal, ba
 export async function loadElev(build: string, region: string, byId: ReadonlyMap<string, GlacierCatalogEntry>, signal?: AbortSignal, bases = glacierBasesFrom()): Promise<GlacierElevDoc | null> {
   const d = await staticDoc<GlacierElevDoc>(build, glacierElevFile(region), signal, bases);
   return d && d.build === build && elevProblems(d, region, byId).length === 0 ? d : null;
+}
+/**
+ * Phase GH, second product — mass balance, volume and mass change per period and the yearly cumulative elevation change of one region,
+ * through the contract rules; a violating document is dropped whole. Callers ask only when the pointer names this build
+ * (`index.static.hugonnet === build`).
+ */
+export async function loadHugonnet(build: string, region: string, byId: ReadonlyMap<string, GlacierCatalogEntry>, signal?: AbortSignal, bases = glacierBasesFrom()): Promise<GlacierHugonnetDoc | null> {
+  const d = await staticDoc<GlacierHugonnetDoc>(build, glacierHugonnetFile(region), signal, bases);
+  return d && d.build === build && hugonnetProblems(d, region, byId).length === 0 ? d : null;
 }
 
 /** One season document (immutable name = stand), through the contract rules before it reaches the page. */

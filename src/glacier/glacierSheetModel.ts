@@ -13,6 +13,7 @@ import { glacierFlagsOfMask, type GlacierSeasonRow, type GlacierSatFlag } from '
 import { GLACIER_SAT_MAX_AGE_DAYS } from './glacierContract';
 import type { GlacierMeltDoc, GlacierMeltRow, Triple } from './glacierMeltContract';
 import type { GlacierElevBlock, GlacierElevDoc, GlacierElevSource } from './glacierElevContract';
+import type { GlacierHugonnetBlock, GlacierHugonnetDoc } from './glacierHugonnetContract';
 
 export const SHEET_DAY_MS = 86_400_000;
 export const isoDoy = (iso: string): number => { const d = Date.parse(`${iso}T12:00:00Z`); return Math.floor((d - Date.UTC(new Date(d).getUTCFullYear(), 0, 0)) / SHEET_DAY_MS); };
@@ -196,6 +197,101 @@ export function elevSentence(v: ElevView): string {
   return `Die Oberfläche ist von ${t.from} bis ${t.to} im Mittel um ${elevNum(Math.abs(t.v), nd, false)} m pro Jahr ${t.v < 0 ? 'gesunken' : 'gestiegen'} (± ${elevNum(t.err, nd, false)} m).`;
 }
 
+// --- elevation, volume and mass 2000–2019 (phase GH, second product) --------------------------------------------------------------------------
+
+export type HugKey = 'dhdt' | 'dmdtda' | 'dvoldt' | 'dmdt';
+/** Order of the value pairs of a period entry (`GLACIER_HUGONNET_QUANTITIES`). */
+export const HUG_KEYS: readonly HugKey[] = Object.freeze(['dhdt', 'dmdtda', 'dvoldt', 'dmdt'] as const);
+/** What a tile is called and the one line that says what the number is. */
+export const HUG_TEXT: Readonly<Record<HugKey, { title: string; hint: string }>> = Object.freeze({
+  dhdt: { title: 'Höhe der Oberfläche', hint: 'Mittel über die Gletscherfläche' },
+  dmdtda: { title: 'Massenbilanz je Fläche', hint: 'Wasseräquivalent je Quadratmeter' },
+  dvoldt: { title: 'Volumen', hint: 'Höhenänderung mal Fläche des Umrisses' },
+  dmdt: { title: 'Masse', hint: 'Volumen mit 850 kg/m³, der Annahme des Datensatzes' },
+});
+/** One quantity of one period in the data set's unit (m, m w.e., m³, Gt — each per year). `rangeOnly` as in the elevation block. */
+export interface HugQty { key: HugKey; v: number; err: number; rangeOnly: boolean }
+export interface HugPeriod { label: string; from: number; to: number; q: Record<HugKey, HugQty> }
+/** One point of the yearly cumulative series: date as the table writes it, metres against 1 January 2000, 1-sigma uncertainty. */
+export interface HugPoint { t: string; v: number; err: number }
+export interface HugonnetView {
+  /** 2000–2019. */
+  total: HugPeriod;
+  /** In the order of the document: 0 = 2000–2019, 1–2 the decades, 3–6 the five-year periods; `null` = the table has no numbers for it. */
+  periods: Array<HugPeriod | null>;
+  /** One entry per date of the document; `null` entry = no number at that date, `null` = the glacier has no series. */
+  series: Array<HugPoint | null> | null;
+  /** The newest point of the series that carries a number. */
+  last: (HugPoint & { rangeOnly: boolean }) | null;
+  /** Year of the first date of the series (the level everything is counted from). */
+  year0: number;
+  rgi: string;
+  km2: number;
+  ref: string;
+  source: GlacierElevSource;
+}
+/** The block of one glacier as the sheet shows it. Nothing is computed: every number is the document's, only paired with its uncertainty. */
+export function hugonnetView(doc: Pick<GlacierHugonnetDoc, 'periods' | 'quantities' | 'series' | 'ref' | 'source'> | null | undefined, b: GlacierHugonnetBlock | null | undefined): HugonnetView | null {
+  if (!doc || !b || !Array.isArray(b.r) || !Array.isArray(doc.quantities) || doc.quantities.some((q, i) => q?.key !== HUG_KEYS[i])) return null;
+  const period = (i: number): HugPeriod | null => {
+    const x = b.r[i], p = doc.periods[i];
+    if (!x || !p) return null;
+    const q = {} as Record<HugKey, HugQty>;
+    HUG_KEYS.forEach((key, k) => { const v = x[2 * k], err = x[2 * k + 1]; q[key] = { key, v, err, rangeOnly: err >= Math.abs(v) }; });
+    return { label: p.label, from: p.from, to: p.to, q };
+  };
+  const total = period(0);
+  if (!total) return null;
+  const times = doc.series?.times ?? [];
+  const series = b.c && b.c.length === times.length ? b.c.map((x, i): HugPoint | null => (x ? { t: times[i], v: x[0], err: x[1] } : null)) : null;
+  const newest = series ? [...series].reverse().find((p): p is HugPoint => p != null) ?? null : null;
+  return {
+    total, periods: doc.periods.map((_, i) => (i === 0 ? total : period(i))), series, last: newest ? { ...newest, rangeOnly: newest.err >= Math.abs(newest.v) } : null,
+    year0: Number((times[0] ?? '2000').slice(0, 4)), rgi: b.rgi, km2: b.km2, ref: doc.ref, source: doc.source,
+  };
+}
+const HUG_NF = [0, 1, 2].map((nd) => new Intl.NumberFormat('de-DE', { minimumFractionDigits: nd, maximumFractionDigits: nd }));
+/** German number with grouping and a typographic minus; `signed` puts a plus before a gain. A value that rounds to zero carries no sign. */
+export function hugNum(v: number, nd: 0 | 1 | 2, signed = true): string {
+  const r = Math.round(Math.abs(v) * 10 ** nd) / 10 ** nd;
+  const s = HUG_NF[nd].format(r);
+  return r === 0 ? s : v < 0 ? `−${s}` : signed ? `+${s}` : s;
+}
+/**
+ * How a quantity is written: the factor on the data set's unit, the unit shown and the decimals. Only the prefix changes (m³ → Mio. m³,
+ * Gt → Mio. t or t) — never the number behind it; the decimals follow the uncertainty, so a "± 0" never claims an exact value.
+ */
+export function hugScale(key: HugKey, v: number, err: number): { f: number; unit: string; nd: 0 | 1 | 2 } {
+  const dec = (e: number): 0 | 1 | 2 => (e >= 10 ? 0 : e >= 0.05 ? 1 : 2);
+  const m = Math.max(Math.abs(v), err);
+  if (key === 'dhdt') return { f: 1, unit: 'm', nd: elevDecimals(err) };
+  if (key === 'dmdtda') return { f: 1, unit: 'm w. e.', nd: elevDecimals(err) };
+  if (key === 'dvoldt') return m >= 1e6 ? { f: 1e-6, unit: 'Mio. m³', nd: dec(err * 1e-6) } : { f: 1, unit: 'm³', nd: 0 };
+  return m >= 1e-3 ? { f: 1e3, unit: 'Mio. t', nd: dec(err * 1e3) } : { f: 1e9, unit: 't', nd: 0 };
+}
+/** The figure of one quantity: value and unit, and the small line next to it. With the uncertainty as large as the value only the range. */
+export function hugFigure(q: HugQty): { value: string; unit: string; note: string; range: boolean } {
+  const s = hugScale(q.key, q.v, q.err), v = q.v * s.f, e = q.err * s.f;
+  if (q.rangeOnly) return { value: `${hugNum(v - e, s.nd)} bis ${hugNum(v + e, s.nd)}`, unit: s.unit, note: 'nur die Spanne', range: true };
+  return { value: hugNum(v, s.nd), unit: s.unit, note: `± ${hugNum(e, s.nd, false)}`, range: false };
+}
+/** Decimals of a cumulative height in metres. */
+export const hugCumDecimals = (err: number): 0 | 1 => (err >= 10 ? 0 : 1);
+/** The figure of a point of the series (metres against the first date). */
+export function hugCumFigure(p: HugPoint): { value: string; note: string; range: boolean } {
+  const nd = hugCumDecimals(p.err);
+  if (p.err >= Math.abs(p.v)) return { value: `${hugNum(p.v - p.err, nd)} bis ${hugNum(p.v + p.err, nd)} m`, note: 'nur die Spanne', range: true };
+  return { value: `${hugNum(p.v, nd)} m`, note: `± ${hugNum(p.err, nd, false)}`, range: false };
+}
+/** Plain sentence under the large figure; a direction ("tiefer"/"höher") only when the value stands clear of its uncertainty. */
+export function hugSentence(v: HugonnetView): string | null {
+  const l = v.last, first = v.series?.find((p) => p != null) ?? null;
+  if (!l || !first) return null;
+  const nd = hugCumDecimals(l.err), a = dateDeLong(first.t), b = dateDeLong(l.t);
+  if (l.rangeOnly) return `Zwischen dem ${a} und dem ${b} lässt die Messung keine Richtung erkennen: die Oberfläche liegt zwischen ${hugNum(l.v - l.err, nd)} und ${hugNum(l.v + l.err, nd)} m gegenüber dem Anfang.`;
+  return `Am ${b} lag die Oberfläche im Mittel ${hugNum(Math.abs(l.v), nd, false)} m ${l.v < 0 ? 'tiefer' : 'höher'} als am ${a} (± ${hugNum(l.err, nd, false)} m).`;
+}
+
 // --- melt (index) -----------------------------------------------------------------------------------------------------------------------------
 
 export interface MeltView {
@@ -267,6 +363,8 @@ export function sourceRows(a: {
   mass: MassRow | null; lengthSeries: GlacierSeries | null; nowMs: number;
   /** Phase GH: the elevation-change block, when the glacier has one. */
   elev?: ElevView | null;
+  /** Phase GH, second product: mass balance, volume, mass and the yearly series, when the sheet shows them. */
+  hug?: HugonnetView | null;
 }): SourceRow[] {
   const r: SourceRow[] = [];
   r.push({ what: `Fläche ${a.g.area.km2 >= 1 ? a.g.area.km2.toFixed(2).replace('.', ',') : a.g.area.km2.toFixed(3).replace('.', ',')} km² und Höhen`, origin: 'official', stand: `Bezugsjahr ${a.g.area.refYear}`, source: `Inventar ${a.g.area.source} — ${a.g.zSource}` });
@@ -278,6 +376,7 @@ export function sourceRows(a: {
   if (a.anomaly) r.push({ what: 'Albedo-Anomalie des Eises', origin: 'satellite', stand: 'eigene Szenen früherer Jahre', source: 'Sentinel-2 L2A, Mittel der Szenen im selben Zeitfenster' });
   if (a.melt) r.push({ what: 'Schmelzindex, Nullgradgrenze, Nächte ohne Frost, Eisanteil', origin: 'model', stand: `Lauf ${dateDeLong(a.melt.runAt.slice(0, 10))} ${a.melt.runAt.slice(11, 16)} UTC`, source: `${a.melt.engine} · Temperaturindex-Modell je 50-m-Band; nicht in mm geeicht (Gate C nicht bestanden)` });
   if (a.elev) r.push({ what: `Höhenänderung der Oberfläche ${a.elev.total.label} und je Fünfjahreszeitraum, mit Unsicherheit (1 σ)`, origin: 'satellite', stand: `${a.elev.total.label} (die Reihe endet ${a.elev.total.to})`, source: `${a.elev.source.attribution} · ${a.elev.source.licence} · Werte unverändert, bezogen auf den Umriss RGI 6.0 (${a.elev.rgi})` });
+  if (a.hug) r.push({ what: `Massenbilanz je Fläche, Volumen- und Massenänderung ${a.hug.total.label}, je Jahrzehnt und je Fünfjahreszeitraum${a.hug.series ? ', dazu die aufsummierte Höhenänderung je Jahr' : ''}, mit Unsicherheit (1 σ)`, origin: 'satellite', stand: `${a.hug.total.label} (die Reihe endet ${a.hug.total.to})`, source: `${a.hug.source.attribution} · ${a.hug.source.licence} · Werte unverändert, Volumen und Masse mit der Dichteannahme des Datensatzes (850 kg/m³), bezogen auf den Umriss RGI 6.0 (${a.hug.rgi})` });
   if (a.proj) r.push({ what: 'Volumen bis 2100', origin: 'model', stand: 'Szenarien SSP1-2.6 … SSP5-8.5', source: 'GloGEM, CMIP6 (Zekollari et al. 2024), Spanne über 12 Klimamodelle' });
   return r;
 }

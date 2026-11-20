@@ -3,15 +3,15 @@
  * what is not there (no melt run, no clear scene, class C) is said in words and never replaced by a placeholder value.
  * The melt shows as an INDEX without a unit while the calibration gate (Gate C) is red — the unit appears only when the run document says so.
  */
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { OriginChip, LockNote } from './GlacierParts';
 import { fmt0, fmt2, fmtKm2, fmtRefYear, fmtSigned } from './glacierView';
 import {
   dateDe, dateDeLong, STATE_TEXT, indexWord, projectionSentence, tourLines, tourProblems, TOUR_DISCLAIMER, NOT_USED_SOURCES, againstBand, climaBand, albedoAnomaly, sourceRows, seasonSummary,
-  elevFigure, elevSentence,
-  type MeltView, type SeasonSummary, type ProjectionView, type MassRow, type SourceRow, type ElevView,
+  elevFigure, elevSentence, hugFigure, hugCumFigure, hugSentence, HUG_KEYS, HUG_TEXT,
+  type MeltView, type SeasonSummary, type ProjectionView, type MassRow, type SourceRow, type ElevView, type HugonnetView,
 } from './glacierSheetModel';
-import { SeasonChart, LengthChart, ProjectionChart, FreezeChart, MeltBars, ElevBars } from './GlacierCharts';
+import { SeasonChart, LengthChart, ProjectionChart, FreezeChart, MeltBars, ElevBars, CumulChart } from './GlacierCharts';
 import type { GlacierCatalogEntry, GlacierOfficialItem, GlacierSeries } from './glacierContract';
 import type { SheetData } from './glacierSheetData';
 import { exportSvgAsPng } from '../imageExport';
@@ -152,9 +152,88 @@ export function ElevCard({ elev }: { elev: ElevView }) {
   );
 }
 
-export function TabLangzeit({ g, area, length, lengthTotal, proj, elev = null, compareYear, compareOn, onCompare, noCompare, official, status, onCsv, hasSeries }: {
+/** The period ladder: one row per length of period, each button as wide as its years (indices into `HugonnetView.periods`). */
+const HUG_LADDER: ReadonlyArray<{ w: 4 | 2 | 1; i: readonly number[] }> = [{ w: 4, i: [0] }, { w: 2, i: [1, 2] }, { w: 1, i: [3, 4, 5, 6] }];
+/**
+ * Phase GH, second product — height, volume and mass 2000–2019 (Hugonnet et al. 2021) in one card: the surface against its level of
+ * 2000 year by year, the period ladder under the time axis, and for the chosen period the four yearly means with their uncertainty.
+ * The five-year columns of the elevation block stay below. Rendered only for a glacier that has both blocks.
+ */
+export function HugonnetCard({ hug, elev }: { hug: HugonnetView; elev: ElevView }) {
+  const [sel, setSel] = useState(0);
+  const p = hug.periods[sel] ?? hug.total;
+  const cum = hug.last ? hugCumFigure(hug.last) : null;
+  const sentence = hugSentence(hug);
+  const anyRange = elev.periods.some((r) => r?.rangeOnly);
+  const span: [number, number] = [p.from - hug.year0, p.to + 1 - hug.year0];
+  const ladder = (
+    <div className="gl-hug-ladder" role="group" aria-label="Zeitraum wählen">
+      {HUG_LADDER.flatMap((row) => row.i.map((i) => {
+        const q = hug.periods[i];
+        return (
+          <button key={i} type="button" className={`is-w${row.w}`} aria-pressed={sel === i && q != null} disabled={!q} onClick={() => setSel(i)}
+            aria-label={q ? `Zeitraum ${q.label}` : 'Zeitraum ohne Wert'} title={q ? undefined : 'Für diesen Zeitraum nennt die Tabelle keinen Wert'}>
+            {q ? (row.w === 1 ? `${q.from}–${String(q.to).slice(2)}` : q.label) : '—'}
+          </button>
+        );
+      }))}
+    </div>
+  );
+  return (
+    <section className="gl-card gl-hug" aria-label="Höhe, Volumen und Masse" data-hug-rgi={hug.rgi}>
+      <div className="gl-card-head"><b>HÖHE, VOLUMEN UND MASSE · {hug.total.label}</b><OriginChip origin="satellite" /></div>
+      {cum && hug.last ? (
+        <>
+          <div className="gl-big"><span className={`gl-num${cum.range ? ' is-range' : hug.last.v < 0 ? '' : ' is-gain'}`} data-origin="satellite">{cum.value}</span><span>{cum.note} · gegenüber dem Stand von {hug.year0}</span></div>
+          {sentence && <p>{sentence}</p>}
+        </>
+      ) : <p>Für diesen Gletscher nennt der Datensatz keine aufsummierte Jahresreihe; die Mittel je Zeitraum stehen unten.</p>}
+      <div className="gl-hug-body">
+        <div className="gl-hug-figcol">
+          <CumulChart view={hug} span={span}>{ladder}</CumulChart>
+          {hug.series && (
+            <div className="gl-legend-lines gl-hug-legend" aria-hidden="true">
+              <span><i className="gl-hug-k-line" />Oberfläche gegenüber {hug.year0}, in m</span>
+              <span><i className="gl-hug-k-band" />Unsicherheit (1 σ)</span>
+              <span><i className="gl-hug-k-sel" />gewählter Zeitraum</span>
+            </div>
+          )}
+        </div>
+        <div className="gl-hug-side">
+          <h3 className="gl-h3" aria-live="polite">Mittel pro Jahr · {p.label}</h3>
+          <div className="gl-hug-tiles">
+            {HUG_KEYS.map((k) => {
+              const f = hugFigure(p.q[k]);
+              return (
+                <div key={k} className="gl-hug-tile" data-origin="satellite" data-hug={k}>
+                  <span className="gl-hug-tile-l">{HUG_TEXT[k].title}</span>
+                  <b className={`gl-num${f.range ? ' is-range' : p.q[k].v < 0 ? ' is-loss' : ''}`} data-origin="satellite">{f.value}<small>{f.unit}</small></b>
+                  <span className="gl-hug-tile-n">pro Jahr · {f.note}</span>
+                  <span className="gl-hug-tile-h">{HUG_TEXT[k].hint}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+      <h3 className="gl-h3">Höhenänderung je fünf Jahre</h3>
+      <ElevBars view={elev} />
+      <div className="gl-legend-lines gl-elev-legend" aria-hidden="true">
+        <span><i className="gl-elev-col" />Mittel je fünf Jahre</span>
+        <span><i className="gl-elev-whisker" />Unsicherheit (1 σ)</span>
+        {anyRange ? <span><i className="gl-elev-range" />nur Spanne</span> : null}
+        {elev.total.rangeOnly ? null : <span><i className="gl-elev-mean" />Mittel {elev.total.label}</span>}
+      </div>
+      <p className="gl-fine">Aus Satellitenbildern abgeleitet (ASTER-Stereobilder; Hugonnet et al. 2021), gemittelt oder summiert über den Umriss des Inventars RGI 6.0 von etwa 2003 ({fmtKm2(hug.km2)}). Volumen und Masse sind die Zahlen des Datensatzes mit seiner Dichteannahme von 850 kg/m³; hier ist nichts umgerechnet. Die Reihe endet {hug.total.to}. Sie ist nicht der Schmelzindex und keine Vorhersage. Unsicherheit 1 σ; wo sie so groß ist wie der Wert, steht nur die Spanne.</p>
+    </section>
+  );
+}
+
+export function TabLangzeit({ g, area, length, lengthTotal, proj, elev = null, hug = null, compareYear, compareOn, onCompare, noCompare, official, status, onCsv, hasSeries }: {
   /** Phase GH: elevation change 2000–2019; `null` = no block for this glacier (nothing is shown in its place). */
   elev?: ElevView | null;
+  /** Phase GH, second product: mass balance, volume, mass and the yearly series; `null` = the elevation card as before. */
+  hug?: HugonnetView | null;
   g: GlacierCatalogEntry; area: { from: [number, number]; to: [number, number]; pct: number } | null; length: { points: { year: number; cum: number }[]; total: number; from: number; to: number; gaps: number } | null;
   lengthTotal?: number; proj: ProjectionView | null; compareYear: number | null; compareOn: boolean; onCompare: (on: boolean) => void; noCompare?: boolean;
   official: readonly GlacierOfficialItem[]; status: GlacierCatalogEntry['status'] | null; onCsv: () => void; hasSeries: boolean;
@@ -176,7 +255,7 @@ export function TabLangzeit({ g, area, length, lengthTotal, proj, elev = null, c
       </div>
       {length && <><h3 className="gl-h3">Längenänderung der Zunge, kumuliert</h3><LengthChart points={length.points} /></>}
       {!length && <p className="gl-fine">Für diesen Gletscher gibt es keine Längenmessreihe.</p>}
-      {elev && <ElevCard elev={elev} />}
+      {elev && (hug ? <HugonnetCard hug={hug} elev={elev} /> : <ElevCard elev={elev} />)}
       {statusItem && (
         <section className="gl-card" aria-label="Amtlicher Status">
           <div className="gl-card-head"><b>AMTLICHER STATUS</b><OriginChip origin="official" /></div>

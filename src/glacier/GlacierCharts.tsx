@@ -3,10 +3,10 @@
  * glacier's height, and the melt-index bars. `@nivo/line` with its own layers for bands; the bars are plain SVG (plan A11: no `@nivo/bar`).
  * Every chart carries `data-origin` and a text alternative.
  */
-import { useMemo } from 'react';
+import { useMemo, useState, type ReactNode, type PointerEvent as ReactPointerEvent } from 'react';
 import { ResponsiveLine } from '@nivo/line';
 import { fmt0, fmt1 } from './glacierView';
-import { dateDe, elevDecimals, elevNum, type Scene, type CumPoint, type ProjectionView, type ElevRate, type ElevView } from './glacierSheetModel';
+import { dateDe, dateDeLong, elevDecimals, elevNum, hugCumFigure, type Scene, type CumPoint, type ProjectionView, type ElevRate, type ElevView, type HugonnetView, type HugPoint } from './glacierSheetModel';
 import type { Triple } from './glacierMeltContract';
 
 const THEME = {
@@ -234,6 +234,73 @@ export function ElevBars({ view }: { view: ElevView }) {
         );
       })}
     </svg>
+  );
+}
+
+// --- cumulative elevation change per year (phase GH, second product) --------------------------------------------------------------------------
+/**
+ * The surface against its level of 1 January 2000: one point per year with the data set's 1-sigma band; the stretch between the zero line
+ * and the curve is tinted. The SVG holds shapes only and stretches with the card (`preserveAspectRatio="none"`, strokes do not scale);
+ * every label is HTML at its CSS size. So the plot is exactly as wide as the period ladder handed in as `children`, and a period's
+ * button sits under its years at every width. `span` = the chosen period as indices of the series: its part of the curve is bold and,
+ * unless it is the whole series, shaded. A mouse reads a year while it is over the plot; a finger's year stays until the next tap.
+ */
+export function CumulChart({ view, span, children }: { view: HugonnetView; span: [number, number] | null; children?: ReactNode }) {
+  const pts = view.series ?? [];
+  const [hover, setHover] = useState<number | null>(null);
+  const n = pts.length;
+  if (n < 2 || !view.last) return <div className="gl-hug-fig is-bare">{children}</div>;
+  const have = pts.filter((p): p is HugPoint => p != null);
+  const lo = Math.min(0, ...have.map((p) => p.v - p.err)), hi = Math.max(0, ...have.map((p) => p.v + p.err));
+  const step = niceStep(hi - lo || 1, 4);
+  // the side the surface moved to ends on a tick; the other side ends where the band ends (no empty band of a whole step beyond zero)
+  const down = -lo >= hi;
+  const y0 = down ? Math.floor(lo / step + 1e-9) * step : lo, y1 = down ? hi : Math.ceil(hi / step - 1e-9) * step;
+  const X = (i: number) => (i / (n - 1)) * 100, Y = (v: number) => ((y1 - v) / (y1 - y0 || 1)) * 100;
+  const ticks: number[] = [];
+  for (let k = Math.ceil(y0 / step - 1e-9); k * step <= y1 + 1e-9; k++) ticks.push(Math.round(k * step * 1000) / 1000);
+  const tickNd = [0, 1, 2].find((nd) => Math.abs(step * 10 ** nd - Math.round(step * 10 ** nd)) < 1e-9) ?? 2;
+  // runs of neighbouring dates that carry a number: a date without one breaks line and band, nothing is bridged
+  const runs: number[][] = [];
+  let run: number[] = [];
+  pts.forEach((p, i) => { if (p) run.push(i); else if (run.length) { runs.push(run); run = []; } });
+  if (run.length) runs.push(run);
+  const at = (i: number) => pts[i] as HugPoint;
+  const line = (r: readonly number[]) => r.map((i) => `${X(i)},${Y(at(i).v)}`).join(' ');
+  const band = (r: readonly number[]) => [...r.map((i) => `${X(i)},${Y(at(i).v + at(i).err)}`), ...[...r].reverse().map((i) => `${X(i)},${Y(at(i).v - at(i).err)}`)].join(' ');
+  const fill = (r: readonly number[]) => `${X(r[0])},${Y(0)} ${line(r)} ${X(r[r.length - 1])},${Y(0)}`;
+  const lastI = pts.reduce((a, p, i) => (p ? i : a), 0);
+  const shown = hover != null ? pts[hover] ?? null : view.last;
+  const shownT = hover != null ? view.series?.[hover]?.t ?? null : view.last.t;
+  const fig = shown ? hugCumFigure(shown) : null;
+  const pick = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const b = e.currentTarget.getBoundingClientRect();
+    if (b.width > 0) setHover(Math.max(0, Math.min(n - 1, Math.round(((e.clientX - b.left) / b.width) * (n - 1)))));
+  };
+  const spoken = have.map((p) => { const f = hugCumFigure(p); return `${dateDeLong(p.t)} ${f.range ? `Spanne ${f.value}` : `${f.value} ${f.note}`}`; }).join('; ');
+  return (
+    <div className="gl-hug-fig" data-origin="satellite">
+      <p className="gl-hug-cap" aria-hidden="true">
+        <span>{hover != null ? (shownT ? dateDeLong(shownT) : `Jahr ${view.year0 + hover}`) : `Stand ${dateDeLong(view.last.t)}`}</span>
+        <b>{fig ? (fig.range ? fig.value : `${fig.value} ${fig.note}`) : 'kein Wert'}</b>
+      </p>
+      <div className="gl-hug-y" aria-hidden="true">{ticks.map((v) => <span key={v} style={{ top: `${Y(v)}%` }}>{elevNum(v, tickNd, false)}</span>)}</div>
+      <div className="gl-hug-plot" role="img" onPointerMove={pick} onPointerDown={pick} onPointerLeave={(e) => { if (e.pointerType === 'mouse') setHover(null); }}
+        aria-label={`Aufsummierte Höhenänderung der Oberfläche seit dem ${dateDeLong(have[0].t)} in Metern, je Jahr mit Unsicherheit (1 Sigma): ${spoken}.`}>
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+          {span && (span[0] > 0 || span[1] < n - 1) && <rect className="gl-hug-span" x={X(span[0])} y={0} width={Math.max(0, X(span[1]) - X(span[0]))} height={100} />}
+          {ticks.map((v) => <line key={v} className={v === 0 ? 'gl-hug-zero' : 'gl-hug-grid'} x1={0} x2={100} y1={Y(v)} y2={Y(v)} />)}
+          {runs.map((r) => <polygon key={`f${r[0]}`} className="gl-hug-loss" points={fill(r)} />)}
+          {runs.map((r) => <polygon key={`b${r[0]}`} className="gl-hug-band" points={band(r)} />)}
+          {runs.map((r) => <polyline key={`l${r[0]}`} className="gl-hug-line" points={line(r)} />)}
+          {span && runs.map((r) => { const s = r.filter((i) => i >= span[0] && i <= span[1]); return s.length > 1 ? <polyline key={`s${r[0]}`} className="gl-hug-line is-sel" points={line(s)} /> : null; })}
+          {hover != null && <line className="gl-hug-cursor" x1={X(hover)} x2={X(hover)} y1={0} y2={100} />}
+        </svg>
+        <i className="gl-hug-dot" style={{ left: `${X(hover != null && pts[hover] ? hover : lastI)}%`, top: `${Y((hover != null && pts[hover] ? at(hover) : view.last).v)}%` }} aria-hidden="true" />
+      </div>
+      <div className="gl-hug-x" aria-hidden="true">{pts.map((_, i) => (i % 5 === 0 ? <span key={i} style={{ left: `${X(i)}%` }}>{view.year0 + i}</span> : null))}</div>
+      {children}
+    </div>
   );
 }
 

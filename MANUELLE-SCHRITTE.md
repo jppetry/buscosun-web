@@ -3815,6 +3815,7 @@ Ohne Schalter an für alle (dein Wort vom 19.11.). Lokal committet, nicht gepush
 | Zweig `glacier` | `b1f55b3b45df835df310a8d5d8da5928aa0a23bf` | 27 neue Dateien `glacier/v1/static/20261012-1/dhdt/` (26 Regionen + Bericht, 271 KB) |
 | `main` | `4d9136a6c653a7953b7b711d08e0cabcd36db4f7` | `glacier/v1/index.json`: `static.dhdt = "20261012-1"` |
 | Zweig `glacier` (20.11., deine Freigabe) | `f2262f8c9e67838c7955ee8613e18ba6fa666fce` | 27 neue Dateien `glacier/v1/static/20261012-1/hugonnet/` (26 Regionen + Bericht, 0,97 MB); kein Zeiger gesetzt |
+| `main` (20.11., für die Anzeige) | `46c669ff6493eec22b8d9a57a542277b5265a314` | `glacier/v1/index.json`: `static.hugonnet = "20261012-1"` (nur dieser Schlüssel, geprüft) |
 
 1. **Ansehen** (dein Dev-Server, die Daten liegen schon im Speicher): `/gletscher/ch-grosser-aletschgletscher` → links im
    Steckbrief „Höhenänderung 2000–2019: −1,4 m pro Jahr · ± 0,1“; Reiter „Langzeit“ → Karte „Höhenänderung der Oberfläche“
@@ -3842,7 +3843,17 @@ Ohne Schalter an für alle (dein Wort vom 19.11.). Lokal committet, nicht gepush
    Unsicherheit, für 2000–2019, 2000–2009, 2010–2019 und die vier Fünfjahresabschnitte, dazu die aufsummierte Höhenänderung in
    Jahresschritten (21 Punkte, 1.1.2000 bis 1.1.2020). Vertrag `src/glacier/glacierHugonnetContract.ts`, Lauf
    `hugonnet.mjs --product=hugonnet --cumul=…`, `verify:glacier-hugonnet` 39/39 (46/46 mit beiden vollen Bäumen).
-   **Die Seite liest es noch nicht** (kein Zeiger `static.hugonnet`, keine Anzeige) — das ist der nächste Schritt, auf dein Wort.
-   Zurück: den Commit `f2262f8c` auf dem Zweig `glacier` zurücknehmen (niemand liest die Dateien).
    Nicht gemacht: die 100-m-Karten der Höhenänderung (eigener Download, eigene Rechnung je Umriss).
    Ein neuer statischer Build braucht auch diesen Lauf (wie Punkt 6).
+10. **Anzeige des zweiten Produkts (20.11., dein Auftrag; lokal committet, ohne Schalter, wirkt mit dem Push):** im Reiter bzw.
+    in der Dossier-Ebene „Langzeit“ ersetzt die Karte „Höhe, Volumen und Masse · 2000–2019“ die bisherige Höhen-Karte, wenn
+    der Zeiger `static.hugonnet` den Build nennt: oben die aufsummierte Höhenänderung (Aletsch „−28,5 m · ± 1,2“), die Kurve je
+    Jahr mit Unsicherheitsband, darunter die Zeitraum-Leiter (2000–2019 · zwei Jahrzehnte · vier Fünfjahresabschnitte) und für
+    den gewählten Zeitraum vier Kacheln (Höhe, Massenbilanz je Fläche, Volumen, Masse; je mit ±, sonst nur die Spanne); die
+    vier Säulen bleiben darunter. **Ansehen:** `/gletscher/ch-grosser-aletschgletscher` → „Langzeit“, einen Zeitraum
+    antippen (Kacheln und markierter Kurventeil wechseln), mit Maus oder Finger über die Kurve fahren (Datum und Wert oben);
+    `/gletscher/de-blaueis` (Spannen statt Zahlen); Lageseite → Dossier → „Langzeit“ am Desktop (Kacheln neben der Kurve) und
+    am Telefon (alles untereinander, Leiter 44 px hoch). **Ich habe nichts davon im Browser gesehen.**
+    **Zurück ohne Deploy:** in `glacier/v1/index.json` den Schlüssel `static.hugonnet` entfernen — dann steht wieder die
+    bisherige Höhen-Karte. Nicht gemessen: Build und Budget (die Karte liegt im Lazy-Chunk des Steckbriefs, der geprüfte Leser
+    im Seiten-Chunk; die Ratsche stand schon knapp). `verify:glacier-hugonnet` 41/41 (43/43 mit dem vollen Paket).
