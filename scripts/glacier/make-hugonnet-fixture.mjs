@@ -6,7 +6,8 @@
  * table itself stays outside the repo.
  *
  *   node scripts/glacier/make-hugonnet-fixture.mjs --table=<dh_11_rgi60_pergla_rates.csv> --bridge=<bridge.json> --catalog=<catalog.json> \
- *        --dir=<package of hugonnet.mjs> [--out=scripts/lib/fixtures/glacier/hugonnet-extract.json]
+ *        --dir=<package of hugonnet.mjs> --cumul=<dh_11_rgi60_pergla_cumul.csv> --full-dir=<package of hugonnet.mjs --product=hugonnet> \
+ *        [--out=scripts/lib/fixtures/glacier/hugonnet-extract.json]
  */
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -44,7 +45,7 @@ const rgi = new Set(bridge.pairs.filter((p) => ids.includes(p[0])).map((p) => p[
 // and add the catalogue rows of nobody else: the owner above is the only outside glacier that decides a case
 const pairs = bridge.pairs.filter((p) => ids.includes(p[0]));
 const lines = readFileSync(arg('table'), 'utf8').split('\n');
-const KEEP = new Set(['2000-01-01_2020-01-01', '2000-01-01_2005-01-01', '2005-01-01_2010-01-01', '2010-01-01_2015-01-01', '2015-01-01_2020-01-01', '2000-01-01_2010-01-01', '2018-01-01_2019-01-01']);
+const KEEP = new Set(['2000-01-01_2020-01-01', '2000-01-01_2005-01-01', '2005-01-01_2010-01-01', '2010-01-01_2015-01-01', '2015-01-01_2020-01-01', '2000-01-01_2010-01-01', '2010-01-01_2020-01-01', '2018-01-01_2019-01-01']);
 // table rows only of the RGI glacier with the largest intersection per fixture glacier (the only rows the rule can ever ask for)
 const top = new Set(ids.map((id) => pairs.filter((p) => p[0] === id).sort((a, b) => b[2] - a[2])[0]?.[1]).filter(Boolean));
 const rows = lines.filter((l) => { const c = l.split(','); return top.has(c[0]) && KEEP.has(c[1]); });
@@ -52,7 +53,17 @@ const csv = [lines[0].trim(), ...rows.map((r) => r.trim())].join('\n') + '\n';
 
 const expect = {};
 for (const id of ids) expect[id] = blockOf(id) ? { block: blockOf(id) } : { why: none.get(id)[1], rgi: none.get(id)[2] };
-const body = { pick, catalog: { schema: 1, kind: 'glacier/catalog', build: catalog.build, builtAt: catalog.builtAt, glaciers: ids.map((id) => byId.get(id)) }, bridge: { schema: 1, kind: 'glacier/rgi-bridge', build: bridge.build, pairs }, csv, expect };
+// second product (`--product=hugonnet`): all 241 original rows of the cumulative table for ONE glacier (the trend case) — the other matched
+// glaciers have no rows in the extract and must come out with `c: null` — and the blocks of the full local run
+const fullDir = join(arg('full-dir'), 'static', catalog.build, 'hugonnet');
+const fullOf = (id) => J(join(fullDir, `${byId.get(id).region}.json`)).glaciers[id] ?? null;
+const trendRgi = blockOf(pick.trend).rgi;
+const cumulLines = readFileSync(arg('cumul'), 'utf8').split('\n');
+const cumulCsv = [cumulLines[0].trim(), ...cumulLines.filter((l) => l.startsWith(`${trendRgi},`)).map((l) => l.trim())].join('\n') + '\n';
+const expectFull = {};
+for (const id of ids) if (fullOf(id)) expectFull[id] = fullOf(id);
+const seriesTimes = J(join(fullDir, `${byId.get(pick.trend).region}.json`)).series.times;
+const body = { pick, catalog: { schema: 1, kind: 'glacier/catalog', build: catalog.build, builtAt: catalog.builtAt, glaciers: ids.map((id) => byId.get(id)) }, bridge: { schema: 1, kind: 'glacier/rgi-bridge', build: bridge.build, pairs }, csv, expect, cumulCsv, expectFull, seriesTimes };
 const out = {
   schema: 1, kind: 'glacier/hugonnet-extract',
   from: { build: catalog.build, table: 'dh_11_rgi60_pergla_rates.csv', tableSha256: report.table.sha256, fullRun: { glaciers: report.glaciers, matched: report.matched, why: report.why } },
@@ -60,4 +71,4 @@ const out = {
   ...body, sha256: createHash('sha256').update(JSON.stringify(body)).digest('hex'),
 };
 writeFileSync(OUT, JSON.stringify(out, null, 1) + '\n');
-console.log(JSON.stringify({ out: OUT, glaciers: ids.length, rgi: rgi.size, tableRows: rows.length, pairs: pairs.length, pick, expect: Object.fromEntries(Object.entries(expect).map(([k, v]) => [k, v.why ?? 'block'])) }));
+console.log(JSON.stringify({ out: OUT, glaciers: ids.length, rgi: rgi.size, tableRows: rows.length, cumulRows: cumulCsv.trim().split('\n').length - 1, full: Object.keys(expectFull).length, pairs: pairs.length, pick, expect: Object.fromEntries(Object.entries(expect).map(([k, v]) => [k, v.why ?? 'block'])) }));

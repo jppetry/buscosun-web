@@ -18,7 +18,10 @@ import {
 } from '../src/glacier/glacierElevContract.ts';
 import { GLACIER_MATCH_MIN_OVERLAP, GLACIER_REGIONS } from '../src/glacier/glacierContract.ts';
 import { elevView, elevFigure, elevSentence, elevNum, elevDecimals, sourceRows } from '../src/glacier/glacierSheetModel.ts';
-import { buildElev } from './glacier/hugonnet.mjs';
+import {
+  GLACIER_HUGONNET_PERIODS, GLACIER_HUGONNET_QUANTITIES, GLACIER_HUGONNET_REPORT_FILE, HUGONNET_CUMUL_COLUMNS, cumulYearly, glacierHugonnetFile, hugonnetProblems, parseHugonnetCumul,
+} from '../src/glacier/glacierHugonnetContract.ts';
+import { buildElev, buildHugonnet } from './glacier/hugonnet.mjs';
 import { checkPackage, mergePatch } from './glacier/glacier-publish.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -33,7 +36,7 @@ const P = FX.pick, PER = GLACIER_ELEV_PERIODS;
 
 // F — fixture
 {
-  const body = { pick: FX.pick, catalog: FX.catalog, bridge: FX.bridge, csv: FX.csv, expect: FX.expect };
+  const body = { pick: FX.pick, catalog: FX.catalog, bridge: FX.bridge, csv: FX.csv, expect: FX.expect, cumulCsv: FX.cumulCsv, expectFull: FX.expectFull, seriesTimes: FX.seriesTimes };
   const sha = createHash('sha256').update(JSON.stringify(body)).digest('hex');
   const head = FX.csv.split('\n')[0].split(',');
   add('F1 Fixture: Prüfsumme stimmt; die Kopfzeile ist die der veröffentlichten Tabelle (16 Spalten); acht Gletscher, je einer pro Fall der Regel, und die Quelle mit Lizenz steht dabei',
@@ -47,8 +50,8 @@ const table = parseHugonnetRates(FX.csv);
   const rows = FX.csv.trim().split('\n').slice(1);
   const kept = [...table.rows.values()].reduce((s, m) => s + m.size, 0);
   const other = rows.filter((r) => !PER.some((p) => r.split(',')[1] === p.key)).length;
-  add('T1 Tabelle: fünf Zeiträume je Gletscher bleiben, die anderen Zeilen der Tabelle (hier 2000–2009 und 2018) fallen heraus',
-    table.lines === rows.length && kept === table.glaciers * 5 && other === table.glaciers * 2 && [...table.rows.values()].every((m) => PER.every((p) => m.has(p.key))),
+  add('T1 Tabelle: fünf Zeiträume je Gletscher bleiben, die anderen Zeilen der Tabelle (hier 2000–2009, 2010–2019 und 2018) fallen heraus',
+    table.lines === rows.length && kept === table.glaciers * 5 && other === table.glaciers * 3 && [...table.rows.values()].every((m) => PER.every((p) => m.has(p.key))),
     `${table.lines} Zeilen, ${table.glaciers} RGI-Gletscher, ${kept} behalten, ${other} verworfen`);
   const nan = table.rows.get(FX.expect[P.noValue].rgi);
   const raw = rows.find((r) => r.startsWith(`${FX.expect[P.noValue].rgi},${PER[0].key},`)).split(',');
@@ -197,6 +200,101 @@ const blocks = Object.assign({}, ...[...built.docs.values()].map((d) => d.glacie
     used.join(' '));
 }
 
+// H — second product: mass balance, volume, mass, the decades and the yearly cumulative series for the same glaciers (produced, not shown)
+{
+  const PF = GLACIER_HUGONNET_PERIODS, Q = GLACIER_HUGONNET_QUANTITIES;
+  const tf = parseHugonnetRates(FX.csv, PF);
+  const rows = FX.csv.trim().split('\n').slice(1).map((r) => r.split(','));
+  const cum = parseHugonnetCumul(FX.cumulCsv);
+  const mk = (t, c) => buildHugonnet({ catalog: FX.catalog, bridge: FX.bridge, table: t, cumul: c, builtAt: '2026-11-20T00:00:00Z' });
+  const full = mk(tf, cum);
+  const fb = Object.assign({}, ...[...full.docs.values()].map((d) => d.glaciers));
+  // the columns by NAME from the published header, not by the positions the reader uses
+  const COL = Q.flatMap((q) => [HUGONNET_RATES_COLUMNS.indexOf(q.col), HUGONNET_RATES_COLUMNS.indexOf(`err_${q.col}`)]);
+  let same = 0, n = 0;
+  for (const b of Object.values(fb)) PF.forEach((p, i) => { const r = rows.find((x) => x[0] === b.rgi && x[1] === p.key); COL.forEach((c, k) => { n++; if (b.r[i] && String(b.r[i][k]) === String(Number(r[c]))) same++; }); });
+  add('H1 Alle Größen unverändert: Höhenänderung, spezifische Massenbilanz, Volumen- und Massenänderung mit Unsicherheit stehen für sieben Zeiträume Ziffer für Ziffer in der Tabellenzeile (Spalten über ihren Namen gesucht)',
+    COL.every((c) => c >= 3) && new Set(COL).size === 8 && same === n && n === 3 * 7 * 8 && Q.map((q) => q.unit).join(' | ') === 'm/a | m w.e./a | m³/a | Gt/a', `${same}/${n} Werte · Spalten ${COL.join(',')}`);
+
+  const tr = FX.expect[P.trend].block.rgi;
+  const cl = FX.cumulCsv.trim().split('\n'), ch = cl[0].split(','), cr = cl.slice(1).map((l) => l.split(','));
+  const iT = ch.indexOf('time'), iDh = ch.indexOf('dh'), iErr = ch.indexOf('err_dh');
+  const y = cumulYearly(cum.rows.get(tr));
+  const digit = y.times.every((t, i) => { const r = cr.find((x) => x[iT] === t); return r && y.c[i] && String(y.c[i][0]) === String(Number(r[iDh])) && String(y.c[i][1]) === String(Number(r[iErr])); });
+  const gaps = y.times.slice(1).map((t, i) => Math.round((Date.parse(t) - Date.parse(y.times[i])) / 864e5));
+  add('H2 Jahresreihe: aus den 241 Zeilen der aufsummierten Tabelle bleiben 21 Punkte im Abstand von einem Jahr, 1.1.2000 bis 1.1.2020, mit den Daten und Zahlen der Tabelle; der erste Wert ist 0',
+    ch.length === 21 && ch.every((c, i) => c === HUGONNET_CUMUL_COLUMNS[i]) && cr.length === 241 && y.times.length === 21 && JSON.stringify(y.times) === JSON.stringify(FX.seriesTimes) && y.times[0] === '2000-01-01' && y.times[20] === '2020-01-01'
+    && digit && gaps.every((g) => g === 365 || g === 366) && y.c[0][0] === 0, `${cr.length} Zeilen → ${y.times.length} Punkte, Abstände ${[...new Set(gaps)].join('/')} Tage, Ende ${y.c[20][0]} ± ${y.c[20][1]} m`);
+
+  const t = fb[P.trend], rest = [P.rangeTotal, P.owner], idSet = new Set(ids);
+  add('H3 Dieselben Gletscher: genau die drei mit Block bekommen auch diesen; Aletsch ist der Block des vollen Laufs (Raten und Reihe); ein Gletscher ohne Zeilen in der aufsummierten Tabelle behält die Raten und hat KEINE Reihe (nicht null Meter)',
+    JSON.stringify(Object.keys(fb).sort()) === JSON.stringify(Object.keys(blocks).sort()) && JSON.stringify(t) === JSON.stringify(FX.expectFull[P.trend]) && t.c.length === 21
+    && rest.every((id) => fb[id].c === null && JSON.stringify(fb[id].r) === JSON.stringify(FX.expectFull[id].r) && FX.expectFull[id].c.length === 21)
+    && full.docs.size === built.docs.size && [...full.docs].every(([r, d]) => hugonnetProblems(d, r, idSet).length === 0) && full.report.matched === 3 && full.report.series.glaciers === 1 && full.report.series.points === 21,
+    `${Object.keys(fb).length} Blöcke, ${full.report.series.glaciers} mit Reihe, ${full.docs.size} Dokumente`);
+
+  const idx = PER.map((p) => PF.findIndex((q) => q.key === p.key));
+  const agree = Object.entries(blocks).every(([id, b]) => b.rgi === fb[id].rgi && b.km2 === fb[id].km2 && PER.every((_, i) => (b.r[i] ? fb[id].r[idx[i]][0] === b.r[i][0] && fb[id].r[idx[i]][1] === b.r[i][1] : fb[id].r[idx[i]] === null)));
+  add('H4 Kein Widerspruch zum ersten Schritt: die Höhenänderung der fünf gemeinsamen Zeiträume ist dieselbe Zahl wie im veröffentlichten Block; neu sind 2000–2009 und 2010–2019',
+    idx.every((i) => i >= 0) && agree && PF.length === 7 && PF[1].label === '2000–2009' && PF[2].label === '2010–2019' && PF[1].to - PF[1].from === 9 && PF[2].to === 2019, PF.map((p) => p.label).join(' · '));
+
+  // the conversion is the data set's: measured in its numbers, nothing recomputed for the output
+  const ratios = Object.values(fb).flatMap((b) => b.r.map((x) => x[2] / x[0]));
+  const vols = Object.values(fb).flatMap((b) => b.r.map((x) => (x[0] * b.km2 * 1e6) / x[4]));
+  const mass = t.r.map((x) => (x[4] * 850 / 1e12) / x[6]);
+  add('H5 Einheiten an den Zahlen gemessen: Volumen = Höhenänderung × RGI-Fläche (m³), Massenbilanz = 0,85 × Höhenänderung (m w. e., Dichteannahme des Datensatzes), Masse = Volumen × 850 kg/m³ (Gt)',
+    ratios.every((r) => Math.abs(r - 0.85) < 0.01) && vols.every((v) => Math.abs(v - 1) < 2e-3) && mass.every((m) => Math.abs(m - 1) < 2e-3),
+    `Verhältnis ${Math.min(...ratios).toFixed(4)}…${Math.max(...ratios).toFixed(4)} · Volumen ${Math.min(...vols).toFixed(4)}…${Math.max(...vols).toFixed(4)} · Masse ${Math.min(...mass).toFixed(4)}…${Math.max(...mass).toFixed(4)}`);
+
+  const e1 = throws(() => parseHugonnetCumul(FX.cumulCsv.replace('err_dh', 'dh_err')));
+  const e2 = throws(() => cumulYearly(parseHugonnetCumul(cl.slice(0, -1).join('\n')).rows.get(tr)));
+  const e3 = throws(() => cumulYearly(parseHugonnetCumul([...cl.slice(0, -1), cl[cl.length - 2]].join('\n')).rows.get(tr)));
+  const e4 = throws(() => parseHugonnetCumul([cl[0], cl[1].split(',').slice(0, 20).join(',')].join('\n')));
+  const li = cl.findIndex((l) => l.split(',')[iT] === '2010-01-01');
+  const withCell = (at, v) => { const c = cl[at].split(','); c[iDh] = v; return cumulYearly(parseHugonnetCumul([...cl.slice(0, at), c.join(','), ...cl.slice(at + 1)].join('\n')).rows.get(tr)); };
+  const y2 = withCell(li, '-99.5'), y3 = withCell(li + 1, '-99.5'), y4 = withCell(li, '');
+  const others = (a) => a.c.every((x, i) => i === 10 || JSON.stringify(x) === JSON.stringify(y.c[i]));
+  const none = parseHugonnetCumul(FX.cumulCsv, new Set());
+  add('H6 Gegenproben Jahresreihe: umbenannte Spalte, 240 Zeilen, doppeltes Datum und eine Zeile mit 20 Spalten brechen ab; eine geänderte Zahl am 1.1.2010 ändert genau diesen Punkt, eine im Monat danach keinen; eine leere Zelle wird „kein Wert“, nie 0; ein nicht gefragter Gletscher wird nicht gelesen',
+    e1 && e2 && e3 && e4 && li > 0 && y2.c[10][0] === -99.5 && others(y2) && JSON.stringify(y3.c) === JSON.stringify(y.c) && y4.c[10] === null && others(y4) && none.rows.size === 0 && none.glaciers === 1 && none.lines === 241,
+    [e1, e2, e3, e4].map((e) => (e ? e.slice(0, 44) : 'KEIN ABBRUCH')).join(' | '));
+
+  const A = '-0.099526,0.010341';
+  const m1 = mk(parseHugonnetRates(FX.csv.replace(A, '-0.099527,0.010341'), PF), cum).docs.get('ch-mitte-west').glaciers[P.trend];
+  const fl = FX.csv.split('\n'), fi = fl.findIndex((l) => l.startsWith(`${tr},${PF[3].key},`));
+  const cut = fl[fi].split(','); cut[HUGONNET_RATES_COLUMNS.indexOf('dmdt')] = '';
+  const m2 = mk(parseHugonnetRates([...fl.slice(0, fi), cut.join(','), ...fl.slice(fi + 1)].join('\n'), PF), cum).docs.get('ch-mitte-west').glaciers[P.trend];
+  add('H7 Gegenproben Raten: eine geänderte Ziffer der Massenänderung ändert genau diesen Wert; fehlt in einem Zeitraum eine der acht Zahlen, bleibt der ganze Zeitraum leer (nie ein halber Satz)',
+    FX.csv.split(A).length === 2 && m1.r[0][6] === -0.099527 && t.r[0][6] === -0.099526 && m1.r[0].every((v, k) => k === 6 || v === t.r[0][k]) && JSON.stringify(m1.r.slice(1)) === JSON.stringify(t.r.slice(1))
+    && fi > 0 && m2.r[3] === null && JSON.stringify(m2.r.filter((_, i) => i !== 3)) === JSON.stringify(t.r.filter((_, i) => i !== 3)), `${t.r[0][6]} → ${m1.r[0][6]} · Zeitraum ${PF[3].label}: ${m2.r[3]}`);
+
+  const doc = full.docs.get('ch-mitte-west');
+  const bad = (fn) => { const d = clone(doc); fn(d); return hugonnetProblems(d, 'ch-mitte-west', idSet).length > 0; };
+  const cases = {
+    'Unsicherheit 0': bad((d) => { d.glaciers[P.trend].r[0][3] = 0; }),
+    'Gesamtzeitraum fehlt': bad((d) => { d.glaciers[P.trend].r[0] = null; }),
+    'sechs statt sieben Zeiträume': bad((d) => { d.glaciers[P.trend].r.pop(); }),
+    'sechs statt acht Zahlen': bad((d) => { d.glaciers[P.trend].r[1].length = 6; }),
+    'Zeitraum umbenannt': bad((d) => { d.periods[1].label = '2000–2010'; }),
+    'Einheit vertauscht': bad((d) => { d.quantities[1].unit = 'm/a'; }),
+    'Volumen mit anderem Vorzeichen als die Höhenänderung': bad((d) => { d.glaciers[P.trend].r[0][4] = Math.abs(d.glaciers[P.trend].r[0][4]); }),
+    'Reihe mit 20 Punkten': bad((d) => { d.glaciers[P.trend].c.pop(); }),
+    'Reihe ohne einen Wert': bad((d) => { d.glaciers[P.trend].c = d.glaciers[P.trend].c.map(() => null); }),
+    'Zeitpunkte nicht aufsteigend': bad((d) => { [d.series.times[3], d.series.times[4]] = [d.series.times[4], d.series.times[3]]; }),
+    'Unsicherheit der Reihe 0': bad((d) => { d.glaciers[P.trend].c[5][1] = 0; }),
+    'Lizenz fehlt': bad((d) => { d.source.licence = ''; }),
+    'Gletscher nicht im Katalog': bad((d) => { d.glaciers.gl_ch_fremd = d.glaciers[P.trend]; }),
+  };
+  add('H8 Gegenproben am Dokument: dreizehn Verstöße werden je für sich bemerkt; das unveränderte Dokument besteht, unter einer anderen Region nicht', Object.values(cases).every(Boolean) && hugonnetProblems(doc, 'ch-mitte-west', idSet).length === 0 && hugonnetProblems(doc, 'ch-west', idSet).length > 0,
+    Object.entries(cases).filter(([, v]) => !v).map(([k]) => k).join(', ') || 'alle bemerkt');
+
+  // not shown yet: no file of the page reads the second product (counter-probe: the pattern finds the producer)
+  const pat = /from ['"][^'"]*glacierHugonnetContract|['"`]hugonnet\/|static\.hugonnet/;
+  const srcDir = join(ROOT, 'src', 'glacier');
+  const readers = readdirSync(srcDir).filter((f) => /\.(ts|tsx)$/.test(f) && f !== 'glacierHugonnetContract.ts' && pat.test(readFileSync(join(srcDir, f), 'utf8')));
+  add('H9 Noch keine Anzeige: keine Datei der Seite liest das zweite Produkt, kein Zeiger wird gefragt (Gegenprobe: dasselbe Muster findet den Producer)', readers.length === 0 && pat.test(readFileSync(join(HERE, 'glacier', 'hugonnet.mjs'), 'utf8')), readers.join(', ') || 'kein Leser in src/glacier');
+}
+
 // D — the complete local tree (optional)
 const dir = arg('dir');
 if (dir) {
@@ -227,6 +325,59 @@ if (dir) {
     let same = 0, cells = 0;
     for (const b of Object.values(all)) PER.forEach((p, i) => { const x = t.rows.get(b.rgi).get(p.key); cells++; if (b.r[i] ? (b.r[i][0] === x.dhdt && b.r[i][1] === x.err) : (x.dhdt == null || x.err == null)) same++; });
     add('D4 Voller Baum gegen die Tabelle: jeder Wert jedes Blocks ist der der Tabelle; die Prüfsumme der Tabelle steht im Bericht', same === cells && createHash('sha256').update(raw).digest('hex') === report.table.sha256 && t.glaciers === report.table.glaciers, `${same}/${cells} Werte, ${t.glaciers} RGI-Gletscher in der Tabelle`);
+  }
+}
+
+// E — the complete local tree of the second product (optional)
+const fullDir = arg('full-dir');
+if (fullDir) {
+  const catalog = JSON.parse(readFileSync(arg('catalog'), 'utf8'));
+  const base = join(fullDir, 'static', catalog.build);
+  const J = (f) => JSON.parse(readFileSync(join(base, f), 'utf8'));
+  const PF = GLACIER_HUGONNET_PERIODS, Q = GLACIER_HUGONNET_QUANTITIES;
+  const report = J(GLACIER_HUGONNET_REPORT_FILE);
+  const idSet = new Set(catalog.glaciers.map((g) => g.id)), regionOf = new Map(catalog.glaciers.map((g) => [g.id, g.region]));
+  const regions = [...new Set(catalog.glaciers.map((g) => g.region))];
+  const problems = [], all = {}, rgi = new Set(); let wrongRegion = 0, times = null, sameTimes = true;
+  for (const r of regions) {
+    if (!existsSync(join(base, glacierHugonnetFile(r)))) { problems.push(`${r}: Datei fehlt`); continue; }
+    const d = J(glacierHugonnetFile(r));
+    problems.push(...hugonnetProblems(d, r, idSet).map((p) => `${r}: ${p}`));
+    times ??= d.series.times;
+    if (JSON.stringify(d.series.times) !== JSON.stringify(times)) sameTimes = false;
+    for (const [id, b] of Object.entries(d.glaciers)) { rgi.add(b.rgi); all[id] = b; if (regionOf.get(id) !== r) wrongRegion++; }
+  }
+  const n = Object.keys(all).length, files = readdirSync(join(base, 'hugonnet'));
+  const pkg = checkPackage('static', fullDir);
+  add('E1 Voller Baum des zweiten Produkts: je Region ein Dokument, alle bestehen den Vertrag, eine Zeitachse für alle, keine RGI-Zeile doppelt; das Paket trägt nur Dateien unter static/<build>/hugonnet/, zusammen unter 2 MB',
+    problems.length === 0 && wrongRegion === 0 && sameTimes && rgi.size === n && files.length === regions.length + 1 && report.matched === n && report.glaciers === catalog.glaciers.length
+    && pkg.files.every((f) => f.startsWith(`static/${catalog.build}/hugonnet/`)) && pkg.files.length === files.length && pkg.bytes < 2 * 1024 * 1024,
+    `${regions.length} Regionen, ${n} Blöcke, ${pkg.bytes} Bytes${problems.length ? ` — ${problems.slice(0, 3).join('; ')}` : ''}`);
+  if (dir) {
+    const first = {};
+    for (const r of regions) Object.assign(first, JSON.parse(readFileSync(join(dir, 'static', catalog.build, glacierElevFile(r)), 'utf8')).glaciers);
+    const idx = PER.map((p) => PF.findIndex((q) => q.key === p.key));
+    let agree = 0;
+    for (const [id, b] of Object.entries(first)) { const f = all[id]; if (f && f.rgi === b.rgi && f.km2 === b.km2 && PER.every((_, i) => (b.r[i] ? f.r[idx[i]] && f.r[idx[i]][0] === b.r[i][0] && f.r[idx[i]][1] === b.r[i][1] : f.r[idx[i]] === null))) agree++; }
+    add('E2 Dieselben Gletscher wie im veröffentlichten ersten Schritt, und für die fünf gemeinsamen Zeiträume dieselbe Höhenänderung', Object.keys(first).length === n && agree === n, `${agree}/${n} Gletscher stimmen überein`);
+  }
+  const tablePath = arg('table'), cumulPath = arg('cumul');
+  if (tablePath && cumulPath) {
+    const raw = readFileSync(tablePath), craw = readFileSync(cumulPath);
+    const t = parseHugonnetRates(raw.toString('utf8'), PF);
+    const KEYS = ['dhdt', 'err', 'dmdtda', 'errDmdtda', 'dvoldt', 'errDvoldt', 'dmdt', 'errDmdt'];
+    let same = 0, cells = 0;
+    for (const b of Object.values(all)) PF.forEach((p, i) => { const x = t.rows.get(b.rgi).get(p.key); KEYS.forEach((k, j) => { cells++; if (b.r[i] ? b.r[i][j] === x[k] : true) same++; }); if (!b.r[i] && KEYS.every((k) => x[k] != null)) same = -1e9; });
+    const c = parseHugonnetCumul(craw.toString('utf8'), rgi);
+    let pts = 0, ptsSame = 0, noSeries = 0;
+    for (const b of Object.values(all)) {
+      if (!b.c) { noSeries++; continue; }
+      const byT = new Map(c.rows.get(b.rgi).map((r) => [r.t, r]));
+      times.forEach((tt, i) => { const r = byT.get(tt); pts++; if (b.c[i] ? b.c[i][0] === r.dh && b.c[i][1] === r.err : r.dh == null || r.err == null) ptsSame++; });
+    }
+    const sha = (b) => createHash('sha256').update(b).digest('hex');
+    add('E3 Voller Baum gegen beide Tabellen: jede Rate und jeder Punkt der Jahresreihe ist die Zahl der Tabelle; die Prüfsummen beider Tabellen stehen im Bericht', same === cells && pts === ptsSame && pts === report.series.points &&sha(raw) === report.tables.rates.sha256 && sha(craw) === report.tables.cumul.sha256 && Q.length * 2 === KEYS.length,
+      `${same}/${cells} Raten, ${ptsSame}/${pts} Punkte, ${noSeries} Gletscher ohne Reihe`);
   }
 }
 

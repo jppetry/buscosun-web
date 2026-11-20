@@ -4,7 +4,8 @@
  *
  * What it carries: the satellite-derived mean elevation change of the glacier surface per glacier, 2000–2019 and the four
  * five-year periods, each with its 1-sigma uncertainty — the per-glacier table of Hugonnet et al. 2021 (doi:10.6096/13, CC BY 4.0),
- * values and uncertainties exactly as published. No density conversion, no mass, no volume, nothing beyond 2019.
+ * values and uncertainties exactly as published. No density conversion of ours, nothing beyond 2019. The other quantities of the same
+ * tables (mass balance, volume, mass, decades, yearly cumulative series) are a second product: `glacierHugonnetContract.ts`.
  *
  * Where it lives: `static/<build>/dhdt/<region>.json` of the static build (branch `glacier`), next to `proj/<region>.json`. The files of a
  * build are immutable, so the document names its own source; the pointer `index.json` says which build carries the files
@@ -52,24 +53,31 @@ export type GlacierElevSource = { id: string; label: string; licence: string; at
 export const HUGONNET_RATES_COLUMNS: readonly string[] = Object.freeze([
   'rgiid', 'period', 'area', 'dhdt', 'err_dhdt', 'dvoldt', 'err_dvoldt', 'dmdt', 'err_dmdt', 'dmdtda', 'err_dmdtda', 'perc_area_meas', 'perc_area_res', 'valid_obs', 'valid_obs_py', 'reg',
 ]);
-const RGI6_ID_RE = /^RGI60-\d{2}\.\d{5}$/;
-/** One table row reduced to what the block uses; `dhdt`/`err` are `null` where the table says `nan`. Numbers are taken as written. */
-export interface HugonnetRate { areaM2: number; dhdt: number | null; err: number | null }
+export const RGI6_ID_RE = /^RGI60-\d{2}\.\d{5}$/;
+/**
+ * One table row; a cell is `null` where the table carries no number (an empty cell). Numbers are taken as written.
+ * `dhdt`/`err` feed the elevation block; the other three pairs (specific mass balance in m w.e. per year, volume change in m³ per year,
+ * mass change in Gt per year) feed `glacierHugonnetContract.ts`.
+ */
+export interface HugonnetRate {
+  areaM2: number; dhdt: number | null; err: number | null;
+  dvoldt: number | null; errDvoldt: number | null; dmdt: number | null; errDmdt: number | null; dmdtda: number | null; errDmdtda: number | null;
+}
 export interface HugonnetTable { rows: Map<string, Map<string, HugonnetRate>>; glaciers: number; lines: number }
 
 const cell = (s: string): number | null => { const t = s.trim(); if (t === '' || /^nan$/i.test(t)) return null; const v = Number(t); return Number.isFinite(v) ? v : null; };
 
 /**
- * Reads the rates table. Only the periods of `GLACIER_ELEV_PERIODS` are kept (the table carries 42 per glacier). Throws when the header is
- * not the published one or a kept row is malformed — a changed table is a stop, never a silent guess at the columns.
+ * Reads the rates table. Only the given periods are kept — by default those of `GLACIER_ELEV_PERIODS` (the table carries 42 per glacier).
+ * Throws when the header is not the published one or a kept row is malformed — a changed table is a stop, never a silent guess at the columns.
  */
-export function parseHugonnetRates(csv: string): HugonnetTable {
+export function parseHugonnetRates(csv: string, periods: ReadonlyArray<{ key: string }> = GLACIER_ELEV_PERIODS): HugonnetTable {
   const text = csv.charCodeAt(0) === 0xfeff ? csv.slice(1) : csv;
   const nl = text.indexOf('\n');
   const head = (nl < 0 ? text : text.slice(0, nl)).trim().split(',').map((c) => c.trim());
   if (head.length !== HUGONNET_RATES_COLUMNS.length || head.some((c, i) => c !== HUGONNET_RATES_COLUMNS[i])) throw new Error(`Hugonnet-Tabelle: Kopfzeile weicht ab (${head.join(',')})`);
   const iId = 0, iPeriod = 1, iArea = 2, iDh = 3, iErr = 4;
-  const keep = new Set(GLACIER_ELEV_PERIODS.map((p) => p.key));
+  const keep = new Set(periods.map((p) => p.key));
   const rows = new Map<string, Map<string, HugonnetRate>>();
   let lines = 0, at = nl + 1;
   while (nl >= 0 && at < text.length) {
@@ -88,7 +96,10 @@ export function parseHugonnetRates(csv: string): HugonnetTable {
     let g = rows.get(c[iId]);
     if (!g) { g = new Map(); rows.set(c[iId], g); }
     if (g.has(c[iPeriod])) throw new Error(`Hugonnet-Tabelle: ${c[iId]} ${c[iPeriod]} doppelt`);
-    g.set(c[iPeriod], { areaM2, dhdt: cell(c[iDh]), err: cell(c[iErr]) });
+    g.set(c[iPeriod], {
+      areaM2, dhdt: cell(c[iDh]), err: cell(c[iErr]),
+      dvoldt: cell(c[5]), errDvoldt: cell(c[6]), dmdt: cell(c[7]), errDmdt: cell(c[8]), dmdtda: cell(c[9]), errDmdtda: cell(c[10]),
+    });
   }
   return { rows, glaciers: rows.size, lines };
 }
