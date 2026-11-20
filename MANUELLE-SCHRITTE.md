@@ -3814,6 +3814,7 @@ Ohne Schalter an für alle (dein Wort vom 19.11.). Lokal committet, nicht gepush
 | --- | --- | --- |
 | Zweig `glacier` | `b1f55b3b45df835df310a8d5d8da5928aa0a23bf` | 27 neue Dateien `glacier/v1/static/20261012-1/dhdt/` (26 Regionen + Bericht, 271 KB) |
 | `main` | `4d9136a6c653a7953b7b711d08e0cabcd36db4f7` | `glacier/v1/index.json`: `static.dhdt = "20261012-1"` |
+| Zweig `glacier` (20.11., deine Freigabe) | `f2262f8c9e67838c7955ee8613e18ba6fa666fce` | 27 neue Dateien `glacier/v1/static/20261012-1/hugonnet/` (26 Regionen + Bericht, 0,97 MB); kein Zeiger gesetzt |
 
 1. **Ansehen** (dein Dev-Server, die Daten liegen schon im Speicher): `/gletscher/ch-grosser-aletschgletscher` → links im
    Steckbrief „Höhenänderung 2000–2019: −1,4 m pro Jahr · ± 0,1“; Reiter „Langzeit“ → Karte „Höhenänderung der Oberfläche“
@@ -3836,3 +3837,12 @@ Ohne Schalter an für alle (dein Wort vom 19.11.). Lokal committet, nicht gepush
    `C:\dev\buscosun-glacier-cache\raw\hugonnet\`), der Klon `C:\dev\buscosun-data-gh` (nur für diese Pushs; kann weg).
 8. **Offen:** `verify:glacier-ui` (Browser) bricht am Suchfeld der Lageseite ab — an HEAD gegenprüfen (V-GH-6);
    Real-Device; Pixelvergleich nicht gemacht.
+9. **Zweites Datenprodukt (20.11., nur Daten, lokal committet `2cfc9f4b`):** für dieselben 1 081 Gletscher liegen unter
+   `static/20261012-1/hugonnet/<region>.json` spezifische Massenbilanz, Volumen- und Massenänderung und Höhenänderung, je mit
+   Unsicherheit, für 2000–2019, 2000–2009, 2010–2019 und die vier Fünfjahresabschnitte, dazu die aufsummierte Höhenänderung in
+   Jahresschritten (21 Punkte, 1.1.2000 bis 1.1.2020). Vertrag `src/glacier/glacierHugonnetContract.ts`, Lauf
+   `hugonnet.mjs --product=hugonnet --cumul=…`, `verify:glacier-hugonnet` 39/39 (46/46 mit beiden vollen Bäumen).
+   **Die Seite liest es noch nicht** (kein Zeiger `static.hugonnet`, keine Anzeige) — das ist der nächste Schritt, auf dein Wort.
+   Zurück: den Commit `f2262f8c` auf dem Zweig `glacier` zurücknehmen (niemand liest die Dateien).
+   Nicht gemacht: die 100-m-Karten der Höhenänderung (eigener Download, eigene Rechnung je Umriss).
+   Ein neuer statischer Build braucht auch diesen Lauf (wie Punkt 6).
