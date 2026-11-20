@@ -8,8 +8,8 @@ import { OriginChip, LockNote } from './GlacierParts';
 import { fmt0, fmt2, fmtKm2, fmtRefYear, fmtSigned } from './glacierView';
 import {
   dateDe, dateDeLong, STATE_TEXT, indexWord, projectionSentence, tourLines, tourProblems, TOUR_DISCLAIMER, NOT_USED_SOURCES, againstBand, climaBand, albedoAnomaly, sourceRows, seasonSummary,
-  elevFigure, elevSentence, hugFigure, hugCumFigure, hugSentence, HUG_KEYS, HUG_TEXT,
-  type MeltView, type SeasonSummary, type ProjectionView, type MassRow, type SourceRow, type ElevView, type HugonnetView,
+  elevFigure, elevSentence, hugFigure, hugCumFigure, hugSentence, hugNum, hugStakeScale, HUG_STAKE_KEYS, HUG_TEXT,
+  type MeltView, type SeasonSummary, type ProjectionView, type MassRow, type SourceRow, type ElevView, type HugonnetView, type HugPeriod,
 } from './glacierSheetModel';
 import { SeasonChart, LengthChart, ProjectionChart, FreezeChart, MeltBars, ElevBars, CumulChart } from './GlacierCharts';
 import type { GlacierCatalogEntry, GlacierOfficialItem, GlacierSeries } from './glacierContract';
@@ -155,6 +155,68 @@ export function ElevCard({ elev }: { elev: ElevView }) {
 /** The period ladder: one row per length of period, each button as wide as its years (indices into `HugonnetView.periods`). */
 const HUG_LADDER: ReadonlyArray<{ w: 4 | 2 | 1; i: readonly number[] }> = [{ w: 4, i: [0] }, { w: 2, i: [1, 2] }, { w: 1, i: [3, 4, 5, 6] }];
 /**
+ * The figure "per square metre": the yearly change of the surface and the same change as a layer of water, drawn to scale on ONE
+ * metre staff. The scale is fixed per glacier (`hugStakeScale`), so the columns move when the period changes; the dashed line is the
+ * mean of the whole period. With the uncertainty as large as the value there is no column, only the range it spans.
+ */
+function HugStake({ hug, p }: { hug: HugonnetView; p: HugPeriod }) {
+  const sc = hugStakeScale(hug);
+  const y = (v: number) => ((sc.hi - v) / (sc.hi - sc.lo)) * 100;
+  const cols = HUG_STAKE_KEYS.map((k) => ({ k, q: p.q[k], f: hugFigure(p.q[k]), ref: p !== hug.total && !hug.total.q[k].rangeOnly ? hug.total.q[k].v : null }));
+  const anyRange = cols.some((c) => c.q.rangeOnly), anyRef = cols.some((c) => c.ref != null);
+  return (
+    <div className="gl-hug-stk" data-origin="satellite">
+      <div className="gl-hug-stk-head"><b>Je Quadratmeter Gletscher</b><span>Maßstab in m pro Jahr, unter 0 = Verlust</span></div>
+      <div className="gl-hug-stk-plot" role="img" aria-label={cols.map((c) => `${HUG_TEXT[c.k].title}: ${c.f.value} ${c.f.unit} pro Jahr, ${c.f.note}`).join('; ')}>
+        <div className="gl-hug-stk-scale" aria-hidden="true">
+          {sc.ticks.map((t) => <span key={t} style={{ top: `${y(t)}%` }}>{hugNum(t, sc.nd)}</span>)}
+          <i style={{ backgroundSize: `100% ${200 / (sc.ticks.length - 1)}%` }} />
+        </div>
+        <div className="gl-hug-stk-lines" aria-hidden="true">
+          {sc.ticks.map((t) => <i key={t} className={Math.abs(t) < sc.step / 2 ? 'is-zero' : undefined} style={{ top: `${y(t)}%` }} />)}
+        </div>
+        {cols.map((c, i) => {
+          const top = y(c.q.v + c.q.err), h = y(c.q.v - c.q.err) - top;
+          return (
+            <div key={c.k} className="gl-hug-stk-col" style={{ gridColumn: i + 2 }} aria-hidden="true">
+              {c.q.rangeOnly ? <i className="gl-hug-stk-bar is-range" style={{ top: `${top}%`, height: `${h}%` }} /> : (
+                <>
+                  <i className={`gl-hug-stk-bar ${c.k === 'dhdt' ? 'is-surf' : 'is-water'} ${c.q.v < 0 ? 'is-loss' : 'is-gain'}`} style={{ top: `${y(Math.max(c.q.v, 0))}%`, height: `${Math.abs(y(c.q.v) - y(0))}%` }} />
+                  <i className="gl-hug-stk-err" style={{ top: `${top}%`, height: `${h}%` }} />
+                </>
+              )}
+              {c.ref != null && <i className="gl-hug-stk-ref" style={{ top: `${y(c.ref)}%` }} />}
+            </div>
+          );
+        })}
+      </div>
+      <div className="gl-hug-stk-caps">
+        {cols.map((c, i) => (
+          <div key={c.k} className="gl-hug-tile is-plain" style={{ gridColumn: i + 2 }} data-origin="satellite" data-hug={c.k}>
+            <span className="gl-hug-tile-l">{HUG_TEXT[c.k].title}</span>
+            <b className={`gl-num${c.f.range ? ' is-range' : c.q.v < 0 ? ' is-loss' : ''}`} data-origin="satellite">{c.f.value}<small>{c.f.unit}</small></b>
+            <span className="gl-hug-tile-n">pro Jahr · {c.f.note}</span>
+            <span className="gl-hug-tile-h">{HUG_TEXT[c.k].hint}</span>
+          </div>
+        ))}
+      </div>
+      <div className="gl-legend-lines gl-hug-legend" aria-hidden="true">
+        <span><i className="gl-hug-k-surf" />Oberfläche</span>
+        <span><i className="gl-hug-k-water" />als Wasserschicht</span>
+        {cols.some((c) => !c.q.rangeOnly) ? <span><i className="gl-hug-k-err" />Unsicherheit (1 σ)</span> : null}
+        {anyRange ? <span><i className="gl-hug-k-range" />nur die Spanne</span> : null}
+        {anyRef ? <span><i className="gl-hug-k-ref" />Mittel {hug.total.label}</span> : null}
+      </div>
+    </div>
+  );
+}
+/** Pictograms of the two totals over the whole glacier: a block for the volume, a weight for the mass. */
+const HugIcon = ({ k }: { k: 'dvoldt' | 'dmdt' }) => (
+  <svg className="gl-hug-ico" viewBox="0 0 28 28" aria-hidden="true">
+    {k === 'dvoldt' ? <><path d="M14 3 24 8.5v11L14 25 4 19.5v-11Z" /><path d="M4 8.5 14 14l10-5.5M14 14v11" /></> : <><path d="M9.5 11h9L23 24H5Z" /><circle cx="14" cy="8" r="3" /></>}
+  </svg>
+);
+/**
  * Phase GH, second product — height, volume and mass 2000–2019 (Hugonnet et al. 2021) in one card: the surface against its level of
  * 2000 year by year, the period ladder under the time axis, and for the chosen period the four yearly means with their uncertainty.
  * The five-year columns of the elevation block stay below. Rendered only for a glacier that has both blocks.
@@ -201,15 +263,20 @@ export function HugonnetCard({ hug, elev }: { hug: HugonnetView; elev: ElevView 
         </div>
         <div className="gl-hug-side">
           <h3 className="gl-h3" aria-live="polite">Mittel pro Jahr · {p.label}</h3>
+          <HugStake hug={hug} p={p} />
+          <span className="gl-hug-grp">Über den ganzen Gletscher ({fmtKm2(hug.km2)})</span>
           <div className="gl-hug-tiles">
-            {HUG_KEYS.map((k) => {
+            {(['dvoldt', 'dmdt'] as const).map((k) => {
               const f = hugFigure(p.q[k]);
               return (
-                <div key={k} className="gl-hug-tile" data-origin="satellite" data-hug={k}>
-                  <span className="gl-hug-tile-l">{HUG_TEXT[k].title}</span>
-                  <b className={`gl-num${f.range ? ' is-range' : p.q[k].v < 0 ? ' is-loss' : ''}`} data-origin="satellite">{f.value}<small>{f.unit}</small></b>
-                  <span className="gl-hug-tile-n">pro Jahr · {f.note}</span>
-                  <span className="gl-hug-tile-h">{HUG_TEXT[k].hint}</span>
+                <div key={k} className="gl-hug-tile has-ico" data-origin="satellite" data-hug={k}>
+                  <HugIcon k={k} />
+                  <div className="gl-hug-tile-b">
+                    <span className="gl-hug-tile-l">{HUG_TEXT[k].title}</span>
+                    <b className={`gl-num${f.range ? ' is-range' : p.q[k].v < 0 ? ' is-loss' : ''}`} data-origin="satellite">{f.value}<small>{f.unit}</small></b>
+                    <span className="gl-hug-tile-n">pro Jahr · {f.note}</span>
+                    <span className="gl-hug-tile-h">{HUG_TEXT[k].hint}</span>
+                  </div>
                 </div>
               );
             })}

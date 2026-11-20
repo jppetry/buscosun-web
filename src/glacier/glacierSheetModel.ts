@@ -275,6 +275,25 @@ export function hugFigure(q: HugQty): { value: string; unit: string; note: strin
   if (q.rangeOnly) return { value: `${hugNum(v - e, s.nd)} bis ${hugNum(v + e, s.nd)}`, unit: s.unit, note: 'nur die Spanne', range: true };
   return { value: hugNum(v, s.nd), unit: s.unit, note: `± ${hugNum(e, s.nd, false)}`, range: false };
 }
+/** The two quantities that are metres per year on a square metre of glacier: they share one scale in the figure. */
+export const HUG_STAKE_KEYS = ['dhdt', 'dmdtda'] as const;
+export interface HugStakeScale { lo: number; hi: number; step: number; nd: 0 | 1 | 2; ticks: number[] }
+/**
+ * The metre scale of the figure "per square metre": ONE scale for all periods of a glacier, so the columns stay comparable when the
+ * period changes. It spans every value with its uncertainty, always holds zero, and both ends sit on a tick (`ticks` from the top).
+ * Positions only — no number of the document changes.
+ */
+export function hugStakeScale(v: HugonnetView): HugStakeScale {
+  let lo = 0, hi = 0;
+  for (const p of v.periods) {
+    if (!p) continue;
+    for (const k of HUG_STAKE_KEYS) { lo = Math.min(lo, p.q[k].v - p.q[k].err); hi = Math.max(hi, p.q[k].v + p.q[k].err); }
+  }
+  if (!(hi - lo > 0)) lo = -0.1;
+  const step = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50].find((s) => (hi - lo) / s <= 5) ?? 100;
+  const k0 = Math.floor(lo / step + 1e-9), k1 = Math.ceil(hi / step - 1e-9);
+  return { lo: k0 * step, hi: k1 * step, step, nd: step >= 1 ? 0 : step >= 0.1 ? 1 : 2, ticks: Array.from({ length: k1 - k0 + 1 }, (_, i) => (k1 - i) * step) };
+}
 /** Decimals of a cumulative height in metres. */
 export const hugCumDecimals = (err: number): 0 | 1 => (err >= 10 ? 0 : 1);
 /** The figure of a point of the series (metres against the first date). */
