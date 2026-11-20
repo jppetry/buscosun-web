@@ -169,7 +169,7 @@ function HugStake({ hug, p }: { hug: HugonnetView; p: HugPeriod }) {
       <div className="gl-hug-stk-head"><b>Je Quadratmeter Gletscher</b><span>Maßstab in m pro Jahr, unter 0 = Verlust</span></div>
       <div className="gl-hug-stk-plot" role="img" aria-label={cols.map((c) => `${HUG_TEXT[c.k].title}: ${c.f.value} ${c.f.unit} pro Jahr, ${c.f.note}`).join('; ')}>
         <div className="gl-hug-stk-scale" aria-hidden="true">
-          {sc.ticks.map((t) => <span key={t} style={{ top: `${y(t)}%` }}>{hugNum(t, sc.nd)}</span>)}
+          {sc.ticks.map((t) => <span key={t} style={{ top: `${y(t)}%` }}>{Math.abs(t) < sc.step / 2 ? '0' : hugNum(t, sc.nd)}</span>)}
           <i style={{ backgroundSize: `100% ${200 / (sc.ticks.length - 1)}%` }} />
         </div>
         <div className="gl-hug-stk-lines" aria-hidden="true">
@@ -201,8 +201,8 @@ function HugStake({ hug, p }: { hug: HugonnetView; p: HugPeriod }) {
         ))}
       </div>
       <div className="gl-legend-lines gl-hug-legend" aria-hidden="true">
-        <span><i className="gl-hug-k-surf" />Oberfläche</span>
-        <span><i className="gl-hug-k-water" />als Wasserschicht</span>
+        {cols[0].q.rangeOnly ? null : <span><i className="gl-hug-k-surf" />Oberfläche</span>}
+        {cols[1].q.rangeOnly ? null : <span><i className="gl-hug-k-water" />als Wasserschicht</span>}
         {cols.some((c) => !c.q.rangeOnly) ? <span><i className="gl-hug-k-err" />Unsicherheit (1 σ)</span> : null}
         {anyRange ? <span><i className="gl-hug-k-range" />nur die Spanne</span> : null}
         {anyRef ? <span><i className="gl-hug-k-ref" />Mittel {hug.total.label}</span> : null}
@@ -264,23 +264,25 @@ export function HugonnetCard({ hug, elev }: { hug: HugonnetView; elev: ElevView 
         <div className="gl-hug-side">
           <h3 className="gl-h3" aria-live="polite">Mittel pro Jahr · {p.label}</h3>
           <HugStake hug={hug} p={p} />
-          <span className="gl-hug-grp">Über den ganzen Gletscher ({fmtKm2(hug.km2)})</span>
-          <div className="gl-hug-tiles">
-            {(['dvoldt', 'dmdt'] as const).map((k) => {
-              const f = hugFigure(p.q[k]);
-              return (
-                <div key={k} className="gl-hug-tile has-ico" data-origin="satellite" data-hug={k}>
-                  <HugIcon k={k} />
-                  <div className="gl-hug-tile-b">
-                    <span className="gl-hug-tile-l">{HUG_TEXT[k].title}</span>
-                    <b className={`gl-num${f.range ? ' is-range' : p.q[k].v < 0 ? ' is-loss' : ''}`} data-origin="satellite">{f.value}<small>{f.unit}</small></b>
-                    <span className="gl-hug-tile-n">pro Jahr · {f.note}</span>
-                    <span className="gl-hug-tile-h">{HUG_TEXT[k].hint}</span>
-                  </div>
+        </div>
+      </div>
+      <div className="gl-hug-whole">
+        <span className="gl-hug-grp">Über den ganzen Gletscher ({fmtKm2(hug.km2)}), Mittel pro Jahr {p.label}</span>
+        <div className="gl-hug-tiles">
+          {(['dvoldt', 'dmdt'] as const).map((k) => {
+            const f = hugFigure(p.q[k]);
+            return (
+              <div key={k} className="gl-hug-tile has-ico" data-origin="satellite" data-hug={k}>
+                <HugIcon k={k} />
+                <div className="gl-hug-tile-b">
+                  <span className="gl-hug-tile-l">{HUG_TEXT[k].title}</span>
+                  <b className={`gl-num${f.range ? ' is-range' : p.q[k].v < 0 ? ' is-loss' : ''}`} data-origin="satellite">{f.value}<small>{f.unit}</small></b>
+                  <span className="gl-hug-tile-n">pro Jahr · {f.note}</span>
+                  <span className="gl-hug-tile-h">{HUG_TEXT[k].hint}</span>
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            );
+          })}
         </div>
       </div>
       <h3 className="gl-h3">Höhenänderung je fünf Jahre</h3>
