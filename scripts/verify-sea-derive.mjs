@@ -365,6 +365,90 @@ add('P10 nächstes und längstes Fenster ab jetzt', nl.next?.from === 10 && nl.l
   add('N4 Gegenprobe: um 0,01° verschobener Katalog ⇒ keine Lage gleich', srcN.every((s) => { const c = flipped.find((x) => x.id === s.id); return c.lat !== s.lat; }), '');
 }
 
+// --- D: phase BS-N (V-DK-4) — wind direction at the coast, filled ONLY at the hours the engine interpolated -----------
+// buscosun Fusion names no direction at an hour it interpolates between two of its own steps. The coastal files fill
+// exactly those hours with the lake line's rule (`fillLakeDir`, 90°); every other hour and every other byte stays.
+// The stand-in has the engine's shape there: own steps hourly up to hour 41, then every third hour (41, 44, … 77), the
+// hours between interpolated (a speed, no direction). Expected values are written out by hand, not computed by the rule.
+{
+  const { spotsDocOf, dirFillDoc, DIR_FILL_RULE, windRefresh, readCatalog } = await import('./sea/sea-derive.mjs');
+  const { seaSpotsWindPath } = await import('../src/sea/seaContract.ts');
+  const { parseSpotsDoc, mergeWindDoc } = await import('../src/sea/seaClient.ts');
+  const { LAKE_DIR_FILL_MAX_DEG } = await import('../src/sea/seaLakes.ts');
+  const fileText = readFileSync(join(store, seaSpotsPath(RUN)), 'utf8'), fileDoc = JSON.parse(fileText);
+  const WIND = ['wind', 'gust', 'windDir'];
+  const waves = Object.fromEntries(Object.entries(fileDoc.spots).map(([id, s]) => [id, Object.fromEntries(Object.entries(s.v).filter(([k]) => !WIND.includes(k)))]));
+  const cat = readCatalog(store).spots, A = cat[0].id, B = cat[1].id;
+  const textOf = (wind) => JSON.stringify(spotsDocOf({ run: RUN, runMs: fileDoc.runMs, spots: cat, waves, wind, sight: null }).spotsDoc) + '\n';
+  add('D1 spotsDocOf ist die Rechnung des Laufs: aus den Wellenreihen und dem Wind von Block A entsteht spots/<lauf>.json Byte für Byte; ein Wind ohne `interp` schreibt kein dirFill (alte Dateiform)',
+    textOf(await windOk({ spots: cat })) === fileText && !fileText.includes('dirFill'), `${fileText.length} B`);
+
+  const own = (h) => h >= 5 && (h <= 41 || h % 3 === 2);
+  // 20: the engine's gate at an own step · 44/47: over north · 53: a jump of 120° · 62: gate at a neighbouring step · 66: an interpolated hour that carries a direction
+  const SPECIAL = new Map([[20, null], [44, 350], [47, 20], [53, 110], [62, null], [66, 123]]);
+  const dirAt = (h) => (h < 5 ? null : SPECIAL.has(h) ? SPECIAL.get(h) : own(h) ? (h * 7) % 360 : null);
+  const interpHours = SEA_SPOT_STEPS.filter((h) => h > 41 && h % 3 !== 2);
+  const windFill = (withInterp, t1 = '2026100703', at = nowMs) => async ({ spots }) => ({
+    series: Object.fromEntries(spots.map((s) => [s.id, { wind: SEA_SPOT_STEPS.map((h) => (h < 5 ? null : 80 + h)), gust: SEA_SPOT_STEPS.map((h) => (h < 5 ? null : 110 + h)), windDir: SEA_SPOT_STEPS.map(dirAt) }])),
+    failed: [], meta: { engine: 'buscosun Fusion 14', version: 14, computedAt: new Date(at).toISOString(), runs: { t1 } },
+    // spot A: the interpolated hours; spot B: the same columns, but the engine interpolated nothing there
+    ...(withInterp ? { interp: { [A]: interpHours, [B]: [] } } : {}),
+  });
+  // By hand: 41→44 287°→350° · 44→47 350°→20° over north · 47→50 20°→350° back over north · 50→53 a jump of 120° (stays) ·
+  // 53→56 110°→32° · 56→59 32°→53° · 59→62 and 62→65: the step at 62 has no direction (stays) · 65→68 95°→116° with 66 already
+  // carrying 123° (stays 123) · 68→71, 71→74, 74→77 · 78 has no step behind it (stays).
+  const EXPECT = new Map([[42, 308], [43, 329], [45, 0], [46, 10], [48, 10], [49, 0], [54, 84], [55, 58], [57, 39], [58, 46], [67, 109], [69, 123], [70, 130], [72, 144], [73, 151], [75, 165], [76, 172]]);
+  const plainText = textOf(await windFill(false)({ spots: cat })), fillText = textOf(await windFill(true)({ spots: cat }));
+  const plain = JSON.parse(plainText), filled = JSON.parse(fillText);
+  const diffOf = (a, b, id) => a.spots[id].v.windDir.map((x, i) => (x === b.spots[id].v.windDir[i] ? null : [i, b.spots[id].v.windDir[i]])).filter(Boolean);
+  const dA = diffOf(plain, filled, A), dB = diffOf(plain, filled, B);
+  add('D2 Lauf-Datei: gefüllt sind genau die 17 erwarteten Stunden (auch über Nord), an Spot B ohne interpolierte Stunde keine; Sprung über 90°, Nachbarschritt ohne Richtung, Stunde hinter dem letzten Schritt und die Sperre des Motors an Stunde 20 bleiben null; eine interpolierte Stunde MIT Richtung bleibt, wie sie ist',
+    dA.length === 17 && dA.every(([i, x]) => EXPECT.get(i) === x) && dB.length === 0
+    && [20, 51, 52, 60, 61, 63, 64, 78].every((i) => filled.spots[A].v.windDir[i] === null) && filled.spots[A].v.windDir[66] === 123,
+    JSON.stringify(dA));
+  add('D3 die Datei nennt die Füllung: wind.dirFill mit Zahl (17), Grenze und Regel in Worten; ohne `interp` kein Block',
+    JSON.stringify(filled.wind.dirFill) === JSON.stringify(dirFillDoc(17)) && filled.wind.dirFill.maxDeg === LAKE_DIR_FILL_MAX_DEG && LAKE_DIR_FILL_MAX_DEG === 90
+    && /höchstens 90°/.test(DIR_FILL_RULE) && /eigene Rechnung, nicht buscosun Fusion/.test(DIR_FILL_RULE) && /bleibt null/.test(DIR_FILL_RULE) && plain.wind.dirFill === undefined,
+    JSON.stringify(filled.wind.dirFill).slice(0, 80));
+  // Negative control: blank the direction at the interpolated hours of spot A and the block `dirFill` in BOTH texts — what is
+  // left (every non-interpolated hour, every other column, every other spot, the frame) must be the same bytes.
+  const masked = (text) => { const d = JSON.parse(text); for (const i of interpHours) d.spots[A].v.windDir[i] = null; delete d.wind.dirFill; return JSON.stringify(d) + '\n'; };
+  const tamper = (f) => { const d = JSON.parse(fillText); f(d); return JSON.stringify(d) + '\n'; };
+  add('D4 Negativkontrolle Lauf-Datei: ohne die interpolierten Stunden von Spot A und ohne dirFill sind beide Dateien byte-gleich — keine nicht interpolierte Stunde, keine andere Spalte, kein anderer Spot hat sich bewegt',
+    masked(fillText) === masked(plainText) && fillText !== plainText && Buffer.byteLength(fillText) > Buffer.byteLength(plainText), `${Buffer.byteLength(plainText)} / ${Buffer.byteLength(fillText)} B`);
+  add('D5 Gegenprobe auf den Vergleich: eine veränderte Richtung an einer NICHT interpolierten Stunde, eine Böe an einer interpolierten Stunde und eine Richtung an Spot B fallen jeweils auf',
+    masked(tamper((d) => { d.spots[A].v.windDir[30] += 1; })) !== masked(plainText) && masked(tamper((d) => { d.spots[A].v.gust[45] += 1; })) !== masked(plainText) && masked(tamper((d) => { d.spots[B].v.windDir[45] = 0; })) !== masked(plainText));
+  const seen = parseSpotsDoc(filled, RUN);
+  add('D6 die Seite liest eine gefüllte Stunde wie jede andere (Grad), die Wertsperre besteht', seen?.series[A].windDir[45] === 0 && seen.series[A].windDir[54] === 84 && seen.series[A].windDir[51] === null && seen.rejected.length === 0);
+
+  // The wind refresh, end to end on two copies of the store of block A.
+  const copy = (name) => {
+    const dir = join(tmp, name);
+    mkdirSync(join(dir, 'spots'), { recursive: true });
+    cpSync(join(store, 'static'), join(dir, 'static'), { recursive: true });
+    cpSync(join(store, seaSpotsPath(RUN)), join(dir, seaSpotsPath(RUN)));
+    cpSync(join(store, SEA_STATUS_PATH), join(dir, SEA_STATUS_PATH));
+    return dir;
+  };
+  const at = T('2026-10-07T09:20:00Z');
+  const refresh = async (name, withInterp) => {
+    const dir = copy(name);
+    const r = await windRefresh({ storeDir: dir, dataDir: 'cdn', nowMs: at, indexT1: '2026100706', windImpl: windFill(withInterp, '2026100706', at) });
+    return { r, text: readFileSync(join(dir, seaSpotsWindPath(RUN, '2026100706')), 'utf8'), runFile: readFileSync(join(dir, seaSpotsPath(RUN)), 'utf8') };
+  };
+  const rp = await refresh('d-plain', false), rf = await refresh('d-fill', true);
+  const wp = JSON.parse(rp.text), wf = JSON.parse(rf.text);
+  const dWA = diffOf(wp, wf, A), dWB = diffOf(wp, wf, B);
+  add('D7 Wind-Auffrischung: dieselben 17 Stunden an Spot A, keine an Spot B; Zahl und Regel in wind.dirFill; die Lauf-Datei bleibt unberührt; ohne `interp` kein Block',
+    rp.r.built && rf.r.built && dWA.length === 17 && dWA.every(([i, x]) => EXPECT.get(i) === x) && dWB.length === 0 && JSON.stringify(wf.wind.dirFill) === JSON.stringify(dirFillDoc(17)) && rf.r.dirFilled === 17
+    && !rp.text.includes('dirFill') && rp.r.dirFilled === 0 && rf.runFile === fileText && rp.runFile === fileText, JSON.stringify(dWA).slice(0, 120));
+  add('D8 Negativkontrolle Wind-Auffrischung: ohne die interpolierten Stunden von Spot A und ohne dirFill byte-gleich; Gegenprobe: eine veränderte nicht interpolierte Stunde fällt auf',
+    masked(rf.text) === masked(rp.text) && rf.text !== rp.text
+    && masked((() => { const d = JSON.parse(rf.text); d.spots[A].v.windDir[30] += 1; return JSON.stringify(d) + '\n'; })()) !== masked(rp.text));
+  const mergedFill = mergeWindDoc(seen, { from: wf.from, wind: wf.wind, spots: wf.spots });
+  add('D9 Seite mit Auffrischung: ab der Rechenstunde die Richtung der Auffrischung, gefüllte Stunden eingeschlossen', wf.from === 9 && mergedFill.series[A].windDir[45] === 0 && mergedFill.series[A].windDir[76] === 172 && mergedFill.series[A].windDir[52] === null);
+}
+
 // --- W: V-SW-2 wind refresh on a newer t1 cube (on the store of block A: run 2026100700, wind with t1 2026100703) ---
 {
   const { windDue, windRefresh } = await import('./sea/sea-derive.mjs');

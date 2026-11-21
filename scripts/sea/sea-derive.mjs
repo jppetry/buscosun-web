@@ -40,6 +40,8 @@ import {
 import { quantiles } from '../../src/pointForecast/fusion/dist.ts';
 // Phase SG: the hint columns `s` (showers/thunderstorms from the published ICON-D2 repack, sight from the road line's diagnosis).
 import { sightFor, fusionSightSteps, httpRepack, dirRepack } from './sea-sight.mjs';
+// Phase BS-N (V-DK-4): the direction fill of the lake line, same rule and constant (`seaLakes.ts` is import-free).
+import { fillLakeDir, LAKE_DIR_FILL_MAX_DEG } from '../../src/sea/seaLakes.ts';
 
 const SELF = fileURLToPath(import.meta.url);
 const H = 3_600_000;
@@ -330,8 +332,8 @@ export async function spotWind({ dataDir, spots, geoDoc, nowMs, runMs, log = () 
       const series = spotWindSeries(steps, runMs);
       if (!series) { failed.push({ id: sp.id, error: 'buscosun Fusion ohne Windwert an jeder Stunde des Laufs' }); continue; }
       out[sp.id] = series;
-      // V-BS-1: the hours the engine interpolated between two of its own steps (information only; the lake producer reads it,
-      // no coastal file carries it)
+      // V-BS-1 / V-DK-4: the hours the engine interpolated between two of its own steps. Not written to any file; the lake
+      // producer and — phase BS-N — the coastal files fill the direction at exactly these hours (`spotDirFill`).
       interp[sp.id] = steps.filter((st) => st.interpolated).map((st) => (st.validAtMs - runMs) / H).filter((i) => Number.isInteger(i) && i >= 0 && i < SEA_SPOT_STEPS.length);
       // Phase SG: temperature, dew point, precipitation and rain chance of the same steps — read, nothing computed again.
       sightIn[sp.id] = fusionSightSteps(steps);
@@ -345,6 +347,57 @@ export async function spotWind({ dataDir, spots, geoDoc, nowMs, runMs, log = () 
     series: out, failed, sightIn, interp,
     meta: { engine: fusionName(version ?? FUSION_CURRENT), version: version ?? null, stageCurrent: version === FUSION_CURRENT, computedAt: new Date(nowMs).toISOString(), hoursFrom: new Date(t0).toISOString(), runs },
   };
+}
+
+/**
+ * Phase BS-N (V-DK-4, Jan 21.11.2026) — the wind direction of one coastal spot as it is written. buscosun Fusion names no
+ * direction at an hour it interpolates between two of its own steps (3-hourly cube stages; at the Danish spots without a
+ * MOSMIX station every hour but each third from about +38 h). Exactly those hours are filled, by the rule and constant of
+ * the lake line (`fillLakeDir`, `LAKE_DIR_FILL_MAX_DEG`, `set`): on the shorter arc between the two neighbouring steps when
+ * both carry a direction and differ by at most 90°. Every other hour — also one the engine's own gate left without a
+ * direction — stays exactly as the engine gave it. A wind result WITHOUT `interp` (a stand-in, an older caller) is not
+ * touched and the file then carries no `dirFill` block: the old file shape, byte for byte. Always returns a copy.
+ */
+export function spotDirFill(wind, id, dir) {
+  const interp = wind?.interp?.[id];
+  return interp ? fillLakeDir(dir, interp) : { dir: dir.slice(), filled: 0 };
+}
+export const DIR_FILL_RULE = `Windrichtung an Stunden, die buscosun Fusion zwischen zwei eigenen Schritten interpoliert und an denen es keine Richtung nennt: hier auf dem kürzeren Bogen zwischen den beiden Schritten interpoliert (eigene Rechnung, nicht buscosun Fusion), wenn beide eine Richtung tragen und höchstens ${LAKE_DIR_FILL_MAX_DEG}° auseinanderliegen. Jede andere Stunde ist unverändert; eine Stunde, an der buscosun Fusion selbst keine Richtung nennt (mittlerer Windvektor kleiner als seine Streuung), bleibt null.`;
+/** `wind.dirFill` of a coastal file: how many hours of the written spots carry a filled direction, and the rule in words. */
+export const dirFillDoc = (filled) => ({ filled, maxDeg: LAKE_DIR_FILL_MAX_DEG, rule: DIR_FILL_RULE });
+
+/**
+ * The spot document of a run (`spots/<run>.json`) from the wave series of `deriveFields`, the wind result and the hint
+ * columns — pure, so the verifier can build it twice from the same inputs (negative control of the direction fill).
+ */
+export function spotsDocOf({ run, runMs, spots, waves, wind, sight }) {
+  const noWind = (error) => spots.filter((s) => s.dk?.wind !== 'dmi').map((s) => ({ id: s.id, error }));
+  const spotsDoc = {
+    schema: 1, product: 'sea-spots-series', model: MODEL, run, runMs, t0: new Date(runMs).toISOString(), stepH: 1, steps: SEA_SPOT_STEPS.length,
+    vars: SEA_SPOT_VARS, origin: SEA_SPOT_ORIGIN,
+    units: { hs: 'cm', ws: 'cm', sw: 'cm', dir: 'deg', wsDir: 'deg', swDir: 'deg', windDir: 'deg', tm: '0.1 s', wsPer: '0.1 s', wsPeak: '0.1 s', swPer: '0.1 s', swPeak: '0.1 s', wind: '0.1 m/s', gust: '0.1 m/s' },
+    wave: { source: `DWD CWAM, Lauf ${run}`, license: 'Deutscher Wetterdienst, GeoNutzV' },
+    wind: wind?.meta ? { ...wind.meta, failed: wind.failed } : { engine: null, failed: wind?.failed ?? noWind('kein Cube-Checkout') },
+    spots: {},
+  };
+  const problems = [], bandProblems = [];
+  let bandSpots = 0, dirFilled = 0;
+  for (const sp of spots) {
+    const ws = wind?.series[sp.id] ?? null;
+    const fill = ws ? spotDirFill(wind, sp.id, ws.windDir) : null;
+    const v = { ...waves[sp.id], wind: ws?.wind ?? new Array(SEA_SPOT_STEPS.length).fill(null), gust: ws?.gust ?? new Array(SEA_SPOT_STEPS.length).fill(null), windDir: fill?.dir ?? new Array(SEA_SPOT_STEPS.length).fill(null) };
+    const gustDropped = sanitizeGust(v);
+    const pr = spotSeriesProblems(v);
+    if (pr.length) { problems.push(`${sp.id}: ${pr.slice(0, 2).join('; ')}`); continue; }
+    dirFilled += fill?.filled ?? 0;
+    const q = spotBand(v, ws?.q, sp.id, bandProblems);
+    if (q) bandSpots++;
+    spotsDoc.spots[sp.id] = { cell: [sp.cell.i, sp.cell.j], v, ...(q ? { q } : {}), ...(sight?.spots[sp.id] ? { s: sight.spots[sp.id] } : {}), ...(gustDropped ? { gustDropped } : {}) };
+  }
+  if (wind?.interp) spotsDoc.wind.dirFill = dirFillDoc(dirFilled);
+  if (bandSpots) spotsDoc.quantiles = bandDoc(bandSpots, bandProblems);
+  if (sight) spotsDoc.sight = sight.doc;
+  return { spotsDoc, problems, bandSpots, bandProblems, dirFilled };
 }
 
 /**
@@ -457,28 +510,8 @@ export async function buildRun({ storeDir, dataDir = null, cacheDir, run, inv = 
     try { wind = await windImpl({ dataDir, spots: cat.spots, geoDoc, nowMs, runMs, log }); } catch (e) { log(`Wind fehlgeschlagen: ${e.message}`); wind = { series: {}, failed: cat.spots.filter((s) => s.dk?.wind !== 'dmi').map((s) => ({ id: s.id, error: e.message })), meta: null }; }
   } else log('Wind: kein Cube-Checkout (--data) — Reihen ohne Wind');
   const sight = await spotSight({ wind, spots: cat.spots, runMs, nowMs, repack, log });
-  const spotsDoc = {
-    schema: 1, product: 'sea-spots-series', model: MODEL, run, runMs, t0: new Date(runMs).toISOString(), stepH: 1, steps: SEA_SPOT_STEPS.length,
-    vars: SEA_SPOT_VARS, origin: SEA_SPOT_ORIGIN,
-    units: { hs: 'cm', ws: 'cm', sw: 'cm', dir: 'deg', wsDir: 'deg', swDir: 'deg', windDir: 'deg', tm: '0.1 s', wsPer: '0.1 s', wsPeak: '0.1 s', swPer: '0.1 s', swPeak: '0.1 s', wind: '0.1 m/s', gust: '0.1 m/s' },
-    wave: { source: `DWD CWAM, Lauf ${run}`, license: 'Deutscher Wetterdienst, GeoNutzV' },
-    wind: wind?.meta ? { ...wind.meta, failed: wind.failed } : { engine: null, failed: wind?.failed ?? cat.spots.filter((s) => s.dk?.wind !== 'dmi').map((s) => ({ id: s.id, error: 'kein Cube-Checkout' })) },
-    spots: {},
-  };
-  const problems = [], bandProblems = [];
-  let bandSpots = 0;
-  for (const sp of cat.spots) {
-    const ws = wind?.series[sp.id] ?? null;
-    const v = { ...r.series[sp.id], wind: ws?.wind ?? new Array(SEA_SPOT_STEPS.length).fill(null), gust: ws?.gust ?? new Array(SEA_SPOT_STEPS.length).fill(null), windDir: ws?.windDir ?? new Array(SEA_SPOT_STEPS.length).fill(null) };
-    const gustDropped = sanitizeGust(v);
-    const pr = spotSeriesProblems(v);
-    if (pr.length) { problems.push(`${sp.id}: ${pr.slice(0, 2).join('; ')}`); continue; }
-    const q = spotBand(v, ws?.q, sp.id, bandProblems);
-    if (q) bandSpots++;
-    spotsDoc.spots[sp.id] = { cell: [sp.cell.i, sp.cell.j], v, ...(q ? { q } : {}), ...(sight?.spots[sp.id] ? { s: sight.spots[sp.id] } : {}), ...(gustDropped ? { gustDropped } : {}) };
-  }
-  if (bandSpots) spotsDoc.quantiles = bandDoc(bandSpots, bandProblems);
-  if (sight) spotsDoc.sight = sight.doc;
+  // Phase BS-N: the direction at the hours the engine interpolated is filled in `spotsDocOf` (`spotDirFill`, V-DK-4).
+  const { spotsDoc, problems, bandSpots, bandProblems, dirFilled } = spotsDocOf({ run, runMs, spots: cat.spots, waves: r.series, wind, sight });
   // EWAM cross check, observation only (plan: median |ΔHs| > 0.3 m ⇒ log, no stop).
   let check = null;
   if (ewam) { try { check = await ewamCheck({ run, cacheDir, cwamDir: cacheDir, fetchImpl }); } catch (e) { check = { error: e.message }; } }
@@ -504,7 +537,7 @@ export async function buildRun({ storeDir, dataDir = null, cacheDir, run, inv = 
   st.field.recent = [recent, ...(st.field.recent ?? [])].slice(0, 14);
   const removed = pruneRuns(storeDir);
   writeStatus(storeDir, st, nowMs);
-  return { built: true, run, mb: recent.mb, buildS: runDoc.buildS, wind: runDoc.wind, windSpots: Object.keys(wind?.series ?? {}).length, sightSpots: sight?.doc.spots ?? 0, sightConv: sight?.doc.conv.state ?? null, bandSpots, bandProblems: bandProblems.length, windError: wind?.failed?.[0]?.error ?? null, spotProblems: problems.length, removed, check };
+  return { built: true, run, mb: recent.mb, buildS: runDoc.buildS, wind: runDoc.wind, windSpots: Object.keys(wind?.series ?? {}).length, sightSpots: sight?.doc.spots ?? 0, sightConv: sight?.doc.conv.state ?? null, bandSpots, bandProblems: bandProblems.length, dirFilled, windError: wind?.failed?.[0]?.error ?? null, spotProblems: problems.length, removed, check };
 }
 
 // --- wind refresh on a newer t1 cube (V-SW-2) ---------------------------------------------------------------
@@ -547,27 +580,30 @@ export async function windRefresh({ storeDir, dataDir, nowMs = Date.now(), index
   const from = Math.max(0, Math.round((Math.floor(nowMs / H) * H - runMs) / H));
   const sight = await spotSight({ wind, spots: cat.spots, runMs, nowMs, repack, log });
   const spots = {}, rejected = [], bandProblems = [];
-  let bandSpots = 0;
+  let bandSpots = 0, dirFilled = 0;
   for (const [id, sp] of Object.entries(base.spots)) {
     const w = wind.series[id];
     if (!w) { rejected.push(`${id}: keine Rechnung`); continue; }
-    const v = { wind: w.wind.slice(), gust: w.gust.slice(), windDir: w.windDir.slice() };
+    // Phase BS-N (V-DK-4): the direction at the hours the engine interpolated, as in the run's own file (`spotDirFill`).
+    const fill = spotDirFill(wind, id, w.windDir);
+    const v = { wind: w.wind.slice(), gust: w.gust.slice(), windDir: fill.dir };
     const gustDropped = sanitizeGust(v);
     const pr = spotSeriesProblems({ ...sp.v, ...mergeSpotWind(sp.v, v, from) });
     if (pr.length) { rejected.push(`${id}: ${pr.slice(0, 2).join('; ')}`); continue; }
+    dirFilled += fill.filled;
     const q = spotBand(v, w.q, id, bandProblems);
     if (q) bandSpots++;
     spots[id] = { v, ...(q ? { q } : {}), ...(sight?.spots[id] ? { s: sight.spots[id] } : {}), ...(gustDropped ? { gustDropped } : {}) };
   }
   const path = seaSpotsWindPath(run, t1);
-  const doc = { schema: 1, product: 'sea-spots-wind', model: MODEL, run, runMs, t1, from, wind: { ...wind.meta, failed: wind.failed }, rejected, ...(bandSpots ? { quantiles: bandDoc(bandSpots, bandProblems) } : {}), ...(sight ? { sight: sight.doc } : {}), spots };
+  const doc = { schema: 1, product: 'sea-spots-wind', model: MODEL, run, runMs, t1, from, wind: { ...wind.meta, failed: wind.failed, ...(wind.interp ? { dirFill: dirFillDoc(dirFilled) } : {}) }, rejected, ...(bandSpots ? { quantiles: bandDoc(bandSpots, bandProblems) } : {}), ...(sight ? { sight: sight.doc } : {}), spots };
   const text = JSON.stringify(doc) + '\n';
   writeAtomic(join(storeDir, path), text);
   st.wind = { run, t1, path, from, engine: wind.meta?.engine ?? null, version: wind.meta?.version ?? null, computedAt: wind.meta?.computedAt ?? null, spots: Object.keys(spots).length, rejected: rejected.length, buildS: Math.round((Date.now() - started) / 1000), bytes: Buffer.byteLength(text) };
   const removed = pruneRuns(storeDir);
   writeStatus(storeDir, st, nowMs);
-  log(`Wind ${run} neu mit t1 ${t1}: ${Object.keys(spots).length} Spots ab Stunde ${from} (${bandSpots} mit Spanne), ${rejected.length} abgelehnt, ${st.wind.buildS} s`);
-  return { built: true, run, t1, from, path, spots: Object.keys(spots).length, bandSpots, bandProblems, sightSpots: sight?.doc.spots ?? 0, sightConv: sight?.doc.conv.state ?? null, rejected, removed };
+  log(`Wind ${run} neu mit t1 ${t1}: ${Object.keys(spots).length} Spots ab Stunde ${from} (${bandSpots} mit Spanne), ${dirFilled} Stunden mit gefüllter Richtung, ${rejected.length} abgelehnt, ${st.wind.buildS} s`);
+  return { built: true, run, t1, from, path, spots: Object.keys(spots).length, bandSpots, bandProblems, dirFilled, sightSpots: sight?.doc.spots ?? 0, sightConv: sight?.doc.conv.state ?? null, rejected, removed };
 }
 
 /** The newest t1 run of a cube index document (`point/index.json`). */
