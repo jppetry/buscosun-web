@@ -499,6 +499,13 @@ geteilten Arbeitsbaum mit — wenige Minuten, bevor dieses Gate durch war. Gepr�
 
 ### 10.7 Erste Läufe auf dem Runner nach dem Schritt
 
-Stand beim Commit der Doku (21.11. 17:09 UTC): der Cron `12,42` ist seit 16:55 UTC eingespielt, der Code seit 16:50 UTC auf `origin/main`;
-der erste Lauf (17:12 UTC, volle Stunde `2026112117`, Zeiger erstmals mit `slot`) und der erste Halbstunden-Slot (17:42 UTC,
-`202611211730`) **stehen noch aus** und werden hier nachgetragen.
+Am Daten-Repo und an der öffentlichen Actions-API gelesen, 21.11. 17:49 UTC — beide Läufe mit dem neuen Producer, alle Schritte grün:
+
+| Lauf | Start (Cron) | Commit `buscosun-data` | Datei | Inhalt | Zeiger danach |
+|---|---|---|---|---|---|
+| `44928825672` | 17:13:04 UTC (:12) | `df04148` | `stn/h/2026112117.json` (55,7 KB) | 342 Stationen, 10 Werte verworfen, zwei frühere Dateien als Geschichte, Alter der Werte im Median 13 min; Tirol über die OGD-Datei | `hour` `2026112117`, `slot` `2026112117` |
+| `44931596912` | 17:43:27 UTC (:42) | `489c0e4` | `stn/h/202611211730.json` (55,7 KB) | 341 Stationen, 15 Werte verworfen, zwei frühere Dateien als Geschichte, Alter im Median 14 min; Tirol über die OGD-Datei | `hour` `2026112117`, `slot` `202611211730`, `builtAt` und `n` vom Slot |
+
+Die Statuszeile `lines.stations` nennt dieselben zwei Schlüssel; die README unter `glacier/v1/stn/` sagt „Alle 30 Minuten“. Der Verzug des
+Crons war 64 s und 87 s — beide Läufe weit innerhalb ihres Slots. Nicht belegt: ein Lauf der Ablage mit dem neuen Skript (nächster 18:53 UTC)
+und die Aufbewahrung nach 72 h an einer Datei mit `30` (erstmals am 24.11. 17:30 UTC fällig).
