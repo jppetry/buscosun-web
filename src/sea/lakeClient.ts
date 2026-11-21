@@ -7,8 +7,9 @@
 import { fetchSea } from './seaClient';
 import {
   SEA_LAKE_SHAPES_PATH, BAFU_LAKE_QUERY, BAFU_SPARQL, WSV_W_RANGE_CM, WSV_WT_RANGE_C, bafuLevelsOf, lakesWtProblems, seaLakesWtStale, wsvCurrentOf, wsvCurrentUrl,
-  type LakeWaterObs, type SeaLakesWtDoc, type SeaLakesWtPointer,
+  type LakeLand, type LakeWaterObs, type SeaLakesWtDoc, type SeaLakesWtPointer,
 } from './seaLakes';
+import type { LakeGeo } from './lakeTrip';
 import { lakeAlertsOf, type LakeWarnState } from './lakeWarn';
 
 const isAbort = (e: unknown) => (e as Error)?.name === 'AbortError';
@@ -22,6 +23,23 @@ export function loadLakeShapes(): Promise<LakeShapes | null> {
     () => { shapesP = null; return null; },
   );
   return shapesP;
+}
+
+/**
+ * Phase BS-N (V-BS-4): the outline of DE, AT or CH from the site's own `public/countries/<ISO>.geojson` — the file the
+ * map's country mask reads. One read per country and session; a failed read is not remembered and counts as "not known".
+ */
+const countryP = new Map<LakeLand, Promise<LakeGeo | null>>();
+export function loadCountryOutline(land: LakeLand): Promise<LakeGeo | null> {
+  let p = countryP.get(land);
+  if (!p) {
+    p = fetch(`/countries/${land}.geojson`).then((r) => (r.ok ? r.json() : null)).then(
+      (j: { geometry?: LakeGeo } | null) => { const g = j?.geometry; if (g && (g.type === 'Polygon' || g.type === 'MultiPolygon')) return g; countryP.delete(land); return null; },
+      () => { countryP.delete(land); return null; },
+    );
+    countryP.set(land, p);
+  }
+  return p;
 }
 
 export interface LakeWtLoad { doc: SeaLakesWtDoc | null; state: 'ok' | 'none' | 'stale' | 'error'; why: string | null }

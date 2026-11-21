@@ -17,6 +17,7 @@ import {
   type Dusk, type StrandOrder, type StrandRow, type TripRow,
 } from './seaTrip';
 import type { EtappeState, EtappeView } from './useSeaTrip';
+import { LAKE_TRIP_ARRIVAL_NOTE, LAKE_TRIP_NOTE, lakeForeignTripText } from './lakeTrip';
 import { WizHowTo } from './SeaWizard';
 
 const clock = (t: number) => `${dayShort(t)} ${hm(t)}`;
@@ -101,7 +102,7 @@ export function EtappeTimeStep(p: EtappeTimeStepProps) {
           </div>
           <div><dt>Strecke · Dauer</dt><dd>{v && tl ? `${nmText(v.route.km)} · ${durText(tl.durMin)}` : '–'}</dd></div>
         </dl>
-        <p className="sw-am-fine">{TRIP_ARRIVAL_NOTE}</p>
+        <p className="sw-am-fine">{v?.lake ? LAKE_TRIP_ARRIVAL_NOTE : TRIP_ARRIVAL_NOTE}</p>
       </section>
       <section className="sw-wz-sec">
         <h3>Abfahrt</h3>
@@ -126,7 +127,7 @@ export function EtappeTimeStep(p: EtappeTimeStepProps) {
               </button>
             ))}
           </div>
-          <p className="sw-am-fine">Gezählt werden Hinweise über deinen Grenzen: Wind, Böen, Welle.</p>
+          <p className="sw-am-fine">Gezählt werden Hinweise über deinen Grenzen: {v.lake ? 'Wind und Böen (auf dem See gibt es kein Wellenmodell).' : 'Wind, Böen, Welle.'}</p>
         </section>
       )}
     </>
@@ -165,6 +166,8 @@ export function EtappeTable({ view, unit, onPick }: { view: EtappeView; unit: Se
     <tr><th scope="row">{label}</th>{cs.map((c, i) => <td key={i} className={cls(i)}>{pick(c)}</td>)}</tr>
   );
   const arrival = rows[rows.length - 1].stop;
+  // Phase BS-N (V-BS-4): on a lake there is no wave and no current model — the two rows and the current arrow are left out.
+  const sea = !view.lake;
   return (
     <section className="sw-am-tablebox" aria-label="Entlang der Etappe">
       <header>
@@ -172,7 +175,7 @@ export function EtappeTable({ view, unit, onPick }: { view: EtappeView; unit: Se
         <span>Stundenwerte am jeweiligen Ort, gerade Linie zwischen deinen Punkten</span>
         <ul className="sw-am-key" aria-label="Route und Pfeile auf der Karte">
           <li><i className="is-in" />{TRIP_LEGEND.in}</li><li><i className="is-over" />{TRIP_LEGEND.over}</li><li><i className="is-missing" />{TRIP_LEGEND.missing}</li>
-          <li>{keyArrow('wind')}{TRIP_LEGEND.wind}</li><li>{keyArrow('cur')}{TRIP_LEGEND.cur}</li>
+          <li>{keyArrow('wind')}{TRIP_LEGEND.wind}</li>{sea && <li>{keyArrow('cur')}{TRIP_LEGEND.cur}</li>}
         </ul>
       </header>
       <div className="sw-am-scroll">
@@ -188,8 +191,8 @@ export function EtappeTable({ view, unit, onPick }: { view: EtappeView; unit: Se
             {line('Wind zum Kurs', (c) => c.rel)}
             {line(`Wind ${unitLabel(unit)}`, (c) => c.wind)}
             {line(`Böen ${unitLabel(unit)}`, (c) => c.gust)}
-            {line('Welle m', (c) => c.wave)}
-            {line('Strom kn', (c) => c.cur)}
+            {sea && line('Welle m', (c) => c.wave)}
+            {sea && line('Strom kn', (c) => c.cur)}
             {line('Wetter', (c) => c.conv)}
           </tbody>
         </table>
@@ -201,14 +204,15 @@ export function EtappeTable({ view, unit, onPick }: { view: EtappeView; unit: Se
 
 // --- Etappe: findings ------------------------------------------------------------------------------------------------
 
-function EndCard({ title, row, unit, sel }: { title: string; row: TripRow; unit: SeaUnit; sel: boolean }) {
+function EndCard({ title, row, unit, sel, sea }: { title: string; row: TripRow; unit: SeaUnit; sel: boolean; /** false on a lake: no wave model, the wave is not named. */ sea: boolean }) {
   const w = row.wind, wave = row.wave && row.wave !== 'land' ? row.wave : null;
   return (
     <div className={`sw-am-card${sel ? ' is-sel' : ''}`}>
       <span className="sw-am-card-k">{title} {stopClock(row.stop)}</span>
       <strong>{w?.windMs != null ? `${fmtWind(w.windMs, unit)} ${unitLabel(unit)}` : 'keine Daten'}</strong>
       <span>{w?.gustMs != null ? `Böen ${fmtWind(w.gustMs, unit)}` : 'Böen: keine Daten'}{w?.windMs != null ? ` · ${row.rel ? REL_LABEL[row.rel] : 'Richtung fehlt'}` : ''}</span>
-      <span>{w?.windDir != null ? `aus ${compass16(w.windDir)} · ` : ''}{wave?.hs != null ? `Welle ${f1(wave.hs, ' m')}` : 'Welle: keine Daten'}</span>
+      {sea ? <span>{w?.windDir != null ? `aus ${compass16(w.windDir)} · ` : ''}{wave?.hs != null ? `Welle ${f1(wave.hs, ' m')}` : 'Welle: keine Daten'}</span>
+        : w?.windDir != null && <span>aus {compass16(w.windDir)}</span>}
     </div>
   );
 }
@@ -241,16 +245,18 @@ export function EtappeResult({ view, etappe, unit, profile, noData, onClose }: E
               {view!.beyond && <p className="sw-am-load is-none" role="status">Die Ankunft liegt hinter der letzten Stunde der Vorhersage. Für diesen Teil stehen keine Daten.</p>}
               {rows.length > 1 && (
                 <div className="sw-am-cards">
-                  <EndCard title="Abfahrt" row={rows[0]} unit={unit} sel={view!.sel === 0} />
-                  <EndCard title="Ankunft" row={rows[rows.length - 1]} unit={unit} sel={view!.sel === rows.length - 1} />
+                  <EndCard title="Abfahrt" row={rows[0]} unit={unit} sel={view!.sel === 0} sea={!view!.lake} />
+                  <EndCard title="Ankunft" row={rows[rows.length - 1]} unit={unit} sel={view!.sel === rows.length - 1} sea={!view!.lake} />
                 </div>
               )}
               {f && (
                 <ul className="sw-am-findings">
                   {f.list.map((x) => <li key={x.text} className={x.over ? 'is-over' : x.kind === 'wac' ? 'is-hint' : x.kind === 'missing' ? 'is-missing' : undefined}>{x.text}</li>)}
                   {view!.level && <li>{view!.level}</li>}
+                  {view!.lake?.foreign && <li className="is-hint">{lakeForeignTripText(view!.lake.foreign)}</li>}
                 </ul>
               )}
+              {view!.lake && <p className="sw-am-fine">{LAKE_TRIP_NOTE}</p>}
             </>
           )}
 
@@ -271,9 +277,9 @@ export function EtappeResult({ view, etappe, unit, profile, noData, onClose }: E
       <details className="sw-am-notes">
         <summary>Was die Etappe zeigt und was nicht</summary>
         <ul>
-          <li>{TRIP_LINE_NOTE}</li><li>{TRIP_ARRIVAL_NOTE}</li><li>{TRIP_TWO_NOTE}</li><li>{TRIP_HOURLY_NOTE}</li>
+          <li>{TRIP_LINE_NOTE}</li><li>{view?.lake ? LAKE_TRIP_ARRIVAL_NOTE : TRIP_ARRIVAL_NOTE}</li>{!view?.lake && <li>{TRIP_TWO_NOTE}</li>}<li>{TRIP_HOURLY_NOTE}</li>
           {view && view.samples.n > 0 && <li>{tripSampleNote(view.samples.n, view.samples.stepKm, view.samples.widened)}</li>}
-          <li>{TRIP_WAVE_NOTE}</li><li>{TRIP_CONV_NOTE}</li>
+          {!view?.lake && <li>{TRIP_WAVE_NOTE}</li>}<li>{TRIP_CONV_NOTE}</li>
         </ul>
       </details>
       <p className="sw-am-safe">Keine Aussage über Sicherheit. Die Etappe ist eine gerade Linie zwischen deinen Punkten, kein Kurs, keine Navigationsgrundlage.</p>

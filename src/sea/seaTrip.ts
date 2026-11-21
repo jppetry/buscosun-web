@@ -255,6 +255,11 @@ const waveOf = (w: TripRow['wave']): TripWave | null => (w && w !== 'land' ? w :
 const curOf = (c: TripRow['cur']): TripCur | null => (c && c !== 'land' ? c : null);
 
 export type TripLimits = Pick<SeaLimits, 'windMax' | 'gustMax' | 'hsMax'>;
+/**
+ * Phase BS-N (V-BS-4): `noSea` = a leg on an inland lake, where no wave and no current model exists. A row is then not
+ * "missing" for its wave, and the findings do not list wave and current as missing — the page leaves both rows out.
+ */
+export interface TripOpts { noSea?: boolean }
 export const nmText = (km: number): string => { const nm = km / KM_PER_NM; return `${nm < 10 ? (Math.round(nm * 10) / 10).toLocaleString('de-DE') : Math.round(nm)} sm`; };
 export const durText = (min: number): string => { const m = Math.round(Math.abs(min)); return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ''}`; };
 
@@ -263,7 +268,7 @@ export const durText = (min: number): string => { const m = Math.round(Math.abs(
  * route, wave and current from the model cell at the position. A row is `over` when a value lies above the profile's
  * limit, `missing` when wind, gust or wave height has no value there.
  */
-export function tripRows(tl: TripTimeline, samples: readonly TripSample[], data: TripData, limits: TripLimits, names: { start: string; end: string }): TripRow[] {
+export function tripRows(tl: TripTimeline, samples: readonly TripSample[], data: TripData, limits: TripLimits, names: { start: string; end: string }, opts: TripOpts = {}): TripRow[] {
   return tl.stops.map((stop) => {
     const pos = stop.pos, si = nearestSample(samples, pos.km);
     const wind = si < 0 ? null : data.wind(si, stop.hourMs);
@@ -275,7 +280,7 @@ export function tripRows(tl: TripTimeline, samples: readonly TripSample[], data:
       gust: limits.gustMax != null && g != null && g > limits.gustMax,
       wave: limits.hsMax != null && finite(wv?.hs) && wv!.hs! > limits.hsMax,
     };
-    const missing = w == null || g == null || !finite(wv?.hs);
+    const missing = w == null || g == null || (!opts.noSea && !finite(wv?.hs));
     return {
       stop, place: stop.start ? names.start : stop.arrival ? names.end : nmText(pos.km),
       wind, rel: relativeWind(wind?.windDir, pos.course),
@@ -453,7 +458,7 @@ function runText(rows: readonly TripRow[], flag: (r: TripRow) => boolean, ref: n
  * What the rows say for the whole leg — every line from hourly values. `dest` = where the leg ends (sunset there).
  * Red (`over`) is a value above YOUR limit and nothing else; "Wind gegen Strom" and the shower hint are hints.
  */
-export function tripFindings(rows: readonly TripRow[], tl: TripTimeline, limits: TripLimits, unit: SeaUnit, dest: PlanPos | null): TripFindings {
+export function tripFindings(rows: readonly TripRow[], tl: TripTimeline, limits: TripLimits, unit: SeaUnit, dest: PlanPos | null, opts: TripOpts = {}): TripFindings {
   const list: TripFinding[] = [];
   const ref = tl.departMs, n = rows.length;
   const peak = (pick: (r: TripRow) => number | null): { row: TripRow; v: number } | null => {
@@ -493,8 +498,8 @@ export function tripFindings(rows: readonly TripRow[], tl: TripTimeline, limits:
   }
   const noWind = rows.filter((r) => !finite(r.wind?.windMs) || !finite(r.wind?.gustMs)).length;
   const noDir = rows.filter((r) => finite(r.wind?.windMs) && !finite(r.wind?.windDir)).length;
-  const noWave = rows.filter((r) => !finite(waveOf(r.wave)?.hs)).length;
-  const noCur = rows.filter((r) => !curOf(r.cur)).length;
+  const noWave = opts.noSea ? 0 : rows.filter((r) => !finite(waveOf(r.wave)?.hs)).length;
+  const noCur = opts.noSea ? 0 : rows.filter((r) => !curOf(r.cur)).length;
   if (noWind) list.push({ kind: 'missing', over: false, text: `Wind: keine Daten ${noWind === n ? 'für die ganze Etappe' : `für ${noWind} von ${n} Stunden`}. Höchstwerte und Grenzen gelten nur für die übrigen.` });
   if (noDir) list.push({ kind: 'missing', over: false, text: `Windrichtung fehlt ${noDir === n ? 'für die ganze Etappe' : `für ${noDir} von ${n} Stunden`}: dort kein Wind zum Kurs.` });
   if (noWave) list.push({ kind: 'missing', over: false, text: `Welle: keine Daten ${noWave === n ? 'für die ganze Etappe' : `für ${noWave} von ${n} Stunden`}.` });
@@ -510,11 +515,11 @@ export interface TripCompare { departMs: number; chosen: boolean; /** `null` = t
  * "Abfahrt vergleichen": the chosen hour, two hours earlier and two hours later, each with the count of findings above
  * your limits. `axis` = first and last full hour that carry values; a departure outside it is not computed.
  */
-export function tripCompare(route: TripRoute, speedKn: number, departMs: number, samples: readonly TripSample[], data: TripData, limits: TripLimits, unit: SeaUnit, axis: { fromMs: number; toMs: number }): TripCompare[] {
+export function tripCompare(route: TripRoute, speedKn: number, departMs: number, samples: readonly TripSample[], data: TripData, limits: TripLimits, unit: SeaUnit, axis: { fromMs: number; toMs: number }, opts: TripOpts = {}): TripCompare[] {
   return [-SEA_TRIP_COMPARE_H, 0, SEA_TRIP_COMPARE_H].map((d) => {
     const t = departMs + d * H, tl = t >= axis.fromMs && t <= axis.toMs ? tripTimeline(route, speedKn, t) : null;
     if (!tl) return { departMs: t, chosen: d === 0, over: null, gaps: false, arriveMs: null };
-    const f = tripFindings(tripRows(tl, samples, data, limits, { start: '', end: '' }), tl, limits, unit, null);
+    const f = tripFindings(tripRows(tl, samples, data, limits, { start: '', end: '' }, opts), tl, limits, unit, null, opts);
     return { departMs: t, chosen: d === 0, over: f.over, gaps: f.gaps, arriveMs: tl.arriveMs };
   });
 }

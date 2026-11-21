@@ -895,6 +895,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   const tripView = useSeaTrip({
     etappe, limits, unit, spots, areas, run: run && usable ? { run: run.run, runMs: run.runMs } : null, curDoc, sight: spotsDoc?.sight,
     nowMs, nowHour, nHours, wodl: seaTexts.wodl, wodlStale: !!stale.WODL45, validMs, gauges: wlCat.gauges, dmiDoc,
+    lakes: lakeTable, lakeShapes: lakeShapes?.features,
   });
   const tripPoint = useCallback((lat: number, lon: number, spotId: string | null): TripPoint => {
     const s = spotId ? spots.find((x) => x.id === spotId) : null;

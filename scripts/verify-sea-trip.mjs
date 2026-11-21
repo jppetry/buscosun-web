@@ -750,6 +750,90 @@ add('L7 Legende der Tabelle: zu den drei Farben der Route kommen die zwei Pfeile
   && tbl.indexOf('Wind, wenn du dort bist') < tbl.indexOf('stärkster Strom der Etappe') && cnt(tbl, /<ul class="sw-am-key"/g) === 1 && tbl.includes('aria-label="Route und Pfeile auf der Karte"'));
 }
 
+// --- M: a leg on an inland lake (phase BS-N, V-BS-4, audit/seewetter-binnenseen.md §8) -----------------------------------
+// No wave and no current model on a lake: the rows are not "missing" for them, the table leaves both rows out, the
+// findings do not list them. The lake is recognised by a lake spot at an end or by the outline; the note for water
+// outside DE/AT/CH reads the border from the country outlines of the site (real files), not from the clipped borders.
+{
+  const LT = await import('../src/sea/lakeTrip.ts');
+  const LK = await import('../src/sea/seaLakes.ts');
+  const BL = await import('./sea/build-lake-spots.mjs');
+  const { inCountry } = await import('../src/pointForecast/countryOfPoint.ts');
+  const lakeCat = JSON.parse(readFileSync(join(FIX, 'lakes', 'spots-lakes.json'), 'utf8')), lakeSrc = JSON.parse(readFileSync(join(ROOT, 'scripts/sea/lakes-src.json'), 'utf8'));
+  const LSPOTS = lakeCat.spots, LAKES = lakeCat.lakes, lakeOf = (id) => LAKES.find((l) => l.id === id), lspot = (id) => LSPOTS.find((x) => x.id === id);
+  const geo = (c) => JSON.parse(readFileSync(join(ROOT, 'public', 'countries', `${c}.geojson`), 'utf8')).geometry;
+  const CH = geo('CH'), AT = geo('AT');
+  // The recorded EU-Hydro answer of the Traunsee as the map's outline (MultiPolygon).
+  const traun = { properties: { id: 'traunsee' }, geometry: { type: 'MultiPolygon', coordinates: BL.outlinePolys(lakeSrc.lakes.find((l) => l.id === 'traunsee'), readFileSync(join(FIX, 'lakes', 'outline-traunsee.json')), lakeSrc.spots.filter((x) => x.lake === 'traunsee')) } };
+  const atSpot = (id) => { const x = lspot(id); return { lat: x.lake.pt.lat, lon: x.lake.pt.lon, spot: id }; };
+  const free = [{ lat: 47.88, lon: 13.795 }, { lat: 47.84, lon: 13.79 }];
+  const bySpot = LT.tripLakeOf([atSpot('genfersee-lausanne'), { lat: 46.41, lon: 6.59 }], LSPOTS, LAKES, null);
+  const byShape = LT.tripLakeOf(free, LSPOTS, LAKES, [traun]);
+  add('M1 See der Etappe: ein Seespot am Start oder Ziel ⇒ sein See mit seinen Landesparametern; zwei freie Punkte im aufgezeichneten Umriss des Traunsees ⇒ Traunsee mit den Parametern des nächsten Spots (AT); ohne Umrisse nur die Spot-Regel; eine Etappe auf der Ostsee, ein Punkt an Land und eine leere Etappe ⇒ kein See',
+    bySpot?.lake.id === 'genfersee' && bySpot.country === 'CH' && LT.tripLakeOf([{ lat: 46.41, lon: 6.59 }, atSpot('genfersee-lausanne')], LSPOTS, LAKES, null)?.lake.id === 'genfersee'
+    && free.every((q) => LT.inLakeGeo(traun.geometry, q.lon, q.lat)) && byShape?.lake.id === 'traunsee' && byShape.country === 'AT' && LT.tripLakeOf(free, LSPOTS, LAKES, null) === null
+    && LT.tripLakeOf(PTS, [...CAT, ...LSPOTS], LAKES, [traun]) === null && LT.tripLakeOf([{ lat: 47.95, lon: 13.6 }, { lat: 47.96, lon: 13.6 }], LSPOTS, LAKES, [traun]) === null && LT.tripLakeOf([], LSPOTS, LAKES, [traun]) === null
+    && !LT.inLakeGeo(null, 13.79, 47.88) && !LT.inLakeGeo({ type: 'Point', coordinates: [13.79, 47.88] }, 13.79, 47.88),
+    JSON.stringify([bySpot?.lake.id, bySpot?.country, byShape?.lake.id, byShape?.country]));
+
+  // Rows and findings: the real leg and wind, but no field of any hour (what the hook loads on a lake: nothing).
+  const lakeData = dataOf({ hours: new Map() }), SEA = {}, LAKE = { noSea: true };
+  const rSea = T.tripRows(tl, sm.samples, lakeData, LIM, names, SEA), rLake = T.tripRows(tl, sm.samples, lakeData, LIM, names, LAKE);
+  const fSea = T.tripFindings(rSea, tl, LIM, 'kn', PTS[2], SEA), fLake = T.tripFindings(rLake, tl, LIM, 'kn', PTS[2], LAKE);
+  const rLakeNo = T.tripRows(tl, sm.samples, lakeData, NOLIM, names, LAKE), fLakeNo = T.tripFindings(rLakeNo, tl, NOLIM, 'kn', PTS[2], LAKE);
+  const cSea = T.tripCompare(route, SPEED, T07, sm.samples, lakeData, NOLIM, 'kn', axis), cLake = T.tripCompare(route, SPEED, T07, sm.samples, lakeData, NOLIM, 'kn', axis, LAKE);
+  add('M2 Zeilen und Befunde auf dem See: ohne Wellenfeld ist keine Zeile „ein Wert fehlt“ (Wind und Böen liegen vor), die Befunde nennen weder „Welle: keine Daten“ noch „Strom: keine Daten“, „soweit Werte vorliegen“ entfällt, der Vergleich der Abfahrten meldet keine fehlenden Werte; Wind- und Böen-Befunde und ihre Grenzen bleiben dieselben — Gegenprobe: dieselbe Etappe als Seestrecke meldet beides',
+    rLakeNo.every((r) => r.status === 'in') && T.tripRows(tl, sm.samples, lakeData, NOLIM, names, SEA).every((r) => r.status === 'missing')
+    && !fLake.list.some((x) => /^(Welle|Strom): keine Daten/.test(x.text)) && fSea.list.filter((x) => /^(Welle|Strom): keine Daten/.test(x.text)).length === 2 && fLakeNo.gaps === false && fSea.gaps === true
+    && JSON.stringify(fLake.list.filter((x) => x.kind === 'wind' || x.kind === 'gust')) === JSON.stringify(fSea.list.filter((x) => x.kind === 'wind' || x.kind === 'gust')) && fLake.over === fSea.over
+    && rLake.every((r, i) => r.over.wind === rSea[i].over.wind && r.over.gust === rSea[i].over.gust && JSON.stringify(r.wind) === JSON.stringify(rSea[i].wind))
+    && cLake.every((c) => c.gaps === false) && cSea.some((c) => c.gaps === true),
+    JSON.stringify([rLakeNo.map((r) => r.status).join(), fLake.list.map((x) => x.kind).join(), fSea.list.map((x) => x.kind).join()]));
+  // A missing WIND is still missing on a lake.
+  const rOut = T.tripRows(tl, sm.samples, dataOf({ wind: emptyWind, hours: new Map() }), NOLIM, names, LAKE), fOutL = T.tripFindings(rOut, tl, NOLIM, 'kn', null, LAKE);
+  add('M3 ein fehlender Wind bleibt auch auf dem See „ein Wert fehlt“ und steht in den Befunden', rOut.some((r) => r.status === 'missing') && fOutL.gaps === true && fOutL.list.some((x) => /^Wind: keine Daten/.test(x.text)));
+
+  // Display.
+  const lakeInfo = (foreign) => ({ id: 'genfersee', name: 'Genfersee', country: 'CH', foreign });
+  const lakeView = { ...view, rows: rLake, findings: fLake, compare: cLake, official: [], level: null, lake: lakeInfo(null) };
+  const tblLake = html(h(UI.EtappeTable, { view: lakeView, unit: 'kn', onPick: () => {} })), tblSea = html(h(UI.EtappeTable, { view: { ...view, lake: null }, unit: 'kn', onPick: () => {} }));
+  add('M4 Tabelle auf dem See: die Zeilen „Welle m“ und „Strom kn“ fehlen (nicht „keine Daten“), der Schlüssel nennt keinen Strompfeil; Uhr, Ort, Wind zum Kurs, Wind, Böen und Wetter bleiben — an der Küste steht die Tabelle wie zuvor',
+    !tblLake.includes('Welle m') && !tblLake.includes('Strom kn') && !tblLake.includes(T.TRIP_LEGEND.cur) && !/keine Daten/.test(tblLake) && ['Uhr', 'Ort', 'Wind zum Kurs', 'Wind kn', 'Böen kn', 'Wetter'].every((x) => tblLake.includes(`<th scope="row">${x}</th>`)) && tblLake.includes(T.TRIP_LEGEND.wind)
+    && cnt(tblLake, /<tr>/g) === cnt(tblSea, /<tr>/g) - 2 && tblSea === tbl && tblSea.includes('Welle m') && tblSea.includes(T.TRIP_LEGEND.cur));
+  const resLake = plain(html(h(UI.EtappeResult, { view: lakeView, etappe: etState, unit: 'kn', profile: 'yacht', noData: null }))), resSea = plain(html(h(UI.EtappeResult, { view, etappe: etState, unit: 'kn', profile: 'yacht', noData: null })));
+  const timeLake = plain(html(h(UI.EtappeTimeStep, { etappe: etState, view: lakeView, onSpeed: () => {}, onDepart: () => {}, canEarlier: true, canLater: true })));
+  add('M5 Befunde auf dem See: die Karten Abfahrt und Ankunft nennen keine Welle, der Satz erklärt, warum Welle und Strom fehlen, die Hinweise sprechen nicht vom Strom und nicht vom Takt des Wellenmodells; gezählt werden nur Wind und Böen — an der Küste stehen alle Sätze wie zuvor',
+    !/Welle: keine Daten|Welle \d/.test(resLake) && resLake.includes(LT.LAKE_TRIP_NOTE) && !resLake.includes(T.TRIP_WAVE_NOTE) && !resLake.includes(T.TRIP_TWO_NOTE) && !resLake.includes(T.TRIP_ARRIVAL_NOTE) && resLake.includes(LT.LAKE_TRIP_ARRIVAL_NOTE) && resLake.includes(T.TRIP_LINE_NOTE) && resLake.includes(T.TRIP_HOURLY_NOTE)
+    && /kein Wellenmodell und kein Strömungsmodell/.test(LT.LAKE_TRIP_NOTE) && timeLake.includes('Wind und Böen (auf dem See gibt es kein Wellenmodell).') && !timeLake.includes('Wind, Böen, Welle.') && timeLake.includes(LT.LAKE_TRIP_ARRIVAL_NOTE)
+    && resSea.includes(T.TRIP_WAVE_NOTE) && resSea.includes(T.TRIP_TWO_NOTE) && resSea.includes(T.TRIP_ARRIVAL_NOTE) && !resSea.includes(LT.LAKE_TRIP_NOTE) && /Welle/.test(resSea));
+
+  // Water outside DE/AT/CH, on the real outlines.
+  const genf = { lake: lakeOf('genfersee'), country: 'CH' }, neus = { lake: lakeOf('neusiedler-see'), country: 'AT' }, lug = { lake: lakeOf('luganersee'), country: 'CH' }, boden = { lake: lakeOf('bodensee'), country: 'DE' };
+  const lausanne = { lat: 46.5, lon: 6.63 }, evian = { lat: 46.41, lon: 6.59 };
+  const fGenf = LT.tripForeignOf(genf, { CH }, [lausanne, evian]);
+  add('M6 fremdes Ufer am Genfersee (Umriss der Schweiz aus public/countries): ein Punkt vor Évian liegt in keinem Heimatland ⇒ Vermerk „… Landesparametern für die Schweiz gerechnet; am französischen Ufer nicht geprüft“ mit 1 von 2 Punkten; nur Schweizer Wasser ⇒ kein Vermerk; Umriss nicht geladen ⇒ unbekannt (undefined), nichts behauptet; ein See ohne fremdes Ufer ⇒ nie',
+    fGenf?.land === 'FR' && fGenf.n === 1 && fGenf.of === 2 && fGenf.note === LK.lakeForeignNote('französischen', 'CH') && fGenf.note === 'buscosun Fusion mit den Landesparametern für die Schweiz gerechnet; am französischen Ufer nicht geprüft'
+    && LT.tripForeignOf(genf, { CH }, [lausanne]) === null && LT.tripForeignOf(genf, {}, [lausanne, evian]) === undefined && LT.tripForeignOf(genf, { CH }, []) === null
+    && LT.tripForeignOf(boden, {}, [evian]) === null && JSON.stringify(LT.lakeHomeLands(lakeOf('bodensee'))) === '["DE","AT","CH"]' && JSON.stringify(LT.lakeHomeLands(genf.lake)) === '["CH"]',
+    JSON.stringify(fGenf));
+  const fNeus = LT.tripForeignOf(neus, { AT }, [{ lat: 47.8, lon: 16.7 }, { lat: 47.72, lon: 16.68 }]), melide = { lat: 45.955, lon: 8.953 }, ceresio = { lat: 45.905, lon: 8.9 };
+  const fLug = LT.tripForeignOf(lug, { CH }, [melide, ceresio]);
+  add('M7 Neusiedler See und Luganersee: vor Fertőrákos „ungarischen“, vor Porto Ceresio „italienischen“; das Schweizer Südbecken bei Melide ist Schweizer Wasser — die beschnittene Grenze aus countryBorders.ts kennt es nicht (deshalb der ganze Umriss)',
+    fNeus?.land === 'HU' && fNeus.n === 1 && /am ungarischen Ufer nicht geprüft/.test(fNeus.note) && /für Österreich gerechnet/.test(fNeus.note) && fLug?.land === 'IT' && fLug.n === 1 && /am italienischen Ufer nicht geprüft/.test(fLug.note)
+    && LT.tripForeignOf(lug, { CH }, [melide]) === null && LT.inLakeGeo(CH, melide.lon, melide.lat) && inCountry('CH', melide.lat, melide.lon) === false,
+    JSON.stringify([fNeus, fLug]));
+  const resFor = plain(html(h(UI.EtappeResult, { view: { ...lakeView, lake: lakeInfo(fGenf) }, etappe: etState, unit: 'kn', profile: 'yacht', noData: null })));
+  const resUnk = plain(html(h(UI.EtappeResult, { view: { ...lakeView, lake: lakeInfo(undefined) }, etappe: etState, unit: 'kn', profile: 'yacht', noData: null })));
+  add('M8 Anzeige des Vermerks: „Ein Teil der Etappe liegt vor dem französischen Ufer: buscosun Fusion mit den Landesparametern für die Schweiz gerechnet; am französischen Ufer nicht geprüft.“ — ohne fremdes Wasser und bei unbekanntem Umriss steht er nicht da',
+    resFor.includes('Ein Teil der Etappe liegt vor dem französischen Ufer: buscosun Fusion mit den Landesparametern für die Schweiz gerechnet; am französischen Ufer nicht geprüft.') && !/nicht geprüft/.test(resLake) && !/nicht geprüft/.test(resUnk)
+    && LT.lakeForeignTripText({ ...fGenf, n: 2 }).startsWith('Die Etappe liegt vor dem französischen Ufer: '));
+  const lakeTexts = [LT.LAKE_TRIP_NOTE, LT.LAKE_TRIP_ARRIVAL_NOTE, LT.lakeForeignTripText(fGenf), LT.lakeForeignTripText(fNeus), LT.lakeForeignTripText(fLug)];
+  const hookSrc = readFileSync(join(ROOT, 'src/sea/useSeaTrip.ts'), 'utf8'), pageSrc = readFileSync(join(ROOT, 'src/sea/SeaPage.tsx'), 'utf8');
+  add('M9 Wortlaut und Verdrahtung: kein verbotenes Wort in den Texten der See-Etappe; der Haken lädt auf dem See kein Wellen- und kein Strömungsfeld, fragt buscosun Fusion mit dem Land der See-Etappe und bekommt Seetabelle und Umrisse von der Seite; die Landesumrisse kommen von der eigenen Seite (/countries/), nicht aus src/pointForecast',
+    lakeTexts.every((t) => !banned.test(t)) && /if \(!route \|\| !etappe \|\| noSea\) return \[\] as number\[\];/.test(hookSrc) && /const tripCountry: LakeLand = tripLake\?\.country \?\? 'DE';/.test(hookSrc) && /loadTripWind\(s, tripCountry\)/.test(hookSrc)
+    && /lakes: lakeTable, lakeShapes: lakeShapes\?\.features,/.test(pageSrc) && /fetch\(`\/countries\/\$\{land\}\.geojson`\)/.test(readFileSync(join(ROOT, 'src/sea/lakeClient.ts'), 'utf8')) && !/pointForecast/.test(readFileSync(join(ROOT, 'src/sea/lakeTrip.ts'), 'utf8').replace(/^ \*.*$/gm, '')));
+}
+
 rmSync(tmp, { recursive: true, force: true });
 const passed = checks.filter((x) => x.ok).length;
 const failed = checks.length - passed;

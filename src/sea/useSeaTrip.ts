@@ -6,6 +6,9 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import type { SeaSpot } from './seaContract';
+import type { LakeLand, SeaLake } from './seaLakes';
+import { loadCountryOutline } from './lakeClient';
+import { lakeHomeLands, tripForeignOf, tripLakeOf, type LakeGeo, type LakeShape, type TripForeign } from './lakeTrip';
 import type { SeaAreas } from './seaClient';
 import type { SeaCurrentDoc } from './seaCurrent';
 import type { SeaDmiDoc } from './seaDmi';
@@ -35,6 +38,8 @@ export interface UseSeaTripIn {
   /** The hour the page shows. */
   validMs: number;
   gauges: readonly WlGauge[]; dmiDoc: SeaDmiDoc | null;
+  /** Phase BS-N: the lake table and the outlines the map draws — a leg on a lake has no wave and no current row. */
+  lakes?: readonly SeaLake[]; lakeShapes?: readonly LakeShape[] | null;
 }
 export interface EtappeView {
   route: TripRoute; names: { start: string; end: string; way: (string | null)[] };
@@ -51,6 +56,11 @@ export interface EtappeView {
   level: string | null;
   /** The arrival lies behind the last hour with values. */
   beyond: boolean;
+  /**
+   * Phase BS-N (V-BS-4): the leg lies on an inland lake — no wave and no current row; `foreign` = it touches water outside
+   * DE/AT/CH (`null` = no, `undefined` = the country outline is not loaded, nothing claimed).
+   */
+  lake: { id: string; name: string; country: LakeLand; foreign: TripForeign | null | undefined } | null;
 }
 
 const nameOf = (p: TripPoint | undefined, spots: readonly SeaSpot[]): string | null => (p?.spot ? spots.find((s) => s.id === p.spot)?.name ?? null : null);
@@ -65,11 +75,19 @@ export function useSeaTrip(x: UseSeaTripIn): EtappeView | null {
 
   // Phase BS: a leg that starts or ends at a lake spot is a leg on that lake — buscosun Fusion is asked with the country
   // parameters of that spot (a shore outside DE/AT/CH: the nearest of the three, the catalogue names it). Elsewhere Germany.
-  const tripCountry = useMemo(() => {
-    const ends = etappe ? [etappe.points[0], etappe.points[etappe.points.length - 1]] : [];
-    for (const p of ends) { const sp = p?.spot ? spots.find((s) => s.id === p.spot) : null; if (sp?.lake) return sp.lake.fusion.country; }
-    return 'DE' as const;
-  }, [etappe?.points, spots]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Phase BS-N (V-BS-4): also a leg whose start or end lies inside a lake's outline (`tripLakeOf`).
+  const tripLake = useMemo(() => (etappe ? tripLakeOf(etappe.points, spots, x.lakes ?? [], x.lakeShapes) : null), [etappe?.points, spots, x.lakes, x.lakeShapes]); // eslint-disable-line react-hooks/exhaustive-deps
+  const tripCountry: LakeLand = tripLake?.country ?? 'DE';
+  const noSea = !!tripLake;
+  // The outlines of the lake's home countries — only for a lake with a shore outside DE/AT/CH.
+  const homeKey = tripLake?.lake.foreign ? lakeHomeLands(tripLake.lake).join(',') : '';
+  const [home, setHome] = useState<Readonly<Partial<Record<LakeLand, LakeGeo | null>>>>({});
+  useEffect(() => {
+    if (!homeKey) return;
+    let alive = true;
+    for (const c of homeKey.split(',') as LakeLand[]) void loadCountryOutline(c).then((g) => { if (alive && g) setHome((h) => (h[c] === g ? h : { ...h, [c]: g })); });
+    return () => { alive = false; };
+  }, [homeKey]);
   // --- wind: buscosun Fusion at every sample point, one after the other ---------------------------------------------
   const [wind, setWind] = useState<ReadonlyMap<string, TripWindLoad>>(new Map());
   const sampleKeys = samples.map(sampleKey).join('|');
@@ -80,18 +98,19 @@ export function useSeaTrip(x: UseSeaTripIn): EtappeView | null {
       void loadTripWind(s, tripCountry).then((r) => { if (alive) setWind((m) => (m.get(sampleKey(s)) === r ? m : new Map(m).set(sampleKey(s), r))); });
     }
     return () => { alive = false; };
-  }, [sampleKeys]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [sampleKeys, tripCountry]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- wave and current: the fields of every hour the leg and the two other departures read -------------------------
   const hoursWanted = useMemo(() => {
-    if (!route || !etappe) return [] as number[];
+    // On a lake there is no wave and no current field to read.
+    if (!route || !etappe || noSea) return [] as number[];
     const set = new Set<number>();
     for (const d of [-SEA_TRIP_COMPARE_H, 0, SEA_TRIP_COMPARE_H]) {
       const tl = tripTimeline(route, etappe.speedKn, etappe.departMs + d * H);
       for (const s of tl?.stops ?? []) if (s.hourMs >= axis.fromMs && s.hourMs <= axis.toMs + H) set.add(s.hourMs);
     }
     return [...set].sort((a, b) => a - b);
-  }, [route, etappe?.speedKn, etappe?.departMs, axis]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [route, etappe?.speedKn, etappe?.departMs, axis, noSea]); // eslint-disable-line react-hooks/exhaustive-deps
   const fieldsKey = `${x.run?.run ?? '-'}|${x.curDoc?.run ?? '-'}`;
   const [fields, setFields] = useState<{ key: string; hours: ReadonlyMap<number, TripHourFields> }>({ key: fieldsKey, hours: new Map() });
   const hoursKey = hoursWanted.join(',');
@@ -135,7 +154,8 @@ export function useSeaTrip(x: UseSeaTripIn): EtappeView | null {
   return useMemo(() => {
     if (!etappe || !route) return null;
     const names = { start: nameOf(etappe.points[0], spots) ?? 'Start', end: nameOf(dest ?? undefined, spots) ?? 'Ziel', way: etappe.points.map((p) => nameOf(p, spots)) };
-    const rows = timeline ? tripRows(timeline, samples, data, x.limits, names) : [];
+    const opts = { noSea };
+    const rows = timeline ? tripRows(timeline, samples, data, x.limits, names, opts) : [];
     const loads = samples.map((s) => wind.get(sampleKey(s)));
     const none = loads.filter((l) => l && !l.series);
     let sel = rows.findIndex((r) => r.stop.hourMs === x.validMs);
@@ -157,14 +177,16 @@ export function useSeaTrip(x: UseSeaTripIn): EtappeView | null {
     return {
       route, names, timeline, rows,
       pieces: rows.length ? tripPieces(route, rows) : route.legs.length ? [{ status: 'missing' as const, coords: route.points.map((p) => [p.lon, p.lat] as [number, number]) }] : [],
-      findings: timeline && rows.length ? tripFindings(rows, timeline, x.limits, x.unit, dest) : null,
-      compare: timeline ? tripCompare(route, etappe.speedKn, etappe.departMs, samples, data, x.limits, x.unit, axis) : [],
+      findings: timeline && rows.length ? tripFindings(rows, timeline, x.limits, x.unit, dest, opts) : null,
+      compare: timeline ? tripCompare(route, etappe.speedKn, etappe.departMs, samples, data, x.limits, x.unit, axis, opts) : [],
       samples: { n: samples.length, stepKm: sampled?.stepKm ?? 0, widened: !!sampled?.widened },
       wind: { done: loads.filter(Boolean).length, total: samples.length, none: none.length, why: none[0]?.why ?? null },
       areas: hits, official: tripOfficial(hits, x.wodl, x.wodlStale),
       sel, level, beyond: !!timeline && Math.round(timeline.arriveMs / H) * H > axis.toMs,
+      // The points you set and every stop of the table: one of them outside the lake's home countries ⇒ the note.
+      lake: tripLake ? { id: tripLake.lake.id, name: tripLake.lake.name, country: tripLake.country, foreign: tripForeignOf(tripLake, home, [...route.points, ...rows.map((r) => r.stop.pos)]) } : null,
     };
-  }, [etappe, route, timeline, sampleKeys, data, wind, x.limits, x.unit, x.validMs, x.areas, x.wodl, x.wodlStale, axis, destSpot, destGauge, gaugeDoc, x.dmiDoc, spots]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [etappe, route, timeline, sampleKeys, data, wind, x.limits, x.unit, x.validMs, x.areas, x.wodl, x.wodlStale, axis, destSpot, destGauge, gaugeDoc, x.dmiDoc, spots, tripLake, home]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 /**
