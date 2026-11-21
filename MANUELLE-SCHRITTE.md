@@ -4076,6 +4076,30 @@ Nichts davon berührt `obs/v1/`, den Punkt-Cube oder eine andere Linie. Kein Pus
    (totalJs 2 065,7 KB bei einer Grenze von 2 054 KB; mit ihr 2 069,4 KB, +3,7 KB) — Grenze nicht angehoben.
    Geprüft: `verify:glacier-stations` 56/56, alle anderen `verify:glacier-*` ohne Browser grün, Typecheck und Build grün.
 
+### 106.1 Halbstundentakt (GO-2, dein Wort 21.11. abends; `audit/gletscher-stationen.md` §10)
+
+Stand 21.11. 17:00 UTC: Punkt 1 oben ist erledigt (dein Push `5d92118e`, erster Lauf mit Producer 16:30 UTC, `stn/h/2026112116.json`,
+342 Stationen). **Der Halbstundentakt liegt schon auf `origin/main`:** dein Commit „update“ `e2d25d7e` (16:50 UTC) nahm meine elf Dateien aus
+dem Arbeitsbaum mit — wenige Minuten, bevor mein Gate durch war. Der Stand ist der geprüfte (Arbeitsbaum = `e2d25d7e` für alle Code-Dateien),
+das Gate war danach grün.
+
+**Push von mir:** `buscosun-data` `main` `478fdb027571cf510a2f36a9f7301067196aa693` (16:55 UTC) — `.github/workflows/glacier-stations.yml` mit
+Cron `12,42 * * * *` statt `27 * * * *` (ohne Force, vom aktuellen `origin/main`, danach geprüft: Datei auf `origin/main` Byte für Byte die Vorlage).
+
+Ab dem Lauf von 17:12 UTC schreibt der Lauf um :12 die volle Stunde (`stn/h/<yyyymmddhh>.json`) und der Lauf um :42 die halbe
+(`stn/h/<yyyymmddhh>30.json`); der Zeiger `glacier/v1/index.json` trägt `stations.hour` (jüngste volle Stunde) und `stations.slot` (jüngster Slot).
+Beleg der ersten zwei Läufe auf dem Runner: `audit/gletscher-stationen.md` §10.7.
+
+1. **Entscheiden — E-GO-11:** die Ablage in `buscosun-archiv` bleibt stündlich (rund 100 MB im Jahr; die halbe Stunde nur, wenn die volle
+   ausgefallen ist). Jede halbe Stunde abzulegen wären rund 200 MB im Jahr — ein Wort genügt.
+2. **Doku committen:** `CLAUDE.md`, `MANUELLE-SCHRITTE.md` und `audit/gletscher-stationen.md` tragen den Stand dieses Schritts (lokal
+   committet, nicht gepusht).
+3. **Zurück:** die Änderungen des Halbstundentakts aus `e2d25d7e` zurücknehmen und pushen; im Daten-Repo den Cron wieder auf `27 * * * *`.
+   Liegende Dateien mit `30` stören nicht (eine Seite von vor diesem Schritt liest nur die volle Stunde), bleiben dann aber liegen, bis sie
+   jemand löscht.
+4. **Nicht geprüft:** die Karte im Browser. Geprüft: `verify:glacier-stations` 61/61 mit elf Gegenproben, alle anderen `verify:glacier-*` ohne
+   Browser, Typecheck, Build und Budget grün; ein Probelauf lokal gegen die echten Quellen.
+
 ## 107. Seewetter: Binnenseen (Phase BS, `audit/seewetter-binnenseen.md`), 2026-11-21
 
 28 Seen, 70 Spots, ohne Schalter an für alle (dein Wort). **In `buscosun-web` ist nichts committet** (Punkt 1). Ich habe die

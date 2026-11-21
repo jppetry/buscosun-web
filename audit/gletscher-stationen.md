@@ -443,3 +443,62 @@ Was an der Stunde hängt (am Code gelesen):
 
 Reihenfolge ohne Risiko: der neue Cron mit dem ALTEN Producer schreibt um :12 die Stunde und um :42 nichts (die Stunde liegt schon);
 der neue Producer mit dem alten Cron schreibt einen Slot je Stunde. Beides ist der heutige Zustand, nur nicht besser.
+
+### 10.3 Entscheidungen (E-GO, Fortsetzung)
+
+| Nr. | Entscheidung | Umdrehen |
+|---|---|---|
+| E-GO-11 | **Die Ablage bleibt stündlich** (von mir so gesetzt, im Gespräch angekündigt): je Stunde eine Datei — die volle Stunde; die halbe nur, wenn es die volle weder im Daten-Repo noch in der Ablage gibt. Menge wie bisher rund 100 MB im Jahr. | Jans Wort genügt: in `stations-archive.mjs` die Zeile `const hours = slots.filter(…)` auf alle Slots stellen (dann rund 200 MB im Jahr). |
+| E-GO-12 | **Cron `12,42 * * * *`** statt `27,57`: die neun Läufe des 21.11. starteten 2 min 40 s bis 4 min 34 s nach :27, also beiderseits von :30 — auf der Slot-Grenze gäbe das zwei Läufe in einem Slot und keinen im nächsten. | — |
+| E-GO-13 | **Alte Namen bleiben** (`h/<yyyymmddhh>.json` für die volle Stunde, kein neues Verzeichnis, Feld `hour` im Dokument trägt den Slot-Schlüssel): die liegenden Dateien, die Ablage und jeder ausgelieferte Stand der Seite bleiben gültig. Der Zeiger nennt `hour` (jüngste volle Stunde) UND `slot` (jüngster Slot). | — |
+
+### 10.4 Umsetzung
+
+| Datei | Änderung |
+|---|---|
+| `src/glacier/glacierStationContract.ts` | `GLACIER_STN_SLOT_MIN` 30, `GLACIER_STN_SLOT_RE`, `stnSlotOf` / `stnSlotMs` / `stnSlotHour` (statt `stnHourOf` / `stnHourMs`), Zeiger-Feld `slot` und `stnPointerKey`; Stillstand in Zeit (`STN_STUCK_SLACK_MS` 30 min, `set`): alle früheren Ablesungen der letzten 6 h (+ 30 min) gleich, mindestens sechs Stempel, die älteste ≥ 5,5 h zurück |
+| `scripts/glacier/stations.mjs` | Slot statt Stunde; Geschichte = alle Slot-Dateien der letzten acht Stunden vor dem Slot; Zeiger und Statuszeile mit `hour` + `slot`; README „Alle 30 Minuten“ |
+| `scripts/glacier/stations-archive.mjs` | je Stunde eine Datei (E-GO-11); Ergebnis nennt `slots` und `hours` |
+| `scripts/glacier/glacier-publish.mjs` | Aufbewahrung 72 h kennt die Namen mit `30` |
+| `src/glacier/glacierClient.ts`, `GlacierStationCard.tsx` | die Seite liest `stnPointerKey(pointer)` und nimmt beide Namensformen |
+| `src/glacier/glacierStationView.ts` | zwei Gründe umbenannt: „die jüngsten Messwerte sind nicht ladbar“, „kein Wert im jüngsten Abruf“ (vorher „… dieser Stunde“) |
+| `scripts/glacier/workflow-glacier-stations.yml` (+ Kommentar in `-archiv.yml`) | Cron `12,42 * * * *` |
+| `scripts/verify-glacier-stations.mjs` | 56 → 61 Prüfungen: D5b (Stillstand zählt Zeit), F7 (Schlüssel), F8 (zwei Läufe je Stunde, Zeiger), F9 (welche Datei die Seite liest), F10 (Geschichte in Stunden); I2, I3, I4, I5 erweitert |
+
+Nicht geändert: Grenzen, Höchstalter (3 h), Sprungprüfung, Zuordnung, Anzeige und ihre Texte bis auf die zwei Gründe, buscosun Fusion, Edge
+Functions, Abhängigkeiten.
+
+### 10.5 Gate (21.11.2026, 16:45–16:56 UTC)
+
+| Prüfung | Ergebnis |
+|---|---|
+| `verify:glacier-stations` | 61/61 |
+| Gegenproben (elf eingebaute Fehler, je ein Lauf, Datei danach wiederhergestellt) | alle bemerkt: Stillstand nach Dokumenten bzw. ohne Fensterende → D5b; Zeiger `hour` = Slot → F8, F9; Geschichte nach Anzahl → F10; Ablage aller Slots bzw. nur voller Stunden → I3; Aufbewahrung ohne `30` → I2; Cron `27,57` → I4; Karte liest `pointer.hour` bzw. Leser lehnt halbe Slots ab → F9; Slot = Stunde → Abbruch des Prüfers |
+| `verify:glacier-contract` · `-static` · `-publish` · `-sat` · `-melt` · `-weather` · `-sheet` · `-feed` · `-hugonnet` | 64/64 · 7/7 (Fixture) · 34/34 · 28/28 · 41/41 · 21/21 · 45/45 · 22/22 · 41/41 |
+| `npm run typecheck` | grün |
+| `npm run build` | grün (281/281) |
+| `npm run budget` | grün: eagerJs 116,2 / 117, largestChunk 278,4 / 302, totalJs 2 094,2 / 2 095 (die Grenzen hat eine andere Linie inzwischen angehoben) |
+| Probelauf gegen die echten Quellen (lokal, 16:54 UTC, NICHT veröffentlicht) | Slot `202611211630`, 342 Stationen, 9 Werte verworfen, zwei frühere Dateien als Geschichte (09 und 16 UTC), Zeiger `{ hour: 2026112116, slot: 202611211630 }`, Stundendatei 55,6 KB |
+| `verify:glacier-ui`, Blick in den Browser | nicht gelaufen (wie in §7) |
+
+**Push von mir:** `buscosun-data` `main` `478fdb027571cf510a2f36a9f7301067196aa693` — `.github/workflows/glacier-stations.yml` mit Cron `12,42 * * * *`
+(16:55 UTC; ohne Force, vom aktuellen `origin/main`, danach geprüft: die Datei auf `origin/main` ist Byte für Byte die Vorlage).
+
+**Der Code liegt schon auf `origin/main`:** Jans Commit „update“ `e2d25d7e` (16:50 UTC) nahm die elf Dateien dieses Schritts aus dem
+geteilten Arbeitsbaum mit — wenige Minuten, bevor dieses Gate durch war. Geprüft: für alle Code-Dateien ist der Arbeitsbaum gleich
+`e2d25d7e` (kein Zwischenstand der Gegenproben im Commit). Offen war danach nur noch die Doku.
+
+### 10.6 Befunde (V-GO, Fortsetzung)
+
+| Nr. | Befund | Skizze |
+|---|---|---|
+| V-GO-17 | Der Cron startet auf GitHub 2 min 40 s bis 4 min 34 s verspätet (neun Läufe am 21.11.); einzelne Läufe können deutlich später kommen oder ausfallen. Fällt der Lauf um :12 aus, fehlt die volle Stunde — die Ablage nimmt dann die halbe (E-GO-11), eine Seite von vor diesem Schritt liest die Stunde davor. | Nach einer Woche die Slot-Reihe im Daten-Repo auf Lücken zählen. |
+| V-GO-18 | Eine Seite von vor diesem Schritt (zwischengespeicherter Stand) liest weiter nur die volle Stunde, also Werte bis rund 75 Minuten alt — wie bisher, nicht schlechter. | Erledigt sich mit dem Wechsel des Bundles. |
+| V-GO-19 | Zwei Läufe je Stunde heißen: doppelt so viele Abrufe beim Wetterdienst der Provinz Bozen (zwei Antworten und 60 Niederschlagsreihen je Lauf) und 48 statt 24 Commits am Tag im Daten-Repo. | Die Reihen nur zur vollen Stunde holen, wenn die Provinz sich meldet; Summen stünden dann bis zu 30 min älter da. |
+| V-GO-20 | Berichtigung zu meiner Auskunft vom 21.11. 16:31 UTC: `glacier/v1/status.json` trägt den Eintrag der Linie sehr wohl — unter `lines.stations`, nicht an der Wurzel, wo ich gesucht hatte. | — |
+
+### 10.7 Erste Läufe auf dem Runner nach dem Schritt
+
+Stand beim Commit der Doku (21.11. 17:09 UTC): der Cron `12,42` ist seit 16:55 UTC eingespielt, der Code seit 16:50 UTC auf `origin/main`;
+der erste Lauf (17:12 UTC, volle Stunde `2026112117`, Zeiger erstmals mit `slot`) und der erste Halbstunden-Slot (17:42 UTC,
+`202611211730`) **stehen noch aus** und werden hier nachgetragen.
