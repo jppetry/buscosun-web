@@ -256,7 +256,8 @@ Weg (b) aus V-BS-16); `8c876b24` hat danach das Gate grün gemacht (Budget, Edge
 grün. Der Producer der Seen rechnet seitdem auf dem Runner (`status.lakes` 21.11. 17:10 UTC: Lauf 2026112112, t1 2026112115,
 70 Spots, 4 s). Die frühere Fassung dieses Abschnitts („nichts ist committet“, „Budget rot“) gilt nicht mehr.
 
-Lokal committet und **nicht gepusht** ist der Nachzug BS-N (§8), beginnend mit `d930e5a4`.
+Der Nachzug BS-N (§8, ab `d930e5a4`) liegt seit 21.11. 20:14 UTC ebenfalls auf `origin/main` (`84956432`, Push durch Jan);
+was danach gemessen ist, steht in §8.8.
 
 ## 8. Nachzug BS-N (21.11.2026) — Richtung an der Küste, See-Etappe, Sicht-Karte, Prüfer, Ablage
 
@@ -417,7 +418,25 @@ CSS geändert, keine neue Klasse. (3) Touch-Ziele — kein neues Bedienelement. 
 nicht geprüft; neu ist je See-Etappe an vier Seen ein Abruf von 8–20 KB und eine Punkt-in-Polygon-Prüfung über höchstens rund
 60 Orte.
 
-**Commits des Nachzugs (lokal, nicht gepusht):** `d930e5a4` Richtung an den Seen · `b0083b33` Richtung an der Küste ·
-`6ddb10b1` See-Etappe · `f753f4c1` Sicht-Karte · `dd297e61` Prüfer und CI · `9092e3dc` Ablage geprüft · `c8a27bf1`
-Korrekturen aus der Durchsicht · dazu der Commit dieser Dokumente. Dazwischen liegen zwei Commits der Gletscher-Linie
-(`e63933a1`, `93401022`).
+**Commits des Nachzugs (gepusht am 21.11. 20:14 UTC, §8.8):** `d930e5a4` Richtung an den Seen · `b0083b33` Richtung an der
+Küste · `6ddb10b1` See-Etappe · `f753f4c1` Sicht-Karte · `dd297e61` Prüfer und CI · `9092e3dc` Ablage geprüft · `c8a27bf1`
+Korrekturen aus der Durchsicht · `84956432` Dokumente. Dazwischen liegen zwei Commits der Gletscher-Linie (`e63933a1`,
+`93401022`).
+
+### 8.8 Nach dem Push (21.11.2026, 20:14 UTC)
+
+Jan hat `main` am 21.11. um 20:14:39 UTC gepusht (`origin/main` = `84956432`). Alles Folgende ist nur gelesen (GitHub-API,
+`raw.githubusercontent`), nichts geschrieben, kein Purge, kein Dispatch.
+
+- **CI:** Lauf 186 auf `84956432` grün (20:14:40 → 20:19:04 UTC). Der neue Schritt „Verifier — Binnenseen“ lief dort zum
+  ersten Mal und ist grün. Die Schritt-Zeiten der API haben Sekundenauflösung und zeigen für ihn Beginn und Ende in derselben
+  Sekunde; das Job-Protokoll ist ohne Anmeldung nicht lesbar. Gegenprobe dafür, dass der Schritt nicht leer lief: ein frischer
+  Klon von `84956432` (nur eingecheckte Dateien) rechnet `verify:sea-lakes` mit 125/125 in 1,6 s auf diesem Rechner.
+- **Die Füllung ist noch nicht in den Dateien:** die Wind-Auffrischung für den Würfel 2026112118 lief im `sea`-Lauf Nr. 3780
+  (Beginn 20:11:20 UTC, `wind.computedAt` 20:12:36, `lakes.builtAt` 20:12:47) — zwei Minuten **vor** dem Push, also mit dem
+  Producer von vorher. Gelesen um 20:16 UTC: `spots/2026112112-w2026112118.json` ohne `wind.dirFill`,
+  `lakes/2026112112-w2026112118.json` ohne `dirFilled` und ohne den Satz zur Regel in `about`. Die Füllung kommt mit der
+  nächsten Auffrischung (Würfel 2026112121, erwartet gegen 23 UTC) oder spätestens mit dem Seegangslauf 2026112200 (gegen
+  04:15 UTC). Bis dahin zeigt `/seewetter/fanoe` hinter +52 h weiter „aus –“ an zwei von drei Stunden.
+- **Seite:** die See-Etappe, der Vermerk am fremden Ufer und der Seewortlaut der Sicht-Karte hängen nicht an den Dateien und
+  sind mit dem Deploy dieses Pushs da; von mir nicht gesehen.

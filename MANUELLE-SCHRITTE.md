@@ -4103,9 +4103,9 @@ Beleg der ersten zwei Läufe auf dem Runner: `audit/gletscher-stationen.md` §10
 ## 107. Seewetter: Binnenseen (Phase BS + Nachzug BS-N, `audit/seewetter-binnenseen.md`), 2026-11-21
 
 28 Seen, 70 Spots, ohne Schalter an für alle (dein Wort). **Phase BS ist gepusht** (`5d92118e`, 21.11.; CI grün seit Lauf 184
-mit `8c876b24`), der Producer der Seen rechnet auf dem Runner seit 21.11. 17:10 UTC. **Der Nachzug BS-N ist lokal committet und
-nicht gepusht** (ab `d930e5a4`; `git log origin/main..main` zeigt die Reihe — dazwischen liegen zwei Commits der
-Gletscher-Linie, `e63933a1` und `93401022`, §108). Ich habe die Seite nicht im Browser gesehen.
+mit `8c876b24`), der Producer der Seen rechnet auf dem Runner seit 21.11. 17:10 UTC. **Der Nachzug BS-N ist gepusht** (von dir,
+21.11. 20:14 UTC, `origin/main` = `84956432`; CI-Lauf 186 grün, der Schritt „Verifier — Binnenseen“ lief dort zum ersten Mal;
+mit im Push: zwei Commits der Gletscher-Linie, `e63933a1` und `93401022`, §108). Ich habe die Seite nicht im Browser gesehen.
 
 **Pushs in `buscosun-data` (von mir in Phase BS, nur `sea/` und `sea.yml`, ohne Force, je danach geprüft):**
 
@@ -4118,7 +4118,10 @@ Gletscher-Linie, `e63933a1` und `93401022`, §108). Ich habe die Seite nicht im 
 **Im Nachzug BS-N: kein Push in `buscosun-data` und keiner in `buscosun-archiv`.** Am Daten-Repo ist nichts zu ändern (kein
 Workflow, kein Katalog, kein Zeiger); `sea.yml` klont den Producer bei jedem Lauf aus `buscosun-web`.
 
-1. **Pushen:** `git push origin main`. `npm run edge:share` ist dafür nicht nötig (kein Spotname geändert). Was der Push
+1. **Pushen: erledigt (21.11. 20:14 UTC).** `npm run edge:share` war dafür nicht nötig (kein Spotname geändert). **Die
+   gefüllte Richtung steht noch nicht in den Dateien:** die Wind-Auffrischung für den Würfel 18 UTC lief um 20:12 UTC, zwei
+   Minuten vor dem Push, mit dem Producer von vorher. Sie kommt mit der nächsten Auffrischung (Würfel 21 UTC, gegen 23 UTC)
+   oder spätestens mit dem Seegangslauf 00 UTC (gegen 04:15 UTC) — erst dann nachsehen (Stand: Audit §8.8). Was der Push
    bewirkt:
    - **Küste (Vertragsänderung, deine Freigabe vom 21.11.):** `sea/v1/spots/<lauf>.json` und `spots/<lauf>-w<t1>.json` tragen ab
      dem nächsten Seegangslauf bzw. der nächsten Wind-Auffrischung den Block `wind.dirFill` (`filled`, `maxDeg`, `rule`), und
