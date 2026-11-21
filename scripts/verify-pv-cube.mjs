@@ -3045,7 +3045,10 @@ function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
     // retention keeps runs built before it; both are checked where present, named in the detail
     let real5 = null, realPath = null, real6 = null, realPath6 = null;
     const root = 'C:/dev/buscosun-data/point';
-    if (existsSync(root)) {
+    // no clone on this machine (the CI runner): the real-chunk part cannot be checked there and is named as such in the
+    // detail; with a clone, at least one real chunk is still required
+    const hasClone = existsSync(root);
+    if (hasClone) {
       for (const run of readdirSync(root).filter((d) => /^\d{10}$/.test(d)).sort().reverse()) {
         for (const tier of ['t3', 't2', 't1']) {
           const dir = join(root, run, tier);
@@ -3076,8 +3079,8 @@ function sleep0() { return new Promise((r) => setTimeout(r, 10)); }
     const isEnsMean = (id) => CUBE_ENS_MEAN_VARS.some((v) => id === `${v}_ens`);   // not `_sd_ens`
     const okReal = !real5 || (!!pl5 && pl5.length === 57 && !pl5.some((p) => isEnsMean(p.id)) && pl5.some((p) => p.id === 't2m_sd_ens') && finite5 && new DataView(real5.buffer, real5.byteOffset).getUint16(4, true) === 5);
     const okReal6 = !real6 || (!!pl6r && pl6r.length === 61 && pl6r.some((p) => isEnsMean(p.id)) && finite6);
-    transitionOk = !!pl6 && pl6.length === 61 && planesForChunkHeader(mis) === null && planesForChunkHeader(foreign) === null && okReal && okReal6 && !!(real5 || real6);
-    detail35 = `V6 ${pl6?.length} · echter Schema-6-Chunk ${realPath6 ?? 'keiner im Klon'}: ${pl6r ? `${pl6r.length} Ebenen, _ens ${pl6r.some((p) => isEnsMean(p.id))}, t2m lesbar ${finite6}` : '—'} ·Schema-5-Byte mit 61 Ebenen ${planesForChunkHeader(mis)} · fremd ${planesForChunkHeader(foreign)} · echter Schema-5-Chunk ${realPath ?? 'keiner im Klon'}: ${pl5 ? `${pl5.length} Ebenen, t2m lesbar ${finite5}` : '—'}`;
+    transitionOk = !!pl6 && pl6.length === 61 && planesForChunkHeader(mis) === null && planesForChunkHeader(foreign) === null && okReal && okReal6 && (!hasClone || !!(real5 || real6));
+    detail35 = `${hasClone ? '' : 'kein Daten-Repo-Klon auf diesem Rechner — echte Chunks NICHT geprüft, nur der Fixture-Chunk · '}V6 ${pl6?.length} · echter Schema-6-Chunk ${realPath6 ?? 'keiner im Klon'}: ${pl6r ? `${pl6r.length} Ebenen, _ens ${pl6r.some((p) => isEnsMean(p.id))}, t2m lesbar ${finite6}` : '—'} ·Schema-5-Byte mit 61 Ebenen ${planesForChunkHeader(mis)} · fremd ${planesForChunkHeader(foreign)} · echter Schema-5-Chunk ${realPath ?? 'keiner im Klon'}: ${pl5 ? `${pl5.length} Ebenen, t2m lesbar ${finite5}` : '—'}`;
   }
   add('(35) Übergang an echten Chunks des Daten-Repo-Klons (mindestens einer): ein Schema-5-Chunk (57 Ebenen, solange die Aufbewahrung einen hält) bekommt ohne Manifest die Schema-5-Liste (ohne _ens) und liest T, ein Schema-6-Chunk (61 Ebenen, Runner seit a02f2b5) die Liste mit _ens und liest T; Schema 6/61 die aktuelle Liste; Schema-Byte 5 mit 61 Ebenen und ein fremdes Schema 7 ⇒ null (Manifest)', transitionOk, detail35);
   add('(35) Manifest: Schema 5 UND 6 bestehen die Prüfung, 4 nicht', !validateRunManifest || (() => {
@@ -3515,4 +3518,6 @@ for (const c of checks) {
   console.log(`${c.ok ? 'OK   ' : notCounted ? '⊘    ' : 'FAIL '} ${c.name}${c.detail ? `  — ${c.detail}` : ''}${notCounted ? '  (Zeitmessung über der Grenze — auf dem CI-Runner nicht gewertet)' : ''}`);
 }
 console.log(`\n${checks.length - failed - untimed}/${checks.length} Prüfungen bestanden${untimed ? `, ${untimed} Zeitmessung(en) auf dem CI-Runner nicht gewertet` : ''}.`);
-if (failed) { console.log(`${failed} FEHLGESCHLAGEN.`); process.exit(1); }
+// exit only after stdout has drained: on a pipe (the CI wrapper) `process.exit` right after `console.log` cut the output
+// off in the middle, so the gate was red without naming the failed check
+if (failed) process.stdout.write(`${failed} FEHLGESCHLAGEN.\n`, () => process.exit(1));

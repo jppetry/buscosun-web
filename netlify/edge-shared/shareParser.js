@@ -36,6 +36,11 @@ var SHARE_BLOCKED_KEYS = /* @__PURE__ */ new Set([
   "lz",
   "radarcdn",
   "radarimg",
+  "rvdwd",
+  "precipdwd",
+  "d2dwd",
+  "konraddwd",
+  "repackraw",
   "repackrun",
   "bh",
   "ta",
@@ -473,21 +478,108 @@ var SEA_SPOT_NAMES = {
   "lubmin": ["Lubmin (Greifswalder Bodden)", "ostsee"],
   "zinnowitz": ["Usedom Zinnowitz", "ostsee"],
   "heringsdorf": ["Usedom Heringsdorf", "ostsee"],
-  "ueckermuende": ["Ueckermünde (Stettiner Haff)", "ostsee"]
+  "ueckermuende": ["Ueckermünde (Stettiner Haff)", "ostsee"],
+  "roemoe": ["Rømø Lakolk", "nordsee", "DK"],
+  "fanoe": ["Fanø Bad", "nordsee", "DK"],
+  "hvide-sande": ["Hvide Sande", "nordsee", "DK"],
+  "als-kegnaes": ["Als Kegnæs", "ostsee", "DK"],
+  "langeland-bagenkop": ["Langeland Bagenkop", "ostsee", "DK"],
+  "aeroe-marstal": ["Ærø Marstal", "ostsee", "DK"],
+  "middelfart": ["Middelfart (Kleiner Belt)", "ostsee", "DK"],
+  "gedser": ["Gedser", "ostsee", "DK"],
+  "genfersee-genf": ["Genf", "binnensee", null, "Genfersee"],
+  "genfersee-nyon": ["Nyon", "binnensee", null, "Genfersee"],
+  "genfersee-lausanne": ["Lausanne", "binnensee", null, "Genfersee"],
+  "genfersee-vevey-montreux": ["Vevey / Montreux", "binnensee", null, "Genfersee"],
+  "genfersee-le-bouveret": ["Le Bouveret", "binnensee", null, "Genfersee"],
+  "bodensee-konstanz": ["Konstanz", "binnensee", null, "Bodensee"],
+  "bodensee-radolfzell": ["Radolfzell", "binnensee", null, "Bodensee"],
+  "bodensee-ueberlingen": ["Überlingen", "binnensee", null, "Bodensee"],
+  "bodensee-friedrichshafen": ["Friedrichshafen", "binnensee", null, "Bodensee"],
+  "bodensee-lindau": ["Lindau", "binnensee", null, "Bodensee"],
+  "bodensee-bregenz": ["Bregenz", "binnensee", null, "Bodensee"],
+  "bodensee-romanshorn": ["Romanshorn", "binnensee", null, "Bodensee"],
+  "bodensee-kreuzlingen": ["Kreuzlingen", "binnensee", null, "Bodensee"],
+  "neusiedler-see-neusiedl": ["Neusiedl am See", "binnensee", null, "Neusiedler See"],
+  "neusiedler-see-podersdorf": ["Podersdorf", "binnensee", null, "Neusiedler See"],
+  "neusiedler-see-rust": ["Rust", "binnensee", null, "Neusiedler See"],
+  "neusiedler-see-moerbisch": ["Mörbisch", "binnensee", null, "Neusiedler See"],
+  "neuenburgersee-neuchatel": ["Neuchâtel", "binnensee", null, "Neuenburgersee"],
+  "neuenburgersee-yverdon": ["Yverdon-les-Bains", "binnensee", null, "Neuenburgersee"],
+  "neuenburgersee-estavayer": ["Estavayer-le-Lac", "binnensee", null, "Neuenburgersee"],
+  "lago-maggiore-locarno": ["Locarno", "binnensee", null, "Lago Maggiore"],
+  "lago-maggiore-ascona": ["Ascona", "binnensee", null, "Lago Maggiore"],
+  "mueritz-waren": ["Waren", "binnensee", null, "Müritz"],
+  "mueritz-roebel": ["Röbel", "binnensee", null, "Müritz"],
+  "mueritz-klink": ["Klink", "binnensee", null, "Müritz"],
+  "vierwaldstaettersee-luzern": ["Luzern", "binnensee", null, "Vierwaldstättersee"],
+  "vierwaldstaettersee-kuessnacht": ["Küssnacht", "binnensee", null, "Vierwaldstättersee"],
+  "vierwaldstaettersee-buochs": ["Buochs", "binnensee", null, "Vierwaldstättersee"],
+  "vierwaldstaettersee-flueelen": ["Flüelen", "binnensee", null, "Vierwaldstättersee"],
+  "zuerichsee-zuerich": ["Zürich", "binnensee", null, "Zürichsee"],
+  "zuerichsee-waedenswil": ["Wädenswil", "binnensee", null, "Zürichsee"],
+  "zuerichsee-rapperswil": ["Rapperswil", "binnensee", null, "Zürichsee"],
+  "chiemsee-prien": ["Prien", "binnensee", null, "Chiemsee"],
+  "chiemsee-seebruck": ["Seebruck", "binnensee", null, "Chiemsee"],
+  "chiemsee-chieming": ["Chieming", "binnensee", null, "Chiemsee"],
+  "schweriner-see-schwerin": ["Schwerin (Zippendorf)", "binnensee", null, "Schweriner See"],
+  "schweriner-see-bad-kleinen": ["Bad Kleinen", "binnensee", null, "Schweriner See"],
+  "starnberger-see-starnberg": ["Starnberg", "binnensee", null, "Starnberger See"],
+  "starnberger-see-tutzing": ["Tutzing", "binnensee", null, "Starnberger See"],
+  "starnberger-see-seeshaupt": ["Seeshaupt", "binnensee", null, "Starnberger See"],
+  "luganersee-lugano": ["Lugano", "binnensee", null, "Luganersee"],
+  "luganersee-morcote": ["Morcote", "binnensee", null, "Luganersee"],
+  "thunersee-thun": ["Thun", "binnensee", null, "Thunersee"],
+  "thunersee-spiez": ["Spiez", "binnensee", null, "Thunersee"],
+  "ammersee-herrsching": ["Herrsching", "binnensee", null, "Ammersee"],
+  "ammersee-diessen": ["Dießen", "binnensee", null, "Ammersee"],
+  "ammersee-stegen": ["Stegen", "binnensee", null, "Ammersee"],
+  "attersee-seewalchen": ["Seewalchen", "binnensee", null, "Attersee"],
+  "attersee-attersee": ["Attersee am Attersee", "binnensee", null, "Attersee"],
+  "attersee-weissenbach": ["Weißenbach", "binnensee", null, "Attersee"],
+  "bielersee-biel": ["Biel", "binnensee", null, "Bielersee"],
+  "bielersee-erlach": ["Erlach", "binnensee", null, "Bielersee"],
+  "plauer-see-plau": ["Plau am See", "binnensee", null, "Plauer See"],
+  "plauer-see-alt-schwerin": ["Alt Schwerin", "binnensee", null, "Plauer See"],
+  "zugersee-zug": ["Zug", "binnensee", null, "Zugersee"],
+  "zugersee-arth": ["Arth", "binnensee", null, "Zugersee"],
+  "kummerower-see-kummerow": ["Kummerow", "binnensee", null, "Kummerower See"],
+  "brienzersee-brienz": ["Brienz", "binnensee", null, "Brienzersee"],
+  "brienzersee-boenigen": ["Bönigen", "binnensee", null, "Brienzersee"],
+  "steinhuder-meer-steinhude": ["Steinhude", "binnensee", null, "Steinhuder Meer"],
+  "steinhuder-meer-mardorf": ["Mardorf", "binnensee", null, "Steinhuder Meer"],
+  "grosser-ploener-see-ploen": ["Plön", "binnensee", null, "Großer Plöner See"],
+  "traunsee-gmunden": ["Gmunden", "binnensee", null, "Traunsee"],
+  "traunsee-ebensee": ["Ebensee", "binnensee", null, "Traunsee"],
+  "walensee-weesen": ["Weesen", "binnensee", null, "Walensee"],
+  "walensee-walenstadt": ["Walenstadt", "binnensee", null, "Walensee"],
+  "schaalsee-zarrentin": ["Zarrentin", "binnensee", null, "Schaalsee"],
+  "murtensee-murten": ["Murten", "binnensee", null, "Murtensee"],
+  "selenter-see-selent": ["Selent", "binnensee", null, "Selenter See"],
+  "koelpinsee-klink": ["Kölpinsee Ostufer", "binnensee", null, "Kölpinsee"]
 };
 
 // src/sea/seaSeo.ts
 var SEA_SEO_UPDATED = "2026-11-02";
+var SEA_LAKE_SEO_UPDATED = "2026-11-21";
 var SEA_SPOT_COUNT = Object.keys(SEA_SPOT_NAMES).length;
 var REGION = { nordsee: "Nordsee", ostsee: "Ostsee" };
 function seaSeoSubs() {
-  return Object.entries(SEA_SPOT_NAMES).map(([slug, [name, region]]) => ({
+  return Object.entries(SEA_SPOT_NAMES).map(([slug, [name, region, country, lake]]) => lake ? {
+    // Phase BS: a lake spot names its lake; no wave model and no sea weather report there — the description says what the page has.
+    slug,
+    label: name,
+    title: `Seewetter ${name} (${lake}) — Wind, Böen, Windwelle`,
+    description: `Seewetter ${name} (${lake}): Wind und Böen aus buscosun Fusion mit Spanne, geschätzte Windwelle, Sicht und Schauer, stündlich bis 78 h.`,
+    updated: SEA_LAKE_SEO_UPDATED
+  } : {
     slug,
     label: name,
     title: `Seewetter ${name} — Wind, Wellen, Böen`,
-    description: `Seewetter ${name} (${REGION[region]}): Wind und Böen, Wellenhöhe mit Windsee und Dünung, Wasserstand und DWD-Seewetterbericht, stündlich bis 78 h.`,
+    // Phase DK: a Danish spot names its country instead of the sea (the description stays within 160 characters).
+    description: `Seewetter ${name}${country === "DK" ? ", Dänemark" : ` (${REGION[region]})`}: Wind und Böen, Wellenhöhe mit Windsee und Dünung, Wasserstand und DWD-Seewetterbericht, stündlich bis 78 h.`,
     updated: SEA_SEO_UPDATED
-  }));
+  });
 }
 
 // src/router/routes.ts
@@ -986,14 +1078,20 @@ var REGION_LABEL = { nordsee: "Nordsee", ostsee: "Ostsee" };
 function seaSpotLabel(id) {
   if (!id || id.length > 40 || !SEA_SPOT_SLUG_RE.test(id)) return null;
   const row = SEA_SPOT_NAMES[id];
-  return row ? { name: row[0], region: row[1], regionLabel: REGION_LABEL[row[1]] } : null;
+  if (!row) return null;
+  if (row[1] === "binnensee") return { name: row[0], region: row[1], regionLabel: row[3] ?? "Binnensee", lake: true };
+  return row[2] === "DK" ? { name: row[0], region: row[1], regionLabel: `${REGION_LABEL[row[1]]}, Dänemark`, dk: true } : { name: row[0], region: row[1], regionLabel: REGION_LABEL[row[1]] };
 }
 function describeSeaLink(id, whenText) {
   const l = seaSpotLabel(id);
   if (!l) return null;
+  if (l.lake) return {
+    title: `${l.name} — Seewetter ${l.regionLabel}${whenText ? ` · Prognose ${whenText}` : ""}`,
+    description: `Wind und Böen am Spot ${l.name} (${l.regionLabel}) aus buscosun Fusion, dazu eine geschätzte Windwelle aus eigener Rechnung. Der Link zeigt immer die aktuelle Lage. Keine amtliche Warnung und kein Ersatz für die Meldungen des zuständigen Wetterdienstes.`
+  };
   return {
     title: `${l.name} — Seewetter ${l.regionLabel}${whenText ? ` · Prognose ${whenText}` : ""}`,
-    description: `Wind, Böen und Seegang am Spot ${l.name} (${l.regionLabel}): Modellwerte des DWD und buscosun Fusion, bewertet mit eigenen Grenzen je Profil. Der Link zeigt immer die aktuelle Lage. Keine amtliche Warnung, kein Ersatz für den Seewetterbericht des Seewetterdienstes Hamburg und nicht für die Navigation.`
+    description: `Wind, Böen und Seegang am Spot ${l.name} (${l.regionLabel}): Modellwerte des DWD${l.dk ? ", des DMI" : ""} und buscosun Fusion, bewertet mit eigenen Grenzen je Profil. Der Link zeigt immer die aktuelle Lage. Keine amtliche Warnung, kein Ersatz für den Seewetterbericht des Seewetterdienstes Hamburg und nicht für die Navigation.`
   };
 }
 
