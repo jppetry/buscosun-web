@@ -4,7 +4,7 @@
  * departures touch, the water level at the destination) and hands back the computed view. Nothing is computed here that
  * `seaTrip.ts` does not compute; a value that is not loaded is "keine Daten".
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { SeaSpot } from './seaContract';
 import type { LakeLand, SeaLake } from './seaLakes';
 import { loadCountryOutline } from './lakeClient';
@@ -91,9 +91,14 @@ export function useSeaTrip(x: UseSeaTripIn): EtappeView | null {
   // --- wind: buscosun Fusion at every sample point, one after the other ---------------------------------------------
   const [wind, setWind] = useState<ReadonlyMap<string, TripWindLoad>>(new Map());
   const sampleKeys = samples.map(sampleKey).join('|');
+  // The answers are kept per point, not per country: when the country of the leg changes (the lake is recognised only once
+  // the catalogue or the outlines are loaded) the answers computed with the old country parameters are dropped at once —
+  // the page then says "Wind an x von y Punkten gerechnet" again instead of showing them as final.
+  const windCountry = useRef(tripCountry);
   useEffect(() => {
     if (!samples.length) return;
     let alive = true;
+    if (windCountry.current !== tripCountry) { windCountry.current = tripCountry; setWind((m) => (m.size ? new Map() : m)); }
     for (const s of samples) {
       void loadTripWind(s, tripCountry).then((r) => { if (alive) setWind((m) => (m.get(sampleKey(s)) === r ? m : new Map(m).set(sampleKey(s), r))); });
     }

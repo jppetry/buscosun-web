@@ -829,8 +829,9 @@ add('L7 Legende der Tabelle: zu den drei Farben der Route kommen die zwei Pfeile
     && LT.lakeForeignTripText({ ...fGenf, n: 2 }).startsWith('Die Etappe liegt vor dem französischen Ufer: '));
   const lakeTexts = [LT.LAKE_TRIP_NOTE, LT.LAKE_TRIP_ARRIVAL_NOTE, LT.lakeForeignTripText(fGenf), LT.lakeForeignTripText(fNeus), LT.lakeForeignTripText(fLug)];
   const hookSrc = readFileSync(join(ROOT, 'src/sea/useSeaTrip.ts'), 'utf8'), pageSrc = readFileSync(join(ROOT, 'src/sea/SeaPage.tsx'), 'utf8');
-  add('M9 Wortlaut und Verdrahtung: kein verbotenes Wort in den Texten der See-Etappe; der Haken lädt auf dem See kein Wellen- und kein Strömungsfeld, fragt buscosun Fusion mit dem Land der See-Etappe und bekommt Seetabelle und Umrisse von der Seite; die Landesumrisse kommen von der eigenen Seite (/countries/), nicht aus src/pointForecast',
-    lakeTexts.every((t) => !banned.test(t)) && /if \(!route \|\| !etappe \|\| noSea\) return \[\] as number\[\];/.test(hookSrc) && /const tripCountry: LakeLand = tripLake\?\.country \?\? 'DE';/.test(hookSrc) && /loadTripWind\(s, tripCountry\)/.test(hookSrc)
+  add('M9 Wortlaut und Verdrahtung: kein verbotenes Wort in den Texten der See-Etappe; der Haken lädt auf dem See kein Wellen- und kein Strömungsfeld, verwirft beim Wechsel des Landes die Antworten des alten Landes, fragt buscosun Fusion mit dem Land der See-Etappe und bekommt Seetabelle und Umrisse von der Seite; die Landesumrisse kommen von der eigenen Seite (/countries/), nicht aus src/pointForecast',
+    lakeTexts.every((t) => !banned.test(t)) && /if \(!route \|\| !etappe \|\| noSea\) return \[\] as number\[\];/.test(hookSrc)
+    && /if \(windCountry\.current !== tripCountry\) \{ windCountry\.current = tripCountry; setWind\(\(m\) => \(m\.size \? new Map\(\) : m\)\); \}/.test(hookSrc) && /\}, \[sampleKeys, tripCountry\]\);/.test(hookSrc) && /const tripCountry: LakeLand = tripLake\?\.country \?\? 'DE';/.test(hookSrc) && /loadTripWind\(s, tripCountry\)/.test(hookSrc)
     && /lakes: lakeTable, lakeShapes: lakeShapes\?\.features,/.test(pageSrc) && /fetch\(`\/countries\/\$\{land\}\.geojson`\)/.test(readFileSync(join(ROOT, 'src/sea/lakeClient.ts'), 'utf8')) && !/pointForecast/.test(readFileSync(join(ROOT, 'src/sea/lakeTrip.ts'), 'utf8').replace(/^ \*.*$/gm, '')));
 }
 

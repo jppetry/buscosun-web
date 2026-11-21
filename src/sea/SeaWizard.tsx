@@ -10,7 +10,7 @@ import { TRIP_MODE_LABEL, TRIP_MOTOR_NOTE, type TripMode } from './seaTrip';
 import { SeaLimitsEditor } from './SeaDock';
 import SeaTripSwitch, { TripProfiles } from './SeaTripSwitch';
 import {
-  WIZ_BACK, WIZ_DISCLAIMER, WIZ_LIMITS_COUNT_NOTE, WIZ_NEXT, WIZ_STEPS, WIZ_STRAND_PROFILE_NOTE, WIZ_TO_RESULT, wizLabel, wizLead, wizTitle,
+  WIZ_BACK, WIZ_DISCLAIMER, WIZ_LIMITS_COUNT_NOTE, WIZ_LIMITS_COUNT_NOTE_LAKE, WIZ_NEXT, WIZ_STEPS, WIZ_STRAND_PROFILE_NOTE, WIZ_TO_RESULT, wizLabel, wizLead, wizTitle,
   type WizStep, type WizSummaryRow,
 } from './seaSteps';
 
@@ -137,14 +137,14 @@ export function ArtStep({ mode, onMode }: { mode: TripMode; onMode: (m: TripMode
 
 // --- Page „Deine Grenzen“ (Vor Ort, Etappe) ----------------------------------------------------------------------------
 
-export interface LimitsStepProps { mode: TripMode; profile: SeaProfileId; limits: SeaLimits; onLimits: (l: SeaLimits | null) => void }
+export interface LimitsStepProps { mode: TripMode; profile: SeaProfileId; limits: SeaLimits; onLimits: (l: SeaLimits | null) => void; /** Phase BS-N: the leg lies on an inland lake — no wave is counted there. */ lake?: boolean }
 export function LimitsStep(p: LimitsStepProps) {
   return (
     <section className="sw-wz-sec">
       <WizTip>Die Startwerte für {SEA_PROFILE_BY_ID[p.profile].label} sind schon eingetragen. Ändere nur, was für dich anders ist, dann „{WIZ_TO_RESULT}“.</WizTip>
       <h3>Grenzen für {SEA_PROFILE_BY_ID[p.profile].label}</h3>
       <SeaLimitsEditor profile={p.profile} limits={p.limits} onLimits={p.onLimits} />
-      {p.mode === 'etappe' && <p className="sw-am-fine">{WIZ_LIMITS_COUNT_NOTE}</p>}
+      {p.mode === 'etappe' && <p className="sw-am-fine">{p.lake ? WIZ_LIMITS_COUNT_NOTE_LAKE : WIZ_LIMITS_COUNT_NOTE}</p>}
       {p.mode === 'etappe' && p.profile === 'motor' && <p className="sw-am-fine">{TRIP_MOTOR_NOTE}</p>}
     </section>
   );

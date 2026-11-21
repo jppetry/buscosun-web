@@ -131,6 +131,16 @@ add(`C6 kein amtliches Produkt (E-AM-43): der Satz steht im Fuß JEDER der ${pag
   pages.length === 17 && pages.every((p) => cnt(p, new RegExp(W.WIZ_DISCLAIMER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) === 1 && p.indexOf('sw-wz-foot') < p.indexOf(W.WIZ_DISCLAIMER))
   && /Keine amtliche Warnung/.test(W.WIZ_DISCLAIMER) && /amtlichen Seewetterbericht/.test(W.WIZ_DISCLAIMER) && /keine Navigationsgrundlage/.test(W.WIZ_DISCLAIMER));
 
+// Phase BS-N (V-BS-4): on a lake leg the limits page says that only wind and gusts are counted.
+{
+  const limLake = html(h(UI.LimitsStep, { mode: 'etappe', profile: 'yacht', limits: SEA_PROFILE_BY_ID.yacht.limits, onLimits: () => {}, lake: true }));
+  const pageSrc = readFileSync(join(ROOT, 'src/sea/SeaPage.tsx'), 'utf8');
+  add('C9 Grenzen auf einer See-Etappe: „gezählt … für Wind und Böen“, mit dem Satz, dass die Wellengrenzen dort nicht geprüft werden; ohne `lake` und an der Küste der bisherige Satz; die Seite reicht den See der Etappe durch',
+    limLake.includes(W.WIZ_LIMITS_COUNT_NOTE_LAKE) && !limLake.includes(W.WIZ_LIMITS_COUNT_NOTE) && /für Wind und Böen\. Auf dem See gibt es kein Wellenmodell/.test(W.WIZ_LIMITS_COUNT_NOTE_LAKE)
+    && lim('etappe', 'yacht').includes(W.WIZ_LIMITS_COUNT_NOTE) && !lim('etappe', 'yacht').includes(W.WIZ_LIMITS_COUNT_NOTE_LAKE) && !html(h(UI.LimitsStep, { mode: 'ort', profile: 'kite', limits: SEA_PROFILE_BY_ID.kite.limits, onLimits: () => {}, lake: true })).includes(W.WIZ_LIMITS_COUNT_NOTE_LAKE)
+    && /<LimitsStep mode=\{wizMode\} profile=\{profile\} limits=\{limits\} onLimits=\{setLimits\} lake=\{!!tripView\?\.lake\} \/>/.test(pageSrc));
+}
+
 // --- D: every profile × every kind of trip ---------------------------------------------------------------------------
 const unesc = (s) => s.replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&');
 const combos = SEA_PROFILES.flatMap((pf) => TRIP_MODES.map((m) => ({ pf, m, page: unesc(html(h(UI.WerStep, { profile: pf.id, onProfile: () => {}, mode: m, onMode: () => {}, limitsText: limitsSummary(pf.limits) }))) })));

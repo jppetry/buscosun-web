@@ -265,7 +265,7 @@ if (!BYTES) {
   const baseSpots = readFileSync(join(FIX, 'spots-2026100700.json'));
   const now = Date.parse('2026-10-07T12:20:00Z');
   const windN = (t1) => async ({ spots }) => ({
-    series: Object.fromEntries(spots.map((s) => [s.id, { wind: SEA_SPOT_STEPS.map((h) => (h < 12 ? null : 80 + h + (spots.length % 7))), gust: SEA_SPOT_STEPS.map((h) => (h < 12 ? null : 110 + h + (spots.length % 7))), windDir: SEA_SPOT_STEPS.map((h) => (h < 12 ? null : (h * 7 + spots.length) % 360)) }])),
+    series: Object.fromEntries(spots.map((s) => [s.id, { wind: SEA_SPOT_STEPS.map((h) => (h < 12 ? null : 80 + h + (spots.length % 11))), gust: SEA_SPOT_STEPS.map((h) => (h < 12 ? null : 110 + h + (spots.length % 11))), windDir: SEA_SPOT_STEPS.map((h) => (h < 12 ? null : (h * 7 + spots.length) % 360)) }])),
     failed: [], meta: { engine: 'buscosun Fusion 14', version: 14, computedAt: new Date(now).toISOString(), runs: { t1 } },
   });
   const dkOne = { ...clone(COAST[COAST.length - 1]), id: 'gegenprobe-dk', country: 'DK', coast: null, wodlCoast: null, station: null, dk: { cube: true, wind: 'fusion', wl: null } };
@@ -288,7 +288,9 @@ if (!BYTES) {
   const derive = readFileSync(join(ROOT, 'scripts/sea/sea-derive.mjs'), 'utf8');
   const bodyOf = (name) => { const i = derive.indexOf(`export async function ${name}(`); return derive.slice(i, derive.indexOf('\nexport ', i + 10)); };
   add('F0d Quelltext: Lauf und Wind-Auffrischung lesen ihre Spots nur über readCatalog; readCatalog kennt nur spots.json und spots-dk.json; der volle Byte-Vergleich (drei Wellenläufe) ist ein eigenes Skript',
-    /const cat = readCatalog\(storeDir\);/.test(bodyOf('buildRun')) && /const cat = readCatalog\(storeDir\);/.test(bodyOf('windRefresh')) && !/lake/i.test(derive.slice(derive.indexOf('export function readCatalog('), derive.indexOf('// --- inventory')))
+    bodyOf('buildRun').length > 500 && bodyOf('windRefresh').length > 500 && derive.indexOf('export function readCatalog(') > 0 && derive.indexOf('// --- inventory') > derive.indexOf('export function readCatalog(')
+    && (COAST.length + 70) % 11 !== COAST.length % 11
+    && /const cat = readCatalog\(storeDir\);/.test(bodyOf('buildRun')) && /const cat = readCatalog\(storeDir\);/.test(bodyOf('windRefresh')) && !/lake/i.test(derive.slice(derive.indexOf('export function readCatalog('), derive.indexOf('// --- inventory')))
     && /"verify:sea-lakes-bytes": "[^"]*scripts\/verify-sea-lakes\.mjs --bytes"/.test(readFileSync(join(ROOT, 'package.json'), 'utf8')));
 }
 

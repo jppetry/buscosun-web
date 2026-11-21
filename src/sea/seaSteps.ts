@@ -96,6 +96,8 @@ export const WIZ_MODE_GIVE = 'Du gibst an';
 export const WIZ_MODE_GET = 'Du bekommst';
 export const WIZ_MODE_FITS = 'Passt zu';
 export const WIZ_LIMITS_COUNT_NOTE ='Auf der Etappe gezählt werden Hinweise über deinen Grenzen für Wind, Böen und Welle.';
+/** Phase BS-N (V-BS-4): a leg on an inland lake — there is no wave model, the wave limits are not checked. */
+export const WIZ_LIMITS_COUNT_NOTE_LAKE = 'Auf der Etappe gezählt werden Hinweise über deinen Grenzen für Wind und Böen. Auf dem See gibt es kein Wellenmodell; die Grenzen für die Welle werden dort nicht geprüft.';
 
 // --- What must stand before one goes on ------------------------------------------------------------------------------
 

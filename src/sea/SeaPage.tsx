@@ -1441,7 +1441,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   const zeitMid = !isMobile && step === 'zeit' && wizMode === 'ort';
   // Page „Grenzen“ (Vor Ort, Etappe), desktop: the same — the fields in the middle of the map, the column shows what was set.
   const grenzenMid = !isMobile && step === 'grenzen';
-  const limitsPage = <LimitsStep mode={wizMode} profile={profile} limits={limits} onLimits={setLimits} />;
+  const limitsPage = <LimitsStep mode={wizMode} profile={profile} limits={limits} onLimits={setLimits} lake={!!tripView?.lake} />;
   const ortTime = (
     <OrtTimeStep start={planOpen ? planStart : null} ret={planOpen ? planRet : null} hours={planHours ? hoursWord(planHours) : null} moved={planMoved}
       onShift={(which, by) => { const w = planModel?.win; if (w) setPlanHours(which === 'start' ? w.start + by : w.start, which === 'end' ? w.end + by : w.end); }} />
