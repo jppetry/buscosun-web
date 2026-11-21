@@ -46,8 +46,9 @@ export function seaSpotSeoText(id: string): SeoText | null {
 
 function textOf(s: SeaSpotFact): SeoText {
   if (s.country === 'DK') return textOfDk(s);
+  if (s.lake) return textOfLake(s);
   const wodl = s.wodl ?? (s.region === 'nordsee' ? 'Nordseekueste' : 'Ostseekueste');
-  const region = REGION[s.region];
+  const region = REGION[s.region as 'nordsee' | 'ostsee'];
   const area = s.seaArea ? dwdName(s.seaArea) : null;
   const coast = s.coast ? dwdName(s.coast) : null;
   const facing = dirWord(s.normal), opposite = dirWord(s.normal + 180);
@@ -115,8 +116,87 @@ function textOf(s: SeaSpotFact): SeoText {
  * differs — where wind, water level and measurement come from, and that there is no official warning status for the
  * Danish coast on this page (DMI is linked, never quoted).
  */
+/**
+ * Phase BS — the text of a lake spot. A lake has no wave model, no sea weather report and no tide; what the page shows
+ * there is wind and gusts of buscosun Fusion at the level of the lake, an estimated wind wave of our own, the official
+ * DWD lake warning where there is one, and water temperature and level where a source with a clear licence exists.
+ * Everything below is a property of the place (lake, shore, fetch, stations) — no forecast value.
+ */
+function textOfLake(s: SeaSpotFact): SeoText {
+  const l = s.lake!;
+  const facing = dirWord(s.normal), opposite = dirWord(s.normal + 180);
+  const sideA = dirWord(s.normal + 90), sideB = dirWord(s.normal - 90);
+  const kinds = s.kinds.map((k) => KIND[k] ?? k);
+  const station = s.station ? { name: s.station[0], km: n1(s.station[1]) } : null;
+  const abroad = l.lands.filter((x) => x !== l.land);
+  const where = `${l.name}${abroad.length ? `, einem Grenzsee zwischen ${listDe(l.lands)}` : ` in ${l.land === 'Schweiz' ? 'der Schweiz' : l.land}`}`;
+  const deep = l.depthM > 90;
+  const waterBits = [
+    l.wt ? `die gemessene Wassertemperatur am WSV-Pegel ${l.wt}` : null,
+    l.model ? 'die Wassertemperatur aus dem Seenmodell Alplakes der Eawag' : null,
+    l.level ? `den Wasserstand ${l.level[0] === 'wsv' ? 'am WSV-Pegel' : 'an der BAFU-Station'} ${l.level[1]}` : null,
+  ].filter((x): x is string => !!x);
+
+  const lead = `Seewetter für ${s.name} am ${where}: Diese Seite zeigt für den Spot die kommenden 78 Stunden Stunde für Stunde, `
+    + 'nämlich Wind und Böen aus buscosun Fusion mit der Spanne, in der sie meist liegen, einen Hinweis auf Sicht, Schauer und Gewitter '
+    + `und eine geschätzte Windwelle aus eigener Rechnung${waterBits.length ? `, dazu ${listDe(waterBits)}` : ''}. `
+    + (l.cell ? `Für das Gebiet „${l.cell}“ gibt der Deutsche Wetterdienst amtliche Warnungen für Binnenseen heraus, die Seite zeigt sie im Wortlaut. ` : `Einen amtlichen Warnstatus für den ${l.name} hat die Seite nicht im Datenbestand und sagt das auch. `)
+    + 'Ein Wellenmodell, einen Seewetterbericht, Gezeiten und Strömung gibt es für den See nicht. '
+    + 'Die Seite ist kein amtliches Warnprodukt und ersetzt weder die amtliche Meldung noch die eigene Beobachtung auf dem Wasser.';
+
+  const orientation = `Das Ufer von ${s.name} zeigt nach ${facing} (${s.normal}°), gerechnet aus dem Umriss des Sees. `
+    + `Wind aus ${facing} kommt damit auflandig vom Wasser, Wind aus ${sideA} oder ${sideB} läuft etwa parallel zum Ufer, und Wind aus ${opposite} weht ablandig auf den See hinaus. `
+    + `Am weitesten ist das Wasser von hier aus nach ${dirWord(l.fetchFrom)} offen, ${n1(l.fetchKm)} km bis zum nächsten Ufer: Bei Wind aus dieser Richtung hat die Welle den längsten Anlauf. `
+    + `Der ${l.name} liegt auf ${l.elevM} Metern über dem Meer, ist ${n1(l.areaKm2)} Quadratkilometer groß und im Mittel ${n1(l.depthM)} Meter tief. `
+    + `Im Katalog steht ${s.name} als ${listDe(kinds)}.`;
+
+  const provenance = 'Den Wind rechnet buscosun Fusion an einem Punkt auf dem Wasser kurz vor dem Ufer, auf der Höhe des Seespiegels und nicht auf der Höhe der umliegenden Berge oder Hänge. '
+    + 'Die Windwelle ist eine Schätzung nach den Vorhersagegleichungen des Shore Protection Manual von 1984: aus dem Wind, der Strecke über den See in Windrichtung und der mittleren Tiefe des Sees, für anhaltenden Wind. '
+    + (deep || l.depthM >= 20 ? 'Bei dieser Tiefe begrenzt praktisch nur der Anlauf über das Wasser die Welle, nicht der Seegrund. ' : 'Weil der See flach ist, begrenzt neben dem Anlauf auch die Wassertiefe die Welle. ')
+    + 'An Stunden ohne bestimmte Windrichtung nennt die Seite nur eine Obergrenze über die längste Strecke. Die Schätzung ist nicht gemessen und nicht amtlich und geht in keine Bewertung ein; eine Einstufung nach Profil gibt es an Seen noch nicht. '
+    + (station ? `Gemessener Wind und Böen kommen von der Station ${station.name}${l.stationNet ? ` (${l.stationNet})` : ''}, ${station.km} km vom Spot entfernt, an Land und nicht auf dem Wasser.` : 'Eine Station mit Windmessung auf Höhe des Sees liegt nicht im Umkreis von 25 Kilometern; die Ansicht sagt das, statt einen Wert zu übertragen.');
+
+  const official = l.cell
+    ? `Für den ${l.name} gibt der Deutsche Wetterdienst amtliche Warnungen für Binnenseen heraus, hier für das Gebiet „${l.cell}“. Die Seite liest die Warndatei des DWD und zeigt eine geltende Meldung unverändert im Wortlaut, mit Beginn, Ende und Ausgabezeit. `
+      + 'Steht für das Gebiet keine Meldung in der Datei, sagt die Karte genau das. Ein Böenhinweis aus buscosun Fusion steht getrennt davon und ist als nicht amtlich gekennzeichnet.'
+    : `Für den ${l.name} liegt der Seite kein amtlicher Warnstatus in maschinenlesbarer Form mit geklärter Lizenz vor. Die Karte dazu trägt deshalb die Überschrift „Kein amtlicher Warnstatus im Datenbestand“ und verlinkt den zuständigen Dienst${l.service ? ` (${l.service[0]})` : ''}; `
+      + 'das heißt nicht, dass es dort keine amtliche Meldung gibt. Ein Böenhinweis aus buscosun Fusion steht getrennt davon und ist als nicht amtlich gekennzeichnet.';
+
+  const near = s.near.map(([id, km]) => ({ label: `${NAME_OF.get(id) ?? id} (${n1(km)} km)`, href: `/seewetter/${id}` }));
+  const sources = ['buscosun Fusion (Wind, Böen, Spanne, Hinweise)', 'eigene Schätzung der Windwelle (Shore Protection Manual 1984)'];
+  if (l.cell) sources.push('Deutscher Wetterdienst (Warnungen für Binnenseen im Wortlaut)');
+  if (station) sources.push(`Station ${station.name}${l.stationNet ? `, ${l.stationNet}` : ''} (Messung)`);
+  if (l.wt) sources.push(`WSV-Pegel ${l.wt} (Wassertemperatur, PEGELONLINE)`);
+  if (l.model) sources.push('Alplakes, Eawag (Wassertemperatur Modell, CC BY 4.0)');
+  if (l.level) sources.push(l.level[0] === 'wsv' ? `WSV-Pegel ${l.level[1]} (Wasserstand)` : `BAFU-Station ${l.level[1]} (Wasserstand)`);
+  sources.push(l.outline === 'dlm250' ? 'Umriss: © GeoBasis-DE / BKG (DLM250)' : l.outline === 'swisstopo' ? 'Umriss: © swisstopo' : 'Umriss: Copernicus EU-Hydro (EEA)');
+
+  return {
+    h1: `Seewetter ${s.name}: Wind, Böen und Windwelle am ${l.name}`,
+    lead,
+    body: [orientation, provenance, official],
+    facts: [
+      { label: 'Quellen', text: sources.join(' · ') },
+      { label: 'Lage', text: `${n1(s.lat)}° N, ${n1(s.lon)}° O · ${l.name} · ${l.land}` },
+      { label: 'Ufer', text: `zeigt nach ${facing} (${s.normal}°): auflandig bei Wind aus ${facing}, ablandig bei Wind aus ${opposite}; längste Strecke über das Wasser ${n1(l.fetchKm)} km nach ${dirWord(l.fetchFrom)}` },
+      { label: 'Spot', text: listDe(kinds) },
+      { label: 'Aktualisierung', text: `Prüfung alle 15 Minuten; Wind alle drei Stunden neu, Horizont 78 Stunden${l.model ? '; Seenmodell höchstens alle sechs Stunden abgefragt' : ''}` },
+      { label: 'Grenze', text: 'kein amtliches Warnprodukt, keine Einstufung nach Profil, kein Wellenmodell, keine Strömung; die Windwelle ist geschätzt und gilt für das offene Wasser vor dem Spot, nicht für die Brandung am Ufer' },
+    ],
+    ...(l.service ? { official: { text: l.cell ? 'Warnungen für Binnenseen gibt der Deutsche Wetterdienst heraus:' : `Zuständig für Warnungen am ${l.name}:`, label: l.service[0], href: l.service[1] } } : {}),
+    links: [
+      { label: 'Seewetter: alle Spots an Küste und Seen', href: '/seewetter' },
+      { label: 'Seegang, Windsee und Dünung erklärt', href: '/wissen/seegang-wellenhoehe/' },
+      ...s.places.map(([slug, name]) => ({ label: `Wetter ${name}`, href: `/wetter/${slug}/` })),
+    ],
+    related: near.length ? { heading: 'Spots in der Nähe', items: near } : undefined,
+    place: { name: s.name, lat: s.lat, lon: s.lon, containedIn: l.name },
+    explainer: null,
+  };
+}
+
 function textOfDk(s: SeaSpotFact): SeoText {
-  const region = REGION[s.region];
+  const region = REGION[s.region as 'nordsee' | 'ostsee'];
   const area = s.seaArea ? dwdName(s.seaArea) : null;
   const facing = dirWord(s.normal), opposite = dirWord(s.normal + 180);
   const sideA = dirWord(s.normal + 90), sideB = dirWord(s.normal - 90);

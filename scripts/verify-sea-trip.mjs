@@ -31,14 +31,14 @@ import { tmpdir } from 'node:os';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
-import { decodePng, toRgba } from './lib/png.mjs';
+import { decodePng, encodePng, toRgba } from './lib/png.mjs';
 import { parseSpotsDoc, mergeWindDoc } from '../src/sea/seaClient.ts';
 import { SEA_MODELS, SEA_SPOT_STEPS, SEA_WATER, decodeDir, decodeHs, decodePeriod, mergeSpotCatalogs, seaCellCentre, seaFieldStepAt } from '../src/sea/seaContract.ts';
 import { MS_TO_KN, SEA_PROFILE_BY_ID, shoreAngle } from '../src/sea/seaProfiles.ts';
 import { buildSeaUrl, parseSeaUrl, SEA_DEFAULT_STATE, SEA_ET_RE, SEA_SD_RE } from '../src/sea/seaState.ts';
 import { parseSeaBulletin } from '../src/sea/seaText.ts';
 import { sunAltitudeDeg } from '../src/photo/sun.ts';
-import { SEA_CURRENT_UV, currentUvCell, decodeUvField, windAgainstCurrent } from '../src/sea/seaCurrent.ts';
+import { SEA_CURRENT_FIELD, SEA_CURRENT_UV, currentUvCell, decodeUvField, windAgainstCurrent } from '../src/sea/seaCurrent.ts';
 import { FUSION_PARTS } from '../src/pointForecast/fusion/fusionRelease.ts';
 import { fusionPathFor } from '../src/pointForecast/fusionForecast.ts';
 import * as P from '../src/sea/seaPlanner.ts';
@@ -377,7 +377,7 @@ const tmp = mkdtempSync(join(tmpdir(), 'sea-trip-'));
 const out = join(tmp, 'bundle.mjs');
 await build({
   stdin: { resolveDir: ROOT, loader: 'ts', contents: `
-    export { EtappeInput, EtappeTable, EtappeResult, StrandPanel } from './src/sea/SeaTripPanels.tsx';
+    export { EtappeRouteStep, EtappeTimeStep, EtappeTable, EtappeResult, StrandRevierStep, StrandTimeStep, StrandStrip, StrandPanel } from './src/sea/SeaTripPanels.tsx';
     export { default as SeaPlanPanel } from './src/sea/SeaPlanPanel.tsx';
     export { createElement } from 'react';
     export { renderToStaticMarkup } from 'react-dom/server';
@@ -411,33 +411,79 @@ const resOut = html(h(UI.EtappeResult, { view: { ...view, wind: { done: 13, tota
 add('J5 leer, ladend, außerhalb: ohne Punkte die Aufforderung, den Start zu setzen (kein Wert, der Fuß bleibt); beim Rechnen „Wind an 4 von 13 Punkten“; außerhalb des Cubes „keine Daten“ mit der Zahl der Punkte',
   resNone.includes('Start setzen.') && resNone.includes(T.TRIP_ASK_START) && !resNone.includes('sw-am-card') && resNone.includes(P.PLAN_FOOTER) && resLoad.includes('Wind an 4 von 13 Punkten der Etappe gerechnet')
   && resOut.includes('Wind und Böen: keine Daten.') && resOut.includes('Betroffen: 5 von 13 Punkten der Etappe (außerhalb des Punkt-Cubes, etwa nördlich von 55,5° N)'));
-const inp = html(h(UI.EtappeInput, { profile: 'yacht', onProfile: () => {}, mode: 'etappe', onMode: () => {}, etappe: etState, view, limitsText: 'Wind 8–22 kn', armed: false, onArm: () => {}, onRemove: () => {}, onReverse: () => {}, onSpeed: () => {}, onDepart: () => {}, canEarlier: true, canLater: true }));
-add('J6 Eingabe in der Reihenfolge der Vorlage: Wer fährt (sieben Profile), Art der Ausfahrt (Vor Ort | Etappe | Strand, Etappe gewählt), Etappe (Start, Wegpunkte, Ziel, Fahrt, Strecke · Dauer), Wegpunkt setzen, Abfahrt vergleichen (drei Zeiten mit Zahl), Deine Grenzen',
-  ['Wer fährt?', 'Art der Ausfahrt', '>Etappe</h3>', 'Wegpunkt auf der Karte setzen', 'Abfahrt vergleichen', 'Deine Grenzen'].every((x, i, a) => inp.includes(x) && (i === 0 || inp.indexOf(a[i - 1]) < inp.indexOf(x)))
-  && cnt(inp, /class="sw-profiles"[\s\S]*?<\/div>/g) === 1 && cnt(inp.slice(0, inp.indexOf('Art der Ausfahrt')), /<button/g) === 7 && /aria-pressed="true" class="is-active">Etappe<\/button>/.test(inp) && inp.includes('>Vor Ort</button>') && inp.includes('>Strand</button>')
-  && inp.includes('<dt>Start</dt><dd>Laboe</dd>') && inp.includes('1 gesetzt') && inp.includes('<dt>Ziel</dt><dd>Marstal</dd>') && inp.includes(`${T.nmText(route.km)} · 3 h 41 min`) && cnt(inp, /class="sw-am-cmp"[\s\S]*?<\/div>/g) === 1
-  && inp.includes('außerhalb der Vorhersage') && inp.includes(T.overCountText(cmp[1].over)) && inp.includes('value="8"'));
-const sPanel = html(h(UI.StrandPanel, {
-  mode: 'strand', onMode: () => {}, win: { startMs: UTC(19, 16), endMs: UTC(19, 21), hours: 6, cut: false }, noData: null, head: T.strandHead(sRows),
-  strip: [15, 16, 17, 18, 19, 20, 21, 22].map((hh, i) => ({ k: i, t: UTC(19, hh), inWin: hh >= 16 && hh <= 21, see: 2, known: 3, dusk: T.duskOf(UTC(19, hh), feh.lat, feh.lon) })), pickK: 3, onPick: () => {},
-  onShift: () => {}, can: { startEarlier: true, startLater: true, endEarlier: true, endLater: true }, rows: sRows, order: 'see', onOrder: () => {}, revier: 'alle', onRevier: () => {}, hasDk: true, unit: 'bft',
-  levels: new Map([[sRows[0].id, 'Pegel Kiel-Holtenau 512 cm über Pegelnull']]), selectedId: null, onSpot: () => {}, onClose: () => {},
-}));
-add('J7 Strand: Fenster im Kopf, Umschalter, Stundenleiste mit hell / Dämm. / dunkel, Liste in der gerechneten Reihenfolge mit Wind (in der Einheit der Seite), Welle, Pegel wo vorhanden, Uferwinkel als Wort, Reihenfolge umkehrbar; kein Urteil, keine Fangprognose, Fuß',
-  /<h2>Do 17 bis 22 Uhr<\/h2>/.test(sPanel) && /aria-pressed="true" class="is-active">Strand<\/button>/.test(sPanel) && cnt(sPanel, /class="sw-am-strip"[\s\S]*?<\/ol>/g) === 1 && cnt(sPanel, /<small>(hell|Dämm\.|dunkel)<\/small>/g) === 8 && sPanel.includes('<small>dunkel</small>')
-  && sRows.every((r, i, a) => sPanel.includes(`<strong>${r.name}</strong>`) && (i === 0 || sPanel.indexOf(`<strong>${a[i - 1].name}</strong>`) < sPanel.indexOf(`<strong>${r.name}</strong>`))) && / Bft( aus [A-Z]+)? · /.test(sPanel)
-  && sPanel.includes('Pegel Kiel-Holtenau 512 cm über Pegelnull') && sPanel.includes('Wind von See zuerst') && sPanel.includes('Wind vom Land zuerst') && sPanel.includes(T.STRAND_NOTE) && sPanel.trimEnd().endsWith(`${P.PLAN_FOOTER}</p></section>`) && !banned.test(plain(sPanel)));
+// AM-W (`audit/seewetter-ausfahrt.md` §13): what one sets for a leg is two pages of the assistant.
+const routeProps = { etappe: etState, view, armed: false, onArm: () => {}, onRemove: () => {}, onReverse: () => {} };
+const rStep = html(h(UI.EtappeRouteStep, routeProps));
+const tStep = html(h(UI.EtappeTimeStep, { etappe: etState, view, onSpeed: () => {}, onDepart: () => {}, canEarlier: true, canLater: true }));
+const rEmpty = html(h(UI.EtappeRouteStep, { ...routeProps, etappe: { ...etState, points: [] }, view: null })), rOne = html(h(UI.EtappeRouteStep, { ...routeProps, etappe: { ...etState, points: PTS.slice(0, 1) }, view: null }));
+const inOrder = (s, list) => list.every((x, i) => s.includes(x) && (i === 0 || s.indexOf(list[i - 1]) < s.indexOf(x)));
+add('J6 Etappe, zwei Seiten des Assistenten (AM-W): „Strecke“ trägt Start, Wegpunkte, Ziel, Strecke, „Wegpunkt auf der Karte setzen“, umkehren und löschen — ohne Punkte bzw. ohne Ziel die Aufforderung und keinen Knopf; „Fahrt und Abfahrt“ trägt die Fahrt, Strecke · Dauer, Abfahrt und Ankunft, früher / später und „Abfahrt vergleichen“ (drei Zeiten mit Zahl); keine Seite trägt, was auf eine andere gehört',
+  inOrder(rStep, ['>Etappe</h3>', '<dt>Start</dt><dd>Laboe</dd>', '1 gesetzt', '<dt>Ziel</dt><dd>Marstal</dd>', `<dt>Strecke</dt><dd>${T.nmText(route.km)}</dd>`, 'Wegpunkt auf der Karte setzen', 'Richtung umkehren', 'Alle Punkte löschen'])
+  && !/>Fahrt<|sw-am-cmp|Abfahrt|Deine Grenzen|Wer fährt|Art der Ausfahrt/.test(rStep)
+  && rEmpty.includes(T.TRIP_ASK_START) && rOne.includes(T.TRIP_ASK_END) && !/sw-am-add|sw-am-tools/.test(rEmpty + rOne) && rEmpty.includes('<dt>Start</dt><dd>auf der Karte setzen</dd>')
+  && inOrder(tStep, ['>Fahrt</h3>', 'value="8"', `${T.nmText(route.km)} · 3 h 41 min`, T.TRIP_ARRIVAL_NOTE, '>Abfahrt</h3>', '<dt>Abfahrt</dt>', '<dt>Ankunft</dt>', 'Abfahrt eine Stunde', 'Abfahrt vergleichen'])
+  && cnt(tStep, /class="sw-am-cmp"[\s\S]*?<\/div>/g) === 1 && tStep.includes('außerhalb der Vorhersage') && tStep.includes(T.overCountText(cmp[1].over))
+  && !/Wegpunkt|Richtung umkehren|Deine Grenzen|Wer fährt|Art der Ausfahrt/.test(tStep) && !banned.test(allowed(plain(rStep + tStep))),
+  [inOrder(rStep, ['>Etappe</h3>', '<dt>Start</dt><dd>Laboe</dd>', '1 gesetzt', '<dt>Ziel</dt><dd>Marstal</dd>']), rEmpty.includes(T.TRIP_ASK_START), rOne.includes(T.TRIP_ASK_END), tStep.includes('value="8"'), tStep.includes(`${T.nmText(route.km)} · 3 h 41 min`), (allowed(plain(rStep + tStep)).match(banned) ?? [''])[0]].join(','));
+// AM-S (§12): Strand in three pieces — input (left), the hours of the window (foot of the map), the list (right).
+const sWin = { startMs: UTC(19, 16), endMs: UTC(19, 21), hours: 6, cut: false };
+const sCan = { startEarlier: false, startLater: true, endEarlier: true, endLater: true };
+const sRevProps = { order: 'see', onOrder: () => {}, revier: 'alle', onRevier: () => {}, hasDk: true, count: 64 };
+const sWinProps = { win: sWin, onShift: () => {}, can: sCan };
+const sRev = html(h(UI.StrandRevierStep, sRevProps)), sTime = html(h(UI.StrandTimeStep, sWinProps));
+const sCalls = [], sWalk = (el, out = []) => { if (Array.isArray(el)) el.forEach((x) => sWalk(x, out)); else if (el && typeof el === 'object' && el.props) { out.push(el); sWalk(el.props.children, out); } return out; };
+const revEls = sWalk(UI.StrandRevierStep({ ...sRevProps, onOrder: (o) => sCalls.push(o), onRevier: (r) => sCalls.push(r) }));
+const timeEls = sWalk(UI.StrandTimeStep({ ...sWinProps, onShift: (which, by) => sCalls.push(which + by) }));
+const sStep = (label) => timeEls.find((e) => e.props.label === label && typeof e.props.onShift === 'function');
+sStep('Beginn')?.props.onShift(1); sStep('Ende')?.props.onShift(-1);
+revEls.find((e) => e.type === 'button' && e.props.children === 'Wind vom Land zuerst')?.props.onClick(); revEls.find((e) => e.type === 'button' && e.props.children === 'Ostsee')?.props.onClick();
+const sRevNoDk = html(h(UI.StrandRevierStep, { ...sRevProps, hasDk: false, count: 1 })), sTimeNone = html(h(UI.StrandTimeStep, { ...sWinProps, win: null }));
+add('J7a Strand, zwei Seiten des Assistenten (AM-W): „Revier“ trägt die Reviere (vier, ohne dänische Spots drei), die Zahl der Spots und die Reihenfolge der Liste; „Zeitfenster“ den Kasten „Fenster“ mit Beginn und Ende je mit Schrittschalter und der Länge — und KEINE trägt „Wer fährt?“ (E-AM-30: das Profil ändert an dieser Liste nichts) oder die Liste selbst; die Schalter greifen am richtigen Ende und tragen dessen Sperren; ohne Fenster kein Schrittschalter',
+  inOrder(sRev, ['>Revier</h3>', '64 Spots in diesem Revier.', 'Reihenfolge der Liste', 'Wind von See zuerst', 'Wind vom Land zuerst'])
+  && cnt(sRev.slice(0, sRev.indexOf('Reihenfolge der Liste')), /<button/g) === 4 && cnt(sRevNoDk.slice(0, sRevNoDk.indexOf('Reihenfolge der Liste')), /<button/g) === 3 && sRevNoDk.includes('1 Spot in diesem Revier.')
+  && inOrder(sTime, ['>Fenster</h3>', '<dt>Beginn</dt>', '<dt>Ende</dt>', '<dt>Länge</dt><dd>6 Stunden</dd>'])
+  && /<dt>Beginn<\/dt><dd class="sw-pl-when"><time>Do 17:00<\/time><span class="sw-pl-step" role="group" aria-label="Beginn verschieben"><button type="button" disabled="" aria-label="Beginn eine Stunde früher">/.test(sTime)
+  && /<dt>Ende<\/dt><dd class="sw-pl-when"><time>Do 22:00<\/time><span class="sw-pl-step" role="group" aria-label="Ende verschieben"><button type="button" aria-label="Ende eine Stunde früher">/.test(sTime) && cnt(sTime, /disabled=""/g) === 1
+  && sCalls.join() === 'start1,end-1,land,ostsee' && sStep('Beginn').props.canEarlier === false && sStep('Ende').props.canEarlier === true && sStep('Ende').props.canLater === true
+  && !/sw-pl-step|<dt>Beginn<\/dt>/.test(sTimeNone) && sTimeNone.includes('Gerade steht kein Fenster auf den Stunden der Vorhersage.')
+  && !/Wer fährt\?|sw-am-list|sw-am-strip|sw-pl-foot/.test(sRev + sTime) && !/>Fenster<\/h3>/.test(sRev) && !/Revier|Reihenfolge/.test(sTime) && !banned.test(plain(sRev + sTime)), sCalls.join());
+const sStripProps = { strip: [15, 16, 17, 18, 19, 20, 21, 22].map((hh, i) => ({ k: i, t: UTC(19, hh), inWin: hh >= 16 && hh <= 21, see: 2, known: 3, dusk: T.duskOf(UTC(19, hh), feh.lat, feh.lon) })), pickK: 3, onPick: () => {} };
+const sStrip = html(h(UI.StrandStrip, sStripProps));
+add('J7b Strand, Stunden des Fensters (Kartenfuß, E-AM-31): im Kasten der Etappen-Tabelle, acht Stunden mit „n/m“ und hell / Dämm. / dunkel, die gewählte Stunde gedrückt, die Stunden des Fensters markiert; im Kopf der Satz, was gezählt wird, und der Farbschlüssel der Spot-Marken; ohne Stunden kein Kasten',
+  sStrip.startsWith('<section class="sw-am-tablebox sw-am-stripbox" aria-label="Stunden des Fensters">') && cnt(sStrip, /<ol class="sw-am-strip">[\s\S]*?<\/ol>/g) === 1 && cnt(sStrip, /<small>(hell|Dämm\.|dunkel)<\/small>/g) === 8 && sStrip.includes('<small>dunkel</small>')
+  && cnt(sStrip, /aria-pressed="true"/g) === 1 && cnt(sStrip, /<li class="is-in/g) === 6 && cnt(sStrip, /<strong>2\/3<\/strong>/g) === 8 && sStrip.includes('Je Stunde: Strände mit Wind von See, von allen mit Windrichtung')
+  && /<ul class="sw-am-key is-shore" aria-label="Farbe der Spots auf der Karte"><li><i class="is-see"><\/i>von See<\/li><li><i class="is-quer"><\/i>längs des Ufers<\/li><li><i class="is-land"><\/i>vom Land<\/li><\/ul>/.test(sStrip)
+  && sStrip.indexOf('sw-am-key') < sStrip.indexOf('<ol class="sw-am-strip">') && html(h(UI.StrandStrip, { ...sStripProps, strip: [] })) === '' && !banned.test(plain(sStrip)));
+const sPanelProps = { win: sWin, noData: null, head: T.strandHead(sRows), rows: sRows, order: 'see', unit: 'bft', levels: new Map([[sRows[0].id, 'Pegel Kiel-Holtenau 512 cm über Pegelnull']]), selectedId: null, onSpot: () => {}, onClose: () => {} };
+const sPanel = html(h(UI.StrandPanel, sPanelProps));
+add('J7c Strand, Liste (rechts): Fenster und Zählsatz im Kopf, die Liste in der gerechneten Reihenfolge mit Wind (in der Einheit der Seite), Welle, Pegel wo vorhanden, Uferwinkel als Wort; kein Urteil, keine Fangprognose, Hinweise, Fuß — und nichts, was man einstellt: kein Umschalter, kein Revier, kein Schrittschalter, keine Stundenleiste, keine Reihenfolge; ein angeschnittenes Fenster und fehlende Daten werden gesagt',
+  /<h2>Do 17 bis 22 Uhr<\/h2>/.test(sPanel) && sPanel.includes(`<p>${T.strandHead(sRows)}</p>`) && sRows.every((r, i, a) => sPanel.includes(`<strong>${r.name}</strong>`) && (i === 0 || sPanel.indexOf(`<strong>${a[i - 1].name}</strong>`) < sPanel.indexOf(`<strong>${r.name}</strong>`)))
+  && / Bft( aus [A-Z]+)? · /.test(sPanel) && sPanel.includes('Pegel Kiel-Holtenau 512 cm über Pegelnull') && sPanel.includes(T.STRAND_NOTE) && sPanel.includes(T.STRAND_ORDER_NOTE) && sPanel.trimEnd().endsWith(`${P.PLAN_FOOTER}</p></section>`) && !banned.test(plain(sPanel))
+  && !/sw-am-mode|sw-am-revier|sw-pl-step|sw-am-strip|sw-am-order|Wind von See zuerst|sw-am-key/.test(sPanel) && cnt(sPanel, /<button/g) === sRows.length + 1
+  && html(h(UI.StrandPanel, { ...sPanelProps, win: { ...sWin, cut: true } })).includes('Ein Teil des Fensters liegt außerhalb der Vorhersage.') && !sPanel.includes('Ein Teil des Fensters')
+  && html(h(UI.StrandPanel, { ...sPanelProps, win: null, noData: 'Kein geprüfter Lauf.' })).includes('<strong>Kein Fenster.</strong> Kein geprüfter Lauf.') && !html(h(UI.StrandPanel, { ...sPanelProps, win: null, noData: 'x' })).includes('sw-am-list'));
 const card = (when) => ({ when, wind: '13 kn', lines: [], color: '#8DB07A', canEarlier: true, canLater: true });
-const spBase = { spotName: 'Laboe', limitsText: 'x', profile: 'kite', onProfile: () => {}, noData: null, official: null, start: card('Mi 00:00'), ret: card('Mi 03:00'), onShift: () => {}, events: [], span: '3 Stunden', summary: [], notes: [], moved: null, play: null, now: 'x', onChangeSpot: () => {}, onClose: () => {} };
-const spOld = html(h(UI.SeaPlanPanel, spBase)), spNew = html(h(UI.SeaPlanPanel, { ...spBase, onMode: () => {} }));
-add('J8 Vor Ort bleibt, wie gebaut: der Planer der Phase SP trägt nur den Umschalter dazu (Vor Ort gewählt) — ohne ihn ist das Markup das von vorher',
-  !spOld.includes('sw-am-mode') && spNew.replace(/<div class="sw-am-mode">[\s\S]*?<\/p><\/div>/, '') === spOld && /aria-pressed="true" class="is-active">Vor Ort<\/button>/.test(spNew));
+const pageS = readFileSync(join(ROOT, 'src/sea/SeaPage.tsx'), 'utf8').replace(/\r\n/g, '\n');
+add('J7d Strand, Seite (AM-W): die Stunden des Fensters liegen auf der Ergebnis-Seite am Kartenfuß, rechts die Liste; der Kartenrand unten macht Platz für den Kasten; mobil trägt das Blatt Seite, Stunden, Liste in dieser Reihenfolge; ohne gültigen Lauf kein Kasten; die Liste trägt nichts, was man einstellt',
+  /: step !== 'ergebnis' \? null : wizMode === 'etappe' \? 'table' : 'strip';/.test(pageS) && /footKind === 'strip' \? strandStripBox : null;/.test(pageS)
+  && /\{isMobile \? <>\{footEl\}\{wizResult\}<\/> : layersFold\}/.test(pageS) && /footKind === 'strip' \? 210 : 40,/.test(pageS)
+  && /const strandStripBox = strand && strandWin && !tripNoData && strandStrip\.length > 0 \?/.test(pageS) && cnt(pageS, /<StrandPanel /g) === 1 && cnt(pageS, /<StrandRevierStep /g) === 1 && cnt(pageS, /<StrandTimeStep /g) === 1
+  && !/<StrandPanel [^>]*on(Mode|Close)/.test(pageS));
+const spFind = { spotName: 'Laboe', when: 'Mi 00:00 bis Mi 03:00', profileLabel: 'Kite', noData: null, official: null, start: card('Mi 00:00'), ret: card('Mi 03:00'), events: [], summary: [], notes: [], moved: null, now: 'x', onClose: () => {} };
+const ortFind = html(h(UI.SeaPlanPanel, spFind));
+add('J8 Befunde je Art (AM-W): die Befunde von „Vor Ort“ tragen Kopf (Ort, Zeit, Profil), Schiene und Fuß, die der Etappe ihren Kopf — und keine trägt, was man einstellt (Profile, Art der Ausfahrt, Schrittschalter); im Assistenten (ohne `onClose`) tragen alle drei keinen eigenen Schließen-Knopf',
+  ortFind.includes('<h2>Laboe</h2><p>Mi 00:00 bis Mi 03:00 · Kite</p>') && ortFind.includes('sw-pl-rail') && ortFind.trimEnd().endsWith(`${P.PLAN_FOOTER}</p></section>`) && !/sw-wz-|sw-profiles|sw-pl-step/.test(ortFind + res)
+  && res.startsWith('<section class="sw-pl sw-am-res"') && ortFind.startsWith('<section class="sw-pl"') && cnt(res, /aria-label="Planer schließen"/g) === 1 && cnt(ortFind, /aria-label="Planer schließen"/g) === 1
+  && cnt(html(h(UI.EtappeResult, { view, etappe: etState, unit: 'kn', profile: 'yacht', noData: null })), /<button/g) === 0
+  && cnt(html(h(UI.StrandPanel, { ...sPanelProps, onClose: undefined })), /<button/g) === sRows.length && cnt(html(h(UI.SeaPlanPanel, { ...spFind, onClose: undefined })), /<button/g) === 0);
 
 const src = (f) => readFileSync(join(ROOT, f), 'utf8');
 const page = src('src/sea/SeaPage.tsx'), mapSrc = src('src/sea/SeaMap.tsx'), css = src('src/sea/seaDeck.css'), dataSrc = src('src/sea/seaTripData.ts'), lib = src('src/sea/seaTrip.ts'), hook = src('src/sea/useSeaTrip.ts'), panels = src('src/sea/SeaTripPanels.tsx');
 add('J9 buscosun Fusion: ein Eintrag `sea` im Register, an; der Aufruf ist der gemessene (Cube-Pfad, `country: \'DE\'`, ohne Radar) hinter `fusionPathFor(\'sea\')`; kein Live-Pfad und kein `getFusionForecast` dahinter; `?pf=live` ⇒ keine Daten statt eines anderen Modells',
   FUSION_PARTS.filter((p) => p.id === 'sea').length === 1 && FUSION_PARTS.find((p) => p.id === 'sea').on === true && fusionPathFor('sea', '') === 'cube' && fusionPathFor('sea', '?pf=live') === 'live'
-  && /fusionPathFor\('sea',[^)]*\) !== 'cube'\) return \{ series: null, why: 'off' \}/.test(dataSrc) && /getPointForecast\(\{ lat: pos\.lat, lng: pos\.lon, country: 'DE', hours: SEA_TRIP_FUSION_HOURS, pointSource: 'cube', includeRadarNowcast: false \}\)/.test(dataSrc)
+  && /fusionPathFor\('sea',[^)]*\) !== 'cube'\) return \{ series: null, why: 'off' \}/.test(dataSrc) && /getPointForecast\(\{ lat: pos\.lat, lng: pos\.lon, country, hours: SEA_TRIP_FUSION_HOURS, pointSource: 'cube', includeRadarNowcast: false \}\)/.test(dataSrc)
+  // Phase BS: the country is a parameter with the measured call as its default — a leg on a lake asks with the lake's country.
+  && /export function loadTripWind\(pos: PlanPos, country: 'DE' \| 'AT' \| 'CH' = 'DE'\)/.test(dataSrc)
   && /import\('\.\.\/pointForecast\/cubeSource'\)/.test(dataSrc) && cnt(dataSrc, /getPointForecast\(/g) === 1 && !/getFusionForecast|sourceMode|open-meteo|brightsky/i.test(dataSrc.replace(/\/\*[\s\S]*?\*\//g, '')) && !/pointForecast/.test(lib));
 add('J10 Karte: Route als Linien-Ebenen (dunkel, rot, gestrichelt auf heller Unterlage), Punkte als ziehbare Marker, Boot als Marker; Strand färbt die Spot-Marke nach der Windrichtung zum Ufer — keine eigene GL-Ebene, kein Shader, keine gefärbte Küstenlinie',
   cnt(mapSrc, /id: 'sw-trip-[a-z]+', type: 'line'/g) === 4 && /'sw-trip-over'[^\n]*'line-color': '#B5482E'/.test(mapSrc) && /'sw-trip-missing'[^\n]*'line-dasharray'/.test(mapSrc) && /new maplibregl\.Marker\(\{ element: el, draggable: true, anchor: 'center' \}\)/.test(mapSrc)
@@ -445,14 +491,264 @@ add('J10 Karte: Route als Linien-Ebenen (dunkel, rot, gestrichelt auf heller Unt
 add('J11 Seite: kein Schalter um die Phase; die Einstiege der Phase SP bleiben (Knopf über der Legende, Eintrag „Ausfahrt“); das Profil setzt den Modus beim Öffnen; der Link trägt `et` und `sd`; die Ebenen klappen unter die Eingabe (nicht entfernt)',
   !/SEA_TRIP\w*_LIVE|tripFlag|seaTripFrom|\?am=|\?trip=/.test(page + lib + hook + src('src/sea/seaFlag.ts')) && /<button type="button" className="sw-pl-open" onClick=\{openPlanner\}>/.test(page) && /\['plan', 'Ausfahrt',/.test(page)
   && /setTripMode\(defaultTripMode\(profile\)\)/.test(page) && /const et = etappe && etappe\.points\.length > 0 \? encodeEtappeParam\(etappe\) : null;/.test(page) && /const sd = strand \? encodeStrandParam\(strand\) : null;/.test(page)
-  && /<details className="sw-am-layers"><summary>Ebenen der Karte<\/summary>\{dockOf\('layers'\)\}<\/details>/.test(page) && /onMode=\{setTripMode\}/.test(page));
+  && /<details className="sw-am-layers"><summary>Ebenen der Karte<\/summary>\{dockOf\('layers'\)\}<\/details>/.test(page) && /onMode=\{wizPickMode\}/.test(page)
+  && /const wizPickMode = useCallback\(\(m: TripMode\) => \{ modePicked\.current = true; setTripMode\(m\); \}, \[setTripMode\]\);/.test(page));
 const mq = '@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {';
 const used = [...new Set([...(panels + src('src/sea/SeaTripSwitch.tsx')).matchAll(/className=(?:"([^"]+)"|\{`([^`]+)`\})/g)].flatMap((m) => (m[1] ?? m[2]).match(/sw-am-[a-z]+/g) ?? [])), 'sw-am-pt', 'sw-am-boat', 'sw-am-boatlabel', 'sw-am-dockin', 'sw-am-foot', 'sw-am-layers'];
 const breakpoints = [...css.slice(css.indexOf('Phase AM (audit/seewetter-ausfahrt.md)')).matchAll(/@media[^{]*\{/g)].map((m) => m[0]);
 add(`J12 CSS: jede der ${used.length} Klassen dieser Phase ist definiert; mobil nur in der Media Query der Seite, keine anderen Breakpoints als 767 und 1439; Rot nur an „über deiner Grenze“`,
-  used.every((c) => css.includes(`.${c}`)) && css.slice(css.lastIndexOf(mq)).includes('.sw-pl-sheet .sw-am-in') && breakpoints.every((b) => b === '@media (max-width: 1439px) {')
+  used.every((c) => css.includes(`.${c}`)) && css.slice(css.lastIndexOf(mq)).includes('.sw-pl-sheet .sw-wz-body') && breakpoints.every((b) => b === '@media (max-width: 1439px) {')
   && [...css.slice(css.indexOf('Phase AM (audit/seewetter-ausfahrt.md)')).matchAll(/^([^\n{]*)\{[^}]*(#8A3320|#B5482E|--sw-out)[^}]*\}/gm)].every((m) => /is-over/.test(m[1])),
   used.filter((c) => !css.includes(`.${c}`)).join(','));
+
+// --- K: follow-up AM-N (V-AM-7, V-AM-8, V-AM-12) ---------------------------------------------------------------------
+const MIN = T.PLAN_SHEET_SOURCES_MIN_GAP_PX;
+const peek = T.planSheetSources({ h: 344, gap: 302 }), full = T.planSheetSources({ h: 700, gap: 8 });
+add('K1 Quellenzeile über dem Blatt (E-AM-16): Blatt in Ruhe ⇒ Zeile und Knopf um die gemessene Höhe gehoben; ganz offen (8 px Karte unter der Kopfzeile) ⇒ beide ruhen; die Grenze selbst hebt noch; ohne Messung, mit Höhe 0 oder NaN ändert sich nichts',
+  peek.lift === 344 && peek.hidden === false && full.hidden === true && full.lift === 0 && T.planSheetSources({ h: 300.4, gap: MIN }).lift === 300 && T.planSheetSources({ h: 300, gap: MIN }).hidden === false
+  && T.planSheetSources({ h: 300, gap: MIN - 1 }).hidden === true && T.planSheetSources(null) === null && T.planSheetSources({ h: 0, gap: 400 }) === null && T.planSheetSources({ h: NaN, gap: 400 }) === null && T.planSheetSources({ h: 300, gap: NaN }) === null
+  && MIN === 56, JSON.stringify([peek, full]));
+const sheetTag = (page.match(/<div ref=\{plSheetRef\} className=\{`sw-pl-sheet[^\n]*/) ?? [''])[0];
+const mobMain = (page.match(/<main className="sw-map is-mobile msl-host"[^\n]*/) ?? [''])[0], deskMain = (page.match(/<main className=\{`sw-map msl-host[^\n]*/) ?? [''])[0];
+add('K2 Verdrahtung V-AM-8: das Blatt wird gemessen (Höhe und freie Karte unter der Kopfzeile, ResizeObserver + Fenstergröße, beim Schließen zurückgesetzt); die mobile Karte trägt `--msl-bottom` nur gehoben, die Wurzel die Klasse; am Desktop trägt die Karte nichts davon',
+  sheetTag.length > 0 && /new ResizeObserver\(read\)/.test(page) && /window\.addEventListener\('resize', read\)/.test(page) && /ro\.disconnect\(\); window\.removeEventListener\('resize', read\); setPlSheetBox\(null\);/.test(page)
+  && /querySelector\('\.sw-map \.sw-m-top'\)/.test(page) && /const plSheetSrc = planSheetSources\(plSheetBox\);/.test(page) && /plSheetSrc && !plSheetSrc\.hidden \? \{ \['--msl-bottom' as string\]: `\$\{plSheetSrc\.lift\}px` \} : undefined/.test(mobMain)
+  && /plSheetSrc \? \(plSheetSrc\.hidden \? ' is-plsheet-full' : ' has-plsheet'\) : ''/.test(page) && deskMain.length > 0 && !/msl-bottom|plSheet/.test(deskMain) && cnt(page, /ref=\{plSheetRef\}/g) === 1);
+const lastMqCss = css.slice(css.lastIndexOf(mq), css.indexOf('\n}', css.lastIndexOf(mq)));
+const liftRule = '.sw-root.is-mobile.has-plsheet .sw-map.is-mobile .maplibregl-ctrl-bottom-right { bottom: var(--msl-bottom, 0px); }';
+const zeroRule = (css.match(/\n\s*(\.sw-root\.is-mobile \.sw-map\.is-mobile \.maplibregl-ctrl-bottom-right)[^{]*\{ bottom: 0; \}/) ?? [])[1] ?? '';
+const classes = (sel) => (sel.match(/\.[a-z-]+/gi) ?? []).length;
+add('K3 CSS V-AM-8: die Hebe-Regel steht in der letzten mobilen Media Query, hinter der Regel `bottom: 0` der Seite und mit mehr Klassen als sie (sonst gewinnt die Null); ganz offen ruhen Zeile UND Knopf; außerhalb der Media Query gibt es die Regeln nicht',
+  lastMqCss.includes(liftRule) && zeroRule.length > 0 && css.indexOf(zeroRule) < css.indexOf(liftRule) && classes(liftRule.slice(0, liftRule.indexOf('{'))) > classes(zeroRule)
+  && /\.sw-root\.is-mobile\.is-plsheet-full \.sw-map\.is-mobile \.maplibregl-ctrl-bottom-right, \.sw-root\.is-mobile\.is-plsheet-full \.sw-map\.is-mobile \.msl \{ display: none; \}/.test(lastMqCss)
+  && cnt(css, /has-plsheet/g) === 1 && cnt(css, /is-plsheet-full/g) === 2 && !/--msl-bottom:/.test(css),
+  [lastMqCss.includes(liftRule), zeroRule, classes(liftRule.slice(0, liftRule.indexOf('{'))), classes(zeroRule)].join(' | '));
+const dockRule = '.sw-root.is-mobile:has(.sw-m-dock) .msl-host.msl-host .maplibregl-ctrl-bottom-right, .sw-root.is-mobile:has(.sw-m-dock) .msl-host.msl-host .msl { display: none; }';
+const mqOf = (rule) => { const at = css.indexOf(rule), open = css.lastIndexOf('\n@media', at); return at < 0 || open < 0 ? '' : css.slice(open + 1, css.indexOf('{', open) + 1); };
+add('K3b CSS V-AM-17: unter den bildschirmfüllenden Blättern der unteren Leiste (Spot, Ebenen, Schwelle — alle `.sw-m-dock`) ruhen Quellenzeile und Knopf wie unter dem Dossier; die Regel steht in der mobilen Media Query und trifft den Planer (kein `.sw-m-dock`) nicht',
+  cnt(css, /:has\(\.sw-m-dock\)/g) === 2 && mqOf(dockRule) === mq && mqOf('.sw-root.is-mobile:has(.sw-m-dossier) .msl-host.msl-host .maplibregl-ctrl-bottom-right { display: none; }') === mq
+  && cnt(page, /className="sw-m-dock[ "]/g) === 2 && !/sw-pl-sheet[^`"]*sw-m-dock|sw-m-dock[^`"]*sw-pl-sheet/.test(page), mqOf(dockRule));
+const hints = [...page.matchAll(/<MapGestureHint [^\n]*/g)].map((m) => m[0]);
+add('K4 Kartenhinweis V-AM-7 (E-AM-15): beide Einbauten (mobil, Desktop) hängen an `hintOn`; der Hinweis ruht mit offenem Planer, mit der Frage nach dem Spot und für den Rest des Besuchs, sobald einer offen war; ein Link mit `et`, `sd` oder `pl` beginnt so; ohne Planer bleibt er, wie er war (`always`)',
+  hints.length === 2 && hints.every((x) => /enabled=\{[^}]*&& hintOn\}/.test(x) && / always /.test(x) && /!inDossier/.test(x)) && /mobTab === 'map' && !inDossier && hintOn/.test(hints[0])
+  && /const hintOn = !tripOpen && !planAsk && !hintRest;/.test(page) && /const \[hintRest, setHintRest\] = useState\(\(\) => !!\(etappe \|\| strand \|\| linkPl\)\);/.test(page)
+  && /useEffect\(\(\) => \{ if \(tripOpen \|\| planAsk\) setHintRest\(true\); \}, \[tripOpen, planAsk\]\);/.test(page) && cnt(page, /setHintRest\(/g) === 1 && !/setHintRest\(false\)/.test(page),
+  hints.length);
+const ci = src('.github/workflows/ci.yml');
+add('K5 CI V-AM-12: `verify:sea-trip` läuft im Workflow, genau einmal, hinter dem Tidenfenster und auch nach einem roten Schritt davor; der Prüfer selbst holt nichts aus dem Netz',
+  cnt(ci, /node scripts\/ci-run\.mjs verify:sea-trip\r?\n/g) === 1 && ci.indexOf('verify:sea-tide-window') < ci.indexOf('verify:sea-trip') && /- name: Verifier — Ausfahrt planen\r?\n\s+if: \$\{\{ !cancelled\(\) \}\}\r?\n\s+run: node scripts\/ci-run\.mjs verify:sea-trip\r?\n/.test(ci)
+  && !/\bfetch\(|https?:\/\//.test(src('scripts/verify-sea-trip.mjs').replace(/\/\*[\s\S]*?\*\//g, '').replace(/'[^'\n]*'/g, "''")));
+
+// K6 (V-AM-16): the real loaders of `seaClient.ts` behind `loadTripHour`, with the store, the image decoder and the canvas
+// replaced by the fixture files. The shared cache hands every caller one promise per file — a caller that aborts must not
+// turn the leg's wave into „keine Daten“.
+{
+  const served = [], cut = [], keep = { fetch: globalThis.fetch, cib: globalThis.createImageBitmap, oc: globalThis.OffscreenCanvas };
+  // The arrow field of the current (90 × 55) has no recorded fixture: an image of the contract's size, built here (K7 tests the plumbing, not the values).
+  const arrowPng = encodePng(SEA_CURRENT_FIELD.nx, SEA_CURRENT_FIELD.ny, new Uint8Array(SEA_CURRENT_FIELD.nx * SEA_CURRENT_FIELD.ny * 4).fill(255), 4);
+  const fileOf = (url) => (/\/current\/[^/]+\/f\/\d{3}\.png$/.test(url) ? arrowPng : /\/f\/\d{3}\.png$/.test(url) ? F19.bytes : /\/uv\/\d{3}\.png$/.test(url) ? readFileSync(join(FIX, 'ripples', 'uv-2026111812-006.png')) : null);
+  let dead = false;
+  globalThis.fetch = (url, init) => new Promise((res, rej) => {
+    served.push(String(url));
+    const t = setTimeout(() => { const b = dead ? null : fileOf(String(url)); res(b ? { ok: true, status: 200, arrayBuffer: async () => b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) } : { ok: false, status: 404 }); }, 15);
+    init?.signal?.addEventListener('abort', () => { clearTimeout(t); cut.push(String(url)); rej(Object.assign(new Error('aborted'), { name: 'AbortError' })); });
+  });
+  const tick = (ms = 0) => new Promise((r) => setTimeout(r, ms));
+  const askedOf = (run) => served.filter((u) => u.includes(`/${run}/`)).length, cutOf = (run) => cut.filter((u) => u.includes(`/${run}/`)).length;
+  const lost = [], onLost = (e) => lost.push(String(e?.name ?? e));
+  process.on('unhandledRejection', onLost);
+  globalThis.createImageBitmap = async (blob) => { const png = decodePng(Buffer.from(await blob.arrayBuffer())); return { width: png.width, height: png.height, rgba: toRgba(png), close() {} }; };
+  globalThis.OffscreenCanvas = class { getContext() { let img = null; return { drawImage: (b) => { img = b; }, getImageData: () => ({ data: new Uint8ClampedArray(img.rgba) }) }; } };
+  const { loadField, loadCurrentField, loadCurrentUv } = await import('../src/sea/seaClient.ts');
+  const posK = legPos[5], want = JSON.stringify(D.waveAt(F19, posK));
+  const hourOf = (run, signal) => D.loadTripHour({ run, runMs: RUN_MS, curDoc: { run, t0: T07 - 6 * H, uv: { hours: 72 } }, hourMs: T07, signal });
+  // (a) the leg's own first pass is aborted while its files are on the way (the current file arrived): the second pass has the wave
+  const ac1 = new AbortController(), first = hourOf('2026111801', ac1.signal);
+  ac1.abort();
+  const second = await hourOf('2026111801', new AbortController().signal);
+  await first;
+  // (b) the map asked for the same file first and aborts (hour or layer changed): the leg asks again and has the wave
+  const acMap = new AbortController(), mapLoad = loadField('2026111802', 'f', 19, acMap.signal).then(() => 'img', (e) => e?.name);
+  const legP = hourOf('2026111802', new AbortController().signal);
+  acMap.abort();
+  const leg = await legP, mapEnd = await mapLoad;
+  // (c) the leg stops asking while the map waits for the same file: the map still gets its image
+  const acLeg = new AbortController(), legGone = hourOf('2026111803', acLeg.signal), mapWaits = loadField('2026111803', 'f', 19, new AbortController().signal).catch(() => null);
+  acLeg.abort();
+  const mapImg = await mapWaits;
+  await legGone;
+  // (d) negative control: a file that is not there is „keine Daten“ after ONE read per way, not a loop
+  dead = true;
+  const n0 = served.length, none = await hourOf('2026111804', new AbortController().signal), asked = served.length - n0;
+  // (e) negative control: an abort that IS the leg's own ends the asking
+  dead = false;
+  const acOwn = new AbortController(), ownMap = new AbortController(), mapFirst = loadField('2026111805', 'f', 19, ownMap.signal).catch(() => null);
+  const ownP = hourOf('2026111805', acOwn.signal);
+  acOwn.abort(); ownMap.abort();
+  const n1 = served.length, own = await ownP;
+  await mapFirst;
+  await tick();
+  const ownAsked = served.length - n1, ownCut = cutOf('2026111805');
+  // (f) the leg alone stops asking: nobody waits for its two files any more ⇒ both reads end (no bandwidth for an abandoned leg)
+  const acAlone = new AbortController(), aloneP = hourOf('2026111806', acAlone.signal);
+  acAlone.abort();
+  const alone = await aloneP;
+  await tick();
+  const tripSrc = src('src/sea/seaTripData.ts');
+  add('K6 V-AM-16 (seit V-AM-18 an der Wurzel in `seaClient.ts`, ohne Nachfragen in der Etappe): ein fremder Abbruch ist für die Etappe keine Antwort — (a) ihr eigener erster Durchlauf wird abgebrochen, der zweite hat Welle UND Strom, jede Datei EINMAL geholt; (b) die Karte bricht denselben Abruf ab, die Etappe bekommt ihr Bild aus demselben Abruf; (c) die Etappe hört auf zu fragen, die Karte bekommt ihr Bild trotzdem; (d) eine fehlende Datei bleibt „keine Daten“ nach je einem Abruf je Weg; (e) nach dem eigenen Abbruch hat sie keinen Wert und fragt nicht weiter; (f) hört sie allein auf, enden ihre zwei Abrufe',
+    JSON.stringify(D.waveAt(second.wave, posK)) === want && want.includes('"hs"') && second.uv != null && D.currentAt(second.uv, posK) != null && askedOf('2026111801') === 2 && cutOf('2026111801') === 0
+    && JSON.stringify(D.waveAt(leg.wave, posK)) === want && mapEnd === 'AbortError' && askedOf('2026111802') === 2 && cutOf('2026111802') === 0 && mapImg != null && mapImg.width === 630
+    && none.wave === null && none.uv === null && asked === 4 && own.wave === null && own.uv === null && ownAsked === 0 && ownCut === 2
+    && alone.wave === null && alone.uv === null && askedOf('2026111806') === 2 && cutOf('2026111806') === 2
+    && !/SEA_TRIP_SHARED_TRIES|sharedLoad/.test(tripSrc) && cnt(tripSrc, /, x\.signal\)\.catch\(\(\) => null\)/g) === 2,
+    JSON.stringify({ a: [D.waveAt(second.wave, posK), second.uv != null, askedOf('2026111801'), cutOf('2026111801')], b: [D.waveAt(leg.wave, posK), mapEnd, askedOf('2026111802')], c: mapImg?.width ?? null, d: [none.wave, none.uv, asked], e: [own.wave, ownAsked, ownCut], f: [alone.wave, alone.uv, askedOf('2026111806'), cutOf('2026111806')] }));
+
+  // K7 (V-AM-18): the shared loaders themselves, as the map uses them. A read belongs to everybody who waits for it, not to
+  // whoever asked first.
+  const name = (p) => p.then((v) => (v == null ? null : 'ok'), (e) => e?.name);
+  // (a) the map changes the layer on the same file while it loads (Wellenhöhe ↔ Periode): React runs the cleanup of the old
+  //     effect and the new effect in one pass — the second ask must not get the dying read
+  const a1 = new AbortController(), aOld = name(loadField('2026111811', 'f', 19, a1.signal));
+  a1.abort();
+  const aImg = await loadField('2026111811', 'f', 19, new AbortController().signal).catch((e) => e?.name);
+  const a = [await aOld, aImg?.width ?? aImg, askedOf('2026111811'), cutOf('2026111811')];
+  // (b) the only caller leaves (the time is dragged on): the read ends, and a later ask reads again
+  const b1 = new AbortController(), bOld = name(loadField('2026111812', 'f', 19, b1.signal));
+  b1.abort();
+  await tick();
+  const bCut = cutOf('2026111812'), bImg = await loadField('2026111812', 'f', 19, new AbortController().signal).catch(() => null);
+  const b = [await bOld, bCut, bImg?.width ?? null, askedOf('2026111812')];
+  // (c) two callers, one leaves later: the other one has its image from the one read
+  const c1 = new AbortController(), cGone = name(loadField('2026111813', 'f', 19, c1.signal)), cStay = loadField('2026111813', 'f', 19, new AbortController().signal).then((i) => i?.width ?? null, (x) => x?.name);
+  await tick(2);
+  c1.abort();
+  const c = [await cGone, await cStay, askedOf('2026111813'), cutOf('2026111813')];
+  // (d) a caller without a signal (the page warms the next hour of the current) holds the read; the answer is kept
+  const dHold = loadCurrentUv('2026111814', 6).catch(() => null), d1 = new AbortController(), dGone = name(loadCurrentUv('2026111814', 6, d1.signal));
+  d1.abort();
+  const dGrid = await dHold, dKept = await loadCurrentUv('2026111814', 6, new AbortController().signal).catch(() => null);
+  const d = [await dGone, dGrid != null, dKept === dGrid, askedOf('2026111814'), cutOf('2026111814')];
+  // (e) the same pass as (a) on the two loaders of the current
+  const e1 = new AbortController(), eOld = name(loadCurrentUv('2026111815', 6, e1.signal));
+  e1.abort();
+  const eUv = await loadCurrentUv('2026111815', 6, new AbortController().signal).catch((x) => x?.name);
+  const e2 = new AbortController(), eOld2 = name(loadCurrentField('2026111815', 7, e2.signal));
+  e2.abort();
+  const eArr = await loadCurrentField('2026111815', 7, new AbortController().signal).catch((x) => x?.name);
+  const e = [await eOld, eUv != null && typeof eUv === 'object', await eOld2, eArr?.length ?? eArr, askedOf('2026111815'), cutOf('2026111815')];
+  // (f) negative controls: a signal that is already aborted asks nothing; a read that failed is not remembered, one that answered is
+  const f0 = new AbortController();
+  f0.abort();
+  const fDead = await name(loadField('2026111816', 'f', 19, f0.signal)), fAsked = askedOf('2026111816');
+  dead = true;
+  const fNone = await loadField('2026111817', 'f', 19, new AbortController().signal).catch((x) => x?.name);
+  dead = false;
+  const fThen = await loadField('2026111817', 'f', 19, new AbortController().signal).catch(() => null), fSame = await loadField('2026111817', 'f', 19).catch(() => null);
+  const f = [fDead, fAsked, fNone, fThen?.width ?? null, fSame === fThen, askedOf('2026111817')];
+  // (g) a caller asks in the moment between the end of an abandoned read and the settling of its promise (the page does
+  //     ask from inside promise continuations: the warm-up of the next hour): it gets a read of its own, not the ended one
+  const g1 = new AbortController(), gOld = name(loadField('2026111818', 'f', 19, g1.signal));
+  g1.abort();
+  await null;
+  const gImg = await loadField('2026111818', 'f', 19, new AbortController().signal).catch(() => null);
+  const g = [await gOld, gImg?.width ?? null, askedOf('2026111818'), cutOf('2026111818')];
+  await tick(5);
+  process.off('unhandledRejection', onLost);
+  globalThis.fetch = keep.fetch; globalThis.createImageBitmap = keep.cib; globalThis.OffscreenCanvas = keep.oc;
+  const client = src('src/sea/seaClient.ts');
+  add('K7 V-AM-18: ein geteilter Abruf gehört allen, die auf ihn warten — (a) Ebenenwechsel auf derselben Datei, während sie lädt (Abbruch und neue Frage im selben Durchlauf): der alte Frager endet mit Abbruch, der neue hat sein Bild aus demselben EINEN Abruf; (b) geht der einzige Frager, endet der Abruf (keine Bandbreite beim Ziehen der Zeit) und eine spätere Frage lädt neu; (c) von zwei Fragern geht einer: der andere hat sein Bild, ein Abruf, keiner beendet; (d) ein Frager ohne Signal hält den Abruf, die Antwort bleibt im Speicher; (e) dasselbe wie (a) am u/v-Feld und am Pfeilfeld der Strömung; (f) Gegenproben: ein schon abgebrochenes Signal fragt nichts, ein gescheiterter Abruf wird nicht gemerkt, ein beantworteter schon; (g) wer genau zwischen dem Ende eines verlassenen Abrufs und dessen Abschluss fragt, bekommt einen eigenen Abruf und nicht den beendeten; kein Versprechen bleibt ohne Abnehmer',
+    JSON.stringify(a) === '["AbortError",630,1,0]' && JSON.stringify(b) === '["AbortError",1,630,2]' && JSON.stringify(c) === '["AbortError",630,1,0]' && JSON.stringify(d) === '["AbortError",true,true,1,0]'
+    && JSON.stringify(e) === `["AbortError",true,"AbortError",${SEA_CURRENT_FIELD.nx * SEA_CURRENT_FIELD.ny * 4},2,0]` && JSON.stringify(f) === '["AbortError",0,null,630,true,3]' && JSON.stringify(g) === '["AbortError",630,2,1]' && lost.length === 0
+    // wiring: all three loaders read through the shared entry with ITS signal — none hands the caller's signal to the store
+    && cnt(client, /= sharedRead\(/g) === 3 && cnt(client, /fetchSea\(path, 'bytes', own\)/g) === 3 && !/fetchSea\(path, 'bytes', signal\)/.test(client),
+    JSON.stringify({ a, b, c, d, e, f, g, lost }));
+}
+
+// --- L: arrows beside the route (V-AM-9, §9) ---------------------------------------------------------------------------
+{
+const rad = (d) => (d * Math.PI) / 180, n360 = (d) => ((d % 360) + 360) % 360;
+/** Second rule for the side: the from-vector lies to the right of the course vector (z of the cross product < 0), east/north axes. */
+const sideByCross = (from, course) => (Math.sin(rad(course)) * Math.cos(rad(from)) - Math.cos(rad(course)) * Math.sin(rad(from)) <= 1e-9 ? 1 : -1);
+add('L1 Seite der Route: Wind aus Ost auf Nordkurs steht an Steuerbord, aus West an Backbord; genau von vorn und von achtern zählt Steuerbord; über Nord hinweg (Kurs 350°, Wind aus 10° ⇒ Steuerbord; Kurs 10°, Wind aus 350° ⇒ Backbord); auf 648 Paaren dieselbe Antwort wie die zweite Regel',
+  T.tripArrowSide(90, 0) === 1 && T.tripArrowSide(270, 0) === -1 && T.tripArrowSide(0, 0) === 1 && T.tripArrowSide(180, 0) === 1 && T.tripArrowSide(10, 350) === 1 && T.tripArrowSide(350, 10) === -1 && T.tripArrowSide(200, 13) === -1
+  && Array.from({ length: 36 }, (_, i) => i * 10).every((c) => Array.from({ length: 18 }, (_, k) => k * 20 + 7).every((f) => T.tripArrowSide(f, c) === sideByCross(f, c))));
+const arrL = T.tripArrows(rowsL, 'kn'), windA = arrL.filter((a) => a.kind === 'wind'), curA = arrL.filter((a) => a.kind === 'cur');
+const withDir = rowsL.map((r, i) => ({ r, i })).filter((x) => x.r.wind?.windMs != null && x.r.wind.windDir != null);
+const curBest = rowsL.map((r, i) => ({ r, i })).filter((x) => x.r.cur && x.r.cur !== 'land' && x.r.cur.kn >= 0.2).sort((p, q) => q.r.cur.kn - p.r.cur.kn)[0];
+add('L2 Pfeile aus den echten Zeilen (E-AM-17, E-AM-20, E-AM-21): ein Windpfeil je Stopp mit Wert UND Richtung (die Startstunde in Laboe trägt keine ⇒ kein Pfeil), am Ort des Stopps, zeigt dorthin, wohin der Wind weht, trägt die Zahl der Tabellenspalte und Rot genau dort, wo der WIND über der Grenze liegt; EIN Strompfeil am Stopp mit dem stärksten Strom ab 0,2 kn, auf der anderen Seite als der Windpfeil dort, „Strom 0,3 kn“',
+  rowsL[0].wind.windDir === null && rowsL[0].wind.windMs != null && !windA.some((a) => a.row === 0) && windA.length === withDir.length && windA.length === 4
+  && withDir.every(({ r, i }) => { const a = windA.find((x) => x.row === i); return a && a.lat === r.stop.pos.lat && a.lon === r.stop.pos.lon && near(a.to, n360(r.wind.windDir + 180)) && a.label === `${Math.round(r.wind.windMs * MS_TO_KN)} kn` && a.over === (r.wind.windMs * MS_TO_KN > LIM.windMax) && near(a.off, n360(r.stop.pos.course + 90 * sideByCross(r.wind.windDir, r.stop.pos.course))); })
+  && windA.every((a) => a.over) && curA.length === 1 && curBest && curA[0].row === curBest.i && near(curA[0].to, curBest.r.cur.to) && curA[0].label === 'Strom 0,3 kn' && curA[0].over === false
+  && near(n360(curA[0].off - windA.find((a) => a.row === curBest.i).off), 180) && rowsL.filter((r) => r.cur && r.cur !== 'land').some((r) => r.cur.kn < 0.2),
+  JSON.stringify(arrL.map((a) => [a.kind, a.row, Math.round(a.to), Math.round(a.off), a.label, a.over])));
+const noDir = rowsL.map((r) => ({ ...r, wind: { ...r.wind, windDir: null } })), calm = rowsL.map((r) => ({ ...r, cur: r.cur && r.cur !== 'land' ? { ...r.cur, kn: 0.19 } : r.cur }));
+const gustRows = T.tripRows(tl, sm.samples, data, { windMax: 99, gustMax: 1, hsMax: 9 }, names);
+const curOnly = T.tripArrows(noDir, 'kn'), landRows = rowsL.map((r) => ({ ...r, cur: 'land' })), tie = rowsL.map((r) => ({ ...r, cur: { kn: 0.5, to: 90 } }));
+add('L3 Gegenproben: ohne Richtung kein Windpfeil (der Strompfeil bleibt und steht dann auf der Seite, von der der Strom kommt); Strom unter 0,2 kn, „kein Wasserpunkt“ oder ohne Wert ⇒ kein Strompfeil; gleich starker Strom ⇒ der erste Stopp; die Einheit der Seite steht an der Zahl (Bft, km/h), der Strom bleibt in Knoten; ohne Zeilen nichts',
+  curOnly.length === 1 && curOnly[0].kind === 'cur' && near(curOnly[0].off, n360(rowsL[3].stop.pos.course + 90 * sideByCross(n360(rowsL[3].cur.to + 180), rowsL[3].stop.pos.course)))
+  && T.tripArrows(calm, 'kn').every((a) => a.kind === 'wind') && T.tripArrows(calm, 'kn').length === 4 && T.tripArrows(landRows, 'kn').every((a) => a.kind === 'wind') && T.tripArrows(rowsL.map((r) => ({ ...r, cur: null })), 'kn').length === 4
+  && T.tripArrows(tie, 'kn').find((a) => a.kind === 'cur').row === 0 && T.tripArrows(rowsL, 'bft').filter((a) => a.kind === 'wind').every((a) => / Bft$/.test(a.label)) && T.tripArrows(rowsL, 'kmh').filter((a) => a.kind === 'wind').every((a) => / km\/h$/.test(a.label))
+  && T.tripArrows(rowsL, 'bft').find((a) => a.kind === 'cur').label === 'Strom 0,3 kn' && T.tripArrows([], 'kn').length === 0 && T.tripArrows(rowsL.map((r) => ({ ...r, wind: null })), 'kn').every((a) => a.kind === 'cur')
+  // Red follows the WIND alone: with a wind limit nobody reaches and a gust limit everybody breaks, the route is red and no arrow is.
+  && gustRows.every((r) => r.status === 'over' && !r.over.wind) && T.tripArrows(gustRows, 'kn').filter((a) => a.kind === 'wind').length === 4 && T.tripArrows(gustRows, 'kn').every((a) => a.over === false)
+  // The strongest current, not the first one above the threshold.
+  && T.tripArrows(rowsL.map((r, i) => ({ ...r, cur: { kn: [0.3, 0.6, 0.4, 0.25, 0.1][i], to: 90 } })), 'kn').find((a) => a.kind === 'cur').row === 1 && T.tripArrows(rowsL.map((r, i) => ({ ...r, cur: { kn: [0.3, 0.6, 0.4, 0.25, 0.1][i], to: 90 } })), 'kn').find((a) => a.kind === 'cur').label === 'Strom 0,6 kn');
+const OFF = T.SEA_TRIP_ARROW_OFF_PX, LEN = T.SEA_TRIP_ARROW_LEN_PX, steps = Array.from({ length: 24 }, (_, i) => i * 15);
+// The route through the stop, as the layout sees it: a line at a right angle to the bearing of the arrow's side.
+const lineDist = (off, x, y) => x * Math.sin(rad(off)) - y * Math.cos(rad(off));
+let clear = Infinity, labelClear = Infinity, offLen = true, flipOk = true;
+for (const off of steps) for (const to of steps) for (const flip of [false, true]) {
+  const a = { off, to, label: 'Strom 0,8 kn', over: false }, p = T.tripArrowPx(a, flip), side = flip ? -1 : 1;
+  const half = { x: Math.sin(rad(to)) * LEN / 2, y: -Math.cos(rad(to)) * LEN / 2 };
+  clear = Math.min(clear, side * lineDist(off, p.dx, p.dy) - Math.abs(lineDist(off, half.x, half.y)));
+  const r = T.tripArrowRects(a, { x: 0, y: 0 }, flip).label;
+  for (const [x, y] of [[r.x, r.y], [r.x + r.w, r.y], [r.x, r.y + r.h], [r.x + r.w, r.y + r.h]]) labelClear = Math.min(labelClear, side * lineDist(off, x, y));
+  if (Math.abs(Math.hypot(p.dx, p.dy) - OFF) > 0.8) offLen = false;
+  const q = T.tripArrowPx(a, !flip);
+  if (Math.abs(p.dx + q.dx) > 1 || Math.abs(p.dy + q.dy) > 1) flipOk = false;
+}
+const north = T.tripArrowPx({ off: 0, to: 0 }), south = T.tripArrowPx({ off: 180, to: 90 }), east = T.tripArrowPx({ off: 90, to: 0 }), west = T.tripArrowPx({ off: 270, to: 0 });
+const wide = T.tripArrowRects({ off: 270, to: 0, label: 'Strom 0,8 kn', over: false }, { x: 100, y: 100 }), red = T.tripArrowRects({ off: 90, to: 0, label: '28 kn', over: true }, { x: 100, y: 100 });
+add('L4 Lage am Bildschirm (E-AM-18, Norden oben): die Pfeilmitte steht 34 px neben dem Stopp, gewendet genau gegenüber; über 1 152 Lagen (Seite × Pfeilrichtung × gewendet) bleibt jedes Pfeilende mindestens 18 px von der Route, und auch die breiteste Zahl („Strom 0,8 kn“) berührt die Route nicht — über einem Pfeil nördlich der Route, unter einem südlich, neben einer Route links oder rechts bündig und von ihr weg; ein stehender Pfeil rückt die Zahl weiter ab als ein liegender',
+  OFF === 34 && LEN === 30 && offLen && flipOk && clear >= 18 && labelClear >= 5 && north.dx === 0 && north.dy === -34 && north.labelDy === -27 && north.align === 0 && south.dy === 34 && south.labelDy === 12 && south.align === 0
+  && east.dx === 34 && east.dy === 0 && east.labelDy === -27 && east.align === 1 && west.dx === -34 && west.align === -1 && T.tripArrowPx({ off: 0, to: 90 }).labelDy === -12 && T.tripArrowPx({ off: 90, to: 0 }, true).dx === -34
+  && T.tripArrowLabelW({ label: 'Strom 0,8 kn', over: false }) === 90 && wide.label.x + wide.label.w === 100 - 34 + 10 && wide.label.x === 100 - 34 + 10 - 90 && red.label.x === 100 + 34 - 10 && red.label.w === Math.round(5 * 7.5) + 14
+  && wide.arrow.w === T.SEA_TRIP_ARROW_BOX_PX && near(wide.centre.x, 66) && near(wide.centre.y, 100), 'Pfeil ' + clear.toFixed(1) + ' px, Zahl ' + labelClear.toFixed(1) + ' px von der Route');
+// A leg heading north on the screen: stops 30 px (or more) apart, wind from the east: every arrow on the right, pointing west.
+const W = (row, over = false, label = '12 kn') => ({ kind: 'wind', row, over, off: 90, to: 270, label });
+const col = (n, step) => Array.from({ length: n }, (_, i) => ({ x: 200, y: 600 - i * step }));
+const seven = Array.from({ length: 7 }, (_, i) => W(i)), sevenOver = seven.map((a) => (a.row === 4 ? W(4, true) : a));
+const idx = (l) => l.map((x) => x.i), lay = (arr, pts, sel, blocked = [], min) => T.tripArrowLayout(arr, pts, sel, blocked, min);
+const kSel = lay(seven, col(7, 30), 3), kOver = lay(sevenOver, col(7, 30), 3), kOverNoSel = lay(sevenOver, col(7, 30), -1);
+const centreOf = (pts, x) => ({ x: pts[x.i].x + x.dx, y: pts[x.i].y + x.dy });
+const apart = (l, pts) => l.every((a, i) => l.every((b, j) => i === j || Math.hypot(centreOf(pts, a).x - centreOf(pts, b).x, centreOf(pts, a).y - centreOf(pts, b).y) >= T.SEA_TRIP_ARROW_MIN_PX));
+const withCur = [...seven, { kind: 'cur', row: 3, over: false, off: 270, to: 0, label: 'Strom 0,3 kn' }], curPts = [...col(7, 30), col(7, 30)[3]];
+// The boat's label stands right of stop 3 (where its arrow wants to be); the name of the start stands under stop 0.
+const boatLabel = { x: 222, y: 300 - 13, w: 110, h: 26 }, startPill = { x: 160, y: 612, w: 80, h: 24 }, both = [{ x: 100, y: 270, w: 200, h: 70 }];
+const kBlocked = lay(seven, col(7, 100), 3, [boatLabel]), sel3 = kBlocked.find((x) => x.i === 3), free3 = lay(seven, col(7, 100), 3).find((x) => x.i === 3);
+const lowWind = [{ kind: 'wind', row: 0, over: false, off: 180, to: 0, label: '3 kn' }], kPill = lay(lowWind, [{ x: 200, y: 600 }], 0, [startPill]), kNone = lay(seven, col(7, 100), 3, both);
+add('L5 Ausdünnen und Ausweichen (E-AM-19, E-AM-23): sieben Pfeile im Abstand von 30 px ⇒ es bleiben die, die 58 px halten, zuerst der der gewählten Spalte; liegt einer über deiner Grenze daneben, bleibt der gewählte; ohne gewählte Spalte bleibt der über der Grenze; der Strompfeil bleibt immer, auch zwischen zwei Etiketten; steht das Etikett des Boots dort, wo der Pfeil hin will, wechselt er die Seite (und nur er); steht auf beiden Seiten eins, fällt er weg; bei 100 px bleiben alle; aufsteigend',
+  T.SEA_TRIP_ARROW_MIN_PX === 58 && idx(kSel).includes(3) && apart(kSel, col(7, 30)) && kSel.length === 3 && kSel.every((x) => x.flip === false && x.dx === 34 && x.align === 1) && idx(kOver).includes(3) && !idx(kOver).includes(4)
+  && idx(kOverNoSel).includes(4) && !idx(kOverNoSel).includes(3) && !idx(kOverNoSel).includes(5) && apart(kOverNoSel, col(7, 30)) && idx(lay(withCur, curPts, 3)).includes(7) && idx(lay(withCur, curPts, 3)).includes(3)
+  && lay(withCur, curPts, 3, both.map((b) => ({ ...b, y: 480 }))).some((x) => x.i === 7 && x.flip === false) && idx(lay(seven, col(7, 100), 3)).length === 7 && free3.flip === false && sel3.flip === true && sel3.dx === -34 && sel3.align === -1
+  && kBlocked.filter((x) => x.flip).length === 1 && kBlocked.length === 7 && kPill.length === 1 && kPill[0].flip === true && kPill[0].dy === -34 && !idx(kNone).includes(3) && kNone.length === 6
+  && [kSel, kOver, kOverNoSel, kBlocked].every((k) => idx(k).every((v, i) => i === 0 || idx(k)[i - 1] < v)) && lay([], [], 0).length === 0 && lay(seven, col(7, 30), 3, [], 0).length === 7 && lay(seven, [null, ...col(6, 100)], 3).length === 6,
+  JSON.stringify([idx(kSel), idx(kOver), idx(kOverNoSel), kBlocked.filter((x) => x.flip).map((x) => x.i), idx(kNone)]));
+const arrCss = (sel) => (css.match(new RegExp('\\n' + sel.replace(/[.]/g, '\\.') + ' \\{([^}]*)\\}')) ?? [])[1] ?? '';
+const syncA = mapSrc.slice(mapSrc.indexOf('function syncArrows()'), mapSrc.indexOf('function syncTrip()'));
+add('L6 Karte und Seite: die Pfeile sind Marker wie Punkte und Boot (keine Symbol- und keine eigene GL-Ebene), nehmen keine Klicks, werden NACH Route, Punkten und Boot gesetzt (sie weichen deren Etiketten, am Bildschirm gemessen), nach einem Zoom neu, verschwinden beim Ziehen eines Punkts und beim Schließen; die Seite gibt die Pfeile der Zeilen und die gewählte Spalte; ohne gültigen Lauf keine; die Marke bekommt keine eigene position',
+  syncA.length > 200 && /tripArrowLayout\(t\.arrows, t\.arrows\.map\(\(a\) => map\.project\(\[a\.lon, a\.lat\]\)\), t\.arrowSel, blocked\)/.test(syncA) && /new maplibregl\.Marker\(\{ element: el, anchor: 'center', offset: \[p\.dx, p\.dy\] \}\)/.test(syncA)
+  && /if \(!map \|\| !t \|\| tripDrag\.current \|\| !t\.arrows\.length\) return;/.test(syncA) && /label\.textContent = a\.label;/.test(syncA) && !/innerHTML = a\.|draggable/.test(syncA) && /setAttribute\('aria-hidden', 'true'\)/.test(syncA)
+  && /querySelector\('span'\)/.test(syncA) && /querySelector\('\.sw-am-boatlabel'\)/.test(syncA) && /getBoundingClientRect\(\)/.test(syncA) && /function syncTrip\(\) \{ syncRoute\(\); syncArrows\(\); \}/.test(mapSrc)
+  && /map\.on\('zoomend', syncArrows\);/.test(mapSrc) && /m\.on\('dragstart', \(\) => \{ tripDrag\.current = true; syncArrows\(\); \}\);/.test(mapSrc) && /for \(const m of tripMarks\.current\.arr\) m\.remove\(\);/.test(mapSrc)
+  && cnt(mapSrc, /id: 'sw-trip-[a-z]+'/g) === 4 && /arrows: tripArrowList, arrowSel: tripView\?\.sel \?\? -1,/.test(page) && /const tripArrowsNow = tripView && !noData \? tripArrows\(tripView\.rows, unit\) : \[\];/.test(page)
+  && /pointer-events: none/.test(arrCss('.sw-am-arr')) && !/position/.test(arrCss('.sw-am-arr')) && arrCss('.sw-am-arr').length > 10 && /position: absolute/.test(arrCss('.sw-am-arr-l'))
+  && /left: calc\(50% - 10px\); transform: translate\(0, -50%\)/.test(arrCss('.sw-am-arr-l.is-from')) && /left: calc\(50% \+ 10px\); transform: translate\(-100%, -50%\)/.test(arrCss('.sw-am-arr-l.is-to')) && T.SEA_TRIP_ARROW_LABEL_IN_PX === 10
+  && ['sw-am-arr-g', 'sw-am-arr-case', 'sw-am-arr-core', 'sw-am-arr-l', 'sw-am-keyarr'].every((c) => css.includes('.' + c)) && /stroke-dasharray/.test(arrCss('.sw-am-arr.is-cur .sw-am-arr-core.is-shaft, .sw-am-keyarr.is-cur .sw-am-arr-core.is-shaft')));
+add('L7 Legende der Tabelle: zu den drei Farben der Route kommen die zwei Pfeile mit ihrem Wortlaut — „Wind, wenn du dort bist“ (die Stunde der Spalte, nicht die der Seite) und „stärkster Strom der Etappe“; die Pfeile sind Zeichnung, kein Text für den Vorleser',
+  T.TRIP_LEGEND.wind === 'Wind, wenn du dort bist' && T.TRIP_LEGEND.cur === 'stärkster Strom der Etappe' && cnt(tbl, /<svg class="sw-am-keyarr is-(wind|cur)"[^>]*aria-hidden="true"/g) === 2 && tbl.indexOf('ein Wert fehlt') < tbl.indexOf('Wind, wenn du dort bist')
+  && tbl.indexOf('Wind, wenn du dort bist') < tbl.indexOf('stärkster Strom der Etappe') && cnt(tbl, /<ul class="sw-am-key"/g) === 1 && tbl.includes('aria-label="Route und Pfeile auf der Karte"'));
+}
 
 rmSync(tmp, { recursive: true, force: true });
 const passed = checks.filter((x) => x.ok).length;

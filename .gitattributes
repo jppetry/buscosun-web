@@ -6,4 +6,5 @@ scripts/lib/fixtures/sea/wt/** -text
 
 scripts/lib/fixtures/sea/sight/** -text
 scripts/lib/fixtures/sea/ripples/** -text
+scripts/lib/fixtures/sea/lakes/** -text
 scripts/lib/fixtures/glacier/stations/** -text

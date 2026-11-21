@@ -1259,6 +1259,16 @@ export function seaSpotDirectory() {
     const list = dk.map((x) => `<li><a href="/seewetter/${x.id}">${escapeHtml(x.name)}</a> — ${escapeHtml(x.kinds.map((k) => KIND[k] ?? k).join(', '))}, ${x.region === 'nordsee' ? 'Nordsee' : 'Ostsee'}${x.seaArea ? `, Seegebiet ${escapeHtml(dwdName(x.seaArea))} (DWD)` : ''}</li>`);
     out.push(`<h3 id="daenemark">Dänemark · Nordsee und Ostsee</h3>\n      <p>Seegang aus dem Wellenmodell des DWD wie an den deutschen Spots; Messungen und teils Wasserstand und Wind vom dänischen Wetterdienst DMI (CC BY 4.0). Kein Warnstatus für die dänische Küste.</p>\n      <ul>\n        ${list.join('\n        ')}\n      </ul>`);
   }
+  // Phase BS: die Binnenseen, je See ein Abschnitt (größter zuerst, wie im Katalog).
+  const lakeSpots = SEA_SPOT_FACTS.filter((x) => x.region === 'binnensee' && x.lake);
+  if (lakeSpots.length) {
+    const lakes = [...new Map(lakeSpots.map((x) => [x.lake.id, x.lake])).values()];
+    out.push(`<h3 id="binnenseen">Binnenseen in Deutschland, Österreich und der Schweiz</h3>\n      <p>Wind und Böen aus buscosun Fusion auf Höhe des Seespiegels, dazu eine geschätzte Windwelle aus eigener Rechnung. Ein Wellenmodell und einen Seewetterbericht gibt es für die Seen nicht; amtliche Warnungen des Deutschen Wetterdienstes für Binnenseen stehen im Wortlaut, wo er sie herausgibt.</p>`);
+    for (const l of lakes) {
+      const list = lakeSpots.filter((x) => x.lake.id === l.id).map((x) => `<li><a href="/seewetter/${x.id}">${escapeHtml(x.name)}</a> — ${escapeHtml(x.kinds.map((k) => KIND[k] ?? k).join(', '))}</li>`);
+      out.push(`<h4 id="see-${l.id}">${escapeHtml(l.name)} · ${escapeHtml(l.lands.join(', '))}</h4>\n      <ul>\n        ${list.join('\n        ')}\n      </ul>`);
+    }
+  }
   return `<h2>Alle ${SEA_SPOT_FACTS.length} Spots nach Revier und Küstenabschnitt</h2>\n      ${out.join('\n      ')}`;
 }
 

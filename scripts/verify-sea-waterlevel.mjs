@@ -93,9 +93,14 @@ add('B5 Gegenkontrolle: ein Parser, der Strings NICHT liest, würde den echten P
 // --- C: no other source than the official API (G-WL-2) ---------------------------------------------
 const seaSources = readdirSync(SRC).filter((f) => /\.(ts|tsx)$/.test(f)).map((f) => [f, src(f)]);
 const FORBIDDEN = [/wasserstand\.bsh\.de\/[a-z]/i, /www2\.bsh\.de\/aktdat\/wvd\/api\/[a-z]+\.(json|php)/i, /pegelonline\.wsv\.de\/webservices/i];
-const offenders = seaSources.filter(([, t]) => FORBIDDEN.some((re) => re.test(t.replace(/wlGaugePage|WL_PARAM_DOC/g, ''))));
+// Phase BS (audit/seewetter-binnenseen.md): the inland lakes are no part of the BSH forecast. Their gauges are WSV gauges, read
+// from PEGELONLINE (DL-DE Zero 2.0) — named in `seaLakes.ts` and nowhere else; the coastal water level never imports that file.
+const LAKE_GAUGE_FILES = ['seaLakes.ts'];
+const offenders = seaSources.filter(([f, t]) => !LAKE_GAUGE_FILES.includes(f) && FORBIDDEN.some((re) => re.test(t.replace(/wlGaugePage|WL_PARAM_DOC/g, ''))));
 add('C1 Kein Abruf gegen wasserstand.bsh.de, interne Endpoints oder PEGELONLINE-Webservices',
   offenders.length === 0, offenders.map(([f]) => f).join(', '));
+add('C1c die Ausnahme der Binnenseen bleibt bei den Seen: der Küsten-Wasserstand (waterLevel.ts, waterLevelClient.ts, tideWindow.ts) kennt weder seaLakes.ts noch lakeClient.ts',
+  ['waterLevel.ts', 'waterLevelClient.ts', 'tideWindow.ts'].every((f) => !/seaLakes|lakeClient/.test(src(f))) && LAKE_GAUGE_FILES.every((f) => /pegelonline\.wsv\.de\/webservices/i.test(src(f))), '');
 add('C1b Gegenkontrolle: das Muster erkennt einen solchen Abruf',
   FORBIDDEN.some((re) => re.test("fetch('https://wasserstand.bsh.de/cuxhaven_steubenhoeft')")), '');
 const client = src('waterLevelClient.ts');

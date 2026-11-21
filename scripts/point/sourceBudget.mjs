@@ -34,6 +34,15 @@ export const SRC_MAX_LOST_MS = envSeconds('POINT_SRC_MAX_LOST_S', 300);
 export const SRC_SLOW_CALL_MS = envSeconds('POINT_SRC_SLOW_CALL_S', 30);
 
 /**
+ * Engeres Budget für Quellen mit bekanntem, kurzem Normalverlauf. Lauf #1949 im Daten-Repo (19.11.2026):
+ * mit 300 s stand der Bau 10 Minuten an GeoSphere, bevor `claef` herausfiel — in dieser Zeit ruhen alle
+ * Feldbahnen, und der Job riss die 45 Minuten trotzdem. Die ganze `claef`-Bahn dauert gesund 159 s bei
+ * 4,2 s je Fenster; mit der GeoSphere-Frist von 30 s (shared.mjs) sind 45 s EINE hängende Adresse
+ * (zwei Fristen). GESETZT. Preis: an einem zähen GeoSphere-Tag fehlt C-LAEF in t1 früher als nötig.
+ */
+export const SRC_MAX_LOST_MS_BY_SOURCE = { claef: 45_000, claef_eps: 45_000 };
+
+/**
  * Einen Aufruf der Quelle `c` buchen. `c.errors` muss den Fehler dieses Aufrufs schon tragen.
  *
  * @param c  Beiträger der Stufe; `c.msLost` wird fortgeschrieben
@@ -44,6 +53,7 @@ export const SRC_SLOW_CALL_MS = envSeconds('POINT_SRC_SLOW_CALL_S', 30);
 export function noteLostTime(c, ok, ms) {
   const disturbed = (c.errors ?? 0) > 0;
   if (!ok || (disturbed && ms >= SRC_SLOW_CALL_MS)) c.msLost = (c.msLost ?? 0) + ms;
-  if ((c.msLost ?? 0) <= SRC_MAX_LOST_MS) return null;
-  return `${Math.round(c.msLost / 1000)} s in fehlgeschlagenen oder langsamen Abrufen dieser Stufe (Budget ${Math.round(SRC_MAX_LOST_MS / 1000)} s)`;
+  const max = SRC_MAX_LOST_MS_BY_SOURCE[c.id] ?? SRC_MAX_LOST_MS;
+  if ((c.msLost ?? 0) <= max) return null;
+  return `${Math.round(c.msLost / 1000)} s in fehlgeschlagenen oder langsamen Abrufen dieser Stufe (Budget ${Math.round(max / 1000)} s)`;
 }

@@ -365,7 +365,7 @@ add('J5b der Hinweis wie gebaut (Werte von buscosun Fusion vor der Messung): die
   JSON.stringify({ n: hc.pairs, gut: hc.table.gut, eing: hc.table.eingeschraenkt, bias: hc.spreadFusionMinusMeasuredK.median }));
 const page = src('SeaPage.tsx'), bandSrc = src('SeaBand.tsx'), panelSrc = src('SeaSightPanel.tsx'), readout = src('SeaReadout.tsx');
 add('J6 ohne Schalter an für alle: die Seite reicht `sight` immer an Band und Readout; kein Flag, kein Query-Schalter der Phase',
-  /current=\{!!spotCur\} sight \/>/.test(page) && /sight=\{spot && usable && !noSeries \? <SeaSightPanel/.test(page) && !/SEA_SIGHT_LIVE|sightFlag|[?&]sg=|get\('sg'\)|get\('sight'\)/.test(page + src('seaFlag.ts') + src('seaSight.ts') + src('seaState.ts')));
+  /current=\{!!spotCur\} sight \/>/.test(page) && /const sightNode = spot && usable && !noSeries \? <SeaSightPanel/.test(page) && /sight=\{sightNode\} \/>/.test(page) && !/SEA_SIGHT_LIVE|sightFlag|[?&]sg=|get\('sg'\)|get\('sight'\)/.test(page + src('seaFlag.ts') + src('seaSight.ts') + src('seaState.ts')));
 add('J7 Quellen je Baustein: POI, DMI, ICON-D2 und der Seewetterdienst stehen in der Karte; die Quellen-Liste führt drei Zeilen',
   /POI_SOURCE/.test(panelSrc) && /DMI_CREDIT/.test(panelSrc) && /CONV_SOURCE/.test(panelSrc) && /OFFICIAL_SOURCE/.test(panelSrc) && /ICON-D2/.test(S.CONV_SOURCE) && /Deutscher Wetterdienst/.test(S.POI_SOURCE) && /sightSourceRows\(spot, spotsDoc\)/.test(readout));
 const out = join(tmp, 'bundle.mjs');

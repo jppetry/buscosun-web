@@ -186,6 +186,38 @@ ein Aufruf je Quelle im Mittel 0,7–1,8 s.
 V-PT1-4 (Wächter dauerrot) und V-PT1-5 (Anzeige) bleiben offen; solange GeoSphere flattert, erscheint t1 **ohne
 deterministisches C-LAEF**.
 
+### 8.5 Am Runner (19.11.2026, Commit `dd162736` auf `origin/main` seit 09:10 UTC)
+
+| Lauf | Start UTC | Region | Ergebnis | `claef` | Bau |
+|---|---|---|---|---|---|
+| #1943 (alter Code, zum Vergleich) | 04:59 | eastus2 | abgebrochen nach 45 min | drei Abrufe `terminated`, nie herausgefallen | Profil +6:42, Druckflächen +11:05, σ_ens +12:45 nach Start |
+| #1949 (manuell, `tiers=t1`) | 09:29 | centralus | **abgebrochen nach 45 min** | zweimal „Frist von 120 s abgelaufen“, heraus nach 501 s (10 min nach Start) | Profil +12:37, Druckflächen +18:13, Felder nie fertig |
+| #1953 (planmäßig 10:40) | 10:51 | — | **veröffentlicht 11:15:14 UTC, t1 = 2026111909** | „HTTP 503 (Ausfall, kein Retry-After)“, 4 Fehler, heraus nach 400 s | 23 min 46 s (discover 248 s, fields 1 169 s) |
+
+- **E-PT1-3 ist damit beantwortet:** das Protokoll von #1943 zeigt den alten Code an genau der vermuteten Stelle
+  (`claef` td2m/u10/v10 an `nwp-v2-1h-1km`: `terminated`). Die Runner hingen an GeoSphere.
+- **#1953 belegt die Änderung:** beide neuen Regeln griffen (Ausfall-503 und Zeitbudget), `claef_eps` fiel mit sechs
+  HTTP 500 über die alte Zählregel. Manifest `point/2026111909/run.json`: `dropped` = `claef_eps`, `claef`; die übrigen
+  sechs Quellen ohne Fehler. **Dieser t1 trägt weder C-LAEF noch die Quantile aus C-LAEF-EPS** („Quantile aus
+  claef_eps — 0 Stunden, 49 ohne“).
+- **#1949 belegt, dass es nicht reicht:** das Warten auf `claef` kostete 10 Minuten, in denen alle Feldbahnen standen
+  (Verbraucher in Stundenordnung, `lanes.mjs`), und auf diesem Runner liefen die DWD-Blöcke 2- bis 5-mal langsamer als
+  sonst (Profil 648 s gegen 121–282 s). Ursache der Langsamkeit **nicht bewiesen**: lokal ist die neue Schicht nicht
+  langsamer als die alte (sechs Vergleichsbauten `--only=icon_d2`, auch mit Node 22.23.4 wie am Runner und mit Fristen,
+  die mitten im Lauf ablaufen: alt 145–185 s, neu 110–174 s); #1953 lief mit demselben Code normal schnell. Der einzige
+  gemessene Unterschied ist die Region des Runners.
+- Die Node-Vermutung aus §4 ist erledigt: der Runner fährt 22.23.4, nicht 22.23.5.
+
+| Nr. | Befund | Mehrwert | Skizze |
+|---|---|---|---|
+| V-PT1-10 | 10 Minuten Warten auf GeoSphere sind zu teuer: auf einem langsamen Runner reißt der Job die Frist trotzdem | t1 erscheint auch dann | **gebaut, nicht committet (E-PT1-5):** Frist je Host (`timeoutMsFor`, GeoSphere 30 s statt 120 s) und Budget je Quelle (`SRC_MAX_LOST_MS_BY_SOURCE`, `claef`/`claef_eps` 45 s = eine hängende Adresse) ⇒ Warten ≈ 1 statt 10 Minuten; `verify:point-fetch` 29/29, `verify:point-data` 1028/1028 |
+| V-PT1-11 | „Langsam, aber ohne Fehler“ fängt das Zeitbudget nicht: Lauf #1887 (17.11.) brauchte für `claef` 1 464 s bei 0 Fehlern | auch dieser Fall kostet nicht mehr den Lauf | mit der 30-s-Frist aus V-PT1-10 wird aus 44 s je Fenster eine abgelaufene Frist |
+| V-PT1-12 | Die Laufzeit hängt am Runner (955–1 719 s bei gesunden Läufen, #1949 noch langsamer) | Abstandsregeln und Job-Frist rechnen mit dem langsamen Fall | Region und Blockzeiten je Lauf ins Manifest schreiben, nach zwei Wochen `JOB_MAX_MIN` nachziehen |
+| V-PT1-13 | Ohne `claef_eps` hat t1 keine Quantile (q10/q90) | sichtbar machen, was der Bandbreite dann fehlt | prüfen, was buscosun Fusion und die Seewetter-Bandbreite (Phase SU) aus einem t1 ohne Quantil-Ebenen machen |
+
+**E-PT1-5 (Jan):** V-PT1-10 pushen? Preis: an einem zähen, aber noch lieferndem GeoSphere-Tag fehlt C-LAEF früher als
+nötig (alles über 30 s je Fenster gilt als Ausfall; gesund sind 4,2 s).
+
 ## 9 Belege
 
 - `audit/punkt-cron-t1-stillstand/build-mit-claef.txt` — Nachbau mit allen Quellen (§2.4).

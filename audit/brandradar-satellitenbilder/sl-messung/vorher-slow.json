@@ -1,0 +1,279 @@
+{
+ "label": "vorher",
+ "query": "",
+ "at": "2026-11-19T12:42:32.333Z",
+ "base": "http://127.0.0.1:5199",
+ "results": [
+  {
+   "target": "fire",
+   "device": "desktop",
+   "net": "fast3g",
+   "dpr": 1,
+   "steps": [
+    {
+     "step": "open",
+     "settledMs": null,
+     "requests": 2,
+     "distinctRanges": 1,
+     "maxRepeat": 2,
+     "mb": 0,
+     "failed": 2,
+     "inFlightAtEnd": 0,
+     "box": [
+      618,
+      411
+     ],
+     "status": "Der Bild-Speicher (AWS) ist gerade nicht erreichbar. Im"
+    },
+    {
+     "step": "full",
+     "settledMs": null,
+     "requests": 0,
+     "distinctRanges": 0,
+     "maxRepeat": 0,
+     "mb": 0,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      1440,
+      900
+     ],
+     "status": "Der Bild-Speicher (AWS) ist gerade nicht erreichbar. Im"
+    },
+    {
+     "step": "zoomIn1",
+     "settledMs": null,
+     "requests": 0,
+     "distinctRanges": 0,
+     "maxRepeat": 0,
+     "mb": 0,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      1440,
+      900
+     ],
+     "status": "Der Bild-Speicher (AWS) ist gerade nicht erreichbar. Im"
+    },
+    {
+     "step": "pan1",
+     "settledMs": null,
+     "requests": 0,
+     "distinctRanges": 0,
+     "maxRepeat": 0,
+     "mb": 0,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      1440,
+      900
+     ],
+     "status": "Der Bild-Speicher (AWS) ist gerade nicht erreichbar. Im"
+    },
+    {
+     "step": "zoomOut1",
+     "settledMs": null,
+     "requests": 0,
+     "distinctRanges": 0,
+     "maxRepeat": 0,
+     "mb": 0,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      1440,
+      900
+     ],
+     "status": "Der Bild-Speicher (AWS) ist gerade nicht erreichbar. Im"
+    }
+   ]
+  },
+  {
+   "target": "fire",
+   "device": "mobile",
+   "net": "fast3g",
+   "dpr": 3,
+   "steps": [
+    {
+     "step": "open",
+     "settledMs": null,
+     "requests": 0,
+     "distinctRanges": 0,
+     "maxRepeat": 0,
+     "mb": 0,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": null,
+     "status": ""
+    }
+   ],
+   "error": "TypeError: Cannot read properties of null (reading 'click')\n    at <anonymous>:1:67",
+   "page": "Waldbrand aktuell: Karte, Gefahr & aktive Brände in DE, AT, CH | buscosun\nQuellen\n24 h\n7 d\nMonat\nSaison\n← Brände\nNavaluenga (Ávila) · ES\n1\nBrand\n2\nSatellit\n3\nWetter\nSATELLITENBILD\nVorher · während · nachher — wenn die Wolken es zulassen\nDie Szenenliste (Earth Search STAC) ist gerade nicht erreichbar"
+  },
+  {
+   "target": "glacier",
+   "device": "desktop",
+   "net": "fast3g",
+   "dpr": 1,
+   "steps": [
+    {
+     "step": "open",
+     "settledMs": 57393,
+     "requests": 23,
+     "distinctRanges": 23,
+     "maxRepeat": 1,
+     "mb": 5.22,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      652,
+      407
+     ],
+     "status": "2 km0 Kacheln · <0,1 MB geladen · ~10 m/px"
+    },
+    {
+     "step": "full",
+     "settledMs": 15367,
+     "requests": 12,
+     "distinctRanges": 12,
+     "maxRepeat": 1,
+     "mb": 2.85,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      1440,
+      900
+     ],
+     "status": "2 km4 Kacheln · 2,8 MB geladen · ~10 m/px"
+    },
+    {
+     "step": "zoomIn1",
+     "settledMs": 566,
+     "requests": 0,
+     "distinctRanges": 0,
+     "maxRepeat": 0,
+     "mb": 0,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      1440,
+      900
+     ],
+     "status": "1 km4 Kacheln · 2,8 MB geladen · ~10 m/px"
+    },
+    {
+     "step": "pan1",
+     "settledMs": 775,
+     "requests": 0,
+     "distinctRanges": 0,
+     "maxRepeat": 0,
+     "mb": 0,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      1440,
+      900
+     ],
+     "status": "1 km4 Kacheln · 2,8 MB geladen · ~10 m/px"
+    },
+    {
+     "step": "zoomOut1",
+     "settledMs": 537,
+     "requests": 0,
+     "distinctRanges": 0,
+     "maxRepeat": 0,
+     "mb": 0,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      1440,
+      900
+     ],
+     "status": "2 km4 Kacheln · 2,8 MB geladen · ~10 m/px"
+    }
+   ]
+  },
+  {
+   "target": "glacier",
+   "device": "mobile",
+   "net": "fast3g",
+   "dpr": 3,
+   "steps": [
+    {
+     "step": "open",
+     "settledMs": 41290,
+     "requests": 11,
+     "distinctRanges": 11,
+     "maxRepeat": 1,
+     "mb": 2.04,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      342,
+      428
+     ],
+     "status": "2 km0 Kacheln · <0,1 MB geladen · ~10 m/px"
+    },
+    {
+     "step": "full",
+     "settledMs": 550,
+     "requests": 0,
+     "distinctRanges": 0,
+     "maxRepeat": 0,
+     "mb": 0,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      390,
+      844
+     ],
+     "status": "2 km0 Kacheln · <0,1 MB geladen · ~10 m/px"
+    },
+    {
+     "step": "zoomIn1",
+     "settledMs": 810,
+     "requests": 0,
+     "distinctRanges": 0,
+     "maxRepeat": 0,
+     "mb": 0,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      390,
+      844
+     ],
+     "status": "1 km0 Kacheln · <0,1 MB geladen · ~10 m/px"
+    },
+    {
+     "step": "pan1",
+     "settledMs": 785,
+     "requests": 0,
+     "distinctRanges": 0,
+     "maxRepeat": 0,
+     "mb": 0,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      390,
+      844
+     ],
+     "status": "1 km0 Kacheln · <0,1 MB geladen · ~10 m/px"
+    },
+    {
+     "step": "zoomOut1",
+     "settledMs": 775,
+     "requests": 0,
+     "distinctRanges": 0,
+     "maxRepeat": 0,
+     "mb": 0,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      390,
+      844
+     ],
+     "status": "2 km0 Kacheln · <0,1 MB geladen · ~10 m/px"
+    }
+   ]
+  }
+ ]
+}

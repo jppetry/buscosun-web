@@ -914,6 +914,287 @@
   from   = "/seewetter/gedser"
   to     = "/seewetter--gedser.html"
   status = 200
+# Phase BS (audit/seewetter-binnenseen.md): die Seespots, je Spot eine eigene Shell wie an der Küste.
+[[redirects]]
+  from   = "/seewetter/genfersee-genf"
+  to     = "/seewetter--genfersee-genf.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/genfersee-nyon"
+  to     = "/seewetter--genfersee-nyon.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/genfersee-lausanne"
+  to     = "/seewetter--genfersee-lausanne.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/genfersee-vevey-montreux"
+  to     = "/seewetter--genfersee-vevey-montreux.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/genfersee-le-bouveret"
+  to     = "/seewetter--genfersee-le-bouveret.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/bodensee-konstanz"
+  to     = "/seewetter--bodensee-konstanz.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/bodensee-radolfzell"
+  to     = "/seewetter--bodensee-radolfzell.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/bodensee-ueberlingen"
+  to     = "/seewetter--bodensee-ueberlingen.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/bodensee-friedrichshafen"
+  to     = "/seewetter--bodensee-friedrichshafen.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/bodensee-lindau"
+  to     = "/seewetter--bodensee-lindau.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/bodensee-bregenz"
+  to     = "/seewetter--bodensee-bregenz.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/bodensee-romanshorn"
+  to     = "/seewetter--bodensee-romanshorn.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/bodensee-kreuzlingen"
+  to     = "/seewetter--bodensee-kreuzlingen.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/neusiedler-see-neusiedl"
+  to     = "/seewetter--neusiedler-see-neusiedl.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/neusiedler-see-podersdorf"
+  to     = "/seewetter--neusiedler-see-podersdorf.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/neusiedler-see-rust"
+  to     = "/seewetter--neusiedler-see-rust.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/neusiedler-see-moerbisch"
+  to     = "/seewetter--neusiedler-see-moerbisch.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/neuenburgersee-neuchatel"
+  to     = "/seewetter--neuenburgersee-neuchatel.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/neuenburgersee-yverdon"
+  to     = "/seewetter--neuenburgersee-yverdon.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/neuenburgersee-estavayer"
+  to     = "/seewetter--neuenburgersee-estavayer.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/lago-maggiore-locarno"
+  to     = "/seewetter--lago-maggiore-locarno.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/lago-maggiore-ascona"
+  to     = "/seewetter--lago-maggiore-ascona.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/mueritz-waren"
+  to     = "/seewetter--mueritz-waren.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/mueritz-roebel"
+  to     = "/seewetter--mueritz-roebel.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/mueritz-klink"
+  to     = "/seewetter--mueritz-klink.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/vierwaldstaettersee-luzern"
+  to     = "/seewetter--vierwaldstaettersee-luzern.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/vierwaldstaettersee-kuessnacht"
+  to     = "/seewetter--vierwaldstaettersee-kuessnacht.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/vierwaldstaettersee-buochs"
+  to     = "/seewetter--vierwaldstaettersee-buochs.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/vierwaldstaettersee-flueelen"
+  to     = "/seewetter--vierwaldstaettersee-flueelen.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/zuerichsee-zuerich"
+  to     = "/seewetter--zuerichsee-zuerich.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/zuerichsee-waedenswil"
+  to     = "/seewetter--zuerichsee-waedenswil.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/zuerichsee-rapperswil"
+  to     = "/seewetter--zuerichsee-rapperswil.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/chiemsee-prien"
+  to     = "/seewetter--chiemsee-prien.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/chiemsee-seebruck"
+  to     = "/seewetter--chiemsee-seebruck.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/chiemsee-chieming"
+  to     = "/seewetter--chiemsee-chieming.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/schweriner-see-schwerin"
+  to     = "/seewetter--schweriner-see-schwerin.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/schweriner-see-bad-kleinen"
+  to     = "/seewetter--schweriner-see-bad-kleinen.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/starnberger-see-starnberg"
+  to     = "/seewetter--starnberger-see-starnberg.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/starnberger-see-tutzing"
+  to     = "/seewetter--starnberger-see-tutzing.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/starnberger-see-seeshaupt"
+  to     = "/seewetter--starnberger-see-seeshaupt.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/luganersee-lugano"
+  to     = "/seewetter--luganersee-lugano.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/luganersee-morcote"
+  to     = "/seewetter--luganersee-morcote.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/thunersee-thun"
+  to     = "/seewetter--thunersee-thun.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/thunersee-spiez"
+  to     = "/seewetter--thunersee-spiez.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/ammersee-herrsching"
+  to     = "/seewetter--ammersee-herrsching.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/ammersee-diessen"
+  to     = "/seewetter--ammersee-diessen.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/ammersee-stegen"
+  to     = "/seewetter--ammersee-stegen.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/attersee-seewalchen"
+  to     = "/seewetter--attersee-seewalchen.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/attersee-attersee"
+  to     = "/seewetter--attersee-attersee.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/attersee-weissenbach"
+  to     = "/seewetter--attersee-weissenbach.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/bielersee-biel"
+  to     = "/seewetter--bielersee-biel.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/bielersee-erlach"
+  to     = "/seewetter--bielersee-erlach.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/plauer-see-plau"
+  to     = "/seewetter--plauer-see-plau.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/plauer-see-alt-schwerin"
+  to     = "/seewetter--plauer-see-alt-schwerin.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/zugersee-zug"
+  to     = "/seewetter--zugersee-zug.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/zugersee-arth"
+  to     = "/seewetter--zugersee-arth.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/kummerower-see-kummerow"
+  to     = "/seewetter--kummerower-see-kummerow.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/brienzersee-brienz"
+  to     = "/seewetter--brienzersee-brienz.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/brienzersee-boenigen"
+  to     = "/seewetter--brienzersee-boenigen.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/steinhuder-meer-steinhude"
+  to     = "/seewetter--steinhuder-meer-steinhude.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/steinhuder-meer-mardorf"
+  to     = "/seewetter--steinhuder-meer-mardorf.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/grosser-ploener-see-ploen"
+  to     = "/seewetter--grosser-ploener-see-ploen.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/traunsee-gmunden"
+  to     = "/seewetter--traunsee-gmunden.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/traunsee-ebensee"
+  to     = "/seewetter--traunsee-ebensee.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/walensee-weesen"
+  to     = "/seewetter--walensee-weesen.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/walensee-walenstadt"
+  to     = "/seewetter--walensee-walenstadt.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/schaalsee-zarrentin"
+  to     = "/seewetter--schaalsee-zarrentin.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/murtensee-murten"
+  to     = "/seewetter--murtensee-murten.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/selenter-see-selent"
+  to     = "/seewetter--selenter-see-selent.html"
+  status = 200
+[[redirects]]
+  from   = "/seewetter/koelpinsee-klink"
+  to     = "/seewetter--koelpinsee-klink.html"
+  status = 200
 [[redirects]]
   from   = "/seewetter/*"
   to     = "/seewetter.html"

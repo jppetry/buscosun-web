@@ -25,7 +25,8 @@ const checks = [];
 const add = (name, ok, detail = '') => checks.push({ name, ok: !!ok, detail });
 
 // (1) Eine Spot-Liste, drei Quellen.
-const src = JSON.parse(readFileSync(join(ROOT, 'scripts/sea/spots-src.json'), 'utf8')).spots.map((s) => s.id);
+// Phase BS: the lake spots have a hand list of their own (`lakes-src.json`).
+const src = [...JSON.parse(readFileSync(join(ROOT, 'scripts/sea/spots-src.json'), 'utf8')).spots, ...JSON.parse(readFileSync(join(ROOT, 'scripts/sea/lakes-src.json'), 'utf8')).spots].map((s) => s.id);
 const names = Object.keys(SEA_SPOT_NAMES);
 const facts = SEA_SPOT_FACTS.map((s) => s.id);
 const same = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
@@ -71,7 +72,7 @@ add('seaSpotSeoText kennt jeden Spot und keinen anderen', names.every((id) => !!
 const all = Object.values(texts).map((t) => [t.h1, t.lead, ...t.body, ...t.facts.map((f) => f.text)].join(' ')).join(' ');
 add('keine Sicherheitsfreigabe in eigener Stimme („sicher", „ungefährlich", „gefahrlos")', !/\b(ist|sind|bleibt|gilt als) (sicher|ungefährlich|gefahrlos)\b|\bsicheres? (Segeln|Baden|Kiten)\b/i.test(all));
 add('„Warnung" nur als Hinweis auf den amtlichen Text', all.split(/[.;]/).every((sent) => !/Warnung/i.test(sent) || /amtlich|Seewetterdienst|Wortlaut|Warnstatus|kein amtliches Warnprodukt/i.test(sent)));
-add('keine Prognosewerte im statischen Text (Meter-/Knotenwerte nur als Abstand oder Gitterweite)', !/\d+(,\d+)?\s?(m|Meter|kn|Knoten|Bft|Beaufort)\b/.test(all.replace(/rund 900 Metern Maschenweite/g, '').replace(/statt 0 Meter/g, '')));
+add('keine Prognosewerte im statischen Text (Meter-/Knotenwerte nur als Abstand oder Gitterweite)', !/\d+(,\d+)?\s?(m|Meter|kn|Knoten|Bft|Beaufort)\b/.test(all.replace(/rund 900 Metern Maschenweite/g, '').replace(/statt 0 Meter/g, '').replace(/im Mittel \d+(,\d+)? Meter tief/g, '')));
 add('DWD-Schreibweise wird umgesetzt (Suedliche → Südliche, Kueste → Küste)', dwdName('Suedliche Ostsee') === 'Südliche Ostsee' && dwdName('Boddengewaesser Ost und oestlich Ruegen') === 'Boddengewässer Ost und östlich Rügen' && !/Kueste|Suedl|Ruegen|gewaesser/.test(all));
 add('Himmelsrichtungen: 0° Nord, 90° Ost, 284° Westnordwest, 359° Nord', dirWord(0) === 'Nord' && dirWord(90) === 'Ost' && dirWord(284) === 'Westnordwest' && dirWord(359) === 'Nord');
 

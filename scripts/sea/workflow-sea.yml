@@ -14,6 +14,8 @@
 # veröffentlichten Laufs, wird nur die Windreihe neu gerechnet (spots/<lauf>-w<t1>.json).
 # Dänische Spots (Phase DK): höchstens stündlich Wasserstand und Wind des DMI (dmi/<stempel>.json).
 # Strömung (Phase ST): zweimal täglich der neue Lauf der BSH-Strömungsvorhersage (current/<lauf>.json + Kartenfeld).
+# Binnenseen (Phase BS): bei jedem neuen t1-Lauf des Cubes und nach jedem neuen Seegangslauf Wind, Böen, Bandbreite und
+# Hinweise an den Seespots (lakes/<lauf>-w<t1>.json); höchstens alle 6 h die Modell-Wassertemperatur von Alplakes.
 # Der Radar-Spiegel bleibt unberührt.
 #
 # ── Leerlauf bis zum Push von buscosun-web ────────────────────────────────
@@ -124,10 +126,28 @@ jobs:
           DUE=$(node -e "try { const j=JSON.parse(process.argv[1]); process.stdout.write(j.due===true ? (j.indexT1||'') : '') } catch { }" "$OUT")
           echo "t1=$DUE" >> "$GITHUB_OUTPUT"
 
+      # Phase BS (audit/seewetter-binnenseen.md): the lake spots are computed whenever the published wave run or the cube's t1 run
+      # is newer than the last lake file. The check reads point/index.json raw. No lake catalogue in the store (the phase's
+      # fallback) or no producer on main yet ⇒ not due.
+      - name: Lakes due?
+        id: ldue
+        if: steps.app.outputs.ready == '1'
+        continue-on-error: true
+        run: |
+          cd app
+          if [ ! -f scripts/sea/sea-lakes.mjs ] || [ ! -f ../store/static/spots-lakes.json ]; then
+            echo "Seen: kein Producer auf main oder kein Seekatalog im Speicher — nichts zu tun."
+            exit 0
+          fi
+          OUT=$(node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/sea/sea-lakes.mjs --store=../store --check | tail -1)
+          echo "$OUT"
+          DUE=$(node -e "try { const j=JSON.parse(process.argv[1]); process.stdout.write(j.due===true ? '1' : '') } catch { }" "$OUT")
+          echo "due=$DUE" >> "$GITHUB_OUTPUT"
+
       # `ruc/` since buscosun Fusion 14 (E-RUC-16, Jan 26.10.2026): the stage computes with the ICON-D2-RUC precipitation member in every
       # part; the spots read wind only, so the values stay the same — the run names the stand it was computed with, honestly.
       - name: Cube checkout (point/ + ruc/, for buscosun Fusion wind at the spots)
-        if: steps.due.outputs.run != '' || steps.wdue.outputs.t1 != ''
+        if: steps.due.outputs.run != '' || steps.wdue.outputs.t1 != '' || steps.ldue.outputs.due == '1'
         continue-on-error: true
         run: |
           git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-data.git cube
@@ -152,6 +172,33 @@ jobs:
           cd app
           node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/sea/sea-derive.mjs \
             --store=../store --data=../cube --wind
+
+      # Phase BS: wind, gust, band and hints of buscosun Fusion at the lake spots, AFTER the field run and the wind refresh (a new
+      # wave run changes the hour axis the lake series lie on — the producer checks again itself), then the modelled water
+      # temperature of Alplakes (Eawag, CC BY 4.0; one request per basin, at most every 6 h). The producer aborts with the reason
+      # instead of writing empty series (V-SW-18): the step turns red, everything else is published, the page says "keine Daten"
+      # once the last lake file is older than 12 h. Kill switches: repo variables SEA_LAKES=0, SEA_LAKES_WT=0.
+      - name: Lakes (buscosun Fusion wind at the lake spots, Alplakes water temperature)
+        id: lakes
+        if: steps.app.outputs.ready == '1'
+        continue-on-error: true
+        env:
+          SEA_LAKES: ${{ vars.SEA_LAKES || '1' }}
+          SEA_LAKES_WT: ${{ vars.SEA_LAKES_WT || '1' }}
+        run: |
+          cd app
+          if [ ! -f scripts/sea/sea-lakes.mjs ] || [ ! -f ../store/static/spots-lakes.json ]; then
+            echo "Seen: kein Producer auf main oder kein Seekatalog im Speicher — Schritt übersprungen."
+            exit 0
+          fi
+          DATA=""
+          if [ -f ../cube/point/index.json ]; then DATA="--data=../cube"; fi
+          set +e
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/sea/sea-lakes.mjs --store=../store $DATA > ../lakes.log 2>&1
+          RC=$?
+          cat ../lakes.log
+          echo "summary=$(tail -1 ../lakes.log)" >> "$GITHUB_OUTPUT"
+          exit $RC
 
       # WL-2: Pegelkatalog der BSH-Wasserstandsvorhersage (CC BY 4.0, audit/wasserstand-bsh.md). Ein Abruf
       # der offiziellen OGC API (≈ 500 KB gz), daraus die kompakte Lage-Liste `static/gauges.json` (≈ 10 KB gz).
@@ -221,10 +268,11 @@ jobs:
           MSG="sea: $(date -u +%Y-%m-%dT%H:%MZ)"
           if [ -n "${{ steps.due.outputs.run }}" ]; then MSG="$MSG · CWAM ${{ steps.due.outputs.run }}"; fi
           if [ -n "${{ steps.wdue.outputs.t1 }}" ]; then MSG="$MSG · Wind t1 ${{ steps.wdue.outputs.t1 }}"; fi
+          if [ -n "${{ steps.ldue.outputs.due }}" ]; then MSG="$MSG · Seen"; fi
           node app/scripts/sea/sea-publish.mjs --repo=data --store=store --message="$MSG"
 
       - name: Field run failed
-        if: steps.field.outcome == 'failure' || steps.text.outcome == 'failure' || steps.wind.outcome == 'failure' || steps.gauges.outcome == 'failure' || steps.dmi.outcome == 'failure' || steps.current.outcome == 'failure'
+        if: steps.field.outcome == 'failure' || steps.text.outcome == 'failure' || steps.wind.outcome == 'failure' || steps.gauges.outcome == 'failure' || steps.dmi.outcome == 'failure' || steps.current.outcome == 'failure' || steps.lakes.outcome == 'failure'
         run: |
-          echo "Text-, Feld-, Pegel-, DMI- oder Strömungsschritt rot (siehe oben); veröffentlicht wurde, was gültig war."
+          echo "Text-, Feld-, Pegel-, DMI-, Strömungs- oder Seenschritt rot (siehe oben); veröffentlicht wurde, was gültig war."
           exit 1

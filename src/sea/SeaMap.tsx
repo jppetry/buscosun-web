@@ -16,6 +16,7 @@ import { MAP_SOURCES_LINK } from '../map/MapSourcesTile';
 import type { SeaClass } from './seaProfiles';
 import type { SeaAreaFeature } from './seaClient';
 import { clampToRadius, planBearingDeg, planDestination, radiusRing, type DriftSide } from './seaPlanner';
+import { tripArrowLayout, type TripArrow, type TripRect } from './seaTrip';
 import type { SeaUvGrid } from './seaCurrent';
 import type { RippleKeepOut, SeaRippleLayer } from './SeaRippleLayer';
 
@@ -44,7 +45,7 @@ export interface SeaMapPlan {
   /** Where the wind pushes at the chosen hour (map bearing) and the side it comes from; null = no direction. */
   driftTo: number | null;
   side: DriftSide | null;
-  /** Wind badge at the boat. */
+  /** Wind of the chosen hour — not drawn on the map (the boat carries no label), only read out with the boat. */
   badge: string;
   /** Label of the return line for the current boat, and for any position while it is dragged. */
   lineLabel: string;
@@ -63,6 +64,9 @@ export interface SeaMapTrip {
   points: readonly { lat: number; lon: number; role: 'start' | 'way' | 'end'; label: string | null }[];
   /** The boat at the chosen hour: position, course of its stretch, label ("11:00 · 15 sm"). */
   boat: { lat: number; lon: number; course: number; label: string } | null;
+  /** V-AM-9: the arrows beside the route (`tripArrows`) and the chosen column — the map thins them to what fits. */
+  arrows: readonly TripArrow[];
+  arrowSel: number;
   /** The next click on the map sets a point. */
   armed: boolean;
   /** A click on the map while armed; `spotId` = the catalogue spot under the click. */
@@ -77,6 +81,8 @@ const SHORE_COLOR: Readonly<Record<DriftSide, string>> = { see: '#7FC4CC', quer:
 
 const PLAN_HULL ='<svg class="sw-pl-hull" width="26" height="34" viewBox="0 0 26 34" aria-hidden="true"><path d="M13 1.5c5.2 5.6 8 11.4 8 17.6V29a3.5 3.5 0 0 1-3.5 3.5h-9A3.5 3.5 0 0 1 5 29v-9.9C5 12.9 7.8 7.1 13 1.5z"/><path class="sw-pl-hull-deck" d="M9 21h8M13 9v8"/></svg>';
 const PLAN_DRIFT = '<svg class="sw-pl-drift" width="96" height="96" viewBox="-48 -48 96 96" aria-hidden="true"><path d="M-7 -24l7 -7 7 7"/><path d="M-7 -33l7 -7 7 7"/><path d="M-7 -42l7 -7 7 7"/></svg>';
+/** V-AM-9: an arrow beside the route, drawn pointing north and turned by the marker — a mantle and a core, shaft and head apart (the current's shaft is dashed). */
+const TRIP_ARROW ='<svg class="sw-am-arr-g" width="34" height="34" viewBox="-17 -17 34 34" fill="none" stroke-linecap="round" stroke-linejoin="round"><path class="sw-am-arr-case" d="M0 14V-11M-6.5 -5.5 0 -13 6.5 -5.5"/><path class="sw-am-arr-core is-shaft" d="M0 14V-9"/><path class="sw-am-arr-core" d="M-6.5 -5.5 0 -13 6.5 -5.5"/></svg>';
 const planEl = (cls: string, html = '') => { const el = document.createElement('div'); el.className = cls; el.innerHTML = html; return el; };
 
 interface Props {
@@ -90,6 +96,8 @@ interface Props {
   selectedGaugeId: string | null;
   onGauge?: (id: string) => void;
   areas: readonly SeaMapArea[] | null;
+  /** Phase BS: the lake outlines of the catalogue (GeoJSON) — drawn as a quiet water area; a lake has no wave field. */
+  lakes?: { type: 'FeatureCollection'; features: unknown[] } | null;
   showWind: boolean;
   padding: { top: number; bottom: number; left: number; right: number };
   onSelect: (id: string) => void;
@@ -112,6 +120,8 @@ interface Props {
   rippleOn?: boolean;
   /** SR: the field image is a smooth colour area (the current), not a field of cells — it is resampled linearly. */
   fieldSmooth?: boolean;
+  /** Planner „Vor Ort“, page „Startort“: while armed, a click on the map (not on a spot) sets the user's own start point. */
+  pick?: { armed: boolean; onPick: (lat: number, lon: number) => void } | null;
 }
 
 /** Phase AM, Strand: a spot dot in the colour of the wind's side (hatched without a direction). */
@@ -204,16 +214,18 @@ async function fieldUrl(field: Uint8ClampedArray): Promise<string> {
 const EMPTY: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
 const TRANSPARENT_PX = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4AWMAAQAABQABNtCI3QAAAABJRU5ErkJggg==';
 
-export default function SeaMap({ field, arrows, spots, selectedId, stations, gauges, selectedGaugeId, onGauge, areas, showWind, padding, onSelect, onMap, callout, plan = null, trip = null, shore = null, currents = null, ripple = null, rippleOn = true, fieldSmooth = false }: Props) {
+export default function SeaMap({ field, arrows, spots, selectedId, stations, gauges, selectedGaugeId, onGauge, areas, lakes = null, showWind, padding, onSelect, onMap, callout, plan = null, trip = null, shore = null, currents = null, ripple = null, rippleOn = true, fieldSmooth = false, pick = null }: Props) {
   const tripRef = useRef<SeaMapTrip | null>(trip);
+  const pickRef = useRef(pick);
+  pickRef.current = pick;
   tripRef.current = trip;
-  const tripMarks = useRef<{ pts: maplibregl.Marker[]; boat: maplibregl.Marker | null }>({ pts: [], boat: null });
+  const tripMarks = useRef<{ pts: maplibregl.Marker[]; boat: maplibregl.Marker | null; arr: maplibregl.Marker[] }>({ pts: [], boat: null, arr: [] });
   const tripDrag = useRef(false);
   const rippleLayer = useRef<SeaRippleLayer | null>(null);
   const rippleWant = useRef<{ grid: SeaUvGrid | null; on: boolean; keep: RippleKeepOut[] }>({ grid: null, on: true, keep: [] });
   const planRef = useRef<SeaMapPlan | null>(plan);
   planRef.current = plan;
-  const planMarks = useRef<{ boat: maplibregl.Marker; label: maplibregl.Marker; launch: maplibregl.Marker; badge: HTMLElement; drift: HTMLElement; hull: HTMLElement } | null>(null);
+  const planMarks = useRef<{ boat: maplibregl.Marker; label: maplibregl.Marker; launch: maplibregl.Marker; drift: HTMLElement; hull: HTMLElement } | null>(null);
   const box = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const ready = useRef(false);
@@ -223,8 +235,8 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, gau
   onSelectRef.current = onSelect;
   const onGaugeRef = useRef(onGauge);
   onGaugeRef.current = onGauge;
-  const latest = useRef({ field, arrows, spots, selectedId, stations, gauges, selectedGaugeId, areas, showWind, currents, fieldSmooth, shore });
-  latest.current = { field, arrows, spots, selectedId, stations, gauges, selectedGaugeId, areas, showWind, currents, fieldSmooth, shore };
+  const latest = useRef({ field, arrows, spots, selectedId, stations, gauges, selectedGaugeId, areas, lakes, showWind, currents, fieldSmooth, shore });
+  latest.current = { field, arrows, spots, selectedId, stations, gauges, selectedGaugeId, areas, lakes, showWind, currents, fieldSmooth, shore };
 
   useEffect(() => {
     if (!box.current) return;
@@ -248,6 +260,10 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, gau
       const labels = map.getStyle()?.layers?.find((l) => l.type === 'symbol')?.id;
       map.addSource('sw-field', { type: 'image', url: TRANSPARENT_PX, coordinates: SEA_FIELD_COORDS });
       map.addLayer({ id: 'sw-field', type: 'raster', source: 'sw-field', paint: { 'raster-opacity': 1, 'raster-resampling': 'nearest', 'raster-fade-duration': 0 } }, labels);
+      // Phase BS: lake areas from the catalogue's outlines, below everything that carries a value.
+      map.addSource('sw-lakes', { type: 'geojson', data: EMPTY });
+      map.addLayer({ id: 'sw-lakes-fill', type: 'fill', source: 'sw-lakes', paint: { 'fill-color': '#7FC4CC', 'fill-opacity': 0.45 } });
+      map.addLayer({ id: 'sw-lakes-line', type: 'line', source: 'sw-lakes', paint: { 'line-color': '#0F6E7A', 'line-width': 1, 'line-opacity': 0.75 } });
       map.addSource('sw-areas', { type: 'geojson', data: EMPTY });
       map.addLayer({ id: 'sw-areas-fill', type: 'fill', source: 'sw-areas', paint: { 'fill-color': ['match', ['get', 'status'], 'unknown', '#E39A3B', '#7FC4CC'], 'fill-opacity': ['match', ['get', 'status'], 'unknown', 0.16, 0] } }, labels);
       map.addLayer({ id: 'sw-areas-line', type: 'line', source: 'sw-areas', paint: { 'line-color': ['match', ['get', 'status'], 'unknown', '#E39A3B', '#7FC4CC'], 'line-width': ['match', ['get', 'kind'], 'coast', 1.6, 1], 'line-opacity': 0.75, 'line-dasharray': [3, 2] } });
@@ -287,7 +303,15 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, gau
       map.addLayer({ id: 'sw-spots', type: 'symbol', source: 'sw-spots', layout: { 'icon-image': ['concat', ['case', ['has', 'shore'], ['concat', 'sw-shore-', ['get', 'shore']], ['concat', 'sw-dot-', ['get', 'cls']]], ['case', ['==', ['get', 'sel'], 1], '-sel', '']], 'icon-allow-overlap': true, 'icon-ignore-placement': true, 'symbol-sort-key': ['get', 'sel'] } });
       // Phase AM: with a leg open a click belongs to the leg (a point on the map, snapped on a spot), not to the spot picker.
       map.on('click', 'sw-spots', (e) => { if (tripRef.current) return; const id = e.features?.[0]?.properties?.id; if (id) onSelectRef.current(String(id)); });
-      map.on('click', (e) => { const t = tripRef.current; if (t?.armed) t.onClick(e.lngLat.lat, e.lngLat.lng, spotAt(e.point)); });
+      map.on('click', (e) => {
+        const t = tripRef.current; if (t?.armed) t.onClick(e.lngLat.lat, e.lngLat.lng, spotAt(e.point));
+        // A click on a spot stays the spot's (it is picked as start); anywhere else it is the own point.
+        const pk = pickRef.current; if (!t && pk?.armed && !spotAt(e.point)) pk.onPick(e.lngLat.lat, e.lngLat.lng);
+      });
+      // V-AM-9: how many arrows fit beside the route depends on the zoom.
+      map.on('zoomend', syncArrows);
+      // The line label's length on screen changes with the zoom.
+      map.on('zoomend', () => { const mk = planMarks.current; if (mk && planRef.current) { const ll = mk.boat.getLngLat(); drawPlan(ll.lat, ll.lng); } });
       // Right click (or long press on touch) on a spot opens the same info card as a left click — with the way to the dossier.
       map.on('contextmenu', 'sw-spots', (e) => { e.originalEvent.preventDefault(); const id = e.features?.[0]?.properties?.id; if (id) onSelectRef.current(String(id)); });
       map.on('mouseenter', 'sw-spots', () => { map.getCanvas().style.cursor = 'pointer'; });
@@ -305,7 +329,8 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, gau
       if (planMarks.current) { planMarks.current.boat.remove(); planMarks.current.label.remove(); planMarks.current.launch.remove(); planMarks.current = null; }
       for (const m of tripMarks.current.pts) m.remove();
       tripMarks.current.boat?.remove();
-      tripMarks.current = { pts: [], boat: null };
+      for (const m of tripMarks.current.arr) m.remove();
+      tripMarks.current = { pts: [], boat: null, arr: [] };
       rippleLayer.current?.destroy();
       rippleLayer.current = null;
       if (mapRef.current === map) mapRef.current = null;
@@ -336,12 +361,13 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, gau
     (map.getSource('sw-stations') as maplibregl.GeoJSONSource | undefined)?.setData(!s.stations ? EMPTY : {
       type: 'FeatureCollection', features: s.stations.map((p) => ({ type: 'Feature', properties: { id: p.id }, geometry: { type: 'Point', coordinates: [p.lon, p.lat] } })),
     });
+    (map.getSource('sw-lakes') as maplibregl.GeoJSONSource | undefined)?.setData((s.lakes ?? EMPTY) as Parameters<maplibregl.GeoJSONSource['setData']>[0]);
     (map.getSource('sw-areas') as maplibregl.GeoJSONSource | undefined)?.setData(!s.areas ? EMPTY : {
       type: 'FeatureCollection', features: s.areas.map((a) => ({ ...a.feature, properties: { ...a.feature.properties, status: a.status } })),
     });
   }
 
-  useEffect(sync, [arrows, spots, selectedId, stations, gauges, selectedGaugeId, areas, showWind, field, currents, fieldSmooth, shore]);
+  useEffect(sync, [arrows, spots, selectedId, stations, gauges, selectedGaugeId, areas, lakes, showWind, field, currents, fieldSmooth, shore]);
 
   // --- Phase SP: trip planner --------------------------------------------------------------------------------
   /** Ring, line, label and hull for a boat position — also while the boat is dragged (no React state per move). */
@@ -359,7 +385,16 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, gau
     }
     if (!m) return;
     m.label.setLngLat([(lon + p.launch.lon) / 2, (lat + p.launch.lat) / 2]);
-    m.label.getElement().textContent = p.labelAt(lat, lon);
+    // The label rides along the line, just above it, always upright; too short a line on screen carries none.
+    const a = map.project([lon, lat]), b = map.project([p.launch.lon, p.launch.lat]);
+    let ang = (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
+    if (ang > 90) ang -= 180; else if (ang < -90) ang += 180;
+    const [head, ...rest] = p.labelAt(lat, lon).split(', ');
+    const span = m.label.getElement().firstElementChild as HTMLElement;
+    span.replaceChildren(Object.assign(document.createElement('strong'), { textContent: head }), ...(rest.length ? [` · ${rest.join(', ')}`] : []));
+    span.style.transform = `rotate(${ang.toFixed(1)}deg) translateY(-13px)`;
+    m.label.getElement().classList.toggle('is-short', Math.hypot(b.x - a.x, b.y - a.y) < 150);
+
     // The bow points along the return line (the map never rotates, so a CSS turn is a map bearing).
     m.hull.style.transform = `rotate(${Math.round(planBearingDeg({ lat, lon }, p.launch))}deg)`;
   }
@@ -372,10 +407,9 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, gau
       return;
     }
     if (!planMarks.current) {
-      const boatEl = planEl('sw-pl-boat', `${PLAN_DRIFT}<span class="sw-pl-hullbox">${PLAN_HULL}</span><span class="sw-pl-badge"></span>`);
+      const boatEl = planEl('sw-pl-boat', `${PLAN_DRIFT}<span class="sw-pl-hullbox">${PLAN_HULL}</span>`);
       boatEl.tabIndex = 0;
       boatEl.setAttribute('role', 'button');
-      boatEl.setAttribute('aria-label', 'Boot. Ziehen oder mit den Pfeiltasten verschieben, 100 Meter je Schritt.');
       const boat = new maplibregl.Marker({ element: boatEl, draggable: true, anchor: 'center' }).setLngLat([p.boat.lon, p.boat.lat]).addTo(map);
       const held = () => { const pl = planRef.current, ll = boat.getLngLat(); return pl ? clampToRadius(pl.launch, { lat: ll.lat, lon: ll.lng }, pl.radiusKm) : null; };
       boat.on('drag', () => { const c = held(); if (!c) return; if (c.clamped) boat.setLngLat([c.lon, c.lat]); drawPlan(c.lat, c.lon); });
@@ -391,14 +425,15 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, gau
         drawPlan(c.lat, c.lon);
         pl.onBoat(c.lat, c.lon);
       });
-      const label = new maplibregl.Marker({ element: planEl('sw-pl-linelabel'), anchor: 'center' }).setLngLat([p.boat.lon, p.boat.lat]).addTo(map);
+      const label = new maplibregl.Marker({ element: planEl('sw-pl-linelabel', '<span></span>'), anchor: 'center' }).setLngLat([p.boat.lon, p.boat.lat]).addTo(map);
       const launch = new maplibregl.Marker({ element: planEl('sw-pl-launch', '<span>Startort</span>'), anchor: 'bottom', offset: [0, -14] }).setLngLat([p.launch.lon, p.launch.lat]).addTo(map);
-      planMarks.current = { boat, label, launch, badge: boatEl.querySelector('.sw-pl-badge') as HTMLElement, drift: boatEl.querySelector('.sw-pl-drift') as HTMLElement, hull: boatEl.querySelector('.sw-pl-hullbox') as HTMLElement };
+      planMarks.current = { boat, label, launch, drift: boatEl.querySelector('.sw-pl-drift') as HTMLElement, hull: boatEl.querySelector('.sw-pl-hullbox') as HTMLElement };
     }
     const m = planMarks.current;
     m.boat.setLngLat([p.boat.lon, p.boat.lat]);
     m.launch.setLngLat([p.launch.lon, p.launch.lat]);
-    m.badge.textContent = p.badge;
+    // No label at the boat: the wind of the hour stands in the hour band and the findings; here it is only read out.
+    m.boat.getElement().setAttribute('aria-label', `Boot, ${p.badge}. Ziehen oder mit den Pfeiltasten verschieben, 100 Meter je Schritt.`);
     m.boat.getElement().className = `${m.boat.getElement().className.replace(/ is-(see|land|quer|calm)/g, '')} is-${p.driftTo == null || !p.side ? 'calm' : p.side}`;
     m.drift.style.transform = `rotate(${p.driftTo == null ? 0 : Math.round(p.driftTo)}deg)`;
     drawPlan(p.boat.lat, p.boat.lon);
@@ -413,7 +448,37 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, gau
     const f = map.queryRenderedFeatures([[pt.x - 10, pt.y - 10], [pt.x + 10, pt.y + 10]], { layers: ['sw-spots'] })[0];
     return f?.properties?.id != null ? String(f.properties.id) : null;
   }
-  function syncTrip() {
+  /** V-AM-9: the arrows beside the route as markers without pointer events — rebuilt with the leg and after a zoom, gone while a point is dragged. */
+  function syncArrows() {
+    const map = mapRef.current, t = tripRef.current, marks = tripMarks.current;
+    for (const m of marks.arr) m.remove();
+    marks.arr = [];
+    if (!map || !t || tripDrag.current || !t.arrows.length) return;
+    // Labels already on the map (names of the points, the boat's label): an arrow gives way to them.
+    const box = map.getContainer().getBoundingClientRect(), blocked: TripRect[] = [];
+    for (const el of [...marks.pts.map((m) => m.getElement().querySelector('span')), marks.boat && t.boat ? marks.boat.getElement().querySelector('.sw-am-boatlabel') : null]) {
+      if (!el) continue;
+      const r = el.getBoundingClientRect();
+      if (r.width > 0) blocked.push({ x: r.left - box.left, y: r.top - box.top, w: r.width, h: r.height });
+    }
+    for (const p of tripArrowLayout(t.arrows, t.arrows.map((a) => map.project([a.lon, a.lat])), t.arrowSel, blocked)) {
+      const i = p.i;
+      const a = t.arrows[i], el = planEl(`sw-am-arr is-${a.kind}${a.over ? ' is-over' : ''}`, TRIP_ARROW);
+      (el.firstElementChild as SVGElement).style.transform = `rotate(${Math.round(a.to)}deg)`;
+      const label = document.createElement('span');
+      label.className = 'sw-am-arr-l';
+      label.textContent = a.label;
+      if (p.align) label.classList.add(p.align === 1 ? 'is-from' : 'is-to');
+      label.style.top = `calc(50% + ${p.labelDy}px)`;
+      el.append(label);
+      marks.arr.push(new maplibregl.Marker({ element: el, anchor: 'center', offset: [p.dx, p.dy] }).setLngLat([a.lon, a.lat]).addTo(map));
+      // The table says the same in words; the picture is not read out a second time.
+      el.setAttribute('aria-hidden', 'true');
+    }
+  }
+  /** Route, points and boat first; the arrows last, because they give way to the labels of both. */
+  function syncTrip() { syncRoute(); syncArrows(); }
+  function syncRoute() {
     const map = mapRef.current, t = tripRef.current, marks = tripMarks.current;
     if (!map) return;
     // A point is being dragged: nothing is rebuilt under the finger (a wind answer arriving meanwhile waits for the drop).
@@ -433,7 +498,7 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, gau
       const m = new maplibregl.Marker({ element: el, draggable: true, anchor: 'center' }).setLngLat([p.lon, p.lat]).addTo(map);
       // While a point is dragged the line follows as one dashed stretch; the values come back when it is dropped.
       m.on('drag', () => { src?.setData({ type: 'FeatureCollection', features: [{ type: 'Feature', properties: { status: 'missing' }, geometry: { type: 'LineString', coordinates: marks.pts.map((x) => { const ll = x.getLngLat(); return [ll.lng, ll.lat]; }) } }] }); });
-      m.on('dragstart', () => { tripDrag.current = true; });
+      m.on('dragstart', () => { tripDrag.current = true; syncArrows(); });
       m.on('dragend', () => { tripDrag.current = false; const ll = m.getLngLat(); tripRef.current?.onMove(i, ll.lat, ll.lng, spotAt(map.project(ll))); syncTrip(); });
       el.addEventListener('keydown', (e) => { if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); tripRef.current?.onRemove(i); } });
       marks.pts.push(m);
@@ -445,7 +510,13 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, gau
     (el.querySelector('.sw-pl-hullbox') as HTMLElement).style.transform = `rotate(${Math.round(t.boat.course)}deg)`;
     (el.querySelector('.sw-am-boatlabel') as HTMLElement).textContent = t.boat.label;
   }
-  useEffect(syncTrip, [trip?.pieces, trip?.points, trip?.boat?.lat, trip?.boat?.lon, trip?.boat?.course, trip?.boat?.label, trip?.armed, !trip]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The own point: a crosshair while the next click sets it (a leg sets its own cursor in `syncRoute`).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || tripRef.current) return;
+    map.getCanvas().style.cursor = pick?.armed ? 'crosshair' : '';
+  }, [pick?.armed]);
+  useEffect(syncTrip, [trip?.pieces, trip?.points, trip?.boat?.lat, trip?.boat?.lon, trip?.boat?.course, trip?.boat?.label, trip?.armed, trip?.arrows, trip?.arrowSel, !trip]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Phase SR: ripples of the surface current ----------------------------------------------------------------
   // Spots, gauges and stations lie in the map canvas below the ripple canvas: the layer leaves a circle free around each.
@@ -468,7 +539,7 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, gau
     let alive = true;
     void import('./SeaRippleLayer').then((m) => {
       if (!alive || mapRef.current !== map) return;
-      rippleLayer.current ??= new m.SeaRippleLayer(map);
+      rippleLayer.current ??= new m.SeaRippleLayer(map, SEA_START_BOUNDS);
       apply();
     }, () => {});
     return () => { alive = false; };

@@ -1,0 +1,163 @@
+{
+ "label": "vorher",
+ "at": "2026-11-19T11:20:07.154Z",
+ "base": "http://127.0.0.1:5199",
+ "results": [
+  {
+   "target": "fire",
+   "device": "desktop",
+   "net": "none",
+   "dpr": 1,
+   "steps": [
+    {
+     "step": "open",
+     "settledMs": null,
+     "requests": 12,
+     "distinctRanges": 11,
+     "maxRepeat": 2,
+     "mb": 0.74,
+     "failed": 1,
+     "inFlightAtEnd": 6,
+     "box": [
+      618,
+      411
+     ],
+     "status": "20 km1 Kacheln · 0,2 MB geladen · ~80 m/px · schärfere Ebene lädt … · volle 10 m hier ≈ 13 MB"
+    },
+    {
+     "step": "full",
+     "settledMs": null,
+     "requests": 18,
+     "distinctRanges": 12,
+     "maxRepeat": 2,
+     "mb": 0,
+     "failed": 12,
+     "inFlightAtEnd": 6,
+     "box": [
+      1440,
+      900
+     ],
+     "status": "20 km1 Kacheln · 0,2 MB geladen · ~80 m/px · schärfere Ebene lädt … · volle 10 m hier ≈ 13 MB"
+    },
+    {
+     "step": "zoomIn1",
+     "settledMs": null,
+     "requests": 12,
+     "distinctRanges": 10,
+     "maxRepeat": 2,
+     "mb": 0.52,
+     "failed": 4,
+     "inFlightAtEnd": 5,
+     "box": [
+      1440,
+      900
+     ],
+     "status": "10 km2 Kacheln · 0,7 MB geladen · ~40 m/px · schärfere Ebene lädt … · volle 10 m hier ≈ 13 MB"
+    },
+    {
+     "step": "zoomIn2",
+     "settledMs": null,
+     "requests": 26,
+     "distinctRanges": 18,
+     "maxRepeat": 2,
+     "mb": 1.55,
+     "failed": 12,
+     "inFlightAtEnd": 6,
+     "box": [
+      1440,
+      900
+     ],
+     "status": "10 km7 Kacheln · 3,1 MB geladen · ~40 m/px · schärfere Ebene lädt … · volle 10 m hier ≈ 13 MB"
+    },
+    {
+     "step": "pan1",
+     "settledMs": null,
+     "requests": 26,
+     "distinctRanges": 16,
+     "maxRepeat": 2,
+     "mb": 0.19,
+     "failed": 19,
+     "inFlightAtEnd": 6,
+     "box": null,
+     "status": ""
+    },
+    {
+     "step": "pan2",
+     "settledMs": null,
+     "requests": 19,
+     "distinctRanges": 13,
+     "maxRepeat": 2,
+     "mb": 0.39,
+     "failed": 11,
+     "inFlightAtEnd": 6,
+     "box": [
+      1440,
+      900
+     ],
+     "status": "10 km9 Kacheln · 4,2 MB geladen · ~40 m/px · schärfere Ebene lädt … · volle 10 m hier ≈ 13 MB"
+    },
+    {
+     "step": "zoomOut1",
+     "settledMs": null,
+     "requests": 13,
+     "distinctRanges": 11,
+     "maxRepeat": 2,
+     "mb": 0,
+     "failed": 7,
+     "inFlightAtEnd": 6,
+     "box": [
+      1440,
+      900
+     ],
+     "status": "20 km10 Kacheln · 4,4 MB geladen · ~80 m/px · schärfere Ebene lädt … · volle 10 m hier ≈ 13 MB"
+    },
+    {
+     "step": "zoomOut2",
+     "settledMs": null,
+     "requests": 28,
+     "distinctRanges": 17,
+     "maxRepeat": 2,
+     "mb": 0.71,
+     "failed": 18,
+     "inFlightAtEnd": 6,
+     "box": [
+      1440,
+      900
+     ],
+     "status": "50 km10 Kacheln · 4,4 MB geladen · ~160 m/px · schärfere Ebene lädt … · volle 10 m hier ≈ 13 MB"
+    },
+    {
+     "step": "burst",
+     "settledMs": null,
+     "requests": 13,
+     "distinctRanges": 11,
+     "maxRepeat": 2,
+     "mb": 0.91,
+     "failed": 2,
+     "inFlightAtEnd": 6,
+     "box": [
+      1440,
+      900
+     ],
+     "status": "10 km10 Kacheln · 4,4 MB geladen · ~40 m/px · schärfere Ebene lädt … · volle 10 m hier ≈ 13 MB"
+    }
+   ]
+  },
+  {
+   "target": "fire",
+   "device": "desktop-l",
+   "net": "none",
+   "dpr": null,
+   "steps": [],
+   "error": "Kapitel-Knopf nicht gefunden"
+  },
+  {
+   "target": "fire",
+   "device": "mobile",
+   "net": "none",
+   "dpr": null,
+   "steps": [],
+   "error": "Kapitel-Knopf nicht gefunden"
+  }
+ ]
+}

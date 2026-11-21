@@ -23,18 +23,25 @@ export const SEA_SPOT_SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const REGION_LABEL = { nordsee: 'Nordsee', ostsee: 'Ostsee' } as const;
 
 /** Name und Revier eines Spots aus der Kennung; `null`, wenn der Slug unlesbar oder (noch) nicht in der Tabelle ist. */
-export function seaSpotLabel(id: string | null | undefined): { name: string; region: 'nordsee' | 'ostsee'; regionLabel: string; dk?: boolean } | null {
+export function seaSpotLabel(id: string | null | undefined): { name: string; region: 'nordsee' | 'ostsee' | 'binnensee'; regionLabel: string; dk?: boolean; lake?: boolean } | null {
   if (!id || id.length > 40 || !SEA_SPOT_SLUG_RE.test(id)) return null;
   const row = SEA_SPOT_NAMES[id];
   if (!row) return null;
   // Phase DK: ein dänischer Spot sagt es im Revier; Wind und Wasserstand kommen dort teils vom DMI (steht in der Beschreibung).
-  return row[2] === 'DK' ? { name: row[0], region: row[1], regionLabel: `${REGION_LABEL[row[1]]}, Dänemark`, dk: true } : { name: row[0], region: row[1], regionLabel: REGION_LABEL[row[1]] };
+  // Phase BS: ein Seespot nennt seinen See als Revier.
+  if (row[1] === 'binnensee') return { name: row[0], region: row[1], regionLabel: row[3] ?? 'Binnensee', lake: true };
+  return row[2] === 'DK' ? { name: row[0], region: row[1], regionLabel: `${REGION_LABEL[row[1] as 'nordsee' | 'ostsee']}, Dänemark`, dk: true } : { name: row[0], region: row[1], regionLabel: REGION_LABEL[row[1] as 'nordsee' | 'ostsee'] };
 }
 
 /** Titel + Beschreibung; `null` ohne bekannten Spot (die Vorschau fällt dann auf die allgemeine Seewetter-Vorschau zurück). */
 export function describeSeaLink(id: string | null | undefined, whenText: string | null): { title: string; description: string } | null {
   const l = seaSpotLabel(id);
   if (!l) return null;
+  if (l.lake) return {
+    title: `${l.name} — Seewetter ${l.regionLabel}${whenText ? ` · Prognose ${whenText}` : ''}`,
+    description: `Wind und Böen am Spot ${l.name} (${l.regionLabel}) aus buscosun Fusion, dazu eine geschätzte Windwelle aus eigener Rechnung. `
+      + 'Der Link zeigt immer die aktuelle Lage. Keine amtliche Warnung und kein Ersatz für die Meldungen des zuständigen Wetterdienstes.',
+  };
   return {
     title: `${l.name} — Seewetter ${l.regionLabel}${whenText ? ` · Prognose ${whenText}` : ''}`,
     description: `Wind, Böen und Seegang am Spot ${l.name} (${l.regionLabel}): Modellwerte des DWD${l.dk ? ', des DMI' : ''} und buscosun Fusion, bewertet mit eigenen Grenzen je Profil. `

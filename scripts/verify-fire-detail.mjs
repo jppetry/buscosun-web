@@ -14,7 +14,8 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { verifyFireWeatherAtPoint } from '../src/fire/detail/fireWeatherAtPoint.ts';
 import { verifyPassTimeline } from '../src/fire/detail/passTimeline.ts';
-import { verifyFireSatImagery } from '../src/fire/detail/fireSatImagery.ts';
+import { verifyFireSatImagery, rangeAddress, satLoadEnabled } from '../src/fire/detail/fireSatImagery.ts';
+import { levelThatFits, tileBytes, tileRetryMs, tilesToEvict, TILE_CACHE_BYTES, VIEW_TILE_BYTES } from '../src/fire/detail/cogTileCache.ts';
 import { verifyCogTiff, writeTiledTiff, parseCogIfds, decodeTile } from '../src/fire/detail/cogTiff.ts';
 import { remuxWcLevel, assertWcLevelContract } from './fire/wc/wcRemux.mjs';
 import { verifySentinelGeo } from '../src/fire/detail/sentinelGeo.ts';
@@ -256,6 +257,57 @@ add('[cog] Esc schließt erst das Vollbild, dann den Viewer; Body-Scroll ist im 
   /'Escape'/.test(cogv) && /body\.style\.overflow = 'hidden'/.test(cogv));
 add('[cog] Kachel-Cache mit Deckel (ImageBitmap.close) und In-Flight-Deckel',
   /TILE_CACHE_MAX/.test(cogv) && /\.close\(\)/.test(cogv) && /MAX_IN_FLIGHT/.test(cogv));
+// --- Phase SL (audit/satellitenbild-laden.md): the loading of the 10 m view ---------------------------------------------
+{
+  const MB = 1024 * 1024, T10 = tileBytes(1024, 1024), T20 = tileBytes(512, 512);
+  // A cache as the viewer keeps it: insertion order = age, a cost per key, pins of the view on screen.
+  const sim = (need, cost, rule) => {
+    const order = new Map(); let sum = 0, reloads = 0;
+    const pinned = new Set(need);
+    for (let round = 0; round < 6; round++) {
+      for (const k of need) {
+        if (order.has(k)) continue;
+        if (round > 0) reloads++;
+        if (rule === 'old') { if (order.size >= 24) { const o = order.keys().next().value; sum -= order.get(o); order.delete(o); } }
+        else for (const o of tilesToEvict(order.keys(), (x) => order.get(x), (x) => pinned.has(x), sum, cost, TILE_CACHE_BYTES)) { sum -= order.get(o); order.delete(o); }
+        order.set(k, cost); sum += cost;
+      }
+    }
+    return { reloads, held: need.filter((k) => order.has(k)).length, sum };
+  };
+  const view54 = Array.from({ length: 54 }, (_, i) => `v${i}`);
+  const neu = sim(view54, T20, 'new'), alt = sim(view54, T20, 'old');
+  add('[sl] Cache-Deckel in Bytes: 96 MB wie die 24 Kacheln der 10-m-Ebene bisher, 80 MB je Ebene einer Ansicht; eine 512²-Kachel kostet ein Viertel',
+    TILE_CACHE_BYTES === 96 * MB && VIEW_TILE_BYTES === 80 * MB && T10 === 4 * MB && T20 === MB, `${TILE_CACHE_BYTES / MB}/${VIEW_TILE_BYTES / MB}`);
+  add('[sl] U2: eine Ansicht mit 54 Kacheln der 20-m-Ebene (Vollbild 1920 × 1080) steht nach EINEM Durchgang und lädt nichts zweimal — Gegenprobe: die alte Regel (24 Kacheln, älteste zuerst) hält nie mehr als 24 und lädt in jeder Runde neu',
+    neu.reloads === 0 && neu.held === 54 && alt.reloads > 100 && alt.held <= 24, `neu ${neu.reloads}/${neu.held}, alt ${alt.reloads}/${alt.held}`);
+  const order = ['a', 'b', 'c', 'd'], cost = () => 30 * MB;
+  add('[sl] Verdrängung: unter dem Deckel nichts; darüber die am längsten ungenutzte zuerst und nur so viele wie nötig; eine Kachel der sichtbaren Ansicht nie — sind nur solche übrig, bleibt der Cache über dem Deckel',
+    tilesToEvict(order, cost, () => false, 60 * MB, 30 * MB, 96 * MB).length === 0
+    && tilesToEvict(order, cost, () => false, 120 * MB, 4 * MB, 96 * MB).join() === 'a'
+    && tilesToEvict(order, cost, () => false, 120 * MB, 40 * MB, 96 * MB).join() === 'a,b,c'
+    && tilesToEvict(order, cost, (k) => k === 'a' || k === 'c', 120 * MB, 4 * MB, 96 * MB).join() === 'b'
+    && tilesToEvict(order, cost, () => true, 120 * MB, 4 * MB, 96 * MB).length === 0);
+  // Levels of a real TCI file: 10 m (1 024² tiles), 20 m and coarser (512²); tiles in view per level.
+  const levels = [{ m: 10, n: 54, t: T10 }, { m: 20, n: 54, t: T20 }, { m: 40, n: 15, t: T20 }];
+  const fit = (ls) => levelThatFits(ls, (l) => l.n * l.t, VIEW_TILE_BYTES).m;
+  add('[sl] Ebene der Ansicht: 54 Kacheln der 10-m-Ebene (216 MB) passen nicht ⇒ die 20-m-Ebene; 20 Kacheln der 10-m-Ebene (80 MB) bleiben auf 10 m; passt keine, die gröbste',
+    fit(levels) === 20 && fit([{ m: 10, n: 20, t: T10 }, levels[1]]) === 10 && fit([{ m: 10, n: 21, t: T10 }, levels[1]]) === 20
+    && levelThatFits([{ m: 10, n: 99, t: T10 }, { m: 20, n: 99, t: T10 }], (l) => l.n * l.t, VIEW_TILE_BYTES).m === 20);
+  const href = 'https://sentinel-cogs.s3.us-west-2.amazonaws.com/x/TCI.tif';
+  add('[sl] U1: jeder Bytebereich hat seine eigene Adresse (`?r=<von>-<bis>`), zwei Bereiche nie dieselbe; `?satload=0` fragt wie bisher unter EINER Adresse',
+    rangeAddress(href, 0, 99, true) === `${href}?r=0-99` && rangeAddress(`${href}?a=1`, 5, 9, true) === `${href}?a=1&r=5-9`
+    && rangeAddress(href, 0, 99, true) !== rangeAddress(href, 100, 199, true) && rangeAddress(href, 0, 99, false) === href
+    && satLoadEnabled('') === true && satLoadEnabled('?satload=0') === false && satLoadEnabled('?satload=1') === true);
+  add('[sl] U3: Pause vor dem nächsten Versuch einer ausgefallenen Kachel 4 · 8 · 16 · 30 · 30 s',
+    [1, 2, 3, 4, 9].map(tileRetryMs).join() === '4000,8000,16000,30000,30000');
+  const hist = readFileSync(join(ROOT, 'src', 'fire', 'FireHistoryPanel.tsx'), 'utf8');
+  add('[sl] Verdrahtung: Kachel- und Kopfabrufe gehen über `rangeAddress`; `putBitmap` meldet Ankunft UND Ausfall an alle offenen Betrachter (`_watchers`), nicht nur an das Bild, das gefragt hat; verdrängt wird nur über `tilesToEvict` mit den Pins der Ansicht; alle vier Ebenenwahlen (drei Modi, Vorladen) gehen über `viewLevel`; das Historie-Dossier lädt vor',
+    (cogv.match(/fetchSat\(rangeAddress\(href, /g) ?? []).length === 2 && /tellWatchers\(0\)/.test(cogv) && /tellWatchers\(tileRetryMs\(n\) \+ 50\)/.test(cogv) && /_watchers\.add\(hear\)/.test(cogv)
+    && /tilesToEvict\(_tiles\.keys\(\), .*isPinned, _costSum, bytes, TILE_CACHE_BYTES\)/.test(cogv) && /pins\.add\(lv\.key\(t\)\)/.test(cogv)
+    && (cogv.match(/= viewLevel\(/g) ?? []).length === 4 && !/= pickLevel\((?!ifds, targetMPerPx)/.test(cogv)
+    && /warmSatImagery\(\{ lat: entry\.lat/.test(hist) && /satLoadEnabled\(\)/.test(hist));
+}
 add('[cog] jeder Fehlerzustand ist benannt und trägt den Copernicus-Link als Ausweg',
   /nennt der Katalog kein 10-m-Original/.test(cogv) && /kann die App nicht lesen/.test(cogv)
   && /gerade nicht erreichbar/.test(cogv) && /fallbackUrl/.test(cogv) && /rel="noopener"/.test(cogv));

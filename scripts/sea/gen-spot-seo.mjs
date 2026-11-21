@@ -76,6 +76,31 @@ const ids = new Set(cat.spots.map((s) => s.id));
 const spots = [...cat.spots, ...(dkCat?.spots ?? []).filter((s) => s.country === 'DK' && !ids.has(s.id))];
 /** Teilmodelle des DMI-Sturmflutmodells in Worten (wie `DMI_WL_COLLECTION_LABEL` in `src/sea/seaDmi.ts`). */
 const DKSS = { dkss_lb: 'Kleiner Belt', dkss_idw: 'Innere dänische Gewässer', dkss_ws: 'Wattenmeer', dkss_nsbs: 'Nordsee–Ostsee' };
+// Phase BS: die Seespots aus `sea/v1/static/spots-lakes.json` (`--lakes` nennt die Datei, solange sie nicht im Checkout liegt).
+const lakeFile = typeof args.lakes === 'string' ? resolve(ROOT, args.lakes) : join(DATA, 'sea/v1/static/spots-lakes.json');
+const lakeCat = existsSync(lakeFile) ? J(lakeFile) : null;
+const lakeOf = Object.fromEntries((lakeCat?.lakes ?? []).map((l) => [l.id, l]));
+const LAND = { DE: 'Deutschland', AT: 'Österreich', CH: 'Schweiz', FR: 'Frankreich', IT: 'Italien', HU: 'Ungarn' };
+const NET = { dwd10: 'DWD', tawes: 'GeoSphere Austria', smn: 'MeteoSchweiz' };
+const lakeSpots = (lakeCat?.spots ?? []).filter((s) => s.lake && lakeOf[s.lake.id]);
+const lakeRows = lakeSpots.map((s) => {
+  const l = lakeOf[s.lake.id];
+  const same = lakeSpots.filter((o) => o.id !== s.id && o.lake.id === s.lake.id).map((o) => [km(s.lat, s.lon, o.lat, o.lon), o]).sort((a, b) => a[0] - b[0]);
+  const other = lakeSpots.filter((o) => o.lake.id !== s.lake.id).map((o) => [km(s.lat, s.lon, o.lat, o.lon), o]).sort((a, b) => a[0] - b[0]);
+  const near = [...same, ...other].slice(0, NEAR_N).map(([d, o]) => [o.id, r1(d)]);
+  // Ortsseiten bis 6 km vom Spot (die Tabelle Ort → nächster Spot kennt nur die Küste).
+  const places = PLACES_ALL.map((p) => [km(s.lat, s.lon, p.lat, p.lon), p]).filter(([d]) => d <= 6).sort((a, b) => a[0] - b[0]).slice(0, 3).map(([, p]) => [p.slug, p.name]);
+  const fmax = Math.max(...s.lake.fetch), w = s.lake.stations.wind;
+  return {
+    id: s.id, name: s.name, region: 'binnensee', kinds: s.kinds, lat: s.lat, lon: s.lon, normal: s.normal, normalSet: false,
+    seaArea: null, coast: null, wodl: null, station: w ? [w.name === w.name.toUpperCase() ? w.name.charAt(0) + w.name.slice(1).toLowerCase() : w.name, r1(w.km)] : null, cellKm: 0, tidal: false, gauge: null, near, places,
+    lake: {
+      id: l.id, name: l.name, land: LAND[s.lake.land], lands: l.lands.map((x) => LAND[x] ?? x), elevM: Math.round(l.elevM), depthM: l.depthM, areaKm2: l.areaKm2,
+      fetchKm: r1(fmax / 1000), fetchFrom: s.lake.fetch.indexOf(fmax) * 10, cell: s.lake.warncell?.name ?? null, service: l.service[0] ? [l.service[0].name, l.service[0].url] : null,
+      stationNet: w ? NET[w.net] ?? w.net : null, wt: s.lake.stations.wt?.name ?? null, model: !!s.lake.model, level: s.lake.stations.level ? [s.lake.stations.level.net, s.lake.stations.level.name] : null, outline: l.outline.source,
+    },
+  };
+});
 const rows = spots.map((s) => {
   const g = gauges.gauges.map((x) => [km(s.lat, s.lon, x.lat, x.lon), x]).sort((a, b) => a[0] - b[0])[0];
   const near = spots.filter((o) => o.id !== s.id && o.region === s.region)
@@ -104,7 +129,17 @@ const head = `/**
  * Küste [Kennung, km], Ortsseiten mit diesem Spot als nächstem [Slug, Name]. Liegt nur im Lazy-Chunk der Texte und im Build.
  */
 export interface SeaSpotFact {
-  id: string; name: string; region: 'nordsee' | 'ostsee'; kinds: readonly string[]; lat: number; lon: number;
+  id: string; name: string; region: 'nordsee' | 'ostsee' | 'binnensee'; kinds: readonly string[]; lat: number; lon: number;
+  /**
+   * Phase BS: ein Seespot (Revier 'binnensee') — der See mit Ländern, Seespiegel (m ü. M.), mittlerer Tiefe (m), Fläche (km²), die
+   * längste Strecke über den See vom Spot aus (km) und ihre Richtung (Grad, woher der Wind dann kommt), DWD-Warnzelle oder
+   * null, zuständiger Dienst, Netz der Windstation, WSV-Pegel mit Wassertemperatur oder null, ob das Seenmodell den See rechnet,
+   * Pegel [Netz, Name] oder null, Quelle des Umrisses. Kein Seegebiet, kein Küstenabschnitt, keine CWAM-Zelle (cellKm 0).
+   */
+  lake?: {
+    id: string; name: string; land: string; lands: readonly string[]; elevM: number; depthM: number; areaKm2: number; fetchKm: number; fetchFrom: number;
+    cell: string | null; service: readonly [name: string, url: string] | null; stationNet: string | null; wt: string | null; model: boolean; level: readonly [net: string, name: string] | null; outline: string;
+  };
   /** Phase DK: fehlt = Deutschland. Ein dänischer Spot hat keinen Küstenabschnitt (coast, wodl null), seine Station ist eine des DMI. */
   country?: 'DK';
   /** Phase DK: Wind aus buscosun Fusion (im Punkt-Cube) oder DMI HARMONIE; Wasserstand vom BSH-Pegel oder vom DMI-Modell DKSS [Art, Name, km]. */
@@ -119,7 +154,7 @@ export interface SeaSpotFact {
 export const SEA_SPOT_FACTS_BUILT = ${JSON.stringify(cat.built.slice(0, 10))};
 export const SEA_SPOT_FACTS: readonly SeaSpotFact[] = [
 `;
-const body = rows.map((r) => `  ${JSON.stringify(r)},`).join('\n');
+const body = [...rows, ...lakeRows].map((r) => `  ${JSON.stringify(r)},`).join('\n');
 writeFileSync(join(ROOT, 'src/sea/seaSpotFacts.ts'), `${head}${body}\n];\n`, 'utf8');
-console.log(`[sea-seo] ${rows.length} Steckbriefe → src/sea/seaSpotFacts.ts (Katalog ${cat.built.slice(0, 10)}); Pegel ≤ ${GAUGE_MAX_KM} km: ${rows.filter((r) => r.gauge).length}; mit Ortsseiten: ${rows.filter((r) => r.places.length).length}`);
+console.log(`[sea-seo] ${rows.length} + ${lakeRows.length} (Seen) Steckbriefe → src/sea/seaSpotFacts.ts (Katalog ${cat.built.slice(0, 10)}); Pegel ≤ ${GAUGE_MAX_KM} km: ${rows.filter((r) => r.gauge).length}; mit Ortsseiten: ${rows.filter((r) => r.places.length).length}`);
 if (unknownStations.size) console.warn(`[sea-seo] Stationsnamen ohne Lesenamen (bitte in STATION_NAME ergänzen): ${[...unknownStations].join(', ')}`);

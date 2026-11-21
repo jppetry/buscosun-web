@@ -1,0 +1,293 @@
+{
+ "label": "vorher",
+ "at": "2026-11-19T11:22:18.070Z",
+ "base": "http://127.0.0.1:5199",
+ "results": [
+  {
+   "target": "glacier",
+   "device": "desktop",
+   "net": "none",
+   "dpr": 1,
+   "steps": [
+    {
+     "step": "open",
+     "settledMs": 20943,
+     "requests": 23,
+     "distinctRanges": 23,
+     "maxRepeat": 1,
+     "mb": 5.22,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      652,
+      407
+     ],
+     "status": "2 km0 Kacheln · <0,1 MB geladen · ~10 m/px"
+    },
+    {
+     "step": "full",
+     "settledMs": 3187,
+     "requests": 12,
+     "distinctRanges": 12,
+     "maxRepeat": 1,
+     "mb": 2.85,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      1440,
+      900
+     ],
+     "status": "2 km4 Kacheln · 2,8 MB geladen · ~10 m/px"
+    },
+    {
+     "step": "zoomIn1",
+     "settledMs": 555,
+     "requests": 0,
+     "distinctRanges": 0,
+     "maxRepeat": 0,
+     "mb": 0,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      1440,
+      900
+     ],
+     "status": "1 km4 Kacheln · 2,8 MB geladen · ~10 m/px"
+    },
+    {
+     "step": "zoomIn2",
+     "settledMs": 564,
+     "requests": 0,
+     "distinctRanges": 0,
+     "maxRepeat": 0,
+     "mb": 0,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      1440,
+      900
+     ],
+     "status": "1 km4 Kacheln · 2,8 MB geladen · ~10 m/px"
+    },
+    {
+     "step": "pan1",
+     "settledMs": 730,
+     "requests": 0,
+     "distinctRanges": 0,
+     "maxRepeat": 0,
+     "mb": 0,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      1440,
+      900
+     ],
+     "status": "1 km4 Kacheln · 2,8 MB geladen · ~10 m/px"
+    },
+    {
+     "step": "pan2",
+     "settledMs": 718,
+     "requests": 0,
+     "distinctRanges": 0,
+     "maxRepeat": 0,
+     "mb": 0,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      1440,
+      900
+     ],
+     "status": "1 km4 Kacheln · 2,8 MB geladen · ~10 m/px"
+    },
+    {
+     "step": "zoomOut1",
+     "settledMs": 570,
+     "requests": 0,
+     "distinctRanges": 0,
+     "maxRepeat": 0,
+     "mb": 0,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      1440,
+      900
+     ],
+     "status": "2 km4 Kacheln · 2,8 MB geladen · ~10 m/px"
+    },
+    {
+     "step": "zoomOut2",
+     "settledMs": 5147,
+     "requests": 16,
+     "distinctRanges": 16,
+     "maxRepeat": 1,
+     "mb": 4.02,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      1440,
+      900
+     ],
+     "status": "5 km8 Kacheln · 6,9 MB geladen · ~10 m/px"
+    },
+    {
+     "step": "burst",
+     "settledMs": 1855,
+     "requests": 0,
+     "distinctRanges": 0,
+     "maxRepeat": 0,
+     "mb": 0,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      1440,
+      900
+     ],
+     "status": "1 km8 Kacheln · 6,9 MB geladen · ~10 m/px"
+    }
+   ]
+  },
+  {
+   "target": "glacier",
+   "device": "mobile",
+   "net": "none",
+   "dpr": 3,
+   "steps": [
+    {
+     "step": "open",
+     "settledMs": 20406,
+     "requests": 14,
+     "distinctRanges": 11,
+     "maxRepeat": 2,
+     "mb": 1.85,
+     "failed": 3,
+     "inFlightAtEnd": 0,
+     "box": [
+      342,
+      428
+     ],
+     "status": "2 km0 Kacheln · <0,1 MB geladen · ~10 m/px"
+    },
+    {
+     "step": "full",
+     "settledMs": 519,
+     "requests": 0,
+     "distinctRanges": 0,
+     "maxRepeat": 0,
+     "mb": 0,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      390,
+      844
+     ],
+     "status": "2 km0 Kacheln · <0,1 MB geladen · ~10 m/px"
+    },
+    {
+     "step": "zoomIn1",
+     "settledMs": 778,
+     "requests": 0,
+     "distinctRanges": 0,
+     "maxRepeat": 0,
+     "mb": 0,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      390,
+      844
+     ],
+     "status": "1 km0 Kacheln · <0,1 MB geladen · ~10 m/px"
+    },
+    {
+     "step": "zoomIn2",
+     "settledMs": 787,
+     "requests": 0,
+     "distinctRanges": 0,
+     "maxRepeat": 0,
+     "mb": 0,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      390,
+      844
+     ],
+     "status": "1 km0 Kacheln · <0,1 MB geladen · ~10 m/px"
+    },
+    {
+     "step": "pan1",
+     "settledMs": 761,
+     "requests": 0,
+     "distinctRanges": 0,
+     "maxRepeat": 0,
+     "mb": 0,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      390,
+      844
+     ],
+     "status": "1 km0 Kacheln · <0,1 MB geladen · ~10 m/px"
+    },
+    {
+     "step": "pan2",
+     "settledMs": 757,
+     "requests": 0,
+     "distinctRanges": 0,
+     "maxRepeat": 0,
+     "mb": 0,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      390,
+      844
+     ],
+     "status": "1 km0 Kacheln · <0,1 MB geladen · ~10 m/px"
+    },
+    {
+     "step": "zoomOut1",
+     "settledMs": 760,
+     "requests": 0,
+     "distinctRanges": 0,
+     "maxRepeat": 0,
+     "mb": 0,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      390,
+      844
+     ],
+     "status": "2 km0 Kacheln · <0,1 MB geladen · ~10 m/px"
+    },
+    {
+     "step": "zoomOut2",
+     "settledMs": 770,
+     "requests": 0,
+     "distinctRanges": 0,
+     "maxRepeat": 0,
+     "mb": 0,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      390,
+      844
+     ],
+     "status": "5 km0 Kacheln · <0,1 MB geladen · ~10 m/px"
+    },
+    {
+     "step": "burst",
+     "settledMs": 2845,
+     "requests": 0,
+     "distinctRanges": 0,
+     "maxRepeat": 0,
+     "mb": 0,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      390,
+      844
+     ],
+     "status": "1 km0 Kacheln · <0,1 MB geladen · ~10 m/px"
+    }
+   ]
+  }
+ ]
+}

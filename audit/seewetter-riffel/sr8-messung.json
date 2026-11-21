@@ -1,0 +1,206 @@
+{
+  "veilClicks": 0,
+  "box": {
+    "x": 334,
+    "y": 60,
+    "width": 706,
+    "height": 840
+  },
+  "reduceMoving": {
+    "frames": {
+      "hz": 60,
+      "gapP50": 16.7,
+      "gapP95": 16.8,
+      "gapMax": 16.9,
+      "costP50": 5,
+      "costP95": 7.9,
+      "costMax": 10.3,
+      "longTasks": 0,
+      "longMax": 0,
+      "reduce": true,
+      "coarse": false
+    },
+    "change100": {
+      "drawnPct": 6.4,
+      "changedOfDrawnPct": 92.9
+    },
+    "change1000": {
+      "drawnPct": 7.8,
+      "changedOfDrawnPct": 97.8
+    },
+    "note": [
+      "Modell, Mittel der oberen 5 m, keine Navigationsgrundlage. BSH-Lauf 00 UTC vom 19.11."
+    ]
+  },
+  "curDrag": {
+    "hz": 57.3,
+    "gapP50": 16.7,
+    "gapP95": 33.3,
+    "gapMax": 33.4,
+    "costP50": 3.8,
+    "costP95": 5.2,
+    "costMax": 18.8,
+    "longTasks": 0,
+    "longMax": 0,
+    "reduce": true,
+    "coarse": false
+  },
+  "curZoomWhile": {
+    "hz": 37.8,
+    "gapP50": 33.3,
+    "gapP95": 33.5,
+    "gapMax": 50.1,
+    "costP50": 7.8,
+    "costP95": 13.3,
+    "costMax": 22.7,
+    "longTasks": 1,
+    "longMax": 56,
+    "reduce": true,
+    "coarse": false
+  },
+  "curZoomed": {
+    "frames": {
+      "hz": 32.5,
+      "gapP50": 33.3,
+      "gapP95": 50,
+      "gapMax": 66.6,
+      "costP50": 7.3,
+      "costP95": 10.1,
+      "costMax": 24.7,
+      "longTasks": 1,
+      "longMax": 58,
+      "reduce": true,
+      "coarse": false
+    },
+    "change100": {
+      "drawnPct": 20,
+      "changedOfDrawnPct": 91.2
+    }
+  },
+  "errorsA": [],
+  "still": {
+    "frames": {
+      "hz": 0,
+      "gapP50": null,
+      "gapP95": null,
+      "gapMax": null,
+      "costP50": null,
+      "costP95": null,
+      "costMax": null,
+      "longTasks": 0,
+      "longMax": 0,
+      "reduce": false,
+      "coarse": false
+    },
+    "change1000": {
+      "drawnPct": 5.1,
+      "changedOfDrawnPct": 0
+    },
+    "note": [
+      "Modell, Mittel der oberen 5 m, keine Navigationsgrundlage. BSH-Lauf 00 UTC vom 19.11. Standbild: die Bewegung ist über „srstill=1“ im Link abgeschaltet."
+    ]
+  },
+  "linear": {
+    "frames": {
+      "hz": 60.3,
+      "gapP50": 16.7,
+      "gapP95": 16.8,
+      "gapMax": 16.8,
+      "costP50": 4.9,
+      "costP95": 7.4,
+      "costMax": 10.2,
+      "longTasks": 0,
+      "longMax": 0,
+      "reduce": false,
+      "coarse": false
+    },
+    "change100": {
+      "drawnPct": 6.3,
+      "changedOfDrawnPct": 90.6
+    }
+  },
+  "curve": {
+    "frames": {
+      "hz": 60,
+      "gapP50": 16.7,
+      "gapP95": 16.8,
+      "gapMax": 16.9,
+      "costP50": 4.9,
+      "costP95": 7.7,
+      "costMax": 11.5,
+      "longTasks": 0,
+      "longMax": 0,
+      "reduce": false,
+      "coarse": false
+    },
+    "change100": {
+      "drawnPct": 7,
+      "changedOfDrawnPct": 93.9
+    }
+  },
+  "errorsB": [],
+  "windIdle": {
+    "hz": 60.3,
+    "gapP50": 16.7,
+    "gapP95": 16.8,
+    "gapMax": 16.9,
+    "costP50": 4.7,
+    "costP95": 6.7,
+    "costMax": 8,
+    "longTasks": 0,
+    "longMax": 0,
+    "reduce": true,
+    "coarse": false
+  },
+  "windDrag": {
+    "hz": 60,
+    "gapP50": 16.7,
+    "gapP95": 16.8,
+    "gapMax": 16.8,
+    "costP50": 5.7,
+    "costP95": 9.7,
+    "costMax": 21.4,
+    "longTasks": 0,
+    "longMax": 0,
+    "reduce": true,
+    "coarse": false
+  },
+  "windZoomWhile": {
+    "hz": 60,
+    "gapP50": 16.7,
+    "gapP95": 16.8,
+    "gapMax": 33.3,
+    "costP50": 5.2,
+    "costP95": 8.9,
+    "costMax": 36.7,
+    "longTasks": 0,
+    "longMax": 0,
+    "reduce": true,
+    "coarse": false
+  },
+  "mobileVeil": 0,
+  "mobile": {
+    "frames": {
+      "hz": 60,
+      "gapP50": 16.7,
+      "gapP95": 16.8,
+      "gapMax": 17,
+      "costP50": 1,
+      "costP95": 3.6,
+      "costMax": 4.3,
+      "longTasks": 0,
+      "longMax": 0,
+      "reduce": true,
+      "coarse": true
+    },
+    "change100": {
+      "drawnPct": 5.4,
+      "changedOfDrawnPct": 94.3
+    },
+    "change1000": {
+      "drawnPct": 5.8,
+      "changedOfDrawnPct": 98.7
+    }
+  },
+  "errorsD": []
+}

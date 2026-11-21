@@ -1,0 +1,139 @@
+{
+ "label": "nachher",
+ "query": "",
+ "at": "2026-11-19T16:16:58.853Z",
+ "base": "http://127.0.0.1:5199",
+ "results": [
+  {
+   "target": "fire",
+   "device": "desktop",
+   "net": "none",
+   "dpr": 1,
+   "steps": [
+    {
+     "step": "open",
+     "settledMs": null,
+     "requests": 27,
+     "distinctRanges": 21,
+     "maxRepeat": 2,
+     "mb": 0,
+     "failed": 6,
+     "inFlightAtEnd": 0,
+     "box": [
+      618,
+      411
+     ],
+     "status": "20 km0 Kacheln · <0,1 MB geladen · ~80 m/px · volle 10 m hier ≈ 13 MB"
+    },
+    {
+     "step": "full",
+     "settledMs": null,
+     "requests": 0,
+     "distinctRanges": 0,
+     "maxRepeat": 0,
+     "mb": 0,
+     "failed": 0,
+     "inFlightAtEnd": 0,
+     "box": [
+      1440,
+      900
+     ],
+     "status": "20 km0 Kacheln · <0,1 MB geladen · ~80 m/px · volle 10 m hier ≈ 13 MB"
+    },
+    {
+     "step": "zoomIn1",
+     "settledMs": null,
+     "requests": 24,
+     "distinctRanges": 12,
+     "maxRepeat": 2,
+     "mb": 0,
+     "failed": 18,
+     "inFlightAtEnd": 6,
+     "box": [
+      1440,
+      900
+     ],
+     "status": "10 km0 Kacheln · <0,1 MB geladen · ~40 m/px · schärfere Ebene lädt … · volle 10 m hier ≈ 13 MB"
+    },
+    {
+     "step": "zoomIn2",
+     "settledMs": null,
+     "requests": 30,
+     "distinctRanges": 18,
+     "maxRepeat": 2,
+     "mb": 0,
+     "failed": 24,
+     "inFlightAtEnd": 6,
+     "box": [
+      1440,
+      900
+     ],
+     "status": "10 km0 Kacheln · <0,1 MB geladen · ~40 m/px · schärfere Ebene lädt … · volle 10 m hier ≈ 13 MB"
+    },
+    {
+     "step": "pan1",
+     "settledMs": null,
+     "requests": 158,
+     "distinctRanges": 53,
+     "maxRepeat": 4,
+     "mb": 0,
+     "failed": 154,
+     "inFlightAtEnd": 4,
+     "box": null,
+     "status": ""
+    },
+    {
+     "step": "pan2",
+     "settledMs": null,
+     "requests": 140,
+     "distinctRanges": 35,
+     "maxRepeat": 6,
+     "mb": 0,
+     "failed": 125,
+     "inFlightAtEnd": 6,
+     "box": null,
+     "status": ""
+    },
+    {
+     "step": "zoomOut1",
+     "settledMs": null,
+     "requests": 30,
+     "distinctRanges": 18,
+     "maxRepeat": 2,
+     "mb": 0,
+     "failed": 24,
+     "inFlightAtEnd": 6,
+     "box": [
+      1440,
+      900
+     ],
+     "status": "20 km2 Kacheln · 1,1 MB geladen · ~80 m/px · schärfere Ebene lädt … · volle 10 m hier ≈ 13 MB"
+    },
+    {
+     "step": "zoomOut2",
+     "settledMs": null,
+     "requests": 24,
+     "distinctRanges": 13,
+     "maxRepeat": 2,
+     "mb": 0,
+     "failed": 18,
+     "inFlightAtEnd": 6,
+     "box": null,
+     "status": ""
+    },
+    {
+     "step": "burst",
+     "settledMs": null,
+     "requests": 50,
+     "distinctRanges": 24,
+     "maxRepeat": 4,
+     "mb": 0,
+     "failed": 39,
+     "inFlightAtEnd": 6,
+     "box": null,
+     "status": ""
+    }
+   ]
+  }
+ ]
+}

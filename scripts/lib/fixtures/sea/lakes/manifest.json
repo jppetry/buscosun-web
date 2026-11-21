@@ -1,0 +1,113 @@
+{
+ "about": "Fixtures von verify:sea-lakes — byte-gleich aufgezeichnete Antworten (Phase BS, audit/seewetter-binnenseen.md). Nicht von Hand ändern; neu aufzeichnen mit scripts/sea/spike/lake-record-fixtures.mjs.",
+ "recordedAt": "2026-11-21T09:40:14.998Z",
+ "files": {
+  "dwd-warngebiete-binnenseen.json": {
+   "sha256": "6c2b4a623258be1d0bd7ed542e48d022188fbeca9c755a8df75025121b7f3f86",
+   "bytes": 23148,
+   "kind": "copied",
+   "url": "https://maps.dwd.de/geoserver/dwd/ows?service=WFS&version=2.0.0&request=GetFeature&typeName=dwd:Warngebiete_Binnenseen&outputFormat=application/json",
+   "recorded": "2026-11-21T08:45Z"
+  },
+  "lindas-lake-stations.json": {
+   "sha256": "170f018e0f6ecece7f313f3067a677cf01cd15a7bc2450ea881a825beb34f1a4",
+   "bytes": 30394,
+   "kind": "copied",
+   "url": "https://lindas.admin.ch/query (POST, SPARQL of lake-probe.mjs)",
+   "from": "audit/seewetter-binnenseen/spike/raw"
+  },
+  "alplakes-1d-point-murten.json": {
+   "sha256": "7045e7f7eb3842fea4827daea3baa58909b1286c2e1d32dd6a87beb431abe4b7",
+   "bytes": 1524,
+   "kind": "copied",
+   "url": "https://alplakes-api.eawag.ch/simulations/1d/point/simstrat/murten/<start>/<end>/1?variables=T",
+   "from": "audit/seewetter-binnenseen/spike/raw"
+  },
+  "alplakes-preflight.txt": {
+   "sha256": "f80399859bbd7b2cb1cac34d88e0f01461619f351b476926e2465eea789098d4",
+   "bytes": 22,
+   "kind": "copied",
+   "url": "https://alplakes-api.eawag.ch/simulations/1d/metadata (OPTIONS, Origin https://buscosun.com) — answer 400",
+   "from": "audit/seewetter-binnenseen/spike/raw"
+  },
+  "wsv-mueritz.json": {
+   "sha256": "dea874d7c3b2d8590d34d23881f24f26b18ebcd9940a5fe3dadd783ce3a296a4",
+   "bytes": 1277,
+   "kind": "copied",
+   "url": "https://www.pegelonline.wsv.de/webservices/rest-api/v2/stations/bd317edd-214a-4e11-a9dc-3cc71a2907c3.json?includeTimeseries=true&includeCurrentMeasurement=true",
+   "from": "audit/seewetter-binnenseen/spike/raw"
+  },
+  "outline-traunsee.json": {
+   "sha256": "c2bd7a5b2e4536196f68632e30e72579853d35d5aadbba48c24d8d2d2345850e",
+   "bytes": 21427,
+   "kind": "copied",
+   "url": "https://image.discomap.eea.europa.eu/arcgis/rest/services/EUHydro/EUHydro_RiverNetworkDatabase/MapServer/2/query?geometry=13.8,47.87&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=OBJECTID,NAM,LAKID,AREA_GEO&returnGeometry=true&outSR=4326&f=geojson",
+   "source": "euhydro"
+  },
+  "outline-murtensee.json": {
+   "sha256": "0408d91b5d37879a1f3c1a90e008a684d430f0b86eba979c0ce3ab4b65cd0e54",
+   "bytes": 77237,
+   "kind": "copied",
+   "url": "https://api3.geo.admin.ch/rest/services/all/MapServer/find?layer=ch.swisstopo.swisstlm3d-gewaessernetz&searchText=Murtensee&searchField=name&contains=true&returnGeometry=true&geometryFormat=geojson&sr=4326",
+   "source": "swisstopo"
+  },
+  "outline-steinhuder-meer.json": {
+   "sha256": "177facdf9bdc96d29ead96ea71a9841c13a0b29e5d4466e9f2732fa5a89875af",
+   "bytes": 13482,
+   "kind": "fetched",
+   "url": "https://sgx.geodatenzentrum.de/wfs_dlm250?service=WFS&version=2.0.0&request=GetFeature&TYPENAMES=dlm250:objart_44006_f&OUTPUTFORMAT=application/json&SRSNAME=EPSG:4326&COUNT=5000&BBOX=9.250,52.420,9.420,52.520,EPSG:4326",
+   "source": "dlm250"
+  },
+  "cap-II51.xml": {
+   "sha256": "7959229bf822a2ea450c796aa97d77976c9a51784339c6038a4012bb83cbd53b",
+   "bytes": 44895,
+   "kind": "copied",
+   "url": "https://opendata.dwd.de/weather/alerts/cap/DISTRICT_DWD_STAT/Z_CAP_C_EDZW_LATEST_PVW_STATUS_PREMIUMDWD_DISTRICT_DE.zip (Stundenstände 19.–21.11.2026)",
+   "message": "2.49.0.0.276.0.DWD.PVW.1795060320000.29a0d98b-44ac-4478-8da1-db5df9b3b745.DEU.xml"
+  },
+  "cap-II57.xml": {
+   "sha256": "1123acdf9d2ade6cab1042f938632dd57943b8fb67d1069266ff1f6948a05522",
+   "bytes": 3392,
+   "kind": "copied",
+   "url": "https://opendata.dwd.de/weather/alerts/cap/DISTRICT_DWD_STAT/Z_CAP_C_EDZW_LATEST_PVW_STATUS_PREMIUMDWD_DISTRICT_DE.zip (Stundenstände 19.–21.11.2026)",
+   "message": "2.49.0.0.276.0.DWD.PVW.1795073520000.4ed82674-e0ce-4167-9812-9e611719b58d.DEU.xml"
+  },
+  "cap-II58.xml": {
+   "sha256": "9eead5689285ca1a6ea67fdbd783b1c604d0759638f59b0b6a23ff8c13248419",
+   "bytes": 3875,
+   "kind": "copied",
+   "url": "https://opendata.dwd.de/weather/alerts/cap/DISTRICT_DWD_STAT/Z_CAP_C_EDZW_LATEST_PVW_STATUS_PREMIUMDWD_DISTRICT_DE.zip (Stundenstände 19.–21.11.2026)",
+   "message": "2.49.0.0.276.0.DWD.PVW.1795096080000.5f139676-45af-47c5-ba85-447963735b7b.DEU.xml"
+  },
+  "wsv-current-wt-waren.json": {
+   "sha256": "560981b668f1fb436a78368473a6f2b45290ea416218810552f626f93f3db456",
+   "bytes": 62,
+   "kind": "fetched",
+   "url": "https://www.pegelonline.wsv.de/webservices/rest-api/v2/stations/bd317edd-214a-4e11-a9dc-3cc71a2907c3/WT/currentmeasurement.json"
+  },
+  "wsv-current-w-konstanz.json": {
+   "sha256": "435e85ecaf2ee528b3aae32c9fdfc33869636ccaee1f0982ec243010d838b4ec",
+   "bytes": 119,
+   "kind": "fetched",
+   "url": "https://www.pegelonline.wsv.de/webservices/rest-api/v2/stations/aa9179c1-17ef-4c61-a48a-74193fa7bfdf/W/currentmeasurement.json"
+  },
+  "spots-lakes.json": {
+   "sha256": "897ed6daa8fe621428381780fed7272951e35efe98a8e4db898de3813ddcc25e",
+   "bytes": 89891,
+   "kind": "copied",
+   "from": "scripts/sea/build-lake-spots.mjs --out",
+   "note": "der Katalog, wie er gebaut und ins Daten-Repo gelegt wurde"
+  },
+  "obs-latest-lakes.json": {
+   "sha256": "74011a7775b6c097f0cabe6e2ec279ab927dfb7193f3e9fe0378c4503b276ae3",
+   "bytes": 11540,
+   "kind": "excerpt",
+   "url": "https://raw.githubusercontent.com/jppetry/buscosun-data/main/obs/v1/latest.json",
+   "of": {
+    "sha256": "0347176ba8499588624145b33ab357d74bae349ef001d989c935e81d52a9c5d9",
+    "bytes": 565116
+   },
+   "note": "Ausschnitt: die Einträge der 47 Windstationen des Seekatalogs, unverändert aus der Antwort übernommen"
+  }
+ }
+}

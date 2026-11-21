@@ -31,6 +31,7 @@ import { buildSeaUrl, parseSeaUrl, SEA_DEFAULT_STATE, SEA_PL_RE } from '../src/s
 import { absolutizeHourParam } from '../src/share/hourOffset.ts';
 import { sunAltitudeDeg } from '../src/photo/sun.ts';
 import * as P from '../src/sea/seaPlanner.ts';
+import * as WZ from '../src/sea/seaSteps.ts';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '..');
@@ -267,7 +268,7 @@ const out = join(tmp, 'bundle.mjs');
 await build({
   stdin: { resolveDir: ROOT, loader: 'ts', contents: `
     export { default as SeaBand } from './src/sea/SeaBand.tsx';
-    export { default as SeaPlanPanel } from './src/sea/SeaPlanPanel.tsx';
+    export { default as SeaPlanPanel, OrtSpotStep, OrtTimeStep, PlanOfficial } from './src/sea/SeaPlanPanel.tsx';
     export { createElement } from 'react';
     export { renderToStaticMarkup } from 'react-dom/server';
   ` },
@@ -275,7 +276,7 @@ await build({
   define: { 'import.meta.env.DEV': 'false', 'import.meta.env.PROD': 'true', 'process.env.NODE_ENV': '"production"' },
   banner: { js: "import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);" },
 });
-const { SeaBand, SeaPlanPanel, createElement: h, renderToStaticMarkup: html } = await import(pathToFileURL(out).href);
+const { SeaBand, SeaPlanPanel, OrtSpotStep, OrtTimeStep, PlanOfficial, createElement: h, renderToStaticMarkup: html } = await import(pathToFileURL(out).href);
 const bandHours = hs.slice(0, 40).map((x) => ({ ...x, hs: 0.4, dir: 250, tm: 3.1, cls: 'passt', reason: 'x', daylight: true }));
 const base = { unit: 'kn', selected: 3, onPick: () => {}, title: 'St. Peter-Ording', sub: 'x', footnote: 'y', hours: bandHours };
 const plain = html(h(SeaBand, base));
@@ -291,24 +292,74 @@ const touch = html(h(SeaBand, { ...base, compact: true, plan: { start: 4, end: 9
 add('H2b mobil (zwei Griffe): die Zeile trägt `is-touch`, dieselben zwei Griffe', /sw-band-planrow is-touch/.test(touch) && count(touch, /data-grip=/g) === 2 && !/sw-band-planrow is-touch/.test(withPlan));
 const card = (when) => ({ when, wind: '13 kn, Böen 23 kn, aus S', lines: ['Uferwinkel: schräg auflandig (Wind von See)'], color: '#8DB07A', canEarlier: true, canLater: true });
 const panelProps = {
-  spotName: 'St. Peter-Ording', limitsText: 'Kite, Wind 15–28 kn', profile: 'kite', onProfile: () => {}, noData: null, official: null, start: card('Mi 00:00'), ret: card('Mi 11:00'), onShift: () => {},
-  events: ev, span: '11 Stunden', summary: sm, notes: [P.PLAN_LINE_NOTE, P.PLAN_RADIUS_NOTE, P.PLAN_DRIFT_NOTE, P.PLAN_HOURLY_NOTE], moved: null, play: null, now: 'Karte zeigt Mi 03:00', onChangeSpot: () => {}, onClose: () => {},
+  spotName: 'St. Peter-Ording', when: 'Mi 00:00 bis Mi 11:00', profileLabel: 'Kite', noData: null, official: null, start: card('Mi 00:00'), ret: card('Mi 11:00'),
+  events: ev, summary: sm, notes: [P.PLAN_LINE_NOTE, P.PLAN_RADIUS_NOTE, P.PLAN_DRIFT_NOTE, P.PLAN_HOURLY_NOTE], moved: null, now: 'Karte zeigt Mi 03:00', onClose: () => {},
 };
 const panel = html(h(SeaPlanPanel, panelProps));
-add('H3 Befunde: zwei Karten „Start“ und „Rückkehr“ an den Enden der Schiene, die Befunde dazwischen in der Reihenfolge der Zeit, darunter „Im ganzen Fenster“, die Hinweise und der Fuß',
+add('H3 Befunde (rechte Spalte, AM-O): Kopf mit Startort, Zeit und Profil; zwei Karten „Start“ und „Rückkehr“ an den Enden der Schiene, die Befunde dazwischen in der Reihenfolge der Zeit, darunter „Im ganzen Fenster“, die Hinweise (offen, nicht eingeklappt) und der Fuß — und NICHTS, was man einstellt: keine Profile, kein Umschalter, kein Schrittschalter, kein „Spot wechseln“',
   panel.indexOf('>Start</h3>') > 0 && panel.indexOf('>Start</h3>') < panel.indexOf('Höchster Stundenwert im Fenster: Wind 22 kn') && panel.indexOf('Höchster Stundenwert im Fenster: Wind 22 kn') < panel.indexOf('>Rückkehr</h3>')
   && panel.indexOf('>Rückkehr</h3>') < panel.indexOf('Im ganzen Fenster') && panel.includes(P.PLAN_LINE_NOTE) && panel.includes(P.PLAN_RADIUS_NOTE) && panel.trimEnd().endsWith(`${P.PLAN_FOOTER}</p></section>`)
-  && count(panel, /class="sw-pl-ev/g) === ev.length && !banned.test(panel.replace(/<[^>]+>/g, ' ')));
+  && count(panel, /class="sw-pl-ev/g) === ev.length && !banned.test(panel.replace(/<[^>]+>/g, ' '))
+  && panel.includes('<h2>St. Peter-Ording</h2><p>Mi 00:00 bis Mi 11:00 · Kite</p>') && panel.indexOf('<h2>') < panel.indexOf('>Start</h3>') && !/sw-pl-step|sw-profiles|sw-am-mode|Spot wechseln|<details|sw-pl-play/.test(panel)
+  && count(panel, /<button/g) === 1 && /aria-label="Planer schließen"/.test(panel) && html(h(SeaPlanPanel, { ...panelProps, when: null })).includes('<h2>St. Peter-Ording</h2><p>Kite</p>')
+  // AM-W: inside the assistant the findings carry no button of their own — its head closes the planner.
+  && count(html(h(SeaPlanPanel, { ...panelProps, onClose: undefined })), /<button/g) === 0);
 const official = html(h(SeaPlanPanel, { ...panelProps, official: { why: 'Für dein Gebiet liegt eine Meldung vor.', texts: [{ head: 'Seegebiet GERMAN BIGHT (WODL45, englischer Teil):', text: 'N to NW 7 later. ' }] } }));
 const none = html(h(SeaPlanPanel, { ...panelProps, noData: 'Kein geprüfter Seegangslauf der letzten 24 Stunden veröffentlicht.', start: null, ret: null }));
 add('H4 amtliche Meldung im Wortlaut ÜBER den Karten; ohne Daten kein Fenster, keine Karte — der Fuß bleibt',
   official.indexOf('N to NW 7 later. ') > 0 && official.indexOf('N to NW 7 later. ') < official.indexOf('>Start</h3>') && official.includes('Bitte zuerst lesen') && !panel.includes('sw-pl-official')
-  && none.includes('Kein Fenster planbar') && !none.includes('sw-pl-rail') && none.includes(P.PLAN_FOOTER));
+  && none.includes('Kein Fenster planbar') && !none.includes('sw-pl-rail') && none.includes(P.PLAN_FOOTER)
+  && html(h(PlanOfficial, { why: 'Für dein Gebiet liegt eine Meldung vor.', texts: [{ head: 'Seegebiet GERMAN BIGHT (WODL45, englischer Teil):', text: 'N to NW 7 later. ' }] })) === official.slice(official.indexOf('<div class="sw-pl-official"'), official.indexOf('</div>', official.indexOf('<div class="sw-pl-official"')) + 6));
+// AM-W (`audit/seewetter-ausfahrt.md` §13): what one sets for „Vor Ort“ is two pages of the assistant.
+const timeProps = {
+  start: { when: 'Mi 00:00', canEarlier: false, canLater: true }, ret: { when: 'Mi 11:00', canEarlier: true, canLater: true },
+  onShift: () => {}, hours: '11 Stunden', moved: null,
+};
+const timeStep = html(h(OrtTimeStep, timeProps)), timeNone = html(h(OrtTimeStep, { ...timeProps, start: null, ret: null, hours: null }));
+const timeOrder = ['>Fenster</h3>', '<dt>Start</dt>', '<dt>Rückkehr</dt>', '<dt>Länge</dt><dd>11 Stunden</dd>', WZ.WIZ_BAND_NOTE];
+add('H11 Seite „Zeitfenster“ (AM-W): Start und Rückkehr je mit Schrittschalter (früher / später, benannt; was nicht geht, ist gesperrt), die Länge des Fensters, der Hinweis auf die zwei Griffe im Stundenband — und nichts von einer anderen Seite: kein Profil, keine Art der Ausfahrt, kein Spot, keine Grenzen, kein Befund; ohne Fenster kein Schrittschalter; ein verschobenes Fenster wird gesagt',
+  timeOrder.every((x, i) => timeStep.includes(x) && (i === 0 || timeStep.indexOf(timeOrder[i - 1]) < timeStep.indexOf(x))) && count(timeStep, /class="sw-pl-step"/g) === 2
+  && /<dd class="sw-pl-when"><time>Mi 00:00<\/time><span class="sw-pl-step" role="group" aria-label="Start verschieben"><button type="button" disabled="" aria-label="Start eine Stunde früher">/.test(timeStep)
+  && /aria-label="Start eine Stunde später"/.test(timeStep) && /<time>Mi 11:00<\/time><span class="sw-pl-step" role="group" aria-label="Rückkehr verschieben"><button type="button" aria-label="Rückkehr eine Stunde früher">/.test(timeStep)
+  && count(timeStep, /disabled=""/g) === 1 && !/Wer fährt|Art der Ausfahrt|Startort|Deine Grenzen|sw-pl-rail|sw-pl-end|sw-pl-official|Im ganzen Fenster|sw-pl-foot/.test(timeStep) && !banned.test(timeStep.replace(/<[^>]+>/g, ' '))
+  && /Stundenband/.test(WZ.WIZ_BAND_NOTE) && /Boot/.test(WZ.WIZ_BOAT_NOTE) && timeNone.includes('Gerade steht kein Fenster auf den Stunden der Vorhersage.') && !/sw-pl-step|Fenster abspielen/.test(timeNone)
+  && html(h(OrtTimeStep, { ...timeProps, moved: P.PLAN_MOVED_NOTE })).includes(P.PLAN_MOVED_NOTE) && !timeStep.includes('sw-pl-moved'));
+// The component called as a function: its element tree carries the handlers, so a stepper wired to the wrong end shows.
+const calls = [], tree = OrtTimeStep({ ...timeProps, onShift: (which, by) => calls.push(`${which}${by}`) });
+const walk = (el, out = []) => { if (Array.isArray(el)) el.forEach((x) => walk(x, out)); else if (el && typeof el === 'object' && el.props) { out.push(el); walk(el.props.children, out); } return out; };
+const els = walk(tree), stepOf = (label) => els.find((e) => e.props.label === label && typeof e.props.onShift === 'function');
+stepOf('Start')?.props.onShift(1); stepOf('Rückkehr')?.props.onShift(-1);
+add('H11b die Schrittschalter greifen am richtigen Ende: „Start später“ verschiebt den Start um +1, „Rückkehr früher“ das Ende um −1 (nicht umgekehrt); der Schalter „Rückkehr“ trägt die Sperren der Rückkehr, nicht die des Starts',
+  calls.join() === 'start1,end-1' && stepOf('Start').props.canEarlier === false && stepOf('Start').props.canLater === true && stepOf('Rückkehr').props.canEarlier === true, calls.join());
+const spotProps = { spotName: 'St. Peter-Ording', boat: '2,0 km', picker: h('div', { className: 'sw-dock-picker' }, 'Liste'), onOpenPicker: null };
+const spotStep = html(h(OrtSpotStep, spotProps)), asking = html(h(OrtSpotStep, { ...spotProps, spotName: null, boat: null }));
+const phoneCalls = [];
+walk(OrtSpotStep({ spotName: null, boat: null, onOpenPicker: () => phoneCalls.push('pick') })).find((e) => e.type === 'button')?.props.onClick();
+const phoneAsk = html(h(OrtSpotStep, { spotName: null, boat: null, onOpenPicker: () => {} })), phoneSet = html(h(OrtSpotStep, { spotName: 'Juist', boat: '850 m', onOpenPicker: () => {} }));
+const sketchOf = (s) => [...(s.match(/<ol class="sw-wz-sketch"[\s\S]*?<\/ol>/)?.[0] ?? '').matchAll(/<li class="is-(\w+)"[\s\S]*?<strong>([^<]+)<\/strong>/g)].map((m) => `${m[2]}:${m[1]}`).join();
+add('H12 Seite „Startort“ (AM-W, gekürzt Jan 19.11.): mit Spot EINE Karte, die nur den Startort mit Haken und Namen nennt (kein Boot-Satz, kein „Weiter“, kein eingeklappter Radius), darunter die Skizze in zwei Bildern (Spot antippen erledigt, Boot ziehen dran; der Radius steht als „≤ 5 km“ im Bild) und der Knopf „Anderen Spot wählen“ (die Liste klappt erst darauf auf); ohne Spot (E-AM-28) keine Karte, die Skizze mit „Spot antippen“ als dem, was dran ist — die Seite beginnt mit der Liste (Desktop) bzw. mit dem Knopf „Spot wählen“ (Telefon), der die Liste öffnet; mit Spot heißt er „Spot wechseln“; nichts von einer anderen Seite',
+  spotStep.includes('<b>St. Peter-Ording</b>') && !/vor dem Startort|Zieh es auf der Karte|Warum höchstens|Dann legst du fest/.test(spotStep)
+  && sketchOf(spotStep) === 'Spot antippen:done,Boot ziehen:now' && sketchOf(asking) === 'Spot antippen:now,Boot ziehen:next' && spotStep.includes(`≤ ${P.SEA_PLAN_RADIUS_KM} km</text>`) && !asking.includes('sw-wz-guidebox')
+  && spotStep.indexOf('St. Peter-Ording') < spotStep.indexOf('sw-wz-sketch') && spotStep.indexOf('sw-wz-sketch') < spotStep.indexOf('Anderen Spot wählen') && spotStep.includes('>Anderen Spot wählen</button>') && !spotStep.includes('sw-dock-picker')
+  && !/vor dem Startort|sw-am-box|Warum höchstens/.test(asking) && asking.includes('>Spot wählen</h3>') && asking.includes('sw-dock-picker')
+  && phoneCalls.join() === 'pick' && phoneAsk.includes('>Spot wählen</button>') && !phoneAsk.includes('sw-am-box') && phoneSet.includes('>Spot wechseln</button>') && phoneSet.includes('<b>Juist</b>') && !/vor dem Startort/.test(phoneSet) && !phoneSet.includes('sw-dock-picker')
+  && !/Wer fährt|Art der Ausfahrt|Deine Grenzen|sw-pl-step|Fenster abspielen|sw-pl-rail/.test(spotStep + asking + phoneAsk + phoneSet) && !banned.test((spotStep + asking + phoneAsk).replace(/<[^>]+>/g, ' ')));
 const src = (f) => readFileSync(join(ROOT, 'src', 'sea', f), 'utf8');
 const page = src('SeaPage.tsx'), lib = src('seaPlanner.ts'), mapSrc = src('SeaMap.tsx'), css = src('seaDeck.css');
 add('H5 Einstiege: Knopf „Ausfahrt planen“ über der Legende in `sw-ov-right` und vierter Eintrag „Ausfahrt“ der unteren Leiste — beide ohne `disabled`; ohne gewählten Spot fragt der Planer zuerst nach dem Spot',
   /<button type="button" className="sw-pl-open" onClick=\{openPlanner\}>/.test(page) && /<div className="sw-ov-right">\{planBtn\}\{legend\}<\/div>/.test(page) && !/sw-pl-open[^>]*disabled/.test(page)
   && /\['layers', 'Ebenen',[^\n]*\n[^\n]*\n\s*\['plan', 'Ausfahrt',/.test(page) && /if \(id === 'plan'\) \{ openPlanner\(\); return; \}/.test(page) && /if \(!spotInUrl \|\| !spot\) \{ setPlanAsk\(true\);/.test(page) && page.includes('{PLAN_ASK_SPOT}'));
+const leftLine = (page.match(/\{wizard \? <aside className="sw-dock sw-am-dockin sw-wz-col" aria-label="Ausfahrt planen">\{wizard\}<\/aside> : dockOf\('layers'\)\}/) ?? [''])[0];
+const wizLine = (page.match(/const wizard = wizOpen && step \? \([\s\S]*?\n  \) : null;/) ?? [''])[0];
+add('H13 Seite (AM-W): links steht der Assistent, sobald der Planer offen ist ODER nach dem Spot fragt, sonst der Ebenen-Dock; die Ebenen klappen unter die Seite des Assistenten (nicht entfernt); rechts stehen die Befunde nur auf der Ergebnis-Seite; das Stundenband liegt am Kartenfuß, wo es die Eingabe ist (Zeitfenster) und im Ergebnis; mobil trägt das Blatt amtliche Meldung, Seite, Stundenwerte, Befunde in dieser Reihenfolge, und die Meldung steht dort nicht doppelt',
+  leftLine.length > 0 && /const wizOpen = tripOpen \|\| planAsk;/.test(page)
+  && /const layersFold = !isMobile && <details className="sw-am-layers"><summary>Ebenen der Karte<\/summary>\{dockOf\('layers'\)\}<\/details>;/.test(page) && count(page, /layersFold\}/g) === 1
+  && /\{isMobile && step === 'ergebnis' && wizMode === 'ort' && planOfficial && <PlanOfficial \{\.\.\.planOfficial\} \/>\}\s*\{wizPage\}\s*\{isMobile \? <>\{footEl\}\{wizResult\}<\/> : layersFold\}/.test(wizLine) && /official=\{isMobile \? null : planOfficial\}/.test(page)
+  && /const wizResult = step !== 'ergebnis' \? null : etappe \? etappeResult : strand \? strandPanel : planner;/.test(page) && /\{wizard \? wizResult && <aside className="sw-readout is-plan"/.test(page)
+  && /: wizMode === 'ort' \? \(planOpen && \(step === 'zeit' \|\| step === 'ergebnis'\) \? 'band' : null\)/.test(page) && /const footEl = footKind === 'band' \? band : /.test(page)
+  && /<div className=\{`sw-pl-dock\$\{footKind === 'band' \? '' : ' sw-am-foot'\}`\}>\s*<details className="sw-pl-legend"><summary>Legende<\/summary>\{legend\}<\/details>\s*\{!inDossier && footEl\}/.test(page)
+  && /spotName=\{own \? \(ownSpot \? `\$\{OWN_NAME\} · \$\{ownPosText\(own\)\}` : null\) : planOpen && spot \? spot\.name : null\}/.test(page) && /start=\{planOpen \? planStart : null\} ret=\{planOpen \? planRet : null\}/.test(page)
+  && count(page, /<OrtSpotStep /g) === 1 && count(page, /<OrtTimeStep /g) === 1 && count(page, /<SeaPlanPanel /g) === 1 && !/<SeaPlanPanel [^>]*on(Mode|Profile|Close)/.test(page), [leftLine.length, wizLine.length].join(','));
 add('H6 kein Schalter (Jans Entscheidung): kein Flag, kein Query-Schalter um den Planer', !/SEA_PLAN\w*_LIVE|planFlag|seaPlanFrom|\?sp=|\?plan=/.test(page + src('seaFlag.ts') + lib));
 const reads = /windBand|gustQ|windQ|quantiles|q10|q90|overLimit/;
 add('H7 die Befunde fürs Fenster lesen die Anteile „über Grenze“ nie (seaPlanner.ts kennt keine Quantile) — Gegenprobe: die Seite liest sie, und im Planer nur für EINE Stunde („Nur diese Stunde: …“)',
@@ -320,8 +371,8 @@ add('H9 Karte: Boot als ziehbarer MapLibre-Marker, im Radius gehalten; Linie und
   && !/type: 'custom'|getContext\('webgl|gl_Position/.test(mapSrc + lib));
 const mq = '@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {';
 const lastMq = css.slice(css.lastIndexOf(mq));
-const used = ['sw-pl-open', 'sw-pl-boat', 'sw-pl-drift', 'sw-pl-hull', 'sw-pl-badge', 'sw-pl-linelabel', 'sw-pl-launch', 'sw-pl-dock', 'sw-pl-legend', 'sw-band-planrow', 'sw-pl-grip', 'sw-pl-span', 'sw-pl-head', 'sw-pl-close',
-  'sw-pl-official', 'sw-pl-limits', 'sw-pl-bar', 'sw-pl-play', 'sw-pl-now', 'sw-pl-moved', 'sw-pl-rail', 'sw-pl-end', 'sw-pl-knot', 'sw-pl-step', 'sw-pl-ev', 'sw-pl-block', 'sw-pl-foot', 'sw-pl-ask', 'sw-pl-sheet', 'sw-pl-sheetgrip', 'sw-pl-sheetbody'];
+const used = ['sw-pl-open', 'sw-pl-boat', 'sw-pl-drift', 'sw-pl-hull', 'sw-pl-linelabel', 'sw-pl-launch', 'sw-pl-dock', 'sw-pl-legend', 'sw-band-planrow', 'sw-pl-grip', 'sw-pl-span', 'sw-pl-head', 'sw-pl-close',
+  'sw-pl-official', 'sw-pl-when', 'sw-pl-now', 'sw-pl-moved', 'sw-pl-rail', 'sw-pl-end', 'sw-pl-knot', 'sw-pl-step', 'sw-pl-ev', 'sw-pl-block', 'sw-pl-foot', 'sw-pl-ask', 'sw-pl-sheet', 'sw-pl-sheetgrip'];
 add('H10 CSS: jede Klasse des Markups ist definiert; das Blatt gibt es nur in der Media Query der Seite (außerhalb `display: none`); die Bewegung der Pfeile ruht unter „reduzierte Bewegung“',
   used.every((c) => css.includes(`.${c}`)) && /\n\.sw-pl-sheet \{ display: none; \}/.test(css) && /\.sw-pl-sheet \{ display: flex;/.test(lastMq) && !/\.sw-pl-sheet \{ display: flex;/.test(css.slice(0, css.lastIndexOf(mq)))
   && /@media \(prefers-reduced-motion: reduce\) \{\s*\.sw-pl-drift path \{ animation: none;/.test(css), used.filter((c) => !css.includes(`.${c}`)).join(','));

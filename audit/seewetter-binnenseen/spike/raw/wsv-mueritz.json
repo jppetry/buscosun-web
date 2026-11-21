@@ -1,0 +1,54 @@
+{
+  "uuid": "bd317edd-214a-4e11-a9dc-3cc71a2907c3",
+  "number": "596030",
+  "shortname": "WAREN",
+  "longname": "WAREN",
+  "km": 151.975,
+  "agency": "STANDORT LAUENBURG",
+  "longitude": 12.674194,
+  "latitude": 53.514380,
+  "voiceServiceNumber": "+49 228 286527 390",
+  "water": {
+    "shortname": "MEW",
+    "longname": "MÜRITZ-ELDE-WASSERSTRASSE"
+  },
+  "timeseries": [
+    {
+      "shortname": "W",
+      "longname": "WASSERSTAND ROHDATEN",
+      "unit": "cm",
+      "equidistance": 15,
+      "currentMeasurement": {
+        "timestamp": "2026-11-21T10:00:00+01:00",
+        "value": 172.0,
+        "stateMnwMhw": "low",
+        "stateNswHsw": "unknown"
+      },
+      "gaugeZero": {
+        "unit": "m. ü. NHN",
+        "value": 60.157,
+        "validFrom": "2019-11-01"
+      }
+    },
+    {
+      "shortname": "LT",
+      "longname": "LUFTTEMPERATUR ROHDATEN",
+      "unit": "°C",
+      "equidistance": 15,
+      "currentMeasurement": {
+        "timestamp": "2026-11-21T10:00:00+01:00",
+        "value": 3.2
+      }
+    },
+    {
+      "shortname": "WT",
+      "longname": "WASSERTEMPERATUR ROHDATEN",
+      "unit": "°C",
+      "equidistance": 60,
+      "currentMeasurement": {
+        "timestamp": "2026-11-21T10:00:00+01:00",
+        "value": 5.6
+      }
+    }
+  ]
+}

@@ -5,15 +5,18 @@
  *
  * Frame rate: only through the `FrameGovernor` pattern of the wind layer (FPS-target mode, fed with the render
  * duration) — the frame rate ladder first, then shorter threads, fewer packets last (`RIPPLE_LADDER`). The loop stops
- * when the tab is hidden, the layer is off or the map is off stage. `prefers-reduced-motion` shows ONE still frame.
- * The frame rate of this layer has not been measured on any device (no browser check in this phase).
+ * when the tab is hidden, the layer is off or the map is off stage.
+ *
+ * Phase SR-B (E-SR-15): the layer moves whatever the device says about reduced motion — as the wind layer does. ONE
+ * still frame is the fallback `?srstill=1`; `?srtempo=lin` is the tempo before the phase (`rippleMotionFrom`).
+ * Measured 19.11.2026 on a desktop GPU: 60 frames per second, 4–5 ms per frame (audit §7); no phone yet.
  */
 import type maplibregl from 'maplibre-gl';
 import { FrameGovernor } from '../wind/perfGovernor';
 import type { SeaUvGrid } from './seaCurrent';
 import {
-  RIPPLE, RIPPLE_LADDER, RIPPLE_RGB, crestRange, frontCurve, frontFade, frontLineWidth, frontPoints, frontSpacing, makePxSampler, mercX, mercY, newFront,
-  packetStrength, pointBehind, rgbCss, rippleCounts, threadPositions, threadStrength, viewFromTwo, visibleWaterPx,
+  RIPPLE, RIPPLE_LADDER, RIPPLE_RGB, crestRange, frontCurve, frontFade, frontLineWidth, frontPoints, frontSpacing, loopPaints, makePxSampler, mercX, mercY, newFront,
+  packetStrength, pointBehind, rgbCss, rippleCounts, rippleMotionFrom, rippleZoomIn, threadPositions, threadStrength, viewFromTwo, visibleWaterPx, zoomPacketScale,
   type Front, type PxSampler, type RippleLadder, type RippleView,
 } from './seaRipples';
 import { RippleSim } from './seaRippleSim';
@@ -28,12 +31,14 @@ const STILL_SEED = 7;
 
 export class SeaRippleLayer {
   private readonly map: maplibregl.Map;
+  /** The map's start view (west, south, east, north) — E-SR-22: fewer packets when zoomed in beyond it. */
+  private readonly home: [number, number, number, number] | null;
   private readonly canvas: HTMLCanvasElement;
   private readonly ctx: CanvasRenderingContext2D | null;
-  private readonly sim = new RippleSim(STILL_SEED);
+  private readonly motion = rippleMotionFrom(typeof location !== 'undefined' ? location.search : '');
+  private readonly sim = new RippleSim(STILL_SEED, this.motion.linear);
   private readonly ladder: RippleLadder;
   private readonly gov: FrameGovernor;
-  private readonly reduce: MediaQueryList | null;
   private from: SeaUvGrid | null = null;
   private to: SeaUvGrid | null = null;
   private blendAt = 0;
@@ -45,6 +50,10 @@ export class SeaRippleLayer {
   private h = 0;
   private dpr = 1;
   private keepOut: readonly RippleKeepOut[] = [];
+  // V-SR-13: the last picture drawn on a map move — when, how long after the one before, and how long it took.
+  private movedAt = -Infinity;
+  private moveEvery = 0;
+  private movePaintMs = 0;
   private dead = false;
   // Scratch (no allocation per frame).
   private readonly wx = new Float32Array(RIPPLE.threadLen + 2);
@@ -54,8 +63,9 @@ export class SeaRippleLayer {
   private fK = new Uint8Array(256);
   private readonly pt = { x: 0, y: 0 };
 
-  constructor(map: maplibregl.Map) {
+  constructor(map: maplibregl.Map, home: [number, number, number, number] | null = null) {
     this.map = map;
+    this.home = home;
     this.canvas = document.createElement('canvas');
     this.canvas.className = 'sw-ripples';
     this.canvas.setAttribute('aria-hidden', 'true');
@@ -66,8 +76,6 @@ export class SeaRippleLayer {
     this.ladder = coarse ? RIPPLE_LADDER.coarse : RIPPLE_LADDER.fine;
     this.gov = new FrameGovernor({ fpsLadder: [...this.ladder.fps], trailLadder: [...this.ladder.trail] });
     this.level = this.gov.levelIndex;
-    this.reduce = typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
-    this.reduce?.addEventListener?.('change', this.kick);
     document.addEventListener('visibilitychange', this.kick);
     map.on('move', this.onMove);
     map.on('moveend', this.onSettle);
@@ -100,7 +108,6 @@ export class SeaRippleLayer {
   destroy(): void {
     this.dead = true;
     this.stop();
-    this.reduce?.removeEventListener?.('change', this.kick);
     document.removeEventListener('visibilitychange', this.kick);
     this.map.off('move', this.onMove);
     this.map.off('moveend', this.onSettle);
@@ -111,9 +118,9 @@ export class SeaRippleLayer {
   // --- loop ---------------------------------------------------------------------------------------------------------
 
   private shown(): boolean { return !this.dead && this.active && !!this.to; }
-  private still(): boolean { return !!this.reduce?.matches; }
+  private still(): boolean { return this.motion.still; }
   private stop(): void { if (this.raf) { cancelAnimationFrame(this.raf); this.raf = 0; } }
-  /** Decides what runs: nothing, the still frame, or the loop. Called on every change of field, stage, tab and motion wish. */
+  /** Decides what runs: nothing, the still frame, or the loop. Called on every change of field, stage and tab. */
   private kick = (): void => {
     if (this.dead) return;
     if (!this.shown()) { this.stop(); this.clear(); return; }
@@ -130,9 +137,11 @@ export class SeaRippleLayer {
     const t0 = performance.now();
     const view = this.view(), sample = this.sampler(view, now);
     this.sim.step(view, sample, dt / FRAME_MS);
-    this.paint(view, sample, this.gov.targetFps);
-    // Render duration, not the frame interval (the interval is pinned by the cap).
-    this.gov.feed(performance.now() - t0);
+    // V-SR-13: while the map moves it draws the layer itself on every 'move' — one picture per frame, not two.
+    const own = loopPaints(t0, this.movedAt, this.moveEvery);
+    if (own) this.paint(view, sample, this.gov.targetFps);
+    // Render duration, not the frame interval (the interval is pinned by the cap); the map's picture counts in place of the loop's.
+    this.gov.feed(performance.now() - t0 + (own ? 0 : this.movePaintMs));
     if (this.gov.levelIndex !== this.level) { this.level = this.gov.levelIndex; this.recount(); }
     if (this.from && now - this.blendAt >= RIPPLE.blendMs) this.from = null;
   };
@@ -153,7 +162,12 @@ export class SeaRippleLayer {
     const view = this.view();
     this.paint(view, this.sampler(view, performance.now()), this.gov.targetFps);
   }
-  private onMove = (): void => { if (this.shown() && !document.hidden) this.repaint(); };
+  private onMove = (): void => {
+    if (!this.shown() || document.hidden) return;
+    const t0 = performance.now();
+    this.repaint();
+    if (this.raf) { this.moveEvery = t0 - this.movedAt; this.movedAt = t0; this.movePaintMs = performance.now() - t0; }
+  };
   private onSettle = (): void => {
     if (!this.shown()) return;
     if (this.still()) this.stillFrame(); else this.recount();
@@ -178,11 +192,11 @@ export class SeaRippleLayer {
     const w = !this.from || this.still() ? 1 : Math.min(1, (now - this.blendAt) / RIPPLE.blendMs);
     return makePxSampler(view, this.from, this.to as SeaUvGrid, w);
   }
-  /** Counts for the visible water, with the governor's packet lever. */
+  /** Counts for the visible water, with the governor's packet lever and fewer packets when zoomed in (E-SR-22). */
   private recount(): void {
     if (!this.to || this.w < 1 || this.h < 1) return;
     const view = this.view();
-    const c = rippleCounts(visibleWaterPx(this.sampler(view, performance.now()), this.w, this.h), this.ladder.packets[this.gov.levelIndex]);
+    const c = rippleCounts(visibleWaterPx(this.sampler(view, performance.now()), this.w, this.h), this.ladder.packets[this.gov.levelIndex] * zoomPacketScale(rippleZoomIn(view, this.home)));
     this.sim.setCounts(c.tracers, c.packets);
   }
 

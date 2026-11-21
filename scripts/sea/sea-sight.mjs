@@ -169,7 +169,8 @@ export function spotSightSeries({ id, fusion, runMs, repack, hours = SEA_SPOT_ST
 export async function sightFor({ sightIn, spots, runMs, nowMs, reader, log = () => {} }) {
   const ids = Object.keys(sightIn ?? {});
   if (!ids.length) return null;
-  const cells = spots.filter((sp) => sightIn[sp.id]).map((sp) => ({ id: sp.id, ...seaCellCentre('cwam', sp.cell.i, sp.cell.j) }));
+  // The spot's water point: its CWAM cell centre at sea, the lake's water point at a lake spot (phase BS).
+  const cells = spots.filter((sp) => sightIn[sp.id]).map((sp) => ({ id: sp.id, ...(sp.lake ? { lat: sp.lake.pt.lat, lon: sp.lake.pt.lon } : seaCellCentre('cwam', sp.cell.i, sp.cell.j)) }));
   const repack = reader ? await readRepack({ reader, cells, nowMs, log }) : { state: 'none', why: 'Der Producer lief ohne Zugang zum ICON-D2-Repack.' };
   const out = {}, problems = [];
   let visSpots = 0;

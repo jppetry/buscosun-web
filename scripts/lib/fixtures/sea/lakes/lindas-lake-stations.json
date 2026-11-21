@@ -1,0 +1,1037 @@
+{
+  "head" : {
+    "vars" : [
+      "id",
+      "name",
+      "lake",
+      "wkt",
+      "time",
+      "level",
+      "temp"
+    ]
+  },
+  "results" : {
+    "bindings" : [
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2031"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Unterägeri"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Aegerisee"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(8.591833051476831 47.13797398459681)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:50:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "723.394"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2137"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Gelfingen"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Baldeggersee"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(8.266401090627538 47.209860225565016)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:00:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "462.579"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2208"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Ligerz, Klein Twann"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Bielersee"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(7.1530998108383965 47.091679312964544)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:50:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "429.054"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2032"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Romanshorn"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Bodensee, Obersee"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(9.380992701081867 47.56479123049356)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:50:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "394.916"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2043"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Berlingen"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Bodensee, Untersee"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(9.017571136862344 47.675465671121394)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:50:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "394.595"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2023"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Ringgenberg"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Brienzersee"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(7.975536043144536 46.72992714437881)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:50:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "563.477"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2082"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Greifensee"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Greifensee"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(8.673537466436075 47.365212204966106)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:40:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "434.901"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2097"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Meisterschwanden"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Hallwilersee"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(8.220333360318698 47.29576996676205)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:50:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "448.040"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2026"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Chillon"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Lac Léman"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(6.927748882278786 46.414610106681224)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:50:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "372.225"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2028"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Genève, Sécheron"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Lac Léman"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(6.15235732549977 46.218636691415625)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:50:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "372.215"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2027"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "St-Prex"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Lac Léman"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(6.461136827537292 46.48280067468974)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:50:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "372.265"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2007"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Le Pont"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Lac de Joux"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(6.324020007130208 46.66533635470922)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:00:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "1003.545"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2154"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Grandson"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Lac de Neuchâtel"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(6.642366435215077 46.805777134617735)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:50:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "429.152"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2642"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Neuchâtel, Nid-du-Crô"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Lac de Neuchâtel"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(6.951044797867279 46.996504923513506)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:50:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "429.161"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2057"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Les Brenets"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Lac des Brenets"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(6.708576476968432 47.08260878026404)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:50:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "752.070"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2074"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Brissago"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Lago Maggiore"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(8.710904470043026 46.118122093495536)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:50:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "192.692"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2022"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Locarno"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Lago Maggiore"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(8.804286329824714 46.16363438902525)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:50:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "192.689"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2101"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Melide, Ferrera"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Lago di Lugano"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(8.94889237091612 45.96628633198344)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:50:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "270.364"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2021"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Ponte Tresa"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Lago di Lugano"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(8.860322192803666 45.96878965357925)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:50:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "270.353"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2484"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Lauerz, Chlostermatt"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Lauerzersee"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(8.596637856167128 47.03096384025147)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:40:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "447.202"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2004"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Murten"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Murtensee"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(7.116924504057154 46.93075003176807)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:50:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "429.182"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2081"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Pfäffikon"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Pfäffikersee"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(8.778633328215287 47.364040792728495)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:30:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "536.515"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2088"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Sarnen"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Sarnersee"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(8.24241906491016 46.88772145912117)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:50:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "469.425"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2168"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Sempach"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Sempachersee"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(8.189174830615302 47.134289966038665)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:50:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "503.399"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2072"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Sils Baselgia"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Silsersee"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(9.75322293306976 46.43435065093751)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:50:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "1796.668"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2073"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Silvaplana"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Silvaplanersee"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(9.802375653112085 46.460066179646674)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:50:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "1790.620"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2066"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "St. Moritz"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "St. Moritzersee"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(9.84805999986367 46.49753483141415)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:50:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "1767.812"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2093"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Spiez"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Thunersee"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(7.664559483905691 46.696738271103)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:50:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "557.724"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2025"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Brunnen"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Vierwaldstättersee"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(8.603783594054601 46.993467758748615)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:50:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "433.529"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2207"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Luzern"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Vierwaldstättersee"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(8.319817434422085 47.05487732128306)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:50:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "433.531"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2118"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Murg"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Walensee"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(9.210023378410574 47.11337769264534)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:50:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "418.392"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2017"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Zug"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Zugersee"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(8.514322621750242 47.167871041247274)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:50:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "413.277"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2014"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Schmerikon"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Zürichsee"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(8.940080355324334 47.2247734515484)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:50:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "405.515"
+        }
+      },
+      {
+        "id" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+          "type" : "literal",
+          "value" : "2209"
+        },
+        "name" : {
+          "type" : "literal",
+          "value" : "Zürich"
+        },
+        "lake" : {
+          "type" : "literal",
+          "value" : "Zürichsee"
+        },
+        "wkt" : {
+          "datatype" : "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type" : "literal",
+          "value" : "POINT(8.550455895436102 47.35476864181227)"
+        },
+        "time" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+          "type" : "literal",
+          "value" : "2026-11-21T09:50:00+01:00"
+        },
+        "level" : {
+          "datatype" : "http://www.w3.org/2001/XMLSchema#decimal",
+          "type" : "literal",
+          "value" : "405.557"
+        }
+      }
+    ]
+  }
+}

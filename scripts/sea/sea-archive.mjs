@@ -30,6 +30,7 @@ import { join, resolve, dirname } from 'node:path';
 import { gzipSync, gunzipSync } from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { SEA_SPOT_CATALOG_PATH, SEA_SPOT_CATALOG_DK_PATH, SEA_SPOTS_WIND_RE, SEA_CURRENT_DIR, SEA_CURRENT_RE, seaRunMs, hasQuantiles, hasSight } from '../../src/sea/seaContract.ts';
+import { SEA_LAKES_DIR, SEA_LAKES_RE, SEA_LAKES_PRODUCT, SEA_LAKES_WT_RE, SEA_LAKES_WT_PRODUCT, SEA_SPOT_CATALOG_LAKES_PATH } from '../../src/sea/seaLakes.ts';
 // Phase SG — `seaSightObs.ts` imports nothing at all (the archive workflow checks out `src/sea` only).
 import { POI_SIGHT_COLS, DMI_VIS_PARAM } from '../../src/sea/seaSightObs.ts';
 import { SEA_TEXT_STAGE1, seaIssueMs } from '../../src/sea/seaText.ts';
@@ -232,6 +233,59 @@ export async function archiveWaterTemp({ storeDir, archiveDir, index, nowMs, day
   return { wtRows, wtStations: answered, wtDays: touched.length, wtAsked: days };
 }
 
+/** Phase BS: the 10-minute series of obs/v1 the lake stations come from, by the station's first network. */
+export const LAKE_OBS_SERIES = Object.freeze({ dwd10: 'dwd10', smn: 'smn', tawes: 'tawes' });
+export const LAKE_OBS_BASE = 'https://raw.githubusercontent.com/jppetry/buscosun-data/main/obs/v1/series/';
+/**
+ * Full-hour rows of one station of an obs/v1 series document: wind and direction at the hour (10-minute mean ending
+ * there) and the gust of the hour (highest 10-minute gust of the six intervals ending at the hour). Pure.
+ */
+export function lakeObsRows(doc, id) {
+  const st = doc?.stations?.[id], t0 = Date.parse(doc?.t0);
+  if (!st || !Number.isFinite(t0) || doc.step !== 'PT10M') return [];
+  const rows = [], n = doc.n, MIN10 = 600_000;
+  for (let i = 0; i < n; i++) {
+    const ms = t0 + i * MIN10;
+    if (ms % 3_600_000 !== 0) continue;
+    const ff = st.ff?.[i] ?? null, dd = st.dd?.[i] ?? null;
+    let fx = null;
+    for (let k = Math.max(0, i - 5); k <= i; k++) { const x = st.fx?.[k]; if (x != null && (fx == null || x > fx)) fx = x; }
+    if (ff == null && fx == null) continue;
+    rows.push({ t: new Date(ms).toISOString(), ff, dd, fx });
+  }
+  return rows;
+}
+/**
+ * Measured wind at the lake stations of `static/spots-lakes.json` into `<day>/lake-obs.json.gz` (append-only per station
+ * and hour). The series of obs/v1 hold the last 26 h, the pass runs every 6 h — every hour is seen several times.
+ */
+export async function archiveLakeObs({ storeDir, archiveDir, index, fetchImpl = fetch, log = () => {} }) {
+  const cat = readJson(join(storeDir, SEA_SPOT_CATALOG_LAKES_PATH));
+  const stations = new Map();
+  for (const s of cat?.spots ?? []) { const w = s.lake?.stations?.wind; if (w?.id && LAKE_OBS_SERIES[w.net]) stations.set(w.id, w); }
+  if (!stations.size) return { lakeObsRows: 0, lakeObsStations: 0 };
+  const merged = {};
+  for (const src of new Set([...stations.values()].map((w) => LAKE_OBS_SERIES[w.net]))) {
+    let doc = null;
+    try { const r = await fetchImpl(`${LAKE_OBS_BASE}${src}.json`, { signal: AbortSignal.timeout(60_000) }); if (r.ok) doc = await r.json(); else log(`obs-Reihe ${src}: HTTP ${r.status}`); } catch (e) { log(`obs-Reihe ${src}: ${e.message}`); }
+    if (doc?.kind !== 'obs/series') continue;
+    for (const [id, w] of stations) if (LAKE_OBS_SERIES[w.net] === src) for (const row of lakeObsRows(doc, id)) ((merged[row.t.slice(0, 10)] ??= {})[id] ??= []).push(row);
+  }
+  let rowsAdded = 0;
+  for (const [d, st] of Object.entries(merged)) {
+    const file = join(archiveDir, d, 'lake-obs.json.gz');
+    const doc = readGz(file) ?? { schema: 1, product: 'sea-archive-lake-obs', day: d, units: { ff: 'm/s (10-min-Mittel zur vollen Stunde)', dd: 'Grad', fx: 'm/s (höchste 10-min-Böe der Stunde)' }, source: 'buscosun-data obs/v1 (DWD, GeoSphere Austria TAWES, MeteoSchweiz SwissMetNet)', stations: {} };
+    for (const [id, rows] of Object.entries(st)) {
+      const have = new Map((doc.stations[id] ?? []).map((x) => [x.t, x]));
+      for (const x of rows) if (!have.has(x.t)) { have.set(x.t, x); rowsAdded++; }
+      doc.stations[id] = [...have.values()].sort((a, b) => (a.t < b.t ? -1 : 1));
+    }
+    writeGz(file, doc);
+    ((index.days[d] ??= { spots: [], poiStations: 0, texts: 0 })).lakeObsStations = Object.keys(doc.stations).length;
+  }
+  return { lakeObsRows: rowsAdded, lakeObsStations: stations.size };
+}
+
 export async function archiveSea({ storeDir, archiveDir, nowMs = Date.now(), poi = true, wtemp = true, wtempDays = null, visDmi = poi, fetchImpl = fetch, log = () => {} }) {
   const index = readJson(join(archiveDir, 'index.json')) ?? { schema: 1, product: 'sea-archive', days: {} };
   const touch = (d, k) => { const e = (index.days[d] ??= { spots: [], poiStations: 0, texts: 0 }); return e; };
@@ -287,6 +341,32 @@ export async function archiveSea({ storeDir, archiveDir, nowMs = Date.now(), poi
     const e = touch(d); (e.wtempModel ??= []).includes(stamp) || e.wtempModel.push(stamp);
     wtModelAdded++;
   }
+  // Phase BS: the lake series (`lakes/<run>-w<t1>.json`, buscosun Fusion at the lake spots) and the modelled water temperature
+  // of the lakes (`lakes/wt-<stamp>.json`, Alplakes) — whole, once per file, from the first run on: the wind check that
+  // decides about the profile classes at lakes (E-BS-2) needs 14 days of exactly these files.
+  const ldir = join(storeDir, SEA_LAKES_DIR);
+  let lakesAdded = 0, lakesWtAdded = 0;
+  for (const f of existsSync(ldir) ? readdirSync(ldir) : []) {
+    if (SEA_LAKES_RE.test(f)) {
+      const key = f.slice(0, -'.json'.length), d = day(seaRunMs(f.slice(0, 10)));
+      const dst = join(archiveDir, d, `lakes-${key}.json.gz`);
+      if (existsSync(dst)) continue;
+      const doc = readJson(join(ldir, f));
+      if (doc?.product !== SEA_LAKES_PRODUCT) continue;
+      writeGz(dst, doc);
+      const e = touch(d); (e.lakes ??= []).includes(key) || e.lakes.push(key);
+      lakesAdded++;
+    } else if (SEA_LAKES_WT_RE.test(f)) {
+      const stamp = f.slice(3, 15), d = `${stamp.slice(0, 4)}-${stamp.slice(4, 6)}-${stamp.slice(6, 8)}`;
+      const dst = join(archiveDir, d, `lakes-wt-${stamp}.json.gz`);
+      if (existsSync(dst)) continue;
+      const doc = readJson(join(ldir, f));
+      if (doc?.product !== SEA_LAKES_WT_PRODUCT || doc.stamp !== stamp) continue;
+      writeGz(dst, doc);
+      const e = touch(d); (e.lakesWt ??= []).includes(stamp) || e.lakesWt.push(stamp);
+      lakesWtAdded++;
+    }
+  }
   // Text issues, merged per day by `<product>/<issue>`.
   const byDay = {};
   for (const p of SEA_TEXT_STAGE1) {
@@ -333,11 +413,13 @@ export async function archiveSea({ storeDir, archiveDir, nowMs = Date.now(), poi
   const wt = wtemp ? await archiveWaterTemp({ storeDir, archiveDir, index, nowMs, days: wtempDays, fetchImpl, log }) : { wtRows: 0, wtStations: 0, wtDays: 0 };
   // Phase SG: measured visibility of the DMI stations (skips itself without the Danish catalogue; off together with `--poi=0`).
   const vd = visDmi ? await archiveDmiVisibility({ storeDir, archiveDir, index, nowMs, fetchImpl, log }) : { visDmiRows: 0, visDmiStations: 0 };
+  // Phase BS: measured wind and gust of the lake stations (skips itself without the lake catalogue; off together with `--poi=0`).
+  const lo = poi ? await archiveLakeObs({ storeDir, archiveDir, index, fetchImpl, log }) : { lakeObsRows: 0, lakeObsStations: 0 };
   index.updatedAt = new Date(nowMs).toISOString();
-  for (const e of Object.values(index.days)) { e.spots.sort(); e.wind?.sort(); e.band?.sort(); e.sight?.sort(); e.current?.sort(); e.wtempModel?.sort(); }
+  for (const e of Object.values(index.days)) { e.spots.sort(); e.wind?.sort(); e.band?.sort(); e.sight?.sort(); e.current?.sort(); e.wtempModel?.sort(); e.lakes?.sort(); e.lakesWt?.sort(); }
   mkdirSync(archiveDir, { recursive: true });
   writeFileSync(join(archiveDir, 'index.json'), JSON.stringify(index, null, 1) + '\n');
-  return { spotsAdded, textsAdded, poiRows, currentAdded, wtModelAdded, ...wt, ...vd, days: Object.keys(index.days).length };
+  return { spotsAdded, textsAdded, poiRows, currentAdded, wtModelAdded, lakesAdded, lakesWtAdded, ...lo, ...wt, ...vd, days: Object.keys(index.days).length };
 }
 
 async function main() {

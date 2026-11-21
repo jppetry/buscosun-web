@@ -1,0 +1,128 @@
+[
+  {
+    "round": 1,
+    "rest": {
+      "frames": 121,
+      "hz": 60.1,
+      "twice": 0,
+      "none": 0,
+      "strokesP50": 1333,
+      "strokesMax": 1370,
+      "costP50": 5.2,
+      "costP95": 7.3,
+      "gapP95": 16.8,
+      "gapMax": 17,
+      "over20": 0
+    },
+    "zoom": {
+      "frames": 145,
+      "hz": 59.9,
+      "twice": 2,
+      "none": 1,
+      "strokesP50": 1180,
+      "strokesMax": 2459,
+      "costP50": 6.9,
+      "costP95": 12,
+      "gapP95": 16.8,
+      "gapMax": 17,
+      "over20": 0
+    },
+    "after": {
+      "frames": 243,
+      "hz": 60,
+      "twice": 0,
+      "none": 0,
+      "strokesP50": 1357,
+      "strokesMax": 1426,
+      "costP50": 5.3,
+      "costP95": 8.2,
+      "gapP95": 16.8,
+      "gapMax": 17,
+      "over20": 0
+    }
+  },
+  {
+    "round": 2,
+    "rest": {
+      "frames": 121,
+      "hz": 60,
+      "twice": 0,
+      "none": 0,
+      "strokesP50": 1288,
+      "strokesMax": 1360,
+      "costP50": 5.1,
+      "costP95": 6.9,
+      "gapP95": 16.8,
+      "gapMax": 17,
+      "over20": 0
+    },
+    "zoom": {
+      "frames": 141,
+      "hz": 59.6,
+      "twice": 1,
+      "none": 1,
+      "strokesP50": 1215,
+      "strokesMax": 2485,
+      "costP50": 7.1,
+      "costP95": 11.8,
+      "gapP95": 16.8,
+      "gapMax": 33,
+      "over20": 1
+    },
+    "after": {
+      "frames": 241,
+      "hz": 60,
+      "twice": 0,
+      "none": 0,
+      "strokesP50": 1400,
+      "strokesMax": 1451,
+      "costP50": 4.9,
+      "costP95": 6.6,
+      "gapP95": 16.8,
+      "gapMax": 17,
+      "over20": 0
+    }
+  },
+  {
+    "round": 3,
+    "rest": {
+      "frames": 121,
+      "hz": 60.1,
+      "twice": 0,
+      "none": 1,
+      "strokesP50": 1297,
+      "strokesMax": 1366,
+      "costP50": 4.9,
+      "costP95": 7.8,
+      "gapP95": 16.8,
+      "gapMax": 18,
+      "over20": 0
+    },
+    "zoom": {
+      "frames": 146,
+      "hz": 60,
+      "twice": 1,
+      "none": 1,
+      "strokesP50": 1190,
+      "strokesMax": 2448,
+      "costP50": 7.2,
+      "costP95": 12,
+      "gapP95": 16.8,
+      "gapMax": 17,
+      "over20": 0
+    },
+    "after": {
+      "frames": 241,
+      "hz": 59.9,
+      "twice": 0,
+      "none": 0,
+      "strokesP50": 1356,
+      "strokesMax": 1386,
+      "costP50": 5.2,
+      "costP95": 7.7,
+      "gapP95": 16.8,
+      "gapMax": 17,
+      "over20": 0
+    }
+  }
+]

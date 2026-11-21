@@ -63,6 +63,13 @@ export function useSeaTrip(x: UseSeaTripIn): EtappeView | null {
   const timeline = useMemo(() => (route && etappe ? tripTimeline(route, etappe.speedKn, etappe.departMs) : null), [route, etappe?.speedKn, etappe?.departMs]); // eslint-disable-line react-hooks/exhaustive-deps
   const axis = useMemo(() => ({ fromMs: x.nowHour, toMs: x.nowHour + Math.max(0, x.nHours - 1) * H }), [x.nowHour, x.nHours]);
 
+  // Phase BS: a leg that starts or ends at a lake spot is a leg on that lake — buscosun Fusion is asked with the country
+  // parameters of that spot (a shore outside DE/AT/CH: the nearest of the three, the catalogue names it). Elsewhere Germany.
+  const tripCountry = useMemo(() => {
+    const ends = etappe ? [etappe.points[0], etappe.points[etappe.points.length - 1]] : [];
+    for (const p of ends) { const sp = p?.spot ? spots.find((s) => s.id === p.spot) : null; if (sp?.lake) return sp.lake.fusion.country; }
+    return 'DE' as const;
+  }, [etappe?.points, spots]); // eslint-disable-line react-hooks/exhaustive-deps
   // --- wind: buscosun Fusion at every sample point, one after the other ---------------------------------------------
   const [wind, setWind] = useState<ReadonlyMap<string, TripWindLoad>>(new Map());
   const sampleKeys = samples.map(sampleKey).join('|');
@@ -70,7 +77,7 @@ export function useSeaTrip(x: UseSeaTripIn): EtappeView | null {
     if (!samples.length) return;
     let alive = true;
     for (const s of samples) {
-      void loadTripWind(s).then((r) => { if (alive) setWind((m) => (m.get(sampleKey(s)) === r ? m : new Map(m).set(sampleKey(s), r))); });
+      void loadTripWind(s, tripCountry).then((r) => { if (alive) setWind((m) => (m.get(sampleKey(s)) === r ? m : new Map(m).set(sampleKey(s), r))); });
     }
     return () => { alive = false; };
   }, [sampleKeys]); // eslint-disable-line react-hooks/exhaustive-deps

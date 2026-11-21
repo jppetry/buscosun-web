@@ -157,3 +157,275 @@ gestagt sind nur ihre eigenen Dateien und in den geteilten Dateien nur ihre eige
 | **V-SR-8** | `verify:sea-ripples` steht nicht im CI-Workflow von `buscosun-web` (Workflows dort sind Jans Schritt) | `MANUELLE-SCHRITTE.md` §97.7 |
 | **V-SR-9** | Das Standbild (reduzierte Bewegung) wird nach jedem Verschieben der Karte neu gesetzt: dieselbe Saat, aber ein anderer Ausschnitt ⇒ ein anderes Bild | So gewollt (Partikel leben nur im sichtbaren Wasser). Skizze, falls es stört: Saat an Kartenkacheln binden |
 | **V-SR-10** | Die Riffel liegen über den Ortsnamen der Basiskarte und über den Strömungs- und Windpfeilen (nur Spots, Pegel und Stationen sind ausgestanzt) | Jans Blick; Skizze: Pfeile ebenfalls ausstanzen oder bei gewählter Ebene dünner zeichnen |
+
+## 7. Diagnose 19.11.2026: „soll flüssig bewegt sein wie die Windpartikel“ — im Browser gemessen
+
+Jans Auftrag (19.11.): die Strömung soll sich flüssig bewegen wie die Windpartikel der Wetterkarte; erst ansehen und
+analysieren. Kein Code in diesem Abschnitt. Damit ist V-SR-3 (Bildrate ungemessen) am Desktop beantwortet.
+
+**Aufbau.** Produktions-Build hinter `vite preview`, eigenes Chromium 1223 mit echter GPU (`--headless=new`, Intel UHD
+über ANGLE/D3D11), 1440 × 900, Live-Daten (BSH-Lauf 00 UTC vom 19.11., Stunde 08:00 MEZ). `requestAnimationFrame`
+umhüllt: Abstand der Bilder und Dauer aller Rückrufe je Bild. Bewegung ausdrücklich gesetzt
+(`Emulation.setEmulatedMedia`), einmal `no-preference`, einmal `reduce`. Der Browser des Playwright-Werkzeugs taugt
+dafür nicht: er drosselt auf 1 Bild/s (verdecktes Fenster). Zahlen: `seewetter-riffel/sr7-messung.json`.
+
+| Messung | Ergebnis |
+|---|---|
+| Ebene „Strömung“, Bewegung erlaubt | **60 Bilder/s**, Abstand p95 16,8 ms; Rechnen + Zeichnen je Bild 4–5 ms (p95 7 ms), keine Long Tasks. Nach einem Mausrad-Schub einmal 77 ms |
+| Ebene „Strömung“, `prefers-reduced-motion: reduce` | **0 Bilder/s, 0 % des Canvas ändern sich in 1 s** — das Standbild (`sr7-stroemung-standbild.png`) |
+| Windpartikel `/wetterkarte/wind`, `reduce` | 60 Bilder/s, das Bild ändert sich wie ohne die Einstellung (1,24 % gegen 1,29 % der Pixel in 1 s) — **die Windebene beachtet die Einstellung nicht** |
+| Gezeichnete Fläche | 6–8 % der Pixel des Canvas tragen Farbe (`sr7-stroemung-bewegt.png`): einzelne Bogen-Gruppen, Fäden mit Deckkraft ≤ 0,2 kaum zu sehen |
+| Tempo am Bildschirm (`pxPerFrame` 0,75 ⇒ 45 px/s je m/s, linear) | echtes Feld (31 066 Wasserzellen): Median 0,30 m/s = **13 px/s**, unteres Viertel < 0,13 m/s = unter 6 px/s, 90 %-Wert 0,67 m/s = 30 px/s. 10 % des Wassers liegen unter 0,05 m/s und zeigen gar nichts, 37 % unter 0,2 m/s (unter 9 px/s) |
+| Tempo der Windpartikel (Preset: 100 px/s · (v/30)^0,7, Boden 1,5 m/s) | 2 / 5 / 8 / 12 m/s ⇒ 15 / 29 / 40 / 53 px/s — unterlinear, auch schwacher Wind läuft sichtbar |
+
+**Befund.**
+1. **Jans Chrome meldet `reduce`** (gemessen am 03.10., Windows „Animationen anzeigen“ aus) ⇒ er sieht auf dieser Ebene
+   ein Standbild, auf der Wetterkarte daneben bewegte Partikel. Das ist die größte einzelne Ursache — und kein
+   Leistungsproblem: die Ebene hält 60 Bilder/s mit 4–5 ms je Bild.
+2. **Auch bewegt ist es eine andere Art Bild.** Die Riffel sind wenige, abgesetzte Zeichen (≈ 220 Pakete mit bis zu
+   drei Bögen QUER zum Strom auf dieser Kartengröße); das Auge liest Symbole, die langsam wandern. Die Windpartikel sind
+   viele kurze Striche LÄNGS der Strömung mit ausklingender Spur; das Auge liest ein Feld, das fließt.
+3. **Das Tempo ist linear und niedrig.** Die Hälfte des Wassers bewegt sich unter 13 px/s, ein Viertel unter 6 px/s —
+   an der Grenze dessen, was man als Bewegung wahrnimmt. Der Wind hat eine unterlineare Kurve mit Boden.
+4. Die Fäden (Teil B), die das Fließen zwischen den Bögen tragen sollten, sind mit 1 px und Deckkraft ≤ 0,2 im Bild
+   praktisch nicht da.
+
+**Nicht gemessen:** Telefon / Real-Device, Zoomstufen (das Mausrad griff im Test nicht), die Zahl der Windpartikel in
+dieser Ansicht, die Bildrate am Deckel (× 4 Fläche).
+
+**Offen (Jan):** E-SR-15 Umgang mit `prefers-reduced-motion` (wie die Windebene bewegen · Standbild mit Schalter ·
+wie bisher); E-SR-16 Art der Bewegung (Partikel mit Spur statt Bögen · beides · Bögen schneller und dichter).
+
+## 8. Phase SR-B (19.11.2026): die Riffel bewegen sich wie die Windpartikel — Aussehen unverändert
+
+Jans Wort (19.11.): „es soll nicht visuell so aussehen wie die Windpartikel, aber das flüssige Bewegen auf der Karte
+soll genauso sein. Als Aussehen können gerne die aktuellen Riffel bleiben“ — und zum Entwurf: „ja starte erstmal so“.
+
+### 8.1 Entscheidungen
+
+| Nr. | Frage | Entscheidung |
+|---|---|---|
+| **E-SR-15** | `prefers-reduced-motion` | Die Ebene bewegt sich immer, wie die Windebene (die liest die Einstellung nicht, §7). Grund: Jans Chrome meldet `reduce`, er sah bisher ein Standbild. Rückfall: `?srstill=1` ⇒ das Standbild wie bisher (feste Saat, eingeschwungen), mit Hinweis in der Legende. **Weniger als zuvor:** wer am Gerät reduzierte Bewegung wünscht, bekommt sie auf dieser Ebene nur noch über den Link |
+| **E-SR-16** | Tempo | Kurve der Windpartikel statt linear: `px/s = 60 · (max(v, 0,05) / 1 m/s)^0,7` (`set`; Exponent 0,7 wie `SEGMENT_PRESET.speed.gamma`). 0,1 m/s ⇒ 12 px/s (vorher 4,5), 0,3 ⇒ 26 (13), 1 ⇒ 60 (45), 2 ⇒ 97 (90). Stehendes Wasser (v = 0) bewegt nichts; unter 0,05 m/s bleibt ein Paket verborgen (E-SR-7 unverändert). Rückfall: `?srtempo=lin` ⇒ 0,75 px je Bild je m/s. **Preis:** das Tempo am Bildschirm ist nicht mehr proportional zur Stärke — die Stärke bleibt an Größe und Helligkeit der Bögen und in der Legende ablesbar; der Satz „Die Bewegung zeigt Richtung und Stärke“ bleibt wahr (monoton) |
+| **E-SR-17** | Fäden | Ein Faden zeichnet weiter die letzten 56 Positionen; mit dem höheren Tempo ist er am Bildschirm länger (bei 0,3 m/s ≈ 24 statt 13 px). Hingenommen: Länge = Zeit, wie die Spur der Windpartikel |
+
+Unverändert: Bögen (Geometrie, Farben, Zahl, Abstand), Farbfläche, Zähler je Wasserfläche, Regelung der Bildrate,
+Daten, „keine Daten“. Kein WebGL.
+
+### 8.2 Plan
+
+| Datei | Was |
+|---|---|
+| `src/sea/seaRipples.ts` | `RIPPLE_TEMPO` (`pxPerSec` 60, `refMs` 1, `gamma` 0,7, `minMs` 0,05), `rippleStepPx(v, linear = false)` = px je 60-Hz-Bild (0 bei v ≤ 0), `rippleMotionFrom(search)` ⇒ `{ still, linear }` aus `srstill=1` / `srtempo=lin`; `RIPPLE_STILL_NOTE` nennt den Link statt des Geräts |
+| `src/sea/seaRippleSim.ts` | `new RippleSim(seed, linear = false)`; beide Schritte nehmen `rippleStepPx(f.v, this.linear) * dtN` |
+| `src/sea/SeaRippleLayer.ts` | liest die zwei Rückfälle einmal aus dem Link; `still()` = der Rückfall; kein `matchMedia('(prefers-reduced-motion …)')` mehr |
+| `src/sea/SeaPage.tsx` | `stillMotion` aus `rippleMotionFrom` statt aus der Media Query (Hinweis der Legende) |
+| `scripts/verify-sea-ripples.mjs` | D7–D12 prüfen den Rückfall (linear); neu H1–H5 (Kurve gegen eine zweite Rechnung, Sim an beiden Partikelarten und bei halber Bildrate, stehendes Wasser, Rückfälle aus dem Link mit Gegenproben); G1, G13, G19 auf den neuen Stand |
+
+Reihenfolge: Prüfer zuerst (rot), dann Code. Gate: typecheck, `verify:sea-ripples`, `verify:sea-current`, build,
+budget; im Browser dieselbe Messung wie §7 (mit `reduce`: 60 Bilder/s und ein Bild, das sich ändert; `?srstill=1`:
+Standbild), dazu Verschieben der Karte gegen die Windebene (E des Entwurfs: nur ändern, wenn es ruckt oder springt).
+
+### 8.3 Umsetzung (19.11.)
+
+Wie geplant (§8.2), fünf Dateien. `SeaMap.tsx`, `seaDeck.css`, Daten und Producer sind unberührt. Der Rumpf des
+Zeichnens (`paint`) ist unverändert — das Aussehen der Bögen kommt aus denselben Formeln mit der echten Stärke in m/s.
+
+### 8.4 Gate (19.11.)
+
+| Prüfung | Ergebnis |
+|---|---|
+| `verify:sea-ripples` | **116/116** (111 + H1–H5; G1, G13, G19, G24 auf den neuen Stand, D7–D12 prüfen jetzt den Rückfall). Am Stand vor dem Code rot (die Tempo-Funktion fehlte) |
+| Mutationen | **12 von 12 bemerkt** (Exponent 1 · kein Boden · stehendes Wasser bewegt sich · 45 statt 60 px/s · Rückfall = Kurve · Zustand ohne Rückfall · Pakete im alten Tempo · Ebene liest das Gerät wieder · Ebene reicht das Rückfall-Tempo nicht weiter · jeder Wert von `srstill` · `srtempo` lose gelesen · Seite fragt das Gerät) |
+| `npm run typecheck` · `npm run build` | grün · grün (281/281) |
+| `npm run budget` | grün ohne Anheben: totalJs 2 045,9 / 2 046; Anteil mit dem Zähler aus `seewetter-ausfahrt.md` §10.4: 2 099 189 → 2 099 166 Byte = **−23 Byte gzip** |
+| Nicht gelaufen | `verify:sea-ui` (Browser, an HEAD rot, V-TF-5); die übrigen `verify:sea-*` lesen keine der fünf Dateien außer `SeaPage.tsx` an Stellen, die diese Phase nicht berührt (eine Zeile `stillMotion`, ein Import) |
+
+**Im Browser gemessen** (Aufbau wie §7: Produktions-Build, Chromium 1223 mit echter GPU, Intel UHD, 1440 × 900,
+Live-Daten; Zahlen `seewetter-riffel/sr8-messung.json`):
+
+| Messung | Ergebnis |
+|---|---|
+| Gerät meldet `prefers-reduced-motion: reduce` (Jans Chrome) | **60 Bilder/s**, Abstand p95 16,8 ms, 5 ms je Bild, keine Long Tasks; 93 % der gezeichneten Pixel ändern sich in 100 ms (`sr8-bewegt-trotz-reduce.png`). Vorher: 0 Bilder/s |
+| Rückfall `?srstill=1` | 0 Bilder/s, 0 % Änderung in 1 s; die Legende sagt „Standbild: die Bewegung ist über „srstill=1“ im Link abgeschaltet.“ (`sr8-rueckfall-standbild.png`) |
+| Rückfall `?srtempo=lin` | 60 Bilder/s |
+| Karte ziehen und mit dem Rad hineinzoomen, Sekunde für Sekunde, zwei Durchgänge | **59–60 Bilder/s** davor, dabei und danach; einzelne ausgelassene Bilder (größter Abstand 33–117 ms, ein bis zwei in zehn Sekunden). Hineingezoomt 1 900–2 000 Striche je Bild statt 1 300, 7 statt 5 ms (`sr8-hineingezoomt.png`) |
+| Windebene, dieselbe Probe | 60 Bilder/s beim Ziehen und Zoomen, größter Abstand 17–33 ms |
+| Telefon-Größe 390 × 844 mit Touch-Emulation | Seite 60 Bilder/s, 1 ms je Bild; die Ebene zeichnet dort nach ihrer Leiter mit 30 (nicht eigens gezählt). Bild: `sr8-mobil-390.png` (der Kartenhinweis liegt noch darüber) |
+
+**Abweichung, nicht geklärt (V-SR-11):** im ERSTEN Messlauf lief die Seite während des Zoomens und in den 5 Sekunden
+danach mit 33–38 Bildern/s (Abstand der Bilder 33 ms, Rechnen 7 ms — also nicht das Skript der Ebene). In drei
+weiteren Aufzeichnungen derselben Probe trat das nicht auf (59–60). Die Windebene blieb in ihrem einen Lauf bei 60.
+
+**Die fünf Fragen.**
+1. *Funktionserhalt:* nichts entfernt. **Weniger als zuvor:** das Standbild kommt nicht mehr von selbst, wenn das
+   Gerät reduzierte Bewegung wünscht (E-SR-15, Jans Wort) — nur noch über `?srstill=1`.
+2. *Desktop pixelgleich:* **nein, gewollt** — die Riffel wandern schneller, die Fäden sind dadurch länger (E-SR-17).
+   Kein CSS, kein Markup berührt; die Bögen selbst (Form, Größe, Farbe, Zahl) sind unverändert.
+3. *Touch-Ziele:* kein Bedienelement berührt.
+4. *Konsole:* keine Ausnahme in den drei Messsitzungen (`Runtime.exceptionThrown` mitgeschrieben).
+5. *Long Tasks:* 0 in Ruhe und beim Ziehen; beim Zoomen im ersten Lauf einer mit 56–58 ms.
+
+**Nicht geprüft:** Jans Chrome selbst und ein echtes Telefon; das Tempo mit dem Auge (die drei Zahlen der Kurve sind
+gesetzt und nur im Partikelzustand nachgerechnet, H1–H4 — am Bildschirm nicht ausgemessen); Zoomen mit zwei Fingern;
+„Fenster abspielen“ bei laufender Ebene; die Ebene am Deckel (× 4 Wasserfläche, großer Schirm).
+
+### 8.5 Befunde
+
+V-SR-3 (Bildrate ungemessen): am Desktop **beantwortet** (60 Bilder/s), am Telefon offen.
+
+| Nr. | Befund | Mehrwert · Skizze |
+|---|---|---|
+| **V-SR-11** | Einmal in vier Aufzeichnungen fiel die Seite beim Hineinzoomen für mehrere Sekunden auf rund 30 Bilder/s, ohne dass das Skript der Ebene länger rechnete | Jans Blick beim Zoomen. Tritt es bei ihm auf: Bildabstand statt Rechenzeit messen (V-SR-12) und die Zahl der Striche senken (Fronten gleicher Deckkraft in EINEM Pfad zeichnen) |
+| **V-SR-12** | Die Regelung der Ebene bekommt die Rechenzeit des Skripts, nicht den Abstand der Bilder. Bremst die Grafikkarte (wie in V-SR-11), merkt sie es nicht und nimmt nichts zurück | Den Governor mit dem größeren der beiden Werte füttern (Rechenzeit, geglätteter Bildabstand) — Änderung nur in `SeaRippleLayer.ts`, der Governor selbst bleibt |
+| **V-SR-13** | Während die Karte bewegt wird, zeichnet die Ebene zweimal je Bild: in der eigenen Schleife und noch einmal auf `move` | Halbe Zeichenlast beim Ziehen: das Bild der Schleife auslassen, wenn im selben Bild schon auf `move` gezeichnet wurde |
+| **V-SR-14** | Weder die Windebene noch (seit dieser Phase) die Riffel beachten den Wunsch nach reduzierter Bewegung; es gibt auf der Seite auch keinen sichtbaren Knopf zum Anhalten (nur den Link) | Für Menschen, denen Bewegung zusetzt: ein kleiner Schalter „Bewegung anhalten“ an der Legende der Ebene, gemerkt im Gerät; Voreinstellung bleibt „bewegt“. Jans Wort |
+
+## 9. Phase SR-C (19.11.2026): Tempo etwas langsamer, ein Bild je Bildschirmbild beim Bewegen der Karte
+
+Jans Blick auf SR-B (19.11.): „1. das Tempo etwas langsamer 2. minimal [Ruckeln beim Hineinzoomen], verbessere es
+vielleicht noch leicht 3. lass es erstmal so [kein Schalter „Bewegung anhalten“]“.
+
+### 9.1 Diagnose zu Punkt 2 (vor dem Code gemessen)
+
+Aufbau wie §7, drei Durchgänge in je frischem Kontext, fünf Rad-Schritte hinein; je Bild gezählt: Striche auf dem
+Canvas der Ebene und wie oft er geleert wurde (= wie oft gezeichnet). **Vorher:** in Ruhe 1 300 Striche und 5 ms je
+Bild; während des Zoomens wurden **36–38 von rund 142 Bildern zweimal gezeichnet** (einmal von der eigenen Schleife,
+einmal auf `move` der Karte — V-SR-13), Rechenzeit je Bild p95 **12–15 ms** bei einem Budget von 16,7 ms. Die Bildrate
+hielt auf dieser Maschine trotzdem 60; auf einer schwächeren ist genau das der Rand, an dem Bilder ausfallen.
+
+### 9.2 Entscheidungen
+
+| Nr. | Frage | Entscheidung |
+|---|---|---|
+| **E-SR-18** | Tempo (Jan: „etwas langsamer“) | `RIPPLE_TEMPO.pxPerSec` 60 → **48** (`set`, −20 %): 0,1 m/s ⇒ 10 px/s, 0,3 ⇒ 21, 1 ⇒ 48, 2 ⇒ 78; Boden 5,9 px/s. Kurve, Exponent und Boden-Stärke unverändert. Gegenüber dem linearen Tempo vor SR-B: bei 0,3 m/s das 1,5-Fache, bei 0,1 m/s das 2,1-Fache, ab 1,3 m/s langsamer als damals |
+| **E-SR-19** | Zeichnen, während die Karte sich bewegt | **Ein Bild je Bildschirmbild.** Die Karte zeichnet die Ebene auf jedem `move` selbst (mit der Sicht genau dieses Bildes); die Schleife rechnet die Partikel weiter und lässt ihr Bild aus, solange das letzte Kartenbild jünger ist als das 1,5-Fache des Abstands der letzten zwei (mindestens 25, höchstens 100 ms — `set`, `RIPPLE_MOVE`). Bei 60 Bildern heißt das: nach dem Ende einer Bewegung entfällt EIN Bild, dann zeichnet die Schleife wieder; ein mitten im Ziehen stillgehaltener Zeiger friert die Riffel nicht ein. Die Regelung bekommt die Dauer des Kartenbilds statt des ausgelassenen |
+| **E-SR-20** | Schalter „Bewegung anhalten“ (V-SR-14) | **nein, vorerst** (Jan). Der Rückfall bleibt der Link `?srstill=1` |
+
+### 9.3 Umsetzung
+
+| Datei | Was |
+|---|---|
+| `src/sea/seaRipples.ts` | `RIPPLE_TEMPO.pxPerSec` 48; `RIPPLE_MOVE`, `loopPaints(nowMs, movedAtMs, moveEveryMs)` (rein) |
+| `src/sea/SeaRippleLayer.ts` | Schleife: rechnen immer, zeichnen nur, wenn `loopPaints`; `onMove` merkt Zeit, Abstand und Dauer seines Bilds (nur bei laufender Schleife) |
+| `scripts/verify-sea-ripples.mjs` | H1–H4 auf 48 px/s; neu H6 (Regel mit Grenzfällen), H7 (eine Sekunde Bewegung + eine Sekunde Ruhe durchgerechnet), G25 (Verdrahtung); G6 nachgezogen |
+
+### 9.4 Gate (19.11.)
+
+| Prüfung | Ergebnis |
+|---|---|
+| `verify:sea-ripples` | **119/119** (116 + H6, H7, G25); am Stand vor dem Code rot |
+| Mutationen | **8 von 8 bemerkt** (60 px/s · Schleife zeichnet immer · keine Obergrenze · feste 25 ms · kaputter Abstand hält die Schleife an · Ebene zeichnet trotz Regel · Kartenbild auch im Standbild gemerkt · Regelung ohne das Kartenbild) |
+| `npm run typecheck` · `npm run build` · `npm run budget` | grün · grün (281/281) · grün ohne Anheben, totalJs 2 045,9 / 2 046 (−3 Byte gzip gegen §8.4) |
+| Beim Zoomen, dieselbe Probe wie §9.1 (`seewetter-riffel/sr9-zoom-vorher.json`, `-nachher.json`) | doppelt gezeichnete Bilder **36–38 → 1–2** (das erste der Bewegung, wie gerechnet), ein Bild ohne eigenes Zeichnen am Ende; Rechenzeit je Bild p95 **12–15 → 10–11 ms**, Median 8 → 7 ms; 60 Bilder/s, kein Bildabstand über 20 ms in allen drei Durchgängen (vorher einer von 33 ms) |
+| In Ruhe und nach dem Zoomen | unverändert: 60 Bilder/s, 5 bzw. 6 ms je Bild |
+
+**Die fünf Fragen.** 1 *Funktionserhalt:* nichts entfernt. 2 *Desktop pixelgleich:* nein, gewollt (Tempo); kein CSS,
+kein Markup. 3 *Touch-Ziele:* keine berührt. 4 *Konsole:* nicht eigens mitgeschrieben in dieser Messung (in §8.4
+sauber; der Code der Phase wirft nichts). 5 *Long Tasks:* nicht eigens gemessen; die Rechenzeit je Bild blieb unter
+12 ms.
+
+**Nicht geprüft:** Jans Chrome und ein echtes Telefon; ob das Ruckeln, das Jan „minimal“ sah, damit weg ist (seine
+Maschine, sein Blick); Ziehen mit der Maus in Echtzeit (die Messbrücke schickt Mausbewegungen zu langsam — gemessen
+ist das Zoomen, das dieselbe Stelle im Code trifft); zwei Finger; das Bild selbst habe ich nach dieser Änderung nicht
+neu angesehen (die Zeichenroutine ist unverändert).
+
+### 9.5 Befunde
+
+V-SR-13: **umgesetzt**. V-SR-14: **entschieden** (E-SR-20). V-SR-11, V-SR-12 bleiben offen.
+
+| Nr. | Befund | Mehrwert · Skizze |
+|---|---|---|
+| **V-SR-15** | Auch mit einem Bild je Bildschirmbild kostet ein Bild beim Zoomen 7–11 ms statt 5: jede Front ist ein eigener Strich (bis 2 500 je Bild) | Reicht es Jan noch nicht: Fronten gleicher Deckkraft-Stufe in EINEM Pfad zeichnen (drei Durchgänge × etwa 16 Stufen statt 2 000 Striche). Ändert das Bild dort minimal, wo sich Fronten überlagern — deshalb Jans Blick |
+
+## 10. Phase SR-D (19.11.2026): nochmals langsamer, beim Hineinzoomen ein Viertel weniger Bögen
+
+Jans zweiter Blick (19.11.): „nochmal etwas langsamer alle Strömungsbewegungen, zudem sind es beim Reinzoomen etwas zu
+viele Wellen, das können etwas weniger sein (−25 %)“.
+
+### 10.1 Entscheidungen
+
+| Nr. | Frage | Entscheidung |
+|---|---|---|
+| **E-SR-21** | Tempo | `RIPPLE_TEMPO.pxPerSec` 48 → **38** (`set`, derselbe Schritt von −20 % wie E-SR-18): 0,1 m/s ⇒ 8 px/s, 0,3 ⇒ 16, 1 ⇒ 38, 2 ⇒ 62; Boden 4,7 px/s. Gilt für Fäden und Pakete (eine Funktion). Gegen das lineare Tempo vor SR-B: bis etwa 0,57 m/s schneller (bei 0,3 m/s das 1,2-Fache, bei 0,1 m/s das 1,7-Fache), darüber langsamer |
+| **E-SR-22** | „beim Reinzoomen −25 %“ | Gelesen als: die **Startansicht bleibt, wie sie ist**; weiter hinein sinkt die Zahl der Pakete gleitend auf **75 %**, erreicht eine Zoomstufe hinter der Startansicht, dort und tiefer konstant (`RIPPLE_ZOOM`: `levels` 1 `set`, `packets` 0,75 Jans Zahl). „Wellen“ = die Bögen (Pakete); die Fäden behalten ihre Zahl. Die Dichte je Wasserfläche und der Deckel × 4 bleiben; der Faktor multipliziert sich mit dem letzten Hebel der Regelung. Gezählt wird wie bisher am Ende jeder Kartenbewegung |
+| **E-SR-23** | Woran „hineingezoomt“ gemessen wird | An der Sicht der Ebene selbst: Maßstab der Karte geteilt durch den, bei dem die Startansicht (`SEA_START_BOUNDS`) mit 10 px Rand in die Kartenfläche passt — so, wie die Karte beim Start angelegt wird. Damit gilt auf jedem Schirm dessen eigene Startansicht (Telefon, breite Fenster). **Nicht** die Kamera-Hilfe der Karte (`cameraForBounds`): die zählt den Innenabstand mit, den die Seite für Legende und Leisten setzt — der erste Versuch nahm damit schon der Startansicht 17 % der Striche (gemessen, §10.3) |
+
+### 10.2 Umsetzung
+
+| Datei | Was |
+|---|---|
+| `src/sea/seaRipples.ts` | `pxPerSec` 38; `RIPPLE_ZOOM`, `zoomPacketScale(zoomIn)`, `rippleZoomIn(view, home, padPx = 10)` (alle rein) |
+| `src/sea/SeaRippleLayer.ts` | zweites Argument `home` (die Startansicht); `recount` zählt die Pakete mit `zoomPacketScale(rippleZoomIn(view, this.home))` |
+| `src/sea/SeaMap.tsx` | `new m.SeaRippleLayer(map, SEA_START_BOUNDS)` — eine Zeile |
+| `scripts/verify-sea-ripples.mjs` | H1–H4 auf 38 px/s; neu H8 (Faktor mit Gegenproben und Zählern), H9 (Zoom hinter der Startansicht gegen eine zweite Rechnung: Desktop, Telefon, breite flache Karte, ohne Startansicht), G26 (Verdrahtung, ohne Kamera-Hilfe) |
+| `budget.json` | totalJs 2 046 → 2 047, von Hand, mit Notiz |
+
+### 10.3 Gate (19.11.)
+
+| Prüfung | Ergebnis |
+|---|---|
+| `verify:sea-ripples` | **122/122** (119 + H8, H9, G26); am Stand vor dem Code rot |
+| Mutationen | **10 von 10 bemerkt** (48 px/s · kein Abzug · ein Drittel statt ein Viertel · Abzug schon in der Startansicht · Sprung statt Gleiten · Passung ohne Rand · Passung nur aus der Breite · Ebene zählt ohne Zoom · Karte reicht die Startansicht nicht weiter · Ebene fragt wieder die Kamera). „Nur aus der Breite“ blieb zuerst unbemerkt ⇒ Fall „breite, flache Karte“ in H9 ergänzt |
+| `npm run typecheck` · `npm run build` | grün · grün (281/281) |
+| `npm run budget` | **zuerst rot** (2 046,3 > 2 046), nach dem Anheben von Hand grün: totalJs 2 046,2 / 2 047. Anteil der Phase mit demselben Zähler: 2 099 163 → 2 099 498 Byte = **+335 Byte gzip** |
+| Striche je Bild, drei Durchgänge (`seewetter-riffel/sr10-zoom.json`; Aufbau wie §9.1) | **Startansicht 1 288–1 333** (vor der Phase 1 285–1 343: unverändert) · **hineingezoomt 1 356–1 400** (vorher 1 787–1 835: **−24 %**, darin die Fäden, die bleiben) · 60 Bilder/s, Rechenzeit je Bild 5 ms in Ruhe, p95 12 ms beim Zoomen, doppelt gezeichnet 1–2 Bilder wie in §9.4 |
+| Erster Versuch mit `cameraForBounds` (verworfen, E-SR-23) | Startansicht 1 091–1 115 Striche = −17 % gegen vorher — gemessen, bevor es jemand sah |
+| Bild | `seewetter-riffel/sr10-hineingezoomt.png` (Nordfriesland, nach fünf Rad-Schritten): Bögen und Fäden wie zuvor, lockerer |
+
+**Die fünf Fragen.** 1 *Funktionserhalt:* nichts entfernt. 2 *Desktop pixelgleich:* nein, gewollt (Tempo; weniger
+Bögen hinter der Startansicht); kein CSS, kein Markup. 3 *Touch-Ziele:* keine berührt. 4 *Konsole:* in dieser Messung
+nicht mitgeschrieben. 5 *Long Tasks:* nicht eigens gemessen; Rechenzeit je Bild höchstens 12 ms (p95 beim Zoomen).
+
+**Nicht geprüft:** Jans Chrome und ein echtes Telefon; das Tempo mit dem Auge; wie weit Jan hineingezoomt hatte, als
+es ihm zu viele waren (der volle Abzug gilt ab EINER Stufe — liegt sein Eindruck tiefer oder flacher, ist `levels` die
+Zahl); ob beim Herauszoomen das Zurückkehren der vollen Zahl auffällt (die Plätze füllen sich über 30 Bilder).
+
+### 10.4 Befunde
+
+| Nr. | Befund | Mehrwert · Skizze |
+|---|---|---|
+| **V-SR-16** | Der Abzug hängt an der Zoomstufe, nicht daran, wie viele Bögen wirklich zu sehen sind. Hineingezoomt in ruhiges Wasser (Ostsee, Förden) stehen ohnehin wenige; dort nimmt die Regel noch ein Viertel weg | Falls es dort zu leer wirkt: statt der Zoomstufe die Zahl der SICHTBAREN Pakete (Stärke über der Grenze) deckeln — Jans Blick |
+| **V-SR-17** | `cameraForBounds` der Karte rechnet den gesetzten Innenabstand der Karte mit (`setPadding` für Legende und Leisten) — wer daraus „die Startansicht“ ableitet, bekommt eine andere als die, mit der die Karte startet | Merker für jede künftige Regel „relativ zur Startansicht“ auf dieser Karte: aus Kartengröße und Grenzen selbst rechnen (`rippleZoomIn`) |
+
+## 11. Phase SR-E (19.11.2026): Tempo nochmals 15 % langsamer
+
+Jans dritter Blick (19.11.): „die Strömung jetzt nochmal etwas langsamer, 15 % langsamer“.
+
+**E-SR-24:** `RIPPLE_TEMPO.pxPerSec` 38 → **32,3** (= 38 − 15 %, Jans Zahl). 0,1 m/s ⇒ 6 px/s, 0,3 ⇒ 14, 1 ⇒ 32,
+2 ⇒ 52; Boden 4,0 px/s. Verlauf der einen Zahl am 19.11.: 60 → 48 → 38 → 32,3.
+
+**Was das heißt (gegen das lineare Tempo vor SR-B):** bei mittlerem Strom (0,3 m/s, der Median des Felds vom 19.11.)
+ist es praktisch wieder das Tempo von vorher (13,9 gegen 13,5 px/s). Geblieben ist die Form der Kurve: schwacher
+Strom läuft sichtbar (0,1 m/s: 6,4 statt 4,5 px/s, das 1,4-Fache), starker rast nicht (1 m/s: 32 statt 45 px/s, das
+0,72-Fache); der Schnittpunkt liegt bei 0,33 m/s. Der große Unterschied zu vorher bleibt E-SR-15: die Ebene bewegt
+sich in Jans Chrome überhaupt.
+
+| Prüfung | Ergebnis |
+|---|---|
+| `verify:sea-ripples` | **122/122**; H1–H4 auf 32,3 px/s nachgezogen (vier Prüfungen am alten Wert rot), H2 nennt den Schnittpunkt |
+| `npm run typecheck` · `npm run build` · `npm run budget` | grün · grün (281/281) · grün, totalJs unter 2 047 |
+| Im Browser | **nicht neu gemessen** — geändert ist eine Zahl in der Tempo-Funktion; Bildrate, Zählung und Zeichnen sind die aus §10.3 |
+| Mutationen | nicht neu gelaufen; „Tempo des Standes davor“ ist dieselbe Gegenprobe wie in §9.4 und §10.3 (H1–H4 bemerken sie) |
+
+**Nicht geprüft:** das Tempo mit dem Auge, Jans Chrome, ein echtes Telefon.
+
+## 12. Phase SR-F (19.11.2026): Tempo ein viertes Mal langsamer (−15 %)
+
+Jan (19.11.): „kannst du nochmal um 15 % langsamer machen?“
+
+**E-SR-25:** `RIPPLE_TEMPO.pxPerSec` 32,3 → **27,455** (= 32,3 − 15 %). 0,1 m/s ⇒ 5,5 px/s, 0,3 ⇒ 11,8, 1 ⇒ 27,5,
+2 ⇒ 44,6; Boden 3,4 px/s. Verlauf der einen Zahl am 19.11.: 60 → 48 → 38 → 32,3 → 27,455.
+
+**Was das heißt (gegen das lineare Tempo vor SR-B):** jetzt **langsamer als vor allen Änderungen**, sobald der Strom
+über 0,19 m/s liegt — bei 0,3 m/s (Median des Felds vom 19.11.) 11,8 statt 13,5 px/s (das 0,88-Fache), bei 1 m/s 27
+statt 45 (das 0,61-Fache). Nur schwacher Strom läuft noch schneller als damals (0,1 m/s: 5,5 statt 4,5 px/s). Rund
+ein Viertel des Wassers bewegt sich damit unter 6,6 px/s.
+
+| Prüfung | Ergebnis |
+|---|---|
+| `verify:sea-ripples` | **122/122**; H1–H4 auf 27,455 px/s nachgezogen (am alten Wert rot), H2 nennt den neuen Schnittpunkt |
+| `npm run typecheck` · `npm run build` · `npm run budget` | s. Lauf dieser Phase (grün, totalJs unter 2 047) |
+| Im Browser · Mutationen | **nicht neu** — eine Zahl in der Tempo-Funktion; Bildrate, Zählung und Zeichnen wie §10.3 |
+
+**Nicht geprüft:** das Tempo mit dem Auge, Jans Chrome, ein echtes Telefon.

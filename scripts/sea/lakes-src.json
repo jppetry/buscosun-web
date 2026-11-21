@@ -1,0 +1,146 @@
+{
+  "about": "Handliste der Binnenseen und ihrer Spots (Phase BS, audit/seewetter-binnenseen.md). Lagen von Hand (Hafen, Strandbad, Seepromenade), der Katalogbau zieht sie auf die Uferlinie des Sees. Höhe, mittlere Tiefe und Fläche sind am 21.11.2026 aus den Infoboxen der genannten Wikipedia-Artikel gelesen (factsFrom, depthFrom). outline: Quelle des Umrisses — dlm250 (BKG, dl-de/by-2.0) für Seen in Deutschland, swisstopo (swissTLM3D Gewässernetz) für Seen in der Schweiz, euhydro (Copernicus EU-Hydro, InlandWater) für Seen in Österreich und für Grenzseen. pick: wie der Umriss gewählt wird (Name bei dlm250/swisstopo, Punkt im See bei euhydro). foreign: Landesparameter von buscosun Fusion an einem Ufer außerhalb DE/AT/CH. service: der für Warnungen auf dem See zuständige Dienst — nur verlinkt. alp: Schlüssel des Sees im 1D-Modell Simstrat von Alplakes (Eawag, CC BY 4.0), am Spot überschrieben, wo der See in Becken gerechnet wird. bafu: Seenamen der BAFU-Pegel in LINDAS. wsv: Pegel der WSV (PEGELONLINE) am See.",
+  "factsFetchedAt": "2026-11-21",
+  "lakes": [
+    { "id": "genfersee", "name": "Genfersee", "lands": ["CH", "FR"], "outline": "euhydro", "pick": {"at": [46.45,6.55]}, "elevM": 372, "depthM": 153, "areaKm2": 581.3, "factsFrom": "https://de.wikipedia.org/wiki/Genfersee", "foreign": {"FR": "CH"}, "service": "ch", "alp": "geneva", "bafu": ["Lac Léman"] },
+    { "id": "bodensee", "name": "Bodensee", "lands": ["DE", "AT", "CH"], "outline": "euhydro", "pick": {"at": [47.63,9.37]}, "elevM": 395.23, "depthM": 90, "areaKm2": 536, "factsFrom": "https://de.wikipedia.org/wiki/Bodensee", "service": "bodensee", "alp": "upperconstance", "bafu": ["Bodensee, Obersee", "Bodensee, Untersee"], "wsv": {"uuid": "aa9179c1-17ef-4c61-a48a-74193fa7bfdf", "name": "Konstanz"} },
+    { "id": "neusiedler-see", "name": "Neusiedler See", "lands": ["AT", "HU"], "outline": "euhydro", "pick": {"at": [47.83,16.75]}, "elevM": 115, "depthM": 1, "areaKm2": 320, "factsFrom": "https://de.wikipedia.org/wiki/Neusiedler_See", "foreign": {"HU": "AT"}, "service": "bgld" },
+    { "id": "neuenburgersee", "name": "Neuenburgersee", "lands": ["CH"], "outline": "swisstopo", "pick": {"name": "Neuenburgersee"}, "elevM": 429.06, "depthM": 64.2, "areaKm2": 217.9, "factsFrom": "https://de.wikipedia.org/wiki/Neuenburgersee", "depthFrom": "https://en.wikipedia.org/wiki/Lake_Neuch%C3%A2tel", "service": "ch", "alp": "neuchatel", "bafu": ["Lac de Neuchâtel"] },
+    { "id": "lago-maggiore", "name": "Lago Maggiore", "lands": ["CH", "IT"], "outline": "euhydro", "pick": {"at": [46.1,8.72]}, "elevM": 193, "depthM": 177.4, "areaKm2": 212.3, "factsFrom": "https://de.wikipedia.org/wiki/Lago_Maggiore", "depthFrom": "https://en.wikipedia.org/wiki/Lake_Maggiore", "foreign": {"IT": "CH"}, "service": "ch", "alp": "maggiore", "bafu": ["Lago Maggiore"] },
+    { "id": "mueritz", "name": "Müritz", "lands": ["DE"], "outline": "dlm250", "pick": {"name": "^Müritz$"}, "elevM": 62.1, "depthM": 6.5, "areaKm2": 112.6, "factsFrom": "https://de.wikipedia.org/wiki/M%C3%BCritz", "service": "de", "wsv": {"uuid": "bd317edd-214a-4e11-a9dc-3cc71a2907c3", "name": "Waren"} },
+    { "id": "vierwaldstaettersee", "name": "Vierwaldstättersee", "lands": ["CH"], "outline": "swisstopo", "pick": {"name": "Vierwaldstättersee"}, "elevM": 433, "depthM": 104, "areaKm2": 113.6, "factsFrom": "https://de.wikipedia.org/wiki/Vierwaldst%C3%A4ttersee", "depthFrom": "https://en.wikipedia.org/wiki/Lake_Lucerne", "service": "ch", "alp": "lucernekreuztrichterandvitznauerbecken", "bafu": ["Vierwaldstättersee"] },
+    { "id": "zuerichsee", "name": "Zürichsee", "lands": ["CH"], "outline": "swisstopo", "pick": {"name": "Zürichsee"}, "elevM": 406, "depthM": 51.7, "areaKm2": 90.1, "factsFrom": "https://de.wikipedia.org/wiki/Z%C3%BCrichsee", "service": "ch", "alp": "lowerzurich", "bafu": ["Zürichsee"] },
+    { "id": "chiemsee", "name": "Chiemsee", "lands": ["DE"], "outline": "dlm250", "pick": {"name": "^Chiemsee$"}, "elevM": 518.2, "depthM": 25.63, "areaKm2": 79.9, "factsFrom": "https://de.wikipedia.org/wiki/Chiemsee", "service": "de", "alp": "chiemsee" },
+    { "id": "schweriner-see", "name": "Schweriner See", "lands": ["DE"], "outline": "dlm250", "pick": {"name": "^Schweriner (See|Außensee|Innensee)$"}, "elevM": 37.8, "depthM": 12.8, "areaKm2": 61.54, "factsFrom": "https://de.wikipedia.org/wiki/Schweriner_See", "service": "de", "wsv": {"uuid": "680d5966-273f-4254-aabe-5d4e00e12a24", "name": "Schwerin Werderbrücke"} },
+    { "id": "starnberger-see", "name": "Starnberger See", "lands": ["DE"], "outline": "dlm250", "pick": {"name": "^Starnberger See$"}, "elevM": 584, "depthM": 53.2, "areaKm2": 56.36, "factsFrom": "https://de.wikipedia.org/wiki/Starnberger_See", "service": "de", "alp": "starnberger" },
+    { "id": "luganersee", "name": "Luganersee", "lands": ["CH", "IT"], "outline": "euhydro", "pick": {"at": [45.98,8.97]}, "elevM": 271, "depthM": 134, "areaKm2": 48.7, "factsFrom": "https://de.wikipedia.org/wiki/Luganersee", "depthFrom": "https://en.wikipedia.org/wiki/Lake_Lugano", "foreign": {"IT": "CH"}, "service": "ch", "alp": "upperlugano", "bafu": ["Lago di Lugano"] },
+    { "id": "thunersee", "name": "Thunersee", "lands": ["CH"], "outline": "swisstopo", "pick": {"name": "Thunersee"}, "elevM": 558, "depthM": 136, "areaKm2": 48.4, "factsFrom": "https://de.wikipedia.org/wiki/Thunersee", "depthFrom": "https://en.wikipedia.org/wiki/Lake_Thun", "service": "ch", "alp": "thun", "bafu": ["Thunersee"] },
+    { "id": "ammersee", "name": "Ammersee", "lands": ["DE"], "outline": "dlm250", "pick": {"name": "^Ammersee$"}, "elevM": 532.9, "depthM": 37.5, "areaKm2": 46.6, "factsFrom": "https://de.wikipedia.org/wiki/Ammersee", "service": "de", "alp": "ammersee" },
+    { "id": "attersee", "name": "Attersee", "lands": ["AT"], "outline": "euhydro", "pick": {"at": [47.87,13.55]}, "elevM": 469, "depthM": 85, "areaKm2": 46.2, "factsFrom": "https://de.wikipedia.org/wiki/Attersee", "service": "ooe", "alp": "attersee" },
+    { "id": "bielersee", "name": "Bielersee", "lands": ["CH"], "outline": "swisstopo", "pick": {"name": "Bielersee"}, "elevM": 429.25, "depthM": 29, "areaKm2": 39.8, "factsFrom": "https://de.wikipedia.org/wiki/Bielersee", "service": "ch", "alp": "biel", "bafu": ["Bielersee"] },
+    { "id": "plauer-see", "name": "Plauer See", "lands": ["DE"], "outline": "dlm250", "pick": {"name": "^Plauer See$"}, "elevM": 62, "depthM": 6.8, "areaKm2": 38.4, "factsFrom": "https://de.wikipedia.org/wiki/Plauer_See_(Mecklenburg)", "service": "de", "wsv": {"uuid": "3ffddb2c-4c17-47d1-a7de-e1663d4031b7", "name": "Plau (Oberpegel)"} },
+    { "id": "zugersee", "name": "Zugersee", "lands": ["CH"], "outline": "swisstopo", "pick": {"name": "Zugersee"}, "elevM": 413, "depthM": 83.2, "areaKm2": 38.3, "factsFrom": "https://de.wikipedia.org/wiki/Zugersee", "depthFrom": "https://en.wikipedia.org/wiki/Lake_Zug", "service": "ch", "alp": "zug", "bafu": ["Zugersee"] },
+    { "id": "kummerower-see", "name": "Kummerower See", "lands": ["DE"], "outline": "dlm250", "pick": {"name": "^Kummerower See$"}, "elevM": 0.2, "depthM": 8.1, "areaKm2": 32.55, "factsFrom": "https://de.wikipedia.org/wiki/Kummerower_See", "service": "de", "wsv": {"uuid": "8ba772ed-e45b-4be8-b91d-0c6c92de59e4", "name": "Aalbude"} },
+    { "id": "brienzersee", "name": "Brienzersee", "lands": ["CH"], "outline": "swisstopo", "pick": {"name": "Brienzersee"}, "elevM": 564, "depthM": 173, "areaKm2": 29.8, "factsFrom": "https://de.wikipedia.org/wiki/Brienzersee", "depthFrom": "https://en.wikipedia.org/wiki/Lake_Brienz", "service": "ch", "alp": "brienz", "bafu": ["Brienzersee"] },
+    { "id": "steinhuder-meer", "name": "Steinhuder Meer", "lands": ["DE"], "outline": "dlm250", "pick": {"name": "^Steinhuder Meer$"}, "elevM": 37.9, "depthM": 1.35, "areaKm2": 29.1, "factsFrom": "https://de.wikipedia.org/wiki/Steinhuder_Meer", "service": "de" },
+    { "id": "grosser-ploener-see", "name": "Großer Plöner See", "lands": ["DE"], "outline": "dlm250", "pick": {"name": "^Großer Plöner See$"}, "elevM": 21, "depthM": 13.54, "areaKm2": 28.4, "factsFrom": "https://de.wikipedia.org/wiki/Gro%C3%9Fer_Pl%C3%B6ner_See", "service": "de" },
+    { "id": "traunsee", "name": "Traunsee", "lands": ["AT"], "outline": "euhydro", "pick": {"at": [47.87,13.8]}, "elevM": 422, "depthM": 95, "areaKm2": 24.35, "factsFrom": "https://de.wikipedia.org/wiki/Traunsee", "service": "ooe", "alp": "traunsee" },
+    { "id": "walensee", "name": "Walensee", "lands": ["CH"], "outline": "swisstopo", "pick": {"name": "Walensee"}, "elevM": 419, "depthM": 105, "areaKm2": 24.1, "factsFrom": "https://de.wikipedia.org/wiki/Walensee", "service": "ch", "alp": "walensee", "bafu": ["Walensee"] },
+    { "id": "schaalsee", "name": "Schaalsee", "lands": ["DE"], "outline": "dlm250", "pick": {"name": "^Schaalsee$"}, "elevM": 34.8, "depthM": 17, "areaKm2": 23.5, "factsFrom": "https://de.wikipedia.org/wiki/Schaalsee", "service": "de" },
+    { "id": "murtensee", "name": "Murtensee", "lands": ["CH"], "outline": "swisstopo", "pick": {"name": "Murtensee"}, "elevM": 429.3, "depthM": 24, "areaKm2": 23, "factsFrom": "https://de.wikipedia.org/wiki/Murtensee", "service": "ch", "alp": "murten", "bafu": ["Murtensee"] },
+    { "id": "selenter-see", "name": "Selenter See", "lands": ["DE"], "outline": "dlm250", "pick": {"name": "^Selenter See$"}, "elevM": 37.2, "depthM": 13.76, "areaKm2": 21.37, "factsFrom": "https://de.wikipedia.org/wiki/Selenter_See", "service": "de" },
+    { "id": "koelpinsee", "name": "Kölpinsee", "lands": ["DE"], "outline": "dlm250", "pick": {"name": "^Kölpinsee$"}, "elevM": 62.1, "depthM": 3.5, "areaKm2": 20.29, "factsFrom": "https://de.wikipedia.org/wiki/K%C3%B6lpinsee_(Mecklenburg)", "service": "de" }
+  ],
+  "services": {
+    "de": [
+      {
+        "name": "Deutscher Wetterdienst, Warnungen",
+        "url": "https://www.dwd.de/DE/wetter/warnungen/warnWetter_node.html"
+      }
+    ],
+    "ch": [
+      {
+        "name": "MeteoSchweiz, Gefahren",
+        "url": "https://www.meteoschweiz.admin.ch/wetter/gefahren.html"
+      }
+    ],
+    "bodensee": [
+      {
+        "name": "Deutscher Wetterdienst, Warnungen",
+        "url": "https://www.dwd.de/DE/wetter/warnungen/warnWetter_node.html"
+      },
+      {
+        "name": "MeteoSchweiz, Gefahren",
+        "url": "https://www.meteoschweiz.admin.ch/wetter/gefahren.html"
+      },
+      {
+        "name": "GeoSphere Austria, Warnungen",
+        "url": "https://warnungen.zamg.at/"
+      }
+    ],
+    "ooe": [
+      {
+        "name": "GeoSphere Austria, Warnungen",
+        "url": "https://warnungen.zamg.at/"
+      }
+    ],
+    "bgld": [
+      {
+        "name": "GeoSphere Austria, Warnungen",
+        "url": "https://warnungen.zamg.at/"
+      }
+    ]
+  },
+  "spots": [
+    { "id": "genfersee-genf", "name": "Genf", "lake": "genfersee", "land": "CH", "kinds": ["hafen", "strand"], "lat": 46.2105, "lon": 6.154 },
+    { "id": "genfersee-nyon", "name": "Nyon", "lake": "genfersee", "land": "CH", "kinds": ["hafen"], "lat": 46.3805, "lon": 6.242 },
+    { "id": "genfersee-lausanne", "name": "Lausanne", "lake": "genfersee", "land": "CH", "kinds": ["hafen", "strand"], "lat": 46.5065, "lon": 6.627 },
+    { "id": "genfersee-vevey-montreux", "name": "Vevey / Montreux", "lake": "genfersee", "land": "CH", "kinds": ["hafen"], "lat": 46.4585, "lon": 6.8445 },
+    { "id": "genfersee-le-bouveret", "name": "Le Bouveret", "lake": "genfersee", "land": "CH", "kinds": ["hafen", "strand"], "lat": 46.389, "lon": 6.856 },
+    { "id": "bodensee-konstanz", "name": "Konstanz", "lake": "bodensee", "land": "DE", "kinds": ["hafen", "strand"], "lat": 47.66, "lon": 9.179 },
+    { "id": "bodensee-radolfzell", "name": "Radolfzell", "lake": "bodensee", "land": "DE", "kinds": ["hafen", "strand"], "lat": 47.7345, "lon": 8.969, "alp": "lowerconstance" },
+    { "id": "bodensee-ueberlingen", "name": "Überlingen", "lake": "bodensee", "land": "DE", "kinds": ["hafen", "strand"], "lat": 47.765, "lon": 9.16 },
+    { "id": "bodensee-friedrichshafen", "name": "Friedrichshafen", "lake": "bodensee", "land": "DE", "kinds": ["hafen", "strand"], "lat": 47.65, "lon": 9.48 },
+    { "id": "bodensee-lindau", "name": "Lindau", "lake": "bodensee", "land": "DE", "kinds": ["hafen", "strand"], "lat": 47.544, "lon": 9.684 },
+    { "id": "bodensee-bregenz", "name": "Bregenz", "lake": "bodensee", "land": "AT", "kinds": ["hafen", "strand"], "lat": 47.5055, "lon": 9.744 },
+    { "id": "bodensee-romanshorn", "name": "Romanshorn", "lake": "bodensee", "land": "CH", "kinds": ["hafen", "strand"], "lat": 47.566, "lon": 9.383 },
+    { "id": "bodensee-kreuzlingen", "name": "Kreuzlingen", "lake": "bodensee", "land": "CH", "kinds": ["hafen", "strand"], "lat": 47.6485, "lon": 9.19 },
+    { "id": "neusiedler-see-neusiedl", "name": "Neusiedl am See", "lake": "neusiedler-see", "land": "AT", "kinds": ["strand", "kite", "hafen"], "lat": 47.929, "lon": 16.833 },
+    { "id": "neusiedler-see-podersdorf", "name": "Podersdorf", "lake": "neusiedler-see", "land": "AT", "kinds": ["strand", "kite"], "lat": 47.856, "lon": 16.827 },
+    { "id": "neusiedler-see-rust", "name": "Rust", "lake": "neusiedler-see", "land": "AT", "kinds": ["hafen", "strand"], "lat": 47.802, "lon": 16.693 },
+    { "id": "neusiedler-see-moerbisch", "name": "Mörbisch", "lake": "neusiedler-see", "land": "AT", "kinds": ["hafen", "strand"], "lat": 47.752, "lon": 16.703 },
+    { "id": "neuenburgersee-neuchatel", "name": "Neuchâtel", "lake": "neuenburgersee", "land": "CH", "kinds": ["hafen", "strand"], "lat": 46.9895, "lon": 6.933 },
+    { "id": "neuenburgersee-yverdon", "name": "Yverdon-les-Bains", "lake": "neuenburgersee", "land": "CH", "kinds": ["hafen", "strand"], "lat": 46.786, "lon": 6.644 },
+    { "id": "neuenburgersee-estavayer", "name": "Estavayer-le-Lac", "lake": "neuenburgersee", "land": "CH", "kinds": ["hafen", "strand", "kite"], "lat": 46.854, "lon": 6.844 },
+    { "id": "lago-maggiore-locarno", "name": "Locarno", "lake": "lago-maggiore", "land": "CH", "kinds": ["hafen", "strand"], "lat": 46.166, "lon": 8.801 },
+    { "id": "lago-maggiore-ascona", "name": "Ascona", "lake": "lago-maggiore", "land": "CH", "kinds": ["hafen", "strand"], "lat": 46.153, "lon": 8.77 },
+    { "id": "mueritz-waren", "name": "Waren", "lake": "mueritz", "land": "DE", "kinds": ["hafen", "strand"], "lat": 53.51, "lon": 12.685 },
+    { "id": "mueritz-roebel", "name": "Röbel", "lake": "mueritz", "land": "DE", "kinds": ["hafen", "strand"], "lat": 53.383, "lon": 12.613 },
+    { "id": "mueritz-klink", "name": "Klink", "lake": "mueritz", "land": "DE", "kinds": ["hafen", "strand"], "lat": 53.478, "lon": 12.627 },
+    { "id": "vierwaldstaettersee-luzern", "name": "Luzern", "lake": "vierwaldstaettersee", "land": "CH", "kinds": ["hafen", "strand"], "lat": 47.051, "lon": 8.313 },
+    { "id": "vierwaldstaettersee-kuessnacht", "name": "Küssnacht", "lake": "vierwaldstaettersee", "land": "CH", "kinds": ["hafen"], "lat": 47.083, "lon": 8.437 },
+    { "id": "vierwaldstaettersee-buochs", "name": "Buochs", "lake": "vierwaldstaettersee", "land": "CH", "kinds": ["hafen", "strand"], "lat": 46.978, "lon": 8.418, "alp": "lucernegersauerandtreibbecken" },
+    { "id": "vierwaldstaettersee-flueelen", "name": "Flüelen", "lake": "vierwaldstaettersee", "land": "CH", "kinds": ["hafen", "strand", "kite"], "lat": 46.902, "lon": 8.623, "alp": "lucerneurnersee" },
+    { "id": "zuerichsee-zuerich", "name": "Zürich", "lake": "zuerichsee", "land": "CH", "kinds": ["hafen", "strand"], "lat": 47.359, "lon": 8.543 },
+    { "id": "zuerichsee-waedenswil", "name": "Wädenswil", "lake": "zuerichsee", "land": "CH", "kinds": ["hafen", "strand"], "lat": 47.233, "lon": 8.674 },
+    { "id": "zuerichsee-rapperswil", "name": "Rapperswil", "lake": "zuerichsee", "land": "CH", "kinds": ["hafen", "strand"], "lat": 47.225, "lon": 8.814 },
+    { "id": "chiemsee-prien", "name": "Prien", "lake": "chiemsee", "land": "DE", "kinds": ["hafen", "strand"], "lat": 47.86, "lon": 12.369 },
+    { "id": "chiemsee-seebruck", "name": "Seebruck", "lake": "chiemsee", "land": "DE", "kinds": ["hafen", "strand"], "lat": 47.933, "lon": 12.478 },
+    { "id": "chiemsee-chieming", "name": "Chieming", "lake": "chiemsee", "land": "DE", "kinds": ["strand", "kite"], "lat": 47.89, "lon": 12.533 },
+    { "id": "schweriner-see-schwerin", "name": "Schwerin (Zippendorf)", "lake": "schweriner-see", "land": "DE", "kinds": ["hafen", "strand"], "lat": 53.5985, "lon": 11.456 },
+    { "id": "schweriner-see-bad-kleinen", "name": "Bad Kleinen", "lake": "schweriner-see", "land": "DE", "kinds": ["hafen", "strand"], "lat": 53.771, "lon": 11.475 },
+    { "id": "starnberger-see-starnberg", "name": "Starnberg", "lake": "starnberger-see", "land": "DE", "kinds": ["hafen", "strand"], "lat": 47.996, "lon": 11.347 },
+    { "id": "starnberger-see-tutzing", "name": "Tutzing", "lake": "starnberger-see", "land": "DE", "kinds": ["hafen", "strand"], "lat": 47.908, "lon": 11.286 },
+    { "id": "starnberger-see-seeshaupt", "name": "Seeshaupt", "lake": "starnberger-see", "land": "DE", "kinds": ["hafen", "strand"], "lat": 47.825, "lon": 11.305 },
+    { "id": "luganersee-lugano", "name": "Lugano", "lake": "luganersee", "land": "CH", "kinds": ["hafen", "strand"], "lat": 46.001, "lon": 8.953 },
+    { "id": "luganersee-morcote", "name": "Morcote", "lake": "luganersee", "land": "CH", "kinds": ["hafen"], "lat": 45.924, "lon": 8.915, "alp": "lowerlugano" },
+    { "id": "thunersee-thun", "name": "Thun", "lake": "thunersee", "land": "CH", "kinds": ["hafen", "strand"], "lat": 46.74, "lon": 7.635 },
+    { "id": "thunersee-spiez", "name": "Spiez", "lake": "thunersee", "land": "CH", "kinds": ["hafen", "strand"], "lat": 46.69, "lon": 7.688 },
+    { "id": "ammersee-herrsching", "name": "Herrsching", "lake": "ammersee", "land": "DE", "kinds": ["hafen", "strand"], "lat": 47.999, "lon": 11.166 },
+    { "id": "ammersee-diessen", "name": "Dießen", "lake": "ammersee", "land": "DE", "kinds": ["hafen", "strand"], "lat": 47.95, "lon": 11.11 },
+    { "id": "ammersee-stegen", "name": "Stegen", "lake": "ammersee", "land": "DE", "kinds": ["hafen", "strand"], "lat": 48.076, "lon": 11.132 },
+    { "id": "attersee-seewalchen", "name": "Seewalchen", "lake": "attersee", "land": "AT", "kinds": ["hafen", "strand"], "lat": 47.95, "lon": 13.587 },
+    { "id": "attersee-attersee", "name": "Attersee am Attersee", "lake": "attersee", "land": "AT", "kinds": ["hafen", "strand"], "lat": 47.916, "lon": 13.54 },
+    { "id": "attersee-weissenbach", "name": "Weißenbach", "lake": "attersee", "land": "AT", "kinds": ["strand"], "lat": 47.798, "lon": 13.538 },
+    { "id": "bielersee-biel", "name": "Biel", "lake": "bielersee", "land": "CH", "kinds": ["hafen", "strand"], "lat": 47.129, "lon": 7.235 },
+    { "id": "bielersee-erlach", "name": "Erlach", "lake": "bielersee", "land": "CH", "kinds": ["hafen", "strand"], "lat": 47.044, "lon": 7.1 },
+    { "id": "plauer-see-plau", "name": "Plau am See", "lake": "plauer-see", "land": "DE", "kinds": ["hafen", "strand"], "lat": 53.453, "lon": 12.279 },
+    { "id": "plauer-see-alt-schwerin", "name": "Alt Schwerin", "lake": "plauer-see", "land": "DE", "kinds": ["strand"], "lat": 53.502, "lon": 12.3635 },
+    { "id": "zugersee-zug", "name": "Zug", "lake": "zugersee", "land": "CH", "kinds": ["hafen", "strand"], "lat": 47.17, "lon": 8.513 },
+    { "id": "zugersee-arth", "name": "Arth", "lake": "zugersee", "land": "CH", "kinds": ["hafen", "strand"], "lat": 47.066, "lon": 8.522 },
+    { "id": "kummerower-see-kummerow", "name": "Kummerow", "lake": "kummerower-see", "land": "DE", "kinds": ["hafen", "strand"], "lat": 53.7686, "lon": 12.8347 },
+    { "id": "brienzersee-brienz", "name": "Brienz", "lake": "brienzersee", "land": "CH", "kinds": ["hafen", "strand"], "lat": 46.754, "lon": 8.033 },
+    { "id": "brienzersee-boenigen", "name": "Bönigen", "lake": "brienzersee", "land": "CH", "kinds": ["hafen", "strand"], "lat": 46.689, "lon": 7.896 },
+    { "id": "steinhuder-meer-steinhude", "name": "Steinhude", "lake": "steinhuder-meer", "land": "DE", "kinds": ["hafen", "strand"], "lat": 52.456, "lon": 9.356 },
+    { "id": "steinhuder-meer-mardorf", "name": "Mardorf", "lake": "steinhuder-meer", "land": "DE", "kinds": ["strand", "kite"], "lat": 52.488, "lon": 9.3 },
+    { "id": "grosser-ploener-see-ploen", "name": "Plön", "lake": "grosser-ploener-see", "land": "DE", "kinds": ["hafen", "strand"], "lat": 54.156, "lon": 10.422 },
+    { "id": "traunsee-gmunden", "name": "Gmunden", "lake": "traunsee", "land": "AT", "kinds": ["hafen", "strand"], "lat": 47.915, "lon": 13.799 },
+    { "id": "traunsee-ebensee", "name": "Ebensee", "lake": "traunsee", "land": "AT", "kinds": ["hafen", "strand", "kite"], "lat": 47.81, "lon": 13.778 },
+    { "id": "walensee-weesen", "name": "Weesen", "lake": "walensee", "land": "CH", "kinds": ["hafen", "strand"], "lat": 47.133, "lon": 9.097 },
+    { "id": "walensee-walenstadt", "name": "Walenstadt", "lake": "walensee", "land": "CH", "kinds": ["hafen", "strand"], "lat": 47.118, "lon": 9.307 },
+    { "id": "schaalsee-zarrentin", "name": "Zarrentin", "lake": "schaalsee", "land": "DE", "kinds": ["strand"], "lat": 53.55, "lon": 10.92 },
+    { "id": "murtensee-murten", "name": "Murten", "lake": "murtensee", "land": "CH", "kinds": ["hafen", "strand"], "lat": 46.93, "lon": 7.115 },
+    { "id": "selenter-see-selent", "name": "Selent", "lake": "selenter-see", "land": "DE", "kinds": ["strand"], "lat": 54.292, "lon": 10.433 },
+    { "id": "koelpinsee-klink", "name": "Kölpinsee Ostufer", "lake": "koelpinsee", "land": "DE", "kinds": ["strand"], "lat": 53.482, "lon": 12.605 }
+  ]
+}

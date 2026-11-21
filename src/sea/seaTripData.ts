@@ -55,15 +55,16 @@ let chain: Promise<unknown> = Promise.resolve();
  * buscosun Fusion at one position (E-AM-2). One point after the other (the first one loads index and tables, the others
  * mostly reuse them — §1.2), each answer kept for ten minutes. Never rejects.
  */
-export function loadTripWind(pos: PlanPos): Promise<TripWindLoad> {
-  const key = `${pos.lat.toFixed(4)},${pos.lon.toFixed(4)}`;
+export function loadTripWind(pos: PlanPos, country: 'DE' | 'AT' | 'CH' = 'DE'): Promise<TripWindLoad> {
+  // Phase BS: on a lake the country parameters of the lake's land (the coast: Germany, as before — the key is unchanged there).
+  const key = `${pos.lat.toFixed(4)},${pos.lon.toFixed(4)}${country === 'DE' ? '' : `|${country}`}`;
   const hit = windCache.get(key);
   if (hit && Date.now() - hit.at < WIND_TTL_MS) return hit.p;
   const p = (chain = chain.then(async (): Promise<TripWindLoad> => {
     try {
       const [{ getPointForecast }, { fusionPathFor }] = await Promise.all([import('../pointForecast/pointForecast'), import('../pointForecast/fusionForecast'), import('../pointForecast/cubeSource')]);
       if (fusionPathFor('sea', typeof window !== 'undefined' ? window.location?.search ?? '' : '') !== 'cube') return { series: null, why: 'off' };
-      const fc = await getPointForecast({ lat: pos.lat, lng: pos.lon, country: 'DE', hours: SEA_TRIP_FUSION_HOURS, pointSource: 'cube', includeRadarNowcast: false });
+      const fc = await getPointForecast({ lat: pos.lat, lng: pos.lon, country, hours: SEA_TRIP_FUSION_HOURS, pointSource: 'cube', includeRadarNowcast: false });
       const steps = (fc.cube as { v2?: { axis?: { steps?: FusionStep[] } } } | undefined)?.v2?.axis?.steps;
       const series = windSeriesOfSteps(steps);
       return series ? { series, why: null } : { series: null, why: 'outside' };
@@ -92,6 +93,8 @@ export function tripFieldStep(runMs: number, hourMs: number): number | null {
 /**
  * The two fields of the full hour `hourMs`. Wave: only where the run writes a field for exactly this hour (hourly to
  * +48 h, then every third hour). Current: the hour of the BSH run, or none. `null` = no field — never a neighbour hour.
+ * `signal` ends the leg's own waiting (then `null`). The reads are shared with the map (`seaClient.ts`, V-AM-18): a
+ * file somebody else still waits for loads on, and another caller's abort never reaches the leg (V-AM-16).
  */
 export async function loadTripHour(x: { run: string | null; runMs: number | null; curDoc: Pick<SeaCurrentDoc, 'run' | 't0' | 'uv'> | null; hourMs: number; signal?: AbortSignal }): Promise<TripHourFields> {
   const step = x.run && x.runMs != null ? tripFieldStep(x.runMs, x.hourMs) : null;

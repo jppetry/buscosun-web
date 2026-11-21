@@ -52,6 +52,17 @@ const srv = createServer((req, res) => {
 });
 await new Promise((r) => srv.listen(0, '127.0.0.1', r));
 const base = `http://127.0.0.1:${srv.address().port}`;
+// A second address of the same upstream stands in for a host with its own, shorter deadline (GeoSphere).
+const srv2 = createServer((req, res) => srv.emit('request', req, res));
+await new Promise((r) => srv2.listen(0, '127.0.0.1', r));
+const HOST_TIMEOUT_S = 0.15;
+const base2 = `http://127.0.0.1:${srv2.address().port}`;
+// A third address with a roomy deadline: "a fast error keeps its five attempts" must not depend on how fast
+// this machine answers itself (with the 0.4 s test deadline a loaded machine once spent the address budget).
+const srv3 = createServer((req, res) => srv.emit('request', req, res));
+await new Promise((r) => srv3.listen(0, '127.0.0.1', r));
+const base3 = `http://127.0.0.1:${srv3.address().port}`;
+process.env.POINT_FETCH_TIMEOUT_HOSTS = `127.0.0.1:${srv2.address().port}=${HOST_TIMEOUT_S},127.0.0.1:${srv3.address().port}=60`;
 
 /** Settle a promise or report it as still pending after `ms` — a hang must fail the check, not the verifier. */
 async function within(promise, ms) {
@@ -65,7 +76,7 @@ async function within(promise, ms) {
 }
 const text = (u8) => (u8 ? Buffer.from(u8).toString('utf8') : u8);
 
-const { fetchBytes, fetchJson, headOk, fetchRanges, netStats } = await import('./point/adapters/shared.mjs');
+const { fetchBytes, fetchJson, headOk, fetchRanges, netStats, timeoutMsFor } = await import('./point/adapters/shared.mjs');
 
 // One hung URL may cost two deadlines, plus scheduling slack — never more.
 const HANG_MAX_MS = 2 * TIMEOUT_S * 1000 + 1500;
@@ -103,6 +114,21 @@ console.log('\n(A) one request has a deadline');
   add('A10 fetchRanges: a hung range request is given up within two deadlines', r.state === 'rejected' && r.ms <= HANG_MAX_MS, `${r.state} after ${r.ms} ms`);
 }
 
+console.log('\n(A2) a host can have its own deadline');
+{
+  add('A11 GeoSphere gets 30 s, every other host the default',
+    timeoutMsFor?.('https://dataset.api.hub.geosphere.at/v1/grid/forecast/nwp-v2-1h-1km?x=1') === 30_000
+    && timeoutMsFor?.('https://opendata.dwd.de/weather/nwp/') === TIMEOUT_S * 1000,
+    `${timeoutMsFor?.('https://dataset.api.hub.geosphere.at/')} / ${timeoutMsFor?.('https://opendata.dwd.de/')}`);
+  const lim = 2 * HOST_TIMEOUT_S * 1000 + 700;
+  const r = await within(fetchBytes(`${base2}/hang-short`), 6000);
+  add('A12 a hung request to such a host is given up within two of ITS deadlines',
+    r.state === 'rejected' && r.ms <= lim, `${r.state} after ${r.ms} ms, limit ${lim} ms`);
+  add('A13 … and the error names that deadline', r.state === 'rejected' && /0\.15 s/.test(r.error?.message ?? ''), r.error?.message ?? '');
+  const ok = await within(fetchBytes(`${base2}/plain2`), 6000);
+  add('A14 a healthy answer from such a host is taken as usual', ok.state === 'resolved' && text(ok.value) === 'ok');
+}
+
 console.log('\n(B) an outage is not a rate limit');
 {
   const r = await within(fetchBytes(`${base}/outage`), 8000);
@@ -127,7 +153,7 @@ console.log('\n(C) what must not change');
   add('C1 404 is an answer: null, one request', r.state === 'resolved' && r.value === null && hits['/gone'] === 1, `${hits['/gone']} request(s)`);
 }
 {
-  const r = await within(fetchBytes(`${base}/bad`), 12000);
+  const r = await within(fetchBytes(`${base3}/bad`), 60000);
   add('C2 a fast error (502) still gets five attempts and then throws its status',
     r.state === 'rejected' && /HTTP 502/.test(r.error?.message ?? '') && hits['/bad'] === 5, `${hits['/bad']} attempts, ${r.ms} ms`);
 }
@@ -153,13 +179,13 @@ if (budget) {
   add('D1 a source without any error is never dropped for being slow', v === null && (healthy.msLost ?? 0) === 0, `msLost ${healthy.msLost ?? 0}`);
 
   // hung source: two calls that each waited two deadlines
-  const hung = { id: 'claef', errors: 0 };
+  const hung = { id: 'icon_eu', errors: 0 };
   hung.errors = 1; const h1 = noteLostTime(hung, false, 240_000);
   hung.errors = 2; const h2 = noteLostTime(hung, false, 240_000);
   add('D2 failed calls add up: 240 s is inside the budget, 480 s is not', h1 === null && typeof h2 === 'string' && /480 s/.test(h2), `${h1} | ${h2}`);
 
   // flapping source: one error, then answers that take 50 s each
-  const flap = { id: 'claef', errors: 1 };
+  const flap = { id: 'icon_eu', errors: 1 };
   noteLostTime(flap, false, 10_000);
   const seq = [];
   for (let i = 0; i < 8; i++) seq.push(noteLostTime(flap, true, 50_000));
@@ -173,6 +199,16 @@ if (budget) {
   for (let i = 0; i < 500 && !w; i++) w = noteLostTime(ok, true, 4_000);
   add('D4 fast answers after an error cost nothing', w === null && ok.msLost === 5_000, `msLost ${ok.msLost}`);
 
+  // a source with a known, short healthy profile gets a tighter budget
+  const { SRC_MAX_LOST_MS_BY_SOURCE } = budget;
+  const cl = { id: 'claef', errors: 1 };
+  const d2 = { id: 'icon_d2', errors: 1 };
+  const c1 = noteLostTime(cl, false, 60_000);
+  const i1 = noteLostTime(d2, false, 60_000);
+  add('D7 claef and claef_eps fall after 45 s of lost time (one hung address), every other source keeps 300 s',
+    SRC_MAX_LOST_MS_BY_SOURCE?.claef === 45_000 && SRC_MAX_LOST_MS_BY_SOURCE?.claef_eps === 45_000
+    && typeof c1 === 'string' && /Budget 45 s/.test(c1) && i1 === null, `${c1} | ${i1}`);
+
   // the producer uses the rule, and keeps the count rule next to it
   const prod = readFileSync(join(ROOT, 'scripts/point/build-point-cube.mjs'), 'utf8');
   add('D5 safeCall applies the time budget and writes it as `dropped`',
@@ -181,8 +217,8 @@ if (budget) {
 }
 
 for (const res of open) res.destroy();
-srv.closeAllConnections?.();
-srv.close();
+srv.closeAllConnections?.(); srv2.closeAllConnections?.(); srv3.closeAllConnections?.();
+srv.close(); srv2.close(); srv3.close();
 try { rmSync(cache, { recursive: true, force: true }); } catch { /* a leftover temp folder is not a failure */ }
 
 const failed = results.filter((r) => !r.ok);

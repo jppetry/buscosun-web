@@ -194,6 +194,17 @@ jobs:
       - name: Verifier — Tidenfenster
         if: ${{ !cancelled() }}
         run: node scripts/ci-run.mjs verify:sea-tide-window
+      # AM: „Ausfahrt planen“ in drei Modi (Etappe, Vor Ort, Strand) — Route, Ort je Stunde, Proben, Zeilen, Befunde,
+      # Strand, Link, Wortlaut, Verdrahtung. Netzfrei und ohne Browser gegen echte Reihen und Feldbilder vom
+      # 19.11.2026 (audit/seewetter-ausfahrt.md, V-AM-12).
+      - name: Verifier — Ausfahrt planen
+        if: ${{ !cancelled() }}
+        run: node scripts/ci-run.mjs verify:sea-trip
+      # AM-W: der Planer als Assistent — Schritte je Art, Prüfung je Schritt, `ps` in der Adresse (alte Links unverändert),
+      # Rahmen und Seiten ohne Browser, alle 7 × 3 Kombinationen aus Profil und Art (audit/seewetter-ausfahrt.md §13) — netzfrei.
+      - name: Verifier — Ausfahrt planen, Assistent
+        if: ${{ !cancelled() }}
+        run: node scripts/ci-run.mjs verify:sea-wizard
       # GL: Gletscher-Monitor DACH — Datenvertrag (Pfade, Klassen, Flächenstempel mit Bezugsjahr, Umriss-Stufen ±3 %, amtliche Sätze wörtlich)
       # an einem echten Auszug des Baums, der Baum-Prüfer im Fixture-Modus, und der Publisher gegen ein echtes lokales Remote
       # (Linien teilen ein Repo, abgelehnter Push heilt, nie Force, Archiv nur Hinzufügen; audit/gletscher.md) — netzfrei.

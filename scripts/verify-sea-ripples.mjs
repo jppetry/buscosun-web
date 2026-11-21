@@ -305,23 +305,23 @@ const uniform = (dx, dy, v = 1) => (_x, _y, o) => { o.dx = dx; o.dy = dy; o.v = 
   add('D5 ruhiges Wasser bleibt leer: unter 0,05 m/s ist kein Paket sichtbar, unter 0,04 m/s kein Faden', slowVisible === 0 && fastVisible > 100 && R.packetAlpha(1, 0.049) === 0 && R.threadAlpha(1, 0.039) === 0 && R.packetAlpha(1, 0.05) > 0 && R.threadAlpha(1, 0.04) > 0, `${slowVisible} sichtbar im ruhigen Wasser, ${fastVisible} im schnellen`);
   add('D6 Stärke nach Auftrag: Faden fade · min(0,2, 0,05 + 0,22 v), Paket fade · min(1, 0,2 + 1,3 v)', near(R.threadAlpha(1, 0.1), 0.072) && near(R.threadAlpha(1, 1), 0.2) && near(R.threadAlpha(0.5, 1), 0.1) && near(R.packetAlpha(1, 0.5), 0.85) && near(R.packetAlpha(1, 1), 1) && near(R.packetAlpha(0.5, 0.1), 0.165));
 
-  // speed: 0.75 px per frame per m/s, independent of the frame rate
+  // speed of the fallback `?srtempo=lin` (the tempo before phase SR-B): 0.75 px per frame per m/s, independent of the frame rate
   const east = R.makePxSampler(VIEW, null, grid(() => ({ u: 1, v: 0 })), 1), north = R.makePxSampler(VIEW, null, grid(() => ({ u: 0, v: 2 })), 1);
-  const one = new RippleSim(9); one.setCounts(1, 1);
+  const one = new RippleSim(9, true); one.setCounts(1, 1);
   one.step(VIEW, east, 1);
   const x0 = one.tX[0], px0 = one.pX[0];
   one.step(VIEW, east, 1);
   const d1 = (one.tX[0] - x0) * VIEW.ax, dp1 = (one.pX[0] - px0) * VIEW.ax, x1 = one.tX[0];
   one.step(VIEW, east, 2);
   const d2 = (one.tX[0] - x1) * VIEW.ax;
-  add('D7 Tempo: 0,75 px je Bild je m/s bei 60 Bildern — bei 30 Bildern der doppelte Schritt (dieselbe Geschwindigkeit), Fäden und Pakete gleich', one.tAlive[0] === 1 && near(d1, 0.75, 1e-6) && near(dp1, 0.75, 1e-6) && near(d2, 1.5, 1e-6));
-  const up = new RippleSim(9); up.setCounts(1, 0); up.step(VIEW, north, 1);
+  add('D7 Tempo des Rückfalls (linear): 0,75 px je Bild je m/s bei 60 Bildern — bei 30 Bildern der doppelte Schritt (dieselbe Geschwindigkeit), Fäden und Pakete gleich', one.tAlive[0] === 1 && near(d1, 0.75, 1e-6) && near(dp1, 0.75, 1e-6) && near(d2, 1.5, 1e-6));
+  const up = new RippleSim(9, true); up.setCounts(1, 0); up.step(VIEW, north, 1);
   const y0 = up.tY[0], ux0 = up.tX[0]; up.step(VIEW, north, 1);
   add('D8 Richtung: v nach Norden bewegt auf dem Bildschirm nach oben, 1,5 px bei 2 m/s', near((up.tY[0] - y0) * VIEW.ay, -1.5, 1e-6) && near(up.tX[0], ux0, 1e-12));
 
   // threads and the way of a packet
   const wxs = new Float32Array(64), wys = new Float32Array(64);
-  const lane = new RippleSim(4); lane.setCounts(1, 1);
+  const lane = new RippleSim(4, true); lane.setCounts(1, 1);
   // a slow flow, so nothing leaves the view within the test
   const slowEast = R.makePxSampler(VIEW, null, grid(() => ({ u: 0.4, v: 0 })), 1);
   for (let i = 0; i < 120; i++) lane.step(VIEW, slowEast, 1);
@@ -333,7 +333,7 @@ const uniform = (dx, dy, v = 1) => (_x, _y, o) => { o.dx = dx; o.dy = dy; o.v = 
   const gapsP = [...Array(nP - 2)].map((_, i) => wxs[i + 1] - wxs[i + 2]);
   const pt = { x: 0, y: 0 }, gap = R.frontSpacing(0.4);
   add('D11 Paket: sein Weg in Punkten von 1,5 px, höchstens 24 — reicht für die dritte Front (2 × 9,8 px)', nP === 25 && gapsP.every((g) => Math.abs(g - 1.5) < 0.05) && R.pointBehind(wxs, wys, nP, 2 * gap, pt) && near(wxs[0] - pt.x, 2 * gap, 0.01));
-  const young = new RippleSim(4); young.setCounts(0, 1);
+  const young = new RippleSim(4, true); young.setCounts(0, 1);
   for (let i = 0; i < 12; i++) young.step(VIEW, slowEast, 1);      // 11 moves = 3.3 px
   const nY = young.packetWay(0, VIEW, wxs, wys);
   add('D12 ein junges Paket trägt erst eine Front („bis zu 3“): der Weg ist kürzer als der Abstand', R.pointBehind(wxs, wys, nY, 0, pt) && !R.pointBehind(wxs, wys, nY, gap, pt));
@@ -377,6 +377,63 @@ const uniform = (dx, dy, v = 1) => (_x, _y, o) => { o.dx = dx; o.dy = dy; o.v = 
   const snap = sha(Buffer.from(again.pX.buffer));
   again.reset(1); again.setCounts(50, 50); for (let i = 0; i < 30; i++) again.step(VIEW, sLand, 1);
   add('D20 reset() beginnt von vorn', sha(Buffer.from(again.pX.buffer)) === snap);
+}
+
+// --- H  phase SR-B: the tempo curve of the wind particles, and the two fallbacks from the link ---------------------------
+{
+  const T = R.RIPPLE_TEMPO, step = R.rippleStepPx;
+  // second rule, written out independently: px per second = 27.455 · (max(v, 0.05) / 1)^0.7
+  const pxPerSec = (v) => (v <= 0 ? 0 : 27.455 * Math.exp(0.7 * Math.log(Math.max(v, 0.05))));
+  const vs = [0.001, 0.02, 0.05, 0.08, 0.1, 0.26, 0.3, 0.51, 0.75, 1, 1.03, 1.5, 2, 3];
+  add('H1 Tempo wie die Windpartikel (E-SR-16; viermal langsamer: E-SR-18, E-SR-21, E-SR-24, E-SR-25 = je −15 % von 38): px/s = 27,455 · (max(v, 0,05) / 1 m/s)^0,7 — 0,1 m/s ⇒ 5, 0,3 ⇒ 12, 1 ⇒ 27, 2 ⇒ 45 px/s; an 14 Stärken dieselbe Zahl wie eine zweite Rechnung; unterlinear (doppelter Strom ⇒ 1,62-faches Tempo), monoton, mit Boden bei 0,05 m/s',
+    T.pxPerSec === 27.455 && near(T.pxPerSec, 38 * 0.85 * 0.85, 1e-9) && T.refMs === 1 && T.gamma === 0.7 && T.minMs === 0.05 && T.minMs === R.RIPPLE.packetMinMs && vs.every((v) => near(step(v) * 60, pxPerSec(v), 1e-9))
+    && near(step(0.1) * 60, 5.48, 0.01) && near(step(0.3) * 60, 11.82, 0.01) && near(step(1) * 60, 27.455, 1e-9) && near(step(2) * 60, 44.6, 0.01) && near(step(2) / step(1), Math.pow(2, 0.7), 1e-12)
+    && step(0.02) === step(0.05) && step(0.001) === step(0.05) && near(step(0.05) * 60, 3.37, 0.01) && vs.slice(2).every((v, i, a) => i === 0 || step(v) > step(a[i - 1])),
+    vs.map((v) => (step(v) * 60).toFixed(1)).join(' '));
+  add('H2 stehendes Wasser bewegt nichts (kein Boden bei v = 0, auch kein negativer Wert); der Rückfall ist linear: 0,75 px je Bild je m/s — die Kurve ist bis etwa 0,19 m/s schneller als er (bei 0,1 m/s das 1,2-Fache), darüber langsamer (bei 0,3 m/s das 0,88-Fache, bei 1 m/s das 0,61-Fache)', step(0) === 0 && step(-1) === 0 && step(0, true) === 0 && near(step(0.4, true), 0.3, 1e-12) && near(step(2, true), 1.5, 1e-12) && R.RIPPLE.pxPerFrame === 0.75
+    && near(step(0.3) / step(0.3, true), 0.88, 0.01) && near(step(0.1) / step(0.1, true), 1.22, 0.01) && step(0.15) > step(0.15, true) && step(0.25) < step(0.25, true) && near(step(1) / step(1, true), 0.61, 0.01) && step(2) < step(2, true));
+  // the particle state uses it: threads and packets alike, twice the step at half the frame rate
+  const east = (u) => R.makePxSampler(VIEW, null, grid(() => ({ u, v: 0 })), 1);
+  const move = (u, dtN, linear) => { const one = new RippleSim(9, linear); one.setCounts(1, 1); for (let i = 0; i < 400 && !(one.tAlive[0] && one.pAlive[0]); i++) one.step(VIEW, east(u), 1); const t0 = one.tX[0], p0 = one.pX[0]; one.step(VIEW, east(u), dtN); return [(one.tX[0] - t0) * VIEW.ax, (one.pX[0] - p0) * VIEW.ax, one.tAlive[0] + one.pAlive[0]]; };
+  const m1 = move(1, 1), m04 = move(0.4, 1), m04half = move(0.4, 2), mLin = move(0.4, 1, true), mStand = move(0, 1);
+  add('H3 der Partikelzustand rechnet mit der Kurve: 1 m/s ⇒ 0,458 px je Bild, 0,4 m/s ⇒ 0,241 px — Fäden und Pakete gleich, bei 30 Bildern der doppelte Schritt; mit dem Rückfall 0,30 px; in stehendem Wasser 0',
+    m1[2] === 2 && near(m1[0], 27.455 / 60, 1e-6) && near(m1[1], 27.455 / 60, 1e-6) && near(m04[0], (27.455 / 60) * Math.pow(0.4, 0.7), 1e-6) && near(m04[1], m04[0], 1e-9) && near(m04half[0], 2 * m04[0], 1e-6) && near(mLin[0], 0.3, 1e-6) && near(mLin[1], 0.3, 1e-6)
+    && mStand[2] === 2 && mStand[0] === 0 && mStand[1] === 0, JSON.stringify([m1, m04, m04half, mLin, mStand].map((m) => m.slice(0, 2).map((x) => +x.toFixed(4)))));
+  const up = new RippleSim(9); up.setCounts(1, 0); up.step(VIEW, R.makePxSampler(VIEW, null, grid(() => ({ u: 0, v: 2 })), 1), 1);
+  const y0 = up.tY[0], x0 = up.tX[0]; up.step(VIEW, R.makePxSampler(VIEW, null, grid(() => ({ u: 0, v: 2 })), 1), 1);
+  add('H4 die Richtung bleibt die des Stroms: 2 m/s nach Norden ⇒ 0,74 px nach oben, kein Schritt zur Seite', near((up.tY[0] - y0) * VIEW.ay, -(27.455 / 60) * Math.pow(2, 0.7), 1e-6) && near(up.tX[0], x0, 1e-12));
+  // V-SR-13: while the map moves it draws the layer itself (on every 'move'); the loop steps the particles and leaves the drawing out
+  const LP = R.loopPaints, MV = R.RIPPLE_MOVE;
+  add('H6 ein Bild je Bildschirmbild, auch wenn die Karte sich bewegt (V-SR-13): hat die Karte gerade gezeichnet, lässt die Schleife ihr Bild aus — bei 60 Bildern bis 25 ms nach dem letzten Kartenbild (das nächste Bild, 16,7 ms später, entfällt; das übernächste zeichnet wieder), bei einer Karte mit 30 Bildern bis 50 ms, nie länger als 100 ms; ohne Kartenbewegung zeichnet sie immer',
+    MV.minMs === 25 && MV.maxMs === 100 && MV.factor === 1.5 && LP(1000, -Infinity, 16.7) === true && LP(1016.7, 1000, 16.7) === false && LP(1025, 1000, 16.7) === false && LP(1025.1, 1000, 16.7) === true && LP(1033.4, 1000, 16.7) === true
+    && LP(1033.4, 1000, 33.3) === false && LP(1049.9, 1000, 33.3) === false && LP(1050.1, 1000, 33.3) === true && LP(1099, 1000, 500) === false && LP(1100.1, 1000, 500) === true && LP(1020, 1000, 0) === false && LP(1026, 1000, 0) === true && LP(1026, 1000, NaN) === true);
+  // a second of map movement at 60 frames, the loop's turn before the map's in every frame, then a second of rest: every frame gets exactly one picture
+  { let movedAt = -Infinity, every = 16.7, once = 0, twice = 0, none = 0;
+    for (let i = 0; i < 120; i++) { const t = 1000 + i * 16.7, moving = i < 60; let n = 0; if (LP(t, movedAt, every)) n++; if (moving) { every = t + 1 - movedAt; movedAt = t + 1; n++; } if (n === 1) once++; else if (n === 2) twice++; else none++; }
+    add('H7 … über eine Sekunde Bewegung und eine Sekunde Ruhe gerechnet: in der Bewegung nur das erste Bild doppelt (die Schleife weiß noch nichts von ihr), danach genau ein Bild je Bildschirmbild; nach dem Ende entfällt EIN Bild, dann zeichnet die Schleife wieder', twice === 1 && none === 1 && once === 118, `${once} einfach, ${twice} doppelt, ${none} ohne`); }
+  // E-SR-22: zoomed in beyond the start view the layer shows 25 % fewer packets (Jan, 19.11.); the start view keeps its count
+  const Z = R.zoomPacketScale, c8 = R.rippleCounts, ref8 = 680 * 380;
+  add('H8 beim Hineinzoomen ein Viertel weniger Pakete (E-SR-22): in der Startansicht und weiter draußen die volle Zahl, eine Zoomstufe weiter hinein und darüber 75 %, dazwischen gleitend (halbe Stufe ⇒ 87,5 %); ohne bekannte Startansicht die volle Zahl; die Fäden bleiben; mit dem letzten Hebel der Regelung multipliziert',
+    R.RIPPLE_ZOOM.levels === 1 && R.RIPPLE_ZOOM.packets === 0.75 && Z(0) === 1 && Z(-2) === 1 && Z(0.5) === 0.875 && Z(1) === 0.75 && Z(1.01) === 0.75 && Z(6) === 0.75 && near(Z(0.2), 0.95, 1e-12) && Z(NaN) === 1 && Z(undefined) === 1 && Z(Infinity) === 0.75
+    && [0, 0.1, 0.25, 0.5, 0.75, 1, 2].every((z, i, a) => i === 0 || Z(z) <= Z(a[i - 1])) && c8(ref8, Z(1)).packets === 143 && c8(ref8, Z(1)).tracers === 130 && c8(2 * ref8, Z(1)).packets === 285 && c8(ref8, Z(0)).packets === 190
+    && c8(ref8, 0.6 * Z(1)).packets >= 85 && c8(ref8, 0.6 * Z(1)).packets <= 86, [0, 0.25, 0.5, 0.75, 1, 2].map((z) => Z(z)).join(' '));
+  {
+    const HOME = [6.4, 53.4, 12.0, 56.08], Zi = R.rippleZoomIn;
+    // second rule: the scale (px per mercator unit) at which HOME fits a 706 × 840 box with 10 px free, from the map's own definition of zoom (512 · 2^zoom)
+    const sx = (706 - 20) / ((12.0 - 6.4) / 360), my = (lat) => 0.5 - Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)) / (2 * Math.PI), sy = (840 - 20) / (my(53.4) - my(56.08));
+    const fit = Math.min(sx, sy), fitZoom = Math.log2(fit / 512), at = (zoom, w = 706, h = 840) => ({ ax: 512 * 2 ** zoom, ay: 512 * 2 ** zoom, bx: 0, by: 0, w, h });
+    add('H9 wie weit hineingezoomt ist, rechnet die Ebene aus ihrer eigenen Sicht (nicht aus der Kamera-Hilfe der Karte, die den Innenabstand für die Legende mitzählt): in der Startansicht 0, eine Stufe weiter 1, weiter draußen negativ; auf dem Telefon (390 × 780) gilt dessen eigene Startansicht, in einer breiten, flachen Karte entscheidet die Höhe; ohne Startansicht unbekannt ⇒ volle Zahl',
+      sx < sy && near(Zi(at(fitZoom), HOME), 0, 1e-9) && near(Zi(at(fitZoom + 1), HOME), 1, 1e-9) && near(Zi(at(fitZoom - 0.5), HOME), -0.5, 1e-9) && near(Zi(at(fitZoom + 0.37), HOME), 0.37, 1e-9) && fitZoom > 5.5 && fitZoom < 6.6
+      && Zi(at(fitZoom, 390, 780), HOME) > 0.8 && near(Zi(at(Math.log2(Math.min((390 - 20) / ((12.0 - 6.4) / 360), (780 - 20) / (my(53.4) - my(56.08))) / 512), 390, 780), HOME), 0, 1e-9)
+      // a wide, low map box (1600 × 500): the HEIGHT decides where the start view fits
+      && (500 - 20) / (my(53.4) - my(56.08)) < (1600 - 20) / ((12.0 - 6.4) / 360) && near(Zi(at(Math.log2((500 - 20) / (my(53.4) - my(56.08)) / 512), 1600, 500), HOME), 0, 1e-9)
+      && Zi(at(fitZoom), null) === null && Zi(at(fitZoom), undefined) === null && Zi({ ...at(fitZoom), w: 10, h: 10 }, HOME) === null && R.zoomPacketScale(Zi(at(fitZoom), HOME)) === 1 && near(R.zoomPacketScale(Zi(at(fitZoom + 1), HOME)), 0.75, 1e-9) && R.zoomPacketScale(Zi(at(fitZoom), null)) === 1
+      && src('src/sea/SeaMap.tsx').includes('export const SEA_START_BOUNDS: [number, number, number, number] = [6.4, 53.4, 12.0, 56.08];'), 'Startansicht passt bei Zoom ' + fitZoom.toFixed(2));
+  }
+  const M = R.rippleMotionFrom, same = (m, still, linear) => m.still === still && m.linear === linear;
+  add('H5 die zwei Rückfälle stehen im Link (E-SR-15, E-SR-16): „srstill=1“ ⇒ Standbild, „srtempo=lin“ ⇒ das alte Tempo; ohne sie, mit anderem Wert, mit kaputter Abfrage ⇒ Bewegung mit der Kurve; neben anderen Parametern gelesen',
+    same(M(''), false, false) && same(M('?srstill=1'), true, false) && same(M('?srtempo=lin'), false, true) && same(M('?l=cur&srstill=1&srtempo=lin'), true, true) && same(M('?srstill=0'), false, false) && same(M('?srstill=true'), false, false)
+    && same(M('?srtempo=linear'), false, false) && same(M('?srtempo='), false, false) && same(M('?still=1&tempo=lin'), false, false) && same(M('%E0%A4%A'), false, false) && same(M(undefined), false, false));
 }
 
 // --- E  area scaling and the frame governor ---------------------------------------------------------------------------
@@ -463,9 +520,10 @@ const uniform = (dx, dy, v = 1) => (_x, _y, o) => { o.dx = dx; o.dy = dy; o.v = 
 
 // --- G  source text ------------------------------------------------------------------------------------------------------
 {
+  const code0 = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
   const layer = src('src/sea/SeaRippleLayer.ts'), sim = src('src/sea/seaRippleSim.ts'), pure = src('src/sea/seaRipples.ts'), page = src('src/sea/SeaPage.tsx'), map = src('src/sea/SeaMap.tsx'), dock = src('src/sea/SeaDock.tsx');
   const css = src('src/sea/seaDeck.css'), client = src('src/sea/seaClient.ts'), contract = src('src/sea/seaCurrent.ts'), prod = src('scripts/sea/sea-current.mjs');
-  add('G1 reduzierte Bewegung: EIN Standbild — der Fall hält die Schleife an und zeichnet einmal, aus fester Saat und im eingeschwungenen Zustand', /prefers-reduced-motion: reduce/.test(layer) && /if \(this\.still\(\)\) \{ this\.stop\(\); this\.stillFrame\(\); return; \}/.test(layer) && /this\.sim\.reset\(STILL_SEED\)/.test(layer) && /this\.sim\.settle\(\)/.test(layer) && !/requestAnimationFrame/.test(/private stillFrame\(\): void \{[\s\S]*?\n {2}\}/.exec(layer)?.[0] ?? 'requestAnimationFrame'));
+  add('G1 Bewegung wie die Windebene (E-SR-15): die Ebene liest „prefers-reduced-motion“ nicht mehr; das Standbild gibt es nur über den Rückfall im Link — dann hält der Fall die Schleife an und zeichnet einmal, aus fester Saat und im eingeschwungenen Zustand', !/reduced-motion/.test(code0(layer)) && /matchMedia\('\(pointer: coarse\)'\)/.test(layer) && /private readonly motion = rippleMotionFrom\(/.test(layer) && /private still\(\): boolean \{ return this\.motion\.still; \}/.test(layer) && /new RippleSim\(STILL_SEED, this\.motion\.linear\)/.test(layer) && /if \(this\.still\(\)\) \{ this\.stop\(\); this\.stillFrame\(\); return; \}/.test(layer) && /this\.sim\.reset\(STILL_SEED\)/.test(layer) && /this\.sim\.settle\(\)/.test(layer) && !/requestAnimationFrame/.test(/private stillFrame\(\): void \{[\s\S]*?\n {2}\}/.exec(layer)?.[0] ?? 'requestAnimationFrame') && /rippleStepPx\(f\.v, this\.linear\) \* dtN/.test(sim) && (sim.match(/rippleStepPx\(f\.v, this\.linear\) \* dtN/g) ?? []).length === 2 && !/RIPPLE\.pxPerFrame/.test(sim));
   const st = new RippleSim(7); st.setCounts(60, 60);
   const sFlow = R.makePxSampler(VIEW, null, grid((x) => (x % 40 < 20 ? { u: 0.5, v: 0 } : { u: 0.01, v: 0 })), 1);
   for (let i = 0; i < R.RIPPLE.stillFrames; i++) st.step(VIEW, sFlow, 1);
@@ -477,7 +535,7 @@ const uniform = (dx, dy, v = 1) => (_x, _y, o) => { o.dx = dx; o.dy = dy; o.v = 
   const code = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
   add('G4 2D-Canvas, kein WebGL, kein Shader — in keiner Datei der Ebene', /getContext\('2d'\)/.test(layer) && !/webgl|gl_Position|getContext\('experimental|createShader|type: 'custom'/i.test(code(layer) + code(sim) + code(pure)));
   add('G5 Gegenprobe zu G4: das Muster findet WebGL, wenn es dasteht', /webgl|gl_Position/i.test("canvas.getContext('webgl2')"));
-  add('G6 Bildrate nur über das FrameGovernor-Muster: FPS-Leiter und Faden-Leiter an den Governor, gefüttert mit der Renderdauer; Paketzahl über dieselbe Stufe', /new FrameGovernor\(\{ fpsLadder: \[\.\.\.this\.ladder\.fps\], trailLadder: \[\.\.\.this\.ladder\.trail\] \}\)/.test(layer) && /this\.gov\.feed\(performance\.now\(\) - t0\)/.test(layer) && /this\.ladder\.packets\[this\.gov\.levelIndex\]/.test(layer) && /1000 \/ this\.gov\.targetFps/.test(layer));
+  add('G6 Bildrate nur über das FrameGovernor-Muster: FPS-Leiter und Faden-Leiter an den Governor, gefüttert mit der Renderdauer; Paketzahl über dieselbe Stufe', /new FrameGovernor\(\{ fpsLadder: \[\.\.\.this\.ladder\.fps\], trailLadder: \[\.\.\.this\.ladder\.trail\] \}\)/.test(layer) && /this\.gov\.feed\(performance\.now\(\) - t0 \+ /.test(layer) && /this\.ladder\.packets\[this\.gov\.levelIndex\]/.test(layer) && /1000 \/ this\.gov\.targetFps/.test(layer));
   const windImports = [...(layer + sim + pure + map + page + dock).matchAll(/from '\.\.\/wind\/([^']+)'/g)].map((m) => m[1]);
   add('G7 aus src/wind/ wird nur der Governor gelesen; die Fusion wird nicht berührt', windImports.length === 1 && windImports[0] === 'perfGovernor' && !/pointForecast|fusion/i.test(code(layer) + code(sim) + code(pure)));
   add('G8 Partikel leben in Kartenkoordinaten und werden je Bild neu projiziert; Größen bleiben in px', /this\.map\.project\(REF_A\)/.test(layer) && /Float64Array/.test(sim) && /view\.ax \* this\.pX\[i\] \+ view\.bx/.test(sim) && /\(f\.dx \* d\) \/ view\.ax/.test(sim));
@@ -486,13 +544,13 @@ const uniform = (dx, dy, v = 1) => (_x, _y, o) => { o.dx = dx; o.dy = dy; o.v = 
   add('G11 Spots, Pegel und Stationen bleiben frei (ausgestanzt), Marker liegen über dem Canvas, Klicks gehen durch', /destination-out/.test(layer) && /map\.getCanvas\(\)\.after\(this\.canvas\)/.test(layer) && /\.sw-ripples \{[^}]*pointer-events: none/.test(css) && /setKeepOut\(w\.keep\)/.test(map));
 
   add('G12 fünfte Hauptebene „Strömung“: im Link (l=cur), im Dock, nicht die Voreinstellung', SEA_LAYERS.join() === 'hs,ws,sw,per,cur' && LAYER_LABEL.cur === 'Strömung' && R.RIPPLE_LAYER_LABEL === 'Strömung' && SEA_DEFAULT_STATE.l === 'hs' && parseSeaUrl('sylt-hoernum', '?l=cur').state.l === 'cur' && parseSeaUrl(null, '?l=cur').invalid.length === 0 && buildSeaUrl({ ...SEA_DEFAULT_STATE, l: 'cur' }) === '/seewetter?l=cur' && buildSeaUrl(SEA_DEFAULT_STATE) === '/seewetter' && /SEA_LAYERS\.map\(\(l\) =>/.test(dock) && /cur: </.test(dock));
-  add('G13 kein Schalter: weder Flag noch Query-Parameter für die Ebene', !/SEA_RIPPLE_LIVE|seaRippleFrom|[?&](sr|riffel|ripple|ripples)=/.test(src('src/sea/seaFlag.ts') + page + pure + layer + client + contract));
+  add('G13 kein Schalter für die Ebene selbst: weder Flag noch Query-Parameter; die zwei Rückfälle der Bewegung (srstill, srtempo) stehen an EINER Stelle im reinen Teil', !/SEA_RIPPLE_LIVE|seaRippleFrom|[?&](sr|riffel|ripple|ripples)=/.test(src('src/sea/seaFlag.ts') + page + pure + layer + client + contract) && (pure.match(/get\('srstill'\)/g) ?? []).length === 1 && (pure.match(/get\('srtempo'\)/g) ?? []).length === 1 && !/srstill|srtempo/.test(code0(layer) + code0(sim) + code0(page).replace(/RIPPLE_STILL_NOTE/g, '')));
   add('G14 ist die Ebene gewählt, ersetzt ihre Fläche die Seegangsfläche; Spots, Pegel, Planer und die Pfeile bleiben', /field=\{isCur \? curArea : coloured\}/.test(page) && /arrows=\{isCur \? null : arrows\}/.test(page) && /currents=\{toggles\.current \? currents : null\}/.test(page) && /plan=\{mapPlan\}/.test(page) && /gauges=\{mapGauges\}/.test(page) && /\['current', 'Strömungspfeile'/.test(dock) && /current: false \}/.test(page));
   add('G15 gelesen wird nur bei gewählter Ebene, nur die Stunde und die danach; kein Seegangsfeld daneben', /const uvHour = isCur && curDoc \? currentUvHour\(curDoc, validMs\) : null;/.test(page) && /rippleHours\(uvHour, curDoc\.uv\.hours\)/.test(page) && /fStep != null && !isCur \?/.test(page) && (page.match(/loadCurrentUv\(/g) ?? []).length === 2 && /currentUvCache\.size > 6/.test(client));
   add('G16 Legende: „Bögen zeigen stromab · größer und heller = stärker“, der Modellhinweis, und dass die Bewegung keine Wellen zeigt', R.RIPPLE_LEGEND_LINE === 'Bögen zeigen stromab · größer und heller = stärker' && /\{RIPPLE_LEGEND_LINE\}/.test(page) && /\{RIPPLE_MOTION_NOTE\}/.test(page) && /keine Wellen/.test(R.RIPPLE_MOTION_NOTE) && /Richtung und Stärke/.test(R.RIPPLE_MOTION_NOTE) && C.SEA_CURRENT_MODEL_NOTE === 'Modell, Mittel der oberen 5 m, keine Navigationsgrundlage' && /`\$\{SEA_CURRENT_MODEL_NOTE\}\. \$\{curRunTxt\}`/.test(page) && /<RippleKey className="sw-rp-key" \/>/.test(page));
   add('G17 ohne Lauf, ohne Feld, außerhalb des Laufs, unlesbar: „keine Daten“ mit dem Grund — nie ein älteres Feld', /Strömung: keine Daten\. \$\{curWhy\}/.test(page) && /<strong>Keine Daten\.<\/strong> \{curWhy\} Es werden keine Riffel gezeigt\./.test(page) && /!curDoc\.uv \? RIPPLE_WHY\.noField/.test(page) && /uvHour == null \? `\$\{RIPPLE_WHY\.outside\}/.test(page) && /uvState === 'error' \? RIPPLE_WHY\.unreadable/.test(page) && /if \(!grid\) \{ setUv\(null\); setUvState\('error'\); return; \}/.test(page) && /current\.why \?\? SEA_CURRENT_WHY\.none/.test(page));
   add('G18 kein „sicher“ in den Texten der Phase (Gegenprobe: das Muster findet es)', !/sicher/i.test(code(pure)) && !/sicher/i.test(Object.values(R.RIPPLE_WHY).join(' ') + R.RIPPLE_LEGEND_LINE + R.RIPPLE_MOTION_NOTE + R.RIPPLE_STILL_NOTE) && /sicher/i.test('Das ist sicher.'));
-  add('G19 das Standbild sagt, dass es eines ist', /stillMotion \? ` \$\{RIPPLE_STILL_NOTE\}` : ''/.test(page) && /useMediaQuery\('\(prefers-reduced-motion: reduce\)'\)/.test(page) && /reduzierte Bewegung/.test(R.RIPPLE_STILL_NOTE));
+  add('G19 das Standbild sagt, dass es eines ist und woher es kommt (der Link, nicht das Gerät)', /stillMotion \? ` \$\{RIPPLE_STILL_NOTE\}` : ''/.test(page) && /const stillMotion = useMemo\(\(\) => rippleMotionFrom\(window\.location\.search\)\.still, \[\]\);/.test(page) && !/prefers-reduced-motion/.test(page) && /^Standbild: /.test(R.RIPPLE_STILL_NOTE) && /srstill=1/.test(R.RIPPLE_STILL_NOTE) && !/Gerät/.test(R.RIPPLE_STILL_NOTE));
   add('G20 die Ebene kommt als eigener, träge geladener Baustein: erst wenn sie gewählt wird', /void import\('\.\/SeaRippleLayer'\)/.test(map) && !/^import \{[^}]*\} from '\.\/SeaRippleLayer'/m.test(map) && !/SeaRippleLayer|seaRippleSim/.test(page + dock));
   add('G21 Producer: schreibt u und v über den Vertrag (Alpha 255), neben dem Pfeilfeld; der Workflow ruft denselben Producer', /encodeUvPixel\(uvImg, o,/.test(prod) && /seaCurrentUvPath\(pick\.run, h\)/.test(prod) && /seaCurrentFieldPath\(pick\.run, h\)/.test(prod) && /scripts\/sea\/sea-current\.mjs --store=\.\.\/store/.test(src('scripts/sea/workflow-sea.yml')) && /out\[o \+ 3\] = 255;/.test(contract));
   const sr = css.indexOf('Phase SR — Strömungs-Riffel'), sp = css.indexOf('Phase SP — „Ausfahrt planen“');
@@ -502,7 +560,9 @@ const uniform = (dx, dy, v = 1) => (_x, _y, o) => { o.dx = dx; o.dy = dy; o.v = 
   let headPkg = null; try { headPkg = JSON.parse(execFileSync('git', ['show', 'HEAD:package.json'], { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 24 })); } catch { /* no git */ }
   const pkg = JSON.parse(src('package.json'));
   add('G23 keine neue Abhängigkeit (Liste der Pakete wie an HEAD); der Prüfer ist als verify:sea-ripples eingetragen', !!headPkg && deps(pkg) === deps(headPkg) && /scripts\/verify-sea-ripples\.mjs$/.test(pkg.scripts['verify:sea-ripples'] ?? ''));
-  add('G24 Bildrate ungemessen: das steht in der Ebene und im Audit', /has not been measured/.test(layer) && /Bildrate[^\n]*(ungemessen|nicht gemessen)/i.test(src('audit/seewetter-riffel.md')));
+  add('G25 Verdrahtung zu H6: die Schleife rechnet immer, zeichnet aber nur, wenn die Karte es nicht gerade getan hat; das Bild der Karte merkt sich Zeit, Abstand und Dauer nur bei laufender Schleife (im Standbild nicht), und seine Dauer geht statt der eigenen in die Regelung', /const own = loopPaints\(t0, this\.movedAt, this\.moveEvery\);/.test(layer) && /this\.sim\.step\(view, sample, dt \/ FRAME_MS\);\s*\n[^\n]*\n\s*const own = loopPaints/.test(layer) && /if \(own\) this\.paint\(view, sample, this\.gov\.targetFps\);/.test(layer) && /this\.gov\.feed\(performance\.now\(\) - t0 \+ \(own \? 0 : this\.movePaintMs\)\);/.test(layer) && /if \(this\.raf\) \{ this\.moveEvery = t0 - this\.movedAt; this\.movedAt = t0; this\.movePaintMs = performance\.now\(\) - t0; \}/.test(layer) && (layer.match(/this\.paint\(/g) ?? []).length === 3);
+  add('G26 Verdrahtung zu H8/H9: die Karte gibt der Ebene ihre Startansicht mit; die Ebene zählt die Pakete mit dem Abstand ihrer Sicht dazu — neu bei jedem Ende einer Bewegung und jeder Größenänderung; die Kamera-Hilfe der Karte und deren Zoomzahl liest sie dafür nicht', /new m\.SeaRippleLayer\(map, SEA_START_BOUNDS\)/.test(map) && /constructor\(map: maplibregl\.Map, home: \[number, number, number, number\] \| null = null\)/.test(layer) && /this\.ladder\.packets\[this\.gov\.levelIndex\] \* zoomPacketScale\(rippleZoomIn\(view, this\.home\)\)/.test(layer) && !/cameraForBounds|getZoom\(/.test(layer) && /fitBoundsOptions: \{ padding: 10 \}/.test(map) && /private onSettle = \(\): void => \{\s*\n\s*if \(!this\.shown\(\)\) return;\s*\n\s*if \(this\.still\(\)\) this\.stillFrame\(\); else this\.recount\(\);/.test(layer) && /private onResize = \(\): void => \{ this\.resize\(\); this\.onSettle\(\); \};/.test(layer));
+  add('G24 Bildrate: am Desktop gemessen (60 Bilder/s, Audit §7), am Telefon nicht — beides steht in der Ebene und im Audit', /Measured 19\.11\.2026 on a desktop GPU: 60 frames per second/.test(layer) && /no phone yet/.test(layer) && /\*\*60 Bilder\/s\*\*/.test(src('audit/seewetter-riffel.md')) && /Nicht gemessen:\*\* Telefon/.test(src('audit/seewetter-riffel.md')));
 }
 
 const failed = checks.filter((c) => !c.ok);

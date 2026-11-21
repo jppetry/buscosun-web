@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+  <identifier>2.49.0.0.276.0.DWD.PVW.1795073520000.4ed82674-e0ce-4167-9812-9e611719b58d.DEU</identifier>
+  <sender>opendata@dwd.de</sender>
+  <sent>2026-11-19T08:32:00+01:00</sent>
+  <status>Actual</status>
+  <msgType>Alert</msgType>
+  <source>PVW</source>
+  <scope>Public</scope>
+  <code>id:2.49.0.0.276.0.DWD.PVW.1795073520000.4ed82674-e0ce-4167-9812-9e611719b58d</code>
+  <info>
+    <language>de-DE</language>
+    <category>Met</category>
+    <event>STARKWIND</event>
+    <responseType>Prepare</responseType>
+    <urgency>Immediate</urgency>
+    <severity>Minor</severity>
+    <certainty>Likely</certainty>
+    <eventCode>
+      <valueName>PROFILE_VERSION</valueName>
+      <value>2.1.14</value>
+    </eventCode>
+    <eventCode>
+      <valueName>LICENSE</valueName>
+      <value>© GeoBasis-DE / BKG 2021 (Daten modifiziert)</value>
+    </eventCode>
+    <eventCode>
+      <valueName>II</valueName>
+      <value>57</value>
+    </eventCode>
+    <eventCode>
+      <valueName>GROUP</valueName>
+      <value>WIND</value>
+    </eventCode>
+    <eventCode>
+      <valueName>AREA_COLOR</valueName>
+      <value>255 235 59</value>
+    </eventCode>
+    <effective>2026-11-19T08:32:00+01:00</effective>
+    <onset>2026-11-19T08:32:00+01:00</onset>
+    <senderName>Deutscher Wetterdienst</senderName>
+    <headline>Amtliche WARNUNG vor STARKWIND</headline>
+    <description>Es treten Windböen mit Geschwindigkeiten bis 60 km/h (17 m/s, 33 kn, Bft 7) aus südwestlicher Richtung auf.</description>
+    <instruction>Hinweis auf: mögliche Gefahr von Kentern kleinerer Boote. 
+Handlungsempfehlungen: 
+Wetterentwicklung beobachten; auf kurzfristiges Verlassen des Sees einstellen</instruction>
+    <web>https://dwd.de/warnungen</web>
+    <contact>Deutscher Wetterdienst</contact>
+    <parameter>
+      <valueName>gusts</valueName>
+      <value>&lt;60 [km/h]</value>
+    </parameter>
+    <parameter>
+      <valueName>wind direction</valueName>
+      <value>south-west</value>
+    </parameter>
+    <area>
+      <areaDesc>Bodensee - West</areaDesc>
+      <polygon>47.729042,9.020864 47.723966,9.037192 47.702637,9.103306 47.69147,9.107552 47.689898,9.089828 47.703512,9.056203 47.708525,9.041065 47.693161,9.044233 47.683399,9.079942 47.684473,9.114166 47.665467,9.131554 47.67729,9.089378 47.68433,9.017809 47.654911,8.940327 47.647434,8.897693 47.651218,8.877578 47.656101,8.875706 47.65204,8.897069 47.658903,8.936293 47.668537,8.952628 47.671814,8.970386 47.694518,9.005827 47.705564,8.996263 47.715054,8.966852 47.72434,8.943369 47.73193,8.941745 47.736261,8.963904 47.724909,8.99946 47.729154,9.004125 47.739956,8.982887 47.743204,8.993846 47.729042,9.020864 47.729042,9.020864</polygon>
+      <polygon>47.766725,9.14125 47.744458,9.21362 47.737013,9.225658 47.716258,9.231638 47.702664,9.254996 47.680126,9.211587 47.686688,9.209433 47.705074,9.180714 47.733908,9.174045 47.74909,9.149263 47.748886,9.132876 47.762632,9.106128 47.772662,9.078876 47.806139,9.031598 47.814725,9.038402 47.813461,9.063035 47.806411,9.069671 47.783278,9.119551 47.766725,9.14125 47.766725,9.14125</polygon>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>208439000</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+  </info>
+</alert>

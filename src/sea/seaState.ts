@@ -14,11 +14,12 @@ export const SEA_TABS: readonly SeaTab[] = ['spot', 'gebiet', 'quellen'];
 export type SeaLayer = 'hs' | 'ws' | 'sw' | 'per' | 'cur';
 export const SEA_LAYERS: readonly SeaLayer[] = ['hs', 'ws', 'sw', 'per', 'cur'];
 /** `daenemark` (phase DK) filters by the spot's country; `nordsee`/`ostsee` by its sea — a Danish spot is in both lists. */
-export type SeaRevier = 'alle' | 'nordsee' | 'ostsee' | 'daenemark';
-export const SEA_REVIERE: readonly SeaRevier[] = ['alle', 'nordsee', 'ostsee', 'daenemark'];
+export type SeaRevier = 'alle' | 'nordsee' | 'ostsee' | 'daenemark' | 'seen';
+/** `seen` (phase BS) = the lake spots (`region: 'binnensee'`); offered only when the catalogue carries lakes. */
+export const SEA_REVIERE: readonly SeaRevier[] = ['alle', 'nordsee', 'ostsee', 'daenemark', 'seen'];
 /** Is a spot of the catalogue in the chosen Revier? */
 export const seaInRevier = (s: { region: string; country?: string }, rv: SeaRevier): boolean =>
-  rv === 'alle' || (rv === 'daenemark' ? s.country === 'DK' : s.region === rv);
+  rv === 'alle' || (rv === 'daenemark' ? s.country === 'DK' : rv === 'seen' ? s.region === 'binnensee' : s.region === rv);
 /** Time chips of the design: now, +6, +12, +24, +48, +72 h. */
 export const SEA_TIME_CHIPS = [0, 6, 12, 24, 48, 72] as const;
 export const SEA_MAX_T = 78;
@@ -41,11 +42,13 @@ export interface SeaUrlState {
   et: string | null;
   /** Phase AM: the Strand window as written in the link (`sd=<start>_<end>`, `seaTrip.ts`); null = Strand closed. */
   sd: string | null;
+  /** Phase AM-W: the page of the planner's assistant as written in the link (`ps=<kind>.<step>`, `seaSteps.ts`); null = planner closed or on its result page. */
+  ps: string | null;
   /** Phase WT: the user's water temperature threshold as written in the link (`wt=over.18` / `wt=under.12.5`, `waterTemp.ts`); null = none. */
   wt: string | null;
 }
 
-export const SEA_DEFAULT_STATE: SeaUrlState = { spot: null, p: 'kite', t: 0, l: 'hs', u: 'kn', tab: 'spot', rv: 'alle', tw: null, tf: false, pl: null, et: null, sd: null, wt: null };
+export const SEA_DEFAULT_STATE: SeaUrlState = { spot: null, p: 'kite', t: 0, l: 'hs', u: 'kn', tab: 'spot', rv: 'alle', tw: null, tf: false, pl: null, et: null, sd: null, ps: null, wt: null };
 /** Phase TF: form of `tw` — mode, whole cm, reference, gauge id (read by `parseTideParam` in `tideWindow.ts`; kept here so the route wrapper stays free of the tide module). */
 export const SEA_TW_RE = /^(min|max)\.(-?\d{1,4})\.(pnp|nhn|skn|mhw)\.([a-z0-9][a-z0-9_-]{0,63})$/;
 /** Phase SP: form of `pl` — start and return as full UTC hours (YYYYMMDDHH), boat position in degrees (read by `parsePlanParam` in `seaPlanner.ts`). */
@@ -53,6 +56,8 @@ export const SEA_PL_RE = /^(\d{10})_(\d{10})_(\d{1,2}\.\d{1,5})_(\d{1,3}\.\d{1,5
 /** Phase AM: forms of `et` and `sd` (read by `parseEtappeParam` / `parseStrandParam` in `seaTrip.ts`). */
 export const SEA_ET_RE = /^(\d{10})_(\d{1,3})_((?:\d{6}x\d{4,6})(?:\.\d{6}x\d{4,6}){0,11})$/;
 export const SEA_SD_RE = /^(\d{10})_(\d{10})$/;
+/** Phase AM-W: form of `ps` (read by `parseWizParam` in `seaSteps.ts`). */
+export const SEA_PS_RE = /^(ort|etappe|strand)\.(wer|art|ort|strecke|revier|zeit|grenzen)$/;
 /** Phase WT: form of `wt` — side and degrees Celsius with at most one decimal (read by `parseWtParam` in `waterTemp.ts`). */
 export const SEA_WT_RE = /^(over|under)\.(-?\d{1,2}(?:\.\d)?)$/;
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -83,6 +88,8 @@ export function parseSeaUrl(slug: string | null | undefined, search: string): { 
   if (et != null) { if (SEA_ET_RE.test(et)) state.et = et; else invalid.push('et'); }
   const sd = q.get('sd');
   if (sd != null) { if (SEA_SD_RE.test(sd)) state.sd = sd; else invalid.push('sd'); }
+  const ps = q.get('ps');
+  if (ps != null) { if (SEA_PS_RE.test(ps)) state.ps = ps; else invalid.push('ps'); }
   const wt = q.get('wt');
   if (wt != null) { if (SEA_WT_RE.test(wt)) state.wt = wt; else invalid.push('wt'); }
   return { state, invalid };
@@ -102,6 +109,7 @@ export function buildSeaUrl(s: SeaUrlState, extra: ReadonlyArray<[string, string
   if (s.pl) q.push(['pl', s.pl]);
   if (s.et) q.push(['et', s.et]);
   if (s.sd) q.push(['sd', s.sd]);
+  if (s.ps) q.push(['ps', s.ps]);
   if (s.wt) q.push(['wt', s.wt]);
   q.push(...extra);
   const qs = q.length ? `?${q.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&')}` : '';

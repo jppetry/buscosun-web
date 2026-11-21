@@ -20,6 +20,10 @@ import {
   type SeaDmiDoc, type SeaDmiPointer,
 } from './seaDmi';
 import { seaCurrentFieldPath, seaCurrentUvPath } from './seaContract';
+import {
+  SEA_SPOT_CATALOG_LAKES_PATH, lakeObsOf, lakeSeriesProblems, lakeTableProblems, seaLakesDocProblems, seaLakesStale,
+  type SeaLake, type SeaLakesDoc, type SeaLakesPointer,
+} from './seaLakes';
 import { SEA_CURRENT_FIELD, SEA_CURRENT_UV, SEA_CURRENT_WHY, currentLoadOf, decodeUvField, seaCurrentDead, type SeaCurrentLoad, type SeaCurrentPointer, type SeaUvGrid } from './seaCurrent';
 
 /** "Does not exist" (404, or 403 on both ways) — distinct from a hard failure. */
@@ -94,18 +98,23 @@ const isAbort = (e: unknown) => (e as Error)?.name === 'AbortError';
 
 // --- Static ------------------------------------------------------------------------------------------
 
-export interface SeaCatalog { spots: SeaSpot[]; problems: string[] }
+export interface SeaCatalog { spots: SeaSpot[]; problems: string[]; /** Phase BS: the lake table of `static/spots-lakes.json` (absent without the file). */ lakes?: SeaLake[] }
 export async function loadCatalog(signal?: AbortSignal): Promise<SeaCatalog | null> {
   try {
+    // Phase BS: the lake spots are a file of their own too; missing, unreadable or with a broken lake table ⇒ no lake spot at all.
+    const lkP = (fetchSea(SEA_SPOT_CATALOG_LAKES_PATH, 'json', signal) as Promise<{ product?: string; part?: string; spots?: SeaSpot[]; lakes?: SeaLake[] }>).catch((e) => { if (isAbort(e)) throw e; return null; });
     // Phase DK: the Danish spots are a file of their own; missing or unreadable ⇒ the page is the one before the phase.
     const dkP = (fetchSea(SEA_SPOT_CATALOG_DK_PATH, 'json', signal) as Promise<{ product?: string; spots?: SeaSpot[] }>).catch((e) => { if (isAbort(e)) throw e; return null; });
     const j = await fetchSea(SEA_SPOT_CATALOG_PATH, 'json', signal) as { product?: string; spots?: SeaSpot[] };
     if (j?.product !== 'sea-spots' || !Array.isArray(j.spots)) return null;
     const dk = await dkP;
-    const spots = mergeSpotCatalogs(j.spots, dk?.product === 'sea-spots' && Array.isArray(dk.spots) ? dk.spots : null);
+    const lk = await lkP;
+    const lakesOk = lk?.product === 'sea-spots' && lk.part === 'lakes' && Array.isArray(lk.spots) && Array.isArray(lk.lakes) && lakeTableProblems(lk.lakes).length === 0;
+    const lakeIds = new Set(lakesOk ? lk!.lakes!.map((l) => l.id) : []);
+    const spots = mergeSpotCatalogs(j.spots, dk?.product === 'sea-spots' && Array.isArray(dk.spots) ? dk.spots : null, lakesOk ? lk!.spots!.filter((s) => s.lake && lakeIds.has(s.lake.id)) : null);
     const problems = spotCatalogProblems(spots);
     const bad = new Set(problems.map((p) => p.split(':')[0]));
-    return { spots: spots.filter((s) => !bad.has(s.id)), problems };
+    return { spots: spots.filter((s) => !bad.has(s.id)), problems, ...(lakesOk ? { lakes: lk!.lakes } : {}) };
   } catch (e) { if (isAbort(e)) throw e; return null; }
 }
 
@@ -179,6 +188,8 @@ export interface SeaSpotsDoc {
   windFrom?: number;
   /** Phase DK: spots whose wind columns come from DMI HARMONIE (outside the point cube) — set by `withDmiWind`. */
   windBy?: Record<string, 'dmi'>;
+  /** Phase BS: the computation the lake spots' wind comes from (engine, cube run, when) — set by `withLakes`. */
+  lakeWind?: SeaLakesDoc['wind'] & { t1: string; from: number; builtAt: string };
   /**
    * Phase SU: q10 … q90 of wind and gust per spot (m/s), only for spots whose file carries them AND whose columns pass the
    * value lock. A spot without an entry (every file before phase SU, a failed lock) is shown without band.
@@ -288,8 +299,50 @@ export function mergeWindDoc(doc: SeaSpotsDoc, upd: { from: number; wind: SeaSpo
 
 // --- Fields ------------------------------------------------------------------------------------------
 
+/**
+ * V-AM-18 — one read per file for everybody who asks for it (the map layer, the warm-up of the next hour, the leg of the
+ * trip planner). The read runs on a signal of its OWN: a caller's signal ends only that caller's waiting, with an
+ * `AbortError`, as before. The read itself ends when the last caller who brought a signal has left and nobody without
+ * one holds it — looked at one microtask later, so a caller who leaves and asks again in the same pass (React runs the
+ * cleanup of an effect and the next effect back to back: a layer change on the same file) keeps the read that is on its
+ * way. Before, the read hung on the signal of whoever asked first and took every other caller down with it.
+ * `p` never rejects: a failed or ended read is `null` and is not remembered; an answer is.
+ */
+interface SeaShared<T> { p: Promise<T | null>; ac: AbortController; waiting: number; held: boolean; done: boolean }
+function sharedRead<T>(cache: Map<string, SeaShared<T>>, path: string, read: (own: AbortSignal) => Promise<T | null>, signal?: AbortSignal): Promise<T | null> {
+  if (signal?.aborted) return Promise.reject(abortError(signal));
+  let e = cache.get(path);
+  if (!e) {
+    const made: SeaShared<T> = { p: Promise.resolve(null), ac: new AbortController(), waiting: 0, held: false, done: false };
+    made.p = read(made.ac.signal).then(
+      (v) => { made.done = true; return v; },
+      () => { made.done = true; if (cache.get(path) === made) cache.delete(path); return null; },
+    );
+    cache.set(path, made);
+    e = made;
+  }
+  const entry = e;
+  if (!signal) { entry.held = true; return entry.p; }
+  entry.waiting++;
+  return new Promise<T | null>((resolve, reject) => {
+    let here = true;
+    const leave = () => { if (!here) return false; here = false; entry.waiting--; signal.removeEventListener('abort', onAbort); return true; };
+    const onAbort = () => {
+      if (!leave()) return;
+      reject(abortError(signal));
+      queueMicrotask(() => {
+        if (entry.waiting || entry.held || entry.done) return;
+        if (cache.get(path) === entry) cache.delete(path);
+        entry.ac.abort();
+      });
+    };
+    signal.addEventListener('abort', onAbort, { once: true });
+    void entry.p.then((v) => { leave(); resolve(v); });
+  });
+}
+
 export interface SeaFieldImage { width: number; height: number; rgba: Uint8ClampedArray }
-const fieldCache = new Map<string, Promise<SeaFieldImage | null>>();
+const fieldCache = new Map<string, SeaShared<SeaFieldImage>>();
 /**
  * `f/<sss>.png` (630 × 387) or `c/<sss>.png` (1260 × 387) → exact RGBA bytes. Canvas path with
  * `colorSpaceConversion/premultiplyAlpha: 'none'` (radar/repack rule — a colour conversion would shift values);
@@ -297,29 +350,20 @@ const fieldCache = new Map<string, Promise<SeaFieldImage | null>>();
  */
 export function loadField(run: string, kind: 'f' | 'c', step: number, signal?: AbortSignal): Promise<SeaFieldImage | null> {
   const path = kind === 'f' ? seaFieldPath('cwam', run, step) : seaCompPath('cwam', run, step);
-  const hit = fieldCache.get(path);
-  if (hit) return hit;
   const g = SEA_MODELS.cwam.grid;
   const width = kind === 'f' ? g.ni : 2 * g.ni, height = g.nj;
-  const p = (async () => {
+  const p = sharedRead(fieldCache, path, async (own) => {
+    const bytes = await fetchSea(path, 'bytes', own) as Uint8Array;
+    const bmp = await createImageBitmap(new Blob([bytes as BlobPart], { type: 'image/png' }), { colorSpaceConversion: 'none', premultiplyAlpha: 'none' });
     try {
-      const bytes = await fetchSea(path, 'bytes', signal) as Uint8Array;
-      const bmp = await createImageBitmap(new Blob([bytes as BlobPart], { type: 'image/png' }), { colorSpaceConversion: 'none', premultiplyAlpha: 'none' });
-      try {
-        if (bmp.width !== width || bmp.height !== height) return null;
-        const canvas = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(width, height) : Object.assign(document.createElement('canvas'), { width, height });
-        const ctx = canvas.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D | null;
-        if (!ctx) return null;
-        ctx.drawImage(bmp, 0, 0);
-        return { width, height, rgba: ctx.getImageData(0, 0, width, height).data };
-      } finally { bmp.close(); }
-    } catch (e) {
-      fieldCache.delete(path);
-      if (isAbort(e)) throw e;
-      return null;
-    }
-  })();
-  fieldCache.set(path, p);
+      if (bmp.width !== width || bmp.height !== height) return null;
+      const canvas = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(width, height) : Object.assign(document.createElement('canvas'), { width, height });
+      const ctx = canvas.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D | null;
+      if (!ctx) return null;
+      ctx.drawImage(bmp, 0, 0);
+      return { width, height, rgba: ctx.getImageData(0, 0, width, height).data };
+    } finally { bmp.close(); }
+  }, signal);
   if (fieldCache.size > 40) fieldCache.delete(fieldCache.keys().next().value as string);
   return p;
 }
@@ -371,8 +415,16 @@ export const SEA_OBS_SAME_SITE_KM = 2;
  * fallback (no match, no fresh wind value, product not readable, `?seaobs=0`).
  */
 export async function loadStationObs(
-  station: { id: string; lat: number; lon: number; net?: 'dmi' }, spot: { lat: number; lon: number } | null, signal?: AbortSignal, nowMs = Date.now(),
+  station: { id: string; lat: number; lon: number; net?: 'dmi' | 'obs' }, spot: { lat: number; lon: number } | null, signal?: AbortSignal, nowMs = Date.now(),
 ): Promise<SeaPoiObs | null> {
+  // Phase BS: a lake station is named by its obs/v1 id — read there and nowhere else (no POI file, no match by distance).
+  if (station.net === 'obs') {
+    try {
+      const { loadObsLatest } = await import('../sources/obsStore');
+      const o = lakeObsOf((await loadObsLatest({ signal })).stations[station.id], nowMs);
+      return o ? { t: o.t, ffMs: o.ffMs, ddDeg: o.ddDeg, fxMs: o.fxMs, src: 'obs' } : null;
+    } catch (e) { if (isAbort(e)) throw e; return null; }
+  }
   // Phase DK: a DMI station is read at DMI (CORS open) — never matched against the German stations of `obs/v1` or the DWD POI files.
   if (station.net === 'dmi') return loadDmiStationObs(station.id, signal, nowMs);
   if (seaObsEnabled()) {
@@ -433,7 +485,9 @@ export async function loadPoi(id: string, signal?: AbortSignal): Promise<SeaPoiO
  * catalogue stations report none), a DMI station from metObs (10-minute mean, at most `DMI_OBS_MAX_AGE_MS` old; three of
  * the eight report none).
  */
-export async function loadStationVisibility(station: { id: string; net?: 'dmi' }, signal?: AbortSignal, nowMs = Date.now()): Promise<SightObs | null> {
+export async function loadStationVisibility(station: { id: string; net?: 'dmi' | 'obs' }, signal?: AbortSignal, nowMs = Date.now()): Promise<SightObs | null> {
+  // Phase BS: obs/v1 carries no visibility — a lake station has none ("keine Daten"), no other station in its place.
+  if (station.net === 'obs') return null;
   try {
     if (station.net === 'dmi') {
       const res = await fetch(dmiObsUrl(station.id, DMI_VIS_PARAM, nowMs - DMI_OBS_MAX_AGE_MS), { signal });
@@ -522,32 +576,23 @@ export async function loadCurrent(ptr: SeaCurrentPointer | null, nowMs: number, 
   }
 }
 
-const currentFieldCache = new Map<string, Promise<Uint8ClampedArray | null>>();
+const currentFieldCache = new Map<string, SeaShared<Uint8ClampedArray>>();
 /** `current/<run>/f/<hhh>.png` (90 × 55) → exact RGBA bytes (same canvas path as `loadField`), or null. */
 export function loadCurrentField(run: string, hour: number, signal?: AbortSignal): Promise<Uint8ClampedArray | null> {
   const path = seaCurrentFieldPath(run, hour);
-  const hit = currentFieldCache.get(path);
-  if (hit) return hit;
   const { nx: width, ny: height } = SEA_CURRENT_FIELD;
-  const p = (async () => {
+  const p = sharedRead(currentFieldCache, path, async (own) => {
+    const bytes = await fetchSea(path, 'bytes', own) as Uint8Array;
+    const bmp = await createImageBitmap(new Blob([bytes as BlobPart], { type: 'image/png' }), { colorSpaceConversion: 'none', premultiplyAlpha: 'none' });
     try {
-      const bytes = await fetchSea(path, 'bytes', signal) as Uint8Array;
-      const bmp = await createImageBitmap(new Blob([bytes as BlobPart], { type: 'image/png' }), { colorSpaceConversion: 'none', premultiplyAlpha: 'none' });
-      try {
-        if (bmp.width !== width || bmp.height !== height) return null;
-        const canvas = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(width, height) : Object.assign(document.createElement('canvas'), { width, height });
-        const ctx = canvas.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D | null;
-        if (!ctx) return null;
-        ctx.drawImage(bmp, 0, 0);
-        return ctx.getImageData(0, 0, width, height).data;
-      } finally { bmp.close(); }
-    } catch (e) {
-      currentFieldCache.delete(path);
-      if (isAbort(e)) throw e;
-      return null;
-    }
-  })();
-  currentFieldCache.set(path, p);
+      if (bmp.width !== width || bmp.height !== height) return null;
+      const canvas = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(width, height) : Object.assign(document.createElement('canvas'), { width, height });
+      const ctx = canvas.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D | null;
+      if (!ctx) return null;
+      ctx.drawImage(bmp, 0, 0);
+      return ctx.getImageData(0, 0, width, height).data;
+    } finally { bmp.close(); }
+  }, signal);
   if (currentFieldCache.size > 80) currentFieldCache.delete(currentFieldCache.keys().next().value as string);
   return p;
 }
@@ -592,7 +637,7 @@ export function takeSeaChain(): SeaChain | null {
 
 // --- Phase SR: hourly u/v field of the current (audit/seewetter-riffel.md) -----------------------------------------------
 
-const currentUvCache = new Map<string, Promise<SeaUvGrid | null>>();
+const currentUvCache = new Map<string, SeaShared<SeaUvGrid>>();
 /**
  * `current/<run>/uv/<hhh>.png` (315 × 194) → the decoded grid, or null (missing, unreachable, not the contract's image).
  * Same canvas path as `loadField`; the image carries alpha 255 everywhere, so the read loses nothing. The page asks
@@ -600,28 +645,66 @@ const currentUvCache = new Map<string, Promise<SeaUvGrid | null>>();
  */
 export function loadCurrentUv(run: string, hour: number, signal?: AbortSignal): Promise<SeaUvGrid | null> {
   const path = seaCurrentUvPath(run, hour);
-  const hit = currentUvCache.get(path);
-  if (hit) return hit;
   const { nx: width, ny: height } = SEA_CURRENT_UV;
-  const p = (async () => {
+  const p = sharedRead(currentUvCache, path, async (own) => {
+    const bytes = await fetchSea(path, 'bytes', own) as Uint8Array;
+    const bmp = await createImageBitmap(new Blob([bytes as BlobPart], { type: 'image/png' }), { colorSpaceConversion: 'none', premultiplyAlpha: 'none' });
     try {
-      const bytes = await fetchSea(path, 'bytes', signal) as Uint8Array;
-      const bmp = await createImageBitmap(new Blob([bytes as BlobPart], { type: 'image/png' }), { colorSpaceConversion: 'none', premultiplyAlpha: 'none' });
-      try {
-        if (bmp.width !== width || bmp.height !== height) return null;
-        const canvas = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(width, height) : Object.assign(document.createElement('canvas'), { width, height });
-        const ctx = canvas.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D | null;
-        if (!ctx) return null;
-        ctx.drawImage(bmp, 0, 0);
-        return decodeUvField(ctx.getImageData(0, 0, width, height).data);
-      } finally { bmp.close(); }
-    } catch (e) {
-      currentUvCache.delete(path);
-      if (isAbort(e)) throw e;
-      return null;
-    }
-  })();
-  currentUvCache.set(path, p);
+      if (bmp.width !== width || bmp.height !== height) return null;
+      const canvas = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(width, height) : Object.assign(document.createElement('canvas'), { width, height });
+      const ctx = canvas.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D | null;
+      if (!ctx) return null;
+      ctx.drawImage(bmp, 0, 0);
+      return decodeUvField(ctx.getImageData(0, 0, width, height).data);
+    } finally { bmp.close(); }
+  }, signal);
   if (currentUvCache.size > 6) currentUvCache.delete(currentUvCache.keys().next().value as string);
   return p;
+}
+
+// --- Phase BS: inland lakes (audit/seewetter-binnenseen.md) -------------------------------------------------------
+
+/** What the page knows about the lake file: the checked document, or why there is none ("keine Daten", never an old series). */
+export interface SeaLakesLoad { doc: SeaLakesDoc | null; state: 'ok' | 'none' | 'stale' | 'error'; why: string | null }
+export const SEA_LAKES_NONE: SeaLakesLoad = { doc: null, state: 'none', why: 'Im Datenspeicher liegt noch keine Rechnung für die Seen.' };
+export async function loadLakes(ptr: SeaLakesPointer | null, nowMs: number, signal?: AbortSignal): Promise<SeaLakesLoad> {
+  if (!ptr) return SEA_LAKES_NONE;
+  if (seaLakesStale(ptr.builtAt, nowMs)) return { doc: null, state: 'stale', why: 'Die letzte Rechnung für die Seen ist älter als 12 Stunden.' };
+  try {
+    const j = await fetchSea(ptr.path, 'json', signal) as SeaLakesDoc;
+    const pr = seaLakesDocProblems(j);
+    if (pr.length || j.run !== ptr.run || j.t1 !== ptr.t1) return { doc: null, state: 'error', why: 'Die Datei mit den Reihen der Seen ist nicht lesbar.' };
+    return { doc: j, state: 'ok', why: null };
+  } catch (e) { if (isAbort(e)) throw e; return { doc: null, state: 'error', why: 'Die Datei mit den Reihen der Seen ist gerade nicht erreichbar.' }; }
+}
+
+/**
+ * The spots document with the lake spots: wind, gust and direction of the lake file on the SAME hour axis (the file names
+ * the wave run it was computed for — another run ⇒ nothing is added), every wave column `null` (a lake has no wave model
+ * here). A lake spot whose columns fail the value lock is left out; the coastal series are untouched. Pure.
+ */
+export function withLakes(doc: SeaSpotsDoc, lakes: SeaLakesDoc | null): SeaSpotsDoc {
+  if (!lakes || lakes.run !== doc.run || lakes.steps !== doc.steps) return doc;
+  const n = doc.steps, empty = () => new Array<number | null>(n).fill(null);
+  const series: Record<string, SeaSeries> = { ...doc.series }, gustDropped = { ...doc.gustDropped };
+  const quantiles: Record<string, SeaSpotQuantiles> = { ...(doc.quantiles ?? {}) };
+  const sightMeta = sightMetaOf(lakes.sight), sightSpots: Record<string, SeaSightColumns> = { ...(doc.sight?.spots ?? {}) };
+  let added = 0;
+  for (const [id, s] of Object.entries(lakes.spots)) {
+    if (series[id] || lakeSeriesProblems(s?.v, n).length) continue;
+    series[id] = { ...(Object.fromEntries(SEA_SPOT_VARS.map((k) => [k, empty()])) as SeaSeries), ...(Object.fromEntries(SEA_WIND_VARS.map((k) => [k, s.v[k].map((q) => decodeSpotValue(k, q))])) as Record<SeaWindVar, (number | null)[]>) };
+    if (s.gustDropped) gustDropped[id] = s.gustDropped;
+    const q = readSpotQuantiles(s.q, s.v);
+    if (q) quantiles[id] = q;
+    const sg = sightMeta ? readSpotSight(s.s, n) : null;
+    if (sg) sightSpots[id] = sg;
+    added++;
+  }
+  if (!added) return doc;
+  const out: SeaSpotsDoc = { ...doc, series, gustDropped, lakeWind: { ...lakes.wind, t1: lakes.t1, from: lakes.from, builtAt: lakes.builtAt } };
+  if (Object.keys(quantiles).length) out.quantiles = quantiles;
+  // The hint columns of the lakes stand next to the coast's; without a coastal block the lakes' own block describes them.
+  if (doc.sight) out.sight = { ...doc.sight, spots: sightSpots };
+  else if (sightMeta) out.sight = { spots: sightSpots, meta: sightMeta };
+  return out;
 }

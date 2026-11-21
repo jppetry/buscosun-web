@@ -1,0 +1,64 @@
+{
+  "uuid": "3ffddb2c-4c17-47d1-a7de-e1663d4031b7",
+  "number": "596080",
+  "shortname": "PLAU OP",
+  "longname": "PLAU OP",
+  "km": 120.08,
+  "agency": "STANDORT LAUENBURG",
+  "longitude": 12.261042,
+  "latitude": 53.456765,
+  "voiceServiceNumber": "+49 228 286527 389",
+  "water": {
+    "shortname": "MEW",
+    "longname": "MÜRITZ-ELDE-WASSERSTRASSE"
+  },
+  "timeseries": [
+    {
+      "shortname": "Q",
+      "longname": "ABFLUSS_ROHDATEN",
+      "unit": "m³/s",
+      "equidistance": 15,
+      "currentMeasurement": {
+        "timestamp": "2026-11-21T10:00:00+01:00",
+        "value": 0.368
+      }
+    },
+    {
+      "shortname": "W",
+      "longname": "WASSERSTAND ROHDATEN",
+      "unit": "cm",
+      "equidistance": 15,
+      "currentMeasurement": {
+        "timestamp": "2026-11-21T10:00:00+01:00",
+        "value": 170.0,
+        "stateMnwMhw": "low",
+        "stateNswHsw": "unknown"
+      },
+      "gaugeZero": {
+        "unit": "m. ü. NHN",
+        "value": 60.148,
+        "validFrom": "2019-11-01"
+      }
+    },
+    {
+      "shortname": "LT",
+      "longname": "LUFTTEMPERATUR ROHDATEN",
+      "unit": "°C",
+      "equidistance": 15,
+      "currentMeasurement": {
+        "timestamp": "2026-11-21T10:00:00+01:00",
+        "value": 2.4
+      }
+    },
+    {
+      "shortname": "WT",
+      "longname": "WASSERTEMPERATUR ROHDATEN",
+      "unit": "°C",
+      "equidistance": 60,
+      "currentMeasurement": {
+        "timestamp": "2026-11-21T10:00:00+01:00",
+        "value": 5.3
+      }
+    }
+  ]
+}

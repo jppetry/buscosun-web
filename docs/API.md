@@ -1151,3 +1151,23 @@ Gemessene Wassertemperatur an Pegeln der deutschen Nordseeküste, der Elbe, Wese
 | Benutzung | direkt im Browser (`loadWtObs`: die letzten 5 Tage der Station des Spots) und alle 6 h im Archiv (`sea-archive.mjs`, 2 Tage je Station des Katalogs). Nie über einen Proxy |
 | Auffälligkeiten | einzelne Stationen liefern offenkundig falsche Werte innerhalb plausibler Grenzen (18.11.: Glückstadt 24,1 °C, Kollmar 12,5 °C bei ≈ 8 °C der Nachbarn) — keine davon steht im Katalog; die Werteprüfung (−2,5 … 32 °C) erkennt so etwas nicht (V-WT-3) |
 | Kontrakt-Sonde | `verify:sea-watertemp` (netzfrei gegen byte-gleiche Antworten vom 18.11.2026, `scripts/lib/fixtures/sea/wt/`) |
+
+### 8.14 Binnenseen: Umrisse, Alplakes, BAFU/LINDAS, WSV-Seepegel, DWD-Seewarnzellen — *✅ IN BENUTZUNG (Phase BS 2026-11-21, `src/sea/seaLakes.ts`)*
+
+Gemessen am 21.11.2026 (`scripts/sea/spike/lake-probe.mjs`, `audit/seewetter-binnenseen.md` §1). Wer liest was:
+
+| Quelle | Endpunkt | Wer liest | Lizenz · Nennung | CORS · Drossel |
+|---|---|---|---|---|
+| BKG DLM250, stehendes Gewässer | `https://sgx.geodatenzentrum.de/wfs_dlm250` · `TYPENAMES=dlm250:objart_44006_f`, `SRSNAME=EPSG:4326`, `BBOX=<lon,lat,lon,lat>,EPSG:4326` | nur der Katalogbau (`build-lake-spots.mjs`) | dl-de/by-2-0 · „© GeoBasis-DE / BKG (Jahr)“ | – |
+| swisstopo swissTLM3D Gewässernetz | `https://api3.geo.admin.ch/rest/services/all/MapServer/find?layer=ch.swisstopo.swisstlm3d-gewaessernetz&searchField=name&…&geometryFormat=geojson&sr=4326` | nur der Katalogbau | freie Nutzung · „© swisstopo“ | nicht gemessen |
+| Copernicus EU-Hydro, Ebene 2 „InlandWater“ | `https://image.discomap.eea.europa.eu/arcgis/rest/services/EUHydro/EUHydro_RiverNetworkDatabase/MapServer/2/query` (Punkt, `f=geojson`) | nur der Katalogbau | frei bei Quellenangabe und Angabe von Änderungen | maxRecordCount 1000 |
+| Alplakes (Eawag), 1D-Modell Simstrat | `https://alplakes-api.eawag.ch/simulations/1d/point/simstrat/<becken>/<von>/<bis>/1?variables=T` | **nur der Producer** (`sea-lakes.mjs`), höchstens alle 6 h, ein Abruf je Becken | CC BY 4.0 · „Data: Alplakes, Eawag (CC BY 4.0)“ | **CORS nur für eine Liste von Ursprüngen** (fremder Ursprung: 400 „Disallowed CORS origin“); 429 dokumentiert; beschreibender User-Agent mit Kontakt erbeten |
+| BAFU hydrologische Daten über LINDAS | `POST https://lindas.admin.ch/query` (SPARQL, Graph `https://lindas.admin.ch/foen/hydro`, `…/lake/observation/`) | der Browser, ein Abruf je 10 min | „Open use“ (frei, auch kommerziell) | CORS spiegelt den Ursprung · Aktualisierung alle 10 min |
+| WSV PEGELONLINE, Seepegel (`W`, `WT`) | `https://www.pegelonline.wsv.de/webservices/rest-api/v2/stations/<uuid>/<W|WT>/currentmeasurement.json` | der Browser | DL-DE Zero 2.0 | CORS `*` |
+| DWD CAP, Binnensee-Warnzellen | dieselbe Datei wie der Warn-Layer (`DISTRICT_DWD_STAT/…LATEST…DISTRICT_DE.zip` über `/_dwd_opendata`); Zellgeometrie einmalig aus `dwd:Warngebiete_Binnenseen` (GeoServer, Fixture) | der Browser (`lakeClient.ts` → `fetchDwdWarnings`) | wie Warn-Layer, **nur wörtliches Zitat** | – |
+
+Fallen: (1) Warnzellen der Binnenseen beginnen mit **2** (nicht 9); eine Warnung gehört über die **Zelle** zum See — gemessen stehen
+Seezellen auch in gewöhnlichen Windwarnungen (II 51), nicht nur in 57/58. (2) EU-Hydro kennt vom Neusiedler See nur die offene
+Wasserfläche und benennt Seen unzuverlässig (Auswahl per Punkt). (3) BAFU-Seestationen tragen **keine** Wassertemperatur.
+(4) **Nur Link, nie abgerufen:** GKD Bayern (CC BY 4.0, aber „keine Public-API“, Formular-Download per `robots.txt` ausgeschlossen),
+Hydro OÖ, Wasserportal Burgenland, Landesportale NI/SH/MV, Seewarnungen MeteoSchweiz, Sturmwarndienste in Österreich.

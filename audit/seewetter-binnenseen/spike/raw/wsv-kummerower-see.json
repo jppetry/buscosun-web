@@ -1,0 +1,34 @@
+{
+  "uuid": "8ba772ed-e45b-4be8-b91d-0c6c92de59e4",
+  "number": "9660009",
+  "shortname": "AALBUDE",
+  "longname": "AALBUDE",
+  "km": 14.9,
+  "agency": "STANDORT STRALSUND",
+  "longitude": 12.888042,
+  "latitude": 53.847927,
+  "voiceServiceNumber": "+49 228 286527 533",
+  "water": {
+    "shortname": "PEENE",
+    "longname": "PEENE"
+  },
+  "timeseries": [
+    {
+      "shortname": "W",
+      "longname": "WASSERSTAND ROHDATEN",
+      "unit": "cm",
+      "equidistance": 1,
+      "currentMeasurement": {
+        "timestamp": "2026-11-21T10:05:00+01:00",
+        "value": 549.0,
+        "stateMnwMhw": "normal",
+        "stateNswHsw": "unknown"
+      },
+      "gaugeZero": {
+        "unit": "m. ü. NHN",
+        "value": -5.175,
+        "validFrom": "2019-11-01"
+      }
+    }
+  ]
+}

@@ -1,0 +1,6815 @@
+{
+ "at": "2026-11-21T09:09:40.613Z",
+ "rules": {
+  "OBS_MAX_KM": 25,
+  "OBS_FRESH_MIN": 90,
+  "OBS_MAX_DELEV_M": 150
+ },
+ "spots": {
+  "genfersee-genf": {
+   "lake": "genfersee",
+   "lat": 46.2109,
+   "lon": 6.15305,
+   "snapM": 85,
+   "normal": 113,
+   "pt": {
+    "lat": 46.21001,
+    "lon": 6.15604,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Genf",
+    "found": true,
+    "km": 1.23,
+    "landSide": true,
+    "angle": 78
+   },
+   "obs": {
+    "de": {
+     "id": "de:02377",
+     "name": "Kandern-Gupf",
+     "km": 198.3,
+     "lat": 47.7001,
+     "lon": 7.5895,
+     "elevM": 362,
+     "dElevM": -10,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11105",
+     "name": "FELDKIRCH",
+     "km": 288.5,
+     "lat": 47.27111,
+     "lon": 9.60972,
+     "elevM": 438,
+     "dElevM": 66,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:GVE",
+     "name": "Genève / Cointrin",
+     "km": 4.5,
+     "lat": 46.247519,
+     "lon": 6.127742,
+     "elevM": 411,
+     "dElevM": 39,
+     "net": "nime"
+    }
+   },
+   "wind": {
+    "id": "ch:GVE",
+    "name": "Genève / Cointrin",
+    "km": 4.5,
+    "lat": 46.247519,
+    "lon": 6.127742,
+    "elevM": 411,
+    "dElevM": 39,
+    "net": "nime"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 14,
+     "ix": 13
+    },
+    "hRead": 371,
+    "lakeElevM": 372,
+    "dH": -1,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 45,
+    "stage": 14,
+    "windKn0": 4.1,
+    "mosmix": {
+     "id": "06700",
+     "km": 4.9
+    },
+    "ms": 999,
+    "errors": 0
+   }
+  },
+  "genfersee-nyon": {
+   "lake": "genfersee",
+   "lat": 46.38054,
+   "lon": 6.24189,
+   "snapM": 9,
+   "normal": 129,
+   "pt": {
+    "lat": 46.37911,
+    "lon": 6.24442,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Nyon",
+    "found": true,
+    "km": 0.28,
+    "landSide": null,
+    "angle": 175
+   },
+   "obs": {
+    "de": {
+     "id": "de:02377",
+     "name": "Kandern-Gupf",
+     "km": 178.8,
+     "lat": 47.7001,
+     "lon": 7.5895,
+     "elevM": 362,
+     "dElevM": -10,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11105",
+     "name": "FELDKIRCH",
+     "km": 274.7,
+     "lat": 47.27111,
+     "lon": 9.60972,
+     "elevM": 438,
+     "dElevM": 66,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:CGI",
+     "name": "Nyon / Changins",
+     "km": 2.5,
+     "lat": 46.401053,
+     "lon": 6.227722,
+     "elevM": 458,
+     "dElevM": 86,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "ch:CGI",
+    "name": "Nyon / Changins",
+    "km": 2.5,
+    "lat": 46.401053,
+    "lon": 6.227722,
+    "elevM": 458,
+    "dElevM": 86,
+    "net": "smn"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 18,
+     "ix": 15
+    },
+    "hRead": 371,
+    "lakeElevM": 372,
+    "dH": -1,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 58,
+    "stage": 14,
+    "windKn0": 5.1,
+    "mosmix": {
+     "id": "06705",
+     "km": 2.6
+    },
+    "ms": 261,
+    "errors": 0
+   }
+  },
+  "genfersee-lausanne": {
+   "lake": "genfersee",
+   "lat": 46.50615,
+   "lon": 6.62634,
+   "snapM": 64,
+   "normal": 193,
+   "pt": {
+    "lat": 46.50394,
+    "lon": 6.6256,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Lausanne",
+    "found": true,
+    "km": 1.6,
+    "landSide": true,
+    "angle": 170
+   },
+   "obs": {
+    "de": {
+     "id": "de:02377",
+     "name": "Kandern-Gupf",
+     "km": 151.5,
+     "lat": 47.7001,
+     "lon": 7.5895,
+     "elevM": 362,
+     "dElevM": -10,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11105",
+     "name": "FELDKIRCH",
+     "km": 242.1,
+     "lat": 47.27111,
+     "lon": 9.60972,
+     "elevM": 438,
+     "dElevM": 66,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:PUY",
+     "name": "Pully",
+     "km": 3.2,
+     "lat": 46.512283,
+     "lon": 6.667517,
+     "elevM": 456,
+     "dElevM": 84,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "ch:PUY",
+    "name": "Pully",
+    "km": 3.2,
+    "lat": 46.512283,
+    "lon": 6.667517,
+    "elevM": 456,
+    "dElevM": 84,
+    "net": "smn"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 20,
+     "ix": 23
+    },
+    "hRead": 371,
+    "lakeElevM": 372,
+    "dH": -1,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 49,
+    "stage": 14,
+    "windKn0": 4,
+    "mosmix": {
+     "id": "06711",
+     "km": 3.8
+    },
+    "ms": 300,
+    "errors": 0
+   }
+  },
+  "genfersee-vevey-montreux": {
+   "lake": "genfersee",
+   "lat": 46.45831,
+   "lon": 6.84438,
+   "snapM": 23,
+   "normal": 196,
+   "pt": {
+    "lat": 46.45614,
+    "lon": 6.84348,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Vevey",
+    "found": true,
+    "km": 0.21,
+    "landSide": null,
+    "angle": 101
+   },
+   "obs": {
+    "de": {
+     "id": "de:02377",
+     "name": "Kandern-Gupf",
+     "km": 149.2,
+     "lat": 47.7001,
+     "lon": 7.5895,
+     "elevM": 362,
+     "dElevM": -10,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11105",
+     "name": "FELDKIRCH",
+     "km": 228.8,
+     "lat": 47.27111,
+     "lon": 9.60972,
+     "elevM": 438,
+     "dElevM": 66,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:VEV",
+     "name": "Vevey / Corseaux",
+     "km": 2.7,
+     "lat": 46.471239,
+     "lon": 6.815056,
+     "elevM": 405,
+     "dElevM": 33,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "ch:VEV",
+    "name": "Vevey / Corseaux",
+    "km": 2.7,
+    "lat": 46.471239,
+    "lon": 6.815056,
+    "elevM": 405,
+    "dElevM": 33,
+    "net": "smn"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 19,
+     "ix": 27
+    },
+    "hRead": 371,
+    "lakeElevM": 372,
+    "dH": -1,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 19,
+    "stage": 14,
+    "windKn0": 3.6,
+    "mosmix": null,
+    "ms": 317,
+    "errors": 0
+   }
+  },
+  "genfersee-le-bouveret": {
+   "lake": "genfersee",
+   "lat": 46.38722,
+   "lon": 6.85675,
+   "snapM": 205,
+   "normal": 318,
+   "pt": {
+    "lat": 46.3889,
+    "lon": 6.85457,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Le Bouveret",
+    "found": true,
+    "km": 0.45,
+    "landSide": true,
+    "angle": 154
+   },
+   "obs": {
+    "de": {
+     "id": "de:02377",
+     "name": "Kandern-Gupf",
+     "km": 156.2,
+     "lat": 47.7001,
+     "lon": 7.5895,
+     "elevM": 362,
+     "dElevM": -10,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11105",
+     "name": "FELDKIRCH",
+     "km": 231.3,
+     "lat": 47.27111,
+     "lon": 9.60972,
+     "elevM": 438,
+     "dElevM": 66,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:BOU",
+     "name": "Bouveret",
+     "km": 0.7,
+     "lat": 46.393447,
+     "lon": 6.857006,
+     "elevM": 374,
+     "dElevM": 2,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "ch:BOU",
+    "name": "Bouveret",
+    "km": 0.7,
+    "lat": 46.393447,
+    "lon": 6.857006,
+    "elevM": 374,
+    "dElevM": 2,
+    "net": "smn"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 18,
+     "ix": 27
+    },
+    "hRead": 371,
+    "lakeElevM": 372,
+    "dH": -1,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 36,
+    "stage": 14,
+    "windKn0": 3.8,
+    "mosmix": {
+     "id": "06712",
+     "km": 8.3
+    },
+    "ms": 91,
+    "errors": 0
+   }
+  },
+  "bodensee-konstanz": {
+   "lake": "bodensee",
+   "lat": 47.65978,
+   "lon": 9.17828,
+   "snapM": 59,
+   "normal": 95,
+   "pt": {
+    "lat": 47.65958,
+    "lon": 9.1816,
+    "km": 0.25
+   },
+   "warncell": {
+    "id": "208438000",
+    "name": "Bodensee - Mitte"
+   },
+   "cellHow": "inside",
+   "town": {
+    "title": "Konstanz",
+    "found": true,
+    "km": 0.43,
+    "landSide": true,
+    "angle": 118
+   },
+   "obs": {
+    "de": {
+     "id": "de:02712",
+     "name": "Konstanz",
+     "km": 5.3,
+     "lat": 47.6952,
+     "lon": 9.1307,
+     "elevM": 428,
+     "dElevM": 33,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11299",
+     "name": "ROHRSPITZ",
+     "km": 38.4,
+     "lat": 47.49722,
+     "lon": 9.63,
+     "elevM": 395,
+     "dElevM": 0,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:GUT",
+     "name": "Güttingen",
+     "km": 10,
+     "lat": 47.601733,
+     "lon": 9.279428,
+     "elevM": 440,
+     "dElevM": 45,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "de:02712",
+    "name": "Konstanz",
+    "km": 5.3,
+    "lat": 47.6952,
+    "lon": 9.1307,
+    "elevM": 428,
+    "dElevM": 33,
+    "net": "dwd10"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 43,
+     "ix": 74
+    },
+    "hRead": 390,
+    "lakeElevM": 395.23,
+    "dH": -5,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 21,
+    "stage": 14,
+    "windKn0": 6.3,
+    "mosmix": {
+     "id": "10929",
+     "km": 2.3
+    },
+    "ms": 345,
+    "errors": 0
+   }
+  },
+  "bodensee-radolfzell": {
+   "lake": "bodensee",
+   "lat": 47.73462,
+   "lon": 8.96898,
+   "snapM": 13,
+   "normal": 199,
+   "pt": {
+    "lat": 47.73248,
+    "lon": 8.9679,
+    "km": 0.25
+   },
+   "warncell": {
+    "id": "208439000",
+    "name": "Bodensee - West"
+   },
+   "cellHow": "inside",
+   "town": {
+    "title": "Radolfzell am Bodensee",
+    "found": true,
+    "km": 0.48,
+    "landSide": true,
+    "angle": 158
+   },
+   "obs": {
+    "de": {
+     "id": "de:02712",
+     "name": "Konstanz",
+     "km": 12.9,
+     "lat": 47.6952,
+     "lon": 9.1307,
+     "elevM": 428,
+     "dElevM": 33,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11299",
+     "name": "ROHRSPITZ",
+     "km": 56.1,
+     "lat": 47.49722,
+     "lon": 9.63,
+     "elevM": 395,
+     "dElevM": 0,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:STK",
+     "name": "Steckborn",
+     "km": 7.4,
+     "lat": 47.668628,
+     "lon": 8.981433,
+     "elevM": 397,
+     "dElevM": 2,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "ch:STK",
+    "name": "Steckborn",
+    "km": 7.4,
+    "lat": 47.668628,
+    "lon": 8.981433,
+    "elevM": 397,
+    "dElevM": 2,
+    "net": "smn"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 45,
+     "ix": 69
+    },
+    "hRead": 390,
+    "lakeElevM": 395.23,
+    "dH": -6,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 10,
+    "stage": 14,
+    "windKn0": 6.3,
+    "mosmix": null,
+    "ms": 214,
+    "errors": 0
+   }
+  },
+  "bodensee-ueberlingen": {
+   "lake": "bodensee",
+   "lat": 47.76544,
+   "lon": 9.16044,
+   "snapM": 58,
+   "normal": 209,
+   "pt": {
+    "lat": 47.76346,
+    "lon": 9.15882,
+    "km": 0.25
+   },
+   "warncell": {
+    "id": "208439000",
+    "name": "Bodensee - West"
+   },
+   "cellHow": "nearest 0.22 km",
+   "town": {
+    "title": "Überlingen",
+    "found": true,
+    "km": 0.21,
+    "landSide": null,
+    "angle": 102
+   },
+   "obs": {
+    "de": {
+     "id": "de:06107",
+     "name": "Sipplingen (SWN)",
+     "km": 6.3,
+     "lat": 47.8076,
+     "lon": 9.1035,
+     "elevM": 703,
+     "dElevM": 308,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11299",
+     "name": "ROHRSPITZ",
+     "km": 46.1,
+     "lat": 47.49722,
+     "lon": 9.63,
+     "elevM": 395,
+     "dElevM": 0,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:HAI",
+     "name": "Salen-Reutenen",
+     "km": 16.3,
+     "lat": 47.651242,
+     "lon": 9.023911,
+     "elevM": 719,
+     "dElevM": 324,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "de:02712",
+    "name": "Konstanz",
+    "km": 8.1,
+    "lat": 47.6952,
+    "lon": 9.1307,
+    "elevM": 428,
+    "dElevM": 33,
+    "net": "dwd10"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": {
+    "id": "de:06107",
+    "name": "Sipplingen (SWN)",
+    "km": 6.3,
+    "lat": 47.8076,
+    "lon": 9.1035,
+    "elevM": 703,
+    "dElevM": 308,
+    "net": "dwd10"
+   },
+   "cube": {
+    "cell": {
+     "iy": 45,
+     "ix": 73
+    },
+    "hRead": 390,
+    "lakeElevM": 395.23,
+    "dH": -5,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 39,
+    "stage": 14,
+    "windKn0": 6,
+    "mosmix": {
+     "id": "K2787",
+     "km": 1.1
+    },
+    "ms": 198,
+    "errors": 0
+   }
+  },
+  "bodensee-friedrichshafen": {
+   "lake": "bodensee",
+   "lat": 47.64908,
+   "lon": 9.48009,
+   "snapM": 102,
+   "normal": 178,
+   "pt": {
+    "lat": 47.64682,
+    "lon": 9.4802,
+    "km": 0.25
+   },
+   "warncell": {
+    "id": "208438000",
+    "name": "Bodensee - Mitte"
+   },
+   "cellHow": "inside",
+   "town": {
+    "title": "Friedrichshafen",
+    "found": true,
+    "km": 0.57,
+    "landSide": true,
+    "angle": 175
+   },
+   "obs": {
+    "de": {
+     "id": "de:01490",
+     "name": "Friedrichshafen",
+     "km": 0.4,
+     "lat": 47.6454,
+     "lon": 9.4795,
+     "elevM": 394,
+     "dElevM": -1,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11299",
+     "name": "ROHRSPITZ",
+     "km": 20.3,
+     "lat": 47.49722,
+     "lon": 9.63,
+     "elevM": 395,
+     "dElevM": 0,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:GUT",
+     "name": "Güttingen",
+     "km": 15.9,
+     "lat": 47.601733,
+     "lon": 9.279428,
+     "elevM": 440,
+     "dElevM": 45,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "de:01490",
+    "name": "Friedrichshafen",
+    "km": 0.4,
+    "lat": 47.6454,
+    "lon": 9.4795,
+    "elevM": 394,
+    "dElevM": -1,
+    "net": "dwd10"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 43,
+     "ix": 80
+    },
+    "hRead": 390,
+    "lakeElevM": 395.23,
+    "dH": -5,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 75,
+    "stage": 14,
+    "windKn0": 10,
+    "mosmix": {
+     "id": "Q976",
+     "km": 0.4
+    },
+    "ms": 249,
+    "errors": 0
+   }
+  },
+  "bodensee-lindau": {
+   "lake": "bodensee",
+   "lat": 47.54462,
+   "lon": 9.68353,
+   "snapM": 77,
+   "normal": 163,
+   "pt": {
+    "lat": 47.54245,
+    "lon": 9.68451,
+    "km": 0.25
+   },
+   "warncell": {
+    "id": "208440000",
+    "name": "Bodensee - Ost"
+   },
+   "cellHow": "inside",
+   "town": {
+    "title": "Lindau (Bodensee)",
+    "found": true,
+    "km": 0.14,
+    "landSide": null,
+    "angle": 152
+   },
+   "obs": {
+    "de": {
+     "id": "de:06102",
+     "name": "Lindau (SWN)",
+     "km": 0.6,
+     "lat": 47.5396,
+     "lon": 9.6843,
+     "elevM": 397,
+     "dElevM": 2,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11299",
+     "name": "ROHRSPITZ",
+     "km": 6.6,
+     "lat": 47.49722,
+     "lon": 9.63,
+     "elevM": 395,
+     "dElevM": 0,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:ARH",
+     "name": "Altenrhein",
+     "km": 11.1,
+     "lat": 47.483631,
+     "lon": 9.56685,
+     "elevM": 398,
+     "dElevM": 3,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "de:06102",
+    "name": "Lindau (SWN)",
+    "km": 0.6,
+    "lat": 47.5396,
+    "lon": 9.6843,
+    "elevM": 397,
+    "dElevM": 2,
+    "net": "dwd10"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 41,
+     "ix": 84
+    },
+    "hRead": 390,
+    "lakeElevM": 395.23,
+    "dH": -5,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 52,
+    "stage": 14,
+    "windKn0": 9.2,
+    "mosmix": {
+     "id": "P903",
+     "km": 1.4
+    },
+    "ms": 202,
+    "errors": 0
+   }
+  },
+  "bodensee-bregenz": {
+   "lake": "bodensee",
+   "lat": 47.50487,
+   "lon": 9.74423,
+   "snapM": 72,
+   "normal": 339,
+   "pt": {
+    "lat": 47.50698,
+    "lon": 9.74304,
+    "km": 0.25
+   },
+   "warncell": {
+    "id": "208440000",
+    "name": "Bodensee - Ost"
+   },
+   "cellHow": "nearest 0.05 km",
+   "town": {
+    "title": "Bregenz",
+    "found": true,
+    "km": 0.37,
+    "landSide": true,
+    "angle": 109
+   },
+   "obs": {
+    "de": {
+     "id": "de:06102",
+     "name": "Lindau (SWN)",
+     "km": 5.9,
+     "lat": 47.5396,
+     "lon": 9.6843,
+     "elevM": 397,
+     "dElevM": 2,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11101",
+     "name": "BREGENZ",
+     "km": 0.6,
+     "lat": 47.49917,
+     "lon": 9.74611,
+     "elevM": 424,
+     "dElevM": 29,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:ARH",
+     "name": "Altenrhein",
+     "km": 13.5,
+     "lat": 47.483631,
+     "lon": 9.56685,
+     "elevM": 398,
+     "dElevM": 3,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "at:11101",
+    "name": "BREGENZ",
+    "km": 0.6,
+    "lat": 47.49917,
+    "lon": 9.74611,
+    "elevM": 424,
+    "dElevM": 29,
+    "net": "tawes"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 40,
+     "ix": 85
+    },
+    "hRead": 395,
+    "lakeElevM": 395.23,
+    "dH": 0,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 16,
+    "stage": 14,
+    "windKn0": 3.9,
+    "mosmix": {
+     "id": "11101",
+     "km": 0.9
+    },
+    "ms": 190,
+    "errors": 0
+   }
+  },
+  "bodensee-romanshorn": {
+   "lake": "bodensee",
+   "lat": 47.56526,
+   "lon": 9.3828,
+   "snapM": 83,
+   "normal": 74,
+   "pt": {
+    "lat": 47.56588,
+    "lon": 9.386,
+    "km": 0.25
+   },
+   "warncell": {
+    "id": "208438000",
+    "name": "Bodensee - Mitte"
+   },
+   "cellHow": "inside",
+   "town": {
+    "title": "Romanshorn",
+    "found": true,
+    "km": 0.16,
+    "landSide": null,
+    "angle": 60
+   },
+   "obs": {
+    "de": {
+     "id": "de:01490",
+     "name": "Friedrichshafen",
+     "km": 11.5,
+     "lat": 47.6454,
+     "lon": 9.4795,
+     "elevM": 394,
+     "dElevM": -1,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11299",
+     "name": "ROHRSPITZ",
+     "km": 20,
+     "lat": 47.49722,
+     "lon": 9.63,
+     "elevM": 395,
+     "dElevM": 0,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:GUT",
+     "name": "Güttingen",
+     "km": 8.7,
+     "lat": 47.601733,
+     "lon": 9.279428,
+     "elevM": 440,
+     "dElevM": 45,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "ch:GUT",
+    "name": "Güttingen",
+    "km": 8.7,
+    "lat": 47.601733,
+    "lon": 9.279428,
+    "elevM": 440,
+    "dElevM": 45,
+    "net": "smn"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 41,
+     "ix": 78
+    },
+    "hRead": 390,
+    "lakeElevM": 395.23,
+    "dH": -5,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 25,
+    "stage": 14,
+    "windKn0": 7.1,
+    "mosmix": {
+     "id": "06621",
+     "km": 8.8
+    },
+    "ms": 61,
+    "errors": 0
+   }
+  },
+  "bodensee-kreuzlingen": {
+   "lake": "bodensee",
+   "lat": 47.64945,
+   "lon": 9.1906,
+   "snapM": 114,
+   "normal": 32,
+   "pt": {
+    "lat": 47.65136,
+    "lon": 9.19236,
+    "km": 0.25
+   },
+   "warncell": {
+    "id": "208438000",
+    "name": "Bodensee - Mitte"
+   },
+   "cellHow": "inside",
+   "town": {
+    "title": "Kreuzlingen",
+    "found": true,
+    "km": 0.98,
+    "landSide": true,
+    "angle": 146
+   },
+   "obs": {
+    "de": {
+     "id": "de:02712",
+     "name": "Konstanz",
+     "km": 6.8,
+     "lat": 47.6952,
+     "lon": 9.1307,
+     "elevM": 428,
+     "dElevM": 33,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11299",
+     "name": "ROHRSPITZ",
+     "km": 37.1,
+     "lat": 47.49722,
+     "lon": 9.63,
+     "elevM": 395,
+     "dElevM": 0,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:GUT",
+     "name": "Güttingen",
+     "km": 8.5,
+     "lat": 47.601733,
+     "lon": 9.279428,
+     "elevM": 440,
+     "dElevM": 45,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "de:02712",
+    "name": "Konstanz",
+    "km": 6.8,
+    "lat": 47.6952,
+    "lon": 9.1307,
+    "elevM": 428,
+    "dElevM": 33,
+    "net": "dwd10"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 43,
+     "ix": 74
+    },
+    "hRead": 390,
+    "lakeElevM": 395.23,
+    "dH": -5,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 20,
+    "stage": 14,
+    "windKn0": 6.3,
+    "mosmix": {
+     "id": "10929",
+     "km": 3.3
+    },
+    "ms": 224,
+    "errors": 0
+   }
+  },
+  "neusiedler-see-neusiedl": {
+   "lake": "neusiedler-see",
+   "lat": 47.92882,
+   "lon": 16.83447,
+   "snapM": 112,
+   "normal": 223,
+   "pt": {
+    "lat": 47.92717,
+    "lon": 16.83219,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Neusiedl am See",
+    "found": true,
+    "km": 2.29,
+    "landSide": true,
+    "angle": 153
+   },
+   "obs": {
+    "de": {
+     "id": "de:15801",
+     "name": "Hinterschmiding-Sonndorf",
+     "km": 259.4,
+     "lat": 48.8257,
+     "lon": 13.5922,
+     "elevM": 718,
+     "dElevM": 603,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11072",
+     "name": "NEUSIEDL AM SEE",
+     "km": 2.3,
+     "lat": 47.94917,
+     "lon": 16.82889,
+     "elevM": 117,
+     "dElevM": 2,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:SMM",
+     "name": "Sta. Maria, Val Müstair",
+     "km": 505.4,
+     "lat": 46.602256,
+     "lon": 10.426314,
+     "elevM": 1386,
+     "dElevM": 1271,
+     "net": "nime"
+    }
+   },
+   "wind": {
+    "id": "at:11072",
+    "name": "NEUSIEDL AM SEE",
+    "km": 2.3,
+    "lat": 47.94917,
+    "lon": 16.82889,
+    "elevM": 117,
+    "dElevM": 2,
+    "net": "tawes"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 49,
+     "ix": 227
+    },
+    "hRead": 116,
+    "lakeElevM": 115,
+    "dH": 1,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 80,
+    "stage": 14,
+    "windKn0": 15.4,
+    "mosmix": {
+     "id": "11194",
+     "km": 2.9
+    },
+    "ms": 218,
+    "errors": 0
+   }
+  },
+  "neusiedler-see-podersdorf": {
+   "lake": "neusiedler-see",
+   "lat": 47.85631,
+   "lon": 16.82625,
+   "snapM": 66,
+   "normal": 303,
+   "pt": {
+    "lat": 47.85754,
+    "lon": 16.82344,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Podersdorf am See",
+    "found": true,
+    "km": 0.57,
+    "landSide": true,
+    "angle": 130
+   },
+   "obs": {
+    "de": {
+     "id": "de:15801",
+     "name": "Hinterschmiding-Sonndorf",
+     "km": 262.2,
+     "lat": 48.8257,
+     "lon": 13.5922,
+     "elevM": 718,
+     "dElevM": 603,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11084",
+     "name": "PODERSDORF",
+     "km": 1.2,
+     "lat": 47.86611,
+     "lon": 16.83444,
+     "elevM": 116,
+     "dElevM": 1,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:SMM",
+     "name": "Sta. Maria, Val Müstair",
+     "km": 502.8,
+     "lat": 46.602256,
+     "lon": 10.426314,
+     "elevM": 1386,
+     "dElevM": 1271,
+     "net": "nime"
+    }
+   },
+   "wind": {
+    "id": "at:11084",
+    "name": "PODERSDORF",
+    "km": 1.2,
+    "lat": 47.86611,
+    "lon": 16.83444,
+    "elevM": 116,
+    "dElevM": 1,
+    "net": "tawes"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 47,
+     "ix": 226
+    },
+    "hRead": 116,
+    "lakeElevM": 115,
+    "dH": 1,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 80,
+    "stage": 14,
+    "windKn0": 15.3,
+    "mosmix": {
+     "id": "11194",
+     "km": 10.5
+    },
+    "ms": 183,
+    "errors": 0
+   }
+  },
+  "neusiedler-see-rust": {
+   "lake": "neusiedler-see",
+   "lat": 47.80241,
+   "lon": 16.69509,
+   "snapM": 163,
+   "normal": 111,
+   "pt": {
+    "lat": 47.80111,
+    "lon": 16.70009,
+    "km": 0.4
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Rust (Burgenland)",
+    "found": true,
+    "km": 1.45,
+    "landSide": true,
+    "angle": 152
+   },
+   "obs": {
+    "de": {
+     "id": "de:15801",
+     "name": "Hinterschmiding-Sonndorf",
+     "km": 256.1,
+     "lat": 48.8257,
+     "lon": 13.5922,
+     "elevM": 718,
+     "dElevM": 603,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11084",
+     "name": "PODERSDORF",
+     "km": 12.6,
+     "lat": 47.86611,
+     "lon": 16.83444,
+     "elevM": 116,
+     "dElevM": 1,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:SMM",
+     "name": "Sta. Maria, Val Müstair",
+     "km": 491.9,
+     "lat": 46.602256,
+     "lon": 10.426314,
+     "elevM": 1386,
+     "dElevM": 1271,
+     "net": "nime"
+    }
+   },
+   "wind": {
+    "id": "at:11084",
+    "name": "PODERSDORF",
+    "km": 12.6,
+    "lat": 47.86611,
+    "lon": 16.83444,
+    "elevM": 116,
+    "dElevM": 1,
+    "net": "tawes"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 46,
+     "ix": 224
+    },
+    "hRead": 116,
+    "lakeElevM": 115,
+    "dH": 1,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 68,
+    "stage": 14,
+    "windKn0": 11.2,
+    "mosmix": {
+     "id": "11190",
+     "km": 13.8
+    },
+    "ms": 237,
+    "errors": 0
+   }
+  },
+  "neusiedler-see-moerbisch": {
+   "lake": "neusiedler-see",
+   "lat": 47.75335,
+   "lon": 16.70134,
+   "snapM": 194,
+   "normal": 327,
+   "pt": {
+    "lat": 47.75525,
+    "lon": 16.69952,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Mörbisch am See",
+    "found": true,
+    "km": 2.53,
+    "landSide": false,
+    "angle": 57
+   },
+   "obs": {
+    "de": {
+     "id": "de:15801",
+     "name": "Hinterschmiding-Sonndorf",
+     "km": 259.1,
+     "lat": 48.8257,
+     "lon": 13.5922,
+     "elevM": 718,
+     "dElevM": 603,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11084",
+     "name": "PODERSDORF",
+     "km": 16,
+     "lat": 47.86611,
+     "lon": 16.83444,
+     "elevM": 116,
+     "dElevM": 1,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:SMM",
+     "name": "Sta. Maria, Val Müstair",
+     "km": 491.1,
+     "lat": 46.602256,
+     "lon": 10.426314,
+     "elevM": 1386,
+     "dElevM": 1271,
+     "net": "nime"
+    }
+   },
+   "wind": {
+    "id": "at:11084",
+    "name": "PODERSDORF",
+    "km": 16,
+    "lat": 47.86611,
+    "lon": 16.83444,
+    "elevM": 116,
+    "dElevM": 1,
+    "net": "tawes"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 45,
+     "ix": 224
+    },
+    "hRead": 116,
+    "lakeElevM": 115,
+    "dH": 1,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 46,
+    "stage": 14,
+    "windKn0": 14.6,
+    "mosmix": null,
+    "ms": 187,
+    "errors": 0
+   }
+  },
+  "neuenburgersee-neuchatel": {
+   "lake": "neuenburgersee",
+   "lat": 46.98964,
+   "lon": 6.93311,
+   "snapM": 17,
+   "normal": 143,
+   "pt": {
+    "lat": 46.98783,
+    "lon": 6.93509,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Neuenburg NE",
+    "found": true,
+    "km": 0.29,
+    "landSide": null,
+    "angle": 135
+   },
+   "obs": {
+    "de": {
+     "id": "de:02377",
+     "name": "Kandern-Gupf",
+     "km": 93.2,
+     "lat": 47.7001,
+     "lon": 7.5895,
+     "elevM": 362,
+     "dElevM": -67,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11105",
+     "name": "FELDKIRCH",
+     "km": 204.9,
+     "lat": 47.27111,
+     "lon": 9.60972,
+     "elevM": 438,
+     "dElevM": 9,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:NEU",
+     "name": "Neuchâtel",
+     "km": 1.9,
+     "lat": 47.000067,
+     "lon": 6.953297,
+     "elevM": 485,
+     "dElevM": 56,
+     "net": "nime"
+    }
+   },
+   "wind": {
+    "id": "ch:NEU",
+    "name": "Neuchâtel",
+    "km": 1.9,
+    "lat": 47.000067,
+    "lon": 6.953297,
+    "elevM": 485,
+    "dElevM": 56,
+    "net": "nime"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 30,
+     "ix": 29
+    },
+    "hRead": 425,
+    "lakeElevM": 429.06,
+    "dH": -4,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 65,
+    "stage": 14,
+    "windKn0": 6.5,
+    "mosmix": {
+     "id": "06604",
+     "km": 1.8
+    },
+    "ms": 199,
+    "errors": 0
+   }
+  },
+  "neuenburgersee-yverdon": {
+   "lake": "neuenburgersee",
+   "lat": 46.78733,
+   "lon": 6.64541,
+   "snapM": 182,
+   "normal": 52,
+   "pt": {
+    "lat": 46.78872,
+    "lon": 6.648,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Yverdon-les-Bains",
+    "found": true,
+    "km": 1.02,
+    "landSide": true,
+    "angle": 152
+   },
+   "obs": {
+    "de": {
+     "id": "de:02377",
+     "name": "Kandern-Gupf",
+     "km": 124,
+     "lat": 47.7001,
+     "lon": 7.5895,
+     "elevM": 362,
+     "dElevM": -67,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11105",
+     "name": "FELDKIRCH",
+     "km": 231,
+     "lat": 47.27111,
+     "lon": 9.60972,
+     "elevM": 438,
+     "dElevM": 9,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:FRE",
+     "name": "Bullet / La Frétaz",
+     "km": 7.9,
+     "lat": 46.840622,
+     "lon": 6.576369,
+     "elevM": 1205,
+     "dElevM": 776,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "ch:MAH",
+    "name": "Mathod",
+    "km": 8.1,
+    "lat": 46.736978,
+    "lon": 6.567983,
+    "elevM": 435,
+    "dElevM": 6,
+    "net": "smn"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": {
+    "id": "ch:FRE",
+    "name": "Bullet / La Frétaz",
+    "km": 7.9,
+    "lat": 46.840622,
+    "lon": 6.576369,
+    "elevM": 1205,
+    "dElevM": 776,
+    "net": "smn"
+   },
+   "cube": {
+    "cell": {
+     "iy": 26,
+     "ix": 23
+    },
+    "hRead": 425,
+    "lakeElevM": 429.06,
+    "dH": -4,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 38,
+    "stage": 14,
+    "windKn0": 5.8,
+    "mosmix": null,
+    "ms": 185,
+    "errors": 0
+   }
+  },
+  "neuenburgersee-estavayer": {
+   "lake": "neuenburgersee",
+   "lat": 46.85416,
+   "lon": 6.84376,
+   "snapM": 25,
+   "normal": 305,
+   "pt": {
+    "lat": 46.85546,
+    "lon": 6.84107,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Estavayer-le-Lac",
+    "found": true,
+    "km": 0.53,
+    "landSide": true,
+    "angle": 155
+   },
+   "obs": {
+    "de": {
+     "id": "de:02377",
+     "name": "Kandern-Gupf",
+     "km": 109.6,
+     "lat": 47.7001,
+     "lon": 7.5895,
+     "elevM": 362,
+     "dElevM": -67,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11105",
+     "name": "FELDKIRCH",
+     "km": 214.6,
+     "lat": 47.27111,
+     "lon": 9.60972,
+     "elevM": 438,
+     "dElevM": 9,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:PAY",
+     "name": "Payerne",
+     "km": 8.9,
+     "lat": 46.811581,
+     "lon": 6.942469,
+     "elevM": 490,
+     "dElevM": 61,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "ch:PAY",
+    "name": "Payerne",
+    "km": 8.9,
+    "lat": 46.811581,
+    "lon": 6.942469,
+    "elevM": 490,
+    "dElevM": 61,
+    "net": "smn"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 27,
+     "ix": 27
+    },
+    "hRead": 425,
+    "lakeElevM": 429.06,
+    "dH": -4,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 43,
+    "stage": 14,
+    "windKn0": 6.1,
+    "mosmix": {
+     "id": "06610",
+     "km": 7.8
+    },
+    "ms": 189,
+    "errors": 0
+   }
+  },
+  "lago-maggiore-locarno": {
+   "lake": "lago-maggiore",
+   "lat": 46.16684,
+   "lon": 8.80311,
+   "snapM": 187,
+   "normal": 64,
+   "pt": {
+    "lat": 46.16783,
+    "lon": 8.80602,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Locarno",
+    "found": true,
+    "km": 0.7,
+    "landSide": true,
+    "angle": 125
+   },
+   "obs": {
+    "de": {
+     "id": "de:06102",
+     "name": "Lindau (SWN)",
+     "km": 166.7,
+     "lat": 47.5396,
+     "lon": 9.6843,
+     "elevM": 397,
+     "dElevM": 204,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11304",
+     "name": "BRAND",
+     "km": 126.2,
+     "lat": 47.10306,
+     "lon": 9.73833,
+     "elevM": 1029,
+     "dElevM": 836,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:OTL",
+     "name": "Locarno / Monti",
+     "km": 1.3,
+     "lat": 46.172256,
+     "lon": 8.787494,
+     "elevM": 367,
+     "dElevM": 174,
+     "net": "nime"
+    }
+   },
+   "wind": {
+    "id": "ch:MAG",
+    "name": "Magadino / Cadenazzo",
+    "km": 10.1,
+    "lat": 46.160025,
+    "lon": 8.933672,
+    "elevM": 203,
+    "dElevM": 10,
+    "net": "smn"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": {
+    "id": "ch:OTL",
+    "name": "Locarno / Monti",
+    "km": 1.3,
+    "lat": 46.172256,
+    "lon": 8.787494,
+    "elevM": 367,
+    "dElevM": 174,
+    "net": "nime"
+   },
+   "cube": {
+    "cell": {
+     "iy": 13,
+     "ix": 66
+    },
+    "hRead": 190,
+    "lakeElevM": 193,
+    "dH": -3,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 2,
+    "stage": 14,
+    "windKn0": 4.6,
+    "mosmix": null,
+    "ms": 307,
+    "errors": 0
+   }
+  },
+  "lago-maggiore-ascona": {
+   "lake": "lago-maggiore",
+   "lat": 46.15299,
+   "lon": 8.76998,
+   "snapM": 2,
+   "normal": 230,
+   "pt": {
+    "lat": 46.15154,
+    "lon": 8.7675,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Ascona",
+    "found": true,
+    "km": 0.32,
+    "landSide": true,
+    "angle": 111
+   },
+   "obs": {
+    "de": {
+     "id": "de:01013",
+     "name": "Dogern",
+     "km": 167.5,
+     "lat": 47.6026,
+     "lon": 8.1697,
+     "elevM": 309,
+     "dElevM": 116,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11304",
+     "name": "BRAND",
+     "km": 128.9,
+     "lat": 47.10306,
+     "lon": 9.73833,
+     "elevM": 1029,
+     "dElevM": 836,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:OTL",
+     "name": "Locarno / Monti",
+     "km": 2.5,
+     "lat": 46.172256,
+     "lon": 8.787494,
+     "elevM": 367,
+     "dElevM": 174,
+     "net": "nime"
+    }
+   },
+   "wind": {
+    "id": "ch:MAG",
+    "name": "Magadino / Cadenazzo",
+    "km": 12.6,
+    "lat": 46.160025,
+    "lon": 8.933672,
+    "elevM": 203,
+    "dElevM": 10,
+    "net": "smn"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": {
+    "id": "ch:OTL",
+    "name": "Locarno / Monti",
+    "km": 2.5,
+    "lat": 46.172256,
+    "lon": 8.787494,
+    "elevM": 367,
+    "dElevM": 174,
+    "net": "nime"
+   },
+   "cube": {
+    "cell": {
+     "iy": 13,
+     "ix": 65
+    },
+    "hRead": 190,
+    "lakeElevM": 193,
+    "dH": -3,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 1,
+    "stage": 14,
+    "windKn0": 4.7,
+    "mosmix": null,
+    "ms": 69,
+    "errors": 0
+   }
+  },
+  "mueritz-waren": {
+   "lake": "mueritz",
+   "lat": 53.51075,
+   "lon": 12.68686,
+   "snapM": 148,
+   "normal": 226,
+   "pt": {
+    "lat": 53.50918,
+    "lon": 12.68414,
+    "km": 0.25
+   },
+   "warncell": {
+    "id": "213010000",
+    "name": "Müritz"
+   },
+   "cellHow": "inside",
+   "town": {
+    "title": "Waren (Müritz)",
+    "found": true,
+    "km": 0.7,
+    "landSide": true,
+    "angle": 114
+   },
+   "obs": {
+    "de": {
+     "id": "de:05349",
+     "name": "Waren (Müritz)",
+     "km": 1.7,
+     "lat": 53.5196,
+     "lon": 12.6654,
+     "elevM": 73,
+     "dElevM": 11,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11021",
+     "name": "LITSCHAU",
+     "km": 532.3,
+     "lat": 48.95472,
+     "lon": 15.03833,
+     "elevM": 558,
+     "dElevM": 496,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:GUT",
+     "name": "Güttingen",
+     "km": 699.6,
+     "lat": 47.601733,
+     "lon": 9.279428,
+     "elevM": 440,
+     "dElevM": 378,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "de:05349",
+    "name": "Waren (Müritz)",
+    "km": 1.7,
+    "lat": 53.5196,
+    "lon": 12.6654,
+    "elevM": 73,
+    "dElevM": 11,
+    "net": "dwd10"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 160,
+     "ix": 144
+    },
+    "hRead": 58,
+    "lakeElevM": 62.1,
+    "dH": -4,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 77,
+    "stage": 14,
+    "windKn0": 8.7,
+    "mosmix": {
+     "id": "10268",
+     "km": 1.5
+    },
+    "ms": 302,
+    "errors": 0
+   }
+  },
+  "mueritz-roebel": {
+   "lake": "mueritz",
+   "lat": 53.38221,
+   "lon": 12.61221,
+   "snapM": 102,
+   "normal": 55,
+   "pt": {
+    "lat": 53.3835,
+    "lon": 12.61529,
+    "km": 0.25
+   },
+   "warncell": {
+    "id": "213010000",
+    "name": "Müritz"
+   },
+   "cellHow": "nearest 0.02 km",
+   "town": {
+    "title": "Röbel/Müritz",
+    "found": true,
+    "km": 0.79,
+    "landSide": true,
+    "angle": 156
+   },
+   "obs": {
+    "de": {
+     "id": "de:06106",
+     "name": "Rechlin",
+     "km": 8.9,
+     "lat": 53.3311,
+     "lon": 12.7149,
+     "elevM": 62,
+     "dElevM": 0,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11021",
+     "name": "LITSCHAU",
+     "km": 520.5,
+     "lat": 48.95472,
+     "lon": 15.03833,
+     "elevM": 558,
+     "dElevM": 496,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:GUT",
+     "name": "Güttingen",
+     "km": 684.4,
+     "lat": 47.601733,
+     "lon": 9.279428,
+     "elevM": 440,
+     "dElevM": 378,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "de:06106",
+    "name": "Rechlin",
+    "km": 8.9,
+    "lat": 53.3311,
+    "lon": 12.7149,
+    "elevM": 62,
+    "dElevM": 0,
+    "net": "dwd10"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 158,
+     "ix": 142
+    },
+    "hRead": 58,
+    "lakeElevM": 62.1,
+    "dH": -4,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 80,
+    "stage": 14,
+    "windKn0": 10.7,
+    "mosmix": {
+     "id": "B853",
+     "km": 9.1
+    },
+    "ms": 226,
+    "errors": 0
+   }
+  },
+  "mueritz-klink": {
+   "lake": "mueritz",
+   "lat": 53.4785,
+   "lon": 12.62589,
+   "snapM": 91,
+   "normal": 129,
+   "pt": {
+    "lat": 53.47707,
+    "lon": 12.62883,
+    "km": 0.25
+   },
+   "warncell": {
+    "id": "213010000",
+    "name": "Müritz"
+   },
+   "cellHow": "inside",
+   "town": {
+    "title": "Klink",
+    "found": true,
+    "km": 0.65,
+    "landSide": true,
+    "angle": 168
+   },
+   "obs": {
+    "de": {
+     "id": "de:05349",
+     "name": "Waren (Müritz)",
+     "km": 5.3,
+     "lat": 53.5196,
+     "lon": 12.6654,
+     "elevM": 73,
+     "dElevM": 11,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11021",
+     "name": "LITSCHAU",
+     "km": 530.3,
+     "lat": 48.95472,
+     "lon": 15.03833,
+     "elevM": 558,
+     "dElevM": 496,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:GUT",
+     "name": "Güttingen",
+     "km": 694.7,
+     "lat": 47.601733,
+     "lon": 9.279428,
+     "elevM": 440,
+     "dElevM": 378,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "de:05349",
+    "name": "Waren (Müritz)",
+    "km": 5.3,
+    "lat": 53.5196,
+    "lon": 12.6654,
+    "elevM": 73,
+    "dElevM": 11,
+    "net": "dwd10"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 160,
+     "ix": 143
+    },
+    "hRead": 58,
+    "lakeElevM": 62.1,
+    "dH": -4,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 77,
+    "stage": 14,
+    "windKn0": 8.9,
+    "mosmix": {
+     "id": "10268",
+     "km": 5.5
+    },
+    "ms": 214,
+    "errors": 0
+   }
+  },
+  "vierwaldstaettersee-luzern": {
+   "lake": "vierwaldstaettersee",
+   "lat": 47.0508,
+   "lon": 8.31286,
+   "snapM": 25,
+   "normal": 35,
+   "pt": {
+    "lat": 47.05265,
+    "lon": 8.31475,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Luzern",
+    "found": true,
+    "km": 0.55,
+    "landSide": true,
+    "angle": 110
+   },
+   "obs": {
+    "de": {
+     "id": "de:01013",
+     "name": "Dogern",
+     "km": 62.3,
+     "lat": 47.6026,
+     "lon": 8.1697,
+     "elevM": 309,
+     "dElevM": -124,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11105",
+     "name": "FELDKIRCH",
+     "km": 101.1,
+     "lat": 47.27111,
+     "lon": 9.60972,
+     "elevM": 438,
+     "dElevM": 5,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:LUZ",
+     "name": "Luzern",
+     "km": 1.8,
+     "lat": 47.036439,
+     "lon": 8.301022,
+     "elevM": 454,
+     "dElevM": 21,
+     "net": "nime"
+    }
+   },
+   "wind": {
+    "id": "ch:LUZ",
+    "name": "Luzern",
+    "km": 1.8,
+    "lat": 47.036439,
+    "lon": 8.301022,
+    "elevM": 454,
+    "dElevM": 21,
+    "net": "nime"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 31,
+     "ix": 56
+    },
+    "hRead": 430,
+    "lakeElevM": 433,
+    "dH": -3,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 7,
+    "stage": 14,
+    "windKn0": 2.8,
+    "mosmix": {
+     "id": "06650",
+     "km": 3.8
+    },
+    "ms": 220,
+    "errors": 0
+   }
+  },
+  "vierwaldstaettersee-kuessnacht": {
+   "lake": "vierwaldstaettersee",
+   "lat": 47.08203,
+   "lon": 8.43577,
+   "snapM": 142,
+   "normal": 189,
+   "pt": {
+    "lat": 47.0798,
+    "lon": 8.43525,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Küssnacht SZ",
+    "found": true,
+    "km": 0.42,
+    "landSide": true,
+    "angle": 115
+   },
+   "obs": {
+    "de": {
+     "id": "de:01013",
+     "name": "Dogern",
+     "km": 61.3,
+     "lat": 47.6026,
+     "lon": 8.1697,
+     "elevM": 309,
+     "dElevM": -124,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11105",
+     "name": "FELDKIRCH",
+     "km": 91.2,
+     "lat": 47.27111,
+     "lon": 9.60972,
+     "elevM": 438,
+     "dElevM": 5,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:LUZ",
+     "name": "Luzern",
+     "km": 11.4,
+     "lat": 47.036439,
+     "lon": 8.301022,
+     "elevM": 454,
+     "dElevM": 21,
+     "net": "nime"
+    }
+   },
+   "wind": {
+    "id": "ch:LUZ",
+    "name": "Luzern",
+    "km": 11.4,
+    "lat": 47.036439,
+    "lon": 8.301022,
+    "elevM": 454,
+    "dElevM": 21,
+    "net": "nime"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 32,
+     "ix": 59
+    },
+    "hRead": 430,
+    "lakeElevM": 433,
+    "dH": -3,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 4,
+    "stage": 14,
+    "windKn0": 3,
+    "mosmix": {
+     "id": "06674",
+     "km": 11.4
+    },
+    "ms": 215,
+    "errors": 0
+   }
+  },
+  "vierwaldstaettersee-buochs": {
+   "lake": "vierwaldstaettersee",
+   "lat": 46.97909,
+   "lon": 8.41968,
+   "snapM": 176,
+   "normal": 36,
+   "pt": {
+    "lat": 46.98092,
+    "lon": 8.42162,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Buochs",
+    "found": true,
+    "km": 0.36,
+    "landSide": true,
+    "angle": 111
+   },
+   "obs": {
+    "de": {
+     "id": "de:01013",
+     "name": "Dogern",
+     "km": 71.8,
+     "lat": 47.6026,
+     "lon": 8.1697,
+     "elevM": 309,
+     "dElevM": -124,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11105",
+     "name": "FELDKIRCH",
+     "km": 95.7,
+     "lat": 47.27111,
+     "lon": 9.60972,
+     "elevM": 438,
+     "dElevM": 5,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:GES",
+     "name": "Gersau",
+     "km": 8.1,
+     "lat": 46.996069,
+     "lon": 8.523442,
+     "elevM": 521,
+     "dElevM": 88,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "ch:GES",
+    "name": "Gersau",
+    "km": 8.1,
+    "lat": 46.996069,
+    "lon": 8.523442,
+    "elevM": 521,
+    "dElevM": 88,
+    "net": "smn"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 30,
+     "ix": 58
+    },
+    "hRead": 430,
+    "lakeElevM": 433,
+    "dH": -3,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 6,
+    "stage": 14,
+    "windKn0": 2.9,
+    "mosmix": {
+     "id": "06650",
+     "km": 10.2
+    },
+    "ms": 195,
+    "errors": 0
+   }
+  },
+  "vierwaldstaettersee-flueelen": {
+   "lake": "vierwaldstaettersee",
+   "lat": 46.90194,
+   "lon": 8.62304,
+   "snapM": 7,
+   "normal": 309,
+   "pt": {
+    "lat": 46.90336,
+    "lon": 8.62048,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Flüelen",
+    "found": true,
+    "km": 0.23,
+    "landSide": null,
+    "angle": 146
+   },
+   "obs": {
+    "de": {
+     "id": "de:01013",
+     "name": "Dogern",
+     "km": 85.1,
+     "lat": 47.6026,
+     "lon": 8.1697,
+     "elevM": 309,
+     "dElevM": -124,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11105",
+     "name": "FELDKIRCH",
+     "km": 85.2,
+     "lat": 47.27111,
+     "lon": 9.60972,
+     "elevM": 438,
+     "dElevM": 5,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:ALT",
+     "name": "Altdorf",
+     "km": 1.7,
+     "lat": 46.887069,
+     "lon": 8.621894,
+     "elevM": 438,
+     "dElevM": 5,
+     "net": "nime"
+    }
+   },
+   "wind": {
+    "id": "ch:ALT",
+    "name": "Altdorf",
+    "km": 1.7,
+    "lat": 46.887069,
+    "lon": 8.621894,
+    "elevM": 438,
+    "dElevM": 5,
+    "net": "nime"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 28,
+     "ix": 62
+    },
+    "hRead": 430,
+    "lakeElevM": 433,
+    "dH": -3,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 20,
+    "stage": 14,
+    "windKn0": 3,
+    "mosmix": {
+     "id": "06672",
+     "km": 3.8
+    },
+    "ms": 220,
+    "errors": 0
+   }
+  },
+  "zuerichsee-zuerich": {
+   "lake": "zuerichsee",
+   "lat": 47.35873,
+   "lon": 8.54716,
+   "snapM": 315,
+   "normal": 259,
+   "pt": {
+    "lat": 47.3583,
+    "lon": 8.5439,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Zürich",
+    "found": true,
+    "km": 1.49,
+    "landSide": true,
+    "angle": 87
+   },
+   "obs": {
+    "de": {
+     "id": "de:01013",
+     "name": "Dogern",
+     "km": 39.2,
+     "lat": 47.6026,
+     "lon": 8.1697,
+     "elevM": 309,
+     "dElevM": -97,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11105",
+     "name": "FELDKIRCH",
+     "km": 80.7,
+     "lat": 47.27111,
+     "lon": 9.60972,
+     "elevM": 438,
+     "dElevM": 32,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:SMA",
+     "name": "Zürich / Fluntern",
+     "km": 2.9,
+     "lat": 47.381003,
+     "lon": 8.567194,
+     "elevM": 604,
+     "dElevM": 198,
+     "net": "nime"
+    }
+   },
+   "wind": {
+    "id": "ch:REH",
+    "name": "Zürich / Affoltern",
+    "km": 8,
+    "lat": 47.427694,
+    "lon": 8.517953,
+    "elevM": 444,
+    "dElevM": 38,
+    "net": "smn"
+   },
+   "obsSilentNearer": {
+    "id": "ch:UEB",
+    "name": "Uetliberg",
+    "km": 4.4,
+    "lat": 47.351364,
+    "lon": 8.490225,
+    "elevM": 854,
+    "dElevM": 448,
+    "net": "smn"
+   },
+   "obsOffLevel": {
+    "id": "ch:SMA",
+    "name": "Zürich / Fluntern",
+    "km": 2.9,
+    "lat": 47.381003,
+    "lon": 8.567194,
+    "elevM": 604,
+    "dElevM": 198,
+    "net": "nime"
+   },
+   "cube": {
+    "cell": {
+     "iy": 37,
+     "ix": 61
+    },
+    "hRead": 400,
+    "lakeElevM": 406,
+    "dH": -6,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 12,
+    "stage": 14,
+    "windKn0": 5,
+    "mosmix": null,
+    "ms": 174,
+    "errors": 0
+   }
+  },
+  "zuerichsee-waedenswil": {
+   "lake": "zuerichsee",
+   "lat": 47.23159,
+   "lon": 8.67333,
+   "snapM": 164,
+   "normal": 40,
+   "pt": {
+    "lat": 47.23332,
+    "lon": 8.67546,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Wädenswil",
+    "found": true,
+    "km": 0.14,
+    "landSide": null,
+    "angle": 176
+   },
+   "obs": {
+    "de": {
+     "id": "de:06099",
+     "name": "Gailingen",
+     "km": 52.5,
+     "lat": 47.702,
+     "lon": 8.7318,
+     "elevM": 449,
+     "dElevM": 43,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11105",
+     "name": "FELDKIRCH",
+     "km": 70.8,
+     "lat": 47.27111,
+     "lon": 9.60972,
+     "elevM": 438,
+     "dElevM": 32,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:WAE",
+     "name": "Wädenswil",
+     "km": 1.2,
+     "lat": 47.220958,
+     "lon": 8.677706,
+     "elevM": 485,
+     "dElevM": 79,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "ch:WAE",
+    "name": "Wädenswil",
+    "km": 1.2,
+    "lat": 47.220958,
+    "lon": 8.677706,
+    "elevM": 485,
+    "dElevM": 79,
+    "net": "smn"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 35,
+     "ix": 64
+    },
+    "hRead": 400,
+    "lakeElevM": 406,
+    "dH": -6,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 11,
+    "stage": 14,
+    "windKn0": 4.6,
+    "mosmix": {
+     "id": "06673",
+     "km": 1.5
+    },
+    "ms": 197,
+    "errors": 0
+   }
+  },
+  "zuerichsee-rapperswil": {
+   "lake": "zuerichsee",
+   "lat": 47.22506,
+   "lon": 8.81372,
+   "snapM": 22,
+   "normal": 261,
+   "pt": {
+    "lat": 47.2247,
+    "lon": 8.81046,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Rapperswil SG",
+    "found": true,
+    "km": 0.39,
+    "landSide": true,
+    "angle": 162
+   },
+   "obs": {
+    "de": {
+     "id": "de:06099",
+     "name": "Gailingen",
+     "km": 53.4,
+     "lat": 47.702,
+     "lon": 8.7318,
+     "elevM": 449,
+     "dElevM": 43,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11105",
+     "name": "FELDKIRCH",
+     "km": 60.3,
+     "lat": 47.27111,
+     "lon": 9.60972,
+     "elevM": 438,
+     "dElevM": 32,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:SCM",
+     "name": "Schmerikon",
+     "km": 9.6,
+     "lat": 47.224933,
+     "lon": 8.9403,
+     "elevM": 408,
+     "dElevM": 2,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "ch:SCM",
+    "name": "Schmerikon",
+    "km": 9.6,
+    "lat": 47.224933,
+    "lon": 8.9403,
+    "elevM": 408,
+    "dElevM": 2,
+    "net": "smn"
+   },
+   "obsSilentNearer": {
+    "id": "ch:LAC",
+    "name": "Lachen / Galgenen",
+    "km": 6.1,
+    "lat": 47.179197,
+    "lon": 8.858686,
+    "elevM": 468,
+    "dElevM": 62,
+    "net": "smn"
+   },
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 34,
+     "ix": 66
+    },
+    "hRead": 400,
+    "lakeElevM": 406,
+    "dH": -6,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 6,
+    "stage": 14,
+    "windKn0": 3.3,
+    "mosmix": {
+     "id": "06683",
+     "km": 9
+    },
+    "ms": 194,
+    "errors": 0
+   }
+  },
+  "chiemsee-prien": {
+   "lake": "chiemsee",
+   "lat": 47.8596,
+   "lon": 12.3669,
+   "snapM": 163,
+   "normal": 84,
+   "pt": {
+    "lat": 47.85984,
+    "lon": 12.37023,
+    "km": 0.25
+   },
+   "warncell": {
+    "id": "209913000",
+    "name": "Chiemsee"
+   },
+   "cellHow": "inside",
+   "town": {
+    "title": "Prien am Chiemsee",
+    "found": true,
+    "km": 1.75,
+    "landSide": true,
+    "angle": 171
+   },
+   "obs": {
+    "de": {
+     "id": "de:15520",
+     "name": "Frasdorf-Greimelberg",
+     "km": 7,
+     "lat": 47.819,
+     "lon": 12.2956,
+     "elevM": 656,
+     "dElevM": 138,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11131",
+     "name": "KOESSEN",
+     "km": 22,
+     "lat": 47.66278,
+     "lon": 12.39389,
+     "elevM": 588,
+     "dElevM": 70,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:NAS",
+     "name": "Naluns / Schlivera",
+     "km": 196.5,
+     "lat": 46.817164,
+     "lon": 10.2614,
+     "elevM": 2380,
+     "dElevM": 1862,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "de:15520",
+    "name": "Frasdorf-Greimelberg",
+    "km": 7,
+    "lat": 47.819,
+    "lon": 12.2956,
+    "elevM": 656,
+    "dElevM": 138,
+    "net": "dwd10"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 47,
+     "ix": 137
+    },
+    "hRead": 515,
+    "lakeElevM": 518.2,
+    "dH": -3,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 50,
+    "stage": 14,
+    "windKn0": 6.7,
+    "mosmix": {
+     "id": "P875",
+     "km": 1.3
+    },
+    "ms": 262,
+    "errors": 0
+   }
+  },
+  "chiemsee-seebruck": {
+   "lake": "chiemsee",
+   "lat": 47.9321,
+   "lon": 12.48,
+   "snapM": 179,
+   "normal": 135,
+   "pt": {
+    "lat": 47.9305,
+    "lon": 12.48237,
+    "km": 0.25
+   },
+   "warncell": {
+    "id": "209913000",
+    "name": "Chiemsee"
+   },
+   "cellHow": "inside",
+   "town": {
+    "title": "Seebruck",
+    "found": true,
+    "km": 0.34,
+    "landSide": true,
+    "angle": 165
+   },
+   "obs": {
+    "de": {
+     "id": "de:00856",
+     "name": "Chieming",
+     "km": 7,
+     "lat": 47.8843,
+     "lon": 12.5404,
+     "elevM": 551,
+     "dElevM": 33,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11061",
+     "name": "OSTERMIETHING",
+     "km": 29.4,
+     "lat": 48.05306,
+     "lon": 12.83167,
+     "elevM": 412,
+     "dElevM": -106,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:NAS",
+     "name": "Naluns / Schlivera",
+     "km": 208,
+     "lat": 46.817164,
+     "lon": 10.2614,
+     "elevM": 2380,
+     "dElevM": 1862,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "de:00856",
+    "name": "Chieming",
+    "km": 7,
+    "lat": 47.8843,
+    "lon": 12.5404,
+    "elevM": 551,
+    "dElevM": 33,
+    "net": "dwd10"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 49,
+     "ix": 140
+    },
+    "hRead": 515,
+    "lakeElevM": 518.2,
+    "dH": -3,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 58,
+    "stage": 14,
+    "windKn0": 6.7,
+    "mosmix": {
+     "id": "10982",
+     "km": 6.6
+    },
+    "ms": 207,
+    "errors": 0
+   }
+  },
+  "chiemsee-chieming": {
+   "lake": "chiemsee",
+   "lat": 47.88967,
+   "lon": 12.53163,
+   "snapM": 108,
+   "normal": 250,
+   "pt": {
+    "lat": 47.8889,
+    "lon": 12.52848,
+    "km": 0.25
+   },
+   "warncell": {
+    "id": "209913000",
+    "name": "Chiemsee"
+   },
+   "cellHow": "inside",
+   "town": {
+    "title": "Chieming",
+    "found": true,
+    "km": 0.51,
+    "landSide": true,
+    "angle": 148
+   },
+   "obs": {
+    "de": {
+     "id": "de:00856",
+     "name": "Chieming",
+     "km": 0.9,
+     "lat": 47.8843,
+     "lon": 12.5404,
+     "elevM": 551,
+     "dElevM": 33,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11131",
+     "name": "KOESSEN",
+     "km": 27.2,
+     "lat": 47.66278,
+     "lon": 12.39389,
+     "elevM": 588,
+     "dElevM": 70,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:NAS",
+     "name": "Naluns / Schlivera",
+     "km": 208.5,
+     "lat": 46.817164,
+     "lon": 10.2614,
+     "elevM": 2380,
+     "dElevM": 1862,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "de:00856",
+    "name": "Chieming",
+    "km": 0.9,
+    "lat": 47.8843,
+    "lon": 12.5404,
+    "elevM": 551,
+    "dElevM": 33,
+    "net": "dwd10"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 48,
+     "ix": 141
+    },
+    "hRead": 515,
+    "lakeElevM": 518.2,
+    "dH": -3,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 60,
+    "stage": 14,
+    "windKn0": 7.3,
+    "mosmix": {
+     "id": "10982",
+     "km": 1
+    },
+    "ms": 180,
+    "errors": 0
+   }
+  },
+  "schweriner-see-schwerin": {
+   "lake": "schweriner-see",
+   "lat": 53.60311,
+   "lon": 11.45524,
+   "snapM": 513,
+   "normal": 359,
+   "pt": {
+    "lat": 53.60537,
+    "lon": 11.45517,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Schwerin (Zippendorf)",
+    "found": false
+   },
+   "obs": {
+    "de": {
+     "id": "de:04625",
+     "name": "Schwerin",
+     "km": 6.3,
+     "lat": 53.6424,
+     "lon": 11.3871,
+     "elevM": 59,
+     "dElevM": 21,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11021",
+     "name": "LITSCHAU",
+     "km": 573.6,
+     "lat": 48.95472,
+     "lon": 15.03833,
+     "elevM": 558,
+     "dElevM": 520,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:STK",
+     "name": "Steckborn",
+     "km": 682.4,
+     "lat": 47.668628,
+     "lon": 8.981433,
+     "elevM": 397,
+     "dElevM": 359,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "de:04625",
+    "name": "Schwerin",
+    "km": 6.3,
+    "lat": 53.6424,
+    "lon": 11.3871,
+    "elevM": 59,
+    "dElevM": 21,
+    "net": "dwd10"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 162,
+     "ix": 119
+    },
+    "hRead": 36,
+    "lakeElevM": 37.8,
+    "dH": -2,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 79,
+    "stage": 14,
+    "windKn0": 8.7,
+    "mosmix": {
+     "id": "P0286",
+     "km": 4.9
+    },
+    "ms": 222,
+    "errors": 0
+   }
+  },
+  "schweriner-see-bad-kleinen": {
+   "lake": "schweriner-see",
+   "lat": 53.7685,
+   "lon": 11.4784,
+   "snapM": 356,
+   "normal": 141,
+   "pt": {
+    "lat": 53.76674,
+    "lon": 11.48079,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Bad Kleinen",
+    "found": true,
+    "km": 0.8,
+    "landSide": true,
+    "angle": 114
+   },
+   "obs": {
+    "de": {
+     "id": "de:04625",
+     "name": "Schwerin",
+     "km": 15.3,
+     "lat": 53.6424,
+     "lon": 11.3871,
+     "elevM": 59,
+     "dElevM": 21,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11021",
+     "name": "LITSCHAU",
+     "km": 589.4,
+     "lat": 48.95472,
+     "lon": 15.03833,
+     "elevM": 558,
+     "dElevM": 520,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:STK",
+     "name": "Steckborn",
+     "km": 700.6,
+     "lat": 47.668628,
+     "lon": 8.981433,
+     "elevM": 397,
+     "dElevM": 359,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "de:04625",
+    "name": "Schwerin",
+    "km": 15.3,
+    "lat": 53.6424,
+    "lon": 11.3871,
+    "elevM": 59,
+    "dElevM": 21,
+    "net": "dwd10"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 165,
+     "ix": 120
+    },
+    "hRead": 36,
+    "lakeElevM": 37.8,
+    "dH": -2,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 79,
+    "stage": 14,
+    "windKn0": 9.6,
+    "mosmix": {
+     "id": "B525",
+     "km": 6
+    },
+    "ms": 199,
+    "errors": 0
+   }
+  },
+  "starnberger-see-starnberg": {
+   "lake": "starnberger-see",
+   "lat": 47.99606,
+   "lon": 11.3469,
+   "snapM": 10,
+   "normal": 156,
+   "pt": {
+    "lat": 47.99399,
+    "lon": 11.34826,
+    "km": 0.25
+   },
+   "warncell": {
+    "id": "209904000",
+    "name": "Starnberger See"
+   },
+   "cellHow": "inside",
+   "town": {
+    "title": "Starnberg",
+    "found": true,
+    "km": 0.49,
+    "landSide": true,
+    "angle": 129
+   },
+   "obs": {
+    "de": {
+     "id": "de:05538",
+     "name": "Wielenbach (Demollstr.)",
+     "km": 18.9,
+     "lat": 47.8827,
+     "lon": 11.1576,
+     "elevM": 551,
+     "dElevM": -33,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11266",
+     "name": "ACHENKIRCH CAMPINGPLATZ",
+     "km": 61.4,
+     "lat": 47.49944,
+     "lon": 11.70667,
+     "elevM": 931,
+     "dElevM": 347,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:ARH",
+     "name": "Altenrhein",
+     "km": 144.8,
+     "lat": 47.483631,
+     "lon": 9.56685,
+     "elevM": 398,
+     "dElevM": -186,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "de:05538",
+    "name": "Wielenbach (Demollstr.)",
+    "km": 18.9,
+    "lat": 47.8827,
+    "lon": 11.1576,
+    "elevM": 551,
+    "dElevM": -33,
+    "net": "dwd10"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 50,
+     "ix": 117
+    },
+    "hRead": 583,
+    "lakeElevM": 584,
+    "dH": -1,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 34,
+    "stage": 14,
+    "windKn0": 4.8,
+    "mosmix": {
+     "id": "N2147",
+     "km": 0.7
+    },
+    "ms": 233,
+    "errors": 0
+   }
+  },
+  "starnberger-see-tutzing": {
+   "lake": "starnberger-see",
+   "lat": 47.9082,
+   "lon": 11.2834,
+   "snapM": 195,
+   "normal": 115,
+   "pt": {
+    "lat": 47.90724,
+    "lon": 11.28644,
+    "km": 0.25
+   },
+   "warncell": {
+    "id": "209904000",
+    "name": "Starnberger See"
+   },
+   "cellHow": "inside",
+   "town": {
+    "title": "Tutzing",
+    "found": true,
+    "km": 0.17,
+    "landSide": null,
+    "angle": 178
+   },
+   "obs": {
+    "de": {
+     "id": "de:05538",
+     "name": "Wielenbach (Demollstr.)",
+     "km": 9.8,
+     "lat": 47.8827,
+     "lon": 11.1576,
+     "elevM": 551,
+     "dElevM": -33,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11266",
+     "name": "ACHENKIRCH CAMPINGPLATZ",
+     "km": 55.4,
+     "lat": 47.49944,
+     "lon": 11.70667,
+     "elevM": 931,
+     "dElevM": 347,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:ARH",
+     "name": "Altenrhein",
+     "km": 136.9,
+     "lat": 47.483631,
+     "lon": 9.56685,
+     "elevM": 398,
+     "dElevM": -186,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "de:05538",
+    "name": "Wielenbach (Demollstr.)",
+    "km": 9.8,
+    "lat": 47.8827,
+    "lon": 11.1576,
+    "elevM": 551,
+    "dElevM": -33,
+    "net": "dwd10"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 48,
+     "ix": 116
+    },
+    "hRead": 583,
+    "lakeElevM": 584,
+    "dH": -1,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 33,
+    "stage": 14,
+    "windKn0": 4.4,
+    "mosmix": {
+     "id": "P804",
+     "km": 6.9
+    },
+    "ms": 75,
+    "errors": 0
+   }
+  },
+  "starnberger-see-seeshaupt": {
+   "lake": "starnberger-see",
+   "lat": 47.8251,
+   "lon": 11.30509,
+   "snapM": 13,
+   "normal": 30,
+   "pt": {
+    "lat": 47.82706,
+    "lon": 11.30676,
+    "km": 0.25
+   },
+   "warncell": {
+    "id": "209904000",
+    "name": "Starnberger See"
+   },
+   "cellHow": "inside",
+   "town": {
+    "title": "Seeshaupt",
+    "found": true,
+    "km": 0.33,
+    "landSide": true,
+    "angle": 133
+   },
+   "obs": {
+    "de": {
+     "id": "de:05538",
+     "name": "Wielenbach (Demollstr.)",
+     "km": 12.7,
+     "lat": 47.8827,
+     "lon": 11.1576,
+     "elevM": 551,
+     "dElevM": -33,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11266",
+     "name": "ACHENKIRCH CAMPINGPLATZ",
+     "km": 47.1,
+     "lat": 47.49944,
+     "lon": 11.70667,
+     "elevM": 931,
+     "dElevM": 347,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:ARH",
+     "name": "Altenrhein",
+     "km": 135.6,
+     "lat": 47.483631,
+     "lon": 9.56685,
+     "elevM": 398,
+     "dElevM": -186,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "de:05538",
+    "name": "Wielenbach (Demollstr.)",
+    "km": 12.7,
+    "lat": 47.8827,
+    "lon": 11.1576,
+    "elevM": 551,
+    "dElevM": -33,
+    "net": "dwd10"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 47,
+     "ix": 116
+    },
+    "hRead": 583,
+    "lakeElevM": 584,
+    "dH": -1,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 25,
+    "stage": 14,
+    "windKn0": 4.3,
+    "mosmix": {
+     "id": "P804",
+     "km": 7.5
+    },
+    "ms": 193,
+    "errors": 0
+   }
+  },
+  "luganersee-lugano": {
+   "lake": "luganersee",
+   "lat": 46.00253,
+   "lon": 8.95077,
+   "snapM": 242,
+   "normal": 130,
+   "pt": {
+    "lat": 46.00108,
+    "lon": 8.95325,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Lugano",
+    "found": true,
+    "km": 0.72,
+    "landSide": true,
+    "angle": 98
+   },
+   "obs": {
+    "de": {
+     "id": "de:06102",
+     "name": "Lindau (SWN)",
+     "km": 179.8,
+     "lat": 47.5396,
+     "lon": 9.6843,
+     "elevM": 397,
+     "dElevM": 126,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11304",
+     "name": "BRAND",
+     "km": 136.4,
+     "lat": 47.10306,
+     "lon": 9.73833,
+     "elevM": 1029,
+     "dElevM": 758,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:LUG",
+     "name": "Lugano",
+     "km": 0.8,
+     "lat": 46.004217,
+     "lon": 8.960322,
+     "elevM": 273,
+     "dElevM": 2,
+     "net": "nime"
+    }
+   },
+   "wind": {
+    "id": "ch:LUG",
+    "name": "Lugano",
+    "km": 0.8,
+    "lat": 46.004217,
+    "lon": 8.960322,
+    "elevM": 273,
+    "dElevM": 2,
+    "net": "nime"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 10,
+     "ix": 69
+    },
+    "hRead": 270,
+    "lakeElevM": 271,
+    "dH": -1,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 19,
+    "stage": 14,
+    "windKn0": 2.7,
+    "mosmix": {
+     "id": "06770",
+     "km": 1.3
+    },
+    "ms": 225,
+    "errors": 0
+   }
+  },
+  "luganersee-morcote": {
+   "lake": "luganersee",
+   "lat": 45.92269,
+   "lon": 8.91597,
+   "snapM": 163,
+   "normal": 165,
+   "pt": {
+    "lat": 45.92051,
+    "lon": 8.91681,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Morcote",
+    "found": true,
+    "km": 0.26,
+    "landSide": null,
+    "angle": 164
+   },
+   "obs": {
+    "de": {
+     "id": "de:06102",
+     "name": "Lindau (SWN)",
+     "km": 189.1,
+     "lat": 47.5396,
+     "lon": 9.6843,
+     "elevM": 397,
+     "dElevM": 126,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11108",
+     "name": "GASCHURN",
+     "km": 145.4,
+     "lat": 46.98028,
+     "lon": 10.03167,
+     "elevM": 985,
+     "dElevM": 714,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:GEN",
+     "name": "Monte Generoso",
+     "km": 7.9,
+     "lat": 45.927592,
+     "lon": 9.017875,
+     "elevM": 1600,
+     "dElevM": 1329,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "ch:SBO",
+    "name": "Stabio",
+    "km": 8.9,
+    "lat": 45.843444,
+    "lon": 8.932364,
+    "elevM": 351,
+    "dElevM": 80,
+    "net": "smn"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": {
+    "id": "ch:GEN",
+    "name": "Monte Generoso",
+    "km": 7.9,
+    "lat": 45.927592,
+    "lon": 9.017875,
+    "elevM": 1600,
+    "dElevM": 1329,
+    "net": "smn"
+   },
+   "cube": {
+    "cell": {
+     "iy": 8,
+     "ix": 68
+    },
+    "hRead": 270,
+    "lakeElevM": 271,
+    "dH": -1,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 13,
+    "stage": 14,
+    "windKn0": 3.2,
+    "mosmix": {
+     "id": "06775",
+     "km": 8.9
+    },
+    "ms": 185,
+    "errors": 0
+   }
+  },
+  "thunersee-thun": {
+   "lake": "thunersee",
+   "lat": 46.74034,
+   "lon": 7.63383,
+   "snapM": 97,
+   "normal": 80,
+   "pt": {
+    "lat": 46.74074,
+    "lon": 7.63706,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Thun",
+    "found": true,
+    "km": 2.1,
+    "landSide": true,
+    "angle": 88
+   },
+   "obs": {
+    "de": {
+     "id": "de:01013",
+     "name": "Dogern",
+     "km": 104.1,
+     "lat": 47.6026,
+     "lon": 8.1697,
+     "elevM": 309,
+     "dElevM": -249,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11105",
+     "name": "FELDKIRCH",
+     "km": 161,
+     "lat": 47.27111,
+     "lon": 9.60972,
+     "elevM": 438,
+     "dElevM": -120,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:THU",
+     "name": "Thun",
+     "km": 3.9,
+     "lat": 46.749853,
+     "lon": 7.585222,
+     "elevM": 570,
+     "dElevM": 12,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "ch:THU",
+    "name": "Thun",
+    "km": 3.9,
+    "lat": 46.749853,
+    "lon": 7.585222,
+    "elevM": 570,
+    "dElevM": 12,
+    "net": "smn"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 25,
+     "ix": 43
+    },
+    "hRead": 557,
+    "lakeElevM": 558,
+    "dH": -1,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 3,
+    "stage": 14,
+    "windKn0": 3.3,
+    "mosmix": null,
+    "ms": 160,
+    "errors": 0
+   }
+  },
+  "thunersee-spiez": {
+   "lake": "thunersee",
+   "lat": 46.68998,
+   "lon": 7.68814,
+   "snapM": 11,
+   "normal": 87,
+   "pt": {
+    "lat": 46.6901,
+    "lon": 7.69141,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Spiez",
+    "found": true,
+    "km": 1.8,
+    "landSide": true,
+    "angle": 159
+   },
+   "obs": {
+    "de": {
+     "id": "de:01013",
+     "name": "Dogern",
+     "km": 107.8,
+     "lat": 47.6026,
+     "lon": 8.1697,
+     "elevM": 309,
+     "dElevM": -249,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11105",
+     "name": "FELDKIRCH",
+     "km": 159.4,
+     "lat": 47.27111,
+     "lon": 9.60972,
+     "elevM": 438,
+     "dElevM": -120,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:THU",
+     "name": "Thun",
+     "km": 10.3,
+     "lat": 46.749853,
+     "lon": 7.585222,
+     "elevM": 570,
+     "dElevM": 12,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "ch:THU",
+    "name": "Thun",
+    "km": 10.3,
+    "lat": 46.749853,
+    "lon": 7.585222,
+    "elevM": 570,
+    "dElevM": 12,
+    "net": "smn"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 24,
+     "ix": 44
+    },
+    "hRead": 557,
+    "lakeElevM": 558,
+    "dH": -1,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 13,
+    "stage": 14,
+    "windKn0": 3,
+    "mosmix": {
+     "id": "06734",
+     "km": 13.8
+    },
+    "ms": 199,
+    "errors": 0
+   }
+  },
+  "ammersee-herrsching": {
+   "lake": "ammersee",
+   "lat": 47.99868,
+   "lon": 11.1673,
+   "snapM": 103,
+   "normal": 285,
+   "pt": {
+    "lat": 47.99927,
+    "lon": 11.16406,
+    "km": 0.25
+   },
+   "warncell": {
+    "id": "209905000",
+    "name": "Ammersee"
+   },
+   "cellHow": "inside",
+   "town": {
+    "title": "Herrsching am Ammersee",
+    "found": true,
+    "km": 1.2,
+    "landSide": true,
+    "angle": 158
+   },
+   "obs": {
+    "de": {
+     "id": "de:05538",
+     "name": "Wielenbach (Demollstr.)",
+     "km": 12.9,
+     "lat": 47.8827,
+     "lon": 11.1576,
+     "elevM": 551,
+     "dElevM": 18,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11314",
+     "name": "REUTTE",
+     "km": 65.5,
+     "lat": 47.49444,
+     "lon": 10.71528,
+     "elevM": 841,
+     "dElevM": 308,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:ARH",
+     "name": "Altenrhein",
+     "km": 132.7,
+     "lat": 47.483631,
+     "lon": 9.56685,
+     "elevM": 398,
+     "dElevM": -135,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "de:05538",
+    "name": "Wielenbach (Demollstr.)",
+    "km": 12.9,
+    "lat": 47.8827,
+    "lon": 11.1576,
+    "elevM": 551,
+    "dElevM": 18,
+    "net": "dwd10"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 50,
+     "ix": 113
+    },
+    "hRead": 531,
+    "lakeElevM": 532.9,
+    "dH": -2,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 20,
+    "stage": 14,
+    "windKn0": 3.9,
+    "mosmix": null,
+    "ms": 167,
+    "errors": 0
+   }
+  },
+  "ammersee-diessen": {
+   "lake": "ammersee",
+   "lat": 47.94986,
+   "lon": 11.10965,
+   "snapM": 31,
+   "normal": 50,
+   "pt": {
+    "lat": 47.95131,
+    "lon": 11.11222,
+    "km": 0.25
+   },
+   "warncell": {
+    "id": "209905000",
+    "name": "Ammersee"
+   },
+   "cellHow": "inside",
+   "town": {
+    "title": "Dießen am Ammersee",
+    "found": true,
+    "km": 0.72,
+    "landSide": true,
+    "angle": 139
+   },
+   "obs": {
+    "de": {
+     "id": "de:05538",
+     "name": "Wielenbach (Demollstr.)",
+     "km": 8.3,
+     "lat": 47.8827,
+     "lon": 11.1576,
+     "elevM": 551,
+     "dElevM": 18,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11314",
+     "name": "REUTTE",
+     "km": 58.6,
+     "lat": 47.49444,
+     "lon": 10.71528,
+     "elevM": 841,
+     "dElevM": 308,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:ARH",
+     "name": "Altenrhein",
+     "km": 126.5,
+     "lat": 47.483631,
+     "lon": 9.56685,
+     "elevM": 398,
+     "dElevM": -135,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "de:05538",
+    "name": "Wielenbach (Demollstr.)",
+    "km": 8.3,
+    "lat": 47.8827,
+    "lon": 11.1576,
+    "elevM": 551,
+    "dElevM": 18,
+    "net": "dwd10"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 49,
+     "ix": 112
+    },
+    "hRead": 531,
+    "lakeElevM": 532.9,
+    "dH": -2,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 35,
+    "stage": 14,
+    "windKn0": 4.2,
+    "mosmix": {
+     "id": "P0157",
+     "km": 0.9
+    },
+    "ms": 58,
+    "errors": 0
+   }
+  },
+  "ammersee-stegen": {
+   "lake": "ammersee",
+   "lat": 48.0765,
+   "lon": 11.132,
+   "snapM": 55,
+   "normal": 186,
+   "pt": {
+    "lat": 48.07425,
+    "lon": 11.13165,
+    "km": 0.25
+   },
+   "warncell": {
+    "id": "209905000",
+    "name": "Ammersee"
+   },
+   "cellHow": "nearest 0.11 km",
+   "town": {
+    "title": "Stegen (Inning am Ammersee)",
+    "found": true,
+    "km": 0.15,
+    "landSide": null,
+    "angle": 127
+   },
+   "obs": {
+    "de": {
+     "id": "de:05538",
+     "name": "Wielenbach (Demollstr.)",
+     "km": 21.6,
+     "lat": 47.8827,
+     "lon": 11.1576,
+     "elevM": 551,
+     "dElevM": 18,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11314",
+     "name": "REUTTE",
+     "km": 71.8,
+     "lat": 47.49444,
+     "lon": 10.71528,
+     "elevM": 841,
+     "dElevM": 308,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:ARH",
+     "name": "Altenrhein",
+     "km": 134.2,
+     "lat": 47.483631,
+     "lon": 9.56685,
+     "elevM": 398,
+     "dElevM": -135,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "de:05538",
+    "name": "Wielenbach (Demollstr.)",
+    "km": 21.6,
+    "lat": 47.8827,
+    "lon": 11.1576,
+    "elevM": 551,
+    "dElevM": 18,
+    "net": "dwd10"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 51,
+     "ix": 113
+    },
+    "hRead": 531,
+    "lakeElevM": 532.9,
+    "dH": -2,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 39,
+    "stage": 14,
+    "windKn0": 4.3,
+    "mosmix": {
+     "id": "P0265",
+     "km": 2.7
+    },
+    "ms": 52,
+    "errors": 0
+   }
+  },
+  "attersee-seewalchen": {
+   "lake": "attersee",
+   "lat": 47.95039,
+   "lon": 13.58703,
+   "snapM": 43,
+   "normal": 185,
+   "pt": {
+    "lat": 47.94814,
+    "lon": 13.58674,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Seewalchen am Attersee",
+    "found": true,
+    "km": 0.25,
+    "landSide": null,
+    "angle": 82
+   },
+   "obs": {
+    "de": {
+     "id": "de:13932",
+     "name": "Rotthalmünster (Landwirtschaftsamt)",
+     "km": 54.2,
+     "lat": 48.3617,
+     "lon": 13.1938,
+     "elevM": 388,
+     "dElevM": -81,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11056",
+     "name": "VOECKLABRUCK",
+     "km": 7.6,
+     "lat": 48.00667,
+     "lon": 13.64556,
+     "elevM": 432,
+     "dElevM": -37,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:SCU",
+     "name": "Scuol",
+     "km": 280.1,
+     "lat": 46.793275,
+     "lon": 10.283267,
+     "elevM": 1304,
+     "dElevM": 835,
+     "net": "nime"
+    }
+   },
+   "wind": {
+    "id": "at:11056",
+    "name": "VOECKLABRUCK",
+    "km": 7.6,
+    "lat": 48.00667,
+    "lon": 13.64556,
+    "elevM": 432,
+    "dElevM": -37,
+    "net": "tawes"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 49,
+     "ix": 162
+    },
+    "hRead": 469,
+    "lakeElevM": 469,
+    "dH": 0,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 36,
+    "stage": 14,
+    "windKn0": 6.9,
+    "mosmix": null,
+    "ms": 171,
+    "errors": 0
+   }
+  },
+  "attersee-attersee": {
+   "lake": "attersee",
+   "lat": 47.9156,
+   "lon": 13.54058,
+   "snapM": 62,
+   "normal": 121,
+   "pt": {
+    "lat": 47.91443,
+    "lon": 13.54345,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Attersee am Attersee",
+    "found": true,
+    "km": 0.13,
+    "landSide": null,
+    "angle": 94
+   },
+   "obs": {
+    "de": {
+     "id": "de:19856",
+     "name": "Schönau am Königssee",
+     "km": 53.6,
+     "lat": 47.6134,
+     "lon": 12.9819,
+     "elevM": 625,
+     "dElevM": 156,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11056",
+     "name": "VOECKLABRUCK",
+     "km": 12.8,
+     "lat": 48.00667,
+     "lon": 13.64556,
+     "elevM": 432,
+     "dElevM": -37,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:SCU",
+     "name": "Scuol",
+     "km": 275.3,
+     "lat": 46.793275,
+     "lon": 10.283267,
+     "elevM": 1304,
+     "dElevM": 835,
+     "net": "nime"
+    }
+   },
+   "wind": {
+    "id": "at:11056",
+    "name": "VOECKLABRUCK",
+    "km": 12.8,
+    "lat": 48.00667,
+    "lon": 13.64556,
+    "elevM": 432,
+    "dElevM": -37,
+    "net": "tawes"
+   },
+   "obsSilentNearer": {
+    "id": "at:k6501",
+    "name": "Frankenmarkt",
+    "km": 12.1,
+    "lat": 47.99139,
+    "lon": 13.42306,
+    "elevM": 565,
+    "dElevM": 96,
+    "net": "klima"
+   },
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 48,
+     "ix": 161
+    },
+    "hRead": 469,
+    "lakeElevM": 469,
+    "dH": 0,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 35,
+    "stage": 14,
+    "windKn0": 6.4,
+    "mosmix": null,
+    "ms": 172,
+    "errors": 0
+   }
+  },
+  "attersee-weissenbach": {
+   "lake": "attersee",
+   "lat": 47.80042,
+   "lon": 13.53977,
+   "snapM": 298,
+   "normal": 4,
+   "pt": {
+    "lat": 47.80267,
+    "lon": 13.54,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Weißenbach am Attersee",
+    "found": true,
+    "km": 3.59,
+    "landSide": false,
+    "angle": 8
+   },
+   "obs": {
+    "de": {
+     "id": "de:19856",
+     "name": "Schönau am Königssee",
+     "km": 46.6,
+     "lat": 47.6134,
+     "lon": 12.9819,
+     "elevM": 625,
+     "dElevM": 156,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11357",
+     "name": "ST.WOLFGANG",
+     "km": 9.9,
+     "lat": 47.74028,
+     "lon": 13.44194,
+     "elevM": 544,
+     "dElevM": 75,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:SCU",
+     "name": "Scuol",
+     "km": 269.9,
+     "lat": 46.793275,
+     "lon": 10.283267,
+     "elevM": 1304,
+     "dElevM": 835,
+     "net": "nime"
+    }
+   },
+   "wind": {
+    "id": "at:11357",
+    "name": "ST.WOLFGANG",
+    "km": 9.9,
+    "lat": 47.74028,
+    "lon": 13.44194,
+    "elevM": 544,
+    "dElevM": 75,
+    "net": "tawes"
+   },
+   "obsSilentNearer": {
+    "id": "at:11087",
+    "name": "UNTERACH AM ATTERSEE",
+    "km": 4.2,
+    "lat": 47.80278,
+    "lon": 13.48361,
+    "elevM": 470,
+    "dElevM": 1,
+    "net": "tawes"
+   },
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 46,
+     "ix": 161
+    },
+    "hRead": 469,
+    "lakeElevM": 469,
+    "dH": 0,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 20,
+    "stage": 14,
+    "windKn0": 4.2,
+    "mosmix": {
+     "id": "11357",
+     "km": 10.5
+    },
+    "ms": 214,
+    "errors": 0
+   }
+  },
+  "bielersee-biel": {
+   "lake": "bielersee",
+   "lat": 47.12929,
+   "lon": 7.23429,
+   "snapM": 63,
+   "normal": 290,
+   "pt": {
+    "lat": 47.13006,
+    "lon": 7.23119,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Biel/Bienne",
+    "found": true,
+    "km": 1.26,
+    "landSide": true,
+    "angle": 118
+   },
+   "obs": {
+    "de": {
+     "id": "de:02377",
+     "name": "Kandern-Gupf",
+     "km": 68.9,
+     "lat": 47.7001,
+     "lon": 7.5895,
+     "elevM": 362,
+     "dElevM": -67,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11105",
+     "name": "FELDKIRCH",
+     "km": 180.1,
+     "lat": 47.27111,
+     "lon": 9.60972,
+     "elevM": 438,
+     "dElevM": 9,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:COY",
+     "name": "Courtelary",
+     "km": 12.3,
+     "lat": 47.180811,
+     "lon": 7.090656,
+     "elevM": 695,
+     "dElevM": 266,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "ch:GRE",
+    "name": "Grenchen",
+    "km": 14.8,
+    "lat": 47.179097,
+    "lon": 7.415144,
+    "elevM": 428,
+    "dElevM": -1,
+    "net": "nime"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": {
+    "id": "ch:COY",
+    "name": "Courtelary",
+    "km": 12.3,
+    "lat": 47.180811,
+    "lon": 7.090656,
+    "elevM": 695,
+    "dElevM": 266,
+    "net": "smn"
+   },
+   "cube": {
+    "cell": {
+     "iy": 33,
+     "ix": 35
+    },
+    "hRead": 424,
+    "lakeElevM": 429.25,
+    "dH": -5,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 34,
+    "stage": 14,
+    "windKn0": 5.8,
+    "mosmix": null,
+    "ms": 166,
+    "errors": 0
+   }
+  },
+  "bielersee-erlach": {
+   "lake": "bielersee",
+   "lat": 47.04411,
+   "lon": 7.10069,
+   "snapM": 54,
+   "normal": 73,
+   "pt": {
+    "lat": 47.04478,
+    "lon": 7.10384,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Erlach BE",
+    "found": true,
+    "km": 0.28,
+    "landSide": null,
+    "angle": 156
+   },
+   "obs": {
+    "de": {
+     "id": "de:02377",
+     "name": "Kandern-Gupf",
+     "km": 81.7,
+     "lat": 47.7001,
+     "lon": 7.5895,
+     "elevM": 362,
+     "dElevM": -67,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11105",
+     "name": "FELDKIRCH",
+     "km": 191.4,
+     "lat": 47.27111,
+     "lon": 9.60972,
+     "elevM": 438,
+     "dElevM": 9,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:CRM",
+     "name": "Cressier",
+     "km": 3.2,
+     "lat": 47.047581,
+     "lon": 7.059147,
+     "elevM": 430,
+     "dElevM": 1,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "ch:CRM",
+    "name": "Cressier",
+    "km": 3.2,
+    "lat": 47.047581,
+    "lon": 7.059147,
+    "elevM": 430,
+    "dElevM": 1,
+    "net": "smn"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 31,
+     "ix": 32
+    },
+    "hRead": 424,
+    "lakeElevM": 429.25,
+    "dH": -5,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 61,
+    "stage": 14,
+    "windKn0": 5.8,
+    "mosmix": {
+     "id": "06606",
+     "km": 2.6
+    },
+    "ms": 223,
+    "errors": 0
+   }
+  },
+  "plauer-see-plau": {
+   "lake": "plauer-see",
+   "lat": 53.45305,
+   "lon": 12.27809,
+   "snapM": 60,
+   "normal": 78,
+   "pt": {
+    "lat": 53.45352,
+    "lon": 12.28178,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Plau am See",
+    "found": true,
+    "km": 1.17,
+    "landSide": true,
+    "angle": 140
+   },
+   "obs": {
+    "de": {
+     "id": "de:01694",
+     "name": "Goldberg",
+     "km": 20.5,
+     "lat": 53.6058,
+     "lon": 12.1034,
+     "elevM": 59,
+     "dElevM": -3,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11021",
+     "name": "LITSCHAU",
+     "km": 535.8,
+     "lat": 48.95472,
+     "lon": 15.03833,
+     "elevM": 558,
+     "dElevM": 496,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:STK",
+     "name": "Steckborn",
+     "km": 683.9,
+     "lat": 47.668628,
+     "lon": 8.981433,
+     "elevM": 397,
+     "dElevM": 335,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "de:01694",
+    "name": "Goldberg",
+    "km": 20.5,
+    "lat": 53.6058,
+    "lon": 12.1034,
+    "elevM": 59,
+    "dElevM": -3,
+    "net": "dwd10"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 159,
+     "ix": 136
+    },
+    "hRead": 59,
+    "lakeElevM": 62,
+    "dH": -3,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 80,
+    "stage": 14,
+    "windKn0": 9.3,
+    "mosmix": {
+     "id": "B747",
+     "km": 3.9
+    },
+    "ms": 290,
+    "errors": 0
+   }
+  },
+  "plauer-see-alt-schwerin": {
+   "lake": "plauer-see",
+   "lat": 53.5,
+   "lon": 12.3639,
+   "snapM": 223,
+   "normal": 164,
+   "pt": {
+    "lat": 53.49783,
+    "lon": 12.36494,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Alt Schwerin",
+    "found": true,
+    "km": 1.53,
+    "landSide": true,
+    "angle": 178
+   },
+   "obs": {
+    "de": {
+     "id": "de:05349",
+     "name": "Waren (Müritz)",
+     "km": 20.1,
+     "lat": 53.5196,
+     "lon": 12.6654,
+     "elevM": 73,
+     "dElevM": 11,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11021",
+     "name": "LITSCHAU",
+     "km": 538.5,
+     "lat": 48.95472,
+     "lon": 15.03833,
+     "elevM": 558,
+     "dElevM": 496,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:STK",
+     "name": "Steckborn",
+     "km": 690.8,
+     "lat": 47.668628,
+     "lon": 8.981433,
+     "elevM": 397,
+     "dElevM": 335,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "de:05349",
+    "name": "Waren (Müritz)",
+    "km": 20.1,
+    "lat": 53.5196,
+    "lon": 12.6654,
+    "elevM": 73,
+    "dElevM": 11,
+    "net": "dwd10"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 160,
+     "ix": 137
+    },
+    "hRead": 59,
+    "lakeElevM": 62,
+    "dH": -3,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 80,
+    "stage": 14,
+    "windKn0": 9.4,
+    "mosmix": {
+     "id": "B747",
+     "km": 9.4
+    },
+    "ms": 155,
+    "errors": 0
+   }
+  },
+  "zugersee-zug": {
+   "lake": "zugersee",
+   "lat": 47.17018,
+   "lon": 8.51306,
+   "snapM": 20,
+   "normal": 232,
+   "pt": {
+    "lat": 47.16879,
+    "lon": 8.51046,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Zug (Stadt)",
+    "found": true,
+    "km": 0.48,
+    "landSide": true,
+    "angle": 74
+   },
+   "obs": {
+    "de": {
+     "id": "de:01013",
+     "name": "Dogern",
+     "km": 54.6,
+     "lat": 47.6026,
+     "lon": 8.1697,
+     "elevM": 309,
+     "dElevM": -104,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11105",
+     "name": "FELDKIRCH",
+     "km": 83.6,
+     "lat": 47.27111,
+     "lon": 9.60972,
+     "elevM": 438,
+     "dElevM": 25,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:CHZ",
+     "name": "Cham",
+     "km": 4.2,
+     "lat": 47.188278,
+     "lon": 8.464642,
+     "elevM": 443,
+     "dElevM": 30,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "ch:CHZ",
+    "name": "Cham",
+    "km": 4.2,
+    "lat": 47.188278,
+    "lon": 8.464642,
+    "elevM": 443,
+    "dElevM": 30,
+    "net": "smn"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 33,
+     "ix": 60
+    },
+    "hRead": 409,
+    "lakeElevM": 413,
+    "dH": -4,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 8,
+    "stage": 14,
+    "windKn0": 3.6,
+    "mosmix": {
+     "id": "06674",
+     "km": 3.3
+    },
+    "ms": 257,
+    "errors": 0
+   }
+  },
+  "zugersee-arth": {
+   "lake": "zugersee",
+   "lat": 47.06517,
+   "lon": 8.52269,
+   "snapM": 106,
+   "normal": 301,
+   "pt": {
+    "lat": 47.06633,
+    "lon": 8.51986,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Arth SZ",
+    "found": true,
+    "km": 0.14,
+    "landSide": null,
+    "angle": 170
+   },
+   "obs": {
+    "de": {
+     "id": "de:01013",
+     "name": "Dogern",
+     "km": 65.4,
+     "lat": 47.6026,
+     "lon": 8.1697,
+     "elevM": 309,
+     "dElevM": -104,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11105",
+     "name": "FELDKIRCH",
+     "km": 85.3,
+     "lat": 47.27111,
+     "lon": 9.60972,
+     "elevM": 438,
+     "dElevM": 25,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:GES",
+     "name": "Gersau",
+     "km": 7.7,
+     "lat": 46.996069,
+     "lon": 8.523442,
+     "elevM": 521,
+     "dElevM": 108,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "ch:GES",
+    "name": "Gersau",
+    "km": 7.7,
+    "lat": 46.996069,
+    "lon": 8.523442,
+    "elevM": 521,
+    "dElevM": 108,
+    "net": "smn"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 31,
+     "ix": 60
+    },
+    "hRead": 409,
+    "lakeElevM": 413,
+    "dH": -4,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 3,
+    "stage": 14,
+    "windKn0": 3.7,
+    "mosmix": null,
+    "ms": 88,
+    "errors": 0
+   }
+  },
+  "kummerower-see-kummerow": {
+   "lake": "kummerower-see",
+   "lat": 53.7724,
+   "lon": 12.8347,
+   "snapM": 420,
+   "normal": 350,
+   "pt": {
+    "lat": 53.77463,
+    "lon": 12.83404,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Kummerow (am See)",
+    "found": true,
+    "km": 0.42,
+    "landSide": true,
+    "angle": 170
+   },
+   "obs": {
+    "de": {
+     "id": "de:15189",
+     "name": "Sukow-Levitzow",
+     "km": 17,
+     "lat": 53.8281,
+     "lon": 12.5937,
+     "elevM": 12,
+     "dElevM": 12,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11021",
+     "name": "LITSCHAU",
+     "km": 557,
+     "lat": 48.95472,
+     "lon": 15.03833,
+     "elevM": 558,
+     "dElevM": 558,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:GUT",
+     "name": "Güttingen",
+     "km": 730.2,
+     "lat": 47.601733,
+     "lon": 9.279428,
+     "elevM": 440,
+     "dElevM": 440,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "de:15189",
+    "name": "Sukow-Levitzow",
+    "km": 17,
+    "lat": 53.8281,
+    "lon": 12.5937,
+    "elevM": 12,
+    "dElevM": 12,
+    "net": "dwd10"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 165,
+     "ix": 147
+    },
+    "hRead": 0,
+    "lakeElevM": 0.2,
+    "dH": 0,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 80,
+    "stage": 14,
+    "windKn0": 10.9,
+    "mosmix": {
+     "id": "10273",
+     "km": 8
+    },
+    "ms": 217,
+    "errors": 0
+   }
+  },
+  "brienzersee-brienz": {
+   "lake": "brienzersee",
+   "lat": 46.75386,
+   "lon": 8.03321,
+   "snapM": 22,
+   "normal": 185,
+   "pt": {
+    "lat": 46.75161,
+    "lon": 8.03292,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Brienz BE",
+    "found": true,
+    "km": 0.32,
+    "landSide": true,
+    "angle": 98
+   },
+   "obs": {
+    "de": {
+     "id": "de:01013",
+     "name": "Dogern",
+     "km": 94.9,
+     "lat": 47.6026,
+     "lon": 8.1697,
+     "elevM": 309,
+     "dElevM": -255,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11105",
+     "name": "FELDKIRCH",
+     "km": 132.6,
+     "lat": 47.27111,
+     "lon": 9.60972,
+     "elevM": 438,
+     "dElevM": -126,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:BRZ",
+     "name": "Brienz",
+     "km": 2.6,
+     "lat": 46.740719,
+     "lon": 8.060864,
+     "elevM": 567,
+     "dElevM": 3,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "ch:BRZ",
+    "name": "Brienz",
+    "km": 2.6,
+    "lat": 46.740719,
+    "lon": 8.060864,
+    "elevM": 567,
+    "dElevM": 3,
+    "net": "smn"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 25,
+     "ix": 51
+    },
+    "hRead": 560,
+    "lakeElevM": 564,
+    "dH": -4,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 16,
+    "stage": 14,
+    "windKn0": 3.4,
+    "mosmix": {
+     "id": "06637",
+     "km": 11
+    },
+    "ms": 206,
+    "errors": 0
+   }
+  },
+  "brienzersee-boenigen": {
+   "lake": "brienzersee",
+   "lat": 46.68945,
+   "lon": 7.89719,
+   "snapM": 104,
+   "normal": 60,
+   "pt": {
+    "lat": 46.69058,
+    "lon": 7.90003,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Bönigen",
+    "found": true,
+    "km": 0.49,
+    "landSide": true,
+    "angle": 156
+   },
+   "obs": {
+    "de": {
+     "id": "de:01013",
+     "name": "Dogern",
+     "km": 103.6,
+     "lat": 47.6026,
+     "lon": 8.1697,
+     "elevM": 309,
+     "dElevM": -255,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11105",
+     "name": "FELDKIRCH",
+     "km": 145.1,
+     "lat": 47.27111,
+     "lon": 9.60972,
+     "elevM": 438,
+     "dElevM": -126,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:INT",
+     "name": "Interlaken",
+     "km": 2.8,
+     "lat": 46.672033,
+     "lon": 7.87045,
+     "elevM": 578,
+     "dElevM": 14,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "ch:INT",
+    "name": "Interlaken",
+    "km": 2.8,
+    "lat": 46.672033,
+    "lon": 7.87045,
+    "elevM": 578,
+    "dElevM": 14,
+    "net": "smn"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 24,
+     "ix": 48
+    },
+    "hRead": 560,
+    "lakeElevM": 564,
+    "dH": -4,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 26,
+    "stage": 14,
+    "windKn0": 3.5,
+    "mosmix": {
+     "id": "06734",
+     "km": 3.2
+    },
+    "ms": 243,
+    "errors": 0
+   }
+  },
+  "steinhuder-meer-steinhude": {
+   "lake": "steinhuder-meer",
+   "lat": 52.45691,
+   "lon": 9.35417,
+   "snapM": 160,
+   "normal": 315,
+   "pt": {
+    "lat": 52.45851,
+    "lon": 9.35156,
+    "km": 0.25
+   },
+   "warncell": {
+    "id": "203259000",
+    "name": "Steinhuder Meer"
+   },
+   "cellHow": "inside",
+   "town": {
+    "title": "Steinhude",
+    "found": true,
+    "km": 0.44,
+    "landSide": true,
+    "angle": 160
+   },
+   "obs": {
+    "de": {
+     "id": "de:02014",
+     "name": "Hannover",
+     "km": 21.9,
+     "lat": 52.4644,
+     "lon": 9.6779,
+     "elevM": 55,
+     "dElevM": 17,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11055",
+     "name": "SCHAERDING",
+     "km": 529.5,
+     "lat": 48.46417,
+     "lon": 13.43444,
+     "elevM": 307,
+     "dElevM": 269,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:SHA",
+     "name": "Schaffhausen",
+     "km": 532.6,
+     "lat": 47.689842,
+     "lon": 8.620142,
+     "elevM": 438,
+     "dElevM": 400,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "de:02014",
+    "name": "Hannover",
+    "km": 21.9,
+    "lat": 52.4644,
+    "lon": 9.6779,
+    "elevM": 55,
+    "dElevM": 17,
+    "net": "dwd10"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 139,
+     "ix": 77
+    },
+    "hRead": 35,
+    "lakeElevM": 37.9,
+    "dH": -3,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 69,
+    "stage": 14,
+    "windKn0": 10.3,
+    "mosmix": {
+     "id": "10334",
+     "km": 5.4
+    },
+    "ms": 216,
+    "errors": 0
+   }
+  },
+  "steinhuder-meer-mardorf": {
+   "lake": "steinhuder-meer",
+   "lat": 52.48559,
+   "lon": 9.30492,
+   "snapM": 427,
+   "normal": 132,
+   "pt": {
+    "lat": 52.48407,
+    "lon": 9.30766,
+    "km": 0.25
+   },
+   "warncell": {
+    "id": "203259000",
+    "name": "Steinhuder Meer"
+   },
+   "cellHow": "inside",
+   "town": {
+    "title": "Mardorf (Neustadt am Rübenberge)",
+    "found": true,
+    "km": 1.1,
+    "landSide": true,
+    "angle": 152
+   },
+   "obs": {
+    "de": {
+     "id": "de:02014",
+     "name": "Hannover",
+     "km": 25.4,
+     "lat": 52.4644,
+     "lon": 9.6779,
+     "elevM": 55,
+     "dElevM": 17,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11055",
+     "name": "SCHAERDING",
+     "km": 534,
+     "lat": 48.46417,
+     "lon": 13.43444,
+     "elevM": 307,
+     "dElevM": 269,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:SHA",
+     "name": "Schaffhausen",
+     "km": 535.5,
+     "lat": 47.689842,
+     "lon": 8.620142,
+     "elevM": 438,
+     "dElevM": 400,
+     "net": "smn"
+    }
+   },
+   "wind": null,
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 140,
+     "ix": 76
+    },
+    "hRead": 35,
+    "lakeElevM": 37.9,
+    "dH": -3,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 70,
+    "stage": 14,
+    "windKn0": 10.1,
+    "mosmix": {
+     "id": "10334",
+     "km": 9.1
+    },
+    "ms": 173,
+    "errors": 0
+   }
+  },
+  "grosser-ploener-see-ploen": {
+   "lake": "grosser-ploener-see",
+   "lat": 54.15785,
+   "lon": 10.42048,
+   "snapM": 227,
+   "normal": 145,
+   "pt": {
+    "lat": 54.156,
+    "lon": 10.42268,
+    "km": 0.25
+   },
+   "warncell": {
+    "id": "201068000",
+    "name": "Ostholsteinische Seen"
+   },
+   "cellHow": "inside",
+   "town": {
+    "title": "Plön",
+    "found": true,
+    "km": 0.21,
+    "landSide": null,
+    "angle": 127
+   },
+   "obs": {
+    "de": {
+     "id": "de:06163",
+     "name": "Dörnick",
+     "km": 4.5,
+     "lat": 54.1654,
+     "lon": 10.3519,
+     "elevM": 27,
+     "dElevM": 6,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11021",
+     "name": "LITSCHAU",
+     "km": 660.5,
+     "lat": 48.95472,
+     "lon": 15.03833,
+     "elevM": 558,
+     "dElevM": 537,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:STK",
+     "name": "Steckborn",
+     "km": 728.5,
+     "lat": 47.668628,
+     "lon": 8.981433,
+     "elevM": 397,
+     "dElevM": 376,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "de:06163",
+    "name": "Dörnick",
+    "km": 4.5,
+    "lat": 54.1654,
+    "lon": 10.3519,
+    "elevM": 27,
+    "dElevM": 6,
+    "net": "dwd10"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 173,
+     "ix": 98
+    },
+    "hRead": 18,
+    "lakeElevM": 21,
+    "dH": -3,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 67,
+    "stage": 14,
+    "windKn0": 7,
+    "mosmix": {
+     "id": "P0152",
+     "km": 3.2
+    },
+    "ms": 197,
+    "errors": 0
+   }
+  },
+  "traunsee-gmunden": {
+   "lake": "traunsee",
+   "lat": 47.91701,
+   "lon": 13.79819,
+   "snapM": 230,
+   "normal": 162,
+   "pt": {
+    "lat": 47.91486,
+    "lon": 13.79922,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Gmunden",
+    "found": true,
+    "km": 0.15,
+    "landSide": null,
+    "angle": 123
+   },
+   "obs": {
+    "de": {
+     "id": "de:13932",
+     "name": "Rotthalmünster (Landwirtschaftsamt)",
+     "km": 66.8,
+     "lat": 48.3617,
+     "lon": 13.1938,
+     "elevM": 388,
+     "dElevM": -34,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11254",
+     "name": "ALTMUENSTER",
+     "km": 4.6,
+     "lat": 47.87917,
+     "lon": 13.77333,
+     "elevM": 438,
+     "dElevM": 16,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:SCU",
+     "name": "Scuol",
+     "km": 292.7,
+     "lat": 46.793275,
+     "lon": 10.283267,
+     "elevM": 1304,
+     "dElevM": 882,
+     "net": "nime"
+    }
+   },
+   "wind": {
+    "id": "at:11254",
+    "name": "ALTMUENSTER",
+    "km": 4.6,
+    "lat": 47.87917,
+    "lon": 13.77333,
+    "elevM": 438,
+    "dElevM": 16,
+    "net": "tawes"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 48,
+     "ix": 166
+    },
+    "hRead": 422,
+    "lakeElevM": 422,
+    "dH": 0,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 56,
+    "stage": 14,
+    "windKn0": 9.6,
+    "mosmix": {
+     "id": "11154",
+     "km": 2.2
+    },
+    "ms": 211,
+    "errors": 0
+   }
+  },
+  "traunsee-ebensee": {
+   "lake": "traunsee",
+   "lat": 47.81185,
+   "lon": 13.77995,
+   "snapM": 251,
+   "normal": 52,
+   "pt": {
+    "lat": 47.81324,
+    "lon": 13.78259,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Ebensee am Traunsee",
+    "found": true,
+    "km": 0.54,
+    "landSide": true,
+    "angle": 171
+   },
+   "obs": {
+    "de": {
+     "id": "de:19856",
+     "name": "Schönau am Königssee",
+     "km": 63.7,
+     "lat": 47.6134,
+     "lon": 12.9819,
+     "elevM": 625,
+     "dElevM": 203,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11155",
+     "name": "FEUERKOGEL",
+     "km": 4.7,
+     "lat": 47.81667,
+     "lon": 13.71778,
+     "elevM": 1618,
+     "dElevM": 1196,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:SMM",
+     "name": "Sta. Maria, Val Müstair",
+     "km": 286.8,
+     "lat": 46.602256,
+     "lon": 10.426314,
+     "elevM": 1386,
+     "dElevM": 964,
+     "net": "nime"
+    }
+   },
+   "wind": {
+    "id": "at:11254",
+    "name": "ALTMUENSTER",
+    "km": 7.5,
+    "lat": 47.87917,
+    "lon": 13.77333,
+    "elevM": 438,
+    "dElevM": 16,
+    "net": "tawes"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": {
+    "id": "at:11155",
+    "name": "FEUERKOGEL",
+    "km": 4.7,
+    "lat": 47.81667,
+    "lon": 13.71778,
+    "elevM": 1618,
+    "dElevM": 1196,
+    "net": "tawes"
+   },
+   "cube": {
+    "cell": {
+     "iy": 46,
+     "ix": 166
+    },
+    "hRead": 423,
+    "lakeElevM": 422,
+    "dH": 1,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 47,
+    "stage": 14,
+    "windKn0": 8.7,
+    "mosmix": {
+     "id": "P0062",
+     "km": 2
+    },
+    "ms": 219,
+    "errors": 0
+   }
+  },
+  "walensee-weesen": {
+   "lake": "walensee",
+   "lat": 47.13344,
+   "lon": 9.09844,
+   "snapM": 119,
+   "normal": 87,
+   "pt": {
+    "lat": 47.13356,
+    "lon": 9.10174,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Weesen",
+    "found": true,
+    "km": 0.12,
+    "landSide": null,
+    "angle": 9
+   },
+   "obs": {
+    "de": {
+     "id": "de:02712",
+     "name": "Konstanz",
+     "km": 62.5,
+     "lat": 47.6952,
+     "lon": 9.1307,
+     "elevM": 428,
+     "dElevM": 9,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11105",
+     "name": "FELDKIRCH",
+     "km": 41.5,
+     "lat": 47.27111,
+     "lon": 9.60972,
+     "elevM": 438,
+     "dElevM": 19,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:QUI",
+     "name": "Quinten",
+     "km": 8.9,
+     "lat": 47.128739,
+     "lon": 9.21605,
+     "elevM": 419,
+     "dElevM": 0,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "ch:QUI",
+    "name": "Quinten",
+    "km": 8.9,
+    "lat": 47.128739,
+    "lon": 9.21605,
+    "elevM": 419,
+    "dElevM": 0,
+    "net": "smn"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 33,
+     "ix": 72
+    },
+    "hRead": 415,
+    "lakeElevM": 419,
+    "dH": -4,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 24,
+    "stage": 14,
+    "windKn0": 3.9,
+    "mosmix": {
+     "id": "06687",
+     "km": 9
+    },
+    "ms": 238,
+    "errors": 0
+   }
+  },
+  "walensee-walenstadt": {
+   "lake": "walensee",
+   "lat": 47.11822,
+   "lon": 9.29994,
+   "snapM": 535,
+   "normal": 267,
+   "pt": {
+    "lat": 47.1181,
+    "lon": 9.29664,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Walenstadt",
+    "found": true,
+    "km": 1.28,
+    "landSide": true,
+    "angle": 169
+   },
+   "obs": {
+    "de": {
+     "id": "de:06102",
+     "name": "Lindau (SWN)",
+     "km": 55.1,
+     "lat": 47.5396,
+     "lon": 9.6843,
+     "elevM": 397,
+     "dElevM": -22,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11105",
+     "name": "FELDKIRCH",
+     "km": 28.9,
+     "lat": 47.27111,
+     "lon": 9.60972,
+     "elevM": 438,
+     "dElevM": 19,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:QUI",
+     "name": "Quinten",
+     "km": 6.5,
+     "lat": 47.128739,
+     "lon": 9.21605,
+     "elevM": 419,
+     "dElevM": 0,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "ch:QUI",
+    "name": "Quinten",
+    "km": 6.5,
+    "lat": 47.128739,
+    "lon": 9.21605,
+    "elevM": 419,
+    "dElevM": 0,
+    "net": "smn"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 32,
+     "ix": 76
+    },
+    "hRead": 416,
+    "lakeElevM": 419,
+    "dH": -3,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 17,
+    "stage": 14,
+    "windKn0": 3.8,
+    "mosmix": {
+     "id": "06687",
+     "km": 5.9
+    },
+    "ms": 204,
+    "errors": 0
+   }
+  },
+  "schaalsee-zarrentin": {
+   "lake": "schaalsee",
+   "lat": 53.55,
+   "lon": 10.9196,
+   "snapM": 26,
+   "normal": 79,
+   "pt": {
+    "lat": 53.55043,
+    "lon": 10.92331,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Zarrentin am Schaalsee",
+    "found": true,
+    "km": 0.21,
+    "landSide": null,
+    "angle": 169
+   },
+   "obs": {
+    "de": {
+     "id": "de:00591",
+     "name": "Boizenburg",
+     "km": 23.4,
+     "lat": 53.3911,
+     "lon": 10.6878,
+     "elevM": 45,
+     "dElevM": 10,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11021",
+     "name": "LITSCHAU",
+     "km": 585.7,
+     "lat": 48.95472,
+     "lon": 15.03833,
+     "elevM": 558,
+     "dElevM": 523,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:STK",
+     "name": "Steckborn",
+     "km": 668.1,
+     "lat": 47.668628,
+     "lon": 8.981433,
+     "elevM": 397,
+     "dElevM": 362,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "de:00591",
+    "name": "Boizenburg",
+    "km": 23.4,
+    "lat": 53.3911,
+    "lon": 10.6878,
+    "elevM": 45,
+    "dElevM": 10,
+    "net": "dwd10"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 161,
+     "ix": 108
+    },
+    "hRead": 33,
+    "lakeElevM": 34.8,
+    "dH": -2,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 79,
+    "stage": 14,
+    "windKn0": 9.3,
+    "mosmix": {
+     "id": "B710",
+     "km": 7.6
+    },
+    "ms": 683,
+    "errors": 0
+   }
+  },
+  "murtensee-murten": {
+   "lake": "murtensee",
+   "lat": 46.92987,
+   "lon": 7.11513,
+   "snapM": 18,
+   "normal": 315,
+   "pt": {
+    "lat": 46.93147,
+    "lon": 7.11281,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Murten",
+    "found": true,
+    "km": 0.24,
+    "landSide": null,
+    "angle": 170
+   },
+   "obs": {
+    "de": {
+     "id": "de:02377",
+     "name": "Kandern-Gupf",
+     "km": 92.8,
+     "lat": 47.7001,
+     "lon": 7.5895,
+     "elevM": 362,
+     "dElevM": -67,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11105",
+     "name": "FELDKIRCH",
+     "km": 192.6,
+     "lat": 47.27111,
+     "lon": 9.60972,
+     "elevM": 438,
+     "dElevM": 9,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:MUB",
+     "name": "Mühleberg",
+     "km": 13.3,
+     "lat": 46.973278,
+     "lon": 7.278217,
+     "elevM": 480,
+     "dElevM": 51,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "ch:MUB",
+    "name": "Mühleberg",
+    "km": 13.3,
+    "lat": 46.973278,
+    "lon": 7.278217,
+    "elevM": 480,
+    "dElevM": 51,
+    "net": "smn"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 29,
+     "ix": 32
+    },
+    "hRead": 429,
+    "lakeElevM": 429.3,
+    "dH": 0,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 35,
+    "stage": 14,
+    "windKn0": 5.8,
+    "mosmix": null,
+    "ms": 165,
+    "errors": 0
+   }
+  },
+  "selenter-see-selent": {
+   "lake": "selenter-see",
+   "lat": 54.29429,
+   "lon": 10.43481,
+   "snapM": 279,
+   "normal": 26,
+   "pt": {
+    "lat": 54.29632,
+    "lon": 10.43649,
+    "km": 0.25
+   },
+   "warncell": {
+    "id": "201068000",
+    "name": "Ostholsteinische Seen"
+   },
+   "cellHow": "inside",
+   "town": {
+    "title": "Selent",
+    "found": true,
+    "km": 0.65,
+    "landSide": true,
+    "angle": 159
+   },
+   "obs": {
+    "de": {
+     "id": "de:06163",
+     "name": "Dörnick",
+     "km": 15.3,
+     "lat": 54.1654,
+     "lon": 10.3519,
+     "elevM": 27,
+     "dElevM": -10,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11021",
+     "name": "LITSCHAU",
+     "km": 673.1,
+     "lat": 48.95472,
+     "lon": 15.03833,
+     "elevM": 558,
+     "dElevM": 521,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:STK",
+     "name": "Steckborn",
+     "km": 743.7,
+     "lat": 47.668628,
+     "lon": 8.981433,
+     "elevM": 397,
+     "dElevM": 360,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "de:06163",
+    "name": "Dörnick",
+    "km": 15.3,
+    "lat": 54.1654,
+    "lon": 10.3519,
+    "elevM": 27,
+    "dElevM": -10,
+    "net": "dwd10"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 176,
+     "ix": 99
+    },
+    "hRead": 34,
+    "lakeElevM": 37.2,
+    "dH": -3,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 80,
+    "stage": 14,
+    "windKn0": 8.4,
+    "mosmix": {
+     "id": "A473",
+     "km": 4.3
+    },
+    "ms": 201,
+    "errors": 0
+   }
+  },
+  "koelpinsee-klink": {
+   "lake": "koelpinsee",
+   "lat": 53.4802,
+   "lon": 12.605,
+   "snapM": 199,
+   "normal": 350,
+   "pt": {
+    "lat": 53.48243,
+    "lon": 12.60434,
+    "km": 0.25
+   },
+   "warncell": null,
+   "cellHow": null,
+   "town": {
+    "title": "Klink",
+    "found": true,
+    "km": 1.02,
+    "landSide": true,
+    "angle": 82
+   },
+   "obs": {
+    "de": {
+     "id": "de:05349",
+     "name": "Waren (Müritz)",
+     "km": 5.9,
+     "lat": 53.5196,
+     "lon": 12.6654,
+     "elevM": 73,
+     "dElevM": 11,
+     "net": "dwd10"
+    },
+    "at": {
+     "id": "at:11021",
+     "name": "LITSCHAU",
+     "km": 530.9,
+     "lat": 48.95472,
+     "lon": 15.03833,
+     "elevM": 558,
+     "dElevM": 496,
+     "net": "tawes"
+    },
+    "ch": {
+     "id": "ch:GUT",
+     "name": "Güttingen",
+     "km": 694.4,
+     "lat": 47.601733,
+     "lon": 9.279428,
+     "elevM": 440,
+     "dElevM": 378,
+     "net": "smn"
+    }
+   },
+   "wind": {
+    "id": "de:05349",
+    "name": "Waren (Müritz)",
+    "km": 5.9,
+    "lat": 53.5196,
+    "lon": 12.6654,
+    "elevM": 73,
+    "dElevM": 11,
+    "net": "dwd10"
+   },
+   "obsSilentNearer": null,
+   "obsOffLevel": null,
+   "cube": {
+    "cell": {
+     "iy": 160,
+     "ix": 142
+    },
+    "hRead": 58,
+    "lakeElevM": 62.1,
+    "dH": -4,
+    "steps": 80,
+    "wind": 80,
+    "gust": 80,
+    "dir": 77,
+    "stage": 14,
+    "windKn0": 8.8,
+    "mosmix": {
+     "id": "10268",
+     "km": 6
+    },
+    "ms": 98,
+    "errors": 0
+   }
+  }
+ },
+ "lakes": {
+  "genfersee": {
+   "wsv": null,
+   "bafu": [
+    {
+     "id": "2026",
+     "name": "Chillon",
+     "lake": "Lac Léman",
+     "lat": 46.414610106681224,
+     "lon": 6.927748882278786,
+     "level": 372.225,
+     "time": "2026-11-21T09:50:00+01:00"
+    },
+    {
+     "id": "2028",
+     "name": "Genève, Sécheron",
+     "lake": "Lac Léman",
+     "lat": 46.218636691415625,
+     "lon": 6.15235732549977,
+     "level": 372.215,
+     "time": "2026-11-21T09:50:00+01:00"
+    },
+    {
+     "id": "2027",
+     "name": "St-Prex",
+     "lake": "Lac Léman",
+     "lat": 46.48280067468974,
+     "lon": 6.461136827537292,
+     "level": 372.265,
+     "time": "2026-11-21T09:50:00+01:00"
+    }
+   ],
+   "alp": [
+    {
+     "key": "geneva",
+     "found": true,
+     "end": "2026-11-25",
+     "minDepth": 1
+    }
+   ]
+  },
+  "bodensee": {
+   "wsv": {
+    "uuid": "aa9179c1-17ef-4c61-a48a-74193fa7bfdf",
+    "name": "KONSTANZ",
+    "water": "BODENSEE",
+    "lat": 47.66075,
+    "lon": 9.181039,
+    "series": [
+     "W"
+    ],
+    "newest": {
+     "W": "2026-11-21T10:00:00+01:00"
+    },
+    "gaugeZero": {
+     "unit": "m. ü. NHN",
+     "value": 391.89,
+     "validFrom": "2004-04-14"
+    },
+    "cors": "*"
+   },
+   "bafu": [
+    {
+     "id": "2032",
+     "name": "Romanshorn",
+     "lake": "Bodensee, Obersee",
+     "lat": 47.56479123049356,
+     "lon": 9.380992701081867,
+     "level": 394.916,
+     "time": "2026-11-21T09:50:00+01:00"
+    },
+    {
+     "id": "2043",
+     "name": "Berlingen",
+     "lake": "Bodensee, Untersee",
+     "lat": 47.675465671121394,
+     "lon": 9.017571136862344,
+     "level": 394.595,
+     "time": "2026-11-21T09:50:00+01:00"
+    }
+   ],
+   "alp": [
+    {
+     "key": "upperconstance",
+     "found": true,
+     "end": "2026-11-25",
+     "minDepth": 1
+    },
+    {
+     "key": "lowerconstance",
+     "found": true,
+     "end": "2026-11-25",
+     "minDepth": 1
+    }
+   ]
+  },
+  "neusiedler-see": {
+   "wsv": null,
+   "bafu": [],
+   "alp": []
+  },
+  "neuenburgersee": {
+   "wsv": null,
+   "bafu": [
+    {
+     "id": "2154",
+     "name": "Grandson",
+     "lake": "Lac de Neuchâtel",
+     "lat": 46.805777134617735,
+     "lon": 6.642366435215077,
+     "level": 429.152,
+     "time": "2026-11-21T09:50:00+01:00"
+    },
+    {
+     "id": "2642",
+     "name": "Neuchâtel, Nid-du-Crô",
+     "lake": "Lac de Neuchâtel",
+     "lat": 46.996504923513506,
+     "lon": 6.951044797867279,
+     "level": 429.161,
+     "time": "2026-11-21T09:50:00+01:00"
+    }
+   ],
+   "alp": [
+    {
+     "key": "neuchatel",
+     "found": true,
+     "end": "2026-11-25",
+     "minDepth": 1
+    }
+   ]
+  },
+  "lago-maggiore": {
+   "wsv": null,
+   "bafu": [
+    {
+     "id": "2074",
+     "name": "Brissago",
+     "lake": "Lago Maggiore",
+     "lat": 46.118122093495536,
+     "lon": 8.710904470043026,
+     "level": 192.692,
+     "time": "2026-11-21T09:50:00+01:00"
+    },
+    {
+     "id": "2022",
+     "name": "Locarno",
+     "lake": "Lago Maggiore",
+     "lat": 46.16363438902525,
+     "lon": 8.804286329824714,
+     "level": 192.689,
+     "time": "2026-11-21T09:50:00+01:00"
+    }
+   ],
+   "alp": [
+    {
+     "key": "maggiore",
+     "found": true,
+     "end": "2026-11-25",
+     "minDepth": 1
+    }
+   ]
+  },
+  "mueritz": {
+   "wsv": {
+    "uuid": "bd317edd-214a-4e11-a9dc-3cc71a2907c3",
+    "name": "WAREN",
+    "water": "MÜRITZ-ELDE-WASSERSTRASSE",
+    "lat": 53.51438,
+    "lon": 12.674194,
+    "series": [
+     "W",
+     "LT",
+     "WT"
+    ],
+    "newest": {
+     "W": "2026-11-21T10:00:00+01:00",
+     "LT": "2026-11-21T10:00:00+01:00",
+     "WT": "2026-11-21T10:00:00+01:00"
+    },
+    "gaugeZero": {
+     "unit": "m. ü. NHN",
+     "value": 60.157,
+     "validFrom": "2019-11-01"
+    },
+    "cors": "*"
+   },
+   "bafu": [],
+   "alp": []
+  },
+  "vierwaldstaettersee": {
+   "wsv": null,
+   "bafu": [
+    {
+     "id": "2025",
+     "name": "Brunnen",
+     "lake": "Vierwaldstättersee",
+     "lat": 46.993467758748615,
+     "lon": 8.603783594054601,
+     "level": 433.529,
+     "time": "2026-11-21T09:50:00+01:00"
+    },
+    {
+     "id": "2207",
+     "name": "Luzern",
+     "lake": "Vierwaldstättersee",
+     "lat": 47.05487732128306,
+     "lon": 8.319817434422085,
+     "level": 433.531,
+     "time": "2026-11-21T09:50:00+01:00"
+    }
+   ],
+   "alp": [
+    {
+     "key": "lucernekreuztrichterandvitznauerbecken",
+     "found": true,
+     "end": "2026-11-25",
+     "minDepth": 1
+    },
+    {
+     "key": "lucernegersauerandtreibbecken",
+     "found": true,
+     "end": "2026-11-25",
+     "minDepth": 1
+    },
+    {
+     "key": "lucerneurnersee",
+     "found": true,
+     "end": "2026-11-25",
+     "minDepth": 1
+    }
+   ]
+  },
+  "zuerichsee": {
+   "wsv": null,
+   "bafu": [
+    {
+     "id": "2014",
+     "name": "Schmerikon",
+     "lake": "Zürichsee",
+     "lat": 47.2247734515484,
+     "lon": 8.940080355324334,
+     "level": 405.515,
+     "time": "2026-11-21T09:50:00+01:00"
+    },
+    {
+     "id": "2209",
+     "name": "Zürich",
+     "lake": "Zürichsee",
+     "lat": 47.35476864181227,
+     "lon": 8.550455895436102,
+     "level": 405.557,
+     "time": "2026-11-21T09:50:00+01:00"
+    }
+   ],
+   "alp": [
+    {
+     "key": "lowerzurich",
+     "found": true,
+     "end": "2026-11-25",
+     "minDepth": 1
+    }
+   ]
+  },
+  "chiemsee": {
+   "wsv": null,
+   "bafu": [],
+   "alp": [
+    {
+     "key": "chiemsee",
+     "found": true,
+     "end": "2026-11-25",
+     "minDepth": 1
+    }
+   ]
+  },
+  "schweriner-see": {
+   "wsv": {
+    "uuid": "680d5966-273f-4254-aabe-5d4e00e12a24",
+    "name": "SCHWERIN WERDERBRÜCKE",
+    "water": "STÖR-WASSERSTRASSE",
+    "lat": 53.646392,
+    "lon": 11.427446,
+    "series": [
+     "W",
+     "LT",
+     "WT"
+    ],
+    "newest": {
+     "W": "2026-11-21T10:00:00+01:00",
+     "LT": "2026-11-21T10:00:00+01:00",
+     "WT": "2026-11-21T10:00:00+01:00"
+    },
+    "gaugeZero": {
+     "unit": "m. ü. NHN",
+     "value": 36.69,
+     "validFrom": "2019-11-01"
+    },
+    "cors": "*"
+   },
+   "bafu": [],
+   "alp": []
+  },
+  "starnberger-see": {
+   "wsv": null,
+   "bafu": [],
+   "alp": [
+    {
+     "key": "starnberger",
+     "found": true,
+     "end": "2026-11-25",
+     "minDepth": 1
+    }
+   ]
+  },
+  "luganersee": {
+   "wsv": null,
+   "bafu": [
+    {
+     "id": "2101",
+     "name": "Melide, Ferrera",
+     "lake": "Lago di Lugano",
+     "lat": 45.96628633198344,
+     "lon": 8.94889237091612,
+     "level": 270.364,
+     "time": "2026-11-21T09:50:00+01:00"
+    },
+    {
+     "id": "2021",
+     "name": "Ponte Tresa",
+     "lake": "Lago di Lugano",
+     "lat": 45.96878965357925,
+     "lon": 8.860322192803666,
+     "level": 270.353,
+     "time": "2026-11-21T09:50:00+01:00"
+    }
+   ],
+   "alp": [
+    {
+     "key": "upperlugano",
+     "found": true,
+     "end": "2026-11-25",
+     "minDepth": 1
+    },
+    {
+     "key": "lowerlugano",
+     "found": true,
+     "end": "2026-11-25",
+     "minDepth": 1
+    }
+   ]
+  },
+  "thunersee": {
+   "wsv": null,
+   "bafu": [
+    {
+     "id": "2093",
+     "name": "Spiez",
+     "lake": "Thunersee",
+     "lat": 46.696738271103,
+     "lon": 7.664559483905691,
+     "level": 557.724,
+     "time": "2026-11-21T09:50:00+01:00"
+    }
+   ],
+   "alp": [
+    {
+     "key": "thun",
+     "found": true,
+     "end": "2026-11-25",
+     "minDepth": 1
+    }
+   ]
+  },
+  "ammersee": {
+   "wsv": null,
+   "bafu": [],
+   "alp": [
+    {
+     "key": "ammersee",
+     "found": true,
+     "end": "2026-11-25",
+     "minDepth": 1
+    }
+   ]
+  },
+  "attersee": {
+   "wsv": null,
+   "bafu": [],
+   "alp": [
+    {
+     "key": "attersee",
+     "found": true,
+     "end": "2026-11-25",
+     "minDepth": 1
+    }
+   ]
+  },
+  "bielersee": {
+   "wsv": null,
+   "bafu": [
+    {
+     "id": "2208",
+     "name": "Ligerz, Klein Twann",
+     "lake": "Bielersee",
+     "lat": 47.091679312964544,
+     "lon": 7.1530998108383965,
+     "level": 429.054,
+     "time": "2026-11-21T09:50:00+01:00"
+    }
+   ],
+   "alp": [
+    {
+     "key": "biel",
+     "found": true,
+     "end": "2026-11-25",
+     "minDepth": 1
+    }
+   ]
+  },
+  "plauer-see": {
+   "wsv": {
+    "uuid": "3ffddb2c-4c17-47d1-a7de-e1663d4031b7",
+    "name": "PLAU OP",
+    "water": "MÜRITZ-ELDE-WASSERSTRASSE",
+    "lat": 53.456765,
+    "lon": 12.261042,
+    "series": [
+     "Q",
+     "W",
+     "LT",
+     "WT"
+    ],
+    "newest": {
+     "Q": "2026-11-21T10:00:00+01:00",
+     "W": "2026-11-21T10:00:00+01:00",
+     "LT": "2026-11-21T10:00:00+01:00",
+     "WT": "2026-11-21T10:00:00+01:00"
+    },
+    "gaugeZero": {
+     "unit": "m. ü. NHN",
+     "value": 60.148,
+     "validFrom": "2019-11-01"
+    },
+    "cors": "*"
+   },
+   "bafu": [],
+   "alp": []
+  },
+  "zugersee": {
+   "wsv": null,
+   "bafu": [
+    {
+     "id": "2017",
+     "name": "Zug",
+     "lake": "Zugersee",
+     "lat": 47.167871041247274,
+     "lon": 8.514322621750242,
+     "level": 413.277,
+     "time": "2026-11-21T09:50:00+01:00"
+    }
+   ],
+   "alp": [
+    {
+     "key": "zug",
+     "found": true,
+     "end": "2026-11-25",
+     "minDepth": 1
+    }
+   ]
+  },
+  "kummerower-see": {
+   "wsv": {
+    "uuid": "8ba772ed-e45b-4be8-b91d-0c6c92de59e4",
+    "name": "AALBUDE",
+    "water": "PEENE",
+    "lat": 53.847927,
+    "lon": 12.888042,
+    "series": [
+     "W"
+    ],
+    "newest": {
+     "W": "2026-11-21T10:05:00+01:00"
+    },
+    "gaugeZero": {
+     "unit": "m. ü. NHN",
+     "value": -5.175,
+     "validFrom": "2019-11-01"
+    },
+    "cors": "*"
+   },
+   "bafu": [],
+   "alp": []
+  },
+  "brienzersee": {
+   "wsv": null,
+   "bafu": [
+    {
+     "id": "2023",
+     "name": "Ringgenberg",
+     "lake": "Brienzersee",
+     "lat": 46.72992714437881,
+     "lon": 7.975536043144536,
+     "level": 563.477,
+     "time": "2026-11-21T09:50:00+01:00"
+    }
+   ],
+   "alp": [
+    {
+     "key": "brienz",
+     "found": true,
+     "end": "2026-11-25",
+     "minDepth": 1
+    }
+   ]
+  },
+  "steinhuder-meer": {
+   "wsv": null,
+   "bafu": [],
+   "alp": []
+  },
+  "grosser-ploener-see": {
+   "wsv": null,
+   "bafu": [],
+   "alp": []
+  },
+  "traunsee": {
+   "wsv": null,
+   "bafu": [],
+   "alp": [
+    {
+     "key": "traunsee",
+     "found": true,
+     "end": "2026-11-25",
+     "minDepth": 1
+    }
+   ]
+  },
+  "walensee": {
+   "wsv": null,
+   "bafu": [
+    {
+     "id": "2118",
+     "name": "Murg",
+     "lake": "Walensee",
+     "lat": 47.11337769264534,
+     "lon": 9.210023378410574,
+     "level": 418.392,
+     "time": "2026-11-21T09:50:00+01:00"
+    }
+   ],
+   "alp": [
+    {
+     "key": "walensee",
+     "found": true,
+     "end": "2026-11-25",
+     "minDepth": 1
+    }
+   ]
+  },
+  "schaalsee": {
+   "wsv": null,
+   "bafu": [],
+   "alp": []
+  },
+  "murtensee": {
+   "wsv": null,
+   "bafu": [
+    {
+     "id": "2004",
+     "name": "Murten",
+     "lake": "Murtensee",
+     "lat": 46.93075003176807,
+     "lon": 7.116924504057154,
+     "level": 429.182,
+     "time": "2026-11-21T09:50:00+01:00"
+    }
+   ],
+   "alp": [
+    {
+     "key": "murten",
+     "found": true,
+     "end": "2026-11-25",
+     "minDepth": 1
+    }
+   ]
+  },
+  "selenter-see": {
+   "wsv": null,
+   "bafu": [],
+   "alp": []
+  },
+  "koelpinsee": {
+   "wsv": null,
+   "bafu": [],
+   "alp": []
+  }
+ },
+ "sources": {
+  "obs": {
+   "builtAt": "2026-11-21T09:02:06.562Z",
+   "stations": 3120,
+   "withWind": 724,
+   "delivering": 699
+  },
+  "alplakes": {
+   "status": 200,
+   "rate": {},
+   "lakes": 139,
+   "point": {
+    "status": 200,
+    "bytes": 1524,
+    "ms": 108,
+    "keys": [
+     "time",
+     "depth",
+     "resample",
+     "variables"
+    ]
+   },
+   "cors": {
+    "status": 400,
+    "allowOrigin": null,
+    "body": "Disallowed CORS origin"
+   },
+   "licence": "CC BY 4.0",
+   "userAgentAsked": true,
+   "throttleDocumented": true,
+   "attribution": "Data: Alplakes, Eawag (CC BY 4.0)"
+  },
+  "bafu": {
+   "status": 200,
+   "bytes": 30394,
+   "cors": "https://buscosun.com",
+   "stations": 34,
+   "withLevel": 34,
+   "withTemp": 0,
+   "newest": "2026-11-21T09:50:00+01:00"
+  },
+  "gkd": {
+   "status": 200,
+   "noApi": "keine Public-API für eine maschinenlesbare Bereitstellung der Daten in den Formaten JSON, CSV und XML.",
+   "licence": "CC BY 4.0"
+  },
+  "links": {
+   "https://www.dwd.de/DE/wetter/warnungen/warnWetter_node.html": {
+    "status": 200,
+    "bytes": 70215
+   },
+   "https://www.meteoschweiz.admin.ch/wetter/gefahren.html": {
+    "status": 200,
+    "bytes": 439353
+   },
+   "https://warnungen.zamg.at/": {
+    "status": 200,
+    "bytes": 3459
+   }
+  }
+ }
+}

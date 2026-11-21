@@ -13,9 +13,9 @@ import { groupPasses, sortPasses } from './activity/overpasses';
 import { footprintRing, VIIRS_NOMINAL_KM, type FirmsRow } from './sources/firmsHotspots';
 import { FirePassChart } from './FirePassChart';
 import { outerOutline, type LonLatRect } from './pixelOutline';
-import { SatImageryBlock } from './FireSatImagery';
+import { SatImageryBlock, warmSatImagery } from './FireSatImagery';
 import { bboxPolygon, historyAreaBbox } from './FireMiniMap';
-import { satEnabled } from './detail/fireSatImagery';
+import { satEnabled, satLoadEnabled } from './detail/fireSatImagery';
 import type { HistoryIndexEntry, HistoryIndexFile, HistoryWindowKind } from './history/historyArtifacts';
 import { historyStandLabel, type HistoryLoad } from './history/historyLoad';
 import { loadHistoryShard, eventFromShard, fireDayWeather, rainLabel, type ShardLoad, type FireDayWeather } from './history/historyDetail';
@@ -358,6 +358,17 @@ export function HistoryDossierBody({ entry, aside, head }: {
   useEffect(() => setCopied(false), [entry]);
   const [chapter, setChapter] = useState<DossierChapter>(1);
   useEffect(() => setChapter(1), [entry.id]);
+  // Phase SL (as in the live dossier since 10.11.): the satellite picture starts loading while the chapter "Brand" is open
+  // (idle, at the latest after 1.5 s) — once the shard has settled, because its pixel area frames the start view.
+  const shardSettled = shard.kind !== 'loading';
+  useEffect(() => {
+    if (!shardSettled || !satEnabled() || !satLoadEnabled()) return;
+    const run = () => warmSatImagery({ lat: entry.lat, lon: entry.lon, bbox: ev?.bbox ?? null, firstMs: entry.firstMs, lastMs: entry.lastMs, shape: frameShape }, Date.now());
+    const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number; cancelIdleCallback?: (h: number) => void };
+    if (w.requestIdleCallback) { const h = w.requestIdleCallback(run, { timeout: 1500 }); return () => w.cancelIdleCallback?.(h); }
+    const h = window.setTimeout(run, 800); return () => window.clearTimeout(h);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entry.id, shardSettled]);
   const passes = useMemo(() => (ev ? sortPasses(groupPasses(shardRows(ev))) : []), [ev]);
   const w = weather !== 'loading' ? weather : null;
   const lc = ev?.effis?.landcover ?? null;

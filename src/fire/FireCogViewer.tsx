@@ -29,7 +29,8 @@ import { dnbrTileRgba, swirTileRgba, DNBR_CLASSES } from './detail/burnIndex';
 import { floodScar, scarHa, seedsFromRects, SCAR_MIN_CLASS, type ScarResult } from './detail/burnScar';
 import { detectionPolysPx, type DetPoly } from './detail/satDetections';
 import type { FirmsRow } from './sources/firmsHotspots';
-import { fetchS2CogRef, fetchS2PreCogRef, fetchSat, type S2CogRef, type S2PreRef, type SatFetchOpts } from './detail/fireSatImagery';
+import { fetchS2CogRef, fetchS2PreCogRef, fetchSat, rangeAddress, satLoadEnabled, type S2CogRef, type S2PreRef, type SatFetchOpts } from './detail/fireSatImagery';
+import { levelThatFits, tileBytes, tileRetryMs, tilesToEvict, TILE_CACHE_BYTES, VIEW_TILE_BYTES } from './detail/cogTileCache';
 import { pixelOf } from './detail/sentinelGeo';
 import { prepareWcSampler, wcEnabled, wcVia, type WcSampler, type WcVia } from './detail/worldCover';
 
@@ -109,7 +110,41 @@ const MODE_LABEL: Record<CogMode, string> = { tci: 'Echtfarbe', swir: 'SWIR', dn
 // --- Kachel-Caches (Sitzung; Deckel geben ImageBitmaps wieder frei) ----------------------------
 
 const _tiles = new Map<string, Promise<ImageBitmap>>();
+/** Tile count of the cache as before phase SL — only behind the kill switch `?satload=0`. */
 const TILE_CACHE_MAX = 24;
+/**
+ * Phase SL (`audit/satellitenbild-laden.md`, `detail/cogTileCache.ts`), read once per page: the cache counts bytes,
+ * keeps what the picture on screen needs, and a tile that failed is asked again whoever asked first.
+ */
+const SL = satLoadEnabled();
+/** Decoded bytes per key of `_tiles` and their sum. */
+const _cost = new Map<string, number>();
+let _costSum = 0;
+/** Keys the picture on screen needs — of the draw that is running and of the one before it. Never thrown out. */
+let _pins: ReadonlySet<string> = new Set<string>();
+let _pinsBefore: ReadonlySet<string> = _pins;
+const isPinned = (key: string): boolean => _pins.has(key) || _pinsBefore.has(key);
+/** A tile that is read counts as used: it moves to the young end of the cache. */
+function touchTile(key: string, p: Promise<ImageBitmap>): void {
+  if (!SL) return;
+  _tiles.delete(key);
+  _tiles.set(key, p);
+}
+function dropTile(key: string): void {
+  const p = _tiles.get(key);
+  _tiles.delete(key);
+  _ready.delete(key);
+  _costSum -= _cost.get(key) ?? 0;
+  _cost.delete(key);
+  if (p) void p.then((b) => b.close(), () => undefined);
+}
+/**
+ * The open viewers hear of every tile that arrived (`waitMs` 0) or failed (`waitMs` = the pause before the next
+ * try). Before, only the draw that had asked for a tile heard of its failure: a tile from the warm start
+ * (`warmCogView`) or from an earlier draw that failed left the picture standing, and nothing asked again.
+ */
+const _watchers = new Set<(waitMs: number) => void>();
+const tellWatchers = (waitMs: number): void => { for (const w of _watchers) w(waitMs); };
 /**
  * V-SAT-17: wie viele TEURE Kachelbauten ein Bild anstoßen darf. Der dNBR-Bau mit
  * Landbedeckungs-Dämpfung rechnet `wcGeoGrid` + `wcMapBlock` SYNCHRON beim Start (~37 ms je
@@ -155,7 +190,25 @@ function withSlot<T>(job: () => Promise<T>): Promise<T> {
 /** Keys of `_tiles` whose bitmap is there (not just asked for) — the status line says while the sharp level still loads. */
 const _ready = new Set<string>();
 
-function putBitmap(key: string, p: Promise<ImageBitmap>): Promise<ImageBitmap> {
+function putBitmap(key: string, p: Promise<ImageBitmap>, bytes: number): Promise<ImageBitmap> {
+  if (SL) {
+    p.then(() => {
+      // A tile thrown out while it loaded is not kept: its bitmap is closed by `dropTile`.
+      if (_tiles.get(key) === p) _ready.add(key);
+      _failed.delete(key);
+      tellWatchers(0);
+    }, () => {
+      if (_tiles.get(key) === p) dropTile(key); // a failure is not remembered as a tile
+      const n = (_failed.get(key)?.n ?? 0) + 1;
+      _failed.set(key, { at: Date.now(), n });
+      tellWatchers(tileRetryMs(n) + 50);
+    });
+    for (const old of tilesToEvict(_tiles.keys(), (k) => _cost.get(k) ?? 0, isPinned, _costSum, bytes, TILE_CACHE_BYTES)) dropTile(old);
+    _tiles.set(key, p);
+    _cost.set(key, bytes);
+    _costSum += bytes;
+    return p;
+  }
   p.catch(() => _tiles.delete(key)); // Ausfall nicht merken — der nächste Blick versucht es neu
   p.then(() => { if (_tiles.get(key) === p) _ready.add(key); }, () => undefined);
   if (_tiles.size >= TILE_CACHE_MAX) {
@@ -181,7 +234,6 @@ const HEADER_FETCH: SatFetchOpts = { firstByteMs: 8_000, totalMs: 20_000, tries:
  * in the very next frame — offline that was a request loop. Now the next try waits 4 s, 8 s, 16 s, at most 30 s.
  */
 const _failed = new Map<string, { at: number; n: number }>();
-const tileRetryMs = (n: number): number => Math.min(30_000, 4_000 * 2 ** (n - 1));
 function failedLately(key: string): boolean {
   const f = _failed.get(key);
   return f != null && Date.now() - f.at < tileRetryMs(f.n);
@@ -202,7 +254,7 @@ async function fetchPart(href: string, from: number, to: number): Promise<Uint8A
   if (_partsOut >= PARTS_MAX) await new Promise<void>((go) => _partQueue.push(go)); // the slot is handed over
   else _partsOut++;
   try {
-    const r = await fetchSat(href, { headers: { Range: `bytes=${from}-${to}` } }, TILE_FETCH);
+    const r = await fetchSat(rangeAddress(href, from, to), { headers: { Range: `bytes=${from}-${to}` } }, TILE_FETCH);
     if (!r.ok && r.status !== 206) throw new Error(`HTTP ${r.status}`);
     if (r.buf.byteLength !== to - from + 1) throw new Error('range length');
     return new Uint8Array(r.buf);
@@ -230,7 +282,7 @@ function loadTile(
 ): Promise<ImageBitmap> {
   const key = `${href}|${levelKey}|${idx}`;
   const hit = _tiles.get(key);
-  if (hit) return hit;
+  if (hit) { touchTile(key, hit); return hit; }
   return putBitmap(key, withSlot(async () => {
     const raw = await decodeTile(await fetchRange(href, offset, byteCount), ifd);
     onBytes(byteCount);
@@ -239,7 +291,7 @@ function loadTile(
       img.data[j] = raw[i]; img.data[j + 1] = raw[i + 1]; img.data[j + 2] = raw[i + 2]; img.data[j + 3] = 255;
     }
     return createImageBitmap(img);
-  }));
+  }), tileBytes(ifd.tileW, ifd.tileH));
 }
 
 /** Eine uint16-Bandkachel (B8A/B12/B04), dekodiert und gecacht — die Rohware für SWIR und dNBR. */
@@ -354,7 +406,7 @@ function loadSwirTile(
 ): Promise<ImageBitmap> {
   const key = `swir|${bands.swir22}|${lv.s12.width}|${t.idx}`;
   const hit = _tiles.get(key);
-  if (hit) return hit;
+  if (hit) { touchTile(key, hit); return hit; }
   return putBitmap(key, (async () => {
     const [s12, n8a, r04] = await Promise.all([
       loadBandTile(bands.swir22, lv.s12, t.idx, onBytes),
@@ -363,7 +415,7 @@ function loadSwirTile(
     ]);
     const rgba = swirTileRgba(s12, n8a, r04, bands);
     return createImageBitmap(new ImageData(rgba, lv.s12.tileW, lv.s12.tileH));
-  })());
+  })(), tileBytes(lv.s12.tileW, lv.s12.tileH));
 }
 
 /** SAT2d: Landbedeckungs-Sampler + UTM-Lage der Kachel — `null` heißt „ohne Dämpfung". */
@@ -383,7 +435,7 @@ function loadDnbrTile(
   // ungedämpfte Kacheln unter gedämpfte derselben Sitzung (§12.3).
   const key = `dnbr|${post.swir22}|${pre.swir22}|${lv.postS.width}|${t.idx}${wcArgs ? (wcArgs.via === 'mirror' ? '|wcm' : '|wc') : ''}`;
   const hit = _tiles.get(key);
-  if (hit) return hit;
+  if (hit) { touchTile(key, hit); return hit; }
   return putBitmap(key, (async () => {
     // SAT2c: die SCL-Maske ist ein Zusatz — ihr Ausfall (Netz, Gitter) bricht das Overlay nie.
     const scl = (href: string | null, ifd: CogIfd | null): Promise<Uint8Array | null> =>
@@ -405,7 +457,7 @@ function loadDnbrTile(
     const rgba = dnbrTileRgba(preN, preS, postN, postS, pre, post, preScl, postScl, wcCls, cls);
     putCls(key, cls);
     return createImageBitmap(new ImageData(rgba, lv.postS.tileW, lv.postS.tileH));
-  })());
+  })(), tileBytes(lv.postS.tileW, lv.postS.tileH));
 }
 
 // --- Maßstabsbalken ---------------------------------------------------------------------------
@@ -428,7 +480,7 @@ function fetchIfds(href: string, onBytes: (n: number) => void): Promise<CogIfd[]
   const p = (async () => {
     let end = COG_HEADER_BYTES;
     for (let i = 0; i < 3; i++) {
-      const r = await fetchSat(href, { headers: { Range: `bytes=0-${end - 1}` } }, HEADER_FETCH);
+      const r = await fetchSat(rangeAddress(href, 0, end - 1), { headers: { Range: `bytes=0-${end - 1}` } }, HEADER_FETCH);
       if (!r.ok && r.status !== 206) throw new Error(`HTTP ${r.status}`);
       onBytes(end);
       const parsed = parseCogIfds(r.buf);
@@ -441,6 +493,26 @@ function fetchIfds(href: string, onBytes: (n: number) => void): Promise<CogIfd[]
   p.catch(() => _headers.delete(href));
   _headers.set(href, p);
   return p;
+}
+
+/**
+ * The level a view is drawn from: the one `pickLevel` chooses for the scale — or, when its tiles in view would not fit
+ * the cache (`VIEW_TILE_BYTES`), the next coarser one that does (phase SL; e.g. full screen on a 2× display far zoomed
+ * out). `win` is the view in full-resolution pixels of the granule, `refW` the granule's full width. The status line
+ * names the resolution of the level that is really shown.
+ */
+function viewLevel(
+  ifds: readonly CogIfd[], targetMPerPx: number, fullMPerPx: number, refW: number,
+  win: readonly [number, number, number, number],
+): { ifd: CogIfd; mPerPx: number } {
+  const chosen = pickLevel(ifds, targetMPerPx, fullMPerPx);
+  if (!SL) return chosen;
+  const sorted = [...ifds].sort((a, b) => b.width - a.width);
+  const ifd = levelThatFits(sorted.filter((l) => l.width <= chosen.ifd.width), (l) => {
+    const f = l.width / refW;
+    return tilesFor(l, win[0] * f, win[1] * f, win[2] * f, win[3] * f).length * tileBytes(l.tileW, l.tileH);
+  }, VIEW_TILE_BYTES);
+  return ifd === chosen.ifd ? chosen : { ifd, mPerPx: (fullMPerPx * sorted[0].width) / ifd.width };
 }
 
 /**
@@ -469,7 +541,7 @@ export async function warmCogView(
     const k = view.mpp / FULL_M_PER_PX;
     const px0 = view.cx - (cssW / 2) * k, px1 = view.cx + (cssW / 2) * k;
     const py0 = view.cy - (cssH / 2) * k, py1 = view.cy + (cssH / 2) * k;
-    const chosen = pickLevel(ifds, view.mpp / dpr, FULL_M_PER_PX);
+    const chosen = viewLevel(ifds, view.mpp / dpr, FULL_M_PER_PX, fullW, [px0, py0, px1, py1]);
     const upTo = [...ifds].sort((a, b) => a.width - b.width).filter((l) => l.width <= chosen.ifd.width);
     const pre = upTo.length >= 2 ? upTo[upTo.length - 2] : null;
     let n = 0;
@@ -821,6 +893,9 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
     };
     const budget = { n: 0 };
     const frame = { deferred: false, sharpening: false };
+    // Phase SL: what this picture needs stays in the cache — together with the pins of the draw before, until this one is through.
+    const pins = new Set<string>();
+    if (SL) { _pinsBefore = _pins; _pins = pins; }
     /** Set once this draw's own microtasks are through: a tile that arrives later is left to the next draw. */
     let late = false;
     /** A failed tile is asked again after a growing pause (4 s … 30 s), not in the next frame. */
@@ -847,8 +922,24 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
       type Lv = (typeof levels)[number];
       const ask = (lv: Lv, t: CogTileRef) => {
         const key = lv.key(t);
+        // Phase SL: arrival and failure reach every open viewer through `_watchers` (`putBitmap`), whoever asked.
+        if (SL) { void lv.request(t).catch(() => undefined); return; }
         lv.request(t).then(() => { _failed.delete(key); schedule(); }, () => retryLater(key));
       };
+      // Pinned before anything is asked for: the tiles in view of the chosen level and, while that one is not
+      // complete, of the levels below it (the interim picture). A request of this draw must not push one of them out.
+      const lowerKeys: string[] = [];
+      let incomplete = false;
+      if (SL) {
+        for (const lv of sorted) {
+          if (lv.ifd.width > chosenW || (chosenOnly && lv.ifd.width !== chosenW)) continue;
+          const f = lv.ifd.width / fullW;
+          for (const t of tilesFor(lv.ifd, px0 * f, py0 * f, px1 * f, py1 * f)) {
+            pins.add(lv.key(t));
+            if (lv.ifd.width < chosenW) lowerKeys.push(lv.key(t));
+          }
+        }
+      }
       // Cold view (no level has this area yet): the tiles of the level ONE below the chosen one are asked FIRST.
       // Measured 06.11. on a cloud-free scene: a 10 m tile is 1.9 MB and took 9.5 s, the 20 m tile over the same
       // ground 0.5 MB and 2.1 s — a nearly sharp picture stands early, the chosen level replaces it. Two levels
@@ -872,6 +963,8 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
         const fac = lv.ifd.width / fullW;
         for (const t of tilesFor(lv.ifd, px0 * fac, py0 * fac, px1 * fac, py1 * fac)) {
           const cached = _tiles.get(lv.key(t));
+          if (cached) touchTile(lv.key(t), cached);
+          if (lv.ifd.width === chosenW && !_ready.has(lv.key(t))) incomplete = true;
           if (!chosenOnly && lv.ifd.width === chosenW && !_ready.has(lv.key(t))) frame.sharpening = true;
           if (!cached) {
             if (lv.ifd.width === chosenW && budget.n < 12) {
@@ -893,13 +986,15 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
           }, () => undefined);
         }
       }
+      // The chosen level stands: the levels below it are covered and may leave the cache.
+      if (!incomplete) for (const k of lowerKeys) pins.delete(k);
     };
 
     // Grundbild: Echtfarbe (auch unter dem dNBR-Overlay) bzw. SWIR-Falschfarbe.
     let shownMPerPx: number;
     if (m === 'swir' && d.swirLevels && d.swirLevels.length > 0) {
       const bands = d.ref.bands as NonNullable<S2CogRef['bands']>;
-      const chosen = pickLevel(d.swirLevels.map((l) => l.s12), mpp / dpr, BAND_M_PER_PX);
+      const chosen = viewLevel(d.swirLevels.map((l) => l.s12), mpp / dpr, BAND_M_PER_PX, fullW, [px0, py0, px1, py1]);
       shownMPerPx = chosen.mPerPx;
       drawPyramid(d.swirLevels.map((lv) => ({
         ifd: lv.s12,
@@ -907,7 +1002,7 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
         request: (t) => loadSwirTile(bands, lv, t, onBytes),
       })), chosen.ifd.width, false);
     } else {
-      const chosen = pickLevel(d.ifds, mpp / dpr, FULL_M_PER_PX);
+      const chosen = viewLevel(d.ifds, mpp / dpr, FULL_M_PER_PX, fullW, [px0, py0, px1, py1]);
       shownMPerPx = m === 'tci' ? chosen.mPerPx : Math.max(chosen.mPerPx, BAND_M_PER_PX);
       drawPyramid(d.ifds.map((ifd) => ({
         ifd,
@@ -921,7 +1016,7 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
     if (m === 'dnbr' && d.dnbrLevels && d.dnbrLevels.length > 0 && d.pre?.ref.bands && d.ref.bands) {
       const post = d.ref.bands;
       const pre = d.pre.ref.bands;
-      const chosen = pickLevel(d.dnbrLevels.map((l) => l.postS), mpp / dpr, BAND_M_PER_PX);
+      const chosen = viewLevel(d.dnbrLevels.map((l) => l.postS), mpp / dpr, BAND_M_PER_PX, fullW, [px0, py0, px1, py1]);
       shownMPerPx = Math.min(shownMPerPx, chosen.mPerPx);
       // SAT2d: UTM-Lage der Kachel für die Landbedeckungs-Dämpfung — aus dem 10-m-Transform
       // des Granulats (`proj:transform`), Ebenen-Faktor wie beim Zeichnen.
@@ -1139,12 +1234,28 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
     });
     // Queued after the callbacks of the tiles that were ready in this draw — they still paint, later ones redraw.
     queueMicrotask(() => { late = true; });
+    if (SL) _pinsBefore = pins;
   };
 
   const schedule = () => {
     if (rafRef.current) return;
     rafRef.current = requestAnimationFrame(() => { rafRef.current = 0; draw(); });
   };
+
+  // Phase SL: every tile that arrives draws again, every tile that failed after its pause — also one this viewer
+  // did not ask for itself (warm start, an earlier draw). On unmount the picture's tiles are free to leave the cache.
+  const scheduleRef = useRef(schedule);
+  scheduleRef.current = schedule;
+  useEffect(() => {
+    if (!SL) return;
+    let alive = true;
+    const hear = (waitMs: number) => {
+      if (waitMs <= 0) scheduleRef.current();
+      else window.setTimeout(() => { if (alive) scheduleRef.current(); }, waitMs);
+    };
+    _watchers.add(hear);
+    return () => { alive = false; _watchers.delete(hear); _pins = new Set<string>(); _pinsBefore = _pins; };
+  }, []);
 
   useEffect(() => {
     if (phase.kind !== 'ready') return;

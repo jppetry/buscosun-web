@@ -3804,6 +3804,143 @@ und `buscosun-archiv` in dieser Phase: keine** — die Phase liest nur Dateien, 
 10. **Offen:** Punkte 2 bis 4; Pixelgleichheit der übrigen Seite nicht gemessen; `verify:sea-ui` nicht gelaufen
     (Browser-Prüfer, an HEAD rot). V-AM-1 … 15.
 
+## 99. Ausfahrt: Nachzug AM-N, Pfeile an der Route AM-P und V-AM-18 (`audit/seewetter-ausfahrt.md` §8, §9, §10), 2026-11-19
+
+Stand: §98 ist erledigt, soweit es der Push war — `origin/main` = `1bcf3e43` (19.11. 07:09 MEZ), `sea/v1/current/`,
+`dmi/` und `wtemp/` liegen seit 06:31 UTC im Datenspeicher. Was hier steht, ist **uncommitted** im Arbeitsbaum
+(dreizehn Dateien mit dieser und `CLAUDE.md`, sechs Bilder). **Pushes in `buscosun-data` und `buscosun-archiv`: keine.**
+
+1. **Commit und Push** (zwei Themen, am besten zwei Commits): AM-N = `SeaPage.tsx`, `seaDeck.css`, `seaTrip.ts`
+   (nur `planSheetSources`), `seaTripData.ts`, `ci.yml`, Prüfer K; AM-P = `seaTrip.ts` (Pfeile), `SeaMap.tsx`,
+   `SeaTripPanels.tsx`, `seaDeck.css` (`sw-am-arr*`), Prüfer L. `seaTrip.ts`, `seaDeck.css`, `SeaPage.tsx`, der Prüfer,
+   `budget.json` und das Audit tragen beide Themen — für zwei Commits wäre Hunk-Staging nötig; ein gemeinsamer Commit
+   ist ehrlicher als ein falsch geschnittener. V-AM-18 = `seaClient.ts`, `seaTripData.ts` (löst dort die Behebung
+   von V-AM-16 aus AM-N ab), Prüfer K6/K7 — gehört in denselben Commit wie AM-N.
+2. **V-AM-16 ist ein Fehler, der seit heute 07:31 MEZ live ist:** jede Etappe zeigt „Welle: keine Daten“, seit die
+   Strömungsdatei im Speicher liegt (Ursache und Behebung §8.4). Er verschwindet erst mit dem Push dieses Stands.
+3. **Sichtprüfung** (ich habe den Build im Browser gesehen, Chromium 1440 × 900 und 390 × 844, Live-Daten; Bilder
+   `audit/seewetter-ausfahrt/amn-*.png`, `amp-*.png`). Bitte ansehen:
+   - `/seewetter?p=yacht&et=…` (ein geteilter Link): kein Schleier „Karte erkunden“ über der Route; ohne Planer kommt
+     er wie bisher.
+   - Telefon, „Ausfahrt“: der Knopf „Quellen“ sitzt auf der Oberkante des Blatts; „Alle Befunde zeigen“ ⇒ er ruht;
+     „Spot“ / „Ebenen“ / „Schwelle“ ⇒ er liegt nicht mehr über dem Blatt.
+   - Etappe: Windpfeile mit Zahl neben der Route, ein Strompfeil; Spalte in der Tabelle wählen ⇒ die Pfeile setzen
+     sich neu; Profil mit niedriger Windgrenze ⇒ roter Kern und rote Zahl.
+   - **Von mir nicht geprüft:** einen Punkt ziehen (die Pfeile sollen dabei verschwinden und nach dem Loslassen
+     wiederkommen), Real-Device, Tablet.
+4. **Entscheiden** (alles gesetzt, ein Wort dreht es): **E-AM-15** der Kartenhinweis ruht für den ganzen Besuch,
+   sobald ein Planer offen war (auch nach einem Tipp auf „Ausfahrt“ ohne Spot, V-AM-19). **E-AM-16** unter dem ganz
+   offenen Blatt und unter „Spot“ / „Ebenen“ / „Schwelle“ ist der Knopf „Quellen“ nicht da (wie unter dem Dossier).
+   **E-AM-17** ein Windpfeil zeigt den Wind der Tabellenspalte (wenn du dort bist) — nicht, wie in V-AM-9 skizziert,
+   den der gewählten Stunde. **E-AM-20** EIN Strompfeil am stärksten Strom ab 0,2 kn (die Vorlage setzt ihn an „Wind
+   gegen Strom“, V-AM-24). **E-AM-21** rot nur, wenn der Wind der Spalte über deiner Grenze liegt. **E-AM-23** ein
+   Pfeil weicht einem Etikett auf die andere Seite der Route aus.
+5. **V-AM-18 ist umgesetzt** (dein Wort vom 19.11., Audit §10): die Lader von `seaClient.ts` geben den Abruf nicht
+   mehr dem, der zuerst gefragt hat, sondern allen, die warten. Nachgestellt (am alten Stand rot), im Browser
+   gesehen. **Der angekündigte Preis fällt nicht an (E-AM-24):** geht der letzte Frager, endet der Abruf wie bisher —
+   beim schnellen Ziehen der Zeit bricht das verlassene Feld ab (gemessen). Die Etappe fragt nicht mehr nach
+   (E-AM-25, das Nachfragen aus §8.4 ist entfernt). Bitte ansehen: Ebene wechseln (Seegang gesamt ↔ Periode), während
+   die Fläche noch lädt, am Telefon mit langsamem Netz — von mir nur am Desktop mit festgehaltenem Abruf gesehen.
+6. **Budget:** `totalJs` 2 044 → 2 045 (AM-N, +413 Byte) → 2 046 (AM-P, +1 609 Byte), beide gemessen, Notizen in
+   `budget.json`, von Hand angehoben. V-AM-18: +295 Byte, IST 2 045,9 / 2 046 — **nicht angehoben**, obwohl du es
+   freigegeben hast; die nächste Änderung an `src/` reißt die Grenze.
+7. **CI:** der Schritt „Verifier — Ausfahrt planen“ steht jetzt in `.github/workflows/ci.yml` (V-AM-12). Er läuft
+   zum ersten Mal mit dem Push; der Prüfer ist netzfrei und hier 70/70.
+8. **Rückfall:** kein Schalter (E-AM-1). Den Commit zurücknehmen und pushen.
+9. **Offen:** V-AM-1, 2, 4, 5, 6, 10, 11, 13, 14, 15 (wie §98) und neu V-AM-19 … 27 (V-AM-26: dasselbe Muster wie
+   V-AM-18 im Pegel-Lader `waterLevelClient.ts`, nicht angefasst).
+
+## 100. Strömung: die Riffel bewegen sich wie die Windpartikel (Phasen SR-B bis SR-F, `audit/seewetter-riffel.md` §7 bis §12), 2026-11-19
+
+Stand: **uncommitted** im Arbeitsbaum, neben §99. Sieben Dateien (`seaRipples.ts`, `seaRippleSim.ts`,
+`SeaRippleLayer.ts`, `SeaPage.tsx` eine Zeile + ein Import, `SeaMap.tsx` eine Zeile, `scripts/verify-sea-ripples.mjs`,
+`budget.json`), das Audit und der Ordner `audit/seewetter-riffel/` (dreizehn Dateien). **Pushes in `buscosun-data` und `buscosun-archiv`: keine.**
+
+1. **Ansehen** — in DEINEM Chrome, der „reduzierte Bewegung“ meldet: `/seewetter?l=cur`. Die Riffel laufen jetzt
+   (vorher stand bei dir ein Standbild — das war die Ursache). Bitte sagen:
+   - **Tempo:** du hast viermal „langsamer“ gesagt ⇒ jetzt 5 px/s bei 0,1 m/s, 12 bei 0,3, 27 bei 1 m/s
+     (E-SR-18, E-SR-21 je −20 %, E-SR-24, E-SR-25 je −15 %; begonnen bei 60). Über 0,19 m/s ist das langsamer als
+     vor heute — nur schwacher Strom läuft noch schneller als damals. Passt es so? Es bleibt EINE Zahl (`RIPPLE_TEMPO.pxPerSec`).
+     Das Tempo vor heute: `?l=cur&srtempo=lin`.
+   - **Weniger Bögen beim Hineinzoomen:** die Startansicht ist unverändert; eine Zoomstufe weiter hinein und tiefer
+     sind es 25 % weniger Bögen, dazwischen gleitend (E-SR-22; gemessen −24 % der Striche). Passt die Stelle, ab der
+     es weniger werden? Auch das ist eine Zahl (`RIPPLE_ZOOM.levels`). In ruhigem Wasser (Förden) könnte es jetzt
+     leer wirken (V-SR-16).
+   - **Beim Hineinzoomen:** du hast „minimal“ gesagt ⇒ die Ebene zeichnet beim Bewegen der Karte jetzt einmal je
+     Bild statt zweimal (E-SR-19; gemessen 36–38 doppelte Bilder → 1–2, Rechenzeit je Bild p95 12–15 → 10–11 ms).
+     Ist es bei dir damit weg? Wenn nicht: V-SR-15 (Fronten in einem Pfad zeichnen) ist der nächste Schritt.
+   - **Telefon:** läuft es dort ruhig? Von mir nur in Telefon-Größe am Desktop gemessen.
+2. **Entscheiden** (gesetzt, ein Wort dreht es): **E-SR-15** die Ebene bewegt sich immer, auch wenn das Gerät
+   reduzierte Bewegung wünscht — wie die Windebene. Das Standbild gibt es nur noch über `?srstill=1`. Für Menschen,
+   denen Bewegung zusetzt, wäre ein sichtbarer Schalter „Bewegung anhalten“ der bessere Weg (V-SR-14) — du hast
+   am 19.11. gesagt: „lass es erstmal so“ (E-SR-20).
+   **E-SR-17** die Fäden sind mit dem höheren Tempo länger.
+3. **Commit und Push** (eigenes Thema, eigener Commit möglich: keine der fünf Dateien trägt ein anderes offenes Thema
+   außer `SeaPage.tsx`, dort eine Zeile und ein Import). Vorschlag:
+   `feat(sea): ripples of the current move at the wind particles' tempo, whatever the device says about motion (phases SR-B to SR-F)`.
+4. **Rückfall ohne Deploy:** `?srstill=1` (Standbild), `?srtempo=lin` (altes Tempo). Ganz: den Commit zurücknehmen.
+5. **Budget:** `totalJs` 2 046 → **2 047**, von Hand mit Notiz (SR-B −23 Byte, SR-C −3, SR-D +335; IST 2 046,2). Der
+   erste Budget-Lauf der Phase SR-D war rot (2 046,3 > 2 046).
+6. **Offen:** V-SR-11, 12, 15, 16 (neu), V-SR-1, 2, 4 … 10 wie §97; V-SR-13 umgesetzt, V-SR-14 entschieden, V-SR-17
+   ist ein Merker. `verify:sea-ripples` steht weiter nicht in der CI
+   (V-SR-8).
+
+## 101. Ausfahrt: „Vor Ort“ im Aufbau der Etappe (Phase AM-O, `audit/seewetter-ausfahrt.md` §11), 2026-11-19
+
+Dein Auftrag vom 19.11.: die Ansicht der Etappe für „Vor Ort“. **Uncommitted** im Arbeitsbaum, zusammen mit §99
+(dieselben Dateien `SeaPage.tsx`, `seaDeck.css`, die zwei Prüfer). **Pushes in die Daten-Repos: keine.**
+
+1. **Ansehen** (Bilder `audit/seewetter-ausfahrt/amo-*.png`, vorher und nachher): `/seewetter` → Profil Kite →
+   „Ausfahrt planen“ → Spot wählen. Links steht jetzt die Eingabe (Wer fährt, Art der Ausfahrt, Startort, Start,
+   Rückkehr, Fenster, „Fenster abspielen“, deine Grenzen, darunter „Ebenen der Karte“), am Kartenfuß das Stundenband,
+   rechts nur die Befunde. **Von mir nicht geprüft:** das Boot und die zwei Griffe ziehen, Real-Device, Tablet.
+2. **Entscheiden** (gesetzt, ein Wort dreht es): **E-AM-26** die Befunde behalten ihre Schiene Start → Rückkehr (nicht
+   die zwei Karten nebeneinander der Etappe), die Hinweise bleiben offen. **E-AM-28** die Eingabe steht schon, während
+   der Planer nach dem Spot fragt. **E-AM-29** mobil dieselbe Reihenfolge wie die Etappe: Eingabe, Stundenband, Befunde
+   — die Befunde stehen damit tiefer im Blatt als bisher.
+3. **Commit/Push** mit §99. Rückfall: kein Schalter, den Commit zurücknehmen.
+4. **Offen:** V-AM-28 (mobil öffnet ein `pl=`-Link das Blatt nicht — schon an HEAD so, Ursache nicht gefunden),
+   V-AM-29 (Profile doppelt, solange nach dem Spot gefragt wird), V-AM-30 (Strand ohne Eingabe links), V-AM-31 (die
+   Karte ist mit offenem „Vor Ort“ 46 px schmaler).
+
+## 102. Ausfahrt: Strand im selben Aufbau (Phase AM-S, `audit/seewetter-ausfahrt.md` §12), 2026-11-19
+
+Dein Auftrag vom 19.11. („bitte angleichen“). **Uncommitted**, zusammen mit §99 und §101. Keine Pushes in die Daten-Repos.
+
+1. **Ansehen** (Bilder `audit/seewetter-ausfahrt/ams-*.png`, vorher und nachher): `/seewetter` → „Ausfahrt planen“ →
+   Art der Ausfahrt „Strand“. Links Revier, Fenster (Beginn, Ende, Länge) und Reihenfolge; am Kartenfuß die Stunden des
+   Fensters; rechts die Liste. **Von mir nicht geprüft:** Real-Device, Tablet.
+2. **Entscheiden** (gesetzt): **E-AM-30** im Strand steht kein „Wer fährt?“ — das Profil ändert an dieser Liste nichts.
+   **E-AM-31** die Stundenleiste liegt am Kartenfuß, mit dem Farbschlüssel der Spot-Marken im Kopf.
+3. **Offen:** V-AM-32 (mobil beginnt jedes Blatt mit der Eingabe, die Befunde stehen darunter — für alle drei Modi
+   gleich; ob die Eingabe mobil eingeklappt beginnen soll, ist dein Wort), V-AM-33.
+4. **Commit/Push** mit §99 und §101. Rückfall: kein Schalter, den Commit zurücknehmen.
+
+## 104. Satellitenbild im Brandradar lädt wie im Gletscher (Phase SL, `audit/satellitenbild-laden.md`), 2026-11-19
+
+Dein Auftrag vom 19.11. („schau nach, ob die Satelliten im Brandradar genauso geladen werden wie im Gletscher; wenn
+nicht, setze es um“). **Uncommitted** im Arbeitsbaum. Keine Pushes in die Daten-Repos, kein Purge.
+
+1. **Ansehen** (ein Brand mit großer Fläche, z. B. `/waldbrand/brand/40.34891_-4.74644_202607221411` → Kapitel
+   „Satellit“ → oben rechts vergrößern → zwei Stufen hinein, schieben, wieder heraus): das Bild steht nach wenigen
+   Sekunden scharf, die Zeile „schärfere Ebene lädt …“ verschwindet nach jedem Schritt. Gegenprobe mit dem alten
+   Lader: dieselbe Adresse mit `?satload=0`. **Von mir nicht geprüft:** Real-Device (Telefon), SWIR und dNBR im
+   Vollbild, langsame Verbindung nach der Änderung.
+2. **Entscheiden: E-SL-1** (gesetzt) — weit herausgezoomt im Vollbild auf einem 2×-Bildschirm zeichnet der Betrachter
+   eine Ebene gröber, wenn die schärfere mehr als 80 MB Kacheln im Bild bräuchte. Vorher lief genau dort die
+   Ladeschleife. Ein Wort von dir hebt die Grenze an (mehr Speicher) oder lässt sie.
+3. **Entscheiden: V-SL-1** — hinter dem Brand-Dossier zeichnet eine Karte in jedem Bild neu, auch wenn sie verdeckt
+   ist (rund 57 Bildanforderungen je Sekunde bei stehender Seite). Auf dem Telefon kostet das Akku und Rechenzeit.
+   Pausieren, solange das Dossier sie verdeckt? Das fasst `FireMap` an — dein Gate.
+4. **Entscheiden: V-SL-2** — der Service Worker (`public/sw.js`) greift in jeden Teilabruf des Bild-Speichers und
+   versucht die Antwort in seinen Cache zu legen; bei Teilantworten (206) schlägt das immer fehl. Den Bild-Speicher
+   durchreichen wie das Daten-CDN? Das ändert den Service Worker — dein Gate.
+5. **Commit/Push** `buscosun-web`: `src/fire/FireCogViewer.tsx`, `src/fire/detail/cogTileCache.ts` (neu),
+   `src/fire/detail/fireSatImagery.ts`, `src/fire/FireHistoryPanel.tsx`, `scripts/verify-fire-detail.mjs`, das Audit
+   mit den Sonden unter `audit/brandradar-satellitenbilder/`. Rückfall ohne Deploy: `?satload=0`.
+6. **Budget:** totalJs 2 057,4 KB bei einer Grenze von 2 051 KB — schon vor dieser Phase rot (2 055,8), SL kostet
+   1,6 KB. Die Grenze habe ich nicht angehoben.
+
 ## 105. Gletscher: Höhenänderung 2000–2019 je Gletscher nach Hugonnet et al. 2021 (Phase GH, `audit/gletscher-hugonnet.md`), 2026-11-19
 
 Ohne Schalter an für alle (dein Wort vom 19.11.). Lokal committet, nicht gepusht. Ich habe die Seite nicht im Browser gesehen.
@@ -3938,3 +4075,69 @@ Nichts davon berührt `obs/v1/`, den Punkt-Cube oder eine andere Linie. Kein Pus
    der Producer selbst lief lokal). **Budget rot**, schon ohne diese Phase
    (totalJs 2 065,7 KB bei einer Grenze von 2 054 KB; mit ihr 2 069,4 KB, +3,7 KB) — Grenze nicht angehoben.
    Geprüft: `verify:glacier-stations` 56/56, alle anderen `verify:glacier-*` ohne Browser grün, Typecheck und Build grün.
+
+## 107. Seewetter: Binnenseen (Phase BS, `audit/seewetter-binnenseen.md`), 2026-11-21
+
+28 Seen, 70 Spots, ohne Schalter an für alle (dein Wort). **In `buscosun-web` ist nichts committet** (Punkt 1). Ich habe die
+Seite nicht im Browser gesehen.
+
+**Pushs in `buscosun-data` (von mir, nur `sea/` und `sea.yml`, ohne Force, je danach geprüft):**
+
+| Commit | Inhalt | Geprüft |
+| --- | --- | --- |
+| `faf2b989e78c5fe4517b2d8c4da279fa9cfd370e` | drei neue Dateien `sea/v1/static/spots-lakes.json`, `lake-geo.json`, `lakes.json` | sha256 auf `raw` gleich den lokalen Dateien; `spots.json` unverändert |
+| `4cfd5f83835c88a85e2ee3f6133c32a806be5ad8` | `.github/workflows/sea.yml`: Schritte „Lakes due?“ und „Lakes“ (+51/−3, nur die Hunks dieser Phase) | sha256 gleich der lokalen Datei; Lauf `sea` Nr. 3741 (10:21 UTC) grün, beide Schritte laufen und überspringen sich, solange der Producer nicht auf `main` liegt |
+| `1a61bae270d47d76e8a389a7661ded649394fbb8` | **erste Seereihe, lokal gerechnet**, damit du vor dem Push etwas siehst: `sea/v1/lakes/2026112100-w2026112106.json` (70 Spots, buscosun Fusion 14), `lakes/wt-202611210920.json` (Alplakes, 22 Becken), in `status.json` die Schlüssel `lakes` und `lakesWt` (sonst nichts) | sha256 beider Dateien gleich den lokalen; ein Push abgelehnt (Cron dazwischen), neu aufgesetzt, zweiter angenommen |
+
+Kein Push in `buscosun-archiv`: dessen Workflow legt die Seedateien von selbst ab, sobald der Archivierer auf `main` liegt.
+
+1. **Commit entscheiden.** Die Seiten-Dateien (`SeaPage.tsx`, `SeaDock.tsx`, `SeaMap.tsx`, `SeaTripPanels.tsx`, `seaClient.ts`,
+   `seaDeck.css`, `seaTripData.ts`, `seaState.ts`, `seaPlanner.ts`, `seaTrip.ts`, `verify-sea-trip.mjs`, `package.json`)
+   tragen noch die uncommitteten Zeilen der Ausfahrt- und Riffel-Linie (§99, §100, §103); `SeaPage.tsx` importiert deren
+   ungetrackte Dateien (`SeaWizard.tsx`, `seaSteps.ts`, `seaOwnPoint.ts`). Meine Zeilen stehen dazwischen. Ein Commit „nur
+   Binnenseen“, der für sich baut, lässt sich daraus nicht schneiden — deshalb habe ich keinen gemacht. Wege:
+   (a) erst §99/§100/§103 committen, dann sage mir „committe BS“ (dann sind die Dateien sauber trennbar);
+   (b) alles Seewetter in einem Commit;
+   (c) so lassen.
+2. **Ansehen** (dein Dev-Server; Katalog und eine erste Seereihe liegen im Speicher — **die Reihe gilt nur, bis der nächste
+   Seegangslauf veröffentlicht ist, etwa 17:15 MEZ am 21.11.**, danach steht an den Seespots „Keine Daten“, bis der
+   Producer nach dem Push selbst rechnet):
+   - `/seewetter?rv=seen` → Revier-Chip „Seen“, darunter eine Reihe mit einem Chip je See (größter zuerst); ein Chip
+     stellt die Karte auf den See, die Seefläche ist blau hinterlegt.
+   - `/seewetter/bodensee-lindau` → Dossier: oben die Warnkarte (Zelle „Bodensee - Ost“: „Keine Warnung … in der
+     Warndatei“ oder die Meldung des DWD im Wortlaut), dann Wind, Böen, „geschätzte Windwelle (eigene Rechnung)“, die
+     Fetch-Rose (Fläche = Strecke über den See je Windrichtung, dicke Linie = aktuelle Windrichtung), Verlauf,
+     Sicht-Hinweis, Wasser (links „keine Station in der Nähe“, rechts das Modell von Alplakes; darunter der Pegel Konstanz),
+     Quellen des Sees. Keine Klasse „passt / knapp“, kein Fenster.
+   - `/seewetter/attersee-attersee` → Warnkarte mit gestricheltem Rand „Kein amtlicher Warnstatus im Datenbestand“ und
+     Link zu GeoSphere Austria; kein Pegel („kein Pegel mit geklärter Lizenz“), dafür der Link zum Hydrographischen Dienst.
+   - `/seewetter/mueritz-waren` → gemessene Wassertemperatur vom WSV-Pegel Waren links, rechts „kein Modell für diesen See“.
+   - `/seewetter/lago-maggiore-locarno` → an fast jeder Stunde „Richtung für diese Stunde nicht bestimmt“ und die
+     Windwelle als „bis x m“ (V-BS-1: buscosun Fusion gibt dort kaum eine Windrichtung aus).
+   - `/seewetter/steinhuder-meer-mardorf` → „keine Station in der Nähe“ bei „An Land gemessen“.
+   - Gegenprobe Küste: `/seewetter/st-peter-ording` sieht aus wie vorher.
+   - Mobil (390 px): Chips und Links 44 px hoch, die Rose steht über dem Text.
+3. **Push** `buscosun-web` (`main`), vorher `npm run edge:share` (die Vorschau geteilter Links kennt die 70 Seespots sonst
+   nicht; `verify:share` ist bis dahin an SH6 rot). Mit dem Push rechnet der Workflow die Seen selbst: im ersten
+   15-min-Lauf danach, dann bei jedem neuen t1-Lauf des Cubes und nach jedem Seegangslauf; Alplakes höchstens alle 6 h.
+   Im Lauf nachsehen: Schritt „Lakes (buscosun Fusion wind at the lake spots …)“ grün, `status.json` trägt `lakes` mit
+   dem aktuellen Lauf.
+4. **Zurück ohne Deploy:** in `buscosun-data` `sea/v1/static/spots-lakes.json` löschen ⇒ kein Seespot, der Producer
+   rechnet nichts. Nur den Producer anhalten: Repo-Variable `SEA_LAKES=0` (ganze Linie) oder `SEA_LAKES_WT=0` (nur Alplakes).
+5. **Mail an die Eawag (Alplakes), an die Kontaktadresse auf alplakes.eawag.ch:** Die API-Doku nennt
+   die Lizenz selbst (CC BY 4.0, Nennung „Data: Alplakes, Eawag (CC BY 4.0)“) — die Frage ist also nicht mehr, ob,
+   sondern wie: (1) dass buscosun die Modell-Wassertemperatur von 18 Seen einbindet, über einen Producer, höchstens alle
+   6 Stunden mit 22 Abrufen (ein Becken je Abruf), mit der genannten Namensnennung an jedem Wert; (2) ob diese Abruffolge
+   recht ist und welcher Kontakt im User-Agent stehen soll (die Doku bittet um einen; heute steht dort
+   `buscosun-sea (https://buscosun.com; …)` ohne Mailadresse — sag mir die Adresse, dann trage ich sie ein, V-BS-12);
+   (3) ob die Nennung so genügt, wenn der Wert neben einer Messung der WSV steht.
+6. **Bestätigen oder kippen:** E-BS-2 (Profilklassen an Seen aus, bis 14 Tage Archiv geprüft sind — frühestens 05.12.,
+   dann `fusion-lake-stations`-Tabelle an allen 41 Stationen aus `lakes-*.json.gz` gegen `lake-obs.json.gz`),
+   E-BS-4 (Wellenformel, mittlere Tiefe als eine Tiefe), E-BS-6 (Station ≤ 25 km und ≤ 150 m über/unter dem See),
+   E-BS-7 (Böenhinweis ab 25 kn und 34 kn am Mittelwert), **E-BS-11 (Windpartikel auf der Seekarte: nicht gebaut,
+   STOPP-Grenze WebGL — willst du sie, sag es)**.
+7. **Lagen ansehen** (V-BS-6): die 70 Lagen sind aus dem Gedächtnis gesetzt und nur am Umriss und an der Ortskoordinate
+   geprüft. Eine falsche Lage: in `scripts/sea/lakes-src.json` korrigieren, `build-lake-spots.mjs --out --geo`,
+   `gen-spot-seo.mjs`, Katalog neu einspielen.
+8. **Budget:** der Arbeitsbaum steht bei totalJs 2 094,1 gegen 2 083 (rot, wie vor der Phase durch die anderen Linien);
+   nach dem Commit am sauberen Stand nachmessen und die Notiz in `budget.json` berichtigen (V-BS-9).

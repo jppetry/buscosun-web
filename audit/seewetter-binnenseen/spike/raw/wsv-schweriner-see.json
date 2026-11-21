@@ -1,0 +1,54 @@
+{
+  "uuid": "680d5966-273f-4254-aabe-5d4e00e12a24",
+  "number": "596900",
+  "shortname": "SCHWERIN WERDERBRÜCKE",
+  "longname": "SCHWERIN WERDERBRÜCKE",
+  "km": 26.06,
+  "agency": "STANDORT LAUENBURG",
+  "longitude": 11.427446,
+  "latitude": 53.646392,
+  "voiceServiceNumber": "+49 228 286527 687",
+  "water": {
+    "shortname": "STW",
+    "longname": "STÖR-WASSERSTRASSE"
+  },
+  "timeseries": [
+    {
+      "shortname": "W",
+      "longname": "WASSERSTAND ROHDATEN",
+      "unit": "cm",
+      "equidistance": 15,
+      "currentMeasurement": {
+        "timestamp": "2026-11-21T10:00:00+01:00",
+        "value": 112.0,
+        "stateMnwMhw": "normal",
+        "stateNswHsw": "unknown"
+      },
+      "gaugeZero": {
+        "unit": "m. ü. NHN",
+        "value": 36.69,
+        "validFrom": "2019-11-01"
+      }
+    },
+    {
+      "shortname": "LT",
+      "longname": "LUFTTEMPERATUR ROHDATEN",
+      "unit": "°C",
+      "equidistance": 15,
+      "currentMeasurement": {
+        "timestamp": "2026-11-21T10:00:00+01:00",
+        "value": 3.2
+      }
+    },
+    {
+      "shortname": "WT",
+      "longname": "WASSERTEMPERATUR ROHDATEN",
+      "unit": "°C",
+      "equidistance": 60,
+      "currentMeasurement": {
+        "timestamp": "2026-11-21T10:00:00+01:00",
+        "value": 7.3
+      }
+    }
+  ]
+}

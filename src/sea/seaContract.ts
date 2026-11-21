@@ -28,6 +28,7 @@
  * wind refresh), read from `status.json`, which the client fetches raw and uncached anyway (kill switch).
  */
 import { dkBlockProblems, type SeaSpotDk } from './seaDmi';
+import { lakeBlockProblems, type SeaSpotLake } from './seaLakes';
 
 // --- Paths -------------------------------------------------------------------------------------
 
@@ -713,22 +714,25 @@ export function currentSeriesProblems(series: Partial<Record<SeaCurrentVar, (num
 // --- Spot catalogue (static/spots.json, E-SW-5) --------------------------------------------------
 
 export type SeaSpotKind = 'strand' | 'kite' | 'hafen' | 'revier';
-export type SeaRegion = 'nordsee' | 'ostsee';
+/** `binnensee` (phase BS) = a lake spot of `static/spots-lakes.json`: no CWAM cell, a `lake` block instead. */
+export type SeaRegion = 'nordsee' | 'ostsee' | 'binnensee';
 export interface SeaSpot {
   /** URL slug, `/seewetter/<id>`. */
   id: string;
   name: string;
   /** The sea the spot lies at — also for a Danish spot (phase DK: `country` names the land, `region` stays the sea). */
   region: SeaRegion;
+  /** Phase BS: a lake spot — the lake, its surface elevation, the water point, the fetch table, warning cell and stations. */
+  lake?: SeaSpotLake;
   /** Phase DK: absent = Germany. A Danish spot carries `dk`, no German coast section and no WODL45 coast block. */
   country?: 'DK';
   dk?: SeaSpotDk;
   kinds: SeaSpotKind[];
   /** Hand-set position of the spot (beach/harbour), WGS84. */
   lat: number; lon: number;
-  /** Shore normal (direction pointing SEAWARD, degrees), computed from the CWAM mask (`normalFrom: 'mask'`). */
+  /** Shore normal (direction pointing SEAWARD, degrees), computed from the CWAM mask (`normalFrom: 'mask'`) — at a lake spot from the lake's outline (`'outline'`). */
   normal: number;
-  normalFrom: 'mask' | 'set';
+  normalFrom: 'mask' | 'set' | 'outline';
   /** With `normalFrom: 'set'`: the value computed from the mask, and why the hand value wins. */
   normalMask?: number;
   normalWhy?: string;
@@ -737,24 +741,41 @@ export interface SeaSpot {
    * `dry` (V-SW-20, catalogues built from 11.10.2026 on): share of the reference run's hours the cell is without
    * sea state (`static dry map`, 0–1); the builder takes the nearest cell at or below `SEA_SPOT_MAX_DRY_SHARE`.
    */
-  cell: { model: SeaModel; i: number; j: number; km: number; dry?: number };
+  cell?: { model: SeaModel; i: number; j: number; km: number; dry?: number };
   /** FQDL50 sea area (DWD WARNCELLID 4…), FQDL51 coast section (5…), WODL45 coast block. */
   seaArea: { id: string; name: string } | null;
   coast: { id: string; name: string } | null;
   wodlCoast: 'Nordseekueste' | 'Ostseekueste' | null;
   /**
    * Nearest station delivering wind and gust, with distance: a DWD POI station (SW-0 §2.6), or — `net: 'dmi'`, Danish
-   * spots — a DMI metObs station (`id` = its stationId).
+   * spots — a DMI metObs station (`id` = its stationId), or — `net: 'obs'`, lake spots — a station of obs/v1.
    */
-  station: { id: string; name: string; km: number; lat: number; lon: number; net?: 'dmi' } | null;
+  station: { id: string; name: string; km: number; lat: number; lon: number; net?: 'dmi' | 'obs' } | null;
   /** Wadden-sea spot: the model computes with the tide, the water level itself is not shown (hint at the value). */
   tidal?: boolean;
 }
 
-/** The catalogue a reader works with: the German spots, then the Danish ones of `dk` (only `country: 'DK'`, no id twice). */
-export function mergeSpotCatalogs(base: readonly SeaSpot[], dk: readonly SeaSpot[] | null | undefined): SeaSpot[] {
+/**
+ * The catalogue a reader works with: the German spots, then the Danish ones of `dk` (only `country: 'DK'`, no id twice),
+ * then — phase BS, only for readers that pass them — the lake spots of `lakes` (only spots with a `lake` block).
+ * The wave producer never passes `lakes`: a lake spot has no CWAM cell and no place in `spots/<run>.json`.
+ */
+export function mergeSpotCatalogs(base: readonly SeaSpot[], dk: readonly SeaSpot[] | null | undefined, lakes?: readonly SeaSpot[] | null): SeaSpot[] {
   const ids = new Set(base.map((s) => s.id));
-  return [...base, ...(dk ?? []).filter((s) => s?.country === 'DK' && !ids.has(s.id))];
+  const out = [...base, ...(dk ?? []).filter((s) => s?.country === 'DK' && !ids.has(s.id))];
+  for (const s of out) ids.add(s.id);
+  for (const s of lakes ?? []) if (s?.lake && s.region === 'binnensee' && !ids.has(s.id)) { ids.add(s.id); out.push(s); }
+  return out;
+}
+/** Is this a lake spot (phase BS)? */
+export const isLakeSpot = (s: Pick<SeaSpot, 'lake'> | null | undefined): boolean => !!s?.lake;
+/**
+ * The point on the water a spot's values belong to: the centre of its CWAM cell at sea, the water point of its `lake`
+ * block at a lake. `null` for a spot with neither (not a spot of this line).
+ */
+export function spotWaterPoint(s: Pick<SeaSpot, 'cell' | 'lake'>): { lat: number; lon: number } | null {
+  if (s.lake) return { lat: s.lake.pt.lat, lon: s.lake.pt.lon };
+  return s.cell ? seaCellCentre(s.cell.model, s.cell.i, s.cell.j) : null;
 }
 
 export function spotCatalogProblems(spots: SeaSpot[]): string[] {
@@ -765,6 +786,14 @@ export function spotCatalogProblems(spots: SeaSpot[]): string[] {
     if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(s.id)) out.push(`${s.id}: Kennung kein Slug`);
     if (ids.has(s.id)) out.push(`${s.id}: doppelt`);
     ids.add(s.id);
+    // Phase BS: a lake spot has its own rules (no CWAM cell, no coast) — `lakeBlockProblems`.
+    if (s.lake || s.region === 'binnensee') {
+      if (!(s.normal >= 0 && s.normal < 360)) out.push(`${s.id}: Ufernormale ${s.normal}`);
+      out.push(...lakeBlockProblems(s.id, s, s.lake));
+      if (s.country != null || s.dk != null) out.push(`${s.id}: Landesangaben der Küste an einem Seespot`);
+      continue;
+    }
+    if (!s.cell) { out.push(`${s.id}: Wasserzelle fehlt`); continue; }
     if (!(s.lat > g.lat2 && s.lat < g.lat1 && s.lon > g.lon1 && s.lon < g.lon2)) out.push(`${s.id}: außerhalb CWAM`);
     if (!(s.normal >= 0 && s.normal < 360)) out.push(`${s.id}: Ufernormale ${s.normal}`);
     if (!(s.cell.i >= 0 && s.cell.i < g.ni && s.cell.j >= 0 && s.cell.j < g.nj)) out.push(`${s.id}: Zelle außerhalb`);

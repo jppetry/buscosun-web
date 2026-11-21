@@ -18,7 +18,7 @@ export const RIPPLE = Object.freeze({
   refW: 680, refH: 380, tracers: 130, packets: 190,
   /** … up to this multiple (`set`: a 1920 × 1000 map of open sea would ask for 7.4 ×). */
   areaCap: 4,
-  /** Movement: px per frame per m/s at 60 fps — the same for threads and packets. */
+  /** Movement before phase SR-B, kept as the fallback `?srtempo=lin`: px per frame per m/s at 60 fps (see `rippleStepPx`). */
   pxPerFrame: 0.75,
   /** B. Threads. */
   threadLen: 56, threadMinMs: 0.04,
@@ -34,11 +34,77 @@ export const RIPPLE = Object.freeze({
   spawnTries: 4,
   /** A new hour's field takes this long to replace the one before, u and v mixed linearly (`set`: under the 900 ms of „Abspielen“). */
   blendMs: 800,
-  /** `prefers-reduced-motion`: the still frame is the state after this many frames (`set`). */
+  /** The still frame (`?srstill=1`) is the state after this many frames (`set`). */
   stillFrames: 90,
   /** Lattice of the visible-water estimate (`set`). */
   latticeX: 34, latticeY: 19,
 });
+/**
+ * Phase SR-B (E-SR-16, Jan 19.11.2026: „das flüssige Bewegen soll genauso sein“ wie bei den Windpartikeln) — the tempo on
+ * the screen follows the wind particles' curve instead of a straight line: px/s = `pxPerSec` · (max(v, `minMs`) /
+ * `refMs`)^`gamma`. `gamma` is the wind preset's (`SEGMENT_PRESET.speed.gamma`); the other three are `set` for
+ * currents: 0.1 m/s ⇒ 5 px/s, 0.3 ⇒ 12, 1 ⇒ 27 (linear before: 4.5 / 13.5 / 45). `pxPerSec` began at 60 — Jan, 19.11.,
+ * four times slower: 48 (E-SR-18), 38 (E-SR-21), 32.3 (E-SR-24) and 27.455 (E-SR-25), the last two −15 % each. Above
+ * 0.19 m/s that is slower than the tempo before the curve (0.3 m/s: 0.88 times, 1 m/s: 0.61 times); a weak current is
+ * still 1.2 times as fast. The floor is the speed below which a packet is hidden anyway. The tempo is no longer proportional to the speed — size and lightness of the fronts carry
+ * the strength, as the legend says.
+ */
+export const RIPPLE_TEMPO = Object.freeze({ pxPerSec: 27.455, refMs: 1, gamma: 0.7, minMs: 0.05 });
+/** Movement of threads and packets in px per 60-fps frame at speed `v` (m/s); still water does not move. `linear` = the fallback. */
+export function rippleStepPx(v: number, linear = false): number {
+  if (!(v > 0)) return 0;
+  if (linear) return RIPPLE.pxPerFrame * v;
+  return (RIPPLE_TEMPO.pxPerSec / 60) * Math.pow(Math.max(v, RIPPLE_TEMPO.minMs) / RIPPLE_TEMPO.refMs, RIPPLE_TEMPO.gamma);
+}
+/**
+ * The two fallbacks of phase SR-B, read from the link: `srstill=1` = one still frame instead of the motion (E-SR-15 —
+ * the layer moves whatever the device says about reduced motion, as the wind layer does), `srtempo=lin` = the tempo
+ * before the phase. Anything else, or a broken query: motion with the curve.
+ */
+export function rippleMotionFrom(search: string | null | undefined): { still: boolean; linear: boolean } {
+  try {
+    const q = new URLSearchParams(search ?? '');
+    return { still: q.get('srstill') === '1', linear: q.get('srtempo') === 'lin' };
+  } catch { return { still: false, linear: false }; }
+}
+
+/**
+ * E-SR-22 (Jan, 19.11.2026: „beim Reinzoomen etwas zu viele Wellen … −25 %“) — zoomed in beyond the start view the layer
+ * shows fewer packets: the full count at the start view and further out, `packets` of it from `levels` zoom levels
+ * further in, sliding in between (no jump while zooming). Threads keep their count.
+ */
+export const RIPPLE_ZOOM = Object.freeze({ levels: 1, packets: 0.75 });
+/**
+ * How many zoom levels the view lies beyond the one at which the start view `home` (west, south, east, north) fits the
+ * map box with `padPx` free on every side — the way the map is created (`fitBoundsOptions: { padding: 10 }`). Computed
+ * from the layer's own view: the map's `cameraForBounds` adds the padding the page sets for legend and panels, and then
+ * the start view itself counts as zoomed in (measured 19.11.: 17 % fewer strokes at the start view). `null` = unknown.
+ */
+export function rippleZoomIn(view: RippleView, home: readonly [number, number, number, number] | null | undefined, padPx = 10): number | null {
+  if (!home) return null;
+  const fit = Math.min((view.w - 2 * padPx) / (mercX(home[2]) - mercX(home[0])), (view.h - 2 * padPx) / (mercY(home[1]) - mercY(home[3])));
+  return fit > 0 && view.ax > 0 ? Math.log2(view.ax / fit) : null;
+}
+/** Share of the packets at `zoomIn` (`rippleZoomIn`); unknown ⇒ all of them. */
+export function zoomPacketScale(zoomIn: number | null | undefined): number {
+  if (zoomIn == null || Number.isNaN(zoomIn)) return 1;
+  const q = Math.min(1, Math.max(0, zoomIn / RIPPLE_ZOOM.levels));
+  return 1 - (1 - RIPPLE_ZOOM.packets) * q;
+}
+
+/**
+ * V-SR-13 — one picture per frame while the map moves. The map draws the layer itself on every 'move' (with the view of
+ * exactly that frame); the layer's own loop then only steps the particles. The loop draws again once no map picture
+ * came for `factor` × the interval of the last two (at least `minMs`, at most `maxMs` — all three `set`): at 60 frames
+ * that is the frame after next, so a pointer held still in the middle of a drag does not freeze the ripples.
+ */
+export const RIPPLE_MOVE = Object.freeze({ minMs: 25, maxMs: 100, factor: 1.5 });
+/** Does the loop draw this frame? `movedAtMs` = time of the last picture drawn on a map move, `moveEveryMs` = the interval before it. */
+export function loopPaints(nowMs: number, movedAtMs: number, moveEveryMs: number): boolean {
+  const every = moveEveryMs > 0 ? moveEveryMs : 0;
+  return nowMs - movedAtMs > Math.min(RIPPLE_MOVE.maxMs, Math.max(RIPPLE_MOVE.minMs, RIPPLE_MOVE.factor * every));
+}
+
 /** Colours of the brief (rgb). `WATER` is the layer's own water tone under the colour area (`set`, audit §1.3). */
 export const RIPPLE_RGB = Object.freeze({
   tint: [120, 214, 222] as const, thread: [150, 222, 228] as const, relief: [3, 38, 46] as const,
@@ -327,7 +393,7 @@ export const RIPPLE_LAYER_LABEL = 'Strömung';
 export const RIPPLE_LEGEND_LINE = 'Bögen zeigen stromab · größer und heller = stärker';
 /** Stands next to the layer with the model note of the current (`SEA_CURRENT_MODEL_NOTE`). */
 export const RIPPLE_MOTION_NOTE = 'Die Bewegung zeigt Richtung und Stärke der Strömung, keine Wellen.';
-export const RIPPLE_STILL_NOTE = 'Standbild: dein Gerät wünscht reduzierte Bewegung.';
+export const RIPPLE_STILL_NOTE = 'Standbild: die Bewegung ist über „srstill=1“ im Link abgeschaltet.';
 /** Why the layer has nothing to draw — the page writes „Keine Daten.“ in front of it; never an older field in its place. */
 export const RIPPLE_WHY = Object.freeze({
   noField: 'Der Lauf der Strömungsvorhersage im Datenspeicher trägt noch kein Feld für diese Ebene.',

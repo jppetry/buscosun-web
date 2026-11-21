@@ -1087,6 +1087,8 @@
   .sw-m-dossier .sw-ds .sw-ds-headside { display: none; }
   /* The map's source line and button float above every page layer — they belong to the map below, not to this page. */
   .sw-root.is-mobile:has(.sw-m-dossier) .msl-host.msl-host .maplibregl-ctrl-bottom-right { display: none; }
+  /* V-AM-17: the same under the full-screen sheets of the bottom bar (Spot, Ebenen, Schwelle) — the button „Quellen“ lay over their lower right corner. */
+  .sw-root.is-mobile:has(.sw-m-dock) .msl-host.msl-host .maplibregl-ctrl-bottom-right, .sw-root.is-mobile:has(.sw-m-dock) .msl-host.msl-host .msl { display: none; }
   /* Official message: the mark sits in the title row, the wording gets the full width. */
   .sw-m-dossier .sw-ds .sw-card.sw-warnbar { display: block; padding: 14px 14px 14px 18px; }
   .sw-m-dossier .sw-warnbar-ic { position: absolute; top: 14px; left: 18px; width: 32px; height: 32px; border-radius: 10px; }
@@ -1441,6 +1443,56 @@
   .sw-m-legend .sw-rp-line { max-width: none; }
   .sw-m-dock .sw-layer-tiles button.sw-rp-tile { min-height: 78px; }
 }
+/* ── Phase BS — Binnenseen (audit/seewetter-binnenseen.md). Ein neues Zeichen: die Fetch-Rose (der See, wie ihn der Wind vom
+   Spot aus sieht). Alles andere nutzt Karten, Kacheln und die Naht der Wassertemperatur. Keine neue Farbe, keine Bewegung. ── */
+.sw-lk-chips { display: flex; gap: 6px; margin-top: 8px; padding: 2px 2px 6px; overflow-x: auto; scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
+.sw-lk-chips button { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--sand-200, #E0D6BE); background: #fff; color: var(--stone-600, #5C5447); font: inherit; font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer; }
+.sw-lk-chips button em { font-style: normal; font-size: 12px; color: var(--stone-400, #A89A7A); font-variant-numeric: tabular-nums; }
+.sw-lk-chips button:hover { border-color: var(--sw-accent, #0F6E7A); }
+.sw-lk-chips button.is-active { background: var(--sw-accent, #0F6E7A); border-color: var(--sw-accent, #0F6E7A); color: var(--cream-50, #FAF6EA); font-weight: 600; }
+.sw-lk-chips button.is-active em { color: color-mix(in srgb, var(--cream-50, #FAF6EA) 75%, transparent); }
+.sw-root .sw-lk-chips button:focus-visible { outline: 2px solid var(--sw-accent-dark, #0B5560); outline-offset: 2px; }
+.sw-lk .sw-lk-badge { letter-spacing: 0; font-weight: 600; background: var(--sw-accent-dark, #0B5560); }
+.sw-lk-kind { font-size: 13.5px; font-weight: 600; color: var(--stone-500, #8B7355); }
+.sw-lk-kind.is-official { color: var(--sw-accent-dark, #0B5560); }
+.sw-card.is-warn .sw-lk-kind.is-official { color: #8A4A1C; }
+.sw-lk-warn .sw-ar-title { margin: 6px 0 0; }
+.sw-lk-warn .sw-note a, .sw-lk-water a, .sw-lk-level a, .sw-lk-sources a, .sw-lk-src a { color: var(--sw-accent-dark, #0B5560); text-decoration: underline; }
+.sw-lk-when { margin: 4px 0 0; font-size: 14px; font-weight: 600; color: var(--ink-900, #2C2A26); }
+.sw-lk-gust { margin: 12px 0 0; padding: 10px 14px; border-left: 3px solid var(--ink-900, #2C2A26); background: #fff; border-radius: 0 10px 10px 0; font-size: 14.5px; line-height: 1.45; color: var(--ink-900, #2C2A26); }
+.sw-lk-wave .sw-kpi-l { text-transform: none; letter-spacing: 0; }
+.sw-lk-wavebox { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 22px; align-items: center; margin-top: 14px; padding: 16px 18px; border-radius: 14px; border: 1px solid var(--sand-200, #E0D6BE); background: var(--cream-50, #FAF6EA); }
+.sw-lk-rose { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: 250px; }
+.sw-lk-rose svg { display: block; max-width: 100%; height: auto; }
+.sw-lk-rose-ring { fill: none; stroke: var(--sand-300, #CFC3A6); stroke-width: 1; }
+.sw-lk-rose-ring.is-half { stroke-dasharray: 2 4; }
+.sw-lk-rose-water { fill: color-mix(in srgb, #7FC4CC 55%, transparent); stroke: var(--sw-accent, #0F6E7A); stroke-width: 1.2; stroke-linejoin: round; }
+.sw-lk-rose-spoke { stroke: color-mix(in srgb, var(--sw-accent, #0F6E7A) 22%, transparent); stroke-width: 0.6; }
+.sw-lk-rose-normal { stroke: var(--ink-900, #2C2A26); stroke-width: 1.2; stroke-dasharray: 4 4; }
+.sw-lk-rose-wind { stroke: var(--sw-accent-dark, #0B5560); stroke-width: 3.2; stroke-linecap: round; }
+.sw-lk-rose-tip { fill: var(--sw-accent-dark, #0B5560); }
+.sw-lk-rose-spot { fill: var(--ink-900, #2C2A26); }
+.sw-lk-rose-n { font-family: inherit; font-size: 12px; font-weight: 700; fill: var(--stone-500, #8B7355); }
+.sw-lk-rose figcaption { display: flex; flex-direction: column; gap: 3px; text-align: center; font-size: 12.5px; line-height: 1.4; color: var(--stone-500, #8B7355); }
+.sw-lk-rose figcaption strong { font-size: 15px; font-weight: 700; color: var(--ink-900, #2C2A26); }
+.sw-lk-wavetx { min-width: 0; max-width: 62ch; }
+.sw-lk-wavetx p { margin: 0 0 8px; font-size: 14.5px; line-height: 1.5; color: var(--ink-900, #2C2A26); }
+.sw-lk-wavetx p:last-child { margin-bottom: 0; }
+.sw-lk-wavetx .sw-lk-src { font-size: 12.5px; color: var(--stone-500, #8B7355); }
+.sw-lk-level { display: flex; flex-direction: column; gap: 3px; margin-top: 12px; }
+.sw-lk-levelv { margin: 0; font-size: 28px; line-height: 1.15; font-weight: 700; color: var(--ink-900, #2C2A26); font-variant-numeric: tabular-nums; }
+.sw-lk-levelv.is-text { font-size: 20px; color: var(--stone-600, #5C5447); }
+.sw-lk-sources ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 7px; }
+.sw-lk-sources li { font-size: 13.5px; line-height: 1.45; color: var(--stone-600, #5C5447); }
+.sw-lk-sources li strong { color: var(--ink-900, #2C2A26); font-weight: 600; margin-right: 4px; }
+.sw-readout.sw-lk .sw-lk-wavebox { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+@media (max-width: 767px) {
+  .sw-lk-chips button { height: 44px; padding: 0 14px; }
+  .sw-lk-wavebox { grid-template-columns: minmax(0, 1fr); justify-items: center; padding: 14px; }
+  .sw-lk-warn .sw-note a, .sw-lk-water a, .sw-lk-level a, .sw-lk-sources a, .sw-lk-src a { display: inline-block; min-height: 44px; line-height: 44px; }
+  .sw-lk-levelv { font-size: 24px; }
+}
+
 /* ── Phase SP — „Ausfahrt planen“ (audit/seewetter-planer.md). Ohne geöffneten Planer rendert davon nur der Knopf über
    der Legende (Desktop) bzw. der Eintrag „Ausfahrt“ der unteren Leiste (mobil).
    Ein Bild trägt den Planer: die Leine vom Start zur Rückkehr — auf der Karte gestrichelt vom Boot zum Startort, im
@@ -1476,14 +1528,18 @@
   .sw-pl-drift path:nth-child(2) { opacity: 0.7; }
   .sw-pl-drift path:nth-child(3) { opacity: 0.42; }
 }
-.sw-pl-badge { position: absolute; left: 50%; top: 100%; transform: translateX(-50%); margin-top: 4px; white-space: nowrap; pointer-events: none;
-  background: rgba(250, 246, 234, 0.96); color: var(--ink-900, #2C2A26); border: 1px solid var(--sand-200, #E0D6BE); border-radius: 8px; padding: 3px 9px;
-  font-family: 'League Spartan', var(--font-base, system-ui, sans-serif); font-size: 13px; font-weight: 600; line-height: 1.3; font-variant-numeric: tabular-nums; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4); }
-.sw-pl-linelabel { pointer-events: none; white-space: nowrap; background: rgba(11, 14, 18, 0.84); color: #FAF6EA; border-radius: 6px; padding: 2px 8px;
-  font-family: 'League Spartan', var(--font-base, system-ui, sans-serif); font-size: 12.5px; font-weight: 600; line-height: 1.35; font-variant-numeric: tabular-nums; }
+/* Beschriftungen des Planers auf der Karte: leise und aus dem Weg. Das Boot trägt keine; die Linie ihre Angabe als
+   Schrift mit Halo knapp darüber, mitgedreht; der Startort ein kleines Glas-Etikett. */
+.sw-pl-linelabel { pointer-events: none; }
+.sw-pl-linelabel > span { display: block; white-space: nowrap; transform-origin: 50% 50%; color: #FAF6EA;
+  font-family: 'League Spartan', var(--font-base, system-ui, sans-serif); font-size: 11.5px; font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 2px rgba(11, 14, 18, 0.95), 0 0 6px rgba(11, 14, 18, 0.8); }
+.sw-pl-linelabel strong { font-weight: 700; }
+.sw-pl-linelabel.is-short { visibility: hidden; }
 .sw-pl-launch { pointer-events: none; }
-.sw-pl-launch span { display: block; background: #FAF6EA; color: #2C2A26; border-radius: 6px; padding: 1px 7px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  font-family: 'League Spartan', var(--font-base, system-ui, sans-serif); font-size: 12px; font-weight: 700; line-height: 1.4; }
+.sw-pl-launch span { display: block; padding: 2px 7px; border-radius: 999px; background: rgba(11, 14, 18, 0.62); color: #FAF6EA; border: 1px solid rgba(250, 246, 234, 0.16);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  font-family: 'League Spartan', var(--font-base, system-ui, sans-serif); font-size: 11px; font-weight: 600; line-height: 1.3; }
 
 /* Desktop: Stundenband über dem Kartenfuß (seine ursprüngliche Lage), die Legende klappt darüber. 28 px frei für die
    Quellenzeile und den Knopf „Quellen“ (mapSources.css). */
@@ -1518,45 +1574,61 @@
 .sw-pl { display: flex; flex-direction: column; gap: 12px; color: var(--ink-900, #2C2A26); }
 .sw-pl-head { display: flex; align-items: flex-start; gap: 10px; }
 .sw-pl-headtx { flex: 1 1 auto; min-width: 0; }
-.sw-pl-head h2 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.1; }
-.sw-pl-head p { margin: 3px 0 0; font-size: 15px; color: var(--stone-600, #5C5447); }
+.sw-pl-head h2 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.6px; line-height: 1.08; }
+.sw-pl-head p { margin: 5px 0 0; font-size: 15px; color: var(--stone-600, #5C5447); font-variant-numeric: tabular-nums; }
 .sw-pl-head p .sw-link { margin-left: 8px; }
 .sw-pl-close { flex: 0 0 auto; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 50%; background: #fff; color: var(--stone-600, #5C5447); cursor: pointer; }
 .sw-pl-close:hover { color: var(--ink-900, #2C2A26); border-color: var(--border-strong, #C4B896); }
-.sw-pl-official { background: #FBF3E7; border: 1px solid #E3C39A; border-left: 4px solid #B8452E; border-radius: 10px; padding: 10px 12px; }
-.sw-pl-official > strong { display: block; font-size: 14.5px; font-weight: 700; color: #7A4520; }
-.sw-pl-limits { margin: -4px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--stone-600, #5C5447); }
-.sw-pl-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 12px; border-top: 1px solid var(--sand-200, #E0D6BE); }
-.sw-pl-span-tx { font-size: 14.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.sw-pl-play { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 13px 0 10px; border: 1px solid var(--sw-accent, #0F6E7A); border-radius: 17px; background: #fff;
-  color: var(--sw-accent-dark, #0B5560); font-size: 13.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
-.sw-pl-play.is-on { background: var(--sw-accent, #0F6E7A); color: var(--cream-50, #FAF6EA); }
+.sw-pl-official { background: #FBF3E7; border: 1px solid #E3C39A; border-radius: 14px; padding: 13px 14px 12px; }
+.sw-pl-official > strong { display: block; font-size: 15px; font-weight: 700; line-height: 1.3; color: #7A4520; }
+/* AM-O (audit/seewetter-ausfahrt.md §11): „Vor Ort“ im Aufbau der Etappe — die Eingabe links trägt Start und Rückkehr
+   mit ihrem Schrittschalter und den Knopf „Fenster abspielen“; rechts stehen nur noch die Befunde. */
+.sw-am-box dd.sw-pl-when { display: inline-flex; align-items: center; gap: 10px; }
 .sw-pl-now, .sw-pl-moved { margin: 0; font-size: 13.5px; line-height: 1.45; color: var(--stone-600, #5C5447); }
 .sw-pl-moved { color: #9A5A2A; }
+.sw-pl-now { padding: 9px 12px; border-radius: 10px; background: var(--sand-100, #EDE6D3); color: var(--ink-900, #2C2A26); }
 
-.sw-pl-rail { position: relative; list-style: none; margin: 2px 0 0; padding: 0 0 0 30px; display: flex; flex-direction: column; gap: 9px; }
-.sw-pl-rail::before { content: ''; position: absolute; left: 10px; top: 20px; bottom: 20px; width: 2px; border-radius: 1px; background: var(--ink-900, #2C2A26); }
-.sw-pl-end { position: relative; background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 12px; padding: 10px 12px 11px; }
-.sw-pl-knot { position: absolute; left: -28px; top: 11px; width: 18px; height: 18px; box-sizing: border-box; border-radius: 50%; border: 3px solid var(--ink-900, #2C2A26); background: var(--cream-50, #FAF6EA); }
-.sw-pl-endhead { display: flex; align-items: center; gap: 8px; }
-.sw-pl-endhead h3 { margin: 0; font-size: 17px; font-weight: 700; }
-.sw-pl-endhead time { flex: 1 1 auto; font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--sw-accent-dark, #0B5560); }
 .sw-pl-step { display: inline-flex; gap: 4px; }
 .sw-pl-step button { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; padding: 0; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 8px; background: var(--cream-50, #FAF6EA); color: var(--ink-900, #2C2A26); cursor: pointer; }
 .sw-pl-step button:disabled { opacity: 0.35; cursor: default; }
-.sw-pl-endwind { margin: 6px 0 0; font-size: 20px; font-weight: 700; letter-spacing: -0.3px; line-height: 1.2; font-variant-numeric: tabular-nums; }
-.sw-pl-endlines { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 3px; font-size: 13.5px; line-height: 1.4; color: var(--stone-600, #5C5447); }
-.sw-pl-ev { position: relative; display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 8px; align-items: baseline; padding: 1px 0; font-size: 14px; line-height: 1.4; }
-.sw-pl-ev::before { content: ''; position: absolute; left: -24px; top: 9px; width: 10px; height: 2px; background: var(--ink-900, #2C2A26); }
-.sw-pl-ev time { font-weight: 700; font-variant-numeric: tabular-nums; }
+/* Schiene Start → Rückkehr: eine helle Linie, die Enden als Karten mit dem Knoten in der Farbe ihrer Klasse, dazwischen
+   die Ereignisse an ihrer Uhrzeit. In der Karte ist der Windwert das Laute; die Zeile des Profils trägt die Klassenfarbe,
+   die übrigen Zeilen lesen sich als leises Etikett und kräftiger Wert. */
+.sw-pl-rail { position: relative; list-style: none; margin: 4px 0 0; padding: 0 0 0 26px; display: flex; flex-direction: column; gap: 10px; }
+.sw-pl-rail::before { content: ''; position: absolute; left: 7px; top: 24px; bottom: 24px; width: 2px; border-radius: 1px; background: var(--border-strong, #C4B896); }
+.sw-pl-end { position: relative; background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 16px; padding: 14px 16px; }
+.sw-pl-knot { position: absolute; left: -26px; top: 15px; width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; border: 3px solid var(--cream-50, #FAF6EA); box-shadow: 0 0 0 1.5px var(--ink-900, #2C2A26); background: var(--cream-50, #FAF6EA); }
+.sw-pl-endhead { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.sw-pl-endhead h3 { margin: 0; font-size: 14px; font-weight: 600; color: var(--stone-600, #5C5447); }
+.sw-pl-endhead time { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--sw-accent-dark, #0B5560); }
+.sw-pl-endwind { margin: 8px 0 0; font-size: 15px; font-weight: 600; line-height: 1.25; font-variant-numeric: tabular-nums; }
+.sw-pl-endwind b { font-size: 36px; font-weight: 700; letter-spacing: -1px; line-height: 1; }
+.sw-pl-endwind span { color: var(--stone-600, #5C5447); }
+.sw-pl-verdict { margin: 12px 0 0; display: flex; align-items: flex-start; gap: 9px; padding: 9px 11px; border-radius: 10px; background: var(--sand-50, #F5F1E8); font-size: 14px; line-height: 1.35; }
+.sw-pl-verdict i { flex: 0 0 auto; width: 12px; height: 12px; margin-top: 3px; border-radius: 50%; }
+.sw-pl-verdict span > span { color: var(--stone-600, #5C5447); }
+.sw-pl-verdict b { font-weight: 700; }
+.sw-pl-endlines { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; font-size: 13.5px; line-height: 1.4; }
+.sw-pl-endlines li { padding: 7px 0; border-top: 1px solid var(--sand-100, #EDE6D3); }
+.sw-pl-endlines li:last-child { padding-bottom: 0; }
+.sw-pl-endlines span { color: var(--stone-600, #5C5447); }
+.sw-pl-endlines b { font-weight: 600; }
+.sw-pl-ev { position: relative; display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 10px; align-items: baseline; padding: 2px 0 2px 2px; font-size: 14px; line-height: 1.4; }
+.sw-pl-ev::before { content: ''; position: absolute; left: -22px; top: 8px; width: 8px; height: 8px; box-sizing: border-box; border-radius: 50%; background: var(--cream-50, #FAF6EA); border: 2px solid var(--border-strong, #C4B896); }
+.sw-pl-ev time { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--sw-accent-dark, #0B5560); }
 .sw-pl-ev.is-warn span { color: #8A3320; font-weight: 600; }
-.sw-pl-ev.is-warn::before { height: 4px; top: 8px; background: var(--sw-out, #B5482E); }
+.sw-pl-ev.is-warn::before { background: var(--sw-out, #B5482E); border-color: var(--sw-out, #B5482E); }
 .sw-pl-ev.is-sun time { color: #9A5A2A; }
-.sw-pl-block h3 { margin: 0 0 6px; font-size: 15px; font-weight: 700; }
-.sw-pl-block ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 14px; line-height: 1.45; max-width: 62ch; }
-.sw-pl-block.is-notes { padding-top: 12px; border-top: 1px solid var(--sand-200, #E0D6BE); }
-.sw-pl-block.is-notes ul { font-size: 12.5px; color: var(--stone-600, #5C5447); }
-.sw-pl-foot { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--ink-900, #2C2A26); color: var(--cream-50, #FAF6EA); font-size: 14.5px; font-weight: 600; }
+.sw-pl-ev.is-sun::before { border-color: #9A5A2A; }
+.sw-pl-block h3 { margin: 0 0 4px; font-size: 17px; font-weight: 700; letter-spacing: -0.2px; }
+.sw-pl-block ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; font-size: 14px; line-height: 1.45; max-width: 62ch; }
+.sw-pl-block li { padding: 8px 0; border-top: 1px solid var(--sand-200, #E0D6BE); }
+.sw-pl-block li:first-child { border-top: 0; }
+.sw-pl-block.is-notes { padding-top: 14px; border-top: 1px solid var(--sand-200, #E0D6BE); }
+.sw-pl-block.is-notes h3 { font-size: 14px; font-weight: 600; letter-spacing: 0; color: var(--stone-600, #5C5447); }
+.sw-pl-block.is-notes ul { gap: 6px; font-size: 12.5px; color: var(--stone-600, #5C5447); }
+.sw-pl-block.is-notes li { padding: 0; border-top: 0; }
+.sw-pl-foot { margin: 0; padding: 11px 14px; border-radius: 12px; background: var(--ink-900, #2C2A26); color: var(--cream-50, #FAF6EA); font-size: 14.5px; font-weight: 600; }
 .sw-pl-ask { margin-bottom: 12px; padding: 10px 12px; border-radius: 12px; background: var(--sw-tint, #E3F0F1); border: 1px solid #BFD9DC; }
 .sw-pl-ask strong { display: block; font-size: 15px; font-weight: 700; }
 .sw-pl-ask p { margin: 3px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--stone-600, #5C5447); }
@@ -1570,12 +1642,10 @@
   .sw-pl-sheetgrip { flex: 0 0 auto; min-height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; border: 0; background: transparent; cursor: pointer;
     font: inherit; font-size: 12.5px; font-weight: 600; color: var(--sw-accent-dark, #0B5560); }
   .sw-pl-sheetgrip span { display: block; width: 36px; height: 4px; border-radius: 2px; background: var(--border-strong, #C4B896); }
-  .sw-pl-sheetbody { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 14px 16px; }
   .sw-pl-sheet .sw-pl-head h2 { font-size: 21px; }
   .sw-pl-sheet .sw-pl-close { width: 44px; height: 44px; }
   .sw-pl-sheet .sw-pl-step button { width: 44px; height: 44px; }
-  .sw-pl-sheet .sw-pl-play, .sw-pl-sheet .sw-link, .sw-pl-sheet .sw-profiles button, .sw-pl-ask .sw-link { min-height: 44px; }
-  .sw-pl-sheet .sw-pl-play { border-radius: 22px; }
+  .sw-pl-sheet .sw-link, .sw-pl-sheet .sw-profiles button, .sw-pl-ask .sw-link { min-height: 44px; }
   .sw-pl-sheet .sw-pl-endhead { flex-wrap: wrap; }
   .sw-pl-sheet .sw-band.is-compact { margin-top: 0; padding: 6px 0; background: transparent; }
   .sw-m-dock .sw-pl-ask { margin: 12px 14px 0; }
@@ -1585,17 +1655,48 @@
   .sw-band.is-compact .sw-pl-grip span { width: 30px; height: 30px; font-size: 13px; }
   /* Phase AM (rules below this block): every mode is the sheet of the planner. */
   /* Phone and touch tablet: every mode is the sheet of the planner; the table scrolls sideways, its first column stays. */
-  .sw-pl-sheet .sw-am-in { gap: 16px; padding-bottom: 14px; }
-  .sw-pl-sheet .sw-am-modeseg button, .sw-pl-sheet .sw-am-shift button, .sw-pl-sheet .sw-am-win button, .sw-pl-sheet .sw-am-order button,
+  .sw-pl-sheet .sw-am-shift button, .sw-pl-sheet .sw-am-order button,
   .sw-pl-sheet .sw-am-ways button, .sw-pl-sheet .sw-am-tools button, .sw-pl-sheet .sw-am-table thead button, .sw-pl-sheet .sw-am-notes > summary { min-height: 44px; }
-  .sw-pl-sheet .sw-am-shift button, .sw-pl-sheet .sw-am-win button { min-width: 44px; justify-content: center; }
+  .sw-pl-sheet .sw-am-shift button { min-width: 44px; justify-content: center; }
+  .sw-pl-sheet .sw-am-tablebox .sw-am-key.is-shore { margin-left: 0; }
   .sw-pl-sheet .sw-am-cmp button { min-height: 48px; }
   .sw-pl-sheet .sw-am-speed input { height: 44px; width: 72px; }
   .sw-pl-sheet .sw-am-tablebox { background: transparent; border: 0; border-top: 1px solid var(--sand-200, #E0D6BE); border-radius: 0; box-shadow: none; padding: 12px 0; }
   .sw-pl-sheet .sw-am-key { margin-left: 0; }
+  .sw-pl-sheet .sw-am-strip { grid-auto-columns: minmax(44px, 1fr); }
   .sw-pl-sheet .sw-am-strip button { min-height: 60px; }
   .sw-pl-sheet.is-strand:not(.is-open) { max-height: 62vh; max-height: 62dvh; }
   .sw-root .sw-am-pt { width: 44px; height: 44px; }
+  /* V-AM-8 (E-AM-16): the map's source line and its button „Quellen“ stand on the sheet's upper edge (`--msl-bottom` is
+     the measured height, set on the map by the page); under the open sheet they rest, as under the dossier. */
+  .sw-root.is-mobile.has-plsheet .sw-map.is-mobile .maplibregl-ctrl-bottom-right { bottom: var(--msl-bottom, 0px); }
+  .sw-root.is-mobile.is-plsheet-full .sw-map.is-mobile .maplibregl-ctrl-bottom-right, .sw-root.is-mobile.is-plsheet-full .sw-map.is-mobile .msl { display: none; }
+  /* Phase AM-W (rules below this block): the assistant in the sheet — the progress row and the close button share one
+     line, the page rolls between it and „Zurück | Weiter“. The two pages one sets on the map (Startort, Strecke) keep
+     the sheet low; the others and the result start higher. */
+  .sw-pl-sheet.is-wz .sw-wz { min-height: 0; }
+  .sw-pl-sheet .sw-wz-head { display: flex; align-items: center; gap: 8px; padding: 0 10px 4px 14px; border-bottom: 0; }
+  .sw-pl-sheet .sw-wz-top { order: 2; flex: 0 0 auto; }
+  .sw-pl-sheet .sw-wz-eyebrow { display: none; }
+  .sw-pl-sheet .sw-wz-steps { order: 1; flex: 1 1 auto; margin: 0; align-items: center; }
+  .sw-pl-sheet .sw-wz-stepli button { min-height: 44px; justify-content: center; padding: 0; }
+  .sw-pl-sheet .sw-wz-stepli span { display: none; }
+  .sw-pl-sheet .sw-wz-stepli + .sw-wz-stepli::before { top: 21px; }
+  .sw-pl-sheet .sw-wz-body { padding: 4px 14px 14px; gap: 16px; }
+  .sw-pl-sheet .sw-wz-body > h2 { margin-top: -13px; font-size: 22px; }
+  .sw-pl-sheet .sw-wz-foot { gap: 6px; padding: 8px 14px 9px; }
+  .sw-pl-sheet .sw-wz-safe { font-size: 11.5px; line-height: 1.3; }
+  .sw-pl-sheet .sw-limit-in input { width: 76px; height: 44px; }
+  .sw-pl-sheet .sw-wz-sum .sw-link { min-width: 44px; }
+  .sw-pl-sheet.is-form:not(.is-open), .sw-pl-sheet.is-result:not(.is-open) { max-height: 66vh; max-height: 66dvh; }
+  /* Vor der ersten Karten-Seite füllt der Assistent den Bildschirm über der Leiste (wie der Routenplaner). */
+  .sw-pl-sheet.is-wz.is-full { top: 0; max-height: none; padding-top: env(safe-area-inset-top, 0px); border-top: 0; border-radius: 0; box-shadow: none; }
+  .sw-pl-sheet.is-wz.is-full .sw-wz-head { padding-top: 8px; }
+  /* „Art der Ausfahrt“ am Telefon: die Skizze klein links, der Text rechts daneben. */
+  .sw-pl-sheet .sw-wz-arts { grid-template-columns: minmax(0, 1fr); }
+  .sw-pl-sheet .sw-wz-art { display: grid; grid-template-columns: 104px minmax(0, 1fr); column-gap: 10px; row-gap: 3px; align-content: start; }
+  .sw-pl-sheet .sw-wz-art > * { grid-column: 2; }
+  .sw-pl-sheet .sw-wz-art > .sw-wz-art-sk { grid-column: 1; grid-row: 1 / span 5; align-self: start; }
 }
 
 /* ── Phase AM (audit/seewetter-ausfahrt.md): der Planer in drei Modi — Vor Ort | Etappe | Strand.
@@ -1603,18 +1704,10 @@
    ein Wert fehlt — und derselbe Strang liegt flach über den Spalten der Tabelle. Rot (--sw-out) heißt hier nur „über
    deiner Grenze“. Strand nimmt die zwei Bedeutungsfarben des Planers (Wind von See / vom Land, --sw-pl-*). Abschnitts-
    namen in normaler Schreibung, keine Versalien. Keine neue Bewegung. ── */
-.sw-am-mode h3, .sw-am-sec h3 { margin: 0 0 8px; font-size: 15px; font-weight: 500; color: var(--stone-600, #5C5447); }
-.sw-am-modeseg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--border-strong, #C4B896); border-radius: 10px; overflow: hidden; background: #fff; }
-.sw-am-modeseg button { min-height: 40px; border: 0; background: transparent; color: var(--ink-900, #2C2A26); font-size: 15px; cursor: pointer; }
-.sw-am-modeseg button + button { border-left: 1px solid var(--sand-200, #E0D6BE); }
-.sw-am-modeseg button.is-active { background: var(--sw-accent, #0F6E7A); color: #fff; font-weight: 600; }
-.sw-root .sw-am-modeseg button:focus-visible { outline-offset: -3px; }
-.sw-am-mode p { margin: 6px 0 0; font-size: 13px; line-height: 1.4; color: var(--stone-600, #5C5447); }
 .sw-am-fine { margin: 6px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--stone-600, #5C5447); }
 
-/* Eingabe der Etappe (Desktop links; die Ebenen klappen darunter zu). */
+/* Spalte des Planers (Desktop links; seit AM-W trägt sie den Assistenten, `.sw-wz-col` weiter unten). Kästen und Knöpfe der Eingabe-Seiten. */
 .sw-dock.sw-am-dockin { width: 318px; padding: 18px 16px 58px; }
-.sw-am-in { display: flex; flex-direction: column; gap: 20px; color: var(--ink-900, #2C2A26); }
 .sw-am-box { margin: 0; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 12px; background: var(--sand-100, #EDE6D3); }
 .sw-am-box > div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 10px 12px; }
 .sw-am-box > div + div { border-top: 1px solid var(--sand-200, #E0D6BE); }
@@ -1638,11 +1731,13 @@
 .sw-am-cmp button:disabled { cursor: default; opacity: 0.6; }
 .sw-am-shift { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 13.5px; color: var(--stone-600, #5C5447); }
 .sw-am-shift span { flex: 1 1 auto; }
-.sw-am-shift button, .sw-am-win button { display: inline-flex; align-items: center; gap: 3px; height: 32px; padding: 0 9px; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 8px; background: #fff; color: var(--ink-900, #2C2A26); font-size: 13.5px; cursor: pointer; }
-.sw-am-shift button:disabled, .sw-am-win button:disabled { opacity: 0.35; cursor: default; }
-.sw-am-limits { margin: 0; font-size: 14.5px; line-height: 1.45; }
+.sw-am-shift button { display: inline-flex; align-items: center; gap: 3px; height: 32px; padding: 0 9px; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 8px; background: #fff; color: var(--ink-900, #2C2A26); font-size: 13.5px; cursor: pointer; }
+.sw-am-shift button:disabled { opacity: 0.35; cursor: default; }
 .sw-am-layers { border-top: 1px solid var(--sand-200, #E0D6BE); padding-top: 12px; }
-.sw-am-layers > summary { cursor: pointer; font-size: 15px; font-weight: 500; color: var(--stone-600, #5C5447); min-height: 28px; }
+.sw-am-layers > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; box-sizing: border-box; padding: 0 14px; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 12px; background: #fff; font-size: 14.5px; font-weight: 600; color: var(--ink-900, #2C2A26); }
+.sw-am-layers > summary::-webkit-details-marker { display: none; }
+.sw-am-layers > summary::after { content: ''; flex: 0 0 auto; width: 7px; height: 7px; margin-top: -4px; border-right: 2px solid var(--stone-600, #5C5447); border-bottom: 2px solid var(--stone-600, #5C5447); transform: rotate(45deg); }
+.sw-am-layers[open] > summary::after { margin-top: 4px; transform: rotate(-135deg); }
 .sw-am-layers .sw-dock { width: auto; padding: 8px 0 0; border: 0; background: transparent; overflow: visible; }
 
 /* Karte: Punkte der Etappe (HTML-Marker) und das Boot zur gewählten Stunde. */
@@ -1658,6 +1753,27 @@
 .sw-am-boat::before { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 1.5px dashed #7FC4CC; }
 .sw-am-boatlabel { position: absolute; left: 100%; top: 50%; transform: translateY(-50%); margin-left: 6px; white-space: nowrap; background: #2C2A26; color: #FAF6EA; border-radius: 12px; padding: 2px 10px;
   font-family: 'League Spartan', var(--font-base, system-ui, sans-serif); font-size: 13.5px; font-weight: 600; line-height: 1.4; font-variant-numeric: tabular-nums; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); }
+
+/* V-AM-9 (§9): Pfeile neben der Route. Ein Windpfeil ist ein Stück des Strangs — heller Mantel, dunkler Kern, über deiner
+   Grenze roter Kern; der Strompfeil trägt die Zeichnung der Strompfeile der Seite, gestrichelt. Keine Klicks: ein Klick
+   auf die Karte setzt weiter den Wegpunkt. Die Marke selbst bekommt keine `position` (die setzt MapLibre). */
+.sw-am-arr { width: 34px; height: 34px; pointer-events: none; z-index: 0; }
+.sw-am-pt, .sw-am-boat { z-index: 1; }
+.sw-am-arr-g { display: block; transform-origin: 50% 50%; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5)); }
+.sw-am-arr-case { stroke: #FAF6EA; stroke-width: 6.5; }
+.sw-am-arr-core { stroke: #2C2A26; stroke-width: 2.4; }
+.sw-am-arr.is-over .sw-am-arr-core { stroke: #B5482E; }
+.sw-am-arr.is-cur .sw-am-arr-case, .sw-am-keyarr.is-cur .sw-am-arr-case { stroke: #0B0E12; stroke-width: 5.6; }
+.sw-am-arr.is-cur .sw-am-arr-core, .sw-am-keyarr.is-cur .sw-am-arr-core { stroke: #6FD3DC; }
+.sw-am-arr.is-cur .sw-am-arr-core.is-shaft, .sw-am-keyarr.is-cur .sw-am-arr-core.is-shaft { stroke-dasharray: 2.5 5; }
+.sw-am-arr-l { position: absolute; left: 50%; transform: translate(-50%, -50%); white-space: nowrap; font-size: 13px; font-weight: 600; line-height: 18px; font-variant-numeric: tabular-nums; color: #FAF6EA; text-shadow: 0 0 3px #0B0E12, 0 0 3px #0B0E12, 0 1px 2px #0B0E12; }
+/* Neben einer Route, die links oder rechts vom Pfeil läuft, steht die Zahl bündig und läuft von der Route weg. */
+.sw-am-arr-l.is-from { left: calc(50% - 10px); transform: translate(0, -50%); }
+.sw-am-arr-l.is-to { left: calc(50% + 10px); transform: translate(-100%, -50%); }
+.sw-am-arr.is-over .sw-am-arr-l { padding: 0 7px; border-radius: 9px; background: #FAF6EA; color: #8A3320; text-shadow: none; }
+.sw-am-arr.is-cur .sw-am-arr-l { color: #6FD3DC; }
+/* In der Legende der Tabelle liegen dieselben Pfeile auf einem Stück Kartendunkel. */
+.sw-am-keyarr { flex: 0 0 auto; border-radius: 4px; background: var(--sw-map-bg, #0B0E12); }
 
 /* Tabelle „Entlang der Etappe“ am Kartenfuß: oben der Strang, darunter die Stundenwerte. */
 .sw-am-foot .sw-am-tablebox { align-self: stretch; }
@@ -1723,9 +1839,11 @@
 .sw-am-safe { margin: 0; font-size: 13.5px; line-height: 1.45; color: var(--stone-600, #5C5447); }
 
 /* Strand: Fenster, Stundenleiste mit hell / Dämmerung / dunkel, Liste nach Stunden mit Wind von See. */
-.sw-am-win { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13.5px; color: var(--stone-600, #5C5447); }
-.sw-am-win > span { display: inline-flex; align-items: center; gap: 5px; }
-.sw-am-win em { font-style: normal; margin-right: 2px; }
+/* AM-S (§12): Strand im Aufbau der anderen Modi — Revier, Fenster und Reihenfolge stehen in der Eingabe links, die
+   Stundenleiste liegt im Kasten am Kartenfuß (der Farbschlüssel der Spot-Marken in seinem Kopf), rechts die Liste. */
+.sw-wz-sec .sw-am-revier { margin-top: 0; }
+.sw-am-tablebox .sw-am-key.is-shore { margin-left: auto; }
+.sw-am-stripbox .sw-am-strip { background: var(--sand-100, #EDE6D3); }
 .sw-am-strip { list-style: none; margin: 0; padding: 5px 4px; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(42px, 1fr); background: var(--sand-100, #EDE6D3); border-radius: 12px; overflow-x: auto; }
 .sw-am-strip li { position: relative; }
 .sw-am-strip li.is-in { background: #DCEBEC; }
@@ -1758,3 +1876,189 @@
 .sw-am-shore.is-land { color: #9A5A2A; }
 
 @media (max-width: 1439px) { .sw-dock.sw-am-dockin { width: 288px; } }
+
+/* ── Phase AM-W (audit/seewetter-ausfahrt.md §13): der Planer als Assistent, eine Seite je Schritt.
+   Vom Routenplaner: die Leiste aus nummerierten Kreisen (erledigt = Haken, laufend = Akzent), Kacheln mit Haken, eine
+   Haupt-Aktion je Seite. In der Farbe der Seite (--sw-accent), nicht in Terracotta. Kopf und Fuß stehen, die Seite
+   dazwischen rollt. Keine neue Bewegung. ── */
+.sw-dock.sw-am-dockin.sw-wz-col { width: 344px; padding: 0; overflow: hidden; display: flex; }
+.sw-wz { flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; color: var(--ink-900, #2C2A26); }
+.sw-wz-head { flex: 0 0 auto; padding: 14px 16px 10px; border-bottom: 1px solid var(--sand-200, #E0D6BE); }
+.sw-wz-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.sw-wz-eyebrow { font-size: 14px; font-weight: 600; color: var(--stone-600, #5C5447); }
+.sw-wz-steps { list-style: none; margin: 10px 0 0; padding: 0; display: flex; align-items: flex-start; }
+.sw-wz-stepli { flex: 1 1 0; min-width: 0; position: relative; }
+.sw-wz-stepli + .sw-wz-stepli::before { content: ''; position: absolute; top: 12px; left: calc(-50% + 18px); right: calc(50% + 18px); height: 2px; border-radius: 1px; background: var(--sand-200, #E0D6BE); }
+.sw-wz-stepli.is-done + .sw-wz-stepli::before { background: var(--sw-accent, #0F6E7A); }
+.sw-wz-stepli button { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 0 0 2px; border: 0; background: transparent; color: var(--stone-600, #5C5447); font-size: 12.5px; line-height: 1.2; cursor: pointer; }
+.sw-wz-stepli button:disabled { cursor: default; }
+.sw-wz-stepli i { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-style: normal; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; background: var(--sand-200, #E0D6BE); color: var(--stone-600, #5C5447); }
+.sw-wz-stepli span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sw-wz-stepli.is-done i { background: var(--sw-tint, #E3F0F1); color: var(--sw-accent-dark, #0B5560); }
+.sw-wz-stepli.is-done button:hover i { background: var(--sw-accent, #0F6E7A); color: #fff; }
+.sw-wz-stepli.is-now i { background: var(--sw-accent, #0F6E7A); color: #fff; }
+.sw-wz-stepli.is-now button { color: var(--ink-900, #2C2A26); font-weight: 600; }
+.sw-wz-stepli:not(.is-now):not(.is-done) button:disabled { opacity: 0.55; }
+.sw-root .sw-wz-stepli button:focus-visible { outline-offset: 0; border-radius: 8px; }
+
+.sw-wz-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 14px 16px 20px; display: flex; flex-direction: column; gap: 18px; }
+.sw-wz-count { margin: 0; font-size: 12.5px; font-weight: 500; color: var(--stone-600, #5C5447); font-variant-numeric: tabular-nums; }
+.sw-wz-body > h2 { margin: -14px 0 0; font-size: 26px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.12; outline: none; }
+.sw-wz-lead { margin: -10px 0 0; font-size: 14.5px; line-height: 1.45; color: var(--stone-600, #5C5447); }
+.sw-wz-sec h3 { margin: 0 0 8px; font-size: 15px; font-weight: 500; color: var(--stone-600, #5C5447); }
+.sw-wz-sec > .sw-am-ask { margin: 0 0 10px; }
+.sw-wz-sec + .sw-wz-sec > .sw-am-shift { margin-top: 10px; }
+
+/* Seite 1: „Wer fährt?“ als Kacheln. Seite 2: „Art der Ausfahrt“ als drei Karten mit Skizze, nebeneinander, wo Platz ist. */
+.sw-wz-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.sw-wz-tile { min-height: 44px; display: flex; align-items: center; justify-content: center; padding: 0 6px; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 12px; background: #fff; color: var(--ink-900, #2C2A26); font-size: 15px; text-align: center; cursor: pointer; }
+.sw-wz-tile:hover, .sw-wz-art:hover { border-color: var(--border-strong, #C4B896); }
+.sw-wz-tile.is-active, .sw-wz-art.is-active { border-color: var(--sw-accent, #0F6E7A); box-shadow: 0 0 0 3px color-mix(in srgb, var(--sw-accent, #0F6E7A) 14%, transparent); }
+.sw-wz-tile.is-active { background: var(--sw-tint, #E3F0F1); color: var(--sw-accent-dark, #0B5560); font-weight: 700; }
+.sw-wz-check { flex: 0 0 auto; color: var(--sw-accent, #0F6E7A); }
+.sw-wz-arts { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 264px)); gap: 10px; align-items: stretch; }
+.sw-wz-art { display: flex; flex-direction: column; gap: 5px; padding: 7px 7px 10px; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 13px; background: #fff; color: var(--ink-900, #2C2A26); font: inherit; text-align: left; cursor: pointer; }
+.sw-wz-art-sk { display: block; border-radius: 8px; overflow: hidden; border: 1px solid var(--sand-200, #E0D6BE); }
+.sw-wz-art-sk svg { display: block; width: 100%; height: auto; }
+.sw-wz-art-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 2px 3px 0; }
+.sw-wz-art-head strong { font-size: 16px; font-weight: 700; }
+.sw-wz-art-what { padding: 0 3px; font-size: 13px; line-height: 1.35; }
+.sw-wz-art-row { display: block; padding: 0 3px; font-size: 12.5px; line-height: 1.35; color: var(--stone-600, #5C5447); }
+.sw-wz-art-row b { margin-right: 4px; font-weight: 600; color: var(--sw-accent-dark, #0B5560); }
+.sw-wz-art-row b::after { content: ':'; }
+
+/* Seite „Startort“: Leitfaden in drei Zügen, der dem Stand folgt (erledigt = Haken, jetzt = Akzent, später = still);
+   auf der Karte derselbe Zug als Hinweis unter den Ebenen. */
+.sw-wz-guidebox { padding: 10px 12px; border-radius: 12px; background: var(--sw-tint, #E3F0F1); border: 1px solid #BFD9DC; }
+.sw-wz-guide { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.sw-wz-guide b { font-weight: 600; color: var(--ink-900, #2C2A26); }
+.sw-wz-own > summary { cursor: pointer; min-height: 32px; display: flex; align-items: center; font-size: 14px; font-weight: 600; color: var(--sw-accent-dark, #0B5560); }
+.sw-wz-guide li { display: flex; align-items: flex-start; gap: 10px; font-size: 13.5px; line-height: 1.4; color: var(--stone-600, #5C5447); }
+.sw-wz-guide i { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-style: normal; font-size: 12px; font-weight: 700; background: #fff; color: var(--stone-600, #5C5447); border: 1px solid #BFD9DC; }
+.sw-wz-guide strong { color: var(--ink-900, #2C2A26); font-weight: 600; }
+.sw-wz-guide li.is-now { color: var(--ink-900, #2C2A26); }
+.sw-wz-guide li.is-now i { background: var(--sw-accent, #0F6E7A); border-color: var(--sw-accent, #0F6E7A); color: #fff; }
+.sw-wz-guide li.is-done i { background: var(--sw-accent-dark, #0B5560); border-color: var(--sw-accent-dark, #0B5560); color: #fff; }
+.sw-wz-guide li.is-done span { color: var(--stone-500, #8B7355); }
+.sw-wz-guide li.is-done strong { color: inherit; }
+.sw-wz-guide li.is-next { opacity: 0.75; }
+/* Seite „Startort“ in zwei Bildern: Spot antippen, Boot ziehen. Das Bild, das gerade dran ist, trägt den Akzent. */
+.sw-wz-sketch { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; max-width: 440px; }
+.sw-wz-sketch > li { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.sw-wz-skimg { display: block; border-radius: 10px; overflow: hidden; border: 1px solid var(--sand-200, #E0D6BE); }
+.sw-wz-skimg svg { display: block; width: 100%; height: auto; }
+.sw-wz-skcap { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; line-height: 1.35; color: var(--stone-600, #5C5447); }
+.sw-wz-skcap i { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-style: normal; font-size: 12px; font-weight: 700; background: #fff; color: var(--stone-600, #5C5447); border: 1px solid var(--border-strong, #C4B896); }
+.sw-wz-skcap strong { display: block; font-size: 14px; font-weight: 600; color: var(--ink-900, #2C2A26); }
+.sw-wz-sketch > li.is-now .sw-wz-skimg { border-color: var(--sw-accent, #0F6E7A); box-shadow: 0 0 0 1px var(--sw-accent, #0F6E7A); }
+.sw-wz-sketch > li.is-now i { background: var(--sw-accent, #0F6E7A); border-color: var(--sw-accent, #0F6E7A); color: #fff; }
+.sw-wz-sketch > li.is-done i { background: var(--sw-accent-dark, #0B5560); border-color: var(--sw-accent-dark, #0B5560); color: #fff; }
+.sw-wz-sketch > li.is-next { opacity: 0.6; }
+.sw-wz-listnote { margin: -2px 0 8px; }
+.sw-wz-tip { margin: 0 0 10px; padding: 9px 12px; border-radius: 12px; background: var(--sw-tint, #E3F0F1); border: 1px solid #BFD9DC; font-size: 13.5px; line-height: 1.4; color: var(--ink-900, #2C2A26); }
+/* „Weiter“ nennt die nächste Seite, leiser als das Wort selbst. */
+.sw-wz-nextto { font-weight: 500; opacity: 0.8; }
+.sw-wz-nextto::before { content: '· '; }
+.sw-wz-own .sw-wz-pick { margin-top: 8px; }
+.sw-wz-ownnotes { margin: 0; padding: 0 0 0 18px; display: flex; flex-direction: column; gap: 3px; font-size: 13px; line-height: 1.4; color: var(--stone-600, #5C5447); }
+.sw-wz-ownrow { display: flex; align-items: center; gap: 14px; }
+.sw-wz-ownrow .sw-wz-pick { flex: 1 1 auto; }
+.sw-wz-own .sw-wz-block { margin-top: 8px; }
+.sw-wz-maphint { margin: 0; display: inline-flex; align-items: center; gap: 8px; max-width: 380px; padding: 8px 12px; border-radius: 10px; background: var(--sw-accent, #0F6E7A); color: #fff; font-size: 13.5px; font-weight: 600; line-height: 1.35; box-shadow: 0 4px 14px rgba(15, 110, 122, 0.3); }
+.sw-wz-maphint svg { flex: 0 0 auto; }
+/* Dieselben zwei Bilder über der Karte, bis „Alles klar“ gedrückt ist (die Karte dahinter ruht so lange). */
+.sw-wz-intro { position: absolute; inset: 0; z-index: 7; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(6, 34, 41, 0.5); }
+.sw-map.is-mobile .sw-wz-intro { align-items: flex-start; padding-top: 72px; }
+.sw-wz-sketch.is-one { grid-template-columns: minmax(0, 1fr); }
+.sw-wz-intro-card { display: flex; flex-direction: column; gap: 14px; width: min(310px, 100%); padding: 20px 20px 18px; border-radius: 18px; background: var(--cream-50, #FAF6EA); border: 1px solid var(--sand-200, #E0D6BE); box-shadow: 0 18px 44px rgba(6, 34, 41, 0.5), 0 2px 6px rgba(6, 34, 41, 0.25); }
+.sw-wz-intro-card > strong { font-size: 20px; font-weight: 600; letter-spacing: -0.3px; line-height: 1.15; color: var(--ink-900, #2C2A26); }
+.sw-wz-intro-text { font-size: 13.5px; line-height: 1.4; color: var(--stone-600, #5C5447); }
+/* Seiten „Zeitfenster“ und „Grenzen“ (Desktop): die Eingabe-Kachel liegt mitten auf der Karte. EINE Fläche — die Kästen der
+   Spalte werden darin zu Haarlinien, die Zahlen (Uhrzeiten, Grenzwerte) sind das Laute, alles andere bleibt leise. */
+.sw-wz-midwrap { position: absolute; inset: 14px; z-index: 3; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.sw-wz-midwrap.is-zeit { bottom: 280px; }
+.sw-wz-mid { pointer-events: auto; max-height: 100%; overflow: auto; display: flex; flex-direction: column; gap: 14px; width: min(400px, 100%); padding: 20px 20px 18px; border-radius: 18px; background: var(--cream-50, #FAF6EA); border: 1px solid var(--sand-200, #E0D6BE); box-shadow: 0 18px 44px rgba(6, 34, 41, 0.5), 0 2px 6px rgba(6, 34, 41, 0.25); }
+/* Reihenfolge in der Kachel: Titel, Eingabe, dann die Sätze dazu (die Seite der Spalte beginnt mit den Sätzen). */
+.sw-wz-mid .sw-wz-sec { display: contents; }
+.sw-wz-mid .sw-wz-sec h3 { order: -1; margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.3px; line-height: 1.15; color: var(--ink-900, #2C2A26); }
+.sw-wz-mid .sw-wz-guidebox { order: 1; padding: 0; border: 0; border-radius: 0; background: none; }
+.sw-wz-mid .sw-wz-guide i { display: none; }
+.sw-wz-mid .sw-wz-guide li { font-size: 13px; color: var(--stone-600, #5C5447); }
+.sw-wz-mid .sw-wz-tip { margin: 0; padding: 0; border: 0; border-radius: 0; background: none; font-size: 13.5px; color: var(--stone-600, #5C5447); }
+.sw-wz-mid .sw-am-fine { order: 2; margin: 0; }
+.sw-wz-mid .sw-pl-moved { margin: 0; }
+/* Zeitfenster: Start und Rückkehr nebeneinander wie die zwei Enden des Fensters im Stundenband, die Länge als Fußzeile. */
+.sw-wz-mid .sw-am-box { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); border: 0; border-top: 1px solid var(--sand-200, #E0D6BE); border-bottom: 1px solid var(--sand-200, #E0D6BE); border-radius: 0; background: none; }
+.sw-wz-mid .sw-am-box > div { flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 6px; padding: 12px 0 14px; }
+.sw-wz-mid .sw-am-box > div + div { border-top: 0; border-left: 1px solid var(--sand-200, #E0D6BE); padding-left: 18px; }
+.sw-wz-mid .sw-am-box > div:nth-child(3) { grid-column: 1 / -1; flex-direction: row; justify-content: space-between; align-items: baseline; border-left: 0; border-top: 1px solid var(--sand-200, #E0D6BE); padding: 10px 0; }
+.sw-wz-mid .sw-am-box dt { font-size: 13px; }
+.sw-wz-mid .sw-am-box dd.sw-pl-when { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; text-align: left; }
+.sw-wz-mid .sw-pl-when time { font-size: 30px; font-weight: 600; letter-spacing: -0.6px; line-height: 1; white-space: nowrap; color: var(--ink-900, #2C2A26); }
+.sw-wz-mid .sw-pl-step { gap: 6px; }
+.sw-wz-mid .sw-pl-step button { width: 44px; height: 36px; border-radius: 10px; background: #fff; color: var(--sw-accent-dark, #0B5560); }
+.sw-wz-mid .sw-pl-step button:hover:not(:disabled) { border-color: var(--sw-accent, #0F6E7A); }
+/* Grenzen: eine Liste mit Haarlinien, der Wert rechts groß genug zum Tippen. */
+.sw-wz-mid .sw-limits { margin: 0; padding: 0; border: 0; border-top: 1px solid var(--sand-200, #E0D6BE); border-radius: 0; background: none; }
+.sw-wz-mid .sw-limit-row { padding: 9px 0; gap: 14px; font-size: 14.5px; color: var(--stone-600, #5C5447); border-bottom: 1px solid var(--sand-200, #E0D6BE); }
+.sw-wz-mid .sw-limit-in { gap: 6px; font-size: 14px; }
+.sw-wz-mid .sw-limit-in input { width: 68px; height: 36px; padding: 0 8px; border-radius: 10px; background: #fff; font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink-900, #2C2A26); }
+.sw-wz-mid .sw-limit-note { margin-top: 10px; font-size: 12.5px; }
+
+/* Seite „Startort“: die Spot-Liste des Docks auf der Seite selbst; Seite „Deine Grenzen“: dieselben Felder wie im Dock, größer. */
+.sw-wz-pick { width: 100%; min-height: 46px; margin-top: 10px; border: 1px solid var(--sw-accent, #0F6E7A); border-radius: 12px; background: #fff; color: var(--sw-accent-dark, #0B5560); font-size: 15px; font-weight: 600; cursor: pointer; }
+.sw-wz-pick.is-first { margin-top: 0; background: var(--sw-accent, #0F6E7A); color: #fff; }
+.sw-wz .sw-limits { margin-top: 0; padding: 6px 12px 10px; border-radius: 12px; }
+.sw-wz .sw-limit-row { font-size: 14.5px; padding: 7px 0; color: var(--stone-600, #5C5447); }
+.sw-wz .sw-limit-in input { width: 66px; height: 34px; border-radius: 8px; font-size: 15px; font-weight: 600; }
+.sw-wz .sw-limit-note { font-size: 12.5px; color: var(--stone-600, #5C5447); }
+
+/* Ergebnis: „Deine Angaben“ — je Zeile, was gesetzt ist, und der Weg zurück auf ihre Seite. */
+/* „Deine Angaben“ als Spur der erledigten Schritte: Haken an einer Linie, der Name leise, der Wert kräftig, „ändern“ rechts
+   (dieselbe Sprache wie die Schiene Start → Rückkehr der Befunde; kein Kasten mehr um die Zeilen). */
+.sw-wz-sec:has(> .sw-wz-sum) h3 { margin: 0 0 12px; font-size: 17px; font-weight: 700; letter-spacing: -0.2px; color: var(--ink-900, #2C2A26); }
+.sw-wz-sum { margin: 0; padding: 0; }
+.sw-wz-sum > div { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 10px; padding: 0 0 16px 32px; }
+.sw-wz-sum > div:last-child { padding-bottom: 0; }
+.sw-wz-sum > div::before { content: '✓'; content: '✓' / ''; position: absolute; left: 0; top: 0; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; background: var(--sw-tint, #E3F0F1); color: var(--sw-accent-dark, #0B5560); }
+.sw-wz-sum > div:not(:last-child)::after { content: ''; position: absolute; left: 9px; top: 24px; bottom: 4px; width: 2px; border-radius: 1px; background: var(--sand-200, #E0D6BE); }
+.sw-wz-sum dt { grid-column: 1; font-size: 12.5px; line-height: 20px; color: var(--stone-600, #5C5447); }
+.sw-wz-sum dd { grid-column: 1; margin: 1px 0 0; font-size: 15px; font-weight: 600; line-height: 1.35; font-variant-numeric: tabular-nums; }
+.sw-wz-sum .sw-link { grid-column: 2; grid-row: 1 / span 2; align-self: start; padding: 0 11px; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 14px; background: #fff; font-size: 12.5px; }
+.sw-wz-sum .sw-link:hover { border-color: var(--sw-accent, #0F6E7A); }
+.sw-wz-sumfold > summary { list-style: none; cursor: pointer; min-height: 44px; box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 10px; padding: 7px 12px; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 12px; background: #fff; }
+.sw-wz-sumfold > summary::-webkit-details-marker { display: none; }
+.sw-wz-sumfold > summary > span:first-child { grid-column: 1; font-size: 13px; color: var(--stone-600, #5C5447); }
+.sw-wz-sumfold > summary::after { content: 'ändern'; grid-column: 2; grid-row: 1 / span 2; font-size: 13px; font-weight: 600; color: var(--sw-accent-dark, #0B5560); }
+.sw-wz-sumfold[open] > summary::after { content: 'schließen'; }
+.sw-wz-sumgist { grid-column: 1; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sw-wz-sumfold > .sw-wz-sum { margin-top: 8px; }
+
+/* Fuß: der Grund, warum es noch nicht weitergeht, Zurück | Weiter, und auf jeder Seite, was der Planer nicht ist. */
+.sw-wz-foot { flex: 0 0 auto; display: flex; flex-direction: column; gap: 9px; padding: 12px 16px 14px; border-top: 1px solid var(--sand-200, #E0D6BE); background: var(--cream-50, #FAF6EA); }
+.sw-wz-block { margin: 0; padding: 8px 12px; border-radius: 10px; background: var(--sw-tint, #E3F0F1); border: 1px solid #BFD9DC; font-size: 13.5px; line-height: 1.4; }
+.sw-wz-nav { display: flex; gap: 10px; }
+.sw-wz-back, .sw-wz-next { min-height: 46px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 12px; font-size: 15.5px; cursor: pointer; }
+.sw-wz-back { flex: 0 0 auto; padding: 0 14px; border: 1px solid var(--border-strong, #C4B896); background: #fff; color: var(--ink-900, #2C2A26); font-weight: 600; }
+.sw-wz-back:hover { background: var(--sand-100, #EDE6D3); }
+.sw-wz-next { flex: 1 1 auto; padding: 0 16px; border: 0; background: var(--sw-accent, #0F6E7A); color: #fff; font-weight: 700; }
+.sw-wz-next:hover:not(:disabled) { background: var(--sw-accent-dark, #0B5560); }
+.sw-wz-next:disabled { opacity: 0.45; cursor: default; }
+.sw-wz-safe { margin: 0; font-size: 12px; line-height: 1.4; color: var(--stone-600, #5C5447); }
+
+@media (max-width: 1439px) { .sw-dock.sw-am-dockin.sw-wz-col { width: 324px; } }
+
+/* Bis eine Seite die Karte braucht (Startort, Strecke, Ergebnis), füllt der Assistent die Fläche wie der Routenplaner;
+   die Karte bleibt darunter geladen und kommt mit dieser Seite dazu. */
+.sw-body.is-wzfull > .sw-dock.sw-am-dockin.sw-wz-col { position: absolute; inset: 0; z-index: 20; width: auto; justify-content: center; background: transparent; }
+/* Dahinter liegt die DACH-Karte der Startseite (DachMapBackground) auf Sand; Kopf und Fuß des Assistenten bleiben deckend. */
+.sw-wz-backdrop { position: absolute; inset: 0; z-index: 19; overflow: hidden; background: var(--sand-50, #F5F1E8); }
+.sw-body.is-wzfull .sw-wz { flex: 1 1 auto; background: transparent; }
+.sw-body.is-wzfull .sw-wz-head { padding: 14px 32px 10px; background: var(--cream-50, #FAF6EA); }
+.sw-body.is-wzfull .sw-wz-body { padding: 16px 32px 16px; gap: 12px; }
+.sw-body.is-wzfull .sw-wz-foot { padding: 10px 32px 12px; gap: 7px; }
+/* Die Seite passt auf einen Bildschirm: drei Karten immer nebeneinander, die Skizze folgt der Höhe des Fensters
+   (Seitenverhältnis bleibt, mittig in der Karte); was dann noch fehlt, rollt wie bisher. */
+.sw-body.is-wzfull .sw-wz-arts { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 960px; }
+.sw-body.is-wzfull .sw-wz-art-sk { align-self: center; max-width: 100%; }
+.sw-body.is-wzfull .sw-wz-art-sk svg { width: auto; max-width: 100%; height: clamp(56px, min(13vw, calc(100vh - 680px)), 170px); }

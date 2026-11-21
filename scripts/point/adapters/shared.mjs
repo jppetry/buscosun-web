@@ -123,23 +123,40 @@ const envSeconds = (name, dflt) => {
 export const FETCH_TIMEOUT_MS = envSeconds('POINT_FETCH_TIMEOUT_S', 120);
 export const URL_FAIL_BUDGET_MS = Math.round(1.5 * FETCH_TIMEOUT_MS);
 export const OUTAGE_MAX_WAIT_MS = envSeconds('POINT_OUTAGE_WAIT_S', 60);
+// Frist je Host, wo die allgemeine zu lang ist. Lauf #1949 im Daten-Repo (19.11.2026) zeigte den Preis:
+// mit 120 s wartete der Producer 10 Minuten auf GeoSphere, bevor `claef` herausfiel — und solange die
+// Bahn einer Quelle an einer Stunde hängt, stehen ALLE Feldbahnen (Verbraucher in Stundenordnung).
+// Ein gesundes GeoSphere-Fenster (7 MiB) brauchte im Lauf 2026111715 im Mittel 4,2 s; am 17.11. lieferte
+// derselbe Datensatz einmal ohne einen einzigen Fehler in 44 s je Fenster (Lauf #1887: `claef` 1 464 s).
+// 30 s = das Siebenfache des gesunden Mittels und unter dem kranken — GESETZT.
+// `POINT_FETCH_TIMEOUT_HOSTS="host=sekunden,host=sekunden"` überschreibt oder ergänzt (Prüfläufe).
+const HOST_TIMEOUT_MS = { 'dataset.api.hub.geosphere.at': 30_000 };
+for (const pair of (process.env.POINT_FETCH_TIMEOUT_HOSTS ?? '').split(',')) {
+  const [host, s] = pair.split('=');
+  if (host && Number(s) > 0) HOST_TIMEOUT_MS[host.trim()] = Math.round(Number(s) * 1000);
+}
+/** Die Frist für einen Abruf dieser Adresse: je Host, sonst `FETCH_TIMEOUT_MS`. */
+export function timeoutMsFor(url) {
+  try { return HOST_TIMEOUT_MS[new URL(url).host] ?? FETCH_TIMEOUT_MS; } catch { return FETCH_TIMEOUT_MS; }
+}
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 /**
  * Die Frist EINES Abrufs. Wird im Aufruf von `fetch` ausgewertet, läuft also ab dem Start des
- * Abrufs und nicht ab dem Warten im Takt des Hosts; `clock.t` merkt diesen Start.
+ * Abrufs und nicht ab dem Warten im Takt des Hosts; `clock.t` merkt diesen Start, `clock.ms` die Frist.
  */
-function deadline(clock) {
+function deadline(clock, url) {
   clock.t = Date.now();
-  return AbortSignal.timeout(FETCH_TIMEOUT_MS);
+  clock.ms = timeoutMsFor(url);
+  return AbortSignal.timeout(clock.ms);
 }
-/** Einen Fehlversuch buchen. `true` = die Adresse hat ihr Zeitbudget verbraucht, kein weiterer Versuch. */
+/** Einen Fehlversuch buchen. `true` = die Adresse hat ihr Zeitbudget (1,5 Fristen) verbraucht, kein weiterer Versuch. */
 function spent(clock, st) {
   if (clock.t) { st.failMs += Date.now() - clock.t; clock.t = 0; }
-  return st.failMs >= URL_FAIL_BUDGET_MS;
+  return st.failMs >= 1.5 * (clock.ms ?? FETCH_TIMEOUT_MS);
 }
 /** Eine abgelaufene Frist beim Namen nennen — `fetch` meldet sie als DOMException „TimeoutError“. */
-function named(e) {
-  return e?.name === 'TimeoutError' ? new Error(`Frist von ${FETCH_TIMEOUT_MS / 1000} s abgelaufen (timeout)`) : e;
+function named(e, clock) {
+  return e?.name === 'TimeoutError' ? new Error(`Frist von ${(clock.ms ?? FETCH_TIMEOUT_MS) / 1000} s abgelaufen (timeout)`) : e;
 }
 /** 503 ohne `Retry-After`: ein Ausfall, keine Drosselung. */
 const isOutage = (res) => res.status === 503 && !res.headers?.get?.('retry-after');
@@ -292,7 +309,7 @@ async function fetchBytesNet(url, { range = null, decompress = false, forceBinar
   for (let i = 0; i < 5;) {
     const t0 = Date.now();
     try {
-      const res = await paced(url, () => fetch(url, { ...(range ? { headers: { range: `bytes=${range}` } } : {}), signal: deadline(clock) }));
+      const res = await paced(url, () => fetch(url, { ...(range ? { headers: { range: `bytes=${range}` } } : {}), signal: deadline(clock, url) }));
       if (res.status === 404) { net.absent++; ps.absent++; return null; }
       if (isOutage(res)) {
         // PT1: Ausfall hinter dem Gateway — kurz warten, dann ist es ein Befund über die Quelle.
@@ -323,7 +340,7 @@ async function fetchBytesNet(url, { range = null, decompress = false, forceBinar
       writeFileSync(p, out);
       return out;
     } catch (e) {
-      lastError = named(e);
+      lastError = named(e, clock);
       i++;
       if (spent(clock, st)) break;
       await new Promise((r) => setTimeout(r, 400 * i));
@@ -371,7 +388,7 @@ export async function fetchJson(url) {
     for (let i = 0; i < 5;) {
       const t0 = Date.now();
       try {
-        const res = await paced(url, () => fetch(url, { signal: deadline(clock) }));
+        const res = await paced(url, () => fetch(url, { signal: deadline(clock, url) }));
         if (res.status === 404) { net.absent++; ps.absent++; return null; }
         if (isOutage(res)) {
           const wait = outageWait(st);
@@ -395,7 +412,7 @@ export async function fetchJson(url) {
         net.files++; net.bytes += text.length; net.ms += dt; ps.files++; ps.bytes += text.length; ps.ms += dt;
         return JSON.parse(text);
       } catch (e) {
-        lastError = named(e); i++;
+        lastError = named(e, clock); i++;
         if (spent(clock, st)) break;
         await new Promise((r) => setTimeout(r, 400 * i));
       }
@@ -519,7 +536,7 @@ async function headOkNet(url, ps) {
   for (let i = 0; i < 4;) {
     try {
       net.probes++; ps.probes++;
-      const r = await paced(url, () => fetch(url, { method: 'HEAD', signal: deadline(clock) }));
+      const r = await paced(url, () => fetch(url, { method: 'HEAD', signal: deadline(clock, url) }));
       if (isOutage(r)) {
         // Ein Ausfall ist so wenig „gibt es nicht“ wie eine Drosselung — nach der Wartezeit werfen.
         const wait = outageWait(st);
@@ -676,9 +693,9 @@ export async function fetchRanges(url, ranges, { cacheKey = null, maxPerRequest 
       const ac = new AbortController();
       let res;
       try {
-        res = await paced(url, () => fetch(url, { headers: { range: header }, signal: AbortSignal.any([ac.signal, deadline(clock)]) }));
+        res = await paced(url, () => fetch(url, { headers: { range: header }, signal: AbortSignal.any([ac.signal, deadline(clock, url)]) }));
       } catch (e) {
-        lastError = named(e);
+        lastError = named(e, clock);
         a++;
         if (spent(clock, st)) break;
         await new Promise((r) => setTimeout(r, 400 * a));

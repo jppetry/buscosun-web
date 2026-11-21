@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+  <identifier>2.49.0.0.276.0.DWD.PVW.1795096080000.5f139676-45af-47c5-ba85-447963735b7b.DEU</identifier>
+  <sender>opendata@dwd.de</sender>
+  <sent>2026-11-19T14:48:00+01:00</sent>
+  <status>Actual</status>
+  <msgType>Update</msgType>
+  <source>PVW</source>
+  <scope>Public</scope>
+  <code>id:2.49.0.0.276.0.DWD.PVW.1795096080000.5f139676-45af-47c5-ba85-447963735b7b</code>
+  <references>opendata@dwd.de,2.49.0.0.276.0.DWD.PVW.1795082820000.e3632564-315b-4648-a975-efd9efbb0595.DEU,2026-11-19T11:07:00+01:00</references>
+  <info>
+    <language>de-DE</language>
+    <category>Met</category>
+    <event>STURM</event>
+    <responseType>Prepare</responseType>
+    <urgency>Immediate</urgency>
+    <severity>Moderate</severity>
+    <certainty>Likely</certainty>
+    <eventCode>
+      <valueName>PROFILE_VERSION</valueName>
+      <value>2.1.14</value>
+    </eventCode>
+    <eventCode>
+      <valueName>LICENSE</valueName>
+      <value>© GeoBasis-DE / BKG 2021 (Daten modifiziert)</value>
+    </eventCode>
+    <eventCode>
+      <valueName>II</valueName>
+      <value>58</value>
+    </eventCode>
+    <eventCode>
+      <valueName>GROUP</valueName>
+      <value>WIND</value>
+    </eventCode>
+    <eventCode>
+      <valueName>AREA_COLOR</valueName>
+      <value>251 140 0</value>
+    </eventCode>
+    <effective>2026-11-19T14:48:00+01:00</effective>
+    <onset>2026-11-19T14:48:00+01:00</onset>
+    <senderName>Deutscher Wetterdienst</senderName>
+    <headline>Amtliche WARNUNG vor STURM</headline>
+    <description>Es treten Sturmböen mit Geschwindigkeiten über 65 km/h (18 m/s, 35 kn, Bft 8) aus südwestlicher Richtung auf.</description>
+    <instruction>Gefahr durch: Kentern von Booten und kleineren Schiffen. 
+Handlungsempfehlungen: 
+ggf. Vorsichtsmaßnahmen treffen; Ufer aufsuchen</instruction>
+    <web>https://dwd.de/warnungen</web>
+    <contact>Deutscher Wetterdienst</contact>
+    <parameter>
+      <valueName>gusts</valueName>
+      <value>&gt;65 [km/h]</value>
+    </parameter>
+    <parameter>
+      <valueName>wind direction</valueName>
+      <value>south-west</value>
+    </parameter>
+    <area>
+      <areaDesc>Bodensee - Ost</areaDesc>
+      <polygon>47.521135,9.43339 47.592419,9.54406 47.586334,9.554232 47.584344,9.602092 47.571308,9.610433 47.570389,9.627831 47.556191,9.653515 47.556474,9.679366 47.542922,9.680161 47.549733,9.694529 47.549006,9.713068 47.533689,9.729583 47.521035,9.750001 47.507566,9.748679 47.506281,9.697247 47.493983,9.676486 47.505093,9.670652 47.511043,9.658007 47.489314,9.662457 47.48764,9.648222 47.495304,9.639009 47.50711,9.640895 47.489126,9.602939 47.488871,9.586399 47.502726,9.566268 47.498731,9.561243 47.500833,9.555219 47.485679,9.542356 47.481576,9.528624 47.481811,9.482678 47.496993,9.468088 47.506922,9.437328 47.518792,9.439091 47.521135,9.43339 47.521135,9.43339</polygon>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>208440000</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+    <area>
+      <areaDesc>Bodensee - Mitte</areaDesc>
+      <polygon>47.592419,9.54406 47.521135,9.43339 47.546022,9.386391 47.570923,9.384599 47.589783,9.33476 47.611624,9.298658 47.655538,9.180247 47.667243,9.181293 47.663168,9.207224 47.66852,9.216705 47.680126,9.211587 47.702664,9.254996 47.6853,9.28483 47.675851,9.305687 47.669528,9.328405 47.660541,9.354611 47.667383,9.39309 47.665329,9.420342 47.648077,9.463651 47.649507,9.494818 47.637095,9.509442 47.611561,9.526806 47.603185,9.529915 47.592419,9.54406 47.592419,9.54406</polygon>
+      <geocode>
+        <valueName>WARNCELLID</valueName>
+        <value>208438000</value>
+      </geocode>
+      <altitude>0.0</altitude>
+      <ceiling>9842.5197</ceiling>
+    </area>
+  </info>
+</alert>

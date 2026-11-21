@@ -1,0 +1,245 @@
+{
+ "label": "vorher",
+ "query": "",
+ "at": "2026-11-19T12:31:16.441Z",
+ "base": "http://127.0.0.1:5199",
+ "results": [
+  {
+   "target": "fire",
+   "device": "desktop-l",
+   "net": "none",
+   "dpr": 1,
+   "steps": [
+    {
+     "step": "open",
+     "settledMs": null,
+     "requests": 27,
+     "distinctRanges": 17,
+     "maxRepeat": 2,
+     "mb": 0.02,
+     "failed": 20,
+     "inFlightAtEnd": 6,
+     "box": [
+      818,
+      545
+     ],
+     "status": "20 km0 Kacheln · <0,1 MB geladen · ~80 m/px · schärfere Ebene lädt … · volle 10 m hier ≈ 13 MB"
+    },
+    {
+     "step": "full",
+     "settledMs": null,
+     "requests": 47,
+     "distinctRanges": 20,
+     "maxRepeat": 3,
+     "mb": 0,
+     "failed": 41,
+     "inFlightAtEnd": 6,
+     "box": [
+      1920,
+      1080
+     ],
+     "status": "20 km0 Kacheln · <0,1 MB geladen · ~80 m/px · schärfere Ebene lädt … · volle 10 m hier ≈ 13 MB"
+    },
+    {
+     "step": "zoomIn1",
+     "settledMs": null,
+     "requests": 18,
+     "distinctRanges": 12,
+     "maxRepeat": 2,
+     "mb": 0,
+     "failed": 12,
+     "inFlightAtEnd": 6,
+     "box": [
+      1920,
+      1080
+     ],
+     "status": "10 km0 Kacheln · <0,1 MB geladen · ~40 m/px · schärfere Ebene lädt … · volle 10 m hier ≈ 13 MB"
+    },
+    {
+     "step": "zoomIn2",
+     "settledMs": null,
+     "requests": 24,
+     "distinctRanges": 16,
+     "maxRepeat": 2,
+     "mb": 0,
+     "failed": 18,
+     "inFlightAtEnd": 6,
+     "box": null,
+     "status": ""
+    },
+    {
+     "step": "pan1",
+     "settledMs": null,
+     "requests": 24,
+     "distinctRanges": 16,
+     "maxRepeat": 2,
+     "mb": 0,
+     "failed": 18,
+     "inFlightAtEnd": 6,
+     "box": [
+      1920,
+      1080
+     ],
+     "status": "5 km0 Kacheln · <0,1 MB geladen · ~20 m/px · schärfere Ebene lädt … · volle 10 m hier ≈ 13 MB"
+    },
+    {
+     "step": "pan2",
+     "settledMs": null,
+     "requests": 25,
+     "distinctRanges": 18,
+     "maxRepeat": 2,
+     "mb": 0.56,
+     "failed": 16,
+     "inFlightAtEnd": 6,
+     "box": [
+      1920,
+      1080
+     ],
+     "status": "5 km0 Kacheln · <0,1 MB geladen · ~20 m/px · schärfere Ebene lädt … · volle 10 m hier ≈ 13 MB"
+    }
+   ],
+   "error": "Zeitüberschreitung: Input.dispatchMouseEvent",
+   "page": "Waldbrand aktuell: Karte, Gefahr & aktive Brände in DE, AT, CH | buscosun\nbuscosun\nBrandradar · Brände\nKarte\nDossier\nKarte: Satellit\nFIRMS LIVE\nEBENEN\n0 aktiv\nGEFAHRENLAGE\nEU-Gefahrenindex\nAKTUELLE LAGE\nFeuerwetter-Treiber\nAUS DER WETTERKARTE\nBodentrockenheit\nAUSBAUSTUFE 2\nBrennmaterial\nFrühere Bran"
+  },
+  {
+   "target": "fire",
+   "device": "mobile",
+   "net": "none",
+   "dpr": 3,
+   "steps": [
+    {
+     "step": "open",
+     "settledMs": null,
+     "requests": 19,
+     "distinctRanges": 19,
+     "maxRepeat": 1,
+     "mb": 2.15,
+     "failed": 0,
+     "inFlightAtEnd": 6,
+     "box": [
+      326,
+      260
+     ],
+     "status": "50 km4 Kacheln · 1,8 MB geladen · ~80 m/px · schärfere Ebene lädt … · volle 10 m hier ≈ 13 MB"
+    },
+    {
+     "step": "full",
+     "settledMs": null,
+     "requests": 22,
+     "distinctRanges": 18,
+     "maxRepeat": 2,
+     "mb": 2.26,
+     "failed": 4,
+     "inFlightAtEnd": 5,
+     "box": [
+      390,
+      844
+     ],
+     "status": "50 km11 Kacheln · 3,9 MB geladen · ~80 m/px · schärfere Ebene lädt … · volle 10 m hier ≈ 13 MB"
+    },
+    {
+     "step": "zoomIn1",
+     "settledMs": null,
+     "requests": 16,
+     "distinctRanges": 10,
+     "maxRepeat": 2,
+     "mb": 0.74,
+     "failed": 6,
+     "inFlightAtEnd": 6,
+     "box": [
+      390,
+      844
+     ],
+     "status": "20 km13 Kacheln · 5,0 MB geladen · ~40 m/px · schärfere Ebene lädt … · volle 10 m hier ≈ 13 MB"
+    },
+    {
+     "step": "zoomIn2",
+     "settledMs": null,
+     "requests": 23,
+     "distinctRanges": 18,
+     "maxRepeat": 2,
+     "mb": 1.58,
+     "failed": 8,
+     "inFlightAtEnd": 6,
+     "box": [
+      390,
+      844
+     ],
+     "status": "20 km15 Kacheln · 5,7 MB geladen · ~40 m/px · schärfere Ebene lädt … · volle 10 m hier ≈ 13 MB"
+    },
+    {
+     "step": "pan1",
+     "settledMs": null,
+     "requests": 17,
+     "distinctRanges": 13,
+     "maxRepeat": 2,
+     "mb": 0.23,
+     "failed": 10,
+     "inFlightAtEnd": 6,
+     "box": [
+      390,
+      844
+     ],
+     "status": "20 km17 Kacheln · 6,2 MB geladen · ~40 m/px · schärfere Ebene lädt … · volle 10 m hier ≈ 13 MB"
+    },
+    {
+     "step": "pan2",
+     "settledMs": null,
+     "requests": 21,
+     "distinctRanges": 14,
+     "maxRepeat": 2,
+     "mb": 1,
+     "failed": 10,
+     "inFlightAtEnd": 6,
+     "box": [
+      390,
+      844
+     ],
+     "status": "20 km17 Kacheln · 6,2 MB geladen · ~40 m/px · schärfere Ebene lädt … · volle 10 m hier ≈ 13 MB"
+    },
+    {
+     "step": "zoomOut1",
+     "settledMs": null,
+     "requests": 21,
+     "distinctRanges": 16,
+     "maxRepeat": 2,
+     "mb": 2.1,
+     "failed": 5,
+     "inFlightAtEnd": 5,
+     "box": [
+      390,
+      844
+     ],
+     "status": "50 km21 Kacheln · 8,5 MB geladen · ~80 m/px · schärfere Ebene lädt … · volle 10 m hier ≈ 13 MB"
+    },
+    {
+     "step": "zoomOut2",
+     "settledMs": null,
+     "requests": 19,
+     "distinctRanges": 13,
+     "maxRepeat": 2,
+     "mb": 0.94,
+     "failed": 7,
+     "inFlightAtEnd": 6,
+     "box": [
+      390,
+      844
+     ],
+     "status": "50 km24 Kacheln · 10,1 MB geladen · ~80 m/px · schärfere Ebene lädt … · volle 10 m hier ≈ 13 MB"
+    },
+    {
+     "step": "burst",
+     "settledMs": null,
+     "requests": 45,
+     "distinctRanges": 33,
+     "maxRepeat": 2,
+     "mb": 3.54,
+     "failed": 21,
+     "inFlightAtEnd": 6,
+     "box": null,
+     "status": ""
+    }
+   ]
+  }
+ ]
+}

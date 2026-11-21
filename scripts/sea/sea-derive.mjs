@@ -304,7 +304,7 @@ export async function spotWind({ dataDir, spots, geoDoc, nowMs, runMs, log = () 
   const { dirStore, makeIo, geoBackend } = await import('../road/road-forecast.mjs');
   const { getPointForecastFromCube, clearCubeForecastCache } = await import('../../src/pointForecast/cubeSource.ts');
   const { fusionVersionOfNotes, fusionName, FUSION_CURRENT } = await import('../../src/pointForecast/fusion/fusionRelease.ts');
-  const { seaCellCentre } = await import('../../src/sea/seaContract.ts');
+  const { spotWaterPoint } = await import('../../src/sea/seaContract.ts');
   // `cdn` (local runs): the cube over jsDelivr with the client's own store instead of a checkout.
   let store;
   if (dataDir === 'cdn') { const { httpStore, memoStore } = await import('../../src/point/client/store.ts'); store = memoStore(httpStore({})); } else store = dirStore(dataDir);
@@ -318,10 +318,13 @@ export async function spotWind({ dataDir, spots, geoDoc, nowMs, runMs, log = () 
   for (const sp of spots) {
     // Phase DK: a spot outside the point cube gets its wind from DMI (`sea-dmi.mjs`), never from here — not a failure.
     if (sp.dk?.wind === 'dmi') continue;
-    const p = seaCellCentre('cwam', sp.cell.i, sp.cell.j);
+    // The water point: the centre of the CWAM cell at sea; phase BS — the lake's water point at a lake spot, computed with the
+    // country parameters of the spot's land (a coastal spot: Germany, as before).
+    const p = spotWaterPoint(sp);
+    if (!p) { failed.push({ id: sp.id, error: 'Spot ohne Wasserpunkt (weder CWAM-Zelle noch See)' }); continue; }
     try {
       clearCubeForecastCache();
-      const fc = await getPointForecastFromCube({ lat: p.lat, lng: p.lon, country: 'DE', hours, pointSource: 'cube', includeRadarNowcast: false }, io);
+      const fc = await getPointForecastFromCube({ lat: p.lat, lng: p.lon, country: sp.lake?.fusion?.country ?? 'DE', hours, pointSource: 'cube', includeRadarNowcast: false }, io);
       const steps = fc.cube?.v2?.axis?.steps;
       if (!steps?.length) { failed.push({ id: sp.id, error: 'kein Cube-Ergebnis' }); continue; }
       const series = spotWindSeries(steps, runMs);

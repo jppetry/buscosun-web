@@ -11,12 +11,13 @@
 
 import { classify, windows, type SeaHour, type SeaLimits, type SeaVerdict, type SeaWindow } from './seaProfiles';
 import { seaNoSeaAt } from './seaContract';
+import { LAKE_VERDICTS, LAKE_VERDICT_OFF_SHORT } from './seaLakes';
 
 const H = 3_600_000;
 
 /** The fields `classify` reads, per spot; the page's `SeaSeries` fits. */
 export type SeaVerdictSeries = Record<'wind' | 'gust' | 'windDir' | 'hs' | 'ws' | 'wsPer' | 'tm', (number | null)[]>;
-export interface SeaVerdictSpot { id: string; normal: number; lat: number; lon: number }
+export interface SeaVerdictSpot { id: string; normal: number; lat: number; lon: number; /** Phase BS: a lake spot — no class while `LAKE_VERDICTS` is off. */ lake?: unknown }
 export interface SeaVerdictInputs {
   /** `null` = no usable data: every hour is classified without values (as the page does then). */
   series: Readonly<Record<string, SeaVerdictSeries>> | null;
@@ -41,8 +42,11 @@ export function seaHourOf(inp: SeaVerdictInputs, id: string, kk: number): SeaHou
 }
 
 /** Uncached reference: the verdict of one spot at one hour. */
-export const verdictOf = (inp: SeaVerdictInputs, sp: SeaVerdictSpot, kk: number): SeaVerdict =>
-  classify(seaHourOf(inp, sp.id, kk), inp.limits, sp.normal, sp.lat, sp.lon);
+export const verdictOf = (inp: SeaVerdictInputs, sp: SeaVerdictSpot, kk: number): SeaVerdict => {
+  const v = classify(seaHourOf(inp, sp.id, kk), inp.limits, sp.normal, sp.lat, sp.lon);
+  // Phase BS: at a lake the hour keeps the side the wind comes from and the daylight, but carries no class.
+  return sp.lake && !LAKE_VERDICTS ? { ...v, cls: 'keine', reasons: [LAKE_VERDICT_OFF_SHORT] } : v;
+};
 
 /** Uncached reference: the whole row of one spot. */
 export const verdictRow = (inp: SeaVerdictInputs, sp: SeaVerdictSpot): SeaVerdict[] =>

@@ -15,7 +15,7 @@
  */
 import { sunAltitudeDeg } from '../photo/sun';
 import { MS_TO_KN, SHORE_LABEL, fmtWind, shoreAngle, unitLabel, type SeaUnit, type ShoreAngle } from './seaProfiles';
-import { seaCellCentre, type SeaSpot } from './seaContract';
+import { spotWaterPoint, type SeaSpot } from './seaContract';
 import { compass16, dayShort, hh, hm } from './seaView';
 
 const H = 3_600_000;
@@ -77,8 +77,9 @@ export function radiusBounds(launch: PlanPos, radiusKm = SEA_PLAN_RADIUS_KM): [n
  * along the same bearing to at least `SEA_PLAN_START_KM`. A cell on top of the spot gives no bearing; then the shore
  * normal (pointing seaward) is the direction.
  */
-export function defaultBoat(spot: Pick<SeaSpot, 'lat' | 'lon' | 'normal' | 'cell'>): PlanPos {
-  const cell = seaCellCentre(spot.cell.model, spot.cell.i, spot.cell.j);
+export function defaultBoat(spot: Pick<SeaSpot, 'lat' | 'lon' | 'normal' | 'cell' | 'lake'>): PlanPos {
+  // Phase BS: at a lake the water point of the catalogue takes the place of the cell centre.
+  const cell = spotWaterPoint(spot) ?? { lat: spot.lat, lon: spot.lon };
   const km = planDistKm(spot, cell);
   const bearing = km < 0.05 ? spot.normal : planBearingDeg(spot, cell);
   const p = planDestination(spot, bearing, Math.min(SEA_PLAN_RADIUS_KM, Math.max(SEA_PLAN_START_KM, km)));
@@ -315,6 +316,8 @@ export const PLAN_MOVED_NOTE = 'Das Fenster lag außerhalb der Vorhersage und be
 export const PLAN_CUT_NOTE = 'Ein Teil des Fensters liegt außerhalb der Vorhersage (vorbei oder zu weit voraus). Gezeigt wird der Teil mit Stundenwerten.';
 export const PLAN_COLOUR_NOTE = 'Farbe der Pfeile: hellblau bei Wind von See, orange bei Wind vom Land, hell bei Wind längs des Ufers. Die Einteilung ist der Uferwinkel am Spot.';
 export const PLAN_ASK_SPOT = 'Von welchem Spot startest du? Wähle ihn in der Liste oder auf der Karte.';
+/** Under the input of „Vor Ort“ (AM-O): the two things one sets on the map and in the hour band, not in the input. */
+export const PLAN_INPUT_NOTE = 'Das Boot auf der Karte ziehen; das Fenster im Stundenband an seinen zwei Griffen ziehen.';
 
 /** "2,4 km" · "350 m" · "unter 100 m". */
 export function distText(km: number): string {

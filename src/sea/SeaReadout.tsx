@@ -145,6 +145,8 @@ function waterRange(t: SeaTexts, s: SeaSpot): string | null {
 }
 
 const seaName = (s: SeaSpot) => (s.region === 'nordsee' ? 'Nordsee' : 'Ostsee');
+/** The sea of a coastal spot (a lake spot never reaches this readout: `SeaLakeReadout`). */
+const seaOf = (s: SeaSpot): 'nordsee' | 'ostsee' => (s.region === 'nordsee' ? 'nordsee' : 'ostsee');
 
 function waterText(t: SeaTexts, s: SeaSpot): string {
   const r = waterRange(t, s);
@@ -222,7 +224,7 @@ export default function SeaReadout(p: Props) {
                 {(windMost || gustMost) && <div className="sw-hero-sub sw-most">{[windMost ? `Wind ${windMost}` : null, gustMost ? `Böen ${gustMost}` : null].filter(Boolean).join(' · ')} · {BAND_LEGEND}</div>}
                 <div className="sw-eyebrow sw-gap">Seegang · Modell CWAM</div>
                 <div className={`sw-hero-mid${h.dry ? ' is-dry' : ''}`}>{h.dry ? DRY_VALUE : h.hs == null ? '–' : `${f1(h.hs)} m`}</div>
-                <div className="sw-hero-sub">{h.dry ? dryHourText(s.region) : h.hs == null ? 'kein Wert an der Wasserzelle' : `aus ${compass16(h.dir)} · Periode ${h.tm == null ? '–' : `${f1(h.tm)} s`}`}</div>
+                <div className="sw-hero-sub">{h.dry ? dryHourText(seaOf(s)) : h.hs == null ? 'kein Wert an der Wasserzelle' : `aus ${compass16(h.dir)} · Periode ${h.tm == null ? '–' : `${f1(h.tm)} s`}`}</div>
               </div>
               <Compass normal={s.normal} windFrom={h.windDir} waveFrom={h.hs != null && h.hs >= 0.05 ? h.dir : null}
                 label={`Wind aus ${compass16(h.windDir)}, Welle aus ${compass16(h.dir)}, Ufer zeigt nach ${compass16(s.normal)}`} shore={v?.shore ? SHORE_LABEL[v.shore] : null} />
@@ -241,7 +243,7 @@ export default function SeaReadout(p: Props) {
               <div><span>Wasser · Mittelfrist (amtlich)</span><strong>{waterText(p.texts, s)}</strong></div>
             </div>
             {p.dry.hours > 0
-              ? <p className="sw-note is-dry">{dryNote(s.region, p.dry.hours, p.dry.of, s.cell.km, p.dry.classed)}</p>
+              ? <p className="sw-note is-dry">{dryNote(seaOf(s), p.dry.hours, p.dry.of, s.cell?.km ?? 0, p.dry.classed)}</p>
               : s.tidal && <p className="sw-note">Watt: das Modell rechnet mit Gezeit und Wassertiefe — den Wasserstand selbst zeigt die Karte „Wasserstand“ weiter unten, gemessen und vorhergesagt am nächsten BSH-Pegel. Bei Niedrigwasser kann die Stelle trockenfallen.</p>}
           </>
         )}
@@ -414,7 +416,7 @@ export default function SeaReadout(p: Props) {
               <article className="sw-kpi is-sea">
                 <span className="sw-kpi-l">Seegang</span>
                 <div className="sw-kpi-v"><strong className={h.dry ? 'is-text' : ''}>{h.dry ? DRY_VALUE : h.hs == null ? '–' : f1(h.hs)}</strong>{!h.dry && h.hs != null && <span>m</span>}{hasWaves && h.dir != null && <WaveArrow from={h.dir} />}</div>
-                <small>{h.dry ? dryHourText(s.region) : h.hs == null ? 'kein Wert an der Wasserzelle' : hasWaves ? `aus ${compass16(h.dir)} · Periode ${h.tm == null ? '–' : `${f1(h.tm)} s`}` : `kein Seegang mit Richtung · Periode ${h.tm == null ? '–' : `${f1(h.tm)} s`}`}</small>
+                <small>{h.dry ? dryHourText(seaOf(s)) : h.hs == null ? 'kein Wert an der Wasserzelle' : hasWaves ? `aus ${compass16(h.dir)} · Periode ${h.tm == null ? '–' : `${f1(h.tm)} s`}` : `kein Seegang mit Richtung · Periode ${h.tm == null ? '–' : `${f1(h.tm)} s`}`}</small>
               </article>
               <article className="sw-kpi">
                 <span className="sw-kpi-l">Wasser</span>
@@ -458,7 +460,7 @@ export default function SeaReadout(p: Props) {
               </article>
             </div>
             {p.dry.hours > 0
-              ? <p className="sw-note is-dry">{dryNote(s.region, p.dry.hours, p.dry.of, s.cell.km, p.dry.classed)}</p>
+              ? <p className="sw-note is-dry">{dryNote(seaOf(s), p.dry.hours, p.dry.of, s.cell?.km ?? 0, p.dry.classed)}</p>
               : s.tidal && <p className="sw-note">Watt: das Modell rechnet mit Gezeit und Wassertiefe — den Wasserstand selbst zeigt der Abschnitt „Wasserstand“, gemessen und vorhergesagt am nächsten BSH-Pegel. Bei Niedrigwasser kann die Stelle trockenfallen.</p>}
           </>
         )}

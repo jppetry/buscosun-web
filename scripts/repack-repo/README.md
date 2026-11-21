@@ -225,6 +225,11 @@ sea/v1/spots/<lauf>.json                    Stundenreihen je Spot: Welle (Modell
 sea/v1/text/<produkt>/<YYMMDDHHMM>.json     FQDL50, FQDL51, WODL45, FXDL40: raw (Latin-1, Zeichen für Zeichen), Anzeigetext, Gliederung
 sea/v1/quarantine/<lauf|text-datei>.json    Verworfenes mit Regel (nur Diagnose)
 sea/v1/static/spots.json                    Spotkatalog: Lage, Ufernormale (aus der CWAM-Maske), Seegebiet, Küstenabschnitt, Station, Gitterzelle
+sea/v1/static/spots-lakes.json              Binnenseen (Phase BS): Tabelle der 28 Seen und 70 Seespots ohne CWAM-Zelle, je Spot ein lake-Block (See, Seespiegel, mittlere Tiefe, Wasserpunkt, Fetch je 10°, DWD-Warnzelle, Stationen, Landesparameter). Löschen = Seite wie vor der Phase
+sea/v1/static/lake-geo.json                 nur für den Producer: Gelände- und Rauigkeitseinträge am Wasserpunkt jedes Seespots, Höhe = Seespiegel
+sea/v1/static/lakes.json                    Umrisse der Seen für die Karte (GeoJSON, vereinfacht; DLM250, swisstopo, Copernicus EU-Hydro)
+sea/v1/lakes/<lauf>-w<t1>.json              Seespots: Wind/Böe/Richtung (0,1 m/s, Grad), optional q und s wie in spots/, von buscosun Fusion auf dem Seespiegel, Stundenachse des Seegangslaufs; Zeiger status.lakes
+sea/v1/lakes/wt-<YYYYMMDDHHMM>.json         Modell-Wassertemperatur der Seen je Becken (Alplakes Simstrat, 1 m Tiefe, 3-stündlich, 0,1 °C; CC BY 4.0); Zeiger status.lakesWt
 sea/v1/static/areas.json                    Seegebiete und Küstenabschnitte (DWD-Warngebiete; © GeoBasis-DE / BKG 2021, Daten modifiziert; VMAP0)
 sea/v1/static/mask-cwam.hash                sha256 der Landmaske
 sea/v1/static/spot-geo.json                 Gelände/Rauhigkeit an den Spot-Zellen (nur für den Producer; Höhe über Wasser = 0)

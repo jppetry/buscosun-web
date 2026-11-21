@@ -6,7 +6,7 @@
  * Positions are web-mercator coordinates (Float64 — a step of 0.04 px at zoom 12 is below Float32 resolution) and are
  * re-projected by the caller every frame; every length here is in screen px of the view handed to `step`.
  */
-import { RIPPLE, RIPPLE_MAX, lifeFade, rippleRandom, spawnProbability, type PxFlow, type PxSampler, type RippleView } from './seaRipples';
+import { RIPPLE, RIPPLE_MAX, lifeFade, rippleRandom, rippleStepPx, spawnProbability, type PxFlow, type PxSampler, type RippleView } from './seaRipples';
 
 const TL = RIPPLE.threadLen, PT = RIPPLE.trailPoints;
 
@@ -45,7 +45,9 @@ export class RippleSim {
   private rand: () => number;
   private readonly f: PxFlow = { dx: 0, dy: 0, v: 0 };
 
-  constructor(seed = 1) { this.rand = rippleRandom(seed); }
+  /** `linear` = the tempo before phase SR-B (`?srtempo=lin`); the default is the wind particles' curve (`rippleStepPx`). */
+  private readonly linear: boolean;
+  constructor(seed = 1, linear = false) { this.rand = rippleRandom(seed); this.linear = linear; }
 
   /** Empties every slot and restarts the random numbers — the still frame is the same picture every time. */
   reset(seed = 1): void {
@@ -92,7 +94,7 @@ export class RippleSim {
       }
       const px = view.ax * this.tX[i] + view.bx, py = view.ay * this.tY[i] + view.by;
       if (this.tAge[i] >= this.tLife[i] || px < -m || py < -m || px > view.w + m || py > view.h + m || !sample(px, py, f)) { this.tAlive[i] = 0; continue; }
-      const d = RIPPLE.pxPerFrame * f.v * dtN;
+      const d = rippleStepPx(f.v, this.linear) * dtN;
       this.tX[i] += (f.dx * d) / view.ax; this.tY[i] += (f.dy * d) / view.ay;
       this.tAge[i] += dtN; this.tV[i] = f.v;
       this.tVis[i] = f.v >= RIPPLE.threadMinMs ? Math.min(1, this.tVis[i] + ease) : Math.max(0, this.tVis[i] - ease);
@@ -113,7 +115,7 @@ export class RippleSim {
       const px = view.ax * this.pX[i] + view.bx, py = view.ay * this.pY[i] + view.by;
       if (this.pAge[i] >= this.pLife[i] || px < -m || py < -m || px > view.w + m || py > view.h + m || !sample(px, py, f)) { this.pAlive[i] = 0; continue; }
       // The way behind the packet: the position it leaves, every `trailStepPx`.
-      const d = RIPPLE.pxPerFrame * f.v * dtN;
+      const d = rippleStepPx(f.v, this.linear) * dtN;
       this.pAcc[i] += d;
       if (this.pLen[i] === 0 || this.pAcc[i] >= RIPPLE.trailStepPx) {
         const h = this.pLen[i] === 0 ? 0 : (this.pHead[i] + 1) % PT, o = (i * PT + h) * 2;
@@ -132,7 +134,7 @@ export class RippleSim {
   packetFade(i: number): number { return lifeFade(this.pAge[i], this.pLife[i]) * this.pVis[i]; }
 
   /**
-   * The still frame of `prefers-reduced-motion`: every particle is put into the middle of its life (no fade at the
+   * The still frame (`?srstill=1`): every particle is put into the middle of its life (no fade at the
    * ends) and its visibility onto its speed — the picture shows the steady state, not a moment of fading in.
    */
   settle(): void {

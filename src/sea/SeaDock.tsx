@@ -26,11 +26,19 @@ interface Props {
   loading: boolean;
   /** Phase DK: the catalogue carries Danish spots — only then the Revier „Dänemark“ is offered. */
   hasDk?: boolean;
-  /** Desktop splits the dock: `layers` stays in the left column, `picker` (search, Revier, profile, spots) moves into the readout. */
-  show?: 'all' | 'layers' | 'picker';
+  /** Phase BS: the catalogue carries lake spots — only then the Revier „Seen“ is offered; with it one chip per lake. */
+  hasLakes?: boolean;
+  lakes?: readonly { id: string; name: string; n: number }[];
+  lake?: string | null; onLake?: (id: string | null) => void;
+  /**
+   * Desktop splits the dock: `layers` stays in the left column, `picker` (search, Revier, profile, spots) moves into the
+   * readout. `spots` (AM-W) is the picker without the profile block — the planner's step „Startort“, where the profile
+   * was chosen a page before.
+   */
+  show?: 'all' | 'layers' | 'picker' | 'spots';
 }
 
-const REVIER_LABEL: Record<SeaRevier, string> = { alle: 'Alle', nordsee: 'Nordsee', ostsee: 'Ostsee', daenemark: 'Dänemark' };
+const REVIER_LABEL: Record<SeaRevier, string> = { alle: 'Alle', nordsee: 'Nordsee', ostsee: 'Ostsee', daenemark: 'Dänemark', seen: 'Seen' };
 /** Phase DK: the courtesy pennant of a Danish spot (decorative — the Revier and the dossier say „Dänemark“ in words). */
 export const DkPennant = () => <i className="sw-dk-flag" aria-hidden="true" />;
 const LIMIT_FIELDS: Array<[keyof SeaLimits, string, string, number]> = [
@@ -89,11 +97,38 @@ const TOGGLE_ICON: Record<keyof SeaToggles, ReactElement> = {
   current: <><path d="M6 18.5 17.5 7M10.5 6.5h7.5V14" /><circle cx="5" cy="19.5" r="1.9" fill="currentColor" stroke="none" /></>,
 };
 
+/**
+ * The limits of the chosen profile as fields (starting values of the profile, stored locally per user). One piece for
+ * the dock („Mein Profil“) and for the planner's step „Deine Grenzen“ (AM-W, E-AM-38) — the same fields, the same store.
+ */
+export function SeaLimitsEditor({ profile, limits, onLimits }: { profile: SeaProfileId; limits: SeaLimits; onLimits: (l: SeaLimits | null) => void }) {
+  const base = SEA_PROFILE_BY_ID[profile].limits;
+  const changed = limitsChanged(profile, limits);
+  return (
+    <div className="sw-limits">
+      {LIMIT_FIELDS.filter(([k]) => base[k] != null).map(([k, label, unit, step]) => (
+        <label key={k} className="sw-limit-row">
+          <span>{label}</span>
+          <span className="sw-limit-in">
+            <input type="number" inputMode="decimal" min={0} step={step} value={limits[k] as number}
+              onChange={(e) => { const v = Number(e.target.value); if (Number.isFinite(v) && v >= 0) onLimits({ ...limits, [k]: v }); }} />
+            {unit}
+          </span>
+        </label>
+      ))}
+      {base.noOffshore && <div className="sw-limit-row is-fixed"><span>Richtung</span><span>nicht ablandig</span></div>}
+      {base.daylight && <div className="sw-limit-row is-fixed"><span>Licht</span><span>nur hell</span></div>}
+      {base.steepMinPerS != null && <div className="sw-limit-row is-fixed"><span>Steile See</span><span>Windsee-Periode ≥ {base.steepMinPerS.toLocaleString('de-DE')} s bei Welle &gt; {base.steepHsM} m</span></div>}
+      <div className="sw-limit-note">Startwerte, im Browser änderbar und nur hier gespeichert. Deine Grenzen, keine Sicherheitsbewertung.</div>
+      {changed && <button type="button" className="sw-link" onClick={() => onLimits(null)}>Startwerte wiederherstellen</button>}
+    </div>
+  );
+}
+
 export default function SeaDock(p: Props) {
   const [open, setOpen] = useState(false);
   const sid = useId();
   const sheet = useSearchSheet();   // phone / tablet: full-screen search page instead of typing in the dock
-  const base = SEA_PROFILE_BY_ID[p.profile].limits;
   const changed = limitsChanged(p.profile, p.limits);
   const toggles: Array<[keyof SeaToggles, string, string]> = [
     ['wind', 'Wind an den Spots', 'buscosun Fusion · Pfeile'],
@@ -127,35 +162,28 @@ export default function SeaDock(p: Props) {
           onPick={(id) => { sheet.close(); p.onPick(id); }} />
       )}
       <div role="group" aria-label="Revier" className="sw-seg sw-dock-revier">
-        {SEA_REVIERE.filter((r) => r !== 'daenemark' || p.hasDk || p.revier === r).map((r) => <button key={r} type="button" aria-pressed={p.revier === r} className={p.revier === r ? 'is-active' : ''} onClick={() => p.onRevier(r)}>{REVIER_LABEL[r]}</button>)}
+        {SEA_REVIERE.filter((r) => (r !== 'daenemark' || p.hasDk || p.revier === r) && (r !== 'seen' || p.hasLakes || p.revier === r)).map((r) => <button key={r} type="button" aria-pressed={p.revier === r} className={p.revier === r ? 'is-active' : ''} onClick={() => p.onRevier(r)}>{REVIER_LABEL[r]}</button>)}
       </div>
-
-      <div className="sw-dock-head">
-        <span className="sw-dock-h sw-dock-sec">Mein Profil</span>
-        <button type="button" className="sw-link" aria-expanded={open} onClick={() => setOpen((o) => !o)}>{open ? 'Grenzen ausblenden' : changed ? 'Grenzen (geändert)' : 'Grenzen anzeigen'}</button>
-      </div>
-      <div className="sw-profiles" role="group" aria-label="Profil">
-        {SEA_PROFILES.map((pf) => <button key={pf.id} type="button" aria-pressed={p.profile === pf.id} className={p.profile === pf.id ? 'is-active' : ''} onClick={() => p.onProfile(pf.id)}>{pf.label}</button>)}
-      </div>
-      <p className="sw-prof-sum">{limitsSummary(p.limits)}</p>
-      {open && (
-        <div className="sw-limits">
-          {LIMIT_FIELDS.filter(([k]) => base[k] != null).map(([k, label, unit, step]) => (
-            <label key={k} className="sw-limit-row">
-              <span>{label}</span>
-              <span className="sw-limit-in">
-                <input type="number" inputMode="decimal" min={0} step={step} value={p.limits[k] as number}
-                  onChange={(e) => { const v = Number(e.target.value); if (Number.isFinite(v) && v >= 0) p.onLimits({ ...p.limits, [k]: v }); }} />
-                {unit}
-              </span>
-            </label>
-          ))}
-          {base.noOffshore && <div className="sw-limit-row is-fixed"><span>Richtung</span><span>nicht ablandig</span></div>}
-          {base.daylight && <div className="sw-limit-row is-fixed"><span>Licht</span><span>nur hell</span></div>}
-          {base.steepMinPerS != null && <div className="sw-limit-row is-fixed"><span>Steile See</span><span>Windsee-Periode ≥ {base.steepMinPerS.toLocaleString('de-DE')} s bei Welle &gt; {base.steepHsM} m</span></div>}
-          <div className="sw-limit-note">Startwerte, im Browser änderbar und nur hier gespeichert. Deine Grenzen, keine Sicherheitsbewertung.</div>
-          {changed && <button type="button" className="sw-link" onClick={() => p.onLimits(null)}>Startwerte wiederherstellen</button>}
+      {/* Phase BS: one chip per lake, largest first; the first chip shows all lakes again. */}
+      {p.revier === 'seen' && p.lakes && p.lakes.length > 0 && p.onLake && (
+        <div role="group" aria-label="See" className="sw-lk-chips">
+          <button type="button" aria-pressed={!p.lake} className={!p.lake ? 'is-active' : ''} onClick={() => p.onLake!(null)}>Alle Seen</button>
+          {p.lakes.map((l) => <button key={l.id} type="button" aria-pressed={p.lake === l.id} className={p.lake === l.id ? 'is-active' : ''} onClick={() => p.onLake!(l.id)}>{l.name}<em>{l.n}</em></button>)}
         </div>
+      )}
+
+      {show !== 'spots' && (
+        <>
+          <div className="sw-dock-head">
+            <span className="sw-dock-h sw-dock-sec">Mein Profil</span>
+            <button type="button" className="sw-link" aria-expanded={open} onClick={() => setOpen((o) => !o)}>{open ? 'Grenzen ausblenden' : changed ? 'Grenzen (geändert)' : 'Grenzen anzeigen'}</button>
+          </div>
+          <div className="sw-profiles" role="group" aria-label="Profil">
+            {SEA_PROFILES.map((pf) => <button key={pf.id} type="button" aria-pressed={p.profile === pf.id} className={p.profile === pf.id ? 'is-active' : ''} onClick={() => p.onProfile(pf.id)}>{pf.label}</button>)}
+          </div>
+          <p className="sw-prof-sum">{limitsSummary(p.limits)}</p>
+          {open && <SeaLimitsEditor profile={p.profile} limits={p.limits} onLimits={p.onLimits} />}
+        </>
       )}
 
       <div className="sw-dock-head">
@@ -175,7 +203,7 @@ export default function SeaDock(p: Props) {
       </div>
     </>
   );
-  const layers = show !== 'picker' && (
+  const layers = show !== 'picker' && show !== 'spots' && (
     <>
       <div className={`sw-dock-h sw-dock-sec${show === 'all' ? ' sw-dock-h-layers' : ''}`}>Ebenen</div>
       <div role="group" aria-label="Ebene der Karte" className="sw-layers sw-layer-tiles">
@@ -200,7 +228,7 @@ export default function SeaDock(p: Props) {
       </div>
     </>
   );
-  if (show === 'picker') return <div className="sw-dock-picker">{picker}</div>;
+  if (show === 'picker' || show === 'spots') return <div className="sw-dock-picker">{picker}</div>;
   return (
     <aside className="sw-dock" aria-label={show === 'layers' ? 'Ebenen' : 'Spots, Profil und Ebenen'}>
       {picker}

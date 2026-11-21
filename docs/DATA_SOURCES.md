@@ -1083,6 +1083,11 @@ Kategorie und gehört in dieselbe Legende.
 [BSH Strömungsvorhersage für Segler (GRIB2, Pakete db und wb; CC BY 4.0 laut LICENSE.txt im Datenverzeichnis; Filebox und FTP)](https://www.bsh.de/DE/DATEN/Vorhersagen/Stroemungen/Oberflaechenstroemung_fuer_Segler/oberflaechenstroemung_fuer_segler_node.html) ·
 [DMI Open Data (Dänemark: Sturmflutmodell DKSS, HARMONIE, metObs; CC BY 4.0, ohne Schlüssel)](https://opendataapi.dmi.dk/v1/forecastedr/collections) ·
 [DMI Nutzungsbedingungen](https://www.dmi.dk/friedata/dokumentation/terms-of-use) ·
+[Alplakes, Eawag (Seenmodell Simstrat; CC BY 4.0, nur über den Producer)](https://alplakes-api.eawag.ch/docs) ·
+[BAFU hydrologische Daten über LINDAS (Seepegel; Open use)](https://www.hydrodaten.admin.ch/de/aktuelle-hydrologische-daten-beziehen) ·
+[BKG DLM250 (Seeumrisse; dl-de/by-2-0)](https://gdz.bkg.bund.de/index.php/default/digitale-geodaten/digitale-landschaftsmodelle/digitales-landschaftsmodell-1-250-000-ebenen-dlm250-ebenen.html) ·
+[swisstopo swissTLM3D (Seeumrisse)](https://www.swisstopo.admin.ch/de/landschaftsmodell-swisstlm3d) ·
+[Copernicus EU-Hydro (Seeumrisse)](https://land.copernicus.eu/en/products/eu-hydro) ·
 [DMI oceanObs (gemessene Wassertemperatur `tw`, Phase WT; CC BY 4.0, ohne Schlüssel)](https://opendataapi.dmi.dk/v2/oceanObs/collections/observation/items?parameterId=tw&limit=1) ·
 [WSV PEGELONLINE REST-API (gemessene Wassertemperatur `WT`, Phase WT; DL-DE Zero 2.0)](https://www.pegelonline.wsv.de/webservice/dokuRestapi) ·
 [GeoSphere Dataset API](https://dataset.api.hub.geosphere.at/v1/datasets) ·

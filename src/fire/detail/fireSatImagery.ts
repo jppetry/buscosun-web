@@ -120,6 +120,32 @@ export function sat10Enabled(search?: string, stored?: string | null): boolean {
   }
 }
 
+/**
+ * Phase SL kill switch `?satload=0` (`audit/satellitenbild-laden.md`): the loading of the 10 m view as before
+ * 19.11.2026 — one address for all byte ranges of a file, a tile cache of fixed size, no new try for a warmed tile
+ * that failed, no warm start in the history dossier. Injectable like `sat10Enabled`.
+ */
+export function satLoadEnabled(search?: string): boolean {
+  const s = search ?? (typeof window !== 'undefined' ? window.location.search : undefined);
+  if (s === undefined) return true;
+  try {
+    return new URLSearchParams(s).get('satload') !== '0';
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * The address a byte range of the image bucket is asked under (phase SL): with its own parameter `r=<from>-<to>`,
+ * which the bucket ignores. The browser keeps ONE cache entry per address and lets one request at a time write to
+ * it — six ranges of one file asked side by side were answered one after the other (measured 19.11.2026: response
+ * heads after 222 · 447 · 676 · 897 · 1 112 · 1 325 ms; with an address each after 217 … 240 ms), and the wait ran
+ * against the first-byte deadline. With an address of its own a range asked again comes from the cache (0 bytes).
+ */
+export function rangeAddress(href: string, from: number, to: number, on: boolean = satLoadEnabled()): string {
+  return on ? `${href}${href.includes('?') ? '&' : '?'}r=${from}-${to}` : href;
+}
+
 // --- URL-/Body-Builder (pur) ------------------------------------------------------------------
 
 const DAY_MS = 86_400_000;

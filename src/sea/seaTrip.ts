@@ -13,7 +13,7 @@
  */
 import { sunAltitudeDeg } from '../photo/sun';
 import { MS_TO_KN, SHORE_LABEL, fmtWind, shoreAngle, unitLabel, type SeaLimits, type SeaProfileId, type SeaUnit, type ShoreAngle } from './seaProfiles';
-import { seaCellCentre, type SeaSpot } from './seaContract';
+import { spotWaterPoint, type SeaSpot } from './seaContract';
 import { REL_LABEL, angleDiff, driftSideOf, planBearingDeg, planDestination, planDistKm, relativeWind, sunAround, type DriftSide, type PlanPos, type RelWind } from './seaPlanner';
 import { WAC_TITLE, windAgainstCurrent } from './seaCurrent';
 import { WODL_AREA_IDS, type SeaTextDoc } from './seaText';
@@ -30,11 +30,27 @@ export const TRIP_MODES: readonly TripMode[] = ['ort', 'etappe', 'strand'];
 export const TRIP_MODE_LABEL: Readonly<Record<TripMode, string>> = Object.freeze({ ort: 'Vor Ort', etappe: 'Etappe', strand: 'Strand' });
 export const TRIP_MODE_WHAT: Readonly<Record<TripMode, string>> = Object.freeze({
   ort: 'Ein Spot, das Boot davor, ein Fenster von Start bis Rückkehr.',
-  etappe: 'Von A nach B über deine Wegpunkte, mit fester Fahrt.',
-  strand: 'Welche Strände im Fenster den Wind von See bekommen.',
+  etappe: 'Eine Strecke von Start bis Ziel über deine Wegpunkte, mit fester Fahrt.',
+  strand: 'Ein Revier, ein Fenster, die Strände nach Stunden mit Wind von See.',
 });
 /** The mode the planner opens with: a leg for the two cruising profiles, the spot planner for the others. Strand is never a default. */
 export const defaultTripMode = (p: SeaProfileId): TripMode => (p === 'yacht' || p === 'motor' ? 'etappe' : 'ort');
+
+// --- The phone's sheet and the map's source line (V-AM-8) -------------------------------------------------------------
+
+/** What the page measures of the planner's sheet: its height and the map left free between the top row and the sheet (px). */
+export interface PlanSheetBox { h: number; gap: number }
+/** `set` (E-AM-16): with less free map than this the source line has no room — three lines of it at 390 px are ≈ 42 px, plus a margin. */
+export const PLAN_SHEET_SOURCES_MIN_GAP_PX = 56;
+/**
+ * Where the map's source line and its button „Quellen“ go while the sheet is up (E-AM-16): onto the sheet's upper edge
+ * (`lift` = its height), or — when the open sheet leaves no room under the top row — to rest (`hidden`), as under the
+ * dossier. `null` = no sheet measured, nothing changes.
+ */
+export function planSheetSources(box: PlanSheetBox | null): { lift: number; hidden: boolean } | null {
+  if (!box || !Number.isFinite(box.h) || !Number.isFinite(box.gap) || box.h <= 0) return null;
+  return box.gap < PLAN_SHEET_SOURCES_MIN_GAP_PX ? { lift: 0, hidden: true } : { lift: Math.round(box.h), hidden: false };
+}
 
 // --- Set values (each named where the page uses it) ----------------------------------------------------------------
 
@@ -77,13 +93,14 @@ export interface TripRoute { points: TripPoint[]; legs: TripLeg[]; km: number }
 
 const round4 = (x: number) => Math.round(x * 1e4) / 1e4;
 /** A point on a catalogue spot (E-AM-10): the centre of the spot's water cell — where the producer computes the spot's wind too. */
-export function snapToSpot(spot: Pick<SeaSpot, 'id' | 'cell'>): TripPoint {
-  const c = seaCellCentre(spot.cell.model, spot.cell.i, spot.cell.j);
+export function snapToSpot(spot: Pick<SeaSpot, 'id' | 'cell' | 'lake' | 'lat' | 'lon'>): TripPoint {
+  // Phase BS: a lake spot snaps to its water point (where the lake producer computes its wind).
+  const c = spotWaterPoint(spot) ?? { lat: spot.lat, lon: spot.lon };
   return { lat: round4(c.lat), lon: round4(c.lon), spot: spot.id };
 }
 /** The spot a position belongs to (a link carries positions only): the one whose water cell centre it is. */
-export function spotOfPoint(p: PlanPos, spots: readonly Pick<SeaSpot, 'id' | 'cell'>[]): string | undefined {
-  for (const s of spots) { const c = seaCellCentre(s.cell.model, s.cell.i, s.cell.j); if (Math.abs(c.lat - p.lat) < 6e-5 && Math.abs(c.lon - p.lon) < 6e-5) return s.id; }
+export function spotOfPoint(p: PlanPos, spots: readonly Pick<SeaSpot, 'id' | 'cell' | 'lake'>[]): string | undefined {
+  for (const s of spots) { const c = spotWaterPoint(s); if (c && Math.abs(c.lat - p.lat) < 6e-5 && Math.abs(c.lon - p.lon) < 6e-5) return s.id; }
   return undefined;
 }
 /** The legs of a list of points; points on top of each other (< 20 m) give no leg. */
@@ -295,6 +312,123 @@ const mText = (x: number) => x.toLocaleString('de-DE', { minimumFractionDigits: 
 /** "12 Uhr", with the weekday when the leg runs over midnight. */
 const hourText = (t: number, ref: number) => `${dayShort(t) !== dayShort(ref) ? `${dayShort(t)} ` : ''}${hh(t)} Uhr`;
 export const stopClock = (s: Pick<TripStop, 'tMs'>) => hm(s.tMs);
+
+// --- Arrows along the route (V-AM-9, `audit/seewetter-ausfahrt.md` §9) ------------------------------------------------
+
+/** `set` (E-AM-18): the arrow's centre stands this far beside its stop, at a right angle to the course. */
+export const SEA_TRIP_ARROW_OFF_PX = 34;
+/** `set` (E-AM-18): drawn length of an arrow. */
+export const SEA_TRIP_ARROW_LEN_PX = 30;
+/** `set` (E-AM-19): two arrows whose centres would lie closer than this on the screen are not both drawn. */
+export const SEA_TRIP_ARROW_MIN_PX = 58;
+
+/** One arrow beside the route: what a column of the table says, drawn at the place of that column. */
+export interface TripArrow {
+  kind: 'wind' | 'cur';
+  /** The row (column of the table) the arrow belongs to. */
+  row: number;
+  lat: number; lon: number;
+  /** Where the arrow points, compass degrees: where the wind blows to, where the current sets. */
+  to: number;
+  /** Compass bearing from the stop to the arrow's centre (course + 90 = starboard, course − 90 = port). */
+  off: number;
+  label: string;
+  /** The wind of this column is above your limit — the only red. */
+  over: boolean;
+}
+/** The side of the route something comes FROM, seen along the course: 1 starboard, −1 port; dead ahead or astern counts as starboard. */
+export function tripArrowSide(fromDeg: number, courseDeg: number): 1 | -1 {
+  return Math.sin(((fromDeg - courseDeg) * Math.PI) / 180) >= -1e-9 ? 1 : -1;
+}
+const norm360 = (d: number) => ((d % 360) + 360) % 360;
+/**
+ * The arrows of a leg (E-AM-17, E-AM-20, E-AM-21): a wind arrow at every stop with a wind value AND a direction — the
+ * wind of the hour the boat is there, on the side it comes from — and ONE current arrow at the stop with the strongest
+ * current of the leg (from `SEA_TRIP_CUR_MIN_KN` on), on the other side of the route. Nothing is drawn for a missing value.
+ */
+export function tripArrows(rows: readonly TripRow[], unit: SeaUnit): TripArrow[] {
+  const out: TripArrow[] = [];
+  const windSide = new Map<number, 1 | -1>();
+  rows.forEach((r, row) => {
+    const w = r.wind, c = r.stop.pos.course;
+    if (!w || !finite(w.windMs) || !finite(w.windDir) || !finite(c)) return;
+    const side = tripArrowSide(w.windDir, c);
+    windSide.set(row, side);
+    out.push({ kind: 'wind', row, lat: r.stop.pos.lat, lon: r.stop.pos.lon, to: norm360(w.windDir + 180), off: norm360(c + 90 * side), label: val(w.windMs, unit), over: r.over.wind });
+  });
+  let best = -1;
+  rows.forEach((r, row) => {
+    const c = curOf(r.cur);
+    if (!c || !finite(c.kn) || !finite(c.to) || !finite(r.stop.pos.course) || !(c.kn >= SEA_TRIP_CUR_MIN_KN)) return;
+    if (best < 0 || c.kn > curOf(rows[best].cur)!.kn) best = row;
+  });
+  if (best >= 0) {
+    const r = rows[best], c = curOf(r.cur)!, course = r.stop.pos.course;
+    const side: 1 | -1 = windSide.has(best) ? (windSide.get(best) === 1 ? -1 : 1) : tripArrowSide(c.to + 180, course);
+    out.push({ kind: 'cur', row: best, lat: r.stop.pos.lat, lon: r.stop.pos.lon, to: norm360(c.to), off: norm360(course + 90 * side), label: `Strom ${mText(c.kn)} kn`, over: false });
+  }
+  return out;
+}
+/**
+ * Where an arrow stands on a map with north up, relative to its stop (px, x east, y down): its centre; the centre line
+ * of its label on the side turned away from the route — above an arrow that stands above the route, below one below
+ * it; and how the label is set: `align` 1 = it begins at the arrow and runs away from a route on its left, −1 = it ends
+ * at the arrow (route on its right), 0 = centred (route above or below). `flip` = the other side of the route (the
+ * arrow gave way to a label, `tripArrowLayout`).
+ */
+export function tripArrowPx(a: Pick<TripArrow, 'off' | 'to'>, flip = false): { dx: number; dy: number; labelDy: number; align: -1 | 0 | 1 } {
+  const o = ((a.off + (flip ? 180 : 0)) * Math.PI) / 180;
+  const dx = Math.sin(o) * SEA_TRIP_ARROW_OFF_PX, dy = -Math.cos(o) * SEA_TRIP_ARROW_OFF_PX;
+  const half = Math.abs(Math.cos((a.to * Math.PI) / 180)) * (SEA_TRIP_ARROW_LEN_PX / 2);
+  return { dx: Math.round(dx), dy: Math.round(dy), labelDy: Math.round((dy > 0.5 ? 1 : -1) * (half + 12)), align: dx >= SEA_TRIP_ARROW_ALIGN_PX ? 1 : dx <= -SEA_TRIP_ARROW_ALIGN_PX ? -1 : 0 };
+}
+/** `set`: from this sideways offset on the label is set flush instead of centred; and how far its flush edge reaches back over the arrow's centre. */
+export const SEA_TRIP_ARROW_ALIGN_PX = 12;
+export const SEA_TRIP_ARROW_LABEL_IN_PX = 10;
+/** `set`: the square an arrow takes on the screen, and the size of its label as the layout counts it (13 px type: 7.5 px a sign, 18 px high; the pill of a red number 14 px more). */
+export const SEA_TRIP_ARROW_BOX_PX = 24;
+export const SEA_TRIP_ARROW_LABEL_H_PX = 18;
+export const tripArrowLabelW = (a: Pick<TripArrow, 'label' | 'over'>): number => Math.round(a.label.length * 7.5) + (a.over ? 14 : 0);
+
+/** A rectangle on the screen (px, top left corner). */
+export interface TripRect { x: number; y: number; w: number; h: number }
+const rectsHit = (a: TripRect, b: TripRect): boolean => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+/** The two rectangles an arrow takes at a stop on the screen: the arrow itself and its label. */
+export function tripArrowRects(a: Pick<TripArrow, 'off' | 'to' | 'label' | 'over'>, stop: { x: number; y: number }, flip = false): { centre: { x: number; y: number }; arrow: TripRect; label: TripRect } {
+  const p = tripArrowPx(a, flip), cx = stop.x + p.dx, cy = stop.y + p.dy, w = tripArrowLabelW(a), b = SEA_TRIP_ARROW_BOX_PX;
+  const lx = p.align === 1 ? cx - SEA_TRIP_ARROW_LABEL_IN_PX : p.align === -1 ? cx + SEA_TRIP_ARROW_LABEL_IN_PX - w : cx - w / 2;
+  return { centre: { x: cx, y: cy }, arrow: { x: cx - b / 2, y: cy - b / 2, w: b, h: b }, label: { x: lx, y: cy + p.labelDy - SEA_TRIP_ARROW_LABEL_H_PX / 2, w, h: SEA_TRIP_ARROW_LABEL_H_PX } };
+}
+export interface TripArrowPlaced { i: number; flip: boolean; dx: number; dy: number; labelDy: number; align: -1 | 0 | 1 }
+/**
+ * Which arrows are drawn, and on which side (E-AM-19, E-AM-23): `stops` are the stops of the arrows on the screen,
+ * `blocked` the labels already standing on the map (names of the points, the boat's label). The current arrow first,
+ * then the wind arrow of the chosen column, then those above your limit, then in order of the leg. Each takes its own
+ * side of the route, or the other side where a label stands on its own; an arrow closer than `minPx` to one already
+ * taken is not drawn, and neither is one with a label on both sides — only the current arrow is always drawn.
+ * Ascending by index.
+ */
+export function tripArrowLayout(
+  arrows: readonly Pick<TripArrow, 'kind' | 'row' | 'over' | 'off' | 'to' | 'label'>[], stops: readonly ({ x: number; y: number } | null | undefined)[],
+  selRow: number, blocked: readonly TripRect[] = [], minPx = SEA_TRIP_ARROW_MIN_PX,
+): TripArrowPlaced[] {
+  const rank = (a: Pick<TripArrow, 'kind' | 'row' | 'over'>) => (a.kind === 'cur' ? 0 : a.row === selRow ? 1 : a.over ? 2 : 3);
+  const order = arrows.map((a, i) => ({ a, i })).filter((x) => stops[x.i] != null).sort((p, q) => rank(p.a) - rank(q.a) || p.i - q.i);
+  const kept: (TripArrowPlaced & { cx: number; cy: number })[] = [];
+  for (const { a, i } of order) {
+    let pick: (TripArrowPlaced & { cx: number; cy: number }) | null = null;
+    for (const flip of [false, true]) {
+      const r = tripArrowRects(a, stops[i]!, flip);
+      if (blocked.some((b) => rectsHit(b, r.arrow) || rectsHit(b, r.label))) continue;
+      // Only a label turns an arrow to the other side — never another arrow, or the thinning would fill both sides.
+      if (kept.every((k) => Math.hypot(k.cx - r.centre.x, k.cy - r.centre.y) >= minPx)) pick = { i, flip, ...tripArrowPx(a, flip), cx: r.centre.x, cy: r.centre.y };
+      break;
+    }
+    if (!pick && a.kind === 'cur') { const r = tripArrowRects(a, stops[i]!); pick = { i, flip: false, ...tripArrowPx(a), cx: r.centre.x, cy: r.centre.y }; }
+    if (pick) kept.push(pick);
+  }
+  return kept.sort((p, q) => p.i - q.i).map(({ i, flip, dx, dy, labelDy, align }) => ({ i, flip, dx, dy, labelDy, align }));
+}
 
 /** Since when the class at the end of the leg holds: "durchgehend von hinten" · "ab 11 Uhr schräg von vorn". */
 function relSince(rows: readonly TripRow[], pick: (r: TripRow) => RelWind | null, ref: number): string | null {
@@ -583,4 +717,4 @@ export const STRAND_NOTE = 'Gezeigt wird nur die Windrichtung zum Ufer. Keine Be
 export const STRAND_ORDER_NOTE = 'Die Reihenfolge zählt die Stunden des Fensters mit Wind von See. Wind und Welle gelten an der Wasserzelle des Spots.';
 export const STRAND_DUSK_NOTE = 'hell, Dämmerung, dunkel: Sonnenstand zur halben Stunde in der Mitte der gezeigten Strände; Dämmerung heißt Sonne bis 6° unter dem Horizont.';
 export const STRAND_LEVEL_NOTE = `Wasserstand: nur wo ein Pegel des BSH mit Kurve bis ${SEA_TRIP_WL_KM} km vom Spot liegt, und je Liste an höchstens ${SEA_STRAND_WL_MAX} Pegeln (gesetzte Werte). Fehlt er, heißt das nichts über den Wasserstand.`;
-export const TRIP_LEGEND = Object.freeze({ in: 'innerhalb deiner Grenzen', over: 'darüber', missing: 'ein Wert fehlt' });
+export const TRIP_LEGEND = Object.freeze({ in: 'innerhalb deiner Grenzen', over: 'darüber', missing: 'ein Wert fehlt', wind: 'Wind, wenn du dort bist', cur: 'stärkster Strom der Etappe' });

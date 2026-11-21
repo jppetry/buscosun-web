@@ -241,6 +241,8 @@ add('[route] alle zehn teilbaren Seiten sind abgedeckt (SH1 + SH3 + SH4 + Gletsc
   const seaState = await import('../src/sea/seaState.ts');
   const names = await import('../src/sea/seaSpotNames.ts');
   const src = JSON.parse(readFileSync(new URL('./sea/spots-src.json', import.meta.url), 'utf8'));
+  // Phase BS: the lake spots (own hand list, region 'binnensee') belong to the same table.
+  src.spots = [...src.spots, ...JSON.parse(readFileSync(new URL('./sea/lakes-src.json', import.meta.url), 'utf8')).spots.map((x) => ({ ...x, region: 'binnensee' }))];
   add('[see] Namenstabelle passt zur Handliste (npm: node scripts/sea/gen-spot-names.mjs)',
     src.spots.length === Object.keys(names.SEA_SPOT_NAMES).length && src.spots.every((x) => names.SEA_SPOT_NAMES[x.id]?.[0] === x.name && names.SEA_SPOT_NAMES[x.id]?.[1] === x.region), `${src.spots.length} Spots`);
   add('[see] Zeithorizont des Links = SEA_MAX_T der Seite', seaLink.SEA_LINK_MAX_T === seaState.SEA_MAX_T, `${seaLink.SEA_LINK_MAX_T} / ${seaState.SEA_MAX_T}`);

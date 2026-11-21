@@ -13,18 +13,27 @@ import { SEA_SPOT_NAMES } from './seaSpotNames';
 
 /** Last change of the spot texts (sitemap `lastmod` falls back to Git; this is the editorial date of the rows). */
 export const SEA_SEO_UPDATED = '2026-11-02';
+/** Phase BS: the lake spots' rows were written on this day. */
+export const SEA_LAKE_SEO_UPDATED = '2026-11-21';
 /** Number of spots in the name table — the route texts say this number instead of a rounded one. */
 export const SEA_SPOT_COUNT = Object.keys(SEA_SPOT_NAMES).length;
 const REGION = { nordsee: 'Nordsee', ostsee: 'Ostsee' } as const;
 
 /** Sub-route rows (same shape as `SubRoute` in `routes.ts`). */
 export function seaSeoSubs() {
-  return Object.entries(SEA_SPOT_NAMES).map(([slug, [name, region, country]]) => ({
+  return Object.entries(SEA_SPOT_NAMES).map(([slug, [name, region, country, lake]]) => (lake ? {
+    // Phase BS: a lake spot names its lake; no wave model and no sea weather report there — the description says what the page has.
+    slug,
+    label: name,
+    title: `Seewetter ${name} (${lake}) — Wind, Böen, Windwelle`,
+    description: `Seewetter ${name} (${lake}): Wind und Böen aus buscosun Fusion mit Spanne, geschätzte Windwelle, Sicht und Schauer, stündlich bis 78 h.`,
+    updated: SEA_LAKE_SEO_UPDATED,
+  } : {
     slug,
     label: name,
     title: `Seewetter ${name} — Wind, Wellen, Böen`,
     // Phase DK: a Danish spot names its country instead of the sea (the description stays within 160 characters).
-    description: `Seewetter ${name}${country === 'DK' ? ', Dänemark' : ` (${REGION[region]})`}: Wind und Böen, Wellenhöhe mit Windsee und Dünung, Wasserstand und DWD-Seewetterbericht, stündlich bis 78 h.`,
+    description: `Seewetter ${name}${country === 'DK' ? ', Dänemark' : ` (${REGION[region as 'nordsee' | 'ostsee']})`}: Wind und Böen, Wellenhöhe mit Windsee und Dünung, Wasserstand und DWD-Seewetterbericht, stündlich bis 78 h.`,
     updated: SEA_SEO_UPDATED,
   }));
 }

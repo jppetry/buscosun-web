@@ -1,0 +1,139 @@
+{
+  "gpu": "ANGLE (Intel, Intel(R) UHD Graphics (0x00008A56) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "mapBox": {
+    "x": 315,
+    "y": 60,
+    "width": 744,
+    "height": 885
+  },
+  "note": [
+    "Strömung an der Oberfläche",
+    "Spot · Kite",
+    "Modell, Mittel der oberen 5 m, keine Navigationsgrundlage. BSH-Lauf 00 UTC vom 19.11."
+  ],
+  "curOverview": {
+    "frames": {
+      "hz": 60.2,
+      "gap": {
+        "p50": 16.7,
+        "p95": 16.8,
+        "max": 18
+      },
+      "cost": {
+        "p50": 5,
+        "p95": 7.4,
+        "max": 13
+      },
+      "longTasks": 0,
+      "longMax": 0,
+      "reduce": false,
+      "hidden": false
+    },
+    "change100": {
+      "w": 706,
+      "h": 840,
+      "drawnPct": 6.3,
+      "changedOfDrawnPct": 90.7
+    },
+    "change1000": {
+      "w": 706,
+      "h": 840,
+      "drawnPct": 8.1,
+      "changedOfDrawnPct": 97.2
+    }
+  },
+  "curZoom": {
+    "frames": {
+      "hz": 45.8,
+      "gap": {
+        "p50": 16.7,
+        "p95": 33.4,
+        "max": 83.4
+      },
+      "cost": {
+        "p50": 4,
+        "p95": 7,
+        "max": 59.5
+      },
+      "longTasks": 1,
+      "longMax": 77,
+      "reduce": false,
+      "hidden": false
+    },
+    "change100": {
+      "w": 706,
+      "h": 840,
+      "drawnPct": 6.2,
+      "changedOfDrawnPct": 89.8
+    },
+    "change1000": {
+      "w": 706,
+      "h": 840,
+      "drawnPct": 7.6,
+      "changedOfDrawnPct": 97.5
+    }
+  },
+  "curReduce": {
+    "frames": {
+      "hz": 0,
+      "gap": {
+        "p50": null,
+        "p95": null,
+        "max": null
+      },
+      "cost": {
+        "p50": null,
+        "p95": null,
+        "max": null
+      },
+      "longTasks": 0,
+      "longMax": 0,
+      "reduce": true,
+      "hidden": false
+    },
+    "change1000": {
+      "w": 706,
+      "h": 840,
+      "drawnPct": 5.1,
+      "changedOfDrawnPct": 0
+    }
+  },
+  "wind": {
+    "frames": {
+      "hz": 60.2,
+      "gap": {
+        "p50": 16.7,
+        "p95": 16.8,
+        "max": 17.1
+      },
+      "cost": {
+        "p50": 5.3,
+        "p95": 7.4,
+        "max": 10
+      },
+      "longTasks": 0,
+      "longMax": 0,
+      "reduce": false,
+      "hidden": false
+    }
+  },
+  "windReduce": {
+    "frames": {
+      "hz": 60,
+      "gap": {
+        "p50": 16.7,
+        "p95": 16.8,
+        "max": 17.2
+      },
+      "cost": {
+        "p50": 4.9,
+        "p95": 6.7,
+        "max": 7.6
+      },
+      "longTasks": 0,
+      "longMax": 0,
+      "reduce": true,
+      "hidden": false
+    }
+  }
+}
