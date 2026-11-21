@@ -4245,3 +4245,47 @@ klont den Producer bei jedem Lauf.
 5. **Budget:** totalJs 2 096,8 gegen 2 097 an `e0683791` plus nur dieser Phase (grün, +0,8 KB; im frischen Klon gemessen).
    Im geteilten Arbeitsbaum lagen zugleich uncommittete Gletscher-Änderungen (`src/glacier/*`), mit ihnen 2 097,8 — die
    Grenze habe ich nicht angehoben (V-ST-16).
+
+## 110. Gletscher: IMIS-Stationen des SLF, Abstand zum Umriss, Änderung der Schneehöhe (Phase GI, `audit/gletscher-imis.md`), 2026-11-22
+
+Stand 22.11. 00:45 MEZ: lokal committet auf `main`, **nicht gepusht**. Gate grün: `verify:glacier-stations` 77/77 (17 eingebaute
+Fehler alle bemerkt), die übrigen `verify:glacier-*`, Typecheck, Build; Budget nach Anhebung der totalJs-Grenze 2 097 → 2 099 mit
+Notiz (die Phase kostet 1,1 KB). Zwei lokale Producer-Läufe gegen die echten Dienste, **nichts veröffentlicht**.
+
+**Pushs von mir in dieser Phase: keine** — weder `buscosun-data` noch `buscosun-archiv`. Workflow, Cron und Ablage bleiben, wie sie
+sind. Grund: der Runner holt den Producer bei jedem Lauf von `origin/main` von `buscosun-web`; ein vorab veröffentlichter Lauf wäre
+30 Minuten später vom alten Producer überschrieben worden.
+
+1. **Pushen:** `git push origin main`. Im nächsten Slot (:12 oder :42) läuft der neue Producer: er schreibt den Katalog neu (IMIS unter
+   `ext`), baut sofort die Zuordnung `20261120-1.3` (Abstand zum Umriss, zwei Abschnitte) und den Slot mit rund 203 IMIS-Stationen.
+   Voraussetzung wie bisher: die Repo-Variable `GLACIER_PRODUCER_REF` in `buscosun-data` ist leer oder `main` (§106, §108.1).
+2. **Den ersten Lauf ansehen** (ohne Browser): `https://raw.githubusercontent.com/jppetry/buscosun-data/main/glacier/v1/index.json` →
+   `stations.map` endet auf `.3` oder höher; in `glacier/v1/stn/h/<slot>.json` steht `ext.count` um 200 und unter `sources` der
+   Eintrag `imis` mit `"via":"service"` und `"requests":2`; in `glacier/v1/status.json` unter `lines.stations.sources.imis` kein `error`.
+3. **Ansehen** (ich habe die Karte nicht im Browser gesehen), Reiter „Heute“, Karte „Gemessen in der Nähe“:
+   - Grosser Aletschgletscher: Jungfraujoch („0,1 km vom Rand des Gletschers, 424 m über der mittleren Höhe“, MeteoSchweiz) und Flesch
+     (Schneehöhe; „WSL-Institut für Schnee- und Lawinenforschung SLF“ als Link auf www.slf.ch) — vorher stand dort keine Karte.
+   - Breithorngletscher (Zermatt): Gornergrat und die IMIS-Station Gornergratsee mit Schneehöhe.
+   - Alpeiner Ferner: an der Station Schöckbichl die neue Zeile „Änderung der Schneehöhe“ („+x cm in 24 Stunden · … 48 … · … 72 …“).
+   - Hintereisferner: Abstände jetzt vom Rand („0,5 km vom Rand des Gletschers“ statt 1,8 km entfernt).
+   - Ein Gletscher ohne Station (Goldbergkees): weiter keine Karte.
+   - Reiter „Quellen“: Zeile des SLF mit CC BY 4.0.
+4. **Mail an data@slf.ch** (dein Handschritt aus dem Auftrag): für die Verteiler zu Live-Daten anmelden. Angaben, falls gefragt:
+   zwei Abrufe je halbe Stunde (`/public/api/imis/stations`, `/public/api/imis/measurements`), höchstens vier, nur vom Server
+   (GitHub Actions), Kennung im User-Agent `buscosun-glacier-stations (+https://buscosun.com)`.
+5. **Gesetzt, bitte bestätigen oder kippen** (alle in `audit/gletscher-imis.md` §5):
+   - E-GI-1 zwei Abrufe je Lauf, Deckel vier, eine Wiederholung nach 20 s.
+   - E-GI-2 kein Niederschlag von IMIS (Regenmesser unbeheizt: 0,2 mm im Median bei ≥ 10 cm Neuschnee).
+   - E-GI-3 / E-GI-4 „Änderung der Schneehöhe“ nur von Tirol, mit Vorzeichen, nicht „Neuschnee“ genannt. **Die Schweiz hat diese
+     Größe damit nicht**: IMIS liefert Neuschnee nur als Modellwert (SNOWPACK). Zwei Wege, wenn du sie willst: eigene Differenz aus der
+     IMIS-Reihe (beide Enden gemessen, von buscosun gebildet) oder der Modellwert mit Kennzeichnung.
+   - E-GI-5 der Abschnitt `ext` (alter Stand der Seite bleibt richtig). Wenn du sagst, dass kein alter Stand mehr zählt, lege ich
+     die Abschnitte zusammen — die Zuordnung schrumpft dann von 283 auf rund 150 KB (V-GI-2).
+   - E-GI-7 Abstand zum Umriss für alle Netze, Satz „x km vom Rand des Gletschers“.
+   - E-GI-8 IMIS-Werte auf die Auflösung des Produkts gerundet.
+6. **Zurück:** den Commit der Phase zurücknehmen und pushen. Der alte Producer schreibt dann Dokumente ohne `ext`; die liegenden
+   Dateien mit `ext` stören ihn und die Seite nicht. Nur IMIS abschalten ohne Deploy gibt es nicht (V-GI-9); die ganze Karte
+   abschalten geht weiter über den Zeiger `stations` in `glacier/v1/index.json` (§106).
+7. **Mengen** (V-GI-1): die Slot-Datei wächst von 55,7 auf 85,6 KB (gepackt 11,7 → 16,7 KB) — Daten-Repo-Historie und Ablage rund
+   145 statt 100 MB im Jahr.
+8. **Nicht geprüft:** die Karte im Browser, Real-Device, ein Lauf des neuen Producers auf dem Runner (erst nach dem Push möglich).

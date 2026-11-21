@@ -37,5 +37,21 @@ const doc = {
     latest: { schema: obsLatest.schema, kind: obsLatest.kind, builtAt: obsLatest.builtAt, count: Object.keys(latest).length, stations: latest },
   },
 };
+// Phase GI: `--outlines=<dir with <region>-L1.json of the same build>` writes ONLY the outline extract (the features of the same
+// glaciers, unchanged, in the shape of the real files) and leaves the extract above as it is.
+if (args.outlines && args.outlines !== true) {
+  const OUT2 = join(HERE, '..', 'lib', 'fixtures', 'glacier', 'stations', 'glacier-outline-extract.json');
+  const files = {};
+  for (const region of [...new Set(glaciers.map((g) => g.region))].sort()) {
+    const f = readJson(join(String(args.outlines), `${region}-L1.json`));
+    const features = f.features.filter((x) => IDS.includes(x.properties.id));
+    files[region] = { ...f, features };
+  }
+  const n = Object.values(files).reduce((a, f) => a + f.features.length, 0);
+  if (n !== IDS.length) { console.error(`Umrisse: ${n} von ${IDS.length} Gletschern gefunden`); process.exit(1); }
+  writeFileSync(OUT2, JSON.stringify({ note: `GI fixture: real excerpt — the L1 outlines (static build ${catalog.build}) of the ${IDS.length} glaciers of glacier-obs-extract.json, features unchanged, one entry per region file`, build: catalog.build, files }) + '\n');
+  console.log(`${OUT2}: ${n} Umrisse in ${Object.keys(files).length} Regionsdateien`);
+  process.exit(0);
+}
 writeFileSync(OUT, JSON.stringify(doc, null, 1) + '\n');
 console.log(`${OUT}: ${glaciers.length} Gletscher, ${stations.length} Stationen, ${Object.keys(latest).length} mit Werten`);

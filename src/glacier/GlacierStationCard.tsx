@@ -1,7 +1,8 @@
 /**
  * Phase GO — "Gemessen in der Nähe": the latest station measurement per quantity next to the model values of "Wetter am Gletscher"
- * (tab "Heute" and the Heute board). Networks: Land Tirol (LWD Tirol, HD Tirol), Province of Bolzano, and the DWD / TAWES / SwissMetNet
- * stations of the measurement mirror — whichever stands nearest to the glacier within the mapping's window.
+ * (tab "Heute" and the Heute board). Networks: Land Tirol (LWD Tirol, HD Tirol), Province of Bolzano, the IMIS stations of the SLF
+ * (phase GI) and the DWD / TAWES / SwissMetNet stations of the measurement mirror — whichever stands nearest to the glacier's
+ * outline within the mapping's window.
  *
  * Every value is a measurement and says so (`data-origin="measured"`), with station name, elevation, distance, elevation difference
  * and age. The fixed sentence says where the instruments stand. A measurement never replaces or corrects a model value: the card
@@ -9,11 +10,11 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { OriginChip } from './GlacierParts';
-import { fmt0, fmt1 } from './glacierView';
+import { fmt0 } from './glacierView';
 import { loadStationHour, loadStationMap, type GlacierBases } from './glacierClient';
 import type { GlacierCatalogEntry } from './glacierContract';
-import { GLACIER_STN_SITE_NOTE, stnPointerKey, type GlacierStnPointer, type StnHourDoc, type StnMapDoc } from './glacierStationContract';
-import { ageText, dzText, stationView, type StnView, type StnViewStation } from './glacierStationView';
+import { GLACIER_STN_SITE_NOTE, stnMapSection, stnPointerKey, type GlacierStnPointer, type StnHourDoc, type StnMapDoc, type StnMapFrom } from './glacierStationContract';
+import { ageText, dzText, stationView, whereText, type StnView, type StnViewStation } from './glacierStationView';
 
 /**
  * Elevation ladder: the glacier's span as a bar with its median, the station as a dot at its own elevation — where the instrument
@@ -33,7 +34,8 @@ function Ladder({ z, elev }: { z: readonly [number, number, number]; elev: numbe
   );
 }
 
-function Station({ s, z, nowMs }: { s: StnViewStation; z: readonly [number, number, number]; nowMs: number }) {
+function Station({ s, z, nowMs, from }: { s: StnViewStation; z: readonly [number, number, number]; nowMs: number; from: StnMapFrom }) {
+  const where = whereText(s.km, from);
   return (
     <li className="gl-stn-station" data-origin="measured" data-station={s.id}>
       <Ladder z={z} elev={s.elev} />
@@ -42,7 +44,10 @@ function Station({ s, z, nowMs }: { s: StnViewStation; z: readonly [number, numb
           <b>{s.name}<span>{fmt0(s.elev)} m</span></b>
           {s.ms != null ? <time dateTime={new Date(s.ms).toISOString()}>{ageText(nowMs - s.ms)}</time> : null}
         </div>
-        <p className="gl-stn-where">{fmt1(s.km)} km entfernt, {dzText(s.dz)}. {s.operator}.</p>
+        <p className="gl-stn-where">
+          {where[0].toUpperCase()}{where.slice(1)}, {dzText(s.dz)}.{' '}
+          {s.operatorUrl ? <a href={s.operatorUrl} target="_blank" rel="noopener noreferrer">{s.operator}</a> : s.operator}.
+        </p>
         <dl className="gl-stn-values">
           {s.values.map((v) => (
             <div key={v.q}>
@@ -73,7 +78,7 @@ export default function GlacierStationCard({ g, pointer, byId, nowMs, bases }: {
     void loadStationMap(mapFile, catalogIds, bases).then((d) => { if (alive) setMap(d); }, () => { if (alive) setMap(null); });
     return () => { alive = false; };
   }, [mapFile, catalogIds, bases]);
-  const mapped = !!map?.glaciers[g.id];
+  const mapped = !!(map && stnMapSection(map).glaciers[g.id]);
   useEffect(() => {
     let alive = true;
     setHour(undefined);
@@ -94,12 +99,15 @@ export function GlacierStationBlock({ view, z, nowMs }: { view: StnView; z: read
       <div className="gl-card-head"><b>GEMESSEN IN DER NÄHE</b><OriginChip origin="measured" /></div>
       <p className="gl-honest">{GLACIER_STN_SITE_NOTE}.</p>
       <ul className="gl-stn-list">
-        {view.stations.map((s) => <Station key={s.id} s={s} z={z} nowMs={nowMs} />)}
+        {view.stations.map((s) => <Station key={s.id} s={s} z={z} nowMs={nowMs} from={view.from} />)}
       </ul>
       <p className="gl-fine">
         Links: die Höhenspanne des Gletschers als Balken, der Strich ist seine mittlere Höhe, der Punkt die Station. Die Werte sind Rohdaten
         der Betreiber. Die Seite lässt weg, was außerhalb benannter Grenzen liegt, springt, stillsteht oder älter als drei Stunden ist;
         Schneehöhe und Strahlung unter null stehen als 0. Eine Messung ersetzt keinen Modellwert.
+        {view.from === 'outline' ? ' Der Abstand zählt vom Umriss des Gletschers bis zur Station.' : ''}
+        {view.stations.some((s) => s.net === 'imis') ? ' Die Werte des SLF sind Mittel über 30 Minuten, die Böe ist die stärkste Messung dieser 30 Minuten.' : ''}
+        {view.stations.some((s) => s.values.some((v) => v.q === 'dsnow')) ? ' Änderung der Schneehöhe: Schneehöhe jetzt minus Schneehöhe vor 24, 48 oder 72 Stunden, wie der Betreiber sie liefert — sie kann negativ sein.' : ''}
       </p>
       <p className="gl-fine gl-stn-sources">
         {view.sources.map((s) => (
