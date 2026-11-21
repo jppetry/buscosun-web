@@ -251,11 +251,41 @@ alle 6 h).
 
 ## 7. Stand des Commits
 
-**Nichts von `buscosun-web` ist committet.** Der Auftrag sagt „Commit on main when the gate is green, staging only files of this
-phase“. Das Gate ist bis auf das Budget des gemischten Arbeitsbaums grün; der Commit ist aus dem Grund von V-BS-16 nicht
-gemacht: Dateien dieser Phase ganz zu stagen würde die uncommitteten Zeilen der Ausfahrt- und Riffel-Linie mit einchecken,
-ohne deren ungetrackte Dateien — `main` würde dann nicht bauen, und ein Push wäre live. Nur die reinen BS-Dateien zu
-committen ergibt einen Stand, der nicht typprüft (der Vertrag macht `cell` optional, die Seite in HEAD rechnet fest damit).
-Drei Wege, Jan entscheidet: (a) erst die Ausfahrt-/Riffel-Linie committen, dann BS obendrauf; (b) alles zusammen in einem
-Commit; (c) so lassen, bis (a) möglich ist. Die beiden Pushs ins Daten-Repo sind davon unabhängig und wirken erst mit dem
-Code auf `main`.
+**Phase BS liegt auf `origin/main`:** Jan hat sie am 21.11. mit der Ausfahrt- und Riffel-Linie zusammen gepusht (`5d92118e`,
+Weg (b) aus V-BS-16); `8c876b24` hat danach das Gate grün gemacht (Budget, Edge-Bündel, pv-cube), die CI ist seit Lauf 184
+grün. Der Producer der Seen rechnet seitdem auf dem Runner (`status.lakes` 21.11. 17:10 UTC: Lauf 2026112112, t1 2026112115,
+70 Spots, 4 s). Die frühere Fassung dieses Abschnitts („nichts ist committet“, „Budget rot“) gilt nicht mehr.
+
+Lokal committet und **nicht gepusht** ist der Nachzug BS-N (§8), beginnend mit `d930e5a4`.
+
+## 8. Nachzug BS-N (21.11.2026) — Richtung an der Küste, See-Etappe, Sicht-Karte, Prüfer, Ablage
+
+Sechs Aufgaben, je ein lokaler Commit auf `main`. Kein Eingriff in buscosun Fusion (`src/pointForecast/**`), in Shader, Edge
+Functions oder Abhängigkeiten. Kein Browser, kein Bild, kein Dev-Server (Jans Vorgabe) — die Fragen 2 bis 5 der
+Selbstverifikation sind damit unbeantwortet, Frage 1 (Funktionserhalt) nur am Quelltext und an den Prüfern.
+
+### 8.5 Ablage in `buscosun-archiv` (nur gelesen, kein Push)
+
+**Ergebnis: die Ablage trägt die Seedateien seit dem ersten Archivlauf nach dem Push (18:43 UTC).** Der Weg dahin:
+
+Stand 21.11. 18:29 UTC: im Archiv lag noch keine Seedatei — und das war kein Fehler. Der letzte Lauf von `sea-archiv`
+(Nr. 181, 12:42 UTC, grün; Index `updatedAt` 12:43 UTC) lief **vor** dem Push von `buscosun-web` (`5d92118e` committet 15:53
+UTC, `8c876b24` 16:32 UTC); der Cron läuft alle 6 h um :41. Der Index des 21.11. trägt deshalb weder `lakes` noch `lakesWt`
+noch `lakeObsStations`, der Ordner `sea/v1/2026-11-21/` elf Dateien ohne `lakes-*`.
+
+Geprüft, ob der nächste Lauf sie ablegen wird: der Live-Workflow ist Byte für Byte die Vorlage
+(`scripts/sea/workflow-sea-archiv.yml`); der Archivierer aus `origin/main`, ausgecheckt mit genau den vier Pfaden des
+Workflows (`scripts/sea scripts/lib src/sea package.json`), lief lokal gegen eine Kopie der betroffenen Dateien des
+Live-Speichers in ein leeres Verzeichnis: `lakesAdded 3`, `lakesWtAdded 2`, `lakeObsRows 1066` von 41 Stationen, Exit 0 — kein
+fehlender Import im Sparse-Checkout. Der Speicher hielt um 18:29 UTC drei Seereihen (`2026112100-w2026112106`,
+`2026112112-w2026112112`, `2026112112-w2026112115`) und zwei Modelltemperaturen; bei vier Reihen je Lauf und einem Archivlauf
+alle 6 h geht bis dahin nichts verloren.
+
+**Der erste Lauf nach dem Push hat sie abgelegt:** `sea-archiv` Nr. 182 (21.11. 18:43:03 UTC, grün; Index `updatedAt` 18:43:23
+UTC). Der Tag `2026-11-21` trägt jetzt `lakes` (die drei Reihen oben), `lakesWt` (`202611210920`, `202611211615`) und
+`lakeObsStations: 41`; im Ordner liegen `lakes-2026112100-w2026112106.json.gz` (57 502 B), `lakes-2026112112-w2026112112.json.gz`
+(60 666 B), `lakes-2026112112-w2026112115.json.gz` (60 266 B), `lakes-wt-202611210920.json.gz`, `lakes-wt-202611211615.json.gz`
+und `lake-obs.json.gz` (5 770 B); auch der 20.11. hat `lakeObsStations: 41` bekommen (die Messreihen reichen einen Tag zurück).
+Genau das, was die Nachstellung ergab. Die Seereihe des Laufs 2026112100 mit t1 2026112106 ist die lokal gerechnete aus
+§5; spätere Reihen dieses Laufs gab es nicht (der Producer lag da noch nicht auf `main`). Gelesen über `raw` und die
+GitHub-API, nichts geschrieben.
