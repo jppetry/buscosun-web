@@ -288,7 +288,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   const rankHint = metric === 'laenge' ? 'größter Rückzug zuerst' : metric === 'ausaperung' ? 'größte Ausaperung zuerst' : metric === 'schmelze' ? 'stärkste Schmelze zuerst · ab 0,1 km²' : 'größter Verlust zuerst';
   const dock = (
     <GlacierDock query={query} onQuery={setQuery} land={land} onLand={setLand} metric={metric} onMetric={setMetric}
-      refYears={`CH ${fmtRefYear('2013-2018')} · AT 2021–23 · DE 2025`} defs={defs} />
+      refYears={`CH ${fmtRefYear('2021-2024')} · AT 2021–23 · DE 2025`} defs={defs} />
   );
   const readout = (
     <aside className="gl-readout" aria-label="Gletscher der Auswahl">
@@ -415,7 +415,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
                       {GLACIER_LANDS.map((l) => <button key={l} type="button" aria-pressed={land === l} onClick={() => setLand(l)}>{l === 'alle' ? 'Alle' : l.toUpperCase()}</button>)}
                     </div>
                   </div>
-                  <div className="gl-dock-foot">Bezugsjahre der Flächen: CH {fmtRefYear('2013-2018')} · AT 2021–23 · DE 2025</div>
+                  <div className="gl-dock-foot">Bezugsjahre der Flächen: CH {fmtRefYear('2021-2024')} · AT 2021–23 · DE 2025</div>
                 </>
               )}
               </div>

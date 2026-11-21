@@ -38,6 +38,19 @@ def slug(s):
     return re.sub(r"^-+|-+$", "", re.sub(r"[^a-z0-9]+", "-", s))
 
 
+def plain_ids(gls):
+    """Unique names get the plain slug, duplicates/nameless the inventory id appended (stable under rebuilds)."""
+    counts = {}
+    for g in gls:
+        if g["name"]:
+            counts[(g["country"], slug(g["name"]))] = counts.get((g["country"], slug(g["name"])), 0) + 1
+    for g in gls:
+        base = slug(g["name"]) if g["name"] else ""
+        invs = slug(str(g["invId"]))
+        unique = base and counts[(g["country"], base)] == 1
+        g["id"] = f"gl_{g['country'].lower()}_" + (base if unique else (f"{base}-{invs}" if base else f"nn-{invs}"))
+
+
 def _shp(zip_path, member_base, encoding="latin-1"):
     z = zipfile.ZipFile(zip_path)
     names = z.namelist()

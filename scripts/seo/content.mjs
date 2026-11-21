@@ -488,7 +488,7 @@ function homeNicheLinks() {
   const items = [
     ['waldbrand', 'Waldbrandgefahr und Brandradar', 'Gefahrenindex, Satellitendetektionen, Trockenheit'],
     ['seewetter', 'Seewetter Nord- und Ostsee', 'Wind, Seegang und Wasserstand'],
-    ['gletscher', 'Gletscher-Monitor', 'rund 2 200 Gletscher in DE, AT und CH'],
+    ['gletscher', 'Gletscher-Monitor', 'rund 2 100 Gletscher in DE, AT und CH'],
     ['autobahnwetter', 'Autobahnwetter', 'was die Glättemeldeanlagen messen'],
     ['wetterarchiv', 'Wetterarchiv', 'Rückblick und Klima seit 1940 für jeden Ort'],
     ['atmosphaere', 'Vertikalschnitt der Atmosphäre', 'Höhenwind, Böen und Wolkenbasis entlang einer Linie'],

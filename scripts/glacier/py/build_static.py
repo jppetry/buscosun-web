@@ -5,8 +5,9 @@ itself is published to the branch `glacier` by `glacier-publish.mjs --line=stati
 
   C:/dev/buscosun-glacier-cache/.venv/Scripts/python.exe -I scripts/glacier/py/build_static.py --out C:/dev/buscosun-glacier-cache/view/glacier/v1 [--build 20261012-1] [--limit N] [--no-dem]
 
-Swiss data (since Jan 11.10.2026, "Umweg über WGMS/GLIMS"): outlines and epochs from the GLIMS Glacier Database (`glims_inv.py`), length and mass
-series from the WGMS FoG (`series.py`) — the GLAMOS files are not read.
+Swiss data: the inventory of record is SGI2023 from the GLAMOS file (`sgi2023.py`, Jan 20.11.2026 — it is not in GLIMS); the earlier outlines
+(1850 … 2016) come from the GLIMS Glacier Database (`glims_inv.py`), length and mass series from the WGMS FoG (`series.py`) — no other
+GLAMOS file is read (Jan 11.10.2026, "Umweg über WGMS/GLIMS").
 
 All inputs come from the cache (`C:/dev/buscosun-glacier-cache/raw`, outside every repo). Geometry runs in the inventory's native
 projected CRS (metres); only the final coordinates are WGS84 lon/lat rounded to 5 decimals (≈ 1 m).
@@ -34,6 +35,7 @@ warnings.filterwarnings("ignore")
 sys.path.insert(0, os.path.dirname(__file__))
 import inv  # noqa: E402
 import glims_inv  # noqa: E402
+import sgi2023  # noqa: E402
 import series as ser  # noqa: E402
 import official_data  # noqa: E402
 
@@ -137,24 +139,18 @@ def gz_size(path):
 
 # --------------------------------------------------------------------------------------------------------------------
 def load_all(limit=None):
-    ch = glims_inv.ch_current(); at = inv.at_current(); de = inv.de_current()
+    ch = sgi2023.ch_current(); at = inv.at_current(); de = inv.de_current()
     if limit:
         ch, at = ch[:limit], at[:limit]
     return ch, at, de
 
 
 def assign_ids(gls):
-    """Unique names get the plain slug, duplicates/nameless the inventory id appended (stable under rebuilds)."""
-    counts = {}
-    for g in gls:
-        if g["name"]:
-            counts[(g["country"], inv.slug(g["name"]))] = counts.get((g["country"], inv.slug(g["name"])), 0) + 1
-    for g in gls:
-        base = inv.slug(g["name"]) if g["name"] else ""
-        invs = inv.slug(str(g["invId"]))
-        unique = base and counts[(g["country"], base)] == 1
-        slug = base if unique else (f"{base}-{invs}" if base else f"nn-{invs}")
-        g["id"] = f"gl_{g['country'].lower()}_{slug}"
+    """Plain rule (`inv.plain_ids`) for Austria and Germany; a Swiss glacier keeps the id of the builds before where it is the same glacier (`sgi2023`)."""
+    inv.plain_ids([g for g in gls if "carry" not in g])
+    ch = [g for g in gls if "carry" in g]
+    if ch:
+        sgi2023.assign_ids(ch)
     ids = [g["id"] for g in gls]
     assert len(set(ids)) == len(ids), "duplicate ids"
 
@@ -175,7 +171,9 @@ def build(args):
     gls = ch + at + de
     assign_ids(gls)
     print("inventories:", len(ch), "CH", len(at), "AT", len(de), "DE", f"{time.time()-t0:.0f}s")
-    deb = {} if args.limit else glims_inv.ch_debris_share(ch)
+    deb = {} if args.limit else sgi2023.ch_debris_share(ch)
+    rep["steps"]["chCarry"] = sgi2023.carry_report(ch)
+    print("CH ids: carried", rep["steps"]["chCarry"]["carried"], "fresh", len(rep["steps"]["chCarry"]["fresh"]), "retired", len(rep["steps"]["chCarry"]["retired"]))
 
     # 2 — geometry in the working CRS (metres) and in EPSG:3035 (matching)
     for g in gls:
@@ -191,11 +189,11 @@ def build(args):
         g["lat"], g["lon"] = round(lat, 5), round(lon, 5)
         g["areaWork_km2"] = g["gw"].area / 1e6
 
-    # 2b — heights of the Swiss entities: GLIMS carries none, so min / median / max come from the DEM (the hypsometry of step 9 is computed once here)
+    # 2b — heights of a Swiss entity whose inventory gives none: min / median / max from the DEM (SGI2023 carries its own, so this is a fallback only)
     if not args.no_dem:
         import hypso
         for g in gls:
-            if g["country"] != "CH":
+            if g["country"] != "CH" or g.get("z") is not None:
                 continue
             h = hypso.band_areas(proj(g["gw"], g["wcrs"], 4326), DEM_DIR, BAND_M)
             g["hyp"] = h
@@ -216,9 +214,9 @@ def build(args):
     cat = []
     for g in gls:
         if g["country"] == "CH":
-            area = {"km2": round(g["area_km2"], 6), "refYear": str(g["refYear"]), "source": "SGI2016"}
-            zsrc = "Copernicus DEM GLO-30 (Umrisse SGI2016)"
-            invids = {"glims": g["invId"]}
+            area = {"km2": round(g["area_km2"], 6), "refYear": str(g["refYear"]), "source": "SGI2023"}
+            zsrc = "swissALTI3D, Release 2025 (SGI2023)"
+            invids = {"sgi": g["invId"], **({"glims": g["glimsMain"]} if g.get("glimsMain") else {})}
             dbr = debris_class_ch(deb[g["invId"]]) if g["invId"] in deb else None
         elif g["country"] == "AT":
             area = {"km2": round(g["area_km2"], 6), "refYear": g["refYear"], "source": "AGI5"}
@@ -265,15 +263,47 @@ def build(args):
     link_at = ser.Linker([g["id"] for g in at_gls], [g["g3035"] for g in at_gls], [g["name"] for g in at_gls])
     ch_gls = [g for g in gls if g["country"] == "CH"]
     link_ch = ser.Linker([g["id"] for g in ch_gls], [g["g3035"] for g in ch_gls], [g["name"] for g in ch_gls])
-    glims2id = {gid: g["id"] for g in ch_gls for gid in g.get("glims", [g["invId"]])}   # GLIMS glacier id of every polygon part -> entity
+    glims2id = {gid: g["id"] for g in ch_gls for gid in g.get("glims", [])}   # GLIMS glacier id of every SGI2016 polygon part -> the glacier it lies in
     fog_gl, fog_mass = ser.wgms_tables()
     fog_len_ch = ser.wgms_length("CH")
+    # Switzerland: the link a FoG row had on the SGI2016 outlines (the builds before) stands while the glacier is still the same one. The FoG
+    # positions are coarse (often 0.01°): a tongue that retreated drops out of the 900 m, and next to a part that separated the point decides nothing.
+    old_ch = sgi2023.old_entities() if ch_gls else []
+    link_old = ser.Linker([o["id"] for o in old_ch], [proj(o["geom"], o["crs"], 3035) for o in old_ch], [o["name"] for o in old_ch]) if old_ch else None
+    glims2old = {gid: o["id"] for o in old_ch for gid in o["glims"]}
+    kept_of = {g["carry"]: g["id"] for g in ch_gls if g.get("carry")}
+    part_of = {g["id"]: g["partOf"] for g in ch_gls if g.get("partOf")}
+    fog_kept = []
+
+    def ch_keep(fid, row, hit, nm):
+        """The glacier a Swiss FoG row belongs to: `hit` (found on the SGI2023 outlines) unless the row was linked to another glacier that still exists."""
+        if link_old is None:
+            return hit
+        old_id = glims2old.get(row.get("glims_id"))
+        if old_id is None:
+            try:
+                h = link_old.at(float(row["latitude"]), float(row["longitude"]), nm, tol_m=900.0)
+            except (TypeError, ValueError):
+                h = None
+            old_id = h["id"] if h and (h["sim"] >= 0.35 or h["dist_m"] <= 250) else None
+        kept = kept_of.get(old_id)
+        if not kept or (hit and hit["id"] == kept):
+            return hit
+        if hit and part_of.get(hit["id"]) == old_id:
+            # a glacier that separated from the linked one takes the series only when the FoG names its polygon or exactly its name (Vadret Pers, Hohsaasgletscher)
+            names = {inv.slug(x) for x in [row.get("short_name") or ""] + (row.get("names") or "").split("|")} - {""}
+            if hit.get("via") == "glims-id" or inv.slug(byid[hit["id"]]["name"] or "") in names:
+                return hit
+        fog_kept.append({"fog": fid, "name": row.get("short_name"), "id": kept, "insteadOf": hit["id"] if hit else None})
+        return {"id": kept, "dist_m": None, "sim": None, "via": "sgi2016-link"}
+
     fog_link, fog_unlinked = {}, []
     for fid, row in fog_gl.items():
         is_ch = row["country"] == "CH"
         if is_ch and fid not in fog_mass and fid not in fog_len_ch:
             continue          # a Swiss glacier of the FoG without a series: nothing to attach (1 984 rows, 123 + 39 with a series)
-        hit = None
+        hit = near = None
+        nm = (row.get("short_name") or row.get("names") or "").title()
         if is_ch and row.get("glims_id") in glims2id:   # the FoG names the GLIMS id of the polygon: the strongest link there is
             hit = {"id": glims2id[row["glims_id"]], "dist_m": 0.0, "sim": 1.0, "via": "glims-id"}
         else:
@@ -281,13 +311,16 @@ def build(args):
                 lat, lon = float(row["latitude"]), float(row["longitude"])
             except (TypeError, ValueError):
                 continue
-            nm = (row.get("short_name") or row.get("names") or "").title()
-            hit = (link_ch if is_ch else link_at).at(lat, lon, nm, tol_m=900.0)
-        if hit and (hit["sim"] >= 0.35 or hit["dist_m"] <= 250):
+            hit = near = (link_ch if is_ch else link_at).at(lat, lon, nm, tol_m=900.0)
+            if hit and not (hit["sim"] >= 0.35 or hit["dist_m"] <= 250):
+                hit = None
+        if is_ch:
+            hit = ch_keep(fid, row, hit, nm)
+        if hit:
             fog_link[fid] = hit["id"]
             byid[hit["id"]]["entry"]["inv"].setdefault("wgms", fid)
         elif (fid in fog_mass and any(r[0] >= 2000 for r in fog_mass[fid])) or (is_ch and fid in fog_len_ch):
-            fog_unlinked.append({"fog": fid, "name": row.get("short_name"), "country": row["country"], "hit": hit})
+            fog_unlinked.append({"fog": fid, "name": row.get("short_name"), "country": row["country"], "hit": near})
     oeav = ser.oeav_length()
     oeav_link, oeav_unlinked = {}, []
     for aut, e in oeav.items():
@@ -300,7 +333,7 @@ def build(args):
             oeav_link[aut] = hit["id"]
         else:
             oeav_unlinked.append({"aut": aut, "name": e["name"], "why": "no outline within 600 m"})
-    rep["steps"]["link"] = {"fogLinked": len(fog_link), "fogUnlinkedWithRecentBalance": fog_unlinked, "oeavLinked": len(oeav_link),
+    rep["steps"]["link"] = {"fogLinked": len(fog_link), "fogKeptFromSgi2016": fog_kept, "fogUnlinkedWithRecentBalance": fog_unlinked, "oeavLinked": len(oeav_link),
                             "oeavUnlinked": oeav_unlinked}
     print("linked:", len(fog_link), "FoG,", len(oeav_link), "ÖAV,", f"{time.time()-t0:.0f}s")
 
@@ -341,7 +374,8 @@ def build(args):
     # 8 — epochs (CH SGI 1850/1931/1973/2010, AT GI4 2015): outline of the older inventory with the current glaciers it covers
     cur_tree = STRtree([g["g3035"] for g in gls])
     epoch_areas = {g["id"]: [] for g in gls}  # {id: [[year, km2]]}
-    ep_specs = [("SGI1850", 1850, glims_inv.ch_epoch, "CH"), ("SGI1931", 1931, glims_inv.ch_epoch, "CH"), ("SGI1973", 1973, glims_inv.ch_epoch, "CH"), ("SGI2010", 2010, glims_inv.ch_epoch, "CH")]
+    ep_specs = [("SGI1850", 1850, glims_inv.ch_epoch, "CH"), ("SGI1931", 1931, glims_inv.ch_epoch, "CH"), ("SGI1973", 1973, glims_inv.ch_epoch, "CH"), ("SGI2010", 2010, glims_inv.ch_epoch, "CH"),
+                ("SGI2016", 2016, lambda _y: sgi2023.ch_epoch_2016(), "CH")]
     ep_all = []
     for label, year, loader, country in ep_specs:
         ep_all.append((label, year, loader(year), country))
@@ -363,7 +397,8 @@ def build(args):
             ids = sorted(set(ids))
             area_ep_km2 = g3035.area / 1e6
             if len(ids) == 1:
-                epoch_areas[ids[0]].append((year, area_ep_km2, label, ep["id"]))
+                # SGI2016 names the acquisition year and the area of each glacier itself (the row the catalogue showed until SGI2023)
+                epoch_areas[ids[0]].append((ep.get("year", year), ep.get("km2", area_ep_km2), label, ep["id"]))
             elif len(ids) > 1:
                 shared += 1
             else:
@@ -477,7 +512,7 @@ def build(args):
             src = "RGI 6.2 (2003) · BAdW (2023, 2025)"
         else:
             rows = [r for r in rows if cur_year is None or r[0] < cur_year] + ([[cur_year, g["entry"]["area"]["km2"]]] if cur_year else [])
-            src = {"CH": "SGI1850 · SGI1931 · SGI1973 · SGI2010 · SGI2016 (über GLIMS)", "AT": "GI4 2015 · AGI 5"}[g["country"]]
+            src = {"CH": "SGI1850 · SGI1931 · SGI1973 · SGI2010 · SGI2016 (über GLIMS) · SGI2023 (GLAMOS)", "AT": "GI4 2015 · AGI 5"}[g["country"]]
         if len(rows) >= 2:
             put(g["id"], {"kind": "area", "method": "inventory", "origin": "official", "source": src, "unit": "km²", "rows": sorted(rows)})
     nser = 0
@@ -564,7 +599,8 @@ def build(args):
     files["official.json"][1] = gz_size(p)
 
     src_list = [
-        {"id": "glims-sgi", "label": "Swiss Glacier Inventories SGI1850 / 1931 / 1973 / 2010 / 2016 (GLIMS Glacier Database)", "licence": "frei zugänglich, Quellenangabe Pflicht (GLIMS/NSIDC); die Ursprungs-DOI des SGI2016 nennt CC BY 4.0", "attribution": "GLIMS Consortium, Raup, B. H., Racoviteanu, A., Khalsa, S. S., Helm, C., Armstrong, R. & Arnaud, Y. (2005, updated 2026): GLIMS Glacier Database, Version 1. NSIDC, doi:10.7265/N5V98602 — eingereicht vom Schweizerischen Gletschermessnetz (GLAMOS: SGI2016, Einreichung 869; SGI1931, Einreichung 868) und von den Universitäten Zürich und Fribourg (SGI1850, 1973, 2010; Einreichungen 594, 595, 599, 596); Inventare: Linsbauer et al. 2021 (SGI2016), Fischer et al. 2014 (SGI2010), Müller et al. 1976 (SGI1973), Maisch et al. 2000 und Mannerfelt et al. 2022 (SGI1850, SGI1931)", "url": "https://www.glims.org/", "refYear": "1850, 1931, 1973, 2010, 2013–2018", "used": "Umrisse, Flächen und frühere Umrisse CH (Höhen aus dem Copernicus DEM, Gletscher aus Teilflächen nach Name und Lage gebildet)"},
+        {"id": "sgi2023", "label": "Swiss Glacier Inventory 2023 (SGI2023), Release 2026", "licence": "CC BY 4.0", "attribution": "GLAMOS (2026). Swiss Glacier Inventory 2023, release 2026, Glacier Monitoring Switzerland, doi:10.18750/inventory.sgi2023.r2026", "url": "https://doi.org/10.18750/inventory.sgi2023.r2026", "refYear": "2021–2024", "used": "Umrisse, Flächen, Höhen (swissALTI3D, Release 2025), Exposition und Schuttbedeckung CH"},
+        {"id": "glims-sgi", "label": "Swiss Glacier Inventories SGI1850 / 1931 / 1973 / 2010 / 2016 (GLIMS Glacier Database)", "licence": "frei zugänglich, Quellenangabe Pflicht (GLIMS/NSIDC); die Ursprungs-DOI des SGI2016 nennt CC BY 4.0", "attribution": "GLIMS Consortium, Raup, B. H., Racoviteanu, A., Khalsa, S. S., Helm, C., Armstrong, R. & Arnaud, Y. (2005, updated 2026): GLIMS Glacier Database, Version 1. NSIDC, doi:10.7265/N5V98602 — eingereicht vom Schweizerischen Gletschermessnetz (GLAMOS: SGI2016, Einreichung 869; SGI1931, Einreichung 868) und von den Universitäten Zürich und Fribourg (SGI1850, 1973, 2010; Einreichungen 594, 595, 599, 596); Inventare: Linsbauer et al. 2021 (SGI2016), Fischer et al. 2014 (SGI2010), Müller et al. 1976 (SGI1973), Maisch et al. 2000 und Mannerfelt et al. 2022 (SGI1850, SGI1931)", "url": "https://www.glims.org/", "refYear": "1850, 1931, 1973, 2010, 2013–2018", "used": "frühere Umrisse und Flächen CH, 1850 bis 2016 (SGI2016: Gletscher aus Teilflächen nach Name und Lage gebildet); GLIMS-Kennungen"},
         {"id": "agi5", "label": "Austrian Glacier Inventory 5 (AGI 5)", "licence": "CC BY 4.0", "attribution": "Hartig, A. et al. (2026): The Austrian Glacier Inventory GI 5, 2021-2023, as vector files. PANGAEA, doi:10.1594/PANGAEA.991106", "url": "https://doi.org/10.1594/PANGAEA.991106", "refYear": "2021–2023", "used": "Umrisse, Flächen, Höhen AT"},
         {"id": "gi4", "label": "Austrian Glacier Inventory GI 4 (2015)", "licence": "CC BY 3.0", "attribution": "Buckel, J. & Otto, J.-C. (2018): The Austrian Glacier Inventory GI 4 (2015) in ArcGis (shapefile) format. PANGAEA, doi:10.1594/PANGAEA.887415", "url": "https://doi.org/10.1594/PANGAEA.887415", "refYear": "2015", "used": "frühere Umrisse AT"},
         {"id": "rgi6", "label": "Randolph Glacier Inventory 6.2, Region 11 (Brücke, deutsche Umrisse)", "licence": "CC BY 4.0 (RGI Consortium; Bezug über den Server der OGGM-Gruppe)", "attribution": "RGI Consortium (2017). Randolph Glacier Inventory – A Dataset of Global Glacier Outlines: Version 6.0", "url": "https://rgidata.org/versions/", "refYear": "≈ 2003", "used": "Umrisse der vier deutschen Gletscher, Zuordnung zu GloGEM"},

@@ -18,7 +18,7 @@
  *   glacier/v1/static/<build>/catalog.json         one entry per glacier (id, names, country, region, class, area + reference year, heights, inventory ids)
  *   glacier/v1/static/<build>/points.json          points for zoom ≤ 8 (id, lat, lon, class, area)
  *   glacier/v1/static/<build>/outline/<region>-L<1..3>.json   current outlines in three simplification levels (GeoJSON, WGS84)
- *   glacier/v1/static/<build>/outline/<region>-e<year>.json   earlier outlines (SGI1850/1931/1973/2010, GI4 2015, RGI 2003), each with its reference year
+ *   glacier/v1/static/<build>/outline/<region>-e<year>.json   earlier outlines (SGI1850/1931/1973/2010/2016, GI4 2015, RGI 2003), each with its reference year
  *   glacier/v1/static/<build>/hypso/<region>.json  area per 50 m band
  *   glacier/v1/static/<build>/series/<region>.json length, mass and area series, one method and source each
  *   glacier/v1/static/<build>/proj/<region>.json   GloGEM CMIP6 v2 projection as a range per scenario
@@ -72,7 +72,7 @@ export const GLACIER_COUNTRY_LABEL: Readonly<Record<GlacierCountry, string>> = {
 
 /** Outline/hypsometry/series files are split by region (< 20 MB each, lazy per view). */
 export const GLACIER_REGIONS: Readonly<Record<string, { country: GlacierCountry; label: string }>> = Object.freeze({
-  // Switzerland: plain geography (the SGI's river basins are an attribute of the GLAMOS files, which the GLIMS copy does not carry). Rule on the
+  // Switzerland: plain geography (chosen when the inventory came from GLIMS, which carries no river basins; kept with SGI2023 so that no glacier changes its file). Rule on the
   // centroid of the glacier (WGS84): south of 46.45 °N and from 8.35 °E = Süd; otherwise by longitude: < 7.55 West, < 8.2 Mitte-West, < 8.75 Mitte-Ost, else Ost.
   'ch-west': { country: 'CH', label: 'Schweiz West' },
   'ch-mitte-west': { country: 'CH', label: 'Schweiz Mitte-West' },
@@ -136,6 +136,8 @@ export function glacierSlug(name: string): string {
 /**
  * Stable id: `gl_<country>_<slug of the name>`; a name used twice in a country, an empty name or "NN" gets the inventory id
  * appended (`gl_ch_steigletscher-a54e-12`, `gl_at_nn-9027`). `inventoryId` is the id of the inventory of record.
+ * Switzerland since SGI2023: a glacier that is the same one as in the builds from SGI2016 KEEPS the id it had there (also when the
+ * inventory renamed it), so the id is not always the slug of today's name; only a new glacier gets an id by this rule (`sgi2023.py`).
  */
 export function glacierIdOf(country: GlacierCountry, name: string | null, inventoryId: string | number, nameIsUnique: boolean): string {
   const base = name && name.trim() && name.trim().toUpperCase() !== 'NN' ? glacierSlug(name) : '';
@@ -155,7 +157,7 @@ export interface GlacierAreaStamp {
   km2: number;
   /** Reference year of the inventory, `2016` or a range `"2013-2018"`; countries with different years are never shown as the same year. */
   refYear: number | string;
-  /** Short source name (`SGI2016`, `AGI5`, `BAdW 2025`, `RGI6.2`). */
+  /** Short source name (`SGI2023`, `AGI5`, `BAdW 2025`, `RGI6.2`). */
   source: string;
 }
 export const hasAreaStamp = (a: unknown): a is GlacierAreaStamp => {
@@ -168,9 +170,12 @@ export const hasAreaStamp = (a: unknown): a is GlacierAreaStamp => {
 // --- Catalogue -----------------------------------------------------------------------------------
 
 export interface GlacierInventoryIds {
-  /** GLIMS glacier id of the largest polygon part of the Swiss inventory SGI2016 (`G007740E46133N`) — also the id the WGMS FoG names. */
+  /**
+   * GLIMS glacier id of the largest polygon part the glacier had in SGI2016 (`G007740E46133N`) — also the id the WGMS FoG names.
+   * Since SGI2023 only on a glacier that is the same one as in the builds before (matched by outline); a newly separated glacier has none.
+   */
   glims?: string;
-  /** SGI id (`B36-26`) of builds made from the GLAMOS files (before the GLIMS detour, 11.10.2026); no longer written. */
+  /** SGI id (`B36-26`) — every Swiss glacier since the builds made from SGI2023 (GLAMOS file, 20.11.2026). */
   sgi?: string;
   /** AGI 5 glacier number. */
   agi5?: number;
@@ -199,7 +204,7 @@ export interface GlacierCatalogEntry {
   lead?: true;
   /** Authority status: `vanished`/`vanishing` — only from the authority's own criterion, never from a satellite image. */
   status?: 'vanished' | 'vanishing' | 'lost-status';
-  /** Debris cover class of the inventory (AGI 5 `debris` 0–3; SGI2016 debris-cover share from the GLIMS debris lines) or `null`. */
+  /** Debris cover class of the inventory (AGI 5 `debris` 0–3; SGI2023 share of the outline under the inventory's debris polygons: < 5 % = 0, < 20 % = 1, < 50 % = 2, else 3) or `null`. */
   debris: number | null;
 }
 export interface GlacierCatalog {
@@ -236,7 +241,8 @@ export function catalogProblems(c: GlacierCatalog): string[] {
 export const GLACIER_SUM_TOLERANCE = 0.02;
 export interface GlacierCountrySum { km2: number; n: number | null; refYear: string; source: string }
 export const GLACIER_OFFICIAL_SUMS: Readonly<Record<GlacierCountry, GlacierCountrySum>> = Object.freeze({
-  CH: { km2: 961, n: 1400, refYear: '2013-2018', source: 'SGI2016 (Linsbauer et al. 2021: 1 400 glaciers, 961 ± 22 km²)' },
+  // SGI2023 (since the build 20261120-1): the sum of the areas the inventory file lists — GLAMOS names no total with an uncertainty yet (paper in prep).
+  CH: { km2: 860, n: 1291, refYear: '2021-2024', source: 'SGI2023 (GLAMOS 2026, release 2026: 1 291 glaciers, 860 km² as the sum of the listed areas)' },
   AT: { km2: 285, n: 799, refYear: '2021-2023', source: 'AGI 5 (Hartl et al. 2026: 799 glaciers, 285 ± 12 km²)' },
   DE: { km2: 0.262, n: 4, refYear: '2025', source: 'BAdW, Pressemitteilung 19.03.2026: Summe der vier Gletscher 26,2 ha (Herbst 2025)' },
 });

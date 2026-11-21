@@ -56,7 +56,7 @@ const ASPECT = ['Norden', 'Nordosten', 'Osten', 'Südosten', 'Süden', 'Südwest
 const aspectWord = (deg) => (deg == null ? null : ASPECT[Math.round((((deg % 360) + 360) % 360) / 45) % 8]);
 const CLASS_TEXT = { A: 'Klasse A (ab 1 km²): Fläche, Ausaperung, Albedo und Schneegrenze aus Sentinel-2', B: 'Klasse B (0,1 bis 1 km²): Fläche und Albedo aus Sentinel-2, keine Schneegrenze', C: 'Klasse C (unter 0,1 km²): keine Satellitenzahl' };
 /** Quelle der Inventarfläche im Dativ („Laut …“). */
-const SRC_LONG = { SGI2016: 'dem Schweizer Gletscherinventar SGI2016', AGI5: 'dem österreichischen Gletscherinventar AGI 5', 'BAdW 2025': 'der Messung der Bayerischen Akademie der Wissenschaften von 2025' };
+const SRC_LONG = { SGI2023: 'dem Schweizer Gletscherinventar SGI2023', SGI2016: 'dem Schweizer Gletscherinventar SGI2016', AGI5: 'dem österreichischen Gletscherinventar AGI 5', 'BAdW 2025': 'der Messung der Bayerischen Akademie der Wissenschaften von 2025' };
 
 function distKm(a, b) {
   const R = Math.PI / 180;
@@ -235,7 +235,7 @@ export function glacierFallbackHtml(g) {
     ['Größenklasse', esc(CLASS_TEXT[g.klass])],
     ['Lage', `${NF3.format(g.lat)}° N, ${NF3.format(g.lon)}° O`],
     ...(nm.inventory || nm.alt.length ? [['Namen', esc([nm.inventory ? `Inventar: ${nm.inventory}` : null, nm.alt.length ? `auch ${nm.alt.join(', ')}` : null].filter(Boolean).join(' · '))]] : []),
-    ...(Object.keys(g.inv ?? {}).length ? [['Kennungen', esc(Object.entries(g.inv).map(([k, v]) => `${{ glims: 'GLIMS', agi5: 'AGI 5', gi4: 'GI4', wgms: 'WGMS', rgi6: 'RGI 6.2' }[k] ?? k} ${v}`).join(' · '))]] : []),
+    ...(Object.keys(g.inv ?? {}).length ? [['Kennungen', esc(Object.entries(g.inv).map(([k, v]) => `${{ sgi: 'SGI', glims: 'GLIMS', agi5: 'AGI 5', gi4: 'GI4', wgms: 'WGMS', rgi6: 'RGI 6.2' }[k] ?? k} ${v}`).join(' · '))]] : []),
   ];
   sec.push(`<h2>Steckbrief</h2>\n      <dl>\n        ${facts.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('\n        ')}\n      </dl>`);
   if (g.length) {
@@ -290,7 +290,7 @@ export function glacierFallbackHtml(g) {
 function glacierJsonLd(g) {
   const nm = glacierNames(g);
   const url = SITE.url + glacierPath(g);
-  const ident = Object.entries(g.inv ?? {}).map(([k, v]) => ({ '@type': 'PropertyValue', propertyID: { glims: 'GLIMS', agi5: 'AGI5', gi4: 'GI4', wgms: 'WGMS', rgi6: 'RGI6.2' }[k] ?? k, value: String(v) }));
+  const ident = Object.entries(g.inv ?? {}).map(([k, v]) => ({ '@type': 'PropertyValue', propertyID: { sgi: 'SGI', glims: 'GLIMS', agi5: 'AGI5', gi4: 'GI4', wgms: 'WGMS', rgi6: 'RGI6.2' }[k] ?? k, value: String(v) }));
   const props = [
     { '@type': 'PropertyValue', name: 'Fläche', value: g.area.km2, unitCode: 'KMK', unitText: 'km²', description: `Inventar ${g.area.source}, Bezugsjahr ${g.area.refYear}` },
     { '@type': 'PropertyValue', name: 'Höhe tiefster Punkt', value: g.z[0], unitCode: 'MTR', description: g.zSource },
@@ -415,7 +415,7 @@ const GLACIER_HEAD = ['Gletscher', 'Fläche', 'Bezugsjahr', 'Höhe', 'Zunge (Sum
 
 function countLead() {
   const ch = sum.CH, at = sum.AT, de = sum.DE;
-  return `In den Gletscherinventaren der drei Länder stehen ${n0(ch.n + at.n + de.n)} Gletscher: ${n0(ch.n)} in der Schweiz mit ${n0(ch.km2)} km² (SGI2016, ${refYearsText(ch.refYears)}), ${n0(at.n)} in Österreich mit ${n0(at.km2)} km² (AGI 5, ${at.refYears}) und ${de.n} in Deutschland mit ${n1(de.km2 * 100)} Hektar (Bayerische Akademie der Wissenschaften, ${de.refYears}). Für ${n0(PAGE_GLACIERS.length)} Gletscher mit Messreihe oder mehr als 1 km² Fläche gibt es einen eigenen Steckbrief mit Zahlen, Quelle und Bezugsjahr.`;
+  return `In den Gletscherinventaren der drei Länder stehen ${n0(ch.n + at.n + de.n)} Gletscher: ${n0(ch.n)} in der Schweiz mit ${n0(ch.km2)} km² (SGI2023, ${refYearsText(ch.refYears)}), ${n0(at.n)} in Österreich mit ${n0(at.km2)} km² (AGI 5, ${at.refYears}) und ${de.n} in Deutschland mit ${n1(de.km2 * 100)} Hektar (Bayerische Akademie der Wissenschaften, ${de.refYears}). Für ${n0(PAGE_GLACIERS.length)} Gletscher mit Messreihe oder mehr als 1 km² Fläche gibt es einen eigenen Steckbrief mit Zahlen, Quelle und Bezugsjahr.`;
 }
 
 /** /gletscher-atlas/ */
@@ -442,7 +442,7 @@ export function renderAtlasHub() {
     massRows.length ? section(`Massenbilanz im Haushaltsjahr ${hydroYear(maxMassYear)}`, `${table(['Gletscher', 'Land', 'Jahresbilanz', 'Gleichgewichtslinie'], massRows.map((g) => [linkOf(g), COUNTRY_LABEL[g.country], `<span class="num">${mWe(g.mass.last.ba)} m w. e.</span>`, g.mass.last.ela ? `${n0(g.mass.last.ela)} m` : '–']))}
         <p class="note">Glaziologisch gemessene Jahresbilanzen aus dem Datensatz des WGMS (Fluctuations of Glaciers, 2026-02-10). Eine Bilanz von ${MINUS}1 m w. e. heißt: Über die ganze Fläche ist eine Wasserschicht von einem Meter verloren gegangen.</p>`, 'bilanz') : '',
     section('Gletscher nach Land und Region', COUNTRY_ORDER.map((c) => `<h3><a href="${countryPath(c)}">${COUNTRY_LABEL[c]}</a></h3><div class="links">${ATLAS_REGIONS.filter((r) => GLACIER_REGIONS[r].country === c).map((r) => `<a href="${regionPath(r)}">${esc(regionLabel(r))}</a>`).join('') || pagesOf(c).map((g) => linkOf(g)).join(' · ')}</div>`).join('\n        '), 'regionen'),
-    section('Daten und Grenzen', `<p>Flächen und Höhen stammen aus den Inventaren (Schweiz: SGI2016 über die GLIMS Glacier Database; Österreich: AGI 5 und GI4; Deutschland: Bayerische Akademie der Wissenschaften und RGI 6.2), Längen- und Massenreihen aus dem Datensatz des WGMS und für Österreich vom Gletschermessdienst des Alpenvereins, die Projektionen aus GloGEM (Zekollari et al. 2024). Der Gletscher-Monitor rechnet zusätzlich einen Schmelzindex aus Wettermodellen und liest Sentinel-2-Szenen aus; diese Werte stehen im interaktiven Steckbrief und tragen ihr eigenes Zeichen. <a href="/methodik/gletscher-daten/">Methodik</a> · <a href="/lizenzen/">Lizenzen</a> · <a href="/gletscher">Zur Gletscher-Karte</a></p>`, 'daten'),
+    section('Daten und Grenzen', `<p>Flächen und Höhen stammen aus den Inventaren (Schweiz: SGI2023 des Messnetzes GLAMOS, frühere Umrisse über die GLIMS Glacier Database; Österreich: AGI 5 und GI4; Deutschland: Bayerische Akademie der Wissenschaften und RGI 6.2), Längen- und Massenreihen aus dem Datensatz des WGMS und für Österreich vom Gletschermessdienst des Alpenvereins, die Projektionen aus GloGEM (Zekollari et al. 2024). Der Gletscher-Monitor rechnet zusätzlich einen Schmelzindex aus Wettermodellen und liest Sentinel-2-Szenen aus; diese Werte stehen im interaktiven Steckbrief und tragen ihr eigenes Zeichen. <a href="/methodik/gletscher-daten/">Methodik</a> · <a href="/lizenzen/">Lizenzen</a> · <a href="/gletscher">Zur Gletscher-Karte</a></p>`, 'daten'),
   ].filter(Boolean).join('\n');
   const dataset = {
     '@context': 'https://schema.org', '@type': 'Dataset', name: 'Gletscher-Monitor DACH: Gletscherkennzahlen für Schweiz, Österreich und Deutschland',
@@ -475,7 +475,7 @@ const COUNTRY_TEXT = {
   CH: {
     title: 'Gletscher in der Schweiz: Liste, Fläche, Rückgang und Massenbilanz',
     h1: 'Gletscher in der Schweiz: Inventar, Messreihen und Eisverlust',
-    lead: () => { const a = [...pagesOf('CH')].sort((x, y) => y.area.km2 - x.area.km2)[0]; return `Das Schweizer Gletscherinventar SGI2016 führt ${n0(sum.CH.n)} Gletscher mit zusammen ${n0(sum.CH.km2)} km² (${refYearsText(sum.CH.refYears)}); ${n0(sum.CH.classA)} davon sind größer als 1 km². Größter Gletscher: ${glacierNames(a).primary} mit ${km2(a.area.km2)} km² (Bezugsjahr ${a.area.refYear}). Die Jahresberichte gibt das Messnetz GLAMOS heraus; buscosun zeigt die Reihen, die GLAMOS an den WGMS meldet, und zitiert die Berichte wörtlich.`; },
+    lead: () => { const a = [...pagesOf('CH')].sort((x, y) => y.area.km2 - x.area.km2)[0]; return `Das Schweizer Gletscherinventar SGI2023 führt ${n0(sum.CH.n)} Gletscher mit zusammen ${n0(sum.CH.km2)} km² (${refYearsText(sum.CH.refYears)}); ${n0(sum.CH.classA)} davon sind größer als 1 km². Größter Gletscher: ${glacierNames(a).primary} mit ${km2(a.area.km2)} km² (Bezugsjahr ${a.area.refYear}). Die Jahresberichte gibt das Messnetz GLAMOS heraus; buscosun zeigt die Reihen, die GLAMOS an den WGMS meldet, und zitiert die Berichte wörtlich.`; },
   },
   AT: {
     title: 'Gletscher in Österreich: Liste, Fläche, Rückgang und Messreihen',

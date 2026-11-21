@@ -43,13 +43,13 @@ if (T.full) {
   const byId = new Map(cat.glaciers.map((g) => [g.id, g]));
   const cp = C.catalogProblems(cat);
   add('K1 Katalog: 0 Probleme (Ids, Land, Region, Fläche mit Bezugsjahr, Klasse, Höhen, Position, Inventar-Id)', cp.length === 0, cp.slice(0, 5).join('; '));
-  add('K2 2 199 Gletscher: CH 1 396 (SGI2016 zählt 1 400; die Gletscher werden aus den Teilflächen der GLIMS-Einreichung nach Name und Lage gebildet, 96,4 % exakt wie im SGI), AT 799, DE 4', cat.glaciers.length === 2199 && ['CH', 'AT', 'DE'].every((c, i) => cat.glaciers.filter((g) => g.country === c).length === [1396, 799, 4][i]), String(cat.glaciers.length));
+  add('K2 2 094 Gletscher: CH 1 291 (SGI2023, ein Eintrag je SGI-Kennung), AT 799, DE 4', cat.glaciers.length === 2094 && ['CH', 'AT', 'DE'].every((c, i) => cat.glaciers.filter((g) => g.country === c).length === [1291, 799, 4][i]), String(cat.glaciers.length));
   const sp = C.countrySumProblems(cat);
   add('K3 Summen je Land innerhalb ±2 % der amtlichen Zahl', sp.length === 0, sp.join('; '));
   const cls = (c, k) => cat.glaciers.filter((g) => g.country === c && g.klass === k).length;
-  add('K4 Klassen dieses Builds: CH A162/B506/C728 (SGI2016: 160/514/726), AT A67/B249/C483, DE B1/C3', cls('CH', 'A') === 162 && cls('CH', 'B') === 506 && cls('CH', 'C') === 728 && cls('AT', 'A') === 67 && cls('AT', 'B') === 249 && cls('AT', 'C') === 483 && cls('DE', 'B') === 1 && cls('DE', 'C') === 3, `A ${cat.glaciers.filter((g) => g.klass === 'A').length}`);
+  add('K4 Klassen dieses Builds: CH A145/B472/C674 (SGI2023), AT A67/B249/C483, DE B1/C3', cls('CH', 'A') === 145 && cls('CH', 'B') === 472 && cls('CH', 'C') === 674 && cls('AT', 'A') === 67 && cls('AT', 'B') === 249 && cls('AT', 'C') === 483 && cls('DE', 'B') === 1 && cls('DE', 'C') === 3, `A ${cat.glaciers.filter((g) => g.klass === 'A').length}`);
   add('K5 Leitgletscher: ≥ 40 markiert, alle mit Reihe', cat.glaciers.filter((g) => g.lead).length >= 40, String(cat.glaciers.filter((g) => g.lead).length));
-  add('K6 jeder CH-Gletscher trägt die GLIMS-Id seiner größten Teilfläche, jeder AT-Gletscher seine AGI-5-Nummer, jeder DE-Gletscher eine RGI-Id', cat.glaciers.every((g) => (g.country === 'CH' ? !!g.inv.glims : g.country === 'AT' ? typeof g.inv.agi5 === 'number' : !!g.inv.rgi6)));
+  add('K6 jeder CH-Gletscher trägt seine SGI-Kennung, jeder AT-Gletscher seine AGI-5-Nummer, jeder DE-Gletscher eine RGI-Id', cat.glaciers.every((g) => (g.country === 'CH' ? /^[A-E]\d\d[a-z]?-\d\d$/.test(g.inv.sgi ?? '') : g.country === 'AT' ? typeof g.inv.agi5 === 'number' : !!g.inv.rgi6)));
   add('K7 DE: Fläche aus der BAdW-Tabelle 2025 (Summe 26,2 ha), Umrisse aus RGI 2003 mit eigenem Bezugsjahr', Math.abs(cat.glaciers.filter((g) => g.country === 'DE').reduce((s, g) => s + g.area.km2, 0) - 0.262) < 0.0005 && cat.glaciers.filter((g) => g.country === 'DE').every((g) => g.area.source === 'BAdW 2025'));
 
   // points
@@ -89,7 +89,7 @@ if (T.full) {
       for (const poly of C.polygonsOfGeometry(ft.geometry)) if (!poly.every(C.ringClosed)) { epochBad.push(f + ' ring'); break; }
     }
   }
-  add('G2 frühere Umrisse (SGI 1850/1931/1973/2010, GI4 2015): Region/Jahr stimmen, Ids im Katalog, Ringe geschlossen', epochFiles >= 12 && epochBad.length === 0, `${epochFiles} files; ${epochBad.slice(0, 3).join(' | ')}`);
+  add('G2 frühere Umrisse (SGI 1850/1931/1973/2010/2016, GI4 2015): Region/Jahr stimmen, Ids im Katalog, Ringe geschlossen', epochFiles >= 12 && epochBad.length === 0, `${epochFiles} files; ${epochBad.slice(0, 3).join(' | ')}`);
 
   // hypsometry
   let hCount = 0, hBad = [];

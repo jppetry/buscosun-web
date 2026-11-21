@@ -85,7 +85,7 @@ ${link('/waldbrand', 'Brandradar DACH')}: EU-Gefahrenindex, aktive Brände aus S
 ${fireRegions}${link('/seewetter', 'Seewetter Nord- und Ostsee')}: Seegang aus dem DWD-Küstenmodell, Wind und Böen an ${seaSubs.length} Spots, je Spot eine URL
   (${seaSubs.slice(0, 4).map((x) => site.url + x.path).join(', ')} …), Wasserstand der BSH-Pegel, Seewetterbericht im Wortlaut.
   Kein amtliches Warnprodukt (${site.url}/methodik/seewetter-quellen/, ${site.url}/wissen/seewetterbericht/).
-${link('/gletscher', 'Gletscher-Monitor DACH')}: rund 2 200 Gletscher mit Inventarfläche und Bezugsjahr, Messreihen, Sentinel-2-Szenen und einem Schmelzindex
+${link('/gletscher', 'Gletscher-Monitor DACH')}: rund 2 100 Gletscher mit Inventarfläche und Bezugsjahr, Messreihen, Sentinel-2-Szenen und einem Schmelzindex
   ohne Einheit; jede Zahl trägt ihre Herkunft. Kein amtliches Produkt, keine Tourenfreigabe (${site.url}/methodik/gletscher-daten/).
 ${glacierAtlas ? `${link('/gletscher-atlas/', 'Gletscher-Atlas DACH')}: Zahl der Gletscher je Land, Ranglisten, amtliche Angaben im Wortlaut; ${glacierAtlas.pages} Steckbriefe
   unter ${site.url}/gletscher/<land>-<name>, z. B. ${site.url}/gletscher/ch-grosser-aletschgletscher, ${site.url}/gletscher/at-pasterzen-kees.

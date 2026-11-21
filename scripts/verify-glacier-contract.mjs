@@ -71,12 +71,12 @@ add('K11 Gegenprobe Build-Schlüssel', C.catalogProblems((() => { const c = cata
 // --- S: country sums -----------------------------------------------------------------------------------------------------
 const sumCat = (km2) => ({ schema: 1, kind: 'glacier/catalog', build: '20261011-1', builtAt: '', glaciers: C.GLACIER_COUNTRIES.map((co) => ({ ...clone(rows.find((g) => g.country === co)), area: { km2: km2[co], refYear: 2016, source: 'x' } })) });
 const OS = C.GLACIER_OFFICIAL_SUMS;
-add('S1 amtliche Summen: CH 961 / 1 400, AT 285 / 799, DE 0,262 / 4', OS.CH.km2 === 961 && OS.CH.n === 1400 && OS.AT.km2 === 285 && OS.AT.n === 799 && OS.DE.km2 === 0.262 && OS.DE.n === 4);
+add('S1 amtliche Summen: CH 860 / 1 291 (SGI2023), AT 285 / 799, DE 0,262 / 4', OS.CH.km2 === 860 && OS.CH.n === 1291 && OS.AT.km2 === 285 && OS.AT.n === 799 && OS.DE.km2 === 0.262 && OS.DE.n === 4);
 add('S2 Summe innerhalb ±2 % wird akzeptiert, 3 % daneben abgelehnt (Zahl der Gletscher getrennt)',
-  !C.countrySumProblems(sumCat({ CH: 961.27, AT: 285.49, DE: 0.262 })).some((p) => p.includes('km²'))
-  && C.countrySumProblems(sumCat({ CH: 961 * 1.03, AT: 285, DE: 0.262 })).some((p) => p.startsWith('CH') && p.includes('km²'))
-  && C.countrySumProblems(sumCat({ CH: 961, AT: 285 * 0.97, DE: 0.262 })).some((p) => p.startsWith('AT'))
-  && C.countrySumProblems(sumCat({ CH: 961, AT: 285, DE: 0.262 * 1.05 })).some((p) => p.startsWith('DE')));
+  !C.countrySumProblems(sumCat({ CH: 860.07, AT: 285.49, DE: 0.262 })).some((p) => p.includes('km²'))
+  && C.countrySumProblems(sumCat({ CH: 860 * 1.03, AT: 285, DE: 0.262 })).some((p) => p.startsWith('CH') && p.includes('km²'))
+  && C.countrySumProblems(sumCat({ CH: 860, AT: 285 * 0.97, DE: 0.262 })).some((p) => p.startsWith('AT'))
+  && C.countrySumProblems(sumCat({ CH: 860, AT: 285, DE: 0.262 * 1.05 })).some((p) => p.startsWith('DE')));
 
 // --- G: geometry ----------------------------------------------------------------------------------------------------------
 const sq = (x, y, w, h) => [[x, y], [x + w, y], [x + w, y + h], [x, y + h], [x, y]];

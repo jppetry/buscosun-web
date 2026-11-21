@@ -80,11 +80,11 @@ export const GLACIER_TOOL = {
   slug: 'gletscher', title: 'Gletscher-Monitor DACH', h1: 'So liest du den Gletscher-Monitor für DE, AT und CH',
   status: 'full', deepLink: '/gletscher',
   answer:
-    'Der Gletscher-Monitor von buscosun führt rund 2 200 Gletscher in Deutschland, Österreich und der Schweiz an einem Ort: Inventarflächen mit '
+    'Der Gletscher-Monitor von buscosun führt rund 2 100 Gletscher in Deutschland, Österreich und der Schweiz an einem Ort: Inventarflächen mit '
     + 'Bezugsjahr, Längen- und Massenreihen der Messnetze, Satellitenszenen von Sentinel-2 und einen Schmelzindex aus Wettermodellen. Jede Zahl '
     + 'trägt ihre Herkunft, also gemessen, Satellit, Modell oder amtlich. Er ist kein amtliches Produkt und sagt nichts darüber, ob ein Gletscher begehbar ist.',
   bullets: [
-    'Rund 2 200 Gletscher aus den Inventaren AGI 5, GI4, dem Schweizer Inventar über GLIMS und RGI 6.2',
+    'Rund 2 100 Gletscher aus den Inventaren AGI 5, GI4, dem Schweizer Inventar SGI2023 und RGI 6.2',
     'Längen- und Massenreihen aus dem WGMS, in Österreich auch aus dem Alpenverein-Messdienst',
     'Satellitenszenen von Sentinel-2, je Szene mit Datum und Klaranteil',
     'Schmelzindex von 0 bis 100 aus Modelldaten, ausdrücklich ohne Einheit',
@@ -102,7 +102,7 @@ export const GLACIER_TOOL = {
     {
       id: 'daten', h2: 'Datenquellen und Aktualisierung',
       html:
-        '<ul><li><strong>Inventare:</strong> Österreich AGI 5 und GI4 (PANGAEA), Schweiz über die <a href="https://nsidc.org/data/nsidc-0272">GLIMS Glacier Database</a>, Deutschland über RGI 6.2 und Inventardaten. Sie ändern sich selten, das Bezugsjahr steht an jeder Fläche.</li>'
+        '<ul><li><strong>Inventare:</strong> Österreich AGI 5 und GI4 (PANGAEA), Schweiz das <a href="https://doi.org/10.18750/inventory.sgi2023.r2026">Swiss Glacier Inventory 2023</a> von GLAMOS, frühere Umrisse über die <a href="https://nsidc.org/data/nsidc-0272">GLIMS Glacier Database</a>, Deutschland über RGI 6.2 und Inventardaten. Sie ändern sich selten, das Bezugsjahr steht an jeder Fläche.</li>'
         + '<li><strong>Reihen:</strong> Längen und Massenbilanzen aus dem Fluctuations-of-Glaciers-Datensatz des WGMS. Für die Schweiz sind die Reihen dadurch kürzer als bei GLAMOS selbst.</li>'
         + '<li><strong>Satellit:</strong> Sentinel-2, zweimal täglich auf neue Szenen geprüft. Bewölkte Szenen werden verworfen.</li>'
         + '<li><strong>Schmelzindex:</strong> alle drei Stunden aus Wettermodellen neu berechnet.</li></ul>'
@@ -118,7 +118,7 @@ export const GLACIER_TOOL = {
     },
   ],
   faqs: [
-    { q: 'Wie viele Gletscher sind enthalten?', a: 'Rund 2 200 in Deutschland, Österreich und der Schweiz, aus den Inventaren AGI 5, GI4, dem Schweizer Inventar über GLIMS und RGI 6.2.' },
+    { q: 'Wie viele Gletscher sind enthalten?', a: 'Rund 2 100 in Deutschland, Österreich und der Schweiz, aus den Inventaren AGI 5, GI4, dem Schweizer Inventar SGI2023 und RGI 6.2.' },
     { q: 'Sind die Zahlen amtlich?', a: 'Nur dort, wo das Zeichen „amtlich“ steht. Daneben stehen Messreihen, Satellitenwerte und Modellwerte, und jede Zahl trägt ihr eigenes Zeichen.' },
     { q: 'Was bedeutet der Schmelzindex?', a: 'Eine Zahl von 0 bis 100 aus Wettermodelldaten, die Gletscher untereinander einordnet. Sie ist keine Schmelzmenge in Millimetern, weil die Eichung darauf die Abnahme nicht bestanden hat.' },
     { q: 'Kann ich sehen, ob ein Gletscher begehbar ist?', a: 'Nein. Der Reiter Tour nennt Vorbehalte und Links zu den zuständigen Stellen und bewertet keine Route.' },

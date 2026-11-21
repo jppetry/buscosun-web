@@ -197,7 +197,7 @@ export function moduleBlocks(place) {
       blocks.push({
         id: 'glacier', h2: `Gletscher in der Nähe von ${place.name}`,
         html: `<p>Im Umkreis von 30 km um ${esc(place.name)} liegen Gletscher ab 0,5 km² Fläche. Die nächsten:</p><ul class="facts">${items}</ul>`,
-        sources: list.some((g) => g.country === 'CH') ? ['Gletscherinventare AGI 5 / GI4 / RGI (CC BY)', 'GLIMS Glacier Database (NSIDC-0272, doi:10.7265/N5V98602; Quellenangabe Pflicht)'] : ['Gletscherinventare AGI 5 / GI4 / RGI (CC BY)'],
+        sources: list.some((g) => g.country === 'CH') ? ['Gletscherinventare AGI 5 / GI4 / RGI (CC BY)', 'Swiss Glacier Inventory 2023, GLAMOS (doi:10.18750/inventory.sgi2023.r2026, CC BY 4.0)'] : ['Gletscherinventare AGI 5 / GI4 / RGI (CC BY)'],
       });
     }
   }
