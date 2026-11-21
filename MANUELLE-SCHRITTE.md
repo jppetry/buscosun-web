@@ -4019,7 +4019,8 @@ Nichts davon berührt `obs/v1/`, den Punkt-Cube oder eine andere Linie. Kein Pus
    lokalen Läufen), und auf der Seite stehen die Werte drei Stunden nach dem letzten Lauf als „Keine Daten“.
    Nach dem Push: Actions von `buscosun-data` → `glacier-stations` zur Minute :27 grün mit „gepusht“; `glacier/v1/index.json` → `stations.hour`
    wandert stündlich; in `buscosun-archiv` kommen alle 6 h (:53) die Dateien `stn-<stunde>.json.gz` dazu. Die Repo-Variable `GLACIER_PRODUCER_REF`
-   muss leer sein oder `main` heißen (ein Zweig, den es nicht mehr gibt, fällt von selbst auf `main`).
+   muss leer sein oder `main` heißen (ein Zweig, den es nicht mehr gibt, fällt von selbst auf `main`). Berichtigung 22.11.: das gilt nur
+   für `glacier-stations`; die anderen Gletscher-Workflows nehmen bei leerer Variable `feat/gletscher`, solange der Zweig besteht (§108.1).
 2. **Ansehen** (Dev-Server; die Daten liegen im Speicher). Im Reiter „Heute“ unter „Wetter am Gletscher“ die Karte „Gemessen in der Nähe“:
    - `/gletscher/at-alpeiner-ferner-3055` — zwei Tiroler Stationen: Nockwand Wind (3 092 m, 3,7 km, 27 m über der mittleren Höhe) mit Temperatur,
      Wind, Böe; Schöckbichl (2 520 m, 545 m darunter) mit Schneehöhe und Strahlung. Links je Station die Höhenleiter (Balken = Höhenspanne des
@@ -4178,16 +4179,27 @@ Workflow, kein Katalog, kein Zeiger); `sea.yml` klont den Producer bei jedem Lau
 
 ## 108. Gletscher: Schneefelder in „Wetter am Gletscher“ (Phase GS, `audit/gletscher-schneefelder.md`), 2026-11-21
 
-Nur Daten, keine Anzeige. Lokal committet auf `main`, nicht gepusht. Die Seite zeigt nichts Neues; die neuen Felder
+Nur Daten, keine Anzeige. Auf `origin/main` seit 21.11. abends (Jan). Die Seite zeigt nichts Neues; die neuen Felder
 stehen für eine spätere Höhensäule bereit.
 
-**Pushs in `buscosun-data` und `buscosun-archiv`: keine.** Am Daten-Repo war für diese Phase nichts zu ändern (kein Workflow,
-kein Katalog, kein Zeiger). Der Workflow `glacier-melt.yml` klont den Producer bei jedem Lauf aus `buscosun-web`; die neuen
-Felder stehen ab dem ersten Lauf nach deinem Push in `glacier/v1/melt/wx/`.
+**Pushs in `buscosun-data` und `buscosun-archiv`: keine.** Am Daten-Repo war für diese Phase keine Datei zu ändern (kein Workflow,
+kein Katalog, kein Zeiger).
 
-1. **Pushen:** `git push origin main`. Danach schreibt der nächste Schmelzlauf (alle 3 h um :20, höchstens 4 am Tag) die neuen
-   Felder. Prüfen: in `glacier/v1/status.json` trägt die Zeile `weather` den Block `phase` (Regel, Tage, Verschiebung je Höhe),
-   und `glacier/v1/melt/wx/phase.json` hat eine Zeile je Lauf.
+**Berichtigung 22.11. (V-GS-7): der Push allein reicht nicht.** Der Lauf 2026112123 (erster Lauf nach dem Push) schrieb die
+neuen Felder NICHT: `glacier-melt.yml` klont den Producer von `vars.GLACIER_PRODUCER_REF || 'feat/gletscher'`, die Variable ist
+offenbar leer, und der Zweig `feat/gletscher` steht noch auf `origin` (Stand 15.11., 74 Commits hinter `main`, ganz in `main`
+enthalten). Dasselbe gilt für `glacier-feed`, `glacier-sat`, `glacier-static` (Wächter) und `glacier-archiv`; nur
+`glacier-stations` hat `main` als Voreinstellung.
+
+1. **Den Producer-Zweig umstellen** (eins von beiden):
+   a) `buscosun-data` → Settings → Secrets and variables → Actions → Variables → `GLACIER_PRODUCER_REF` = `main` (empfohlen, ein
+      Klick, rücknehmbar; in `buscosun-archiv` dasselbe für `glacier-archiv.yml`), oder
+   b) den Zweig `feat/gletscher` auf `origin` von `buscosun-web` löschen — die Workflows fallen dann von selbst auf `main`.
+   Danach schreibt der nächste rechnende Schmelzlauf (23, 05, 11, 17 UTC zur Minute :22; die Läufe dazwischen enden ohne Ausgabe)
+   die neuen Felder. Prüfen: in `glacier/v1/status.json` trägt die Zeile `weather` den Block `phase` (Regel, Tage, Verschiebung
+   je Höhe), und `glacier/v1/melt/wx/phase.json` hat eine Zeile je Lauf. Die 7 Tage für Schritt 2 zählen erst ab diesem Lauf.
+   Ohne die Umstellung prüft außerdem der Statik-Wächter am Montag 05:17 UTC den SGI2023-Build mit dem Vertrag vom 15.11.
+   (kann rot werden, schreibt nichts).
 2. **Die Schneeanteil-Regel umschalten — frühestens nach 7 Tagen mit Läufen.** Gebaut ist die Regel aus `pSnow`, sie ist
    **aus**: der Vergleich über 7 Tage war rückwirkend nicht möglich (alte Läufe tragen kein `pSnow`, alte Cubes gibt es nicht
    mehr). Jeder Lauf rechnet ab jetzt beide Regeln. Steht in `status.json` bei `weather.phase` `enough: true` und

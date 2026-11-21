@@ -237,3 +237,23 @@ angesehen; (3) Touch-Flächen — keine Anzeige geändert; (4) Konsole — nicht
 | V-GS-4 | Der Vergleich der Regeln läuft im Spätherbst, wenn fast aller Niederschlag an den Gletschern Schnee ist (0,3–1,5 % am 21.11., 3,5–5,3 % am wärmeren 04.11.). Über den Sommer sagt er wenig. Skizze: die Vergleichsdatei weiterlaufen lassen (21 Tage Fenster) und das Urteil im Juni noch einmal lesen | offen |
 | V-GS-5 | Die Breite der Spanne hängt an der gesetzten Korrelation; der Erwartungswert liegt an 6,6 % der nassen Gletscher-Tage außerhalb. Skizze: Korrelation an den Stationsreihen des Prüfstands messen (Tagessummen gegen Szenarien) | offen |
 | V-GS-6 | Der Stunden-Niederschlag `p` steht auf 0,1 mm; leichter Schneefall unter 0,05 mm/h rundet auf null. `sn` je Stunde steht deshalb auf 0,01 mm. Eine Höhensäule sollte Summen aus `sn` bilden, nicht aus `p` × `s` | für die Anzeige-Phase |
+
+## 6 Nach dem Push (22.11.)
+
+Jan hat `main` am 21.11. abends gepusht (`93401022` auf `origin/main`). Geprüft am Live-Stand, nur lesend:
+
+| Lauf | Workflow-Lauf | Schritt „Melt run“ | Ergebnis |
+|---|---|---|---|
+| 20:22 UTC | 44945980683, grün | 2 s, Publish übersprungen | kein rechnender Lauf (die Linie rechnet um 23, 05, 11, 17 UTC) |
+| 23:22 UTC | 44961481945, grün | rechnet, veröffentlicht `2026112123` | `rules` ohne `spread` und ohne `phase.rule`, Zeilen ohne `pq`/`snq`/`gq`, `melt/wx/phase.json` 404, Statuszeile `weather` ohne `phase`, 27 Dateien / 4 422 798 B |
+
+**V-GS-7 — der Producer des Schmelzlaufs kommt nicht von `main`.** `glacier-melt.yml` (wie `glacier-feed`, `-sat`, `-static`,
+`-archiv`) liest `vars.GLACIER_PRODUCER_REF || 'feat/gletscher'`. Der Zweig `feat/gletscher` steht noch auf `origin`
+(`01fec8f9`, 15.11., Vorfahr von `main`, 74 Commits zurück), also rechnet der Runner mit dem Producer vom 15.11.; nur
+`glacier-stations.yml` hat `main` als Voreinstellung. §1 dieser Datei („erst in den Dokumenten, wenn `buscosun-web` gepusht ist“)
+war damit unvollständig: ich habe den Namen der Variable gelesen, nicht den Zweig, auf den sie zeigt. Folge: die Schneefelder und
+der Regelvergleich laufen erst, wenn die Variable `main` heißt oder der Zweig gelöscht ist (Jans Schritt, `MANUELLE-SCHRITTE.md`
+§108.1); die 7 Tage zählen ab dann. Zwischen Zweig und `main` unterscheiden sich an gemeinsam genutzten Producer-Dateien nur
+`glacier-publish.mjs` (Zeile `stations` dazu), `glacierContract.ts` und fünf Zeilen in `fusionRelease.ts`; `sat-scan.mjs`,
+`feed.mjs` und `glacier-archive.mjs` sind gleich. Am lokalen Lauf
+mit dem Producer von `main` waren die alten Felder Byte für Byte gleich dem Live-Lauf (§3).
