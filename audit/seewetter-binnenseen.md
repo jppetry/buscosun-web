@@ -440,3 +440,9 @@ Jan hat `main` am 21.11. um 20:14:39 UTC gepusht (`origin/main` = `84956432`). A
   04:15 UTC). Bis dahin zeigt `/seewetter/fanoe` hinter +52 h weiter „aus –“ an zwei von drei Stunden.
 - **Seite:** die See-Etappe, der Vermerk am fremden Ufer und der Seewortlaut der Sicht-Karte hängen nicht an den Dateien und
   sind mit dem Deploy dieses Pushs da; von mir nicht gesehen.
+- **Die Füllung steht in den Dateien seit 21.11. 23:11 UTC** (erste Wind-Auffrischung nach dem Push, Würfel 2026112121;
+  eine Leseprüfung fragte `status.json` alle fünf Minuten ab): `spots/2026112112-w2026112121.json` (`wind.computedAt`
+  23:11:34 UTC, 63 Spots) trägt `wind.dirFill` mit `filled: 84`, `maxDeg: 90` und der Regel im Wortlaut;
+  `lakes/2026112112-w2026112121.json` (`builtAt` 23:11:44 UTC) trägt `dirFilled: 64` und den Satz zur Regel in `about`.
+  Die 84 sind weniger als die 108 der Messung am ganzen Lauf (§8.1), weil eine Auffrischung nur die Stunden ab ihrem Würfel
+  neu rechnet. Welche Spots die 84 Stunden tragen, habe ich an der Live-Datei nicht ausgezählt.

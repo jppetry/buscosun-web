@@ -4119,10 +4119,8 @@ mit im Push: zwei Commits der Gletscher-Linie, `e63933a1` und `93401022`, §108)
 Workflow, kein Katalog, kein Zeiger); `sea.yml` klont den Producer bei jedem Lauf aus `buscosun-web`.
 
 1. **Pushen: erledigt (21.11. 20:14 UTC).** `npm run edge:share` war dafür nicht nötig (kein Spotname geändert). **Die
-   gefüllte Richtung steht noch nicht in den Dateien:** die Wind-Auffrischung für den Würfel 18 UTC lief um 20:12 UTC, zwei
-   Minuten vor dem Push, mit dem Producer von vorher. Sie kommt mit der nächsten Auffrischung (Würfel 21 UTC, gegen 23 UTC)
-   oder spätestens mit dem Seegangslauf 00 UTC (gegen 04:15 UTC) — erst dann nachsehen (Stand: Audit §8.8). Was der Push
-   bewirkt:
+   gefüllte Richtung steht seit 21.11. 23:11 UTC in den Dateien** (erste Wind-Auffrischung nach dem Push, Würfel 21 UTC):
+   Küste `wind.dirFill.filled` 84, Seen `dirFilled` 64 (Audit §8.8). Was der Push bewirkt:
    - **Küste (Vertragsänderung, deine Freigabe vom 21.11.):** `sea/v1/spots/<lauf>.json` und `spots/<lauf>-w<t1>.json` tragen ab
      dem nächsten Seegangslauf bzw. der nächsten Wind-Auffrischung den Block `wind.dirFill` (`filled`, `maxDeg`, `rule`), und
      `windDir` hat an Stunden, die buscosun Fusion interpoliert, einen Wert statt `null`. Nachsehen: in `sea/v1/status.json`
@@ -4203,3 +4201,35 @@ Felder stehen ab dem ersten Lauf nach deinem Push in `glacier/v1/melt/wx/`.
    Temperaturverteilung — Motor, eigener Stand), V-GS-2 (im Daten-Repo wird kein Schmelz- und kein Wetterlauf gelöscht:
    alle Läufe seit dem 12.10. liegen dort; mit den neuen Feldern rund 6,2 MB je Lauf statt 4,4 MB).
 5. **Budget:** siehe `audit/gletscher-schneefelder.md` §4 (der Vertrag liegt im Gletscher-Chunk der Seite).
+
+## 109. Seewetter: Strömung am Abend (Nachzug ST-N, `audit/seewetter-stroemung.md` §7), 2026-11-22
+
+Dein Befund vom 21.11. abends („Keine Daten. Die gewählte Stunde liegt außerhalb des Laufs der Strömungsvorhersage“): der
+12-UTC-Lauf des BSH beginnt erst am Folgetag um 01:00 UTC (02:00 MEZ), die Seite las nur ihn — jeden Abend von etwa 19:15 bis
+02:00 MEZ ohne Strömung. Behoben, **lokal committet (`e73dcdf7`), nicht gepusht**. Ich habe die Seite nicht im Browser gesehen.
+
+**Kein Push von mir, weder in `buscosun-data` noch in `buscosun-archiv`.** Am Daten-Repo ist nichts von Hand zu tun: `sea.yml`
+klont den Producer bei jedem Lauf.
+
+1. **Pushen:** `git push origin main`. Danach:
+   - **Zeiger (Datenvertrag):** `sea/v1/status.json` → `current.prev` nennt den Lauf davor (`run`, `path`, `builtAt`, `t0`,
+     `hours`, `field`, `uv`; `null` = keiner im Speicher). Der erste `sea`-Lauf nach dem Push trägt ihn nach, ohne etwas zu
+     bauen (im Protokoll des Schritts „Currents“: „Zeiger ergänzt: Lauf davor …“). Keine Datei kommt dazu, keine ändert sich.
+   - **Seite:** mit dem Deploy. Solange der Zeiger den Eintrag noch nicht trägt, ist sie die von vorher.
+2. **Ansehen, am Abend nach etwa 19:15 MEZ** (vorher liegt „jetzt“ ohnehin im Lauf):
+   - `/seewetter`, Ebene „Strömung“, Zeit auf „jetzt“: Riffel statt „Keine Daten“; in der Legende „BSH-Lauf 00 UTC vom … Der
+     neuere Lauf beginnt erst … Uhr.“
+   - `/seewetter/sylt-hoernum`: Zeile „Strom kn“ im Stundenband auch für die Stunden bis 02:00 MEZ gefüllt; Abschnitt
+     „Strömung“ mit Wert, „setzt nach“ und in der Zeile „Lauf des BSH“ der Zusatz „— der neuere Lauf beginnt erst …“.
+   - Zeit über 02:00 MEZ hinaus ziehen: ab dort nennt die Legende den 12-UTC-Lauf. An dieser Naht können Wert und Riffel
+     springen (zwei Läufe, V-ST-15) — bitte ansehen, ob es stört.
+   - Etappe am Abend (Yacht, etwa Laboe → Marstal, Abfahrt jetzt): Spalte „Strom kn“ mit Werten.
+   - Gegenprobe: derselbe Link mit `?curprev=0` zeigt die Lücke von vorher.
+3. **Zurück ohne Deploy:** `?curprev=0` je Link. Für alle: den Eintrag `prev` aus `current` in `sea/v1/status.json` nehmen
+   hilft nur bis zum nächsten BSH-Lauf (der Producer schreibt ihn neu) — dauerhaft nur über das Zurücknehmen von `e73dcdf7`.
+4. **Gesetzt, bitte bestätigen oder kippen:** E-ST-16 (ab der ersten Stunde des neuesten Laufs immer dieser, nichts
+   gemischt), E-ST-17 (ein Lauf davor über 30 h wird nicht gezeigt — fällt ein BSH-Lauf aus, steht abends weiter „keine
+   Daten“, V-ST-18).
+5. **Budget:** totalJs 2 096,8 gegen 2 097 an `e0683791` plus nur dieser Phase (grün, +0,8 KB; im frischen Klon gemessen).
+   Im geteilten Arbeitsbaum lagen zugleich uncommittete Gletscher-Änderungen (`src/glacier/*`), mit ihnen 2 097,8 — die
+   Grenze habe ich nicht angehoben (V-ST-16).
