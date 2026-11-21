@@ -253,6 +253,46 @@ export function carryLakeColumn<T>(now: (T | null)[], prev: (T | null)[] | null 
   return now.map((x, i) => (i < from ? prev[i] ?? null : x));
 }
 
+/**
+ * V-BS-1 (measured 21.11.2026, `audit/seewetter-binnenseen/wind-dir-probe.mjs`, 70 spots, one weather situation): buscosun
+ * Fusion gives no direction in two cases. (1) Its gate: the mean wind vector is smaller than its spread — in those hours
+ * the model's vector had a median of 1.5 kn (90 % below 2.9 kn), the withheld bearing jumped by a median of 17° from hour
+ * to hour (90 %: 79°) and missed the station by a median of 51° (gate open: 5°, 18°, 14°). That is left as it is.
+ * (2) An hour the engine INTERPOLATES between two of its own steps (3-hourly cube stages): it interpolates the speed but
+ * names no direction, whatever the wind (up to 15 kn measured). Only this second case is filled here, on the shorter arc
+ * between the two neighbouring steps of the engine, when both carry a direction and differ by at most
+ * `LAKE_DIR_FILL_MAX_DEG` (`set`). Pure, on stored columns; `interp` = hour indices the engine interpolated.
+ */
+export const LAKE_DIR_FILL_MAX_DEG = 90;
+export function fillLakeDir(dir: (number | null)[], interp: readonly number[] | null | undefined, maxDeg = LAKE_DIR_FILL_MAX_DEG): { dir: (number | null)[]; filled: number } {
+  const isInterp = new Set(interp ?? []);
+  const out = dir.slice();
+  let filled = 0;
+  for (const i of isInterp) {
+    if (!Number.isInteger(i) || i < 0 || i >= dir.length || dir[i] != null) continue;
+    let a = i - 1, b = i + 1;
+    while (a >= 0 && isInterp.has(a)) a--;
+    while (b < dir.length && isInterp.has(b)) b++;
+    const da = a >= 0 ? dir[a] : null, db = b < dir.length ? dir[b] : null;
+    if (da == null || db == null) continue;
+    const arc = ((db - da + 540) % 360) - 180;                 // signed shorter arc from a to b
+    if (Math.abs(arc) > maxDeg) continue;
+    out[i] = Math.round(((da + (arc * (i - a)) / (b - a)) % 360 + 360) % 360) % 360;
+    filled++;
+  }
+  return { dir: out, filled };
+}
+
+/**
+ * The words for an hour with a wind but without a direction. Up to `LAKE_WEAK_WIND_KN` (Beaufort 2, `set`; 90 % of the
+ * hours without a direction lay below 4.5 kn) the reason is said: the wind is weak and has no reliable direction.
+ */
+export const LAKE_WEAK_WIND_KN = 6;
+export const LAKE_NO_DIR = 'Richtung für diese Stunde nicht bestimmt';
+export const LAKE_NO_DIR_WEAK = 'schwacher Wind ohne verlässliche Richtung';
+export const lakeNoDirText = (windMs: number | null | undefined): string =>
+  windMs != null && Math.round(windMs * MS_TO_KN) <= LAKE_WEAK_WIND_KN ? LAKE_NO_DIR_WEAK : LAKE_NO_DIR;
+
 // --- DWD lake warnings (the CAP feed the warn layer reads) ----------------------------------------------------------
 
 /**

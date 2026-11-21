@@ -32,7 +32,7 @@ import {
 } from '../../src/sea/seaContract.ts';
 import {
   SEA_SPOT_CATALOG_LAKES_PATH, SEA_LAKE_GEO_PATH, SEA_LAKES_DIR, SEA_LAKES_RE, SEA_LAKES_PRODUCT, SEA_LAKES_KEPT_PER_RUN, seaLakesPath,
-  lakeBlockProblems, lakeTableProblems, lakeSeriesProblems, carryLakeColumn,
+  lakeBlockProblems, lakeTableProblems, lakeSeriesProblems, carryLakeColumn, fillLakeDir, LAKE_DIR_FILL_MAX_DEG,
   SEA_LAKES_WT_PRODUCT, SEA_LAKES_WT_RE, SEA_LAKES_WT_EVERY_MS, SEA_LAKES_WT_KEPT, ALPLAKES, seaLakesWtPath, alplakesPointUrl, alplakesBasinOf, lakesWtProblems,
 } from '../../src/sea/seaLakes.ts';
 import { spotWind, spotBand, bandDoc, spotSight, readStatus, writeStatus, writeAtomic, indexT1Of } from './sea-derive.mjs';
@@ -116,13 +116,17 @@ export async function buildLakes({ storeDir, dataDir, nowMs = Date.now(), indexT
   const prev = st.lakes?.run === run ? readJson(join(storeDir, String(st.lakes.path))) : null;
   const sight = await spotSight({ wind, spots: cat.spots, runMs, nowMs, repack, log });
   const spots = {}, rejected = [], bandProblems = [];
-  let bandSpots = 0;
+  let bandSpots = 0, dirFilled = 0;
   for (const sp of cat.spots) {
     const w = wind.series[sp.id];
     if (!w) continue;                                   // named in wind.failed
     const old = prev?.product === SEA_LAKES_PRODUCT ? prev.spots?.[sp.id] ?? null : null;
     // This computation's own columns first (a gust below the wind is dropped, its band with it) …
-    const now = { wind: w.wind.slice(), gust: w.gust.slice(), windDir: w.windDir.slice() };
+    // V-BS-1: an hour the engine interpolated carries a speed but no direction — filled on the shorter arc between its two
+    // neighbouring steps (`fillLakeDir`); an hour the engine's gate left without a direction stays without one.
+    const fill = fillLakeDir(w.windDir, wind.interp?.[sp.id]);
+    dirFilled += fill.filled;
+    const now = { wind: w.wind.slice(), gust: w.gust.slice(), windDir: fill.dir };
     const gustDropped = sanitizeGust(now);
     const qNow = spotBand(now, w.q, sp.id, bandProblems);
     // … then the hours before `from` of the run's earlier file, column by column.
@@ -142,8 +146,8 @@ export async function buildLakes({ storeDir, dataDir, nowMs = Date.now(), indexT
   const doc = {
     schema: 1, product: SEA_LAKES_PRODUCT, run, runMs, t1, from, steps: hours, builtAt,
     units: { wind: '0.1 m/s', gust: '0.1 m/s', windDir: 'deg' },
-    about: 'Wind, Böen und Richtung von buscosun Fusion an den Seespots, gerechnet am Wasserpunkt des Spots auf dem Seespiegel des Sees (static/lake-geo.json) mit den Landesparametern seines Landes. Stundenachse des Seegangslaufs run; Stunden vor from stammen aus der vorigen Rechnung dieses Laufs.',
-    wind: { ...wind.meta, failed: wind.failed ?? [] }, rejected, catalogProblems: cat.problems,
+    about: 'Wind, Böen und Richtung von buscosun Fusion an den Seespots, gerechnet am Wasserpunkt des Spots auf dem Seespiegel des Sees (static/lake-geo.json) mit den Landesparametern seines Landes. Stundenachse des Seegangslaufs run; Stunden vor from stammen aus der vorigen Rechnung dieses Laufs. Richtung: buscosun Fusion nennt keine, wenn der mittlere Windvektor kleiner ist als seine Streuung (null bleibt null); an Stunden, die buscosun Fusion zwischen zwei eigenen Schritten interpoliert, ist die Richtung hier auf dem kürzeren Bogen zwischen den beiden Schritten interpoliert (eigene Rechnung, dirFilled), wenn beide eine Richtung tragen und höchstens ' + LAKE_DIR_FILL_MAX_DEG + '° auseinanderliegen.',
+    wind: { ...wind.meta, failed: wind.failed ?? [] }, dirFilled, rejected, catalogProblems: cat.problems,
     ...(bandSpots ? { quantiles: bandDoc(bandSpots, bandProblems) } : {}), ...(sight ? { sight: sight.doc } : {}),
     spots,
   };

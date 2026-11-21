@@ -18,7 +18,7 @@ import { fmtWind, unitLabel, type SeaUnit } from './seaProfiles';
 import { compass16, dateTime, dayShort, hh, hm } from './seaView';
 import { BAND_LEGEND, BAND_NOTE, mostText } from './windBand';
 import {
-  ALPLAKES, BAFU_CREDIT, BAFU_PAGE, DWD_LAKE_WARN_CREDIT, LAKE_GUST_HINT_NOTE, LAKE_LINK_ONLY, LAKE_NO_WARNING, LAKE_VERDICT_OFF_NOTE, LAKE_WAVE_LABEL,
+  ALPLAKES, BAFU_CREDIT, BAFU_PAGE, DWD_LAKE_WARN_CREDIT, LAKE_GUST_HINT_NOTE, LAKE_LINK_ONLY, LAKE_NO_WARNING, LAKE_VERDICT_OFF_NOTE, LAKE_WAVE_LABEL, lakeNoDirText,
   WSV_CREDIT, WSV_PAGE, lakeGustHintText, type LakeWaterObs, type SeaLake,
 } from './seaLakes';
 import { LAKE_WAVE_SOURCE } from './lakeWave';
@@ -63,7 +63,7 @@ function Section({ title: t, hint, children }: { title: string; hint: string; ch
 }
 
 /** The fetch rose: the distance over the water per wind direction, seen from the spot's water point. North is up. */
-export function FetchRose({ fetch, windFrom, normal, size = 230 }: { fetch: readonly number[]; windFrom: number | null; normal: number; size?: number }) {
+export function FetchRose({ fetch, windFrom, normal, size = 230, noDir = 'Windrichtung nicht bestimmt' }: { fetch: readonly number[]; windFrom: number | null; normal: number; size?: number; noDir?: string }) {
   const rose = fetchRose(fetch), c = size / 2, R = c - 26;
   const pt = (x: number, y: number) => `${(c + x * R).toFixed(1)},${(c - y * R).toFixed(1)}`;
   const poly = rose.pts.map((p) => pt(p.x, p.y)).join(' ');
@@ -88,7 +88,7 @@ export function FetchRose({ fetch, windFrom, normal, size = 230 }: { fetch: read
         <text x={c} y={13} textAnchor="middle" className="sw-lk-rose-n">N</text>
       </svg>
       <figcaption>
-        <strong>{along ? `${fetchKm(along.m)} km Wasser in Windrichtung` : 'Windrichtung nicht bestimmt'}</strong>
+        <strong>{along ? `${fetchKm(along.m)} km Wasser in Windrichtung` : noDir}</strong>
         <span>Fläche = Strecke über den See je Windrichtung, vom Spot aus gesehen (Rand = {fetchKm(rose.max)} km, halber Ring = ein Viertel davon). Gestrichelt: wohin das Ufer zeigt.</span>
       </figcaption>
     </figure>
@@ -186,7 +186,7 @@ export default function SeaLakeReadout(p: Props) {
               <span className="sw-kpi-l">Wind</span>
               <div className="sw-kpi-v"><strong>{h.windMs == null ? '–' : fmtWind(h.windMs, p.unit)}</strong>{h.windMs != null && <span>{unitLabel(p.unit)}</span>}</div>
               {windMost && <span className="sw-kpi-most">{windMost}</span>}
-              <small>{h.windMs == null ? 'für diese Stunde nicht berechnet' : h.windDir == null ? 'Richtung für diese Stunde nicht bestimmt' : `aus ${compass16(h.windDir)}, ${Math.round(h.windDir)}°${p.shore ? `, ${p.shore}` : ''}`}</small>
+              <small>{h.windMs == null ? 'für diese Stunde nicht berechnet' : h.windDir == null ? lakeNoDirText(h.windMs) : `aus ${compass16(h.windDir)}, ${Math.round(h.windDir)}°${p.shore ? `, ${p.shore}` : ''}`}</small>
             </article>
             <article className="sw-kpi">
               <span className="sw-kpi-l">Böen</span>
@@ -197,7 +197,7 @@ export default function SeaLakeReadout(p: Props) {
             <article className="sw-kpi is-sea sw-lk-wave">
               <span className="sw-kpi-l">{LAKE_WAVE_LABEL}</span>
               <div className="sw-kpi-v"><strong>{wave ? `${wave.upper ? 'bis ' : ''}${m1(wave.hsM)}` : '–'}</strong>{wave && <span>m</span>}</div>
-              <small>{!wave ? 'ohne Wind keine Schätzung' : wave.upper ? `höchstens, über die längste Strecke von ${fetchKm(wave.fetchM)} km gerechnet: die Windrichtung ist nicht bestimmt` : `Periode ${m1(wave.periodS)} s bei ${fetchKm(wave.fetchM)} km Wasser in Windrichtung`}</small>
+              <small>{!wave ? 'ohne Wind keine Schätzung' : wave.upper ? `höchstens, über die längste Strecke von ${fetchKm(wave.fetchM)} km gerechnet: ${lakeNoDirText(h.windMs)}` : `Periode ${m1(wave.periodS)} s bei ${fetchKm(wave.fetchM)} km Wasser in Windrichtung`}</small>
             </article>
             {st && p.poi && p.poi !== 'loading' && (
               <article className="sw-kpi is-meas">
@@ -223,7 +223,7 @@ export default function SeaLakeReadout(p: Props) {
           </div>
           {gustHint}
           <div className="sw-lk-wavebox">
-            <FetchRose fetch={l.fetch} windFrom={h.windMs == null ? null : h.windDir} normal={s.normal} />
+            <FetchRose fetch={l.fetch} windFrom={h.windMs == null ? null : h.windDir} normal={s.normal} noDir={h.windMs == null ? undefined : lakeNoDirText(h.windMs)} />
             <div className="sw-lk-wavetx">
               <p><strong>Die Windwelle ist geschätzt, nicht gemessen und nicht amtlich.</strong> Gerechnet aus dem Wind von buscosun Fusion, der Strecke über den See in Windrichtung und der mittleren Tiefe des Sees ({l.depthM.toLocaleString('de-DE')} m), für anhaltenden Wind. Hat der Wind gerade erst aufgefrischt, ist die Welle niedriger. Keine Dünung, keine Brandung am Ufer.</p>
               {waveMax && <p>Höchste Schätzung bis {dayShort(p.hours[p.hours.length - 1].t)} {hh(p.hours[p.hours.length - 1].t)} Uhr: {waveMax.wave.upper ? 'bis ' : ''}{m1(waveMax.wave.hsM)} m am {dayShort(waveMax.t)} um {hh(waveMax.t)} Uhr.</p>}

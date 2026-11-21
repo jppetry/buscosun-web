@@ -313,7 +313,7 @@ export async function spotWind({ dataDir, spots, geoDoc, nowMs, runMs, log = () 
   if (!(await io.clima())) throw new Error('Klimatologie von buscosun Fusion fehlt (public/climaGrid.json nicht im Checkout des Producers) — kein Wind an den Spots');
   const t0 = Math.floor(nowMs / H) * H;
   const hours = Math.max(1, Math.round((runMs + 78 * H - t0) / H) + 1);
-  const out = {}, failed = [], sightIn = {};
+  const out = {}, failed = [], sightIn = {}, interp = {};
   let runs = null, version = null;
   for (const sp of spots) {
     // Phase DK: a spot outside the point cube gets its wind from DMI (`sea-dmi.mjs`), never from here — not a failure.
@@ -330,6 +330,9 @@ export async function spotWind({ dataDir, spots, geoDoc, nowMs, runMs, log = () 
       const series = spotWindSeries(steps, runMs);
       if (!series) { failed.push({ id: sp.id, error: 'buscosun Fusion ohne Windwert an jeder Stunde des Laufs' }); continue; }
       out[sp.id] = series;
+      // V-BS-1: the hours the engine interpolated between two of its own steps (information only; the lake producer reads it,
+      // no coastal file carries it)
+      interp[sp.id] = steps.filter((st) => st.interpolated).map((st) => (st.validAtMs - runMs) / H).filter((i) => Number.isInteger(i) && i >= 0 && i < SEA_SPOT_STEPS.length);
       // Phase SG: temperature, dew point, precipitation and rain chance of the same steps — read, nothing computed again.
       sightIn[sp.id] = fusionSightSteps(steps);
       version ??= fusionVersionOfNotes(fc.cube.notes);
@@ -339,7 +342,7 @@ export async function spotWind({ dataDir, spots, geoDoc, nowMs, runMs, log = () 
   }
   log(`Wind: ${Object.keys(out).length}/${spots.length} Spots, ${failed.length} ohne`);
   return {
-    series: out, failed, sightIn,
+    series: out, failed, sightIn, interp,
     meta: { engine: fusionName(version ?? FUSION_CURRENT), version: version ?? null, stageCurrent: version === FUSION_CURRENT, computedAt: new Date(nowMs).toISOString(), hoursFrom: new Date(t0).toISOString(), runs },
   };
 }
