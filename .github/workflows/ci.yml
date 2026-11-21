@@ -205,6 +205,14 @@ jobs:
       - name: Verifier — Ausfahrt planen, Assistent
         if: ${{ !cancelled() }}
         run: node scripts/ci-run.mjs verify:sea-wizard
+      # BS: Binnenseen auf /seewetter — Fixtures byte-gleich, Windwelle an den Rechenbeispielen des Handbuchs, Umrisse,
+      # Katalog, Producer (Abbruch statt Nullen), Windrichtung an interpolierten Stunden (fillLakeDir, V-BS-1), Seite ohne
+      # Browser, Quellregeln (audit/seewetter-binnenseen.md) — netzfrei. Der volle Byte-Vergleich der Kuestenreihen (drei
+      # Wellenlaeufe, rund 8 min) laeuft nicht hier, sondern von Hand mit dem Skript der Bytes-Variante; die schnelle Form
+      # F0 (Katalog und Wind-Auffrischung) laeuft mit.
+      - name: Verifier — Binnenseen
+        if: ${{ !cancelled() }}
+        run: node scripts/ci-run.mjs verify:sea-lakes
       # GL: Gletscher-Monitor DACH — Datenvertrag (Pfade, Klassen, Flächenstempel mit Bezugsjahr, Umriss-Stufen ±3 %, amtliche Sätze wörtlich)
       # an einem echten Auszug des Baums, der Baum-Prüfer im Fixture-Modus, und der Publisher gegen ein echtes lokales Remote
       # (Linien teilen ein Repo, abgelehnter Push heilt, nie Force, Archiv nur Hinzufügen; audit/gletscher.md) — netzfrei.

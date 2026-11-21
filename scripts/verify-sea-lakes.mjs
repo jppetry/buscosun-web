@@ -50,6 +50,9 @@ const H = 3_600_000;
 const tmp = mkdtempSync(join(tmpdir(), 'sea-lakes-'));
 const near = (a, b, tol) => Math.abs(a - b) <= tol;
 const thrown = async (fn) => { try { await fn(); return null; } catch (e) { return String(e?.message ?? e); } };
+// V-BS-10: block F builds the full wave run three times (≈ 8 min). It runs alone with `--bytes` (`verify:sea-lakes-bytes`);
+// the default run carries the fast form F0 (catalogue and wind refresh) and everything else.
+const BYTES = process.argv.includes('--bytes');
 
 const MAN = J('manifest.json');
 const CATDOC = J('spots-lakes.json');
@@ -61,7 +64,7 @@ const srcLake = (id) => SRC.lakes.find((l) => l.id === id), srcSpots = (id) => S
 const COAST = JSON.parse(readFileSync(join(FIX, 'static', 'spots.json'), 'utf8')).spots;
 
 // --- A  fixtures -------------------------------------------------------------------------------------------------
-{
+if (!BYTES) {
   const names = Object.keys(MAN.files);
   const bad = names.filter((n) => !existsSync(join(LK, n)) || sha(bytes(n)) !== MAN.files[n].sha256 || bytes(n).length !== MAN.files[n].bytes);
   add('A1 jede Fixture ist byte-gleich mit ihrer Aufzeichnung (sha256, Länge)', names.length >= 15 && bad.length === 0, bad.join(', '));
@@ -75,7 +78,7 @@ const COAST = JSON.parse(readFileSync(join(FIX, 'static', 'spots.json'), 'utf8')
 }
 
 // --- B  wind wave (Shore Protection Manual 1984) -------------------------------------------------------------------
-{
+if (!BYTES) {
   const ep5 = W.spmDepthLimited(22, 24_400, 11);
   add('B1 Rechenbeispiel 5 (S. 3-66): F 24,4 km, U_A 22 m/s, d 11 m ⇒ H_s 1,5 m, T 4,4 s', near(ep5.hsM, 1.5, 0.05) && near(ep5.periodS, 4.4, 0.05), JSON.stringify(ep5));
   add('B2 Rechenbeispiel 4: U 23,5 m/s ⇒ U_A 34,5 m/s', near(W.windStressFactor(23.5), 34.5, 0.05), W.windStressFactor(23.5));
@@ -101,7 +104,7 @@ const COAST = JSON.parse(readFileSync(join(FIX, 'static', 'spots.json'), 'utf8')
 }
 
 // --- C  outlines ----------------------------------------------------------------------------------------------------
-{
+if (!BYTES) {
   const cases = [['traunsee', 'euhydro'], ['murtensee', 'swisstopo'], ['steinhuder-meer', 'dlm250']];
   for (const [id, source] of cases) {
     const lake = srcLake(id), polys = B.outlinePolys(lake, bytes(`outline-${id}.json`), srcSpots(id));
@@ -132,7 +135,7 @@ const COAST = JSON.parse(readFileSync(join(FIX, 'static', 'spots.json'), 'utf8')
 }
 
 // --- D  catalogue ---------------------------------------------------------------------------------------------------
-{
+if (!BYTES) {
   add('D1 28 Seen, 70 Spots, jeder Spot an einem See der Tabelle', LAKES.length === 28 && SPOTS.length === 70 && SPOTS.every((s) => lakeById[s.lake.id]));
   add('D2 Regeln des Katalogs: kein Befund', B.lakeCatalogProblems({ lakes: LAKES, spots: SPOTS }).length === 0 && L.lakeTableProblems(LAKES).length === 0, B.lakeCatalogProblems({ lakes: LAKES, spots: SPOTS }).slice(0, 3).join(' | '));
   const merged = mergeSpotCatalogs(COAST, null, SPOTS);
@@ -186,7 +189,7 @@ const windLake = (t1, at, base, { drop = [], bad = [] } = {}) => async ({ spots,
     failed: drop.map((id) => ({ id, error: 'kein Cube-Ergebnis' })), meta: { engine: 'buscosun Fusion 14', version: 14, computedAt: new Date(at).toISOString(), runs: { t1 } },
   };
 };
-{
+if (!BYTES) {
   const s0 = mkStore('e0', { cat: false });
   add('E1 ohne Seekatalog: nicht fällig, nichts gerechnet, nichts geschrieben (Rückfall der Phase)', lakesDue(s0, '2026100706').due === false && /kein Seekatalog/.test(lakesDue(s0, '2026100706').reason) && readLakeCatalog(s0) === null && (await buildLakes({ storeDir: s0, dataDir: 'cdn', nowMs: runMs + 5 * H, indexT1: '2026100706', windImpl: windLake('2026100706', runMs + 5 * H, 40) })).built === false && !existsSync(join(s0, 'lakes')));
   const s1 = mkStore('e1', { geo: false });
@@ -253,8 +256,44 @@ const windLake = (t1, at, base, { drop = [], bad = [] } = {}) => async ({ spots,
   add('E23 Archiv: Stundenzeilen der Seestationen — Wind zur vollen Stunde, Böe = höchste der Stunde', rows.length === 3 && rows[0].t === '2026-11-20T11:00:00.000Z' && rows[0].ff === 2 && rows[0].fx === 9 && rows[1].ff === 8 && rows[1].fx === 30 && rows[2].fx === 14 && lakeObsRows(od, 'de:2').length === 0, JSON.stringify(rows));
 }
 
-// --- F  the coast does not notice the lakes ------------------------------------------------------------------------
-{
+// --- F0 the coast does not notice the lakes — fast form, in every run ------------------------------------------------
+// The wave producer and the wind refresh take their spots from `readCatalog` alone. Shown on the recorded spot file of
+// run 2026100700: the catalogue is the same with and without the lake catalogue in the store, and the wind refresh
+// (no wave build) writes the same bytes. The stand-in's wind depends on the NUMBER of spots it is asked for — 70 lake
+// spots leaking into the catalogue would move every value.
+if (!BYTES) {
+  const baseSpots = readFileSync(join(FIX, 'spots-2026100700.json'));
+  const now = Date.parse('2026-10-07T12:20:00Z');
+  const windN = (t1) => async ({ spots }) => ({
+    series: Object.fromEntries(spots.map((s) => [s.id, { wind: SEA_SPOT_STEPS.map((h) => (h < 12 ? null : 80 + h + (spots.length % 7))), gust: SEA_SPOT_STEPS.map((h) => (h < 12 ? null : 110 + h + (spots.length % 7))), windDir: SEA_SPOT_STEPS.map((h) => (h < 12 ? null : (h * 7 + spots.length) % 360)) }])),
+    failed: [], meta: { engine: 'buscosun Fusion 14', version: 14, computedAt: new Date(now).toISOString(), runs: { t1 } },
+  });
+  const dkOne = { ...clone(COAST[COAST.length - 1]), id: 'gegenprobe-dk', country: 'DK', coast: null, wodlCoast: null, station: null, dk: { cube: true, wind: 'fusion', wl: null } };
+  const make = async (name, { lakes, extra = null }) => {
+    const dir = join(tmp, name);
+    mkdirSync(join(dir, 'static'), { recursive: true }); mkdirSync(join(dir, 'spots'), { recursive: true });
+    cpSync(join(FIX, 'static', 'spots.json'), join(dir, 'static', 'spots.json'));
+    writeFileSync(join(dir, 'spots', `${RUN}.json`), baseSpots);
+    writeFileSync(join(dir, 'status.json'), JSON.stringify({ schema: 1, product: 'sea-status', updatedAt: null, killSwitch: false, field: { model: 'cwam', lastRun: RUN, lastPublishedRun: RUN, blocked: null, recent: [] }, text: {} }));
+    if (lakes) { cpSync(join(LK, 'spots-lakes.json'), join(dir, 'static', 'spots-lakes.json')); writeFileSync(join(dir, 'static', 'lake-geo.json'), JSON.stringify(GEO)); }
+    if (extra) writeFileSync(join(dir, 'static', 'spots-dk.json'), JSON.stringify({ schema: 1, product: 'sea-spots', part: 'dk', spots: [extra] }));
+    const wr = await windRefresh({ storeDir: dir, dataDir: 'cdn', nowMs: now, indexT1: '2026100712', windImpl: windN('2026100712') });
+    return { dir, wr, cat: JSON.stringify(readCatalog(dir).spots), wind: wr.built ? readFileSync(join(dir, seaSpotsWindPath(RUN, '2026100712'))) : null, run: readFileSync(join(dir, 'spots', `${RUN}.json`)) };
+  };
+  const plain = await make('f0-plain', { lakes: false }), withL = await make('f0-lakes', { lakes: true }), grown = await make('f0-grown', { lakes: false, extra: dkOne });
+  add('F0a der Katalog des Wellenproducers ist mit und ohne Seekatalog im Speicher derselbe und trägt keinen Seespot', plain.cat === withL.cat && !readCatalog(withL.dir).spots.some((s) => s.lake) && readCatalog(withL.dir).spots.length === COAST.length && existsSync(join(withL.dir, 'static', 'spots-lakes.json')));
+  add('F0b die Wind-Auffrischung auf der aufgezeichneten Lauf-Datei ist mit und ohne Seekatalog byte-gleich; die Lauf-Datei bleibt unberührt; der Speicher mit Seen trägt danach keine Seereihe',
+    plain.wr.built && withL.wr.built && Buffer.compare(plain.wind, withL.wind) === 0 && Buffer.compare(withL.run, baseSpots) === 0 && !existsSync(join(withL.dir, 'lakes')) && plain.wr.spots > 50, `${plain.wind?.length} / ${withL.wind?.length} B, ${plain.wr.spots} Spots`);
+  add('F0c Gegenprobe: ein zusätzlicher Küstenspot ändert Katalog und Datei — der Vergleich ist nicht blind', grown.wr.built && grown.cat !== plain.cat && Buffer.compare(plain.wind, grown.wind) !== 0);
+  const derive = readFileSync(join(ROOT, 'scripts/sea/sea-derive.mjs'), 'utf8');
+  const bodyOf = (name) => { const i = derive.indexOf(`export async function ${name}(`); return derive.slice(i, derive.indexOf('\nexport ', i + 10)); };
+  add('F0d Quelltext: Lauf und Wind-Auffrischung lesen ihre Spots nur über readCatalog; readCatalog kennt nur spots.json und spots-dk.json; der volle Byte-Vergleich (drei Wellenläufe) ist ein eigenes Skript',
+    /const cat = readCatalog\(storeDir\);/.test(bodyOf('buildRun')) && /const cat = readCatalog\(storeDir\);/.test(bodyOf('windRefresh')) && !/lake/i.test(derive.slice(derive.indexOf('export function readCatalog('), derive.indexOf('// --- inventory')))
+    && /"verify:sea-lakes-bytes": "[^"]*scripts\/verify-sea-lakes\.mjs --bytes"/.test(readFileSync(join(ROOT, 'package.json'), 'utf8')));
+}
+
+// --- F  the coast does not notice the lakes — the full byte comparison (`--bytes`, three wave builds) ------------------
+if (BYTES) {
   const GRIB = join(FIX, 'cwam-2026100700');
   const files = readdirSync(GRIB).filter((f) => f.endsWith('.bz2'));
   const fileOf = (p, s) => {
@@ -290,7 +329,7 @@ const windLake = (t1, at, base, { drop = [], bad = [] } = {}) => async ({ spots,
 }
 
 // --- G  page logic --------------------------------------------------------------------------------------------------
-{
+if (!BYTES) {
   // Series: a coastal document plus the lake file.
   const coastRaw = { schema: 1, product: 'sea-spots-series', run: RUN, runMs, steps: 79, wind: { engine: 'buscosun Fusion 14', failed: [] }, spots: { 'st-peter-ording': { v: Object.fromEntries(['hs', 'dir', 'tm', 'ws', 'wsDir', 'wsPer', 'wsPeak', 'sw', 'swDir', 'swPer', 'swPeak', 'wind', 'gust', 'windDir'].map((k) => [k, new Array(79).fill(k === 'gust' ? 90 : 50)])) } } };
   const doc = parseSpotsDoc(coastRaw, RUN);
@@ -342,7 +381,7 @@ const windLake = (t1, at, base, { drop = [], bad = [] } = {}) => async ({ spots,
 }
 
 // --- H  source rules ------------------------------------------------------------------------------------------------
-{
+if (!BYTES) {
   const read = (f) => readFileSync(join(ROOT, f), 'utf8');
   const ui = read('src/sea/SeaLakeReadout.tsx'), view = read('src/sea/lakeView.ts'), contract = read('src/sea/seaLakes.ts'), client = read('src/sea/lakeClient.ts'), producer = read('scripts/sea/sea-lakes.mjs'), builder = read('scripts/sea/build-lake-spots.mjs'), wf = read('scripts/sea/workflow-sea.yml'), page = read('src/sea/SeaPage.tsx');
   const strings = (src) => (src.match(/'[^'\n]*'|`[^`]*`|>[^<>{}\n]+</g) ?? []).join('\n');
@@ -361,8 +400,52 @@ const windLake = (t1, at, base, { drop = [], bad = [] } = {}) => async ({ spots,
   add('H12 mobil nur per Media Query: die Stile der Seen stehen vor dem Planer-Abschnitt', (() => { const css = read('src/sea/seaDeck.css'); return css.indexOf('Phase BS — Binnenseen') > 0 && css.indexOf('Phase BS — Binnenseen') < css.indexOf('Phase SP — „Ausfahrt planen“') && /@media \(max-width: 767px\) \{\s*\.sw-lk-chips/.test(css); })());
 }
 
+// --- I  wind direction (V-BS-1): the fill at interpolated hours and the words for an hour without a direction ------------
+if (!BYTES) {
+  const N = null, fill = (dir, interp, max) => L.fillLakeDir(dir, interp, max);
+  const a1 = fill([80, N, 100], [1]), north = fill([350, N, N, 20], [1, 2]), south = fill([20, N, N, 350], [1, 2]), six = fill([0, N, N, N, N, N, 60], [1, 2, 3, 4, 5]);
+  add('I1 fillLakeDir: eine interpolierte Stunde ohne Richtung bekommt den Wert auf dem kürzeren Bogen zwischen den beiden Nachbarschritten — auch über Nord (350°→20°: 0° und 10°; zurück 10° und 0°) und über mehrere Stunden (0°→60° in Sechsteln); ganze Grad 0–359; gezählt',
+    JSON.stringify(a1) === '{"dir":[80,90,100],"filled":1}' && JSON.stringify(north.dir) === '[350,0,10,20]' && north.filled === 2 && JSON.stringify(south.dir) === '[20,10,0,350]' && JSON.stringify(six.dir) === '[0,10,20,30,40,50,60]' && six.filled === 5
+    && JSON.stringify(fill([359, N, 1], [1]).dir) === '[359,0,1]' && JSON.stringify(fill([10, N, 10], [1]).dir) === '[10,10,10]' && [a1, north, south, six].every((r) => r.dir.every((x) => Number.isInteger(x) && x >= 0 && x <= 359)),
+    JSON.stringify([a1, north.dir, south.dir, six.dir]));
+  const src = [80, N, 100, N, 120];
+  const gate = fill(src, [1]);
+  add('I2 fillLakeDir füllt NUR interpolierte Stunden: eine Stunde ohne Richtung, die nicht interpoliert ist (Sperre des Motors), bleibt null; eine interpolierte Stunde MIT Richtung bleibt, wie sie ist; die Eingabe wird nicht verändert; ohne Liste eine unveränderte Kopie',
+    JSON.stringify(gate.dir) === '[80,90,100,null,120]' && gate.filled === 1 && JSON.stringify(src) === '[80,null,100,null,120]' && JSON.stringify(fill([80, 33, 100], [1])) === '{"dir":[80,33,100],"filled":0}'
+    && [null, undefined, []].every((i) => { const r = fill(src, i); return r.filled === 0 && JSON.stringify(r.dir) === JSON.stringify(src) && r.dir !== src; }));
+  add('I3 fillLakeDir lässt leer, was die Regel nicht deckt: Nachbarschritt ohne Richtung, Sprung über 90° (90° selbst wird gefüllt, 91° nicht), keine Stunde davor oder dahinter, Index außerhalb oder keine ganze Zahl; die Grenze ist die Konstante (90, set) und lässt sich nur als Argument ändern',
+    fill([N, N, 100], [1]).filled === 0 && fill([80, N, N], [1]).filled === 0 && fill([N, 80], [0]).filled === 0 && fill([80, N], [1]).filled === 0
+    && JSON.stringify(fill([0, N, 90], [1]).dir) === '[0,45,90]' && fill([0, N, 91], [1]).filled === 0 && fill([300, N, 29], [1]).filled === 1 && fill([300, N, 31], [1]).filled === 0
+    && fill([80, N, 100], [5, -1, 1.5]).filled === 0 && fill([0, N, 91], [1], 120).filled === 1 && fill([0, N, 40], [1], 30).filled === 0 && L.LAKE_DIR_FILL_MAX_DEG === 90);
+  const kn = (x) => x / 1.943844;
+  add('I4 lakeNoDirText: bis 6 kn (gerundet, set) „schwacher Wind ohne verlässliche Richtung“, darüber und ohne Wind „Richtung für diese Stunde nicht bestimmt“',
+    L.LAKE_WEAK_WIND_KN === 6 && L.LAKE_NO_DIR_WEAK === 'schwacher Wind ohne verlässliche Richtung' && L.LAKE_NO_DIR === 'Richtung für diese Stunde nicht bestimmt'
+    && L.lakeNoDirText(0) === L.LAKE_NO_DIR_WEAK && L.lakeNoDirText(kn(6)) === L.LAKE_NO_DIR_WEAK && L.lakeNoDirText(kn(6.4)) === L.LAKE_NO_DIR_WEAK && L.lakeNoDirText(kn(6.6)) === L.LAKE_NO_DIR && L.lakeNoDirText(kn(15)) === L.LAKE_NO_DIR
+    && L.lakeNoDirText(null) === L.LAKE_NO_DIR && L.lakeNoDirText(undefined) === L.LAKE_NO_DIR);
+  // Producer: the stand-in has no direction at every fourth hour; with `interp` naming those hours the file carries them.
+  const at = runMs + 5 * H + 20 * 60_000, fourth = SEA_SPOT_STEPS.filter((h) => h > 5 && h % 4 === 0);
+  const withInterp = (impl, hours) => async (a) => { const r = await impl(a); return { ...r, interp: Object.fromEntries(Object.keys(r.series).map((id) => [id, hours])) }; };
+  const build = async (name, impl) => { const dir = mkStore(name); const r = await buildLakes({ storeDir: dir, dataDir: 'cdn', nowMs: at, indexT1: '2026100706', windImpl: impl }); return JSON.parse(readFileSync(join(dir, r.path), 'utf8')); };
+  const dPlain = await build('i-plain', windLake('2026100706', at, 40)), dFill = await build('i-fill', withInterp(windLake('2026100706', at, 40), fourth));
+  const lindau = dFill.spots['bodensee-lindau'].v.windDir, lindau0 = dPlain.spots['bodensee-lindau'].v.windDir;
+  const strip = (d) => { const c = clone(d); for (const sp of Object.values(c.spots)) for (const i of fourth) sp.v.windDir[i] = null; delete c.dirFilled; return JSON.stringify(c); };
+  add('I5 Producer: die Seedatei trägt die gefüllten Stunden (Stunde 8: 88° zwischen 77° und 99°, Stunde 32 über Nord: 352°), zählt sie in dirFilled (18 je Spot × 70) und nennt die Regel mit 90° in about; ohne `interp` ist dirFilled 0 und keine Stunde gefüllt',
+    lindau[8] === 88 && lindau[32] === 352 && lindau0[8] === null && lindau[4] === null && fourth.length === 18 && dFill.dirFilled === 18 * 70 && dPlain.dirFilled === 0 && /höchstens 90°/.test(dFill.about) && /dirFilled/.test(dFill.about) && /null bleibt null/.test(dFill.about)
+    && Object.values(dFill.spots).every((x) => L.lakeSeriesProblems(x.v, 79).length === 0), JSON.stringify([lindau[8], lindau[32], dFill.dirFilled]));
+  add('I6 Negativkontrolle Seedatei: ohne die interpolierten Stunden und ohne dirFilled sind beide Dateien gleich — Wind, Böe und jede andere Stunde der Richtung unverändert; Gegenprobe: eine veränderte nicht interpolierte Stunde fällt auf',
+    strip(dFill) === strip(dPlain) && JSON.stringify(dFill) !== JSON.stringify(dPlain) && strip((() => { const c = clone(dFill); c.spots['bodensee-lindau'].v.windDir[9] += 1; return c; })()) !== strip(dPlain));
+  const read = (f) => readFileSync(join(ROOT, f), 'utf8');
+  const ui = read('src/sea/SeaLakeReadout.tsx'), producer = read('scripts/sea/sea-lakes.mjs'), derive = read('scripts/sea/sea-derive.mjs'), ci = read('.github/workflows/ci.yml');
+  add('I7 Verdrahtung: der Producer der Seen füllt mit fillLakeDir aus der Liste `interp` von spotWind; die Küstendateien nutzen dieselbe Funktion und Konstante (spotDirFill); das Seen-Dossier sagt an Wind, Windwelle und Fetch-Rose lakeNoDirText',
+    /fillLakeDir\(w\.windDir, wind\.interp\?\.\[sp\.id\]\)/.test(producer) && /interp\[sp\.id\] = steps\.filter\(\(st\) => st\.interpolated\)/.test(derive) && /series: out, failed, sightIn, interp,/.test(derive)
+    && /return interp \? fillLakeDir\(dir, interp\) : \{ dir: dir\.slice\(\), filled: 0 \};/.test(derive) && /import \{ fillLakeDir, LAKE_DIR_FILL_MAX_DEG \} from '\.\.\/\.\.\/src\/sea\/seaLakes\.ts';/.test(derive)
+    && (ui.match(/lakeNoDirText\(h\.windMs\)/g) ?? []).length === 3 && !/Richtung für diese Stunde nicht bestimmt|die Windrichtung ist nicht bestimmt/.test(ui));
+  add('I8 CI: verify:sea-lakes läuft im Workflow, genau einmal und auch nach einem roten Schritt davor; der Byte-Vergleich (verify:sea-lakes-bytes) läuft dort nicht (drei volle Wellenläufe)',
+    (ci.match(/ci-run\.mjs verify:sea-lakes\b(?!-)/g) ?? []).length === 1 && /if: \$\{\{ !cancelled\(\) \}\}\s*\n\s*run: node scripts\/ci-run\.mjs verify:sea-lakes\s*\n/.test(ci.replace(/\r\n/g, '\n')) && !/verify:sea-lakes-bytes\s*\n/.test(ci.replace(/\r\n/g, '\n').replace(/^\s*#.*$/gm, '')));
+}
+
 rmSync(tmp, { recursive: true, force: true });
 const failed = checks.filter((c) => !c.ok);
 for (const c of checks) console.log(`${c.ok ? '✓' : '✗'} ${c.name}${c.ok || !c.detail ? '' : `\n    ${c.detail}`}`);
-console.log(`\nverify:sea-lakes — ${checks.length - failed.length}/${checks.length}`);
+console.log(`\nverify:sea-lakes${BYTES ? '-bytes' : ''} — ${checks.length - failed.length}/${checks.length}${BYTES ? '' : '  (ohne Block F: der Byte-Vergleich mit drei vollen Wellenläufen läuft mit verify:sea-lakes-bytes)'}`);
 if (failed.length) process.exit(1);
