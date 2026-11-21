@@ -1,0 +1,137 @@
+{
+ "run": "2026112117",
+ "rule": "temperature",
+ "spread": {
+  "sums": "scenarios",
+  "k": 100,
+  "rho": 0.9,
+  "gust": "strongest-hour",
+  "origin": "set"
+ },
+ "engine": {
+  "name": "buscosun Fusion 14",
+  "version": 14,
+  "stageCurrent": true
+ },
+ "rows": 2084,
+ "own": 957,
+ "skipped": 10,
+ "skipReasons": [
+  "elevations"
+ ],
+ "size": {
+  "daily": {
+   "raw": 2379774,
+   "gzip": 498474,
+   "brotli": 320614
+  },
+  "chunks": {
+   "raw": 3797175,
+   "gzip": 684403,
+   "brotli": 456945
+  },
+  "chunkFiles": 26,
+  "largestChunk": 963341
+ },
+ "bytesPerField": {
+  "daily": {
+   "tn": 498924,
+   "tx": 449945,
+   "tq": 170128,
+   "w": 45392,
+   "gx": 46904,
+   "wd": 69120,
+   "p": 57682,
+   "sn": 168252,
+   "c": 45936,
+   "sl": 72958,
+   "pq": 115534,
+   "snq": 339649,
+   "gq": 112613
+  },
+  "hourly": {
+   "t": 1557516,
+   "w": 141310,
+   "g": 143571,
+   "d": 191461,
+   "p": 154074,
+   "s": 189462,
+   "c": 143550,
+   "sl": 566743,
+   "sn": 644247
+  }
+ },
+ "contract": {
+  "new": 0,
+  "oldReader": 0
+ },
+ "neighbour": {
+  "rows": 1127,
+  "keys": [
+   "id,z,f,tn,tx,omit"
+  ],
+  "omit": [
+   "neighbour-forcing"
+  ]
+ },
+ "snowline": {
+  "rows": 957,
+  "values": 58196,
+  "nulls": 56644,
+  "after115": 0
+ },
+ "forbiddenWords": [],
+ "phase": {
+  "last": {
+   "run": "2026112117",
+   "rule": "temperature",
+   "n": 957,
+   "mm": {
+    "temperature": [
+     40703.8,
+     40969.2,
+     40972.9
+    ],
+    "psnow": [
+     40093.7,
+     40714.8,
+     40858.6
+    ]
+   },
+   "wet": 9930,
+   "moved": 5,
+   "max": 2
+  },
+  "verdict": {
+   "runs": 1,
+   "days": 1,
+   "enough": false,
+   "shift": [
+    0.015,
+    0.0062,
+    0.0028
+   ],
+   "within": true,
+   "movedShare": 0.0005,
+   "max": 2
+  }
+ },
+ "live": {
+  "runAt": "2026-11-21T17:23:30.940Z",
+  "localRunAt": "2026-11-21T17:50:00.000Z",
+  "cubeSame": true,
+  "dailyRows": {
+   "same": 2084,
+   "diff": 0,
+   "missing": 0
+  },
+  "hourlyRows": {
+   "same": 2084,
+   "diff": 0
+  },
+  "firstDiff": [],
+  "liveSize": {
+   "daily": 1811870
+  }
+ }
+}

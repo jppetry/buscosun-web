@@ -12,13 +12,16 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { MELT, simulate, emptyState } from './glacier/lib/meltcore.mjs';
-import { solidFraction, weatherSeriesOf, weatherOfGlacier, prevailingDir } from './glacier/lib/weathercore.mjs';
+import { solidFraction, weatherSeriesOf, weatherOfGlacier, prevailingDir, phaseProbability, phaseShares, sumSpreads, weatherPhaseOf, phaseDocWith, WEATHER_PHASE_DEFAULT } from './glacier/lib/weathercore.mjs';
+import { weatherProblems as oldWeatherProblems, weatherHourlyProblems as oldWeatherHourlyProblems } from './lib/fixtures/glacier/weather-contract-before-gs.ts';
 import { tempAt, main } from './glacier/melt.mjs';
 import { checkPackage } from './glacier/glacier-publish.mjs';
 import { fusionStageNote, fusionStage, fusionName, fusionVersionOfNotes, FUSION_CURRENT } from '../src/pointForecast/fusion/fusionRelease.ts';
 import {
   GLACIER_WEATHER_DAYS, GLACIER_WEATHER_HOURS, GLACIER_WEATHER_NOTE, GLACIER_WEATHER_WIND_NOTE, GLACIER_WEATHER_OMIT_NEIGHBOUR, GLACIER_WEATHER_FRESH_MS,
   glacierWeatherRunPath, glacierWeatherHourlyPath, weatherProblems, weatherHourlyProblems,
+  GLACIER_WEATHER_SNOWLINE_HOURS, GLACIER_WEATHER_PHASE_PATH, GLACIER_WEATHER_PHASE_LIMIT, GLACIER_WEATHER_PHASE_MIN_DAYS, GLACIER_WEATHER_PHASE_KEEP_DAYS,
+  GLACIER_WEATHER_SPREAD_K, GLACIER_WEATHER_SPREAD_RHO, phaseVerdict, weatherSnowProblems, weatherHourlySnowProblems,
 } from '../src/glacier/glacierWeatherContract.ts';
 import { weatherView, compassOf } from '../src/glacier/glacierWeatherView.ts';
 import { glacierWeatherFrom, GLACIER_WEATHER_LIVE } from '../src/glacier/glacierFlag.ts';
@@ -97,7 +100,7 @@ const tmp = mkdtempSync(join(tmpdir(), 'glacier-weather-'));
   const n = 336, t = Float64Array.from({ length: n }, (_, i) => 1 + 2.5 * Math.sin(i / 5)), p = Float64Array.from({ length: n }, (_, i) => (i % 7 === 0 ? 1.3 : 0.2));
   // the melt core accumulates snow per band; ONE band at the reference elevation, no factor, no melt ⇒ its snow water is Σ p · share(T)
   const sim = simulate({ bands: { zb: [3000], w: [1] }, ela: 2900, t, g: new Float64Array(n), p, zT: 3000, zP: 3000, pf: 1, TF: 0, SRF: 0, state: emptyState(1), accumulateOnly: true });
-  const wx = { w: new Float64Array(n).fill(3), g: new Float64Array(n).fill(5), d: new Float64Array(n).fill(NaN), t10: Float64Array.from(t, (v) => v - 1), t90: Float64Array.from(t, (v) => v + 1), sl: new Float64Array(n).fill(NaN) };
+  const wx = { w: new Float64Array(n).fill(3), g: new Float64Array(n).fill(5), g10: new Float64Array(n).fill(4), g90: new Float64Array(n).fill(6), d: new Float64Array(n).fill(NaN), t10: Float64Array.from(t, (v) => v - 1), t90: Float64Array.from(t, (v) => v + 1), sl: new Float64Array(n).fill(NaN) };
   const w = weatherOfGlacier({ id: 'x', z: [3000, 3000, 3000], tz: [t, t, t], from: 'own', p, n: new Float64Array(n).fill(0.4), wx });
   const sum = w.row.sn[1].reduce((a, b) => a + b, 0), pSum = w.row.p.reduce((a, b) => a + b, 0);
   add('C2 Neuschnee je Tag = Niederschlag × Schneeanteil aus der Bandtemperatur: die Summe über 14 Tage trifft den Schneezuwachs des Schmelzkerns (ein Band, ohne Faktor) auf die Rundung genau, und sie liegt unter der Niederschlagssumme (Gegenprobe: nicht einfach der Niederschlag)',
@@ -168,11 +171,11 @@ const by = Object.fromEntries((doc?.glaciers ?? []).map((r) => [r.id, r]));
     && JSON.stringify(doc.regions) === JSON.stringify(['ch-far', 'ch-test']) && patch.weather?.run === RUN && patch.melt?.run === RUN && status.lines.weather.glaciers === 4 && status.lines.weather.files === 3 && status.lines.weather.bytes > 0,
     JSON.stringify({ run: r1.run, weather: r1.weather, problems: doc ? weatherProblems(doc, new Set(tr1.ids)).slice(0, 3) : 'kein Dokument' }));
   const g = by.gl_ch_gamma, a = by.gl_ch_alpha, far = by.gl_ch_far, hg = chTest?.glaciers.gl_ch_gamma, ha = chTest?.glaciers.gl_ch_alpha;
-  const wxKeys = ['tq', 'w', 'gx', 'wd', 'p', 'sn', 'c', 'sl'];
-  add('D2 Klasse C mit dem Antrieb des Nachbarn: nur die Temperatur an den eigenen Höhen, Wind, Niederschlag, Neuschnee, Bewölkung, Schneefallgrenze und Spanne fehlen mit benanntem Grund (auch im Stunden-Chunk); der Nachbar selbst und der Gletscher mit eigenem Punkt tragen alles (Gegenprobe)',
-    g && g.f === 'gl_ch_alpha' && g.omit === GLACIER_WEATHER_OMIT_NEIGHBOUR && wxKeys.every((k) => g[k] === undefined) && JSON.stringify(Object.keys(hg)) === '["t"]'
+  const wxKeys = ['tq', 'w', 'gx', 'wd', 'p', 'sn', 'c', 'sl', 'pq', 'snq', 'gq'];
+  add('D2 Klasse C mit dem Antrieb des Nachbarn: nur die Temperatur an den eigenen Höhen, Wind, Niederschlag, Neuschnee, Bewölkung, Schneefallgrenze und alle Spannen fehlen mit benanntem Grund (auch im Stunden-Chunk, dort auch Schneefallgrenze und Neuschnee je Stunde); der Nachbar selbst und der Gletscher mit eigenem Punkt tragen alles (Gegenprobe)',
+    g && g.f === 'gl_ch_alpha' && g.omit === GLACIER_WEATHER_OMIT_NEIGHBOUR && JSON.stringify(Object.keys(g)) === '["id","z","f","tn","tx","omit"]' && JSON.stringify(Object.keys(hg)) === '["t"]'
     && JSON.stringify(g.z) === '[2625,2800,2975]' && g.tn[1][0] !== a.tn[1][0]
-    && a.f === 'own' && wxKeys.every((k) => Array.isArray(a[k])) && ['t', 'w', 'g', 'd', 'p', 's', 'c'].every((k) => Array.isArray(ha[k])) && far.f === 'own' && Array.isArray(far.w),
+    && a.f === 'own' && wxKeys.every((k) => Array.isArray(a[k])) && ['t', 'w', 'g', 'd', 'p', 's', 'c', 'sl', 'sn'].every((k) => Array.isArray(ha[k])) && far.f === 'own' && Array.isArray(far.w),
     JSON.stringify({ gamma: g && { f: g.f, omit: g.omit, keys: Object.keys(g), z: g.z }, hg: hg && Object.keys(hg) }));
   add('D3 Richtung und Schneefallgrenze nur, wo die Antwort sie trägt: Richtung an Tagen mit mindestens 6 Stunden (Tag 0 ja, Tag 13 mit 5 Stunden nein), Schneefallgrenze in den ersten fünf Tagen, danach null — nie ein aufgefüllter Wert',
     a.wd[0] != null && a.wd[13] === null && a.sl.slice(0, 4).every((v) => v != null) && a.sl.slice(5).every((v) => v === null) && ha.d.filter((v) => v === null).length > 0,
@@ -278,6 +281,238 @@ const by = Object.fromEntries((doc?.glaciers ?? []).map((r) => [r.id, r]));
     && /\.gl-wx-more > summary \{[^}]*min-height: 44px/.test(css) && compassOf(0) === 'N' && compassOf(225) === 'SW' && compassOf(359) === 'N' && compassOf(100) === 'O', '');
   const cells = (card.match(/data-origin="model"/g) ?? []).length, chips = (card.match(/<OriginChip origin="model"/g) ?? []).length;
   add('F3 Herkunft an jedem Wert: die Karte setzt data-origin="model" an Kennzahlen, Tabellenzellen und Zeilen und den Chip „Modell“ an Kopf, Kennzahlen und beiden Aufklappern', cells >= 6 && chips >= 4, `data-origin ${cells}, Chips ${chips}`);
+}
+
+// --- G: phase GS — snow fields from a REAL answer of buscosun Fusion ------------------------------------------------------------------
+const AX = J(join(HERE, 'lib', 'fixtures', 'glacier', 'weather-answer.json'));
+const AX_T0 = Date.parse(AX.t0);
+const f64 = (a) => Float64Array.from(a, (v) => v ?? NaN);
+/** The answer of the fixture as `melt.mjs` gets it (the values the weather core and the forcing read). */
+const fcOf = (g) => ({
+  cube: {
+    notes: AX.notes, cells: [],
+    v2: {
+      provenance: { runs: AX.runs },
+      axis: { steps: g.answer.h.map((h, i) => {
+        const a = g.answer, v = (o, k) => o[k][i];
+        return {
+          validAtMs: AX_T0 + h * H, leadH: h, interpolated: !!a.interpolated[i],
+          vars: {
+            t2m: { mean: v(a.t2m, 'mean'), sigma: v(a.t2m, 'sigma'), p10: v(a.t2m, 'p10'), p90: v(a.t2m, 'p90') }, rh: { p50: v(a.rh, 'p50') },
+            precip: { mean: v(a.precip, 'mean'), p10: v(a.precip, 'p10'), p90: v(a.precip, 'p90'), dist: v(a.precip, 'dist') }, clct: { mean: v(a.clct, 'mean') },
+            wind: { mean: v(a.wind, 'mean') }, windDir: v(a.windDir, 'mean') == null ? null : { mean: v(a.windDir, 'mean') },
+            gust: { mean: v(a.gust, 'mean'), p10: v(a.gust, 'p10'), p90: v(a.gust, 'p90') },
+            snowline: v(a.snowline, 'mean') == null ? null : { mean: v(a.snowline, 'mean') }, pSnow: v(a.pSnow, 'mean') == null ? null : { mean: v(a.pSnow, 'mean') },
+          },
+        };
+      }) },
+    },
+  },
+});
+/** The core on one glacier of the fixture, with the forcing the producer derived from the same answer. */
+const coreOf = (g, extra = {}) => {
+  const f = { t: f64(g.forcing.t), sg: f64(g.forcing.sg), p: f64(g.forcing.p), n: f64(g.forcing.n), fz: f64(g.forcing.fz), zRef: g.zRef };
+  const tz = g.z.map((zz) => tempAt(f, zz)), wx = weatherSeriesOf(fcOf(g), { t0Ms: AX_T0, hours: AX.hours });
+  return { f, tz, wx, out: weatherOfGlacier({ id: g.id, z: g.z, tz, from: 'own', p: f.p, n: f.n, wx, sg: f.sg, seed: 7, ...extra }) };
+};
+const OLD_ROW = ['id', 'z', 'f', 'tn', 'tx', 'tq', 'w', 'gx', 'wd', 'p', 'sn', 'c', 'sl'], OLD_HOURLY = ['t', 'w', 'g', 'd', 'p', 's', 'c'];
+const pick = (o, keys) => JSON.stringify(Object.fromEntries(keys.map((k) => [k, o[k]])));
+const [gHigh, gLow] = AX.glaciers;   // a glacier with long stretches without a snowfall line, and a low one with mixed phase
+const cT = AX.glaciers.map((g) => coreOf(g, { phase: 'temperature' })), cP = AX.glaciers.map((g) => coreOf(g, { phase: 'psnow' }));
+{
+  const hoursWith = (g, k, sub = 'mean') => g.answer.h.filter((_, i) => g.answer[k][sub][i] != null);
+  const shape = AX.glaciers.map((g) => {
+    const sl = hoursWith(g, 'snowline'), ps = hoursWith(g, 'pSnow'), pd = hoursWith(g, 'precip', 'dist');
+    return sl.filter((h) => h <= 46).length === 47 && sl.every((h) => h <= 115) && sl.filter((h) => h > 46).every((h) => (h - 49) % 3 === 0)
+      && ps.filter((h) => h <= 245).length === 246 && ps.filter((h) => h > 245).every((h) => (h - 247) % 6 === 0) && ps.length < 336
+      && pd.filter((h) => h <= 245).length === 246 && pd.length < 336 && hoursWith(g, 'precip', 'p90').length === 336 && hoursWith(g, 'gust', 'p10').length === 336 && hoursWith(g, 'gust', 'p90').length === 336;
+  });
+  add('G1 Echte Antwort (zwei Gletscher, Fixture aus `make-weather-answer-fixture.mjs`): Schneefallgrenze stündlich bis +46 h, danach nur an 3-Stunden-Schritten bis höchstens +115 h, dann keine; pSnow und Niederschlagsverteilung stündlich bis +245 h, danach nur an den 6-Stunden-Schritten; Niederschlag- und Böen-Quantile an allen 336 Stunden',
+    shape.every(Boolean) && AX.glaciers.length === 2 && AX.hours === 336 && fusionVersionOfNotes(AX.notes) != null, JSON.stringify(shape));
+  const same = AX.glaciers.map((g, i) => pick(cT[i].out.row, OLD_ROW) === pick(g.before.row, OLD_ROW) && pick(cT[i].out.hourly, OLD_HOURLY) === pick(g.before.hourly, OLD_HOURLY));
+  const moved = pick(cP[1].out.row, OLD_ROW) !== pick(gLow.before.row, OLD_ROW);
+  add(`G2 Funktionserhalt an der echten Antwort: mit der Regel „temperature“ sind alle alten Felder der Tages- und der Stundenzeile Byte für Byte die des Kerns vor der Phase (Commit ${AX.beforeFrom}); die Voreinstellung ist diese Regel; Negativkontrolle: mit „psnow“ ändern sie sich am tiefen Gletscher`,
+    same.every(Boolean) && WEATHER_PHASE_DEFAULT === 'temperature' && weatherPhaseOf(undefined) === 'temperature' && moved && !!AX.beforeFrom, JSON.stringify({ same, moved }));
+}
+{
+  const bad = [];
+  let nulls = 0, vals = 0;
+  for (const [i, g] of AX.glaciers.entries()) {
+    const sl = cT[i].out.hourly.sl, at = new Map(g.answer.h.map((h, k) => [h, g.answer.snowline.mean[k]]));
+    if (sl.length !== GLACIER_WEATHER_SNOWLINE_HOURS) bad.push(`${g.id}: Länge ${sl.length}`);
+    for (let h = 0; h < sl.length; h++) {
+      const v = at.get(h) ?? null;
+      if (v == null ? sl[h] !== null : sl[h] !== Math.round(v / 10) * 10) bad.push(`${g.id} +${h} h: ${sl[h]} gegen ${v}`);
+      if (sl[h] == null) nulls++; else vals++;
+    }
+  }
+  const slH = cT[0].out.hourly.sl, gapH = slH.slice(47, 91);
+  add('G3 Schneefallgrenze je Stunde (120 Werte): genau der Wert der Antwort auf 10 m, wo sie einen hat, sonst null — auch zwischen zwei 3-Stunden-Werten wird nichts aufgefüllt; am hohen Gletscher bleibt der Vorlauf +47 … +90 h ganz ohne Wert; das Tagesmittel ist das alte (G2)',
+    bad.length === 0 && nulls > 0 && vals > 100 && gapH.every((v) => v === null) && slH.slice(0, 47).every((v) => v != null) && slH[91] != null && slH[92] === null && slH[93] === null && slH[94] != null,
+    bad.slice(0, 4).join('; ') || JSON.stringify({ nulls, vals, gap: gapH.filter((v) => v != null).length }));
+}
+{
+  const bad = [];
+  const r2 = (x) => Math.round(x * 100) / 100 + 0;
+  let wet = 0, split = 0;
+  for (const [i] of AX.glaciers.entries()) {
+    const { f, tz, out } = cT[i];
+    for (let lv = 0; lv < 3; lv++) for (let h = 0; h < GLACIER_WEATHER_HOURS; h++) {
+      const want = r2(Math.max(0, f.p[h]) * solidFraction(tz[lv][h]));
+      if (out.hourly.sn[lv][h] !== want) bad.push(`+${h} h Ebene ${lv}: ${out.hourly.sn[lv][h]} gegen ${want}`);
+      if (out.hourly.sn[lv][h] > out.hourly.p[h] + 0.06) bad.push(`+${h} h Ebene ${lv}: über dem Niederschlag`);
+    }
+    for (let h = 0; h < GLACIER_WEATHER_HOURS; h++) { if (out.hourly.sn[0][h] > out.hourly.sn[2][h] + 0.011) bad.push(`+${h} h: Zunge über Oberkante`); if (out.hourly.sn[2][h] > 0) wet++; }
+    // the elevations differ where it is warm enough (in this run only later than the hourly window: counted on the daily sums)
+    split += out.row.sn[0].filter((v, d) => v < out.row.sn[2][d] - 0.2).length;
+    for (let d = 0; d < 2; d++) for (let lv = 0; lv < 3; lv++) {
+      const s = out.hourly.sn[lv].slice(24 * d, 24 * d + 24).reduce((a, b) => a + b, 0);
+      if (!near(s, out.row.sn[lv][d], 24 * 0.005 + 0.051)) bad.push(`Tag ${d} Ebene ${lv}: Stundensumme ${s} gegen ${out.row.sn[lv][d]}`);
+    }
+  }
+  const txt = JSON.stringify([cT[0].out, cP[1].out]);
+  add('G4 Neuschnee je Stunde an Zunge, Median und Oberkante (48 h, mm Wasserwert in 0,01): = Niederschlag × Schneeanteil der Höhe (nachgerechnet), nie über dem Niederschlag, an der Zunge nie mehr als oben; die Stundenwerte summieren sich innerhalb der Rundung zur Tagessumme; an wärmeren Tagen des Laufs fällt an der Zunge weniger als oben; kein Zentimeterfeld, keine Schneehöhe',
+    bad.length === 0 && wet > 5 && split > 0 && !/"cm"|snowCm|depth|hs"/.test(txt), bad.slice(0, 4).join('; ') || JSON.stringify({ wet, split }));
+}
+{
+  const { out, tz, f, wx } = cP[1], ps = gLow.answer.pSnow.mean, hIdx = new Map(gLow.answer.h.map((h, k) => [h, k]));
+  const sAnswer = Array.from({ length: GLACIER_WEATHER_HOURS }, (_, h) => Math.round(100 * ps[hIdx.get(h)]));
+  const mixed = sAnswer.filter((v) => v > 2 && v < 98).length;
+  // one mixed hour with precipitation, by hand: share at the tongue = pSnow + phase function(T tongue) − phase function(T median)
+  const sh = phaseShares({ rule: 'psnow', tz, sg: f.sg, rh: wx.rh, ps: wx.ps, p: f.p });
+  let hand = null;
+  for (let h = 0; h < 336 && !hand; h++) {
+    const pm = wx.ps[h];
+    if (!(f.p[h] > 0.05 && pm > 0.1 && pm < 0.9)) continue;
+    const want = Math.min(1, Math.max(0, pm + phaseProbability(tz[0][h], f.sg[h], wx.rh[h]) - phaseProbability(tz[1][h], f.sg[h], wx.rh[h])));
+    hand = { h, pm, tongue: sh.share[0][h], want, top: sh.share[2][h] };
+  }
+  const ordered = (() => { for (let h = 0; h < 336; h++) if (sh.share[0][h] > sh.share[1][h] + 1e-9 || sh.share[1][h] > sh.share[2][h] + 1e-9) return false; return true; })();
+  let threw = false; try { weatherPhaseOf('schnee'); } catch { threw = true; }
+  add('G5 Schalter der Phasenregel, beide Richtungen am Kern: „psnow“ ⇒ der Schneeanteil je Stunde in der Medianhöhe IST das pSnow der Antwort; an Zunge und Oberkante verschoben um die Differenz der Phasenfunktion des Motors (eine Mischstunde von Hand), Zunge ≤ Median ≤ Oberkante; „temperature“ ⇒ die alte Stundenreihe (G2); die Phasenfunktion fällt mit der Temperatur (−10 °C ⇒ Schnee, +8 °C ⇒ Regen); ein unbekanntes Wort ist ein Fehler, kein stiller Ersatz',
+    JSON.stringify(out.hourly.s) === JSON.stringify(sAnswer) && mixed >= 3 && JSON.stringify(cT[1].out.hourly.s) === JSON.stringify(gLow.before.hourly.s) && JSON.stringify(out.hourly.s) !== JSON.stringify(gLow.before.hourly.s)
+    && hand && near(hand.tongue, hand.want, 1e-12) && hand.tongue < hand.pm && hand.top >= hand.pm && ordered && sh.fallback === 0
+    && phaseProbability(-10, 1, 80) > 0.99 && phaseProbability(8, 1, 80) < 0.01 && phaseProbability(0.5, 1, 80) > phaseProbability(1.5, 1, 80) && threw && weatherPhaseOf('psnow') === 'psnow',
+    JSON.stringify({ mixed, hand, ordered, fallback: sh.fallback }));
+  // hours without pSnow late in the run: linear between the 6-hour values, never beyond 6 hours
+  const gap = phaseShares({ rule: 'psnow', tz, sg: f.sg, rh: wx.rh, ps: Float64Array.from(wx.ps, (v, h) => (h >= 100 && h < 120 ? NaN : v)), p: f.p });
+  add('G6 Stunden ohne pSnow: zwischen den 6-Stunden-Werten spät im Lauf linear (kein Rückfall an der echten Antwort); eine Lücke von 20 Stunden wird nicht überbrückt — diese Stunden rechnen mit der Temperaturregel und werden gezählt; ohne jedes pSnow wird der Gletscher unter „psnow“ mit Grund übersprungen',
+    sh.fallback === 0 && gap.fallback === 20 && near(gap.share[1][105], solidFraction(tz[1][105]), 1e-12)
+    && weatherOfGlacier({ id: 'x', z: gLow.z, tz, from: 'own', p: f.p, n: f.n, wx: { ...wx, ps: new Float64Array(336).fill(NaN) }, sg: f.sg, phase: 'psnow' }).skip === 'few-hours:psnow', `Rückfall ${sh.fallback}/${gap.fallback}`);
+}
+{
+  const { out, f, wx } = cT[1], row = out.row;
+  const again = coreOf(gLow, { phase: 'temperature' }).out.row, other = coreOf(gLow, { phase: 'temperature', seed: 8 }).out.row;
+  const ok = row.pq.length === 14 && row.pq.every((q) => q[0] <= q[1]) && row.snq.every((lv) => lv.every((q, d) => q[0] <= q[1] && q[1] <= row.pq[d][1] + 0.15)) && row.snq[0].every((q, d) => q[1] <= row.snq[2][d][1] + 0.15);
+  // not a sum of hourly quantiles: on wet days the p90 of the day's sum is another number than the sum of the hourly p90 (above it where most
+  // hours are dry in nine of ten cases, below it in steady precipitation)
+  const p90h = gLow.answer.precip.p90, hIdx = new Map(gLow.answer.h.map((h, k) => [h, k]));
+  const sumQ = Array.from({ length: 14 }, (_, d) => { let s = 0; for (let h = 24 * d; h < 24 * d + 24; h++) s += p90h[hIdx.get(h)] ?? 0; return s; });
+  const wetDays = sumQ.map((s, d) => [s, d]).filter(([s]) => s >= 2), below = wetDays.filter(([s, d]) => row.pq[d][1] < s - 0.2).length, differs = wetDays.filter(([s, d]) => Math.abs(row.pq[d][1] - s) > 0.2).length;
+  // the gust: p10/p90 of the hour with the strongest gust
+  const gOk = row.gq.every((q, d) => {
+    let at = 24 * d; for (let h = 24 * d; h < 24 * d + 24; h++) if (wx.g[h] > wx.g[at]) at = h;
+    return q[0] === Math.min(Math.round(wx.g10[at] * 3.6), row.gx[d]) && q[1] === Math.max(Math.round(wx.g90[at] * 3.6), row.gx[d]) && q[0] <= row.gx[d] && row.gx[d] <= q[1] && q[0] < q[1];
+  });
+  // hand cases of the scenario sums: a certain 0.5 mm every hour ⇒ 12 mm a day in every scenario; cold ⇒ all of it snow, warm ⇒ none; always dry ⇒ 0
+  const n = 336, fill = (v) => new Float64Array(n).fill(v), cold = [fill(-10), fill(-10), fill(-10)], warm = [fill(10), fill(10), fill(10)];
+  const sure = new Array(n).fill({ kind: 'hurdleLogNormal', pDry: 0, mu: Math.log(0.5), sigma: 0 }), dry = new Array(n).fill({ kind: 'hurdleLogNormal', pDry: 1, mu: 0, sigma: 1 });
+  const a = sumSpreads({ p: fill(0.5), pDist: sure, tz: cold, sg: fill(1), rule: 'temperature', seed: 3 }), b = sumSpreads({ p: fill(0.5), pDist: sure, tz: warm, sg: fill(1), rule: 'temperature', seed: 3 });
+  const c = sumSpreads({ p: fill(0), pDist: dry, tz: cold, sg: fill(1), rule: 'temperature', seed: 3 });
+  // a real spread: 50 % dry hours ⇒ p10 below, p90 above the expected 12 mm of the day (and the two differ)
+  const half = sumSpreads({ p: fill(0.5), pDist: new Array(n).fill({ kind: 'hurdleLogNormal', pDry: 0.5, mu: 0, sigma: 0.3 }), tz: cold, sg: fill(1), rule: 'temperature', seed: 3 });
+  add(`G7 Spanne der Tagessummen und der Böe: Niederschlag und Neuschnee als p10/p90 der Summen von ${GLACIER_WEATHER_SPREAD_K} Szenarien (Korrelation ${GLACIER_WEATHER_SPREAD_RHO}) — an der echten Antwort geordnet, Neuschnee nie über dem Niederschlag, an jedem nassen Tag eine andere Zahl als die Summe der Stunden-p90 (also keine Summe von Stundenquantilen); derselbe Lauf ergibt dieselben Zahlen, ein anderer Keim andere (Gegenprobe); Handfälle: sicher 0,5 mm je Stunde ⇒ [12, 12], kalt alles Schnee, warm keiner, immer trocken ⇒ [0, 0], halb trocken ⇒ p10 < p90; Böe = p10/p90 der Stunde mit der stärksten Böe und schließt sie ein`,
+    ok && JSON.stringify(again) === JSON.stringify(row) && JSON.stringify(other.pq) !== JSON.stringify(row.pq) && pick(other, OLD_ROW) === pick(row, OLD_ROW) && wetDays.length >= 2 && below >= 1 && differs === wetDays.length && gOk
+    && a.pq.every((q) => q[0] === 12 && q[1] === 12) && a.snq.every((lv) => lv.every((q) => q[0] === 12 && q[1] === 12)) && b.snq.every((lv) => lv.every((q) => q[0] === 0 && q[1] === 0)) && b.pq[0][1] === 12
+    && c.pq.every((q) => q[0] === 0 && q[1] === 0) && half.pq.every((q) => q[0] < q[1]) && half.pq.some((q) => q[0] < 12 && q[1] > 12),
+    JSON.stringify({ ok, wetDays: wetDays.length, below, gOk, a: a.pq[0], b: b.snq[1][0], c: c.pq[0], half: half.pq.slice(0, 3), pq: row.pq.slice(0, 4), sumQ: sumQ.slice(0, 4).map((v) => Math.round(v * 10) / 10) }));
+  // a glacier on a neighbour's forcing: the temperature only, as before
+  const tzN = [2000, 2100, 2300].map((zz) => tempAt({ ...f, zRef: gLow.zRef }, zz));
+  const nb = weatherOfGlacier({ id: 'n', z: [2000, 2100, 2300], tz: tzN, from: gLow.id, p: f.p, n: f.n, wx, sg: f.sg, phase: 'psnow' });
+  add('G8 Nachbar-Antrieb an der echten Antwort: die Zeile trägt nur Kennung, Höhen, Antrieb, Temperatur und den benannten Grund, die Stundenzeile nur die Temperatur — keines der neuen Felder, kein Vergleichsblock, unter beiden Regeln',
+    JSON.stringify(Object.keys(nb.row)) === '["id","z","f","tn","tx","omit"]' && nb.row.omit === GLACIER_WEATHER_OMIT_NEIGHBOUR && JSON.stringify(Object.keys(nb.hourly)) === '["t"]' && nb.cmp === undefined, JSON.stringify(Object.keys(nb.row)));
+}
+// end to end with the real answer as the stubbed buscosun Fusion: the switch both ways, the old reader, the comparison file
+const AX_NOW = AX.at, AX_RUN = AX.t0.replace(/[-:T]/g, '').slice(0, 10);
+const runAx = async (name, extra = {}, prep = null) => {
+  const root = join(tmp, name), tr = mkTree(root), out = join(root, 'out');
+  if (prep) prep(tr);
+  const res = await main({ data: tr.data, cube: tr.cube, out, calibration: tr.cal, now: AX_NOW, forecast: async () => fcOf(gLow), ioFactory: okIo, always: true, ...extra });
+  const rd = (rel) => (existsSync(join(out, rel)) ? J(join(out, rel)) : null);
+  return { root, tr, out, res, daily: rd(glacierWeatherRunPath(AX_RUN)), chunk: rd(glacierWeatherHourlyPath(AX_RUN, 'ch-test')), phase: rd(GLACIER_WEATHER_PHASE_PATH), status: J(join(root, 'patch', 'status-patch.json')), raw: (rel) => readFileSync(join(out, rel), 'utf8') };
+};
+const eT = await runAx('g-temp'), eP = await runAx('g-psnow', { phase: 'psnow' });
+{
+  const ids = new Set(eT.tr.ids);
+  const valid = (e) => e.daily && e.chunk && weatherProblems(e.daily, ids).length === 0 && weatherHourlyProblems(e.chunk, e.daily).length === 0 && weatherSnowProblems(e.daily).length === 0 && weatherHourlySnowProblems(e.chunk, e.daily).length === 0;
+  const a = eT.daily?.glaciers.find((r) => r.id === 'gl_ch_alpha'), b = eP.daily?.glaciers.find((r) => r.id === 'gl_ch_alpha');
+  const ha = eT.chunk?.glaciers.gl_ch_alpha, hb = eP.chunk?.glaciers.gl_ch_alpha;
+  process.env.GLACIER_WEATHER_PHASE = 'psnow';
+  const eEnv = await runAx('g-env');
+  delete process.env.GLACIER_WEATHER_PHASE;
+  const eBad = await runAx('g-bad', { phase: 'schnee' });
+  add('G9 Schalter Ende zu Ende (echte Antwort als Fusion-Stub): ohne Angabe nennt das Dokument die Regel „temperature“, mit --phase=psnow „psnow“, und Schneeanteil und Neuschnee unterscheiden sich; die Umgebungsvariable GLACIER_WEATHER_PHASE ergibt Byte für Byte dasselbe wie der Schalter; ein unbekanntes Wort schreibt kein Wetterdokument, nennt den Grund in der Statuszeile und lässt den Schmelzlauf stehen; beide Regeln bestehen den Vertrag; das Schmelzdokument ist unter beiden Regeln dasselbe',
+    valid(eT) && valid(eP) && eT.daily.rules.phase.rule === 'temperature' && eP.daily.rules.phase.rule === 'psnow' && eT.daily.rules.phase.warm === MELT.fsWarm && eT.daily.rules.sums === 'expected'
+    && eT.daily.rules.spread.sums === 'scenarios' && eT.daily.rules.spread.k === GLACIER_WEATHER_SPREAD_K && JSON.stringify(ha.s) !== JSON.stringify(hb.s) && JSON.stringify(a.sn) !== JSON.stringify(b.sn) && JSON.stringify(a.p) === JSON.stringify(b.p)
+    && eEnv.raw(glacierWeatherRunPath(AX_RUN)) === eP.raw(glacierWeatherRunPath(AX_RUN)) && eEnv.raw(glacierWeatherHourlyPath(AX_RUN, 'ch-test')) === eP.raw(glacierWeatherHourlyPath(AX_RUN, 'ch-test'))
+    && !existsSync(join(eBad.out, 'melt', 'wx')) && /schnee/.test(eBad.status.lines.weather.error) && existsSync(join(eBad.out, 'melt', `${AX_RUN}.json`))
+    && eT.raw(`melt/${AX_RUN}.json`) === eP.raw(`melt/${AX_RUN}.json`) && eT.raw(`melt/${AX_RUN}.json`) === eBad.raw(`melt/${AX_RUN}.json`),
+    JSON.stringify({ t: eT.daily?.rules, problems: eT.daily ? weatherProblems(eT.daily, ids).slice(0, 3) : 'kein Dokument', bad: eBad.status.lines.weather }));
+  // the reader of the page before the phase (frozen copy of the contract) on the NEW documents, and the new reader on the OLD document
+  const oldOk = (e) => oldWeatherProblems(e.daily, ids).length === 0 && oldWeatherHourlyProblems(e.chunk, e.daily).length === 0;
+  const ctl = (() => { const d = clone(eT.daily); d.rules.sums = 'scenarios'; return oldWeatherProblems(d, ids).length > 0; })();
+  const view = weatherView(eT.daily, 'gl_ch_alpha', Date.parse(AX_NOW) + H);
+  add('G10 Alter Leser, neues Dokument — und umgekehrt: der Vertragsprüfer der Seite vor der Phase (eingefrorene Kopie) nimmt die neuen Tages- und Stundendokumente unter beiden Regeln an, die Kartenregel findet die Zeile; die zwei Prüfer, die die Seite aufruft, sind Zeichen für Zeichen die von vorher (die Schneefelder prüfen zwei eigene Funktionen); Negativkontrolle: hieße die Summenregel nicht mehr „expected“, verwürfe er das Dokument; das alte Dokument (ohne Regel der Spanne, ohne Phasenwort, ohne neue Felder) besteht den neuen Vertrag',
+    oldOk(eT) && oldOk(eP) && ctl && 'row' in view && weatherProblems(FX.daily).length === 0 && weatherHourlyProblems(FX.hourly, FX.daily).length === 0
+    && weatherSnowProblems(FX.daily).length === 0 && weatherHourlySnowProblems(FX.hourly, FX.daily).length === 0
+    && weatherProblems.toString() === oldWeatherProblems.toString() && weatherHourlyProblems.toString() === oldWeatherHourlyProblems.toString()
+    && FX.daily.rules.spread === undefined && FX.daily.rules.phase.rule === undefined && FX.daily.glaciers.every((r) => r.pq === undefined) && Object.values(FX.hourly.glaciers).every((r) => r.sl === undefined && r.sn === undefined),
+    JSON.stringify({ old: oldWeatherProblems(eT.daily, ids).slice(0, 3), oldH: oldWeatherHourlyProblems(eT.chunk, eT.daily).slice(0, 3), ctl }));
+  // negative controls of the new contract rules
+  const own = eT.daily.glaciers.findIndex((r) => r.f === 'own'), nbI = eT.daily.glaciers.findIndex((r) => r.f !== 'own');
+  const idOwn = eT.daily.glaciers[own].id, idNb = eT.daily.glaciers[nbI].id;
+  const dCases = {
+    'Spanne verkehrt herum': (d) => { d.glaciers[own].pq[0] = [2, 1]; },
+    'Neuschnee-Spanne über der des Niederschlags': (d) => { d.glaciers[own].snq[1][0] = [0, d.glaciers[own].pq[0][1] + 1]; },
+    'Spanne an der Zunge über der oben': (d) => { d.glaciers[own].pq[0] = [0, 50]; d.glaciers[own].snq[0][0] = [0, 40]; d.glaciers[own].snq[2][0] = [0, 20]; },
+    'Böen-Spanne ohne die stärkste Böe': (d) => { d.glaciers[own].gq[0] = [d.glaciers[own].gx[0] + 5, d.glaciers[own].gx[0] + 9]; },
+    'Spanne ohne benannte Regel': (d) => { delete d.rules.spread; },
+    'Regel ohne Spanne an der Zeile': (d) => { delete d.glaciers[own].gq; },
+    'zu wenige Szenarien': (d) => { d.rules.spread.k = 5; },
+    'unbekannte Phasenregel': (d) => { d.rules.phase.rule = 'schnee'; },
+    'fremder Antrieb mit Spanne': (d) => { d.glaciers[nbI].pq = d.glaciers[own].pq; },
+    'Tag fehlt in der Spanne': (d) => { d.glaciers[own].snq[2].pop(); },
+  };
+  const hCases = {
+    'Schneefallgrenze mit falscher Länge': (d) => { d.glaciers[idOwn].sl.pop(); },
+    'Schneefallgrenze nicht auf 10 m': (d) => { d.glaciers[idOwn].sl[0] = 2105; },
+    'Neuschnee je Stunde über dem Niederschlag': (d) => { d.glaciers[idOwn].sn[2][0] = d.glaciers[idOwn].p[0] + 0.5; },
+    'je Stunde mehr an der Zunge als oben': (d) => { d.glaciers[idOwn].p[1] = 1; d.glaciers[idOwn].sn[0][1] = 0.9; d.glaciers[idOwn].sn[2][1] = 0.3; },
+    'Neuschnee nicht auf 0,01': (d) => { d.glaciers[idOwn].p[2] = 1; d.glaciers[idOwn].sn.forEach((lv) => { lv[2] = 0.123; }); },
+    'fremder Antrieb mit Schneefallgrenze': (d) => { d.glaciers[idNb].sl = d.glaciers[idOwn].sl; },
+    'fremder Antrieb mit Neuschnee': (d) => { d.glaciers[idNb].sn = d.glaciers[idOwn].sn; },
+  };
+  const dMiss = Object.entries(dCases).filter(([, fn]) => { const d = clone(eT.daily); fn(d); return weatherProblems(d, ids).length + weatherSnowProblems(d).length === 0; }).map(([k]) => k);
+  const hMiss = Object.entries(hCases).filter(([, fn]) => { const d = clone(eT.chunk); fn(d); return weatherHourlyProblems(d, eT.daily).length + weatherHourlySnowProblems(d, eT.daily).length === 0; }).map(([k]) => k);
+  add(`G11 Negativkontrollen der neuen Vertragsregeln: jede von ${Object.keys(dCases).length} Verletzungen am Tagesdokument und jede von ${Object.keys(hCases).length} am Stunden-Chunk wird gemeldet`, dMiss.length === 0 && hMiss.length === 0, `nicht gemeldet: ${[...dMiss, ...hMiss].join(', ')}`);
+}
+{
+  // the comparison of the two rules: one line per run, the same numbers whichever rule is active, the verdict needs 7 days and the limit
+  const eA = eT.phase?.runs?.[0], eB = eP.phase?.runs?.[0];
+  const mkDoc = (days, f) => ({ schema: 1, kind: 'glacier/weather-phase', limit: GLACIER_WEATHER_PHASE_LIMIT, minDays: GLACIER_WEATHER_PHASE_MIN_DAYS, runs: Array.from({ length: days * 2 }, (_, i) => ({ run: `202611${String(10 + (i >> 1)).padStart(2, '0')}${i % 2 ? '17' : '05'}`, rule: 'temperature', n: 900, mm: { temperature: [1000, 2000, 3000], psnow: [1000 * f[0], 2000 * f[1], 3000 * f[2]] }, wet: 400, moved: 20, max: 3.2 })) });
+  const v6 = phaseVerdict(mkDoc(6, [1.02, 1.01, 1])), v7 = phaseVerdict(mkDoc(7, [1.02, 1.01, 1])), vBad = phaseVerdict(mkDoc(7, [0.8, 1.01, 1])), vNone = phaseVerdict(null);
+  const prev = mkDoc(7, [1.02, 1.01, 1]);
+  prev.runs.unshift({ ...prev.runs[0], run: '2026101005' });   // older than the keep time ⇒ goes
+  const grown = await runAx('g-cmp', {}, (tr) => { mkdirSync(join(tr.data, 'melt', 'wx'), { recursive: true }); writeFileSync(join(tr.data, GLACIER_WEATHER_PHASE_PATH), JSON.stringify(prev)); });
+  const twice = phaseDocWith(grown.phase, { ...grown.phase.runs.at(-1), n: 1 }, Date.parse(AX_NOW));
+  let pkg = null; try { pkg = checkPackage('melt', grown.out); } catch (e) { pkg = { error: String(e.message) }; }
+  add(`G12 Vergleich der zwei Regeln: jeder Lauf schreibt eine Zeile nach ${GLACIER_WEATHER_PHASE_PATH} (Summe des Neuschnees je Höhe unter beiden Regeln, nasse Gletscher-Tage, verschobene Tage) — dieselben Zahlen, egal welche Regel der Lauf nutzt; die Datei wächst über die Läufe, Zeilen älter als ${GLACIER_WEATHER_PHASE_KEEP_DAYS} Tage fallen heraus, derselbe Lauf ersetzt seine Zeile; Urteil: 6 Tage reichen nicht, 7 Tage reichen, Grenze ${GLACIER_WEATHER_PHASE_LIMIT * 100} % je Höhe (Negativkontrolle: −20 % an der Zunge ⇒ nicht innerhalb); die Statuszeile nennt Regel und Urteil; die Datei liegt im Präfix der Schmelzlinie`,
+    eA && eB && eA.run === AX_RUN && eA.rule === 'temperature' && eB.rule === 'psnow' && JSON.stringify(eA.mm) === JSON.stringify(eB.mm) && eA.n === 3 && eA.mm.temperature.every((v) => v > 0) && JSON.stringify(eA.mm.temperature) !== JSON.stringify(eA.mm.psnow) && eA.wet > 0
+    && !v6.enough && v6.days === 6 && v7.enough && v7.within && v7.shift[0] === 0.02 && v7.movedShare === 0.05 && vBad.enough && !vBad.within && vBad.shift[0] === 0.2 && vNone.days === 0 && !vNone.enough
+    && grown.phase.runs.length === 15 && grown.phase.runs.at(-1).run === AX_RUN && !grown.phase.runs.some((r) => r.run === '2026101005') && twice.runs.length === 15 && twice.runs.at(-1).n === 1
+    && grown.status.lines.weather.phase.rule === 'temperature' && grown.status.lines.weather.phase.days === 8 && grown.status.lines.weather.phase.enough === true && eT.status.lines.weather.phase.days === 1 && eT.status.lines.weather.phase.enough === false
+    && pkg && !pkg.error && pkg.files.includes(GLACIER_WEATHER_PHASE_PATH) && eT.status.lines.weather.files === 3,
+    JSON.stringify({ eA, v6, v7, vBad, runs: grown.phase?.runs?.length, status: grown.status.lines.weather.phase, pkg: pkg?.error }));
 }
 
 rmSync(tmp, { recursive: true, force: true });

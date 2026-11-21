@@ -1,0 +1,119 @@
+{
+ "run": "2026110412",
+ "rule": "temperature",
+ "spread": {
+  "sums": "scenarios",
+  "k": 100,
+  "rho": 0.9,
+  "gust": "strongest-hour",
+  "origin": "set"
+ },
+ "engine": {
+  "name": "buscosun Fusion 14",
+  "version": 14,
+  "stageCurrent": true
+ },
+ "rows": 2084,
+ "own": 957,
+ "skipped": 10,
+ "skipReasons": [
+  "elevations"
+ ],
+ "size": {
+  "daily": {
+   "raw": 2281349,
+   "gzip": 510872,
+   "brotli": 338656
+  },
+  "chunks": {
+   "raw": 3613201,
+   "gzip": 632085,
+   "brotli": 432707
+  },
+  "chunkFiles": 26,
+  "largestChunk": 923170
+ },
+ "bytesPerField": {
+  "daily": {
+   "tn": 458292,
+   "tx": 420764,
+   "tq": 158738,
+   "w": 45258,
+   "gx": 46987,
+   "wd": 69515,
+   "p": 56869,
+   "sn": 165197,
+   "c": 45936,
+   "sl": 73689,
+   "pq": 112489,
+   "snq": 328452,
+   "gq": 112426
+  },
+  "hourly": {
+   "t": 1455548,
+   "w": 135031,
+   "g": 143550,
+   "d": 197928,
+   "p": 111396,
+   "s": 186158,
+   "c": 143550,
+   "sl": 580891,
+   "sn": 593908
+  }
+ },
+ "contract": {
+  "new": 0,
+  "oldReader": 0
+ },
+ "neighbour": {
+  "rows": 1127,
+  "keys": [
+   "id,z,f,tn,tx,omit"
+  ],
+  "omit": [
+   "neighbour-forcing"
+  ]
+ },
+ "snowline": {
+  "rows": 957,
+  "values": 66021,
+  "nulls": 48819,
+  "after115": 0
+ },
+ "forbiddenWords": [],
+ "phase": {
+  "last": {
+   "run": "2026110412",
+   "rule": "temperature",
+   "n": 957,
+   "mm": {
+    "temperature": [
+     24975.2,
+     27742.3,
+     28527.6
+    ],
+    "psnow": [
+     23770.5,
+     26287.1,
+     27533.3
+    ]
+   },
+   "wet": 8584,
+   "moved": 312,
+   "max": 4.1
+  },
+  "verdict": {
+   "runs": 1,
+   "days": 1,
+   "enough": false,
+   "shift": [
+    0.0482,
+    0.0525,
+    0.0349
+   ],
+   "within": true,
+   "movedShare": 0.0363,
+   "max": 4.1
+  }
+ }
+}

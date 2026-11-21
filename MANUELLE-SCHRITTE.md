@@ -4165,3 +4165,29 @@ Kein Push in `buscosun-archiv`: dessen Workflow legt die Seedateien von selbst a
    `gen-spot-seo.mjs`, Katalog neu einspielen.
 8. **Budget:** der Arbeitsbaum steht bei totalJs 2 094,1 gegen 2 083 (rot, wie vor der Phase durch die anderen Linien);
    nach dem Commit am sauberen Stand nachmessen und die Notiz in `budget.json` berichtigen (V-BS-9).
+
+## 108. Gletscher: Schneefelder in „Wetter am Gletscher“ (Phase GS, `audit/gletscher-schneefelder.md`), 2026-11-21
+
+Nur Daten, keine Anzeige. Lokal committet auf `main`, nicht gepusht. Die Seite zeigt nichts Neues; die neuen Felder
+stehen für eine spätere Höhensäule bereit.
+
+**Pushs in `buscosun-data` und `buscosun-archiv`: keine.** Am Daten-Repo war für diese Phase nichts zu ändern (kein Workflow,
+kein Katalog, kein Zeiger). Der Workflow `glacier-melt.yml` klont den Producer bei jedem Lauf aus `buscosun-web`; die neuen
+Felder stehen ab dem ersten Lauf nach deinem Push in `glacier/v1/melt/wx/`.
+
+1. **Pushen:** `git push origin main`. Danach schreibt der nächste Schmelzlauf (alle 3 h um :20, höchstens 4 am Tag) die neuen
+   Felder. Prüfen: in `glacier/v1/status.json` trägt die Zeile `weather` den Block `phase` (Regel, Tage, Verschiebung je Höhe),
+   und `glacier/v1/melt/wx/phase.json` hat eine Zeile je Lauf.
+2. **Die Schneeanteil-Regel umschalten — frühestens nach 7 Tagen mit Läufen.** Gebaut ist die Regel aus `pSnow`, sie ist
+   **aus**: der Vergleich über 7 Tage war rückwirkend nicht möglich (alte Läufe tragen kein `pSnow`, alte Cubes gibt es nicht
+   mehr). Jeder Lauf rechnet ab jetzt beide Regeln. Steht in `status.json` bei `weather.phase` `enough: true` und
+   `within: true`, die Voreinstellung umlegen: in `scripts/glacier/lib/weathercore.mjs` `WEATHER_PHASE_DEFAULT = 'psnow'`,
+   committen, pushen. Die alte Regel bleibt hinter `--phase=temperature` bzw. `GLACIER_WEATHER_PHASE=temperature`.
+   Steht `within: false` (mehr als 10 % Verschiebung der Neuschnee-Summe an einer Höhe): nicht umlegen, mir sagen.
+3. **Zurück ohne Deploy:** nicht nötig, die alten Felder sind unverändert (am Live-Lauf 2026112117 Byte für Byte gleich).
+   Den Wetterteil ganz abschalten geht wie bisher mit `--weather=0` im Workflow.
+4. **Entscheiden:** E-GS-1 Szenarien der Spanne (100, Korrelation 0,9 — gesetzt, nicht gemessen), E-GS-2 Spanne des
+   Neuschnees je Stunde (nicht gebaut, nur je Tag), V-GS-1 (das `pSnow` der Antwort passt nicht zu ihrer
+   Temperaturverteilung — Motor, eigener Stand), V-GS-2 (im Daten-Repo wird kein Schmelz- und kein Wetterlauf gelöscht:
+   alle Läufe seit dem 12.10. liegen dort; mit den neuen Feldern rund 6,2 MB je Lauf statt 4,4 MB).
+5. **Budget:** siehe `audit/gletscher-schneefelder.md` §4 (der Vertrag liegt im Gletscher-Chunk der Seite).
