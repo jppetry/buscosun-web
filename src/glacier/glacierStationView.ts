@@ -58,12 +58,12 @@ function valueOf(q: StnQuantity, e: StnEntry, nowMs: number): { text: string; ms
   if (q === 'precip') {
     if (tooOld(stationMs)) return { why: STN_REJECT_TEXT.stale };
     const s = e.rr24h ? ([e.rr24h, '24 Stunden'] as const) : e.rr6h ? ([e.rr6h, '6 Stunden'] as const) : e.rr1h ? ([e.rr1h, '1 Stunde'] as const) : null;
-    return s ? { text: `${fmt1(s[0].mm)} mm in ${s[1]}`, ms: stationMs } : { why: 'kein Wert in dieser Stunde' };
+    return s ? { text: `${fmt1(s[0].mm)} mm in ${s[1]}`, ms: stationMs } : { why: 'kein Wert im jüngsten Abruf' };
   }
   const k = VAR_OF[q];
   const own = e.v?.[k], old = e.older?.[k];
   const v = own ?? old?.v, ms = own != null ? stationMs : old ? Date.parse(old.t) : NaN;
-  if (v == null || !Number.isFinite(ms)) return { why: 'kein Wert in dieser Stunde' };
+  if (v == null || !Number.isFinite(ms)) return { why: 'kein Wert im jüngsten Abruf' };
   if (tooOld(ms)) return { why: STN_REJECT_TEXT.stale };
   if (q === 't') return { text: `${fmt1(v)} °C`, ms };
   if (q === 'wind') { const dd = e.v?.dd ?? e.older?.dd?.v; return { text: `${kmh(v)} km/h${dd != null && v > 0 ? ` aus ${compassOf(dd)}` : ''}`, ms }; }
@@ -88,7 +88,7 @@ export function stationView(map: StnMapDoc | null, hour: StnHourDoc | null, id: 
     if (!st) { st = { id: h[0], name: meta.name, elev: meta.elev, operator: meta.op, net: meta.net, km: h[1], dz: h[2], ms: null, values: [] }; by.set(h[0], st); }
     const e = hour?.stations[h[0]];
     let val: StnViewValue;
-    if (!hour) val = { q: q.key, label: q.label, text: null, why: 'die Messwerte dieser Stunde sind nicht ladbar' };
+    if (!hour) val = { q: q.key, label: q.label, text: null, why: 'die jüngsten Messwerte sind nicht ladbar' };
     else {
       const r = e ? valueOf(q.key, e, nowMs) : null;
       if (r && 'text' in r) { val = { q: q.key, label: q.label, text: r.text, ms: r.ms }; st.ms = Math.max(st.ms ?? 0, r.ms); }
@@ -96,7 +96,7 @@ export function stationView(map: StnMapDoc | null, hour: StnHourDoc | null, id: 
         // dropped by a check of the producer? then say which one
         const what: readonly string[] = q.key === 'precip' ? ['rr24h', 'rr6h', 'rr1h'] : [VAR_OF[q.key]];
         const rej = hour.rejected.find((x) => x[0] === h[0] && what.includes(x[1]));
-        val = { q: q.key, label: q.label, text: null, why: rej ? STN_REJECT_TEXT[rej[2]] : r && 'why' in r ? r.why : 'kein Wert in dieser Stunde' };
+        val = { q: q.key, label: q.label, text: null, why: rej ? STN_REJECT_TEXT[rej[2]] : r && 'why' in r ? r.why : 'kein Wert im jüngsten Abruf' };
       }
     }
     st.values.push(val);

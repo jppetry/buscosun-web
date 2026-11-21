@@ -405,3 +405,41 @@ gemessen; die Karte lädt zwei kleine JSON-Dateien (Zuordnung 38 KB, Stunde 22 K
 (Vorschlag im Wortlaut), Entscheidungen E-GO-1 / 3 / 4 / 7, Rückfall ohne Deploy.
 
 Commit dieser Phase auf `main` (lokal, nicht gepusht): siehe `git log` — `feat(glacier): station measurements next to "Wetter am Gletscher" (phase GO)`.
+
+## 10 Halbstundentakt (GO-2, Jans Wort 21.11. abends: „dann machen wir alle 30 Minuten“)
+
+### 10.1 Diagnose (vor dem Code)
+
+Stand am Daten-Repo, 21.11. 16:31 UTC: der erste Lauf MIT dem Producer auf einem GitHub-Runner (`44924927663`, Cron :27, gestartet 16:30:25)
+schrieb `stn/h/2026112116.json` (342 Stationen, 10 Werte verworfen, Tirol über die OGD-Datei). Alter der Werte beim Abruf:
+Tirol Median 11 min, Südtirol 21 min, TAWES und SwissMetNet 11 min, DWD 41 min. Die Quellen schreiben alle rund 10 Minuten neu —
+bei einem Lauf je Stunde liest die Seite also Werte, die rund 11 bis 75 Minuten alt sind; bei einem Lauf je halbe Stunde rund 11 bis 45.
+
+Was an der Stunde hängt (am Code gelesen):
+
+| Stelle | heute | Folge für 30 min |
+|---|---|---|
+| Schlüssel `stnHourOf` und Dateiname `h/<yyyymmddhh>.json` | eine Datei je Stunde, EINMAL veröffentlicht | braucht einen Schlüssel je halbe Stunde |
+| Leser der Seite (`loadStationHour`, seit dem Push live) | nimmt nur zehnstellige Schlüssel und prüft `doc.hour === Schlüssel` | ein ausgelieferter (auch zwischengespeicherter) Stand der Seite darf nicht ohne Werte dastehen |
+| Stillstand-Prüfung | „jetzt + sechs frühere Dokumente mit verschiedenem Stempel“ | zählte bei 30 min nur noch drei Stunden — die Regel würde still schärfer |
+| Geschichte der Prüfungen | die acht jüngsten Dokumente | wären nur noch vier Stunden |
+| Aufbewahrung im Publisher | Muster auf zehn Ziffern | eine Halbstunden-Datei hätte keinen Stempel und bliebe liegen |
+| Ablage `buscosun-archiv` | jede Datei aus `h/` | doppelte Menge (rund 200 statt 100 MB im Jahr) |
+| Cron `27 * * * *` | startet gemessen um :30 (GitHub-Verzug rund 3 min) | :27/:57 läge genau auf der Slot-Grenze: je nach Verzug zwei Läufe in einem Slot und keiner im nächsten |
+
+### 10.2 Plan
+
+1. **Slot statt Stunde, alte Namen bleiben.** Der Schlüssel der vollen Stunde bleibt `yyyymmddhh`, die halbe Stunde heißt `yyyymmddhh30`
+   (als Zeichenkette zeitlich sortiert). Bestehende Dateien, die Ablage und jeder ausgelieferte Stand der Seite bleiben gültig.
+2. **Zeiger mit zwei Feldern:** `stations.hour` = jüngste VOLLE Stunde (liest der Stand der Seite vor diesem Schritt), `stations.slot` =
+   jüngster Slot (liest der neue Stand). `builtAt` und `n` gehören zum Slot.
+3. **Stillstand in Zeit statt in Dokumenten:** derselbe Wert in allen früheren Ablesungen der letzten sechs Stunden, mindestens sechs mit
+   verschiedenem Stempel, die älteste mindestens 5,5 h zurück. Mit Stundendateien fällt dieselbe Menge heraus wie bisher; drei Stunden
+   Gleichstand im Halbstundentakt reichen NICHT. Geschichte = alle Dokumente der letzten acht Stunden.
+4. **Ablage bleibt stündlich** (E-GO-11): abgelegt wird die volle Stunde; die halbe nur, wenn ihre volle Stunde weder im Daten-Repo noch in
+   der Ablage liegt (ausgefallener Lauf) — die Reihe bekommt so keine Lücke und wächst nicht auf das Doppelte.
+5. **Cron `12,42 * * * *`:** 18 Minuten Abstand zur Slot-Grenze; abseits von glacier-melt (:20) und glacier-sat (:48).
+6. Aufbewahrung, README, Vorlagen, Prüfer nachziehen. Keine Änderung an Grenzen, Höchstalter, Zuordnung, Anzeige-Regeln, buscosun Fusion.
+
+Reihenfolge ohne Risiko: der neue Cron mit dem ALTEN Producer schreibt um :12 die Stunde und um :42 nichts (die Stunde liegt schon);
+der neue Producer mit dem alten Cron schreibt einen Slot je Stunde. Beides ist der heutige Zustand, nur nicht besser.

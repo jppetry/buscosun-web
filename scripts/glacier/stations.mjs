@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Phase GO — producer of the station measurements next to "Wetter am Gletscher" (`audit/gletscher-stationen.md`, contract
- * `src/glacier/glacierStationContract.ts`). One run per hour:
+ * `src/glacier/glacierStationContract.ts`). One run every 30 minutes:
  *
  *   Land Tirol   the OGD file (CC BY 4.0); if it cannot be read, the Euregio feed filtered to the licensed operators
  *   Südtirol     `/stations` + `/sensors` of the province's service (CC0), plus the 5-min precipitation series of every rain gauge
@@ -11,12 +11,14 @@
  * what fails is left out and listed under `rejected`. The output is a tree for the glacier publisher (line `stations`) plus the
  * two pointer patches — nothing here pushes:
  *
- *   <out>/stn/h/<yyyymmddhh>.json   the hour — written ONCE: a second run in an hour the store already holds writes no hour file
+ *   <out>/stn/h/<slot>.json         the slot (`yyyymmddhh`, or `yyyymmddhh30` for the second half of the hour) — written ONCE: a
+ *                                   second run in a slot the store already holds writes no slot file
  *                                   (the archive keeps what was published first; catalogue and mapping may still be renewed)
  *   <out>/stn/stations.json         the catalogue, only when it changed
  *   <out>/stn/map/<file>.json       glacier → nearest station per quantity, only when it was (re)built
  *   <out>/stn/README.md             sources, licences and what was changed — written when the store's copy is missing or differs
- *   <patch>/index-patch.json        { stations: { hour, builtAt, n, map, mapAt } }
+ *   <patch>/index-patch.json        { stations: { hour, slot, builtAt, n, map, mapAt } } — `hour` = newest FULL hour (pages from
+ *                                   before the half-hour step read it), `slot` = newest slot
  *   <patch>/status-patch.json       { lines: { stations: … } }
  *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/stations.mjs \
@@ -30,9 +32,9 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  BZ_BASE_URL, BZ_PRECIP_SENSOR, GLACIER_STN_CATALOG_PATH, GLACIER_STN_HOUR_RE, GLACIER_STN_MAP_RE, GLACIER_STN_SOURCES, STN_ID_RULE, STN_JUMP_PER_H, STN_LIMITS,
+  BZ_BASE_URL, BZ_PRECIP_SENSOR, GLACIER_STN_CATALOG_PATH, GLACIER_STN_HOUR_RE, GLACIER_STN_MAP_RE, GLACIER_STN_SLOT_RE, GLACIER_STN_SOURCES, STN_ID_RULE, STN_JUMP_PER_H, STN_LIMITS,
   STN_MAP_REFRESH_MS, STN_MAX_AGE_MS, STN_STUCK_HOURS, STN_VARS, TIROL_FEED_URL, TIROL_OGD_URL, bzPrecipSums, buildStnMap, checkReading, glacierStnHourPath, glacierStnMapPath, obsReadingOf,
-  parseBz, parseTirol, stnCandidates, stnHistoryOf, stnHourOf, stnHourProblems, stnMapProblems,
+  parseBz, parseTirol, stnCandidates, stnHistoryOf, stnHourProblems, stnMapProblems, stnSlotMs, stnSlotOf,
 } from '../../src/glacier/glacierStationContract.ts';
 
 const SELF = fileURLToPath(import.meta.url);
@@ -49,13 +51,13 @@ export function stnReadme() {
   return [
     '# glacier/v1/stn — Stationsmessungen in der Nähe der Gletscher',
     '',
-    'Stündlich aus zwei Messnetzen, dazu die Werte der zugeordneten Stationen aus `obs/v1` (DWD, GeoSphere Austria, MeteoSchweiz).',
+    'Alle 30 Minuten aus zwei Messnetzen, dazu die Werte der zugeordneten Stationen aus `obs/v1` (DWD, GeoSphere Austria, MeteoSchweiz).',
     'Eigenes Produkt der Gletscher-Linie: **buscosun Fusion liest diese Dateien nicht** (der Motor liest Messungen nur aus `obs/v1/`).',
     '',
     '| Datei | Inhalt |',
     '|---|---|',
     '| `stations.json` | Katalog der zwei Netze (Form von `obs/v1/stations.json`, dazu `operator`) |',
-    '| `h/<yyyymmddhh>.json` | Werte einer Stunde je Station (Form eines Eintrags von `obs/v1/latest.json`), 72 h aufbewahrt; dauerhaft in `buscosun-archiv` `glacier/v1/<Tag>/stn-<stunde>.json.gz` |',
+    '| `h/<slot>.json` | Werte eines Laufs je Station (Form eines Eintrags von `obs/v1/latest.json`); der Slot heißt `yyyymmddhh` für die volle Stunde und `yyyymmddhh30` für die halbe; 72 h aufbewahrt; dauerhaft je Stunde eine Datei in `buscosun-archiv` `glacier/v1/<Tag>/stn-<slot>.json.gz` |',
     '| `map/<build>.<n>.json` | Gletscher → nächste Station je Größe (Abstand ≤ 5 km, Stationshöhe in der Höhenspanne des Gletschers ±300 m) |',
     '',
     '## Quellen und Lizenzen',
@@ -76,7 +78,7 @@ export function stnReadme() {
     '',
   ].join('\n');
 }
-/** Earlier hours read as the history of the checks. */
+/** Hours before the slot whose documents are read as the history of the checks (every slot file in that span). */
 export const STN_HISTORY_HOURS = STN_STUCK_HOURS + 2;
 
 const readJson = (p) => JSON.parse(readFileSync(p, 'utf8'));
@@ -112,13 +114,15 @@ export function mergeCatalog(prev, fresh) {
  * patches. Throws when neither network answered — a run without any measurement must turn the job red, not publish an empty hour.
  */
 export async function runStations({ storeDir, outDir, patchDir, nowMs = Date.now(), forceMap = false, get = (u) => getJson(u), log = () => {} }) {
-  const hour = stnHourOf(nowMs), builtAt = new Date(nowMs).toISOString();
+  const slot = stnSlotOf(nowMs), builtAt = new Date(nowMs).toISOString();
   const index = existsSync(join(storeDir, 'index.json')) ? readJson(join(storeDir, 'index.json')) : null;
 
-  // earlier hours (history of the jump and stuck checks)
+  // earlier slots (history of the jump and stuck checks)
   const hDir = join(storeDir, 'stn', 'h');
-  const earlier = (existsSync(hDir) ? readdirSync(hDir) : []).map((f) => f.replace(/\.json$/, '')).filter((h) => GLACIER_STN_HOUR_RE.test(h) && h < hour).sort().reverse()
-    .slice(0, STN_HISTORY_HOURS).map((h) => { try { return readJson(join(hDir, `${h}.json`)); } catch { return null; } }).filter(Boolean);
+  const held0 = (existsSync(hDir) ? readdirSync(hDir) : []).map((f) => f.replace(/\.json$/, '')).filter((k) => GLACIER_STN_SLOT_RE.test(k)).sort();
+  const sinceMs = stnSlotMs(slot) - STN_HISTORY_HOURS * 3_600_000;
+  const earlier = held0.filter((k) => k < slot && stnSlotMs(k) >= sinceMs).reverse()
+    .map((k) => { try { return readJson(join(hDir, `${k}.json`)); } catch { return null; } }).filter(Boolean);
 
   const sources = [], readings = [], fresh = [];
   const srcOf = (id) => GLACIER_STN_SOURCES.find((s) => s.id === id);
@@ -209,29 +213,32 @@ export async function runStations({ storeDir, outDir, patchDir, nowMs = Date.now
   }
   const sorted = Object.fromEntries(Object.keys(out).sort().map((k) => [k, out[k]]));
   const doc = {
-    schema: 1, kind: 'glacier/stations-hour', hour, builtAt, sources,
+    schema: 1, kind: 'glacier/stations-hour', hour: slot, builtAt, sources,
     rules: { maxAgeMin: STN_MAX_AGE_MS / 60_000, limits: STN_LIMITS, jumpPerH: STN_JUMP_PER_H, stuckHours: STN_STUCK_HOURS, history: earlier.length },
     count: Object.keys(sorted).length, stations: sorted, rejected: rejected.sort((a, b) => (a[0] + a[1] < b[0] + b[1] ? -1 : 1)),
   };
   const problems = stnHourProblems(doc);
   if (problems.length) throw new Error(`Stundendokument fehlerhaft: ${problems.slice(0, 3).join('; ')}`);
 
-  // an hour is published once: the store's document stays, and the pointer keeps naming it
-  const heldFile = join(storeDir, glacierStnHourPath(hour));
+  // a slot is published once: the store's document stays, and the pointer keeps naming it
+  const heldFile = join(storeDir, glacierStnHourPath(slot));
   const held = existsSync(heldFile) ? readJson(heldFile) : null;
-  if (!held) writeJson(join(outDir, glacierStnHourPath(hour)), doc);
+  if (!held) writeJson(join(outDir, glacierStnHourPath(slot)), doc);
   if (catChanged) writeJson(join(outDir, GLACIER_STN_CATALOG_PATH), catalog);
   if (mapBuilt) writeJson(join(outDir, glacierStnMapPath(mapFile)), map);
   const readmeFile = join(storeDir, 'stn', 'README.md'), readme = stnReadme();
   const readmeChanged = !existsSync(readmeFile) || readFileSync(readmeFile, 'utf8') !== readme;
   if (readmeChanged) { mkdirSync(join(outDir, 'stn'), { recursive: true }); writeFileSync(join(outDir, 'stn', 'README.md'), readme); }
-  const pointer = { hour, builtAt: held ? held.builtAt : builtAt, n: held ? held.count : doc.count, map: mapFile, mapAt: mapFile ? mapAt : null };
+  // `hour` = the newest full hour the store holds after this run (a page from before the half-hour step reads only that name);
+  // a store without any full hour yet names the slot
+  const hour = [...held0, slot].filter((k) => GLACIER_STN_HOUR_RE.test(k)).sort().pop() ?? slot;
+  const pointer = { hour, slot, builtAt: held ? held.builtAt : builtAt, n: held ? held.count : doc.count, map: mapFile, mapAt: mapFile ? mapAt : null };
   writeJson(join(patchDir, 'index-patch.json'), { stations: pointer });
   writeJson(join(patchDir, 'status-patch.json'), {
-    lines: { stations: { hour, checkedAt: builtAt, n: doc.count, rejected: rejected.length, sources: Object.fromEntries(sources.map((s) => [s.id, { stations: s.stations, via: s.via, ...(s.error ? { error: s.error } : {}) }])) } },
+    lines: { stations: { hour, slot, checkedAt: builtAt, n: doc.count, rejected: rejected.length, sources: Object.fromEntries(sources.map((s) => [s.id, { stations: s.stations, via: s.via, ...(s.error ? { error: s.error } : {}) }])) } },
   });
   return {
-    hour, hourWritten: !held, stations: doc.count, rejected: rejected.length, catalog: stations.length, catalogChanged: catChanged, map: mapFile, mapBuilt,
+    hour, slot, hourWritten: !held, stations: doc.count, rejected: rejected.length, catalog: stations.length, catalogChanged: catChanged, map: mapFile, mapBuilt,
     mapReport: mapBuilt ? map.report.all : null, history: earlier.length, sources: sources.map((s) => `${s.id}:${s.stations}${s.error ? '!' : ''}`).join(' '),
   };
 }

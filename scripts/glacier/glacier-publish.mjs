@@ -96,7 +96,7 @@ export const GLACIER_POLICIES = Object.freeze({
   sat: [], melt: [], feed: [],
   // hour files older than 72 h go (the archive keeps them); the two newest mappings stay
   stations: [
-    { prefix: 'stn/h', olderThanMs: 72 * 3_600_000, stampOf: (n) => { const m = /^(\d{4})(\d{2})(\d{2})(\d{2})\.json$/.exec(n); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4]) : null; } },
+    { prefix: 'stn/h', olderThanMs: 72 * 3_600_000, stampOf: (n) => { const m = /^(\d{4})(\d{2})(\d{2})(\d{2})(30)?\.json$/.exec(n); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], m[5] ? 30 : 0) : null; } },
     { prefix: 'stn/map', keepNewest: 2 },
   ],
 });

@@ -6,11 +6,12 @@
 # und wird bei jedem Lauf frisch von `GLACIER_PRODUCER_REF` geklont (fällt auf `main` zurück, wenn der Zweig weg ist).
 #
 # ── Ablauf ────────────────────────────────────────────────────────────────
-# Stündlich: die OGD-Datei des Landes Tirol (CC BY 4.0; Rückfall: der Euregio-Feed, gefiltert auf `HD Tirol` und `LWD Tirol…`), der Wetterdienst
+# Alle 30 Minuten: die OGD-Datei des Landes Tirol (CC BY 4.0; Rückfall: der Euregio-Feed, gefiltert auf `HD Tirol` und `LWD Tirol…`), der Wetterdienst
 # der Provinz Bozen (CC0) und — nur für die Stationen, die die Zuordnung nennt — `obs/v1/latest.json` (gelesen, nie geschrieben).
-# Veröffentlicht wird unter `glacier/v1/stn/` (Stundendatei, Katalog, Zuordnung) und der Zeiger `index.stations`.
+# Veröffentlicht wird unter `glacier/v1/stn/` (Datei je Slot — volle Stunde `yyyymmddhh`, halbe `yyyymmddhh30` —, Katalog, Zuordnung)
+# und der Zeiger `index.stations`.
 # buscosun Fusion liest `obs/v1/`, nicht `glacier/v1/stn/` — dieser Workflow schreibt NICHTS nach `obs/v1/`.
-# Die Stundendateien bleiben 72 h; `glacier-stations-archiv.yml` im Archiv-Repo legt sie dauerhaft ab.
+# Die Slot-Dateien bleiben 72 h; `glacier-stations-archiv.yml` im Archiv-Repo legt je Stunde eine dauerhaft ab.
 #
 # Eigene Concurrency-Gruppe: in der Gruppe `glacier-publish` würde ein wartender Stundenlauf von einem später wartenden Lauf der
 # anderen Linien verdrängt (GitHub hält je Gruppe nur EINEN wartenden Lauf). Der Publisher verträgt den parallelen Push (jeder Versuch
@@ -23,7 +24,8 @@ name: glacier-stations
 
 on:
   schedule:
-    - cron: '27 * * * *'   # stündlich :27 — abseits von glacier-melt (:20), glacier-sat (:48), obs-watchdog und den Punkt-Läufen
+    - cron: '12,42 * * * *'   # alle 30 min — 18 min hinter der Slot-Grenze (GitHub startet verspätet; :27/:57 träfe je nach Verzug zwei Läufe in
+                              # einem Slot und keinen im nächsten), abseits von glacier-melt (:20) und glacier-sat (:48)
   workflow_dispatch: {}
 
 concurrency:

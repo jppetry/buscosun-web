@@ -12,7 +12,7 @@ import { OriginChip } from './GlacierParts';
 import { fmt0, fmt1 } from './glacierView';
 import { loadStationHour, loadStationMap, type GlacierBases } from './glacierClient';
 import type { GlacierCatalogEntry } from './glacierContract';
-import { GLACIER_STN_SITE_NOTE, type GlacierStnPointer, type StnHourDoc, type StnMapDoc } from './glacierStationContract';
+import { GLACIER_STN_SITE_NOTE, stnPointerKey, type GlacierStnPointer, type StnHourDoc, type StnMapDoc } from './glacierStationContract';
 import { ageText, dzText, stationView, type StnView, type StnViewStation } from './glacierStationView';
 
 /**
@@ -65,7 +65,7 @@ export default function GlacierStationCard({ g, pointer, byId, nowMs, bases }: {
   // `undefined` = still loading, `null` = not loadable
   const [map, setMap] = useState<StnMapDoc | null | undefined>(undefined);
   const [hour, setHour] = useState<StnHourDoc | null | undefined>(undefined);
-  const mapFile = pointer?.map ?? null, hourKey = pointer?.hour ?? null;
+  const mapFile = pointer?.map ?? null, hourKey = pointer ? stnPointerKey(pointer) : null;
   useEffect(() => {
     let alive = true;
     setMap(undefined);

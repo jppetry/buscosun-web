@@ -6,7 +6,8 @@
  *
  * Where it lives — a line of its own inside the glacier store, NOT in `obs/v1`:
  *   glacier/v1/stn/stations.json        catalogue of the two networks (shape of `obs/v1/stations.json`)
- *   glacier/v1/stn/h/<yyyymmddhh>.json  the values of one hour (shape of `obs/v1/latest.json` per station); written once, kept 72 h
+ *   glacier/v1/stn/h/<slot>.json        the values of one run, every 30 min (shape of `obs/v1/latest.json` per station; slot =
+ *                                       `yyyymmddhh` or `yyyymmddhh30`); written once, kept 72 h
  *   glacier/v1/stn/map/<file>.json      glacier → nearest station per quantity, with distance and elevation difference
  * and the pointer `index.stations` of `glacier/v1/index.json`.
  *
@@ -16,7 +17,7 @@
  *
  * Honesty rules encoded here:
  *  - the raw data of both networks is unvalidated: every value passes named limits, a jump check and a stuck check against the
- *    station's own previous hours, and a maximum age. A value that fails is NOT in the document (it is listed under `rejected`);
+ *    station's own previous readings, and a maximum age. A value that fails is NOT in the document (it is listed under `rejected`);
  *  - only the licensed operators are read: the OGD file of Land Tirol, or — as a fallback — the Euregio feed filtered to the
  *    operators `HD Tirol` and `LWD Tirol…`. Any other operator is dropped before anything is stored;
  *  - units are the fixed units of `obs/v1` (°C, %, m/s, °, cm, W/m², mm); the Tirol file's km/h are converted, nothing else is changed;
@@ -30,16 +31,30 @@ const MIN = 60_000, HOUR = 3_600_000;
 
 export const GLACIER_STN_DIR = 'stn';
 export const GLACIER_STN_CATALOG_PATH = `${GLACIER_STN_DIR}/stations.json`;
+/**
+ * One run every 30 minutes (Jan 21.11.2026). A slot is a full hour or its second half; a document is named after its slot:
+ * `yyyymmddhh` for the full hour — the name every file has had since the first run, and the only one a page from before the
+ * half-hour step reads — and `yyyymmddhh30` for the half. As strings the keys sort by time.
+ */
+export const GLACIER_STN_SLOT_MIN = 30;
 export const GLACIER_STN_HOUR_RE = /^\d{10}$/;
-export const glacierStnHourPath = (hour: string) => `${GLACIER_STN_DIR}/h/${hour}.json`;
+export const GLACIER_STN_SLOT_RE = /^\d{10}(30)?$/;
+export const glacierStnHourPath = (slot: string) => `${GLACIER_STN_DIR}/h/${slot}.json`;
 /** `<static build>.<revision>` — a new revision is a new file name, so a published map never changes under its name. */
 export const GLACIER_STN_MAP_RE = /^(\d{8}-\d+)\.(\d+)$/;
 export const glacierStnMapPath = (file: string) => `${GLACIER_STN_DIR}/map/${file}.json`;
-/** Hour files stay this long in the data repo (the archive in `buscosun-archiv` keeps them for good). */
+/** Slot files stay this long in the data repo (the archive in `buscosun-archiv` keeps one per hour for good). */
 export const GLACIER_STN_KEEP_MS = 72 * HOUR;
-/** UTC hour key `yyyymmddhh` of a time. */
-export const stnHourOf = (ms: number): string => new Date(Math.floor(ms / HOUR) * HOUR).toISOString().slice(0, 13).replace(/[-T]/g, '');
-export const stnHourMs = (hour: string): number => Date.UTC(+hour.slice(0, 4), +hour.slice(4, 6) - 1, +hour.slice(6, 8), +hour.slice(8, 10));
+/** Slot key of a time (UTC): `yyyymmddhh` in the first half of the hour, `yyyymmddhh30` in the second. */
+export const stnSlotOf = (ms: number): string => {
+  const d = new Date(Math.floor(ms / (GLACIER_STN_SLOT_MIN * MIN)) * GLACIER_STN_SLOT_MIN * MIN);
+  const hour = d.toISOString().slice(0, 13).replace(/[-T]/g, '');
+  return d.getUTCMinutes() ? `${hour}${GLACIER_STN_SLOT_MIN}` : hour;
+};
+/** Start of a slot (ms). */
+export const stnSlotMs = (slot: string): number => Date.UTC(+slot.slice(0, 4), +slot.slice(4, 6) - 1, +slot.slice(6, 8), +slot.slice(8, 10), slot.length > 10 ? +slot.slice(10) : 0);
+/** The full hour a slot belongs to (`yyyymmddhh`). */
+export const stnSlotHour = (slot: string): string => slot.slice(0, 10);
 
 // --- Networks and sources ------------------------------------------------------------------------------------------------------------------
 
@@ -108,8 +123,14 @@ export const STN_LIMITS: Readonly<Record<StnVar | StnSumKey, readonly [number, n
 export const STN_JUMP_PER_H: Readonly<Partial<Record<StnVar, number>>> = Object.freeze({ t: 15, td: 20, snow: 60 });
 /** A previous value older than this is no reference for the jump check. */
 export const STN_JUMP_REF_MS = 3 * HOUR;
-/** Stuck check: this many previous hours (each with its own, different stamp) plus the current reading carry the same value. set. */
+/**
+ * Stuck check: the current reading and EVERY earlier reading of the last `STN_STUCK_HOURS` hours carry the same value — at least
+ * `STN_STUCK_HOURS` of them with different stamps, the oldest that far back (less `STN_STUCK_SLACK_MS`). Counted in time, not in
+ * documents: three hours of the same value in half-hour documents are not six hours. set.
+ */
 export const STN_STUCK_HOURS = 6;
+/** Tolerance at both ends of the stuck window (stations report every 10 min, a run comes every 30). set. */
+export const STN_STUCK_SLACK_MS = 30 * MIN;
 /** Variables with a stuck check. Temperature: the same tenth for seven readings. Wind and gust: the same non-zero value, or zero below `STN_RIME_T`. */
 export const STN_STUCK_VARS: readonly StnVar[] = ['t', 'ff', 'fx'];
 /** Calm for hours at or below this temperature is treated as a rimed anemometer (°C, set). Above it a calm stays a calm. */
@@ -163,6 +184,7 @@ export type StnRejected = [id: string, what: string, reason: StnRejectReason];
 export interface StnHourSource { id: string; label: string; licence: string; note: string; fetchedAt: string | null; via: string; stations: number; error?: string }
 export interface StnHourDoc {
   schema: 1; kind: 'glacier/stations-hour';
+  /** The slot key of the document (`yyyymmddhh` or `yyyymmddhh30`); the field keeps its first name. */
   hour: string; builtAt: string;
   sources: StnHourSource[];
   rules: { maxAgeMin: number; limits: typeof STN_LIMITS; jumpPerH: typeof STN_JUMP_PER_H; stuckHours: number; history: number };
@@ -322,7 +344,7 @@ export function obsReadingOf(id: string, e: unknown): StnReading | null {
 
 // --- Plausibility ------------------------------------------------------------------------------------------------------------------------
 
-/** Previous accepted values of one station, newest first (from the hour files before this one). */
+/** Previous accepted values of one station, newest first (from the slot files before this one). */
 export type StnHistory = ReadonlyArray<{ ms: number; v: Partial<Record<StnVar, number>> }>;
 
 const inRange = (k: StnVar | StnSumKey, x: number) => x >= STN_LIMITS[k][0] && x <= STN_LIMITS[k][1];
@@ -357,9 +379,10 @@ export function checkReading(r: StnReading, src: string, nowMs: number, history:
   const t = ok.get('t'), td = ok.get('td'), ff = ok.get('ff'), fx = ok.get('fx');
   if (t && td && td.v > t.v + STN_TD_ABOVE_T) { ok.delete('td'); drop('td', 'inconsistent'); }
   if (ff && fx && fx.v < ff.v - STN_GUST_BELOW_MEAN) { ok.delete('fx'); drop('fx', 'inconsistent'); }
-  // stuck: the same value in this reading and in STN_STUCK_HOURS earlier readings with different stamps
-  const past = history.filter((h) => h.ms < r.ms).slice(0, STN_STUCK_HOURS);
-  if (past.length === STN_STUCK_HOURS && new Set(past.map((h) => h.ms)).size === STN_STUCK_HOURS) {
+  // stuck: the same value in this reading and in every earlier reading (one per stamp) of the last STN_STUCK_HOURS hours
+  const stamps = new Set<number>();
+  const past = history.filter((h) => h.ms < r.ms && r.ms - h.ms <= STN_STUCK_HOURS * HOUR + STN_STUCK_SLACK_MS && !stamps.has(h.ms) && !!stamps.add(h.ms));
+  if (past.length >= STN_STUCK_HOURS && r.ms - Math.min(...past.map((h) => h.ms)) >= STN_STUCK_HOURS * HOUR - STN_STUCK_SLACK_MS) {
     const same = (k: StnVar, v: number) => past.every((h) => h.v[k] === v);
     const cur = ok.get('t');
     if (cur && same('t', cur.v)) { ok.delete('t'); drop('t', 'stuck'); }
@@ -386,7 +409,7 @@ export function checkReading(r: StnReading, src: string, nowMs: number, history:
   return { entry: { t: iso(r.ms), src, v, ...(Object.keys(older).length ? { older } : {}), ...sums }, rejected };
 }
 
-/** The accepted values of one station in earlier hour documents, newest first — the history `checkReading` needs. */
+/** The accepted values of one station in earlier slot documents, newest first — the history `checkReading` needs. */
 export function stnHistoryOf(id: string, earlier: readonly StnHourDoc[]): StnHistory {
   const out: Array<{ ms: number; v: Partial<Record<StnVar, number>> }> = [];
   for (const d of earlier) { const e = d.stations?.[id]; const ms = e ? Date.parse(e.t) : NaN; if (e && Number.isFinite(ms) && !out.some((x) => x.ms === ms)) out.push({ ms, v: e.v ?? {} }); }
@@ -501,13 +524,21 @@ export function buildStnMap(glaciers: readonly StnMapGlacier[], cands: readonly 
 // --- Documents: checks the client and the verifier share ---------------------------------------------------------------------------
 
 /** `mapAt` = when the mapping was last recomputed (the producer does it once a day; the file changes only when the result does). */
-export interface GlacierStnPointer { hour: string; builtAt: string; n: number; map: string | null; mapAt?: string | null }
+export interface GlacierStnPointer {
+  /** Newest FULL hour the store holds — what a page from before the half-hour step reads. */
+  hour: string;
+  /** Newest slot (full or half hour); `builtAt` and `n` belong to its document. Absent in a pointer from before the half-hour step. */
+  slot?: string;
+  builtAt: string; n: number; map: string | null; mapAt?: string | null;
+}
+/** The document a page reads: the newest slot, or — pointer from before the half-hour step — the hour. */
+export const stnPointerKey = (p: Pick<GlacierStnPointer, 'hour' | 'slot'>): string => (typeof p.slot === 'string' && GLACIER_STN_SLOT_RE.test(p.slot) ? p.slot : p.hour);
 
 /** Problems of an hour document (empty = fine). */
 export function stnHourProblems(d: unknown): string[] {
   const o = d as Partial<StnHourDoc> | null, bad: string[] = [];
   if (!o || o.schema !== 1 || o.kind !== 'glacier/stations-hour') return ['kein Stundendokument der Stationen'];
-  if (typeof o.hour !== 'string' || !GLACIER_STN_HOUR_RE.test(o.hour)) bad.push('Stunde fehlt');
+  if (typeof o.hour !== 'string' || !GLACIER_STN_SLOT_RE.test(o.hour)) bad.push('Stunde fehlt');
   if (!o.stations || typeof o.stations !== 'object') return [...bad, 'ohne Stationen'];
   if (!Array.isArray(o.sources) || !o.sources.length) bad.push('ohne Quellen');
   for (const [id, e] of Object.entries(o.stations)) {

@@ -163,6 +163,13 @@ const bz = C.parseBz(bzStations, bzSensors);
     why(stuckT) === 't:stuck' && stuckT.entry === null && why(fiveT) === '' && why(movedT) === '' && why(stuckW) === 'dd:stuck,ff:stuck' && stuckW.entry.v.fx === 8 && stuckW.entry.v.dd === undefined
     && why(rime) === 'dd:stuck,ff:stuck,fx:stuck' && rime.entry.v.t === -5 && why(calm) === '' && calm.entry.v.ff === 0 && why(sameStamp) === '' && C.STN_STUCK_HOURS === 6,
     `${why(stuckT)} | ${why(stuckW)} | ${why(rime)} | ${why(calm)}`);
+  const half = (n, v) => Array.from({ length: n }, (_, i) => ({ ms: T0 - (i + 1) * 30 * MIN, v }));
+  const sixH = chk({ v: { t: -3.2 } }, half(12, { t: -3.2 })), threeH = chk({ v: { t: -3.2 } }, half(6, { t: -3.2 })), edgeIn = chk({ v: { t: -3.2 } }, half(11, { t: -3.2 })), edgeOut = chk({ v: { t: -3.2 } }, half(10, { t: -3.2 }));
+  const movedHalf = chk({ v: { t: -3.2 } }, [...half(11, { t: -3.2 }).slice(0, 7), { ms: T0 - 4 * H, v: { t: -3.1 } }, ...half(11, { t: -3.2 }).slice(8)]);
+  const beyond = chk({ v: { t: -3.2 } }, [...half(12, { t: -3.2 }), { ms: T0 - 7 * H, v: { t: 4 } }]);
+  add('D5b Stillstand zählt Zeit, nicht Dokumente (Halbstundentakt): derselbe Zehntelgrad in zwölf Halbstunden-Ablesungen über sechs Stunden fällt heraus, in sechs Ablesungen über DREI Stunden nicht (die Regel wurde mit dem dichteren Takt nicht schärfer); Grenze: elf Ablesungen bis 5,5 h zurück fallen heraus, zehn bis 5 h nicht; ein einziger anderer Wert im Fenster hebt den Stillstand auf, ein anderer Wert vor dem Fenster (7 h) nicht',
+    why(sixH) === 't:stuck' && why(threeH) === '' && threeH.entry.v.t === -3.2 && why(edgeIn) === 't:stuck' && why(edgeOut) === '' && why(movedHalf) === '' && why(beyond) === 't:stuck' && C.STN_STUCK_SLACK_MS === 30 * MIN,
+    `${why(sixH)} | ${why(threeH)} | ${why(edgeIn)} | ${why(edgeOut)} | ${why(movedHalf)} | ${why(beyond)}`);
   const inc = chk({ v: { t: -3, td: -1.5, ff: 6, fx: 4, dd: 90 } }), incOk = chk({ v: { t: -3, td: -2.5, ff: 6, fx: 5.6 } });
   const sums = chk({ v: {}, sums: { rr1h: { mm: 0.4, n: 12, of: 12, complete: true }, rr24h: { mm: 2, n: 97, of: 288, complete: false } } });
   const lone = chk({ v: { dd: 90 } });
@@ -231,12 +238,12 @@ const getOf = ({ ogd = true, feed = true, bzOk = true, obsLatest = EXTRACT.obs.l
 };
 const store1 = mkStore('store1'), out1 = join(tmp, 'out1'), patch1 = join(tmp, 'patch1');
 const res1 = await runStations({ storeDir: store1, outDir: out1, patchDir: patch1, nowMs: NOW, get: getOf() });
-const hour1 = readJson(join(out1, 'stn', 'h', '2026112107.json'));
+const hour1 = readJson(join(out1, 'stn', 'h', '202611210730.json'));
 {
   const files = walk(out1).sort();
   const ids = Object.keys(hour1.stations), nets = (p) => ids.filter((i) => i.startsWith(p)).length;
-  add('F1 ein Lauf aus den Aufzeichnungen: Stunde 2026112107, Baum nur unter `stn/` (Stundendatei, Katalog, Zuordnung, README), das Dokument besteht die eigenen Regeln; Tirol 219 Stationen mit Werten, Südtirol 95, dazu die vier `obs/v1`-Stationen, die die Zuordnung nennt (zwei TAWES, eine DWD, eine SwissMetNet)',
-    res1.hour === '2026112107' && files.join() === 'stn/README.md,stn/h/2026112107.json,stn/map/20261120-1.1.json,stn/stations.json' && C.stnHourProblems(hour1).length === 0 && hour1.count === ids.length
+  add('F1 ein Lauf aus den Aufzeichnungen: Stunde 202611210730, Baum nur unter `stn/` (Stundendatei, Katalog, Zuordnung, README), das Dokument besteht die eigenen Regeln; Tirol 219 Stationen mit Werten, Südtirol 95, dazu die vier `obs/v1`-Stationen, die die Zuordnung nennt (zwei TAWES, eine DWD, eine SwissMetNet)',
+    res1.slot === '202611210730' && files.join() === 'stn/README.md,stn/h/202611210730.json,stn/map/20261120-1.1.json,stn/stations.json' && C.stnHourProblems(hour1).length === 0 && hour1.count === ids.length
     && nets('tirol:') === 219 && nets('bz:') === 95 && nets('at:') === 2 && nets('de:') === 1 && nets('ch:') === 1 && hour1.sources.map((s) => `${s.id}:${s.via.split(' ')[0]}:${s.stations}`).join() === 'tirol:ogd:221,bz:service:97,obs:obs/v1:4',
     `${files.join()} | ${nets('tirol:')}/${nets('bz:')}/${ids.length} | ${hour1.sources.map((s) => `${s.id}:${s.via}:${s.stations}`).join()}`);
   const rej = hour1.rejected.map((x) => x.join(':'));
@@ -247,7 +254,7 @@ const hour1 = readJson(join(out1, 'stn', 'h', '2026112107.json'));
   const bad = clone(tirolDoc); const f0 = bad.features.find((f) => f.properties.name === 'Schaufeljoch'); f0.properties.LT = 55; f0.properties.RH = 130;
   const outB = join(tmp, 'outB');
   await runStations({ storeDir: mkStore('storeB'), outDir: outB, patchDir: join(tmp, 'patchB'), nowMs: NOW, get: getOf({ tirolOver: bad }) });
-  const hB = readJson(join(outB, 'stn', 'h', '2026112107.json')), idS = C.tirolIdOf(f0.id);
+  const hB = readJson(join(outB, 'stn', 'h', '202611210730.json')), idS = C.tirolIdOf(f0.id);
   add('F2 Gegenprobe im Lauf: dieselbe Datei mit 55 °C und 130 % Feuchte am Schaufeljoch — die zwei Werte fehlen im Dokument und stehen mit `range` unter `rejected`, Wind und Böe derselben Station bleiben; im unveränderten Lauf steht die Temperatur',
     hB.stations[idS].v.t === undefined && hB.stations[idS].v.rh === undefined && hB.stations[idS].v.ff === 2.01 && hB.rejected.some((x) => x.join(':') === `${idS}:t:range`) && hB.rejected.some((x) => x.join(':') === `${idS}:rh:range`)
     && hour1.stations[idS].v.t === -10.3, JSON.stringify(hB.stations[idS]));
@@ -255,8 +262,8 @@ const hour1 = readJson(join(out1, 'stn', 'h', '2026112107.json'));
   const idx = readJson(join(patch1, 'index-patch.json')), stp = readJson(join(patch1, 'status-patch.json'));
   add('F3 Katalog, Zuordnung und Zeiger: 318 Stationen im Katalog (Form von `obs/v1`: id, name, lat, lon, elev, country, networks, vars + Betreiber); die Zuordnung ist die aus E; der Zeiger nennt Stunde, Zahl und Zuordnungsdatei, der Status die Quellen',
     cat.kind === 'glacier/stations' && cat.count === 318 && cat.stations.length === 318 && cat.stations.every((s) => ['id', 'name', 'lat', 'lon', 'elev', 'country', 'networks', 'vars', 'operator'].every((k) => k in s))
-    && JSON.stringify(map.glaciers) === JSON.stringify(mapDoc.glaciers) && JSON.stringify(idx) === JSON.stringify({ stations: { hour: '2026112107', builtAt: new Date(NOW).toISOString(), n: hour1.count, map: '20261120-1.1', mapAt: new Date(NOW).toISOString() } })
-    && stp.lines.stations.hour === '2026112107' && stp.lines.stations.sources.tirol.stations === 221 && Object.keys(idx).join() === 'stations', JSON.stringify(idx));
+    && JSON.stringify(map.glaciers) === JSON.stringify(mapDoc.glaciers) && JSON.stringify(idx) === JSON.stringify({ stations: { hour: '202611210730', slot: '202611210730', builtAt: new Date(NOW).toISOString(), n: hour1.count, map: '20261120-1.1', mapAt: new Date(NOW).toISOString() } })
+    && stp.lines.stations.hour === '202611210730' && stp.lines.stations.slot === '202611210730' && res1.slot === '202611210730' && stp.lines.stations.sources.tirol.stations === 221 && Object.keys(idx).join() === 'stations', JSON.stringify(idx));
   add('F4 was der Lauf holt: die OGD-Datei, zwei Antworten aus Südtirol und 60 Niederschlagsreihen, Katalog und `latest.json` von `obs/v1` (nur gelesen) und den Gletscherkatalog des Builds — nie den Feed, solange die OGD-Datei antwortet',
     asked.filter((u) => u === C.TIROL_OGD_URL).length === 2 && !asked.includes(C.TIROL_FEED_URL) && asked.filter((u) => u.includes('/timeseries?')).length === 120 && asked.filter((u) => u.includes('/timeseries?')).every((u) => u.endsWith('&sensor_code=N'))
     && asked.every((u) => [C.TIROL_OGD_URL, C.BZ_BASE_URL, OBS_RAW, 'https://raw.githubusercontent.com/jppetry/buscosun-data/glacier/glacier/v1/static/'].some((p) => u.startsWith(p))), String(asked.length));
@@ -270,15 +277,15 @@ const hour1 = readJson(join(out1, 'stn', 'h', '2026112107.json'));
   const out2 = join(tmp, 'out2');
   const res2 = await runStations({ storeDir: store2, outDir: out2, patchDir: join(tmp, 'patch2'), nowMs: NOW + H, get: getOf() });
   add('F5 zweite Stunde auf dem Stand der ersten: nur die neue Stundendatei entsteht (Katalog und Zuordnung sind unverändert und werden nicht neu geschrieben), die Prüfungen lesen eine frühere Stunde als Geschichte, der Zeiger behält die Zuordnungsdatei',
-    walk(out2).join() === 'stn/h/2026112108.json' && res2.catalogChanged === false && res2.mapBuilt === false && res2.map === '20261120-1.1' && res2.history === 1 && readJson(join(out2, 'stn', 'h', '2026112108.json')).rules.history === 1
+    walk(out2).join() === 'stn/h/202611210830.json' && res2.catalogChanged === false && res2.mapBuilt === false && res2.map === '20261120-1.1' && res2.history === 1 && readJson(join(out2, 'stn', 'h', '202611210830.json')).rules.history === 1
     && STN_HISTORY_HOURS === C.STN_STUCK_HOURS + 2, `${walk(out2).join()} ${JSON.stringify(res2)}`);
   // the same hour again, on a store that already holds it
-  cpSync(join(out2, 'stn', 'h', '2026112108.json'), join(store2, 'stn', 'h', '2026112108.json'));
-  const heldBytes = readFileSync(join(store2, 'stn', 'h', '2026112108.json'));
+  cpSync(join(out2, 'stn', 'h', '202611210830.json'), join(store2, 'stn', 'h', '202611210830.json'));
+  const heldBytes = readFileSync(join(store2, 'stn', 'h', '202611210830.json'));
   const resH = await runStations({ storeDir: store2, outDir: join(tmp, 'outH'), patchDir: join(tmp, 'patchH'), nowMs: NOW + H + 20 * MIN, get: getOf() });
   const pH = readJson(join(tmp, 'patchH', 'index-patch.json')).stations;
   add('F5 eine Stunde wird EINMAL veröffentlicht: ein zweiter Lauf in einer Stunde, die der Speicher schon hält, schreibt keine Stundendatei (das Archiv hält die erste Fassung — beide bleiben gleich); der Zeiger nennt weiter die veröffentlichte Fassung',
-    resH.hourWritten === false && !existsSync(join(tmp, 'outH', 'stn', 'h')) && pH.hour === '2026112108' && pH.builtAt === new Date(NOW + H).toISOString() && Buffer.compare(heldBytes, readFileSync(join(store2, 'stn', 'h', '2026112108.json'))) === 0 && res2.hourWritten === true,
+    resH.hourWritten === false && !existsSync(join(tmp, 'outH', 'stn', 'h')) && pH.slot === '202611210830' && pH.hour === '202611210830' && pH.builtAt === new Date(NOW + H).toISOString() && Buffer.compare(heldBytes, readFileSync(join(store2, 'stn', 'h', '202611210830.json'))) === 0 && res2.hourWritten === true,
     JSON.stringify(pH));
   const res3 = await runStations({ storeDir: store2, outDir: join(tmp, 'out3'), patchDir: join(tmp, 'patch3'), nowMs: NOW + H, forceMap: true, get: getOf() });
   add('F5 `--map` baut die Zuordnung neu; ist sie inhaltlich dieselbe, bleibt die veröffentlichte Datei (kein neuer Name für denselben Inhalt)', res3.mapBuilt === false && res3.map === '20261120-1.1');
@@ -289,6 +296,36 @@ const hour1 = readJson(join(out1, 'stn', 'h', '2026112107.json'));
   add('F5 die Zuordnung wird einmal am Tag neu gerechnet: zwei Stunden nach ihrem Bau liest der Lauf den Gletscherkatalog nicht, 25 Stunden danach schon (`STN_MAP_REFRESH_MS`); bei gleichem Inhalt bleibt die Datei, der Zeiger merkt sich den Zeitpunkt (`mapAt`), damit nicht jede weitere Stunde neu rechnet',
     mid === before && nCat() === before + 1 && res4.mapBuilt === false && res5.mapBuilt === false && res5.map === '20261120-1.1' && C.STN_MAP_REFRESH_MS === 24 * H
     && readJson(join(tmp, 'patch4', 'index-patch.json')).stations.mapAt === new Date(NOW).toISOString() && readJson(join(tmp, 'patch5', 'index-patch.json')).stations.mapAt === new Date(NOW + 25 * H).toISOString(), `${before}/${mid}/${nCat()}`);
+  // half-hour cadence: keys, the pointer's two fields, history by time
+  const at = (iso) => C.stnSlotOf(Date.parse(iso));
+  const seq = Array.from({ length: 150 }, (_, i) => C.stnSlotOf(Date.parse('2026-12-30T00:10:00Z') + i * 30 * MIN));
+  add('F7 Slot-Schlüssel: die volle Stunde heißt wie bisher `yyyymmddhh`, die halbe `yyyymmddhh30`; 07:29:59 gehört zur vollen Stunde, 07:30:00 zur halben; als Zeichenketten sortiert liegen 150 Slots über den Jahreswechsel in der Zeitfolge, jeder Schlüssel führt auf seinen Beginn zurück; andere Minuten sind kein Schlüssel',
+    at('2026-11-21T07:00:00Z') === '2026112107' && at('2026-11-21T07:29:59Z') === '2026112107' && at('2026-11-21T07:30:00Z') === '202611210730' && at('2026-11-21T07:59:59Z') === '202611210730' && at('2026-12-31T23:45:00Z') === '202612312330'
+    && [...seq].sort().join() === seq.join() && new Set(seq).size === 150 && seq.every((k, i) => C.stnSlotMs(k) === Date.parse('2026-12-30T00:00:00Z') + i * 30 * MIN && C.GLACIER_STN_SLOT_RE.test(k) && C.stnSlotOf(C.stnSlotMs(k)) === k)
+    && ['202611210715', '202611210700', '20261121073', '2026112107300', '202611210760'].every((k) => !C.GLACIER_STN_SLOT_RE.test(k)) && C.GLACIER_STN_HOUR_RE.test('2026112107') && !C.GLACIER_STN_HOUR_RE.test('202611210730')
+    && C.stnSlotHour('202611210730') === '2026112107' && C.stnSlotHour('2026112107') === '2026112107' && C.GLACIER_STN_SLOT_MIN === 30, `${at('2026-11-21T07:29:59Z')} ${at('2026-11-21T07:30:00Z')}`);
+  const storeS = mkStore('storeS');
+  cpSync(join(out1, 'stn'), join(storeS, 'stn'), { recursive: true });
+  writeFileSync(join(storeS, 'index.json'), JSON.stringify({ schema: 1, kind: 'glacier/index', static: { build: EXTRACT.catalog.build }, stations: readJson(join(patch1, 'index-patch.json')).stations }));
+  const outS1 = join(tmp, 'outS1'), outS2 = join(tmp, 'outS2');
+  const resS1 = await runStations({ storeDir: storeS, outDir: outS1, patchDir: join(tmp, 'patchS1'), nowMs: NOW + 37 * MIN, get: getOf() });
+  cpSync(join(outS1, 'stn'), join(storeS, 'stn'), { recursive: true });
+  const resS2 = await runStations({ storeDir: storeS, outDir: outS2, patchDir: join(tmp, 'patchS2'), nowMs: NOW + 67 * MIN, get: getOf() });
+  const pS1 = readJson(join(tmp, 'patchS1', 'index-patch.json')).stations, pS2 = readJson(join(tmp, 'patchS2', 'index-patch.json')).stations;
+  const dS2 = readJson(join(outS2, 'stn', 'h', '202611210830.json'));
+  add('F8 zwei Läufe je Stunde: 08:12 UTC schreibt die volle Stunde `2026112108`, 08:42 UTC die halbe `202611210830` — je eine eigene Datei, die zweite liest zwei frühere Slots als Geschichte; der Zeiger nennt mit `slot` den jüngsten Slot und mit `hour` die jüngste VOLLE Stunde, deren Datei es gibt (das liest eine Seite von vor diesem Schritt: zehn Ziffern, `doc.hour` = Name)',
+    walk(outS1).join() === 'stn/h/2026112108.json' && walk(outS2).join() === 'stn/h/202611210830.json' && resS1.history === 1 && resS2.history === 2 && dS2.hour === '202611210830' && C.stnHourProblems(dS2).length === 0
+    && pS1.hour === '2026112108' && pS1.slot === '2026112108' && pS2.hour === '2026112108' && pS2.slot === '202611210830' && pS2.builtAt === dS2.builtAt && pS2.n === dS2.count
+    && C.GLACIER_STN_HOUR_RE.test(pS2.hour) && readJson(join(storeS, 'stn', 'h', `${pS2.hour}.json`)).hour === pS2.hour && Object.keys(pS2).join() === 'hour,slot,builtAt,n,map,mapAt', JSON.stringify([pS1, pS2]));
+  add('F9 welche Datei die Seite liest: mit `slot` den Slot, mit einem Zeiger von vor diesem Schritt (ohne `slot`) die Stunde, bei einem unlesbaren `slot` die Stunde — Gegenprobe: derselbe Zeiger ohne `slot` führt auf die andere Datei',
+    C.stnPointerKey(pS2) === '202611210830' && C.stnPointerKey({ hour: '2026112116' }) === '2026112116' && C.stnPointerKey({ hour: '2026112108', slot: '202611210815' }) === '2026112108' && C.stnPointerKey({ hour: pS2.hour }) !== C.stnPointerKey(pS2)
+    && /hourKey = pointer \? stnPointerKey\(pointer\) : null/.test(src('src/glacier/GlacierStationCard.tsx')) && /if \(!GLACIER_STN_SLOT_RE\.test\(hour\)\) return null;/.test(src('src/glacier/glacierClient.ts')));
+  // history is counted in hours before the slot, not in documents
+  const storeT = mkStore('storeT'); mkdirSync(join(storeT, 'stn', 'h'), { recursive: true });
+  for (const k of ['2026112023', '202611202330', '2026112100', '202611210700', 'fremd']) writeFileSync(join(storeT, 'stn', 'h', `${k}.json`), JSON.stringify({ ...hour1, hour: k }));
+  const resT = await runStations({ storeDir: storeT, outDir: join(tmp, 'outT'), patchDir: join(tmp, 'patchT'), nowMs: NOW, get: getOf() });
+  add('F10 Geschichte der Prüfungen = alle Slot-Dateien der letzten acht Stunden vor dem Slot: von 23:00 (8,5 h), 23:30 (genau 8 h) und 00:00 (7,5 h) zählen die zwei jüngeren; ein Name, der kein Slot ist, wird nicht gelesen',
+    resT.history === 2 && STN_HISTORY_HOURS === 8, String(resT.history));
   const merged = mergeCatalog([{ id: 'a', vars: ['t'], name: 'alt' }, { id: 'z', vars: ['ff'] }], [{ id: 'a', vars: ['ff'], name: 'neu' }]);
   add('F6 Katalog über die Zeit: eine Station, die in einer Antwort fehlt, bleibt; ihre Größen sind die Vereinigung (ein Fühler, der eine Stunde aussetzt, verliert seine Zuordnung nicht)',
     JSON.stringify(merged) === JSON.stringify([{ id: 'a', vars: ['ff', 't'], name: 'neu' }, { id: 'z', vars: ['ff'] }]));
@@ -296,7 +333,7 @@ const hour1 = readJson(join(out1, 'stn', 'h', '2026112107.json'));
 {
   const outF = join(tmp, 'outF');
   const resF = await runStations({ storeDir: mkStore('storeF'), outDir: outF, patchDir: join(tmp, 'patchF'), nowMs: NOW, get: getOf({ ogd: false }) });
-  const hF = readJson(join(outF, 'stn', 'h', '2026112107.json'));
+  const hF = readJson(join(outF, 'stn', 'h', '202611210730.json'));
   const tirolIds = (h) => Object.keys(h.stations).filter((i) => i.startsWith('tirol:')).sort().join();
   add('F7 Rückfall auf den Feed: antwortet die OGD-Datei nicht, liest der Lauf den Feed — mit dem Betreiber-Filter: dieselben 219 Tiroler Stationen und Werte wie aus der OGD-Datei, keine der 14 fremden; die Quelle nennt `feed`, die Zahl der verworfenen Einträge und den Fehler der OGD-Datei',
     tirolIds(hF) === tirolIds(hour1) && JSON.stringify(Object.entries(hF.stations).filter(([i]) => i.startsWith('tirol:'))) === JSON.stringify(Object.entries(hour1.stations).filter(([i]) => i.startsWith('tirol:')))
@@ -304,7 +341,7 @@ const hour1 = readJson(join(out1, 'stn', 'h', '2026112107.json'));
     && hF.sources[0].via === 'feed' && hF.sources[0].foreignDropped === 14 && /HTTP 503/.test(hF.sources[0].error) && resF.stations === res1.stations, JSON.stringify(hF.sources[0]));
   const outN = join(tmp, 'outN');
   const resN = await runStations({ storeDir: mkStore('storeN'), outDir: outN, patchDir: join(tmp, 'patchN'), nowMs: NOW, get: getOf({ bzOk: false }) });
-  const hN = readJson(join(outN, 'stn', 'h', '2026112107.json'));
+  const hN = readJson(join(outN, 'stn', 'h', '202611210730.json'));
   let both = null;
   try { await runStations({ storeDir: mkStore('storeX'), outDir: join(tmp, 'outX'), patchDir: join(tmp, 'patchX'), nowMs: NOW, get: getOf({ ogd: false, feed: false, bzOk: false }) }); } catch (e) { both = e.message; }
   add('F8 ein Netz fällt aus: der Lauf schreibt die Stunde mit dem anderen und nennt den Fehler in der Quelle; fallen beide aus, bricht er ab und schreibt nichts (keine leere Stunde)',
@@ -343,11 +380,11 @@ const { GlacierStationBlock, createElement: h, renderToStaticMarkup: html } = aw
   add('G3 die Seite prüft das Alter selbst: drei Stunden später steht bei jeder Größe „Keine Daten“ mit dem Grund „älter als drei Stunden“ und kein Wert; ist die Stundendatei nicht ladbar, steht das als Grund — die Stationen bleiben genannt',
     late.stations.every((s) => s.ms === null && s.values.every((x) => x.text === null && x.why === 'älter als drei Stunden')) && noHour.stations.length === 2 && noHour.stations.every((s) => s.values.every((x) => x.text === null && /nicht ladbar/.test(x.why))),
     txt(late));
-  // a station whose values the producer dropped: the row names the check; a station absent from the hour: "kein Wert in dieser Stunde"
+  // a station whose values the producer dropped: the row names the check; a station absent from the hour: "kein Wert im jüngsten Abruf"
   const hourRej = clone(hour1); delete hourRej.stations[s0.id]; hourRej.rejected.push([s0.id, 't', 'stuck'], [s0.id, 'ff', 'range']);
   const vRej = stationView(mapDoc, hourRej, 'gl_at_alpeiner-ferner-3055', NOW);
-  add('G4 verworfen ist „Keine Daten“ mit dem Grund der Prüfung: Temperatur „Fühler steht seit Stunden auf demselben Wert“, Wind „außerhalb der plausiblen Spanne“, die Böe ohne Eintrag „kein Wert in dieser Stunde“ — nie der verworfene Wert',
-    vRej.stations.find((s) => s.id === s0.id).values.map((x) => `${x.text}|${x.why}`).join(';') === 'null|Fühler steht seit Stunden auf demselben Wert;null|außerhalb der plausiblen Spanne;null|kein Wert in dieser Stunde', txt(vRej));
+  add('G4 verworfen ist „Keine Daten“ mit dem Grund der Prüfung: Temperatur „Fühler steht seit Stunden auf demselben Wert“, Wind „außerhalb der plausiblen Spanne“, die Böe ohne Eintrag „kein Wert im jüngsten Abruf“ — nie der verworfene Wert',
+    vRej.stations.find((s) => s.id === s0.id).values.map((x) => `${x.text}|${x.why}`).join(';') === 'null|Fühler steht seit Stunden auf demselben Wert;null|außerhalb der plausiblen Spanne;null|kein Wert im jüngsten Abruf', txt(vRej));
   const vHef = stationView(mapDoc, hour1, 'gl_at_hintereisferner-mit-toteis', NOW), vHal = stationView(mapDoc, hour1, 'gl_at_hallstaetter-gletscher', NOW);
   const pre = vHal.stations[0].values.find((x) => x.q === 'precip');
   add('G5 Netze und Quellenvermerk: Hintereisferner zeigt Südtiroler Stationen mit dem Vermerk der Provinz, der Hallstätter Gletscher die TAWES-Station aus dem Messspiegel mit Niederschlag als Summe („… mm in 24 Stunden“); der Vermerk nennt nur die Netze, deren Stationen dastehen',
@@ -466,36 +503,40 @@ const { GlacierStationBlock, createElement: h, renderToStaticMarkup: html } = aw
   add('I1 Linie `stations` des Gletscher-Publishers: sie darf nur `stn/` schreiben — der Baum des Laufs geht durch, eine Datei unter `obs/` oder `melt/` wird abgewiesen; die anderen Linien dürfen `stn/` nicht schreiben',
     GLACIER_LINES.stations.join() === 'stn' && pkg.files.length === 4 && /außerhalb der Linie stations/.test(thrown(() => checkPackage('stations', badTree))) && /außerhalb der Linie stations/.test(thrown(() => checkPackage('stations', meltTree)))
     && ['sat', 'melt', 'feed', 'static'].every((l) => /außerhalb der Linie/.test(thrown(() => checkPackage(l, out1)))));
-  const names = { 'stn/h': ['2026111807.json', '2026111808.json', '2026112106.json', '2026112107.json', 'fremd.txt'], 'stn/map': ['20261011-1.1.json', '20261120-1.1.json', '20261120-1.2.json'] };
+  const names = { 'stn/h': ['2026111807.json', '2026111808.json', '2026112106.json', '2026112107.json', 'fremd.txt', '202611180630.json', '202611180730.json', '202611210630.json', '202611180615.json'], 'stn/map': ['20261011-1.1.json', '20261120-1.1.json', '20261120-1.2.json'] };
   const pruned = pruneList((p) => names[p] ?? [], GLACIER_POLICIES.stations, Date.parse('2026-11-21T07:30:00Z'));
-  add('I2 Aufbewahrung: Stundendateien älter als 72 h gehen (die vom 18.11. 07 UTC, nicht die von 08 UTC), die zwei neuesten Zuordnungen bleiben; eine fremde Datei im Verzeichnis wird nicht angefasst',
-    pruned.sort().join() === 'stn/h/2026111807.json,stn/map/20261011-1.1.json' && C.GLACIER_STN_KEEP_MS === 72 * H, pruned.join());
+  add('I2 Aufbewahrung: Slot-Dateien älter als 72 h gehen (die vom 18.11. 07:00 und 06:30 UTC; nicht die von 07:30 — genau 72 h — und 08:00), die zwei neuesten Zuordnungen bleiben; eine fremde Datei und ein Name mit anderen Minuten werden nicht angefasst',
+    pruned.sort().join() === 'stn/h/202611180630.json,stn/h/2026111807.json,stn/map/20261011-1.1.json' && C.GLACIER_STN_KEEP_MS === 72 * H, pruned.join());
   // archive
   const data = join(tmp, 'data-stn'); cpSync(join(out1, 'stn'), data, { recursive: true });
   writeFileSync(join(data, 'h', '2026112108.json'), JSON.stringify({ ...hour1, hour: '2026112108' }));
   writeFileSync(join(data, 'h', '2026112109.json'), '{"kaputt":');
   writeFileSync(join(data, 'h', '2026112110.json'), JSON.stringify({ ...hour1, hour: '2026112199' }));
+  writeFileSync(join(data, 'h', '202611210830.json'), JSON.stringify({ ...hour1, hour: '202611210830' }));
   const arch = join(tmp, 'archiv'), aOut = join(tmp, 'aout');
   const r1 = archiveStations({ stnDir: data, archiveDir: arch, outDir: aOut });
-  const gzFile = join(aOut, '2026-11-21', 'stn-2026112107.json.gz');
+  const gzFile = join(aOut, '2026-11-21', 'stn-202611210730.json.gz');
   const back = existsSync(gzFile) ? gunzipSync(readFileSync(gzFile)) : Buffer.alloc(0);
   cpSync(aOut, arch, { recursive: true });
+  // 72 h later the full hour 08 is gone from the data repo while its half is still there: the archive holds the hour, the half stays out
+  rmSync(join(data, 'h', '2026112108.json'));
   const r2 = archiveStations({ stnDir: data, archiveDir: arch, outDir: join(tmp, 'aout2') });
   const catName = walk(aOut).find((f) => /stn-stations-/.test(f));
-  add('I3 Ablage: jede Stundendatei, die das Archiv noch nicht hält, wird als `<Tag>/stn-<stunde>.json.gz` abgelegt — ausgepackt Byte für Byte die veröffentlichte Datei; ein kaputtes Dokument und eines, dessen Stunde nicht zum Namen passt, werden nicht abgelegt; der Katalog kommt einmal je Stand dazu; ein zweiter Lauf legt nichts doppelt ab',
-    r1.written.join() === '2026112107,2026112108' && r1.skipped.join() === '2026112109,2026112110' && Buffer.compare(back, readFileSync(join(data, 'h', '2026112107.json'))) === 0 && hourDay('2026112107') === '2026-11-21' && stnArchiveName('2026112107') === 'stn-2026112107.json.gz'
-    && catName === '2026-11-21/stn-stations-20261121T073500Z.json.gz' && r1.catalog === 'stn-stations-20261121T073500Z.json.gz' && r2.written.length === 0 && r2.held === 2 && r2.catalog === null && !existsSync(join(tmp, 'aout2')),
+  add('I3 Ablage bleibt stündlich: je Stunde EINE Datei als `<Tag>/stn-<slot>.json.gz`, ausgepackt Byte für Byte die veröffentlichte — die volle Stunde 08; die halbe 08:30 NICHT, solange ihre volle Stunde im Daten-Repo oder (zweiter Lauf, Stunde dort schon gelöscht) in der Ablage liegt; die halbe 07:30 doch, weil es die volle Stunde 07 nirgends gibt (ausgefallener Lauf — die Reihe behält keine Lücke); ein kaputtes Dokument und eines, dessen Schlüssel nicht zum Namen passt, werden nicht abgelegt; der Katalog kommt einmal je Stand dazu; ein zweiter Lauf legt nichts doppelt ab',
+    r1.written.join() === '202611210730,2026112108' && r1.skipped.join() === '2026112109,2026112110' && r1.slots === 5 && r1.hours === 4 && Buffer.compare(back, readFileSync(join(data, 'h', '202611210730.json'))) === 0 && back.length > 1000
+    && !walk(aOut).some((f) => /stn-202611210830/.test(f)) && hourDay('2026112107') === '2026-11-21' && hourDay('202611212330') === '2026-11-21' && stnArchiveName('2026112107') === 'stn-2026112107.json.gz' && stnArchiveName('202611210730') === 'stn-202611210730.json.gz'
+    && catName === '2026-11-21/stn-stations-20261121T073500Z.json.gz' && r1.catalog === 'stn-stations-20261121T073500Z.json.gz' && r2.written.length === 0 && r2.held === 1 && r2.slots === 4 && r2.hours === 3 && r2.catalog === null && !existsSync(join(tmp, 'aout2')),
     JSON.stringify(r1));
   const wf = src('scripts/glacier/workflow-glacier-stations.yml'), wa = src('scripts/glacier/workflow-glacier-stations-archiv.yml'), pub = src('scripts/glacier/glacier-publish.mjs');
-  add('I4 Workflow-Vorlagen: stündlich (:27) bzw. alle 6 h (:53), ohne Secrets und Token, Producer frisch aus `buscosun-web` mit Leerlauf, solange er dort fehlt, Kill-Schalter, `set -o pipefail` vor `tee`, Veröffentlichen nur über `glacier-publish.mjs` (`--line=stations` bzw. `--archive`), nie `--force`; kein Schritt schreibt nach `obs/`',
-    /cron: '27 \* \* \* \*'/.test(wf) && /cron: '53 \*\/6 \* \* \*'/.test(wa) && [wf, wa].every((y) => !/secrets\./.test(y) && !/token/i.test(y) && /producer not on \$REF yet/.test(y) && /set -o pipefail/.test(y) && !/git push|--force(?!-)/.test(y.replace(/^#.*$/gm, '').replace(/^\s*- name:.*$/gm, '')))
+  add('I4 Workflow-Vorlagen: alle 30 Minuten (:12 und :42, 18 min hinter der Slot-Grenze) bzw. alle 6 h (:53), ohne Secrets und Token, Producer frisch aus `buscosun-web` mit Leerlauf, solange er dort fehlt, Kill-Schalter, `set -o pipefail` vor `tee`, Veröffentlichen nur über `glacier-publish.mjs` (`--line=stations` bzw. `--archive`), nie `--force`; kein Schritt schreibt nach `obs/`',
+    /cron: '12,42 \* \* \* \*'/.test(wf) && !/cron: '27 /.test(wf) && /cron: '53 \*\/6 \* \* \*'/.test(wa) && [wf, wa].every((y) => !/secrets\./.test(y) && !/token/i.test(y) && /producer not on \$REF yet/.test(y) && /set -o pipefail/.test(y) && !/git push|--force(?!-)/.test(y.replace(/^#.*$/gm, '').replace(/^\s*- name:.*$/gm, '')))
     && /--line=stations --src=out/.test(wf) && /Kill switch/.test(wf) && /scripts\/glacier\/stations\.mjs --store=\.\.\/data\/glacier\/v1 --out=\.\.\/out --patch=\.\.\/patch/.test(wf) && /group: glacier-stations\n/.test(wf.replace(/\r/g, ''))
     && /glacier-publish\.mjs --archive --repo=archiv/.test(wa) && /stations-archive\.mjs/.test(wa) && /sparse-checkout set --no-cone \/glacier\/v1\/stn\//.test(wa) && !/obs\/v1/.test((wf + wa).replace(/^#.*$/gm, '').replace(/^\s*- name:.*$/gm, ''))
     && /stations: \['stn'\]/.test(pub) && /grep -q "stations: \\\['stn'\\\]"/.test(wf));
   const readme = stnReadme();
   add('I5 README beim Produkt: Namensnennung, Lizenz mit Adresse und „Geändert“ für beide Netze stehen neben den Daten (CC BY 4.0), dazu der Satz, dass buscosun Fusion die Dateien nicht liest, und die benannten Grenzen; erzeugt aus dem Vertrag',
     readme === readFileSync(join(out1, 'stn', 'README.md'), 'utf8') && readme.includes('**Datenquelle: Land Tirol - data.tirol.gv.at**') && readme.includes('[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)') && readme.includes('**Autonome Provinz Bozen – Südtirol**')
-    && readme.includes('[CC0](https://creativecommons.org/publicdomain/zero/1.0/)') && (readme.match(/Geändert: /g) ?? []).length === 3 && readme.includes('buscosun Fusion liest diese Dateien nicht') && readme.includes('t -45 … 40') && !readme.includes('undefined'));
+    && readme.includes('[CC0](https://creativecommons.org/publicdomain/zero/1.0/)') && (readme.match(/Geändert: /g) ?? []).length === 3 && readme.includes('buscosun Fusion liest diese Dateien nicht') && readme.includes('t -45 … 40') && readme.includes('Alle 30 Minuten aus zwei Messnetzen') && readme.includes('`yyyymmddhh30`') && !readme.includes('undefined'));
   const pkgJson = readJson(join(ROOT, 'package.json'));
   add('I6 Einbindung: `npm run verify:glacier-stations` ist angelegt; der Vertrag nennt Netze, Grenzen und Fenster als benannte Konstanten',
     /verify-glacier-stations\.mjs$/.test(pkgJson.scripts['verify:glacier-stations'] ?? '') && C.STN_LIMITS.t.join() === '-45,40' && C.STN_JUMP_PER_H.t === 15 && Object.keys(C.STN_LIMITS).length === 11);

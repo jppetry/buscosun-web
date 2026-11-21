@@ -24,7 +24,7 @@ import { feedProblems, glacierFeedPath, previousWeekKey, type GlacierFeedDoc, ty
 import { elevProblems, glacierElevFile, type GlacierElevDoc } from './glacierElevContract';
 import { hugonnetProblems, glacierHugonnetFile, type GlacierHugonnetDoc } from './glacierHugonnetContract';
 import {
-  GLACIER_STN_HOUR_RE, GLACIER_STN_MAP_RE, glacierStnHourPath, glacierStnMapPath, stnHourProblems, stnMapProblems,
+  GLACIER_STN_SLOT_RE, GLACIER_STN_MAP_RE, glacierStnHourPath, glacierStnMapPath, stnHourProblems, stnMapProblems,
   type GlacierStnPointer, type StnHourDoc, type StnMapDoc,
 } from './glacierStationContract';
 
@@ -154,7 +154,7 @@ export interface GlacierIndex {
   weather?: GlacierWeatherPointer;
   /** Feed line (GL-5): pointer to the newest week document. */
   feed?: GlacierFeedPointer;
-  /** Phase GO: pointer to the newest hour of the station measurements and to the mapping glacier → stations. */
+  /** Phase GO: pointer to the newest slot of the station measurements and to the mapping glacier → stations. */
   stations?: GlacierStnPointer;
 }
 export interface GlacierMeltPointer { run: string; runAt: string; engine: { name: string; version: number | null }; cube: Record<string, string | null>; unit: boolean; build: string }
@@ -381,10 +381,10 @@ export function loadStationMap(file: string, catalogIds: ReadonlySet<string> | u
     } catch (e) { if (isAbort(e)) throw e; return null; }
   });
 }
-/** Phase GO — the station values of one hour, through the contract rules; unreadable or violating ⇒ `null` ("Keine Daten", never a number). */
+/** Phase GO — the station values of one slot (`hour` = slot key, full or half hour), through the contract rules; unreadable or violating ⇒ `null` ("Keine Daten", never a number). */
 export function loadStationHour(hour: string, bases = glacierBasesFrom()): Promise<StnHourDoc | null> {
   return once(`${bases.cdn}|stnh|${hour}`, async () => {
-    if (!GLACIER_STN_HOUR_RE.test(hour)) return null;
+    if (!GLACIER_STN_SLOT_RE.test(hour)) return null;
     try {
       const d = await fetchGlacier(glacierStnHourPath(hour), 'json', undefined, bases) as StnHourDoc;
       return stnHourProblems(d).length === 0 && d.hour === hour ? d : null;

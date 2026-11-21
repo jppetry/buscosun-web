@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * Phase GO — archive of the station hours in `buscosun-archiv` `glacier/v1/<YYYY-MM-DD>/stn-<yyyymmddhh>.json.gz`
- * (`audit/gletscher-stationen.md`): every hour document of `glacier/v1/stn/h/` exactly as published, plus the catalogue whenever
+ * (`audit/gletscher-stationen.md`): ONE document per hour of `glacier/v1/stn/h/` exactly as published — the full-hour slot, or the
+ * half-hour slot (`stn-<yyyymmddhh30>.json.gz`) when neither the data repo nor the archive holds the full hour — plus the catalogue whenever
  * it changed (`stn-stations-<builtAt>.json.gz`, the name carries its build time). The hour files stay in `buscosun-data` for 72 h only
  * (`GLACIER_STN_KEEP_MS`); the archive is the record the high-elevation validation and Gate E read.
  *
@@ -15,17 +16,20 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join, resolve, dirname } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { fileURLToPath } from 'node:url';
-import { GLACIER_STN_HOUR_RE, stnHourProblems } from '../../src/glacier/glacierStationContract.ts';
+import { GLACIER_STN_HOUR_RE, GLACIER_STN_SLOT_RE, stnHourProblems, stnSlotHour } from '../../src/glacier/glacierStationContract.ts';
 
 const SELF = fileURLToPath(import.meta.url);
-/** UTC day of an hour key `yyyymmddhh`. */
+/** UTC day of a slot key (`yyyymmddhh` or `yyyymmddhh30`). */
 export const hourDay = (hour) => `${hour.slice(0, 4)}-${hour.slice(4, 6)}-${hour.slice(6, 8)}`;
 export const stnArchiveName = (hour) => `stn-${hour}.json.gz`;
 const gz = (bytes) => gzipSync(bytes, { level: 9, mtime: 0 });
 
 export function archiveStations({ stnDir, archiveDir, outDir, log = () => {} }) {
   const hDir = join(stnDir, 'h');
-  const hours = (existsSync(hDir) ? readdirSync(hDir) : []).filter((f) => f.endsWith('.json') && GLACIER_STN_HOUR_RE.test(f.slice(0, -5))).map((f) => f.slice(0, -5)).sort();
+  const slots = (existsSync(hDir) ? readdirSync(hDir) : []).filter((f) => f.endsWith('.json') && GLACIER_STN_SLOT_RE.test(f.slice(0, -5))).map((f) => f.slice(0, -5)).sort();
+  // the record stays hourly: the full hour — or its half, when the full hour is nowhere (a run that failed), so the series has no gap
+  const fullKnown = (k) => slots.includes(stnSlotHour(k)) || existsSync(join(archiveDir, hourDay(k), stnArchiveName(stnSlotHour(k))));
+  const hours = slots.filter((k) => GLACIER_STN_HOUR_RE.test(k) || !fullKnown(k));
   const written = [], held = [], skipped = [];
   const put = (day, name, bytes) => { const dst = join(outDir, day, name); mkdirSync(dirname(dst), { recursive: true }); writeFileSync(dst, gz(bytes)); };
   for (const hour of hours) {
@@ -50,7 +54,7 @@ export function archiveStations({ stnDir, archiveDir, outDir, log = () => {} }) 
       if (!existsSync(join(archiveDir, day, name))) { put(day, name, bytes); catalog = name; }
     }
   }
-  return { hours: hours.length, written, held: held.length, skipped, catalog };
+  return { slots: slots.length, hours: hours.length, written, held: held.length, skipped, catalog };
 }
 
 function main() {
