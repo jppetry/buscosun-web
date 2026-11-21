@@ -110,8 +110,8 @@ export const NON_MODEL_SOURCES = [
   {
     group: 'Gletscher-Monitor',
     items: [
-      { name: 'Swiss Glacier Inventory 2023 (SGI2023)', operator: 'GLAMOS – Glacier Monitoring Switzerland', license: 'CC BY 4.0 (laut DOI-Seite des Datensatzes)',
-        note: 'Umrisse, Flächen, Höhen und Schuttbedeckung der Schweizer Gletscher, Aufnahmen 2021 bis 2024. GLAMOS (2026). Swiss Glacier Inventory 2023, release 2026, Glacier Monitoring Switzerland, doi:10.18750/inventory.sgi2023.r2026.', ref: 'scripts/glacier/py/sgi2023.py' },
+      { name: 'Swiss Glacier Inventory 2023 (SGI2023)', operator: 'GLAMOS – Glacier Monitoring Switzerland', license: 'CC BY 4.0 (laut DOI-Seite des Datensatzes)', licenseUrl: 'https://creativecommons.org/licenses/by/4.0/deed.de',
+        note: 'Umrisse, Flächen, Höhen und Schuttbedeckung der Schweizer Gletscher, Aufnahmen 2021 bis 2024. Quellenangabe: GLAMOS (2026). Swiss Glacier Inventory 2023, release 2026, Glacier Monitoring Switzerland, doi:10.18750/inventory.sgi2023.r2026. Von buscosun bearbeitet: Umrisse für die Karte vereinfacht und nach WGS84 umgerechnet, Schuttbedeckung als Anteil der Gletscherfläche in vier Klassen, Höhenbänder mit dem Copernicus DEM berechnet. Flächen, Höhen, Exposition und Aufnahmejahre sind unverändert.', ref: 'scripts/glacier/py/sgi2023.py' },
       { name: 'GLIMS Glacier Database (NSIDC-0272)', operator: 'GLIMS Consortium / National Snow and Ice Data Center', license: 'Quellenangabe Pflicht (NSIDC: „As a condition of using these data, you must cite the use of this data set.")',
         note: 'Frühere Schweizer Umrisse (1850 bis 2016). GLIMS Consortium, doi:10.7265/N5V98602; die Einreichungen stammen von den Inventar-Autoren. Eine ausdrückliche CC-BY-Angabe steht auf der Datensatzseite nicht; deshalb nennt buscosun die Zitierpflicht.', ref: 'audit/gletscher/licences.md' },
       { name: 'WGMS Fluctuations of Glaciers', operator: 'World Glacier Monitoring Service', license: 'CC BY 4.0 (laut WGMS: Open Access mit korrekter Zitierung)',
@@ -194,7 +194,7 @@ function modelRows(models) {
 
 function sourceGroup(g) {
   const items = g.items.map((i) =>
-    `<li><strong>${esc(i.name)}</strong> — ${esc(i.operator)} · <em>${esc(i.license)}</em><br>` +
+    `<li><strong>${esc(i.name)}</strong> — ${esc(i.operator)} · <em>${i.licenseUrl ? `<a href="${esc(i.licenseUrl)}" rel="license">${esc(i.license)}</a>` : esc(i.license)}</em><br>` +
     `${esc(i.note)}<br><small>Im Code: <code>${esc(i.ref)}</code></small></li>`).join('\n            ');
   return `<h3>${esc(g.group)}</h3>\n          <ul>\n            ${items}\n          </ul>`;
 }

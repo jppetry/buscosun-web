@@ -14,6 +14,7 @@ import {
 import { SeasonChart, LengthChart, ProjectionChart, FreezeChart, MeltBars, ElevBars, CumulChart } from './GlacierCharts';
 import type { GlacierCatalogEntry, GlacierOfficialItem, GlacierSeries } from './glacierContract';
 import type { SheetData } from './glacierSheetData';
+import { glacierSourceTerms, type GlacierSourceRow } from './glacierClient';
 import { exportSvgAsPng } from '../imageExport';
 import type { GlacierSeasonRow } from './glacierSatContract';
 
@@ -382,7 +383,7 @@ export function TabTour({ g, melt, season, nowMs, bandZ }: { g: GlacierCatalogEn
 }
 
 // --- Quellen ------------------------------------------------------------------------------------------------------------------------------
-export function TabQuellen({ rows, sources, elev = false }: { rows: readonly SourceRow[]; sources: ReadonlyArray<{ id: string; label: string; licence: string; attribution: string; url: string; refYear: string; used: string }> | null; /** Phase GH: the sheet shows the elevation change of Hugonnet et al. 2021. */ elev?: boolean }) {
+export function TabQuellen({ rows, sources, elev = false }: { rows: readonly SourceRow[]; sources: readonly GlacierSourceRow[] | null; /** Phase GH: the sheet shows the elevation change of Hugonnet et al. 2021. */ elev?: boolean }) {
   return (
     <>
       <h3 className="gl-h3">Jede Zahl in diesem Steckbrief, mit Herkunft und Stand</h3>
@@ -392,7 +393,18 @@ export function TabQuellen({ rows, sources, elev = false }: { rows: readonly Sou
       </table>
       <h3 className="gl-h3">Lizenzen</h3>
       {sources ? (
-        <ul className="gl-lic">{sources.map((s) => <li key={s.id}><b>{s.label}</b><span>{s.licence} · Bezugsjahr {fmtRefYear(s.refYear)} · {s.used}</span><a href={s.url} target="_blank" rel="noopener noreferrer">Quelle ↗</a></li>)}</ul>
+        <ul className="gl-lic">{sources.map((s) => {
+          const t = glacierSourceTerms(s);
+          return (
+            <li key={s.id}>
+              <b>{s.label}</b>
+              <span>{t.licenceUrl ? <a href={t.licenceUrl} target="_blank" rel="license noopener noreferrer">{s.licence}</a> : s.licence} · Bezugsjahr {fmtRefYear(s.refYear)} · {s.used}</span>
+              {s.attribution && <span>Quellenangabe: {s.attribution}</span>}
+              {t.changes && <span>{t.changes}</span>}
+              <a href={s.url} target="_blank" rel="noopener noreferrer">Quelle ↗</a>
+            </li>
+          );
+        })}</ul>
       ) : <p className="gl-fine">Die Quellenliste ist gerade nicht ladbar.</p>}
       <ul className="gl-fine gl-unused">{NOT_USED_SOURCES.map((n) => <li key={n.text}><strong>{n.kind === 'linked' ? 'Nur verlinkt:' : 'Nicht genutzt:'}</strong> {n.text.split(':')[0]}</li>)}</ul>
       <p className="gl-fine">Herkunft: <strong>gemessen</strong> = Messnetz oder Behörde, <strong>Satellit</strong> = aus Sentinel-2 gerechnet{elev ? '; die Höhenänderung 2000–2019 stammt aus ASTER-Stereobildern, ausgewertet von Hugonnet et al. (2021), Werte unverändert' : ''},<strong>Modell</strong> = gerechnet, <strong>amtlich</strong> = Inventar oder Meldung einer Behörde. Kein Wert ohne Herkunft.</p>

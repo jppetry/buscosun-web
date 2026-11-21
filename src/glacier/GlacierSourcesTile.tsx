@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { BASEMAP_SOURCE, MapSourcesTile, type MapSourceGroup } from '../map/MapSourcesTile';
-import type { GlacierSourceRow } from './glacierClient';
+import { glacierSourceTerms, type GlacierSourceRow } from './glacierClient';
 import { fmtRefYear } from './glacierView';
 
 /**
@@ -19,7 +19,13 @@ export function GlacierSourcesTile({ sources, ready }: { sources: readonly Glaci
     {
       title: 'Gletscherdaten',
       note: sources ? undefined : 'Liste wird geladen oder ist gerade nicht erreichbar',
-      items: (sources ?? []).map((s) => ({ name: s.label, url: s.url, what: s.used, licence: `${s.licence} · Bezugsjahr ${fmtRefYear(s.refYear)}` })),
+      items: (sources ?? []).map((s) => {
+        const t = glacierSourceTerms(s);
+        // a source with licence terms of its own (CC BY: credit, link to the licence, what was changed) shows all three
+        return t.licenceUrl
+          ? { name: s.label, url: s.url, what: `${s.used} · Bezugsjahr ${fmtRefYear(s.refYear)}`, credit: s.attribution, licence: s.licence, licenceUrl: t.licenceUrl, changed: t.changes }
+          : { name: s.label, url: s.url, what: s.used, licence: `${s.licence} · Bezugsjahr ${fmtRefYear(s.refYear)}` };
+      }),
     },
   ], [sources]);
   return <MapSourcesTile title="Quellen der Gletscherkarte" groups={groups} ready={ready} foot={'buscosun bereitet die Daten auf (Zusammenführung, Berechnung, eigene Farbskalen); berechnete Werte sind „Datenbasis, bearbeitet".'} />;

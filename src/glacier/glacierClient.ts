@@ -165,7 +165,20 @@ export interface GlacierSummary {
   latest: Record<string, GlacierLatest>;
   countries: Record<'CH' | 'AT' | 'DE', { ba: GlacierCountryYearly; len: GlacierCountryYearly }>;
 }
-export interface GlacierSourceRow { id: string; label: string; licence: string; attribution: string; url: string; refYear: string; used: string }
+export interface GlacierSourceRow {
+  id: string; label: string; licence: string; attribution: string; url: string; refYear: string; used: string;
+  /** Link to the licence text and what buscosun changed — CC BY asks for both next to the credit. Written by builds after 20261120-1. */
+  licenceUrl?: string; changes?: string;
+}
+/** The same two fields for a source whose published build does not carry them yet (a build that does wins). */
+export const GLACIER_SOURCE_TERMS: Readonly<Record<string, { licenceUrl: string; changes: string }>> = Object.freeze({
+  sgi2023: {
+    licenceUrl: 'https://creativecommons.org/licenses/by/4.0/deed.de',
+    changes: 'Von buscosun bearbeitet: Umrisse für die Karte vereinfacht und nach WGS84 umgerechnet, Schuttbedeckung als Anteil der Gletscherfläche in vier Klassen, Höhenbänder mit dem Copernicus DEM berechnet. Flächen, Höhen, Exposition und Aufnahmejahre sind unverändert.',
+  },
+});
+export const glacierSourceTerms = (s: Pick<GlacierSourceRow, 'id' | 'licenceUrl' | 'changes'>): { licenceUrl?: string; changes?: string } =>
+  ({ licenceUrl: s.licenceUrl ?? GLACIER_SOURCE_TERMS[s.id]?.licenceUrl, changes: s.changes ?? GLACIER_SOURCE_TERMS[s.id]?.changes });
 export interface GlacierOutlineFC {
   type: 'FeatureCollection'; kind: string; region: string; level?: number; year?: number; source?: string;
   features: Array<{ type: 'Feature'; properties: { id?: string; ids?: string[]; e?: number; n?: string }; geometry: GeoJSON.Geometry }>;
