@@ -49,6 +49,15 @@ export function seaWaterLevelFrom(search: string = typeof location !== 'undefine
 }
 
 /**
+ * ST-N — the hours before the newest BSH current run begins are read from the run before (`status.current.prev`,
+ * `audit/seewetter-stroemung.md` §7). ON for everyone (Jan, 21.11.2026: "ja bitte, und diese Lücke beheben"), with the
+ * switch as the named fallback: `?curprev=0` ignores the run before — the page as it was (those hours "keine Daten").
+ */
+export function seaCurrentPrevFrom(search: string = typeof location !== 'undefined' ? location.search : ''): boolean {
+  try { return new URLSearchParams(search).get('curprev') !== '0'; } catch { return true; }
+}
+
+/**
  * Phase TF — tide windows (`audit/tidenfenster.md`): the page's threshold control, the windows in chart and hourly
  * band, the gauge-with-curve fallback (E-WL-10) and the deviation area. Built default-off (Rule 2) and switched ON for
  * everyone on Jan's word, 18.11.2026 ("schalte es immer ein", E-TF-8) — before the visual check on a real device and

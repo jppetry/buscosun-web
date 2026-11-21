@@ -1,0 +1,135 @@
+{
+ "at": "2026-11-21T23:05:43.893Z",
+ "statusUpdatedAt": "2026-11-21T22:50:43.458Z",
+ "livePointer": {
+  "run": "2026112112",
+  "builtAt": "2026-11-21T18:13:48.222Z",
+  "t0": "2026-11-22T01:00:00.000Z",
+  "hours": 72,
+  "prev": "(kein Eintrag)"
+ },
+ "producer": {
+  "built": false,
+  "reason": "Lauf 2026112112 ist der neueste, der nach der Uhr beim BSH liegen kann",
+  "askedBsh": {
+   "list": 0,
+   "get": 0
+  },
+  "log": [
+   "Zeiger ergänzt: Lauf davor 2026112100 (ab 2026-11-21T01:00:00.000Z, 72 h)"
+  ],
+  "prev": {
+   "run": "2026112100",
+   "path": "current/2026112100.json",
+   "builtAt": "2026-11-21T06:20:31.738Z",
+   "t0": "2026-11-21T01:00:00.000Z",
+   "hours": 72,
+   "field": true,
+   "uv": true
+  },
+  "runFilesUntouched": true
+ },
+ "page": {
+  "waveRun": "2026112112",
+  "hourNow": "2026-11-21T23:00:00.000Z",
+  "newestBegins": "2026-11-22T01:00:00.000Z",
+  "olderRun": "2026112100",
+  "olderAxis": [
+   "2026-11-21T01:00:00.000Z",
+   "2026-11-24T00:00:00.000Z"
+  ],
+  "wanted": "2026112100",
+  "heldPrev": "2026112100",
+  "bandBeforeNewest": {
+   "withRunBefore": {
+    "hoursBeforeNewest": 832,
+    "withValue": 787,
+    "spotsWithValue": 64
+   },
+   "asBefore": {
+    "hoursBeforeNewest": 832,
+    "withValue": 0,
+    "spotsWithValue": 0
+   },
+   "spots": 64
+  },
+  "rippleFieldNow": {
+   "withRunBefore": {
+    "run": "2026112100",
+    "hour": 22
+   },
+   "asBefore": {
+    "run": "2026112112",
+    "hour": null
+   }
+  },
+  "sectionNow": {
+   "sylt-hoernum": {
+    "withRunBefore": {
+     "kn": 1.34,
+     "to": 188,
+     "gap": null,
+     "run": "2026112100",
+     "newerFrom": "2026-11-22T01:00:00.000Z",
+     "nextSlack": "2026-11-22T05:00:00.000Z",
+     "from": "2026-11-21T01:00:00.000Z",
+     "until": "2026-11-25T00:00:00.000Z"
+    },
+    "asBefore": {
+     "kn": null,
+     "to": null,
+     "gap": "before",
+     "run": "2026112112",
+     "newerFrom": null,
+     "nextSlack": "2026-11-22T05:00:00.000Z",
+     "from": "2026-11-22T01:00:00.000Z",
+     "until": "2026-11-25T00:00:00.000Z"
+    }
+   },
+   "cuxhaven-duhnen": {
+    "withRunBefore": {
+     "kn": 0.58,
+     "to": 279,
+     "gap": null,
+     "run": "2026112100",
+     "newerFrom": "2026-11-22T01:00:00.000Z",
+     "nextSlack": "2026-11-22T09:45:00.000Z",
+     "from": "2026-11-21T01:00:00.000Z",
+     "until": "2026-11-25T00:00:00.000Z"
+    },
+    "asBefore": {
+     "kn": null,
+     "to": null,
+     "gap": "before",
+     "run": "2026112112",
+     "newerFrom": null,
+     "nextSlack": "2026-11-22T09:45:00.000Z",
+     "from": "2026-11-22T01:00:00.000Z",
+     "until": "2026-11-25T00:00:00.000Z"
+    }
+   },
+   "laboe": {
+    "withRunBefore": {
+     "kn": 0.08,
+     "to": 216,
+     "gap": null,
+     "run": "2026112100",
+     "newerFrom": "2026-11-22T01:00:00.000Z",
+     "nextSlack": null,
+     "from": "2026-11-21T01:00:00.000Z",
+     "until": "2026-11-25T00:00:00.000Z"
+    },
+    "asBefore": {
+     "kn": null,
+     "to": null,
+     "gap": "before",
+     "run": "2026112112",
+     "newerFrom": null,
+     "nextSlack": null,
+     "from": "2026-11-22T01:00:00.000Z",
+     "until": "2026-11-25T00:00:00.000Z"
+    }
+   }
+  }
+ }
+}

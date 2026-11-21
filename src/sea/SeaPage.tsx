@@ -15,7 +15,7 @@ import ShareButton from '../share/ShareButton';
 import { useAppNav } from '../router/useAppNav';
 import { useMediaQuery } from '../mobile/useIsMobile';
 import { seaFieldStepAt, seaCompStepAt, seaNoSeaAt, type SeaSpot } from './seaContract';
-import { seaDryRuleFrom, seaTideWindowFrom, seaWaterLevelFrom } from './seaFlag';
+import { seaCurrentPrevFrom, seaDryRuleFrom, seaTideWindowFrom, seaWaterLevelFrom } from './seaFlag';
 import { WL_ATTRIBUTION, WL_LICENCE, WL_LICENCE_URL, WL_SERVICE_PAGE, wlAt, wlDistKm, wlNearest, wlNearestWithCurve, type WlForecast, type WlGauge } from './waterLevel';
 import {
   encodeTideParam, loadTideThreshold, parseTideParam, saveTideThreshold, tideHours, tideRefOf, tideRefs, tideSeries, tideSideText, tideVerdict, tideWindows,
@@ -82,7 +82,7 @@ import { officialSight, sightConvAt, sightHintAt, type SightObs } from './seaSig
 import { WSV_CREDIT, WSV_LICENCE, WSV_LICENCE_URL, WSV_NAME, WSV_PAGE, WT_MODEL_NOTE } from './seaWaterTemp';
 import {
   BSH_CURRENT_CHANGED, BSH_CURRENT_CREDIT, BSH_CURRENT_LICENCE, BSH_CURRENT_LICENCE_URL, BSH_CURRENT_NAME, BSH_CURRENT_PAGE, SEA_CURRENT_MODEL_NOTE, SEA_CURRENT_WHY,
-  currentArrows, currentFieldHour, currentOnAxis, currentPointerOf, currentUvHour, currentViewOf, type SeaCurrentLoad, type SeaUvGrid,
+  currentArrows, currentAxisOf, currentDocAt, currentFieldHour, currentPointerOf, currentUvHour, currentViewOf, type SeaCurrentLoad, type SeaCurrentPointer, type SeaUvGrid,
 } from './seaCurrent';
 import MapGestureHint, { type HintSpot } from '../map/MapGestureHint';
 import SeaLinkNotice from './SeaLinkNotice';
@@ -145,7 +145,9 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   const [dmiPtr, setDmiPtr] = useState<string | null>(null);
   const [dmi, setDmi] = useState<SeaDmiLoad | 'loading'>('loading');
   // Phase ST: pointer to the newest current file of the BSH (`status.current`, a string like the others; '' = none) and what the page read.
+  // ST-N: the string is the checked pointer as JSON — it carries the run before (`prev`) unless `?curprev=0`.
   const [curPtr, setCurPtr] = useState<string | null>(null);
+  const curPrevOn = useMemo(() => seaCurrentPrevFrom(), []);
   const [current, setCurrent] = useState<SeaCurrentLoad | 'loading'>('loading');
   const [currents, setCurrents] = useState<GeoJSON.FeatureCollection | null>(null);
   // Phase SR: the u/v field of the chosen hour while the main layer „Strömung“ is chosen (`audit/seewetter-riffel.md`).
@@ -317,7 +319,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
       setDmiPtr((prev) => (k.status == null ? prev ?? '' : dp ? `${dp.stamp}|${dp.path}|${dp.builtAt}` : ''));
       // ST: the same rule for the current file.
       const cp = currentPointerOf(k.status);
-      setCurPtr((prev) => (k.status == null ? prev ?? '' : cp ? `${cp.run}|${cp.path}|${cp.builtAt}|${cp.field ? 1 : 0}|${cp.uv ? 1 : 0}` : ''));
+      setCurPtr((prev) => (k.status == null ? prev ?? '' : cp ? JSON.stringify(curPrevOn ? cp : { ...cp, prev: undefined }) : ''));
       // WT: the same rule for the water temperature file.
       setWtPtr((prev) => (k.status == null ? prev ?? '' : wtPointerKey(k.status)));
       // BS: the same rule for the two lake files.
@@ -402,12 +404,13 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   useEffect(() => {
     if (curPtr == null) return;     // null = status.json not read yet
     if (killed) { setCurrent({ doc: null, state: 'none', why: SEA_CURRENT_WHY.killed }); return; }
-    const [crun, cpath, cbuilt, cfield] = curPtr.split('|');
     const ac = new AbortController();
-    loadCurrent(curPtr ? { run: crun, path: cpath, builtAt: cbuilt, field: cfield === '1' } : null, nowMs, ac.signal).then((d) => { if (!ac.signal.aborted) setCurrent(d); }, () => {});
+    loadCurrent(curPtr ? JSON.parse(curPtr) as SeaCurrentPointer : null, nowMs, ac.signal).then((d) => { if (!ac.signal.aborted) setCurrent(d); }, () => {});
     return () => ac.abort();
   }, [curPtr, killed, dmiTick]); // eslint-disable-line react-hooks/exhaustive-deps
   const curDoc = current !== 'loading' ? current.doc : null;
+  // ST-N: the run before the newest one — held only while "now" lies before the newest run; it speaks for those hours alone.
+  const curPrev = current !== 'loading' ? current.prev ?? null : null;
   // --- Phase BS: the lakes — table and chips from the catalogue, the series file, the outlines, the model temperature.
   const lakeTable: SeaLake[] = useMemo(() => (catalog && catalog !== 'loading' ? catalog.lakes ?? [] : []), [catalog]);
   const hasLakes = useMemo(() => spots.some((s) => !!s.lake), [spots]);
@@ -620,33 +623,33 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   const hour = spotHours[k] ?? null;
   const verdict = spot ? (spotVerdicts[k] ?? verdictAt(spot, k)) : null;
   // Phase ST: the spot's current on the hour axis of the wave run, and what the readout says for the chosen hour.
-  const spotCur = useMemo(() => {
-    const e = spot && curDoc ? curDoc.spots[spot.id] : null;
-    return e && curDoc && run ? currentOnAxis(curDoc, e, run.runMs, 79) : null;
-  }, [spot, curDoc, run]);
+  const spotCur = useMemo(() => (spot && curDoc && run ? currentAxisOf({ doc: curDoc, prev: curPrev ?? undefined }, spot.id, run.runMs, 79) : null),
+    [spot, curDoc, curPrev, run]);
   const hourWindDir = hour?.windDir ?? null, hourWindKn = hour?.windMs != null ? hour.windMs * MS_TO_KN : null;
   const currentView = useMemo(() => (spot ? currentViewOf({ load: current, spotId: spot.id, tMs: validMs, nowMs, windFromDeg: hourWindDir, windKn: hourWindKn }) : null),
     [spot, current, validMs, nowMs, hourWindDir, hourWindKn]);
   // Map layer „Strömung“: the thinned field of the chosen hour as arrows; outside the run or unreadable ⇒ no arrows.
   // Phase WT: model, measurement, own record and the user's threshold of the water temperature at the spot (no view without the catalogue file).
   const wtemp = useSeaWaterTemp({ spotId: spot?.id ?? null, ptr: wtPtr, killed, nowMs, tick: dmiTick, tMs: validMs, linkWt: initial.wt });
-  const curFieldHour = toggles.current && curDoc ? currentFieldHour(curDoc, validMs) : null;
-  const curFieldKey = curDoc && curFieldHour != null ? `${curDoc.run}/${curFieldHour}` : null;
+  // ST-N: the run that speaks for the chosen hour — the newest from its first hour on, before it the run before.
+  const curAt = currentDocAt(curDoc, curPrev, validMs);
+  const curFieldHour = toggles.current && curAt ? currentFieldHour(curAt, validMs) : null;
+  const curFieldKey = curAt && curFieldHour != null ? `${curAt.run}/${curFieldHour}` : null;
   useEffect(() => {
-    if (!curFieldKey || !curDoc || curFieldHour == null) { setCurrents(null); return; }
+    if (!curFieldKey || !curAt || curFieldHour == null) { setCurrents(null); return; }
     const ac = new AbortController();
-    loadCurrentField(curDoc.run, curFieldHour, ac.signal).then((rgba) => { if (!ac.signal.aborted) setCurrents(rgba ? currentArrows(rgba) : null); }, () => {});
+    loadCurrentField(curAt.run, curFieldHour, ac.signal).then((rgba) => { if (!ac.signal.aborted) setCurrents(rgba ? currentArrows(rgba) : null); }, () => {});
     return () => ac.abort();
   }, [curFieldKey]); // eslint-disable-line react-hooks/exhaustive-deps
   // Phase SR — main layer „Strömung“: the u/v field of the chosen hour, and the hour after it warmed for „Abspielen“.
   // Nothing is read while another layer is chosen. Outside the run, without a field or unreadable ⇒ "keine Daten".
   const isCur = layer === 'cur';
-  const uvHour = isCur && curDoc ? currentUvHour(curDoc, validMs) : null;
-  const uvKey = curDoc && uvHour != null ? `${curDoc.run}/${uvHour}` : null;
+  const uvHour = isCur && curAt ? currentUvHour(curAt, validMs) : null;
+  const uvKey = curAt && uvHour != null ? `${curAt.run}/${uvHour}` : null;
   useEffect(() => {
-    if (!uvKey || !curDoc?.uv || uvHour == null) { setUv(null); setUvState('idle'); return; }
-    const ac = new AbortController(), runId = curDoc.run;
-    const [first, ...next] = rippleHours(uvHour, curDoc.uv.hours);
+    if (!uvKey || !curAt?.uv || uvHour == null) { setUv(null); setUvState('idle'); return; }
+    const ac = new AbortController(), runId = curAt.run;
+    const [first, ...next] = rippleHours(uvHour, curAt.uv.hours);
     setUvState('loading');
     loadCurrentUv(runId, first, ac.signal).then((grid) => {
       if (ac.signal.aborted) return;
@@ -662,8 +665,8 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   /** Why the layer shows nothing — in words, with the reason; `null` while it loads or draws. */
   const curWhy: string | null = !isCur || current === 'loading' ? null
     : !curDoc ? (current.why ?? SEA_CURRENT_WHY.none)
-      : !curDoc.uv ? RIPPLE_WHY.noField
-        : uvHour == null ? `${RIPPLE_WHY.outside} Er reicht von ${dateTime(curDoc.t0)} bis ${dateTime(curDoc.t0 + (curDoc.uv.hours - 1) * H)} Uhr.`
+      : !curAt?.uv ? RIPPLE_WHY.noField
+        : uvHour == null ? `${RIPPLE_WHY.outside} Er reicht von ${dateTime(curPrev?.uv ? Math.min(curPrev.t0, curDoc.t0) : curDoc.t0)} bis ${dateTime(curDoc.t0 + ((curDoc.uv?.hours ?? curDoc.hours) - 1) * H)} Uhr.`
           : uvState === 'error' ? RIPPLE_WHY.unreadable : null;
 
   // --- Phase SP: trip planner (`seaPlanner.ts` computes, this block only feeds it) -----------------------------
@@ -755,7 +758,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
     void loadTripWind(own).then((r) => { if (live) setOwnWind(r); });
     return () => { live = false; };
   }, [own?.lat, own?.lon]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { setOwnFields(new Map()); }, [run?.run, curDoc?.run]);
+  useEffect(() => { setOwnFields(new Map()); }, [run?.run, curDoc?.run, curPrev?.run]);
   const ownNeed = useMemo(() => {
     if (!own || !usable) return '';
     const ks = new Set<number>([k]);
@@ -769,10 +772,10 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
     const todo = ownNeed.split(',').map(Number).filter((t) => !ownFieldsRef.current.has(t));
     if (!todo.length) return;
     const ac = new AbortController();
-    void Promise.all(todo.map((t) => loadTripHour({ run: run.run, runMs: run.runMs, curDoc, hourMs: t, signal: ac.signal }).then((f) => [t, f] as const)))
+    void Promise.all(todo.map((t) => loadTripHour({ run: run.run, runMs: run.runMs, curDoc, curPrev, hourMs: t, signal: ac.signal }).then((f) => [t, f] as const)))
       .then((list) => { if (!ac.signal.aborted) setOwnFields((m) => { const n = new Map(m); for (const [t, f] of list) n.set(t, f); return n; }); });
     return () => ac.abort();
-  }, [ownNeed, run?.run, curDoc?.run]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ownNeed, run?.run, curDoc?.run, curPrev?.run]); // eslint-disable-line react-hooks/exhaustive-deps
   const ownGeo = useMemo(() => {
     if (!own) return null;
     for (const f of ownFields.values()) if (f.wave) return ownGeoOf(f.wave, own) ?? ('none' as const);
@@ -893,7 +896,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   }, [spots, etappe?.points]); // eslint-disable-line react-hooks/exhaustive-deps
   const axisEndMs = nowHour + Math.max(0, nHours - 1) * H;
   const tripView = useSeaTrip({
-    etappe, limits, unit, spots, areas, run: run && usable ? { run: run.run, runMs: run.runMs } : null, curDoc, sight: spotsDoc?.sight,
+    etappe, limits, unit, spots, areas, run: run && usable ? { run: run.run, runMs: run.runMs } : null, curDoc, curPrev, sight: spotsDoc?.sight,
     nowMs, nowHour, nHours, wodl: seaTexts.wodl, wodlStale: !!stale.WODL45, validMs, gauges: wlCat.gauges, dmiDoc,
     lakes: lakeTable, lakeShapes: lakeShapes?.features,
   });
@@ -1254,7 +1257,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
     </div>
   );
   const pillBadge = spot ? (spot.lake ? (lakeNameOf[spot.lake.id] ?? 'See') : `${spot.country === 'DK' ? 'DÄNEMARK · ' : ''}${spot.region === 'nordsee' ? 'NORDSEE' : 'OSTSEE'}`) : '';
-  const curRunTxt = curDoc ? `BSH-Lauf ${curDoc.run.slice(8, 10)} UTC vom ${curDoc.run.slice(6, 8)}.${curDoc.run.slice(4, 6)}.` : '';
+  const curRunTxt = curAt ? `BSH-Lauf ${curAt.run.slice(8, 10)} UTC vom ${curAt.run.slice(6, 8)}.${curAt.run.slice(4, 6)}.${curDoc && curAt !== curDoc ? ` Der neuere Lauf beginnt erst ${dateTime(curDoc.t0)} Uhr.` : ''}` : '';
   const legend = (
     <div className={`sw-legend sw-legend-bar${isCur ? ' is-cur' : ''}`} aria-label="Legende">
       {isCur ? (

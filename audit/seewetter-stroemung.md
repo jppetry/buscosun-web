@@ -175,7 +175,7 @@ Push im nächsten 15-min-Lauf (der Lauf 2026111800 liegt dann schon beim BSH).
 
 | Nr. | Befund | Mehrwert · Skizze |
 |---|---|---|
-| **V-ST-1** | Der 12-UTC-Lauf von `db`/`wb` ist **nicht beobachtet** (Namen der Tagesdateien, Zahl der Tage, Ankunftszeit). An der Elbe heißt sein erster Tag `_01` und beginnt am Lauftag um 00:15 UTC. Der Producer liest die Zeit aus den Nachrichten und nimmt jede lückenlose Tagesfolge, die beide Pakete gleich tragen | Nach dem ersten 12-UTC-Lauf mit dem Producer auf `main` (≈ 18 UTC): `status.current.run` endet auf `12`, `hours` und `t0` ansehen. Begänne der Lauf erst am Folgetag, stünde am Abend „keine Daten“ — dann die Stunden bis dahin aus der eigenen vorigen Datei tragen, mit benanntem Lauf |
+| **V-ST-1** | **Geschlossen mit ST-N (§7): der 12-UTC-Lauf beginnt am Folgetag 01:00 UTC, die Stunden bis dahin kommen aus dem Lauf davor.** Der 12-UTC-Lauf von `db`/`wb` ist **nicht beobachtet** (Namen der Tagesdateien, Zahl der Tage, Ankunftszeit). An der Elbe heißt sein erster Tag `_01` und beginnt am Lauftag um 00:15 UTC. Der Producer liest die Zeit aus den Nachrichten und nimmt jede lückenlose Tagesfolge, die beide Pakete gleich tragen | Nach dem ersten 12-UTC-Lauf mit dem Producer auf `main` (≈ 18 UTC): `status.current.run` endet auf `12`, `hours` und `t0` ansehen. Begänne der Lauf erst am Folgetag, stünde am Abend „keine Daten“ — dann die Stunden bis dahin aus der eigenen vorigen Datei tragen, mit benanntem Lauf |
 | **V-ST-2** | Wittenbergen liegt in einer 0,9-km-Zelle von `wb`; die Elbe ist dort ≈ 2 km breit. Das BSH führt ein Elbe-Paket mit ≈ 90 m (zwei Tage, vier Teilstücke, 28 MB je Tagesdatei im Außenbereich) — am 18.11. waren dessen Dateien einen halben Tag älter als die übrigen | Mehrwert: Strom im Fahrwasser statt im Flächenmittel. Skizze: `PagHam` (Pagensand bis Hamburg, 8 MB je Tag) nur für diesen Spot lesen; die Regel „älter als 30 h ⇒ keine Daten“ gilt dann je Paket |
 | **V-ST-3** | Die Stauwasser-Regel ist gesetzt, nicht geeicht. Sie findet an geradlinigen Gezeitenströmen jedes Kentern (Elbe 11 in drei Tagen, Büsum, Pellworm, Sylt), an drehenden Strömen wenig (Norderney eines in drei Tagen: der Strom wird dort schwach und dreht langsam durch Nord, ohne die Schwelle 0,05 m/s zwei Stunden davor zu halten). In der Ostsee meldet sie vereinzelt das Umschlagen eines windgetriebenen Stroms | Mehrwert: eine Zeit, auf die man sich beim Auslaufen verlässt, braucht einen Vergleich. Skizze: gegen die Stromkenterzeiten des BSH-Gezeitenstromatlas an fünf Orten prüfen; für drehende Ströme „schwächster Strom“ statt „Stauwasser“ zeigen |
 | **V-ST-4** | Die Zelle eines Spots wird je Lauf bestimmt. An Spots nahe der 50-%-Grenze (Heiligenhafen 47 %, Husum 45 %) kann sie von Lauf zu Lauf wechseln; Heiligenhafens Zelle führt im ganzen Lauf weniger als 1 cm/s | Skizze: feste Zelle je Spot aus 30 Tagen Archiv (`current-<lauf>.json.gz` trägt Zelle und Anteil), in den Katalog |
@@ -193,3 +193,109 @@ Push im nächsten 15-min-Lauf (der Lauf 2026111800 liegt dann schon beim BSH).
 Job `success` in 39 s; Schritt 14 „Currents (BSH surface current at the spots)“ `success` (überspringt sich, der Producer
 liegt noch nicht auf `main`), „Publish“ `success`. Danach: `status.json` ohne `current` (erwartet), `lastPublishedRun`
 2026111800, `spots.json` 25 567 B unverändert.
+
+## 7. Nachzug ST-N (21.11.2026) — die Abendlücke (V-ST-1, V-SR-1)
+
+### 7.1 Diagnose (gemessen 21.11.2026, 22:48 UTC, nur gelesen)
+
+Jan sah am Abend auf der Ebene „Strömung“: „Keine Daten. Die gewählte Stunde liegt außerhalb des Laufs der
+Strömungsvorhersage. Er reicht von So 22.11. 02:00 bis Mi 25.11. 01:00 Uhr.“ Das ist der Fall, den V-ST-1 als offen führte
+und V-SR-1 am Lauf 2026111812 gemessen hat — kein Fehler eines Laufs, sondern jeden Abend so.
+
+| Lauf | gebaut | erste Stunde der Achse | Stunden | Tage beim BSH |
+|---|---|---|---|---|
+| `current/2026112100.json` | 21.11. 06:20 UTC | **21.11. 01:00 UTC** | 72 | `00 01 02` |
+| `current/2026112112.json` | 21.11. 18:13 UTC | **22.11. 01:00 UTC** | 72 | `01 02 03` |
+
+- Der 12-UTC-Lauf beginnt am **Folgetag** (sein erster Tag heißt `_01`), der 00-UTC-Lauf am Lauftag. Beide Achsen beginnen um
+  01:00 UTC, die des 12-UTC-Laufs einen Tag später.
+- `status.current` nennt nur den neuesten Lauf, und die Seite liest nur ihn. Vom Umstellen des Zeigers (21.11. 18:13 UTC)
+  bis 22.11. 01:00 UTC hat deshalb keine Stunde ab „jetzt“ einen Strömungswert: rund 6,8 h, jeden Abend. Auf der Achse des
+  Stundenbands (sie beginnt mit dem Seegangslauf 12 UTC) sind es 13 leere Stunden.
+- **Die Werte liegen im Speicher:** der Producer hält zwei Läufe (`SEA_CURRENT_KEPT = 2`). Gelesen:
+  `current/2026112100.json` 200 (37 909 B), `current/2026112100/uv/021.png` 200, `…/uv/023.png` 200, `…/f/021.png` 200. Der
+  Lauf davor deckt den ganzen Abend ab (bis 24.11. 00:00 UTC) und ist beim Umstellen 18 h, an der Naht 25 h alt — unter der
+  Grenze von 30 h, ab der die Seite einen Lauf nicht mehr zeigt.
+- Betroffen ist alles, was den Lauf liest: Zeile „Strom kn“, Abschnitt „Strömung“ (Wert, Stauwasser, „Wind gegen Strom“),
+  Strömungspfeile, Riffel-Ebene, Strom entlang der Etappe.
+
+**Ursache:** der Zeiger kennt den Lauf davor nicht, die Seite kann ihn nicht finden. Kein Fehler im Leser der BSH-Dateien, kein
+Fehler im Feld.
+
+### 7.2 Entscheidungen (Jan, 21.11.: „ja bitte, und diese Lücke beheben“)
+
+| Nr. | Frage | Entscheidung |
+|---|---|---|
+| **E-ST-15** | Woher kommen die Stunden vor dem neuesten Lauf? | Aus dem **Lauf davor**, der im Speicher ohnehin liegt. Der Zeiger nennt ihn (`status.current.prev`), die Seite liest ihn. Kein Wert wird zwischen den Läufen kopiert, beide Dateien bleiben, was das BSH geliefert hat |
+| **E-ST-16** | Welcher Lauf spricht für welche Stunde? | Ab der ersten Stunde des neuesten Laufs **immer** der neueste — auch wenn der ältere dieselbe Stunde trägt. Davor der ältere. Nichts wird gemischt (`currentDocAt`). Der benutzte Lauf steht im Abschnitt „Strömung“ und in der Legende der Riffel-Ebene, dazu ab wann der neuere gilt |
+| **E-ST-17** | Wie alt darf der Lauf davor sein? | Höchstens 30 h, dieselbe Grenze wie für jeden Lauf (`SEA_CURRENT_DEAD_MS`, `set`). Im Normalfall ist er an der Naht 25 h alt. Fällt ein Lauf aus, wäre der Lauf davor 37 h alt und wird nicht gezeigt — dann steht „keine Daten“ wie bisher |
+| **E-ST-18** | Wann lädt die Seite den Lauf davor? | Nur solange die Stunde von „jetzt“ vor dem neuesten Lauf liegt (abends); tagsüber kein zweiter Abruf (`currentPrevWanted`). Ein fehlgeschlagener Abruf ändert nichts: die Stunden bleiben „keine Daten“ |
+| **E-ST-19** | Schalter | an für alle (Jans Wort), Rückfall `?curprev=0` = die Seite von vorher. Ohne den Eintrag im Zeiger (alter Producer) ist die Seite ebenfalls die von vorher |
+| **E-ST-20** | Bestehender Zeiger | wird beim nächsten `sea`-Lauf **einmal nachgetragen**, ohne Bau, ohne Blick ins BSH-Verzeichnis — sonst käme der Eintrag erst mit dem nächsten BSH-Lauf |
+
+### 7.3 Umsetzung
+
+- **Vertrag** (`src/sea/seaCurrent.ts`): `SeaCurrentPrevPointer`, `currentPrevPointerOf` (wohlgeformt, älter als der Zeigerlauf, Pfad passt
+  zum Lauf — sonst „keiner“, der Zeiger selbst bleibt gültig), `currentPrevWanted`, `currentDocAt`, `currentAxisOf`;
+  `currentLoadOf` nimmt den Lauf davor nur mit derselben Werteprüfung, mit dem Lauf und der ersten Stunde, die der Zeiger
+  nennt; `currentViewOf` liest die Stunde aus dem zuständigen Lauf, nennt ihn (`run`, `newerFrom`) und nimmt das nächste
+  Stauwasser vor der Naht aus dem älteren, dahinter aus dem neuesten.
+- **Producer** (`scripts/sea/sea-current.mjs`): `prevCurrent(storeDir, run)` = der neueste ältere Lauf im Speicher, der die
+  Werteprüfung besteht; nach jedem Bau steht er als `current.prev` im Zeiger (`null` = keiner); ein Zeiger ohne den Eintrag
+  wird einmal ergänzt. Kein Workflow geändert — `sea.yml` klont den Producer bei jedem Lauf.
+- **Seite:** `loadCurrent` (zwei Abrufe nur abends), `SeaPage.tsx` (Zeile „Strom kn“ über `currentAxisOf`; Strömungspfeile
+  und Riffel über den Lauf der gewählten Stunde; Legende nennt den Lauf), `SeaCurrentPanel.tsx` (Zeile „Lauf des BSH“),
+  `seaTripData.ts` / `useSeaTrip.ts` (Strom der Etappe je Stunde aus dem zuständigen Lauf), `seaFlag.ts`
+  (`seaCurrentPrevFrom`). Kein CSS, kein neues Bedienelement.
+- **Datenvertrag, mit Namen:** `sea/v1/status.json` → `current.prev = { run, path, builtAt, t0, hours, field, uv }` oder
+  `null`. Keine neue Datei, keine geänderte Datei, kein neuer Pfad. Ein alter Client übergeht den Eintrag. Die README-Vorlage
+  des Daten-Repos nennt ihn (`scripts/repack-repo/README.md`).
+- Nicht angefasst: buscosun Fusion (`src/pointForecast/**`), Shader, Edge Functions, Abhängigkeiten, Workflows.
+
+### 7.4 Belege und Gate (21./22.11.2026)
+
+**Probe an den echten Dateien** (`audit/seewetter-stroemung/prev-probe.mjs` → `prev-probe.json`, 21.11. 23:05 UTC, nur
+gelesen; der Producer lief auf einer Kopie von `status.json` und den beiden Laufdateien in einem Temp-Ordner):
+
+| Frage | Ergebnis |
+|---|---|
+| Producer-Besuch auf dem Stand des Speichers | nichts gebaut, BSH nicht gefragt (0 Listen, 0 Dateien), Zeiger ergänzt: `prev` = 2026112100 ab 21.11. 01:00 UTC, 72 h; beide Laufdateien Byte für Byte unberührt |
+| Zeile „Strom kn“, Stunden vor dem neuesten Lauf (64 Spots × 13 h = 832) | **787 mit Wert**, vorher **0**; alle 64 Spots tragen dort Werte (die übrigen 45 Stunden: Zelle im Modell ohne Strom) |
+| Riffel-Ebene um 23:00 UTC | Feld `current/2026112100/uv/022.png`, vorher keines („außerhalb des Laufs“) |
+| Abschnitt „Strömung“ um 23:00 UTC | Sylt Hörnum 1,34 kn nach 188°, Cuxhaven-Duhnen 0,58 kn, Laboe 0,08 kn — je „Lauf 00 UTC vom 21.11., der neuere beginnt 22.11. 01:00 UTC“; vorher „keine Daten“ |
+
+**Prüfer:** `verify:sea-current` 129/129 (108 + Block G mit 21 Prüfungen: Zeiger, Bedarf, Leser, Naht Wert für Wert mit
+Negativkontrolle ohne den älteren Lauf, Stauwasser, Abrufe der Seite und der Etappe gegen einen Stellvertreter-Speicher,
+Producer mit zwei Läufen, Nachtrag, Rückfall). **Mutationsprobe:** 16 eingebaute Fehler (älterer Lauf auch hinter der Naht,
+toter Lauf genommen, Lauf davor auch tags geladen, ohne Werteprüfung, fremder Lauf, Naht eine Stunde zu spät, Stauwasser
+des älteren hinter der Naht, Lauf nicht benannt, jüngerer Lauf als `prev`, Abruf immer, Etappe immer aus dem neuesten, kein
+Nachtrag, Nachtrag bei jedem Besuch, Zeiger ohne Eintrag, kaputte Datei benannt, Schalter tot) — alle 16 bemerkt.
+`verify:sea-ripples` 122/122 (G15/G17 hingen am alten Wortlaut der Quellzeilen und sind auf den neuen gestellt; G17 sagt
+jetzt „ein älteres Feld nie für eine Stunde, die der neueste Lauf trägt“), `verify:sea-trip` 82/82, `-planner` 50/50,
+`-wizard` 29/29, `-lakes` 125/125, `-dk` 70/70, `-wind-band` 41/41, `-sight` 80/80, `-watertemp` 136/136, `-contract` 30/30,
+`-tide-window` 49/49, `verify:repack-publish` 24/24. Typecheck 0, Build 281/281.
+
+**Budget:** an `e0683791` plus nur diesem Patch (frischer Klon) eagerJs 116,2 / 117, **totalJs 2 096,8 / 2 097** — grün,
+Anteil der Phase +0,8 KB. Im geteilten Arbeitsbaum liegen zugleich uncommittete Änderungen der Gletscher-Linie
+(`src/glacier/*`); mit ihnen misst das Budget 2 097,8 und ist rot (V-ST-16). Die Grenze habe ich nicht angehoben.
+
+**Nicht geprüft:** nichts im Browser (kein Bild, kein Gerät) — die Verdrahtung der Seite ist an der reinen Logik, an den
+Abrufen gegen einen Stellvertreter-Speicher und am Quelltext geprüft; `verify:sea-ui` (Browser) nicht gelaufen.
+`verify:sea-derive` und `verify:sea-lakes-bytes` nicht gelaufen (kein Wellen- oder Windproducer berührt).
+
+Die fünf Fragen: (1) Funktionserhalt — nichts entfernt; mit `?curprev=0` und ohne den Eintrag im Zeiger ist die Seite die von
+vorher (G8, G10, G21). (2) Desktop pixelgleich — nicht geprüft; kein CSS geändert, die Zeile „Lauf des BSH“ und die
+Legendenzeile sind abends um einen Halbsatz länger. (3) Touch-Ziele — kein neues Bedienelement. (4) Konsole — nicht geprüft.
+(5) Long Tasks — nicht geprüft; neu ist abends ein zweiter Abruf von rund 38 KB.
+
+### 7.5 Befunde
+
+| Nr. | Befund | Mehrwert · Skizze |
+|---|---|---|
+| **V-ST-1 / V-SR-1** | **geschlossen** mit §7 (wirkt mit dem Push: Seite mit dem Deploy, Zeiger mit dem ersten `sea`-Lauf danach) | — |
+| **V-ST-14** | Die Zeile „Strom kn“ im Stundenband zeigt nicht, an welcher Stunde der Lauf wechselt — der Lauf steht nur im Abschnitt und in der Legende | Mehrwert: wer die Zeile liest, sähe die Naht. Skizze: ein Strich im Band an der ersten Stunde des neuesten Laufs, wie die Naht „nur Gezeit“ beim Wasserstand |
+| **V-ST-15** | An der Naht können Wert und Riffel springen (zwei Läufe, je Lauf eigene Zellwahl des Spots — Zelle und Abstand im Abschnitt gehören zum benutzten Lauf) | Nur vermerkt: gemessen ist der Sprung nicht. Skizze: die Stunde der Naht aus beiden Läufen im Seewetter-Archiv vergleichen |
+| **V-ST-16** | Budget: totalJs 2 096,8 gegen 2 097 nach dieser Phase; die uncommittete Gletscher-Linie im selben Baum liegt mit 2 097,8 darüber | Die Grenze hebt, wer sie überschreitet — mit Notiz, nie mit `--update` |
+| **V-ST-17** | Ein Client mit altem Bündel (Service Worker, offener Tab) übergeht `prev` und zeigt abends weiter „keine Daten“, bis er neu lädt | Nur vermerkt |
+| **V-ST-18** | Fällt ein BSH-Lauf aus, zeigt die Seite abends weiter „keine Daten“ (der Lauf davor wäre 37 h alt, E-ST-17) | Ehrlich, aber eine Lücke: Skizze — die Grenze für den Lauf davor gesondert setzen, nach einer Messung, wie stark ein 37 h alter Lauf vom neuen abweicht |
+| **V-ST-19** | Die Seite ist nach dieser Phase von mir nicht gesehen | Jans Blick am Abend, `MANUELLE-SCHRITTE.md` §109 |

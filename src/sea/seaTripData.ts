@@ -14,7 +14,7 @@
  */
 import { decodeSpotValue, encodeSpotValue, sanitizeGust, seaFieldStepAt } from './seaContract';
 import { loadCurrentUv, loadField, type SeaFieldImage } from './seaClient';
-import { MS_TO_KN, currentUvHour, currentUvXY, type SeaCurrentDoc, type SeaUvGrid } from './seaCurrent';
+import { MS_TO_KN, currentDocAt, currentUvHour, currentUvXY, type SeaCurrentDoc, type SeaUvGrid } from './seaCurrent';
 import { sampleUv, type Flow } from './seaRipples';
 import { sampleField } from './seaView';
 import { planDistKm, type PlanPos } from './seaPlanner';
@@ -96,12 +96,14 @@ export function tripFieldStep(runMs: number, hourMs: number): number | null {
  * `signal` ends the leg's own waiting (then `null`). The reads are shared with the map (`seaClient.ts`, V-AM-18): a
  * file somebody else still waits for loads on, and another caller's abort never reaches the leg (V-AM-16).
  */
-export async function loadTripHour(x: { run: string | null; runMs: number | null; curDoc: Pick<SeaCurrentDoc, 'run' | 't0' | 'uv'> | null; hourMs: number; signal?: AbortSignal }): Promise<TripHourFields> {
+export async function loadTripHour(x: { run: string | null; runMs: number | null; curDoc: Pick<SeaCurrentDoc, 'run' | 't0' | 'uv'> | null; curPrev?: Pick<SeaCurrentDoc, 'run' | 't0' | 'uv'> | null; hourMs: number; signal?: AbortSignal }): Promise<TripHourFields> {
   const step = x.run && x.runMs != null ? tripFieldStep(x.runMs, x.hourMs) : null;
-  const uvHour = x.curDoc?.uv ? currentUvHour(x.curDoc, x.hourMs) : null;
+  // ST-N: an hour before the newest BSH run begins is read from the run before (when the page holds it) — `currentDocAt`.
+  const cur = currentDocAt(x.curDoc, x.curPrev, x.hourMs);
+  const uvHour = cur?.uv ? currentUvHour(cur, x.hourMs) : null;
   const [wave, uv] = await Promise.all([
     x.run && step != null ? loadField(x.run, 'f', step, x.signal).catch(() => null) : Promise.resolve(null),
-    x.curDoc && uvHour != null ? loadCurrentUv(x.curDoc.run, uvHour, x.signal).catch(() => null) : Promise.resolve(null),
+    cur && uvHour != null ? loadCurrentUv(cur.run, uvHour, x.signal).catch(() => null) : Promise.resolve(null),
   ]);
   return { wave, uv };
 }

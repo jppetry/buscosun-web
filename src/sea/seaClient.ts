@@ -24,7 +24,7 @@ import {
   SEA_SPOT_CATALOG_LAKES_PATH, lakeObsOf, lakeSeriesProblems, lakeTableProblems, seaLakesDocProblems, seaLakesStale,
   type SeaLake, type SeaLakesDoc, type SeaLakesPointer,
 } from './seaLakes';
-import { SEA_CURRENT_FIELD, SEA_CURRENT_UV, SEA_CURRENT_WHY, currentLoadOf, decodeUvField, seaCurrentDead, type SeaCurrentLoad, type SeaCurrentPointer, type SeaUvGrid } from './seaCurrent';
+import { SEA_CURRENT_FIELD, SEA_CURRENT_UV, SEA_CURRENT_WHY, currentLoadOf, currentPrevWanted, decodeUvField, seaCurrentDead, type SeaCurrentLoad, type SeaCurrentPointer, type SeaUvGrid } from './seaCurrent';
 
 /** "Does not exist" (404, or 403 on both ways) — distinct from a hard failure. */
 export class SeaNotThere extends Error {}
@@ -565,14 +565,28 @@ export function withDmiWind(doc: SeaSpotsDoc, spots: readonly SeaSpot[], dmi: Se
 /**
  * The current file `status.current` points to — checked, or the reason there is none. A run older than
  * `SEA_CURRENT_DEAD_MS`, an unreadable or unreachable file is "keine Daten": never an older file in its place.
+ * ST-N: next to a good file the run before it (`status.current.prev`) is read while the page needs it — for the hours
+ * before the newest run begins, nothing else (`currentDocAt`).
  */
 export async function loadCurrent(ptr: SeaCurrentPointer | null, nowMs: number, signal?: AbortSignal): Promise<SeaCurrentLoad> {
   if (!ptr || seaCurrentDead(ptr.run, nowMs)) return currentLoadOf(ptr, null, nowMs);
+  let doc: unknown;
   try {
-    return currentLoadOf(ptr, await fetchSea(ptr.path, 'json', signal), nowMs);
+    doc = await fetchSea(ptr.path, 'json', signal);
   } catch (e) {
     if (isAbort(e)) throw e;
     return { doc: null, state: 'error', why: SEA_CURRENT_WHY.net };
+  }
+  const load = currentLoadOf(ptr, doc, nowMs);
+  // ST-N: the run before, read only while "now" lies before the newest run (in the evening, after the 12 UTC run of the
+  // BSH has appeared). A failed read of it changes nothing: the hours before the newest run then stay "keine Daten".
+  const want = currentPrevWanted(ptr, load.doc, nowMs);
+  if (!want) return load;
+  try {
+    return currentLoadOf(ptr, doc, nowMs, await fetchSea(want.path, 'json', signal));
+  } catch (e) {
+    if (isAbort(e)) throw e;
+    return load;
   }
 }
 

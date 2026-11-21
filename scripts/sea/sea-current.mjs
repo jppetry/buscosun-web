@@ -8,7 +8,8 @@
  *   sea/v1/current/<run>/f/<hhh>.png   thinned hourly field for the arrows "Strömungspfeile" (90 × 55 cells, sampled)
  *   sea/v1/current/<run>/uv/<hhh>.png  phase SR: hourly u/v field for the map layer "Strömung" (ripples; 315 × 194 cells,
  *                                      sampled; R = u, G = v signed, B = mark, alpha always 255 — `SEA_CURRENT_UV`)
- *   status.json → `current`            pointer to the newest run, like the wind refresh
+ *   status.json → `current`            pointer to the newest run, like the wind refresh; ST-N: `current.prev` names the
+ *                                      run before it that still stands in the store (run, path, builtAt, t0, hours)
  *
  * Reads over HTTPS from the BSH filebox (the public share the BSH page links to, WebDAV `PROPFIND` + `GET`); FTP through
  * `curl` is the named fallback. The files are JPEG-2000-packed (template 5.40) — read by `bshGrib.mjs` / `jp2k.mjs`,
@@ -18,6 +19,11 @@
  * files have not changed for `SEA_CURRENT_SETTLE_MS` and that both packages carry with the same day files. A run that
  * cannot be read counts a try (`status.currentTry`), ends the step red and is tried `SEA_CURRENT_MAX_TRIES` times. Nothing
  * is carried over from an older run: what the BSH did not deliver is "keine Daten" on the page.
+ *
+ * ST-N (audit §7): the 12 UTC run begins on the FOLLOWING day at 01:00 UTC, so in the evening no hour from "now" on lies
+ * inside the newest run. The store keeps the run before (`SEA_CURRENT_KEPT`); the pointer now names it, and the page reads
+ * the hours before the newest run from it. No value is copied between runs — both files stay what the BSH delivered. A
+ * pointer written before ST-N gets the entry once, on the next visit, without anything being built.
  *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/sea/sea-current.mjs --store=<sea/v1 working copy>
  *     [--force]          also build when the clock says nothing new can be there, and a run already published
@@ -276,12 +282,36 @@ export function pruneCurrent(storeDir, keep = SEA_CURRENT_KEPT) {
   return removed;
 }
 
+/**
+ * ST-N: the newest run in the store that is OLDER than `run`, in the form the pointer carries it — or `null`: none there,
+ * unreadable, another run inside the file, or a file that fails the value lock (the page would refuse it anyway).
+ */
+export function prevCurrent(storeDir, run) {
+  const dir = join(storeDir, SEA_CURRENT_DIR);
+  if (!existsSync(dir)) return null;
+  const older = readdirSync(dir).filter((f) => SEA_CURRENT_RE.test(f)).map((f) => f.slice(0, 10)).filter((r) => r < run).sort();
+  const r = older[older.length - 1];
+  if (!r) return null;
+  try {
+    const d = JSON.parse(readFileSync(join(storeDir, seaCurrentPath(r)), 'utf8'));
+    if (d.run !== r || seaCurrentProblems(d).length) return null;
+    return { run: r, path: seaCurrentPath(r), builtAt: d.builtAt, t0: d.t0, hours: d.hours, field: !!d.field, uv: !!d.uv };
+  } catch { return null; }
+}
+
 export async function buildCurrent({ storeDir, nowMs = Date.now(), force = false, sources = [fileboxSource(), ftpSource()], field = true, uv = process.env.SEA_CURRENT_UV !== '0', log = () => {}, killed = process.env.SEA_KILL === '1' }) {
   if (killed) return { built: false, reason: 'Kill-Schalter SEA_KILL=1' };
   const cat = readCatalog(storeDir);
   if (!cat?.spots?.length) throw new Error('Spotkatalog fehlt im Speicher');
   const st = readStatus(storeDir);
   const ptr = currentPointerOf(st), expected = currentExpectedRun(nowMs);
+  // ST-N: a pointer from before the phase names no run before it — the entry is added once (`null` = the store holds
+  // none), nothing is built for it and no file of a run is touched.
+  if (ptr && st.current && !('prev' in st.current)) {
+    st.current.prev = prevCurrent(storeDir, ptr.run);
+    writeStatus(storeDir, st, nowMs);
+    log(`Zeiger ergänzt: Lauf davor ${st.current.prev ? `${st.current.prev.run} (ab ${new Date(st.current.prev.t0).toISOString()}, ${st.current.prev.hours} h)` : 'keiner im Speicher'}`);
+  }
   if (!force && ptr && ptr.run >= expected) return { built: false, reason: `Lauf ${ptr.run} ist der neueste, der nach der Uhr beim BSH liegen kann` };
   const tr = st.currentTry;
   if (!force && tr && tr.run >= expected && tr.n >= SEA_CURRENT_MAX_TRIES) return { built: false, reason: `Lauf ${tr.run} nach ${tr.n} Versuchen aufgegeben (${tr.error}) — wartet auf den nächsten Lauf` };
@@ -334,9 +364,11 @@ export async function buildCurrent({ storeDir, nowMs = Date.now(), force = false
     st2.current = { run: pick.run, path, builtAt: doc.builtAt, t0: doc.t0, hours: doc.hours, spots: Object.keys(doc.spots).length, failed: doc.failed.length, field: !!doc.field, uv: !!doc.uv, via: src.name, bytes: Buffer.byteLength(text), fieldBytes, uvBytes, ...(uvOver ? { uvOver: true } : {}), buildS: Math.round((Date.now() - started) / 1000) };
     delete st2.currentTry;
     const removed = pruneCurrent(storeDir);
+    // ST-N: after pruning, the store holds this run and at most the one before it — the pointer names that one.
+    st2.current.prev = prevCurrent(storeDir, pick.run);
     writeStatus(storeDir, st2, nowMs);
     log(`Strömung ${pick.run} über ${src.name}: ${st2.current.spots} Spots, ${doc.failed.length} ohne Zelle, ${doc.hours} h ab ${new Date(doc.t0).toISOString()}, Datei ${st2.current.bytes} B, Feld ${fieldBytes} B in ${r.pngs.length} Bildern, u/v-Feld ${uvBytes} B in ${r.uvPngs.length} Bildern, Abruf ${dlS} s, gesamt ${st2.current.buildS} s`);
-    return { built: true, run: pick.run, via: src.name, path, spots: st2.current.spots, failed: doc.failed, hours: doc.hours, bytes: st2.current.bytes, fieldBytes, uvBytes, downloadMB: +(files.reduce((a, f) => a + f.bytes, 0) / 1e6).toFixed(1), buildS: st2.current.buildS, removed };
+    return { built: true, run: pick.run, prev: st2.current.prev?.run ?? null, via: src.name, path, spots: st2.current.spots, failed: doc.failed, hours: doc.hours, bytes: st2.current.bytes, fieldBytes, uvBytes, downloadMB: +(files.reduce((a, f) => a + f.bytes, 0) / 1e6).toFixed(1), buildS: st2.current.buildS, removed };
   } catch (e) {
     const st2 = readStatus(storeDir);
     const n = st2.currentTry?.run === pick.run ? st2.currentTry.n + 1 : 1;

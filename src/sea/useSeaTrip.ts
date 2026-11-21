@@ -32,7 +32,10 @@ export interface UseSeaTripIn {
   limits: SeaLimits; unit: SeaUnit;
   spots: readonly SeaSpot[]; areas: SeaAreas | null;
   run: { run: string; runMs: number } | null;
-  curDoc: SeaCurrentDoc | null; sight: SeaSightData | null | undefined;
+  curDoc: SeaCurrentDoc | null;
+  /** ST-N: the run before the newest BSH run, while the page holds it — it speaks for the hours before the newest begins. */
+  curPrev?: SeaCurrentDoc | null;
+  sight: SeaSightData | null | undefined;
   nowMs: number; nowHour: number; nHours: number;
   wodl: SeaTextDoc | null; wodlStale: boolean;
   /** The hour the page shows. */
@@ -116,7 +119,7 @@ export function useSeaTrip(x: UseSeaTripIn): EtappeView | null {
     }
     return [...set].sort((a, b) => a - b);
   }, [route, etappe?.speedKn, etappe?.departMs, axis, noSea]); // eslint-disable-line react-hooks/exhaustive-deps
-  const fieldsKey = `${x.run?.run ?? '-'}|${x.curDoc?.run ?? '-'}`;
+  const fieldsKey = `${x.run?.run ?? '-'}|${x.curDoc?.run ?? '-'}|${x.curPrev?.run ?? '-'}`;
   const [fields, setFields] = useState<{ key: string; hours: ReadonlyMap<number, TripHourFields> }>({ key: fieldsKey, hours: new Map() });
   const hoursKey = hoursWanted.join(',');
   useEffect(() => {
@@ -124,7 +127,7 @@ export function useSeaTrip(x: UseSeaTripIn): EtappeView | null {
     const ac = new AbortController();
     setFields((f) => (f.key === fieldsKey ? f : { key: fieldsKey, hours: new Map() }));
     for (const hourMs of hoursWanted) {
-      void loadTripHour({ run: x.run?.run ?? null, runMs: x.run?.runMs ?? null, curDoc: x.curDoc, hourMs, signal: ac.signal }).then((r) => {
+      void loadTripHour({ run: x.run?.run ?? null, runMs: x.run?.runMs ?? null, curDoc: x.curDoc, curPrev: x.curPrev, hourMs, signal: ac.signal }).then((r) => {
         if (ac.signal.aborted) return;
         setFields((f) => (f.key !== fieldsKey ? f : { key: f.key, hours: new Map(f.hours).set(hourMs, r) }));
       }, () => {});

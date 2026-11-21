@@ -107,7 +107,7 @@ export default function SeaCurrentPanel({ view: v, tMs, windFrom, windKn, tidal 
         <dl className="sw-st-facts">
           <div><dt>Nächstes Stauwasser</dt><dd>{v.nextSlack != null ? `${dayShort(v.nextSlack)} ${hm(v.nextSlack)} Uhr` : 'im Rest des Laufs keines erkannt'}</dd></div>
           <div><dt>Modellzelle</dt><dd>{v.km != null ? `${f1(v.km)} km vom Spot` : '–'}{v.pkg ? `, Gebiet ${BSH_CURRENT_PACKAGES[v.pkg].label}` : ''}</dd></div>
-          <div><dt>Lauf des BSH</dt><dd>{v.run ? runText(v.run) : '–'}{v.until != null ? `, reicht bis ${dayShort(v.until)} ${hh(v.until)} Uhr` : ''}</dd></div>
+          <div><dt>Lauf des BSH</dt><dd>{v.run ? runText(v.run) : '–'}{v.newerFrom != null ? ` — der neuere Lauf beginnt erst ${dayShort(v.newerFrom)} ${hh(v.newerFrom)} Uhr` : ''}{v.until != null ? `, ${v.newerFrom != null ? 'die Vorhersage ' : ''}reicht bis ${dayShort(v.until)} ${hh(v.until)} Uhr` : ''}</dd></div>
           {v.dry != null && v.dry >= 0.05 && <div><dt>Ohne Strom</dt><dd>in {Math.round(v.dry * 100)} % der Zeit dieses Laufs (Zelle fällt im Modell trocken)</dd></div>}
         </dl>
       </div>

@@ -29,7 +29,7 @@ import { SEA_MODELS, SEA_CURRENT_VARS, SEA_CURRENT_ORIGIN, SEA_CURRENT_LIMITS, c
 import { loadCurrent } from '../src/sea/seaClient.ts';
 import { bshMessages, bshHead, bshField, BshGribError } from './sea/bshGrib.mjs';
 import { decodeJ2k, j2kHeader, Jp2kError } from './sea/jp2k.mjs';
-import { parseFilebox, parseFtp, pickRun, readRun, buildCurrent, pruneCurrent, dirSource, ftpSource, fileboxSource } from './sea/sea-current.mjs';
+import { parseFilebox, parseFtp, pickRun, readRun, buildCurrent, pruneCurrent, prevCurrent, dirSource, ftpSource, fileboxSource } from './sea/sea-current.mjs';
 import { archiveSea } from './sea/sea-archive.mjs';
 import { readStatus } from './sea/sea-derive.mjs';
 import { decodePng } from './lib/png.mjs';
@@ -392,10 +392,171 @@ try {
   add('F11 der Hinweis ändert weder Wellenwerte noch Klassen: Profile, Urteile, Tidenfenster und Planer kennen die Strömung nicht', ['src/sea/seaProfiles.ts', 'src/sea/seaVerdicts.ts', 'src/sea/tideWindow.ts', 'src/sea/seaPlanner.ts', 'src/sea/windBand.ts'].every((f) => !/seaCurrent|curKn|curTo|SeaCurrent/.test(src(f))) && !/(SeaVerdictCache|tideVerdict|nextAndLongest|verdictWindows|planFindings)\([^;]*?(spotCur|currentView|curDoc|curKn|curTo)/.test(page));
   const step = (/- name: Currents \(BSH surface current at the spots\)[\s\S]*?(?=\n      - name: )/.exec(wf)?.[0] ?? '').split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
   add('F12 Workflow: Schritt „Currents“ ist continue-on-error, überspringt sich ohne Producer, reicht den Exit-Code durch (kein tee) und steht vor dem Veröffentlichen', /continue-on-error: true/.test(step) && /sea-current\.mjs noch nicht auf main/.test(step) && /exit \$RC/.test(step) && !/\| tee/.test(step) && wf.indexOf('- name: Currents') < wf.indexOf('- name: Publish') && wf.indexOf('- name: Currents') > wf.indexOf('- name: DMI') && /steps\.current\.outcome == 'failure'/.test(wf));
-  add('F13 kein Schalter für die Phase: weder Flag noch Query-Parameter', !/seaCurrentFrom|SEA_CURRENT_LIVE|[?&](st|strom|current)=/.test(src('src/sea/seaFlag.ts') + page + contract + src('src/sea/seaClient.ts')));
+  add('F13 kein Schalter für die Phase ST: weder Flag noch Query-Parameter (der Nachzug ST-N hat den Rückfall `?curprev=0`, G21)', !/seaCurrentFrom|SEA_CURRENT_LIVE|[?&](st|strom|current)=/.test(src('src/sea/seaFlag.ts') + page + contract + src('src/sea/seaClient.ts')));
   add('F14 Quelle: nur die Filebox und der FTP-Server des BSH, nur .grb2 — kein DMI, kein GRIB1, kein bz2', /filebox\.bsh\.de/.test(C.BSH_CURRENT_FILEBOX) && /ftp\.bsh\.de/.test(C.BSH_CURRENT_FTP) && /grib2$/.test(C.BSH_CURRENT_FILEBOX) && /grib2$/.test(C.BSH_CURRENT_FTP) && !/dmi\.dk|grib1|decompressBz2|bz2\.mjs/.test(prod + src('scripts/sea/bshGrib.mjs')) && !C.BSH_CURRENT_FILE_RE.test('Current_db_2026111800_00.grb2.bz2') && !C.BSH_CURRENT_FILE_RE.test('Current_db_2026111800_00.grb'));
   add('F15 keine neue Abhängigkeit: der Leser kommt ohne fremdes Paket aus', !/from '(?!node:|\.)/.test(src('scripts/sea/jp2k.mjs') + src('scripts/sea/bshGrib.mjs')) && !/"(eccodes|openjpeg|jpeg2000|grib[^"]*)"\s*:/.test(src('package.json')));
   add('F16 Stile der Phase stehen vor dem Planer-Abschnitt (dessen Media Query bleibt die letzte), mobil nur per Media Query', css.indexOf('Phase ST — Strömung') > 0 && css.indexOf('Phase ST — Strömung') < css.indexOf('Phase SP — „Ausfahrt planen“') && /@media \(max-width: 767px\), \(max-width: 1439px\) and \(pointer: coarse\) \{\s*\.sw-st-main/.test(css));
+}
+
+// --- G  ST-N: the run before the newest one (audit/seewetter-stroemung.md §7) ------------------------------------------
+// The 12 UTC run of the BSH begins on the FOLLOWING day at 01:00 UTC. The real run 2026111800 (fixture) stands in as the
+// run before; the newest run is the same file moved one day on, with every series reversed — so a value says which run
+// it came from.
+{
+  const NEW_RUN = '2026111812', NEW = clone(DOC);
+  NEW.run = NEW_RUN; NEW.t0 = DOC.t0 + 24 * H; NEW.builtAt = '2026-11-18T18:13:00.000Z';
+  for (const s of Object.values(NEW.spots)) { s.cur = s.cur.slice().reverse(); s.curTo = s.curTo.slice().reverse(); }
+  const P = { run: RUN, path: seaCurrentPath(RUN), builtAt: DOC.builtAt, t0: DOC.t0, hours: DOC.hours };
+  const ptr = { run: NEW_RUN, path: seaCurrentPath(NEW_RUN), builtAt: NEW.builtAt, field: true, uv: true, prev: P };
+  const bare = { run: NEW_RUN, path: seaCurrentPath(NEW_RUN), builtAt: NEW.builtAt, field: true, uv: true };
+  const EVE = Date.parse('2026-11-18T20:10:00Z'), DAY = Date.parse('2026-11-19T03:10:00Z');
+  const ID = 'sylt-hoernum', sp = DOC.spots[ID], sn = NEW.spots[ID];
+  const kn = (cms) => (cms == null ? null : (cms / 100) * 1.943844);
+
+  const got = C.currentPointerOf({ current: ptr });
+  const bad = (f) => { const q = clone(P); f(q); return C.currentPointerOf({ current: { ...ptr, prev: q } }); };
+  add('G1 Zeiger: `prev` nennt den Lauf davor (Lauf, Pfad, gebaut, erste Stunde, Stunden); die Stellvertreter-Datei besteht die Werteprüfung',
+    C.seaCurrentProblems(NEW).length === 0 && got?.run === NEW_RUN && JSON.stringify(got.prev) === JSON.stringify(P), JSON.stringify(got));
+  add('G2 Zeiger: ein verformtes `prev` (fremder Pfad, kein älterer Lauf, erste Stunde abseits der vollen Stunde, 0 Stunden, null) zählt als „keines“ — der Zeiger selbst bleibt gültig; ohne den Eintrag ist er der von vorher',
+    [bad((q) => { q.path = 'current/x.json'; }), bad((q) => { q.run = NEW_RUN; q.path = seaCurrentPath(NEW_RUN); }), bad((q) => { q.run = '2026111900'; q.path = seaCurrentPath('2026111900'); }), bad((q) => { q.t0 += 60_000; }), bad((q) => { q.hours = 0; }),
+      C.currentPointerOf({ current: { ...ptr, prev: null } })].every((p) => p?.run === NEW_RUN && !('prev' in p))
+    && JSON.stringify(C.currentPointerOf({ current: bare })) === JSON.stringify(bare));
+
+  const stale = { ...ptr, prev: { ...P, run: '2026111712', path: seaCurrentPath('2026111712') } };
+  add('G3 gebraucht wird der Lauf davor nur, solange die Stunde von „jetzt“ vor dem neuesten Lauf liegt: abends ja, ab dessen erster Stunde nein, tags nein; nie ein Lauf über 30 h, nie einer, der die Stunde nicht erreicht',
+    C.currentPrevWanted(ptr, NEW, EVE)?.run === RUN && C.currentPrevWanted(ptr, NEW, NEW.t0 - 1)?.run === RUN && C.currentPrevWanted(ptr, NEW, NEW.t0) === null && C.currentPrevWanted(ptr, NEW, DAY) === null
+    && C.currentPrevWanted(stale, NEW, EVE) === null && C.seaCurrentDead('2026111712', EVE) && C.currentPrevWanted({ prev: { ...P, hours: 12 } }, NEW, EVE) === null
+    && C.currentPrevWanted(bare, NEW, EVE) === null && C.currentPrevWanted(ptr, null, EVE) === null);
+
+  const load = C.currentLoadOf(ptr, NEW, EVE, DOC);
+  const other = clone(DOC); other.run = '2026111712';
+  const broken = clone(DOC); broken.licence = 'CC0';
+  const moved = clone(DOC); moved.t0 += H;
+  add('G4 Leser: abends steht der geprüfte Lauf davor neben dem neuesten; eine Datei eines anderen Laufs, eine mit verletzter Werteprüfung oder mit anderer erster Stunde wird nicht genommen — der neueste Lauf bleibt gut',
+    load.state === 'ok' && load.doc === NEW && load.prev === DOC
+    && [other, broken, moved, null, undefined, { product: 'x' }].every((q) => { const l = C.currentLoadOf(ptr, NEW, EVE, q); return l.state === 'ok' && l.doc === NEW && !('prev' in l); }));
+  add('G5 Leser: tags (jetzt im neuesten Lauf) und ohne Eintrag im Zeiger wird der Lauf davor nicht gehalten, auch wenn er geliefert wird',
+    !('prev' in C.currentLoadOf(ptr, NEW, DAY, DOC)) && !('prev' in C.currentLoadOf(bare, NEW, EVE, DOC)) && JSON.stringify(C.currentLoadOf(bare, NEW, EVE)) === JSON.stringify({ doc: NEW, state: 'ok', why: null }));
+
+  const at = (t, p = DOC) => C.currentDocAt(NEW, p, t);
+  add('G6 welcher Lauf für eine Stunde spricht: vor der ersten Stunde des neuesten der Lauf davor, ab ihr IMMER der neueste (auch wenn der ältere die Stunde trägt); vor dem Beginn des älteren und ohne ihn der neueste',
+    at(Date.parse('2026-11-18T22:00:00Z')) === DOC && at(NEW.t0 - 1) === DOC && at(NEW.t0) === NEW && at(NEW.t0 + 40 * H) === NEW && DOC.t0 + 71 * H > NEW.t0 + 40 * H
+    && at(DOC.t0 - H) === NEW && at(Date.parse('2026-11-18T22:00:00Z'), null) === NEW && C.currentDocAt(null, DOC, EVE) === null);
+
+  // Hour axis of the wave run 12 UTC: i = 0 is 18.11. 12:00 (hour 11 of the run before), i = 13 is the newest run's first hour.
+  const AX0 = Date.parse('2026-11-18T12:00:00Z');
+  const ax = C.currentAxisOf(load, ID, AX0, 79), axOld = C.currentAxisOf({ doc: NEW }, ID, AX0, 79);
+  const seam = (a) => a.kn.slice(0, 13).every((x, i) => (x == null ? sp.cur[11 + i] == null : near(x, kn(sp.cur[11 + i])))) && a.to.slice(0, 13).every((x, i) => x === sp.curTo[11 + i]);
+  const fresh = (a) => a.kn.slice(13).every((x, i) => (x == null ? sn.cur[i] == null : near(x, kn(sn.cur[i])))) && a.to.slice(13).every((x, i) => x === sn.curTo[i]);
+  const differ = sn.cur.slice(0, 40).filter((x, i) => x !== sp.cur[24 + i]).length;
+  add('G7 Zeile „Strom“: die 13 Stunden vor dem neuesten Lauf tragen die Werte des Laufs davor, jede Stunde ab seinem Beginn die des neuesten — Wert für Wert', ax && seam(ax) && fresh(ax) && ax.kn.slice(0, 13).filter((x) => x != null).length >= 10, JSON.stringify(ax?.kn.slice(0, 14)));
+  add('G8 Negativkontrolle: ohne den Lauf davor sind dieselben 13 Stunden leer (die Lücke von vorher), der Rest ist Stelle für Stelle gleich; und die beiden Läufe unterscheiden sich dort, wo beide einen Wert hätten',
+    axOld && axOld.kn.slice(0, 13).every((x) => x === null) && JSON.stringify(axOld.kn.slice(13)) === JSON.stringify(ax.kn.slice(13)) && JSON.stringify(axOld.to.slice(13)) === JSON.stringify(ax.to.slice(13)) && differ >= 20, `verschieden ${differ}`);
+
+  const view = (l, tMs, nowMs = EVE, id = ID) => C.currentViewOf({ load: l, spotId: id, tMs, nowMs, windFromDeg: null, windKn: null });
+  const T22 = Date.parse('2026-11-18T22:00:00Z'), v22 = view(load, T22), vOld = view({ doc: NEW, state: 'ok', why: null }, T22);
+  add('G9 Abschnitt „Strömung“ am Abend: Wert und Richtung aus dem Lauf davor (22:00 UTC = seine Stunde 21), der Lauf ist benannt, dazu ab wann der neuere gilt; die Vorhersage reicht bis zum Ende des neuesten',
+    near(v22.kn, kn(sp.cur[21])) && v22.to === sp.curTo[21] && v22.gap === null && v22.run === RUN && v22.newerFrom === NEW.t0 && v22.from === DOC.t0 && v22.until === NEW.t0 + 71 * H && v22.km === sp.km, JSON.stringify(v22));
+  add('G10 Negativkontrolle: ohne den Lauf davor hat dieselbe Stunde keinen Wert („beginnt …“) — die Anzeige von vorher', vOld.kn === null && vOld.gap === 'before' && vOld.from === NEW.t0 && vOld.newerFrom === null && vOld.run === NEW_RUN);
+  const v02 = view(load, NEW.t0 + H);
+  add('G11 eine Stunde im neuesten Lauf kommt aus ihm, auch solange die Seite den Lauf davor hält', near(v02.kn, kn(sn.cur[1])) && v02.to === sn.curTo[1] && v02.run === NEW_RUN && v02.newerFrom === null);
+  const prevSl = sp.slack.map((m) => DOC.t0 + m * 60_000), newSl = sn.slack.map((m) => NEW.t0 + m * 60_000);
+  const expSl = prevSl.find((t) => t >= T22 && t < NEW.t0) ?? newSl.find((t) => t >= T22) ?? null;
+  add('G12 nächstes Stauwasser am Abend: vor dem Beginn des neuesten Laufs aus dem Lauf davor, sonst aus dem neuesten — nie eines des älteren Laufs hinter der Naht',
+    expSl != null && v22.nextSlack === expSl && view(load, NEW.t0 + H).nextSlack === (newSl.find((t) => t >= NEW.t0 + H) ?? null) && vOld.nextSlack === (newSl.find((t) => t >= T22) ?? null)
+    && !prevSl.filter((t) => t >= NEW.t0).includes(view(load, NEW.t0 - H, NEW.t0 - 10 * 60_000).nextSlack ?? -1), `${v22.nextSlack} / ${expSl}`);
+  const lone = clone(DOC); delete lone.spots[ID];
+  const vLone = view(C.currentLoadOf(ptr, NEW, EVE, lone), T22), axLone = C.currentAxisOf(C.currentLoadOf(ptr, NEW, EVE, lone), ID, AX0, 79);
+  add('G13 trägt der Lauf davor den Spot nicht, bleibt es für ihn wie vorher: kein Wert vor dem Beginn, kein fremder Wert', vLone.kn === null && vLone.gap === 'before' && vLone.newerFrom === null && vLone.from === NEW.t0 && axLone.kn.slice(0, 13).every((x) => x === null));
+
+  // the page's reader and the leg against a stand-in store
+  const real = globalThis.fetch;
+  try {
+    let asked = [];
+    const store = { [seaCurrentPath(NEW_RUN)]: NEW, [seaCurrentPath(RUN)]: DOC };
+    const serve = (over = {}) => async (u) => { const path = Object.keys({ ...store, ...over }).find((p) => String(u).includes(p)); asked.push(String(u)); const body = path ? { ...store, ...over }[path] : null; return body ? new Response(JSON.stringify(body), { status: 200 }) : new Response('nope', { status: 404 }); };
+    const n = (re) => asked.filter((u) => re.test(u)).length;
+    globalThis.fetch = serve();
+    const eve = await loadCurrent(ptr, EVE);
+    const eveNew = n(/2026111812\.json/), evePrev = n(/2026111800\.json/);
+    asked = [];
+    const day = await loadCurrent(ptr, DAY);
+    const dayPrev = n(/2026111800\.json/);
+    asked = [];
+    const off = await loadCurrent(bare, EVE);
+    const offPrev = n(/2026111800\.json/);
+    asked = [];
+    globalThis.fetch = serve({ [seaCurrentPath(RUN)]: null });
+    const gone = await loadCurrent(ptr, EVE);
+    add('G14 Leser der Seite: abends zwei Abrufe (neuester Lauf, Lauf davor); tags und ohne Eintrag im Zeiger KEIN Abruf des älteren; fehlt dessen Datei, bleibt der neueste gut und die Stunden davor „keine Daten“',
+      eve.state === 'ok' && eve.prev?.run === RUN && eveNew >= 1 && evePrev >= 1 && day.state === 'ok' && !('prev' in day) && dayPrev === 0 && off.state === 'ok' && !('prev' in off) && offPrev === 0
+      && gone.state === 'ok' && gone.doc?.run === NEW_RUN && !('prev' in gone) && view(gone, T22).gap === 'before', `${eveNew}/${evePrev}/${dayPrev}/${offPrev}`);
+    const { loadTripHour } = await import('../src/sea/seaTripData.ts');
+    asked = [];
+    globalThis.fetch = serve();
+    const cut = (d) => ({ run: d.run, t0: d.t0, uv: { hours: 72 } });
+    await loadTripHour({ run: null, runMs: null, curDoc: cut(NEW), curPrev: cut(DOC), hourMs: T22 });
+    const legPrev = n(/current\/2026111800\/uv\/021\.png/), legNewEarly = n(/current\/2026111812\/uv\//);
+    asked = [];
+    await loadTripHour({ run: null, runMs: null, curDoc: cut(NEW), curPrev: cut(DOC), hourMs: NEW.t0 + 2 * H });
+    const legNew = n(/current\/2026111812\/uv\/002\.png/), legPrevLate = n(/current\/2026111800\/uv\//);
+    asked = [];
+    await loadTripHour({ run: null, runMs: null, curDoc: cut(NEW), hourMs: T22 });
+    add('G15 Etappe: der Strom einer Stunde vor dem neuesten Lauf kommt aus dem Feld des Laufs davor (seine Stunde 21), ab dessen Beginn aus dem neuesten; ohne den älteren Lauf wird für die Stunde nichts geholt',
+      legPrev >= 1 && legNewEarly === 0 && legNew >= 1 && legPrevLate === 0 && asked.length === 0, `${legPrev}/${legNewEarly}/${legNew}/${legPrevLate}/${asked.length}`);
+  } finally { globalThis.fetch = real; }
+
+  // the producer: the pointer names the run before; a pointer from before ST-N gets the entry without a build
+  const tmpG = mkdtempSync(join(tmpdir(), 'sea-current-prev-'));
+  try {
+    const st = join(tmpG, 'store');
+    mkdirSync(join(st, 'static'), { recursive: true });
+    cpSync(join(FIX, 'static', 'spots.json'), join(st, 'static', 'spots.json')); cpSync(join(FIX, 'dk', 'spots-dk.json'), join(st, 'static', 'spots-dk.json'));
+    const source = (run, mtimeMs) => ({ name: 'filebox', base: 'fixture', calls: { list: 0, get: 0 },
+      async list(pkg) { this.calls.list++; return [{ name: `Current_${pkg}_${run}_00.grb2`, size: CUT[pkg].length, mtimeMs }]; },
+      async get(pkg) { this.calls.get++; return CUT[pkg]; } });
+    const T1 = Date.parse('2026-11-17T18:00:00Z'), T2 = Date.parse('2026-11-18T07:00:00Z');
+    const b1 = await buildCurrent({ storeDir: st, nowMs: T1, sources: [source('2026111712', T1 - H)] });
+    const s1 = readStatus(st).current;
+    const b2 = await buildCurrent({ storeDir: st, nowMs: T2, sources: [source(RUN, T2 - H)] });
+    const s2 = readStatus(st).current, older = JSON.parse(readFileSync(join(st, seaCurrentPath('2026111712')), 'utf8'));
+    add('G16 Producer: der erste Lauf im Speicher hat keinen davor (`prev: null`); der zweite nennt den ersten mit Pfad, erster Stunde und Stunden aus dessen Datei — beide Dateien und beide Felder stehen',
+      b1.built && s1.run === '2026111712' && 'prev' in s1 && s1.prev === null && b1.prev === null
+      && b2.built && b2.prev === '2026111712' && s2.run === RUN && s2.prev?.run === '2026111712' && s2.prev.path === seaCurrentPath('2026111712') && s2.prev.t0 === older.t0 && s2.prev.hours === older.hours && s2.prev.builtAt === older.builtAt
+      && existsSync(join(st, seaCurrentPath(RUN))) && existsSync(join(st, seaCurrentFieldPath('2026111712', 0))) && existsSync(join(st, seaCurrentFieldPath(RUN, 0))) && C.currentPointerOf(readStatus(st))?.prev?.run === '2026111712', JSON.stringify(s2?.prev));
+    const olderBytes = sha(readFileSync(join(st, seaCurrentPath('2026111712')))), newerBytes = sha(readFileSync(join(st, seaCurrentPath(RUN))));
+    // a status from before ST-N: the same pointer without the entry
+    const stPath = join(st, 'status.json'), before = JSON.parse(readFileSync(stPath, 'utf8'));
+    delete before.current.prev;
+    writeFileSync(stPath, JSON.stringify(before, null, 1) + '\n');
+    const s3src = source(RUN, T2 - H);
+    const b3 = await buildCurrent({ storeDir: st, nowMs: T2 + 10 * 60_000, sources: [s3src] });
+    const s3 = readStatus(st).current;
+    add('G17 Nachtrag: ein Zeiger von vor ST-N bekommt den Eintrag beim nächsten Besuch — ohne Bau, ohne Blick ins BSH-Verzeichnis, ohne eine Laufdatei anzufassen',
+      !b3.built && s3src.calls.list === 0 && s3src.calls.get === 0 && s3.prev?.run === '2026111712' && s3.run === RUN && s3.builtAt === s2.builtAt
+      && sha(readFileSync(join(st, seaCurrentPath('2026111712')))) === olderBytes && sha(readFileSync(join(st, seaCurrentPath(RUN)))) === newerBytes, JSON.stringify(b3));
+    const stBytes = sha(readFileSync(stPath));
+    const b4 = await buildCurrent({ storeDir: st, nowMs: T2 + 20 * 60_000, sources: [source(RUN, T2 - H)] });
+    add('G18 … und nur einmal: steht der Eintrag (auch als null), schreibt ein Besuch ohne Bau nichts', !b4.built && sha(readFileSync(stPath)) === stBytes);
+    // a run before that fails the value lock is not named
+    const spoiled = clone(older); spoiled.licence = 'CC0';
+    writeFileSync(join(st, seaCurrentPath('2026111712')), JSON.stringify(spoiled));
+    const pBroken = prevCurrent(st, RUN);
+    writeFileSync(join(st, seaCurrentPath('2026111712')), JSON.stringify(older));
+    add('G19 der Zeiger nennt nur einen Lauf davor, den die Seite auch nähme: eine Datei mit verletzter Werteprüfung nicht, keinen jüngeren und nicht sich selbst',
+      pBroken === null && prevCurrent(st, RUN)?.run === '2026111712' && prevCurrent(st, '2026111712') === null && prevCurrent(join(tmpG, 'nowhere'), RUN) === null);
+  } finally { rmSync(tmpG, { recursive: true, force: true }); }
+
+  // wiring and the named fallback
+  const page = src('src/sea/SeaPage.tsx'), panel = src('src/sea/SeaCurrentPanel.tsx'), flag = await import('../src/sea/seaFlag.ts'), trip = src('src/sea/seaTripData.ts'), hook = src('src/sea/useSeaTrip.ts');
+  add('G20 Verdrahtung: Stundenband über currentAxisOf, Pfeile und Riffel über den Lauf der gewählten Stunde (currentDocAt), die Etappe bekommt beide Läufe; der Abschnitt und die Legende nennen den benutzten Lauf und ab wann der neuere gilt',
+    /currentAxisOf\(\{ doc: curDoc, prev: curPrev \?\? undefined \}, spot\.id, run\.runMs, 79\)/.test(page) && /const curAt = currentDocAt\(curDoc, curPrev, validMs\);/.test(page)
+    && /loadCurrentField\(curAt\.run, curFieldHour,/.test(page) && /runId = curAt\.run;/.test(page) && /curDoc, curPrev, sight:/.test(page) && /curPrev: x\.curPrev, hourMs/.test(hook)
+    && /const cur = currentDocAt\(x\.curDoc, x\.curPrev, x\.hourMs\);/.test(trip) && /v\.newerFrom != null \? ` — der neuere Lauf beginnt erst/.test(panel) && /Der neuere Lauf beginnt erst \$\{dateTime\(curDoc\.t0\)\} Uhr\./.test(page));
+  const stripped = JSON.parse(JSON.stringify({ ...got, prev: undefined }));
+  add('G21 Rückfall `?curprev=0`: der Zeiger der Seite trägt dann keinen Lauf davor — die Seite von vorher; ohne den Parameter und mit jedem anderen Wert ist es an',
+    flag.seaCurrentPrevFrom('?curprev=0') === false && flag.seaCurrentPrevFrom('') === true && flag.seaCurrentPrevFrom('?curprev=1') === true && flag.seaCurrentPrevFrom('?x=1&curprev=0') === false
+    && /JSON\.stringify\(curPrevOn \? cp : \{ \.\.\.cp, prev: undefined \}\)/.test(page) && !('prev' in stripped) && C.currentPrevWanted(stripped, NEW, EVE) === null);
 }
 
 const failed = checks.filter((c) => !c.ok);

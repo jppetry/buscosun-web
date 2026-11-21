@@ -11,6 +11,9 @@
  * steps, the distance of the model cell, and the hint "Wind gegen Strom". That hint explains and nothing else: it never
  * changes a wave value or a class — CWAM already computes with the current (`audit/seewetter.md` §2.6).
  * A missing, late or unreadable run is "keine Daten" — never an older or invented value.
+ * ST-N: the one place an older run speaks is the hours BEFORE the newest run begins (the 12 UTC run starts on the
+ * following day): they are read from the run before, named as such, never mixed, and never for an hour the newest run
+ * covers (`currentDocAt`). A run before that is too old, unreadable or absent leaves those hours "keine Daten".
  */
 import { SEA_MODELS, SEA_CURRENT_ORIGIN, currentSeriesProblems, seaCurrentPath, seaRunMs } from './seaContract';
 
@@ -386,12 +389,55 @@ export function seaCurrentProblems(doc: unknown): string[] {
   return out;
 }
 
+/**
+ * ST-N (V-ST-1, V-SR-1): the run BEFORE the newest one, as it still stands in the store. The 12 UTC run of the BSH begins
+ * on the following day at 01:00 UTC, so from the moment the pointer moves to it (≈ 18 UTC) until then no hour from "now"
+ * on lies inside it. Those hours are read from the run before — never an hour the newest run covers itself.
+ */
+export interface SeaCurrentPrevPointer { run: string; path: string; builtAt: string; /** First whole hour of its axis (ms) and its hourly slots. */ t0: number; hours: number }
 /** `status.json` → `current`: the newest run. Anything malformed counts as "none". */
-export interface SeaCurrentPointer { run: string; path: string; builtAt: string; field: boolean; /** Phase SR: the run carries the hourly u/v field. */ uv?: boolean }
+export interface SeaCurrentPointer {
+  run: string; path: string; builtAt: string; field: boolean;
+  /** Phase SR: the run carries the hourly u/v field. */
+  uv?: boolean;
+  /** ST-N: the run before; absent = the store holds none (or a status written before ST-N). */
+  prev?: SeaCurrentPrevPointer;
+}
+const RUN_RE = /^\d{8}(00|12)$/;
+/** The `prev` entry of the pointer — well-formed, older than `run` and matching its path, or `null`. */
+export function currentPrevPointerOf(prev: unknown, run: string): SeaCurrentPrevPointer | null {
+  const q = prev as Partial<SeaCurrentPrevPointer> | null | undefined;
+  if (!q || typeof q.run !== 'string' || !RUN_RE.test(q.run) || !(q.run < run) || q.path !== seaCurrentPath(q.run)) return null;
+  if (typeof q.builtAt !== 'string' || !Number.isFinite(Date.parse(q.builtAt))) return null;
+  if (!Number.isFinite(q.t0) || (q.t0 as number) % H !== 0 || !Number.isInteger(q.hours) || (q.hours as number) < 1 || (q.hours as number) > 120) return null;
+  return { run: q.run, path: q.path, builtAt: q.builtAt, t0: q.t0 as number, hours: q.hours as number };
+}
 export function currentPointerOf(status: Record<string, unknown> | null | undefined): SeaCurrentPointer | null {
-  const p = status?.current as (Partial<SeaCurrentPointer> & { field?: unknown; uv?: unknown }) | undefined;
+  const p = status?.current as (Partial<SeaCurrentPointer> & { field?: unknown; uv?: unknown; prev?: unknown }) | undefined;
   if (!p || typeof p.run !== 'string' || typeof p.path !== 'string' || typeof p.builtAt !== 'string') return null;
-  return p.path === seaCurrentPath(p.run) && Number.isFinite(Date.parse(p.builtAt)) ? { run: p.run, path: p.path, builtAt: p.builtAt, field: !!p.field, uv: !!p.uv } : null;
+  if (p.path !== seaCurrentPath(p.run) || !Number.isFinite(Date.parse(p.builtAt))) return null;
+  const prev = currentPrevPointerOf(p.prev, p.run);
+  return { run: p.run, path: p.path, builtAt: p.builtAt, field: !!p.field, uv: !!p.uv, ...(prev ? { prev } : {}) };
+}
+/**
+ * Does the page need the run before? Only while the hour of "now" lies before the newest run, the run before reaches
+ * that hour and is itself not older than the page shows a run (`SEA_CURRENT_DEAD_MS`). Otherwise `null` — no read.
+ */
+export function currentPrevWanted(ptr: Pick<SeaCurrentPointer, 'prev'> | null | undefined, doc: Pick<SeaCurrentDoc, 't0'> | null | undefined, nowMs: number): SeaCurrentPrevPointer | null {
+  const p = ptr?.prev;
+  if (!p || !doc || seaCurrentDead(p.run, nowMs)) return null;
+  const hour = Math.floor(nowMs / H) * H;
+  return hour < doc.t0 && p.t0 < doc.t0 && hour < p.t0 + p.hours * H ? p : null;
+}
+/**
+ * The run that speaks for the hour of `tMs`: the newest from its first hour on; before it the run before, when the page
+ * holds one that has begun by then. Whether that run still REACHES the hour is the reader's check (`currentUvHour`,
+ * `currentFieldHour`, the series length) — a run that ended earlier leaves "keine Daten", as before.
+ */
+export function currentDocAt<T extends { t0: number }>(doc: T | null | undefined, prev: T | null | undefined, tMs: number): T | null {
+  if (!doc) return null;
+  const hour = Math.floor(tMs / H) * H;
+  return prev && hour < doc.t0 && hour >= prev.t0 ? prev : doc;
 }
 
 // --- Reading the product on the page --------------------------------------------------------------------------------
@@ -407,6 +453,19 @@ export function currentOnAxis(doc: Pick<SeaCurrentDoc, 't0'>, s: Pick<SeaCurrent
     return q == null ? null : f(q);
   });
   return { kn: at(s.cur, (x) => currentKn(x) as number), to: at(s.curTo, (x) => x) };
+}
+/**
+ * ST-N: the same axis from what the page holds — hours before the newest run's first hour come from the run before
+ * (when it carries the spot), every hour from there on from the newest run. `null` = the newest run has no series here.
+ */
+export function currentAxisOf(load: Pick<SeaCurrentLoad, 'doc' | 'prev'>, spotId: string, runMs: number, hours: number): { kn: (number | null)[]; to: (number | null)[] } | null {
+  const doc = load.doc, s = doc?.spots[spotId];
+  if (!doc || !s) return null;
+  const a = currentOnAxis(doc, s, runMs, hours), ps = load.prev?.spots[spotId];
+  if (!load.prev || !ps) return a;
+  const b = currentOnAxis(load.prev, ps, runMs, hours);
+  for (let i = 0; i < hours; i++) if (runMs + i * H < doc.t0) { a.kn[i] = b.kn[i]; a.to[i] = b.to[i]; }
+  return a;
 }
 /** Slack-water times of a spot (ms). */
 export const currentSlacks = (doc: Pick<SeaCurrentDoc, 't0'>, s: Pick<SeaCurrentSpot, 'slack'>): number[] => s.slack.map((m) => doc.t0 + m * 60_000);
@@ -424,8 +483,11 @@ export function currentFieldHour(doc: Pick<SeaCurrentDoc, 't0' | 'field'>, tMs: 
 
 // --- The chosen hour on the page (pure — `verify:sea-current` reads it without a browser) -----------------------------
 
-/** What the page knows about the current file: the checked document, or why there is none. */
-export interface SeaCurrentLoad { doc: SeaCurrentDoc | null; state: 'ok' | 'none' | 'dead' | 'error'; why: string | null }
+/**
+ * What the page knows about the current file: the checked document, or why there is none. `prev` (ST-N) is the checked
+ * run before, present only while the page needs it (`currentPrevWanted`) and only next to a good `doc`.
+ */
+export interface SeaCurrentLoad { doc: SeaCurrentDoc | null; state: 'ok' | 'none' | 'dead' | 'error'; why: string | null; prev?: SeaCurrentDoc }
 export const SEA_CURRENT_WHY = Object.freeze({
   none: 'Im Datenspeicher liegt noch keine Strömungsvorhersage des BSH.',
   dead: 'Der letzte Lauf der Strömungsvorhersage des BSH ist älter als 30 Stunden und wird nicht mehr gezeigt.',
@@ -435,12 +497,16 @@ export const SEA_CURRENT_WHY = Object.freeze({
 });
 export const SEA_CURRENT_NONE: SeaCurrentLoad = { doc: null, state: 'none', why: SEA_CURRENT_WHY.none };
 /** Pure part of the page's read: pointer + what was fetched → what may be shown. */
-export function currentLoadOf(ptr: SeaCurrentPointer | null, fetched: unknown, nowMs: number): SeaCurrentLoad {
+export function currentLoadOf(ptr: SeaCurrentPointer | null, fetched: unknown, nowMs: number, fetchedPrev?: unknown): SeaCurrentLoad {
   if (!ptr) return SEA_CURRENT_NONE;
   if (seaCurrentDead(ptr.run, nowMs)) return { doc: null, state: 'dead', why: SEA_CURRENT_WHY.dead };
   const d = fetched as SeaCurrentDoc | null;
   if (!d || d.product !== SEA_CURRENT_PRODUCT || d.run !== ptr.run || seaCurrentProblems(d).length) return { doc: null, state: 'error', why: SEA_CURRENT_WHY.shape };
-  return { doc: d, state: 'ok', why: null };
+  // ST-N: the run before is taken only when the page needs it, it is the file the pointer names, and it passes the same
+  // value lock. Anything else leaves the page as it was before ST-N (the hours before the newest run stay empty).
+  const want = currentPrevWanted(ptr, d, nowMs), q = fetchedPrev as SeaCurrentDoc | null | undefined;
+  const prev = want && q && q.product === SEA_CURRENT_PRODUCT && q.run === want.run && q.t0 === want.t0 && q.t0 < d.t0 && !seaCurrentProblems(q).length ? q : null;
+  return prev ? { doc: d, state: 'ok', why: null, prev } : { doc: d, state: 'ok', why: null };
 }
 
 /**
@@ -461,9 +527,14 @@ export interface SeaCurrentView {
   /** Share of the run's steps without current at the cell. */
   dry: number | null;
   wac: WacResult;
+  /**
+   * ST-N: set when the chosen hour is read from the run BEFORE the newest one — the first hour of the newest run (ms).
+   * `run`, `km`, `pkg` and `dry` then describe the run before. `null` = the hour belongs to the newest run.
+   */
+  newerFrom: number | null;
 }
 export function currentViewOf(x: { load: SeaCurrentLoad | 'loading'; spotId: string; tMs: number; nowMs: number; windFromDeg: number | null | undefined; windKn: number | null | undefined }): SeaCurrentView {
-  const empty = { kn: null, to: null, gap: null, from: null, until: null, nextSlack: null, km: null, pkg: null, run: null, dry: null, wac: { against: false, angle: null, why: 'no-current' as const } };
+  const empty = { kn: null, to: null, gap: null, from: null, until: null, nextSlack: null, km: null, pkg: null, run: null, dry: null, wac: { against: false, angle: null, why: 'no-current' as const }, newerFrom: null };
   if (x.load === 'loading') return { state: 'loading', why: null, ...empty };
   const doc = x.load.doc;
   if (!doc) return { state: 'none', why: x.load.why ?? SEA_CURRENT_WHY.none, ...empty };
@@ -472,13 +543,21 @@ export function currentViewOf(x: { load: SeaCurrentLoad | 'loading'; spotId: str
     const f = doc.failed.find((e) => e.id === x.spotId);
     return { state: 'none', why: f ? `Für diesen Spot gibt es keinen Strömungswert: ${f.error}.` : 'Für diesen Spot trägt der Lauf der Strömungsvorhersage keine Reihe.', ...empty, run: doc.run };
   }
-  const hour = Math.floor(x.tMs / H) * H, k = (hour - doc.t0) / H;
-  const inside = Number.isInteger(k) && k >= 0 && k < s.cur.length;
-  const kn = inside ? currentKn(s.cur[k]) : null, to = inside ? s.curTo[k] : null;
-  const until = doc.t0 + (s.cur.length - 1) * H;
+  const hour = Math.floor(x.tMs / H) * H;
+  // ST-N: an hour before the newest run is read from the run before, when the page holds it and it carries this spot.
+  const prev = x.load.prev ?? null, ps = prev?.spots[x.spotId] ?? null;
+  const older = !!prev && !!ps && currentDocAt(doc, prev, hour) === prev;
+  const d = older ? (prev as SeaCurrentDoc) : doc, e = older ? (ps as SeaCurrentSpot) : s;
+  const k = (hour - d.t0) / H;
+  const inside = Number.isInteger(k) && k >= 0 && k < e.cur.length;
+  const kn = inside ? currentKn(e.cur[k]) : null, to = inside ? e.curTo[k] : null;
+  const until = doc.t0 + (s.cur.length - 1) * H, fromMs = Math.max(x.nowMs, hour);
+  // Slack water: before the newest run begins the run before knows it (its window is whole there); from then on the newest.
+  const early = prev && ps ? currentSlacks(prev, ps).find((t) => t >= fromMs && t < doc.t0) ?? null : null;
   return {
     state: 'ok', why: null, kn, to, gap: kn != null ? null : k < 0 ? 'before' : !inside ? 'beyond' : 'dry',
-    from: doc.t0, until, nextSlack: currentNextSlack(doc, s, Math.max(x.nowMs, hour)), km: s.km, pkg: s.pkg, run: doc.run, dry: s.dry,
+    from: prev && ps ? Math.min(prev.t0, doc.t0) : doc.t0, until, nextSlack: early ?? currentNextSlack(doc, s, fromMs), km: e.km, pkg: e.pkg, run: d.run, dry: e.dry,
     wac: windAgainstCurrent({ windFromDeg: x.windFromDeg, windKn: x.windKn, curToDeg: to, curKn: kn }),
+    newerFrom: older ? doc.t0 : null,
   };
 }
