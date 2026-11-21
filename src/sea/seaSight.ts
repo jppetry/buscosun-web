@@ -46,8 +46,10 @@ const areaLines = (doc: SeaTextDoc | null, id: string | null | undefined) => {
  * The field "Sicht/Wetter" of the sea report (FQDL50) for the spot's sea area; a spot without a sea area (Stettiner
  * Haff) gets the one of its coast section (FQDL51). Nothing is shortened, joined or reworded.
  */
-export function officialSight(spot: Pick<SeaSpot, 'seaArea' | 'coast' | 'country'>, fq50: SeaTextDoc | null, fq51: SeaTextDoc | null, stale: { FQDL50?: boolean; FQDL51?: boolean }, loading = false): SightOfficial {
+export function officialSight(spot: Pick<SeaSpot, 'seaArea' | 'coast' | 'country'> & { lake?: unknown }, fq50: SeaTextDoc | null, fq51: SeaTextDoc | null, stale: { FQDL50?: boolean; FQDL51?: boolean }, loading = false): SightOfficial {
   const none = (why: string): SightOfficial => ({ state: 'none', head: '', product: null, issuedAt: null, stale: false, days: [], why });
+  // Phase BS-N (V-BS-5): the reports this line is quoted from cover the North Sea and the Baltic — said as such at a lake.
+  if (spot.lake) return none(LAKE_SIGHT_OFFICIAL_NONE);
   const sea = areaLines(fq50, spot.seaArea?.id);
   if (sea.length) return { state: 'ok', head: `Seewetterbericht ${sea[0].name}`, product: 'FQDL50', issuedAt: fq50!.issuedAt, stale: !!stale.FQDL50, days: sea.map(({ label, text }) => ({ label, text })), why: null };
   const coast = areaLines(fq51, spot.coast?.id);
@@ -84,6 +86,15 @@ export const VIS_CHECK = Object.freeze({ day: '18.11.2026', stations: 22, pairs:
 export const VIS_HINT_CHECK = Object.freeze({ pairs: 22, gut: 17, gutAbove10: 15, reduced: 5, reducedBelow10: 1, fog: 0, spreadBiasK: 1.1 });
 export const VIS_CHECK_NOTE = `An der Küste bisher nur an einem Tag geprüft (${VIS_CHECK.day}, ${VIS_CHECK.stations} Stationen). Regel mit deren Messwerten gerechnet: bei „gut“ lag die gemessene Sicht in ${VIS_CHECK.gutAbove10} % der Stunden über 10 km, bei „eingeschränkt möglich“ in ${VIS_CHECK.reducedBelow10} % darunter, bei „Nebel möglich“ in ${VIS_CHECK.fogBelow10} % darunter. Mit Vorhersagewerten erst an ${VIS_HINT_CHECK.pairs} Stationsstunden: ${VIS_HINT_CHECK.gut}-mal „gut“ (davon ${VIS_HINT_CHECK.gutAbove10}-mal über 10 km gemessen), ${VIS_HINT_CHECK.reduced}-mal „eingeschränkt möglich“ (davon ${VIS_HINT_CHECK.reducedBelow10}-mal darunter). Die Rechnung war dabei um ${VIS_HINT_CHECK.spreadBiasK.toLocaleString('de-DE')} K trockener als die Messung: „Nebel möglich“ erscheint deshalb seltener, als es sollte.`;
 export const VIS_ROW_NOTE = 'Zeile Sicht: Hinweis aus Modellwerten, an der Küste erst an einem Tag geprüft';
+
+// --- Phase BS-N (V-BS-5): the card at a lake spot — the coastal sentences do not hold there --------------------------
+/** The lake's station comes from obs/v1, which carries wind, gusts, temperature and humidity but no visibility. */
+export const lakeSightNoVis = (name: string, km: number): string =>
+  `Die Station ${name} (${km.toLocaleString('de-DE')} km vom Spot) liefert im Datenbestand Wind und Böen, aber keine Sichtweite.`;
+export const LAKE_SIGHT_NO_STATION = 'Für diesen Seespot liegt keine Station in der Nähe.';
+export const LAKE_SIGHT_OFFICIAL_NONE = 'Die Zeile „Sicht/Wetter“ stammt aus den Berichten des Seewetterdienstes Hamburg für Nord- und Ostsee. Für Binnenseen steht darin keine Zeile.';
+export const LAKE_VIS_CHECK_NOTE = `An Binnenseen ist der Hinweis nicht geprüft: die Stationen an den Seen liefern im Datenbestand keine Sichtweite. ${VIS_CHECK_NOTE}`;
+export const LAKE_VIS_ROW_NOTE = 'Zeile Sicht: Hinweis aus Modellwerten, an Binnenseen nicht geprüft';
 export const VIS_ROW_KEY = 'Strich = gut, Schleier = eingeschränkt möglich, dichter Schleier = Nebel möglich';
 export const CONV_RULE = `Regel: „Gewitter möglich“ ab einem Gewitterpotenzial von ${SEA_CONV.thunderStorm} (Skala 0 bis 100, aus ICON-D2) und einer Regenchance von ${Math.round(SEA_CONV.rainChance * 100)} %; „Schauer möglich“ ab ${SEA_CONV.capeShowerJkg} J/kg Labilität (CAPE) oder einem Gewitterpotenzial von ${SEA_CONV.thunderShower}, ebenfalls ab ${Math.round(SEA_CONV.rainChance * 100)} % Regenchance. Die Schwellen sind gesetzt, nicht gemessen.`;
 export const CONV_SOURCE = 'Gewitterpotenzial und CAPE: Deutscher Wetterdienst, ICON-D2 (CC BY 4.0), eigene Darstellung. Regenchance: buscosun Fusion.';

@@ -1365,7 +1365,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
     <SeaBand hours={bandHours} unit={unit} selected={k} onPick={setT} compact={isMobile}
       title={`${spot.name} · ${profLabel}`} sub={`${dayShort(bandHours[0].t)} ${hh(bandHours[0].t)} bis ${dayShort(bandHours[bandHours.length - 1].t)} ${hh(bandHours[bandHours.length - 1].t)} Uhr · ${tzLabel(validMs)}`}
       footnote={`Welle: Modell ${runTxt} · Wind/Böen: ${spotWindName}`}
-      tide={tideFeed ? { hours: tideFeed.hours!, side: tideSideText(tideFeed.mode!, tideFeed.name) } : null} over={bandOver} plan={bandPlan} current={!!spotCur} sight />
+      tide={tideFeed ? { hours: tideFeed.hours!, side: tideSideText(tideFeed.mode!, tideFeed.name) } : null} over={bandOver} plan={bandPlan} lake={!!spot.lake} current={!!spotCur} sight />
   );
   // AM-W (`audit/seewetter-ausfahrt.md` §13): the planner is an assistant. What one sets is a page each (left on the
   // desktop, the phone's sheet); the hourly values lie at the foot of the map where they ARE the input or the result;
@@ -1507,6 +1507,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
         station: spot.station && spot.station.net !== 'obs' ? { name: spot.station.net === 'dmi' ? spot.station.name : spot.station.name.charAt(0) + spot.station.name.slice(1).toLowerCase(), km: spot.station.km, net: spot.station.net === 'dmi' ? 'DMI' : 'DWD' } : null,
         official: officialSight(spot, seaTexts.fq50, seaTexts.fq51, stale, textsLoading),
         hint: sightHintAt(spotsDoc?.sight, spot.id, firstIdx + k), conv: sightConvAt(spotsDoc?.sight, spot.id, firstIdx + k, validMs, nowMs),
+        lake: spot.lake ? { station: spot.lake.stations.wind ? { name: spot.lake.stations.wind.name, km: spot.lake.stations.wind.km } : null } : undefined,
       }} /> : undefined;
   // --- Phase BS: what the lake dossier shows of the water (measurement and model side by side, level as information).
   const lakeBasin = lakeSpot?.model && lakeWtLoad !== 'loading' ? lakeWtLoad.doc?.basins[lakeSpot.model.key] ?? null : null;

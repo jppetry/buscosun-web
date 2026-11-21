@@ -13,7 +13,8 @@ import { visClassOfCode } from './seaContract';
 import { DMI_CREDIT } from './seaDmi';
 import { ConvMark } from './SeaBand';
 import {
-  CONV_LABEL, CONV_RULE, CONV_SOURCE, GUST_CONV_LEGEND, OFFICIAL_SOURCE, POI_SOURCE, SIGHT_HINT_NOTE, VIS_CHECK_NOTE, VIS_LABEL, VIS_REASON, VIS_RULE,
+  CONV_LABEL, CONV_RULE, CONV_SOURCE, GUST_CONV_LEGEND, LAKE_SIGHT_NO_STATION, LAKE_VIS_CHECK_NOTE, OFFICIAL_SOURCE, POI_SOURCE, SIGHT_HINT_NOTE, VIS_CHECK_NOTE, VIS_LABEL, VIS_REASON, VIS_RULE,
+  lakeSightNoVis,
   convReachText, obsTimeText, visText, type SightConv, type SightHint, type SightObs, type SightOfficial,
 } from './seaSight';
 import { dateTime, dayShort, hh } from './seaView';
@@ -28,6 +29,11 @@ export interface SeaSightView {
   conv: SightConv;
   /** Who computed the values the hint reads ("buscosun Fusion 14"). */
   engine: string;
+  /**
+   * Phase BS-N (V-BS-5): a lake spot. Its station (obs/v1) reports no visibility, the Seewetterdienst writes no line for
+   * lakes and the hint is not checked there — the card says each of these instead of the coastal sentences.
+   */
+  lake?: { station: { name: string; km: number } | null };
 }
 
 /** The veil of a hint class — the mark shared with the hour band. */
@@ -49,13 +55,14 @@ export default function SeaSightPanel({ view: v }: { view: SeaSightView }) {
             : o ? <strong className="sw-sg-val">{visText(o.visM)}</strong>
               : <strong className="sw-sg-val is-text">keine Daten</strong>}
           <span className="sw-sg-sub">
-            {!v.station ? 'Diesem Spot ist keine Messstation zugeordnet.'
+            {v.lake ? (v.lake.station ? lakeSightNoVis(v.lake.station.name, v.lake.station.km) : LAKE_SIGHT_NO_STATION)
+              : !v.station ? 'Diesem Spot ist keine Messstation zugeordnet.'
               : o && o !== 'loading'
                 ? `${v.station.net}-Station ${v.station.name}, ${v.station.km.toLocaleString('de-DE')} km vom Spot, gemessen ${obsTimeText(o.t, v.nowMs)}${o.src === 'dmi' ? ' (Mittel der letzten 10 Minuten, Rohwert ohne Prüfung)' : ''}. Messung an Land, nicht auf dem Wasser.`
                 : o === 'loading' ? `${v.station.net}-Station ${v.station.name}, ${v.station.km.toLocaleString('de-DE')} km vom Spot`
                   : `${v.station.net}-Station ${v.station.name} (${v.station.km.toLocaleString('de-DE')} km vom Spot) meldet derzeit keine Sichtweite${v.station.net === 'DWD' ? ' aus den letzten drei Stunden' : ' aus der letzten Stunde'}.`}
           </span>
-          <span className="sw-sg-src">{v.station?.net === 'DMI' ? `Messung: ${DMI_CREDIT}.` : POI_SOURCE}</span>
+          {!v.lake && <span className="sw-sg-src">{v.station?.net === 'DMI' ? `Messung: ${DMI_CREDIT}.` : POI_SOURCE}</span>}
         </div>
         <div className="sw-sg-half is-hint">
           <span className="sw-sg-kind">Hinweis für {when}</span>
@@ -98,7 +105,7 @@ export default function SeaSightPanel({ view: v }: { view: SeaSightView }) {
       <details className="sw-sg-rules">
         <summary>Wie die beiden Hinweise entstehen</summary>
         <p>{VIS_RULE}</p>
-        <p>{VIS_CHECK_NOTE}</p>
+        <p>{v.lake ? LAKE_VIS_CHECK_NOTE : VIS_CHECK_NOTE}</p>
         <p>{CONV_RULE}</p>
       </details>
     </section>

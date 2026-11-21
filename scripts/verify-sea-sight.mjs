@@ -401,8 +401,35 @@ add('J10 Karte „Sicht“: Messwert mit Station, Entfernung und Zeit; amtliche 
   && card.includes('Wie die beiden Hinweise entstehen') && card.includes('FQDL50'));
 const cardNone = html(h(M.SeaSightPanel, { view: view({ obs: null, official: S.officialSight({ seaArea: null, coast: null }, null, null, {}), hint: hintNo, conv: cv(55) }) }));
 add('J11 fehlt etwas, steht „keine Daten“ mit Grund — an allen vier Stellen, nie ein Wert', (cardNone.match(/[Kk]eine Daten/g) ?? []).length === 4 && !/\d km<\/strong>/.test(cardNone) && /meldet derzeit keine Sichtweite/.test(cardNone) && /reicht bis/.test(cardNone) && !/sw-sg-mark/.test(cardNone));
+// Phase BS-N (V-BS-5): the card at a lake spot. Its station comes from obs/v1 (no visibility there — checked on the recorded
+// excerpt), the Seewetterdienst writes no line for lakes, the hint is not checked at lakes. The coast keeps its sentences.
+{
+  const lakeObs = JSON.parse(readFileSync(join(ROOT, 'scripts/lib/fixtures/sea/lakes/obs-latest-lakes.json'), 'utf8'));
+  const obsKeys = new Set(Object.values(lakeObs.stations).flatMap((e) => [...Object.keys(e.v ?? {}), ...Object.keys(e.older ?? {})]));
+  const lakeSpot = JSON.parse(readFileSync(join(ROOT, 'scripts/lib/fixtures/sea/lakes/spots-lakes.json'), 'utf8')).spots.find((x) => x.id === 'bodensee-lindau');
+  const st = lakeSpot.lake.stations.wind, offLake = S.officialSight(lakeSpot, null, null, {}, true);
+  const lakeView = (station) => view({ station: null, obs: null, official: offLake, lake: { station } });
+  const cardLake = html(h(M.SeaSightPanel, { view: lakeView({ name: st.name, km: st.km }) })), cardLakeNo = html(h(M.SeaSightPanel, { view: lakeView(null) }));
+  const text = (s) => s.replace(/<[^>]+>/g, ' ');
+  add('J11b Seespot: statt „Diesem Spot ist keine Messstation zugeordnet“ steht die Station des Sees mit dem Satz, dass sie im Datenbestand keine Sichtweite liefert (obs/v1 trägt in der Aufzeichnung keine Sichtgröße); ohne Station „keine Station in der Nähe“; keine Quellenzeile einer Messung, die es nicht gibt',
+    !obsKeys.has('vis') && !obsKeys.has('vv') && obsKeys.has('ff') && cardLake.includes(S.lakeSightNoVis(st.name, st.km)) && /liefert im Datenbestand Wind und Böen, aber keine Sichtweite/.test(cardLake)
+    && !/keine Messstation zugeordnet/.test(cardLake) && !cardLake.includes(S.POI_SOURCE) && !/Messung an Land/.test(cardLake) && cardLakeNo.includes(S.LAKE_SIGHT_NO_STATION) && !/keine Messstation zugeordnet/.test(cardLakeNo),
+    [...obsKeys].sort().join(' '));
+  add('J11c Seespot: die amtliche Zeile sagt, dass die Berichte des Seewetterdienstes für Nord- und Ostsee gelten (kein „Seegebiet“, kein „Küstenabschnitt“, auch nicht „laden“); der Prüfhinweis beginnt mit „An Binnenseen ist der Hinweis nicht geprüft“ und nennt danach die Messung an der Küste; Hinweis und Schauer-Hinweis stehen wie an der Küste',
+    offLake.state === 'none' && offLake.why === S.LAKE_SIGHT_OFFICIAL_NONE && text(cardLake).includes(S.LAKE_SIGHT_OFFICIAL_NONE) && !/Seegebiet|Küstenabschnitt|Texte laden/.test(text(cardLake).replace(S.LAKE_VIS_CHECK_NOTE, ''))
+    && S.LAKE_VIS_CHECK_NOTE.startsWith('An Binnenseen ist der Hinweis nicht geprüft') && S.LAKE_VIS_CHECK_NOTE.endsWith(S.VIS_CHECK_NOTE) && text(cardLake).includes(S.LAKE_VIS_CHECK_NOTE)
+    && cardLake.includes('Nebel möglich') && cardLake.includes('Schauer möglich') && cardLake.includes(S.VIS_RULE) && (cardLake.match(/[Kk]eine Daten/g) ?? []).length === 2);
+  add('J11d Küste unverändert: ohne `lake` steht die Karte Zeichen für Zeichen wie zuvor (Messung, Quelle, Prüfhinweis der Küste); ein Küstenspot ohne Gebiet behält seinen Satz',
+    html(h(M.SeaSightPanel, { view: view({ lake: undefined }) })) === card && card.includes(S.POI_SOURCE) && text(card).includes(S.VIS_CHECK_NOTE) && !text(card).includes('An Binnenseen')
+    && /keinem Seegebiet und keinem Küstenabschnitt/.test(S.officialSight({ seaArea: null, coast: null }, null, null, {}).why));
+  const bandProps = { ...baseBand, sight: true }, bandLake = html(h(M.SeaBand, { ...bandProps, lake: true })), bandCoast = html(h(M.SeaBand, bandProps));
+  add('J11e Stundenband am Seespot: die Zeile Sicht nennt „an Binnenseen nicht geprüft“ (Fuß und Titel), an der Küste weiter „an der Küste erst an einem Tag geprüft“; sonst sind beide Bänder gleich; kein verbotenes Wort in den neuen Sätzen',
+    bandLake.includes(S.LAKE_VIS_ROW_NOTE) && !bandLake.includes(S.VIS_ROW_NOTE) && bandCoast.includes(S.VIS_ROW_NOTE) && !bandCoast.includes(S.LAKE_VIS_ROW_NOTE) && bandLake.split(S.LAKE_VIS_ROW_NOTE).join(S.VIS_ROW_NOTE) === bandCoast
+    && [S.lakeSightNoVis('X', 1.5), S.LAKE_SIGHT_NO_STATION, S.LAKE_SIGHT_OFFICIAL_NONE, S.LAKE_VIS_CHECK_NOTE, S.LAKE_VIS_ROW_NOTE].every((t) => !/\bsicher\b|Warnung besteht|keine Gefahr/i.test(t))
+    && /lake=\{!!spot\.lake\} current=\{!!spotCur\} sight \/>/.test(page) && /lake: spot\.lake \? \{ station: spot\.lake\.stations\.wind \?/.test(page));
+}
 const css = src('seaDeck.css');
-const used = [...new Set([...(bandSrc + panelSrc).matchAll(/sw-sg-[a-z]+/g)].map((m) => m[0]))];
+const used =[...new Set([...(bandSrc + panelSrc).matchAll(/sw-sg-[a-z]+/g)].map((m) => m[0]))];
 add('J12 CSS: jede Klasse der Phase ist definiert; die mobile Anordnung steht nur in der Media Query der Seite; der Schleier nutzt keine Klassenfarbe',
   used.length >= 12 && used.every((c) => css.includes(`.${c}`)) && /@media \(max-width: 767px\), \(max-width: 1439px\) and \(pointer: coarse\) \{\s*\.sw-sg-pair \{ grid-template-columns: minmax\(0, 1fr\); \}/.test(css)
   && !/\.sw-sg-cell[^{]*\{[^}]*(--sw-ok|--sw-tight|--sw-out)/.test(css), used.filter((c) => !css.includes(`.${c}`)).join(' ') || `${used.length} Klassen`);
