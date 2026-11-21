@@ -230,24 +230,24 @@ alle 6 h).
 
 | Nr. | Befund | Mehrwert · Skizze |
 |---|---|---|
-| **V-BS-1** | buscosun Fusion liefert an den Wasserpunkten der Alpenseen an vielen Stunden **keine Windrichtung** (9 Spots unter 10 von 80 Stunden, 30 Spots 10–39; norddeutsche Seen 67–80). Ohne Richtung keine Seite zum Ufer und nur eine Obergrenze der Windwelle | Mehrwert: Windwelle und „auflandig/ablandig“ an jeder Stunde. Skizze: wie V-DK-4 — Richtung im Motor zwischen den Stunden mit Richtung über u/v führen oder schwachen Wind ausdrücklich als „umlaufend“ ausgeben (eigene Phase, neuer Stand von buscosun Fusion, Jans Entscheidung) |
+| **V-BS-1** | **geschlossen (21.11., `d930e5a4`, Messung `seewetter-binnenseen/wind-dir-probe.mjs` / `.json`, eine Wetterlage, 70 Spots, 5 670 Stunden).** buscosun Fusion nennt an 50,3 % der Stunden eine Windrichtung. Sie fehlt aus zwei Gründen. **(1) Die Sperre des Motors** (mittlerer Windvektor kleiner als seine Streuung): an Schritten mit eigener Rechnung tragen 56,8 % eine Richtung. Wo die Sperre greift, hatte der Vektor des Modells im Median 1,5 kn (90 % unter 2,9 kn), der Wind der Ausgabe 3,3 kn (90 % unter 4,5 kn); die zurückgehaltene Richtung sprang von Stunde zu Stunde im Median um 16,8° (90 %: 78,5°) und verfehlte die Station im Median um 50,9° (10 Stationen) — bei offener Sperre 4,8° (17,9°) und 13,8° (21 Stationen). Das ist Rauschen, die Sperre bleibt, buscosun Fusion ist nicht angefasst. **(2) Stunden, die der Motor zwischen zwei eigenen Schritten interpoliert:** 322 Stunden, **keine einzige** mit Richtung, bei im Median 4,8 kn und bis 14,8 kn Wind; an 100 davon trugen beide Nachbarschritte eine Richtung, alle 100 lagen höchstens 90° auseinander | Nur Fall 2 ist gefüllt, im Producer der Seen: auf dem kürzeren Bogen zwischen den beiden Nachbarschritten, wenn beide eine Richtung tragen und höchstens 90° auseinanderliegen (`fillLakeDir`, `LAKE_DIR_FILL_MAX_DEG`, `set`); die Datei zählt die Stunden in `dirFilled` und nennt die Regel in `about` (echter Lauf: 90 Stunden gefüllt). Fall 1 sagt die Seite bis 6 kn als „schwacher Wind ohne verlässliche Richtung“ (`lakeNoDirText`, `set`), darüber „Richtung für diese Stunde nicht bestimmt“. Dauerhaft geprüft in `verify:sea-lakes` Block I (§8.4). Offen bleibt die Sperre selbst an den Alpenseen (viel schwacher Wind): eine Frage an den Motor, eigene Phase, Jans Entscheidung (V-BS-25) |
 | **V-BS-2** | An den zehn Seestationen ist buscosun Fusion im Mittel gut (Wind +0,3 kn, Böe +0,5 kn), je See aber verschieden: Neusiedler See Wind +1,8 kn und nur 70 % in der Spanne, Zürichsee Böen +3,0 kn, Chiemsee Böen 1–6 h −2,0 kn. Gemessen bei schwachem Herbstwind an Landstationen | Deshalb bleiben die Klassen aus (E-BS-2). Skizze: nach 14 Tagen Archiv (`lakes-*.json.gz` gegen `lake-obs.json.gz`) dieselbe Tabelle an allen 41 Stationen, dann Jans Entscheidung über `LAKE_VERDICTS` |
 | **V-BS-3** | Windpartikel auf der Seekarte sind nicht gebaut (E-BS-11) — die Vorgabe „lake area, spots, wind particles“ ist an dieser Stelle **nicht erfüllt** | Jans Entscheidung: die `WindLayer`-Klasse der Wetterkarte in `SeaMap` einhängen (WebGL-Pipeline, Sichtprüfung nötig) oder bei den Windpfeilen an den Spots bleiben |
-| **V-BS-4** | Etappe auf einem See: Wind kommt von buscosun Fusion mit den Landesparametern des Start- oder Zielspots; die Spalten Welle und Strom zeigen „keine Daten“ (das Wellenmodell hat dort kein Wasser), statt ausgeblendet zu sein. An einem Punkt vor fremdem Ufer (Genfersee Südufer) steht in der Etappe kein Vermerk | Skizze: in `SeaTripPanels` die beiden Spalten an Seen weglassen und den Vermerk `lakeForeignNote` an Punkten außerhalb DE/AT/CH zeigen (Länderregel `countryBorders.ts`) |
-| **V-BS-5** | Die Sicht-Karte sagt am Seespot „Diesem Spot ist keine Messstation zugeordnet“, obwohl es eine Windstation gibt — obs/v1 trägt keine Sichtweite; die amtliche Zeile nennt kein Seegebiet | Skizze: eigener Satz für Seen („Die Station meldet im Datenbestand keine Sichtweite“) in `SeaSightPanel` |
+| **V-BS-4** | **erledigt (BS-N, §8.2).** Etappe auf einem See: Wind kommt von buscosun Fusion mit den Landesparametern des Start- oder Zielspots; die Spalten Welle und Strom zeigen „keine Daten“ (das Wellenmodell hat dort kein Wasser), statt ausgeblendet zu sein. An einem Punkt vor fremdem Ufer (Genfersee Südufer) steht in der Etappe kein Vermerk | Skizze: in `SeaTripPanels` die beiden Spalten an Seen weglassen und den Vermerk `lakeForeignNote` an Punkten außerhalb DE/AT/CH zeigen (Länderregel `countryBorders.ts`) |
+| **V-BS-5** | **erledigt (BS-N, §8.3).** Die Sicht-Karte sagt am Seespot „Diesem Spot ist keine Messstation zugeordnet“, obwohl es eine Windstation gibt — obs/v1 trägt keine Sichtweite; die amtliche Zeile nennt kein Seegebiet | Skizze: eigener Satz für Seen („Die Station meldet im Datenbestand keine Sichtweite“) in `SeaSightPanel` |
 | **V-BS-6** | Die 70 Lagen sind aus dem Gedächtnis gesetzt und nur am Umriss (Median 103 m zum Ufer) und an der Wikipedia-Koordinate des Orts geprüft; zwei waren falsch und sind korrigiert. Ob ein Spot am Hafen, am Strandbad oder an der Promenade liegt, hat niemand angesehen | Jans Blick auf die Karte, je See; `lakes-src.json` ist die eine Stelle |
 | **V-BS-7** | Neusiedler See: EU-Hydro kennt die offene Wasserfläche (141 km²), Rust liegt in einer Bucht im Schilf (Fetch ≤ 0,8 km); die mittlere Tiefe von 1 m macht die Schätzung dort empfindlich gegen den Wasserstand | Skizze: Tiefe aus dem aktuellen Pegel statt aus der Tabelle, sobald eine Quelle mit geklärter Lizenz da ist (Wasserportal Burgenland: nur Link) |
 | **V-BS-8** | Seespiegel, mittlere Tiefe und Fläche stammen aus den Infoboxen der Wikipedia (gelesen 21.11., mit Artikeladresse am Wert) — eine Sekundärquelle | Skizze: je See die Primärquelle (IGKB, CIPEL, LfU, BAFU, Land) in `lakes-src.json` eintragen |
 | **V-BS-9** | Die Phase kostet geschätzt 29 KB gzip, davon 1,3 KB im Startpfad (Namenstabelle der 70 Seespots) und rund 10 KB Steckbriefe und Texte der Spot-Seiten. Nicht am sauberen Stand gemessen | Skizze: nach dem Commit am sauberen Stand messen; die Seenamen aus dem Startpfad nehmen (nur das Revier, der Name des Sees kommt mit dem Katalog) |
-| **V-BS-10** | `verify:sea-lakes` braucht 8 Minuten, fast alles für drei volle Wellenläufe des Byte-Vergleichs (F) | Skizze: `buildRun` um eine Schrittliste für Prüfer erweitern (12 statt 79 Schritte) — Eingriff in den Wellenproducer, eigener kleiner Schritt |
+| **V-BS-10** | **erledigt (BS-N, §8.4): der Byte-Vergleich ist ein eigenes Skript, der Rest läuft in 3 s.** `verify:sea-lakes` braucht 8 Minuten, fast alles für drei volle Wellenläufe des Byte-Vergleichs (F) | Skizze: `buildRun` um eine Schrittliste für Prüfer erweitern (12 statt 79 Schritte) — Eingriff in den Wellenproducer, eigener kleiner Schritt |
 | **V-BS-11** | Der Live-Workflow checkt `ruc/` nicht aus (Bestand, §78). Wind und Böe sind davon unberührt, die Regenchance der Hinweise rechnet im Workflow ohne den RUC-Member | Jans offener Schritt §78 |
 | **V-BS-12** | Alplakes bittet um einen User-Agent mit Kontakt; der Producer sendet `buscosun-sea (https://buscosun.com; …)` ohne Mailadresse | Jans Entscheidung, mit der Mail an die Eawag (MANUELLE-SCHRITTE §107.5) |
 | **V-BS-13** | Mardorf (Steinhuder Meer) hat keine Station bis 25 km (Hannover 25,4 km), Steinhude am selben See schon (21,9 km) | Regel bleibt, wie vor der Messung gesetzt; Skizze: Station je See statt je Spot |
 | **V-BS-14** | Die Übersicht `/seewetter` heißt in Titel, Kopfzeile und Routentext weiter „Nord- und Ostsee“; die Seen stehen im Verzeichnis und im Revier | Skizze: `src/seo/routeTexts.ts` und die Unterzeile der Topbar nach Jans Blick |
 | **V-BS-15** | Der Kummerower See misst am Pegel Aalbude (am Ausfluss, 9,1 km vom Spot); der Kölpinsee hat keinen eigenen Pegel | steht so in der Karte (Name und Entfernung) |
-| **V-BS-16** | **Commit:** die Dateien der Seite (`SeaPage.tsx`, `SeaDock.tsx`, `SeaMap.tsx`, `SeaTripPanels.tsx`, `seaClient.ts`, `seaDeck.css`, `seaTripData.ts` …) tragen uncommittete Zeilen der Ausfahrt- und Riffel-Linie (AM-N, AM-P, AM-W, SR-B … SR-F), `SeaPage.tsx` importiert deren ungetrackte Dateien (`SeaWizard.tsx`, `seaSteps.ts`, `seaOwnPoint.ts`). Die Zeilen dieser Phase stehen dazwischen; ein Commit „nur Phase BS“, der für sich baut, lässt sich daraus nicht schneiden | Jans Entscheidung (§7) |
+| **V-BS-16** | **erledigt: alles ist committet und gepusht (`5d92118e`, 21.11., mit der Ausfahrt- und Riffel-Linie), die CI ist seit Lauf 184 grün (`8c876b24`).** **Commit:** die Dateien der Seite (`SeaPage.tsx`, `SeaDock.tsx`, `SeaMap.tsx`, `SeaTripPanels.tsx`, `seaClient.ts`, `seaDeck.css`, `seaTripData.ts` …) tragen uncommittete Zeilen der Ausfahrt- und Riffel-Linie (AM-N, AM-P, AM-W, SR-B … SR-F), `SeaPage.tsx` importiert deren ungetrackte Dateien (`SeaWizard.tsx`, `seaSteps.ts`, `seaOwnPoint.ts`). Die Zeilen dieser Phase stehen dazwischen; ein Commit „nur Phase BS“, der für sich baut, lässt sich daraus nicht schneiden | Jans Entscheidung (§7) |
 | **V-BS-17** | Meine Patch-Skripte haben einige Arbeitsdateien mit LF statt CRLF geschrieben (`SeaPage.tsx`, `seaClient.ts`, `seaDeck.css` u. a.). Git normalisiert beim Hinzufügen, es gibt keinen inhaltlichen Unterschied | — |
-| **V-BS-18** | `verify:sea-lakes` ist nicht in der CI eingetragen (`.github/workflows/ci.yml` trägt uncommittete Zeilen einer anderen Linie und bleibt Jans Schritt) | Skizze: wie V-AM-12 einen Schritt nach den übrigen Seewetter-Prüfern; wegen der 8 Minuten erst nach V-BS-10 |
+| **V-BS-18** | **erledigt (BS-N, §8.4).** `verify:sea-lakes` ist nicht in der CI eingetragen (`.github/workflows/ci.yml` trägt uncommittete Zeilen einer anderen Linie und bleibt Jans Schritt) | Skizze: wie V-AM-12 einen Schritt nach den übrigen Seewetter-Prüfern; wegen der 8 Minuten erst nach V-BS-10 |
 
 ## 7. Stand des Commits
 
@@ -263,6 +263,85 @@ Lokal committet und **nicht gepusht** ist der Nachzug BS-N (§8), beginnend mit 
 Sechs Aufgaben, je ein lokaler Commit auf `main`. Kein Eingriff in buscosun Fusion (`src/pointForecast/**`), in Shader, Edge
 Functions oder Abhängigkeiten. Kein Browser, kein Bild, kein Dev-Server (Jans Vorgabe) — die Fragen 2 bis 5 der
 Selbstverifikation sind damit unbeantwortet, Frage 1 (Funktionserhalt) nur am Quelltext und an den Prüfern.
+
+### 8.1 Windrichtung an der Küste (V-DK-4) — `b0083b33`
+
+Dieselbe Füllung wie an den Seen (V-BS-1, Fall 2), dieselbe Regel und Konstante (`fillLakeDir`, 90°, `set`), jetzt in beiden
+Küstendateien: `spots/<lauf>.json` und der Wind-Auffrischung `spots/<lauf>-w<t1>.json`. Freigabe für die Küstendateien: Jan,
+21.11. Gefüllt wird nur, wo buscosun Fusion zwischen zwei eigenen Schritten interpoliert und keine Richtung nennt; die Sperre
+des Motors (schwacher Wind) bleibt `null`.
+
+**Datenvertrag (beide Küstendateien):** neuer, optionaler Block `wind.dirFill = { filled, maxDeg, rule }` — Zahl der gefüllten
+Stunden, die Grenze und die Regel in Worten. Er steht da, sobald `spotWind` seine Liste `interp` liefert (im Betrieb immer,
+auch mit `filled: 0`); ein Wind-Ergebnis ohne die Liste schreibt die alte Dateiform Byte für Byte. `windDir` kann an einer
+interpolierten Stunde jetzt einen Wert tragen, wo vorher `null` stand. Schema, Pfade und alle anderen Spalten unverändert.
+`buildRun` baut das Spot-Dokument jetzt in der reinen Funktion `spotsDocOf` (damit der Prüfer es zweimal aus denselben
+Eingaben bauen kann).
+
+| Beleg | Ergebnis |
+|---|---|
+| `verify:sea-derive` Block D (neu, 9 Prüfungen) | **79/79.** D1 `spotsDocOf` ergibt aus den Wellenreihen und dem Wind von Block A die Lauf-Datei Byte für Byte, ohne `interp` kein `dirFill`. D2 genau die 17 von Hand gerechneten Stunden sind gefüllt (über Nord in beide Richtungen; Sprung von 120°, Nachbarschritt ohne Richtung, Stunde hinter dem letzten Schritt und die Sperre des Motors bleiben `null`; eine interpolierte Stunde mit Richtung bleibt). D3 `wind.dirFill` mit Zahl, Grenze, Regel. **D4 Negativkontrolle:** ohne die interpolierten Stunden von Spot A und ohne `dirFill` sind die Datei mit und ohne Füllung byte-gleich. **D5 Gegenprobe:** eine veränderte nicht interpolierte Stunde, eine Böe an einer interpolierten Stunde und eine Richtung am zweiten Spot fallen auf. D6 die Seite liest die gefüllte Stunde, Wertsperre besteht. D7–D9 dasselbe für die Wind-Auffrischung, Ende zu Ende auf zwei Kopien des Speichers, und für die Seite mit Auffrischung |
+| Messung an der echten Küste: `seewetter-daenemark/coast-dir-probe.mjs` / `.json` (Lauf 2026112112, t1 2026112115, buscosun Fusion 14, 21.11. 18:02 UTC, **eine Wetterlage**; Regeln vor dem Lauf im Kopf des Skripts) | 63 von 64 Spots mit Wind (Hvide Sande kommt vom DMI), 4 599 Stunden mit Wind. Ohne Richtung vorher 248, nachher 140. **108 Stunden gefüllt an 6 Spots**, je 18 ab Stunde +52: Fanø, Bagenkop, Marstal, Middelfart, Gedser — und Sylt Hörnum. Jede interpolierte Stunde ließ sich füllen (kein Sprung über 90°, kein Nachbar ohne Richtung). **0 Stunden außerhalb der interpolierten verändert** (die Prüfung sieht eine absichtlich veränderte Stunde: 1). Die 140 verbliebenen Stunden liegen alle hinter der Sperre des Motors (Dangast 25, Elbe Wittenbergen 22, Wilhelmshaven 20, Wangerooge und Schillig je 15, Husum 10 …) |
+| Güte der Regel (Hold-out auf dem stündlichen Teil derselben Lage: aus den Stunden h und h+3 die Stunden h+1 und h+2 vorhergesagt, gegen die eigene Richtung des Motors) | 8 042 Paare: Fehler im Median 2°, 90 % unter 8°, größter 49°; ab 5 m/s (4 921 Paare) Median 2°, 90 % unter 5°. 8 Paare nicht gefüllt (über 90° auseinander) |
+| `verify:sea-dk` 70/70 · `verify:sea-wind-band` 41/41 · `verify:sea-sight` 76/76 (vor §8.3) | unverändert grün |
+
+Was das **nicht** zeigt: die Güte der Füllung dort, wo sie wirkt (im dreistündlichen Teil gibt es keine Richtung zum
+Vergleich), eine zweite Wetterlage, eine Frontpassage zwischen zwei Schritten (V-BS-24).
+
+### 8.2 Etappe auf einem See (V-BS-4) — `6ddb10b1`
+
+- **Erkennung** (`lakeTrip.ts`, rein): eine Etappe liegt auf einem See, wenn ihr Start oder Ziel ein Seespot ist oder im
+  Umriss eines Sees liegt, den die Karte zeichnet (`static/lakes.json`). Landesparameter: die des Spots, bei einem freien
+  Punkt die des nächsten Spots dieses Sees.
+- **Anzeige:** die Zeilen „Welle m“ und „Strom kn“, der Strompfeil im Schlüssel und die Welle auf den Karten Abfahrt und
+  Ankunft entfallen; ein Satz sagt, warum (kein Wellen- und kein Strömungsmodell für Seen im Datenbestand). Die Hinweise
+  sprechen nicht mehr vom Strom und vom Takt des Wellenmodells; gezählt werden Wind und Böen.
+- **Rechnung** (`seaTrip.ts`, Option `noSea`): eine Zeile gilt nicht mehr als „ein Wert fehlt“, nur weil die Welle fehlt
+  (vorher war die ganze Route gestrichelt, der Kopf sagte „soweit Werte vorliegen“, der Vergleich der Abfahrten „Werte
+  fehlen“). Wind- und Böen-Befunde und ihre Grenzen sind dieselben. Der Haken lädt auf dem See kein Wellen- und kein
+  Strömungsfeld mehr.
+- **Fremdes Ufer:** liegt ein gesetzter Punkt oder ein Ort der Tabelle in keinem Heimatland des Sees, steht in den Befunden
+  „Ein Teil der Etappe liegt vor dem französischen Ufer: buscosun Fusion mit den Landesparametern für die Schweiz gerechnet;
+  am französischen Ufer nicht geprüft.“ (`lakeForeignNote`). Die Grenze kommt aus den Landesumrissen der Seite
+  (`public/countries/<ISO>.geojson`, ein Abruf je Heimatland, nur an den vier Seen mit fremdem Ufer). **Nicht** aus
+  `countryBorders.ts`: die Ringe dort sind auf die Überlappung der Länder-Boxen beschnitten — das Schweizer Südbecken des
+  Luganersees (unter 45,99° N) und der ganze Neusiedler See (östlich 15,51° O) liegen außerhalb; gemessen bei Melide:
+  `inCountry('CH')` falsch, der ganze Umriss richtig. Ist der Umriss nicht geladen, steht kein Vermerk (nichts behauptet).
+
+`verify:sea-trip` **82/82** (neuer Block M, 9 Prüfungen, an den echten Umrissen: Évian, Fertőrákos, Porto Ceresio fremd;
+Lausanne, Melide Heimat; der aufgezeichnete Umriss des Traunsees), `verify:sea-wizard` 28/28 (nach §8.7: 29/29), `verify:sea-planner` 50/50.
+Die Küste ist unverändert (die Tabelle ohne `lake` ist Zeichen für Zeichen die von vorher).
+
+### 8.3 Sicht-Karte am Seespot (V-BS-5) — `f753f4c1`
+
+| Stelle | vorher (Küstenwortlaut) | jetzt am Seespot |
+|---|---|---|
+| Gemessen | „Diesem Spot ist keine Messstation zugeordnet.“ + Quellenzeile der DWD-Stationsmeldungen | „Die Station ‹Name› (‹x› km vom Spot) liefert im Datenbestand Wind und Böen, aber keine Sichtweite.“ — ohne Station „Für diesen Seespot liegt keine Station in der Nähe.“; keine Quellenzeile einer Messung, die es nicht gibt |
+| Amtlich, wörtlich | „Dieser Spot liegt in keinem Seegebiet und keinem Küstenabschnitt …“ | „Die Zeile „Sicht/Wetter“ stammt aus den Berichten des Seewetterdienstes Hamburg für Nord- und Ostsee. Für Binnenseen steht darin keine Zeile.“ |
+| Regeln | „An der Küste bisher nur an einem Tag geprüft …“ | davor: „An Binnenseen ist der Hinweis nicht geprüft: die Stationen an den Seen liefern im Datenbestand keine Sichtweite.“ |
+| Stundenband, Zeile Sicht | „… an der Küste erst an einem Tag geprüft“ | „… an Binnenseen nicht geprüft“ |
+
+Belegt an der Aufzeichnung von obs/v1 (`obs-latest-lakes.json`): die Größen sind `dd ff fx gr p ps rh rr sd snow t td`, keine
+Sichtweite. Kein Wert, keine Klasse, keine Regel geändert. `verify:sea-sight` **80/80** (J11b–J11e; J11d: die Küstenkarte
+ist ohne `lake` Zeichen für Zeichen die von vorher).
+
+### 8.4 Prüfer (V-BS-10, V-BS-18)
+
+- **`verify:sea-lakes` läuft in 3 s** (vorher 8 min) und steht in der CI (`ci.yml`, Schritt „Verifier — Binnenseen“, auch nach
+  einem roten Schritt davor). **125/125.**
+- **Block F (drei volle Wellenläufe) ist ein eigenes Skript:** `npm run verify:sea-lakes-bytes` (`--bytes`), nicht in der CI.
+  Ergebnis: 5/5 in 404 s (§8.7). Im schnellen Lauf steht dafür **F0** (4 Prüfungen): der Katalog des Wellenproducers ist mit und ohne
+  Seekatalog derselbe, die Wind-Auffrischung auf der aufgezeichneten Lauf-Datei 2026100700 ist byte-gleich (der Stand-in hängt
+  an der Zahl der Spots — 70 Seespots im Katalog verschöben jeden Wert), Gegenprobe mit einem zusätzlichen Küstenspot, und
+  der Quelltext: Lauf und Auffrischung lesen ihre Spots nur über `readCatalog`.
+- **Block I (neu, 8 Prüfungen), dauerhaft für V-BS-1:** `fillLakeDir` (kürzerer Bogen, über Nord, mehrere Stunden; nur
+  interpolierte Stunden; leer bei Nachbar ohne Richtung, über 90° — 90° selbst wird gefüllt —, am Rand, bei ungültigem
+  Index; Eingabe unverändert), `lakeNoDirText` (Grenze 6 kn gerundet), der Producer mit `interp` (Stunde 8: 88°, Stunde 32
+  über Nord: 352°, `dirFilled` 18 × 70, Regel in `about`), Negativkontrolle der Seedatei mit Gegenprobe, Verdrahtung (Producer,
+  `spotWind`, Küste, Dossier), CI-Eintrag.
+- **Mutationsprobe** (fünf absichtliche Fehler in `seaLakes.ts`, jeweils zurückgenommen): `>=` statt `>` an der Grenze ⇒ I3
+  rot; füllt auch nicht interpolierte Stunden ⇒ I2, I3, I5, I6 rot; längerer Bogen ⇒ I1, I3, I5 rot; Grenze 7 kn ⇒ I4 rot;
+  überschreibt eine vorhandene Richtung ⇒ I2 rot.
 
 ### 8.5 Ablage in `buscosun-archiv` (nur gelesen, kein Push)
 
@@ -289,3 +368,56 @@ und `lake-obs.json.gz` (5 770 B); auch der 20.11. hat `lakeObsStations: 41` beko
 Genau das, was die Nachstellung ergab. Die Seereihe des Laufs 2026112100 mit t1 2026112106 ist die lokal gerechnete aus
 §5; spätere Reihen dieses Laufs gab es nicht (der Producer lag da noch nicht auf `main`). Gelesen über `raw` und die
 GitHub-API, nichts geschrieben.
+
+### 8.6 Neue Befunde
+
+| Nr. | Befund | Mehrwert · Skizze |
+|---|---|---|
+| **V-BS-19** | **Das Stundenband am Seespot trägt weiter die Zeilen „Welle m“, „Periode s“ und „Wellen“ (ohne Wert) und die Fußzeile „Welle: Modell ‹Lauf› · Wind/Böen: …“** — am Quelltext gelesen (`SeaBand.tsx` zeichnet die drei Zeilen immer, `SeaPage.tsx` setzt die Fußzeile für jeden Spot), nicht gesehen. Die Phase BS hat das nicht vermerkt | Skizze: am Seespot die drei Zeilen weglassen oder — Jans Entscheidung **E-BS-12** — die geschätzte Windwelle als eigene Zeile zeigen; Fußzeile „Wind/Böen: …“. Wie V-BS-4 eine Anzeigeänderung, deshalb nicht in diesem Nachzug |
+| **V-BS-20** | Eine gefüllte Richtung steht auf der Seite wie jede andere (Küste und Seen); dass sie eine eigene Rechnung nach gesetzter Regel ist, steht nur in der Datei (`wind.dirFill`, `dirFilled`/`about`). Die Dateien tragen auch nicht, WELCHE Stunden gefüllt sind | Ehrlichkeitsregel („`set` wird gekennzeichnet“). Skizze: eine Spalte oder Liste der gefüllten Stunden je Spot in der Datei (Vertragsänderung) und ein Zeichen an Stunde und Kompass; Jans Entscheidung **E-BS-13** |
+| **V-BS-21** | Die Landesumrisse (`public/countries`, 8–20 KB je Land) sind grob. Der Vermerk am fremden Ufer kann nahe der Grenze im See um schätzungsweise 1–2 km daneben liegen; am Südende des Neusiedler Sees (47,69° N, 16,75° O) sagt der Umriss „Österreich“, was ich nicht gegen eine genaue Grenze geprüft habe | Skizze: die Grenze im See aus einer genaueren Quelle (swisstopo, BEV) in den Seekatalog legen; bis dahin ist der Vermerk eine Näherung |
+| **V-BS-22** | Zwei freie Punkte auf einem See werden erst als See-Etappe erkannt, wenn die Umrisse geladen sind; liegt nur ein Wegpunkt (nicht Start oder Ziel) auf dem See, gar nicht. Bis dahin rechnet die Etappe mit `'DE'` und zeigt die Wellenzeilen | steht so im Code (`tripLakeOf`); selten |
+| **V-BS-23** | `verify:sea-derive` (mit der Negativkontrolle der Küsten-Füllung, Block D) und `verify:sea-dk`, `-wind-band`, `-sight` laufen nicht in der CI — nur `waterlevel`, `tide-window`, `trip`, `wizard` und jetzt `lakes`. `verify:sea-derive` braucht mehrere Minuten (vier Wellenläufe) | Skizze: die schnellen drei in die CI; `sea-derive` wie hier teilen (Wellenläufe hinter einen Schalter) — eigener kleiner Schritt |
+| **V-BS-24** | Die 90°-Grenze und das lineare Führen auf dem kürzeren Bogen sind gesetzt. Gemessen ist die Regel nur auf dem stündlichen Teil einer Wetterlage; dreht der Wind zwischen zwei Dreistundenschritten rasch (Front), liegt die gefüllte Stunde daneben, ohne dass es jemand sieht | Skizze: aus der Ablage nach 14 Tagen die gefüllten Stunden gegen die Küstenstationen (`poi.json.gz`) und die Seestationen (`lake-obs.json.gz`) |
+| **V-BS-25** | Die Sperre des Motors lässt an der Küste 140 von 4 599 Stunden ohne Richtung (Jade, Elbe, Husum) und an den Alpenseen rund die Hälfte — bei schwachem Wind zu Recht. Ob die Schwelle für Punkte auf dem Wasser passt, ist eine Frage an buscosun Fusion | eigene Phase, neuer Stand, Jans Entscheidung; nicht in diesem Nachzug |
+| **V-BS-26** | Die README-Vorlage des Daten-Repos (`scripts/repack-repo/README.md`) nennt `wind.dirFill` und `dirFilled`. Der Repack-Publisher legt sie mit seinem nächsten Lauf nach Jans Push ins Daten-Repo — eine Textänderung dort, ohne mein Zutun | zur Kenntnis |
+| **V-BS-27** | Im Arbeitsbaum arbeitet parallel die Gletscher-Linie (Phase GS): uncommittete Zeilen in `CLAUDE.md`, `MANUELLE-SCHRITTE.md` und unter `scripts/glacier/`. Ich habe nur meine Dateien und in den beiden Dokumenten nur meine Zeilen gestagt; `dist/` wurde während meines Budget-Laufs einmal von einem fremden Bau geleert | zur Kenntnis; der Budget-Wert ist nach einem eigenen Bau gemessen |
+| **V-BS-28** | Schlägt der Abruf eines Landesumrisses (`/countries/<ISO>.geojson`) einmal fehl, fragt die Etappe in dieser Sitzung an diesem See nicht noch einmal: der Vermerk am fremden Ufer erscheint dann nicht (es wird nichts behauptet, aber auch nichts gesagt) | Skizze: beim nächsten Wechsel der Etappe erneut laden |
+| **V-BS-29** | Die Strand-Liste sagt an Seespots „Welle: keine Daten“ (`SeaTripPanels.tsx`, Zeile der Liste; von diesem Nachzug nicht berührt) | Skizze: wie V-BS-19 mit E-BS-12 entscheiden — weglassen oder geschätzte Windwelle |
+| **V-BS-30** | Beginnt eine Etappe an einem Küstenspot und endet in einem See-Umriss, gilt sie als Ganzes als See-Etappe (keine Wellenzeilen, Landesparameter des Sees auch auf See). Kein Umriss der 28 Seen liegt an der Küste. `wind.dirFill.filled` der Wind-Auffrischung zählt über die ganze neue Spalte; da die Rechnung an der Rechenstunde beginnt, liegt keine gefüllte Stunde davor | zur Kenntnis |
+
+### 8.7 Durchsicht und Gate des Nachzugs (21.11.2026)
+
+**Unabhängige Durchsicht** der vier Code-Commits (ein zweiter Lauf ohne meinen Kontext, nur lesend): kein schwerer Fehler.
+Behoben in `c8a27bf1`: (1) die Windantworten der Etappe hingen am Punkt, nicht am Land — wurde der See erst nach dem Laden von
+Katalog oder Umrissen erkannt, standen die mit `'DE'` gerechneten Werte als fertig da, bis jede neue Antwort kam; sie werden
+jetzt beim Wechsel des Landes sofort verworfen. (2) Die Seite „Grenzen“ des Assistenten sagte auf einer See-Etappe „gezählt …
+für Wind, Böen und Welle“. (3) Der Stand-in von F0 hing an `spots.length % 7`, und 70 Seespots sind ein Vielfaches von 7 —
+jetzt `% 11` mit Gegenprüfung; F0d besteht nicht mehr auf einem leeren Ausschnitt. Nicht behoben, als Befund vermerkt:
+V-BS-28, V-BS-29, V-BS-30.
+
+| Gate | Beleg |
+|---|---|
+| `npm run typecheck` | 0 |
+| `npm run build` | grün, 281/281 Prüfungen des SEO-Baus |
+| `npm run budget` | eagerJs 116,2 / 117 · eagerCss 2,4 / 2,5 · largestChunk 278,4 / 302 · **totalJs 2 096,0 / 2 097** — Grenze von Hand von 2 095 auf 2 097 gehoben, Notiz in `budget.json` (+1,9 KB für §8.2 und §8.3; die Gegenprobe der Gletscher-Phase GS im selben Arbeitsbaum misst mit und ohne ihre Zeilen denselben Wert) |
+| `verify:sea-lakes` | **125/125**, 3 s |
+| `verify:sea-lakes-bytes` | **5/5**, 404 s (drei volle Wellenläufe; Küstendateien mit und ohne Seekatalog byte-gleich, Gegenprobe) |
+| `verify:sea-derive` | **79/79**, 404 s, auf dem Endstand von `sea-derive.mjs` |
+| `verify:sea-dk` · `-wind-band` · `-trip` · `-sight` | 70/70 · 41/41 · **82/82** · **80/80** |
+| weitere, weil berührt oder in der CI | `-wizard` **29/29** · `-planner` 50/50 · `-waterlevel` 64/64 · `-tide-window` 49/49 · `-contract` 30/30 · `-seo` 23/23 · `verify:share` 517/517 |
+| nicht gelaufen | `verify:sea-ui` (Browser — Jans Vorgabe), `-current`, `-watertemp`, `-ripples`, `-text`, `-decode` (ihre Dateien sind nicht berührt) |
+| Ablage | §8.5: Lauf 182 hat die Seedateien abgelegt |
+| Sichtprüfung | **keine** — weder Bild noch Browser noch Dev-Server |
+
+Die fünf Fragen: (1) Funktionserhalt — keine Funktion entfernt; auf einer See-Etappe entfallen die Zeilen Welle und Strom, die
+dort nie einen Wert hatten (Auftrag V-BS-4); die Küste ist an Tabelle, Sicht-Karte und Stundenband Zeichen für Zeichen die
+von vorher (`verify:sea-trip` M4, `verify:sea-sight` J11d/J11e). (2) Desktop pixelgleich — nicht geprüft (kein Browser); kein
+CSS geändert, keine neue Klasse. (3) Touch-Ziele — kein neues Bedienelement. (4) Konsole — nicht geprüft. (5) Long Tasks —
+nicht geprüft; neu ist je See-Etappe an vier Seen ein Abruf von 8–20 KB und eine Punkt-in-Polygon-Prüfung über höchstens rund
+60 Orte.
+
+**Commits des Nachzugs (lokal, nicht gepusht):** `d930e5a4` Richtung an den Seen · `b0083b33` Richtung an der Küste ·
+`6ddb10b1` See-Etappe · `f753f4c1` Sicht-Karte · `dd297e61` Prüfer und CI · `9092e3dc` Ablage geprüft · `c8a27bf1`
+Korrekturen aus der Durchsicht · dazu der Commit dieser Dokumente. Dazwischen liegen zwei Commits der Gletscher-Linie
+(`e63933a1`, `93401022`).

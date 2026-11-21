@@ -4100,71 +4100,80 @@ Beleg der ersten zwei Läufe auf dem Runner: `audit/gletscher-stationen.md` §10
 4. **Nicht geprüft:** die Karte im Browser. Geprüft: `verify:glacier-stations` 61/61 mit elf Gegenproben, alle anderen `verify:glacier-*` ohne
    Browser, Typecheck, Build und Budget grün; ein Probelauf lokal gegen die echten Quellen.
 
-## 107. Seewetter: Binnenseen (Phase BS, `audit/seewetter-binnenseen.md`), 2026-11-21
+## 107. Seewetter: Binnenseen (Phase BS + Nachzug BS-N, `audit/seewetter-binnenseen.md`), 2026-11-21
 
-28 Seen, 70 Spots, ohne Schalter an für alle (dein Wort). **In `buscosun-web` ist nichts committet** (Punkt 1). Ich habe die
-Seite nicht im Browser gesehen.
+28 Seen, 70 Spots, ohne Schalter an für alle (dein Wort). **Phase BS ist gepusht** (`5d92118e`, 21.11.; CI grün seit Lauf 184
+mit `8c876b24`), der Producer der Seen rechnet auf dem Runner seit 21.11. 17:10 UTC. **Der Nachzug BS-N ist lokal committet und
+nicht gepusht** (ab `d930e5a4`; `git log origin/main..main` zeigt die Reihe — dazwischen liegen zwei Commits der
+Gletscher-Linie, `e63933a1` und `93401022`, §108). Ich habe die Seite nicht im Browser gesehen.
 
-**Pushs in `buscosun-data` (von mir, nur `sea/` und `sea.yml`, ohne Force, je danach geprüft):**
+**Pushs in `buscosun-data` (von mir in Phase BS, nur `sea/` und `sea.yml`, ohne Force, je danach geprüft):**
 
 | Commit | Inhalt | Geprüft |
 | --- | --- | --- |
 | `faf2b989e78c5fe4517b2d8c4da279fa9cfd370e` | drei neue Dateien `sea/v1/static/spots-lakes.json`, `lake-geo.json`, `lakes.json` | sha256 auf `raw` gleich den lokalen Dateien; `spots.json` unverändert |
-| `4cfd5f83835c88a85e2ee3f6133c32a806be5ad8` | `.github/workflows/sea.yml`: Schritte „Lakes due?“ und „Lakes“ (+51/−3, nur die Hunks dieser Phase) | sha256 gleich der lokalen Datei; Lauf `sea` Nr. 3741 (10:21 UTC) grün, beide Schritte laufen und überspringen sich, solange der Producer nicht auf `main` liegt |
-| `1a61bae270d47d76e8a389a7661ded649394fbb8` | **erste Seereihe, lokal gerechnet**, damit du vor dem Push etwas siehst: `sea/v1/lakes/2026112100-w2026112106.json` (70 Spots, buscosun Fusion 14), `lakes/wt-202611210920.json` (Alplakes, 22 Becken), in `status.json` die Schlüssel `lakes` und `lakesWt` (sonst nichts) | sha256 beider Dateien gleich den lokalen; ein Push abgelehnt (Cron dazwischen), neu aufgesetzt, zweiter angenommen |
+| `4cfd5f83835c88a85e2ee3f6133c32a806be5ad8` | `.github/workflows/sea.yml`: Schritte „Lakes due?“ und „Lakes“ (+51/−3, nur die Hunks dieser Phase) | sha256 gleich der lokalen Datei; Lauf `sea` Nr. 3741 (10:21 UTC) grün |
+| `1a61bae270d47d76e8a389a7661ded649394fbb8` | erste Seereihe, lokal gerechnet (überholt: der Producer schreibt sie seit dem Push selbst) | sha256 beider Dateien gleich den lokalen |
 
-Kein Push in `buscosun-archiv`: dessen Workflow legt die Seedateien von selbst ab, sobald der Archivierer auf `main` liegt.
+**Im Nachzug BS-N: kein Push in `buscosun-data` und keiner in `buscosun-archiv`.** Am Daten-Repo ist nichts zu ändern (kein
+Workflow, kein Katalog, kein Zeiger); `sea.yml` klont den Producer bei jedem Lauf aus `buscosun-web`.
 
-1. **Commit entscheiden.** Die Seiten-Dateien (`SeaPage.tsx`, `SeaDock.tsx`, `SeaMap.tsx`, `SeaTripPanels.tsx`, `seaClient.ts`,
-   `seaDeck.css`, `seaTripData.ts`, `seaState.ts`, `seaPlanner.ts`, `seaTrip.ts`, `verify-sea-trip.mjs`, `package.json`)
-   tragen noch die uncommitteten Zeilen der Ausfahrt- und Riffel-Linie (§99, §100, §103); `SeaPage.tsx` importiert deren
-   ungetrackte Dateien (`SeaWizard.tsx`, `seaSteps.ts`, `seaOwnPoint.ts`). Meine Zeilen stehen dazwischen. Ein Commit „nur
-   Binnenseen“, der für sich baut, lässt sich daraus nicht schneiden — deshalb habe ich keinen gemacht. Wege:
-   (a) erst §99/§100/§103 committen, dann sage mir „committe BS“ (dann sind die Dateien sauber trennbar);
-   (b) alles Seewetter in einem Commit;
-   (c) so lassen.
-2. **Ansehen** (dein Dev-Server; Katalog und eine erste Seereihe liegen im Speicher — **die Reihe gilt nur, bis der nächste
-   Seegangslauf veröffentlicht ist, etwa 17:15 MEZ am 21.11.**, danach steht an den Seespots „Keine Daten“, bis der
-   Producer nach dem Push selbst rechnet):
-   - `/seewetter?rv=seen` → Revier-Chip „Seen“, darunter eine Reihe mit einem Chip je See (größter zuerst); ein Chip
-     stellt die Karte auf den See, die Seefläche ist blau hinterlegt.
-   - `/seewetter/bodensee-lindau` → Dossier: oben die Warnkarte (Zelle „Bodensee - Ost“: „Keine Warnung … in der
-     Warndatei“ oder die Meldung des DWD im Wortlaut), dann Wind, Böen, „geschätzte Windwelle (eigene Rechnung)“, die
-     Fetch-Rose (Fläche = Strecke über den See je Windrichtung, dicke Linie = aktuelle Windrichtung), Verlauf,
-     Sicht-Hinweis, Wasser (links „keine Station in der Nähe“, rechts das Modell von Alplakes; darunter der Pegel Konstanz),
-     Quellen des Sees. Keine Klasse „passt / knapp“, kein Fenster.
-   - `/seewetter/attersee-attersee` → Warnkarte mit gestricheltem Rand „Kein amtlicher Warnstatus im Datenbestand“ und
-     Link zu GeoSphere Austria; kein Pegel („kein Pegel mit geklärter Lizenz“), dafür der Link zum Hydrographischen Dienst.
-   - `/seewetter/mueritz-waren` → gemessene Wassertemperatur vom WSV-Pegel Waren links, rechts „kein Modell für diesen See“.
-   - `/seewetter/lago-maggiore-locarno` → an fast jeder Stunde „Richtung für diese Stunde nicht bestimmt“ und die
-     Windwelle als „bis x m“ (V-BS-1: buscosun Fusion gibt dort kaum eine Windrichtung aus).
-   - `/seewetter/steinhuder-meer-mardorf` → „keine Station in der Nähe“ bei „An Land gemessen“.
-   - Gegenprobe Küste: `/seewetter/st-peter-ording` sieht aus wie vorher.
-   - Mobil (390 px): Chips und Links 44 px hoch, die Rose steht über dem Text.
-3. **Push** `buscosun-web` (`main`), vorher `npm run edge:share` (die Vorschau geteilter Links kennt die 70 Seespots sonst
-   nicht; `verify:share` ist bis dahin an SH6 rot). Mit dem Push rechnet der Workflow die Seen selbst: im ersten
-   15-min-Lauf danach, dann bei jedem neuen t1-Lauf des Cubes und nach jedem Seegangslauf; Alplakes höchstens alle 6 h.
-   Im Lauf nachsehen: Schritt „Lakes (buscosun Fusion wind at the lake spots …)“ grün, `status.json` trägt `lakes` mit
-   dem aktuellen Lauf.
-4. **Zurück ohne Deploy:** in `buscosun-data` `sea/v1/static/spots-lakes.json` löschen ⇒ kein Seespot, der Producer
-   rechnet nichts. Nur den Producer anhalten: Repo-Variable `SEA_LAKES=0` (ganze Linie) oder `SEA_LAKES_WT=0` (nur Alplakes).
-5. **Mail an die Eawag (Alplakes), an die Kontaktadresse auf alplakes.eawag.ch:** Die API-Doku nennt
-   die Lizenz selbst (CC BY 4.0, Nennung „Data: Alplakes, Eawag (CC BY 4.0)“) — die Frage ist also nicht mehr, ob,
-   sondern wie: (1) dass buscosun die Modell-Wassertemperatur von 18 Seen einbindet, über einen Producer, höchstens alle
-   6 Stunden mit 22 Abrufen (ein Becken je Abruf), mit der genannten Namensnennung an jedem Wert; (2) ob diese Abruffolge
-   recht ist und welcher Kontakt im User-Agent stehen soll (die Doku bittet um einen; heute steht dort
-   `buscosun-sea (https://buscosun.com; …)` ohne Mailadresse — sag mir die Adresse, dann trage ich sie ein, V-BS-12);
-   (3) ob die Nennung so genügt, wenn der Wert neben einer Messung der WSV steht.
-6. **Bestätigen oder kippen:** E-BS-2 (Profilklassen an Seen aus, bis 14 Tage Archiv geprüft sind — frühestens 05.12.,
-   dann `fusion-lake-stations`-Tabelle an allen 41 Stationen aus `lakes-*.json.gz` gegen `lake-obs.json.gz`),
-   E-BS-4 (Wellenformel, mittlere Tiefe als eine Tiefe), E-BS-6 (Station ≤ 25 km und ≤ 150 m über/unter dem See),
-   E-BS-7 (Böenhinweis ab 25 kn und 34 kn am Mittelwert), **E-BS-11 (Windpartikel auf der Seekarte: nicht gebaut,
-   STOPP-Grenze WebGL — willst du sie, sag es)**.
-7. **Lagen ansehen** (V-BS-6): die 70 Lagen sind aus dem Gedächtnis gesetzt und nur am Umriss und an der Ortskoordinate
+1. **Pushen:** `git push origin main`. `npm run edge:share` ist dafür nicht nötig (kein Spotname geändert). Was der Push
+   bewirkt:
+   - **Küste (Vertragsänderung, deine Freigabe vom 21.11.):** `sea/v1/spots/<lauf>.json` und `spots/<lauf>-w<t1>.json` tragen ab
+     dem nächsten Seegangslauf bzw. der nächsten Wind-Auffrischung den Block `wind.dirFill` (`filled`, `maxDeg`, `rule`), und
+     `windDir` hat an Stunden, die buscosun Fusion interpoliert, einen Wert statt `null`. Nachsehen: in `sea/v1/status.json`
+     den Pfad unter `wind.path` öffnen ⇒ `wind.dirFill.filled` (am 21.11. wären es 108 gewesen).
+   - **Seen:** `sea/v1/lakes/<lauf>-w<t1>.json` trägt `dirFilled` und die Regel in `about`.
+   - **Seite:** `/seewetter/fanoe` (auch Bagenkop, Marstal, Middelfart, Gedser, Sylt Hörnum): hinter etwa +52 h hat jede Stunde
+     eine Windrichtung und einen Uferwinkel statt „aus –“ an zwei von drei Stunden.
+   - Die README des Daten-Repos nennt die beiden Felder mit dem nächsten Lauf des Repack-Publishers (Vorlage geändert).
+2. **Ansehen** (dein Dev-Server; alles Folgende ist von mir nicht gesehen):
+   - **Etappe auf einem See:** „Ausfahrt planen“ → Etappe, Start und Ziel an zwei Spots desselben Sees (etwa Bodensee): die
+     Tabelle hat keine Zeilen „Welle m“ und „Strom kn“, die Route ist nicht mehr durchgehend gestrichelt, in den Befunden steht
+     „Auf dem See: Wind, Böen und Wetterhinweis von buscosun Fusion. …“. Am Genfersee Start Lausanne, Ziel ein Klick vor Évian:
+     in den Befunden „Ein Teil der Etappe liegt vor dem französischen Ufer: buscosun Fusion mit den Landesparametern für die
+     Schweiz gerechnet; am französischen Ufer nicht geprüft.“ Gegenprobe Küste: Laboe → Marstal sieht aus wie vorher.
+   - **Sicht-Karte am Seespot** `/seewetter/bodensee-lindau`: links „Die Station … liefert im Datenbestand Wind und Böen, aber
+     keine Sichtweite.“, bei „Amtlich, wörtlich“ der Satz über Nord- und Ostsee, unter „Wie die beiden Hinweise entstehen“
+     zuerst „An Binnenseen ist der Hinweis nicht geprüft …“. Gegenprobe Küste: `/seewetter/st-peter-ording` wie vorher.
+   - `/seewetter/lago-maggiore-locarno`: an Stunden ohne Richtung bis 6 kn „schwacher Wind ohne verlässliche Richtung“, die
+     Windwelle als „bis x m“.
+   - Unverändert aus Phase BS: `/seewetter?rv=seen` (Chip je See), `/seewetter/bodensee-lindau` (Warnkarte, Fetch-Rose, Wasser),
+     `/seewetter/attersee-attersee` („Kein amtlicher Warnstatus im Datenbestand“), `/seewetter/mueritz-waren` (gemessene
+     Wassertemperatur), `/seewetter/steinhuder-meer-mardorf` („keine Station in der Nähe“), mobil 390 px.
+   - **Bitte besonders ansehen (V-BS-19):** das Stundenband am Seespot — nach dem Quelltext zeigt es weiter die Zeilen
+     „Welle m“, „Periode s“, „Wellen“ ohne Wert und die Fußzeile „Welle: Modell …“. Entscheidung E-BS-12 (Punkt 7).
+3. **Zurück ohne Deploy:** Phase BS wie bisher — in `buscosun-data` `sea/v1/static/spots-lakes.json` löschen ⇒ kein Seespot;
+   nur den Producer anhalten: Repo-Variable `SEA_LAKES=0` oder `SEA_LAKES_WT=0`. **BS-N hat keinen Schalter:** die gefüllte
+   Richtung geht nur mit dem Zurücknehmen der Commits (`b0083b33` Küste, `d930e5a4` Seen) und einem Push wieder weg; bereits
+   geschriebene Dateien behalten ihre Werte bis zum nächsten Lauf.
+4. **Prüfer von Hand, wenn du am Wellenproducer etwas änderst:** `npm run verify:sea-lakes-bytes` (drei volle Wellenläufe,
+   rund 8 min; nicht in der CI) und `npm run verify:sea-derive` (mit der Negativkontrolle der Küsten-Füllung, Block D; nicht
+   in der CI, V-BS-23). In der CI läuft `verify:sea-lakes` (3 s).
+5. **Ablage in `buscosun-archiv`: erledigt, nichts zu tun.** Der erste Archivlauf nach deinem Push (`sea-archiv` Nr. 182,
+   21.11. 18:43 UTC, grün) hat die Seedateien abgelegt: am Tag `2026-11-21` drei `lakes-*.json.gz`, zwei
+   `lakes-wt-*.json.gz` und `lake-obs.json.gz` (41 Stationen), im Index die Schlüssel `lakes`, `lakesWt`, `lakeObsStations`.
+   Davor lag nichts dort, weil der Lauf von 12:42 UTC vor dem Push war (`audit/seewetter-binnenseen.md` §8.5). Die 14 Tage
+   für die Windprüfung an den Seen (E-BS-2) zählen damit ab dem 21.11.
+6. **Mail an die Eawag (Alplakes), an die Kontaktadresse auf alplakes.eawag.ch:** (1) dass buscosun die
+   Modell-Wassertemperatur von 18 Seen einbindet, über einen Producer, höchstens alle 6 Stunden mit 22 Abrufen (ein Becken je
+   Abruf), mit der Namensnennung „Data: Alplakes, Eawag (CC BY 4.0)“ an jedem Wert; (2) ob diese Abruffolge recht ist und
+   welcher Kontakt im User-Agent stehen soll (heute `buscosun-sea (https://buscosun.com; …)` ohne Mailadresse — sag mir die
+   Adresse, dann trage ich sie ein, V-BS-12); (3) ob die Nennung so genügt, wenn der Wert neben einer Messung der WSV steht.
+7. **Bestätigen oder kippen:** E-BS-2 (Profilklassen an Seen aus, bis 14 Tage Archiv geprüft sind — frühestens 05.12.),
+   E-BS-4 (Wellenformel, mittlere Tiefe als eine Tiefe), E-BS-6 (Station ≤ 25 km und ≤ 150 m über/unter dem See), E-BS-7
+   (Böenhinweis ab 25 kn und 34 kn), **E-BS-11 (Windpartikel auf der Seekarte: nicht gebaut, STOPP-Grenze WebGL)**.
+   Neu aus dem Nachzug: **E-BS-12** — Stundenband am Seespot: die drei leeren Wellenzeilen weglassen oder die geschätzte
+   Windwelle als Zeile zeigen (V-BS-19); **E-BS-13** — gefüllte Richtungen an Stunde und Kompass kennzeichnen (heute steht die
+   Füllung nur in der Datei; dafür müsste die Datei die gefüllten Stunden je Spot tragen, V-BS-20); die gesetzten Werte der
+   Füllung: höchstens 90° zwischen den Nachbarschritten, „schwacher Wind“ bis 6 kn.
+8. **Lagen ansehen** (V-BS-6): die 70 Lagen sind aus dem Gedächtnis gesetzt und nur am Umriss und an der Ortskoordinate
    geprüft. Eine falsche Lage: in `scripts/sea/lakes-src.json` korrigieren, `build-lake-spots.mjs --out --geo`,
    `gen-spot-seo.mjs`, Katalog neu einspielen.
-8. **Budget:** der Arbeitsbaum steht bei totalJs 2 094,1 gegen 2 083 (rot, wie vor der Phase durch die anderen Linien);
-   nach dem Commit am sauberen Stand nachmessen und die Notiz in `budget.json` berichtigen (V-BS-9).
+9. **Budget:** totalJs 2 096,0 gegen 2 097 (grün). Die Grenze habe ich für BS-N von Hand von 2 095 auf 2 097 gehoben (+1,9 KB
+   für die See-Etappe und die Sätze der Sicht-Karte, Notiz in `budget.json`). Der Anteil der Phase BS selbst ist weiter
+   nicht getrennt gemessen (V-BS-9).
 
 ## 108. Gletscher: Schneefelder in „Wetter am Gletscher“ (Phase GS, `audit/gletscher-schneefelder.md`), 2026-11-21
 
