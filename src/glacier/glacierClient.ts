@@ -23,6 +23,10 @@ import type { GlacierDemGrid } from './glacierSatContract';
 import { feedProblems, glacierFeedPath, previousWeekKey, type GlacierFeedDoc, type GlacierFeedEvent } from './glacierFeedContract';
 import { elevProblems, glacierElevFile, type GlacierElevDoc } from './glacierElevContract';
 import { hugonnetProblems, glacierHugonnetFile, type GlacierHugonnetDoc } from './glacierHugonnetContract';
+import {
+  GLACIER_STN_HOUR_RE, GLACIER_STN_MAP_RE, glacierStnHourPath, glacierStnMapPath, stnHourProblems, stnMapProblems,
+  type GlacierStnPointer, type StnHourDoc, type StnMapDoc,
+} from './glacierStationContract';
 
 export interface GlacierBases {
   cdn: string; raw: string;
@@ -150,6 +154,8 @@ export interface GlacierIndex {
   weather?: GlacierWeatherPointer;
   /** Feed line (GL-5): pointer to the newest week document. */
   feed?: GlacierFeedPointer;
+  /** Phase GO: pointer to the newest hour of the station measurements and to the mapping glacier → stations. */
+  stations?: GlacierStnPointer;
 }
 export interface GlacierMeltPointer { run: string; runAt: string; engine: { name: string; version: number | null }; cube: Record<string, string | null>; unit: boolean; build: string }
 export interface GlacierFeedPointer { week: string; builtAt: string; n: number; /** Week key of the newest weekly card (`card/<week>.png`), `null` = none yet. */ card?: string | null; /** Weeks that have a feed document, newest first. */ weeks?: string[] }
@@ -361,6 +367,27 @@ export function loadWeather(run: string, catalogIds: ReadonlySet<string> | undef
     try {
       const d = await fetchGlacier(glacierWeatherRunPath(run), 'json', undefined, bases) as GlacierWeatherDoc;
       return weatherProblems(d, catalogIds).length === 0 ? d : null;
+    } catch (e) { if (isAbort(e)) throw e; return null; }
+  });
+}
+/** Phase GO — the mapping glacier → nearest station per quantity (immutable name); unreadable or violating ⇒ `null` (the brief shows nothing). */
+export function loadStationMap(file: string, catalogIds: ReadonlySet<string> | undefined, bases = glacierBasesFrom()): Promise<StnMapDoc | null> {
+  return once(`${bases.cdn}|stnmap|${file}`, async () => {
+    if (!GLACIER_STN_MAP_RE.test(file)) return null;
+    try {
+      const d = await fetchGlacier(glacierStnMapPath(file), 'json', undefined, bases) as StnMapDoc;
+      // ids of an older catalogue are not a violation: the brief only ever looks up the glacier it shows
+      return stnMapProblems(d).length === 0 && d.file === file && (!catalogIds || Object.keys(d.glaciers).some((id) => catalogIds.has(id))) ? d : null;
+    } catch (e) { if (isAbort(e)) throw e; return null; }
+  });
+}
+/** Phase GO — the station values of one hour, through the contract rules; unreadable or violating ⇒ `null` ("Keine Daten", never a number). */
+export function loadStationHour(hour: string, bases = glacierBasesFrom()): Promise<StnHourDoc | null> {
+  return once(`${bases.cdn}|stnh|${hour}`, async () => {
+    if (!GLACIER_STN_HOUR_RE.test(hour)) return null;
+    try {
+      const d = await fetchGlacier(glacierStnHourPath(hour), 'json', undefined, bases) as StnHourDoc;
+      return stnHourProblems(d).length === 0 && d.hour === hour ? d : null;
     } catch (e) { if (isAbort(e)) throw e; return null; }
   });
 }

@@ -1,0 +1,1425 @@
+{
+ "note": "GO fixture: real excerpt — 10 glaciers of the catalogue of build 20261120-1 and the 22 10-min stations of buscosun-data obs/v1 within 12 km of one of them (stations.json built 2026-11-21T07:24:16.981Z, latest.json built 2026-11-21T07:24:16.981Z); entries unchanged",
+ "catalog": {
+  "schema": 1,
+  "kind": "glacier/catalog",
+  "build": "20261120-1",
+  "builtAt": "2026-11-21T06:39:46Z",
+  "glaciers": [
+   {
+    "id": "gl_at_alpeiner-ferner-3055",
+    "name": "Alpeiner Ferner",
+    "country": "AT",
+    "region": "at-stubaier-alpen",
+    "klass": "A",
+    "area": {
+     "km2": 2.418515,
+     "refYear": 2023,
+     "source": "AGI5"
+    },
+    "z": [
+     2701,
+     3065,
+     3286
+    ],
+    "zSource": "DGM Österreich (AGI 5)",
+    "asp": null,
+    "lat": 47.04265,
+    "lon": 11.12713,
+    "inv": {
+     "agi5": 3055,
+     "rgi6": "RGI60-11.00376",
+     "wgms": "497"
+    },
+    "debris": 1,
+    "ser": [
+     "area",
+     "length"
+    ]
+   },
+   {
+    "id": "gl_at_hintereisferner-mit-toteis",
+    "name": "Hintereisferner mit Toteis",
+    "country": "AT",
+    "region": "at-oetztaler-alpen",
+    "klass": "A",
+    "area": {
+     "km2": 5.616476,
+     "refYear": 2023,
+     "source": "AGI5"
+    },
+    "z": [
+     2400,
+     3066,
+     3715
+    ],
+    "zSource": "DGM Österreich (AGI 5)",
+    "asp": null,
+    "lat": 46.79962,
+    "lon": 10.75681,
+    "inv": {
+     "agi5": 2125,
+     "rgi6": "RGI60-11.00897",
+     "wgms": "491"
+    },
+    "debris": 1,
+    "lead": true,
+    "ser": [
+     "area",
+     "length",
+     "mass"
+    ]
+   },
+   {
+    "id": "gl_at_gaissberg-ferner",
+    "name": "Gaissberg Ferner",
+    "country": "AT",
+    "region": "at-oetztaler-alpen",
+    "klass": "B",
+    "area": {
+     "km2": 0.788008,
+     "refYear": 2023,
+     "source": "AGI5"
+    },
+    "z": [
+     2550,
+     3069,
+     3374
+    ],
+    "zSource": "DGM Österreich (AGI 5)",
+    "asp": null,
+    "lat": 46.82565,
+    "lon": 11.07115,
+    "inv": {
+     "agi5": 2060,
+     "rgi6": "RGI60-11.00836",
+     "wgms": "134886"
+    },
+    "debris": 1,
+    "ser": [
+     "area",
+     "length"
+    ]
+   },
+   {
+    "id": "gl_at_hallstaetter-gletscher",
+    "name": "Hallstätter Gletscher",
+    "country": "AT",
+    "region": "at-dachstein",
+    "klass": "A",
+    "area": {
+     "km2": 2.550991,
+     "refYear": 2021,
+     "source": "AGI5"
+    },
+    "z": [
+     2286,
+     2579,
+     2909
+    ],
+    "zSource": "DGM Österreich (AGI 5)",
+    "asp": null,
+    "lat": 47.48167,
+    "lon": 13.61485,
+    "inv": {
+     "agi5": 11002,
+     "rgi6": "RGI60-11.00007",
+     "wgms": "535"
+    },
+    "debris": 0,
+    "lead": true,
+    "ser": [
+     "area",
+     "length",
+     "mass"
+    ]
+   },
+   {
+    "id": "gl_de_noerdlicher-schneeferner",
+    "name": "Nördlicher Schneeferner",
+    "country": "DE",
+    "region": "de",
+    "klass": "C",
+    "area": {
+     "km2": 0.094,
+     "refYear": "2025",
+     "source": "BAdW 2025"
+    },
+    "z": [
+     2492,
+     2583,
+     2835
+    ],
+    "zSource": "RGI 6.2 (2003)",
+    "asp": null,
+    "lat": 47.41676,
+    "lon": 10.98443,
+    "inv": {
+     "rgi6": "RGI60-11.03246",
+     "wgms": "346"
+    },
+    "debris": null,
+    "lead": true,
+    "ser": [
+     "area",
+     "mass"
+    ]
+   },
+   {
+    "id": "gl_ch_breithorngletscher-zermatt",
+    "name": "Breithorngletscher (Zermatt)",
+    "country": "CH",
+    "region": "ch-mitte-west",
+    "klass": "A",
+    "area": {
+     "km2": 1.689852,
+     "refYear": "2023",
+     "source": "SGI2023"
+    },
+    "z": [
+     2499,
+     3246,
+     4087
+    ],
+    "zSource": "swissALTI3D, Release 2025 (SGI2023)",
+    "asp": 1,
+    "lat": 45.9483,
+    "lon": 7.76187,
+    "inv": {
+     "sgi": "B56-26",
+     "glims": "G007800E45964N",
+     "rgi6": "RGI60-11.02822"
+    },
+    "debris": 0
+   },
+   {
+    "id": "gl_at_goldbergkees-untere-teile",
+    "name": "Goldbergkees untere Teile",
+    "country": "AT",
+    "region": "at-goldberggruppe",
+    "klass": "B",
+    "area": {
+     "km2": 0.591353,
+     "refYear": 2023,
+     "source": "AGI5"
+    },
+    "z": [
+     2394,
+     2659,
+     2755
+    ],
+    "zSource": "DGM Österreich (AGI 5)",
+    "asp": null,
+    "lat": 47.04209,
+    "lon": 12.96831,
+    "inv": {
+     "agi5": 5030,
+     "rgi6": "RGI60-11.00289",
+     "wgms": "1305"
+    },
+    "debris": 1,
+    "lead": true,
+    "ser": [
+     "area",
+     "length",
+     "mass"
+    ]
+   },
+   {
+    "id": "gl_ch_grosser-aletschgletscher",
+    "name": "Grosser Aletschgletscher",
+    "country": "CH",
+    "region": "ch-mitte-west",
+    "klass": "A",
+    "area": {
+     "km2": 75.789474,
+     "refYear": "2023",
+     "source": "SGI2023"
+    },
+    "z": [
+     1639,
+     3147,
+     4119
+    ],
+    "zSource": "swissALTI3D, Release 2025 (SGI2023)",
+    "asp": 141,
+    "lat": 46.50407,
+    "lon": 8.01919,
+    "inv": {
+     "sgi": "B36-26",
+     "glims": "G008032E46504N",
+     "rgi6": "RGI60-11.01450",
+     "wgms": "360"
+    },
+    "debris": 1,
+    "lead": true,
+    "ser": [
+     "area",
+     "length",
+     "mass"
+    ]
+   },
+   {
+    "id": "gl_at_grosselend-kees",
+    "name": "Grosselend Kees",
+    "country": "AT",
+    "region": "at-ankogel-hochalmspitzgruppe",
+    "klass": "A",
+    "area": {
+     "km2": 1.169035,
+     "refYear": 2023,
+     "source": "AGI5"
+    },
+    "z": [
+     2594,
+     2861,
+     3130
+    ],
+    "zSource": "DGM Österreich (AGI 5)",
+    "asp": null,
+    "lat": 47.02501,
+    "lon": 13.31513,
+    "inv": {
+     "agi5": 21014,
+     "rgi6": "RGI60-11.00291",
+     "wgms": "542"
+    },
+    "debris": 1,
+    "ser": [
+     "area",
+     "length"
+    ]
+   },
+   {
+    "id": "gl_de_blaueis",
+    "name": "Blaueis",
+    "country": "DE",
+    "region": "de",
+    "klass": "C",
+    "area": {
+     "km2": 0.015,
+     "refYear": "2025",
+     "source": "BAdW 2025"
+    },
+    "z": [
+     1974,
+     2256,
+     2446
+    ],
+    "zSource": "RGI 6.2 (2003)",
+    "asp": null,
+    "lat": 47.57299,
+    "lon": 12.86629,
+    "inv": {
+     "rgi6": "RGI60-11.03250",
+     "wgms": "349"
+    },
+    "debris": null,
+    "lead": true,
+    "ser": [
+     "area"
+    ]
+   }
+  ]
+ },
+ "obs": {
+  "catalog": {
+   "schema": 1,
+   "kind": "obs/stations",
+   "builtAt": "2026-11-21T07:24:16.981Z",
+   "count": 22,
+   "idRule": "de:<DWD-Stationskennung> · at:<TAWES-Kennung> · ch:<MeteoSchweiz-Kürzel>",
+   "stations": [
+    {
+     "id": "at:11118",
+     "name": "EHRWALD",
+     "lat": 47.40417,
+     "lon": 10.92,
+     "elev": 982,
+     "country": "AT",
+     "region": "Tirol",
+     "networks": [
+      "tawes"
+     ],
+     "vars": [
+      "dd",
+      "ff",
+      "fx",
+      "gr",
+      "p",
+      "ps",
+      "rh",
+      "rr",
+      "sd",
+      "snow",
+      "t",
+      "td"
+     ],
+     "seen": "2026-11-21"
+    },
+    {
+     "id": "at:11127",
+     "name": "OBERGURGL",
+     "lat": 46.86694,
+     "lon": 11.02444,
+     "elev": 1941,
+     "country": "AT",
+     "region": "Tirol",
+     "networks": [
+      "tawes"
+     ],
+     "vars": [
+      "dd",
+      "ff",
+      "fx",
+      "gr",
+      "p",
+      "ps",
+      "rh",
+      "rr",
+      "sd",
+      "snow",
+      "t",
+      "td"
+     ],
+     "seen": "2026-11-21"
+    },
+    {
+     "id": "at:11206",
+     "name": "DOELLACH",
+     "lat": 46.95806,
+     "lon": 12.9025,
+     "elev": 1071,
+     "country": "AT",
+     "region": "Kärnten",
+     "networks": [
+      "tawes"
+     ],
+     "vars": [
+      "dd",
+      "ff",
+      "fx",
+      "gr",
+      "p",
+      "ps",
+      "rh",
+      "rr",
+      "sd",
+      "snow",
+      "t",
+      "td"
+     ],
+     "seen": "2026-11-21"
+    },
+    {
+     "id": "at:11260",
+     "name": "MALLNITZ-BAD",
+     "lat": 46.99194,
+     "lon": 13.16667,
+     "elev": 1197,
+     "country": "AT",
+     "region": "Kärnten",
+     "networks": [
+      "tawes"
+     ],
+     "vars": [
+      "dd",
+      "ff",
+      "fx",
+      "gr",
+      "p",
+      "ps",
+      "rh",
+      "rr",
+      "sd",
+      "snow",
+      "t",
+      "td"
+     ],
+     "seen": "2026-11-21"
+    },
+    {
+     "id": "at:11267",
+     "name": "DACHSTEIN-HUNERKOGEL",
+     "lat": 47.46778,
+     "lon": 13.62639,
+     "elev": 2700,
+     "country": "AT",
+     "region": "Oberösterreich",
+     "networks": [
+      "tawes"
+     ],
+     "vars": [
+      "dd",
+      "ff",
+      "fx",
+      "gr",
+      "p",
+      "ps",
+      "rh",
+      "rr",
+      "sd",
+      "snow",
+      "t",
+      "td"
+     ],
+     "seen": "2026-11-21"
+    },
+    {
+     "id": "at:11268",
+     "name": "DACHSTEIN-SCHLADMINGER GLETSCHER",
+     "lat": 47.47444,
+     "lon": 13.6325,
+     "elev": 2520,
+     "country": "AT",
+     "region": "Oberösterreich",
+     "networks": [
+      "tawes"
+     ],
+     "vars": [
+      "dd",
+      "ff",
+      "fx",
+      "gr",
+      "p",
+      "ps",
+      "rh",
+      "rr",
+      "sd",
+      "snow",
+      "t",
+      "td"
+     ],
+     "seen": "2026-11-21"
+    },
+    {
+     "id": "at:11343",
+     "name": "SONNBLICK - AUTOM.",
+     "lat": 47.05417,
+     "lon": 12.9575,
+     "elev": 3109,
+     "country": "AT",
+     "region": "Salzburg",
+     "networks": [
+      "tawes"
+     ],
+     "vars": [
+      "dd",
+      "ff",
+      "fx",
+      "gr",
+      "p",
+      "ps",
+      "rh",
+      "rr",
+      "sd",
+      "snow",
+      "t",
+      "td"
+     ],
+     "seen": "2026-11-21"
+    },
+    {
+     "id": "at:11344",
+     "name": "KOLM-SAIGURN",
+     "lat": 47.06944,
+     "lon": 12.98472,
+     "elev": 1626,
+     "country": "AT",
+     "region": "Salzburg",
+     "networks": [
+      "tawes"
+     ],
+     "vars": [
+      "dd",
+      "ff",
+      "fx",
+      "gr",
+      "p",
+      "ps",
+      "rh",
+      "rr",
+      "sd",
+      "snow",
+      "t",
+      "td"
+     ],
+     "seen": "2026-11-21"
+    },
+    {
+     "id": "at:11351",
+     "name": "RAMSAU/DACHSTEIN",
+     "lat": 47.42528,
+     "lon": 13.63417,
+     "elev": 1207,
+     "country": "AT",
+     "region": "Steiermark",
+     "networks": [
+      "tawes"
+     ],
+     "vars": [
+      "dd",
+      "ff",
+      "fx",
+      "gr",
+      "p",
+      "ps",
+      "rh",
+      "rr",
+      "sd",
+      "snow",
+      "t",
+      "td"
+     ],
+     "seen": "2026-11-21"
+    },
+    {
+     "id": "at:8989078",
+     "name": "KOELNBREINSPERRE",
+     "lat": 47.08306,
+     "lon": 13.34611,
+     "elev": 1916,
+     "country": "AT",
+     "region": "Kärnten",
+     "networks": [
+      "tawes"
+     ],
+     "vars": [
+      "dd",
+      "ff",
+      "fx",
+      "gr",
+      "p",
+      "ps",
+      "rh",
+      "rr",
+      "sd",
+      "snow",
+      "t",
+      "td"
+     ],
+     "seen": "2026-11-21"
+    },
+    {
+     "id": "ch:EGH",
+     "name": "Eggishorn",
+     "lat": 46.426528,
+     "lon": 8.092728,
+     "elev": 2892,
+     "country": "CH",
+     "region": "VS",
+     "networks": [
+      "smn"
+     ],
+     "vars": [
+      "dd",
+      "ff",
+      "fx",
+      "gr",
+      "p",
+      "ps",
+      "rh",
+      "rr",
+      "sd",
+      "snow",
+      "t",
+      "td"
+     ],
+     "seen": "2026-11-20"
+    },
+    {
+     "id": "ch:GOR",
+     "name": "Gornergrat",
+     "lat": 45.983644,
+     "lon": 7.785944,
+     "elev": 3129,
+     "country": "CH",
+     "region": "VS",
+     "networks": [
+      "smn"
+     ],
+     "vars": [
+      "dd",
+      "ff",
+      "fx",
+      "gr",
+      "p",
+      "ps",
+      "rh",
+      "rr",
+      "sd",
+      "snow",
+      "t",
+      "td"
+     ],
+     "seen": "2026-11-20"
+    },
+    {
+     "id": "ch:JUN",
+     "name": "Jungfraujoch",
+     "lat": 46.547556,
+     "lon": 7.985444,
+     "elev": 3571,
+     "country": "CH",
+     "region": "VS",
+     "networks": [
+      "nime",
+      "smn"
+     ],
+     "vars": [
+      "dd",
+      "ff",
+      "fx",
+      "gr",
+      "nsnow",
+      "p",
+      "ps",
+      "rh",
+      "rr",
+      "sd",
+      "snow",
+      "t",
+      "td"
+     ],
+     "seen": "2026-11-20"
+    },
+    {
+     "id": "ch:VSFIN",
+     "name": "Findelen",
+     "lat": 46.010958,
+     "lon": 7.778389,
+     "elev": 2170,
+     "country": "CH",
+     "region": "VS",
+     "networks": [
+      "smnp"
+     ],
+     "vars": [
+      "rr"
+     ],
+     "seen": "2026-11-20"
+    },
+    {
+     "id": "ch:VSSTA",
+     "name": "Stafel",
+     "lat": 46.004569,
+     "lon": 7.678739,
+     "elev": 2183,
+     "country": "CH",
+     "region": "VS",
+     "networks": [
+      "smnp"
+     ],
+     "vars": [
+      "rr"
+     ],
+     "seen": "2026-11-20"
+    },
+    {
+     "id": "ch:ZER",
+     "name": "Zermatt",
+     "lat": 46.029272,
+     "lon": 7.752433,
+     "elev": 1638,
+     "country": "CH",
+     "region": "VS",
+     "networks": [
+      "nime",
+      "smn"
+     ],
+     "vars": [
+      "dd",
+      "ff",
+      "fx",
+      "gr",
+      "nsnow",
+      "p",
+      "ps",
+      "rh",
+      "rr",
+      "sd",
+      "snow",
+      "t",
+      "td"
+     ],
+     "seen": "2026-11-20"
+    },
+    {
+     "id": "de:01550",
+     "name": "Garmisch-Partenkirchen",
+     "lat": 47.483,
+     "lon": 11.0621,
+     "elev": 719,
+     "country": "DE",
+     "region": "Bayern",
+     "networks": [
+      "dwd10",
+      "dwdDay"
+     ],
+     "vars": [
+      "dd",
+      "ff",
+      "fx",
+      "nsnow",
+      "ps",
+      "rh",
+      "rr",
+      "snow",
+      "t",
+      "td"
+     ],
+     "seen": "2026-11-21"
+    },
+    {
+     "id": "de:05792",
+     "name": "Zugspitze",
+     "lat": 47.421,
+     "lon": 10.9848,
+     "elev": 2956,
+     "country": "DE",
+     "region": "Bayern",
+     "networks": [
+      "dwd10",
+      "dwdDay"
+     ],
+     "vars": [
+      "dd",
+      "ff",
+      "fx",
+      "gr",
+      "nsnow",
+      "ps",
+      "rh",
+      "rr",
+      "sd",
+      "snow",
+      "t",
+      "td"
+     ],
+     "seen": "2026-11-21"
+    },
+    {
+     "id": "de:06203",
+     "name": "Ramsau-Schwarzeck/Schmuck",
+     "lat": 47.6279,
+     "lon": 12.9015,
+     "elev": 1088,
+     "country": "DE",
+     "region": "Bayern",
+     "networks": [
+      "dwd10",
+      "dwdDay"
+     ],
+     "vars": [
+      "nsnow",
+      "rr",
+      "snow"
+     ],
+     "seen": "2026-11-21"
+    },
+    {
+     "id": "de:06307",
+     "name": "Garmisch-Partenkirchen-Griesen",
+     "lat": 47.4772,
+     "lon": 10.9403,
+     "elev": 825,
+     "country": "DE",
+     "region": "Bayern",
+     "networks": [
+      "dwd10",
+      "dwdDay"
+     ],
+     "vars": [
+      "nsnow",
+      "rr",
+      "snow"
+     ],
+     "seen": "2026-11-21"
+    },
+    {
+     "id": "de:07287",
+     "name": "Berchtesgaden/Jenner",
+     "lat": 47.605,
+     "lon": 13.0153,
+     "elev": 980,
+     "country": "DE",
+     "region": "Bayern",
+     "networks": [
+      "dwd10",
+      "dwdDay"
+     ],
+     "vars": [
+      "nsnow",
+      "rr",
+      "snow"
+     ],
+     "seen": "2026-11-21"
+    },
+    {
+     "id": "de:19856",
+     "name": "Schönau am Königssee",
+     "lat": 47.6134,
+     "lon": 12.9819,
+     "elev": 625,
+     "country": "DE",
+     "region": "Bayern",
+     "networks": [
+      "dwd10",
+      "dwdDay"
+     ],
+     "vars": [
+      "dd",
+      "ff",
+      "fx",
+      "nsnow",
+      "ps",
+      "rh",
+      "rr",
+      "snow",
+      "t",
+      "td"
+     ],
+     "seen": "2026-11-21"
+    }
+   ]
+  },
+  "latest": {
+   "schema": 1,
+   "kind": "obs/latest",
+   "builtAt": "2026-11-21T07:24:16.981Z",
+   "count": 22,
+   "stations": {
+    "at:11118": {
+     "t": "2026-11-21T07:20:00.000Z",
+     "src": "tawes",
+     "v": {
+      "t": 2.8,
+      "td": 1.6,
+      "rh": 92,
+      "ps": 904.6,
+      "p": 848.1,
+      "ff": 0.4,
+      "dd": 291,
+      "fx": 1.2,
+      "rr": 0,
+      "sd": 0,
+      "gr": 15
+     },
+     "rr1h": {
+      "mm": 0.3,
+      "n": 6,
+      "of": 6,
+      "complete": true
+     },
+     "rr24h": {
+      "mm": 4,
+      "n": 144,
+      "of": 144,
+      "complete": true
+     }
+    },
+    "at:11127": {
+     "t": "2026-11-21T07:20:00.000Z",
+     "src": "tawes",
+     "v": {
+      "t": -1.9,
+      "td": -3.7,
+      "rh": 88,
+      "ps": 802.3,
+      "p": 847.7,
+      "ff": 0.8,
+      "dd": 195,
+      "fx": 1.9,
+      "rr": 0,
+      "sd": 0,
+      "gr": 32,
+      "snow": 12
+     },
+     "rr1h": {
+      "mm": 0.1,
+      "n": 6,
+      "of": 6,
+      "complete": true
+     },
+     "rr24h": {
+      "mm": 2.4,
+      "n": 144,
+      "of": 144,
+      "complete": true
+     }
+    },
+    "at:11206": {
+     "t": "2026-11-21T07:20:00.000Z",
+     "src": "tawes",
+     "v": {
+      "t": 3.8,
+      "td": -2.2,
+      "rh": 65,
+      "ps": 892.1,
+      "p": 846.5,
+      "ff": 1.4,
+      "dd": 7,
+      "fx": 2.7,
+      "rr": 0,
+      "sd": 0,
+      "gr": 74,
+      "snow": 0
+     },
+     "rr1h": {
+      "mm": 0,
+      "n": 6,
+      "of": 6,
+      "complete": true
+     },
+     "rr24h": {
+      "mm": 0,
+      "n": 144,
+      "of": 144,
+      "complete": true
+     }
+    },
+    "at:11260": {
+     "t": "2026-11-21T07:20:00.000Z",
+     "src": "tawes",
+     "v": {
+      "t": 5.4,
+      "td": -3.9,
+      "rh": 52,
+      "ps": 877.7,
+      "p": 846.2,
+      "ff": 2.3,
+      "dd": 297,
+      "fx": 7.9,
+      "rr": 0,
+      "sd": 0,
+      "gr": 35,
+      "snow": 0
+     },
+     "rr1h": {
+      "mm": 0,
+      "n": 6,
+      "of": 6,
+      "complete": true
+     },
+     "rr24h": {
+      "mm": 0,
+      "n": 144,
+      "of": 144,
+      "complete": true
+     }
+    },
+    "at:11267": {
+     "t": "2026-11-21T07:20:00.000Z",
+     "src": "tawes",
+     "v": {
+      "ff": 4,
+      "dd": 27,
+      "fx": 15.3,
+      "sd": 0,
+      "gr": 43
+     }
+    },
+    "at:11268": {
+     "t": "2026-11-21T07:20:00.000Z",
+     "src": "tawes",
+     "v": {
+      "t": -6.8,
+      "td": -9.2,
+      "rh": 84,
+      "rr": 0.3,
+      "snow": 26
+     },
+     "rr1h": {
+      "mm": 2.8,
+      "n": 6,
+      "of": 6,
+      "complete": true
+     },
+     "rr24h": {
+      "mm": 12.4,
+      "n": 144,
+      "of": 144,
+      "complete": true
+     }
+    },
+    "at:11343": {
+     "t": "2026-11-21T07:20:00.000Z",
+     "src": "tawes",
+     "v": {
+      "t": -10.2,
+      "td": -11.3,
+      "rh": 92,
+      "ps": 689.5,
+      "p": 799.8,
+      "ff": 4.6,
+      "dd": 17,
+      "fx": 10.2,
+      "sd": 0,
+      "gr": 50,
+      "snow": 42
+     }
+    },
+    "at:11344": {
+     "t": "2026-11-21T07:20:00.000Z",
+     "src": "tawes",
+     "v": {
+      "t": -0.5,
+      "td": -2.6,
+      "rh": 85,
+      "ps": 834.4,
+      "p": 847.4,
+      "ff": 0.5,
+      "dd": 211,
+      "fx": 1.9,
+      "rr": 0.1,
+      "sd": 0,
+      "gr": 24
+     },
+     "rr1h": {
+      "mm": 0.1,
+      "n": 6,
+      "of": 6,
+      "complete": true
+     },
+     "rr24h": {
+      "mm": 0.1,
+      "n": 144,
+      "of": 144,
+      "complete": true
+     }
+    },
+    "at:11351": {
+     "t": "2026-11-21T07:20:00.000Z",
+     "src": "tawes",
+     "v": {
+      "t": 1.4,
+      "td": -0.2,
+      "rh": 90,
+      "ps": 877.5,
+      "p": 846.6,
+      "ff": 1.5,
+      "dd": 264,
+      "fx": 5.4,
+      "rr": 0,
+      "sd": 0,
+      "gr": 25,
+      "snow": 0
+     },
+     "rr1h": {
+      "mm": 0,
+      "n": 6,
+      "of": 6,
+      "complete": true
+     },
+     "rr24h": {
+      "mm": 1.7,
+      "n": 144,
+      "of": 144,
+      "complete": true
+     }
+    },
+    "at:8989078": {
+     "t": "2026-11-21T07:20:00.000Z",
+     "src": "tawes",
+     "v": {
+      "t": -2,
+      "td": -4.5,
+      "rh": 83,
+      "ff": 6.7,
+      "dd": 223,
+      "fx": 15.8,
+      "rr": 0,
+      "sd": 0,
+      "gr": 39,
+      "snow": 7
+     },
+     "rr1h": {
+      "mm": 0.1,
+      "n": 6,
+      "of": 6,
+      "complete": true
+     },
+     "rr24h": {
+      "mm": 0.2,
+      "n": 144,
+      "of": 144,
+      "complete": true
+     }
+    },
+    "ch:EGH": {
+     "t": "2026-11-21T07:10:00.000Z",
+     "src": "smn",
+     "v": {
+      "t": -8,
+      "td": -9.7,
+      "rh": 87.7,
+      "ps": 712,
+      "ff": 6.9,
+      "dd": 323,
+      "fx": 12.5,
+      "sd": 0,
+      "gr": 17
+     }
+    },
+    "ch:GOR": {
+     "t": "2026-11-21T07:10:00.000Z",
+     "src": "smn",
+     "v": {
+      "t": -9.7,
+      "td": -10.2,
+      "rh": 96.5,
+      "ps": 691.3,
+      "ff": 3.7,
+      "dd": 345,
+      "fx": 6.6,
+      "sd": 0,
+      "gr": 28
+     }
+    },
+    "ch:JUN": {
+     "t": "2026-11-21T07:10:00.000Z",
+     "src": "smn",
+     "v": {
+      "t": -12.8,
+      "td": -12.8,
+      "rh": 100,
+      "ps": 651.8,
+      "ff": 7.9,
+      "dd": 311,
+      "fx": 11.4,
+      "sd": 0,
+      "gr": 1
+     }
+    },
+    "ch:VSFIN": {
+     "t": "2026-11-21T07:10:00.000Z",
+     "src": "smnp",
+     "v": {
+      "rr": 0
+     },
+     "rr1h": {
+      "mm": 0.3,
+      "n": 6,
+      "of": 6,
+      "complete": true
+     },
+     "rr24h": {
+      "mm": 3.3,
+      "n": 144,
+      "of": 144,
+      "complete": true
+     }
+    },
+    "ch:VSSTA": {
+     "t": "2026-11-21T07:10:00.000Z",
+     "src": "smnp",
+     "v": {
+      "rr": 0.1
+     },
+     "rr1h": {
+      "mm": 0.7,
+      "n": 6,
+      "of": 6,
+      "complete": true
+     },
+     "rr24h": {
+      "mm": 8.9,
+      "n": 143,
+      "of": 144,
+      "complete": false
+     }
+    },
+    "ch:ZER": {
+     "t": "2026-11-21T07:10:00.000Z",
+     "src": "smn",
+     "v": {
+      "t": 0.5,
+      "td": -0.7,
+      "rh": 91.9,
+      "ps": 835,
+      "ff": 0.5,
+      "dd": 214,
+      "fx": 1.2,
+      "rr": 0.1,
+      "sd": 0,
+      "gr": 21,
+      "snow": 15
+     },
+     "rr1h": {
+      "mm": 0.5,
+      "n": 6,
+      "of": 6,
+      "complete": true
+     },
+     "rr24h": {
+      "mm": 4.3,
+      "n": 144,
+      "of": 144,
+      "complete": true
+     },
+     "day": {
+      "date": "2026-11-19",
+      "src": "nime",
+      "rr": 5.2,
+      "snow": 2,
+      "nsnow": 10
+     }
+    },
+    "de:01550": {
+     "t": "2026-11-21T06:50:00.000Z",
+     "src": "dwd10",
+     "v": {
+      "rr": 0,
+      "ff": 1.1,
+      "dd": 80,
+      "fx": 1.7,
+      "t": 3.9,
+      "rh": 92.2,
+      "td": 2.8,
+      "ps": 933.5
+     },
+     "rr1h": {
+      "mm": 0.02,
+      "n": 6,
+      "of": 6,
+      "complete": true
+     },
+     "rr24h": {
+      "mm": 2.13,
+      "n": 144,
+      "of": 144,
+      "complete": true
+     },
+     "day": {
+      "date": "2026-11-19",
+      "src": "dwdDay",
+      "rr": 7.1,
+      "snow": 0
+     }
+    },
+    "de:05792": {
+     "t": "2026-11-21T06:50:00.000Z",
+     "src": "dwd10",
+     "v": {
+      "ff": 7.8,
+      "dd": 340,
+      "fx": 15,
+      "sd": 0,
+      "gr": 6.7,
+      "t": -9.2,
+      "rh": 91.4,
+      "td": -10.3,
+      "ps": 703.1
+     }
+    },
+    "de:06203": {
+     "t": "2026-11-21T06:50:00.000Z",
+     "src": "dwd10",
+     "v": {
+      "rr": 0.02
+     },
+     "rr1h": {
+      "mm": 0.02,
+      "n": 6,
+      "of": 6,
+      "complete": true
+     },
+     "rr24h": {
+      "mm": 4.59,
+      "n": 144,
+      "of": 144,
+      "complete": true
+     },
+     "day": {
+      "date": "2026-11-19",
+      "src": "dwdDay",
+      "rr": 5.5,
+      "snow": 0,
+      "nsnow": 0
+     }
+    },
+    "de:06307": {
+     "t": "2026-11-21T06:50:00.000Z",
+     "src": "dwd10",
+     "v": {
+      "rr": 0.05
+     },
+     "rr1h": {
+      "mm": 0.1,
+      "n": 6,
+      "of": 6,
+      "complete": true
+     },
+     "rr24h": {
+      "mm": 4.6,
+      "n": 144,
+      "of": 144,
+      "complete": true
+     },
+     "day": {
+      "date": "2026-11-19",
+      "src": "dwdDay",
+      "rr": 11
+     }
+    },
+    "de:07287": {
+     "t": "2026-11-21T06:50:00.000Z",
+     "src": "dwd10",
+     "v": {
+      "rr": 0.12
+     },
+     "rr1h": {
+      "mm": 0.16,
+      "n": 6,
+      "of": 6,
+      "complete": true
+     },
+     "rr24h": {
+      "mm": 3.78,
+      "n": 144,
+      "of": 144,
+      "complete": true
+     },
+     "day": {
+      "date": "2026-11-19",
+      "src": "dwdDay",
+      "rr": 6.1,
+      "snow": 0
+     }
+    },
+    "de:19856": {
+     "t": "2026-11-21T06:50:00.000Z",
+     "src": "dwd10",
+     "v": {
+      "rr": 0.03,
+      "ff": 1.5,
+      "dd": 120,
+      "fx": 2.5,
+      "t": 5.2,
+      "rh": 86.7,
+      "td": 3.2
+     },
+     "rr1h": {
+      "mm": 0.05,
+      "n": 6,
+      "of": 6,
+      "complete": true
+     },
+     "rr24h": {
+      "mm": 4.26,
+      "n": 144,
+      "of": 144,
+      "complete": true
+     },
+     "day": {
+      "date": "2026-11-19",
+      "src": "dwdDay",
+      "rr": 5.9,
+      "snow": 0,
+      "nsnow": 0
+     }
+    }
+   }
+  }
+ }
+}

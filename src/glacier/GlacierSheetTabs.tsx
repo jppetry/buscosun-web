@@ -383,7 +383,8 @@ export function TabTour({ g, melt, season, nowMs, bandZ }: { g: GlacierCatalogEn
 }
 
 // --- Quellen ------------------------------------------------------------------------------------------------------------------------------
-export function TabQuellen({ rows, sources, elev = false }: { rows: readonly SourceRow[]; sources: readonly GlacierSourceRow[] | null; /** Phase GH: the sheet shows the elevation change of Hugonnet et al. 2021. */ elev?: boolean }) {
+export function TabQuellen({ rows, sources: listed, elev = false, more }: { rows: readonly SourceRow[]; sources: readonly GlacierSourceRow[] | null; /** Phase GH: the sheet shows the elevation change of Hugonnet et al. 2021. */ elev?: boolean; /** Phase GO: the station networks of "Gemessen in der Nähe" (shown when the store names station measurements). */ more?: readonly GlacierSourceRow[] }) {
+  const sources = listed && more ? [...listed, ...more] : listed;
   return (
     <>
       <h3 className="gl-h3">Jede Zahl in diesem Steckbrief, mit Herkunft und Stand</h3>

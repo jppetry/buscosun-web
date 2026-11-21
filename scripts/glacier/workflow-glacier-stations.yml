@@ -1,0 +1,112 @@
+# ============================================================================
+# glacier-stations.yml — Gletscher-Monitor DACH, Stationsmessungen (Phase GO, buscosun-web/audit/gletscher-stationen.md)
+#
+# VORLAGE. Diese Datei gehört nach `.github/workflows/glacier-stations.yml` im Daten-Repo `jppetry/buscosun-data` (Jans Vollmacht im Auftrag
+# der Phase GO, 21.11.2026). Der Code lebt in `buscosun-web` (`scripts/glacier/stations.mjs`, Vertrag `src/glacier/glacierStationContract.ts`)
+# und wird bei jedem Lauf frisch von `GLACIER_PRODUCER_REF` geklont (fällt auf `main` zurück, wenn der Zweig weg ist).
+#
+# ── Ablauf ────────────────────────────────────────────────────────────────
+# Stündlich: die OGD-Datei des Landes Tirol (CC BY 4.0; Rückfall: der Euregio-Feed, gefiltert auf `HD Tirol` und `LWD Tirol…`), der Wetterdienst
+# der Provinz Bozen (CC0) und — nur für die Stationen, die die Zuordnung nennt — `obs/v1/latest.json` (gelesen, nie geschrieben).
+# Veröffentlicht wird unter `glacier/v1/stn/` (Stundendatei, Katalog, Zuordnung) und der Zeiger `index.stations`.
+# buscosun Fusion liest `obs/v1/`, nicht `glacier/v1/stn/` — dieser Workflow schreibt NICHTS nach `obs/v1/`.
+# Die Stundendateien bleiben 72 h; `glacier-stations-archiv.yml` im Archiv-Repo legt sie dauerhaft ab.
+#
+# Eigene Concurrency-Gruppe: in der Gruppe `glacier-publish` würde ein wartender Stundenlauf von einem später wartenden Lauf der
+# anderen Linien verdrängt (GitHub hält je Gruppe nur EINEN wartenden Lauf). Der Publisher verträgt den parallelen Push (jeder Versuch
+# vom aktuellen origin/main, nur die eigenen Pfade, Zeiger frisch gelesen, nie --force).
+#
+# Leerlauf: fehlt der Producer auf dem Zweig oder die Linie auf `main`, endet der Job grün mit dem Grund.
+# ============================================================================
+
+name: glacier-stations
+
+on:
+  schedule:
+    - cron: '27 * * * *'   # stündlich :27 — abseits von glacier-melt (:20), glacier-sat (:48), obs-watchdog und den Punkt-Läufen
+  workflow_dispatch: {}
+
+concurrency:
+  group: glacier-stations
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  stations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GLACIER_PRODUCER_REF: ${{ vars.GLACIER_PRODUCER_REF || 'main' }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Checkout producer (buscosun-web, GLACIER_PRODUCER_REF)
+        id: app
+        run: |
+          REF="${GLACIER_PRODUCER_REF:-main}"
+          if ! git ls-remote --exit-code --heads https://github.com/jppetry/buscosun-web.git "$REF" >/dev/null 2>&1; then
+            if [ "$REF" != "main" ] && git ls-remote --exit-code --heads https://github.com/jppetry/buscosun-web.git main >/dev/null 2>&1; then
+              echo "Zweig $REF ist weg (gemergt?) — der Producer kommt von main."; REF=main
+            else
+              echo "producer not on $REF yet (Zweig fehlt in buscosun-web) — Ende ohne Fehler."
+              echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          fi
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout --branch "$REF" https://github.com/jppetry/buscosun-web.git app
+          cd app
+          git sparse-checkout set --no-cone scripts src package.json
+          git checkout --quiet
+          for f in scripts/glacier/stations.mjs scripts/glacier/glacier-publish.mjs src/glacier/glacierStationContract.ts; do
+            if [ ! -f "$f" ]; then
+              echo "producer not on $REF yet ($f fehlt) — Ende ohne Fehler."
+              echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          done
+          grep -q "stations: \['stn'\]" scripts/glacier/glacier-publish.mjs || { echo "publisher on $REF kennt die Linie stations noch nicht — Ende ohne Fehler."; echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0; }
+          echo "ready=1" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout data (buscosun-data main, glacier/ sparse)
+        if: steps.app.outputs.ready == '1'
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: data
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: glacier
+          sparse-checkout-cone-mode: true
+
+      - name: Kill switch
+        id: kill
+        if: steps.app.outputs.ready == '1'
+        run: |
+          test -f data/glacier/v1/index.json || { echo "glacier/v1/index.json fehlt auf main — die Linie ist noch nicht eingespielt, Ende ohne Fehler."; echo "go=0" >> "$GITHUB_OUTPUT"; exit 0; }
+          if [ -f data/glacier/v1/status.json ] && node -e "process.exit(JSON.parse(require('fs').readFileSync('data/glacier/v1/status.json','utf8')).killed===true?0:1)"; then
+            echo "Kill-Schalter AN — kein Stationslauf."; echo "go=0" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=1" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Station run (Tirol, Südtirol, mapped obs/v1 stations)
+        id: run
+        if: steps.app.outputs.ready == '1' && steps.kill.outputs.go == '1'
+        run: |
+          set -o pipefail   # a crash of the producer must turn the job red, not be hidden by `tee`
+          cd app
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/stations.mjs --store=../data/glacier/v1 --out=../out --patch=../patch | tee ../stations.log
+          echo "wrote=$(test -d ../out && find ../out -type f | wc -l)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish (glacier/v1/stn, index, status — never --force)
+        if: steps.run.outputs.wrote != '' && steps.run.outputs.wrote != '0'
+        run: |
+          cd data
+          git config user.name  'buscosun-glacier[bot]'
+          git config user.email 'glacier@users.noreply.github.com'
+          cd ..
+          node app/scripts/glacier/glacier-publish.mjs --repo=data --line=stations --src=out \
+            --index-patch=patch/index-patch.json --status-patch=patch/status-patch.json \
+            --message="glacier(stations): $(date -u +%Y-%m-%dT%H:%MZ)"

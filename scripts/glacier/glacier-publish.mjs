@@ -3,12 +3,12 @@
  * GL-1 — publisher of the glacier data line into `buscosun-data` (plan §6 "Veröffentlichung"; layout since Jan 11.10.2026:
  * everything below `glacier/v1/`, the refreshed lines on `main`, the heavy static builds on the orphan branch `glacier`):
  *
- *   node scripts/glacier/glacier-publish.mjs --repo=<clone of buscosun-data> --line=static|sat|melt|feed --src=<tree> \
+ *   node scripts/glacier/glacier-publish.mjs --repo=<clone of buscosun-data> --line=static|sat|melt|feed|stations --src=<tree> \
  *        [--index-patch=<json>] [--status-patch=<json>] --message="glacier: …"
  *   node scripts/glacier/glacier-publish.mjs --archive --repo=<clone of buscosun-archiv> --src=<dir of day files> --day=YYYY-MM-DD --message="…"
  *
  * Rules (each one is tested in verify:glacier-publish):
- *  - four workflows (static, sat, melt, feed) share one repo path and one concurrency group; every attempt starts from the CURRENT
+ *  - five workflows (static, sat, melt, feed, stations) share one repo path and one concurrency group; every attempt starts from the CURRENT
  *    `origin/<branch>` (fetch, `checkout -B`, no rebase), replaces ONLY the sub-paths of its own line and re-reads, patches and
  *    rewrites `glacier/v1/index.json` / `status.json` — so a parallel push of another line is never lost;
  *  - the line `static` writes its build to the branch `glacier` (created as an orphan on the first push) FIRST and patches the pointer on `main`
@@ -36,6 +36,8 @@ export const GLACIER_LINES = Object.freeze({
   sat: ['obs', 'season'],
   melt: ['melt'],
   feed: ['feed', 'card'],
+  // Phase GO: station measurements next to the glaciers (`scripts/glacier/stations.mjs`) - hour files, catalogue, mapping
+  stations: ['stn'],
 });
 
 /** RFC 7396 merge patch: objects merge, `null` deletes, anything else replaces. */
@@ -92,6 +94,11 @@ export function pruneList(listDir, policies, nowMs) {
 export const GLACIER_POLICIES = Object.freeze({
   static: [{ prefix: 'static', keepNewest: 2 }],
   sat: [], melt: [], feed: [],
+  // hour files older than 72 h go (the archive keeps them); the two newest mappings stay
+  stations: [
+    { prefix: 'stn/h', olderThanMs: 72 * 3_600_000, stampOf: (n) => { const m = /^(\d{4})(\d{2})(\d{2})(\d{2})\.json$/.exec(n); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4]) : null; } },
+    { prefix: 'stn/map', keepNewest: 2 },
+  ],
 });
 
 /**

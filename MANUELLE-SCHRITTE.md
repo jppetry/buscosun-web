@@ -3857,3 +3857,84 @@ Ohne Schalter an für alle (dein Wort vom 19.11.). Lokal committet, nicht gepush
     **Zurück ohne Deploy:** in `glacier/v1/index.json` den Schlüssel `static.hugonnet` entfernen — dann steht wieder die
     bisherige Höhen-Karte. Nicht gemessen: Build und Budget (die Karte liegt im Lazy-Chunk des Steckbriefs, der geprüfte Leser
     im Seiten-Chunk; die Ratsche stand schon knapp). `verify:glacier-hugonnet` 41/41 (43/43 mit dem vollen Paket).
+
+## 106. Gletscher: Stationsmessungen neben „Wetter am Gletscher“ (Phase GO, `audit/gletscher-stationen.md`), 2026-11-21
+
+Ohne Schalter an für alle (dein Wort im Auftrag). Lokal committet, nicht gepusht. Ich habe die Seite nicht im Browser gesehen.
+
+**Pushs von mir (nur das neue Produkt, seine zwei Workflows und die Gletscher-Linie; ohne Force, jeder Versuch vom aktuellen `origin/main`;
+je danach geprüft — Commit liegt auf `origin/main`, Dateien Byte für Byte gleich, übrige Schlüssel des Zeigers unverändert):**
+
+| Ziel | Commit | Inhalt |
+| --- | --- | --- |
+| `buscosun-data` `main` | `318e7ddd757436a9a7c0a33aff1f15f960a1102b` | erste Stunde `glacier/v1/stn/h/2026112108.json` (335 Stationen), Katalog `stn/stations.json` (318), Zuordnung `stn/map/20261120-1.1.json`, `stn/README.md`; `index.json`: neuer Schlüssel `stations`; `status.json`: Zeile `stations` |
+| `buscosun-data` `main` | `abdd42c6f4603204b7e2feea12f3821836e4e691` | `.github/workflows/glacier-stations.yml` (stündlich :27) |
+| `buscosun-data` `main` | `72c7a0ce52b61500e4d9276283c0c5b5ece3fbc0` | Zuordnung `stn/map/20261120-1.2.json` (Stationen aus `obs/v1` nach dem, was sie jetzt liefern), Katalog, Zeiger `stations.map` |
+| `buscosun-data` `main` | `47a8dce4e718e8a0586fb3af7087a4f4a328fbac` | zweite Stunde `glacier/v1/stn/h/2026112109.json` (342 Stationen), Zeiger `stations.hour`, Statuszeile |
+| `buscosun-archiv` `main` | `4631fd57ddfbec6a8aa55fae35f710f32fbf1fa2` | `glacier/v1/2026-11-21/stn-2026112108.json.gz` (11,7 KB) und `stn-stations-20261121T080156Z.json.gz`; `glacier/v1/index.json` (Tageszeile) |
+| `buscosun-archiv` `main` | `3af738cc74e7136b097af8763aa8ef631e350575` | `.github/workflows/glacier-stations-archiv.yml` (alle 6 h, :53), `glacier/v1/README.md` um die Stationsablage mit Quellen und Lizenzen ergänzt |
+| `buscosun-archiv` `main` | `4a6028892b0559c0766955e1750275fc934cd2d2` | `glacier/v1/2026-11-21/stn-2026112109.json.gz` und `stn-stations-20261121T081324Z.json.gz`; Tageszeile im Index |
+
+Nichts davon berührt `obs/v1/`, den Punkt-Cube oder eine andere Linie. Kein Push war abgewiesen, keiner zurückgenommen.
+
+1. **Push von `main` (`buscosun-web`) = Start des Stundenlaufs.** Der Producer liegt in `buscosun-web`; bis er auf `origin/main` steht, endet
+   `glacier-stations.yml` jede Stunde grün mit „producer not on main yet“. Die Stunden bis dahin fehlen in Daten-Repo und Ablage (außer meinen
+   lokalen Läufen), und auf der Seite stehen die Werte drei Stunden nach dem letzten Lauf als „Keine Daten“.
+   Nach dem Push: Actions von `buscosun-data` → `glacier-stations` zur Minute :27 grün mit „gepusht“; `glacier/v1/index.json` → `stations.hour`
+   wandert stündlich; in `buscosun-archiv` kommen alle 6 h (:53) die Dateien `stn-<stunde>.json.gz` dazu. Die Repo-Variable `GLACIER_PRODUCER_REF`
+   muss leer sein oder `main` heißen (ein Zweig, den es nicht mehr gibt, fällt von selbst auf `main`).
+2. **Ansehen** (Dev-Server; die Daten liegen im Speicher). Im Reiter „Heute“ unter „Wetter am Gletscher“ die Karte „Gemessen in der Nähe“:
+   - `/gletscher/at-alpeiner-ferner-3055` — zwei Tiroler Stationen: Nockwand Wind (3 092 m, 3,7 km, 27 m über der mittleren Höhe) mit Temperatur,
+     Wind, Böe; Schöckbichl (2 520 m, 545 m darunter) mit Schneehöhe und Strahlung. Links je Station die Höhenleiter (Balken = Höhenspanne des
+     Gletschers, Strich = mittlere Höhe, Punkt = Station).
+   - `/gletscher/at-hintereisferner-mit-toteis` — zwei Südtiroler Stationen über den Kamm (Schnals Teufelsegg, Schnals Grawand), Vermerk der Provinz.
+   - `/gletscher/at-hallstaetter-gletscher` — zwei TAWES-Stationen, Niederschlag als Summe über 24 Stunden.
+   - `/gletscher/de-noerdlicher-schneeferner` — Zugspitze (DWD), ohne Schneehöhe und Niederschlag (die Station liefert sie im 10-min-Takt nicht).
+   - `/gletscher/ch-grosser-aletschgletscher` — **keine Karte** (keine Station im Fenster; V-GO-1).
+   - Reiter „Quellen“: drei neue Zeilen in der Lizenzliste. Am Telefon: Werte zweispaltig, Alter unter dem Namen.
+
+   Sind die Werte älter als drei Stunden (du siehst dann „Keine Daten. Älter als drei Stunden.“) und `main` ist noch nicht gepusht, holt
+   dieser Lauf eine frische Stunde (einmalig ein Klon, dann zwei Befehle; `C:\dev\go-out` und `C:\dev\go-patch` vorher leeren):
+
+   ```
+   git clone --depth=1 --filter=blob:none --sparse https://github.com/jppetry/buscosun-data.git C:\dev\buscosun-go-data
+   git -C C:\dev\buscosun-go-data sparse-checkout set glacier
+   git -C C:\dev\buscosun-go-data pull
+   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/stations.mjs --store=C:\dev\buscosun-go-data\glacier\v1 --out=C:\dev\go-out --patch=C:\dev\go-patch
+   node scripts/glacier/glacier-publish.mjs --repo=C:\dev\buscosun-go-data --line=stations --src=C:\dev\go-out --index-patch=C:\dev\go-patch\index-patch.json --status-patch=C:\dev\go-patch\status-patch.json
+   ```
+3. **Mail an `opendata@tirol.gv.at`** (deine; Vorschlag):
+
+   > Betreff: Nutzung des Datensatzes „Wetterstationsdaten Tirol“ (data.gv.at bb43170b-30fb-48aa-893f-51c60d27056f) auf buscosun.com
+   >
+   > Sehr geehrte Damen und Herren,
+   >
+   > buscosun.com zeigt im Gletscher-Monitor (buscosun.com/gletscher) neben den Modellwerten die jüngste Messung der nächstgelegenen Station des
+   > Lawinenwarndienstes und des Hydrographischen Dienstes Tirol — mit dem Vermerk „Datenquelle: Land Tirol - data.tirol.gv.at“, der Lizenz
+   > CC BY 4.0 und dem Hinweis, was wir verändern (Wind von km/h in m/s; ungeprüfte Werte außerhalb benannter Grenzen lassen wir weg). Wir rufen
+   > die Datei `ogd.geojson` einmal je Stunde ab und legen die Stundenwerte für eine spätere Auswertung ab.
+   >
+   > Drei Fragen:
+   > 1. Die Beschreibung nennt eine stündliche Aktualisierung; die Datei erscheint etwa alle zehn Minuten. Ist ein stündlicher Abruf in Ihrem Sinn,
+   >    und wäre ein häufigerer zulässig?
+   > 2. Die Datei enthält die Felder N6, N24, N48 und N72, die die Beschreibung nicht nennt. Sind das Niederschlagssummen in Millimetern über die
+   >    letzten 6, 24, 48 und 72 Stunden?
+   > 3. Sieben Stationen tragen einen zweiten Namen im Betreiberfeld (LWD Tirol/TIWAG, LWD Tirol/ÖBB, LWD Tirol/WLV, LWD Tirol/GeoSphere Austria,
+   >    LWD Tirol/HD Tirol). Gilt CC BY 4.0 auch für diese Stationen?
+   >
+   > Wenn Sie eine andere Form der Namensnennung wünschen, übernehmen wir sie.
+   >
+   > Mit freundlichen Grüßen
+
+   Antwort auf Frage 3 „nein“ ⇒ eine Zeile im Vertrag (`tirolOperatorAllowed` nur noch `LWD Tirol` und `HD Tirol`), dann `stations.mjs --map`.
+4. **Entscheiden** (`audit/gletscher-stationen.md` §5): **E-GO-1** Fenster 5 km / ±300 m — 387 von 2 094 Gletschern haben eine Station; mit
+   10 km / ±500 m wären es rund 1 000, die Messung stünde dann aber bis 10 km weg und 500 m höher oder tiefer. **E-GO-3** die sieben gemeinsam
+   betriebenen Stationen bleiben (bis zur Antwort des Landes). **E-GO-4** Niederschlag als Summe über 24 Stunden. **E-GO-7** Schneehöhe und
+   Strahlung unter null stehen auf der Seite als 0.
+5. **Zurück ohne Deploy:** in `glacier/v1/index.json` den Schlüssel `stations` entfernen — die Karte verschwindet. Den Workflow
+   `glacier-stations.yml` in `buscosun-data` deaktivieren, sonst setzt ihn der nächste Lauf wieder.
+6. **Nicht geprüft:** die Karte im Browser und am Telefon; Konsole und Long Tasks; `verify:glacier-ui` (bricht schon an HEAD ab, V-GH-8); ein
+   Lauf MIT dem Producer auf einem GitHub-Runner (dort lief bisher nur der Leerlauf: 21.11. 08:29 UTC grün, „producer not on main yet“;
+   der Producer selbst lief lokal). **Budget rot**, schon ohne diese Phase
+   (totalJs 2 065,7 KB bei einer Grenze von 2 054 KB; mit ihr 2 069,4 KB, +3,7 KB) — Grenze nicht angehoben.
+   Geprüft: `verify:glacier-stations` 56/56, alle anderen `verify:glacier-*` ohne Browser grün, Typecheck und Build grün.

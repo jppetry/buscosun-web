@@ -17,6 +17,8 @@ import GlacierSheetMap, { type SheetBasemap, type SheetSnow } from './GlacierShe
 import { TabHeute, TabSaison, TabLangzeit, TabTour, TabQuellen } from './GlacierSheetTabs';
 import GlacierHeuteBoard from './GlacierHeuteBoard';
 import GlacierWeatherCard from './GlacierWeatherCard';
+import GlacierStationCard from './GlacierStationCard';
+import { glacierStnSourceRows } from './glacierStationContract';
 import { glacierWeatherFrom } from './glacierFlag';
 import { fmt0, fmt2, fmtKm2, fmtRefYear, displayName, fmtSigned } from './glacierView';
 import {
@@ -54,6 +56,8 @@ export interface SheetProps {
   meltPointer: GlacierIndex['melt'] | null;
   /** Phase GW: pointer to the newest run with "Wetter am Gletscher" (`null` = the data store names none). */
   weatherPointer?: GlacierIndex['weather'] | null;
+  /** Phase GO: pointer to the station measurements next to the glacier (`null` = none). */
+  stationPointer?: GlacierIndex['stations'] | null;
   official: readonly GlacierOfficialItem[];
   nowMs: number;
   isMobile: boolean;
@@ -70,7 +74,7 @@ export interface SheetProps {
   onOpenSheet?: () => void;
 }
 
-export default function GlacierBrief({ g, build, elevBuild = null, hugBuild = null, byId, satIndex, meltPointer, weatherPointer = null, official, nowMs, isMobile, bases, state, onState, onBack, allow3d, followed, onFollow, layout = 'page', onOpenSheet }: SheetProps) {
+export default function GlacierBrief({ g, build, elevBuild = null, hugBuild = null, byId, satIndex, meltPointer, weatherPointer = null, stationPointer = null, official, nowMs, isMobile, bases, state, onState, onBack, allow3d, followed, onFollow, layout = 'page', onOpenSheet }: SheetProps) {
   const [data, setData] = useState<SheetData | null>(null);
   const [compare, setCompare] = useState<number | null>(null);
   const [snowShare, setSnowShare] = useState<number | null>(null);
@@ -159,7 +163,10 @@ export default function GlacierBrief({ g, build, elevBuild = null, hugBuild = nu
     </div>
   );
   // Phase GW (on, `?glw=0` = the sheet as before): the weather at the glacier, one card for the tab "Heute" and the Heute board
-  const weatherCard = glacierWeatherFrom() ? <GlacierWeatherCard g={g} pointer={weatherPointer} byId={byId} nowMs={nowMs} bases={bases} /> : null;
+  const modelCard = glacierWeatherFrom() ? <GlacierWeatherCard g={g} pointer={weatherPointer} byId={byId} nowMs={nowMs} bases={bases} /> : null;
+  // Phase GO (no switch): the nearest stations' latest measurements, right below the model values; renders nothing without a station in range
+  const stationCard = stationPointer ? <GlacierStationCard g={g} pointer={stationPointer} byId={byId} nowMs={nowMs} bases={bases} /> : null;
+  const weatherCard = modelCard || stationCard ? <>{modelCard}{stationCard}</> : null;
   /** `noMap`: the dossier shows the map only on the level Heute — the before/after card of Langzeit needs it and is left out then. */
   const tabBody = (t: GlacierTab, d: SheetData, noMap = false) => (
     t === 'heute' ? <TabHeute g={g} melt={mv} meltWhy={meltWhy} season={season} nowMs={nowMs} neighbourName={neighbourName} weather={weatherCard} />
@@ -167,7 +174,7 @@ export default function GlacierBrief({ g, build, elevBuild = null, hugBuild = nu
     : t === 'langzeit' ? <TabLangzeit g={g} area={area} length={length} proj={d.proj} elev={d.elev} hug={d.hug} compareYear={earlier?.year ?? null} compareOn={compare != null} onCompare={(on) => setCompare(on ? 0.5 : null)} noCompare={noMap} official={official} status={g.status ?? null} hasSeries={d.series.length > 0}
         onCsv={() => { const text = seriesCsv(g, d.series, new Date(nowMs).toISOString().slice(0, 10)); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' })); a.download = `${g.id}-reihen.csv`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }} />
     : t === 'tour' ? <TabTour g={g} melt={mv} season={season} nowMs={nowMs} bandZ={g.z} />
-    : <TabQuellen rows={rows} sources={d.elev && d.sources ? [...d.sources, (d.hug ?? d.elev).source] : d.sources} elev={!!d.elev} />
+    : <TabQuellen rows={rows} sources={d.elev && d.sources ? [...d.sources, (d.hug ?? d.elev).source] : d.sources} more={stationPointer ? glacierStnSourceRows() : undefined} elev={!!d.elev} />
   );
   const notReady = loadError ? <div className="gl-empty" role="status"><strong>Keine Daten.</strong> Der Steckbrief ist nicht ladbar ({loadError}).</div> : !data ? <div className="gl-empty" role="status">Steckbrief wird geladen …</div> : null;
   const panel = notReady ?? (data && (

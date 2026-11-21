@@ -425,6 +425,43 @@
   .gl-hb-wx .gl-card { border-radius: 16px; padding: 12px; }
 }
 
+/* ---- Phase GO: "Gemessen in der Nähe" (GlacierStationCard, right below "Wetter am Gletscher") ---------------------------------------
+   One accent only: the measured-provenance green of the deck. The elevation ladder left of each station shows where the instrument
+   stands against the glacier's span (bar = span, stroke = median elevation, dot = station). */
+.gl-stn { gap: 10px; min-width: 0; }
+.gl-stn .gl-honest { margin: 0; font-size: 13px; line-height: 1.4; color: var(--gl-ink); }
+.gl-stn-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.gl-stn-station { display: grid; grid-template-columns: 24px minmax(0, 1fr); column-gap: 12px; padding: 10px 0; border-top: 1px solid var(--gl-line); }
+.gl-stn-station:first-child { border-top: 0; padding-top: 2px; }
+.gl-stn-ladder { display: block; align-self: start; margin-top: 2px; }
+.gl-stn-rail { stroke: var(--gl-line-strong); stroke-width: 1; }
+.gl-stn-ice { fill: var(--gl-tint); stroke: var(--gl-accent); stroke-width: 1; }
+.gl-stn-median { stroke: var(--gl-accent-dark); stroke-width: 1.5; }
+.gl-stn-dot { fill: var(--gl-prov-measured-dot); stroke: #fff; stroke-width: 1.5; }
+.gl-stn-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.gl-stn-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.gl-stn-head b { font-size: 15px; font-weight: 700; line-height: 1.25; min-width: 0; overflow-wrap: anywhere; }
+.gl-stn-head b span { margin-left: 8px; font-weight: 500; color: var(--gl-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.gl-stn-head time { flex: none; font-size: 12px; color: var(--gl-prov-measured-text); font-variant-numeric: tabular-nums; }
+.gl-stn-where { margin: 0; font-size: 12px; line-height: 1.4; color: var(--gl-muted); }
+.gl-stn-values { margin: 4px 0 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 14px; }
+.gl-stn-values > div { min-width: 0; padding-left: 9px; border-left: 2px solid var(--gl-prov-measured-line); }
+.gl-stn-values dt { font-size: 11.5px; color: var(--gl-muted); line-height: 1.25; }
+.gl-stn-values dd { margin: 1px 0 0; }
+.gl-stn-values dd .gl-num { font-size: 17px; font-variant-numeric: tabular-nums; }
+.gl-stn-values dd.gl-stn-none { font-size: 12px; line-height: 1.35; color: var(--gl-muted); }
+.gl-stn-values > div:has(.gl-stn-none) { border-left-color: var(--gl-line-strong); }
+.gl-stn-sources { display: flex; flex-wrap: wrap; gap: 2px 14px; }
+.gl-stn-sources a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.gl-stn-sources a:focus-visible { outline: 2px solid var(--gl-accent); outline-offset: 2px; border-radius: 4px; }
+/* two cards in the board's weather slot */
+.gl-hb-wx { display: flex; flex-direction: column; gap: 14px; }
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
+  .gl-stn-values { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .gl-stn-head { flex-direction: column; align-items: flex-start; gap: 1px; }
+  .gl-hb-wx { gap: 10px; }
+}
+
 /* ---- Phase GH, second product: height, volume and mass 2000–2019 (HugonnetCard, CumulChart) ---------------------------------------
    The satellite family of the origin chips carries every mark. The plot is an SVG without text that stretches with the card; axis
    labels and the period ladder are HTML in the same grid column, so a period's button sits under its years at every width.
