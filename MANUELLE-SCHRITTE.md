@@ -4383,3 +4383,28 @@ den Prüfern); geprüft sind Ablauf, Worte und Verdrahtung. Mit `?swp=0` ist die
 7. **Karte erreichte die Alpenseen nicht (V-BS-40, behoben am 22.11., wirkt mit dem Push):** der verschiebbare Bereich der
    Seekarte endete bei 49,2° N — Bodensee, Chiemsee und alle Seen in Österreich und der Schweiz (19 von 28) ließen sich
    nicht zeigen. Nach dem Push bitte ansehen: Revier „Seen“, dann den Chip „Bodensee“ — die Karte muss dorthin fahren.
+
+## 113. Wind in voller ICON-D2-Auflösung, 2,2 km (Phase WH, `audit/wind-2km.md`), 2026-11-22
+
+Dein Wort: „es wäre super wenn du es für alle änderst, auch Windkarte etc. auf 2,2 km“. Gebaut, **lokal committet, nicht
+gepusht**. Das Windfeld der Partikel (Wetterkarte, Regenradar, Dashboard-Kachel, Seekarte) liest am Desktop jede
+Modellzelle statt jeder zweiten. **Ich habe nichts davon im Browser gesehen.** Kein Push von mir, nichts am Daten-Repo.
+
+1. **Pushen:** `git push origin main`. Danach, ohne Handgriff:
+   - Die Seite fragt nach der neuen Bildfamilie `windHd`; solange kein Lauf sie trägt, liest sie wie bisher.
+   - Der nächste `build`-Lauf im Daten-Repo (alle drei Stunden, :20 / :30) klont den neuen Producer und rechnet den
+     vorhandenen Lauf EINMAL neu — ab dann liegen je Lauf 13 Dateien `windhd-<SSS>.png` dabei (+9,3 MB je Lauf,
+     12,1 → 21,4 MB). **Datenvertrag:** Schlüssel `windHd` in `runs/<lauf>/repack.json`, `runs/<lauf>/index.json` und
+     `index.json`; `wind` bleibt unverändert.
+   - Im Protokoll des Schritts „Repack“ steht dann je Schritt „windHd 0xx → 7xx KB“.
+2. **Ansehen (Desktop), nach dem ersten Lauf mit der Familie:** Wetterkarte, Wind. Die Statuszeile nennt „DWD ICON-D2
+   u/v 10m · 2,2 km“ (vorher und am Telefon: „… gezeichnet jede zweite Zelle (4,4 km)“). In den Alpen und an der Küste
+   sollten die Partikel Tälern und Kanten genauer folgen. Gegenprobe: derselbe Link mit `?windhd=0`.
+   Bitte auch auf das Laden achten: das erste Windbild ist 3,3-mal so groß (V-WH-3).
+3. **Telefon:** bleibt beim bisherigen Bild (E-WH-2). Zum Ansehen `?windhd=1`. Passt es, sag es — dann lege ich die
+   Voreinstellung um.
+4. **Zurück:** je Link `?windhd=0`; für alle im Daten-Repo die Variable `REPACK_WIND_HD=0` im Schritt „Repack“ des
+   Workflows `build` (dann schreibt der Producer die Familie nicht mehr und jeder Client liest `wind`).
+5. **Deine Entscheidung (V-WH-5):** Temperatur, Böen, Gewitter, Rotation, Blitzprognose und Schnee zeichnen weiter jede
+   zweite Zelle. Wenn du mit „etc.“ auch diese meinst: je Familie derselbe Weg, eigene Phase.
+6. **Budget:** totalJs 2 102,1 gegen 2 101,4 (+0,7 KB); Grenze von Hand 2 102 → 2 103.
