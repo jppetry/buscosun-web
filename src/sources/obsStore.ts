@@ -30,8 +30,8 @@ export const OBS_CDN_BASE = `https://cdn.jsdelivr.net/gh/jppetry/buscosun-data@m
 export const OBS_RAW_BASE = `https://raw.githubusercontent.com/jppetry/buscosun-data/main/${OBS_DIR}`;
 export const OBS_CATALOG_PATH = 'stations.json';
 export const OBS_LATEST_PATH = 'latest.json';
-/** After this the second way starts (p95 of the measured cold MISS TTFB at jsDelivr — `RAW_FALLBACK_HEDGE_MS`). */
-export const OBS_HEDGE_MS = 2_500;
+/** After this the second way starts. set (Jan 22.11.2026): 1 s instead of 2,5 s (the p95 of the measured cold MISS TTFB at jsDelivr) — as `RAW_FALLBACK_HEDGE_MS`. */
+export const OBS_HEDGE_MS = 1_000;
 /** Hard deadline of one read (both ways). */
 export const OBS_DEADLINE_MS = 8_000;
 /** `latest.json` is kept this long in memory (the mirror republishes every few minutes; a point query repeats within seconds). */

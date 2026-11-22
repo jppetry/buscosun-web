@@ -352,7 +352,7 @@ export { RADAR_RAW_BASE, radarRawFlagFrom, radarRawUrl };
 /**
  * Wartezeit ohne Kopfzeilen, bevor der zweite Weg dazukommt. set (Jan 22.11.2026): 1 s statt 2,5 s (das war das p95 der
  * gemessenen MISS-TTFB, AP0/AP1). Stichprobe 22.11. 14:35 UTC: jsDelivr gesund 0,12–0,63 s, 6 von 16 Abrufen über 2,5 s oder
- * 403; raw 0,18–0,41 s. Preis: Doppelabrufe, wenn das CDN nur langsam ist. Der Punkt-Leser bleibt bei `RAW_FALLBACK_HEDGE_MS`.
+ * 403; raw 0,18–0,41 s. Preis: Doppelabrufe, wenn das CDN nur langsam ist. Gleich: `RAW_FALLBACK_HEDGE_MS` (Punkt-Leser).
  */
 export const RADAR_RAW_HEDGE_MS = 1_000;
 /**

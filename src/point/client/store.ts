@@ -440,8 +440,12 @@ export function rawBaseOf(base: string): string | null {
   return m ? `https://raw.githubusercontent.com/${m[1]}/${m[2]}/main` : null;
 }
 
-/** Hedge-Frist des Ausweichwegs: p95 der gemessenen MISS-TTFB (AP0 2,6 s; AP1-Matrix 2,3 s). */
-export const RAW_FALLBACK_HEDGE_MS = 2_500;
+/**
+ * Hedge-Frist des Ausweichwegs. set (Jan 22.11.2026): 1 s statt 2,5 s — das war das p95 der gemessenen MISS-TTFB (AP0 2,6 s;
+ * AP1-Matrix 2,3 s). Preis: ein kalter Chunk, auf den das CDN 1–2,5 s braucht, wird zusätzlich von raw geholt (der Schnellere
+ * gewinnt, der Verlierer wird abgebrochen). Wie `RADAR_RAW_HEDGE_MS`.
+ */
+export const RAW_FALLBACK_HEDGE_MS = 1_000;
 
 /** Ein jsDelivr-Store mit `raw.githubusercontent` als Ausweichweg (mit Hedge); jede andere Basis bleibt, wie sie ist. */
 export function withRawFallback(store: PointStore, opts: { onFallback?: (path: string, err: unknown) => void; hedgeMs?: number } = {}): PointStore {
