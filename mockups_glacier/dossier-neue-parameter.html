@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gletscher-Dossier: neue Größen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;500;600;700&display=swap">
+<style>
+/* Tokens 1:1 aus src/glacier/glacierDeck.css; neu nur --gl-prov-analysis-* (Vorschlag "Analyse") */
+:root {
+  --gl-accent: #1E87A8; --gl-accent-dark: #145A70; --gl-tint: #E3F1F5; --gl-loss: #8F4A22;
+  --m-text: #4F6A3D; --m-bg: #EFF3E8; --m-line: #C3D2AF; --m-dot: #5F7A4C;
+  --o-text: #7A5418; --o-bg: #FBF3E7; --o-line: #E7D3B4; --o-dot: #B8862F;
+  --a-text: #3D4F6B; --a-bg: #ECEFF5; --a-line: #C9D1E0; --a-dot: #5A6E92;
+  --f-text: #2C2A26; --f-bg: #EDE6D3; --f-line: #D9D0B8;
+  --ink: #2C2A26; --muted: #5C5447; --faint: #6F6553; --panel: #FAF6EA; --bg: #EDE6D3; --line: #E0D6BE; --line-strong: #D9D0B8;
+  --glass: rgba(250, 246, 234, 0.96); --hair: color-mix(in srgb, var(--line) 80%, transparent);
+  --shadow: 0 1px 0 rgba(255,255,255,.7) inset, 0 12px 26px -16px rgba(44,42,38,.32);
+  --grad: linear-gradient(135deg, var(--gl-accent), color-mix(in srgb, var(--gl-accent) 65%, var(--gl-accent-dark)));
+  --ice: #A8D0E0; --ice-pale: #E4F1F6; --ice-deep: #6FAFC8;
+  --font: 'League Spartan', system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: linear-gradient(180deg, #F5F1E8 0%, var(--bg) 100%) fixed; color: var(--ink); font: 14px/1.45 var(--font); }
+:focus-visible { outline: 2px solid var(--gl-accent); outline-offset: 2px; }
+button { font: inherit; color: inherit; }
+a { color: var(--gl-accent-dark); }
+.num { font-weight: 600; font-variant-numeric: tabular-nums; }
+svg text { font-family: var(--font); }
+
+/* page around the mockup */
+.page { max-width: 1400px; margin: 0 auto; padding: 20px 16px 48px; }
+.intro h1 { font-size: 26px; line-height: 1.15; margin: 0 0 6px; }
+.intro p { margin: 0; max-width: 76ch; color: var(--muted); }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin: 16px 0 18px; }
+.ctl { display: flex; align-items: center; gap: 8px; }
+.ctl > span { font-size: 12.5px; color: var(--faint); }
+.seg { display: inline-flex; flex-wrap: wrap; padding: 3px; gap: 3px; border-radius: 12px; background: rgba(255,255,255,.7); border: 1px solid var(--hair); }
+.seg button { border: 0; background: transparent; padding: 7px 12px; border-radius: 9px; cursor: pointer; font-size: 13.5px; min-height: 40px; text-align: left; }
+.seg button[aria-pressed="true"] { background: var(--grad); color: var(--panel); }
+.seg button small { display: block; font-size: 11px; opacity: .75; }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start; }
+@media (max-width: 1100px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+
+.notes { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 12px; }
+.notes section { background: var(--glass); border: 1px solid var(--hair); border-radius: 16px; box-shadow: var(--shadow); padding: 14px 16px; }
+.notes h2 { font-size: 17px; margin: 0 0 4px; }
+.notes h3 { font-size: 13.5px; margin: 10px 0 2px; }
+.notes p, .notes li { font-size: 13px; color: var(--muted); margin: 0; }
+.notes ul { margin: 0; padding-left: 18px; }
+.ptab { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 6px; }
+.ptab th, .ptab td { text-align: left; padding: 5px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.ptab th { font-weight: 600; }
+.ptab td:last-child { color: var(--faint); white-space: nowrap; }
+.ptab tr.grp th { padding-top: 10px; border-bottom-color: var(--line-strong); font-size: 12px; color: var(--muted); }
+.ptab .nwt { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 8px; background: var(--gl-tint); color: var(--gl-accent-dark); font-weight: 600; }
+
+/* "neue Größen markieren" */
+.mark-new .nw { box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--gl-accent); border-radius: 8px; }
+
+/* the dossier frame */
+.stage { display: flex; justify-content: center; }
+.mock { container-type: inline-size; width: 100%; max-width: 940px; display: flex; flex-direction: column; gap: 12px; }
+.mock.is-phone { max-width: 390px; padding: 10px; border-radius: 28px; background: rgba(255,255,255,.35); border: 1px solid var(--hair); box-shadow: var(--shadow); }
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 6px; border-radius: 16px; background: rgba(250,246,234,.86); border: 1px solid var(--hair); }
+.step { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 12px; }
+.step i { width: 24px; height: 24px; border-radius: 12px; border: 1px solid var(--line-strong); display: grid; place-items: center; font-style: normal; font-size: 12px; font-weight: 700; flex: 0 0 auto; }
+.step b { display: block; font-size: 14px; }
+.step small { display: block; font-size: 11.5px; color: var(--faint); }
+.step.is-on { background: var(--grad); color: var(--panel); }
+.step.is-on i { background: var(--panel); color: var(--gl-accent-dark); border-color: var(--panel); }
+.step.is-on small { color: rgba(250,246,234,.8); }
+.card { background: var(--glass); border: 1px solid var(--hair); border-radius: 18px; box-shadow: var(--shadow); padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.card-head h3 { margin: 0; font-size: 17px; line-height: 1.2; }
+.card-head p { margin: 2px 0 0; font-size: 12.5px; color: var(--faint); }
+.hero h2 { margin: 0; font-size: 24px; line-height: 1.1; }
+.hero p { margin: 4px 0 0; font-size: 12.5px; color: var(--faint); }
+.placeholder { border: 1.5px dashed var(--line-strong); border-radius: 18px; padding: 12px 16px; color: var(--faint); font-size: 13px; background: rgba(255,255,255,.35); }
+.placeholder b { color: var(--muted); }
+.fine { font-size: 11.5px; color: var(--faint); margin: 0; line-height: 1.45; max-width: 92ch; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 11px; border: 1px solid; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+.chip i { width: 7px; height: 7px; border-radius: 4px; }
+.chip.m { background: var(--m-bg); color: var(--m-text); border-color: var(--m-line); } .chip.m i { background: var(--m-dot); }
+.chip.a { background: var(--a-bg); color: var(--a-text); border-color: var(--a-line); } .chip.a i { background: var(--a-dot); }
+.chip.o { background: var(--o-bg); color: var(--o-text); border-color: var(--o-line); } .chip.o i { background: var(--o-dot); }
+.chip.f { background: var(--f-bg); color: var(--f-text); border-color: var(--f-line); } .chip.f i { background: var(--ink); }
+.empty { border-radius: 12px; background: rgba(255,255,255,.6); border: 1px dashed var(--line-strong); padding: 10px 12px; font-size: 13px; color: var(--muted); margin: 0; }
+.empty b { color: var(--ink); }
+.sdot { width: 22px; height: 22px; border-radius: 11px; background: var(--m-dot); color: #fff; font-size: 12px; font-weight: 700; display: inline-grid; place-items: center; flex: 0 0 auto; }
+
+/* value pairs, used by all variants */
+.vals { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 0; }
+.vals > div { min-width: 0; }
+.vals dt { font-size: 11.5px; color: var(--faint); }
+.vals dd { margin: 0; font-size: 17px; color: var(--m-text); }
+.vals dd small { font-size: 12px; font-weight: 500; margin-left: 2px; }
+.vals dd .dir { font-size: 12px; font-weight: 500; color: var(--muted); margin-left: 4px; }
+.vals.model dd { color: var(--o-text); }
+.vals.analysis dd { color: var(--a-text); }
+.hsd { display: inline-flex; gap: 10px; }
+.hsd span { display: inline-flex; flex-direction: column; }
+.hsd em { font-style: normal; font-size: 11px; color: var(--faint); font-weight: 400; }
+
+/* ===== A: Höhenleiter ===== */
+.ladder { list-style: none; margin: 0; padding: 0; }
+.rung { display: grid; grid-template-columns: 64px 18px minmax(0, 1fr); column-gap: 10px; }
+.rung .z { text-align: right; font-size: 12.5px; color: var(--muted); padding-top: 12px; }
+.rung .ice { position: relative; }
+.rung.on-ice .ice::before { content: ''; position: absolute; inset: 0 3px; background: linear-gradient(90deg, var(--ice-pale), var(--ice)); }
+.rung.top .ice::before { top: 10px; border-radius: 6px 6px 0 0; }
+.rung.low .ice::before { bottom: calc(100% - 26px); border-radius: 0 0 6px 6px; }
+.rung .ice::after { content: ''; position: absolute; left: 50%; top: 14px; width: 10px; height: 10px; margin-left: -5px; border-radius: 5px; background: var(--panel); border: 2px solid var(--ink); }
+.rung.stn .ice::after { background: var(--m-dot); border-color: #fff; width: 12px; height: 12px; margin-left: -6px; }
+.rung.sl .ice::after { width: 22px; height: 3px; margin-left: -11px; top: 18px; border: 0; border-radius: 2px; background: var(--o-dot); }
+.rung .body { padding: 8px 0 14px; border-bottom: 1px solid var(--hair); min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.rung:last-child .body { border-bottom: 0; }
+.rhead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rhead b { font-size: 15px; }
+.rhead .age { font-size: 12px; color: var(--faint); margin-left: auto; }
+.meta { font-size: 12px; color: var(--muted); margin: 0; }
+.rung.sl .body { background: linear-gradient(90deg, var(--o-bg), transparent 80%); border-radius: 10px; padding: 8px 10px 10px; margin: 4px 0; border-bottom: 0; }
+.snowline { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 16px; align-items: end; }
+.fig b { font-size: 24px; line-height: 1; color: var(--o-text); }
+.fig b small { font-size: 13px; font-weight: 500; margin-left: 3px; }
+.fig span { display: block; font-size: 12px; color: var(--muted); margin-top: 3px; }
+.daybars svg { width: 100%; max-width: 300px; height: auto; display: block; }
+.missing { font-size: 12.5px; color: var(--faint); margin: 0; padding-left: 92px; }
+.area { border-top: 1px solid var(--line-strong); padding-top: 12px; display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 18px; align-items: start; }
+.area .big { font-size: 40px; line-height: 1; color: var(--a-text); }
+.area .big small { font-size: 15px; font-weight: 500; color: var(--muted); margin-left: 4px; }
+.area p { margin: 4px 0 0; font-size: 12.5px; color: var(--muted); }
+.area svg { width: 100%; height: auto; display: block; max-width: 520px; }
+.area .wk svg { max-width: 340px; }
+@container (max-width: 560px) {
+  .steps small { display: none; }
+  .rung { grid-template-columns: 44px 14px minmax(0, 1fr); column-gap: 8px; }
+  .rung .z { font-size: 11.5px; }
+  .snowline, .area { grid-template-columns: minmax(0, 1fr); }
+  .missing { padding-left: 66px; }
+  .vals dd { font-size: 16px; }
+}
+
+/* ===== B: Höhe und Zeit ===== */
+.chartB svg { width: 100%; height: auto; display: block; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { display: inline-block; width: 16px; height: 9px; border-radius: 3px; }
+.srows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.srows li { display: grid; grid-template-columns: 22px minmax(0, 210px) minmax(0, 1fr); gap: 4px 12px; padding: 10px 0; border-top: 1px solid var(--hair); align-items: start; }
+.srows .who b { display: block; font-size: 14px; }
+.srows .who span { font-size: 12px; color: var(--muted); }
+.dtab-wrap { overflow-x: auto; }
+.dtab { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.dtab th, .dtab td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.dtab thead th { font-size: 12px; font-weight: 600; color: var(--muted); }
+.dtab th[scope="row"], .dtab thead th:first-child { text-align: left; font-weight: 600; }
+.dtab th[scope="row"] span { display: block; font-size: 11.5px; font-weight: 400; color: var(--faint); }
+.dtab td b { color: var(--o-text); font-weight: 600; }
+.dtab td small { display: block; font-size: 11px; color: var(--faint); }
+.dtab tbody tr:last-child > * { border-bottom: 0; }
+.aline { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding: 10px 12px; border-radius: 12px; background: var(--a-bg); border: 1px solid var(--a-line); }
+.aline b.v { font-size: 22px; color: var(--a-text); }
+.aline p { margin: 0; font-size: 12.5px; color: var(--muted); flex: 1 1 260px; }
+@container (max-width: 560px) {
+  .srows li { grid-template-columns: 22px minmax(0, 1fr); }
+  .srows li .vals { grid-column: 2; }
+  .dtab th, .dtab td { padding: 6px 4px; font-size: 12px; }
+}
+
+/* ===== C: nach Herkunft ===== */
+.cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.col { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding-top: 10px; border-top: 4px solid; }
+.col.m { border-color: var(--m-dot); } .col.a { border-color: var(--a-dot); } .col.o { border-color: var(--o-dot); }
+.col h4 { margin: 0; font-size: 15px; }
+.col > p.what { margin: -6px 0 0; font-size: 12px; color: var(--faint); }
+.blk { display: flex; flex-direction: column; gap: 6px; padding-bottom: 10px; border-bottom: 1px solid var(--hair); }
+.blk:last-child { border-bottom: 0; }
+.blk .rhead b { font-size: 14px; }
+.blk svg { width: 100%; height: auto; display: block; }
+.stab { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.stab th, .stab td { padding: 4px 3px; text-align: right; border-bottom: 1px solid var(--line); }
+.stab th:first-child { text-align: left; font-weight: 600; }
+.stab thead th { font-weight: 500; color: var(--faint); font-size: 11.5px; }
+.stab td { color: var(--o-text); font-weight: 600; }
+.stab td small { display: block; font-weight: 400; font-size: 10px; color: var(--faint); white-space: nowrap; letter-spacing: -.01em; }
+.stab th:first-child { font-size: 12px; }
+@container (max-width: 760px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="intro">
+    <h1>Gletscher-Dossier: alle neuen Größen</h1>
+    <p>Drei Vorschläge für die Ebene „Heute“ mit allem, was GI (Stationen, auch SLF), GN (SNOWGRID) und GS (Schneefelder von buscosun Fusion) neu liefern. Jede Variante zeigt dieselben Größen; sie unterscheiden sich darin, wonach sie ordnen: nach Höhe, nach Zeit oder nach Herkunft.</p>
+  </header>
+
+  <div class="controls" role="group" aria-label="Ansicht des Mockups">
+    <div class="ctl"><span>Variante</span>
+      <div class="seg" data-ctl="v">
+        <button type="button" data-val="A" aria-pressed="true">A Höhenleiter<small>jede Zahl an ihrer Höhe</small></button>
+        <button type="button" data-val="B" aria-pressed="false">B Höhe und Zeit<small>Woche davor, fünf Tage danach</small></button>
+        <button type="button" data-val="C" aria-pressed="false">C Nach Herkunft<small>gemessen, Analyse, Modell</small></button>
+      </div>
+    </div>
+    <div class="ctl"><span>Gletscher</span>
+      <div class="seg" data-ctl="g">
+        <button type="button" data-val="AT" aria-pressed="true">Hintereisferner</button>
+        <button type="button" data-val="CH" aria-pressed="false">Grosser Aletsch</button>
+      </div>
+    </div>
+    <div class="ctl"><span>Breite</span>
+      <div class="seg" data-ctl="w">
+        <button type="button" data-val="d" aria-pressed="true">Desktop</button>
+        <button type="button" data-val="m" aria-pressed="false">Telefon 390</button>
+      </div>
+    </div>
+    <div class="ctl"><span>Neue Größen</span>
+      <div class="seg" data-ctl="n">
+        <button type="button" data-val="on" aria-pressed="false">markieren</button>
+        <button type="button" data-val="off" aria-pressed="true">nicht markieren</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="stage"><div class="mock" id="mock"></div></div>
+    <aside class="notes" id="notes" aria-live="polite"></aside>
+  </div>
+</div>
+
+<script>
+/* ======================= Beispieldaten =======================
+   Echt: SNOWGRID-Zelle am Hintereisferner (Spanne 1991–2020 am 20.11., Tage 14.–20.11.), Tiroler Stationswerte vom 21.11. 08:00 MEZ.
+   Erfunden: Abstände, Alter, Schweizer Werte, Feuchte/Taupunkt, alle Modellwerte (Schneefallgrenze, Neuschnee, Spannen, Böen). */
+const NOW = 'Sa 21.11., 9 Uhr';
+const DAYS = ['Sa', 'So', 'Mo', 'Di', 'Mi'];
+const DAYS_LONG = ['Sa 21.', 'So 22.', 'Mo 23.', 'Di 24.', 'Mi 25.'];
+const PAST = ['14.', '15.', '16.', '17.', '18.', '19.', '20.'];
+const PCT_AT = [0, 10, 25, 50, 75, 90, 100];
+
+// Schneefallgrenze je Stunde ab jetzt (0 … 120 h), null = die Antwort nennt keine
+function slSeries(base) {
+  const a = [];
+  for (let h = 0; h <= 120; h++) {
+    if ((h >= 15 && h <= 21) || h >= 104) { a.push(null); continue; }
+    const v = base + 170 * Math.cos(2 * Math.PI * (h - 6) / 24) - 720 * Math.exp(-(((h - 52) / 17) ** 2)) + 110 * Math.sin(h / 9);
+    a.push(Math.round(v / 10) * 10);
+  }
+  return a;
+}
+
+const GLACIERS = {
+  AT: {
+    name: 'Hintereisferner mit Toteis', chip: 'AT, Klasse A', sub: 'Ötztaler Alpen, Tirol, AGI 5 (2023)',
+    h: { low: 2400, med: 3066, top: 3715 },
+    stations: [
+      { id: 'A', name: 'Sölden Kreuzspitze', op: 'LWD Tirol', url: 'https://www.data.gv.at/', elev: 3453, km: 4.8, age: 'vor 50 min',
+        v: [{ k: 'wind', l: 'Wind', v: '27', u: 'km/h', dir: 'aus OSO' }, { k: 'gust', l: 'Böe', v: '51', u: 'km/h' }] },
+      { id: 'B', name: 'Vernagt (Pegel)', op: 'HD Tirol', url: 'https://www.data.gv.at/', elev: 2640, km: 2.3, age: 'vor 35 min',
+        v: [{ k: 't', l: 'Temperatur', v: '−5,3', u: '°C' }, { k: 'rh', l: 'Luftfeuchte', v: '88', u: '%', nw: 1 }, { k: 'td', l: 'Taupunkt', v: '−7,0', u: '°C', nw: 1 }, { k: 'rr', l: 'Niederschlag 24 h', v: '2,8', u: 'mm' }] },
+      { id: 'C', name: 'Weisssee LWD', op: 'LWD Tirol', url: 'https://www.data.gv.at/', elev: 2480, km: 4.6, age: 'vor 45 min',
+        v: [{ k: 'snow', l: 'Schneehöhe', v: '40', u: 'cm' }], hsd: [9.3, 18.9, 19.8] },
+    ],
+    none: ['Globalstrahlung'],
+    snow: { hs: 39, swe: 69, place: 4, flag: null, pcts: [35, 45, 64, 74, 108, 123, 196], week: [28, 27, 27, 28, 28, 36, 39], weekSwe: [55, 55, 55, 57, 58, 66, 69], cells: 'Mittel aus 5 Zellen von 1 km² mit Mittelpunkt im Umriss' },
+    model: {
+      sl: slSeries(2560),
+      sn: { top: [2.0, 12, 21, 6, 0.4], med: [1.2, 8, 16, 4, 0.2], low: [0.4, 3, 9, 1, 0] },
+      snq: { top: [[0.5, 4], [6, 19], [11, 31], [2, 10], [0, 1.5]], med: [[0.2, 2.6], [4, 13], [8, 25], [1, 7], [0, 1]], low: [[0, 1], [1, 6], [3, 15], [0, 3], [0, 0.4]] },
+      pr: [1.3, 8.5, 17, 4.4, 0.2], pq: [[0.3, 3], [5, 15], [10, 28], [1, 8], [0, 1]],
+      gu: [38, 55, 72, 46, 30], gq: [[30, 47], [42, 68], [58, 90], [35, 60], [22, 39]],
+    },
+  },
+  CH: {
+    name: 'Grosser Aletschgletscher', chip: 'CH, Klasse A', sub: 'Berner Alpen, Wallis, SGI 2016',
+    h: { low: 1600, med: 2950, top: 4100 },
+    stations: [
+      { id: 'A', name: 'Jungfraujoch', op: 'MeteoSchweiz', url: 'https://www.meteoschweiz.admin.ch', elev: 3571, km: 0.1, age: 'vor 20 min',
+        v: [{ k: 't', l: 'Temperatur', v: '−14,2', u: '°C' }, { k: 'rh', l: 'Luftfeuchte', v: '72', u: '%', nw: 1 }, { k: 'td', l: 'Taupunkt', v: '−18,1', u: '°C', nw: 1 },
+            { k: 'wind', l: 'Wind', v: '35', u: 'km/h', dir: 'aus NW' }, { k: 'gust', l: 'Böe', v: '63', u: 'km/h' }, { k: 'rad', l: 'Globalstrahlung', v: '185', u: 'W/m²' }] },
+      { id: 'B', name: 'Flesch', op: 'SLF', url: 'https://www.slf.ch', elev: 2500, km: 1.2, age: 'vor 25 min', imis: true,
+        v: [{ k: 'snow', l: 'Schneehöhe', v: '52', u: 'cm' }], hsd: null },
+    ],
+    none: ['Niederschlag'],
+    snow: null,
+    model: {
+      sl: slSeries(2420),
+      sn: { top: [3, 15, 24, 7, 1], med: [2, 10, 18, 5, 0.5], low: [0, 1, 4, 0.5, 0] },
+      snq: { top: [[1, 6], [8, 23], [13, 36], [2, 12], [0, 3]], med: [[0.4, 4], [5, 16], [9, 28], [1, 9], [0, 1.5]], low: [[0, 0.5], [0, 4], [1, 9], [0, 2], [0, 0.2]] },
+      pr: [2.2, 11, 20, 5.5, 0.6], pq: [[0.5, 5], [6, 18], [11, 32], [1, 10], [0, 2]],
+      gu: [45, 62, 80, 50, 35], gq: [[35, 56], [48, 77], [63, 99], [38, 66], [26, 45]],
+    },
+  },
+};
+const SITE_NOTE = 'Stationen stehen auf Fels oder Grat, nicht auf dem Eis.';
+const SNOW_SRC = 'SNOWGRID Klima v2.1, GeoSphere Austria (CC BY 4.0)';
+const FUSION_SRC = 'buscosun Fusion, Lauf von 06 Uhr';
+
+/* ======================= Hilfen ======================= */
+const fmtInt = (n) => String(Math.round(Math.abs(n))).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+const f1 = (n) => n.toFixed(1).replace('.', ',');
+const fmm = (n) => n < 10 ? f1(n) : String(Math.round(n));
+const signed = (v) => `${v > 0 ? '+' : v < 0 ? '−' : '±'}${f1(Math.abs(v))}`;
+const fmtKm = (k) => k < 0.2 ? 'am Rand des Gletschers' : `${f1(k)} km vom Rand des Gletschers`;
+const chip = (c) => ({ m: '<span class="chip m"><i></i>gemessen</span>', a: '<span class="chip a"><i></i>Analyse</span>', o: '<span class="chip o"><i></i>Modell</span>' })[c];
+const nn = (a) => a.filter((v) => v != null);
+const slNow = (m) => m.sl[0];
+const sl24 = (m) => { const a = nn(m.sl.slice(0, 25)); return [Math.min(...a), Math.max(...a)]; };
+const sum = (a) => a.reduce((s, v) => s + v, 0);
+const opLink = (s) => `<a href="${s.url}" target="_blank" rel="noopener noreferrer">${s.op}</a>`;
+
+function valsHtml(s, cls = '') {
+  const items = s.v.map((x) => `<div class="${x.nw ? 'nw' : ''}"><dt>${x.l}</dt><dd class="num">${x.v}<small>${x.u}</small>${x.dir ? `<span class="dir">${x.dir}</span>` : ''}</dd></div>`);
+  if (s.hsd) items.push(`<div class="nw"><dt>Änderung der Schneehöhe</dt><dd class="num hsd">${s.hsd.map((d, i) => `<span>${signed(d)}<em>${['24 h', '48 h', '72 h'][i]}</em></span>`).join('')}</dd></div>`);
+  else if (s.hsd === null) items.push(`<div><dt>Änderung der Schneehöhe</dt><dd style="font-size:12.5px;color:var(--faint);font-weight:500">liefert das SLF nicht</dd></div>`);
+  return `<dl class="vals ${cls}">${items.join('')}</dl>`;
+}
+
+// five day bars with p10–p90 whiskers
+function dayBars(vals, qs, max, label, w = 300, h = 76) {
+  const bw = w / 5, y = (v) => 6 + (1 - Math.min(v, max) / max) * (h - 22);
+  let s = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${label}: ${vals.map((v, i) => `${DAYS[i]} ${fmm(v)} mm, 8 von 10 Szenarien ${fmm(qs[i][0])} bis ${fmm(qs[i][1])}`).join('; ')}">`;
+  vals.forEach((v, i) => {
+    const cx = bw * i + bw / 2, [q1, q9] = qs[i];
+    s += `<line x1="${cx}" x2="${cx}" y1="${y(q9)}" y2="${y(q1)}" stroke="#B8862F" stroke-width="1.2"/>`;
+    s += `<line x1="${cx - 5}" x2="${cx + 5}" y1="${y(q9)}" y2="${y(q9)}" stroke="#B8862F" stroke-width="1.2"/>`;
+    s += `<rect x="${cx - 9}" y="${y(v)}" width="18" height="${Math.max(1.5, h - 16 - y(v))}" rx="3" fill="#B8862F" fill-opacity="${i === 0 ? 1 : .55}"/>`;
+    s += `<text x="${cx}" y="${h - 3}" font-size="11" text-anchor="middle" fill="#6F6553">${DAYS[i]} ${fmm(v)}</text>`;
+  });
+  return s + '</svg>';
+}
+
+// Schneefallgrenze über 120 h vor der Höhenspanne des Gletschers
+function slSpark(g, w = 560, h = 92) {
+  const m = g.model, lo = Math.min(g.h.low, ...nn(m.sl)) - 200, hi = g.h.top + 150;
+  const L = 4, R = 4, x = (t) => L + t / 120 * (w - L - R), y = (z) => 6 + (hi - z) / (hi - lo) * (h - 26);
+  let s = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Schneefallgrenze der nächsten fünf Tage zwischen ${fmtInt(Math.min(...nn(m.sl)))} und ${fmtInt(Math.max(...nn(m.sl)))} Meter, Gletscher von ${fmtInt(g.h.low)} bis ${fmtInt(g.h.top)} Meter">`;
+  s += `<rect x="${L}" y="${y(g.h.top)}" width="${w - L - R}" height="${y(g.h.low) - y(g.h.top)}" rx="4" fill="#E4F1F6"/>`;
+  s += `<line x1="${L}" x2="${w - R}" y1="${y(g.h.med)}" y2="${y(g.h.med)}" stroke="#6FAFC8" stroke-dasharray="3 3"/>`;
+  for (let d = 1; d <= 5; d++) { const t = 15 + 24 * (d - 1); if (t < 120) s += `<line x1="${x(t)}" x2="${x(t)}" y1="4" y2="${h - 20}" stroke="#E0D6BE"/>`; }
+  DAYS.forEach((d, i) => { const c = i === 0 ? 7 : 27 + 24 * (i - 1); s += `<text x="${x(c)}" y="${h - 6}" font-size="11" text-anchor="middle" fill="#6F6553">${d}</text>`; });
+  let path = '', pen = false;
+  m.sl.forEach((z, t) => { if (z == null) { pen = false; return; } path += `${pen ? 'L' : 'M'}${x(t).toFixed(1)},${y(z).toFixed(1)}`; pen = true; });
+  s += `<path d="${path}" fill="none" stroke="#B8862F" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+  s += `<circle cx="${x(0)}" cy="${y(m.sl[0])}" r="4" fill="#fff" stroke="#7A5418" stroke-width="2"/>`;
+  s += `<text x="${w - R - 4}" y="${y(g.h.top) + 12}" font-size="10.5" text-anchor="end" fill="#145A70">Gletscher ${fmtInt(g.h.low)}–${fmtInt(g.h.top)} m</text>`;
+  return s + '</svg>';
+}
+
+// Lage 0–100 gegen 1991–2020
+function rulerSvg(sn, w = 520) {
+  const x = (q) => 10 + q / 100 * (w - 20);
+  const seg = (a, b, c) => `<rect x="${x(a)}" y="22" width="${x(b) - x(a)}" height="12" fill="${c}"/>`;
+  const p = sn.place;
+  return `<svg viewBox="0 0 ${w} 74" role="img" aria-label="Lage ${p} von 100 unter den Wintern 1991 bis 2020 an diesem Kalendertag">
+    <clipPath id="rc${w}"><rect x="${x(0)}" y="22" width="${x(100) - x(0)}" height="12" rx="6"/></clipPath>
+    <g clip-path="url(#rc${w})">${seg(0, 10, '#E4E8F0')}${seg(10, 25, '#CBD3E2')}${seg(25, 75, '#A9B6CE')}${seg(75, 90, '#CBD3E2')}${seg(90, 100, '#E4E8F0')}</g>
+    <line x1="${x(50)}" x2="${x(50)}" y1="18" y2="38" stroke="#3D4F6B" stroke-width="2"/>
+    ${PCT_AT.map((q, i) => `<text x="${x(q)}" y="52" font-size="11.5" text-anchor="${i === 0 ? 'start' : i === 6 ? 'end' : 'middle'}" fill="#6F6553">${sn.pcts[i]}</text>`).join('')}
+    <text x="${x(0)}" y="69" font-size="11" fill="#6F6553">schneeärmster Winter</text>
+    <text x="${x(100)}" y="69" font-size="11" text-anchor="end" fill="#6F6553">schneereichster, cm</text>
+    <circle cx="${x(p)}" cy="28" r="7" fill="#fff" stroke="#2C2A26" stroke-width="2.5"/>
+    <text x="${p < 15 ? x(p) - 6 : x(p)}" y="12" font-size="12.5" font-weight="700" text-anchor="${p < 15 ? 'start' : 'middle'}" fill="#2C2A26">Lage ${p} von 100</text>
+  </svg>`;
+}
+function weekBars(vals, w = 260, h = 64) {
+  const max = Math.max(...vals) * 1.15, bw = w / 7;
+  return `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Schneehöhe im Gebiet 14. bis 20.11.: ${vals.join(', ')} cm">${vals.map((v, i) => {
+    const bh = v / max * (h - 30), cx = bw * i + bw / 2;
+    return `<rect x="${cx - 10}" y="${h - 16 - bh}" width="20" height="${bh}" rx="3" fill="#5A6E92" fill-opacity="${i === 6 ? 1 : .45}"/><text x="${cx}" y="${h - 19 - bh}" font-size="10.5" text-anchor="middle" fill="#3D4F6B">${v}</text><text x="${cx}" y="${h - 3}" font-size="10.5" text-anchor="middle" fill="#6F6553">${PAST[i]}</text>`;
+  }).join('')}</svg>`;
+}
+const snowExplain = (sn) => `Analyse für das Gebiet um den Gletscher, keine Messung und keine Höhenstufe (${sn.cells}). Lage 0 = so wenig Schnee wie im schneeärmsten der 30 Winter 1991–2020 an diesem Kalendertag, 100 = so viel wie im schneereichsten. ${SNOW_SRC}. Nur für Österreich.`;
+const snowMissing = '<p class="empty"><b>Schneeanalyse nur für österreichische Gletscher.</b> SNOWGRID von GeoSphere Austria deckt die Schweiz nicht ab. Die gemessene Schneehöhe der nächsten Station steht oben.</p>';
+
+function frame(g, body) {
+  return `
+    <nav class="steps" aria-label="Ebenen des Dossiers">
+      <div class="step is-on"><i>1</i><span><b>Heute</b><small>Schmelze, Oberfläche, Tour</small></span></div>
+      <div class="step"><i>2</i><span><b>Satellit</b><small>Saison, Schneegrenze, Bilanz</small></span></div>
+      <div class="step"><i>3</i><span><b>Langzeit</b><small>Reihen, Projektion, Quellen</small></span></div>
+    </nav>
+    <section class="card hero" aria-label="Gletscher">
+      <div class="card-head"><h2>${g.name}</h2><span class="chip f"><i></i>${g.chip}</span></div>
+      <p>${g.sub}. Stand ${NOW}.</p>
+    </section>
+    <div class="placeholder"><b>Schmelzindex und Wetter am Gletscher</b>: bestehende Karten, unverändert</div>
+    ${body}`;
+}
+
+/* ======================= A: Höhenleiter ======================= */
+function variantA(g) {
+  const m = g.model, H = g.h, [s1, s2] = sl24(m);
+  const rows = [
+    { z: H.top, kind: 'ice', key: 'top', name: 'Oberkante' },
+    { z: H.med, kind: 'ice', key: 'med', name: 'Mittlere Höhe' },
+    { z: H.low, kind: 'ice', key: 'low', name: 'Zunge' },
+    { z: slNow(m), kind: 'sl' },
+    ...g.stations.map((s) => ({ z: s.elev, kind: 'stn', s })),
+  ].sort((a, b) => b.z - a.z);
+  const onIce = (r) => r.z <= H.top && r.z >= H.low;
+  const li = rows.map((r) => {
+    let body = '';
+    if (r.kind === 'ice') {
+      const v = m.sn[r.key], q = m.snq[r.key];
+      body = `<div class="rhead"><b>${r.name}</b>${chip('o')}</div>
+        <div class="snowline nw">
+          <div class="fig"><b class="num">${fmm(v[0])}<small>mm</small></b><span>Neuschnee heute als Wasserwert, in 8 von 10 Szenarien ${fmm(q[0][0])}–${fmm(q[0][1])} mm</span><span>Fünf Tage zusammen erwartet ${fmm(sum(v))} mm</span></div>
+          <div class="daybars">${dayBars(v, q, Math.max(...m.snq.top.map((x) => x[1])), `Neuschnee an der ${r.name}`)}</div>
+        </div>`;
+    } else if (r.kind === 'stn') {
+      const s = r.s;
+      body = `<div class="rhead"><span class="sdot">${s.id}</span><b>${s.name}</b>${chip('m')}<span class="age">${s.age}</span></div>
+        <p class="meta">${opLink(s)}, ${fmtKm(s.km)}${s.imis ? ', Messnetz IMIS' : ''}</p>${valsHtml(s)}`;
+    } else {
+      body = `<div class="rhead"><b>Schneefallgrenze</b>${chip('o')}</div>
+        <p class="meta nw">Jetzt bei <b class="num">${fmtInt(slNow(m))} m</b>, in den nächsten 24 Stunden zwischen ${fmtInt(s1)} und ${fmtInt(s2)} m. Darüber fällt Niederschlag laut Modell als Schnee.</p>
+        <div class="nw">${slSpark(g, state.w === 'm' ? 320 : 600, state.w === 'm' ? 96 : 92)}</div>`;
+    }
+    const cls = ['rung', r.kind, onIce(r) ? 'on-ice' : '', r.key === 'top' ? 'top' : '', r.key === 'low' ? 'low' : ''].join(' ');
+    return `<li class="${cls}" data-origin="${r.kind === 'stn' ? 'measured' : 'model'}"><span class="z num">${fmtInt(r.z)} m</span><span class="ice" aria-hidden="true"></span><div class="body">${body}</div></li>`;
+  }).join('');
+  const sn = g.snow;
+  const area = sn ? `<div class="area" data-origin="analysis">
+      <div><div class="rhead"><b>Im Gebiet, ohne Höhe</b>${chip('a')}</div>
+        <div class="big num nw" style="margin-top:8px">${sn.hs}<small>cm Schnee</small></div>
+        <p class="nw">Wasserwert <b class="num">${sn.swe} mm</b></p>
+        <p>Stand 20.11., ${sn.hs - sn.week[0] >= 0 ? '+' : '−'}${Math.abs(sn.hs - sn.week[0])} cm in 7 Tagen</p></div>
+      <div><div class="nw">${rulerSvg(sn, state.w === 'm' ? 320 : 520)}</div><div class="nw wk">${weekBars(sn.week, state.w === 'm' ? 300 : 340)}</div></div>
+    </div><p class="fine">${snowExplain(sn)}</p>` : snowMissing;
+  return `<section class="card" aria-label="Am Gletscher nach Höhe">
+    <div class="card-head"><div><h3>Am Gletscher, nach Höhe</h3><p>Messung, Vorhersage und Schneefallgrenze in der Reihenfolge der Höhe. ${SITE_NOTE}</p></div><div class="chips">${chip('m')}${chip('o')}</div></div>
+    <ol class="ladder">${li}</ol>
+    <p class="missing">${g.none.map((n) => `${n}: keine Station innerhalb von 5 km und ±300 m.`).join(' ')}</p>
+    ${area}
+    <p class="fine">Nach Höhe geordnet, nicht maßstäblich. Neuschnee als Wasserwert in mm, ohne Umrechnung in cm (die Dichte frischen Schnees ist nicht bekannt). Die Spanne gilt je Tag; für fünf Tage zusammen gibt es keine. Modell: ${FUSION_SRC}. Stationen: Rohdaten der Betreiber, geprüft auf Grenzen, Sprung, Stillstand und Alter.</p>
+  </section>`;
+}
+
+/* ======================= B: Höhe und Zeit ======================= */
+function chartB(g, narrow) {
+  const m = g.model, H = g.h, sn = g.snow;
+  const W = narrow ? 360 : 780, L = narrow ? 34 : 58, R = narrow ? 34 : 58;
+  const T = 30, y1 = narrow ? 210 : 236, b0 = y1 + 52, b1 = b0 + (narrow ? 104 : 118), HH = b1 + 30;
+  const x = (h) => L + (h + 168) / 288 * (W - L - R);
+  const lo = Math.floor((H.low - 450) / 500) * 500, hi = Math.ceil((H.top + 200) / 500) * 500;
+  const ye = (z) => T + (hi - z) / (hi - lo) * (y1 - T);
+  const fs = narrow ? 10.5 : 11;
+  let s = `<svg viewBox="0 0 ${W} ${HH}" role="img" aria-label="Oben: Höhe gegen Zeit mit Stationen und Schneefallgrenze. Unten: Schneehöhe im Gebiet der letzten Woche und Neuschnee der nächsten fünf Tage">`;
+  s += `<defs><linearGradient id="iceB" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#F1F8FB"/><stop offset="1" stop-color="#CFE5EE"/></linearGradient></defs>`;
+  // elevation grid
+  for (let z = lo; z <= hi; z += 500) s += `<line x1="${L}" x2="${W - R}" y1="${ye(z)}" y2="${ye(z)}" stroke="#E0D6BE"/><text x="${L - 5}" y="${ye(z) + 4}" font-size="${fs}" text-anchor="end" fill="#6F6553">${fmtInt(z)}</text>`;
+  // ice band across time
+  s += `<rect x="${L}" y="${ye(H.top)}" width="${W - L - R}" height="${ye(H.low) - ye(H.top)}" fill="url(#iceB)"/>`;
+  s += `<line x1="${L}" x2="${W - R}" y1="${ye(H.med)}" y2="${ye(H.med)}" stroke="#6FAFC8" stroke-dasharray="4 4"/>`;
+  [[H.top, narrow ? 'Ober.' : 'Oberkante'], [H.med, 'Mitte'], [H.low, 'Zunge']].forEach(([z, l]) => { s += `<text x="${W - R + 4}" y="${ye(z) + 4}" font-size="${fs}" fill="#145A70">${l}</text>`; });
+  // midnights
+  for (let t = -153; t <= 111; t += 24) s += `<line x1="${x(t)}" x2="${x(t)}" y1="${T}" y2="${b1}" stroke="#EDE6D3"/>`;
+  // captions
+  s += `<text x="${x(-166)}" y="${T - 10}" font-size="${fs + 1}" font-weight="600" fill="#4F6A3D">Gemessen, letzte Woche</text>`;
+  s += `<text x="${x(3)}" y="${T - 10}" font-size="${fs + 1}" font-weight="600" fill="#7A5418">${narrow ? 'Modell' : 'Vorhersage, fünf Tage'}</text>`;
+  // stations at their height, just before now
+  g.stations.forEach((st, i) => {
+    const cx = x(-12 - i * (narrow ? 20 : 22)), cy = ye(st.elev);
+    s += `<line x1="${x(-168)}" x2="${cx}" y1="${cy}" y2="${cy}" stroke="#5F7A4C" stroke-width="1" stroke-dasharray="2 3"/>`;
+    s += `<circle cx="${cx}" cy="${cy}" r="${narrow ? 8 : 9.5}" fill="#5F7A4C" stroke="#fff" stroke-width="2"/><text x="${cx}" y="${cy + 4}" font-size="${fs}" font-weight="700" text-anchor="middle" fill="#fff">${st.id}</text>`;
+  });
+  // snowfall line
+  let path = '', pen = false;
+  m.sl.forEach((z, t) => { if (z == null) { pen = false; return; } path += `${pen ? 'L' : 'M'}${x(t).toFixed(1)},${ye(z).toFixed(1)}`; pen = true; });
+  s += `<path d="${path}" fill="none" stroke="#B8862F" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
+  s += `<text x="${x(24)}" y="${ye(m.sl[24] ?? m.sl[23] ?? slNow(m)) - 9}" font-size="${fs}" font-weight="600" fill="#7A5418">Schneefallgrenze</text>`;
+  s += `<text x="${x(112)}" y="${ye(lo + 250)}" font-size="${fs - .5}" text-anchor="middle" fill="#6F6553">${narrow ? 'trocken' : 'keine Angabe, trocken'}</text>`;
+  // bottom: past SNOWGRID bars (cm), future new snow (mm w. e.)
+  const yb = (v) => b1 - v / 50 * (b1 - b0), ym = (v) => b1 - Math.min(v, 36) / 36 * (b1 - b0);
+  s += `<line x1="${L}" x2="${W - R}" y1="${b1}" y2="${b1}" stroke="#D9D0B8"/>`;
+  [0, 25, 50].forEach((v) => { s += `<text x="${L - 5}" y="${yb(v) + 4}" font-size="${fs}" text-anchor="end" fill="#3D4F6B">${v}</text>`; });
+  [0, 18, 36].forEach((v) => { s += `<text x="${W - R + 4}" y="${ym(v) + 4}" font-size="${fs}" fill="#7A5418">${v}</text>`; });
+  s += `<text x="${x(-166)}" y="${b0 - 12}" font-size="${fs}" fill="#3D4F6B">${narrow ? 'Schnee im Gebiet, cm' : 'Schneehöhe im Gebiet, cm (Analyse, ohne Höhe)'}</text>`;
+  s += `<text x="${x(3)}" y="${b0 - 12}" font-size="${fs}" fill="#7A5418">${narrow ? 'Neuschnee, mm W.' : 'Neuschnee je Tag, mm Wasserwert'}</text>`;
+  if (sn) sn.week.forEach((v, k) => { const c = x(-21 - 24 * (6 - k)), bw = narrow ? 10 : 22; s += `<rect x="${c - bw / 2}" y="${yb(v)}" width="${bw}" height="${b1 - yb(v)}" rx="3" fill="#5A6E92" fill-opacity="${k === 6 ? 1 : .5}"/>${narrow ? '' : `<text x="${c}" y="${yb(v) - 4}" font-size="10.5" text-anchor="middle" fill="#3D4F6B">${v}</text>`}`; });
+  else s += `<text x="${x(-84)}" y="${(b0 + b1) / 2 + 4}" font-size="${fs}" text-anchor="middle" fill="#6F6553">${narrow ? 'keine Analyse in der Schweiz' : 'Schneeanalyse nur für Österreich'}</text>`;
+  // measured snow depth of the station, own mark
+  const hsStn = g.stations.find((st) => st.v.some((v) => v.k === 'snow'));
+  if (hsStn) { const v = Number(hsStn.v.find((q) => q.k === 'snow').v), mx = x(-6), my = yb(Math.min(v, 50)); s += `<path d="M${mx} ${my - 6} L${mx + 6} ${my} L${mx} ${my + 6} L${mx - 6} ${my}Z" fill="#5F7A4C" stroke="#fff" stroke-width="1.5"/>`; }
+  DAYS.forEach((d, k) => {
+    const c = x(k === 0 ? 7 : 27 + 24 * (k - 1)), bw = narrow ? 3.5 : 7, gap = bw + (narrow ? 1 : 2);
+    ['low', 'med', 'top'].forEach((key, j) => {
+      const v = m.sn[key][k], [q1, q9] = m.snq[key][k], cx = c + (j - 1) * gap, op = [.4, .7, 1][j];
+      s += `<line x1="${cx}" x2="${cx}" y1="${ym(q9)}" y2="${ym(q1)}" stroke="#7A5418" stroke-width="1" stroke-opacity=".7"/>`;
+      s += `<rect x="${cx - bw / 2}" y="${ym(v)}" width="${bw}" height="${Math.max(1, b1 - ym(v))}" rx="1.5" fill="#B8862F" fill-opacity="${op}"/>`;
+    });
+  });
+  // day labels
+  PAST.forEach((d, k) => { if (narrow && k % 2) return; s += `<text x="${x(-21 - 24 * (6 - k))}" y="${b1 + 16}" font-size="${fs}" text-anchor="middle" fill="#6F6553">${d}</text>`; });
+  DAYS_LONG.forEach((d, k) => { s += `<text x="${x(k === 0 ? 7 : 27 + 24 * (k - 1))}" y="${b1 + 16}" font-size="${fs}" text-anchor="middle" fill="#6F6553">${narrow ? DAYS[k] : d}</text>`; });
+  // now
+  s += `<line x1="${x(0)}" x2="${x(0)}" y1="${T - 4}" y2="${b1}" stroke="#2C2A26" stroke-width="1.5"/>`;
+  s += `<rect x="${x(0) - 17}" y="${T - 4}" width="34" height="16" rx="8" fill="#2C2A26"/><text x="${x(0)}" y="${T + 8}" font-size="10.5" font-weight="600" text-anchor="middle" fill="#FAF6EA">jetzt</text>`;
+  return s + '</svg>';
+}
+function variantB(g) {
+  const m = g.model, sn = g.snow, narrow = state.w === 'm';
+  const rows = g.stations.map((s) => `<li data-origin="measured"><span class="sdot">${s.id}</span>
+      <div class="who"><b>${s.name}</b><span>${fmtInt(s.elev)} m, ${fmtKm(s.km)}. ${opLink(s)}, ${s.age}</span></div>${valsHtml(s)}</li>`).join('');
+  const cell = (v, q, u = '') => `<td><b>${fmm(v)}</b>${u}<small>${fmm(q[0])}–${fmm(q[1])}</small></td>`;
+  const table = `<div class="dtab-wrap"><table class="dtab nw">
+      <thead><tr><th scope="col">Je Tag</th>${(narrow ? DAYS : DAYS_LONG).map((d) => `<th scope="col">${d}</th>`).join('')}</tr></thead>
+      <tbody>
+        <tr><th scope="row">Neuschnee, Oberkante<span>mm Wasserwert</span></th>${m.sn.top.map((v, i) => cell(v, m.snq.top[i])).join('')}</tr>
+        <tr><th scope="row">Neuschnee, Mitte<span>mm Wasserwert</span></th>${m.sn.med.map((v, i) => cell(v, m.snq.med[i])).join('')}</tr>
+        <tr><th scope="row">Neuschnee, Zunge<span>mm Wasserwert</span></th>${m.sn.low.map((v, i) => cell(v, m.snq.low[i])).join('')}</tr>
+        <tr><th scope="row">Niederschlag, Mitte<span>mm</span></th>${m.pr.map((v, i) => cell(v, m.pq[i])).join('')}</tr>
+        <tr><th scope="row">Stärkste Böe<span>km/h</span></th>${m.gu.map((v, i) => cell(v, m.gq[i])).join('')}</tr>
+      </tbody></table></div>`;
+  const aline = sn ? `<div class="aline nw" data-origin="analysis">${chip('a')}<b class="v num">${sn.hs} cm</b><span class="num" style="color:var(--a-text)">Wasserwert ${sn.swe} mm</span><p>Lage ${sn.place} von 100 unter den Wintern 1991–2020 an diesem Tag (Median ${sn.pcts[3]} cm, 8 von 10 Wintern ${sn.pcts[1]}–${sn.pcts[5]} cm). Stand 20.11.</p></div>` : snowMissing;
+  return `<section class="card" aria-label="Höhe und Zeit">
+    <div class="card-head"><div><h3>Schnee am Gletscher, Woche davor und fünf Tage danach</h3><p>Links, was Stationen gemessen haben, rechts, was buscosun Fusion erwartet. Das blaue Band ist die Höhenspanne des Gletschers.</p></div><div class="chips">${chip('m')}${chip('a')}${chip('o')}</div></div>
+    <div class="chartB nw">${chartB(g, narrow)}</div>
+    <div class="legend" aria-hidden="true">
+      <span><i style="background:#B8862F;height:3px"></i>Schneefallgrenze</span>
+      <span><i style="background:linear-gradient(90deg,#B8862F66,#B8862FB3,#B8862F)"></i>Neuschnee Zunge, Mitte, Oberkante; Strich = 8 von 10 Szenarien</span>
+      <span><i style="background:#5A6E92"></i>Schneehöhe im Gebiet</span>
+      <span><i style="background:#5F7A4C;width:10px;height:10px;transform:rotate(45deg)"></i>Schneehöhe an der Station</span>
+    </div>
+    ${aline}
+    <ul class="srows">${rows}</ul>
+    <p class="fine" style="margin-top:-6px">${g.none.map((n) => `${n}: keine Station innerhalb von 5 km und ±300 m.`).join(' ')} ${SITE_NOTE}</p>
+    ${table}
+    <p class="fine">Große Zahl = erwartet, darunter die Spanne aus 100 Szenarien (8 von 10 liegen darin). Neuschnee als Wasserwert, nicht in cm. Modell: ${FUSION_SRC}. ${sn ? `Schnee im Gebiet: ${SNOW_SRC}, Analyse, keine Messung.` : ''}</p>
+  </section>`;
+}
+
+/* ======================= C: Nach Herkunft ======================= */
+function variantC(g) {
+  const m = g.model, sn = g.snow, [s1, s2] = sl24(m), narrow = state.w === 'm';
+  const measured = g.stations.map((s) => `<div class="blk" data-origin="measured">
+      <div class="rhead"><span class="sdot">${s.id}</span><b>${s.name}</b><span class="age" style="margin-left:auto;font-size:12px;color:var(--faint)">${s.age}</span></div>
+      <p class="meta">${fmtInt(s.elev)} m, ${fmtKm(s.km)}. ${opLink(s)}</p>${valsHtml(s)}</div>`).join('')
+    + `<p class="fine">${g.none.map((n) => `${n}: keine Station im Fenster.`).join(' ')} ${SITE_NOTE}</p>`;
+  const analysis = sn ? `<div class="blk" data-origin="analysis">
+      <dl class="vals analysis"><div class="nw"><dt>Schneehöhe</dt><dd class="num" style="font-size:28px">${sn.hs}<small>cm</small></dd></div><div class="nw"><dt>Wasserwert</dt><dd class="num" style="font-size:28px">${sn.swe}<small>mm</small></dd></div></dl>
+      <p class="meta">Stand 20.11., Gebiet um den Gletscher</p></div>
+    <div class="blk nw"><b style="font-size:13px">Gegen die Winter 1991–2020</b>${rulerSvg(sn, 320)}<p class="meta">Median an diesem Tag ${sn.pcts[3]} cm, 8 von 10 Wintern ${sn.pcts[1]}–${sn.pcts[5]} cm.</p></div>
+    <div class="blk nw"><b style="font-size:13px">Letzte sieben Tage</b>${weekBars(sn.week, 300)}<p class="meta">Wasserwert ${sn.weekSwe[0]} → ${sn.weekSwe[6]} mm</p></div>
+    <p class="fine">${snowExplain(sn)}</p>` : snowMissing;
+  const mrow = (key, l) => `<tr><th>${l}</th>${m.sn[key].map((v, i) => `<td>${fmm(v)}<small>${fmm(m.snq[key][i][0])}–${fmm(m.snq[key][i][1])}</small></td>`).join('')}</tr>`;
+  const model = `<div class="blk nw" data-origin="model">
+      <div class="rhead"><b>Schneefallgrenze</b></div>
+      <dl class="vals model"><div><dt>jetzt</dt><dd class="num">${fmtInt(slNow(m))}<small>m</small></dd></div><div><dt>nächste 24 h</dt><dd class="num">${fmtInt(s1)}–${fmtInt(s2)}<small>m</small></dd></div></dl>
+      ${slSpark(g, 320, 100)}</div>
+    <div class="blk nw"><div class="rhead"><b>Neuschnee je Tag</b></div>
+      <table class="stab"><thead><tr><th>mm Wasserwert</th>${DAYS.map((d) => `<th>${d}</th>`).join('')}</tr></thead>
+      <tbody>${mrow('top', `Oberkante ${fmtInt(g.h.top)}`)}${mrow('med', `Mitte ${fmtInt(g.h.med)}`)}${mrow('low', `Zunge ${fmtInt(g.h.low)}`)}</tbody></table></div>
+    <div class="blk nw"><div class="rhead"><b>Niederschlag und Böe</b></div>
+      <table class="stab"><thead><tr><th></th>${DAYS.map((d) => `<th>${d}</th>`).join('')}</tr></thead>
+      <tbody><tr><th>Niederschlag mm</th>${m.pr.map((v, i) => `<td>${fmm(v)}<small>${fmm(m.pq[i][0])}–${fmm(m.pq[i][1])}</small></td>`).join('')}</tr>
+      <tr><th>Böe km/h</th>${m.gu.map((v, i) => `<td>${v}<small>${m.gq[i][0]}–${m.gq[i][1]}</small></td>`).join('')}</tr></tbody></table></div>
+    <p class="fine">Klein darunter: 8 von 10 Szenarien. ${FUSION_SRC}.</p>`;
+  return `<section class="card" aria-label="Nach Herkunft">
+    <div class="card-head"><div><h3>Schnee und Wetter am Gletscher</h3><p>Getrennt nach Herkunft, damit klar bleibt, was gemessen, was gerechnet und was vorhergesagt ist.</p></div></div>
+    <div class="cols">
+      <div class="col m"><h4>Gemessen</h4><p class="what">Instrument an einer Station in der Nähe</p>${measured}</div>
+      <div class="col a"><h4>Analyse</h4><p class="what">aus Messungen auf ein 1-km-Gitter gerechnet</p>${analysis}</div>
+      <div class="col o"><h4>Modell</h4><p class="what">Vorhersage von buscosun Fusion, ${narrow ? 'fünf Tage' : 'nächste fünf Tage'}</p>${model}</div>
+    </div>
+  </section>`;
+}
+
+/* ======================= Notizen ======================= */
+const NOTES = {
+  A: `<section><h2>A Höhenleiter</h2><p>Eine Leiter von der Oberkante bis unter die Zunge. Stationen, Gletscherhöhen und die Schneefallgrenze stehen in der Reihenfolge ihrer Höhe; das Eis läuft als blaue Säule mit. Die Schneeanalyse steht abgesetzt darunter, weil sie keine Höhe hat.</p>
+    <h3>Stärken</h3><ul><li>Beantwortet die Frage, die am Gletscher zählt: was passiert auf welcher Höhe.</li><li>Man sieht sofort, dass die Station 600 m unter der Oberkante steht.</li><li>Am Telefon eine einfache Liste, nichts wird klein.</li></ul>
+    <h3>Grenzen</h3><ul><li>Nicht maßstäblich; der Abstand zwischen zwei Reihen sagt nichts.</li><li>Die Leiter wird lang, wenn viele Stationen zugeordnet sind.</li></ul></section>`,
+  B: `<section><h2>B Höhe und Zeit</h2><p>Ein Bild, zwei Achsen: oben die Höhe mit dem Gletscher als Band, unten die Mengen. Links der „jetzt“-Linie die vergangene Woche (Stationen, Schneeanalyse), rechts fünf Tage Modell (Schneefallgrenze, Neuschnee an drei Höhen).</p>
+    <h3>Stärken</h3><ul><li>Zeigt, wann die Schneefallgrenze unter die Zunge sinkt.</li><li>Vergangenheit und Vorhersage in einem Blick, Herkunft klar getrennt durch die Linie.</li><li>Die Tabelle darunter trägt jede Zahl genau.</li></ul>
+    <h3>Grenzen</h3><ul><li>Unten zwei Einheiten (cm Schneehöhe, mm Wasserwert) mit zwei Skalen.</li><li>Am Telefon dicht; braucht dort die Tabelle.</li></ul></section>`,
+  C: `<section><h2>C Nach Herkunft</h2><p>Drei Spalten, je eine Farbe: gemessen, Analyse, Modell. Jede Spalte erklärt in einem Satz, woher ihre Zahlen kommen.</p>
+    <h3>Stärken</h3><ul><li>Am ehrlichsten lesbar; niemand verwechselt die Analyse mit einer Messung.</li><li>Leicht zu bauen, jede Spalte ist eine eigene Komponente.</li></ul>
+    <h3>Grenzen</h3><ul><li>Der Zusammenhang (Station oben, Schneefallgrenze darunter) muss der Leser selbst herstellen.</li><li>In der Schweiz bleibt die mittlere Spalte leer.</li></ul></section>`,
+};
+const PARAMS = `<section><h2>Was neu anzeigbar ist</h2>
+  <table class="ptab"><tbody>
+    <tr class="grp"><th colspan="2">Gemessen (Stationen)</th></tr>
+    <tr><th>Änderung der Schneehöhe 24, 48, 72 h <span class="nwt">neu</span></th><td>GI, nur Tirol</td></tr>
+    <tr><th>Luftfeuchte, Taupunkt <span class="nwt">neu</span></th><td>gespeichert, nie gezeigt</td></tr>
+    <tr><th>IMIS-Stationen des SLF</th><td>GI, 846 statt 387</td></tr>
+    <tr><th>Abstand vom Rand des Gletschers</th><td>GI, statt vom Punkt</td></tr>
+    <tr class="grp"><th colspan="2">Analyse (SNOWGRID)</th></tr>
+    <tr><th>Schneehöhe, Wasserwert <span class="nwt">neu</span></th><td>GN, nur AT</td></tr>
+    <tr><th>Lage 0–100 gegen 1991–2020 <span class="nwt">neu</span></th><td>GN</td></tr>
+    <tr><th>Spanne früherer Winter je Tag <span class="nwt">neu</span></th><td>GN</td></tr>
+    <tr><th>Verlauf der letzten Tage <span class="nwt">neu</span></th><td>GN, 7 von 400</td></tr>
+    <tr class="grp"><th colspan="2">Modell (buscosun Fusion)</th></tr>
+    <tr><th>Schneefallgrenze je Stunde, 120 h <span class="nwt">neu</span></th><td>GS</td></tr>
+    <tr><th>Neuschnee an Zunge, Mitte, Oberkante <span class="nwt">neu</span></th><td>GS, mm W.</td></tr>
+    <tr><th>Spanne Niederschlag, Neuschnee, Böe <span class="nwt">neu</span></th><td>GS, je Tag</td></tr>
+  </tbody></table>
+  <h3>Offen für dich</h3><ul>
+    <li>Feuchte und Taupunkt: die Zuordnung kennt sie noch nicht; im Mockup kommen sie von der Temperaturstation.</li>
+    <li>Herkunft „Analyse“ als vierte Farbe (Schiefer).</li>
+    <li>Neuschnee in mm Wasserwert lassen oder in cm umrechnen (bräuchte eine gesetzte Dichte).</li>
+    <li>Wind und Böe in km/h wie die bestehende Karte.</li></ul>
+  <p class="fine" style="margin-top:8px">Echt: Spanne 1991–2020 und 14.–20.11. aus der SNOWGRID-Zelle am Hintereisferner, Tiroler Stationswerte vom 21.11. Erfunden: Abstände, Alter, Schweizer Werte, Feuchte, Taupunkt und alle Modellwerte.</p></section>`;
+
+/* ======================= Render ======================= */
+const state = { v: 'A', g: 'AT', w: 'd', n: 'off' };
+function render() {
+  const g = GLACIERS[state.g];
+  const body = state.v === 'A' ? variantA(g) : state.v === 'B' ? variantB(g) : variantC(g);
+  const mock = document.getElementById('mock');
+  mock.className = `mock${state.w === 'm' ? ' is-phone' : ''}${state.n === 'on' ? ' mark-new' : ''}`;
+  mock.innerHTML = frame(g, body);
+  document.getElementById('notes').innerHTML = NOTES[state.v] + PARAMS;
+  for (const seg of document.querySelectorAll('.seg[data-ctl]')) {
+    for (const b of seg.querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.val === state[seg.dataset.ctl]));
+  }
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('.seg[data-ctl] button');
+  if (!b) return;
+  state[b.closest('.seg').dataset.ctl] = b.dataset.val;
+  render();
+});
+render();
+</script>
+</body>
+</html>
