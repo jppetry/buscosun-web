@@ -1404,9 +1404,12 @@ if (hsurfGreys.length >= 2) {
     `${pf.length} Familien: ${pf.join(', ')}`);
   // BW-13 (§32): Wind hängt an KEINEM Manifest mehr (`manifest: null`) — Lauf und
   // Bilder kommen aus `index.json`. Alle übrigen Familien trägt `latest-grib.json`.
-  add('`latest-grib.json` bekommt alle Familien außer Wind; Wind hängt an keinem Manifest',
-    RM.GRIB_FAMILIES.length === pf.length - 1 && !RM.GRIB_FAMILIES.includes('wind')
-    && RM.FAMILIES.wind.manifest === null && RM.familiesOf('wind').length === 0);
+  // Phase WH (audit/wind-2km.md): the wind has a second family at full resolution (`windHd`) — like `wind` it hangs on no
+  // manifest and comes from `index.json` alone.
+  add('`latest-grib.json` bekommt alle Familien außer Wind (`wind` und, seit Phase WH, `windHd`); Wind hängt an keinem Manifest',
+    RM.GRIB_FAMILIES.length === pf.length - 2 && !RM.GRIB_FAMILIES.includes('wind') && !RM.GRIB_FAMILIES.includes('windHd')
+    && RM.FAMILIES.wind.manifest === null && RM.FAMILIES.windHd.manifest === null && RM.familiesOf('wind').length === 0
+    && pf.filter((f) => RM.FAMILIES[f].manifest === null).join() === 'wind,windHd');
   add('… und der Index trägt Wind trotzdem (sonst hätte der Layer keine Quelle)',
     RM.FAMILY_KEYS.includes('wind') && RM.FAMILIES.wind.file === 'wind');
 

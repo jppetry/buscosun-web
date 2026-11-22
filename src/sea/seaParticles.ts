@@ -5,7 +5,8 @@
  * Wetterkarte's `WindLayer` class unchanged.
  *
  * The particles show the 10-m wind FIELD of ICON-D2 (DWD) from the data repo, the same pictures the Wetterkarte draws
- * (measured 22.11.: 13 steps of 0–12 h per run, every second model cell ≈ 4,4 km, ≈ 236 KB per step). That is NOT
+ * (measured 22.11.: 13 steps of 0–12 h per run; since phase WH every model cell ≈ 2,2 km on desktop, every second one on
+ * touch devices — `audit/wind-2km.md`). That is NOT
  * buscosun Fusion: the arrows and values at the spots stay buscosun Fusion, and the two may disagree — the legend names
  * the field's source. A lake a few kilometres wide is one or two cells of this field: it shows the wind of the region,
  * not a lake's own wind system.
@@ -52,7 +53,7 @@ export function particlesFetchWant(w: ParticleWindow | null, tMs: number, loaded
 /** What the layer tells the page. `rest` = the main layer „Strömung“ is chosen (the ripples move there, E-BS-16). */
 export type SeaParticleState =
   | { kind: 'loading' }
-  | { kind: 'ok'; w: ParticleWindow }
+  | { kind: 'ok'; w: ParticleWindow; /** Phase WH: the field carries every model cell (2,2 km) instead of every second one. */ hd?: boolean }
   | { kind: 'outside'; side: 'before' | 'after'; w: ParticleWindow }
   | { kind: 'na' }
   | { kind: 'rest' };
@@ -61,7 +62,7 @@ export type SeaParticleState =
 export function particleLegend(s: SeaParticleState, when: (ms: number) => string): string {
   switch (s.kind) {
     case 'loading': return 'Windpartikel laden.';
-    case 'ok': return `Windpartikel: Windfeld des DWD-Modells ICON-D2 (Lauf ${String(new Date(s.w.runMs).getUTCHours()).padStart(2, '0')} UTC), nicht buscosun Fusion. Die Werte an den Spots können davon abweichen.`;
+    case 'ok': return `Windpartikel: Windfeld des DWD-Modells ICON-D2 (Lauf ${String(new Date(s.w.runMs).getUTCHours()).padStart(2, '0')} UTC, ${s.hd ? '2,2 km' : 'jede zweite Zelle, 4,4 km'}), nicht buscosun Fusion. Die Werte an den Spots können davon abweichen.`;
     case 'outside': return s.side === 'after'
       ? `Windpartikel: keine für diese Stunde. Das Windfeld der Karte reicht bis ${when(s.w.toMs)} Uhr.`
       : `Windpartikel: keine für diese Stunde. Das Windfeld der Karte beginnt ${when(s.w.fromMs)} Uhr.`;

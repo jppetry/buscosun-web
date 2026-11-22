@@ -48,9 +48,9 @@ add('A4 ein Feld älter als drei Stunden wird mit seinem Fenster neu geholt, ein
   && particlesFetchWant(W, RUN + 3 * H, 12, SEA_PARTICLES_REFRESH_MS) === null && SEA_PARTICLES_REFRESH_MS === 3 * H);
 const when = (ms) => `T${(ms - RUN) / H}`;
 const okLine = particleLegend({ kind: 'ok', w: W }, when);
-add('A5 Legende: nennt ICON-D2 mit Lauf und sagt „nicht buscosun Fusion“; keine Prozente, kein „sicher“',
-  /ICON-D2 \(Lauf 00 UTC\)/.test(okLine) && /nicht buscosun Fusion/.test(okLine) && /Spots können davon abweichen/.test(okLine) && !/%|sicher/.test(okLine)
-  && /Lauf 21 UTC/.test(particleLegend({ kind: 'ok', w: { ...W, runMs: RUN - 3 * H } }, when)), okLine);
+add('A5 Legende: nennt ICON-D2 mit Lauf und Auflösung (2,2 km nur beim vollen Feld) und sagt „nicht buscosun Fusion“; keine Prozente, kein „sicher“',
+  /ICON-D2 \(Lauf 00 UTC, jede zweite Zelle, 4,4 km\)/.test(okLine) && /ICON-D2 \(Lauf 00 UTC, 2,2 km\)/.test(particleLegend({ kind: 'ok', w: W, hd: true }, when)) && /nicht buscosun Fusion/.test(okLine) && /Spots können davon abweichen/.test(okLine) && !/%|sicher/.test(okLine)
+  && /Lauf 21 UTC,/.test(particleLegend({ kind: 'ok', w: { ...W, runMs: RUN - 3 * H } }, when)), okLine);
 add('A6 Legende außerhalb des Felds nennt, bis wann bzw. ab wann es reicht; laden, keine Daten und Ruhe haben eigene Worte',
   /keine für diese Stunde.*reicht bis T4 Uhr/.test(particleLegend({ kind: 'outside', side: 'after', w: W }, when))
   && /keine für diese Stunde.*beginnt T3 Uhr/.test(particleLegend({ kind: 'outside', side: 'before', w: W }, when))
@@ -74,7 +74,7 @@ const tmp = mkdtempSync(join(tmpdir(), 'sea-particles-'));
 const STUBS = {
   WindLayer: 'export class WindLayer { constructor(o) { this.id = o.id; this.o = o; this.calls = []; globalThis.__sp.layers.push(this); } setDensityMultiplier(x) { this.calls.push(["density", x]); } setShowHeatmap(x) { this.calls.push(["heatmap", x]); } setShowParticles(x) { this.calls.push(["particles", x]); } setSuspended(x) { this.calls.push(["suspended", x]); } setWindData(img, meta) { this.calls.push(["data", img, meta]); } }',
   weatherWindPreset: 'export const WEATHER_WIND_DENSITY = 0.55; export function weatherWindOptions(c) { return { preset: true, coarse: c }; }',
-  iconD2WindSource: 'export function fetchIconD2Wind(signal, a, b, opts) { const sp = globalThis.__sp; sp.calls = (sp.calls ?? 0) + 1; if (sp.calls > 30) { globalThis.__spRunaway = true; return new Promise(() => {}); } return sp.fetch(signal, opts); } export function windFrameAtValidTime(w, t) { globalThis.__sp.asked.push(t); return w.frames.find((f) => f.validAt.getTime() === t) ?? w.frames[0]; }',
+  iconD2WindSource: 'export function fetchIconD2Wind(signal, a, b, opts) { const sp = globalThis.__sp; sp.calls = (sp.calls ?? 0) + 1; if (sp.calls > 30) { globalThis.__spRunaway = true; return new Promise(() => {}); } return sp.fetch(signal, opts); } export function windFrameAtValidTime(w, t) { globalThis.__sp.asked.push(t); return w.frames.find((f) => f.validAt.getTime() === t) ?? w.frames[0]; } export function windUpsampleOf(w) { return w && w.hd ? 1 : undefined; }',
 };
 const out = join(tmp, 'layer.mjs');
 await build({
@@ -238,6 +238,20 @@ try {
     add('C11 Ausschalten während des Abrufs: abgebrochen, die Antwort wird verworfen; Touch-Gerät = Voreinstellung der Wetterkarte für Touch; ohne Pfeil-Ebene liegt die Schicht oben',
       sig.aborted === true && !l.calls.some((c) => c[0] === 'data') && states.every((s) => s.kind === 'loading') && l.o.coarse === true && l.o.reduceMotionOnMove === true
       && JSON.stringify(map.added) === JSON.stringify([[SEA_PARTICLES_LAYER_ID, undefined]]), JSON.stringify([sig.aborted, states, map.added]));
+  }
+  // C13 (Phase WH): a field at full resolution is handed over with the factor 1, a sampled one without a factor
+  {
+    const { sp, map } = stage();
+    let n = 0;
+    sp.fetch = (signal, opts) => { sp.fetches.push(opts); return Promise.resolve(n++ === 0 ? { ...wind([3, 4]), hd: true } : wind([3, 4, 5, 6, 7])); };
+    const layer = new SeaParticleLayer(map, RUN + 3 * H, () => {});
+    await tick();
+    const l = sp.layers[0];
+    const first = last(l, 'data')[2].upsample;
+    layer.setTime(RUN + 6 * H); await tick();
+    add('C13 ein Feld in voller Auflösung geht mit dem Faktor 1 an die Schicht (kein zweites Hochrechnen), ein abgetastetes ohne Angabe',
+      first === 1 && last(l, 'data')[1] === 'img6' && last(l, 'data')[2].upsample === undefined, JSON.stringify([first, last(l, 'data')[2]]));
+    layer.destroy();
   }
   add('C12 kein Abruf läuft in eine Schleife (höchstens 30 Abrufe je Szene; der Stellvertreter hält sonst an)', globalThis.__spRunaway !== true);
 } finally {

@@ -55,7 +55,7 @@ import { fetchIconD2Precip, resolveLatestRun, IconD2NotInRepo, type IconD2Precip
 // Wolken: DWD ICON-D2 Bewölkungsgrad (CLCT) als Gitter, 0–27 h, gleiche
 // GRIB2-Pipeline wie der Niederschlag.
 import { fetchIconD2CloudStack, type IconD2CloudStack } from './sources/iconD2Clouds';
-import { fetchIconD2Wind, windFrameAtValidTimeAsync, loadWindNowCache, saveWindNowCache, type IconD2Wind } from './wind/iconD2WindSource';
+import { fetchIconD2Wind, windFrameAtValidTimeAsync, loadWindNowCache, saveWindNowCache, windUpsampleOf, windModelLabel, type IconD2Wind } from './wind/iconD2WindSource';
 import { frameAtValidTime, bracketAtValidTime } from './sources/frameAtValidTime';
 import { sampleTempAt, sampleGustAt, sampleWindAt, sampleCloudsAt, sampleDemAt } from './qa/layerSampler';
 import { runLayerQA, runSnowlineQA, type SampleApi } from './qa/layerQA';
@@ -2478,7 +2478,7 @@ export default function MapView({
           windL.setWindData(cached.image, {
             width: cached.width, height: cached.height,
             uMin: cached.uMin, uMax: cached.uMax, vMin: cached.vMin, vMax: cached.vMax,
-            uvBounds: cached.uvBounds,
+            uvBounds: cached.uvBounds, upsample: windUpsampleOf(cached),
           });
         }
       }
@@ -2506,8 +2506,8 @@ export default function MapView({
         );
         iconD2WindRef.current = wd;
         setNowcastTick((t) => t + 1);
-        if (wd.frames[0]) saveWindNowCache(wd.frames[0], wd.uvBounds); // für den nächsten Sofort-Start
-        updateStatus('wind', { ok: { model: 'DWD ICON-D2 u/v 10m · 2,2 km', fetchedAt: Date.now(), ref: runRef(wd.runAt) } });
+        if (wd.frames[0]) saveWindNowCache(wd.frames[0], wd.uvBounds, wd.hd === true); // für den nächsten Sofort-Start
+        updateStatus('wind', { ok: { model: windModelLabel(wd), fetchedAt: Date.now(), ref: runRef(wd.runAt) } });
       } catch (err) {
         // nicht fatal — beim nächsten Aufruf greift der Cache erneut. Ladezeit (10.11.): kein stiller Fehler mehr — der
         // Layer-Status sagt es (der Sofort-Platzhalter aus dem Cache bleibt sonst unkommentiert als „aktuell" stehen).
@@ -4223,14 +4223,14 @@ export default function MapView({
     // zurück ist — Generation-Guard verhindert, dass ein verspätetes Ergebnis
     // den Wind kurz auf eine alte Slider-Position zurückspringen lässt.
     const myGen = ++windReqGenRef.current;
-    windFrameAtValidTimeAsync(wd, targetMs, wind.upsampleFactor, wind.windTextureKind)
+    windFrameAtValidTimeAsync(wd, targetMs, windUpsampleOf(wd) ?? wind.upsampleFactor, wind.windTextureKind)
       .then((res) => {
         if (windReqGenRef.current !== myGen) return;
         if (res.kind === 'image') {
           wind.setWindData(res.frame.image, {
             width: res.frame.width, height: res.frame.height,
             uMin: res.frame.uMin, uMax: res.frame.uMax, vMin: res.frame.vMin, vMax: res.frame.vMax,
-            uvBounds: wd.uvBounds,
+            uvBounds: wd.uvBounds, upsample: windUpsampleOf(wd),
           });
           reportValidAt(res.frame.validAt.getTime());
         } else {
@@ -4260,7 +4260,7 @@ export default function MapView({
       if (windLevel === 'surface') {
         if (!iconD2WindRef.current) await installWindRef.current?.();
         if (!cancelled) {
-          updateStatus('wind', { ok: { model: 'DWD ICON-D2 u/v 10m · 2,2 km', fetchedAt: Date.now(), ref: runRef(iconD2WindRef.current?.runAt) } });
+          updateStatus('wind', { ok: { model: windModelLabel(iconD2WindRef.current), fetchedAt: Date.now(), ref: runRef(iconD2WindRef.current?.runAt) } });
           setNowcastTick((t) => t + 1);
         }
         return;

@@ -50,6 +50,12 @@ export interface WindMeta {
   vMax: number;
   /** Equirectangular UV bounds (x0,y0,x1,y1) of the wind data within global [0,1]². Default: full world. */
   uvBounds?: [number, number, number, number];
+  /**
+   * Phase WH (audit/wind-2km.md): CPU upsampling factor for THIS field instead of the layer's option — 1 for a field that
+   * already carries every model cell (the full-resolution ICON-D2 picture), so it is not doubled a second time. Absent =
+   * the layer's option, as before.
+   */
+  upsample?: number;
 }
 
 interface WindData extends WindMeta {
@@ -1487,7 +1493,7 @@ export class WindLayer implements CustomLayerInterface {
     // ausgelagert — DOM-frei, damit derselbe Code auch im Wind-Blend-Worker
     // läuft (s. setWindDataPacked/windBlendRefine.ts). Hier bleibt nur die
     // Bild→Bytes-Beschaffung, die zwingend Main-Thread-Canvas braucht.
-    return refineNormalizedUV(px, sw, sh, this.upsample);
+    return refineNormalizedUV(px, sw, sh, meta.upsample != null ? Math.max(1, Math.min(4, Math.round(meta.upsample))) : this.upsample);
   }
 
   private _pendingWindData: { image: HTMLImageElement | HTMLCanvasElement; meta: WindMeta } | null = null;

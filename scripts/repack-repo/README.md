@@ -42,6 +42,9 @@ runs/<YYYYMMDDHH>/
   repack.json           Gitter, Ecken, Normierung, Dateigrößen, je Familie
   index.json            Zeiger auf den Lauf (Commit + Index-Eintrag) — s. „Frische"
   wind-<SSS>.png        RGB: R = normierte u-Komponente, G = normierte v-Komponente
+  windhd-<SSS>.png      derselbe Wind in VOLLER Auflösung (1215×746, jede Modellzelle ≈ 2,2 km) — eigenes Gitter und
+                        eigene Normierung je Schritt im Abschnitt `windHd`; `wind-<SSS>.png` bleibt daneben für Clients,
+                        die nur das abgetastete Bild kennen (Phase WH)
   temp-<SSS>.png        Grau + Alpha: Grau = normierte 2-m-Temperatur, Alpha = Maske
   gust-<SSS>.png        Grau + Alpha: Böe 0…40 m/s
   thunder-<SSS>.png     Grau + Alpha: Gewitterpotenzial 0…100 (cape_ml, cin_ml, lpi)

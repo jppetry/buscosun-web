@@ -219,6 +219,11 @@ jobs:
       - name: Verifier — Windpartikel Seekarte
         if: ${{ !cancelled() }}
         run: node scripts/ci-run.mjs verify:sea-particles
+      # WH: Wind in voller ICON-D2-Aufloesung (audit/wind-2km.md) — das Bild Wert fuer Wert am echten Feldausschnitt, Lage,
+      # Vertrag Producer/Leser am echten Manifest, Schalter, Verdrahtung — netzfrei (der Block gegen den DWD laeuft nur mit --live).
+      - name: Verifier — Wind volle Aufloesung
+        if: ${{ !cancelled() }}
+        run: node scripts/ci-run.mjs verify:wind-hd
       # GL: Gletscher-Monitor DACH — Datenvertrag (Pfade, Klassen, Flächenstempel mit Bezugsjahr, Umriss-Stufen ±3 %, amtliche Sätze wörtlich)
       # an einem echten Auszug des Baums, der Baum-Prüfer im Fixture-Modus, und der Publisher gegen ein echtes lokales Remote
       # (Linien teilen ein Repo, abgelehnter Push heilt, nie Force, Archiv nur Hinzufügen; audit/gletscher.md) — netzfrei.

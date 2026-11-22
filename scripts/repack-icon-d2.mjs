@@ -25,6 +25,10 @@
  *   wind-<SSS>.png       RGB   R = norm. u, G = norm. v, B = 0 (A ist immer 255 →
  *                              gespart). Die vier Normierungswerte stehen JE SCHRITT
  *                              im Manifest — ohne sie ist das Bild bedeutungslos.
+ *   windhd-<SSS>.png     RGB   Phase WH (audit/wind-2km.md): derselbe Wind in VOLLER Auflösung (1215×746, jede
+ *                              Modellzelle) — `buildWindRgba` ohne Abtastung, eigene Normierung je Schritt, eigenes
+ *                              Gitter im Eintrag. Aus den Feldern des Windschritts gebaut (kein zweiter Abruf).
+ *                              `REPACK_WIND_HD=0` lässt die Familie weg.
  *   temp-<SSS>.png       G+A   Grau = norm. °C, Alpha = Maske. Alpha trägt hier
  *                              Information (außerhalb der Domäne 0).
  *   hsurf-v1.png         Grau  norm. Orographie — der Grün-Kanal des Temp-Bilds.
@@ -309,13 +313,9 @@ export async function findLatestRun(families = FAMILY_KEYS) {
 // Die Repack-Schritte — alle über die GETEILTEN Client-Module
 // ---------------------------------------------------------------------------
 
-/** Wind: u+v → RGB-PNG + die vier Normierungswerte. */
-export async function repackWindStep(run, step) {
-  const [u, v] = await Promise.all([
-    fetchField(stepUrl(run, 'u_10m', step)),
-    fetchField(stepUrl(run, 'v_10m', step)),
-  ]);
-  const b = buildWindRgba(u, v, TARGET_WIDTH);
+/** Wind: u+v → RGB-PNG + die vier Normierungswerte. `targetWidth` ≥ `u.ni` = jede Modellzelle (Phase WH). */
+function packWind(u, v, targetWidth) {
+  const b = buildWindRgba(u, v, targetWidth);
   // Alpha ist überall 255, Blau überall 0 → RGB reicht und spart ein Viertel.
   // Der Decoder ergänzt A = 255, das Ergebnis ist wieder exakt `b.rgba`.
   const rgb = new Uint8Array(b.width * b.height * 3);
@@ -327,8 +327,27 @@ export async function repackWindStep(run, step) {
     rgba: b.rgba,
     width: b.width, height: b.height,
     norm: { uMin: b.uMin, uMax: b.uMax, vMin: b.vMin, vMax: b.vMax },
-    field: u,
+    field: u, v,
   };
+}
+export async function windFields(run, step) {
+  const [u, v] = await Promise.all([
+    fetchField(stepUrl(run, 'u_10m', step)),
+    fetchField(stepUrl(run, 'v_10m', step)),
+  ]);
+  return { u, v };
+}
+export async function repackWindStep(run, step) {
+  const { u, v } = await windFields(run, step);
+  return packWind(u, v, TARGET_WIDTH);
+}
+/**
+ * Phase WH (audit/wind-2km.md): derselbe Schritt in VOLLER Auflösung — dieselbe Funktion `buildWindRgba`, nur ohne
+ * Abtastung (Zielbreite = Gitterbreite ⇒ ss = 1). Aus schon dekodierten Feldern (`fields`), sonst holt er sie selbst.
+ */
+export async function repackWindHdStep(run, step, fields = null) {
+  const { u, v } = fields ?? await windFields(run, step);
+  return packWind(u, v, u.ni);
 }
 
 /** R + A eines RGBA-Bilds → Grau+Alpha-Bytes (Kanalabstand 2). */
@@ -554,7 +573,8 @@ function haveFromEnv(env = process.env) {
 
 async function main() {
   const t0 = Date.now();
-  const families = ONLY ? FAMILY_KEYS.filter((f) => ONLY.includes(f)) : [...FAMILY_KEYS];
+  // WH: `REPACK_WIND_HD=0` leaves the full-resolution wind out (the client then reads `wind` as before).
+  const families = (ONLY ? FAMILY_KEYS.filter((f) => ONLY.includes(f)) : [...FAMILY_KEYS]).filter((f) => !FAMILIES[f].hd || process.env.REPACK_WIND_HD !== '0');
   // BW-9: Warten statt Slot-Lotterie (nur mit REPACK_WAIT_SEC > 0, §28.5 B1).
   // Der DWD legt Schritt 000 bei Lauf + 44 min ab und schiebt ~37 min hoch. Ein
   // Job, der VOR den Daten startet (Slot Lauf + 40, GitHub-Jitter +7…+31), muss
@@ -642,6 +662,7 @@ async function main() {
     if (manifest[f]) return manifest[f];
     const fam = FAMILIES[f];
     if (f === 'wind') manifest[f] = { channels: 3, steps: [] };
+    else if (f === 'windHd') manifest[f] = { channels: 3, grid: null, steps: [] };
     else if (f === 'temp') manifest[f] = { channels: 2, vMin: TEMP_VMIN, vMax: TEMP_VMAX, demMax: TEMP_DEM_MAX, hsurf: null, steps: [] };
     else if (f === 'precip') manifest[f] = { channels: 1, vMin: 0, vMax: PRECIP_VMAX, grid: null, steps: [] };
     else if (f === 'cape') manifest[f] = { channels: 1, vMin: 0, vMax: CAPE_MAX, grid: null, steps: [] };
@@ -732,11 +753,21 @@ async function main() {
   // zuletzt GEPACKTEN Schritt — fehlt einer, zeigt `ref` des nächsten auf den
   // letzten gepackten, genau wie bisher.
   const prevBy = {};
+  // WH: the decoded fields of the last wind step — `windHd` of the same step is built from them (no second decode).
+  let lastWind = null;
   const handle = async (f, step) => {
     if (f === 'wind') {
       const r = await repackWindStep(run, step);
+      lastWind = { step, u: r.field, v: r.v };
       noteGrid(r.field);
       famEntry('wind').steps.push({ ...wrote('wind', step, r.png, FAMILIES.wind.params), ...r.norm });
+    } else if (f === 'windHd') {
+      const r = await repackWindHdStep(run, step, lastWind?.step === step ? lastWind : null);
+      const entry = famEntry('windHd');
+      // The corners of the SAMPLED points, by the same function as the section's grid (KL3) — here every cell.
+      if (!entry.grid) entry.grid = gridOf(r.field, 1);
+      // No GRIB bytes counted: the fields are the wind step's (`wrote` would count them a second time).
+      entry.steps.push({ ...wrote('windHd', step, r.png, []), ...r.norm });
     } else if (f === 'temp') {
       const r = await repackTempStep(run, step, hsurf);
       noteGrid(r.field);

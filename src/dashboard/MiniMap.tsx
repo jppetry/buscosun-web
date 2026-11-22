@@ -19,7 +19,7 @@ import { WindLayer } from '../wind/WindLayer';
 import { WEATHER_BASEMAP_STYLE, firstBoundaryLayerId, germanBasemapLabels, orientationEnabledFrom, weatherLabelContrast, addOrientationLayers } from '../map/weatherBasemap';
 import { loadDachMask } from '../countryMask';
 import { weatherWindOptions, WEATHER_WIND_DENSITY } from '../wind/weatherWindPreset';
-import { fetchIconD2Wind, loadWindNowCache, windFrameAtValidTime } from '../wind/iconD2WindSource';
+import { fetchIconD2Wind, loadWindNowCache, windFrameAtValidTime, windUpsampleOf } from '../wind/iconD2WindSource';
 import { fetchIconD2Temp } from '../sources/iconD2TempSource';
 import { CITY_TEMPS_ON, cityTempAt, loadCityTemps } from '../sources/cityTemps';
 import { frameAtValidTime } from '../sources/frameAtValidTime';
@@ -183,13 +183,13 @@ export default function MiniMap({ place, zoom = ZOOM, interactive = false, onRea
         try {
           const cached = await loadWindNowCache();
           if (cached && !ac.signal.aborted) {
-            wind.setWindData(cached.image, { width: cached.width, height: cached.height, uMin: cached.uMin, uMax: cached.uMax, vMin: cached.vMin, vMax: cached.vMax, uvBounds: cached.uvBounds });
+            wind.setWindData(cached.image, { width: cached.width, height: cached.height, uMin: cached.uMin, uMax: cached.uMax, vMin: cached.vMin, vMax: cached.vMax, uvBounds: cached.uvBounds, upsample: windUpsampleOf(cached) });
             setWindState('ok');
           }
           const wd = await fetchIconD2Wind(ac.signal, undefined, undefined, { nowOnly: true, aheadHours: 0 });
           if (ac.signal.aborted) return;
           const f = windFrameAtValidTime(wd, Date.now());
-          wind.setWindData(f.image, { width: f.width, height: f.height, uMin: f.uMin, uMax: f.uMax, vMin: f.vMin, vMax: f.vMax, uvBounds: wd.uvBounds });
+          wind.setWindData(f.image, { width: f.width, height: f.height, uMin: f.uMin, uMax: f.uMax, vMin: f.vMin, vMax: f.vMax, uvBounds: wd.uvBounds, upsample: windUpsampleOf(wd) });
           setWindState('ok');
         } catch {
           if (!ac.signal.aborted) setWindState((s) => (s === 'ok' ? s : 'na'));

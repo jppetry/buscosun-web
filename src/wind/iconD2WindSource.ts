@@ -19,7 +19,7 @@ import { stepsForNowWindow } from '../sources/frameAtValidTime';
 import { buildWindRgba } from './windFrameBuild';
 import { blendAndRefine, type FrameNorm } from './windBlendRefine';
 import {
-  resolveRepackSection, loadWindStep, uvBoundsOf, repackUsable, preconnectDataCdn, REPACK_CONCURRENCY,
+  resolveRepackSection, loadWindStep, loadWindHdStep, uvBoundsOf, uvBoundsOfGrid, sectionCovers, repackUsable, preconnectDataCdn, REPACK_CONCURRENCY,
   resolveRunFromRepackIndex,
   type RepackSection,
 } from '../sources/repackSource';
@@ -100,6 +100,31 @@ export interface IconD2Wind {
   frames: IconD2WindFrame[];
   /** Equirect-UV-Bounds (x0,y0,x1,y1) der Gitterregion im globalen [0,1]². */
   uvBounds: [number, number, number, number];
+  /** Phase WH: every frame carries every model cell (family `windHd`) — the particle layer must not upsample it. */
+  hd?: boolean;
+}
+
+/**
+ * Phase WH (audit/wind-2km.md): the wind picture at full ICON-D2 resolution (2,2 km, family `windHd`) instead of every
+ * second cell. On where the pointer is fine (desktop): the texture has the size it had after upsampling, with real values.
+ * Touch devices keep the sampled picture until it is checked on a device (E-WH-2: four times the texture there, 3,3 times
+ * the bytes). `?windhd=1` / `?windhd=0` decide per link. Pure.
+ */
+export function windHdFrom(search: string, coarsePointer: boolean): boolean {
+  let q: string | null = null;
+  try { q = new URLSearchParams(search).get('windhd'); } catch { /* broken query = no vote */ }
+  return q === '1' ? true : q === '0' ? false : !coarsePointer;
+}
+function windHdWanted(): boolean {
+  try { return windHdFrom(window.location.search, typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches); } catch { return false; }
+}
+/** The upsampling factor to hand to the particle layer with a frame of `wind` (1 = full resolution, undefined = the layer's own). */
+export function windUpsampleOf(wind: Pick<IconD2Wind, 'hd'> | null | undefined): number | undefined {
+  return wind?.hd ? 1 : undefined;
+}
+/** What the status line says about the field that is DRAWN: the model has 2,2 km, the sampled picture every second cell. */
+export function windModelLabel(wind: Pick<IconD2Wind, 'hd'> | null | undefined): string {
+  return wind?.hd ? 'DWD ICON-D2 u/v 10m · 2,2 km' : 'DWD ICON-D2 u/v 10m · 2,2 km, gezeichnet jede zweite Zelle (4,4 km)';
 }
 
 function lngToEquiX(lng: number): number { return (lng + 180) / 360; }
@@ -264,6 +289,8 @@ export async function fetchIconD2Wind(
   /** BW-3: der geprüfte CDN-Abschnitt, solange er zum AUFGELÖSTEN Lauf gehört.
    *  Der Scan-Fallback setzt ihn zurück — dort stimmt der Lauf nicht mehr. */
   let section: RepackSection | null = null;
+  /** Phase WH: the same run's full-resolution section — set only when it carries EVERY wanted step (two grids are never mixed). */
+  let hdSection: RepackSection | null = null;
 
   // Phase RN-3 (audit/radar-nur-datenrepo.md §9): run, section and every image from the data repo only — no speculative
   // GRIB, no listing, no `/_dwd_wind` (`?d2dwd=1` = the chain as before, „Notweg" included).
@@ -276,15 +303,15 @@ export async function fetchIconD2Wind(
       // der GRIB-Zweig unten rechnen würde (`verify:repack` beweist es je Lauf).
       // `null` heißt hier IMMER „nimm GRIB": Schritt (noch) nicht abgelegt,
       // Frist abgelaufen, Weg abgeschaltet — der Aufrufer merkt keinen Unterschied.
-      const png = section ? await loadWindStep(section, step, signal) : null;
-      if (!png && repoOnly) return false;   // RN-3: no GRIB behind it — `pumpSteps` asks again
+      const png = hdSection ? await loadWindHdStep(hdSection, step, signal) : section ? await loadWindStep(section, step, signal) : null;
+      if (!png && (repoOnly || hdSection)) return false;   // RN-3: no GRIB behind it — `pumpSteps` asks again (WH: never a sampled GRIB frame among full ones)
       let b: WindFrameBytes;
       if (png) {
         b = png;
         // Die Ecken stehen im Abschnitt — der Producer hat sie mit derselben
         // `subsampledCorners()` gefüllt, die der GRIB-Zweig unten benutzt. Der
         // Repack-Pfad braucht also kein GRIB mehr, nur um zu wissen, wo das Bild liegt.
-        if (!uvBounds) uvBounds = uvBoundsOf(section!);
+        if (!uvBounds) uvBounds = hdSection?.windHd ? uvBoundsOfGrid(hdSection.windHd.grid) : uvBoundsOf(section!);
       } else {
         // Nur fetch + bz2 (bz2-Worker-Pool) auf dem Aufrufer-Pfad; decodeGrib2 + der
         // RGBA-Bau laufen off-main im Wind-Frame-Worker.
@@ -305,7 +332,7 @@ export async function fetchIconD2Wind(
         image, width: b.width, height: b.height, uMin: b.uMin, uMax: b.uMax, vMin: b.vMin, vMax: b.vMax,
       });
       frames.sort((a, b2) => a.stepHours - b2.stepHours);
-      if (onProgress && uvBounds) onProgress({ runAt: ra, frames: [...frames], uvBounds });
+      if (onProgress && uvBounds) onProgress({ runAt: ra, frames: [...frames], uvBounds, hd: !!hdSection });
       return true;
     } catch {
       // Einzelner Schritt fehlt (z. B. v noch nicht publiziert) → überspringen.
@@ -319,6 +346,13 @@ export async function fetchIconD2Wind(
       return nowOnly ? stepsForNowWindow(capped, ra, aheadH) : capped;
     }, signal, (run) => (runCoversNow(run.runAt.getTime(), run.steps, Date.now()) ? null : 'der Lauf im Daten-Repo deckt „jetzt" nicht mehr'));
     section = r.section;
+    // WH: the same run at full resolution — only when that family carries every step this caller loads; otherwise the
+    // whole run is read from the sampled family, as before (no second resolve of the run, the index is in the cache).
+    if (windHdWanted()) {
+      const hd = await resolveRepackSection(r.runStr, 'windHd', null, r.wanted).catch(() => null);
+      if (signal?.aborted) throw new DOMException('aborted', 'AbortError');
+      if (hd?.windHd && sectionCovers(hd, 'windHd', r.wanted)) hdSection = hd;
+    }
     const near = nowOnly ? r.wanted : r.wanted.filter((s) => s <= NEAR_STEP);
     const far = nowOnly ? [] : r.wanted.filter((s) => s > NEAR_STEP);
     const one = (step: number) => loadStep(r.runStr, r.runAt, step);
@@ -332,7 +366,7 @@ export async function fetchIconD2Wind(
     } else {
       onSettled?.();
     }
-    return { runAt: r.runAt, frames, uvBounds };
+    return { runAt: r.runAt, frames, uvBounds, hd: !!hdSection };
   }
 
   // Bounded-Concurrency-Pump über eine Schrittliste (bereits spekulativ geladene
@@ -760,6 +794,8 @@ export interface CachedWindNow {
   width: number; height: number;
   uMin: number; uMax: number; vMin: number; vMax: number;
   uvBounds: [number, number, number, number];
+  /** Phase WH: the stored picture is at full resolution (see `IconD2Wind.hd`). */
+  hd?: boolean;
 }
 
 interface WindCacheRecord {
@@ -768,6 +804,7 @@ interface WindCacheRecord {
   uMin: number; uMax: number; vMin: number; vMax: number;
   uvBounds: [number, number, number, number];
   savedMs: number;
+  hd?: boolean;
 }
 
 /** IndexedDB öffnen (Objektstore einmalig anlegen). Null, wenn IDB nicht verfügbar. */
@@ -785,7 +822,7 @@ function openWindDb(): Promise<IDBDatabase | null> {
 }
 
 /** Den „jetzt"-Frame als ROH-RGBA (+ Normierung/Bounds) in IndexedDB ablegen. */
-export function saveWindNowCache(frame: IconD2WindFrame, uvBounds: [number, number, number, number]): void {
+export function saveWindNowCache(frame: IconD2WindFrame, uvBounds: [number, number, number, number], hd = false): void {
   void (async () => {
     try {
       const ctx = frame.image.getContext('2d', { willReadFrequently: true });
@@ -794,7 +831,7 @@ export function saveWindNowCache(frame: IconD2WindFrame, uvBounds: [number, numb
       const record: WindCacheRecord = {
         rgba, width: frame.width, height: frame.height,
         uMin: frame.uMin, uMax: frame.uMax, vMin: frame.vMin, vMax: frame.vMax,
-        uvBounds, savedMs: Date.now(),
+        uvBounds, savedMs: Date.now(), hd,
       };
       const db = await openWindDb();
       if (!db) return;
@@ -829,6 +866,7 @@ export async function loadWindNowCache(): Promise<CachedWindNow | null> {
     return {
       image, width: record.width, height: record.height,
       uMin: record.uMin, uMax: record.uMax, vMin: record.vMin, vMax: record.vMax, uvBounds: record.uvBounds,
+      hd: record.hd === true,
     };
   } catch {
     return null;

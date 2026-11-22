@@ -10,7 +10,7 @@
 import type maplibregl from 'maplibre-gl';
 import { WindLayer } from '../wind/WindLayer';
 import { weatherWindOptions, WEATHER_WIND_DENSITY } from '../wind/weatherWindPreset';
-import { fetchIconD2Wind, windFrameAtValidTime, type IconD2Wind } from '../wind/iconD2WindSource';
+import { fetchIconD2Wind, windFrameAtValidTime, windUpsampleOf, type IconD2Wind } from '../wind/iconD2WindSource';
 import {
   SEA_PARTICLES_BEFORE, SEA_PARTICLES_LAYER_ID, particleHourOf, particleWindowOf, particlesFetchWant, type SeaParticleState,
 } from './seaParticles';
@@ -101,10 +101,10 @@ export class SeaParticleLayer {
     // The same hour of the same run is not uploaded again (a longer window or a refresh brings the same picture).
     const key = `${w.runMs}|${f.stepHours}`;
     if (key !== this.shown) {
-      this.wind.setWindData(f.image, { width: f.width, height: f.height, uMin: f.uMin, uMax: f.uMax, vMin: f.vMin, vMax: f.vMax, uvBounds: wd.uvBounds });
+      this.wind.setWindData(f.image, { width: f.width, height: f.height, uMin: f.uMin, uMax: f.uMax, vMin: f.vMin, vMax: f.vMax, uvBounds: wd.uvBounds, upsample: windUpsampleOf(wd) });
       this.shown = key;
     }
     this.wind.setShowParticles(true);
-    this.onState({ kind: 'ok', w });
+    this.onState({ kind: 'ok', w, hd: wd.hd === true });
   }
 }

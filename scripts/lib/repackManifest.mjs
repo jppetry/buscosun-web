@@ -101,9 +101,14 @@ export const SCHEMA = 1;
  *   sequential Deakkumulation gegen den VORHERIGEN Schritt — jeder Schritt nennt
  *              seine Referenz (`ref`), der Client prüft sie (§25.4 (3))
  *   kind       Quantisierer von `decodeGridStep` (`precipToU8` / `capeToU8`) bei fullRes
+ *   hd         Phase WH (audit/wind-2km.md): dieselben Felder wie `of`, aber JEDE Modellzelle (ss = 1, eigenes Gitter im
+ *              Eintrag) — der Producer baut den Schritt aus den schon dekodierten Feldern der Familie `of`. Eine zweite
+ *              Familie statt eines größeren Bilds, weil ein Client mit altem Bündel die Bildgröße gegen das Gitter des
+ *              Abschnitts prüft und ein größeres `wind`-Bild verwürfe
  */
 export const FAMILIES = Object.freeze({
   wind:        { manifest: null,   file: 'wind',      channels: 3, params: ['u_10m', 'v_10m'],                 minStep: 0, maxStep: 12 },
+  windHd:      { manifest: null,   file: 'windhd',    channels: 3, params: ['u_10m', 'v_10m'],                 minStep: 0, maxStep: 12, hd: true, of: 'wind' },
   temp:        { manifest: 'grib', file: 'temp',      channels: 2, params: ['t_2m'],                           minStep: 0, maxStep: 24 },
   gust:        { manifest: 'grib', file: 'gust',      channels: 2, params: ['vmax_10m'],                       minStep: 0, maxStep: 24 },
   thunder:     { manifest: 'grib', file: 'thunder',   channels: 2, params: ['cape_ml', 'cin_ml', 'lpi'],       minStep: 0, maxStep: 12 },

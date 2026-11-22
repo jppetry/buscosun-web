@@ -67,6 +67,8 @@ export const REPACK_SCHEMA = 1;
  */
 export const REPACK_FAMILIES = {
   wind:        { channels: 3 },
+  // Phase WH (audit/wind-2km.md): the same wind at every model cell (1215×746) — its own grid in the entry.
+  windHd:      { channels: 3, hd: true },
   temp:        { channels: 2 },
   gust:        { channels: 2, vMin: GUST_VMIN,     vMax: GUST_VMAX },
   thunder:     { channels: 2, vMin: THUNDER_VMIN,  vMax: THUNDER_VMAX },
@@ -142,6 +144,8 @@ export interface RepackSection {
   targetWidth: number;
   grid: RepackGrid;
   wind?: { channels: number; steps: RepackWindStep[] };
+  /** Phase WH: full resolution — its own grid (ss = 1), not the section's. */
+  windHd?: { channels: number; grid: RepackGrid; steps: RepackWindStep[] };
   temp?: {
     channels: number; vMin: number; vMax: number; demMax: number;
     hsurf: RepackHsurf | null;
@@ -235,7 +239,7 @@ export function parseRepackSection(
     grid,
   };
 
-  if (family === 'wind') {
+  if (family === 'wind' || family === 'windHd') {
     const steps: RepackWindStep[] = [];
     for (const e of fam.steps as unknown[]) {
       if (!e || typeof e !== 'object') continue;
@@ -251,7 +255,14 @@ export function parseRepackSection(
       steps.push({ step, file: x.file, bytes: num(x.bytes) ?? 0, uMin, uMax, vMin, vMax });
     }
     if (steps.length === 0) return null;
-    out.wind = { channels: num((fam as Record<string, unknown>).channels) ?? 3, steps };
+    const channels = num((fam as Record<string, unknown>).channels) ?? 3;
+    if (family === 'wind') out.wind = { channels, steps };
+    else {
+      // WH: its own grid at every cell — without it (or with a sampled one) the picture cannot be placed.
+      const hdGrid = parseGrid((fam as Record<string, unknown>).grid);
+      if (!hdGrid || hdGrid.ss !== 1 || channels !== REPACK_FAMILIES.windHd.channels) return null;
+      out.windHd = { channels, grid: hdGrid, steps };
+    }
   } else if (family === 'temp') {
     const vMin = num(fam.vMin), vMax = num(fam.vMax), demMax = num(fam.demMax);
     if (vMin === null || vMax === null || demMax === null || !(vMax > vMin) || demMax <= 0) return null;
@@ -425,7 +436,11 @@ function latToEquiY(lat: number): number { return (90 - lat) / 180; }
  * braucht der Repack-Pfad kein GRIB mehr, nur um zu wissen, wo das Bild liegt.
  */
 export function uvBoundsOf(section: RepackSection): [number, number, number, number] {
-  const c = section.grid.corners;
+  return uvBoundsOfGrid(section.grid);
+}
+/** The same for a family's own grid (WH: `windHd`). */
+export function uvBoundsOfGrid(grid: RepackGrid): [number, number, number, number] {
+  const c = grid.corners;
   return [lngToEquiX(c.nw[0]), latToEquiY(c.nw[1]), lngToEquiX(c.ne[0]), latToEquiY(c.se[1])];
 }
 
@@ -739,6 +754,26 @@ export async function loadWindStep(
   const entry = section.wind.steps.find((s) => s.step === step);
   if (!entry) return null;
   const img = await loadRgba(stepUrl(section, entry.file), signal, section.grid, 'high', stepUrlPinned(section, entry.file));
+  if (!img) return null;
+  return {
+    rgba: img.data, width: img.width, height: img.height,
+    uMin: entry.uMin, uMax: entry.uMax, vMin: entry.vMin, vMax: entry.vMax,
+  };
+}
+
+/**
+ * Phase WH (audit/wind-2km.md): the wind picture of a step at FULL resolution — the same bytes `buildWindRgba` gives
+ * without sampling, checked against the family's own grid. `null` = this step is not there in full resolution.
+ */
+export async function loadWindHdStep(
+  section: RepackSection,
+  step: number,
+  signal?: AbortSignal,
+): Promise<{ rgba: Uint8ClampedArray; width: number; height: number; uMin: number; uMax: number; vMin: number; vMax: number } | null> {
+  if (brokenNow() || !section.windHd) return null;
+  const entry = section.windHd.steps.find((s) => s.step === step);
+  if (!entry) return null;
+  const img = await loadRgba(stepUrl(section, entry.file), signal, section.windHd.grid, 'high', stepUrlPinned(section, entry.file));
   if (!img) return null;
   return {
     rgba: img.data, width: img.width, height: img.height,
