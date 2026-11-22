@@ -265,7 +265,10 @@ Browser gesetzt; das Repo hatte vorher keine Repo-Variablen). In `buscosun-archi
 |---|---|---|---|
 | 23:41 UTC, von Hand | 44963022845, grün | env `GLACIER_PRODUCER_REF: main`, 2 s | „übersprungen: 4 Läufe heute (höchstens 4)“, Publish übersprungen — nichts geschrieben |
 | 02:27 UTC | 44976168635, grün | Leerlauf | kein neuer t2-/t3-Stand im Cube, nichts geschrieben |
+| 05:23 UTC | 44989176890, grün | rechnet, veröffentlicht `2026112205` (Cube t1 2026112203, t2 2026112200, t3 2026112112; buscosun Fusion 14) | **Schneefelder da:** `rules.spread` = `{sums: scenarios, k: 100, rho: 0.9, gust: strongest-hour, origin: set}`, `rules.phase.rule` = `temperature`; `pq`/`snq`/`gq` an 957 von 957 eigenen Zeilen, Nachbarzeilen unverändert (`id,z,f,tn,tx,omit`); Chunk `at-oetztaler-alpen` mit `sl` (120 Stunden, 58 mit Wert) und `sn` (3 Höhen); `melt/wx/phase.json` 200 mit einer Zeile (n 957, 9 957 nasse Gletscher-Tage, 6 verschoben, größte Verschiebung 3,2 mm); Statuszeile `weather.phase`: `runs 1, days 1, enough false, within true`, Verschiebung 2,06 / 1,03 / 0,48 % je Höhe; 27 Dateien / 6 251 267 B (vorher 4 422 798 B) |
 
 Ein Handlauf rechnet nur, wenn der Cube einen neuen t2- oder t3-Stand hat oder der letzte Lauf älter als 12 h ist; `--always`
 reicht der Workflow nicht durch. Seit der Umstellung bis 04:05 UTC kein roter Lauf im Daten-Repo (`glacier-stations` neunmal grün,
-`glacier-feed`/`-sat`/`-snow` noch nicht gelaufen). Erster rechnender Lauf mit dem Producer von `main`: 22.11. 05:22 UTC.
+`glacier-feed`/`-sat`/`-snow` noch nicht gelaufen). Erster rechnender Lauf mit dem Producer von `main`: 22.11. 05:23 UTC (Zeile
+oben) — damit ist V-GS-7 für `buscosun-data` behoben, die 7 Tage des Regelvergleichs zählen ab dem 22.11. Geprüft wurden das
+Tagesdokument, EIN Stunden-Chunk, die Vergleichsdatei und die Statuszeile; kein Byte-Vergleich der alten Felder am Runner-Lauf.

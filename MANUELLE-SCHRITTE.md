@@ -4194,8 +4194,11 @@ enthalten). Dasselbe gilt für `glacier-feed`, `glacier-sat`, `glacier-static` (
 **Erledigt 21.11. 23:40 UTC (Schritt 1 a, nur `buscosun-data`):** die Repo-Variable `GLACIER_PRODUCER_REF = main` steht — auf Jans
 Wort von Claude in Jans Browser gesetzt (das Repo hatte vorher keine Repo-Variablen). Der Handlauf danach (44963022845) zeigt im
 Protokoll `GLACIER_PRODUCER_REF: main`, endete aber ohne Ausgabe („übersprungen: 4 Läufe heute (höchstens 4)“), der Lauf 02:27 UTC
-(44976168635) ebenso grün. Ein Lauf lässt sich von Hand nicht erzwingen (der Workflow reicht `--always` nicht durch). **Offen:** den
-ersten rechnenden Lauf ansehen (22.11. 05:22 UTC, Prüfpunkte unten); in `buscosun-archiv` ist die Variable NICHT gesetzt
+(44976168635) ebenso grün. Ein Lauf lässt sich von Hand nicht erzwingen (der Workflow reicht `--always` nicht durch). **Belegt 22.11. 05:24 UTC:** der
+erste rechnende Lauf mit dem Producer von `main` (`2026112205`, Workflow-Lauf 44989176890, grün) trägt die Schneefelder — Statuszeile
+`weather` mit `phase` (Regel `temperature`, 1 Tag, `enough: false`, `within: true`), Tagesdokument mit `rules.spread`,
+`rules.phase.rule` und `pq`/`snq`/`gq` an allen 957 eigenen Zeilen, Stunden-Chunk mit `sl`/`sn`, `melt/wx/phase.json` mit einer
+Zeile, 27 Dateien / 6 251 267 B. **Die 7 Tage für Schritt 2 zählen ab dem 22.11. (frühestens 29.11.).** Offen: in `buscosun-archiv` ist die Variable NICHT gesetzt
 (`glacier-archiv.yml` nimmt dort weiter `feat/gletscher`; die Archiv-Datei ist auf beiden Zweigen gleich). Seit der Umstellung
 laufen auch `glacier-feed`, `glacier-sat` und der Statik-Wächter mit dem Producer von `main`.
 
