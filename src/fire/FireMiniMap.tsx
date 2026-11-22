@@ -14,6 +14,7 @@ import maplibregl from 'maplibre-gl';
 import { basemapStyle, type FireBasemap } from './FireMap';
 import { patchRefLengthStyle } from '../map/libertyStyle';
 import { ExpandButton, setMapInteractive, useExpandedFrame, useMapHost } from '../components/ExpandButton';
+import { sharpRasterStyle } from './rasterSharp';
 
 /**
  * BD2f: strukturelles Ziel statt `FireRecord` — die Minikarte braucht nur Ort, Kasten und
@@ -59,6 +60,17 @@ export function miniFeatures(r: MiniMapTarget, fc: GeoJSON.FeatureCollection | n
   return { fc: { type: 'FeatureCollection', features: [...shape, center] }, fromRegistry: own.length > 0 };
 }
 
+/**
+ * Basiskarte der Minikarte. Satellit auf dichten Bildschirmen mit Kacheln passend zur Pixeldichte
+ * (`rasterSharp.ts`): auf dem Telefon (DPR 3) war die Karte vollständig geladen und blieb trotzdem grob,
+ * weil jedes Bildpixel 2,1–4,2-fach hochgezogen wurde. Straßen (Vektor) und Gelände (Beschriftung im
+ * Bild) bleiben wie sie sind; bei Pixeldichte 1 ist auch der Satellit unverändert.
+ */
+export function miniBasemapStyle(b: FireBasemap, pixelRatio: number): string | maplibregl.StyleSpecification {
+  const style = basemapStyle(b);
+  return b === 'satellite' ? sharpRasterStyle(style, pixelRatio) : style;
+}
+
 export function FireMiniMap({ record, footprintFc, basemap, height, ariaLabel }: FireMiniMapProps) {
   const elRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -85,7 +97,7 @@ export function FireMiniMap({ record, footprintFc, basemap, height, ariaLabel }:
     mapRef.current = map;
     setMapInteractive(map, false);
     // V-RL-3: derselbe Stil-Eingriff wie Regenradar/Gelände, hier VOR dem ersten Kachel-Parse (transformStyle).
-    map.setStyle(basemapStyle(basemap), { transformStyle: (_prev, next) => patchRefLengthStyle(next) });
+    map.setStyle(miniBasemapStyle(basemap, map.getPixelRatio()), { transformStyle: (_prev, next) => patchRefLengthStyle(next) });
     const install = () => {
       if (map.getSource(SRC)) return;
       map.addSource(SRC, { type: 'geojson', data: dataRef.current });
@@ -128,7 +140,7 @@ export function FireMiniMap({ record, footprintFc, basemap, height, ariaLabel }:
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    map.setStyle(basemapStyle(basemap), { transformStyle: (_prev, next) => patchRefLengthStyle(next) });
+    map.setStyle(miniBasemapStyle(basemap, map.getPixelRatio()), { transformStyle: (_prev, next) => patchRefLengthStyle(next) });
     // `style.load` (nicht `load`) hängt die Quelle wieder ein — s. install oben.
   }, [basemap]);
 
