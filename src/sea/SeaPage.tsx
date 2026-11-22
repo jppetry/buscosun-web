@@ -37,7 +37,7 @@ import {
   type SeaLimits, type SeaProfileId, type SeaUnit, type SeaVerdict,
 } from './seaProfiles';
 import { SeaVerdictCache } from './seaVerdicts';
-import { SEA_MAX_T, SEA_TIME_CHIPS, seaInRevier, type SeaLayer, type SeaRevier, type SeaTab, type SeaUrlState } from './seaState';
+import { SEA_MAX_T, SEA_TIME_CHIPS, seaInRevier, seaLayerFallback, type SeaLayer, type SeaRevier, type SeaTab, type SeaUrlState } from './seaState';
 import {
   CLASS_COLOR, CLASS_LABEL, CLASS_SHORT, DRY_VALUE, HS_STOPS, LAYER_LABEL, PER_STOPS, H, compass16, cssGradient, dateTime, dayShort, f1, hh, hm, tzLabel, waveArrows,
 } from './seaView';
@@ -176,6 +176,9 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   const [profile, setProfile] = useState<SeaProfileId>(initial.p);
   const [t, setT] = useState<number>(initial.t);
   const [layer, setLayer] = useState<SeaLayer>(initial.l);
+  // The default layer „Strömung“ may have no data: `layerNamed` says whether the visitor chose a layer (link or click).
+  const layerNamed = useRef<boolean>((() => { try { return new URLSearchParams(window.location.search).has('l'); } catch { return false; } })());
+  const pickLayer = useCallback((l: SeaLayer) => { layerNamed.current = true; setLayer(l); }, []);
   const [unit, setUnit] = useState<SeaUnit>(initial.u);
   const [tab, setTab] = useState<SeaTab>(initial.tab);
   const [revier, setRevier] = useState<SeaRevier>(initial.rv);
@@ -274,7 +277,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   const popKey = popState?.key ?? null;
   useEffect(() => {
     if (!popState) return;
-    setSpotId(popState.spot ?? DEFAULT_SPOT); setSpotInUrl(!!popState.spot); setProfile(popState.p); setT(popState.t); setLayer(popState.l); setUnit(popState.u); setTab(popState.tab); setRevier(popState.rv);
+    setSpotId(popState.spot ?? DEFAULT_SPOT); setSpotInUrl(!!popState.spot); setProfile(popState.p); setT(popState.t); layerNamed.current = true; setLayer(popState.l); setUnit(popState.u); setTab(popState.tab); setRevier(popState.rv);
     // SP: back/forward restores the plan of that address as it was (boat included) — the spot change is not a new pick.
     planSpot.current = popState.spot ?? null;
     setPlan(popState.spot ? parsePlanParam(popState.pl) : null); setLinkPl(null);
@@ -653,6 +656,13 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   const particleProp = useMemo(() => (particleMode === 'on' ? { tMs: validMs, onState: setParticleState } : null), [particleMode, validMs]);
   useEffect(() => { if (particleMode !== 'on') setParticleState({ kind: 'loading' }); }, [particleMode]);
   const uvHour = isCur && curAt ? currentUvHour(curAt, validMs) : null;
+  // Default „Strömung“ without data at the start ⇒ once „Seegang gesamt“ (`seaLayerFallback`); decided once per visit.
+  useEffect(() => {
+    if (layerNamed.current || current === 'loading') return;
+    const fb = seaLayerFallback({ named: false, layer, settled: true, usable: !!curAt?.uv && uvHour != null });
+    layerNamed.current = true;
+    if (fb) setLayer(fb);
+  }, [current, layer, curAt, uvHour]);
   const uvKey = curAt && uvHour != null ? `${curAt.run}/${uvHour}` : null;
   useEffect(() => {
     if (!uvKey || !curAt?.uv || uvHour == null) { setUv(null); setUvState('idle'); return; }
@@ -1404,7 +1414,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   );
   const dockOf = (show: 'all' | 'layers' | 'picker' | 'spots') => (
     <SeaDock show={show} query={query} onQuery={setQuery} revier={revier} onRevier={setRevier} profile={profile} onProfile={setProfile} limits={limits} onLimits={setLimits}
-      spots={dockSpots} selectedId={spot?.id ?? null} onPick={pickSpotFromMap} total={spots.length} layer={layer} onLayer={setLayer}
+      spots={dockSpots} selectedId={spot?.id ?? null} onPick={pickSpotFromMap} total={spots.length} layer={layer} onLayer={pickLayer}
       toggles={toggles} onToggle={(kk) => setToggles((x) => ({ ...x, [kk]: !x[kk] }))} loading={catalog === 'loading'} hasDk={hasDk} hasLakes={hasLakes} hasParticles={particlesFlag} lakes={lakeChips} lake={lakePick} onLake={setLakePick} />
   );
   /** Desktop: the layers of the map fold under the page of the assistant (regrouped, not removed). */

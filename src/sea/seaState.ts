@@ -12,7 +12,22 @@ export type SeaTab = 'spot' | 'gebiet' | 'quellen';
 export const SEA_TABS: readonly SeaTab[] = ['spot', 'gebiet', 'quellen'];
 /** `cur` (phase SR) = surface current of the BSH as ripples; the other four are wave fields of CWAM. */
 export type SeaLayer = 'hs' | 'ws' | 'sw' | 'per' | 'cur';
-export const SEA_LAYERS: readonly SeaLayer[] = ['hs', 'ws', 'sw', 'per', 'cur'];
+/**
+ * Order of the tiles in the dock. Jan, 22.11.2026: „Strömung“ at the very top and on by default (`SEA_DEFAULT_STATE.l`);
+ * until then it was the fifth tile and „Seegang gesamt“ the default.
+ */
+export const SEA_LAYERS: readonly SeaLayer[] = ['cur', 'hs', 'ws', 'sw', 'per'];
+/** The layer the page falls back to when the default „Strömung“ has no data at the start (`seaLayerFallback`). */
+export const SEA_LAYER_FALLBACK: SeaLayer = 'hs';
+/**
+ * The default layer is „Strömung“ — a model of the BSH that can be missing (no run, a run older than 30 h, no field for
+ * the hour). A visitor who did NOT name a layer (no `l=` in the link, no click on a tile) must not start on an empty map:
+ * once, when the current's answer is in and it carries nothing for the shown hour, the page takes „Seegang gesamt“.
+ * A named layer is never changed. Pure; returns the layer to switch to, or null.
+ */
+export function seaLayerFallback(x: { named: boolean; layer: SeaLayer; settled: boolean; usable: boolean }): SeaLayer | null {
+  return !x.named && x.layer === 'cur' && x.settled && !x.usable ? SEA_LAYER_FALLBACK : null;
+}
 /** `daenemark` (phase DK) filters by the spot's country; `nordsee`/`ostsee` by its sea — a Danish spot is in both lists. */
 export type SeaRevier = 'alle' | 'nordsee' | 'ostsee' | 'daenemark' | 'seen';
 /** `seen` (phase BS) = the lake spots (`region: 'binnensee'`); offered only when the catalogue carries lakes. */
@@ -48,7 +63,7 @@ export interface SeaUrlState {
   wt: string | null;
 }
 
-export const SEA_DEFAULT_STATE: SeaUrlState = { spot: null, p: 'kite', t: 0, l: 'hs', u: 'kn', tab: 'spot', rv: 'alle', tw: null, tf: false, pl: null, et: null, sd: null, ps: null, wt: null };
+export const SEA_DEFAULT_STATE: SeaUrlState = { spot: null, p: 'kite', t: 0, l: 'cur', u: 'kn', tab: 'spot', rv: 'alle', tw: null, tf: false, pl: null, et: null, sd: null, ps: null, wt: null };
 /** Phase TF: form of `tw` — mode, whole cm, reference, gauge id (read by `parseTideParam` in `tideWindow.ts`; kept here so the route wrapper stays free of the tide module). */
 export const SEA_TW_RE = /^(min|max)\.(-?\d{1,4})\.(pnp|nhn|skn|mhw)\.([a-z0-9][a-z0-9_-]{0,63})$/;
 /** Phase SP: form of `pl` — start and return as full UTC hours (YYYYMMDDHH), boat position in degrees (read by `parsePlanParam` in `seaPlanner.ts`). */
@@ -100,7 +115,7 @@ export function buildSeaUrl(s: SeaUrlState, extra: ReadonlyArray<[string, string
   const q: Array<[string, string]> = [];
   if (s.p !== SEA_DEFAULT_STATE.p) q.push(['p', s.p]);
   if (s.t !== 0) q.push(['t', String(s.t)]);
-  if (s.l !== 'hs') q.push(['l', s.l]);
+  if (s.l !== SEA_DEFAULT_STATE.l) q.push(['l', s.l]);
   if (s.u !== 'kn') q.push(['u', s.u]);
   if (s.tab !== 'spot') q.push(['tab', s.tab]);
   if (s.rv !== 'alle') q.push(['rv', s.rv]);

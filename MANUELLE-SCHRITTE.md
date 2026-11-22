@@ -4385,6 +4385,11 @@ den Prüfern); geprüft sind Ablauf, Worte und Verdrahtung. Mit `?swp=0` ist die
 7. **Karte erreichte die Alpenseen nicht (V-BS-40, behoben am 22.11., wirkt mit dem Push):** der verschiebbare Bereich der
    Seekarte endete bei 49,2° N — Bodensee, Chiemsee und alle Seen in Österreich und der Schweiz (19 von 28) ließen sich
    nicht zeigen. Nach dem Push bitte ansehen: Revier „Seen“, dann den Chip „Bodensee“ — die Karte muss dorthin fahren.
+8. **„Strömung“ ganz oben und ab Werk an (dein Wort vom 22.11., `audit/seewetter-riffel.md` Nachzug SR-G):** die Kachel
+   „Strömung“ ist die erste der Ebenen und die Voreinstellung; zusammen mit Nr. 1 startet die Seekarte mit Riffeln und
+   Windpartikeln. Bitte ansehen: `/seewetter` ohne Parameter öffnet in „Strömung“; ein Klick auf „Seegang gesamt“ schreibt
+   `l=hs` in die Adresse. **Alte Links ohne `l=` öffnen jetzt „Strömung“** (V-SR-17). Liefert das BSH beim Start keine
+   Strömung, zeigt die Karte einmalig „Seegang gesamt“ statt leer zu bleiben (E-SR-22 — gesetzt, bitte bestätigen).
 
 ## 113. Wind in voller ICON-D2-Auflösung, 2,2 km (Phase WH, `audit/wind-2km.md`), 2026-11-22
 

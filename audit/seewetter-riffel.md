@@ -429,3 +429,29 @@ ein Viertel des Wassers bewegt sich damit unter 6,6 px/s.
 | Im Browser · Mutationen | **nicht neu** — eine Zahl in der Tempo-Funktion; Bildrate, Zählung und Zeichnen wie §10.3 |
 
 **Nicht geprüft:** das Tempo mit dem Auge, Jans Chrome, ein echtes Telefon.
+
+## Nachzug SR-G (22.11.2026) — „Strömung“ ganz oben und ab Werk an
+
+Jan, 22.11.: „könntest du Strömung (BSH-Modell) … bitte ganz oben und defaultmäßig an“. Bis dahin war „Strömung“ die fünfte
+Kachel der Ebenen und „Seegang gesamt“ die Voreinstellung (E-SR: `l=cur`, nicht Voreinstellung).
+
+| Nr. | Frage | Entscheidung |
+|---|---|---|
+| **E-SR-21** | Reihenfolge und Voreinstellung | `SEA_LAYERS = cur, hs, ws, sw, per`; `SEA_DEFAULT_STATE.l = 'cur'` (Jans Wort). Der Link nennt nur noch eine ANDERE Ebene (`l=hs` …); `l=cur` wird weiter gelesen |
+| **E-SR-22** | Strömung fehlt beim Start | Die Voreinstellung ist ein Modell, das fehlen kann (kein Lauf, Lauf älter als 30 h, kein Feld für die Stunde). Wer KEINE Ebene genannt hat (kein `l=` im Link, kein Klick auf eine Kachel), bekommt dann **einmal** „Seegang gesamt“ statt einer leeren Karte (`seaLayerFallback`, `set`). Eine genannte Ebene wird nie geändert — dort steht weiter „Strömung: keine Daten“ mit dem Grund. *Gesetzt, bitte bestätigen* |
+
+Umsetzung: `seaState.ts` (Reihenfolge, Voreinstellung, `seaLayerFallback`, der Link lässt die Voreinstellung weg statt
+fest `hs`), `SeaPage.tsx` (`layerNamed`, `pickLayer`, die einmalige Entscheidung, sobald die Antwort zur Strömung da ist).
+Kein CSS, kein Producer, kein Datenvertrag. Zusammen mit dem Nachzug BS-P (`audit/seewetter-binnenseen.md` §9.8) zeigt
+die Seekarte damit ab Werk Riffel UND Windpartikel.
+
+Gate: `verify:sea-ripples` 123/123 (G12 auf die neue Regel gestellt, G12b neu: der Rückfall rein und in der Verdrahtung),
+`-particles` 32/32, `-current` 129/129, `-contract` 30/30, `-trip` 82/82, `-planner` 50/50, `-wizard` 29/29, `-seo` 23/23,
+`-lakes` 126/126 und die übrigen Seewetter-Prüfer unverändert grün; Typecheck 0, Build 281/281, Budget totalJs 2 117,7 / 2 118 (im geteilten Baum, mit den uncommitteten Änderungen der Gletscher-Linie gemessen).
+**Nicht im Browser gesehen.**
+
+| Nr. | Befund | Mehrwert · Skizze |
+|---|---|---|
+| **V-SR-17** | **Alte Links ohne `l=` öffnen jetzt „Strömung“ statt „Seegang gesamt“** — ein geteilter Link, der die alte Voreinstellung meinte, trug sie nicht in der Adresse | Nicht heilbar (die Adresse unterscheidet einen alten Link nicht von einem Besuch ohne Wahl); die Ebene ist einen Klick entfernt |
+| **V-SR-18** | Jeder Besuch lädt jetzt die Riffel-Schicht (eigener Chunk) und das Strömungsfeld der Stunde statt des Seegangsfelds; an Seen und in Dänemark außerhalb des BSH-Gebiets zeigt die Voreinstellung keine Fläche (dort gab es auch vorher keine Seegangsfläche an den Seen) | Nur vermerkt; Bildrate am Telefon mit Riffeln UND Partikeln ab Werk ist ungeprüft (V-BS-41) |
+| **V-SR-19** | Der Rückfall E-SR-22 entscheidet einmal je Besuch, zur gezeigten Stunde beim Laden. Wer danach die Zeit über das Ende des Laufs zieht, sieht in „Strömung“ weiter „keine Daten“ — die Ebene springt nicht um | Absicht (keine Ebene wechselt unter der Hand), nur vermerkt |
