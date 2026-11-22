@@ -225,7 +225,7 @@ const pkgNow = JSON.parse(src('package.json')).dependencies, pkgHead = (() => { 
 add('J1 neue UI als Lazy-Chunk NACH der Karte „Wetter am Gletscher“ auf der Ebene Wetter (Ebene 1 des Dossiers, Jan 22.11.): `lazy(() => import(\'./GlacierSnowLadder\'))`, kein statischer Import, CSS am Chunk; im Steckbrief steht die Leiter direkt nach der Wetterkarte; die Wetterkarte ist unverändert (kein Unterschied zu HEAD, nicht in diesem Arbeitsbaum geändert); nur im Dossier; ohne Schalter (keine URL-, Flag- oder Speicherabfrage in den neuen Dateien)',
   /const GlacierSnowLadder = lazy\(\(\) => import\('\.\/GlacierSnowLadder'\)\);/.test(brief) && !/^import .*GlacierSnowLadder/m.test(brief) && /^import '\.\/glacierSnow\.css';\r?$/m.test(ladderSrc)
   && /\{weatherCard \? <div className="gl-hb-wx">\{weatherCard\}<\/div> : null\}\s*\{snowLadder\}/.test(brief) && brief.indexOf("{ tab: 'wetter', title: 'Wetter'") > 0 && brief.indexOf("{ tab: 'wetter'") < brief.indexOf("{ tab: 'heute'")
-  && !changed.includes('src/glacier/GlacierWeatherCard.tsx') && !/Snow|snq|gq/.test(src('src/glacier/GlacierWeatherCard.tsx')) && /const snowLadder = onWetter \|\| onHeute \?/.test(brief) && /weather=\{weatherCard\} snow=\{snowLadder\}/.test(brief)
+  && !changed.includes('src/glacier/GlacierWeatherCard.tsx') && !/Snow|snq|gq/.test(src('src/glacier/GlacierWeatherCard.tsx')) && /const snowLadder = onWetter \?/.test(brief) && !/<GlacierHeuteBoard[^>]*snow=\{/.test(brief)
   && /const onWetter = layout === 'dossier' && LEVELS\[levelOf\(state\.tab\)\]\.tab === 'wetter';/.test(brief)
   && !/location|URLSearchParams|localStorage|sessionStorage|glacierFlag/.test(code(ladderSrc) + code(viewSrc)));
 const MQ = '@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {';

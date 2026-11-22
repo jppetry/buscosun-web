@@ -189,7 +189,7 @@ export default function GlacierBrief({ g, build, elevBuild = null, hugBuild = nu
   const onHeute = layout === 'dossier' && LEVELS[levelOf(state.tab)].tab === 'heute';
   const onWetter = layout === 'dossier' && LEVELS[levelOf(state.tab)].tab === 'wetter';
   // Phase GV (no switch): after the weather card, the ladder by elevation — its own lazy chunk, the weather card stays as it is; level Wetter
-  const snowLadder = onWetter || onHeute ? (
+  const snowLadder = onWetter ? (
     <Suspense fallback={<p className="gl-fine" role="status">Schnee am Gletscher wird geladen …</p>}>
       <GlacierSnowLadder g={g} snowPointer={snowPointer} weatherPointer={weatherPointer} byId={byId} stations={stnView?.stations ?? null} nowMs={nowMs} bases={bases} />
     </Suspense>
@@ -419,7 +419,7 @@ export default function GlacierBrief({ g, build, elevBuild = null, hugBuild = nu
                     {snowLadder}
                     {freezeCard}
                   </div>
-                ) : LEVELS[level].tab === 'heute' ? <GlacierHeuteBoard g={g} melt={mv} meltWhy={meltWhy} season={season} nowMs={nowMs} neighbourName={neighbourName} head={headBlock} weather={weatherCard} snow={snowLadder} satellite={satBlock(data)} winter={isHeuteWinter(nowMs)}
+                ) : LEVELS[level].tab === 'heute' ? <GlacierHeuteBoard g={g} melt={mv} meltWhy={meltWhy} season={season} nowMs={nowMs} neighbourName={neighbourName} head={headBlock} satellite={satBlock(data)} winter={isHeuteWinter(nowMs)}
                   sources={(
                     <details className="gl-ds-card gl-ds-sec gl-ds-fold" data-tab="quellen">
                       <summary><span className="gl-ds-eyebrow">{TAB_LABEL.quellen}</span><span className="gl-ds-fold-hint">Herkunft, Stand und Lizenz jeder Zahl</span></summary>
