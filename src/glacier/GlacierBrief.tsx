@@ -38,7 +38,7 @@ const TAB_LABEL: Record<GlacierTab, string> = { heute: 'Heute', saison: 'Saison'
 /** The three levels of the dossier and the sections each one holds; the URL `tab` of a section names its level. */
 const LEVELS: ReadonlyArray<{ tab: GlacierTab; title: string; sub: string; tabs: readonly GlacierTab[] }> = [
   { tab: 'heute', title: 'Heute', sub: 'Schmelze · Oberfläche · Tour', tabs: ['heute', 'tour'] },
-  { tab: 'saison', title: 'Satellit', sub: 'Saison · Schneegrenze · Bilanz', tabs: ['saison'] },
+  { tab: 'saison', title: 'Wetter', sub: 'Saison · Schneegrenze · Bilanz', tabs: ['saison'] },
   { tab: 'langzeit', title: 'Langzeit', sub: 'Reihen · Projektion · Quellen', tabs: ['langzeit', 'quellen'] },
 ];
 const levelOf = (t: GlacierTab): number => Math.max(0, LEVELS.findIndex((l) => l.tabs.includes(t)));
