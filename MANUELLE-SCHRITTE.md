@@ -4343,3 +4343,34 @@ Kein Push wurde zurückgenommen.
    `glacier/v1/index.json` nehmen; die Dateien unter `glacier/v1/snow/` stören niemanden (keine Seite liest sie). Im Code: den Commit
    der Phase zurücknehmen.
 10. **Nicht geprüft:** ein Lauf des Workflows auf dem Runner (erst nach deinem Push möglich); die Werte gegen Stationen (V-GN-2).
+
+## 112. Seewetter: Windpartikel auf der Seekarte (Nachzug BS-P, `audit/seewetter-binnenseen.md` §9), 2026-11-22
+
+Dein Wort vom 22.11. („ja mache das“): die Windpartikel der Wetterkarte hängen in der Seekarte — **ab Werk aus, hinter
+`?swp=1`**, lokal committet, nicht gepusht. **Ich habe die Schicht nie laufen sehen** (kein Browser, kein WebGL in den
+Prüfern); geprüft sind Ablauf, Worte und Verdrahtung. Ohne den Parameter ist die Seite die von vorher.
+
+**Kein Push von mir, nichts am Daten-Repo.** Gelesen werden die Windbilder, die die Wetterkarte ohnehin liest.
+
+1. **Ansehen** (nach dem Push auf der Seite, vorher lokal): `/seewetter?swp=1`
+   - Bewegen sich Partikel über See **und** Land, auch über den Seen (Revier „Seen“, etwa Bodensee)? Liegen sie **unter**
+     den Wellenpfeilen, Spot-Marken und Pegeln?
+   - Im Dock steht der Schalter „Windpartikel · DWD ICON-D2 · Windfeld des Modells, nicht buscosun Fusion“ (an). Aus und
+     wieder an: verschwinden sie, kommen sie wieder?
+   - Legende: „Windpartikel: Windfeld des DWD-Modells ICON-D2 (Lauf … UTC), nicht buscosun Fusion. Die Werte an den Spots
+     können davon abweichen.“
+   - Zeit nach vorn ziehen: nach rund 7–11 h hören die Partikel auf, die Legende sagt „keine für diese Stunde. Das
+     Windfeld der Karte reicht bis …“ (V-BS-33). Beim ersten Schritt über die nächste Stunde hinaus lädt die Seite kurz nach.
+   - Ebene „Strömung“: die Partikel ruhen („Windpartikel ruhen in der Ebene Strömung“), die Riffel laufen.
+   - Dossier eines Spots öffnen und schließen: danach laufen die Partikel wieder.
+   - **Telefon:** ruckelt die Karte beim Ziehen? (Die Schicht zeichnet dauernd neu, V-BS-35.)
+   - Konsole: Fehler beim Ein- und Ausschalten?
+2. **Stört etwas oder bleibt die Karte leer:** ohne `?swp=1` ist alles weg. Sag mir, was du siehst — dann stelle ich nach.
+3. **Für alle einschalten (deine Entscheidung, E-BS-18):** `SEA_PARTICLES_LIVE = true` in `src/sea/seaFlag.ts`, Build,
+   Push. Der Dock-Schalter steht dann bei allen und ist an; `?swp=0` ist der Rückfall je Link.
+4. **Gesetzt, bitte bestätigen oder kippen:** E-BS-15 (Feld = ICON-D2, nicht buscosun Fusion, so benannt), E-BS-16
+   (Ruhe in „Strömung“), E-BS-17 (außerhalb des Felds keine Partikel), E-BS-19 (über der ganzen Karte, nicht nur Wasser).
+5. **Budget:** totalJs 2 101,4 gegen 2 097,9 vorher (+3,5 KB); Grenze von Hand 2 099 → 2 102, Notiz in `budget.json`.
+6. **Nebenbei gemessen (22.11.):** die Seen sind nicht leer (70 von 70 Spots mit Wind und Böen); die Richtung fehlt dort
+   bei schwachem Wind (unter 6 kn) durch die Sperre von buscosun Fusion — Alpenseen 6–40 % der Stunden mit Richtung,
+   norddeutsche Seen 100 % (Audit §9.1, V-BS-25 bleibt offen). Der Laufwechsel der Seen um 04:19 UTC kam ohne Lücke.

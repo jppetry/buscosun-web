@@ -142,7 +142,7 @@ norddeutschen Seen (WSV) und an 13 Schweizer Seen (BAFU); an den österreichisch
 | **E-BS-8** | Wassertemperatur | Messung nur von der WSV-Station AM See (≤ 1 km vom Umriss) und ≤ 20 km vom Spot; Modell = Alplakes Simstrat in 1 m Tiefe je Becken; nie gemischt, „keine Station in der Nähe“, wo keine ist. GKD nur als Link |
 | **E-BS-9** | Pegel | nur als Auskunft (aktueller Wert, Zeit, Bezug): WSV in cm über Pegelnull, BAFU in m ü. M. Kein Tidenfenster, kein Füllstand-Glas, keine Strömung, kein Küstentext an Seespots |
 | **E-BS-10** | Ufer außerhalb DE/AT/CH | Landesparameter des nächsten der drei Länder mit Vermerk (`lakeForeignNote`); von den 70 Spots liegt keiner an einem fremden Ufer, die Regel greift bei Etappen über den See |
-| **E-BS-11** | Windpartikel auf der Seekarte | **nicht gebaut — Jans Entscheidung nötig.** Die Seewetter-Karte trägt bisher keine eigene Ebene in der GL-Pipeline (nur Symbol- und Bildquellen); die Windpartikel der Wetterkarte (`WindLayer`) hier einzuhängen ist ein Eingriff in die WebGL-Pipeline (STOPP-Grenze) und ohne Sichtprüfung nicht zu verantworten. Die Seen zeigen Seefläche, Spots und die vorhandenen Windpfeile an den Spots |
+| **E-BS-11** | Windpartikel auf der Seekarte | **(22.11.: gebaut hinter `?swp=1` mit Jans Go, §9 — der Stand vom 21.11. folgt.)** **nicht gebaut — Jans Entscheidung nötig.** Die Seewetter-Karte trägt bisher keine eigene Ebene in der GL-Pipeline (nur Symbol- und Bildquellen); die Windpartikel der Wetterkarte (`WindLayer`) hier einzuhängen ist ein Eingriff in die WebGL-Pipeline (STOPP-Grenze) und ohne Sichtprüfung nicht zu verantworten. Die Seen zeigen Seefläche, Spots und die vorhandenen Windpfeile an den Spots |
 
 ## 3. Umsetzung
 
@@ -232,7 +232,7 @@ alle 6 h).
 |---|---|---|
 | **V-BS-1** | **geschlossen (21.11., `d930e5a4`, Messung `seewetter-binnenseen/wind-dir-probe.mjs` / `.json`, eine Wetterlage, 70 Spots, 5 670 Stunden).** buscosun Fusion nennt an 50,3 % der Stunden eine Windrichtung. Sie fehlt aus zwei Gründen. **(1) Die Sperre des Motors** (mittlerer Windvektor kleiner als seine Streuung): an Schritten mit eigener Rechnung tragen 56,8 % eine Richtung. Wo die Sperre greift, hatte der Vektor des Modells im Median 1,5 kn (90 % unter 2,9 kn), der Wind der Ausgabe 3,3 kn (90 % unter 4,5 kn); die zurückgehaltene Richtung sprang von Stunde zu Stunde im Median um 16,8° (90 %: 78,5°) und verfehlte die Station im Median um 50,9° (10 Stationen) — bei offener Sperre 4,8° (17,9°) und 13,8° (21 Stationen). Das ist Rauschen, die Sperre bleibt, buscosun Fusion ist nicht angefasst. **(2) Stunden, die der Motor zwischen zwei eigenen Schritten interpoliert:** 322 Stunden, **keine einzige** mit Richtung, bei im Median 4,8 kn und bis 14,8 kn Wind; an 100 davon trugen beide Nachbarschritte eine Richtung, alle 100 lagen höchstens 90° auseinander | Nur Fall 2 ist gefüllt, im Producer der Seen: auf dem kürzeren Bogen zwischen den beiden Nachbarschritten, wenn beide eine Richtung tragen und höchstens 90° auseinanderliegen (`fillLakeDir`, `LAKE_DIR_FILL_MAX_DEG`, `set`); die Datei zählt die Stunden in `dirFilled` und nennt die Regel in `about` (echter Lauf: 90 Stunden gefüllt). Fall 1 sagt die Seite bis 6 kn als „schwacher Wind ohne verlässliche Richtung“ (`lakeNoDirText`, `set`), darüber „Richtung für diese Stunde nicht bestimmt“. Dauerhaft geprüft in `verify:sea-lakes` Block I (§8.4). Offen bleibt die Sperre selbst an den Alpenseen (viel schwacher Wind): eine Frage an den Motor, eigene Phase, Jans Entscheidung (V-BS-25) |
 | **V-BS-2** | An den zehn Seestationen ist buscosun Fusion im Mittel gut (Wind +0,3 kn, Böe +0,5 kn), je See aber verschieden: Neusiedler See Wind +1,8 kn und nur 70 % in der Spanne, Zürichsee Böen +3,0 kn, Chiemsee Böen 1–6 h −2,0 kn. Gemessen bei schwachem Herbstwind an Landstationen | Deshalb bleiben die Klassen aus (E-BS-2). Skizze: nach 14 Tagen Archiv (`lakes-*.json.gz` gegen `lake-obs.json.gz`) dieselbe Tabelle an allen 41 Stationen, dann Jans Entscheidung über `LAKE_VERDICTS` |
-| **V-BS-3** | Windpartikel auf der Seekarte sind nicht gebaut (E-BS-11) — die Vorgabe „lake area, spots, wind particles“ ist an dieser Stelle **nicht erfüllt** | Jans Entscheidung: die `WindLayer`-Klasse der Wetterkarte in `SeaMap` einhängen (WebGL-Pipeline, Sichtprüfung nötig) oder bei den Windpfeilen an den Spots bleiben |
+| **V-BS-3** | **(22.11.: gebaut hinter `?swp=1`, §9, von mir nicht gesehen.)** Windpartikel auf der Seekarte sind nicht gebaut (E-BS-11) — die Vorgabe „lake area, spots, wind particles“ ist an dieser Stelle **nicht erfüllt** | Jans Entscheidung: die `WindLayer`-Klasse der Wetterkarte in `SeaMap` einhängen (WebGL-Pipeline, Sichtprüfung nötig) oder bei den Windpfeilen an den Spots bleiben |
 | **V-BS-4** | **erledigt (BS-N, §8.2).** Etappe auf einem See: Wind kommt von buscosun Fusion mit den Landesparametern des Start- oder Zielspots; die Spalten Welle und Strom zeigen „keine Daten“ (das Wellenmodell hat dort kein Wasser), statt ausgeblendet zu sein. An einem Punkt vor fremdem Ufer (Genfersee Südufer) steht in der Etappe kein Vermerk | Skizze: in `SeaTripPanels` die beiden Spalten an Seen weglassen und den Vermerk `lakeForeignNote` an Punkten außerhalb DE/AT/CH zeigen (Länderregel `countryBorders.ts`) |
 | **V-BS-5** | **erledigt (BS-N, §8.3).** Die Sicht-Karte sagt am Seespot „Diesem Spot ist keine Messstation zugeordnet“, obwohl es eine Windstation gibt — obs/v1 trägt keine Sichtweite; die amtliche Zeile nennt kein Seegebiet | Skizze: eigener Satz für Seen („Die Station meldet im Datenbestand keine Sichtweite“) in `SeaSightPanel` |
 | **V-BS-6** | Die 70 Lagen sind aus dem Gedächtnis gesetzt und nur am Umriss (Median 103 m zum Ufer) und an der Wikipedia-Koordinate des Orts geprüft; zwei waren falsch und sind korrigiert. Ob ein Spot am Hafen, am Strandbad oder an der Promenade liegt, hat niemand angesehen | Jans Blick auf die Karte, je See; `lakes-src.json` ist die eine Stelle |
@@ -446,3 +446,129 @@ Jan hat `main` am 21.11. um 20:14:39 UTC gepusht (`origin/main` = `84956432`). A
   `lakes/2026112112-w2026112121.json` (`builtAt` 23:11:44 UTC) trägt `dirFilled: 64` und den Satz zur Regel in `about`.
   Die 84 sind weniger als die 108 der Messung am ganzen Lauf (§8.1), weil eine Auffrischung nur die Stunden ab ihrem Würfel
   neu rechnet. Welche Spots die 84 Stunden tragen, habe ich an der Live-Datei nicht ausgezählt.
+
+## 9. Nachzug BS-P (22.11.2026) — Windpartikel auf der Seekarte (E-BS-11), hinter `?swp=1`
+
+Auslöser (Jan, 22.11. früh): „die Seen zeigen auch keine Windrichtung an wie die Küste“, „es werden auch keine Windpfeile
+über den Seen auf der Karte gezeichnet“. Auf meinen Vorschlag (Partikel der Wetterkarte in die Seekarte hängen, hinter
+einem Schalter, ab Werk aus) sein Wort: „ja mache das“ — das ist die Freigabe für den Eingriff an der WebGL-Pipeline, die
+E-BS-11 offen ließ. **Ich habe nichts davon im Browser gesehen.**
+
+### 9.1 Diagnose (gemessen 22.11., 03:30–04:20 UTC, nur gelesen)
+
+**Sind die Seen leer?** Nein. `status.lakes` 02:18 UTC, 70 von 70 Spots, kein Ausfall; die Lader der Seite
+(`loadCatalog` → `loadLatestRun` → `loadSpots` → `withWindRefresh` → `loadLakes` → `withLakes`, gegen die echten Dateien)
+liefern für die laufende Stunde an 70 von 70 Seespots Wind und Böen. Die ausgelieferte Seite trägt den Stand des Pushs
+(`curprev` und `spots-lakes.json` im Bündel).
+
+**Warum fehlt die Richtung an den Seen öfter als an der Küste?** Dieselbe Anzeige, andere Lage. Nächste 48 h, Anteil der
+Stunden mit Richtung nach Windstärke (`lakes/2026112112-w2026112200.json` gegen `spots/2026112112-w2026112200.json`):
+
+| Wind | Küste (63 Spots) | Seen (70 Spots) |
+|---|---|---|
+| 2–4 kn | 69 % von 45 | 22 % von 1 128 |
+| 4–6 kn | 88 % von 162 | 73 % von 1 077 |
+| 6–8 kn | 100 % von 452 | 95 % von 582 |
+| ab 8 kn | 100 % | 100 % |
+| Median der nächsten 24 h | 11,3 kn | 4,1 kn |
+| Stunden mit Richtung, nächste 24 h | 1 508 von 1 512 | 1 111 von 1 680 |
+
+Von den 569 Seestunden ohne Richtung liegen 567 unter 6 kn. Je See (nächste 24 h): alle neun norddeutschen Seen 100 %,
+Bodensee 62 %, Zürichsee 26 %, Thunersee 13 %, Lago Maggiore 8 %, Luganersee 6 %. Das ist die Sperre von buscosun Fusion
+(Windvektor kleiner als Streuung, V-BS-1: zurückgehaltene Richtung verfehlte die Station im Median um 51°) — sie bleibt,
+V-BS-25 bleibt offen.
+
+**Was zeichnet die Karte?** Die Pfeile über der Wasserfläche sind die Wellenrichtung des CWAM-Felds (`sw-arrows`) — das
+Modell trägt nur Nord- und Ostsee. „Wind an den Spots“ (`sw-wind`) ist ein Pfeil je Spot aus buscosun Fusion, nur mit
+Richtung: vorhin 29 von 70 Seespots, 63 von 63 an der Küste. Ein Windfeld über der Fläche zeichnete die Seekarte nirgends.
+
+**Womit ginge es?** Die Partikel-Klasse `WindLayer` läuft auf Wetterkarte, Globus und in der Dashboard-Kachel
+(`dashboard/MiniMap.tsx` — der Beleg, dass sie sich ohne Änderung in eine zweite Karte hängen lässt). Ihr Feld ist der
+10-m-Wind von ICON-D2 aus dem Daten-Repo: gemessen 13 Schritte (0–12 h) je Lauf, alle drei Stunden ein Lauf, 608 × 373
+Punkte (jede zweite Modellzelle, 0,04° ≈ 4,4 km Nord–Süd), 216–244 KB je Schritt, Gebiet 43,16–58,08° N / −3,96–20,36° O
+(alle 134 Spots liegen darin). Die Seekarte hat die dunkle Grundkarte, für die die Partikelfarben gemacht sind, und wartet
+nirgends auf `idle` (eine Partikelschicht zeichnet dauernd neu).
+
+**Laufwechsel der Seen (Nebenbefund, erster Wechsel seit die Seen mitrechnen):** der Seegangslauf 2026112200 erschien
+04:19 UTC, die Seedatei für denselben Lauf (`lakes.run` 2026112200, 70 Spots, 0 Ausfälle, `builtAt` 04:19:04) im selben
+Veröffentlichen — keine Lücke. Beobachtet alle drei Minuten an `status.json`.
+
+### 9.2 Entscheidungen
+
+| Nr. | Frage | Entscheidung |
+|---|---|---|
+| **E-BS-14** | Womit zeichnen? | Mit der **Klasse der Wetterkarte, unverändert** (Jan 22.11.: „ja mache das“). Keine Zeile in `src/wind/**` geändert, kein Shader, keine neue Option; Voreinstellung `weatherWindPreset.ts`, Flächengrenzen der Wetterkarte (2 500 / 48 000), Regelung nur über ihren `FrameGovernor` |
+| **E-BS-15** | Welches Feld? | Der 10-m-Wind von **ICON-D2** aus dem Daten-Repo über den Leser der Wetterkarte, ohne Windfärbung (die Farbfläche der Karte ist der Seegang). Das ist **nicht buscosun Fusion** — Schalter, Legende und Quellenliste sagen es; Werte und Pfeile an den Spots bleiben buscosun Fusion. *Gesetzt, bitte bestätigen* |
+| **E-BS-16** | Ebene „Strömung“ | Dort **ruhen** die Partikel (die Riffel bewegen sich schon; zwei bewegte Schichten übereinander). *Gesetzt* |
+| **E-BS-17** | Welche Stunden? | Nur die Stunden, die das Feld trägt (bis Lauf + 12 h, also rund 7–11 h voraus). Außerhalb **keine** Partikel und der Satz, bis wann das Feld reicht — nie das Bild vom Rand. Start mit den zwei Bildern um „jetzt“; das lange Fenster wird erst geholt, wenn die gewählte Stunde dahinter liegt |
+| **E-BS-18** | Schalter | **Ab Werk aus.** `?swp=1` zeigt den Dock-Schalter „Windpartikel“ (an) und lädt die Schicht; ohne ihn kein Schalter, kein Chunk, keine Schicht. Für alle: `SEA_PARTICLES_LIVE = true` nach Jans Blick (`?swp=0` ist dann der Rückfall). *Jans Entscheidung nach dem Ansehen* |
+| **E-BS-19** | Nur über Wasser? | Nein, über der ganzen Karte wie auf der Wetterkarte. Ein See von wenigen Kilometern ist ein bis zwei Zellen des Felds — auf Wasser beschnitten bliebe davon nichts. *Gesetzt* |
+
+### 9.3 Umsetzung
+
+- **Reine Logik** `src/sea/seaParticles.ts` (importfrei): Fenster des geladenen Felds, Lage der Stunde (davor / darin /
+  dahinter, nie geklemmt), welches Fenster wann geholt wird (0 → 12 h; nach drei Stunden neu), Legendenzeile, wann die
+  Partikel ruhen.
+- **Schicht** `src/sea/SeaParticleLayer.ts` (eigener Lazy-Chunk, 1,8 KB): baut die `WindLayer` der Wetterkarte, hängt sie
+  unter `sw-arrows` (über Seegangsfläche, Seeflächen und Kartenbeschriftung, unter allen Pfeilen und Marken), holt das Feld
+  mit `fetchIconD2Wind(…, { nowOnly: true, aheadHours })`, setzt das Bild der gewählten Stunde, schaltet außerhalb des
+  Felds die Partikel ab; ein gescheiterter erster Abruf wird nach 60 s wiederholt, höchstens dreimal; beim Ausschalten
+  geht die Schicht aus der Karte, der Abruf wird abgebrochen.
+- **Karte** `SeaMap.tsx`: Eigenschaft `particles` (null = aus); die Schicht kommt nur über `import()`, erst nach den
+  eigenen Ebenen der Karte; abseits der Bühne (Dossier) ruht ihre Schleife (`setSuspended`).
+- **Seite / Dock** `SeaPage.tsx`, `SeaDock.tsx`, `seaFlag.ts` (`seaParticlesFrom`, `SEA_PARTICLES_LIVE = false`): Schalter
+  „Windpartikel · DWD ICON-D2 · Windfeld des Modells, nicht buscosun Fusion“ nur hinter `?swp=1`; Legendenzeile; Eintrag in
+  der Quellenliste (an nur, wenn Partikel gezeichnet werden). Kein CSS geändert, kein neues Markup außer einer Notizzeile.
+- **Datenvertrag:** keiner berührt — keine Datei, kein Pfad, kein Producer, kein Workflow des Daten-Repos. Gelesen wird,
+  was die Wetterkarte liest (`runs/<lauf>/wind-<hhh>.png`).
+- **Nicht angefasst:** buscosun Fusion (`src/pointForecast/**`), `src/wind/**`, Shader, Edge Functions, Abhängigkeiten.
+  Neu in der CI: der Schritt „Verifier — Windpartikel Seekarte“ (`.github/workflows/ci.yml`).
+- Falle am Rand: unter Windows sind `seaWindParticles.ts` und `SeaWindParticles.ts` DIESELBE Datei — die zweite überschrieb
+  die erste; daher die Namen `seaParticles.ts` / `SeaParticleLayer.ts`.
+
+### 9.4 Belege und Gate (22.11.2026)
+
+- `verify:sea-particles` **31/31** (neu): A reine Logik, B Schalter, C der Ablauf der echten `SeaParticleLayer.ts` gegen
+  Stellvertreter der Partikel-Klasse und des Windlesers (mit esbuild gebündelt): Einhängepunkt, Voreinstellung, erstes
+  Feld, Stundenwechsel, Stunde hinter dem Feld (sofort keine Partikel, genau EIN langer Abruf), hinter dem langen Fenster
+  (kein weiterer Abruf), gescheiterter Abruf, Auffrischung, Ausschalten während des Abrufs; D Verdrahtung am Quelltext
+  (aus = kein Chunk, keine Schicht, kein Schalter; Flächengrenzen aus `MapView.tsx` gelesen).
+- **Mutationsprobe:** 30 eingebaute Fehler, **29 bemerkt**. Der dreißigste (die Antwort eines Abrufs nach dem Ausschalten
+  noch in das Objekt schreiben) ist gleichwertig: zwei spätere Sperren verhindern jede Wirkung. Die Probe fand zwei Lücken,
+  beide geschlossen: ein Fehler, der den Abruf in eine Endlosschleife schickt, ließ den Prüfer hängen statt rot werden
+  (jetzt hält der Stellvertreter nach 30 Abrufen an, C12), und dasselbe Bild wurde beim Eintreffen des langen Fensters
+  noch einmal hochgeladen (Zeile entfernt, C9b).
+- Zwei bestehende Prüfer hingen an Quellzeilen: `verify:sea-current` F10 und `verify:sea-ripples` G14 lasen
+  `current: false }` (jetzt `current: false, particles: false }`); F10 behauptete „kein `WindLayer` im Kartenbaustein“
+  und sagt jetzt, was gilt: kein Shader, kein eigener GL-Layer, kein statischer Import aus `src/wind` — die Partikel der
+  Wetterkarte nur als eigener Chunk hinter dem Schalter; mit Gegenprobe auf die eigenen Muster. 129/129, 122/122.
+- Typecheck 0, Build 281/281. `verify:sea-lakes` 125/125, `-trip` 82/82, `-planner` 50/50, `-wizard` 29/29, `-wind-band`
+  41/41, `-dk` 70/70, `-sight` 80/80, `-watertemp` 136/136, `-contract` 30/30, `-tide-window` 49/49, `-waterlevel` 64/64,
+  `-seo` 23/23, `-text` 35/35, `-decode` 13/13.
+- **Budget:** eagerJs 116,2 / 117, largestChunk 278,4 / 302, **totalJs 2 101,4 gegen 2 097,9** am committeten Stand
+  (`068cbc74`, frischer Klon) = **+3,5 KB**; Grenze von Hand 2 099 → 2 102 mit Notiz in `budget.json`. 1,8 KB der neue
+  Chunk, rund 0,6 KB Logik und Verdrahtung, der Rest Teilungsverlust (`iconD2WindSource`, 5,2 KB, ist jetzt ein eigener
+  Chunk, weil ihn zwei Karten laden). Im Bau geprüft: `WindLayer`, `iconD2WindSource` und `SeaParticleLayer` hängen an
+  keinem statischen Import von `SeaPage`, `SeaRoute` oder dem Einstieg.
+- **Nicht geprüft:** nichts im Browser — kein Bild, keine Konsole, kein Gerät, **kein einziger Lauf der Schicht mit
+  echtem WebGL**. `verify:sea-ui` (Browser), `verify:sea-derive`, `verify:sea-lakes-bytes` nicht gelaufen (kein Producer
+  berührt).
+
+Die fünf Fragen: (1) Funktionserhalt — ohne `?swp=1` ist die Seite die von vorher (kein Schalter, kein Chunk, keine
+Schicht: B1, D1, D3, D5; im Bau geprüft). (2) Desktop pixelgleich — nicht geprüft; ohne Schalter kein geändertes Markup
+und kein CSS. (3) Touch-Ziele — der neue Schalter ist ein Eintrag der bestehenden Schalterliste. (4) Konsole — nicht
+geprüft. (5) Long Tasks — nicht geprüft; mit Partikeln zeichnet die Karte dauernd neu (V-BS-35).
+
+### 9.5 Befunde
+
+| Nr. | Befund | Mehrwert · Skizze |
+|---|---|---|
+| **V-BS-3 / E-BS-11** | gebaut hinter `?swp=1`, ab Werk aus | Jans Blick, dann `SEA_PARTICLES_LIVE` |
+| **V-BS-31** | **Die Schicht ist von mir nie mit echtem WebGL gelaufen.** Geprüft sind Ablauf, Worte und Verdrahtung, nicht das Bild | Jans Blick mit `?swp=1`: Partikel sichtbar über See und Land, unter Pfeilen und Marken; Zeit ziehen; Ebene „Strömung“; Dossier auf und zu; Schalter aus und an; Telefon (`MANUELLE-SCHRITTE.md` §112) |
+| **V-BS-32** | Das Feld hat rund 4,4 km Maschenweite: ein Alpensee ist ein bis zwei Zellen, Talwind und Seewind stehen nicht darin. Die Partikel zeigen den Wind der Gegend | Mehrwert: Wind auf dem See selbst. Skizze: ICON-D2 in voller Auflösung (2,2 km) als eigenes Bild im Repack nur über den Seen — eigene Phase, Daten-Repo |
+| **V-BS-33** | Die Partikel reichen 7–11 h voraus (das Repack trägt 13 Schritte je Lauf), die Zeitleiste 79 h. Dahinter steht „keine für diese Stunde“ | Skizze: mehr Windschritte im Repack (bis +48 h) — betrifft die Wetterkarte mit, eigene Phase |
+| **V-BS-34** | Feld (ICON-D2) und Spot (buscosun Fusion) können sich widersprechen; bei schwachem Wind bewegen sich Partikel, wo buscosun Fusion keine Richtung nennt. Die Legende sagt es, löst es aber nicht | Nur vermerkt. Messbar: Richtung des Felds am Spot gegen die Richtung von buscosun Fusion über 14 Tage Ablage |
+| **V-BS-35** | Mit Partikeln zeichnet die Seekarte jedes Bild neu (Symbol-Ebenen eingeschlossen). Bildrate am Telefon nicht gemessen; geregelt wird nur über den `FrameGovernor` der Klasse | Real-Device, vor `SEA_PARTICLES_LIVE` |
+| **V-BS-36** | Budget +3,5 KB, davon rund 1,1 KB nur, weil der Windleser ein eigener Chunk wurde | Nur vermerkt |
+| **V-BS-37** | `?swp=1` gilt für den Besuch (einmal beim Laden gelesen). Ob die Adresse den Parameter behält, wenn die Seite ihren Zustand schreibt, ist nicht geprüft — nach einem Neuladen ohne ihn sind die Partikel weg | Für die Sichtprüfung reicht es; mit `SEA_PARTICLES_LIVE` entfällt die Frage |
+| **V-BS-38** | Die gemessene Richtung der nächsten Station für die Stunde „jetzt“ in die Zeile heben, wo buscosun Fusion keine nennt (mein Vorschlag vom 22.11., von Jan nicht gewählt) | Mehrwert: an Alpenseen steht für „jetzt“ eine Richtung, als Messung benannt. Skizze: `lakeObsOf` liefert `ddDeg` schon; nur die laufende Stunde, nie die Vorhersage |
