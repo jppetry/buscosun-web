@@ -77,8 +77,8 @@ add('B2 Innenabstand, damit die Wertekarten nicht abgeschnitten werden: links/re
   && /function fitPadding\(map: maplibregl\.Map/.test(src('src/glacier/GlacierSheetMap.tsx')) && /fb\.padding \? fitPadding\(map, fb\.padding\) : 48/.test(src('src/glacier/GlacierSheetMap.tsx')),
   `${JSON.stringify(P)} | Karte ${cardMax} px, Abstand ${cardBottom} px`);
 const brief = src('src/glacier/GlacierBrief.tsx');
-add('B3 nur die Ebene Heute des Dossiers bekommt den Rahmen, und nur mit eingeschalteter Ebene „Stationen“; ohne Rahmen rahmt die Karte wie bisher (Box des Umrisses, 48 px — auch beim Wechsel 2D/3D)',
-  /if \(!stnView \|\| !showStations \|\| !onHeute\) return null;/.test(code(brief)) && /const onHeute = layout === 'dossier' && LEVELS\[levelOf\(state\.tab\)\]\.tab === 'heute';/.test(brief)
+add('B3 nur die Ebenen Heute und Wetter des Dossiers (beide zeigen die Karte, Jan 22.11.) bekommen den Rahmen, und nur mit eingeschalteter Ebene „Stationen“; ohne Rahmen rahmt die Karte wie bisher (Box des Umrisses, 48 px — auch beim Wechsel 2D/3D)',
+  /if \(!stnView \|\| !showStations \|\| !\(onHeute \|\| onWetter\)\) return null;/.test(code(brief)) && /const onHeute = layout === 'dossier' && LEVELS\[levelOf\(state\.tab\)\]\.tab === 'heute';/.test(brief)
   && /if \(fr\) return \{ bounds: fr\.bounds, padding: fr\.padding \};/.test(src('src/glacier/GlacierSheetMap.tsx')) && /return bb \? \{ bounds: \[\[bb\[0\], bb\[1\]\], \[bb\[2\], bb\[3\]\]\], padding: null \} : null;/.test(src('src/glacier/GlacierSheetMap.tsx')));
 
 // ── C line from the outline ────────────────────────────────────────────────────────────────────────────────────────────

@@ -230,9 +230,9 @@ add('J1 neue UI als Lazy-Chunk NACH der Karte „Wetter am Gletscher“ auf der 
   && !/location|URLSearchParams|localStorage|sessionStorage|glacierFlag/.test(code(ladderSrc) + code(viewSrc)));
 const MQ = '@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {';
 const mqAt = css.indexOf(MQ), mq = css.slice(mqAt);
-add('J2 Telefon allein in der Media Query des Dossiers: Leiter schmaler, Bilder untereinander; Trefferflächen ≥ 44 px (Bedienelemente sind die Quellenlinks, mobil 44 px hoch, und der eine Knopf „Mehr auf der Ebene Wetter“, 44 px); nur Gletscher-Tokens als Farben (außer Weiß), keine Animation; keine neue Abhängigkeit, nichts an buscosun Fusion, Edge Functions, Shadern',
+add('J2 Telefon allein in der Media Query des Dossiers: Leiter schmaler, Bilder untereinander; Trefferflächen ≥ 44 px (die einzigen Bedienelemente sind die Quellenlinks: 44 px hoch); nur Gletscher-Tokens als Farben (außer Weiß), keine Animation; keine neue Abhängigkeit, nichts an buscosun Fusion, Edge Functions, Shadern',
   mqAt > 0 && css.split('@media').length === 2 && /\.gl-sv-rung \{ grid-template-columns: 46px/.test(mq) && /\.gl-sv-fig, \.gl-sv-areagrid \{ grid-template-columns: minmax\(0, 1fr\)/.test(mq) && /\.gl-sv-src a \{ display: inline-flex; align-items: center; min-height: 44px; \}/.test(mq)
-  && (ladderSrc.match(/<button/g) ?? []).length === 1 && /<button type="button" className="gl-btn gl-wn-more" onClick=\{onMore\}>/.test(ladderSrc) && /\.gl-wn-more \{ align-self: flex-start; min-height: 44px; \}/.test(css) && !/<input|<select/.test(ladderSrc) && !/#[0-9a-fA-F]{3,8}/.test(css.replace(/#fff\b/gi, '')) && !/@keyframes|animation:|transition:/.test(css)
+  && !/<button|onClick|<input|<select/.test(ladderSrc) && !/#[0-9a-fA-F]{3,8}/.test(css.replace(/#fff\b/gi, '')) && !/@keyframes|animation:|transition:/.test(css)
   && pkgHead && JSON.stringify(Object.keys(pkgNow).sort()) === JSON.stringify(Object.keys(pkgHead).sort()) && !changed.some((f) => /^src\/pointForecast\/|^netlify\/edge-functions\/|^src\/wind\/|shaders?\.|\.glsl$/.test(f)),
   changed.join(', '));
 

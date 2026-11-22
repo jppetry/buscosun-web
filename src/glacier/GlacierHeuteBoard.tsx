@@ -76,18 +76,14 @@ function SatPanel({ g, season, nowMs }: { g: GlacierCatalogEntry; season: Season
   );
 }
 
-export default function GlacierHeuteBoard({ g, melt, meltWhy, season, nowMs, neighbourName, head, weather = null, snow = null, now = null, satellite = null, freeze = true, sources = null, winter = false }: {
+export default function GlacierHeuteBoard({ g, melt, meltWhy, season, nowMs, neighbourName, head, weather = null, snow = null, satellite = null, sources = null, winter = false }: {
   g: GlacierCatalogEntry; melt: MeltView | null; meltWhy: string | null; season: SeasonSummary | null; nowMs: number; neighbourName: string | null; head: ReactNode;
   /** Phase GW: the card "Wetter am Gletscher" (`null` = off). */
   weather?: ReactNode;
   /** Phase GV: the ladder "Am Gletscher, nach Höhe" (model snow fields, stations, snow analysis) — right after the weather card. */
   snow?: ReactNode;
-  /** Dossier (level order Wetter · Heute): one line of model values for now, linking to the level Wetter. */
-  now?: ReactNode;
   /** Dossier: the satellite part (Sentinel-2 in 10 m, season) after the 14-day row. */
   satellite?: ReactNode;
-  /** `false`: the freezing level of the next 14 days is shown on the level Wetter instead (dossier). */
-  freeze?: boolean;
   /** Phase DK-H: the sources, folded, at the end of the level. */
   sources?: ReactNode;
   /** Phase DK-H: winter months — the melt and frost rows are drawn smaller (same content). */
@@ -109,7 +105,6 @@ export default function GlacierHeuteBoard({ g, melt, meltWhy, season, nowMs, nei
       {/* DK-H order: model at three heights (with its days), then melt and frost (smaller in winter), tour, sources */}
       {weather ? <div className="gl-hb-wx">{weather}</div> : null}
       {snow ? <div className="gl-hb-snow">{snow}</div> : null}
-      {now}
 
       <section className="gl-hb-row gl-hb-row--melt" aria-label="Heute">
         <div className="gl-hb-card gl-hb-gaugecard">
@@ -165,7 +160,7 @@ export default function GlacierHeuteBoard({ g, melt, meltWhy, season, nowMs, nei
           <span className="gl-ds-eyebrow">Tour</span>
           <p className="gl-hb-disclaimer" role="note"><strong>Kein Urteil über Begehbarkeit.</strong> {TOUR_DISCLAIMER.replace('Kein Urteil über Begehbarkeit. ', '')}</p>
         </div>
-        {freeze && hasFreeze && (
+        {hasFreeze && (
           <div className="gl-hb-card">
             <div className="gl-hb-cardhead"><span className="gl-hb-l">Nullgradgrenze, Tagesmaximum der nächsten 14 Tage</span><OriginChip origin="model" /></div>
             <FreezeChart zf={melt!.zf} zRange={g.z} labels={dayLabels(melt!.runAt)} />

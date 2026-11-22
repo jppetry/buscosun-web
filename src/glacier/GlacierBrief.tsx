@@ -36,8 +36,6 @@ const GlacierSatImagery = lazy(() => import('./GlacierSatImagery'));
 const GlacierStationsHeute = lazy(() => import('./GlacierStationsHeute'));
 /** Phase GV: the ladder "Am Gletscher, nach Höhe" (model snow fields, stations, SNOWGRID) — loaded only on level Heute of the dossier. */
 const GlacierSnowLadder = lazy(() => import('./GlacierSnowLadder'));
-/** Dossier level Heute: the line "Wetter jetzt" (same chunk as the ladder). */
-const GlacierWeatherNow = lazy(() => import('./GlacierSnowLadder').then((m) => ({ default: m.WeatherNowStrip })));
 const TAB_LABEL: Record<GlacierTab, string> = { heute: 'Heute', saison: 'Saison', langzeit: 'Langzeit', tour: 'Tour', quellen: 'Quellen', wetter: 'Wetter' };
 /** The three levels of the dossier and the sections each one holds; the URL `tab` of a section names its level. */
 const LEVELS: ReadonlyArray<{ tab: GlacierTab; title: string; sub: string; tabs: readonly GlacierTab[] }> = [
@@ -197,10 +195,10 @@ export default function GlacierBrief({ g, build, elevBuild = null, hugBuild = nu
     </Suspense>
   ) : null;
   const frame = useMemo(() => {
-    if (!stnView || !showStations || !onHeute) return null;
+    if (!stnView || !showStations || !(onHeute || onWetter)) return null;
     const b = heuteFrame(mapGeometry ? bboxOf(mapGeometry) : null, stnView.stations);
     return b ? { bounds: b, padding: { ...(isMobile ? HEUTE_FRAME_PADDING.mobile : HEUTE_FRAME_PADDING.desktop) } } : null;
-  }, [stnView, showStations, onHeute, mapGeometry, isMobile]);
+  }, [stnView, showStations, onHeute, onWetter, mapGeometry, isMobile]);
   /** One neutral sentence when the dossier has no station to show (no layer content, framing as before). */
   const stnEmpty = layout !== 'dossier' || stn.state === 'ready' ? null
     : stn.state === 'loading' ? 'Stationen werden geladen …'
@@ -335,12 +333,6 @@ export default function GlacierBrief({ g, build, elevBuild = null, hugBuild = nu
         <FreezeChart zf={mv.zf} zRange={g.z} labels={dayLabels(mv.runAt)} />
       </section>
     ) : null;
-    /** Level Heute: one line of model values for now, the rest on the level Wetter. */
-    const nowStrip = glacierWeatherFrom() ? (
-      <Suspense fallback={<p className="gl-fine" role="status">Wetter jetzt wird geladen …</p>}>
-        <GlacierWeatherNow g={g} weatherPointer={weatherPointer} byId={byId} nowMs={nowMs} bases={bases} onMore={() => onState({ tab: 'wetter' })} />
-      </Suspense>
-    ) : null;
     const copernicusDay = (sceneForMap?.date ?? new Date(nowMs).toISOString().slice(0, 10));
     const mapTools = (
       <div className="gl-ds-maptools">
@@ -391,8 +383,8 @@ export default function GlacierBrief({ g, build, elevBuild = null, hugBuild = nu
             </button>
           ))}
         </nav>
-        {/* the map card belongs to the level Heute only: Satellit shows the Sentinel-2 10 m picture, Langzeit the series (Jan, 2026-10-24) */}
-        {LEVELS[level].tab === 'heute' && (
+        {/* the map card with the stations stands on the levels Wetter (first, Jan 22.11.) and Heute; Langzeit shows the series */}
+        {(LEVELS[level].tab === 'heute' || LEVELS[level].tab === 'wetter') && (
           <div className="gl-ds-card gl-ds-mapcard">
             {mapTools}
             <div className={`gl-ds-mapgrid${stnView ? ' has-stations' : ''}`}>
@@ -427,7 +419,7 @@ export default function GlacierBrief({ g, build, elevBuild = null, hugBuild = nu
                     {snowLadder}
                     {freezeCard}
                   </div>
-                ) : LEVELS[level].tab === 'heute' ? <GlacierHeuteBoard g={g} melt={mv} meltWhy={meltWhy} season={season} nowMs={nowMs} neighbourName={neighbourName} head={headBlock} weather={null} now={nowStrip} satellite={satBlock(data)} freeze={false} winter={isHeuteWinter(nowMs)}
+                ) : LEVELS[level].tab === 'heute' ? <GlacierHeuteBoard g={g} melt={mv} meltWhy={meltWhy} season={season} nowMs={nowMs} neighbourName={neighbourName} head={headBlock} weather={weatherCard} satellite={satBlock(data)} winter={isHeuteWinter(nowMs)}
                   sources={(
                     <details className="gl-ds-card gl-ds-sec gl-ds-fold" data-tab="quellen">
                       <summary><span className="gl-ds-eyebrow">{TAB_LABEL.quellen}</span><span className="gl-ds-fold-hint">Herkunft, Stand und Lizenz jeder Zahl</span></summary>
