@@ -338,7 +338,7 @@ if (index && FAMS.every((f) => !!runOf[f])) {
     at(200);
     rule = (u) => (u.startsWith(CDN_HOST) ? { hang: true } : u === cellsUrl(B - 5 * MIN, 'raw') ? { json: cellsJson(B - 5 * MIN) } : { status: 404 });
     const r = await elapsed(K.fetchKonrad3d());
-    add('K5 jsDelivr hängt ⇒ raw nach 2,5 s (Hedge), Lauf nach < 4 s, 0 beim DWD', r.v?.refMs === B - 5 * MIN && r.ms >= IMG.RADAR_RAW_HEDGE_MS - 200 && r.ms < 4000 && dwdCalls().length === 0, `${r.ms} ms`);
+    add('K5 jsDelivr hängt ⇒ raw nach der Hedge-Frist, Lauf nach < 4 s, 0 beim DWD', r.v?.refMs === B - 5 * MIN && r.ms >= IMG.RADAR_RAW_HEDGE_MS - 200 && r.ms < 4000 && dwdCalls().length === 0, `${r.ms} ms`);
   });
 
   // K6 — beide Hosts tot

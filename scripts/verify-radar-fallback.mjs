@@ -8,7 +8,7 @@
  * die gemessenen Läufe vom 01.10.: #0 (vorgestartete meta.json hängt), #9/#10 (ein Bild 403), #8 (vorgestarteter
  * roher Tar hängt ohne Frist), dazu die Gegenprobe 404 (Datei gibt es nicht ⇒ kein Ausweichweg).
  *
- *   A  `fetchImgRes`: Hedge nach 2,5 s ohne Kopfzeilen, 403/5xx/Netz ⇒ raw.githubusercontent, 404 am CDN ⇒ einmal raw
+ *   A  `fetchImgRes`: Hedge nach 1 s ohne Kopfzeilen, 403/5xx/Netz ⇒ raw.githubusercontent, 404 am CDN ⇒ einmal raw
  *      (V-AW-25: am Edge festgehaltener 404), „nicht da" erst bei 404 auf beiden Wegen,
  *      Schalter `radarraw`, fremde Basen ohne Ausweichweg, Abbruch des Aufrufers
  *   B  `fetchRvNowcast` Ende zu Ende über den Router-Frühstart (`warmRvTar`)
@@ -85,8 +85,8 @@ const outcome = async (p, ms = 15_000) => {
 if (mod) {
   const F = `${CDN}/img/v1/rv/2610011630/f005.png`, Fr = `${RAW}/img/v1/rv/2610011630/f005.png`;
   const has = typeof mod.fetchImgRes === 'function';
-  add('A0 radarImg.ts exportiert fetchImgRes, RADAR_RAW_HEDGE_MS = 2500, radarRawUrl',
-    has && mod.RADAR_RAW_HEDGE_MS === 2500 && typeof mod.radarRawUrl === 'function',
+  add('A0 radarImg.ts exportiert fetchImgRes, RADAR_RAW_HEDGE_MS = 1000, radarRawUrl',
+    has && mod.RADAR_RAW_HEDGE_MS === 1000 && typeof mod.radarRawUrl === 'function',
     `hedge=${mod.RADAR_RAW_HEDGE_MS}, radarRawUrl=${typeof mod.radarRawUrl}`);
   if (typeof mod.radarRawUrl === 'function') {
     add('A0 radarRawUrl: CDN-@main ⇒ raw.githubusercontent, andere Basis ⇒ null',
@@ -97,7 +97,7 @@ if (mod) {
   let r = await outcome(mod.fetchImgRes(F));
   add('A1 CDN antwortet ⇒ CDN-Bytes, kein Ausweichweg', r.ok && (await r.v.text()) === 'cdn' && reqs(RAW).length === 0, `${r.ms} ms, raw=${reqs(RAW).length}`);
 
-  reset(); rules = [[F, { status: 200, body: 'cdn', delayMs: 1500 }], [Fr, { status: 200, body: 'raw' }]];
+  reset(); rules = [[F, { status: 200, body: 'cdn', delayMs: 600 }], [Fr, { status: 200, body: 'raw' }]];
   r = await outcome(mod.fetchImgRes(F));
   add('A2 CDN langsam, aber vor dem Hedge ⇒ kein Ausweichweg', r.ok && (await r.v.text()) === 'cdn' && reqs(RAW).length === 0, `${r.ms} ms`);
 
@@ -108,8 +108,8 @@ if (mod) {
   reset(); rules = [[F, { hang: true }], [Fr, { status: 200, body: 'raw', delayMs: 100 }]];
   r = await outcome(mod.fetchImgRes(F));
   const rawAt = reqs(RAW)[0]?.at ?? -1;
-  add('A4 CDN hängt ⇒ Ausweichweg ab 2,5 s, Antwort < 3,5 s, CDN-Abruf abgebrochen',
-    r.ok && (await r.v.text()) === 'raw' && rawAt >= 2400 && r.ms < 3500 && reqs(F)[0]?.aborted, `raw@${rawAt} ms, fertig ${r.ms} ms, cdn abgebrochen=${reqs(F)[0]?.aborted}`);
+  add('A4 CDN hängt ⇒ Ausweichweg ab 1 s, Antwort < 2 s, CDN-Abruf abgebrochen',
+    r.ok && (await r.v.text()) === 'raw' && rawAt >= 900 && r.ms < 2000 && reqs(F)[0]?.aborted, `raw@${rawAt} ms, fertig ${r.ms} ms, cdn abgebrochen=${reqs(F)[0]?.aborted}`);
 
   reset(); rules = [[F, { netError: true, delayMs: 200 }], [Fr, { status: 200, body: 'raw' }]];
   r = await outcome(mod.fetchImgRes(F));
@@ -170,11 +170,11 @@ if (mod) {
   // ND-1: die Frist rechnet ab dem START der vorgestarteten Antwort — eine, die beim Lesen schon 3 s alt ist, bekommt raw sofort
   reset(); rules = [[Fr, { status: 200, body: 'raw', delayMs: 50 }]];
   r = await outcome(mod.fetchImgRes(F, undefined, undefined, new Promise(() => {}), Date.now() - 3000));
-  add('A14 (ND-1) vorgestartete Antwort ist beim Lesen schon 3 s alt und hängt ⇒ Ausweichweg sofort (nicht erst nach 2,5 s)',
+  add('A14 (ND-1) vorgestartete Antwort ist beim Lesen schon 3 s alt und hängt ⇒ Ausweichweg sofort (nicht erst nach 1 s)',
     r.ok && (await r.v.text()) === 'raw' && r.ms < 600 && reqs(RAW)[0]?.at < 300, `${r.ms} ms, raw@${reqs(RAW)[0]?.at} ms`);
   reset(); rules = [[Fr, { status: 200, body: 'raw', delayMs: 50 }]];
-  r = await outcome(mod.fetchImgRes(F, undefined, undefined, new Promise(() => {}), Date.now() - 1000));
-  add('A14b vorgestartete Antwort 1 s alt ⇒ Ausweichweg nach den restlichen 1,5 s', r.ok && reqs(RAW)[0]?.at >= 1300 && reqs(RAW)[0]?.at < 2200, `raw@${reqs(RAW)[0]?.at} ms`);
+  r = await outcome(mod.fetchImgRes(F, undefined, undefined, new Promise(() => {}), Date.now() - 400));
+  add('A14b vorgestartete Antwort 0,4 s alt ⇒ Ausweichweg nach den restlichen 0,6 s', r.ok && reqs(RAW)[0]?.at >= 450 && reqs(RAW)[0]?.at < 1200, `raw@${reqs(RAW)[0]?.at} ms`);
 
   // ND-2: raw hatte, was das CDN nicht lieferte ⇒ die übrigen Dateien DESSELBEN Slot-Verzeichnisses lesen raw zuerst, das CDN
   // wird ihr Ausweichweg; ein anderes Verzeichnis beginnt wie immer am CDN
@@ -194,7 +194,7 @@ if (mod) {
   reset(); mod.radarMarkRawFirst(`${CDN}/img/v1/rv/2610011630`);
   rules = [[F2r, { hang: true }], [F2, { status: 200, body: 'cdn', delayMs: 50 }]];
   r = await outcome(mod.fetchImgRes(F2));
-  add('A16 raw zuerst, raw hängt ⇒ CDN als Hedge nach 2,5 s, raw-Abruf abgebrochen', r.ok && (await r.v.text()) === 'cdn' && reqs(F2)[0]?.at >= 2400 && r.ms < 3500 && reqs(F2r)[0]?.aborted, `${r.ms} ms, cdn@${reqs(F2)[0]?.at}`);
+  add('A16 raw zuerst, raw hängt ⇒ CDN als Hedge nach 1 s, raw-Abruf abgebrochen', r.ok && (await r.v.text()) === 'cdn' && reqs(F2)[0]?.at >= 900 && r.ms < 2000 && reqs(F2r)[0]?.aborted, `${r.ms} ms, cdn@${reqs(F2)[0]?.at}`);
   reset(); mod.radarMarkRawFirst(`${CDN}/img/v1/rv/2610011630`);
   rules = [[F2r, { status: 404 }], [F2, { status: 200, body: 'cdn', delayMs: 50 }]];
   r = await outcome(mod.fetchImgRes(F2));

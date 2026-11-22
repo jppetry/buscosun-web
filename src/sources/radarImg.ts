@@ -349,8 +349,12 @@ export class RadarImg404 extends Error {}
 // fest); „gibt es nicht" ist ein 404 erst auf beiden Wegen. Schalter `?radarraw=0|1` / `localStorage.radarraw`.
 // Basis, Schalter und URL-Abbildung leben seit ND-7 in `radolanRuns.ts` (Start-Chunk, der Frühstart braucht sie) — hier re-exportiert.
 export { RADAR_RAW_BASE, radarRawFlagFrom, radarRawUrl };
-/** p95 der gemessenen MISS-TTFB (AP0/AP1) — wie `RAW_FALLBACK_HEDGE_MS` des Punkt-Lesers. */
-export const RADAR_RAW_HEDGE_MS = 2_500;
+/**
+ * Wartezeit ohne Kopfzeilen, bevor der zweite Weg dazukommt. set (Jan 22.11.2026): 1 s statt 2,5 s (das war das p95 der
+ * gemessenen MISS-TTFB, AP0/AP1). Stichprobe 22.11. 14:35 UTC: jsDelivr gesund 0,12–0,63 s, 6 von 16 Abrufen über 2,5 s oder
+ * 403; raw 0,18–0,41 s. Preis: Doppelabrufe, wenn das CDN nur langsam ist. Der Punkt-Leser bleibt bei `RAW_FALLBACK_HEDGE_MS`.
+ */
+export const RADAR_RAW_HEDGE_MS = 1_000;
 /**
  * Phase PF (M8): how often the raw way was started in this session (hedge after `RADAR_RAW_HEDGE_MS`, or at once after a CDN
  * error). A slot reader compares the counter before and during its pooled frame fetches: a CDN that hangs or refuses makes every

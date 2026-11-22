@@ -30,7 +30,8 @@ import { SEA_CURRENT_FIELD, SEA_CURRENT_UV, SEA_CURRENT_WHY, currentLoadOf, curr
 export class SeaNotThere extends Error {}
 /** Neither way answered within `SEA_STALL_MS` — the store is not reachable; stepping back to an older file would only wait again. */
 export class SeaStall extends Error {}
-export const SEA_RAW_HEDGE_MS = 2_500;
+/** set (Jan 22.11.2026): 1 s instead of 2,5 s, as `RADAR_RAW_HEDGE_MS`. */
+export const SEA_RAW_HEDGE_MS = 1_000;
 /**
  * No response headers on either way after this long ⇒ the read fails instead of hanging on a stalled connection (`set`, the
  * glacier's `GLACIER_STALL_MS`). Before 10.11. a hanging CDN AND raw left the catalogue and the run „Lädt" for ever; now the

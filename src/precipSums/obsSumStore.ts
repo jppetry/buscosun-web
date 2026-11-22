@@ -14,7 +14,8 @@ import { loadObsCatalog as loadFusionObsCatalog, loadObsLatest as loadFusionObsL
 export const DATA_RAW = 'https://raw.githubusercontent.com/jppetry/buscosun-data/main';
 export const DATA_CDN = 'https://cdn.jsdelivr.net/gh/jppetry/buscosun-data@main';
 export const OBS_SUM_DIR = 'obs/v1';
-export const OBS_SUM_HEDGE_MS = 2_500;
+/** set (Jan 22.11.2026): 1 s instead of 2,5 s, as `RADAR_RAW_HEDGE_MS`. */
+export const OBS_SUM_HEDGE_MS = 1_000;
 export const OBS_SUM_DEADLINE_MS = 10_000;
 const MEMO_MS: Record<string, number> = { catalog: 6 * 3_600_000, latest: 120_000, series: 300_000, field: 600_000, fieldIndex: 300_000 };
 

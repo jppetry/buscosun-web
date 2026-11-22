@@ -22,7 +22,7 @@ import { fetchSoundingAtPoint as fetchIconEuSounding, type SoundingLevel, type S
 
 const DATA_RAW = 'https://raw.githubusercontent.com/jppetry/buscosun-data/main';
 const DATA_CDN = 'https://cdn.jsdelivr.net/gh/jppetry/buscosun-data@main';
-const RAW_HEDGE_MS = 2_500;
+const RAW_HEDGE_MS = 1_000;   // set (Jan 22.11.2026): 1 s instead of 2,5 s, as `RADAR_RAW_HEDGE_MS`
 const INDEX_TTL_MS = 5 * 60_000;
 const TILE_CACHE_MAX = 16;
 
@@ -47,7 +47,7 @@ export async function loadAtmoIndex(signal?: AbortSignal): Promise<AtmoIndex> {
   return index;
 }
 
-/** One tile: jsDelivr first, raw.githubusercontent after 2.5 s or when the CDN does not answer ok. */
+/** One tile: jsDelivr first, raw.githubusercontent after `RAW_HEDGE_MS` or when the CDN does not answer ok. */
 export async function fetchTileBytes(path: string, signal?: AbortSignal): Promise<Uint8Array> {
   const acC = new AbortController(), acR = new AbortController();
   const onAbort = () => { acC.abort(); acR.abort(); };

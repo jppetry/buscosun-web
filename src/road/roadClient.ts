@@ -17,8 +17,8 @@ import {
 /** "Does not exist" (404, or 403 on both ways) — distinct from a hard failure. */
 export class RoadNotThere extends Error {}
 
-/** p95 of the measured cold jsDelivr TTFB (AP0/AP1) — same hedge as the radar and the point reader. */
-export const ROAD_RAW_HEDGE_MS = 2_500;
+/** set (Jan 22.11.2026): 1 s instead of 2,5 s (the p95 of the measured cold jsDelivr TTFB, AP0/AP1) — same hedge as the radar. */
+export const ROAD_RAW_HEDGE_MS = 1_000;
 
 /** No response headers on either way after this long ⇒ the read fails (and may be retried) instead of hanging on a stalled connection (`set`). */
 export const ROAD_STALL_MS = 20_000;

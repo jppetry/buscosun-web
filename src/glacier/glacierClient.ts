@@ -55,7 +55,8 @@ export function glacierBasesFrom(search: string = typeof location !== 'undefined
 
 /** "Does not exist" (404, or 403 on both ways) — distinct from a hard failure. */
 export class GlacierNotThere extends Error {}
-export const GLACIER_RAW_HEDGE_MS = 2_500;
+/** set (Jan 22.11.2026): 1 s instead of 2,5 s, as `RADAR_RAW_HEDGE_MS`. */
+export const GLACIER_RAW_HEDGE_MS = 1_000;
 /** No response headers on either way after this long ⇒ the read fails (and is retried) instead of hanging on a stalled connection (`set`). */
 export const GLACIER_STALL_MS = 20_000;
 /** Waits before the 2nd and 3rd attempt of a failed read (`set`; weak connections). */
