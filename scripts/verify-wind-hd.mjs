@@ -12,7 +12,7 @@
  *      normalisation of the step; the sampled picture carries every second cell only; PNG round trip; where it lies
  *   B  contract producer ↔ reader: the family in both lists, the real manifest passes the reader's lock, each broken
  *      section is refused, the old family is untouched by the new one
- *   C  client rules: the switch, the upsampling handed to the particle layer, one grid per run, the status words
+ *   C  client rules: the switch (on for every device, `?windhd=0` back), the upsampling handed to the particle layer, the status words
  *   D  wiring by source
  *   E  (`--live`, network: opendata.dwd.de and the data repo) a whole real step value by value against the GRIB; the
  *      sampled picture byte-equal to the published one
@@ -137,11 +137,14 @@ add('B4 die alte Familie ist unberührt: derselbe Abschnitt wie ohne die neue, k
 
 // --- C: client rules ---------------------------------------------------------------------------------------------
 const W = await import('../src/wind/iconD2WindSource.ts').catch((e) => ({ err: e }));
+const ws0 = src('src/wind/iconD2WindSource.ts');
 add('C0 die Windquelle lässt sich ohne Browser laden (reine Teile)', !W.err, String(W.err?.message ?? ''));
 if (!W.err) {
-  add('C1 Schalter: feiner Zeiger = volle Auflösung, Touch = abgetastet; `?windhd=1` / `?windhd=0` entscheiden je Link',
-    W.windHdFrom('', false) === true && W.windHdFrom('', true) === false && W.windHdFrom('?windhd=1', true) === true && W.windHdFrom('?windhd=0', false) === false
-    && W.windHdFrom('?l=wind&windhd=0', false) === false && W.windHdFrom('?windhd=ja', true) === false && W.windHdFrom('?windhd=ja', false) === true);
+  add('C1 Schalter: volle Auflösung ab Werk auf jedem Gerät (Jan 22.11.); `?windhd=0` = abgetastet wie bisher, `?windhd=1` an; der Schalter wirkt in beiden Stellungen der Voreinstellung',
+    W.WIND_HD_DEFAULT === true && W.windHdFrom('') === true && W.windHdFrom('?windhd=0') === false && W.windHdFrom('?l=wind&windhd=0') === false && W.windHdFrom('?windhd=ja') === true
+    && W.windHdFrom('', false) === false && W.windHdFrom('?windhd=1', false) === true && W.windHdFrom('?windhd=0', true) === false);
+  add('C1b die Voreinstellung hängt nicht mehr am Zeiger des Geräts (kein `matchMedia` in der Wahl)',
+    !/windHdFrom\([^)]*matchMedia/.test(ws0) && /try \{ return windHdFrom\(window\.location\.search\); \} catch \{ return WIND_HD_DEFAULT; \}/.test(ws0));
   add('C2 an die Partikel-Schicht: volles Bild ⇒ Faktor 1, sonst kein Wert (die Voreinstellung der Schicht gilt)',
     W.windUpsampleOf({ hd: true }) === 1 && W.windUpsampleOf({ hd: false }) === undefined && W.windUpsampleOf({}) === undefined && W.windUpsampleOf(null) === undefined);
   add('C3 Statuszeile nennt, was gezeichnet wird: „2,2 km“ nur beim vollen Bild, sonst „jede zweite Zelle (4,4 km)“',

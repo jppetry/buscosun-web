@@ -4401,9 +4401,10 @@ Modellzelle statt jeder zweiten. **Ich habe nichts davon im Browser gesehen.** K
    u/v 10m · 2,2 km“ (vorher und am Telefon: „… gezeichnet jede zweite Zelle (4,4 km)“). In den Alpen und an der Küste
    sollten die Partikel Tälern und Kanten genauer folgen. Gegenprobe: derselbe Link mit `?windhd=0`.
    Bitte auch auf das Laden achten: das erste Windbild ist 3,3-mal so groß (V-WH-3).
-3. **Telefon:** bleibt beim bisherigen Bild (E-WH-2). Zum Ansehen `?windhd=1`. Passt es, sag es — dann lege ich die
-   Voreinstellung um.
-4. **Zurück:** je Link `?windhd=0`; für alle im Daten-Repo die Variable `REPACK_WIND_HD=0` im Schritt „Repack“ des
+3. **Telefon: seit deinem Wort vom 22.11. („aktiviere es jetzt standardmäßig“) ebenfalls volle Auflösung** — eingeschaltet
+   VOR einer Prüfung am Gerät. Bitte gleich nach dem ersten Lauf mit der Familie am Telefon ansehen: Wetterkarte mit
+   Wind, ziehen und zoomen (ruckelt es?), und wie lange das erste Windbild im Mobilnetz braucht (1,4 statt 0,43 MB).
+4. **Zurück:** je Link `?windhd=0`; für alle `WIND_HD_DEFAULT = false` in `src/wind/iconD2WindSource.ts` und ein Push, oder im Daten-Repo die Variable `REPACK_WIND_HD=0` im Schritt „Repack“ des
    Workflows `build` (dann schreibt der Producer die Familie nicht mehr und jeder Client liest `wind`).
 5. **Deine Entscheidung (V-WH-5):** Temperatur, Böen, Gewitter, Rotation, Blitzprognose und Schnee zeichnen weiter jede
    zweite Zelle. Wenn du mit „etc.“ auch diese meinst: je Familie derselbe Weg, eigene Phase.

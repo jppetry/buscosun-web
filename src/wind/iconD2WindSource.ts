@@ -106,17 +106,19 @@ export interface IconD2Wind {
 
 /**
  * Phase WH (audit/wind-2km.md): the wind picture at full ICON-D2 resolution (2,2 km, family `windHd`) instead of every
- * second cell. On where the pointer is fine (desktop): the texture has the size it had after upsampling, with real values.
- * Touch devices keep the sampled picture until it is checked on a device (E-WH-2: four times the texture there, 3,3 times
- * the bytes). `?windhd=1` / `?windhd=0` decide per link. Pure.
+ * second cell. ON for every device (`WIND_HD_DEFAULT`, Jan 22.11.2026: "aktiviere es jetzt standardmäßig", E-WH-2) — on
+ * desktop the texture has the size it had after upsampling, with real values; on touch devices it is four times the
+ * texture and 3,3 times the bytes, switched on BEFORE a check on a real device. `?windhd=0` is the named fallback (the
+ * sampled picture as before), `?windhd=1` forces it on. Pure.
  */
-export function windHdFrom(search: string, coarsePointer: boolean): boolean {
+export const WIND_HD_DEFAULT = true;
+export function windHdFrom(search: string, fallback: boolean = WIND_HD_DEFAULT): boolean {
   let q: string | null = null;
   try { q = new URLSearchParams(search).get('windhd'); } catch { /* broken query = no vote */ }
-  return q === '1' ? true : q === '0' ? false : !coarsePointer;
+  return q === '1' ? true : q === '0' ? false : fallback;
 }
 function windHdWanted(): boolean {
-  try { return windHdFrom(window.location.search, typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches); } catch { return false; }
+  try { return windHdFrom(window.location.search); } catch { return WIND_HD_DEFAULT; }
 }
 /** The upsampling factor to hand to the particle layer with a frame of `wind` (1 = full resolution, undefined = the layer's own). */
 export function windUpsampleOf(wind: Pick<IconD2Wind, 'hd'> | null | undefined): number | undefined {

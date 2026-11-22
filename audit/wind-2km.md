@@ -116,10 +116,26 @@ feiner; alles andere unberührt, nicht gesehen. (3) Touch-Ziele — keine Bedien
 | Nr. | Befund | Mehrwert · Skizze |
 |---|---|---|
 | **V-WH-1** | Nichts im Browser gesehen, Ladezeit des ersten Windbilds nicht gemessen | Nach dem ersten Lauf mit `windHd`: Wetterkarte ansehen (Desktop), `perf-measure.mjs` gegen `?windhd=0` |
-| **V-WH-2** | Touch-Geräte zeichnen weiter jede zweite Zelle (E-WH-2) | `?windhd=1` am Telefon ansehen; passt es, die Voreinstellung in `windHdFrom` umlegen |
+| **V-WH-2** | ~~Touch-Geräte zeichnen weiter jede zweite Zelle~~ — seit §6 an auf jedem Gerät, **am Telefon ungeprüft**: vierfache Textur (1215 × 746 statt 608 × 373), 3,3-fache Bytes, Aufbereitung je Bild rund viermal so lang wie bisher am Touch-Gerät | Real-Device gleich nach dem Push: Wetterkarte mit Wind am Telefon (Ruckeln beim Ziehen, Zeit bis zum ersten Windbild im Mobilnetz); Rückfall je Link `?windhd=0`, für alle `WIND_HD_DEFAULT = false` |
 | **V-WH-3** | Desktop lädt 3,3-fache Windbytes (zwei Bilder um „jetzt“ 1,4 statt 0,43 MB, alle 13 Schritte 9,3 statt 2,8 MB) | Skizze, falls das Erstbild leidet: zuerst das abgetastete Bild zeigen, das volle nachladen und tauschen |
 | **V-WH-4** | Daten-Repo: +9,3 MB je Lauf (12,1 → 21,4 MB), bei vier Läufen +37 MB im Baum; der erste Lauf nach dem Push wird einmal ganz neu gerechnet | Nur vermerkt. Später kann `wind` entfallen, wenn kein alter Client mehr unterwegs ist und Touch das volle Bild nimmt (−2,8 MB je Lauf) |
 | **V-WH-5** | **Die anderen Flächen zeichnen weiter jede zweite Zelle:** Temperatur, Böen, Gewitter, Rotation, Blitzprognose, Schnee (608 × 373). Nur Niederschlag und CAPE liegen schon in voller Auflösung. Layer-Katalog und Info-Panel nennen dort „2,2 km“ (das Modell) | Jans „auch Windkarte etc.“ kann das mit meinen — je Familie derselbe Weg wie hier (zweite Familie, eigenes Gitter), aber mit eigener Maske und Höhenkorrektur bei der Temperatur. Eigene Phase, Jans Wort |
 | **V-WH-6** | Der Sofort-Start-Cache (IndexedDB) hält am Desktop 3,6 statt 0,9 MB | Nur vermerkt |
 | **V-WH-7** | Der Wind am Punkt (`sampleWindAt`, Ablese-Marke der Karte) kommt am Desktop aus dem vollen, am Telefon aus dem abgetasteten Feld — die Zahl kann sich zwischen den Geräten leicht unterscheiden | Nur vermerkt |
 | **V-WH-8** | `verify:repack` (Byte-Gate der Repack-Linie, mit Netz, rund 11 min): erster Lauf 344/347, **zweiter Lauf nach der Anpassung 345/347** (11 Familien, Familienliste Producer = Client grün). Eine der drei roten Prüfungen des ersten Laufs war diese Phase (die Regel „alle Familien außer Wind hängen an `latest-grib.json`“ zählte eine Familie ohne Manifest — jetzt `wind` und `windHd`, angepasst). **Zwei sind schon am committeten Stand rot und gehören nicht zu dieser Phase:** M3 (die Prefetch-Zeile in `MapView.tsx` trägt seit einer früheren Phase zusätzlich `(profile && !RADAR_PROFILE.prefetch)`, der Prüfer sucht den alten Wortlaut — an `HEAD` nachgezählt) und die Service-Worker-Prüfung `isHashedAsset` (`public/sw.js`, von mir nicht berührt) | Beide Prüfungen auf den heutigen Wortlaut stellen — eigene kleine Aufgabe der Repack-Linie |
+
+## 6. An auf jedem Gerät (22.11.2026, Jans Wort)
+
+Jan nach dem Bericht: „aktiviere es jetzt standardmäßig“ — E-WH-2 ist damit entschieden: `WIND_HD_DEFAULT = true` in
+`src/wind/iconD2WindSource.ts`, die Wahl hängt nicht mehr am Zeiger des Geräts. **Eingeschaltet vor jeder Prüfung an einem
+echten Gerät und ohne dass ich es im Browser gesehen habe.** Wirkt wie der Rest mit dem Push und dem ersten Repack-Lauf
+danach.
+
+- Geändert: die Voreinstellung und ihr Kommentar, `verify:wind-hd` C1 / C1b (an ab Werk, `?windhd=0` zurück, der Schalter
+  wirkt in beiden Stellungen; kein `matchMedia` mehr in der Wahl). Sonst kein Code.
+- Gate: `verify:wind-hd` 24/24, `verify:sea-particles` 32/32, `verify:repo-only` 63/63, Typecheck 0, Build 281/281,
+  Budget totalJs 2 102,0 / 2 103.
+- Was das am Telefon heißt (gerechnet, nicht gemessen): Textur 1215 × 746 statt 608 × 373; die zwei Bilder um „jetzt“ 1,4
+  statt 0,43 MB — im Mobilnetz spürbar; die Aufbereitung je Bild in Node 48 statt 11 ms (am Telefon ein Mehrfaches).
+- Rückfall: `?windhd=0` je Link; für alle `WIND_HD_DEFAULT = false` und ein Push, oder im Daten-Repo `REPACK_WIND_HD=0`
+  (dann liest jeder Client wieder `wind`).
