@@ -139,8 +139,8 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
   const [im, setIm] = useState<{ kind: 'loading' } | { kind: 'ok'; data: SatImagery }>({ kind: 'loading' });
   const [selDay, setSelDay] = useState<string | null>(null);
   const [snap, setSnap] = useState<SnapState | { kind: 'loading' } | null>(null);
-  /** SAT2a: 10-m-Ansicht offen? Sitzungszustand, nie Permalink (Präzedenz Szenenwahl). */
-  const [cog10, setCog10] = useState(false);
+  /** SAT2a: Tag, an dem die 10-m-Ansicht per ✕ geschlossen wurde (Sitzungszustand, nie Permalink). */
+  const [closed10, setClosed10] = useState<string | null>(null);
   /** SAT3: Detektions-Rechtecke über dem 30-m-Bild (Sitzungszustand, default an). */
   const [showDet, setShowDet] = useState(false);
   // Jan 2026-11-07: enlarge button on the 30 m picture (top right); the frame, its frames and rings scale together.
@@ -149,7 +149,7 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
 
   useEffect(() => {
     let alive = true;
-    setIm({ kind: 'loading' }); setSelDay(null); setSnap(null); setBig(false);
+    setIm({ kind: 'loading' }); setSelDay(null); setSnap(null); setBig(false); setClosed10(null);
     void fetchSatImagery(t.lat, t.lon, t.bbox, t.firstMs, t.lastMs, nowMs)
       .then((data) => { if (alive) setIm({ kind: 'ok', data }); });
     return () => { alive = false; };
@@ -214,29 +214,30 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
   /** Wie viele Rahmen aus dem Nennmaß stammen — muss im Satz stehen, sobald es einer ist. */
   const nominalCount = detRects.filter((r) => r.nominal).length;
 
+  // Die 10-m-Ansicht gibt es nur für Sentinel-2-Szenen (Landsat: kein anonymer COG-Pfad, 30 m).
+  // Jans Auftrag 2026-10-14: an Sentinel-2-Tagen öffnet die 10-m-Ansicht von selbst. Jan 2026-11-22: abgeleitet statt per Effekt
+  // gesetzt — sonst stand beim ersten Bild jeder Szene kurz die 30-m-Ansicht da und holte das NASA-GIBS-Bild.
+  const cog10 = !!scene && scene.sat === 's2' && sat10Enabled() && closed10 !== scene.dayIso;
+  const setCog10 = (on: boolean) => setClosed10(on ? null : scene?.dayIso ?? null);
+
   useEffect(() => {
-    if (!data || !scene) { setSnap(null); return; }
+    // Das 30-m-Bild nur holen, wenn es gezeigt wird (ohne 10-m-Ansicht oder nach ✕).
+    if (!data || !scene || cog10) { setSnap(null); return; }
     let alive = true;
     setSnap({ kind: 'loading' });
     void loadSnapshot(snapshotUrl(data.bbox, scene.dayIso, scene.sat))
       .then((s) => { if (alive) setSnap(s); });
     return () => { alive = false; };
-  }, [data, scene]);
+  }, [data, scene, cog10]);
 
-  // Die 10-m-Ansicht gibt es nur für Sentinel-2-Szenen (Landsat: kein anonymer COG-Pfad, 30 m).
-  // Jans Auftrag 2026-10-14: an Sentinel-2-Tagen öffnet die 10-m-Ansicht von selbst; Landsat-Tage bleiben bei 30 m.
   useEffect(() => {
-    if (scene?.sat !== 's2') { setCog10(false); return; }
-    const on = sat10Enabled();
-    setCog10(on);
+    if (!cog10 || scene?.sat !== 's2') return;
     // Cold start: viewer chunk, day search and the connection to the image bucket start together instead of one after the other.
-    if (on) {
-      void import('./FireCogViewer').catch(() => undefined);
-      prefetchS2Day(t.lat, t.lon, scene.dayIso);
-      preconnect(S2_COG_ORIGIN);
-    }
+    void import('./FireCogViewer').catch(() => undefined);
+    prefetchS2Day(t.lat, t.lon, scene.dayIso);
+    preconnect(S2_COG_ORIGIN);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scene]);
+  }, [scene, cog10]);
 
   if (im.kind === 'loading') {
     return <p className="br-muted br-wx-loading">Aufnahmetage für den Brandort werden gesucht …</p>;

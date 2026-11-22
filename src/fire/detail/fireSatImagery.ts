@@ -421,7 +421,9 @@ export function fetchSatImagery(
         bbox: box,
       };
     }
-    const c = classifyScenes(raw, firstMs, lastMs, nowMs);
+    // Jan 2026-11-22: always Copernicus Sentinel-2 in 10 m — Landsat days have no 10 m view, so with the 10 m view on
+    // they are neither offered nor picked (`?sat10=0` keeps them, with the 30 m picture as before).
+    const c = classifyScenes(sat10Enabled() ? raw.filter((s) => s.sat === 's2') : raw, firstMs, lastMs, nowMs);
     return { ...c, bbox: box };
   })();
 

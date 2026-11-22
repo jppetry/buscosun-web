@@ -112,7 +112,8 @@ export function FireMiniMap({ record, footprintFc, basemap, height, ariaLabel }:
     // MapLibre klappt die Attribution wieder auf (`maplibregl-compact-show`), wenn ihr Text erst nach `load` eintrifft —
     // deshalb zusätzlich beim ersten `idle` zuklappen; danach entscheidet nur noch der Klick auf ⓘ.
     const collapseAttrib = () => {
-      map.getContainer().querySelectorAll('details.maplibregl-ctrl-attrib').forEach((d) => {
+      // MapLibre setzt `open` und `maplibregl-compact-show` immer zusammen.
+      map.getContainer().querySelectorAll('details.maplibregl-ctrl-attrib[open]').forEach((d) => {
         d.removeAttribute('open');
         d.classList.remove('maplibregl-compact-show');
       });
