@@ -153,6 +153,7 @@
     "verify:glacier-snow": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-snow.mjs",
     "verify:glacier-dossier-heute": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-dossier-heute.mjs",
     "verify:glacier-snow-view": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-snow-view.mjs",
+    "verify:glacier-snowcore": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-snowcore.mjs",
     "verify:fire-fwi": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fire-fwi.mjs",
     "verify:fire-detail": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fire-detail.mjs",
     "verify:fire-history": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fire-history.mjs",
