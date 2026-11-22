@@ -21,6 +21,7 @@ import type { SeaUvGrid } from './seaCurrent';
 import type { RippleKeepOut, SeaRippleLayer } from './SeaRippleLayer';
 import type { SeaParticleLayer } from './SeaParticleLayer';
 import type { SeaParticleState } from './seaParticles';
+import { SEA_PAN_SOUTH } from './seaLakes';
 
 const STYLE = 'https://tiles.openfreemap.org/styles/dark';
 /** CWAM domain (plus a little margin). */
@@ -250,7 +251,7 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, gau
   useEffect(() => {
     if (!box.current) return;
     const map = new maplibregl.Map({
-      container: box.current, style: STYLE, bounds: SEA_START_BOUNDS, fitBoundsOptions: { padding: 10 }, maxBounds: [[SEA_VIEW_BOUNDS[0] - 6, SEA_VIEW_BOUNDS[1] - 4], [SEA_VIEW_BOUNDS[2] + 6, SEA_VIEW_BOUNDS[3] + 4]],
+      container: box.current, style: STYLE, bounds: SEA_START_BOUNDS, fitBoundsOptions: { padding: 10 }, maxBounds: [[SEA_VIEW_BOUNDS[0] - 6, Math.min(SEA_VIEW_BOUNDS[1] - 4, SEA_PAN_SOUTH)], [SEA_VIEW_BOUNDS[2] + 6, SEA_VIEW_BOUNDS[3] + 4]],
       attributionControl: { compact: false, customAttribution: `${MAP_SOURCES_LINK} · Seegang, Wind, Warnungen: DWD · Wasserstand, Strömung: BSH · bearbeitet` },
       dragRotate: false, pitchWithRotate: false, maxZoom: 12, minZoom: 4,
     });

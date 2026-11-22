@@ -4379,3 +4379,7 @@ den Prüfern); geprüft sind Ablauf, Worte und Verdrahtung. Mit `?swp=0` ist die
 6. **Nebenbei gemessen (22.11.):** die Seen sind nicht leer (70 von 70 Spots mit Wind und Böen); die Richtung fehlt dort
    bei schwachem Wind (unter 6 kn) durch die Sperre von buscosun Fusion — Alpenseen 6–40 % der Stunden mit Richtung,
    norddeutsche Seen 100 % (Audit §9.1, V-BS-25 bleibt offen). Der Laufwechsel der Seen um 04:19 UTC kam ohne Lücke.
+
+7. **Karte erreichte die Alpenseen nicht (V-BS-40, behoben am 22.11., wirkt mit dem Push):** der verschiebbare Bereich der
+   Seekarte endete bei 49,2° N — Bodensee, Chiemsee und alle Seen in Österreich und der Schweiz (19 von 28) ließen sich
+   nicht zeigen. Nach dem Push bitte ansehen: Revier „Seen“, dann den Chip „Bodensee“ — die Karte muss dorthin fahren.

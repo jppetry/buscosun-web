@@ -446,6 +446,22 @@ if (!BYTES) {
     (ci.match(/ci-run\.mjs verify:sea-lakes\b(?!-)/g) ?? []).length === 1 && /if: \$\{\{ !cancelled\(\) \}\}\s*\n\s*run: node scripts\/ci-run\.mjs verify:sea-lakes\s*\n/.test(ci.replace(/\r\n/g, '\n')) && !/verify:sea-lakes-bytes\s*\n/.test(ci.replace(/\r\n/g, '\n').replace(/^\s*#.*$/gm, '')));
 }
 
+// --- J: the map can reach every lake (V-BS-40, 22.11.2026) --------------------------------------------------------
+{
+  const mapSrc = readFileSync(join(ROOT, 'src/sea/SeaMap.tsx'), 'utf8');
+  const vb = (/SEA_VIEW_BOUNDS: \[number, number, number, number\] = \[([^\]]+)\]/.exec(mapSrc)?.[1] ?? '').split(',').map(Number);
+  const pan = { w: vb[0] - 6, s: Math.min(vb[1] - 4, L.SEA_PAN_SOUTH), e: vb[2] + 6, n: vb[3] + 4 };
+  const inside = (lon, lat, m, south = pan.s) => lon > pan.w + m && lon < pan.e - m && lat > south + m && lat < pan.n - m;
+  const out = CATDOC.spots.filter((s) => !inside(s.lon, s.lat, 1)).map((s) => s.id);
+  const boxOut = CATDOC.lakes.filter((l) => !(inside(l.bbox[0], l.bbox[1], 1) && inside(l.bbox[2], l.bbox[3], 1))).map((l) => l.id);
+  // Negative control: with the south edge from before phase BS (CWAM view minus 4°) most lake spots lie outside.
+  const before = CATDOC.spots.filter((s) => !inside(s.lon, s.lat, 0, vb[1] - 4));
+  add('J1 der verschiebbare Bereich der Karte reicht mit mindestens 1° Rand über jeden Seespot und jeden Seeumriss; Gegenprobe: mit dem alten Südrand (49,2° N) lagen 56 Spots an 19 Seen außerhalb',
+    vb.length === 4 && vb.every(Number.isFinite) && out.length === 0 && boxOut.length === 0 && before.length === 56 && new Set(before.map((s) => s.lake.id)).size === 19
+    && /maxBounds: \[\[SEA_VIEW_BOUNDS\[0\] - 6, Math\.min\(SEA_VIEW_BOUNDS\[1\] - 4, SEA_PAN_SOUTH\)\], \[SEA_VIEW_BOUNDS\[2\] \+ 6, SEA_VIEW_BOUNDS\[3\] \+ 4\]\],/.test(mapSrc)
+    && (mapSrc.match(/maxBounds/g) ?? []).length === 1, JSON.stringify({ pan, out, boxOut, before: before.length }));
+}
+
 rmSync(tmp, { recursive: true, force: true });
 const failed = checks.filter((c) => !c.ok);
 for (const c of checks) console.log(`${c.ok ? '✓' : '✗'} ${c.name}${c.ok || !c.detail ? '' : `\n    ${c.detail}`}`);

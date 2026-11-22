@@ -33,6 +33,13 @@ export const SEA_LAKES_PRODUCT = 'sea-lakes-series';
 export const SEA_LAKES_KEPT_PER_RUN = 4;
 /** The page shows nothing of a lake file whose computation is older than this ("keine Daten"). */
 export const SEA_LAKES_STALE_MS = 12 * H;
+/**
+ * V-BS-40 (found 22.11.2026 while reading the map, not in a browser): the map's pannable area ended at 49,2° N (the CWAM
+ * view minus 4°, from before phase BS) — MapLibre keeps the whole view inside `maxBounds`, so no lake south of it could
+ * be shown: 19 of the 28 lakes (56 of 70 spots). The south edge now is the southern edge of ICON-D2 (the southernmost lake spot lies at
+ * 45,92° N); `SeaMap` takes the smaller of the two.
+ */
+export const SEA_PAN_SOUTH = 43.2;
 
 // --- switches and fixed numbers ----------------------------------------------------------------------------
 

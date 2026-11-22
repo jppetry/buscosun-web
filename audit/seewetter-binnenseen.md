@@ -589,3 +589,18 @@ Gerät geprüft (V-BS-31 und V-BS-35 gelten unverändert und sind jetzt die erst
 | Nr. | Befund | Mehrwert · Skizze |
 |---|---|---|
 | **V-BS-39** | Jeder Besuch von `/seewetter` lädt jetzt zusätzlich rund 29 KB Code (Partikel-Klasse 22,2, Windleser 5,2, Schicht 1,8 KB gzip) und zwei Windbilder (je 216–244 KB, zusammen rund 0,46 MB) — auch am Telefon und auch, wenn der Besucher nur einen Spot lesen will | Nur vermerkt; gemessen an den Dateien, nicht an der Seite. Skizze, falls es stört: die Schicht erst laden, wenn die Karte auf der Bühne steht (nicht im Dossier), oder am Telefon ab Werk aus |
+
+### 9.7 V-BS-40 — die Karte erreichte die Alpenseen nicht (22.11.2026, behoben)
+
+Beim Lesen von `SeaMap.tsx` für das Windfeld gefunden, nicht im Browser: der verschiebbare Bereich der Karte
+(`maxBounds`) stammte von vor der Phase BS und endete im Süden bei 49,2° N (CWAM-Ausschnitt minus 4°). MapLibre hält den
+ganzen Ausschnitt in diesem Bereich — **56 von 70 Seespots an 19 von 28 Seen** (alles südlich von 49,2° N: Bodensee,
+Chiemsee, alle Schweizer und österreichischen Seen) ließen sich auf der Karte nicht zeigen; der Chip „Seen“ und die
+See-Chips fuhren gegen diese Grenze. Dossier, Stundenband und Werte waren davon nicht berührt. Das passt zu Jans Fragen
+vom Morgen („noch keine Werte für die Seen“, „keine Windpfeile über den Seen“) — ob er genau das sah, weiß ich nicht.
+
+Behoben: Südrand = Südrand von ICON-D2 (`SEA_PAN_SOUTH = 43,2`, `seaLakes.ts`), `SeaMap` nimmt den kleineren der beiden
+Werte. `verify:sea-lakes` J1 (neu, 126/126): jeder Seespot und jeder Seeumriss liegt mit mindestens 1° Rand im Bereich;
+Gegenprobe mit dem alten Südrand: 56 Spots an 19 Seen außerhalb. Typecheck 0. **Nicht im Browser gesehen** — nach dem
+Push bitte den Chip „Seen“ und einen Alpensee (etwa Bodensee) ansehen. Lehre: die Phase BS hat nie eine Karte gesehen;
+der Prüfer prüfte die Reihen der Seen, nicht, ob die Karte dorthin kommt.
