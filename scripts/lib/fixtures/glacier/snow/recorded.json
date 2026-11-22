@@ -1,0 +1,41 @@
+{
+ "note": "GN fixtures: answers of the GeoSphere API for SNOWGRID Klima v2.1, bodies stored byte for byte",
+ "recordedAt": "2026-11-21T23:51:46.245Z",
+ "bbox": [
+  46.76,
+  10.73,
+  46.84,
+  10.85
+ ],
+ "files": {
+  "metadata.json": {
+   "url": "https://dataset.api.hub.geosphere.at/v1/timeseries/historical/snowgrid_cl-v2-1d-1km/metadata",
+   "bytes": 783,
+   "sha256": "dcd9c1f985661fe379452e3f6e5450978a81dd69db76664c9bcb467f9db23ee8"
+  },
+  "grid.json": {
+   "url": "https://dataset.api.hub.geosphere.at/v1/grid/historical/snowgrid_cl-v2-1d-1km?parameters=snow_depth&start=2026-11-20&end=2026-11-20&bbox=46.76,10.73,46.84,10.85&output_format=geojson",
+   "bytes": 17819,
+   "sha256": "4c342bb1901be4733d386ce859a323f24b666f61bd45c7293b78a87dbcee019c"
+  },
+  "week.json": {
+   "url": "https://dataset.api.hub.geosphere.at/v1/timeseries/historical/snowgrid_cl-v2-1d-1km?parameters=snow_depth,swe_tot&start=2026-11-14&end=2026-11-20&lat_lon=46.77486,10.82488&lat_lon=46.78385,10.82445&lat_lon=46.78414,10.83755&lat_lon=46.79077,10.73237&lat_lon=46.79107,10.74547&lat_lon=46.79137,10.75856&lat_lon=46.79313,10.83712&lat_lon=46.80007,10.74503&lat_lon=46.80037,10.75813&lat_lon=46.80066,10.77122&lat_lon=46.80096,10.78432&lat_lon=46.80125,10.79741&lat_lon=46.80936,10.75769&lat_lon=46.81865,10.77036&output_format=geojson",
+   "bytes": 4978,
+   "sha256": "f0f0a7dc667203acba43e8ea916f1aa958f1a88fc5d9fecaeb009fa006b08b8f"
+  },
+  "ref.json": {
+   "url": "https://dataset.api.hub.geosphere.at/v1/timeseries/historical/snowgrid_cl-v2-1d-1km?parameters=snow_depth&start=1991-01-01&end=2020-12-31&lat_lon=46.77486,10.82488&lat_lon=46.78385,10.82445&lat_lon=46.78414,10.83755&lat_lon=46.79077,10.73237&lat_lon=46.79107,10.74547&lat_lon=46.79137,10.75856&lat_lon=46.79313,10.83712&lat_lon=46.80007,10.74503&lat_lon=46.80037,10.75813&lat_lon=46.80066,10.77122&lat_lon=46.80096,10.78432&lat_lon=46.80125,10.79741&lat_lon=46.80936,10.75769&lat_lon=46.81865,10.77036&output_format=geojson",
+   "bytes": 1016394,
+   "sha256": "cccc6a1ad602a195d764101d3d0ade2695085b29f96066da388eed4bf68d8f68"
+  }
+ },
+ "end": "20261120",
+ "start": "20261114",
+ "cells": {
+  "glaciers": 6,
+  "outline": 2,
+  "nearest": 4,
+  "outside": 0,
+  "cells": 14
+ }
+}

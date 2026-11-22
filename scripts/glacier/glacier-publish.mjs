@@ -38,6 +38,8 @@ export const GLACIER_LINES = Object.freeze({
   feed: ['feed', 'card'],
   // Phase GO: station measurements next to the glaciers (`scripts/glacier/stations.mjs`) - hour files, catalogue, mapping
   stations: ['stn'],
+  // Phase GN: snow analysis per Austrian glacier (`scripts/glacier/snow.mjs`) - day documents, cells and climatology
+  snow: ['snow'],
 });
 
 /** RFC 7396 merge patch: objects merge, `null` deletes, anything else replaces. */
@@ -98,6 +100,12 @@ export const GLACIER_POLICIES = Object.freeze({
   stations: [
     { prefix: 'stn/h', olderThanMs: 72 * 3_600_000, stampOf: (n) => { const m = /^(\d{4})(\d{2})(\d{2})(\d{2})(30)?\.json$/.exec(n); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], m[5] ? 30 : 0) : null; } },
     { prefix: 'stn/map', keepNewest: 2 },
+  ],
+  // day documents older than 400 days go (the source keeps the series); the two newest cells files and climatologies stay
+  snow: [
+    { prefix: 'snow', olderThanMs: 400 * 86_400_000, stampOf: (n) => { const m = /^(\d{4})(\d{2})(\d{2})\.json$/.exec(n); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) : null; } },
+    { prefix: 'snow/static/cells', keepNewest: 2 },
+    { prefix: 'snow/static/clim', keepNewest: 2 },
   ],
 });
 

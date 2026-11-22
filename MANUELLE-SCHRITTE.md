@@ -4289,3 +4289,49 @@ sind. Grund: der Runner holt den Producer bei jedem Lauf von `origin/main` von `
 7. **Mengen** (V-GI-1): die Slot-Datei wächst von 55,7 auf 85,6 KB (gepackt 11,7 → 16,7 KB) — Daten-Repo-Historie und Ablage rund
    145 statt 100 MB im Jahr.
 8. **Nicht geprüft:** die Karte im Browser, Real-Device, ein Lauf des neuen Producers auf dem Runner (erst nach dem Push möglich).
+
+## 111. Gletscher: SNOWGRID-Schneeanalyse als eigenes Produkt `glacier/v1/snow/` (Phase GN, `audit/gletscher-snowgrid.md`), 2026-11-22
+
+Stand 22.11. 01:15 MEZ: lokal committet auf `main`, **nicht gepusht**. **Nur Daten — keine Anzeige**, bis du die Darstellung wählst.
+Gate grün: `verify:glacier-snow` 37/37 (20 eingebaute Fehler alle bemerkt), alle anderen `verify:glacier-*`, Typecheck, Build,
+Budget unverändert (die Phase bringt nichts ins Bundle). Drei lokale Läufe gegen die echte API von GeoSphere.
+
+**Pushs von mir** (beide `buscosun-data` `main`, ohne Force, je vom aktuellen `origin/main`, nach jedem Push geprüft; `buscosun-archiv`
+unberührt):
+
+| Commit | Zeit (UTC) | Inhalt |
+|---|---|---|
+| `dd73a63809f7991a897d70b16c9e598c54fb967e` | 22.11. 00:05 | über den Publisher, Linie `snow`: 29 Dateien unter `glacier/v1/snow/` (Zellendatei, Klimatologie in 20 Regionsdateien, Tagesdokumente 14.–20.11., README), Zeiger `index.snow`, Statuszeile `lines.snow`. Geprüft: Commit auf `origin/main`, alle 29 Dateien Byte für Byte die lokalen, übrige Schlüssel von Zeiger und Status unverändert |
+| `fcb0d83bbdb6b145ed237e572522cc905004f874` | 22.11. 00:06 | `.github/workflows/glacier-snow.yml` (10:25 und 15:25 UTC). Geprüft: Datei Byte für Byte die Vorlage. Der erste Versuch wurde abgewiesen (ein Cron hatte dazwischen gepusht) — nichts erzwungen, zweiter Versuch vom dann aktuellen Stand |
+
+Kein Push wurde zurückgenommen.
+
+1. **Pushen — binnen sieben Tagen:** `git push origin main`. Bis dahin endet der Workflow grün im Leerlauf („producer not on $REF yet“).
+   Der erste Lauf danach holt die Tage seit dem 20.11. nach — höchstens sieben; wartest du länger, fehlen Tage im Daten-Repo (die
+   Quelle hält sie, V-GN-8). Voraussetzung wie bei den Stationen: `GLACIER_PRODUCER_REF` leer oder `main`.
+2. **Den ersten Lauf ansehen** (ohne Browser): `https://raw.githubusercontent.com/jppetry/buscosun-data/main/glacier/v1/index.json` →
+   `snow.day` rückt vor; `glacier/v1/status.json` → `lines.snow` mit `written`, `revised`, `noData`.
+3. **Entscheiden — die Darstellung** („Schneeverlauf gegen frühere Winter“): Mockup-Variante wählen; erst dann baue ich Karte oder
+   Diagramm. Dazu **cm oder mm** (dein Handschritt aus dem Auftrag): das Produkt trägt beides — Schneehöhe in cm, Wasserwert in mm; die
+   Einordnung gegen 1991–2020 gibt es bisher nur für die Schneehöhe (V-GN-12).
+4. **Wissen, bevor du die Anzeige wählst:** 748 von 799 Gletschern lesen genau EINE Zelle von 1 km², 342 teilen sie mit einem Nachbarn
+   und tragen denselben Wert (V-GN-1). Das Infoblatt von GeoSphere, MeteoSchweiz und DWD sagt: ein Gitterwert steht für ein Gebiet,
+   nicht für einen Punkt. Die Anzeige muss „Analyse, keine Messung“ sagen (im Vertrag vorbereitet) — und sie gilt nur für Österreich.
+5. **Nach einer Woche Betrieb:** `status.lines.snow.revised` lesen. Steht dort ein Tag, hat GeoSphere einen schon veröffentlichten Tag
+   geändert — dann brauche ich dein Wort: nur melden (jetzt) oder überschreiben (E-GN-11). Am Verzeichnis gelesen: abgeschlossene Jahre
+   werden nicht mehr geschrieben; für das laufende Jahr ist es offen.
+6. **Frage an GeoSphere** (`datahub.support@geosphere.at`), wenn du magst: Meint der Tagesstempel `…T00:00+00:00` den Zustand um 00 UTC
+   oder den Tageswert? Und: werden Tage des laufenden Jahres nachträglich überarbeitet?
+7. **Nach jedem neuen statischen Build des Katalogs** (neuer `static.build`): Zellen und Klimatologie lokal neu bauen und einspielen —
+   sonst rechnet der tägliche Lauf mit den Zellen des alten Builds weiter und meldet `stale` (neue Gletscher fehlen). Aus einem Klon
+   von `buscosun-data` (nur `glacier/`), `<S>` = `…/glacier/v1`:
+   `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/snow.mjs --mode=cells --store=<S> --out=<T>`,
+   dann dasselbe mit `--mode=clim --cells=<T>/snow/static/cells/<datei>.json`, dann
+   `node scripts/glacier/glacier-publish.mjs --repo=<Klon> --line=snow --src=<T>` (zusammen 11 Abrufe bei GeoSphere, rund drei Minuten).
+8. **Gesetzt, bitte bestätigen oder kippen** (`audit/gletscher-snowgrid.md` §5): E-GN-1 ein Wert je Gletscher (Mittel der Zellen im
+   Umriss, sonst nächste Zelle) statt Zunge / Mitte / Oberkante; E-GN-4 Referenz 1991–2020, sieben Stützwerte, ungeglättet; E-GN-5 Lage als
+   Zahl 0–100; E-GN-6 Regel für den 29.02.; E-GN-7 Grenzen; E-GN-9 Tagesdokumente 400 Tage; E-GN-10 zwei Läufe am Tag.
+9. **Zurück:** im Daten-Repo den Workflow `glacier-snow.yml` deaktivieren (Actions → Disable) und den Schlüssel `snow` aus
+   `glacier/v1/index.json` nehmen; die Dateien unter `glacier/v1/snow/` stören niemanden (keine Seite liest sie). Im Code: den Commit
+   der Phase zurücknehmen.
+10. **Nicht geprüft:** ein Lauf des Workflows auf dem Runner (erst nach deinem Push möglich); die Werte gegen Stationen (V-GN-2).

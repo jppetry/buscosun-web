@@ -1,0 +1,117 @@
+# ============================================================================
+# glacier-snow.yml — Gletscher-Monitor DACH, Schneeanalyse je österreichischem Gletscher (Phase GN, buscosun-web/audit/gletscher-snowgrid.md)
+#
+# VORLAGE. Diese Datei gehört nach `.github/workflows/glacier-snow.yml` im Daten-Repo `jppetry/buscosun-data` (Jans Vollmacht im Auftrag
+# der Phase GN, 21.11.2026). Der Code lebt in `buscosun-web` (`scripts/glacier/snow.mjs`, Vertrag `src/glacier/glacierSnowContract.ts`)
+# und wird bei jedem Lauf frisch von `GLACIER_PRODUCER_REF` geklont (fällt auf `main` zurück, wenn der Zweig weg ist).
+#
+# ── Ablauf ────────────────────────────────────────────────────────────────
+# Zweimal am Tag: die Analyse „SNOWGRID Klima v2.1“ von GeoSphere Austria (CC BY 4.0, DOI 10.60669/fsxx-6977) über die Zeitreihen-API —
+# der neueste Tag und die Tage der letzten Woche, die der Speicher noch nicht hält. Sieben Abrufe je Lauf (Deckel zwölf).
+# Veröffentlicht wird unter `glacier/v1/snow/` (ein Dokument je Tag, einmal geschrieben) und der Zeiger `index.snow`.
+# Die Zellen je Gletscher (`snow/static/cells/`) und die Klimatologie 1991–2020 (`snow/static/clim/`) baut dieser Workflow NICHT:
+# sie entstehen einmal je Katalog-Build lokal (`--mode=cells`, `--mode=clim`) und müssen im Speicher liegen.
+# Das Raster selbst wird nie gespeichert. buscosun Fusion liest `obs/v1/`, nicht `glacier/v1/snow/` — dieser Workflow schreibt NICHTS nach `obs/v1/`.
+#
+# Der Vortag erscheint bei GeoSphere gegen 09:10 UTC; der zweite Lauf fängt einen späten Tag. Findet ein Lauf keinen neuen Tag,
+# veröffentlicht er nichts (ein Tag wird einmal geschrieben; die Statuszeile kommt mit dem nächsten Tag).
+#
+# Eigene Concurrency-Gruppe (wie glacier-stations): der Publisher verträgt den parallelen Push (jeder Versuch vom aktuellen
+# origin/main, nur die eigenen Pfade, Zeiger frisch gelesen, nie --force).
+#
+# Leerlauf: fehlt der Producer auf dem Zweig, die Linie auf `main` oder die Zellendatei im Speicher, endet der Job grün mit dem Grund.
+# ============================================================================
+
+name: glacier-snow
+
+on:
+  schedule:
+    - cron: '25 10,15 * * *'   # 10:25 und 15:25 UTC — der Vortag erscheint bei GeoSphere gegen 09:10 UTC; abseits von glacier-melt (:20),
+                               # glacier-stations (:12/:42) und glacier-sat (:48)
+  workflow_dispatch: {}
+
+concurrency:
+  group: glacier-snow
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  snow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GLACIER_PRODUCER_REF: ${{ vars.GLACIER_PRODUCER_REF || 'main' }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Checkout producer (buscosun-web, GLACIER_PRODUCER_REF)
+        id: app
+        run: |
+          REF="${GLACIER_PRODUCER_REF:-main}"
+          if ! git ls-remote --exit-code --heads https://github.com/jppetry/buscosun-web.git "$REF" >/dev/null 2>&1; then
+            if [ "$REF" != "main" ] && git ls-remote --exit-code --heads https://github.com/jppetry/buscosun-web.git main >/dev/null 2>&1; then
+              echo "Zweig $REF ist weg (gemergt?) — der Producer kommt von main."; REF=main
+            else
+              echo "producer not on $REF yet (Zweig fehlt in buscosun-web) — Ende ohne Fehler."
+              echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          fi
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout --branch "$REF" https://github.com/jppetry/buscosun-web.git app
+          cd app
+          git sparse-checkout set --no-cone scripts src package.json
+          git checkout --quiet
+          for f in scripts/glacier/snow.mjs scripts/glacier/glacier-publish.mjs src/glacier/glacierSnowContract.ts; do
+            if [ ! -f "$f" ]; then
+              echo "producer not on $REF yet ($f fehlt) — Ende ohne Fehler."
+              echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          done
+          grep -q "snow: \['snow'\]" scripts/glacier/glacier-publish.mjs || { echo "publisher on $REF kennt die Linie snow noch nicht — Ende ohne Fehler."; echo "ready=0" >> "$GITHUB_OUTPUT"; exit 0; }
+          echo "ready=1" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout data (buscosun-data main, glacier/ sparse)
+        if: steps.app.outputs.ready == '1'
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: data
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: glacier
+          sparse-checkout-cone-mode: true
+
+      - name: Kill switch
+        id: kill
+        if: steps.app.outputs.ready == '1'
+        run: |
+          test -f data/glacier/v1/index.json || { echo "glacier/v1/index.json fehlt auf main — die Linie ist noch nicht eingespielt, Ende ohne Fehler."; echo "go=0" >> "$GITHUB_OUTPUT"; exit 0; }
+          ls data/glacier/v1/snow/static/cells/*.json >/dev/null 2>&1 || { echo "glacier/v1/snow/static/cells fehlt — die Zellen sind noch nicht eingespielt, Ende ohne Fehler."; echo "go=0" >> "$GITHUB_OUTPUT"; exit 0; }
+          if [ -f data/glacier/v1/status.json ] && node -e "process.exit(JSON.parse(require('fs').readFileSync('data/glacier/v1/status.json','utf8')).killed===true?0:1)"; then
+            echo "Kill-Schalter AN — kein Schneelauf."; echo "go=0" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=1" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Snow run (SNOWGRID, the newest day and the missing days of the last week)
+        id: run
+        if: steps.app.outputs.ready == '1' && steps.kill.outputs.go == '1'
+        run: |
+          set -o pipefail   # a crash of the producer must turn the job red, not be hidden by `tee`
+          cd app
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/snow.mjs --mode=day --store=../data/glacier/v1 --out=../out --patch=../patch | tee ../snow.log
+          echo "wrote=$(test -d ../out && find ../out -type f | wc -l)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish (glacier/v1/snow, index, status — never --force)
+        if: steps.run.outputs.wrote != '' && steps.run.outputs.wrote != '0'
+        run: |
+          cd data
+          git config user.name  'buscosun-glacier[bot]'
+          git config user.email 'glacier@users.noreply.github.com'
+          cd ..
+          node app/scripts/glacier/glacier-publish.mjs --repo=data --line=snow --src=out \
+            --index-patch=patch/index-patch.json --status-patch=patch/status-patch.json \
+            --message="glacier(snow): $(date -u +%Y-%m-%dT%H:%MZ)"
