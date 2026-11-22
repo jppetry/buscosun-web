@@ -200,7 +200,7 @@ add('H2 Karte nur mit MapLibre-Mitteln: eine GeoJSON-Linienebene (gestrichelt) u
   && !/type: 'custom'|getContext|WebGL|gl_Frag|precision |shader/i.test(code(heute) + code(src('src/glacier/glacierStationMap.ts'))) && /el\.classList\.toggle\('is-3d', view3d\)/.test(heute)
   && /\.gl-sm\.is-3d \.gl-sm-stem \{ display: block; \}/.test(cssSt));
 add('H3 neue UI als Lazy-Chunk: der Steckbrief lädt `GlacierStationsHeute` nur per `lazy(() => import(…))` (kein statischer Import), die CSS-Datei hängt am Chunk; ohne Schalter an für alle (Ebene „Stationen“ ab Werk an; keine URL-, Flag- oder Speicherabfrage in den neuen Dateien)',
-  /const GlacierStationsHeute = lazy\(\(\) => import\('\.\/GlacierStationsHeute'\)\);/.test(brief) && !/^import .*GlacierStationsHeute/m.test(brief) && /^import '\.\/glacierStations\.css';$/m.test(heute)
+  /const GlacierStationsHeute = lazy\(\(\) => import\('\.\/GlacierStationsHeute'\)\);/.test(brief) && !/^import .*GlacierStationsHeute/m.test(brief) && /^import '\.\/glacierStations\.css';\r?$/m.test(heute)
   && /const \[showStations, setShowStations\] = useState\(true\);/.test(brief) && !/location|URLSearchParams|localStorage|glacierFlag|sessionStorage/.test(code(heute) + code(src('src/glacier/glacierStationMap.ts'))));
 let changed = [];
 try { changed = execFileSync('git', ['diff', '--name-only', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).split('\n').filter(Boolean); } catch { changed = ['<git nicht lesbar>']; }
