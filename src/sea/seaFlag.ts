@@ -72,12 +72,12 @@ export function seaTideWindowFrom(search: string = typeof location !== 'undefine
 
 /**
  * Phase BS-P — wind particles on the Seewetter map (`audit/seewetter-binnenseen.md` §9, E-BS-11): the Wetterkarte's
- * `WindLayer` hooked into `SeaMap` with Jan's go (22.11.2026). Built default-off (Rule 2) and NOT seen in a browser by
- * the author: `?swp=1` shows the dock switch „Windpartikel“ (on) and loads the layer; without it the page is the one
- * before — no switch, no chunk, no layer. `SEA_PARTICLES_LIVE = true` after Jan's look turns it on for everyone
- * (`?swp=0` then is the named fallback).
+ * `WindLayer` hooked into `SeaMap` with Jan's go (22.11.2026). Built default-off (Rule 2) and switched ON for everyone on
+ * Jan's word the same day ("schalte das feature dauerhaft ein", E-BS-18) — BEFORE anyone had seen the layer run: the
+ * author never saw it in a browser, no real device was checked. The dock switch „Windpartikel“ is there for everyone and
+ * starts on. `?swp=0` is the named fallback: the page as it was before — no switch, no chunk, no layer.
  */
-export const SEA_PARTICLES_LIVE = false;
+export const SEA_PARTICLES_LIVE = true;
 export function seaParticlesFrom(search: string = typeof location !== 'undefined' ? location.search : '', live: boolean = SEA_PARTICLES_LIVE): boolean {
   let q: string | null = null;
   try { q = new URLSearchParams(search).get('swp'); } catch { /* broken query = no vote */ }

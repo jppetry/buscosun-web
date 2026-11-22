@@ -447,7 +447,7 @@ Jan hat `main` am 21.11. um 20:14:39 UTC gepusht (`origin/main` = `84956432`). A
   Die 84 sind weniger als die 108 der Messung am ganzen Lauf (§8.1), weil eine Auffrischung nur die Stunden ab ihrem Würfel
   neu rechnet. Welche Spots die 84 Stunden tragen, habe ich an der Live-Datei nicht ausgezählt.
 
-## 9. Nachzug BS-P (22.11.2026) — Windpartikel auf der Seekarte (E-BS-11), hinter `?swp=1`
+## 9. Nachzug BS-P (22.11.2026) — Windpartikel auf der Seekarte (E-BS-11); seit 22.11. an für alle (§9.6)
 
 Auslöser (Jan, 22.11. früh): „die Seen zeigen auch keine Windrichtung an wie die Küste“, „es werden auch keine Windpfeile
 über den Seen auf der Karte gezeichnet“. Auf meinen Vorschlag (Partikel der Wetterkarte in die Seekarte hängen, hinter
@@ -501,7 +501,7 @@ Veröffentlichen — keine Lücke. Beobachtet alle drei Minuten an `status.json`
 | **E-BS-15** | Welches Feld? | Der 10-m-Wind von **ICON-D2** aus dem Daten-Repo über den Leser der Wetterkarte, ohne Windfärbung (die Farbfläche der Karte ist der Seegang). Das ist **nicht buscosun Fusion** — Schalter, Legende und Quellenliste sagen es; Werte und Pfeile an den Spots bleiben buscosun Fusion. *Gesetzt, bitte bestätigen* |
 | **E-BS-16** | Ebene „Strömung“ | Dort **ruhen** die Partikel (die Riffel bewegen sich schon; zwei bewegte Schichten übereinander). *Gesetzt* |
 | **E-BS-17** | Welche Stunden? | Nur die Stunden, die das Feld trägt (bis Lauf + 12 h, also rund 7–11 h voraus). Außerhalb **keine** Partikel und der Satz, bis wann das Feld reicht — nie das Bild vom Rand. Start mit den zwei Bildern um „jetzt“; das lange Fenster wird erst geholt, wenn die gewählte Stunde dahinter liegt |
-| **E-BS-18** | Schalter | **Ab Werk aus.** `?swp=1` zeigt den Dock-Schalter „Windpartikel“ (an) und lädt die Schicht; ohne ihn kein Schalter, kein Chunk, keine Schicht. Für alle: `SEA_PARTICLES_LIVE = true` nach Jans Blick (`?swp=0` ist dann der Rückfall). *Jans Entscheidung nach dem Ansehen* |
+| **E-BS-18** | Schalter | Gebaut ab Werk aus hinter `?swp=1`. **Jan, 22.11.: „schalte das feature dauerhaft ein“ ⇒ `SEA_PARTICLES_LIVE = true`, an für alle, VOR jeder Sichtprüfung** (§9.6). Der Dock-Schalter „Windpartikel“ steht bei allen und ist an; Rückfall `?swp=0` = kein Schalter, kein Chunk, keine Schicht |
 | **E-BS-19** | Nur über Wasser? | Nein, über der ganzen Karte wie auf der Wetterkarte. Ein See von wenigen Kilometern ist ein bis zwei Zellen des Felds — auf Wasser beschnitten bliebe davon nichts. *Gesetzt* |
 
 ### 9.3 Umsetzung
@@ -572,3 +572,20 @@ geprüft. (5) Long Tasks — nicht geprüft; mit Partikeln zeichnet die Karte da
 | **V-BS-36** | Budget +3,5 KB, davon rund 1,1 KB nur, weil der Windleser ein eigener Chunk wurde | Nur vermerkt |
 | **V-BS-37** | `?swp=1` gilt für den Besuch (einmal beim Laden gelesen). Ob die Adresse den Parameter behält, wenn die Seite ihren Zustand schreibt, ist nicht geprüft — nach einem Neuladen ohne ihn sind die Partikel weg | Für die Sichtprüfung reicht es; mit `SEA_PARTICLES_LIVE` entfällt die Frage |
 | **V-BS-38** | Die gemessene Richtung der nächsten Station für die Stunde „jetzt“ in die Zeile heben, wo buscosun Fusion keine nennt (mein Vorschlag vom 22.11., von Jan nicht gewählt) | Mehrwert: an Alpenseen steht für „jetzt“ eine Richtung, als Messung benannt. Skizze: `lakeObsOf` liefert `ddDeg` schon; nur die laufende Stunde, nie die Vorhersage |
+
+### 9.6 Eingeschaltet für alle (22.11.2026, Jans Wort)
+
+Jan nach dem Bericht: „schalte das feature dauerhaft ein“. `SEA_PARTICLES_LIVE = true` in `src/sea/seaFlag.ts`; wirkt mit
+dem Push von `main`. **Eingeschaltet, bevor irgendjemand die Schicht hat laufen sehen** — von mir nicht im Browser, kein
+Gerät geprüft (V-BS-31 und V-BS-35 gelten unverändert und sind jetzt die ersten Punkte nach dem Push).
+
+- Geändert: die Konstante, der Kommentar dazu, `verify:sea-particles` B1/B2 (an für alle; `?swp=0` der Rückfall; der
+  Schalter wirkt in beiden Stellungen der Konstante). Sonst kein Code.
+- Gate: Typecheck 0, Build 281/281, Budget unverändert (eagerJs 116,2 / 117, totalJs 2 101,4 / 2 102),
+  `verify:sea-particles` 31/31, `-current` 129/129, `-ripples` 122/122, `-lakes` 125/125.
+- Rückfall ohne Deploy: `?swp=0` je Link; im Dock der Schalter „Windpartikel“ je Besuch. Für alle zurück: die Konstante
+  auf `false` und ein Push.
+
+| Nr. | Befund | Mehrwert · Skizze |
+|---|---|---|
+| **V-BS-39** | Jeder Besuch von `/seewetter` lädt jetzt zusätzlich rund 29 KB Code (Partikel-Klasse 22,2, Windleser 5,2, Schicht 1,8 KB gzip) und zwei Windbilder (je 216–244 KB, zusammen rund 0,46 MB) — auch am Telefon und auch, wenn der Besucher nur einen Spot lesen will | Nur vermerkt; gemessen an den Dateien, nicht an der Seite. Skizze, falls es stört: die Schicht erst laden, wenn die Karte auf der Bühne steht (nicht im Dossier), oder am Telefon ab Werk aus |

@@ -143,7 +143,7 @@ export default function SeaDock(p: Props) {
     // SR: the ripple layer is the main layer „Strömung“; this switch is its arrow option and says so.
     ['current', 'Strömungspfeile', 'BSH-Modell · Pfeile, wohin der Strom setzt'],
   ];
-  // Phase BS-P: only behind the switch of the phase (`?swp=1`) — without it the list is the one before.
+  // Phase BS-P: on for everyone (Jan 22.11.); with `?swp=0` the list is the one before.
   if (p.hasParticles) toggles.push(['particles', SEA_PARTICLES_LABEL, SEA_PARTICLES_HINT]);
   // Phase DK: with Danish spots in the catalogue the two layers also carry DMI stations and DMI model points — named here.
   if (p.hasDk) {

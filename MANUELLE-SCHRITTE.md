@@ -4346,13 +4346,14 @@ Kein Push wurde zurückgenommen.
 
 ## 112. Seewetter: Windpartikel auf der Seekarte (Nachzug BS-P, `audit/seewetter-binnenseen.md` §9), 2026-11-22
 
-Dein Wort vom 22.11. („ja mache das“): die Windpartikel der Wetterkarte hängen in der Seekarte — **ab Werk aus, hinter
-`?swp=1`**, lokal committet, nicht gepusht. **Ich habe die Schicht nie laufen sehen** (kein Browser, kein WebGL in den
-Prüfern); geprüft sind Ablauf, Worte und Verdrahtung. Ohne den Parameter ist die Seite die von vorher.
+Dein Wort vom 22.11. („ja mache das“): die Windpartikel der Wetterkarte hängen in der Seekarte. **Seit deinem zweiten
+Wort am selben Tag („schalte das feature dauerhaft ein“) an für alle** (`SEA_PARTICLES_LIVE = true`), lokal committet,
+nicht gepusht — **wirkt mit dem Push von `main`.** **Ich habe die Schicht nie laufen sehen** (kein Browser, kein WebGL in
+den Prüfern); geprüft sind Ablauf, Worte und Verdrahtung. Mit `?swp=0` ist die Seite die von vorher.
 
 **Kein Push von mir, nichts am Daten-Repo.** Gelesen werden die Windbilder, die die Wetterkarte ohnehin liest.
 
-1. **Ansehen** (nach dem Push auf der Seite, vorher lokal): `/seewetter?swp=1`
+1. **Ansehen, gleich nach dem Push** (die Partikel sind dann bei allen an): `/seewetter`
    - Bewegen sich Partikel über See **und** Land, auch über den Seen (Revier „Seen“, etwa Bodensee)? Liegen sie **unter**
      den Wellenpfeilen, Spot-Marken und Pegeln?
    - Im Dock steht der Schalter „Windpartikel · DWD ICON-D2 · Windfeld des Modells, nicht buscosun Fusion“ (an). Aus und
@@ -4365,9 +4366,10 @@ Prüfern); geprüft sind Ablauf, Worte und Verdrahtung. Ohne den Parameter ist d
    - Dossier eines Spots öffnen und schließen: danach laufen die Partikel wieder.
    - **Telefon:** ruckelt die Karte beim Ziehen? (Die Schicht zeichnet dauernd neu, V-BS-35.)
    - Konsole: Fehler beim Ein- und Ausschalten?
-2. **Stört etwas oder bleibt die Karte leer:** ohne `?swp=1` ist alles weg. Sag mir, was du siehst — dann stelle ich nach.
-3. **Für alle einschalten (deine Entscheidung, E-BS-18):** `SEA_PARTICLES_LIVE = true` in `src/sea/seaFlag.ts`, Build,
-   Push. Der Dock-Schalter steht dann bei allen und ist an; `?swp=0` ist der Rückfall je Link.
+2. **Stört etwas oder bleibt die Karte leer:** `?swp=0` je Link nimmt alles weg; für alle zurück: `SEA_PARTICLES_LIVE = false`
+   in `src/sea/seaFlag.ts`, Build, Push. Sag mir, was du siehst — dann stelle ich nach.
+3. **Für alle eingeschaltet (E-BS-18, dein Wort vom 22.11.):** erledigt im Code. Jeder Besuch lädt damit rund 29 KB Code
+   und zwei Windbilder (rund 0,46 MB) zusätzlich, auch am Telefon (V-BS-39).
 4. **Gesetzt, bitte bestätigen oder kippen:** E-BS-15 (Feld = ICON-D2, nicht buscosun Fusion, so benannt), E-BS-16
    (Ruhe in „Strömung“), E-BS-17 (außerhalb des Felds keine Partikel), E-BS-19 (über der ganzen Karte, nicht nur Wasser).
 5. **Budget:** totalJs 2 101,4 gegen 2 097,9 vorher (+3,5 KB); Grenze von Hand 2 099 → 2 102, Notiz in `budget.json`.

@@ -149,7 +149,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   // ST-N: the string is the checked pointer as JSON — it carries the run before (`prev`) unless `?curprev=0`.
   const [curPtr, setCurPtr] = useState<string | null>(null);
   const curPrevOn = useMemo(() => seaCurrentPrevFrom(), []);
-  // Phase BS-P: the wind particles exist only behind the phase's switch (`?swp=1`); with it the dock switch starts on.
+  // Phase BS-P: the wind particles are on for everyone (Jan 22.11.) and the dock switch starts on; `?swp=0` = the page before.
   const particlesFlag = useMemo(() => seaParticlesFrom(), []);
   const [particleState, setParticleState] = useState<SeaParticleState>({ kind: 'loading' });
   const [current, setCurrent] = useState<SeaCurrentLoad | 'loading'>('loading');

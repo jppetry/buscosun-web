@@ -8,11 +8,11 @@
  *
  *   A  pure logic (`seaParticles.ts`): window of the loaded field, an hour outside is never clamped, which window is
  *      fetched when, the legend names the field's source, when the particles rest
- *   B  switch: off by default, `?swp=1` on, `?swp=0` off
+ *   B  switch: on for everyone (Jan 22.11.), `?swp=0` off — the page as before
  *   C  the layer's control flow against stand-ins for `WindLayer` and the wind reader (bundled with esbuild, the real
  *      `SeaParticleLayer.ts`): where the layer goes in, what it shows for which hour, one long fetch and no loop, a
  *      failed fetch, the refresh, taking it out again; a runaway fetch loop is stopped by the stand-in and reported
- *   D  wiring by source: off = no chunk, no layer, no switch; the layer is the Wetterkarte's with its settings and clamps
+ *   D  wiring by source: off (`?swp=0`) = no chunk, no layer, no switch; the layer is the Wetterkarte's with its settings and clamps
  */
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -63,10 +63,11 @@ add('A7 gezeichnet nur mit Schalter der Phase UND Dock-Schalter UND Seedaten; in
 add('A8 Worte des Schalters: „Windpartikel“, die Quelle im Untertitel', SEA_PARTICLES_LABEL === 'Windpartikel' && /ICON-D2/.test(SEA_PARTICLES_HINT) && /nicht buscosun Fusion/.test(SEA_PARTICLES_HINT));
 
 // --- B: switch ----------------------------------------------------------------------------------------------------
-add('B1 ab Werk aus; `?swp=1` an; `?swp=0` aus; kaputte Query = ab Werk',
-  SEA_PARTICLES_LIVE === false && seaParticlesFrom('') === false && seaParticlesFrom('?swp=1') === true && seaParticlesFrom('?swp=0') === false
-  && seaParticlesFrom('?l=hs&swp=1&t=3') === true && seaParticlesFrom('?swp=ja') === false);
-add('B2 nach dem Einschalten für alle bleibt `?swp=0` der Rückfall', seaParticlesFrom('', true) === true && seaParticlesFrom('?swp=0', true) === false && seaParticlesFrom('?swp=1', false) === true);
+add('B1 an für alle (Jan 22.11., E-BS-18); `?swp=0` aus — der Rückfall; `?swp=1` an; kaputte Query = ab Werk',
+  SEA_PARTICLES_LIVE === true && seaParticlesFrom('') === true && seaParticlesFrom('?swp=1') === true && seaParticlesFrom('?swp=0') === false
+  && seaParticlesFrom('?l=hs&swp=0&t=3') === false && seaParticlesFrom('?swp=ja') === true);
+add('B2 der Schalter der Phase wirkt in beiden Stellungen der Konstante: aus = `?swp=1` schaltet an, an = `?swp=0` schaltet aus',
+  seaParticlesFrom('', true) === true && seaParticlesFrom('?swp=0', true) === false && seaParticlesFrom('', false) === false && seaParticlesFrom('?swp=1', false) === true && seaParticlesFrom('?swp=0', false) === false);
 
 // --- C: the layer's control flow, real `SeaParticleLayer.ts` against stand-ins --------------------------------------
 const tmp = mkdtempSync(join(tmpdir(), 'sea-particles-'));
