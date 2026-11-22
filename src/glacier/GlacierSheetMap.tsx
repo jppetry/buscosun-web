@@ -44,6 +44,18 @@ interface Props {
   onView3dFailed?: () => void;
   /** Dossier: the map neither zooms nor pans in place (the page scrolls over it) — that starts with the enlarge button (top right). */
   gated?: boolean;
+  /**
+   * Phase DK-H: the frame of the map instead of the outline's box (level Heute of the dossier: outline plus every station, with room
+   * for the cards above the markers). `null`/absent = framing as before.
+   */
+  frame?: SheetFrame | null;
+}
+export interface SheetFrame { bounds: [[number, number], [number, number]]; padding: { top: number; right: number; bottom: number; left: number } }
+/** Padding shrunk to fit the container (MapLibre refuses a fit whose padding is larger than the canvas). */
+function fitPadding(map: maplibregl.Map, p: SheetFrame['padding']): SheetFrame['padding'] {
+  const w = map.getContainer().clientWidth || 1, h = map.getContainer().clientHeight || 1;
+  const fx = Math.min(1, (w * 0.6) / Math.max(1, p.left + p.right)), fy = Math.min(1, (h * 0.6) / Math.max(1, p.top + p.bottom));
+  return { top: Math.round(p.top * fy), bottom: Math.round(p.bottom * fy), left: Math.round(p.left * fx), right: Math.round(p.right * fx) };
 }
 
 /** 3D only: two buttons turn the view by 45° and a compass resets north (right mouse drag / two fingers still rotate freely). */
@@ -69,12 +81,19 @@ function makeRotateControl(): maplibregl.IControl {
   };
 }
 
-export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, snow, showSnow, dem, view, basemap, compare, onCompare, onSnowShare, onMap, onView3dFailed, gated = false }: Props) {
+export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, snow, showSnow, dem, view, basemap, compare, onCompare, onSnowShare, onMap, onView3dFailed, gated = false, frame = null }: Props) {
   const box = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const ready = useRef(false);
-  const latest = useRef({ geometry, earlier, showEarlier, snow, showSnow, dem, view, basemap, compare });
-  latest.current = { geometry, earlier, showEarlier, snow, showSnow, dem, view, basemap, compare };
+  const latest = useRef({ geometry, earlier, showEarlier, snow, showSnow, dem, view, basemap, compare, frame });
+  latest.current = { geometry, earlier, showEarlier, snow, showSnow, dem, view, basemap, compare, frame };
+  /** The box the camera frames: the DK-H frame when given, else the outline's box (as before). */
+  const frameBox = (): { bounds: [[number, number], [number, number]]; padding: SheetFrame['padding'] | null } | null => {
+    const fr = latest.current.frame;
+    if (fr) return { bounds: fr.bounds, padding: fr.padding };
+    const bb = latest.current.geometry ? bboxOf(latest.current.geometry) : null;
+    return bb ? { bounds: [[bb[0], bb[1]], [bb[2], bb[3]]], padding: null } : null;
+  };
   /** Visibility of the style's own layers as loaded — restored when the imagery goes off again. */
   const styleVis = useRef<Map<string, 'visible' | 'none'>>(new Map());
   const [dividerPx, setDividerPx] = useState<number | null>(null);
@@ -142,9 +161,9 @@ export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, sno
 
   const fit = (animate: boolean) => {
     const map = mapRef.current;
-    const bb = latest.current.geometry ? bboxOf(latest.current.geometry) : null;
+    const fb = frameBox();
     if (!map) return;
-    if (bb) map.fitBounds([[bb[0], bb[1]], [bb[2], bb[3]]], { padding: 48, maxZoom: 15, duration: animate ? 600 : 0 });
+    if (fb) map.fitBounds(fb.bounds, { padding: fb.padding ? fitPadding(map, fb.padding) : 48, maxZoom: 15, duration: animate ? 600 : 0 });
     else map.easeTo({ center: [g.lon, g.lat], zoom: g.klass === 'A' ? 13 : 14, duration: animate ? 600 : 0 });
   };
 
@@ -176,8 +195,9 @@ export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, sno
         // The camera moves only once the terrain tiles are in (else the height of the peaks shifts the distance after the move).
         const go = () => {
           if (latest.current.view !== '3d') return;
-          const bb = latest.current.geometry ? bboxOf(latest.current.geometry) : null;
-          const cam = bb ? map.cameraForBounds([[bb[0], bb[1]], [bb[2], bb[3]]], { padding: { top: 110, bottom: 60, left: 60, right: 60 }, bearing: -20, pitch: 62, maxZoom: 15 }) : null;
+          const fb = frameBox();
+          const p3 = fb?.padding ? fitPadding(map, { top: Math.max(110, fb.padding.top), bottom: Math.max(60, fb.padding.bottom), left: Math.max(60, fb.padding.left), right: Math.max(60, fb.padding.right) }) : { top: 110, bottom: 60, left: 60, right: 60 };
+          const cam = fb ? map.cameraForBounds(fb.bounds, { padding: p3, bearing: -20, pitch: 62, maxZoom: 15 }) : null;
           if (cam && cam.center && cam.zoom != null) map.easeTo({ center: cam.center, zoom: Math.max(map.getMinZoom(), cam.zoom - 0.45), pitch: 62, bearing: -20, duration: 700 });
           else map.easeTo({ pitch: 62, bearing: -20, duration: 700 });
         };
@@ -187,8 +207,8 @@ export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, sno
         if (rotCtl.current) { map.removeControl(rotCtl.current); rotCtl.current = null; }
         map.setTerrain(null);
         map.setLayoutProperty('gls-hill', 'visibility', 'none');
-        const bb2 = latest.current.geometry ? bboxOf(latest.current.geometry) : null;
-        const cam2 = bb2 ? map.cameraForBounds([[bb2[0], bb2[1]], [bb2[2], bb2[3]]], { padding: 48, bearing: 0, pitch: 0, maxZoom: 15 }) : null;
+        const fb2 = frameBox();
+        const cam2 = fb2 ? map.cameraForBounds(fb2.bounds, { padding: fb2.padding ? fitPadding(map, fb2.padding) : 48, bearing: 0, pitch: 0, maxZoom: 15 }) : null;
         if (cam2 && cam2.center && cam2.zoom != null) map.easeTo({ center: cam2.center, zoom: cam2.zoom, pitch: 0, bearing: 0, duration: 500 });
         else map.easeTo({ pitch: 0, bearing: 0, duration: 500 });
       }
@@ -233,6 +253,7 @@ export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, sno
       ready.current = true;
       applyBasemap(); applyOutlines(); void applySnow();
       if (latest.current.view === '3d') apply3d(true);
+      else if (latest.current.frame) fit(false);
     });
     const onMove = () => { if (latest.current.compare != null) { cancelAnimationFrame(raf.current); raf.current = requestAnimationFrame(applyOutlines); } };
     map.on('move', onMove);
@@ -244,6 +265,15 @@ export default function GlacierSheetMap({ g, geometry, earlier, showEarlier, sno
   }, [geometry, earlier, showEarlier]);
   useEffect(() => { void applySnow(); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snow, showSnow, dem, geometry]);
+  // DK-H: a new frame (stations loaded, the layer switched) frames the map again — flat at once, in 3D with the tilted camera
+  const frameKey = frame ? JSON.stringify(frame) : '';
+  const firstFrame = useRef(true);
+  useEffect(() => {
+    if (firstFrame.current) { firstFrame.current = false; if (!frameKey) return; }
+    if (!ready.current) return;
+    if (latest.current.view === '3d') apply3d(true); else fit(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [frameKey]);
   useEffect(() => { apply3d(view === '3d'); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view]);
   useEffect(() => { applyBasemap(); // eslint-disable-next-line react-hooks/exhaustive-deps

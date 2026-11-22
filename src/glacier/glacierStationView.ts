@@ -30,6 +30,8 @@ export interface StnViewValue {
 }
 export interface StnViewStation {
   id: string; name: string; elev: number; operator: string; net: StnNet;
+  /** Position of the station as the mapping names it (phase DK-H: the dossier map draws it). */
+  lat: number; lon: number;
   /** Link of the operator's name, when the source asks for one (SLF). */
   operatorUrl?: string;
   /** Distance in km — to the glacier's outline (0 = on its edge) or, in a mapping from before phase GI, to its catalogue point. */
@@ -111,7 +113,7 @@ export function stationView(map: StnMapDoc | null, hour: StnHourDoc | null, id: 
     let st = by.get(h[0]);
     if (!st) {
       const url = GLACIER_STN_SOURCES.find((x) => x.id === meta.net)?.operatorUrl;
-      st = { id: h[0], name: meta.name, elev: meta.elev, operator: meta.op, net: meta.net, ...(url ? { operatorUrl: url } : {}), km: h[1], dz: h[2], ms: null, values: [] };
+      st = { id: h[0], name: meta.name, elev: meta.elev, operator: meta.op, net: meta.net, lat: meta.lat, lon: meta.lon, ...(url ? { operatorUrl: url } : {}), km: h[1], dz: h[2], ms: null, values: [] };
       by.set(h[0], st);
     }
     const e = entries?.[h[0]];
@@ -137,5 +139,5 @@ export function stationView(map: StnMapDoc | null, hour: StnHourDoc | null, id: 
 
 /** Every sentence the card can render for a view — the verifier runs `glacierForbiddenWords` over it. */
 export function stationViewTexts(v: StnView, nowMs: number): string[] {
-  return v.stations.flatMap((s) => [s.name, s.operator, whereText(s.km, v.from), dzText(s.dz), ...(s.ms != null ? [ageText(nowMs - s.ms)] : []), ...s.values.map((x) => `${x.label} ${x.text ?? `Keine Daten: ${x.why}`}`)]);
+  return v.stations.flatMap((s) => [s.name, `Betreiber: ${s.operator}`, whereText(s.km, v.from), dzText(s.dz), ...(s.ms != null ? [ageText(nowMs - s.ms)] : []), ...s.values.map((x) => `${x.label} ${x.text ?? `Keine Daten: ${x.why}`}`)]);
 }

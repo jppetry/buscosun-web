@@ -1,0 +1,1073 @@
+{
+ "note": "Real excerpt, read 2026-11-22 ~10 UTC from buscosun-data: glacier/v1/stn/map/20261120-1.3.json (section ext, three glaciers: two with stations, one without) and glacier/v1/stn/h/2026112209.json (entries of the stations used). Values unchanged.",
+ "map": {
+  "schema": 1,
+  "kind": "glacier/station-map",
+  "file": "20261120-1.3",
+  "build": "20261120-1",
+  "builtAt": "2026-11-22T03:44:09.999Z",
+  "rule": {
+   "km": 5,
+   "dz": 300,
+   "from": "outline",
+   "elevation": "range ± dz",
+   "dzShown": "station − median"
+  },
+  "stations": {},
+  "glaciers": {},
+  "report": {
+   "all": {
+    "glaciers": 2094,
+    "withStation": 435,
+    "q": {
+     "t": 406,
+     "wind": 387,
+     "gust": 387,
+     "snow": 136,
+     "precip": 104,
+     "rad": 202
+    }
+   },
+   "byCountry": {
+    "AT": {
+     "glaciers": 799,
+     "withStation": 308,
+     "q": {
+      "t": 307,
+      "wind": 288,
+      "gust": 288,
+      "snow": 133,
+      "precip": 54,
+      "rad": 111
+     }
+    },
+    "CH": {
+     "glaciers": 1291,
+     "withStation": 125,
+     "q": {
+      "t": 97,
+      "wind": 97,
+      "gust": 97,
+      "snow": 3,
+      "precip": 50,
+      "rad": 89
+     }
+    },
+    "DE": {
+     "glaciers": 4,
+     "withStation": 2,
+     "q": {
+      "t": 2,
+      "wind": 2,
+      "gust": 2,
+      "snow": 0,
+      "precip": 0,
+      "rad": 2
+     }
+    }
+   },
+   "byRegion": {
+    "at-venedigergruppe": {
+     "glaciers": 88,
+     "withStation": 21,
+     "q": {
+      "t": 21,
+      "wind": 19,
+      "gust": 19,
+      "snow": 5,
+      "precip": 0,
+      "rad": 5
+     }
+    },
+    "at-stubaier-alpen": {
+     "glaciers": 108,
+     "withStation": 80,
+     "q": {
+      "t": 80,
+      "wind": 79,
+      "gust": 79,
+      "snow": 31,
+      "precip": 3,
+      "rad": 15
+     }
+    },
+    "at-oetztaler-alpen": {
+     "glaciers": 185,
+     "withStation": 98,
+     "q": {
+      "t": 97,
+      "wind": 82,
+      "gust": 82,
+      "snow": 50,
+      "precip": 32,
+      "rad": 42
+     }
+    },
+    "at-zillertaler-alpen": {
+     "glaciers": 126,
+     "withStation": 9,
+     "q": {
+      "t": 9,
+      "wind": 9,
+      "gust": 9,
+      "snow": 3,
+      "precip": 0,
+      "rad": 3
+     }
+    },
+    "at-granatspitzgruppe": {
+     "glaciers": 23,
+     "withStation": 10,
+     "q": {
+      "t": 10,
+      "wind": 9,
+      "gust": 9,
+      "snow": 9,
+      "precip": 5,
+      "rad": 10
+     }
+    },
+    "at-glocknergruppe": {
+     "glaciers": 74,
+     "withStation": 15,
+     "q": {
+      "t": 15,
+      "wind": 15,
+      "gust": 15,
+      "snow": 0,
+      "precip": 6,
+      "rad": 6
+     }
+    },
+    "at-silvrettagruppe": {
+     "glaciers": 40,
+     "withStation": 24,
+     "q": {
+      "t": 24,
+      "wind": 24,
+      "gust": 24,
+      "snow": 2,
+      "precip": 0,
+      "rad": 2
+     }
+    },
+    "at-raetikon": {
+     "glaciers": 2,
+     "withStation": 0,
+     "q": {
+      "t": 0,
+      "wind": 0,
+      "gust": 0,
+      "snow": 0,
+      "precip": 0,
+      "rad": 0
+     }
+    },
+    "at-defreggergruppe": {
+     "glaciers": 6,
+     "withStation": 0,
+     "q": {
+      "t": 0,
+      "wind": 0,
+      "gust": 0,
+      "snow": 0,
+      "precip": 0,
+      "rad": 0
+     }
+    },
+    "at-dachstein": {
+     "glaciers": 8,
+     "withStation": 8,
+     "q": {
+      "t": 8,
+      "wind": 8,
+      "gust": 8,
+      "snow": 8,
+      "precip": 8,
+      "rad": 8
+     }
+    },
+    "at-karnische-alpen": {
+     "glaciers": 1,
+     "withStation": 0,
+     "q": {
+      "t": 0,
+      "wind": 0,
+      "gust": 0,
+      "snow": 0,
+      "precip": 0,
+      "rad": 0
+     }
+    },
+    "at-lechtaler-alpen": {
+     "glaciers": 11,
+     "withStation": 6,
+     "q": {
+      "t": 6,
+      "wind": 6,
+      "gust": 6,
+      "snow": 2,
+      "precip": 0,
+      "rad": 2
+     }
+    },
+    "at-verwallgruppe": {
+     "glaciers": 27,
+     "withStation": 22,
+     "q": {
+      "t": 22,
+      "wind": 22,
+      "gust": 22,
+      "snow": 10,
+      "precip": 0,
+      "rad": 6
+     }
+    },
+    "at-ankogel-hochalmspitzgruppe": {
+     "glaciers": 43,
+     "withStation": 0,
+     "q": {
+      "t": 0,
+      "wind": 0,
+      "gust": 0,
+      "snow": 0,
+      "precip": 0,
+      "rad": 0
+     }
+    },
+    "at-rieserfernergruppe": {
+     "glaciers": 5,
+     "withStation": 1,
+     "q": {
+      "t": 1,
+      "wind": 1,
+      "gust": 1,
+      "snow": 1,
+      "precip": 0,
+      "rad": 0
+     }
+    },
+    "at-schobergruppe": {
+     "glaciers": 16,
+     "withStation": 0,
+     "q": {
+      "t": 0,
+      "wind": 0,
+      "gust": 0,
+      "snow": 0,
+      "precip": 0,
+      "rad": 0
+     }
+    },
+    "at-goldberggruppe": {
+     "glaciers": 30,
+     "withStation": 11,
+     "q": {
+      "t": 11,
+      "wind": 11,
+      "gust": 11,
+      "snow": 11,
+      "precip": 0,
+      "rad": 11
+     }
+    },
+    "at-samnaungruppe": {
+     "glaciers": 3,
+     "withStation": 2,
+     "q": {
+      "t": 2,
+      "wind": 2,
+      "gust": 2,
+      "snow": 1,
+      "precip": 0,
+      "rad": 1
+     }
+    },
+    "at-allgaeuer-alpen": {
+     "glaciers": 1,
+     "withStation": 1,
+     "q": {
+      "t": 1,
+      "wind": 1,
+      "gust": 1,
+      "snow": 0,
+      "precip": 0,
+      "rad": 0
+     }
+    },
+    "at-hochkoenig": {
+     "glaciers": 2,
+     "withStation": 0,
+     "q": {
+      "t": 0,
+      "wind": 0,
+      "gust": 0,
+      "snow": 0,
+      "precip": 0,
+      "rad": 0
+     }
+    },
+    "ch-mitte-west": {
+     "glaciers": 494,
+     "withStation": 41,
+     "q": {
+      "t": 35,
+      "wind": 35,
+      "gust": 35,
+      "snow": 0,
+      "precip": 7,
+      "rad": 35
+     }
+    },
+    "ch-mitte-ost": {
+     "glaciers": 256,
+     "withStation": 30,
+     "q": {
+      "t": 30,
+      "wind": 30,
+      "gust": 30,
+      "snow": 3,
+      "precip": 3,
+      "rad": 30
+     }
+    },
+    "ch-ost": {
+     "glaciers": 272,
+     "withStation": 11,
+     "q": {
+      "t": 11,
+      "wind": 11,
+      "gust": 11,
+      "snow": 0,
+      "precip": 1,
+      "rad": 3
+     }
+    },
+    "ch-west": {
+     "glaciers": 190,
+     "withStation": 26,
+     "q": {
+      "t": 5,
+      "wind": 5,
+      "gust": 5,
+      "snow": 0,
+      "precip": 22,
+      "rad": 5
+     }
+    },
+    "ch-sued": {
+     "glaciers": 79,
+     "withStation": 17,
+     "q": {
+      "t": 16,
+      "wind": 16,
+      "gust": 16,
+      "snow": 0,
+      "precip": 17,
+      "rad": 16
+     }
+    },
+    "de": {
+     "glaciers": 4,
+     "withStation": 2,
+     "q": {
+      "t": 2,
+      "wind": 2,
+      "gust": 2,
+      "snow": 0,
+      "precip": 0,
+      "rad": 2
+     }
+    }
+   },
+   "byNet": {
+    "tirol": 878,
+    "bz": 89,
+    "obs": 655
+   }
+  },
+  "ext": {
+   "rule": {
+    "km": 5,
+    "dz": 300,
+    "from": "outline",
+    "elevation": "range ± dz",
+    "dzShown": "station − median"
+   },
+   "stations": {
+    "ch:JUN": {
+     "name": "Jungfraujoch",
+     "elev": 3571,
+     "lat": 46.547556,
+     "lon": 7.985444,
+     "net": "obs",
+     "op": "MeteoSchweiz"
+    },
+    "imis:EGH2": {
+     "name": "Flesch",
+     "elev": 2500,
+     "lat": 46.41681,
+     "lon": 8.09172,
+     "net": "imis",
+     "op": "WSL-Institut für Schnee- und Lawinenforschung SLF"
+    },
+    "tirol:48601f7e-7e54-c452-fe27-934b1bef1c4d": {
+     "name": "Nockwand Wind",
+     "elev": 3092,
+     "lat": 47.0368417,
+     "lon": 11.1746533,
+     "net": "tirol",
+     "op": "LWD Tirol"
+    },
+    "tirol:ceaee63b-8f00-9082-05c2-8e658bc1669a": {
+     "name": "Schöckbichl",
+     "elev": 2520,
+     "lat": 47.027353,
+     "lon": 11.178164,
+     "net": "tirol",
+     "op": "LWD Tirol"
+    }
+   },
+   "glaciers": {
+    "gl_ch_grosser-aletschgletscher": {
+     "t": [
+      "ch:JUN",
+      0.1,
+      424
+     ],
+     "wind": [
+      "ch:JUN",
+      0.1,
+      424
+     ],
+     "gust": [
+      "ch:JUN",
+      0.1,
+      424
+     ],
+     "snow": [
+      "imis:EGH2",
+      1.9,
+      -647
+     ],
+     "rad": [
+      "ch:JUN",
+      0.1,
+      424
+     ]
+    },
+    "gl_at_alpeiner-ferner-3055": {
+     "t": [
+      "tirol:48601f7e-7e54-c452-fe27-934b1bef1c4d",
+      2.5,
+      27
+     ],
+     "wind": [
+      "tirol:48601f7e-7e54-c452-fe27-934b1bef1c4d",
+      2.5,
+      27
+     ],
+     "gust": [
+      "tirol:48601f7e-7e54-c452-fe27-934b1bef1c4d",
+      2.5,
+      27
+     ],
+     "snow": [
+      "tirol:ceaee63b-8f00-9082-05c2-8e658bc1669a",
+      3,
+      -545
+     ],
+     "rad": [
+      "tirol:ceaee63b-8f00-9082-05c2-8e658bc1669a",
+      3,
+      -545
+     ],
+     "dsnow": [
+      "tirol:ceaee63b-8f00-9082-05c2-8e658bc1669a",
+      3,
+      -545
+     ]
+    }
+   },
+   "report": {
+    "all": {
+     "glaciers": 2094,
+     "withStation": 845,
+     "q": {
+      "t": 830,
+      "wind": 804,
+      "gust": 804,
+      "snow": 469,
+      "precip": 104,
+      "rad": 202,
+      "dsnow": 102
+     }
+    },
+    "byCountry": {
+     "AT": {
+      "glaciers": 799,
+      "withStation": 309,
+      "q": {
+       "t": 308,
+       "wind": 289,
+       "gust": 289,
+       "snow": 134,
+       "precip": 54,
+       "rad": 111,
+       "dsnow": 102
+      }
+     },
+     "CH": {
+      "glaciers": 1291,
+      "withStation": 534,
+      "q": {
+       "t": 520,
+       "wind": 513,
+       "gust": 513,
+       "snow": 335,
+       "precip": 50,
+       "rad": 89,
+       "dsnow": 0
+      }
+     },
+     "DE": {
+      "glaciers": 4,
+      "withStation": 2,
+      "q": {
+       "t": 2,
+       "wind": 2,
+       "gust": 2,
+       "snow": 0,
+       "precip": 0,
+       "rad": 2,
+       "dsnow": 0
+      }
+     }
+    },
+    "byRegion": {
+     "at-venedigergruppe": {
+      "glaciers": 88,
+      "withStation": 21,
+      "q": {
+       "t": 21,
+       "wind": 19,
+       "gust": 19,
+       "snow": 5,
+       "precip": 0,
+       "rad": 5,
+       "dsnow": 5
+      }
+     },
+     "at-stubaier-alpen": {
+      "glaciers": 108,
+      "withStation": 80,
+      "q": {
+       "t": 80,
+       "wind": 79,
+       "gust": 79,
+       "snow": 31,
+       "precip": 3,
+       "rad": 15,
+       "dsnow": 31
+      }
+     },
+     "at-oetztaler-alpen": {
+      "glaciers": 185,
+      "withStation": 98,
+      "q": {
+       "t": 97,
+       "wind": 82,
+       "gust": 82,
+       "snow": 50,
+       "precip": 32,
+       "rad": 42,
+       "dsnow": 39
+      }
+     },
+     "at-zillertaler-alpen": {
+      "glaciers": 126,
+      "withStation": 9,
+      "q": {
+       "t": 9,
+       "wind": 9,
+       "gust": 9,
+       "snow": 3,
+       "precip": 0,
+       "rad": 3,
+       "dsnow": 3
+      }
+     },
+     "at-granatspitzgruppe": {
+      "glaciers": 23,
+      "withStation": 10,
+      "q": {
+       "t": 10,
+       "wind": 9,
+       "gust": 9,
+       "snow": 9,
+       "precip": 5,
+       "rad": 10,
+       "dsnow": 9
+      }
+     },
+     "at-glocknergruppe": {
+      "glaciers": 74,
+      "withStation": 15,
+      "q": {
+       "t": 15,
+       "wind": 15,
+       "gust": 15,
+       "snow": 0,
+       "precip": 6,
+       "rad": 6,
+       "dsnow": 0
+      }
+     },
+     "at-silvrettagruppe": {
+      "glaciers": 40,
+      "withStation": 24,
+      "q": {
+       "t": 24,
+       "wind": 24,
+       "gust": 24,
+       "snow": 2,
+       "precip": 0,
+       "rad": 2,
+       "dsnow": 2
+      }
+     },
+     "at-raetikon": {
+      "glaciers": 2,
+      "withStation": 0,
+      "q": {
+       "t": 0,
+       "wind": 0,
+       "gust": 0,
+       "snow": 0,
+       "precip": 0,
+       "rad": 0,
+       "dsnow": 0
+      }
+     },
+     "at-defreggergruppe": {
+      "glaciers": 6,
+      "withStation": 0,
+      "q": {
+       "t": 0,
+       "wind": 0,
+       "gust": 0,
+       "snow": 0,
+       "precip": 0,
+       "rad": 0,
+       "dsnow": 0
+      }
+     },
+     "at-dachstein": {
+      "glaciers": 8,
+      "withStation": 8,
+      "q": {
+       "t": 8,
+       "wind": 8,
+       "gust": 8,
+       "snow": 8,
+       "precip": 8,
+       "rad": 8,
+       "dsnow": 0
+      }
+     },
+     "at-karnische-alpen": {
+      "glaciers": 1,
+      "withStation": 0,
+      "q": {
+       "t": 0,
+       "wind": 0,
+       "gust": 0,
+       "snow": 0,
+       "precip": 0,
+       "rad": 0,
+       "dsnow": 0
+      }
+     },
+     "at-lechtaler-alpen": {
+      "glaciers": 11,
+      "withStation": 6,
+      "q": {
+       "t": 6,
+       "wind": 6,
+       "gust": 6,
+       "snow": 2,
+       "precip": 0,
+       "rad": 2,
+       "dsnow": 2
+      }
+     },
+     "at-verwallgruppe": {
+      "glaciers": 27,
+      "withStation": 22,
+      "q": {
+       "t": 22,
+       "wind": 22,
+       "gust": 22,
+       "snow": 10,
+       "precip": 0,
+       "rad": 6,
+       "dsnow": 10
+      }
+     },
+     "at-ankogel-hochalmspitzgruppe": {
+      "glaciers": 43,
+      "withStation": 0,
+      "q": {
+       "t": 0,
+       "wind": 0,
+       "gust": 0,
+       "snow": 0,
+       "precip": 0,
+       "rad": 0,
+       "dsnow": 0
+      }
+     },
+     "at-rieserfernergruppe": {
+      "glaciers": 5,
+      "withStation": 1,
+      "q": {
+       "t": 1,
+       "wind": 1,
+       "gust": 1,
+       "snow": 1,
+       "precip": 0,
+       "rad": 0,
+       "dsnow": 0
+      }
+     },
+     "at-schobergruppe": {
+      "glaciers": 16,
+      "withStation": 0,
+      "q": {
+       "t": 0,
+       "wind": 0,
+       "gust": 0,
+       "snow": 0,
+       "precip": 0,
+       "rad": 0,
+       "dsnow": 0
+      }
+     },
+     "at-goldberggruppe": {
+      "glaciers": 30,
+      "withStation": 11,
+      "q": {
+       "t": 11,
+       "wind": 11,
+       "gust": 11,
+       "snow": 11,
+       "precip": 0,
+       "rad": 11,
+       "dsnow": 0
+      }
+     },
+     "at-samnaungruppe": {
+      "glaciers": 3,
+      "withStation": 3,
+      "q": {
+       "t": 3,
+       "wind": 3,
+       "gust": 3,
+       "snow": 2,
+       "precip": 0,
+       "rad": 1,
+       "dsnow": 1
+      }
+     },
+     "at-allgaeuer-alpen": {
+      "glaciers": 1,
+      "withStation": 1,
+      "q": {
+       "t": 1,
+       "wind": 1,
+       "gust": 1,
+       "snow": 0,
+       "precip": 0,
+       "rad": 0,
+       "dsnow": 0
+      }
+     },
+     "at-hochkoenig": {
+      "glaciers": 2,
+      "withStation": 0,
+      "q": {
+       "t": 0,
+       "wind": 0,
+       "gust": 0,
+       "snow": 0,
+       "precip": 0,
+       "rad": 0,
+       "dsnow": 0
+      }
+     },
+     "ch-mitte-west": {
+      "glaciers": 494,
+      "withStation": 184,
+      "q": {
+       "t": 184,
+       "wind": 184,
+       "gust": 184,
+       "snow": 130,
+       "precip": 7,
+       "rad": 35,
+       "dsnow": 0
+      }
+     },
+     "ch-mitte-ost": {
+      "glaciers": 256,
+      "withStation": 92,
+      "q": {
+       "t": 92,
+       "wind": 85,
+       "gust": 85,
+       "snow": 51,
+       "precip": 3,
+       "rad": 30,
+       "dsnow": 0
+      }
+     },
+     "ch-ost": {
+      "glaciers": 272,
+      "withStation": 120,
+      "q": {
+       "t": 120,
+       "wind": 120,
+       "gust": 120,
+       "snow": 64,
+       "precip": 1,
+       "rad": 3,
+       "dsnow": 0
+      }
+     },
+     "ch-west": {
+      "glaciers": 190,
+      "withStation": 109,
+      "q": {
+       "t": 95,
+       "wind": 95,
+       "gust": 95,
+       "snow": 76,
+       "precip": 22,
+       "rad": 5,
+       "dsnow": 0
+      }
+     },
+     "ch-sued": {
+      "glaciers": 79,
+      "withStation": 29,
+      "q": {
+       "t": 29,
+       "wind": 29,
+       "gust": 29,
+       "snow": 14,
+       "precip": 17,
+       "rad": 16,
+       "dsnow": 0
+      }
+     },
+     "de": {
+      "glaciers": 4,
+      "withStation": 2,
+      "q": {
+       "t": 2,
+       "wind": 2,
+       "gust": 2,
+       "snow": 0,
+       "precip": 0,
+       "rad": 2,
+       "dsnow": 0
+      }
+     }
+    },
+    "byNet": {
+     "tirol": 980,
+     "bz": 89,
+     "obs": 627,
+     "imis": 1619
+    }
+   }
+  }
+ },
+ "hour": {
+  "schema": 1,
+  "kind": "glacier/stations-hour",
+  "hour": "2026112209",
+  "builtAt": "2026-11-22T09:16:28.124Z",
+  "sources": [
+   {
+    "id": "tirol",
+    "label": "Wetterstationsdaten Tirol (Lawinenwarndienst Tirol, Hydrographischer Dienst Tirol)",
+    "licence": "CC BY 4.0",
+    "note": "Datenquelle: Land Tirol - data.tirol.gv.at",
+    "fetchedAt": "2026-11-22T09:16:28.124Z",
+    "via": "ogd",
+    "stations": 221
+   },
+   {
+    "id": "bz",
+    "label": "Wetterdaten der Messstationen Südtirols",
+    "licence": "CC0",
+    "note": "Autonome Provinz Bozen – Südtirol",
+    "fetchedAt": "2026-11-22T09:16:28.124Z",
+    "via": "service",
+    "stations": 97
+   },
+   {
+    "id": "imis",
+    "label": "IMIS-Messstationen (Interkantonales Mess- und Informationssystem)",
+    "licence": "CC BY 4.0",
+    "note": "WSL-Institut für Schnee- und Lawinenforschung SLF",
+    "fetchedAt": "2026-11-22T09:16:28.124Z",
+    "via": "service",
+    "stations": 207,
+    "requests": 2
+   },
+   {
+    "id": "obs",
+    "label": "Messnetze DWD, GeoSphere Austria (TAWES) und MeteoSchweiz (SwissMetNet)",
+    "licence": "CC BY 4.0",
+    "note": "DWD · GeoSphere Austria · MeteoSchweiz",
+    "fetchedAt": "2026-11-22T09:16:28.124Z",
+    "via": "obs/v1 latest 2026-11-22T09:14:10.138Z",
+    "stations": 33
+   }
+  ],
+  "rules": {
+   "maxAgeMin": 180,
+   "limits": {
+    "t": [
+     -45,
+     40
+    ],
+    "td": [
+     -60,
+     30
+    ],
+    "rh": [
+     1,
+     105
+    ],
+    "ff": [
+     0,
+     75
+    ],
+    "dd": [
+     0,
+     360
+    ],
+    "fx": [
+     0,
+     90
+    ],
+    "snow": [
+     -5,
+     1000
+    ],
+    "gr": [
+     -10,
+     1500
+    ],
+    "rr1h": [
+     0,
+     150
+    ],
+    "rr6h": [
+     0,
+     400
+    ],
+    "rr24h": [
+     0,
+     700
+    ]
+   },
+   "jumpPerH": {
+    "t": 15,
+    "td": 20,
+    "snow": 60
+   },
+   "stuckHours": 6,
+   "history": 16,
+   "hsdLimits": {
+    "h24": [
+     -100,
+     250
+    ],
+    "h48": [
+     -150,
+     350
+    ],
+    "h72": [
+     -200,
+     450
+    ]
+   }
+  },
+  "count": 347,
+  "stations": {
+   "ch:JUN": {
+    "t": "2026-11-22T09:00:00.000Z",
+    "src": "smn",
+    "v": {
+     "t": -6.8,
+     "td": -6.8,
+     "rh": 100,
+     "ff": 3.7,
+     "dd": 324,
+     "fx": 11.3,
+     "gr": 89
+    }
+   },
+   "tirol:48601f7e-7e54-c452-fe27-934b1bef1c4d": {
+    "t": "2026-11-22T09:00:00.000Z",
+    "src": "tirol",
+    "v": {
+     "t": -7.2,
+     "td": -11.2,
+     "rh": 73,
+     "ff": 4.7,
+     "dd": 191,
+     "fx": 13.53
+    }
+   },
+   "tirol:ceaee63b-8f00-9082-05c2-8e658bc1669a": {
+    "t": "2026-11-22T09:00:00.000Z",
+    "src": "tirol",
+    "v": {
+     "t": -2.1,
+     "td": -10.6,
+     "rh": 52.1,
+     "snow": 27,
+     "gr": 156.7
+    },
+    "hsd": {
+     "h24": -2.6,
+     "h48": 7.3,
+     "h72": 9.9
+    }
+   }
+  },
+  "ext": {
+   "count": 203,
+   "stations": {
+    "imis:EGH2": {
+     "t": "2026-11-22T09:00:00.000Z",
+     "src": "imis",
+     "v": {
+      "t": -3.5,
+      "rh": 100,
+      "ff": 0.53,
+      "dd": 60,
+      "fx": 1.49,
+      "snow": 63.8
+     }
+    }
+   }
+  },
+  "rejected": []
+ }
+}

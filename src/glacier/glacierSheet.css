@@ -452,8 +452,10 @@
 .gl-stn-values dd.gl-stn-none { font-size: 12px; line-height: 1.35; color: var(--gl-muted); }
 .gl-stn-values > div:has(.gl-stn-none) { border-left-color: var(--gl-line-strong); }
 .gl-stn-sources { display: flex; flex-wrap: wrap; gap: 2px 14px; }
-.gl-stn-sources a, .gl-stn-where a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
-.gl-stn-sources a:focus-visible, .gl-stn-where a:focus-visible { outline: 2px solid var(--gl-accent); outline-offset: 2px; border-radius: 4px; }
+.gl-stn-op { margin: 0; font-size: 12px; line-height: 1.4; color: var(--gl-ink); }
+.gl-stn-op > span { color: var(--gl-muted); }
+.gl-stn-sources a, .gl-stn-where a, .gl-stn-op a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.gl-stn-op a:focus-visible, .gl-stn-sources a:focus-visible, .gl-stn-where a:focus-visible { outline: 2px solid var(--gl-accent); outline-offset: 2px; border-radius: 4px; }
 /* two cards in the board's weather slot */
 .gl-hb-wx { display: flex; flex-direction: column; gap: 14px; }
 @media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
@@ -568,3 +570,22 @@
   .gl-hug-stk-plot { height: 140px; }
 }
 @media (prefers-reduced-motion: reduce) { .gl-hug-ladder button, .gl-hug-stk-col i { transition: none; } }
+
+/* Phase DK-H — level Heute of the dossier: map and station list side by side, station rows of the legend, winter size of the melt rows */
+.gl-ds-mapgrid { position: relative; }
+.gl-ds-mapgrid.has-stations { display: grid; grid-template-columns: minmax(0, 1fr) 340px; align-items: start; }
+.gl-ds-mapgrid.has-stations > .gl-sheet-map { min-width: 0; }
+.gl-sp-empty { margin: 0; padding: 10px 14px; border-top: 1px solid var(--gl-line); }
+.gl-sn { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 26px; height: 26px; box-sizing: border-box; border-radius: 50%; border: 2.5px solid var(--gl-prov-measured-dot); background: #fff; color: var(--gl-prov-measured-text); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
+.gl-sn.is-best { background: var(--gl-prov-measured-dot); color: #fff; }
+.gl-sn.is-small { width: 18px; height: 18px; border-width: 2px; font-size: 10.5px; }
+.gl-hb.is-winter .gl-hb-gauge { max-width: 190px; margin: 0 auto; }
+.gl-hb.is-winter .gl-hb-gaugeval .gl-num { font-size: 0.8em; }
+.gl-hb.is-winter .gl-hb-barscard svg { max-height: 130px; }
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
+  .gl-ds-mapgrid.has-stations { display: block; }
+  .gl-ds-maptools { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
+  .gl-ds-maptools::-webkit-scrollbar { display: none; }
+  .gl-ds-maptools > *, .gl-ds-layers > * { flex: none; }
+  .gl-ds-layers { flex-wrap: nowrap; }
+}

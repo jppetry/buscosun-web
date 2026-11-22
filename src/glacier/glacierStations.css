@@ -1,0 +1,83 @@
+/* Phase DK-H — stations in the dossier map (lazy chunk `GlacierStationsHeute.tsx`). Glacier tokens only; the phone layout lives in the
+   dossier's media query alone. Markers are MapLibre DOM markers: a 0 × 0 anchor at the station, everything placed around it. */
+
+/* --- marker on the map --- */
+.gl-sm { width: 0; height: 0; position: relative; }
+.gl-sm-pin { position: absolute; left: -15px; top: -15px; width: 30px; height: 30px; box-sizing: border-box; padding: 0; border-radius: 50%; border: 3px solid var(--gl-prov-measured-dot); background: #fff; color: var(--gl-prov-measured-text); font: inherit; font-size: 13.5px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; cursor: pointer; box-shadow: 0 0 0 2px #fff, var(--gl-shadow-s); }
+.gl-sm-pin::before { content: ''; position: absolute; inset: -9px; border-radius: 50%; }
+.gl-sm-pin.is-best { background: var(--gl-prov-measured-dot); color: #fff; }
+.gl-sm-pin[aria-pressed="true"] { box-shadow: 0 0 0 2px #fff, 0 0 0 7px color-mix(in srgb, var(--gl-prov-measured-dot) 40%, transparent), var(--gl-shadow-s); }
+.gl-sm-pin:focus-visible { outline: 2px solid var(--gl-accent); outline-offset: 5px; }
+.gl-sm-card { position: absolute; left: 0; bottom: 24px; transform: translateX(-50%); width: max-content; max-width: 230px; box-sizing: border-box; padding: 8px 11px 7px; border-radius: 10px; background: #fff; color: var(--gl-ink); box-shadow: var(--gl-shadow-m); pointer-events: none; display: flex; flex-direction: column; gap: 3px; text-align: left; }
+.gl-sm-card::after { content: ''; position: absolute; left: 50%; bottom: -6px; margin-left: -6px; border: 6px solid transparent; border-bottom: 0; border-top-color: #fff; }
+.gl-sm-card > b { font-size: 13px; font-weight: 700; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gl-sm-card > b span { font-weight: 500; color: var(--gl-muted); }
+.gl-sm-vals { display: flex; align-items: baseline; gap: 4px 12px; flex-wrap: wrap; font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.gl-sm-vals > span { display: flex; flex-direction: column; }
+.gl-sm-vals small { font-size: 10.5px; font-weight: 500; color: var(--gl-muted); }
+.gl-sm-vals .is-lead { font-size: 18px; font-weight: 700; line-height: 1.1; }
+.gl-sm-none { font-size: 12px; color: var(--gl-muted); }
+.gl-sm-dz { font-size: 11px; color: var(--gl-prov-measured-text); }
+.gl-sm-pill { display: none; position: absolute; left: 0; bottom: 20px; transform: translateX(-50%); padding: 3px 8px; border-radius: 8px; background: #fff; color: var(--gl-ink); font-size: 14px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; box-shadow: var(--gl-shadow-s); pointer-events: none; }
+.gl-sm-stem { display: none; position: absolute; left: -1px; bottom: 0; width: 2px; height: 46px; background: #fff; box-shadow: 0 0 0 1px color-mix(in srgb, var(--gl-ink) 45%, transparent); pointer-events: none; }
+.gl-sm-stem::after { content: ''; position: absolute; left: -3px; bottom: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--gl-prov-measured-dot); border: 1.5px solid #fff; box-sizing: border-box; }
+/* 3D: the marker stands on the terrain; a vertical line carries the number above its point */
+.gl-sm.is-3d .gl-sm-stem { display: block; }
+.gl-sm.is-3d .gl-sm-pin { top: -61px; }
+.gl-sm.is-3d .gl-sm-card { bottom: 70px; }
+.gl-sm.is-3d .gl-sm-pill { bottom: 66px; }
+.gl-sm-km { padding: 2px 8px; border-radius: 12px; background: #fff; color: var(--gl-prov-measured-text); font-size: 12px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; box-shadow: var(--gl-shadow-s); pointer-events: none; }
+
+/* --- list beside the map --- */
+.gl-sp { display: flex; flex-direction: column; gap: 10px; min-width: 0; max-height: 460px; overflow-y: auto; box-sizing: border-box; padding: 12px 14px 14px; border-left: 1px solid var(--gl-line); background: var(--gl-panel); }
+.gl-sp-head { margin: 0; font-size: 15px; font-weight: 700; color: var(--gl-ink); }
+.gl-sp-head span { display: block; font-size: 12px; font-weight: 500; color: var(--gl-muted); }
+.gl-sp-note { margin: 0; font-size: 12.5px; line-height: 1.4; color: var(--gl-ink); }
+.gl-sl { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.gl-sl-item { border: 1px solid var(--gl-line); border-radius: 12px; background: #fff; display: flex; flex-direction: column; min-width: 0; }
+.gl-sl-item.is-sel { border-color: var(--gl-prov-measured-dot); box-shadow: 0 0 0 2px var(--gl-prov-measured-bg); }
+.gl-sl-head { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; box-sizing: border-box; padding: 9px 12px 6px; border: 0; border-radius: 12px; background: transparent; font: inherit; color: var(--gl-ink); text-align: left; cursor: pointer; }
+.gl-sl-head:focus-visible { outline: 2px solid var(--gl-accent); outline-offset: -2px; }
+.gl-sl-name { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.gl-sl-name b { font-size: 15px; font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; }
+.gl-sl-name small { font-size: 12px; color: var(--gl-muted); font-variant-numeric: tabular-nums; }
+.gl-sl-row { display: none; flex-direction: column; align-items: flex-end; flex: none; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.gl-sl-row small { font-size: 11.5px; font-weight: 500; color: var(--gl-muted); }
+.gl-sl-body { display: flex; flex-direction: column; gap: 7px; padding: 0 12px 11px; min-width: 0; }
+.gl-sl-body .gl-stn-values { margin: 0; }
+.gl-sl-grip, .gl-sl-close { display: none; }
+.gl-sl-meters { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11.5px; color: var(--gl-muted); }
+.gl-sl-meter { display: inline-flex; align-items: center; gap: 5px; }
+.gl-sl-bars { display: inline-flex; gap: 3px; }
+.gl-sl-bars i { display: block; width: 14px; height: 6px; border-radius: 3px; background: var(--gl-line); }
+.gl-sl-bars i.is-on { background: var(--gl-prov-measured-dot); }
+.gl-sl-strip { margin: 0; padding: 9px 11px 6px; border-radius: 10px; background: var(--gl-bg); }
+.gl-sl-strip figcaption { font-size: 12px; font-weight: 600; color: var(--gl-muted); margin-bottom: 2px; }
+.gl-sl-strip svg { display: block; width: 100%; height: auto; }
+.gl-sl-strip-rail { stroke: var(--gl-line-strong); stroke-width: 2; }
+.gl-sl-strip-ice { fill: var(--gl-tint); stroke: var(--gl-accent); stroke-width: 1; }
+.gl-sl-strip-mid { stroke: var(--gl-accent-dark); stroke-width: 2; }
+.gl-sl-strip-t { font-size: 10.5px; fill: var(--gl-muted); }
+.gl-sl-strip-dot circle { fill: #fff; stroke: var(--gl-prov-measured-dot); stroke-width: 2.5; }
+.gl-sl-strip-dot text { font-size: 10px; font-weight: 700; fill: var(--gl-prov-measured-text); }
+.gl-sl-strip-dot.is-best circle { fill: var(--gl-prov-measured-dot); stroke: #fff; stroke-width: 1.5; }
+.gl-sl-strip-dot.is-best text { fill: #fff; }
+.gl-sp .gl-fine { margin: 0; }
+
+/* --- phone: number and one value on the map, the chosen station as a sheet below it, the others as rows --- */
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
+  .gl-sm-card { display: none; }
+  .gl-sm-pill { display: block; }
+  .gl-sm-pin { left: -16px; top: -16px; width: 32px; height: 32px; }
+  .gl-sm.is-3d .gl-sm-pin { top: -62px; }
+  .gl-sp { max-height: none; overflow: visible; border-left: 0; border-top: 1px solid var(--gl-line); padding: 12px 12px 14px; }
+  .gl-sp-head span { display: none; }
+  .gl-sl-head { min-height: 52px; padding: 8px 12px; }
+  .gl-sl-row { display: flex; }
+  .gl-sl-body { display: none; }
+  .gl-sl-item.is-sel { order: -1; border-radius: 18px 18px 12px 12px; box-shadow: var(--gl-shadow-m); }
+  .gl-sl-item.is-sel .gl-sl-row { display: none; }
+  .gl-sl-item.is-sel .gl-sl-body { display: flex; }
+  .gl-sl-item.is-sel .gl-sl-grip { display: block; align-self: center; width: 40px; height: 4px; border-radius: 2px; background: var(--gl-line-strong); margin-top: 8px; }
+  .gl-sl-item.is-sel .gl-sl-close { display: block; min-height: 44px; border: 1px solid var(--gl-line-strong); border-radius: 12px; background: #fff; font: inherit; font-size: 14px; font-weight: 600; color: var(--gl-ink); cursor: pointer; }
+}

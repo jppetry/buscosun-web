@@ -17,8 +17,11 @@ import GlacierSheetMap, { type SheetBasemap, type SheetSnow } from './GlacierShe
 import { TabHeute, TabSaison, TabLangzeit, TabTour, TabQuellen } from './GlacierSheetTabs';
 import GlacierHeuteBoard from './GlacierHeuteBoard';
 import GlacierWeatherCard from './GlacierWeatherCard';
-import GlacierStationCard from './GlacierStationCard';
-import { glacierStnSourceRows } from './glacierStationContract';
+import GlacierStationCard, { useStationView } from './GlacierStationCard';
+import { glacierStnSourceRows, STN_MAP_DZ, STN_MAP_KM } from './glacierStationContract';
+import { HEUTE_FRAME_PADDING, heuteFrame, isHeuteWinter } from './glacierStationMap';
+import { bboxOf } from './glacierGeo';
+import type maplibregl from 'maplibre-gl';
 import { glacierWeatherFrom } from './glacierFlag';
 import { fmt0, fmt2, fmtKm2, fmtRefYear, displayName, fmtSigned } from './glacierView';
 import {
@@ -27,6 +30,8 @@ import {
 import type { GlacierSatIndex } from './glacierClient';
 
 const GlacierSatImagery = lazy(() => import('./GlacierSatImagery'));
+/** Phase DK-H: stations in the dossier map (markers, lines, list, sheet) — loaded only on level Heute of the dossier. */
+const GlacierStationsHeute = lazy(() => import('./GlacierStationsHeute'));
 const TAB_LABEL: Record<GlacierTab, string> = { heute: 'Heute', saison: 'Saison', langzeit: 'Langzeit', tour: 'Tour', quellen: 'Quellen' };
 /** The three levels of the dossier and the sections each one holds; the URL `tab` of a section names its level. */
 const LEVELS: ReadonlyArray<{ tab: GlacierTab; title: string; sub: string; tabs: readonly GlacierTab[] }> = [
@@ -81,6 +86,11 @@ export default function GlacierBrief({ g, build, elevBuild = null, hugBuild = nu
   const [view3dFailed, setView3dFailed] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [basemap, setBasemap] = useState<SheetBasemap>('satellit');
+  // Phase DK-H (dossier only, no switch): the stations next to the glacier as a map layer, on by default; the selection is shared by list and markers
+  const stn = useStationView(g, layout === 'dossier' ? stationPointer : null, byId, nowMs, bases);
+  const [showStations, setShowStations] = useState(true);
+  const [selStation, setSelStation] = useState<string | null>(null);
+  const [mapInst, setMapInst] = useState<maplibregl.Map | null>(null);
 
   useEffect(() => {
     const ac = new AbortController();
@@ -165,8 +175,22 @@ export default function GlacierBrief({ g, build, elevBuild = null, hugBuild = nu
   // Phase GW (on, `?glw=0` = the sheet as before): the weather at the glacier, one card for the tab "Heute" and the Heute board
   const modelCard = glacierWeatherFrom() ? <GlacierWeatherCard g={g} pointer={weatherPointer} byId={byId} nowMs={nowMs} bases={bases} /> : null;
   // Phase GO (no switch): the nearest stations' latest measurements, right below the model values; renders nothing without a station in range
-  const stationCard = stationPointer ? <GlacierStationCard g={g} pointer={stationPointer} byId={byId} nowMs={nowMs} bases={bases} /> : null;
+  // Phase DK-H: in the dossier the station card's content moves into the list beside the map (and the sheet on the phone)
+  const stationCard = stationPointer && layout !== 'dossier' ? <GlacierStationCard g={g} pointer={stationPointer} byId={byId} nowMs={nowMs} bases={bases} /> : null;
   const weatherCard = modelCard || stationCard ? <>{modelCard}{stationCard}</> : null;
+  const stnView = layout === 'dossier' && stn.state === 'ready' ? stn.view : null;
+  const onHeute = layout === 'dossier' && LEVELS[levelOf(state.tab)].tab === 'heute';
+  const frame = useMemo(() => {
+    if (!stnView || !showStations || !onHeute) return null;
+    const b = heuteFrame(mapGeometry ? bboxOf(mapGeometry) : null, stnView.stations);
+    return b ? { bounds: b, padding: { ...(isMobile ? HEUTE_FRAME_PADDING.mobile : HEUTE_FRAME_PADDING.desktop) } } : null;
+  }, [stnView, showStations, onHeute, mapGeometry, isMobile]);
+  /** One neutral sentence when the dossier has no station to show (no layer content, framing as before). */
+  const stnEmpty = layout !== 'dossier' || stn.state === 'ready' ? null
+    : stn.state === 'loading' ? 'Stationen werden geladen …'
+    : stn.state === 'error' ? 'Die Zuordnung der Messstationen ist nicht ladbar.'
+    : !stationPointer ? 'Der Datenspeicher nennt noch keine Stationsmessungen.'
+    : `Keine Messstation in der Nähe: bis ${STN_MAP_KM} km vom Rand und höchstens ${STN_MAP_DZ} m über oder unter der Höhenspanne des Gletschers steht keine.`;
   /** `noMap`: the dossier shows the map only on the level Heute — the before/after card of Langzeit needs it and is left out then. */
   const tabBody = (t: GlacierTab, d: SheetData, noMap = false) => (
     t === 'heute' ? <TabHeute g={g} melt={mv} meltWhy={meltWhy} season={season} nowMs={nowMs} neighbourName={neighbourName} weather={weatherCard} />
@@ -248,7 +272,8 @@ export default function GlacierBrief({ g, build, elevBuild = null, hugBuild = nu
   const mapEl = (
     <section className="gl-map gl-sheet-map" aria-label="Karte des Gletschers">
       <GlacierSheetMap g={g} geometry={mapGeometry} earlier={earlier} showEarlier={showEarlier} snow={snow} showSnow={showSnow} dem={data?.dem ?? null}
-        view={view} basemap={basemap} compare={compare} onCompare={setCompare} onSnowShare={setSnowShare} onView3dFailed={() => setView3dFailed(true)} gated={layout === 'dossier'} />
+        view={view} basemap={basemap} compare={compare} onCompare={setCompare} onSnowShare={setSnowShare} onView3dFailed={() => setView3dFailed(true)} gated={layout === 'dossier'}
+        frame={frame} onMap={layout === 'dossier' ? setMapInst : undefined} />
       {layout !== 'dossier' && (
         <div className="gl-legend gl-sheet-legend" aria-label="Legende">
           <div className="gl-legend-head"><b>Legende</b></div>
@@ -278,6 +303,7 @@ export default function GlacierBrief({ g, build, elevBuild = null, hugBuild = nu
         {basemapSeg('gl-seg2')}
         {viewSeg('gl-seg2')}
         <div className="gl-ds-layers" role="group" aria-label="Ebenen der Karte">
+          <button type="button" className="gl-ds-lay" aria-pressed={!!stnView && showStations} disabled={!stnView} onClick={() => setShowStations((v) => !v)} title={stnView ? `Messstationen bis ${STN_MAP_KM} km vom Rand des Gletschers` : stnEmpty ?? undefined}>Stationen</button>
           <button type="button" className="gl-ds-lay" aria-pressed={showEarlier} disabled={!earlier} onClick={() => toggleLayer('o')} title={earlier ? earlier.source || 'früheres Inventar' : 'kein früherer Umriss'}>Umriss {earlier ? earlier.year : '—'}</button>
           {epochs.length > 1 && <select className="gl-input" aria-label="Jahr des früheren Umrisses" value={earlier?.year ?? ''} onChange={(e) => onState({ o: Number(e.target.value) })}>{epochs.map((e) => <option key={e.year} value={e.year}>{e.year} · {e.source}</option>)}</select>}
           <button type="button" className="gl-ds-lay" aria-pressed={showSnow} disabled={!snow || !data?.dem} onClick={() => toggleLayer('s')} title={snow && data?.dem ? `Sentinel-2, ${dateDe(snow.date)}` : g.klass !== 'A' || g.country === 'DE' ? 'nur Klasse A' : 'keine klare Szene'}>Schneegrenze</button>
@@ -325,8 +351,21 @@ export default function GlacierBrief({ g, build, elevBuild = null, hugBuild = nu
         {LEVELS[level].tab === 'heute' && (
           <div className="gl-ds-card gl-ds-mapcard">
             {mapTools}
-            {mapEl}
-            <div className="gl-ds-legend" role="group" aria-label="Legende"><b>Legende</b>{legendRows}</div>
+            <div className={`gl-ds-mapgrid${stnView ? ' has-stations' : ''}`}>
+              {mapEl}
+              {stnView ? (
+                <Suspense fallback={<p className="gl-fine gl-sp-empty" role="status">Stationen werden geladen …</p>}>
+                  <GlacierStationsHeute g={g} view={stnView} map={mapInst} geometry={mapGeometry} show={showStations} view3d={view === '3d'} nowMs={nowMs} selected={selStation} onSelect={setSelStation} />
+                </Suspense>
+              ) : null}
+            </div>
+            {stnEmpty && <p className="gl-fine gl-sp-empty" role="status">{stnEmpty}</p>}
+            <div className="gl-ds-legend" role="group" aria-label="Legende"><b>Legende</b>{legendRows}{stnView && showStations && (
+              <>
+                <div className="gl-legend-row"><span className="gl-sn is-best is-small" aria-hidden="true">1</span>Messstation, gefüllt: passt am besten</div>
+                <div className="gl-legend-row"><i className="gl-sw gl-sw-dash" aria-hidden="true" />Abstand vom Rand des Gletschers</div>
+              </>
+            )}</div>
             <a className="gl-ds-maplink" href={copernicusUrl(g.lat, g.lon, copernicusDay)} target="_blank" rel="noopener noreferrer">
               <span>Sentinel-2 in 10 m · {dateDeLong(copernicusDay)}</span><b>Copernicus Browser ↗</b>
             </a>
@@ -337,7 +376,13 @@ export default function GlacierBrief({ g, build, elevBuild = null, hugBuild = nu
             {notReady ? <>{level === 0 && <section className="gl-hb-card gl-hb-hero" aria-label="Gletscher auf einen Blick">{headBlock}</section>}{notReady}</> : (data && (
               <>
                 {data.missing.length > 0 && <p className="gl-fine gl-missing" role="note">Nicht ladbar: {data.missing.join(', ')}.</p>}
-                {level === 0 ? <GlacierHeuteBoard g={g} melt={mv} meltWhy={meltWhy} season={season} nowMs={nowMs} neighbourName={neighbourName} head={headBlock} weather={weatherCard} /> : LEVELS[level].tabs.map((t) => (
+                {level === 0 ? <GlacierHeuteBoard g={g} melt={mv} meltWhy={meltWhy} season={season} nowMs={nowMs} neighbourName={neighbourName} head={headBlock} weather={weatherCard} winter={isHeuteWinter(nowMs)}
+                  sources={(
+                    <details className="gl-ds-card gl-ds-sec gl-ds-fold" data-tab="quellen">
+                      <summary><span className="gl-ds-eyebrow">{TAB_LABEL.quellen}</span><span className="gl-ds-fold-hint">Herkunft, Stand und Lizenz jeder Zahl</span></summary>
+                      <div className="gl-ds-foldbody">{tabBody('quellen', data, true)}</div>
+                    </details>
+                  )} /> : LEVELS[level].tabs.map((t) => (
                   <Fragment key={t}>
                     {t === 'saison' && (
                       <section className="gl-ds-card gl-ds-sec" data-tab="sat10" aria-label="Sentinel-2 in 10 m">

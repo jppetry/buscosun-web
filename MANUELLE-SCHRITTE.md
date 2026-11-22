@@ -4409,3 +4409,28 @@ Modellzelle statt jeder zweiten. **Ich habe nichts davon im Browser gesehen.** K
 5. **Deine Entscheidung (V-WH-5):** Temperatur, Böen, Gewitter, Rotation, Blitzprognose und Schnee zeichnen weiter jede
    zweite Zelle. Wenn du mit „etc.“ auch diese meinst: je Familie derselbe Weg, eigene Phase.
 6. **Budget:** totalJs 2 102,1 gegen 2 101,4 (+0,7 KB); Grenze von Hand 2 102 → 2 103.
+
+## 114. Gletscher: Stationen in der Dossier-Karte, Ebene Heute (Phase DK-H, `audit/gletscher-dossier-heute.md`), 2026-11-22
+
+Dein Auftrag nach der Vorlage „Variante B · Heute mit Karte“, ohne Schalter für alle. Gebaut, **lokal committet, nicht
+gepusht**. **Ich habe es nicht im Browser gesehen** (deine Vorgabe: du prüfst das Aussehen selbst). Nichts am Daten-Repo,
+keine neue Quelle: die Seite liest dieselben zwei Stationsdateien wie bisher.
+
+1. **Pushen:** `git push origin main`.
+2. **Ansehen am Desktop:** Lageseite, Dossier eines Gletschers mit Station, Ebene Heute. Gute Beispiele: Großer
+   Aletschgletscher (Jungfraujoch 0,1 km, Flesch 1,9 km), Alpeiner Ferner (zwei Tiroler Stationen), dazu einer ohne Station
+   (Blaueis: ein Satz unter der Karte, Karte wie bisher). Worauf achten:
+   - Die Karte zeigt Umriss UND alle Stationen; die weißen Wertekarten über den Markern dürfen nicht abgeschnitten sein.
+   - Gestrichelte Linie vom Rand des Eises zur Station mit der Zahl in km; der gefüllte Kreis = die Station mit den meisten Strichen.
+   - Knopf „Stationen“ links neben „Umriss ‹Jahr›“: aus ⇒ Marker weg, Karte rahmt wieder nur den Gletscher.
+   - Rechts die Liste: Klick auf einen Eintrag hebt den Marker hervor und umgekehrt.
+   - 3D: Marker stehen auf dem Gelände mit einem senkrechten Strich.
+   - Am Flesch: Zeile „Betreiber: WSL-Institut … SLF“ als Link, ohne „. .“ (Punkt 7).
+   - Darunter in dieser Reihenfolge: Wetter am Gletscher, Schmelze und Frost (jetzt im Winter kleiner), Tour, Quellen (eingeklappt).
+3. **Ansehen am Telefon:** Karte mit Nummer und einem Wert je Station; Antippen öffnet unter der Karte das Blatt mit allen
+   Werten und Strichen, die anderen Stationen als Zeilen; die Ebenen-Chips oben lassen sich waagrecht wischen.
+4. **Deine Entscheidungen:** E-DKH-3 „beste Station“ = größte Summe der Striche, bei Gleichstand die nähere; E-DKH-4 der
+   Knopf „Stationen“ steht nicht in der Adresse; E-DKH-5 „Winter“ = November bis April. V-DKH-7: die Vorlage zeigt „Die
+   nächsten 7 Tage“ als Bild — gebaut ist die bestehende Tagestabelle, weil der Inhalt bleiben sollte.
+5. **Zurück:** Commit zurücknehmen (kein Schalter, wie beauftragt).
+6. **Budget:** totalJs 2 108 gegen 2 102,1 (+5,9 KB, davon 3,5 KB im neuen Lazy-Chunk); Grenze von Hand 2 103 → 2 109.

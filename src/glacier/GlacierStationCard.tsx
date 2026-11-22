@@ -34,6 +34,18 @@ function Ladder({ z, elev }: { z: readonly [number, number, number]; elev: numbe
   );
 }
 
+/**
+ * Phase DK-H: the operator on a line of its own — "Betreiber: ‹name›", the name a link where the source asks for one (SLF). No
+ * punctuation is glued around the link any more (before, the sentence's full stop, the link and a second full stop could read ". .").
+ */
+export function StnOperator({ s }: { s: Pick<StnViewStation, 'operator' | 'operatorUrl'> }) {
+  return (
+    <p className="gl-stn-op">
+      <span>Betreiber:</span> {s.operatorUrl ? <a href={s.operatorUrl} target="_blank" rel="noopener noreferrer">{s.operator}</a> : s.operator}
+    </p>
+  );
+}
+
 function Station({ s, z, nowMs, from }: { s: StnViewStation; z: readonly [number, number, number]; nowMs: number; from: StnMapFrom }) {
   const where = whereText(s.km, from);
   return (
@@ -44,10 +56,8 @@ function Station({ s, z, nowMs, from }: { s: StnViewStation; z: readonly [number
           <b>{s.name}<span>{fmt0(s.elev)} m</span></b>
           {s.ms != null ? <time dateTime={new Date(s.ms).toISOString()}>{ageText(nowMs - s.ms)}</time> : null}
         </div>
-        <p className="gl-stn-where">
-          {where[0].toUpperCase()}{where.slice(1)}, {dzText(s.dz)}.{' '}
-          {s.operatorUrl ? <a href={s.operatorUrl} target="_blank" rel="noopener noreferrer">{s.operator}</a> : s.operator}.
-        </p>
+        <p className="gl-stn-where">{where[0].toUpperCase()}{where.slice(1)}, {dzText(s.dz)}.</p>
+        <StnOperator s={s} />
         <dl className="gl-stn-values">
           {s.values.map((v) => (
             <div key={v.q}>
@@ -63,9 +73,14 @@ function Station({ s, z, nowMs, from }: { s: StnViewStation; z: readonly [number
   );
 }
 
-export default function GlacierStationCard({ g, pointer, byId, nowMs, bases }: {
-  g: GlacierCatalogEntry; pointer: GlacierStnPointer | null; byId: ReadonlyMap<string, GlacierCatalogEntry>; nowMs: number; bases: GlacierBases;
-}) {
+/** What the station loader knows for one glacier: still loading, no station in the mapping, mapping not loadable, or the view. */
+export type StationViewState = { state: 'loading' } | { state: 'none' } | { state: 'error' } | { state: 'ready'; view: StnView };
+
+/**
+ * The one way the page loads the station measurements of a glacier (the card of the sheet and the dossier map, phase DK-H): the
+ * mapping, then the slot — the slot only for a glacier that has a station.
+ */
+export function useStationView(g: GlacierCatalogEntry, pointer: GlacierStnPointer | null, byId: ReadonlyMap<string, GlacierCatalogEntry>, nowMs: number, bases: GlacierBases): StationViewState {
   const catalogIds = useMemo(() => new Set(byId.keys()), [byId]);
   // `undefined` = still loading, `null` = not loadable
   const [map, setMap] = useState<StnMapDoc | null | undefined>(undefined);
@@ -89,7 +104,17 @@ export default function GlacierStationCard({ g, pointer, byId, nowMs, bases }: {
   }, [hourKey, mapped, bases]);
 
   const view = useMemo(() => (map && mapped && hour !== undefined ? stationView(map, hour, g.id, nowMs) : null), [map, mapped, hour, g.id, nowMs]);
-  return view ? <GlacierStationBlock view={view} z={g.z} nowMs={nowMs} /> : null;
+  return useMemo((): StationViewState => (
+    !mapFile ? { state: 'none' } : map === undefined ? { state: 'loading' } : map === null ? { state: 'error' } : !mapped ? { state: 'none' }
+      : hour === undefined ? { state: 'loading' } : view ? { state: 'ready', view } : { state: 'none' }
+  ), [mapFile, map, mapped, hour, view]);
+}
+
+export default function GlacierStationCard({ g, pointer, byId, nowMs, bases }: {
+  g: GlacierCatalogEntry; pointer: GlacierStnPointer | null; byId: ReadonlyMap<string, GlacierCatalogEntry>; nowMs: number; bases: GlacierBases;
+}) {
+  const st = useStationView(g, pointer, byId, nowMs, bases);
+  return st.state === 'ready' ? <GlacierStationBlock view={st.view} z={g.z} nowMs={nowMs} /> : null;
 }
 
 /** The card itself, from a ready view (no loading inside — the verifier renders it as it is). */
@@ -101,21 +126,35 @@ export function GlacierStationBlock({ view, z, nowMs }: { view: StnView; z: read
       <ul className="gl-stn-list">
         {view.stations.map((s) => <Station key={s.id} s={s} z={z} nowMs={nowMs} from={view.from} />)}
       </ul>
-      <p className="gl-fine">
-        Links: die Höhenspanne des Gletschers als Balken, der Strich ist seine mittlere Höhe, der Punkt die Station. Die Werte sind Rohdaten
-        der Betreiber. Die Seite lässt weg, was außerhalb benannter Grenzen liegt, springt, stillsteht oder älter als drei Stunden ist;
-        Schneehöhe und Strahlung unter null stehen als 0. Eine Messung ersetzt keinen Modellwert.
-        {view.from === 'outline' ? ' Der Abstand zählt vom Umriss des Gletschers bis zur Station.' : ''}
-        {view.stations.some((s) => s.net === 'imis') ? ' Die Werte des SLF sind Mittel über 30 Minuten, die Böe ist die stärkste Messung dieser 30 Minuten.' : ''}
-        {view.stations.some((s) => s.values.some((v) => v.q === 'dsnow')) ? ' Änderung der Schneehöhe: Schneehöhe jetzt minus Schneehöhe vor 24, 48 oder 72 Stunden, wie der Betreiber sie liefert — sie kann negativ sein.' : ''}
-      </p>
-      <p className="gl-fine gl-stn-sources">
-        {view.sources.map((s) => (
-          <span key={s.id}>
-            <a href={s.url} target="_blank" rel="noopener noreferrer">{s.note}</a> (<a href={s.licenceUrl} target="_blank" rel="noopener noreferrer">{s.licence}</a>)
-          </span>
-        ))}
-      </p>
+      <StnFinePrint view={view} lead="Links: die Höhenspanne des Gletschers als Balken, der Strich ist seine mittlere Höhe, der Punkt die Station." />
+      <StnSources view={view} />
     </section>
+  );
+}
+
+/** The fine print under the stations (card of the sheet and the dossier list, phase DK-H): `lead` explains the picture next to it. */
+export function StnFinePrint({ view, lead }: { view: StnView; lead: string }) {
+  return (
+    <p className="gl-fine">
+      {lead} Die Werte sind Rohdaten
+      der Betreiber. Die Seite lässt weg, was außerhalb benannter Grenzen liegt, springt, stillsteht oder älter als drei Stunden ist;
+      Schneehöhe und Strahlung unter null stehen als 0. Eine Messung ersetzt keinen Modellwert.
+      {view.from === 'outline' ? ' Der Abstand zählt vom Umriss des Gletschers bis zur Station.' : ''}
+      {view.stations.some((s) => s.net === 'imis') ? ' Die Werte des SLF sind Mittel über 30 Minuten, die Böe ist die stärkste Messung dieser 30 Minuten.' : ''}
+      {view.stations.some((s) => s.values.some((v) => v.q === 'dsnow')) ? ' Änderung der Schneehöhe: Schneehöhe jetzt minus Schneehöhe vor 24, 48 oder 72 Stunden, wie der Betreiber sie liefert — sie kann negativ sein.' : ''}
+    </p>
+  );
+}
+
+/** One source line per network shown (Land Tirol, Südtirol, SLF, DWD / GeoSphere / MeteoSchweiz) with its licence. */
+export function StnSources({ view }: { view: StnView }) {
+  return (
+    <p className="gl-fine gl-stn-sources">
+      {view.sources.map((s) => (
+        <span key={s.id}>
+          <a href={s.url} target="_blank" rel="noopener noreferrer">{s.note}</a> (<a href={s.licenceUrl} target="_blank" rel="noopener noreferrer">{s.licence}</a>)
+        </span>
+      ))}
+    </p>
   );
 }
