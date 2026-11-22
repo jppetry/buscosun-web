@@ -4475,3 +4475,27 @@ Nichts am Daten-Repo: die Seite liest die schon veröffentlichten Dateien `snow/
    Liste neben der Karte bleibt; V-GV-1 der Balken der Lage zeigt keine cm an den Stützwerten (die Klimatologie lädt die Seite nicht).
 5. **Zurück:** Commit zurücknehmen (kein Schalter, wie beauftragt).
 6. **Budget:** totalJs 2 117,2 gegen 2 108 (+9,2 KB, davon 7,6 KB im neuen Lazy-Chunk); Grenze von Hand 2 109 → 2 118.
+
+## 116. Gletscher: Schneemodell, Paket GM-2 — drei Höhen im Producer, eigene Schneefallgrenze (Phase GM, `audit/gletscher-schneemodell.md` §3b), 2026-11-22
+
+Gebaut, **lokal committet, nicht gepusht, Schalter ein** (E-GM-6, Jan 22.11. „einschalten und committen“). Der Schalter wirkt
+mit dem Push von `main`, weil der Runner den Producer von dort holt. Nichts am Daten- oder Archiv-Repo, nichts an der Seite,
+buscosun Fusion nur gelesen.
+
+1. **Push von `buscosun-web`** (dein Gate). Der Commit trägt GM-1 (`snowcore.mjs`, `verify:glacier-snowcore`) und GM-2. Ab dem
+   ersten Schmelzlauf danach fragt der Lauf buscosun Fusion je Gletscher mit eigenem Antrieb zusätzlich in Höhe der Zunge und der
+   Oberkante (957 Gletscher, 1 914 Abrufe mehr). An der Seite ändern sich nur die Temperatur an Zunge und Oberkante (im Mittel
+   0,2 K, in rund 1 % der Stunden mehr als 2 K) und der Schneeanteil dort. Die Schneefallgrenze der Karte bleibt; die eigene Grenze
+   steht nur in den Daten (`slo`, `slk`), die Anzeige liest sie erst mit GM-7.
+2. **Den ersten Lauf nach dem Push ansehen:** Statuszeile `weather.levels` — `rows` um 957, `fallback` 0, `seconds` (lokal rund
+   105; auf dem Runner ungemessen); im Tagesdokument `rules.levels`; an einer Zeile `slo` und `slk`. Dauert der Job auf dem
+   Runner deutlich länger als zwei Minuten mehr oder läuft er in die Zeitgrenze des Workflows: Rückfall, Punkt 3.
+3. **Zurück**, ohne Code: im Workflow `glacier-melt` die Umgebungsvariable `GLACIER_WEATHER_HEIGHTS: median` setzen (oder
+   `--heights=median`); mit Code: `WEATHER_HEIGHTS_DEFAULT = 'median'` in `scripts/glacier/lib/weathercore.mjs`. Der Lauf schreibt
+   dann Byte für Byte die Dateien wie vor GM-2. Ein alter Leser stört sich an den neuen Feldern nicht (geprüft mit der
+   eingefrorenen Kopie des Vertrags vor Phase GS).
+4. **Nicht im Commit:** `audit/qualitaetspruefung-seewetter-gletscher-2026-11-22.md` (der Ausgangspunkt dieser Phase, aus einer
+   anderen Sitzung) liegt weiter unversioniert im Arbeitsbaum.
+5. **Weiter offen aus dieser Phase:** Q8–Q10 (Quellen, nicht freigegeben); V-GM-9 (die Gipfelstation trägt die Temperatur an der
+   Zunge, eine Stunde gemessen, kein klarer Schaden); V-GM-10 (der Regelvergleich `phase.json` zählt Läufe mit einer und mit
+   drei Antworten zusammen — vor einem Wechsel auf `psnow` nur Läufe mit `heights: three` lesen).

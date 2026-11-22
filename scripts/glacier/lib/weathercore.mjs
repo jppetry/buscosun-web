@@ -20,6 +20,7 @@ import {
   GLACIER_WEATHER_DAYS, GLACIER_WEATHER_HOURS, GLACIER_WEATHER_MIN_SHARE, GLACIER_WEATHER_DIR_MIN_HOURS, GLACIER_WEATHER_SNOWLINE_MIN,
   GLACIER_WEATHER_OMIT_NEIGHBOUR, GLACIER_WEATHER_NOTE, GLACIER_WEATHER_SNOWLINE_HOURS, GLACIER_WEATHER_PHASE_RULES, GLACIER_WEATHER_SPREAD_K,
   GLACIER_WEATHER_SPREAD_RHO, GLACIER_WEATHER_PHASE_KEEP_DAYS, GLACIER_WEATHER_PHASE_LIMIT, GLACIER_WEATHER_PHASE_MIN_DAYS, GLACIER_WEATHER_RUN_RE,
+  GLACIER_WEATHER_HEIGHT_MODES, GLACIER_WEATHER_LINE_REACH_M, GLACIER_WEATHER_LINE_DAY_MIN,
 } from '../../../src/glacier/glacierWeatherContract.ts';
 
 const H = 3_600_000;
@@ -38,6 +39,15 @@ export const WEATHER_PHASE_DEFAULT = 'temperature';
 export function weatherPhaseOf(value) {
   if (value == null || value === '') return WEATHER_PHASE_DEFAULT;
   if (!GLACIER_WEATHER_PHASE_RULES.includes(value)) throw new Error(`unbekannte Phasenregel „${value}" (erlaubt: ${GLACIER_WEATHER_PHASE_RULES.join(', ')})`);
+  return value;
+}
+
+/** Phase GM — where tongue and top get their values from unless the switch says otherwise (`--heights=…` of `melt.mjs`, or `GLACIER_WEATHER_HEIGHTS`). */
+export const WEATHER_HEIGHTS_DEFAULT = 'three';
+/** The mode the switch names; an unknown word is an error with a reason (the run then writes no weather), never a silent default. */
+export function weatherHeightsOf(value) {
+  if (value == null || value === '') return WEATHER_HEIGHTS_DEFAULT;
+  if (!GLACIER_WEATHER_HEIGHT_MODES.includes(value)) throw new Error(`unbekannte Höhenregel „${value}" (erlaubt: ${GLACIER_WEATHER_HEIGHT_MODES.join(', ')})`);
   return value;
 }
 
@@ -131,14 +141,96 @@ export function phaseShares({ rule, tz, sg, rh, ps, p }) {
   return { share, c, fallback };
 }
 
+// --- Phase GM: three answers of buscosun Fusion (tongue, median, top) -------------------------------------------------------------------
+
+/** Lapse (K/m) used OUTSIDE the three elevations only: the gradient of the nearest two answers, kept between these limits; the standard one where they are closer than `LINE_LAPSE_MIN_SPAN_M` (all `set`). */
+export const LINE_LAPSE_LIMITS = Object.freeze([-0.009, -0.003]);
+export const LINE_LAPSE_STANDARD = -0.0065;
+export const LINE_LAPSE_MIN_SPAN_M = 100;
+const LINE_STEPS = 12;
+/** The order rule is applied to every difference; an hour is COUNTED as changed from this difference of the share on (`set`: below it lies the rounding of `pSnow`, measured in audit/gletscher-schneemodell/gm2-order.json), as wet from 0.1 mm/h on. */
+export const LEVEL_ORDER_COUNT_MIN = 0.02;
+
+/**
+ * Solid share (0…1) per hour at the three elevations, each from its OWN answer.
+ *   temperature  `solidFraction` of the temperature of the answer at the elevation.
+ *   psnow        the `pSnow` of the answer at the elevation (after `fillPhase`); an hour in which one of the three has none takes the
+ *                temperature rule at all three and is counted in `fallback`.
+ * Never more below than above: the share at the median elevation is at most the one at the top, the one at the tongue at most the one at
+ * the median elevation (snow that melted in a warm layer above does not come back; the old contract rejects a document that says otherwise).
+ * `clipped` counts the hours this rule changed a share by more than `LEVEL_ORDER_COUNT_MIN`, `clippedWet` those of them with at least 0.1 mm/h.
+ * `c[lv]` = share − rule function at the elevation: the offset with which the rule function reproduces the share (scenarios, snowfall line);
+ * `usePs[h]` = 1 where the hour ran on `pSnow`.
+ */
+export function levelShares({ rule, tz, sg, rh, ps, p }) {
+  const hours = tz[1].length;
+  const share = tz.map(() => new Float64Array(hours)), c = tz.map(() => new Float64Array(hours)), usePs = new Uint8Array(hours);
+  const psf = rule === 'psnow' ? [0, 1, 2].map((lv) => (ps?.[lv] ? fillPhase(ps[lv]) : new Float64Array(hours).fill(NaN))) : null;
+  let fallback = 0, clipped = 0, clippedWet = 0;
+  for (let h = 0; h < hours; h++) {
+    const on = !!psf && psf.every((a) => fin(a[h]));
+    if (psf && !on) fallback++;
+    usePs[h] = on ? 1 : 0;
+    for (let lv = 0; lv < 3; lv++) share[lv][h] = on ? clamp01(psf[lv][h]) : solidFraction(tz[lv][h]);
+    const b0 = share[0][h], b1 = share[1][h];
+    share[1][h] = Math.min(share[1][h], share[2][h]); share[0][h] = Math.min(share[0][h], share[1][h]);
+    if (b0 - share[0][h] > LEVEL_ORDER_COUNT_MIN || b1 - share[1][h] > LEVEL_ORDER_COUNT_MIN) { clipped++; if (p && p[h] >= 0.1) clippedWet++; }
+    for (let lv = 0; lv < 3; lv++) c[lv][h] = share[lv][h] - (on ? phaseProbability(tz[lv][h], sg?.[lv]?.[h] ?? 0, rh?.[lv]?.[h]) : solidFraction(tz[lv][h]));
+  }
+  return { share, c, usePs, fallback, clipped, clippedWet };
+}
+
+/** Solid share at elevation `zq` in hour `h`: the rule function on the temperature between the answers (linear; outside them the limited lapse, everything else held), plus the offset of the nearest answers. */
+function shareAtElevation(zq, h, { z, tz, sg, rh, c, usePs }) {
+  let T, s, r, off;
+  if (zq < z[0] || zq > z[2]) {
+    const e = zq < z[0] ? 0 : 2, span = z[1] - z[e];
+    const g = Math.abs(span) < LINE_LAPSE_MIN_SPAN_M ? LINE_LAPSE_STANDARD : Math.min(LINE_LAPSE_LIMITS[1], Math.max(LINE_LAPSE_LIMITS[0], (tz[1][h] - tz[e][h]) / span));
+    T = tz[e][h] + g * (zq - z[e]); s = sg?.[e]?.[h] ?? 0; r = rh?.[e]?.[h]; off = c[e][h];
+  } else {
+    const a = zq <= z[1] ? 0 : 1, b = a + 1, span = z[b] - z[a], w = span > 0 ? (zq - z[a]) / span : 0;
+    const mix = (x) => (x ? (1 - w) * x[a][h] + w * x[b][h] : NaN);
+    T = mix(tz); s = sg ? mix(sg) : 0; r = rh ? mix(rh) : NaN; off = mix(c);
+  }
+  return clamp01((usePs[h] ? phaseProbability(T, fin(s) ? s : 0, r) : solidFraction(T)) + off);
+}
+
+/**
+ * The own snowfall line of hour `h`: the elevation at which the solid share of the run's rule is one half. `{ v, k }` — `v` metres in steps of 10
+ * or `null`, `k` the kind (`GLACIER_WEATHER_LINE_KINDS`): inside the glacier's range, below the tongue or above the top within `reach` metres, or
+ * beyond the reach (`v` is `null`: the three answers say on which side the line lies, not where).
+ */
+export function lineOfHour(h, ctx, reach = GLACIER_WEATHER_LINE_REACH_M) {
+  const { z, share } = ctx;
+  if (![0, 1, 2].every((lv) => fin(share[lv][h]) && fin(ctx.tz[lv][h]))) return { v: null, k: '0' };
+  const f = (zq) => shareAtElevation(zq, h, ctx) - 0.5;
+  let lo, hi, k;
+  if (share[0][h] >= 0.5) { if (f(z[0] - reach) >= 0) return { v: null, k: '3' }; lo = z[0] - reach; hi = z[0]; k = '2'; }
+  else if (share[2][h] < 0.5) { if (f(z[2] + reach) < 0) return { v: null, k: '5' }; lo = z[2]; hi = z[2] + reach; k = '4'; }
+  else { if (share[1][h] >= 0.5) { lo = z[0]; hi = z[1]; } else { lo = z[1]; hi = z[2]; } k = '1'; }
+  for (let i = 0; i < LINE_STEPS; i++) { const m = (lo + hi) / 2; if (f(m) >= 0) hi = m; else lo = m; }
+  return { v: Math.round((lo + hi) / 20) * 10, k };
+}
+
+/** The line of a day from its hourly lines: the MEDIAN hour in the order below the reach < a value < above the reach; `{ v: null, k: '0' }` below `GLACIER_WEATHER_LINE_DAY_MIN` hours with a kind. */
+export function lineOfDay(lines) {
+  const known = lines.filter((x) => x && x.k !== '0');
+  if (known.length < GLACIER_WEATHER_LINE_DAY_MIN) return { v: null, k: '0' };
+  const key = (x) => (x.k === '3' ? -Infinity : x.k === '5' ? Infinity : x.v);
+  const m = known.slice().sort((a, b) => key(a) - key(b))[Math.floor((known.length - 1) / 2)];
+  return { v: m.v, k: m.k };
+}
+
 /**
  * Phase GS — spread of the daily sums: K scenarios, each ONE path of hourly precipitation and ONE path of the temperature error, both with
  * an hourly correlation `rho` (`set`) and independent of each other (`set`). Precipitation of an hour = the quantile of the answer's
  * distribution at the scenario's level; an hour without a distribution (between two model steps late in the run) takes the linear mix of
  * the neighbours' quantiles, as the answer itself does there. New snow = that precipitation × the share of the scenario's temperature.
  * Returns `{ pq, snq }` — [p10, p90] per day (mm, 0.1) of the scenario SUMS.
+ * Phase GM: with `lv` (`{ sg, rh, c, usePs }` of `levelShares`) every elevation uses the sigma, humidity and offset of its own answer, and a
+ * scenario never has more snow below than above.
  */
-export function sumSpreads({ p, pDist, tz, sg, rh, rule, c, seed = 1, k = GLACIER_WEATHER_SPREAD_K, rho = GLACIER_WEATHER_SPREAD_RHO, days = GLACIER_WEATHER_DAYS }) {
+export function sumSpreads({ p, pDist, tz, sg, rh, rule, c, lv = null, seed = 1, k = GLACIER_WEATHER_SPREAD_K, rho = GLACIER_WEATHER_SPREAD_RHO, days = GLACIER_WEATHER_DAYS }) {
   const hours = days * 24;
   const prev = new Int32Array(hours).fill(-1), next = new Int32Array(hours).fill(-1);
   for (let h = 0, last = -1; h < hours; h++) { if (pDist?.[h]) last = h; prev[h] = last; }
@@ -150,10 +242,12 @@ export function sumSpreads({ p, pDist, tz, sg, rh, rule, c, seed = 1, k = GLACIE
     const wgt = (h - a) / (b - a);
     return (1 - wgt) * quantileOf(pDist[a], u) + wgt * quantileOf(pDist[b], u);
   };
-  const shareAt = (lv, h, zT) => {
-    const T = tz[lv][h] + (sg?.[h] ?? 0) * zT;
-    return rule === 'psnow' && fin(c?.[h]) ? clamp01(snowProbabilityFromWetBulb(wetBulbC(T, rhPhaseOf(rh?.[h]))) + c[h]) : solidFraction(T);
-  };
+  const shareAt = lv
+    ? (l, h, zT) => { const T = tz[l][h] + (lv.sg?.[l]?.[h] ?? 0) * zT; return clamp01((lv.usePs[h] ? snowProbabilityFromWetBulb(wetBulbC(T, rhPhaseOf(lv.rh?.[l]?.[h]))) : solidFraction(T)) + lv.c[l][h]); }
+    : (l, h, zT) => {
+      const T = tz[l][h] + (sg?.[h] ?? 0) * zT;
+      return rule === 'psnow' && fin(c?.[h]) ? clamp01(snowProbabilityFromWetBulb(wetBulbC(T, rhPhaseOf(rh?.[h]))) + c[h]) : solidFraction(T);
+    };
   const sumP = Array.from({ length: days }, () => new Float64Array(k));
   const sumS = [0, 1, 2].map(() => Array.from({ length: days }, () => new Float64Array(k)));
   const r = rng(((seed ^ 0x5bd1e995) >>> 0) || 1), a = Math.sqrt(1 - rho * rho);
@@ -166,7 +260,8 @@ export function sumSpreads({ p, pDist, tz, sg, rh, rule, c, seed = 1, k = GLACIE
       if (!(v > 0)) continue;
       const d = (h / 24) | 0;
       sumP[d][s] += v;
-      for (let lv = 0; lv < 3; lv++) sumS[lv][d][s] += v * shareAt(lv, h, zT);
+      if (lv) { const s2 = shareAt(2, h, zT), s1 = Math.min(shareAt(1, h, zT), s2), s0 = Math.min(shareAt(0, h, zT), s1); sumS[2][d][s] += v * s2; sumS[1][d][s] += v * s1; sumS[0][d][s] += v * s0; continue; }
+      for (let l = 0; l < 3; l++) sumS[l][d][s] += v * shareAt(l, h, zT);
     }
   }
   const q = (x) => { const srt = Float64Array.from(x).sort(); return [r1(quantile(srt, 0.1)), r1(quantile(srt, 0.9))]; };
@@ -181,8 +276,11 @@ export function sumSpreads({ p, pDist, tz, sg, rh, rule, c, seed = 1, k = GLACIE
  *   p, n  precipitation (mm/h) and cloud fraction (0…1) of the forcing; `wx` = `weatherSeriesOf` of the same answer
  *   sg    sigma of the temperature at the median elevation (K, hourly); `phase` = the phase rule of the run; `seed` = seed of the scenarios
  * Returns `{ row, hourly, cmp }` or `{ skip: reason }`; `cmp` = the summed new snow per elevation under both phase rules (own forcing only).
+ * Phase GM: `levels` = `{ sg, rh, ps }`, each [tongue, median, top] hourly series of the three answers (`tz` are then their temperatures):
+ * the shares are `levelShares`, next to `sl` (the line of the answer, unchanged) stands the own snowfall line `slo` with its kind `slk`, and `stat` counts the clipped hours. Without `levels` the
+ * row is the one of before (one answer, lapse).
  */
-export function weatherOfGlacier({ id, z, tz, from = 'own', p, n, wx, sg = null, phase = WEATHER_PHASE_DEFAULT, seed = 1, days = GLACIER_WEATHER_DAYS, hoursOut = GLACIER_WEATHER_HOURS }) {
+export function weatherOfGlacier({ id, z, tz, from = 'own', p, n, wx, sg = null, phase = WEATHER_PHASE_DEFAULT, seed = 1, days = GLACIER_WEATHER_DAYS, hoursOut = GLACIER_WEATHER_HOURS, levels = null }) {
   const hours = days * 24;
   if (!(z.every(fin) && z[0] <= z[1] + 25 && z[1] <= z[2] + 25)) return { skip: 'elevations' };
   for (const t of tz) { if (t.length < hours) return { skip: 'temperature-gaps' }; for (let h = 0; h < hours; h++) if (!fin(t[h])) return { skip: 'temperature-gaps' }; }
@@ -212,7 +310,11 @@ export function weatherOfGlacier({ id, z, tz, from = 'own', p, n, wx, sg = null,
   }
   // phase GS: the solid share under both rules (the run writes one, the comparison needs both)
   const tzH = tz.map((t) => (t.length === hours ? t : t.subarray(0, hours)));
-  const shares = { temperature: phaseShares({ rule: 'temperature', tz: tzH }), psnow: phaseShares({ rule: 'psnow', tz: tzH, sg, rh: wx.rh, ps: wx.ps, p }) };
+  const cut = (a) => (a ? a.map((x) => (x && x.length !== hours ? x.subarray(0, hours) : x)) : null);
+  const lvIn = levels ? { sg: cut(levels.sg), rh: cut(levels.rh), ps: cut(levels.ps) } : null;
+  const shares = lvIn
+    ? { temperature: levelShares({ rule: 'temperature', tz: tzH, ...lvIn, p }), psnow: levelShares({ rule: 'psnow', tz: tzH, ...lvIn, p }) }
+    : { temperature: phaseShares({ rule: 'temperature', tz: tzH }), psnow: phaseShares({ rule: 'psnow', tz: tzH, sg, rh: wx.rh, ps: wx.ps, p }) };
   if (phase === 'psnow' && hours - shares.psnow.fallback < GLACIER_WEATHER_MIN_SHARE * hours) return { skip: 'few-hours:psnow' };
   const act = shares[phase];
   const snowSum = (sh, lv, a, b) => { let s = 0; for (let h = a; h < b; h++) if (fin(p[h])) s += Math.max(0, p[h]) * sh.share[lv][h]; return s; };
@@ -231,9 +333,13 @@ export function weatherOfGlacier({ id, z, tz, from = 'own', p, n, wx, sg = null,
   row.p = dayOf((a, b) => { let s = 0; for (let h = a; h < b; h++) if (fin(p[h])) s += Math.max(0, p[h]); return r1(s); });
   row.sn = [0, 1, 2].map((lv) => dayOf((a, b) => r1(snowSum(act, lv, a, b))));
   row.c = dayOf((a, b) => Math.round(100 * Math.min(1, Math.max(0, mean(n, a, b)))));
+  // phase GM: the own snowfall line per hour (all hours of the 14 days; the chunk carries the first 120) and per day (median hour)
+  const lineCtx = lvIn ? { z, tz: tzH, sg: lvIn.sg, rh: lvIn.rh, c: act.c, usePs: act.usePs, share: act.share } : null;
+  const lines = lineCtx ? Array.from({ length: hours }, (_, h) => lineOfHour(h, lineCtx)) : null;
   row.sl = dayOf((a, b) => { let s = 0, k = 0; for (let h = a; h < b; h++) if (fin(wx.sl?.[h])) { s += wx.sl[h]; k++; } return k >= GLACIER_WEATHER_SNOWLINE_MIN ? Math.round(s / k / 10) * 10 : null; });
-  const sp = sumSpreads({ p, pDist: wx.pDist, tz: tzH, sg, rh: wx.rh, rule: phase, c: act.c, seed, days });
+  const sp = sumSpreads({ p, pDist: wx.pDist, tz: tzH, sg, rh: wx.rh, rule: phase, c: act.c, lv: lvIn ? { sg: lvIn.sg, rh: lvIn.rh, c: act.c, usePs: act.usePs } : null, seed, days });
   row.pq = sp.pq; row.snq = sp.snq; row.gq = gq;
+  if (lines) { const dl = dayOf((a, b) => lineOfDay(lines.slice(a, b))); row.slo = dl.map((x) => x.v); row.slk = dl.map((x) => x.k).join(''); }
   const first = (fn) => Array.from({ length: hoursOut }, (_, h) => fn(h));
   hourly.w = first((h) => kmh(wx.w[h]));
   hourly.g = first((h) => kmh(wx.g[h]));
@@ -244,6 +350,8 @@ export function weatherOfGlacier({ id, z, tz, from = 'own', p, n, wx, sg = null,
   // phase GS: the snowfall line of the answer per hour (never filled), new snow per hour at the three elevations
   hourly.sl = Array.from({ length: GLACIER_WEATHER_SNOWLINE_HOURS }, (_, h) => { const v = wx.sl?.[h]; return fin(v) && v >= 0 && v <= 7000 ? Math.round(v / 10) * 10 : null; });
   hourly.sn = [0, 1, 2].map((lv) => first((h) => r2(Math.max(0, p[h]) * act.share[lv][h])));
+  // phase GM: the own snowfall line next to the one of the answer, with the kind of every value
+  if (lines) { hourly.slo = lines.slice(0, GLACIER_WEATHER_SNOWLINE_HOURS).map((x) => x.v); hourly.slk = lines.slice(0, GLACIER_WEATHER_SNOWLINE_HOURS).map((x) => x.k).join(''); }
   // comparison of the two rules: summed new snow per elevation, wet glacier-days and how many of them move at the median elevation
   const cmp = { temperature: [0, 1, 2].map((lv) => snowSum(shares.temperature, lv, 0, hours)), psnow: [0, 1, 2].map((lv) => snowSum(shares.psnow, lv, 0, hours)), wet: 0, moved: 0, max: 0 };
   for (let d = 0; d < days; d++) {
@@ -252,13 +360,13 @@ export function weatherOfGlacier({ id, z, tz, from = 'own', p, n, wx, sg = null,
     const move = Math.abs(snowSum(shares.psnow, 1, 24 * d, 24 * d + 24) - snowSum(shares.temperature, 1, 24 * d, 24 * d + 24));
     cmp.wet++; if (move > 1) cmp.moved++; cmp.max = Math.max(cmp.max, move);
   }
-  return { row, hourly, cmp };
+  return lvIn ? { row, hourly, cmp, stat: { clipped: act.clipped, clippedWet: act.clippedWet, fallback: act.fallback } } : { row, hourly, cmp };
 }
 
-/** Phase GS — one entry of the comparison file from the `cmp` blocks of a run. */
-export function phaseRunOf(run, rule, cmps) {
+/** Phase GS — one entry of the comparison file from the `cmp` blocks of a run (phase GM: `heights` names a run on three answers). */
+export function phaseRunOf(run, rule, cmps, heights = WEATHER_HEIGHTS_DEFAULT) {
   const sum = (k) => [0, 1, 2].map((lv) => r1(cmps.reduce((s, c) => s + c[k][lv], 0)));
-  return { run, rule, n: cmps.length, mm: { temperature: sum('temperature'), psnow: sum('psnow') }, wet: cmps.reduce((s, c) => s + c.wet, 0), moved: cmps.reduce((s, c) => s + c.moved, 0), max: r1(cmps.reduce((m, c) => Math.max(m, c.max), 0)) };
+  return { run, rule, ...(heights !== 'median' ? { heights } : {}), n: cmps.length, mm: { temperature: sum('temperature'), psnow: sum('psnow') }, wet: cmps.reduce((s, c) => s + c.wet, 0), moved: cmps.reduce((s, c) => s + c.moved, 0), max: r1(cmps.reduce((m, c) => Math.max(m, c.max), 0)) };
 }
 /** Phase GS — the comparison file with one more run: an entry of the same run is replaced, entries older than the keep time go. */
 export function phaseDocWith(prev, entry, nowMs) {
@@ -272,5 +380,7 @@ export function phaseDocWith(prev, entry, nowMs) {
 export const weatherHead = ({ run, runAt, engine }) => ({ schema: 1, run, runAt, origin: 'model', engine, verified: { highElevation: false, note: GLACIER_WEATHER_NOTE } });
 /** The phase rule a document names (`rules.phase`): the ramp of the melt core and which rule the run used. */
 export const WEATHER_PHASE_RULE = Object.freeze({ warm: MELT.fsWarm, cold: MELT.fsCold, origin: 'set' });
+/** Phase GM — the rule a document built on three answers names (`rules.levels`). */
+export const WEATHER_LEVELS_RULE = Object.freeze({ rule: 'answers', snowline: 'half-share', reach: GLACIER_WEATHER_LINE_REACH_M, order: 'not-more-below', daily: 'median', origin: 'set' });
 /** The spread rule a document names (`rules.spread`). */
 export const WEATHER_SPREAD_RULE = Object.freeze({ sums: 'scenarios', k: GLACIER_WEATHER_SPREAD_K, rho: GLACIER_WEATHER_SPREAD_RHO, gust: 'strongest-hour', origin: 'set' });

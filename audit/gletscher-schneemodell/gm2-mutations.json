@@ -1,0 +1,94 @@
+{
+ "base": {
+  "fails": [],
+  "total": "41/41"
+ },
+ "noticed": 11,
+ "of": 11,
+ "out": [
+  {
+   "name": "Regel „unten nie mehr als oben“ entfernt",
+   "fails": [
+    "H3"
+   ],
+   "total": "40/41"
+  },
+  {
+   "name": "Reichweite nach unten ignoriert (immer eine Zahl)",
+   "fails": [
+    "H3",
+    "H5"
+   ],
+   "total": "39/41"
+  },
+  {
+   "name": "Begrenzung des Gradienten außerhalb entfernt",
+   "fails": [
+    "D6",
+    "H3"
+   ],
+   "total": "39/41"
+  },
+  {
+   "name": "Tag als mittlerer Index + 1 statt mittlere Stunde",
+   "fails": [
+    "H4"
+   ],
+   "total": "40/41"
+  },
+  {
+   "name": "Zunge und Oberkante in der Medianhöhe abgefragt",
+   "fails": [
+    "H6",
+    "H7",
+    "H8"
+   ],
+   "total": "38/41"
+  },
+  {
+   "name": "Temperatur trotz drei Antworten aus der Hochrechnung",
+   "fails": [
+    "H6",
+    "H8"
+   ],
+   "total": "39/41"
+  },
+  {
+   "name": "Schneeanteil der Zunge aus der Antwort der Medianhöhe",
+   "fails": [
+    "H6"
+   ],
+   "total": "40/41"
+  },
+  {
+   "name": "Schmelzlauf liest die Antwort der Zunge",
+   "fails": [
+    "H6",
+    "H7"
+   ],
+   "total": "39/41"
+  },
+  {
+   "name": "Eigene Grenze überschreibt die der Antwort",
+   "fails": [
+    "H2",
+    "H6"
+   ],
+   "total": "39/41"
+  },
+  {
+   "name": "Voreinstellung zurück auf eine Antwort (median)",
+   "fails": [
+    "H6"
+   ],
+   "total": "40/41"
+  },
+  {
+   "name": "Vertrag prüft die Art nicht gegen den Wert",
+   "fails": [
+    "H8"
+   ],
+   "total": "40/41"
+  }
+ ]
+}

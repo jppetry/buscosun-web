@@ -1,0 +1,132 @@
+﻿t2m: {"p10":-5.71,"p50":-3.83,"p90":-1.95,"mean":-3.83,"sigma":1.47,"dist":{"kind":"normal","mu":-3.8329704691233886,"sigma":1.4680787728542821},"sigmaKind":"learned","confidence":{"score":0.383,"spread":0.676,"agree":0.787,"lage":0.72},"members":[{"tag":"cube-t1","weight":0.243,"value":-9.34},{"tag":"mosmix","weight":0.757,"value":-14.5},{"tag":"icon_d2_ruc","weight":null,"value":null},{"tag":"climatology","weight":0,"value":null}],"calib":[]}
+snowline: {"p10":849,"p50":1090,"p90":1331,"mean":1090,"sigma":188,"dist":{"kind":"normal","mu":1089.772061463246,"sigma":188},"sigmaKind":"divergence","confidence":null,"members":[{"tag":"cube-t1","weight":null,"value":1090},{"tag":"mosmix","weight":null,"value":null},{"tag":"icon_d2_ruc","weight":null,"value":null}],"calib":["sigmaCubeOnly"]}
+pSnow: {"p10":null,"p50":0.999,"p90":null,"mean":0.999,"sigma":null,"dist":null,"sigmaKind":"derived","confidence":null,"members":[],"calib":["pSnowWetBulb"]}
+cell keys snow*: 
+samples: 
+notes: anchor: kein Messungs-Abruf konfiguriert — kein Anker | z0: WorldCover-Rauhigkeit nicht verfügbar (Spiegel ohne Kachel, Abruf gescheitert oder Abdeckung < 50 %) — ohne zweistufige Windkorrektur | learned: Tabelle Fit-Zeitraum bis 01.10.2026, gebaut 26.09.2026, 50 Tage alt (Grenze 120) | stationValue: Tabelle VERALTET — Fit-Zeitraum bis 28.09.2026, gebaut 30.09.2026, 53 Tage alt (> 45): Nachfit fällig, die Tabelle wirkt weiter (V-EX-6) | stage:fs — neueste Stufe (buscosun Fusion 14): Lernstufe mit learnedSpeed, learnedPrecip, learnedAtPoint, learnedClouds, ohne Klimatologie-Schritt, Wind-Anker 
+
+## Pasterzen Kees (AT, gl_at_pasterzen-kees) z 2075 / 3016 / 3625 m · 876 ms für 3 Abrufe · 120 Stunden mit pSnow an 3 Höhen · Grenze < 200 m in 9 h · pSnow nicht monoton in 0 h
+  +  0 h 11-21T17Z sl 1075 (sl@Zunge 1090, σ 188) P 0 | Zunge T -3.8 Td -12.7 rh 50 Tw -6.8 pS 1 | Mitte T -9.3 Td -15 rh 63 Tw -11.2 pS 1 | Oben T -12.9 Td -16.8 rh 73 Tw -14.3 pS 1 | Zelle 
+  +  6 h 11-21T23Z sl 1113 (sl@Zunge 1158, σ 182) P 0.01 | Zunge T -2.8 Td -14.8 rh 39 Tw -6.3 pS 1 | Mitte T -8.2 Td -17.3 rh 48 Tw -10.6 pS 1 | Oben T -11.4 Td -19.7 rh 50 Tw -13.3 pS 1 | Zelle 
+  + 12 h 11-22T05Z sl 1629 (sl@Zunge 1392, σ null) P 0.01 | Zunge T -0.4 Td -20.6 rh 20 Tw -4.8 pS 0.96 | Mitte T -5.5 Td -22.9 rh 24 Tw -8.4 pS 1 | Oben T -8.7 Td -24.8 rh 26 Tw -10.8 pS 1 | Zelle 
+  + 18 h 11-22T11Z sl 1278 (sl@Zunge 1349, σ 147) P 0.01 | Zunge T 1.4 Td -10.9 rh 40 Tw -2.8 pS 0.75 | Mitte T -4.3 Td -13.9 rh 47 Tw -7.3 pS 1 | Oben T -7.7 Td -15.4 rh 54 Tw -10 pS 1 | Zelle 
+  + 24 h 11-22T17Z sl 1308 (sl@Zunge 1223, σ 73) P 0.05 | Zunge T 0.1 Td -5.7 rh 65 Tw -2.6 pS 0.86 | Mitte T -5 Td -9.2 rh 72 Tw -6.9 pS 1 | Oben T -8.4 Td -10.5 rh 84 Tw -9.5 pS 1 | Zelle 
+  + 36 h 11-23T05Z sl 599 (sl@Zunge 603, σ 469) P 0.07 | Zunge T -4.4 Td -9.8 rh 66 Tw -6.7 pS 1 | Mitte T -10 Td -14.3 rh 71 Tw -11.7 pS 1 | Oben T -13.7 Td -16.1 rh 82 Tw -14.7 pS 1 | Zelle 
+  + 38 h 11-23T07Z sl 138 (sl@Zunge 173, σ null) P 0.03 | Zunge T -6.2 Td -11.5 rh 66 Tw -8.3 pS 1 | Mitte T -11.5 Td -15.9 rh 70 Tw -13 pS 1 | Oben T -14.9 Td -17.9 rh 78 Tw -16.1 pS 1 | Zelle 
+  + 41 h 11-23T10Z sl 45 (sl@Zunge 80, σ null) P 0.02 | Zunge T -6.6 Td -14.3 rh 54 Tw -9.1 pS 1 | Mitte T -12.8 Td -17.9 rh 66 Tw -14.4 pS 1 | Oben T -16.8 Td -20.2 rh 75 Tw -17.9 pS 1 | Zelle 
+  + 48 h 11-23T17Z sl null (sl@Zunge null, σ null) P 0.02 | Zunge T -9.3 Td -24.2 rh 29 Tw -11.3 pS 1 | Mitte T -15.4 Td -25.9 rh 40 Tw -16.5 pS 1 | Oben T -19.4 Td -27 rh 51 Tw -20.2 pS 1 | Zelle 
+  + 72 h 11-24T17Z sl null (sl@Zunge null, σ null) P 0.02 | Zunge T -3.9 Td -24.8 rh 18 Tw -7.2 pS 1 | Mitte T -10 Td -26.5 rh 25 Tw -11.7 pS 1 | Oben T -14 Td -27.6 rh 31 Tw -14.9 pS 1 | Zelle 
+  + 96 h 11-25T17Z sl null (sl@Zunge null, σ null) P 0.02 | Zunge T 0.1 Td -11.7 rh 41 Tw -3.8 pS 0.85 | Mitte T -6 Td -13.4 rh 56 Tw -8.5 pS 1 | Oben T -10 Td -14.5 rh 70 Tw -11.7 pS 1 | Zelle 
+  Mitglieder T an der Zunge (+0 h): [{"tag":"cube-t1","weight":0.243,"value":-9.34},{"tag":"mosmix","weight":0.757,"value":-14.5},{"tag":"icon_d2_ruc","weight":null,"value":null},{"tag":"climatology","weight":0,"value":null}]
+
+## Grosser Aletschgletscher (CH, gl_ch_grosser-aletschgletscher) z 1725 / 3147 / 4125 m · 482 ms für 3 Abrufe · 120 Stunden mit pSnow an 3 Höhen · Grenze < 200 m in 0 h · pSnow nicht monoton in 0 h
+  +  0 h 11-21T17Z sl 1435 (sl@Zunge 1392, σ 154) P 0 | Zunge T 0.3 Td -18.4 rh 23 Tw -4.2 pS 0.93 | Mitte T -7.9 Td -19.8 rh 38 Tw -10.4 pS 1 | Oben T -13 Td -22.6 rh 44 Tw -14.6 pS 1 | Zelle 
+  +  6 h 11-21T23Z sl 1732 (sl@Zunge 1630, σ 644) P 0.01 | Zunge T 3.1 Td -23.3 rh 12 Tw -2.8 pS 0.6 | Mitte T -4.6 Td -26 rh 17 Tw -7.6 pS 1 | Oben T -9.5 Td -27.7 rh 21 Tw -11.1 pS 1 | Zelle 
+  + 12 h 11-22T05Z sl 1385 (sl@Zunge 1323, σ 147) P 0.32 | Zunge T 3.1 Td -10.9 rh 35 Tw -1.7 pS 0.48 | Mitte T -6.3 Td -13.3 rh 58 Tw -8.7 pS 1 | Oben T -11 Td -15.5 rh 70 Tw -12.6 pS 1 | Zelle 
+  + 18 h 11-22T11Z sl 1822 (sl@Zunge 1844, σ 95) P 1.13 | Zunge T 4.2 Td -3.7 rh 56 Tw 0.6 pS 0.18 | Mitte T -4.8 Td -7.9 rh 79 Tw -6.4 pS 1 | Oben T -10.4 Td -9.5 rh 100 Tw -10.6 pS 1 | Zelle 
+  + 24 h 11-22T17Z sl 1429 (sl@Zunge 1444, σ 137) P 1.11 | Zunge T 1.9 Td -6.3 rh 55 Tw -1.6 pS 0.61 | Mitte T -7.2 Td -10.2 rh 79 Tw -8.7 pS 1 | Oben T -13.1 Td -12.1 rh 100 Tw -13.4 pS 1 | Zelle 
+  + 36 h 11-23T05Z sl 971 (sl@Zunge 1011, σ 316) P 1.26 | Zunge T -0.7 Td -8.4 rh 56 Tw -3.8 pS 0.94 | Mitte T -10 Td -13.4 rh 76 Tw -11.4 pS 1 | Oben T -16.1 Td -15.9 rh 100 Tw -16.3 pS 1 | Zelle 
+  + 48 h 11-23T17Z sl null (sl@Zunge null, σ null) P 0.34 | Zunge T -3.7 Td -14.5 rh 43 Tw -6.9 pS 1 | Mitte T -12.9 Td -17 rh 71 Tw -14.4 pS 1 | Oben T -19.3 Td -18.8 rh 100 Tw -19.6 pS 1 | Zelle 
+  + 72 h 11-24T17Z sl null (sl@Zunge null, σ null) P 0.01 | Zunge T 1.3 Td -19.6 rh 20 Tw -3.7 pS 0.85 | Mitte T -7.9 Td -22.1 rh 31 Tw -10.3 pS 1 | Oben T -14.3 Td -23.9 rh 44 Tw -15.7 pS 1 | Zelle 
+  + 96 h 11-25T17Z sl null (sl@Zunge null, σ null) P 0.15 | Zunge T -0.6 Td -10 rh 49 Tw -4.1 pS 0.92 | Mitte T -9.8 Td -12.5 rh 81 Tw -11.1 pS 1 | Oben T -16.2 Td -14.3 rh 100 Tw -16.4 pS 1 | Zelle 
+  Mitglieder T an der Zunge (+0 h): [{"tag":"cube-t1","weight":0.043,"value":-15.43},{"tag":"mosmix","weight":0.957,"value":-11.3},{"tag":"icon_d2_ruc","weight":null,"value":null},{"tag":"climatology","weight":0,"value":null}]
+
+## Hintereisferner mit Toteis (AT, gl_at_hintereisferner-mit-toteis) z 2425 / 3066 / 3675 m · 808 ms für 3 Abrufe · 120 Stunden mit pSnow an 3 Höhen · Grenze < 200 m in 0 h · pSnow nicht monoton in 0 h
+  +  0 h 11-21T17Z sl 1158 (sl@Zunge 1297, σ 121) P 0 | Zunge T -5.6 Td -8.3 rh 81 Tw -7 pS 1 | Mitte T -9.6 Td -9.7 rh 99 Tw -9.8 pS 1 | Oben T -12.9 Td -9.6 rh 100 Tw -13.1 pS 1 | Zelle 
+  +  6 h 11-21T23Z sl 1257 (sl@Zunge 1285, σ 429) P 0 | Zunge T -5.4 Td -10.2 rh 69 Tw -7.4 pS 1 | Mitte T -9 Td -11.3 rh 83 Tw -10.2 pS 1 | Oben T -12.3 Td -12.4 rh 99 Tw -12.6 pS 1 | Zelle 
+  + 12 h 11-22T05Z sl 1334 (sl@Zunge 1308, σ 550) P 0 | Zunge T -4.5 Td -12.5 rh 54 Tw -7.3 pS 1 | Mitte T -7.7 Td -14.7 rh 57 Tw -10 pS 1 | Oben T -10.9 Td -15.8 rh 67 Tw -12.6 pS 1 | Zelle 
+  + 18 h 11-22T11Z sl 1135 (sl@Zunge 1045, σ 386) P 0.28 | Zunge T -3.9 Td -7.9 rh 74 Tw -5.8 pS 1 | Mitte T -7.2 Td -9.9 rh 81 Tw -8.5 pS 1 | Oben T -10.5 Td -11.6 rh 92 Tw -11.2 pS 1 | Zelle 
+  + 24 h 11-22T17Z sl 1379 (sl@Zunge 1218, σ 80) P 0.28 | Zunge T -3.8 Td -6.4 rh 82 Tw -5.2 pS 1 | Mitte T -7.9 Td -8.4 rh 96 Tw -8.4 pS 1 | Oben T -11.9 Td -9.6 rh 100 Tw -12.1 pS 1 | Zelle 
+  + 36 h 11-23T05Z sl 1012 (sl@Zunge 1128, σ 247) P 0.42 | Zunge T -5.5 Td -10.1 rh 70 Tw -7.5 pS 1 | Mitte T -9.9 Td -12.6 rh 81 Tw -11.2 pS 1 | Oben T -13.7 Td -13.7 rh 100 Tw -13.9 pS 1 | Zelle 
+  + 48 h 11-23T17Z sl null (sl@Zunge null, σ null) P 0.17 | Zunge T -9.2 Td -8.4 rh 100 Tw -9.4 pS 1 | Mitte T -13.3 Td -9.5 rh 100 Tw -13.6 pS 1 | Oben T -17.3 Td -10.6 rh 100 Tw -17.5 pS 1 | Zelle 
+  + 72 h 11-24T17Z sl null (sl@Zunge null, σ null) P 0.02 | Zunge T -7.5 Td -17 rh 47 Tw -10 pS 1 | Mitte T -11.6 Td -18.1 rh 59 Tw -13.4 pS 1 | Oben T -15.6 Td -19.2 rh 74 Tw -16.8 pS 1 | Zelle 
+  + 96 h 11-25T17Z sl null (sl@Zunge null, σ null) P 0.13 | Zunge T -5.5 Td -6.9 rh 90 Tw -6.3 pS 1 | Mitte T -9.6 Td -8 rh 100 Tw -9.8 pS 1 | Oben T -13.6 Td -9.1 rh 100 Tw -13.8 pS 1 | Zelle 
+  Mitglieder T an der Zunge (+0 h): [{"tag":"cube-t1","weight":0.355,"value":-6.41},{"tag":"mosmix","weight":0.645,"value":-2.9},{"tag":"icon_d2_ruc","weight":null,"value":null},{"tag":"climatology","weight":0,"value":null}]
+
+## Gepatsch Ferner (AT, gl_at_gepatsch-ferner) z 2325 / 3111 / 3475 m · 168 ms für 3 Abrufe · 70 Stunden mit pSnow an 3 Höhen · Grenze < 200 m in 0 h · pSnow nicht monoton in 0 h
+  +  0 h 11-21T17Z sl 1155 (sl@Zunge 1171, σ 186) P 0.01 | Zunge T -7.9 Td -9.8 rh 86 Tw -8.9 pS 1 | Mitte T -9.5 Td -13.3 rh 74 Tw -11.1 pS 1 | Oben T -10.4 Td -14.8 rh 70 Tw -12 pS 1 | Zelle 
+  +  6 h 11-21T23Z sl 1386 (sl@Zunge 1360, σ null) P 0 | Zunge T -9.7 Td -16.3 rh 59 Tw -11.7 pS 1 | Mitte T -7.3 Td -19.8 rh 36 Tw -9.8 pS 1 | Oben T -6.5 Td -21.2 rh 30 Tw -9.2 pS 1 | Zelle 
+  + 12 h 11-22T05Z sl 1571 (sl@Zunge 1505, σ null) P 0.01 | Zunge T -8.1 Td -17.1 rh 49 Tw -10.5 pS 1 | Mitte T -5.5 Td -21 rh 28 Tw -8.4 pS 1 | Oben T -4.4 Td -22.4 rh 23 Tw -7.6 pS 1 | Zelle 
+  + 18 h 11-22T11Z sl 1354 (sl@Zunge 1264, σ 143) P 0.36 | Zunge T -5.9 Td -6.6 rh 95 Tw -6.4 pS 1 | Mitte T -6.3 Td -10.2 rh 74 Tw -8.1 pS 1 | Oben T -6.9 Td -11.7 rh 68 Tw -8.8 pS 1 | Zelle 
+  + 24 h 11-22T17Z sl 1397 (sl@Zunge 1268, σ 17) P 0.46 | Zunge T -4 Td -5.7 rh 88 Tw -5 pS 0.99 | Mitte T -6.6 Td -9.5 rh 80 Tw -8 pS 1 | Oben T -7.9 Td -10.9 rh 79 Tw -9.3 pS 1 | Zelle 
+  + 36 h 11-23T05Z sl 987 (sl@Zunge 998, σ 317) P 0.63 | Zunge T -7.5 Td -10 rh 82 Tw -8.7 pS 1 | Mitte T -11.2 Td -13.6 rh 83 Tw -12.4 pS 1 | Oben T -13.1 Td -15.1 rh 85 Tw -14.1 pS 1 | Zelle 
+  + 48 h 11-23T17Z sl null (sl@Zunge null, σ null) P 0.33 | Zunge T -9.1 Td -13.8 rh 69 Tw -10.9 pS null | Mitte T -12.7 Td -17.5 rh 68 Tw -14.2 pS null | Oben T -14.5 Td -18.9 rh 70 Tw -15.9 pS null | Zelle 
+  + 72 h 11-24T17Z sl null (sl@Zunge null, σ null) P 0.09 | Zunge T -6.5 Td -21 rh 27 Tw -9.1 pS null | Mitte T -7.7 Td -20.9 rh 32 Tw -10.1 pS null | Oben T -8.2 Td -20.8 rh 34 Tw -10.5 pS null | Zelle 
+  + 96 h 11-25T17Z sl null (sl@Zunge null, σ null) P 0.17 | Zunge T -3.9 Td -7 rh 80 Tw -5.4 pS null | Mitte T -5.3 Td -8 rh 83 Tw -6.5 pS null | Oben T -5.8 Td -8.3 rh 86 Tw -6.9 pS null | Zelle 
+  Mitglieder T an der Zunge (+0 h): [{"tag":"cube-t1","weight":1,"value":-11.72},{"tag":"icon_d2_ruc","weight":null,"value":null},{"tag":"climatology","weight":0,"value":null}]
+
+## Vadret da Morteratsch (CH, gl_ch_vadret-da-morteratsch) z 2075 / 3191 / 3975 m · 302 ms für 3 Abrufe · 120 Stunden mit pSnow an 3 Höhen · Grenze < 200 m in 0 h · pSnow nicht monoton in 0 h
+  +  0 h 11-21T17Z sl 1283 (sl@Zunge 1347, σ 73) P 0.01 | Zunge T -2.7 Td -13.6 rh 43 Tw -6.1 pS 1 | Mitte T -9.3 Td -15.7 rh 60 Tw -11.3 pS 1 | Oben T -13.5 Td -17.1 rh 75 Tw -14.8 pS 1 | Zelle 
+  +  6 h 11-21T23Z sl 1762 (sl@Zunge 1410, σ 569) P 0.01 | Zunge T -1.2 Td -17 rh 29 Tw -5.2 pS 0.98 | Mitte T -7 Td -19.9 rh 35 Tw -9.7 pS 1 | Oben T -10.9 Td -21.2 rh 43 Tw -12.9 pS 1 | Zelle 
+  + 12 h 11-22T05Z sl 1652 (sl@Zunge 1319, σ 644) P 0.01 | Zunge T -0.5 Td -12.1 rh 42 Tw -4.3 pS 0.93 | Mitte T -6.5 Td -15 rh 51 Tw -9.1 pS 1 | Oben T -10.8 Td -16.2 rh 64 Tw -12.6 pS 1 | Zelle 
+  + 18 h 11-22T11Z sl 1459 (sl@Zunge 1389, σ 264) P 0.71 | Zunge T 0.2 Td -4.9 rh 68 Tw -2.3 pS 0.81 | Mitte T -5.4 Td -8.9 rh 77 Tw -7.1 pS 1 | Oben T -9.7 Td -10.1 rh 97 Tw -10.1 pS 1 | Zelle 
+  + 24 h 11-22T17Z sl 1384 (sl@Zunge 1385, σ 152) P 0.17 | Zunge T -0.1 Td -6.4 rh 63 Tw -3 pS 0.89 | Mitte T -6.7 Td -9.4 rh 81 Tw -8 pS 1 | Oben T -11.4 Td -11.2 rh 100 Tw -11.6 pS 1 | Zelle 
+  + 36 h 11-23T05Z sl 1132 (sl@Zunge 1198, σ 251) P 0.19 | Zunge T -3.7 Td -9.8 rh 63 Tw -6.2 pS 1 | Mitte T -10.8 Td -13.1 rh 83 Tw -12 pS 1 | Oben T -15.8 Td -15.6 rh 100 Tw -16.1 pS 1 | Zelle 
+  + 48 h 11-23T17Z sl null (sl@Zunge null, σ null) P 0.02 | Zunge T -6.1 Td -17.2 rh 41 Tw -8.9 pS 1 | Mitte T -13.4 Td -19.2 rh 62 Tw -15 pS 1 | Oben T -18.5 Td -20.6 rh 84 Tw -19.3 pS 1 | Zelle 
+  + 72 h 11-24T17Z sl null (sl@Zunge null, σ null) P 0.02 | Zunge T -2.1 Td -23.4 rh 18 Tw -6 pS 1 | Mitte T -9.4 Td -25.4 rh 26 Tw -11.3 pS 1 | Oben T -14.5 Td -26.8 rh 35 Tw -15.5 pS 1 | Zelle 
+  + 96 h 11-25T17Z sl null (sl@Zunge null, σ null) P 0.36 | Zunge T -1.3 Td -10 rh 52 Tw -4.6 pS 0.94 | Mitte T -8.6 Td -12 rh 77 Tw -10.1 pS 1 | Oben T -13.7 Td -13.4 rh 100 Tw -13.9 pS 1 | Zelle 
+  Mitglieder T an der Zunge (+0 h): [{"tag":"cube-t1","weight":0.134,"value":-7.35},{"tag":"mosmix","weight":0.866,"value":-10.4},{"tag":"icon_d2_ruc","weight":null,"value":null},{"tag":"climatology","weight":0,"value":null}]
+
+## Rhonegletscher (CH, gl_ch_rhonegletscher) z 2275 / 2964 / 3625 m · 212 ms für 3 Abrufe · 120 Stunden mit pSnow an 3 Höhen · Grenze < 200 m in 0 h · pSnow nicht monoton in 0 h
+  +  0 h 11-21T17Z sl 1342 (sl@Zunge 1364, σ 80) P 0.01 | Zunge T -4.6 Td -7 rh 83 Tw -5.9 pS 1 | Mitte T -8.3 Td -8.7 rh 97 Tw -8.7 pS 1 | Oben T -12.2 Td -9.5 rh 100 Tw -12.4 pS 1 | Zelle 
+  +  6 h 11-21T23Z sl 1648 (sl@Zunge 1577, σ 651) P 0.01 | Zunge T -3 Td -10.8 rh 55 Tw -5.9 pS 0.99 | Mitte T -6.4 Td -11.8 rh 66 Tw -8.5 pS 1 | Oben T -10.1 Td -13 rh 79 Tw -11.4 pS 1 | Zelle 
+  + 12 h 11-22T05Z sl 1495 (sl@Zunge 1427, σ 218) P 0.01 | Zunge T -3 Td -9.9 rh 59 Tw -5.8 pS 1 | Mitte T -6.8 Td -10.7 rh 73 Tw -8.5 pS 1 | Oben T -10.6 Td -11.8 rh 91 Tw -11.3 pS 1 | Zelle 
+  + 18 h 11-22T11Z sl 1597 (sl@Zunge 1533, σ 85) P 0.67 | Zunge T -2.8 Td -5.2 rh 84 Tw -4.1 pS 0.98 | Mitte T -6.3 Td -7.4 rh 92 Tw -7 pS 1 | Oben T -10.4 Td -8.6 rh 100 Tw -10.6 pS 1 | Zelle 
+  + 24 h 11-22T17Z sl 1436 (sl@Zunge 1445, σ 117) P 1.35 | Zunge T -3.3 Td -4.4 rh 93 Tw -4.1 pS 0.99 | Mitte T -7.6 Td -6.4 rh 100 Tw -7.8 pS 1 | Oben T -11.8 Td -7.3 rh 100 Tw -12.1 pS 1 | Zelle 
+  + 36 h 11-23T05Z sl 982 (sl@Zunge 1018, σ 244) P 2.2 | Zunge T -5 Td -7.3 rh 84 Tw -6.3 pS 1 | Mitte T -9.3 Td -9.8 rh 96 Tw -9.7 pS 1 | Oben T -13.5 Td -10.8 rh 100 Tw -13.7 pS 1 | Zelle 
+  + 48 h 11-23T17Z sl null (sl@Zunge null, σ null) P 0.87 | Zunge T -6.5 Td -5.1 rh 100 Tw -6.7 pS 1 | Mitte T -11 Td -6.4 rh 100 Tw -11.2 pS 1 | Oben T -15.3 Td -7.6 rh 100 Tw -15.5 pS 1 | Zelle 
+  + 72 h 11-24T17Z sl null (sl@Zunge null, σ null) P 0.02 | Zunge T -4.2 Td -14.3 rh 45 Tw -7.3 pS 1 | Mitte T -8.7 Td -15.6 rh 58 Tw -10.8 pS 1 | Oben T -13 Td -16.8 rh 73 Tw -14.4 pS 1 | Zelle 
+  + 96 h 11-25T17Z sl null (sl@Zunge null, σ null) P 0.02 | Zunge T -5.2 Td -6.3 rh 92 Tw -5.9 pS 1 | Mitte T -9.7 Td -7.6 rh 100 Tw -9.9 pS 1 | Oben T -14 Td -8.8 rh 100 Tw -14.2 pS 1 | Zelle 
+  Mitglieder T an der Zunge (+0 h): [{"tag":"cube-t1","weight":0.45,"value":-5.29},{"tag":"mosmix","weight":0.55,"value":-2.6},{"tag":"icon_d2_ruc","weight":null,"value":null},{"tag":"climatology","weight":0,"value":null}]
+
+## Hallstätter Gletscher (AT, gl_at_hallstaetter-gletscher) z 2275 / 2579 / 2825 m · 359 ms für 3 Abrufe · 120 Stunden mit pSnow an 3 Höhen · Grenze < 200 m in 12 h · pSnow nicht monoton in 0 h
+  +  0 h 11-21T17Z sl 924 (sl@Zunge 925, σ 204) P 0.16 | Zunge T -5.9 Td -9 rh 79 Tw -7.4 pS 1 | Mitte T -7.7 Td -9.8 rh 85 Tw -8.8 pS 1 | Oben T -9.1 Td -10.4 rh 90 Tw -9.9 pS 1 | Zelle 
+  +  6 h 11-21T23Z sl 987 (sl@Zunge 985, σ 69) P 0 | Zunge T -5.6 Td -9.2 rh 76 Tw -7.3 pS 1 | Mitte T -7.4 Td -10.2 rh 81 Tw -8.7 pS 1 | Oben T -8.8 Td -10.9 rh 85 Tw -9.9 pS 1 | Zelle 
+  + 12 h 11-22T05Z sl 1091 (sl@Zunge 1099, σ 312) P 0 | Zunge T -4.7 Td -14.1 rh 48 Tw -7.6 pS 1 | Mitte T -6.5 Td -15.3 rh 50 Tw -9.1 pS 1 | Oben T -7.9 Td -16.4 rh 51 Tw -10.3 pS 1 | Zelle 
+  + 18 h 11-22T11Z sl 1308 (sl@Zunge 1309, σ 283) P 0 | Zunge T -1.8 Td -16.4 rh 32 Tw -5.6 pS 0.99 | Mitte T -3.7 Td -16.9 rh 35 Tw -7 pS 1 | Oben T -5.2 Td -17.5 rh 37 Tw -8.2 pS 1 | Zelle 
+  + 24 h 11-22T17Z sl 1180 (sl@Zunge 1181, σ 41) P 0.06 | Zunge T -3.4 Td -8.8 rh 66 Tw -5.7 pS 1 | Mitte T -5.1 Td -10 rh 69 Tw -7.2 pS 1 | Oben T -6.6 Td -11 rh 71 Tw -8.5 pS 1 | Zelle 
+  + 35 h 11-23T04Z sl 51 (sl@Zunge 51, σ null) P 0.3 | Zunge T -7.4 Td -10.7 rh 77 Tw -9 pS 1 | Mitte T -9.3 Td -11.7 rh 83 Tw -10.5 pS 1 | Oben T -10.8 Td -12.4 rh 88 Tw -11.7 pS 1 | Zelle 
+  + 36 h 11-23T05Z sl 23 (sl@Zunge 23, σ null) P 0.3 | Zunge T -8.2 Td -11.1 rh 79 Tw -9.6 pS 1 | Mitte T -10 Td -12.1 rh 85 Tw -11.1 pS 1 | Oben T -11.5 Td -12.9 rh 90 Tw -12.3 pS 1 | Zelle 
+  + 38 h 11-23T07Z sl 3 (sl@Zunge 3, σ null) P 0.23 | Zunge T -9.7 Td -12.1 rh 83 Tw -10.8 pS 1 | Mitte T -11.6 Td -13.1 rh 89 Tw -12.4 pS 1 | Oben T -13.2 Td -14.2 rh 92 Tw -13.8 pS 1 | Zelle 
+  + 48 h 11-23T17Z sl null (sl@Zunge null, σ null) P 0.14 | Zunge T -13.7 Td -19.2 rh 63 Tw -15.3 pS 1 | Mitte T -15.7 Td -19.7 rh 71 Tw -17 pS 1 | Oben T -17.3 Td -20.2 rh 78 Tw -18.3 pS 1 | Zelle 
+  + 72 h 11-24T17Z sl null (sl@Zunge null, σ null) P 0.01 | Zunge T -9.2 Td -22.8 rh 32 Tw -11.3 pS 1 | Mitte T -11.2 Td -23.3 rh 36 Tw -13 pS 1 | Oben T -12.8 Td -23.8 rh 39 Tw -14.3 pS 1 | Zelle 
+  + 96 h 11-25T17Z sl null (sl@Zunge null, σ null) P 0.08 | Zunge T -3.8 Td -12.6 rh 51 Tw -6.8 pS 1 | Mitte T -5.8 Td -13.1 rh 56 Tw -8.3 pS 1 | Oben T -7.4 Td -13.6 rh 61 Tw -9.6 pS 1 | Zelle 
+  Mitglieder T an der Zunge (+0 h): [{"tag":"cube-t1","weight":0.285,"value":-3.41},{"tag":"mosmix","weight":0.715,"value":-10.9},{"tag":"icon_d2_ruc","weight":null,"value":null},{"tag":"climatology","weight":0,"value":null}]
+
+## Ochsentaler Gletscher (AT, gl_at_ochsentaler-gletscher) z 2525 / 2924 / 3125 m · 179 ms für 3 Abrufe · 120 Stunden mit pSnow an 3 Höhen · Grenze < 200 m in 0 h · pSnow nicht monoton in 0 h
+  +  0 h 11-21T17Z sl 1170 (sl@Zunge 1166, σ 99) P 0 | Zunge T -6 Td -9.4 rh 77 Tw -7.6 pS 1 | Mitte T -7.9 Td -10.6 rh 81 Tw -9.2 pS 1 | Oben T -9 Td -11 rh 86 Tw -10 pS 1 | Zelle 
+  +  6 h 11-21T23Z sl 1681 (sl@Zunge 1602, σ null) P 0.01 | Zunge T -5.4 Td -14.9 rh 47 Tw -8.2 pS 1 | Mitte T -7.6 Td -16.3 rh 50 Tw -10 pS 1 | Oben T -8.7 Td -16.8 rh 52 Tw -11 pS 1 | Zelle 
+  + 12 h 11-22T05Z sl 1466 (sl@Zunge 1514, σ 391) P 0.01 | Zunge T -3.8 Td -14.7 rh 43 Tw -7 pS 1 | Mitte T -5.4 Td -15.2 rh 46 Tw -8.3 pS 1 | Oben T -6.5 Td -15.4 rh 49 Tw -9.1 pS 1 | Zelle 
+  + 18 h 11-22T11Z sl 1501 (sl@Zunge 1527, σ 3) P 0.67 | Zunge T -3.5 Td -6.6 rh 80 Tw -5.1 pS 1 | Mitte T -5.5 Td -8.1 rh 82 Tw -6.8 pS 1 | Oben T -6.4 Td -8.6 rh 84 Tw -7.6 pS 1 | Zelle 
+  + 24 h 11-22T17Z sl 1394 (sl@Zunge 1378, σ 133) P 1.07 | Zunge T -4.1 Td -5.5 rh 90 Tw -5 pS 1 | Mitte T -6.3 Td -7 rh 95 Tw -6.8 pS 1 | Oben T -7.5 Td -7.4 rh 100 Tw -7.7 pS 1 | Zelle 
+  + 36 h 11-23T05Z sl 828 (sl@Zunge 801, σ null) P 0.74 | Zunge T -6.6 Td -9.7 rh 79 Tw -8.1 pS 1 | Mitte T -8.9 Td -11.4 rh 83 Tw -10.1 pS 1 | Oben T -10.1 Td -11.9 rh 87 Tw -11.1 pS 1 | Zelle 
+  + 48 h 11-23T17Z sl null (sl@Zunge null, σ null) P 0.02 | Zunge T -9.5 Td -13 rh 76 Tw -11 pS 1 | Mitte T -12.1 Td -13.7 rh 88 Tw -13 pS 1 | Oben T -13.4 Td -14.1 rh 95 Tw -13.9 pS 1 | Zelle 
+  + 72 h 11-24T17Z sl null (sl@Zunge null, σ null) P 0.02 | Zunge T -7 Td -22.3 rh 28 Tw -9.6 pS 1 | Mitte T -9.6 Td -23 rh 33 Tw -11.6 pS 1 | Oben T -10.9 Td -23.4 rh 35 Tw -12.7 pS 1 | Zelle 
+  + 96 h 11-25T17Z sl null (sl@Zunge null, σ null) P 0.25 | Zunge T -5.8 Td -7.8 rh 86 Tw -6.9 pS 1 | Mitte T -8.4 Td -8.5 rh 99 Tw -8.7 pS 1 | Oben T -9.7 Td -8.9 rh 100 Tw -9.9 pS 1 | Zelle 
+  Mitglieder T an der Zunge (+0 h): [{"tag":"cube-t1","weight":0.465,"value":-7.25},{"tag":"mosmix","weight":0.535,"value":-4.5},{"tag":"icon_d2_ruc","weight":null,"value":null},{"tag":"climatology","weight":0,"value":null}]
+
+## Gornergletscher (CH, gl_ch_gornergletscher) z 2275 / 3383 / 4525 m · 252 ms für 3 Abrufe · 120 Stunden mit pSnow an 3 Höhen · Grenze < 200 m in 0 h · pSnow nicht monoton in 0 h
+  +  0 h 11-21T17Z sl 1606 (sl@Zunge 1921, σ 198) P 0 | Zunge T -2.4 Td -18 rh 29 Tw -6.1 pS 1 | Mitte T -8.5 Td -21.1 rh 35 Tw -10.8 pS 1 | Oben T -14.4 Td -23 rh 48 Tw -15.8 pS 1 | Zelle 
+  +  6 h 11-21T23Z sl 1814 (sl@Zunge 2347, σ 613) P 0 | Zunge T 0.5 Td -23.5 rh 15 Tw -4.3 pS 0.91 | Mitte T -6.3 Td -27.1 rh 18 Tw -8.8 pS 1 | Oben T -12.4 Td -28.6 rh 25 Tw -13.4 pS 1 | Zelle 
+  + 12 h 11-22T05Z sl 1566 (sl@Zunge 1835, σ 536) P 0.59 | Zunge T -0.7 Td -8.3 rh 56 Tw -3.8 pS 0.93 | Mitte T -7.4 Td -11.8 rh 71 Tw -9.2 pS 1 | Oben T -13.4 Td -14.7 rh 90 Tw -14.2 pS 1 | Zelle 
+  + 18 h 11-22T11Z sl 1375 (sl@Zunge 1916, σ 771) P 0.67 | Zunge T 0.7 Td -4.2 rh 70 Tw -1.7 pS 0.75 | Mitte T -6.3 Td -9.3 rh 79 Tw -7.7 pS 1 | Oben T -12.9 Td -10.5 rh 100 Tw -13.1 pS 1 | Zelle 
+  + 24 h 11-22T17Z sl 1406 (sl@Zunge 1445, σ 223) P 0.42 | Zunge T -2 Td -7.6 rh 66 Tw -4.5 pS 0.98 | Mitte T -9 Td -12.3 rh 77 Tw -10.5 pS 1 | Oben T -15.9 Td -14.3 rh 100 Tw -16.2 pS 1 | Zelle 
+  + 36 h 11-23T05Z sl 995 (sl@Zunge 826, σ 478) P 0.24 | Zunge T -5.2 Td -10.8 rh 65 Tw -7.5 pS 1 | Mitte T -12.3 Td -16.1 rh 73 Tw -13.7 pS 1 | Oben T -19.3 Td -18.7 rh 100 Tw -19.6 pS 1 | Zelle 
+  + 48 h 11-23T17Z sl null (sl@Zunge null, σ null) P 0.01 | Zunge T -5 Td -14 rh 49 Tw -7.8 pS 1 | Mitte T -12.2 Td -16 rh 73 Tw -13.6 pS 1 | Oben T -19.6 Td -18.1 rh 100 Tw -19.9 pS 1 | Zelle 
+  + 72 h 11-24T17Z sl null (sl@Zunge null, σ null) P 0.02 | Zunge T -1.5 Td -18.2 rh 27 Tw -5.5 pS 0.99 | Mitte T -8.7 Td -20.2 rh 39 Tw -11 pS 1 | Oben T -16.1 Td -22.3 rh 59 Tw -17.4 pS 1 | Zelle 
+  + 96 h 11-25T17Z sl null (sl@Zunge null, σ null) P 0.02 | Zunge T -3.2 Td -10.5 rh 57 Tw -6 pS 1 | Mitte T -10.4 Td -12.5 rh 84 Tw -11.4 pS 1 | Oben T -17.8 Td -14.6 rh 100 Tw -18 pS 1 | Zelle 
+  Mitglieder T an der Zunge (+0 h): [{"tag":"cube-t1","weight":0.282,"value":-8.78},{"tag":"mosmix","weight":0.718,"value":-9.1},{"tag":"icon_d2_ruc","weight":null,"value":null},{"tag":"climatology","weight":0,"value":null}]
+
+## Höllentalferner (DE, gl_de_hoellentalferner) z 2225 / 2399 / 2625 m · 301 ms für 3 Abrufe · 120 Stunden mit pSnow an 3 Höhen · Grenze < 200 m in 0 h · pSnow nicht monoton in 0 h
+  +  0 h 11-21T17Z sl 1194 (sl@Zunge 1194, σ 135) P 0.25 | Zunge T -4.4 Td -7.9 rh 77 Tw -6.1 pS 1 | Mitte T -5.5 Td -8.4 rh 80 Tw -6.9 pS 1 | Oben T -6.8 Td -9 rh 85 Tw -8 pS 1 | Zelle 
+  +  6 h 11-21T23Z sl 1191 (sl@Zunge 1191, σ 149) P 0 | Zunge T -3.9 Td -12.5 rh 51 Tw -6.8 pS 1 | Mitte T -4.8 Td -13.1 rh 52 Tw -7.6 pS 1 | Oben T -6 Td -13.8 rh 54 Tw -8.6 pS 1 | Zelle 
+  + 12 h 11-22T05Z sl 1342 (sl@Zunge 1342, σ 555) P 0 | Zunge T -2.1 Td -15.8 rh 34 Tw -5.8 pS 0.99 | Mitte T -3 Td -16.7 rh 34 Tw -6.5 pS 1 | Oben T -4.3 Td -18 rh 34 Tw -7.5 pS 1 | Zelle 
+  + 18 h 11-22T11Z sl 1366 (sl@Zunge 1366, σ 216) P 0.02 | Zunge T -0.8 Td -11.6 rh 44 Tw -4.4 pS 0.95 | Mitte T -1.7 Td -12.4 rh 44 Tw -5.2 pS 0.98 | Oben T -3 Td -13.6 rh 44 Tw -6.3 pS 1 | Zelle 
+  + 24 h 11-22T17Z sl 1188 (sl@Zunge 1188, σ 134) P 0.64 | Zunge T -2.5 Td -6.1 rh 76 Tw -4.3 pS 0.99 | Mitte T -3.5 Td -6.8 rh 78 Tw -5.1 pS 1 | Oben T -4.8 Td -7.7 rh 80 Tw -6.3 pS 1 | Zelle 
+  + 36 h 11-23T05Z sl 766 (sl@Zunge 766, σ 341) P 0.48 | Zunge T -6.8 Td -9.1 rh 83 Tw -8 pS 1 | Mitte T -7.8 Td -9.8 rh 86 Tw -8.9 pS 1 | Oben T -9.3 Td -10.6 rh 90 Tw -10.1 pS 1 | Zelle 
+  + 48 h 11-23T17Z sl null (sl@Zunge null, σ null) P 0.08 | Zunge T -10.9 Td -20.3 rh 46 Tw -12.9 pS 1 | Mitte T -12 Td -20.6 rh 49 Tw -13.9 pS 1 | Oben T -13.5 Td -21 rh 53 Tw -15.1 pS 1 | Zelle 
+  + 72 h 11-24T17Z sl null (sl@Zunge null, σ null) P 0.01 | Zunge T -5.7 Td -23.8 rh 23 Tw -8.5 pS 1 | Mitte T -6.8 Td -24.1 rh 24 Tw -9.3 pS 1 | Oben T -8.3 Td -24.5 rh 26 Tw -10.5 pS 1 | Zelle 
+  + 96 h 11-25T17Z sl null (sl@Zunge null, σ null) P 0.14 | Zunge T -3.2 Td -10.8 rh 56 Tw -6 pS 1 | Mitte T -4.3 Td -11.1 rh 59 Tw -6.9 pS 1 | Oben T -5.8 Td -11.5 rh 64 Tw -8 pS 1 | Zelle 
+  Mitglieder T an der Zunge (+0 h): [{"tag":"cube-t1","weight":0.284,"value":-1.35},{"tag":"mosmix","weight":0.716,"value":-9.6},{"tag":"icon_d2_ruc","weight":null,"value":null},{"tag":"climatology","weight":0,"value":null}]
+
+Gesamt: {"hours":1150,"low":21,"nonMono":0,"nonMonoWet":0,"maxInv":0,"slBelowTongue":572,"slBelowTongueAndPs0Low":9}

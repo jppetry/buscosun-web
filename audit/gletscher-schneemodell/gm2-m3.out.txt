@@ -1,0 +1,71 @@
+{
+ "stations": 158,
+ "usable": 158,
+ "all": {
+  "A": {
+   "n": 158,
+   "bias": -0.32,
+   "mae": 1.27
+  },
+  "B": {
+   "n": 158,
+   "bias": 0.61,
+   "mae": 1.22
+  }
+ },
+ "rejectedInB": {
+  "A": null,
+  "B": null
+ },
+ "rejectedInB_dzOver300": {
+  "A": null,
+  "B": null
+ },
+ "unchanged": {
+  "A": {
+   "n": 158,
+   "bias": -0.32,
+   "mae": 1.27
+  },
+  "B": {
+   "n": 158,
+   "bias": 0.61,
+   "mae": 1.22
+  }
+ }
+}
+rows with A != B: 121 | A with station: 0 | B with station: 0
+A != B {"A":{"n":121,"bias":-0.49,"mae":1.28},"B":{"n":121,"bias":0.72,"mae":1.22}}
+A == B {"A":{"n":37,"bias":0.26,"mae":1.24},"B":{"n":37,"bias":0.26,"mae":1.24}}
+A != B, |dz| > 300 {"A":null,"B":null}
+A != B, |dz| <= 300 {"A":{"n":121,"bias":-0.49,"mae":1.28},"B":{"n":121,"bias":0.72,"mae":1.22}}
+Langtaufers Grub 1842 m gemessen -3.6 | A -1.5 (S. VALENTINO A. MUTA, 10.8 km. ⚠ Höhenkriterium NICHT geprüf, w 0.733, dz null) | B -4.1 (S. VALENTINO A. MUTA liegt 10.8 km entfernt, aber -383 m höh, w 0)
+Schleis Kloangruebes 2460 m gemessen -7.6 | A -5.1 (S. VALENTINO A. MUTA, 10.7 km. ⚠ Höhenkriterium NICHT geprüf, w 0.527, dz null) | B -5.8 (S. VALENTINO A. MUTA liegt 10.7 km entfernt, aber -1001 m hö, w 0)
+Trafoi Zaufenkofel 2475 m gemessen -4.2 | A -4.3 (STA. MARIA VAL MUEST, 9.7 km. ⚠ Höhenkriterium NICHT geprüft, w 0.645, dz null) | B -4.0 (STA. MARIA VAL MUEST liegt 9.7 km entfernt, aber -1092 m höh, w 0)
+Schnals Teufelsegg 3035 m gemessen -10.1 | A -9.3 (SCHNALSTAL, 12.0 km. ⚠ Höhenkriterium NICHT geprüft: die Gel, w 0.573, dz null) | B -8.9 (SCHNALSTAL liegt 12.0 km entfernt, aber -1035 m höher (Schwe, w 0)
+Schnals Grawand 3220 m gemessen -11.1 | A -10.5 (SCHNALSTAL, 9.1 km. ⚠ Höhenkriterium NICHT geprüft: die Gelä, w 0.665, dz null) | B -9.9 (SCHNALSTAL liegt 9.1 km entfernt, aber -1220 m höher (Schwel, w 0)
+Timmelsalm 2230 m gemessen -2.4 | A -4.2 (OBERGURGL, 10.9 km. ⚠ Höhenkriterium NICHT geprüft: die Gelä, w 0.456, dz null) | B -4.5 (OBERGURGL liegt 10.9 km entfernt, aber -289 m höher (Schwell, w 0)
+Pfelders Rauhjoch 2926 m gemessen -9 | A -7.8 (OBERGURGL, 8.5 km. ⚠ Höhenkriterium NICHT geprüft: die Gelän, w 0.689, dz null) | B -6.7 (OBERGURGL liegt 8.5 km entfernt, aber -985 m höher (Schwelle, w 0)
+Ladurns 1960 m gemessen -2.1 | A -3.6 (GOSSENSASS, 4.9 km. ⚠ Höhenkriterium NICHT geprüft: die Gelä, w 0.517, dz null) | B -2.6 (GOSSENSASS liegt 4.9 km entfernt, aber -860 m höher (Schwell, w 0)
+Jaufenkamm 2145 m gemessen -2.4 | A -4.5 (GOSSENSASS, 13.1 km. ⚠ Höhenkriterium NICHT geprüft: die Gel, w 0.649, dz null) | B -2.0 (GOSSENSASS liegt 13.1 km entfernt, aber -1045 m höher (Schwe, w 0)
+Ratschings Wasserfaller Alm 1907 m gemessen -1.5 | A -3.1 (GOSSENSASS, 13.7 km. ⚠ Höhenkriterium NICHT geprüft: die Gel, w 0.575, dz null) | B -1.6 (GOSSENSASS liegt 13.7 km entfernt, aber -807 m höher (Schwel, w 0)
+Gsies Pfinnalm 2152 m gemessen -3.4 | A -5.5 (DOBBIACO, 12.4 km. ⚠ Höhenkriterium NICHT geprüft: die Gelän, w 0.608, dz null) | B -3.5 (DOBBIACO liegt 12.4 km entfernt, aber -930 m höher (Schwelle, w 0)
+Prettau Merbalm 2006 m gemessen -2.3 | A -6.2 (AHRNTAL, 12.5 km. ⚠ Höhenkriterium NICHT geprüft: die Geländ, w 0.624, dz null) | B -3.8 (AHRNTAL liegt 12.5 km entfernt, aber -1056 m höher (Schwelle, w 0)
+Prettau Lengspitze 3105 m gemessen -11 | A -12.9 (AHRNTAL, 12.1 km. ⚠ Höhenkriterium NICHT geprüft: die Geländ, w 0.736, dz null) | B -7.6 (AHRNTAL liegt 12.1 km entfernt, aber -2155 m höher (Schwelle, w 0)
+Weissenbach Fadner Alm 2155 m gemessen -1.9 | A -6.5 (AHRNTAL, 10.8 km. ⚠ Höhenkriterium NICHT geprüft: die Geländ, w 0.587, dz null) | B -3.5 (AHRNTAL liegt 10.8 km entfernt, aber -1205 m höher (Schwelle, w 0)
+Rein i.T. Tristenboden 2450 m gemessen -5.8 | A -8.9 (AHRNTAL, 11.7 km. ⚠ Höhenkriterium NICHT geprüft: die Geländ, w 0.687, dz null) | B -5.4 (AHRNTAL liegt 11.7 km entfernt, aber -1500 m höher (Schwelle, w 0)
+Abtei Piz La Ila 2050 m gemessen -1.4 | A -2.9 (ARABBA, 7.7 km. ⚠ Höhenkriterium NICHT geprüft: die Geländeh, w 0.592, dz null) | B -2.6 (ARABBA liegt 7.7 km entfernt, aber -448 m höher (Schwelle ±1, w 0)
+Abtei Piz Pisciadù 2985 m gemessen -8.1 | A -8.3 (ARABBA, 4.9 km. ⚠ Höhenkriterium NICHT geprüft: die Geländeh, w 0.728, dz null) | B -6.0 (ARABBA liegt 4.9 km entfernt, aber -1383 m höher (Schwelle ±, w 0)
+Campill Kreuzkofeljoch 2297 m gemessen -3.5 | A -5.0 (SAN VIGILIO, 11.3 km. ⚠ Höhenkriterium NICHT geprüft: die Ge, w 0.567, dz null) | B -3.7 (SAN VIGILIO liegt 11.3 km entfernt, aber -1297 m höher (Schw, w 0)
+Plose 2472 m gemessen -5.2 | A -7.0 (BRIXEN, 5.4 km. ⚠ Höhenkriterium NICHT geprüft: die Geländeh, w 0.775, dz null) | B -3.5 (BRIXEN liegt 5.4 km entfernt, aber -1872 m höher (Schwelle ±, w 0)
+Seiser Alm Zallinger 2055 m gemessen -1.6 | A -2.8 (ARABBA, 13.9 km. ⚠ Höhenkriterium NICHT geprüft: die Gelände, w 0.478, dz null) | B -2.6 (ARABBA liegt 13.9 km entfernt, aber -453 m höher (Schwelle ±, w 0)
+Proveis Samerberg 2142 m gemessen -0.9 | A -3.2 (ST.WALBURG, 6.5 km. ⚠ Höhenkriterium NICHT geprüft: die Gelä, w 0.601, dz null) | B -1.6 (ST.WALBURG liegt 6.5 km entfernt, aber -1042 m höher (Schwel, w 0)
+Gantkofel 1860 m gemessen 0.7 | A -3.4 (BOZEN, 9.6 km. ⚠ Höhenkriterium NICHT geprüft: die Geländehö, w 0.733, dz null) | B 1.5 (BOZEN liegt 9.6 km entfernt, aber -1619 m höher (Schwelle ±1, w 0)
+Sexten Rotwandwiesen 1910 m gemessen -1.3 | A -3.0 (SILLIAN, 10.3 km. ⚠ Höhenkriterium NICHT geprüft: die Geländ, w 0.485, dz null) | B -1.5 (SILLIAN liegt 10.3 km entfernt, aber -829 m höher (Schwelle , w 0)
+Toblach Hochebenkofel 2906 m gemessen -8.5 | A -10.0 (DOBBIACO, 6.2 km. ⚠ Höhenkriterium NICHT geprüft: die Geländ, w 0.779, dz null) | B -4.3 (DOBBIACO liegt 6.2 km entfernt, aber -1684 m höher (Schwelle, w 0)
+Schaufeljoch 3160 m gemessen -10.9 | A -9.8 (OBERGURGL, 13.8 km. ⚠ Höhenkriterium NICHT geprüft: die Gelä, w 0.791, dz null) | B -9.7 (OBERGURGL liegt 13.8 km entfernt, aber -1219 m höher (Schwel, w 0)
+Lämmerbichlalm 2020 m gemessen -4 | A -3.6 (MAYRHOFEN, 7.5 km. ⚠ Höhenkriterium NICHT geprüft: die Gelän, w 0.563, dz null) | B -3.1 (MAYRHOFEN liegt 7.5 km entfernt, aber -1373 m höher (Schwell, w 0)
+Reckmoos 1880 m gemessen -2.4 | A -3.2 (ST.JOHANN/TIROL, 13.0 km. ⚠ Höhenkriterium NICHT geprüft: di, w 0.633, dz null) | B -1.3 (ST.JOHANN/TIROL liegt 13.0 km entfernt, aber -1210 m höher (, w 0)
+Raucheggen Schneestation 2217 m gemessen -3.1 | A -5.2 (SILLIAN, 7.3 km. ⚠ Höhenkriterium NICHT geprüft: die Gelände, w 0.573, dz null) | B -3.4 (SILLIAN liegt 7.3 km entfernt, aber -1136 m höher (Schwelle , w 0)
+Mosesgipfel Schneestation 2235 m gemessen -2.7 | A -3.7 (ST.JAKOB/DEFEREGGEN., 9.9 km. ⚠ Höhenkriterium NICHT geprüft, w 0.522, dz null) | B -3.8 (ST.JAKOB/DEFEREGGEN. liegt 9.9 km entfernt, aber -740 m höhe, w 0)
+Hohe Munde Windstation 2585 m gemessen -7 | A -5.1 (OSTERFELDER, 9.3 km. ⚠ Höhenkriterium NICHT geprüft: die Gel, w 0.6, dz null) | B -2.2 (OSTERFELDER liegt 9.3 km entfernt, aber -785 m höher (Schwel, w 0)

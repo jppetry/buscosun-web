@@ -4,6 +4,9 @@
  * (class C omission, engine name from the answer, skips with a reason, the melt document byte-identical with and without weather,
  * retention, chunk paths, the publisher's package guard), the daily values recomputed from the hourly rows of a REAL run
  * (`scripts/lib/fixtures/glacier/weather-extract.json`), and the view rules of the card.
+ * Block G (phase GS): the snow fields from a real answer. Block H (phase GM, GM-2): three answers per glacier (`--heights=three`) from real
+ * answers at tongue, median elevation and top (`weather-levels.json`), the own snowfall line by hand and on the real answers, the switch end
+ * to end, the fallback, the old reader, negative controls. Counter-probe of block H: `audit/gletscher-schneemodell/gm2-mutations.mjs`.
  *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-weather.mjs
  */
@@ -12,7 +15,10 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { MELT, simulate, emptyState } from './glacier/lib/meltcore.mjs';
-import { solidFraction, weatherSeriesOf, weatherOfGlacier, prevailingDir, phaseProbability, phaseShares, sumSpreads, weatherPhaseOf, phaseDocWith, WEATHER_PHASE_DEFAULT } from './glacier/lib/weathercore.mjs';
+import {
+  solidFraction, weatherSeriesOf, weatherOfGlacier, prevailingDir, phaseProbability, phaseShares, sumSpreads, weatherPhaseOf, phaseDocWith, WEATHER_PHASE_DEFAULT,
+  levelShares, lineOfHour, lineOfDay, weatherHeightsOf, WEATHER_HEIGHTS_DEFAULT, WEATHER_LEVELS_RULE, LINE_LAPSE_LIMITS, LEVEL_ORDER_COUNT_MIN,
+} from './glacier/lib/weathercore.mjs';
 import { weatherProblems as oldWeatherProblems, weatherHourlyProblems as oldWeatherHourlyProblems } from './lib/fixtures/glacier/weather-contract-before-gs.ts';
 import { tempAt, main } from './glacier/melt.mjs';
 import { checkPackage } from './glacier/glacier-publish.mjs';
@@ -22,6 +28,7 @@ import {
   glacierWeatherRunPath, glacierWeatherHourlyPath, weatherProblems, weatherHourlyProblems,
   GLACIER_WEATHER_SNOWLINE_HOURS, GLACIER_WEATHER_PHASE_PATH, GLACIER_WEATHER_PHASE_LIMIT, GLACIER_WEATHER_PHASE_MIN_DAYS, GLACIER_WEATHER_PHASE_KEEP_DAYS,
   GLACIER_WEATHER_SPREAD_K, GLACIER_WEATHER_SPREAD_RHO, phaseVerdict, weatherSnowProblems, weatherHourlySnowProblems,
+  GLACIER_WEATHER_LINE_REACH_M, GLACIER_WEATHER_LINE_DAY_MIN, weatherLevelProblems, weatherHourlyLevelProblems,
 } from '../src/glacier/glacierWeatherContract.ts';
 import { weatherView, compassOf } from '../src/glacier/glacierWeatherView.ts';
 import { glacierWeatherFrom, GLACIER_WEATHER_LIVE } from '../src/glacier/glacierFlag.ts';
@@ -513,6 +520,212 @@ const eT = await runAx('g-temp'), eP = await runAx('g-psnow', { phase: 'psnow' }
     && grown.status.lines.weather.phase.rule === 'temperature' && grown.status.lines.weather.phase.days === 8 && grown.status.lines.weather.phase.enough === true && eT.status.lines.weather.phase.days === 1 && eT.status.lines.weather.phase.enough === false
     && pkg && !pkg.error && pkg.files.includes(GLACIER_WEATHER_PHASE_PATH) && eT.status.lines.weather.files === 3,
     JSON.stringify({ eA, v6, v7, vBad, runs: grown.phase?.runs?.length, status: grown.status.lines.weather.phase, pkg: pkg?.error }));
+}
+
+// --- H: phase GM (GM-2) — three answers of buscosun Fusion per glacier, the own snowfall line ----------------------------------------
+const LX = J(join(HERE, 'lib', 'fixtures', 'glacier', 'weather-levels.json'));
+const LX_T0 = Date.parse(LX.t0), LX_RUN = LX.t0.replace(/[-:T]/g, '').slice(0, 10);
+const [gCold, gWarm] = LX.glaciers;   // a cold column (the answer's line runs to a few metres) and a tongue far below the median elevation
+/** The weather core on a glacier of the levels fixture: the three answers as `melt.mjs` hands them in with `--heights=three`. */
+const lvCore = (g, extra = {}) => {
+  const tz = g.levels.map((l) => f64(l.t));
+  const levels = { sg: g.levels.map((l) => f64(l.sg)), rh: g.levels.map((l) => f64(l.rh)), ps: g.levels.map((l) => f64(l.ps)) };
+  const m = g.median, p = f64(m.p);
+  const wx = { w: f64(m.w), g: f64(m.g), g10: f64(m.g10), g90: f64(m.g90), d: f64(m.d), t10: f64(m.t10), t90: f64(m.t90), sl: f64(m.sl), ps: levels.ps[1], rh: levels.rh[1], pDist: new Array(LX.hours).fill(null) };
+  const base = { id: g.id, z: g.z, from: 'own', p, n: f64(m.n), wx, sg: levels.sg[1], seed: 7 };
+  return { tz, levels, wx, p, base, out: weatherOfGlacier({ ...base, tz, levels, ...extra }) };
+};
+const KIND_OK = (k, s0, s2) => (k === '1' ? s0 < 0.5 && s2 >= 0.5 : k === '2' || k === '3' ? s0 >= 0.5 : k === '4' || k === '5' ? s2 < 0.5 : false);
+{
+  const coldHours = gCold.median.sl.map((v, h) => (v != null && v < 200 ? h : -1)).filter((h) => h >= 0);
+  const allCold = coldHours.every((h) => gCold.levels.every((l) => l.t[h] < -5 && l.ps[h] === 1));
+  const warmTongue = gWarm.levels[0].ps.filter((v, h) => v != null && v < 0.5 && gWarm.levels[1].ps[h] === 1).length;
+  add('H1 Echte Antworten an Zunge, Medianhöhe und Oberkante (zwei Gletscher, Fixture aus `make-weather-levels-fixture.mjs`): am kalten Gletscher fällt die Schneefallgrenze der Antwort unter 200 m, während alle drei Höhen unter −5 °C liegen und pSnow überall 1 ist (K-2 nachgestellt); am zweiten hat die Zunge in mehreren Stunden pSnow unter 0,5, die Medianhöhe 1',
+    LX.glaciers.length === 2 && LX.hours === 336 && LX.glaciers.every((g) => g.levels.length === 3 && g.levels.every((l) => l.t.length === 336)) && coldHours.length >= 5 && allCold && warmTongue >= 5 && fusionVersionOfNotes(LX.notes) != null,
+    JSON.stringify({ coldHours: coldHours.length, allCold, warmTongue }));
+}
+{
+  // temperature and share per elevation come from the elevation's own answer
+  const bad = [];
+  const r1 = (x) => Math.round(x * 10) / 10 + 0, r2 = (x) => Math.round(x * 100) / 100 + 0;
+  let lapseDiffers = 0, mixed = 0;
+  for (const g of LX.glaciers) {
+    const cT = lvCore(g, { phase: 'temperature' }), cP = lvCore(g, { phase: 'psnow' });
+    if (cT.out.skip || cP.out.skip) { bad.push(`${g.id}: übersprungen ${cT.out.skip ?? cP.out.skip}`); continue; }
+    const f = { t: cT.tz[1], zRef: g.z[1], fz: f64(g.median.fz) }, old = weatherOfGlacier({ ...cT.base, tz: g.z.map((zz) => tempAt(f, zz)) });
+    for (const lv of [0, 2]) for (let d = 0; d < 14; d++) {
+      const day = g.levels[lv].t.slice(24 * d, 24 * d + 24);
+      if (cT.out.row.tn[lv][d] !== r1(Math.min(...day)) || cT.out.row.tx[lv][d] !== r1(Math.max(...day))) bad.push(`${g.id} Ebene ${lv} Tag ${d}: nicht die Temperatur der eigenen Antwort`);
+      if (Math.abs(old.row.tn[lv][d] - cT.out.row.tn[lv][d]) > 0.5) lapseDiffers++;
+    }
+    if (JSON.stringify(old.row.tn[1]) !== JSON.stringify(cT.out.row.tn[1])) bad.push(`${g.id}: Medianhöhe geändert`);
+    const sh = levelShares({ rule: 'psnow', tz: cP.tz, ...cP.levels, p: cP.p });
+    for (let h = 0; h < GLACIER_WEATHER_HOURS; h++) {
+      const ps = g.levels.map((l) => l.ps[h]);
+      const want = [Math.min(ps[0], ps[1], ps[2]), Math.min(ps[1], ps[2]), ps[2]];
+      for (let lv = 0; lv < 3; lv++) {
+        if (Math.abs(sh.share[lv][h] - want[lv]) > 1e-12) bad.push(`${g.id} +${h} h Ebene ${lv}: Anteil ${sh.share[lv][h]} gegen pSnow ${want[lv]}`);
+        if (cP.out.hourly.sn[lv][h] !== r2(Math.max(0, cP.p[h]) * want[lv])) bad.push(`${g.id} +${h} h Ebene ${lv}: Neuschnee`);
+      }
+      if (cP.out.hourly.s[h] !== Math.round(100 * want[1])) bad.push(`${g.id} +${h} h: Schneeanteil der Medianhöhe`);
+      if (want[0] > 0.02 && want[0] < 0.98) mixed++;
+    }
+    if (JSON.stringify(old.row.sl) !== JSON.stringify(cT.out.row.sl) || JSON.stringify(old.hourly.sl) !== JSON.stringify(cT.out.hourly.sl)) bad.push(`${g.id}: Schneefallgrenze der Antwort geändert`);
+    if (old.row.slk !== undefined || old.row.slo !== undefined || old.hourly.slk !== undefined || old.hourly.slo !== undefined || old.stat !== undefined) bad.push(`${g.id}: ohne drei Antworten Felder der drei Höhen`);
+  }
+  add('H2 Drei Antworten im Kern: Minimum und Maximum an Zunge und Oberkante sind die der eigenen Antwort dieser Höhe (nicht die Hochrechnung von der Medianhöhe — Gegenprobe: gegen die Hochrechnung weichen Tage um mehr als 0,5 K ab), die Medianhöhe bleibt; unter „psnow“ ist der Schneeanteil je Höhe das pSnow der Antwort dieser Höhe, Neuschnee je Stunde = Niederschlag × dieser Anteil; die Schneefallgrenze der Antwort (`sl`) bleibt je Tag und je Stunde dieselbe; ohne drei Antworten trägt die Zeile keines der neuen Felder',
+    bad.length === 0 && lapseDiffers > 5 && mixed > 5, bad.slice(0, 4).join('; ') || JSON.stringify({ lapseDiffers, mixed }));
+}
+{
+  // the own snowfall line by hand: rule `temperature` ⇒ the line is where the temperature is 1 °C
+  const n = 336, fill = (v) => new Float64Array(n).fill(v), z = [2000, 2500, 3000];
+  const lin = (zLine, g = -0.006) => z.map((zz) => fill(1 + g * (zz - zLine)));   // T = 1 °C at zLine
+  const lineAt = (tz) => { const sh = levelShares({ rule: 'temperature', tz }); return lineOfHour(0, { z, tz, c: sh.c, usePs: sh.usePs, share: sh.share }); };
+  const got = { inside: lineAt(lin(2400)), below: lineAt(lin(1800)), far: lineAt(lin(1300)), above: lineAt(lin(3300)), high: lineAt(lin(3700)), tongue: lineAt(lin(2000)) };
+  // outside the range the gradient of the two nearest answers is kept within −9 … −3 K/km: tongue −0.2 °C, median −6.2 °C (−12 K/km) ⇒ below the tongue −9 K/km ⇒ 1 °C at 2000 − 1.2 / 0.009 = 1867 m
+  const steep = lineAt([fill(-0.2), fill(-6.2), fill(-12.2)]);
+  // an inversion below (cold tongue, mild above): the share below is cut to the one above, the hour is counted, the line lies above the top
+  const invTz = [fill(-1), fill(3), fill(3)], inv = levelShares({ rule: 'temperature', tz: invTz, p: fill(1) }), invDry = levelShares({ rule: 'temperature', tz: invTz, p: fill(0) });
+  const invLine = lineOfHour(0, { z, tz: invTz, c: inv.c, usePs: inv.usePs, share: inv.share });
+  // a difference of one hundredth is cut as well, but not counted (below the rounding of pSnow)
+  const tiny = levelShares({ rule: 'temperature', tz: [fill(1), fill(1.02), fill(1.02)], p: fill(1) });
+  const want = { inside: { v: 2400, k: '1' }, below: { v: 1800, k: '2' }, far: { v: null, k: '3' }, above: { v: 3300, k: '4' }, high: { v: null, k: '5' }, tongue: { v: 2000, k: '2' } };
+  add(`H3 Eigene Schneefallgrenze, Handrechnung (Regel „temperature“: Anteil ½ bei 1 °C; Höhen 2000 / 2500 / 3000 m, −6 K/km): 1 °C in 2400 m ⇒ 2400 m im Gletscher; in 1800 m ⇒ 1800 m unter der Zunge; in 1300 m ⇒ kein Wert, „unter der Reichweite“ (${GLACIER_WEATHER_LINE_REACH_M} m); 3300 m ⇒ über der Oberkante; 3700 m ⇒ kein Wert, „über der Reichweite“; außerhalb gilt der Gradient der zwei nächsten Antworten, begrenzt auf −9 … −3 K/km (−12 K/km ⇒ 1870 m statt 1900 m); Kaltluft unten bei milder Höhe: der Anteil unten wird auf den oben begrenzt und gezählt (als „nass“ ab 0,1 mm/h; ein Unterschied von einem Hundertstel wird begrenzt, aber nicht gezählt)`,
+    JSON.stringify(got) === JSON.stringify(want) && steep.v === 1870 && steep.k === '2' && LINE_LAPSE_LIMITS[0] === -0.009 && LINE_LAPSE_LIMITS[1] === -0.003
+    && inv.share[0][0] === 0 && inv.clipped === n && inv.clippedWet === n && invDry.clippedWet === 0 && invDry.clipped === n && invLine.k === '5' && solidFraction(-1) === 1
+    && near(tiny.share[0][0], 0.49, 1e-9) && tiny.clipped === 0 && LEVEL_ORDER_COUNT_MIN === 0.02,
+    JSON.stringify({ got, steep, inv: [inv.share[0][0], inv.clipped, inv.clippedWet, invDry.clippedWet], invLine }));
+  // the day: the median hour in the order below < value < above
+  const L = (v, k) => ({ v, k }), rep = (x, m) => Array.from({ length: m }, () => x);
+  const d1 = lineOfDay([...rep(L(null, '3'), 13), ...Array.from({ length: 11 }, (_, i) => L(2000 + 10 * i, '2'))]);
+  const d2 = lineOfDay([...Array.from({ length: 14 }, (_, i) => L(2000 + 10 * i, '1')), ...rep(L(null, '3'), 10)]);
+  const d3 = lineOfDay([...rep(L(null, '5'), 20), ...rep(L(3100, '4'), 4)]);
+  const d4 = lineOfDay([...rep(L(2100, '1'), 17), ...rep(L(null, '0'), 7)]);
+  add(`H4 Schneefallgrenze des Tages = die mittlere Stunde in der Reihenfolge „unter der Reichweite“ < Wert < „über der Reichweite“ (kein Mittel über einen abgeschnittenen Bereich): 13 von 24 Stunden unter der Reichweite ⇒ kein Wert, Art 3; 10 darunter und 14 Werte ⇒ der zweite Wert; 20 darüber ⇒ Art 5; unter ${GLACIER_WEATHER_LINE_DAY_MIN} Stunden mit Angabe ⇒ keine Aussage`,
+    d1.v === null && d1.k === '3' && d2.v === 2010 && d2.k === '1' && d3.v === null && d3.k === '5' && d4.v === null && d4.k === '0' && GLACIER_WEATHER_LINE_DAY_MIN === 18, JSON.stringify({ d1, d2, d3, d4 }));
+}
+{
+  // the line on the real answers: consistent with the shares of the same row, never a number far below the glacier
+  const bad = [];
+  const kinds = {};
+  let coldNull = 0, coldHours = 0, insideWarm = 0;
+  for (const g of LX.glaciers) for (const phase of ['temperature', 'psnow']) {
+    const c = lvCore(g, { phase }), sh = levelShares({ rule: phase, tz: c.tz, ...c.levels, p: c.p }), { row, hourly } = c.out;
+    if (hourly.slk.length !== GLACIER_WEATHER_SNOWLINE_HOURS || hourly.slo.length !== GLACIER_WEATHER_SNOWLINE_HOURS || row.slk.length !== 14 || row.slo.length !== 14) { bad.push(`${g.id} ${phase}: Länge`); continue; }
+    for (let h = 0; h < GLACIER_WEATHER_SNOWLINE_HOURS; h++) {
+      const k = hourly.slk[h], v = hourly.slo[h];
+      kinds[k] = (kinds[k] ?? 0) + 1;
+      if (!KIND_OK(k, sh.share[0][h], sh.share[2][h])) bad.push(`${g.id} ${phase} +${h} h: Art ${k} bei Anteil Zunge ${sh.share[0][h]} / oben ${sh.share[2][h]}`);
+      if (v != null && (v < g.z[0] - GLACIER_WEATHER_LINE_REACH_M - 5 || v > g.z[2] + GLACIER_WEATHER_LINE_REACH_M + 5)) bad.push(`${g.id} ${phase} +${h} h: ${v} m außerhalb der Reichweite`);
+      if ((v === null) !== (k === '3' || k === '5')) bad.push(`${g.id} ${phase} +${h} h: Wert ${v} bei Art ${k}`);
+      if (g === gCold && g.median.sl[h] != null && g.median.sl[h] < 200) { coldHours++; if (v === null && k === '3') coldNull++; }
+      if (g === gWarm && phase === 'psnow' && k === '1') insideWarm++;
+    }
+    const doc = { rules: { levels: WEATHER_LEVELS_RULE }, glaciers: [row] }, chunk = { glaciers: { [g.id]: hourly } };
+    const pr = [...weatherLevelProblems(doc), ...weatherHourlyLevelProblems(chunk, doc)];
+    if (pr.length) bad.push(`${g.id} ${phase}: ${pr[0]}`);
+    if (row.sn[0].some((v, d) => v > row.sn[2][d] + 1e-9) || row.snq[0].some((q, d) => q[0] > row.snq[2][d][0] + 1e-9 || q[1] > row.snq[2][d][1] + 1e-9)) bad.push(`${g.id} ${phase}: Zunge über Oberkante`);
+    const again = lvCore(g, { phase }).out;
+    if (JSON.stringify(again) !== JSON.stringify(c.out)) bad.push(`${g.id} ${phase}: nicht wiederholbar`);
+  }
+  add('H5 Eigene Schneefallgrenze an den echten Antworten (beide Regeln, je 120 Stunden): die Art jeder Stunde passt zu den Schneeanteilen derselben Zeile (im Gletscher ⇔ Zunge unter ½ und Oberkante ab ½; darunter ⇔ Zunge ab ½; darüber ⇔ Oberkante unter ½); kein Wert weiter als die Reichweite vom Gletscher; in den Stunden, in denen die Antwort am kalten Gletscher unter 200 m nennt, sagt die eigene Grenze „unter der Reichweite“ ohne Zahl; am zweiten Gletscher liegt die Grenze in mehreren Stunden im Gletscher; Zeile und Chunk bestehen die Vertragsregeln der drei Höhen; Neuschnee und seine Spanne an der Zunge nie über der Oberkante; wiederholbar',
+    bad.length === 0 && coldHours >= 5 && coldNull === coldHours && insideWarm >= 3, bad.slice(0, 4).join('; ') || JSON.stringify({ kinds, coldHours, coldNull, insideWarm }));
+}
+// end to end: the switch `--heights`, with the real answers of the second glacier as the stubbed buscosun Fusion (the stub answers by the elevation it is asked at)
+const fcLevel = (g, lv) => ({
+  cube: {
+    notes: LX.notes, cells: [],
+    v2: { provenance: { runs: LX.runs }, axis: { steps: Array.from({ length: LX.hours }, (_, i) => {
+      const l = g.levels[lv], m = g.median;
+      return { validAtMs: LX_T0 + i * H, leadH: i, interpolated: false, vars: {
+        t2m: { mean: l.t[i], sigma: l.sg[i], p10: m.t10[i], p90: m.t90[i] }, rh: { p50: l.rh[i] }, precip: { mean: m.p[i], dist: null }, clct: { mean: m.n[i] == null ? null : m.n[i] * 100 },
+        wind: { mean: m.w[i] }, windDir: m.d[i] == null ? null : { mean: m.d[i] }, gust: { mean: m.g[i], p10: m.g10[i], p90: m.g90[i] },
+        snowline: m.sl[i] == null ? null : { mean: m.sl[i] }, pSnow: l.ps[i] == null ? null : { mean: l.ps[i] },
+      } };
+    }) } },
+  },
+});
+const MEDIANS = [2600, 2700, 2800], TONGUES = [2425, 2525, 2625];   // median elevations and lowest band mids of the test catalogue (`mkTree`)
+const runLx = async (name, extra = {}, hook = null) => {
+  const root = join(tmp, name), tr = mkTree(root), out = join(root, 'out');
+  const calls = [];
+  const forecast = async (o, io) => { const e = io.terrainOverride.elevationM; calls.push(e); if (hook) hook(o, e); return fcLevel(gWarm, MEDIANS.includes(e) ? 1 : TONGUES.includes(e) ? 0 : 2); };
+  const res = await main({ data: tr.data, cube: tr.cube, out, calibration: tr.cal, now: LX.at, forecast, ioFactory: okIo, always: true, ...extra });
+  const rd = (rel) => (existsSync(join(out, rel)) ? J(join(out, rel)) : null);
+  return { root, tr, out, res, calls, daily: rd(glacierWeatherRunPath(LX_RUN)), chunk: rd(glacierWeatherHourlyPath(LX_RUN, 'ch-test')), phase: rd(GLACIER_WEATHER_PHASE_PATH), status: J(join(root, 'patch', 'status-patch.json')), raw: (rel) => readFileSync(join(out, rel), 'utf8') };
+};
+{
+  const eM = await runLx('h-median', { heights: 'median' }), eDef = await runLx('h-default'), e3 = await runLx('h-three', { heights: 'three' }), e3p = await runLx('h-three-p', { heights: 'three', phase: 'psnow' });
+  process.env.GLACIER_WEATHER_HEIGHTS = 'median';
+  const eEnv = await runLx('h-env');
+  delete process.env.GLACIER_WEATHER_HEIGHTS;
+  const eBad = await runLx('h-bad', { heights: 'vier' });
+  const eFall = await runLx('h-fall', { heights: 'three' }, (o, e) => { if (Math.abs(o.lat - 46.52) < 1e-6 && e > 2700) throw new Error('kein Cube-Ergebnis'); });
+  const ids = new Set(eM.tr.ids);
+  const valid = (e) => e.daily && e.chunk && weatherProblems(e.daily, ids).length + weatherSnowProblems(e.daily).length + weatherLevelProblems(e.daily).length === 0
+    && weatherHourlyProblems(e.chunk, e.daily).length + weatherHourlySnowProblems(e.chunk, e.daily).length + weatherHourlyLevelProblems(e.chunk, e.daily).length === 0;
+  const oldOk = (e) => oldWeatherProblems(e.daily, ids).length === 0 && oldWeatherHourlyProblems(e.chunk, e.daily).length === 0;
+  const row = (e, id) => e.daily.glaciers.find((r) => r.id === id);
+  const a0 = row(eM, 'gl_ch_alpha'), a3 = row(e3, 'gl_ch_alpha'), g3 = row(e3, 'gl_ch_gamma'), h3 = e3.chunk.glaciers.gl_ch_alpha, hg3 = e3.chunk.glaciers.gl_ch_gamma;
+  const dM = eM.raw(glacierWeatherRunPath(LX_RUN)), cM = eM.raw(glacierWeatherHourlyPath(LX_RUN, 'ch-test'));
+  // under `psnow` the share of every elevation is the pSnow of the answer asked at THAT elevation (recomputed from the fixture the stub answers with)
+  const r2 = (x) => Math.round(x * 100) / 100 + 0, hp = e3p.chunk.glaciers.gl_ch_alpha;
+  let ownPhase = true, tongueLess = 0;
+  for (let h = 0; h < GLACIER_WEATHER_HOURS; h++) {
+    const ps = gWarm.levels.map((l) => l.ps[h]), p = Math.max(0, gWarm.median.p[h]);
+    const want = [Math.min(ps[0], ps[1], ps[2]), Math.min(ps[1], ps[2]), ps[2]];
+    for (let lv = 0; lv < 3; lv++) if (hp.sn[lv][h] !== r2(p * want[lv])) ownPhase = false;
+    if (r2(p * want[0]) < r2(p * want[1])) tongueLess++;
+  }
+  add('H6 Schalter --heights Ende zu Ende (echte Antworten als Fusion-Stub, der nach der gefragten Höhe antwortet): die Voreinstellung ist „three“ (E-GM-6) — ohne Angabe entstehen Byte für Byte die Dokumente von „three“; mit „median“ (der Rückfall) die Dokumente wie vor GM-2, ohne `rules.levels`, ohne die neuen Felder, mit einem Abruf je Gletscher mit eigenem Antrieb; mit „three“ drei Abrufe je solchem Gletscher (Zunge und Oberkante in ihrer Höhe), das Dokument nennt die Regel, jede eigene Zeile trägt neben der unveränderten Schneefallgrenze der Antwort (`sl`) die eigene (`slo`) mit 14 und jede Stundenzeile mit 120 Werten und Arten, Zunge und Oberkante tragen andere Temperaturen als mit der Hochrechnung, die Medianhöhe dieselbe; unter „psnow“ ist der Neuschnee je Stunde und Höhe der Niederschlag × pSnow der in DIESER Höhe gefragten Antwort (an der Zunge in mehreren Stunden weniger als in der Medianhöhe); die Umgebungsvariable „median“ ergibt dasselbe wie der Schalter „median“; ein unbekanntes Wort schreibt kein Wetterdokument und nennt den Grund; das Schmelzdokument und der Zustand sind in allen Stellungen Byte für Byte gleich',
+    valid(eM) && valid(e3) && valid(e3p) && ownPhase && tongueLess >= 3 && eDef.raw(glacierWeatherRunPath(LX_RUN)) === e3.raw(glacierWeatherRunPath(LX_RUN)) && eDef.raw(glacierWeatherHourlyPath(LX_RUN, 'ch-test')) === e3.raw(glacierWeatherHourlyPath(LX_RUN, 'ch-test')) && eDef.calls.length === 9 && dM !== e3.raw(glacierWeatherRunPath(LX_RUN)) && WEATHER_HEIGHTS_DEFAULT === 'three' && weatherHeightsOf(undefined) === 'three' && weatherHeightsOf('median') === 'median'
+    && eM.daily.rules.levels === undefined && a0.slk === undefined && a0.slo === undefined && eM.chunk.glaciers.gl_ch_alpha.slk === undefined && eM.chunk.glaciers.gl_ch_alpha.slo === undefined && eM.calls.length === 3 && eM.status.lines.weather.levels === undefined
+    && e3.calls.length === 9 && JSON.stringify(e3.calls.slice(0, 3)) === '[2600,2425,2775]' && JSON.stringify(e3.daily.rules.levels) === JSON.stringify(WEATHER_LEVELS_RULE) && e3.daily.rules.lapse === 'freezing-level'
+    && /^[1-5]{14}$/.test(a3.slk) && /^[1-5]{120}$/.test(h3.slk) && a3.slo.length === 14 && h3.slo.length === 120 && JSON.stringify(a3.sl) === JSON.stringify(a0.sl) && JSON.stringify(h3.sl) === JSON.stringify(eM.chunk.glaciers.gl_ch_alpha.sl) && a3.lv === undefined && JSON.stringify(a3.tn[1]) === JSON.stringify(a0.tn[1]) && JSON.stringify(a3.tn[0]) !== JSON.stringify(a0.tn[0]) && JSON.stringify(a3.tx[2]) !== JSON.stringify(a0.tx[2])
+    && JSON.stringify(a3.p) === JSON.stringify(a0.p) && JSON.stringify(a3.w) === JSON.stringify(a0.w) && e3.status.lines.weather.levels.rows === 3 && e3.status.lines.weather.levels.fallback === 0 && e3.res.weather.levels.rule === 'answers'
+    && eEnv.raw(glacierWeatherRunPath(LX_RUN)) === dM && eEnv.raw(glacierWeatherHourlyPath(LX_RUN, 'ch-test')) === cM && eEnv.calls.length === 3
+    && !existsSync(join(eBad.out, 'melt', 'wx')) && /vier/.test(eBad.status.lines.weather.error) && existsSync(join(eBad.out, 'melt', `${LX_RUN}.json`))
+    && [e3, e3p, eDef, eEnv, eBad, eFall].every((e) => e.raw(`melt/${LX_RUN}.json`) === eM.raw(`melt/${LX_RUN}.json`) && e.raw('melt/state.json') === eM.raw('melt/state.json')),
+    JSON.stringify({ calls: [eM.calls.length, e3.calls.length, e3.calls.slice(0, 3)], rules: e3.daily?.rules?.levels, slk: a3?.slk, levels: e3.status.lines.weather.levels, problems: e3.daily ? [...weatherProblems(e3.daily, ids), ...weatherLevelProblems(e3.daily)].slice(0, 3) : 'kein Dokument', bad: eBad.status.lines.weather }));
+  const fb = row(eFall, 'gl_ch_beta'), fbM = row(eM, 'gl_ch_beta'), fbH = eFall.chunk.glaciers.gl_ch_beta;
+  const strip = (r) => { const x = { ...r }; delete x.lv; return JSON.stringify(x); };
+  add('H7 Nachbar-Antrieb, Rückfall, alter Leser, Vergleichsdatei: die Zeile mit dem Antrieb des Nachbarn bleibt bei Kennung, Höhen, Antrieb, Temperatur und Grund (kein Abruf für sie); fehlt die Antwort an der Oberkante eines Gletschers, ist seine Zeile die von vorher mit dem Vermerk `lv: lapse` (ohne eigene Grenze und ohne Arten), die Statuszeile zählt ihn, die anderen behalten drei Antworten; der Vertragsprüfer der Seite vor Phase GS (eingefrorene Kopie) nimmt die Dokumente mit drei Antworten unter beiden Phasenregeln an; die Vergleichsdatei nennt `heights: three` (mit „median“ kein solches Feld)',
+    JSON.stringify(Object.keys(g3)) === '["id","z","f","tn","tx","omit"]' && JSON.stringify(Object.keys(hg3)) === '["t"]' && JSON.stringify(g3) === JSON.stringify(row(eM, 'gl_ch_gamma'))
+    && valid(eFall) && fb.lv === 'lapse' && fb.slk === undefined && fb.slo === undefined && fbH.slk === undefined && fbH.slo === undefined && strip(fb) === JSON.stringify(fbM) && JSON.stringify(fbH) === JSON.stringify(eM.chunk.glaciers.gl_ch_beta)
+    && eFall.status.lines.weather.levels.fallback === 1 && eFall.status.lines.weather.levels.rows === 2 && /^[1-5]{14}$/.test(row(eFall, 'gl_ch_alpha').slk)
+    && oldOk(e3) && oldOk(e3p) && oldOk(eFall) && e3.phase.runs[0].heights === 'three' && eM.phase.runs[0].heights === undefined && e3p.daily.rules.phase.rule === 'psnow',
+    JSON.stringify({ gamma: Object.keys(g3), fb: fb && { lv: fb.lv, slk: fb.slk }, levels: eFall.status.lines.weather.levels, old: oldWeatherProblems(e3.daily, ids).slice(0, 2), phase: e3.phase?.runs?.[0] }));
+  // negative controls of the contract rules of the three elevations
+  const own = e3.daily.glaciers.findIndex((r) => r.f === 'own'), nbI = e3.daily.glaciers.findIndex((r) => r.f !== 'own');
+  const idOwn = e3.daily.glaciers[own].id, idNb = e3.daily.glaciers[nbI].id;
+  const numDay = [...e3.daily.glaciers[own].slk].findIndex((k) => k === '1' || k === '2' || k === '4'), numHour = [...e3.chunk.glaciers[idOwn].slk].findIndex((k) => k === '1' || k === '2' || k === '4');
+  const dCases = {
+    'Arten mit falscher Länge': (d) => { d.glaciers[own].slk = d.glaciers[own].slk.slice(1); },
+    'unbekannte Art': (d) => { d.glaciers[own].slk = `7${d.glaciers[own].slk.slice(1)}`; },
+    'Zahl bei „unter der Reichweite“': (d) => { d.glaciers[own].slo[0] = 2000; d.glaciers[own].slk = `3${d.glaciers[own].slk.slice(1)}`; },
+    'kein Wert bei „im Gletscher“': (d) => { d.glaciers[own].slo[0] = null; d.glaciers[own].slk = `1${d.glaciers[own].slk.slice(1)}`; },
+    '„im Gletscher“ weit unter der Zunge': (d) => { d.glaciers[own].slo[0] = d.glaciers[own].z[0] - 300; d.glaciers[own].slk = `1${d.glaciers[own].slk.slice(1)}`; },
+    'Wert jenseits der Reichweite': (d) => { d.glaciers[own].slo[0] = d.glaciers[own].z[0] - 900; d.glaciers[own].slk = `2${d.glaciers[own].slk.slice(1)}`; },
+    'Arten am fremden Antrieb': (d) => { d.glaciers[nbI].slk = d.glaciers[own].slk; },
+    'Arten ohne benannte Regel': (d) => { delete d.rules.levels; },
+    'Rückfall mit Arten': (d) => { d.glaciers[own].lv = 'lapse'; },
+    'Reichweite null': (d) => { d.rules.levels.reach = 0; },
+    'Regel ohne Arten an der Zeile': (d) => { delete d.glaciers[own].slk; },
+    'Regel ohne eigene Grenze an der Zeile': (d) => { delete d.glaciers[own].slo; },
+    'eigene Grenze am fremden Antrieb': (d) => { d.glaciers[nbI].slo = d.glaciers[own].slo; },
+  };
+  const hCases = {
+    'Arten je Stunde mit falscher Länge': (d) => { d.glaciers[idOwn].slk += '1'; },
+    'kein Wert bei einer Art mit Zahl': (d) => { d.glaciers[idOwn].slo[numHour] = null; },
+    'Arten am fremden Antrieb': (d) => { d.glaciers[idNb].slk = d.glaciers[idOwn].slk; },
+    'Arten fehlen': (d) => { delete d.glaciers[idOwn].slk; },
+    'eigene Grenze fehlt': (d) => { delete d.glaciers[idOwn].slo; },
+  };
+  const dMiss = Object.entries(dCases).filter(([, fn]) => { const d = clone(e3.daily); fn(d); return weatherLevelProblems(d).length === 0; }).map(([k]) => k);
+  const hMiss = Object.entries(hCases).filter(([, fn]) => { const d = clone(e3.chunk); fn(d); return weatherHourlyLevelProblems(d, e3.daily).length === 0; }).map(([k]) => k);
+  const fallCtl = (() => { const d = clone(eFall.chunk); d.glaciers.gl_ch_beta.slk = d.glaciers.gl_ch_alpha.slk; return weatherHourlyLevelProblems(d, eFall.daily).length > 0; })();
+  add(`H8 Negativkontrollen der Vertragsregeln der drei Höhen: jede von ${Object.keys(dCases).length} Verletzungen am Tagesdokument und jede von ${Object.keys(hCases).length} am Stunden-Chunk wird gemeldet, dazu Arten an einer Zeile mit Rückfall; das Dokument mit „median“ besteht dieselben Prüfer`,
+    dMiss.length === 0 && hMiss.length === 0 && fallCtl && numDay >= 0 && numHour >= 0 && weatherLevelProblems(eM.daily).length === 0 && weatherHourlyLevelProblems(eM.chunk, eM.daily).length === 0, `nicht gemeldet: ${[...dMiss, ...hMiss].join(', ')} | ${JSON.stringify({ fallCtl, numDay, numHour })}`);
 }
 
 rmSync(tmp, { recursive: true, force: true });

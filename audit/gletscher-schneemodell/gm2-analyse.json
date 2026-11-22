@@ -1,0 +1,475 @@
+﻿{
+ "run": "2026112117",
+ "names": [
+  "median",
+  "three",
+  "median-psnow",
+  "three-psnow"
+ ],
+ "melt": {
+  "median": {
+   "doc": "87374d3313d8",
+   "state": "24b7ebf13c91"
+  },
+  "three": {
+   "doc": "87374d3313d8",
+   "state": "24b7ebf13c91"
+  },
+  "median-psnow": {
+   "doc": "87374d3313d8",
+   "state": "24b7ebf13c91"
+  },
+  "three-psnow": {
+   "doc": "87374d3313d8",
+   "state": "24b7ebf13c91"
+  }
+ },
+ "meltSame": true,
+ "reference": {
+  "files": 27,
+  "different": 0,
+  "first": [],
+  "control": true
+ },
+ "contract": {
+  "median": {
+   "daily": 0,
+   "hourly": 0,
+   "oldDaily": 0,
+   "oldHourly": 0,
+   "first": null
+  },
+  "three": {
+   "daily": 0,
+   "hourly": 0,
+   "oldDaily": 0,
+   "oldHourly": 0,
+   "first": null
+  },
+  "median-psnow": {
+   "daily": 0,
+   "hourly": 0,
+   "oldDaily": 0,
+   "oldHourly": 0,
+   "first": null
+  },
+  "three-psnow": {
+   "daily": 0,
+   "hourly": 0,
+   "oldDaily": 0,
+   "oldHourly": 0,
+   "first": null
+  }
+ },
+ "sizes": {
+  "median": {
+   "daily": {
+    "raw": 2379774,
+    "gzip": 498474,
+    "brotli": 320614
+   },
+   "chunks": {
+    "raw": 3797175,
+    "gzip": 684403,
+    "brotli": 456945
+   }
+  },
+  "three": {
+   "daily": {
+    "raw": 2476223,
+    "gzip": 494813,
+    "brotli": 314682
+   },
+   "chunks": {
+    "raw": 4501696,
+    "gzip": 704392,
+    "brotli": 466213
+   }
+  },
+  "median-psnow": {
+   "daily": {
+    "raw": 2379562,
+    "gzip": 510416,
+    "brotli": 327637
+   },
+   "chunks": {
+    "raw": 3796809,
+    "gzip": 688863,
+    "brotli": 460623
+   }
+  },
+  "three-psnow": {
+   "daily": {
+    "raw": 2475862,
+    "gzip": 504630,
+    "brotli": 320176
+   },
+   "chunks": {
+    "raw": 4501201,
+    "gzip": 705971,
+    "brotli": 467273
+   }
+  }
+ },
+ "rows": {
+  "median": {
+   "all": 2084,
+   "own": 957,
+   "lapse": 0,
+   "skipped": 10,
+   "rules": null
+  },
+  "three": {
+   "all": 2084,
+   "own": 957,
+   "lapse": 0,
+   "skipped": 10,
+   "rules": {
+    "rule": "answers",
+    "snowline": "half-share",
+    "reach": 500,
+    "order": "not-more-below",
+    "daily": "median",
+    "origin": "set"
+   }
+  },
+  "median-psnow": {
+   "all": 2084,
+   "own": 957,
+   "lapse": 0,
+   "skipped": 10,
+   "rules": null
+  },
+  "three-psnow": {
+   "all": 2084,
+   "own": 957,
+   "lapse": 0,
+   "skipped": 10,
+   "rules": {
+    "rule": "answers",
+    "snowline": "half-share",
+    "reach": 500,
+    "order": "not-more-below",
+    "daily": "median",
+    "origin": "set"
+   }
+  }
+ },
+ "temperature": {
+  "tongue": {
+   "n": 45936,
+   "mean": -0.15,
+   "mae": 0.21,
+   "p10": -0.5,
+   "p50": 0,
+   "p90": 0.1,
+   "over2K": 0.007,
+   "gradient": {
+    "three": {
+     "p10": -6.86,
+     "p50": -6.17,
+     "p90": -4.67,
+     "inversions": 0.01
+    },
+    "lapse": {
+     "p10": -6.6,
+     "p50": -6.5,
+     "p90": -6.36
+    },
+    "n": 5960
+   }
+  },
+  "median": {
+   "n": 45936,
+   "mean": 0,
+   "mae": 0,
+   "p10": 0,
+   "p50": 0,
+   "p90": 0,
+   "over2K": 0
+  },
+  "top": {
+   "n": 45936,
+   "mean": 0.18,
+   "mae": 0.22,
+   "p10": -0.1,
+   "p50": 0.1,
+   "p90": 0.5,
+   "over2K": 0.013
+  }
+ },
+ "snow": {
+  "median": {
+   "mm": [
+    40734.6,
+    41004.5,
+    41008.3
+   ],
+   "sameAtAllLevels": 789,
+   "wetGlaciers": 957,
+   "wetSame": 789
+  },
+  "three": {
+   "mm": [
+    40911.6,
+    41003.7,
+    41006
+   ],
+   "sameAtAllLevels": 899,
+   "wetGlaciers": 957,
+   "wetSame": 899
+  },
+  "median-psnow": {
+   "mm": [
+    40059.8,
+    40698.6,
+    40861.8
+   ],
+   "sameAtAllLevels": 66,
+   "wetGlaciers": 957,
+   "wetSame": 66
+  },
+  "three-psnow": {
+   "mm": [
+    40439.2,
+    40696.6,
+    40806.1
+   ],
+   "sameAtAllLevels": 207,
+   "wetGlaciers": 957,
+   "wetSame": 207
+  }
+ },
+ "line": {
+  "median": {
+   "answer": {
+    "cells": 114840,
+    "values": 58196,
+    "hist": {
+     "lt100": 339,
+     "lt500": 1025,
+     "lt1000": 12417,
+     "other": 44415,
+     "nul": 56644
+    },
+    "belowTongue": 58189,
+    "daily": {
+     "cells": 13398,
+     "null": 9901
+    }
+   },
+   "own": null
+  },
+  "three": {
+   "answer": {
+    "cells": 114840,
+    "values": 58196,
+    "hist": {
+     "lt100": 339,
+     "lt500": 1025,
+     "lt1000": 12417,
+     "other": 44415,
+     "nul": 56644
+    },
+    "belowTongue": 58189,
+    "daily": {
+     "cells": 13398,
+     "null": 9901
+    }
+   },
+   "own": {
+    "cells": 114840,
+    "values": 1753,
+    "kinds": {
+     "1": 128,
+     "2": 1623,
+     "3": 113085,
+     "4": 2,
+     "5": 2
+    },
+    "lowestBelowTongueM": -495,
+    "dailyKinds": {
+     "1": 5,
+     "2": 104,
+     "3": 13289
+    }
+   }
+  },
+  "median-psnow": {
+   "answer": {
+    "cells": 114840,
+    "values": 58196,
+    "hist": {
+     "lt100": 339,
+     "lt500": 1025,
+     "lt1000": 12417,
+     "other": 44415,
+     "nul": 56644
+    },
+    "belowTongue": 58189,
+    "daily": {
+     "cells": 13398,
+     "null": 9901
+    }
+   },
+   "own": null
+  },
+  "three-psnow": {
+   "answer": {
+    "cells": 114840,
+    "values": 58196,
+    "hist": {
+     "lt100": 339,
+     "lt500": 1025,
+     "lt1000": 12417,
+     "other": 44415,
+     "nul": 56644
+    },
+    "belowTongue": 58189,
+    "daily": {
+     "cells": 13398,
+     "null": 9901
+    }
+   },
+   "own": {
+    "cells": 114840,
+    "values": 623,
+    "kinds": {
+     "1": 18,
+     "2": 605,
+     "3": 114217
+    },
+    "lowestBelowTongueM": -495,
+    "dailyKinds": {
+     "2": 31,
+     "3": 13367
+    }
+   }
+  }
+ },
+ "repeat": {
+  "files": 27,
+  "different": 0
+ },
+ "answerLineSame": true,
+ "status": {
+  "median": {
+   "melt": {
+    "at": "2026-11-21T17:50:00.000Z",
+    "glaciers": 2094,
+    "skipped": 0,
+    "unit": false,
+    "seconds": 106
+   },
+   "levels": null,
+   "phase": {
+    "rule": "temperature",
+    "runs": 1,
+    "days": 1,
+    "enough": false,
+    "shift": [
+     0.015,
+     0.0062,
+     0.0028
+    ],
+    "within": true,
+    "movedShare": 0.0005,
+    "max": 2
+   },
+   "files": 27,
+   "bytes": 6176949
+  },
+  "three": {
+   "melt": {
+    "at": "2026-11-21T17:50:00.000Z",
+    "glaciers": 2094,
+    "skipped": 0,
+    "unit": false,
+    "seconds": 296
+   },
+   "levels": {
+    "rule": "answers",
+    "rows": 957,
+    "fallback": 0,
+    "clipped": 22,
+    "clippedWet": 19,
+    "seconds": 174
+   },
+   "phase": {
+    "rule": "temperature",
+    "runs": 1,
+    "days": 1,
+    "enough": false,
+    "shift": [
+     0.0103,
+     0.0062,
+     0.0039
+    ],
+    "within": true,
+    "movedShare": 0.0004,
+    "max": 2
+   },
+   "files": 27,
+   "bytes": 6977919
+  },
+  "median-psnow": {
+   "melt": {
+    "at": "2026-11-21T17:50:00.000Z",
+    "glaciers": 2094,
+    "skipped": 0,
+    "unit": false,
+    "seconds": 75
+   },
+   "levels": null,
+   "phase": {
+    "rule": "psnow",
+    "runs": 1,
+    "days": 1,
+    "enough": false,
+    "shift": [
+     0.015,
+     0.0062,
+     0.0028
+    ],
+    "within": true,
+    "movedShare": 0.0005,
+    "max": 2
+   },
+   "files": 27,
+   "bytes": 6176371
+  },
+  "three-psnow": {
+   "melt": {
+    "at": "2026-11-21T17:50:00.000Z",
+    "glaciers": 2094,
+    "skipped": 0,
+    "unit": false,
+    "seconds": 237
+   },
+   "levels": {
+    "rule": "answers",
+    "rows": 957,
+    "fallback": 0,
+    "clipped": 10571,
+    "clippedWet": 10545,
+    "seconds": 135
+   },
+   "phase": {
+    "rule": "psnow",
+    "runs": 1,
+    "days": 1,
+    "enough": false,
+    "shift": [
+     0.0103,
+     0.0062,
+     0.0039
+    ],
+    "within": true,
+    "movedShare": 0.0004,
+    "max": 2
+   },
+   "files": 27,
+   "bytes": 6977063
+  }
+ }
+}

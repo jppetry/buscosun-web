@@ -22,6 +22,11 @@
  *    core, `psnow` = the `pSnow` of buscosun Fusion at the median elevation, moved to tongue and top by the engine's own phase function;
  *    a document without `rules.phase.rule` (before phase GS) was built with `temperature`;
  *  - the snowfall line per hour (`sl` of the hourly chunk) is the value of the answer or `null` — it is never filled between two values;
+ *  - phase GM (`rules.levels`, producer switch `--heights=three`): tongue and top get their OWN answer of buscosun Fusion instead of the
+ *    lapse from the median elevation, the solid share is the rule of the run at each of the three answers, and next to the snowfall line
+ *    of the answer (`sl`, unchanged) stands the OWN line `slo`: the elevation at which that share is one half, stated only inside the
+ *    glacier's range plus `rules.levels.reach` metres; outside it `slo` is `null` and `slk` says on which side. A document without
+ *    `rules.levels` is built from ONE answer as before;
  *  - wind is the wind of the free height at the median elevation, not the wind on the glacier surface.
  *
  * Day d of a run = the hours 24 d … 24 d + 23 from the run hour (the same day cut as the melt index).
@@ -55,6 +60,19 @@ export const GLACIER_WEATHER_PHASE_KEEP_DAYS = 21;
 /** Days with a run the comparison needs before the rule may be switched, and the largest shift of the summed new snow at any elevation (frozen in audit/gletscher-schneefelder.md §1.4). */
 export const GLACIER_WEATHER_PHASE_MIN_DAYS = 7;
 export const GLACIER_WEATHER_PHASE_LIMIT = 0.1;
+/** Phase GM — where the values at tongue and top come from; the producer switch `--heights` / `GLACIER_WEATHER_HEIGHTS` picks one (`median` = one answer and the lapse, as before). */
+export const GLACIER_WEATHER_HEIGHT_MODES = Object.freeze(['median', 'three'] as const);
+export type GlacierWeatherHeightMode = (typeof GLACIER_WEATHER_HEIGHT_MODES)[number];
+/** Phase GM — metres below the tongue and above the top the own snowfall line is still stated (`set`): beyond it the three answers say nothing about the height. */
+export const GLACIER_WEATHER_LINE_REACH_M = 500;
+/**
+ * Phase GM — kind of a value of the own snowfall line `slo` under `rules.levels`, one digit per hour (`slk` of the hourly row) or per day (`slk` of the daily row):
+ * 0 no statement · 1 inside the glacier's range · 2 below the tongue, within the reach · 3 below the reach (`slo` is `null`) ·
+ * 4 above the top, within the reach · 5 above the reach (`slo` is `null`).
+ */
+export const GLACIER_WEATHER_LINE_KINDS = '012345';
+/** Phase GM — hours with a kind a day needs for its line (`set`); the daily value is the MEDIAN hour in the order below < value < above, never a mean over a clipped range. */
+export const GLACIER_WEATHER_LINE_DAY_MIN = 18;
 /** The page shows a document up to this age of its run (ms); the run comes at most every 6 h. */
 export const GLACIER_WEATHER_FRESH_MS = 18 * 3_600_000;
 /** Reason a row carries the temperature only. */
@@ -92,6 +110,11 @@ export interface GlacierWeatherRow {
   snq?: ByLevel<[number, number][]>;
   /** Phase GS, own forcing only — [p10, p90] (km/h) of the hour with the strongest gust of the day: a single-hour spread. */
   gq?: [number, number][];
+  /** Phase GM, own forcing under `rules.levels` only — the own snowfall line of the day (m in steps of 10; the median hour) and its kind, one digit per day (`GLACIER_WEATHER_LINE_KINDS`). */
+  slo?: (number | null)[];
+  slk?: string;
+  /** Phase GM, own forcing under `rules.levels` only — `lapse`: an answer at tongue or top was missing, this row is built from the median answer as before (no `slo`, no `slk`). */
+  lv?: 'lapse';
   /** Why wind, precipitation, new snow and clouds are absent (`neighbour-forcing`); absent on a complete row. */
   omit?: typeof GLACIER_WEATHER_OMIT_NEIGHBOUR;
 }
@@ -118,6 +141,13 @@ export interface GlacierWeatherDoc extends WeatherHead {
     phase: { warm: number; cold: number; origin: 'set'; rule?: GlacierWeatherPhaseRule };
     /** Phase GS — how `pq`, `snq` and `gq` are built; absent on a document without them. */
     spread?: { sums: 'scenarios'; k: number; rho: number; gust: 'strongest-hour'; origin: 'set' };
+    /**
+     * Phase GM — present when tongue and top carry their own answer of buscosun Fusion (rows with own forcing and without `lv`): the temperature there
+     * is that answer's, the solid share the rule of the run at each answer, never more below than above (`order`), and `slo` is the elevation at which
+     * the share is one half, stated up to `reach` metres outside the glacier's range; the daily `slo` is the median hour. `lapse` below then names the
+     * rule of the rows with a neighbour's forcing and of rows with `lv`.
+     */
+    levels?: { rule: 'answers'; snowline: 'half-share'; reach: number; order: 'not-more-below'; daily: 'median'; origin: 'set' };
     lapse: 'freezing-level';
     sums: 'expected';
     day: 'from-run-hour';
@@ -144,6 +174,9 @@ export interface GlacierWeatherHourlyRow {
   sl?: (number | null)[];
   /** Phase GS, own forcing only — new snow per hour as water equivalent (mm, 0.01) at the three elevations. */
   sn?: ByLevel<number[]>;
+  /** Phase GM, own forcing under `rules.levels` only — the own snowfall line per hour (m in steps of 10 or `null`) for `GLACIER_WEATHER_SNOWLINE_HOURS` hours and the kind of each value, one digit per hour (`GLACIER_WEATHER_LINE_KINDS`). */
+  slo?: (number | null)[];
+  slk?: string;
 }
 
 /** Phase GS — one run of the comparison of the two phase rules: summed new snow (mm, all glaciers with own forcing, 14 days) per elevation. */
@@ -151,6 +184,8 @@ export interface GlacierWeatherPhaseRun {
   run: string;
   /** The rule the documents of this run were built with. */
   rule: GlacierWeatherPhaseRule;
+  /** Phase GM — `three` when the run compared the two rules on three answers per glacier; absent = one answer (`median`). */
+  heights?: GlacierWeatherHeightMode;
   n: number;
   mm: { temperature: [number, number, number]; psnow: [number, number, number] };
   /** Glacier-days with at least 1 mm precipitation; those of them whose new snow at the median elevation moves by more than 1 mm; the largest move of a day (mm). */
@@ -325,6 +360,50 @@ export function weatherHourlySnowProblems(doc: GlacierWeatherHourlyDoc, daily?: 
       else if (series(r.p, n, MM_OK) && r.sn.some((lv) => lv.some((v, h) => v > r.p![h] + 0.06))) p.push(`${id}: Neuschnee je Stunde über dem Niederschlag`);
       else if (r.sn[0].some((v, h) => v > r.sn![2][h] + 0.011)) p.push(`${id}: je Stunde mehr Neuschnee an der Zunge als oben`);
     }
+  }
+  return p;
+}
+
+/** Phase GM — does a line value fit its kind? `z` = the three elevations of the row. */
+function lineKindOk(v: number | null, k: string, z: readonly number[], reach: number): boolean {
+  if (k === '0' || k === '3' || k === '5') return v === null;
+  if (v === null || !M_OK(v)) return false;
+  if (k === '1') return v >= z[0] - 5 && v <= z[2] + 5;
+  if (k === '2') return v <= z[0] + 5 && v >= z[0] - reach - 5;
+  return k === '4' && v >= z[2] - 5 && v <= z[2] + reach + 5;
+}
+
+/**
+ * Phase GM — rules of the fields of `rules.levels` in the daily document (`slo`, `slk`, `lv`); empty = valid. Kept apart from `weatherProblems`
+ * (which the page calls and which is unchanged); a document without `rules.levels` must carry none of the fields.
+ */
+export function weatherLevelProblems(doc: GlacierWeatherDoc): string[] {
+  const p: string[] = [];
+  const n = GLACIER_WEATHER_DAYS, lv = doc.rules?.levels;
+  if (lv !== undefined && !(lv?.rule === 'answers' && lv.snowline === 'half-share' && lv.order === 'not-more-below' && lv.daily === 'median' && lv.origin === 'set' && fin(lv.reach) && lv.reach > 0 && lv.reach <= 2000)) p.push('Regel der drei Höhen');
+  for (const r of doc.glaciers ?? []) {
+    const id = r?.id;
+    if (r.f !== 'own' || !lv) { if (r.slo !== undefined || r.slk !== undefined || r.lv !== undefined) p.push(`${id}: Felder der drei Höhen ${lv ? 'trotz fremdem Antrieb' : 'ohne benannte Regel'}`); continue; }
+    if (r.lv !== undefined) { if (r.lv !== 'lapse' || r.slk !== undefined || r.slo !== undefined) p.push(`${id}: Rückfall auf eine Antwort`); continue; }
+    if (typeof r.slk !== 'string' || r.slk.length !== n || ![...r.slk].every((k) => GLACIER_WEATHER_LINE_KINDS.includes(k))) { p.push(`${id}: Art der Schneefallgrenze je Tag`); continue; }
+    if (!Array.isArray(r.slo) || r.slo.length !== n || !Array.isArray(r.z)) { p.push(`${id}: eigene Schneefallgrenze je Tag fehlt`); continue; }
+    if (r.slo.some((v, d) => !lineKindOk(v, r.slk![d], r.z, lv.reach))) p.push(`${id}: eigene Schneefallgrenze passt nicht zu ihrer Art`);
+  }
+  return p;
+}
+
+/** Phase GM — rules of `slo` and `slk` in an hourly chunk; `daily` = the daily document of the same run (it names the rule and the elevations). Empty = valid. */
+export function weatherHourlyLevelProblems(doc: GlacierWeatherHourlyDoc, daily: GlacierWeatherDoc): string[] {
+  const p: string[] = [];
+  const n = GLACIER_WEATHER_SNOWLINE_HOURS, lv = daily.rules?.levels;
+  const rows = new Map(daily.glaciers.map((r) => [r.id, r]));
+  for (const [id, r] of Object.entries(doc.glaciers ?? {})) {
+    const row = rows.get(id);
+    const three = !!lv && row?.f === 'own' && row.lv === undefined;
+    if (!three) { if (r.slk !== undefined || r.slo !== undefined) p.push(`${id}: eigene Schneefallgrenze ohne drei Antworten`); continue; }
+    if (typeof r.slk !== 'string' || r.slk.length !== n || ![...r.slk].every((k) => GLACIER_WEATHER_LINE_KINDS.includes(k))) { p.push(`${id}: Art der Schneefallgrenze je Stunde`); continue; }
+    if (!Array.isArray(r.slo) || r.slo.length !== n) { p.push(`${id}: eigene Schneefallgrenze je Stunde fehlt`); continue; }
+    if (r.slo.some((v, h) => !lineKindOk(v, r.slk![h], row!.z, lv!.reach))) p.push(`${id}: eigene Schneefallgrenze je Stunde passt nicht zu ihrer Art`);
   }
   return p;
 }
