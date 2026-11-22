@@ -9,6 +9,9 @@
   --gl-prov-satellite-text: #4B3D96; --gl-prov-satellite-bg: #EEEBF8; --gl-prov-satellite-line: #CFC6EE; --gl-prov-satellite-dot: #6B5BB8;
   --gl-prov-model-text: #7A5418; --gl-prov-model-bg: #FBF3E7; --gl-prov-model-line: #E7D3B4; --gl-prov-model-dot: #B8862F;
   --gl-prov-official-text: #2C2A26; --gl-prov-official-bg: #EDE6D3; --gl-prov-official-line: #D9D0B8; --gl-prov-official-dot: #2C2A26;
+  /* Phase GV: origin "Analyse" (a value analysed on a grid — not a measurement), slate */
+  --gl-prov-analysis-text: #3D4F6B; --gl-prov-analysis-bg: #ECEFF5; --gl-prov-analysis-line: #C9D1E0; --gl-prov-analysis-dot: #5A6E92;
+  --gl-ice: #A8D0E0; --gl-ice-pale: #E4F1F6; --gl-ice-deep: #6FAFC8;
   --gl-ink: #2C2A26; --gl-muted: #5C5447; --gl-faint: #6F6553; --gl-panel: #FAF6EA; --gl-bg: #EDE6D3; --gl-line: #E0D6BE; --gl-line-strong: #D9D0B8;
   --gl-mono: 'League Spartan', system-ui, sans-serif;
   position: fixed; inset: 0; display: flex; background: var(--gl-bg); color: var(--gl-ink);
@@ -50,6 +53,8 @@
 .gl-chip.is-model i { background: var(--gl-prov-model-dot); }
 .gl-chip.is-official { background: var(--gl-prov-official-bg); color: var(--gl-prov-official-text); border-color: var(--gl-prov-official-line); }
 .gl-chip.is-official i { background: var(--gl-prov-official-dot); }
+.gl-chip.is-analysis { background: var(--gl-prov-analysis-bg); color: var(--gl-prov-analysis-text); border-color: var(--gl-prov-analysis-line); }
+.gl-chip.is-analysis i { background: var(--gl-prov-analysis-dot); }
 .gl-chip.is-idle { opacity: .72; }
 .gl-valued { display: inline-flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .gl-num { font-family: var(--gl-mono); font-weight: 600; font-variant-numeric: tabular-nums; }

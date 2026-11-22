@@ -76,10 +76,12 @@ function SatPanel({ g, season, nowMs }: { g: GlacierCatalogEntry; season: Season
   );
 }
 
-export default function GlacierHeuteBoard({ g, melt, meltWhy, season, nowMs, neighbourName, head, weather = null, sources = null, winter = false }: {
+export default function GlacierHeuteBoard({ g, melt, meltWhy, season, nowMs, neighbourName, head, weather = null, snow = null, sources = null, winter = false }: {
   g: GlacierCatalogEntry; melt: MeltView | null; meltWhy: string | null; season: SeasonSummary | null; nowMs: number; neighbourName: string | null; head: ReactNode;
   /** Phase GW: the card "Wetter am Gletscher" (`null` = off). */
   weather?: ReactNode;
+  /** Phase GV: the ladder "Am Gletscher, nach Höhe" (model snow fields, stations, snow analysis) — right after the weather card. */
+  snow?: ReactNode;
   /** Phase DK-H: the sources, folded, at the end of the level. */
   sources?: ReactNode;
   /** Phase DK-H: winter months — the melt and frost rows are drawn smaller (same content). */
@@ -100,6 +102,7 @@ export default function GlacierHeuteBoard({ g, melt, meltWhy, season, nowMs, nei
 
       {/* DK-H order: model at three heights (with its days), then melt and frost (smaller in winter), tour, sources */}
       {weather ? <div className="gl-hb-wx">{weather}</div> : null}
+      {snow ? <div className="gl-hb-snow">{snow}</div> : null}
 
       <section className="gl-hb-row gl-hb-row--melt" aria-label="Heute">
         <div className="gl-hb-card gl-hb-gaugecard">

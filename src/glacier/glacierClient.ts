@@ -27,6 +27,10 @@ import {
   GLACIER_STN_SLOT_RE, GLACIER_STN_MAP_RE, glacierStnHourPath, glacierStnMapPath, stnHourProblems, stnMapProblems,
   type GlacierStnPointer, type StnHourDoc, type StnMapDoc,
 } from './glacierStationContract';
+import {
+  GLACIER_SNOW_DAY_RE, GLACIER_SNOW_STATIC_RE, glacierSnowDayPath, glacierSnowCellsPath, snowDayProblems, snowCellsProblems,
+  type GlacierSnowPointer, type SnowDayDoc, type SnowCellsDoc,
+} from './glacierSnowContract';
 
 export interface GlacierBases {
   cdn: string; raw: string;
@@ -156,6 +160,8 @@ export interface GlacierIndex {
   feed?: GlacierFeedPointer;
   /** Phase GO: pointer to the newest slot of the station measurements and to the mapping glacier → stations. */
   stations?: GlacierStnPointer;
+  /** Phase GN: pointer to the newest day of the snow analysis (SNOWGRID, Austria only); shown by phase GV. */
+  snow?: GlacierSnowPointer;
 }
 export interface GlacierMeltPointer { run: string; runAt: string; engine: { name: string; version: number | null }; cube: Record<string, string | null>; unit: boolean; build: string }
 export interface GlacierFeedPointer { week: string; builtAt: string; n: number; /** Week key of the newest weekly card (`card/<week>.png`), `null` = none yet. */ card?: string | null; /** Weeks that have a feed document, newest first. */ weeks?: string[] }
@@ -391,6 +397,30 @@ export function loadStationHour(hour: string, bases = glacierBasesFrom()): Promi
     } catch (e) { if (isAbort(e)) throw e; return null; }
   });
 }
+/**
+ * Phase GV — one day of the snow analysis (`snow/<yyyymmdd>.json`, never rewritten once published ⇒ CDN first), through the contract
+ * rules; "not there" ⇒ `'absent'`, unreadable or violating ⇒ `null` — both are "Keine Daten" with their own reason, never a number.
+ */
+export function loadSnowDay(day: string, bases = glacierBasesFrom()): Promise<SnowDayDoc | 'absent' | null> {
+  return once(`${bases.cdn}|snowd|${day}`, async () => {
+    if (!GLACIER_SNOW_DAY_RE.test(day)) return null;
+    try {
+      const d = await fetchGlacier(glacierSnowDayPath(day), 'json', undefined, bases) as SnowDayDoc;
+      return snowDayProblems(d).length === 0 && d.day === day ? d : null;
+    } catch (e) { if (isAbort(e)) throw e; return e instanceof GlacierNotThere ? 'absent' as const : null; }
+  });
+}
+/** Phase GV — the cells per glacier the analysis is averaged over (immutable name per catalogue build), through the contract rules. */
+export function loadSnowCells(file: string, bases = glacierBasesFrom()): Promise<SnowCellsDoc | null> {
+  return once(`${bases.cdn}|snowc|${file}`, async () => {
+    if (!GLACIER_SNOW_STATIC_RE.test(file)) return null;
+    try {
+      const d = await fetchGlacier(glacierSnowCellsPath(file), 'json', undefined, bases) as SnowCellsDoc;
+      return snowCellsProblems(d).length === 0 && d.file === file ? d : null;
+    } catch (e) { if (isAbort(e)) throw e; return null; }
+  });
+}
+
 /** Phase GW — the hourly chunk of one region (48 h); it must belong to `daily` (same run, same stand of buscosun Fusion). */
 export function loadWeatherHourly(daily: GlacierWeatherDoc, region: string, bases = glacierBasesFrom()): Promise<GlacierWeatherHourlyDoc | null> {
   return once(`${bases.cdn}|wxh|${daily.run}|${region}`, async () => {

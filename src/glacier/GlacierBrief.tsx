@@ -32,6 +32,8 @@ import type { GlacierSatIndex } from './glacierClient';
 const GlacierSatImagery = lazy(() => import('./GlacierSatImagery'));
 /** Phase DK-H: stations in the dossier map (markers, lines, list, sheet) — loaded only on level Heute of the dossier. */
 const GlacierStationsHeute = lazy(() => import('./GlacierStationsHeute'));
+/** Phase GV: the ladder "Am Gletscher, nach Höhe" (model snow fields, stations, SNOWGRID) — loaded only on level Heute of the dossier. */
+const GlacierSnowLadder = lazy(() => import('./GlacierSnowLadder'));
 const TAB_LABEL: Record<GlacierTab, string> = { heute: 'Heute', saison: 'Saison', langzeit: 'Langzeit', tour: 'Tour', quellen: 'Quellen' };
 /** The three levels of the dossier and the sections each one holds; the URL `tab` of a section names its level. */
 const LEVELS: ReadonlyArray<{ tab: GlacierTab; title: string; sub: string; tabs: readonly GlacierTab[] }> = [
@@ -63,6 +65,8 @@ export interface SheetProps {
   weatherPointer?: GlacierIndex['weather'] | null;
   /** Phase GO: pointer to the station measurements next to the glacier (`null` = none). */
   stationPointer?: GlacierIndex['stations'] | null;
+  /** Phase GV: pointer to the newest day of the snow analysis (SNOWGRID, Austria only; `null` = none). */
+  snowPointer?: GlacierIndex['snow'] | null;
   official: readonly GlacierOfficialItem[];
   nowMs: number;
   isMobile: boolean;
@@ -79,7 +83,7 @@ export interface SheetProps {
   onOpenSheet?: () => void;
 }
 
-export default function GlacierBrief({ g, build, elevBuild = null, hugBuild = null, byId, satIndex, meltPointer, weatherPointer = null, stationPointer = null, official, nowMs, isMobile, bases, state, onState, onBack, allow3d, followed, onFollow, layout = 'page', onOpenSheet }: SheetProps) {
+export default function GlacierBrief({ g, build, elevBuild = null, hugBuild = null, byId, satIndex, meltPointer, weatherPointer = null, stationPointer = null, snowPointer = null, official, nowMs, isMobile, bases, state, onState, onBack, allow3d, followed, onFollow, layout = 'page', onOpenSheet }: SheetProps) {
   const [data, setData] = useState<SheetData | null>(null);
   const [compare, setCompare] = useState<number | null>(null);
   const [snowShare, setSnowShare] = useState<number | null>(null);
@@ -180,6 +184,12 @@ export default function GlacierBrief({ g, build, elevBuild = null, hugBuild = nu
   const weatherCard = modelCard || stationCard ? <>{modelCard}{stationCard}</> : null;
   const stnView = layout === 'dossier' && stn.state === 'ready' ? stn.view : null;
   const onHeute = layout === 'dossier' && LEVELS[levelOf(state.tab)].tab === 'heute';
+  // Phase GV (no switch): after the weather card, the ladder by elevation — its own lazy chunk, the weather card stays as it is
+  const snowLadder = onHeute ? (
+    <Suspense fallback={<p className="gl-fine" role="status">Schnee am Gletscher wird geladen …</p>}>
+      <GlacierSnowLadder g={g} snowPointer={snowPointer} weatherPointer={weatherPointer} byId={byId} stations={stnView?.stations ?? null} nowMs={nowMs} bases={bases} />
+    </Suspense>
+  ) : null;
   const frame = useMemo(() => {
     if (!stnView || !showStations || !onHeute) return null;
     const b = heuteFrame(mapGeometry ? bboxOf(mapGeometry) : null, stnView.stations);
@@ -376,7 +386,7 @@ export default function GlacierBrief({ g, build, elevBuild = null, hugBuild = nu
             {notReady ? <>{level === 0 && <section className="gl-hb-card gl-hb-hero" aria-label="Gletscher auf einen Blick">{headBlock}</section>}{notReady}</> : (data && (
               <>
                 {data.missing.length > 0 && <p className="gl-fine gl-missing" role="note">Nicht ladbar: {data.missing.join(', ')}.</p>}
-                {level === 0 ? <GlacierHeuteBoard g={g} melt={mv} meltWhy={meltWhy} season={season} nowMs={nowMs} neighbourName={neighbourName} head={headBlock} weather={weatherCard} winter={isHeuteWinter(nowMs)}
+                {level === 0 ? <GlacierHeuteBoard g={g} melt={mv} meltWhy={meltWhy} season={season} nowMs={nowMs} neighbourName={neighbourName} head={headBlock} weather={weatherCard} snow={snowLadder} winter={isHeuteWinter(nowMs)}
                   sources={(
                     <details className="gl-ds-card gl-ds-sec gl-ds-fold" data-tab="quellen">
                       <summary><span className="gl-ds-eyebrow">{TAB_LABEL.quellen}</span><span className="gl-ds-fold-hint">Herkunft, Stand und Lizenz jeder Zahl</span></summary>

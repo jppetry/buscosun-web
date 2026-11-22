@@ -63,6 +63,8 @@ type Loaded = {
   weather: GlacierIndex['weather'] | null;
   /** Phase GO: pointer to the station measurements (`null` = the store names none). */
   stations: GlacierIndex['stations'] | null;
+  /** Phase GV: pointer to the newest day of the snow analysis (`null` = the store names none). */
+  snow: GlacierIndex['snow'] | null;
   /** Phase GH: the build whose `dhdt/` files the pointer names (`index.static.dhdt`), `null` = none. */
   elevBuild: string | null;
   /** Phase GH, second product: the build whose `hugonnet/` files the pointer names (`index.static.hugonnet`), `null` = none. */
@@ -134,7 +136,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
         const [cat, points, summary, official] = await docsP;
         if (ac.signal.aborted) return;
         if (!cat || !points) { setLoad({ s: 'error', why: 'Katalog oder Punktliste nicht ladbar.' }); return; }
-        setLoad({ s: 'ready', d: { build, cat, points, summary, official: official ?? [], builtAt: index.builtAt, satIndex: index.sat ?? null, melt: index.melt ?? null, feed: index.feed ?? null, weather: index.weather ?? null, stations: index.stations ?? null, elevBuild: index.static.dhdt ?? null, hugBuild: index.static.hugonnet ?? null } });
+        setLoad({ s: 'ready', d: { build, cat, points, summary, official: official ?? [], builtAt: index.builtAt, satIndex: index.sat ?? null, melt: index.melt ?? null, feed: index.feed ?? null, weather: index.weather ?? null, stations: index.stations ?? null, snow: index.snow ?? null, elevBuild: index.static.dhdt ?? null, hugBuild: index.static.hugonnet ?? null } });
         // the satellite line is optional: a failure leaves "Ausaperung" locked and every other number untouched
         if (index.sat) loadSatLatest(index.sat, cat.byId, ac.signal, bases).then((m) => { if (!ac.signal.aborted) setSat(m); }, () => { /* stays locked */ });
         // the melt line (GL-3): only a FRESH run (≤ 30 h) colours the map; its index is today's value, never a unit
@@ -327,7 +329,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
     <div className="gl-ds-stage">
       {sel && d ? (
         <Suspense fallback={<div className="gl-empty" role="status">Dossier wird geladen …</div>}>
-          <GlacierBrief key={sel.id} layout="dossier" g={sel} build={d.build} elevBuild={d.elevBuild} hugBuild={d.hugBuild} byId={d.cat.byId} satIndex={d.satIndex} meltPointer={d.melt} weatherPointer={d.weather} stationPointer={d.stations} official={d.official} nowMs={nowMs} isMobile={isMobile} bases={bases}
+          <GlacierBrief key={sel.id} layout="dossier" g={sel} build={d.build} elevBuild={d.elevBuild} hugBuild={d.hugBuild} byId={d.cat.byId} satIndex={d.satIndex} meltPointer={d.melt} weatherPointer={d.weather} stationPointer={d.stations} snowPointer={d.snow} official={d.official} nowMs={nowMs} isMobile={isMobile} bases={bases}
             state={sheet} onState={(patch) => setSheet((s) => ({ ...s, ...patch }))} onBack={() => setStage('map')} allow3d={allow3d} followed={favs.includes(sel.id)} onFollow={() => follow(sel.id)}
             onOpenSheet={GLACIER_BRIEF_READY ? openBrief : undefined} />
         </Suspense>

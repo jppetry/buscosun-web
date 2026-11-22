@@ -4434,3 +4434,26 @@ keine neue Quelle: die Seite liest dieselben zwei Stationsdateien wie bisher.
    nächsten 7 Tage“ als Bild — gebaut ist die bestehende Tagestabelle, weil der Inhalt bleiben sollte.
 5. **Zurück:** Commit zurücknehmen (kein Schalter, wie beauftragt).
 6. **Budget:** totalJs 2 108 gegen 2 102,1 (+5,9 KB, davon 3,5 KB im neuen Lazy-Chunk); Grenze von Hand 2 103 → 2 109.
+
+## 115. Gletscher: Schnee am Gletscher in der Dossier-Ebene Heute (Phase GV, `audit/gletscher-schnee-anzeige.md`), 2026-11-22
+
+Dein Auftrag nach `mockups_glacier/dossier-neue-parameter.html`, **Variante A „Höhenleiter“**, Neuschnee in **mm Wasserwert**,
+ohne Schalter für alle. Gebaut, **lokal committet, nicht gepusht**. **Ich habe es nicht im Browser gesehen** (deine Vorgabe).
+Nichts am Daten-Repo: die Seite liest die schon veröffentlichten Dateien `snow/<tag>.json`, die Zellendatei und `melt/wx/<lauf>`.
+
+1. **Pushen:** `git push origin main`.
+2. **Ansehen am Desktop:** Lageseite → Dossier → Ebene Heute, unter „Wetter am Gletscher“ die neue Karte „Am Gletscher, nach
+   Höhe“. Gute Beispiele: Hintereisferner (AT, Schneeanalyse mit 7 Zellen), Diem Ferner E1 (AT, Nachbar-Antrieb: Satz statt
+   Neuschnee; Analyse aus der „nächsten Zelle“, geteilt mit E2), Großer Aletschgletscher (CH, Stationen in der Leiter, Satz
+   „Schneeanalyse nur für österreichische Gletscher.“). Worauf achten:
+   - Leiter von oben nach unten nach Höhe; das Eis als blaue Säule; Stationen mit derselben Nummer wie in der Kartenliste.
+   - Je Höhe Neuschnee heute, Balken für 5 Tage mit Strich = 8 von 10 Szenarien; an der Mitte die stärkste Böe je Tag mit Spanne.
+   - Schneefallgrenze an ihrer Höhe, darunter ihr Verlauf über 120 h vor dem Höhenband (Lücken bleiben Lücken, „keine Angabe“).
+   - Abgesetzt „Im Gebiet, ohne Höhe“ mit Chip „Analyse“ (Schiefer): cm, mm, Lage in Worten, Balken 0–100, die letzten 7 Tage.
+   - Die Karte „Wetter am Gletscher“ darüber ist unverändert.
+3. **Ansehen am Telefon:** Leiter schmaler, Bilder untereinander; Quellenlinks ≥ 44 px.
+4. **Deine Entscheidungen:** E-GV-3 Schneeanalyse wird bis 4 Tage nach ihrem Tag gezeigt (gesetzt); E-GV-4 Lage in Worten nach
+   den Bändern 10/25/75/90 % (Wortlaut in `glacierSnowView.ts`); E-GV-5 die Leiter zeigt auch die Stationen (Variante A), die
+   Liste neben der Karte bleibt; V-GV-1 der Balken der Lage zeigt keine cm an den Stützwerten (die Klimatologie lädt die Seite nicht).
+5. **Zurück:** Commit zurücknehmen (kein Schalter, wie beauftragt).
+6. **Budget:** totalJs 2 117,2 gegen 2 108 (+9,2 KB, davon 7,6 KB im neuen Lazy-Chunk); Grenze von Hand 2 109 → 2 118.

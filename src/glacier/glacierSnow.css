@@ -1,0 +1,99 @@
+/* Phase GV — the ladder "Am Gletscher, nach Höhe" on the dossier level Heute (lazy chunk `GlacierSnowLadder.tsx`, variant A).
+   Glacier tokens only (glacierDeck.css; the slate of the origin "Analyse" is `--gl-prov-analysis-*`). The ice runs along the ladder as a
+   column — the one bold element; everything else stays quiet. The phone layout lives in the dossier's media query alone. */
+
+.gl-hb-snow { min-width: 0; }
+.gl-sv.gl-card { border-radius: 18px; border-color: var(--gl-hair); box-shadow: var(--gl-shadow-m); background: var(--gl-glass); padding: 14px 16px; gap: 12px; }
+.gl-sv-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.gl-sv-head h3 { margin: 0; font-size: 17px; line-height: 1.2; font-weight: 700; color: var(--gl-ink); }
+.gl-sv-head p { margin: 2px 0 0; font-size: 12.5px; color: var(--gl-faint); max-width: 72ch; }
+.gl-sv-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* --- the ladder --- */
+.gl-sv-ladder { list-style: none; margin: 0; padding: 0; }
+.gl-sv-rung { display: grid; grid-template-columns: 64px 18px minmax(0, 1fr); column-gap: 10px; }
+.gl-sv-z { text-align: right; font-size: 12.5px; color: var(--gl-muted); padding-top: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.gl-sv-ice { position: relative; }
+.gl-sv-rung.on-ice .gl-sv-ice::before { content: ''; position: absolute; inset: 0 3px; background: linear-gradient(90deg, var(--gl-ice-pale), var(--gl-ice)); }
+.gl-sv-rung.on-ice:not(.on-ice + .on-ice) .gl-sv-ice::before { top: 10px; border-radius: 6px 6px 0 0; }
+.gl-sv-rung.on-ice:has(+ .gl-sv-rung:not(.on-ice)) .gl-sv-ice::before, .gl-sv-rung.on-ice.is-last .gl-sv-ice::before { bottom: calc(100% - 26px); border-radius: 0 0 6px 6px; }
+.gl-sv-ice::after { content: ''; position: absolute; left: 50%; top: 13px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: var(--gl-panel); border: 2px solid var(--gl-ink); box-sizing: border-box; }
+.gl-sv-rung.is-stn .gl-sv-ice::after { background: var(--gl-prov-measured-dot); border-color: #fff; width: 12px; height: 12px; margin-left: -6px; }
+.gl-sv-rung.is-sl .gl-sv-ice::after { width: 22px; height: 3px; margin-left: -11px; top: 17px; border: 0; border-radius: 2px; background: var(--gl-prov-model-dot); }
+.gl-sv-body { padding: 8px 0 14px; border-bottom: 1px solid var(--gl-line); min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.gl-sv-rung.is-last .gl-sv-body { border-bottom: 0; }
+.gl-sv-rung.is-sl .gl-sv-body { background: linear-gradient(90deg, var(--gl-prov-model-bg), transparent 80%); border-radius: 10px; padding: 8px 10px 10px; margin: 4px 0; border-bottom: 0; }
+.gl-sv-rhead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.gl-sv-rhead > b { font-size: 15px; font-weight: 700; }
+.gl-sv-age { margin-left: auto; font-size: 12px; color: var(--gl-faint); }
+.gl-sv-meta { margin: 0; font-size: 12.5px; color: var(--gl-muted); line-height: 1.4; }
+.gl-sv-meta .gl-num { color: var(--gl-prov-model-text); }
+
+.gl-sv-fig { display: grid; grid-template-columns: minmax(0, 230px) minmax(0, 1fr); gap: 16px; align-items: end; }
+.gl-sv-figtx { display: flex; flex-direction: column; gap: 3px; }
+.gl-sv-figtx > b { font-size: 24px; line-height: 1; color: var(--gl-prov-model-text); font-variant-numeric: tabular-nums; }
+.gl-sv-figtx > b small { font-size: 13px; font-weight: 500; margin-left: 3px; }
+.gl-sv-figtx > span { font-size: 12px; color: var(--gl-muted); line-height: 1.35; }
+.gl-sv-bars { width: 100%; max-width: 300px; height: auto; display: block; }
+.gl-sv-bar { fill: var(--gl-prov-model-dot); fill-opacity: 0.55; }
+.gl-sv-bar.is-now { fill-opacity: 1; }
+.gl-sv-whisker { stroke: var(--gl-prov-model-text); stroke-width: 1.2; }
+.gl-sv-tick { font-size: 11px; fill: var(--gl-faint); font-family: inherit; }
+
+.gl-sv-gust { display: flex; flex-direction: column; gap: 4px; }
+.gl-sv-gust-l { font-size: 12px; color: var(--gl-muted); }
+.gl-sv-gust-l em { font-style: normal; color: var(--gl-faint); margin-left: 6px; }
+.gl-sv-gust dl { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 0; }
+.gl-sv-gust dl > div { display: flex; flex-direction: column; min-width: 46px; }
+.gl-sv-gust dt { font-size: 11.5px; color: var(--gl-faint); }
+.gl-sv-gust dd { margin: 0; display: flex; flex-direction: column; }
+.gl-sv-gust dd b { font-size: 15px; color: var(--gl-prov-model-text); font-variant-numeric: tabular-nums; }
+.gl-sv-gust dd small { font-size: 11px; color: var(--gl-faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.gl-sv-spark { width: 100%; max-width: 600px; height: auto; display: block; }
+.gl-sv-band { fill: var(--gl-ice-pale); }
+.gl-sv-mid { stroke: var(--gl-ice-deep); stroke-dasharray: 3 3; }
+.gl-sv-grid { stroke: var(--gl-line); }
+.gl-sv-sl { fill: none; stroke: var(--gl-prov-model-dot); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.gl-sv-now { fill: #fff; stroke: var(--gl-prov-model-text); stroke-width: 2; }
+.gl-sv-bandlabel { font-size: 10.5px; fill: var(--gl-accent-dark); font-family: inherit; }
+
+.gl-sv-sn { width: 22px; height: 22px; border-radius: 50%; box-sizing: border-box; border: 2.5px solid var(--gl-prov-measured-dot); background: #fff; color: var(--gl-prov-measured-text); font-size: 12px; font-weight: 700; display: inline-grid; place-items: center; flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+.gl-sv-sn.is-best { background: var(--gl-prov-measured-dot); color: #fff; }
+.gl-sv-vals { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 0; }
+.gl-sv-vals dt { font-size: 11.5px; color: var(--gl-faint); }
+.gl-sv-vals dd { margin: 0; font-size: 17px; }
+.gl-sv-vals dd b { color: var(--gl-prov-measured-text); }
+
+/* --- the analysis block, set apart: it has no elevation --- */
+.gl-sv-area { border-top: 1px solid var(--gl-line-strong); padding-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+.gl-sv-areagrid { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 18px; align-items: start; }
+.gl-sv-areafig { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--gl-muted); }
+.gl-sv-big { font-size: 40px; line-height: 1; color: var(--gl-prov-analysis-text); font-variant-numeric: tabular-nums; }
+.gl-sv-big small { font-size: 15px; font-weight: 500; color: var(--gl-muted); margin-left: 4px; }
+.gl-sv-areafig b.gl-num:not(.gl-sv-big) { color: var(--gl-prov-analysis-text); }
+.gl-sv-areapic { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.gl-sv-place { margin: 0; font-size: 13px; color: var(--gl-ink); line-height: 1.4; }
+.gl-sv-ruler { width: 100%; max-width: 520px; height: auto; display: block; }
+.gl-sv-r1 { fill: var(--gl-prov-analysis-bg); }
+.gl-sv-r2 { fill: var(--gl-prov-analysis-line); }
+.gl-sv-r3 { fill: color-mix(in srgb, var(--gl-prov-analysis-dot) 45%, var(--gl-prov-analysis-line)); }
+.gl-sv-r-mid { stroke: var(--gl-prov-analysis-text); stroke-width: 2; }
+.gl-sv-r-dot { fill: #fff; stroke: var(--gl-ink); stroke-width: 2.5; }
+.gl-sv-r-lab { font-size: 12.5px; font-weight: 700; fill: var(--gl-ink); font-family: inherit; }
+.gl-sv-week { width: 100%; max-width: 340px; height: auto; display: block; }
+.gl-sv-wbar { fill: var(--gl-prov-analysis-dot); fill-opacity: 0.45; }
+.gl-sv-wbar.is-now { fill-opacity: 1; }
+.gl-sv-wval { font-size: 10.5px; fill: var(--gl-prov-analysis-text); font-family: inherit; }
+.gl-sv-empty { margin: 0; border-radius: 12px; background: rgba(255, 255, 255, 0.6); border: 1px dashed var(--gl-line-strong); padding: 10px 12px; font-size: 13px; color: var(--gl-muted); }
+.gl-sv-src a { color: var(--gl-accent-dark); }
+
+@media (max-width: 767px), (max-width: 1439px) and (pointer: coarse) {
+  .gl-sv.gl-card { border-radius: 16px; padding: 12px; }
+  .gl-sv-rung { grid-template-columns: 46px 14px minmax(0, 1fr); column-gap: 8px; }
+  .gl-sv-z { font-size: 11.5px; }
+  .gl-sv-fig, .gl-sv-areagrid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .gl-sv-big { font-size: 34px; }
+  /* source links: a full line each with a touch target of 44 px */
+  .gl-sv-src a { display: inline-flex; align-items: center; min-height: 44px; }
+}
