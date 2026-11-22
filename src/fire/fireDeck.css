@@ -1372,6 +1372,8 @@
 .br-ds-back { margin: 0; font-size: 13px; }
 .br-minimap { position: relative; border-radius: 10px; overflow: hidden; border: 1px solid var(--sand-200, #E0D6BE); background: var(--sand-100, #EDE6D3); cursor: pointer; }
 .br-minimap-canvas { position: absolute; inset: 0; }
+/* ⓘ unten rechts IM Bild: die Mobil-Regel aus MapView.css (bottom: 152px, bleibt nach einem Besuch der Wetterkarte geladen) schob es aus der Minikarte. */
+.br-minimap-canvas .maplibregl-ctrl-bottom-right { bottom: 0; right: 0; }
 .br-minimap:focus-visible { outline: 2px solid var(--br-terra); outline-offset: 2px; }
 .br-ds-mapnote { margin: 10px 0 0; font-size: 14px; line-height: 1.5; color: var(--stone-500, #8B7355); }
 .br-ds-mapnote strong { display: block; color: var(--ink-900, #2C2A26); font-weight: 600; font-size: 14.5px; }

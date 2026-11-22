@@ -109,9 +109,16 @@ export function FireMiniMap({ record, footprintFc, basemap, height, ariaLabel }:
     };
     // V-BD2-2: dieselbe Regel wie die Hauptkarte (BD2e) — die beim Start ausgeklappte
     // Attribution verdeckte die 150–300-px-Minikarte fast ganz; zugeklappt bleibt der ⓘ-Knopf.
-    map.once('load', () => {
-      map.getContainer().querySelectorAll('details.maplibregl-ctrl-attrib[open]').forEach((d) => d.removeAttribute('open'));
-    });
+    // MapLibre klappt die Attribution wieder auf (`maplibregl-compact-show`), wenn ihr Text erst nach `load` eintrifft —
+    // deshalb zusätzlich beim ersten `idle` zuklappen; danach entscheidet nur noch der Klick auf ⓘ.
+    const collapseAttrib = () => {
+      map.getContainer().querySelectorAll('details.maplibregl-ctrl-attrib').forEach((d) => {
+        d.removeAttribute('open');
+        d.classList.remove('maplibregl-compact-show');
+      });
+    };
+    map.once('load', collapseAttrib);
+    map.once('idle', collapseAttrib);
     map.on('style.load', install);
     // Mobile: the map is often created while its tab/card is hidden or still 0 px wide; the canvas then
     // keeps its stale size and is only CSS-stretched (pixelated). Re-measure and re-fit whenever the box changes.
