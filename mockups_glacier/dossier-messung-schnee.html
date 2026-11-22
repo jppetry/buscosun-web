@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gletscher-Dossier: Messung und Schnee</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;500;600;700&display=swap">
+<style>
+/* Tokens 1:1 aus src/glacier/glacierDeck.css; neu nur --gl-prov-analysis-* (Vorschlag für die Herkunft "Analyse") */
+:root {
+  --gl-accent: #1E87A8; --gl-accent-dark: #145A70; --gl-tint: #E3F1F5; --gl-loss: #8F4A22;
+  --gl-prov-measured-text: #4F6A3D; --gl-prov-measured-bg: #EFF3E8; --gl-prov-measured-line: #C3D2AF; --gl-prov-measured-dot: #5F7A4C;
+  --gl-prov-satellite-text: #4B3D96; --gl-prov-satellite-bg: #EEEBF8; --gl-prov-satellite-line: #CFC6EE; --gl-prov-satellite-dot: #6B5BB8;
+  --gl-prov-model-text: #7A5418; --gl-prov-model-bg: #FBF3E7; --gl-prov-model-line: #E7D3B4; --gl-prov-model-dot: #B8862F;
+  --gl-prov-official-text: #2C2A26; --gl-prov-official-bg: #EDE6D3; --gl-prov-official-line: #D9D0B8; --gl-prov-official-dot: #2C2A26;
+  --gl-prov-analysis-text: #3D4F6B; --gl-prov-analysis-bg: #ECEFF5; --gl-prov-analysis-line: #C9D1E0; --gl-prov-analysis-dot: #5A6E92;
+  --gl-ink: #2C2A26; --gl-muted: #5C5447; --gl-faint: #6F6553; --gl-panel: #FAF6EA; --gl-bg: #EDE6D3; --gl-line: #E0D6BE; --gl-line-strong: #D9D0B8;
+  --gl-glass: rgba(250, 246, 234, 0.96); --gl-hair: color-mix(in srgb, var(--gl-line) 80%, transparent);
+  --gl-inset: 0 1px 0 rgba(255, 255, 255, 0.7) inset;
+  --gl-shadow-s: var(--gl-inset), 0 6px 14px -12px rgba(44, 42, 38, 0.3);
+  --gl-shadow-m: var(--gl-inset), 0 12px 26px -16px rgba(44, 42, 38, 0.32);
+  --gl-grad: linear-gradient(135deg, var(--gl-accent), color-mix(in srgb, var(--gl-accent) 65%, var(--gl-accent-dark)));
+  --ice: #A8D0E0; --ice-deep: #6FAFC8;
+  --font: 'League Spartan', system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: linear-gradient(180deg, #F5F1E8 0%, var(--gl-bg) 100%) fixed; color: var(--gl-ink); font: 14px/1.45 var(--font); }
+:focus-visible { outline: 2px solid var(--gl-accent); outline-offset: 2px; }
+button { font: inherit; color: inherit; }
+.num { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* ---------- page around the mockup ---------- */
+.page { max-width: 1400px; margin: 0 auto; padding: 20px 16px 48px; }
+.intro h1 { font-size: 26px; line-height: 1.15; margin: 0 0 6px; font-weight: 700; }
+.intro p { margin: 0; max-width: 78ch; color: var(--gl-muted); }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin: 16px 0 18px; }
+.ctl { display: flex; align-items: center; gap: 8px; }
+.ctl > span { font-size: 12.5px; color: var(--gl-faint); }
+.seg { display: inline-flex; padding: 3px; gap: 3px; border-radius: 12px; background: rgba(255,255,255,.7); border: 1px solid var(--gl-hair); box-shadow: var(--gl-shadow-s); }
+.seg button { border: 0; background: transparent; padding: 7px 12px; border-radius: 9px; cursor: pointer; font-size: 13.5px; min-height: 36px; }
+.seg button[aria-pressed="true"] { background: var(--gl-grad); color: #FAF6EA; box-shadow: 0 6px 14px -6px color-mix(in srgb, var(--gl-accent) 70%, transparent); }
+.seg button small { display: block; font-size: 11px; opacity: .75; }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 1100px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+
+.notes { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 12px; }
+.notes section { background: var(--gl-glass); border: 1px solid var(--gl-hair); border-radius: 16px; box-shadow: var(--gl-shadow-m); padding: 14px 16px; }
+.notes h2 { font-size: 17px; margin: 0 0 2px; }
+.notes h3 { font-size: 13.5px; margin: 10px 0 2px; }
+.notes p, .notes li { font-size: 13px; color: var(--gl-muted); margin: 0; }
+.notes ul { margin: 0; padding-left: 18px; }
+.notes .tag { display: inline-block; font-size: 11.5px; padding: 1px 8px; border-radius: 10px; background: var(--gl-tint); color: var(--gl-accent-dark); margin-top: 4px; }
+.example { font-size: 12px; color: var(--gl-faint); }
+
+/* ---------- the dossier frame ---------- */
+.stage { display: flex; justify-content: center; }
+.mock { container-type: inline-size; width: 100%; max-width: 920px; display: flex; flex-direction: column; gap: 12px; transition: max-width .25s; }
+.mock.is-phone { max-width: 390px; padding: 10px; border-radius: 28px; background: rgba(255,255,255,.35); border: 1px solid var(--gl-hair); box-shadow: var(--gl-shadow-m); }
+@media (prefers-reduced-motion: reduce) { .mock { transition: none; } }
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 6px; border-radius: 16px; background: rgba(250,246,234,.86); border: 1px solid var(--gl-hair); box-shadow: var(--gl-shadow-s); }
+.step { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 12px; }
+.step i { width: 24px; height: 24px; border-radius: 12px; border: 1px solid var(--gl-line-strong); display: grid; place-items: center; font-style: normal; font-size: 12px; font-weight: 700; flex: 0 0 auto; }
+.step b { display: block; font-size: 14px; }
+.step small { display: block; font-size: 11.5px; color: var(--gl-faint); }
+.step.is-on { background: var(--gl-grad); color: #FAF6EA; }
+.step.is-on i { background: #FAF6EA; color: var(--gl-accent-dark); border-color: #FAF6EA; }
+.step.is-on small { color: rgba(250,246,234,.78); }
+
+.card { background: var(--gl-glass); border: 1px solid var(--gl-hair); border-radius: 18px; box-shadow: var(--gl-shadow-m); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.card-head b { font-size: 15px; font-weight: 700; }
+.card-head span.sub { font-size: 12px; color: var(--gl-faint); font-weight: 500; margin-left: 6px; }
+.fine { font-size: 11.5px; color: var(--gl-faint); margin: 0; line-height: 1.4; }
+.honest { font-size: 12.5px; color: var(--gl-muted); margin: 0; }
+.hero-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.hero-title h2 { margin: 0; font-size: 24px; line-height: 1.1; }
+.hero-sub { margin: 0; font-size: 12.5px; color: var(--gl-faint); }
+.kf { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; }
+.kf > div { background: rgba(255,255,255,.78); border: 1px solid var(--gl-hair); border-radius: 12px; padding: 8px 10px; }
+.kf span { display: block; font-size: 11.5px; color: var(--gl-faint); }
+.kf b { font-size: 17px; }
+.placeholder { border: 1.5px dashed var(--gl-line-strong); border-radius: 18px; padding: 12px 16px; color: var(--gl-faint); font-size: 13px; background: rgba(255,255,255,.35); display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.placeholder b { color: var(--gl-muted); }
+
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 11px; border: 1px solid; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+.chip i { width: 7px; height: 7px; border-radius: 4px; }
+.chip.measured { background: var(--gl-prov-measured-bg); color: var(--gl-prov-measured-text); border-color: var(--gl-prov-measured-line); }
+.chip.measured i { background: var(--gl-prov-measured-dot); }
+.chip.analysis { background: var(--gl-prov-analysis-bg); color: var(--gl-prov-analysis-text); border-color: var(--gl-prov-analysis-line); }
+.chip.analysis i { background: var(--gl-prov-analysis-dot); }
+.chip.official { background: var(--gl-prov-official-bg); color: var(--gl-prov-official-text); border-color: var(--gl-prov-official-line); }
+.chip.official i { background: var(--gl-prov-official-dot); }
+.empty { border-radius: 14px; background: rgba(255,255,255,.6); border: 1px solid var(--gl-hair); padding: 12px 14px; font-size: 13px; color: var(--gl-muted); }
+.empty strong { color: var(--gl-ink); }
+a { color: var(--gl-accent-dark); }
+
+/* ---------- Variante A: Kacheln ---------- */
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); gap: 8px; }
+.tile { background: rgba(255,255,255,.82); border: 1px solid var(--gl-hair); border-radius: 14px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; box-shadow: var(--gl-shadow-s); min-width: 0; }
+.tile.is-none { background: transparent; box-shadow: none; border-style: dashed; }
+.tile-l { font-size: 12px; color: var(--gl-faint); }
+.tile-v { font-size: 26px; line-height: 1.05; color: var(--gl-prov-measured-text); }
+.tile-v small { font-size: 14px; font-weight: 500; margin-left: 2px; }
+.tile-v.is-none { font-size: 14px; color: var(--gl-faint); font-weight: 500; }
+.tile-s { font-size: 12px; color: var(--gl-muted); line-height: 1.3; }
+.tile-s b { font-weight: 600; color: var(--gl-ink); }
+.tile-foot { display: flex; justify-content: space-between; gap: 6px; font-size: 11.5px; color: var(--gl-faint); margin-top: auto; padding-top: 4px; border-top: 1px solid var(--gl-hair); }
+.dzpill { display: inline-flex; align-items: center; gap: 3px; }
+.dbars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; align-items: end; height: 54px; margin-top: 2px; }
+.dbars div { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 2px; font-size: 11px; color: var(--gl-faint); }
+.dbars i { display: block; width: 100%; border-radius: 4px 4px 2px 2px; background: var(--gl-prov-measured-dot); opacity: .85; }
+.dbars i.neg { background: var(--gl-loss); }
+.dbars em { font-style: normal; font-size: 12px; font-weight: 600; color: var(--gl-ink); }
+.snowA { display: grid; grid-template-columns: 180px minmax(0,1fr); gap: 16px; align-items: center; }
+.big { display: flex; align-items: baseline; gap: 6px; }
+.big .num { font-size: 40px; line-height: 1; color: var(--gl-prov-analysis-text); }
+.big span { font-size: 15px; color: var(--gl-muted); }
+.kv { font-size: 12.5px; color: var(--gl-muted); }
+.kv b { color: var(--gl-ink); font-weight: 600; }
+.week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; height: 66px; align-items: end; }
+.week div { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 2px; font-size: 10.5px; color: var(--gl-faint); }
+.week i { width: 100%; max-width: 30px; border-radius: 4px 4px 2px 2px; background: var(--gl-prov-analysis-dot); opacity: .55; }
+.week div:last-child i { opacity: 1; }
+.week em { font-style: normal; font-size: 11px; color: var(--gl-ink); font-weight: 600; }
+@container (max-width: 560px) {
+  .kf { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .steps small { display: none; }
+  .tiles { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .tile-v { font-size: 22px; }
+  .snowA { grid-template-columns: minmax(0,1fr); }
+}
+
+/* ---------- Variante B: Höhenprofil ---------- */
+.profile { display: grid; grid-template-columns: minmax(0, 1fr) 118px; gap: 14px; align-items: stretch; }
+.profile svg { width: 100%; height: auto; display: block; }
+.gauge { border-left: 1px solid var(--gl-hair); padding-left: 12px; display: flex; flex-direction: column; gap: 6px; }
+.gauge b.t { font-size: 12.5px; }
+.slist { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
+.slist li { background: rgba(255,255,255,.82); border: 1px solid var(--gl-hair); border-radius: 14px; padding: 10px 12px; box-shadow: var(--gl-shadow-s); display: flex; flex-direction: column; gap: 6px; }
+.shead { display: flex; align-items: center; gap: 8px; }
+.sdot { width: 22px; height: 22px; border-radius: 11px; background: var(--gl-prov-measured-dot); color: #fff; font-size: 12px; font-weight: 700; display: grid; place-items: center; flex: 0 0 auto; }
+.shead b { font-size: 14px; }
+.shead > span:last-child { font-size: 12px; color: var(--gl-faint); margin-left: auto; white-space: nowrap; }
+.swhere { font-size: 12px; color: var(--gl-muted); margin: 0; }
+.svals { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 4px 12px; margin: 0; }
+.svals dt { font-size: 11.5px; color: var(--gl-faint); }
+.svals dd { margin: 0; font-size: 16px; color: var(--gl-prov-measured-text); }
+@container (max-width: 560px) {
+  .profile { grid-template-columns: minmax(0,1fr); }
+  .gauge { border-left: 0; border-top: 1px solid var(--gl-hair); padding: 10px 0 0; flex-direction: row; align-items: center; }
+  .slist { grid-template-columns: minmax(0,1fr); }
+}
+
+/* ---------- Variante C: Schneewinter ---------- */
+.fan svg { width: 100%; height: auto; display: block; }
+.range { align-self: flex-start; }
+.range button { padding: 5px 10px; min-height: 32px; font-size: 12.5px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--gl-muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { display: inline-block; width: 16px; height: 9px; border-radius: 3px; }
+.cstats { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; }
+.cstats > div { background: rgba(255,255,255,.82); border: 1px solid var(--gl-hair); border-radius: 12px; padding: 8px 10px; }
+.cstats span { display: block; font-size: 11.5px; color: var(--gl-faint); }
+.cstats b { font-size: 19px; color: var(--gl-prov-analysis-text); }
+.cstats small { display: block; font-size: 11px; color: var(--gl-faint); }
+.mtable-wrap { overflow-x: auto; }
+.mtable { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.mtable th, .mtable td { padding: 7px 8px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--gl-line); }
+.mtable thead th { font-size: 11.5px; font-weight: 600; color: var(--gl-muted); }
+.mtable th[scope="row"], .mtable thead th:first-child { text-align: left; }
+.mtable th[scope="row"] b { display: block; font-size: 13.5px; }
+.mtable th[scope="row"] span { font-size: 11.5px; font-weight: 400; color: var(--gl-faint); }
+.mtable td.m { color: var(--gl-prov-measured-text); font-weight: 600; }
+.mtable td.na { color: var(--gl-faint); }
+.mtable tbody tr:last-child > * { border-bottom: 0; }
+@container (max-width: 560px) {
+  .cstats { grid-template-columns: repeat(3, minmax(0,1fr)); gap: 6px; }
+  .cstats b { font-size: 16px; }
+  /* phone: each station becomes a small block, only the quantities it measures */
+  .mtable thead { display: none; }
+  .mtable tr { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 2px 12px; padding: 8px 0; border-bottom: 1px solid var(--gl-line); }
+  .mtable tbody tr:last-child { border-bottom: 0; }
+  .mtable th, .mtable td { border: 0; padding: 2px 0; text-align: left; white-space: normal; }
+  .mtable th[scope="row"] { grid-column: 1 / -1; }
+  .mtable td.na { display: none; }
+  .mtable td.age { display: block; }
+  .mtable td.m::before, .mtable td.age::before { content: attr(data-l); display: block; font-size: 11px; font-weight: 400; color: var(--gl-faint); }
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="intro">
+    <h1>Gletscher-Dossier: Messstationen und Schneeanalyse</h1>
+    <p>Drei Vorschläge, wie die neuen Daten der Phasen GI (Stationen inkl. SLF) und GN (SNOWGRID) im Dossier erscheinen. Gezeigt ist die Ebene „Heute“, direkt unter der bestehenden Karte „Wetter am Gletscher“. Umschalten zwischen Variante, Gletscher (Österreich mit Schneeanalyse, Schweiz ohne) und Breite.</p>
+  </header>
+
+  <div class="controls" role="group" aria-label="Ansicht des Mockups">
+    <div class="ctl"><span>Variante</span>
+      <div class="seg" data-ctl="v">
+        <button type="button" data-val="A" aria-pressed="true">A · Kacheln<small>ein Blick je Größe</small></button>
+        <button type="button" data-val="B" aria-pressed="false">B · Höhenprofil<small>wo die Instrumente stehen</small></button>
+        <button type="button" data-val="C" aria-pressed="false">C · Schneewinter<small>gegen frühere Winter</small></button>
+      </div>
+    </div>
+    <div class="ctl"><span>Gletscher</span>
+      <div class="seg" data-ctl="g">
+        <button type="button" data-val="AT" aria-pressed="true">Hintereisferner</button>
+        <button type="button" data-val="CH" aria-pressed="false">Grosser Aletsch</button>
+      </div>
+    </div>
+    <div class="ctl"><span>Breite</span>
+      <div class="seg" data-ctl="w">
+        <button type="button" data-val="d" aria-pressed="true">Desktop</button>
+        <button type="button" data-val="m" aria-pressed="false">Telefon 390</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="stage"><div class="mock" id="mock"></div></div>
+    <aside class="notes" id="notes" aria-live="polite"></aside>
+  </div>
+</div>
+
+<script>
+/* ======================= Beispieldaten =======================
+   Echt (Fixtures scripts/lib/fixtures/glacier/snow): Spanne 1991–2020 der SNOWGRID-Zelle 46,800° N 10,758° E am Hintereisferner
+   (Stützwerte p0/10/25/50/75/90/100 je dritter Tag ab 01.10.) und die Tage 14.–20.11.2026 (Schneehöhe, Wasserwert).
+   Erfunden: der Verlauf 01.10.–13.11. (die Saisonreihe gibt es noch nicht, V-GN-4).
+   Stationswerte: Tiroler OGD-Datei vom 21.11.2026 08:00 MEZ (Fixture); Abstände, Alter und die Schweizer Werte sind Beispiele. */
+const CLIM = [[0,0,0,8,20,40,55,62],[3,0,5,17,29,49,63,83],[6,0,2,16,30,54,71,115],[9,0,2,21,37,61,77,109],[12,0,14,24,35,56,68,117],[15,0,16,25,37,62,86,110],[18,0,15,22,41,60,90,112],[21,0,18,24,44,64,83,154],[24,6,19,25,43,75,96,144],[27,14,24,29,50,72,99,129],[30,22,23,30,51,85,110,124],[33,22,27,36,54,88,107,114],[36,24,33,50,68,90,110,147],[39,26,42,51,69,92,104,124],[42,36,45,52,78,92,106,123],[45,34,43,50,75,98,133,206],[48,32,45,52,73,109,136,221],[51,38,44,63,80,111,149,190],[54,40,48,60,78,107,136,196],[57,37,51,57,78,107,130,198],[60,36,55,65,78,108,133,206],[63,35,53,70,84,107,144,204],[66,44,53,66,88,108,164,194],[69,48,59,70,89,108,157,181],[72,47,59,67,93,125,148,171],[75,47,56,68,91,118,139,163],[78,47,59,79,92,113,134,169],[81,46,65,79,98,123,137,177],[84,46,65,77,97,123,153,171],[87,47,66,85,112,126,142,159],[90,46,70,83,109,122,130,160],[93,46,70,88,107,118,133,155],[96,59,70,85,104,123,143,170],[99,63,71,80,100,116,154,169],[102,65,71,85,101,130,146,166],[105,63,71,86,102,122,141,214],[108,61,68,87,100,119,139,185],[111,61,75,84,99,114,150,213],[114,61,77,87,98,113,142,213],[117,61,72,86,101,116,141,186],[120,61,70,86,105,120,149,171],[123,67,75,85,109,114,139,170],[126,64,71,85,106,127,141,162],[129,65,75,87,104,126,142,155],[132,64,74,85,105,122,139,152],[135,66,73,86,104,120,131,148],[138,68,75,86,105,121,126,156],[141,68,75,83,111,119,132,172],[144,70,77,84,107,114,133,196],[147,70,74,89,107,117,126,195],[150,68,74,94,105,114,122,169],[153,68,75,91,106,114,131,158],[156,66,86,94,108,117,125,191],[159,64,83,91,107,118,130,177],[162,64,85,90,104,120,134,162],[165,62,81,91,103,113,139,192],[168,65,79,95,104,113,143,167],[171,72,79,93,105,112,140,152],[174,74,89,93,105,112,141,190],[177,84,91,95,101,122,140,167],[180,86,89,95,103,131,139,180],[183,84,87,93,103,123,150,180],[186,82,87,96,108,129,152,181],[189,84,89,93,106,134,147,168],[192,81,87,91,111,127,142,171],[195,83,87,96,112,128,141,175],[198,79,87,96,113,130,161,180],[201,76,83,102,118,125,151,178],[204,74,81,98,112,125,148,166],[207,71,82,98,109,131,149,156],[210,70,83,103,120,135,145,185],[213,70,94,103,127,134,139,170],[216,74,89,111,123,133,146,188],[219,71,94,110,120,132,154,166],[222,68,98,108,114,127,148,166],[225,83,92,108,118,133,144,162],[228,87,96,109,123,131,139,153],[231,85,93,107,123,134,146,195],[234,77,91,110,115,131,170,206],[237,64,79,103,114,132,152,183],[240,64,92,99,113,136,151,184],[243,60,82,97,110,132,148,184],[246,49,74,91,108,129,144,165],[249,37,76,86,106,128,139,161],[252,25,66,80,102,133,147,161],[255,10,57,75,95,134,143,188],[258,0,53,70,93,120,139,174],[261,0,43,67,93,115,141,162],[264,0,33,67,83,118,139,145],[267,0,31,57,79,105,121,147],[270,0,28,50,70,100,125,136]];
+const TODAY_PCTS = [35, 45, 64, 74, 108, 123, 196];           // 20.11., Stützwerte p0 … p100 in cm
+const PCT_AT = [0, 10, 25, 50, 75, 90, 100];
+const WEEK = { days: ['Sa 14.', 'So 15.', 'Mo 16.', 'Di 17.', 'Mi 18.', 'Do 19.', 'Fr 20.'], hs: [28, 27, 27, 28, 28, 36, 39], swe: [55, 55, 55, 57, 58, 66, 69] };
+// Verlauf ab 01.10. (Tag 0); Tage 44–50 = 14.–20.11. echt, davor erfunden
+const SEASON = [0,0,0,0,0,0,4,12,15,14,11,9,6,4,2,0,0,0,0,0,0,3,8,10,10,9,9,8,8,7,7,12,16,18,17,17,16,15,15,21,26,29,29,28, 28,27,27,28,28,36,39];
+const placeOf = (v, p) => { if (v <= p[0]) return 0; for (let i = 1; i < p.length; i++) if (v <= p[i]) return Math.round(PCT_AT[i-1] + (v - p[i-1]) / (p[i] - p[i-1]) * (PCT_AT[i] - PCT_AT[i-1])); return 100; };
+
+const GLACIERS = {
+  AT: {
+    name: 'Hintereisferner mit Toteis', chip: 'AT · Klasse A', sub: 'Ötztaler Alpen · Tirol · AGI 5 (2023)', z: [2400, 3066, 3715],
+    kf: [['Fläche', '5,62 km²'], ['Höhe', '2 400–3 715 m'], ['Flächenänderung', '−19 %'], ['Massenbilanz', '−1 671 mm w. e.']],
+    stations: [
+      { id: 'A', name: 'Vernagt (Pegel)', op: 'Land Tirol (HD Tirol)', url: 'https://www.data.gv.at/', elev: 2640, km: 2.3, age: 'vor 35 min',
+        v: [['Temperatur', '−5,3', '°C'], ['Niederschlag 24 h', '2,8', 'mm']] },
+      { id: 'B', name: 'Weisssee LWD', op: 'Land Tirol (LWD Tirol)', url: 'https://www.data.gv.at/', elev: 2480, km: 4.6, age: 'vor 45 min',
+        v: [['Schneehöhe', '40', 'cm']], d: [9.3, 18.9, 19.8] },
+      { id: 'C', name: 'Sölden Kreuzspitze', op: 'Land Tirol (LWD Tirol)', url: 'https://www.data.gv.at/', elev: 3453, km: 4.8, age: 'vor 50 min',
+        v: [['Wind', '7,4', 'm/s', 'aus OSO'], ['Böe', '14,2', 'm/s']] },
+    ],
+    none: ['Globalstrahlung'], snow: true,
+  },
+  CH: {
+    name: 'Grosser Aletschgletscher', chip: 'CH · Klasse A', sub: 'Berner Alpen · Wallis · SGI 2016', z: [1600, 2950, 4100],
+    kf: [['Fläche', '77,1 km²'], ['Höhe', '1 600–4 100 m'], ['Flächenänderung', '−6 %'], ['Massenbilanz', '−1 330 mm w. e.']],
+    stations: [
+      { id: 'A', name: 'Jungfraujoch', op: 'MeteoSchweiz (SwissMetNet)', url: 'https://www.meteoschweiz.admin.ch', elev: 3571, km: 0.1, age: 'vor 20 min',
+        v: [['Temperatur', '−14,2', '°C'], ['Wind', '9,8', 'm/s', 'aus NW'], ['Böe', '17,5', 'm/s'], ['Globalstrahlung', '185', 'W/m²']] },
+      { id: 'B', name: 'Flesch', op: 'WSL-Institut für Schnee- und Lawinenforschung SLF', url: 'https://www.slf.ch', elev: 2500, km: 1.2, age: 'vor 25 min',
+        v: [['Schneehöhe', '52', 'cm']], d: null },
+    ],
+    none: ['Niederschlag'], snow: false,
+  },
+};
+const SITE_NOTE = 'Stationen auf Fels oder Grat, nicht auf dem Eis.';
+const SNOW_SRC = 'SNOWGRID Klima v2.1, GeoSphere Austria (CC BY 4.0)';
+
+/* ======================= Hilfen ======================= */
+const fmtKm = (k) => k < 0.2 ? 'am Rand des Gletschers' : `${String(k.toFixed(1)).replace('.', ',')} km vom Rand des Gletschers`;
+const fmtInt = (n) => String(Math.round(Math.abs(n))).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+const dzText = (elev, z) => { const d = elev - z[1]; return Math.abs(d) < 25 ? 'auf der mittleren Höhe' : `${fmtInt(d)} m ${d > 0 ? 'über' : 'unter'} der mittleren Höhe`; };
+const signed = (v) => `${v > 0 ? '+' : v < 0 ? '−' : '±'}${String(Math.abs(v).toFixed(1)).replace('.', ',')}`;
+const chip = (kind) => kind === 'measured' ? '<span class="chip measured"><i></i>gemessen</span>' : kind === 'analysis' ? '<span class="chip analysis"><i></i>Analyse</span>' : '<span class="chip official"><i></i>amtlich</span>';
+const srcLinks = (g) => [...new Set(g.stations.map((s) => s.op))].map((op) => { const s = g.stations.find((x) => x.op === op); return `<a href="${s.url}" target="_blank" rel="noopener noreferrer">${op}</a>`; }).join(' · ');
+
+function frame(g, body) {
+  return `
+    <nav class="steps" aria-label="Ebenen des Dossiers">
+      <div class="step is-on"><i>1</i><span><b>Heute</b><small>Schmelze · Oberfläche · Tour</small></span></div>
+      <div class="step"><i>2</i><span><b>Satellit</b><small>Saison · Schneegrenze · Bilanz</small></span></div>
+      <div class="step"><i>3</i><span><b>Langzeit</b><small>Reihen · Projektion · Quellen</small></span></div>
+    </nav>
+    <section class="card" aria-label="Gletscher auf einen Blick">
+      <div class="hero-title"><h2>${g.name}</h2><span class="chip official"><i></i>${g.chip}</span></div>
+      <p class="hero-sub">${g.sub}</p>
+      <div class="kf">${g.kf.map(([l, v]) => `<div><span>${l}</span><b class="num">${v}</b></div>`).join('')}</div>
+    </section>
+    <div class="placeholder"><span><b>Schmelzindex · Wetter am Gletscher</b> — bestehende Karten, unverändert</span><span>Modell</span></div>
+    ${body}`;
+}
+
+/* ======================= Variante A: Kacheln ======================= */
+function tilesA(g) {
+  const tiles = [];
+  for (const s of g.stations) {
+    for (const [label, val, unit, extra] of s.v) {
+      tiles.push(`<div class="tile" data-origin="measured">
+        <span class="tile-l">${label}</span>
+        <span class="tile-v num">${val}<small>${unit}</small></span>
+        <span class="tile-s">${extra ? `${extra} · ` : ''}<b>${s.name}</b>, ${fmtInt(s.elev)} m<br>${fmtKm(s.km)}, ${dzText(s.elev, g.z)}</span>
+        <span class="tile-foot"><span>${s.op.split(' (')[0].replace('WSL-Institut für Schnee- und Lawinenforschung SLF', 'SLF')}</span><span>${s.age}</span></span>
+      </div>`);
+    }
+    if (s.d !== undefined) {
+      if (s.d) {
+        const max = Math.max(...s.d.map(Math.abs), 1);
+        tiles.push(`<div class="tile" data-origin="measured">
+          <span class="tile-l">Änderung der Schneehöhe</span>
+          <div class="dbars" role="img" aria-label="Änderung der Schneehöhe: 24 Stunden ${signed(s.d[0])} cm, 48 Stunden ${signed(s.d[1])} cm, 72 Stunden ${signed(s.d[2])} cm">
+            ${s.d.map((d, i) => `<div><em>${signed(d)}</em><i class="${d < 0 ? 'neg' : ''}" style="height:${Math.max(3, Math.abs(d) / max * 30)}px"></i>${['24 h', '48 h', '72 h'][i]}</div>`).join('')}
+          </div>
+          <span class="tile-foot"><span>${s.name}, cm</span><span>${s.age}</span></span>
+        </div>`);
+      } else {
+        tiles.push(`<div class="tile is-none"><span class="tile-l">Änderung der Schneehöhe</span><span class="tile-v is-none">Liefert das SLF nicht.</span><span class="tile-s">Die Schneehöhe von ${s.name} steht nebenan.</span></div>`);
+      }
+    }
+  }
+  for (const n of g.none) tiles.push(`<div class="tile is-none"><span class="tile-l">${n}</span><span class="tile-v is-none">Keine Station im Fenster.</span><span class="tile-s">Innerhalb von 5 km und ±300 m misst niemand diese Größe.</span></div>`);
+  return `<section class="card" aria-label="Gemessen in der Nähe">
+    <div class="card-head"><b>Gemessen in der Nähe</b>${chip('measured')}</div>
+    <p class="honest">${SITE_NOTE} Je Größe die nächste Station zum Umriss.</p>
+    <div class="tiles">${tiles.join('')}</div>
+    <p class="fine">Rohdaten der Betreiber; weggelassen wird, was außerhalb benannter Grenzen liegt, springt, stillsteht oder älter als drei Stunden ist. Eine Messung ersetzt keinen Modellwert. ${srcLinks(g)}</p>
+  </section>`;
+}
+function rulerSvg(p, val) {
+  const W = 600, x = (q) => 12 + q / 100 * (W - 24), place = placeOf(val, p);
+  const seg = (a, b, c) => `<rect x="${x(a)}" y="22" width="${x(b) - x(a)}" height="14" fill="${c}"/>`;
+  return `<svg viewBox="0 0 ${W} 78" role="img" aria-label="Lage ${place} von 100 unter den Wintern 1991 bis 2020 an diesem Tag">
+    <clipPath id="rc"><rect x="${x(0)}" y="22" width="${x(100) - x(0)}" height="14" rx="7"/></clipPath>
+    <g clip-path="url(#rc)">${seg(0, 10, '#E4E8F0')}${seg(10, 25, '#CBD3E2')}${seg(25, 75, '#A9B6CE')}${seg(75, 90, '#CBD3E2')}${seg(90, 100, '#E4E8F0')}</g>
+    <line x1="${x(50)}" x2="${x(50)}" y1="18" y2="40" stroke="#3D4F6B" stroke-width="2"/>
+    ${PCT_AT.map((q, i) => `<text x="${x(q)}" y="56" font-size="12" text-anchor="${i === 0 ? 'start' : i === 6 ? 'end' : 'middle'}" fill="#6F6553">${p[i]}</text>`).join('')}
+    <text x="${x(0)}" y="72" font-size="11" fill="#6F6553">schneeärmster Winter</text>
+    <text x="${x(50)}" y="72" font-size="11" text-anchor="middle" fill="#6F6553">Median</text>
+    <text x="${x(100)}" y="72" font-size="11" text-anchor="end" fill="#6F6553">schneereichster · cm</text>
+    <g transform="translate(${x(place)},0)">
+      <circle cx="0" cy="29" r="7.5" fill="#fff" stroke="#2C2A26" stroke-width="2.5"/>
+      <text x="${place < 15 ? -6 : place > 85 ? 6 : 0}" y="12"font-size="12.5" font-weight="700" text-anchor="${place < 15 ? 'start' : place > 85 ? 'end' : 'middle'}" fill="#2C2A26">${place} von 100</text>
+    </g>
+  </svg>`;
+}
+function snowA(g) {
+  if (!g.snow) return snowNone();
+  const max = Math.max(...WEEK.hs);
+  return `<section class="card" aria-label="Schneedecke im Gebiet">
+    <div class="card-head"><b>Schneedecke im Gebiet<span class="sub">Stand 20.11. (Vortag)</span></b>${chip('analysis')}</div>
+    <div class="snowA">
+      <div>
+        <div class="big"><span class="num">39</span><span>cm Schnee</span></div>
+        <p class="kv">Wasserwert <b class="num">69 mm</b></p>
+        <p class="kv">7 Tage: <b class="num">+11 cm</b></p>
+      </div>
+      <div>${rulerSvg(TODAY_PCTS, 39)}</div>
+    </div>
+    <div class="week" role="img" aria-label="Schneehöhe der letzten sieben Tage: ${WEEK.hs.join(', ')} cm">
+      ${WEEK.hs.map((v, i) => `<div><em>${v}</em><i style="height:${v / max * 40}px"></i>${WEEK.days[i].split(' ')[0]}</div>`).join('')}
+    </div>
+    <p class="fine">Analyse für das Gebiet um den Gletscher (Zelle von 1 km²), keine Messung. Lage: 0 = so wenig Schnee wie im schneeärmsten der 30 Winter 1991–2020 an diesem Kalendertag, 100 = so viel wie im schneereichsten. ${SNOW_SRC}. Nur für Österreich.</p>
+  </section>`;
+}
+function snowNone() {
+  return `<section class="card" aria-label="Schneedecke im Gebiet">
+    <div class="card-head"><b>Schneedecke im Gebiet</b>${chip('analysis')}</div>
+    <p class="empty"><strong>Nur für österreichische Gletscher.</strong> Die Schneeanalyse SNOWGRID von GeoSphere Austria deckt die Schweiz nicht ab. Die gemessene Schneehöhe der nächsten Station steht unter „Gemessen in der Nähe“.</p>
+  </section>`;
+}
+
+/* ======================= Variante B: Höhenprofil ======================= */
+function profileSvg(g, narrow) {
+  const W = narrow ? 340 : 560, H = narrow ? 320 : 340, L = narrow ? 44 : 54, R = 16, T = 18, B = 40, gx = L + 10, gw = 26, x0 = gx + gw + 30;
+  const elevs = g.stations.map((s) => s.elev);
+  const lo = Math.floor((Math.min(g.z[0] - 300, ...elevs) - 80) / 250) * 250, hi = Math.ceil((Math.max(g.z[2] + 300, ...elevs) + 80) / 250) * 250;
+  const y = (m) => T + (hi - m) / (hi - lo) * (H - T - B), x = (k) => x0 + k / 5 * (W - R - x0);
+  const step = hi - lo > 2000 ? 500 : 250;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Höhe und Abstand der Stationen zum Gletscher ${g.name}">`;
+  for (let m = lo; m <= hi; m += step) s += `<line x1="${L}" x2="${W - R}" y1="${y(m)}" y2="${y(m)}" stroke="#E0D6BE" stroke-width="1"/><text x="${L - 6}" y="${y(m) + 4}" font-size="11" text-anchor="end" fill="#6F6553">${fmtInt(m)}</text>`;
+  // window of the mapping
+  s += `<rect x="${x0}" y="${y(g.z[2] + 300)}" width="${x(5) - x0}" height="${y(g.z[0] - 300) - y(g.z[2] + 300)}" fill="#1E87A8" fill-opacity=".06" stroke="#1E87A8" stroke-opacity=".35" stroke-dasharray="4 4" rx="6"/>`;
+  s += `<text x="${x(5) - 6}" y="${y(g.z[2] + 300) + 14}" font-size="11" text-anchor="end" fill="#145A70">Fenster der Zuordnung: 5 km, ±300 m</text>`;
+  // glacier column
+  s += `<defs><linearGradient id="ice" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#F4FAFC"/><stop offset=".55" stop-color="#A8D0E0"/><stop offset="1" stop-color="#6FAFC8"/></linearGradient></defs>`;
+  s += `<rect x="${gx}" y="${y(g.z[2])}" width="${gw}" height="${y(g.z[0]) - y(g.z[2])}" rx="8" fill="url(#ice)" stroke="#6FAFC8"/>`;
+  s += `<line x1="${gx - 5}" x2="${gx + gw + 5}" y1="${y(g.z[1])}" y2="${y(g.z[1])}" stroke="#145A70" stroke-width="2"/>`;
+  s += `<text x="${gx + gw / 2}" y="${y(g.z[2]) - 6}" font-size="11" text-anchor="middle" fill="#5C5447">${fmtInt(g.z[2])}</text>`;
+  s += `<text x="${gx + gw / 2}" y="${y(g.z[0]) + 14}" font-size="11" text-anchor="middle" fill="#5C5447">${fmtInt(g.z[0])}</text>`;
+  // stations
+  for (const st of g.stations) {
+    const cx = x(st.km), cy = y(st.elev), right = cx < W - (narrow ? 150 : 170);
+    s += `<line x1="${gx + gw}" x2="${cx}" y1="${cy}" y2="${cy}" stroke="#5F7A4C" stroke-width="1.2" stroke-dasharray="2 3"/>`;
+    s += `<circle cx="${cx}" cy="${cy}" r="11" fill="#5F7A4C" stroke="#fff" stroke-width="2"/><text x="${cx}" y="${cy + 4}" font-size="11.5" font-weight="700" text-anchor="middle" fill="#fff">${st.id}</text>`;
+    s += `<text x="${right ? cx + 16 : cx - 16}" y="${cy - 2}" font-size="12.5" font-weight="600" text-anchor="${right ? 'start' : 'end'}" fill="#2C2A26">${st.name}</text>`;
+    s += `<text x="${right ? cx + 16 : cx - 16}" y="${cy + 12}" font-size="11" text-anchor="${right ? 'start' : 'end'}" fill="#5C5447">${fmtInt(st.elev)} m · ${String(st.km.toFixed(1)).replace('.', ',')} km</text>`;
+  }
+  // x axis
+  for (let k = 0; k <= 5; k++) s += `<text x="${x(k)}" y="${H - B + 16}" font-size="11" text-anchor="middle" fill="#6F6553">${k}</text>`;
+  s += `<text x="${(x0 + x(5)) / 2}" y="${H - 6}" font-size="11.5" text-anchor="middle" fill="#5C5447">Abstand vom Rand des Gletschers, km</text>`;
+  s += `<text x="${gx + gw / 2}" y="${H - B + 16}" font-size="11" text-anchor="middle" fill="#145A70">Eis</text>`;
+  return s + '</svg>';
+}
+function gaugeSvg() {
+  const H = 230, T = 10, B = 20, max = 220, y = (v) => T + (max - v) / max * (H - T - B);
+  const p = TODAY_PCTS;
+  return `<svg viewBox="0 0 92 ${H}" width="92" height="${H}" role="img" aria-label="Schneehöhe 39 cm, Spanne der Winter 1991 bis 2020: 10. bis 90. Perzentil 45 bis 123 cm, Median 74 cm">
+    ${[0, 50, 100, 150, 200].map((v) => `<line x1="30" x2="74" y1="${y(v)}" y2="${y(v)}" stroke="#E0D6BE"/><text x="26" y="${y(v) + 4}" font-size="10.5" text-anchor="end" fill="#6F6553">${v}</text>`).join('')}
+    <rect x="34" y="${y(p[5])}" width="36" height="${y(p[1]) - y(p[5])}" rx="4" fill="#E4E8F0"/>
+    <rect x="34" y="${y(p[4])}" width="36" height="${y(p[2]) - y(p[4])}" rx="4" fill="#CBD3E2"/>
+    <rect x="44" y="${y(39)}" width="16" height="${y(0) - y(39)}" rx="3" fill="#5A6E92"/>
+    <line x1="32" x2="72" y1="${y(p[3])}" y2="${y(p[3])}" stroke="#3D4F6B" stroke-width="2"/>
+    <text x="52" y="${H - 4}" font-size="10.5" text-anchor="middle" fill="#6F6553">cm</text>
+  </svg>`;
+}
+function stationsB(g) {
+  const list = g.stations.map((s) => `<li data-origin="measured">
+    <div class="shead"><span class="sdot">${s.id}</span><b>${s.name}</b><span>${s.age}</span></div>
+    <p class="swhere">${fmtInt(s.elev)} m, ${fmtKm(s.km)}, ${dzText(s.elev, g.z)}. <a href="${s.url}" target="_blank" rel="noopener noreferrer">${s.op}</a>.</p>
+    <dl class="svals">
+      ${s.v.map(([l, v, u, e]) => `<div><dt>${l}${e ? ` (${e})` : ''}</dt><dd class="num">${v} ${u}</dd></div>`).join('')}
+      ${s.d ? `<div><dt>Änderung 24 / 48 / 72 h</dt><dd class="num">${s.d.map((d) => signed(d)).join(' / ')} cm</dd></div>` : s.d === null ? `<div><dt>Änderung der Schneehöhe</dt><dd class="num" style="font-size:12.5px;color:var(--gl-faint);font-weight:500">liefert das SLF nicht</dd></div>` : ''}
+    </dl>
+  </li>`).join('');
+  const gauge = g.snow ? `<div class="gauge" data-origin="analysis">
+      <b class="t">Schnee im Gebiet</b>${chip('analysis')}
+      ${gaugeSvg()}
+      <p class="fine"><b class="num" style="font-size:15px;color:var(--gl-prov-analysis-text)">39 cm</b> · Lage 4 von 100<br>Zelle 1 km², nicht auf einer Höhe; Band = Winter 1991–2020</p>
+    </div>` : `<div class="gauge"><b class="t">Schnee im Gebiet</b>${chip('analysis')}<p class="fine">Die Schneeanalyse gibt es nur für Österreich.</p></div>`;
+  return `<section class="card" aria-label="Stationen am Gletscher">
+    <div class="card-head"><b>Gemessen in der Nähe</b>${chip('measured')}</div>
+    <p class="honest">${SITE_NOTE} Die Figur zeigt, wie hoch und wie weit sie vom Eis stehen; die gestrichelte Linie führt zur selben Höhe am Gletscher.</p>
+    <div class="profile"><div>${profileSvg(g, state.w === 'm')}</div>${gauge}</div>
+    <ul class="slist">${list}</ul>
+    <p class="fine">Säule links: Höhenspanne des Gletschers, der Strich ist seine mittlere Höhe. ${g.none.map((n) => `${n}: keine Station im Fenster.`).join(' ')} Rohdaten der Betreiber, geprüft auf Grenzen, Sprung, Stillstand und Alter. ${g.snow ? `Schnee: ${SNOW_SRC}, Analyse, keine Messung.` : ''}</p>
+  </section>`;
+}
+
+/* ======================= Variante C: Schneewinter ======================= */
+let cRange = 'winter';
+function fanSvg(range, narrow) {
+  const W = narrow ? 360 : 760, H = narrow ? 250 : 300, L = narrow ? 32 : 40, R = 16, T = 14, B = 30;
+  const d0 = range === 'winter' ? 0 : 20, d1 = range === 'winter' ? 272 : 60, vmax = range === 'winter' ? 230 : 160;
+  const x = (d) => L + (d - d0) / (d1 - d0) * (W - L - R), y = (v) => T + (vmax - v) / vmax * (H - T - B);
+  const pts = CLIM.filter((r) => r[0] >= d0 - 3 && r[0] <= d1 + 3);
+  const band = (a, b) => `M${pts.map((r) => `${x(r[0])},${y(Math.min(vmax, r[a]))}`).join('L')}L${pts.slice().reverse().map((r) => `${x(r[0])},${y(Math.min(vmax, r[b]))}`).join('L')}Z`;
+  const line = (arr) => arr.map((r, i) => `${i ? 'L' : 'M'}${x(r[0])},${y(r[1])}`).join('');
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Schneehöhe dieses Winters gegen die Winter 1991 bis 2020"><defs><clipPath id="pc"><rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}"/></clipPath></defs>`;
+  for (let v = 0; v <= vmax; v += 50) s += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#E0D6BE"/><text x="${L - 6}" y="${y(v) + 4}" font-size="11" text-anchor="end" fill="#6F6553">${v}</text>`;
+  const months = range === 'winter'
+    ? [[0, 'Okt'], [31, 'Nov'], [61, 'Dez'], [92, 'Jan'], [123, 'Feb'], [151, 'Mär'], [182, 'Apr'], [212, 'Mai'], [243, 'Jun']]
+    : [[21, '22.10.'], [31, '1.11.'], [41, '11.11.'], [50, '20.11.'], [60, '30.11.']];
+  for (const [d, l] of months) s += `<line x1="${x(d)}" x2="${x(d)}" y1="${T}" y2="${H - B}" stroke="#EDE6D3"/><text x="${x(d) + (range === 'winter' ? 4 : 0)}" y="${H - B + 16}" font-size="11" text-anchor="${range === 'winter' ? 'start' : 'middle'}" fill="#6F6553">${l}</text>`;
+  s += `<g clip-path="url(#pc)">`;
+  s += `<path d="${band(1, 7)}" fill="#ECEFF5"/><path d="${band(2, 6)}" fill="#DCE2EC"/><path d="${band(3, 5)}" fill="#C4CEDF"/>`;
+  s += `<path d="${line(pts.map((r) => [r[0], r[4]]))}" fill="none" stroke="#5A6E92" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+  const season = SEASON.map((v, d) => [d, v]).filter(([d]) => d >= d0);
+  const invented = season.filter(([d]) => d <= 44), real = season.filter(([d]) => d >= 44);
+  s += `<path d="${line(invented)}" fill="none" stroke="#2C2A26" stroke-width="2.5" stroke-linejoin="round" stroke-opacity=".45"/>`;
+  s += `<path d="${line(real)}" fill="none" stroke="#2C2A26" stroke-width="3" stroke-linejoin="round"/>`;
+  s += `</g>`;
+  // today marker + label
+  const tx = x(50), ty = y(39);
+  s += `<line x1="${tx}" x2="${tx}" y1="${T}" y2="${H - B}" stroke="#2C2A26" stroke-opacity=".25"/>`;
+  s += `<circle cx="${tx}" cy="${ty}" r="5.5" fill="#fff" stroke="#2C2A26" stroke-width="2.5"/>`;
+  s += `<text x="${tx + 10}" y="${ty - 10}" font-size="13" font-weight="700" fill="#2C2A26">39 cm · Lage 4 von 100</text>`;
+  // measured station, offset by one day, own mark
+  const mx = tx + 14, my = y(40);
+  s += `<path d="M${mx} ${my - 6} L${mx + 6} ${my} L${mx} ${my + 6} L${mx - 6} ${my}Z" fill="#5F7A4C" stroke="#fff" stroke-width="1.5"/>`;
+  s += `<text x="${mx + 10}" y="${my + 18}" font-size="11.5" fill="#4F6A3D">${narrow ? 'Weisssee LWD: 40 cm gemessen' : 'Weisssee LWD, 2 480 m: 40 cm gemessen'}</text>`;
+  return s + '</svg>';
+}
+function snowC(g) {
+  if (!g.snow) return `<section class="card" aria-label="Schnee in diesem Winter">
+    <div class="card-head"><b>Schnee in diesem Winter</b>${chip('analysis')}</div>
+    <p class="empty"><strong>Nur für österreichische Gletscher.</strong> Die Schneeanalyse SNOWGRID von GeoSphere Austria deckt die Schweiz nicht ab. Die gemessene Schneehöhe von Flesch (SLF) steht in der Tabelle darunter.</p>
+  </section>`;
+  return `<section class="card fan" aria-label="Schnee in diesem Winter">
+    <div class="card-head"><b>Schnee in diesem Winter<span class="sub">Gebiet um den Gletscher, Stand 20.11.</span></b>${chip('analysis')}</div>
+    <div class="seg range" data-ctl="r" role="group" aria-label="Zeitraum">
+      <button type="button" data-val="winter" aria-pressed="${cRange === 'winter'}">Ganzer Winter</button>
+      <button type="button" data-val="month" aria-pressed="${cRange === 'month'}">Um heute</button>
+    </div>
+    ${fanSvg(cRange, state.w === 'm')}
+    <div class="legend" aria-hidden="true">
+      <span><i style="background:#2C2A26;height:3px"></i>Winter 2026/27</span>
+      <span><i style="background:#C4CEDF"></i>Hälfte der Winter 1991–2020</span>
+      <span><i style="background:#DCE2EC"></i>8 von 10</span>
+      <span><i style="background:#ECEFF5;border:1px solid #DCE2EC"></i>kleinster bis größter</span>
+      <span><i style="background:none;border-top:2px dashed #5A6E92;height:0"></i>Median</span>
+      <span><i style="background:#5F7A4C;width:10px;height:10px;transform:rotate(45deg)"></i>Station, gemessen</span>
+    </div>
+    <div class="cstats">
+      <div><span>Schneehöhe</span><b class="num">39 cm</b><small>Median der Jahre: 74 cm</small></div>
+      <div><span>Wasserwert</span><b class="num">69 mm</b><small>Schnee als Wasserschicht</small></div>
+      <div><span>Seit 14.11.</span><b class="num">+11 cm</b><small>Schneehöhe, 7 Tage</small></div>
+    </div>
+    <p class="fine">Analyse für das Gebiet um den Gletscher (Zelle von 1 km²), keine Messung und keine Höhenstufe. Die Station steht 4,6 km entfernt und tiefer als der Gletscher; ihre Zahl ist ein Vergleich, keine Kontrolle. ${SNOW_SRC}, DOI 10.60669/fsxx-6977. Im Mockup ist der Verlauf vor dem 14.11. erfunden (blasser).</p>
+  </section>`;
+}
+function tableC(g) {
+  const cols = ['Temperatur', 'Wind', 'Böe', 'Schneehöhe', 'Änderung 24 h', 'Niederschlag 24 h', 'Globalstrahlung'];
+  const cell = (s, c) => {
+    if (c === 'Änderung 24 h') return s.d ? `<td class="m" data-l="${c}">${signed(s.d[0])} cm</td>` : '<td class="na">—</td>';
+    const v = s.v.find(([l]) => l === c);
+    return v ? `<td class="m" data-l="${c}">${v[1]} ${v[2]}${v[3] ? ` <span style="font-weight:400;color:var(--gl-faint)">${v[3]}</span>` : ''}</td>` : '<td class="na">—</td>';
+  };
+  const used = cols.filter((c) => g.stations.some((s) => c === 'Änderung 24 h' ? s.d : s.v.some(([l]) => l === c)));
+  return `<section class="card" aria-label="Gemessen in der Nähe">
+    <div class="card-head"><b>Gemessen in der Nähe</b>${chip('measured')}</div>
+    <p class="honest">${SITE_NOTE}</p>
+    <div class="mtable-wrap"><table class="mtable">
+      <thead><tr><th scope="col">Station</th>${used.map((c) => `<th scope="col">${c}</th>`).join('')}<th scope="col">Alter</th></tr></thead>
+      <tbody>${g.stations.map((s) => `<tr data-origin="measured"><th scope="row"><b>${s.name}</b><span>${fmtInt(s.elev)} m · ${String(s.km.toFixed(1)).replace('.', ',')} km · ${dzText(s.elev, g.z).replace(' der mittleren Höhe', ' Mitte')}</span></th>${used.map((c) => cell(s, c)).join('')}<td class="na age" data-l="Alter">${s.age.replace('vor ', '')}</td></tr>`).join('')}</tbody>
+    </table></div>
+    <p class="fine">Je Größe nur die nächste Station zum Umriss, daher Lücken (—). ${g.none.map((n) => `${n}: keine Station im Fenster.`).join(' ')} ${srcLinks(g)}</p>
+  </section>`;
+}
+
+/* ======================= Notizen je Variante ======================= */
+const NOTES = {
+  A: `<section><h2>A · Kacheln</h2><p>Jede Größe ist eine Kachel mit großer Zahl; Station, Höhe und Abstand stehen klein darunter. Der Schnee bekommt eine eigene Karte mit einer Lage-Skala 0–100.</p>
+    <h3>Stärken</h3><ul><li>Schnellste Ablesung, besonders am Telefon (2 Spalten).</li><li>Fehlende Größen sind sichtbar („keine Station im Fenster“).</li><li>Passt ins Heute-Board, wenig Umbau.</li></ul>
+    <h3>Grenzen</h3><ul><li>Wo die Station steht, steht nur im Text.</li><li>Die Lage-Skala ist eine Rangfolge, nicht linear in cm; sie braucht den Erklärsatz.</li></ul>
+    <h3>Datenbedarf</h3><p>Vorhanden. Klimatologie je Gletscher schneiden (V-GN-3: ≈ 9 KB statt bis 1,7 MB je Region).</p><span class="tag">kleinster Aufwand</span></section>`,
+  B: `<section><h2>B · Höhenprofil</h2><p>Eine Figur Höhe gegen Abstand: der Gletscher als Säule, die Stationen als Punkte, das Fenster der Zuordnung als Rahmen. Der Schnee steht als schmale Säule daneben, ausdrücklich ohne Höhe.</p>
+    <h3>Stärken</h3><ul><li>Zeigt auf einen Blick, wie repräsentativ eine Station ist (Fels, Grat, 600 m tiefer).</li><li>Macht die Zuordnungsregel (5 km, ±300 m) sichtbar.</li><li>Erklärt Lücken ohne Text.</li></ul>
+    <h3>Grenzen</h3><ul><li>Mehr Lesearbeit; die Werte stehen getrennt von der Figur.</li><li>Am Telefon wird die Figur klein.</li></ul>
+    <h3>Datenbedarf</h3><p>Vorhanden (Höhe, Abstand, Fenster aus der Zuordnung). Für die Schneesäule wie A.</p><span class="tag">ehrlichste Verortung</span></section>`,
+  C: `<section><h2>C · Schneewinter</h2><p>Der Verlauf dieses Winters gegen die Winter 1991–2020 als Fächer, Messung als eigene Marke daneben. Die Stationswerte stehen kompakt als Tabelle darunter.</p>
+    <h3>Stärken</h3><ul><li>Erzählt den Winter: wo er heute im Rahmen von 30 früheren Wintern steht.</li><li>Analyse und Messung nebeneinander, klar getrennt (hilft bei V-GN-2).</li><li>Zoom „Um heute“ für die letzten Wochen.</li></ul>
+    <h3>Grenzen</h3><ul><li>Nur Österreich; Schweizer Gletscher sehen nur die Tabelle.</li><li>Der Fächer braucht Platz und Erklärung.</li></ul>
+    <h3>Datenbedarf</h3><p>Neu: Saisondatei je Region (V-GN-4) und Klimatologie je Gletscher (V-GN-3). Die Tage seit 01.10. lassen sich in einem Abruf nachholen.</p><span class="tag">stärkste Geschichte</span></section>`,
+};
+const COMMON = `<section><h3 style="margin-top:0">Für alle drei gleich</h3><ul>
+  <li>Neue Herkunft „Analyse“ (Schiefer-Blau) für SNOWGRID, nie „gemessen“.</li>
+  <li>Schneehöhe in cm, Wasserwert in mm als zweite Zahl (deine Entscheidung cm/mm).</li>
+  <li>Kein Urteil über Verhältnisse; Lage nur als Zahl mit Erklärsatz.</li>
+  <li>Quelle mit Link je Betreiber, SLF mit Link auf www.slf.ch.</li></ul>
+  <p class="example" style="margin-top:8px">Beispielwerte: Spanne 1991–2020 und 14.–20.11. echt aus der SNOWGRID-Zelle am Hintereisferner, Tiroler Werte vom 21.11. 08:00 MEZ; Abstände, Alter, Schweizer Werte und der Verlauf vor dem 14.11. sind erfunden.</p></section>`;
+
+/* ======================= Render ======================= */
+const state = { v: 'A', g: 'AT', w: 'd' };
+function render() {
+  const g = GLACIERS[state.g];
+  const body = state.v === 'A' ? tilesA(g) + snowA(g) : state.v === 'B' ? stationsB(g) : snowC(g) + tableC(g);
+  const mock = document.getElementById('mock');
+  mock.className = `mock${state.w === 'm' ? ' is-phone' : ''}`;
+  mock.innerHTML = frame(g, body);
+  document.getElementById('notes').innerHTML = NOTES[state.v] + COMMON;
+  for (const seg of document.querySelectorAll('.seg[data-ctl]')) {
+    const k = seg.dataset.ctl, cur = k === 'r' ? cRange : state[k];
+    for (const b of seg.querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.val === cur));
+  }
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('.seg[data-ctl] button');
+  if (!b) return;
+  const k = b.closest('.seg').dataset.ctl;
+  if (k === 'r') cRange = b.dataset.val; else state[k] = b.dataset.val;
+  render();
+});
+render();
+</script>
+</body>
+</html>
