@@ -7,7 +7,7 @@
  * the hour, the fetch windows, the words and the wiring — that is what is checked. The picture itself is Jan's look.
  *
  *   A  pure logic (`seaParticles.ts`): window of the loaded field, an hour outside is never clamped, which window is
- *      fetched when, the legend names the field's source, when the particles rest
+ *      fetched when, the legend names the field's source, the particles do not depend on the main layer
  *   B  switch: on for everyone (Jan 22.11.), `?swp=0` off — the page as before
  *   C  the layer's control flow against stand-ins for `WindLayer` and the wind reader (bundled with esbuild, the real
  *      `SeaParticleLayer.ts`): where the layer goes in, what it shows for which hour, one long fetch and no loop, a
@@ -51,15 +51,14 @@ const okLine = particleLegend({ kind: 'ok', w: W }, when);
 add('A5 Legende: nennt ICON-D2 mit Lauf und Auflösung (2,2 km nur beim vollen Feld) und sagt „nicht buscosun Fusion“; keine Prozente, kein „sicher“',
   /ICON-D2 \(Lauf 00 UTC, jede zweite Zelle, 4,4 km\)/.test(okLine) && /ICON-D2 \(Lauf 00 UTC, 2,2 km\)/.test(particleLegend({ kind: 'ok', w: W, hd: true }, when)) && /nicht buscosun Fusion/.test(okLine) && /Spots können davon abweichen/.test(okLine) && !/%|sicher/.test(okLine)
   && /Lauf 21 UTC,/.test(particleLegend({ kind: 'ok', w: { ...W, runMs: RUN - 3 * H } }, when)), okLine);
-add('A6 Legende außerhalb des Felds nennt, bis wann bzw. ab wann es reicht; laden, keine Daten und Ruhe haben eigene Worte',
+add('A6 Legende außerhalb des Felds nennt, bis wann bzw. ab wann es reicht; laden und keine Daten haben eigene Worte',
   /keine für diese Stunde.*reicht bis T4 Uhr/.test(particleLegend({ kind: 'outside', side: 'after', w: W }, when))
   && /keine für diese Stunde.*beginnt T3 Uhr/.test(particleLegend({ kind: 'outside', side: 'before', w: W }, when))
-  && particleLegend({ kind: 'loading' }, when) === 'Windpartikel laden.' && particleLegend({ kind: 'na' }, when) === 'Windpartikel: keine Daten.'
-  && /ruhen in der Ebene Strömung/.test(particleLegend({ kind: 'rest' }, when)));
-add('A7 gezeichnet nur mit Schalter der Phase UND Dock-Schalter UND Seedaten; in der Ebene „Strömung“ ruhen sie',
-  particlesWanted({ flag: true, toggle: true, noData: false, isCur: false }) === 'on' && particlesWanted({ flag: true, toggle: true, noData: false, isCur: true }) === 'rest'
-  && particlesWanted({ flag: false, toggle: true, noData: false, isCur: false }) === 'off' && particlesWanted({ flag: true, toggle: false, noData: false, isCur: false }) === 'off'
-  && particlesWanted({ flag: true, toggle: true, noData: true, isCur: false }) === 'off' && particlesWanted({ flag: false, toggle: true, noData: false, isCur: true }) === 'off');
+  && particleLegend({ kind: 'loading' }, when) === 'Windpartikel laden.' && particleLegend({ kind: 'na' }, when) === 'Windpartikel: keine Daten.');
+add('A7 gezeichnet nur mit Schalter der Phase UND Dock-Schalter UND Seedaten — unabhängig von der Hauptebene (auch zusammen mit den Riffeln der „Strömung“, Jan 22.11.)',
+  particlesWanted({ flag: true, toggle: true, noData: false }) === 'on' && particlesWanted({ flag: true, toggle: true, noData: false, isCur: true }) === 'on'
+  && particlesWanted({ flag: false, toggle: true, noData: false }) === 'off' && particlesWanted({ flag: true, toggle: false, noData: false }) === 'off'
+  && particlesWanted({ flag: true, toggle: true, noData: true }) === 'off');
 add('A8 Worte des Schalters: „Windpartikel“, die Quelle im Untertitel', SEA_PARTICLES_LABEL === 'Windpartikel' && /ICON-D2/.test(SEA_PARTICLES_HINT) && /nicht buscosun Fusion/.test(SEA_PARTICLES_HINT));
 
 // --- B: switch ----------------------------------------------------------------------------------------------------
@@ -270,13 +269,16 @@ add('D1 Karte: die Schicht kommt nur über `import()` (eigener Chunk), statisch 
   && /pick = null, particles = null \}: Props\)/.test(mapSrc));
 add('D2 Karte: die Schicht geht erst nach den eigenen Ebenen der Karte hinein (sonst läge sie über Pfeilen und Marken)',
   /if \(ready\.current\) start\(\); else map\.once\('load', \(\) => \{ if \(alive\) start\(\); \}\);/.test(mapSrc) && /id: 'sw-arrows'/.test(mapSrc) && SEA_PARTICLES_BEFORE === 'sw-arrows');
-add('D3 Seite: ohne den Schalter der Phase keine Schicht, kein Dock-Schalter, keine Quelle, keine Legendenzeile; in „Strömung“ und ohne Seedaten keine Schicht',
+add('D3 Seite: ohne den Schalter der Phase keine Schicht, kein Dock-Schalter, keine Quelle, keine Legendenzeile; ohne Seedaten keine Schicht; die Hauptebene entscheidet nicht mit',
   /const particlesFlag = useMemo\(\(\) => seaParticlesFrom\(\), \[\]\);/.test(page)
-  && /const particleMode = particlesWanted\(\{ flag: particlesFlag, toggle: toggles\.particles, noData: !!noData, isCur \}\);/.test(page)
+  && /const particleMode = particlesWanted\(\{ flag: particlesFlag, toggle: toggles\.particles, noData: !!noData \}\);/.test(page)
   && /const particleProp = useMemo\(\(\) => \(particleMode === 'on' \? \{ tMs: validMs, onState: setParticleState \} : null\), \[particleMode, validMs\]\);/.test(page)
   && /particles=\{particleProp\}/.test(page) && count(page, /particles=\{/g) === 1 && /hasParticles=\{particlesFlag\}/.test(page)
   && /\.\.\.\(particlesFlag \? \[\{ name: 'Deutscher Wetterdienst · ICON-D2'/.test(page) && /\{particleMode !== 'off' && <div className="sw-legend-note">\{particleLegend\(/.test(page)
-  && /particles: false \};/.test(page) && /particles: seaParticlesFrom\(\) \}\)\);/.test(page));
+  && /particles: false \};/.test(page) && /particles: seaParticlesFrom\(\) \}\)\);/.test(page)
+  // The ripples of „Strömung“ and the particles are independent: neither the particle prop nor the ripple prop reads the other.
+  && /ripple=\{isCur && uv \? uv\.grid : null\}/.test(page) && !/const particleMode = .*isCur/.test(page) && !/const particleProp = .*isCur/.test(page)
+  && /\{particleMode !== 'off' && <div className="sw-legend-note">\{particleLegend\(particleState, dateTime\)\}<\/div>\}/.test(page));
 add('D4 Seite: die Quelle nennt ICON-D2 und „nicht buscosun Fusion“ und ist nur „an“, wenn wirklich Partikel gezeichnet werden',
   /what: 'Windpartikel: Wind in 10 m als Feld des Modells \(nicht buscosun Fusion\)'/.test(page) && /on: particleMode === 'on' && particleState\.kind === 'ok' \}\] : \[\]\)/.test(page));
 add('D5 Dock: der Schalter „Windpartikel“ steht nur mit `hasParticles` in der Liste, mit den Worten der Phase',

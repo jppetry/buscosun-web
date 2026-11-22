@@ -4365,7 +4365,9 @@ den Prüfern); geprüft sind Ablauf, Worte und Verdrahtung. Mit `?swp=0` ist die
      können davon abweichen.“
    - Zeit nach vorn ziehen: nach rund 7–11 h hören die Partikel auf, die Legende sagt „keine für diese Stunde. Das
      Windfeld der Karte reicht bis …“ (V-BS-33). Beim ersten Schritt über die nächste Stunde hinaus lädt die Seite kurz nach.
-   - Ebene „Strömung“: die Partikel ruhen („Windpartikel ruhen in der Ebene Strömung“), die Riffel laufen.
+   - Ebene „Strömung“: seit deinem Wort vom 22.11. laufen Partikel UND Riffel zugleich (die Riffel über den Partikeln).
+     Bitte ansehen, ob man Wind und Strom auseinanderhält und ob es ruckelt (V-BS-41/42); die Riffel allein = „Windpartikel“
+     im Dock aus.
    - Dossier eines Spots öffnen und schließen: danach laufen die Partikel wieder.
    - **Telefon:** ruckelt die Karte beim Ziehen? (Die Schicht zeichnet dauernd neu, V-BS-35.)
    - Konsole: Fehler beim Ein- und Ausschalten?

@@ -648,8 +648,8 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   // Phase SR — main layer „Strömung“: the u/v field of the chosen hour, and the hour after it warmed for „Abspielen“.
   // Nothing is read while another layer is chosen. Outside the run, without a field or unreadable ⇒ "keine Daten".
   const isCur = layer === 'cur';
-  // Phase BS-P: drawn, resting (the ripples of „Strömung“ move instead) or off.
-  const particleMode = particlesWanted({ flag: particlesFlag, toggle: toggles.particles, noData: !!noData, isCur });
+  // Phase BS-P: drawn or off — in every main layer, also together with the ripples of „Strömung“ (Jan 22.11.).
+  const particleMode = particlesWanted({ flag: particlesFlag, toggle: toggles.particles, noData: !!noData });
   const particleProp = useMemo(() => (particleMode === 'on' ? { tMs: validMs, onState: setParticleState } : null), [particleMode, validMs]);
   useEffect(() => { if (particleMode !== 'on') setParticleState({ kind: 'loading' }); }, [particleMode]);
   const uvHour = isCur && curAt ? currentUvHour(curAt, validMs) : null;
@@ -1308,7 +1308,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
       {isCur
         ? <div className="sw-legend-note">{curWhy ? `Strömung: keine Daten. ${curWhy}` : current === 'loading' || uvState === 'loading' ? 'Strömung lädt.' : `${SEA_CURRENT_MODEL_NOTE}. ${curRunTxt}`}{!curWhy && stillMotion ? ` ${RIPPLE_STILL_NOTE}` : ''}</div>
         : <div className="sw-legend-note">{noData ? 'Keine Fläche: kein gültiger Lauf.' : `Modell ${runTxt}, Vorlauf +${lead} h${fieldNote}. Wind an den Spots: ${windEngine}.`}{fieldState === 'error' ? ' Feld nicht ladbar.' : ''}</div>}
-      {particleMode !== 'off' && <div className="sw-legend-note">{particleLegend(particleMode === 'rest' ? { kind: 'rest' } : particleState, dateTime)}</div>}
+      {particleMode !== 'off' && <div className="sw-legend-note">{particleLegend(particleState, dateTime)}</div>}
     </div>
   );
   // SR: with the layer „Strömung“ chosen the note on the map speaks of the current, not of the wave area.

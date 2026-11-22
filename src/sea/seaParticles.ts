@@ -50,13 +50,12 @@ export function particlesFetchWant(w: ParticleWindow | null, tMs: number, loaded
   return null;
 }
 
-/** What the layer tells the page. `rest` = the main layer „Strömung“ is chosen (the ripples move there, E-BS-16). */
+/** What the layer tells the page. */
 export type SeaParticleState =
   | { kind: 'loading' }
   | { kind: 'ok'; w: ParticleWindow; /** Phase WH: the field carries every model cell (2,2 km) instead of every second one. */ hd?: boolean }
   | { kind: 'outside'; side: 'before' | 'after'; w: ParticleWindow }
-  | { kind: 'na' }
-  | { kind: 'rest' };
+  | { kind: 'na' };
 
 /** The legend line. `when` formats a time for the reader (the page's `dateTime`). */
 export function particleLegend(s: SeaParticleState, when: (ms: number) => string): string {
@@ -67,12 +66,14 @@ export function particleLegend(s: SeaParticleState, when: (ms: number) => string
       ? `Windpartikel: keine für diese Stunde. Das Windfeld der Karte reicht bis ${when(s.w.toMs)} Uhr.`
       : `Windpartikel: keine für diese Stunde. Das Windfeld der Karte beginnt ${when(s.w.fromMs)} Uhr.`;
     case 'na': return 'Windpartikel: keine Daten.';
-    case 'rest': return 'Windpartikel ruhen in der Ebene Strömung.';
   }
 }
 
-/** Are the particles drawn at all? Off with the switch, without sea data, and while the ripples of „Strömung“ move. */
-export function particlesWanted(x: { flag: boolean; toggle: boolean; noData: boolean; isCur: boolean }): 'on' | 'rest' | 'off' {
-  if (!x.flag || !x.toggle || x.noData) return 'off';
-  return x.isCur ? 'rest' : 'on';
+/**
+ * Are the particles drawn at all? Off with the switch and without sea data. They are NOT tied to the main layer: with
+ * „Strömung“ chosen the particles run below the ripples (Jan 22.11.2026: both at the same time — until then they rested
+ * there, E-BS-16). Who wants the ripples alone turns the dock switch „Windpartikel“ off.
+ */
+export function particlesWanted(x: { flag: boolean; toggle: boolean; noData: boolean }): 'on' | 'off' {
+  return !x.flag || !x.toggle || x.noData ? 'off' : 'on';
 }

@@ -499,7 +499,7 @@ Veröffentlichen — keine Lücke. Beobachtet alle drei Minuten an `status.json`
 |---|---|---|
 | **E-BS-14** | Womit zeichnen? | Mit der **Klasse der Wetterkarte, unverändert** (Jan 22.11.: „ja mache das“). Keine Zeile in `src/wind/**` geändert, kein Shader, keine neue Option; Voreinstellung `weatherWindPreset.ts`, Flächengrenzen der Wetterkarte (2 500 / 48 000), Regelung nur über ihren `FrameGovernor` |
 | **E-BS-15** | Welches Feld? | Der 10-m-Wind von **ICON-D2** aus dem Daten-Repo über den Leser der Wetterkarte, ohne Windfärbung (die Farbfläche der Karte ist der Seegang). Das ist **nicht buscosun Fusion** — Schalter, Legende und Quellenliste sagen es; Werte und Pfeile an den Spots bleiben buscosun Fusion. *Gesetzt, bitte bestätigen* |
-| **E-BS-16** | Ebene „Strömung“ | Dort **ruhen** die Partikel (die Riffel bewegen sich schon; zwei bewegte Schichten übereinander). *Gesetzt* |
+| **E-BS-16** | Ebene „Strömung“ | Gesetzt war: dort ruhen die Partikel. **Jan, 22.11.: beide gleichzeitig** ⇒ die Partikel laufen in jeder Hauptebene, auch unter den Riffeln der „Strömung“ (§9.8). Wer die Riffel allein will, schaltet „Windpartikel“ im Dock aus |
 | **E-BS-17** | Welche Stunden? | Nur die Stunden, die das Feld trägt (bis Lauf + 12 h, also rund 7–11 h voraus). Außerhalb **keine** Partikel und der Satz, bis wann das Feld reicht — nie das Bild vom Rand. Start mit den zwei Bildern um „jetzt“; das lange Fenster wird erst geholt, wenn die gewählte Stunde dahinter liegt |
 | **E-BS-18** | Schalter | Gebaut ab Werk aus hinter `?swp=1`. **Jan, 22.11.: „schalte das feature dauerhaft ein“ ⇒ `SEA_PARTICLES_LIVE = true`, an für alle, VOR jeder Sichtprüfung** (§9.6). Der Dock-Schalter „Windpartikel“ steht bei allen und ist an; Rückfall `?swp=0` = kein Schalter, kein Chunk, keine Schicht |
 | **E-BS-19** | Nur über Wasser? | Nein, über der ganzen Karte wie auf der Wetterkarte. Ein See von wenigen Kilometern ist ein bis zwei Zellen des Felds — auf Wasser beschnitten bliebe davon nichts. *Gesetzt* |
@@ -604,3 +604,21 @@ Werte. `verify:sea-lakes` J1 (neu, 126/126): jeder Seespot und jeder Seeumriss l
 Gegenprobe mit dem alten Südrand: 56 Spots an 19 Seen außerhalb. Typecheck 0. **Nicht im Browser gesehen** — nach dem
 Push bitte den Chip „Seen“ und einen Alpensee (etwa Bodensee) ansehen. Lehre: die Phase BS hat nie eine Karte gesehen;
 der Prüfer prüfte die Reihen der Seen, nicht, ob die Karte dorthin kommt.
+
+### 9.8 Windpartikel und Strömung zugleich (22.11.2026, Jans Wort)
+
+Jan: „kannst du bitte den Windpartikel-Layer und die Strömung es möglich machen, dass sie gleichzeitig angezeigt werden
+können“. Die Regel E-BS-16 (Ruhe in der Ebene „Strömung“) ist gestrichen: `particlesWanted` kennt die Hauptebene nicht
+mehr, der Zustand `rest` und sein Legendensatz sind entfernt. Die Partikel liegen in der Karte (WebGL), die Riffel auf
+ihrem eigenen 2D-Canvas darüber — die Riffel zeichnen also über den Partikeln; keine der beiden Schichten liest die andere.
+Ausschalten wie bisher je Schicht: „Windpartikel“ im Dock, die Riffel über die Wahl der Hauptebene.
+
+- Geändert: `seaParticles.ts`, zwei Zeilen in `SeaPage.tsx`, `verify:sea-particles` A6 / A7 / D3 (die Hauptebene
+  entscheidet nicht mit; der Riffel-Eingang der Karte ist unverändert). Sonst kein Code, kein CSS.
+- Gate: `verify:sea-particles` 32/32, `-ripples` 122/122, `-current` 129/129, `-lakes` 126/126, Typecheck 0, Build 281/281.
+- **Nicht gesehen.** Zwei bewegte Schichten übereinander sind weder am Bild noch an der Bildrate geprüft.
+
+| Nr. | Befund | Mehrwert · Skizze |
+|---|---|---|
+| **V-BS-41** | Partikel und Riffel laufen zugleich: zwei Schleifen (die Partikel-Klasse mit ihrem `FrameGovernor`, die Riffel mit ihrer eigenen Regelung nach demselben Muster) teilen sich die Bildzeit. Die Riffel regeln nach der gemessenen Bildrate — sinkt sie durch die Partikel, werden die Fäden kürzer und die Pakete weniger. Nicht gemessen | Jans Blick in der Ebene „Strömung“ mit Partikeln, auch am Telefon; stört es, „Windpartikel“ im Dock aus. Skizze, falls nötig: in „Strömung“ die Partikeldichte halbieren |
+| **V-BS-42** | Lesbarkeit: helle Partikel unter hellen Riffel-Bögen auf der Strömungsfläche — ob man Wind und Strom auseinanderhält, ist ungesehen | Jans Blick |
