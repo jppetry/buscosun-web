@@ -2,7 +2,8 @@
  * Phase BS-P — the wind particles of the Wetterkarte on the Seewetter map (`audit/seewetter-binnenseen.md` §9). Its own
  * lazy chunk: loaded when the switch is first turned on, nobody else pays for it.
  *
- * Hosts the `WindLayer` class UNCHANGED, with the Wetterkarte's settings (`weatherWindPreset.ts`) and its area clamps —
+ * Hosts the `WindLayer` class UNCHANGED, with the Wetterkarte's settings (`weatherWindPreset.ts`) and its area clamps, plus
+ * this map's calmer look through options the class already has (`SEA_PARTICLE_LOOK`) —
  * no shader, no option and no line of the class is touched; the performance stays with its `FrameGovernor`. The field is
  * the ICON-D2 10-m wind of the data repo through the Wetterkarte's own reader (`fetchIconD2Wind`), without the wind
  * colouring (the sea field is the map's colour area). Which hour is drawn is decided in `seaParticles.ts`.
@@ -12,7 +13,7 @@ import { WindLayer } from '../wind/WindLayer';
 import { weatherWindOptions, WEATHER_WIND_DENSITY } from '../wind/weatherWindPreset';
 import { fetchIconD2Wind, windFrameAtValidTime, windUpsampleOf, type IconD2Wind } from '../wind/iconD2WindSource';
 import {
-  SEA_PARTICLES_BEFORE, SEA_PARTICLES_LAYER_ID, particleHourOf, particleWindowOf, particlesFetchWant, type SeaParticleState,
+  SEA_PARTICLES_BEFORE, SEA_PARTICLES_LAYER_ID, particleHourOf, particleWindowOf, particlesFetchWant, seaParticleLookFrom, type SeaParticleState,
 } from './seaParticles';
 
 /** A failed first fetch is tried again after a minute, at most three times (the pattern of the Wetterkarte, RN-3). */
@@ -36,8 +37,10 @@ export class SeaParticleLayer {
   constructor(map: maplibregl.Map, tMs: number, onState: (s: SeaParticleState) => void) {
     this.map = map; this.tMs = tMs; this.onState = onState;
     const coarse = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
-    // Exactly the Wetterkarte's layer: look and tempo from the shared preset, the area clamps of the full-size map.
-    this.wind = new WindLayer({ ...weatherWindOptions(coarse), id: SEA_PARTICLES_LAYER_ID, minParticles: 2500, maxParticles: 48000, reduceMotionOnMove: coarse });
+    // The Wetterkarte's layer with its shared preset and the area clamps of the full-size map; on top of it the calmer
+    // look of this map (`SEA_PARTICLE_LOOK`: compressed tempo, longer life — Jan 22.11.; `?swplook=wk` = the preset alone).
+    const look = seaParticleLookFrom(typeof window.location?.search === 'string' ? window.location.search : '');
+    this.wind = new WindLayer({ ...weatherWindOptions(coarse), ...look, id: SEA_PARTICLES_LAYER_ID, minParticles: 2500, maxParticles: 48000, reduceMotionOnMove: coarse });
     this.wind.setDensityMultiplier(WEATHER_WIND_DENSITY);
     this.wind.setShowHeatmap(false);
     this.wind.setShowParticles(false);   // nothing moves before a field of the chosen hour is in

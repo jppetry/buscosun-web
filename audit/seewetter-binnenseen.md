@@ -622,3 +622,32 @@ Ausschalten wie bisher je Schicht: „Windpartikel“ im Dock, die Riffel über 
 |---|---|---|
 | **V-BS-41** | Partikel und Riffel laufen zugleich: zwei Schleifen (die Partikel-Klasse mit ihrem `FrameGovernor`, die Riffel mit ihrer eigenen Regelung nach demselben Muster) teilen sich die Bildzeit. Die Riffel regeln nach der gemessenen Bildrate — sinkt sie durch die Partikel, werden die Fäden kürzer und die Pakete weniger. Nicht gemessen | Jans Blick in der Ebene „Strömung“ mit Partikeln, auch am Telefon; stört es, „Windpartikel“ im Dock aus. Skizze, falls nötig: in „Strömung“ die Partikeldichte halbieren |
 | **V-BS-42** | Lesbarkeit: helle Partikel unter hellen Riffel-Bögen auf der Strömungsfläche — ob man Wind und Strom auseinanderhält, ist ungesehen | Jans Blick |
+
+### 9.9 Ruhigere Windpartikel auf der Seekarte (22.11.2026, Jans Wort)
+
+Jan: „die Windpartikel sind bei höheren Windgeschwindigkeiten ja deutlich schneller, kannst du das beim Seewetter ändern.
+Die Windpartikel bleiben länger, aber die Geschwindigkeit nicht mehr so viel schneller. Das macht die Szene zu hektisch.“
+
+Die Wetterkarte bewegt Partikel streng proportional zum Wind (doppelter Wind = doppeltes Tempo) und ersetzt schnelle
+Partikel öfter. Die Partikel-Klasse hat für beides schon Stellgrößen — nichts an ihr ist geändert, kein Shader:
+
+| Nr. | Was | Wetterkarte | Seekarte (`SEA_PARTICLE_LOOK`, alle `set`) |
+|---|---|---|---|
+| **E-BS-20** | Tempo | linear | Kurve der Klasse `ref · (v / ref)^gamma` mit gamma 0,5 und ref 6 m/s: 6 m/s wie bisher, 12 m/s 1,41-mal (statt zweimal), 24 m/s zweimal (statt viermal) so schnell, 3 m/s 0,71-mal (statt halb) |
+| **E-BS-21** | Leben eines Partikels | Grundrate 0,003 je Bild, dazu bis 0,01 mit der Geschwindigkeit | 0,002 und bis 0,004 — langsame leben rund 1,5-mal, schnelle rund 2-mal so lange |
+| **E-BS-22** | Schweif | klingt mit 0,972 je Bild ab | 0,978 — rund ein Viertel länger sichtbar |
+| **E-BS-23** | Ehrlichkeit | Tempo = Windwert | Das Tempo ist nicht mehr proportional — die Legende sagt es („Das Tempo ist gestaucht: doppelter Wind läuft rund 1,4-mal so schnell.“). Rückfall `?swplook=wk` = die Darstellung der Wetterkarte |
+
+Umsetzung: `seaParticles.ts` (`SEA_PARTICLE_LOOK`, `seaParticleLookFrom`, `seaParticleTempo`, `seaParticleTempoNote`),
+eine Zeile in `SeaParticleLayer.ts` (die fünf Angaben über der gemeinsamen Voreinstellung), Legendensatz in `SeaPage.tsx`.
+Die Wetterkarte, die Dashboard-Kachel und `src/wind/**` sind unberührt.
+
+Gate: `verify:sea-particles` 36/36 (A9–A11 neu: Kurve, Lebensdauer gegen die Werte der Klasse, Formel im Shader gelesen,
+Legendensatz, Rückfall; C1 trägt die fünf Angaben, C14 neu: mit `?swplook=wk` keine davon), `-ripples` 122/122, `-current`
+129/129, `verify:wind-hd` 24/24; Typecheck 0, Build 281/281, Budget totalJs 2 117,0 / 2 118 (im geteilten Baum gemessen). **Nicht im Browser gesehen — alle fünf Zahlen sind gesetzt, nicht am Bild abgestimmt.**
+
+| Nr. | Befund | Mehrwert · Skizze |
+|---|---|---|
+| **V-BS-43** | Die Werte sind am Schreibtisch gewählt. Stellschrauben, falls es noch zu hektisch oder jetzt zu träge ist: `speedGamma` (kleiner = stärker gestaucht), `speedRef` (der Wind, der unverändert läuft), `dropRate` / `dropRateBump` (Lebensdauer), `fadeOpacity` (Schweif) | Jans Blick bei starkem Wind; dann eine Zahl nennen |
+| **V-BS-44** | Länger lebende Partikel sammeln sich eher in Konvergenzzonen (deshalb ersetzt die Wetterkarte öfter) — ob Klumpen entstehen, ist ungesehen | Jans Blick weit herausgezoomt; sonst `dropRate` wieder anheben |
+| **V-BS-45** | Bei schwachem Wind (unter 6 m/s) laufen die Partikel jetzt etwas schneller als auf der Wetterkarte (3 m/s: 0,71 statt 0,5 des Bezugstempos) | Folge der Kurve, nur vermerkt |

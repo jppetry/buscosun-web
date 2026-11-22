@@ -4392,6 +4392,10 @@ den Prüfern); geprüft sind Ablauf, Worte und Verdrahtung. Mit `?swp=0` ist die
    (zweiter Block „Strömung an der Oberfläche“, V-SR-23)? **Weggefallen ist die eigene Farbfläche der Strömung**
    (E-SR-25) — sag, ob sie als eigene Ebene zurückkommen soll. Ohne Strömungsdaten steht der Grund in der Legende, die
    Karte bleibt nicht leer.
+9. **Ruhigere Windpartikel nur auf der Seekarte (dein Wort vom 22.11., Audit §9.9):** das Tempo ist gestaucht (doppelter
+   Wind läuft rund 1,4-mal so schnell statt doppelt), die Partikel leben länger, der Schweif klingt langsamer ab. Die
+   Wetterkarte ist unverändert. Alle Zahlen sind gesetzt und ungesehen — bitte bei kräftigem Wind ansehen und sagen, ob es
+   passt, noch zu hektisch oder zu träge ist (V-BS-43). Gegenprobe: `?swplook=wk` zeigt die Darstellung der Wetterkarte.
 
 ## 113. Wind in voller ICON-D2-Auflösung, 2,2 km (Phase WH, `audit/wind-2km.md`), 2026-11-22
 

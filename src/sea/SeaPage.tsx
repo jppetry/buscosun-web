@@ -16,7 +16,7 @@ import { useAppNav } from '../router/useAppNav';
 import { useMediaQuery } from '../mobile/useIsMobile';
 import { seaFieldStepAt, seaCompStepAt, seaNoSeaAt, type SeaSpot } from './seaContract';
 import { seaCurrentPrevFrom, seaDryRuleFrom, seaParticlesFrom, seaTideWindowFrom, seaWaterLevelFrom } from './seaFlag';
-import { particleLegend, particlesWanted, type SeaParticleState } from './seaParticles';
+import { particleLegend, particlesWanted, seaParticleLookFrom, seaParticleTempoNote, type SeaParticleState } from './seaParticles';
 import { WL_ATTRIBUTION, WL_LICENCE, WL_LICENCE_URL, WL_SERVICE_PAGE, wlAt, wlDistKm, wlNearest, wlNearestWithCurve, type WlForecast, type WlGauge } from './waterLevel';
 import {
   encodeTideParam, loadTideThreshold, parseTideParam, saveTideThreshold, tideHours, tideRefOf, tideRefs, tideSeries, tideSideText, tideVerdict, tideWindows,
@@ -152,6 +152,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   // Phase BS-P: the wind particles are on for everyone (Jan 22.11.) and the dock switch starts on; `?swp=0` = the page before.
   const particlesFlag = useMemo(() => seaParticlesFrom(), []);
   const [particleState, setParticleState] = useState<SeaParticleState>({ kind: 'loading' });
+  const particleTempoNote = useMemo(() => seaParticleTempoNote(seaParticleLookFrom(window.location.search)), []);
   const [current, setCurrent] = useState<SeaCurrentLoad | 'loading'>('loading');
   const [currents, setCurrents] = useState<GeoJSON.FeatureCollection | null>(null);
   // Phase SR: the u/v field of the chosen hour while the main layer „Strömung“ is chosen (`audit/seewetter-riffel.md`).
@@ -1305,7 +1306,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
       )}
       <div className="sw-legend-note">{noData ? 'Keine Fläche: kein gültiger Lauf.' : `Modell ${runTxt}, Vorlauf +${lead} h${fieldNote}. Wind an den Spots: ${windEngine}.`}{fieldState === 'error' ? ' Feld nicht ladbar.' : ''}</div>
       {ripplesOn && <div className="sw-legend-note">{curWhy ? `Strömung: keine Daten. ${curWhy} Es werden keine Riffel gezeigt.` : current === 'loading' || uvState === 'loading' ? 'Strömung lädt.' : `Strömung: ${SEA_CURRENT_MODEL_NOTE}. ${curRunTxt}`}{!curWhy && stillMotion ? ` ${RIPPLE_STILL_NOTE}` : ''}</div>}
-      {particleMode !== 'off' && <div className="sw-legend-note">{particleLegend(particleState, dateTime)}</div>}
+      {particleMode !== 'off' && <div className="sw-legend-note">{particleLegend(particleState, dateTime, particleTempoNote)}</div>}
     </div>
   );
   // The note on the map speaks of the wave area only; ripples without data are named in the legend (the switch is on by

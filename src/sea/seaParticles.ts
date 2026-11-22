@@ -24,6 +24,37 @@ export const SEA_PARTICLES_AHEAD_H = 12;
 /** A new ICON-D2 run comes every 3 h: a field fetched longer ago is asked for again at the next change of the hour (`set`). */
 export const SEA_PARTICLES_REFRESH_MS = 3 * H;
 
+/**
+ * The look of the particles on the Seewetter map. Jan, 22.11.2026: at higher wind the particles were much faster and the
+ * scene too hectic — „die Windpartikel bleiben länger, aber die Geschwindigkeit nicht mehr so viel schneller“. Only options
+ * the Wetterkarte's class already has (no shader, no new option); the Wetterkarte itself keeps its look. All values `set`
+ * and not seen by the author.
+ *  - tempo: the class's own curve  shown = ref · (v / ref)^gamma. With gamma 0,5 and ref 6 m/s a wind of 6 m/s runs as
+ *    before, 12 m/s 1,41 times as fast (not twice), 24 m/s twice (not four times), 3 m/s 0,71 times (not half). The tempo
+ *    is no longer proportional to the wind — the legend says so.
+ *  - life: a particle is replaced less often (base 0,002 instead of 0,003 per frame, the part that grows with the speed
+ *    0,004 instead of 0,01) and its trail fades more slowly (0,978 instead of 0,972 per frame).
+ * `?swplook=wk` = the Wetterkarte's look (linear tempo, its lifetimes) — the named fallback.
+ */
+export const SEA_PARTICLE_LOOK = Object.freeze({ speedGamma: 0.5, speedRef: 6, dropRate: 0.002, dropRateBump: 0.004, fadeOpacity: 0.978 });
+export type SeaParticleLook = Partial<typeof SEA_PARTICLE_LOOK>;
+export function seaParticleLookFrom(search: string): SeaParticleLook {
+  let q: string | null = null;
+  try { q = new URLSearchParams(search).get('swplook'); } catch { /* broken query = no vote */ }
+  return q === 'wk' ? {} : SEA_PARTICLE_LOOK;
+}
+/** The wind speed the particles are moved with for a model wind `vMs` — the formula of the particle class (`speedGamma`, `speedRef`). */
+export function seaParticleTempo(vMs: number, look: SeaParticleLook = SEA_PARTICLE_LOOK): number {
+  if (!(vMs > 0)) return 0;
+  const g = look.speedGamma ?? 1, ref = look.speedRef ?? 5;
+  return g === 1 ? vMs : ref * Math.pow(vMs / ref, g);
+}
+/** The sentence of the legend about the tempo; empty with the linear look. */
+export function seaParticleTempoNote(look: SeaParticleLook = SEA_PARTICLE_LOOK): string {
+  const g = look.speedGamma ?? 1;
+  return g === 1 ? '' : `Das Tempo ist gestaucht: doppelter Wind läuft rund ${(2 ** g).toLocaleString('de-DE', { maximumFractionDigits: 1 })}-mal so schnell.`;
+}
+
 /** The hours the loaded field carries. */
 export interface ParticleWindow { runMs: number; fromMs: number; toMs: number }
 
@@ -57,11 +88,11 @@ export type SeaParticleState =
   | { kind: 'outside'; side: 'before' | 'after'; w: ParticleWindow }
   | { kind: 'na' };
 
-/** The legend line. `when` formats a time for the reader (the page's `dateTime`). */
-export function particleLegend(s: SeaParticleState, when: (ms: number) => string): string {
+/** The legend line. `when` formats a time for the reader (the page's `dateTime`); `tempoNote` = `seaParticleTempoNote()`. */
+export function particleLegend(s: SeaParticleState, when: (ms: number) => string, tempoNote = ''): string {
   switch (s.kind) {
     case 'loading': return 'Windpartikel laden.';
-    case 'ok': return `Windpartikel: Windfeld des DWD-Modells ICON-D2 (Lauf ${String(new Date(s.w.runMs).getUTCHours()).padStart(2, '0')} UTC, ${s.hd ? '2,2 km' : 'jede zweite Zelle, 4,4 km'}), nicht buscosun Fusion. Die Werte an den Spots können davon abweichen.`;
+    case 'ok': return `Windpartikel: Windfeld des DWD-Modells ICON-D2 (Lauf ${String(new Date(s.w.runMs).getUTCHours()).padStart(2, '0')} UTC, ${s.hd ? '2,2 km' : 'jede zweite Zelle, 4,4 km'}), nicht buscosun Fusion. Die Werte an den Spots können davon abweichen.${tempoNote ? ` ${tempoNote}` : ''}`;
     case 'outside': return s.side === 'after'
       ? `Windpartikel: keine für diese Stunde. Das Windfeld der Karte reicht bis ${when(s.w.toMs)} Uhr.`
       : `Windpartikel: keine für diese Stunde. Das Windfeld der Karte beginnt ${when(s.w.fromMs)} Uhr.`;

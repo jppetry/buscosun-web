@@ -22,6 +22,7 @@ import { build } from 'esbuild';
 import {
   SEA_PARTICLES_AHEAD_H, SEA_PARTICLES_BEFORE, SEA_PARTICLES_HINT, SEA_PARTICLES_LABEL, SEA_PARTICLES_LAYER_ID, SEA_PARTICLES_REFRESH_MS,
   particleHourOf, particleLegend, particleWindowOf, particlesFetchWant, particlesWanted,
+  SEA_PARTICLE_LOOK, seaParticleLookFrom, seaParticleTempo, seaParticleTempoNote,
 } from '../src/sea/seaParticles.ts';
 import { SEA_PARTICLES_LIVE, seaParticlesFrom } from '../src/sea/seaFlag.ts';
 
@@ -61,6 +62,24 @@ add('A7 gezeichnet nur mit Schalter der Phase UND Dock-Schalter UND Seedaten —
   && particlesWanted({ flag: true, toggle: true, noData: true }) === 'off');
 add('A8 Worte des Schalters: „Windpartikel“, die Quelle im Untertitel', SEA_PARTICLES_LABEL === 'Windpartikel' && /ICON-D2/.test(SEA_PARTICLES_HINT) && /nicht buscosun Fusion/.test(SEA_PARTICLES_HINT));
 
+// Jan, 22.11.2026: bei höherem Wind waren die Partikel viel schneller, die Szene zu hektisch — Tempo gestaucht, Leben länger.
+{
+  const L = SEA_PARTICLE_LOOK, t = (v) => seaParticleTempo(v);
+  const near = (a, b) => Math.abs(a - b) < 1e-9;
+  add('A9 Tempo der Seekarte: die Kurve der Partikel-Klasse (ref · (v / ref)^gamma) mit gamma 0,5 und ref 6 m/s — beim Bezugswind unverändert, doppelter Wind nur 1,41-mal so schnell, immer steigend, über dem Bezugswind langsamer und darunter schneller als linear',
+    L.speedGamma === 0.5 && L.speedRef === 6 && near(t(6), 6) && near(t(12) / t(6), Math.SQRT2) && near(t(24), 12) && near(t(3), 6 / Math.SQRT2) && t(0) === 0 && t(-1) === 0
+    && [1, 2, 4, 8, 16, 32].every((v, i, a) => i === 0 || t(v) > t(a[i - 1])) && t(15) < 15 && t(2) > 2 && Object.isFrozen(L));
+  add('A10 Leben der Partikel: seltener ersetzt (Grundrate und geschwindigkeitsabhängiger Teil unter den Werten der Klasse 0,003 / 0,01), der Schweif klingt langsamer ab als auf der Wetterkarte (0,972)',
+    L.dropRate === 0.002 && L.dropRate < 0.003 && L.dropRateBump === 0.004 && L.dropRateBump < 0.01 && L.fadeOpacity === 0.978 && L.fadeOpacity > 0.972 && L.fadeOpacity < 0.995
+    && /this\.dropRate = options\.dropRate \?\? 0\.003;/.test(src('wind/WindLayer.ts')) && /this\.dropRateBump = options\.dropRateBump \?\? 0\.01;/.test(src('wind/WindLayer.ts')) && /export const WEATHER_WIND_FADE = 0\.972;/.test(src('wind/weatherWindPreset.ts')));
+  add('A11 die Formel ist die der Klasse (im Shader gelesen), die Legende sagt, dass das Tempo gestaucht ist; mit `?swplook=wk` gilt die Darstellung der Wetterkarte (linear, kein Satz)',
+    /if \(u_speed_gamma != 1\.0\) dispSpeed = pow\(speed \/ u_speed_ref, u_speed_gamma\) \* u_speed_ref;/.test(src('wind/shaders.ts'))
+    && seaParticleTempoNote() === 'Das Tempo ist gestaucht: doppelter Wind läuft rund 1,4-mal so schnell.' && seaParticleTempoNote({}) === ''
+    && JSON.stringify(seaParticleLookFrom('?swplook=wk')) === '{}' && seaParticleLookFrom('') === L && seaParticleLookFrom('?swplook=x') === L && near(seaParticleTempo(12, {}), 12)
+    && / Das Tempo ist gestaucht: /.test(particleLegend({ kind: 'ok', w: W }, when, seaParticleTempoNote())) && !/gestaucht/.test(particleLegend({ kind: 'ok', w: W }, when))
+    && !/gestaucht/.test(particleLegend({ kind: 'loading' }, when, seaParticleTempoNote())));
+}
+
 // --- B: switch ----------------------------------------------------------------------------------------------------
 add('B1 an für alle (Jan 22.11., E-BS-18); `?swp=0` aus — der Rückfall; `?swp=1` an; kaputte Query = ab Werk',
   SEA_PARTICLES_LIVE === true && seaParticlesFrom('') === true && seaParticlesFrom('?swp=1') === true && seaParticlesFrom('?swp=0') === false
@@ -86,10 +105,10 @@ await build({
 const { SeaParticleLayer } = await import(pathToFileURL(out).href);
 const tick = () => new Promise((r) => setImmediate(r));
 const realTimeout = globalThis.setTimeout, realClear = globalThis.clearTimeout, realNow = Date.now;
-function stage({ coarse = false, has = true } = {}) {
+function stage({ coarse = false, has = true, search = '' } = {}) {
   const sp = { layers: [], asked: [], fetches: [], fetch: null, timers: [], cleared: [] };
   globalThis.__sp = sp;
-  globalThis.window = { matchMedia: () => ({ matches: coarse }) };
+  globalThis.window = { matchMedia: () => ({ matches: coarse }), location: { search } };
   globalThis.setTimeout = (fn, ms) => { sp.timers.push({ fn, ms }); return sp.timers.length; };
   globalThis.clearTimeout = (id) => { sp.cleared.push(id); };
   const map = { added: [], removed: [], layers: new Set(has ? [SEA_PARTICLES_BEFORE] : []),
@@ -111,6 +130,7 @@ try {
     const l = sp.layers[0];
     add('C1 die Schicht ist die der Wetterkarte: gemeinsame Voreinstellung, Flächengrenzen 2 500 / 48 000, Dichte 0,55, ohne Windfärbung; sie liegt unter den Pfeilen',
       sp.layers.length === 1 && l.o.preset === true && l.o.id === SEA_PARTICLES_LAYER_ID && l.o.minParticles === 2500 && l.o.maxParticles === 48000 && l.o.reduceMotionOnMove === false
+      && l.o.speedGamma === SEA_PARTICLE_LOOK.speedGamma && l.o.speedRef === SEA_PARTICLE_LOOK.speedRef && l.o.dropRate === SEA_PARTICLE_LOOK.dropRate && l.o.dropRateBump === SEA_PARTICLE_LOOK.dropRateBump && l.o.fadeOpacity === SEA_PARTICLE_LOOK.fadeOpacity
       && last(l, 'density')[1] === 0.55 && last(l, 'heatmap')[1] === false && l.calls.find((c) => c[0] === 'particles')[1] === false
       && JSON.stringify(map.added) === JSON.stringify([[SEA_PARTICLES_LAYER_ID, SEA_PARTICLES_BEFORE]]), JSON.stringify([l.o, map.added]));
     await tick();
@@ -238,6 +258,16 @@ try {
       sig.aborted === true && !l.calls.some((c) => c[0] === 'data') && states.every((s) => s.kind === 'loading') && l.o.coarse === true && l.o.reduceMotionOnMove === true
       && JSON.stringify(map.added) === JSON.stringify([[SEA_PARTICLES_LAYER_ID, undefined]]), JSON.stringify([sig.aborted, states, map.added]));
   }
+  // C14: `?swplook=wk` — the layer is built with the Wetterkarte's preset alone
+  {
+    const { sp, map } = stage({ search: '?swplook=wk' });
+    sp.fetch = () => new Promise(() => {});
+    const layer = new SeaParticleLayer(map, RUN + 3 * H, () => {});
+    const o = sp.layers[0].o;
+    add('C14 mit `?swplook=wk` trägt die Schicht keine der fünf Angaben der Seekarte — die Darstellung der Wetterkarte',
+      o.preset === true && !('speedGamma' in o) && !('speedRef' in o) && !('dropRate' in o) && !('dropRateBump' in o) && !('fadeOpacity' in o) && o.minParticles === 2500, JSON.stringify(o));
+    layer.destroy();
+  }
   // C13 (Phase WH): a field at full resolution is handed over with the factor 1, a sampled one without a factor
   {
     const { sp, map } = stage();
@@ -278,7 +308,8 @@ add('D3 Seite: ohne den Schalter der Phase keine Schicht, kein Dock-Schalter, ke
   && /particles: false, ripples: true \};/.test(page) && /particles: seaParticlesFrom\(\) \}\)\);/.test(page)
   // The ripples of the current (a switch of their own since 22.11.) and the particles are independent: neither reads the other.
   && /ripple=\{ripplesOn && uv \? uv\.grid : null\}/.test(page) && !/const particleMode = .*ripplesOn/.test(page) && !/const particleProp = .*ripplesOn/.test(page) && !/const ripplesOn = .*particle/.test(page)
-  && /\{particleMode !== 'off' && <div className="sw-legend-note">\{particleLegend\(particleState, dateTime\)\}<\/div>\}/.test(page));
+  && /\{particleMode !== 'off' && <div className="sw-legend-note">\{particleLegend\(particleState, dateTime, particleTempoNote\)\}<\/div>\}/.test(page)
+  && /const particleTempoNote = useMemo\(\(\) => seaParticleTempoNote\(seaParticleLookFrom\(window\.location\.search\)\), \[\]\);/.test(page));
 add('D4 Seite: die Quelle nennt ICON-D2 und „nicht buscosun Fusion“ und ist nur „an“, wenn wirklich Partikel gezeichnet werden',
   /what: 'Windpartikel: Wind in 10 m als Feld des Modells \(nicht buscosun Fusion\)'/.test(page) && /on: particleMode === 'on' && particleState\.kind === 'ok' \}\] : \[\]\)/.test(page));
 add('D5 Dock: der Schalter „Windpartikel“ steht nur mit `hasParticles` in der Liste, mit den Worten der Phase',
@@ -286,7 +317,7 @@ add('D5 Dock: der Schalter „Windpartikel“ steht nur mit `hasParticles` in de
 const mv = readFileSync(join(ROOT, 'src/MapView.tsx'), 'utf8');
 const clamp = /minParticles: (\d+), maxParticles: (\d+),/.exec(mv), own = /minParticles: (\d+), maxParticles: (\d+), reduceMotionOnMove: coarse \}/.exec(layerSrc);
 add('D6 die Schicht nimmt Voreinstellung und Flächengrenzen der Wetterkarte (aus `MapView.tsx` gelesen), Dichte aus der gemeinsamen Konstante',
-  clamp && own && clamp[1] === own[1] && clamp[2] === own[2] && /\.\.\.weatherWindOptions\(coarse\), id: SEA_PARTICLES_LAYER_ID,/.test(layerSrc)
+  clamp && own && clamp[1] === own[1] && clamp[2] === own[2] && /\.\.\.weatherWindOptions\(coarse\), \.\.\.look, id: SEA_PARTICLES_LAYER_ID,/.test(layerSrc) && /const look = seaParticleLookFrom\(/.test(layerSrc)
   && /setDensityMultiplier\(WEATHER_WIND_DENSITY\)/.test(layerSrc) && /reduceMotionOnMove: coarsePointer,/.test(mv), JSON.stringify([clamp?.slice(1), own?.slice(1)]));
 const imports = [...layerSrc.matchAll(/from '([^']+)'/g)].map((m) => m[1]).sort();
 add('D7 die Schicht liest nur die Partikel-Klasse, ihre Voreinstellung und den Windleser der Wetterkarte — nichts von buscosun Fusion, kein eigener Shader; die reine Logik importiert nichts',
