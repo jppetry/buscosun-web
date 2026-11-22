@@ -999,3 +999,29 @@ V-AM-29 (Profile doppelt, solange nach dem Spot gefragt wird): **erledigt** — 
 | **V-AM-37** | Der Auftrag nennt acht Namen (Wing und Surf/SUP und Kajak getrennt), der Code sieben Profile (E-AM-34) | Soll es acht geben, braucht jedes neue Profil eigene Startgrenzen (Tabelle SW-6) — Jans Wort |
 | **V-AM-38** | Am Desktop passt Schritt 1 bei 900 px Höhe ohne Rollen; darunter (z. B. 768 px) rollt die Seite, Kopf und Fuß bleiben stehen | Auf kleinen Laptops die Karten der Art enger setzen oder den Satz der Grenzen einklappen |
 | **V-AM-39** | Auf „Startort“ steht mobil nur der Knopf „Spot wählen“; die Liste ist ein eigenes Blatt (das bestehende „Spot“ der unteren Leiste) | Ein Blattwechsel weniger, wenn die Suche direkt auf der Seite stünde; die Liste mit 64 Spots passt aber nicht in das niedrige Blatt über der Karte |
+
+## 14. „Ausfahrt planen“ ausgeblendet (22.11.2026, Jans Wort)
+
+Jan: „kannst du jetzt noch Ausfahrtplaner ausblenden? den Button — ich möchte das Feature erst noch weiterentwickeln, bevor
+es fertig wird.“ Das ist die ausdrückliche Freigabe, eine bestehende Funktion zu verstecken (Oberste Direktive). Nichts ist
+entfernt.
+
+| Nr. | Frage | Entscheidung |
+|---|---|---|
+| **E-AM-44** | Was verschwindet | Die zwei Einstiege: der Knopf „Ausfahrt planen“ über der Legende und der Eintrag „Ausfahrt“ der unteren Leiste am Telefon. Einen dritten Weg gab es nicht (im Quelltext gezählt) |
+| **E-AM-45** | Links mit einem Plan | Ein Link mit `pl=`, `et=`, `sd=` oder `ps=` öffnet die Seite **ohne** den Planer (`seaWithoutPlanner`) — sonst wäre das Feature über jeden alten Link weiter offen. Die Adresse verliert die Angaben beim ersten Schreiben des Zustands. *Gesetzt, bitte bestätigen* |
+| **E-AM-46** | Schalter | `SEA_PLANNER_LIVE = false` in `seaFlag.ts`; `?planer=1` zeigt den Planer wie gebaut (für die Weiterarbeit, je Besuch), `SEA_PLANNER_LIVE = true` bringt ihn für alle zurück |
+
+Umsetzung: `seaFlag.ts` (`SEA_PLANNER_LIVE`, `seaPlannerFrom`), `seaState.ts` (`seaWithoutPlanner`), `SeaPage.tsx` (der
+Zustand aus Link und Verlauf geht ohne Plan in die Seite; `planBtn` und der Leisten-Eintrag hängen an `plannerOn`). Rechnung,
+Assistent, Tafeln, CSS und Prüfer des Planers sind unberührt; kein SEO-Text nannte den Planer (im Baum gesucht).
+
+Gate: `verify:sea-planner` 50/50 (H5 auf die bedingten Einstiege gestellt; H6 sagte „kein Schalter“ und prüft jetzt den
+Schalter, den Schnitt des Link-Zustands und dass es nur die zwei Einstiege gibt), `-wizard` 29/29 (E5 liest die neue Zeile),
+`-trip` 82/82; übrige Prüfer, Typecheck, Build und Budget siehe Commit. **Nicht im Browser gesehen.**
+
+| Nr. | Befund | Mehrwert · Skizze |
+|---|---|---|
+| **V-AM-40** | `?planer=1` gilt für den Besuch (einmal beim Laden gelesen); die Seite schreibt den Parameter nicht in die Adresse zurück — nach einem Neuladen ohne ihn ist der Planer wieder weg | Für die Entwicklung den Link mit `?planer=1` als Lesezeichen; Skizze: `localStorage.planer = '1'` wie bei `sea` |
+| **V-AM-41** | Geteilte Links mit einer Etappe oder einem Fenster zeigen jetzt die Seite ohne Plan und ohne Hinweis darauf | Skizze: eine Zeile „Dieser Link enthielt eine geplante Ausfahrt — die Funktion ist in Arbeit“; Jans Wort |
+| **V-AM-42** | Der Code des Planers bleibt im Bündel (Lazy-Chunks werden nur ohne Einstieg nicht mehr geladen) | Nur vermerkt |

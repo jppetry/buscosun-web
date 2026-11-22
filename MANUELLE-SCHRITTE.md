@@ -4396,6 +4396,11 @@ den Prüfern); geprüft sind Ablauf, Worte und Verdrahtung. Mit `?swp=0` ist die
    Wind läuft rund 1,4-mal so schnell statt doppelt), die Partikel leben länger, der Schweif klingt langsamer ab. Die
    Wetterkarte ist unverändert. Alle Zahlen sind gesetzt und ungesehen — bitte bei kräftigem Wind ansehen und sagen, ob es
    passt, noch zu hektisch oder zu träge ist (V-BS-43). Gegenprobe: `?swplook=wk` zeigt die Darstellung der Wetterkarte.
+10. **„Ausfahrt planen“ ist ausgeblendet (dein Wort vom 22.11., `audit/seewetter-ausfahrt.md` §14):** kein Knopf über der
+    Legende, kein Eintrag „Ausfahrt“ in der unteren Leiste am Telefon; Links mit einem Plan (`pl=`, `et=`, `sd=`, `ps=`)
+    öffnen die Seite ohne den Planer (E-AM-45 — gesetzt, bitte bestätigen). **Für deine Weiterarbeit:** `/seewetter?planer=1`
+    zeigt den Planer wie gebaut (je Besuch; nach einem Neuladen ohne den Parameter ist er wieder weg, V-AM-40). Für alle
+    zurück: `SEA_PLANNER_LIVE = true` in `src/sea/seaFlag.ts`, Build, Push.
 
 ## 113. Wind in voller ICON-D2-Auflösung, 2,2 km (Phase WH, `audit/wind-2km.md`), 2026-11-22
 

@@ -15,7 +15,7 @@ import ShareButton from '../share/ShareButton';
 import { useAppNav } from '../router/useAppNav';
 import { useMediaQuery } from '../mobile/useIsMobile';
 import { seaFieldStepAt, seaCompStepAt, seaNoSeaAt, type SeaSpot } from './seaContract';
-import { seaCurrentPrevFrom, seaDryRuleFrom, seaParticlesFrom, seaTideWindowFrom, seaWaterLevelFrom } from './seaFlag';
+import { seaCurrentPrevFrom, seaDryRuleFrom, rememberSeaPlanner, seaParticlesFrom, seaPlannerFrom, seaTideWindowFrom, seaWaterLevelFrom } from './seaFlag';
 import { particleLegend, particlesWanted, seaParticleLookFrom, seaParticleTempoNote, type SeaParticleState } from './seaParticles';
 import { WL_ATTRIBUTION, WL_LICENCE, WL_LICENCE_URL, WL_SERVICE_PAGE, wlAt, wlDistKm, wlNearest, wlNearestWithCurve, type WlForecast, type WlGauge } from './waterLevel';
 import {
@@ -37,7 +37,7 @@ import {
   type SeaLimits, type SeaProfileId, type SeaUnit, type SeaVerdict,
 } from './seaProfiles';
 import { SeaVerdictCache } from './seaVerdicts';
-import { SEA_MAX_T, SEA_TIME_CHIPS, seaInRevier, type SeaLayer, type SeaRevier, type SeaTab, type SeaUrlState } from './seaState';
+import { SEA_MAX_T, SEA_TIME_CHIPS, seaInRevier, seaWithoutPlanner, type SeaLayer, type SeaRevier, type SeaTab, type SeaUrlState } from './seaState';
 import {
   CLASS_COLOR, CLASS_LABEL, CLASS_SHORT, DRY_VALUE, HS_STOPS, LAYER_LABEL, PER_STOPS, H, compass16, cssGradient, dateTime, dayShort, f1, hh, hm, tzLabel, waveArrows,
 } from './seaView';
@@ -128,7 +128,11 @@ export const kindsLabel = (kinds: readonly string[]) => kinds.map((x) => KIND_LA
 const TIDE_CURVE_TRIES = 3;
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'ss');
 
-export default function SeaPage({ initial, onUrlState, onSpot, popState, openDossier }: SeaPageProps) {
+export default function SeaPage({ initial: initialIn, onUrlState, onSpot, popState: popIn, openDossier }: SeaPageProps) {
+  // „Ausfahrt planen“ is hidden (Jan 22.11.2026, `SEA_PLANNER_LIVE`): no entry point, and a plan in the link is not read.
+  const plannerOn = useMemo(() => { rememberSeaPlanner(); return seaPlannerFrom(); }, []);
+  const initial = useMemo(() => (plannerOn ? initialIn : seaWithoutPlanner(initialIn)), [plannerOn, initialIn]);
+  const popState = useMemo(() => (plannerOn || !popIn ? popIn : seaWithoutPlanner(popIn)), [plannerOn, popIn]);
   const nav = useAppNav();
   const isMobile = useMediaQuery('(max-width: 767px), (max-width: 1439px) and (pointer: coarse)');
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -1393,7 +1397,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
       moved={planMoved} />
   ) : null;
   // The entry over the legend rests while the assistant is open (it is there already).
-  const planBtn = wizOpen ? null : (
+  const planBtn = wizOpen || !plannerOn ? null : (
     <button type="button" className="sw-pl-open" onClick={openPlanner}>
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 17l2.2 3.5h13.6L21 17H3zM12 3v11M12 4.5l6 7.5h-6" /></svg>
       Ausfahrt planen
@@ -1698,8 +1702,8 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
             ['map', 'Karte', <path key="p" d="M9 4 3 6.5v13L9 17l6 2.5 6-2.5v-13L15 7 9 4zM9 4v13M15 7v12.5" />],
             ['spot', 'Spot', <g key="p"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z" /><circle cx="12" cy="10" r="2.3" /></g>],
             ['layers', 'Ebenen', <path key="p" d="m12 3 9 4.5-9 4.5-9-4.5L12 3zM3 12l9 4.5 9-4.5M3 16.5 12 21l9-4.5" />],
-            // Phase SP: the trip planner — never disabled; without a chosen spot it asks for one first.
-            ['plan', 'Ausfahrt', <path key="p" d="M3 17l2.2 3.5h13.6L21 17H3zM12 3v11M12 4.5l6 7.5h-6" />],
+            // Phase SP: the trip planner — never disabled; without a chosen spot it asks for one first. Hidden with the planner (`plannerOn`).
+            ...(plannerOn ? [['plan', 'Ausfahrt', <path key="p" d="M3 17l2.2 3.5h13.6L21 17H3zM12 3v11M12 4.5l6 7.5h-6" />] as const] : []),
             // Phase TF: the threshold control lives in the bottom bar on the phone (only with the switch on).
             ...(tideView ? [['tide', 'Schwelle', <g key="p"><path d="M3 15c2-2.4 4-2.4 6 0s4 2.4 6 0 4-2.4 6 0" /><path d="M3 8.5h18" strokeDasharray="3 3" /><path d="M12 19.5v-2M12 6V3.5" /></g>] as const] : []),
           ] as const).map(([id, label, icon]) => (

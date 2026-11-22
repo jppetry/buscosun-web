@@ -101,6 +101,11 @@ export function parseSeaUrl(slug: string | null | undefined, search: string): { 
   return { state, invalid };
 }
 
+/** The same link state without a plan — what the page reads while „Ausfahrt planen“ is hidden (`seaPlannerFrom`). Pure. */
+export function seaWithoutPlanner<T extends SeaUrlState>(s: T): T {
+  return s.pl == null && s.et == null && s.sd == null && s.ps == null ? s : { ...s, pl: null, et: null, sd: null, ps: null };
+}
+
 /** Canonical URL of a state (fixed key order, defaults omitted). */
 export function buildSeaUrl(s: SeaUrlState, extra: ReadonlyArray<[string, string]> = []): string {
   const q: Array<[string, string]> = [];

@@ -84,6 +84,38 @@ export function seaParticlesFrom(search: string = typeof location !== 'undefined
   return q === '1' ? true : q === '0' ? false : live;
 }
 
+/**
+ * „Ausfahrt planen“ (phases SP, AM, AM-W) is HIDDEN since 22.11.2026 on Jan's word („ich möchte das Feature erst noch
+ * weiterentwickeln, bevor es fertig wird“): no button above the legend, no entry „Ausfahrt“ in the phone's bar, and a link
+ * that carries a plan (`pl=`, `et=`, `sd=`, `ps=`) opens the page without it. Nothing is removed — `?planer=1` shows the
+ * planner as built (for the work on it) and is remembered in this browser (`localStorage.planer`, D-31 pattern: the query
+ * beats localStorage, localStorage beats the default; `?planer=0` forgets it), `SEA_PLANNER_LIVE = true` brings it back
+ * for everyone.
+ */
+export const SEA_PLANNER_LIVE = false;
+export function seaPlannerFrom(
+  search: string = typeof location !== 'undefined' ? location.search : '',
+  live: boolean = SEA_PLANNER_LIVE,
+  stored?: string | null,
+): boolean {
+  let q: string | null = null;
+  try { q = new URLSearchParams(search).get('planer'); } catch { /* broken query = no vote */ }
+  if (q === '1') return true;
+  if (q === '0') return false;
+  let s = stored;
+  if (s === undefined) {
+    try { s = typeof localStorage !== 'undefined' ? localStorage.getItem('planer') : null; } catch { s = null; }
+  }
+  return s === '1' ? true : s === '0' ? false : live;
+}
+/** Remembers an explicit `?planer=0|1` in this browser — the page drops the parameter from the address on its first state write. */
+export function rememberSeaPlanner(search: string = typeof location !== 'undefined' ? location.search : ''): void {
+  let q: string | null = null;
+  try { q = new URLSearchParams(search).get('planer'); } catch { return; }
+  if (q !== '0' && q !== '1') return;
+  try { localStorage.setItem('planer', q); } catch { /* private mode: the query still works for this visit */ }
+}
+
 /** Remembers an explicit `?sea=0|1` for the session's later navigations (the query is gone after the first click). */
 export function rememberSeaFlag(search: string = typeof location !== 'undefined' ? location.search : ''): void {
   let q: string | null = null;

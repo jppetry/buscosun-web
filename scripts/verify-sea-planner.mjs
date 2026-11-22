@@ -348,7 +348,8 @@ const src = (f) => readFileSync(join(ROOT, 'src', 'sea', f), 'utf8');
 const page = src('SeaPage.tsx'), lib = src('seaPlanner.ts'), mapSrc = src('SeaMap.tsx'), css = src('seaDeck.css');
 add('H5 Einstiege: Knopf „Ausfahrt planen“ über der Legende in `sw-ov-right` und vierter Eintrag „Ausfahrt“ der unteren Leiste — beide ohne `disabled`; ohne gewählten Spot fragt der Planer zuerst nach dem Spot',
   /<button type="button" className="sw-pl-open" onClick=\{openPlanner\}>/.test(page) && /<div className="sw-ov-right">\{planBtn\}\{legend\}<\/div>/.test(page) && !/sw-pl-open[^>]*disabled/.test(page)
-  && /\['layers', 'Ebenen',[^\n]*\n[^\n]*\n\s*\['plan', 'Ausfahrt',/.test(page) && /if \(id === 'plan'\) \{ openPlanner\(\); return; \}/.test(page) && /if \(!spotInUrl \|\| !spot\) \{ setPlanAsk\(true\);/.test(page) && page.includes('{PLAN_ASK_SPOT}'));
+  // Since 22.11.2026 both entry points exist only while the planner is shown (`plannerOn`, H6) — where they are, unchanged.
+  && /\.\.\.\(plannerOn \? \[\['plan', 'Ausfahrt', <path key="p"/.test(page) && /const planBtn = wizOpen \|\| !plannerOn \? null : \(/.test(page) && /if \(id === 'plan'\) \{ openPlanner\(\); return; \}/.test(page) && /if \(!spotInUrl \|\| !spot\) \{ setPlanAsk\(true\);/.test(page) && page.includes('{PLAN_ASK_SPOT}'));
 const leftLine = (page.match(/\{wizard \? <aside className="sw-dock sw-am-dockin sw-wz-col" aria-label="Ausfahrt planen">\{wizard\}<\/aside> : dockOf\('layers'\)\}/) ?? [''])[0];
 const wizLine = (page.match(/const wizard = wizOpen && step \? \([\s\S]*?\n  \) : null;/) ?? [''])[0];
 add('H13 Seite (AM-W): links steht der Assistent, sobald der Planer offen ist ODER nach dem Spot fragt, sonst der Ebenen-Dock; die Ebenen klappen unter die Seite des Assistenten (nicht entfernt); rechts stehen die Befunde nur auf der Ergebnis-Seite; das Stundenband liegt am Kartenfuß, wo es die Eingabe ist (Zeitfenster) und im Ergebnis; mobil trägt das Blatt amtliche Meldung, Seite, Stundenwerte, Befunde in dieser Reihenfolge, und die Meldung steht dort nicht doppelt',
@@ -360,7 +361,23 @@ add('H13 Seite (AM-W): links steht der Assistent, sobald der Planer offen ist OD
   && /<div className=\{`sw-pl-dock\$\{footKind === 'band' \? '' : ' sw-am-foot'\}`\}>\s*<details className="sw-pl-legend"><summary>Legende<\/summary>\{legend\}<\/details>\s*\{!inDossier && footEl\}/.test(page)
   && /spotName=\{own \? \(ownSpot \? `\$\{OWN_NAME\} · \$\{ownPosText\(own\)\}` : null\) : planOpen && spot \? spot\.name : null\}/.test(page) && /start=\{planOpen \? planStart : null\} ret=\{planOpen \? planRet : null\}/.test(page)
   && count(page, /<OrtSpotStep /g) === 1 && count(page, /<OrtTimeStep /g) === 1 && count(page, /<SeaPlanPanel /g) === 1 && !/<SeaPlanPanel [^>]*on(Mode|Profile|Close)/.test(page), [leftLine.length, wizLine.length].join(','));
-add('H6 kein Schalter (Jans Entscheidung): kein Flag, kein Query-Schalter um den Planer', !/SEA_PLAN\w*_LIVE|planFlag|seaPlanFrom|\?sp=|\?plan=/.test(page + src('seaFlag.ts') + lib));
+// Jan, 22.11.2026: „den Button … ausblenden, ich möchte das Feature erst noch weiterentwickeln“ — until then the planner had no
+// switch at all (Jan's decision of 18.11.). Hidden for everyone, shown with `?planer=1`; nothing of it is removed.
+{
+  const F = await import('../src/sea/seaFlag.ts');
+  const S = await import('../src/sea/seaState.ts');
+  const withPlan = { ...S.SEA_DEFAULT_STATE, t: 3, pl: 'a', et: 'b', sd: 'c', ps: 'd' }, bare = { ...S.SEA_DEFAULT_STATE, t: 3 };
+  const cut = S.seaWithoutPlanner(withPlan);
+  add('H6 der Planer ist ausgeblendet (Jan 22.11.): ab Werk aus, `?planer=1` zeigt ihn, `?planer=0` blendet ihn auch nach dem Einschalten aus; ohne ihn liest die Seite keinen Plan aus dem Link (pl, et, sd, ps), alles andere bleibt; beide Einstiege hängen an diesem einen Schalter',
+    F.SEA_PLANNER_LIVE === false && F.seaPlannerFrom('') === false && F.seaPlannerFrom('?planer=1') === true && F.seaPlannerFrom('?l=ws&planer=1') === true && F.seaPlannerFrom('?planer=ja') === false
+    && F.seaPlannerFrom('', true) === true && F.seaPlannerFrom('?planer=0', true) === false
+    && cut.pl === null && cut.et === null && cut.sd === null && cut.ps === null && cut.t === 3 && cut.l === withPlan.l && S.seaWithoutPlanner(bare) === bare && withPlan.pl === 'a'
+    && /const plannerOn = useMemo\(\(\) => seaPlannerFrom\(\), \[\]\);/.test(page)
+    && /const initial = useMemo\(\(\) => \(plannerOn \? initialIn : seaWithoutPlanner\(initialIn\)\), \[plannerOn, initialIn\]\);/.test(page)
+    && /const popState = useMemo\(\(\) => \(plannerOn \|\| !popIn \? popIn : seaWithoutPlanner\(popIn\)\), \[plannerOn, popIn\]\);/.test(page)
+    // Three mentions of `openPlanner`: its definition and the two entry points — no third way in.
+    && (page.match(/openPlanner/g) ?? []).length === 3 && /const planBtn = wizOpen \|\| !plannerOn \? null : \(/.test(page) && /\.\.\.\(plannerOn \? \[\['plan', 'Ausfahrt',/.test(page));
+}
 const reads = /windBand|gustQ|windQ|quantiles|q10|q90|overLimit/;
 add('H7 die Befunde fürs Fenster lesen die Anteile „über Grenze“ nie (seaPlanner.ts kennt keine Quantile) — Gegenprobe: die Seite liest sie, und im Planer nur für EINE Stunde („Nur diese Stunde: …“)',
   !reads.test(lib) && reads.test(page) && /lines\.push\(`Nur diese Stunde: \$\{overSentence\(o, limits\.gustMax\)\}`\)/.test(page) && !/gustOverLimit\([^)]*(win|plan)/i.test(page));
