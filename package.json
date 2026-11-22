@@ -137,6 +137,7 @@
     "verify:sea-ripples": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-sea-ripples.mjs",
     "verify:sea-lakes": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-sea-lakes.mjs",
     "verify:sea-lakes-bytes": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-sea-lakes.mjs --bytes",
+    "verify:sea-particles": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-sea-particles.mjs",
     "verify:glacier-contract": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-contract.mjs",
     "verify:glacier-static": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-static.mjs",
     "verify:glacier-ui": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-ui.mjs",

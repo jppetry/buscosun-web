@@ -19,6 +19,8 @@ import { clampToRadius, planBearingDeg, planDestination, radiusRing, type DriftS
 import { tripArrowLayout, type TripArrow, type TripRect } from './seaTrip';
 import type { SeaUvGrid } from './seaCurrent';
 import type { RippleKeepOut, SeaRippleLayer } from './SeaRippleLayer';
+import type { SeaParticleLayer } from './SeaParticleLayer';
+import type { SeaParticleState } from './seaParticles';
 
 const STYLE = 'https://tiles.openfreemap.org/styles/dark';
 /** CWAM domain (plus a little margin). */
@@ -122,6 +124,11 @@ interface Props {
   fieldSmooth?: boolean;
   /** Planner „Vor Ort“, page „Startort“: while armed, a click on the map (not on a spot) sets the user's own start point. */
   pick?: { armed: boolean; onPick: (lat: number, lon: number) => void } | null;
+  /**
+   * Phase BS-P: wind particles for the chosen hour (`SeaParticleLayer`, its own lazy chunk — the Wetterkarte's `WindLayer`
+   * with the ICON-D2 wind field of the data repo). null/absent = off: no chunk, no layer, nothing fetched.
+   */
+  particles?: { tMs: number; onState: (s: SeaParticleState) => void } | null;
 }
 
 /** Phase AM, Strand: a spot dot in the colour of the wind's side (hatched without a direction). */
@@ -214,7 +221,7 @@ async function fieldUrl(field: Uint8ClampedArray): Promise<string> {
 const EMPTY: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
 const TRANSPARENT_PX = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4AWMAAQAABQABNtCI3QAAAABJRU5ErkJggg==';
 
-export default function SeaMap({ field, arrows, spots, selectedId, stations, gauges, selectedGaugeId, onGauge, areas, lakes = null, showWind, padding, onSelect, onMap, callout, plan = null, trip = null, shore = null, currents = null, ripple = null, rippleOn = true, fieldSmooth = false, pick = null }: Props) {
+export default function SeaMap({ field, arrows, spots, selectedId, stations, gauges, selectedGaugeId, onGauge, areas, lakes = null, showWind, padding, onSelect, onMap, callout, plan = null, trip = null, shore = null, currents = null, ripple = null, rippleOn = true, fieldSmooth = false, pick = null, particles = null }: Props) {
   const tripRef = useRef<SeaMapTrip | null>(trip);
   const pickRef = useRef(pick);
   pickRef.current = pick;
@@ -223,6 +230,8 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, gau
   const tripDrag = useRef(false);
   const rippleLayer = useRef<SeaRippleLayer | null>(null);
   const rippleWant = useRef<{ grid: SeaUvGrid | null; on: boolean; keep: RippleKeepOut[] }>({ grid: null, on: true, keep: [] });
+  const particleLayer = useRef<SeaParticleLayer | null>(null);
+  const particleWant = useRef<{ tMs: number; on: boolean; onState: (s: SeaParticleState) => void } | null>(null);
   const planRef = useRef<SeaMapPlan | null>(plan);
   planRef.current = plan;
   const planMarks = useRef<{ boat: maplibregl.Marker; label: maplibregl.Marker; launch: maplibregl.Marker; drift: HTMLElement; hull: HTMLElement } | null>(null);
@@ -333,6 +342,8 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, gau
       tripMarks.current = { pts: [], boat: null, arr: [] };
       rippleLayer.current?.destroy();
       rippleLayer.current = null;
+      particleLayer.current?.destroy();
+      particleLayer.current = null;
       if (mapRef.current === map) mapRef.current = null;
       onMap?.(null);
       map.remove();
@@ -544,6 +555,29 @@ export default function SeaMap({ field, arrows, spots, selectedId, stations, gau
     }, () => {});
     return () => { alive = false; };
   }, [ripple, rippleOn, spots, selectedId, gauges, stations]);
+
+  // Phase BS-P: the wind particles. Off = the layer is taken out of the map again; the chunk is loaded when they are first
+  // wanted, and the layer goes in only after the map's own layers exist (it lies right below the arrows).
+  const particleT = particles?.tMs ?? null;
+  particleWant.current = particles ? { tMs: particles.tMs, on: rippleOn, onState: particles.onState } : null;
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (particleT == null) { particleLayer.current?.destroy(); particleLayer.current = null; return; }
+    const l = particleLayer.current;
+    if (l) { l.setTime(particleT); l.setActive(rippleOn); return; }
+    let alive = true;
+    const start = () => {
+      void import('./SeaParticleLayer').then((m) => {
+        const w = particleWant.current;
+        if (!alive || mapRef.current !== map || particleLayer.current || !w) return;
+        particleLayer.current = new m.SeaParticleLayer(map, w.tMs, (s) => particleWant.current?.onState(s));
+        particleLayer.current.setActive(w.on);
+      }, () => { if (alive) particleWant.current?.onState({ kind: 'na' }); });
+    };
+    if (ready.current) start(); else map.once('load', () => { if (alive) start(); });
+    return () => { alive = false; };
+  }, [particleT, rippleOn]);
 
   // Field image: redrawn only when the coloured field changes.
   useEffect(() => {

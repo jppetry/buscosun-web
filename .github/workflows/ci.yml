@@ -213,6 +213,12 @@ jobs:
       - name: Verifier — Binnenseen
         if: ${{ !cancelled() }}
         run: node scripts/ci-run.mjs verify:sea-lakes
+      # BS-P: Windpartikel auf der Seekarte (audit/seewetter-binnenseen.md §9) — Wahl der Stunde, Abruffenster, Worte, der
+      # Ablauf der Schicht gegen Stellvertreter der Partikel-Klasse, Verdrahtung (aus = kein Chunk, keine Schicht) — netzfrei,
+      # ohne Browser und ohne WebGL.
+      - name: Verifier — Windpartikel Seekarte
+        if: ${{ !cancelled() }}
+        run: node scripts/ci-run.mjs verify:sea-particles
       # GL: Gletscher-Monitor DACH — Datenvertrag (Pfade, Klassen, Flächenstempel mit Bezugsjahr, Umriss-Stufen ±3 %, amtliche Sätze wörtlich)
       # an einem echten Auszug des Baums, der Baum-Prüfer im Fixture-Modus, und der Publisher gegen ein echtes lokales Remote
       # (Linien teilen ein Repo, abgelehnter Push heilt, nie Force, Archiv nur Hinzufügen; audit/gletscher.md) — netzfrei.

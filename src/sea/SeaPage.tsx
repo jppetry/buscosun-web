@@ -15,7 +15,8 @@ import ShareButton from '../share/ShareButton';
 import { useAppNav } from '../router/useAppNav';
 import { useMediaQuery } from '../mobile/useIsMobile';
 import { seaFieldStepAt, seaCompStepAt, seaNoSeaAt, type SeaSpot } from './seaContract';
-import { seaCurrentPrevFrom, seaDryRuleFrom, seaTideWindowFrom, seaWaterLevelFrom } from './seaFlag';
+import { seaCurrentPrevFrom, seaDryRuleFrom, seaParticlesFrom, seaTideWindowFrom, seaWaterLevelFrom } from './seaFlag';
+import { particleLegend, particlesWanted, type SeaParticleState } from './seaParticles';
 import { WL_ATTRIBUTION, WL_LICENCE, WL_LICENCE_URL, WL_SERVICE_PAGE, wlAt, wlDistKm, wlNearest, wlNearestWithCurve, type WlForecast, type WlGauge } from './waterLevel';
 import {
   encodeTideParam, loadTideThreshold, parseTideParam, saveTideThreshold, tideHours, tideRefOf, tideRefs, tideSeries, tideSideText, tideVerdict, tideWindows,
@@ -120,7 +121,7 @@ const DEFAULT_SPOT = 'st-peter-ording';
 const REFRESH_MS = 10 * 60_000;
 const TEXTS: readonly SeaTextProduct[] = SEA_PAGE_TEXTS;
 /** WL: `water` on by default (E-WL-1), `?wl=0` starts without it — the switch stays the named fallback. */
-const DEFAULT_TOGGLES: SeaToggles = { wind: true, warn: true, stations: false, water: true, current: false };
+const DEFAULT_TOGGLES: SeaToggles = { wind: true, warn: true, stations: false, water: true, current: false, particles: false };
 const KIND_LABEL: Record<string, string> = { strand: 'Badestrand', kite: 'Kite-Spot', hafen: 'Hafen', revier: 'Revier' };
 export const kindsLabel = (kinds: readonly string[]) => kinds.map((x) => KIND_LABEL[x] ?? x).join(', ');
 /** Phase TF (E-TF-1): how many gauges are asked for a curve when the catalogue's hint `has.curve` proves wrong live. */
@@ -148,6 +149,9 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   // ST-N: the string is the checked pointer as JSON — it carries the run before (`prev`) unless `?curprev=0`.
   const [curPtr, setCurPtr] = useState<string | null>(null);
   const curPrevOn = useMemo(() => seaCurrentPrevFrom(), []);
+  // Phase BS-P: the wind particles exist only behind the phase's switch (`?swp=1`); with it the dock switch starts on.
+  const particlesFlag = useMemo(() => seaParticlesFrom(), []);
+  const [particleState, setParticleState] = useState<SeaParticleState>({ kind: 'loading' });
   const [current, setCurrent] = useState<SeaCurrentLoad | 'loading'>('loading');
   const [currents, setCurrents] = useState<GeoJSON.FeatureCollection | null>(null);
   // Phase SR: the u/v field of the chosen hour while the main layer „Strömung“ is chosen (`audit/seewetter-riffel.md`).
@@ -176,7 +180,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   const [tab, setTab] = useState<SeaTab>(initial.tab);
   const [revier, setRevier] = useState<SeaRevier>(initial.rv);
   const [query, setQuery] = useState('');
-  const [toggles, setToggles] = useState<SeaToggles>(() => ({ ...DEFAULT_TOGGLES, water: seaWaterLevelFrom() }));
+  const [toggles, setToggles] = useState<SeaToggles>(() => ({ ...DEFAULT_TOGGLES, water: seaWaterLevelFrom(), particles: seaParticlesFrom() }));
   const [limits, setLimitsState] = useState<SeaLimits>(() => loadLimits(initial.p));
   const [field, setField] = useState<{ key: string; rgba: Uint8ClampedArray; width: number } | null>(null);
   const [fieldState, setFieldState] = useState<'idle' | 'loading' | 'error'>('idle');
@@ -644,6 +648,10 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   // Phase SR — main layer „Strömung“: the u/v field of the chosen hour, and the hour after it warmed for „Abspielen“.
   // Nothing is read while another layer is chosen. Outside the run, without a field or unreadable ⇒ "keine Daten".
   const isCur = layer === 'cur';
+  // Phase BS-P: drawn, resting (the ripples of „Strömung“ move instead) or off.
+  const particleMode = particlesWanted({ flag: particlesFlag, toggle: toggles.particles, noData: !!noData, isCur });
+  const particleProp = useMemo(() => (particleMode === 'on' ? { tMs: validMs, onState: setParticleState } : null), [particleMode, validMs]);
+  useEffect(() => { if (particleMode !== 'on') setParticleState({ kind: 'loading' }); }, [particleMode]);
   const uvHour = isCur && curAt ? currentUvHour(curAt, validMs) : null;
   const uvKey = curAt && uvHour != null ? `${curAt.run}/${uvHour}` : null;
   useEffect(() => {
@@ -1215,6 +1223,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
       items: [
         { name: 'Deutscher Wetterdienst · Wellenmodelle CWAM und EWAM', url: 'https://opendata.dwd.de/', what: 'Seegang: Wellenhöhe und Periode als Fläche und Pfeile', licence: 'GeoNutzV / CC BY 4.0', licenceUrl: CC_BY_URL, changed: 'eigene Farbskala, geprüft', on: !noData },
         { name: windEngine, what: 'Wind und Böen an den Spots, berechnet aus Wettermodellen und Messungen (u. a. DWD)', licence: 'Datenbasis, bearbeitet', on: toggles.wind && !noData },
+        ...(particlesFlag ? [{ name: 'Deutscher Wetterdienst · ICON-D2', url: 'https://opendata.dwd.de/', what: 'Windpartikel: Wind in 10 m als Feld des Modells (nicht buscosun Fusion)', licence: 'GeoNutzV / CC BY 4.0', licenceUrl: CC_BY_URL, changed: 'jede zweite Modellzelle, als bewegte Partikel gezeichnet', on: particleMode === 'on' && particleState.kind === 'ok' }] : []),
         { name: 'Deutscher Wetterdienst · Seewetterdienst', url: 'https://opendata.dwd.de/', what: 'Warnstatus der Küstengebiete (Seewetterbericht)', licence: 'GeoNutzV / CC BY 4.0', licenceUrl: CC_BY_URL, on: toggles.warn },
         { name: 'Seegebiete © GeoBasis-DE / BKG 2021, VMAP0', what: 'Umrisse der Warngebiete', changed: 'Daten modifiziert', on: toggles.warn },
         { name: 'Deutscher Wetterdienst · Messstationen', url: 'https://opendata.dwd.de/', what: 'Wind und Böen gemessen', licence: 'GeoNutzV / CC BY 4.0', licenceUrl: CC_BY_URL, on: toggles.stations },
@@ -1299,6 +1308,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
       {isCur
         ? <div className="sw-legend-note">{curWhy ? `Strömung: keine Daten. ${curWhy}` : current === 'loading' || uvState === 'loading' ? 'Strömung lädt.' : `${SEA_CURRENT_MODEL_NOTE}. ${curRunTxt}`}{!curWhy && stillMotion ? ` ${RIPPLE_STILL_NOTE}` : ''}</div>
         : <div className="sw-legend-note">{noData ? 'Keine Fläche: kein gültiger Lauf.' : `Modell ${runTxt}, Vorlauf +${lead} h${fieldNote}. Wind an den Spots: ${windEngine}.`}{fieldState === 'error' ? ' Feld nicht ladbar.' : ''}</div>}
+      {particleMode !== 'off' && <div className="sw-legend-note">{particleLegend(particleMode === 'rest' ? { kind: 'rest' } : particleState, dateTime)}</div>}
     </div>
   );
   // SR: with the layer „Strömung“ chosen the note on the map speaks of the current, not of the wave area.
@@ -1362,7 +1372,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
     <SeaMap field={isCur ? curArea : coloured} arrows={isCur ? null : arrows} ripple={isCur && uv ? uv.grid : null} rippleOn={stage !== 'dossier'} fieldSmooth={isCur} spots={noData ? mapSpots.map((s) => ({ ...s, cls: 'keine' as const, windTo: null })) : mapSpots} selectedId={spot?.id ?? null}
       stations={stations} gauges={mapGauges} selectedGaugeId={gaugeId ?? (dmiSpot && spot ? `dmi:${spot.id}` : null)} onGauge={pickGauge} areas={mapAreas} lakes={lakeShapes} showWind={toggles.wind && !noData} padding={padding} onSelect={pickSpotFromMap} onMap={(m) => { mapRef.current = m; setMapInst(m); }}
       plan={mapPlan} trip={noData ? null : mapTrip} shore={noData ? null : mapShore} currents={toggles.current ? currents : null}
-      pick={step === 'ort' ? { armed: ownArm, onPick: pickOwn } : null} />
+      pick={step === 'ort' ? { armed: ownArm, onPick: pickOwn } : null} particles={particleProp} />
   );
   const band = spot && usable && bandHours.length > 0 && (
     <SeaBand hours={bandHours} unit={unit} selected={k} onPick={setT} compact={isMobile}
@@ -1395,7 +1405,7 @@ export default function SeaPage({ initial, onUrlState, onSpot, popState, openDos
   const dockOf = (show: 'all' | 'layers' | 'picker' | 'spots') => (
     <SeaDock show={show} query={query} onQuery={setQuery} revier={revier} onRevier={setRevier} profile={profile} onProfile={setProfile} limits={limits} onLimits={setLimits}
       spots={dockSpots} selectedId={spot?.id ?? null} onPick={pickSpotFromMap} total={spots.length} layer={layer} onLayer={setLayer}
-      toggles={toggles} onToggle={(kk) => setToggles((x) => ({ ...x, [kk]: !x[kk] }))} loading={catalog === 'loading'} hasDk={hasDk} hasLakes={hasLakes} lakes={lakeChips} lake={lakePick} onLake={setLakePick} />
+      toggles={toggles} onToggle={(kk) => setToggles((x) => ({ ...x, [kk]: !x[kk] }))} loading={catalog === 'loading'} hasDk={hasDk} hasLakes={hasLakes} hasParticles={particlesFlag} lakes={lakeChips} lake={lakePick} onLake={setLakePick} />
   );
   /** Desktop: the layers of the map fold under the page of the assistant (regrouped, not removed). */
   const layersFold = !isMobile && <details className="sw-am-layers"><summary>Ebenen der Karte</summary>{dockOf('layers')}</details>;

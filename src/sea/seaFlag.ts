@@ -70,6 +70,20 @@ export function seaTideWindowFrom(search: string = typeof location !== 'undefine
   return q === '1' ? true : q === '0' ? false : live;
 }
 
+/**
+ * Phase BS-P — wind particles on the Seewetter map (`audit/seewetter-binnenseen.md` §9, E-BS-11): the Wetterkarte's
+ * `WindLayer` hooked into `SeaMap` with Jan's go (22.11.2026). Built default-off (Rule 2) and NOT seen in a browser by
+ * the author: `?swp=1` shows the dock switch „Windpartikel“ (on) and loads the layer; without it the page is the one
+ * before — no switch, no chunk, no layer. `SEA_PARTICLES_LIVE = true` after Jan's look turns it on for everyone
+ * (`?swp=0` then is the named fallback).
+ */
+export const SEA_PARTICLES_LIVE = false;
+export function seaParticlesFrom(search: string = typeof location !== 'undefined' ? location.search : '', live: boolean = SEA_PARTICLES_LIVE): boolean {
+  let q: string | null = null;
+  try { q = new URLSearchParams(search).get('swp'); } catch { /* broken query = no vote */ }
+  return q === '1' ? true : q === '0' ? false : live;
+}
+
 /** Remembers an explicit `?sea=0|1` for the session's later navigations (the query is gone after the first click). */
 export function rememberSeaFlag(search: string = typeof location !== 'undefined' ? location.search : ''): void {
   let q: string | null = null;

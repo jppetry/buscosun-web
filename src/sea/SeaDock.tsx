@@ -9,11 +9,12 @@ import { SEA_PROFILES, SEA_PROFILE_BY_ID, limitsChanged, limitsSummary, type Sea
 import { CLASS_COLOR, CLASS_SHORT, HS_STOPS, LAYER_LABEL, PER_STOPS, cssGradient } from './seaView';
 import { SEA_LAYERS, SEA_REVIERE, type SeaLayer, type SeaRevier } from './seaState';
 import { CUR_STOPS, LEGEND_SPEEDS, RIPPLE_RGB, frontHalfWidth, legendFront, rgbCss } from './seaRipples';
+import { SEA_PARTICLES_HINT, SEA_PARTICLES_LABEL } from './seaParticles';
 import { useSearchSheet } from '../components/LocationSearchSheet';
 import { ListSearchSheet } from '../components/ListSearchSheet';
 
 export interface SeaDockSpot { id: string; name: string; sub: string; cls: SeaClass; reason: string; /** Phase DK: a Danish spot — the name carries the pennant. */ dk?: boolean }
-export interface SeaToggles { wind: boolean; warn: boolean; stations: boolean; water: boolean; /** Phase ST: map layer „Strömung“ (off by default). */ current: boolean }
+export interface SeaToggles { wind: boolean; warn: boolean; stations: boolean; water: boolean; /** Phase ST: map layer „Strömung“ (off by default). */ current: boolean; /** Phase BS-P: wind particles — the switch exists only with `seaParticlesFrom()`. */ particles: boolean }
 
 interface Props {
   query: string; onQuery: (q: string) => void;
@@ -28,6 +29,8 @@ interface Props {
   hasDk?: boolean;
   /** Phase BS: the catalogue carries lake spots — only then the Revier „Seen“ is offered; with it one chip per lake. */
   hasLakes?: boolean;
+  /** Phase BS-P: the switch „Windpartikel“ is offered (`seaParticlesFrom()`). */
+  hasParticles?: boolean;
   lakes?: readonly { id: string; name: string; n: number }[];
   lake?: string | null; onLake?: (id: string | null) => void;
   /**
@@ -95,6 +98,8 @@ const TOGGLE_ICON: Record<keyof SeaToggles, ReactElement> = {
   water: <path d="M12 3.2s6.3 6.5 6.3 10.6a6.3 6.3 0 0 1-12.6 0C5.7 9.7 12 3.2 12 3.2zM9.2 14.2a3 3 0 0 0 2.6 2.4" />,
   // Phase ST: the drift arrow — a float and where it goes.
   current: <><path d="M6 18.5 17.5 7M10.5 6.5h7.5V14" /><circle cx="5" cy="19.5" r="1.9" fill="currentColor" stroke="none" /></>,
+  // Phase BS-P: three streaks of different length — particles drifting with the wind.
+  particles: <path d="M3.5 7.5h9M8 12h12.5M4.5 16.5h7M15.5 7.5h2M15 16.5h4" />,
 };
 
 /**
@@ -138,6 +143,8 @@ export default function SeaDock(p: Props) {
     // SR: the ripple layer is the main layer „Strömung“; this switch is its arrow option and says so.
     ['current', 'Strömungspfeile', 'BSH-Modell · Pfeile, wohin der Strom setzt'],
   ];
+  // Phase BS-P: only behind the switch of the phase (`?swp=1`) — without it the list is the one before.
+  if (p.hasParticles) toggles.push(['particles', SEA_PARTICLES_LABEL, SEA_PARTICLES_HINT]);
   // Phase DK: with Danish spots in the catalogue the two layers also carry DMI stations and DMI model points — named here.
   if (p.hasDk) {
     toggles[2][2] = 'DWD und DMI · Wind und Böen gemessen';
