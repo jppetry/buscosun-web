@@ -7,6 +7,7 @@ import type { ReactNode } from 'react';
 import Box from '@mui/material/Box';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
+import useMediaQuery from '@mui/material/useMediaQuery';
 
 export type InfoIcon = 'wind' | 'compass' | 'drop' | 'rain' | 'thermo' | 'bolt' | 'index' | 'spread';
 
@@ -50,12 +51,14 @@ export interface InfoTileData {
 }
 
 export function InfoTileGrid({ tiles, minWidth = 170, className }: { tiles: readonly InfoTileData[]; minWidth?: number; className?: string }) {
+  // Jan 2026-11-22: touch screens show no tooltip — a finger moving over the tiles must not open one (desktop hover keeps it).
+  const noHover = useMediaQuery('(hover: none)');
   return (
     <Box className={className} sx={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${minWidth}px, 1fr))`, gap: '8px' }}>
       {tiles.map((t) => {
         const accent = t.tone === 'up' ? 'fire.extreme' : t.tone === 'down' ? 'fire.steel' : 'text.secondary';
         return (
-          <Tooltip key={t.key} title={t.title ?? ''} disableHoverListener={!t.title}>
+          <Tooltip key={t.key} title={noHover ? '' : t.title ?? ''} disableHoverListener={!t.title || noHover} disableTouchListener>
             <Box sx={{
               display: 'flex', gap: 1, alignItems: 'center', p: 1, borderRadius: '10px', minWidth: 0,
               border: '1px solid', borderColor: 'divider', bgcolor: '#FDFBF4',
