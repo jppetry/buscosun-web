@@ -16,7 +16,8 @@ import { fmt0, fmt1, fmtSigned } from './glacierView';
 import { loadSnowCells, loadSnowDay, loadWeather, loadWeatherHourly, type GlacierBases } from './glacierClient';
 import type { GlacierCatalogEntry } from './glacierContract';
 import type { GlacierSnowPointer, SnowCellsDoc } from './glacierSnowContract';
-import type { GlacierWeatherDoc, GlacierWeatherHourlyDoc, GlacierWeatherPointer } from './glacierWeatherContract';
+import { GLACIER_WEATHER_HOURS, type GlacierWeatherDoc, type GlacierWeatherHourlyDoc, type GlacierWeatherPointer } from './glacierWeatherContract';
+import { weatherView } from './glacierWeatherView';
 import { GLACIER_STN_SITE_NOTE } from './glacierStationContract';
 import { ageText, type StnViewStation } from './glacierStationView';
 import { stnBest, stnMainValues } from './glacierStationMap';
@@ -143,9 +144,9 @@ export interface SnowLadderProps {
   bases: GlacierBases;
 }
 
-export default function GlacierSnowLadder({ g, snowPointer, weatherPointer, byId, stations, nowMs, bases }: SnowLadderProps) {
+/** The daily document and the region's hourly chunk of the weather run (memoised loaders: the weather card reads the same two files, nothing is fetched twice). */
+function useWeatherDocs(g: GlacierCatalogEntry, weatherPointer: GlacierWeatherPointer | null, byId: ReadonlyMap<string, GlacierCatalogEntry>, bases: GlacierBases) {
   const catalogIds = useMemo(() => new Set(byId.keys()), [byId]);
-  // --- weather (memoised loaders: the weather card above reads the same two files, nothing is fetched twice) ---
   const [daily, setDaily] = useState<GlacierWeatherDoc | null | undefined>(undefined);
   const [hourly, setHourly] = useState<GlacierWeatherHourlyDoc | null | undefined>(undefined);
   const run = weatherPointer?.run ?? null;
@@ -161,6 +162,11 @@ export default function GlacierSnowLadder({ g, snowPointer, weatherPointer, byId
     }, () => { if (alive) { setDaily(null); setHourly(null); } });
     return () => { alive = false; };
   }, [run, g.region, catalogIds, bases]);
+  return { daily, hourly };
+}
+
+export default function GlacierSnowLadder({ g, snowPointer, weatherPointer, byId, stations, nowMs, bases }: SnowLadderProps) {
+  const { daily, hourly } = useWeatherDocs(g, weatherPointer, byId, bases);
   // --- the snow analysis: the pointer's day and the six before it, and the cells file (Austria only) ---
   const [days, setDays] = useState<ReadonlyMap<string, SnowDayState>>(new Map());
   const [cells, setCells] = useState<SnowCellsDoc | null | undefined>(undefined);
@@ -261,7 +267,7 @@ export function SnowLadderBody({ g, model, snow, stations, nowMs }: { g: Glacier
       <div className="gl-sv-head">
         <div>
           <h3>Am Gletscher, nach Höhe</h3>
-          <p>Neuschnee und Schneefallgrenze laut Modell{stns.length ? ', dazu die Messstationen der Karte,' : ''} in der Reihenfolge der Höhe.{stns.length ? ` ${GLACIER_STN_SITE_NOTE}.` : ''}</p>
+          <p>Neuschnee und Schneefallgrenze laut Modell{stns.length ? ', dazu die Messstationen in der Nähe,' : ''} in der Reihenfolge der Höhe.{stns.length ? ` ${GLACIER_STN_SITE_NOTE}.` : ''}</p>
         </div>
         <div className="gl-sv-chips"><OriginChip origin="model" />{stns.length ? <OriginChip origin="measured" /> : null}</div>
       </div>
@@ -311,6 +317,39 @@ export function SnowLadderBody({ g, model, snow, stations, nowMs }: { g: Glacier
         {SNOW_VIEW_TEXT.ladder} {SNOW_VIEW_TEXT.unit} {SNOW_VIEW_TEXT.spread}
         {ok ? ` Ein Tag zählt 24 Stunden ab der Laufstunde (${new Date(ok.t0Ms).getHours()} Uhr). ${SNOW_VIEW_TEXT.slGaps} Modell: ${ok.engine}, Lauf ${ok.runAt.slice(11, 13)} UTC, im Hochgebirge noch nicht nachgemessen.` : ''}
       </p>
+    </section>
+  );
+}
+
+/**
+ * Dossier level "Heute": one line of model values for now — temperature at the median elevation, today's strongest gust and new snow,
+ * the snowfall line of this hour — and the way to the level "Wetter", where all of it stands in full. Same files as the weather card.
+ */
+export function WeatherNowStrip({ g, weatherPointer, byId, nowMs, bases, onMore }: {
+  g: GlacierCatalogEntry; weatherPointer: GlacierWeatherPointer | null; byId: ReadonlyMap<string, GlacierCatalogEntry>; nowMs: number; bases: GlacierBases; onMore: () => void;
+}) {
+  const { daily, hourly } = useWeatherDocs(g, weatherPointer, byId, bases);
+  const v = daily === undefined ? null : weatherView(daily, g.id, nowMs);
+  const h = v && !('why' in v) && hourly ? hourly.glaciers[v.row.id] ?? null : null;
+  const items: Array<{ l: string; v: string }> = [];
+  if (v && !('why' in v)) {
+    const { row, hour, day } = v, own = row.f === 'own';
+    if (h && hour >= 0 && hour < GLACIER_WEATHER_HOURS) items.push({ l: `Temperatur, mittlere Höhe (${fmt0(row.z[1])} m)`, v: `${fmt1(h.t[1][hour])} °C` });
+    if (own && row.gx) items.push({ l: 'Stärkste Böe heute', v: `${fmt0(row.gx[day])} km/h` });
+    if (own && row.sn) items.push({ l: 'Neuschnee heute, mittlere Höhe', v: `${fmt1(row.sn[1][day])} mm Wasserwert` });
+    const sl = own && h?.sl && hour >= 0 && hour < h.sl.length ? h.sl[hour] : null;
+    if (own) items.push({ l: 'Schneefallgrenze jetzt', v: sl != null ? `${fmt0(sl)} m` : 'keine Angabe' });
+  }
+  const why = !weatherPointer ? 'Der Datenspeicher nennt noch keinen Lauf mit dem Wetter am Gletscher.' : daily === undefined ? 'Wird geladen …' : v && 'why' in v ? v.why : null;
+  return (
+    <section className="gl-hb-card gl-wn" aria-label="Wetter jetzt">
+      <div className="gl-hb-cardhead"><span className="gl-hb-l">Wetter jetzt</span><OriginChip origin="model" /></div>
+      {why || !items.length ? <p className="gl-nodata"><strong>Keine Daten.</strong> {why ?? 'Für jetzt liegen keine Stundenwerte vor.'}</p> : (
+        <dl className="gl-wn-vals">
+          {items.map((x) => <div key={x.l}><dt>{x.l}</dt><dd><b className="gl-num" data-origin="model">{x.v}</b></dd></div>)}
+        </dl>
+      )}
+      <button type="button" className="gl-btn gl-wn-more" onClick={onMore}>Mehr auf der Ebene Wetter</button>
     </section>
   );
 }

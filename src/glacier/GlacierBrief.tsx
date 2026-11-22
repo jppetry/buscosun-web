@@ -14,7 +14,9 @@ import { GLACIER_TABS, type GlacierTab, type GlacierUrlState, type GlacierLayer,
 import { loadSheetData, pickGeometry, type SheetData } from './glacierSheetData';
 import { loadOutline } from './glacierClient';
 import GlacierSheetMap, { type SheetBasemap, type SheetSnow } from './GlacierSheetMap';
-import { TabHeute, TabSaison, TabLangzeit, TabTour, TabQuellen } from './GlacierSheetTabs';
+import { TabHeute, TabSaison, TabLangzeit, TabTour, TabQuellen, dayLabels } from './GlacierSheetTabs';
+import { FreezeChart } from './GlacierCharts';
+import { OriginChip } from './GlacierParts';
 import GlacierHeuteBoard from './GlacierHeuteBoard';
 import GlacierWeatherCard from './GlacierWeatherCard';
 import GlacierStationCard, { useStationView } from './GlacierStationCard';
@@ -34,11 +36,14 @@ const GlacierSatImagery = lazy(() => import('./GlacierSatImagery'));
 const GlacierStationsHeute = lazy(() => import('./GlacierStationsHeute'));
 /** Phase GV: the ladder "Am Gletscher, nach Höhe" (model snow fields, stations, SNOWGRID) — loaded only on level Heute of the dossier. */
 const GlacierSnowLadder = lazy(() => import('./GlacierSnowLadder'));
-const TAB_LABEL: Record<GlacierTab, string> = { heute: 'Heute', saison: 'Saison', langzeit: 'Langzeit', tour: 'Tour', quellen: 'Quellen' };
+/** Dossier level Heute: the line "Wetter jetzt" (same chunk as the ladder). */
+const GlacierWeatherNow = lazy(() => import('./GlacierSnowLadder').then((m) => ({ default: m.WeatherNowStrip })));
+const TAB_LABEL: Record<GlacierTab, string> = { heute: 'Heute', saison: 'Saison', langzeit: 'Langzeit', tour: 'Tour', quellen: 'Quellen', wetter: 'Wetter' };
 /** The three levels of the dossier and the sections each one holds; the URL `tab` of a section names its level. */
 const LEVELS: ReadonlyArray<{ tab: GlacierTab; title: string; sub: string; tabs: readonly GlacierTab[] }> = [
-  { tab: 'heute', title: 'Heute', sub: 'Schmelze · Oberfläche · Tour', tabs: ['heute', 'tour'] },
-  { tab: 'saison', title: 'Wetter', sub: 'Saison · Schneegrenze · Bilanz', tabs: ['saison'] },
+  // Jan 22.11.: Wetter first (the dossier opens there), Heute second with the satellite part of the former level 2
+  { tab: 'wetter', title: 'Wetter', sub: 'Modell · Schnee · Stationen', tabs: ['wetter'] },
+  { tab: 'heute', title: 'Heute', sub: 'Schmelze · Oberfläche · Satellit · Tour', tabs: ['heute', 'tour', 'saison'] },
   { tab: 'langzeit', title: 'Langzeit', sub: 'Reihen · Projektion · Quellen', tabs: ['langzeit', 'quellen'] },
 ];
 const levelOf = (t: GlacierTab): number => Math.max(0, LEVELS.findIndex((l) => l.tabs.includes(t)));
@@ -184,8 +189,9 @@ export default function GlacierBrief({ g, build, elevBuild = null, hugBuild = nu
   const weatherCard = modelCard || stationCard ? <>{modelCard}{stationCard}</> : null;
   const stnView = layout === 'dossier' && stn.state === 'ready' ? stn.view : null;
   const onHeute = layout === 'dossier' && LEVELS[levelOf(state.tab)].tab === 'heute';
-  // Phase GV (no switch): after the weather card, the ladder by elevation — its own lazy chunk, the weather card stays as it is
-  const snowLadder = onHeute ? (
+  const onWetter = layout === 'dossier' && LEVELS[levelOf(state.tab)].tab === 'wetter';
+  // Phase GV (no switch): after the weather card, the ladder by elevation — its own lazy chunk, the weather card stays as it is; level Wetter
+  const snowLadder = onWetter ? (
     <Suspense fallback={<p className="gl-fine" role="status">Schnee am Gletscher wird geladen …</p>}>
       <GlacierSnowLadder g={g} snowPointer={snowPointer} weatherPointer={weatherPointer} byId={byId} stations={stnView?.stations ?? null} nowMs={nowMs} bases={bases} />
     </Suspense>
@@ -211,10 +217,12 @@ export default function GlacierBrief({ g, build, elevBuild = null, hugBuild = nu
     : <TabQuellen rows={rows} sources={d.elev && d.sources ? [...d.sources, (d.hug ?? d.elev).source] : d.sources} more={stationPointer ? glacierStnSourceRows() : undefined} elev={!!d.elev} />
   );
   const notReady = loadError ? <div className="gl-empty" role="status"><strong>Keine Daten.</strong> Der Steckbrief ist nicht ladbar ({loadError}).</div> : !data ? <div className="gl-empty" role="status">Steckbrief wird geladen …</div> : null;
+  // the sheet has no tab "wetter" (a level of the dossier only): it shows the weather inside "heute"
+  const pageTab: GlacierTab = state.tab === 'wetter' ? 'heute' : state.tab;
   const panel = notReady ?? (data && (
-    <div id="gl-tabpanel" role="tabpanel" aria-labelledby={`gl-tab-${state.tab}`} data-tab={state.tab}>
+    <div id="gl-tabpanel" role="tabpanel" aria-labelledby={`gl-tab-${pageTab}`} data-tab={pageTab}>
       {data.missing.length > 0 && <p className="gl-fine gl-missing" role="note">Nicht ladbar: {data.missing.join(', ')}.</p>}
-      {tabBody(state.tab, data)}
+      {tabBody(pageTab, data)}
     </div>
   ));
 
@@ -307,6 +315,32 @@ export default function GlacierBrief({ g, build, elevBuild = null, hugBuild = nu
 
   if (layout === 'dossier') {
     const level = levelOf(state.tab);
+    /** Level Heute: the satellite part of the former level 2 — Sentinel-2 in 10 m and the season. */
+    const satBlock = (d: SheetData) => (
+      <>
+        <section className="gl-ds-card gl-ds-sec" data-tab="sat10" aria-label="Sentinel-2 in 10 m">
+          <span className="gl-ds-eyebrow">Sentinel-2 in 10 m</span>
+          <Suspense fallback={<p className="gl-fine" role="status">Satellitenbild wird geladen …</p>}><GlacierSatImagery lat={g.lat} lon={g.lon} name={displayName(g)} nowMs={nowMs} /></Suspense>
+        </section>
+        <section className="gl-ds-card gl-ds-sec" data-tab="saison" aria-label={TAB_LABEL.saison}>
+          <span className="gl-ds-eyebrow">{TAB_LABEL.saison}</span>
+          {tabBody('saison', d, true)}
+        </section>
+      </>
+    );
+    /** Level Wetter: the freezing level of the next 14 days (moved from the tour part of Heute). */
+    const freezeCard = mv && mv.fresh && mv.zf.some((v) => v != null) ? (
+      <section className="gl-hb-card" aria-label="Nullgradgrenze der nächsten 14 Tage">
+        <div className="gl-hb-cardhead"><span className="gl-hb-l">Nullgradgrenze, Tagesmaximum der nächsten 14 Tage</span><OriginChip origin="model" /></div>
+        <FreezeChart zf={mv.zf} zRange={g.z} labels={dayLabels(mv.runAt)} />
+      </section>
+    ) : null;
+    /** Level Heute: one line of model values for now, the rest on the level Wetter. */
+    const nowStrip = glacierWeatherFrom() ? (
+      <Suspense fallback={<p className="gl-fine" role="status">Wetter jetzt wird geladen …</p>}>
+        <GlacierWeatherNow g={g} weatherPointer={weatherPointer} byId={byId} nowMs={nowMs} bases={bases} onMore={() => onState({ tab: 'wetter' })} />
+      </Suspense>
+    ) : null;
     const copernicusDay = (sceneForMap?.date ?? new Date(nowMs).toISOString().slice(0, 10));
     const mapTools = (
       <div className="gl-ds-maptools">
@@ -383,10 +417,17 @@ export default function GlacierBrief({ g, build, elevBuild = null, hugBuild = nu
         )}
         <div className="gl-ds-grid">
           <div className="gl-ds-main" data-level={level + 1}>
-            {notReady ? <>{level === 0 && <section className="gl-hb-card gl-hb-hero" aria-label="Gletscher auf einen Blick">{headBlock}</section>}{notReady}</> : (data && (
+            {notReady ? <>{LEVELS[level].tab !== 'langzeit' && <section className="gl-hb-card gl-hb-hero" aria-label="Gletscher auf einen Blick">{headBlock}</section>}{notReady}</> : (data && (
               <>
                 {data.missing.length > 0 && <p className="gl-fine gl-missing" role="note">Nicht ladbar: {data.missing.join(', ')}.</p>}
-                {level === 0 ? <GlacierHeuteBoard g={g} melt={mv} meltWhy={meltWhy} season={season} nowMs={nowMs} neighbourName={neighbourName} head={headBlock} weather={weatherCard} snow={snowLadder} winter={isHeuteWinter(nowMs)}
+                {LEVELS[level].tab === 'wetter' ? (
+                  <div className="gl-hb">
+                    <section className="gl-hb-card gl-hb-hero" aria-label="Gletscher auf einen Blick">{headBlock}</section>
+                    {weatherCard ? <div className="gl-hb-wx">{weatherCard}</div> : null}
+                    {snowLadder}
+                    {freezeCard}
+                  </div>
+                ) : LEVELS[level].tab === 'heute' ? <GlacierHeuteBoard g={g} melt={mv} meltWhy={meltWhy} season={season} nowMs={nowMs} neighbourName={neighbourName} head={headBlock} weather={null} now={nowStrip} satellite={satBlock(data)} freeze={false} winter={isHeuteWinter(nowMs)}
                   sources={(
                     <details className="gl-ds-card gl-ds-sec gl-ds-fold" data-tab="quellen">
                       <summary><span className="gl-ds-eyebrow">{TAB_LABEL.quellen}</span><span className="gl-ds-fold-hint">Herkunft, Stand und Lizenz jeder Zahl</span></summary>

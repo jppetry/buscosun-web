@@ -97,3 +97,10 @@
   /* source links: a full line each with a touch target of 44 px */
   .gl-sv-src a { display: inline-flex; align-items: center; min-height: 44px; }
 }
+
+/* Dossier level Heute: the line "Wetter jetzt" with the way to the level Wetter */
+.gl-wn-vals { display: flex; flex-wrap: wrap; gap: 8px 26px; margin: 0; }
+.gl-wn-vals dt { font-size: 11.5px; color: var(--gl-faint); }
+.gl-wn-vals dd { margin: 0; font-size: 18px; }
+.gl-wn-vals dd b { color: var(--gl-prov-model-text); }
+.gl-wn-more { align-self: flex-start; min-height: 44px; }

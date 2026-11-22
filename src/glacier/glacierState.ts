@@ -16,7 +16,8 @@
  *   dossier  1 = the centre of the situation page shows the dossier of `sel` instead of the map (pattern Brandradar)
  */
 
-export type GlacierTab = 'heute' | 'saison' | 'langzeit' | 'tour' | 'quellen';
+/** `wetter` is a level of the dossier only (never in the URL, not a tab of the sheet; the sheet shows the weather inside `heute`). */
+export type GlacierTab = 'heute' | 'saison' | 'langzeit' | 'tour' | 'quellen' | 'wetter';
 export const GLACIER_TABS: readonly GlacierTab[] = ['heute', 'saison', 'langzeit', 'tour', 'quellen'];
 export type GlacierLand = 'alle' | 'ch' | 'at' | 'de';
 export const GLACIER_LANDS: readonly GlacierLand[] = ['alle', 'ch', 'at', 'de'];

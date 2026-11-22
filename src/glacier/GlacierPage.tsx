@@ -95,7 +95,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   const lastVisit = useRef<number | null | undefined>(undefined);
   if (lastVisit.current === undefined) lastVisit.current = readLast();
   useEffect(() => { writeLast(Date.now()); }, []);
-  const [sheet, setSheet] = useState<Pick<GlacierUrlState, 'tab' | 't' | 'v' | 'e' | 'o'>>({ tab: initial.tab, t: initial.t, v: initial.v, e: initial.e, o: initial.o });
+  const [sheet, setSheet] = useState<Pick<GlacierUrlState, 'tab' | 't' | 'v' | 'e' | 'o'>>({ tab: initial.glacier ? initial.tab : 'wetter', t: initial.t, v: initial.v, e: initial.e, o: initial.o });
   const briefSeg = initial.glacier;
   const allow3d = useMemo(() => { try { return new URLSearchParams(window.location.search).get('gl3d') !== '0'; } catch { return true; } }, []);
   // overview map: 3D terrain by default, 2D stays one click away; `?gl3d=0` or a terrain failure keeps it flat
@@ -160,7 +160,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   useEffect(() => {
     if (!popState) return;
     setLand(popState.land); setMetric(popState.m); setQuery(popState.q); setSelSeg(popState.glacier ?? popState.sel); setStage(popState.dossier ? 'dossier' : 'map');
-    setSheet({ tab: popState.tab, t: popState.t, v: popState.v, e: popState.e, o: popState.o });
+    setSheet({ tab: popState.glacier ? popState.tab : 'wetter', t: popState.t, v: popState.v, e: popState.e, o: popState.o });
   }, [popState]);
 
   // --- Derived ---------------------------------------------------------------------------------------------------
@@ -235,7 +235,7 @@ export default function GlacierPage({ initial, onUrlState, onGlacier, popState }
   const fresh = useMemo(() => newSinceLastVisit(feed ?? [], favs, lastVisit.current ?? null), [feed, favs]);
   const favValue = useCallback((id: string) => { const g = d?.cat.byId.get(id); if (!g) return null; const v = metricValue(metric, d?.summary?.latest[id], g, satCtx); return v.v == null ? null : { text: v.text ?? '', origin: defs[metric].origin, label: defs[metric].label }; }, [d, metric, satCtx, defs]);
   const openBrief = () => { if (GLACIER_BRIEF_READY && selSeg) onGlacier(stateNow({ glacier: selSeg, sel: null, tab: 'heute', t: 'heute', v: '2d', e: ['o'], o: 0 }), false); };
-  const closeBrief = () => onGlacier(stateNow({ glacier: null, sel: briefSeg, tab: 'heute', t: 'heute', v: '2d', e: ['o'], o: 0 }), false);
+  const closeBrief = () => onGlacier(stateNow({ glacier: null, sel: briefSeg, tab: 'wetter', t: 'heute', v: '2d', e: ['o'], o: 0 }), false);
   const bucketOf = useCallback((id: string) => values.get(id)?.bucket ?? -1, [values]);
   const loadOutlineFn = useCallback((region: string, level: 1 | 2 | 3) => (d ? loadOutline(d.build, region, level, undefined, bases) : Promise.resolve(null)), [d, bases]);
 
