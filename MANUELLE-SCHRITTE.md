@@ -4191,6 +4191,14 @@ offenbar leer, und der Zweig `feat/gletscher` steht noch auf `origin` (Stand 15.
 enthalten). Dasselbe gilt für `glacier-feed`, `glacier-sat`, `glacier-static` (Wächter) und `glacier-archiv`; nur
 `glacier-stations` hat `main` als Voreinstellung.
 
+**Erledigt 21.11. 23:40 UTC (Schritt 1 a, nur `buscosun-data`):** die Repo-Variable `GLACIER_PRODUCER_REF = main` steht — auf Jans
+Wort von Claude in Jans Browser gesetzt (das Repo hatte vorher keine Repo-Variablen). Der Handlauf danach (44963022845) zeigt im
+Protokoll `GLACIER_PRODUCER_REF: main`, endete aber ohne Ausgabe („übersprungen: 4 Läufe heute (höchstens 4)“), der Lauf 02:27 UTC
+(44976168635) ebenso grün. Ein Lauf lässt sich von Hand nicht erzwingen (der Workflow reicht `--always` nicht durch). **Offen:** den
+ersten rechnenden Lauf ansehen (22.11. 05:22 UTC, Prüfpunkte unten); in `buscosun-archiv` ist die Variable NICHT gesetzt
+(`glacier-archiv.yml` nimmt dort weiter `feat/gletscher`; die Archiv-Datei ist auf beiden Zweigen gleich). Seit der Umstellung
+laufen auch `glacier-feed`, `glacier-sat` und der Statik-Wächter mit dem Producer von `main`.
+
 1. **Den Producer-Zweig umstellen** (eins von beiden):
    a) `buscosun-data` → Settings → Secrets and variables → Actions → Variables → `GLACIER_PRODUCER_REF` = `main` (empfohlen, ein
       Klick, rücknehmbar; in `buscosun-archiv` dasselbe für `glacier-archiv.yml`), oder

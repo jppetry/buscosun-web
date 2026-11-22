@@ -257,3 +257,15 @@ der Regelvergleich laufen erst, wenn die Variable `main` heißt oder der Zweig g
 `glacier-publish.mjs` (Zeile `stations` dazu), `glacierContract.ts` und fünf Zeilen in `fusionRelease.ts`; `sat-scan.mjs`,
 `feed.mjs` und `glacier-archive.mjs` sind gleich. Am lokalen Lauf
 mit dem Producer von `main` waren die alten Felder Byte für Byte gleich dem Live-Lauf (§3).
+
+**Umstellung (21.11. 23:40 UTC, Jans Wort).** Die Repo-Variable `GLACIER_PRODUCER_REF = main` steht in `buscosun-data` (über Jans
+Browser gesetzt; das Repo hatte vorher keine Repo-Variablen). In `buscosun-archiv` nicht gesetzt.
+
+| Lauf | Workflow-Lauf | Schritt „Melt run“ | Ergebnis |
+|---|---|---|---|
+| 23:41 UTC, von Hand | 44963022845, grün | env `GLACIER_PRODUCER_REF: main`, 2 s | „übersprungen: 4 Läufe heute (höchstens 4)“, Publish übersprungen — nichts geschrieben |
+| 02:27 UTC | 44976168635, grün | Leerlauf | kein neuer t2-/t3-Stand im Cube, nichts geschrieben |
+
+Ein Handlauf rechnet nur, wenn der Cube einen neuen t2- oder t3-Stand hat oder der letzte Lauf älter als 12 h ist; `--always`
+reicht der Workflow nicht durch. Seit der Umstellung bis 04:05 UTC kein roter Lauf im Daten-Repo (`glacier-stations` neunmal grün,
+`glacier-feed`/`-sat`/`-snow` noch nicht gelaufen). Erster rechnender Lauf mit dem Producer von `main`: 22.11. 05:22 UTC.
