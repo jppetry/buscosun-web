@@ -430,7 +430,7 @@ ein Viertel des Wassers bewegt sich damit unter 6,6 px/s.
 
 **Nicht geprüft:** das Tempo mit dem Auge, Jans Chrome, ein echtes Telefon.
 
-## Nachzug SR-G (22.11.2026) — „Strömung“ ganz oben und ab Werk an
+## Nachzug SR-G (22.11.2026) — „Strömung“ ganz oben und ab Werk an (am selben Tag abgelöst durch SR-H, unten)
 
 Jan, 22.11.: „könntest du Strömung (BSH-Modell) … bitte ganz oben und defaultmäßig an“. Bis dahin war „Strömung“ die fünfte
 Kachel der Ebenen und „Seegang gesamt“ die Voreinstellung (E-SR: `l=cur`, nicht Voreinstellung).
@@ -455,3 +455,37 @@ Gate: `verify:sea-ripples` 123/123 (G12 auf die neue Regel gestellt, G12b neu: d
 | **V-SR-17** | **Alte Links ohne `l=` öffnen jetzt „Strömung“ statt „Seegang gesamt“** — ein geteilter Link, der die alte Voreinstellung meinte, trug sie nicht in der Adresse | Nicht heilbar (die Adresse unterscheidet einen alten Link nicht von einem Besuch ohne Wahl); die Ebene ist einen Klick entfernt |
 | **V-SR-18** | Jeder Besuch lädt jetzt die Riffel-Schicht (eigener Chunk) und das Strömungsfeld der Stunde statt des Seegangsfelds; an Seen und in Dänemark außerhalb des BSH-Gebiets zeigt die Voreinstellung keine Fläche (dort gab es auch vorher keine Seegangsfläche an den Seen) | Nur vermerkt; Bildrate am Telefon mit Riffeln UND Partikeln ab Werk ist ungeprüft (V-BS-41) |
 | **V-SR-19** | Der Rückfall E-SR-22 entscheidet einmal je Besuch, zur gezeigten Stunde beim Laden. Wer danach die Zeit über das Ende des Laufs zieht, sieht in „Strömung“ weiter „keine Daten“ — die Ebene springt nicht um | Absicht (keine Ebene wechselt unter der Hand), nur vermerkt |
+
+## Nachzug SR-H (22.11.2026) — die Riffel als Schalter statt als Hauptebene
+
+Jan, 22.11., nach SR-G: „ich möchte dass du diese Kachel ‚Strömung · BSH-Modell · bewegte Riffel‘ in einen Layer
+darstellen [lässt] wie das hier: ‚Wind an den Spots · buscosun Fusion · Pfeile‘“. Ich hatte seine Bitte davor („ganz oben
+und defaultmäßig an“) als Reihenfolge der Kacheln gelesen (SR-G) — gemeint war ein Schalter unter „Auf der Karte“. SR-G ist
+damit zurückgenommen (Reihenfolge, Voreinstellung der Hauptebene, `seaLayerFallback`).
+
+| Nr. | Frage | Entscheidung |
+|---|---|---|
+| **E-SR-23** | Form | Die Riffel sind ein **Schalter** „Strömung · BSH-Modell · bewegte Riffel“, der ERSTE unter „Auf der Karte“, **ab Werk an** (Jans Wort). Sie liegen über der gewählten Seegangsebene; nichts wird ersetzt |
+| **E-SR-24** | Hauptebenen | Wieder vier (Seegang gesamt, Windsee, Dünung, Periode), Voreinstellung „Seegang gesamt“. Ein alter Link mit `l=cur` öffnet die Voreinstellung ohne Fehler (`SEA_LAYER_LEGACY_CURRENT`) — die Riffel sind ohnehin an |
+| **E-SR-25** | Was entfällt | **Die Farbfläche der Strömung** (eigener Wasserton nach Stärke, `colourCurrentArea`) wird nicht mehr gezeichnet: unter den Riffeln liegt jetzt die Seegangsfläche. Die Stärke lesen weiter Bogengröße und Helligkeit (Schlüssel in der Legende) und der Wert am Spot. *Das ist ein Wegfall — bitte bestätigen oder sagen, dass die Farbfläche als eigene Hauptebene zurückkommen soll* |
+| **E-SR-26** | Keine Daten | Steht in der Legende („Strömung: keine Daten. ‹Grund› Es werden keine Riffel gezeigt.“), nicht mehr als Hinweis quer über die Karte — der Schalter ist ab Werk an, und die Seegangsfläche darunter ist da. Der Rückfall E-SR-22 ist damit überflüssig und entfernt |
+
+Umsetzung: `seaState.ts` (`SeaLayer` ohne `cur`, `SEA_LAYER_LEGACY_CURRENT`), `seaView.ts` (`LAYER_LABEL` ohne `cur`),
+`seaRipples.ts` (`RIPPLE_SWITCH_HINT`), `SeaDock.tsx` (Schalter `ripples` an erster Stelle, die Sonderkachel entfällt),
+`SeaPage.tsx` (`ripplesOn = toggles.ripples` statt `isCur`: das u/v-Feld wird nur bei eingeschaltetem Schalter gelesen,
+das Seegangsfeld immer; Legende: Seegang wie immer, dazu bei eingeschaltetem Schalter der Riffel-Schlüssel, die zwei
+Zeilen und die Notiz mit Lauf). `SeaMap.tsx`, `SeaRippleLayer.ts` und der Producer sind unberührt; kein CSS geändert (die
+Regeln `sw-rp-tile*` der alten Kachel sind jetzt ohne Abnehmer). Kein Datenvertrag.
+
+Gate: `verify:sea-ripples` 122/122 (G12–G17, G20 auf die neue Form gestellt; G12b entfällt mit dem Rückfall),
+`-current` 129/129 (F10 liest die neue Schalterzeile), `-particles` 32/32, `-contract` 30/30, `-lakes` 126/126, `-trip` 82/82,
+`-planner` 50/50, `-wizard` 29/29, `-seo` 23/23, `-tide-window` 49/49, `-wind-band` 41/41, `-dk` 70/70, `-watertemp` 136/136,
+`-sight` 80/80, `-waterlevel` 64/64; Typecheck 0, Build 281/281, Budget totalJs 2 116,9 / 2 118 (im geteilten Baum gemessen). **Nicht im Browser gesehen** — auch nicht, wie die Legende mit dem zusätzlichen Block bricht.
+
+| Nr. | Befund | Mehrwert · Skizze |
+|---|---|---|
+| **V-SR-17** | (aus SR-G) erledigt: die Voreinstellung der Hauptebene ist wieder „Seegang gesamt“, alte Links ohne `l=` meinen, was sie meinten | — |
+| **V-SR-20** | Lesbarkeit der hellen Riffel auf der farbigen Seegangsfläche ist ungesehen — sie waren für den eigenen dunklen Wasserton gebaut (E-SR-25) | Jans Blick; Skizze, falls sie untergehen: die Seegangsfläche unter eingeschalteten Riffeln etwas abdunkeln, oder die Farbfläche der Strömung als eigene Hauptebene zurück |
+| **V-SR-21** | Ab Werk laufen jetzt drei bewegte bzw. gerichtete Schichten zugleich: Riffel, Windpartikel, Wellenpfeile — dazu Spot-Pfeile. Die Wellenpfeile haben keinen eigenen Schalter | Skizze: Schalter „Wellenpfeile“ (mein Vorschlag vom 22.11.) |
+| **V-SR-22** | Jeder Besuch lädt den Riffel-Chunk und das u/v-Feld der Stunde zusätzlich zum Seegangsfeld (vorher nur bei gewählter Ebene) | Nur vermerkt; Größe des u/v-Felds je Stunde nicht neu gemessen (Lauf gesamt 2,47 MB für 72 h) |
+| **V-SR-23** | Die Legende trägt jetzt bis zu drei Notizzeilen (Seegang, Strömung, Windpartikel) und einen zweiten Hauptblock; mobil ungesehen | Jans Blick |

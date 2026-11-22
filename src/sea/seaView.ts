@@ -140,7 +140,7 @@ const DIRS16 = ['N', 'NNO', 'NO', 'ONO', 'O', 'OSO', 'SO', 'SSO', 'S', 'SSW', 'S
 export const compass16 = (deg: number | null) => (deg == null ? '–' : DIRS16[Math.round(((deg % 360) + 360) % 360 / 22.5) % 16]);
 export const f1 = (x: number | null | undefined, unit = '') => (x == null || !Number.isFinite(x) ? '–' : `${x.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}${unit}`);
 export const f0 = (x: number | null | undefined, unit = '') => (x == null || !Number.isFinite(x) ? '–' : `${Math.round(x)}${unit}`);
-export const LAYER_LABEL: Readonly<Record<SeaLayer, string>> = Object.freeze({ hs: 'Seegang gesamt', ws: 'Windsee', sw: 'Dünung', per: 'Periode', cur: 'Strömung' });
+export const LAYER_LABEL: Readonly<Record<SeaLayer, string>> = Object.freeze({ hs: 'Seegang gesamt', ws: 'Windsee', sw: 'Dünung', per: 'Periode' });
 
 // --- V-SW-20: an hour without sea state at the model cell (never shown as "0,0 m") -----------------------
 

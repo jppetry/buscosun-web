@@ -275,9 +275,9 @@ add('D3 Seite: ohne den Schalter der Phase keine Schicht, kein Dock-Schalter, ke
   && /const particleProp = useMemo\(\(\) => \(particleMode === 'on' \? \{ tMs: validMs, onState: setParticleState \} : null\), \[particleMode, validMs\]\);/.test(page)
   && /particles=\{particleProp\}/.test(page) && count(page, /particles=\{/g) === 1 && /hasParticles=\{particlesFlag\}/.test(page)
   && /\.\.\.\(particlesFlag \? \[\{ name: 'Deutscher Wetterdienst · ICON-D2'/.test(page) && /\{particleMode !== 'off' && <div className="sw-legend-note">\{particleLegend\(/.test(page)
-  && /particles: false \};/.test(page) && /particles: seaParticlesFrom\(\) \}\)\);/.test(page)
-  // The ripples of „Strömung“ and the particles are independent: neither the particle prop nor the ripple prop reads the other.
-  && /ripple=\{isCur && uv \? uv\.grid : null\}/.test(page) && !/const particleMode = .*isCur/.test(page) && !/const particleProp = .*isCur/.test(page)
+  && /particles: false, ripples: true \};/.test(page) && /particles: seaParticlesFrom\(\) \}\)\);/.test(page)
+  // The ripples of the current (a switch of their own since 22.11.) and the particles are independent: neither reads the other.
+  && /ripple=\{ripplesOn && uv \? uv\.grid : null\}/.test(page) && !/const particleMode = .*ripplesOn/.test(page) && !/const particleProp = .*ripplesOn/.test(page) && !/const ripplesOn = .*particle/.test(page)
   && /\{particleMode !== 'off' && <div className="sw-legend-note">\{particleLegend\(particleState, dateTime\)\}<\/div>\}/.test(page));
 add('D4 Seite: die Quelle nennt ICON-D2 und „nicht buscosun Fusion“ und ist nur „an“, wenn wirklich Partikel gezeichnet werden',
   /what: 'Windpartikel: Wind in 10 m als Feld des Modells \(nicht buscosun Fusion\)'/.test(page) && /on: particleMode === 'on' && particleState\.kind === 'ok' \}\] : \[\]\)/.test(page));

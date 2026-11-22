@@ -390,6 +390,8 @@ export function legendFront(v: number, cx: number, cy: number, k = 0): { whole: 
 // --- Words ------------------------------------------------------------------------------------------------------------------
 
 export const RIPPLE_LAYER_LABEL = 'Strömung';
+/** The switch in the dock (since 22.11.2026 the ripples are a switch, not a main layer). */
+export const RIPPLE_SWITCH_HINT = 'BSH-Modell · bewegte Riffel';
 export const RIPPLE_LEGEND_LINE = 'Bögen zeigen stromab · größer und heller = stärker';
 /** Stands next to the layer with the model note of the current (`SEA_CURRENT_MODEL_NOTE`). */
 export const RIPPLE_MOTION_NOTE = 'Die Bewegung zeigt Richtung und Stärke der Strömung, keine Wellen.';

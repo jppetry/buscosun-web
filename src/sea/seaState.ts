@@ -10,24 +10,15 @@ import { isProfileId, type SeaProfileId, type SeaUnit } from './seaProfiles';
 
 export type SeaTab = 'spot' | 'gebiet' | 'quellen';
 export const SEA_TABS: readonly SeaTab[] = ['spot', 'gebiet', 'quellen'];
-/** `cur` (phase SR) = surface current of the BSH as ripples; the other four are wave fields of CWAM. */
-export type SeaLayer = 'hs' | 'ws' | 'sw' | 'per' | 'cur';
 /**
- * Order of the tiles in the dock. Jan, 22.11.2026: „Strömung“ at the very top and on by default (`SEA_DEFAULT_STATE.l`);
- * until then it was the fifth tile and „Seegang gesamt“ the default.
+ * The main layer = the colour area of the map: four wave fields of CWAM. The surface current of the BSH (phase SR) was a
+ * fifth main layer `cur` until 22.11.2026; on Jan's word it is a SWITCH now („Strömung · BSH-Modell · bewegte Riffel“,
+ * first under „Auf der Karte“, on by default) — the ripples lie above whichever wave layer is chosen.
  */
-export const SEA_LAYERS: readonly SeaLayer[] = ['cur', 'hs', 'ws', 'sw', 'per'];
-/** The layer the page falls back to when the default „Strömung“ has no data at the start (`seaLayerFallback`). */
-export const SEA_LAYER_FALLBACK: SeaLayer = 'hs';
-/**
- * The default layer is „Strömung“ — a model of the BSH that can be missing (no run, a run older than 30 h, no field for
- * the hour). A visitor who did NOT name a layer (no `l=` in the link, no click on a tile) must not start on an empty map:
- * once, when the current's answer is in and it carries nothing for the shown hour, the page takes „Seegang gesamt“.
- * A named layer is never changed. Pure; returns the layer to switch to, or null.
- */
-export function seaLayerFallback(x: { named: boolean; layer: SeaLayer; settled: boolean; usable: boolean }): SeaLayer | null {
-  return !x.named && x.layer === 'cur' && x.settled && !x.usable ? SEA_LAYER_FALLBACK : null;
-}
+export type SeaLayer = 'hs' | 'ws' | 'sw' | 'per';
+export const SEA_LAYERS: readonly SeaLayer[] = ['hs', 'ws', 'sw', 'per'];
+/** A link from before 22.11.2026 may carry `l=cur`: it opens the default wave layer — the ripples are on by default anyway. */
+export const SEA_LAYER_LEGACY_CURRENT = 'cur';
 /** `daenemark` (phase DK) filters by the spot's country; `nordsee`/`ostsee` by its sea — a Danish spot is in both lists. */
 export type SeaRevier = 'alle' | 'nordsee' | 'ostsee' | 'daenemark' | 'seen';
 /** `seen` (phase BS) = the lake spots (`region: 'binnensee'`); offered only when the catalogue carries lakes. */
@@ -63,7 +54,7 @@ export interface SeaUrlState {
   wt: string | null;
 }
 
-export const SEA_DEFAULT_STATE: SeaUrlState = { spot: null, p: 'kite', t: 0, l: 'cur', u: 'kn', tab: 'spot', rv: 'alle', tw: null, tf: false, pl: null, et: null, sd: null, ps: null, wt: null };
+export const SEA_DEFAULT_STATE: SeaUrlState = { spot: null, p: 'kite', t: 0, l: 'hs', u: 'kn', tab: 'spot', rv: 'alle', tw: null, tf: false, pl: null, et: null, sd: null, ps: null, wt: null };
 /** Phase TF: form of `tw` — mode, whole cm, reference, gauge id (read by `parseTideParam` in `tideWindow.ts`; kept here so the route wrapper stays free of the tide module). */
 export const SEA_TW_RE = /^(min|max)\.(-?\d{1,4})\.(pnp|nhn|skn|mhw)\.([a-z0-9][a-z0-9_-]{0,63})$/;
 /** Phase SP: form of `pl` — start and return as full UTC hours (YYYYMMDDHH), boat position in degrees (read by `parsePlanParam` in `seaPlanner.ts`). */
@@ -87,7 +78,7 @@ export function parseSeaUrl(slug: string | null | undefined, search: string): { 
   const t = q.get('t');
   if (t != null) { const n = Number(t); if (Number.isInteger(n) && n >= 0 && n <= SEA_MAX_T) state.t = n; else invalid.push('t'); }
   const l = q.get('l');
-  if (l != null) { if ((SEA_LAYERS as readonly string[]).includes(l)) state.l = l as SeaLayer; else invalid.push('l'); }
+  if (l != null) { if ((SEA_LAYERS as readonly string[]).includes(l)) state.l = l as SeaLayer; else if (l !== SEA_LAYER_LEGACY_CURRENT) invalid.push('l'); }
   const u = q.get('u');
   if (u != null) { if (u === 'kn' || u === 'bft' || u === 'kmh') state.u = u; else invalid.push('u'); }
   const tab = q.get('tab');
