@@ -269,6 +269,9 @@ jobs:
       # Phase GM (GM-3c, E-GM-18, Jan 23.11.2026): the snowpack shadow product `glacier/v1/snowpack/` is on (computed, no page reads it).
       # Fallback: remove this line or set `off` — the run then writes nothing below `snowpack/` (buscosun-web MANUELLE-SCHRITTE §119.4).
       GLACIER_SNOWPACK: shadow
+      # Phase GM (GM-3d, V-GM-32, E-GM-19, Jan 23.11.2026): the carried state of the melt run stands at the run hour and carries 18 h of forcing,
+      # so a run 3 h after its predecessor no longer starts cold. Fallback: remove this line or set `ahead` (buscosun-web MANUELLE-SCHRITTE §120.5).
+      GLACIER_MELT_STATE: run-hour
     steps:
       - uses: actions/setup-node@v4
         with:

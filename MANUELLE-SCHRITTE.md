@@ -4673,8 +4673,14 @@ Was es jetzt gibt:
 
 ## 120. Gletscher: Schneemodell, Paket GM-3d — Zustand des Schmelzlaufs an der Laufstunde (V-GM-32, E-GM-19; `audit/gletscher-schneemodell.md` §3g), 2026-11-23
 
-Gebaut auf dein Wort („V-GM-32 bauen“), **uncommitted, Schalter aus**. Ohne den Schalter schreibt der Schmelzlauf dieselben Dateien
-wie heute (lokaler Volllauf: 338 von 338 Byte für Byte gleich). Nichts am Daten- oder Archiv-Repo, kein Workflow geändert, nichts
+**Stand 23.11. 21:13 UTC: committet und gepusht (`b7a0e859`, Punkte 1 und 2 erledigt) und auf dein Wort („schalte es ruhig
+direkt ein“) eingeschaltet (Punkt 3 erledigt): `GLACIER_MELT_STATE: run-hour` im Workflow `glacier-melt` des Daten-Repos
+(`3c871488`). Offen: Punkt 4, der erste Lauf mit dem Schalter (Cron 23:20 UTC — derselbe Lauf, in dem die Schneedecke zum
+ersten Mal rechnet), und der Commit der nachgezogenen Vorlage (`scripts/glacier/gen-workflows.py`, `workflow-glacier-melt.yml`)
+mit diesen Doku-Nachträgen. Beleg: Audit §3g.8.**
+
+Gebaut auf dein Wort („V-GM-32 bauen“) mit dem Schalter aus; im Code bleibt die Voreinstellung `ahead`. Ohne den Schalter schreibt der Schmelzlauf dieselben Dateien
+wie vorher (lokaler Volllauf: 338 von 338 Byte für Byte gleich). Nichts am Archiv-Repo, nichts
 an der Seite (der Vertrag `glacierMeltContract.ts` trägt neue Typen und eine Prüfung, kein Byte im Bundle), buscosun Fusion nur
 gelesen.
 
