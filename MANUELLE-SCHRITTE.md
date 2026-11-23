@@ -4590,9 +4590,15 @@ Was es jetzt gibt:
 
 ## 119. Gletscher: Schneemodell, Paket GM-3c — Schneedecke je Höhe als Schattenprodukt `snowpack/` (E-GM-14 … E-GM-17; `audit/gletscher-schneemodell.md` §3f), 2026-11-23
 
-Gebaut, **uncommitted, Schalter aus**. Mit dem Schalter aus schreibt der Schmelzlauf dieselben Dateien wie heute (lokaler
-Volllauf: 338 von 338 Byte für Byte gleich). Nichts am Daten- oder Archiv-Repo, kein Workflow geändert, nichts an der Seite
-außer der neuen Vertragsdatei (nicht im Bundle), buscosun Fusion nur gelesen.
+**Stand 23.11. abends: committet und gepusht (`c4b45c9e`, Punkte 1 und 2 erledigt), auf dem Runner eingeschaltet (Punkt 3 a–c
+erledigt, dein Wort „ja starte das“ und „ich gebe dir die Genehmigung im Daten-Repo“): Startzustand vom 23.11. 17:00 UTC im
+Daten-Repo (`4ae73e46`, 19:23 UTC), `GLACIER_SNOWPACK: shadow` im Workflow `glacier-melt` (`3a119833`, 19:27 UTC). Offen:
+Punkt 3 d, der erste Lauf mit Schalter (frühestens 20:20 UTC, sonst 23:20 UTC), und der Commit der nachgezogenen Vorlage
+(`scripts/glacier/gen-workflows.py`, `workflow-glacier-melt.yml`) mit diesen Doku-Nachträgen. Beleg: Audit §3f.8.**
+
+Gebaut mit dem Schalter aus; im Code bleibt die Voreinstellung `off`. Mit dem Schalter aus schreibt der Schmelzlauf dieselben
+Dateien wie vorher (lokaler Volllauf: 338 von 338 Byte für Byte gleich). Nichts am Archiv-Repo, nichts an der Seite außer der
+neuen Vertragsdatei (nicht im Bundle), buscosun Fusion nur gelesen.
 
 Was es jetzt gibt:
 - **Schattenprodukt `glacier/v1/snowpack/<lauf>.json`** hinter `--snowpack=shadow` (oder `GLACIER_SNOWPACK`): je Gletscher an
