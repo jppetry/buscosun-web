@@ -242,6 +242,12 @@ jobs:
           node scripts/ci-run.mjs verify:glacier-stations || rc=1
           node scripts/ci-run.mjs verify:glacier-snow || rc=1
           node scripts/ci-run.mjs verify:glacier-snow-view || rc=1
+          # GM (V-GM-39, Jan 23.11.2026): the snow model behind the melt run - the core, the calibration table with its switches, and the
+          # snowpack shadow product. The runner takes the producer from `main` on every run, and a broken snowpack step does not turn
+          # the melt run red (it only writes `error` into the status line), so a break has to show here (audit/gletscher-schneemodell.md) - no network.
+          node scripts/ci-run.mjs verify:glacier-snowcore || rc=1
+          node scripts/ci-run.mjs verify:glacier-snowcal || rc=1
+          node scripts/ci-run.mjs verify:glacier-snowpack || rc=1
           exit $rc
       # SH: „Auswahl teilen" — Query-Schema, Ort-Slugs, Kanaele, Vorschaubilder
       # UND der Abgleich des Edge-Buendels gegen src/share/* (SH6).

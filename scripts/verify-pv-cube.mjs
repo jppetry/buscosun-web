@@ -36,6 +36,12 @@ import { toPointForecastV2, verifyOutput } from '../src/pointForecast/fusion/out
 import { accAt, ACC } from '../src/pointForecast/fusion/priors.ts';
 
 const H = 3_600_000;
+/**
+ * A `setTimeout(600)` can resolve up to about 1 ms BEFORE 600 ms have passed on `performance.now()` (the timer runs on the loop's
+ * millisecond clock; measured 23.11.2026: 9 of 200 timers early, the earliest at 599.08 ms). The checks "the reader waits for the slow
+ * store" therefore compare against the delay minus this slack - the claim is the wait, not the last millisecond (ci red on c4b45c9e).
+ */
+const TIMER_SLACK_MS = 5;
 const checks = [];
 const add = (name, ok, detail) => checks.push({ name, ok: !!ok, detail });
 // A cost check in absolute milliseconds measures the machine with it: locally it gates (the developer's machine is the
@@ -960,7 +966,7 @@ function cubeSampleOfValues(r, i) {
     `${deadMs.toFixed(0)} ms; ${bDead.skips.filter((k) => /Frist/.test(k)).join('; ')}`);
   const tS2 = performance.now();
   const bWait = await readSlow({});
-  add('(12) ohne Frist wartet der Leser (≥ 600 ms), keine Frist-Notiz', performance.now() - tS2 >= 600 && !bWait.skips.some((k) => /nach der Frist/.test(k)), `${(performance.now() - tS2).toFixed(0)} ms`);
+  add('(12) ohne Frist wartet der Leser (≥ 600 ms), keine Frist-Notiz', performance.now() - tS2 >= 600 - TIMER_SLACK_MS && !bWait.skips.some((k) => /nach der Frist/.test(k)), `${(performance.now() - tS2).toFixed(0)} ms`);
 }
 
 // ---------------------------------------------------------------------------
@@ -1175,7 +1181,7 @@ function cubeSampleOfValues(r, i) {
     `Abruf bei ${P.obsCalledAt?.toFixed(0)} ms, Kern ${P.core?.fc.cube.timing.coreMs} ms`);
   add('(14) die Nachlieferung kommt EINMAL (Stadt-Raster + Anker), `emission: update`, nichts mehr offen, die Frist-Notiz des Stadt-Rasters ist weg — und sie ist byte-gleich zur Referenz mit Messung',
     P.update && P.em.filter((e) => e.fc.cube.emission === 'update').length === 1 && P.update.fc.cube.pending.length === 0 && P.update.fc.cube.v2.point.terrain.imperv === 23 && P.update.fc.sourcesAvailable.includes('brightsky')
-    && !P.update.fc.cube.skips.some((s) => /static: /.test(s)) && stepsOf(P.update.fc) === stepsOf(refObs) && P.update.ms >= 600,
+    && !P.update.fc.cube.skips.some((s) => /static: /.test(s)) && stepsOf(P.update.fc) === stepsOf(refObs) && P.update.ms >= 600 - TIMER_SLACK_MS,
     P.update ? `${P.update.ms.toFixed(0)} ms` : 'keine Nachlieferung');
   // Cache: ein zweiter Aufruf nach der Nachlieferung bekommt sie (die erste Darstellung mit kürzerem Fenster kommt nie in den Cache).
   const again = await getPointForecastFromCube({ ...optsP, onUpdate: () => {} }, ioOf(memoryStore(files), async () => obsList));
@@ -1197,7 +1203,7 @@ function cubeSampleOfValues(r, i) {
   clearCubeForecastCache();
   const tW = performance.now();
   const waited = await getPointForecastFromCube(optsP, ioOf(slowStore(/static\//, 600), null));
-  add('(14) ohne `onUpdate` wartet der Pfad wie bisher (≥ 600 ms auf `static`), Werte byte-gleich zur Referenz', performance.now() - tW >= 600 && stepsOf(waited) === stepsOf(refNoObs), `${(performance.now() - tW).toFixed(0)} ms`);
+  add('(14) ohne `onUpdate` wartet der Pfad wie bisher (≥ 600 ms auf `static`), Werte byte-gleich zur Referenz', performance.now() - tW >= 600 - TIMER_SLACK_MS && stepsOf(waited) === stepsOf(refNoObs), `${(performance.now() - tW).toFixed(0)} ms`);
 
   // V-FI-20: schnelles Runden und Quantil-Speicher — DIESELBEN Zahlen wie vorher.
   const { roundTo: rT, roundToReference: rRef, quantileMemo, OUTPUT_SCALE } = await import('../src/pointForecast/fusion/output.ts');

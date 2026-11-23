@@ -4654,6 +4654,12 @@ Was es jetzt gibt:
 6. **Deine Entscheidungen** (alle in §3f.7): **E-GM-18** Einschalten wann und über welchen Weg · **V-GM-32** soll der
    Zustand des Schmelzlaufs dasselbe Muster bekommen (er wird bei 3-h-Abständen verworfen)? · **V-GM-39** drei Prüfer in
    die CI (`.github/workflows/ci.yml`)?
+7. **Nachtrag 23.11. abends — Commit und Push (dein Wort):** `.github/workflows/ci.yml` (V-GM-39, drei Zeilen: `verify:glacier-snowcore`,
+   `-snowcal`, `-snowpack`) und `scripts/verify-pv-cube.mjs` (V-GM-43: der CI-Lauf zu `c4b45c9e` war rot, weil eine Zeitprüfung
+   hart mit 600 ms verglich und ein 600-ms-Timer gelegentlich nach 599 ms endet; jetzt 5 ms Luft), dazu die Doku. Nach dem Push
+   den CI-Lauf ansehen: die drei neuen Prüfer sind auf dem Linux-Runner noch nie gelaufen (lokal in einem frischen Auscheck mit
+   LF-Zeilenenden grün). Offen bei dir: **V-GM-44** — `actions/checkout@v4` und `actions/setup-node@v4` laufen laut Warnung nur
+   noch übergangsweise (Node 20 → 24); anheben ist eine Workflow-Änderung.
 7. **Was die Messungen sagen, in drei Sätzen:** Ohne Einschwingen stünde 0 cm, wo an 223 Stationen im Mittel 28 cm liegen.
    Antrieb und Kern treffen Stationen und SNOWGRID ohne Faktor auf ±3 cm (Österreich) bzw. −10 cm (Schweiz, Tagesgitter);
    mit dem Gletscher-Faktor steht in der Medianhöhe im Median 112 cm — doppelt so viel wie an Stationen, und auf dem Eis
