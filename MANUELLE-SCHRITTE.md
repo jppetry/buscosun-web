@@ -4654,7 +4654,8 @@ Was es jetzt gibt:
 6. **Deine Entscheidungen** (alle in §3f.7): **E-GM-18** Einschalten wann und über welchen Weg · **V-GM-32** soll der
    Zustand des Schmelzlaufs dasselbe Muster bekommen (er wird bei 3-h-Abständen verworfen)? · **V-GM-39** drei Prüfer in
    die CI (`.github/workflows/ci.yml`)?
-7. **Nachtrag 23.11. abends — Commit und Push (dein Wort):** `.github/workflows/ci.yml` (V-GM-39, drei Zeilen: `verify:glacier-snowcore`,
+7. **Nachtrag 23.11. abends — erledigt: gepusht mit `5fb86b4f`, der CI-Lauf dazu ist grün (die drei Prüfer laufen auf Linux,
+   `verify:pv-cube` wieder grün).** Inhalt: `.github/workflows/ci.yml` (V-GM-39, drei Zeilen: `verify:glacier-snowcore`,
    `-snowcal`, `-snowpack`) und `scripts/verify-pv-cube.mjs` (V-GM-43: der CI-Lauf zu `c4b45c9e` war rot, weil eine Zeitprüfung
    hart mit 600 ms verglich und ein 600-ms-Timer gelegentlich nach 599 ms endet; jetzt 5 ms Luft), dazu die Doku. Nach dem Push
    den CI-Lauf ansehen: die drei neuen Prüfer sind auf dem Linux-Runner noch nie gelaufen (lokal in einem frischen Auscheck mit
@@ -4669,3 +4670,41 @@ Was es jetzt gibt:
    HEAD ab, V-GH-6).
 9. **Weiter offen:** E-GM-9 … E-GM-11 (§117); V-GM-26 Gate C vor Mai 2027; V-GM-33 … V-GM-42 (§3f.7); das nächste Paket
    (GM-4, Kopplung an Stationen) ist nicht freigegeben; Q8–Q10 bleiben ungelesen.
+
+## 120. Gletscher: Schneemodell, Paket GM-3d — Zustand des Schmelzlaufs an der Laufstunde (V-GM-32, E-GM-19; `audit/gletscher-schneemodell.md` §3g), 2026-11-23
+
+Gebaut auf dein Wort („V-GM-32 bauen“), **uncommitted, Schalter aus**. Ohne den Schalter schreibt der Schmelzlauf dieselben Dateien
+wie heute (lokaler Volllauf: 338 von 338 Byte für Byte gleich). Nichts am Daten- oder Archiv-Repo, kein Workflow geändert, nichts
+an der Seite (der Vertrag `glacierMeltContract.ts` trägt neue Typen und eine Prüfung, kein Byte im Bundle), buscosun Fusion nur
+gelesen.
+
+Worum es geht: jeder Schmelzlauf, der 3 Stunden nach dem vorigen kommt, verwirft heute den Schneezustand und beginnt bei null
+(20-mal seit 12.10., zuletzt am 8.11.). Die Kachel „Fläche ohne Schneedecke“ springt dann im Mittel auf rund 36 % — heute steht
+sie bei 2,3 %. Meine Einschätzung vom selben Abend („im Winter wirkt das kaum“) war falsch: der Schmelzindex ist im Winter
+klein, die Kachel springt trotzdem. Mit `--melt-state=run-hour` steht der Zustand an der Laufstunde und trägt 18 Stunden
+Antrieb; der nächste Lauf rechnet ihn bis zu seiner Stunde nach. Am vollen lokalen Lauf: 3 Stunden später bleibt die Kachel bei
+12,5 % statt auf 33,8 % zu springen, 6 Stunden später schreiben beide Wege dieselben 2 094 Zeilen.
+
+1. **Commit** (dein Wort). Dazu gehören: `scripts/glacier/lib/meltstate.mjs` (neu), `scripts/glacier/melt.mjs`,
+   `src/glacier/glacierMeltContract.ts`, `scripts/verify-glacier-melt.mjs`, die Dateien `gm32-*` unter
+   `audit/gletscher-schneemodell/`, `audit/gletscher-schneemodell.md`, `CLAUDE.md`, diese Datei.
+   Prüfstand: `verify:glacier-melt` 63/63, Gegenprobe 33 von 34 (der eine Überlebende ändert nichts Sichtbares), zwölf
+   Nachbar-Prüfer grün, Typecheck, Build (281/281), Budget unverändert (totalJs 2 118,1 / 2 121 KB).
+2. **Push von `buscosun-web`** (dein Gate). Ändert am Betrieb nichts: der Schalter ist aus.
+3. **Einschalten (E-GM-19, deine Entscheidung).** Es braucht keinen Startzustand — der erste Lauf mit dem Schalter liest die
+   heutige Datei nach der heutigen Regel und schreibt die neue Form. Zwei Wege: im Workflow `glacier-melt` des Daten-Repos unter
+   `jobs.melt.env` die Zeile `GLACIER_MELT_STATE: run-hour` (meine Empfehlung: ohne Push zurücknehmbar; die Vorlage
+   `scripts/glacier/gen-workflows.py` ziehe ich dann nach) oder `MELT_STATE_DEFAULT = 'run-hour'` in
+   `scripts/glacier/lib/meltstate.mjs` (wirkt mit dem Push). Meine Empfehlung zum Zeitpunkt: erst nachdem der erste Lauf der
+   Schneedecke (§119 Punkt 3 d) gelesen ist, damit nicht zwei Neuerungen im selben Lauf zusammenfallen.
+4. **Den ersten Lauf danach ansehen:** in `glacier/v1/status.json` trägt `lines.melt` dann `state: run-hour`; im
+   Schmelzdokument steht `state.mode: run-hour`, `state.replayedH` (0 im ersten Lauf, danach der Abstand in Stunden),
+   `state.held` (0); `melt/state.json` ist rund 0,6 statt 0,2 MB groß und trägt `pend`.
+5. **Zurück.** Die Zeile im Workflow entfernen (bzw. die Voreinstellung zurück). Der Rückfall liest die neue Datei ohne Absturz
+   als Zustand mit dem Alter des Abstands (im ersten Lauf danach fehlen die Stunden dazwischen, benannt in `state.ageH`) und
+   schreibt wieder die alte Form.
+6. **Nicht geprüft:** kein Lauf auf dem Runner; nur eine Wetterlage ohne nennenswerte Schmelze (die Schmelze beim Nachrechnen
+   ist nur im Prüfer belegt); keine Kette über mehr als drei volle Läufe am echten Katalog; nichts im Browser (keine Anzeige
+   geändert).
+7. **Weiter offen:** V-GM-45 (der Schmelzzustand hat kein Einschwingen — sauberer wäre, er läse die Schneedecke; nach GM-4),
+   V-GM-46 (Zustandsdatei dreimal so groß), V-GM-47 (`verify:glacier-feed` bricht ab, wenn der Browser unter Last nicht startet).

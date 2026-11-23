@@ -7,6 +7,8 @@
  * Block H (phase GM, GM-3b, E-GM-7; switched on 23.11., E-GM-12): the precipitation switch `--precip=gate-c|country` end to end — no word = `country`,
  * the fall back `gate-c` = the bytes as before GM-3b and the table not opened,
  * `country` = the factor of the region and no gradient (state by hand), the document names it, a table that cannot be used stops the run.
+ * Block I (phase GM, GM-3d, V-GM-32): the state switch `--melt-state=ahead|run-hour` — no word = `ahead` and the bytes as before; `run-hour` = the state
+ * at the run hour with its forcing, advanced by the next run whatever the distance (3, 6, 15, 24 h by hand; melt against the core), both transitions.
  *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-melt.mjs
  */
@@ -21,8 +23,9 @@ import {
   MELT_SNOW_NUDGE_MM,
 } from './glacier/melt.mjs';
 import { fusionStageNote, fusionStage, FUSION_CURRENT } from '../src/pointForecast/fusion/fusionRelease.ts';
-import { meltProblems, meltStateProblems, meltIndexOf, GLACIER_MELT_REF_DAILY_MM, GLACIER_MELT_SCENARIOS, GLACIER_MELT_RHO } from '../src/glacier/glacierMeltContract.ts';
+import { meltProblems, meltStateProblems, meltIndexOf, GLACIER_MELT_REF_DAILY_MM, GLACIER_MELT_SCENARIOS, GLACIER_MELT_RHO, GLACIER_MELT_STATE_PEND_H } from '../src/glacier/glacierMeltContract.ts';
 import { meltPrecipProblems } from './glacier/lib/snowcal.mjs';
+import { MELT_STATE_MODES, MELT_STATE_DEFAULT, meltStateModeOf, meltStateVerdict, pendOfForcing, forcingOfPend } from './glacier/lib/meltstate.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const H = 3_600_000;
@@ -349,6 +352,160 @@ add('G4 Archiv: die Leitgletscher des Laufs gehen als eigene Datei ins Archivver
   add('H7 Regeln des Blocks params.precip: acht Verletzungen, jede gemeldet; ein Dokument ohne den Block hat keine — außer es stammt aus einem Lauf mit „country“ (dann fehlt er)',
     caught.length === 8 && caught.every((n) => n > 0) && meltPrecipProblems(undefined).length === 0 && meltPrecipProblems(undefined, ['ch-test']).length === 1, JSON.stringify(caught));
 }
+// --- I: phase GM (GM-3d, V-GM-32) — where the carried state stands: `ahead` (as always, the fall back) or `run-hour` with its forcing ---------------
+// (a crash inside the block is a named failure, not an abort of the verifier)
+try {
+  // pure: the verdict on a state file, the stored forcing
+  const at0 = Date.UTC(2026, 9, 10, 4), v = (state, mode, gapH) => meltStateVerdict(state, mode, at0 + gapH * H, 30);
+  const plain = { atMs: at0, g: {} }, withPend = { atMs: at0, g: {}, pend: { h: 18, f: {}, o: {} } };
+  const is = (x, carry, ageH, replayH, form) => x.carry === carry && x.ageH === ageH && x.replayH === replayH && x.form === form;
+  add('I1 Urteil über die Zustandsdatei (rein): „ahead“ nimmt 0–30 h alte Zustände und verwirft einen, der in der Zukunft liegt — auch eine Datei MIT Antrieb liest es so; „run-hour“ rechnet eine Datei mit Antrieb bis zur Laufstunde nach (höchstens die gespeicherten 18 h, der Rest ist das Alter, über 30 h Alter Kaltstart), eine Datei OHNE Antrieb beurteilt es nach der alten Regel; halbe Stunden und fehlende Dateien ⇒ Kaltstart',
+    MELT_STATE_DEFAULT === 'ahead' && MELT_STATE_MODES.join() === 'ahead,run-hour' && meltStateModeOf(undefined) === 'ahead' && meltStateModeOf('') === 'ahead' && meltStateModeOf('run-hour') === 'run-hour'
+    && (() => { try { meltStateModeOf('an'); return false; } catch (e) { return /unbekannt.*ahead, run-hour/.test(e.message); } })()
+    && is(v(plain, 'ahead', -3), false, null, 0, 'plain') && is(v(plain, 'ahead', 0), true, 0, 0, 'plain') && is(v(plain, 'ahead', 30), true, 30, 0, 'plain') && is(v(plain, 'ahead', 31), false, null, 0, 'plain')
+    && is(v(withPend, 'ahead', 6), true, 6, 0, 'plain') && is(v(plain, 'run-hour', -3), false, null, 0, 'plain') && is(v(plain, 'run-hour', 9), true, 9, 0, 'plain')
+    && is(v(withPend, 'run-hour', 0), true, 0, 0, 'pend') && is(v(withPend, 'run-hour', 3), true, 0, 3, 'pend') && is(v(withPend, 'run-hour', 18), true, 0, 18, 'pend') && is(v(withPend, 'run-hour', 24), true, 6, 18, 'pend')
+    && is(v(withPend, 'run-hour', 48), true, 30, 18, 'pend') && is(v(withPend, 'run-hour', 49), false, null, 0, 'pend') && is(v(withPend, 'run-hour', -3), false, null, 0, 'pend') && is(v(withPend, 'run-hour', 2.5), false, null, 0, 'pend')
+    && is(v(null, 'run-hour', 3), false, null, 0, 'none') && is(v({ g: {} }, 'ahead', 3), false, null, 0, 'none'), JSON.stringify([v(withPend, 'run-hour', 24), v(withPend, 'ahead', 6)]));
+  const fq = { zRef: 2900, t: Float64Array.from([1.234567, NaN, -3.005, ...new Array(20).fill(0)]), fz: Float64Array.from([3100.4, NaN, ...new Array(21).fill(NaN)]), g: Float64Array.from([512.6, 0, ...new Array(21).fill(0)]), p: Float64Array.from([0.126, NaN, ...new Array(21).fill(0)]) };
+  const pr = pendOfForcing(fq), back = forcingOfPend(pr);
+  add('I2 gespeicherter Antrieb (rein): die ersten 18 Stunden auf 0,01 K / 1 m / 1 W/m² / 0,01 mm, ein fehlender Wert ist null und wird beim Lesen wieder zur Lücke (NaN); eine unbrauchbare Zeile ergibt keinen Antrieb',
+    GLACIER_MELT_STATE_PEND_H === 18 && pr[0] === 2900 && pr.slice(1).every((a) => a.length === 18) && pr[1][0] === 1.23 && pr[1][1] === null && pr[1][2] === -3 && pr[2][0] === 3100 && pr[2][1] === null && pr[3][0] === 513 && pr[4][0] === 0.13 && pr[4][1] === null
+    && back.zRef === 2900 && back.t.length === 18 && Number.isNaN(back.t[1]) && Number.isNaN(back.fz[1]) && Number.isNaN(back.p[1]) && back.t[0] === 1.23 && back.g[0] === 513
+    && forcingOfPend(null) === null && forcingOfPend([2900, [1], [1], [1]]) === null && forcingOfPend([2900, [1, 2], [1], [1], [1]]) === null && forcingOfPend([null, [1], [1], [1], [1]]) === null, JSON.stringify(pr.map((a) => (Array.isArray(a) ? a.slice(0, 3) : a))));
+
+  // end to end: cold and wet (−2 °C, 3 mm every hour — snow at every band, no melt), so the state counts the hours it was advanced
+  const snowAt = (nowMs) => async () => { const fc = synthFc({ tOf: () => -2 }); fc.cube.v2.axis.steps.forEach((s, i) => { s.validAtMs = Math.floor(nowMs / H) * H + i * H; s.vars.precip.mean = 3; }); return fc; };
+  let nOut = 0;
+  const runSt = async (root, tr, atH, extra = {}, fcOf = snowAt) => {
+    const now = NOW + atH * H, out = join(root, `out-${nOut++}`);
+    let r = null, err = null;
+    try { r = await main({ data: tr.data, cube: tr.cube, out, calibration: tr.calFile, now: new Date(now).toISOString(), forecast: fcOf(now), ioFactory: okIo, always: true, weather: '0', ...GATE_C, ...extra }); } catch (e) { err = String(e.message ?? e); }
+    if (err) return { err, wrote: existsSync(out) };
+    const read = (f) => readFileSync(f, 'utf8');
+    const status = JSON.parse(read(join(root, 'patch', 'status-patch.json'))); delete status.lines.melt.seconds;
+    const docRaw = read(join(out, 'melt', `${r.run}.json`)), stateRaw = read(join(out, 'melt', 'state.json'));
+    return { r, docRaw, doc: JSON.parse(docRaw), stateRaw, file: JSON.parse(stateRaw), state: JSON.parse(stateRaw).g, index: read(join(root, 'patch', 'index-patch.json')), status };
+  };
+  const take = (tr, e) => { mkdirSync(join(tr.data, 'melt'), { recursive: true }); writeFileSync(join(tr.data, 'melt', 'state.json'), typeof e === 'string' ? e : e.stateRaw); };
+  const fresh = (name) => { const root = join(tmp, name); return { root, tr: mkTree(root) }; };
+  // one chain: a first run at hour 0 in `mode0`, then one run per later hour in `mode`, each reading the state of the one before
+  const chain = async (name, hours, mode, mode0 = mode) => {
+    const { root, tr } = fresh(name); const out = [];
+    for (const [i, atH] of [0, ...hours].entries()) { const e = await runSt(root, tr, atH, { 'melt-state': i ? mode : mode0 }); out.push(e); if (e.err) break; take(tr, e); }
+    return out;
+  };
+  const same = (a, b) => a.docRaw === b.docRaw && a.stateRaw === b.stateRaw && a.index === b.index && JSON.stringify(a.status) === JSON.stringify(b.status);
+  const hypZb = (z0) => Array.from({ length: 8 }, (_, i) => z0 + 50 * (i + 0.5));
+  // by hand: after `hours` hours every band holds hours · 3 mm · 1,2 · (1 + 4 % per 100 m from the reference elevation) · solid share (0,1 mm in the file)
+  const sweByHand = (z0, zRef, hours) => hypZb(z0).map((z) => { const Tb = -2 + 0.0065 * (zRef - z); return hours * 3 * 1.2 * (1 + (0.04 * (z - zRef)) / 100) * Math.min(1, Math.max(0, (2 - Tb) / 2)); });
+  const stateIs = (s, id, hand, tol = 0.051) => s?.[id]?.[0]?.length === 8 && s[id][0].every((x, i) => Math.abs(x - hand[i]) <= tol);
+  const cases = [['gl_ch_alpha', 2400, 2900], ['gl_ch_beta', 2500, 2800], ['gl_ch_gamma', 2600, 2900], ['gl_ch_far', 2600, 2750]];   // gamma: own bands, alpha's forcing
+  const allAre = (s, hours, tol) => cases.every(([id, z0, zRef]) => stateIs(s, id, sweByHand(z0, zRef, hours), tol));
+
+  // the switch
+  const d0 = fresh('st-default'), d1 = fresh('st-ahead'), d2 = fresh('st-rh'), d3 = fresh('st-rh2'), d4 = fresh('st-word'), d5 = fresh('st-env'), d6 = fresh('st-envarg');
+  const eDef = await runSt(d0.root, d0.tr, 0), eAhead = await runSt(d1.root, d1.tr, 0, { 'melt-state': 'ahead' }), eRh = await runSt(d2.root, d2.tr, 0, { 'melt-state': 'run-hour' }), eRh2 = await runSt(d3.root, d3.tr, 0, { 'melt-state': 'run-hour' });
+  const eWord = await runSt(d4.root, d4.tr, 0, { 'melt-state': 'laufstunde' });
+  process.env.GLACIER_MELT_STATE = 'run-hour';
+  const eEnv = await runSt(d5.root, d5.tr, 0), eEnvArg = await runSt(d6.root, d6.tr, 0, { 'melt-state': 'ahead' });
+  delete process.env.GLACIER_MELT_STATE;
+  add('I3 Schalter: ohne Angabe dieselben Bytes wie „ahead“ (Dokument, Zustand, Zeiger, Statuszeile) — der Zustand steht 6 h hinter der Laufstunde, trägt keinen Antrieb, Dokument und Statuszeile nennen keinen Modus; „run-hour“ schreibt andere Dateien (zweimal gerechnet dieselben Bytes); ein unbekanntes Wort bricht ab und schreibt nichts; GLACIER_MELT_STATE=run-hour wirkt wie der Schalter, ein Schalter daneben gewinnt',
+    !eDef.err && !eAhead.err && !eRh.err && same(eDef, eAhead) && eDef.file.atMs === T0N + 6 * H && eDef.file.pend === undefined && !('mode' in eDef.doc.state) && !('state' in eDef.status.lines.melt)
+    && !same(eRh, eDef) && eRh.stateRaw !== eDef.stateRaw && eRh.docRaw !== eDef.docRaw && same(eRh, eRh2) && /--melt-state=laufstunde: unbekannt/.test(eWord.err ?? '') && eWord.wrote === false && !eEnv.err && same(eEnv, eRh) && same(eEnvArg, eDef),
+    JSON.stringify({ err: [eDef.err, eAhead.err, eRh.err, eWord.err, eEnv.err, eEnvArg.err] }));
+  const fcG = synthFc(); fcG.cube.v2.axis.steps.forEach((s, i) => { s.validAtMs = T0N + i * H; });
+  const gRun = forcingFromForecast(fcG, { lat: 46.5, lon: 8.4, zRef: 2900, t0Ms: T0N }).g;
+  const fA = eRh.file, hourG = (i) => Math.round(gRun[i]);
+  add('I4 Datei mit „run-hour“: die Zeit ist die LAUFSTUNDE, der Zustand der, mit dem der Lauf begann (Kaltstart ⇒ null Schneewasser an jedem Band), dazu der Antrieb der nächsten 18 Stunden je Antriebsgeber (alpha, beta, far: −2 °C, 3 mm, Strahlung wie im Lauf, Bezugshöhe) und die Zuordnung gamma → alpha; die Datei besteht den Vertrag; Dokument: cold, Modus genannt, nichts nachgerechnet; die Statuszeile nennt den Modus',
+    fA.atMs === T0N && fA.schema === 1 && cases.every(([id]) => fA.g[id][0].every((x) => x === 0) && fA.g[id][0].length === 8) && fA.pend.h === 18 && Object.keys(fA.pend.f).sort().join() === 'gl_ch_alpha,gl_ch_beta,gl_ch_far'
+    && JSON.stringify(fA.pend.o) === '{"gl_ch_gamma":"gl_ch_alpha"}' && fA.pend.f.gl_ch_alpha[0] === 2900 && fA.pend.f.gl_ch_beta[0] === 2800 && fA.pend.f.gl_ch_alpha[1].every((x) => x === -2) && fA.pend.f.gl_ch_alpha[4].every((x) => x === 3)
+    && fA.pend.f.gl_ch_alpha[3].every((x, i) => x === hourG(i)) && fA.pend.f.gl_ch_alpha[3].some((x) => x > 100) && meltStateProblems(fA).length === 0
+    && JSON.stringify(eRh.doc.state) === '{"source":"cold","ageH":null,"nudged":0,"mode":"run-hour","replayedH":0,"held":0}' && eRh.status.lines.melt.state === 'run-hour' && meltProblems(eRh.doc).length === 0,
+    JSON.stringify({ state: eRh.doc?.state, o: fA.pend?.o, p: meltStateProblems(fA).slice(0, 3) }));
+
+  // the 3-hour distance — the reason for the package
+  const a3 = await chain('st-ahead-3', [3], 'ahead'), r3 = await chain('st-rh-3', [3], 'run-hour');
+  add('I5 Lauf 3 h nach dem vorigen: „ahead“ verwirft den Zustand (cold — das Verhalten bis heute, Gegenprobe); „run-hour“ übernimmt ihn (carried, Alter 0, 3 h nachgerechnet) und beginnt mit dem Schnee von genau 3 Stunden — von Hand 3 · 3 mm · 1,2 · Gradient · Schneeanteil an allen Bändern von vier Gletschern, auch am Gletscher mit Nachbar-Antrieb (eigene Bänder); mit 6 Stunden gerechnet passt es nicht',
+    a3[1]?.doc?.state.source === 'cold' && a3[1].doc.state.ageH === null && r3[1]?.doc?.state.source === 'carried' && r3[1].doc.state.ageH === 0 && r3[1].doc.state.replayedH === 3 && r3[1].doc.state.held === 0
+    && r3[1].file.atMs === T0N + 3 * H && allAre(r3[1].state, 3) && !allAre(r3[1].state, 6) && !stateIs(r3[1].state, 'gl_ch_gamma', sweByHand(2600, 2750, 3)),
+    JSON.stringify({ ahead: a3[1]?.doc?.state ?? a3[1]?.err, rh: r3[1]?.doc?.state ?? r3[1]?.err, alpha: r3[1]?.state?.gl_ch_alpha?.[0], hand: sweByHand(2400, 2900, 3) }));
+  const a6 = await chain('st-ahead-6', [6], 'ahead'), r6 = await chain('st-rh-6', [6], 'run-hour');
+  add('I6 Lauf 6 h nach dem vorigen: beide Wege beginnen mit demselben Schnee (6 Stunden von Hand; der Zustand von „run-hour“ gleicht Band für Band der Datei, die „ahead“ im Lauf davor geschrieben hat) und schreiben dieselben Gletscherzeilen ins Schmelzdokument',
+    a6[1]?.doc?.state.source === 'carried' && a6[1].doc.state.ageH === 0 && r6[1]?.doc?.state.source === 'carried' && r6[1].doc.state.ageH === 0 && r6[1].doc.state.replayedH === 6 && allAre(r6[1].state, 6) && allAre(a6[0].state, 6)
+    && JSON.stringify(r6[1].state) === JSON.stringify(a6[0].state) && JSON.stringify(r6[1].doc.glaciers) === JSON.stringify(a6[1].doc.glaciers) && r6[1].doc.glaciers.length === 4,
+    JSON.stringify({ ahead: a6[1]?.doc?.state ?? a6[1]?.err, rh: r6[1]?.doc?.state ?? r6[1]?.err }));
+  const a15 = await chain('st-ahead-15', [15], 'ahead'), r15 = await chain('st-rh-15', [15], 'run-hour'), r24 = await chain('st-rh-24', [24], 'run-hour'), r49 = await chain('st-rh-49', [49], 'run-hour'), r48 = await chain('st-rh-48', [48], 'run-hour');
+  add('I7 längere Abstände: nach 15 h beginnt „run-hour“ mit 15 Stunden Schnee (Alter 0), „ahead“ mit 6 (Alter 9 — neun Stunden fehlen, Gegenprobe); nach 24 h rechnet „run-hour“ die gespeicherten 18 Stunden nach und nennt 6 fehlende (ageH 6), nach 48 h 18 und 30; nach 49 h (31 fehlende) Kaltstart ohne Alter',
+    r15[1]?.doc?.state.ageH === 0 && r15[1].doc.state.replayedH === 15 && allAre(r15[1].state, 15) && a15[1]?.doc?.state.source === 'carried' && a15[1].doc.state.ageH === 9 && !allAre(a15[1].state, 15, 5)
+    && r24[1]?.doc?.state.source === 'carried' && r24[1].doc.state.ageH === 6 && r24[1].doc.state.replayedH === 18 && allAre(r24[1].state, 18) && r48[1]?.doc?.state.ageH === 30 && r48[1].doc.state.replayedH === 18 && allAre(r48[1].state, 18)
+    && r49[1]?.doc?.state.source === 'cold' && r49[1].doc.state.ageH === null && r49[1].doc.state.replayedH === 0 && cases.every(([id]) => r49[1].state[id][0].every((x) => x === 0)),
+    JSON.stringify([r15[1]?.doc?.state ?? r15[1]?.err, a15[1]?.doc?.state, r24[1]?.doc?.state, r48[1]?.doc?.state, r49[1]?.doc?.state]));
+  const r33 = await chain('st-rh-3-3', [3, 6], 'run-hour'), r3333 = await chain('st-rh-3333', [3, 6, 9, 12], 'run-hour');
+  add('I8 die Taktung ist gleichgültig: 3 h + 3 h ergibt den Zustand von 6 h am Stück, vier Läufe im 3-Stunden-Abstand den von 12 Stunden (von Hand, auf die Rundung der Datei genau); jeder Lauf der Kette sagt carried, Alter 0',
+    r33.length === 3 && allAre(r33[2].state, 6, 0.11) && r33[2].state.gl_ch_alpha[0].every((x, i) => Math.abs(x - r6[1].state.gl_ch_alpha[0][i]) <= 0.11) && r3333.length === 5 && allAre(r3333[4].state, 12, 0.21)
+    && [...r33.slice(1), ...r3333.slice(1)].every((e) => e.doc.state.source === 'carried' && e.doc.state.ageH === 0 && e.doc.state.replayedH === 3), JSON.stringify(r3333.map((e) => e.doc?.state ?? e.err)));
+  // the two transitions of switching on and falling back
+  const tOn = await chain('st-on-6', [6], 'run-hour', 'ahead'), tOn3 = await chain('st-on-3', [3], 'run-hour', 'ahead'), tOff = await chain('st-off-6', [6], 'ahead', 'run-hour'), tOff3 = await chain('st-off-3', [3], 'ahead', 'run-hour');
+  add('I9 Übergänge: der erste Lauf mit „run-hour“ findet eine Datei ohne Antrieb und beurteilt sie nach der alten Regel (6 h später: übernommen, nichts nachgerechnet, Schnee von 6 Stunden; 3 h später: Kaltstart) und schreibt selbst die neue Form; der Rückfall „ahead“ liest eine Datei mit Antrieb ohne Absturz als Zustand dieses Alters (ageH 6 bzw. 3, der Schnee der Stunden dazwischen fehlt und ist benannt) und schreibt wieder die alte Form',
+    tOn[1]?.doc?.state.source === 'carried' && tOn[1].doc.state.ageH === 0 && tOn[1].doc.state.replayedH === 0 && allAre(tOn[1].state, 6) && tOn[1].file.pend?.h === 18 && tOn[1].file.atMs === T0N + 6 * H && tOn3[1]?.doc?.state.source === 'cold'
+    && tOff[1]?.doc?.state.source === 'carried' && tOff[1].doc.state.ageH === 6 && !('mode' in tOff[1].doc.state) && tOff[1].file.pend === undefined && tOff[1].file.atMs === T0N + 12 * H && allAre(tOff[1].state, 6)
+    && tOff3[1]?.doc?.state.source === 'carried' && tOff3[1].doc.state.ageH === 3, JSON.stringify([tOn[1]?.doc?.state ?? tOn[1]?.err, tOn3[1]?.doc?.state, tOff[1]?.doc?.state ?? tOff[1]?.err, tOff3[1]?.doc?.state]));
+
+  // melt, not only accumulation: a hand-made file (50 mm of snow, a warm sunny afternoon with a shower), advanced 5 hours — against the core called directly
+  {
+    const tH = [5, 6, 7, 6, 5, 4, 3, 2, 1, 0, -1, -2, -2, -2, -2, -2, -2, -2], gH = [300, 400, 500, 400, 300, 200, 100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], pH = [0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    const row = (zRef, dT = 0) => [zRef, tH.map((x) => x + dT), tH.map(() => null), gH, pH];
+    const g0 = Object.fromEntries(cases.map(([id]) => [id, [new Array(8).fill(50), new Array(8).fill(600)]]));
+    const handFile = { schema: 1, kind: 'glacier/melt-state', atMs: T0N, g: g0, pend: { h: 18, f: { gl_ch_alpha: row(2900), gl_ch_beta: row(2800, 1), gl_ch_far: row(2750) }, o: { gl_ch_gamma: 'gl_ch_alpha' } } };
+    const hypI = (z0) => ({ z0, a: [0.1, 0.3, 0.5, 0.6, 0.5, 0.3, 0.2, 0.1] });
+    // the core by hand: temperature moved from the owner's reference elevation to the glacier's median band with the standard lapse (no freezing level in the file)
+    const expect = (z0, zRef, ela, dT, hours, TF = 0.05, swe0 = 50) => {
+      const bands = bandsOf(hypI(z0)), zMed = bands.zb[4];
+      const r = simulate({ bands, ela, t: Float64Array.from(tH.slice(0, hours), (x) => x + dT - 0.0065 * (zMed - zRef)), g: Float64Array.from(gH.slice(0, hours)), p: Float64Array.from(pH.slice(0, hours)), zT: zMed, zP: zRef, pf: 1.2, TF, SRF: 0.008, state: { swe: new Float64Array(8).fill(swe0), aS: new Float64Array(8).fill(0.6) }, model: 'eti' });
+      return JSON.stringify([Array.from(r.state.swe, (x) => Math.round(x * 10) / 10), Array.from(r.state.aS, (x) => Math.round(x * 1000))]);
+    };
+    const w = fresh('st-warm'); take(w.tr, JSON.stringify(handFile));
+    const eW = await runSt(w.root, w.tr, 5, { 'melt-state': 'run-hour' });
+    const got = (id) => JSON.stringify(eW.state?.[id]);
+    add('I10 Nachrechnen mit Schmelze: aus 50 mm Schnee und fünf warmen Stunden (5–7 °C, bis 500 W/m², ein Schauer) wird genau der Zustand, den der Schmelzkern direkt gerechnet ergibt — am Gletscher mit eigenem Antrieb, an einem mit +1 K und am Gletscher mit Nachbar-Antrieb (eigene Bänder und Gleichgewichtslinie, Temperatur von 2 900 m auf die eigene Medianhöhe); der Schnee ist dabei weniger geworden; Gegenproben: 4 Stunden, ohne Temperaturfaktor oder mit der Bezugshöhe des Gletschers selbst passt es nicht',
+      !eW.err && meltStateProblems(handFile).length === 0 && eW.doc.state.source === 'carried' && eW.doc.state.replayedH === 5 && got('gl_ch_alpha') === expect(2400, 2900, 2900, 0, 5) && got('gl_ch_beta') === expect(2500, 2800, 2800, 1, 5)
+      && got('gl_ch_gamma') === expect(2600, 2900, 2750, 0, 5) && got('gl_ch_far') === expect(2600, 2750, 2750, 0, 5) && eW.state.gl_ch_alpha[0].every((x) => x < 45)
+      && got('gl_ch_alpha') !== expect(2400, 2900, 2900, 0, 4) && got('gl_ch_alpha') !== expect(2400, 2900, 2900, 0, 5, 0) && got('gl_ch_gamma') !== expect(2600, 2750, 2750, 0, 5) && got('gl_ch_beta') !== expect(2500, 2800, 2800, 0, 5),
+      JSON.stringify({ err: eW.err, state: eW.doc?.state, match: [got('gl_ch_alpha') === expect(2400, 2900, 2900, 0, 5), got('gl_ch_beta') === expect(2500, 2800, 2800, 1, 5), got('gl_ch_gamma') === expect(2600, 2900, 2750, 0, 5), got('gl_ch_far') === expect(2600, 2750, 2750, 0, 5)], got: eW.state?.gl_ch_alpha?.[0], want: JSON.parse(expect(2400, 2900, 2900, 0, 5))[0] }));
+    // thin snow (4 mm, below the 5 mm at which the surface counts as bare): the melt of the hour depends on the albedo of ice or firn — the glacier's own line
+    const thin = structuredClone(handFile); for (const id of Object.keys(thin.g)) thin.g[id][0] = new Array(8).fill(4);
+    const t = fresh('st-thin'); take(t.tr, JSON.stringify(thin));
+    const eT = await runSt(t.root, t.tr, 1, { 'melt-state': 'run-hour' });
+    const gotT = (id) => JSON.stringify(eT.state?.[id]);
+    add('I14 dünne Schneedecke (4 mm) beim Nachrechnen: die Schmelze der Stunde rechnet mit der Albedo der blanken Fläche nach der Gleichgewichtslinie des GLETSCHERS (Eis darunter, Firn darüber) — eine Stunde, drei Gletscher, gegen den Kern; Gegenprobe: mit der Linie 0 (alles Firn) passt es nicht',
+      !eT.err && eT.doc.state.replayedH === 1 && gotT('gl_ch_alpha') === expect(2400, 2900, 2900, 0, 1, 0.05, 4) && gotT('gl_ch_gamma') === expect(2600, 2900, 2750, 0, 1, 0.05, 4) && gotT('gl_ch_far') === expect(2600, 2750, 2750, 0, 1, 0.05, 4)
+      && gotT('gl_ch_alpha') !== expect(2400, 2900, 0, 0, 1, 0.05, 4) && gotT('gl_ch_gamma') !== expect(2600, 2900, 0, 0, 1, 0.05, 4), JSON.stringify({ err: eT.err, got: eT.state?.gl_ch_alpha?.[0], want: JSON.parse(expect(2400, 2900, 2900, 0, 1, 0.05, 4))[0], firn: JSON.parse(expect(2400, 2900, 0, 0, 1, 0.05, 4))[0] }));
+    // a glacier whose forcing owner is missing in the file keeps its state, counted
+    const hf2 = structuredClone(handFile); delete hf2.pend.f.gl_ch_beta;
+    const h = fresh('st-held'); take(h.tr, JSON.stringify(hf2));
+    const eH = await runSt(h.root, h.tr, 5, { 'melt-state': 'run-hour' });
+    add('I11 fehlt der Antrieb eines Gletschers in der Datei, behält er seinen Zustand ohne Nachrechnen und wird gezählt (held 1); die anderen werden nachgerechnet; der Vertrag meldet eine solche Datei',
+      !eH.err && eH.doc.state.held === 1 && JSON.stringify(eH.state.gl_ch_beta) === JSON.stringify(g0.gl_ch_beta) && got('gl_ch_alpha') === JSON.stringify(eH.state.gl_ch_alpha) && meltStateProblems(hf2).some((p) => /gl_ch_beta: Zustand ohne Antrieb/.test(p)), JSON.stringify(eH.doc?.state ?? eH.err));
+    // the satellite nudge comes AFTER the advance
+    const n = fresh('st-nudge');
+    const ix = JSON.parse(readFileSync(join(n.tr.data, 'index.json'), 'utf8'));
+    writeFileSync(join(n.tr.data, 'index.json'), JSON.stringify({ ...ix, sat: { updatedAt: '2026-10-09T00:00:00Z', newest: {}, seasons: { 2026: { 'ch-test': '20261009T0000Z' } } } }));
+    mkdirSync(join(n.tr.data, 'season', '2026', 'ch-test'), { recursive: true });
+    writeFileSync(join(n.tr.data, 'season', '2026', 'ch-test', '20261009T0000Z.json'), JSON.stringify({ schema: 1, kind: 'glacier/season', year: 2026, region: 'ch-test', stand: '20261009T0000Z', cols: [], glaciers: { gl_ch_alpha: [['2026-09-28', 0.95, 0.5, 1, 2600, 0.4, null, null, 0]] } }));
+    take(n.tr, eRh);   // the cold `run-hour` state of hour 0 (zeros and −2 °C / 3 mm)
+    const eN = await runSt(n.root, n.tr, 3, { 'melt-state': 'run-hour' });
+    const zbA = hypZb(2400);
+    add('I12 der Satelliten-Abgleich greift NACH dem Nachrechnen: unter der Schneegrenze der Szene (2 600 m) ist der nachgerechnete Schnee wieder weg (0), darüber stehen die 250 mm des Abgleichs; der nicht abgeglichene Nachbar trägt den Schnee der 3 Stunden',
+      !eN.err && eN.doc.state.nudged === 1 && eN.doc.state.replayedH === 3 && eN.state.gl_ch_alpha[0].every((x, i) => x === (zbA[i] >= 2600 ? 250 : 0)) && stateIs(eN.state, 'gl_ch_beta', sweByHand(2500, 2800, 3)), JSON.stringify({ state: eN.doc?.state ?? eN.err, alpha: eN.state?.gl_ch_alpha?.[0] }));
+    // the contract of the file
+    const badOf = (f) => { const s = structuredClone(handFile); f(s); return meltStateProblems(s).length; };
+    const caught = [(s) => { s.pend.h = -1; }, (s) => { s.pend.h = 17; }, (s) => { delete s.pend.f; }, (s) => { s.pend.f.gl_ch_alpha[1][3] = 'kalt'; }, (s) => { s.pend.f.gl_ch_alpha[4][2] = -1; }, (s) => { s.pend.f.gl_ch_alpha[3][0] = -5; }, (s) => { s.pend.f.gl_ch_alpha.pop(); },
+      (s) => { s.pend.f.gl_ch_alpha[0] = null; }, (s) => { s.pend.o.gl_ch_gamma = 'gl_ch_nirgends'; }, (s) => { delete s.pend.o.gl_ch_gamma; }, (s) => { s.pend.f.gl_ch_far[2].push(1); }].map(badOf);
+    add('I13 Vertrag der Zustandsdatei mit Antrieb: elf Verletzungen, jede gemeldet (Stundenzahl, Länge, Nicht-Zahl, negative Strahlung, negativer Niederschlag, fehlende Reihe, fehlende Bezugshöhe, unbekannter oder fehlender Antriebsgeber); die Datei selbst und eine Datei der alten Form haben keine',
+      caught.length === 11 && caught.every((k) => k > 0) && meltStateProblems(handFile).length === 0 && meltStateProblems({ schema: 1, kind: 'glacier/melt-state', atMs: 1, g: g0 }).length === 0, JSON.stringify(caught));
+  }
+} catch (e) { add('I0 Block I läuft ohne Absturz durch', false, String(e?.stack ?? e).split('\n').slice(0, 3).join(' | ')); }
 // protected paths
 {
   let detail = 'kein origin/main (CI-Klon)', ok = true;

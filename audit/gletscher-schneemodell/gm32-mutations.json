@@ -1,0 +1,251 @@
+{
+ "generated": "2026-11-23T20:41:15.197Z",
+ "verifiers": [
+  "verify:glacier-melt"
+ ],
+ "greenBefore": true,
+ "greenAfter": true,
+ "noticed": 33,
+ "of": 34,
+ "crashedOnly": 0,
+ "mutations": [
+  {
+   "name": "Voreinstellung des Schalters „run-hour“",
+   "file": "scripts/glacier/lib/meltstate.mjs",
+   "noticed": true,
+   "by": "glacier-melt: G7, H1, H2, H3, I1, I3",
+   "crashedOnly": false
+  },
+  {
+   "name": "unbekanntes Wort fällt auf die Voreinstellung zurück",
+   "file": "scripts/glacier/lib/meltstate.mjs",
+   "noticed": true,
+   "by": "glacier-melt: I1, I3",
+   "crashedOnly": false
+  },
+  {
+   "name": "gespeicherter Antrieb eine Stunde zu kurz",
+   "file": "scripts/glacier/lib/meltstate.mjs",
+   "noticed": true,
+   "by": "glacier-melt: I2, I3, I0",
+   "crashedOnly": false
+  },
+  {
+   "name": "Temperatur auf ganze Grad gespeichert",
+   "file": "scripts/glacier/lib/meltstate.mjs",
+   "noticed": true,
+   "by": "glacier-melt: I2",
+   "crashedOnly": false
+  },
+  {
+   "name": "Niederschlag auf ganze Millimeter gespeichert",
+   "file": "scripts/glacier/lib/meltstate.mjs",
+   "noticed": true,
+   "by": "glacier-melt: I2",
+   "crashedOnly": false
+  },
+  {
+   "name": "fehlender Wert wird als 0 gespeichert",
+   "file": "scripts/glacier/lib/meltstate.mjs",
+   "noticed": true,
+   "by": "glacier-melt: I2",
+   "crashedOnly": false
+  },
+  {
+   "name": "gespeicherte Lücke wird als 0 gelesen",
+   "file": "scripts/glacier/lib/meltstate.mjs",
+   "noticed": true,
+   "by": "glacier-melt: I2",
+   "crashedOnly": false
+  },
+  {
+   "name": "„run-hour“ liest den Antrieb der Datei nicht",
+   "file": "scripts/glacier/lib/meltstate.mjs",
+   "noticed": true,
+   "by": "glacier-melt: I1, I5, I6, I7, I8, I10, I14, I11, I12",
+   "crashedOnly": false
+  },
+  {
+   "name": "„ahead“ rechnet eine Datei mit Antrieb nach",
+   "file": "scripts/glacier/lib/meltstate.mjs",
+   "noticed": true,
+   "by": "glacier-melt: I1, I9",
+   "crashedOnly": false
+  },
+  {
+   "name": "Nachrechnen nimmt immer den ganzen gespeicherten Antrieb",
+   "file": "scripts/glacier/lib/meltstate.mjs",
+   "noticed": true,
+   "by": "glacier-melt: I1, I5, I6, I7, I8, I10, I14, I12",
+   "crashedOnly": false
+  },
+  {
+   "name": "Stunden jenseits des Antriebs werden nicht gezählt",
+   "file": "scripts/glacier/lib/meltstate.mjs",
+   "noticed": true,
+   "by": "glacier-melt: I1, I7",
+   "crashedOnly": false
+  },
+  {
+   "name": "Zustand aus der Zukunft oder mit halber Stunde wird genommen",
+   "file": "scripts/glacier/lib/meltstate.mjs",
+   "noticed": true,
+   "by": "glacier-melt: I1",
+   "crashedOnly": false
+  },
+  {
+   "name": "Höchstalter gilt mit „run-hour“ nicht",
+   "file": "scripts/glacier/lib/meltstate.mjs",
+   "noticed": true,
+   "by": "glacier-melt: I1, I7",
+   "crashedOnly": false
+  },
+  {
+   "name": "„ahead“ nimmt einen Zustand aus der Zukunft",
+   "file": "scripts/glacier/lib/meltstate.mjs",
+   "noticed": true,
+   "by": "glacier-melt: I1, I5, I9",
+   "crashedOnly": false
+  },
+  {
+   "name": "Zustand der Datei auf ganze Millimeter",
+   "file": "scripts/glacier/lib/meltstate.mjs",
+   "noticed": true,
+   "by": "glacier-melt: I5, I6, I7, I8, I9, I10, I14, I12",
+   "crashedOnly": false
+  },
+  {
+   "name": "Umgebungsvariable des Schalters wird nicht gelesen",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: I3",
+   "crashedOnly": false
+  },
+  {
+   "name": "Nachrechnen ohne den Temperaturfaktor",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: I10, I14",
+   "crashedOnly": false
+  },
+  {
+   "name": "Nachrechnen über den ganzen gespeicherten Antrieb",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: I5, I6, I7, I8, I10, I14, I12",
+   "crashedOnly": false
+  },
+  {
+   "name": "Nachrechnen mit der Gleichgewichtslinie 0",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: I14",
+   "crashedOnly": false
+  },
+  {
+   "name": "Nachbar-Antrieb wird beim Nachrechnen nicht gefunden",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: I5, I6, I7, I8, I10, I14, I11",
+   "crashedOnly": false
+  },
+  {
+   "name": "Gletscher ohne Antrieb wird nicht gezählt",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: I11",
+   "crashedOnly": false
+  },
+  {
+   "name": "Datei trägt den Zustand NACH 6 Stunden statt den der Laufstunde",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: I4, I5, I6, I7, I8, I9, I10, I14, I11, I12",
+   "crashedOnly": false
+  },
+  {
+   "name": "Datei mit „run-hour“ steht 6 h hinter der Laufstunde",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: I4, I5, I6, I7, I8, I9, I12",
+   "crashedOnly": false
+  },
+  {
+   "name": "Zuordnung zum Antriebsgeber wird nicht geschrieben",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: I3, I0",
+   "crashedOnly": false
+  },
+  {
+   "name": "Antrieb des Nachbarn unter dem eigenen Namen gespeichert",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: I4",
+   "crashedOnly": false
+  },
+  {
+   "name": "Dokument nennt Modus und nachgerechnete Stunden nicht",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: I3, I4, I5, I6, I7, I8, I9, I10, I14, I11, I12",
+   "crashedOnly": false
+  },
+  {
+   "name": "Statuszeile nennt den Modus nicht",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: I4",
+   "crashedOnly": false
+  },
+  {
+   "name": "„ahead“ schreibt den Modus in die Statuszeile",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: I3",
+   "crashedOnly": false
+  },
+  {
+   "name": "Zustand wird nach dem Nachrechnen nicht auf die Auflösung der Datei gebracht",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": false,
+   "by": null,
+   "crashedOnly": false
+  },
+  {
+   "name": "gespeicherter Antrieb 12 statt 18 Stunden",
+   "file": "src/glacier/glacierMeltContract.ts",
+   "noticed": true,
+   "by": "glacier-melt: I2, I4, I7, I9",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag prüft die Länge der Reihen nicht",
+   "file": "src/glacier/glacierMeltContract.ts",
+   "noticed": true,
+   "by": "glacier-melt: I13",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag nimmt negativen Niederschlag und negative Strahlung",
+   "file": "src/glacier/glacierMeltContract.ts",
+   "noticed": true,
+   "by": "glacier-melt: I13",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag nimmt einen Zustand ohne Antrieb",
+   "file": "src/glacier/glacierMeltContract.ts",
+   "noticed": true,
+   "by": "glacier-melt: I11, I13",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag nimmt eine Zeile ohne Bezugshöhe",
+   "file": "src/glacier/glacierMeltContract.ts",
+   "noticed": true,
+   "by": "glacier-melt: I13",
+   "crashedOnly": false
+  }
+ ]
+}

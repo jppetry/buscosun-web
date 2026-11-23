@@ -1,0 +1,232 @@
+{
+ "kind": "gm32-analyse",
+ "readAt": "2026-11-23T20:36:55.284Z",
+ "root": "C:\\dev\\buscosun-glacier-cache\\gm32",
+ "offVsRef": {
+  "files": 338,
+  "same": 338,
+  "differ": [],
+  "onlyA": [],
+  "onlyB": []
+ },
+ "onVsOff": {
+  "files": 338,
+  "same": 336,
+  "differ": [
+   "melt/2026112117.json",
+   "melt/state.json"
+  ],
+  "onlyA": [],
+  "onlyB": []
+ },
+ "stateOff": {
+  "bytes": 192038,
+  "at": "2026-11-21T23:00:00.000Z",
+  "glaciers": 2094,
+  "pend": null
+ },
+ "stateOn": {
+  "bytes": 572078,
+  "at": "2026-11-21T17:00:00.000Z",
+  "glaciers": 2094,
+  "pend": {
+   "h": 18,
+   "owners": 957,
+   "mapped": 1137
+  }
+ },
+ "onDoc": {
+  "run": "2026112117",
+  "state": {
+   "source": "cold",
+   "ageH": null,
+   "nudged": 600,
+   "mode": "run-hour",
+   "replayedH": 0,
+   "held": 0
+  },
+  "glaciers": 2094,
+  "iceMean": 33.8,
+  "iceZero": 346,
+  "ix7Sum": 51
+ },
+ "offDoc": {
+  "run": "2026112117",
+  "state": {
+   "source": "cold",
+   "ageH": null,
+   "nudged": 600
+  },
+  "glaciers": 2094,
+  "iceMean": 33.8,
+  "iceZero": 346,
+  "ix7Sum": 51
+ },
+ "onVsOffRows": {
+  "shared": 2094,
+  "identical": 2094,
+  "iceDiffers": 0,
+  "maxIcePoints": 0,
+  "indexDiffers": 0,
+  "maxIndexPoints": 0
+ },
+ "a-A": {
+  "run": "2026112123",
+  "state": {
+   "source": "carried",
+   "ageH": 0,
+   "nudged": 172
+  },
+  "glaciers": 2094,
+  "iceMean": 12.5,
+  "iceZero": 1283,
+  "ix7Sum": 43,
+  "newest": "2026112123",
+  "stateFile": {
+   "bytes": 209363,
+   "at": "2026-11-22T05:00:00.000Z",
+   "glaciers": 2094,
+   "pend": null
+  }
+ },
+ "a-B": {
+  "run": "2026112202",
+  "state": {
+   "source": "cold",
+   "ageH": null,
+   "nudged": 600
+  },
+  "glaciers": 2094,
+  "iceMean": 33.8,
+  "iceZero": 346,
+  "ix7Sum": 49,
+  "newest": "2026112202",
+  "stateFile": {
+   "bytes": 202364,
+   "at": "2026-11-22T08:00:00.000Z",
+   "glaciers": 2094,
+   "pend": null
+  }
+ },
+ "a-C": {
+  "run": "2026112205",
+  "state": {
+   "source": "carried",
+   "ageH": 0,
+   "nudged": 340
+  },
+  "glaciers": 2094,
+  "iceMean": 12.5,
+  "iceZero": 1284,
+  "ix7Sum": 45,
+  "newest": "2026112205",
+  "stateFile": {
+   "bytes": 209525,
+   "at": "2026-11-22T11:00:00.000Z",
+   "glaciers": 2094,
+   "pend": null
+  }
+ },
+ "r-A": {
+  "run": "2026112123",
+  "state": {
+   "source": "carried",
+   "ageH": 0,
+   "nudged": 172,
+   "mode": "run-hour",
+   "replayedH": 0,
+   "held": 0
+  },
+  "glaciers": 2094,
+  "iceMean": 12.5,
+  "iceZero": 1283,
+  "ix7Sum": 43,
+  "newest": "2026112123",
+  "stateFile": {
+   "bytes": 624190,
+   "at": "2026-11-21T23:00:00.000Z",
+   "glaciers": 2094,
+   "pend": {
+    "h": 18,
+    "owners": 957,
+    "mapped": 1137
+   }
+  }
+ },
+ "r-B": {
+  "run": "2026112202",
+  "state": {
+   "source": "carried",
+   "ageH": 0,
+   "nudged": 337,
+   "mode": "run-hour",
+   "replayedH": 3,
+   "held": 0
+  },
+  "glaciers": 2094,
+  "iceMean": 12.5,
+  "iceZero": 1284,
+  "ix7Sum": 45,
+  "newest": "2026112202",
+  "stateFile": {
+   "bytes": 626284,
+   "at": "2026-11-22T02:00:00.000Z",
+   "glaciers": 2094,
+   "pend": {
+    "h": 18,
+    "owners": 957,
+    "mapped": 1137
+   }
+  }
+ },
+ "r-C": {
+  "run": "2026112205",
+  "state": {
+   "source": "carried",
+   "ageH": 0,
+   "nudged": 340,
+   "mode": "run-hour",
+   "replayedH": 6,
+   "held": 0
+  },
+  "glaciers": 2094,
+  "iceMean": 12.5,
+  "iceZero": 1284,
+  "ix7Sum": 45,
+  "newest": "2026112205",
+  "stateFile": {
+   "bytes": 626035,
+   "at": "2026-11-22T05:00:00.000Z",
+   "glaciers": 2094,
+   "pend": {
+    "h": 18,
+    "owners": 957,
+    "mapped": 1137
+   }
+  }
+ },
+ "rowsA": {
+  "shared": 2094,
+  "identical": 2094,
+  "iceDiffers": 0,
+  "maxIcePoints": 0,
+  "indexDiffers": 0,
+  "maxIndexPoints": 0
+ },
+ "rowsB": {
+  "shared": 2094,
+  "identical": 1135,
+  "iceDiffers": 949,
+  "maxIcePoints": 100,
+  "indexDiffers": 44,
+  "maxIndexPoints": 9
+ },
+ "rowsC": {
+  "shared": 2094,
+  "identical": 2094,
+  "iceDiffers": 0,
+  "maxIcePoints": 0,
+  "indexDiffers": 0,
+  "maxIndexPoints": 0
+ }
+}

@@ -22,6 +22,8 @@ export const GLACIER_MELT_PER_DAY_MAX = 4;
 export const GLACIER_MELT_RUN_RE = /^\d{10}$/;
 export const glacierMeltRunPath = (run: string) => `melt/${run}.json`;
 export const GLACIER_MELT_STATE_PATH = 'melt/state.json';
+/** Phase GM (GM-3d): hours of forcing a state at the run hour carries for the next run (`set`; the same span as the snowpack state). */
+export const GLACIER_MELT_STATE_PEND_H = 18;
 export const GLACIER_MELT_REASONS = Object.freeze(['no-forcing', 'few-hours', 'no-hypsometry', 'error'] as const);
 
 /** [p10, p50, p90]. */
@@ -75,7 +77,12 @@ export interface GlacierMeltDoc {
   gate: { unit: boolean; reason: string };
   scenarios: { k: number; rho: number; origin: 'set'; sums: 'scenarios' };
   ref: { dailyMm: number; origin: 'set' };
-  state: { source: 'carried' | 'cold'; ageH: number | null; nudged: number };
+  /**
+   * `ageH`: hours the taken state lagged behind the run hour (hours without forcing). Phase GM (GM-3d), only in a run with the producer switch
+   * `--melt-state=run-hour`: `mode`, `replayedH` (hours advanced with the forcing the state file carried) and `held` (glaciers whose state was taken
+   * without advancing because the file carried no forcing for them). The page reads `source` only.
+   */
+  state: { source: 'carried' | 'cold'; ageH: number | null; nudged: number; mode?: 'run-hour'; replayedH?: number; held?: number };
   build: string;
   glaciers: GlacierMeltRow[];
   skipped: { id: string; reason: string }[];
@@ -84,11 +91,18 @@ export interface GlacierMeltDoc {
 export interface GlacierMeltState {
   schema: 1;
   kind: 'glacier/melt-state';
-  /** Time the snapshots belong to (ms UTC of the run hour they follow). */
+  /** Time the snapshots belong to (ms UTC): 6 h after the run hour, or the run hour itself when the file carries `pend`. */
   atMs: number;
   /** id → [swe per band (mm), snow albedo ×1000 per band]. */
   g: Record<string, [number[], number[]]>;
+  /**
+   * Phase GM (GM-3d), only from a run with `--melt-state=run-hour`: the forcing of the `h` hours after `atMs`, so the next run can advance the state to
+   * its own hour. `f`: forcing owner → [reference elevation m, temperature °C, freezing level m, radiation W/m², precipitation mm], each series `h` long,
+   * `null` = missing. `o`: glacier → forcing owner where it is not the glacier itself (class C). A reader that does not know `pend` reads `atMs` and `g`.
+   */
+  pend?: { h: number; f: Record<string, GlacierMeltPendRow>; o: Record<string, string> };
 }
+export type GlacierMeltPendRow = [number, (number | null)[], (number | null)[], (number | null)[], (number | null)[]];
 
 const isTriple = (t: unknown): t is Triple => Array.isArray(t) && t.length === 3 && t.every((v) => typeof v === 'number' && Number.isFinite(v)) && t[0] <= t[1] && t[1] <= t[2];
 
@@ -132,6 +146,20 @@ export function meltStateProblems(s: GlacierMeltState): string[] {
   for (const [id, v] of Object.entries(s.g ?? {})) {
     if (!Array.isArray(v) || v.length !== 2 || v[0].length !== v[1].length) p.push(`${id}: Bänder`);
     else if (v[0].some((x) => !(x >= 0))) p.push(`${id}: negatives Schneewasser`);
+  }
+  if (s.pend !== undefined) {
+    const pd = s.pend;
+    if (!pd || !(Number.isInteger(pd.h) && pd.h >= 0) || !pd.f || !pd.o) return [...p, 'Antrieb: Form'];
+    const num = (x: unknown) => x === null || (typeof x === 'number' && Number.isFinite(x));
+    for (const [id, r] of Object.entries(pd.f)) {
+      if (!Array.isArray(r) || r.length !== 5 || !Number.isFinite(r[0])) { p.push(`${id}: Antrieb`); continue; }
+      const series = r.slice(1) as (number | null)[][];
+      if (!series.every((a) => Array.isArray(a) && a.length === pd.h && a.every(num))) p.push(`${id}: Antrieb, Länge oder Wert`);
+      else if (series[2].some((x) => x != null && x < 0) || series[3].some((x) => x != null && x < 0)) p.push(`${id}: Antrieb, negative Strahlung oder negativer Niederschlag`);
+    }
+    for (const [id, owner] of Object.entries(pd.o)) if (!(owner in pd.f)) p.push(`${id}: Antriebsgeber ${owner} fehlt`);
+    // every glacier of the state can be advanced: its owner (itself unless `o` names another) carries forcing
+    for (const id of Object.keys(s.g ?? {})) if (!((pd.o[id] ?? id) in pd.f)) p.push(`${id}: Zustand ohne Antrieb`);
   }
   return p;
 }

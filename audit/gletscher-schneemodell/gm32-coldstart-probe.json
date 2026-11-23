@@ -1,0 +1,272 @@
+{
+ "kind": "gm32-coldstart-probe",
+ "readAt": "2026-11-23T19:56:13.465Z",
+ "ref": "dafb5f0c4ca5d4da954b63909996160db3e8c216",
+ "runs": 153,
+ "first": "2026101202",
+ "last": "2026112317",
+ "gapsH": {
+  "3": 20,
+  "6": 101,
+  "9": 13,
+  "12": 10,
+  "15": 8
+ },
+ "cases": [
+  {
+   "runs": [
+    "2026110102",
+    "2026110105",
+    "2026110111"
+   ],
+   "gapH": [
+    3,
+    6
+   ],
+   "state": [
+    {
+     "source": "carried",
+     "ageH": 3,
+     "nudged": 508
+    },
+    {
+     "source": "cold",
+     "ageH": null,
+     "nudged": 717
+    },
+    {
+     "source": "carried",
+     "ageH": 0,
+     "nudged": 469
+    }
+   ],
+   "shared": 2199,
+   "iceMean": [
+    35.5,
+    35.5,
+    33.3
+   ],
+   "iceMedian": [
+    41,
+    41,
+    39
+   ],
+   "iceUp20": 0,
+   "iceDownAgain20": 91,
+   "ix7Median": [
+    0,
+    1,
+    1
+   ],
+   "ix7Sum": [
+    4207,
+    4557,
+    5216
+   ]
+  },
+  {
+   "runs": [
+    "2026110202",
+    "2026110205",
+    "2026110211"
+   ],
+   "gapH": [
+    3,
+    6
+   ],
+   "state": [
+    {
+     "source": "carried",
+     "ageH": 3,
+     "nudged": 465
+    },
+    {
+     "source": "cold",
+     "ageH": null,
+     "nudged": 711
+    },
+    {
+     "source": "carried",
+     "ageH": 0,
+     "nudged": 498
+    }
+   ],
+   "shared": 2199,
+   "iceMean": [
+    30.9,
+    35.8,
+    35.8
+   ],
+   "iceMedian": [
+    34,
+    42,
+    42
+   ],
+   "iceUp20": 200,
+   "iceDownAgain20": 0,
+   "ix7Median": [
+    1,
+    1,
+    0
+   ],
+   "ix7Sum": [
+    5818,
+    6429,
+    5078
+   ]
+  },
+  {
+   "runs": [
+    "2026110602",
+    "2026110605",
+    "2026110611"
+   ],
+   "gapH": [
+    3,
+    6
+   ],
+   "state": [
+    {
+     "source": "carried",
+     "ageH": 3,
+     "nudged": 593
+    },
+    {
+     "source": "cold",
+     "ageH": null,
+     "nudged": 737
+    },
+    {
+     "source": "carried",
+     "ageH": 0,
+     "nudged": 620
+    }
+   ],
+   "shared": 2199,
+   "iceMean": [
+    33.9,
+    36.1,
+    36.1
+   ],
+   "iceMedian": [
+    39,
+    42,
+    42
+   ],
+   "iceUp20": 93,
+   "iceDownAgain20": 0,
+   "ix7Median": [
+    2,
+    2,
+    2
+   ],
+   "ix7Sum": [
+    9132,
+    9558,
+    9647
+   ]
+  },
+  {
+   "runs": [
+    "2026110702",
+    "2026110705",
+    "2026110711"
+   ],
+   "gapH": [
+    3,
+    6
+   ],
+   "state": [
+    {
+     "source": "carried",
+     "ageH": 3,
+     "nudged": 604
+    },
+    {
+     "source": "cold",
+     "ageH": null,
+     "nudged": 743
+    },
+    {
+     "source": "carried",
+     "ageH": 0,
+     "nudged": 553
+    }
+   ],
+   "shared": 2199,
+   "iceMean": [
+    22.4,
+    36.2,
+    36.2
+   ],
+   "iceMedian": [
+    8,
+    42,
+    42
+   ],
+   "iceUp20": 593,
+   "iceDownAgain20": 0,
+   "ix7Median": [
+    1,
+    1,
+    1
+   ],
+   "ix7Sum": [
+    6547,
+    7659,
+    7863
+   ]
+  },
+  {
+   "runs": [
+    "2026110802",
+    "2026110805",
+    "2026110811"
+   ],
+   "gapH": [
+    3,
+    6
+   ],
+   "state": [
+    {
+     "source": "carried",
+     "ageH": 3,
+     "nudged": 515
+    },
+    {
+     "source": "cold",
+     "ageH": null,
+     "nudged": 743
+    },
+    {
+     "source": "carried",
+     "ageH": 0,
+     "nudged": 546
+    }
+   ],
+   "shared": 2199,
+   "iceMean": [
+    34.4,
+    36.2,
+    36.2
+   ],
+   "iceMedian": [
+    40,
+    42,
+    42
+   ],
+   "iceUp20": 72,
+   "iceDownAgain20": 0,
+   "ix7Median": [
+    1,
+    1,
+    1
+   ],
+   "ix7Sum": [
+    7247,
+    6926,
+    7152
+   ]
+  }
+ ]
+}
