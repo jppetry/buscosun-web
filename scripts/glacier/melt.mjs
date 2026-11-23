@@ -6,7 +6,7 @@
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/melt.mjs \
  *        --data=<v1 dir of the glacier data repo> --cube=<checkout of buscosun-data with point/> --out=<dir> [--patch=<dir>] [--archive-out=<dir>]
  *        [--calibration=<json>] [--now=<iso>] [--only=<ids>] [--limit=N] [--classes=A,B,C] [--always] [--weather=0] [--phase=temperature|psnow] [--heights=median|three]
- *        [--precip=gate-c|country] [--snowcal=<json>]
+ *        [--precip=gate-c|country] [--snowcal=<json>] [--snowpack=off|shadow] [--snowpack-start=state|cold] [--density=helfricht|board]
  *
  * Rules (each one tested in verify:glacier-melt):
  *  - needs `public/climaGrid.json` (the climatology of buscosun Fusion): without it the engine runs WITHOUT distributions and would write nothing true — the job is RED (V-SW-18);
@@ -38,6 +38,16 @@
  * `snow-calibration.json` (`--snowcal=<json>` names another file) and NO profile with elevation; the document says so in `params.precip` (its `pf` then
  * does not apply), the status line carries `precip: country`. A table that is missing, breaks its rules or does not know a region of the catalogue stops
  * the run with the reason (red job) — never a silent fall back to the other factor. An unknown word stops the run as well.
+ *
+ * Phase GM (GM-3c; audit §3f): the PRODUCER SWITCH `--snowpack=off|shadow` (or `GLACIER_SNOWPACK`; default `SNOWPACK_DEFAULT` of `lib/snowpackcore.mjs`,
+ * `off`). `off` (the fall back) = nothing of the snowpack line is read or written, every file as before. `shadow` = the snow core runs per glacier at
+ * tongue, median elevation and top on the temperature and the solid share of the weather row and on the precipitation factor of the run; the run writes
+ * `snowpack/<run>.json` (depth in cm, water equivalent in mm, new snow; contract `src/glacier/glacierSnowpackContract.ts`, every value `computed`) and the
+ * carried state `snowpack/state.json`. No page reads them. The new-snow density follows the precipitation switch unless `--density=helfricht|board`
+ * (`GLACIER_SNOW_DENSITY`) names one (E-GM-15). The step needs a state — the seed of `snowpack-seed.mjs` or the one of the previous run — unless the run
+ * says `--snowpack-start=cold`; a state computed with other switches is not continued. A failure of this step (no state, weather part off, a contract
+ * violation) writes no snowpack file, leaves the state in the data repo as it is and names the reason in the status line; the melt and the weather
+ * documents are not touched by it. An unknown word of one of its switches stops the run before anything is read.
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, copyFileSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
@@ -58,8 +68,14 @@ import {
   GLACIER_WEATHER_DAYS, GLACIER_WEATHER_HOURS, GLACIER_WEATHER_RUN_RE, GLACIER_WEATHER_PHASE_PATH, glacierWeatherRunPath, glacierWeatherHourlyPath, weatherProblems,
   weatherHourlyProblems, weatherSnowProblems, weatherHourlySnowProblems, weatherLevelProblems, weatherHourlyLevelProblems, phaseVerdict,
 } from '../../src/glacier/glacierWeatherContract.ts';
-import { weatherSeriesOf, weatherOfGlacier, weatherHead, weatherPhaseOf, weatherHeightsOf, phaseRunOf, phaseDocWith, WEATHER_PHASE_RULE, WEATHER_SPREAD_RULE, WEATHER_LEVELS_RULE } from './lib/weathercore.mjs';
-import { snowPrecipOf, precipRunOf, meltPrecipProblems } from './lib/snowcal.mjs';
+import { weatherSeriesOf, weatherOfGlacier, weatherHead, weatherPhaseOf, weatherHeightsOf, phaseRunOf, phaseDocWith, WEATHER_PHASE_RULE, WEATHER_SPREAD_RULE, WEATHER_LEVELS_RULE, solidFraction, shareAtElevation, tempAtElevation } from './lib/weathercore.mjs';
+import { snowPrecipOf, precipRunOf, meltPrecipProblems, snowSwitchesOf, snowCoreSetup } from './lib/snowcal.mjs';
+import { SNOW, SNOW_ORIGIN, SNOW_SOURCES, newSnowDensitySpan } from './lib/snowcore.mjs';
+import { snowpackModeOf, snowpackStartOf, driveOf, bareAlbedo, levelsOfEntry, advanceEntry, normalizeLevel, snowpackOfGlacier, placeLevels, stateRefusal } from './lib/snowpackcore.mjs';
+import {
+  GLACIER_SNOWPACK_DAYS, GLACIER_SNOWPACK_WINDOWS, GLACIER_SNOWPACK_HEIGHTS, GLACIER_SNOWPACK_PEND_H, GLACIER_SNOWPACK_NOTE, GLACIER_SNOWPACK_STATE_PATH, glacierSnowpackRunPath,
+  snowpackProblems, snowpackStateProblems,
+} from '../../src/glacier/glacierSnowpackContract.ts';
 
 const H = 3_600_000;
 /** Snow water (mm) given to a band the satellite saw snow-covered (`set`); a band seen snow-free is emptied. */
@@ -293,6 +309,10 @@ export async function main(opts) {
   const lvStat = { rows: 0, fallback: 0, clipped: 0, clippedWet: 0, ms: 0 };
   // Phase GM (E-GM-7): which precipitation factor this run accumulates with; an unknown word stops the run before anything is read or written
   const precipRule = snowPrecipOf(opts.precip ?? process.env.GLACIER_SNOW_PRECIP);
+  // Phase GM (GM-3c): the snowpack line. `off` reads nothing of it (not even the density switch); an unknown word or `board` next to `gate-c` stops the run here
+  const spOn = snowpackModeOf(opts.snowpack ?? process.env.GLACIER_SNOWPACK) === 'shadow';
+  const spStart = spOn ? snowpackStartOf(opts['snowpack-start'] ?? process.env.GLACIER_SNOWPACK_START) : null;
+  const spDensity = spOn ? snowSwitchesOf({ precip: precipRule, density: opts.density ?? process.env.GLACIER_SNOW_DENSITY }).density : null;
   // calibration: the parameters and whether Gate C released the unit
   const here = dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
   const cal = J(resolve(opts.calibration ?? join(here, 'melt-calibration.json')));
@@ -303,13 +323,16 @@ export async function main(opts) {
   const build = index.static.build;
   const catAll = J(join(dataDir, glacierStaticPath(build, 'catalog.json'))).glaciers;
   // `country`: the table of the snow model, checked against its rules and the regions of the catalogue (throws with the reason); `gate-c` never opens it
-  let precip = null;
+  let precip = null, snowTable = null;
   if (precipRule === 'country') {
     const file = resolve(opts.snowcal ?? join(here, 'snow-calibration.json'));
     let table;
     try { table = J(file); } catch (e) { throw new Error(`Eichtabelle des Schneemodells nicht lesbar (${file}): ${String(e?.message ?? e).split('\n')[0]}`); }
     precip = precipRunOf(table, [...new Set(catAll.map((g) => g.region))]);
+    snowTable = table;
   }
+  // GM-3c: the constants of the snow core for the density of this run (`board` reads the table checked above; it is refused without `country`)
+  const spSetup = spOn ? snowCoreSetup({ density: spDensity, base: SNOW, baseOrigin: SNOW_ORIGIN, table: snowTable }) : null;
   const paramsOf = (g) => (precip ? { ...params, pf: precip.factorOf(g.region), pGrad: precip.gradient } : params);
   const classes = new Set((opts.classes ?? 'A,B,C').split(','));
   const only = opts.only ? new Set(String(opts.only).split(',')) : null;
@@ -344,6 +367,39 @@ export async function main(opts) {
   const stateIn = readJson(join(dataDir, GLACIER_MELT_STATE_PATH));
   const stateAgeH = stateIn && Number.isFinite(stateIn.atMs) ? (t0Ms - stateIn.atMs) / H : null;
   const carry = stateIn && stateAgeH != null && stateAgeH >= 0 && stateAgeH <= MELT_STATE_MAX_AGE_H ? stateIn.g : null;
+  // GM-3c: the snowpack step of this run (`null` with the switch off). `error` = why the step writes nothing; the melt run goes on either way.
+  let sp = null;
+  if (spOn) {
+    sp = { rows: [], skipped: [], next: {}, error: null, state: null, source: null, since: null, ageH: null, replayed: 0, started: 0, ms: 0, rules: { precip: precipRule, density: spDensity } };
+    if (!wxOn) sp.error = 'braucht den Wetterteil des Laufs (--weather=0)';
+    else if (!wxPhase) sp.error = `braucht den Wetterteil des Laufs (${wxPhaseError})`;
+    else {
+      const file = join(dataDir, GLACIER_SNOWPACK_STATE_PATH);
+      let st = null;
+      if (existsSync(file)) {
+        try { st = J(file); } catch (e) { sp.error = `Zustand nicht lesbar: ${String(e?.message ?? e).split('\n')[0]}`; }
+        const pr = st ? snowpackStateProblems(st) : [];
+        if (pr.length) sp.error = `Zustand verletzt den Vertrag: ${pr.slice(0, 3).join('; ')}`;
+      }
+      if (!sp.error) {
+        if (!st && spStart === 'cold') { sp.source = 'cold'; sp.since = new Date(t0Ms).toISOString(); }
+        else {
+          const why = stateRefusal(st, sp.rules, t0Ms);
+          if (why) sp.error = why;
+          else { sp.state = st; sp.source = st.source === 'seed' ? 'seed' : 'carried'; sp.since = st.since; sp.ageH = Math.round((t0Ms - st.atMs) / H); }
+        }
+      }
+    }
+  }
+  const t0H = Math.round(t0Ms / H);
+  /** GM-3c: the entry of a glacier that got no row in this run, brought to the run hour with the forcing it carries (then without stored forcing). */
+  const spCarry = (g, z) => {
+    const e = sp.state?.g?.[g.id];
+    if (!e) return false;
+    const a = advanceEntry(e, sp.state.atMs, t0Ms, z.map((zz) => ({ TF: params.TF, SRF: params.SRF, aBare: bareAlbedo(zz, g.z[1]) })), spSetup.c);
+    sp.next[g.id] = [e[0], e[1] + a.holes, a.levels.map((lv) => normalizeLevel(lv, spSetup.c)), a.levels.map((lv) => Math.round(lv.aS * 1000)), null];
+    return true;
+  };
 
   const ab = catAll.filter((g) => g.klass !== 'C');
   const forcings = new Map();
@@ -416,6 +472,7 @@ export async function main(opts) {
       const out = runGlacier({ g, hyp, forcing: f, params: paramsOf(g), state: st, ela, run, unit });
       rows.push(out.row);
       nextState[g.id] = [out.next.swe, out.next.aS];
+      let wOut = null;   // GM-3c: what the weather row of this glacier was computed from, for the snowpack step below
       if (wxOn && wxPhase) {
         // weather at tongue, median and top from the forcing this glacier just ran on; its own try: the melt row above stays whatever happens here
         try {
@@ -432,13 +489,48 @@ export async function main(opts) {
             } catch { lv = null; }
             lvStat.ms += Date.now() - tL;
           }
-          const w = weatherOfGlacier({ id: g.id, z, tz: lv ? lv.tz : z.map((zz) => tempAt(f, zz)), from: f.from ?? 'own', p: f.p, n: f.n, wx: f.wx, sg: f.sg, phase: wxPhase, seed: seedOf(run, g.id), levels: lv ? { sg: lv.sg, rh: lv.rh, ps: lv.ps } : null });
+          const tzW = lv ? lv.tz : z.map((zz) => tempAt(f, zz));
+          const w = weatherOfGlacier({ id: g.id, z, tz: tzW, from: f.from ?? 'own', p: f.p, n: f.n, wx: f.wx, sg: f.sg, phase: wxPhase, seed: seedOf(run, g.id), levels: lv ? { sg: lv.sg, rh: lv.rh, ps: lv.ps } : null });
+          wOut = { w, z, tz: tzW };
           if (w.skip) wxSkipped.push({ id: g.id, reason: w.skip });
           else {
             if (wxHeights === 'three' && own) { if (lv) { lvStat.rows++; lvStat.clipped += w.stat.clipped; lvStat.clippedWet += w.stat.clippedWet; } else { w.row.lv = 'lapse'; lvStat.fallback++; } }
             wxRows.push(w.row); if (!wxHourly.has(g.region)) wxHourly.set(g.region, {}); wxHourly.get(g.region)[g.id] = w.hourly; if (w.cmp) wxCmp.push(w.cmp);
           }
         } catch (e) { wxSkipped.push({ id: g.id, reason: `error: ${String(e?.message ?? e).split('\n')[0]}` }); }
+      }
+      if (sp && !sp.error) {
+        // GM-3c: the snowpack at the three elevations of the weather row; its own try — the rows above stay whatever happens here
+        const tS = Date.now();
+        try {
+          if (!wOut) throw new Error('keine Wetterzeile');
+          const { w, z, tz: tzW } = wOut, hoursSp = GLACIER_SNOWPACK_DAYS * 24, own = (f.from ?? 'own') === 'own';
+          if (w.skip === 'elevations' || w.skip === 'temperature-gaps') throw new Error(w.skip);
+          const ramp = () => tzW.map((t) => Float64Array.from(t.subarray(0, hoursSp), solidFraction));
+          let tz3 = tzW, share3, lapse = false;
+          if (own) {
+            // own answers: temperature and solid share of the weather row (a row the weather part skipped for wind or quantiles takes the temperature ramp)
+            if (w.shares) { share3 = w.shares; lapse = !w.ctx; } else { share3 = ramp(); lapse = true; }
+            if (w.ctx) f.sp = w.ctx;
+          } else if (f.sp) {
+            // a neighbour's forcing (E-GM-16): its three answers placed on the own elevations
+            ({ tz: tz3, share: share3 } = placeLevels(z, hoursSp, { temp: (zq, h) => tempAtElevation(zq, h, f.sp), share: (zq, h) => shareAtElevation(zq, h, f.sp) }));
+          } else { share3 = ramp(); lapse = true; }
+          const factor = precip ? z.map(() => precip.factorOf(g.region)) : z.map((zz) => params.pf * (1 + (MELT.pGrad * (zz - f.zRef)) / 100));
+          const drive = driveOf({ tz: tz3, share: share3, p: f.p, g: f.g, factor, hours: hoursSp });
+          const pars = z.map((zz) => ({ TF: params.TF, SRF: params.SRF, aBare: bareAlbedo(zz, g.z[1]) }));
+          const e = sp.state?.g?.[g.id] ?? null;
+          let levels, holes = 0, begin = t0H;
+          if (e) { const a = advanceEntry(e, sp.state.atMs, t0Ms, pars, spSetup.c); levels = a.levels; holes = e[1] + a.holes; begin = e[0]; sp.replayed = Math.max(sp.replayed, a.replayed); }
+          else { levels = levelsOfEntry(null); sp.started++; }
+          const o = snowpackOfGlacier({ id: g.id, z, from: f.from ?? 'own', lapse, levels, drive, pars, c: spSetup.c, t0Ms, begin, holes });
+          if (begin > Math.floor(Date.parse(sp.since) / H)) o.row.from = new Date(begin * H).toISOString().slice(0, 10);
+          sp.rows.push(o.row); sp.next[g.id] = o.entry;
+        } catch (e) {
+          sp.skipped.push({ id: g.id, reason: `error: ${String(e?.message ?? e).split('\n')[0]}` });
+          try { if (wOut) spCarry(g, wOut.z); } catch { /* the entry is dropped; the glacier begins again in a later run and says since when */ }
+        }
+        sp.ms += Date.now() - tS;
       }
     } catch (e) { skipped.push({ id: g.id, reason: `error: ${String(e?.message ?? e).split('\n')[0]}` }); }
   }
@@ -474,14 +566,43 @@ export async function main(opts) {
     } catch (e) { weather = { error: String(e?.message ?? e).split('\n')[0] }; }
     if (weather.error) log(`Wetter am Gletscher nicht geschrieben: ${weather.error}`);
   }
+  // GM-3c: the snowpack document and its state (after the melt and the weather documents, which are complete at this point)
+  let snowpack = null;
+  if (sp) {
+    try {
+      if (sp.error) throw new Error(sp.error);
+      // glaciers of the state that got no row in this run keep their entry (brought to the run hour); one that left the catalogue is dropped
+      let carried = 0, dropped = 0;
+      const byId = new Map(catAll.map((g) => [g.id, g]));
+      for (const id of Object.keys(sp.state?.g ?? {})) {
+        if (sp.next[id]) continue;
+        const g = byId.get(id);
+        let ok = false;
+        try { const zb = g ? bandsOf(hypOf(g.region)[g.id]).zb : null; ok = !!zb?.length && spCarry(g, [zb[0], g.z[1], zb[zb.length - 1]]); } catch { ok = false; }
+        if (ok) { carried++; sp.skipped.push({ id, reason: 'not-run' }); } else dropped++;
+      }
+      snowpack = writeSnowpack({
+        outDir, run, runAt: doc.runAt, t0Ms, engine, cube: cubeRuns, build, rows: sp.rows, skipped: sp.skipped, next: sp.next, catalogIds: new Set(catAll.map((g) => g.id)),
+        phase: wxPhase, rules: sp.rules, setup: spSetup, melt: { TF: params.TF, SRF: params.SRF },
+        precipBlock: precip ? precip.block : { rule: 'gate-c', pf: params.pf, gradient: MELT.pGrad, origin: { pf: 'measured', gradient: 'set' } },
+        state: { source: sp.source, since: sp.since, ageH: sp.ageH, replayedH: sp.source === 'cold' ? null : sp.replayed, started: sp.started },
+      });
+      snowpack.carried = carried; snowpack.dropped = dropped; snowpack.seconds = Math.round(sp.ms / 1000);
+    } catch (e) { snowpack = { error: String(e?.message ?? e).split('\n')[0] }; }
+    if (snowpack.error) log(`Schneedecke nicht geschrieben: ${snowpack.error}`);
+  }
+  const spStatus = snowpack && (snowpack.error ? { at: doc.runAt, mode: 'shadow', error: snowpack.error }
+    : { at: doc.runAt, mode: 'shadow', glaciers: snowpack.glaciers, skipped: snowpack.skipped, coverage: snowpack.coverage, precip: sp.rules.precip, density: sp.rules.density, state: snowpack.state, carried: snowpack.carried, dropped: snowpack.dropped, bytes: snowpack.bytes, stateBytes: snowpack.stateBytes, seconds: snowpack.seconds });
   mkdirSync(patchDir, { recursive: true });
   writeFileSync(join(patchDir, 'index-patch.json'), JSON.stringify({
     melt: { run, runAt: doc.runAt, engine: { name: engine.name, version: engine.version }, cube: cubeRuns, unit, build },
     ...(weather && !weather.error ? { weather: weather.pointer } : {}),
+    ...(snowpack && !snowpack.error ? { snowpack: snowpack.pointer } : {}),
   }));
   writeFileSync(join(patchDir, 'status-patch.json'), JSON.stringify({ lines: {
     melt: { at: doc.runAt, glaciers: rows.length, skipped: skipped.length, unit, seconds: Math.round((Date.now() - tStart) / 1000), ...(precip ? { precip: precipRule } : {}) },
     ...(weather ? { weather: weather.error ? { at: doc.runAt, error: weather.error } : { at: doc.runAt, glaciers: weather.glaciers, skipped: weather.skipped, files: weather.files, bytes: weather.bytes, phase: weather.phase, ...(weather.levels ? { levels: weather.levels } : {}) } } : {}),
+    ...(spStatus ? { snowpack: spStatus } : {}),
   } }));
   if (opts['archive-out'] || opts.archiveOut) {
     // the lead glaciers' rows of this run for the archive branch (Gate E: model against measurement) — add only, the name carries the run
@@ -491,7 +612,45 @@ export async function main(opts) {
     writeFileSync(join(ao, `melt-${run}.json`), JSON.stringify(meltLeadDoc(doc, leads)));
   }
   log(`${rows.length} Gletscher, ${skipped.length} übersprungen, Einheit ${unit ? 'freigegeben' : 'gesperrt (nur Index)'}, ${Math.round((Date.now() - tStart) / 1000)} s`);
-  return { run, glaciers: rows.length, skipped: skipped.length, unit, outDir, patchDir, engine, cube: cubeRuns, ...(precip ? { precip: precipRule } : {}), ...(weather ? { weather: weather.error ? { error: weather.error } : { glaciers: weather.glaciers, skipped: weather.skipped, files: weather.files, bytes: weather.bytes, phase: weather.phase, ...(weather.levels ? { levels: weather.levels } : {}) } } : {}) };
+  return { run, glaciers: rows.length, skipped: skipped.length, unit, outDir, patchDir, engine, cube: cubeRuns, ...(precip ? { precip: precipRule } : {}), ...(weather ? { weather: weather.error ? { error: weather.error } : { glaciers: weather.glaciers, skipped: weather.skipped, files: weather.files, bytes: weather.bytes, phase: weather.phase, ...(weather.levels ? { levels: weather.levels } : {}) } } : {}), ...(spStatus ? { snowpack: spStatus } : {}) };
+}
+
+/**
+ * Phase GM (GM-3c) — writes `snowpack/<run>.json` and `snowpack/state.json` into the output tree. Throws with a reason when there is nothing true to
+ * write (no stand of buscosun Fusion in the answer, no row, a contract violation); the caller keeps the melt run and the state in the data repo stays.
+ */
+export function writeSnowpack({ outDir, run, runAt, t0Ms, engine, cube, build, rows, skipped, next, catalogIds, phase, rules, setup, melt, precipBlock, state }) {
+  if (!Number.isInteger(engine.version)) throw new Error('die Antwort von buscosun Fusion nennt ihren Stand nicht');
+  if (!rows.length) throw new Error(`kein Gletscher mit Schneedecke (${skipped.length} übersprungen, z. B. ${skipped[0]?.reason ?? '—'})`);
+  const span = newSnowDensitySpan(setup.c), gapped = rows.filter((r) => r.gap != null);
+  const coverage = { own: rows.filter((r) => r.f === 'own').length, neighbour: rows.filter((r) => r.f !== 'own').length, lapse: rows.filter((r) => r.lv === 'lapse').length };
+  const doc = {
+    schema: 1, kind: 'glacier/snowpack', run, runAt, origin: 'computed', engine, cube, verified: { measured: false, note: GLACIER_SNOWPACK_NOTE },
+    heights: GLACIER_SNOWPACK_HEIGHTS, days: GLACIER_SNOWPACK_DAYS, windows: GLACIER_SNOWPACK_WINDOWS,
+    rules: {
+      forcing: { rule: 'answers', neighbour: 'placed', phase, order: 'not-more-below' },
+      precip: precipBlock,
+      density: { source: rules.density, rhoNew: setup.c.rhoNew, p10: r1(span.p10), p90: r1(span.p90), origin: setup.origin.rhoNew },
+      melt: { rule: 'eti', TF: melt.TF, SRF: melt.SRF, origin: 'measured', radiation: 'clear-sky-cloud' },
+      core: { layerH: setup.c.layerH, newWindowH: setup.c.newWindowH, sources: SNOW_SOURCES.map((s) => s.id) },
+      sums: 'expected', spread: 'none', newSnow: 'settled',
+    },
+    state: { ...state, gaps: { glaciers: gapped.length, maxH: gapped.reduce((m, r) => Math.max(m, r.gap), 0) } },
+    coverage, build, glaciers: rows, skipped,
+  };
+  const problems = snowpackProblems(doc, catalogIds);
+  if (problems.length) throw new Error(`Vertrag verletzt: ${problems.slice(0, 5).join('; ')}`);
+  const stateDoc = { schema: 1, kind: 'glacier/snowpack-state', atMs: t0Ms, source: 'run', run, since: state.since, rules, pendH: GLACIER_SNOWPACK_PEND_H, g: next };
+  const sProblems = snowpackStateProblems(stateDoc);
+  if (sProblems.length) throw new Error(`Zustand verletzt den Vertrag: ${sProblems.slice(0, 5).join('; ')}`);
+  const a = JSON.stringify(doc), b = JSON.stringify(stateDoc);
+  mkdirSync(join(outDir, dirname(GLACIER_SNOWPACK_STATE_PATH)), { recursive: true });
+  writeFileSync(join(outDir, glacierSnowpackRunPath(run)), a);
+  writeFileSync(join(outDir, GLACIER_SNOWPACK_STATE_PATH), b);
+  return {
+    pointer: { run, runAt, engine: { name: engine.name, version: engine.version }, build, since: state.since }, glaciers: rows.length, skipped: skipped.length, coverage,
+    state: { source: state.source, since: state.since, ageH: state.ageH, replayedH: state.replayedH, started: state.started, gaps: doc.state.gaps }, bytes: Buffer.byteLength(a), stateBytes: Buffer.byteLength(b),
+  };
 }
 
 /**
@@ -538,6 +697,6 @@ export function writeWeather({ outDir, dataDir, run, runAt, nowMs, version, cube
 
 if (process.argv[1] && /(^|[\\/])melt\.mjs$/.test(process.argv[1])) {
   if (!args.data || !args.cube || !args.out) { console.error('--data=<v1> --cube=<buscosun-data> --out=<Ordner> fehlen'); process.exit(2); }
-  main({ data: args.data, cube: args.cube, out: args.out, patch: args.patch, 'archive-out': args['archive-out'], calibration: args.calibration, now: args.now, only: args.only, limit: args.limit, classes: args.classes, always: !!args.always, weather: args.weather, phase: args.phase, heights: args.heights, precip: args.precip, snowcal: args.snowcal, log: (m) => console.error(m) })
+  main({ data: args.data, cube: args.cube, out: args.out, patch: args.patch, 'archive-out': args['archive-out'], calibration: args.calibration, now: args.now, only: args.only, limit: args.limit, classes: args.classes, always: !!args.always, weather: args.weather, phase: args.phase, heights: args.heights, precip: args.precip, snowcal: args.snowcal, snowpack: args.snowpack, 'snowpack-start': args['snowpack-start'], density: args.density, log: (m) => console.error(m) })
     .then((r) => console.log(JSON.stringify(r))).catch((e) => { console.error(e.message ?? e); process.exit(1); });
 }

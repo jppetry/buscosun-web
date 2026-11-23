@@ -20,7 +20,7 @@ import { boardDepth, d3Rho, DEN } from './glacier/snowcal-density.mjs';
 import { SNOW, SNOW_ORIGIN, newSnowDensity, newSnowDensitySpan, emptyPack, stepPack, packDepthCm } from './glacier/lib/snowcore.mjs';
 import {
   snowCalibrationProblems, precipFactorOf, precipProfile, newSnowDensityOf, SNOWCAL_BOUNDS,
-  SNOW_PRECIP_RULES, SNOW_PRECIP_DEFAULT, SNOW_DENSITY_SOURCES, SNOW_DENSITY_SOURCE_DEFAULT, snowPrecipOf, snowDensitySourceOf, snowSwitchesOf,
+  SNOW_PRECIP_RULES, SNOW_PRECIP_DEFAULT, SNOW_DENSITY_SOURCES, SNOW_DENSITY_SOURCE_DEFAULT, SNOW_DENSITY_FOLLOWS, snowPrecipOf, snowDensitySourceOf, snowSwitchesOf,
   precipLevelOf, precipRunOf, meltPrecipProblems, snowConstantsOf, snowOriginOf, snowCoreSetup,
 } from './glacier/lib/snowcal.mjs';
 
@@ -223,9 +223,11 @@ const W = Object.fromEntries(winters.map((w) => [w.country, w]));
 {
   const pat = /snow-calibration|snowcal/;
   // since GM-3b the melt run may read the table — behind its switch only (verify:glacier-melt, block H: off = the file is not opened). Everything else stays without it.
-  const others = ['glacier/lib/weathercore.mjs', 'glacier/lib/meltcore.mjs', 'glacier/lib/snowcore.mjs', 'glacier/stations.mjs', 'glacier/snow.mjs', 'glacier/glacier-publish.mjs'];
-  add('F1 außer dem Schmelzlauf (hinter seinem Schalter) liest kein Producer die Tabelle, die Kerne bleiben ohne sie; Gegenprobe: dasselbe Muster trifft den Schmelzlauf und das Tabellen-Werkzeug',
-    others.every((f) => !pat.test(readFileSync(join(HERE, f), 'utf8'))) && pat.test(readFileSync(join(HERE, 'glacier', 'melt.mjs'), 'utf8')) && pat.test(readFileSync(join(HERE, 'glacier', 'snowcal-table.mjs'), 'utf8')));
+  // GM-3c: the snowpack step lives in the melt run (same table, same check); its local seed tool reads the table for the same factor. The cores stay without it.
+  const others = ['glacier/lib/weathercore.mjs', 'glacier/lib/meltcore.mjs', 'glacier/lib/snowcore.mjs', 'glacier/lib/snowpackcore.mjs', 'glacier/stations.mjs', 'glacier/snow.mjs', 'glacier/glacier-publish.mjs'];
+  add('F1 außer dem Schmelzlauf (hinter seinem Schalter) liest kein Producer die Tabelle, die Kerne — auch der der Schneedecke — bleiben ohne sie; Gegenprobe: dasselbe Muster trifft den Schmelzlauf, das Tabellen-Werkzeug und das Einschwing-Werkzeug der Schneedecke',
+    others.every((f) => !pat.test(readFileSync(join(HERE, f), 'utf8'))) && pat.test(readFileSync(join(HERE, 'glacier', 'melt.mjs'), 'utf8')) && pat.test(readFileSync(join(HERE, 'glacier', 'snowcal-table.mjs'), 'utf8'))
+    && pat.test(readFileSync(join(HERE, 'glacier', 'snowpack-seed.mjs'), 'utf8')));
 }
 
 // --- G: GM-3b — the two switches (E-GM-7 precipitation factor per country, E-GM-8 new-snow density), both on (E-GM-12) -----------------------------------
@@ -240,10 +242,15 @@ const W = Object.fromEntries(winters.map((w) => [w.country, w]));
   const none = (() => { try { return JSON.stringify(snowSwitchesOf()); } catch (e) { return String(e.message ?? e); } })();
   const back = (() => { try { return JSON.stringify(snowSwitchesOf({ precip: 'gate-c', density: 'helfricht' })); } catch (e) { return String(e.message ?? e); } })();
   const mixed = (() => { try { return JSON.stringify(snowSwitchesOf({ density: 'helfricht' })); } catch (e) { return String(e.message ?? e); } })();
-  add('G2 96 kg/m³ nur mit wahrem Wasser: „board“ ohne „country“ wird abgelehnt — auch wenn nur der Faktor zurückgestellt wird (die Dichte der Voreinstellung wird nicht still mitgestellt); der Rückfall mit beiden Wörtern, „country“ mit „helfricht“ und beide zusammen gehen; ohne Angabe beide an',
-    /nur mit dem Niederschlagsfaktor/.test(throws(() => snowSwitchesOf({ precip: 'gate-c', density: 'board' })) ?? '') && /nur mit dem Niederschlagsfaktor/.test(throws(() => snowSwitchesOf({ precip: 'gate-c' })) ?? '')
+  // E-GM-15 (Jan 23.11., audit §3f): a density that is not named follows the precipitation rule — the fall back needs ONE word; a named `board` next to `gate-c` stays refused
+  const one = (() => { try { return JSON.stringify(snowSwitchesOf({ precip: 'gate-c' })); } catch (e) { return String(e.message ?? e); } })();
+  const empty = (() => { try { return JSON.stringify(snowSwitchesOf({ precip: 'gate-c', density: '' })); } catch (e) { return String(e.message ?? e); } })();
+  add('G2 96 kg/m³ nur mit wahrem Wasser: ein ausdrücklich genanntes „board“ neben „gate-c“ wird abgelehnt; die UNGENANNTE Dichte folgt dem Faktor (E-GM-15): „gate-c“ allein ergibt „gate-c“ + „helfricht“ (auch mit leerem Wort), „country“ allein „country“ + „board“; die Folgeregel passt zu den Voreinstellungen; der Rückfall mit beiden Wörtern, „country“ mit „helfricht“ und beide zusammen gehen; ohne Angabe beide an; ein unbekanntes Dichtewort bricht ab',
+    /nur mit dem Niederschlagsfaktor/.test(throws(() => snowSwitchesOf({ precip: 'gate-c', density: 'board' })) ?? '') && one === JSON.stringify({ precip: 'gate-c', density: 'helfricht' }) && empty === one
+    && SNOW_DENSITY_FOLLOWS[SNOW_PRECIP_DEFAULT] === SNOW_DENSITY_SOURCE_DEFAULT && Object.keys(SNOW_DENSITY_FOLLOWS).sort().join() === [...SNOW_PRECIP_RULES].sort().join()
     && sw.precip === 'country' && sw.density === 'board' && snowSwitchesOf({ density: 'board' }).precip === 'country' && back === JSON.stringify({ precip: 'gate-c', density: 'helfricht' })
-    && mixed === JSON.stringify({ precip: 'country', density: 'helfricht' }) && none === JSON.stringify({ precip: 'country', density: 'board' }), { none, back, mixed });
+    && mixed === JSON.stringify({ precip: 'country', density: 'helfricht' }) && none === JSON.stringify({ precip: 'country', density: 'board' })
+    && /helfricht, board/.test(throws(() => snowSwitchesOf({ precip: 'gate-c', density: '96' })) ?? ''), { none, back, mixed, one });
   const ch = table.precip.regions['ch-ost'], lv = precipLevelOf(table, 'ch-ost'), at = precipLevelOf(table, 'at-dachstein'), de = precipLevelOf(table, 'de');
   const bridged = structuredClone(table); bridged.precip.bridge.value = 0.8;
   add('G3 Faktor je Land OHNE Verlauf: precipLevelOf gibt F · Brücke der Region mit Herkunft (Schweiz 1,793 gemessen, Österreich 2,326, Deutschland 1,854 übertragen), unbekannte Region ohne Wert; Gegenprobe: der Leser mit Verlauf weicht 300 m über der Medianhöhe davon ab, eine Brücke 0,8 geht ein',

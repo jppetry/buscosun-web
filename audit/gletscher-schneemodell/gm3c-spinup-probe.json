@@ -1,0 +1,656 @@
+{
+ "kind": "glacier/gm3c-spinup-probe",
+ "generated": "2026-11-23T16:18:49.115Z",
+ "window": {
+  "from": "2026-10-01T00:00:00.000Z",
+  "to": "2026-11-23T12:00:00.000Z",
+  "hours": 1285
+ },
+ "forcing": "GeoSphere Austria inca-v2-1h-1km (tp, 2t, ssrd), CC BY 4.0",
+ "stations": {
+  "hour": "2026112312",
+  "selected": 226,
+  "used": 223,
+  "shiftAbsMedianK": 0.5,
+  "shiftSdMedianK": 0.7,
+  "all": {
+   "n": 223,
+   "cold": {
+    "n": 223,
+    "measured": 28.4,
+    "model": 0,
+    "bias": -28.4,
+    "mae": 28.5,
+    "r": null
+   },
+   "f1": {
+    "n": 223,
+    "measured": 28.4,
+    "model": 25.4,
+    "bias": -3,
+    "mae": 11.5,
+    "r": 0.7
+   },
+   "f1helfricht": {
+    "n": 223,
+    "measured": 28.4,
+    "model": 31.4,
+    "bias": 2.9,
+    "mae": 13.5,
+    "r": 0.69
+   },
+   "fCountry": {
+    "n": 198,
+    "measured": 29.7,
+    "model": 50.2,
+    "bias": 20.5,
+    "mae": 24.3,
+    "r": 0.7
+   }
+  },
+  "byElevation": {
+   "< 1 500 m": {
+    "n": 26,
+    "cold": {
+     "n": 26,
+     "measured": 2,
+     "model": 0,
+     "bias": -1.9,
+     "mae": 2.3,
+     "r": null
+    },
+    "f1": {
+     "n": 26,
+     "measured": 2,
+     "model": 6.3,
+     "bias": 4.4,
+     "mae": 5.3,
+     "r": 0.71
+    },
+    "f1helfricht": {
+     "n": 26,
+     "measured": 2,
+     "model": 7.9,
+     "bias": 6,
+     "mae": 6.8,
+     "r": 0.72
+    },
+    "fCountry": {
+     "n": 26,
+     "measured": 2,
+     "model": 14.8,
+     "bias": 12.8,
+     "mae": 13.4,
+     "r": 0.67
+    }
+   },
+   "1 500–2 000 m": {
+    "n": 55,
+    "cold": {
+     "n": 55,
+     "measured": 22.6,
+     "model": 0,
+     "bias": -22.6,
+     "mae": 22.6,
+     "r": null
+    },
+    "f1": {
+     "n": 55,
+     "measured": 22.6,
+     "model": 22.8,
+     "bias": 0.3,
+     "mae": 8.7,
+     "r": 0.82
+    },
+    "f1helfricht": {
+     "n": 55,
+     "measured": 22.6,
+     "model": 28.6,
+     "bias": 6,
+     "mae": 12.2,
+     "r": 0.81
+    },
+    "fCountry": {
+     "n": 48,
+     "measured": 23.8,
+     "model": 48.6,
+     "bias": 24.8,
+     "mae": 26.2,
+     "r": 0.8
+    }
+   },
+   "2 000–2 500 m": {
+    "n": 117,
+    "cold": {
+     "n": 117,
+     "measured": 34,
+     "model": 0,
+     "bias": -34,
+     "mae": 34,
+     "r": null
+    },
+    "f1": {
+     "n": 117,
+     "measured": 34,
+     "model": 29.4,
+     "bias": -4.6,
+     "mae": 13.1,
+     "r": 0.63
+    },
+    "f1helfricht": {
+     "n": 117,
+     "measured": 34,
+     "model": 36.7,
+     "bias": 2.6,
+     "mae": 15.2,
+     "r": 0.61
+    },
+    "fCountry": {
+     "n": 101,
+     "measured": 36.4,
+     "model": 56.8,
+     "bias": 20.4,
+     "mae": 26.1,
+     "r": 0.59
+    }
+   },
+   "2 500–3 000 m": {
+    "n": 24,
+    "cold": {
+     "n": 24,
+     "measured": 43.4,
+     "model": 0,
+     "bias": -43.4,
+     "mae": 43.4,
+     "r": null
+    },
+    "f1": {
+     "n": 24,
+     "measured": 43.4,
+     "model": 31.3,
+     "bias": -12.1,
+     "mae": 16.4,
+     "r": 0.43
+    },
+    "f1helfricht": {
+     "n": 24,
+     "measured": 43.4,
+     "model": 36.4,
+     "bias": -7,
+     "mae": 14.9,
+     "r": 0.43
+    },
+    "fCountry": {
+     "n": 23,
+     "measured": 44.3,
+     "model": 64.7,
+     "bias": 20.4,
+     "mae": 24.5,
+     "r": 0.4
+    }
+   },
+   "≥ 3 000 m": {
+    "n": 1,
+    "cold": {
+     "n": 1,
+     "measured": 22.2,
+     "model": 0,
+     "bias": -22.2,
+     "mae": 22.2,
+     "r": null
+    },
+    "f1": {
+     "n": 1,
+     "measured": 22.2,
+     "model": 49.7,
+     "bias": 27.5,
+     "mae": 27.5,
+     "r": null
+    },
+    "f1helfricht": {
+     "n": 1,
+     "measured": 22.2,
+     "model": 54.5,
+     "bias": 32.3,
+     "mae": 32.3,
+     "r": null
+    },
+    "fCountry": null
+   }
+  },
+  "byNet": {
+   "bz": {
+    "n": 24,
+    "cold": {
+     "n": 24,
+     "measured": 17.7,
+     "model": 0,
+     "bias": -17.7,
+     "mae": 17.7,
+     "r": null
+    },
+    "f1": {
+     "n": 24,
+     "measured": 17.7,
+     "model": 17.7,
+     "bias": 0,
+     "mae": 6.8,
+     "r": 0.54
+    },
+    "f1helfricht": {
+     "n": 24,
+     "measured": 17.7,
+     "model": 20.5,
+     "bias": 2.8,
+     "mae": 7.2,
+     "r": 0.53
+    },
+    "fCountry": null
+   },
+   "imis": {
+    "n": 81,
+    "cold": {
+     "n": 81,
+     "measured": 39,
+     "model": 0,
+     "bias": -39,
+     "mae": 39,
+     "r": null
+    },
+    "f1": {
+     "n": 81,
+     "measured": 39,
+     "model": 36.6,
+     "bias": -2.4,
+     "mae": 15,
+     "r": 0.61
+    },
+    "f1helfricht": {
+     "n": 81,
+     "measured": 39,
+     "model": 47,
+     "bias": 7.9,
+     "mae": 20.6,
+     "r": 0.59
+    },
+    "fCountry": {
+     "n": 80,
+     "measured": 39.2,
+     "model": 59.2,
+     "bias": 20,
+     "mae": 27.2,
+     "r": 0.62
+    }
+   },
+   "tirol": {
+    "n": 118,
+    "cold": {
+     "n": 118,
+     "measured": 23.3,
+     "model": 0,
+     "bias": -23.3,
+     "mae": 23.4,
+     "r": null
+    },
+    "f1": {
+     "n": 118,
+     "measured": 23.3,
+     "model": 19.3,
+     "bias": -4.1,
+     "mae": 10.1,
+     "r": 0.75
+    },
+    "f1helfricht": {
+     "n": 118,
+     "measured": 23.3,
+     "model": 22.9,
+     "bias": -0.5,
+     "mae": 9.9,
+     "r": 0.76
+    },
+    "fCountry": {
+     "n": 118,
+     "measured": 23.3,
+     "model": 44.1,
+     "bias": 20.8,
+     "mae": 22.2,
+     "r": 0.74
+    }
+   }
+  },
+  "byCountry": {
+   "AT": {
+    "n": 118,
+    "cold": {
+     "n": 118,
+     "measured": 23.3,
+     "model": 0,
+     "bias": -23.3,
+     "mae": 23.4,
+     "r": null
+    },
+    "f1": {
+     "n": 118,
+     "measured": 23.3,
+     "model": 19.3,
+     "bias": -4.1,
+     "mae": 10.1,
+     "r": 0.75
+    },
+    "f1helfricht": {
+     "n": 118,
+     "measured": 23.3,
+     "model": 22.9,
+     "bias": -0.5,
+     "mae": 9.9,
+     "r": 0.76
+    },
+    "fCountry": {
+     "n": 118,
+     "measured": 23.3,
+     "model": 44.1,
+     "bias": 20.8,
+     "mae": 22.2,
+     "r": 0.74
+    }
+   },
+   "CH": {
+    "n": 80,
+    "cold": {
+     "n": 80,
+     "measured": 39.2,
+     "model": 0,
+     "bias": -39.2,
+     "mae": 39.2,
+     "r": null
+    },
+    "f1": {
+     "n": 80,
+     "measured": 39.2,
+     "model": 36.4,
+     "bias": -2.8,
+     "mae": 14.9,
+     "r": 0.61
+    },
+    "f1helfricht": {
+     "n": 80,
+     "measured": 39.2,
+     "model": 46.7,
+     "bias": 7.6,
+     "mae": 20.4,
+     "r": 0.59
+    },
+    "fCountry": {
+     "n": 80,
+     "measured": 39.2,
+     "model": 59.2,
+     "bias": 20,
+     "mae": 27.2,
+     "r": 0.62
+    }
+   },
+   "IT": {
+    "n": 24,
+    "cold": {
+     "n": 24,
+     "measured": 17.7,
+     "model": 0,
+     "bias": -17.7,
+     "mae": 17.7,
+     "r": null
+    },
+    "f1": {
+     "n": 24,
+     "measured": 17.7,
+     "model": 17.7,
+     "bias": 0,
+     "mae": 6.8,
+     "r": 0.54
+    },
+    "f1helfricht": {
+     "n": 24,
+     "measured": 17.7,
+     "model": 20.5,
+     "bias": 2.8,
+     "mae": 7.2,
+     "r": 0.53
+    },
+    "fCountry": null
+   },
+   "LI": {
+    "n": 1,
+    "cold": {
+     "n": 1,
+     "measured": 28.2,
+     "model": 0,
+     "bias": -28.2,
+     "mae": 28.2,
+     "r": null
+    },
+    "f1": {
+     "n": 1,
+     "measured": 28.2,
+     "model": 52.5,
+     "bias": 24.3,
+     "mae": 24.3,
+     "r": null
+    },
+    "f1helfricht": {
+     "n": 1,
+     "measured": 28.2,
+     "model": 64.9,
+     "bias": 36.7,
+     "mae": 36.7,
+     "r": null
+    },
+    "fCountry": null
+   }
+  }
+ },
+ "glaciers": {
+  "n": 573,
+  "shiftSdMedianK": 1.3,
+  "shiftP10P50P90K": [
+   -2.2,
+   -0.1,
+   1.7
+  ],
+  "spinup": {
+   "Zunge": {
+    "hsCm": [
+     44,
+     96.2,
+     133.2
+    ],
+    "sweMm": [
+     53.5,
+     170.6,
+     290.3
+    ],
+    "solidMm": [
+     71.1,
+     211,
+     341.2
+    ],
+    "meltedMm": [
+     10.2,
+     44.5,
+     79
+    ],
+    "hn72Cm": [
+     14.6,
+     29.3,
+     98.5
+    ],
+    "without": 1
+   },
+   "Median": {
+    "hsCm": [
+     46.2,
+     108.7,
+     147.6
+    ],
+    "sweMm": [
+     62.9,
+     199,
+     348.6
+    ],
+    "solidMm": [
+     76.1,
+     258.2,
+     387
+    ],
+    "meltedMm": [
+     11.5,
+     34.8,
+     79.9
+    ],
+    "hn72Cm": [
+     14.6,
+     29.3,
+     98.7
+    ],
+    "without": 0
+   },
+   "Oberkante": {
+    "hsCm": [
+     50.9,
+     120.3,
+     164.7
+    ],
+    "sweMm": [
+     66.1,
+     238,
+     393.9
+    ],
+    "solidMm": [
+     83.3,
+     296.4,
+     442.6
+    ],
+    "meltedMm": [
+     7.8,
+     29,
+     81
+    ],
+    "hn72Cm": [
+     14.6,
+     29.3,
+     98.7
+    ],
+    "without": 0
+   }
+  },
+  "meltStateMm": {
+   "Zunge": [
+    0.1,
+    35.1,
+    296.4
+   ],
+   "Median": [
+    42.2,
+    298.1,
+    357.3
+   ],
+   "Oberkante": [
+    59.7,
+    305.4,
+    370.5
+   ]
+  },
+  "meltStateMinusSpinupMm": {
+   "Zunge": [
+    -225.3,
+    -73.5,
+    156.9
+   ],
+   "Median": [
+    -126.5,
+    56.3,
+    220.3
+   ],
+   "Oberkante": [
+    -147.2,
+    22.2,
+    212.3
+   ]
+  },
+  "snowgrid": {
+   "day": "20261122",
+   "n": 316,
+   "depthCm": {
+    "F": {
+     "n": 316,
+     "truth": 50.6,
+     "model": 113.1,
+     "bias": 62.5,
+     "mae": 62.5
+    },
+    "F1": {
+     "n": 316,
+     "truth": 50.6,
+     "model": 53.6,
+     "bias": 3,
+     "mae": 10.5
+    }
+   },
+   "sweMm": {
+    "F": {
+     "n": 316,
+     "truth": 92.1,
+     "model": 251.8,
+     "bias": 159.8,
+     "mae": 159.8
+    },
+    "F1": {
+     "n": 316,
+     "truth": 92.1,
+     "model": 97.7,
+     "bias": 5.6,
+     "mae": 22.6
+    }
+   }
+  },
+  "byCountry": {
+   "AT": {
+    "n": 316,
+    "hsMedianCm": [
+     93.6,
+     116.2,
+     153.1
+    ],
+    "sweMedianMm": [
+     178.4,
+     250.9,
+     370
+    ]
+   },
+   "CH": {
+    "n": 256,
+    "hsMedianCm": [
+     30.8,
+     98.3,
+     133.4
+    ],
+    "sweMedianMm": [
+     38.3,
+     142.4,
+     223.8
+    ]
+   },
+   "DE": {
+    "n": 1,
+    "hsMedianCm": [
+     96.1,
+     96.1,
+     96.1
+    ],
+    "sweMedianMm": [
+     167.4,
+     167.4,
+     167.4
+    ]
+   }
+  }
+ }
+}

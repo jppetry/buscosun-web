@@ -180,8 +180,8 @@ export function levelShares({ rule, tz, sg, rh, ps, p }) {
   return { share, c, usePs, fallback, clipped, clippedWet };
 }
 
-/** Solid share at elevation `zq` in hour `h`: the rule function on the temperature between the answers (linear; outside them the limited lapse, everything else held), plus the offset of the nearest answers. */
-function shareAtElevation(zq, h, { z, tz, sg, rh, c, usePs }) {
+/** Temperature, sigma, humidity and offset at elevation `zq` in hour `h` between the answers (linear; outside them the limited lapse, everything else held). */
+function atElevation(zq, h, { z, tz, sg, rh, c }) {
   let T, s, r, off;
   if (zq < z[0] || zq > z[2]) {
     const e = zq < z[0] ? 0 : 2, span = z[1] - z[e];
@@ -192,8 +192,15 @@ function shareAtElevation(zq, h, { z, tz, sg, rh, c, usePs }) {
     const mix = (x) => (x ? (1 - w) * x[a][h] + w * x[b][h] : NaN);
     T = mix(tz); s = sg ? mix(sg) : 0; r = rh ? mix(rh) : NaN; off = mix(c);
   }
-  return clamp01((usePs[h] ? phaseProbability(T, fin(s) ? s : 0, r) : solidFraction(T)) + off);
+  return { T, s, r, off };
 }
+/** Solid share at elevation `zq` in hour `h`: the rule function on the temperature between the answers, plus the offset of the nearest answers. */
+export function shareAtElevation(zq, h, ctx) {
+  const { T, s, r, off } = atElevation(zq, h, ctx);
+  return clamp01((ctx.usePs[h] ? phaseProbability(T, fin(s) ? s : 0, r) : solidFraction(T)) + off);
+}
+/** Phase GM (GM-3c): the temperature the share above is computed on — for a glacier that takes the three answers of a neighbour at its own elevations. */
+export const tempAtElevation = (zq, h, ctx) => atElevation(zq, h, ctx).T;
 
 /**
  * The own snowfall line of hour `h`: the elevation at which the solid share of the run's rule is one half. `{ v, k }` — `v` metres in steps of 10
@@ -360,7 +367,9 @@ export function weatherOfGlacier({ id, z, tz, from = 'own', p, n, wx, sg = null,
     const move = Math.abs(snowSum(shares.psnow, 1, 24 * d, 24 * d + 24) - snowSum(shares.temperature, 1, 24 * d, 24 * d + 24));
     cmp.wet++; if (move > 1) cmp.moved++; cmp.max = Math.max(cmp.max, move);
   }
-  return lvIn ? { row, hourly, cmp, stat: { clipped: act.clipped, clippedWet: act.clippedWet, fallback: act.fallback } } : { row, hourly, cmp };
+  // phase GM (GM-3c): `shares` (the solid share of the run's rule per elevation and hour) and, on three answers, `ctx` (what `shareAtElevation` needs)
+  // are handed to the snowpack step of `melt.mjs`; neither is written into a weather document
+  return lvIn ? { row, hourly, cmp, stat: { clipped: act.clipped, clippedWet: act.clippedWet, fallback: act.fallback }, shares: act.share, ctx: lineCtx } : { row, hourly, cmp, shares: act.share };
 }
 
 /** Phase GS — one entry of the comparison file from the `cmp` blocks of a run (phase GM: `heights` names a run on three answers). */

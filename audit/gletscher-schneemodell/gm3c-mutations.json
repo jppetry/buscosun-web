@@ -1,0 +1,401 @@
+{
+ "generated": "2026-11-23T17:32:34.521Z",
+ "verifiers": [
+  "verify:glacier-snowpack",
+  "verify:glacier-snowcal",
+  "verify:glacier-publish",
+  "verify:glacier-weather"
+ ],
+ "greenBefore": true,
+ "greenAfter": true,
+ "noticed": 55,
+ "of": 55,
+ "crashedOnly": 0,
+ "mutations": [
+  {
+   "name": "Voreinstellung des Schalters „shadow“",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: A5, D1",
+   "crashedOnly": false
+  },
+  {
+   "name": "unbekanntes Wort fällt auf die Voreinstellung zurück",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: A5, D7",
+   "crashedOnly": false
+  },
+  {
+   "name": "Start ab Werk „cold“",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: A5, D3",
+   "crashedOnly": false
+  },
+  {
+   "name": "Schneefall frischt die Albedo nicht auf",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: A1, F1",
+   "crashedOnly": false
+  },
+  {
+   "name": "Schmelze ohne Dämpfung der positiven Temperatur",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: A1",
+   "crashedOnly": false
+  },
+  {
+   "name": "Albedo vor dem Neuschnee der Stunde entschieden",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: A1",
+   "crashedOnly": false
+  },
+  {
+   "name": "Antrieb ohne den Niederschlagsfaktor",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: A3, C1, D5, D7",
+   "crashedOnly": false
+  },
+  {
+   "name": "Antrieb nicht auf die Auflösung des Zustands gerundet",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: A3, C5, D2, D3, D4, D B, F4",
+   "crashedOnly": false
+  },
+  {
+   "name": "Temperaturlücke wird durchgelassen",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: A3",
+   "crashedOnly": false
+  },
+  {
+   "name": "Zustand hält Schichten ohne Masse",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: A4",
+   "crashedOnly": false
+  },
+  {
+   "name": "Fortschreiben rechnet immer den ganzen gespeicherten Antrieb",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: B1, B4, D B",
+   "crashedOnly": false
+  },
+  {
+   "name": "Stunden ohne Antrieb werden nicht gezählt",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: B2, B3, D6, D9, F4",
+   "crashedOnly": false
+  },
+  {
+   "name": "Fortschreiben nimmt einen Zustand aus der Zukunft",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: B2",
+   "crashedOnly": false
+  },
+  {
+   "name": "gespeicherter Antrieb eine Stunde zu kurz",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: B1, B2, B4, C5, D2, D3, D4, D B, F4",
+   "crashedOnly": false
+  },
+  {
+   "name": "alle Neuschnee-Fenster sind das 72-h-Fenster",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: C3",
+   "crashedOnly": false
+  },
+  {
+   "name": "Nachbar-Antworten ohne „unten nie mehr als oben“",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: C6",
+   "crashedOnly": false
+  },
+  {
+   "name": "Zustand aus anderer Rechnung wird fortgesetzt",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: B5, D7",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vorhersage beginnt nicht am gespeicherten Zustand",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: D5",
+   "crashedOnly": false
+  },
+  {
+   "name": "mit „off“ wird der Dichteschalter gelesen",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: D1",
+   "crashedOnly": false
+  },
+  {
+   "name": "mit „off“ wird der Zustand gelesen",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: D1",
+   "crashedOnly": false
+  },
+  {
+   "name": "„cold“ verwirft einen vorhandenen Zustand",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: D5",
+   "crashedOnly": false
+  },
+  {
+   "name": "Umgebungsvariable des Schalters wird nicht gelesen",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: D2",
+   "crashedOnly": false
+  },
+  {
+   "name": "„country“ rechnet die Schneedecke ohne den Faktor",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: D5",
+   "crashedOnly": false
+  },
+  {
+   "name": "„gate-c“ rechnet die Schneedecke ohne die 4 % je 100 m",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: D7",
+   "crashedOnly": false
+  },
+  {
+   "name": "Nachbar-Antrieb fällt auf die Hochrechnung zurück",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: D4",
+   "crashedOnly": false
+  },
+  {
+   "name": "später begonnener Gletscher nennt seinen Beginn nicht",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: D9, F4",
+   "crashedOnly": false
+  },
+  {
+   "name": "übersprungener Gletscher verliert seinen Eintrag",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: D9",
+   "crashedOnly": false
+  },
+  {
+   "name": "Gletscher ohne Zeile wird nicht fortgetragen",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: D9",
+   "crashedOnly": false
+  },
+  {
+   "name": "Fehler des Schritts hält das Schreiben nicht auf",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: D3, D6, D7, D8",
+   "crashedOnly": false
+  },
+  {
+   "name": "Statuszeile verschweigt den Grund",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: D3, D6, D7, D8",
+   "crashedOnly": false
+  },
+  {
+   "name": "Herkunft „model“ statt „computed“",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: D2, D3, D4, D B, F4",
+   "crashedOnly": false
+  },
+  {
+   "name": "Zustand steht 6 h hinter der Laufstunde",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: D4, D5, D6, D7, D9",
+   "crashedOnly": false
+  },
+  {
+   "name": "Zeiger nennt die Schneedecke nicht",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: D3",
+   "crashedOnly": false
+  },
+  {
+   "name": "Schmelzparameter der Schneedecke sind nicht die des Laufs",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: D5",
+   "crashedOnly": false
+  },
+  {
+   "name": "Wetterzeile gibt die Schneeanteile nicht heraus",
+   "file": "scripts/glacier/lib/weathercore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: C6, D4, D8",
+   "crashedOnly": false
+  },
+  {
+   "name": "Temperatur auf fremder Höhe ist die der Zunge",
+   "file": "scripts/glacier/lib/weathercore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: C6",
+   "crashedOnly": false
+  },
+  {
+   "name": "Schneeanteil auf fremder Höhe ohne den Versatz der Antworten",
+   "file": "scripts/glacier/lib/weathercore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: C6",
+   "crashedOnly": false
+  },
+  {
+   "name": "ungenannte Dichte folgt dem Faktor nicht",
+   "file": "scripts/glacier/lib/snowcal.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: D7",
+   "crashedOnly": false
+  },
+  {
+   "name": "„gate-c“ zieht „board“ nach",
+   "file": "scripts/glacier/lib/snowcal.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: D7",
+   "crashedOnly": false
+  },
+  {
+   "name": "Publisher kennt `snowpack/` nicht",
+   "file": "scripts/glacier/glacier-publish.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: E1",
+   "crashedOnly": false
+  },
+  {
+   "name": "Aufbewahrung greift unter `melt/`",
+   "file": "scripts/glacier/glacier-publish.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: E1",
+   "crashedOnly": false
+  },
+  {
+   "name": "Aufbewahrung 30 Tage statt 72 h",
+   "file": "scripts/glacier/glacier-publish.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: E1",
+   "crashedOnly": false
+  },
+  {
+   "name": "Einschwingen ohne die Verschiebung der Temperatur",
+   "file": "scripts/glacier/snowpack-seed.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: F1",
+   "crashedOnly": false
+  },
+  {
+   "name": "Einschwingen zählt Stunden ohne Antrieb nicht",
+   "file": "scripts/glacier/snowpack-seed.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: F1",
+   "crashedOnly": false
+  },
+  {
+   "name": "Einschwingen übergeht den Antrieb der Wetterläufe",
+   "file": "scripts/glacier/snowpack-seed.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: F1",
+   "crashedOnly": false
+  },
+  {
+   "name": "übernommene Stunden werden nicht genannt",
+   "file": "scripts/glacier/snowpack-seed.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: F1",
+   "crashedOnly": false
+  },
+  {
+   "name": "Startzustand gibt sich als Lauf aus",
+   "file": "scripts/glacier/snowpack-seed.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: F1, F4",
+   "crashedOnly": false
+  },
+  {
+   "name": "Verschiebung aus zu wenigen Stunden",
+   "file": "scripts/glacier/snowpack-seed.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: F3",
+   "crashedOnly": false
+  },
+  {
+   "name": "Tagessumme auf jede Stunde statt verteilt",
+   "file": "scripts/glacier/snowpack-seed.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: F2",
+   "crashedOnly": false
+  },
+  {
+   "name": "fehlender Tag wird mit Nullen gefüllt",
+   "file": "scripts/glacier/snowpack-seed.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: F2",
+   "crashedOnly": false
+  },
+  {
+   "name": "Tagesgang ohne Amplitude",
+   "file": "scripts/glacier/snowpack-seed.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: F2",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag nimmt jede Herkunft",
+   "file": "src/glacier/glacierSnowpackContract.ts",
+   "noticed": true,
+   "by": "glacier-snowpack: C4",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag verlangt den Vermerk „nicht nachgemessen“ nicht",
+   "file": "src/glacier/glacierSnowpackContract.ts",
+   "noticed": true,
+   "by": "glacier-snowpack: C4",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag lässt „board“ ohne „country“ zu",
+   "file": "src/glacier/glacierSnowpackContract.ts",
+   "noticed": true,
+   "by": "glacier-snowpack: C4",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag prüft die Dichte der Zeile nicht",
+   "file": "src/glacier/glacierSnowpackContract.ts",
+   "noticed": true,
+   "by": "glacier-snowpack: C4",
+   "crashedOnly": false
+  }
+ ]
+}

@@ -4538,7 +4538,13 @@ Regen und Schmelze unten, nicht aus mehr Niederschlag oben.
 
 ## 118. Gletscher: Schneemodell, Paket GM-3b — Faktor je Land und Neuschneedichte, beide Schalter ein (E-GM-7, E-GM-8, E-GM-12; `audit/gletscher-schneemodell.md` §3d, §3e), 2026-11-23
 
-Gebaut, **lokal committet, nicht gepusht, beide Schalter ein** (E-GM-12, Jan 23.11. „committe, schalte ein“). Zwei Commits:
+**Stand 23.11. 17:28 UTC: gepusht (`origin/main` = `c961a0f6`), Punkte 1, 2, 5 und 6 erledigt, der Workflow im Daten-Repo ist
+gelesen (Punkt 7). Der erste Schmelzlauf mit dem neuen Producer (Lauf `2026112317`, Commit `3420e65f` im Daten-Repo) ist
+grün: `lines.melt.precip: country`, `params.precip` mit 26 Regionen, `gate: false` mit Grund, Brücke 1, Gradient 0,
+2 094 Gletscher; `weather.levels` 957 Zeilen, 0 Rückfälle. Laufzeit auf dem Runner 143 s statt 46 s (Beleg: Audit §3e.7).
+Damit ist auch §116 Punkt 2 erledigt.**
+
+Gebaut, **committet, beide Schalter ein** (E-GM-12, Jan 23.11. „committe, schalte ein“). Zwei Commits:
 `d09aecf6` trägt GM-3 und GM-3b mit beiden Schaltern aus, der Commit danach legt nur die Voreinstellungen um. Das Einschalten
 wirkt mit dem Push von `main`, weil der Runner den Producer von dort holt. Nichts am Daten- oder Archiv-Repo, kein Workflow
 geändert, buscosun Fusion nur gelesen. Der Rückfall `--precip=gate-c` schreibt dieselben Bytes wie vor GM-3b (lokaler
@@ -4551,10 +4557,12 @@ Was es jetzt gibt:
 - **Neuschneedichte 96 kg/m³** mit der Spanne 65–148 als zweiter Konstantensatz des Schneekerns (`board`). Der Kern läuft
   noch in keinem Producer; der Schalter ist die Stelle, an der GM-5 anschließt. `board` ohne `country` wird abgelehnt.
 
-1. **Push von `buscosun-web`** (dein Gate; trägt auch GM-1, GM-2 und die vier Brand-Korrekturen vom 22.11.). Ab dem ersten
+1. **Push von `buscosun-web`** — **erledigt 23.11. ≈ 15:50 UTC** (trägt auch GM-1, GM-2 und die vier Brand-Korrekturen vom 22.11.). Ab dem ersten
    Schmelzlauf danach rechnet die Schneedecke des Schmelzlaufs mit dem Faktor je Land. Am 21.11. gerechnet ändert das den
    Schmelzindex an 182 von 2 094 Gletschern (tief liegende, höchstens 11 Punkte, immer nach unten); die Seite zeigt das.
-2. **Den ersten Schmelzlauf nach dem Push ansehen** (zusammen mit §116 Punkt 2): in `glacier/v1/status.json` die Zeile
+2. **Den ersten Schmelzlauf nach dem Push ansehen** — **erledigt 23.11. 17:28 und 17:47 UTC:** Lauf `2026112317` grün, alle
+   erwarteten Werte stehen da (Kopfzeile oben; Tabelle und Einordnung des Schmelzindex im Audit §3e.7). Der Rückfall
+   (Punkt 3) ist nicht nötig. Was zu prüfen war (zusammen mit §116 Punkt 2): in `glacier/v1/status.json` die Zeile
    `lines.melt` mit `precip: country`; im Dokument `melt/<lauf>.json` der Block `params.precip` (26 Regionen, `gate: false`
    mit Grund, Brücke 1, Gradient 0). Ist der Job rot und nennt die Eichtabelle („nicht lesbar“, „nicht nutzbar“, eine Region
    fehlt): Punkt 3. Der Lauf fällt nie still auf den alten Faktor zurück — ein roter Job heißt, es wurde nichts veröffentlicht.
@@ -4565,15 +4573,87 @@ Was es jetzt gibt:
 4. **Was das Einschalten vor meiner Empfehlung heißt** (§3e.4): `TF`/`SRF` der Schmelze sind an der alten, dünneren
    Schneedecke geeicht — Gate C mit festem Faktor nachrechnen, vor Mai 2027 (V-GM-26); der Zustand auf dem Runner mischt
    Schnee aus beiden Faktoren (V-GM-27); das Urteil der Eichung bleibt rot und steht so im Dokument.
-5. **Deine Entscheidung, noch offen:** **E-GM-13** — die Regel „96 kg/m³ nur zusammen mit dem Faktor je Land“ ist von mir
-   gesetzt. Mit beiden Schaltern an ist sie erfüllt. Bestätigen?
+5. **Entschieden (Jan 23.11. „ja passt so“):** **E-GM-13** — die Regel „96 kg/m³ nur zusammen mit dem Faktor je Land“ ist von mir
+   gesetzt und jetzt bestätigt. Mit beiden Schaltern an ist sie erfüllt.
 6. **Budget ist an HEAD rot** (totalJs 2 118,1 gegen 2 118 KB), nicht aus dieser Phase: ein Kontroll-Build ohne meine
    Typ-Zeile ergibt denselben Wert und dieselben 186 JS-Dateien. Seit der letzten grünen Messung sind unter `src/` nur die
-   vier `fix(fire)`-Commits vom 22.11. abends dazugekommen. Ich habe die Grenze nicht angehoben (V-GM-30).
-7. **Nicht geprüft:** kein Lauf auf dem Runner, der dort laufende Workflow nicht gelesen (die Vorlage holt `scripts` als
-   Ganzes, die Tabelle ist also dabei), nichts im Browser; `country` an einer Wetterlage und aus einem Kaltstart des
+   vier `fix(fire)`-Commits vom 22.11. abends dazugekommen. **Erledigt 23.11. (dein Wort „hebe auf 3 kb“, von mir gelesen
+   als 3 KB Luft):** Grenze von Hand 2 118 → 2 121 mit Notiz in `budget.json`, `npm run budget` grün (2 118,1 / 2 121).
+   **Uncommitted** — `budget.json` und die Doku dieses Nachtrags warten auf deinen Commit oder dein Wort (V-GM-30).
+7. **Nicht geprüft:** kein Lauf auf dem Runner (Punkt 2), nichts im Browser. Der Workflow, der im Daten-Repo läuft, ist
+   seit 23.11. 15:52 UTC gelesen: er holt `scripts` als Ganzes (die Tabelle ist dabei) und setzt keinen Schalter; `country` an einer Wetterlage und aus einem Kaltstart des
    Schneezustands; die Dichte hat noch keinen Leser im Betrieb.
 8. **Weiter offen:** E-GM-9, E-GM-10, E-GM-11 (§117); V-GM-29 (die Anzeige „Wetter am Gletscher“ zeigt Neuschnee weiter
    ohne Faktor); V-GM-31 (ein Producer, der beide Schalter liest, braucht für den Rückfall beide Wörter — für GM-5).
 9. **Nicht im Commit:** `tsconfig.app.tsbuildinfo` (Build-Rest, geändert im Arbeitsbaum) und
    `audit/qualitaetspruefung-seewetter-gletscher-2026-11-22.md` (aus einer anderen Sitzung).
+
+## 119. Gletscher: Schneemodell, Paket GM-3c — Schneedecke je Höhe als Schattenprodukt `snowpack/` (E-GM-14 … E-GM-17; `audit/gletscher-schneemodell.md` §3f), 2026-11-23
+
+Gebaut, **uncommitted, Schalter aus**. Mit dem Schalter aus schreibt der Schmelzlauf dieselben Dateien wie heute (lokaler
+Volllauf: 338 von 338 Byte für Byte gleich). Nichts am Daten- oder Archiv-Repo, kein Workflow geändert, nichts an der Seite
+außer der neuen Vertragsdatei (nicht im Bundle), buscosun Fusion nur gelesen.
+
+Was es jetzt gibt:
+- **Schattenprodukt `glacier/v1/snowpack/<lauf>.json`** hinter `--snowpack=shadow` (oder `GLACIER_SNOWPACK`): je Gletscher an
+  Zunge, Medianhöhe und Oberkante Schneehöhe (cm), Wasserwert (mm), Neuschnee der letzten 24 / 48 / 72 h und je Tag der
+  14 Tage. Alles „berechnet“, nie „gemessen“; das Dokument sagt „berechnet, noch nicht nachgemessen“ und trägt das rote
+  Urteil der Eichung. Alle 2 084 Gletscher mit Wetterzeile (deine Entscheidung E-GM-16). Keine Seite liest es.
+- **Zustand `glacier/v1/snowpack/state.json`**, der nicht an der Taktung hängt: er steht an der Laufstunde und trägt den
+  Antrieb der nächsten 18 Stunden. Der Zustand des Schmelzlaufs wird dagegen von jedem Lauf verworfen, der 3 h nach dem
+  vorigen kommt (20-mal seit 12.10., V-GM-32).
+- **Einschwing-Werkzeug `scripts/glacier/snowpack-seed.mjs`** (E-GM-14): Startzustand ab 1.10. aus INCA (Österreich,
+  Deutschland) und dem Tagesgitter der MeteoSchweiz (ganze Schweiz). Lokal, schreibt nur nach `--out`.
+- **Rückfall mit einem Wort** (E-GM-15): `gate-c` allein rechnet mit 68 kg/m³.
+
+1. **Commit** (dein Wort). Dazu gehören: `src/glacier/glacierSnowpackContract.ts`, `scripts/glacier/lib/snowpackcore.mjs`,
+   `scripts/glacier/snowpack-seed.mjs`, `scripts/glacier/make-snowpack-seed-fixture.mjs`,
+   `scripts/lib/fixtures/glacier/snowpack-seed.json`, `scripts/verify-glacier-snowpack.mjs`, die geänderten
+   `scripts/glacier/melt.mjs`, `lib/weathercore.mjs`, `lib/snowcal.mjs`, `glacier-publish.mjs`,
+   `scripts/verify-glacier-snowcal.mjs`, `package.json` (eine Zeile), die Dateien `gm3c-*` unter
+   `audit/gletscher-schneemodell/`, `audit/gletscher-schneemodell.md`, `CLAUDE.md`, diese Datei. Im Arbeitsbaum liegen
+   außerdem weiter uncommitted: `budget.json` und die Doku-Nachträge vom 23.11. nachmittags (§118 Punkt 6); sie stehen in
+   denselben drei Doku-Dateien wie dieses Paket und lassen sich nicht getrennt committen. Nicht in den Commit:
+   `tsconfig.app.tsbuildinfo` (Build-Rest) und `audit/qualitaetspruefung-seewetter-gletscher-2026-11-22.md`.
+   Prüfstand beim Abschluss: `verify:glacier-snowpack` 31/31, Gegenprobe 55 von 55, die neun Nachbar-Prüfer grün,
+   Typecheck, Build (281/281) und Budget (totalJs 2 118,1 / 2 121 KB, unverändert) grün.
+2. **Push von `buscosun-web`** (dein Gate). Ändert am Betrieb nichts: der Schalter ist aus, der Publisher kennt danach den
+   Ordner `snowpack/`, schreibt aber nichts hinein.
+3. **Einschalten (E-GM-18, deine Entscheidung), in dieser Reihenfolge:**
+   a. Startzustand für den Tag bauen, unmittelbar vor dem Einschalten (jede Stunde dazwischen ist eine Stunde ohne
+      Antrieb, V-GM-36):
+      `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/snowpack-seed.mjs
+      --data=C:\dev\buscosun-glacier-cache\gs\view\glacier\v1 --cache=C:\dev\buscosun-glacier-cache\gm3c-snowpack\seed
+      --out=<Ordner> --fetch-wx=1 --python=C:\dev\buscosun-glacier-cache\.venv\Scripts\python.exe`
+      (liest INCA, das Schweizer Gitter und die Wetterläufe der letzten zehn Tage, rund 6 MB je Lauf, der noch nicht im
+      Zwischenspeicher liegt; am 23.11. einmal durchlaufen: 3 Minuten, alle 2 084 Gletscher, nichts eingespielt). Die Ansicht
+      unter `gs\view` trägt den Katalog `20261120-1`; nennt `glacier/v1/index.json` im Daten-Repo einen anderen Build,
+      braucht es eine frische Ansicht. Den Bericht `<Ordner>-report.json` ansehen: Zahl der Gletscher, `skippedReasons`,
+      Stunden ohne Antrieb je Land.
+   b. `<Ordner>\snowpack\state.json` nach `glacier/v1/snowpack/state.json` auf `main` des Daten-Repos einspielen (dein
+      Gate; der Ordner trägt nur diese Datei und kann dem Publisher übergeben werden:
+      `node scripts/glacier/glacier-publish.mjs --repo=<Klon> --line=melt --src=<Ordner> --message="glacier(snowpack): seed"`).
+   c. Schalter: im Workflow `glacier-melt` des Daten-Repos `GLACIER_SNOWPACK: shadow` setzen (meine Empfehlung: ohne Push
+      zurücknehmbar) oder `SNOWPACK_DEFAULT = 'shadow'` in `scripts/glacier/lib/snowpackcore.mjs` (wirkt mit dem Push).
+   d. Den ersten Lauf ansehen: in `glacier/v1/status.json` die Zeile `lines.snowpack` — `mode: shadow`, `glaciers` um
+      2 084, `state.source: seed`, `state.gaps` (Gletscher mit Stunden ohne Antrieb und der Höchstwert), `seconds` (lokal 9),
+      `bytes` und `stateBytes` (lokal 1,25 und 1,8 MB). Steht dort `error`, ist nichts unter `snowpack/` geschrieben und der
+      Grund steht dabei; Schmelz- und Wetterlauf sind davon nicht berührt.
+4. **Zurück.** `GLACIER_SNOWPACK` im Workflow entfernen oder auf `off` setzen (bzw. die Voreinstellung zurück). Der Lauf
+   schreibt dann nichts mehr unter `snowpack/`; die Laufdokumente dort verschwinden nach 72 h, der Zustand bleibt liegen
+   (er wird nicht gelesen).
+5. **Was du über den Rückfall des Faktors wissen musst:** `GLACIER_SNOW_PRECIP: gate-c` stellt jetzt die Dichte mit (68).
+   Ein Zustand aus `country` wird damit nicht fortgesetzt: die Schneedecke schreibt nichts und nennt „Zustand aus anderer
+   Rechnung“, bis ein Startzustand mit `--precip=gate-c` eingespielt ist. Der Schmelzlauf selbst fällt wie bisher zurück.
+6. **Deine Entscheidungen** (alle in §3f.7): **E-GM-18** Einschalten wann und über welchen Weg · **V-GM-32** soll der
+   Zustand des Schmelzlaufs dasselbe Muster bekommen (er wird bei 3-h-Abständen verworfen)? · **V-GM-39** drei Prüfer in
+   die CI (`.github/workflows/ci.yml`)?
+7. **Was die Messungen sagen, in drei Sätzen:** Ohne Einschwingen stünde 0 cm, wo an 223 Stationen im Mittel 28 cm liegen.
+   Antrieb und Kern treffen Stationen und SNOWGRID ohne Faktor auf ±3 cm (Österreich) bzw. −10 cm (Schweiz, Tagesgitter);
+   mit dem Gletscher-Faktor steht in der Medianhöhe im Median 112 cm — doppelt so viel wie an Stationen, und auf dem Eis
+   bis zum Frühjahr nicht nachmessbar (V-GM-33). INCA taugt in der Schweiz nicht (39 % des Niederschlags, V-GM-34).
+8. **Nicht geprüft:** kein Lauf auf dem Runner; der Publisher nicht gegen ein Repo mit `snowpack/`; nichts im Browser (keine
+   Anzeige); eine Wetterlage; der Startzustand für den Tag des Einschaltens ist nicht gebaut; `verify:glacier-ui` (bricht an
+   HEAD ab, V-GH-6).
+9. **Weiter offen:** E-GM-9 … E-GM-11 (§117); V-GM-26 Gate C vor Mai 2027; V-GM-33 … V-GM-42 (§3f.7); das nächste Paket
+   (GM-4, Kopplung an Stationen) ist nicht freigegeben; Q8–Q10 bleiben ungelesen.

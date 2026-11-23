@@ -7,8 +7,10 @@
  *   precipitation  `--precip=gate-c|country` / `GLACIER_SNOW_PRECIP`: `gate-c` = the factor of Gate C and the set 4 % per 100 m, the run exactly as before,
  *                  the table is not opened; `country` = the level F of the glacier's region from the table × bridge, NO profile (gradient 0, `set`: K-4 is red);
  *   density        `--density=helfricht|board` / `GLACIER_SNOW_DENSITY`: `helfricht` = the constants of the snow core as they are (68 kg m⁻³); `board` = the
- *                  density and the measured span of the table as a second set of constants. No producer runs the snow core yet: this is where GM-5 connects.
- * `board` without `country` is refused: 96 kg m⁻³ were measured against the water equivalent on the board, i.e. against true water (audit §3c.5).
+ *                  density and the measured span of the table as a second set of constants. Read by the snowpack step of the melt run (GM-3c, audit §3f; behind
+ *                  `--snowpack=shadow`) and by its seed tool — nowhere else.
+ * `board` without `country` is refused: 96 kg m⁻³ were measured against the water equivalent on the board, i.e. against true water (audit §3c.5). A density
+ * that is not named follows the precipitation rule (E-GM-15), so the fall back to `gate-c` needs one word.
  *
  * The table carries
  *   precip   per catalogue region the level `F` and the slopes `gu` (below the median elevation) and `go` (above) of the winter accumulation against the named
@@ -62,10 +64,13 @@ const switchOf = (value, allowed, fallback, name) => {
 export const snowPrecipOf = (value) => switchOf(value, SNOW_PRECIP_RULES, SNOW_PRECIP_DEFAULT, 'Niederschlagsfaktor');
 /** The density switch, same rules. */
 export const snowDensitySourceOf = (value) => switchOf(value, SNOW_DENSITY_SOURCES, SNOW_DENSITY_SOURCE_DEFAULT, 'Neuschneedichte');
-/** Both switches of one run. The density of the board needs the factor per country: it holds for true water only — so a run that falls back to `gate-c`
- *  must name `helfricht` as well (nothing is switched along silently). */
+/** The density that goes with a precipitation rule when the run names none (E-GM-15, Jan 23.11.2026; audit §3f): 96 kg m⁻³ hold for true water only (E-GM-13). */
+export const SNOW_DENSITY_FOLLOWS = Object.freeze({ 'gate-c': 'helfricht', country: 'board' });
+/** Both switches of one run. A density that is NOT named follows the precipitation rule, so the fall back needs one word (`gate-c` ⇒ `helfricht`); the run
+ *  says which pair applied. A density that IS named is taken as named — and `board` next to `gate-c` is refused. */
 export function snowSwitchesOf({ precip = null, density = null } = {}) {
-  const out = { precip: snowPrecipOf(precip), density: snowDensitySourceOf(density) };
+  const p = snowPrecipOf(precip);
+  const out = { precip: p, density: density == null || density === '' ? SNOW_DENSITY_FOLLOWS[p] : snowDensitySourceOf(density) };
   if (out.density === 'board' && out.precip !== 'country') throw new Error('Neuschneedichte „board“ gilt nur mit dem Niederschlagsfaktor „country“ (96 kg/m³ sind am wahren Wasserwert gemessen)');
   return out;
 }

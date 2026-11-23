@@ -1,0 +1,841 @@
+{
+ "kind": "glacier/gm3c-analyse",
+ "generated": "2026-11-23T17:14:04.322Z",
+ "offAgainstReference": {
+  "a": 338,
+  "b": 338,
+  "same": 338,
+  "different": [],
+  "onlyA": [],
+  "onlyB": [],
+  "patches": {
+   "index": true,
+   "statusWithoutSeconds": true,
+   "secondsOff": 194,
+   "secondsRef": 210
+  }
+ },
+ "shadow": {
+  "againstOff": {
+   "a": 338,
+   "b": 338,
+   "same": 338,
+   "different": [],
+   "onlyA": [],
+   "onlyB": []
+  },
+  "added": [
+   "snowpack/2026112117.json",
+   "snowpack/state.json"
+  ],
+  "run": "2026112117",
+  "glaciers": 2084,
+  "skipped": 10,
+  "skippedReasons": {
+   "elevations": 10
+  },
+  "coverage": {
+   "own": 957,
+   "neighbour": 1127,
+   "lapse": 0
+  },
+  "state": {
+   "source": "seed",
+   "since": "2026-10-01T00:00:00.000Z",
+   "ageH": 0,
+   "replayedH": 0,
+   "started": 65,
+   "gaps": {
+    "glaciers": 43,
+    "maxH": 24
+   }
+  },
+  "rules": {
+   "precip": "country",
+   "density": {
+    "source": "board",
+    "rhoNew": 96,
+    "p10": 65,
+    "p90": 148.1,
+    "origin": "measured"
+   },
+   "phase": "temperature"
+  },
+  "hsNowCm": [
+   [
+    43.5,
+    96.8,
+    157.2
+   ],
+   [
+    55.6,
+    112.3,
+    169
+   ],
+   [
+    64.5,
+    123.3,
+    182
+   ]
+  ],
+  "sweNowMm": [
+   [
+    59.9,
+    183,
+    342.2
+   ],
+   [
+    84.9,
+    221.9,
+    380.8
+   ],
+   [
+    106.1,
+    257.6,
+    429.9
+   ]
+  ],
+  "hn24Cm": [
+   [
+    1.7,
+    11,
+    24.3
+   ],
+   [
+    1.7,
+    11,
+    24.3
+   ],
+   [
+    1.7,
+    11,
+    24.3
+   ]
+  ],
+  "hn72Cm": [
+   [
+    13.7,
+    33.3,
+    66.6
+   ],
+   [
+    13.7,
+    33.6,
+    66.8
+   ],
+   [
+    13.7,
+    33.6,
+    66.8
+   ]
+  ],
+  "hsDay1Cm": [
+   [
+    47.4,
+    99.5,
+    160.7
+   ],
+   [
+    58.7,
+    114.2,
+    171.8
+   ],
+   [
+    68.4,
+    125.3,
+    185.6
+   ]
+  ],
+  "hsDay14Cm": [
+   [
+    68.9,
+    112.2,
+    168.1
+   ],
+   [
+    78,
+    124.4,
+    180.1
+   ],
+   [
+    85.2,
+    135,
+    191.6
+   ]
+  ],
+  "newSnowDay1Cm": [
+   [
+    2.2,
+    8.6,
+    19.5
+   ],
+   [
+    2.3,
+    8.6,
+    19.5
+   ],
+   [
+    2.3,
+    8.6,
+    19.6
+   ]
+  ],
+  "newSnow14Cm": [
+   [
+    50.6,
+    76.6,
+    113.6
+   ],
+   [
+    50.6,
+    76.7,
+    114.2
+   ],
+   [
+    50.6,
+    76.8,
+    114.2
+   ]
+  ],
+  "without": [
+   65,
+   65,
+   65
+  ],
+  "weight": {
+   "doc": {
+    "raw": 1254509,
+    "gzip": 308850,
+    "brotli": 225990
+   },
+   "state": {
+    "raw": 1813215,
+    "gzip": 325124,
+    "brotli": 203788
+   }
+  },
+  "patches": {
+   "sameWithoutOwnEntries": true,
+   "status": {
+    "at": "2026-11-21T17:50:00.000Z",
+    "mode": "shadow",
+    "glaciers": 2084,
+    "skipped": 10,
+    "coverage": {
+     "own": 957,
+     "neighbour": 1127,
+     "lapse": 0
+    },
+    "precip": "country",
+    "density": "board",
+    "state": {
+     "source": "seed",
+     "since": "2026-10-01T00:00:00.000Z",
+     "ageH": 0,
+     "replayedH": 0,
+     "started": 65,
+     "gaps": {
+      "glaciers": 43,
+      "maxH": 24
+     }
+    },
+    "carried": 0,
+    "dropped": 0,
+    "bytes": 1254509,
+    "stateBytes": 1813215,
+    "seconds": 9
+   },
+   "pointer": {
+    "run": "2026112117",
+    "runAt": "2026-11-21T17:50:00.000Z",
+    "engine": {
+     "name": "buscosun Fusion 14",
+     "version": 14
+    },
+    "build": "20261120-1",
+    "since": "2026-10-01T00:00:00.000Z"
+   },
+   "meltSeconds": 203
+  }
+ },
+ "next": {
+  "againstOff": {
+   "a": 338,
+   "b": 338,
+   "same": 280,
+   "different": [
+    "melt/2026112117.json",
+    "melt/state.json",
+    "melt/wx/2026112117/at-allgaeuer-alpen.json",
+    "melt/wx/2026112117/at-ankogel-hochalmspitzgruppe.json",
+    "melt/wx/2026112117/at-dachstein.json",
+    "melt/wx/2026112117/at-defreggergruppe.json",
+    "melt/wx/2026112117/at-glocknergruppe.json",
+    "melt/wx/2026112117/at-goldberggruppe.json",
+    "melt/wx/2026112117/at-granatspitzgruppe.json",
+    "melt/wx/2026112117/at-hochkoenig.json",
+    "melt/wx/2026112117/at-karnische-alpen.json",
+    "melt/wx/2026112117/at-lechtaler-alpen.json",
+    "melt/wx/2026112117/at-oetztaler-alpen.json",
+    "melt/wx/2026112117/at-raetikon.json",
+    "melt/wx/2026112117/at-rieserfernergruppe.json",
+    "melt/wx/2026112117/at-samnaungruppe.json",
+    "melt/wx/2026112117/at-schobergruppe.json",
+    "melt/wx/2026112117/at-silvrettagruppe.json",
+    "melt/wx/2026112117/at-stubaier-alpen.json",
+    "melt/wx/2026112117/at-venedigergruppe.json",
+    "melt/wx/2026112117/at-verwallgruppe.json",
+    "melt/wx/2026112117/at-zillertaler-alpen.json",
+    "melt/wx/2026112117/ch-mitte-ost.json",
+    "melt/wx/2026112117/ch-mitte-west.json",
+    "melt/wx/2026112117/ch-ost.json",
+    "melt/wx/2026112117/ch-sued.json",
+    "melt/wx/2026112117/ch-west.json",
+    "melt/wx/2026112117/de.json",
+    "melt/wx/2026112117.json",
+    "melt/wx/phase.json"
+   ],
+   "onlyA": [
+    "melt/2026111823.json",
+    "melt/wx/2026111823/at-allgaeuer-alpen.json",
+    "melt/wx/2026111823/at-ankogel-hochalmspitzgruppe.json",
+    "melt/wx/2026111823/at-dachstein.json",
+    "melt/wx/2026111823/at-defreggergruppe.json",
+    "melt/wx/2026111823/at-glocknergruppe.json",
+    "melt/wx/2026111823/at-goldberggruppe.json",
+    "melt/wx/2026111823/at-granatspitzgruppe.json",
+    "melt/wx/2026111823/at-hochkoenig.json",
+    "melt/wx/2026111823/at-karnische-alpen.json",
+    "melt/wx/2026111823/at-lechtaler-alpen.json",
+    "melt/wx/2026111823/at-oetztaler-alpen.json",
+    "melt/wx/2026111823/at-raetikon.json",
+    "melt/wx/2026111823/at-rieserfernergruppe.json",
+    "melt/wx/2026111823/at-samnaungruppe.json",
+    "melt/wx/2026111823/at-schobergruppe.json",
+    "melt/wx/2026111823/at-silvrettagruppe.json",
+    "melt/wx/2026111823/at-stubaier-alpen.json",
+    "melt/wx/2026111823/at-venedigergruppe.json",
+    "melt/wx/2026111823/at-verwallgruppe.json",
+    "melt/wx/2026111823/at-zillertaler-alpen.json",
+    "melt/wx/2026111823/ch-mitte-ost.json",
+    "melt/wx/2026111823/ch-mitte-west.json",
+    "melt/wx/2026111823/ch-ost.json",
+    "melt/wx/2026111823/ch-sued.json",
+    "melt/wx/2026111823/ch-west.json",
+    "melt/wx/2026111823/de.json",
+    "melt/wx/2026111823.json"
+   ],
+   "onlyB": [
+    "melt/2026112123.json",
+    "melt/wx/2026112123/at-allgaeuer-alpen.json",
+    "melt/wx/2026112123/at-ankogel-hochalmspitzgruppe.json",
+    "melt/wx/2026112123/at-dachstein.json",
+    "melt/wx/2026112123/at-defreggergruppe.json",
+    "melt/wx/2026112123/at-glocknergruppe.json",
+    "melt/wx/2026112123/at-goldberggruppe.json",
+    "melt/wx/2026112123/at-granatspitzgruppe.json",
+    "melt/wx/2026112123/at-hochkoenig.json",
+    "melt/wx/2026112123/at-karnische-alpen.json",
+    "melt/wx/2026112123/at-lechtaler-alpen.json",
+    "melt/wx/2026112123/at-oetztaler-alpen.json",
+    "melt/wx/2026112123/at-raetikon.json",
+    "melt/wx/2026112123/at-rieserfernergruppe.json",
+    "melt/wx/2026112123/at-samnaungruppe.json",
+    "melt/wx/2026112123/at-schobergruppe.json",
+    "melt/wx/2026112123/at-silvrettagruppe.json",
+    "melt/wx/2026112123/at-stubaier-alpen.json",
+    "melt/wx/2026112123/at-venedigergruppe.json",
+    "melt/wx/2026112123/at-verwallgruppe.json",
+    "melt/wx/2026112123/at-zillertaler-alpen.json",
+    "melt/wx/2026112123/ch-mitte-ost.json",
+    "melt/wx/2026112123/ch-mitte-west.json",
+    "melt/wx/2026112123/ch-ost.json",
+    "melt/wx/2026112123/ch-sued.json",
+    "melt/wx/2026112123/ch-west.json",
+    "melt/wx/2026112123/de.json",
+    "melt/wx/2026112123.json"
+   ]
+  },
+  "added": [
+   "snowpack/2026112123.json",
+   "snowpack/state.json"
+  ],
+  "run": "2026112123",
+  "glaciers": 2084,
+  "skipped": 10,
+  "skippedReasons": {
+   "elevations": 10
+  },
+  "coverage": {
+   "own": 957,
+   "neighbour": 1127,
+   "lapse": 0
+  },
+  "state": {
+   "source": "carried",
+   "since": "2026-10-01T00:00:00.000Z",
+   "ageH": 6,
+   "replayedH": 6,
+   "started": 0,
+   "gaps": {
+    "glaciers": 43,
+    "maxH": 24
+   }
+  },
+  "rules": {
+   "precip": "country",
+   "density": {
+    "source": "board",
+    "rhoNew": 96,
+    "p10": 65,
+    "p90": 148.1,
+    "origin": "measured"
+   },
+   "phase": "temperature"
+  },
+  "hsNowCm": [
+   [
+    43.3,
+    96.2,
+    156
+   ],
+   [
+    55.4,
+    111.3,
+    168
+   ],
+   [
+    64,
+    122.5,
+    181.2
+   ]
+  ],
+  "sweNowMm": [
+   [
+    60,
+    183.1,
+    342.2
+   ],
+   [
+    85,
+    221.9,
+    380.8
+   ],
+   [
+    106.2,
+    257.7,
+    429.9
+   ]
+  ],
+  "hn24Cm": [
+   [
+    1.2,
+    8.6,
+    16.8
+   ],
+   [
+    1.2,
+    8.6,
+    16.8
+   ],
+   [
+    1.2,
+    8.6,
+    16.8
+   ]
+  ],
+  "hn72Cm": [
+   [
+    12.8,
+    31.2,
+    63.4
+   ],
+   [
+    12.8,
+    31.2,
+    63.8
+   ],
+   [
+    12.8,
+    31.3,
+    63.9
+   ]
+  ],
+  "hsDay1Cm": [
+   [
+    52.5,
+    104.6,
+    165.6
+   ],
+   [
+    63.8,
+    119.2,
+    178.2
+   ],
+   [
+    71.3,
+    129.8,
+    190.9
+   ]
+  ],
+  "hsDay14Cm": [
+   [
+    69.5,
+    113,
+    169.1
+   ],
+   [
+    78.7,
+    125,
+    181.4
+   ],
+   [
+    86,
+    135.8,
+    193.2
+   ]
+  ],
+  "newSnowDay1Cm": [
+   [
+    5.3,
+    17,
+    32.2
+   ],
+   [
+    5.3,
+    17,
+    32.2
+   ],
+   [
+    5.3,
+    17,
+    32.4
+   ]
+  ],
+  "newSnow14Cm": [
+   [
+    51.2,
+    78.7,
+    117.3
+   ],
+   [
+    51.3,
+    78.7,
+    117.4
+   ],
+   [
+    51.3,
+    78.7,
+    117.7
+   ]
+  ],
+  "without": [
+   21,
+   21,
+   21
+  ],
+  "weight": {
+   "doc": {
+    "raw": 1257814,
+    "gzip": 308636,
+    "brotli": 224853
+   },
+   "state": {
+    "raw": 1845370,
+    "gzip": 343678,
+    "brotli": 208509
+   }
+  },
+  "patches": {
+   "sameWithoutOwnEntries": false,
+   "status": {
+    "at": "2026-11-21T23:50:00.000Z",
+    "mode": "shadow",
+    "glaciers": 2084,
+    "skipped": 10,
+    "coverage": {
+     "own": 957,
+     "neighbour": 1127,
+     "lapse": 0
+    },
+    "precip": "country",
+    "density": "board",
+    "state": {
+     "source": "carried",
+     "since": "2026-10-01T00:00:00.000Z",
+     "ageH": 6,
+     "replayedH": 6,
+     "started": 0,
+     "gaps": {
+      "glaciers": 43,
+      "maxH": 24
+     }
+    },
+    "carried": 0,
+    "dropped": 0,
+    "bytes": 1257814,
+    "stateBytes": 1845370,
+    "seconds": 9
+   },
+   "pointer": {
+    "run": "2026112123",
+    "runAt": "2026-11-21T23:50:00.000Z",
+    "engine": {
+     "name": "buscosun Fusion 14",
+     "version": 14
+    },
+    "build": "20261120-1",
+    "since": "2026-10-01T00:00:00.000Z"
+   },
+   "meltSeconds": 196
+  }
+ },
+ "cold": {
+  "againstOff": {
+   "a": 338,
+   "b": 338,
+   "same": 338,
+   "different": [],
+   "onlyA": [],
+   "onlyB": []
+  },
+  "added": [
+   "snowpack/2026112117.json",
+   "snowpack/state.json"
+  ],
+  "run": "2026112117",
+  "glaciers": 2084,
+  "skipped": 10,
+  "skippedReasons": {
+   "elevations": 10
+  },
+  "coverage": {
+   "own": 957,
+   "neighbour": 1127,
+   "lapse": 0
+  },
+  "state": {
+   "source": "cold",
+   "since": "2026-11-21T17:00:00.000Z",
+   "ageH": null,
+   "replayedH": null,
+   "started": 2084,
+   "gaps": {
+    "glaciers": 0,
+    "maxH": 0
+   }
+  },
+  "rules": {
+   "precip": "country",
+   "density": {
+    "source": "board",
+    "rhoNew": 96,
+    "p10": 65,
+    "p90": 148.1,
+    "origin": "measured"
+   },
+   "phase": "temperature"
+  },
+  "hsNowCm": [
+   [
+    0,
+    0,
+    0
+   ],
+   [
+    0,
+    0,
+    0
+   ],
+   [
+    0,
+    0,
+    0
+   ]
+  ],
+  "sweNowMm": [
+   [
+    0,
+    0,
+    0
+   ],
+   [
+    0,
+    0,
+    0
+   ],
+   [
+    0,
+    0,
+    0
+   ]
+  ],
+  "hn24Cm": [
+   [
+    0,
+    0,
+    0
+   ],
+   [
+    0,
+    0,
+    0
+   ],
+   [
+    0,
+    0,
+    0
+   ]
+  ],
+  "hn72Cm": [
+   [
+    0,
+    0,
+    0
+   ],
+   [
+    0,
+    0,
+    0
+   ],
+   [
+    0,
+    0,
+    0
+   ]
+  ],
+  "hsDay1Cm": [
+   [
+    2.2,
+    8.6,
+    19.4
+   ],
+   [
+    2.3,
+    8.6,
+    19.5
+   ],
+   [
+    2.3,
+    8.6,
+    19.6
+   ]
+  ],
+  "hsDay14Cm": [
+   [
+    35.1,
+    48.3,
+    65
+   ],
+   [
+    35.1,
+    48.5,
+    65.1
+   ],
+   [
+    35.1,
+    48.5,
+    65.1
+   ]
+  ],
+  "newSnowDay1Cm": [
+   [
+    2.2,
+    8.6,
+    19.4
+   ],
+   [
+    2.3,
+    8.6,
+    19.5
+   ],
+   [
+    2.3,
+    8.6,
+    19.6
+   ]
+  ],
+  "newSnow14Cm": [
+   [
+    50.6,
+    76.4,
+    113.3
+   ],
+   [
+    50.6,
+    76.7,
+    114
+   ],
+   [
+    50.6,
+    76.8,
+    114.1
+   ]
+  ],
+  "without": [
+   2084,
+   2084,
+   2084
+  ],
+  "weight": {
+   "doc": {
+    "raw": 1093845,
+    "gzip": 138757,
+    "brotli": 70794
+   },
+   "state": {
+    "raw": 1011647,
+    "gzip": 180304,
+    "brotli": 119896
+   }
+  },
+  "patches": {
+   "sameWithoutOwnEntries": true,
+   "status": {
+    "at": "2026-11-21T17:50:00.000Z",
+    "mode": "shadow",
+    "glaciers": 2084,
+    "skipped": 10,
+    "coverage": {
+     "own": 957,
+     "neighbour": 1127,
+     "lapse": 0
+    },
+    "precip": "country",
+    "density": "board",
+    "state": {
+     "source": "cold",
+     "since": "2026-11-21T17:00:00.000Z",
+     "ageH": null,
+     "replayedH": null,
+     "started": 2084,
+     "gaps": {
+      "glaciers": 0,
+      "maxH": 0
+     }
+    },
+    "carried": 0,
+    "dropped": 0,
+    "bytes": 1093845,
+    "stateBytes": 1011647,
+    "seconds": 8
+   },
+   "pointer": {
+    "run": "2026112117",
+    "runAt": "2026-11-21T17:50:00.000Z",
+    "engine": {
+     "name": "buscosun Fusion 14",
+     "version": 14
+    },
+    "build": "20261120-1",
+    "since": "2026-11-21T17:00:00.000Z"
+   },
+   "meltSeconds": 206
+  }
+ },
+ "offTree": {
+  "files": 338,
+  "bytes": 65603903,
+  "snowpackFiles": 0
+ }
+}
