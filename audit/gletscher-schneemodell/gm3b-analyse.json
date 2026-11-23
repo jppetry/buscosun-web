@@ -1,0 +1,171 @@
+{
+ "generated": "2026-11-22T23:14:26.399Z",
+ "run": "2026112117",
+ "now": "2026-11-21T17:50:00Z",
+ "A": {
+  "reference": "gm2/out-default (Lauf des Standes vor GM-3b, 22.11.)",
+  "files": {
+   "reference": 338,
+   "off": 338,
+   "sameNames": true
+  },
+  "different": 0,
+  "differentFiles": [],
+  "indexPatchSame": true,
+  "statusPatchSameWithoutSeconds": true
+ },
+ "B": {
+  "rows": 2094,
+  "rowsOn": 2094,
+  "rowsDifferent": 191,
+  "changedByField": {
+   "idx": 182,
+   "ix7": 11,
+   "ix14": 34,
+   "ice": 0,
+   "zf": 0,
+   "zs": 0,
+   "nf": 0,
+   "f": 0
+  },
+  "maxIndexDifference": 11,
+  "indexMedianSum14": {
+   "off": 3076,
+   "on": 2932,
+   "glaciersLower": 29,
+   "glaciersHigher": 0,
+   "largest": [
+    {
+     "id": "gl_ch_chilchbalm",
+     "country": "CH",
+     "z": [
+      1649,
+      1715,
+      1837
+     ],
+     "off": 277,
+     "on": 233
+    },
+    {
+     "id": "gl_at_boggenei-kees",
+     "country": "AT",
+     "z": [
+      1880,
+      2055,
+      2259
+     ],
+     "off": 138,
+     "on": 98
+    },
+    {
+     "id": "gl_at_nn-5049",
+     "country": "AT",
+     "z": [
+      2069,
+      2199,
+      2475
+     ],
+     "off": 84,
+     "on": 70
+    },
+    {
+     "id": "gl_ch_ahornisboden",
+     "country": "CH",
+     "z": [
+      1649,
+      1683,
+      1732
+     ],
+     "off": 109,
+     "on": 103
+    },
+    {
+     "id": "gl_ch_nn-g009009e47015n",
+     "country": "CH",
+     "z": [
+      1640,
+      1772,
+      1889
+     ],
+     "off": 102,
+     "on": 97
+    }
+   ]
+  },
+  "paramsOtherwiseSame": true,
+  "stateOf": {
+   "source": "cold",
+   "ageH": null,
+   "nudged": 600
+  },
+  "stateOn": {
+   "source": "cold",
+   "ageH": null,
+   "nudged": 600
+  },
+  "unit": [
+   false,
+   false
+  ],
+  "precipBlock": {
+   "rule": "country",
+   "regions": 26,
+   "F": {
+    "ch-ost": 1.793,
+    "at-dachstein": 2.326,
+    "de": 1.854
+   },
+   "gradient": 0,
+   "bridge": 1,
+   "gate": false
+  },
+  "bytes": {
+   "off": 646477,
+   "on": 648684
+  },
+  "expectedRatioAtMedian": {
+   "CH": 1.391,
+   "AT": 1.805,
+   "DE": 1.438
+  },
+  "countries": {
+   "AT": {
+    "glaciers": 799,
+    "stateDifferent": 320,
+    "meanSweOffMm": 78.4,
+    "meanSweOnMm": 78.4,
+    "sixHourGain": {
+     "glaciers": 19,
+     "offMm": 0.604,
+     "onMm": 1.068,
+     "ratioOfSums": 1.768,
+     "ratioMedian": 1.75,
+     "ratioP10": 1.667,
+     "ratioP90": 1.846
+    }
+   },
+   "CH": {
+    "glaciers": 1291,
+    "stateDifferent": 112,
+    "meanSweOffMm": 52.6,
+    "meanSweOnMm": 52.6,
+    "sixHourGain": null
+   },
+   "DE": {
+    "glaciers": 4,
+    "stateDifferent": 4,
+    "meanSweOffMm": 0.6,
+    "meanSweOnMm": 0.9,
+    "sixHourGain": {
+     "glaciers": 4,
+     "offMm": 0.63,
+     "onMm": 0.9,
+     "ratioOfSums": 1.43,
+     "ratioMedian": 1.4,
+     "ratioP10": 1.358,
+     "ratioP90": 1.473
+    }
+   }
+  }
+ }
+}

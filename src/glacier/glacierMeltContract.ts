@@ -58,7 +58,20 @@ export interface GlacierMeltDoc {
   origin: 'model';
   engine: { name: string; version: number | null; stageCurrent: boolean };
   cube: { t1: string | null; t2: string | null; t3: string | null; stations: string | null };
-  params: { pf: number; TF: number; SRF: number; origin: { pf: GlacierParamOrigin; TF: GlacierParamOrigin; SRF: GlacierParamOrigin }; report: string };
+  params: {
+    pf: number; TF: number; SRF: number; origin: { pf: GlacierParamOrigin; TF: GlacierParamOrigin; SRF: GlacierParamOrigin }; report: string;
+    /**
+     * Phase GM (E-GM-7), only in a run with the producer switch `--precip=country`: the run accumulated with the level `F` of the glacier's region from
+     * the calibration table of the snow model and WITHOUT a profile with elevation — `pf` above (and the 4 % per 100 m of the core) then did not apply.
+     * Absent = the run used `pf` as always. The producer checks the block (`meltPrecipProblems` in scripts/glacier/lib/snowcal.mjs); no page reads it.
+     */
+    precip?: {
+      rule: 'country'; replaces: 'pf';
+      regions: Record<string, { F: number; origin: 'measured' | 'transferred'; from: string }>;
+      gradient: 0; bridge: number; origin: { gradient: 'set'; bridge: 'set' | 'measured' };
+      against: Record<string, string>; gate: boolean; reason?: string; method: string;
+    };
+  };
   gate: { unit: boolean; reason: string };
   scenarios: { k: number; rho: number; origin: 'set'; sums: 'scenarios' };
   ref: { dailyMm: number; origin: 'set' };

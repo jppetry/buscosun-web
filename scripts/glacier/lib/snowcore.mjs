@@ -76,8 +76,12 @@ export function newSnowDensity({ rule = SNOW_DENSITY_DEFAULT, tC = null, uMs = n
   return Math.min(c.rhoMax, Math.max(c.rhoNewFloor, c.vionnetA + c.vionnetB * tC + c.vionnetC * Math.sqrt(uMs)));
 }
 
-/** p10 / p90 of the measured new-snow density (normal, mean 68, sd 9): the span every depth of new snow is shown with. */
+/**
+ * p10 / p90 of the new-snow density: the span every depth of new snow is shown with. From mean and standard deviation (normal: 68, sd 9) — or, when the
+ * set of constants carries measured quantiles (`rhoNewP10`, `rhoNewP90`; phase GM, E-GM-8), those. `p50` is the density the core lays new snow down with.
+ */
 export function newSnowDensitySpan(c = SNOW) {
+  if (Number.isFinite(c.rhoNewP10) && Number.isFinite(c.rhoNewP90)) return { p10: c.rhoNewP10, p50: c.rhoNew, p90: c.rhoNewP90 };
   const z = 1.2815515655446004;
   return { p10: c.rhoNew - z * c.rhoNewSd, p50: c.rhoNew, p90: c.rhoNew + z * c.rhoNewSd };
 }
@@ -182,10 +186,11 @@ export function melt(p, meltMm, c = SNOW) {
 /**
  * One step of one band: age out, new load, deposit, settle, melt — in the order of Δsnow (compaction by the new load first, the new layer
  * second, then the whole pack settles). `solidMm` and `meltMm` come from the melt core; a missing value counts as 0 there, not here.
+ * A `rhoNew` left out means the density of the constants in use (`c.rhoNew`); an explicit `null` (a rule without a value) still stops in `deposit`.
  */
-export function stepPack(p, { tMs, solidMm = 0, rhoNew = SNOW.rhoNew, meltMm = 0, tC = null, dtS = 3600 }, c = SNOW) {
+export function stepPack(p, { tMs, solidMm = 0, rhoNew, meltMm = 0, tC = null, dtS = 3600 }, c = SNOW) {
   ageOut(p, tMs, c);
-  if (solidMm > 0) { overburden(p, solidMm, c); deposit(p, solidMm, rhoNew, tMs, c); }
+  if (solidMm > 0) { overburden(p, solidMm, c); deposit(p, solidMm, rhoNew === undefined ? c.rhoNew : rhoNew, tMs, c); }
   compact(p, dtS, tC, c);
   const taken = melt(p, meltMm, c);
   return { pack: p, melted: taken };

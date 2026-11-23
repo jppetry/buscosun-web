@@ -41,6 +41,13 @@ const withC = (over) => Object.freeze({ ...SNOW, ...over });
     keys.every((k) => ['literature', 'set', 'measured'].includes(SNOW_ORIGIN[k])) && Object.keys(SNOW_ORIGIN).every((k) => k in SNOW)
     && SNOW_SOURCES.length === 2 && SNOW_SOURCES.every((s) => /^https:\/\/doi\.org\/10\.5194\/hess-/.test(s.doi) && s.licence === 'CC BY 4.0'),
     { ohne: keys.filter((k) => !SNOW_ORIGIN[k]) });
+  // phase GM, E-GM-8: a set of constants may carry another density and measured quantiles; the core's own set is not touched by that
+  const q = withC({ rhoNew: 96, rhoNewP10: 65, rhoNewP90: 148.1 }), sq = newSnowDensitySpan(q), half = newSnowDensitySpan(withC({ rhoNew: 96, rhoNewP10: 65 }));
+  const laid = (opts, c) => { const p = emptyPack(); stepPack(p, { tMs: T0, solidMm: 9.6, dtS: 0, ...opts }, c); return packDepthCm(p); };
+  add('A4 Konstantensatz mit eigener Dichte: die Spanne nimmt gemessene Quantile, wenn BEIDE da sind (65 / 96 / 148,1), sonst Mittel und Streuung; ohne Angabe legt ein Schritt Neuschnee mit der Dichte des benutzten Satzes ab (9,6 mm ⇒ 10 cm bei 96, 14,1 cm bei 68), eine genannte Dichte gewinnt, ein ausdrückliches null bricht ab',
+    sq.p10 === 65 && sq.p50 === 96 && sq.p90 === 148.1 && near(half.p10, 96 - 1.2815515655446004 * 9, 1e-9) && half.p50 === 96
+    && near(laid({}, q), 10, 1e-9) && near(laid({}, SNOW), 960 / 68, 1e-9) && near(laid({ rhoNew: 120 }, q), 8, 1e-9) && throws(() => laid({ rhoNew: null }, q)) && SNOW.rhoNew === 68 && !('rhoNewP10' in SNOW),
+    { sq, half, d96: laid({}, q), d68: laid({}, SNOW) });
 }
 
 // --- B: mass conservation and bounds over random weather ---------------------------------------------------------------------------

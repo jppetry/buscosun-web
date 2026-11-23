@@ -1,0 +1,539 @@
+{
+ "schema": 1,
+ "kind": "glacier/snow-calibration",
+ "generated": "2026-11-22T22:22:21.629Z",
+ "method": {
+  "file": "audit/gletscher-schneemodell/gm3-method-frozen.md",
+  "sha256": "cf4c001be409a9c3276e7a054f29b26ff159b702a14011421d31db98b870d061",
+  "amendments": [
+   "audit/gletscher-schneemodell/gm3-method-frozen-amendment-1.md (explorativ, ändert weder Auswahl noch Urteil)"
+  ]
+ },
+ "usedByProducer": false,
+ "precip": {
+  "against": {
+   "CH": "MeteoSchweiz RhiresD, Tagesgitter 1 km (CC BY 4.0, Quelle: MeteoSchweiz)",
+   "AT": "GeoSphere Austria INCA-Analyse stündlich, 1 km (inca-v1-1h-1km, CC BY 4.0)"
+  },
+  "truth": "Winterbilanz je Höhenstufe: GLAMOS Release 2025 (Schweiz), WGMS FoG 2026-02-10 (Österreich), hydrologische Jahre 2012–2025",
+  "form": "P1",
+  "levels": {
+   "F": "C",
+   "g": "G"
+  },
+  "floor": 0.2,
+  "n": {
+   "winters": 481,
+   "glaciers": 44,
+   "CH": 394,
+   "AT": 87,
+   "unusable": 7
+  },
+  "regions": {
+   "at-allgaeuer-alpen": {
+    "F": 2.326,
+    "gu": -0.0202,
+    "go": -0.0202,
+    "fOrigin": "transferred",
+    "gOrigin": "transferred",
+    "fFrom": "AT",
+    "gFrom": "all",
+    "glaciers": 0,
+    "winters": 0
+   },
+   "at-ankogel-hochalmspitzgruppe": {
+    "F": 2.326,
+    "gu": -0.0202,
+    "go": -0.0202,
+    "fOrigin": "transferred",
+    "gOrigin": "transferred",
+    "fFrom": "AT",
+    "gFrom": "all",
+    "glaciers": 0,
+    "winters": 0
+   },
+   "at-dachstein": {
+    "F": 2.326,
+    "gu": -0.0202,
+    "go": -0.0202,
+    "fOrigin": "measured",
+    "gOrigin": "measured",
+    "fFrom": "AT",
+    "gFrom": "all",
+    "glaciers": 1,
+    "winters": 12
+   },
+   "at-defreggergruppe": {
+    "F": 2.326,
+    "gu": -0.0202,
+    "go": -0.0202,
+    "fOrigin": "transferred",
+    "gOrigin": "transferred",
+    "fFrom": "AT",
+    "gFrom": "all",
+    "glaciers": 0,
+    "winters": 0
+   },
+   "at-glocknergruppe": {
+    "F": 2.326,
+    "gu": -0.0202,
+    "go": -0.0202,
+    "fOrigin": "transferred",
+    "gOrigin": "transferred",
+    "fFrom": "AT",
+    "gFrom": "all",
+    "glaciers": 0,
+    "winters": 0
+   },
+   "at-goldberggruppe": {
+    "F": 2.326,
+    "gu": -0.0202,
+    "go": -0.0202,
+    "fOrigin": "measured",
+    "gOrigin": "measured",
+    "fFrom": "AT",
+    "gFrom": "all",
+    "glaciers": 2,
+    "winters": 16
+   },
+   "at-granatspitzgruppe": {
+    "F": 2.326,
+    "gu": -0.0202,
+    "go": -0.0202,
+    "fOrigin": "transferred",
+    "gOrigin": "transferred",
+    "fFrom": "AT",
+    "gFrom": "all",
+    "glaciers": 0,
+    "winters": 0
+   },
+   "at-hochkoenig": {
+    "F": 2.326,
+    "gu": -0.0202,
+    "go": -0.0202,
+    "fOrigin": "transferred",
+    "gOrigin": "transferred",
+    "fFrom": "AT",
+    "gFrom": "all",
+    "glaciers": 0,
+    "winters": 0
+   },
+   "at-karnische-alpen": {
+    "F": 2.326,
+    "gu": -0.0202,
+    "go": -0.0202,
+    "fOrigin": "transferred",
+    "gOrigin": "transferred",
+    "fFrom": "AT",
+    "gFrom": "all",
+    "glaciers": 0,
+    "winters": 0
+   },
+   "at-lechtaler-alpen": {
+    "F": 2.326,
+    "gu": -0.0202,
+    "go": -0.0202,
+    "fOrigin": "transferred",
+    "gOrigin": "transferred",
+    "fFrom": "AT",
+    "gFrom": "all",
+    "glaciers": 0,
+    "winters": 0
+   },
+   "at-oetztaler-alpen": {
+    "F": 2.326,
+    "gu": -0.0202,
+    "go": -0.0202,
+    "fOrigin": "measured",
+    "gOrigin": "measured",
+    "fFrom": "AT",
+    "gFrom": "all",
+    "glaciers": 2,
+    "winters": 22
+   },
+   "at-raetikon": {
+    "F": 2.326,
+    "gu": -0.0202,
+    "go": -0.0202,
+    "fOrigin": "transferred",
+    "gOrigin": "transferred",
+    "fFrom": "AT",
+    "gFrom": "all",
+    "glaciers": 0,
+    "winters": 0
+   },
+   "at-rieserfernergruppe": {
+    "F": 2.326,
+    "gu": -0.0202,
+    "go": -0.0202,
+    "fOrigin": "transferred",
+    "gOrigin": "transferred",
+    "fFrom": "AT",
+    "gFrom": "all",
+    "glaciers": 0,
+    "winters": 0
+   },
+   "at-samnaungruppe": {
+    "F": 2.326,
+    "gu": -0.0202,
+    "go": -0.0202,
+    "fOrigin": "transferred",
+    "gOrigin": "transferred",
+    "fFrom": "AT",
+    "gFrom": "all",
+    "glaciers": 0,
+    "winters": 0
+   },
+   "at-schobergruppe": {
+    "F": 2.326,
+    "gu": -0.0202,
+    "go": -0.0202,
+    "fOrigin": "transferred",
+    "gOrigin": "transferred",
+    "fFrom": "AT",
+    "gFrom": "all",
+    "glaciers": 0,
+    "winters": 0
+   },
+   "at-silvrettagruppe": {
+    "F": 2.326,
+    "gu": -0.0202,
+    "go": -0.0202,
+    "fOrigin": "measured",
+    "gOrigin": "measured",
+    "fFrom": "AT",
+    "gFrom": "all",
+    "glaciers": 1,
+    "winters": 13
+   },
+   "at-stubaier-alpen": {
+    "F": 2.326,
+    "gu": -0.0202,
+    "go": -0.0202,
+    "fOrigin": "transferred",
+    "gOrigin": "transferred",
+    "fFrom": "AT",
+    "gFrom": "all",
+    "glaciers": 0,
+    "winters": 0
+   },
+   "at-venedigergruppe": {
+    "F": 2.326,
+    "gu": -0.0202,
+    "go": -0.0202,
+    "fOrigin": "measured",
+    "gOrigin": "measured",
+    "fFrom": "AT",
+    "gFrom": "all",
+    "glaciers": 2,
+    "winters": 24
+   },
+   "at-verwallgruppe": {
+    "F": 2.326,
+    "gu": -0.0202,
+    "go": -0.0202,
+    "fOrigin": "transferred",
+    "gOrigin": "transferred",
+    "fFrom": "AT",
+    "gFrom": "all",
+    "glaciers": 0,
+    "winters": 0
+   },
+   "at-zillertaler-alpen": {
+    "F": 2.326,
+    "gu": -0.0202,
+    "go": -0.0202,
+    "fOrigin": "transferred",
+    "gOrigin": "transferred",
+    "fFrom": "AT",
+    "gFrom": "all",
+    "glaciers": 0,
+    "winters": 0
+   },
+   "ch-mitte-ost": {
+    "F": 1.793,
+    "gu": -0.0202,
+    "go": -0.0202,
+    "fOrigin": "measured",
+    "gOrigin": "measured",
+    "fFrom": "CH",
+    "gFrom": "all",
+    "glaciers": 5,
+    "winters": 53
+   },
+   "ch-mitte-west": {
+    "F": 1.793,
+    "gu": -0.0202,
+    "go": -0.0202,
+    "fOrigin": "measured",
+    "gOrigin": "measured",
+    "fFrom": "CH",
+    "gFrom": "all",
+    "glaciers": 10,
+    "winters": 121
+   },
+   "ch-ost": {
+    "F": 1.793,
+    "gu": -0.0202,
+    "go": -0.0202,
+    "fOrigin": "measured",
+    "gOrigin": "measured",
+    "fFrom": "CH",
+    "gFrom": "all",
+    "glaciers": 7,
+    "winters": 65
+   },
+   "ch-sued": {
+    "F": 1.793,
+    "gu": -0.0202,
+    "go": -0.0202,
+    "fOrigin": "measured",
+    "gOrigin": "measured",
+    "fFrom": "CH",
+    "gFrom": "all",
+    "glaciers": 4,
+    "winters": 54
+   },
+   "ch-west": {
+    "F": 1.793,
+    "gu": -0.0202,
+    "go": -0.0202,
+    "fOrigin": "measured",
+    "gOrigin": "measured",
+    "fFrom": "CH",
+    "gFrom": "all",
+    "glaciers": 10,
+    "winters": 101
+   },
+   "de": {
+    "F": 1.854,
+    "gu": -0.0198,
+    "go": -0.0198,
+    "fOrigin": "transferred",
+    "gOrigin": "transferred",
+    "fFrom": "all",
+    "gFrom": "all",
+    "glaciers": 0,
+    "winters": 0
+   }
+  },
+  "bridge": {
+   "value": 1,
+   "origin": "set",
+   "applied": false,
+   "measured": {
+    "window": {
+     "from": "2026-11-16T06:00:00.000Z",
+     "to": "2026-11-22T06:00:00.000Z",
+     "days": [
+      "2026-11-16",
+      "2026-11-17",
+      "2026-11-18",
+      "2026-11-19",
+      "2026-11-20",
+      "2026-11-21"
+     ],
+     "daysUsed": {
+      "CH": [
+       "2026-11-16",
+       "2026-11-18",
+       "2026-11-19",
+       "2026-11-20",
+       "2026-11-21"
+      ],
+      "AT": [
+       "2026-11-16",
+       "2026-11-17",
+       "2026-11-18",
+       "2026-11-19",
+       "2026-11-20",
+       "2026-11-21"
+      ]
+     },
+     "dayMeaning": "06 UTC … 06 UTC"
+    },
+    "AT": {
+     "ratioOfSums": 1.199,
+     "glaciers": 337,
+     "ratioMedian": 1.141,
+     "ratioP10": 0.764,
+     "ratioP90": 1.908
+    },
+    "CH": {
+     "ratioOfSums": 1.242,
+     "glaciers": 580,
+     "ratioMedian": 1.339,
+     "ratioP10": 0.871,
+     "ratioP90": 2.055
+    }
+   },
+   "meaning": "value = Faktor, der den Niederschlag von buscosun Fusion auf die Analyse bringt (Analyse / Fusion); measured.ratioOfSums = Fusion / Analyse",
+   "note": "buscosun Fusion gegen dieselben Analysen; gemessen, nicht angewandt (Methode §A.8, §C)"
+  },
+  "scores": {
+   "unit": "mm w. e.",
+   "lgo": {
+    "s1": 433.1,
+    "s2": 403,
+    "s3": -77.5,
+    "s4": 127.9
+   },
+   "today": {
+    "s1": 648.2,
+    "s2": 614.4,
+    "s3": -579.6,
+    "s4": 157.7
+   },
+   "raw": {
+    "s1": 841,
+    "s2": 833,
+    "s3": -829.8,
+    "s4": 129.2
+   }
+  },
+  "verdict": {
+   "K-1 LGO-s1 gegen B0 mindestens 10 % besser": {
+    "chosen": 433.1350489382789,
+    "b0": 648.1812370001617,
+    "gain": 0.3317686100528534,
+    "pass": true
+   },
+   "K-2 LGO-s2 ≤ 0,35 m w. e.": {
+    "s2": 0.40304009870127927,
+    "pass": false
+   },
+   "K-3 |LGO-s3| je Land ≤ 0,10 m w. e.": {
+    "CH": -0.07356487961516492,
+    "AT": -0.09506328973997899,
+    "pass": true
+   },
+   "K-4 LGO-s4 gegen dieselbe Stellung ohne Verlauf mindestens 10 % besser": {
+    "chosen": 127.86252204547213,
+    "flat": 132.82351845740138,
+    "gain": 0.037350286075431116,
+    "pass": false
+   }
+  },
+  "gate": false,
+  "reason": "K-2, K-4 rot: die Höhe des Faktors ist bestimmt, der Verlauf mit der Höhe nicht belastbar (Vorzeichen hängt am Gradtagfaktor der Winterschmelze, Empfindlichkeit S1)",
+  "sensitivity": {
+   "S1 ddf × 0,5": {
+    "F": {
+     "CH": 1.604,
+     "AT": 2.117
+    },
+    "g": 0.0027,
+    "lgoS1": 374
+   },
+   "S1 ddf × 1,5": {
+    "F": {
+     "CH": 1.989,
+     "AT": 2.54
+    },
+    "g": -0.0391,
+    "lgoS1": 508.4
+   },
+   "S2 Schwelle −1 K": {
+    "F": {
+     "CH": 1.845,
+     "AT": 2.384
+    },
+    "g": -0.0257,
+    "lgoS1": 444.4
+   },
+   "S2 Schwelle +1 K": {
+    "F": {
+     "CH": 1.757,
+     "AT": 2.285
+    },
+    "g": -0.0154,
+    "lgoS1": 424.3
+   },
+   "S3 nur Stufen mit Schmelze < 50 mm": {
+    "F": {
+     "CH": 1.548,
+     "AT": 1.908
+    },
+    "g": -0.0393,
+    "lgoS1": 343.7
+   },
+   "S4 Gradient −5,5 K/km": {
+    "F": {
+     "CH": 1.882,
+     "AT": 2.45
+    },
+    "g": -0.0161,
+    "lgoS1": 456.3
+   }
+  }
+ },
+ "density": {
+  "rule": "D2",
+  "origin": "measured",
+  "span": {
+   "p10": 65,
+   "p50": 100,
+   "p90": 148.1
+  },
+  "events": 2362,
+  "sites": 18,
+  "against": "SLF-Messfelder: Neuschneehöhe und Wasserwert des Neuschnees auf demselben Brett, 06 UTC (CC BY 4.0)",
+  "mae": {
+   "D0": 8.073,
+   "D1": 5.509,
+   "D2lso": 4.487,
+   "D3lso": 4.521
+  },
+  "bias": {
+   "D0": 7.041,
+   "D1": -4.023,
+   "D2lso": -0.202,
+   "D3lso": 0.021
+  },
+  "rhoNew": 96,
+  "transferAT": {
+   "events": 2225,
+   "sites": 51,
+   "water": "Niederschlagsmesser (unterschätzt Schnee)",
+   "D0": {
+    "mae": 3.948,
+    "bias": -0.365
+   },
+   "chosen": {
+    "mae": 4.363,
+    "bias": -3.127
+   }
+  }
+ },
+ "undercatch": {
+  "applied": false,
+  "gaugeOverBoard": 0.703,
+  "events": 2317,
+  "byWind": [
+   {
+    "from": 0,
+    "to": 2,
+    "n": 880,
+    "ratio": 0.715
+   },
+   {
+    "from": 2,
+    "to": 4,
+    "n": 526,
+    "ratio": 0.608
+   },
+   {
+    "from": 4,
+    "to": null,
+    "n": 911,
+    "ratio": 0.749
+   }
+  ],
+  "note": "Niederschlagsmesser der SwissMetNet-Station gegen den Wasserwert des Neuschnees auf dem Messfeld, dieselben Ereignistage"
+ },
+ "reports": [
+  "audit/gletscher-schneemodell/gm3-report-A.json",
+  "audit/gletscher-schneemodell/gm3-report-B.json",
+  "audit/gletscher-schneemodell/gm3-report-C.json"
+ ]
+}

@@ -1,0 +1,7768 @@
+{
+ "kind": "glacier/snowcal-report-C",
+ "generated": "2026-11-22T22:17:52.866Z",
+ "window": {
+  "from": "2026-11-16T06:00:00.000Z",
+  "to": "2026-11-22T06:00:00.000Z",
+  "days": [
+   "2026-11-16",
+   "2026-11-17",
+   "2026-11-18",
+   "2026-11-19",
+   "2026-11-20",
+   "2026-11-21"
+  ],
+  "daysUsed": {
+   "CH": [
+    "2026-11-16",
+    "2026-11-18",
+    "2026-11-19",
+    "2026-11-20",
+    "2026-11-21"
+   ],
+   "AT": [
+    "2026-11-16",
+    "2026-11-17",
+    "2026-11-18",
+    "2026-11-19",
+    "2026-11-20",
+    "2026-11-21"
+   ]
+  },
+  "dayMeaning": "06 UTC … 06 UTC"
+ },
+ "runs": [
+  {
+   "run": "2026111605",
+   "engine": "buscosun Fusion 14",
+   "hours": 6
+  },
+  {
+   "run": "2026111611",
+   "engine": "buscosun Fusion 14",
+   "hours": 12
+  },
+  {
+   "run": "2026111623",
+   "engine": "buscosun Fusion 14",
+   "hours": 6
+  },
+  {
+   "run": "2026111705",
+   "engine": "buscosun Fusion 14",
+   "hours": 6
+  },
+  {
+   "run": "2026111711",
+   "engine": "buscosun Fusion 14",
+   "hours": 6
+  },
+  {
+   "run": "2026111717",
+   "engine": "buscosun Fusion 14",
+   "hours": 6
+  },
+  {
+   "run": "2026111723",
+   "engine": "buscosun Fusion 14",
+   "hours": 6
+  },
+  {
+   "run": "2026111805",
+   "engine": "buscosun Fusion 14",
+   "hours": 6
+  },
+  {
+   "run": "2026111811",
+   "engine": "buscosun Fusion 14",
+   "hours": 6
+  },
+  {
+   "run": "2026111817",
+   "engine": "buscosun Fusion 14",
+   "hours": 6
+  },
+  {
+   "run": "2026111823",
+   "engine": "buscosun Fusion 14",
+   "hours": 6
+  },
+  {
+   "run": "2026111905",
+   "engine": "buscosun Fusion 14",
+   "hours": 6
+  },
+  {
+   "run": "2026111911",
+   "engine": "buscosun Fusion 14",
+   "hours": 6
+  },
+  {
+   "run": "2026111917",
+   "engine": "buscosun Fusion 14",
+   "hours": 6
+  },
+  {
+   "run": "2026111923",
+   "engine": "buscosun Fusion 14",
+   "hours": 6
+  },
+  {
+   "run": "2026112005",
+   "engine": "buscosun Fusion 14",
+   "hours": 6
+  },
+  {
+   "run": "2026112011",
+   "engine": "buscosun Fusion 14",
+   "hours": 6
+  },
+  {
+   "run": "2026112017",
+   "engine": "buscosun Fusion 14",
+   "hours": 6
+  },
+  {
+   "run": "2026112023",
+   "engine": "buscosun Fusion 14",
+   "hours": 6
+  },
+  {
+   "run": "2026112105",
+   "engine": "buscosun Fusion 14",
+   "hours": 6
+  },
+  {
+   "run": "2026112111",
+   "engine": "buscosun Fusion 14",
+   "hours": 6
+  },
+  {
+   "run": "2026112117",
+   "engine": "buscosun Fusion 14",
+   "hours": 6
+  },
+  {
+   "run": "2026112123",
+   "engine": "buscosun Fusion 14",
+   "hours": 6
+  },
+  {
+   "run": "2026112205",
+   "engine": "buscosun Fusion 14",
+   "hours": 6
+  }
+ ],
+ "applied": false,
+ "note": "Messung, kein Wert geht in die Tabelle (Methode §C); Verhältnis je Gletscher mit +0,5 mm auf beiden Seiten",
+ "AT": {
+  "glaciers": 337,
+  "fusionSum": 8836.899999999994,
+  "analysisSum": 7372.800000000003,
+  "ratioOfSums": 1.1985812717013877,
+  "wetGlaciers": 337,
+  "ratioMedian": 1.1414141414141414,
+  "ratioP10": 0.7636112686708263,
+  "ratioP90": 1.9079785264716778
+ },
+ "CH": {
+  "glaciers": 580,
+  "fusionSum": 30160.600000000002,
+  "analysisSum": 24280.499999999985,
+  "ratioOfSums": 1.2421737608368864,
+  "wetGlaciers": 580,
+  "ratioMedian": 1.338903244329601,
+  "ratioP10": 0.8713466885021138,
+  "ratioP90": 2.0553777552892067
+ },
+ "byRegion": {
+  "at-allgaeuer-alpen": {
+   "glaciers": 1,
+   "fusionSum": 33.5,
+   "analysisSum": 75.4,
+   "ratioOfSums": 0.4442970822281167,
+   "wetGlaciers": 1,
+   "ratioMedian": 0.4479578392621871,
+   "ratioP10": 0.4479578392621871,
+   "ratioP90": 0.4479578392621871
+  },
+  "at-ankogel-hochalmspitzgruppe": {
+   "glaciers": 8,
+   "fusionSum": 103.19999999999999,
+   "analysisSum": 126.7,
+   "ratioOfSums": 0.814522494080505,
+   "wetGlaciers": 8,
+   "ratioMedian": 0.8328224139160192,
+   "ratioP10": 0.7749322493224933,
+   "ratioP90": 0.857065960355434
+  },
+  "at-dachstein": {
+   "glaciers": 4,
+   "fusionSum": 98.30000000000001,
+   "analysisSum": 149.2,
+   "ratioOfSums": 0.6588471849865953,
+   "wetGlaciers": 4,
+   "ratioMedian": 0.6554272532943691,
+   "ratioP10": 0.6401185567010309,
+   "ratioP90": 0.6976377952755906
+  },
+  "at-defreggergruppe": {
+   "glaciers": 6,
+   "fusionSum": 93.80000000000001,
+   "analysisSum": 85.39999999999999,
+   "ratioOfSums": 1.0983606557377052,
+   "wetGlaciers": 6,
+   "ratioMedian": 1.1131233950533854,
+   "ratioP10": 0.8193027210884354,
+   "ratioP90": 1.326289647960962
+  },
+  "at-glocknergruppe": {
+   "glaciers": 39,
+   "fusionSum": 737.7999999999998,
+   "analysisSum": 805.1999999999999,
+   "ratioOfSums": 0.9162940884252359,
+   "wetGlaciers": 39,
+   "ratioMedian": 0.9128630705394191,
+   "ratioP10": 0.6981889484166809,
+   "ratioP90": 1.1867048537835396
+  },
+  "at-goldberggruppe": {
+   "glaciers": 11,
+   "fusionSum": 155.70000000000002,
+   "analysisSum": 211.99999999999997,
+   "ratioOfSums": 0.7344339622641511,
+   "wetGlaciers": 11,
+   "ratioMedian": 0.7425742574257426,
+   "ratioP10": 0.6699029126213593,
+   "ratioP90": 0.8087431693989071
+  },
+  "at-granatspitzgruppe": {
+   "glaciers": 8,
+   "fusionSum": 111.1,
+   "analysisSum": 175.70000000000002,
+   "ratioOfSums": 0.6323278315310187,
+   "wetGlaciers": 8,
+   "ratioMedian": 0.6555100626069625,
+   "ratioP10": 0.5475581032378899,
+   "ratioP90": 0.7945385800308079
+  },
+  "at-hochkoenig": {
+   "glaciers": 1,
+   "fusionSum": 35.9,
+   "analysisSum": 25.9,
+   "ratioOfSums": 1.3861003861003862,
+   "wetGlaciers": 1,
+   "ratioMedian": 1.378787878787879,
+   "ratioP10": 1.378787878787879,
+   "ratioP90": 1.378787878787879
+  },
+  "at-karnische-alpen": {
+   "glaciers": 1,
+   "fusionSum": 9.8,
+   "analysisSum": 21,
+   "ratioOfSums": 0.4666666666666667,
+   "wetGlaciers": 1,
+   "ratioMedian": 0.4790697674418605,
+   "ratioP10": 0.4790697674418605,
+   "ratioP90": 0.4790697674418605
+  },
+  "at-lechtaler-alpen": {
+   "glaciers": 11,
+   "fusionSum": 528.8,
+   "analysisSum": 660.4,
+   "ratioOfSums": 0.8007268322228952,
+   "wetGlaciers": 11,
+   "ratioMedian": 0.8049586776859504,
+   "ratioP10": 0.5929203539823009,
+   "ratioP90": 1.0375670840787121
+  },
+  "at-oetztaler-alpen": {
+   "glaciers": 92,
+   "fusionSum": 2408.6999999999994,
+   "analysisSum": 1607.7000000000003,
+   "ratioOfSums": 1.4982272812091801,
+   "wetGlaciers": 92,
+   "ratioMedian": 1.5192307692307692,
+   "ratioP10": 1.0215682910089223,
+   "ratioP90": 2.060135516657256
+  },
+  "at-raetikon": {
+   "glaciers": 1,
+   "fusionSum": 52.1,
+   "analysisSum": 59.9,
+   "ratioOfSums": 0.8697829716193657,
+   "wetGlaciers": 1,
+   "ratioMedian": 0.8708609271523179,
+   "ratioP10": 0.8708609271523179,
+   "ratioP90": 0.8708609271523179
+  },
+  "at-rieserfernergruppe": {
+   "glaciers": 2,
+   "fusionSum": 24.799999999999997,
+   "analysisSum": 29.6,
+   "ratioOfSums": 0.8378378378378377,
+   "wetGlaciers": 2,
+   "ratioMedian": 0.8431372549019607,
+   "ratioP10": 0.8326797385620914,
+   "ratioP90": 0.85359477124183
+  },
+  "at-samnaungruppe": {
+   "glaciers": 3,
+   "fusionSum": 102,
+   "analysisSum": 84.8,
+   "ratioOfSums": 1.2028301886792454,
+   "wetGlaciers": 3,
+   "ratioMedian": 1.176271186440678,
+   "ratioP10": 1.1066828087167069,
+   "ratioP90": 1.2991431261770243
+  },
+  "at-schobergruppe": {
+   "glaciers": 2,
+   "fusionSum": 20.5,
+   "analysisSum": 26,
+   "ratioOfSums": 0.7884615384615384,
+   "wetGlaciers": 2,
+   "ratioMedian": 0.793419099455715,
+   "ratioP10": 0.7416295563252515,
+   "ratioP90": 0.8452086425861784
+  },
+  "at-silvrettagruppe": {
+   "glaciers": 19,
+   "fusionSum": 973.3999999999999,
+   "analysisSum": 575.4000000000001,
+   "ratioOfSums": 1.6916927354883555,
+   "wetGlaciers": 19,
+   "ratioMedian": 1.709677419354839,
+   "ratioP10": 1.5282006840093472,
+   "ratioP90": 1.9094368340943682
+  },
+  "at-stubaier-alpen": {
+   "glaciers": 43,
+   "fusionSum": 1281.8999999999999,
+   "analysisSum": 855.7,
+   "ratioOfSums": 1.4980717541194342,
+   "wetGlaciers": 43,
+   "ratioMedian": 1.606936416184971,
+   "ratioP10": 0.9414495835548466,
+   "ratioP90": 2.1746106840134045
+  },
+  "at-venedigergruppe": {
+   "glaciers": 36,
+   "fusionSum": 906.5999999999999,
+   "analysisSum": 855.8,
+   "ratioOfSums": 1.059359663472774,
+   "wetGlaciers": 36,
+   "ratioMedian": 0.9827586206896551,
+   "ratioP10": 0.8399076529920818,
+   "ratioP90": 1.5845128269935551
+  },
+  "at-verwallgruppe": {
+   "glaciers": 9,
+   "fusionSum": 497.9,
+   "analysisSum": 403.5,
+   "ratioOfSums": 1.2339529120198265,
+   "wetGlaciers": 9,
+   "ratioMedian": 1.2742980561555077,
+   "ratioP10": 1.1306670673076922,
+   "ratioP90": 1.334307914811559
+  },
+  "at-zillertaler-alpen": {
+   "glaciers": 40,
+   "fusionSum": 661.1,
+   "analysisSum": 537.5,
+   "ratioOfSums": 1.229953488372093,
+   "wetGlaciers": 40,
+   "ratioMedian": 1.0912635324400028,
+   "ratioP10": 0.9921727395411606,
+   "ratioP90": 1.866674500587544
+  },
+  "ch-mitte-ost": {
+   "glaciers": 107,
+   "fusionSum": 5542.3,
+   "analysisSum": 4545.300000000001,
+   "ratioOfSums": 1.2193474578135655,
+   "wetGlaciers": 107,
+   "ratioMedian": 1.2204301075268815,
+   "ratioP10": 0.9019157799771804,
+   "ratioP90": 1.636918322295806
+  },
+  "ch-mitte-west": {
+   "glaciers": 234,
+   "fusionSum": 12816.600000000008,
+   "analysisSum": 10244.599999999999,
+   "ratioOfSums": 1.2510590945473723,
+   "wetGlaciers": 234,
+   "ratioMedian": 1.3104477212513714,
+   "ratioP10": 0.8919311557323957,
+   "ratioP90": 2.0694055944055947
+  },
+  "ch-ost": {
+   "glaciers": 106,
+   "fusionSum": 3510.899999999999,
+   "analysisSum": 2221.099999999999,
+   "ratioOfSums": 1.580703255143848,
+   "wetGlaciers": 106,
+   "ratioMedian": 1.3838851216593537,
+   "ratioP10": 1.1340955457327437,
+   "ratioP90": 3.145225916453538
+  },
+  "ch-sued": {
+   "glaciers": 32,
+   "fusionSum": 309.5,
+   "analysisSum": 191.70000000000005,
+   "ratioOfSums": 1.614501825769431,
+   "wetGlaciers": 32,
+   "ratioMedian": 1.4928571428571429,
+   "ratioP10": 1.3899778924097272,
+   "ratioP90": 1.661764705882353
+  },
+  "ch-west": {
+   "glaciers": 101,
+   "fusionSum": 7981.299999999999,
+   "analysisSum": 7077.799999999998,
+   "ratioOfSums": 1.1276526604312076,
+   "wetGlaciers": 101,
+   "ratioMedian": 1.272608125819135,
+   "ratioP10": 0.7488938053097345,
+   "ratioP90": 1.8147368421052632
+  }
+ },
+ "rows": [
+  {
+   "id": "gl_at_schwarzmilz-ferner",
+   "country": "AT",
+   "region": "at-allgaeuer-alpen",
+   "days": 6,
+   "fusion": 33.5,
+   "analysis": 75.4
+  },
+  {
+   "id": "gl_at_grosselend-kees",
+   "country": "AT",
+   "region": "at-ankogel-hochalmspitzgruppe",
+   "days": 6,
+   "fusion": 13,
+   "analysis": 14.9
+  },
+  {
+   "id": "gl_at_grubenkar-kees",
+   "country": "AT",
+   "region": "at-ankogel-hochalmspitzgruppe",
+   "days": 6,
+   "fusion": 13.6,
+   "analysis": 16.4
+  },
+  {
+   "id": "gl_at_hochalm-kees",
+   "country": "AT",
+   "region": "at-ankogel-hochalmspitzgruppe",
+   "days": 6,
+   "fusion": 12.4,
+   "analysis": 14.7
+  },
+  {
+   "id": "gl_at_kaelberspitz-kees",
+   "country": "AT",
+   "region": "at-ankogel-hochalmspitzgruppe",
+   "days": 6,
+   "fusion": 12.7,
+   "analysis": 16.3
+  },
+  {
+   "id": "gl_at_kleinelend-kees",
+   "country": "AT",
+   "region": "at-ankogel-hochalmspitzgruppe",
+   "days": 6,
+   "fusion": 14,
+   "analysis": 16.7
+  },
+  {
+   "id": "gl_at_tischlerkar-kees-m2",
+   "country": "AT",
+   "region": "at-ankogel-hochalmspitzgruppe",
+   "days": 6,
+   "fusion": 13.3,
+   "analysis": 16.1
+  },
+  {
+   "id": "gl_at_westlicher-tripp-kees",
+   "country": "AT",
+   "region": "at-ankogel-hochalmspitzgruppe",
+   "days": 6,
+   "fusion": 12.1,
+   "analysis": 15.9
+  },
+  {
+   "id": "gl_at_winkl-kees",
+   "country": "AT",
+   "region": "at-ankogel-hochalmspitzgruppe",
+   "days": 6,
+   "fusion": 12.1,
+   "analysis": 15.7
+  },
+  {
+   "id": "gl_at_grosser-gosau-gletscher",
+   "country": "AT",
+   "region": "at-dachstein",
+   "days": 6,
+   "fusion": 24.8,
+   "analysis": 38.3
+  },
+  {
+   "id": "gl_at_hallstaetter-gletscher",
+   "country": "AT",
+   "region": "at-dachstein",
+   "days": 6,
+   "fusion": 24.6,
+   "analysis": 37.6
+  },
+  {
+   "id": "gl_at_schladminger-gletscher",
+   "country": "AT",
+   "region": "at-dachstein",
+   "days": 6,
+   "fusion": 24,
+   "analysis": 33.8
+  },
+  {
+   "id": "gl_at_schneeloch-gletscher",
+   "country": "AT",
+   "region": "at-dachstein",
+   "days": 6,
+   "fusion": 24.9,
+   "analysis": 39.5
+  },
+  {
+   "id": "gl_at_daber-kees",
+   "country": "AT",
+   "region": "at-defreggergruppe",
+   "days": 6,
+   "fusion": 14.4,
+   "analysis": 14.2
+  },
+  {
+   "id": "gl_at_daber-kees-panargen-kees",
+   "country": "AT",
+   "region": "at-defreggergruppe",
+   "days": 6,
+   "fusion": 21.7,
+   "analysis": 14.7
+  },
+  {
+   "id": "gl_at_nn-6022",
+   "country": "AT",
+   "region": "at-defreggergruppe",
+   "days": 6,
+   "fusion": 8,
+   "analysis": 13.1
+  },
+  {
+   "id": "gl_at_nn-6024",
+   "country": "AT",
+   "region": "at-defreggergruppe",
+   "days": 6,
+   "fusion": 14.8,
+   "analysis": 14.2
+  },
+  {
+   "id": "gl_at_nn-6026",
+   "country": "AT",
+   "region": "at-defreggergruppe",
+   "days": 6,
+   "fusion": 17.4,
+   "analysis": 14.6
+  },
+  {
+   "id": "gl_at_nn-6027",
+   "country": "AT",
+   "region": "at-defreggergruppe",
+   "days": 6,
+   "fusion": 17.5,
+   "analysis": 14.6
+  },
+  {
+   "id": "gl_at_baerenkopf-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 19.5,
+   "analysis": 21.8
+  },
+  {
+   "id": "gl_at_bockkar-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 22.1,
+   "analysis": 21.7
+  },
+  {
+   "id": "gl_at_brennkogel-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 18.1,
+   "analysis": 16.2
+  },
+  {
+   "id": "gl_at_eiser-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 17.4,
+   "analysis": 21.9
+  },
+  {
+   "id": "gl_at_freiwand-magnes-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 22.6,
+   "analysis": 18.1
+  },
+  {
+   "id": "gl_at_fruschnitz-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 21.5,
+   "analysis": 22
+  },
+  {
+   "id": "gl_at_fuscherkar-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 21.6,
+   "analysis": 18.9
+  },
+  {
+   "id": "gl_at_griesskogel-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 17.5,
+   "analysis": 20.6
+  },
+  {
+   "id": "gl_at_hochgruber-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 24.6,
+   "analysis": 20.9
+  },
+  {
+   "id": "gl_at_hochweissenfeld-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 17.5,
+   "analysis": 19.8
+  },
+  {
+   "id": "gl_at_hoffmanns-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 15.8,
+   "analysis": 18.4
+  },
+  {
+   "id": "gl_at_hohenwart-kees-e",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 15.7,
+   "analysis": 17.7
+  },
+  {
+   "id": "gl_at_kaindl-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 20.1,
+   "analysis": 19.1
+  },
+  {
+   "id": "gl_at_karlinger-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 19.1,
+   "analysis": 24.2
+  },
+  {
+   "id": "gl_at_kleineiser-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 16.3,
+   "analysis": 21.9
+  },
+  {
+   "id": "gl_at_klockerin-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 19.6,
+   "analysis": 19
+  },
+  {
+   "id": "gl_at_koednitz-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 15.8,
+   "analysis": 18.7
+  },
+  {
+   "id": "gl_at_laperwitz-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 21.5,
+   "analysis": 23.6
+  },
+  {
+   "id": "gl_at_leiter-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 15.7,
+   "analysis": 18.4
+  },
+  {
+   "id": "gl_at_maurer-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 19.3,
+   "analysis": 19.1
+  },
+  {
+   "id": "gl_at_oberer-klockerin-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 20,
+   "analysis": 21.4
+  },
+  {
+   "id": "gl_at_oberer-riffl-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 16.2,
+   "analysis": 25.5
+  },
+  {
+   "id": "gl_at_oedenwinkel-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 16.5,
+   "analysis": 23.4
+  },
+  {
+   "id": "gl_at_pasterzen-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 22.3,
+   "analysis": 23.4
+  },
+  {
+   "id": "gl_at_riffl-kees-n",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 16.9,
+   "analysis": 26.6
+  },
+  {
+   "id": "gl_at_riffl-kees-s",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 17,
+   "analysis": 26.6
+  },
+  {
+   "id": "gl_at_sandboden-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 21.4,
+   "analysis": 17
+  },
+  {
+   "id": "gl_at_schmiedinger-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 19.5,
+   "analysis": 18.5
+  },
+  {
+   "id": "gl_at_schwarzkarl-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 15.9,
+   "analysis": 19.8
+  },
+  {
+   "id": "gl_at_schwarzkoepfl-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 18,
+   "analysis": 22.3
+  },
+  {
+   "id": "gl_at_schwerteck-kees-m",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 15,
+   "analysis": 16.4
+  },
+  {
+   "id": "gl_at_spielmann-kees-e",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 20.5,
+   "analysis": 16.1
+  },
+  {
+   "id": "gl_at_teischnitz-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 15.5,
+   "analysis": 20.1
+  },
+  {
+   "id": "gl_at_teufelsmuehl-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 20.4,
+   "analysis": 20.1
+  },
+  {
+   "id": "gl_at_unterer-riffl-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 15.9,
+   "analysis": 25.9
+  },
+  {
+   "id": "gl_at_vorderer-kasten-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 21.6,
+   "analysis": 25.2
+  },
+  {
+   "id": "gl_at_walcher-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 20.9,
+   "analysis": 15.6
+  },
+  {
+   "id": "gl_at_wasserfallwinkel",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 22.5,
+   "analysis": 21.5
+  },
+  {
+   "id": "gl_at_wielinger-kees",
+   "country": "AT",
+   "region": "at-glocknergruppe",
+   "days": 6,
+   "fusion": 20.5,
+   "analysis": 17.8
+  },
+  {
+   "id": "gl_at_goldbergkees-oberer-teil",
+   "country": "AT",
+   "region": "at-goldberggruppe",
+   "days": 6,
+   "fusion": 14.5,
+   "analysis": 19.7
+  },
+  {
+   "id": "gl_at_goldbergkees-untere-teile",
+   "country": "AT",
+   "region": "at-goldberggruppe",
+   "days": 6,
+   "fusion": 14.4,
+   "analysis": 19.4
+  },
+  {
+   "id": "gl_at_grosses-fleisskees",
+   "country": "AT",
+   "region": "at-goldberggruppe",
+   "days": 6,
+   "fusion": 14.3,
+   "analysis": 17.8
+  },
+  {
+   "id": "gl_at_hocharnkees",
+   "country": "AT",
+   "region": "at-goldberggruppe",
+   "days": 6,
+   "fusion": 14.4,
+   "analysis": 20.3
+  },
+  {
+   "id": "gl_at_kleinfleisskees",
+   "country": "AT",
+   "region": "at-goldberggruppe",
+   "days": 6,
+   "fusion": 14.5,
+   "analysis": 19.7
+  },
+  {
+   "id": "gl_at_krummlkees",
+   "country": "AT",
+   "region": "at-goldberggruppe",
+   "days": 6,
+   "fusion": 14.5,
+   "analysis": 18.6
+  },
+  {
+   "id": "gl_at_pilatuskees",
+   "country": "AT",
+   "region": "at-goldberggruppe",
+   "days": 6,
+   "fusion": 14.8,
+   "analysis": 20.7
+  },
+  {
+   "id": "gl_at_schareckkees-e",
+   "country": "AT",
+   "region": "at-goldberggruppe",
+   "days": 6,
+   "fusion": 13.2,
+   "analysis": 20.1
+  },
+  {
+   "id": "gl_at_schlapperebenkees",
+   "country": "AT",
+   "region": "at-goldberggruppe",
+   "days": 6,
+   "fusion": 13,
+   "analysis": 18.9
+  },
+  {
+   "id": "gl_at_weissenbachkees",
+   "country": "AT",
+   "region": "at-goldberggruppe",
+   "days": 6,
+   "fusion": 14.8,
+   "analysis": 16.7
+  },
+  {
+   "id": "gl_at_wurtenkees",
+   "country": "AT",
+   "region": "at-goldberggruppe",
+   "days": 6,
+   "fusion": 13.3,
+   "analysis": 20.1
+  },
+  {
+   "id": "gl_at_daber-kees-n",
+   "country": "AT",
+   "region": "at-granatspitzgruppe",
+   "days": 6,
+   "fusion": 12.9,
+   "analysis": 20.2
+  },
+  {
+   "id": "gl_at_gradoetz-kees",
+   "country": "AT",
+   "region": "at-granatspitzgruppe",
+   "days": 6,
+   "fusion": 14.5,
+   "analysis": 18
+  },
+  {
+   "id": "gl_at_kalser-tauern-kees-n",
+   "country": "AT",
+   "region": "at-granatspitzgruppe",
+   "days": 6,
+   "fusion": 13.9,
+   "analysis": 25.7
+  },
+  {
+   "id": "gl_at_landeck-kees-m",
+   "country": "AT",
+   "region": "at-granatspitzgruppe",
+   "days": 6,
+   "fusion": 14.3,
+   "analysis": 21.8
+  },
+  {
+   "id": "gl_at_loames-kees-s",
+   "country": "AT",
+   "region": "at-granatspitzgruppe",
+   "days": 6,
+   "fusion": 14.7,
+   "analysis": 18.8
+  },
+  {
+   "id": "gl_at_muntanitz-kees",
+   "country": "AT",
+   "region": "at-granatspitzgruppe",
+   "days": 6,
+   "fusion": 12.4,
+   "analysis": 18.4
+  },
+  {
+   "id": "gl_at_praegrat-kees",
+   "country": "AT",
+   "region": "at-granatspitzgruppe",
+   "days": 6,
+   "fusion": 14.1,
+   "analysis": 26.4
+  },
+  {
+   "id": "gl_at_sonnblick-kees",
+   "country": "AT",
+   "region": "at-granatspitzgruppe",
+   "days": 6,
+   "fusion": 14.3,
+   "analysis": 26.4
+  },
+  {
+   "id": "gl_at_uebergossene-alm-w",
+   "country": "AT",
+   "region": "at-hochkoenig",
+   "days": 6,
+   "fusion": 35.9,
+   "analysis": 25.9
+  },
+  {
+   "id": "gl_at_eiskar",
+   "country": "AT",
+   "region": "at-karnische-alpen",
+   "days": 6,
+   "fusion": 9.8,
+   "analysis": 21
+  },
+  {
+   "id": "gl_at_fallenbacher-ferner",
+   "country": "AT",
+   "region": "at-lechtaler-alpen",
+   "days": 6,
+   "fusion": 57.6,
+   "analysis": 68.5
+  },
+  {
+   "id": "gl_at_grinner-ferner",
+   "country": "AT",
+   "region": "at-lechtaler-alpen",
+   "days": 6,
+   "fusion": 32.1,
+   "analysis": 54.9
+  },
+  {
+   "id": "gl_at_nn-12001",
+   "country": "AT",
+   "region": "at-lechtaler-alpen",
+   "days": 6,
+   "fusion": 57.5,
+   "analysis": 55.4
+  },
+  {
+   "id": "gl_at_nn-13063",
+   "country": "AT",
+   "region": "at-lechtaler-alpen",
+   "days": 6,
+   "fusion": 32.2,
+   "analysis": 49.6
+  },
+  {
+   "id": "gl_at_nn-18003",
+   "country": "AT",
+   "region": "at-lechtaler-alpen",
+   "days": 6,
+   "fusion": 38.1,
+   "analysis": 60.3
+  },
+  {
+   "id": "gl_at_nn-19001",
+   "country": "AT",
+   "region": "at-lechtaler-alpen",
+   "days": 6,
+   "fusion": 66,
+   "analysis": 80.8
+  },
+  {
+   "id": "gl_at_parseier-ferner",
+   "country": "AT",
+   "region": "at-lechtaler-alpen",
+   "days": 6,
+   "fusion": 33,
+   "analysis": 56
+  },
+  {
+   "id": "gl_at_paziel-gletscher-e",
+   "country": "AT",
+   "region": "at-lechtaler-alpen",
+   "days": 6,
+   "fusion": 48.2,
+   "analysis": 60
+  },
+  {
+   "id": "gl_at_paziel-gletscher-w",
+   "country": "AT",
+   "region": "at-lechtaler-alpen",
+   "days": 6,
+   "fusion": 48.3,
+   "analysis": 64
+  },
+  {
+   "id": "gl_at_schindler-gletscher",
+   "country": "AT",
+   "region": "at-lechtaler-alpen",
+   "days": 6,
+   "fusion": 57.9,
+   "analysis": 48.1
+  },
+  {
+   "id": "gl_at_vordersee-ferner",
+   "country": "AT",
+   "region": "at-lechtaler-alpen",
+   "days": 6,
+   "fusion": 57.9,
+   "analysis": 62.8
+  },
+  {
+   "id": "gl_at_aeusserer-pirchelkar-ferner-s",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 24,
+   "analysis": 24.8
+  },
+  {
+   "id": "gl_at_bligg-ferner-n",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 30,
+   "analysis": 18.4
+  },
+  {
+   "id": "gl_at_bligg-ferner-s",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 30.2,
+   "analysis": 18.4
+  },
+  {
+   "id": "gl_at_brunnenkogel-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 30.5,
+   "analysis": 13.8
+  },
+  {
+   "id": "gl_at_diem-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 19.8,
+   "analysis": 14.3
+  },
+  {
+   "id": "gl_at_eis-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 24.1,
+   "analysis": 14.7
+  },
+  {
+   "id": "gl_at_firmisan-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 19.1,
+   "analysis": 16
+  },
+  {
+   "id": "gl_at_gaissberg-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 14.7,
+   "analysis": 14.3
+  },
+  {
+   "id": "gl_at_gallrutt-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 27.3,
+   "analysis": 21
+  },
+  {
+   "id": "gl_at_gepatsch-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 42.9,
+   "analysis": 17.5
+  },
+  {
+   "id": "gl_at_glaseir-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 19.2,
+   "analysis": 22
+  },
+  {
+   "id": "gl_at_glockturm-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 31.4,
+   "analysis": 16.8
+  },
+  {
+   "id": "gl_at_gsall-ferner-n",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 27.3,
+   "analysis": 20.2
+  },
+  {
+   "id": "gl_at_gschwandt-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 27.4,
+   "analysis": 21.8
+  },
+  {
+   "id": "gl_at_gurgler-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 17.8,
+   "analysis": 13.4
+  },
+  {
+   "id": "gl_at_guslar-ferner-gr",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 44.3,
+   "analysis": 15.1
+  },
+  {
+   "id": "gl_at_guslar-ferner-mi",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 33.8,
+   "analysis": 15.4
+  },
+  {
+   "id": "gl_at_hangerer-ferner-e",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 15,
+   "analysis": 14
+  },
+  {
+   "id": "gl_at_hauer-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 24.9,
+   "analysis": 24.3
+  },
+  {
+   "id": "gl_at_hintereisferner-mit-toteis",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 30.9,
+   "analysis": 18.1
+  },
+  {
+   "id": "gl_at_hintereiswaende",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 34.2,
+   "analysis": 15.7
+  },
+  {
+   "id": "gl_at_hinterer-eiskasten-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 30.3,
+   "analysis": 18.6
+  },
+  {
+   "id": "gl_at_hochfirst-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 14.7,
+   "analysis": 14.3
+  },
+  {
+   "id": "gl_at_hochjoch-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 23.8,
+   "analysis": 14.5
+  },
+  {
+   "id": "gl_at_huettenkar-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 32.3,
+   "analysis": 15.5
+  },
+  {
+   "id": "gl_at_innerer-pirchelkar-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 24.6,
+   "analysis": 24.9
+  },
+  {
+   "id": "gl_at_kaiserberg-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 30.2,
+   "analysis": 17.2
+  },
+  {
+   "id": "gl_at_karles-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 29.2,
+   "analysis": 16.2
+  },
+  {
+   "id": "gl_at_kesselwand-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 42.8,
+   "analysis": 15.6
+  },
+  {
+   "id": "gl_at_kleinleiten-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 19.7,
+   "analysis": 14.3
+  },
+  {
+   "id": "gl_at_kreuz-ferner-m",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 23.5,
+   "analysis": 14.3
+  },
+  {
+   "id": "gl_at_kreuz-ferner-n1",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 24,
+   "analysis": 14.2
+  },
+  {
+   "id": "gl_at_kreuz-ferner-s",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 25.4,
+   "analysis": 13.7
+  },
+  {
+   "id": "gl_at_langtaler-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 17.5,
+   "analysis": 13.6
+  },
+  {
+   "id": "gl_at_latsch-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 19.4,
+   "analysis": 21.1
+  },
+  {
+   "id": "gl_at_madatsch-ferner-e",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 27.4,
+   "analysis": 18.6
+  },
+  {
+   "id": "gl_at_madatsch-ferner-w",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 27.6,
+   "analysis": 18.3
+  },
+  {
+   "id": "gl_at_manigenbach-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 18.9,
+   "analysis": 19.4
+  },
+  {
+   "id": "gl_at_marzell-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 19.4,
+   "analysis": 13.8
+  },
+  {
+   "id": "gl_at_mittelberg-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 32.1,
+   "analysis": 14.6
+  },
+  {
+   "id": "gl_at_mitterkar-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 33.2,
+   "analysis": 15
+  },
+  {
+   "id": "gl_at_mittlerer-eiskasten-ferner-w",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 29.8,
+   "analysis": 17.5
+  },
+  {
+   "id": "gl_at_mittlerer-loecher-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 26.9,
+   "analysis": 17.2
+  },
+  {
+   "id": "gl_at_mutmal-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 18.7,
+   "analysis": 13
+  },
+  {
+   "id": "gl_at_neururer-ferner-s",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 28.1,
+   "analysis": 25.9
+  },
+  {
+   "id": "gl_at_niederjoch-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 20,
+   "analysis": 14.7
+  },
+  {
+   "id": "gl_at_nn-2076",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 19.6,
+   "analysis": 14.5
+  },
+  {
+   "id": "gl_at_noerdlicher-loecher-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 27,
+   "analysis": 17.5
+  },
+  {
+   "id": "gl_at_noerdlicher-schalf-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 19.3,
+   "analysis": 14.3
+  },
+  {
+   "id": "gl_at_oestlicher-ferwall-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 14.9,
+   "analysis": 14.5
+  },
+  {
+   "id": "gl_at_oestlicher-wannet-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 32,
+   "analysis": 18.4
+  },
+  {
+   "id": "gl_at_pioesmes-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 28.2,
+   "analysis": 21.3
+  },
+  {
+   "id": "gl_at_planggeross-ferner-m",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 27.4,
+   "analysis": 18.6
+  },
+  {
+   "id": "gl_at_planggeross-ferner-s1",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 27.1,
+   "analysis": 17.7
+  },
+  {
+   "id": "gl_at_planggeross-ferner-s2",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 27.2,
+   "analysis": 18.5
+  },
+  {
+   "id": "gl_at_polltal-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 24.1,
+   "analysis": 19.7
+  },
+  {
+   "id": "gl_at_ramol-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 18.6,
+   "analysis": 19.7
+  },
+  {
+   "id": "gl_at_rettenbach-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 29.1,
+   "analysis": 17.4
+  },
+  {
+   "id": "gl_at_riffel-ferner-n",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 27.1,
+   "analysis": 17
+  },
+  {
+   "id": "gl_at_riffel-ferner-s",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 29.4,
+   "analysis": 17.7
+  },
+  {
+   "id": "gl_at_roetkarl-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 24,
+   "analysis": 24.4
+  },
+  {
+   "id": "gl_at_rofenberg-w",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 29.7,
+   "analysis": 15.9
+  },
+  {
+   "id": "gl_at_rofenkar-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 32.6,
+   "analysis": 15.6
+  },
+  {
+   "id": "gl_at_rotmoos-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 15,
+   "analysis": 14
+  },
+  {
+   "id": "gl_at_say-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 23.7,
+   "analysis": 14.4
+  },
+  {
+   "id": "gl_at_schalf-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 19,
+   "analysis": 13.4
+  },
+  {
+   "id": "gl_at_schweikert-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 27.3,
+   "analysis": 20.6
+  },
+  {
+   "id": "gl_at_seebach-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 27.9,
+   "analysis": 30.7
+  },
+  {
+   "id": "gl_at_seekarles-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 27.2,
+   "analysis": 17.7
+  },
+  {
+   "id": "gl_at_seelen-ferner-1",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 15.2,
+   "analysis": 13.7
+  },
+  {
+   "id": "gl_at_seelen-ferner-2",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 15.3,
+   "analysis": 14
+  },
+  {
+   "id": "gl_at_seelen-ferner-3",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 15.5,
+   "analysis": 13.8
+  },
+  {
+   "id": "gl_at_seelen-ferner-4",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 15.6,
+   "analysis": 13.8
+  },
+  {
+   "id": "gl_at_seiter-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 29.3,
+   "analysis": 17.4
+  },
+  {
+   "id": "gl_at_sexegerten-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 31.5,
+   "analysis": 17.9
+  },
+  {
+   "id": "gl_at_spiegel-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 18.7,
+   "analysis": 18.3
+  },
+  {
+   "id": "gl_at_steiniglehn-ferner-w",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 19,
+   "analysis": 22
+  },
+  {
+   "id": "gl_at_suedlicher-weisskar-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 28.7,
+   "analysis": 17.4
+  },
+  {
+   "id": "gl_at_taschach-ferner-e",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 33.9,
+   "analysis": 16.5
+  },
+  {
+   "id": "gl_at_taschach-ferner-w",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 31.4,
+   "analysis": 17.3
+  },
+  {
+   "id": "gl_at_tiefenbach-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 27.5,
+   "analysis": 16.3
+  },
+  {
+   "id": "gl_at_toten-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 28.2,
+   "analysis": 22
+  },
+  {
+   "id": "gl_at_unterer-verpeil-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 28.2,
+   "analysis": 27.1
+  },
+  {
+   "id": "gl_at_vernaglwand-ferner-n",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 33.5,
+   "analysis": 16
+  },
+  {
+   "id": "gl_at_vernaglwand-ferner-s",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 33.5,
+   "analysis": 16.7
+  },
+  {
+   "id": "gl_at_vernagt-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 31.6,
+   "analysis": 17
+  },
+  {
+   "id": "gl_at_vorderer-eiskasten-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 30.1,
+   "analysis": 18
+  },
+  {
+   "id": "gl_at_vorderer-oelgruben-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 30.4,
+   "analysis": 18.6
+  },
+  {
+   "id": "gl_at_w-hinterer-oelgruben-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 31.1,
+   "analysis": 19.8
+  },
+  {
+   "id": "gl_at_waze-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 27.2,
+   "analysis": 18.5
+  },
+  {
+   "id": "gl_at_wazebach-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 27.2,
+   "analysis": 17.3
+  },
+  {
+   "id": "gl_at_weisssee-ferner",
+   "country": "AT",
+   "region": "at-oetztaler-alpen",
+   "days": 6,
+   "fusion": 40.4,
+   "analysis": 18.8
+  },
+  {
+   "id": "gl_at_brandner-gletscher",
+   "country": "AT",
+   "region": "at-raetikon",
+   "days": 6,
+   "fusion": 52.1,
+   "analysis": 59.9
+  },
+  {
+   "id": "gl_at_fleischbach-kees-n",
+   "country": "AT",
+   "region": "at-rieserfernergruppe",
+   "days": 6,
+   "fusion": 12.6,
+   "analysis": 14.8
+  },
+  {
+   "id": "gl_at_patscher-kees-ob",
+   "country": "AT",
+   "region": "at-rieserfernergruppe",
+   "days": 6,
+   "fusion": 12.2,
+   "analysis": 14.8
+  },
+  {
+   "id": "gl_at_nn-13001",
+   "country": "AT",
+   "region": "at-samnaungruppe",
+   "days": 6,
+   "fusion": 30,
+   "analysis": 27.5
+  },
+  {
+   "id": "gl_at_nn-13002",
+   "country": "AT",
+   "region": "at-samnaungruppe",
+   "days": 6,
+   "fusion": 34.2,
+   "analysis": 29
+  },
+  {
+   "id": "gl_at_visnitz-ferner",
+   "country": "AT",
+   "region": "at-samnaungruppe",
+   "days": 6,
+   "fusion": 37.8,
+   "analysis": 28.3
+  },
+  {
+   "id": "gl_at_horn-kees-4010",
+   "country": "AT",
+   "region": "at-schobergruppe",
+   "days": 6,
+   "fusion": 11.6,
+   "analysis": 13.6
+  },
+  {
+   "id": "gl_at_schober-kees-w",
+   "country": "AT",
+   "region": "at-schobergruppe",
+   "days": 6,
+   "fusion": 8.9,
+   "analysis": 12.4
+  },
+  {
+   "id": "gl_at_bieltal-ferner",
+   "country": "AT",
+   "region": "at-silvrettagruppe",
+   "days": 6,
+   "fusion": 49,
+   "analysis": 28.2
+  },
+  {
+   "id": "gl_at_chalaus-ferner",
+   "country": "AT",
+   "region": "at-silvrettagruppe",
+   "days": 6,
+   "fusion": 52.8,
+   "analysis": 28
+  },
+  {
+   "id": "gl_at_fluchthorn-ferner",
+   "country": "AT",
+   "region": "at-silvrettagruppe",
+   "days": 6,
+   "fusion": 50.3,
+   "analysis": 27.7
+  },
+  {
+   "id": "gl_at_futschoel-ferner",
+   "country": "AT",
+   "region": "at-silvrettagruppe",
+   "days": 6,
+   "fusion": 52,
+   "analysis": 26.5
+  },
+  {
+   "id": "gl_at_getschner-ferner",
+   "country": "AT",
+   "region": "at-silvrettagruppe",
+   "days": 6,
+   "fusion": 47.5,
+   "analysis": 27.9
+  },
+  {
+   "id": "gl_at_jamtal-ferner",
+   "country": "AT",
+   "region": "at-silvrettagruppe",
+   "days": 6,
+   "fusion": 53.8,
+   "analysis": 27.2
+  },
+  {
+   "id": "gl_at_jamtal-ferner-w",
+   "country": "AT",
+   "region": "at-silvrettagruppe",
+   "days": 6,
+   "fusion": 55,
+   "analysis": 28.7
+  },
+  {
+   "id": "gl_at_klostertaler-gletscher-m",
+   "country": "AT",
+   "region": "at-silvrettagruppe",
+   "days": 6,
+   "fusion": 54.4,
+   "analysis": 35.3
+  },
+  {
+   "id": "gl_at_klostertaler-gletscher-n",
+   "country": "AT",
+   "region": "at-silvrettagruppe",
+   "days": 6,
+   "fusion": 53.9,
+   "analysis": 35.6
+  },
+  {
+   "id": "gl_at_larain-ferner",
+   "country": "AT",
+   "region": "at-silvrettagruppe",
+   "days": 6,
+   "fusion": 42.7,
+   "analysis": 27.6
+  },
+  {
+   "id": "gl_at_litzner-gletscher",
+   "country": "AT",
+   "region": "at-silvrettagruppe",
+   "days": 6,
+   "fusion": 52.3,
+   "analysis": 37.8
+  },
+  {
+   "id": "gl_at_madlener-ferner",
+   "country": "AT",
+   "region": "at-silvrettagruppe",
+   "days": 6,
+   "fusion": 47.2,
+   "analysis": 27.4
+  },
+  {
+   "id": "gl_at_mittlere-schnapfenkuchl",
+   "country": "AT",
+   "region": "at-silvrettagruppe",
+   "days": 6,
+   "fusion": 42.6,
+   "analysis": 27.5
+  },
+  {
+   "id": "gl_at_ochsentaler-gletscher",
+   "country": "AT",
+   "region": "at-silvrettagruppe",
+   "days": 6,
+   "fusion": 57.8,
+   "analysis": 32.9
+  },
+  {
+   "id": "gl_at_rauhkopf-gletscher",
+   "country": "AT",
+   "region": "at-silvrettagruppe",
+   "days": 6,
+   "fusion": 49.8,
+   "analysis": 29
+  },
+  {
+   "id": "gl_at_schattenspitz-gletscher-e",
+   "country": "AT",
+   "region": "at-silvrettagruppe",
+   "days": 6,
+   "fusion": 53.4,
+   "analysis": 34
+  },
+  {
+   "id": "gl_at_schneeglocken-gletscher",
+   "country": "AT",
+   "region": "at-silvrettagruppe",
+   "days": 6,
+   "fusion": 53.8,
+   "analysis": 34.3
+  },
+  {
+   "id": "gl_at_totenfeld",
+   "country": "AT",
+   "region": "at-silvrettagruppe",
+   "days": 6,
+   "fusion": 48.9,
+   "analysis": 28.2
+  },
+  {
+   "id": "gl_at_vermunt",
+   "country": "AT",
+   "region": "at-silvrettagruppe",
+   "days": 6,
+   "fusion": 56.2,
+   "analysis": 31.6
+  },
+  {
+   "id": "gl_at_alpeiner-ferner-3055",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 37,
+   "analysis": 18.9
+  },
+  {
+   "id": "gl_at_alpeiner-kraeul-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 37,
+   "analysis": 16.6
+  },
+  {
+   "id": "gl_at_atterkar-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 24.4,
+   "analysis": 18.3
+  },
+  {
+   "id": "gl_at_bachfallen-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 23.7,
+   "analysis": 17.7
+  },
+  {
+   "id": "gl_at_berglas-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 37.4,
+   "analysis": 19.6
+  },
+  {
+   "id": "gl_at_bockkogel-ferner-e",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 36.9,
+   "analysis": 18.1
+  },
+  {
+   "id": "gl_at_bockkogel-ferner-w",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 34.1,
+   "analysis": 16.6
+  },
+  {
+   "id": "gl_at_daunkogel-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 28.1,
+   "analysis": 22
+  },
+  {
+   "id": "gl_at_falbesoner-knoten-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 36.9,
+   "analysis": 18
+  },
+  {
+   "id": "gl_at_falbesoner-kraeul-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 36.9,
+   "analysis": 16.3
+  },
+  {
+   "id": "gl_at_fernau-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 26.8,
+   "analysis": 22.4
+  },
+  {
+   "id": "gl_at_gaisskar-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 24.8,
+   "analysis": 29.2
+  },
+  {
+   "id": "gl_at_gleirsch-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 27.3,
+   "analysis": 21.5
+  },
+  {
+   "id": "gl_at_grabawand-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 36.9,
+   "analysis": 15
+  },
+  {
+   "id": "gl_at_grastal-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 24.4,
+   "analysis": 18
+  },
+  {
+   "id": "gl_at_griesskogel-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 25.7,
+   "analysis": 20.7
+  },
+  {
+   "id": "gl_at_gruenau-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 27.6,
+   "analysis": 16.6
+  },
+  {
+   "id": "gl_at_hochmoos-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 36.9,
+   "analysis": 15.8
+  },
+  {
+   "id": "gl_at_hoelltal-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 37,
+   "analysis": 17.7
+  },
+  {
+   "id": "gl_at_kitzkamp-ferner-e",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 23.2,
+   "analysis": 36.8
+  },
+  {
+   "id": "gl_at_kuhscheiben-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 24.4,
+   "analysis": 14.6
+  },
+  {
+   "id": "gl_at_laengentaler-ferner-1004",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 30.6,
+   "analysis": 17.5
+  },
+  {
+   "id": "gl_at_larstig-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 25.9,
+   "analysis": 20.7
+  },
+  {
+   "id": "gl_at_lisenser-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 35.9,
+   "analysis": 19.9
+  },
+  {
+   "id": "gl_at_lisenser-ferner-berglas",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 37.4,
+   "analysis": 19.7
+  },
+  {
+   "id": "gl_at_oestlicher-gruebl-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 23.5,
+   "analysis": 16.2
+  },
+  {
+   "id": "gl_at_oestlicher-scheiblehn-ferner-e",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 23.8,
+   "analysis": 28.4
+  },
+  {
+   "id": "gl_at_pfaffen-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 24.7,
+   "analysis": 24.2
+  },
+  {
+   "id": "gl_at_saeuischbach-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 23.1,
+   "analysis": 14.6
+  },
+  {
+   "id": "gl_at_schaufel-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 27.8,
+   "analysis": 27.1
+  },
+  {
+   "id": "gl_at_schwarzenberg-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 37.1,
+   "analysis": 17.9
+  },
+  {
+   "id": "gl_at_simming-ferner-w",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 16.2,
+   "analysis": 16.6
+  },
+  {
+   "id": "gl_at_sommerwand-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 36.9,
+   "analysis": 17.3
+  },
+  {
+   "id": "gl_at_suedlicher-schrankar-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 37.6,
+   "analysis": 16
+  },
+  {
+   "id": "gl_at_sulzenau-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 29.5,
+   "analysis": 16.2
+  },
+  {
+   "id": "gl_at_sulztal-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 28.8,
+   "analysis": 14.1
+  },
+  {
+   "id": "gl_at_triebenkarlas-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 24.2,
+   "analysis": 16.7
+  },
+  {
+   "id": "gl_at_verborgen-berg-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 37.5,
+   "analysis": 18.8
+  },
+  {
+   "id": "gl_at_warenkar-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 28.5,
+   "analysis": 27.1
+  },
+  {
+   "id": "gl_at_westlicher-gruebl-ferner-w",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 27.3,
+   "analysis": 16.8
+  },
+  {
+   "id": "gl_at_windacher-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 27.2,
+   "analysis": 29.2
+  },
+  {
+   "id": "gl_at_wuetenkar-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 24.6,
+   "analysis": 26.5
+  },
+  {
+   "id": "gl_at_zwiselbach-ferner",
+   "country": "AT",
+   "region": "at-stubaier-alpen",
+   "days": 6,
+   "fusion": 26.4,
+   "analysis": 23.8
+  },
+  {
+   "id": "gl_at_althaus-kees",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 30.2,
+   "analysis": 19.3
+  },
+  {
+   "id": "gl_at_dorfer-kees",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 25.4,
+   "analysis": 25.4
+  },
+  {
+   "id": "gl_at_frosnitzkees",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 22.1,
+   "analysis": 19.3
+  },
+  {
+   "id": "gl_at_garaneber-kees-n",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 15.6,
+   "analysis": 18.2
+  },
+  {
+   "id": "gl_at_garaneber-kees-s",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 14.8,
+   "analysis": 17
+  },
+  {
+   "id": "gl_at_grosser-jaidbach-kees",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 26,
+   "analysis": 29.4
+  },
+  {
+   "id": "gl_at_habach-kees",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 26.8,
+   "analysis": 32.2
+  },
+  {
+   "id": "gl_at_kaeferfeld-kees",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 26,
+   "analysis": 30.9
+  },
+  {
+   "id": "gl_at_karles-kees",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 19.9,
+   "analysis": 20.7
+  },
+  {
+   "id": "gl_at_kleiner-jaidbach-kees",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 25.6,
+   "analysis": 28.1
+  },
+  {
+   "id": "gl_at_krimmler-kees",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 27.4,
+   "analysis": 21.8
+  },
+  {
+   "id": "gl_at_kristallwand-kees",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 22.7,
+   "analysis": 20.2
+  },
+  {
+   "id": "gl_at_mailfrosnitz-kees",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 14.2,
+   "analysis": 16.5
+  },
+  {
+   "id": "gl_at_malham-kees-n",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 25,
+   "analysis": 15.8
+  },
+  {
+   "id": "gl_at_malham-kees-s",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 25.8,
+   "analysis": 15.4
+  },
+  {
+   "id": "gl_at_maurer-kees-e",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 23.8,
+   "analysis": 23
+  },
+  {
+   "id": "gl_at_maurer-kees-m",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 27,
+   "analysis": 25.6
+  },
+  {
+   "id": "gl_at_maurer-kees-w",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 26.9,
+   "analysis": 23.8
+  },
+  {
+   "id": "gl_at_mullwitz-kees",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 23,
+   "analysis": 19.5
+  },
+  {
+   "id": "gl_at_nn-5128",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 26.8,
+   "analysis": 33
+  },
+  {
+   "id": "gl_at_noerdlicher-viltragen-kees",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 27,
+   "analysis": 32.4
+  },
+  {
+   "id": "gl_at_obersulzbach-kees",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 27.8,
+   "analysis": 27
+  },
+  {
+   "id": "gl_at_oestliches-sonntags-kees",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 27.7,
+   "analysis": 28.9
+  },
+  {
+   "id": "gl_at_rainer-kees",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 24.5,
+   "analysis": 25.8
+  },
+  {
+   "id": "gl_at_schlaten-kees",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 23.9,
+   "analysis": 25.4
+  },
+  {
+   "id": "gl_at_schwarzach-kees",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 25.3,
+   "analysis": 15.9
+  },
+  {
+   "id": "gl_at_simony-kees",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 30.3,
+   "analysis": 18.8
+  },
+  {
+   "id": "gl_at_umbal-kees",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 30.3,
+   "analysis": 19.4
+  },
+  {
+   "id": "gl_at_untersulzbach-kees",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 26.7,
+   "analysis": 31.2
+  },
+  {
+   "id": "gl_at_untersulzbach-kees-w",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 26.2,
+   "analysis": 32
+  },
+  {
+   "id": "gl_at_viltragen-kees",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 29.1,
+   "analysis": 28.6
+  },
+  {
+   "id": "gl_at_watzfeld-kees-n",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 24.7,
+   "analysis": 25.6
+  },
+  {
+   "id": "gl_at_welitz-kees-m",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 28.3,
+   "analysis": 16.1
+  },
+  {
+   "id": "gl_at_welitz-kees-s",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 26.5,
+   "analysis": 16.1
+  },
+  {
+   "id": "gl_at_westliches-jaidbach-kees",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 25.9,
+   "analysis": 28.7
+  },
+  {
+   "id": "gl_at_westliches-sonntags-kees",
+   "country": "AT",
+   "region": "at-venedigergruppe",
+   "days": 6,
+   "fusion": 27.4,
+   "analysis": 28.8
+  },
+  {
+   "id": "gl_at_fasul-ferner-m",
+   "country": "AT",
+   "region": "at-verwallgruppe",
+   "days": 6,
+   "fusion": 51.1,
+   "analysis": 38.9
+  },
+  {
+   "id": "gl_at_fasul-ferner-n",
+   "country": "AT",
+   "region": "at-verwallgruppe",
+   "days": 6,
+   "fusion": 51.3,
+   "analysis": 40
+  },
+  {
+   "id": "gl_at_fasul-ferner-s",
+   "country": "AT",
+   "region": "at-verwallgruppe",
+   "days": 6,
+   "fusion": 50.8,
+   "analysis": 35.3
+  },
+  {
+   "id": "gl_at_flirscher-ferner",
+   "country": "AT",
+   "region": "at-verwallgruppe",
+   "days": 6,
+   "fusion": 55.4,
+   "analysis": 50.7
+  },
+  {
+   "id": "gl_at_grosser-kuchen-ferner",
+   "country": "AT",
+   "region": "at-verwallgruppe",
+   "days": 6,
+   "fusion": 56.8,
+   "analysis": 48.2
+  },
+  {
+   "id": "gl_at_grosser-kuechl-ferner-m",
+   "country": "AT",
+   "region": "at-verwallgruppe",
+   "days": 6,
+   "fusion": 53.7,
+   "analysis": 45.4
+  },
+  {
+   "id": "gl_at_grosser-kuechl-ferner-w",
+   "country": "AT",
+   "region": "at-verwallgruppe",
+   "days": 6,
+   "fusion": 58.5,
+   "analysis": 45.8
+  },
+  {
+   "id": "gl_at_kartell-ferner",
+   "country": "AT",
+   "region": "at-verwallgruppe",
+   "days": 6,
+   "fusion": 61.5,
+   "analysis": 47.7
+  },
+  {
+   "id": "gl_at_pettneuer-ferner",
+   "country": "AT",
+   "region": "at-verwallgruppe",
+   "days": 6,
+   "fusion": 58.8,
+   "analysis": 51.5
+  },
+  {
+   "id": "gl_at_federbett-kees",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 12.9,
+   "analysis": 8.7
+  },
+  {
+   "id": "gl_at_floiten-kees",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 11.6,
+   "analysis": 10.6
+  },
+  {
+   "id": "gl_at_friesenberg-kees",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 20.5,
+   "analysis": 15.7
+  },
+  {
+   "id": "gl_at_furtschagl-kees",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 20.9,
+   "analysis": 12.5
+  },
+  {
+   "id": "gl_at_gefrorene-wand-kees",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 20.8,
+   "analysis": 11.2
+  },
+  {
+   "id": "gl_at_gefrorene-wand-kees-e",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 20.4,
+   "analysis": 11.2
+  },
+  {
+   "id": "gl_at_grasleiten-kees-n",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 13.6,
+   "analysis": 13.3
+  },
+  {
+   "id": "gl_at_grasleiten-kees-s",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 13.5,
+   "analysis": 13.5
+  },
+  {
+   "id": "gl_at_griesbachjoch-kees-m",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 14.7,
+   "analysis": 15.1
+  },
+  {
+   "id": "gl_at_grosser-riepen-kees",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 20.9,
+   "analysis": 17.1
+  },
+  {
+   "id": "gl_at_hasenkar-kees",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 12.6,
+   "analysis": 12.4
+  },
+  {
+   "id": "gl_at_horn-kees-9075",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 13.5,
+   "analysis": 14.1
+  },
+  {
+   "id": "gl_at_horn-kees-e",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 13.5,
+   "analysis": 13
+  },
+  {
+   "id": "gl_at_kainzerkar-kees",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 12.8,
+   "analysis": 11.6
+  },
+  {
+   "id": "gl_at_keeskar-kees",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 18.2,
+   "analysis": 17.6
+  },
+  {
+   "id": "gl_at_kuchelmoos-kees",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 17.1,
+   "analysis": 16.8
+  },
+  {
+   "id": "gl_at_lapen-kees",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 12.9,
+   "analysis": 12
+  },
+  {
+   "id": "gl_at_loeffler-kees",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 12.5,
+   "analysis": 11.4
+  },
+  {
+   "id": "gl_at_moerchner-kees",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 13.5,
+   "analysis": 10
+  },
+  {
+   "id": "gl_at_oestliches-stillup-kees",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 13.5,
+   "analysis": 13.1
+  },
+  {
+   "id": "gl_at_olperer-ferner",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 20.8,
+   "analysis": 10
+  },
+  {
+   "id": "gl_at_rainbach-kees",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 17.4,
+   "analysis": 17
+  },
+  {
+   "id": "gl_at_rauchkofel-kees-m",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 14.3,
+   "analysis": 16
+  },
+  {
+   "id": "gl_at_roet-kees",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 17.8,
+   "analysis": 11.6
+  },
+  {
+   "id": "gl_at_schafleiten-kees",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 14.7,
+   "analysis": 12.1
+  },
+  {
+   "id": "gl_at_schlegeis-kees",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 20.6,
+   "analysis": 12.9
+  },
+  {
+   "id": "gl_at_schoenach-kees-m",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 16.6,
+   "analysis": 14.9
+  },
+  {
+   "id": "gl_at_schoenbichler-kees",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 21,
+   "analysis": 10.7
+  },
+  {
+   "id": "gl_at_schwarzenstein-kees",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 13.3,
+   "analysis": 9.7
+  },
+  {
+   "id": "gl_at_seekar-kees-n",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 18.6,
+   "analysis": 18
+  },
+  {
+   "id": "gl_at_stampfl-kees",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 20.9,
+   "analysis": 11
+  },
+  {
+   "id": "gl_at_unterschrammach-kees",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 20.8,
+   "analysis": 10.6
+  },
+  {
+   "id": "gl_at_waxegg-kees",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 14.4,
+   "analysis": 13
+  },
+  {
+   "id": "gl_at_weisskar-kees-n",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 16.5,
+   "analysis": 16.6
+  },
+  {
+   "id": "gl_at_weisskar-kees-s",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 16.8,
+   "analysis": 16.9
+  },
+  {
+   "id": "gl_at_wildgerlos-kees-e",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 17.2,
+   "analysis": 17
+  },
+  {
+   "id": "gl_at_wildgerlos-kees-m",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 16.7,
+   "analysis": 15.8
+  },
+  {
+   "id": "gl_at_wildkar-kees",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 15.1,
+   "analysis": 16.5
+  },
+  {
+   "id": "gl_at_wildlahner-ferner",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 20.8,
+   "analysis": 10
+  },
+  {
+   "id": "gl_at_ziller-kees",
+   "country": "AT",
+   "region": "at-zillertaler-alpen",
+   "days": 6,
+   "fusion": 16.9,
+   "analysis": 16.3
+  },
+  {
+   "id": "gl_ch_aerlengletscher-n",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 61.5,
+   "analysis": 53.4
+  },
+  {
+   "id": "gl_ch_alpligletscher",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 72.9,
+   "analysis": 50.5
+  },
+  {
+   "id": "gl_ch_baechenfirn-n",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 47.1,
+   "analysis": 35.8
+  },
+  {
+   "id": "gl_ch_baechligletscher",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 61,
+   "analysis": 56.5
+  },
+  {
+   "id": "gl_ch_blasgletscher-se",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 41.2,
+   "analysis": 56.1
+  },
+  {
+   "id": "gl_ch_blauberggletscher",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 43.8,
+   "analysis": 30.4
+  },
+  {
+   "id": "gl_ch_blinnengletscher-w",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 42.3,
+   "analysis": 36.2
+  },
+  {
+   "id": "gl_ch_blueemlisalpfirn",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 34.5,
+   "analysis": 42.6
+  },
+  {
+   "id": "gl_ch_brunnenfirn-e",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 55.1,
+   "analysis": 37.8
+  },
+  {
+   "id": "gl_ch_brunnenfirn-s",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 55.8,
+   "analysis": 40.1
+  },
+  {
+   "id": "gl_ch_brunnenfirn-w",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 58,
+   "analysis": 40
+  },
+  {
+   "id": "gl_ch_chalchtalfirn",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 54.4,
+   "analysis": 41.8
+  },
+  {
+   "id": "gl_ch_chelengletscher",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 75,
+   "analysis": 44
+  },
+  {
+   "id": "gl_ch_chesselfirn",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 33.4,
+   "analysis": 40.6
+  },
+  {
+   "id": "gl_ch_chli-sustlifirn",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 50.3,
+   "analysis": 50.4
+  },
+  {
+   "id": "gl_ch_chlitaler-firn",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 33.3,
+   "analysis": 39.8
+  },
+  {
+   "id": "gl_ch_chueefadfirn-g008492e46771n",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 49.1,
+   "analysis": 42.9
+  },
+  {
+   "id": "gl_ch_chueefadfirn-g008508e46778n",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 42.9,
+   "analysis": 40.6
+  },
+  {
+   "id": "gl_ch_dammagletscher",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 72.9,
+   "analysis": 39.1
+  },
+  {
+   "id": "gl_ch_diechtergletscher-n",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 66.5,
+   "analysis": 51.9
+  },
+  {
+   "id": "gl_ch_diechtergletscher-s",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 73.1,
+   "analysis": 52.4
+  },
+  {
+   "id": "gl_ch_faeldbachgletscher",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 42.4,
+   "analysis": 30.6
+  },
+  {
+   "id": "gl_ch_fellelifirn",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 33.7,
+   "analysis": 24
+  },
+  {
+   "id": "gl_ch_firnalpelifirn-e",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 48.5,
+   "analysis": 44.5
+  },
+  {
+   "id": "gl_ch_firnalpeligletscher-nw",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 44.2,
+   "analysis": 48.6
+  },
+  {
+   "id": "gl_ch_firnalpeligletscher-se",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 48.2,
+   "analysis": 46.1
+  },
+  {
+   "id": "gl_ch_flachensteinfirn",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 54.6,
+   "analysis": 37.8
+  },
+  {
+   "id": "gl_ch_galtiberggletscher-n",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 44.2,
+   "analysis": 49.3
+  },
+  {
+   "id": "gl_ch_gerengletscher",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 42.3,
+   "analysis": 29.8
+  },
+  {
+   "id": "gl_ch_ghiacciaio-di-valleggia",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 20.8,
+   "analysis": 14.5
+  },
+  {
+   "id": "gl_ch_gigligletscher",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 64.7,
+   "analysis": 49
+  },
+  {
+   "id": "gl_ch_glatscher-da-maighels-e",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 17.4,
+   "analysis": 15
+  },
+  {
+   "id": "gl_ch_glatscher-da-maighels-w",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 17.3,
+   "analysis": 14.1
+  },
+  {
+   "id": "gl_ch_glatt-firn",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 44.9,
+   "analysis": 36.7
+  },
+  {
+   "id": "gl_ch_golegg-gletscher",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 61.6,
+   "analysis": 52.9
+  },
+  {
+   "id": "gl_ch_grassengletscher",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 47.9,
+   "analysis": 44
+  },
+  {
+   "id": "gl_ch_grassengletscher-e",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 48.7,
+   "analysis": 42.9
+  },
+  {
+   "id": "gl_ch_grienbaergligletscher",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 66.8,
+   "analysis": 57
+  },
+  {
+   "id": "gl_ch_griesgletscher",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 41,
+   "analysis": 54.1
+  },
+  {
+   "id": "gl_ch_griessenfirn",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 53,
+   "analysis": 38.8
+  },
+  {
+   "id": "gl_ch_griessengletscher-engelberg",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 39.3,
+   "analysis": 46
+  },
+  {
+   "id": "gl_ch_gruebengletscher",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 62,
+   "analysis": 53
+  },
+  {
+   "id": "gl_ch_gurschenfirn",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 28.5,
+   "analysis": 21.4
+  },
+  {
+   "id": "gl_ch_hangfirn-sw-wassen",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 63.2,
+   "analysis": 39.7
+  },
+  {
+   "id": "gl_ch_hangfrin-ne-wassen",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 55.1,
+   "analysis": 34.9
+  },
+  {
+   "id": "gl_ch_hiendertellti",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 65.7,
+   "analysis": 55.3
+  },
+  {
+   "id": "gl_ch_hiendertelltihorn",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 65.5,
+   "analysis": 52.5
+  },
+  {
+   "id": "gl_ch_hindre-tierberg-guttannen",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 64.2,
+   "analysis": 62.9
+  },
+  {
+   "id": "gl_ch_im-sumpf",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 61.3,
+   "analysis": 52.2
+  },
+  {
+   "id": "gl_ch_jochgletscher-w",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 45.2,
+   "analysis": 49.9
+  },
+  {
+   "id": "gl_ch_kartigelfirn",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 54.3,
+   "analysis": 31.1
+  },
+  {
+   "id": "gl_ch_loeffelhorn",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 51,
+   "analysis": 68.2
+  },
+  {
+   "id": "gl_ch_maasplanggfirn",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 75.8,
+   "analysis": 43.2
+  },
+  {
+   "id": "gl_ch_maessplanggstock",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 73.9,
+   "analysis": 40.8
+  },
+  {
+   "id": "gl_ch_merzebachgletscher-w",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 40.2,
+   "analysis": 58.5
+  },
+  {
+   "id": "gl_ch_minstigergletscher",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 51.3,
+   "analysis": 78.2
+  },
+  {
+   "id": "gl_ch_mittler-tierberg-innertkirchen",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 67.4,
+   "analysis": 47
+  },
+  {
+   "id": "gl_ch_muttengletscher",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 53.5,
+   "analysis": 39.1
+  },
+  {
+   "id": "gl_ch_muttgletscher",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 56,
+   "analysis": 49.2
+  },
+  {
+   "id": "gl_ch_nn-g008263e46625n",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 61.5,
+   "analysis": 49.3
+  },
+  {
+   "id": "gl_ch_nn-g008372e46622n",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 73.6,
+   "analysis": 51
+  },
+  {
+   "id": "gl_ch_ober-satzgletscher",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 28.8,
+   "analysis": 18
+  },
+  {
+   "id": "gl_ch_obertalgletscher-e",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 50.6,
+   "analysis": 50.4
+  },
+  {
+   "id": "gl_ch_rappegletscher",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 42.3,
+   "analysis": 35.3
+  },
+  {
+   "id": "gl_ch_rhonegletscher",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 74,
+   "analysis": 47.3
+  },
+  {
+   "id": "gl_ch_rohrfirn",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 49.5,
+   "analysis": 29.7
+  },
+  {
+   "id": "gl_ch_rossfirn-e",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 46.2,
+   "analysis": 38.4
+  },
+  {
+   "id": "gl_ch_rossfirn-w",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 43.3,
+   "analysis": 40.5
+  },
+  {
+   "id": "gl_ch_rotfirn",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 73.7,
+   "analysis": 40.8
+  },
+  {
+   "id": "gl_ch_rotfirngletscher-n",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 74.1,
+   "analysis": 40
+  },
+  {
+   "id": "gl_ch_ruetifirn",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 56.3,
+   "analysis": 33.5
+  },
+  {
+   "id": "gl_ch_saasgletscher",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 54.9,
+   "analysis": 42.7
+  },
+  {
+   "id": "gl_ch_schlossberggletscher-erstfeld",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 44.1,
+   "analysis": 38.8
+  },
+  {
+   "id": "gl_ch_schlossfirn-isenthal",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 39.8,
+   "analysis": 44.1
+  },
+  {
+   "id": "gl_ch_sewenzwaechten",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 47.1,
+   "analysis": 36.7
+  },
+  {
+   "id": "gl_ch_sidelengletscher-ur",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 72.6,
+   "analysis": 44.5
+  },
+  {
+   "id": "gl_ch_spannortgletscher-ne-1",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 42.4,
+   "analysis": 40.5
+  },
+  {
+   "id": "gl_ch_spannortgletscher-ne-2",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 42.8,
+   "analysis": 40.4
+  },
+  {
+   "id": "gl_ch_spannortgletscher-sw-1",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 46.3,
+   "analysis": 40.6
+  },
+  {
+   "id": "gl_ch_spannortgletscher-sw-2",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 45.5,
+   "analysis": 40.5
+  },
+  {
+   "id": "gl_ch_spannortgletscher-zentral",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 42.2,
+   "analysis": 40.6
+  },
+  {
+   "id": "gl_ch_st-annafirn",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 28.8,
+   "analysis": 20.9
+  },
+  {
+   "id": "gl_ch_staefelfirn",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 30.5,
+   "analysis": 31.5
+  },
+  {
+   "id": "gl_ch_steigletscher",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 58.9,
+   "analysis": 41.7
+  },
+  {
+   "id": "gl_ch_steilimigletscher",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 66.9,
+   "analysis": 43.3
+  },
+  {
+   "id": "gl_ch_stockgletscher",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 48.6,
+   "analysis": 33.5
+  },
+  {
+   "id": "gl_ch_stoessenfirn-e",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 49,
+   "analysis": 43.4
+  },
+  {
+   "id": "gl_ch_stoessenfirn-w",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 49.1,
+   "analysis": 45.7
+  },
+  {
+   "id": "gl_ch_stotzig-egg",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 44.5,
+   "analysis": 49.3
+  },
+  {
+   "id": "gl_ch_taelligletscher-e",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 42.2,
+   "analysis": 21.5
+  },
+  {
+   "id": "gl_ch_taleggligletscher",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 65.3,
+   "analysis": 48
+  },
+  {
+   "id": "gl_ch_tiefengletscher",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 71.4,
+   "analysis": 45.4
+  },
+  {
+   "id": "gl_ch_tierberggletscher-guttannen",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 62.4,
+   "analysis": 68.3
+  },
+  {
+   "id": "gl_ch_titlisgletscher",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 47.8,
+   "analysis": 52.9
+  },
+  {
+   "id": "gl_ch_triftgletscher",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 74.8,
+   "analysis": 47.5
+  },
+  {
+   "id": "gl_ch_tschingelfirn-w-wassen",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 55,
+   "analysis": 39.7
+  },
+  {
+   "id": "gl_ch_uratgletscher",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 50.1,
+   "analysis": 49.9
+  },
+  {
+   "id": "gl_ch_vorder-tierberg-innertkirchen",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 66,
+   "analysis": 47
+  },
+  {
+   "id": "gl_ch_wallenburfirn",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 56,
+   "analysis": 41.5
+  },
+  {
+   "id": "gl_ch_wendengletscher",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 49.1,
+   "analysis": 49.6
+  },
+  {
+   "id": "gl_ch_wichelplanggfirn",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 49.2,
+   "analysis": 42.5
+  },
+  {
+   "id": "gl_ch_wiissenbachgletscher-e",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 60.7,
+   "analysis": 49.3
+  },
+  {
+   "id": "gl_ch_windgaellenfirn",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 29.9,
+   "analysis": 33.3
+  },
+  {
+   "id": "gl_ch_witenwasserengletscher",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 39.5,
+   "analysis": 30.7
+  },
+  {
+   "id": "gl_ch_wysse-nollen",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 75.6,
+   "analysis": 43.5
+  },
+  {
+   "id": "gl_ch_zandgletscher",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 34.4,
+   "analysis": 30.3
+  },
+  {
+   "id": "gl_ch_zwaechten",
+   "country": "CH",
+   "region": "ch-mitte-ost",
+   "days": 5,
+   "fusion": 45.3,
+   "analysis": 35.8
+  },
+  {
+   "id": "gl_ch_abberggletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 63,
+   "analysis": 30.4
+  },
+  {
+   "id": "gl_ch_adlergletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 42.2,
+   "analysis": 20.8
+  },
+  {
+   "id": "gl_ch_aletschhorn-n",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 64.6,
+   "analysis": 60.2
+  },
+  {
+   "id": "gl_ch_allalingletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 45.2,
+   "analysis": 20.6
+  },
+  {
+   "id": "gl_ch_alphubelgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 42,
+   "analysis": 23.7
+  },
+  {
+   "id": "gl_ch_alpjergletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 57.9,
+   "analysis": 15.9
+  },
+  {
+   "id": "gl_ch_arbengletscher-e",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 56.1,
+   "analysis": 31.8
+  },
+  {
+   "id": "gl_ch_arbengletscher-w",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 56.4,
+   "analysis": 31.8
+  },
+  {
+   "id": "gl_ch_baechigletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 53.8,
+   "analysis": 89.7
+  },
+  {
+   "id": "gl_ch_balfringletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 49.8,
+   "analysis": 34.7
+  },
+  {
+   "id": "gl_ch_balmhorngletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 57.6,
+   "analysis": 67
+  },
+  {
+   "id": "gl_ch_beichgletscher-nw",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 63.1,
+   "analysis": 57.2
+  },
+  {
+   "id": "gl_ch_bidergletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 49.8,
+   "analysis": 33.9
+  },
+  {
+   "id": "gl_ch_bietschgletscher-sw",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 51.4,
+   "analysis": 62.5
+  },
+  {
+   "id": "gl_ch_bietschgletscher-zentral",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 53.3,
+   "analysis": 58.8
+  },
+  {
+   "id": "gl_ch_birchgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 53.5,
+   "analysis": 59.4
+  },
+  {
+   "id": "gl_ch_bisgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 60.2,
+   "analysis": 33.1
+  },
+  {
+   "id": "gl_ch_blueemlisalpgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 70.3,
+   "analysis": 61.6
+  },
+  {
+   "id": "gl_ch_blueemlisalphorn",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 69.3,
+   "analysis": 78.2
+  },
+  {
+   "id": "gl_ch_bodmergletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 45.4,
+   "analysis": 21.7
+  },
+  {
+   "id": "gl_ch_breithorngletscher-lauterbrunnen",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 59.6,
+   "analysis": 62
+  },
+  {
+   "id": "gl_ch_breithorngletscher-zermatt",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 38.2,
+   "analysis": 21.1
+  },
+  {
+   "id": "gl_ch_breitlouwenengletscher-n",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 60.8,
+   "analysis": 44.3
+  },
+  {
+   "id": "gl_ch_breitlouwenengletscher-s",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 59.7,
+   "analysis": 45.8
+  },
+  {
+   "id": "gl_ch_breitlouwenengletscher-zentral",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 59.7,
+   "analysis": 55.3
+  },
+  {
+   "id": "gl_ch_challfirn",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 53.7,
+   "analysis": 33.8
+  },
+  {
+   "id": "gl_ch_chaltwassergletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 58.7,
+   "analysis": 18.7
+  },
+  {
+   "id": "gl_ch_chessjengletscher-nw",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 44.3,
+   "analysis": 19.8
+  },
+  {
+   "id": "gl_ch_chielouwenenlgetscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 61.2,
+   "analysis": 46.8
+  },
+  {
+   "id": "gl_ch_chrinnengletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 57.5,
+   "analysis": 47
+  },
+  {
+   "id": "gl_ch_dent-blanche-sw",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 62.1,
+   "analysis": 33.9
+  },
+  {
+   "id": "gl_ch_diablons-gletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 61.1,
+   "analysis": 29.7
+  },
+  {
+   "id": "gl_ch_dirrugletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 44.7,
+   "analysis": 30.9
+  },
+  {
+   "id": "gl_ch_dischliggletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 61.8,
+   "analysis": 50
+  },
+  {
+   "id": "gl_ch_distelgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 69,
+   "analysis": 69.3
+  },
+  {
+   "id": "gl_ch_doldenhorngletscher-e",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 54,
+   "analysis": 51.7
+  },
+  {
+   "id": "gl_ch_doldenhorngletscher-w",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 53.8,
+   "analysis": 54.6
+  },
+  {
+   "id": "gl_ch_driestgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 58.8,
+   "analysis": 61.7
+  },
+  {
+   "id": "gl_ch_eigergletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 59.5,
+   "analysis": 40.3
+  },
+  {
+   "id": "gl_ch_feegletscher-n",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 41.4,
+   "analysis": 28.4
+  },
+  {
+   "id": "gl_ch_feegletscher-s",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 46,
+   "analysis": 22.4
+  },
+  {
+   "id": "gl_ch_feegletscher-zentral",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 46.6,
+   "analysis": 23.9
+  },
+  {
+   "id": "gl_ch_festigletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 44.1,
+   "analysis": 29.1
+  },
+  {
+   "id": "gl_ch_fieschergletscher-e",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 62.4,
+   "analysis": 70.2
+  },
+  {
+   "id": "gl_ch_findelgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 37.3,
+   "analysis": 19.9
+  },
+  {
+   "id": "gl_ch_finsteraahorn-s",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 64.8,
+   "analysis": 67.4
+  },
+  {
+   "id": "gl_ch_fletschhorngletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 45.2,
+   "analysis": 30.9
+  },
+  {
+   "id": "gl_ch_fluchthorn-w",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 46.7,
+   "analysis": 17.6
+  },
+  {
+   "id": "gl_ch_flueegletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 60.4,
+   "analysis": 89.2
+  },
+  {
+   "id": "gl_ch_fruendengletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 53.7,
+   "analysis": 55.5
+  },
+  {
+   "id": "gl_ch_fruendenhorn-se",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 56.3,
+   "analysis": 62.8
+  },
+  {
+   "id": "gl_ch_fruendenjoch",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 54.7,
+   "analysis": 57.5
+  },
+  {
+   "id": "gl_ch_fulegletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 53.4,
+   "analysis": 54.6
+  },
+  {
+   "id": "gl_ch_furgggletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 44.6,
+   "analysis": 37.1
+  },
+  {
+   "id": "gl_ch_gabelhorngletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 55.1,
+   "analysis": 30.2
+  },
+  {
+   "id": "gl_ch_gamchigletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 54.7,
+   "analysis": 53.6
+  },
+  {
+   "id": "gl_ch_gamsagletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 49.4,
+   "analysis": 28.3
+  },
+  {
+   "id": "gl_ch_gauligletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 66.6,
+   "analysis": 57.9
+  },
+  {
+   "id": "gl_ch_giessengletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 58.2,
+   "analysis": 38.7
+  },
+  {
+   "id": "gl_ch_glacier-de-bricola",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 62,
+   "analysis": 31.9
+  },
+  {
+   "id": "gl_ch_glacier-de-ferpecle",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 42.7,
+   "analysis": 35.2
+  },
+  {
+   "id": "gl_ch_glacier-de-la-dent-blanche",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 61.6,
+   "analysis": 32.2
+  },
+  {
+   "id": "gl_ch_glacier-de-moiry-s",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 62,
+   "analysis": 31.9
+  },
+  {
+   "id": "gl_ch_glacier-de-moiry-zentral",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 61.7,
+   "analysis": 31
+  },
+  {
+   "id": "gl_ch_glacier-de-moming-zentral",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 62.3,
+   "analysis": 28.4
+  },
+  {
+   "id": "gl_ch_glacier-de-zinal",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 61.2,
+   "analysis": 29.9
+  },
+  {
+   "id": "gl_ch_glacier-des-manzettes",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 45.9,
+   "analysis": 33.9
+  },
+  {
+   "id": "gl_ch_glacier-du-weisshorn-n",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 63.2,
+   "analysis": 30.3
+  },
+  {
+   "id": "gl_ch_glacier-du-weisshorn-s",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 62.5,
+   "analysis": 31.4
+  },
+  {
+   "id": "gl_ch_gletscherhornfirn",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 60.9,
+   "analysis": 60.6
+  },
+  {
+   "id": "gl_ch_gornergletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 38.3,
+   "analysis": 12
+  },
+  {
+   "id": "gl_ch_grand-cornier-e",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 61,
+   "analysis": 28.2
+  },
+  {
+   "id": "gl_ch_grand-cornier-ne",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 62,
+   "analysis": 28.2
+  },
+  {
+   "id": "gl_ch_gredetschgletscher-e",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 70.2,
+   "analysis": 55.9
+  },
+  {
+   "id": "gl_ch_gredetschgletscher-w",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 70.1,
+   "analysis": 53.7
+  },
+  {
+   "id": "gl_ch_gredetschhorli",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 69.5,
+   "analysis": 53.7
+  },
+  {
+   "id": "gl_ch_griessernugletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 50.2,
+   "analysis": 26.4
+  },
+  {
+   "id": "gl_ch_gross-fusshorn-nw",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 68.6,
+   "analysis": 58.2
+  },
+  {
+   "id": "gl_ch_grosser-aletschgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 61.3,
+   "analysis": 41.5
+  },
+  {
+   "id": "gl_ch_grosses-fiescherhorn",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 64,
+   "analysis": 46.8
+  },
+  {
+   "id": "gl_ch_grueebugletscher-e",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 45.5,
+   "analysis": 30.5
+  },
+  {
+   "id": "gl_ch_grueebugletscher-n-g007984e46154n",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 44.7,
+   "analysis": 31.3
+  },
+  {
+   "id": "gl_ch_grueebugletscher-zentral",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 45.6,
+   "analysis": 30.5
+  },
+  {
+   "id": "gl_ch_gspaltenhorngletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 59.3,
+   "analysis": 48.1
+  },
+  {
+   "id": "gl_ch_guggigletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 55.3,
+   "analysis": 42.5
+  },
+  {
+   "id": "gl_ch_gutzlgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 60.8,
+   "analysis": 44.7
+  },
+  {
+   "id": "gl_ch_hangend-gletscher-innertkirchen",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 51.6,
+   "analysis": 51.2
+  },
+  {
+   "id": "gl_ch_hangendegletscher-g007922e46029n",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 45.7,
+   "analysis": 17.6
+  },
+  {
+   "id": "gl_ch_hengsterengletscher-ne",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 60.8,
+   "analysis": 46
+  },
+  {
+   "id": "gl_ch_hindra-schmadrigletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 55.7,
+   "analysis": 58.3
+  },
+  {
+   "id": "gl_ch_hobaerggletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 44.6,
+   "analysis": 31.4
+  },
+  {
+   "id": "gl_ch_hobaerghorn-w",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 44.7,
+   "analysis": 34.3
+  },
+  {
+   "id": "gl_ch_hochfirn-ne",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 58.3,
+   "analysis": 48.4
+  },
+  {
+   "id": "gl_ch_hohbalmgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 41.7,
+   "analysis": 30.2
+  },
+  {
+   "id": "gl_ch_hohlaubgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 47.3,
+   "analysis": 20.5
+  },
+  {
+   "id": "gl_ch_hohlichtgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 56.1,
+   "analysis": 32.8
+  },
+  {
+   "id": "gl_ch_hohlichtgletscher-n",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 62,
+   "analysis": 31.4
+  },
+  {
+   "id": "gl_ch_hohlichtgletscher-s",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 57.5,
+   "analysis": 33.4
+  },
+  {
+   "id": "gl_ch_hohwaenggletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 54.1,
+   "analysis": 33.9
+  },
+  {
+   "id": "gl_ch_holutriftgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 45.2,
+   "analysis": 26.2
+  },
+  {
+   "id": "gl_ch_holzgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 55.1,
+   "analysis": 29.4
+  },
+  {
+   "id": "gl_ch_homattugletscher-s",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 58.7,
+   "analysis": 18.5
+  },
+  {
+   "id": "gl_ch_innre-baltschiedergletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 61.1,
+   "analysis": 56.3
+  },
+  {
+   "id": "gl_ch_innre-stampbachgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 55.1,
+   "analysis": 61.3
+  },
+  {
+   "id": "gl_ch_ischmeer",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 58.7,
+   "analysis": 40.1
+  },
+  {
+   "id": "gl_ch_jegigletscher-ne",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 61.5,
+   "analysis": 73.1
+  },
+  {
+   "id": "gl_ch_jegigletscher-sw",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 60,
+   "analysis": 61.4
+  },
+  {
+   "id": "gl_ch_jegigletscher-w",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 56.6,
+   "analysis": 70
+  },
+  {
+   "id": "gl_ch_joligletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 53.6,
+   "analysis": 61.5
+  },
+  {
+   "id": "gl_ch_junggletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 59.7,
+   "analysis": 27.9
+  },
+  {
+   "id": "gl_ch_kanderfirn-n",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 59.5,
+   "analysis": 58.8
+  },
+  {
+   "id": "gl_ch_kanderfirn-sw",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 70.1,
+   "analysis": 68
+  },
+  {
+   "id": "gl_ch_kinggletscher-n",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 43.9,
+   "analysis": 28.2
+  },
+  {
+   "id": "gl_ch_kinggletscher-sw",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 43.7,
+   "analysis": 27.3
+  },
+  {
+   "id": "gl_ch_kl-lauteraarhorn-sw",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 62,
+   "analysis": 62
+  },
+  {
+   "id": "gl_ch_klein-wannenhorn-se",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 50.9,
+   "analysis": 62.2
+  },
+  {
+   "id": "gl_ch_kleines-dreieckhorn-e",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 62,
+   "analysis": 48.9
+  },
+  {
+   "id": "gl_ch_kleines-dreieckhorn-ne",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 61.9,
+   "analysis": 46.9
+  },
+  {
+   "id": "gl_ch_kleines-dreieckhorn-se",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 62.6,
+   "analysis": 48.9
+  },
+  {
+   "id": "gl_ch_kortaelli",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 57.1,
+   "analysis": 47.7
+  },
+  {
+   "id": "gl_ch_kranzbergfirn",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 61.1,
+   "analysis": 50
+  },
+  {
+   "id": "gl_ch_laemmerengletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 68.6,
+   "analysis": 83.2
+  },
+  {
+   "id": "gl_ch_laengfluegletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 38.9,
+   "analysis": 22
+  },
+  {
+   "id": "gl_ch_laengfluegletscher-s",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 37.3,
+   "analysis": 21.8
+  },
+  {
+   "id": "gl_ch_laengfluegletscher-zentral",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 36.8,
+   "analysis": 19.3
+  },
+  {
+   "id": "gl_ch_laggingletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 43.4,
+   "analysis": 25.8
+  },
+  {
+   "id": "gl_ch_langgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 66.4,
+   "analysis": 67.9
+  },
+  {
+   "id": "gl_ch_lauteraar-rothoerner-nw",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 64.8,
+   "analysis": 66.6
+  },
+  {
+   "id": "gl_ch_lauteraargletscher-g008186e46568n",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 64.9,
+   "analysis": 60.9
+  },
+  {
+   "id": "gl_ch_loetschegletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 59.4,
+   "analysis": 69.8
+  },
+  {
+   "id": "gl_ch_loibinbachgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 61.3,
+   "analysis": 52.1
+  },
+  {
+   "id": "gl_ch_maelligagletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 42.1,
+   "analysis": 31.4
+  },
+  {
+   "id": "gl_ch_maettitalgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 63.9,
+   "analysis": 16.7
+  },
+  {
+   "id": "gl_ch_matterhorngletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 49.6,
+   "analysis": 35.1
+  },
+  {
+   "id": "gl_ch_mattwaldgletscher-w",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 48.8,
+   "analysis": 29.3
+  },
+  {
+   "id": "gl_ch_mellichgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 39,
+   "analysis": 22
+  },
+  {
+   "id": "gl_ch_mellichgletscher-n",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 44.9,
+   "analysis": 21.9
+  },
+  {
+   "id": "gl_ch_mittelaletschgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 65.3,
+   "analysis": 54
+  },
+  {
+   "id": "gl_ch_monte-rosagletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 34,
+   "analysis": 13.8
+  },
+  {
+   "id": "gl_ch_morgenhorngletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 71,
+   "analysis": 55.9
+  },
+  {
+   "id": "gl_ch_naessigletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 59.7,
+   "analysis": 44.9
+  },
+  {
+   "id": "gl_ch_naessihorn",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 59.4,
+   "analysis": 50.5
+  },
+  {
+   "id": "gl_ch_nestgletscher-n",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 53.9,
+   "analysis": 59.4
+  },
+  {
+   "id": "gl_ch_nn-g007721e46121n",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 63,
+   "analysis": 31.5
+  },
+  {
+   "id": "gl_ch_nn-g007883e46138n",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 49.8,
+   "analysis": 34.6
+  },
+  {
+   "id": "gl_ch_nn-g007994e46150n",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 44.6,
+   "analysis": 31.5
+  },
+  {
+   "id": "gl_ch_nn-g008000e46443n",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 67.7,
+   "analysis": 60.8
+  },
+  {
+   "id": "gl_ch_nn-g008087e46493n",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 60.8,
+   "analysis": 56.9
+  },
+  {
+   "id": "gl_ch_nollengletscher-w-saas-almagell",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 30.9,
+   "analysis": 14.3
+  },
+  {
+   "id": "gl_ch_ober-tatelishorn-e",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 56.6,
+   "analysis": 61.6
+  },
+  {
+   "id": "gl_ch_oberaargletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 54.5,
+   "analysis": 77.3
+  },
+  {
+   "id": "gl_ch_oberaletschfirn",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 68.8,
+   "analysis": 64.4
+  },
+  {
+   "id": "gl_ch_oberaletschgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 68.8,
+   "analysis": 65.7
+  },
+  {
+   "id": "gl_ch_obere-breithorngletscher-lauterbrunnen",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 56.4,
+   "analysis": 58.3
+  },
+  {
+   "id": "gl_ch_obere-oeschinengletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 56.2,
+   "analysis": 58.6
+  },
+  {
+   "id": "gl_ch_obere-stelligletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 58.7,
+   "analysis": 28.7
+  },
+  {
+   "id": "gl_ch_oberer-grindelwaldgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 61.2,
+   "analysis": 54.3
+  },
+  {
+   "id": "gl_ch_oberer-theodulgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 41.9,
+   "analysis": 40.7
+  },
+  {
+   "id": "gl_ch_oberferdengletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 62.9,
+   "analysis": 92.5
+  },
+  {
+   "id": "gl_ch_obers-ischmeer-e",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 62.1,
+   "analysis": 51.3
+  },
+  {
+   "id": "gl_ch_oestl-ankebaelliluecke-w",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 66.6,
+   "analysis": 60
+  },
+  {
+   "id": "gl_ch_oigstchummungletscher-n",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 55.2,
+   "analysis": 55.2
+  },
+  {
+   "id": "gl_ch_pipjigletscher-w",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 58.7,
+   "analysis": 28.1
+  },
+  {
+   "id": "gl_ch_raenfengletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 45.8,
+   "analysis": 49.4
+  },
+  {
+   "id": "gl_ch_raenfenhorn",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 52.7,
+   "analysis": 56.5
+  },
+  {
+   "id": "gl_ch_raenfenjoch",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 47.5,
+   "analysis": 53
+  },
+  {
+   "id": "gl_ch_riedgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 44.1,
+   "analysis": 38.1
+  },
+  {
+   "id": "gl_ch_rinderhorn-n",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 57.8,
+   "analysis": 87.6
+  },
+  {
+   "id": "gl_ch_rosenlouwigletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 50.1,
+   "analysis": 54.1
+  },
+  {
+   "id": "gl_ch_rossbodegletscher-sw",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 48.8,
+   "analysis": 27.9
+  },
+  {
+   "id": "gl_ch_rossgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 52.6,
+   "analysis": 29.4
+  },
+  {
+   "id": "gl_ch_rotblattgletscher-n",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 33.5,
+   "analysis": 21.5
+  },
+  {
+   "id": "gl_ch_rotblattgletscher-s",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 29.4,
+   "analysis": 20.9
+  },
+  {
+   "id": "gl_ch_rothorngletscher-zermatt",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 56.5,
+   "analysis": 32.8
+  },
+  {
+   "id": "gl_ch_rottalgletscher-lauterbrunnen",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 58.4,
+   "analysis": 51.9
+  },
+  {
+   "id": "gl_ch_rottalgletscher-saas-almagell",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 38.5,
+   "analysis": 26.2
+  },
+  {
+   "id": "gl_ch_schadrifirn",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 56.3,
+   "analysis": 62.4
+  },
+  {
+   "id": "gl_ch_schaligletscher-e",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 57.7,
+   "analysis": 29.7
+  },
+  {
+   "id": "gl_ch_schaligletscher-w",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 61.9,
+   "analysis": 32.7
+  },
+  {
+   "id": "gl_ch_scheuchzerhorn-se",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 60,
+   "analysis": 76.3
+  },
+  {
+   "id": "gl_ch_schinhorn-w",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 67.3,
+   "analysis": 57.3
+  },
+  {
+   "id": "gl_ch_schoelligletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 62.7,
+   "analysis": 29.8
+  },
+  {
+   "id": "gl_ch_schoenbuehlgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 60.8,
+   "analysis": 61.3
+  },
+  {
+   "id": "gl_ch_schreckfirn",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 59.7,
+   "analysis": 53.5
+  },
+  {
+   "id": "gl_ch_schwarzberggletscher-w",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 42.4,
+   "analysis": 17.5
+  },
+  {
+   "id": "gl_ch_schwarzberggletscher-zentral",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 37.5,
+   "analysis": 16
+  },
+  {
+   "id": "gl_ch_schwarzgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 58,
+   "analysis": 81.5
+  },
+  {
+   "id": "gl_ch_seewjinengletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 33.1,
+   "analysis": 13.9
+  },
+  {
+   "id": "gl_ch_sibilufluegletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 46.2,
+   "analysis": 22.3
+  },
+  {
+   "id": "gl_ch_silberhorngletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 58.3,
+   "analysis": 43.9
+  },
+  {
+   "id": "gl_ch_silleregletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 54,
+   "analysis": 57.5
+  },
+  {
+   "id": "gl_ch_steghorngletscher-sw",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 66.4,
+   "analysis": 73.8
+  },
+  {
+   "id": "gl_ch_steinugletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 64.1,
+   "analysis": 16.4
+  },
+  {
+   "id": "gl_ch_stierbaerg",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 62.6,
+   "analysis": 29.8
+  },
+  {
+   "id": "gl_ch_strubelgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 65.4,
+   "analysis": 77.9
+  },
+  {
+   "id": "gl_ch_taelligletscher-e-zwischenbergen",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 31.9,
+   "analysis": 14.5
+  },
+  {
+   "id": "gl_ch_taelligletscher-kandersteg",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 65.6,
+   "analysis": 75.1
+  },
+  {
+   "id": "gl_ch_taelligletscher-w-zwischenbergen",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 38.5,
+   "analysis": 18.9
+  },
+  {
+   "id": "gl_ch_tellingletscher-g007823e46464n",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 59.8,
+   "analysis": 65.7
+  },
+  {
+   "id": "gl_ch_tellingletscher-sw",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 68.7,
+   "analysis": 69.4
+  },
+  {
+   "id": "gl_ch_tennbachgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 68.4,
+   "analysis": 69.3
+  },
+  {
+   "id": "gl_ch_tennbachhorn",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 68.4,
+   "analysis": 62.7
+  },
+  {
+   "id": "gl_ch_triftgletscher-e-saas-grund",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 43.2,
+   "analysis": 26.2
+  },
+  {
+   "id": "gl_ch_triftgletscher-ne-saas-grund",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 43.7,
+   "analysis": 32.3
+  },
+  {
+   "id": "gl_ch_triftgletscher-se-saas-grund",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 42.6,
+   "analysis": 33.1
+  },
+  {
+   "id": "gl_ch_triftgletscher-w-fieschertal",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 52.8,
+   "analysis": 63.3
+  },
+  {
+   "id": "gl_ch_triftgletscher-zermatt",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 55.6,
+   "analysis": 31.4
+  },
+  {
+   "id": "gl_ch_triftjigletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 35.5,
+   "analysis": 17.4
+  },
+  {
+   "id": "gl_ch_tschingelfirn-s-kandersteg",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 59.1,
+   "analysis": 56
+  },
+  {
+   "id": "gl_ch_tschingelgrat-n-kandersteg",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 60.1,
+   "analysis": 42.8
+  },
+  {
+   "id": "gl_ch_tschingelspitz-nw",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 59.2,
+   "analysis": 43.6
+  },
+  {
+   "id": "gl_ch_turtmanngletscher-nw",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 62.7,
+   "analysis": 30.2
+  },
+  {
+   "id": "gl_ch_turtmanngletscher-zentral",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 62.5,
+   "analysis": 30.5
+  },
+  {
+   "id": "gl_ch_uessre-baltschiedergletscher-g007865e46400n",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 54.7,
+   "analysis": 66.6
+  },
+  {
+   "id": "gl_ch_uistre-stampbachgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 54.6,
+   "analysis": 59.7
+  },
+  {
+   "id": "gl_ch_undere-oeschinengletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 56,
+   "analysis": 65.2
+  },
+  {
+   "id": "gl_ch_undere-stelligletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 58.9,
+   "analysis": 29.2
+  },
+  {
+   "id": "gl_ch_unnerbaechgletscher-w",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 64.6,
+   "analysis": 58.2
+  },
+  {
+   "id": "gl_ch_unteraargletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 61.5,
+   "analysis": 60.9
+  },
+  {
+   "id": "gl_ch_unterer-grindelwaldgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 56.2,
+   "analysis": 38.2
+  },
+  {
+   "id": "gl_ch_unterer-theodulgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 39.5,
+   "analysis": 35.7
+  },
+  {
+   "id": "gl_ch_vordra-schmadrigletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 58.1,
+   "analysis": 55.4
+  },
+  {
+   "id": "gl_ch_waechselgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 55.5,
+   "analysis": 39
+  },
+  {
+   "id": "gl_ch_wandflue",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 44.6,
+   "analysis": 36.4
+  },
+  {
+   "id": "gl_ch_wannenhorngletscher-nw",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 52.8,
+   "analysis": 61.3
+  },
+  {
+   "id": "gl_ch_wannenhorngletscher-se",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 52.6,
+   "analysis": 61.3
+  },
+  {
+   "id": "gl_ch_weingartengletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 42.1,
+   "analysis": 25
+  },
+  {
+   "id": "gl_ch_weingartengletscher-n",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 42.2,
+   "analysis": 25.4
+  },
+  {
+   "id": "gl_ch_weissmiesgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 38.8,
+   "analysis": 21.5
+  },
+  {
+   "id": "gl_ch_wildelsigen",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 57.8,
+   "analysis": 59.7
+  },
+  {
+   "id": "gl_ch_wyssi-frau",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 70.5,
+   "analysis": 61.5
+  },
+  {
+   "id": "gl_ch_zenbaechengletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 58.6,
+   "analysis": 59.4
+  },
+  {
+   "id": "gl_ch_zmuttgletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 39.8,
+   "analysis": 33
+  },
+  {
+   "id": "gl_ch_zwischbergengletscher",
+   "country": "CH",
+   "region": "ch-mitte-west",
+   "days": 5,
+   "fusion": 32.7,
+   "analysis": 18.4
+  },
+  {
+   "id": "gl_ch_alpgnofer-firn",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 34.1,
+   "analysis": 31.2
+  },
+  {
+   "id": "gl_ch_alplifirn",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 41.5,
+   "analysis": 33.7
+  },
+  {
+   "id": "gl_ch_baechifirn-w",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 46.8,
+   "analysis": 47.2
+  },
+  {
+   "id": "gl_ch_barcun-frisal-sut",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 44.9,
+   "analysis": 34.4
+  },
+  {
+   "id": "gl_ch_bifertengletscher",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 47.3,
+   "analysis": 34
+  },
+  {
+   "id": "gl_ch_bocktschingelfirn",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 46.3,
+   "analysis": 31.9
+  },
+  {
+   "id": "gl_ch_brunnifirn",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 33.3,
+   "analysis": 25.6
+  },
+  {
+   "id": "gl_ch_cavistrau",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 43.5,
+   "analysis": 33.1
+  },
+  {
+   "id": "gl_ch_cavrein-w",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 44.7,
+   "analysis": 32.2
+  },
+  {
+   "id": "gl_ch_chline-gletscher-pfaefers",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 46.6,
+   "analysis": 29.4
+  },
+  {
+   "id": "gl_ch_claridenfirn",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 47,
+   "analysis": 30.8
+  },
+  {
+   "id": "gl_ch_ducangletscher",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 24,
+   "analysis": 9.6
+  },
+  {
+   "id": "gl_ch_fanellgletscher",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 8.5,
+   "analysis": 7.7
+  },
+  {
+   "id": "gl_ch_firenband-g008754e46812n",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 30.9,
+   "analysis": 30.2
+  },
+  {
+   "id": "gl_ch_fuorcla-punteglias",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 45.1,
+   "analysis": 35.7
+  },
+  {
+   "id": "gl_ch_ghiacciaio-de-la-curciusa",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 6.3,
+   "analysis": 5
+  },
+  {
+   "id": "gl_ch_ghiacciaio-de-stabi",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 7.6,
+   "analysis": 6.2
+  },
+  {
+   "id": "gl_ch_glaernischfirn",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 55.2,
+   "analysis": 47.7
+  },
+  {
+   "id": "gl_ch_glarner-toedi-e",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 46.9,
+   "analysis": 32
+  },
+  {
+   "id": "gl_ch_glarner-toedi-n",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 45.6,
+   "analysis": 32
+  },
+  {
+   "id": "gl_ch_glasergletscher",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 43.9,
+   "analysis": 31.4
+  },
+  {
+   "id": "gl_ch_glatscher-da-casatscha",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 14.1,
+   "analysis": 7.2
+  },
+  {
+   "id": "gl_ch_glatscher-da-cavrein",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 45.2,
+   "analysis": 33
+  },
+  {
+   "id": "gl_ch_glatscher-da-fluaz",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 43.1,
+   "analysis": 32
+  },
+  {
+   "id": "gl_ch_glatscher-da-frisal-w",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 46.9,
+   "analysis": 34.5
+  },
+  {
+   "id": "gl_ch_glatscher-da-gannaretsch",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 24.9,
+   "analysis": 15.8
+  },
+  {
+   "id": "gl_ch_glatscher-da-gavirolas",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 43.3,
+   "analysis": 31.4
+  },
+  {
+   "id": "gl_ch_glatscher-da-gliems",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 44.4,
+   "analysis": 36
+  },
+  {
+   "id": "gl_ch_glatscher-da-lavaz",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 17.2,
+   "analysis": 14.7
+  },
+  {
+   "id": "gl_ch_glatscher-da-medel-e",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 16.9,
+   "analysis": 15.7
+  },
+  {
+   "id": "gl_ch_glatscher-da-medel-w",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 17.5,
+   "analysis": 13.8
+  },
+  {
+   "id": "gl_ch_glatscher-da-medel-zentral",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 17.5,
+   "analysis": 13.6
+  },
+  {
+   "id": "gl_ch_glatscher-da-mer",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 43.2,
+   "analysis": 32.7
+  },
+  {
+   "id": "gl_ch_glatscher-da-punteglias",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 46.8,
+   "analysis": 36.4
+  },
+  {
+   "id": "gl_ch_glatscher-da-puzzetta-sw",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 17.1,
+   "analysis": 13.8
+  },
+  {
+   "id": "gl_ch_glatscher-da-strem",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 37.5,
+   "analysis": 27.3
+  },
+  {
+   "id": "gl_ch_glatscher-da-sut-fuina",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 7.6,
+   "analysis": 6.4
+  },
+  {
+   "id": "gl_ch_glatscher-da-valdraus",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 17,
+   "analysis": 16.1
+  },
+  {
+   "id": "gl_ch_glatscher-dalla-greina",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 17.2,
+   "analysis": 14.8
+  },
+  {
+   "id": "gl_ch_glatscher-dallas-tuors",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 17.2,
+   "analysis": 7.6
+  },
+  {
+   "id": "gl_ch_glatschiu-dil-segnas",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 46.5,
+   "analysis": 29.8
+  },
+  {
+   "id": "gl_ch_grauhorngletscher",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 7.9,
+   "analysis": 6.8
+  },
+  {
+   "id": "gl_ch_griessegen",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 39.4,
+   "analysis": 31.4
+  },
+  {
+   "id": "gl_ch_griessgletscher-unterschaechen",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 68.6,
+   "analysis": 31.6
+  },
+  {
+   "id": "gl_ch_gruppenfirn-ne",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 54.6,
+   "analysis": 46.8
+  },
+  {
+   "id": "gl_ch_guefergletscher-n",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 9.4,
+   "analysis": 8
+  },
+  {
+   "id": "gl_ch_guefergletscher-se",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 9.3,
+   "analysis": 7.4
+  },
+  {
+   "id": "gl_ch_guefergletscher-sw",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 8.4,
+   "analysis": 7.1
+  },
+  {
+   "id": "gl_ch_guppenfirn",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 54.6,
+   "analysis": 48.4
+  },
+  {
+   "id": "gl_ch_haelsifirn",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 49.8,
+   "analysis": 30.5
+  },
+  {
+   "id": "gl_ch_hinter-sulzfirngletscher",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 38.8,
+   "analysis": 34.1
+  },
+  {
+   "id": "gl_ch_hinterer-roetifirn",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 47.2,
+   "analysis": 31
+  },
+  {
+   "id": "gl_ch_hoehberggletscher",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 7.7,
+   "analysis": 7.4
+  },
+  {
+   "id": "gl_ch_huefifirn",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 49.4,
+   "analysis": 29.7
+  },
+  {
+   "id": "gl_ch_im-griess",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 47.2,
+   "analysis": 32.2
+  },
+  {
+   "id": "gl_ch_iswaendli",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 48,
+   "analysis": 32.3
+  },
+  {
+   "id": "gl_ch_jamtal-ferner",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 43.2,
+   "analysis": 12.5
+  },
+  {
+   "id": "gl_ch_laentagletscher",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 7.9,
+   "analysis": 6.6
+  },
+  {
+   "id": "gl_ch_langfirn",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 45.8,
+   "analysis": 29.4
+  },
+  {
+   "id": "gl_ch_limmerngletscher",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 42.5,
+   "analysis": 34.2
+  },
+  {
+   "id": "gl_ch_paradiesgletscher",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 9.2,
+   "analysis": 6.1
+  },
+  {
+   "id": "gl_ch_piz-urlaun-s",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 45.7,
+   "analysis": 36.3
+  },
+  {
+   "id": "gl_ch_plan-rai",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 46.9,
+   "analysis": 13.6
+  },
+  {
+   "id": "gl_ch_rheinwaldhorngletscher",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 8.1,
+   "analysis": 6.3
+  },
+  {
+   "id": "gl_ch_roten-nossen",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 47,
+   "analysis": 30.2
+  },
+  {
+   "id": "gl_ch_roten-pfaffen",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 47.2,
+   "analysis": 30.8
+  },
+  {
+   "id": "gl_ch_ruchenfirn",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 40.8,
+   "analysis": 34.3
+  },
+  {
+   "id": "gl_ch_sandfirn-e",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 46.5,
+   "analysis": 32.3
+  },
+  {
+   "id": "gl_ch_sandfirn-w",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 49.3,
+   "analysis": 30.3
+  },
+  {
+   "id": "gl_ch_sardonagletscher",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 46.6,
+   "analysis": 30
+  },
+  {
+   "id": "gl_ch_scalettagletscher",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 31.4,
+   "analysis": 10
+  },
+  {
+   "id": "gl_ch_seegletscher",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 43.2,
+   "analysis": 15.4
+  },
+  {
+   "id": "gl_ch_silvrettagletscher",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 55.4,
+   "analysis": 14.6
+  },
+  {
+   "id": "gl_ch_staldenfirn",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 37.9,
+   "analysis": 27.5
+  },
+  {
+   "id": "gl_ch_surettagletscher-w",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 10.1,
+   "analysis": 7.7
+  },
+  {
+   "id": "gl_ch_sutglatscher",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 17.5,
+   "analysis": 14.8
+  },
+  {
+   "id": "gl_ch_tambogletscher",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 7.2,
+   "analysis": 6.3
+  },
+  {
+   "id": "gl_ch_trauntr-ovas-w",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 11,
+   "analysis": 6.4
+  },
+  {
+   "id": "gl_ch_tschingelfirn-s-silenen",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 39.5,
+   "analysis": 29.1
+  },
+  {
+   "id": "gl_ch_vadrecc-di-bresciana",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 8.1,
+   "analysis": 6.1
+  },
+  {
+   "id": "gl_ch_vadrecc-di-sorda",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 8.4,
+   "analysis": 7.9
+  },
+  {
+   "id": "gl_ch_vadret-calderas",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 11.7,
+   "analysis": 6.6
+  },
+  {
+   "id": "gl_ch_vadret-d-agnel",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 11.6,
+   "analysis": 6.3
+  },
+  {
+   "id": "gl_ch_vadret-d-err-n",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 12,
+   "analysis": 7.3
+  },
+  {
+   "id": "gl_ch_vadret-d-err-s",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 11.9,
+   "analysis": 6.9
+  },
+  {
+   "id": "gl_ch_vadret-d-urezzas",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 41.1,
+   "analysis": 12
+  },
+  {
+   "id": "gl_ch_vadret-da-chalaus",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 41.1,
+   "analysis": 11.7
+  },
+  {
+   "id": "gl_ch_vadret-da-grialetsch-e",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 31.2,
+   "analysis": 10.5
+  },
+  {
+   "id": "gl_ch_vadret-da-grialetsch-w",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 31.2,
+   "analysis": 9.8
+  },
+  {
+   "id": "gl_ch_vadret-da-las-maisas",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 48.3,
+   "analysis": 14.6
+  },
+  {
+   "id": "gl_ch_vadret-da-porchabella-w",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 20.9,
+   "analysis": 9.3
+  },
+  {
+   "id": "gl_ch_vadret-da-radoent",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 23.2,
+   "analysis": 11.4
+  },
+  {
+   "id": "gl_ch_vadret-da-sarsura",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 30.4,
+   "analysis": 11.2
+  },
+  {
+   "id": "gl_ch_vadret-da-sesvenna",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 13.1,
+   "analysis": 7
+  },
+  {
+   "id": "gl_ch_vadret-da-tasna",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 36.1,
+   "analysis": 11
+  },
+  {
+   "id": "gl_ch_vadret-scaletta",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 31.1,
+   "analysis": 9.7
+  },
+  {
+   "id": "gl_ch_vadret-tiatscha",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 48.5,
+   "analysis": 14.1
+  },
+  {
+   "id": "gl_ch_vadret-tuoi",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 43.3,
+   "analysis": 12.6
+  },
+  {
+   "id": "gl_ch_vadret-vallorgia",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 31.2,
+   "analysis": 9.7
+  },
+  {
+   "id": "gl_ch_vernelagletscher",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 52.9,
+   "analysis": 15.4
+  },
+  {
+   "id": "gl_ch_verstanclagletscher",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 52.9,
+   "analysis": 15.7
+  },
+  {
+   "id": "gl_ch_vorabgletscher",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 42.5,
+   "analysis": 32.3
+  },
+  {
+   "id": "gl_ch_vorabsattel-w",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 74.7,
+   "analysis": 35.1
+  },
+  {
+   "id": "gl_ch_vorderer-roetifirn",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 46.8,
+   "analysis": 30.7
+  },
+  {
+   "id": "gl_ch_zapport-breitstock",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 7.5,
+   "analysis": 6.7
+  },
+  {
+   "id": "gl_ch_zapportgletscher",
+   "country": "CH",
+   "region": "ch-ost",
+   "days": 5,
+   "fusion": 7.9,
+   "analysis": 6.5
+  },
+  {
+   "id": "gl_ch_ghiacciaio-de-basodino-n",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 21.7,
+   "analysis": 9.8
+  },
+  {
+   "id": "gl_ch_ghiacciaio-del-basodino",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 21.6,
+   "analysis": 7.1
+  },
+  {
+   "id": "gl_ch_nn-g009903e46406n",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 10.1,
+   "analysis": 6.2
+  },
+  {
+   "id": "gl_ch_vadrec-da-fedoz",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 9.4,
+   "analysis": 5.3
+  },
+  {
+   "id": "gl_ch_vadrec-da-l-albigna",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 7.2,
+   "analysis": 4.9
+  },
+  {
+   "id": "gl_ch_vadrec-da-la-bondasca",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 7.2,
+   "analysis": 4.4
+  },
+  {
+   "id": "gl_ch_vadrec-da-la-trubinasca-e",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 6.3,
+   "analysis": 4.1
+  },
+  {
+   "id": "gl_ch_vadrec-dal-cantun",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 7.7,
+   "analysis": 5.4
+  },
+  {
+   "id": "gl_ch_vadrec-dal-castel-nord",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 7.7,
+   "analysis": 5.3
+  },
+  {
+   "id": "gl_ch_vadrec-dal-cengal-e",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 6.9,
+   "analysis": 4.4
+  },
+  {
+   "id": "gl_ch_vadrec-dal-cengal-w",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 6.3,
+   "analysis": 4.1
+  },
+  {
+   "id": "gl_ch_vadrec-del-forno",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 7.9,
+   "analysis": 5.2
+  },
+  {
+   "id": "gl_ch_vadret-boval-dadour",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 10,
+   "analysis": 6.1
+  },
+  {
+   "id": "gl_ch_vadret-da-fex",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 9.4,
+   "analysis": 6.2
+  },
+  {
+   "id": "gl_ch_vadret-da-la-fortezza",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 10.5,
+   "analysis": 6.1
+  },
+  {
+   "id": "gl_ch_vadret-da-misaun",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 9.9,
+   "analysis": 6.5
+  },
+  {
+   "id": "gl_ch_vadret-da-morteratsch",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 10.5,
+   "analysis": 6.3
+  },
+  {
+   "id": "gl_ch_vadret-da-palue",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 9.5,
+   "analysis": 7.4
+  },
+  {
+   "id": "gl_ch_vadret-da-roseg",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 9.1,
+   "analysis": 6.4
+  },
+  {
+   "id": "gl_ch_vadret-da-tschierva",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 10,
+   "analysis": 6.5
+  },
+  {
+   "id": "gl_ch_vadret-dal-cambrena",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 8.9,
+   "analysis": 6.2
+  },
+  {
+   "id": "gl_ch_vadret-dal-chapuetschin",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 9.2,
+   "analysis": 6.3
+  },
+  {
+   "id": "gl_ch_vadret-dal-corvatsch-n",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 9.1,
+   "analysis": 5.9
+  },
+  {
+   "id": "gl_ch_vadret-dal-corvatsch-s",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 9.1,
+   "analysis": 5.9
+  },
+  {
+   "id": "gl_ch_vadret-dal-guez",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 9.2,
+   "analysis": 5.8
+  },
+  {
+   "id": "gl_ch_vadret-dal-murtel-g009821e46407n",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 9.1,
+   "analysis": 6
+  },
+  {
+   "id": "gl_ch_vadret-dal-tremoggia",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 9,
+   "analysis": 6.4
+  },
+  {
+   "id": "gl_ch_vadret-prievlus",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 10,
+   "analysis": 6
+  },
+  {
+   "id": "gl_ch_vadrettin-da-misaun-s",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 10.2,
+   "analysis": 6.3
+  },
+  {
+   "id": "gl_ch_vadrettin-da-tschierva",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 10.1,
+   "analysis": 6.4
+  },
+  {
+   "id": "gl_ch_vadrettin-dal-chapuetschin",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 9.2,
+   "analysis": 6.3
+  },
+  {
+   "id": "gl_ch_vedreit-da-camp",
+   "country": "CH",
+   "region": "ch-sued",
+   "days": 5,
+   "fusion": 7.5,
+   "analysis": 6.5
+  },
+  {
+   "id": "gl_ch_ammertegletscher-e",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 65.9,
+   "analysis": 81.1
+  },
+  {
+   "id": "gl_ch_ammertegletscher-w",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 66.5,
+   "analysis": 85.6
+  },
+  {
+   "id": "gl_ch_bas-glacier-d-arolla",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 40.5,
+   "analysis": 40.3
+  },
+  {
+   "id": "gl_ch_boussine",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 91.1,
+   "analysis": 46.2
+  },
+  {
+   "id": "gl_ch_chilchligletscher",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 83.9,
+   "analysis": 96.3
+  },
+  {
+   "id": "gl_ch_combin-de-corbassiere",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 91.1,
+   "analysis": 56.8
+  },
+  {
+   "id": "gl_ch_gaeltegletscher-ne",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 84,
+   "analysis": 99.8
+  },
+  {
+   "id": "gl_ch_gaeltegletscher-sw",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 82.5,
+   "analysis": 98.9
+  },
+  {
+   "id": "gl_ch_glacier-d-epicoune",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 42.8,
+   "analysis": 42
+  },
+  {
+   "id": "gl_ch_glacier-d-orny",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 130.9,
+   "analysis": 114.3
+  },
+  {
+   "id": "gl_ch_glacier-d-otemma-n",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 45.4,
+   "analysis": 35.5
+  },
+  {
+   "id": "gl_ch_glacier-d-otemma-zentral",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 42.2,
+   "analysis": 43.1
+  },
+  {
+   "id": "gl_ch_glacier-de-bertol",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 41.3,
+   "analysis": 33.6
+  },
+  {
+   "id": "gl_ch_glacier-de-bocheresse",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 85.7,
+   "analysis": 47
+  },
+  {
+   "id": "gl_ch_glacier-de-boveire",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 93.6,
+   "analysis": 68.4
+  },
+  {
+   "id": "gl_ch_glacier-de-chalin",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 86.4,
+   "analysis": 102
+  },
+  {
+   "id": "gl_ch_glacier-de-cheilon",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 53.9,
+   "analysis": 38.7
+  },
+  {
+   "id": "gl_ch_glacier-de-corbassiere",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 92.6,
+   "analysis": 61.3
+  },
+  {
+   "id": "gl_ch_glacier-de-crete-seche",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 68.1,
+   "analysis": 45.9
+  },
+  {
+   "id": "gl_ch_glacier-de-fenetre",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 65.1,
+   "analysis": 45.8
+  },
+  {
+   "id": "gl_ch_glacier-de-l-a-neuve-n",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 152.5,
+   "analysis": 84
+  },
+  {
+   "id": "gl_ch_glacier-de-l-a-neuve-s",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 148.1,
+   "analysis": 77.1
+  },
+  {
+   "id": "gl_ch_glacier-de-l-aiguille",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 47.3,
+   "analysis": 31.9
+  },
+  {
+   "id": "gl_ch_glacier-de-l-en-darrey",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 87.3,
+   "analysis": 39.6
+  },
+  {
+   "id": "gl_ch_glacier-de-la-fenive",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 110.1,
+   "analysis": 125
+  },
+  {
+   "id": "gl_ch_glacier-de-la-luette",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 87.6,
+   "analysis": 38.7
+  },
+  {
+   "id": "gl_ch_glacier-de-la-plaine-morte",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 78.8,
+   "analysis": 101.7
+  },
+  {
+   "id": "gl_ch_glacier-de-la-ruinette",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 53.3,
+   "analysis": 41.3
+  },
+  {
+   "id": "gl_ch_glacier-de-la-sale-n",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 85.8,
+   "analysis": 38.8
+  },
+  {
+   "id": "gl_ch_glacier-de-la-tsessette-sw",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 93,
+   "analysis": 67.4
+  },
+  {
+   "id": "gl_ch_glacier-de-la-tsessette-zentral",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 77.4,
+   "analysis": 55.1
+  },
+  {
+   "id": "gl_ch_glacier-de-la-vouasson-zentral",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 48,
+   "analysis": 33.3
+  },
+  {
+   "id": "gl_ch_glacier-de-merdere",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 47.8,
+   "analysis": 33.6
+  },
+  {
+   "id": "gl_ch_glacier-de-montay",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 45.5,
+   "analysis": 27.9
+  },
+  {
+   "id": "gl_ch_glacier-de-mourti",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 54.6,
+   "analysis": 40.2
+  },
+  {
+   "id": "gl_ch_glacier-de-paneirosse",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 51.2,
+   "analysis": 93.5
+  },
+  {
+   "id": "gl_ch_glacier-de-piece",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 44.6,
+   "analysis": 35.5
+  },
+  {
+   "id": "gl_ch_glacier-de-pierredar-w",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 66.7,
+   "analysis": 92.3
+  },
+  {
+   "id": "gl_ch_glacier-de-prafleuri",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 53.7,
+   "analysis": 40
+  },
+  {
+   "id": "gl_ch_glacier-de-pro",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 104.6,
+   "analysis": 71.9
+  },
+  {
+   "id": "gl_ch_glacier-de-saleinaz",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 140,
+   "analysis": 100.1
+  },
+  {
+   "id": "gl_ch_glacier-de-soi",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 91.9,
+   "analysis": 111.6
+  },
+  {
+   "id": "gl_ch_glacier-de-tortin-zentral",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 79.6,
+   "analysis": 42.5
+  },
+  {
+   "id": "gl_ch_glacier-de-treutsebo",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 148.5,
+   "analysis": 83.4
+  },
+  {
+   "id": "gl_ch_glacier-de-tsanfleuron",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 63.8,
+   "analysis": 113
+  },
+  {
+   "id": "gl_ch_glacier-de-tsijiore-nouve-e",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 46.8,
+   "analysis": 39.5
+  },
+  {
+   "id": "gl_ch_glacier-de-tsijiore-nouve-zentral",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 50.9,
+   "analysis": 40.5
+  },
+  {
+   "id": "gl_ch_glacier-de-valsorey",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 102.7,
+   "analysis": 64.9
+  },
+  {
+   "id": "gl_ch_glacier-des-angroniettes",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 114,
+   "analysis": 68.2
+  },
+  {
+   "id": "gl_ch_glacier-des-berons",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 123.6,
+   "analysis": 116.7
+  },
+  {
+   "id": "gl_ch_glacier-des-bouquentins-s",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 38.4,
+   "analysis": 42.2
+  },
+  {
+   "id": "gl_ch_glacier-des-bouquetins-n",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 39.6,
+   "analysis": 39.4
+  },
+  {
+   "id": "gl_ch_glacier-des-diablerets",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 63.9,
+   "analysis": 103.4
+  },
+  {
+   "id": "gl_ch_glacier-des-douves-blanches",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 42.3,
+   "analysis": 32.1
+  },
+  {
+   "id": "gl_ch_glacier-des-ecoulaies",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 55.4,
+   "analysis": 39
+  },
+  {
+   "id": "gl_ch_glacier-des-follats",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 87.4,
+   "analysis": 59.1
+  },
+  {
+   "id": "gl_ch_glacier-des-fonds",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 100.6,
+   "analysis": 132.6
+  },
+  {
+   "id": "gl_ch_glacier-des-grands",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 123.3,
+   "analysis": 117.7
+  },
+  {
+   "id": "gl_ch_glacier-des-martinets",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 60.1,
+   "analysis": 91
+  },
+  {
+   "id": "gl_ch_glacier-des-pantalons-blancs-n",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 56.3,
+   "analysis": 39.4
+  },
+  {
+   "id": "gl_ch_glacier-des-planereuses",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 148.9,
+   "analysis": 85.5
+  },
+  {
+   "id": "gl_ch_glacier-des-ravines-rousses",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 132.4,
+   "analysis": 114.3
+  },
+  {
+   "id": "gl_ch_glacier-des-rosses-g006894e46101n",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 102.9,
+   "analysis": 131.8
+  },
+  {
+   "id": "gl_ch_glacier-du-brenay",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 50.5,
+   "analysis": 43.6
+  },
+  {
+   "id": "gl_ch_glacier-du-dolent",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 143.1,
+   "analysis": 68.2
+  },
+  {
+   "id": "gl_ch_glacier-du-gietro",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 87.8,
+   "analysis": 40.1
+  },
+  {
+   "id": "gl_ch_glacier-du-mont-durand",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 93.1,
+   "analysis": 67.1
+  },
+  {
+   "id": "gl_ch_glacier-du-mont-fort",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 57.1,
+   "analysis": 42.5
+  },
+  {
+   "id": "gl_ch_glacier-du-mont-mine-zentral",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 41.4,
+   "analysis": 35.6
+  },
+  {
+   "id": "gl_ch_glacier-du-mont-ruan-e",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 98.5,
+   "analysis": 130.4
+  },
+  {
+   "id": "gl_ch_glacier-du-parrain",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 85,
+   "analysis": 40.3
+  },
+  {
+   "id": "gl_ch_glacier-du-petit-combin-e",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 85.5,
+   "analysis": 54.7
+  },
+  {
+   "id": "gl_ch_glacier-du-petit-combin-ne",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 86,
+   "analysis": 52.3
+  },
+  {
+   "id": "gl_ch_glacier-du-petit-combin-w",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 86.2,
+   "analysis": 54.7
+  },
+  {
+   "id": "gl_ch_glacier-du-petit-mont-fort",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 81.2,
+   "analysis": 40.9
+  },
+  {
+   "id": "gl_ch_glacier-du-prapio-n",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 64.4,
+   "analysis": 116
+  },
+  {
+   "id": "gl_ch_glacier-du-sex-rouge",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 63.4,
+   "analysis": 108.2
+  },
+  {
+   "id": "gl_ch_glacier-du-sonadon",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 96.6,
+   "analysis": 75.8
+  },
+  {
+   "id": "gl_ch_glacier-du-tournelon-blanc",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 87.5,
+   "analysis": 50.3
+  },
+  {
+   "id": "gl_ch_glacier-du-trient",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 133.5,
+   "analysis": 117.4
+  },
+  {
+   "id": "gl_ch_glacier-du-tseudet",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 102.5,
+   "analysis": 66.5
+  },
+  {
+   "id": "gl_ch_glacier-du-wildhorn-ne",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 82.7,
+   "analysis": 104.2
+  },
+  {
+   "id": "gl_ch_glacier-du-wildhorn-sw",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 83.6,
+   "analysis": 99
+  },
+  {
+   "id": "gl_ch_glacier-inferieur-des-aiguilles-rouges",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 50.3,
+   "analysis": 36.9
+  },
+  {
+   "id": "gl_ch_glacier-noir",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 98.4,
+   "analysis": 126.6
+  },
+  {
+   "id": "gl_ch_glacier-superieur-des-aiguilles-rouges-zentral",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 49.2,
+   "analysis": 34.3
+  },
+  {
+   "id": "gl_ch_grand-desert",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 54.7,
+   "analysis": 40.4
+  },
+  {
+   "id": "gl_ch_grand-mont-calme",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 53.6,
+   "analysis": 39.4
+  },
+  {
+   "id": "gl_ch_grand-plan-neve",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 51.4,
+   "analysis": 94
+  },
+  {
+   "id": "gl_ch_grand-revers",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 94.1,
+   "analysis": 119
+  },
+  {
+   "id": "gl_ch_grande-pente",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 97.7,
+   "analysis": 133.7
+  },
+  {
+   "id": "gl_ch_haut-glacier-d-arolla",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 37.1,
+   "analysis": 42.9
+  },
+  {
+   "id": "gl_ch_mont-collon-n-1",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 40.1,
+   "analysis": 38.2
+  },
+  {
+   "id": "gl_ch_petit-plan-neve",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 51.9,
+   "analysis": 81.6
+  },
+  {
+   "id": "gl_ch_plan-neve-ne",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 91.6,
+   "analysis": 120.1
+  },
+  {
+   "id": "gl_ch_porton-nord",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 48.6,
+   "analysis": 39
+  },
+  {
+   "id": "gl_ch_suzanne",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 134.7,
+   "analysis": 113.4
+  },
+  {
+   "id": "gl_ch_tierberggletscher-lenk",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 75.6,
+   "analysis": 97.3
+  },
+  {
+   "id": "gl_ch_tournelon-blanc",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 87.4,
+   "analysis": 63.6
+  },
+  {
+   "id": "gl_ch_tungelgletscher",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 83.4,
+   "analysis": 100.4
+  },
+  {
+   "id": "gl_ch_wildstrubelgletscher",
+   "country": "CH",
+   "region": "ch-west",
+   "days": 5,
+   "fusion": 67.2,
+   "analysis": 89.9
+  }
+ ]
+}

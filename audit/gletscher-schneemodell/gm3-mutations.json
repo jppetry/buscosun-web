@@ -1,0 +1,190 @@
+{
+ "generated": "2026-11-22T23:22:48.237Z",
+ "verifier": "verify:glacier-snowcal",
+ "greenBefore": true,
+ "greenAfter": true,
+ "noticed": 19,
+ "of": 19,
+ "mutations": [
+  {
+   "name": "Eisschmelze ohne den Faktor 1,6",
+   "file": "scripts/glacier/snowcal-fit.mjs",
+   "noticed": true,
+   "failed": [
+    "B2 d",
+    "B3 R"
+   ],
+   "crashed": false
+  },
+  {
+   "name": "Verlauf: unten und oben vertauscht",
+   "file": "scripts/glacier/snowcal-fit.mjs",
+   "noticed": true,
+   "failed": [
+    "B4 V"
+   ],
+   "crashed": false
+  },
+  {
+   "name": "Schneeanteil mit falscher Rampe",
+   "file": "scripts/glacier/snowcal-fit.mjs",
+   "noticed": true,
+   "failed": [
+    "B2 d",
+    "B5 S"
+   ],
+   "crashed": false
+  },
+  {
+   "name": "RhiresD-Tag ab 00 statt 06 UTC",
+   "file": "scripts/glacier/snowcal-fit.mjs",
+   "noticed": true,
+   "failed": [
+    "B1 A"
+   ],
+   "crashed": false
+  },
+  {
+   "name": "WGMS mit falscher Einheit",
+   "file": "scripts/glacier/snowcal-truth.mjs",
+   "noticed": true,
+   "failed": [
+    "A2 W"
+   ],
+   "crashed": false
+  },
+  {
+   "name": "Medianhöhe beim Drittel der Fläche",
+   "file": "scripts/glacier/snowcal-truth.mjs",
+   "noticed": true,
+   "failed": [
+    "A1 W",
+    "A3 M",
+    "C2 R"
+   ],
+   "crashed": false
+  },
+  {
+   "name": "Stufenfläche nicht vom Nachbarjahr",
+   "file": "scripts/glacier/snowcal-truth.mjs",
+   "noticed": true,
+   "failed": [
+    "A4 R"
+   ],
+   "crashed": false
+  },
+  {
+   "name": "Region mit einem Gletscher bekommt einen eigenen Wert",
+   "file": "scripts/glacier/snowcal-fit.mjs",
+   "noticed": true,
+   "failed": [
+    "C1 d",
+    "C2 R",
+    "C4b"
+   ],
+   "crashed": false
+  },
+  {
+   "name": "Formfehler ohne Abzug des Gletscherfehlers",
+   "file": "scripts/glacier/snowcal-fit.mjs",
+   "noticed": true,
+   "failed": [
+    "C3 K"
+   ],
+   "crashed": false
+  },
+  {
+   "name": "Grenze von F aufgehoben",
+   "file": "scripts/glacier/snowcal-fit.mjs",
+   "noticed": true,
+   "failed": [
+    "C5 G"
+   ],
+   "crashed": false
+  },
+  {
+   "name": "Brett: Wasserwert in 12 statt 24 Stunden",
+   "file": "scripts/glacier/snowcal-density.mjs",
+   "noticed": true,
+   "failed": [
+    "D1 B",
+    "D2 B",
+    "G6 d"
+   ],
+   "crashed": false
+  },
+  {
+   "name": "Regel D3 ohne Untergrenze",
+   "file": "scripts/glacier/snowcal-density.mjs",
+   "noticed": true,
+   "failed": [
+    "D3 R"
+   ],
+   "crashed": false
+  },
+  {
+   "name": "Tabellenregel: Brücke darf angewandt sein",
+   "file": "scripts/glacier/lib/snowcal.mjs",
+   "noticed": true,
+   "failed": [
+    "E11"
+   ],
+   "crashed": false
+  },
+  {
+   "name": "Tabellenregel: gate muss nicht zum Urteil passen",
+   "file": "scripts/glacier/lib/snowcal.mjs",
+   "noticed": true,
+   "failed": [
+    "E11",
+    "G4 w"
+   ],
+   "crashed": false
+  },
+  {
+   "name": "Tabelle: F der Schweiz von Hand geändert",
+   "file": "scripts/glacier/snow-calibration.json",
+   "noticed": true,
+   "failed": [
+    "E3 d"
+   ],
+   "crashed": false
+  },
+  {
+   "name": "Tabelle: gate auf true gesetzt",
+   "file": "scripts/glacier/snow-calibration.json",
+   "noticed": true,
+   "failed": [],
+   "crashed": true
+  },
+  {
+   "name": "Tabelle: andere Dichte",
+   "file": "scripts/glacier/snow-calibration.json",
+   "noticed": true,
+   "failed": [
+    "E7 D",
+    "G5 D",
+    "G6 d"
+   ],
+   "crashed": false
+  },
+  {
+   "name": "eingefrorene Methode nachträglich geändert",
+   "file": "audit/gletscher-schneemodell/gm3-method-frozen.md",
+   "noticed": true,
+   "failed": [
+    "E1 e"
+   ],
+   "crashed": false
+  },
+  {
+   "name": "Producer liest die Tabelle",
+   "file": "scripts/glacier/lib/weathercore.mjs",
+   "noticed": true,
+   "failed": [
+    "F1 a"
+   ],
+   "crashed": false
+  }
+ ]
+}

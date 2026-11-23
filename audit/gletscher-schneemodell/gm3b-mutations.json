@@ -1,0 +1,229 @@
+{
+ "generated": "2026-11-22T23:21:59.250Z",
+ "verifiers": [
+  "verify:glacier-melt",
+  "verify:glacier-snowcal",
+  "verify:glacier-snowcore"
+ ],
+ "greenBefore": true,
+ "greenAfter": true,
+ "noticed": 23,
+ "of": 23,
+ "crashedOnly": 1,
+ "mutations": [
+  {
+   "name": "Voreinstellung des Faktors auf „country“",
+   "file": "scripts/glacier/lib/snowcal.mjs",
+   "noticed": true,
+   "by": [
+    "glacier-melt: Abbruch",
+    "glacier-snowcal: G1 b, G2 9"
+   ],
+   "crashedOnly": false
+  },
+  {
+   "name": "Voreinstellung der Dichte auf „board“",
+   "file": "scripts/glacier/lib/snowcal.mjs",
+   "noticed": true,
+   "by": [
+    "glacier-snowcal: G1 b, G2 9, G5 D"
+   ],
+   "crashedOnly": false
+  },
+  {
+   "name": "Faktor je Land mit dem Verlauf der Tabelle",
+   "file": "scripts/glacier/lib/snowcal.mjs",
+   "noticed": true,
+   "by": [
+    "glacier-melt: H3 S, H4 d",
+    "glacier-snowcal: G3 F, G4 w"
+   ],
+   "crashedOnly": false
+  },
+  {
+   "name": "Faktor je Land ohne die Brücke",
+   "file": "scripts/glacier/lib/snowcal.mjs",
+   "noticed": true,
+   "by": [
+    "glacier-snowcal: G3 F"
+   ],
+   "crashedOnly": false
+  },
+  {
+   "name": "„board“ ohne „country“ erlaubt",
+   "file": "scripts/glacier/lib/snowcal.mjs",
+   "noticed": true,
+   "by": [
+    "glacier-snowcal: G2 9"
+   ],
+   "crashedOnly": false
+  },
+  {
+   "name": "unbekanntes Wort fällt auf die Voreinstellung zurück",
+   "file": "scripts/glacier/lib/snowcal.mjs",
+   "noticed": true,
+   "by": [
+    "glacier-melt: H6 „",
+    "glacier-snowcal: G1 b"
+   ],
+   "crashedOnly": false
+  },
+  {
+   "name": "Lauf prüft nicht, ob die Tabelle jede Region kennt",
+   "file": "scripts/glacier/lib/snowcal.mjs",
+   "noticed": true,
+   "by": [
+    "glacier-melt: H6 „",
+    "glacier-snowcal: G4 w"
+   ],
+   "crashedOnly": false
+  },
+  {
+   "name": "Lauf prüft die Regeln der Tabelle nicht",
+   "file": "scripts/glacier/lib/snowcal.mjs",
+   "noticed": true,
+   "by": [
+    "glacier-melt: H6 „",
+    "glacier-snowcal: G4 w"
+   ],
+   "crashedOnly": false
+  },
+  {
+   "name": "zweiter Konstantensatz behält die Dichte des Kerns",
+   "file": "scripts/glacier/lib/snowcal.mjs",
+   "noticed": true,
+   "by": [
+    "glacier-snowcal: G5 D, G6 d"
+   ],
+   "crashedOnly": false
+  },
+  {
+   "name": "zweiter Konstantensatz ohne gemessene Quantile",
+   "file": "scripts/glacier/lib/snowcal.mjs",
+   "noticed": true,
+   "by": [
+    "glacier-snowcal: G5 D"
+   ],
+   "crashedOnly": false
+  },
+  {
+   "name": "Block im Dokument: Gradient ungeprüft",
+   "file": "scripts/glacier/lib/snowcal.mjs",
+   "noticed": true,
+   "by": [
+    "glacier-melt: H7 R"
+   ],
+   "crashedOnly": false
+  },
+  {
+   "name": "„country“ behält die 4 % je 100 m",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": [
+    "glacier-melt: H3 S"
+   ],
+   "crashedOnly": false
+  },
+  {
+   "name": "„country“ rechnet mit dem Faktor von Gate C",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": [
+    "glacier-melt: H3 S"
+   ],
+   "crashedOnly": false
+  },
+  {
+   "name": "Tabelle wird auch bei „gate-c“ geöffnet",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": [
+    "glacier-melt: Abbruch"
+   ],
+   "crashedOnly": true
+  },
+  {
+   "name": "Dokument verschweigt den Faktor",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": [
+    "glacier-melt: H3 S, H4 d, H5 U, H7 R"
+   ],
+   "crashedOnly": false
+  },
+  {
+   "name": "Statuszeile verschweigt den Faktor",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": [
+    "glacier-melt: H4 d"
+   ],
+   "crashedOnly": false
+  },
+  {
+   "name": "Umgebungsvariable wird nicht gelesen",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": [
+    "glacier-melt: H5 U"
+   ],
+   "crashedOnly": false
+  },
+  {
+   "name": "Schmelzlauf reicht den Gradienten nicht an den Kern",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": [
+    "glacier-melt: H3 S"
+   ],
+   "crashedOnly": false
+  },
+  {
+   "name": "Kern übergeht den genannten Gradienten",
+   "file": "scripts/glacier/lib/meltcore.mjs",
+   "noticed": true,
+   "by": [
+    "glacier-melt: A7 H, H3 S"
+   ],
+   "crashedOnly": false
+  },
+  {
+   "name": "Kern ohne Angabe ohne Gradient",
+   "file": "scripts/glacier/lib/meltcore.mjs",
+   "noticed": true,
+   "by": [
+    "glacier-melt: A1 R, A7 H, H2 S"
+   ],
+   "crashedOnly": false
+  },
+  {
+   "name": "Spanne übergeht die gemessenen Quantile",
+   "file": "scripts/glacier/lib/snowcore.mjs",
+   "noticed": true,
+   "by": [
+    "glacier-snowcal: G5 D",
+    "glacier-snowcore: A4 K"
+   ],
+   "crashedOnly": false
+  },
+  {
+   "name": "Schritt legt Neuschnee immer mit der Dichte des Kerns ab",
+   "file": "scripts/glacier/lib/snowcore.mjs",
+   "noticed": true,
+   "by": [
+    "glacier-snowcal: G6 d",
+    "glacier-snowcore: A4 K"
+   ],
+   "crashedOnly": false
+  },
+  {
+   "name": "Tabelle behauptet, der Producer benutze sie",
+   "file": "scripts/glacier/snow-calibration.json",
+   "noticed": true,
+   "by": [
+    "glacier-snowcal: G1 b"
+   ],
+   "crashedOnly": false
+  }
+ ]
+}

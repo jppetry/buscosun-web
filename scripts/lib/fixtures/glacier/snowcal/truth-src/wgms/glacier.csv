@@ -1,0 +1,3 @@
+country,short_name,names,id,latitude,longitude,gtng_region,glims_id,rgi50_ids,rgi60_ids,rgi70_ids,wgi_id,parent_glacier_id,references,remarks
+AT,HINTEREIS F.,Hintereisferner,491,46.799999,10.77,11_central_europe,G010752E46802N,,RGI60-11.00897,,,,,WGI_ID: ATJ143O0E125 (invalid)
+CH,RHONE,Rhonegletscher,473,46.619999,8.4,11_central_europe,,RGI50-11.01238,RGI60-11.01238,,,,,Remarks from LAT/LON-Check: controlled and was okay. | WGI_ID: CHN012403003 (invalid)

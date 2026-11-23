@@ -4,6 +4,8 @@
  * freezing-level lapse, the scenario sums (quantile of sums — never a sum of quantiles), the unit gate (no millimetres without a passed Gate C),
  * the repeat guard, and `melt.mjs` end to end with a stubbed buscosun Fusion (state carried, satellite nudge, class C with neighbour forcing,
  * retention 72 h, climatology missing ⇒ job red). Every rule with a negative control.
+ * Block H (phase GM, GM-3b, E-GM-7): the precipitation switch `--precip=gate-c|country` end to end — off = the same bytes and the table not opened,
+ * `country` = the factor of the region and no gradient (state by hand), the document names it, a table that cannot be used stops the run.
  *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-melt.mjs
  */
@@ -19,6 +21,7 @@ import {
 } from './glacier/melt.mjs';
 import { fusionStageNote, fusionStage, FUSION_CURRENT } from '../src/pointForecast/fusion/fusionRelease.ts';
 import { meltProblems, meltStateProblems, meltIndexOf, GLACIER_MELT_REF_DAILY_MM, GLACIER_MELT_SCENARIOS, GLACIER_MELT_RHO } from '../src/glacier/glacierMeltContract.ts';
+import { meltPrecipProblems } from './glacier/lib/snowcal.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const H = 3_600_000;
@@ -54,6 +57,12 @@ add('A1 Rhonegletscher 2024: Winterbilanz, Sommerbilanz (ETI) und Basislinie (Gr
   add('A5 Schnee statt Regen: bei −1 °C fällt der Niederschlag fest (Faktor 1,5 · 2 mm · Höhengradient 1) und bleibt als Schneewasser liegen, keine Schmelze', near(snow.state.swe[0], 1.5 * 2 * (1 + (MELT.pGrad * 0) / 100), 1e-9) && snow.meltSum === 0, `${snow.state.swe[0]}`);
   const rain = simulate({ ...one, t: Float64Array.from([3]), g: Float64Array.from([0]), p: Float64Array.from([2]), pf: 1.5 });
   add('A6 Regen bei +3 °C bildet kein Schneewasser (Negativkontrolle zu A5)', rain.state.swe[0] === 0, `${rain.state.swe[0]}`);
+  // phase GM (E-GM-7): the gradient of the precipitation is a parameter of the run; left out it is the set 4 % per 100 m
+  const three = { bands: { zb: [2500, 3000, 3500], w: [1 / 3, 1 / 3, 1 / 3] }, ela: 2900, t: Float64Array.from([-5]), g: Float64Array.from([0]), p: Float64Array.from([2]), zT: 3000, zP: 3000, pf: 1.5, TF: 0, SRF: 0, state: emptyState(3), model: 'eti' };
+  const asIs = simulate(three).state.swe, named = simulate({ ...three, pGrad: MELT.pGrad }).state.swe, flat = simulate({ ...three, pGrad: 0 }).state.swe;
+  add('A7 Höhengradient des Niederschlags: ohne Angabe die gesetzten 4 % je 100 m (500 m tiefer × 0,8, 500 m höher × 1,2), mit pGrad 0 an allen Höhen dasselbe (Gegenprobe: die zwei Stellungen unterscheiden sich)',
+    MELT.pGrad === 0.04 && near(asIs[0], 1.5 * 2 * 0.8, 1e-12) && near(asIs[1], 3, 1e-12) && near(asIs[2], 1.5 * 2 * 1.2, 1e-12) && asIs.every((v, i) => v === named[i]) && flat.every((v) => near(v, 3, 1e-12)) && asIs[0] !== flat[0],
+    JSON.stringify({ asIs: [...asIs], flat: [...flat] }));
 }
 
 // --- B: lapse anchored on the freezing level ------------------------------------------------------------------------------------------
@@ -274,6 +283,64 @@ add('G4 Archiv: die Leitgletscher des Laufs gehen als eigene Datei ins Archivver
   try { await main({ data: tr.data, cube: tr.cube, out: join(root, 'out'), calibration: tr.calFile, now: new Date(NOW).toISOString(), forecast, ioFactory: () => ({ clima: async () => null }), always: true }); } catch (e) { err = String(e.message ?? e); }
   let err2 = null; try { await assertClima({ clima: async () => ({}) }); } catch (e) { err2 = e; }
   add('G10 Ohne Klimatologie (public/climaGrid.json) bricht der Lauf mit Fehler ab (roter Job, Lehre V-SW-18) und schreibt nichts; mit Klimatologie kein Fehler (Gegenprobe)', /Klimatologie/.test(err ?? '') && !existsSync(join(root, 'out')) && err2 === null, String(err));
+}
+// --- H: phase GM (GM-3b, E-GM-7) — the precipitation switch, end to end ---------------------------------------------------------------------------
+{
+  const realTable = JSON.parse(readFileSync(join(HERE, 'glacier', 'snow-calibration.json'), 'utf8'));
+  // the real table in the form the producer reads, with the two regions of the test catalogue (one Swiss value, one Austrian)
+  const tableFor = (edit = null) => { const t = structuredClone(realTable); t.precip.regions = { 'ch-test': { ...realTable.precip.regions['ch-ost'] }, 'ch-far': { ...realTable.precip.regions['at-dachstein'] } }; edit?.(t); return t; };
+  const F = { 'ch-test': realTable.precip.regions['ch-ost'].F, 'ch-far': realTable.precip.regions['at-dachstein'].F };
+  // cold and wet: −2 °C at the reference elevation, 3 mm every hour — snow at every band, no melt (at most 1,09 °C at the lowest band: 0,85 · 1,09 < 1 °C)
+  const snowFc = async () => { const fc = synthFc({ tOf: () => -2 }); fc.cube.v2.axis.steps.forEach((s, i) => { s.validAtMs = T0N + i * H; s.vars.precip.mean = 3; }); return fc; };
+  const runSw = async (name, extra = {}, table = tableFor()) => {
+    const root = join(tmp, name); const tr = mkTree(root);
+    const tf = join(root, 'snowcal.json');
+    if (table) writeFileSync(tf, JSON.stringify(table));
+    let r = null, err = null;
+    try { r = await main({ data: tr.data, cube: tr.cube, out: join(root, 'out'), calibration: tr.calFile, now: new Date(NOW).toISOString(), forecast: snowFc, ioFactory: okIo, always: true, weather: '0', snowcal: tf, ...extra }); } catch (e) { err = String(e.message ?? e); }
+    if (err) return { err, wrote: existsSync(join(root, 'out')) };
+    const read = (rel) => readFileSync(join(root, rel), 'utf8');
+    const status = JSON.parse(read('patch/status-patch.json')); delete status.lines.melt.seconds;
+    return { r, docRaw: read(`out/melt/${r.run}.json`), doc: JSON.parse(read(`out/melt/${r.run}.json`)), stateRaw: read('out/melt/state.json'), state: JSON.parse(read('out/melt/state.json')).g, index: read('patch/index-patch.json'), status };
+  };
+  const same = (a, b) => a.docRaw === b.docRaw && a.stateRaw === b.stateRaw && a.index === b.index && JSON.stringify(a.status) === JSON.stringify(b.status);
+  // by hand: after the 6 hours of the state, every band holds 6 · 3 mm · factor · gradient · solid share (rounded to 0,1 mm in the file)
+  const hypZb = (z0) => Array.from({ length: 8 }, (_, i) => z0 + 50 * (i + 0.5));
+  const sweByHand = (z0, zRef, pf, grad) => hypZb(z0).map((z) => { const Tb = -2 + 0.0065 * (zRef - z); return 18 * pf * (1 + (grad * (z - zRef)) / 100) * Math.min(1, Math.max(0, (2 - Tb) / 2)); });
+  const stateIs = (s, id, hand) => s[id][0].length === 8 && s[id][0].every((v, i) => Math.abs(v - hand[i]) <= 0.051);
+  const cases = [['gl_ch_alpha', 2400, 2900, 'ch-test'], ['gl_ch_gamma', 2600, 2900, 'ch-test'], ['gl_ch_far', 2600, 2750, 'ch-far']];   // gamma: own bands, alpha's forcing (reference elevation 2 900 m)
+
+  const off = await runSw('sw-off'), offNamed = await runSw('sw-off-named', { precip: 'gate-c' }), offNoTable = await runSw('sw-off-notable', {}, null), on = await runSw('sw-on', { precip: 'country' });
+  add('H1 Schalter aus (Voreinstellung): ohne Angabe, mit „gate-c“ und OHNE Tabellendatei dieselben Bytes (Dokument, Zustand, Zeiger, Statuszeile) — die Tabelle wird nicht geöffnet; kein Feld params.precip, keine Angabe in der Statuszeile; Gegenprobe: „country“ schreibt andere Dateien',
+    !off.err && !offNoTable.err && same(off, offNamed) && same(off, offNoTable) && off.doc.params.precip === undefined && !('precip' in off.status.lines.melt) && off.r.precip === undefined
+    && on.docRaw !== off.docRaw && on.stateRaw !== off.stateRaw, JSON.stringify({ err: [off.err, offNamed.err, offNoTable.err, on.err] }));
+  add('H2 Schalter aus rechnet wie vor GM-3b: der Schneezustand nach 6 Stunden ist von Hand 6 · 3 mm · 1,2 · (1 + 4 % je 100 m ab der Bezugshöhe) · Schneeanteil — an drei Gletschern, alle Bänder; Gegenprobe: dieselbe Handrechnung ohne Gradient passt nicht',
+    cases.every(([id, z0, zRef]) => stateIs(off.state, id, sweByHand(z0, zRef, 1.2, 0.04))) && !stateIs(off.state, 'gl_ch_alpha', sweByHand(2400, 2900, 1.2, 0)), JSON.stringify({ alpha: off.state?.gl_ch_alpha?.[0], hand: sweByHand(2400, 2900, 1.2, 0.04) }));
+  add('H3 Schalter „country“: derselbe Zustand von Hand mit dem F der Region aus der Tabelle (Schweiz 1,793, Österreich 2,326) und OHNE Gradient — auch am Gletscher mit Nachbar-Antrieb zählt die eigene Region; Gegenprobe: mit 4 % oder mit dem Faktor der anderen Region passt es nicht',
+    !on.err && F['ch-test'] === 1.793 && F['ch-far'] === 2.326 && cases.every(([id, z0, zRef, region]) => stateIs(on.state, id, sweByHand(z0, zRef, F[region], 0)))
+    && !stateIs(on.state, 'gl_ch_alpha', sweByHand(2400, 2900, F['ch-test'], 0.04)) && !stateIs(on.state, 'gl_ch_far', sweByHand(2600, 2750, F['ch-test'], 0)), JSON.stringify({ far: on.state?.gl_ch_far?.[0], hand: sweByHand(2600, 2750, F['ch-far'], 0) }));
+  const blk = on.doc?.params?.precip;
+  add('H4 das Dokument nennt, womit gerechnet wurde: params.precip mit Regel, F je Region samt Herkunft, Gradient 0 (set), Brücke 1 (set), Urteil der Eichung (gate false mit Grund) und Hash der Methode; params.pf bleibt als Zahl stehen (ältere Leser), der Vertrag der Seite nimmt das Dokument, Statuszeile und Rückgabe nennen „country“',
+    blk?.rule === 'country' && blk.replaces === 'pf' && blk.regions['ch-test'].F === F['ch-test'] && blk.regions['ch-far'].F === F['ch-far'] && blk.regions['ch-test'].origin === 'measured' && blk.regions['ch-test'].from === 'CH'
+    && blk.gradient === 0 && blk.origin.gradient === 'set' && blk.bridge === 1 && blk.origin.bridge === 'set' && blk.gate === false && /K-2/.test(blk.reason) && blk.method === realTable.method.sha256
+    && on.doc.params.pf === 1.2 && meltProblems(on.doc).length === 0 && meltPrecipProblems(blk, ['ch-test', 'ch-far']).length === 0 && on.status.lines.melt.precip === 'country' && on.r.precip === 'country', JSON.stringify(blk ?? on.err));
+  // environment variable; the argument wins
+  process.env.GLACIER_SNOW_PRECIP = 'country';
+  const envOn = await runSw('sw-env'), envArg = await runSw('sw-env-arg', { precip: 'gate-c' });
+  delete process.env.GLACIER_SNOW_PRECIP;
+  add('H5 Umgebungsvariable GLACIER_SNOW_PRECIP=country schreibt dieselben Bytes wie der Schalter; ein Schalter „gate-c“ daneben gewinnt (dieselben Bytes wie aus)', !envOn.err && same(envOn, on) && same(envArg, off), JSON.stringify({ err: [envOn.err, envArg.err] }));
+  // stops: nothing is written, the reason is named
+  const word = await runSw('sw-word', { precip: 'region' }), noFile = await runSw('sw-nofile', { precip: 'country' }, null);
+  const noRegion = await runSw('sw-noregion', { precip: 'country' }, tableFor((t) => { delete t.precip.regions['ch-far']; }));
+  const broken = await runSw('sw-broken', { precip: 'country' }, tableFor((t) => { t.precip.gate = true; }));
+  const wild = await runSw('sw-wild', { precip: 'country' }, tableFor((t) => { t.precip.regions['ch-test'].F = 7; }));
+  add('H6 „country“ fällt nie still zurück: unbekanntes Wort, fehlende Tabelle, Tabelle ohne eine Region des Katalogs, Tabelle gegen ihre Regeln (gate widerspricht dem Urteil; F außerhalb der Grenzen) ⇒ Abbruch mit Grund, nichts geschrieben',
+    /unbekannte Stellung „region“.*gate-c, country/.test(word.err ?? '') && /nicht lesbar/.test(noFile.err ?? '') && /Region ch-far fehlt/.test(noRegion.err ?? '') && /gate widerspricht/.test(broken.err ?? '') && /F 7 außerhalb/.test(wild.err ?? '')
+    && [word, noFile, noRegion, broken, wild].every((x) => x.wrote === false), JSON.stringify([word.err, noFile.err, noRegion.err, broken.err, wild.err]));
+  const bad = (f) => { const b = structuredClone(blk); f(b); return meltPrecipProblems(b, ['ch-test', 'ch-far']).length; };
+  const caught = blk ? [(b) => { b.gradient = 0.04; }, (b) => { b.origin.gradient = 'measured'; }, (b) => { delete b.reason; }, (b) => { b.regions['ch-test'].F = 9; }, (b) => { delete b.regions['ch-far']; }, (b) => { b.method = 'x'; }, (b) => { b.rule = 'region'; }, (b) => { delete b.bridge; }].map(bad) : [];
+  add('H7 Regeln des Blocks params.precip: acht Verletzungen, jede gemeldet; ein Dokument ohne den Block hat keine — außer es stammt aus einem Lauf mit „country“ (dann fehlt er)',
+    caught.length === 8 && caught.every((n) => n > 0) && meltPrecipProblems(undefined).length === 0 && meltPrecipProblems(undefined, ['ch-test']).length === 1, JSON.stringify(caught));
 }
 // protected paths
 {
