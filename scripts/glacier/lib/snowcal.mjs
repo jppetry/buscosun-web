@@ -2,7 +2,8 @@
  * Phase GM, GM-3 — the calibration table of the glacier snow model (`scripts/glacier/snow-calibration.json`): its rules and its readers. Pure: no network,
  * no files.
  *
- * GM-3b (E-GM-7, E-GM-8; audit §3d): the two PRODUCER SWITCHES that let the table into the run, both OFF by default —
+ * GM-3b (E-GM-7, E-GM-8; audit §3d): the two PRODUCER SWITCHES that let the table into the run. Both are ON by default since 23.11.2026 (E-GM-12, Jan;
+ * audit §3e): `country` and `board`; the fall back is `gate-c` and `helfricht` —
  *   precipitation  `--precip=gate-c|country` / `GLACIER_SNOW_PRECIP`: `gate-c` = the factor of Gate C and the set 4 % per 100 m, the run exactly as before,
  *                  the table is not opened; `country` = the level F of the glacier's region from the table × bridge, NO profile (gradient 0, `set`: K-4 is red);
  *   density        `--density=helfricht|board` / `GLACIER_SNOW_DENSITY`: `helfricht` = the constants of the snow core as they are (68 kg m⁻³); `board` = the
@@ -45,12 +46,12 @@ const within = (v, [lo, hi]) => num(v) && v >= lo - 1e-9 && v <= hi + 1e-9;
 
 // --- GM-3b: the switches ------------------------------------------------------------------------------------------------------------------
 
-/** E-GM-7: precipitation factor of the melt run. `gate-c` = as before (off), `country` = level per country from the table, no profile. */
+/** E-GM-7: precipitation factor of the melt run. `gate-c` = as before GM-3b (the fall back), `country` = level per country from the table, no profile (on, E-GM-12). */
 export const SNOW_PRECIP_RULES = Object.freeze(['gate-c', 'country']);
-export const SNOW_PRECIP_DEFAULT = 'gate-c';
-/** E-GM-8: new-snow density of the snow core. `helfricht` = as before (off), `board` = density and span of the table. */
+export const SNOW_PRECIP_DEFAULT = 'country';
+/** E-GM-8: new-snow density of the snow core. `helfricht` = as before GM-3b (the fall back), `board` = density and span of the table (on, E-GM-12). */
 export const SNOW_DENSITY_SOURCES = Object.freeze(['helfricht', 'board']);
-export const SNOW_DENSITY_SOURCE_DEFAULT = 'helfricht';
+export const SNOW_DENSITY_SOURCE_DEFAULT = 'board';
 
 const switchOf = (value, allowed, fallback, name) => {
   if (value == null || value === '') return fallback;
@@ -61,7 +62,8 @@ const switchOf = (value, allowed, fallback, name) => {
 export const snowPrecipOf = (value) => switchOf(value, SNOW_PRECIP_RULES, SNOW_PRECIP_DEFAULT, 'Niederschlagsfaktor');
 /** The density switch, same rules. */
 export const snowDensitySourceOf = (value) => switchOf(value, SNOW_DENSITY_SOURCES, SNOW_DENSITY_SOURCE_DEFAULT, 'Neuschneedichte');
-/** Both switches of one run. The density of the board needs the factor per country: it holds for true water only. */
+/** Both switches of one run. The density of the board needs the factor per country: it holds for true water only — so a run that falls back to `gate-c`
+ *  must name `helfricht` as well (nothing is switched along silently). */
 export function snowSwitchesOf({ precip = null, density = null } = {}) {
   const out = { precip: snowPrecipOf(precip), density: snowDensitySourceOf(density) };
   if (out.density === 'board' && out.precip !== 'country') throw new Error('Neuschneedichte „board“ gilt nur mit dem Niederschlagsfaktor „country“ (96 kg/m³ sind am wahren Wasserwert gemessen)');

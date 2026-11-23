@@ -2,7 +2,8 @@
 /**
  * GM-3b (E-GM-7, E-GM-8) — counter-check of the three verifiers that carry the two switches: every mutation below breaks one rule of the new code;
  * at least one of `verify:glacier-melt`, `verify:glacier-snowcal`, `verify:glacier-snowcore` must turn red for each. The file is changed, the verifiers
- * are run, the file is restored (also on failure). Result: gm3b-mutations.json.
+ * are run, the file is restored (also on failure). Result: gm3b-mutations.json. Since 23.11. (E-GM-12) both switches are ON by default: the first two
+ * mutations and the one of the table now switch them back off.
  *
  *   node audit/gletscher-schneemodell/gm3b-mutations.mjs
  */
@@ -14,8 +15,8 @@ const ROOT = join(import.meta.dirname, '..', '..');
 const G = 'scripts/glacier';
 const VERIFIERS = ['verify-glacier-melt.mjs', 'verify-glacier-snowcal.mjs', 'verify-glacier-snowcore.mjs'];
 const MUT = [
-  ['Voreinstellung des Faktors auf „country“', `${G}/lib/snowcal.mjs`, "export const SNOW_PRECIP_DEFAULT = 'gate-c';", "export const SNOW_PRECIP_DEFAULT = 'country';"],
-  ['Voreinstellung der Dichte auf „board“', `${G}/lib/snowcal.mjs`, "export const SNOW_DENSITY_SOURCE_DEFAULT = 'helfricht';", "export const SNOW_DENSITY_SOURCE_DEFAULT = 'board';"],
+  ['Voreinstellung des Faktors zurück auf „gate-c“', `${G}/lib/snowcal.mjs`, "export const SNOW_PRECIP_DEFAULT = 'country';", "export const SNOW_PRECIP_DEFAULT = 'gate-c';"],
+  ['Voreinstellung der Dichte zurück auf „helfricht“', `${G}/lib/snowcal.mjs`, "export const SNOW_DENSITY_SOURCE_DEFAULT = 'board';", "export const SNOW_DENSITY_SOURCE_DEFAULT = 'helfricht';"],
   ['Faktor je Land mit dem Verlauf der Tabelle', `${G}/lib/snowcal.mjs`, 'return { F: r.F * doc.precip.bridge.value, origin: r.fOrigin, from: r.fFrom };', 'return { F: r.F * doc.precip.bridge.value * precipProfile(300, r.gu, r.go), origin: r.fOrigin, from: r.fFrom };'],
   ['Faktor je Land ohne die Brücke', `${G}/lib/snowcal.mjs`, 'return { F: r.F * doc.precip.bridge.value, origin: r.fOrigin, from: r.fFrom };', 'return { F: r.F, origin: r.fOrigin, from: r.fFrom };'],
   ['„board“ ohne „country“ erlaubt', `${G}/lib/snowcal.mjs`, "if (out.density === 'board' && out.precip !== 'country') throw", 'if (false) throw'],
@@ -36,7 +37,8 @@ const MUT = [
   ['Kern ohne Angabe ohne Gradient', `${G}/lib/meltcore.mjs`, 'pGrad = MELT.pGrad }) {', 'pGrad = 0 }) {'],
   ['Spanne übergeht die gemessenen Quantile', `${G}/lib/snowcore.mjs`, 'if (Number.isFinite(c.rhoNewP10) && Number.isFinite(c.rhoNewP90)) return', 'if (false) return'],
   ['Schritt legt Neuschnee immer mit der Dichte des Kerns ab', `${G}/lib/snowcore.mjs`, 'rhoNew === undefined ? c.rhoNew : rhoNew', 'rhoNew === undefined ? SNOW.rhoNew : rhoNew'],
-  ['Tabelle behauptet, der Producer benutze sie', `${G}/snow-calibration.json`, '"usedByProducer": false,', '"usedByProducer": true,'],
+  ['Tabelle behauptet, der Producer benutze sie nicht', `${G}/snow-calibration.json`, '"usedByProducer": true,', '"usedByProducer": false,'],
+  ['Voreinstellung liest eine andere Tabelle als die des Repos', `${G}/melt.mjs`, "opts.snowcal ?? join(here, 'snow-calibration.json')", "opts.snowcal ?? join(here, 'snow-calibration-2.json')"],
 ];
 const run = () => VERIFIERS.map((v) => {
   const r = spawnSync(process.execPath, ['--experimental-strip-types', '--import', './scripts/lib/register-ts.mjs', `scripts/${v}`], { cwd: ROOT, encoding: 'utf8' });

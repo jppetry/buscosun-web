@@ -9,7 +9,7 @@
    "audit/gletscher-schneemodell/gm3-method-frozen-amendment-1.md (explorativ, ändert weder Auswahl noch Urteil)"
   ]
  },
- "usedByProducer": false,
+ "usedByProducer": true,
  "precip": {
   "against": {
    "CH": "MeteoSchweiz RhiresD, Tagesgitter 1 km (CC BY 4.0, Quelle: MeteoSchweiz)",

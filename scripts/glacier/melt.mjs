@@ -33,8 +33,8 @@
  * The melt document never reads them.
  *
  * Phase GM (GM-3b, E-GM-7; audit §3d): the PRODUCER SWITCH `--precip=gate-c|country` (or `GLACIER_SNOW_PRECIP`; default `SNOW_PRECIP_DEFAULT` of
- * `lib/snowcal.mjs`). `gate-c` = the precipitation factor of Gate C and the set 4 % per 100 m, the run exactly as before; the calibration table of the snow
- * model is not opened. `country` = the accumulation of every band is `F · P · solid share` with the level `F` of the glacier's region from
+ * `lib/snowcal.mjs` — `country` since 23.11.2026, E-GM-12, audit §3e). `gate-c` (the fall back) = the precipitation factor of Gate C and the set 4 % per
+ * 100 m, the run exactly as before GM-3b; the calibration table of the snow model is not opened. `country` = the accumulation of every band is `F · P · solid share` with the level `F` of the glacier's region from
  * `snow-calibration.json` (`--snowcal=<json>` names another file) and NO profile with elevation; the document says so in `params.precip` (its `pf` then
  * does not apply), the status line carries `precip: country`. A table that is missing, breaks its rules or does not know a region of the catalogue stops
  * the run with the reason (red job) — never a silent fall back to the other factor. An unknown word stops the run as well.

@@ -162,7 +162,10 @@ const synthFc = ({ notes, noWind = false } = {}) => ({
   },
 });
 const okIo = () => ({ clima: async () => ({}), store: null });
-const run = (tr, out, extra = {}) => main({ data: tr.data, cube: tr.cube, out, calibration: tr.cal, now: new Date(NOW).toISOString(), forecast: async () => synthFc(), ioFactory: okIo, always: true, ...extra });
+// phase GM (E-GM-12, 23.11.): a melt run without the switch reads the calibration table of the snow model, which does not know the regions of these test
+// catalogues. The weather fields do not read the precipitation factor, so the runs here name the fall back; the switch is block H of verify:glacier-melt.
+const GATE_C = { precip: 'gate-c' };
+const run = (tr, out, extra = {}) => main({ data: tr.data, cube: tr.cube, out, calibration: tr.cal, now: new Date(NOW).toISOString(), forecast: async () => synthFc(), ioFactory: okIo, always: true, ...GATE_C, ...extra });
 
 const root1 = join(tmp, 't1'), tr1 = mkTree(root1), out1 = join(root1, 'out');
 const r1 = await run(tr1, out1);
@@ -444,7 +447,7 @@ const AX_NOW = AX.at, AX_RUN = AX.t0.replace(/[-:T]/g, '').slice(0, 10);
 const runAx = async (name, extra = {}, prep = null) => {
   const root = join(tmp, name), tr = mkTree(root), out = join(root, 'out');
   if (prep) prep(tr);
-  const res = await main({ data: tr.data, cube: tr.cube, out, calibration: tr.cal, now: AX_NOW, forecast: async () => fcOf(gLow), ioFactory: okIo, always: true, ...extra });
+  const res = await main({ data: tr.data, cube: tr.cube, out, calibration: tr.cal, now: AX_NOW, forecast: async () => fcOf(gLow), ioFactory: okIo, always: true, ...GATE_C, ...extra });
   const rd = (rel) => (existsSync(join(out, rel)) ? J(join(out, rel)) : null);
   return { root, tr, out, res, daily: rd(glacierWeatherRunPath(AX_RUN)), chunk: rd(glacierWeatherHourlyPath(AX_RUN, 'ch-test')), phase: rd(GLACIER_WEATHER_PHASE_PATH), status: J(join(root, 'patch', 'status-patch.json')), raw: (rel) => readFileSync(join(out, rel), 'utf8') };
 };
@@ -650,7 +653,7 @@ const runLx = async (name, extra = {}, hook = null) => {
   const root = join(tmp, name), tr = mkTree(root), out = join(root, 'out');
   const calls = [];
   const forecast = async (o, io) => { const e = io.terrainOverride.elevationM; calls.push(e); if (hook) hook(o, e); return fcLevel(gWarm, MEDIANS.includes(e) ? 1 : TONGUES.includes(e) ? 0 : 2); };
-  const res = await main({ data: tr.data, cube: tr.cube, out, calibration: tr.cal, now: LX.at, forecast, ioFactory: okIo, always: true, ...extra });
+  const res = await main({ data: tr.data, cube: tr.cube, out, calibration: tr.cal, now: LX.at, forecast, ioFactory: okIo, always: true, ...GATE_C, ...extra });
   const rd = (rel) => (existsSync(join(out, rel)) ? J(join(out, rel)) : null);
   return { root, tr, out, res, calls, daily: rd(glacierWeatherRunPath(LX_RUN)), chunk: rd(glacierWeatherHourlyPath(LX_RUN, 'ch-test')), phase: rd(GLACIER_WEATHER_PHASE_PATH), status: J(join(root, 'patch', 'status-patch.json')), raw: (rel) => readFileSync(join(out, rel), 'utf8') };
 };

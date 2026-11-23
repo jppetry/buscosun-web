@@ -1,8 +1,8 @@
 # Phase GM — Schneemodell am Gletscher („virtueller Schneesensor“)
 
-> Stand 22.11.2026 kurz vor Mitternacht: GM-0 (Diagnose, Quellen, M-1), GM-1 (Schneekern, §3a) und GM-2 (drei Höhen im Producer, eigene Schneefallgrenze, §3b) gebaut und lokal committet (nicht gepusht), nichts im Daten- oder Archiv-Repo. Der Schalter von GM-2 ist **ein** (E-GM-6, Jan 22.11. „einschalten und committen“, §3b.7); er wirkt mit dem Push von `main`.
-> **GM-3 (Eichung, §3c) gebaut, uncommitted:** Tabelle `scripts/glacier/snow-calibration.json` nach eingefrorener Methode — Niederschlagsfaktor 1,79 (Schweiz) / 2,33 (Österreich) statt 1,289, Urteil **rot** (K-2, K-4: kein belastbarer Höhenverlauf), Neuschneedichte 96 statt 68 kg/m³.
-> **GM-3b (E-GM-7 + E-GM-8, §3d) gebaut 23.11., uncommitted, beide Schalter AUS:** der Schmelzlauf kann mit dem Faktor je Land rechnen (`--precip=country`, ohne Höhenverlauf), der Schneekern mit 96 kg/m³ und der Spanne 65–148 (`board`, zweiter Konstantensatz). Ohne Schalter schreibt der Producer dieselben Bytes wie vorher und öffnet die Tabelle nicht. E-GM-9 … E-GM-13 warten auf Jan.
+> Stand 23.11.2026: GM-0 (Diagnose, Quellen, M-1), GM-1 (Schneekern, §3a) und GM-2 (drei Höhen im Producer, eigene Schneefallgrenze, §3b) gebaut und lokal committet (nicht gepusht), nichts im Daten- oder Archiv-Repo. Der Schalter von GM-2 ist **ein** (E-GM-6, Jan 22.11. „einschalten und committen“, §3b.7); er wirkt mit dem Push von `main`.
+> **GM-3 (Eichung, §3c) gebaut, lokal committet (`d09aecf6`):** Tabelle `scripts/glacier/snow-calibration.json` nach eingefrorener Methode — Niederschlagsfaktor 1,79 (Schweiz) / 2,33 (Österreich) statt 1,289, Urteil **rot** (K-2, K-4: kein belastbarer Höhenverlauf), Neuschneedichte 96 statt 68 kg/m³.
+> **GM-3b (E-GM-7 + E-GM-8, §3d) gebaut 23.11., lokal committet, beide Schalter AN (E-GM-12, Jan 23.11. „committe, schalte ein“, §3e):** der Schmelzlauf rechnet ab Werk mit dem Faktor je Land (`country`, ohne Höhenverlauf), der Schneekern mit 96 kg/m³ und der Spanne 65–148 (`board`, zweiter Konstantensatz, noch ohne Leser im Betrieb). Wirkt mit dem Push von `main`. Der Rückfall `--precip=gate-c` schreibt die Bytes wie vor GM-3b und öffnet die Tabelle nicht. E-GM-9 … E-GM-11 und E-GM-13 warten auf Jan.
 > Ausgangspunkt: `audit/qualitaetspruefung-seewetter-gletscher-2026-11-22.md` (K-2, K-3, M-17, M-18, G-26) und die Recherche vom selben Tag.
 
 ## 1. Auftrag und Jans Entscheidungen
@@ -613,13 +613,85 @@ Die fünf Fragen: (1) Funktionserhalt — Volllauf A (338 Dateien gleich), H1, H
 
 | Nr. | Inhalt | Stand |
 |---|---|---|
-| E-GM-12 | **`country` einschalten — wann?** Dafür: der größte bekannte Fehler (im Mittel fehlen 0,58 m Winterbilanz) ist erst damit behoben. Dagegen: Brücke eine Woche alt (V-GM-24); der Schmelzindex ändert sich sofort an rund 9 % der Gletscher (§3d.4); `TF`/`SRF` gehören zur alten Schneedecke (V-GM-26). Empfehlung wie in E-GM-7: nach 30 Niederschlagstagen Brücke, und vor der Schmelzsaison 2027 Gate C mit festem `F` nachrechnen. Wege: Voreinstellung `SNOW_PRECIP_DEFAULT = 'country'` (wirkt mit dem Push; dabei die Tabelle mit `snowcal-table.mjs` neu schreiben, sonst meldet G1 `usedByProducer`), oder ohne Code `GLACIER_SNOW_PRECIP: country` im Workflow `glacier-melt` des Daten-Repos | offen (Jan) |
-| E-GM-13 | **Regel „`board` nur mit `country`“** ist meine Setzung aus §3c.5 (96 kg/m³ gelten für wahres Wasser). Bestätigen oder die Dichte unabhängig schaltbar machen? | offen (Jan) |
+| E-GM-12 | **`country` einschalten — wann?** Dafür: der größte bekannte Fehler (im Mittel fehlen 0,58 m Winterbilanz) ist erst damit behoben. Dagegen: Brücke eine Woche alt (V-GM-24); der Schmelzindex ändert sich sofort an rund 9 % der Gletscher (§3d.4); `TF`/`SRF` gehören zur alten Schneedecke (V-GM-26). Empfehlung wie in E-GM-7: nach 30 Niederschlagstagen Brücke, und vor der Schmelzsaison 2027 Gate C mit festem `F` nachrechnen. Wege: Voreinstellung `SNOW_PRECIP_DEFAULT = 'country'` (wirkt mit dem Push; dabei die Tabelle mit `snowcal-table.mjs` neu schreiben, sonst meldet G1 `usedByProducer`), oder ohne Code `GLACIER_SNOW_PRECIP: country` im Workflow `glacier-melt` des Daten-Repos | **entschieden: Jan 23.11., ein** (über die Voreinstellung, §3e) |
+| E-GM-13 | **Regel „`board` nur mit `country`“** ist meine Setzung aus §3c.5 (96 kg/m³ gelten für wahres Wasser). Bestätigen oder die Dichte unabhängig schaltbar machen? | offen (Jan); mit beiden Schaltern an erfüllt (§3e.6) |
 | V-GM-26 | `TF` und `SRF` der Schmelze sind in Gate C zusammen mit `pf = 1,289` geeicht. Mit `country` liegt mehr Schnee, die Schneedecke hält länger, die Schmelze fällt kleiner aus (gemessen: Summe der Index-Mediane −4,7 %, an keinem Gletscher höher). Mehrwert: die Sommerschmelze passt zur neuen Schneedecke. Skizze: die 75 Gletscherjahre von Gate C mit festem `F` je Land und ohne Gradient neu durch `gate-c.mjs`, nur `TF`/`SRF` neu fitten, vor Mai 2027 | offen |
 | V-GM-27 | Der fortgeschriebene Zustand kennt seinen Faktor nicht: nach dem Einschalten liegt Schnee aus beiden Rechnungen übereinander, und nach 30 Stunden ohne Lauf beginnt er ohnehin bei null (§2, Punkt 7). Mehrwert: eine Schneedecke aus einer Rechnung. Skizze: mit dem Einschwingen aus GM-5 (Rückrechnung ab 1. Oktober) zusammen einschalten, oder `precip` in `state.json` vermerken und bei einem Wechsel kalt starten | GM-5 |
 | V-GM-28 | Mit `country` bleibt `params.pf = 1,289` mit Herkunft `measured` im Dokument stehen, obwohl es nicht galt (ältere Stände der Seite verwerfen ein Dokument ohne die Zahl); der Block nennt es (`replaces: pf`). Skizze: sobald kein alter Seitenstand mehr unterwegs ist, `pf` unter `country` weglassen und den Vertrag der Seite lockern | offen |
 | V-GM-29 | „Wetter am Gletscher“ zeigt Neuschnee in mm Wasserwert **ohne** Faktor. Mit `country` wächst die Schneedecke des Schmelzlaufs 1,4- bis 1,8-mal so schnell wie die angezeigte Neuschneesumme. Für GM-7 heißt das: die Anzeige in cm muss dasselbe Wasser nehmen wie der Schneekern (hinter `F`), sonst passen 96 kg/m³ nicht. Skizze: `weathercore.mjs` bekommt denselben Schalter, oder die Anzeige liest künftig den Schneekern | GM-7 (Jan) |
 | V-GM-30 | Das Budget ist an HEAD rot (totalJs 2 118,1 / 2 118 KB), seit den Brand-Korrekturen vom 22.11. abends; diese Phase ändert kein Bundle-Byte. Skizze: Grenze mit Notiz auf 2 119 heben (Jans Regel vom 30.09.) in der Linie, die es verursacht hat | offen (Jan / Brand-Linie) |
+
+## 3e. Einschalten: Faktor je Land und Neuschneedichte (E-GM-12, Jan 23.11. „committe, schalte ein“)
+
+Jans Wort vom 23.11.: committen und einschalten. Umgesetzt in zwei Commits, damit das Einschalten einzeln zurückgenommen werden kann: `d09aecf6` trägt GM-3 und GM-3b wie gebaut (beide Schalter aus), der Commit danach legt nur die Voreinstellungen um und passt die Prüfer an. Kein Push, nichts am Daten- oder Archiv-Repo, kein Workflow geändert, buscosun Fusion nur gelesen.
+
+Damit ist E-GM-12 entschieden, und zwar früher als meine Empfehlung (erst 30 Niederschlagstage Brücke, erst Gate C mit festem Faktor nachrechnen). Was das heißt, steht in §3e.4.
+
+### 3e.1 Was umgelegt ist
+
+| Stelle | vorher | jetzt |
+|---|---|---|
+| `SNOW_PRECIP_DEFAULT` (`scripts/glacier/lib/snowcal.mjs`) | `gate-c` | `country` |
+| `SNOW_DENSITY_SOURCE_DEFAULT` (ebenda) | `helfricht` | `board` |
+| `usedByProducer` in `snow-calibration.json` | `false` | `true` |
+
+Sonst kein Code: Schmelzlauf, beide Kerne und der Vertrag sind die von GM-3b. Die Tabelle ist Zeichen für Zeichen die Ausgabe von `buildTable` aus den drei Berichten (verglichen; Gegenprobe: gegen die Tabelle des Commits davor weicht genau eine Zeile ab).
+
+**Wirkung:** mit dem Push von `main`, weil der Runner den Producer von dort holt (`GLACIER_PRODUCER_REF = main`). Ab dem ersten Schmelzlauf danach rechnet die Akkumulation mit 1,79 (Schweiz), 2,33 (Österreich), 1,85 (Deutschland, übertragen) und ohne die 4 % je 100 m; das Dokument trägt `params.precip`, die Statuszeile `precip: country`. Die Dichte 96 kg/m³ wirkt erst, wenn ein Producer den Schneekern rechnet (heute keiner).
+
+**Was der Runner dafür braucht:** die Datei `scripts/glacier/snow-calibration.json`. Der Workflow `glacier-melt` holt `scripts` als Ganzes (Vorlage `workflow-glacier-melt.yml`, Zeile 61; ebenso der lokale Klon des Daten-Repos vom 04.11.). Den Workflow, der heute dort läuft, habe ich nicht gelesen. Die Tabelle kennt alle 26 Regionen des Katalogs (E2, und der Volllauf am echten Katalog vom 21.11.). Kommt mit einem neuen Katalog-Build eine Region dazu, die die Tabelle nicht kennt, endet der Lauf rot und nennt die Region (H6) — dann die Tabelle ergänzen oder zurückschalten.
+
+### 3e.2 Prüfer
+
+| Prüfung | Ergebnis |
+|---|---|
+| `verify:glacier-melt` | **49/49**. Die Blöcke bis G rechnen von Hand mit dem Faktor von Gate C und 4 % je 100 m; sie nennen jetzt den Rückfall (`GATE_C`). H1 neu: ohne Angabe dieselben Bytes wie mit `country`; `gate-c` schreibt andere Dateien und braucht die Tabelle nicht (ohne Tabellendatei dieselben Bytes); ohne Angabe und ohne Tabellendatei Abbruch; ohne `--snowcal` liest der Lauf die Tabelle des Repos (Abbruch mit der Region des Testkatalogs). H5 umgekehrt: `GLACIER_SNOW_PRECIP=gate-c` = der Rückfall, ein Schalter `country` daneben gewinnt |
+| `verify:glacier-snowcal` | **37/37**. G1 beide Voreinstellungen an, die Tabelle sagt dasselbe; G2 `gate-c` allein wird abgelehnt (die Dichte der Voreinstellung wird nicht still mitgestellt, V-GM-31), der Rückfall mit beiden Wörtern geht; G5 ohne Angabe der zweite Konstantensatz, `board` ohne Tabelle bricht ab |
+| `verify:glacier-weather` | **41/41**. Die Läufe nennen den Rückfall: die Tabelle kennt die Regionen der Testkataloge nicht, und die Wetterfelder lesen den Faktor nicht (belegt in §3e.3: 336 Dateien gleich) |
+| `verify:glacier-snowcore` | 24/24, unverändert |
+| übrige Prüfer | `glacier-contract` 64/64, `glacier-publish` 34/34, `glacier-snow-view` 19/19, `glacier-dossier-heute` 21/21, `glacier-stations` 77/77 |
+| Gegenprobe der Prüfer | `gm3b-mutations.mjs` mit umgekehrten Mutationen (Voreinstellungen und Tabellenfeld zurück auf aus) und einer neuen (die Voreinstellung liest eine andere Tabellendatei): **24 von 24 bemerkt**, eine nur als Abbruch (die Tabelle wird auch bei `gate-c` geöffnet — wie in §3d.5); Prüfer danach grün (`gm3b-mutations.json`) |
+| Gegenprobe GM-3 gegen den geänderten Prüfer | `gm3-mutations.mjs` wiederholt: 19 von 19 bemerkt, Prüfer danach grün; Hash der eingefrorenen Methode unverändert (E1) |
+| `npm run typecheck` | grün |
+| Build, Budget | der Einschalt-Commit ändert keine Datei unter `src/`; Stand wie §3d.5 (Budget an HEAD rot, V-GM-30) |
+
+### 3e.3 Messung am lokalen Volllauf
+
+Derselbe Aufbau wie §3d.4 (Cube vom 21.11., Lauf `2026112117`, 2 094 Gletscher, `--now=2026-11-21T17:50:00Z --always`, Kaltstart des Zustands), Ausgaben unter `C:\dev\buscosun-glacier-cache\gm3c\`.
+
+| Lauf | verglichen mit | Ergebnis |
+|---|---|---|
+| `--precip=gate-c` | Lauf „aus“ aus §3d.4 (= Stand vor GM-3b) | **338 von 338 Dateien Byte für Byte gleich**, Zeiger-Patch gleich, Statuszeile gleich bis auf die Laufzeit |
+| ohne Angabe | Lauf `country` aus §3d.4 (lief ohne Wetterteil, 13 Dateien) | alle 13 gleich, darunter das Dokument (648 684 B) und der Zustand |
+| ohne Angabe | `--precip=gate-c` (Negativkontrolle) | genau **2 von 338** Dateien verschieden: Dokument und Zustand. Die 336 anderen (Wetter am Gletscher, ältere Läufe) gleich; die Statuszeile nennt `precip: country`, das Dokument den Block mit 26 Regionen, `gate: false`, Brücke 1, Gradient 0 |
+
+Die Zahlen aus §3d.4 gelten damit für den eingeschalteten Stand: Schmelzindex an 182 von 2 094 Gletschern anders (höchstens 11 Punkte, an keinem höher), Schneezuwachs in Österreich 1,77-fach, in Deutschland 1,43-fach.
+
+### 3e.4 Was das Einschalten vor der Empfehlung heißt
+
+- **Die Seite zeigt es sofort:** der Schmelzindex fällt an rund 9 % der Gletscher (tief liegende), sobald der erste Lauf nach dem Push veröffentlicht ist. Gemessen an einer Wetterlage im November; im Sommer ist die Wirkung größer und ungemessen.
+- **`TF` und `SRF` gehören zur alten Schneedecke (V-GM-26):** bis Gate C mit festem Faktor nachgerechnet ist, schmilzt das Modell eine dickere Schneedecke mit Schmelzfaktoren, die an einer dünneren geeicht sind. Vor Mai 2027 nachziehen.
+- **Der Zustand auf dem Runner mischt (V-GM-27):** der dort fortgeschriebene Schnee stammt aus 1,289, der neue aus 1,79 / 2,33. Der Zeitpunkt ist günstig (die Winterdecke beginnt gerade), eine Rückrechnung ab 1. Oktober gibt es erst mit GM-5.
+- **Das Urteil der Eichung bleibt rot** und steht so im Dokument (`gate: false` mit Grund). Die Brücke zu buscosun Fusion ist 1 (`set`), gemessen an einer Woche (V-GM-24).
+- **Anzeige und Schmelzlauf rechnen mit verschiedenem Wasser (V-GM-29):** „Wetter am Gletscher“ zeigt Neuschnee ohne Faktor.
+
+### 3e.5 Rückfall
+
+- **Mit Code:** den Einschalt-Commit zurücknehmen (`git revert`), oder die zwei Konstanten und die Zeile der Tabelle zurückstellen (G1 hält die drei zusammen).
+- **Ohne Code:** im Workflow `glacier-melt` des Daten-Repos `GLACIER_SNOW_PRECIP: gate-c` setzen (eine Workflow-Änderung, Jans Gate). Der Lauf schreibt dann die Dateien wie vor GM-3b (H5; Volllauf §3e.3, erste Zeile).
+- Der Zustand trägt nach einem Rückfall Schnee aus beiden Rechnungen (V-GM-27); nach 30 Stunden ohne Lauf oder mit dem nächsten Satelliten-Abgleich verliert sich das.
+
+### 3e.6 Entscheidungen und Befunde
+
+| Nr. | Inhalt | Stand |
+|---|---|---|
+| E-GM-12 | `country` (und mit ihm `board`) einschalten | **entschieden: Jan 23.11., ein** — vor den Bedingungen meiner Empfehlung |
+| E-GM-13 | Regel „`board` nur mit `country`“ | nicht beantwortet; mit beiden Schaltern an ist sie erfüllt, sie bleibt meine Setzung |
+| V-GM-31 | Seit die Dichte ab Werk `board` ist, lehnt `snowSwitchesOf` ein alleiniges `gate-c` ab: ein Producer, der beide Schalter liest, braucht für den Rückfall beide Wörter. Der Schmelzlauf liest nur den Faktor und ist nicht betroffen. Mehrwert: ein Rückfall mit einem Wort, wenn es eilt. Skizze: in GM-5 entscheiden, ob die ungenannte Dichte dem Faktor folgt (und die Statuszeile sagt, was galt) oder ob es bei der strengen Regel bleibt | GM-5 |
+
+Nicht geprüft: kein Lauf auf dem Runner (der erste nach dem Push ist die Prüfung); der dort laufende Workflow nicht gelesen; kein Browser; kein Sommerlauf; die Dichte hat keinen Leser im Betrieb.
+
+Die fünf Fragen: (1) Funktionserhalt — der Rückfall schreibt 338 von 338 Dateien wie vor GM-3b, die 41 alten Prüfungen des Schmelzlaufs laufen auf ihm; (2) Desktop pixelgleich — kein Byte im Bundle geändert, nicht angesehen; (3) Touch-Flächen, (4) Konsole, (5) Long Tasks — keine Anzeige geändert. Die Seite zeigt nach dem Push einen anderen Schmelzindex an rund 9 % der Gletscher; das ist die gewollte Wirkung, kein Nebeneffekt.
 
 ## 4. Quellenliste (zur Prüfung durch Jan)
 
@@ -715,10 +787,10 @@ Alle Konstanten tragen ihre Herkunft (`measured`, `literature`, `set`).
 | Paket | Inhalt | Ergebnis |
 |---|---|---|
 | GM-0 | Diagnose, Quellen, Messung M-1 (dieses Dokument) | erledigt 22.11. |
-| GM-1 | Kern `snowcore.mjs` (Dichte, Setzung, Schichten), Verifier `verify:glacier-snowcore` 23/23, Messung M-2 (§3a) | erledigt 22.11., uncommitted |
+| GM-1 | Kern `snowcore.mjs` (Dichte, Setzung, Schichten), Verifier `verify:glacier-snowcore` 23/23, Messung M-2 (§3a) | erledigt 22.11., lokal committet (`65ca6a03`) |
 | GM-2 | Antrieb an drei Höhen im Producer (Schalter `--heights=three`), Schneeanteil je Höhe aus der eigenen Antwort, eigene Schneefallgrenze `slo`/`slk`; Kaltluftlage zu K-2 nachgestellt (§3b) | erledigt 22.11., lokal committet, Schalter ein (E-GM-6, §3b.7); wirkt mit dem Push |
-| GM-3 | Eichung an vergangenen Wintern: Niederschlag je Region und Höhe (Q13, Q14, Q17–Q19, Q21, Q22), Dichte (Q6, Q7), Brücke zu buscosun Fusion (§3c) | erledigt 22.11., uncommitted: Tabelle `snow-calibration.json` (Urteil rot), `verify:glacier-snowcal`; Q20 (SLF-Datensatz 250 m) nicht benutzt |
-| GM-3b | E-GM-7 Faktor je Land im Schmelzlauf (`--precip=country`, ohne Verlauf) und E-GM-8 Neuschneedichte 96 kg/m³ als zweiter Konstantensatz des Schneekerns (`board`) (§3d) | erledigt 23.11., uncommitted, **beide Schalter aus** |
+| GM-3 | Eichung an vergangenen Wintern: Niederschlag je Region und Höhe (Q13, Q14, Q17–Q19, Q21, Q22), Dichte (Q6, Q7), Brücke zu buscosun Fusion (§3c) | erledigt 22.11., lokal committet (`d09aecf6`): Tabelle `snow-calibration.json` (Urteil rot), `verify:glacier-snowcal`; Q20 (SLF-Datensatz 250 m) nicht benutzt |
+| GM-3b | E-GM-7 Faktor je Land im Schmelzlauf (`--precip=country`, ohne Verlauf) und E-GM-8 Neuschneedichte 96 kg/m³ als zweiter Konstantensatz des Schneekerns (`board`) (§3d) | erledigt 23.11., lokal committet, **beide Schalter ein** (E-GM-12, §3e); wirkt mit dem Push |
 | GM-4 | Kopplung an Stationen, Abweichungstabelle, Nachbar-Übertrag; Satelliten-Abgleich einmal je Szene (behebt M-18) | gekoppelter Zustand |
 | GM-5 | Verteilung aus Sentinel-2, Szenarien und Spannen, Einschwingen | vollständiges Produkt |
 | GM-6 | Betrieb: Workflow, Archiv des Zustands, tägliche Schattenpaare | läuft im Daten- und Archiv-Repo |
@@ -750,7 +822,7 @@ Reihenfolge: GM-1 und GM-2 zuerst (sie hängen an keiner offenen Quelle), GM-3 p
 - V-GM-4: Speicherbedarf des Zustandsarchivs (2 094 Gletscher × Bänder × Tage) vor GM-6 messen.
 - V-GM-5: Tägliche Ablage der SLF-Messfelder (gemessener Neuschnee) sofort beginnen, weil die Schnittstelle keine Historie hält; historische Dateien beim SLF-Datenservice suchen. — **erledigt (V-GM-17):** die Historie steht offen unter `measurement-data.slf.ch/study-plot/`, eine eigene Ablage braucht es nicht.
 - E-GM-7 … E-GM-11 und V-GM-15 … V-GM-24: §3c.10.
-- E-GM-12, E-GM-13 und V-GM-26 … V-GM-30: §3d.6.
+- E-GM-12, E-GM-13 und V-GM-26 … V-GM-30: §3d.6; das Einschalten (E-GM-12 entschieden) und V-GM-31: §3e.
 - Q20 (SLF-Schneedatensatz 250 m, 6,3 GB) ist in GM-3 nicht benutzt. Er gäbe eine zweite, modellgestützte Wahrheit für alle Schweizer Gletscher (auch die ohne Messung) und damit eine Prüfung, ob sich der Landesfaktor überträgt.
 - V-GM-6: Durchfeuchtung und Wiedergefrieren fehlen im Kern; die Schneehöhe wird damit im Frühjahr zu hoch ausfallen. Vor dem Frühjahr 2027 an IMIS-Reihen nachziehen.
 - V-GM-7: Die Schichtdauer von 6 Stunden begrenzt die Schärfe von „Neuschnee 24 h“; angeschnittene Schichten zählen anteilig. Kürzere Schichten kosten Zustandsgröße (mit V-GM-4 messen).

@@ -4,7 +4,8 @@
  * freezing-level lapse, the scenario sums (quantile of sums — never a sum of quantiles), the unit gate (no millimetres without a passed Gate C),
  * the repeat guard, and `melt.mjs` end to end with a stubbed buscosun Fusion (state carried, satellite nudge, class C with neighbour forcing,
  * retention 72 h, climatology missing ⇒ job red). Every rule with a negative control.
- * Block H (phase GM, GM-3b, E-GM-7): the precipitation switch `--precip=gate-c|country` end to end — off = the same bytes and the table not opened,
+ * Block H (phase GM, GM-3b, E-GM-7; switched on 23.11., E-GM-12): the precipitation switch `--precip=gate-c|country` end to end — no word = `country`,
+ * the fall back `gate-c` = the bytes as before GM-3b and the table not opened,
  * `country` = the factor of the region and no gradient (state by hand), the document names it, a table that cannot be used stops the run.
  *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-melt.mjs
@@ -221,7 +222,10 @@ const forecast = async (o) => {
   return fc;
 };
 const okIo = () => ({ clima: async () => ({}), store: null });
-const run1 = async (root, extra = {}) => main({ data: join(root, 'data'), cube: join(root, 'cube'), out: join(root, 'out'), calibration: join(root, 'cal.json'), now: new Date(NOW).toISOString(), forecast, ioFactory: okIo, always: true, ...extra });
+// since 23.11. (E-GM-12) a run without the switch uses the factor per country; the blocks up to G compute by hand with the factor of Gate C and 4 % per 100 m,
+// so they name the fall back `gate-c` (GATE_C). The switch itself, default included, is block H.
+const GATE_C = { precip: 'gate-c' };
+const run1 = async (root, extra = {}) => main({ data: join(root, 'data'), cube: join(root, 'cube'), out: join(root, 'out'), calibration: join(root, 'cal.json'), now: new Date(NOW).toISOString(), forecast, ioFactory: okIo, always: true, ...GATE_C, ...extra });
 const root1 = join(tmp, 't1'); const tr1 = mkTree(root1);
 mkdirSync(join(tr1.data, 'melt'), { recursive: true });
 const r1 = await run1(root1, { 'archive-out': join(root1, 'archive-out'), calibration: tr1.calFile });
@@ -241,15 +245,15 @@ add('G4 Archiv: die Leitgletscher des Laufs gehen als eigene Datei ins Archivver
   const patch = JSON.parse(readFileSync(join(root1, 'patch', 'index-patch.json'), 'utf8'));
   writeFileSync(join(tr1.data, 'index.json'), JSON.stringify({ ...ix, ...patch }));
   cpSync(join(root1, 'out', 'melt'), join(tr1.data, 'melt'), { recursive: true });
-  const rep = await main({ data: tr1.data, cube: tr1.cube, out: join(root1, 'out2'), calibration: tr1.calFile, now: new Date(NOW + 1 * H).toISOString(), forecast, ioFactory: okIo });
+  const rep = await main({ data: tr1.data, cube: tr1.cube, out: join(root1, 'out2'), calibration: tr1.calFile, now: new Date(NOW + 1 * H).toISOString(), forecast, ioFactory: okIo, ...GATE_C });
   add('G5 Zweiter Aufruf mit unveränderten t2/t3 schreibt nichts (übersprungen mit Grund), ein neuer t2 startet den Lauf', rep.skipped === true && /unverändert/.test(rep.reason) && !existsSync(join(root1, 'out2')), JSON.stringify(rep));
   writeFileSync(join(tr1.cube, 'point', 'index.json'), JSON.stringify({ latestByTier: { t1: { run: '2026101006' }, t2: { run: '2026101006' }, t3: { run: '2026101000' } } }));
   const T1 = NOW + 6 * H;
-  const r2 = await main({ data: tr1.data, cube: tr1.cube, out: join(root1, 'out3'), calibration: tr1.calFile, now: new Date(T1).toISOString(), forecast: async (o) => { const fc = await forecast(o); fc.cube.v2.axis.steps.forEach((s, i) => { s.validAtMs = Math.floor(T1 / H) * H + i * H; }); return fc; }, ioFactory: okIo });
+  const r2 = await main({ data: tr1.data, cube: tr1.cube, out: join(root1, 'out3'), calibration: tr1.calFile, now: new Date(T1).toISOString(), forecast: async (o) => { const fc = await forecast(o); fc.cube.v2.axis.steps.forEach((s, i) => { s.validAtMs = Math.floor(T1 / H) * H + i * H; }); return fc; }, ioFactory: okIo, ...GATE_C });
   const d2 = JSON.parse(readFileSync(join(root1, 'out3', 'melt', `${r2.run}.json`), 'utf8'));
   add('G6 Neuer Lauf: der Zustand des vorigen Laufs wird übernommen (carried, Alter 0 h bei Lauf + 6 h), das alte Dokument bleibt (72 h), der neue kommt dazu', d2.state.source === 'carried' && d2.state.ageH === 0 && existsSync(join(root1, 'out3', 'melt', `${r1.run}.json`)) && existsSync(join(root1, 'out3', 'melt', `${r2.run}.json`)), JSON.stringify(d2.state));
   // state older than 30 h ⇒ cold, named
-  const r3 = await main({ data: tr1.data, cube: tr1.cube, out: join(root1, 'out4'), calibration: tr1.calFile, now: new Date(NOW + 40 * H).toISOString(), forecast: async (o) => { const fc = await forecast(o); fc.cube.v2.axis.steps.forEach((s, i) => { s.validAtMs = Math.floor((NOW + 40 * H) / H) * H + i * H; }); return fc; }, ioFactory: okIo, always: true });
+  const r3 = await main({ data: tr1.data, cube: tr1.cube, out: join(root1, 'out4'), calibration: tr1.calFile, now: new Date(NOW + 40 * H).toISOString(), forecast: async (o) => { const fc = await forecast(o); fc.cube.v2.axis.steps.forEach((s, i) => { s.validAtMs = Math.floor((NOW + 40 * H) / H) * H + i * H; }); return fc; }, ioFactory: okIo, always: true, ...GATE_C });
   const d3 = JSON.parse(readFileSync(join(root1, 'out4', 'melt', `${r3.run}.json`), 'utf8'));
   add('G7 Zustand älter als 30 h wird nicht fortgeschrieben: Kaltstart, benannt (source cold, kein Alter)', d3.state.source === 'cold' && d3.state.ageH === null && existsSync(join(root1, 'out4', 'melt', 'state.json')), JSON.stringify(d3.state));
 }
@@ -280,7 +284,7 @@ add('G4 Archiv: die Leitgletscher des Laufs gehen als eigene Datei ins Archivver
 {
   const root = join(tmp, 't4'); const tr = mkTree(root);
   let err = null;
-  try { await main({ data: tr.data, cube: tr.cube, out: join(root, 'out'), calibration: tr.calFile, now: new Date(NOW).toISOString(), forecast, ioFactory: () => ({ clima: async () => null }), always: true }); } catch (e) { err = String(e.message ?? e); }
+  try { await main({ data: tr.data, cube: tr.cube, out: join(root, 'out'), calibration: tr.calFile, now: new Date(NOW).toISOString(), forecast, ioFactory: () => ({ clima: async () => null }), always: true, ...GATE_C }); } catch (e) { err = String(e.message ?? e); }
   let err2 = null; try { await assertClima({ clima: async () => ({}) }); } catch (e) { err2 = e; }
   add('G10 Ohne Klimatologie (public/climaGrid.json) bricht der Lauf mit Fehler ab (roter Job, Lehre V-SW-18) und schreibt nichts; mit Klimatologie kein Fehler (Gegenprobe)', /Klimatologie/.test(err ?? '') && !existsSync(join(root, 'out')) && err2 === null, String(err));
 }
@@ -310,13 +314,16 @@ add('G4 Archiv: die Leitgletscher des Laufs gehen als eigene Datei ins Archivver
   const stateIs = (s, id, hand) => s[id][0].length === 8 && s[id][0].every((v, i) => Math.abs(v - hand[i]) <= 0.051);
   const cases = [['gl_ch_alpha', 2400, 2900, 'ch-test'], ['gl_ch_gamma', 2600, 2900, 'ch-test'], ['gl_ch_far', 2600, 2750, 'ch-far']];   // gamma: own bands, alpha's forcing (reference elevation 2 900 m)
 
-  const off = await runSw('sw-off'), offNamed = await runSw('sw-off-named', { precip: 'gate-c' }), offNoTable = await runSw('sw-off-notable', {}, null), on = await runSw('sw-on', { precip: 'country' });
-  add('H1 Schalter aus (Voreinstellung): ohne Angabe, mit „gate-c“ und OHNE Tabellendatei dieselben Bytes (Dokument, Zustand, Zeiger, Statuszeile) — die Tabelle wird nicht geöffnet; kein Feld params.precip, keine Angabe in der Statuszeile; Gegenprobe: „country“ schreibt andere Dateien',
-    !off.err && !offNoTable.err && same(off, offNamed) && same(off, offNoTable) && off.doc.params.precip === undefined && !('precip' in off.status.lines.melt) && off.r.precip === undefined
-    && on.docRaw !== off.docRaw && on.stateRaw !== off.stateRaw, JSON.stringify({ err: [off.err, offNamed.err, offNoTable.err, on.err] }));
-  add('H2 Schalter aus rechnet wie vor GM-3b: der Schneezustand nach 6 Stunden ist von Hand 6 · 3 mm · 1,2 · (1 + 4 % je 100 m ab der Bezugshöhe) · Schneeanteil — an drei Gletschern, alle Bänder; Gegenprobe: dieselbe Handrechnung ohne Gradient passt nicht',
+  // switched on 23.11. (E-GM-12): no word = `country`; `gate-c` is the fall back and does not need the table
+  const on = await runSw('sw-on'), onNamed = await runSw('sw-on-named', { precip: 'country' }), off = await runSw('sw-off', { precip: 'gate-c' }), offNoTable = await runSw('sw-off-notable', { precip: 'gate-c' }, null);
+  const onNoTable = await runSw('sw-on-notable', {}, null), onRealTable = await runSw('sw-on-realtable', { snowcal: undefined });
+  add('H1 Voreinstellung „country“ (eingeschaltet 23.11., E-GM-12): ohne Angabe dieselben Bytes wie mit „country“ (Dokument, Zustand, Zeiger, Statuszeile); der Rückfall „gate-c“ schreibt andere Dateien, öffnet die Tabelle nicht (OHNE Tabellendatei dieselben Bytes), trägt kein Feld params.precip und keine Angabe in der Statuszeile; ohne Angabe und ohne Tabellendatei bricht der Lauf ab; ohne --snowcal liest er die Tabelle des Repos (die den Testkatalog nicht kennt ⇒ Abbruch mit der Region)',
+    !on.err && !onNamed.err && !off.err && !offNoTable.err && same(on, onNamed) && same(off, offNoTable) && off.doc.params.precip === undefined && !('precip' in off.status.lines.melt) && off.r.precip === undefined
+    && on.docRaw !== off.docRaw && on.stateRaw !== off.stateRaw && /nicht lesbar/.test(onNoTable.err ?? '') && onNoTable.wrote === false && /Region ch-(test|far) fehlt/.test(onRealTable.err ?? '') && onRealTable.wrote === false,
+    JSON.stringify({ err: [on.err, onNamed.err, off.err, offNoTable.err, onNoTable.err, onRealTable.err] }));
+  add('H2 der Rückfall „gate-c“ rechnet wie vor GM-3b: der Schneezustand nach 6 Stunden ist von Hand 6 · 3 mm · 1,2 · (1 + 4 % je 100 m ab der Bezugshöhe) · Schneeanteil — an drei Gletschern, alle Bänder; Gegenprobe: dieselbe Handrechnung ohne Gradient passt nicht',
     cases.every(([id, z0, zRef]) => stateIs(off.state, id, sweByHand(z0, zRef, 1.2, 0.04))) && !stateIs(off.state, 'gl_ch_alpha', sweByHand(2400, 2900, 1.2, 0)), JSON.stringify({ alpha: off.state?.gl_ch_alpha?.[0], hand: sweByHand(2400, 2900, 1.2, 0.04) }));
-  add('H3 Schalter „country“: derselbe Zustand von Hand mit dem F der Region aus der Tabelle (Schweiz 1,793, Österreich 2,326) und OHNE Gradient — auch am Gletscher mit Nachbar-Antrieb zählt die eigene Region; Gegenprobe: mit 4 % oder mit dem Faktor der anderen Region passt es nicht',
+  add('H3 „country“ (auch ohne Angabe): derselbe Zustand von Hand mit dem F der Region aus der Tabelle (Schweiz 1,793, Österreich 2,326) und OHNE Gradient — auch am Gletscher mit Nachbar-Antrieb zählt die eigene Region; Gegenprobe: mit 4 % oder mit dem Faktor der anderen Region passt es nicht',
     !on.err && F['ch-test'] === 1.793 && F['ch-far'] === 2.326 && cases.every(([id, z0, zRef, region]) => stateIs(on.state, id, sweByHand(z0, zRef, F[region], 0)))
     && !stateIs(on.state, 'gl_ch_alpha', sweByHand(2400, 2900, F['ch-test'], 0.04)) && !stateIs(on.state, 'gl_ch_far', sweByHand(2600, 2750, F['ch-test'], 0)), JSON.stringify({ far: on.state?.gl_ch_far?.[0], hand: sweByHand(2600, 2750, F['ch-far'], 0) }));
   const blk = on.doc?.params?.precip;
@@ -325,10 +332,10 @@ add('G4 Archiv: die Leitgletscher des Laufs gehen als eigene Datei ins Archivver
     && blk.gradient === 0 && blk.origin.gradient === 'set' && blk.bridge === 1 && blk.origin.bridge === 'set' && blk.gate === false && /K-2/.test(blk.reason) && blk.method === realTable.method.sha256
     && on.doc.params.pf === 1.2 && meltProblems(on.doc).length === 0 && meltPrecipProblems(blk, ['ch-test', 'ch-far']).length === 0 && on.status.lines.melt.precip === 'country' && on.r.precip === 'country', JSON.stringify(blk ?? on.err));
   // environment variable; the argument wins
-  process.env.GLACIER_SNOW_PRECIP = 'country';
-  const envOn = await runSw('sw-env'), envArg = await runSw('sw-env-arg', { precip: 'gate-c' });
+  process.env.GLACIER_SNOW_PRECIP = 'gate-c';
+  const envOff = await runSw('sw-env'), envArg = await runSw('sw-env-arg', { precip: 'country' });
   delete process.env.GLACIER_SNOW_PRECIP;
-  add('H5 Umgebungsvariable GLACIER_SNOW_PRECIP=country schreibt dieselben Bytes wie der Schalter; ein Schalter „gate-c“ daneben gewinnt (dieselben Bytes wie aus)', !envOn.err && same(envOn, on) && same(envArg, off), JSON.stringify({ err: [envOn.err, envArg.err] }));
+  add('H5 Umgebungsvariable GLACIER_SNOW_PRECIP=gate-c schreibt dieselben Bytes wie der Schalter „gate-c“ (der Rückfall ohne Code-Änderung); ein Schalter „country“ daneben gewinnt (dieselben Bytes wie die Voreinstellung)', !envOff.err && !envArg.err && same(envOff, off) && same(envArg, on), JSON.stringify({ err: [envOff.err, envArg.err] }));
   // stops: nothing is written, the reason is named
   const word = await runSw('sw-word', { precip: 'region' }), noFile = await runSw('sw-nofile', { precip: 'country' }, null);
   const noRegion = await runSw('sw-noregion', { precip: 'country' }, tableFor((t) => { delete t.precip.regions['ch-far']; }));

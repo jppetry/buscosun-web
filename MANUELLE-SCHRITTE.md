@@ -4499,3 +4499,81 @@ buscosun Fusion nur gelesen.
 5. **Weiter offen aus dieser Phase:** Q8–Q10 (Quellen, nicht freigegeben); V-GM-9 (die Gipfelstation trägt die Temperatur an der
    Zunge, eine Stunde gemessen, kein klarer Schaden); V-GM-10 (der Regelvergleich `phase.json` zählt Läufe mit einer und mit
    drei Antworten zusammen — vor einem Wechsel auf `psnow` nur Läufe mit `heights: three` lesen).
+
+## 117. Gletscher: Schneemodell, Paket GM-3 — Eichung an vergangenen Wintern (Phase GM, `audit/gletscher-schneemodell.md` §3c), 2026-11-22
+
+Gebaut, **lokal committet 23.11. (`d09aecf6`)**: die Eichtabelle `scripts/glacier/snow-calibration.json` mit Bericht und Prüfer
+(`verify:glacier-snowcal`). In GM-3 las sie kein Producer (seit GM-3b der Schmelzlauf, §118), nichts am Daten- oder Archiv-Repo, nichts an der Seite, buscosun Fusion nur
+gelesen (Wetterläufe aus dem Daten-Repo für die Brücken-Messung). Die Methode war vor dem ersten gewerteten Lauf eingefroren
+(`audit/gletscher-schneemodell/gm3-method-frozen.md`, sha256 `cf4c001b…`).
+
+Was herauskam, in drei Sätzen: Der Niederschlagsfaktor liegt bei **1,79 (Schweiz) und 2,33 (Österreich)** gegenüber den
+Niederschlagsanalysen statt bei 1,289 — damit trifft das Modell die Winterbilanz je Höhenstufe um ein Drittel besser als heute,
+das Urteil der Eichung ist trotzdem **rot** (Winterbilanz 0,40 m daneben bei einer Schwelle von 0,35 m; ein Höhenverlauf des
+Niederschlags ist nicht belastbar). Die Neuschneedichte ist **96 kg/m³** statt 68: der Schneekern zeigte Neuschnee im Mittel 7 cm
+zu hoch. „Gleiche Neuschneewerte an allen Höhen“ ist nach diesen Daten in einer Kaltlage richtig — die Unterschiede kommen aus
+Regen und Schmelze unten, nicht aus mehr Niederschlag oben.
+
+1. **Deine Entscheidungen** (alle in §3c.10, keine eilt):
+   - **E-GM-7** Niederschlagsfaktor je Land in den Producer bauen (hinter Schalter, aus)? Empfehlung: ja, ohne Höhenverlauf.
+     — **gebaut 23.11., eingeschaltet 23.11. (§118).**
+   - **E-GM-8** 96 kg/m³ und die Spanne 65–148 in den Schneekern? Empfehlung: ja, zusammen mit E-GM-7.
+     — **gebaut 23.11., eingeschaltet 23.11. (§118).**
+   - **E-GM-9** Eigener Faktor für die 44 vermessenen Gletscher? Im Nachtrag halbiert er fast den Fehler (0,23 statt 0,40 m);
+     braucht eine neue eingefrorene Regel.
+   - **E-GM-10** Neue Eichrunde mit der Winterschmelze wie im Betrieb, geprüft am Winter 2025/26, sobald GLAMOS ihn veröffentlicht.
+   - **E-GM-11** `inca-v1-1h-1km` als Quelle bestätigen: die Quellenliste nennt `inca-v2-1h-1km`, das erst am 1.10.2026 beginnt.
+2. **Commit** — erledigt 23.11. (`d09aecf6`, zusammen mit GM-3b). Dazu gehörten: `scripts/glacier/snowcal-*.mjs`, `scripts/glacier/py/snowcal_grid.py`,
+   `scripts/glacier/lib/snowcal.mjs`, `scripts/glacier/make-snowcal-fixture.mjs`, `scripts/glacier/snow-calibration.json`,
+   `scripts/verify-glacier-snowcal.mjs`, `scripts/lib/fixtures/glacier/snowcal/`, `package.json` (eine Zeile), die Dateien
+   `gm3-*` unter `audit/gletscher-schneemodell/`, `audit/gletscher-schneemodell.md`, `CLAUDE.md`, diese Datei. Ein Push ändert
+   am Betrieb nichts.
+3. **Lizenzvermerk, falls die Tabelle in den Betrieb geht:** MeteoSchweiz („Quelle: MeteoSchweiz“, RhiresD und SwissMetNet),
+   GeoSphere Austria (INCA, Stationsdaten), SLF (Messfelder), WGMS; die GLAMOS-Dateien dienten nur intern als Wahrheit
+   (E-GL-17), keine Zeile davon steht im Repo.
+4. **Lokaler Zwischenspeicher:** `C:\dev\buscosun-glacier-cache\gm3\` (2,2 GB: 15 Jahre RhiresD, Stationsreihen, INCA,
+   SLF-Historie). Kann gelöscht werden; der Neuaufbau braucht rund 15 Minuten Abrufe und 20 Minuten Rechnen.
+5. **Nicht geprüft:** nichts im Browser (keine Anzeige geändert); die Brücke zu buscosun Fusion beruht auf einer Woche
+   (16.–21.11.); der SLF-Datensatz 250 m (Q20) ist nicht benutzt; Q8–Q10 bleiben ungelesen.
+
+## 118. Gletscher: Schneemodell, Paket GM-3b — Faktor je Land und Neuschneedichte, beide Schalter ein (E-GM-7, E-GM-8, E-GM-12; `audit/gletscher-schneemodell.md` §3d, §3e), 2026-11-23
+
+Gebaut, **lokal committet, nicht gepusht, beide Schalter ein** (E-GM-12, Jan 23.11. „committe, schalte ein“). Zwei Commits:
+`d09aecf6` trägt GM-3 und GM-3b mit beiden Schaltern aus, der Commit danach legt nur die Voreinstellungen um. Das Einschalten
+wirkt mit dem Push von `main`, weil der Runner den Producer von dort holt. Nichts am Daten- oder Archiv-Repo, kein Workflow
+geändert, buscosun Fusion nur gelesen. Der Rückfall `--precip=gate-c` schreibt dieselben Bytes wie vor GM-3b (lokaler
+Volllauf: 338 von 338 Dateien gleich) und öffnet die Eichtabelle nicht.
+
+Was es jetzt gibt:
+- **Faktor je Land** im Schmelzlauf, ab Werk (`SNOW_PRECIP_DEFAULT = 'country'`). Der Lauf rechnet mit
+  1,79 (Schweiz), 2,33 (Österreich), 1,85 (Deutschland, übertragen) statt 1,289 und ohne die 4 % je 100 m; das Dokument nennt
+  es in `params.precip`. Eine fehlende oder verletzte Tabelle beendet den Lauf rot, er fällt nie still zurück.
+- **Neuschneedichte 96 kg/m³** mit der Spanne 65–148 als zweiter Konstantensatz des Schneekerns (`board`). Der Kern läuft
+  noch in keinem Producer; der Schalter ist die Stelle, an der GM-5 anschließt. `board` ohne `country` wird abgelehnt.
+
+1. **Push von `buscosun-web`** (dein Gate; trägt auch GM-1, GM-2 und die vier Brand-Korrekturen vom 22.11.). Ab dem ersten
+   Schmelzlauf danach rechnet die Schneedecke des Schmelzlaufs mit dem Faktor je Land. Am 21.11. gerechnet ändert das den
+   Schmelzindex an 182 von 2 094 Gletschern (tief liegende, höchstens 11 Punkte, immer nach unten); die Seite zeigt das.
+2. **Den ersten Schmelzlauf nach dem Push ansehen** (zusammen mit §116 Punkt 2): in `glacier/v1/status.json` die Zeile
+   `lines.melt` mit `precip: country`; im Dokument `melt/<lauf>.json` der Block `params.precip` (26 Regionen, `gate: false`
+   mit Grund, Brücke 1, Gradient 0). Ist der Job rot und nennt die Eichtabelle („nicht lesbar“, „nicht nutzbar“, eine Region
+   fehlt): Punkt 3. Der Lauf fällt nie still auf den alten Faktor zurück — ein roter Job heißt, es wurde nichts veröffentlicht.
+3. **Zurück.** Mit Code: den Einschalt-Commit zurücknehmen (`git revert`), oder `SNOW_PRECIP_DEFAULT = 'gate-c'`,
+   `SNOW_DENSITY_SOURCE_DEFAULT = 'helfricht'` in `scripts/glacier/lib/snowcal.mjs` und `"usedByProducer": false` in der
+   Tabelle (der Prüfer hält die drei zusammen). Ohne Code: im Workflow `glacier-melt` des Daten-Repos
+   `GLACIER_SNOW_PRECIP: gate-c` setzen. Der Lauf schreibt dann Byte für Byte die Dateien wie vor GM-3b.
+4. **Was das Einschalten vor meiner Empfehlung heißt** (§3e.4): `TF`/`SRF` der Schmelze sind an der alten, dünneren
+   Schneedecke geeicht — Gate C mit festem Faktor nachrechnen, vor Mai 2027 (V-GM-26); der Zustand auf dem Runner mischt
+   Schnee aus beiden Faktoren (V-GM-27); das Urteil der Eichung bleibt rot und steht so im Dokument.
+5. **Deine Entscheidung, noch offen:** **E-GM-13** — die Regel „96 kg/m³ nur zusammen mit dem Faktor je Land“ ist von mir
+   gesetzt. Mit beiden Schaltern an ist sie erfüllt. Bestätigen?
+6. **Budget ist an HEAD rot** (totalJs 2 118,1 gegen 2 118 KB), nicht aus dieser Phase: ein Kontroll-Build ohne meine
+   Typ-Zeile ergibt denselben Wert und dieselben 186 JS-Dateien. Seit der letzten grünen Messung sind unter `src/` nur die
+   vier `fix(fire)`-Commits vom 22.11. abends dazugekommen. Ich habe die Grenze nicht angehoben (V-GM-30).
+7. **Nicht geprüft:** kein Lauf auf dem Runner, der dort laufende Workflow nicht gelesen (die Vorlage holt `scripts` als
+   Ganzes, die Tabelle ist also dabei), nichts im Browser; `country` an einer Wetterlage und aus einem Kaltstart des
+   Schneezustands; die Dichte hat noch keinen Leser im Betrieb.
+8. **Weiter offen:** E-GM-9, E-GM-10, E-GM-11 (§117); V-GM-29 (die Anzeige „Wetter am Gletscher“ zeigt Neuschnee weiter
+   ohne Faktor); V-GM-31 (ein Producer, der beide Schalter liest, braucht für den Rückfall beide Wörter — für GM-5).
+9. **Nicht im Commit:** `tsconfig.app.tsbuildinfo` (Build-Rest, geändert im Arbeitsbaum) und
+   `audit/qualitaetspruefung-seewetter-gletscher-2026-11-22.md` (aus einer anderen Sitzung).

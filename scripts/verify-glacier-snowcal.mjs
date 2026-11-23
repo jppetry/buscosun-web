@@ -4,8 +4,8 @@
  * the density run on real study-plot days, the table against its rules and against the reports, the verdict and the selection recomputed from the
  * reported numbers, the frozen method by hash — on REAL data in the form the calibration reads (`scripts/lib/fixtures/glacier/snowcal/`).
  * Every check that claims something is right has a counter-check.
- * Block G (GM-3b, audit §3d): the two switches that let the table into the run (precipitation factor per country, new-snow density) — both off by
- * default, the readers without the profile, the second set of constants of the snow core. The switch end to end is block H of verify:glacier-melt.
+ * Block G (GM-3b, audit §3d): the two switches that let the table into the run (precipitation factor per country, new-snow density) — both ON by
+ * default since 23.11. (E-GM-12, audit §3e), the readers without the profile, the second set of constants of the snow core. The switch end to end is block H of verify:glacier-melt.
  *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-snowcal.mjs
  */
@@ -228,19 +228,22 @@ const W = Object.fromEntries(winters.map((w) => [w.country, w]));
     others.every((f) => !pat.test(readFileSync(join(HERE, f), 'utf8'))) && pat.test(readFileSync(join(HERE, 'glacier', 'melt.mjs'), 'utf8')) && pat.test(readFileSync(join(HERE, 'glacier', 'snowcal-table.mjs'), 'utf8')));
 }
 
-// --- G: GM-3b — the two switches (E-GM-7 precipitation factor per country, E-GM-8 new-snow density), both off -----------------------------------
+// --- G: GM-3b — the two switches (E-GM-7 precipitation factor per country, E-GM-8 new-snow density), both on (E-GM-12) -----------------------------------
 {
   const table = J(join(HERE, 'glacier', 'snow-calibration.json'));
   const throws = (f) => { try { f(); return null; } catch (e) { return String(e.message ?? e); } };
-  add('G1 beide Schalter sind aus: Voreinstellung „gate-c“ und „helfricht“, leer und null geben die Voreinstellung; die Tabelle sagt dasselbe (usedByProducer false); ein unbekanntes Wort bricht mit den erlaubten Stellungen ab',
-    SNOW_PRECIP_DEFAULT === 'gate-c' && SNOW_DENSITY_SOURCE_DEFAULT === 'helfricht' && snowPrecipOf(null) === 'gate-c' && snowPrecipOf('') === 'gate-c' && snowPrecipOf(undefined) === 'gate-c' && snowPrecipOf('country') === 'country'
-    && snowDensitySourceOf(undefined) === 'helfricht' && snowDensitySourceOf('board') === 'board' && table.usedByProducer === (SNOW_PRECIP_DEFAULT !== 'gate-c')
+  add('G1 beide Schalter sind an (E-GM-12, 23.11.): Voreinstellung „country“ und „board“, leer und null geben die Voreinstellung, der Rückfall „gate-c“ / „helfricht“ ist wählbar; die Tabelle sagt dasselbe (usedByProducer true); ein unbekanntes Wort bricht mit den erlaubten Stellungen ab',
+    SNOW_PRECIP_DEFAULT === 'country' && SNOW_DENSITY_SOURCE_DEFAULT === 'board' && snowPrecipOf(null) === 'country' && snowPrecipOf('') === 'country' && snowPrecipOf(undefined) === 'country' && snowPrecipOf('gate-c') === 'gate-c'
+    && snowDensitySourceOf(undefined) === 'board' && snowDensitySourceOf('') === 'board' && snowDensitySourceOf('helfricht') === 'helfricht' && table.usedByProducer === true && table.usedByProducer === (SNOW_PRECIP_DEFAULT !== 'gate-c')
     && /gate-c, country/.test(throws(() => snowPrecipOf('region')) ?? '') && /helfricht, board/.test(throws(() => snowDensitySourceOf('96')) ?? '') && SNOW_PRECIP_RULES.length === 2 && SNOW_DENSITY_SOURCES.length === 2);
   const sw = snowSwitchesOf({ precip: 'country', density: 'board' });
   const none = (() => { try { return JSON.stringify(snowSwitchesOf()); } catch (e) { return String(e.message ?? e); } })();
-  add('G2 96 kg/m³ nur mit wahrem Wasser: „board“ ohne „country“ wird abgelehnt (auch gegen die Voreinstellung des Faktors); „country“ allein und beide zusammen gehen; ohne Angabe beide aus',
-    /nur mit dem Niederschlagsfaktor/.test(throws(() => snowSwitchesOf({ precip: 'gate-c', density: 'board' })) ?? '') && /nur mit dem Niederschlagsfaktor/.test(throws(() => snowSwitchesOf({ density: 'board' })) ?? '')
-    && sw.precip === 'country' && sw.density === 'board' && snowSwitchesOf({ precip: 'country' }).density === 'helfricht' && none === JSON.stringify({ precip: 'gate-c', density: 'helfricht' }), { none });
+  const back = (() => { try { return JSON.stringify(snowSwitchesOf({ precip: 'gate-c', density: 'helfricht' })); } catch (e) { return String(e.message ?? e); } })();
+  const mixed = (() => { try { return JSON.stringify(snowSwitchesOf({ density: 'helfricht' })); } catch (e) { return String(e.message ?? e); } })();
+  add('G2 96 kg/m³ nur mit wahrem Wasser: „board“ ohne „country“ wird abgelehnt — auch wenn nur der Faktor zurückgestellt wird (die Dichte der Voreinstellung wird nicht still mitgestellt); der Rückfall mit beiden Wörtern, „country“ mit „helfricht“ und beide zusammen gehen; ohne Angabe beide an',
+    /nur mit dem Niederschlagsfaktor/.test(throws(() => snowSwitchesOf({ precip: 'gate-c', density: 'board' })) ?? '') && /nur mit dem Niederschlagsfaktor/.test(throws(() => snowSwitchesOf({ precip: 'gate-c' })) ?? '')
+    && sw.precip === 'country' && sw.density === 'board' && snowSwitchesOf({ density: 'board' }).precip === 'country' && back === JSON.stringify({ precip: 'gate-c', density: 'helfricht' })
+    && mixed === JSON.stringify({ precip: 'country', density: 'helfricht' }) && none === JSON.stringify({ precip: 'country', density: 'board' }), { none, back, mixed });
   const ch = table.precip.regions['ch-ost'], lv = precipLevelOf(table, 'ch-ost'), at = precipLevelOf(table, 'at-dachstein'), de = precipLevelOf(table, 'de');
   const bridged = structuredClone(table); bridged.precip.bridge.value = 0.8;
   add('G3 Faktor je Land OHNE Verlauf: precipLevelOf gibt F · Brücke der Region mit Herkunft (Schweiz 1,793 gemessen, Österreich 2,326, Deutschland 1,854 übertragen), unbekannte Region ohne Wert; Gegenprobe: der Leser mit Verlauf weicht 300 m über der Medianhöhe davon ab, eine Brücke 0,8 geht ein',
@@ -258,11 +261,12 @@ const W = Object.fromEntries(winters.map((w) => [w.country, w]));
   const before = JSON.stringify(SNOW), c = snowConstantsOf(SNOW, table), o = snowOriginOf(SNOW_ORIGIN), span = newSnowDensitySpan(c), span0 = newSnowDensitySpan();
   const d3 = structuredClone(table); d3.density.rule = 'D3';
   const wide = structuredClone(table); wide.density.rhoNew = 30;
-  const off = (() => { try { return snowCoreSetup({ base: SNOW, baseOrigin: SNOW_ORIGIN }); } catch (e) { return { err: String(e.message ?? e) }; } })(), on = snowCoreSetup({ density: 'board', base: SNOW, baseOrigin: SNOW_ORIGIN, table });
-  add('G5 Dichte aus der Tabelle als ZWEITER Konstantensatz: 96 kg/m³, Spanne 65 / 96 / 148,1 (gemessene Quantile statt 56 / 68 / 80), Herkunft „measured“; der Satz des Kerns bleibt 68 und unberührt, „helfricht“ gibt genau ihn zurück; andere Dichteregel oder Dichte außerhalb der Grenzen bricht ab',
+  const setup = (o) => { try { return snowCoreSetup({ base: SNOW, baseOrigin: SNOW_ORIGIN, ...o }); } catch (e) { return { err: String(e.message ?? e) }; } };
+  const off = setup({ density: 'helfricht' }), on = setup({ table }), onNamed = setup({ density: 'board', table });
+  add('G5 Dichte aus der Tabelle als ZWEITER Konstantensatz: 96 kg/m³, Spanne 65 / 96 / 148,1 (gemessene Quantile statt 56 / 68 / 80), Herkunft „measured“ — ohne Angabe (Voreinstellung „board“) wie mit dem Wort; der Satz des Kerns bleibt 68 und unberührt, der Rückfall „helfricht“ gibt genau ihn zurück; andere Dichteregel, Dichte außerhalb der Grenzen oder „board“ ohne Tabelle bricht ab',
     c.rhoNew === 96 && c.rhoNew === table.density.rhoNew && span.p10 === 65 && span.p50 === 96 && span.p90 === 148.1 && o.rhoNew === 'measured' && o.rhoNewP10 === 'measured' && o.rhoMax === SNOW_ORIGIN.rhoMax && Object.isFrozen(c)
     && JSON.stringify(SNOW) === before && SNOW.rhoNew === 68 && SNOW_ORIGIN.rhoNew === 'literature' && near(span0.p10, 56.466, 0.01) && span0.p50 === 68 && newSnowDensity() === 68 && newSnowDensity({ c }) === 96
-    && off.c === SNOW && off.origin === SNOW_ORIGIN && off.source === 'helfricht' && on.c.rhoNew === 96 && on.origin.rhoNew === 'measured' && Object.keys(c).filter((k) => !(k in SNOW)).join() === 'rhoNewP10,rhoNewP90'
+    && off.c === SNOW && off.origin === SNOW_ORIGIN && off.source === 'helfricht' && on.source === 'board' && on.c?.rhoNew === 96 && on.origin?.rhoNew === 'measured' && onNamed.c?.rhoNew === 96 && /nicht gebaut/.test(setup({}).err ?? '') && Object.keys(c).filter((k) => !(k in SNOW)).join() === 'rhoNewP10,rhoNewP90'
     && Object.keys(SNOW).every((k) => k === 'rhoNew' || c[k] === SNOW[k]) && /D3.*nicht gebaut/.test(throws(() => snowConstantsOf(SNOW, d3)) ?? '') && /unlesbar/.test(throws(() => snowConstantsOf(SNOW, wide)) ?? '')
     && /nicht gebaut/.test(throws(() => snowCoreSetup({ density: 'board', base: SNOW, baseOrigin: SNOW_ORIGIN, table: null })) ?? ''), { span, span0 });
   // the core with the second set is the run the calibration chose D2 with (the board of B, real study-plot days)

@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-22T23:21:59.250Z",
+ "generated": "2026-11-23T07:18:31.488Z",
  "verifiers": [
   "verify:glacier-melt",
   "verify:glacier-snowcal",
@@ -7,22 +7,22 @@
  ],
  "greenBefore": true,
  "greenAfter": true,
- "noticed": 23,
- "of": 23,
+ "noticed": 24,
+ "of": 24,
  "crashedOnly": 1,
  "mutations": [
   {
-   "name": "Voreinstellung des Faktors auf „country“",
+   "name": "Voreinstellung des Faktors zurück auf „gate-c“",
    "file": "scripts/glacier/lib/snowcal.mjs",
    "noticed": true,
    "by": [
-    "glacier-melt: Abbruch",
-    "glacier-snowcal: G1 b, G2 9"
+    "glacier-melt: H1 V, H3 „, H4 d, H5 U, H7 R",
+    "glacier-snowcal: Abbruch"
    ],
    "crashedOnly": false
   },
   {
-   "name": "Voreinstellung der Dichte auf „board“",
+   "name": "Voreinstellung der Dichte zurück auf „helfricht“",
    "file": "scripts/glacier/lib/snowcal.mjs",
    "noticed": true,
    "by": [
@@ -35,7 +35,7 @@
    "file": "scripts/glacier/lib/snowcal.mjs",
    "noticed": true,
    "by": [
-    "glacier-melt: H3 S, H4 d",
+    "glacier-melt: H3 „, H4 d",
     "glacier-snowcal: G3 F, G4 w"
    ],
    "crashedOnly": false
@@ -73,7 +73,7 @@
    "file": "scripts/glacier/lib/snowcal.mjs",
    "noticed": true,
    "by": [
-    "glacier-melt: H6 „",
+    "glacier-melt: H1 V, H6 „",
     "glacier-snowcal: G4 w"
    ],
    "crashedOnly": false
@@ -120,7 +120,7 @@
    "file": "scripts/glacier/melt.mjs",
    "noticed": true,
    "by": [
-    "glacier-melt: H3 S"
+    "glacier-melt: H3 „"
    ],
    "crashedOnly": false
   },
@@ -129,7 +129,7 @@
    "file": "scripts/glacier/melt.mjs",
    "noticed": true,
    "by": [
-    "glacier-melt: H3 S"
+    "glacier-melt: H3 „"
    ],
    "crashedOnly": false
   },
@@ -147,7 +147,7 @@
    "file": "scripts/glacier/melt.mjs",
    "noticed": true,
    "by": [
-    "glacier-melt: H3 S, H4 d, H5 U, H7 R"
+    "glacier-melt: H1 V, H3 „, H4 d, H5 U, H7 R"
    ],
    "crashedOnly": false
   },
@@ -174,7 +174,7 @@
    "file": "scripts/glacier/melt.mjs",
    "noticed": true,
    "by": [
-    "glacier-melt: H3 S"
+    "glacier-melt: H3 „"
    ],
    "crashedOnly": false
   },
@@ -183,7 +183,7 @@
    "file": "scripts/glacier/lib/meltcore.mjs",
    "noticed": true,
    "by": [
-    "glacier-melt: A7 H, H3 S"
+    "glacier-melt: A7 H, H3 „"
    ],
    "crashedOnly": false
   },
@@ -192,7 +192,7 @@
    "file": "scripts/glacier/lib/meltcore.mjs",
    "noticed": true,
    "by": [
-    "glacier-melt: A1 R, A7 H, H2 S"
+    "glacier-melt: A1 R, A7 H, H2 d"
    ],
    "crashedOnly": false
   },
@@ -217,11 +217,20 @@
    "crashedOnly": false
   },
   {
-   "name": "Tabelle behauptet, der Producer benutze sie",
+   "name": "Tabelle behauptet, der Producer benutze sie nicht",
    "file": "scripts/glacier/snow-calibration.json",
    "noticed": true,
    "by": [
     "glacier-snowcal: G1 b"
+   ],
+   "crashedOnly": false
+  },
+  {
+   "name": "Voreinstellung liest eine andere Tabelle als die des Repos",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": [
+    "glacier-melt: H1 V"
    ],
    "crashedOnly": false
   }
