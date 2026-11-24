@@ -24,6 +24,11 @@ import {
   precipLevelOf, precipRunOf, meltPrecipProblems, snowConstantsOf, snowOriginOf, snowCoreSetup,
 } from './glacier/lib/snowcal.mjs';
 
+import { snowGlaciersProblems, shapeAtElevation, shapeCorrOf, glacierRunOf, GLACIER_FACTOR_DEFAULT, GLACIER_SHAPE_DEFAULT } from './glacier/lib/snowcalGlaciers.mjs';
+import { buildGlacierTable } from './glacier/snowcal-table2.mjs';
+import { CAL2, evaluate, tableValues, tableOf, tabVal, kStar, balAll, balOne, scoreOf as scoreOf2, attachRadiation, fitF, shapeFactors } from './glacier/snowcal-fit2.mjs';
+import { simulate, emptyState, rng, gauss, cosZenith, clearSky } from './glacier/lib/meltcore.mjs';
+
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FX = join(HERE, 'lib', 'fixtures', 'glacier', 'snowcal');
 const AUDIT = join(HERE, '..', 'audit', 'gletscher-schneemodell');
@@ -283,6 +288,103 @@ const W = Object.fromEntries(winters.map((w) => [w.country, w]));
   const apart = mean(ev.map((x) => board(x, SNOW) - board(x, c)));
   add('G6 der Schneekern mit dem zweiten Satz rechnet das Brett der Eichung: an echten Messfeld-Tagen dieselbe Neuschneehöhe wie die Regel D2 mit 96 kg/m³, mit dem eigenen Satz die der Regel D0; Gegenprobe: die zwei Sätze liegen im Mittel über 2 cm auseinander',
     ev.length >= 30 && dev < 1e-9 && dev0 < 1e-9 && apart > 2, { n: ev.length, dev, dev0, apart });
+}
+
+// --- H: GM-5b — the second round (factor per glacier, shape per step, melt of the operation) and its table -----------------------------------------
+{
+  const report = J(join(AUDIT, 'gm5b-report.json')), table2 = J(join(HERE, 'glacier', 'snow-calibration-glaciers.json'));
+  const frozen = sha(join(AUDIT, 'gm5b-method-frozen.md'));
+  add('H1 die Regel der zweiten Runde ist eingefroren: der Hash der Datei steht gleich in der Hash-Datei, im Bericht und in der Tabelle',
+    frozen === readFileSync(join(AUDIT, 'gm5b-method-frozen.sha256'), 'utf8').split(/\s+/)[0] && report.method.sha256 === frozen && table2.method.sha256 === frozen, { frozen });
+  add('H2 die Tabelle je Gletscher ist genau das, was der Bericht nennt (neu gebaut aus dem Bericht, Feld für Feld gleich), besteht ihren Vertrag, steht als „vom Producer nicht benutzt“ da und beide Schalter sind ab Werk aus; die erste Tabelle trägt keinen Abschnitt je Gletscher',
+    JSON.stringify(buildGlacierTable(report)) === JSON.stringify(table2) && snowGlaciersProblems(table2).length === 0 && table2.usedByProducer === false && GLACIER_FACTOR_DEFAULT === 'off' && GLACIER_SHAPE_DEFAULT === 'off'
+    && !('glaciers' in J(join(HERE, 'glacier', 'snow-calibration.json'))), snowGlaciersProblems(table2));
+  // verdicts and the two shrinkage numbers recomputed from the numbers of the report, not read from the reported result
+  const S = report.summary, V = report.verdicts, r3 = (x) => Math.round(x * 1000) / 1000, gain = (a, b) => r3(1 - a / b);
+  const pickOf = (grid, key) => { const best = Math.min(...grid.map((x) => x.s1)); return grid.filter((x) => x.s1 <= best * (1 + CAL2.tie)).map((x) => x[key]).sort((a, b) => b - a)[0]; };
+  const k6 = gain(S.V1.all.s2, S.V0.all.s2), k7 = gain(S.V2.all.s4, S.V1.all.s4), kn = gain(S.N.all.s4, S.V1.all.s4), k5 = 1 - S.V0.all.s1 / report.sensitivities.degreeDay.V0.all.s1;
+  const carries6 = k6 >= CAL2.k6 && S.gains.V1vsV0_s2.p10 > 0, carries7 = k7 >= CAL2.k7 && S.gains.V2vsV1_s4.p10 > 0 && kn < k7 / 2;
+  add('H3 Urteile der zweiten Runde neu gerechnet aus den Zahlen des Berichts: K-6 (Faktor je Gletscher: Winterbilanz mindestens 20 % besser, p10 über 0), K-7 (Form: Formfehler mindestens 10 % besser, p10 über 0, die fremde Form bringt weniger als die Hälfte), K-5 (Schmelze des Betriebs gegen Gradtag, ±3 %), K-8 (Winterbilanz gegen 350 mm) und die zwei Schrumpfungszahlen nach der Regel (kleinster Stufenfehler, bei Gleichstand unter 0,5 % die größere) — alles wie berichtet; `gate` der Tabelle folgt den Urteilen',
+    Math.abs(k6 - V.K6.gain) <= 0.0015 && Math.abs(k7 - V.K7.gain) <= 0.0015 && Math.abs(kn - V.K7.negative.gain) <= 0.0015 && carries6 === V.K6.carries && carries7 === V.K7.carries && table2.gate.factor === carries6 && table2.gate.shape === carries7
+    && V.K5.verdict === (k5 >= CAL2.k5 ? 'besser' : k5 <= -CAL2.k5 ? 'schlechter' : 'gleich') && V.K8.reached === ((carries7 ? S.V2 : carries6 ? S.V1 : S.V0).all.s2 <= CAL2.k8)
+    && pickOf(S.n0Grid, 'n0') === S.n0 && pickOf(S.n0sGrid, 'n0s') === S.n0s && table2.shrink.n0 === S.n0 && table2.shrink.n0s === S.n0s, { k6, k7, kn, k5, n0: pickOf(S.n0Grid, 'n0'), n0s: pickOf(S.n0sGrid, 'n0s') });
+  const badT = [
+    (t) => { t.kind = 'glacier/snow-calibration'; }, (t) => { t.method.sha256 = 'x'; }, (t) => { t.melt.model = 'ddf'; }, (t) => { delete t.against.AT; }, (t) => { delete t.shrink; }, (t) => { t.country.CH = 9; },
+    (t) => { t.gate.factor = !t.gate.factor; }, (t) => { t.gate.shape = !t.gate.shape; }, (t) => { delete t.verdict.K7.p10; }, (t) => { t.glaciers = {}; },
+    (t) => { Object.values(t.glaciers)[0].F = 7; Object.values(t.glaciers)[0].atBound = true; }, (t) => { Object.values(t.glaciers)[0].F = 5; }, (t) => { Object.values(t.glaciers)[0].atBound = true; }, (t) => { Object.values(t.glaciers)[0].winters = 3; }, (t) => { Object.values(t.glaciers)[0].origin = 'set'; },
+    (t) => { Object.values(t.glaciers)[0].shape.stepM = 100; }, (t) => { Object.values(t.glaciers)[0].shape.s = [0.1]; }, (t) => { Object.values(t.glaciers)[0].shape.m = 1.5; }, (t) => { Object.values(t.glaciers)[0].shape.s[0] = 9; }, (t) => { Object.values(t.glaciers)[0].country = 'IT'; },
+    (t) => { Object.values(t.glaciers)[0].years = [2020, 2015]; },
+  ];
+  const caughtT = badT.map((edit) => { const t = structuredClone(table2); edit(t); return snowGlaciersProblems(t).length; });
+  const atB = Object.entries(table2.glaciers).filter(([, g]) => g.atBound);
+  add(`H4 Vertrag der Tabelle je Gletscher: jede von ${badT.length} Verletzungen wird gemeldet (falsche Art, fehlender Hash, andere Schmelze, fehlende Analyse, Urteil und \`gate\` im Widerspruch, Faktor außerhalb der Grenzen, Faktor an der Grenze ohne Vermerk und Vermerk ohne Grenze, weniger als vier Winter, Herkunft, Form unlesbar); ein Gletscher außerhalb eines Katalogs wird gemeldet; der eine Eintrag an der Grenze trägt den Vermerk`,
+    caughtT.every((n) => n > 0) && snowGlaciersProblems(table2, new Set(['gl_x'])).length === Object.keys(table2.glaciers).length && atB.length === 1 && atB[0][1].F === 5, { caughtT, atB: atB.map(([id]) => id) });
+  // the readers, by hand
+  const sh = { z0: 2400, stepM: 50, s: [-0.2, 0, 0.4], m: 0.5 };
+  const corr = shapeCorrOf(sh, [2400, 2450, 2500], [0.5, 0.25, 0.25]), bar = 0.5 * -0.2 + 0.25 * 0 + 0.25 * 0.4;
+  const floor = shapeCorrOf({ ...sh, s: [-3, 0, 3], m: 1 }, [2400, 2450, 2500], [1 / 3, 1 / 3, 1 / 3]);
+  const tOn = structuredClone(table2), idB = atB[0][0], idA = Object.keys(table2.glaciers).find((id) => !table2.glaciers[id].atBound);
+  const both = glacierRunOf(tOn, { factor: true, shape: true }), none = glacierRunOf(tOn, {}), onlyS = glacierRunOf(tOn, { shape: true });
+  let refF = '', refS = '';
+  try { const t = structuredClone(table2); t.verdict.K6.carries = false; t.gate.factor = false; glacierRunOf(t, { factor: true }); } catch (e) { refF = String(e.message); }
+  try { const t = structuredClone(table2); t.verdict.K7.carries = false; t.gate.shape = false; glacierRunOf(t, { shape: true }); } catch (e) { refS = String(e.message); }
+  add('H5 Leser der Tabelle, von Hand: die Form zwischen den Stützstellen linear (2 425 m: −0,1; 2 475 m: +0,2), außerhalb der Wert der nächsten; der Multiplikator je Band ist 1 + m · (Form − flächengewichtetes Mittel) und im flächengewichteten Mittel 1, nie unter der Untergrenze 0,2; ohne Schalter gibt der Leser nichts heraus, ein Faktor an der Grenze wird nicht herausgegeben (seine Form schon), ein Gletscher ohne Eintrag bekommt nichts; ein Urteil, das nicht trägt, bricht den Leser ab (Faktor und Form getrennt)',
+    near(shapeAtElevation(sh, 2425), -0.1, 1e-12) && near(shapeAtElevation(sh, 2475), 0.2, 1e-12) && shapeAtElevation(sh, 2300) === -0.2 && shapeAtElevation(sh, 2900) === 0.4
+    && near(corr[0], 1 + 0.5 * (-0.2 - bar), 1e-12) && near(corr[2], 1 + 0.5 * (0.4 - bar), 1e-12) && near(0.5 * corr[0] + 0.25 * corr[1] + 0.25 * corr[2], 1, 1e-12) && floor[0] === 0.2 && floor[2] === 4
+    && both.factorOf(idA) === table2.glaciers[idA].F && both.factorOf(idB) === null && Array.isArray(both.corrOf(idB, [2800, 2900], [0.5, 0.5])) && both.factorOf('gl_x') === null && both.corrOf('gl_x', [1], [1]) === null
+    && none.factorOf(idA) === null && none.corrOf(idA, [2800], [1]) === null && onlyS.factorOf(idA) === null && Array.isArray(onlyS.corrOf(idA, [2800, 2900], [0.5, 0.5])) && /gate\.factor/.test(refF) && /gate\.shape/.test(refS), { corr, floor, refF, refS });
+
+  // the tool of the round on INVENTED winters with a known factor per glacier and a known shape (no real truth is read here)
+  const mEti = { model: 'eti', TF: J(join(HERE, 'glacier', 'melt-calibration.json')).fit.TF, SRF: J(join(HERE, 'glacier', 'melt-calibration.json')).fit.SRF };
+  const rnd = rng(7), Hh = 24 * 150, zs = [2650, 2750, 2850, 2950, 3050], ws = [0.15, 0.25, 0.25, 0.2, 0.15];
+  const inv = [['a', 'CH', 1.4, [-0.3, -0.1, 0, 0.1, 0.2]], ['b', 'CH', 2.2, [0.2, 0.1, 0, -0.1, -0.3]], ['c', 'CH', 1.8, [0, 0, 0, 0, 0]], ['d', 'AT', 2.6, [-0.2, 0, 0.1, 0.1, -0.1]], ['e', 'AT', 2.0, [0.1, 0, 0, 0, -0.1]]];
+  const wintersInv = [];
+  for (const [key, country, F, shape] of inv) {
+    const bar2 = shape.reduce((s, v, b) => s + ws[b] * v, 0), c = shape.map((v) => 1 + v - bar2);
+    for (let y = 2016; y < 2022; y++) {
+      const t = new Float64Array(Hh), p = new Float64Array(Hh), g = new Float64Array(Hh); let wetLeft = 0;
+      for (let h = 0; h < Hh; h++) {
+        t[h] = 8 * Math.abs(h - Hh / 2) / (Hh / 2) + 4 * Math.sin((2 * Math.PI * ((h % 24) - 9)) / 24) + 2 * gauss(rnd);   // at a station 1 000 m below; warm at both ends of the winter
+        if (rnd() < 0.02) wetLeft = 6 + Math.floor(rnd() * 18); p[h] = wetLeft > 0 ? 0.3 + rnd() : 0; if (wetLeft > 0) wetLeft--;
+        g[h] = Math.max(0, 350 * Math.sin((2 * Math.PI * ((h % 24) - 6)) / 24)) * (0.4 + 0.6 * rnd());
+      }
+      const rec = { key, country, year: y, name: key, catId: `gl_${key}`, zMed: 2850, zT: 1850, lat: 46.5, lon: 8, t, p, g, gClear: g, gMiss: 0, t0: `${y - 1}-10-01`, b: zs.map((z, b) => ({ z, d: z - 2850, w: ws[b], bw: 0 })) };
+      rec.b.forEach((x, b) => { x.bw = balOne(rec, mEti, b, F * c[b] * (1 + 0.02 * gauss(rnd))); });
+      wintersInv.push(rec);
+    }
+  }
+  const ev = evaluate(wintersInv, mEti), tv = tableValues(ev), sum = ev.summary;
+  const fOk = inv.every(([key, , F]) => Math.abs(tv[key].F / F - 1) < 0.03);
+  add('H6 das Werkzeug der zweiten Runde findet bekannte Werte wieder: an erfundenen Wintern (5 Gletscher × 6 Winter, 2 % Rauschen) den Faktor je Gletscher auf 3 %, die Rangfolge der Varianten (Stufenfehler V0 > V1 > V2; die Form senkt den Formfehler, die fremde Form der Negativkontrolle nicht), ohne Schrumpfung als beste Stellung; Gegenprobe: der Landeswert allein trifft keinen der Faktoren',
+    fOk && sum.V0.all.s1 > sum.V1.all.s1 * 1.5 && sum.V1.all.s1 > sum.V2.all.s1 * 1.5 && sum.V2.all.s4 < sum.V1.all.s4 * 0.6 && sum.N.all.s4 > sum.V2.all.s4 * 2 && sum.n0 === 0 && sum.gains.V1vsV0_s2.gain > 0.5 && sum.gains.V2vsV1_s4.gain > 0.4
+    && inv.filter(([key, country, F]) => Math.abs(sum.countryFull[country] / F - 1) < 0.03).length <= 1, { F: Object.fromEntries(Object.entries(tv).map(([k, v]) => [k, v.F])), country: sum.countryFull, s1: [sum.V0.all.s1, sum.V1.all.s1, sum.V2.all.s1], s4: [sum.V1.all.s4, sum.V2.all.s4, sum.N.all.s4] });
+  // nothing of a winter goes into its own prediction: the factor comes from the OTHER winters, the country value from the OTHER glaciers, the shapes from the other winters
+  const cA = ev.cases.find((c) => c.key === 'a'), listA = ev.byG.get('a'), othersA = listA.filter((x) => x !== cA.it), chOthers = ev.items.filter((x) => x.rec.country === 'CH' && x.rec.key !== 'a');
+  add('H6b ein Winter geht nie in seine eigene Vorhersage ein: der Faktor eines Falls ist genau der Fit über die ANDEREN Winter des Gletschers (und ein anderer als der Fit über alle), der Landeswert genau der Fit über die ANDEREN Gletscher des Landes, die Formen sind die der anderen Winter (keine davon die eigene), und ihre Zahl ist die der anderen Winter',
+    cA.Fown === fitF(othersA) && cA.Fown !== fitF(listA) && cA.FL === fitF(chOthers) && cA.FL !== ev.FLfull.CH && cA.n === listA.length - 1 && cA.sh.length === cA.n && !cA.sh.includes(ev.shapes.get(cA.it)) && othersA.every((x) => cA.sh.includes(ev.shapes.get(x)))
+    && cA.foreign.every((shp) => !listA.some((x) => ev.shapes.get(x) === shp)), { Fown: cA.Fown, all: fitF(listA), FL: cA.FL, full: ev.FLfull.CH });
+  // the multipliers of the steps from shapes, by hand: mean of the shapes, area-weighted mean-free, shrunk, never below the floor
+  const recS = { b: [{ z: 2500, w: 0.75 }, { z: 2600, w: 0.25 }] }, shs = [{ z: [2500, 2600], r: [0.1, 0.5] }, { z: [2500, 2600], r: [0.3, 0.7] }];
+  const sf = shapeFactors(recS, shs, 0.5), sfFloor = shapeFactors(recS, [{ z: [2500, 2600], r: [-9, 3] }], 1);
+  add('H6c Multiplikatoren der Stufen aus den Formen, von Hand: Mittel der Formen (0,2 und 0,6), flächengewichtetes Mittel 0,3 abgezogen, mit m = 0,5 geschrumpft ⇒ 0,95 und 1,15; ihr flächengewichtetes Mittel ist 1; nie unter der Untergrenze 0,2; ohne Formen überall 1',
+    near(sf[0], 0.95, 1e-12) && near(sf[1], 1.15, 1e-12) && near(0.75 * sf[0] + 0.25 * sf[1], 1, 1e-12) && sfFloor[0] === CAL2.shapeFloor && JSON.stringify(shapeFactors(recS, [], 1)) === '[1,1]', { sf, sfFloor });
+  // the building blocks, by hand
+  const rec0 = wintersInv[0], tab0 = tableOf(rec0, mEti), exact = balAll(rec0, mEti, 1.5), jk = Math.round((1.5 - CAL2.kMin) / CAL2.kStep);
+  const direct = simulate({ bands: { zb: rec0.b.map((x) => x.z), w: rec0.b.map((x) => x.w) }, ela: rec0.zMed, t: rec0.t, g: rec0.g, p: rec0.p, zT: rec0.zT, zP: rec0.zMed, pf: 1.5, TF: mEti.TF, SRF: mEti.SRF, state: emptyState(5), model: 'eti', pGrad: 0 }).bal;
+  const ddfBal = balAll(rec0, { model: 'ddf', TF: 0, SRF: 0, ddf: CAL2.ddf }, 1.5);
+  const ks = kStar(tab0[2], exact[2]), sc = scoreOf2(rec0, mEti, rec0.b.map(() => 1.5)), eHand = rec0.b.map((x, b) => exact[b] - x.bw);
+  const s1Hand = eHand.reduce((s, e, b) => s + rec0.b[b].w * Math.abs(e), 0), s3Hand = eHand.reduce((s, e, b) => s + rec0.b[b].w * e, 0);
+  add('H7 Bausteine der zweiten Runde: die Rechnung je Stufe IST der Schmelzkern des Betriebs (dieselben Zahlen wie ein direkter Aufruf mit Modell „eti“ und TF / SRF aus `melt-calibration.json`; Gegenprobe: die Gradtag-Schmelze gibt andere), die Tabelle über den Multiplikator trifft an einem Gitterpunkt den exakten Wert, der gesuchte Multiplikator einer Stufe wird aus ihrer Bilanz wiedergefunden (auf 0,001), an den Grenzen gekappt und gezählt, die Kennzahlen s1 und s3 von Hand',
+    exact.every((v, b) => v === direct[b]) && ddfBal.some((v, b) => Math.abs(v - exact[b]) > 1) && tab0.every((row, b) => Math.abs(row[jk] - exact[b]) < 1e-9) && Math.abs(tabVal(tab0[1], 1.5) - exact[1]) < 1e-9
+    && Math.abs(ks.k - 1.5) < 1e-3 && !ks.capped && kStar(tab0[2], -1e9).capped && kStar(tab0[2], 1e9).capped && kStar(tab0[2], 1e9).k === CAL2.kMax && near(sc.s1, s1Hand, 1e-9) && near(sc.s3, s3Hand, 1e-9) && near(sc.s2, Math.abs(s3Hand), 1e-9), { ks, s1: [sc.s1, s1Hand] });
+  // radiation at the glacier, by hand: the station's value with the clear-sky elevation gain, an hour without one = clear sky × 0.55
+  const fromMs0 = Date.parse('2020-01-01T00:00:00Z'), recR = { station: { id: 'X' }, t0: '2020-06-21', t: new Float64Array(24), zMed: 3000, lat: 46.5, lon: 8 };
+  const radX = { height: 1500, g: new Array(24 * 400).fill(null) }, i0R = Math.round((Date.parse('2020-06-21T00:00:00Z') - fromMs0) / 3_600_000);
+  radX.g[i0R + 11] = 600; radX.g[i0R + 12] = 0;
+  attachRadiation([recR], () => radX, fromMs0);
+  const noon = clearSky(cosZenith(46.5, 8, Date.parse('2020-06-21T10:30:00Z')), 3000) * 0.55;
+  add('H8 Strahlung am Gletscher, von Hand: der Stationswert mit dem Höhenzuschlag des Klarhimmels (600 W/m² auf 1 500 m werden auf 3 000 m 600 · 1,18 / 1,09), eine gemessene Null bleibt null, eine Stunde ohne Messung bekommt Klarhimmel × 0,55 (mittags im Juni mehrere hundert W/m², nachts 0), und der Anteil solcher Stunden wird gezählt (22 von 24)',
+    near(recR.g[11], (600 * (1 + 6e-5 * 3000)) / (1 + 6e-5 * 1500), 1e-9) && recR.g[12] === 0 && near(recR.g[10], noon, 1e-9) && noon > 300 && recR.g[0] === 0 && near(recR.gMiss, 22 / 24, 1e-12), { g11: recR.g[11], noon, gMiss: recR.gMiss });
 }
 
 const failed = checks.filter((c) => !c.ok);

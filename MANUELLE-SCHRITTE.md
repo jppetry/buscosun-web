@@ -4592,10 +4592,10 @@ Was es jetzt gibt:
 
 **Stand 23.11. abends: committet und gepusht (`c4b45c9e`, Punkte 1 und 2 erledigt), auf dem Runner eingeschaltet (Punkt 3 a–c
 erledigt, dein Wort „ja starte das“ und „ich gebe dir die Genehmigung im Daten-Repo“): Startzustand vom 23.11. 17:00 UTC im
-Daten-Repo (`4ae73e46`, 19:23 UTC), `GLACIER_SNOWPACK: shadow` im Workflow `glacier-melt` (`3a119833`, 19:27 UTC). Offen:
-der zweite Lauf (schreibt er den Zustand fort? — Punkt 3 d, der erste Lauf `2026112323` von 23:23 UTC, ist gelesen: grün,
-2 084 Gletscher, Vertrag ohne Befund) und der Commit der nachgezogenen Vorlage
-(`scripts/glacier/gen-workflows.py`, `workflow-glacier-melt.yml`) mit diesen Doku-Nachträgen. Beleg: Audit §3f.8.**
+Daten-Repo (`4ae73e46`, 19:23 UTC), `GLACIER_SNOWPACK: shadow` im Workflow `glacier-melt` (`3a119833`, 19:27 UTC). Punkt 3 d
+ist gelesen: der erste Lauf `2026112323` (23:23 UTC) grün, 2 084 Gletscher, Vertrag ohne Befund; der zweite Lauf `2026112405`
+(24.11. 05:24 UTC) schreibt den Zustand fort (`carried`, 6 von 6 Stunden nachgerechnet, keine neuen Lücken). Die nachgezogene
+Vorlage ist mit `019ab63c` committet und gepusht. Für dich ist hier nichts mehr offen. Beleg: Audit §3f.8.**
 
 Gebaut mit dem Schalter aus; im Code bleibt die Voreinstellung `off`. Mit dem Schalter aus schreibt der Schmelzlauf dieselben
 Dateien wie vorher (lokaler Volllauf: 338 von 338 Byte für Byte gleich). Nichts am Archiv-Repo, nichts an der Seite außer der
@@ -4651,7 +4651,9 @@ Was es jetzt gibt:
       Startzustands von 17 UTC: er trägt keinen Antrieb, die sechs Stunden bis 23 UTC fehlen an jeder Zeile (`gap: 6`; Schweiz
       im Median rund 1 cm, p90 rund 7 cm Neuschnee nach der Vorhersage). 108 Schweizer Gletscher tragen aus dem Startzustand
       weitere 24 Stunden ohne Antrieb — meine Angabe „0 in allen Ländern“ vom Abend war falsch (ich hatte Quantile gelesen).
-      Nichts zu tun; der zweite Lauf zeigt, ob der Zustand fortgeschrieben wird.
+      Nichts zu tun. **Zweiter Lauf gelesen 24.11. 05:33 UTC** (`2026112405`, Daten-Repo `703619c6`): `state.source: carried`,
+      `ageH 6`, `replayedH 6`, keine neuen Stunden ohne Antrieb, Dokument und Zustand ohne Befund; der Wasserwert folgt an allen
+      2 084 Gletschern dem gespeicherten Antrieb der sechs Stunden.
 4. **Zurück.** `GLACIER_SNOWPACK` im Workflow entfernen oder auf `off` setzen (bzw. die Voreinstellung zurück). Der Lauf
    schreibt dann nichts mehr unter `snowpack/`; die Laufdokumente dort verschwinden nach 72 h, der Zustand bleibt liegen
    (er wird nicht gelesen).
@@ -4682,9 +4684,9 @@ Was es jetzt gibt:
 
 **Stand 23.11. 21:13 UTC: committet und gepusht (`b7a0e859`, Punkte 1 und 2 erledigt) und auf dein Wort („schalte es ruhig
 direkt ein“) eingeschaltet (Punkt 3 erledigt): `GLACIER_MELT_STATE: run-hour` im Workflow `glacier-melt` des Daten-Repos
-(`3c871488`). Punkt 4 ist gelesen (Lauf `2026112323`, wie erwartet). Offen: das Nachrechnen im nächsten Lauf (der Lauf 23:20 UTC war derselbe, in dem die Schneedecke zum
-ersten Mal rechnet), und der Commit der nachgezogenen Vorlage (`scripts/glacier/gen-workflows.py`, `workflow-glacier-melt.yml`)
-mit diesen Doku-Nachträgen. Beleg: Audit §3g.8.**
+(`3c871488`). Punkt 4 ist gelesen (Lauf `2026112323`, wie erwartet), das Nachrechnen ist im zweiten Lauf belegt (`2026112405`, 24.11. 05:24 UTC:
+`replayedH 6`, `held 0`, Kachel an keinem Gletscher anders). Die nachgezogene Vorlage ist mit `019ab63c` committet und gepusht.
+Noch nicht vorgekommen: ein Lauf 3 Stunden nach dem vorigen (der Fall, für den GM-3d gebaut ist). Beleg: Audit §3g.8.**
 
 Gebaut auf dein Wort („V-GM-32 bauen“) mit dem Schalter aus; im Code bleibt die Voreinstellung `ahead`. Ohne den Schalter schreibt der Schmelzlauf dieselben Dateien
 wie vorher (lokaler Volllauf: 338 von 338 Byte für Byte gleich). Nichts am Archiv-Repo, nichts
@@ -4728,8 +4730,9 @@ Antrieb; der nächste Lauf rechnet ihn bis zu seiner Stunde nach. Am vollen loka
 
 ## 121. Gletscher: Schneemodell, Paket GM-4 — Diagnose der Kopplung an Stationen, gebaut als GM-4a: Schattenpaare, ihr Archiv, Satellit einmal je Szene (E-GM-20 … E-GM-23; `audit/gletscher-schneemodell.md` §3h), 2026-11-23
 
-**Stand 23.11. nachts: Diagnose geschrieben, deine vier Entscheidungen gebaut, beide Schalter aus, uncommitted. Nichts im Daten- oder
-Archiv-Repo, kein Workflow geändert, buscosun Fusion und die Stationslinie nur gelesen.**
+**Stand 24.11.: Punkt 1 und 2 sind erledigt — von dir committet und gepusht am 24.11. 05:27 UTC (`019ab63c`), beide Schalter aus.
+Offen: Punkt 3 (Archiv-Vorlage) und Punkt 4 (Einschalten, E-GM-24). Nichts im Daten- oder Archiv-Repo, kein Workflow geändert,
+buscosun Fusion und die Stationslinie nur gelesen.**
 
 Was die Diagnose sagt (§3h, Messregel vorher eingefroren, Urteile vom Skript): Der Stand der Schneedecke in Stationshöhe ist
 1,86 × Station — das ist der Gletscher-Faktor, er lässt sich nicht an Stationen koppeln. Die 24-h-Änderung bei Schneefall liegt bei
@@ -4778,3 +4781,81 @@ Gebaut auf dein Wort (E-GM-20 … E-GM-23, alles meine Empfehlungen):
 7. **Weiter offen:** GM-4b (Kopplung) erst nach der Messung: mindestens fünf Schneefälle je Station mit Schattenläufen, geschätzt
    drei bis sechs Wochen; V-GM-48 (Österreich ordnet die Stationen nicht), V-GM-50 (Niederschlag und Dichte trennen — über die
    SLF-Messfelder), V-GM-55 (Standortart der Stationen: eine Änderung an der Stationslinie, dein Wort), V-GM-56 … V-GM-58.
+
+## 122. Gletscher: Schneemodell, Paket GM-5a — Spannen der Schneedecke aus Szenarien (E-GM-30 … E-GM-35; `audit/gletscher-schneemodell.md` §3i, Diagnose `audit/gletscher-schneemodell/gm5-diagnose.md`), 2026-11-24
+
+**Stand 24.11.: Diagnose, deine sechs Entscheidungen, Kostenmessung, Bau und Gate — alles uncommitted, der neue Schalter ist aus.
+Nichts im Daten- oder Archiv-Repo, kein Workflow geändert, buscosun Fusion nur gelesen.**
+
+Was gebaut ist: hinter `--snowpack-spread=scenarios` (`GLACIER_SNOWPACK_SPREAD`, nur mit der Schneedecke) trägt jede Zeile der
+Schneedecke mit eigenem Antrieb p10/p90 je Höhe und Tag für Schneehöhe und Neuschnee (100 Szenarien) und die Summe des Neuschnees
+der Tage 8–14 als eine Spanne; Nachbar-Zeilen tragen den Vermerk „ohne Spanne“; im Kopf steht EIN Paar zur Unsicherheit des
+Faktors (×0,73 … ×1,37, „nicht nachgemessen“). Kein Erwartungswert, keine andere Datei und nicht der Zustand ändern sich.
+Die Verteilung aus Sentinel-2 ist nicht gebaut (E-GM-30).
+
+1. **Commit** (dein Wort). Dazu gehören: `src/glacier/glacierSnowpackContract.ts`, `scripts/glacier/lib/snowpackcore.mjs`,
+   `scripts/glacier/lib/weathercore.mjs` (nur eine neue Funktion), `scripts/glacier/melt.mjs`, `scripts/verify-glacier-snowpack.mjs`,
+   unter `audit/gletscher-schneemodell/` die Dateien `gm5-cost.mjs`, `gm5-cost.json`, `gm5-cost-baseline.json`,
+   `gm5-method-frozen-b2.md` (+ `.sha256`), `gm5-mutations.mjs`, `gm5-mutations.json`, `gm5-mutations-rerun.json`, `gm5-diagnose.md`,
+   dazu `audit/gletscher-schneemodell.md`, `CLAUDE.md`, diese Datei. Prüfstand beim Abschluss: `verify:glacier-snowpack` 56/56,
+   `-melt` 68/68, vier Nachbar-Prüfer grün, Typecheck, Build (281/281), Budget unverändert (2 118,1 / 2 121 KB), voller lokaler Lauf
+   ohne Schalter 32 von 32 Dateien gleich dem committeten Stand, Gegenprobe 49 von 50 und die Nachzügler 6 von 6.
+2. **Push von `buscosun-web`** (dein Gate). Ändert am Betrieb nichts: der Schalter ist aus.
+3. **Einschalten (E-GM-36, deine Entscheidung)** — eine Zeile unter `jobs.melt.env` im Workflow `glacier-melt` des Daten-Repos:
+   `GLACIER_SNOWPACK_SPREAD: scenarios`. Kosten, GESCHÄTZT, nicht gemessen: rund 1½ bis 2 Minuten mehr je Schmelzlauf (heute
+   144 s), das Dokument wächst von 1,25 auf 2,07 MB (gepackt 0,31 → 0,54 MB), kein messbarer zusätzlicher Speicher. Danach in
+   `glacier/v1/status.json` die Zeile `lines.snowpack.spread` lesen: `k: 100`, `rows` um 957, `none.neighbour` um 1 127, `seconds`.
+   Mit K = 40 (eine Konstante im Vertrag) wäre es gut die halbe Zeit, die Breite der Spanne schwankt dann von Lauf zu Lauf um
+   rund ein Sechstel statt um ein Zehntel (letzteres nicht gemessen, V-GM-82). Empfehlung: K = 100 einschalten und `seconds` lesen.
+4. **Zurück.** Die Zeile im Workflow entfernen. Der nächste Lauf schreibt das Dokument wieder ohne Spannen.
+5. **Nicht geprüft:** kein Lauf auf dem Runner; nur eine Wetterlage (21.11.); die Spanne gegen Messungen — das geht erst mit
+   den Schattenpaaren von GM-4 (E-GM-24) über einige Wochen, und die Paare müssten dafür die Spanne in Stationshöhe mitschreiben
+   (V-GM-79); nichts im Browser (keine Anzeige liest das Produkt, GM-7).
+6. **Befund am Betrieb, unabhängig von GM-5 (V-GM-81):** der Schmelzlauf hält vorübergehend knapp 1,5 GB (gemessen nach
+   vollständigem Aufräumen), an einer Grenze von 1,7 GB bricht er lokal ab. Wie viel Luft der Runner hat, ist unbekannt.
+   Vorschlag: den Höchstwert des Speichers je Lauf in die Statuszeile schreiben — ein eigenes kleines Paket, dein Wort.
+
+## 123. Gletscher: Schneemodell, Paket GM-5b — Eichrunde 2: Faktor je Gletscher und Form je Band, Winterschmelze wie im Betrieb (E-GM-9, E-GM-10, E-GM-11, E-GM-31; `audit/gletscher-schneemodell.md` §3j, Diagnose und Zahlen `audit/gletscher-schneemodell/gm5b-diagnose.md`), 2026-11-24
+
+**Stand 24.11.: Diagnose, eingefrorene Regel, Runde gerechnet, Tabelle und Verdrahtung gebaut — alles uncommitted, beide neuen
+Schalter aus. Nichts im Daten- oder Archiv-Repo, kein Workflow geändert, buscosun Fusion nur gelesen. Nachgeladen (nur gelesen,
+in den lokalen Zwischenspeicher): die Globalstrahlung `cglo` von sieben österreichischen Stationen aus `klima-v2-1h`.**
+
+Was die Runde sagt (ein Winter ausgelassen, 478 Winter an 43 Gletschern, Urteile vom Werkzeug): der Faktor je Gletscher senkt
+den Fehler der Winterbilanz von 402 auf 233 mm (**trägt**), die Form je Höhenstufe den Formfehler von 132 auf 74 mm (**trägt**,
+die fremde Form der Negativkontrolle verschlechtert). Die Schmelze des Betriebs trifft die Winterbilanz gleich gut wie die
+Gradtag-Schmelze der ersten Runde. In Österreich bringt der eigene Faktor wenig (362 statt 425 mm). „Wie im Betrieb“ gilt für
+Formel und Konstanten — Temperatur und Strahlung der Eichung kommen von einer Station, weil es buscosun Fusion in diesen Wintern
+nicht gab.
+
+Gebaut: eine EIGENE Tabelle `scripts/glacier/snow-calibration-glaciers.json` (43 Gletscher; die erste Tabelle bleibt Byte für Byte)
+und zwei Schalter im Schmelzlauf, `--glacier-factor=on` und `--glacier-shape=on`, nur neben `--precip=country`. Die Schneedecke
+an drei Höhen liest die Tabelle nicht.
+
+1. **E-GM-37 — vor dem Commit entscheiden:** die Tabelle trägt für 35 Schweizer Gletscher Faktor und Form, abgeleitet aus den
+   Stufenwerten von GLAMOS. Nach E-GL-17 stehen keine GLAMOS-Zeilen im Repo. Die Faktoren je Gletscher stehen seit der ersten
+   Runde schon drin (`gm3-report-A-explore.json`), die Form je 50 m ist neu und näher an den Daten. (A) committen wie gebaut,
+   (B) Schweizer Formen nur lokal halten, (C) bei GLAMOS nachfragen. Die Lizenzlage für abgeleitete Größen habe ich NICHT geprüft.
+2. **Commit** (dein Wort, nach Punkt 1). Dazu gehören: `scripts/glacier/snowcal-radiation.mjs`, `snowcal-fit2.mjs`,
+   `snowcal-table2.mjs`, `snow-calibration-glaciers.json`, `lib/snowcalGlaciers.mjs`, `lib/meltcore.mjs`, `melt.mjs`,
+   `src/glacier/glacierMeltContract.ts`, `scripts/verify-glacier-melt.mjs`, `verify-glacier-snowcal.mjs`,
+   `verify-glacier-snowpack.mjs`, unter `audit/gletscher-schneemodell/` die Dateien `gm5b-*`, dazu das Audit, `CLAUDE.md`, diese
+   Datei. `melt.mjs` und `verify-glacier-snowpack.mjs` tragen auch GM-5a (§122) — die zwei Pakete lassen sich nicht getrennt
+   committen. Prüfstand beim Abschluss: `verify:glacier-melt` 75/75, `-snowcal` 47/47, `-snowpack` 57/57, `-weather` 41/41,
+   `-snowcore` 24/24, `-publish` 34/34, Typecheck, Build (281/281), Budget unverändert (2 118,1 / 2 121 KB); voller lokaler Lauf
+   ohne Schalter 32 von 32 Dateien gleich dem committeten Stand `019ab63c`, mit beiden Schaltern ändern sich nur Schmelzdokument
+   und Schmelzzustand; Gegenprobe 46 von 46 bemerkt, drei davon nur als Abbruch des Prüfers (V-GM-95).
+3. **Push von `buscosun-web`** (dein Gate). Ändert am Betrieb nichts: beide Schalter sind aus, die neue Tabelle wird ohne sie
+   nicht geöffnet.
+4. **Einschalten (E-GM-38, deine Entscheidung)** — je eine Zeile unter `jobs.melt.env` im Workflow `glacier-melt` des
+   Daten-Repos: `GLACIER_SNOW_GLACIER_FACTOR: on`, `GLACIER_SNOW_GLACIER_SHAPE: on`. Danach in `glacier/v1/status.json`
+   `lines.melt.glacier` lesen (`factor` 42, `shape` 43) und im Schmelzdokument `params.precip.glaciers.applied`. Vorher bedenken:
+   der Schmelzzustand trägt Schnee aus dem Landeswert; nach dem Einschalten liegt an diesen Gletschern Schnee aus zwei Faktoren
+   übereinander (V-GM-91). Und: ob Faktor und Form die Schmelze im Sommer verbessern, ist nicht gemessen (V-GM-94).
+5. **Zurück.** Die Zeile(n) entfernen; der nächste Lauf rechnet wieder mit dem Wert der Region.
+6. **Nicht geprüft:** kein Lauf auf dem Runner; der Winter 2025/26 (GLAMOS veröffentlicht ihn 2027); die Wirkung auf den Sommer;
+   nichts im Browser (keine Anzeige ändert sich, der Schmelzindex der betroffenen Gletscher schon — im Winter kaum, im
+   lokalen Lauf vom 21.11. an sechs Probe-Gletschern keine Zeile).
+7. **Weiter offen:** die rund 2 050 Gletscher ohne Stufenwerte bleiben beim Landeswert; die Schneedecke an drei Höhen ebenso
+   (V-GM-86); die Winterschmelze des Betriebs ist eher zu groß und bestimmt die Höhe jedes Faktors mit (V-GM-89, mit V-GM-26
+   vor Mai 2027).

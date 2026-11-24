@@ -1,0 +1,56 @@
+{
+ "generated": "2026-11-24T07:46:01.979Z",
+ "verifiers": [
+  "verify:glacier-snowpack"
+ ],
+ "greenBefore": true,
+ "greenAfter": true,
+ "noticed": 6,
+ "of": 6,
+ "errors": 0,
+ "mutations": [
+  {
+   "name": "Wort der Spanne wird auch ohne Schneedecke gelesen",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I7",
+   "crashedOnly": false
+  },
+  {
+   "name": "Nachbar-Zeilen bekommen eine Spanne",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I8, I9, I10, I11, I12, I13",
+   "crashedOnly": false
+  },
+  {
+   "name": "ohne drei Antworten: Anteil über 1 möglich",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I4d",
+   "crashedOnly": false
+  },
+  {
+   "name": "Kopf ohne das Paar zum Faktor",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I8, I9, I10, I11, I12, I13",
+   "crashedOnly": false
+  },
+  {
+   "name": "Dokument nennt „none“, obwohl Spannen gerechnet sind",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I8, I9, I10, I11, I12, I13",
+   "crashedOnly": false
+  },
+  {
+   "name": "Zählung im Kopf zählt Vermerke nicht",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I8, I9, I10, I11, I12, I13",
+   "crashedOnly": false
+  }
+ ],
+ "only": "Wort der Spanne wird auch|Nachbar-Zeilen bekommen|Kopf ohne das Paar|Dokument nennt|Zählung im Kopf zählt|Anteil über 1"
+}

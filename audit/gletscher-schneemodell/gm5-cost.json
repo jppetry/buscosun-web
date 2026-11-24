@@ -1,0 +1,362 @@
+{
+ "kind": "gm5/cost",
+ "generated": "2026-11-24T06:20:19.619Z",
+ "trial": false,
+ "codeCommit": "dc982141",
+ "method": {
+  "file": "audit/gletscher-schneemodell/gm5-method-frozen.md",
+  "sha256": "a9964eb9bdac7cbff0689f67c0d5606e5e37e617e48eb239ee69160bc6e5b98b",
+  "amendment": "audit/gletscher-schneemodell/gm5-method-frozen-b2.md",
+  "amendmentSha256": "e70c6eb85440ad4a268a9b5371a26acded11675da318a924507415cc2d076660"
+ },
+ "run": {
+  "run": "2026112117",
+  "now": "2026-11-21T17:50:00Z",
+  "seconds": 951,
+  "snowpackStatus": {
+   "at": "2026-11-21T17:50:00.000Z",
+   "mode": "shadow",
+   "glaciers": 2084,
+   "skipped": 10,
+   "coverage": {
+    "own": 957,
+    "neighbour": 1127,
+    "lapse": 0
+   },
+   "precip": "country",
+   "density": "board",
+   "state": {
+    "source": "seed",
+    "since": "2026-10-01T00:00:00.000Z",
+    "ageH": 0,
+    "replayedH": 0,
+    "started": 65,
+    "gaps": {
+     "glaciers": 43,
+     "maxH": 24
+    }
+   },
+   "carried": 0,
+   "dropped": 0,
+   "bytes": 1254509,
+   "stateBytes": 1813215,
+   "seconds": 486
+  },
+  "glaciers": 2084,
+  "withoutDriveArgs": 0,
+  "kinds": {
+   "own-ctx": 957,
+   "neighbour-ctx": 1127
+  },
+  "withDist": 2084,
+  "note": "the producer's own snowpack seconds include this measurement (it runs inside the step)"
+ },
+ "sigma": {
+  "F": 0.24758283498332476,
+  "rhoSystematic": 0.1205240250723771,
+  "factorRatios": {
+   "n": 43,
+   "p10": 0.7287521993361096,
+   "p90": 1.3746275191610233
+  },
+  "rhoSites": 16
+ },
+ "cost": {
+  "seconds": {
+   "E1": 15.98,
+   "E2": 14.13,
+   "K10": 74.6,
+   "K20": 144.37,
+   "K40": 282.48,
+   "refK100Subset": 69.86,
+   "decompositionSubset": 83.74
+  },
+  "msPerGlacier": {
+   "E": 7.22,
+   "K10": 35.8,
+   "K20": 69.27,
+   "K40": 135.55
+  },
+  "ratioToE": {
+   "K10": 4.96,
+   "K20": 9.59,
+   "K40": 18.76,
+   "perScenario": 0.47
+  },
+  "driftE2overE1": 0.88
+ },
+ "memory": {
+  "rssFirstMb": 183,
+  "rssMaxSampledMb": 2767,
+  "maxRssMb": 2790,
+  "samples": [
+   [
+    100,
+    595
+   ],
+   [
+    200,
+    686
+   ],
+   [
+    300,
+    704
+   ],
+   [
+    400,
+    1202
+   ],
+   [
+    500,
+    1207
+   ],
+   [
+    600,
+    2014
+   ],
+   [
+    700,
+    2018
+   ],
+   [
+    800,
+    2398
+   ],
+   [
+    900,
+    2746
+   ],
+   [
+    1000,
+    2761
+   ],
+   [
+    1100,
+    2755
+   ],
+   [
+    1200,
+    2755
+   ],
+   [
+    1300,
+    2766
+   ],
+   [
+    1400,
+    2766
+   ],
+   [
+    1500,
+    2766
+   ],
+   [
+    1600,
+    2766
+   ],
+   [
+    1700,
+    2766
+   ],
+   [
+    1800,
+    2766
+   ],
+   [
+    1900,
+    2766
+   ],
+   [
+    2000,
+    2766
+   ]
+  ],
+  "heldAfterFullGc": {
+   "columns": [
+    "glaciers",
+    "heapUsedMb",
+    "externalMb",
+    "rssMb",
+    "rssBeforeMb"
+   ],
+   "rows": [
+    [
+     200,
+     95,
+     70,
+     686,
+     686
+    ],
+    [
+     400,
+     131,
+     82,
+     1202,
+     1202
+    ],
+    [
+     600,
+     414,
+     96,
+     2014,
+     2014
+    ],
+    [
+     800,
+     1468,
+     108,
+     2398,
+     2398
+    ],
+    [
+     1000,
+     180,
+     140,
+     2756,
+     2761
+    ],
+    [
+     1200,
+     203,
+     125,
+     2755,
+     2755
+    ],
+    [
+     1400,
+     265,
+     134,
+     2766,
+     2766
+    ],
+    [
+     1600,
+     268,
+     133,
+     2766,
+     2766
+    ],
+    [
+     1800,
+     272,
+     133,
+     2766,
+     2766
+    ],
+    [
+     2000,
+     275,
+     133,
+     2766,
+     2766
+    ]
+   ]
+  },
+  "execArgv": [
+   "--max-old-space-size=3072",
+   "--expose-gc"
+  ],
+  "note": "producer and measurement together"
+ },
+ "replay": {
+  "glaciers": 2084,
+  "missingInDoc": 0,
+  "differ": 0,
+  "overTenthCm": 0,
+  "maxDiffCm": 0,
+  "passed": true
+ },
+ "widthsK40cm": {
+  "Zunge": {
+   "hsDay1": 14.7,
+   "hsDay7": 48.4,
+   "hsDay14": 60.8,
+   "hnDay1": 20.7,
+   "hnDay7": 2.2,
+   "hnDay14": 6.2
+  },
+  "Medianhöhe": {
+   "hsDay1": 14.3,
+   "hsDay7": 47.3,
+   "hsDay14": 60.1,
+   "hnDay1": 20.8,
+   "hnDay7": 2.2,
+   "hnDay14": 6.3
+  },
+  "Oberkante": {
+   "hsDay1": 13.9,
+   "hsDay7": 46.7,
+   "hsDay14": 59.6,
+   "hnDay1": 20.8,
+   "hnDay7": 2.2,
+   "hnDay14": 6.3
+  }
+ },
+ "expectedHsDay14Median": 124.4,
+ "relativeWidthDay14Median": 0.48,
+ "vgm41": {
+  "glacierDays": 14588,
+  "expectedAtLeast05cm": 0.9997943515217987,
+  "p10AtLeast05cm": 0.12969564025226213,
+  "p50AtLeast05cm": 0.19351521798738688,
+  "p90AtLeast05cm": 0.9558541266794626
+ },
+ "week2SumMedianLevel": {
+  "expectedSumCm": 26,
+  "p10": 1.2,
+  "p50": 10.2,
+  "p90": 56.7,
+  "shareP10AtLeast05cm": 0.994721689059501,
+  "expectedInsideSpanShare": 0.988003838771593
+ },
+ "monteCarlo": {
+  "ref": 100,
+  "subset": 209,
+  "mc": {
+   "10": {
+    "glaciers": 209,
+    "medianRelDev": 0.3,
+    "p90RelDev": 0.58
+   },
+   "20": {
+    "glaciers": 209,
+    "medianRelDev": 0.22,
+    "p90RelDev": 0.47
+   },
+   "40": {
+    "glaciers": 209,
+    "medianRelDev": 0.16,
+    "p90RelDev": 0.36
+   }
+  },
+  "verdictKmin": null
+ },
+ "decompositionWidthCm": {
+  "alle": [
+   14.1,
+   47.7,
+   59.7
+  ],
+  "zufällig": [
+   13.4,
+   45.4,
+   56.5
+  ],
+  "systematisch": [
+   4.4,
+   15.4,
+   22.2
+  ],
+  "days": [
+   1,
+   7,
+   14
+  ]
+ },
+ "size": {
+  "docRaw": 1254509,
+  "docGzip": 310554,
+  "extRaw": 2877281,
+  "extGzip": 751835
+ }
+}

@@ -16,7 +16,7 @@
  * Reproducible: the forcing is rounded to the resolution of the state BEFORE any step (`driveOf`), and the pack of the run hour is the one the state
  * stores (`normalizeLevel`) — so the next run, replaying the stored hours, walks exactly the path this run forecast.
  */
-import { MELT } from './meltcore.mjs';
+import { MELT, rng, gauss, quantile } from './meltcore.mjs';
 import { emptyPack, stepPack, packSwe, packDepthCm, newSnow, packToRow, packFromRow } from './snowcore.mjs';
 import { GLACIER_SNOWPACK_DAYS, GLACIER_SNOWPACK_WINDOWS, GLACIER_SNOWPACK_PEND_H, GLACIER_SNOWPACK_DENSITY_BOUNDS } from '../../../src/glacier/glacierSnowpackContract.ts';
 
@@ -208,6 +208,73 @@ export function pairsOf({ rows, map, slot, t0Ms, windowMin }) {
   }
   for (const [id, g] of Object.entries(ext.glaciers)) if (g.snow && !rowOf.has(id)) mappedWithoutRow++;
   return { pairs, counts: { pairs: pairs.length, withValue, at, why, mappedWithoutRow } };
+}
+
+// --- GM-5a (E-GM-32 … E-GM-35): the spread of the forecast from scenarios. Nothing here changes an expected value, the row's other fields or the state. ---
+
+/** The producer switch `--snowpack-spread=off|scenarios` / `GLACIER_SNOWPACK_SPREAD`, read only with the snowpack on. `off` (the default, the fall back): no scenario is computed. */
+export const SNOWPACK_SPREAD_MODES = Object.freeze(['off', 'scenarios']);
+export const SNOWPACK_SPREAD_DEFAULT = 'off';
+export const snowpackSpreadModeOf = (value) => wordOf(value, SNOWPACK_SPREAD_MODES, SNOWPACK_SPREAD_DEFAULT, 'Spanne der Schneedecke');
+
+/**
+ * Temperature and solid share of ONE scenario for a row that does not run on three answers: the expected temperature `tz` [3][hours] plus the sigma of
+ * the answer (`sg` [hours], a missing value = 0) times the path `zT`; the solid share keeps its distance to the temperature rule `ramp` (so a scenario
+ * without a temperature error IS the expected share `share`), stays between 0 and 1, and is never more below than above.
+ */
+export function shiftLevels({ tz, share, sg, zT, hours, ramp }) {
+  const tzS = tz.map(() => new Float64Array(hours)), sh = tz.map(() => new Float64Array(hours));
+  for (let h = 0; h < hours; h++) {
+    const d = (sg && Number.isFinite(sg[h]) ? sg[h] : 0) * zT[h];
+    for (let l = 0; l < 3; l++) { tzS[l][h] = tz[l][h] + d; sh[l][h] = Math.min(1, Math.max(0, ramp(tzS[l][h]) + (share[l][h] - ramp(tz[l][h])))); }
+    sh[1][h] = Math.min(sh[1][h], sh[2][h]); sh[0][h] = Math.min(sh[0][h], sh[1][h]);
+  }
+  return { tz: tzS, share: sh };
+}
+
+/**
+ * The spread of one glacier's forecast: `rule.k` scenarios from the SAME levels of the run hour (`levels`, normalized by `snowpackOfGlacier`; they are
+ * not changed here). A scenario is ONE path of the precipitation level and ONE path of the temperature error (AR(1), hourly correlation `rule.rho`,
+ * independent), a precipitation factor and a systematic density factor fixed for the scenario, and an event density factor drawn anew per day
+ * (log-normal with `rule.sigma`; the density stays between the floor and the maximum of the constants).
+ *   p, g, factor   what `driveOf` took for the expected values: precipitation mm [hours], radiation [hours], factor [3]
+ *   amount(h, zP)  precipitation of hour `h` at the standard-normal level `zP` (the caller knows the answer's distribution)
+ *   place(zT)      `{ tz, share }` [3][hours] for the temperature-error path `zT` (standard normal per hour; the caller knows sigma and the phase rule)
+ * Returns per elevation `hsq`, `hnq` = [p10 per day, p90 per day] of the scenario VALUES (cm, 0.1) and `hnw` = [p10, median, p90] of the scenario SUMS
+ * of the new snow of the days `rule.week2` — never a sum of daily quantiles.
+ */
+export function spreadOfGlacier({ levels, pars, c, t0Ms, seed, rule, p, g, factor, amount, place, days = GLACIER_SNOWPACK_DAYS }) {
+  const hours = days * 24, k = rule.k, a = Math.sqrt(1 - rule.rho * rule.rho), sg = rule.sigma, [w0, w1] = rule.week2;
+  if (!(Number.isInteger(k) && k >= 1) || !(w0 >= 1 && w0 <= w1 && w1 <= days)) throw new Error('Spanne: Regel unbrauchbar');
+  const start = levels.map((lv) => ({ row: packToRow(lv.pack), aS: lv.aS }));
+  const hs = [0, 1, 2].map(() => Array.from({ length: days }, () => new Float64Array(k))), hn = [0, 1, 2].map(() => Array.from({ length: days }, () => new Float64Array(k)));
+  const wk = [0, 1, 2].map(() => new Float64Array(k));
+  const r = rng((seed >>> 0) || 1), ps = new Float64Array(hours), zTs = new Float64Array(hours);
+  for (let s = 0; s < k; s++) {
+    let zP = gauss(r), zT = gauss(r);
+    const fMul = Math.exp(sg.factor * gauss(r)), rhoSys = Math.exp(sg.densitySystematic * gauss(r));
+    for (let h = 0; h < hours; h++) {
+      zP = rule.rho * zP + a * gauss(r); zT = rule.rho * zT + a * gauss(r);
+      zTs[h] = zT;
+      ps[h] = Number.isFinite(p[h]) ? amount(h, zP) : p[h];
+    }
+    const { tz, share } = place(zTs);
+    const drive = driveOf({ tz, share, p: ps, g, factor: factor.map((f) => f * fMul), hours });
+    const fc = start.map((x) => ({ pack: packFromRow(x.row), aS: x.aS }));
+    for (let d = 0; d < days; d++) {
+      const cd = { ...c, rhoNew: Math.min(c.rhoMax, Math.max(c.rhoNewFloor, c.rhoNew * rhoSys * Math.exp(sg.densityEvent * gauss(r)))) };
+      run3(fc, drive, t0Ms, 24 * d, 24 * d + 24, pars, cd);
+      const tEnd = t0Ms + (24 * d + 24) * H;
+      for (let l = 0; l < 3; l++) {
+        const v = r1(packDepthCm(fc[l].pack)), n = Math.min(v, r1(newSnow(fc[l].pack, tEnd, 24, cd).cm));
+        hs[l][d][s] = v; hn[l][d][s] = n;
+        if (d + 1 >= w0 && d + 1 <= w1) wk[l][s] += n;
+      }
+    }
+  }
+  const q = (x, at) => { const srt = Float64Array.from(x).sort(); return at.map((v) => r1(quantile(srt, v))); };
+  const pair = (lv) => { const lo = [], hi = []; for (const x of lv) { const [a10, a90] = q(x, [0.1, 0.9]); lo.push(a10); hi.push(a90); } return [lo, hi]; };
+  return { hsq: hs.map(pair), hnq: hn.map(pair), hnw: wk.map((x) => q(x, [0.1, 0.5, 0.9])) };
 }
 
 /** May a run continue a state? `null` = yes, else the reason. `rules` = { precip, density } of the run. */

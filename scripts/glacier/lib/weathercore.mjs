@@ -229,6 +229,25 @@ export function lineOfDay(lines) {
 }
 
 /**
+ * Phase GM (GM-5a): the precipitation of hour `h` at the standard-normal level `zP` — the rule `sumSpreads` below applies inside its loop (the
+ * quantile of the answer's distribution; an hour without one takes the linear mix of the neighbours' quantiles up to 6 h apart, else the expected
+ * value itself). For the scenarios of the snowpack; `sumSpreads` keeps its own copy so that not a byte of the weather part moves (V-GM-84).
+ */
+export function precipAmountOf(p, pDist, hours) {
+  const prev = new Int32Array(hours).fill(-1), next = new Int32Array(hours).fill(-1);
+  for (let h = 0, last = -1; h < hours; h++) { if (pDist?.[h]) last = h; prev[h] = last; }
+  for (let h = hours - 1, last = -1; h >= 0; h--) { if (pDist?.[h]) last = h; next[h] = last; }
+  return (h, zP) => {
+    const a = prev[h], b = next[h];
+    if (a < 0 || b < 0 || (a !== h && b - a > 6)) return Math.max(0, p[h]);
+    const u = Math.min(1 - 1e-9, Math.max(1e-9, Phi(zP)));
+    if (a === h) return quantileOf(pDist[h], u);
+    const wgt = (h - a) / (b - a);
+    return (1 - wgt) * quantileOf(pDist[a], u) + wgt * quantileOf(pDist[b], u);
+  };
+}
+
+/**
  * Phase GS — spread of the daily sums: K scenarios, each ONE path of hourly precipitation and ONE path of the temperature error, both with
  * an hourly correlation `rho` (`set`) and independent of each other (`set`). Precipitation of an hour = the quantile of the answer's
  * distribution at the scenario's level; an hour without a distribution (between two model steps late in the run) takes the linear mix of

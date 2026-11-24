@@ -1,0 +1,338 @@
+{
+ "generated": "2026-11-24T08:12:09.357Z",
+ "verifiers": [
+  "verify:glacier-melt",
+  "verify:glacier-snowcal",
+  "verify:glacier-snowpack"
+ ],
+ "greenBefore": true,
+ "greenAfter": true,
+ "noticed": 46,
+ "of": 46,
+ "errors": 0,
+ "crashedOnly": 4,
+ "mutations": [
+  {
+   "name": "Voreinstellung „Faktor je Gletscher“ an",
+   "file": "scripts/glacier/lib/snowcalGlaciers.mjs",
+   "noticed": true,
+   "by": "glacier-melt: Abbruch",
+   "crashedOnly": true
+  },
+  {
+   "name": "Voreinstellung „Form je Band“ an",
+   "file": "scripts/glacier/lib/snowcalGlaciers.mjs",
+   "noticed": true,
+   "by": "glacier-melt: Abbruch",
+   "crashedOnly": true
+  },
+  {
+   "name": "unbekanntes Wort des Faktor-Schalters fällt zurück",
+   "file": "scripts/glacier/lib/snowcalGlaciers.mjs",
+   "noticed": true,
+   "by": "glacier-melt: K6",
+   "crashedOnly": false
+  },
+  {
+   "name": "unbekanntes Wort des Form-Schalters fällt zurück",
+   "file": "scripts/glacier/lib/snowcalGlaciers.mjs",
+   "noticed": true,
+   "by": "glacier-melt: K6",
+   "crashedOnly": false
+  },
+  {
+   "name": "Umgebungsvariable des Faktor-Schalters wird nicht gelesen",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: K5",
+   "crashedOnly": false
+  },
+  {
+   "name": "Umgebungsvariable des Form-Schalters wird nicht gelesen",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: K5",
+   "crashedOnly": false
+  },
+  {
+   "name": "Schalter gelten auch neben „gate-c“",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: K6",
+   "crashedOnly": false
+  },
+  {
+   "name": "Tabelle je Gletscher wird auch ohne Schalter geöffnet",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: Abbruch",
+   "crashedOnly": true
+  },
+  {
+   "name": "Faktor an der Grenze wird benutzt",
+   "file": "scripts/glacier/lib/snowcalGlaciers.mjs",
+   "noticed": true,
+   "by": "glacier-melt: K2, K4",
+   "crashedOnly": false
+  },
+  {
+   "name": "Faktor wirkt auch ohne seinen Schalter",
+   "file": "scripts/glacier/lib/snowcalGlaciers.mjs",
+   "noticed": true,
+   "by": "glacier-melt: K3",
+   "crashedOnly": false
+  },
+  {
+   "name": "Form wirkt auch ohne ihren Schalter",
+   "file": "scripts/glacier/lib/snowcalGlaciers.mjs",
+   "noticed": true,
+   "by": "glacier-melt: K2",
+   "crashedOnly": false
+  },
+  {
+   "name": "Form ist nicht mittelwertfrei",
+   "file": "scripts/glacier/lib/snowcalGlaciers.mjs",
+   "noticed": true,
+   "by": "glacier-melt: K3, K4",
+   "crashedOnly": false
+  },
+  {
+   "name": "Schrumpfung der Form wird nicht angewandt",
+   "file": "scripts/glacier/lib/snowcalGlaciers.mjs",
+   "noticed": true,
+   "by": "glacier-melt: K3, K4",
+   "crashedOnly": false
+  },
+  {
+   "name": "Untergrenze der Form fehlt",
+   "file": "scripts/glacier/lib/snowcalGlaciers.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: H5",
+   "crashedOnly": false
+  },
+  {
+   "name": "Form zwischen den Stützstellen nicht linear",
+   "file": "scripts/glacier/lib/snowcalGlaciers.mjs",
+   "noticed": true,
+   "by": "glacier-melt: K3, K4",
+   "crashedOnly": false
+  },
+  {
+   "name": "Form über der höchsten Stützstelle hochgerechnet",
+   "file": "scripts/glacier/lib/snowcalGlaciers.mjs",
+   "noticed": true,
+   "by": "glacier-melt: K3, K4",
+   "crashedOnly": false
+  },
+  {
+   "name": "Leser nimmt einen Faktor, dessen Urteil nicht trägt",
+   "file": "scripts/glacier/lib/snowcalGlaciers.mjs",
+   "noticed": true,
+   "by": "glacier-melt: K6",
+   "crashedOnly": false
+  },
+  {
+   "name": "Leser nimmt eine Form, deren Urteil nicht trägt",
+   "file": "scripts/glacier/lib/snowcalGlaciers.mjs",
+   "noticed": true,
+   "by": "glacier-melt: K6",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag: `gate` darf dem Urteil widersprechen",
+   "file": "scripts/glacier/lib/snowcalGlaciers.mjs",
+   "noticed": true,
+   "by": "glacier-melt: K6",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag: Vermerk „atBound“ wird nicht geprüft",
+   "file": "scripts/glacier/lib/snowcalGlaciers.mjs",
+   "noticed": true,
+   "by": "glacier-melt: K6",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag: Faktor außerhalb der Grenzen gilt",
+   "file": "scripts/glacier/lib/snowcalGlaciers.mjs",
+   "noticed": true,
+   "by": "glacier-melt: K6",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag: Gletscher außerhalb des Katalogs gilt",
+   "file": "scripts/glacier/lib/snowcalGlaciers.mjs",
+   "noticed": true,
+   "by": "glacier-melt: K6",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag: weniger als vier Winter gelten",
+   "file": "scripts/glacier/lib/snowcalGlaciers.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: H4",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag: andere Schmelze als die des Betriebs gilt",
+   "file": "scripts/glacier/lib/snowcalGlaciers.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: H4",
+   "crashedOnly": false
+  },
+  {
+   "name": "Gletscher mit Eintrag rechnet trotzdem mit dem Regionswert",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: K2, K4",
+   "crashedOnly": false
+  },
+  {
+   "name": "Form wird dem Kern nicht übergeben",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: K3, K4",
+   "crashedOnly": false
+  },
+  {
+   "name": "Dokument nennt die Gletscher nicht",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: Abbruch",
+   "crashedOnly": true
+  },
+  {
+   "name": "Statuszeile zählt die Gletscher nicht",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: K2, K3, K4",
+   "crashedOnly": false
+  },
+  {
+   "name": "Faktor an der Grenze wird als angewandt genannt",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: K2, K3, K4",
+   "crashedOnly": false
+  },
+  {
+   "name": "Form wird ohne ihren Schalter als angewandt genannt",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: K2",
+   "crashedOnly": false
+  },
+  {
+   "name": "Schneedecke rechnet mit dem Faktor des Gletschers",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I14",
+   "crashedOnly": false
+  },
+  {
+   "name": "Kern ignoriert den Multiplikator je Band",
+   "file": "scripts/glacier/lib/meltcore.mjs",
+   "noticed": true,
+   "by": "glacier-melt: K3, K4, K7",
+   "crashedOnly": false
+  },
+  {
+   "name": "Kern nimmt eine Liste, die nicht zu den Bändern passt",
+   "file": "scripts/glacier/lib/meltcore.mjs",
+   "noticed": true,
+   "by": "glacier-melt: K7",
+   "crashedOnly": false
+  },
+  {
+   "name": "Faktor eines Winters aus ALLEN Wintern (Winter nicht ausgelassen)",
+   "file": "scripts/glacier/snowcal-fit2.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: H6b",
+   "crashedOnly": false
+  },
+  {
+   "name": "Landeswert MIT dem Gletscher",
+   "file": "scripts/glacier/snowcal-fit2.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: H6b",
+   "crashedOnly": false
+  },
+  {
+   "name": "Form MIT dem eigenen Winter",
+   "file": "scripts/glacier/snowcal-fit2.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: H6b",
+   "crashedOnly": false
+  },
+  {
+   "name": "Negativkontrolle nimmt die eigene Form",
+   "file": "scripts/glacier/snowcal-fit2.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: H6, H6b",
+   "crashedOnly": false
+  },
+  {
+   "name": "Form im Werkzeug nicht mittelwertfrei",
+   "file": "scripts/glacier/snowcal-fit2.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: H6c",
+   "crashedOnly": false
+  },
+  {
+   "name": "Strahlung ohne Höhenzuschlag",
+   "file": "scripts/glacier/snowcal-fit2.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: H8",
+   "crashedOnly": false
+  },
+  {
+   "name": "Stunde ohne Messung bekommt vollen Klarhimmel",
+   "file": "scripts/glacier/snowcal-fit2.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: H8",
+   "crashedOnly": false
+  },
+  {
+   "name": "Stunden ohne Messung werden nicht gezählt",
+   "file": "scripts/glacier/snowcal-fit2.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: H8",
+   "crashedOnly": false
+  },
+  {
+   "name": "gekappter Multiplikator wird nicht als gekappt gezählt",
+   "file": "scripts/glacier/snowcal-fit2.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: H7",
+   "crashedOnly": false
+  },
+  {
+   "name": "Kennzahl s1 ohne Flächengewicht",
+   "file": "scripts/glacier/snowcal-fit2.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: H7",
+   "crashedOnly": false
+  },
+  {
+   "name": "Werkzeug rechnet mit Gradtag statt mit der Schmelze des Betriebs",
+   "file": "scripts/glacier/snowcal-fit2.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: H7",
+   "crashedOnly": false
+  },
+  {
+   "name": "Tabellen-Werkzeug lässt den Vermerk „atBound“ weg",
+   "file": "scripts/glacier/snowcal-table2.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: H2",
+   "crashedOnly": false
+  },
+  {
+   "name": "Tabellen-Werkzeug nennt die Tabelle „vom Producer benutzt“",
+   "file": "scripts/glacier/snowcal-table2.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: H2",
+   "crashedOnly": false
+  }
+ ]
+}

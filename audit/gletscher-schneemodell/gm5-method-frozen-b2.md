@@ -27,3 +27,19 @@ Alle 200 Gletscher schreibt das Werkzeug die bisherigen Zeiten nach `gm5\cost-pa
 ## N.6 Probelauf
 
 Vor dem gewerteten Lauf ist ein Probelauf mit `limit` oder `only` (höchstens 60 Gletscher) erlaubt, nur um Fehler des Werkzeugs zu finden; seine Zahlen werden nicht berichtet und ändern diesen Nachtrag nicht.
+
+## N.7 Nachtrag nach dem abgebrochenen ersten Lauf (24.11. 05:36 UTC, vor dem zweiten gewerteten Lauf festgelegt)
+
+Der erste gewertete Lauf (Start 05:23 UTC) wurde vom Autor bei 600 von 2 084 Gletschern gestoppt: der Prozess war von 1 065 MB (400 Gletscher) auf 2 387 MB (600 Gletscher) gewachsen, die Maschine hatte 3 GB frei. Gesehen waren dabei nur der Zwischenstand der Zeiten (Verhältnis K = 40 zu E: 20,2 bei 600 Gletschern; `gm5\cost-partial-run1-aborted.json`) und der Speicher — keine Spanne, kein Urteil. Dieser Zwischenstand wird als Zwischenstand berichtet (N.5).
+
+Zweiter Lauf, sonst unverändert: Start mit `--max-old-space-size=1700 --expose-gc`. Die Grenze ändert keine gerechnete Zahl (alle Größen sind durch den Startwert je Gletscher bestimmt), nur wann der Prozess aufräumt; sie ist vom Autor gesetzt, nicht am Runner gemessen. Bei jedem Zwischenstand (alle 200 Gletscher, außerhalb jeder gemessenen Zeit) räumt der Prozess vollständig auf und schreibt, was er danach hält (`heapUsed`, `external`, `rss`) — berichtet als Verlauf über die Gletscher, für Producer und Messung zusammen. Bricht der Prozess an der Grenze ab, ist das der Befund.
+
+## N.8 Nachtrag nach dem zweiten Lauf (24.11. 05:55 UTC, vor dem dritten festgelegt)
+
+Der zweite Lauf (Start 05:36 UTC, Grenze 1 700 MB) endete nach rund 16 Minuten mit „JavaScript heap out of memory“ kurz nach 800 von 2 084 Gletschern. Zwischenstand bei 800 (`gm5\cost-partial-run2-oom.json`): nach vollständigem Aufräumen hält der Prozess 1 456 MB (rund 1,8 MB je Gletscher mit eigenem Antrieb); Verhältnis K = 40 zu E: 18,8. Gesehen sind wieder nur Zeiten und Speicher. Der Producer hält die Antworten aller Gletscher mit eigenem Antrieb selbst fest (`forcings` in `melt.mjs`, gelesen nach dem Abbruch); ob die 1,8 MB je Gletscher ihm gehören oder der Messung, ist damit offen.
+
+Deshalb zwei Läufe, in dieser Reihenfolge, beide mit `--max-old-space-size=3072 --expose-gc`:
+1. **Vergleichslauf** `--baseline`: derselbe Producer, derselbe Haken, dieselben Zwischenstände — aber kein Szenario wird gerechnet. Er sagt, was der Producer allein hält und wie hoch sein Speicher steigt (`gm5-cost-baseline.json`).
+2. **Dritter gewerteter Lauf** wie N.7 mit der höheren Grenze.
+
+Speicher des Szenario-Schritts = Differenz der beiden Verläufe an denselben Zwischenständen (gehalten nach dem Aufräumen) und der Höchstwerte. Die Grenze 3 072 MB ist vom Autor gesetzt; ob der Runner sie hat, ist nicht gemessen.

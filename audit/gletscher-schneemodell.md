@@ -3,9 +3,10 @@
 > Stand 23.11.2026: GM-0 (Diagnose, Quellen, M-1), GM-1 (Schneekern, §3a) und GM-2 (drei Höhen im Producer, eigene Schneefallgrenze, §3b) gebaut, committet und seit 23.11. ≈ 15:50 UTC auf `origin/main` (Jans Push, §3e.7), nichts im Daten- oder Archiv-Repo. Der Schalter von GM-2 ist **ein** (E-GM-6, Jan 22.11. „einschalten und committen“, §3b.7); er wirkt mit dem Push von `main`.
 > **GM-3 (Eichung, §3c) gebaut, lokal committet (`d09aecf6`):** Tabelle `scripts/glacier/snow-calibration.json` nach eingefrorener Methode — Niederschlagsfaktor 1,79 (Schweiz) / 2,33 (Österreich) statt 1,289, Urteil **rot** (K-2, K-4: kein belastbarer Höhenverlauf), Neuschneedichte 96 statt 68 kg/m³.
 > **GM-3b (E-GM-7 + E-GM-8, §3d) gebaut 23.11., committet (`d09aecf6`, `1df1a160`) und gepusht, beide Schalter AN (E-GM-12, Jan 23.11. „committe, schalte ein“, §3e):** der Schmelzlauf rechnet ab Werk mit dem Faktor je Land (`country`, ohne Höhenverlauf), der Schneekern mit 96 kg/m³ und der Spanne 65–148 (`board`, zweiter Konstantensatz, noch ohne Leser im Betrieb). Auf `origin/main` seit 23.11. ≈ 15:50 UTC; der erste Schmelzlauf des neuen Producers (`2026112317`, 17:23 UTC) ist grün und rechnet mit `country` (§3e.7). Der Rückfall `--precip=gate-c` schreibt die Bytes wie vor GM-3b und öffnet die Tabelle nicht. E-GM-13 ist bestätigt (Jan 23.11.); E-GM-9 … E-GM-11 warten auf Jan.
-> **GM-3c (§3f) gebaut 23.11., auf `origin/main` (`c4b45c9e`), Schalter auf dem Runner AN seit 23.11. 19:27 UTC (E-GM-18, §3f.8; im Code bleibt die Voreinstellung `off`):** der Schneekern läuft im Schmelzlauf je Gletscher an Zunge, Medianhöhe und Oberkante und schreibt hinter `--snowpack=shadow` das Schattenprodukt `glacier/v1/snowpack/` (Schneehöhe, Wasserwert, Neuschnee; alles „berechnet“) mit einem Zustand, der nicht an der Taktung hängt. Startzustand ab 1.10. aus Analysen mit `snowpack-seed.mjs` (E-GM-14), alle 2 084 Gletscher (E-GM-16), die ungenannte Dichte folgt dem Faktor (E-GM-15), Publisher mit Präfix `snowpack` (E-GM-17). Mit dem Schalter aus sind am lokalen Volllauf 338 von 338 Dateien Byte für Byte gleich. Eingeschaltet über den Workflow `glacier-melt` im Daten-Repo (`GLACIER_SNOWPACK: shadow`, `3a119833`), Startzustand vom 23.11. 17:00 UTC eingespielt (`4ae73e46`); erster Lauf `2026112323` (23.11. 23:23 UTC) grün: 2 084 Gletscher, Vertrag ohne Befund, Werte gleich dem Startzustand, weil dieser keinen Antrieb trägt (sechs Stunden ohne Antrieb an jeder Zeile, §3f.8); der zweite Lauf (Zustand fortgeschrieben?) steht aus.
-> **GM-3d (§3g, V-GM-32) gebaut 23.11. abends, auf `origin/main` (`b7a0e859`), Schalter auf dem Runner AN seit 23.11. 21:13 UTC (E-GM-19, §3g.8; im Code bleibt die Voreinstellung `ahead`):** der Zustand des Schmelzlaufs steht hinter `--melt-state=run-hour` an der Laufstunde und trägt 18 Stunden Antrieb; der nächste Lauf rechnet ihn bis zu seiner Stunde nach, gleich in welchem Abstand. Heute verwirft jeder Lauf, der 3 Stunden nach dem vorigen kommt, den Zustand — die Kachel „Fläche ohne Schneedecke“ springt dann im Mittel um rund 21 Punkte (gemessen). Ohne Schalter 338 von 338 Dateien Byte für Byte gleich. Eingeschaltet über den Workflow `glacier-melt` im Daten-Repo (`GLACIER_MELT_STATE: run-hour`, `3c871488`); erster Lauf `2026112323` wie erwartet (übernommen, Alter 0, neue Form geschrieben, Kachel unverändert 2,3 %; §3g.8), das Nachrechnen zeigt erst der nächste Lauf.
-> **GM-4 (§3h) — Diagnose 23.11. abends, danach GM-4a gebaut, uncommitted, beide Schalter aus:** die Daten tragen heute KEINE Kopplung an Stationen (der Stand in Stationshöhe ist der Faktor, 1,86 × Station; die 24-h-Änderung bei Schneefall 0,76 × Station; Gratstationen verlieren beim Schneefall Schnee; die Abweichung der Änderung überträgt sich nicht auf Nachbarn), und mit dem Antrieb von buscosun Fusion gibt es noch keinen Lauf. Auf Jans Wort (E-GM-20 … E-GM-23) gebaut: Schattenpaare `snowpack/pairs/<lauf>.json` hinter `--snowpack-pairs=on` (Modell in Stationshöhe neben der Station, nichts gekoppelt), ihr Archiv (`glacier-archive.mjs --pairs`, Vorlage nachgezogen) und der Satelliten-Abgleich einmal je Szene im Schmelzlauf hinter `--sat-nudge=once`; kein Übertrag. Ohne Schalter 338 von 338 Dateien Byte für Byte gleich.
+> **GM-3c (§3f) gebaut 23.11., auf `origin/main` (`c4b45c9e`), Schalter auf dem Runner AN seit 23.11. 19:27 UTC (E-GM-18, §3f.8; im Code bleibt die Voreinstellung `off`):** der Schneekern läuft im Schmelzlauf je Gletscher an Zunge, Medianhöhe und Oberkante und schreibt hinter `--snowpack=shadow` das Schattenprodukt `glacier/v1/snowpack/` (Schneehöhe, Wasserwert, Neuschnee; alles „berechnet“) mit einem Zustand, der nicht an der Taktung hängt. Startzustand ab 1.10. aus Analysen mit `snowpack-seed.mjs` (E-GM-14), alle 2 084 Gletscher (E-GM-16), die ungenannte Dichte folgt dem Faktor (E-GM-15), Publisher mit Präfix `snowpack` (E-GM-17). Mit dem Schalter aus sind am lokalen Volllauf 338 von 338 Dateien Byte für Byte gleich. Eingeschaltet über den Workflow `glacier-melt` im Daten-Repo (`GLACIER_SNOWPACK: shadow`, `3a119833`), Startzustand vom 23.11. 17:00 UTC eingespielt (`4ae73e46`); erster Lauf `2026112323` (23.11. 23:23 UTC) grün: 2 084 Gletscher, Vertrag ohne Befund, Werte gleich dem Startzustand, weil dieser keinen Antrieb trägt (sechs Stunden ohne Antrieb an jeder Zeile, §3f.8); zweiter Lauf `2026112405` (24.11. 05:24 UTC): Zustand fortgeschrieben (`carried`, 6 von 6 Stunden nachgerechnet, keine neuen Lücken, Vertrag ohne Befund).
+> **GM-3d (§3g, V-GM-32) gebaut 23.11. abends, auf `origin/main` (`b7a0e859`), Schalter auf dem Runner AN seit 23.11. 21:13 UTC (E-GM-19, §3g.8; im Code bleibt die Voreinstellung `ahead`):** der Zustand des Schmelzlaufs steht hinter `--melt-state=run-hour` an der Laufstunde und trägt 18 Stunden Antrieb; der nächste Lauf rechnet ihn bis zu seiner Stunde nach, gleich in welchem Abstand. Heute verwirft jeder Lauf, der 3 Stunden nach dem vorigen kommt, den Zustand — die Kachel „Fläche ohne Schneedecke“ springt dann im Mittel um rund 21 Punkte (gemessen). Ohne Schalter 338 von 338 Dateien Byte für Byte gleich. Eingeschaltet über den Workflow `glacier-melt` im Daten-Repo (`GLACIER_MELT_STATE: run-hour`, `3c871488`); erster Lauf `2026112323` wie erwartet (übernommen, Alter 0, neue Form geschrieben, Kachel unverändert 2,3 %; §3g.8); zweiter Lauf `2026112405`: nachgerechnet (`replayedH 6`, `held 0`), Kachel an keinem Gletscher anders; ein Lauf im 3-Stunden-Abstand kam noch nicht vor.
+> **GM-5 (§3i, §3j) — 24.11., uncommitted, alle neuen Schalter aus:** die Verteilung aus Sentinel-2 ist nicht gebaut (die Saisonzeilen tragen nur eine Schneegrenze je Szene; E-GM-30). **GM-5a:** hinter `--snowpack-spread=scenarios` trägt die Schneedecke p10/p90 aus 100 Szenarien je Höhe und Tag, die Summe der Tage 8–14 als eine Spanne, Nachbar-Zeilen den Vermerk „ohne Spanne“ und im Kopf EIN Paar zur Unsicherheit des Faktors; ohne Schalter 32 von 32 Dateien des vollen Laufs Byte für Byte gleich. **GM-5b:** Eichrunde 2 nach eingefrorener Regel mit dem Schmelzkern des Betriebs — Faktor je Gletscher (Winterbilanz 233 statt 402 mm) und Form je Höhenstufe (Formfehler 74 statt 132 mm) tragen; eigene Tabelle `snow-calibration-glaciers.json` (43 Gletscher), im Schmelzlauf hinter `--glacier-factor` und `--glacier-shape`; die Schneedecke liest sie nicht. Offen bei Jan: E-GM-36, **E-GM-37 (vor dem Commit)**, E-GM-38.
+> **GM-4 (§3h) — Diagnose 23.11. abends, danach GM-4a gebaut, von Jan committet und gepusht am 24.11. 05:27 UTC (`019ab63c`), beide Schalter aus:** die Daten tragen heute KEINE Kopplung an Stationen (der Stand in Stationshöhe ist der Faktor, 1,86 × Station; die 24-h-Änderung bei Schneefall 0,76 × Station; Gratstationen verlieren beim Schneefall Schnee; die Abweichung der Änderung überträgt sich nicht auf Nachbarn), und mit dem Antrieb von buscosun Fusion gibt es noch keinen Lauf. Auf Jans Wort (E-GM-20 … E-GM-23) gebaut: Schattenpaare `snowpack/pairs/<lauf>.json` hinter `--snowpack-pairs=on` (Modell in Stationshöhe neben der Station, nichts gekoppelt), ihr Archiv (`glacier-archive.mjs --pairs`, Vorlage nachgezogen) und der Satelliten-Abgleich einmal je Szene im Schmelzlauf hinter `--sat-nudge=once`; kein Übertrag. Ohne Schalter 338 von 338 Dateien Byte für Byte gleich.
 > Ausgangspunkt: `audit/qualitaetspruefung-seewetter-gletscher-2026-11-22.md` (K-2, K-3, M-17, M-18, G-26) und die Recherche vom selben Tag.
 
 ## 1. Auftrag und Jans Entscheidungen
@@ -478,9 +479,9 @@ Die fünf Fragen: (1) Funktionserhalt — kein Producer, kein Vertrag und keine 
 |---|---|---|
 | E-GM-7 | **Niederschlagsfaktor je Land in den Producer** (hinter Schalter, Voreinstellung aus)? Dafür: K-1 klar grün, heute fehlt im Mittel 0,58 m Winterbilanz. Dagegen: K-2 rot (0,40 gegen 0,35 m); der Faktor gilt gegenüber den Analysen, die Brücke zu buscosun Fusion ist eine Woche alt. Empfehlung: bauen, **ohne Verlauf** (`g = 0`, Herkunft `set` — K-4 ist rot und das Vorzeichen nicht belastbar), mit `bridge = 1`; Einschalten erst nach 30 Niederschlagstagen Brücke | **Jan 22.11. nachts: „ich starte E-GM-7 und 8 in einer neuen Session“** ⇒ bauen wie empfohlen (hinter Schalter, aus, ohne Verlauf, `bridge = 1`); über das Einschalten ist nichts gesagt. **Gebaut 23.11. (§3d), Schalter `--precip=country`, aus** |
 | E-GM-8 | **Neuschneedichte 96 kg/m³** und Spanne 65–148 in den Schneekern (`SNOW.rhoNew`, Herkunft `measured`)? Der Kern ist nicht verdrahtet, keine Anzeige ändert sich. Empfehlung: ja, zusammen mit E-GM-7, weil 96 nur mit wahrem Wasser (hinter `F`) stimmt | **Jan 22.11. nachts: zusammen mit E-GM-7 in einer neuen Sitzung. Gebaut 23.11. (§3d) auf Jans Wort „beide aus“: nicht als neuer Wert von `SNOW.rhoNew`, sondern als zweiter Konstantensatz hinter dem Schalter `board`, aus** |
-| E-GM-9 | **Faktor je Gletscher** für die 44 vermessenen Gletscher (N1-a: 0,23 statt 0,40 m)? Braucht eine neue eingefrorene Regel (Mindestzahl Winter, Schrumpfung zum Landeswert) und ist die stärkste Verbesserung, die diese Daten hergeben; für die übrigen 2 050 Gletscher ist die Kopplung an Stationen (GM-4) der Weg zum selben Ziel | offen (Jan) |
-| E-GM-10 | **Winterschmelze** in einer neuen eingefrorenen Runde so ansetzen wie im Betrieb (ETI) oder mit-eichen, und am Winter 2025/26 prüfen (GLAMOS Release 2026)? N1-c zeigt, dass der Gradtag-Ansatz der Eichung die Winterbilanz verschlechtert | offen (Jan) |
-| E-GM-11 | `inca-v1-1h-1km` als Quelle für die vergangenen Winter bestätigen (V-GM-16) | offen (Jan) |
+| E-GM-9 | **Faktor je Gletscher** für die 44 vermessenen Gletscher (N1-a: 0,23 statt 0,40 m)? Braucht eine neue eingefrorene Regel (Mindestzahl Winter, Schrumpfung zum Landeswert) und ist die stärkste Verbesserung, die diese Daten hergeben; für die übrigen 2 050 Gletscher ist die Kopplung an Stationen (GM-4) der Weg zum selben Ziel | **Jan 24.11.: ja** — zusammen mit E-GM-31 (Verteilung je Band) in EINER eingefrorenen Eichrunde (§3i) |
+| E-GM-10 | **Winterschmelze** in einer neuen eingefrorenen Runde so ansetzen wie im Betrieb (ETI) oder mit-eichen, und am Winter 2025/26 prüfen (GLAMOS Release 2026)? N1-c zeigt, dass der Gradtag-Ansatz der Eichung die Winterbilanz verschlechtert | **Jan 24.11.: wie im Betrieb (ETI)**, nicht mit-eichen; Prüfung am Winter 2025/26, sobald GLAMOS ihn veröffentlicht |
+| E-GM-11 | `inca-v1-1h-1km` als Quelle für die vergangenen Winter bestätigen (V-GM-16) | **Jan 24.11.: bestätigt** |
 | V-GM-15 | `pf = 1,289` ist an einem anderen Niederschlag geeicht als dem, auf den er im Betrieb angewandt wird (§3c.1). Mehrwert: die Schneedecke des Schmelzkerns startet nicht mehr zu dünn in den Sommer. Skizze: E-GM-7 | gebaut (§3d), behoben erst mit dem Einschalten (E-GM-12) |
 | V-GM-16, V-GM-17 | §3c.1 | E-GM-11 / erledigt |
 | V-GM-18 | MeteoSchweiz veröffentlicht die **Totalisatoren** offen (`ch.meteoschweiz.ogd-tot`, CC BY): gemessener Jahresniederschlag im Hochgebirge, nicht in der Quellenliste. Mehrwert: eine direkte Messung für die Höhe des Faktors in Gletschernähe. Skizze: Stationsliste lesen, Jahreswerte gegen RhiresD an derselben Zelle | offen (Quelle erst freigeben) |
@@ -1020,7 +1021,19 @@ Erster Blick 23.11. 20:38 UTC (vor diesem Lauf): der Job des Crons 20:20 UTC lie
 
 Zurück: die Zeile `GLACIER_SNOWPACK` im Workflow entfernen oder auf `off` setzen. Der Lauf schreibt dann nichts mehr unter `snowpack/`, die Laufdokumente verschwinden nach 72 h, der Zustand bleibt liegen und wird nicht gelesen.
 
-Nicht geprüft: ob der Zustand auf dem Runner nach mehreren Läufen in Folge richtig fortgeschrieben wird (lokal einmal mit +6 h belegt, §3f.5) — das zeigt der zweite Lauf; das Protokoll des Jobs selbst (gelesen sind Statuszeile, Zeiger und Dateien); welche 24 Stunden den 108 Schweizer Gletschern im Startzustand fehlen.
+**Zweiter Lauf: `2026112405`, 24.11. 05:24 UTC — der Zustand ist fortgeschrieben.** Gelesen 05:33 UTC am Commit `703619c6` des Daten-Repos, nur lesend; Vertragscode von `dc982141` (der Lauf begann vor dem Push von `019ab63c` um 05:27 UTC). Werkzeug und Dateien: `C:\dev\buscosun-glacier-cache\gm3c-snowpack\run-2026112405\` (`check.mjs` → `check.json`).
+
+| | Lauf `2026112405` |
+|---|---|
+| `lines.snowpack.state` | `source: carried`, `ageH 6`, **`replayedH 6`**, `started 0`, `gaps` 2 084 / max 30 — wie erwartet |
+| Stunden ohne Antrieb | an keinem der 2 084 Gletscher mehr als im Lauf davor (6 an 1 976, 30 an 108): **keine neuen Lücken** |
+| `snowpackProblems` / `snowpackStateProblems` | 0 / 0 Befunde; 2 084 Zeilen, 10 übersprungen (`elevations`), 6 s, 1 270 302 und 1 735 778 Bytes |
+| Zustand | Stand 05:00 UTC, `source: run`, 2 084 Einträge, jeder mit 18 h Antrieb |
+| Nachrechnen gegen den gespeicherten Antrieb | Änderung des Wasserwerts in der Medianhöhe minus fester Niederschlag der sechs gespeicherten Stunden: an **2 084 von 2 084** Gletschern innerhalb 1 mm (p10 / Median / p90 0 / 0 / 0) — der Lauf ist genau den Weg gegangen, den der vorige gespeichert hat |
+| Was sich bewegt hat (Medianhöhe, Median) | Wasserwert AT +0,1 mm, CH +0,1 mm (p90 +0,5), DE 0; Schneehöhe AT −0,6 cm, CH −1,4 cm, DE −0,9 cm (Setzung); Neuschnee 24 h CH 14,9 cm (vorher 25,2: das Fenster wandert) |
+| Schmelzlauf im selben Lauf | 144 s (vorher 175 s) |
+
+Nicht geprüft: das Protokoll des Jobs selbst (gelesen sind Statuszeile, Zeiger und Dateien); welche 24 Stunden den 108 Schweizer Gletschern im Startzustand fehlen; ein Lauf mit anderem Abstand als 6 Stunden.
 
 ## 3g. GM-3d: Zustand des Schmelzlaufs an der Laufstunde (V-GM-32; 23.11. abends)
 
@@ -1166,6 +1179,8 @@ Nicht geprüft: kein Lauf auf dem Runner; nur eine Wetterlage (21./22.11., kaum 
 | Vorlage nachgezogen | `scripts/glacier/gen-workflows.py` + erzeugte `workflow-glacier-melt.yml` (uncommitted) | `verify:glacier-publish` 34/34 |
 
 **Erster Lauf mit beiden Schaltern: `2026112323`, 23.11. 23:23 UTC — wie erwartet.** Gelesen 23:37 UTC am Commit `326b1a3c` des Daten-Repos (Sonde und Dateien wie in §3f.8). `lines.melt.state: run-hour`; Schmelzdokument `state` = `carried`, `ageH 0`, `nudged 307`, `mode run-hour`, `replayedH 0`, `held 0`; 2 094 Gletscher, 0 übersprungen. Kachel „Fläche ohne Schneedecke“: Mittel 2,3 %, 0 % an 1 785 von 2 094 — an keiner der 2 094 Zeilen anders als im Lauf 17 UTC. `melt/state.json`: 621 563 Bytes (vorher 212 692), Stand 23:00 UTC = Laufstunde, 2 094 Gletscher, `pend.h 18`, 957 Antriebsgeber, 1 137 zugeordnet, jede Reihe 18 Stunden, Frostgrenze `null` an 17 214 von 17 226 Werten (V-GM-46); `meltStateProblems` 0 Befunde (Vertragscode von `dc982141`). Belegt ist damit der Übergang von der alten zur neuen Form auf dem Runner. **Nicht belegt:** das Nachrechnen selbst (`replayedH` > 0) — das zeigt erst der nächste Lauf; und der Fall, für den GM-3d gebaut ist (ein Lauf 3 Stunden nach dem vorigen), erst wenn er vorkommt.
+
+**Zweiter Lauf: `2026112405`, 24.11. 05:24 UTC — das Nachrechnen ist belegt.** Gelesen 05:33 UTC am Commit `703619c6` (Werkzeug wie §3f.8, zweiter Lauf). Schmelzdokument `state` = `carried`, `ageH 0`, `mode run-hour`, **`replayedH 6`**, `held 0`, `nudged 251`; 2 094 Gletscher. Kachel „Fläche ohne Schneedecke“: an keiner der 2 094 Zeilen anders als im Lauf 23 UTC (Mittel 2,3 %, 0 % an 1 785). `melt/state.json`: 618 539 Bytes, Stand 05:00 UTC, `pend.h 18`, 957 Antriebsgeber, 1 137 zugeordnet; `meltStateProblems` 0 Befunde. **Weiter nicht belegt:** der Fall, für den GM-3d gebaut ist (ein Lauf 3 Stunden nach dem vorigen) — beide Abstände bisher waren 6 Stunden; er zeigt sich, wenn er vorkommt (`replayedH 3` statt eines verworfenen Zustands).
 
 Vor dem Lauf erwartet: der Lauf liest die Zustandsdatei alter Form nach der alten Regel (sie steht bei 23:00 UTC ⇒ übernommen, Alter 0, nichts nachgerechnet) und schreibt die neue. Zu lesen: `lines.melt.state: run-hour` in `status.json`; im Schmelzdokument `state` = `carried`, `ageH 0`, `mode run-hour`, `replayedH 0`, `held 0`; `melt/state.json` um 0,6 MB mit `pend` (18 Stunden, um 957 Antriebsgeber) und `atMs` = Laufstunde. Ab dem Lauf danach nennt `replayedH` den Abstand in Stunden. Schneedecke und Schmelzzustand werden damit im selben Lauf zum ersten Mal scharf; beide Schritte sind getrennt abgesichert (ein Fehler der Schneedecke hält den Schmelzlauf nicht auf; ein unbekanntes Wort am Zustandsschalter bricht den Lauf vor dem Lesen ab).
 
@@ -1409,6 +1424,221 @@ Nicht geprüft: kein Lauf auf dem Runner; die Paare nur mit den Slots vom 21.11.
 | V-GM-58 | Die Wirkung von `once` ist am echten Katalog nicht gemessen: in der einzigen lokal nachstellbaren Kette (21.11. 23 → 02 UTC) fiel nichts, was der Abgleich hätte löschen können. Mehrwert: ein Beleg, wie oft die Kachel „Fläche ohne Schneedecke“ heute nach einem Schneefall wieder springt. Skizze: nach dem Einschalten die Zählung `state.sat` gegen `nudged` an Läufen nach einem Schneefall lesen, oder den Cube eines Schneefall-Tags lokal nachstellen | offen |
 | V-GM-59 | In `verify:glacier-melt` heißt der Vergleich von Laufergebnissen in Block I `same()` — auf einfache Werte angewandt ist er immer wahr (`undefined === undefined`). Block J lief zuerst so und war an drei Stellen blind; die Gegenprobe fand es. Mehrwert: kein grüner Prüfer, der nichts prüft. Skizze: den Laufvergleich in `sameRun()` umbenennen und für Werte überall einen eigenen Vergleich nehmen; ältere Blöcke daraufhin durchsehen | offen (Block J behoben) |
 
+## 3i. GM-5: Verteilung, Szenarien und Spannen (23./24.11.)
+
+Die Diagnose steht vollständig in `audit/gletscher-schneemodell/gm5-diagnose.md` (Messregel `gm5-method-frozen.md`, Werkzeuge `gm5-*.mjs`); hier das Ergebnis, Jans Entscheidungen, die Kostenmessung und der Bauplan.
+
+### 3i.1 Ergebnis der Diagnose
+
+- **Verteilung aus Sentinel-2: die Daten tragen sie nicht.** Die Saisonzeilen haben je Szene eine Schneegrenze, kein Feld je Höhenband; daraus folgt nur die Höhenfolge (205 von 205 Saisons). Der Zuschlag gewinnt −0,2 % gegen „linear zwischen drei Höhen“ an 300 Gletscherwintern (Urteil des Skripts: „trägt nicht“, gleichauf mit der Negativkontrolle).
+- **Eine beständige Verteilung je Stufe gibt es:** die Stufenwerte von GLAMOS/WGMS sagen sie aus anderen Wintern mit 21 % weniger Formfehler voraus (CH 24 %, AT 6 %) — für die 44 vermessenen Gletscher.
+- **Spannen:** die Schneedecke hat keine. Größte Unsicherheit ist der Faktor (σ_lnF 0,25 ⇒ ×0,73 … ×1,37, systematisch); die Neuschneedichte ist überwiegend zufällig je Ereignis (σ 0,32), zu rund einem Drittel systematisch (σ 0,12).
+- **Zweite Woche (V-GM-41):** der Erwartungswert meldet an 99,98 % der Tage Neuschnee; im Wetterteil ist an 97 % dieser Tage „kein Schneefall“ das untere Ende der Szenarien.
+
+### 3i.2 Jans Entscheidungen (24.11.)
+
+| Nr. | Entschieden |
+|---|---|
+| E-GM-30 | Verteilung aus Sentinel-2 **nicht bauen**; die Erweiterung der Satellitenlinie je Band bleibt eine Idee (V-GM-71) |
+| E-GM-31 | Verteilung je Band aus den Stufenwerten, 44 Gletscher, im Schmelzlauf hinter Schalter — **ja, in EINER Eichrunde mit E-GM-9 (Faktor je Gletscher: ja), E-GM-10 (Winterschmelze wie im Betrieb, ETI) und E-GM-11 (`inca-v1-1h-1km` bestätigt)** |
+| E-GM-32 | Szenarien der Schneedecke: **erst die Kosten messen, dann bauen** (§3i.3) |
+| E-GM-33 | „Jetzt“: **keine Spanne je Zeile**, im Kopf EIN Paar „Unsicherheit des Faktors ×0,73 … ×1,37, nicht nachgemessen“ |
+| E-GM-34 | Zweite Woche: **Tage 8–14 als EINE Summe mit p10–p90** |
+| E-GM-35 | 1 127 Nachbar-Gletscher: **benannt „ohne Spanne“** |
+
+Jans Auftrag vom 24.11. morgens: eigenständig weiter — Messung auswerten, Spannen bauen (hinter Schalter, aus; Vertrag, Prüfer, Byte-Gleichheit ohne Schalter am vollen lokalen Lauf, Gegenprobe), danach die Eichrunde (zuerst Diagnose und eingefrorene Regel). Kein Commit, kein Push, kein Workflow, nichts im Daten- oder Archiv-Repo.
+
+### 3i.3 Kostenmessung (E-GM-32) — Werkzeug `gm5-cost.mjs`, Nachtrag zur Messregel `gm5-method-frozen-b2.md`
+
+Das Werkzeug rechnet die Szenarien eines Gletschers in dem Augenblick, in dem der Producer der Kopie `dc982141` seinen Schneedecken-Schritt aufruft, und behält nur Quantile und Zeiten. Probelauf an 12 Gletschern (9 eigene, 3 Nachbarn): fehlerfrei, das Nachrechnen des Erwartungswerts stimmt an 12 von 12 mit der Zeile des Producers überein.
+
+| Lauf | Start (UTC) | Ende | Was er zeigt |
+|---|---|---|---|
+| 1 | 24.11. 05:23 | **von mir gestoppt** bei 600 von 2 084 Gletschern | Prozess von 1 065 MB (400) auf 2 387 MB (600), Maschine mit 3 GB frei. Zwischenstand, keine Messung: K = 40 kostet das 20,2-Fache des Erwartungswert-Schritts |
+| 2 | 05:36, Grenze 1 700 MB (von mir gesetzt) | **Abbruch „heap out of memory“** kurz nach 800 Gletschern | nach vollständigem Aufräumen hält der Prozess bei 800 Gletschern 1 456 MB (rund 1,8 MB je Gletscher mit eigenem Antrieb); Zwischenstand K = 40: das 18,8-Fache. Der Producer hält die Antworten aller Gletscher mit eigenem Antrieb selbst (`forcings` in `melt.mjs`) — ob die 1,8 MB ihm gehören oder der Messung, klärt der Vergleichslauf |
+| Vergleich | 05:56, Grenze 3 072 MB, `--baseline` | 06:04, durchgelaufen (612 s) | derselbe Producer, derselbe Haken, kein Szenario → `gm5-cost-baseline.json` |
+| 3 | 06:04, Grenze 3 072 MB | 06:20, durchgelaufen (951 s) | **die Messung** → `gm5-cost.json` (Regel sha256 `a9964eb9…`, Nachtrag `e70c6eb8…`) |
+
+**Ergebnis (Lauf 3; alle 2 084 Gletscher, davon 957 mit eigenem Antrieb; Lauf `2026112117`, eine Wetterlage; Maschine unter Last):**
+
+| Frage | Messung |
+|---|---|
+| Rechnet das Werkzeug dasselbe wie der Producer? | ja: der Erwartungswert-Schritt des Werkzeugs gegen die Zeile des Producers im selben Lauf — an **2 084 von 2 084** Gletschern keine Abweichung (`hsd`, `hnd`, Medianhöhe) |
+| **Zeit** | ein Szenario kostet das **0,47-Fache** eines Erwartungswert-Schritts (7,2 ms je Gletscher auf dieser Maschine). K = 10 / 20 / 40: das 5,0- / 9,6- / 18,8-Fache; in Sekunden für alle 2 084 Gletscher 75 / 144 / 282 s (Erwartungswert 15 s; zweiter Durchgang 0,88 des ersten). Die Zwischenstände der abgebrochenen Läufe lagen bei 20,2 und 18,8 |
+| **Speicher über den Producer hinaus** | **keiner messbar.** Gehalten nach vollständigem Aufräumen, Vergleichslauf / Messung, bei 200 … 2 000 Gletschern: 93/95 · 132/131 · 410/414 · **1 463/1 468** · 172/180 · 190/203 · 250/265 · 252/268 · 254/272 · 256/275 MB; höchster Speicher des Prozesses 2 804 / 2 790 MB |
+| Was den Speicher hält | **der Producer selbst**, vorübergehend: zwischen dem 600. und dem 1 000. Gletscher (solange Gletscher mit eigenem Antrieb gerechnet werden) steigt das Gehaltene auf knapp 1,5 GB und fällt danach auf 0,2 GB. An der Grenze 1 700 MB bricht schon der Producer ab (Lauf 2). Was genau gehalten wird, ist nicht untersucht (V-GM-81) |
+| **Wie viele Szenarien** (§B.4, 209 Gletscher, Referenz K = 100) | Abweichung der Spannenbreite von der Referenz, Median: K = 10 **30 %**, K = 20 **22 %**, K = 40 **16 %** (p90 58 / 47 / 36 %). **Urteil des Skripts: keines der drei reicht** (Grenze 10 %) |
+| Breite der Spanne p10–p90, K = 40, Medianhöhe, Median über die Gletscher | Schneehöhe Tag 1 / 7 / 14: **14 / 47 / 60 cm** (erwartet an Tag 14: 124 cm ⇒ Breite 0,48 des Werts); Neuschnee des Tages 21 / 2 / 6 cm; an Zunge und Oberkante fast gleich |
+| Zerlegung (§B.5, 209 Gletscher), Schneehöhe Tag 1 / 7 / 14 | alle Quellen 14 / 48 / 60 cm · nur Niederschlag und Temperatur 13 / 45 / 57 cm · nur Faktor und Dichte 4 / 15 / 22 cm — **die Vorhersage-Spanne kommt überwiegend aus dem Wetter, nicht aus dem Faktor** |
+| V-GM-41, Tage 8–14, 14 588 Gletscher-Tage | Erwartungswert ≥ 0,5 cm an **99,98 %**; p10 der Szenarien ≥ 0,5 cm an **13 %**; Median ≥ 0,5 cm an **19 %**; p90 ≥ 0,5 cm an 96 % — an 87 % der Tage ist „kein Schneefall“ das untere Ende, an 81 % zeigt selbst das mittlere Szenario keinen |
+| Summe Tage 8–14 (E-GM-34), Medianhöhe, Median über die Gletscher | Summe der Erwartungswerte **26 cm**; Szenario-Summen p10 / Median / p90 **1 / 10 / 57 cm**. Der Erwartungswert liegt weit über dem mittleren Szenario (schiefe Verteilung) und an 99 % der Gletscher innerhalb der Spanne |
+| Größe mit p10/p90 für `hsd` und `hnd` an ALLEN Gletschern | 1,25 → 2,88 MB roh (+129 %), 0,31 → 0,75 MB gepackt (**+142 %**) — die Schätzung der Diagnose (+31 % gepackt) war falsch, sie hatte die Erwartungswerte als Platzhalter gepackt (V-GM-83) |
+
+**Lesart (meine, nicht vom Skript):**
+- **K:** das Urteil „keines reicht“ steht. Die Grenze von 10 % war mit einer Referenz von nur 100 Szenarien aber nicht erreichbar: die Referenz streut selbst um rund 9 % (die gemessenen 30 / 22 / 16 % folgen dem 1/√K-Gesetz zweier unabhängiger Schätzungen). Mit K = 40 schwankt die Breite der Spanne von Lauf zu Lauf um rund ein Sechstel, mit K = 100 nach demselben Gesetz um rund ein Zehntel — das ist nicht gemessen. **Gebaut wird mit K = 100, der Zahl des Wetterteils** (V-GM-82).
+- **Zeit auf dem Runner — Schätzung, keine Messung:** gebaut wird die Spanne nur für die 957 Gletscher mit eigenem Antrieb (E-GM-35). Das sind hier mit K = 100 rund 325 s, mit K = 40 rund 130 s. Der Schneedecken-Schritt läuft auf dem Runner in 6–7 s, hier ohne Last in 9 s und in dieser Messung in 15 s; damit auf dem Runner grob **2–2½ Minuten mit K = 100** (heute dauert der ganze Schmelzlauf dort 144 s), rund 1 Minute mit K = 40. Messen lässt es sich erst mit dem Schalter auf dem Runner (E-GM-36).
+- **Speicher:** der Szenario-Schritt braucht keinen eigenen. Dass der Producer allein vorübergehend 1,5 GB hält, ist ein Befund am Betrieb, nicht an GM-5.
+
+Nicht gemessen: eine zweite Wetterlage; K = 100 gegen eine größere Referenz; Zeit und Speicher auf dem Runner; die Spanne gegen Messungen (dafür braucht es die Schattenpaare, V-GM-79).
+
+| Nr. | Befund | Mehrwert · Skizze |
+|---|---|---|
+| V-GM-81 | Der Producer hält, solange er Gletscher mit eigenem Antrieb rechnet, vorübergehend knapp 1,5 GB (gemessen nach vollständigem Aufräumen bei Gletscher 800), danach 0,2 GB; an einer Grenze von 1 700 MB bricht er ab. Wie viel Luft der Runner hat, weiß niemand | kein roter Schmelzlauf, wenn der Katalog oder die Antworten wachsen · den Höchstwert des Speichers je Lauf in die Statuszeile schreiben (`lines.melt.rssMb`), dann die Ursache suchen (Zwischenspeicher des Cube-Lesers?) |
+| V-GM-82 | Die Messregel §B.4 verglich gegen eine Referenz mit nur 100 Szenarien und verlangte 10 %: nicht erreichbar, die Referenz streut selbst so viel | richtige Urteile in künftigen Runden · Referenz mindestens zehnmal so groß wie das größte geprüfte K, oder die Streuung der Breite aus wiederholten Läufen mit anderem Startwert messen |
+| V-GM-83 | Die Größenschätzung der Diagnose (+31 % gepackt) nahm Erwartungswerte als Platzhalter für die Quantile; echte Quantile packen schlechter (+142 %) | richtige Zahlen für Jan · Größen nur mit echten Werten messen |
+
+**E-GM-36 (für Jan, nach dem Bau):** Einschalten der Spannen auf dem Runner — mit K = 100 (rund 2–2½ Minuten mehr je Lauf, geschätzt) oder K = 40 (rund 1 Minute, Breite der Spanne schwankt um ein Sechstel). Empfehlung: K = 100 einschalten und die Laufzeit in der Statuszeile lesen; der Rückfall ist eine Zeile im Workflow.
+
+### 3i.4 Bauplan GM-5a — Spannen der Schneedecke (hinter Schalter, aus)
+
+- **Schalter:** `--snowpack-spread=off|scenarios` / `GLACIER_SNOWPACK_SPREAD`, Voreinstellung `off`, gelesen nur mit `--snowpack=shadow`. Aus = kein Szenario wird gerechnet, jede Datei Byte für Byte wie heute (Beweis am vollen lokalen Lauf, mit Gegenprobe „an“ ⇒ nur das Schneedecken-Dokument und die Statuszeile unterscheiden sich).
+- **Ein Szenario** (Regel wie gemessen, §B.2 der Messregel, dazu der Ereignisteil der Dichte, V-GM-74): ein Niederschlagspfad und ein Temperaturpfad (AR(1), ρ 0,9 je Stunde, unabhängig; Niederschlag als Quantil der Verteilung der Antwort von buscosun Fusion, Schneeanteil über die Regelfunktionen des Wetterteils auf der verschobenen Temperatur, „unten nie mehr als oben“); fest je Szenario der Faktor (σ 0,25) und der systematische Teil der Dichte (σ 0,12); je Vorhersagetag neu der Ereignisteil der Dichte (σ 0,30 = √(0,32² − 0,12²)). Alle σ `measured` aus den Berichten von GM-3, als benannte Konstanten im Vertrag. Startwert je Gletscher aus Lauf und Kennung ⇒ ein Lauf ist wiederholbar.
+- **Dokument** (`snowpack/<lauf>.json`, nur mit Schalter): `rules.spread` = Regelblock statt `'none'` (K, ρ, die σ mit Herkunft); je Zeile eines Gletschers mit eigenem Antrieb `hsq` und `hnq` (p10 und p90 je Höhe und Tag — Quantile der Szenario-Werte) und `hnw` (Summe des Neuschnees der Tage 8–14 je Höhe: p10, Median, p90 der Szenario-SUMMEN, E-GM-34); Nachbar-Zeilen tragen `sq: 'neighbour'` und keine Spanne (E-GM-35), im Kopf gezählt; im Kopf `now.factor` = { p10 0,73, p90 1,37, Herkunft, „nicht nachgemessen“ } (E-GM-33). Die Erwartungswerte bleiben unverändert in ihren Feldern.
+- **Der Zustand ändert sich nicht** (alle Szenarien starten aus derselben Schneedecke der Laufstunde).
+- **Speicher:** je Gletscher rechnen und verwerfen; behalten werden nur die Quantile.
+- **Vertrag** `glacierSnowpackContract.ts`: beide Formen gültig; mit Regelblock: Zeilen mit eigenem Antrieb tragen alle drei Felder, Nachbarn keins; p10 ≤ p90, nichts negativ, Zählung im Kopf = Zeilen.
+- **Prüfer** `verify:glacier-snowpack`, neuer Block: Regel und Vertrag; aus = Zeile wie ohne den Code; zweimal gerechnet = gleich; K = 1 ohne Streuung = Erwartungswert; Summenregel (Spanne der Summe ≠ Summe der Tages-Quantile); Nachbarn ohne Spanne. **Gegenprobe** `gm5-mutations.mjs` mit eingebauten Fehlern.
+- **Nicht in GM-5a:** die Anzeige (GM-7), die Spanne in den Schattenpaaren (V-GM-79), das Einschalten auf dem Runner (Jans Entscheidung nach der Messung von Zeit und Speicher).
+
+### 3i.4a Umsetzung GM-5a (24.11., uncommitted, Schalter aus)
+
+| Teil | Wo | Was |
+|---|---|---|
+| Vertrag | `src/glacier/glacierSnowpackContract.ts` | `GLACIER_SNOWPACK_SPREAD_RULE` (K 100, ρ 0,9, σ Faktor 0,25 / Dichte fest 0,12 / Dichte je Tag 0,30, Summe der Tage 8–14, p10/p90), `GLACIER_SNOWPACK_NOW_FACTOR` (×0,73 … ×1,37, `verified: false`), Zeilenfelder `hsq`, `hnq`, `hnw`, Vermerk `sq` (`neighbour` \| `no-distribution`), Kopf `spread` (Zählung) und `now.factor`; `snowpackProblems` nimmt beide Formen und meldet Spannen-Angaben ohne Regel |
+| Kern | `scripts/glacier/lib/snowpackcore.mjs` | Schalterwort `snowpackSpreadModeOf` (`SNOWPACK_SPREAD_DEFAULT = 'off'`), `spreadOfGlacier` — K Szenarien aus derselben Schneedecke der Laufstunde, die unberührt bleibt; rein (kein Netz, keine Datei, kein buscosun Fusion) |
+| Niederschlagsstufe | `scripts/glacier/lib/weathercore.mjs` | `precipAmountOf` — die Regel, die `sumSpreads` in seiner Schleife anwendet, als eigene Funktion; `sumSpreads` selbst ist nicht angefasst (V-GM-84) |
+| Producer | `scripts/glacier/melt.mjs` | `--snowpack-spread=off\|scenarios` / `GLACIER_SNOWPACK_SPREAD`, gelesen nur mit der Schneedecke; Spanne nur an Zeilen mit eigenem Antrieb und Verteilung, sonst Vermerk; `rules.spread`, Kopf, Statuszeile `lines.snowpack.spread` { k, rows, none, seconds }; `opts.spreadRule` nur als Naht des Prüfers |
+| Prüfer | `scripts/verify-glacier-snowpack.mjs`, Block I | I1 … I13 (Schalter und festgeschriebene Regel; Niederschlagsmenge von Hand; Szenario ohne Streuung = Erwartungswert in Kern und Producer; jede Quelle wirkt für sich; Quantil-Stufe; Summenregel; wiederholbar; aus = dieselben Bytes; an = nur Dokument und Statuszeile; Nachbarn und Antworten ohne Verteilung ohne Spanne; eigene Pfade je Gletscher und Lauf; Zeilen ohne drei Antworten unter „psnow“; 34 + 4 Negativkontrollen des Vertrags) |
+| Gegenprobe | `audit/gletscher-schneemodell/gm5-mutations.mjs` | 47 eingebaute Fehler in Kern, Producer, Vertrag und Niederschlagsstufe |
+
+Stand der Prüfer nach dem Bau: `verify:glacier-snowpack` **54/54**, `-melt` 68/68, `-weather` 41/41, `-snowcore` 24/24, `-snowcal` 37/37, `-publish` 34/34, Typecheck grün. Probelauf des Producers an 12 Gletschern: mit Schalter ist das Dokument ohne die Spannen-Felder Byte für Byte das ohne Schalter.
+
+### 3i.4b Messung am vollen lokalen Lauf (24.11.)
+
+Drei Läufe nacheinander auf derselben Lesesicht (Katalog `20261120-1`, Cube vom 21.11., Uhr 21.11. 17:50 UTC, `--snowpack=shadow`, Startzustand `seed-1121`): der committete Stand `019ab63c` (aus `git archive`), der Arbeitsbaum ohne Schalter, der Arbeitsbaum mit `--snowpack-spread=scenarios`. Werkzeuge `C:\dev\buscosun-glacier-cache\gm5\build\full-runs.sh` und `compare.mjs` → `compare.json`.
+
+| Vergleich | Ergebnis |
+|---|---|
+| committeter Stand gegen Arbeitsbaum **ohne Schalter** | **32 von 32 Dateien des Ausgabebaums Byte für Byte gleich** (Schmelzdokument und -zustand, Wetterdokumente und Stunden-Chunks, Schneedecke und ihr Zustand); Zeiger gleich, Statuszeile gleich (ohne die Laufzeiten) |
+| ohne Schalter gegen **mit Schalter** (Gegenprobe: der Vergleich merkt Unterschiede) | 31 von 32 gleich; **nur `snowpack/2026112117.json` ist anders**. Ohne die Spannen-Felder (`hsq`, `hnq`, `hnw`, `sq`, Kopf `spread`/`now`, Regel) ist es Byte für Byte das Dokument ohne Schalter; der Zustand ist gleich; die Statuszeile unterscheidet sich nur um `spread` und `bytes` |
+| Zeilen | 957 mit Spanne (eigener Antrieb), 1 127 mit Vermerk `neighbour`, 0 `no-distribution`; Vertrag ohne Befund |
+| **Zeit** | Spannen 233 s für 957 Gletscher mit K = 100 (243 ms je Gletscher); der Schneedecken-Schritt ohne Spanne brauchte in den drei Läufen 17–20 s, der ganze Lauf 329 / 474 / 524 s (Maschine unter wechselnder Last — die Läufe untereinander sind nicht vergleichbar) |
+| **Größe** | Dokument 1,25 → 2,07 MB roh (+65 %), 0,31 → 0,54 MB gepackt (+74 %); der Zustand unverändert |
+| Breite p10–p90 der Schneehöhe, Medianhöhe, Median über 957 Gletscher | Tag 1 / 7 / 14: **18 / 53 / 64 cm** (die Messung in §3i.3 ohne den Tagesteil der Dichte und mit K = 40: 14 / 47 / 60) |
+| Summe Tage 8–14, Medianhöhe, Median | Erwartungswerte 26 cm; Szenario-Summen p10 / Median / p90 **1 / 10 / 61 cm** |
+| Erwartungswert außerhalb der Spanne (Schneehöhe Tag 14, Medianhöhe) | an 0 von 957 Gletschern |
+
+**Wiederholt am endgültigen Code** (nach dem Umbau der Zeilen ohne drei Antworten in die Kernfunktion `shiftLevels`, 24.11. 07:28 UTC): Arbeitsbaum ohne Schalter gegen den committeten Stand wieder **32 von 32 Dateien gleich**, mit Schalter wieder nur das Schneedecken-Dokument anders, dessen Bytes dieselben wie im ersten Durchgang (2 072 978); Spannen 173 s bei 9 s für den Schritt ohne Spanne (weniger Last als im ersten Durchgang).
+
+**Zeit auf dem Runner, neu geschätzt (keine Messung):** der Schritt ohne Spanne läuft dort in 6–7 s, hier in 9 bzw. 17–20 s, die Spannen in 173 bzw. 233 s; im selben Verhältnis wären sie dort rund **1½ bis 2 Minuten** (K = 40: 40 Sekunden bis knapp 1 Minute). Die Schätzung in §3i.3 (2–2½ Minuten) ging vom Messwerkzeug aus, das auch die Nachbarn rechnete.
+
+`npm run build` grün (281/281), Budget unverändert (totalJs 2 118,1 / 2 121 KB — keine Seite liest das Produkt).
+
+### 3i.4c Gate GM-5a (24.11.)
+
+| Prüfung | Ergebnis |
+|---|---|
+| `verify:glacier-snowpack` | **56/56** (Block I: I1, I1b, I2, I3, I4, I4b, I4c, I4d, I5, I6, I7 … I13) |
+| übrige Prüfer | `verify:glacier-melt` 68/68, `-weather` 41/41, `-snowcore` 24/24, `-snowcal` 37/37, `-publish` 34/34 |
+| `npm run typecheck`, `npm run build`, `npm run budget` | grün; 281/281; totalJs 2 118,1 / 2 121 KB unverändert (unter `src/` ist nur der Vertrag geändert, keine Seite importiert ihn) |
+| Byte-Gleichheit ohne Schalter, voller lokaler Lauf | 32 von 32 Dateien gleich dem committeten Stand, am endgültigen Code wiederholt (§3i.4b) |
+| Gegenprobe des Vergleichs | mit Schalter ist genau eine Datei anders (das Schneedecken-Dokument), und ohne die Spannen-Felder ist sie Byte für Byte die ohne Schalter |
+| Gegenprobe des Prüfers, `gm5-mutations.mjs` | **Runde 1: 42 von 47 bemerkt.** Übersehen: (1) Pfade ohne Gedächtnis — keine Prüfung hing an der stündlichen Korrelation ⇒ I4c; (2) bei Zeilen ohne drei Antworten „unten mehr Schnee als oben möglich“ — im Producer nicht prüfbar ⇒ die Rechnung dieser Zeilen in die Kernfunktion `shiftLevels` gezogen und von Hand geprüft (I4d); (3–5) drei Vertrags-Verletzungen (Spanne an einer Nachbar-Zeile, unbekannter Vermerk, „neighbour“ an einer eigenen Zeile), die in meinen Negativkontrollen nur die Zählung im Kopf mit abfing ⇒ jede Kontrolle so gestellt, dass nur ihre eigene Regel sie melden kann. **Runde 2: 49 von 50 bemerkt**, Prüfer danach grün (`gm5-mutations.json`). Übersehen: „Anteil über 1 möglich“ (mein Handbeispiel ließ die Obergrenze von der Ordnung verdecken); und fünf wurden nur als Abbruch des Prüfblocks bemerkt, nicht als benannte Prüfung (fehlt das Dokument, warf der Block) ⇒ Handbeispiel geschärft, Prüfungen gegen ein fehlendes Dokument gesichert, Block umbenannt. **Diese sechs einzeln wiederholt: 6 von 6 bemerkt, keiner als Abbruch** (`gm5-mutations-rerun.json`). Die volle Runde ist nach dieser letzten Härtung nicht noch einmal gelaufen |
+| Runner | nicht gelaufen: der Schalter ist aus, nichts ist gepusht |
+
+Die fünf Fragen: (1) Funktionserhalt — ohne Schalter jede Datei des vollen Laufs Byte für Byte wie vorher, alle Prüfer grün; (2) Desktop pixelgleich, (3) Touch-Flächen, (4) Konsole, (5) Long Tasks — keine Anzeige liest das Produkt, unter `src/` ist nur der Vertrag der Schneedecke geändert (Build und Budget unverändert).
+
+Nicht geprüft: kein Lauf auf dem Runner (Zeit und Speicher dort sind geschätzt bzw. unbekannt, V-GM-81); eine zweite Wetterlage; die Spanne gegen Messungen — ob 80 % der gemessenen Änderungen in p10–p90 liegen, zeigt erst der Vergleich mit den Schattenpaaren (V-GM-79, E-GM-24); K = 100 gegen eine größere Referenz (V-GM-82); kein Browser.
+
+| Nr. | Befund | Mehrwert · Skizze |
+|---|---|---|
+| V-GM-84 | Die Regel „Niederschlag einer Stunde auf der Stufe eines Szenarios“ steht jetzt zweimal im Wetterkern: in `sumSpreads` (unverändert, damit kein Byte des Wetterteils wandert) und als `precipAmountOf` für die Schneedecke | eine Regel an einer Stelle · `sumSpreads` auf `precipAmountOf` umstellen und am vollen Lauf Byte für Byte beweisen |
+| V-GM-92 | Die Spannen der Schneedecke und die des Wetterteils (`snq`, mm Wasser) ziehen eigene Pfade: am selben Gletscher und Tag können „Neuschnee-Wasser p90“ und „Neuschnee cm p90“ aus verschiedenen Szenarien stammen | stimmige Zahlen nebeneinander in der Anzeige (GM-7) · denselben Startwert und dieselben zwei Pfade in beiden Rechnungen ziehen, oder die Anzeige zeigt nur eine der beiden Spannen |
+| V-GM-93 | Der Erwartungswert des Neuschnees eines Tages liegt in der zweiten Woche oft ÜBER dem p90 der Szenarien (schiefe Verteilung: wenige Szenarien mit viel Schnee tragen den Mittelwert) | keine Anzeige, die einen Wert außerhalb seiner eigenen Spanne zeigt · in GM-7 für Tage 8–14 nur die Summe mit Spanne (E-GM-34), nie Tageswert neben Tagesspanne |
+
+**Gate GM-5a: gebaut und geprüft, Schalter aus, uncommitted. Für Jan: Commit/Push und E-GM-36 (Einschalten mit K = 100 oder K = 40), MANUELLE-SCHRITTE §122.**
+
+### 3i.5 Plan GM-5b — Eichrunde (E-GM-31 mit E-GM-9, E-GM-10, E-GM-11)
+
+Eigenes Paket nach GM-5a: zuerst Diagnose und eingefrorene Regel (Mindestzahl Winter, Schrumpfung des Faktors je Gletscher zum Landeswert, Form je Band mittelwertfrei, Winterschmelze mit dem ETI-Ansatz des Betriebs, ein Winter jeweils ausgelassen), dann Tabellen, danach `corr[b]` und der Faktor je Gletscher im Schmelzlauf hinter Schalter (aus). Für die übrigen rund 2 050 Gletscher die benannte Regel „kein Zuschlag, Landeswert“. **Ausgeführt am 24.11.: §3j.**
+
+## 3j. GM-5b: Eichrunde 2 — Faktor je Gletscher und Form je Band, Winterschmelze wie im Betrieb (24.11.)
+
+Diagnose, Stand und alle Zahlen: `audit/gletscher-schneemodell/gm5b-diagnose.md`. Regel: `gm5b-method-frozen.md` (sha256 `c5242e51…`, eingefroren 24.11. 07:26 UTC vor dem ersten Lauf auf echten Wintern; das Werkzeug fand vorher an erfundenen Wintern bekannte Faktoren auf 1,5 % wieder). Bericht: `gm5b-report.json`. Hier das Wesentliche.
+
+### 3j.1 Diagnose
+
+- **„Winterschmelze wie im Betrieb“ (E-GM-10) ist für vergangene Winter nur für Formel und Konstanten erfüllbar:** gerechnet wird mit dem Schmelzkern des Betriebs selbst (`simulate`, Modell `eti`, `TF` 0,12 und `SRF` 0,005455 aus `melt-calibration.json`); Temperatur und Strahlung kommen aber von einer Station — buscosun Fusion gab es in diesen Wintern nicht (V-GM-85). Strahlung: gemessen an derselben Station wie die Temperatur (Schweiz `gre000h0`, lag schon im Zwischenspeicher; Österreich `cglo` aus `klima-v2-1h` nachgeladen, 7 Stationen), mit dem Höhenzuschlag des Klarhimmels des Betriebs; eine Stunde ohne Messung bekommt Klarhimmel × 0,55.
+- Wahrheit, Temperatur und Niederschlag wie in der ersten Runde: 481 nutzbare Gletscherwinter 2012–2025, gewertet 478 an 43 Gletschern mit mindestens vier Wintern. `inca-v1-1h-1km` ist von Jan bestätigt (E-GM-11).
+
+### 3j.2 Ergebnis nach eingefrorener Regel (ein Winter ausgelassen; mm Wasserwert; Urteile vom Werkzeug)
+
+| Variante | Stufenfehler s1 | Winterbilanz s2 | Formfehler s4 |
+|---|---|---|---|
+| V0 Landeswert (der Betrieb heute) | 432,7 | 402,2 | 131,7 |
+| V1 Faktor je Gletscher (E-GM-9) | 281,3 | **233,0** | 132,0 |
+| V2 Faktor + Form je Stufe (E-GM-31) | **249,5** | 233,0 | **73,7** |
+| V3 Landeswert + Form | 411,8 | 402,4 | 76,7 |
+| Negativkontrolle (fremde Form) | 294,7 | 232,9 | 158,5 |
+
+| Urteil | Wert | |
+|---|---|---|
+| K-5 Schmelze des Betriebs gegen Gradtag (Landeswert, LGO-s1) | 432,7 gegen 429,0 | **gleich** |
+| K-6 Faktor je Gletscher | Winterbilanz −42,1 % (p10 −34,6 %) | **trägt** |
+| K-7 Form je Stufe | Formfehler −44,1 % (p10 −39,8 %); die fremde Form verschlechtert um 20 % | **trägt** |
+| K-8 Winterbilanz ≤ 350 mm | 233,0 (Schweiz 204, **Österreich 362**) | erreicht — in Österreich nicht |
+
+Landeswerte mit der Schmelze des Betriebs: Schweiz 1,821, Österreich 2,416 (erste Runde 1,793 / 2,326). Der eigene Faktor ist ohne Schrumpfung am besten (`n₀ = 0`), die Form mit `n₀ˢ = 2`. Die Höhe des Faktors hängt weiter an der Winterschmelze (halbe Schmelze: 1,62 / 2,17 und besser; anderthalbfache: 2,03 / 2,67 und schlechter), und mit der gemessenen Stationsstrahlung trifft die Rechnung schlechter als mit pauschalem Klarhimmel × 0,55 — die Winterschmelze des Betriebs ist eher zu groß (V-GM-89). In Österreich bringt der eigene Faktor wenig (V-GM-90). Mont Collon liegt wieder an der Obergrenze 5 des Suchbereichs: kein Messwert, der Eintrag trägt `atBound` und wird nicht benutzt (Nachtrag nach dem Lauf, ändert kein Urteil).
+
+### 3j.3 Umsetzung (uncommitted, beide Schalter aus)
+
+| Teil | Wo | Was |
+|---|---|---|
+| Strahlung | `scripts/glacier/snowcal-radiation.mjs` | Stationsstrahlung auf dem Stundenraster der Temperaturdateien, nur in den lokalen Zwischenspeicher |
+| Runde | `scripts/glacier/snowcal-fit2.mjs` | Tabellen über den Multiplikator mit dem Schmelzkern des Betriebs, Schätzer mit ausgelassenem Winter, Varianten, Urteile, Empfindlichkeiten, Werte für die Tabelle |
+| Tabelle | `scripts/glacier/snow-calibration-glaciers.json` (aus `snowcal-table2.mjs`), Vertrag und Leser `scripts/glacier/lib/snowcalGlaciers.mjs` | EIGENE Datei — die erste Tabelle bleibt Byte für Byte. 43 Gletscher (Schweiz 35, Österreich 8): Faktor, Zahl der Winter, Form als Stützstellen alle 50 m mit Schrumpfung, Urteile, `gate.factor` / `gate.shape`; Faktor p10 / Median / p90 = 1,38 / 1,97 / 2,91 |
+| Kern | `scripts/glacier/lib/meltcore.mjs` | `simulate` nimmt optional einen Multiplikator je Band (`corr`); ohne ihn jede Zahl wie vorher |
+| Producer | `scripts/glacier/melt.mjs` | `--glacier-factor=off\|on` / `GLACIER_SNOW_GLACIER_FACTOR` und `--glacier-shape=off\|on` / `GLACIER_SNOW_GLACIER_SHAPE`, beide aus, beide nur neben `--precip=country`: ein Gletscher mit Eintrag rechnet mit SEINEM Faktor bzw. verteilt den Zuwachs nach seiner Form (flächengewichtet mittelwertfrei); alle anderen behalten den Wert ihrer Region; das Dokument nennt die Gletscher (`params.precip.glaciers.applied`), die Statuszeile zählt sie (`lines.melt.glacier`). **Die Schneedecke (drei Höhen) liest die Tabelle nicht** (V-GM-86) |
+| Vertrag der Seite | `src/glacier/glacierMeltContract.ts` | nur der Typ des neuen, optionalen Blocks |
+| Prüfer | `verify:glacier-melt` Block K (K1 … K7), `verify:glacier-snowcal` Block H (H1 … H8, H6b, H6c), `verify:glacier-snowpack` I14 | Schalter, aus = dieselben Bytes, Faktor und Form von Hand am Schneezustand, nie ein stiller Rückfall (zehn Abbrüche), Kern von Hand; Tabelle = Funktion des Berichts, Urteile und Schrumpfung aus den Zahlen des Berichts neu gerechnet, 21 Negativkontrollen des Vertrags, Leser von Hand, das Werkzeug an erfundenen Wintern, kein Winter in seiner eigenen Vorhersage; die Schneedecke bleibt unberührt |
+
+Stand der Prüfer nach dem Bau: `verify:glacier-melt` **75/75**, `-snowcal` **47/47**, `-snowpack` **57/57**, `-weather` 41/41, `-snowcore` 24/24, `-publish` 34/34; Typecheck, Build (281/281) grün, Budget unverändert (2 118,1 / 2 121 KB).
+
+### 3j.4 Gate
+
+| Prüfung | Ergebnis |
+|---|---|
+| `verify:glacier-melt` | **75/75** (Block K: K1 … K7) |
+| `verify:glacier-snowcal` | **47/47** (Block H: H1 … H8, H6b, H6c) |
+| `verify:glacier-snowpack` | **57/57** (I14: die Schneedecke bleibt von den zwei Schaltern unberührt) |
+| übrige Prüfer | `-weather` 41/41, `-snowcore` 24/24, `-publish` 34/34 |
+| `npm run typecheck`, `npm run build`, `npm run budget` | grün; 281/281; totalJs 2 118,1 / 2 121 KB unverändert |
+| **Byte-Gleichheit ohne Schalter**, voller lokaler Lauf am endgültigen Arbeitsbaum (GM-5a und GM-5b zusammen) gegen den committeten Stand `019ab63c` | **32 von 32 Dateien gleich**, Zeiger und Statuszeile gleich (`C:\dev\buscosun-glacier-cache\gm5\build\compare2.json`) |
+| **Gegenprobe des Vergleichs:** derselbe Lauf mit `--glacier-factor=on --glacier-shape=on` | 30 von 32 gleich; anders sind genau `melt/2026112117.json` und `melt/state.json`. Das Schmelzdokument unterscheidet sich NUR um den Block `params.precip.glaciers` (42 Gletscher mit eigenem Faktor, 43 mit Form; der eine an der Grenze ohne Faktor) — **keine Zeile des Schmelzindex ist in diesem Winterlauf anders**; im Zustand unterscheiden sich 23 Gletscher, alle aus der Tabelle, keiner außerhalb. Schneedecke, ihr Zustand und alle Wetterdateien sind gleich; die Statuszeile nur um `glacier: { factor: 42, shape: 43 }` |
+| Gegenprobe des Prüfers, `gm5b-mutations.mjs` (46 eingebaute Fehler in Kern, Leser, Vertrag, Producer, Eichwerkzeug, Tabellen-Werkzeug) | **46 von 46 bemerkt**, Prüfer danach grün (`gm5b-mutations.json`). **Vier davon nur als Abbruch des Prüfers**, nicht als benannte Prüfung (Voreinstellung eines Schalters „an“, Tabelle ohne Schalter geöffnet, Dokument ohne die Gletscher: ältere Prüfungen griffen in ein fehlendes Ergebnis) ⇒ zwei Stellen in `verify:glacier-melt` und eine in `-snowpack` gegen ein fehlendes Ergebnis gesichert; diese vier einzeln wiederholt (`gm5b-mutations-rerun.json`): **4 von 4 bemerkt, einer jetzt als benannte Prüfung (K2, K3), drei weiter nur als Abbruch** — bei einer falschen Voreinstellung oder einer ohne Schalter geöffneten Tabelle bricht schon der ältere Block G des Prüfers ab, weil er den Producer ohne Fangnetz aufruft; der Prüfer endet rot mit dem Grund im Fehlertext („… gelten nur mit dem Niederschlagsfaktor country“), aber ohne die Liste der Prüfungen (V-GM-95). Nicht umgebaut |
+| Runner | nicht gelaufen: beide Schalter sind aus, nichts ist gepusht |
+
+Die fünf Fragen: (1) Funktionserhalt — ohne Schalter jede Datei des vollen Laufs Byte für Byte wie am committeten Stand, alle Prüfer grün; (2) Desktop pixelgleich, (3) Touch-Flächen, (4) Konsole, (5) Long Tasks — keine Anzeige liest etwas Neues, unter `src/` sind nur zwei Verträge geändert (Typen und Regeln, Build und Budget unverändert).
+
+Nicht geprüft: kein Lauf auf dem Runner; die Wirkung auf den Schmelzindex außerhalb dieser einen Winterlage (im Lauf vom 21.11. ändert sich keine Zeile — der Unterschied steht erst im Zustand und wirkt, wenn der Schnee schmilzt, V-GM-94); der Winter 2025/26; kein Browser.
+
+**Gate GM-5b: Runde gerechnet (Urteile K-6 und K-7 tragen), Tabelle und Verdrahtung gebaut und geprüft, beide Schalter aus, uncommitted. Für Jan: E-GM-37 vor dem Commit, Commit/Push, E-GM-38 (MANUELLE-SCHRITTE §123).**
+
+### 3j.5 Entscheidungen und Befunde
+
+| Nr. | Frage / Befund | Empfehlung · Skizze |
+|---|---|---|
+| **E-GM-37** | Die Tabelle je Gletscher trägt für 35 Schweizer Gletscher Faktor und FORM, abgeleitet aus den Stufenwerten von GLAMOS. E-GL-17 hält fest, dass GLAMOS-Dateien nur intern als Wahrheit dienen und keine Zeile davon im Repo steht. Die Faktoren je Gletscher stehen seit der ersten Runde schon im Repo (`gm3-report-A-explore.json`); die Form je 50 m ist neu und näher an den Daten | **vor dem Commit entscheiden**: (A) Tabelle committen wie gebaut (abgeleitete Modellgrößen, keine Messwerte) · (B) die Form nur für die acht österreichischen Gletscher (WGMS, offen) ins Repo, die Schweizer Formen bleiben lokal und der Producer bekommt sie nicht · (C) bei GLAMOS nachfragen. Empfehlung: (A) mit Quellenangabe, wenn die Lizenz von GLAMOS abgeleitete Größen erlaubt — das habe ich nicht geprüft |
+| **E-GM-38** | Einschalten im Schmelzlauf: Faktor je Gletscher und Form je Band für 42 bzw. 43 Gletscher | erst nach E-GM-37 und nach einem Blick auf V-GM-91 (der Schmelzzustand mischt beim Einschalten zwei Faktoren); der Rückfall ist je eine Zeile im Workflow |
+| V-GM-85 | „Wie im Betrieb“ gilt für Formel und Konstanten; Temperatur und Strahlung der Eichung kommen von einer Station | benannt; die Prüfung am Winter 2025/26 mit dem Antrieb des Betriebs (GM-8) |
+| V-GM-86 | Im Schmelzlauf der Faktor des Gletschers, in der Schneedecke desselben Gletschers der Landeswert | für die Schneedecke ein eigener Schritt mit neuem Startzustand (`rules.precip` des Zustands müsste die Regel nennen) |
+| V-GM-87 | `cglo` der sieben österreichischen Stationen nachgeladen (dieselbe freigegebene Quelle, ein Parameter mehr) | erledigt |
+| V-GM-88, V-GM-89 | Die Winterschmelze des Betriebs ist eher zu groß (`TF` an der Grenze, Gate C rot); die Höhe jedes Faktors hängt daran | `TF`/`SRF` an Winter und Sommer gemeinsam neu eichen (V-GM-26, vor Mai 2027); danach diese Runde wiederholen |
+| V-GM-90 | In Österreich bringt der Faktor je Gletscher wenig (Winterbilanz 362 statt 425 mm) | Streuung des Faktors von Winter zu Winter je Gletscher ansehen; SNOWGRID-Wasserwert als zweite Analyse |
+| V-GM-91 | Der Schmelzzustand kennt die Rechnung nicht, aus der sein Schnee stammt: nach dem Einschalten liegt an den Gletschern mit Eintrag Schnee aus zwei Faktoren übereinander | beim Einschalten den Schmelzzustand dieser Gletscher neu einschwingen, oder die Regel im Zustand vermerken (wie die Schneedecke es tut) |
+| V-GM-95 | `verify:glacier-melt` ruft den Producer in seinen älteren Blöcken ohne Fangnetz auf: ein Fehler dort beendet den ganzen Prüfer rot, aber ohne die Liste der Prüfungen (drei eingebaute Fehler der Gegenprobe fielen nur so auf) | ein roter Prüfer, der sagt, WELCHE Regel gebrochen ist · die Blöcke wie in `verify:glacier-snowpack` in `block()` fassen und Ergebnisse vor dem Zugriff prüfen |
+| V-GM-94 | Die Eichung prüft den Winter; ob Faktor und Form die SCHMELZE im Sommer (Kachel „Fläche ohne Schneedecke“, Schmelzindex) verbessern, ist nicht gemessen | vor dem Einschalten oder im Sommer 2027: Ausaperung gegen die Sentinel-2-Saisonzeilen der 43 Gletscher mit und ohne Schalter |
+
 ## 4. Quellenliste (zur Prüfung durch Jan)
 
 Spalte „Stand“: **da** = schon im Betrieb, **neu** = käme mit dieser Phase dazu. Spalte „Lizenz“: **belegt** = am 22.11. an der Quelle gelesen; **wie bisher** = unverändert aus der bestehenden Linie; **offen** = von mir nicht geprüft.
@@ -1507,10 +1737,10 @@ Alle Konstanten tragen ihre Herkunft (`measured`, `literature`, `set`).
 | GM-2 | Antrieb an drei Höhen im Producer (Schalter `--heights=three`), Schneeanteil je Höhe aus der eigenen Antwort, eigene Schneefallgrenze `slo`/`slk`; Kaltluftlage zu K-2 nachgestellt (§3b) | erledigt 22.11., lokal committet, Schalter ein (E-GM-6, §3b.7); wirkt mit dem Push |
 | GM-3 | Eichung an vergangenen Wintern: Niederschlag je Region und Höhe (Q13, Q14, Q17–Q19, Q21, Q22), Dichte (Q6, Q7), Brücke zu buscosun Fusion (§3c) | erledigt 22.11., lokal committet (`d09aecf6`): Tabelle `snow-calibration.json` (Urteil rot), `verify:glacier-snowcal`; Q20 (SLF-Datensatz 250 m) nicht benutzt |
 | GM-3b | E-GM-7 Faktor je Land im Schmelzlauf (`--precip=country`, ohne Verlauf) und E-GM-8 Neuschneedichte 96 kg/m³ als zweiter Konstantensatz des Schneekerns (`board`) (§3d) | erledigt 23.11., lokal committet, **beide Schalter ein** (E-GM-12, §3e); wirkt mit dem Push |
-| GM-3c | Schneekern im Producer als Schattenprodukt `glacier/v1/snowpack/` (Schalter `--snowpack=shadow`, aus), Vertrag `glacierSnowpackContract.ts`, Zustand unabhängig von der Taktung, Einschwingen ab 1.10. aus Analysen (`snowpack-seed.mjs`), alle Gletscher (§3f) | erledigt 23.11., auf `origin/main` (`c4b45c9e`); auf dem Runner eingeschaltet seit 23.11. abends (E-GM-18, §3f.8), erster Lauf `2026112323` grün und nach Vertrag |
-| GM-4 | Kopplung an Stationen, Abweichungstabelle, Nachbar-Übertrag; Satelliten-Abgleich einmal je Szene (behebt M-18) | **Diagnose 23.11. (§3h): keine Kopplung belegt.** Gebaut als GM-4a (E-GM-20 … E-GM-23, uncommitted, Schalter aus): Schattenpaare + Archiv, Satellit einmal je Szene im Schmelzlauf, kein Übertrag. GM-4b (Kopplung) erst nach der Messung mit Schattenläufen (mindestens fünf Ereignisse je Station) |
-| GM-3d | Zustand des SCHMELZLAUFS an der Laufstunde mit 18 Stunden Antrieb (Schalter `--melt-state=run-hour`, aus), unabhängig von der Taktung (V-GM-32, §3g) | erledigt 23.11. abends, auf `origin/main` (`b7a0e859`); auf dem Runner eingeschaltet seit 23.11. 21:13 UTC (E-GM-19, §3g.8), erster Lauf `2026112323` wie erwartet, Nachrechnen noch nicht belegt |
-| GM-5 | Verteilung aus Sentinel-2, Szenarien und Spannen (das Einschwingen ist mit GM-3c vorgezogen) | vollständiges Produkt |
+| GM-3c | Schneekern im Producer als Schattenprodukt `glacier/v1/snowpack/` (Schalter `--snowpack=shadow`, aus), Vertrag `glacierSnowpackContract.ts`, Zustand unabhängig von der Taktung, Einschwingen ab 1.10. aus Analysen (`snowpack-seed.mjs`), alle Gletscher (§3f) | erledigt 23.11., auf `origin/main` (`c4b45c9e`); auf dem Runner eingeschaltet seit 23.11. abends (E-GM-18, §3f.8), erster Lauf `2026112323` grün und nach Vertrag, zweiter Lauf `2026112405` schreibt den Zustand fort |
+| GM-4 | Kopplung an Stationen, Abweichungstabelle, Nachbar-Übertrag; Satelliten-Abgleich einmal je Szene (behebt M-18) | **Diagnose 23.11. (§3h): keine Kopplung belegt.** Gebaut als GM-4a (E-GM-20 … E-GM-23, auf `origin/main` seit 24.11. `019ab63c`, Schalter aus): Schattenpaare + Archiv, Satellit einmal je Szene im Schmelzlauf, kein Übertrag. GM-4b (Kopplung) erst nach der Messung mit Schattenläufen (mindestens fünf Ereignisse je Station) |
+| GM-3d | Zustand des SCHMELZLAUFS an der Laufstunde mit 18 Stunden Antrieb (Schalter `--melt-state=run-hour`, aus), unabhängig von der Taktung (V-GM-32, §3g) | erledigt 23.11. abends, auf `origin/main` (`b7a0e859`); auf dem Runner eingeschaltet seit 23.11. 21:13 UTC (E-GM-19, §3g.8), erster Lauf `2026112323` wie erwartet, im zweiten Lauf `2026112405` nachgerechnet (`replayedH 6`); der 3-Stunden-Fall kam noch nicht vor |
+| GM-5 | Verteilung aus Sentinel-2, Szenarien und Spannen (das Einschwingen ist mit GM-3c vorgezogen) | **Diagnose 23./24.11.: die Verteilung aus Sentinel-2 tragen die Daten nicht (E-GM-30: nicht gebaut).** GM-5a gebaut 24.11. (§3i, uncommitted, Schalter aus): Spannen der Schneedecke aus 100 Szenarien, Summe der Tage 8–14, Paar zum Faktor im Kopf. GM-5b gebaut 24.11. (§3j, uncommitted, Schalter aus): Eichrunde 2 — Faktor je Gletscher und Form je Höhenstufe für 43 vermessene Gletscher, im Schmelzlauf verdrahtet |
 | GM-6 | Betrieb: Workflow, Archiv des Zustands, tägliche Schattenpaare | läuft im Daten- und Archiv-Repo |
 | GM-7 | Anzeige im Dossier (Höhenleiter in cm mit Spanne, „berechnet, noch nicht nachgemessen“, Schalter), Vorbehalt auf jeder Ebene | sichtbar (E-GM-1) |
 | GM-8 | Prüfstand mit eingefrorenem Protokoll; Abnahme im Frühjahr 2027 gegen GLAMOS und WGMS | Gate |
@@ -1545,8 +1775,10 @@ Reihenfolge: GM-1 und GM-2 zuerst (sie hängen an keiner offenen Quelle), GM-3 p
 - V-GM-6: Durchfeuchtung und Wiedergefrieren fehlen im Kern; die Schneehöhe wird damit im Frühjahr zu hoch ausfallen. Vor dem Frühjahr 2027 an IMIS-Reihen nachziehen.
 - V-GM-7: Die Schichtdauer von 6 Stunden begrenzt die Schärfe von „Neuschnee 24 h“; angeschnittene Schichten zählen anteilig. Kürzere Schichten kosten Zustandsgröße (mit V-GM-4 messen).
 - V-GM-8: Der Vertrag `glacierSnowpackContract.ts` und der Pfad `glacier/v1/snowpack/` entstehen mit der Verdrahtung im Producer (GM-2/GM-5), nicht mit dem Kern. — **erledigt mit GM-3c (§3f).**
-- E-GM-14 … E-GM-18 und V-GM-32 … V-GM-42: §3f.7. E-GM-18 ist umgesetzt, der erste Lauf (`2026112323`) gelesen (§3f.8); offen dazu: der zweite Lauf (Zustand fortgeschrieben?). V-GM-39 (Prüfer in die CI) ist umgesetzt, V-GM-43 (roter CI-Lauf durch eine Zeitprüfung in `verify:pv-cube`) behoben — beides auf `origin/main` (`5fb86b4f`), CI grün. Offen bei Jan: V-GM-44 (Aktionen der CI auf Node 24).
-- V-GM-32 ist mit GM-3d gebaut (§3g), Schalter aus; E-GM-19 (Einschalten von `run-hour`) und V-GM-45 … V-GM-47: §3g.7. GM-3d ist gepusht (`b7a0e859`) und eingeschaltet (E-GM-19, §3g.8); der erste Lauf (`2026112323`) ist gelesen (§3g.8); offen dazu: das Nachrechnen im nächsten Lauf und der Commit der nachgezogenen Workflow-Vorlage.
+- E-GM-14 … E-GM-18 und V-GM-32 … V-GM-42: §3f.7. E-GM-18 ist umgesetzt, der erste Lauf (`2026112323`) und der zweite (`2026112405`, Zustand fortgeschrieben) gelesen (§3f.8). V-GM-39 (Prüfer in die CI) ist umgesetzt, V-GM-43 (roter CI-Lauf durch eine Zeitprüfung in `verify:pv-cube`) behoben — beides auf `origin/main` (`5fb86b4f`), CI grün. Offen bei Jan: V-GM-44 (Aktionen der CI auf Node 24).
+- V-GM-32 ist mit GM-3d gebaut (§3g), Schalter aus; E-GM-19 (Einschalten von `run-hour`) und V-GM-45 … V-GM-47: §3g.7. GM-3d ist gepusht (`b7a0e859`) und eingeschaltet (E-GM-19, §3g.8); der erste Lauf (`2026112323`) und der zweite (`2026112405`, nachgerechnet) sind gelesen (§3g.8); die nachgezogene Workflow-Vorlage ist mit `019ab63c` committet; offen dazu: ein Lauf im 3-Stunden-Abstand kam noch nicht vor.
 - V-GM-4 (Speicherbedarf des Zustandsarchivs): der Zustand wiegt 1,8 MB roh je Lauf (§3f.5); ein Archiv gibt es noch nicht (GM-6).
 - V-GM-7 (Schichtdauer 6 h): im Zustand hält fast jede Höhe zwölf frische Schichten; kürzere Schichten würden ihn entsprechend vergrößern (V-GM-37).
-- GM-4 (§3h): Diagnose, E-GM-20 … E-GM-23 entschieden und als GM-4a gebaut (Schalter aus, uncommitted); offen E-GM-24 (Einschalten) und V-GM-48 … V-GM-59; GM-4b (Kopplung) wartet auf die Messung mit Schattenläufen.
+- GM-5a (§3i): E-GM-30 … E-GM-35 entschieden (Jan 24.11.) und gebaut (Schalter aus, uncommitted); offen Commit/Push, **E-GM-36** (Einschalten der Spannen), V-GM-70 … V-GM-84, V-GM-92, V-GM-93 — darunter V-GM-81 (der Schmelzlauf hält vorübergehend 1,5 GB) als Befund am Betrieb.
+- GM-5b (§3j): E-GM-9, E-GM-10, E-GM-11, E-GM-31 entschieden (Jan 24.11.), Runde gerechnet, Tabelle und Verdrahtung gebaut (Schalter aus, uncommitted); offen **E-GM-37** (aus GLAMOS abgeleitete Formen im Repo — vor dem Commit), Commit/Push, **E-GM-38** (Einschalten), V-GM-85 … V-GM-91, V-GM-94.
+- GM-4 (§3h): Diagnose, E-GM-20 … E-GM-23 entschieden und als GM-4a gebaut (Schalter aus, auf `origin/main` seit 24.11. `019ab63c`); offen die Archiv-Vorlage, E-GM-24 (Einschalten) und V-GM-48 … V-GM-59; GM-4b (Kopplung) wartet auf die Messung mit Schattenläufen.

@@ -24,6 +24,8 @@ const NOW = '2026-11-21T17:50:00Z', RUN = '2026112117';
 const LIMIT = Number((process.argv.find((a) => a.startsWith('--limit=')) ?? '').slice(8)) || 0;
 const ONLY = (process.argv.find((a) => a.startsWith('--only=')) ?? '').slice(7);
 const TRIAL = LIMIT > 0 || !!ONLY;
+/** --baseline: the producer alone under the same sampling (no scenario is computed) — what it holds without this measurement (amendment N.8). */
+const BASELINE = process.argv.includes('--baseline');
 if (LIMIT > 60) throw new Error('Probelauf höchstens 60 Gletscher (Nachtrag N.6)');
 const imp = (rel) => import(pathToFileURL(join(CODE, rel)).href);
 
@@ -147,14 +149,23 @@ function spreads(P, K, salt, mode = 'all', marks = [K]) {
 // ---------- the measurement, called by the hook for every snowpack call of the producer
 const T = { E1: 0, E2: 0, K: { 10: 0, 20: 0, 40: 0 }, ref100: 0, decomp: 0 };   // ms
 const per = [];          // slim per glacier
-const mem = { first: null, samples: [], max: 0 };
+const mem = { first: null, samples: [], max: 0, held: [] };   // held: [glaciers, heapUsed, external, rss after a full collection, rss before] in MB
 let n = 0, noArgs = 0, failed = null;
 const width = (q) => q[2] - q[0];
 const r2 = (x) => Math.round(x * 100) / 100;
-const partial = () => writeFileSync(`${ROOT}/cost-partial.json`, JSON.stringify({ kind: 'gm5/cost-partial', at: new Date().toISOString(), trial: TRIAL, glaciers: n, ms: T, ratioToE: Object.fromEntries(KS.map((K) => [K, r2(T.K[K] / ((T.E1 + T.E2) / 2))])), rssMb: Math.round(process.memoryUsage().rss / 1048576), maxRssMb: Math.round(mem.max / 1048576) }, null, 1));
+const mb = (x) => Math.round(x / 1048576);
+/** Checkpoint every 200 glaciers (N.5). With --expose-gc: a full collection first, outside every timed section — what the process really holds (N.7). */
+const partial = () => {
+  const before = process.memoryUsage().rss;
+  if (globalThis.gc) globalThis.gc();
+  const m = process.memoryUsage();
+  mem.held.push([n, mb(m.heapUsed), mb(m.external), mb(m.rss), mb(before)]);
+  writeFileSync(`${ROOT}/${BASELINE ? 'cost-baseline-partial' : 'cost-partial'}.json`, JSON.stringify({ kind: 'gm5/cost-partial', baseline: BASELINE, at: new Date().toISOString(), trial: TRIAL, glaciers: n, ms: T, ratioToE: Object.fromEntries(KS.map((K) => [K, r2(T.K[K] / ((T.E1 + T.E2) / 2))])), rssBeforeGcMb: mb(before), afterGc: globalThis.gc ? { heapUsedMb: mb(m.heapUsed), externalMb: mb(m.external), rssMb: mb(m.rss) } : null, maxRssMb: mb(mem.max) }, null, 1));
+};
 function onRecord(rec) {
   if (failed) return;
   if (!rec.driveArgs) { noArgs++; return; }
+  if (BASELINE) { n++; const rss = process.memoryUsage().rss; if (mem.first == null) mem.first = rss; if (rss > mem.max) mem.max = rss; if (n % 100 === 0) mem.samples.push([n, mb(rss)]); if (n % 200 === 0) partial(); return; }
   try {
     const P = prep(rec), i = n;
     let t = performance.now();
@@ -194,6 +205,14 @@ const runSeconds = (performance.now() - t0) / 1000;
 if (res.run !== RUN) throw new Error(`Lauf ${res.run} statt ${RUN}`);
 if (!n) throw new Error('Haken hat nichts übergeben');
 const maxRss = process.resourceUsage().maxRSS * 1024;
+if (BASELINE) {
+  partial();
+  const base = { kind: 'gm5/cost-baseline', generated: new Date().toISOString(), trial: TRIAL, codeCommit: CODE_COMMIT, run: { run: res.run, seconds: Math.round(runSeconds), snowpackSeconds: res.snowpack?.seconds ?? null, glaciers: n },
+    memory: { rssFirstMb: mb(mem.first), rssMaxSampledMb: mb(mem.max), maxRssMb: mb(maxRss), samples: mem.samples, heldAfterFullGc: { columns: ['glaciers', 'heapUsedMb', 'externalMb', 'rssMb', 'rssBeforeMb'], rows: mem.held }, execArgv: process.execArgv.filter((a) => /max-old-space|expose-gc/.test(a)), note: 'producer alone, same hook, no scenario computed' } };
+  writeFileSync(TRIAL ? `${ROOT}/cost-baseline-trial.json` : join(HERE, 'gm5-cost-baseline.json'), JSON.stringify(base, null, 1));
+  console.log(JSON.stringify(base, null, 1));
+  process.exit(0);
+}
 
 // ---------- aggregates
 const med = (a) => { const s = a.filter(fin).sort((x, y) => x - y); if (!s.length) return null; const m = (s.length - 1) / 2; return (s[Math.floor(m)] + s[Math.ceil(m)]) / 2; };
@@ -242,7 +261,7 @@ const out = {
     ratioToE: { K10: r2(T.K[10] / eMs), K20: r2(T.K[20] / eMs), K40: r2(T.K[40] / eMs), perScenario: r2(T.K[40] / 40 / eMs) },
     driftE2overE1: r2(T.E2 / T.E1),
   },
-  memory: { rssFirstMb: Math.round(mem.first / 1048576), rssMaxSampledMb: Math.round(mem.max / 1048576), maxRssMb: Math.round(maxRss / 1048576), samples: mem.samples, note: 'producer and measurement together' },
+  memory: { rssFirstMb: Math.round(mem.first / 1048576), rssMaxSampledMb: Math.round(mem.max / 1048576), maxRssMb: Math.round(maxRss / 1048576), samples: mem.samples, heldAfterFullGc: { columns: ['glaciers', 'heapUsedMb', 'externalMb', 'rssMb', 'rssBeforeMb'], rows: mem.held }, execArgv: process.execArgv.filter((a) => /max-old-space|expose-gc/.test(a)), note: 'producer and measurement together' },
   replay,
   widthsK40cm: widths,
   expectedHsDay14Median: r1(med(per.map((g) => g.eHs[13]))), relativeWidthDay14Median: r2(med(per.map((g) => (g.eHs[13] > 1 ? width(g.hs[1][13]) / g.eHs[13] : NaN)))),

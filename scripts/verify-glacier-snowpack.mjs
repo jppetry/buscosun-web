@@ -12,6 +12,9 @@
  *   H  GM-4 (E-GM-20/21): the shadow pairs — switch, byte identity of everything else, the pair by hand on real station entries (`snowpack-pairs.json`),
  *      the time window, missing inputs without a silent fall back, the contract, publisher and archive
  *
+ *   I  GM-5a (E-GM-32 … E-GM-35): the spread from scenarios — switch, byte identity of everything else, a scenario without noise is the expected value
+ *      (core and producer), every source of the spread acts, the sum rule, neighbours and answers without a distribution carry none, the contract
+ *
  * Exit 0 = all green. Last line: `verify:glacier-snowpack n/m`.
  */
 import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, existsSync, readdirSync, rmSync } from 'node:fs';
@@ -22,15 +25,17 @@ import { fileURLToPath } from 'node:url';
 import { MELT, simulate, emptyState } from './glacier/lib/meltcore.mjs';
 import { SNOW, SNOW_ORIGIN, packSwe, packDepthCm, packToRow, packFromRow, packProblems, emptyPack, deposit } from './glacier/lib/snowcore.mjs';
 import { snowCoreSetup } from './glacier/lib/snowcal.mjs';
-import { solidFraction, weatherOfGlacier, shareAtElevation, tempAtElevation } from './glacier/lib/weathercore.mjs';
+import { solidFraction, weatherOfGlacier, shareAtElevation, tempAtElevation, precipAmountOf } from './glacier/lib/weathercore.mjs';
 import {
   SNOWPACK_DEFAULT, SNOWPACK_MODES, SNOWPACK_START_DEFAULT, snowpackModeOf, snowpackStartOf, emptyLevel, bareAlbedo, stepLevel, driveOf, normalizeLevel, levelsOfEntry, advanceEntry,
   snowpackOfGlacier, placeLevels, stateRefusal, SNOWPACK_PAIRS_DEFAULT, SNOWPACK_PAIRS_MODES, snowpackPairsModeOf, atElevation,
+  SNOWPACK_SPREAD_DEFAULT, SNOWPACK_SPREAD_MODES, snowpackSpreadModeOf, spreadOfGlacier, shiftLevels,
 } from './glacier/lib/snowpackcore.mjs';
 import { GLACIER_SNOWPACK_PAIRS_NOTE, glacierSnowpackPairsPath, snowpackPairsProblems } from '../src/glacier/glacierSnowpackPairsContract.ts';
 import { archivePairs } from './glacier/glacier-archive.mjs';
 import {
   GLACIER_SNOWPACK_DAYS, GLACIER_SNOWPACK_PEND_H, GLACIER_SNOWPACK_STATE_PATH, GLACIER_SNOWPACK_NOTE, glacierSnowpackRunPath, snowpackProblems, snowpackStateProblems,
+  GLACIER_SNOWPACK_SPREAD_RULE, GLACIER_SNOWPACK_SPREAD_K, GLACIER_SNOWPACK_NOW_FACTOR,
 } from '../src/glacier/glacierSnowpackContract.ts';
 import { glacierWeatherRunPath, glacierWeatherHourlyPath, GLACIER_WEATHER_PHASE_PATH } from '../src/glacier/glacierWeatherContract.ts';
 import { main } from './glacier/melt.mjs';
@@ -525,6 +530,168 @@ await block('H', async () => {
   add('H7 Publisher und Archiv (E-GM-21): unter `snowpack/pairs/` gehen Dateien älter als 72 h, jüngere bleiben, der Ordner selbst und der Zustand bleiben; die Linie „melt“ darf dorthin schreiben; das Archiv legt jedes Paar-Dokument, das es noch nicht hält, als `pairs-<lauf>.json.gz` unter dem Tag des Laufs ab — Bytes unverändert —, hält ein vorhandenes, nimmt ein Dokument, das den Vertrag bricht, nicht und nennt es; ohne Ordner legt es nichts ab',
     same(gone, ['snowpack/pairs/2026112117.json', 'snowpack/pairs/2026112211.json']) && okPkg === null && same(a1.written, [eOn.run]) && same(a1.refused, ['2026101100']) && back?.equals(readFileSync(join(pDir, `${eOn.run}.json`)))
     && a2.written.length === 0 && a2.held === 1 && a3.dir === false && a3.runs === 0, JSON.stringify({ gone, a1, a2, a3 }));
+});
+
+// --- I: GM-5a — the spread from scenarios (E-GM-32 … E-GM-35) ---------------------------------------------------------------------------------------
+await block('I', async () => {
+  add('I1 Schalter der Spanne: Voreinstellung „off“, zwei Stellungen (off, scenarios), ein unbekanntes Wort wird abgelehnt; die Regel ist festgeschrieben (100 Szenarien, ρ 0,9, Faktor 0,25, Dichte 0,12 fest und 0,30 je Tag, Summe der Tage 8–14, p10/p90) und das Paar zur Laufstunde (×0,73 … ×1,37, nicht nachgemessen) — eine Änderung daran ist eine bewusste',
+    SNOWPACK_SPREAD_DEFAULT === 'off' && eq(SNOWPACK_SPREAD_MODES, ['off', 'scenarios']) && snowpackSpreadModeOf(undefined) === 'off' && snowpackSpreadModeOf('') === 'off' && snowpackSpreadModeOf('scenarios') === 'scenarios'
+    && !!(await throws(() => snowpackSpreadModeOf('an'))) && GLACIER_SNOWPACK_SPREAD_K === 100
+    && eq(GLACIER_SNOWPACK_SPREAD_RULE, { rule: 'scenarios', k: 100, rho: 0.9, quantiles: [10, 90], sums: 'scenarios', week2: [8, 14], sigma: { factor: 0.25, densitySystematic: 0.12, densityEvent: 0.3 }, origin: { paths: 'set', sigma: 'measured' }, neighbour: 'none' })
+    && GLACIER_SNOWPACK_NOW_FACTOR.p10 === 0.73 && GLACIER_SNOWPACK_NOW_FACTOR.p90 === 1.37 && GLACIER_SNOWPACK_NOW_FACTOR.verified === false && GLACIER_SNOWPACK_NOW_FACTOR.origin === 'measured');
+  // the precipitation of an hour at a level of the scenario, by hand: a distribution in the hour, one 3 h on either side, none within reach
+  {
+    const pp = new Float64Array(24).fill(0.4), D = (mu) => ({ kind: 'logCensored', mu, sigma: 0.5 }), pd = new Array(24).fill(null);
+    pd[2] = D(Math.log1p(1)); pd[5] = D(Math.log1p(3)); pd[20] = D(Math.log1p(2));
+    const am = precipAmountOf(pp, pd, 24), z90 = 1.2815515655446004, q = (mu, z) => Math.expm1(mu + 0.5 * z);
+    const near = (a, b) => Math.abs(a - b) < 1e-3;
+    add('I1b Niederschlag einer Stunde auf der Stufe eines Szenarios, von Hand: in einer Stunde mit Verteilung ihr Quantil (Stufe 0 = Median, Stufe 1,28 = p90, nach unten nie unter 0), zwischen zwei Verteilungen im Abstand von 3 Stunden deren Mischung nach der Zeit, ohne Verteilung in Reichweite (mehr als 6 Stunden auseinander oder nur auf einer Seite) der Erwartungswert selbst — unabhängig von der Stufe',
+      near(am(2, 0), 1) && near(am(2, z90), q(Math.log1p(1), z90)) && am(2, z90) > 1.5 && am(2, -8) === 0 && near(am(3, 0), (2 / 3) * 1 + (1 / 3) * 3) && near(am(4, z90), (1 / 3) * q(Math.log1p(1), z90) + (2 / 3) * q(Math.log1p(3), z90))
+      && am(10, z90) === 0.4 && am(10, -3) === 0.4 && am(0, 2) === 0.4 && am(23, 2) === 0.4 && near(am(20, 0), 2), JSON.stringify([am(2, 0), am(2, z90), am(3, 0), am(4, z90), am(10, z90), am(0, 2)]));
+  }
+
+  // --- the core on the real answers of the warm glacier, from a pack taken over
+  const g = gWarm, F = 1.793, c = BOARD.c, pars = parsOf(g), begin = Math.round(LX_T0 / H);
+  const tz = g.levels.map((l) => f64(l.t)), share = tz.map((t) => Float64Array.from(t, solidFraction)), p = f64(g.median.p), gg = new Float64Array(336).fill(60), factor = [F, F, F];
+  const pre = [begin - 500, 0, [[2000, 800], [2500, 900], [3000, 1000]], [600, 600, 600], null];
+  const levels = levelsOfEntry(pre);
+  const exp = snowpackOfGlacier({ id: g.id, z: g.z, levels, drive: driveOf({ tz, share, p, g: gg, factor, hours: HOURS }), pars, c, t0Ms: LX_T0, begin }).row;
+  const frozen = () => JSON.stringify(levels.map((lv) => [packToRow(lv.pack), lv.aS]));
+  const before = frozen();
+  const ruleOf = (sigma = {}, k = 40) => ({ ...GLACIER_SNOWPACK_SPREAD_RULE, k, sigma: { factor: 0, densitySystematic: 0, densityEvent: 0, ...sigma } });
+  const still = { amount: (h) => Math.max(0, p[h]), place: () => ({ tz, share }) };
+  const spr = (rule, paths = still, seed = 11) => spreadOfGlacier({ levels, pars, c, t0Ms: LX_T0, seed, rule, p, g: gg, factor, ...paths });
+  const width = (q, l, d) => q[l][1][d] - q[l][0][d];
+  const none = spr(ruleOf({}, 10));
+  const w2 = exp.hnd.map((a) => a.slice(7).reduce((s, v) => s + v, 0));
+  add('I2 Kern: ein Szenario ohne Streuung ist der Erwartungswert — ohne Fehler am Faktor, an der Dichte, am Niederschlag und an der Temperatur sind p10 und p90 an jeder Höhe und jedem Tag genau die Zeile des Laufs (Schneehöhe und Neuschnee), die Summe der Tage 8–14 ist die Summe der Tageswerte; die Schneedecke der Laufstunde bleibt unberührt',
+    [0, 1, 2].every((l) => eq(none.hsq[l][0], exp.hsd[l]) && eq(none.hsq[l][1], exp.hsd[l]) && eq(none.hnq[l][0], exp.hnd[l]) && eq(none.hnq[l][1], exp.hnd[l]) && none.hnw[l].every((v) => Math.abs(v - w2[l]) < 0.06)) && frozen() === before,
+    JSON.stringify({ hsd: exp.hsd[1].slice(0, 3), p10: none.hsq[1][0].slice(0, 3), w2, hnw: none.hnw }));
+
+  const wet = { amount: (h, zP) => Math.max(0, p[h]) * Math.exp(0.6 * zP), place: still.place };
+  const tShift = { amount: still.amount, place: (zT) => { const t2 = tz.map((a) => Float64Array.from(a, (v, h) => v + 2 * zT[h])); return { tz: t2, share: t2.map((a) => Float64Array.from(a, solidFraction)) }; } };
+  const onlyF = spr(ruleOf({ factor: 0.25 })), widerF = spr(ruleOf({ factor: 0.5 })), onlyRs = spr(ruleOf({ densitySystematic: 0.12 })), onlyRe = spr(ruleOf({ densityEvent: 0.3 })), onlyP = spr(ruleOf(), wet), onlyT = spr(ruleOf(), tShift);
+  const wF = width(onlyF.hsq, 2, 13), wF2 = width(widerF.hsq, 2, 13), wRs = width(onlyRs.hsq, 2, 13), wRe = width(onlyRe.hnq, 2, 0), wP = width(onlyP.hsq, 2, 13), wT = width(onlyT.hsq, 0, 13);
+  add('I3 Kern: jede Quelle der Spanne wirkt für sich — nur der Faktor, nur der feste Teil der Dichte, nur der Tagesteil der Dichte (am Neuschnee des ersten Tages), nur der Niederschlagspfad, nur der Temperaturpfad (an der Zunge, wo es um den Gefrierpunkt geht) öffnen je eine Spanne; der doppelte Fehler am Faktor öffnet eine breitere; nichts davon ändert die Schneedecke der Laufstunde',
+    wF > 1 && wF2 > wF * 1.5 && wRs > 0.5 && wRe > 0.5 && wP > 1 && wT > 0.5 && frozen() === before, JSON.stringify({ wF, wF2, wRs, wRe, wP, wT }));
+  const all = spr({ ...GLACIER_SNOWPACK_SPREAD_RULE, k: 40 }, { amount: wet.amount, place: tShift.place }), again = spr({ ...GLACIER_SNOWPACK_SPREAD_RULE, k: 40 }, { amount: wet.amount, place: tShift.place }), other = spr({ ...GLACIER_SNOWPACK_SPREAD_RULE, k: 40 }, { amount: wet.amount, place: tShift.place }, 12);
+  const sumQ = [0, 1].map((j) => all.hnq[1][j].slice(7).reduce((s, v) => s + v, 0));
+  let ordered = true;
+  for (const q of [all, onlyP, onlyT, onlyF]) for (let l = 0; l < 3; l++) { if (!(q.hnw[l][0] <= q.hnw[l][1] && q.hnw[l][1] <= q.hnw[l][2])) ordered = false; for (let d = 0; d < 14; d++) if (q.hsq[l][0][d] > q.hsq[l][1][d] || q.hnq[l][0][d] > q.hnq[l][1][d] || q.hnq[l][1][d] > q.hsq[l][1][d] + 1e-9 || q.hnq[l][0][d] > q.hsq[l][0][d] + 1e-9) ordered = false; }
+  add('I4 Kern: wiederholbar und geordnet — derselbe Startwert gibt dieselben Spannen, ein anderer andere; p10 liegt nie über p90, der Neuschnee nie über der Schneehöhe desselben Quantils; die Spanne der SUMME der Tage 8–14 ist die der Szenario-Summen und nicht die Summe der Tages-Quantile (sie liegt enger als diese)',
+    eq(all, again) && !eq(all, other) && ordered && all.hnw[1][0] > sumQ[0] + 0.05 && all.hnw[1][2] < sumQ[1] - 0.05, JSON.stringify({ hnw: all.hnw[1], sumQ }));
+  // the quantiles are the 10th and the 90th: with the factor as the only source the snow depth rises with the factor, so p10 / p90 of many scenarios
+  // must sit where ONE run with the factor at its own p10 / p90 (× exp(∓1.2816 · 0.25)) lands
+  {
+    const many = spr(ruleOf({ factor: 0.25 }, 600)), z90 = 1.2815515655446004;
+    const at = (mul) => snowpackOfGlacier({ id: g.id, z: g.z, levels: levelsOfEntry(pre), drive: driveOf({ tz, share, p, g: gg, factor: factor.map((f) => f * mul), hours: HOURS }), pars, c, t0Ms: LX_T0, begin }).row.hsd[2][13];
+    const lo = at(Math.exp(-z90 * 0.25)), mid = at(1), hi = at(Math.exp(z90 * 0.25)), p10 = many.hsq[2][0][13], p90 = many.hsq[2][1][13];
+    add('I4b Kern: die Quantile sind das 10. und das 90. Perzentil — mit dem Faktor als einziger Quelle (600 Szenarien) liegen p10 und p90 der Schneehöhe an Tag 14 dort, wo EIN Lauf mit dem Faktor an seinem eigenen p10 bzw. p90 landet (auf ein Viertel des Abstands zum Erwartungswert genau)',
+      hi - mid > 2 && mid - lo > 2 && Math.abs(p90 - hi) < 0.25 * (hi - mid) && Math.abs(p10 - lo) < 0.25 * (mid - lo), JSON.stringify({ lo, mid, hi, p10, p90 }));
+  }
+  // the paths have a memory: with the hourly correlation of the rule a wet (or dry) spell lasts, so the snow of a day spreads far wider than with paths drawn anew every hour
+  {
+    const persistent = spr({ ...ruleOf(), rho: 0.9 }, wet), loose = spr({ ...ruleOf(), rho: 0.05 }, wet);
+    const wA = width(persistent.hnq, 2, 0), wB = width(loose.hnq, 2, 0);
+    add('I4c Kern: die Pfade haben ein Gedächtnis — mit der stündlichen Korrelation der Regel (0,9) ist die Spanne des Neuschnees eines Tages deutlich breiter als mit fast unabhängigen Stunden (0,05), in denen sich die Abweichungen über 24 Stunden wegmitteln',
+      wA > 1.5 * wB && wB > 0, JSON.stringify({ wA, wB }));
+  }
+  // a row without three answers: temperature and share of a scenario by hand (two hours; the share of the answers is NOT the ramp)
+  {
+    const ramp = solidFraction, tz2 = [[3, 3], [2, 2], [1, 1]].map(f64), sh2 = [[0.1, 0.1], [0.3, 0.3], [0.7, 0.7]].map(f64), sg2 = f64([1, NaN]);
+    const zero = shiftLevels({ tz: tz2, share: sh2, sg: sg2, zT: f64([0, 0]), hours: 2, ramp }), warm = shiftLevels({ tz: tz2, share: sh2, sg: sg2, zT: f64([3, 3]), hours: 2, ramp }), cold = shiftLevels({ tz: tz2, share: sh2, sg: sg2, zT: f64([-2, -2]), hours: 2, ramp });
+    // +3 K in hour 0: tongue 6 °C → ramp 0 + (0.1 − 0) = 0.1; median 5 °C → 0 + (0.3 − 0) = 0.3; top 4 °C → 0 + (0.7 − 0.5) = 0.2: never more below than above ⇒ 0.1 / 0.2 / 0.2
+    // −2 K in hour 0: tongue 1 °C → 0.5 + 0.1 = 0.6; median 0 °C → 1 + 0.3 → 1 (never above 1); top −1 °C → 1 + 0.2 → 1: ⇒ 0.6 / 1 / 1
+    add('I4d Kern, Zeile ohne drei Antworten, von Hand: ohne Temperaturfehler kommen genau die Temperaturen und Schneeanteile des Laufs heraus (auch wenn der Schneeanteil nicht die Temperatur-Rampe ist); mit +3 K bleibt der Abstand zur Rampe, der Anteil bleibt zwischen 0 und 1, und unten liegt nie mehr als oben (0,1 / 0,3 / 0,2 wird 0,1 / 0,2 / 0,2; mit −2 K wird 0,6 / 1,3 / 1,2 zu 0,6 / 1 / 1); eine Stunde ohne Sigma der Antwort verschiebt nichts',
+      [0, 1, 2].every((l) => eq(Array.from(zero.tz[l]), Array.from(tz2[l])) && eq(Array.from(zero.share[l]).map((v) => Math.round(v * 1e9)), Array.from(sh2[l]).map((v) => Math.round(v * 1e9))))
+      && eq([0, 1, 2].map((l) => warm.tz[l][0]), [6, 5, 4]) && eq([0, 1, 2].map((l) => Math.round(warm.share[l][0] * 1e6) / 1e6), [0.1, 0.2, 0.2]) && eq([0, 1, 2].map((l) => Math.round(cold.share[l][0] * 1e6) / 1e6), [0.6, 1, 1])
+      && eq([0, 1, 2].map((l) => warm.tz[l][1]), [3, 2, 1]) && eq([0, 1, 2].map((l) => Math.round(warm.share[l][1] * 1e6) / 1e6), [0.1, 0.3, 0.7]),
+      JSON.stringify({ warm: [0, 1, 2].map((l) => warm.share[l][0]), cold: [0, 1, 2].map((l) => cold.share[l][0]) }));
+  }
+  add('I5 Kern: eine unbrauchbare Regel bricht ab (kein K, Summen-Tage außerhalb der Vorhersage) — nie eine Spanne aus einer geratenen Regel',
+    !!(await throws(() => spr({ ...ruleOf(), k: 0 }))) && !!(await throws(() => spr({ ...ruleOf(), week2: [8, 15] }))) && !!(await throws(() => spr({ ...ruleOf(), week2: [0, 14] }))));
+
+  // --- the contract with spreads
+  const nbRow = { ...structuredClone(rowCold), f: gWarm.id, sq: 'neighbour' }, noDist = { ...structuredClone(rowCold), id: 'gl_x_nodist', sq: 'no-distribution' };
+  const docQ = () => { const d = docOf([{ ...structuredClone(exp), ...structuredClone(all) }, nbRow, noDist].map((r) => structuredClone(r)), { spread: { rows: 1, none: { neighbour: 1, 'no-distribution': 1 } }, now: { factor: { ...GLACIER_SNOWPACK_NOW_FACTOR } } }); d.rules.spread = structuredClone(GLACIER_SNOWPACK_SPREAD_RULE); return d; };
+  const badQ = [
+    (d) => { d.rules.spread.k = 5; }, (d) => { d.rules.spread.rho = 1; }, (d) => { delete d.rules.spread.sigma; }, (d) => { d.rules.spread.sigma.factor = -1; }, (d) => { d.rules.spread.quantiles = [25, 75]; }, (d) => { d.rules.spread.week2 = [8, 15]; },
+    (d) => { d.rules.spread.sums = 'expected'; }, (d) => { d.rules.spread.neighbour = 'placed'; }, (d) => { delete d.rules.spread.origin; }, (d) => { d.rules.spread = { rule: 'guess' }; },
+    (d) => { delete d.now; }, (d) => { d.now.factor.verified = true; }, (d) => { d.now.factor.p10 = 1.1; }, (d) => { delete d.now.factor.note; }, (d) => { delete d.spread; }, (d) => { d.spread.rows = 2; }, (d) => { d.spread.none.neighbour = 0; }, (d) => { delete d.spread.none['no-distribution']; },
+    (d) => { delete d.glaciers[0].hsq; }, (d) => { delete d.glaciers[0].hnw; }, (d) => { d.glaciers[0].hsq[1][0][3] = d.glaciers[0].hsq[1][1][3] + 5; }, (d) => { d.glaciers[0].hnq[1][1][3] = d.glaciers[0].hsq[1][1][3] + 5; }, (d) => { d.glaciers[0].hnw[1] = [9, 5, 1]; },
+    (d) => { d.glaciers[0].hsq[2][0].pop(); }, (d) => { d.glaciers[0].hnq[0][0][2] = -1; }, (d) => { d.glaciers[0].hnw[1].pop(); }, (d) => { d.glaciers[0].sq = 'neighbour'; }, (d) => { d.glaciers[0].sq = 'no-distribution'; },
+    (d) => { delete d.glaciers[1].sq; }, (d) => { delete d.glaciers[2].sq; },
+    // each of the next four with the head counted as the wrong row would have it — so that only the rule about the row itself can notice
+    (d) => { d.glaciers[1].sq = 'no-distribution'; d.spread.none = { 'no-distribution': 2 }; }, (d) => { d.glaciers[2].sq = 'neighbour'; d.spread.none = { neighbour: 2 }; },
+    (d) => { d.glaciers[2].sq = 'weiß nicht'; d.spread.none = { neighbour: 1, 'weiß nicht': 1 }; }, (d) => { Object.assign(d.glaciers[1], structuredClone(all)); delete d.glaciers[1].sq; d.spread = { rows: 2, none: { 'no-distribution': 1 } }; },
+  ];
+  const caughtQ = badQ.map((edit) => { const d = docQ(); edit(d); return snowpackProblems(d).length; });
+  const plain = docOf([structuredClone(exp), structuredClone(rowCold)]);
+  const badPlain = [(d) => { d.glaciers[0].hsq = structuredClone(all.hsq); }, (d) => { d.glaciers[1].sq = 'neighbour'; }, (d) => { d.now = { factor: { ...GLACIER_SNOWPACK_NOW_FACTOR } }; }, (d) => { d.spread = { rows: 0, none: {} }; }];
+  const caughtP = badPlain.map((edit) => { const d = structuredClone(plain); edit(d); return snowpackProblems(d).length; });
+  add(`I6 Vertrag: ein Dokument mit Spannen besteht ihn (eine Zeile mit Spanne, eine Nachbar-Zeile mit Vermerk, eine eigene ohne Verteilung mit Vermerk; Regel, Zählung und das Paar zum Faktor im Kopf), ein Dokument ohne Spannen weiterhin; Negativkontrollen: jede von ${badQ.length} Verletzungen wird gemeldet (Regel, Kopf, Zählung, fehlende oder ungeordnete Felder, Neuschnee über der Schneehöhe, falscher oder fehlender Vermerk, Spanne an einer Nachbar-Zeile), und jede von ${badPlain.length} Spannen-Angaben in einem Dokument OHNE Regel`,
+    !snowpackProblems(docQ()).length && !snowpackProblems(plain).length && caughtQ.every((n) => n > 0) && caughtP.every((n) => n > 0), JSON.stringify({ ok: snowpackProblems(docQ()), caughtQ, caughtP }));
+});
+await block('Ip', async () => {
+  // --- the producer end to end: the stubbed buscosun Fusion names a precipitation distribution (`sigma` of the log amount)
+  const withDist = (sigma, tSigma = null) => () => (s) => { const m = s.vars.precip.mean; s.vars.precip.dist = Number.isFinite(m) ? { kind: 'logCensored', mu: Math.log1p(Math.max(0, m)), sigma } : null; if (tSigma != null) s.vars.t2m.sigma = tSigma; };
+  const base = { snowpack: 'shadow', 'snowpack-start': 'cold' }, wide = { hook: withDist(0.6) };
+  const eOff = await runSp(mk('i-off'), base, wide), eWord = await runSp(mk('i-word'), { ...base, 'snowpack-spread': 'off' }, wide);
+  const eOn = await runSp(mk('i-on'), { ...base, 'snowpack-spread': 'scenarios' }, wide), eOn2 = await runSp(mk('i-on2'), { ...base, 'snowpack-spread': 'scenarios' }, wide);
+  process.env.GLACIER_SNOWPACK_SPREAD = 'scenarios';
+  const eEnv = await runSp(mk('i-env'), base, wide);
+  process.env.GLACIER_SNOWPACK_SPREAD = 'unsinn';
+  const eEnvBad = await runSp(mk('i-envbad'), base, wide), eEnvBadOff = await runSp(mk('i-envbadoff'), {}, wide);
+  delete process.env.GLACIER_SNOWPACK_SPREAD;
+  const eBad = await runSp(mk('i-bad'), { ...base, 'snowpack-spread': 'ja' }, wide);
+  const sameFiles = (a, b) => a.files.every((f, i) => f != null && f === b.files[i]);
+  const bare = (e) => { if (!e.doc) return null; const d = structuredClone(e.doc); d.rules.spread = 'none'; delete d.spread; delete d.now; for (const r of d.glaciers) { delete r.hsq; delete r.hnq; delete r.hnw; delete r.sq; } return JSON.stringify(d); };
+  const stat = (e) => { if (!e.status?.lines?.snowpack) return null; const s = structuredClone(e.status.lines.snowpack); delete s.spread; delete s.bytes; delete s.seconds; return JSON.stringify(s); };
+  add('I7 Producer, aus = wie vorher: ohne Angabe und mit „off“ entstehen dieselben Bytes (Dokument, Zustand, alle anderen Dateien, Zeiger), keine Zeile `spread` im Status; ein unbekanntes Wort (Schalter oder Umgebung) bricht den Lauf vor dem Rechnen ab — bei ausgeschalteter Schneedecke wird es gar nicht gelesen',
+    !eOff.err && !eWord.err && JSON.stringify(eOff.doc) === JSON.stringify(eWord.doc) && eOff.stateRaw === eWord.stateRaw && sameFiles(eOff, eWord) && eOff.doc.rules.spread === 'none' && !('spread' in eOff.status.lines.snowpack) && !('spread' in eOff.doc) && !('now' in eOff.doc)
+    && /Spanne der Schneedecke/.test(eBad.err ?? '') && !eBad.wrote && /Spanne der Schneedecke/.test(eEnvBad.err ?? '') && !eEnvBadOff.err, JSON.stringify({ off: eOff.err, bad: eBad.err, envBad: eEnvBad.err, envBadOff: eEnvBadOff.err }));
+  const own = ['gl_ch_alpha', 'gl_ch_beta', 'gl_ch_far'], rOn = (id) => rowOf(eOn, id);
+  add('I8 Producer, an: nur das Schneedecken-Dokument und seine Statuszeile ändern sich — ohne die Spannen-Felder ist das Dokument Byte für Byte das des Laufs ohne Schalter, Zustand, Schmelzdokument, Wetterdokumente und Zeiger sind gleich; die Statuszeile nennt K, die Zahl der Zeilen mit Spanne und die ohne mit Grund; auch über die Umgebung; zweimal gerechnet gibt dieselben Bytes',
+    !eOn.err && !!eOn.doc && !!eOn2.doc && bare(eOn) === JSON.stringify(eOff.doc) && eOn.stateRaw === eOff.stateRaw && sameFiles(eOn, eOff) && JSON.stringify(eOn.index) === JSON.stringify(eOff.index) && stat(eOn) === stat(eOff)
+    && eq({ ...eOn.status.lines.snowpack.spread, seconds: 0 }, { k: GLACIER_SNOWPACK_SPREAD_K, rows: 3, none: { neighbour: 1 }, seconds: 0 }) && JSON.stringify(eOn.doc) === JSON.stringify(eOn2.doc) && JSON.stringify(eEnv.doc) === JSON.stringify(eOn.doc),
+    JSON.stringify({ err: eOn.err, spread: eOn.status?.lines.snowpack.spread }));
+  add('I9 Producer, an: jede Zeile mit eigenem Antrieb trägt p10/p90 je Höhe und Tag und die Summe der Tage 8–14, die Nachbar-Zeile den Vermerk „neighbour“ und keine Spanne (E-GM-35); der Kopf nennt die Regel mit K, die Zählung und EIN Paar zur Unsicherheit des Faktors als „nicht nachgemessen“ (E-GM-33); das Dokument besteht den Vertrag; am ersten Tag (Schneefall) ist die Spanne an der Oberkante offen',
+    !!eOn.doc && own.every((id) => rOn(id)?.hsq && rOn(id).hnq && rOn(id).hnw && !rOn(id).sq) && rOn('gl_ch_gamma').sq === 'neighbour' && !rOn('gl_ch_gamma').hsq && eq(eOn.doc.rules.spread, GLACIER_SNOWPACK_SPREAD_RULE) && eq(eOn.doc.spread, { rows: 3, none: { neighbour: 1 } })
+    && eq(eOn.doc.now, { factor: GLACIER_SNOWPACK_NOW_FACTOR }) && eOn.doc.now.factor.verified === false && !snowpackProblems(eOn.doc, new Set(mkTree(join(tmp, 'i-ids')).ids)).length && rOn('gl_ch_alpha').hsq[2][1][0] - rOn('gl_ch_alpha').hsq[2][0][0] > 2,
+    JSON.stringify({ alpha: rOn('gl_ch_alpha') && { hsd: rOn('gl_ch_alpha').hsd[2].slice(0, 2), p10: rOn('gl_ch_alpha').hsq[2][0].slice(0, 2), p90: rOn('gl_ch_alpha').hsq[2][1].slice(0, 2), hnw: rOn('gl_ch_alpha').hnw }, problems: snowpackProblems(eOn.doc).slice(0, 3) }));
+  // answers without a distribution: no spread, named
+  const eNoDist = await runSp(mk('i-nodist'), { ...base, 'snowpack-spread': 'scenarios' });
+  add('I10 Producer: nennt die Antwort keine Niederschlagsverteilung, trägt die Zeile keine Spanne und den Vermerk „no-distribution“ — nie eine Spanne ohne Grundlage; gezählt im Kopf, der Vertrag gilt',
+    !eNoDist.err && !!eNoDist.doc && own.every((id) => rowOf(eNoDist, id)?.sq === 'no-distribution' && !rowOf(eNoDist, id).hsq) && eNoDist.doc.spread.rows === 0 && eNoDist.doc.spread.none.neighbour === 1 && eNoDist.doc.spread.none['no-distribution'] === 3 && Object.keys(eNoDist.doc.spread.none).length === 2 && !snowpackProblems(eNoDist.doc).length, JSON.stringify({ err: eNoDist.err, spread: eNoDist.doc?.spread }));
+  // a scenario without noise through the producer: a distribution without width, answers without a temperature sigma, a rule without sigmas
+  const quiet = { ...GLACIER_SNOWPACK_SPREAD_RULE, k: 10, sigma: { factor: 0, densitySystematic: 0, densityEvent: 0 } };
+  const eStill = await runSp(mk('i-still'), { ...base, 'snowpack-spread': 'scenarios', spreadRule: quiet }, { hook: withDist(1e-9, 0) });
+  const stillOk = own.map((id) => { const r = rowOf(eStill, id); return !!r?.hsq && [0, 1, 2].every((l) => eq(r.hsq[l][0], r.hsd[l]) && eq(r.hsq[l][1], r.hsd[l]) && eq(r.hnq[l][0], r.hnd[l]) && eq(r.hnq[l][1], r.hnd[l])); });
+  // … and each path of the producer alone: only the precipitation distribution, only the temperature sigma of the answers
+  const eP = await runSp(mk('i-p'), { ...base, 'snowpack-spread': 'scenarios', spreadRule: quiet }, { hook: withDist(0.6, 0) }), eT = await runSp(mk('i-t'), { ...base, 'snowpack-spread': 'scenarios', spreadRule: quiet }, { hook: withDist(1e-9, 2) });
+  const wOf = (e, id, l, d) => { const r = rowOf(e, id); return r?.hsq ? r.hsq[l][1][d] - r.hsq[l][0][d] : NaN; };
+  add('I11 Producer: ein Szenario ohne Streuung ist der Erwartungswert — mit einer Verteilung ohne Breite, Antworten ohne Temperaturfehler und einer Regel ohne Fehler an Faktor und Dichte sind p10 und p90 an jeder Zeile mit eigenem Antrieb genau `hsd` und `hnd` (der Weg der Szenarien über Niederschlagsmenge, Temperatur und Schneeanteil ist der des Laufs); nur die Verteilung öffnet eine Spanne, nur der Temperaturfehler der Antworten auch (an der Zunge)',
+    !eStill.err && !!eStill.doc && stillOk.every(Boolean) && eq(eStill.doc.rules.spread, quiet) && wOf(eP, 'gl_ch_alpha', 2, 13) > 1 && wOf(eT, 'gl_ch_alpha', 0, 13) > 0.3, JSON.stringify({ err: eStill.err, stillOk, wP: wOf(eP, 'gl_ch_alpha', 2, 13), wT: wOf(eT, 'gl_ch_alpha', 0, 13) }));
+  // every glacier draws its own paths: Alpha and Beta get the same answers from the stub (their expected rows may differ by their elevations only)
+  const a = rOn('gl_ch_alpha'), b = rOn('gl_ch_beta'), eLater = await runSp(mk('i-later'), { ...base, 'snowpack-spread': 'scenarios' }, { ...wide, shiftH: 6 });
+  add('I12 Producer: jeder Gletscher zieht eigene Pfade und jeder Lauf andere — die Spannen-Breite von Alpha und Beta (gleiche Antworten) ist an Tag 14 nicht dieselbe Zahlenreihe, und der Lauf sechs Stunden später schreibt für Alpha andere Spannen',
+    !!a?.hsq && !!b?.hsq && !eq(a.hsq[2].map((x, j) => x.map((v, d) => Math.round((v - a.hsd[2][d]) * 10))), b.hsq[2].map((x) => x.map((v, d) => Math.round((v - b.hsd[2][d]) * 10)))) && !eLater.err && !eq(rowOf(eLater, 'gl_ch_alpha')?.hsq, a.hsq),
+    JSON.stringify({ a: a?.hsq[2][1].slice(0, 4), b: b?.hsq[2][1].slice(0, 4), later: eLater.err }));
+  // a row without three answers (tongue and top failed) under psnow: the solid share is not the temperature ramp — a scenario without noise must still be the expected row
+  const lapseHook = (o, e, lv) => { if (lv !== 1) throw new Error('Antwort fehlt'); return withDist(1e-9, 0)(); };
+  const eLapse = await runSp(mk('i-lapse'), { ...base, 'snowpack-spread': 'scenarios', spreadRule: quiet, phase: 'psnow' }, { hook: lapseHook });
+  const lapseOk = own.map((id) => { const r = rowOf(eLapse, id); return r?.lv === 'lapse' && !!r.hsq && [0, 1, 2].every((l) => eq(r.hsq[l][0], r.hsd[l]) && eq(r.hsq[l][1], r.hsd[l]) && eq(r.hnq[l][0], r.hnd[l])); });
+  const eLapseT = await runSp(mk('i-lapset'), { ...base, 'snowpack-spread': 'scenarios', spreadRule: quiet, phase: 'psnow' }, { hook: (o, e, lv) => { if (lv !== 1) throw new Error('Antwort fehlt'); return withDist(1e-9, 2)(); } });
+  // GM-5b: the table per measured glacier belongs to the MELT run — the snowpack keeps the factor of the region (its state names the rule it came from)
+  const glT = J(join(HERE, 'glacier', 'snow-calibration-glaciers.json'));
+  glT.glaciers = { gl_ch_alpha: { country: 'CH', winters: 9, years: [2015, 2023], F: 2.5, origin: 'measured', shape: { z0: 2400, stepM: 50, s: [-0.3, -0.1, 0, 0.1, 0.2, 0.2, 0.1, 0, 0], m: 0.5 } } };
+  const glFile = join(tmp, 'gl-table.json'); writeFileSync(glFile, JSON.stringify(glT));
+  const eGl = await runSp(mk('i-gl'), { ...base, 'glacier-factor': 'on', 'glacier-shape': 'on', 'snowcal-glaciers': glFile }, wide);
+  add('I14 Faktor je Gletscher und Form je Band (GM-5b) gehören dem Schmelzlauf: mit beiden Schaltern an sind Schneedecken-Dokument und -Zustand Byte für Byte die des Laufs ohne sie, die Wetterdokumente ebenso; Gegenprobe: das Schmelzdokument ist ein anderes (es nennt den Gletscher mit eigenem Faktor und eigener Form)',
+    !eGl.err && !!eGl.doc && JSON.stringify(eGl.doc) === JSON.stringify(eOff.doc) && eGl.stateRaw === eOff.stateRaw && [0, 1, 2, 3].every((i) => eGl.files[i] != null && eGl.files[i] === eOff.files[i]) && eGl.files[4] !== eOff.files[4]
+    && JSON.stringify(JSON.parse(eGl.files[4]).params.precip.glaciers?.applied) === JSON.stringify({ factor: ['gl_ch_alpha'], shape: ['gl_ch_alpha'] }), JSON.stringify({ err: eGl.err }));
+  add('I13 Producer: auch eine Zeile OHNE drei Antworten (Zunge und Oberkante ausgefallen, Regel „psnow“ — der Schneeanteil ist dort nicht die Temperatur-Rampe) hält die Regel: ein Szenario ohne Streuung ist der Erwartungswert; mit dem Temperaturfehler der Antwort öffnet sich die Spanne',
+    !eLapse.err && lapseOk.every(Boolean) && wOf(eLapseT, 'gl_ch_alpha', 0, 13) > 0.3, JSON.stringify({ err: eLapse.err, lapseOk, rows: eLapse.doc?.glaciers.map((r) => [r.id, r.lv ?? null, r.sq ?? null]), wT: wOf(eLapseT, 'gl_ch_alpha', 0, 13) }));
 });
 
 // --- G: guard ------------------------------------------------------------------------------------------------------------------------------------

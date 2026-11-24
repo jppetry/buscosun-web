@@ -32,16 +32,20 @@ export const emptyState = (nb) => ({ swe: new Float64Array(nb), aS: new Float64A
  *   t, g, p     hourly temperature [°C] at the reference elevation zT, global radiation [W m⁻²], precipitation [mm] at zP (NaN = missing)
  *   pf, TF, SRF parameters (`model: 'ddf'` uses `ddf` instead)
  *   pGrad       precipitation increase per 100 m from zP; the set 4 % unless the caller names another (phase GM, E-GM-7: 0 with the factor per country)
+ *   corr        optional: the multiplier of the accumulation per band itself (phase GM, E-GM-31); with it `pGrad` and `zP` are not used
  * Returns the glacier-wide hourly melt (mm w.e.), the band balance (solid precipitation − melt), the end state and the glacier-wide melt sum.
  */
-export function simulate({ bands, ela, t, g, p, zT, zP, pf, TF, SRF, ddf = null, state, model = 'eti', accumulateOnly = false, pGrad = MELT.pGrad }) {
+export function simulate({ bands, ela, t, g, p, zT, zP, pf, TF, SRF, ddf = null, state, model = 'eti', accumulateOnly = false, pGrad = MELT.pGrad, corr: corrIn = null }) {
   const nb = bands.zb.length, n = t.length;
   const swe = Float64Array.from(state.swe), aS = Float64Array.from(state.aS);
   const bal = new Float64Array(nb);
   const meltH = new Float64Array(n);
   const decay = Math.exp(-1 / MELT.tauH);
   const aBare = bands.zb.map((z) => (z < ela ? MELT.aIce : MELT.aFirn));
-  const corr = bands.zb.map((z) => 1 + (pGrad * (z - zP)) / 100);
+  // phase GM, GM-5b (E-GM-31): `corr` = a multiplier of the accumulation per band handed in by the caller (the persistent shape of a measured glacier);
+  // left out, the gradient from zP as always
+  if (corrIn != null && (corrIn.length !== nb || !corrIn.every((v) => Number.isFinite(v) && v >= 0))) throw new Error('simulate: corr passt nicht zu den Bändern');
+  const corr = corrIn ?? bands.zb.map((z) => 1 + (pGrad * (z - zP)) / 100);
   for (let h = 0; h < n; h++) {
     const th = t[h], ph = Number.isFinite(p[h]) ? p[h] : 0, gh = Number.isFinite(g?.[h]) ? g[h] : 0;
     let mh = 0;

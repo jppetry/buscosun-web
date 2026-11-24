@@ -1,0 +1,45 @@
+{
+ "generated": "2026-11-24T08:13:47.412Z",
+ "verifiers": [
+  "verify:glacier-melt",
+  "verify:glacier-snowcal",
+  "verify:glacier-snowpack"
+ ],
+ "greenBefore": true,
+ "greenAfter": true,
+ "noticed": 4,
+ "of": 4,
+ "errors": 0,
+ "crashedOnly": 3,
+ "only": "Voreinstellung „Faktor|Voreinstellung „Form|Tabelle je Gletscher wird auch|Dokument nennt die Gletscher nicht",
+ "mutations": [
+  {
+   "name": "Voreinstellung „Faktor je Gletscher“ an",
+   "file": "scripts/glacier/lib/snowcalGlaciers.mjs",
+   "noticed": true,
+   "by": "glacier-melt: Abbruch",
+   "crashedOnly": true
+  },
+  {
+   "name": "Voreinstellung „Form je Band“ an",
+   "file": "scripts/glacier/lib/snowcalGlaciers.mjs",
+   "noticed": true,
+   "by": "glacier-melt: Abbruch",
+   "crashedOnly": true
+  },
+  {
+   "name": "Tabelle je Gletscher wird auch ohne Schalter geöffnet",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: Abbruch",
+   "crashedOnly": true
+  },
+  {
+   "name": "Dokument nennt die Gletscher nicht",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: K2, K3",
+   "crashedOnly": false
+  }
+ ]
+}

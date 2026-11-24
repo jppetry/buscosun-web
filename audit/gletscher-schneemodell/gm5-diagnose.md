@@ -169,7 +169,7 @@ Der Erwartungswert verschmiert in der zweiten Woche die Möglichkeit eines Schne
 | Nr. | Entschieden | Folge |
 |---|---|---|
 | E-GM-30 | **(A)** nicht bauen | der Zweig „Verteilung aus Sentinel-2“ ist geschlossen; die Erweiterung der Satellitenlinie je Band (V-GM-71) bleibt eine Idee, bis E-GM-31 etwas zeigt |
-| E-GM-31 | **ja**, in EINER Eichrunde mit E-GM-9 / E-GM-10 | eigenes Paket mit neuer eingefrorener Regel (Faktor je Gletscher + Form je Band für die 44 vermessenen Gletscher), Tabellen, danach `corr[b]` im Schmelzlauf hinter Schalter (aus). **Meine Lesart, von Jan zu bestätigen:** E-GM-9 ist damit bejaht; in E-GM-10 ist die Wahl „Winterschmelze wie im Betrieb (ETI)“ oder „mit-eichen“ noch offen, ebenso E-GM-11 (`inca-v1-1h-1km`) |
+| E-GM-31 | **ja**, in EINER Eichrunde mit E-GM-9 / E-GM-10 | eigenes Paket mit neuer eingefrorener Regel (Faktor je Gletscher + Form je Band für die 44 vermessenen Gletscher), Tabellen, danach `corr[b]` im Schmelzlauf hinter Schalter (aus). **Jan 24.11. („das passt für mich“):** E-GM-9 ja; E-GM-10 Winterschmelze wie im Betrieb (ETI), nicht mit-eichen; E-GM-11 (`inca-v1-1h-1km`) bestätigt |
 | E-GM-32 | **(A)** erst messen, dann bauen | Kostenmessung wiederholt mit `gm5-cost.mjs` (rechnen und verwerfen), Nachtrag zur Messregel `gm5-method-frozen-b2.md`; Ergebnis unten in §B4-N |
 | E-GM-33 | **(A)** keine Spanne je Zeile | im Kopf des Dokuments EIN Paar „Unsicherheit des Faktors ×0,73 … ×1,37, nicht nachgemessen“ mit Herkunft — Teil des Baus |
 | E-GM-34 | **(A)** Tage 8–14 als EINE Summe mit p10–p90 | das Laufdokument trägt die Szenario-Summe der Tage 8–14 je Höhe (Teil des Baus); die Anzeige ist GM-7 |

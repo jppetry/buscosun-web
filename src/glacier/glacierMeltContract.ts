@@ -72,6 +72,15 @@ export interface GlacierMeltDoc {
       regions: Record<string, { F: number; origin: 'measured' | 'transferred'; from: string }>;
       gradient: 0; bridge: number; origin: { gradient: 'set'; bridge: 'set' | 'measured' };
       against: Record<string, string>; gate: boolean; reason?: string; method: string;
+      /**
+       * Phase GM (GM-5b, E-GM-9 / E-GM-31), only in a run with `--glacier-factor=on` or `--glacier-shape=on`: the glaciers named in `applied.factor` ran
+       * on their OWN factor from the second calibration table instead of the one of their region, those in `applied.shape` spread the accumulation over
+       * their bands by their persistent shape (area-weighted mean-free). Every other row ran on `regions`. Absent = no glacier did.
+       */
+      glaciers?: {
+        factor: boolean; shape: boolean; method: string; melt: string; shrink: { n0: number; n0s: number }; entries: number; atBound: number;
+        verdict: { K6: boolean; K7: boolean }; applied: { factor: string[]; shape: string[] };
+      };
     };
   };
   gate: { unit: boolean; reason: string };

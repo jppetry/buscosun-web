@@ -1,0 +1,363 @@
+{
+ "generated": "2026-11-24T07:42:37.734Z",
+ "verifiers": [
+  "verify:glacier-snowpack"
+ ],
+ "greenBefore": true,
+ "greenAfter": true,
+ "noticed": 49,
+ "of": 50,
+ "errors": 0,
+ "mutations": [
+  {
+   "name": "Voreinstellung der Spanne „scenarios“",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I1, I7, I8",
+   "crashedOnly": false
+  },
+  {
+   "name": "unbekanntes Wort der Spanne fällt auf „off“ zurück",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I1, I7",
+   "crashedOnly": false
+  },
+  {
+   "name": "Umgebungsvariable der Spanne wird nicht gelesen",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I7, I8",
+   "crashedOnly": false
+  },
+  {
+   "name": "Wort der Spanne wird auch ohne Schneedecke gelesen",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I7",
+   "crashedOnly": false
+  },
+  {
+   "name": "Fehler am Faktor wirkt nicht",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I3, I4b",
+   "crashedOnly": false
+  },
+  {
+   "name": "fester Teil der Dichte wirkt nicht",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I3",
+   "crashedOnly": false
+  },
+  {
+   "name": "Tagesteil der Dichte wirkt nicht",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I3",
+   "crashedOnly": false
+  },
+  {
+   "name": "Niederschlagspfad wird nicht benutzt",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I3, I4, I4c, I11",
+   "crashedOnly": false
+  },
+  {
+   "name": "Temperaturpfad wird nicht übergeben",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I3, I11, I13",
+   "crashedOnly": false
+  },
+  {
+   "name": "Pfade ohne Gedächtnis (jede Stunde neu gezogen)",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I4c",
+   "crashedOnly": true
+  },
+  {
+   "name": "Szenarien rechnen auf der Schneedecke der Laufstunde selbst",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I2, I3, I4, I4b, I4c, I11, I13",
+   "crashedOnly": false
+  },
+  {
+   "name": "Summe der Tage 9–15 statt 8–14",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I2",
+   "crashedOnly": false
+  },
+  {
+   "name": "Spanne der Summe = Summe der Tages-Quantile",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I4",
+   "crashedOnly": false
+  },
+  {
+   "name": "p75 statt p90",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I4, I4b",
+   "crashedOnly": false
+  },
+  {
+   "name": "p25 statt p10",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I4b, I13",
+   "crashedOnly": false
+  },
+  {
+   "name": "Quantile aus unsortierten Szenarien",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I3, I4, I4b, I4c, I6, I7",
+   "crashedOnly": false
+  },
+  {
+   "name": "unbrauchbare Regel wird gerechnet",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I5",
+   "crashedOnly": false
+  },
+  {
+   "name": "Erwartungswert wird durch das mittlere Szenario ersetzt",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I8, I11",
+   "crashedOnly": false
+  },
+  {
+   "name": "Nachbar-Zeilen bekommen eine Spanne",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I7",
+   "crashedOnly": false
+  },
+  {
+   "name": "Spanne ohne Verteilung der Antwort",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I10",
+   "crashedOnly": false
+  },
+  {
+   "name": "alle Gletscher ziehen dieselben Pfade",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I12",
+   "crashedOnly": false
+  },
+  {
+   "name": "Temperaturfehler der Antwort wirkt nicht",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I11",
+   "crashedOnly": false
+  },
+  {
+   "name": "Producer rechnet Zeilen ohne drei Antworten nicht über den Kern",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I13",
+   "crashedOnly": false
+  },
+  {
+   "name": "ohne drei Antworten: Temperaturfehler wirkt nicht",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I4d, I13",
+   "crashedOnly": false
+  },
+  {
+   "name": "ohne drei Antworten: Anteil über 1 möglich",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": false,
+   "by": null,
+   "crashedOnly": false
+  },
+  {
+   "name": "Niederschlag der Szenarien ist der Erwartungswert",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I11",
+   "crashedOnly": false
+  },
+  {
+   "name": "ohne drei Antworten: Versatz zur Rampe fehlt",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I4d, I13",
+   "crashedOnly": false
+  },
+  {
+   "name": "ohne drei Antworten: unten mehr Schnee als oben möglich",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I4d",
+   "crashedOnly": true
+  },
+  {
+   "name": "Kopf ohne das Paar zum Faktor",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I7",
+   "crashedOnly": false
+  },
+  {
+   "name": "Dokument nennt „none“, obwohl Spannen gerechnet sind",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I7",
+   "crashedOnly": false
+  },
+  {
+   "name": "Zählung im Kopf zählt Vermerke nicht",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I7",
+   "crashedOnly": false
+  },
+  {
+   "name": "Statuszeile nennt die Spanne nicht",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I8",
+   "crashedOnly": false
+  },
+  {
+   "name": "Schalter aus rechnet trotzdem Spannen",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: D2, D3, D4, D, F4, H2, H, I7",
+   "crashedOnly": false
+  },
+  {
+   "name": "Regel mit 40 Szenarien",
+   "file": "src/glacier/glacierSnowpackContract.ts",
+   "noticed": true,
+   "by": "glacier-snowpack: I1",
+   "crashedOnly": false
+  },
+  {
+   "name": "Fehler am Faktor 0,5 statt 0,25",
+   "file": "src/glacier/glacierSnowpackContract.ts",
+   "noticed": true,
+   "by": "glacier-snowpack: I1, I4",
+   "crashedOnly": false
+  },
+  {
+   "name": "Paar zur Laufstunde als nachgemessen ausgegeben",
+   "file": "src/glacier/glacierSnowpackContract.ts",
+   "noticed": true,
+   "by": "glacier-snowpack: I1, I6, I7",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag prüft die Regel der Spanne nicht",
+   "file": "src/glacier/glacierSnowpackContract.ts",
+   "noticed": true,
+   "by": "glacier-snowpack: I6",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag verlangt das Paar zur Laufstunde nicht",
+   "file": "src/glacier/glacierSnowpackContract.ts",
+   "noticed": true,
+   "by": "glacier-snowpack: I6",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag nimmt „nachgemessen“ am Paar",
+   "file": "src/glacier/glacierSnowpackContract.ts",
+   "noticed": true,
+   "by": "glacier-snowpack: I6",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag nimmt Spannen-Felder ohne Regel",
+   "file": "src/glacier/glacierSnowpackContract.ts",
+   "noticed": true,
+   "by": "glacier-snowpack: I6",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag nimmt Kopf-Angaben ohne Regel",
+   "file": "src/glacier/glacierSnowpackContract.ts",
+   "noticed": true,
+   "by": "glacier-snowpack: I6",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag nimmt eine Spanne an einer Nachbar-Zeile",
+   "file": "src/glacier/glacierSnowpackContract.ts",
+   "noticed": true,
+   "by": "glacier-snowpack: I6",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag nimmt einen unbekannten Vermerk",
+   "file": "src/glacier/glacierSnowpackContract.ts",
+   "noticed": true,
+   "by": "glacier-snowpack: I6",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag nimmt „neighbour“ an einer eigenen Zeile",
+   "file": "src/glacier/glacierSnowpackContract.ts",
+   "noticed": true,
+   "by": "glacier-snowpack: I6",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag prüft die Ordnung der Spanne nicht",
+   "file": "src/glacier/glacierSnowpackContract.ts",
+   "noticed": true,
+   "by": "glacier-snowpack: I6",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag prüft die Felder der Spanne nicht",
+   "file": "src/glacier/glacierSnowpackContract.ts",
+   "noticed": true,
+   "by": "glacier-snowpack: I6",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag zählt die Spannen nicht nach",
+   "file": "src/glacier/glacierSnowpackContract.ts",
+   "noticed": true,
+   "by": "glacier-snowpack: I6",
+   "crashedOnly": false
+  },
+  {
+   "name": "Stufe des Szenarios geht nicht in die Menge ein",
+   "file": "scripts/glacier/lib/weathercore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I1b, I11",
+   "crashedOnly": false
+  },
+  {
+   "name": "Lücke zwischen zwei Verteilungen unbegrenzt gemischt",
+   "file": "scripts/glacier/lib/weathercore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I1b",
+   "crashedOnly": true
+  },
+  {
+   "name": "Mischung zweier Verteilungen mit vertauschten Gewichten",
+   "file": "scripts/glacier/lib/weathercore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I1b",
+   "crashedOnly": true
+  }
+ ]
+}

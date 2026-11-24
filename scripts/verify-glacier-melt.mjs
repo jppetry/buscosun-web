@@ -27,6 +27,7 @@ import {
 import { fusionStageNote, fusionStage, FUSION_CURRENT } from '../src/pointForecast/fusion/fusionRelease.ts';
 import { meltProblems, meltStateProblems, meltIndexOf, GLACIER_MELT_REF_DAILY_MM, GLACIER_MELT_SCENARIOS, GLACIER_MELT_RHO, GLACIER_MELT_STATE_PEND_H } from '../src/glacier/glacierMeltContract.ts';
 import { meltPrecipProblems } from './glacier/lib/snowcal.mjs';
+import { GLACIER_FACTOR_DEFAULT, GLACIER_SHAPE_DEFAULT, glacierFactorModeOf, glacierShapeModeOf } from './glacier/lib/snowcalGlaciers.mjs';
 import { MELT_STATE_MODES, MELT_STATE_DEFAULT, meltStateModeOf, meltStateVerdict, pendOfForcing, forcingOfPend, SAT_NUDGE_MODES, SAT_NUDGE_DEFAULT, satNudgeModeOf, satRowDue } from './glacier/lib/meltstate.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -316,7 +317,7 @@ add('G4 Archiv: die Leitgletscher des Laufs gehen als eigene Datei ins Archivver
   // by hand: after the 6 hours of the state, every band holds 6 · 3 mm · factor · gradient · solid share (rounded to 0,1 mm in the file)
   const hypZb = (z0) => Array.from({ length: 8 }, (_, i) => z0 + 50 * (i + 0.5));
   const sweByHand = (z0, zRef, pf, grad) => hypZb(z0).map((z) => { const Tb = -2 + 0.0065 * (zRef - z); return 18 * pf * (1 + (grad * (z - zRef)) / 100) * Math.min(1, Math.max(0, (2 - Tb) / 2)); });
-  const stateIs = (s, id, hand) => s[id][0].length === 8 && s[id][0].every((v, i) => Math.abs(v - hand[i]) <= 0.051);
+  const stateIs = (s, id, hand) => !!s?.[id] && s[id][0].length === 8 && s[id][0].every((v, i) => Math.abs(v - hand[i]) <= 0.051);
   const cases = [['gl_ch_alpha', 2400, 2900, 'ch-test'], ['gl_ch_gamma', 2600, 2900, 'ch-test'], ['gl_ch_far', 2600, 2750, 'ch-far']];   // gamma: own bands, alpha's forcing (reference elevation 2 900 m)
 
   // switched on 23.11. (E-GM-12): no word = `country`; `gate-c` is the fall back and does not need the table
@@ -353,6 +354,66 @@ add('G4 Archiv: die Leitgletscher des Laufs gehen als eigene Datei ins Archivver
   const caught = blk ? [(b) => { b.gradient = 0.04; }, (b) => { b.origin.gradient = 'measured'; }, (b) => { delete b.reason; }, (b) => { b.regions['ch-test'].F = 9; }, (b) => { delete b.regions['ch-far']; }, (b) => { b.method = 'x'; }, (b) => { b.rule = 'region'; }, (b) => { delete b.bridge; }].map(bad) : [];
   add('H7 Regeln des Blocks params.precip: acht Verletzungen, jede gemeldet; ein Dokument ohne den Block hat keine — außer es stammt aus einem Lauf mit „country“ (dann fehlt er)',
     caught.length === 8 && caught.every((n) => n > 0) && meltPrecipProblems(undefined).length === 0 && meltPrecipProblems(undefined, ['ch-test']).length === 1, JSON.stringify(caught));
+
+  // --- K: phase GM (GM-5b, E-GM-9 / E-GM-31) — factor per measured glacier and its shape per band, end to end (same cold and wet run as H) ----------
+  {
+    const realGl = JSON.parse(readFileSync(join(HERE, 'glacier', 'snow-calibration-glaciers.json'), 'utf8'));
+    // the real table with two glaciers of the test catalogue: Alpha with a factor and a shape, Far with a factor AT THE BOUND (not a measurement) and a shape
+    const shapeA = { z0: 2400, stepM: 50, s: [-0.3, -0.2, -0.1, 0, 0.1, 0.2, 0.2, 0.1, 0], m: 0.5 }, shapeF = { z0: 2600, stepM: 50, s: [0.2, 0, -0.2], m: 1 };
+    const glFor = (edit = null) => { const t = structuredClone(realGl); t.glaciers = { gl_ch_alpha: { country: 'CH', winters: 9, years: [2015, 2023], F: 2.5, origin: 'measured', shape: shapeA }, gl_ch_far: { country: 'CH', winters: 7, years: [2012, 2018], F: 5, origin: 'measured', atBound: true, shape: shapeF } }; edit?.(t); return t; };
+    const runGl = async (name, extra = {}, glTable = glFor()) => {
+      const dir = join(tmp, `${name}-gl`); mkdirSync(dir, { recursive: true });
+      const gf = join(dir, 'snowcal-glaciers.json'); if (glTable) writeFileSync(gf, JSON.stringify(glTable));
+      return runSw(name, { 'snowcal-glaciers': gf, ...extra });
+    };
+    // by hand: the shape at the band mids (linear between the support points every 50 m, outside them the nearest), area-weighted mean-free, × m
+    const W = [0.1, 0.3, 0.5, 0.6, 0.5, 0.3, 0.2, 0.1].map((v) => v / 2.6);
+    const corrOfMid = (sMid, m) => { const bar = sMid.reduce((t, v, i) => t + W[i] * v, 0); return sMid.map((v) => 1 + m * (v - bar)); };
+    const corrA = corrOfMid([-0.25, -0.15, -0.05, 0.05, 0.15, 0.2, 0.15, 0.05], 0.5), corrF = corrOfMid([0.1, -0.1, -0.2, -0.2, -0.2, -0.2, -0.2, -0.2], 1);
+    const sweCorr = (z0, zRef, pf, corr) => hypZb(z0).map((z, i) => { const Tb = -2 + 0.0065 * (zRef - z); return 18 * pf * corr[i] * Math.min(1, Math.max(0, (2 - Tb) / 2)); });
+    const one = [1, 1, 1, 1, 1, 1, 1, 1];
+
+    const offNamed = await runGl('gl-off', { 'glacier-factor': 'off', 'glacier-shape': 'off' }), offNoTable = await runGl('gl-off-notable', {}, null);
+    add('K1 Schalter „Faktor je Gletscher“ und „Form je Band“: Voreinstellung beider „off“, ein unbekanntes Wort wird abgelehnt; aus = dieselben Bytes wie der Lauf ohne die Schalter (Dokument, Zustand, Zeiger, Statuszeile), die Tabelle je Gletscher wird nicht geöffnet (OHNE die Datei dieselben Bytes), kein Feld `glaciers` im Dokument und keine Angabe in der Statuszeile',
+      GLACIER_FACTOR_DEFAULT === 'off' && GLACIER_SHAPE_DEFAULT === 'off' && glacierFactorModeOf(undefined) === 'off' && glacierShapeModeOf('') === 'off' && glacierFactorModeOf('on') === 'on'
+      && !offNamed.err && !offNoTable.err && same(offNamed, on) && same(offNoTable, on) && on.doc.params.precip.glaciers === undefined && !('glacier' in on.status.lines.melt), JSON.stringify({ err: [offNamed.err, offNoTable.err] }));
+
+    const fOn = await runGl('gl-factor', { 'glacier-factor': 'on' }), sOn = await runGl('gl-shape', { 'glacier-shape': 'on' }), bothOn = await runGl('gl-both', { 'glacier-factor': 'on', 'glacier-shape': 'on' });
+    const gb = fOn.doc?.params?.precip?.glaciers;
+    add('K2 Faktor je Gletscher an: Alpha (Eintrag 2,5) hält nach 6 Stunden von Hand 6 · 3 mm · 2,5 · Schneeanteil an jedem Band; Gamma (kein Eintrag) und Far (Eintrag an der Grenze 5 — kein Messwert) behalten den Wert ihrer Region; Gegenprobe: Alpha mit dem Regionswert passt nicht; das Dokument nennt Regel, Hash der Methode und die Gletscher, die auf eigenem Faktor liefen (nur Alpha), die Statuszeile zählt sie; der Vertrag der Seite und des Blocks nimmt das Dokument',
+      !fOn.err && stateIs(fOn.state, 'gl_ch_alpha', sweCorr(2400, 2900, 2.5, one)) && !stateIs(fOn.state, 'gl_ch_alpha', sweCorr(2400, 2900, F['ch-test'], one)) && stateIs(fOn.state, 'gl_ch_gamma', sweCorr(2600, 2900, F['ch-test'], one)) && stateIs(fOn.state, 'gl_ch_far', sweCorr(2600, 2750, F['ch-far'], one))
+      && gb?.factor === true && gb.shape === false && JSON.stringify(gb.applied) === JSON.stringify({ factor: ['gl_ch_alpha'], shape: [] }) && gb.method === realGl.method.sha256 && gb.atBound === 1 && gb.entries === 2
+      && JSON.stringify(fOn.status.lines.melt.glacier) === JSON.stringify({ factor: 1, shape: 0 }) && meltProblems(fOn.doc).length === 0 && meltPrecipProblems(fOn.doc.params.precip, ['ch-test', 'ch-far']).length === 0 && fOn.doc.params.precip.regions['ch-test'].F === F['ch-test'],
+      JSON.stringify({ err: fOn.err, alpha: fOn.state?.gl_ch_alpha?.[0], hand: sweCorr(2400, 2900, 2.5, one), gb }));
+    const meanOf = (c) => c.reduce((t, v, i) => t + W[i] * v, 0);
+    add('K3 Form je Band an (ohne den Faktor): Alpha und Far verteilen den Zuwachs nach ihrer Form — von Hand je Band 6 · 3 mm · Regionswert · (1 + m · (Form − flächengewichtetes Mittel)) · Schneeanteil; das flächengewichtete Mittel der Multiplikatoren ist 1 (die Form verteilt nur um), unten und oben unterscheiden sie sich; Gamma bleibt wie ohne Schalter; das Dokument nennt beide Gletscher unter `shape` — auch den mit dem Faktor an der Grenze, dessen Form trotzdem gilt',
+      !sOn.err && Math.abs(meanOf(corrA) - 1) < 1e-12 && Math.abs(meanOf(corrF) - 1) < 1e-12 && corrA[5] - corrA[0] > 0.2 && stateIs(sOn.state, 'gl_ch_alpha', sweCorr(2400, 2900, F['ch-test'], corrA)) && !stateIs(sOn.state, 'gl_ch_alpha', sweCorr(2400, 2900, F['ch-test'], one))
+      && stateIs(sOn.state, 'gl_ch_far', sweCorr(2600, 2750, F['ch-far'], corrF)) && stateIs(sOn.state, 'gl_ch_gamma', sweCorr(2600, 2900, F['ch-test'], one))
+      && JSON.stringify(sOn.doc.params.precip.glaciers?.applied) === JSON.stringify({ factor: [], shape: ['gl_ch_alpha', 'gl_ch_far'] }) && JSON.stringify(sOn.status.lines.melt.glacier) === JSON.stringify({ factor: 0, shape: 2 }),
+      JSON.stringify({ err: sOn.err, corrA, alpha: sOn.state?.gl_ch_alpha?.[0], hand: sweCorr(2400, 2900, F['ch-test'], corrA) }));
+    add('K4 beide an: Alpha rechnet mit eigenem Faktor UND eigener Form (von Hand 2,5 · Multiplikator je Band), Far mit dem Regionswert und seiner Form',
+      !bothOn.err && stateIs(bothOn.state, 'gl_ch_alpha', sweCorr(2400, 2900, 2.5, corrA)) && stateIs(bothOn.state, 'gl_ch_far', sweCorr(2600, 2750, F['ch-far'], corrF)) && JSON.stringify(bothOn.status.lines.melt.glacier) === JSON.stringify({ factor: 1, shape: 2 }), JSON.stringify({ err: bothOn.err }));
+    process.env.GLACIER_SNOW_GLACIER_FACTOR = 'on'; process.env.GLACIER_SNOW_GLACIER_SHAPE = 'on';
+    const envBoth = await runGl('gl-env'), envArg = await runGl('gl-env-arg', { 'glacier-factor': 'off', 'glacier-shape': 'off' });
+    delete process.env.GLACIER_SNOW_GLACIER_FACTOR; delete process.env.GLACIER_SNOW_GLACIER_SHAPE;
+    add('K5 Umgebungsvariablen GLACIER_SNOW_GLACIER_FACTOR / _SHAPE = on schreiben dieselben Bytes wie die Schalter; ein Schalter „off“ daneben gewinnt (dieselben Bytes wie ohne)', !envBoth.err && !envArg.err && same(envBoth, bothOn) && same(envArg, on), JSON.stringify({ err: [envBoth.err, envArg.err] }));
+    const word = await runGl('gl-word', { 'glacier-factor': 'ja' }), wordS = await runGl('gl-word-s', { 'glacier-shape': 'ja' }), gateC = await runGl('gl-gatec', { 'glacier-factor': 'on', precip: 'gate-c' }), noFile = await runGl('gl-nofile', { 'glacier-factor': 'on' }, null);
+    const notCarried = await runGl('gl-gate', { 'glacier-factor': 'on' }, glFor((t) => { t.verdict.K6.carries = false; t.gate.factor = false; })), shapeGate = await runGl('gl-gate-s', { 'glacier-shape': 'on' }, glFor((t) => { t.verdict.K7.carries = false; t.gate.shape = false; }));
+    const contradict = await runGl('gl-contradict', { 'glacier-factor': 'on' }, glFor((t) => { t.gate.factor = false; })), stranger = await runGl('gl-stranger', { 'glacier-shape': 'on' }, glFor((t) => { t.glaciers.gl_ch_nobody = structuredClone(t.glaciers.gl_ch_alpha); }));
+    const wild = await runGl('gl-wild', { 'glacier-factor': 'on' }, glFor((t) => { t.glaciers.gl_ch_alpha.F = 7; })), unmarked = await runGl('gl-unmarked', { 'glacier-factor': 'on' }, glFor((t) => { delete t.glaciers.gl_ch_far.atBound; }));
+    const stops = [word, wordS, gateC, noFile, notCarried, shapeGate, contradict, stranger, wild, unmarked];
+    add('K6 die Schalter fallen nie still zurück: unbekanntes Wort (beide Schalter), „gate-c“ daneben, fehlende Tabelle, ein Urteil, das nicht trägt (Faktor bzw. Form), ein Urteil, dem `gate` widerspricht, ein Gletscher außerhalb des Katalogs, ein Faktor außerhalb der Grenzen, ein Faktor an der Grenze ohne Vermerk ⇒ Abbruch mit Grund, nichts geschrieben',
+      /Faktor je Gletscher: unbekannte Stellung „ja“/.test(word.err ?? '') && /Form je Band: unbekannte Stellung „ja“/.test(wordS.err ?? '') && /nur mit dem Niederschlagsfaktor „country“/.test(gateC.err ?? '') && /nicht lesbar/.test(noFile.err ?? '')
+      && /trägt nach dem Urteil der Eichung nicht \(gate\.factor\)/.test(notCarried.err ?? '') && /gate\.shape/.test(shapeGate.err ?? '') && /gate\.factor widerspricht/.test(contradict.err ?? '') && /gl_ch_nobody: nicht im Katalog/.test(stranger.err ?? '')
+      && /Faktor außerhalb der Grenzen/.test(wild.err ?? '') && /atBound/.test(unmarked.err ?? '') && stops.every((x) => x.wrote === false), JSON.stringify(stops.map((x) => x.err)));
+    // the core: a multiplier per band handed in, by hand; without it the gradient as always; a list that does not fit the bands is refused
+    const bands2 = { zb: [2500, 2700], w: [0.5, 0.5] }, coldT = new Float64Array(6).fill(-5), wet = new Float64Array(6).fill(2);
+    const sim = (extra) => simulate({ bands: bands2, ela: 2600, t: coldT, g: new Float64Array(6), p: wet, zT: 2600, zP: 2600, pf: 1.5, TF: 0.1, SRF: 0.005, state: emptyState(2), ...extra });
+    const withCorr = sim({ pGrad: 0, corr: [0.8, 1.2] }), plain = sim({ pGrad: 0 }), grad = sim({});
+    let refused = false; try { sim({ corr: [1] }); } catch { refused = true; }
+    add('K7 Kern: mit einem Multiplikator je Band ist der Zuwachs von Hand Stunden · Niederschlag · Faktor · Multiplikator (6 · 2 · 1,5 · 0,8 = 14,4 und · 1,2 = 21,6 mm), ohne ihn rechnet der Kern wie immer (mit Gradient 0 je 18 mm, ohne Angabe die gesetzten 4 % je 100 m ab der Bezugshöhe); eine Liste, die nicht zu den Bändern passt, wird abgelehnt',
+      Math.abs(withCorr.bal[0] - 14.4) < 1e-9 && Math.abs(withCorr.bal[1] - 21.6) < 1e-9 && Math.abs(plain.bal[0] - 18) < 1e-9 && Math.abs(plain.bal[1] - 18) < 1e-9 && Math.abs(grad.bal[0] - 18 * 0.96) < 1e-9 && Math.abs(grad.bal[1] - 18 * 1.04) < 1e-9 && refused, JSON.stringify([Array.from(withCorr.bal), Array.from(grad.bal)]));
+  }
 }
 // --- I: phase GM (GM-3d, V-GM-32) — where the carried state stands: `ahead` (as always, the fall back) or `run-hour` with its forcing ---------------
 // (a crash inside the block is a named failure, not an abort of the verifier)
