@@ -175,15 +175,20 @@ export function atElevation(z, vals, zs) {
  * network and quantity — throws without it); `slot` = the station hour document (sections `stations` and `ext.stations`); `t0Ms` = run hour;
  * `windowMin` = [minutes before, minutes after] in which a station stamp counts. Pairs follow the order of `rows`. Throws when the inputs are not usable
  * — never a pair from a guessed station.
+ * GM-5c: `forecast` = { days: [1, 2, 3], at: Map(glacier id → { zs, q }) } only in a run with spreads — every pair then carries `fm` (the expected depth
+ * at the end of those days at the station elevation) and either `fq` (`q` = [p10 per day, p90 per day] of `spreadOfGlacier` for exactly this station
+ * elevation) or the row's reason `sq`. A row with a spread whose quantiles at the station elevation are missing throws — never the row's own quantiles
+ * mixed between two levels instead. Without `forecast` every pair is what it was.
  */
-export function pairsOf({ rows, map, slot, t0Ms, windowMin }) {
+export function pairsOf({ rows, map, slot, t0Ms, windowMin, forecast = null }) {
   const ext = map?.ext;
   if (!ext?.glaciers || !ext?.stations) throw new Error('Stationszuordnung ohne Abschnitt ext');
   if (!slot?.stations) throw new Error('Stationsslot ohne Abschnitt stations');
   const entries = { ...slot.stations, ...(slot.ext?.stations ?? {}) };
   const rowOf = new Map(rows.map((r) => [r.id, r]));
   const pairs = [], at = { below: 0, inside: 0, above: 0 }, why = {};
-  let withValue = 0, mappedWithoutRow = 0;
+  let withValue = 0, mappedWithoutRow = 0, fPairs = 0;
+  const fNone = {};
   const r2 = (x) => Math.round(x * 10) / 10 + 0;
   for (const r of rows) {
     const snow = ext.glaciers[r.id]?.snow;
@@ -203,11 +208,33 @@ export function pairsOf({ rows, map, slot, t0Ms, windowMin }) {
       else { p.v = e.v.snow; p.age = age; withValue++; }
     }
     if (e?.hsd && Object.keys(e.hsd).length) p.hsd = e.hsd;
+    if (forecast) {
+      // GM-5c: the forecast at the station elevation — the expected depth like `m`; the spread as the scenarios gave it AT this elevation, or the row's reason
+      p.fm = forecast.days.map((d) => r2(atElevation(r.z, r.hsd.map((a) => a[d - 1]), st.elev).v));
+      if (r.sq) { p.sq = r.sq; fNone[r.sq] = (fNone[r.sq] ?? 0) + 1; }
+      else {
+        const q = forecast.at.get(r.id);
+        if (!r.hsq || !q || q.zs !== st.elev) throw new Error(`Spanne in Stationshöhe fehlt (${r.id}, ${sid})`);
+        p.fq = q.q; fPairs++;
+      }
+    }
     at[p.at]++; if (p.why) why[p.why] = (why[p.why] ?? 0) + 1;
     pairs.push(p);
   }
   for (const [id, g] of Object.entries(ext.glaciers)) if (g.snow && !rowOf.has(id)) mappedWithoutRow++;
-  return { pairs, counts: { pairs: pairs.length, withValue, at, why, mappedWithoutRow } };
+  return { pairs, counts: { pairs: pairs.length, withValue, at, why, mappedWithoutRow }, ...(forecast ? { forecast: { pairs: fPairs, none: fNone } } : {}) };
+}
+
+/**
+ * GM-5c (V-GM-79): the elevation of the snow station of every glacier that has one, from the station mapping (section `ext`, as `pairsOf` reads it).
+ * Throws without that section; a station without an elevation is left out here — `pairsOf` names it.
+ */
+export function stationLevelsOf(map) {
+  const ext = map?.ext;
+  if (!ext?.glaciers || !ext?.stations) throw new Error('Stationszuordnung ohne Abschnitt ext');
+  const out = new Map();
+  for (const [id, g] of Object.entries(ext.glaciers)) { const zs = g?.snow ? ext.stations[g.snow[0]]?.elev : null; if (Number.isFinite(zs)) out.set(id, zs); }
+  return out;
 }
 
 // --- GM-5a (E-GM-32 … E-GM-35): the spread of the forecast from scenarios. Nothing here changes an expected value, the row's other fields or the state. ---
@@ -242,10 +269,15 @@ export function shiftLevels({ tz, share, sg, zT, hours, ramp }) {
  *   place(zT)      `{ tz, share }` [3][hours] for the temperature-error path `zT` (standard normal per hour; the caller knows sigma and the phase rule)
  * Returns per elevation `hsq`, `hnq` = [p10 per day, p90 per day] of the scenario VALUES (cm, 0.1) and `hnw` = [p10, median, p90] of the scenario SUMS
  * of the new snow of the days `rule.week2` — never a sum of daily quantiles.
+ * GM-5c (V-GM-79): `at` = { z: the three elevations of the row, zs: one more elevation, days: n } adds `at` = [p10 per day, p90 per day] of the snow depth
+ * at `zs` for the first n days — every scenario is read at `zs` between its three levels (`atElevation`), then the quantile is taken; never a mix of
+ * the quantiles of two levels. It draws no random number and changes none of the other fields; without `at` the result has no such key.
  */
-export function spreadOfGlacier({ levels, pars, c, t0Ms, seed, rule, p, g, factor, amount, place, days = GLACIER_SNOWPACK_DAYS }) {
+export function spreadOfGlacier({ levels, pars, c, t0Ms, seed, rule, p, g, factor, amount, place, days = GLACIER_SNOWPACK_DAYS, at = null }) {
   const hours = days * 24, k = rule.k, a = Math.sqrt(1 - rule.rho * rule.rho), sg = rule.sigma, [w0, w1] = rule.week2;
   if (!(Number.isInteger(k) && k >= 1) || !(w0 >= 1 && w0 <= w1 && w1 <= days)) throw new Error('Spanne: Regel unbrauchbar');
+  if (at && !(Number.isInteger(at.days) && at.days >= 1 && at.days <= days && Number.isFinite(at.zs) && Array.isArray(at.z) && at.z.length === 3 && at.z.every(Number.isFinite))) throw new Error('Spanne: Stationshöhe unbrauchbar');
+  const sa = at ? Array.from({ length: at.days }, () => new Float64Array(k)) : null;
   const start = levels.map((lv) => ({ row: packToRow(lv.pack), aS: lv.aS }));
   const hs = [0, 1, 2].map(() => Array.from({ length: days }, () => new Float64Array(k))), hn = [0, 1, 2].map(() => Array.from({ length: days }, () => new Float64Array(k)));
   const wk = [0, 1, 2].map(() => new Float64Array(k));
@@ -270,11 +302,12 @@ export function spreadOfGlacier({ levels, pars, c, t0Ms, seed, rule, p, g, facto
         hs[l][d][s] = v; hn[l][d][s] = n;
         if (d + 1 >= w0 && d + 1 <= w1) wk[l][s] += n;
       }
+      if (sa && d < sa.length) sa[d][s] = atElevation(at.z, [hs[0][d][s], hs[1][d][s], hs[2][d][s]], at.zs).v;
     }
   }
   const q = (x, at) => { const srt = Float64Array.from(x).sort(); return at.map((v) => r1(quantile(srt, v))); };
   const pair = (lv) => { const lo = [], hi = []; for (const x of lv) { const [a10, a90] = q(x, [0.1, 0.9]); lo.push(a10); hi.push(a90); } return [lo, hi]; };
-  return { hsq: hs.map(pair), hnq: hn.map(pair), hnw: wk.map((x) => q(x, [0.1, 0.5, 0.9])) };
+  return { hsq: hs.map(pair), hnq: hn.map(pair), hnw: wk.map((x) => q(x, [0.1, 0.5, 0.9])), ...(sa ? { at: pair(sa) } : {}) };
 }
 
 /** May a run continue a state? `null` = yes, else the reason. `rules` = { precip, density } of the run. */

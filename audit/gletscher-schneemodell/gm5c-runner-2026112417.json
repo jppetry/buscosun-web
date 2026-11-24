@@ -1,0 +1,245 @@
+{
+ "generated": "2026-11-24T17:29:48.993Z",
+ "commit": "6b71ddd5bc7e690cae0ed4c8f813912c294bb576",
+ "run": "2026112417",
+ "status": {
+  "melt": {
+   "at": "2026-11-24T17:24:15.146Z",
+   "glaciers": 2094,
+   "skipped": 0,
+   "unit": false,
+   "seconds": 163,
+   "precip": "country",
+   "state": "run-hour"
+  },
+  "snowpack": {
+   "at": "2026-11-24T17:24:15.146Z",
+   "mode": "shadow",
+   "glaciers": 2084,
+   "skipped": 10,
+   "coverage": {
+    "own": 957,
+    "neighbour": 1127,
+    "lapse": 0
+   },
+   "precip": "country",
+   "density": "board",
+   "state": {
+    "source": "carried",
+    "since": "2026-10-01T00:00:00.000Z",
+    "ageH": 6,
+    "replayedH": 6,
+    "started": 0,
+    "gaps": {
+     "glaciers": 2084,
+     "maxH": 30
+    }
+   },
+   "carried": 0,
+   "dropped": 0,
+   "bytes": 1263452,
+   "stateBytes": 1721696,
+   "seconds": 7,
+   "pairs": {
+    "pairs": 468,
+    "withValue": 465,
+    "map": "20261120-1.5",
+    "slot": "2026112417",
+    "bytes": 77075
+   }
+  }
+ },
+ "pointer": {
+  "melt": {
+   "run": "2026112417",
+   "runAt": "2026-11-24T17:24:15.146Z",
+   "engine": {
+    "name": "buscosun Fusion 14",
+    "version": 14
+   },
+   "cube": {
+    "t3": "2026112400",
+    "stations": "2026112415",
+    "t1": "2026112415",
+    "t2": "2026112412"
+   },
+   "unit": false,
+   "build": "20261120-1"
+  },
+  "snowpack": {
+   "run": "2026112417",
+   "runAt": "2026-11-24T17:24:15.146Z",
+   "engine": {
+    "name": "buscosun Fusion 14",
+    "version": 14
+   },
+   "build": "20261120-1",
+   "since": "2026-10-01T00:00:00.000Z"
+  },
+  "stations": {
+   "hour": "2026112417",
+   "builtAt": "2026-11-24T17:16:40.011Z",
+   "n": 551,
+   "map": "20261120-1.5",
+   "mapAt": "2026-11-24T04:44:05.640Z",
+   "slot": "2026112417"
+  }
+ },
+ "pairs": {
+  "bytes": 77075,
+  "statusBytes": 77075,
+  "contract": [],
+  "run": "2026112417",
+  "atMs": "2026-11-24T17:00:00.000Z",
+  "snowpack": {
+   "run": "2026112417",
+   "precip": "country",
+   "density": "board"
+  },
+  "stations": {
+   "map": "20261120-1.5",
+   "slot": "2026112417",
+   "source": "glacier/v1/stn"
+  },
+  "counts": {
+   "pairs": 468,
+   "withValue": 465,
+   "at": {
+    "below": 322,
+    "inside": 119,
+    "above": 27
+   },
+   "why": {
+    "stale": 3
+   },
+   "mappedWithoutRow": 1
+  },
+  "statusLine": {
+   "pairs": 468,
+   "withValue": 465,
+   "map": "20261120-1.5",
+   "slot": "2026112417",
+   "bytes": 77075
+  },
+  "statusMatches": true,
+  "recomputed": {
+   "samePairs": true,
+   "sameCounts": true
+  },
+  "byNet": {
+   "tirol": 98,
+   "at": 26,
+   "bz": 8,
+   "imis": 334,
+   "ch": 2
+  },
+  "withValueByNet": {
+   "tirol": 95,
+   "at": 26,
+   "bz": 8,
+   "imis": 334,
+   "ch": 2
+  },
+  "withHsd": 98,
+  "ageMin": {
+   "p10": 0,
+   "median": 0,
+   "p90": 0
+  },
+  "modelOverStation": {
+   "n": 465,
+   "median": 1.92,
+   "rule": "nur Paare mit Stationswert >= 5 cm"
+  },
+  "stationsDistinct": 92,
+  "carriesForecast": false
+ },
+ "snowpack": {
+  "contract": [],
+  "glaciers": 2084,
+  "skipped": 10,
+  "coverage": {
+   "own": 957,
+   "neighbour": 1127,
+   "lapse": 0
+  },
+  "state": {
+   "source": "carried",
+   "since": "2026-10-01T00:00:00.000Z",
+   "ageH": 6,
+   "replayedH": 6,
+   "started": 0,
+   "gaps": {
+    "glaciers": 2084,
+    "maxH": 30
+   }
+  },
+  "spread": "none",
+  "precip": "country",
+  "density": "board",
+  "engine": {
+   "name": "buscosun Fusion 14",
+   "version": 14,
+   "stageCurrent": true
+  },
+  "cube": {
+   "t1": "2026112415",
+   "t2": "2026112412",
+   "t3": "2026112400",
+   "stations": "2026112415"
+  },
+  "stateFile": {
+   "contract": [],
+   "atMs": "2026-11-24T17:00:00.000Z",
+   "run": "2026112417",
+   "glaciers": 2084
+  },
+  "hsMedianCm": {
+   "tongue": 114.7,
+   "median": 128.5,
+   "top": 136.9
+  }
+ },
+ "melt": {
+  "contract": [],
+  "glaciers": 2094,
+  "skipped": 0,
+  "state": {
+   "source": "carried",
+   "ageH": 0,
+   "nudged": 511,
+   "mode": "run-hour",
+   "replayedH": 6,
+   "held": 0
+  },
+  "engine": {
+   "name": "buscosun Fusion 14",
+   "version": 14,
+   "stageCurrent": true
+  },
+  "cube": {
+   "t1": "2026112415",
+   "t2": "2026112412",
+   "t3": "2026112400",
+   "stations": "2026112415"
+  },
+  "precip": "country",
+  "glaciersBlock": null,
+  "stateFile": {
+   "contract": [],
+   "atMs": "2026-11-24T17:00:00.000Z",
+   "glaciers": 2094,
+   "pend": true,
+   "sat": false
+  }
+ },
+ "prev": {
+  "run": "2026112411",
+  "common": 2084,
+  "hsMedianLevelChangeCm": {
+   "p10": -1.6000000000000227,
+   "median": -0.8,
+   "p90": -0.3999999999999915
+  }
+ }
+}

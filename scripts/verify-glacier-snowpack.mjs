@@ -14,6 +14,8 @@
  *
  *   I  GM-5a (E-GM-32 … E-GM-35): the spread from scenarios — switch, byte identity of everything else, a scenario without noise is the expected value
  *      (core and producer), every source of the spread acts, the sum rule, neighbours and answers without a distribution carry none, the contract
+ *   J  GM-5c (V-GM-79): the pairs carry the forecast at the station elevation in a run with spreads — the quantile of the scenario values read at that
+ *      elevation (never a mix of two levels' quantiles), the pair by hand, byte identity of every combination of the two switches, missing inputs, the contract
  *
  * Exit 0 = all green. Last line: `verify:glacier-snowpack n/m`.
  */
@@ -28,10 +30,10 @@ import { snowCoreSetup } from './glacier/lib/snowcal.mjs';
 import { solidFraction, weatherOfGlacier, shareAtElevation, tempAtElevation, precipAmountOf } from './glacier/lib/weathercore.mjs';
 import {
   SNOWPACK_DEFAULT, SNOWPACK_MODES, SNOWPACK_START_DEFAULT, snowpackModeOf, snowpackStartOf, emptyLevel, bareAlbedo, stepLevel, driveOf, normalizeLevel, levelsOfEntry, advanceEntry,
-  snowpackOfGlacier, placeLevels, stateRefusal, SNOWPACK_PAIRS_DEFAULT, SNOWPACK_PAIRS_MODES, snowpackPairsModeOf, atElevation,
+  snowpackOfGlacier, placeLevels, stateRefusal, SNOWPACK_PAIRS_DEFAULT, SNOWPACK_PAIRS_MODES, snowpackPairsModeOf, atElevation, pairsOf, stationLevelsOf,
   SNOWPACK_SPREAD_DEFAULT, SNOWPACK_SPREAD_MODES, snowpackSpreadModeOf, spreadOfGlacier, shiftLevels,
 } from './glacier/lib/snowpackcore.mjs';
-import { GLACIER_SNOWPACK_PAIRS_NOTE, glacierSnowpackPairsPath, snowpackPairsProblems } from '../src/glacier/glacierSnowpackPairsContract.ts';
+import { GLACIER_SNOWPACK_PAIRS_NOTE, GLACIER_SNOWPACK_PAIRS_FC_HOURS, GLACIER_SNOWPACK_PAIRS_FC_ELEVATION, GLACIER_SNOWPACK_PAIRS_WINDOW_MIN, glacierSnowpackPairsPath, snowpackPairsProblems } from '../src/glacier/glacierSnowpackPairsContract.ts';
 import { archivePairs } from './glacier/glacier-archive.mjs';
 import {
   GLACIER_SNOWPACK_DAYS, GLACIER_SNOWPACK_PEND_H, GLACIER_SNOWPACK_STATE_PATH, GLACIER_SNOWPACK_NOTE, glacierSnowpackRunPath, snowpackProblems, snowpackStateProblems,
@@ -273,7 +275,7 @@ const runSp = async (root, extra = {}, { shiftH = 0, out = 'out', hook = null } 
 };
 /** Puts a state into the data tree of a root (what the publisher would have done between two runs). */
 const putState = (root, stateRaw) => { mkdirSync(join(root, 'data', 'snowpack'), { recursive: true }); writeFileSync(join(root, 'data', 'snowpack', 'state.json'), stateRaw); };
-const strip = (e) => { const s = structuredClone(e.status); delete s.lines.snowpack; delete s.lines.melt.seconds; if (s.lines.weather?.levels) delete s.lines.weather.levels.seconds; const i = structuredClone(e.index); delete i.snowpack; return JSON.stringify([s, i]); };
+const strip = (e) => { const s = structuredClone(e.status); delete s.lines.snowpack; delete s.lines.melt.seconds; delete s.lines.melt.mem; if (s.lines.weather?.levels) delete s.lines.weather.levels.seconds; const i = structuredClone(e.index); delete i.snowpack; return JSON.stringify([s, i]); };
 const mk = (name) => { const root = join(tmp, name); mkTree(root); return root; };
 const rowOf = (e, id) => e.doc?.glaciers.find((r) => r.id === id);
 await block('D', async () => {
@@ -447,7 +449,7 @@ const putStations = (root, { extraMin = 0, stampAt = null, slotRun = LX_RUN, wit
   return { chosen: c };
 };
 const pairsDoc = (e) => { const f = join(e.outDir, glacierSnowpackPairsPath(e.run)); return existsSync(f) ? J(f) : null; };
-const stripPairs = (e) => { const s = structuredClone(e.status); delete s.lines.snowpack?.pairs; delete s.lines.melt.seconds; if (s.lines.weather?.levels) delete s.lines.weather.levels.seconds; if (s.lines.snowpack) delete s.lines.snowpack.seconds; return JSON.stringify([s, e.index]); };
+const stripPairs = (e) => { const s = structuredClone(e.status); delete s.lines.snowpack?.pairs; delete s.lines.melt.seconds; delete s.lines.melt.mem; if (s.lines.weather?.levels) delete s.lines.weather.levels.seconds; if (s.lines.snowpack) delete s.lines.snowpack.seconds; return JSON.stringify([s, e.index]); };
 await block('H', async () => {
   // a seed with snow (the spin-up of F4 on the real INCA answer), so that the pairs carry depths that are not zero
   const FXs = J(join(HERE, 'lib', 'fixtures', 'glacier', 'snowpack-seed.json')), ns = FXs.inca.timestamps.length;
@@ -692,6 +694,156 @@ await block('Ip', async () => {
     && JSON.stringify(JSON.parse(eGl.files[4]).params.precip.glaciers?.applied) === JSON.stringify({ factor: ['gl_ch_alpha'], shape: ['gl_ch_alpha'] }), JSON.stringify({ err: eGl.err }));
   add('I13 Producer: auch eine Zeile OHNE drei Antworten (Zunge und Oberkante ausgefallen, Regel „psnow“ — der Schneeanteil ist dort nicht die Temperatur-Rampe) hält die Regel: ein Szenario ohne Streuung ist der Erwartungswert; mit dem Temperaturfehler der Antwort öffnet sich die Spanne',
     !eLapse.err && lapseOk.every(Boolean) && wOf(eLapseT, 'gl_ch_alpha', 0, 13) > 0.3, JSON.stringify({ err: eLapse.err, lapseOk, rows: eLapse.doc?.glaciers.map((r) => [r.id, r.lv ?? null, r.sq ?? null]), wT: wOf(eLapseT, 'gl_ch_alpha', 0, 13) }));
+});
+
+// --- J: GM-5c — the pairs carry the forecast at the station elevation (V-GM-79) -------------------------------------------------------------------
+await block('J', async () => {
+  add('J1 Vorlaufzeiten und Regel sind festgeschrieben: +24 / +48 / +72 h (ganze Tage der Zeile), „je Szenario zwischen den Höhen“ — eine Änderung daran ist eine bewusste',
+    eq(GLACIER_SNOWPACK_PAIRS_FC_HOURS, [24, 48, 72]) && GLACIER_SNOWPACK_PAIRS_FC_ELEVATION === 'per-scenario-linear-between-levels-clamped');
+  // --- the core: the scenarios read at one more elevation
+  const g = gWarm, F = 1.793, c = BOARD.c, pars = parsOf(g), begin = Math.round(LX_T0 / H);
+  const tz = g.levels.map((l) => f64(l.t)), share = tz.map((t) => Float64Array.from(t, solidFraction)), p = f64(g.median.p), gg = new Float64Array(336).fill(60), factor = [F, F, F];
+  const pre = [begin - 500, 0, [[2000, 800], [2500, 900], [3000, 1000]], [600, 600, 600], null];
+  const levels = levelsOfEntry(pre);
+  snowpackOfGlacier({ id: g.id, z: g.z, levels, drive: driveOf({ tz, share, p, g: gg, factor, hours: HOURS }), pars, c, t0Ms: LX_T0, begin });
+  const frozen = () => JSON.stringify(levels.map((lv) => [packToRow(lv.pack), lv.aS]));
+  const before = frozen();
+  const wet = { amount: (h, zP) => Math.max(0, p[h]) * Math.exp(0.6 * zP), place: (zT) => { const t2 = tz.map((a) => Float64Array.from(a, (v, h) => v + 2 * zT[h])); return { tz: t2, share: t2.map((a) => Float64Array.from(a, solidFraction)) }; } };
+  const spr = (at, rule = { ...GLACIER_SNOWPACK_SPREAD_RULE, k: 40 }, paths = wet, lv = levels) => spreadOfGlacier({ levels: lv, pars, c, t0Ms: LX_T0, seed: 11, rule, p, g: gg, factor, ...paths, ...(at ? { at } : {}) });
+  const plain = spr(null), mid = (g.z[0] + g.z[1]) / 2;
+  const below = spr({ z: g.z, zs: g.z[0] - 50, days: 3 }), above = spr({ z: g.z, zs: g.z[2] + 50, days: 3 }), onMed = spr({ z: g.z, zs: g.z[1], days: 3 }), inside = spr({ z: g.z, zs: mid, days: 3 });
+  const rest = (x) => { const { at, ...o } = x; return JSON.stringify(o); };
+  const first3 = (q, l) => [q.hsq[l][0].slice(0, 3), q.hsq[l][1].slice(0, 3)];
+  add('J2 Kern: die Szenarien in einer weiteren Höhe gelesen — ohne die Angabe hat das Ergebnis kein solches Feld; mit ihr bleiben `hsq`, `hnq`, `hnw` Zahl für Zahl dieselben (keine Zufallszahl gezogen) und die Schneedecke der Laufstunde unberührt; unter der Zunge ist die Spanne genau die der Zunge, über der Oberkante die der Oberkante, auf der Medianhöhe die der Mitte — nie hochgerechnet; drei Tage verlangt, drei geliefert',
+    !('at' in plain) && [below, above, onMed, inside].every((x) => rest(x) === JSON.stringify(plain) && x.at.length === 2 && x.at[0].length === 3 && x.at[1].length === 3) && eq(below.at, first3(plain, 0)) && eq(above.at, first3(plain, 2)) && eq(onMed.at, first3(plain, 1))
+    && !eq(inside.at, first3(plain, 0)) && !eq(inside.at, first3(plain, 1)) && frozen() === before, JSON.stringify({ below: below.at, tongue: first3(plain, 0), inside: inside.at }));
+  // one scenario: the value at the elevation by hand from that scenario's two levels (three quarters of the way from the tongue to the median elevation)
+  {
+    const one = { ...GLACIER_SNOWPACK_SPREAD_RULE, k: 1 }, zq = g.z[0] + 0.75 * (g.z[1] - g.z[0]), a = spr({ z: g.z, zs: zq, days: 3 }, one), zu = g.z[1] + 0.25 * (g.z[2] - g.z[1]), b = spr({ z: g.z, zs: zu, days: 3 }, one);
+    const hand = (x, lo, w) => [0, 1, 2].map((d) => Math.round((x.hsq[lo][0][d] + w * (x.hsq[lo + 1][0][d] - x.hsq[lo][0][d])) * 10) / 10);
+    add('J3 Kern, ein Szenario von Hand: der Wert in der Höhe ist der dieses Szenarios zwischen seinen zwei Nachbarhöhen — drei Viertel des Wegs von der Zunge zur Mitte bzw. ein Viertel von der Mitte zur Oberkante, an jedem der drei Tage (auf 0,1 cm); p10 = p90',
+      eq(a.at[0], a.at[1]) && eq(a.at[0], hand(a, 0, 0.75)) && eq(b.at[0], hand(b, 1, 0.25)) && a.hsq[0][0][0] !== a.hsq[1][0][0], JSON.stringify({ at: a.at[0], hand: hand(a, 0, 0.75), tongue: a.hsq[0][0].slice(0, 3), median: a.hsq[1][0].slice(0, 3) }));
+  }
+  // the quantile of the values read at the elevation, not a mix of two quantiles: scenarios in which the snow falls EITHER at the tongue OR at the median
+  // elevation (never both) — half way between, every scenario gets the same; each level alone spreads wide
+  {
+    const cold = [0, 1, 2].map(() => new Float64Array(336).fill(-5)), fill = (v) => new Float64Array(336).fill(v);
+    const either = { amount: (h) => Math.max(0, p[h]), place: (zT) => { const up = zT[0] > 0; return { tz: cold, share: [fill(up ? 0.9 : 0.1), fill(up ? 0.1 : 0.9), fill(0.5)] }; } };
+    const flat = levelsOfEntry([begin - 500, 0, [[2000, 800], [2000, 800], [2000, 800]], [600, 600, 600], null]);
+    snowpackOfGlacier({ id: g.id, z: g.z, levels: flat, drive: driveOf({ tz: cold, share: [fill(0.5), fill(0.5), fill(0.5)], p, g: gg, factor, hours: HOURS }), pars, c, t0Ms: LX_T0, begin });
+    const x = spr({ z: g.z, zs: mid, days: 3 }, { ...GLACIER_SNOWPACK_SPREAD_RULE, k: 40, sigma: { factor: 0, densitySystematic: 0, densityEvent: 0 } }, either, flat);
+    const w = (q, d) => q[1][d] - q[0][d], w0 = w(x.hsq[0], 2), w1 = w(x.hsq[1], 2), wAt = w(x.at, 2);
+    add('J4 Kern: das Quantil der in der Höhe gelesenen Szenario-Werte, nie die Mischung zweier Quantile — fällt der Schnee je Szenario ENTWEDER an der Zunge ODER an der Mitte, ist die Spanne an jeder der zwei Höhen weit offen, auf halbem Weg dazwischen aber fast geschlossen (jedes Szenario bringt dort gleich viel); die Mischung der Quantile wäre so breit wie die Höhen selbst',
+      w0 > 3 && w1 > 3 && wAt < 0.2 * Math.min(w0, w1), JSON.stringify({ w0, w1, wAt, at: x.at }));
+  }
+  add('J5 Kern: eine unbrauchbare Angabe der Höhe bricht ab (keine Höhe, null Tage, mehr Tage als die Vorhersage, nur zwei Höhen der Zeile) — nie eine Spanne an einer geratenen Stelle',
+    !!(await throws(() => spr({ z: g.z, zs: NaN, days: 3 }))) && !!(await throws(() => spr({ z: g.z, zs: 2500, days: 0 }))) && !!(await throws(() => spr({ z: g.z, zs: 2500, days: 15 }))) && !!(await throws(() => spr({ z: g.z.slice(0, 2), zs: 2500, days: 3 }))));
+
+  // --- the pairs, pure: rows by hand
+  {
+    const row = (id, z, extra) => ({ id, z, f: 'own', hs: [10, 20, 40], swe: [20, 40, 80], hn: [[1, 2, 3], [2, 3, 4], [3, 4, 5]], hsd: [[11, 12, 13, 99], [21, 24, 27, 99], [41, 46, 51, 99]], hnd: [[1, 1, 1, 0], [1, 3, 3, 0], [1, 5, 5, 0]], ...extra });
+    const hsq = [[[9, 10, 11, 0], [13, 14, 15, 0]], [[19, 20, 21, 0], [23, 28, 33, 0]], [[39, 40, 41, 0], [43, 52, 61, 0]]];
+    const rows = [row('g_in', [2000, 2500, 3000], { hsq }), row('g_lo', [2000, 2500, 3000], { hsq }), row('g_nb', [2000, 2500, 3000], { f: 'g_in', sq: 'neighbour' }), row('g_nd', [2000, 2500, 3000], { sq: 'no-distribution' })];
+    const map = { ext: { stations: { 'n:in': { elev: 2250 }, 'n:lo': { elev: 1900 }, 'n:hi': { elev: 3100 } }, glaciers: { g_in: { snow: ['n:in', 1, -250] }, g_lo: { snow: ['n:lo', 2, -600] }, g_nb: { snow: ['n:hi', 3, 600] }, g_nd: { snow: ['n:in', 1, -250] } } } };
+    const slot = { stations: { 'n:in': { t: new Date(LX_T0).toISOString(), v: { snow: 30 } } }, ext: { stations: {} } };
+    const qIn = [[14.1, 15.2, 16.3], [18.4, 19.5, 20.6]], qLo = [[9, 10, 11], [13, 14, 15]];
+    const base = { rows, map, slot, t0Ms: LX_T0, windowMin: GLACIER_SNOWPACK_PAIRS_WINDOW_MIN };
+    const fcast = (at) => ({ days: [1, 2, 3], at });
+    const off = pairsOf(base), on = pairsOf({ ...base, forecast: fcast(new Map([['g_in', { zs: 2250, q: qIn }], ['g_lo', { zs: 1900, q: qLo }]])) });
+    const by = new Map(on.pairs.map((x) => [x.g, x]));
+    const strip = (ps) => JSON.stringify(ps.map((x) => { const { fm, fq, sq, ...o } = x; return o; }));
+    const levels2 = stationLevelsOf(map);
+    add('J6 Paare (rein), von Hand: ohne die Angabe ist jedes Paar, was es war, und das Ergebnis hat keine Zählung der Vorhersage; mit ihr trägt JEDES Paar die erwartete Schneehöhe in Stationshöhe zu +24 / +48 / +72 h aus den Tagen 1–3 der Zeile (2 250 m zwischen 11·12·13 und 21·24·27 ⇒ 16·18·20; unter der Zunge 11·12·13; über der Oberkante 41·46·51 — nie hochgerechnet, der vierte Tag bleibt draußen), das Paar auf einer Zeile mit Spanne genau die gereichte Spanne dieser Höhe, das auf der Nachbar-Zeile und das ohne Verteilung den Vermerk der Zeile und keine Spanne; alle anderen Felder Zeichen für Zeichen wie ohne; die Zählung nennt 2 mit Spanne und je 1 ohne',
+      !('forecast' in off) && off.pairs.every((x) => !('fm' in x) && !('fq' in x) && !('sq' in x)) && strip(on.pairs) === JSON.stringify(off.pairs) && eq(on.counts, off.counts)
+      && eq(by.get('g_in').fm, [16, 18, 20]) && eq(by.get('g_lo').fm, [11, 12, 13]) && eq(by.get('g_nb').fm, [41, 46, 51]) && eq(by.get('g_nd').fm, [16, 18, 20]) && eq(by.get('g_in').fq, qIn) && eq(by.get('g_lo').fq, qLo)
+      && by.get('g_nb').sq === 'neighbour' && !('fq' in by.get('g_nb')) && by.get('g_nd').sq === 'no-distribution' && !('fq' in by.get('g_nd')) && !('sq' in by.get('g_in')) && eq(on.forecast, { pairs: 2, none: { neighbour: 1, 'no-distribution': 1 } })
+      && eq([...levels2], [['g_in', 2250], ['g_lo', 1900], ['g_nb', 3100], ['g_nd', 2250]]), JSON.stringify({ on: on.pairs.map((x) => [x.g, x.fm, x.fq ?? x.sq]), fc: on.forecast }));
+    const noQ = await throws(() => pairsOf({ ...base, forecast: fcast(new Map([['g_in', { zs: 2250, q: qIn }]])) }));
+    const otherZ = await throws(() => pairsOf({ ...base, forecast: fcast(new Map([['g_in', { zs: 2300, q: qIn }], ['g_lo', { zs: 1900, q: qLo }]])) }));
+    // a row with neither a spread nor a reason — even when a spread for its station elevation is handed in (so that only the rule about the ROW can refuse it)
+    const noRowQ = await throws(() => pairsOf({ ...base, rows: rows.map((r) => (r.id === 'g_nd' ? row('g_nd', [2000, 2500, 3000], {}) : r)), forecast: fcast(new Map([['g_in', { zs: 2250, q: qIn }], ['g_lo', { zs: 1900, q: qLo }], ['g_nd', { zs: 2250, q: qIn }]])) }));
+    add('J7 Paare (rein), kein stiller Ersatz: fehlt zu einer Zeile mit Spanne die Spanne in Stationshöhe, gilt sie für eine andere Höhe als die der Station, oder trägt eine Zeile weder Spanne noch Vermerk (auch wenn für ihre Stationshöhe eine Spanne gereicht wird), bricht der Schritt mit dem Grund ab — nie die Quantile der Zeile zwischen zwei Höhen gemischt; eine Zuordnung ohne Abschnitt `ext` nennt keine Stationshöhen',
+      /Spanne in Stationshöhe fehlt \(g_lo/.test(noQ ?? '') && /Spanne in Stationshöhe fehlt \(g_in/.test(otherZ ?? '') && /Spanne in Stationshöhe fehlt \(g_nd/.test(noRowQ ?? '') && /ohne Abschnitt ext/.test((await throws(() => stationLevelsOf({ glaciers: {} }))) ?? ''), JSON.stringify({ noQ, otherZ, noRowQ }));
+  }
+});
+await block('Jp', async () => {
+  // --- the producer: every combination of the two switches on the same tree (a seed with snow, the station line, answers with a distribution)
+  const FXs = J(join(HERE, 'lib', 'fixtures', 'glacier', 'snowpack-seed.json')), ns = FXs.inca.timestamps.length;
+  const oneS = (i) => { const P = FXs.inca.features[i].properties.parameters; return { t: P['2t'].data, p: P.tp.data, g: P.ssrd.data }; };
+  const seedJ = JSON.stringify(seedOfForcing({ glaciers: [{ id: 'gl_ch_alpha', z: [2425, 2600, 2775], ela: 2600, F: F_TEST, series: oneS(0), dT: 0 }, { id: 'gl_ch_beta', z: [2525, 2700, 2875], ela: 2700, F: F_TEST, series: oneS(0), dT: -1 }, { id: 'gl_ch_gamma', z: [2625, 2800, 2975], ela: 2800, F: F_TEST, series: oneS(1), dT: 0 }], fromMs: LX_T0 - (ns + 4) * H, hours: ns, cal: { TF: 0.05, SRF: 0.008 }, c: BOARD.c, rules: { precip: 'country', density: 'board' }, info: {} }));
+  const mkJ = (name, o) => { const r = mk(name); putState(r, seedJ); putStations(r, o); return r; };
+  const withDist = (sigma, tSigma = null) => () => (s) => { const m = s.vars.precip.mean; s.vars.precip.dist = Number.isFinite(m) ? { kind: 'logCensored', mu: Math.log1p(Math.max(0, m)), sigma } : null; if (tSigma != null) s.vars.t2m.sigma = tSigma; };
+  const SP = { snowpack: 'shadow' }, PAIRS = { ...SP, 'snowpack-pairs': 'on' }, SPREAD = { ...SP, 'snowpack-spread': 'scenarios' }, BOTH = { ...PAIRS, 'snowpack-spread': 'scenarios' }, wide = { hook: withDist(0.6) };
+  const eP = await runSp(mkJ('j-pairs'), PAIRS, wide), eS = await runSp(mkJ('j-spread'), SPREAD, wide), eB = await runSp(mkJ('j-both'), BOTH, wide), eB2 = await runSp(mkJ('j-both2'), BOTH, wide);
+  const rawOf = (e, rel) => (existsSync(join(e.outDir, rel)) ? readFileSync(join(e.outDir, rel), 'utf8') : null);
+  const pRaw = (e) => rawOf(e, glacierSnowpackPairsPath(e.run)), sRaw = (e) => rawOf(e, glacierSnowpackRunPath(e.run));
+  const dP = pairsDoc(eP), dB = pairsDoc(eB);
+  const bareP = (d) => { if (!d) return null; const x = structuredClone(d); delete x.forecast; delete x.origins.fm; delete x.origins.fq; for (const q of x.pairs) { delete q.fm; delete q.fq; delete q.sq; } return JSON.stringify(x); };
+  const sameFiles = (a, b) => a.files.every((f, i) => f != null && f === b.files[i]);
+  const stP = (e) => { const s = structuredClone(e.status?.lines.snowpack?.pairs ?? null); if (s) { delete s.spread; delete s.bytes; } return JSON.stringify(s); };
+  add('J8 Producer, Spanne aus = wie vorher: mit den Paaren allein trägt das Paar-Dokument keine Vorhersage (kein Kopfblock, kein `fm`, `fq`, `sq`, Herkunft nur der vier alten Felder), die Statuszeile der Paare keine Zeile `spread`',
+    !eP.err && !!dP && !('forecast' in dP) && eq(Object.keys(dP.origins), ['m', 'hn', 'v', 'hsd']) && dP.pairs.every((x) => !('fm' in x) && !('fq' in x) && !('sq' in x)) && !('spread' in (eP.status?.lines.snowpack?.pairs ?? {})) && !snowpackPairsProblems(dP).length, JSON.stringify({ err: eP.err }));
+  add('J9 Producer, beide an: das Schneedecken-Dokument ist Byte für Byte das des Laufs mit der Spanne allein (der Zusatz zieht keine Zufallszahl und steht in keiner Zeile), sein Zustand ebenso, Schmelz- und Wetterdateien und der Zeiger sind die des Laufs mit den Paaren allein; das Paar-Dokument ist OHNE die neuen Felder Byte für Byte das ohne Spanne, die Statuszeile der Paare bis auf `spread` und `bytes` gleich; zweimal gerechnet gibt dieselben Bytes',
+    !eS.err && !eB.err && !!sRaw(eB) && sRaw(eB) === sRaw(eS) && eB.stateRaw === eS.stateRaw && sameFiles(eB, eP) && sameFiles(eB, eS) && JSON.stringify(eB.index) === JSON.stringify(eP.index) && !!dB && bareP(dB) === pRaw(eP) && stP(eB) === stP(eP)
+    && pRaw(eB) === pRaw(eB2) && pRaw(eB) !== pRaw(eP) && pairsDoc(eS) === null, JSON.stringify({ errS: eS.err, errB: eB.err, sameSp: sRaw(eB) === sRaw(eS), bare: bareP(dB) === pRaw(eP) }));
+  const rows = new Map((eB.doc?.glaciers ?? []).map((r) => [r.id, r])), by = new Map((dB?.pairs ?? []).map((x) => [x.g, x]));
+  const a = by.get('gl_ch_alpha'), b = by.get('gl_ch_beta'), gm = by.get('gl_ch_gamma'), fr = by.get('gl_ch_far');
+  const handFm = (gid) => { const r = rows.get(gid), zs = PX.stations[by.get(gid).s].elev; return [0, 1, 2].map((d) => { const v = r.hsd.map((x) => x[d]); if (zs < r.z[0]) return v[0]; if (zs > r.z[2]) return v[2]; const l = zs <= r.z[1] ? 0 : 1; return Math.round((v[l] + ((v[l + 1] - v[l]) * (zs - r.z[l])) / (r.z[l + 1] - r.z[l])) * 10) / 10; }); };
+  const d3 = (q) => [q[0].slice(0, 3), q[1].slice(0, 3)];
+  const ok10 = !!dB && [a, b, gm, fr].every(Boolean) && !!rows.get('gl_ch_alpha')?.hsq && !!rows.get('gl_ch_beta')?.hsq && !!rows.get('gl_ch_far')?.hsq;
+  add('J10 Producer, beide an — das Paar von Hand: jedes der vier Paare trägt die erwartete Schneehöhe in Stationshöhe zu +24 / +48 / +72 h, von Hand aus den Tagen 1–3 der Zeile gelesen; die Station unter der Zunge (IMIS, eigener Antrieb) trägt als Spanne genau die der Zunge, die zweite unter der Zunge ebenso; die Station über der Oberkante sitzt auf einer Nachbar-Zeile und trägt deren Vermerk und keine Spanne; die Station zwischen Zunge und Mitte (Tirol) trägt eine eigene, geordnete, offene Spanne, die weder die der Zunge noch die der Mitte ist und zwischen beiden liegt; Kopfblock: Stunden, Regel (K der Schneedecke, p10/p90, „je Szenario“), 3 Paare mit Spanne, 1 Nachbar; Herkunft `fm`, `fq` = „computed“; Statuszeile `spread: 3`; der Vertrag gilt, auch gegen die Zeilen geprüft',
+    ok10 && [a, b, gm, fr].every((x, i) => eq(x.fm, handFm(['gl_ch_alpha', 'gl_ch_beta', 'gl_ch_gamma', 'gl_ch_far'][i]))) && b.at === 'below' && eq(b.fq, d3(rows.get('gl_ch_beta').hsq[0])) && fr.at === 'below' && eq(fr.fq, d3(rows.get('gl_ch_far').hsq[0]))
+    && gm.at === 'above' && gm.sq === 'neighbour' && !('fq' in gm) && rows.get('gl_ch_gamma').sq === 'neighbour' && a.at === 'inside' && !('sq' in a) && [0, 1, 2].every((d) => a.fq[0][d] <= a.fq[1][d]) && a.fq[1][0] - a.fq[0][0] > 1
+    && !eq(a.fq, d3(rows.get('gl_ch_alpha').hsq[0])) && !eq(a.fq, d3(rows.get('gl_ch_alpha').hsq[1]))
+    && [0, 1].every((j) => [0, 1, 2].every((d) => { const lo = rows.get('gl_ch_alpha').hsq[0][j][d], hi = rows.get('gl_ch_alpha').hsq[1][j][d]; return a.fq[j][d] >= Math.min(lo, hi) - 0.05 && a.fq[j][d] <= Math.max(lo, hi) + 0.05; }))
+    && eq(dB.forecast, { hours: [24, 48, 72], origin: 'computed', spread: { rule: 'scenarios', k: GLACIER_SNOWPACK_SPREAD_K, quantiles: [10, 90], elevation: GLACIER_SNOWPACK_PAIRS_FC_ELEVATION }, pairs: 3, none: { neighbour: 1 } })
+    && dB.origins.fm === 'computed' && dB.origins.fq === 'computed' && eB.status.lines.snowpack.pairs.spread === 3 && !snowpackPairsProblems(dB, new Set(rows.keys()), rows).length && !snowpackPairsProblems(dB).length,
+    JSON.stringify({ err: eB.err, a, fm: ok10 && handFm('gl_ch_alpha'), tongue: ok10 && d3(rows.get('gl_ch_alpha').hsq[0]), median: ok10 && d3(rows.get('gl_ch_alpha').hsq[1]), fc: dB?.forecast, p: dB ? snowpackPairsProblems(dB, new Set(rows.keys()), rows) : null, st: eB.status?.lines.snowpack?.pairs }));
+  // a scenario without noise is the expected value — also at the station elevation, through the whole producer
+  const quiet = { ...GLACIER_SNOWPACK_SPREAD_RULE, k: 10, sigma: { factor: 0, densitySystematic: 0, densityEvent: 0 } };
+  const eQ = await runSp(mkJ('j-quiet'), { ...BOTH, spreadRule: quiet }, { hook: withDist(1e-9, 0) }), dQ = pairsDoc(eQ);
+  add('J11 Producer: ein Szenario ohne Streuung ist der Erwartungswert — auch in Stationshöhe: mit einer Verteilung ohne Breite, Antworten ohne Temperaturfehler und einer Regel ohne Fehler an Faktor und Dichte sind p10 und p90 jedes Paars mit Spanne genau seine erwartete Schneehöhe (auch zwischen den Höhen); der Kopfblock nennt das K dieses Laufs',
+    !eQ.err && !!dQ && dQ.pairs.filter((x) => x.fq).length === 3 && dQ.pairs.filter((x) => x.fq).every((x) => eq(x.fq[0], x.fm) && eq(x.fq[1], x.fm)) && dQ.forecast.spread.k === 10, JSON.stringify({ err: eQ.err, pairs: dQ?.pairs.map((x) => [x.g, x.fm, x.fq ?? x.sq]) }));
+  // answers without a distribution: no spread anywhere, every pair names why
+  const eN = await runSp(mkJ('j-nodist'), BOTH), dN = pairsDoc(eN);
+  add('J12 Producer: nennt die Antwort keine Niederschlagsverteilung, trägt kein Paar eine Spanne — die drei auf Zeilen mit eigenem Antrieb den Vermerk „no-distribution“, das auf der Nachbar-Zeile „neighbour“; die erwartete Schneehöhe steht trotzdem an jedem Paar; der Kopf zählt 0 mit Spanne; der Vertrag gilt',
+    !eN.err && !!dN && dN.pairs.length === 4 && dN.pairs.every((x) => !('fq' in x) && Array.isArray(x.fm)) && dN.pairs.filter((x) => x.sq === 'no-distribution').length === 3 && dN.pairs.filter((x) => x.sq === 'neighbour').length === 1
+    && eq({ pairs: dN.forecast.pairs, none: dN.forecast.none }, { pairs: 0, none: { 'no-distribution': 3, neighbour: 1 } }) && eN.status.lines.snowpack.pairs.spread === 0 && !snowpackPairsProblems(dN, undefined, new Map(eN.doc.glaciers.map((r) => [r.id, r]))).length, JSON.stringify({ err: eN.err, fc: dN?.forecast }));
+  // inputs unusable with both switches on: the snowpack with its spread stays what it is, no pairs file, the reason in the status line
+  const eNoExt = await runSp(mkJ('j-noext', { withExt: false }), BOTH, wide), eNoPtr = await runSp(mkJ('j-noptr', { pointer: false }), BOTH, wide);
+  add('J13 Producer, kein stiller Ersatz: ist die Zuordnung mit beiden Schaltern nicht nutzbar (ohne Abschnitt `ext`, ohne Zeiger), bleibt die Schneedecke mit ihrer Spanne Byte für Byte die des Laufs mit der Spanne allein, es entsteht kein Paar-Dokument und die Statuszeile nennt den Grund',
+    !eNoExt.err && !!sRaw(eS) && sRaw(eNoExt) === sRaw(eS) && eNoExt.stateRaw === eS.stateRaw && pairsDoc(eNoExt) === null && /ohne Abschnitt ext/.test(eNoExt.status.lines.snowpack.pairs?.error ?? '')
+    && !eNoPtr.err && sRaw(eNoPtr) === sRaw(eS) && pairsDoc(eNoPtr) === null && /index\.stations\.map/.test(eNoPtr.status.lines.snowpack.pairs?.error ?? ''), JSON.stringify({ ext: eNoExt.status?.lines.snowpack?.pairs, ptr: eNoPtr.status?.lines.snowpack?.pairs }));
+
+  // --- the contract
+  if (!ok10) { add('J14 Vertrag der Paare mit Vorhersage: Negativkontrollen', false, 'kein Paar-Dokument mit Vorhersage'); add('J15 Archiv: ein Paar-Dokument mit Vorhersage wird abgelegt', false, 'kein Paar-Dokument mit Vorhersage'); return; }
+  const probs = (x, withRows) => snowpackPairsProblems(x, new Set(rows.keys()), withRows ? rows : undefined);
+  const iOf = (gid) => dB.pairs.findIndex((x) => x.g === gid), iA = iOf('gl_ch_alpha'), iB = iOf('gl_ch_beta'), iG = iOf('gl_ch_gamma');
+  const bad = [
+    (x) => { delete x.forecast; }, (x) => { x.forecast.hours = [24, 48]; }, (x) => { x.forecast.origin = 'measured'; }, (x) => { x.forecast.spread.k = 5; }, (x) => { x.forecast.spread.quantiles = [25, 75]; }, (x) => { x.forecast.spread.elevation = 'mixed-quantiles'; },
+    (x) => { x.forecast.spread.rule = 'guess'; }, (x) => { delete x.origins.fm; }, (x) => { x.origins.fq = 'measured'; }, (x) => { x.forecast.pairs = 4; }, (x) => { x.forecast.none.neighbour = 2; }, (x) => { x.forecast.none['no-distribution'] = 1; },
+    (x) => { delete x.pairs[iA].fm; }, (x) => { x.pairs[iA].fm = [1, 2]; }, (x) => { x.pairs[iA].fm[1] = -1; }, (x) => { x.pairs[iA].fq[0][1] = x.pairs[iA].fq[1][1] + 5; }, (x) => { x.pairs[iA].fq[1].pop(); }, (x) => { x.pairs[iA].fq = [x.pairs[iA].fq[0]]; },
+    (x) => { x.pairs[iA].sq = 'neighbour'; x.forecast.none.neighbour = 2; x.forecast.pairs = 2; },
+    // each of the next three with the head counted as the wrong pair would have it — so that only the rule about the pair itself can notice
+    (x) => { delete x.pairs[iA].fq; x.forecast.pairs = 2; }, (x) => { delete x.pairs[iG].sq; x.forecast.none = {}; }, (x) => { x.pairs[iG].sq = 'weiß nicht'; x.forecast.none = { 'weiß nicht': 1 }; },
+  ];
+  const caught = bad.map((edit) => { const x = structuredClone(dB); edit(x); return probs(x, false).length; });
+  // … and what only the comparison with the ROWS can notice (each passes the document's own rules)
+  const badRows = [
+    (x) => { x.pairs[iG].sq = 'no-distribution'; x.forecast.none = { 'no-distribution': 1 }; }, (x) => { delete x.pairs[iG].sq; x.pairs[iG].fq = structuredClone(x.pairs[iB].fq); x.forecast.pairs = 4; x.forecast.none = {}; },
+    (x) => { delete x.pairs[iB].fq; x.pairs[iB].sq = 'no-distribution'; x.forecast.pairs = 2; x.forecast.none['no-distribution'] = 1; },
+    (x) => { x.pairs[iB].fq[1][2] += 0.1; }, (x) => { x.pairs[iB].fq = d3(rows.get('gl_ch_beta').hsq[1]); }, (x) => { x.pairs[iB].fm[0] += 0.1; }, (x) => { x.pairs[iG].fm = rows.get('gl_ch_gamma').hsd[1].slice(0, 3); },
+  ];
+  const caughtRows = badRows.map((edit) => { const x = structuredClone(dB); edit(x); return [probs(x, false).length, probs(x, true).length]; });
+  const badPlain = [(x) => { x.pairs[0].fm = [1, 2, 3]; }, (x) => { x.pairs[0].fq = [[1, 2, 3], [2, 3, 4]]; }, (x) => { x.pairs[0].sq = 'neighbour'; }, (x) => { x.origins.fm = 'computed'; }, (x) => { x.origins.fq = 'computed'; }];
+  const caughtPlain = badPlain.map((edit) => { const x = structuredClone(dP); edit(x); return snowpackPairsProblems(x).length; });
+  add(`J14 Vertrag der Paare mit Vorhersage: jede von ${bad.length} Verletzungen wird gemeldet (Felder ohne Kopfblock, Stunden, Herkunft, K, Quantile, Regel der Höhe, Zählung, fehlende / zu kurze / negative Vorhersage, Spanne nicht geordnet oder unvollständig, Spanne UND Vermerk, weder Spanne noch Vermerk, unbekannter Vermerk); ${badRows.length} weitere bestehen die Regeln des Dokuments allein und fallen NUR im Vergleich mit den Zeilen auf (Vermerk nicht der der Zeile, Spanne an einer Zeile ohne Spanne, Vermerk an einer Zeile mit Spanne, unter der Zunge eine andere Spanne oder Vorhersage als die der Zunge, über der Oberkante die der Mitte); in einem Dokument OHNE Kopfblock wird jede von ${badPlain.length} Vorhersage-Angaben gemeldet`,
+    caught.every((n) => n > 0) && caughtRows.every(([own, withRows]) => own === 0 && withRows > 0) && caughtPlain.every((n) => n > 0), JSON.stringify({ caught, caughtRows, caughtPlain }));
+  // the archive takes the document as it is
+  const pDir = join(eB.outDir, 'snowpack', 'pairs'), aOut = join(tmp, 'j-arch-out'), a1 = archivePairs({ pairsDir: pDir, archiveDir: join(tmp, 'j-arch'), outDir: aOut });
+  const gz = join(aOut, `${eB.run.slice(0, 4)}-${eB.run.slice(4, 6)}-${eB.run.slice(6, 8)}`, `pairs-${eB.run}.json.gz`);
+  add('J15 Archiv: ein Paar-Dokument mit Vorhersage wird abgelegt wie jedes andere — Bytes unverändert, nichts verweigert',
+    eq(a1.written, [eB.run]) && a1.refused.length === 0 && existsSync(gz) && gunzipSync(readFileSync(gz)).toString('utf8') === pRaw(eB), JSON.stringify(a1));
 });
 
 // --- G: guard ------------------------------------------------------------------------------------------------------------------------------------

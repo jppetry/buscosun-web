@@ -1,0 +1,480 @@
+{
+ "generated": "2026-11-24T19:41:26.595Z",
+ "root": "Kopie des Arbeitsbaums (jede Zieldatei und beide Prüfer vor der Runde Byte für Byte verglichen)",
+ "verifiers": [
+  "glacier:snowpack",
+  "glacier:melt"
+ ],
+ "greenBefore": true,
+ "greenAfter": true,
+ "noticed": 58,
+ "crashedOnly": 0,
+ "of": 58,
+ "errors": 0,
+ "mutations": [
+  {
+   "name": "Spanne in Stationshöhe = Mischung der Quantile zweier Höhen",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J4",
+   "crashedOnly": false
+  },
+  {
+   "name": "Szenario-Werte in Stationshöhe: immer die Zunge",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J2, J3, J4, J10, J11",
+   "crashedOnly": false
+  },
+  {
+   "name": "Szenario-Werte in Stationshöhe: immer die Mitte",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J2, J3, J4, J9, J10, J11, J14, J15",
+   "crashedOnly": false
+  },
+  {
+   "name": "Szenario-Werte in Stationshöhe: einen Tag zu spät",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J2, J3, J9, J10, J11, J14, J15",
+   "crashedOnly": false
+  },
+  {
+   "name": "der Zusatz zieht eine Zufallszahl",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J2, J9",
+   "crashedOnly": false
+  },
+  {
+   "name": "obere Grenze in Stationshöhe 0,3 cm zu tief",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J2, J3, J9, J10, J11, J14, J15",
+   "crashedOnly": false
+  },
+  {
+   "name": "unbrauchbare Stationshöhe wird gerechnet",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J5",
+   "crashedOnly": false
+  },
+  {
+   "name": "Feld `at` auch ohne Angabe",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J2",
+   "crashedOnly": false
+  },
+  {
+   "name": "Stationshöhe wird unter der Zunge hochgerechnet",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "H3, H3b, J2, J6, J9, J10, J11, J12, J14, J15",
+   "crashedOnly": false
+  },
+  {
+   "name": "erwartete Schneehöhe aus den Tagen 2–4",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J6, J9, J10, J11, J12, J14, J15",
+   "crashedOnly": false
+  },
+  {
+   "name": "erwartete Schneehöhe: Wert der Mitte statt der Stationshöhe",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J6, J9, J10, J11, J12, J14, J15",
+   "crashedOnly": false
+  },
+  {
+   "name": "Paar ohne Spanne trägt den Vermerk der Zeile nicht",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J6, J9, J10, J11, J12, J14, J15",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vermerk „neighbour“ an jedem Paar ohne Spanne",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J6, J12",
+   "crashedOnly": false
+  },
+  {
+   "name": "fehlende Spanne in Stationshöhe wird durch die der Zunge ersetzt",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J7",
+   "crashedOnly": false
+  },
+  {
+   "name": "Spanne einer anderen Stationshöhe wird genommen",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J7",
+   "crashedOnly": false
+  },
+  {
+   "name": "Paare mit Spanne werden nicht gezählt",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J6, J9, J10, J11, J14, J15",
+   "crashedOnly": false
+  },
+  {
+   "name": "Zählung der Vorhersage auch ohne Vorhersage",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J6",
+   "crashedOnly": false
+  },
+  {
+   "name": "Stationshöhen ohne den Abschnitt ext",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J7",
+   "crashedOnly": false
+  },
+  {
+   "name": "Paare tragen die Vorhersage auch mit ausgeschalteter Spanne",
+   "file": "scripts/glacier/melt.mjs",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "H2, H3, H4, H5, H, J8, J9, Jp",
+   "crashedOnly": false
+  },
+  {
+   "name": "Zeile ohne Spanne und ohne Vermerk bekommt eine Spanne",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J7",
+   "crashedOnly": false
+  },
+  {
+   "name": "Paare tragen die Vorhersage nie",
+   "file": "scripts/glacier/melt.mjs",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J9, J10, J11, J12, Jp",
+   "crashedOnly": false
+  },
+  {
+   "name": "Spanne in Stationshöhe landet in der Zeile der Schneedecke",
+   "file": "scripts/glacier/melt.mjs",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J9",
+   "crashedOnly": false
+  },
+  {
+   "name": "Spanne in Stationshöhe wird nicht gehalten",
+   "file": "scripts/glacier/melt.mjs",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J9, J10, J11, J14, J15",
+   "crashedOnly": false
+  },
+  {
+   "name": "Spanne in Stationshöhe für die Medianhöhe statt der Station gerechnet",
+   "file": "scripts/glacier/melt.mjs",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J9, J10, J11, J14, J15",
+   "crashedOnly": false
+  },
+  {
+   "name": "Kopfblock nennt das K der Voreinstellung statt des Laufs",
+   "file": "scripts/glacier/melt.mjs",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J11",
+   "crashedOnly": false
+  },
+  {
+   "name": "Kopfblock fehlt",
+   "file": "scripts/glacier/melt.mjs",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J9, J10, J11, J12, J14, J15",
+   "crashedOnly": false
+  },
+  {
+   "name": "Herkunft der Vorhersage fehlt",
+   "file": "scripts/glacier/melt.mjs",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J9, J10, J11, J12, J14, J15",
+   "crashedOnly": false
+  },
+  {
+   "name": "Herkunft der Vorhersage auch ohne Vorhersage",
+   "file": "scripts/glacier/melt.mjs",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "H2, H3, H4, H5, H, J8, J9, Jp",
+   "crashedOnly": false
+  },
+  {
+   "name": "Statuszeile der Paare nennt die Spanne nicht",
+   "file": "scripts/glacier/melt.mjs",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J10, J12",
+   "crashedOnly": false
+  },
+  {
+   "name": "Zuordnung nicht lesbar bricht die Schneedecke ab",
+   "file": "scripts/glacier/melt.mjs",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J13",
+   "crashedOnly": false
+  },
+  {
+   "name": "Tage aus Stunden falsch (h / 12)",
+   "file": "scripts/glacier/melt.mjs",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J9, J10, J11, J12, J14, J15",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vorlaufzeiten 24 / 48 / 96 h",
+   "file": "src/glacier/glacierSnowpackPairsContract.ts",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J1, J9, J10, J11, J12, J14, J15",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag nimmt Vorhersage-Felder ohne Kopfblock",
+   "file": "src/glacier/glacierSnowpackPairsContract.ts",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J14",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag prüft die Regel des Kopfblocks nicht",
+   "file": "src/glacier/glacierSnowpackPairsContract.ts",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J14",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag nimmt K unter 10",
+   "file": "src/glacier/glacierSnowpackPairsContract.ts",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J14",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag prüft die Herkunft der Vorhersage nicht",
+   "file": "src/glacier/glacierSnowpackPairsContract.ts",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J14",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag nimmt die Herkunft der Vorhersage ohne Kopfblock",
+   "file": "src/glacier/glacierSnowpackPairsContract.ts",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J14",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag prüft die erwartete Schneehöhe nicht",
+   "file": "src/glacier/glacierSnowpackPairsContract.ts",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J14",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag nimmt negative Werte",
+   "file": "src/glacier/glacierSnowpackPairsContract.ts",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J14",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag nimmt Spanne und Vermerk zugleich",
+   "file": "src/glacier/glacierSnowpackPairsContract.ts",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J14",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag nimmt einen unbekannten Vermerk",
+   "file": "src/glacier/glacierSnowpackPairsContract.ts",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J14",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag verlangt weder Spanne noch Vermerk",
+   "file": "src/glacier/glacierSnowpackPairsContract.ts",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J14",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag prüft die Ordnung der Spanne nicht",
+   "file": "src/glacier/glacierSnowpackPairsContract.ts",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J14",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag zählt die Vorhersage nicht nach",
+   "file": "src/glacier/glacierSnowpackPairsContract.ts",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J14",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag vergleicht den Vermerk nicht mit der Zeile",
+   "file": "src/glacier/glacierSnowpackPairsContract.ts",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J14",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag vergleicht unter der Zunge die Vorhersage nicht mit der Zeile",
+   "file": "src/glacier/glacierSnowpackPairsContract.ts",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J14",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag vergleicht unter der Zunge die Spanne nicht mit der Zeile",
+   "file": "src/glacier/glacierSnowpackPairsContract.ts",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J14",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag: über der Oberkante gilt die Mitte",
+   "file": "src/glacier/glacierSnowpackPairsContract.ts",
+   "verifier": "glacier-snowpack",
+   "noticed": true,
+   "by": "J9, J10, J11, J12, J14, J15",
+   "crashedOnly": false
+  },
+  {
+   "name": "Speicher: die letzte Abtastung statt der höchsten",
+   "file": "scripts/glacier/lib/runmem.mjs",
+   "verifier": "glacier-melt",
+   "noticed": true,
+   "by": "L1",
+   "crashedOnly": false
+  },
+  {
+   "name": "Speicher: beim Schreiben der Zeile wird nicht mehr abgetastet",
+   "file": "scripts/glacier/lib/runmem.mjs",
+   "verifier": "glacier-melt",
+   "noticed": true,
+   "by": "L1",
+   "crashedOnly": false
+  },
+  {
+   "name": "Speicher: Kilobyte durch 1000",
+   "file": "scripts/glacier/lib/runmem.mjs",
+   "verifier": "glacier-melt",
+   "noticed": true,
+   "by": "L1",
+   "crashedOnly": false
+  },
+  {
+   "name": "Speicher: Grenze in Byte",
+   "file": "scripts/glacier/lib/runmem.mjs",
+   "verifier": "glacier-melt",
+   "noticed": true,
+   "by": "L1",
+   "crashedOnly": false
+  },
+  {
+   "name": "Speicher: der Stand von jetzt statt des Höchstwerts des Prozesses",
+   "file": "scripts/glacier/lib/runmem.mjs",
+   "verifier": "glacier-melt",
+   "noticed": true,
+   "by": "L3",
+   "crashedOnly": false
+  },
+  {
+   "name": "Speicher wird in der Schleife nicht abgetastet",
+   "file": "scripts/glacier/melt.mjs",
+   "verifier": "glacier-melt",
+   "noticed": true,
+   "by": "L2",
+   "crashedOnly": false
+  },
+  {
+   "name": "Speicherzeile fehlt in der Statuszeile",
+   "file": "scripts/glacier/melt.mjs",
+   "verifier": "glacier-melt",
+   "noticed": true,
+   "by": "L2",
+   "crashedOnly": false
+  },
+  {
+   "name": "Speicherzeile steht auch im Schmelzdokument",
+   "file": "scripts/glacier/melt.mjs",
+   "verifier": "glacier-melt",
+   "noticed": true,
+   "by": "H1, H5, K1, K5, I3, J2, L2",
+   "crashedOnly": false
+  },
+  {
+   "name": "Speicherzeile steht auch im Zeiger",
+   "file": "scripts/glacier/melt.mjs",
+   "verifier": "glacier-melt",
+   "noticed": true,
+   "by": "H1, H5, K1, K5, I3, J2, L2",
+   "crashedOnly": false
+  },
+  {
+   "name": "die Messung der Naht wird nicht benutzt",
+   "file": "scripts/glacier/melt.mjs",
+   "verifier": "glacier-melt",
+   "noticed": true,
+   "by": "L2",
+   "crashedOnly": false
+  }
+ ]
+}

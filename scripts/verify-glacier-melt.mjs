@@ -11,6 +11,7 @@
  * at the run hour with its forcing, advanced by the next run whatever the distance (3, 6, 15, 24 h by hand; melt against the core), both transitions.
  * Block J (phase GM, GM-4, E-GM-22, M-18): the satellite switch `--sat-nudge=every|once` — no word = `every` and the bytes as before; `once` = a scene
  * nudges a carried state once (the state names the date of the row), a younger scene nudges again, a state that was not carried takes it again.
+ * Block L (phase GM, V-GM-81): the memory of the run in the status line — the three numbers by hand, sampled once per glacier, nothing else changes.
  *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-melt.mjs
  */
@@ -27,6 +28,7 @@ import {
 import { fusionStageNote, fusionStage, FUSION_CURRENT } from '../src/pointForecast/fusion/fusionRelease.ts';
 import { meltProblems, meltStateProblems, meltIndexOf, GLACIER_MELT_REF_DAILY_MM, GLACIER_MELT_SCENARIOS, GLACIER_MELT_RHO, GLACIER_MELT_STATE_PEND_H } from '../src/glacier/glacierMeltContract.ts';
 import { meltPrecipProblems } from './glacier/lib/snowcal.mjs';
+import { memWatch } from './glacier/lib/runmem.mjs';
 import { GLACIER_FACTOR_DEFAULT, GLACIER_SHAPE_DEFAULT, glacierFactorModeOf, glacierShapeModeOf } from './glacier/lib/snowcalGlaciers.mjs';
 import { MELT_STATE_MODES, MELT_STATE_DEFAULT, meltStateModeOf, meltStateVerdict, pendOfForcing, forcingOfPend, SAT_NUDGE_MODES, SAT_NUDGE_DEFAULT, satNudgeModeOf, satRowDue } from './glacier/lib/meltstate.mjs';
 
@@ -310,7 +312,7 @@ add('G4 Archiv: die Leitgletscher des Laufs gehen als eigene Datei ins Archivver
     try { r = await main({ data: tr.data, cube: tr.cube, out: join(root, 'out'), calibration: tr.calFile, now: new Date(NOW).toISOString(), forecast: snowFc, ioFactory: okIo, always: true, weather: '0', snowcal: tf, ...extra }); } catch (e) { err = String(e.message ?? e); }
     if (err) return { err, wrote: existsSync(join(root, 'out')) };
     const read = (rel) => readFileSync(join(root, rel), 'utf8');
-    const status = JSON.parse(read('patch/status-patch.json')); delete status.lines.melt.seconds;
+    const status = JSON.parse(read('patch/status-patch.json')); delete status.lines.melt.seconds; delete status.lines.melt.mem;
     return { r, docRaw: read(`out/melt/${r.run}.json`), doc: JSON.parse(read(`out/melt/${r.run}.json`)), stateRaw: read('out/melt/state.json'), state: JSON.parse(read('out/melt/state.json')).g, index: read('patch/index-patch.json'), status };
   };
   const same = (a, b) => a.docRaw === b.docRaw && a.stateRaw === b.stateRaw && a.index === b.index && JSON.stringify(a.status) === JSON.stringify(b.status);
@@ -446,7 +448,7 @@ try {
     try { r = await main({ data: tr.data, cube: tr.cube, out, calibration: tr.calFile, now: new Date(now).toISOString(), forecast: fcOf(now), ioFactory: okIo, always: true, weather: '0', ...GATE_C, ...extra }); } catch (e) { err = String(e.message ?? e); }
     if (err) return { err, wrote: existsSync(out) };
     const read = (f) => readFileSync(f, 'utf8');
-    const status = JSON.parse(read(join(root, 'patch', 'status-patch.json'))); delete status.lines.melt.seconds;
+    const status = JSON.parse(read(join(root, 'patch', 'status-patch.json'))); delete status.lines.melt.seconds; delete status.lines.melt.mem;
     const docRaw = read(join(out, 'melt', `${r.run}.json`)), stateRaw = read(join(out, 'melt', 'state.json'));
     return { r, docRaw, doc: JSON.parse(docRaw), stateRaw, file: JSON.parse(stateRaw), state: JSON.parse(stateRaw).g, index: read(join(root, 'patch', 'index-patch.json')), status };
   };
@@ -619,6 +621,41 @@ try {
       badSat.every((k) => k > 0) && meltStateProblems(j.def.file).length === 0, JSON.stringify(badSat));
   } catch (e) { add('J0 Block J läuft ohne Absturz durch', false, String(e?.stack ?? e).split('\n').slice(0, 3).join(' | ')); }
 } catch (e) { add('I0 Block I läuft ohne Absturz durch', false, String(e?.stack ?? e).split('\n').slice(0, 3).join(' | ')); }
+// --- L: phase GM (V-GM-81) — the memory of the run in the status line -------------------------------------------------------------------------------
+try {
+  const MBy = 1024 * 1024, seq = [100, 900, 300, 250].map((v) => v * MBy);
+  let i = 0;
+  const w = memWatch({ heapUsed: () => seq[Math.min(i++, seq.length - 1)], peakRssKb: () => 2_871_296, heapLimit: () => 4144 * MBy });
+  w.sample(); w.sample();   // the watch took 100 when it was made, now 900 and 300
+  const line = w.line();    // one last sample: 250
+  const own = memWatch().line();
+  add('L1 Speicherzeile (rein), von Hand: von den Abtastungen 100 · 900 · 300 · 250 MB bleibt die höchste (900) — auch wenn die letzte niedriger ist, und die letzte wird beim Schreiben der Zeile noch genommen (vier Abtastungen); der Höchstwert des Prozesses kommt in Kilobyte und steht in MB da (2 871 296 kB ⇒ 2 804), die Grenze in Byte (⇒ 4 144); ohne Angaben liest die Zeile den eigenen Prozess: drei ganze Zahlen über null, der belegte Speicher nicht über der Grenze',
+    JSON.stringify(line) === '{"rssMb":2804,"heapMb":900,"heapLimitMb":4144}' && i === 4 && [own.rssMb, own.heapMb, own.heapLimitMb].every((v) => Number.isInteger(v) && v > 0) && own.heapMb <= own.heapLimitMb, JSON.stringify({ line, i, own }));
+  // in a run: the line is in the status file and nowhere else; the heap is sampled once per glacier of the run
+  const mkL = (name) => { const root = join(tmp, name); const tr = mkTree(root); mkdirSync(join(tr.data, 'melt'), { recursive: true }); return { root, tr }; };
+  const readL = (root, r) => { const rd = (rel) => readFileSync(join(root, rel), 'utf8'); return { doc: rd(`out/melt/${r.run}.json`), state: rd('out/melt/state.json'), index: rd('patch/index-patch.json'), status: JSON.parse(rd('patch/status-patch.json')) }; };
+  const a = mkL('l-a'), b = mkL('l-b'), c = mkL('l-c');
+  let samples = 0;
+  const rA = await run1(a.root, { calibration: a.tr.calFile }), rB = await run1(b.root, { calibration: b.tr.calFile });
+  const rC = await run1(c.root, { calibration: c.tr.calFile, memWatch: () => ({ sample: () => { samples++; }, line: () => ({ rssMb: 11, heapMb: 7, heapLimitMb: 13 }) }) });
+  const eA = readL(a.root, rA), eB = readL(b.root, rB), eC = readL(c.root, rC), m = eA.status.lines.melt.mem, dA = JSON.parse(eA.doc);
+  const bare = (e) => { const s = structuredClone(e.status); delete s.lines.melt.mem; delete s.lines.melt.seconds; return JSON.stringify(s); };
+  add('L2 Speicherzeile im Lauf: `lines.melt.mem` trägt genau drei ganze Zahlen über null (`rssMb`, `heapMb`, `heapLimitMb`), der belegte Speicher liegt nicht über der Grenze; die Zeile steht NUR in der Statuszeile — Dokument, Zustand und Zeiger nennen sie nicht und sind in zwei Läufen Byte für Byte gleich, die Statuszeile ohne `mem` und die Laufzeit ebenso; abgetastet wird einmal je Gletscher des Laufs (Zeilen + Übersprungene), und die Zeile ist die der Messung (eine untergeschobene Messung steht Zahl für Zahl in der Statuszeile, ohne dass sich sonst ein Byte ändert)',
+    !!m && JSON.stringify(Object.keys(m)) === '["rssMb","heapMb","heapLimitMb"]' && Object.values(m).every((v) => Number.isInteger(v) && v > 0) && m.heapMb <= m.heapLimitMb
+    && ![eA.doc, eA.state, eA.index].some((x) => /"mem"|rssMb|heapMb/.test(x)) && eA.doc === eB.doc && eA.state === eB.state && eA.index === eB.index && bare(eA) === bare(eB)
+    && samples === dA.glaciers.length + dA.skipped.length && samples > 3 && JSON.stringify(eC.status.lines.melt.mem) === '{"rssMb":11,"heapMb":7,"heapLimitMb":13}' && eC.doc === eA.doc && eC.state === eA.state && eC.index === eA.index && bare(eC) === bare(eA),
+    JSON.stringify({ m, samples, rows: dA.glaciers.length, skipped: dA.skipped.length, melt: eA.status.lines.melt }));
+  // the HIGHEST of the process, not what it holds now: a child process takes 300 MB, lets them go, and reads the line afterwards
+  const child = execFileSync(process.execPath, ['--expose-gc', '--input-type=module', '-e', `
+    import { memWatch } from ${JSON.stringify(new URL('./glacier/lib/runmem.mjs', import.meta.url).href)};
+    let a = Buffer.alloc(300 * 1024 * 1024, 1); const during = process.memoryUsage.rss(); a = null; globalThis.gc();
+    setTimeout(() => { globalThis.gc(); console.log(JSON.stringify({ during: Math.round(during / 1048576), now: Math.round(process.memoryUsage.rss() / 1048576), line: memWatch().line() })); }, 300);`], { encoding: 'utf8' });
+  const cm = JSON.parse(child.trim().split('\n').pop());
+  // (where the system takes freed memory back — measured on win32: 351 MB while held, 51 MB afterwards — a line built from the CURRENT size would fall short here;
+  // where it does not, the check cannot tell the two apart, but it never turns red for that reason)
+  add('L3 Speicherzeile, der HÖCHSTWERT des Prozesses und nicht der Stand von jetzt: ein eigener Prozess belegt 300 MB, gibt sie frei und liest danach die Zeile — `rssMb` nennt weiter den Stand mit den 300 MB (auf 20 MB)',
+    cm.during > 300 && cm.line.rssMb >= cm.during - 20, JSON.stringify(cm));
+} catch (e) { add('L0 Block L läuft ohne Absturz durch', false, String(e?.stack ?? e).split('\n').slice(0, 3).join(' | ')); }
 // protected paths
 {
   let detail = 'kein origin/main (CI-Klon)', ok = true;

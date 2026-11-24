@@ -4731,8 +4731,30 @@ Antrieb; der nächste Lauf rechnet ihn bis zu seiner Stunde nach. Am vollen loka
 ## 121. Gletscher: Schneemodell, Paket GM-4 — Diagnose der Kopplung an Stationen, gebaut als GM-4a: Schattenpaare, ihr Archiv, Satellit einmal je Szene (E-GM-20 … E-GM-23; `audit/gletscher-schneemodell.md` §3h), 2026-11-23
 
 **Stand 24.11.: Punkt 1 und 2 sind erledigt — von dir committet und gepusht am 24.11. 05:27 UTC (`019ab63c`), beide Schalter aus.
-Offen: Punkt 3 (Archiv-Vorlage) und Punkt 4 (Einschalten, E-GM-24). Nichts im Daten- oder Archiv-Repo, kein Workflow geändert,
 buscosun Fusion und die Stationslinie nur gelesen.**
+
+**Stand 24.11. 16:43 UTC, auf dein Wort („kannst du das jetzt schon machen?“ zu Punkt 3 und 4 a): Punkt 3 erledigt — die
+Archiv-Vorlage steht in `buscosun-archiv` (`6282016`, vier geänderte Stellen, sonst wortgleich). Punkt 4 a erledigt —
+`GLACIER_SNOWPACK_PAIRS: 'on'` im Workflow `glacier-melt` des Daten-Repos (`4bec681a`; in Anführungszeichen, damit YAML nie einen
+Wahrheitswert liest — der Producer bräche bei „true“ mit „unbekannte Stellung“ ab). Der erste Lauf mit den Paaren ist der von
+17:20 UTC; er ist zugleich der erste Lauf mit dem Producer `b448d652`. Die Vorlage `gen-workflows.py` ist nachgezogen
+(uncommitted, gleich dem eingespielten Workflow).**
+
+**Gelesen 24.11. 17:47 UTC — Lauf `2026112417` grün: 468 Paare, 465 mit Messwert (3 zu alt), Zuordnung `20261120-1.5`,
+Stationsslot der Laufstunde, 77 KB; Paar-, Schneedecken- und Schmelzdokument samt beider Zustände ohne Befund gegen die Verträge
+des Commits `b448d652`; ohne die neuen Schalter keine Spannen und kein Block je Gletscher; Schneedecke `carried`, 6 von 6 Stunden
+nachgerechnet; Schmelzlauf 163 s. Im Archiv noch kein `pairs-*.json.gz` (erwartet, V-GM-96). Beleg: Audit §3h.17,
+`C:\dev\buscosun-glacier-cache\gm3c-snowpack\run-2026112417\check.json`.**
+
+**ERLEDIGT am 24.11. 19:47 UTC (Variable gesetzt auf dein Wort, §124.1) — vorher galt:** in `buscosun-archiv` fehlt die Repo-Variable
+`GLACIER_PRODUCER_REF`; `glacier-archiv.yml` holt den Archivierer deshalb vom Zweig `feat/gletscher` (Stand 15.11.), und der
+kennt `--pairs` nicht. `buscosun-archiv` → Settings → Secrets and variables → Actions → Variables → `GLACIER_PRODUCER_REF` =
+`main` (oder den Zweig `feat/gletscher` auf `origin` von `buscosun-web` löschen). Frist: 72 h nach dem ersten Paar-Lauf, also
+bis 27.11. 17 UTC — so lange liegen die Paare im Daten-Repo. Geprüft: die Leitzeilen-Ablage (`archiveMelt`, `meltLeadDoc`) ist
+auf beiden Zweigen gleich, die Umstellung ändert an ihr nichts. Weiter offen: Punkt 4 b (`GLACIER_SAT_NUDGE`).**
+
+**Stand 24.11. 17:29 UTC: der erste Lauf mit den Paaren (`2026112417`) ist gelesen — 468 Paare, 465 mit Stationswert, Vertrag ohne
+Befund (Beleg im Audit §3h.17, Zusammenfassung in §124).**
 
 Was die Diagnose sagt (§3h, Messregel vorher eingefroren, Urteile vom Skript): Der Stand der Schneedecke in Stationshöhe ist
 1,86 × Station — das ist der Gletscher-Faktor, er lässt sich nicht an Stationen koppeln. Die 24-h-Änderung bei Schneefall liegt bei
@@ -4766,7 +4788,7 @@ Gebaut auf dein Wort (E-GM-20 … E-GM-23, alles meine Empfehlungen):
    Skript überliest `--pairs`. Am besten vor Punkt 4 — sonst verschwinden die ersten Paare nach 72 h (V-GM-57).
 4. **Einschalten (E-GM-24, deine Entscheidung)** — je eine Zeile unter `jobs.melt.env` im Workflow `glacier-melt` des Daten-Repos,
    jede für sich zurücknehmbar:
-   a. `GLACIER_SNOWPACK_PAIRS: on` — danach in `glacier/v1/status.json` die Zeile `lines.snowpack.pairs` lesen: `pairs` um 468,
+   a. `GLACIER_SNOWPACK_PAIRS: 'on'` (**erledigt 24.11., `4bec681a`**; in Anführungszeichen, V-GM-97) — danach in `glacier/v1/status.json` die Zeile `lines.snowpack.pairs` lesen: `pairs` um 468,
       `withValue` (mit IMIS und Tirol erwartet weit über 133), `map`, `slot`; oder `error` mit Grund (dann ist nur die Paar-Datei
       nicht geschrieben, Schneedecke und Schmelzlauf sind unberührt).
    b. `GLACIER_SAT_NUDGE: once` — getrennt von a, damit nicht zwei Neuerungen im selben Lauf zusammenfallen. Danach im Schmelzdokument
@@ -4784,8 +4806,8 @@ Gebaut auf dein Wort (E-GM-20 … E-GM-23, alles meine Empfehlungen):
 
 ## 122. Gletscher: Schneemodell, Paket GM-5a — Spannen der Schneedecke aus Szenarien (E-GM-30 … E-GM-35; `audit/gletscher-schneemodell.md` §3i, Diagnose `audit/gletscher-schneemodell/gm5-diagnose.md`), 2026-11-24
 
-**Stand 24.11.: Diagnose, deine sechs Entscheidungen, Kostenmessung, Bau und Gate — alles uncommitted, der neue Schalter ist aus.
-Nichts im Daten- oder Archiv-Repo, kein Workflow geändert, buscosun Fusion nur gelesen.**
+**Stand 24.11. abends: Punkt 1 und 2 sind erledigt — von dir committet und gepusht am 24.11. 16:35 UTC (`b448d652`), der neue
+Schalter ist aus. Offen: Punkt 3 (E-GM-36). Nichts im Daten- oder Archiv-Repo, kein Workflow geändert, buscosun Fusion nur gelesen.**
 
 Was gebaut ist: hinter `--snowpack-spread=scenarios` (`GLACIER_SNOWPACK_SPREAD`, nur mit der Schneedecke) trägt jede Zeile der
 Schneedecke mit eigenem Antrieb p10/p90 je Höhe und Tag für Schneehöhe und Neuschnee (100 Szenarien) und die Summe des Neuschnees
@@ -4817,8 +4839,10 @@ Die Verteilung aus Sentinel-2 ist nicht gebaut (E-GM-30).
 
 ## 123. Gletscher: Schneemodell, Paket GM-5b — Eichrunde 2: Faktor je Gletscher und Form je Band, Winterschmelze wie im Betrieb (E-GM-9, E-GM-10, E-GM-11, E-GM-31; `audit/gletscher-schneemodell.md` §3j, Diagnose und Zahlen `audit/gletscher-schneemodell/gm5b-diagnose.md`), 2026-11-24
 
-**Stand 24.11.: Diagnose, eingefrorene Regel, Runde gerechnet, Tabelle und Verdrahtung gebaut — alles uncommitted, beide neuen
-Schalter aus. Nichts im Daten- oder Archiv-Repo, kein Workflow geändert, buscosun Fusion nur gelesen. Nachgeladen (nur gelesen,
+**Stand 24.11. abends: Punkt 2 und 3 sind erledigt — von dir committet und gepusht am 24.11. 16:35 UTC (`b448d652`, mit der
+Tabelle). Punkt 1 (E-GM-37) hast du am 24.11. abends entschieden: (A), die Tabelle bleibt im Repo, mit Quellenangabe für GLAMOS
+(CC BY 4.0) und WGMS im Kopf der Tabelle und in `audit/gletscher/licences.md` — umgesetzt und lokal committet (§124). Offen:
+Punkt 4 (E-GM-38). Beide neuen Schalter aus. Nichts im Daten- oder Archiv-Repo, kein Workflow geändert, buscosun Fusion nur gelesen. Nachgeladen (nur gelesen,
 in den lokalen Zwischenspeicher): die Globalstrahlung `cglo` von sieben österreichischen Stationen aus `klima-v2-1h`.**
 
 Was die Runde sagt (ein Winter ausgelassen, 478 Winter an 43 Gletschern, Urteile vom Werkzeug): der Faktor je Gletscher senkt
@@ -4848,7 +4872,7 @@ an drei Höhen liest die Tabelle nicht.
 3. **Push von `buscosun-web`** (dein Gate). Ändert am Betrieb nichts: beide Schalter sind aus, die neue Tabelle wird ohne sie
    nicht geöffnet.
 4. **Einschalten (E-GM-38, deine Entscheidung)** — je eine Zeile unter `jobs.melt.env` im Workflow `glacier-melt` des
-   Daten-Repos: `GLACIER_SNOW_GLACIER_FACTOR: on`, `GLACIER_SNOW_GLACIER_SHAPE: on`. Danach in `glacier/v1/status.json`
+   Daten-Repos: `GLACIER_SNOW_GLACIER_FACTOR: 'on'`, `GLACIER_SNOW_GLACIER_SHAPE: 'on'` (in Anführungszeichen, V-GM-97). Danach in `glacier/v1/status.json`
    `lines.melt.glacier` lesen (`factor` 42, `shape` 43) und im Schmelzdokument `params.precip.glaciers.applied`. Vorher bedenken:
    der Schmelzzustand trägt Schnee aus dem Landeswert; nach dem Einschalten liegt an diesen Gletschern Schnee aus zwei Faktoren
    übereinander (V-GM-91). Und: ob Faktor und Form die Schmelze im Sommer verbessern, ist nicht gemessen (V-GM-94).
@@ -4859,3 +4883,67 @@ an drei Höhen liest die Tabelle nicht.
 7. **Weiter offen:** die rund 2 050 Gletscher ohne Stufenwerte bleiben beim Landeswert; die Schneedecke an drei Höhen ebenso
    (V-GM-86); die Winterschmelze des Betriebs ist eher zu groß und bestimmt die Höhe jedes Faktors mit (V-GM-89, mit V-GM-26
    vor Mai 2027).
+
+## 124. Gletscher: Schneemodell, Paket GM-5c — erster Runner-Lauf mit Schattenpaaren gelesen; die Paare tragen die Spanne in Stationshöhe (V-GM-79); Höchstwert des Speichers in der Statuszeile (V-GM-81) (`audit/gletscher-schneemodell.md` §3h.17, §3k, §3l), 2026-11-24
+
+**Stand 24.11. abends: gebaut und geprüft, beide Gates geschlossen, deine Entscheidungen E-GM-39, E-GM-40 und E-GM-37 eingetragen,
+LOKAL COMMITTET in zwei Commits (GM-5c; Quellenangabe der Gletscher-Tabelle), NICHT gepusht. Kein neuer Schalter. Kein Workflow
+geändert, nichts im Daten-Repo; in `buscosun-archiv` nur die Repo-Variable aus Punkt 1 (dein Wort). buscosun Fusion nur gelesen.** Die Hintergrundläufe hatte das System gegen 17:55 UTC wegen
+Speichermangel auf der Maschine gestoppt; auf dein Wort („starte neu“, 18:22 UTC) sind sie nachgeholt — einzeln, aus dem endgültigen
+Code, die Gegenprobe auf einer Kopie des Baums.
+
+Was gelesen ist (Schritt 0, §3h.17): der erste Runner-Lauf mit Schattenpaaren, `2026112417`, grün um 17:27 UTC. 468 Paare, **465 mit
+Stationswert** (IMIS 334 von 334, Tirol 95 von 98 — drei Paare einer Tiroler Station sind 70 min alt und als `stale` benannt), Vertrag
+ohne Befund, aus den eigenen Zeilen nachgerechnet dieselben Paare; Schneedecke und Schmelzlauf des neuen Producers `b448d652` ohne
+Befund. Modell / Station im Median 1,92.
+
+Was gebaut ist:
+- **V-GM-79:** in einem Lauf mit BEIDEN Schaltern (`GLACIER_SNOWPACK_PAIRS` und `GLACIER_SNOWPACK_SPREAD`) trägt jedes Paar die
+  Vorhersage der Schneehöhe in Stationshöhe für +24 / +48 / +72 h: den Erwartungswert (`fm`) und, wo die Zeile eine Spanne hat,
+  p10/p90 (`fq`) — sonst den Vermerk der Zeile (`sq`). Die Spanne ist das Quantil der je Szenario in Stationshöhe gelesenen Werte,
+  nie eine Mischung der Quantile zweier Höhen (am echten Katalog weichen beide Wege an einem Drittel der Werte zwischen den Höhen
+  ab, bis 11 cm). Ohne die Spanne (heute auf dem Runner) ist die Paar-Datei Byte für Byte wie bisher.
+- **V-GM-81:** die Statuszeile des Schmelzlaufs trägt `lines.melt.mem` = { `rssMb` Höchstwert des Prozesses, `heapMb` höchster
+  belegter JavaScript-Speicher (einmal je Gletscher abgetastet, eine Obergrenze des Gehaltenen), `heapLimitMb` die Grenze von Node }.
+  Ohne Schalter; kein Dokument, kein Zustand, kein Zeiger ändert sich. Lokal am vollen Katalog: 3 217 / 2 830 / 4 144 MB.
+
+1. **V-GM-96 — ERLEDIGT am 24.11. 19:47 UTC auf dein Wort („mache das … du hast die Berechtigung“):** die Repo-Variable
+   `GLACIER_PRODUCER_REF = main` steht in `buscosun-archiv` (über die GitHub-API angelegt und zurückgelesen; vorher gab es sie
+   nicht — der Archivlauf von 18:48 UTC hatte deshalb `melt-2026112417.json.gz` abgelegt und keine `pairs-…`). **Noch nachsehen:**
+   nach dem Archivlauf von 00:47 UTC (25.11.) muss in `glacier/v1/2026-11-24/` die Datei `pairs-2026112417.json.gz` liegen (und die
+   der Läufe von 20 und 23 UTC, wenn sie liefen). Zurück: die Variable unter Settings → Secrets and variables → Actions →
+   Variables löschen — dann kommt der Archivierer wieder vom Zweig `feat/gletscher`.
+2. **Entschieden (du, 24.11. abends):** E-GM-39 — (A), wie gebaut: +24 / +48 / +72 h und an jedem Paar der Erwartungswert.
+   E-GM-40 — wie gebaut: die Speicherzeile ohne Schalter. E-GM-37 — (A): `snow-calibration-glaciers.json` bleibt im Repo; der Kopf
+   der Tabelle und `audit/gletscher/licences.md` nennen GLAMOS (CC BY 4.0, doi:10.18750/massbalance.2025.r2025) und WGMS
+   (doi:10.5904/wgms-fog-2026-02-10); nur abgeleitete Modellgrößen, keine GLAMOS-Zeile (E-GL-17 gilt weiter). Festgehalten, nicht
+   von mir entschieden: das Lizenzregister führt für GLAMOS weiter den Widerspruch zwischen DOI-Seite (CC BY 4.0) und Impressum
+   („non-commercial“, V-GL-10).
+3. **Commit — ERLEDIGT am 24.11. abends auf dein Wort, lokal, nicht gepusht** (zwei Commits: GM-5c mit dieser Liste; daneben die
+   Quellenangabe E-GM-37 mit `scripts/glacier/lib/snowcalGlaciers.mjs`, `snowcal-table2.mjs`, `snow-calibration-glaciers.json`,
+   `scripts/verify-glacier-snowcal.mjs`, `audit/gletscher/licences.md`). Dazu gehören: `src/glacier/glacierSnowpackPairsContract.ts`, `scripts/glacier/lib/snowpackcore.mjs`,
+   `scripts/glacier/lib/runmem.mjs` (neu), `scripts/glacier/melt.mjs`, `scripts/verify-glacier-snowpack.mjs`,
+   `scripts/verify-glacier-melt.mjs`, unter `audit/gletscher-schneemodell/` die Dateien `gm5c-*`, dazu das Audit, `CLAUDE.md`, diese
+   Datei — und aus §121 die nachgezogene Vorlage (`scripts/glacier/gen-workflows.py`, `workflow-glacier-melt.yml`). Prüfstand beim
+   Abschluss: `verify:glacier-snowpack` 72/72, `-melt` 78/78, `-weather` 41/41, `-snowcore` 24/24, `-snowcal` 47/47, `-publish` 34/34,
+   `-contract` 64/64, `-stations` 77/77, Typecheck, Build (281/281), Budget unverändert (2 118,1 / 2 121 KB); voller lokaler Lauf am
+   endgültigen Baum mit ausgeschalteter Spanne 33 von 33 Dateien gleich `b448d652`, mit beiden Schaltern genau zwei Dateien anders,
+   das Schneedecken-Dokument gleich dem von `b448d652` mit der Spanne allein; Gegenprobe 58 von 58 bemerkt (einer in der ersten
+   Runde übersehen, Prüfung J7 geschärft, wiederholt bemerkt).
+4. **Push von `buscosun-web`** (dein Gate). Was sich damit am Betrieb ändert: jeder Schmelzlauf schreibt `lines.melt.mem` in
+   `glacier/v1/status.json` — sonst nichts (die Spanne ist auf dem Runner aus, die Paare bleiben, wie sie sind). Im ersten Lauf
+   danach lesen: `heapLimitMb` (die Grenze von Node auf dem Runner, vermutlich kleiner als die 4 144 MB hier) und `heapMb` dagegen;
+   `rssMb` gegen den Arbeitsspeicher des Runners. Im ersten CI-Lauf die Zeile L3 von `verify:glacier-melt` ansehen (V-GM-101).
+5. **Einschalten:** nichts Eigenes. Mit E-GM-36 (`GLACIER_SNOWPACK_SPREAD: scenarios`, §122.3) tragen die Paare die Vorhersage von
+   selbst; dann zusätzlich `lines.snowpack.pairs.spread` lesen (erwartet um 279). Die Paar-Datei wächst von rund 80 auf rund 106 KB
+   (gepackt 15 → 24 KB). Die Prüfung der Spanne gegen Messungen beginnt mit diesem Lauf: die Messung 24 h später steht im Paar
+   des Laufs zur selben Stunde oder in der stündlichen Stationsablage des Archivs.
+6. **Zurück.** V-GM-79: `GLACIER_SNOWPACK_SPREAD` nicht setzen bzw. die Zeile entfernen — die Paare sind dann Byte für Byte die
+   alten. V-GM-81: kein Schalter; zurück = den Commit zurücknehmen.
+7. **Nicht geprüft:** kein Lauf auf dem Runner; eine zweite Wetterlage; die Spanne gegen Messungen; die Speicherzeile unter Linux;
+   dass die Zuordnung nur mit beiden Schaltern vorab gelesen wird, ist am Code gelesen (kein Prüfer kann es sehen); die Laufzeiten
+   der lokalen Läufe (445–913 s) sind unter fremder Last entstanden und keine Messung; nichts im Browser (keine Anzeige liest etwas
+   davon).
+8. **Weiter offen:** 189 der 468 Paare sitzen auf Nachbar-Zeilen und tragen keine Spanne (V-GM-99); was der Producer hält, solange
+   er Gletscher mit eigenem Antrieb rechnet (V-GM-81, zweiter Teil); die älteren Gegenproben (`gm2` … `gm5b`) verändern weiter den
+   Arbeitsbaum statt einer Kopie (V-GM-100, für `gm5c` umgesetzt).

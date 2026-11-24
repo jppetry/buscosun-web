@@ -1,0 +1,71 @@
+{
+ "generated": "2026-11-24T18:01:26.442Z",
+ "run": "2026112117",
+ "final": false,
+ "runs": [
+  "head-pairs",
+  "work-pairs"
+ ],
+ "missing": [
+  "work-both",
+  "head-spread"
+ ],
+ "timing": {
+  "head-pairs": {
+   "melt": 265,
+   "levels": 151,
+   "snowpack": 11,
+   "spread": null
+  },
+  "work-pairs": {
+   "melt": 295,
+   "levels": 163,
+   "snowpack": 15,
+   "spread": null
+  }
+ },
+ "mem": {
+  "head-pairs": null,
+  "work-pairs": null
+ },
+ "headVsWork": {
+  "tree": {
+   "a": "head-pairs",
+   "b": "work-pairs",
+   "filesA": 33,
+   "filesB": 33,
+   "identical": 33,
+   "onlyA": [],
+   "onlyB": [],
+   "differ": []
+  },
+  "status": true,
+  "index": true
+ },
+ "note": "work-both / head-spread nicht gelaufen: Negativkontrolle und neue Felder am vollen Lauf fehlen",
+ "pairsOff": {
+  "bytes": 79899,
+  "sameAsHead": true,
+  "contract": [],
+  "counts": {
+   "pairs": 468,
+   "withValue": 133,
+   "at": {
+    "below": 322,
+    "inside": 119,
+    "above": 27
+   },
+   "why": {
+    "no-value": 335
+   },
+   "mappedWithoutRow": 1
+  },
+  "hasForecast": false,
+  "origins": {
+   "m": "computed",
+   "hn": "computed",
+   "v": "measured",
+   "hsd": "measured"
+  }
+ }
+}

@@ -77,9 +77,17 @@
  *    measurement at the run hour (contract `src/glacier/glacierSnowpackPairsContract.ts`). A comparison: no value of the snowpack changes. Inputs are the
  *    station mapping named in `index.stations.map` and the station hour file of the run hour (or the hour before) in the read view; when one is missing or
  *    unusable the pairs file is not written and the status line names the reason; the snowpack is not touched by it.
+ *    GM-5c (V-GM-79; audit §3k), no switch of its own: in a run with BOTH `--snowpack-pairs=on` and `--snowpack-spread=scenarios` every pair also carries
+ *    the forecast of the snow depth at the station elevation for +24 / +48 / +72 h — the expected value (`fm`) and, on a row with a spread, the p10 / p90
+ *    of the scenarios read AT that elevation (`fq`), else the row's reason (`sq`); the head says so (`forecast`). The snowpack document is byte for byte
+ *    the one of the run with spreads alone; without the spread switch the pairs file is byte for byte what it was and the mapping is not read earlier.
  *  - `--sat-nudge=every|once` (`GLACIER_SAT_NUDGE`; default `SAT_NUDGE_DEFAULT` of `lib/meltstate.mjs`, `every`): `every` (the fall back) = a season row
  *    nudges the melt state in every run while it is at most 20 days old, every file as before. `once` = a row nudges a carried state once; `melt/state.json`
  *    names per glacier the date of the row it took (`sat`), the document counts applied and held scenes (`state.sat`). The snowpack never takes the nudge.
+ *
+ * Phase GM (V-GM-81; audit §3l), no switch: the status line of the melt run carries the memory of the run, `lines.melt.mem` = { rssMb: the highest
+ * resident set size of the process, heapMb: the highest JavaScript heap in use seen once per glacier (an upper bound of what is held), heapLimitMb: the
+ * heap size at which Node stops } (`lib/runmem.mjs`). Three numbers in the status line; no document, no state and no pointer change by it.
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, copyFileSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
@@ -105,9 +113,10 @@ import { weatherSeriesOf, weatherOfGlacier, weatherHead, weatherPhaseOf, weather
 import { snowPrecipOf, precipRunOf, meltPrecipProblems, snowSwitchesOf, snowCoreSetup } from './lib/snowcal.mjs';
 import { glacierFactorModeOf, glacierShapeModeOf, glacierRunOf } from './lib/snowcalGlaciers.mjs';
 import { SNOW, SNOW_ORIGIN, SNOW_SOURCES, newSnowDensitySpan } from './lib/snowcore.mjs';
-import { snowpackModeOf, snowpackStartOf, driveOf, bareAlbedo, levelsOfEntry, advanceEntry, normalizeLevel, snowpackOfGlacier, placeLevels, stateRefusal, snowpackPairsModeOf, pairsOf, snowpackSpreadModeOf, spreadOfGlacier, shiftLevels } from './lib/snowpackcore.mjs';
-import { GLACIER_SNOWPACK_PAIRS_WINDOW_MIN, GLACIER_SNOWPACK_PAIRS_NOTE, glacierSnowpackPairsPath, snowpackPairsProblems } from '../../src/glacier/glacierSnowpackPairsContract.ts';
+import { snowpackModeOf, snowpackStartOf, driveOf, bareAlbedo, levelsOfEntry, advanceEntry, normalizeLevel, snowpackOfGlacier, placeLevels, stateRefusal, snowpackPairsModeOf, pairsOf, snowpackSpreadModeOf, spreadOfGlacier, shiftLevels, stationLevelsOf } from './lib/snowpackcore.mjs';
+import { GLACIER_SNOWPACK_PAIRS_WINDOW_MIN, GLACIER_SNOWPACK_PAIRS_NOTE, GLACIER_SNOWPACK_PAIRS_FC_HOURS, GLACIER_SNOWPACK_PAIRS_FC_ELEVATION, glacierSnowpackPairsPath, snowpackPairsProblems } from '../../src/glacier/glacierSnowpackPairsContract.ts';
 import { glacierStnHourPath, glacierStnMapPath } from '../../src/glacier/glacierStationContract.ts';
+import { memWatch } from './lib/runmem.mjs';
 import {
   GLACIER_SNOWPACK_DAYS, GLACIER_SNOWPACK_WINDOWS, GLACIER_SNOWPACK_HEIGHTS, GLACIER_SNOWPACK_PEND_H, GLACIER_SNOWPACK_NOTE, GLACIER_SNOWPACK_STATE_PATH, glacierSnowpackRunPath,
   snowpackProblems, snowpackStateProblems, GLACIER_SNOWPACK_SPREAD_RULE, GLACIER_SNOWPACK_NOW_FACTOR,
@@ -336,6 +345,9 @@ export async function main(opts) {
   const t0Ms = Math.floor(nowMs / H) * H;
   const run = stamp(t0Ms);
   const log = opts.log ?? (() => {});
+  // V-GM-81: the memory of the run for the status line (sampled once per glacier below); nothing else reads it. `opts.memWatch` is a seam of the
+  // verifier only (like `opts.forecast`), the command line cannot set it
+  const mem = (opts.memWatch ?? memWatch)();
   // Phase GW: weather at the glacier from the same answers (`--weather=0` = the run exactly as before)
   const wxOn = !(opts.weather === '0' || opts.weather === 0 || opts.weather === false);
   // Phase GS: the phase rule of this run (producer switch); an unknown word stops the weather part with its reason, the melt run goes on
@@ -468,6 +480,11 @@ export async function main(opts) {
       }
     }
   }
+  // GM-5c (V-GM-79): only with pairs AND spreads — the elevation of each glacier's snow station, so that the scenarios can be read AT it. A mapping that
+  // cannot be read leaves the snowpack as it is; the pairs step after the loop reads it again and names the reason.
+  let spAt = null;
+  const spAtQ = new Map();   // glacier id → { zs, q: [p10 per day, p90 per day] } at the station elevation
+  if (sp && !sp.error && spPairs && spSpread) { try { spAt = stationLevelsOf(J(join(dataDir, glacierStnMapPath(index?.stations?.map)))); } catch { spAt = null; } }
   const t0H = Math.round(t0Ms / H);
   /** GM-3c: the entry of a glacier that got no row in this run, brought to the run hour with the forcing it carries (then without stored forcing). */
   const spCarry = (g, z) => {
@@ -547,6 +564,7 @@ export async function main(opts) {
   // A/B first (own Fusion call), then C with the neighbour's forcing
   const order = [...cat.filter((g) => g.klass !== 'C'), ...cat.filter((g) => g.klass === 'C')];
   for (const g of order) {
+    mem.sample();
     try {
       const hyp = hypOf(g.region)[g.id];
       if (!hyp?.a?.some((v) => v > 0)) { skipped.push({ id: g.id, reason: 'no-hypsometry' }); continue; }
@@ -635,7 +653,11 @@ export async function main(opts) {
               const place = ctx
                 ? (zT) => { const cs = { ...ctx, tz: ctx.tz.map((arr, l) => { const o = new Float64Array(hoursSp), s = ctx.sg?.[l]; for (let h = 0; h < hoursSp; h++) o[h] = arr[h] + (s && fin(s[h]) ? s[h] : 0) * zT[h]; return o; }) }; return placeLevels(z, hoursSp, { temp: (zq, h) => tempAtElevation(zq, h, cs), share: (zq, h) => shareAtElevation(zq, h, cs) }); }
                 : (zT) => shiftLevels({ tz: tzW, share: share3, sg: f.sg, zT, hours: hoursSp, ramp: solidFraction });
-              Object.assign(o.row, spreadOfGlacier({ levels, pars, c: spSetup.c, t0Ms, seed: (seedOf(run, g.id) ^ 0x9e3779b9) >>> 0, rule: spSpreadRule, p: f.p, g: f.g, factor, amount: precipAmountOf(f.p, f.wx.pDist, hoursSp), place }));
+              // GM-5c: with pairs, the same scenarios read at the station elevation (the elevations of the ROW, as the pairs read them); kept next to the rows, never in one
+              const zs = spAt?.get(g.id);
+              const { at: atq, ...q } = spreadOfGlacier({ levels, pars, c: spSetup.c, t0Ms, seed: (seedOf(run, g.id) ^ 0x9e3779b9) >>> 0, rule: spSpreadRule, p: f.p, g: f.g, factor, amount: precipAmountOf(f.p, f.wx.pDist, hoursSp), place, ...(zs != null ? { at: { z: o.row.z, zs, days: GLACIER_SNOWPACK_PAIRS_FC_HOURS.length } } : {}) });
+              Object.assign(o.row, q);
+              if (atq) spAtQ.set(g.id, { zs, q: atq });
             }
             sp.spreadMs += Date.now() - tQ;
           }
@@ -722,14 +744,14 @@ export async function main(opts) {
   if (spPairs) {
     try {
       if (snowpack?.error) throw new Error('Schneedecke nicht geschrieben');
-      pairs = writeSnowpackPairs({ outDir, dataDir, index, run, runAt: doc.runAt, t0Ms, rows: sp.rows, rules: sp.rules });
+      pairs = writeSnowpackPairs({ outDir, dataDir, index, run, runAt: doc.runAt, t0Ms, rows: sp.rows, rules: sp.rules, ...(spSpread ? { forecast: { rule: spSpreadRule, at: spAtQ } } : {}) });
     } catch (e) { pairs = { error: String(e?.message ?? e).split('\n')[0] }; }
     if (pairs.error) log(`Schattenpaare nicht geschrieben: ${pairs.error}`);
   }
   const spStatus = snowpack && (snowpack.error ? { at: doc.runAt, mode: 'shadow', error: snowpack.error }
     : { at: doc.runAt, mode: 'shadow', glaciers: snowpack.glaciers, skipped: snowpack.skipped, coverage: snowpack.coverage, precip: sp.rules.precip, density: sp.rules.density, state: snowpack.state, carried: snowpack.carried, dropped: snowpack.dropped, bytes: snowpack.bytes, stateBytes: snowpack.stateBytes, seconds: snowpack.seconds });
   if (spStatus && snowpack.spread) spStatus.spread = snowpack.spread;
-  if (spStatus && pairs) spStatus.pairs =pairs.error ? { error: pairs.error } : { pairs: pairs.pairs, withValue: pairs.withValue, map: pairs.map, slot: pairs.slot, bytes: pairs.bytes };
+  if (spStatus && pairs) spStatus.pairs =pairs.error ? { error: pairs.error } : { pairs: pairs.pairs, withValue: pairs.withValue, map: pairs.map, slot: pairs.slot, bytes: pairs.bytes, ...(pairs.spread != null ? { spread: pairs.spread } : {}) };
   mkdirSync(patchDir, { recursive: true });
   writeFileSync(join(patchDir, 'index-patch.json'), JSON.stringify({
     melt: { run, runAt: doc.runAt, engine: { name: engine.name, version: engine.version }, cube: cubeRuns, unit, build },
@@ -737,7 +759,7 @@ export async function main(opts) {
     ...(snowpack && !snowpack.error ? { snowpack: snowpack.pointer } : {}),
   }));
   writeFileSync(join(patchDir, 'status-patch.json'), JSON.stringify({ lines: {
-    melt: { at: doc.runAt, glaciers: rows.length, skipped: skipped.length, unit, seconds: Math.round((Date.now() - tStart) / 1000), ...(precip ? { precip: precipRule } : {}), ...(stMode === 'run-hour' ? { state: stMode } : {}), ...(satMode === 'once' ? { sat: satMode } : {}), ...(glTab ? { glacier: { factor: glApplied.factor.length, shape: glApplied.shape.length } } : {}) },
+    melt: { at: doc.runAt, glaciers: rows.length, skipped: skipped.length, unit, seconds: Math.round((Date.now() - tStart) / 1000), ...(precip ? { precip: precipRule } : {}), ...(stMode === 'run-hour' ? { state: stMode } : {}), ...(satMode === 'once' ? { sat: satMode } : {}), ...(glTab ? { glacier: { factor: glApplied.factor.length, shape: glApplied.shape.length } } : {}), mem: mem.line() },
     ...(weather ? { weather: weather.error ? { at: doc.runAt, error: weather.error } : { at: doc.runAt, glaciers: weather.glaciers, skipped: weather.skipped, files: weather.files, bytes: weather.bytes, phase: weather.phase, ...(weather.levels ? { levels: weather.levels } : {}) } } : {}),
     ...(spStatus ? { snowpack: spStatus } : {}),
   } }));
@@ -800,27 +822,33 @@ export function writeSnowpack({ outDir, run, runAt, t0Ms, engine, cube, build, r
  * station's measurement at the run hour. Inputs from the read view: the mapping named in `index.stations.map` and the station hour file of the run hour —
  * or, when the station line has not written that one yet, of the hour before (the age of every value is checked against the run hour either way).
  * Throws with the reason when an input is missing or the document breaks its contract; nothing is written then.
+ * GM-5c (V-GM-79): `forecast` = { rule: the spread rule of the run, at: Map(glacier id → { zs, q }) } only in a run with spreads — the pairs then carry the
+ * forecast at the station elevation and the head the block `forecast`; the document is checked against the rows it was built from. Without it the bytes
+ * are what they were.
  */
-export function writeSnowpackPairs({ outDir, dataDir, index, run, runAt, t0Ms, rows, rules }) {
+export function writeSnowpackPairs({ outDir, dataDir, index, run, runAt, t0Ms, rows, rules, forecast = null }) {
   const mapName = index?.stations?.map;
   if (!mapName) throw new Error('Zeiger ohne Stationszuordnung (index.stations.map)');
   const mapFile = join(dataDir, glacierStnMapPath(mapName));
   if (!existsSync(mapFile)) throw new Error(`Stationszuordnung ${mapName} fehlt in der Lesesicht`);
   const slot = [run, stamp(t0Ms - H)].find((s) => existsSync(join(dataDir, glacierStnHourPath(s))));
   if (!slot) throw new Error(`kein Stationsslot der Laufstunde oder der Stunde davor (${run})`);
-  const { pairs, counts } = pairsOf({ rows, map: J(mapFile), slot: J(join(dataDir, glacierStnHourPath(slot))), t0Ms, windowMin: GLACIER_SNOWPACK_PAIRS_WINDOW_MIN });
+  const days = GLACIER_SNOWPACK_PAIRS_FC_HOURS.map((h) => h / 24);
+  const { pairs, counts, forecast: fcCount } = pairsOf({ rows, map: J(mapFile), slot: J(join(dataDir, glacierStnHourPath(slot))), t0Ms, windowMin: GLACIER_SNOWPACK_PAIRS_WINDOW_MIN, ...(forecast ? { forecast: { days, at: forecast.at } } : {}) });
   const doc = {
-    schema: 1, kind: 'glacier/snowpack-pairs', run, runAt, atMs: t0Ms, origin: 'comparison', origins: { m: 'computed', hn: 'computed', v: 'measured', hsd: 'measured' },
+    schema: 1, kind: 'glacier/snowpack-pairs', run, runAt, atMs: t0Ms, origin: 'comparison', origins: { m: 'computed', hn: 'computed', v: 'measured', hsd: 'measured', ...(forecast ? { fm: 'computed', fq: 'computed' } : {}) },
     note: GLACIER_SNOWPACK_PAIRS_NOTE, coupling: 'none', snowpack: { run, precip: rules.precip, density: rules.density },
     stations: { map: mapName, slot, source: 'glacier/v1/stn' }, rule: { elevation: 'linear-between-levels-clamped', windowMin: GLACIER_SNOWPACK_PAIRS_WINDOW_MIN, origin: 'set' },
-    counts, pairs,
+    counts,
+    ...(forecast ? { forecast: { hours: GLACIER_SNOWPACK_PAIRS_FC_HOURS, origin: 'computed', spread: { rule: forecast.rule.rule, k: forecast.rule.k, quantiles: forecast.rule.quantiles, elevation: GLACIER_SNOWPACK_PAIRS_FC_ELEVATION }, ...fcCount } } : {}),
+    pairs,
   };
-  const problems = snowpackPairsProblems(doc, new Set(rows.map((r) => r.id)));
+  const problems = snowpackPairsProblems(doc, new Set(rows.map((r) => r.id)), forecast ? new Map(rows.map((r) => [r.id, r])) : undefined);
   if (problems.length) throw new Error(`Schattenpaare verletzen den Vertrag: ${problems.slice(0, 5).join('; ')}`);
   const raw = JSON.stringify(doc);
   mkdirSync(join(outDir, dirname(glacierSnowpackPairsPath(run))), { recursive: true });
   writeFileSync(join(outDir, glacierSnowpackPairsPath(run)), raw);
-  return { pairs: counts.pairs, withValue: counts.withValue, map: mapName, slot, bytes: Buffer.byteLength(raw) };
+  return { pairs: counts.pairs, withValue: counts.withValue, map: mapName, slot, bytes: Buffer.byteLength(raw), ...(forecast ? { spread: fcCount.pairs } : {}) };
 }
 
 /**

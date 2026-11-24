@@ -1,0 +1,235 @@
+{
+ "generated": "2026-11-24T19:09:46.969Z",
+ "run": "2026112117",
+ "final": true,
+ "runs": [
+  "head-pairs",
+  "final-pairs",
+  "final-both",
+  "head-spread"
+ ],
+ "missing": [],
+ "timing": {
+  "head-pairs": {
+   "melt": 265,
+   "levels": 151,
+   "snowpack": 11,
+   "spread": null
+  },
+  "final-pairs": {
+   "melt": 441,
+   "levels": 249,
+   "snowpack": 19,
+   "spread": null
+  },
+  "final-both": {
+   "melt": 909,
+   "levels": 281,
+   "snowpack": 431,
+   "spread": 414
+  },
+  "head-spread": {
+   "melt": 755,
+   "levels": 233,
+   "snowpack": 361,
+   "spread": 343
+  }
+ },
+ "mem": {
+  "head-pairs": null,
+  "final-pairs": {
+   "rssMb": 3217,
+   "heapMb": 2830,
+   "heapLimitMb": 4144
+  },
+  "final-both": {
+   "rssMb": 3205,
+   "heapMb": 2806,
+   "heapLimitMb": 4144
+  },
+  "head-spread": null
+ },
+ "headVsWork": {
+  "tree": {
+   "a": "head-pairs",
+   "b": "final-pairs",
+   "filesA": 33,
+   "filesB": 33,
+   "identical": 33,
+   "onlyA": [],
+   "onlyB": [],
+   "differ": []
+  },
+  "status": true,
+  "index": true
+ },
+ "pairsVsBoth": {
+  "tree": {
+   "a": "final-pairs",
+   "b": "final-both",
+   "filesA": 33,
+   "filesB": 33,
+   "identical": 31,
+   "onlyA": [],
+   "onlyB": [],
+   "differ": [
+    "snowpack/2026112117.json",
+    "snowpack/pairs/2026112117.json"
+   ]
+  },
+  "pairsBareEqualsOff": true,
+  "statusDiffers": [
+   "lines.snowpack.bytes",
+   "lines.snowpack.pairs.bytes",
+   "lines.snowpack.pairs.spread",
+   "lines.snowpack.spread"
+  ],
+  "index": true
+ },
+ "snowpackWithSpread": {
+  "equalsHeadSpread": true,
+  "tree": {
+   "a": "head-spread",
+   "b": "final-both",
+   "filesA": 32,
+   "filesB": 33,
+   "identical": 32,
+   "onlyA": [],
+   "onlyB": [
+    "snowpack/pairs/2026112117.json"
+   ],
+   "differ": []
+  },
+  "statusDiffers": [
+   "lines.snowpack.pairs"
+  ],
+  "bytes": 2072978,
+  "equalsGm5FullOn": true
+ },
+ "forecast": {
+  "head": {
+   "hours": [
+    24,
+    48,
+    72
+   ],
+   "origin": "computed",
+   "spread": {
+    "rule": "scenarios",
+    "k": 100,
+    "quantiles": [
+     10,
+     90
+    ],
+    "elevation": "per-scenario-linear-between-levels-clamped"
+   },
+   "pairs": 279,
+   "none": {
+    "neighbour": 189
+   }
+  },
+  "origins": {
+   "m": "computed",
+   "hn": "computed",
+   "v": "measured",
+   "hsd": "measured",
+   "fm": "computed",
+   "fq": "computed"
+  },
+  "contract": [],
+  "snowpackContract": [],
+  "pairs": 468,
+  "withSpread": 279,
+  "withSpreadAndValue": 76,
+  "stationsWithSpread": 75,
+  "at": {
+   "below": 180,
+   "inside": 92,
+   "above": 7
+  },
+  "none": {
+   "neighbour": 189
+  },
+  "everyPairHasFm": true,
+  "widthCmMedian": {
+   "h24": 21,
+   "h48": 62.7,
+   "h72": 56.5
+  },
+  "changeCmMedian": {
+   "h24": [
+    -3.6,
+    4.1,
+    17.3
+   ],
+   "h72": [
+    -9,
+    14.5,
+    46.1
+   ]
+  },
+  "expectedOutsideSpan": {
+   "h24": 0,
+   "h48": 0,
+   "h72": 0
+  },
+  "mixedQuantilesInside": {
+   "pairs": 92,
+   "values": 552,
+   "differ01": 184,
+   "differ1cm": 22,
+   "medianCm": 0,
+   "p90Cm": 0.29999999999999716,
+   "maxCm": 11.100000000000023
+  },
+  "bytes": {
+   "off": 79899,
+   "on": 106090,
+   "gzOff": 14665,
+   "gzOn": 23618
+  },
+  "statusLine": {
+   "pairs": 468,
+   "withValue": 133,
+   "map": "20261120-1.4",
+   "slot": "2026112117",
+   "bytes": 106090,
+   "spread": 279
+  }
+ },
+ "oldArchiver": {
+  "commit": "b448d652",
+  "written": [
+   "2026112117"
+  ],
+  "refused": [],
+  "files": [
+   "2026-11-21/pairs-2026112117.json.gz"
+  ]
+ },
+ "pairsOff": {
+  "bytes": 79899,
+  "sameAsHead": true,
+  "contract": [],
+  "counts": {
+   "pairs": 468,
+   "withValue": 133,
+   "at": {
+    "below": 322,
+    "inside": 119,
+    "above": 27
+   },
+   "why": {
+    "no-value": 335
+   },
+   "mappedWithoutRow": 1
+  },
+  "hasForecast": false,
+  "origins": {
+   "m": "computed",
+   "hn": "computed",
+   "v": "measured",
+   "hsd": "measured"
+  }
+ }
+}

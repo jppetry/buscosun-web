@@ -43,6 +43,10 @@ jobs:
       # Phase GM (GM-3d, V-GM-32, E-GM-19, Jan 23.11.2026): the carried state of the melt run stands at the run hour and carries 18 h of forcing,
       # so a run 3 h after its predecessor no longer starts cold. Fallback: remove this line or set `ahead` (buscosun-web MANUELLE-SCHRITTE §120.5).
       GLACIER_MELT_STATE: run-hour
+      # Phase GM (GM-4a, E-GM-20/E-GM-24, Jan 24.11.2026): shadow pairs `glacier/v1/snowpack/pairs/<run>.json` — the snowpack at the elevation of each
+      # glacier's snow station next to the measurement at the run hour; no number of the snowpack changes, a failure writes no pairs file and names the
+      # reason in status.json. Quoted, so that YAML never reads a boolean. Fallback: remove this line or set 'off' (buscosun-web MANUELLE-SCHRITTE §121.5).
+      GLACIER_SNOWPACK_PAIRS: 'on'
     steps:
       - uses: actions/setup-node@v4
         with:
