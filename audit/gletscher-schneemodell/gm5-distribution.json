@@ -1,0 +1,517 @@
+{
+ "kind": "gm5/distribution",
+ "generated": "2026-11-23T22:38:48.184Z",
+ "codeCommit": "dc982141",
+ "dataRepoCommit": "c0f4686fac6068d766f59bb68fa342ecbaf14ada",
+ "static": "20261120-1",
+ "method": {
+  "file": "audit/gletscher-schneemodell/gm5-method-frozen.md",
+  "sha256": "a9964eb9bdac7cbff0689f67c0d5606e5e37e617e48eb239ee69160bc6e5b98b"
+ },
+ "A2": {
+  "counts": {
+   "seasonsWithRows": 1205,
+   "seasonsUsableRows": 548,
+   "seasonsWithPattern": 205,
+   "monotone": 205,
+   "byYear": {
+    "2023": 16,
+    "2025": 63,
+    "2026": 126
+   },
+   "byCountry": {
+    "CH": 147,
+    "AT": 58
+   },
+   "glaciersWithPattern": 154,
+   "glaciersWith2Patterns": 35
+  },
+  "monotoneShare": 1,
+  "orderSpearman": {
+   "pairs": 49,
+   "median": 0.9122963014962114,
+   "p10": 0.7609910331797035
+  },
+  "verdictOrder": "Reihenfolge trägt mehr als die Höhe",
+  "stability": {
+   "sameN": 35,
+   "sameMedian": 0.28484848484848485,
+   "sameP10": -0.23428571428571426,
+   "sameP90": 0.7942857142857144,
+   "otherN": 755,
+   "otherMedian": 0,
+   "byYearPair": {
+    "2023-2024": {
+     "glaciers": 0,
+     "sameN": 0,
+     "sameMedian": null,
+     "otherN": 0,
+     "otherMedian": null
+    },
+    "2023-2025": {
+     "glaciers": 16,
+     "sameN": 6,
+     "sameMedian": 0.1,
+     "otherN": 72,
+     "otherMedian": -0.2
+    },
+    "2023-2026": {
+     "glaciers": 16,
+     "sameN": 6,
+     "sameMedian": 0.2,
+     "otherN": 83,
+     "otherMedian": 0
+    },
+    "2024-2025": {
+     "glaciers": 0,
+     "sameN": 0,
+     "sameMedian": null,
+     "otherN": 0,
+     "otherMedian": null
+    },
+    "2024-2026": {
+     "glaciers": 0,
+     "sameN": 0,
+     "sameMedian": null,
+     "otherN": 0,
+     "otherMedian": null
+    },
+    "2025-2026": {
+     "glaciers": 35,
+     "sameN": 23,
+     "sameMedian": 0.3,
+     "otherN": 600,
+     "otherMedian": 0
+    }
+   }
+  },
+  "verdictStability": "schwach"
+ },
+ "A3": {
+  "skipped": {
+   "Klasse C": 37,
+   "Klasse B": 132,
+   "keine brauchbare Saison": 18,
+   "nur die Saison desselben Jahres": 1
+  },
+  "kAll": 0.0008607450810474485,
+  "kLGO": {
+   "median": 0.0008606905216675149,
+   "min": -0.00037157065318951446,
+   "max": 0.0028697441665623937
+  },
+  "pooledPearson": 0.08634376004663379,
+  "all": {
+   "glacierWinters": 300,
+   "glaciers": 24,
+   "meanErrMm": {
+    "V0": 131.19905095579378,
+    "V1": 131.41873568955097,
+    "V2": 131.3599102811489,
+    "C0": 209.11911986016645,
+    "C1": 408.50351198196404
+   },
+   "gainV1": -0.0016744384365341425,
+   "gainV2": -0.0012260707999276477,
+   "v3": {
+    "glacierWinters": 270,
+    "V0": 130.81155754257983,
+    "V3": 103.64457955674052,
+    "gain": 0.20768025774019483
+   }
+  },
+  "bootstrap": {
+   "n": 1000,
+   "seed": 42,
+   "p10": -0.005570416897007857,
+   "p90": 0.002001366038246322
+  },
+  "recent": {
+   "glacierWinters": 70,
+   "glaciers": 24,
+   "meanErrMm": {
+    "V0": 126.7036287070278,
+    "V1": 126.94464807955796,
+    "V2": 127.24566528680381,
+    "C0": 219.13934693255516,
+    "C1": 386.0222885126253
+   },
+   "gainV1": -0.0019022294388069128,
+   "gainV2": -0.004277987815402895,
+   "v3": {
+    "glacierWinters": 53,
+    "V0": 135.90934979138527,
+    "V3": 105.04023270399034,
+    "gain": 0.22713019475685547
+   }
+  },
+  "CH": {
+   "glacierWinters": 239,
+   "glaciers": 19,
+   "meanErrMm": {
+    "V0": 131.28031241839582,
+    "V1": 131.6650759302767,
+    "V2": 131.44168644186198,
+    "C0": 208.64229164028743,
+    "C1": 435.03428662900427
+   },
+   "gainV1": -0.002930854633059088,
+   "gainV2": -0.0012292324758631512,
+   "v3": {
+    "glacierWinters": 221,
+    "V0": 130.1362912983046,
+    "V3": 98.75676380640542,
+    "gain": 0.24112818322115492
+   }
+  },
+  "AT": {
+   "glacierWinters": 61,
+   "glaciers": 5,
+   "meanErrMm": {
+    "V0": 130.88066588100864,
+    "V1": 130.453566549658,
+    "V2": 131.03950860228895,
+    "C0": 210.98734845936457,
+    "C1": 304.5550670533959
+   },
+   "gainV1": 0.0032632729095291024,
+   "gainV2": -0.0012136454243343309,
+   "v3": {
+    "glacierWinters": 49,
+    "V0": 133.85714611369886,
+    "V3": 125.68962610417033,
+    "gain": 0.06101669015557076
+   }
+  },
+  "verdict": "trägt nicht",
+  "reasons": [
+   "Gewinn V1 -0.2 % < 5 %",
+   "p10 des Gewinns -0.6 % ≤ 0"
+  ],
+  "perGlacier": [
+   {
+    "id": "gl_at_hallstaetter-gletscher",
+    "name": "HALLSTAETTER G.",
+    "winters": 12,
+    "seasons": [
+     2025,
+     2026
+    ],
+    "k": 0.0008621201188708692,
+    "V0": 124.51650954046262,
+    "V1": 124.36154126431451,
+    "V3": 109.04911686177974
+   },
+   {
+    "id": "gl_at_hintereisferner-mit-toteis",
+    "name": "HINTEREIS F.",
+    "winters": 12,
+    "seasons": [
+     2025,
+     2026
+    ],
+    "k": 0.0007899762130674878,
+    "V0": 159.6002426611366,
+    "V1": 158.13548685922362,
+    "V3": 135.9572750019778
+   },
+   {
+    "id": "gl_at_jamtal-ferner",
+    "name": "JAMTAL F.",
+    "winters": 14,
+    "seasons": [
+     2025,
+     2026
+    ],
+    "k": 0.0008494995028531251,
+    "V0": 86.48108457109674,
+    "V1": 86.11504633511007,
+    "V3": 97.08133158641714
+   },
+   {
+    "id": "gl_at_mullwitz-kees",
+    "name": "ZETTALUNITZ/MULLWITZ K.",
+    "winters": 13,
+    "seasons": [
+     2025,
+     2026
+    ],
+    "k": 0.0008582268742911004,
+    "V0": 155.36861733220968,
+    "V1": 155.28600028646127,
+    "V3": 131.79056718261918
+   },
+   {
+    "id": "gl_at_untersulzbach-kees",
+    "name": "VENEDIGER K.",
+    "winters": 10,
+    "seasons": [
+     2025
+    ],
+    "k": 0.0008605329009861575,
+    "V0": 134.37923830082545,
+    "V1": 134.33745696311422,
+    "V3": 149.13760664525134
+   },
+   {
+    "id": "gl_ch_adlergletscher",
+    "name": "Adlergletscher",
+    "winters": 13,
+    "seasons": [
+     2026
+    ],
+    "k": 0.0008537971356659303,
+    "V0": 131.4187364813813,
+    "V1": 131.22416360417625,
+    "V3": 129.36428009242292
+   },
+   {
+    "id": "gl_ch_allalingletscher",
+    "name": "Allalingletscher",
+    "winters": 14,
+    "seasons": [
+     2023,
+     2025,
+     2026
+    ],
+    "k": 0.0008120866116195873,
+    "V0": 76.90115338412788,
+    "V1": 75.33187135577468,
+    "V3": 58.203853275024024
+   },
+   {
+    "id": "gl_ch_claridenfirn",
+    "name": "Claridenfirn",
+    "winters": 14,
+    "seasons": [
+     2025,
+     2026
+    ],
+    "k": 0.0008861062012945301,
+    "V0": 139.58514169960725,
+    "V1": 140.51537484960676,
+    "V3": 63.295966096336834
+   },
+   {
+    "id": "gl_ch_findelgletscher",
+    "name": "Findelgletscher",
+    "winters": 14,
+    "seasons": [
+     2023,
+     2025,
+     2026
+    ],
+    "k": -0.00037157065318951446,
+    "V0": 179.57893886752686,
+    "V1": 183.37209217696315,
+    "V3": 143.31708519451735
+   },
+   {
+    "id": "gl_ch_ghiacciaio-del-basodino",
+    "name": "Ghiacciaio del Basòdino",
+    "winters": 14,
+    "seasons": [
+     2023,
+     2025,
+     2026
+    ],
+    "k": 0.0008569936294339851,
+    "V0": 83.9201647604594,
+    "V1": 83.1735700433336,
+    "V3": 56.987602410564385
+   },
+   {
+    "id": "gl_ch_glacier-d-orny",
+    "name": "Glacier d'Orny",
+    "winters": 3,
+    "seasons": [
+     2023,
+     2025,
+     2026
+    ],
+    "k": 0.0008608481423488722,
+    "V0": 44.45127627833663,
+    "V1": 44.28987515110388,
+    "V3": null
+   },
+   {
+    "id": "gl_ch_glacier-d-otemma-zentral",
+    "name": "Glacier d'Otemma",
+    "winters": 6,
+    "seasons": [
+     2023,
+     2025,
+     2026
+    ],
+    "k": 0.000978382964571432,
+    "V0": 113.18301316719197,
+    "V1": 114.92686383367031,
+    "V3": 76.20557519984239
+   },
+   {
+    "id": "gl_ch_glacier-de-corbassiere",
+    "name": "Glacier de Corbassière",
+    "winters": 14,
+    "seasons": [
+     2023,
+     2025,
+     2026
+    ],
+    "k": 0.0008844695141629659,
+    "V0": 105.16165831143554,
+    "V1": 105.33295084324409,
+    "V3": 91.70096158395673
+   },
+   {
+    "id": "gl_ch_glacier-de-la-plaine-morte",
+    "name": "Glacier de la Plaine Morte",
+    "winters": 14,
+    "seasons": [
+     2025,
+     2026
+    ],
+    "k": 0.0008629715723934238,
+    "V0": 29.568246816927314,
+    "V1": 29.6707142665791,
+    "V3": 26.085065390755055
+   },
+   {
+    "id": "gl_ch_glacier-de-tsanfleuron",
+    "name": "Glacier de Tsanfleuron",
+    "winters": 14,
+    "seasons": [
+     2025,
+     2026
+    ],
+    "k": 0.0008718151320804146,
+    "V0": 58.82229389332595,
+    "V1": 60.673354073657414,
+    "V3": 55.060950897133125
+   },
+   {
+    "id": "gl_ch_glacier-du-gietro",
+    "name": "Glacier du Giétro",
+    "winters": 14,
+    "seasons": [
+     2023,
+     2025,
+     2026
+    ],
+    "k": 0.0008946787670124014,
+    "V0": 54.357351590901416,
+    "V1": 55.44206323519169,
+    "V3": 48.55239360145476
+   },
+   {
+    "id": "gl_ch_glatscher-da-medel-e",
+    "name": "Glatscher da Plattas / Glatscher da Medel",
+    "winters": 9,
+    "seasons": [
+     2023,
+     2025,
+     2026
+    ],
+    "k": 0.0008407225386405736,
+    "V0": 208.11156361328835,
+    "V1": 204.16181717237546,
+    "V3": 17.244044499849025
+   },
+   {
+    "id": "gl_ch_griesgletscher",
+    "name": "Griesgletscher",
+    "winters": 14,
+    "seasons": [
+     2023,
+     2025,
+     2026
+    ],
+    "k": 0.0007646099944163854,
+    "V0": 205.17753454278815,
+    "V1": 202.62906716010903,
+    "V3": 165.0920770380004
+   },
+   {
+    "id": "gl_ch_grosser-aletschgletscher",
+    "name": "Grosser Aletschgletscher",
+    "winters": 14,
+    "seasons": [
+     2023,
+     2025,
+     2026
+    ],
+    "k": 0.0028697441665623937,
+    "V0": 381.8371303146993,
+    "V1": 384.7158853780261,
+    "V3": 353.4360628174231
+   },
+   {
+    "id": "gl_ch_hohlaubgletscher",
+    "name": "Hohlaubgletscher",
+    "winters": 14,
+    "seasons": [
+     2023,
+     2025,
+     2026
+    ],
+    "k": 0.0009051199195543484,
+    "V0": 116.46155047257005,
+    "V1": 118.85483624086127,
+    "V3": 89.89465158256688
+   },
+   {
+    "id": "gl_ch_oberaargletscher",
+    "name": "Oberaargletscher",
+    "winters": 12,
+    "seasons": [
+     2023,
+     2025,
+     2026
+    ],
+    "k": 0.0008670925633108618,
+    "V0": 32.210147383528316,
+    "V1": 33.244517192951776,
+    "V3": 29.824891512164672
+   },
+   {
+    "id": "gl_ch_rhonegletscher",
+    "name": "Rhonegletscher",
+    "winters": 14,
+    "seasons": [
+     2023,
+     2025,
+     2026
+    ],
+    "k": 0.0004410401087003185,
+    "V0": 290.48195303274673,
+    "V1": 288.84990571643135,
+    "V3": 143.9243481572487
+   },
+   {
+    "id": "gl_ch_schwarzberggletscher-zentral",
+    "name": "Schwarzberggletscher",
+    "winters": 14,
+    "seasons": [
+     2025,
+     2026
+    ],
+    "k": 0.0009339844956599944,
+    "V0": 87.08505550230493,
+    "V1": 89.85418330465497,
+    "V3": 64.26471344616021
+   },
+   {
+    "id": "gl_ch_silvrettagletscher",
+    "name": "Silvrettagletscher",
+    "winters": 14,
+    "seasons": [
+     2025,
+     2026
+    ],
+    "k": 0.0008398863405480898,
+    "V0": 90.74563715190378,
+    "V1": 88.95682072411843,
+    "V3": 70.21683074596757
+   }
+  ]
+ }
+}

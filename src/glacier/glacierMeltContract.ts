@@ -82,7 +82,7 @@ export interface GlacierMeltDoc {
    * `--melt-state=run-hour`: `mode`, `replayedH` (hours advanced with the forcing the state file carried) and `held` (glaciers whose state was taken
    * without advancing because the file carried no forcing for them). The page reads `source` only.
    */
-  state: { source: 'carried' | 'cold'; ageH: number | null; nudged: number; mode?: 'run-hour'; replayedH?: number; held?: number };
+  state: { source: 'carried' | 'cold'; ageH: number | null; nudged: number; mode?: 'run-hour'; replayedH?: number; held?: number; sat?: { rule: 'once'; applied: number; held: number } };
   build: string;
   glaciers: GlacierMeltRow[];
   skipped: { id: string; reason: string }[];
@@ -101,6 +101,8 @@ export interface GlacierMeltState {
    * `null` = missing. `o`: glacier → forcing owner where it is not the glacier itself (class C). A reader that does not know `pend` reads `atMs` and `g`.
    */
   pend?: { h: number; f: Record<string, GlacierMeltPendRow>; o: Record<string, string> };
+  /** GM-4 (E-GM-22, `--sat-nudge=once`): per glacier the date (yyyy-mm-dd) of the season row its state took last; a row of that date or older does not nudge again */
+  sat?: Record<string, string>;
 }
 export type GlacierMeltPendRow = [number, (number | null)[], (number | null)[], (number | null)[], (number | null)[]];
 
@@ -160,6 +162,14 @@ export function meltStateProblems(s: GlacierMeltState): string[] {
     for (const [id, owner] of Object.entries(pd.o)) if (!(owner in pd.f)) p.push(`${id}: Antriebsgeber ${owner} fehlt`);
     // every glacier of the state can be advanced: its owner (itself unless `o` names another) carries forcing
     for (const id of Object.keys(s.g ?? {})) if (!((pd.o[id] ?? id) in pd.f)) p.push(`${id}: Zustand ohne Antrieb`);
+  }
+  if (s.sat !== undefined) {
+    // GM-4 (E-GM-22): a scene record belongs to a state of the file
+    if (!s.sat || typeof s.sat !== 'object' || Array.isArray(s.sat)) return [...p, 'Szenen: Form'];
+    for (const [id, d] of Object.entries(s.sat)) {
+      if (typeof d !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(d)) p.push(`${id}: Szene ${String(d)}`);
+      if (!(id in (s.g ?? {}))) p.push(`${id}: Szene ohne Zustand`);
+    }
   }
   return p;
 }

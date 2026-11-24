@@ -9,11 +9,14 @@
  *      one snowpack from one calculation, the density follows the precipitation switch (E-GM-15), all glaciers (E-GM-16)
  *   E  the publisher: the melt line may write `snowpack/`, run documents older than 72 h go, the state stays (E-GM-17)
  *   F  the seed of the spin-up (`snowpack-seed.mjs`): its pure part on forcing in the shape of the sources, and a run that continues a seed
+ *   H  GM-4 (E-GM-20/21): the shadow pairs — switch, byte identity of everything else, the pair by hand on real station entries (`snowpack-pairs.json`),
+ *      the time window, missing inputs without a silent fall back, the contract, publisher and archive
  *
  * Exit 0 = all green. Last line: `verify:glacier-snowpack n/m`.
  */
 import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, existsSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { gunzipSync } from 'node:zlib';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { MELT, simulate, emptyState } from './glacier/lib/meltcore.mjs';
@@ -22,8 +25,10 @@ import { snowCoreSetup } from './glacier/lib/snowcal.mjs';
 import { solidFraction, weatherOfGlacier, shareAtElevation, tempAtElevation } from './glacier/lib/weathercore.mjs';
 import {
   SNOWPACK_DEFAULT, SNOWPACK_MODES, SNOWPACK_START_DEFAULT, snowpackModeOf, snowpackStartOf, emptyLevel, bareAlbedo, stepLevel, driveOf, normalizeLevel, levelsOfEntry, advanceEntry,
-  snowpackOfGlacier, placeLevels, stateRefusal,
+  snowpackOfGlacier, placeLevels, stateRefusal, SNOWPACK_PAIRS_DEFAULT, SNOWPACK_PAIRS_MODES, snowpackPairsModeOf, atElevation,
 } from './glacier/lib/snowpackcore.mjs';
+import { GLACIER_SNOWPACK_PAIRS_NOTE, glacierSnowpackPairsPath, snowpackPairsProblems } from '../src/glacier/glacierSnowpackPairsContract.ts';
+import { archivePairs } from './glacier/glacier-archive.mjs';
 import {
   GLACIER_SNOWPACK_DAYS, GLACIER_SNOWPACK_PEND_H, GLACIER_SNOWPACK_STATE_PATH, GLACIER_SNOWPACK_NOTE, glacierSnowpackRunPath, snowpackProblems, snowpackStateProblems,
 } from '../src/glacier/glacierSnowpackContract.ts';
@@ -41,6 +46,7 @@ const add = (name, ok, detail) => checks.push({ name, ok: !!ok, detail });
 const throws = async (f) => { try { await f(); return null; } catch (e) { return String(e?.message ?? e); } };
 const tmp = mkdtempSync(join(tmpdir(), 'glacier-snowpack-'));
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+const eq = same;
 /** One block of checks; an exception inside it is a failure with its message (the blocks after it still run). */
 const block = async (name, f) => { try { await f(); } catch (e) { add(`${name} Block bricht ab`, false, String(e?.stack ?? e).split(/\r?\n/).slice(0, 3).join(' | ')); } };
 
@@ -418,9 +424,112 @@ await block('F', async () => {
     JSON.stringify({ st: e.doc?.state, a: ra?.swe, err: e.err, sp: e.status?.lines.snowpack }));
 });
 
+// --- H: shadow pairs (GM-4, E-GM-20) ----------------------------------------------------------------------------------------------------------------
+const PX = J(join(HERE, 'lib', 'fixtures', 'glacier', 'snowpack-pairs.json'));
+const PX_SHIFT = LX_T0 - Date.parse(PX.source.slotHour);
+/** The station line in a data tree: the real entries of the fixture, their stamps moved to the run hour (+ `extraMin` minutes earlier), mapped onto the test glaciers. */
+const putStations = (root, { extraMin = 0, stampAt = null, slotRun = LX_RUN, withExt = true, pointer = true } = {}) => {
+  const data = join(root, 'data'), c = PX.chosen, r = PX.rows;
+  const glaciers = { gl_ch_alpha: { snow: r.tirol.snow }, gl_ch_beta: { snow: r.imis.snow }, gl_ch_gamma: { snow: r.bz.snow }, gl_ch_far: { snow: r.missing.snow }, gl_ch_unknown: { snow: r.imis.snow } };
+  const map = { schema: 1, kind: 'glacier/stn-map', file: 'test.1', build: '20261011-9', rule: { km: 5, dz: 300 }, stations: {}, glaciers: {}, ...(withExt ? { ext: { rule: { km: 5, dz: 300, from: 'outline' }, stations: PX.stations, glaciers } } : {}) };
+  const move = (sec) => Object.fromEntries(Object.entries(sec ?? {}).map(([s, e]) => [s, { ...e, t: new Date(stampAt ?? Date.parse(e.t) + PX_SHIFT - extraMin * 60_000).toISOString() }]));
+  const slot = { ...PX.slot, stations: move(PX.slot.stations), ext: { stations: move(PX.slot.ext.stations) } };
+  mkdirSync(join(data, 'stn', 'map'), { recursive: true }); mkdirSync(join(data, 'stn', 'h'), { recursive: true });
+  writeFileSync(join(data, 'stn', 'map', 'test.1.json'), JSON.stringify(map));
+  if (slotRun) writeFileSync(join(data, 'stn', 'h', `${slotRun}.json`), JSON.stringify(slot));
+  const ix = J(join(data, 'index.json'));
+  writeFileSync(join(data, 'index.json'), JSON.stringify(pointer ? { ...ix, stations: { hour: slotRun, slot: slotRun, map: 'test.1' } } : ix));
+  return { chosen: c };
+};
+const pairsDoc = (e) => { const f = join(e.outDir, glacierSnowpackPairsPath(e.run)); return existsSync(f) ? J(f) : null; };
+const stripPairs = (e) => { const s = structuredClone(e.status); delete s.lines.snowpack?.pairs; delete s.lines.melt.seconds; if (s.lines.weather?.levels) delete s.lines.weather.levels.seconds; if (s.lines.snowpack) delete s.lines.snowpack.seconds; return JSON.stringify([s, e.index]); };
+await block('H', async () => {
+  // a seed with snow (the spin-up of F4 on the real INCA answer), so that the pairs carry depths that are not zero
+  const FXs = J(join(HERE, 'lib', 'fixtures', 'glacier', 'snowpack-seed.json')), ns = FXs.inca.timestamps.length;
+  const oneS = (i) => { const P = FXs.inca.features[i].properties.parameters; return { t: P['2t'].data, p: P.tp.data, g: P.ssrd.data }; };
+  const seedH = JSON.stringify(seedOfForcing({ glaciers: [{ id: 'gl_ch_alpha', z: [2425, 2600, 2775], ela: 2600, F: F_TEST, series: oneS(0), dT: 0 }, { id: 'gl_ch_beta', z: [2525, 2700, 2875], ela: 2700, F: F_TEST, series: oneS(0), dT: -1 }, { id: 'gl_ch_gamma', z: [2625, 2800, 2975], ela: 2800, F: F_TEST, series: oneS(1), dT: 0 }], fromMs: LX_T0 - (ns + 4) * H, hours: ns, cal: { TF: 0.05, SRF: 0.008 }, c: BOARD.c, rules: { precip: 'country', density: 'board' }, info: {} }));
+  const mkH = (name, o) => { const r = mk(name); putState(r, seedH); putStations(r, o); return r; };
+  const COLD = { snowpack: 'shadow' };
+  const rBase = mkH('h-base'), rOn = mkH('h-on'), rOffW = mkH('h-offword'), rBad = mkH('h-bad');
+  const eBase = await runSp(rBase, COLD), eOn = await runSp(rOn, { ...COLD, 'snowpack-pairs': 'on' });
+  const eOffW = await runSp(rOffW, { snowpack: 'off', 'snowpack-pairs': 'unsinn' });
+  const eBad = await runSp(rBad, { ...COLD, 'snowpack-pairs': 'ja' });
+  process.env.GLACIER_SNOWPACK_PAIRS = 'on';
+  const rEnv = mkH('h-env');
+  const eEnv = await runSp(rEnv, COLD);
+  delete process.env.GLACIER_SNOWPACK_PAIRS;
+  add('H1 Schalter der Schattenpaare: ab Werk „off“; nur mit der Schneedecke gelesen — mit `--snowpack=off` stört ein unsinniges Wort nicht und es entsteht kein Ordner `snowpack/`; mit der Schneedecke bricht ein unbekanntes Wort den Lauf ab, bevor etwas geschrieben ist; ohne Schalter kein Paar-Dokument und keine Zeile `pairs` in der Statuszeile',
+    SNOWPACK_PAIRS_DEFAULT === 'off' && same(SNOWPACK_PAIRS_MODES, ['off', 'on']) && snowpackPairsModeOf(undefined) === 'off' && snowpackPairsModeOf('') === 'off' && /Schattenpaare/.test((await throws(() => snowpackPairsModeOf('ja'))) ?? '')
+    && !eOffW.err && !eOffW.hasDir && /Schattenpaare/.test(eBad.err ?? '') && !eBad.wrote && !eBase.err && pairsDoc(eBase) === null && !('pairs' in (eBase.status?.lines.snowpack ?? {})), JSON.stringify({ off: eOffW.err, bad: eBad.err }));
+  const sameFiles = (a, b) => a.files.every((f, i) => f != null && f === b.files[i]);
+  const listed = existsSync(join(eOn.outDir, 'snowpack')) ? readdirSync(join(eOn.outDir, 'snowpack')).sort() : [];
+  add('H2 „on“ ändert an der Schneedecke und an allen anderen Dateien nichts: Schmelz- und Wetterdokumente, Schmelzzustand, Laufdokument und Zustand der Schneedecke sind Byte für Byte die des Laufs ohne Schalter, Zeiger gleich, Statuszeile bis auf `lines.snowpack.pairs` gleich; dazu kommt genau eine Datei `snowpack/pairs/<lauf>.json`; die Umgebungsvariable ergibt dieselbe Datei',
+    !eOn.err && sameFiles(eBase, eOn) && same(eBase.doc, eOn.doc) && eBase.stateRaw === eOn.stateRaw && stripPairs(eBase) === stripPairs(eOn) && same(listed, [`${eOn.run}.json`, 'pairs', 'state.json']) && same(readdirSync(join(eOn.outDir, 'snowpack', 'pairs')), [`${eOn.run}.json`])
+    && same(pairsDoc(eEnv), pairsDoc(eOn)), JSON.stringify({ err: eOn.err, listed }));
+  const d = pairsDoc(eOn), byG = new Map((d?.pairs ?? []).map((p) => [p.g, p])), rows = new Map(eOn.doc.glaciers.map((r) => [r.id, r]));
+  const hand = (gid) => { const r = rows.get(gid), zs = PX.stations[byG.get(gid).s].elev; const at = zs < r.z[0] ? 0 : zs > r.z[2] ? 2 : null; if (at != null) return { v: r.hs[at], at: at ? 'above' : 'below' }; const l = zs <= r.z[1] ? 0 : 1; return { v: r.hs[l] + ((r.hs[l + 1] - r.hs[l]) * (zs - r.z[l])) / (r.z[l + 1] - r.z[l]), at: 'inside' }; };
+  const ent = (s) => PX.slot.stations[s] ?? PX.slot.ext.stations[s];
+  const c = PX.chosen, a = byG.get('gl_ch_alpha'), b = byG.get('gl_ch_beta'), g = byG.get('gl_ch_gamma'), f = byG.get('gl_ch_far');
+  const ageOf = (s) => Math.round((LX_T0 - (Date.parse(ent(s).t) + PX_SHIFT)) / 60_000);
+  add('H3 das Paar-Dokument: besteht den Vertrag; Herkunft je Feld (Modell „computed“, Station „measured“), Vermerk „Vergleich, keine Kopplung“, Kopplung „none“, Regeln und Zuordnung der Läufe genannt; je Gletscher mit Schneestation ein Paar (der ferne ohne Zeile der Schneedecke zählt als `mappedWithoutRow`); der Modellwert ist von Hand zwischen den drei Höhen der Zeile gerechnet — Tirol (2 431 m) zwischen Zunge und Mitte, IMIS (2 304 m) und die Station ohne Wert (2 517 m) unter der Zunge = Wert der Zunge, Südtirol (3 035 m) über der Oberkante = Wert der Oberkante, nie hochgerechnet (Schneedecke aus einem Startzustand mit Schnee, Werte über 5 cm); Neuschnee 24 ≤ 48 ≤ 72 h; der Stationswert ist der der Linie, das Alter aus dem Stempel; die Tiroler Station trägt ihre gelieferte Änderung der Schneehöhe; eine zugeordnete Station ohne Schneehöhe in der Stunde gibt kein Paar mit erfundenem Wert, sondern `v: null` mit Grund',
+    d && !snowpackPairsProblems(d, new Set(rows.keys())).length && d.origin === 'comparison' && same(d.origins, { m: 'computed', hn: 'computed', v: 'measured', hsd: 'measured' }) && d.note === GLACIER_SNOWPACK_PAIRS_NOTE && d.coupling === 'none'
+    && d.snowpack.precip === 'country' && d.snowpack.density === 'board' && d.stations.map === 'test.1' && d.stations.slot === LX_RUN && d.atMs === LX_T0 && d.counts.pairs === 4 && d.counts.mappedWithoutRow === 1 && same(d.counts.at, { below: 2, inside: 1, above: 1 }) && a.m > 5 && b.m > 5 && g.m > 5 && rows.get('gl_ch_beta').hs[0] !== rows.get('gl_ch_beta').hs[1] && rows.get('gl_ch_gamma').hs[1] !== rows.get('gl_ch_gamma').hs[2]
+    && a.s === c.tirol && a.at === 'inside' && Math.abs(a.m - hand('gl_ch_alpha').v) <= 0.051 && b.at === 'below' && b.m === rows.get('gl_ch_beta').hs[0] && g.at === 'above' && g.m === rows.get('gl_ch_gamma').hs[2]
+    && [a, b, g, f].every((p) => p.hn[0] <= p.hn[1] && p.hn[1] <= p.hn[2]) && a.v === ent(c.tirol).v.snow && a.age === ageOf(c.tirol) && same(a.hsd, ent(c.tirol).hsd) && b.v === ent(c.imis).v.snow && b.hsd === undefined
+    && f.s === c.missing && f.v === null && f.why === 'no-value' && d.counts.withValue === 3 && same(eOn.status.lines.snowpack.pairs, { pairs: 4, withValue: 3, map: 'test.1', slot: LX_RUN, bytes: Buffer.byteLength(readFileSync(join(eOn.outDir, glacierSnowpackPairsPath(eOn.run)))) }),
+    JSON.stringify({ counts: d?.counts, a, f, p: d ? snowpackPairsProblems(d) : null, st: eOn.status?.lines.snowpack?.pairs }));
+  const ae = (zs) => atElevation([2000, 2500, 3000], [10, 20, 40], zs);
+  add('H3b Höhe der Station (rein): linear im unteren Abschnitt (2 250 m ⇒ 15) und im oberen (2 750 m ⇒ 30), an den drei Höhen genau deren Wert, darunter der Wert der Zunge (1 900 m ⇒ 10, „below“), darüber der der Oberkante (3 100 m ⇒ 40, „above“) — nie hochgerechnet; zwei gleiche Höhen teilen nicht durch null',
+    eq(ae(2250), { v: 15, at: 'inside' }) && eq(ae(2750), { v: 30, at: 'inside' }) && eq(ae(2500), { v: 20, at: 'inside' }) && eq(ae(2000), { v: 10, at: 'inside' }) && eq(ae(3000), { v: 40, at: 'inside' })
+    && eq(ae(1900), { v: 10, at: 'below' }) && eq(ae(3100), { v: 40, at: 'above' }) && Number.isFinite(atElevation([2500, 2500, 3000], [5, 5, 9], 2500).v), JSON.stringify([ae(2250), ae(2750), ae(1900), ae(3100)]));
+  // the time window, with every stamp set: 61 / 60 min before the run hour, 15 / 16 min after it
+  const win = async (name, min) => { const r = mkH(name, { stampAt: LX_T0 - min * 60_000 }); return pairsDoc(await runSp(r, { ...COLD, 'snowpack-pairs': 'on' })); };
+  const w61 = await win('h-61', 61), w60 = await win('h-60', 60), wM15 = await win('h-m15', -15), wM16 = await win('h-m16', -16);
+  const valued = (x) => x?.pairs.filter((p) => p.s !== c.missing) ?? [];
+  add('H4 das Zeitfenster der Station (60 min davor, 15 min danach, `set`): ein Stempel 61 min vor der Laufstunde gilt nicht (`stale`, Alter 61, kein Wert), einer genau 60 min davor gilt (Alter 60), einer 15 min danach gilt (Alter −15), einer 16 min danach nicht (`future`); das Dokument besteht jedes Mal den Vertrag',
+    valued(w61).length === 3 && valued(w61).every((p) => p.why === 'stale' && p.v === null && p.age === 61) && valued(w60).every((p) => p.v != null && p.age === 60 && p.why === undefined)
+    && valued(wM15).every((p) => p.v != null && p.age === -15) && valued(wM16).every((p) => p.why === 'future' && p.v === null && p.age === -16) && [w61, w60, wM15, wM16].every((x) => x && !snowpackPairsProblems(x).length),
+    JSON.stringify([w61, w60, wM15, wM16].map((x) => valued(x).map((p) => [p.why ?? 'v', p.age]))));
+  // inputs missing or unusable: the snowpack stays, no pairs file, the reason in the status line
+  const rNoPtr = mkH('h-noptr', { pointer: false }), rPrev = mkH('h-prev', { slotRun: new Date(LX_T0 - H).toISOString().replace(/[-:T]/g, '').slice(0, 10), stampAt: LX_T0 - 40 * 60_000 }), rNone = mkH('h-none', { slotRun: null }), rNoExt = mkH('h-noext', { withExt: false });
+  const rNoSeed = mk('h-noseed'); putStations(rNoSeed);
+  const eNoSeed = await runSp(rNoSeed, { snowpack: 'shadow', 'snowpack-pairs': 'on' });
+  const eNoPtr = await runSp(rNoPtr, { ...COLD, 'snowpack-pairs': 'on' }), ePrev = await runSp(rPrev, { ...COLD, 'snowpack-pairs': 'on' }), eNone = await runSp(rNone, { ...COLD, 'snowpack-pairs': 'on' }), eNoExt = await runSp(rNoExt, { ...COLD, 'snowpack-pairs': 'on' });
+  const kept = (e) => !e.err && same(e.doc, eBase.doc) && e.stateRaw === eBase.stateRaw && pairsDoc(e) === null && !existsSync(join(e.outDir, 'snowpack', 'pairs'));
+  add('H5 kein stiller Ersatz: ohne Startzustand schreibt die Schneedecke nichts und die Paare auch nicht (Grund: Schneedecke nicht geschrieben); ohne Zeiger auf die Zuordnung, ohne Stationsslot der Laufstunde UND der Stunde davor oder mit einer Zuordnung ohne Abschnitt `ext` entsteht kein Paar-Dokument, die Statuszeile nennt den Grund, die Schneedecke ist Byte für Byte die des Laufs ohne Schalter; fehlt nur der Slot der Laufstunde, nimmt der Lauf den der Stunde davor und nennt ihn',
+    kept(eNoPtr) && /index\.stations\.map/.test(eNoPtr.status.lines.snowpack.pairs?.error ?? '') && kept(eNone) && /kein Stationsslot/.test(eNone.status.lines.snowpack.pairs?.error ?? '') && kept(eNoExt) && /ohne Abschnitt ext/.test(eNoExt.status.lines.snowpack.pairs?.error ?? '')
+    && !eNoSeed.err && !eNoSeed.hasDir && /kein Zustand/.test(eNoSeed.status.lines.snowpack?.error ?? '') && /Schneedecke nicht geschrieben/.test(eNoSeed.status.lines.snowpack?.pairs?.error ?? '') && !eNoSeed.status.lines.snowpack?.pairs?.pairs
+    && !ePrev.err && pairsDoc(ePrev)?.stations.slot === new Date(LX_T0 - H).toISOString().replace(/[-:T]/g, '').slice(0, 10) && pairsDoc(ePrev).counts.withValue === 3,
+    JSON.stringify({ ptr: eNoPtr.status?.lines.snowpack?.pairs, none: eNone.status?.lines.snowpack?.pairs, ext: eNoExt.status?.lines.snowpack?.pairs, prev: pairsDoc(ePrev)?.stations }));
+  // the contract, negative controls
+  const bad = (edit) => { const x = structuredClone(d); edit(x); return snowpackPairsProblems(x, new Set(rows.keys())).length > 0; };
+  const muts = [
+    (x) => { x.origin = 'measured'; }, (x) => { x.origins.m = 'measured'; }, (x) => { x.coupling = 'nudge'; }, (x) => { x.note = 'gemessen'; }, (x) => { x.pairs[0].v = null; }, (x) => { x.pairs[0].age = 75; },
+    (x) => { x.pairs[3].why = undefined; }, (x) => { x.pairs[0].why = 'stale'; }, (x) => { x.pairs.push(structuredClone(x.pairs[0])); x.counts.pairs++; x.counts.withValue++; x.counts.at[x.pairs[0].at]++; }, (x) => { x.pairs[0].hn = [5, 3, 7]; },
+    (x) => { x.pairs[0].at = 'oben'; }, (x) => { x.pairs[0].m = -1; }, (x) => { x.pairs[0].g = 'gl_ch_unknown'; }, (x) => { x.counts.withValue = 4; }, (x) => { x.pairs[0].net = 'imis'; }, (x) => { x.rule.windowMin = [90, 15]; }, (x) => { x.atMs += 60_000; },
+  ];
+  const caught = muts.map(bad);
+  add(`H6 Vertrag der Paare: ${muts.length} Verletzungen, jede gemeldet (Herkunft, Kopplung, Vermerk, Wert ohne Alter bzw. außerhalb des Fensters, fehlender Wert ohne Grund, Grund am Wert, doppeltes Paar, Neuschnee nicht steigend, unbekannte Lage, negativer Modellwert, Gletscher ohne Zeile, Zählung, Netz, Fenster, Laufstunde)`, caught.every(Boolean), JSON.stringify(caught));
+  // publisher and archive
+  const now = Date.UTC(2026, 10, 25, 12), list = { snowpack: ['2026112511.json', 'pairs', 'state.json'], 'snowpack/pairs': ['2026112117.json', '2026112211.json', '2026112511.json'] };
+  const gone = pruneList((p) => list[p] ?? [], GLACIER_POLICIES.melt, now);
+  const pub = join(tmp, 'h-pub'); mkdirSync(join(pub, 'snowpack', 'pairs'), { recursive: true }); writeFileSync(join(pub, 'snowpack', 'pairs', `${eOn.run}.json`), '{}');
+  const okPkg = await throws(() => checkPackage('melt', pub));
+  const arch = join(tmp, 'h-arch'), aOut = join(tmp, 'h-arch-out'), pDir = join(eOn.outDir, 'snowpack', 'pairs');
+  writeFileSync(join(pDir, '2026101100.json'), '{"kind":"glacier/snowpack-pairs"}');
+  const a1 = archivePairs({ pairsDir: pDir, archiveDir: arch, outDir: aOut });
+  const day = `${eOn.run.slice(0, 4)}-${eOn.run.slice(4, 6)}-${eOn.run.slice(6, 8)}`, gz = join(aOut, day, `pairs-${eOn.run}.json.gz`);
+  const back = existsSync(gz) ? gunzipSync(readFileSync(gz)) : null;
+  mkdirSync(join(arch, day), { recursive: true }); writeFileSync(join(arch, day, `pairs-${eOn.run}.json.gz`), 'x');
+  const a2 = archivePairs({ pairsDir: pDir, archiveDir: arch, outDir: join(tmp, 'h-arch-out2') }), a3 = archivePairs({ pairsDir: join(tmp, 'nirgends'), archiveDir: arch, outDir: join(tmp, 'h-arch-out3') });
+  add('H7 Publisher und Archiv (E-GM-21): unter `snowpack/pairs/` gehen Dateien älter als 72 h, jüngere bleiben, der Ordner selbst und der Zustand bleiben; die Linie „melt“ darf dorthin schreiben; das Archiv legt jedes Paar-Dokument, das es noch nicht hält, als `pairs-<lauf>.json.gz` unter dem Tag des Laufs ab — Bytes unverändert —, hält ein vorhandenes, nimmt ein Dokument, das den Vertrag bricht, nicht und nennt es; ohne Ordner legt es nichts ab',
+    same(gone, ['snowpack/pairs/2026112117.json', 'snowpack/pairs/2026112211.json']) && okPkg === null && same(a1.written, [eOn.run]) && same(a1.refused, ['2026101100']) && back?.equals(readFileSync(join(pDir, `${eOn.run}.json`)))
+    && a2.written.length === 0 && a2.held === 1 && a3.dir === false && a3.runs === 0, JSON.stringify({ gone, a1, a2, a3 }));
+});
+
 // --- G: guard ------------------------------------------------------------------------------------------------------------------------------------
 await block('G', async () => {
-  const files = ['glacier/lib/snowpackcore.mjs', 'glacier/snowpack-seed.mjs', '../src/glacier/glacierSnowpackContract.ts'];
+  const files = ['glacier/lib/snowpackcore.mjs', 'glacier/snowpack-seed.mjs', '../src/glacier/glacierSnowpackContract.ts', '../src/glacier/glacierSnowpackPairsContract.ts', 'glacier/make-snowpack-pairs-fixture.mjs'];
   const pat = /pointForecast|src\/point\//;
   add('G1 buscosun Fusion bleibt ungelesen und unberührt: Kern, Einschwing-Werkzeug und Vertrag der Schneedecke importieren nichts aus `src/pointForecast` oder `src/point`; Gegenprobe: dasselbe Muster trifft den Schmelzlauf, der die Antworten holt',
     files.every((f) => !pat.test(readFileSync(join(HERE, f), 'utf8'))) && pat.test(readFileSync(join(HERE, 'glacier', 'melt.mjs'), 'utf8')));

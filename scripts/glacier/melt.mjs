@@ -55,6 +55,16 @@
  * `GLACIER_MELT_STATE_PEND_H` hours; the next run advances it to its own hour with the melt core, whatever the distance, and the document says so
  * (`state.mode`, `state.replayedH`; `state.ageH` = hours beyond the stored forcing). A file without forcing is judged by the old rule; `ahead` reads a
  * file with forcing as a plain state of that age.
+ *
+ * Phase GM (GM-4, E-GM-20/22; audit §3h): two more PRODUCER SWITCHES, both off by default.
+ *  - `--snowpack-pairs=off|on` (`GLACIER_SNOWPACK_PAIRS`; default `SNOWPACK_PAIRS_DEFAULT` of `lib/snowpackcore.mjs`, `off`; read only with the snowpack
+ *    on): `on` writes `snowpack/pairs/<run>.json` — per glacier with an assigned snow station the snowpack at the station elevation next to the station's
+ *    measurement at the run hour (contract `src/glacier/glacierSnowpackPairsContract.ts`). A comparison: no value of the snowpack changes. Inputs are the
+ *    station mapping named in `index.stations.map` and the station hour file of the run hour (or the hour before) in the read view; when one is missing or
+ *    unusable the pairs file is not written and the status line names the reason; the snowpack is not touched by it.
+ *  - `--sat-nudge=every|once` (`GLACIER_SAT_NUDGE`; default `SAT_NUDGE_DEFAULT` of `lib/meltstate.mjs`, `every`): `every` (the fall back) = a season row
+ *    nudges the melt state in every run while it is at most 20 days old, every file as before. `once` = a row nudges a carried state once; `melt/state.json`
+ *    names per glacier the date of the row it took (`sat`), the document counts applied and held scenes (`state.sat`). The snowpack never takes the nudge.
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, copyFileSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
@@ -70,7 +80,7 @@ import {
   GLACIER_MELT_DAYS, GLACIER_MELT_HOURS, GLACIER_MELT_SCENARIOS, GLACIER_MELT_RHO, GLACIER_MELT_REF_DAILY_MM, GLACIER_MELT_PER_DAY_MAX,
   glacierMeltRunPath, GLACIER_MELT_STATE_PATH, GLACIER_MELT_STATE_PEND_H, meltIndexOf, meltProblems, meltStateProblems, meltLeadDoc,
 } from '../../src/glacier/glacierMeltContract.ts';
-import { meltStateModeOf, meltStateVerdict, pendOfForcing, forcingOfPend, stateRowOf, stateOfRow } from './lib/meltstate.mjs';
+import { meltStateModeOf, meltStateVerdict, pendOfForcing, forcingOfPend, stateRowOf, stateOfRow, satNudgeModeOf, satRowDue } from './lib/meltstate.mjs';
 import { MELT, bandsOf, emptyState, simulate, cosZenith, clearSky, cloudFactor, scenarioPaths, quantile } from './lib/meltcore.mjs';
 import {
   GLACIER_WEATHER_DAYS, GLACIER_WEATHER_HOURS, GLACIER_WEATHER_RUN_RE, GLACIER_WEATHER_PHASE_PATH, glacierWeatherRunPath, glacierWeatherHourlyPath, weatherProblems,
@@ -79,7 +89,9 @@ import {
 import { weatherSeriesOf, weatherOfGlacier, weatherHead, weatherPhaseOf, weatherHeightsOf, phaseRunOf, phaseDocWith, WEATHER_PHASE_RULE, WEATHER_SPREAD_RULE, WEATHER_LEVELS_RULE, solidFraction, shareAtElevation, tempAtElevation } from './lib/weathercore.mjs';
 import { snowPrecipOf, precipRunOf, meltPrecipProblems, snowSwitchesOf, snowCoreSetup } from './lib/snowcal.mjs';
 import { SNOW, SNOW_ORIGIN, SNOW_SOURCES, newSnowDensitySpan } from './lib/snowcore.mjs';
-import { snowpackModeOf, snowpackStartOf, driveOf, bareAlbedo, levelsOfEntry, advanceEntry, normalizeLevel, snowpackOfGlacier, placeLevels, stateRefusal } from './lib/snowpackcore.mjs';
+import { snowpackModeOf, snowpackStartOf, driveOf, bareAlbedo, levelsOfEntry, advanceEntry, normalizeLevel, snowpackOfGlacier, placeLevels, stateRefusal, snowpackPairsModeOf, pairsOf } from './lib/snowpackcore.mjs';
+import { GLACIER_SNOWPACK_PAIRS_WINDOW_MIN, GLACIER_SNOWPACK_PAIRS_NOTE, glacierSnowpackPairsPath, snowpackPairsProblems } from '../../src/glacier/glacierSnowpackPairsContract.ts';
+import { glacierStnHourPath, glacierStnMapPath } from '../../src/glacier/glacierStationContract.ts';
 import {
   GLACIER_SNOWPACK_DAYS, GLACIER_SNOWPACK_WINDOWS, GLACIER_SNOWPACK_HEIGHTS, GLACIER_SNOWPACK_PEND_H, GLACIER_SNOWPACK_NOTE, GLACIER_SNOWPACK_STATE_PATH, glacierSnowpackRunPath,
   snowpackProblems, snowpackStateProblems,
@@ -324,6 +336,10 @@ export async function main(opts) {
   const spOn = snowpackModeOf(opts.snowpack ?? process.env.GLACIER_SNOWPACK) === 'shadow';
   const spStart = spOn ? snowpackStartOf(opts['snowpack-start'] ?? process.env.GLACIER_SNOWPACK_START) : null;
   const spDensity = spOn ? snowSwitchesOf({ precip: precipRule, density: opts.density ?? process.env.GLACIER_SNOW_DENSITY }).density : null;
+  // GM-4 (E-GM-20): the shadow pairs — read only with the snowpack on; an unknown word stops the run here
+  const spPairs = spOn ? snowpackPairsModeOf(opts['snowpack-pairs'] ?? process.env.GLACIER_SNOWPACK_PAIRS) === 'on' : false;
+  // GM-4 (E-GM-22): how often a satellite scene nudges the melt state; an unknown word stops the run here
+  const satMode = satNudgeModeOf(opts['sat-nudge'] ?? process.env.GLACIER_SAT_NUDGE);
   // calibration: the parameters and whether Gate C released the unit
   const here = dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
   const cal = J(resolve(opts.calibration ?? join(here, 'melt-calibration.json')));
@@ -383,6 +399,9 @@ export async function main(opts) {
   const pendIn = new Map();   // forcing owner → the stored forcing, read once
   const pendOf = (id) => { const owner = stateIn.pend.o?.[id] ?? id; if (!pendIn.has(owner)) pendIn.set(owner, forcingOfPend(stateIn.pend.f?.[owner])); return pendIn.get(owner); };
   const stStat = { replayed: 0, held: 0 };
+  // GM-4 (E-GM-22): with `once`, the row date each carried glacier state took last; `satNext` goes into the state file
+  const satSeen = satMode === 'once' && carry ? (stateIn.sat ?? {}) : {};
+  const satNext = {}, satStat = { applied: 0, held: 0 };
   const pendOut = { h: GLACIER_MELT_STATE_PEND_H, f: {}, o: {} };
   // GM-3c: the snowpack step of this run (`null` with the switch off). `error` = why the step writes nothing; the melt run goes on either way.
   let sp = null;
@@ -469,11 +488,18 @@ export async function main(opts) {
       if (fo && fo.t.length >= sv.replayH) { st = stateOfRow(stateRowOf(meltOfForcing({ bands, ela, forcing: fo, params: paramsOf(g), state: st, hours: sv.replayH }).state)); stStat.replayed++; }
       else stStat.held++;
     }
+    const carriedHere = !!st;
     st ??= emptyState(bands.zb.length);
     const sr = satRows.get(g.id);
+    // GM-4 (E-GM-22): the scene this glacier's carried state took last (only `once` keeps a record; a state that was not carried has none)
+    const seen = carriedHere ? satSeen[g.id] ?? null : null;
+    if (seen != null) satNext[g.id] = seen;
     if (sr && g.area?.km2 != null && glacierSatClass(g)) {
       const ageDays = (t0Ms - Date.parse(`${sr[0]}T12:00:00Z`)) / 86_400_000;
-      if (ageDays >= 0 && ageDays <= MELT_SAT_MAX_AGE_DAYS) nudged += nudgeState(st, bands, sr) > 0 ? 1 : 0;
+      if (ageDays >= 0 && ageDays <= MELT_SAT_MAX_AGE_DAYS) {
+        if (satRowDue(satMode, sr[0], seen)) { nudged += nudgeState(st, bands, sr) > 0 ? 1 : 0; satStat.applied++; satNext[g.id] = sr[0]; }
+        else satStat.held++;
+      }
     }
     return { st, ela };
   };
@@ -571,7 +597,7 @@ export async function main(opts) {
     gate: { unit, reason: cal.gate?.reason ?? 'ohne Angabe' },
     scenarios: { k: GLACIER_MELT_SCENARIOS, rho: GLACIER_MELT_RHO, origin: 'set', sums: 'scenarios' },
     ref: { dailyMm: GLACIER_MELT_REF_DAILY_MM, origin: 'set' },
-    state: { source: carry ? 'carried' : 'cold', ageH: carry ? stateAgeH : null, nudged, ...(stMode === 'run-hour' ? { mode: stMode, replayedH: carry ? sv.replayH : 0, held: stStat.held } : {}) },
+    state: { source: carry ? 'carried' : 'cold', ageH: carry ? stateAgeH : null, nudged, ...(stMode === 'run-hour' ? { mode: stMode, replayedH: carry ? sv.replayH : 0, held: stStat.held } : {}), ...(satMode === 'once' ? { sat: { rule: 'once', applied: satStat.applied, held: satStat.held } } : {}) },
     build, glaciers: rows, skipped,
   };
   const rowIds = new Set(rows.map((r) => r.id));
@@ -588,6 +614,12 @@ export async function main(opts) {
   const stateOut = stMode === 'run-hour'
     ? { schema: 1, kind: 'glacier/melt-state', atMs: t0Ms, g: nextState, pend: pendOut }
     : { schema: 1, kind: 'glacier/melt-state', atMs: t0Ms + MELT_STATE_ADVANCE_H * H, g: nextState };
+  // GM-4 (E-GM-22): the scene record travels with the states it belongs to (a glacier without a row in this run has no state and no record)
+  if (satMode === 'once') {
+    stateOut.sat = Object.fromEntries(Object.entries(satNext).filter(([id]) => nextState[id]));
+    const pr = meltStateProblems(stateOut);
+    if (pr.length) throw new Error(`Zustand verletzt den Vertrag: ${pr.slice(0, 5).join('; ')}`);
+  }
   if (stMode === 'run-hour') { const pr = meltStateProblems(stateOut); if (pr.length) throw new Error(`Zustand verletzt den Vertrag: ${pr.slice(0, 5).join('; ')}`); }
   writeFileSync(join(outDir, GLACIER_MELT_STATE_PATH), JSON.stringify(stateOut));
   // Phase GW: the weather documents of this run (after the melt document, which is complete at this point)
@@ -624,8 +656,18 @@ export async function main(opts) {
     } catch (e) { snowpack = { error: String(e?.message ?? e).split('\n')[0] }; }
     if (snowpack.error) log(`Schneedecke nicht geschrieben: ${snowpack.error}`);
   }
+  // GM-4 (E-GM-20): the shadow pairs of this run — only with their switch and a written snowpack; a failure writes no pairs file and names the reason
+  let pairs = null;
+  if (spPairs) {
+    try {
+      if (snowpack?.error) throw new Error('Schneedecke nicht geschrieben');
+      pairs = writeSnowpackPairs({ outDir, dataDir, index, run, runAt: doc.runAt, t0Ms, rows: sp.rows, rules: sp.rules });
+    } catch (e) { pairs = { error: String(e?.message ?? e).split('\n')[0] }; }
+    if (pairs.error) log(`Schattenpaare nicht geschrieben: ${pairs.error}`);
+  }
   const spStatus = snowpack && (snowpack.error ? { at: doc.runAt, mode: 'shadow', error: snowpack.error }
     : { at: doc.runAt, mode: 'shadow', glaciers: snowpack.glaciers, skipped: snowpack.skipped, coverage: snowpack.coverage, precip: sp.rules.precip, density: sp.rules.density, state: snowpack.state, carried: snowpack.carried, dropped: snowpack.dropped, bytes: snowpack.bytes, stateBytes: snowpack.stateBytes, seconds: snowpack.seconds });
+  if (spStatus && pairs) spStatus.pairs = pairs.error ? { error: pairs.error } : { pairs: pairs.pairs, withValue: pairs.withValue, map: pairs.map, slot: pairs.slot, bytes: pairs.bytes };
   mkdirSync(patchDir, { recursive: true });
   writeFileSync(join(patchDir, 'index-patch.json'), JSON.stringify({
     melt: { run, runAt: doc.runAt, engine: { name: engine.name, version: engine.version }, cube: cubeRuns, unit, build },
@@ -633,7 +675,7 @@ export async function main(opts) {
     ...(snowpack && !snowpack.error ? { snowpack: snowpack.pointer } : {}),
   }));
   writeFileSync(join(patchDir, 'status-patch.json'), JSON.stringify({ lines: {
-    melt: { at: doc.runAt, glaciers: rows.length, skipped: skipped.length, unit, seconds: Math.round((Date.now() - tStart) / 1000), ...(precip ? { precip: precipRule } : {}), ...(stMode === 'run-hour' ? { state: stMode } : {}) },
+    melt: { at: doc.runAt, glaciers: rows.length, skipped: skipped.length, unit, seconds: Math.round((Date.now() - tStart) / 1000), ...(precip ? { precip: precipRule } : {}), ...(stMode === 'run-hour' ? { state: stMode } : {}), ...(satMode === 'once' ? { sat: satMode } : {}) },
     ...(weather ? { weather: weather.error ? { at: doc.runAt, error: weather.error } : { at: doc.runAt, glaciers: weather.glaciers, skipped: weather.skipped, files: weather.files, bytes: weather.bytes, phase: weather.phase, ...(weather.levels ? { levels: weather.levels } : {}) } } : {}),
     ...(spStatus ? { snowpack: spStatus } : {}),
   } }));
@@ -687,6 +729,34 @@ export function writeSnowpack({ outDir, run, runAt, t0Ms, engine, cube, build, r
 }
 
 /**
+ * Phase GM (GM-4, E-GM-20) — writes `snowpack/pairs/<run>.json`: the snowpack rows of this run at the elevation of each glacier's snow station next to the
+ * station's measurement at the run hour. Inputs from the read view: the mapping named in `index.stations.map` and the station hour file of the run hour —
+ * or, when the station line has not written that one yet, of the hour before (the age of every value is checked against the run hour either way).
+ * Throws with the reason when an input is missing or the document breaks its contract; nothing is written then.
+ */
+export function writeSnowpackPairs({ outDir, dataDir, index, run, runAt, t0Ms, rows, rules }) {
+  const mapName = index?.stations?.map;
+  if (!mapName) throw new Error('Zeiger ohne Stationszuordnung (index.stations.map)');
+  const mapFile = join(dataDir, glacierStnMapPath(mapName));
+  if (!existsSync(mapFile)) throw new Error(`Stationszuordnung ${mapName} fehlt in der Lesesicht`);
+  const slot = [run, stamp(t0Ms - H)].find((s) => existsSync(join(dataDir, glacierStnHourPath(s))));
+  if (!slot) throw new Error(`kein Stationsslot der Laufstunde oder der Stunde davor (${run})`);
+  const { pairs, counts } = pairsOf({ rows, map: J(mapFile), slot: J(join(dataDir, glacierStnHourPath(slot))), t0Ms, windowMin: GLACIER_SNOWPACK_PAIRS_WINDOW_MIN });
+  const doc = {
+    schema: 1, kind: 'glacier/snowpack-pairs', run, runAt, atMs: t0Ms, origin: 'comparison', origins: { m: 'computed', hn: 'computed', v: 'measured', hsd: 'measured' },
+    note: GLACIER_SNOWPACK_PAIRS_NOTE, coupling: 'none', snowpack: { run, precip: rules.precip, density: rules.density },
+    stations: { map: mapName, slot, source: 'glacier/v1/stn' }, rule: { elevation: 'linear-between-levels-clamped', windowMin: GLACIER_SNOWPACK_PAIRS_WINDOW_MIN, origin: 'set' },
+    counts, pairs,
+  };
+  const problems = snowpackPairsProblems(doc, new Set(rows.map((r) => r.id)));
+  if (problems.length) throw new Error(`Schattenpaare verletzen den Vertrag: ${problems.slice(0, 5).join('; ')}`);
+  const raw = JSON.stringify(doc);
+  mkdirSync(join(outDir, dirname(glacierSnowpackPairsPath(run))), { recursive: true });
+  writeFileSync(join(outDir, glacierSnowpackPairsPath(run)), raw);
+  return { pairs: counts.pairs, withValue: counts.withValue, map: mapName, slot, bytes: Buffer.byteLength(raw) };
+}
+
+/**
  * Phase GW — writes `melt/wx/<run>.json` and one hourly chunk per region into the output tree, next to the weather runs of the last 72 h. Throws with a reason
  * when there is nothing true to write (no stand of buscosun Fusion in the answer, no row, a contract violation); the caller keeps the melt run.
  */
@@ -730,6 +800,6 @@ export function writeWeather({ outDir, dataDir, run, runAt, nowMs, version, cube
 
 if (process.argv[1] && /(^|[\\/])melt\.mjs$/.test(process.argv[1])) {
   if (!args.data || !args.cube || !args.out) { console.error('--data=<v1> --cube=<buscosun-data> --out=<Ordner> fehlen'); process.exit(2); }
-  main({ data: args.data, cube: args.cube, out: args.out, patch: args.patch, 'archive-out': args['archive-out'], calibration: args.calibration, now: args.now, only: args.only, limit: args.limit, classes: args.classes, always: !!args.always, weather: args.weather, phase: args.phase, heights: args.heights, precip: args.precip, snowcal: args.snowcal, snowpack: args.snowpack, 'snowpack-start': args['snowpack-start'], density: args.density, 'melt-state': args['melt-state'], log: (m) => console.error(m) })
+  main({ data: args.data, cube: args.cube, out: args.out, patch: args.patch, 'archive-out': args['archive-out'], calibration: args.calibration, now: args.now, only: args.only, limit: args.limit, classes: args.classes, always: !!args.always, weather: args.weather, phase: args.phase, heights: args.heights, precip: args.precip, snowcal: args.snowcal, snowpack: args.snowpack, 'snowpack-start': args['snowpack-start'], density: args.density, 'melt-state': args['melt-state'], 'snowpack-pairs': args['snowpack-pairs'], 'sat-nudge': args['sat-nudge'], log: (m) => console.error(m) })
     .then((r) => console.log(JSON.stringify(r))).catch((e) => { console.error(e.message ?? e); process.exit(1); });
 }

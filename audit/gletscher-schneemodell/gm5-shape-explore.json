@@ -1,0 +1,32 @@
+{
+ "kind": "gm5/shape-explore",
+ "exploratory": true,
+ "writtenAfter": "first scored run of gm5-distribution.mjs",
+ "glacierWinters": 319,
+ "topBand": {
+  "againstLineOfTwoBelow": {
+   "median": -0.020689970859616214,
+   "p10": -0.24458247452203657,
+   "p90": 0.09371011020417624
+  },
+  "relativeToBandBelow": {
+   "median": -0.12568306010928965,
+   "p10": -0.3339268051434224,
+   "p90": 0.0182567018387914
+  },
+  "areaShareMedian": 0.003526093088857546
+ },
+ "tongueBand": {
+  "againstLineOfTwoAbove": {
+   "median": 0.04227840088472612,
+   "p10": -0.0756856667839912,
+   "p90": 0.19521065952741265
+  },
+  "relativeToBandAbove": {
+   "median": -0.06275720164609055,
+   "p10": -0.290529255690546,
+   "p90": 0.11828163861378745
+  },
+  "areaShareMedian": 0.005429235346493801
+ }
+}

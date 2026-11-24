@@ -7,6 +7,8 @@
 #
 # Alle 6 h: die Leitgletscher-Zeilen jedes Schmelzlaufs (`melt-<lauf>.json.gz`) — die Läufe selbst bleiben im Daten-Repo nur 72 h (Gate E: Modell
 # gegen Messung im Sommer 2027 braucht die Reihe). Nur Hinzufügen, nie --force, eine Datei mit anderem Inhalt unter demselben Namen bricht ab.
+# Dazu (Phase GM, GM-4, E-GM-21) die Schattenpaare der Schneedecke (`pairs-<lauf>.json.gz`, aus `snowpack/pairs/`, dort ebenfalls nur 72 h); ohne
+# den Ordner im Daten-Repo (Schalter aus) wird nichts davon abgelegt. Ein älteres Skript ohne `--pairs` überliest die Angabe.
 #
 # Leerlauf: fehlt das Skript auf dem Zweig oder die Linie im Daten-Repo, endet der Job grün mit dem Grund.
 # ============================================================================
@@ -77,7 +79,7 @@ jobs:
         run: |
           git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-data.git data
           cd data
-          git sparse-checkout set --no-cone /glacier/v1/index.json /glacier/v1/melt/
+          git sparse-checkout set --no-cone /glacier/v1/index.json /glacier/v1/melt/ /glacier/v1/snowpack/pairs/
           git checkout --quiet
           if [ ! -f glacier/v1/index.json ]; then
             echo "glacier/v1/index.json fehlt im Daten-Repo — die Linie ist noch nicht eingespielt, Ende ohne Fehler."
@@ -92,7 +94,7 @@ jobs:
           echo "build=$BUILD" >> "$GITHUB_OUTPUT"
           echo "ready=1" >> "$GITHUB_OUTPUT"
 
-      - name: Archive (lead rows of every melt run)
+      - name: Archive (lead rows of every melt run, shadow pairs of the snowpack)
         id: arch
         if: steps.app.outputs.ready == '1' && steps.data.outputs.ready == '1'
         run: |
@@ -100,7 +102,7 @@ jobs:
           cd app
           node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/glacier-archive.mjs \
             --melt=../data/glacier/v1/melt --catalog=../static-branch/glacier/v1/static/${{ steps.data.outputs.build }}/catalog.json \
-            --archive=../archiv/glacier/v1 --out=../archive-out | tee ../archive.log
+            --pairs=../data/glacier/v1/snowpack/pairs --archive=../archiv/glacier/v1 --out=../archive-out | tee ../archive.log
           echo "days=$(test -d ../archive-out && ls ../archive-out | wc -l)" >> "$GITHUB_OUTPUT"
 
       - name: Commit and push (append-only, with retry)

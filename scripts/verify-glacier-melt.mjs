@@ -9,6 +9,8 @@
  * `country` = the factor of the region and no gradient (state by hand), the document names it, a table that cannot be used stops the run.
  * Block I (phase GM, GM-3d, V-GM-32): the state switch `--melt-state=ahead|run-hour` — no word = `ahead` and the bytes as before; `run-hour` = the state
  * at the run hour with its forcing, advanced by the next run whatever the distance (3, 6, 15, 24 h by hand; melt against the core), both transitions.
+ * Block J (phase GM, GM-4, E-GM-22, M-18): the satellite switch `--sat-nudge=every|once` — no word = `every` and the bytes as before; `once` = a scene
+ * nudges a carried state once (the state names the date of the row), a younger scene nudges again, a state that was not carried takes it again.
  *
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-melt.mjs
  */
@@ -25,7 +27,7 @@ import {
 import { fusionStageNote, fusionStage, FUSION_CURRENT } from '../src/pointForecast/fusion/fusionRelease.ts';
 import { meltProblems, meltStateProblems, meltIndexOf, GLACIER_MELT_REF_DAILY_MM, GLACIER_MELT_SCENARIOS, GLACIER_MELT_RHO, GLACIER_MELT_STATE_PEND_H } from '../src/glacier/glacierMeltContract.ts';
 import { meltPrecipProblems } from './glacier/lib/snowcal.mjs';
-import { MELT_STATE_MODES, MELT_STATE_DEFAULT, meltStateModeOf, meltStateVerdict, pendOfForcing, forcingOfPend } from './glacier/lib/meltstate.mjs';
+import { MELT_STATE_MODES, MELT_STATE_DEFAULT, meltStateModeOf, meltStateVerdict, pendOfForcing, forcingOfPend, SAT_NUDGE_MODES, SAT_NUDGE_DEFAULT, satNudgeModeOf, satRowDue } from './glacier/lib/meltstate.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const H = 3_600_000;
@@ -505,6 +507,56 @@ try {
     add('I13 Vertrag der Zustandsdatei mit Antrieb: elf Verletzungen, jede gemeldet (Stundenzahl, Länge, Nicht-Zahl, negative Strahlung, negativer Niederschlag, fehlende Reihe, fehlende Bezugshöhe, unbekannter oder fehlender Antriebsgeber); die Datei selbst und eine Datei der alten Form haben keine',
       caught.length === 11 && caught.every((k) => k > 0) && meltStateProblems(handFile).length === 0 && meltStateProblems({ schema: 1, kind: 'glacier/melt-state', atMs: 1, g: g0 }).length === 0, JSON.stringify(caught));
   }
+  // --- J: phase GM (GM-4, E-GM-22, M-18) — the satellite nudge once per scene (`--sat-nudge=once`); `every` = as always --------------------------
+  try {
+    // `same` of block I compares RUN RESULTS (docRaw, stateRaw …); plain values need their own comparison
+    const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+    const putSeason = (tr, date) => {
+      const ix = JSON.parse(readFileSync(join(tr.data, 'index.json'), 'utf8'));
+      writeFileSync(join(tr.data, 'index.json'), JSON.stringify({ ...ix, sat: { updatedAt: '2026-10-09T00:00:00Z', newest: {}, seasons: { 2026: { 'ch-test': '20261009T0000Z' } } } }));
+      mkdirSync(join(tr.data, 'season', '2026', 'ch-test'), { recursive: true });
+      writeFileSync(join(tr.data, 'season', '2026', 'ch-test', '20261009T0000Z.json'), JSON.stringify({ schema: 1, kind: 'glacier/season', year: 2026, region: 'ch-test', stand: '20261009T0000Z', cols: [], glaciers: { gl_ch_alpha: [[date, 0.95, 0.5, 1, 2600, 0.4, null, null, 0]] } }));
+    };
+    const dueOk = satRowDue('every', '2026-09-28', '2026-09-28') && satRowDue('once', '2026-09-28', null) && !satRowDue('once', '2026-09-28', '2026-09-28') && !satRowDue('once', '2026-09-27', '2026-09-28') && satRowDue('once', '2026-09-29', '2026-09-28');
+    add('J1 Schalter des Satelliten-Abgleichs (rein): ab Werk „every“, erlaubt „every“ und „once“, ein unbekanntes Wort wirft; eine Zeile greift unter „every“ immer, unter „once“ nur ohne Vermerk oder wenn sie jünger ist als die vermerkte',
+      SAT_NUDGE_DEFAULT === 'every' && SAT_NUDGE_MODES.join() === 'every,once' && satNudgeModeOf(undefined) === 'every' && satNudgeModeOf('') === 'every' && satNudgeModeOf('once') === 'once'
+      && (() => { try { satNudgeModeOf('einmal'); return false; } catch (e) { return /--sat-nudge=einmal: unbekannt/.test(e.message); } })() && dueOk);
+    // byte identity: with a scene in the store, no word = `every` in both state modes; `once` changes only its own fields in the first run
+    const j = {};
+    for (const [k, extra] of [['def', {}], ['every', { 'sat-nudge': 'every' }], ['once', { 'sat-nudge': 'once' }], ['defRh', { 'melt-state': 'run-hour' }], ['everyRh', { 'melt-state': 'run-hour', 'sat-nudge': 'every' }], ['onceRh', { 'melt-state': 'run-hour', 'sat-nudge': 'once' }], ['word', { 'sat-nudge': 'einmal' }]]) {
+      const f = fresh(`sat-${k}`); putSeason(f.tr, '2026-09-28'); j[k] = { ...(await runSt(f.root, f.tr, 0, extra)), tr: f.tr, root: f.root };
+    }
+    process.env.GLACIER_SAT_NUDGE = 'once';
+    { const f = fresh('sat-env'); putSeason(f.tr, '2026-09-28'); j.env = await runSt(f.root, f.tr, 0); }
+    delete process.env.GLACIER_SAT_NUDGE;
+    const without = (e) => { const d = JSON.parse(e.docRaw); delete d.state.sat; const s = JSON.parse(e.stateRaw); delete s.sat; const st = structuredClone(e.status); delete st.lines.melt.sat; return JSON.stringify([d, s, e.index, st]); };
+    add('J2 ohne Angabe dieselben Bytes wie „every“ (Dokument, Zustand, Zeiger, Statuszeile), in beiden Zustandsformen; „once“ ändert im ersten Lauf nur die eigenen Felder (Dokument `state.sat`, Zustand `sat`, Statuszeile `sat`) — der Abgleich greift dort wie bisher; die Umgebungsvariable wirkt wie der Schalter; ein unbekanntes Wort bricht ab und schreibt nichts',
+      !j.def.err && same(j.def, j.every) && same(j.defRh, j.everyRh) && j.def.file.sat === undefined && !('sat' in j.def.doc.state) && !('sat' in j.def.status.lines.melt) && j.def.doc.state.nudged === 1
+      && without(j.once) === without(j.def) && without(j.onceRh) === without(j.defRh) && eq(j.once.doc.state.sat, { rule: 'once', applied: 1, held: 0 }) && eq(j.once.file.sat, { gl_ch_alpha: '2026-09-28' }) && j.once.status.lines.melt.sat === 'once'
+      && meltStateProblems(j.once.file).length === 0 && meltStateProblems(j.onceRh.file).length === 0 && same(j.env, j.once) && /--sat-nudge=einmal: unbekannt/.test(j.word.err ?? '') && j.word.wrote === false,
+      JSON.stringify({ err: [j.def.err, j.once.err, j.word.err], once: j.once.doc?.state, file: j.once.file?.sat }));
+    // the chain: B 3 h after A (run-hour), the same scene — `every` nudges again, `once` keeps the snow of the 3 hours below the scene's snow line
+    const zbA = hypZb(2400), add3 = sweByHand(2400, 2900, 3);
+    const chain = async (name, mode, { date = '2026-09-28', state = null, atH = 3 } = {}) => { const f = fresh(name); putSeason(f.tr, date); if (state !== false) take(f.tr, state ?? (mode === 'once' ? j.onceRh : j.everyRh)); return runSt(f.root, f.tr, atH, { 'melt-state': 'run-hour', 'sat-nudge': mode }); };
+    const bEvery = await chain('sat-b-every', 'every'), bOnce = await chain('sat-b-once', 'once');
+    const alphaIs = (e, want) => e.state?.gl_ch_alpha?.[0]?.length === 8 && e.state.gl_ch_alpha[0].every((x, i) => Math.abs(x - want[i]) <= 0.051);
+    add('J3 dieselbe Szene im nächsten Lauf (3 h später): „every“ löscht unter ihrer Schneegrenze (2 600 m) den Schnee der 3 Stunden wieder (0) — „once“ lässt ihn liegen (von Hand: Schnee der 3 Stunden), darüber stehen in beiden 250 mm plus der Schnee der 3 Stunden; „once“ zählt die Szene als gehalten (held 1, applied 0) und trägt den Vermerk weiter; der Nachbar ohne Szene ist in beiden Wegen derselbe',
+      !bEvery.err && !bOnce.err && bEvery.doc.state.replayedH === 3 && bOnce.doc.state.replayedH === 3
+      && alphaIs(bEvery, zbA.map((z, i) => (z >= 2600 ? 250 + add3[i] : 0))) && alphaIs(bOnce, zbA.map((z, i) => (z >= 2600 ? 250 : 0) + add3[i]))
+      && bEvery.doc.state.nudged === 1 && bOnce.doc.state.nudged === 0 && eq(bOnce.doc.state.sat, { rule: 'once', applied: 0, held: 1 }) && eq(bOnce.file.sat, { gl_ch_alpha: '2026-09-28' }) && JSON.stringify(bOnce.state.gl_ch_beta) === JSON.stringify(bEvery.state.gl_ch_beta),
+      JSON.stringify({ every: bEvery.state?.gl_ch_alpha?.[0], once: bOnce.state?.gl_ch_alpha?.[0], st: bOnce.doc?.state ?? bOnce.err }));
+    const cNew = await chain('sat-c-new', 'once', { date: '2026-10-05' }), cCold = await chain('sat-c-cold', 'once', { state: false }), cFut = await chain('sat-c-fut', 'once', { atH: -3 });
+    const aheadA = await (async () => { const f = fresh('sat-ahead-a'); putSeason(f.tr, '2026-09-28'); take(f.tr, j.once); return runSt(f.root, f.tr, 6, { 'sat-nudge': 'once' }); })();
+    add('J4 eine JÜNGERE Szene greift wieder und ersetzt den Vermerk; ein Zustand, der nicht übernommen wurde (Kaltstart ohne Datei, und eine Datei mit Vermerk, die in der Zukunft liegt und deshalb verworfen wird), nimmt die Szene erneut (der Vermerk gehört zum Zustand); in der Form „ahead“ trägt der Zustand den Vermerk ebenso (Lauf 6 h später: gehalten)',
+      !cNew.err && cNew.doc.state.nudged === 1 && eq(cNew.doc.state.sat, { rule: 'once', applied: 1, held: 0 }) && eq(cNew.file.sat, { gl_ch_alpha: '2026-10-05' })
+      && !cCold.err && cCold.doc.state.source === 'cold' && eq(cCold.doc.state.sat, { rule: 'once', applied: 1, held: 0 }) && eq(cCold.file.sat, { gl_ch_alpha: '2026-09-28' })
+      && !cFut.err && cFut.doc.state.source === 'cold' && eq(cFut.doc.state.sat, { rule: 'once', applied: 1, held: 0 })
+      && !aheadA.err && aheadA.doc.state.source === 'carried' && eq(aheadA.doc.state.sat, { rule: 'once', applied: 0, held: 1 }) && eq(aheadA.file.sat, { gl_ch_alpha: '2026-09-28' }),
+      JSON.stringify({ nw: cNew.doc?.state ?? cNew.err, cold: cCold.doc?.state ?? cCold.err, ahead: aheadA.doc?.state ?? aheadA.err }));
+    const badSat = [(s) => { s.sat = { gl_ch_alpha: '28.09.2026' }; }, (s) => { s.sat = { gl_ch_nirgends: '2026-09-28' }; }, (s) => { s.sat = ['2026-09-28']; }, (s) => { s.sat = { gl_ch_alpha: 20260928 }; }].map((f) => { const s = structuredClone(j.onceRh.file); f(s); return meltStateProblems(s).length; });
+    add('J5 Vertrag des Vermerks: falsches Datum, Gletscher ohne Zustand, Liste statt Zuordnung, Zahl statt Datum — jede Verletzung gemeldet; eine Datei ohne Vermerk (alte Form) hat keine',
+      badSat.every((k) => k > 0) && meltStateProblems(j.def.file).length === 0, JSON.stringify(badSat));
+  } catch (e) { add('J0 Block J läuft ohne Absturz durch', false, String(e?.stack ?? e).split('\n').slice(0, 3).join(' | ')); }
 } catch (e) { add('I0 Block I läuft ohne Absturz durch', false, String(e?.stack ?? e).split('\n').slice(0, 3).join(' | ')); }
 // protected paths
 {

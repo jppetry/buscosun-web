@@ -3,8 +3,9 @@
 > Stand 23.11.2026: GM-0 (Diagnose, Quellen, M-1), GM-1 (Schneekern, §3a) und GM-2 (drei Höhen im Producer, eigene Schneefallgrenze, §3b) gebaut, committet und seit 23.11. ≈ 15:50 UTC auf `origin/main` (Jans Push, §3e.7), nichts im Daten- oder Archiv-Repo. Der Schalter von GM-2 ist **ein** (E-GM-6, Jan 22.11. „einschalten und committen“, §3b.7); er wirkt mit dem Push von `main`.
 > **GM-3 (Eichung, §3c) gebaut, lokal committet (`d09aecf6`):** Tabelle `scripts/glacier/snow-calibration.json` nach eingefrorener Methode — Niederschlagsfaktor 1,79 (Schweiz) / 2,33 (Österreich) statt 1,289, Urteil **rot** (K-2, K-4: kein belastbarer Höhenverlauf), Neuschneedichte 96 statt 68 kg/m³.
 > **GM-3b (E-GM-7 + E-GM-8, §3d) gebaut 23.11., committet (`d09aecf6`, `1df1a160`) und gepusht, beide Schalter AN (E-GM-12, Jan 23.11. „committe, schalte ein“, §3e):** der Schmelzlauf rechnet ab Werk mit dem Faktor je Land (`country`, ohne Höhenverlauf), der Schneekern mit 96 kg/m³ und der Spanne 65–148 (`board`, zweiter Konstantensatz, noch ohne Leser im Betrieb). Auf `origin/main` seit 23.11. ≈ 15:50 UTC; der erste Schmelzlauf des neuen Producers (`2026112317`, 17:23 UTC) ist grün und rechnet mit `country` (§3e.7). Der Rückfall `--precip=gate-c` schreibt die Bytes wie vor GM-3b und öffnet die Tabelle nicht. E-GM-13 ist bestätigt (Jan 23.11.); E-GM-9 … E-GM-11 warten auf Jan.
-> **GM-3c (§3f) gebaut 23.11., auf `origin/main` (`c4b45c9e`), Schalter auf dem Runner AN seit 23.11. 19:27 UTC (E-GM-18, §3f.8; im Code bleibt die Voreinstellung `off`):** der Schneekern läuft im Schmelzlauf je Gletscher an Zunge, Medianhöhe und Oberkante und schreibt hinter `--snowpack=shadow` das Schattenprodukt `glacier/v1/snowpack/` (Schneehöhe, Wasserwert, Neuschnee; alles „berechnet“) mit einem Zustand, der nicht an der Taktung hängt. Startzustand ab 1.10. aus Analysen mit `snowpack-seed.mjs` (E-GM-14), alle 2 084 Gletscher (E-GM-16), die ungenannte Dichte folgt dem Faktor (E-GM-15), Publisher mit Präfix `snowpack` (E-GM-17). Mit dem Schalter aus sind am lokalen Volllauf 338 von 338 Dateien Byte für Byte gleich. Eingeschaltet über den Workflow `glacier-melt` im Daten-Repo (`GLACIER_SNOWPACK: shadow`, `3a119833`), Startzustand vom 23.11. 17:00 UTC eingespielt (`4ae73e46`); der erste Lauf mit Schalter steht aus (§3f.8).
-> **GM-3d (§3g, V-GM-32) gebaut 23.11. abends, auf `origin/main` (`b7a0e859`), Schalter auf dem Runner AN seit 23.11. 21:13 UTC (E-GM-19, §3g.8; im Code bleibt die Voreinstellung `ahead`):** der Zustand des Schmelzlaufs steht hinter `--melt-state=run-hour` an der Laufstunde und trägt 18 Stunden Antrieb; der nächste Lauf rechnet ihn bis zu seiner Stunde nach, gleich in welchem Abstand. Heute verwirft jeder Lauf, der 3 Stunden nach dem vorigen kommt, den Zustand — die Kachel „Fläche ohne Schneedecke“ springt dann im Mittel um rund 21 Punkte (gemessen). Ohne Schalter 338 von 338 Dateien Byte für Byte gleich. Eingeschaltet über den Workflow `glacier-melt` im Daten-Repo (`GLACIER_MELT_STATE: run-hour`, `3c871488`); der erste Lauf mit dem Schalter steht aus.
+> **GM-3c (§3f) gebaut 23.11., auf `origin/main` (`c4b45c9e`), Schalter auf dem Runner AN seit 23.11. 19:27 UTC (E-GM-18, §3f.8; im Code bleibt die Voreinstellung `off`):** der Schneekern läuft im Schmelzlauf je Gletscher an Zunge, Medianhöhe und Oberkante und schreibt hinter `--snowpack=shadow` das Schattenprodukt `glacier/v1/snowpack/` (Schneehöhe, Wasserwert, Neuschnee; alles „berechnet“) mit einem Zustand, der nicht an der Taktung hängt. Startzustand ab 1.10. aus Analysen mit `snowpack-seed.mjs` (E-GM-14), alle 2 084 Gletscher (E-GM-16), die ungenannte Dichte folgt dem Faktor (E-GM-15), Publisher mit Präfix `snowpack` (E-GM-17). Mit dem Schalter aus sind am lokalen Volllauf 338 von 338 Dateien Byte für Byte gleich. Eingeschaltet über den Workflow `glacier-melt` im Daten-Repo (`GLACIER_SNOWPACK: shadow`, `3a119833`), Startzustand vom 23.11. 17:00 UTC eingespielt (`4ae73e46`); erster Lauf `2026112323` (23.11. 23:23 UTC) grün: 2 084 Gletscher, Vertrag ohne Befund, Werte gleich dem Startzustand, weil dieser keinen Antrieb trägt (sechs Stunden ohne Antrieb an jeder Zeile, §3f.8); der zweite Lauf (Zustand fortgeschrieben?) steht aus.
+> **GM-3d (§3g, V-GM-32) gebaut 23.11. abends, auf `origin/main` (`b7a0e859`), Schalter auf dem Runner AN seit 23.11. 21:13 UTC (E-GM-19, §3g.8; im Code bleibt die Voreinstellung `ahead`):** der Zustand des Schmelzlaufs steht hinter `--melt-state=run-hour` an der Laufstunde und trägt 18 Stunden Antrieb; der nächste Lauf rechnet ihn bis zu seiner Stunde nach, gleich in welchem Abstand. Heute verwirft jeder Lauf, der 3 Stunden nach dem vorigen kommt, den Zustand — die Kachel „Fläche ohne Schneedecke“ springt dann im Mittel um rund 21 Punkte (gemessen). Ohne Schalter 338 von 338 Dateien Byte für Byte gleich. Eingeschaltet über den Workflow `glacier-melt` im Daten-Repo (`GLACIER_MELT_STATE: run-hour`, `3c871488`); erster Lauf `2026112323` wie erwartet (übernommen, Alter 0, neue Form geschrieben, Kachel unverändert 2,3 %; §3g.8), das Nachrechnen zeigt erst der nächste Lauf.
+> **GM-4 (§3h) — Diagnose 23.11. abends, danach GM-4a gebaut, uncommitted, beide Schalter aus:** die Daten tragen heute KEINE Kopplung an Stationen (der Stand in Stationshöhe ist der Faktor, 1,86 × Station; die 24-h-Änderung bei Schneefall 0,76 × Station; Gratstationen verlieren beim Schneefall Schnee; die Abweichung der Änderung überträgt sich nicht auf Nachbarn), und mit dem Antrieb von buscosun Fusion gibt es noch keinen Lauf. Auf Jans Wort (E-GM-20 … E-GM-23) gebaut: Schattenpaare `snowpack/pairs/<lauf>.json` hinter `--snowpack-pairs=on` (Modell in Stationshöhe neben der Station, nichts gekoppelt), ihr Archiv (`glacier-archive.mjs --pairs`, Vorlage nachgezogen) und der Satelliten-Abgleich einmal je Szene im Schmelzlauf hinter `--sat-nudge=once`; kein Übertrag. Ohne Schalter 338 von 338 Dateien Byte für Byte gleich.
 > Ausgangspunkt: `audit/qualitaetspruefung-seewetter-gletscher-2026-11-22.md` (K-2, K-3, M-17, M-18, G-26) und die Recherche vom selben Tag.
 
 ## 1. Auftrag und Jans Entscheidungen
@@ -973,7 +974,7 @@ Die fünf Fragen: (1) Funktionserhalt — Volllauf ohne Schalter 338 von 338 Dat
 | V-GM-33 | Der Gletscher-Faktor verdoppelt die Schneedecke gegenüber Stationen und SNOWGRID (109 gegen 51 cm), und auf dem Eis misst im Winter niemand: die Zahl des Schattenprodukts ist bis zu den Frühjahrssondierungen nicht prüfbar. Mehrwert: eine Aussage, wie weit man der Zahl trauen darf, bevor sie angezeigt wird. Skizze: GM-4 koppelt an die Änderung der Schneehöhe der Stationen; die Sentinel-2-Schneegrenze als ja/nein-Probe an der Zunge; Abnahme in GM-8 | GM-4, GM-8 |
 | V-GM-34 | INCA bringt an Schweizer Gletschern 39 % des Niederschlags des Schweizer Gitters und antwortet am Westrand mit entfernten Zellen. Mehrwert: kein zu trockener Startzustand in der Schweiz. Umgesetzt: das Werkzeug nimmt INCA nur für Österreich und Deutschland. Für die vier deutschen Gletscher ist INCA ungeprüft (Skizze: gegen RADOLAN oder HYRAS vergleichen) | umgesetzt; Deutschland offen |
 | V-GM-35 | Der Schweizer Weg (Tagesgitter) liegt an 129 Stationen 10 cm zu niedrig, über 2 500 m 20 cm. Mehrwert: ein Startzustand ohne Schlagseite. Skizze: die Tagessumme nach dem Stundenverlauf von buscosun Fusion verteilen statt gleichmäßig (wo Wetterläufe vorliegen); Kopplung an die Stationen in GM-4 | GM-4 |
-| V-GM-36 | Zwischen dem Ende des Startzustands und dem ersten Lauf liegen Stunden ohne Antrieb (INCA endet eine Stunde vor jetzt, das Schweizer Gitter bis zu 33 Stunden; aufgefüllt wird nur, wo ein Wetterlauf die Stunde trägt). Sie stehen an jeder Zeile (`gap`). Mehrwert: keine Lücke an der Naht. Skizze: den Startzustand unmittelbar vor dem Einschalten bauen (§119); später kann der Producer die Naht selbst aus den Wetterläufen schließen | §119 |
+| V-GM-36 | Zwischen dem Ende des Startzustands und dem ersten Lauf liegen Stunden ohne Antrieb (INCA endet eine Stunde vor jetzt, das Schweizer Gitter bis zu 33 Stunden; aufgefüllt wird nur, wo ein Wetterlauf die Stunde trägt). Sie stehen an jeder Zeile (`gap`). Mehrwert: keine Lücke an der Naht. Skizze: den Startzustand unmittelbar vor dem Einschalten bauen (§119); später kann der Producer die Naht selbst aus den Wetterläufen schließen. **Nachtrag 24.11. (erster Lauf, §3f.8):** an der Naht 17 → 23 UTC fehlen allen 2 084 Gletschern sechs Stunden (Schweiz Median 1,2 mm, p90 6,5 mm Wasserwert nach der Vorhersage); 108 Schweizer Gletscher tragen schon aus dem Startzustand 24 Stunden ohne Antrieb — der Bericht des Werkzeugs zeigt das nicht, weil er nur p10 / Median / p90 nennt (Skizze: Anzahl und Höchstwert in den Bericht) | §119 |
 | V-GM-37 | Gewicht: Dokument 1,25 MB und Zustand 1,8 MB roh je Lauf (zusammen rund 0,65 MB gepackt), der Zustand wird bei jedem Lauf neu geschrieben. Mehrwert: weniger Wachstum der Historie im Daten-Repo. Skizze: Schichtzeiten relativ zur Laufstunde speichern (rund −0,3 MB), Tageswerte der Vorhersage auf ganze Zentimeter (rund −0,2 MB), frische Schichten ohne nennenswerte Masse zusammenlegen | offen |
 | V-GM-38 | Mit 96 kg/m³ kommt Neuschnee dichter an als die Übergabedichte des Kerns (81 kg/m³): das Neuschnee-Setzungsgesetz (rund 1 % je Stunde) greift nie, frischer Schnee setzt sich nur nach Δsnow. Die Eichung der Dichte (Regel D2) ist mit genau diesem Verhalten gerechnet, die Fenster 48 h und 72 h sind es nicht. Mehrwert: verlässliche „Neuschnee 72 h“. Skizze: in GM-4 gegen die gemessene Änderung der Schneehöhe über 24 / 48 / 72 h (Tirol) prüfen | GM-4 |
 | V-GM-39 | Die CI von `buscosun-web` ruft `verify:glacier-snowpack`, `-snowcal` und `-snowcore` nicht auf (nur `verify:glacier-melt` und andere). Mehrwert: ein Bruch fällt beim Push auf. Skizze: drei Zeilen in `.github/workflows/ci.yml` — eine Workflow-Änderung, Jans Wort | **umgesetzt 23.11. abends (Jan: „mache V-GM-39“), uncommitted:** drei Zeilen im Schritt „Gletscher (Vertrag, Baum, Publisher)“. Beleg: frischer Auscheck von `6949fa17` mit LF-Zeilenenden (nur verfolgte Dateien), über `ci-run.mjs`: `-snowcore` 24/24 (1 s), `-snowcal` 37/37 (4 s), `-snowpack` 31/31 (6 s). **Nachtrag:** gepusht mit `5fb86b4f`, der CI-Lauf dazu (Start 23.11. 19:53 UTC) ist grün — die drei Prüfer laufen auf dem Linux-Runner |
@@ -990,7 +991,7 @@ Jans Wort: „ja starte das“ (Startzustand bauen und einspielen), danach „ic
 | Schritt | Was | Beleg |
 |---|---|---|
 | Commit und Push von `buscosun-web` (Jan) | GM-3c auf `origin/main` | `c4b45c9e`, Arbeitsbaum danach sauber |
-| Startzustand gebaut | `snowpack-seed.mjs`, 23.11. 18:06 UTC, 153 s; Katalog `20261120-1` (derselbe wie im Zeiger des Daten-Repos) | Stand **23.11. 17:00 UTC**, 1 289 Stunden ab 1.10., 2 084 Gletscher (10 ohne Höhen übersprungen), Regeln `country`/`board`, 968 551 Bytes; Stunden ohne Antrieb 0 in allen drei Ländern; Schweiz 35 Stunden aus den Wetterläufen von buscosun Fusion gefüllt (Tagesgitter für 17.11. und 23.11. fehlt); Verschiebung gegen buscosun Fusion aus 32 Wetterläufen, p10 / Median / p90 −2,2 / −0,3 / +1,4 K. Bericht `C:\dev\buscosun-glacier-cache\gm3c-snowpack\seed-2311-report.json` |
+| Startzustand gebaut | `snowpack-seed.mjs`, 23.11. 18:06 UTC, 153 s; Katalog `20261120-1` (derselbe wie im Zeiger des Daten-Repos) | Stand **23.11. 17:00 UTC**, 1 289 Stunden ab 1.10., 2 084 Gletscher (10 ohne Höhen übersprungen), Regeln `country`/`board`, 968 551 Bytes; Stunden ohne Antrieb: 0 an 1 976 Gletschern, **24 an 108 Schweizer Gletschern** (Berichtigung 24.11.: hier stand „0 in allen drei Ländern“ — der Bericht nennt je Land nur p10 / Median / p90, und die sind 0; am eingespielten Zustand nachgezählt, welcher Tag fehlt, ist nicht untersucht); Schweiz 35 Stunden aus den Wetterläufen von buscosun Fusion gefüllt (Tagesgitter für 17.11. und 23.11. fehlt); Verschiebung gegen buscosun Fusion aus 32 Wetterläufen, p10 / Median / p90 −2,2 / −0,3 / +1,4 K. Bericht `C:\dev\buscosun-glacier-cache\gm3c-snowpack\seed-2311-report.json` |
 | Startzustand geprüft | Vertrag und Annahmeregel | `snowpackStateProblems` 0 Befunde; `stateRefusal` für einen Lauf um 20 UTC mit `country`/`board`: keine Ablehnung |
 | Startzustand eingespielt | Publisher `--line=melt` aus dem Ordner mit nur dieser Datei, ohne `--force` | Daten-Repo `4ae73e46`, 23.11. 19:23 UTC, eine Datei `glacier/v1/snowpack/state.json` (968 551 Bytes), Versuch 1. Damit ist der Publisher einmal gegen das echte Repo mit `snowpack/` gelaufen (stand in §3f.6 unter „nicht geprüft“) |
 | Schalter | `GLACIER_SNOWPACK: shadow` unter `jobs.melt.env` in `.github/workflows/glacier-melt.yml` (drei Zeilen: zwei Kommentare, ein Wert) | Daten-Repo `3a119833`, 23.11. 19:27 UTC; nur diese Datei geändert; der erste Versuch wurde abgelehnt, weil `main` inzwischen weitergelaufen war, der zweite setzte auf dem neuen Stand auf (kein `--force`). Auf `main` nachgelesen: Zeile 42 trägt den Wert, `snowpack/state.json` liegt daneben |
@@ -998,11 +999,28 @@ Jans Wort: „ja starte das“ (Startzustand bauen und einspielen), danach „ic
 
 Mindestgegenprobe vor dem Einspielen, am Code gelesen: der Publisher legt Dateien nur dazu und löscht unter `snowpack/` allein Laufdokumente mit Zeitstempel im Namen, die älter als 72 h sind — ein Lauf mit Schalter aus hätte den Zustand liegen lassen. Der Workflow kopiert `glacier/v1` von `main` in die Lesesicht, der Producer findet den Zustand dort unter `snowpack/state.json`.
 
-**Erster Lauf mit Schalter: steht aus.** Erster Blick 23.11. 20:38 UTC: der Job des Crons 20:20 UTC lief mit dem neuen Workflow (Start 20:23 UTC, 51 s, grün) und hat wie erwartet nicht gerechnet — kein neuer Cube-Lauf t2/t3 (t2 weiter `2026112312`), `lines.melt.at` unverändert 17:23 UTC, unter `snowpack/` nur der Startzustand. Belegt ist damit nur, dass der Job mit der neuen Zeile grün endet. Der Schmelzlauf rechnet nur bei einem neuen Cube-Lauf der Stufen t2/t3 und höchstens viermal am Tag; der Cron um 20:20 UTC kann leer ausgehen, der nächste folgt um 23:20 UTC. Die Stunden zwischen 17:00 UTC und der Laufstunde zählt der Lauf als Stunden ohne Antrieb (`state.gaps`, V-GM-36). Zu lesen in `glacier/v1/status.json`, Zeile `lines.snowpack`: `mode: shadow`, `glaciers` um 2 084, `state.source: seed`, `seconds`, `bytes`, `stateBytes` — oder `error` mit Grund.
+**Erster Lauf mit Schalter: `2026112323`, 23.11. 23:23 UTC — gerechnet, kein `error`.** Gelesen 23:37 UTC am Commit `326b1a3c` des Daten-Repos, nur gelesen. Die Vertragsprüfung lief mit dem Code von `dc982141` (aus `git archive`, nicht aus dem Arbeitsbaum, in dem GM-4 gerade ändert). Sonde, Ergebnis und die gelesenen Dateien: `C:\dev\buscosun-glacier-cache\gm3c-snowpack\run-2026112323\` (`check.mjs`, `check.json`, `data\`).
+
+| Was | Wert |
+|---|---|
+| `lines.snowpack` | `mode: shadow`, 2 084 Gletscher, 10 übersprungen (alle `elevations`), Antrieb 957 eigene Antworten / 1 127 Nachbar / 0 Hochrechnung, `precip: country`, `density: board`, 7 s, Dokument 1 271 764 Bytes, Zustand 1 840 739 Bytes |
+| übernommener Zustand | `source: seed`, `since` 1.10., `ageH 6`, `replayedH 0`, `started 0`, `gaps` = 2 084 Gletscher, Höchstwert 30 |
+| Vertrag | `snowpackProblems` 0 Befunde (Katalog = die 2 094 Kennungen des Schmelzdokuments desselben Laufs), `snowpackStateProblems` 0 Befunde |
+| Dateien unter `snowpack/` | `2026112323.json` und `state.json` (Stand 23:00 UTC = Laufstunde, `source: run`, 2 084 Einträge, jeder mit 18 Stunden Antrieb; Dokument und Zustand tragen dieselben Gletscher) |
+| Schneehöhe und Wasserwert gegen den Startzustand | p10 / Median / p90 je Land und Höhe **auf 0,1 gleich dem Bericht des Startzustands** (Medianhöhe: Österreich 87,8 / 115,0 / 152,5 cm, Schweiz 65,0 / 141,9 / 211,8 cm, Deutschland 74,0 / 98,4 / 113,0 cm) |
+| Neuschnee 24 h, Medianhöhe | Österreich 0,2 / 3,6 / 10,0 cm · Schweiz 5,1 / 25,2 / 44,7 cm · Deutschland 0,4 / 3,2 / 6,0 cm (72 h: Österreich 12,2 / 24,1 / 40,9 · Schweiz 13,0 / 59,2 / 85,8) |
+| Vorhersage | 14 Tage je Höhe; Schneehöhe am Ende von Tag 1 gegen jetzt −6,8 / −3,1 / −1,5 cm (Setzung); Neuschnee über 14 Tage in der Medianhöhe 31,6 / 46,0 / 88,1 cm (Erwartungswerte ohne Spanne, V-GM-41) |
+| Schmelzlauf daneben | `lines.melt.seconds` 175 (Lauf 17 UTC: 143), davon 7 für die Schneedecke; 2 094 Gletscher, 0 übersprungen |
+
+Lesart:
+- **Die Werte von 23 UTC sind die des Startzustands von 17 UTC.** Der Startzustand trägt keinen Antrieb (`pend` leer an allen 2 084 Einträgen), der Lauf konnte also nichts nachrechnen: sechs Stunden ohne Schneefall, Setzung und Schmelze. Das steht an jeder Zeile (`gap: 6`, an 108 Schweizer Zeilen `gap: 30`) und war angekündigt (V-GM-36). Wie viel fehlt, aus der Vorhersage des Wetterlaufs 17 UTC für diese sechs Stunden gerechnet (eine Vorhersage, keine Messung; Medianhöhe, Gletscher mit eigenen Antworten): Schweiz (617) Median 1,2 mm, p90 6,5 mm Wasserwert mit Faktor, das ist rund 1 bzw. 7 cm frischer Schnee; Österreich (337) Median 0,1 mm, p90 0,9 mm; Deutschland 0. Klein gegen 142 cm, aber die Masse fehlt der Kette dauerhaft.
+- Ab dem nächsten Lauf trägt der Zustand 18 Stunden Antrieb. Erwartet dort: `source: carried`, `replayedH` = Abstand in Stunden, keine neuen Stunden ohne Antrieb (`gap` bleibt 6 bzw. 30).
+
+Erster Blick 23.11. 20:38 UTC (vor diesem Lauf): der Job des Crons 20:20 UTC lief mit dem neuen Workflow (Start 20:23 UTC, 51 s, grün) und hat wie erwartet nicht gerechnet — kein neuer Cube-Lauf t2/t3 (t2 weiter `2026112312`), `lines.melt.at` unverändert 17:23 UTC, unter `snowpack/` nur der Startzustand. Belegt ist damit nur, dass der Job mit der neuen Zeile grün endet. Der Schmelzlauf rechnet nur bei einem neuen Cube-Lauf der Stufen t2/t3 und höchstens viermal am Tag; der Cron um 20:20 UTC kann leer ausgehen, der nächste folgt um 23:20 UTC. Die Stunden zwischen 17:00 UTC und der Laufstunde zählt der Lauf als Stunden ohne Antrieb (`state.gaps`, V-GM-36). Zu lesen in `glacier/v1/status.json`, Zeile `lines.snowpack`: `mode: shadow`, `glaciers` um 2 084, `state.source: seed`, `seconds`, `bytes`, `stateBytes` — oder `error` mit Grund.
 
 Zurück: die Zeile `GLACIER_SNOWPACK` im Workflow entfernen oder auf `off` setzen. Der Lauf schreibt dann nichts mehr unter `snowpack/`, die Laufdokumente verschwinden nach 72 h, der Zustand bleibt liegen und wird nicht gelesen.
 
-Nicht geprüft: der Lauf auf dem Runner selbst (steht aus); ob der Zustand nach mehreren Läufen in Folge richtig fortgeschrieben wird (lokal einmal mit +6 h belegt, §3f.5).
+Nicht geprüft: ob der Zustand auf dem Runner nach mehreren Läufen in Folge richtig fortgeschrieben wird (lokal einmal mit +6 h belegt, §3f.5) — das zeigt der zweite Lauf; das Protokoll des Jobs selbst (gelesen sind Statuszeile, Zeiger und Dateien); welche 24 Stunden den 108 Schweizer Gletschern im Startzustand fehlen.
 
 ## 3g. GM-3d: Zustand des Schmelzlaufs an der Laufstunde (V-GM-32; 23.11. abends)
 
@@ -1147,9 +1165,249 @@ Nicht geprüft: kein Lauf auf dem Runner; nur eine Wetterlage (21./22.11., kaum 
 | Schalter | `GLACIER_MELT_STATE: run-hour` unter `jobs.melt.env` in `.github/workflows/glacier-melt.yml` des Daten-Repos (drei Zeilen: zwei Kommentare, ein Wert), ohne `--force` | Daten-Repo `3c871488`, 23.11. 21:13 UTC, erster Versuch; nur diese Datei geändert. Auf `main` nachgelesen: Zeile 42 `GLACIER_SNOWPACK: shadow`, Zeile 45 `GLACIER_MELT_STATE: run-hour`; `melt/state.json` (alte Form, 212 692 Bytes) und `snowpack/state.json` liegen unverändert |
 | Vorlage nachgezogen | `scripts/glacier/gen-workflows.py` + erzeugte `workflow-glacier-melt.yml` (uncommitted) | `verify:glacier-publish` 34/34 |
 
-**Erster Lauf mit beiden Schaltern: steht aus (Cron 23:20 UTC).** Erwartet: der Lauf liest die Zustandsdatei alter Form nach der alten Regel (sie steht bei 23:00 UTC ⇒ übernommen, Alter 0, nichts nachgerechnet) und schreibt die neue. Zu lesen: `lines.melt.state: run-hour` in `status.json`; im Schmelzdokument `state` = `carried`, `ageH 0`, `mode run-hour`, `replayedH 0`, `held 0`; `melt/state.json` um 0,6 MB mit `pend` (18 Stunden, um 957 Antriebsgeber) und `atMs` = Laufstunde. Ab dem Lauf danach nennt `replayedH` den Abstand in Stunden. Schneedecke und Schmelzzustand werden damit im selben Lauf zum ersten Mal scharf; beide Schritte sind getrennt abgesichert (ein Fehler der Schneedecke hält den Schmelzlauf nicht auf; ein unbekanntes Wort am Zustandsschalter bricht den Lauf vor dem Lesen ab).
+**Erster Lauf mit beiden Schaltern: `2026112323`, 23.11. 23:23 UTC — wie erwartet.** Gelesen 23:37 UTC am Commit `326b1a3c` des Daten-Repos (Sonde und Dateien wie in §3f.8). `lines.melt.state: run-hour`; Schmelzdokument `state` = `carried`, `ageH 0`, `nudged 307`, `mode run-hour`, `replayedH 0`, `held 0`; 2 094 Gletscher, 0 übersprungen. Kachel „Fläche ohne Schneedecke“: Mittel 2,3 %, 0 % an 1 785 von 2 094 — an keiner der 2 094 Zeilen anders als im Lauf 17 UTC. `melt/state.json`: 621 563 Bytes (vorher 212 692), Stand 23:00 UTC = Laufstunde, 2 094 Gletscher, `pend.h 18`, 957 Antriebsgeber, 1 137 zugeordnet, jede Reihe 18 Stunden, Frostgrenze `null` an 17 214 von 17 226 Werten (V-GM-46); `meltStateProblems` 0 Befunde (Vertragscode von `dc982141`). Belegt ist damit der Übergang von der alten zur neuen Form auf dem Runner. **Nicht belegt:** das Nachrechnen selbst (`replayedH` > 0) — das zeigt erst der nächste Lauf; und der Fall, für den GM-3d gebaut ist (ein Lauf 3 Stunden nach dem vorigen), erst wenn er vorkommt.
+
+Vor dem Lauf erwartet: der Lauf liest die Zustandsdatei alter Form nach der alten Regel (sie steht bei 23:00 UTC ⇒ übernommen, Alter 0, nichts nachgerechnet) und schreibt die neue. Zu lesen: `lines.melt.state: run-hour` in `status.json`; im Schmelzdokument `state` = `carried`, `ageH 0`, `mode run-hour`, `replayedH 0`, `held 0`; `melt/state.json` um 0,6 MB mit `pend` (18 Stunden, um 957 Antriebsgeber) und `atMs` = Laufstunde. Ab dem Lauf danach nennt `replayedH` den Abstand in Stunden. Schneedecke und Schmelzzustand werden damit im selben Lauf zum ersten Mal scharf; beide Schritte sind getrennt abgesichert (ein Fehler der Schneedecke hält den Schmelzlauf nicht auf; ein unbekanntes Wort am Zustandsschalter bricht den Lauf vor dem Lesen ab).
 
 Zurück: die Zeile `GLACIER_MELT_STATE` im Workflow entfernen oder auf `ahead` setzen (§3g.2, Übergänge).
+
+## 3h. GM-4: Kopplung an Stationen — Diagnose (23.11. abends, vor jedem Code)
+
+Auftrag (Jan, 23.11. abends): die berechnete Schneedecke an die Stationsmessungen koppeln, mit Abweichungstabelle, Übertrag auf Gletscher ohne Station und dem Satelliten-Abgleich einmal je Szene (M-18). Zuerst die Diagnose, nichts als gegeben. buscosun Fusion und die Stationslinie `glacier/v1/stn/` werden nur gelesen.
+
+Werkzeuge und Belege: Messregel `audit/gletscher-schneemodell/gm4-method-frozen.md`, eingefroren 23.11. 21:30 UTC vor dem ersten gewerteten Lauf (sha256 `71709ce6…`, `gm4-method-frozen.sha256`); Sonde `gm4-probe.mjs` → `gm4-probe.json` (zwei Durchläufe, gleiches Ergebnis). Gelesene Kopien des Daten-Repos (Stand `c0f4686f`, 23.11. 21:25 UTC): `C:\dev\buscosun-glacier-cache\gm4\live\` (105 Slot-Dateien `stn/h/` vom 21.11. 08 UTC bis 23.11. 21 UTC, Zuordnung `20261120-1.4`, Stationskatalog, Startzustand, Saisonzeilen 2023–2026). Nichts geschrieben außer in diesem Repo und im Zwischenspeicher.
+
+### 3h.0 Schritt 0 — was auf dem Runner steht (23.11. 21:26 UTC)
+
+Der erste Lauf mit beiden Schaltern ist noch nicht gelaufen (Cron 23:20 UTC; eine andere Sitzung liest ihn, §3f.8 / §3g.8). `glacier/v1/status.json`: **keine Zeile `lines.snowpack`**; `lines.melt` = Lauf 17:23 UTC (`2026112317`, 2 094 Gletscher, 143 s, `precip: country`, ohne `state`). Unter `snowpack/` liegt nur der Startzustand (`4ae73e46`), **null Laufdokumente**; `melt/state.json` hat noch die alte Form (212 692 Bytes). Alles, was einen Lauf von buscosun Fusion mit Schneedecke braucht, ist deshalb in dieser Diagnose nicht gemessen.
+
+### 3h.1 Womit gemessen wird, wenn es noch keinen Schattenlauf gibt
+
+Der Startzustand ist eine Rechnung vom 1.10. bis 23.11. 17:00 UTC mit derselben Schrittfunktion wie der Producer (Faktor je Land, 96 kg/m³), angetrieben von Analysen (INCA in Österreich, Tagesgitter in der Schweiz, die zwei fehlenden Schweizer Tage aus Wetterläufen von buscosun Fusion). Die Sonde rechnet diese Bahn mit den Lesefunktionen des Einschwing-Werkzeugs selbst nach (über einen erzeugten Shim, nur Importpfade geändert; die zwei Schweizer Tage, die beim Bau fehlten, bleiben draußen) und zeichnet die letzten 72 Stunden auf. **Gültigkeit belegt: der Endzustand der Sonde ist an allen 2 084 Gletschern Byte für Byte der eingespielte Startzustand.** Gemessen wird also die Schneedecke, mit der das Schattenprodukt beginnt — mit Analyse-Antrieb, nicht mit dem Antrieb von buscosun Fusion.
+
+Modell in der Höhe der Station: linear zwischen den zwei benachbarten der drei Höhen; unter der Zunge der Wert der Zunge, über der Oberkante der der Oberkante (keine Hochrechnung). Station: nur angenommene Werte der Linie, Stempel höchstens 60 min vor der Stunde.
+
+### 3h.2 (a) Was die Stationen über einen Gletscher sagen können — Messung M-6
+
+| | Wert |
+|---|---|
+| Gletscher mit Schneestation (Zuordnung `20261120-1.4`, Abschnitt `ext`) | **469 von 2 094**; 92 verschiedene Stationen; ein Paar fällt weg (Gletscher ohne geordnete Höhen) ⇒ 468 Paare |
+| je Land | Österreich 133 Paare (29 Stationen), Schweiz 335 (64), Deutschland 0 |
+| je Netz | IMIS 334 · Tirol 98 · TAWES (`at`) 26 an drei Stationen (Pitztaler Gletscher, Dachstein, Sonnblick) · Südtirol 8 · SwissMetNet 2 |
+| „Änderung der Schneehöhe“ (`hsd`, nur Tirol, wie geliefert) | 102 Gletscher |
+| Lage der Station zum Gletscher | **322 von 468 Paaren unter der Zunge**, 27 über der Oberkante, 119 dazwischen; Höhe der Station gegen die Medianhöhe p10 / Median / p90 −566 / −293 / +46 m; Abstand zum Umriss Median 3,1 km, p90 4,7 km |
+| Höhe | keine Schneestation ab 3 000 m außer Schnals Teufelsegg (3 035 m) und Sonnblick (3 109 m); IMIS-Schneestationen enden unter 3 000 m (§2.2 von `gletscher-imis.md`) |
+| Alter und Prüfung | an der Stunde T (23.11. 17 UTC) haben alle 468 Paare einen Wert; in 105 Slots verwarf die Linie 87-mal eine Schneehöhe als `stale`, sonst nichts |
+| Geschichte | Tirol, Südtirol, TAWES ab 21.11. 08 UTC in der Kopie; **IMIS erst seit dem Push von GI (22.11.)** — eine 48-h-Änderung gibt es in der Schweiz an einem Paar |
+
+Vergleichbar ist überhaupt nur die Schneehöhe und ihre Änderung. Wasserwert, Dichte und Neuschnee misst keine der Linien (IMIS `HN_1D` ist ein Modellwert, E-GI-3).
+
+**Befund aus der Kopie, nicht aus der Messregel:** exponierte Stationen VERLIEREN während des Schneefalls 20.–23.11. Schnee, geschützte gewinnen. Schneehöhe alle 6 Stunden von 21.11. 08 UTC an:
+
+| Station | Höhe | Verlauf (cm) |
+|---|---|---|
+| Schnals Teufelsegg (`bz`) | 3 035 m | 59 · 50 · 44 · 41 · 42 · 43 · 32 · 24 · 25 |
+| Dachstein-Schladminger Gletscher (`at`) | 2 520 m | 28 · 28 · 16 · 13 · 13 · 16 · 11 · 8 · 7 |
+| Sonnblick (`at`) | 3 109 m | 44 · 52 · 45 · 41 · 36 · 38 · 34 · 44 · 34 |
+| Grimsel Hospiz (`ch`) | 1 980 m | — · — · — · 45 · 46 · 59 · 89 · 96 · 99 |
+
+Eine Station auf Grat oder Gipfel misst Windumlagerung, nicht Schneefall. Die Linie weiß nicht, welche Station ein Messfeld ist (die IMIS-Typen `SNOW_FLAT`/`WIND` stehen nicht im Katalog der Linie). V-GM-55.
+
+### 3h.3 (b) Berechnet gegen gemessen — Messung M-7
+
+Stand zu T = 23.11. 17 UTC (Modell in der Höhe der Station, mit Faktor je Land; Verhältnis nur für Station ≥ 5 cm):
+
+| | Paare / Stationen | Station (Median) | Modell (Median) | Abweichung im Mittel / Betrag | Verhältnis (Median) | r |
+|---|---|---|---|---|---|---|
+| alle | 468 / 92 | 59,3 cm | 112,3 cm | +54,2 / 56,2 cm | **1,86** | 0,74 |
+| Österreich | 133 / 29 | 34,2 | 99,0 | +68,4 / 68,4 | 2,76 | **−0,08** |
+| Schweiz | 335 / 64 | 66,6 | 117,6 | +48,5 / 51,4 | 1,70 | 0,82 |
+| 2 000–2 499 m | 147 / 48 | 59,3 | 118,1 | +57,2 / 57,4 | 1,98 | 0,84 |
+| ab 2 500 m | 317 / 41 | 58,2 | 105,8 | +53,2 / 56,2 | 1,80 | 0,71 |
+| Station unter der Zunge | 322 / 86 | 59,3 | 109,7 | +53,5 / 55,5 | 1,94 | 0,81 |
+| Station zwischen Zunge und Oberkante | 119 / 41 | 67,6 | 112,2 | +46,4 / 48,2 | 1,55 | 0,74 |
+
+Änderung über 24 Stunden (22.11. 17 → 23.11. 17 UTC); „Ereignis“ = Station ≥ +3 cm:
+
+| | Paare / Stationen | Station | Modell | Abweichung / Betrag | Verhältnis bei Ereignissen | r |
+|---|---|---|---|---|---|---|
+| Ereignisse alle | 362 / 71 | +17,1 cm | +13,1 cm | −3,9 / 8,0 cm | **0,76** | 0,59 |
+| Ereignisse Österreich | 72 / 19 | +11,2 | +7,6 | −5,4 / 6,2 | 0,66 | 0,10 |
+| Ereignisse Schweiz | 290 / 53 | +20,9 | +15,4 | −3,5 / 8,4 | 0,79 | 0,57 |
+| Ereignisse 2 000–2 499 m | 136 / 41 | +21,6 | +22,8 | +0,1 / 7,0 | 1,07 | 0,55 |
+| Ereignisse ab 2 500 m | 222 / 27 | +11,2 | +9,2 | −6,1 / 8,4 | 0,59 | 0,59 |
+| Tirol, gelieferte `HSD24` / `HSD48` / `HSD72` | 98 / 23 | +8,0 / +8,4 / +7,5 | +5,7 / +11,5 / +14,9 | −1,1 / +2,6 / +4,8 | 0,69 / 1,02 / 1,21 | 0,43 / 0,53 / 0,62 |
+
+Treffer: an 99 % der 362 Ereignis-Paare zeigt das Modell mindestens +1 cm. Ruhe-Paare (|Änderung| < 1 cm) gab es in diesem Fenster nur 7 an 2 Stationen.
+
+**Urteile nach der eingefrorenen Regel** (vom Skript gerechnet):
+
+| Behauptung | Wert | Urteil |
+|---|---|---|
+| B1 — der Stand trägt den Gletscher-Faktor (V-GM-33), Verhältnis in [1,5; 3,0] | 1,86 | **bestätigt** |
+| B2 — die Änderung bei Ereignissen trägt den Faktor ebenfalls (F̄ = 1,90) | 0,76 | **„eins zu eins“** — sie trägt ihn NICHT |
+| B3 — das Modell sieht die Ereignisse (Trefferquote ≥ 0,8) | 0,99 | **ja** |
+| B4 — Setzung ohne Schneefall stimmt auf ±1 cm (V-GM-38) | 7 Paare | **zu wenig** |
+
+Lesart:
+- **Der Stand ist nicht koppelbar.** Er steht um den Faktor (Schweiz 1,7, Österreich 2,8) über den Stationen — gewollt, weil der Faktor die Winterbilanz auf dem Eis meint (V-GM-33). Ein Zug zum Stationsstand würde genau den Faktor wieder herausnehmen. In Österreich ordnet der Stand die Stationen nicht einmal (r = −0,08; V-GM-48).
+- **Die Änderung bei Schneefall liegt beim 0,8-fachen der Station, obwohl der Faktor 1,9 darin steckt.** Nach 48 und 72 Stunden (nur Tirol) liegt sie beim 1,0- bzw. 1,2-fachen. Rechnerisch (0,76 / 1,9, ohne die Setzung) läge es ohne Faktor bei rund 0,4 der Station. Zwei Ursachen sind nicht zu trennen: der Niederschlag der Analysen (und an den zwei Schweizer Lückentagen der von buscosun Fusion) war für dieses Ereignis zu klein, oder die Dichte von 96 kg/m³ ist für frischen Schnee an Stationen zu hoch (gemessen 52–81, §3a). In beiden Fällen gilt: **eine Kopplung der Änderung in Zentimetern verschiebt Niederschlag und Dichte gemeinsam** (V-GM-50).
+- Das ist EIN Ereignis (eine Wetterlage, zwei Tage, ein Antrieb aus Analysen). Für eine Kopplung mit dem Antrieb des Betriebs (buscosun Fusion) ist nichts gemessen.
+
+### 3h.4 (c) Was gekoppelt werden darf, ohne den Fehler der Station zu übernehmen
+
+| Weg | Was die Messung dazu sagt | Urteil |
+|---|---|---|
+| Stand zum Stationsstand ziehen | nimmt den Faktor heraus (B1); Österreich ohne Ordnung (r ≈ 0) | **nein** |
+| Änderung in cm übernehmen (Station ersetzt das Modell im Ereignis) | Verhältnis 0,76 bei einem Faktor von 1,9; Gratstationen verlieren beim Schneefall bis 35 cm (§3h.2) | **nein** — trägt Windumlagerung und den Dichtefehler auf den Gletscher |
+| Verhältnis der Änderung je Station als Korrektur des Niederschlags (Faktor bleibt), mit Schrumpfung gegen 1 | ein Ereignis; je Station streut log(Modell/Station) p10 / Median / p90 −0,91 / −0,28 / +0,50 (Faktor 0,4 … 1,6); Niederschlags- und Dichtefehler vermischt | **erst nach Messung mit dem Antrieb des Betriebs** (mindestens fünf Ereignisse je Station, §3h.7) |
+| Ereignis ja / nein (Zeitpunkt, Phase) | Trefferquote 0,99; Fehlalarme nicht messbar (7 Ruhe-Paare) | nichts zu korrigieren, solange keine Fehlalarme gemessen sind |
+| nur messen: je Lauf das Paar Modell-in-Stationshöhe / Station festhalten (Schattenpaare, §7 Prüfprotokoll „täglich“) | Voraussetzung für jede der Zeilen oben | **ja** |
+
+Die Daten tragen heute eine Messinfrastruktur, keine Kopplung.
+
+### 3h.5 (d) Übertrag auf Gletscher ohne Station — Messung M-8 (leave-one-station-out)
+
+Je Station die Abweichung (Median ihrer Paare), vorhergesagt aus den anderen Stationen (inverse Distanz bis R) und gegen „keine Korrektur“ gestellt:
+
+| Größe | Stationen | ohne Korrektur | Median aller anderen | Median des Landes | R = 15 km | R = 30 km | R = 60 km |
+|---|---|---|---|---|---|---|---|
+| Stand (Modell − Station, cm) | 92 | 52,1 | 25,7 | 25,0 (92) | 24,6 (85) · Gewinn 0,50 | **21,0 (90) · 0,58** | 21,6 (91) · 0,58 |
+| Änderung bei Ereignissen, log(Modell/Station) | 71 | 0,50 | 0,46 | 0,48 (71) | 0,45 (63) · 0,02 | **0,41 (70) · 0,18** | 0,43 (71) · 0,15 |
+
+B5 nach der Regel: Stand **„trägt“**, Änderung **„trägt nicht“**. Lesart: beim Stand kommt der Gewinn fast ganz aus dem gemeinsamen Versatz (der Faktor) — der Median aller anderen Stationen holt schon 25,7 der 52,1 cm, die Nachbarn bis 30 km nur 4,7 cm mehr (V-GM-54). Die Änderung, also das, was man koppeln dürfte, lässt sich von Station zu Station nicht übertragen: der Fehler mit Nachbarn (0,41) ist kaum kleiner als ohne jede Korrektur (0,50). **Für 1 625 Gletscher ohne Schneestation gibt es nach dieser Messung keinen belegten Übertrag.** Ein Ereignis; mit mehr Ereignissen kann sich das ändern.
+
+### 3h.6 (e) Satelliten-Abgleich einmal je Szene — Messung M-9
+
+Heute (am Code gelesen, `melt.mjs` `mk` → `nudgeState`): jeder Schmelzlauf nimmt je Gletscher die jüngste Saisonzeile, sofern sie höchstens 20 Tage alt ist (`MELT_SAT_MAX_AGE_DAYS`), und setzt je Band unter der Schneegrenze den Schnee auf 0, darüber auf mindestens 250 mm (`MELT_SNOW_NUDGE_MM`) — in JEDEM Lauf neu, bis die Szene 20 Tage alt ist; mit GM-3d nach dem Nachrechnen. Der Zustand merkt sich nicht, welche Szene schon gegriffen hat. „Einmal je Szene“ braucht im Zustand je Gletscher das Datum der zuletzt angewandten Zeile (beim Schmelzzustand in der Form von GM-3d ein Feld neben `g`/`pend`), und die Regel „nur eine Zeile, die jünger ist als die zuletzt angewandte“.
+
+Die Regel des Schmelzlaufs auf die Schneedecke zu T angewandt (Wasserwert je Band linear zwischen den drei Höhen):
+
+| | Gletscher |
+|---|---|
+| mit Saisonzeile | 921 |
+| mit Satellitenklasse und Zeile ≤ 20 Tage (Alter der jüngsten Zeile an Gletschern mit Satellitenklasse p10 / Median / p90: 2,2 / 9,2 / 42,2 Tage) | 597 |
+| davon würde die Regel ändern | **477** |
+| … Schnee gesetzt (mindestens 250 mm) | 309 |
+| … Schnee gelöscht (auf 0) | **349** |
+| Änderung an der Medianhöhe p10 / Median / p90 | 0 / 0 / +78 mm |
+
+Explorativ dazu: von den Zeilen bis 20 Tage tragen im November 466 den Zustand „Schneegrenze“ (356 davon ohne Höhe, Klasse B — die Grenze folgt aus dem Schneeanteil), 159 „schneebedeckt“, 10 „schneefrei“; die meisten sind vom 14. und 15.11., also VOR dem Schneefall vom 20.–23.11. Beispiel Griesgletscher: Szene 14.11., Grenze 2 491 m, die Zunge liegt bei 2 445 m — die Regel löschte dort die Schneedecke von heute.
+
+Lesart: **die Schneedecke soll den Abgleich nicht übernehmen.** Er weiß nur „Schnee ja/nein“ je Band zu einem vergangenen Tag und überschreibt Masse, die der Kern seither gerechnet hat; an 349 Gletschern würde er Schnee löschen, der nach der Szene gefallen ist. Für den Schmelzlauf bleibt „einmal je Szene“ richtig (M-18): heute löscht dieselbe Szene bis zu 20 Tage lang in jedem Lauf wieder, was der Lauf dazwischen an Schnee gerechnet hat. Ob eine Szene älter als der letzte Schneefall noch greifen darf, ist eine zweite Regel (V-GM-49).
+
+### 3h.7 (f) Wie viele Schattenläufe die Messung braucht
+
+- Das Laufdokument trägt die Schneehöhe der drei Höhen zur Laufstunde; der Zustand steht an der Laufstunde und rechnet jede Stunde mit der jüngsten Vorhersage. Aus Dokumenten, die 24 Stunden auseinanderliegen, ergibt sich die Änderung mit dem Antrieb des Betriebs. Der Schmelzlauf rechnet höchstens viermal am Tag.
+- **Schätzung, nicht gemessen:** für ein Verhältnis je Station mit Schrumpfung braucht es mindestens fünf Ereignisse je Station und ebenso viele trockene Tage (für V-GM-38); bei ein bis zwei Schneefällen je Woche sind das drei bis sechs Wochen. Das Prüfprotokoll (§7) nennt mindestens 14 Tage.
+- **72 Stunden im Daten-Repo reichen nicht**: die Laufdokumente unter `snowpack/` werden nach 72 h gelöscht, die Stationsslots ebenso, und nichts davon wird archiviert (die Slots stündlich seit 21.11. in `buscosun-archiv`, die Schneedecke gar nicht, GM-6). Die Paare müssen also in jedem Lauf gebildet und aufbewahrt werden — von Hand kopieren reißt Lücken (V-GM-53). Der Workflow holt `glacier/` ganz in die Lesesicht: der Producer hat den Slot seiner Laufstunde vor sich und kann das Paar selbst bilden.
+
+### 3h.8 (g) Der Startzustand
+
+Der eingespielte Startzustand trägt alle 2 084 Gletscher mit geordneten Höhen (§3f.8) — V-GM-40 betrifft erst den nächsten Katalog-Build. Die Schweiz kommt aus dem Tagesgitter (nie INCA, V-GM-34); die gleichmäßige Verteilung des Tages auf 24 Stunden macht die 24-h-Änderung in der Schweiz in diesem Ereignis nicht schlechter als in Österreich (0,79 gegen 0,66). Eine Kopplung ändert den Startzustand nicht; ein neuer Startzustand mit Kopplung ist nicht vorgesehen.
+
+### 3h.9 (h) Was das Produkt dann sagt
+
+Jeder Wert der Schneedecke bleibt `computed`, nie `measured`; „berechnet, noch nicht nachgemessen“ bleibt bis zur Abnahme (GM-8). Ein Paar nennt die Station mit Netz, Abstand zum Umriss, Höhenunterschied zur Medianhöhe und zur nächsten der drei Höhen, die Lage (unter der Zunge / dazwischen / über der Oberkante), das Alter des Stationswerts und trägt den Stationswert als das, was er ist (gemessen, aus der Linie zitiert). Ein künftig gekoppelter Wert nennt dieselben Angaben und den Betrag der Korrektur.
+
+### 3h.10 Entscheidungen für Jan (vor dem Code)
+
+| Nr. | Frage | Empfehlung |
+|---|---|---|
+| E-GM-20 | Was GM-4 jetzt baut: **(A)** nur Schattenpaare — der Producer schreibt mit der Schneedecke je Lauf eine kleine Datei `snowpack/pairs/<lauf>.json` (je Gletscher × Schneestation: Modell in Stationshöhe, Station mit Alter, Abweichung, Lage), hinter einem eigenen Schalter (aus), die Schneedecke selbst unverändert; Kopplung erst nach der Messung mit dem Antrieb des Betriebs (GM-4b) · **(B)** zusätzlich eine Kopplung der Änderung je Station (Korrektur des Niederschlags, Schrumpfung gegen 1), hinter einem Schalter (aus) · **(C)** nur die Diagnose | **(A)** — die Messung trägt keine Kopplung (§3h.4) |
+| E-GM-21 | Aufbewahrung für die Messung: **(A)** Paar-Dateien täglich ins Archiv `buscosun-archiv` (Workflow-Änderung im Archiv-Repo, dein Gate) · **(B)** Paar-Dateien UND Laufdokumente der Schneedecke archivieren (≈ 0,3 MB gepackt je Lauf) · **(C)** ich kopiere von Hand | **(A)** — klein, und die Laufdokumente sind aus Zustand + Paaren nicht nötig für die Kopplungsfrage |
+| E-GM-22 | Satellit: **(A)** die Schneedecke nimmt den Abgleich nicht; der Schmelzlauf gleicht hinter einem Schalter (aus) nur noch einmal je Szene ab (Datum der angewandten Zeile im Zustand) · **(B)** auch die Schneedecke gleicht einmal je Szene ab · **(C)** so lassen | **(A)** — §3h.6: an 349 Gletschern würde er Schnee löschen, der nach der Szene gefallen ist |
+| E-GM-23 | Übertrag auf Gletscher ohne Station: **(A)** keiner in GM-4, die Zeile sagt nichts über eine Kopplung · **(B)** Median des Landes · **(C)** Nachbarn bis 30 km | **(A)** — die Änderung überträgt sich nicht (Gewinn 0,18), beim Stand ist es nur der Faktor (§3h.5) |
+
+### 3h.11 Befunde aus der Diagnose
+
+| Nr. | Inhalt | Mehrwert · Skizze | Stand |
+|---|---|---|---|
+| V-GM-48 | In Österreich ordnet der Stand der Schneedecke in Stationshöhe die Stationen nicht (r = −0,08, 133 Paare an 29 Stationen; Schweiz 0,82) | ob die Unterschiede zwischen österreichischen Gletschern echt sind · je Gletscher gegen SNOWGRID (r) und gegen die INCA-Zelle der Station statt des Gletscherpunkts; die Temperaturverschiebung (§3f.1 D, ±2 K) als Ursache prüfen | offen |
+| V-GM-49 | Der Satelliten-Abgleich wendet Szenen bis 20 Tage an, auch wenn seither Schnee gefallen ist (Griesgletscher: Szene 14.11. löscht die Zunge nach dem Schneefall vom 20.–23.11.) | kein gelöschter Neuschnee im Schmelzindex · einmal je Szene (E-GM-22) und eine Szene nur, wenn seither kein Schneefall gerechnet ist | E-GM-22 |
+| V-GM-50 | Die 24-h-Änderung bei Schneefall liegt beim 0,76-fachen der Station, der Stand beim 1,86-fachen: Niederschlag und Neuschneedichte (96 gegen gemessen 52–81 kg/m³) sind in Zentimetern nicht zu trennen | eine Kopplung, die nicht die Dichte als Niederschlag verbucht · Wasserwert des Neuschnees an den SLF-Messfeldern (Q6, `HN_1D` dort gemessen) neben die Höhenänderung stellen | offen |
+| V-GM-51 | Im Fenster 20.–23.11. gab es nur 7 Ruhe-Paare: die Setzung ohne Schneefall (V-GM-38) bleibt ungemessen | verlässliches „Neuschnee 72 h“ · aus den Schattenpaaren der nächsten trockenen Tage | offen |
+| V-GM-52 | IMIS-Schneehöhen stehen erst seit dem Push von GI (22.11.) in den Slots; die Schweiz hat keine 48-h-Änderung | — · wächst von selbst; die Ablage stündlich trägt sie seit dem Push | erledigt sich |
+| V-GM-53 | Laufdokumente der Schneedecke und Stationsslots verschwinden nach 72 h; keiner von beiden ist für die Schneedecke archiviert | eine Messung über Wochen ohne Lücken · Paare im Lauf bilden und archivieren (E-GM-20, E-GM-21) | E-GM-21 |
+| V-GM-54 | Der Übertrag des Stands auf Nachbarn ist fast nur der gemeinsame Versatz (Median aller 25,7 cm, Nachbarn bis 30 km 21,0 cm, ohne Korrektur 52,1 cm) | keine Scheinkopplung, die nur den Faktor zurücknimmt · keine | Hinweis |
+| V-GM-55 | Gipfel- und Gratstationen verlieren beim Schneefall Schnee (Teufelsegg 59 → 24 cm, Dachstein 28 → 7 cm in 60 h), die Linie kennt die Art des Standorts nicht | eine Kopplung, die keinen Windabtrag auf den Gletscher überträgt · Standortart aus dem SLF-Katalog (`type`) in den Stationskatalog der Linie (Änderung an der Stationslinie, Jans Wort), für die anderen Netze eine gemessene Kennung „verliert bei Schneefall der Nachbarn“ in den Paaren | offen |
+
+Nicht gemessen: alles mit dem Antrieb von buscosun Fusion (kein Schattenlauf); mehr als ein Ereignis; trockene Tage; die Wahrheit auf dem Eis; Deutschland (keine Schneestation an den vier Gletschern).
+
+### 3h.12 Jans Entscheidungen (23.11. abends, nach der Diagnose, vor dem Code)
+
+| Nr. | Entscheidung (Jan) | Folge im Bau |
+|---|---|---|
+| E-GM-20 | **Nur Schattenpaare** (Empfehlung) | Schalter `--snowpack-pairs=off\|on`, Datei `snowpack/pairs/<lauf>.json`; die Schneedecke selbst unverändert, keine Kopplung (GM-4b erst nach der Messung) |
+| E-GM-21 | **Paare ins Archiv** (Empfehlung) | `glacier-archive.mjs --pairs`, Vorlage `workflow-glacier-archiv.yml` nachgezogen; das Einspielen in `buscosun-archiv` ist Jans Gate |
+| E-GM-22 | **Schmelzlauf einmal je Szene** (Empfehlung) | Schalter `--sat-nudge=every\|once` im Schmelzlauf; die Schneedecke nimmt den Abgleich nicht (sie hat ihn nie genommen — gebaut ist nichts daran) |
+| E-GM-23 | **Kein Übertrag** (Empfehlung) | nichts gebaut; Paare gibt es nur für Gletscher mit Schneestation |
+
+### 3h.13 Umsetzung
+
+| Datei | Was |
+|---|---|
+| `src/glacier/glacierSnowpackPairsContract.ts` (neu) | Vertrag der Paare: Pfad `snowpack/pairs/<lauf>.json`, Zeitfenster 60 min davor / 15 min danach (`set`), Lage `below`/`inside`/`above`, Gründe ohne Wert `no-value`/`stale`/`future`, Vermerk „Vergleich, keine Kopplung …“, Herkunft je Feld (`m`, `hn` = `computed`; `v`, `hsd` = `measured`), `snowpackPairsProblems`. Kein Import in der Seite |
+| `scripts/glacier/lib/snowpackcore.mjs` | `SNOWPACK_PAIRS_MODES`, `SNOWPACK_PAIRS_DEFAULT = 'off'`, `snowpackPairsModeOf`; `atElevation` (linear zwischen den zwei Nachbarhöhen, außerhalb der Wert der nächsten Höhe, nie hochgerechnet); `pairsOf` (liest nur den Abschnitt `ext` der Zuordnung, wirft ohne ihn) |
+| `scripts/glacier/lib/meltstate.mjs` | `SAT_NUDGE_MODES`, `SAT_NUDGE_DEFAULT = 'every'`, `satNudgeModeOf`, `satRowDue` |
+| `scripts/glacier/melt.mjs` | Schalter `--snowpack-pairs` / `GLACIER_SNOWPACK_PAIRS` (nur mit der Schneedecke gelesen) und `--sat-nudge` / `GLACIER_SAT_NUDGE` (gelesen, bevor etwas gelesen oder geschrieben wird); `writeSnowpackPairs` (Zuordnung aus `index.stations.map`, Slot der Laufstunde, sonst der Stunde davor; prüft gegen den Vertrag vor dem Schreiben); Paare nur nach geschriebener Schneedecke, ein Fehler nennt den Grund in `lines.snowpack.pairs`; mit `once`: Vermerk je Gletscher im Zustand (`sat`), Dokument `state.sat` { applied, held }, Statuszeile `sat: once` |
+| `src/glacier/glacierMeltContract.ts` | Typ `sat` an Zustandsdatei und Dokument; `meltStateProblems` prüft einen vorhandenen Vermerk (Datum, Gletscher mit Zustand). Kein Byte im Bundle |
+| `scripts/glacier/glacier-publish.mjs` | Aufbewahrung `snowpack/pairs/` 72 h (wie die Laufdokumente) |
+| `scripts/glacier/glacier-archive.mjs` | `archivePairs` hinter `--pairs`: je Lauf `pairs-<lauf>.json.gz` unter dem Tag des Laufs, nur Hinzufügen, ein Dokument gegen den Vertrag wird nicht abgelegt und genannt; ohne `--pairs` wie bisher |
+| `scripts/glacier/gen-workflows.py` + `workflow-glacier-archiv.yml` | Vorlage: Lesesicht zusätzlich `/glacier/v1/snowpack/pairs/`, Aufruf mit `--pairs`; die anderen Vorlagen unverändert (neu erzeugt, kein Unterschied). Ein älteres Skript überliest `--pairs` |
+| `scripts/glacier/make-snowpack-pairs-fixture.mjs` (neu), `scripts/lib/fixtures/glacier/snowpack-pairs.json` (neu) | Fixture aus der Kopie der Stationslinie (Zuordnung `20261120-1.4`, Slot `2026112321`): Tirol Adamsberg (2 431 m, mit `hsd`), IMIS Engstligenalp (2 304 m), Südtirol Schnals Teufelsegg (3 035 m), IMIS Bortelsee (2 517 m, in dieser Stunde ohne Schneehöhe) — Einträge wie geliefert |
+| `scripts/verify-glacier-snowpack.mjs` | Block H (H1–H7), G1 um Vertrag und Fixture-Werkzeug erweitert |
+| `scripts/verify-glacier-melt.mjs` | Block J (J1–J5) |
+| `audit/gletscher-schneemodell/gm4-*` | Messregel + Hash, Sonde, Auswertung der Vollläufe, Gegenprobe |
+
+Nicht angefasst: buscosun Fusion, die Stationslinie (`stations.mjs`, `glacierStationContract.ts` nur importiert), `snowcore.mjs`, `meltcore.mjs`, Workflows, Daten- und Archiv-Repo, die Seite.
+
+### 3h.14 Messung am vollen lokalen Lauf
+
+Aufbau `C:\dev\buscosun-glacier-cache\gm4-run.ps1` (Cube und Lesesicht wie GM-3c/GM-3d, `--now=2026-11-21T17:50:00Z --always`; für die Paare eine Lesesicht mit der Stationslinie der Kopie — Zuordnung `20261120-1.4`, Slots 21.11. 16/17 UTC — und dem Startzustand vom 21.11. 17 UTC), Auswertung `gm4-analyse.mjs` → `gm4-analyse.json`, Vergleich Byte für Byte mit `C:\dev\buscosun-glacier-cache\gm4\cmp-tree.mjs`.
+
+| Vergleich | Ergebnis |
+|---|---|
+| Referenz zuerst geprüft: Lauf von HEAD `dc982141` ohne Schalter gegen `gm32\off` | **338 von 338** gleich |
+| neuer Code ohne Schalter gegen `gm32\off` | **338 von 338** gleich |
+| neuer Code ohne Schalter auf der Lesesicht mit Stationslinie gegen den Lauf ohne sie | 30 von 30 gemeinsamen Dateien gleich (die Lesesicht trägt keine alten Läufe, daher keine Kopien) |
+| `--snowpack=shadow` gegen ohne Schalter (dieselbe Lesesicht) | 30 gleich, dazu `snowpack/2026112117.json` und `snowpack/state.json` |
+| **`--snowpack=shadow --snowpack-pairs=on` gegen `--snowpack=shadow`** (Negativkontrolle der Paare) | **32 von 32 gleich**, dazu genau `snowpack/pairs/2026112117.json`; Zeiger-Patch gleich, Status-Patch anders (nur `lines.snowpack.pairs`) |
+| **`--sat-nudge=once` gegen ohne Schalter** (Negativkontrolle) | 336 von 338 gleich; anders `melt/2026112117.json` (nur `state.sat`: alle 2 094 Zeilen gleich) und `melt/state.json` (Vermerk an 606 Gletschern) |
+
+Die Paare am echten Katalog (Lauf `2026112117`): 468 Paare, 79 899 Bytes; **mit Wert nur 133** — 335 IMIS-Paare sind `no-value`, weil IMIS am 21.11. noch nicht in den Slots stand (V-GM-52); `hsd` an keinem Paar (Tirol liefert es erst seit GI). Alter der Werte p10 / Median / p90 −10 / 0 / +10 min. Modell / Station im Median 2,8 (Tirol 2,8, TAWES 3,6, Südtirol 1,7; Station über der Oberkante 3,7, dazwischen 1,8) — dieselbe Größenordnung wie M-7 in Österreich (2,76).
+
+Kette des Satelliten-Schalters am echten Katalog (Lauf A 21.11. 23 UTC, B drei Stunden später, beide `run-hour`, ohne Wetterteil): mit `every` greift die Szene in B an 337 Gletschern wieder, mit `once` an keinem (606 gehalten). **Alle 2 094 Gletscherzeilen von B sind in beiden Wegen gleich**, die Kachel „Fläche ohne Schneedecke“ ebenso (12,5 %): in diesen drei Stunden fiel unter den Schneegrenzen der Szenen nichts, das der erneute Abgleich hätte löschen können. Die Wirkung von `once` zeigt sich erst nach Schneefall unterhalb einer Szene (§3h.6, Griesgletscher) — am echten Katalog ist sie damit **nicht gemessen**, nur im Prüfer (J3). Zustandsdatei mit Vermerk 652 statt 626 KB roh. Laufzeiten 81–371 s je Lauf; die Läufe liefen teils neben Build und Prüfern, ein Laufzeitvergleich ist daraus nicht zu lesen.
+
+### 3h.15 Gate (23.11. nachts)
+
+| Prüfung | Ergebnis |
+|---|---|
+| `verify:glacier-snowpack` | **39/39** (vorher 31; Block H = 8 Prüfungen: Schalter, alle anderen Dateien Byte für Byte, Paar von Hand an echten Stationseinträgen samt Lage unter/zwischen/über (alle drei Gletscher mit Schnee aus einem Startzustand), die Höhe der Station rein an beiden Abschnitten (H3b), Zeitfenster 61/60/−15/−16 min, fehlende Eingänge ohne stillen Ersatz — auch „ohne Startzustand keine Paare“ —, Vertrag mit 17 Verletzungen, Publisher und Archiv) |
+| `verify:glacier-melt` | **68/68** (vorher 63; Block J = 5 Prüfungen: Schalter rein, ohne Angabe = `every` Byte für Byte in beiden Zustandsformen, dieselbe Szene im nächsten Lauf von Hand, jüngere Szene / verworfener Zustand / Form `ahead`, Vertrag des Vermerks) |
+| `verify:glacier-weather` · `-snowcal` · `-snowcore` · `-contract` · `-publish` · `-stations` | 41/41 · 37/37 · 24/24 · 64/64 · 34/34 · 77/77 |
+| `npm run typecheck` | grün |
+| `npm run build` · `npm run budget` | 281/281 · totalJs 2 118,1 / 2 121 KB, unverändert (kein Byte im Bundle) |
+| Geschützte Pfade | `src/pointForecast`, `src/point`, `scripts/point`, `scripts/punktarchiv`: kein Unterschied (G11 in `verify:glacier-melt`) |
+| Voller Lauf ohne Schalter | 338 von 338 Byte für Byte; Negativkontrollen mit Schalter §3h.14 |
+| Gegenprobe `gm4-mutations.mjs` | 39 eingebaute Fehler in Kern, Schmelzlauf, Verträgen, Publisher und Archiv. **Erste Runde: 34 von 39 bemerkt** (Protokoll `C:\devuscosun-glacier-cache\gm4\mut1.log`). Übersehen: (1) Hochrechnung unter der Zunge und (2) „immer zwischen Zunge und Mitte“ — die Testgletscher mit Station unter der Zunge hatten keinen Schnee, und keine Station lag im oberen Abschnitt ⇒ alle drei Testgletscher bekommen Schnee aus einem Startzustand, dazu H3b (rein, beide Abschnitte); (3–5) „gehaltene Szene nicht gezählt“, „Vermerk nicht weitergetragen“, „Vermerk gilt auch für einen verworfenen Zustand“ — **ein Fehler in meinem Prüfer**: in Block I ist `same()` ein Vergleich von LAUFERGEBNISSEN (`docRaw`, `stateRaw` …), für einfache Werte also immer wahr; Block J nutzte ihn für `state.sat` und den Vermerk und war dort blind (V-GM-59) ⇒ eigener Wertevergleich `eq()` in Block J, danach weiter 68/68 (das Verhalten war richtig, nur ungeprüft). **Zweite Runde: 39 von 39 bemerkt, keiner nur als Abbruch, Prüfer danach grün** (`gm4-mutations.json`); `melt.mjs` danach Byte für Byte wie vor der Runde |
+
+Die fünf Fragen: (1) Funktionserhalt — ohne Schalter jede Datei gleich, alle bisherigen Prüfungen unverändert grün; (2) Desktop pixelgleich — kein Byte im Bundle, nicht angesehen; (3) Touch-Flächen, (4) Konsole, (5) Long Tasks — keine Anzeige geändert.
+
+Nicht geprüft: kein Lauf auf dem Runner; die Paare nur mit den Slots vom 21.11. (ohne IMIS, ohne `hsd`) am echten Katalog — mit IMIS nur im Prüfer; die Wirkung von `once` am echten Katalog (§3h.14); das Archiv nicht gegen ein echtes `buscosun-archiv` (nur die Funktion im Prüfer); die Vorlage des Archiv-Workflows ist nicht gelaufen; kein Browser; `verify:glacier-ui` (bricht an HEAD ab, V-GH-6).
+
+**Gate GM-4 (GM-4a): Diagnose geschrieben, Jans Entscheidungen gebaut, beide Schalter aus. Ohne Schalter schreibt der Producer dieselben Bytes wie vorher.** Offen bei Jan: Commit, Push, das Einschalten beider Schalter und das Einspielen der Archiv-Vorlage (MANUELLE-SCHRITTE §121).
+
+### 3h.16 Entscheidungen und Befunde aus dem Bau
+
+| Nr. | Inhalt | Stand |
+|---|---|---|
+| E-GM-20 … E-GM-23 | Schattenpaare · Archiv · Satellit einmal je Szene · kein Übertrag | **entschieden: Jan 23.11.** (§3h.12) |
+| E-GM-24 | **Einschalten — wann und wie?** Zwei Zeilen im Workflow `glacier-melt` des Daten-Repos (`GLACIER_SNOWPACK_PAIRS: on`, `GLACIER_SAT_NUDGE: once`), jede für sich zurücknehmbar, ohne Code; dazu die Archiv-Vorlage nach `buscosun-archiv`. Empfehlung: zuerst Push, dann Archiv-Vorlage, dann die Paare (sie sammeln erst, wenn das Archiv sie aufhebt); `once` getrennt danach, damit zwei Neuerungen nicht im selben Lauf zusammenfallen | offen (Jan) |
+| V-GM-56 | Die Paare tragen das Modell nur zur Laufstunde; eine Änderung über 24 h braucht zwei Läufe, die genau 24 h auseinanderliegen (der Schmelzlauf läuft unregelmäßig, höchstens viermal am Tag). Mehrwert: Änderungen ohne Lücken an der Taktung. Skizze: die Paare tragen zusätzlich das Modell zu Laufstunde − 24/48/72 h aus der Bahn des Zustands (der Lauf rechnet sie ohnehin nach), oder die Auswertung nimmt das Neuschnee-Fenster `hn` gegen `hsd` | offen |
+| V-GM-57 | Bis die Archiv-Vorlage eingespielt ist, verschwinden die Paare nach 72 h. Mehrwert: keine Lücke am Anfang der Reihe. Skizze: die Vorlage vor dem Einschalten der Paare einspielen (§121) | §121 |
+| V-GM-58 | Die Wirkung von `once` ist am echten Katalog nicht gemessen: in der einzigen lokal nachstellbaren Kette (21.11. 23 → 02 UTC) fiel nichts, was der Abgleich hätte löschen können. Mehrwert: ein Beleg, wie oft die Kachel „Fläche ohne Schneedecke“ heute nach einem Schneefall wieder springt. Skizze: nach dem Einschalten die Zählung `state.sat` gegen `nudged` an Läufen nach einem Schneefall lesen, oder den Cube eines Schneefall-Tags lokal nachstellen | offen |
+| V-GM-59 | In `verify:glacier-melt` heißt der Vergleich von Laufergebnissen in Block I `same()` — auf einfache Werte angewandt ist er immer wahr (`undefined === undefined`). Block J lief zuerst so und war an drei Stellen blind; die Gegenprobe fand es. Mehrwert: kein grüner Prüfer, der nichts prüft. Skizze: den Laufvergleich in `sameRun()` umbenennen und für Werte überall einen eigenen Vergleich nehmen; ältere Blöcke daraufhin durchsehen | offen (Block J behoben) |
 
 ## 4. Quellenliste (zur Prüfung durch Jan)
 
@@ -1249,9 +1507,9 @@ Alle Konstanten tragen ihre Herkunft (`measured`, `literature`, `set`).
 | GM-2 | Antrieb an drei Höhen im Producer (Schalter `--heights=three`), Schneeanteil je Höhe aus der eigenen Antwort, eigene Schneefallgrenze `slo`/`slk`; Kaltluftlage zu K-2 nachgestellt (§3b) | erledigt 22.11., lokal committet, Schalter ein (E-GM-6, §3b.7); wirkt mit dem Push |
 | GM-3 | Eichung an vergangenen Wintern: Niederschlag je Region und Höhe (Q13, Q14, Q17–Q19, Q21, Q22), Dichte (Q6, Q7), Brücke zu buscosun Fusion (§3c) | erledigt 22.11., lokal committet (`d09aecf6`): Tabelle `snow-calibration.json` (Urteil rot), `verify:glacier-snowcal`; Q20 (SLF-Datensatz 250 m) nicht benutzt |
 | GM-3b | E-GM-7 Faktor je Land im Schmelzlauf (`--precip=country`, ohne Verlauf) und E-GM-8 Neuschneedichte 96 kg/m³ als zweiter Konstantensatz des Schneekerns (`board`) (§3d) | erledigt 23.11., lokal committet, **beide Schalter ein** (E-GM-12, §3e); wirkt mit dem Push |
-| GM-3c | Schneekern im Producer als Schattenprodukt `glacier/v1/snowpack/` (Schalter `--snowpack=shadow`, aus), Vertrag `glacierSnowpackContract.ts`, Zustand unabhängig von der Taktung, Einschwingen ab 1.10. aus Analysen (`snowpack-seed.mjs`), alle Gletscher (§3f) | erledigt 23.11., auf `origin/main` (`c4b45c9e`); auf dem Runner eingeschaltet seit 23.11. abends (E-GM-18, §3f.8), erster Lauf steht aus |
-| GM-4 | Kopplung an Stationen, Abweichungstabelle, Nachbar-Übertrag; Satelliten-Abgleich einmal je Szene (behebt M-18) | gekoppelter Zustand |
-| GM-3d | Zustand des SCHMELZLAUFS an der Laufstunde mit 18 Stunden Antrieb (Schalter `--melt-state=run-hour`, aus), unabhängig von der Taktung (V-GM-32, §3g) | erledigt 23.11. abends, auf `origin/main` (`b7a0e859`); auf dem Runner eingeschaltet seit 23.11. 21:13 UTC (E-GM-19, §3g.8), erster Lauf steht aus |
+| GM-3c | Schneekern im Producer als Schattenprodukt `glacier/v1/snowpack/` (Schalter `--snowpack=shadow`, aus), Vertrag `glacierSnowpackContract.ts`, Zustand unabhängig von der Taktung, Einschwingen ab 1.10. aus Analysen (`snowpack-seed.mjs`), alle Gletscher (§3f) | erledigt 23.11., auf `origin/main` (`c4b45c9e`); auf dem Runner eingeschaltet seit 23.11. abends (E-GM-18, §3f.8), erster Lauf `2026112323` grün und nach Vertrag |
+| GM-4 | Kopplung an Stationen, Abweichungstabelle, Nachbar-Übertrag; Satelliten-Abgleich einmal je Szene (behebt M-18) | **Diagnose 23.11. (§3h): keine Kopplung belegt.** Gebaut als GM-4a (E-GM-20 … E-GM-23, uncommitted, Schalter aus): Schattenpaare + Archiv, Satellit einmal je Szene im Schmelzlauf, kein Übertrag. GM-4b (Kopplung) erst nach der Messung mit Schattenläufen (mindestens fünf Ereignisse je Station) |
+| GM-3d | Zustand des SCHMELZLAUFS an der Laufstunde mit 18 Stunden Antrieb (Schalter `--melt-state=run-hour`, aus), unabhängig von der Taktung (V-GM-32, §3g) | erledigt 23.11. abends, auf `origin/main` (`b7a0e859`); auf dem Runner eingeschaltet seit 23.11. 21:13 UTC (E-GM-19, §3g.8), erster Lauf `2026112323` wie erwartet, Nachrechnen noch nicht belegt |
 | GM-5 | Verteilung aus Sentinel-2, Szenarien und Spannen (das Einschwingen ist mit GM-3c vorgezogen) | vollständiges Produkt |
 | GM-6 | Betrieb: Workflow, Archiv des Zustands, tägliche Schattenpaare | läuft im Daten- und Archiv-Repo |
 | GM-7 | Anzeige im Dossier (Höhenleiter in cm mit Spanne, „berechnet, noch nicht nachgemessen“, Schalter), Vorbehalt auf jeder Ebene | sichtbar (E-GM-1) |
@@ -1287,7 +1545,8 @@ Reihenfolge: GM-1 und GM-2 zuerst (sie hängen an keiner offenen Quelle), GM-3 p
 - V-GM-6: Durchfeuchtung und Wiedergefrieren fehlen im Kern; die Schneehöhe wird damit im Frühjahr zu hoch ausfallen. Vor dem Frühjahr 2027 an IMIS-Reihen nachziehen.
 - V-GM-7: Die Schichtdauer von 6 Stunden begrenzt die Schärfe von „Neuschnee 24 h“; angeschnittene Schichten zählen anteilig. Kürzere Schichten kosten Zustandsgröße (mit V-GM-4 messen).
 - V-GM-8: Der Vertrag `glacierSnowpackContract.ts` und der Pfad `glacier/v1/snowpack/` entstehen mit der Verdrahtung im Producer (GM-2/GM-5), nicht mit dem Kern. — **erledigt mit GM-3c (§3f).**
-- E-GM-14 … E-GM-18 und V-GM-32 … V-GM-42: §3f.7. E-GM-18 ist umgesetzt (§3f.8); offen dazu: der erste Lauf mit Schalter. V-GM-39 (Prüfer in die CI) ist umgesetzt, V-GM-43 (roter CI-Lauf durch eine Zeitprüfung in `verify:pv-cube`) behoben — beides auf `origin/main` (`5fb86b4f`), CI grün. Offen bei Jan: V-GM-44 (Aktionen der CI auf Node 24).
-- V-GM-32 ist mit GM-3d gebaut (§3g), Schalter aus; E-GM-19 (Einschalten von `run-hour`) und V-GM-45 … V-GM-47: §3g.7. GM-3d ist gepusht (`b7a0e859`) und eingeschaltet (E-GM-19, §3g.8); offen dazu: der erste Lauf mit dem Schalter und der Commit der nachgezogenen Workflow-Vorlage.
+- E-GM-14 … E-GM-18 und V-GM-32 … V-GM-42: §3f.7. E-GM-18 ist umgesetzt, der erste Lauf (`2026112323`) gelesen (§3f.8); offen dazu: der zweite Lauf (Zustand fortgeschrieben?). V-GM-39 (Prüfer in die CI) ist umgesetzt, V-GM-43 (roter CI-Lauf durch eine Zeitprüfung in `verify:pv-cube`) behoben — beides auf `origin/main` (`5fb86b4f`), CI grün. Offen bei Jan: V-GM-44 (Aktionen der CI auf Node 24).
+- V-GM-32 ist mit GM-3d gebaut (§3g), Schalter aus; E-GM-19 (Einschalten von `run-hour`) und V-GM-45 … V-GM-47: §3g.7. GM-3d ist gepusht (`b7a0e859`) und eingeschaltet (E-GM-19, §3g.8); der erste Lauf (`2026112323`) ist gelesen (§3g.8); offen dazu: das Nachrechnen im nächsten Lauf und der Commit der nachgezogenen Workflow-Vorlage.
 - V-GM-4 (Speicherbedarf des Zustandsarchivs): der Zustand wiegt 1,8 MB roh je Lauf (§3f.5); ein Archiv gibt es noch nicht (GM-6).
 - V-GM-7 (Schichtdauer 6 h): im Zustand hält fast jede Höhe zwölf frische Schichten; kürzere Schichten würden ihn entsprechend vergrößern (V-GM-37).
+- GM-4 (§3h): Diagnose, E-GM-20 … E-GM-23 entschieden und als GM-4a gebaut (Schalter aus, uncommitted); offen E-GM-24 (Einschalten) und V-GM-48 … V-GM-59; GM-4b (Kopplung) wartet auf die Messung mit Schattenläufen.

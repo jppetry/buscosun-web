@@ -1,0 +1,698 @@
+{
+ "kind": "gm5/inventory",
+ "generated": "2026-11-23T22:33:36.908Z",
+ "codeCommit": "dc982141",
+ "dataRepoCommit": "c0f4686fac6068d766f59bb68fa342ecbaf14ada",
+ "static": "20261120-1",
+ "rowColumns": [
+  "date",
+  "clear",
+  "snow",
+  "state (0 covered, 1 snowline, 2 free)",
+  "sla|null",
+  "aar|null",
+  "albSnow|null",
+  "albIce|null",
+  "flags bitmask (1 neuschnee, 2 schatten, 4 schutt)"
+ ],
+ "perBandField": false,
+ "files": [
+  {
+   "year": 2023,
+   "region": "ch-mitte-ost",
+   "stand": "20261011T2152Z",
+   "glaciers": 2
+  },
+  {
+   "year": 2023,
+   "region": "ch-mitte-west",
+   "stand": "20261011T2152Z",
+   "glaciers": 8
+  },
+  {
+   "year": 2023,
+   "region": "ch-ost",
+   "stand": "20261011T2152Z",
+   "glaciers": 3
+  },
+  {
+   "year": 2023,
+   "region": "ch-sued",
+   "stand": "20261011T2152Z",
+   "glaciers": 4
+  },
+  {
+   "year": 2023,
+   "region": "ch-west",
+   "stand": "20261011T2152Z",
+   "glaciers": 9
+  },
+  {
+   "year": 2024,
+   "region": "ch-mitte-ost",
+   "stand": "20261011T2147Z",
+   "glaciers": 2
+  },
+  {
+   "year": 2024,
+   "region": "ch-mitte-west",
+   "stand": "20261011T2147Z",
+   "glaciers": 8
+  },
+  {
+   "year": 2024,
+   "region": "ch-ost",
+   "stand": "20261011T2147Z",
+   "glaciers": 3
+  },
+  {
+   "year": 2024,
+   "region": "ch-sued",
+   "stand": "20261011T2147Z",
+   "glaciers": 4
+  },
+  {
+   "year": 2024,
+   "region": "ch-west",
+   "stand": "20261011T2147Z",
+   "glaciers": 9
+  },
+  {
+   "year": 2025,
+   "region": "at-ankogel-hochalmspitzgruppe",
+   "stand": "20261011T2121Z",
+   "glaciers": 3
+  },
+  {
+   "year": 2025,
+   "region": "at-dachstein",
+   "stand": "20261011T2121Z",
+   "glaciers": 1
+  },
+  {
+   "year": 2025,
+   "region": "at-glocknergruppe",
+   "stand": "20261011T2121Z",
+   "glaciers": 10
+  },
+  {
+   "year": 2025,
+   "region": "at-goldberggruppe",
+   "stand": "20261011T2121Z",
+   "glaciers": 3
+  },
+  {
+   "year": 2025,
+   "region": "at-granatspitzgruppe",
+   "stand": "20261011T2121Z",
+   "glaciers": 1
+  },
+  {
+   "year": 2025,
+   "region": "at-oetztaler-alpen",
+   "stand": "20261011T2121Z",
+   "glaciers": 19
+  },
+  {
+   "year": 2025,
+   "region": "at-silvrettagruppe",
+   "stand": "20261011T2121Z",
+   "glaciers": 2
+  },
+  {
+   "year": 2025,
+   "region": "at-stubaier-alpen",
+   "stand": "20261011T2121Z",
+   "glaciers": 9
+  },
+  {
+   "year": 2025,
+   "region": "at-venedigergruppe",
+   "stand": "20261011T2121Z",
+   "glaciers": 15
+  },
+  {
+   "year": 2025,
+   "region": "at-zillertaler-alpen",
+   "stand": "20261011T2121Z",
+   "glaciers": 8
+  },
+  {
+   "year": 2025,
+   "region": "ch-mitte-ost",
+   "stand": "20261011T2121Z",
+   "glaciers": 21
+  },
+  {
+   "year": 2025,
+   "region": "ch-mitte-west",
+   "stand": "20261011T2121Z",
+   "glaciers": 81
+  },
+  {
+   "year": 2025,
+   "region": "ch-ost",
+   "stand": "20261011T2121Z",
+   "glaciers": 17
+  },
+  {
+   "year": 2025,
+   "region": "ch-sued",
+   "stand": "20261011T2121Z",
+   "glaciers": 14
+  },
+  {
+   "year": 2025,
+   "region": "ch-west",
+   "stand": "20261011T2121Z",
+   "glaciers": 32
+  },
+  {
+   "year": 2026,
+   "region": "at-ankogel-hochalmspitzgruppe",
+   "stand": "20261123T1645Z",
+   "glaciers": 7
+  },
+  {
+   "year": 2026,
+   "region": "at-dachstein",
+   "stand": "20261123T1645Z",
+   "glaciers": 4
+  },
+  {
+   "year": 2026,
+   "region": "at-glocknergruppe",
+   "stand": "20261123T1645Z",
+   "glaciers": 39
+  },
+  {
+   "year": 2026,
+   "region": "at-goldberggruppe",
+   "stand": "20261123T1645Z",
+   "glaciers": 11
+  },
+  {
+   "year": 2026,
+   "region": "at-granatspitzgruppe",
+   "stand": "20261123T1645Z",
+   "glaciers": 8
+  },
+  {
+   "year": 2026,
+   "region": "at-hochkoenig",
+   "stand": "20261123T1645Z",
+   "glaciers": 1
+  },
+  {
+   "year": 2026,
+   "region": "at-karnische-alpen",
+   "stand": "20261123T1645Z",
+   "glaciers": 1
+  },
+  {
+   "year": 2026,
+   "region": "at-oetztaler-alpen",
+   "stand": "20261123T1645Z",
+   "glaciers": 92
+  },
+  {
+   "year": 2026,
+   "region": "at-raetikon",
+   "stand": "20261123T1645Z",
+   "glaciers": 1
+  },
+  {
+   "year": 2026,
+   "region": "at-rieserfernergruppe",
+   "stand": "20261123T1645Z",
+   "glaciers": 2
+  },
+  {
+   "year": 2026,
+   "region": "at-schobergruppe",
+   "stand": "20261123T1645Z",
+   "glaciers": 2
+  },
+  {
+   "year": 2026,
+   "region": "at-silvrettagruppe",
+   "stand": "20261123T1645Z",
+   "glaciers": 18
+  },
+  {
+   "year": 2026,
+   "region": "at-stubaier-alpen",
+   "stand": "20261123T1645Z",
+   "glaciers": 43
+  },
+  {
+   "year": 2026,
+   "region": "at-venedigergruppe",
+   "stand": "20261123T1645Z",
+   "glaciers": 36
+  },
+  {
+   "year": 2026,
+   "region": "at-verwallgruppe",
+   "stand": "20261123T1645Z",
+   "glaciers": 6
+  },
+  {
+   "year": 2026,
+   "region": "at-zillertaler-alpen",
+   "stand": "20261123T1645Z",
+   "glaciers": 40
+  },
+  {
+   "year": 2026,
+   "region": "ch-mitte-ost",
+   "stand": "20261123T1645Z",
+   "glaciers": 110
+  },
+  {
+   "year": 2026,
+   "region": "ch-mitte-west",
+   "stand": "20261123T1645Z",
+   "glaciers": 252
+  },
+  {
+   "year": 2026,
+   "region": "ch-ost",
+   "stand": "20261123T1645Z",
+   "glaciers": 108
+  },
+  {
+   "year": 2026,
+   "region": "ch-sued",
+   "stand": "20261123T1645Z",
+   "glaciers": 30
+  },
+  {
+   "year": 2026,
+   "region": "ch-west",
+   "stand": "20261123T1645Z",
+   "glaciers": 106
+  }
+ ],
+ "catalogue": 2094,
+ "catalogueKlassMismatch": 136,
+ "glaciersWithRows": 921,
+ "perYear": {
+  "2023": {
+   "glaciers": 26,
+   "byCountry": {
+    "CH": 26
+   },
+   "byClass": {
+    "A": 20,
+    "B": 6
+   },
+   "rows": 198,
+   "rowsWithSla": 167,
+   "states": {
+    "covered": 1,
+    "snowline": 192,
+    "free": 5
+   },
+   "flags": {
+    "neuschnee": 2,
+    "schatten": 15,
+    "schutt": 5
+   },
+   "rowsMay": 0,
+   "rowsJunSep": 134,
+   "rowsOctNov": 64
+  },
+  "2024": {
+   "glaciers": 26,
+   "byCountry": {
+    "CH": 26
+   },
+   "byClass": {
+    "A": 20,
+    "B": 6
+   },
+   "rows": 157,
+   "rowsWithSla": 114,
+   "states": {
+    "covered": 16,
+    "snowline": 135,
+    "free": 6
+   },
+   "flags": {
+    "neuschnee": 37,
+    "schatten": 16,
+    "schutt": 4
+   },
+   "rowsMay": 0,
+   "rowsJunSep": 114,
+   "rowsOctNov": 43
+  },
+  "2025": {
+   "glaciers": 236,
+   "byCountry": {
+    "AT": 71,
+    "CH": 165
+   },
+   "byClass": {
+    "A": 204,
+    "B": 32
+   },
+   "rows": 2316,
+   "rowsWithSla": 2076,
+   "states": {
+    "covered": 104,
+    "snowline": 2173,
+    "free": 39
+   },
+   "flags": {
+    "neuschnee": 344,
+    "schatten": 345,
+    "schutt": 195
+   },
+   "rowsMay": 0,
+   "rowsJunSep": 1874,
+   "rowsOctNov": 442
+  },
+  "2026": {
+   "glaciers": 917,
+   "byCountry": {
+    "AT": 311,
+    "CH": 606
+   },
+   "byClass": {
+    "A": 204,
+    "B": 643,
+    "C": 70
+   },
+   "rows": 10978,
+   "rowsWithSla": 3641,
+   "states": {
+    "covered": 544,
+    "snowline": 8622,
+    "free": 1812
+   },
+   "flags": {
+    "neuschnee": 1143,
+    "schatten": 4566,
+    "schutt": 1186
+   },
+   "rowsMay": 0,
+   "rowsJunSep": 4862,
+   "rowsOctNov": 6116
+  }
+ },
+ "cells": {
+  "2023 CH A": {
+   "glacierYears": 20,
+   "rowsJunSep": {
+    "p10": 2,
+    "median": 7,
+    "p90": 8
+   },
+   "slaJunSep": {
+    "p10": 2,
+    "median": 7,
+    "p90": 8
+   },
+   "maxGapJunSepDays": {
+    "p10": 12,
+    "median": 15,
+    "p90": 18
+   },
+   "withAtLeast6SlaJunSep": 13
+  },
+  "2023 CH B": {
+   "glacierYears": 6,
+   "rowsJunSep": {
+    "p10": 3,
+    "median": 3,
+    "p90": 5
+   },
+   "slaJunSep": {
+    "p10": 0,
+    "median": 0,
+    "p90": 0
+   },
+   "maxGapJunSepDays": {
+    "p10": 20,
+    "median": 20,
+    "p90": 20
+   },
+   "withAtLeast6SlaJunSep": 0
+  },
+  "2024 CH A": {
+   "glacierYears": 20,
+   "rowsJunSep": {
+    "p10": 3,
+    "median": 5,
+    "p90": 6
+   },
+   "slaJunSep": {
+    "p10": 1,
+    "median": 5,
+    "p90": 6
+   },
+   "maxGapJunSepDays": {
+    "p10": 7,
+    "median": 10,
+    "p90": 15
+   },
+   "withAtLeast6SlaJunSep": 6
+  },
+  "2024 CH B": {
+   "glacierYears": 6,
+   "rowsJunSep": {
+    "p10": 3,
+    "median": 4,
+    "p90": 5
+   },
+   "slaJunSep": {
+    "p10": 0,
+    "median": 0,
+    "p90": 0
+   },
+   "maxGapJunSepDays": {
+    "p10": 10,
+    "median": 10,
+    "p90": 22
+   },
+   "withAtLeast6SlaJunSep": 0
+  },
+  "2025 CH A": {
+   "glacierYears": 138,
+   "rowsJunSep": {
+    "p10": 3,
+    "median": 8,
+    "p90": 19
+   },
+   "slaJunSep": {
+    "p10": 2,
+    "median": 8,
+    "p90": 16
+   },
+   "maxGapJunSepDays": {
+    "p10": 7,
+    "median": 10,
+    "p90": 17
+   },
+   "withAtLeast6SlaJunSep": 96
+  },
+  "2025 CH B": {
+   "glacierYears": 27,
+   "rowsJunSep": {
+    "p10": 3,
+    "median": 6,
+    "p90": 13
+   },
+   "slaJunSep": {
+    "p10": 0,
+    "median": 5,
+    "p90": 10
+   },
+   "maxGapJunSepDays": {
+    "p10": 7,
+    "median": 13,
+    "p90": 23
+   },
+   "withAtLeast6SlaJunSep": 10
+  },
+  "2025 AT A": {
+   "glacierYears": 66,
+   "rowsJunSep": {
+    "p10": 3,
+    "median": 5,
+    "p90": 10
+   },
+   "slaJunSep": {
+    "p10": 2,
+    "median": 4,
+    "p90": 9
+   },
+   "maxGapJunSepDays": {
+    "p10": 8,
+    "median": 18,
+    "p90": 25
+   },
+   "withAtLeast6SlaJunSep": 22
+  },
+  "2025 AT B": {
+   "glacierYears": 5,
+   "rowsJunSep": {
+    "p10": 7,
+    "median": 9,
+    "p90": 14
+   },
+   "slaJunSep": {
+    "p10": 0,
+    "median": 0,
+    "p90": 0
+   },
+   "maxGapJunSepDays": {
+    "p10": 17,
+    "median": 27,
+    "p90": 48
+   },
+   "withAtLeast6SlaJunSep": 0
+  },
+  "2026 CH A": {
+   "glacierYears": 137,
+   "rowsJunSep": {
+    "p10": 4,
+    "median": 12,
+    "p90": 22
+   },
+   "slaJunSep": {
+    "p10": 3,
+    "median": 12,
+    "p90": 19
+   },
+   "maxGapJunSepDays": {
+    "p10": 8,
+    "median": 10,
+    "p90": 22
+   },
+   "withAtLeast6SlaJunSep": 104
+  },
+  "2026 CH B": {
+   "glacierYears": 399,
+   "rowsJunSep": {
+    "p10": 1,
+    "median": 5,
+    "p90": 7
+   },
+   "slaJunSep": {
+    "p10": 0,
+    "median": 0,
+    "p90": 0
+   },
+   "maxGapJunSepDays": {
+    "p10": 3,
+    "median": 3,
+    "p90": 9
+   },
+   "withAtLeast6SlaJunSep": 11
+  },
+  "2026 AT A": {
+   "glacierYears": 67,
+   "rowsJunSep": {
+    "p10": 3,
+    "median": 7,
+    "p90": 12
+   },
+   "slaJunSep": {
+    "p10": 3,
+    "median": 7,
+    "p90": 11
+   },
+   "maxGapJunSepDays": {
+    "p10": 5,
+    "median": 10,
+    "p90": 20
+   },
+   "withAtLeast6SlaJunSep": 43
+  },
+  "2026 AT B": {
+   "glacierYears": 244,
+   "rowsJunSep": {
+    "p10": 0,
+    "median": 2,
+    "p90": 5
+   },
+   "slaJunSep": {
+    "p10": 0,
+    "median": 0,
+    "p90": 0
+   },
+   "maxGapJunSepDays": {
+    "p10": 3,
+    "median": 4,
+    "p90": 10
+   },
+   "withAtLeast6SlaJunSep": 0
+  }
+ },
+ "withRows": {
+  "AT C": {
+   "catalogue": 483,
+   "withRows": 0,
+   "years": {}
+  },
+  "AT B": {
+   "catalogue": 249,
+   "withRows": 244,
+   "years": {
+    "1": 239,
+    "2": 5
+   }
+  },
+  "AT A": {
+   "catalogue": 67,
+   "withRows": 67,
+   "years": {
+    "1": 1,
+    "2": 66
+   }
+  },
+  "CH B": {
+   "catalogue": 472,
+   "withRows": 400,
+   "years": {
+    "1": 374,
+    "2": 20,
+    "4": 6
+   }
+  },
+  "CH C": {
+   "catalogue": 674,
+   "withRows": 70,
+   "years": {
+    "1": 70
+   }
+  },
+  "CH A": {
+   "catalogue": 145,
+   "withRows": 140,
+   "years": {
+    "1": 5,
+    "2": 115,
+    "4": 20
+   }
+  },
+  "DE C": {
+   "catalogue": 3,
+   "withRows": 0,
+   "years": {}
+  },
+  "DE B": {
+   "catalogue": 1,
+   "withRows": 0,
+   "years": {}
+  }
+ },
+ "classAGlaciersByYearsWithRows": {
+  "1": 6,
+  "2": 181,
+  "4": 20
+ }
+}

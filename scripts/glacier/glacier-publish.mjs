@@ -98,7 +98,11 @@ export const GLACIER_POLICIES = Object.freeze({
   static: [{ prefix: 'static', keepNewest: 2 }],
   sat: [], feed: [],
   // snowpack run documents older than 72 h go (the state has no stamp in its name and stays); nothing below `melt/` is pruned, as before
-  melt: [{ prefix: 'snowpack', olderThanMs: 72 * 3_600_000, stampOf: (n) => { const m = /^(\d{4})(\d{2})(\d{2})(\d{2})\.json$/.exec(n); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4]) : null; } }],
+  // GM-4 (E-GM-20): the shadow pairs under `snowpack/pairs/` likewise (the archive keeps them, E-GM-21)
+  melt: [
+    { prefix: 'snowpack', olderThanMs: 72 * 3_600_000, stampOf: (n) => { const m = /^(\d{4})(\d{2})(\d{2})(\d{2})\.json$/.exec(n); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4]) : null; } },
+    { prefix: 'snowpack/pairs', olderThanMs: 72 * 3_600_000, stampOf: (n) => { const m = /^(\d{4})(\d{2})(\d{2})(\d{2})\.json$/.exec(n); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4]) : null; } },
+  ],
   // hour files older than 72 h go (the archive keeps them); the two newest mappings stay
   stations: [
     { prefix: 'stn/h', olderThanMs: 72 * 3_600_000, stampOf: (n) => { const m = /^(\d{4})(\d{2})(\d{2})(\d{2})(30)?\.json$/.exec(n); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], m[5] ? 30 : 0) : null; } },

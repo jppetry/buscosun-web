@@ -1,0 +1,287 @@
+{
+ "generated": "2026-11-23T22:58:48.501Z",
+ "verifiers": [
+  "verify:glacier-snowpack",
+  "verify:glacier-melt"
+ ],
+ "greenBefore": true,
+ "greenAfter": true,
+ "noticed": 39,
+ "of": 39,
+ "crashedOnly": 0,
+ "mutations": [
+  {
+   "name": "Voreinstellung der Schattenpaare „on“",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: H1",
+   "crashedOnly": false
+  },
+  {
+   "name": "unbekanntes Wort der Paare fällt auf „off“ zurück",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: H1",
+   "crashedOnly": false
+  },
+  {
+   "name": "unter der Zunge hochgerechnet",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: H3, H3b",
+   "crashedOnly": false
+  },
+  {
+   "name": "über der Oberkante der Wert der Mitte",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: H3, H3b",
+   "crashedOnly": false
+  },
+  {
+   "name": "immer zwischen Zunge und Mitte interpoliert",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: H3b",
+   "crashedOnly": false
+  },
+  {
+   "name": "zu alter Stationswert gilt",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: H4",
+   "crashedOnly": false
+  },
+  {
+   "name": "Stationswert aus der Zukunft gilt",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: H4",
+   "crashedOnly": false
+  },
+  {
+   "name": "Station ohne Schneehöhe wird nicht erkannt",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: H2, H3, H4, H5, H B",
+   "crashedOnly": false
+  },
+  {
+   "name": "gelieferte Änderung der Schneehöhe fehlt",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: H3",
+   "crashedOnly": false
+  },
+  {
+   "name": "zugeordnete Gletscher ohne Zeile werden nicht gezählt",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: H3",
+   "crashedOnly": false
+  },
+  {
+   "name": "Zuordnung ohne `ext` wird als Ganzes gelesen",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: H5",
+   "crashedOnly": false
+  },
+  {
+   "name": "Umgebungsvariable der Paare wird nicht gelesen",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: H2",
+   "crashedOnly": false
+  },
+  {
+   "name": "Wort der Paare wird auch ohne Schneedecke gelesen",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: H1",
+   "crashedOnly": false
+  },
+  {
+   "name": "Paare auch ohne geschriebene Schneedecke",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: H5",
+   "crashedOnly": false
+  },
+  {
+   "name": "kein Rückgriff auf den Slot der Stunde davor",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: H5",
+   "crashedOnly": false
+  },
+  {
+   "name": "Statuszeile nennt die Paare nicht",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: H3, H5",
+   "crashedOnly": false
+  },
+  {
+   "name": "Zeitfenster 90 statt 60 min",
+   "file": "src/glacier/glacierSnowpackPairsContract.ts",
+   "noticed": true,
+   "by": "glacier-snowpack: H4, H6",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag prüft die Herkunft nicht",
+   "file": "src/glacier/glacierSnowpackPairsContract.ts",
+   "noticed": true,
+   "by": "glacier-snowpack: H6",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag nimmt einen Wert außerhalb des Fensters",
+   "file": "src/glacier/glacierSnowpackPairsContract.ts",
+   "noticed": true,
+   "by": "glacier-snowpack: H6",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag nimmt doppelte Paare",
+   "file": "src/glacier/glacierSnowpackPairsContract.ts",
+   "noticed": true,
+   "by": "glacier-snowpack: H6",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag zählt die Werte nicht nach",
+   "file": "src/glacier/glacierSnowpackPairsContract.ts",
+   "noticed": true,
+   "by": "glacier-snowpack: H6",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag nimmt Gletscher ohne Zeile der Schneedecke",
+   "file": "src/glacier/glacierSnowpackPairsContract.ts",
+   "noticed": true,
+   "by": "glacier-snowpack: H6",
+   "crashedOnly": false
+  },
+  {
+   "name": "Paare bleiben 30 Tage im Daten-Repo",
+   "file": "scripts/glacier/glacier-publish.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: H7",
+   "crashedOnly": false
+  },
+  {
+   "name": "Archiv legt ein Dokument ab, das den Vertrag bricht",
+   "file": "scripts/glacier/glacier-archive.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: H7",
+   "crashedOnly": false
+  },
+  {
+   "name": "Archiv überschreibt eine vorhandene Datei",
+   "file": "scripts/glacier/glacier-archive.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: H7",
+   "crashedOnly": false
+  },
+  {
+   "name": "Voreinstellung des Satelliten-Abgleichs „once“",
+   "file": "scripts/glacier/lib/meltstate.mjs",
+   "noticed": true,
+   "by": "glacier-melt: I4, J1, J2",
+   "crashedOnly": false
+  },
+  {
+   "name": "unbekanntes Wort des Satelliten-Schalters fällt zurück",
+   "file": "scripts/glacier/lib/meltstate.mjs",
+   "noticed": true,
+   "by": "glacier-melt: J1, J2",
+   "crashedOnly": false
+  },
+  {
+   "name": "dieselbe Szene greift wieder",
+   "file": "scripts/glacier/lib/meltstate.mjs",
+   "noticed": true,
+   "by": "glacier-melt: J1, J3, J4",
+   "crashedOnly": false
+  },
+  {
+   "name": "der Modus wird bei der Szene nicht beachtet",
+   "file": "scripts/glacier/lib/meltstate.mjs",
+   "noticed": true,
+   "by": "glacier-melt: J1",
+   "crashedOnly": false
+  },
+  {
+   "name": "Umgebungsvariable des Satelliten-Schalters wird nicht gelesen",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: J2",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vermerk gilt auch für einen verworfenen Zustand",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: J4",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vermerk wird beim Abgleich nicht erneuert",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: J2, J3, J4",
+   "crashedOnly": false
+  },
+  {
+   "name": "gehaltene Szene wird nicht gezählt",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: J3, J4",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vermerk wird nicht weitergetragen",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: J3, J4",
+   "crashedOnly": false
+  },
+  {
+   "name": "Zustand trägt keinen Vermerk",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: J2, J3, J4",
+   "crashedOnly": false
+  },
+  {
+   "name": "Dokument zählt die Szenen nicht",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: J2, J3, J4",
+   "crashedOnly": false
+  },
+  {
+   "name": "Statuszeile nennt den Satelliten-Modus nicht",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: J2",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag prüft das Datum des Vermerks nicht",
+   "file": "src/glacier/glacierMeltContract.ts",
+   "noticed": true,
+   "by": "glacier-melt: J5",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag nimmt einen Vermerk ohne Zustand",
+   "file": "src/glacier/glacierMeltContract.ts",
+   "noticed": true,
+   "by": "glacier-melt: J5",
+   "crashedOnly": false
+  }
+ ]
+}

@@ -1,0 +1,104 @@
+{
+ "kind": "gm5/light",
+ "generated": "2026-11-23T23:01:24.578Z",
+ "codeCommit": "dc982141",
+ "run": "2026112117",
+ "method": {
+  "sha256": "a9964eb9bdac7cbff0689f67c0d5606e5e37e617e48eb239ee69160bc6e5b98b"
+ },
+ "runStatus": {
+  "meltSeconds": 370,
+  "levelsSeconds": 211,
+  "snowpackSeconds": 16,
+  "snowpackGlaciers": 2084,
+  "coverage": {
+   "own": 957,
+   "neighbour": 1127,
+   "lapse": 0
+  },
+  "note": "one run, machine under memory pressure; the scenario phase of the same process was stopped by the system and is not measured"
+ },
+ "sigma": {
+  "F": 0.24758283498332476,
+  "factorRatios": {
+   "n": 43,
+   "p10": 0.7287521993361096,
+   "median": 1.0295509152285458,
+   "p90": 1.3746275191610233
+  },
+  "rhoSystematic": 0.1205240250723771,
+  "rhoSites": {
+   "n": 16,
+   "p10": 81.5,
+   "median": 100,
+   "p90": 111
+  },
+  "rhoEvent": 0.3212746223302299
+ },
+ "weatherPart": {
+  "glaciers": 2084,
+  "ownWithScenarios": 957,
+  "withoutSpread": 1127,
+  "k": 100,
+  "rule": {
+   "sums": "scenarios",
+   "k": 100,
+   "rho": 0.9,
+   "gust": "strongest-hour",
+   "origin": "set"
+  },
+  "snqWidthMm": {
+   "day1": 13.1,
+   "day7": 1,
+   "day14": 3.1
+  },
+  "snExpectedMm": {
+   "day1": 5.1,
+   "day7": 0.9,
+   "day14": 2.1
+  },
+  "pqWidthMm": {
+   "day1": 13.1,
+   "day7": 1,
+   "day14": 3.2
+  }
+ },
+ "vgm41": {
+  "snowpackExpected": {
+   "glacierDays": 14588,
+   "atLeast05cm": 0.9997943515217987,
+   "atLeast01cm": 1,
+   "sumDays8to14Cm": {
+    "p10": 20.099999999999998,
+    "median": 26,
+    "p90": 43
+   }
+  },
+  "weatherScenariosMm": {
+   "glacierDays": 6699,
+   "expectedAtLeast05mm": 0.9923869234214062,
+   "p10AtLeast05mm": 0.029407374234960443,
+   "p90AtLeast05mm": 0.9513360203015375
+  }
+ },
+ "nowEstimate": {
+  "hsMedian": 112.30000000000001,
+  "hsWidth": 72.4679522788941,
+  "sweMedian": 221.85000000000002,
+  "sweWidth": 143.16131089111894,
+  "hn72Median": 33.6,
+  "hn72Width": 24.210316533067754,
+  "p10p90Factor": [
+   0.7281107149927303,
+   1.373417502872464
+  ]
+ },
+ "size": {
+  "docRaw": 1254509,
+  "docGzip": 310554,
+  "extRaw": 3013301,
+  "extGzip": 407139,
+  "stateRaw": 1813215,
+  "note": "ext = document + hsq/hnq [p10[], p90[]] per elevation; expected values stand in for the quantiles (size only)"
+ }
+}

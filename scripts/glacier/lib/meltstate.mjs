@@ -25,6 +25,23 @@ export function meltStateModeOf(word) {
   return word;
 }
 
+/**
+ * GM-4 (E-GM-22, M-18): how often a Sentinel-2 scene nudges the carried snow state. `every` (the default and the named fall back) = as always: the
+ * newest season row of a glacier nudges in EVERY run while it is at most `MELT_SAT_MAX_AGE_DAYS` old. `once` = a scene nudges a glacier's state once;
+ * the state file names, per glacier, the date of the row it took last (`sat`), and only a newer row nudges again. A glacier whose state was not carried
+ * (cold start, other bands) takes the scene again — the record belongs to the state it was applied to.
+ */
+export const SAT_NUDGE_MODES = Object.freeze(['every', 'once']);
+export const SAT_NUDGE_DEFAULT = 'every';
+/** The switch `--sat-nudge` / `GLACIER_SAT_NUDGE`: empty = the default, an unknown word throws (the run stops before it reads or writes anything). */
+export function satNudgeModeOf(word) {
+  if (word == null || word === '') return SAT_NUDGE_DEFAULT;
+  if (!SAT_NUDGE_MODES.includes(word)) throw new Error(`--sat-nudge=${word}: unbekannt (erlaubt: ${SAT_NUDGE_MODES.join(', ')})`);
+  return word;
+}
+/** Does the season row dated `rowDate` (yyyy-mm-dd) nudge a state that last took the row dated `seen` (or none)? Only under `once` can the answer be no. */
+export const satRowDue = (mode, rowDate, seen) => mode !== 'once' || seen == null || rowDate > seen;
+
 const q = (v, f) => (Number.isFinite(v) ? Math.round(v * f) / f : null);
 /** The first `hours` of a forcing in the form the state file carries: `[zRef, t (0.01 K), fz (1 m), g (1 W/m²), p (0.01 mm)]`, a missing value is `null`. */
 export function pendOfForcing(f, hours = GLACIER_MELT_STATE_PEND_H) {

@@ -1,0 +1,13 @@
+{
+ "kind": "gm5/order-explore",
+ "exploratory": true,
+ "writtenAfter": "first scored run of gm5-distribution.mjs",
+ "codeCommit": "dc982141",
+ "seasonPairs": 61,
+ "bandPairs": 3266,
+ "strictlyDiscordant": 0,
+ "tiedInFirst": 1157,
+ "tiedInEither": 1375,
+ "tiedShare": 0.42100428658909983,
+ "distinctDaysPerBandMedian": 0.3333333333333333
+}

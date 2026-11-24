@@ -1,0 +1,143 @@
+{
+ "source": {
+  "repo": "jppetry/buscosun-data",
+  "map": "glacier/v1/stn/map/20261120-1.4.json",
+  "slot": "glacier/v1/stn/h/2026112321.json",
+  "slotHour": "2026-11-23T21:00:00.000Z"
+ },
+ "chosen": {
+  "tirol": "tirol:089a933f-6efd-4c92-822b-fa65fef32380",
+  "imis": "imis:ADE2",
+  "bz": "bz:15000SF",
+  "missing": "imis:BOR2"
+ },
+ "rows": {
+  "tirol": {
+   "glacier": "gl_at_fasul-ferner-m",
+   "snow": [
+    "tirol:089a933f-6efd-4c92-822b-fa65fef32380",
+    2.7,
+    -308
+   ]
+  },
+  "imis": {
+   "glacier": "gl_ch_ammertegletscher-e",
+   "snow": [
+    "imis:ADE2",
+    3,
+    -359
+   ]
+  },
+  "bz": {
+   "glacier": "gl_at_hintereisferner-mit-toteis",
+   "snow": [
+    "bz:15000SF",
+    0.5,
+    -31
+   ]
+  },
+  "missing": {
+   "glacier": "gl_ch_chummibort-s",
+   "snow": [
+    "imis:BOR2",
+    3.7,
+    204
+   ]
+  }
+ },
+ "stations": {
+  "tirol:089a933f-6efd-4c92-822b-fa65fef32380": {
+   "name": "Adamsberg",
+   "elev": 2431,
+   "lat": 46.984781,
+   "lon": 10.190156,
+   "net": "tirol",
+   "op": "LWD Tirol"
+  },
+  "imis:ADE2": {
+   "name": "Engstligenalp",
+   "elev": 2304,
+   "lat": 46.43437,
+   "lon": 7.58263,
+   "net": "imis",
+   "op": "WSL-Institut für Schnee- und Lawinenforschung SLF"
+  },
+  "bz:15000SF": {
+   "name": "Schnals Teufelsegg",
+   "elev": 3035,
+   "lat": 46.7847,
+   "lon": 10.7647,
+   "net": "bz",
+   "op": "Autonome Provinz Bozen – Südtirol"
+  },
+  "imis:BOR2": {
+   "name": "Bortelsee",
+   "elev": 2517,
+   "lat": 46.29053,
+   "lon": 8.1093,
+   "net": "imis",
+   "op": "WSL-Institut für Schnee- und Lawinenforschung SLF"
+  }
+ },
+ "slot": {
+  "schema": 1,
+  "kind": "glacier/stations-hour",
+  "hour": "2026112321",
+  "stations": {
+   "bz:15000SF": {
+    "t": "2026-11-23T21:00:00.000Z",
+    "src": "bz",
+    "v": {
+     "t": -11.6,
+     "rh": 58,
+     "snow": 23.8
+    }
+   },
+   "tirol:089a933f-6efd-4c92-822b-fa65fef32380": {
+    "t": "2026-11-23T21:00:00.000Z",
+    "src": "tirol",
+    "v": {
+     "t": -6.5,
+     "td": -7.1,
+     "rh": 95.5,
+     "snow": 89
+    },
+    "hsd": {
+     "h24": 26.7,
+     "h48": 36.4,
+     "h72": 44.1
+    }
+   }
+  },
+  "ext": {
+   "stations": {
+    "imis:ADE2": {
+     "t": "2026-11-23T20:30:00.000Z",
+     "src": "imis",
+     "v": {
+      "t": -5.3,
+      "rh": 100,
+      "ff": 0.18,
+      "dd": 186,
+      "fx": 1.45,
+      "snow": 75.9
+     }
+    },
+    "imis:BOR2": {
+     "t": "2026-11-23T20:30:00.000Z",
+     "src": "imis",
+     "v": {
+      "t": -6.5,
+      "rh": 100
+     },
+     "older": {
+      "snow": {
+       "v": 82.6,
+       "t": "2026-11-23T20:00:00.000Z"
+      }
+     }
+    }
+   }
+  }
+ }
+}

@@ -1,0 +1,1182 @@
+{
+ "kind": "gm4-probe",
+ "methodHash": "71709ce64aa0cff06ee66abc438509be96524f4aedc15fce39b7cd6be83e4c04",
+ "at": "2026-11-23T21:35:13.271Z",
+ "T": "2026-11-23T17:00:00.000Z",
+ "validity": {
+  "seedAtMs": 1795453200000,
+  "tMs": 1795453200000,
+  "seedGlaciers": 2084,
+  "probeGlaciers": 2084,
+  "different": 0,
+  "example": []
+ },
+ "M6": {
+  "glaciers": 2084,
+  "withSnowStation": 469,
+  "withDsnow": 102,
+  "pairsUsable": 468,
+  "byCountry": {
+   "AT": 133,
+   "CH": 335
+  },
+  "byNet": {
+   "tirol": 98,
+   "at": 26,
+   "bz": 8,
+   "imis": 334,
+   "ch": 2
+  },
+  "cls": {
+   "below": 322,
+   "above": 27,
+   "inside": 119
+  },
+  "dz": {
+   "p10": -566,
+   "median": -293,
+   "p90": 45.5
+  },
+  "km": {
+   "median": 3.1,
+   "p90": 4.7
+  },
+  "stationValueAtT": 468,
+  "at24": 468,
+  "at48": 133,
+  "slotsInCopy": 105,
+  "rejectedSnow": {
+   "slots": 105,
+   "snow:stale": 87
+  }
+ },
+ "M7": {
+  "level": {
+   "all": {
+    "n": 468,
+    "stations": 92,
+    "station": 59.3,
+    "model": 112.27,
+    "bias": 54.15,
+    "mae": 56.2,
+    "ratio": 1.86,
+    "ratioN": 468,
+    "r": 0.74
+   },
+   "country": {
+    "AT": {
+     "n": 133,
+     "stations": 29,
+     "station": 34.2,
+     "model": 99.01,
+     "bias": 68.4,
+     "mae": 68.4,
+     "ratio": 2.76,
+     "ratioN": 133,
+     "r": -0.08
+    },
+    "CH": {
+     "n": 335,
+     "stations": 64,
+     "station": 66.6,
+     "model": 117.6,
+     "bias": 48.49,
+     "mae": 51.36,
+     "ratio": 1.7,
+     "ratioN": 335,
+     "r": 0.82
+    }
+   },
+   "band": {
+    "2000-2499": {
+     "n": 147,
+     "stations": 48,
+     "station": 59.3,
+     "model": 118.14,
+     "bias": 57.23,
+     "mae": 57.37,
+     "ratio": 1.98,
+     "ratioN": 147,
+     "r": 0.84
+    },
+    "<2000": {
+     "n": 4,
+     "stations": 3,
+     "station": 92.2,
+     "model": 107.51,
+     "bias": 15.98,
+     "mae": 15.98,
+     "ratio": 1.21,
+     "ratioN": 4,
+     "r": 0.55
+    },
+    ">=2500": {
+     "n": 317,
+     "stations": 41,
+     "station": 58.2,
+     "model": 105.75,
+     "bias": 53.2,
+     "mae": 56.17,
+     "ratio": 1.8,
+     "ratioN": 317,
+     "r": 0.71
+    }
+   },
+   "net": {
+    "at": {
+     "n": 26,
+     "stations": 3,
+     "station": 34,
+     "model": 135.79,
+     "bias": 113.07,
+     "mae": 113.07,
+     "ratio": 5.55,
+     "ratioN": 26,
+     "r": 0.04
+    },
+    "bz": {
+     "n": 8,
+     "stations": 2,
+     "station": 24.7,
+     "model": 99.49,
+     "bias": 74.95,
+     "mae": 74.95,
+     "ratio": 3.91,
+     "ratioN": 8,
+     "r": 0.83
+    },
+    "ch": {
+     "n": 2,
+     "stations": 2,
+     "station": 66.5,
+     "model": 101.65,
+     "bias": 35.15,
+     "mae": 35.15,
+     "ratio": 1.83,
+     "ratioN": 2,
+     "r": null
+    },
+    "imis": {
+     "n": 334,
+     "stations": 62,
+     "station": 66.6,
+     "model": 117.3,
+     "bias": 48.62,
+     "mae": 51.5,
+     "ratio": 1.7,
+     "ratioN": 334,
+     "r": 0.82
+    },
+    "tirol": {
+     "n": 98,
+     "stations": 23,
+     "station": 36.7,
+     "model": 94.98,
+     "bias": 56.05,
+     "mae": 56.05,
+     "ratio": 2.54,
+     "ratioN": 98,
+     "r": 0.14
+    }
+   },
+   "cls": {
+    "above": {
+     "n": 27,
+     "stations": 10,
+     "station": 34,
+     "model": 156.3,
+     "bias": 96.7,
+     "mae": 99.74,
+     "ratio": 4.19,
+     "ratioN": 27,
+     "r": 0.32
+    },
+    "below": {
+     "n": 322,
+     "stations": 86,
+     "station": 59.3,
+     "model": 109.66,
+     "bias": 53.45,
+     "mae": 55.51,
+     "ratio": 1.94,
+     "ratioN": 322,
+     "r": 0.81
+    },
+    "inside": {
+     "n": 119,
+     "stations": 41,
+     "station": 67.6,
+     "model": 112.24,
+     "bias": 46.39,
+     "mae": 48.2,
+     "ratio": 1.55,
+     "ratioN": 119,
+     "r": 0.74
+    }
+   }
+  },
+  "change24": {
+   "all": {
+    "n": 468,
+    "stations": 92,
+    "station": 11.2,
+    "model": 9.4,
+    "bias": -0.36,
+    "mae": 8.88,
+    "ratio": 0.76,
+    "ratioN": 362,
+    "r": 0.67
+   },
+   "country": {
+    "AT": {
+     "n": 133,
+     "stations": 29,
+     "station": 7.9,
+     "model": 5.01,
+     "bias": 1.84,
+     "mae": 8.38,
+     "ratio": 0.66,
+     "ratioN": 72,
+     "r": 0.5
+    },
+    "CH": {
+     "n": 335,
+     "stations": 64,
+     "station": 16.1,
+     "model": 13.88,
+     "bias": -1.24,
+     "mae": 9.08,
+     "ratio": 0.79,
+     "ratioN": 290,
+     "r": 0.64
+    }
+   },
+   "band": {
+    "2000-2499": {
+     "n": 147,
+     "stations": 48,
+     "station": 20.7,
+     "model": 21.45,
+     "bias": 0.81,
+     "mae": 7.43,
+     "ratio": 1.07,
+     "ratioN": 136,
+     "r": 0.65
+    },
+    "<2000": {
+     "n": 4,
+     "stations": 3,
+     "station": 48.55,
+     "model": 31.32,
+     "bias": -16.73,
+     "mae": 16.73,
+     "ratio": 0.64,
+     "ratioN": 4,
+     "r": 0.98
+    },
+    ">=2500": {
+     "n": 317,
+     "stations": 41,
+     "station": 8.1,
+     "model": 6.85,
+     "bias": -0.7,
+     "mae": 9.45,
+     "ratio": 0.59,
+     "ratioN": 222,
+     "r": 0.66
+    }
+   },
+   "net": {
+    "at": {
+     "n": 26,
+     "stations": 3,
+     "station": -5,
+     "model": 4.67,
+     "bias": 7.49,
+     "mae": 7.49,
+     "ratio": null,
+     "ratioN": 0,
+     "r": 0.91
+    },
+    "bz": {
+     "n": 8,
+     "stations": 2,
+     "station": -28.4,
+     "model": 1.66,
+     "bias": 26.35,
+     "mae": 26.73,
+     "ratio": null,
+     "ratioN": 0,
+     "r": -0.9
+    },
+    "ch": {
+     "n": 2,
+     "stations": 2,
+     "station": 28,
+     "model": 27.59,
+     "bias": -0.41,
+     "mae": 13.39,
+     "ratio": 1.94,
+     "ratioN": 2,
+     "r": null
+    },
+    "imis": {
+     "n": 334,
+     "stations": 62,
+     "station": 15.55,
+     "model": 13.78,
+     "bias": -1.25,
+     "mae": 9.04,
+     "ratio": 0.79,
+     "ratioN": 289,
+     "r": 0.64
+    },
+    "tirol": {
+     "n": 98,
+     "stations": 23,
+     "station": 8.1,
+     "model": 5.71,
+     "bias": -1.59,
+     "mae": 7.15,
+     "ratio": 0.67,
+     "ratioN": 71,
+     "r": 0.39
+    }
+   },
+   "cls": {
+    "above": {
+     "n": 27,
+     "stations": 10,
+     "station": -1.8,
+     "model": 5.19,
+     "bias": 4.22,
+     "mae": 7.4,
+     "ratio": 0.77,
+     "ratioN": 7,
+     "r": 0.9
+    },
+    "below": {
+     "n": 322,
+     "stations": 86,
+     "station": 13.7,
+     "model": 10.85,
+     "bias": -1.09,
+     "mae": 8.49,
+     "ratio": 0.79,
+     "ratioN": 270,
+     "r": 0.66
+    },
+    "inside": {
+     "n": 119,
+     "stations": 41,
+     "station": 8.2,
+     "model": 7.72,
+     "bias": 0.55,
+     "mae": 10.27,
+     "ratio": 0.67,
+     "ratioN": 85,
+     "r": 0.64
+    }
+   }
+  },
+  "change48": {
+   "all": {
+    "n": 133,
+    "stations": 29,
+    "station": 2.5,
+    "model": 8.57,
+    "bias": 7.31,
+    "mae": 10.63,
+    "ratio": 1.01,
+    "ratioN": 63,
+    "r": 0.64
+   },
+   "country": {
+    "AT": {
+     "n": 132,
+     "stations": 28,
+     "station": 2.5,
+     "model": 8.51,
+     "bias": 7.21,
+     "mae": 10.55,
+     "ratio": 1.01,
+     "ratioN": 62,
+     "r": 0.65
+    },
+    "CH": {
+     "n": 1,
+     "stations": 1,
+     "station": 5,
+     "model": 25.29,
+     "bias": 20.29,
+     "mae": 20.29,
+     "ratio": 5.06,
+     "ratioN": 1,
+     "r": null
+    }
+   },
+   "band": {
+    "2000-2499": {
+     "n": 30,
+     "stations": 16,
+     "station": 14.2,
+     "model": 14.88,
+     "bias": -0.47,
+     "mae": 4.64,
+     "ratio": 0.88,
+     "ratioN": 24,
+     "r": 0.71
+    },
+    ">=2500": {
+     "n": 103,
+     "stations": 13,
+     "station": 1.9,
+     "model": 8.21,
+     "bias": 9.57,
+     "mae": 12.37,
+     "ratio": 1.18,
+     "ratioN": 39,
+     "r": 0.6
+    }
+   },
+   "net": {
+    "at": {
+     "n": 26,
+     "stations": 3,
+     "station": -18,
+     "model": 4.63,
+     "bias": 18.22,
+     "mae": 18.22,
+     "ratio": null,
+     "ratioN": 0,
+     "r": 0.82
+    },
+    "bz": {
+     "n": 8,
+     "stations": 2,
+     "station": -27.6,
+     "model": 8.15,
+     "bias": 31.67,
+     "mae": 31.67,
+     "ratio": null,
+     "ratioN": 0,
+     "r": -0.94
+    },
+    "ch": {
+     "n": 1,
+     "stations": 1,
+     "station": 5,
+     "model": 25.29,
+     "bias": 20.29,
+     "mae": 20.29,
+     "ratio": 5.06,
+     "ratioN": 1,
+     "r": null
+    },
+    "tirol": {
+     "n": 98,
+     "stations": 23,
+     "station": 8.4,
+     "model": 11.49,
+     "bias": 2.29,
+     "mae": 6.8,
+     "ratio": 1.01,
+     "ratioN": 62,
+     "r": 0.52
+    }
+   },
+   "cls": {
+    "above": {
+     "n": 20,
+     "stations": 3,
+     "station": -5.65,
+     "model": 3.63,
+     "bias": 11.41,
+     "mae": 11.92,
+     "ratio": null,
+     "ratioN": 0,
+     "r": -0.48
+    },
+    "below": {
+     "n": 84,
+     "stations": 26,
+     "station": 8.4,
+     "model": 11.97,
+     "bias": 3.16,
+     "mae": 7.07,
+     "ratio": 1.06,
+     "ratioN": 59,
+     "r": 0.5
+    },
+    "inside": {
+     "n": 29,
+     "stations": 9,
+     "station": -18,
+     "model": 7.34,
+     "bias": 16.5,
+     "mae": 20.03,
+     "ratio": 0.34,
+     "ratioN": 4,
+     "r": 0.49
+    }
+   }
+  },
+  "events24": {
+   "all": {
+    "n": 362,
+    "stations": 71,
+    "station": 17.1,
+    "model": 13.06,
+    "bias": -3.9,
+    "mae": 7.96,
+    "ratio": 0.76,
+    "ratioN": 362,
+    "r": 0.59
+   },
+   "country": {
+    "AT": {
+     "n": 72,
+     "stations": 19,
+     "station": 11.2,
+     "model": 7.56,
+     "bias": -5.41,
+     "mae": 6.22,
+     "ratio": 0.66,
+     "ratioN": 72,
+     "r": 0.1
+    },
+    "CH": {
+     "n": 290,
+     "stations": 53,
+     "station": 20.9,
+     "model": 15.4,
+     "bias": -3.53,
+     "mae": 8.39,
+     "ratio": 0.79,
+     "ratioN": 290,
+     "r": 0.57
+    }
+   },
+   "band": {
+    "2000-2499": {
+     "n": 136,
+     "stations": 41,
+     "station": 21.6,
+     "model": 22.79,
+     "bias": 0.13,
+     "mae": 7.04,
+     "ratio": 1.07,
+     "ratioN": 136,
+     "r": 0.55
+    },
+    "<2000": {
+     "n": 4,
+     "stations": 3,
+     "station": 48.55,
+     "model": 31.32,
+     "bias": -16.73,
+     "mae": 16.73,
+     "ratio": 0.64,
+     "ratioN": 4,
+     "r": 0.98
+    },
+    ">=2500": {
+     "n": 222,
+     "stations": 27,
+     "station": 11.2,
+     "model": 9.2,
+     "bias": -6.14,
+     "mae": 8.36,
+     "ratio": 0.59,
+     "ratioN": 222,
+     "r": 0.59
+    }
+   },
+   "net": {
+    "ch": {
+     "n": 2,
+     "stations": 2,
+     "station": 28,
+     "model": 27.59,
+     "bias": -0.41,
+     "mae": 13.39,
+     "ratio": 1.94,
+     "ratioN": 2,
+     "r": null
+    },
+    "imis": {
+     "n": 289,
+     "stations": 51,
+     "station": 20.9,
+     "model": 15.37,
+     "bias": -3.55,
+     "mae": 8.34,
+     "ratio": 0.79,
+     "ratioN": 289,
+     "r": 0.57
+    },
+    "tirol": {
+     "n": 71,
+     "stations": 18,
+     "station": 11.2,
+     "model": 7.64,
+     "bias": -5.42,
+     "mae": 6.24,
+     "ratio": 0.67,
+     "ratioN": 71,
+     "r": 0.1
+    }
+   },
+   "cls": {
+    "above": {
+     "n": 7,
+     "stations": 7,
+     "station": 25.4,
+     "model": 26.38,
+     "bias": -3.8,
+     "mae": 8.44,
+     "ratio": 0.77,
+     "ratioN": 7,
+     "r": 0.58
+    },
+    "below": {
+     "n": 270,
+     "stations": 68,
+     "station": 17.1,
+     "model": 13.69,
+     "bias": -3.67,
+     "mae": 7.63,
+     "ratio": 0.79,
+     "ratioN": 270,
+     "r": 0.61
+    },
+    "inside": {
+     "n": 85,
+     "stations": 30,
+     "station": 14,
+     "model": 11.83,
+     "bias": -4.65,
+     "mae": 8.95,
+     "ratio": 0.67,
+     "ratioN": 85,
+     "r": 0.52
+    }
+   }
+  },
+  "calm24": {
+   "all": {
+    "n": 7,
+    "stations": 2,
+    "station": -0.7,
+    "model": 7.28,
+    "bias": 6.96,
+    "mae": 6.96,
+    "ratio": 9.05,
+    "ratioN": 2,
+    "r": -0.95
+   },
+   "country": {
+    "AT": {
+     "n": 2,
+     "stations": 1,
+     "station": 0.3,
+     "model": 2.71,
+     "bias": 2.41,
+     "mae": 2.41,
+     "ratio": 9.05,
+     "ratioN": 2,
+     "r": null
+    },
+    "CH": {
+     "n": 5,
+     "stations": 1,
+     "station": -0.7,
+     "model": 8.42,
+     "bias": 8.78,
+     "mae": 8.78,
+     "ratio": null,
+     "ratioN": 0,
+     "r": null
+    }
+   },
+   "band": {
+    ">=2500": {
+     "n": 7,
+     "stations": 2,
+     "station": -0.7,
+     "model": 7.28,
+     "bias": 6.96,
+     "mae": 6.96,
+     "ratio": 9.05,
+     "ratioN": 2,
+     "r": -0.95
+    }
+   },
+   "net": {
+    "imis": {
+     "n": 5,
+     "stations": 1,
+     "station": -0.7,
+     "model": 8.42,
+     "bias": 8.78,
+     "mae": 8.78,
+     "ratio": null,
+     "ratioN": 0,
+     "r": null
+    },
+    "tirol": {
+     "n": 2,
+     "stations": 1,
+     "station": 0.3,
+     "model": 2.71,
+     "bias": 2.41,
+     "mae": 2.41,
+     "ratio": 9.05,
+     "ratioN": 2,
+     "r": null
+    }
+   },
+   "cls": {
+    "below": {
+     "n": 4,
+     "stations": 2,
+     "station": -0.2,
+     "model": 4.75,
+     "bias": 5.06,
+     "mae": 5.06,
+     "ratio": 9.05,
+     "ratioN": 2,
+     "r": -1
+    },
+    "inside": {
+     "n": 3,
+     "stations": 1,
+     "station": -0.7,
+     "model": 8.51,
+     "bias": 9.48,
+     "mae": 9.48,
+     "ratio": null,
+     "ratioN": 0,
+     "r": null
+    }
+   }
+  },
+  "tirolHsd": {
+   "h24": {
+    "all": {
+     "n": 98,
+     "stations": 23,
+     "station": 8,
+     "model": 5.71,
+     "bias": -1.05,
+     "mae": 6.42,
+     "ratio": 0.69,
+     "ratioN": 69,
+     "r": 0.43
+    },
+    "country": {
+     "AT": {
+      "n": 98,
+      "stations": 23,
+      "station": 8,
+      "model": 5.71,
+      "bias": -1.05,
+      "mae": 6.42,
+      "ratio": 0.69,
+      "ratioN": 69,
+      "r": 0.43
+     }
+    },
+    "band": {
+     "2000-2499": {
+      "n": 28,
+      "stations": 14,
+      "station": 13.3,
+      "model": 9.32,
+      "bias": -3.99,
+      "mae": 5.51,
+      "ratio": 0.68,
+      "ratioN": 22,
+      "r": 0.62
+     },
+     ">=2500": {
+      "n": 70,
+      "stations": 9,
+      "station": 7.9,
+      "model": 5.16,
+      "bias": 0.13,
+      "mae": 6.78,
+      "ratio": 0.69,
+      "ratioN": 47,
+      "r": 0.31
+     }
+    },
+    "net": {
+     "tirol": {
+      "n": 98,
+      "stations": 23,
+      "station": 8,
+      "model": 5.71,
+      "bias": -1.05,
+      "mae": 6.42,
+      "ratio": 0.69,
+      "ratioN": 69,
+      "r": 0.43
+     }
+    },
+    "cls": {
+     "above": {
+      "n": 11,
+      "stations": 2,
+      "station": -0.6,
+      "model": 3.25,
+      "bias": 4.74,
+      "mae": 4.74,
+      "ratio": null,
+      "ratioN": 0,
+      "r": -0.3
+     },
+     "below": {
+      "n": 75,
+      "stations": 22,
+      "station": 8,
+      "model": 7.48,
+      "bias": -2.45,
+      "mae": 5.1,
+      "ratio": 0.71,
+      "ratioN": 64,
+      "r": 0.44
+     },
+     "inside": {
+      "n": 12,
+      "stations": 5,
+      "station": -6.85,
+      "model": 4.64,
+      "bias": 2.38,
+      "mae": 16.15,
+      "ratio": 0.19,
+      "ratioN": 5,
+      "r": 0.25
+     }
+    }
+   },
+   "h48": {
+    "all": {
+     "n": 98,
+     "stations": 23,
+     "station": 8.4,
+     "model": 11.49,
+     "bias": 2.55,
+     "mae": 6.68,
+     "ratio": 1.02,
+     "ratioN": 62,
+     "r": 0.53
+    },
+    "country": {
+     "AT": {
+      "n": 98,
+      "stations": 23,
+      "station": 8.4,
+      "model": 11.49,
+      "bias": 2.55,
+      "mae": 6.68,
+      "ratio": 1.02,
+      "ratioN": 62,
+      "r": 0.53
+     }
+    },
+    "band": {
+     "2000-2499": {
+      "n": 28,
+      "stations": 14,
+      "station": 14.4,
+      "model": 14.88,
+      "bias": -1.41,
+      "mae": 4.13,
+      "ratio": 0.84,
+      "ratioN": 23,
+      "r": 0.82
+     },
+     ">=2500": {
+      "n": 70,
+      "stations": 9,
+      "station": 8.4,
+      "model": 11.12,
+      "bias": 4.13,
+      "mae": 7.7,
+      "ratio": 1.21,
+      "ratioN": 39,
+      "r": 0.35
+     }
+    },
+    "net": {
+     "tirol": {
+      "n": 98,
+      "stations": 23,
+      "station": 8.4,
+      "model": 11.49,
+      "bias": 2.55,
+      "mae": 6.68,
+      "ratio": 1.02,
+      "ratioN": 62,
+      "r": 0.53
+     }
+    },
+    "cls": {
+     "above": {
+      "n": 11,
+      "stations": 2,
+      "station": 1.7,
+      "model": 3.05,
+      "bias": 2.74,
+      "mae": 3.52,
+      "ratio": null,
+      "ratioN": 0,
+      "r": -0.63
+     },
+     "below": {
+      "n": 75,
+      "stations": 22,
+      "station": 8.4,
+      "model": 12.41,
+      "bias": 1.72,
+      "mae": 5.63,
+      "ratio": 1.08,
+      "ratioN": 58,
+      "r": 0.55
+     },
+     "inside": {
+      "n": 12,
+      "stations": 5,
+      "station": -5.95,
+      "model": 7.78,
+      "bias": 7.53,
+      "mae": 16.12,
+      "ratio": 0.34,
+      "ratioN": 4,
+      "r": 0.28
+     }
+    }
+   },
+   "h72": {
+    "all": {
+     "n": 98,
+     "stations": 23,
+     "station": 7.5,
+     "model": 14.86,
+     "bias": 4.84,
+     "mae": 8.3,
+     "ratio": 1.21,
+     "ratioN": 62,
+     "r": 0.62
+    },
+    "country": {
+     "AT": {
+      "n": 98,
+      "stations": 23,
+      "station": 7.5,
+      "model": 14.86,
+      "bias": 4.84,
+      "mae": 8.3,
+      "ratio": 1.21,
+      "ratioN": 62,
+      "r": 0.62
+     }
+    },
+    "band": {
+     "2000-2499": {
+      "n": 28,
+      "stations": 14,
+      "station": 20.3,
+      "model": 24.38,
+      "bias": 1.39,
+      "mae": 6.54,
+      "ratio": 1.1,
+      "ratioN": 23,
+      "r": 0.74
+     },
+     ">=2500": {
+      "n": 70,
+      "stations": 9,
+      "station": 7.5,
+      "model": 14.24,
+      "bias": 6.22,
+      "mae": 9.01,
+      "ratio": 1.45,
+      "ratioN": 39,
+      "r": 0.36
+     }
+    },
+    "net": {
+     "tirol": {
+      "n": 98,
+      "stations": 23,
+      "station": 7.5,
+      "model": 14.86,
+      "bias": 4.84,
+      "mae": 8.3,
+      "ratio": 1.21,
+      "ratioN": 62,
+      "r": 0.62
+     }
+    },
+    "cls": {
+     "above": {
+      "n": 11,
+      "stations": 2,
+      "station": 1.8,
+      "model": 8.24,
+      "bias": 7.2,
+      "mae": 7.2,
+      "ratio": null,
+      "ratioN": 0,
+      "r": -0.51
+     },
+     "below": {
+      "n": 75,
+      "stations": 22,
+      "station": 9.9,
+      "model": 16.71,
+      "bias": 4.69,
+      "mae": 7.59,
+      "ratio": 1.25,
+      "ratioN": 58,
+      "r": 0.64
+     },
+     "inside": {
+      "n": 12,
+      "stations": 5,
+      "station": -0.3,
+      "model": 11.06,
+      "bias": 3.65,
+      "mae": 13.77,
+      "ratio": 0.36,
+      "ratioN": 4,
+      "r": 0.01
+     }
+    }
+   }
+  },
+  "hit": 0.99,
+  "falseAlarm": 0.71,
+  "events": 362,
+  "calm": 7,
+  "Fbar": 1.9
+ },
+ "M8": {
+  "level": {
+   "stations": 92,
+   "d": {
+    "p10": 6.99,
+    "median": 50.55,
+    "p90": 84.26
+   },
+   "noCorrection": 52.14,
+   "globalMedian": {
+    "mae": 25.68
+   },
+   "countryMedian": {
+    "n": 92,
+    "mae": 24.95
+   },
+   "R15": {
+    "n": 85,
+    "mae": 24.59,
+    "noCorrection": 49.08,
+    "gain": 0.5
+   },
+   "R30": {
+    "n": 90,
+    "mae": 21.03,
+    "noCorrection": 50.23,
+    "gain": 0.58
+   },
+   "R60": {
+    "n": 91,
+    "mae": 21.64,
+    "noCorrection": 51.34,
+    "gain": 0.58
+   }
+  },
+  "changeLogRatio": {
+   "stations": 71,
+   "d": {
+    "p10": -0.91,
+    "median": -0.28,
+    "p90": 0.5
+   },
+   "noCorrection": 0.5,
+   "globalMedian": {
+    "mae": 0.46
+   },
+   "countryMedian": {
+    "n": 71,
+    "mae": 0.48
+   },
+   "R15": {
+    "n": 63,
+    "mae": 0.45,
+    "noCorrection": 0.46,
+    "gain": 0.02
+   },
+   "R30": {
+    "n": 70,
+    "mae": 0.41,
+    "noCorrection": 0.51,
+    "gain": 0.18
+   },
+   "R60": {
+    "n": 71,
+    "mae": 0.43,
+    "noCorrection": 0.5,
+    "gain": 0.15
+   }
+  }
+ },
+ "M9": {
+  "glaciersWithRow": 921,
+  "eligible": 597,
+  "changed": 477,
+  "set": 309,
+  "cleared": 349,
+  "medianSweDelta": {
+   "n": 477,
+   "p10": 0,
+   "median": 0,
+   "p90": 78.2
+  },
+  "ageDays": {
+   "p10": 2.21,
+   "median": 9.21,
+   "p90": 42.21
+  },
+  "nudgeMm": 250,
+  "maxAgeDays": 20
+ },
+ "verdict": {
+  "B1": {
+   "value": 1.86,
+   "verdict": "bestätigt"
+  },
+  "B2": {
+   "value": 0.76,
+   "Fbar": 1.9,
+   "n": 362,
+   "verdict": "eins zu eins"
+  },
+  "B3": {
+   "value": 0.99,
+   "n": 362,
+   "verdict": "ja"
+  },
+  "B4": {
+   "value": 6.96,
+   "n": 7,
+   "verdict": "zu wenig"
+  },
+  "B5": {
+   "level": "trägt",
+   "change": "trägt nicht"
+  }
+ }
+}

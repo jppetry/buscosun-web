@@ -4593,7 +4593,8 @@ Was es jetzt gibt:
 **Stand 23.11. abends: committet und gepusht (`c4b45c9e`, Punkte 1 und 2 erledigt), auf dem Runner eingeschaltet (Punkt 3 a–c
 erledigt, dein Wort „ja starte das“ und „ich gebe dir die Genehmigung im Daten-Repo“): Startzustand vom 23.11. 17:00 UTC im
 Daten-Repo (`4ae73e46`, 19:23 UTC), `GLACIER_SNOWPACK: shadow` im Workflow `glacier-melt` (`3a119833`, 19:27 UTC). Offen:
-Punkt 3 d, der erste Lauf mit Schalter (frühestens 20:20 UTC, sonst 23:20 UTC), und der Commit der nachgezogenen Vorlage
+der zweite Lauf (schreibt er den Zustand fort? — Punkt 3 d, der erste Lauf `2026112323` von 23:23 UTC, ist gelesen: grün,
+2 084 Gletscher, Vertrag ohne Befund) und der Commit der nachgezogenen Vorlage
 (`scripts/glacier/gen-workflows.py`, `workflow-glacier-melt.yml`) mit diesen Doku-Nachträgen. Beleg: Audit §3f.8.**
 
 Gebaut mit dem Schalter aus; im Code bleibt die Voreinstellung `off`. Mit dem Schalter aus schreibt der Schmelzlauf dieselben
@@ -4645,6 +4646,12 @@ Was es jetzt gibt:
       2 084, `state.source: seed`, `state.gaps` (Gletscher mit Stunden ohne Antrieb und der Höchstwert), `seconds` (lokal 9),
       `bytes` und `stateBytes` (lokal 1,25 und 1,8 MB). Steht dort `error`, ist nichts unter `snowpack/` geschrieben und der
       Grund steht dabei; Schmelz- und Wetterlauf sind davon nicht berührt.
+      **Gelesen 23.11. 23:37 UTC (Lauf `2026112323`, Audit §3f.8):** `mode: shadow`, 2 084 Gletscher, 10 übersprungen,
+      `state.source: seed`, 7 s, 1,27 und 1,84 MB; Dokument und Zustand ohne Befund gegen den Vertrag. Die Werte sind die des
+      Startzustands von 17 UTC: er trägt keinen Antrieb, die sechs Stunden bis 23 UTC fehlen an jeder Zeile (`gap: 6`; Schweiz
+      im Median rund 1 cm, p90 rund 7 cm Neuschnee nach der Vorhersage). 108 Schweizer Gletscher tragen aus dem Startzustand
+      weitere 24 Stunden ohne Antrieb — meine Angabe „0 in allen Ländern“ vom Abend war falsch (ich hatte Quantile gelesen).
+      Nichts zu tun; der zweite Lauf zeigt, ob der Zustand fortgeschrieben wird.
 4. **Zurück.** `GLACIER_SNOWPACK` im Workflow entfernen oder auf `off` setzen (bzw. die Voreinstellung zurück). Der Lauf
    schreibt dann nichts mehr unter `snowpack/`; die Laufdokumente dort verschwinden nach 72 h, der Zustand bleibt liegen
    (er wird nicht gelesen).
@@ -4675,7 +4682,7 @@ Was es jetzt gibt:
 
 **Stand 23.11. 21:13 UTC: committet und gepusht (`b7a0e859`, Punkte 1 und 2 erledigt) und auf dein Wort („schalte es ruhig
 direkt ein“) eingeschaltet (Punkt 3 erledigt): `GLACIER_MELT_STATE: run-hour` im Workflow `glacier-melt` des Daten-Repos
-(`3c871488`). Offen: Punkt 4, der erste Lauf mit dem Schalter (Cron 23:20 UTC — derselbe Lauf, in dem die Schneedecke zum
+(`3c871488`). Punkt 4 ist gelesen (Lauf `2026112323`, wie erwartet). Offen: das Nachrechnen im nächsten Lauf (der Lauf 23:20 UTC war derselbe, in dem die Schneedecke zum
 ersten Mal rechnet), und der Commit der nachgezogenen Vorlage (`scripts/glacier/gen-workflows.py`, `workflow-glacier-melt.yml`)
 mit diesen Doku-Nachträgen. Beleg: Audit §3g.8.**
 
@@ -4706,6 +4713,10 @@ Antrieb; der nächste Lauf rechnet ihn bis zu seiner Stunde nach. Am vollen loka
 4. **Den ersten Lauf danach ansehen:** in `glacier/v1/status.json` trägt `lines.melt` dann `state: run-hour`; im
    Schmelzdokument steht `state.mode: run-hour`, `state.replayedH` (0 im ersten Lauf, danach der Abstand in Stunden),
    `state.held` (0); `melt/state.json` ist rund 0,6 statt 0,2 MB groß und trägt `pend`.
+   **Gelesen 23.11. 23:37 UTC (Lauf `2026112323`, Audit §3g.8):** genau so — `state: run-hour`, übernommen, Alter 0,
+   `replayedH 0`, `held 0`; Zustandsdatei 621 563 Bytes mit 18 Stunden Antrieb von 957 Antriebsgebern, ohne Befund gegen den
+   Vertrag; die Kachel „Fläche ohne Schneedecke“ an keinem Gletscher anders als im Lauf davor (Mittel 2,3 %). Das Nachrechnen
+   selbst (`replayedH` > 0) zeigt erst der nächste Lauf.
 5. **Zurück.** Die Zeile im Workflow entfernen (bzw. die Voreinstellung zurück). Der Rückfall liest die neue Datei ohne Absturz
    als Zustand mit dem Alter des Abstands (im ersten Lauf danach fehlen die Stunden dazwischen, benannt in `state.ageH`) und
    schreibt wieder die alte Form.
@@ -4714,3 +4725,56 @@ Antrieb; der nächste Lauf rechnet ihn bis zu seiner Stunde nach. Am vollen loka
    geändert).
 7. **Weiter offen:** V-GM-45 (der Schmelzzustand hat kein Einschwingen — sauberer wäre, er läse die Schneedecke; nach GM-4),
    V-GM-46 (Zustandsdatei dreimal so groß), V-GM-47 (`verify:glacier-feed` bricht ab, wenn der Browser unter Last nicht startet).
+
+## 121. Gletscher: Schneemodell, Paket GM-4 — Diagnose der Kopplung an Stationen, gebaut als GM-4a: Schattenpaare, ihr Archiv, Satellit einmal je Szene (E-GM-20 … E-GM-23; `audit/gletscher-schneemodell.md` §3h), 2026-11-23
+
+**Stand 23.11. nachts: Diagnose geschrieben, deine vier Entscheidungen gebaut, beide Schalter aus, uncommitted. Nichts im Daten- oder
+Archiv-Repo, kein Workflow geändert, buscosun Fusion und die Stationslinie nur gelesen.**
+
+Was die Diagnose sagt (§3h, Messregel vorher eingefroren, Urteile vom Skript): Der Stand der Schneedecke in Stationshöhe ist
+1,86 × Station — das ist der Gletscher-Faktor, er lässt sich nicht an Stationen koppeln. Die 24-h-Änderung bei Schneefall liegt bei
+0,76 × Station (ein Ereignis, 20.–23.11., Analyse-Antrieb); Niederschlag und Neuschneedichte sind darin nicht zu trennen. Grat- und
+Gipfelstationen verlieren beim Schneefall Schnee (Wind). Die Abweichung der Änderung überträgt sich nicht auf Nachbarstationen. Mit
+dem Antrieb von buscosun Fusion gibt es noch keinen Lauf. ⇒ Heute ist eine Messung belegt, keine Kopplung.
+
+Gebaut auf dein Wort (E-GM-20 … E-GM-23, alles meine Empfehlungen):
+- **Schattenpaare** `glacier/v1/snowpack/pairs/<lauf>.json` hinter `--snowpack-pairs=on` (`GLACIER_SNOWPACK_PAIRS`, nur mit der
+  Schneedecke): je Gletscher mit Schneestation die Schneedecke in der Höhe der Station neben deren Messung zur Laufstunde. Keine
+  Zahl der Schneedecke ändert sich. 72 h im Daten-Repo.
+- **Archiv der Paare:** `glacier-archive.mjs --pairs` legt sie als `glacier/v1/<Tag>/pairs-<lauf>.json.gz` in `buscosun-archiv` ab;
+  die Vorlage `scripts/glacier/workflow-glacier-archiv.yml` ist nachgezogen (zwei Zeilen), eingespielt ist sie nicht.
+- **Satellit einmal je Szene** im Schmelzlauf hinter `--sat-nudge=once` (`GLACIER_SAT_NUDGE`): heute greift dieselbe Szene bis
+  20 Tage lang in jedem Lauf wieder; mit `once` nur einmal, der Zustand nennt je Gletscher das Datum der Szene. Die Schneedecke nimmt
+  den Abgleich nicht.
+- **Kein Übertrag** auf Gletscher ohne Station.
+
+1. **Commit** (dein Wort). Dazu gehören: `src/glacier/glacierSnowpackPairsContract.ts` (neu), `src/glacier/glacierMeltContract.ts`,
+   `scripts/glacier/lib/snowpackcore.mjs`, `scripts/glacier/lib/meltstate.mjs`, `scripts/glacier/melt.mjs`,
+   `scripts/glacier/glacier-publish.mjs`, `scripts/glacier/glacier-archive.mjs`, `scripts/glacier/gen-workflows.py`,
+   `scripts/glacier/workflow-glacier-archiv.yml`, `scripts/glacier/make-snowpack-pairs-fixture.mjs` (neu),
+   `scripts/lib/fixtures/glacier/snowpack-pairs.json` (neu), `scripts/verify-glacier-snowpack.mjs`, `scripts/verify-glacier-melt.mjs`,
+   die Dateien `gm4-*` unter `audit/gletscher-schneemodell/`, `audit/gletscher-schneemodell.md`, `CLAUDE.md`, diese Datei. Nicht in
+   den Commit: `tsconfig.app.tsbuildinfo` (Build-Rest). Prüfstand beim Abschluss: `verify:glacier-snowpack` 39/39,
+   `verify:glacier-melt` 68/68, sechs Nachbar-Prüfer grün, Typecheck, Build (281/281), Budget unverändert (totalJs 2 118,1 / 2 121 KB),
+   voller Lauf ohne Schalter 338 von 338 Dateien gleich, Gegenprobe 39 von 39 (die erste Runde fand einen blinden Vergleich in meinem eigenen Prüfer, behoben, V-GM-59). Beide Prüfer laufen schon in der CI.
+2. **Push von `buscosun-web`** (dein Gate). Ändert am Betrieb nichts: beide Schalter sind aus.
+3. **Archiv-Vorlage einspielen** (dein Gate, Archiv-Repo): `scripts/glacier/workflow-glacier-archiv.yml` nach
+   `.github/workflows/glacier-archiv.yml` in `buscosun-archiv`. Ohne Paare im Daten-Repo legt sie nichts zusätzlich ab; ein älteres
+   Skript überliest `--pairs`. Am besten vor Punkt 4 — sonst verschwinden die ersten Paare nach 72 h (V-GM-57).
+4. **Einschalten (E-GM-24, deine Entscheidung)** — je eine Zeile unter `jobs.melt.env` im Workflow `glacier-melt` des Daten-Repos,
+   jede für sich zurücknehmbar:
+   a. `GLACIER_SNOWPACK_PAIRS: on` — danach in `glacier/v1/status.json` die Zeile `lines.snowpack.pairs` lesen: `pairs` um 468,
+      `withValue` (mit IMIS und Tirol erwartet weit über 133), `map`, `slot`; oder `error` mit Grund (dann ist nur die Paar-Datei
+      nicht geschrieben, Schneedecke und Schmelzlauf sind unberührt).
+   b. `GLACIER_SAT_NUDGE: once` — getrennt von a, damit nicht zwei Neuerungen im selben Lauf zusammenfallen. Danach im Schmelzdokument
+      `state.sat` { applied, held } und in `status.json` `lines.melt.sat: once`; `melt/state.json` trägt `sat` (rund +25 KB).
+   Die Vorlage `scripts/glacier/gen-workflows.py` ziehe ich dann nach.
+5. **Zurück.** Die Zeile(n) im Workflow entfernen. Ohne `GLACIER_SNOWPACK_PAIRS` entstehen keine Paare mehr (die vorhandenen
+   verschwinden nach 72 h aus dem Daten-Repo, das Archiv behält sie); ohne `GLACIER_SAT_NUDGE` greift die Szene wieder in jedem
+   Lauf, der Vermerk in der Zustandsdatei wird nicht mehr geschrieben.
+6. **Nicht geprüft:** kein Lauf auf dem Runner; die Paare am echten Katalog nur mit den Slots vom 21.11. (damals ohne IMIS und
+   `hsd`); die Wirkung von `once` am echten Katalog (in der nachstellbaren Kette fiel nichts, was der Abgleich hätte löschen können,
+   V-GM-58); das Archiv nicht gegen ein echtes `buscosun-archiv`; nichts im Browser (keine Anzeige).
+7. **Weiter offen:** GM-4b (Kopplung) erst nach der Messung: mindestens fünf Schneefälle je Station mit Schattenläufen, geschätzt
+   drei bis sechs Wochen; V-GM-48 (Österreich ordnet die Stationen nicht), V-GM-50 (Niederschlag und Dichte trennen — über die
+   SLF-Messfelder), V-GM-55 (Standortart der Stationen: eine Änderung an der Stationslinie, dein Wort), V-GM-56 … V-GM-58.

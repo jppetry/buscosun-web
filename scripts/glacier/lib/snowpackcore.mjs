@@ -152,6 +152,64 @@ export function placeLevels(z, hours, at) {
   return { tz, share };
 }
 
+// --- GM-4 (E-GM-20): shadow pairs — the snowpack at the station elevation next to the station. A comparison; nothing here changes the snowpack. ---
+
+/** The producer switch `--snowpack-pairs=off|on` / `GLACIER_SNOWPACK_PAIRS`, read only with the snowpack on. `off` (the default, the fall back): no pairs file. */
+export const SNOWPACK_PAIRS_MODES = Object.freeze(['off', 'on']);
+export const SNOWPACK_PAIRS_DEFAULT = 'off';
+export const snowpackPairsModeOf = (value) => wordOf(value, SNOWPACK_PAIRS_MODES, SNOWPACK_PAIRS_DEFAULT, 'Schattenpaare');
+
+/**
+ * A value of the three elevations `z` (ascending; `vals` in the same order) at the elevation `zs`: linear between the two neighbouring elevations,
+ * below the lowest the lowest value, above the highest the highest (never extrapolated). Returns `{ v, at }` with `at` = below | inside | above.
+ */
+export function atElevation(z, vals, zs) {
+  if (zs < z[0]) return { v: vals[0], at: 'below' };
+  if (zs > z[2]) return { v: vals[2], at: 'above' };
+  const l = zs <= z[1] ? 0 : 1, a = z[l], b = z[l + 1];
+  return { v: b > a ? vals[l] + ((vals[l + 1] - vals[l]) * (zs - a)) / (b - a) : vals[l], at: 'inside' };
+}
+
+/**
+ * The pairs of one run. `rows` = rows of the snowpack document (z, hs, hn at the run hour); `map` = the station mapping document (section `ext`: every
+ * network and quantity — throws without it); `slot` = the station hour document (sections `stations` and `ext.stations`); `t0Ms` = run hour;
+ * `windowMin` = [minutes before, minutes after] in which a station stamp counts. Pairs follow the order of `rows`. Throws when the inputs are not usable
+ * — never a pair from a guessed station.
+ */
+export function pairsOf({ rows, map, slot, t0Ms, windowMin }) {
+  const ext = map?.ext;
+  if (!ext?.glaciers || !ext?.stations) throw new Error('Stationszuordnung ohne Abschnitt ext');
+  if (!slot?.stations) throw new Error('Stationsslot ohne Abschnitt stations');
+  const entries = { ...slot.stations, ...(slot.ext?.stations ?? {}) };
+  const rowOf = new Map(rows.map((r) => [r.id, r]));
+  const pairs = [], at = { below: 0, inside: 0, above: 0 }, why = {};
+  let withValue = 0, mappedWithoutRow = 0;
+  const r2 = (x) => Math.round(x * 10) / 10 + 0;
+  for (const r of rows) {
+    const snow = ext.glaciers[r.id]?.snow;
+    if (!snow) continue;
+    const [sid, km, dz] = snow, st = ext.stations[sid];
+    if (!st || !Number.isFinite(st.elev)) throw new Error(`Station ${sid} ohne Höhe im Katalog der Zuordnung`);
+    const m = atElevation(r.z, r.hs, st.elev);
+    const hn = [0, 1, 2].map((w) => r2(atElevation(r.z, r.hn.map((h) => h[w]), st.elev).v));
+    hn[1] = Math.max(hn[1], hn[0]); hn[2] = Math.max(hn[2], hn[1]);
+    const e = entries[sid], p = { g: r.id, s: sid, net: sid.split(':')[0], km, dz, z: st.elev, at: m.at, m: r2(m.v), hn, v: null, age: null };
+    const stamp = e ? Date.parse(e.t) : NaN;
+    if (!e || !Number.isFinite(e.v?.snow) || !Number.isFinite(stamp)) p.why = 'no-value';
+    else {
+      const age = Math.round((t0Ms - stamp) / 60_000);
+      if (age > windowMin[0]) { p.age = age; p.why = 'stale'; }
+      else if (age < -windowMin[1]) { p.age = age; p.why = 'future'; }
+      else { p.v = e.v.snow; p.age = age; withValue++; }
+    }
+    if (e?.hsd && Object.keys(e.hsd).length) p.hsd = e.hsd;
+    at[p.at]++; if (p.why) why[p.why] = (why[p.why] ?? 0) + 1;
+    pairs.push(p);
+  }
+  for (const [id, g] of Object.entries(ext.glaciers)) if (g.snow && !rowOf.has(id)) mappedWithoutRow++;
+  return { pairs, counts: { pairs: pairs.length, withValue, at, why, mappedWithoutRow } };
+}
+
 /** May a run continue a state? `null` = yes, else the reason. `rules` = { precip, density } of the run. */
 export function stateRefusal(state, rules, t0Ms) {
   if (!state) return 'kein Zustand (snowpack/state.json fehlt): erst den Startzustand einspielen oder mit --snowpack-start=cold beginnen';
