@@ -4806,8 +4806,10 @@ Gebaut auf dein Wort (E-GM-20 … E-GM-23, alles meine Empfehlungen):
 
 ## 122. Gletscher: Schneemodell, Paket GM-5a — Spannen der Schneedecke aus Szenarien (E-GM-30 … E-GM-35; `audit/gletscher-schneemodell.md` §3i, Diagnose `audit/gletscher-schneemodell/gm5-diagnose.md`), 2026-11-24
 
-**Stand 24.11. abends: Punkt 1 und 2 sind erledigt — von dir committet und gepusht am 24.11. 16:35 UTC (`b448d652`), der neue
-Schalter ist aus. Offen: Punkt 3 (E-GM-36). Nichts im Daten- oder Archiv-Repo, kein Workflow geändert, buscosun Fusion nur gelesen.**
+**Stand 24.11. 21:30 UTC: Punkt 1 und 2 sind erledigt — von dir committet und gepusht am 24.11. 16:35 UTC (`b448d652`). Punkt 3
+(E-GM-36) hast du am 24.11. abends entschieden: AN, K = 100 — auf dein Wort eingeschaltet am 24.11. 21:29 UTC (Daten-Repo
+`2d208df2`, eine Zeile im Workflow `glacier-melt`; kein anderer Schalter angefasst). Erster Lauf mit Spanne: der von 23:20 UTC
+(Punkt 3). buscosun Fusion nur gelesen.**
 
 Was gebaut ist: hinter `--snowpack-spread=scenarios` (`GLACIER_SNOWPACK_SPREAD`, nur mit der Schneedecke) trägt jede Zeile der
 Schneedecke mit eigenem Antrieb p10/p90 je Höhe und Tag für Schneehöhe und Neuschnee (100 Szenarien) und die Summe des Neuschnees
@@ -4829,6 +4831,14 @@ Die Verteilung aus Sentinel-2 ist nicht gebaut (E-GM-30).
    `glacier/v1/status.json` die Zeile `lines.snowpack.spread` lesen: `k: 100`, `rows` um 957, `none.neighbour` um 1 127, `seconds`.
    Mit K = 40 (eine Konstante im Vertrag) wäre es gut die halbe Zeit, die Breite der Spanne schwankt dann von Lauf zu Lauf um
    rund ein Sechstel statt um ein Zehntel (letzteres nicht gemessen, V-GM-82). Empfehlung: K = 100 einschalten und `seconds` lesen.
+   **ERLEDIGT am 24.11. 21:29 UTC auf dein Wort (E-GM-36: an, K = 100).** Im Daten-Repo steht unter `jobs.melt.env` die Zeile
+   `GLACIER_SNOWPACK_SPREAD: scenarios` (Commit `2d208df2`, auf den Stand von `origin/main` gesetzt und als `main` gepusht, ohne
+   `--force`; beim zweiten Versuch, `main` war dazwischen weitergelaufen). Vom Remote zurückgelesen (Git und GitHub-API) und als
+   YAML geparst: fünf Einträge unter `env`, alle Zeichenketten, `GLACIER_SNOWPACK_SPREAD` = `scenarios`; alles andere im Workflow
+   ist gegenüber vorher unverändert. Vorlage nachgezogen: `scripts/glacier/gen-workflows.py` und das daraus erzeugte
+   `workflow-glacier-melt.yml` sind Byte für Byte die Datei im Daten-Repo (uncommitted in `buscosun-web`; die übrigen Vorlagen
+   erzeugt der Generator unverändert). K = 100 ist die Konstante im Vertrag — der Workflow nennt keine Zahl.
+   Weil die Paare an sind (§121), tragen sie ab diesem Lauf auch die Vorhersage in Stationshöhe (§124, V-GM-79/V-GM-98).
 4. **Zurück.** Die Zeile im Workflow entfernen. Der nächste Lauf schreibt das Dokument wieder ohne Spannen.
 5. **Nicht geprüft:** kein Lauf auf dem Runner; nur eine Wetterlage (21.11.); die Spanne gegen Messungen — das geht erst mit
    den Schattenpaaren von GM-4 (E-GM-24) über einige Wochen, und die Paare müssten dafür die Spanne in Stationshöhe mitschreiben
@@ -4841,8 +4851,9 @@ Die Verteilung aus Sentinel-2 ist nicht gebaut (E-GM-30).
 
 **Stand 24.11. abends: Punkt 2 und 3 sind erledigt — von dir committet und gepusht am 24.11. 16:35 UTC (`b448d652`, mit der
 Tabelle). Punkt 1 (E-GM-37) hast du am 24.11. abends entschieden: (A), die Tabelle bleibt im Repo, mit Quellenangabe für GLAMOS
-(CC BY 4.0) und WGMS im Kopf der Tabelle und in `audit/gletscher/licences.md` — umgesetzt und lokal committet (§124). Offen:
-Punkt 4 (E-GM-38). Beide neuen Schalter aus. Nichts im Daten- oder Archiv-Repo, kein Workflow geändert, buscosun Fusion nur gelesen. Nachgeladen (nur gelesen,
+(CC BY 4.0) und WGMS im Kopf der Tabelle und in `audit/gletscher/licences.md` — umgesetzt, von dir gepusht am 24.11. 21:24 UTC
+(`942ef226`, §124). Offen: Punkt 4 (E-GM-38) — und davor Punkt 8, die Mail an GLAMOS: die Lizenz ist nachgelesen (24.11. abends),
+aber nicht aufgelöst. Beide neuen Schalter aus. Nichts im Daten- oder Archiv-Repo, kein Workflow geändert, buscosun Fusion nur gelesen. Nachgeladen (nur gelesen,
 in den lokalen Zwischenspeicher): die Globalstrahlung `cglo` von sieben österreichischen Stationen aus `klima-v2-1h`.**
 
 Was die Runde sagt (ein Winter ausgelassen, 478 Winter an 43 Gletschern, Urteile vom Werkzeug): der Faktor je Gletscher senkt
@@ -4876,6 +4887,8 @@ an drei Höhen liest die Tabelle nicht.
    `lines.melt.glacier` lesen (`factor` 42, `shape` 43) und im Schmelzdokument `params.precip.glaciers.applied`. Vorher bedenken:
    der Schmelzzustand trägt Schnee aus dem Landeswert; nach dem Einschalten liegt an diesen Gletschern Schnee aus zwei Faktoren
    übereinander (V-GM-91). Und: ob Faktor und Form die Schmelze im Sommer verbessern, ist nicht gemessen (V-GM-94).
+   **Solange die Antwort von GLAMOS aus Punkt 8 fehlt, ist das Einschalten deine Entscheidung mit diesem offenen Punkt:** mit
+   den Schaltern rechnet der öffentliche Schmelzlauf mit Größen, die aus den GLAMOS-Stufenwerten abgeleitet sind.
 5. **Zurück.** Die Zeile(n) entfernen; der nächste Lauf rechnet wieder mit dem Wert der Region.
 6. **Nicht geprüft:** kein Lauf auf dem Runner; der Winter 2025/26 (GLAMOS veröffentlicht ihn 2027); die Wirkung auf den Sommer;
    nichts im Browser (keine Anzeige ändert sich, der Schmelzindex der betroffenen Gletscher schon — im Winter kaum, im
@@ -4883,12 +4896,29 @@ an drei Höhen liest die Tabelle nicht.
 7. **Weiter offen:** die rund 2 050 Gletscher ohne Stufenwerte bleiben beim Landeswert; die Schneedecke an drei Höhen ebenso
    (V-GM-86); die Winterschmelze des Betriebs ist eher zu groß und bestimmt die Höhe jedes Faktors mit (V-GM-89, mit V-GM-26
    vor Mai 2027).
+8. **Mail an GLAMOS (nur du; neu am 24.11. abends, Folge von E-GM-37).** An `office@glamos.ch` (Adresse aus dem Impressum).
+   Bitte um schriftliche Bestätigung, dass **abgeleitete Modellgrößen** — je Gletscher ein Niederschlagsfaktor und eine Form der
+   Winterakkumulation je 50 m Höhe, gewonnen aus „Swiss Glacier Mass Balance, release 2025“ (doi:10.18750/massbalance.2025.r2025)
+   — unter CC BY 4.0 mit Quellenangabe in einem **kostenlosen Webdienst veröffentlicht werden dürfen, der später Werbung tragen
+   kann**. Was die Mail nennen sollte, damit die Antwort eindeutig wird (alles am 24.11.2026 selbst gelesen, Wortlaute und
+   Prüfsummen in `audit/gletscher/licences.md`, Abschnitt „GLAMOS — Nachlese 24.11.2026“):
+   - Die Datenrichtlinie (`doi.glamos.ch/GLAMOS_publication_and_data_policy.pdf`, GLAMOS Office, 28.02.2020) nennt alle Produkte
+     CC BY 4.0 und sich selbst bindend für jede Nutzung; der DOI-Index und die DOI-Seite des Release 2025 sagen dasselbe.
+   - **Die vier CSV-Dateien genau dieses Release 2025 (Dateidatum 14.11.2025) tragen in der ersten Zeile „… may be used with
+     indication of the source for scientific and non-commercial use“**, das Impressum der Website einen gleichartigen Satz. Der
+     Wortlaut ist also nicht älter als das Release — danach ausdrücklich fragen: welche Aussage gilt?
+   - Was wir veröffentlichen: keine Zeile und keinen Messwert der Dateien, nur die zwei abgeleiteten Größen für 35 Schweizer
+     Gletscher, mit Name, DOI und Lizenz im Kopf der Tabelle. Fragen, ob die Quellenangabe so genügt oder der empfohlene
+     Zitierwortlaut der DOI-Seite verlangt ist (V-GM-102).
+   Die Antwort mit Datum in `audit/gletscher/licences.md` eintragen (oder mir geben). Bis dahin bleibt der Eintrag „nicht
+   aufgelöst“, die Tabelle bleibt nach deiner Entscheidung E-GM-37 (A) im Repo, und Punkt 4 (E-GM-38) trägt diesen offenen Punkt.
 
 ## 124. Gletscher: Schneemodell, Paket GM-5c — erster Runner-Lauf mit Schattenpaaren gelesen; die Paare tragen die Spanne in Stationshöhe (V-GM-79); Höchstwert des Speichers in der Statuszeile (V-GM-81) (`audit/gletscher-schneemodell.md` §3h.17, §3k, §3l), 2026-11-24
 
 **Stand 24.11. abends: gebaut und geprüft, beide Gates geschlossen, deine Entscheidungen E-GM-39, E-GM-40 und E-GM-37 eingetragen,
-LOKAL COMMITTET in zwei Commits (GM-5c; Quellenangabe der Gletscher-Tabelle), NICHT gepusht. Kein neuer Schalter. Kein Workflow
-geändert, nichts im Daten-Repo; in `buscosun-archiv` nur die Repo-Variable aus Punkt 1 (dein Wort). buscosun Fusion nur gelesen.** Die Hintergrundläufe hatte das System gegen 17:55 UTC wegen
+in zwei Commits committet (GM-5c `32b400df`; Quellenangabe der Gletscher-Tabelle `942ef226`) und VON DIR GEPUSHT am 24.11.
+21:24 UTC. Kein neuer Schalter. In `buscosun-archiv` nur die Repo-Variable aus Punkt 1 (dein Wort); im Daten-Repo danach nur die
+Zeile aus §122 Punkt 3 (E-GM-36, dein Wort). buscosun Fusion nur gelesen.** Die Hintergrundläufe hatte das System gegen 17:55 UTC wegen
 Speichermangel auf der Maschine gestoppt; auf dein Wort („starte neu“, 18:22 UTC) sind sie nachgeholt — einzeln, aus dem endgültigen
 Code, die Gegenprobe auf einer Kopie des Baums.
 
@@ -4930,7 +4960,7 @@ Was gebaut ist:
    endgültigen Baum mit ausgeschalteter Spanne 33 von 33 Dateien gleich `b448d652`, mit beiden Schaltern genau zwei Dateien anders,
    das Schneedecken-Dokument gleich dem von `b448d652` mit der Spanne allein; Gegenprobe 58 von 58 bemerkt (einer in der ersten
    Runde übersehen, Prüfung J7 geschärft, wiederholt bemerkt).
-4. **Push von `buscosun-web`** (dein Gate). Was sich damit am Betrieb ändert: jeder Schmelzlauf schreibt `lines.melt.mem` in
+4. **Push von `buscosun-web`** (dein Gate) — **ERLEDIGT am 24.11. 21:24 UTC.** Was sich damit am Betrieb ändert: jeder Schmelzlauf schreibt `lines.melt.mem` in
    `glacier/v1/status.json` — sonst nichts (die Spanne ist auf dem Runner aus, die Paare bleiben, wie sie sind). Im ersten Lauf
    danach lesen: `heapLimitMb` (die Grenze von Node auf dem Runner, vermutlich kleiner als die 4 144 MB hier) und `heapMb` dagegen;
    `rssMb` gegen den Arbeitsspeicher des Runners. Im ersten CI-Lauf die Zeile L3 von `verify:glacier-melt` ansehen (V-GM-101).

@@ -47,6 +47,11 @@ jobs:
       # glacier's snow station next to the measurement at the run hour; no number of the snowpack changes, a failure writes no pairs file and names the
       # reason in status.json. Quoted, so that YAML never reads a boolean. Fallback: remove this line or set 'off' (buscosun-web MANUELLE-SCHRITTE §121.5).
       GLACIER_SNOWPACK_PAIRS: 'on'
+      # Phase GM (GM-5a, E-GM-36, Jan 24.11.2026): spread of the snowpack from K = 100 scenarios — p10/p90 per elevation and day in
+      # `glacier/v1/snowpack/<run>.json`; no expected value, no state and no other file changes. Together with the pairs line above every pair
+      # also carries the forecast at station elevation for +24/+48/+72 h (GM-5c). Read `lines.snowpack.spread` and `lines.snowpack.pairs.spread`
+      # in status.json. Fallback: remove this line or set `off` (buscosun-web MANUELLE-SCHRITTE §122.4).
+      GLACIER_SNOWPACK_SPREAD: scenarios
     steps:
       - uses: actions/setup-node@v4
         with:
