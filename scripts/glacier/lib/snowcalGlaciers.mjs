@@ -12,6 +12,18 @@
  */
 export const SNOWCAL_GLACIERS_KIND = 'glacier/snow-calibration-glaciers';
 export const SNOWCAL_GLACIERS_BOUNDS = Object.freeze({ F: [0.3, 5], floor: 0.2, stepM: 50, minWinters: 4 });
+/**
+ * E-GM-37 (Jan 24.11.2026: the table stays in the repository) — where the truth of the fit came from, and what the table is: DERIVED model parameters
+ * (a factor per glacier, a shape per 50 m), no row and no measured value of the source files (E-GL-17 stays in force). The generator writes this block
+ * into the head of the table; the rules of the table require it. Licence statements as recorded in `audit/gletscher/licences.md`.
+ */
+export const SNOWCAL_GLACIERS_SOURCES = Object.freeze({
+  note: 'Abgeleitete Modellgrößen aus einer eigenen Eichung (Niederschlagsfaktor je Gletscher, Form der Winterakkumulation je 50 m). Die Tabelle enthält keine Zeile und keinen Messwert der Quelldateien (E-GL-17).',
+  attribution: Object.freeze([
+    Object.freeze({ id: 'glamos', name: 'GLAMOS — Glacier Monitoring Switzerland: Swiss Glacier Mass Balance, Release 2025', doi: '10.18750/massbalance.2025.r2025', licence: 'CC BY 4.0', use: 'Winterbilanz je Höhenstufe der Schweizer Gletscher (Wahrheit der Eichung)' }),
+    Object.freeze({ id: 'wgms', name: 'WGMS — Fluctuations of Glaciers Database, Version 2026-02-10', doi: '10.5904/wgms-fog-2026-02-10', licence: 'CC BY 4.0 (open access under the requirement of correct citation)', use: 'Winterbilanz je Höhenstufe der österreichischen Gletscher (Wahrheit der Eichung)' }),
+  ]),
+});
 export const GLACIER_FACTOR_MODES = Object.freeze(['off', 'on']);
 export const GLACIER_FACTOR_DEFAULT = 'off';
 export const GLACIER_SHAPE_MODES = Object.freeze(['off', 'on']);
@@ -53,6 +65,9 @@ export function snowGlaciersProblems(doc, catalogIds = null) {
   if (!/^[0-9a-f]{64}$/.test(doc.method?.sha256 ?? '')) out.push('method.sha256 fehlt');
   if (doc.melt?.model !== 'eti' || !(doc.melt.TF > 0) || !(doc.melt.SRF > 0)) out.push('melt: die Schmelze des Betriebs (eti, TF, SRF) fehlt');
   if (!doc.against?.CH || !doc.against?.AT) out.push('against nennt die Analysen nicht');
+  // E-GM-37: the source attribution — GLAMOS and WGMS each with name, DOI and licence — and the note that the table holds derived parameters only
+  const src = doc.sources?.attribution;
+  if (!doc.sources?.note || !Array.isArray(src) || !SNOWCAL_GLACIERS_SOURCES.attribution.every((want) => src.some((x) => x?.id === want.id && x.name && x.doi && x.licence))) out.push('sources: Quellenangabe (GLAMOS und WGMS mit Name, DOI, Lizenz) oder der Vermerk „abgeleitete Modellgrößen“ fehlt');
   if (!Number.isInteger(doc.shrink?.n0) || !Number.isInteger(doc.shrink?.n0s) || doc.shrink.n0 < 0 || doc.shrink.n0s < 0) out.push('shrink fehlt');
   if (!within(doc.country?.CH, SNOWCAL_GLACIERS_BOUNDS.F) || !within(doc.country?.AT, SNOWCAL_GLACIERS_BOUNDS.F)) out.push('country: Landeswerte fehlen');
   const v = doc.verdict;

@@ -314,11 +314,15 @@ const W = Object.fromEntries(winters.map((w) => [w.country, w]));
     (t) => { Object.values(t.glaciers)[0].F = 7; Object.values(t.glaciers)[0].atBound = true; }, (t) => { Object.values(t.glaciers)[0].F = 5; }, (t) => { Object.values(t.glaciers)[0].atBound = true; }, (t) => { Object.values(t.glaciers)[0].winters = 3; }, (t) => { Object.values(t.glaciers)[0].origin = 'set'; },
     (t) => { Object.values(t.glaciers)[0].shape.stepM = 100; }, (t) => { Object.values(t.glaciers)[0].shape.s = [0.1]; }, (t) => { Object.values(t.glaciers)[0].shape.m = 1.5; }, (t) => { Object.values(t.glaciers)[0].shape.s[0] = 9; }, (t) => { Object.values(t.glaciers)[0].country = 'IT'; },
     (t) => { Object.values(t.glaciers)[0].years = [2020, 2015]; },
+    // E-GM-37: the source attribution
+    (t) => { delete t.sources; }, (t) => { delete t.sources.note; }, (t) => { t.sources.attribution = t.sources.attribution.filter((x) => x.id !== 'glamos'); }, (t) => { t.sources.attribution = t.sources.attribution.filter((x) => x.id !== 'wgms'); },
+    (t) => { delete t.sources.attribution[0].licence; }, (t) => { delete t.sources.attribution[1].doi; },
   ];
   const caughtT = badT.map((edit) => { const t = structuredClone(table2); edit(t); return snowGlaciersProblems(t).length; });
   const atB = Object.entries(table2.glaciers).filter(([, g]) => g.atBound);
-  add(`H4 Vertrag der Tabelle je Gletscher: jede von ${badT.length} Verletzungen wird gemeldet (falsche Art, fehlender Hash, andere Schmelze, fehlende Analyse, Urteil und \`gate\` im Widerspruch, Faktor außerhalb der Grenzen, Faktor an der Grenze ohne Vermerk und Vermerk ohne Grenze, weniger als vier Winter, Herkunft, Form unlesbar); ein Gletscher außerhalb eines Katalogs wird gemeldet; der eine Eintrag an der Grenze trägt den Vermerk`,
-    caughtT.every((n) => n > 0) && snowGlaciersProblems(table2, new Set(['gl_x'])).length === Object.keys(table2.glaciers).length && atB.length === 1 && atB[0][1].F === 5, { caughtT, atB: atB.map(([id]) => id) });
+  add(`H4 Vertrag der Tabelle je Gletscher: jede von ${badT.length} Verletzungen wird gemeldet (falsche Art, fehlender Hash, andere Schmelze, fehlende Analyse, Urteil und \`gate\` im Widerspruch, Faktor außerhalb der Grenzen, Faktor an der Grenze ohne Vermerk und Vermerk ohne Grenze, weniger als vier Winter, Herkunft, Form unlesbar, fehlende Quellenangabe — GLAMOS oder WGMS, Lizenz, DOI, der Vermerk „abgeleitete Modellgrößen“); die Tabelle nennt GLAMOS und WGMS mit CC BY 4.0; ein Gletscher außerhalb eines Katalogs wird gemeldet; der eine Eintrag an der Grenze trägt den Vermerk`,
+    caughtT.every((n) => n > 0) && table2.sources.attribution.map((x) => x.id).join() === 'glamos,wgms' && table2.sources.attribution.every((x) => /^CC BY 4\.0/.test(x.licence)) && /keine Zeile/.test(table2.sources.note)
+    && snowGlaciersProblems(table2, new Set(['gl_x'])).length === Object.keys(table2.glaciers).length && atB.length === 1 && atB[0][1].F === 5, { caughtT, atB: atB.map(([id]) => id) });
   // the readers, by hand
   const sh = { z0: 2400, stepM: 50, s: [-0.2, 0, 0.4], m: 0.5 };
   const corr = shapeCorrOf(sh, [2400, 2450, 2500], [0.5, 0.25, 0.25]), bar = 0.5 * -0.2 + 0.25 * 0 + 0.25 * 0.4;

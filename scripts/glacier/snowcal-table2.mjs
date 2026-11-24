@@ -3,12 +3,13 @@
  * Phase GM, GM-5b — writes the second calibration table `scripts/glacier/snow-calibration-glaciers.json` from the report of the second round
  * (`snowcal-fit2.mjs`) and puts the report (without its per-winter rows) next to the frozen method in audit/gletscher-schneemodell/. No fitting here:
  * the table states what the report found. The first table (`snow-calibration.json`) is not read and not written.
+ * The head carries the source attribution (GLAMOS, WGMS; E-GM-37): the table holds derived model parameters, no row of a source file.
  *
  *   node scripts/glacier/snowcal-table2.mjs --report=<report-fit2.json>
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { snowGlaciersProblems, SNOWCAL_GLACIERS_KIND, SNOWCAL_GLACIERS_BOUNDS } from './lib/snowcalGlaciers.mjs';
+import { snowGlaciersProblems, SNOWCAL_GLACIERS_KIND, SNOWCAL_GLACIERS_BOUNDS, SNOWCAL_GLACIERS_SOURCES } from './lib/snowcalGlaciers.mjs';
 
 const arg = (n, d) => process.argv.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3) ?? d;
 const ROOT = join(import.meta.dirname, '..', '..');
@@ -28,6 +29,8 @@ export function buildGlacierTable(R) {
     melt: R.melt,
     against: { CH: 'MeteoSchweiz RhiresD, Tagesgitter 1 km (CC BY 4.0, Quelle: MeteoSchweiz)', AT: 'GeoSphere Austria INCA-Analyse stündlich, 1 km (inca-v1-1h-1km, CC BY 4.0)' },
     truth: 'Winterbilanz je Höhenstufe: GLAMOS Release 2025 (Schweiz), WGMS FoG 2026-02-10 (Österreich), hydrologische Jahre 2012–2025',
+    // E-GM-37: source attribution and the note that the table holds derived parameters only
+    sources: SNOWCAL_GLACIERS_SOURCES,
     forcing: 'Temperatur und Globalstrahlung einer Station (SwissMetNet, GeoSphere klima-v2-1h), nicht die des Betriebs',
     n: { glaciers: s.glaciers, winters: s.winters, usable: R.data.usable },
     shrink: { n0: s.n0, n0s: s.n0s }, country: s.countryFull, bounds: { F: SNOWCAL_GLACIERS_BOUNDS.F, floor: SNOWCAL_GLACIERS_BOUNDS.floor },
