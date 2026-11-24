@@ -4977,3 +4977,26 @@ Was gebaut ist:
 8. **Weiter offen:** 189 der 468 Paare sitzen auf Nachbar-Zeilen und tragen keine Spanne (V-GM-99); was der Producer hält, solange
    er Gletscher mit eigenem Antrieb rechnet (V-GM-81, zweiter Teil); die älteren Gegenproben (`gm2` … `gm5b`) verändern weiter den
    Arbeitsbaum statt einer Kopie (V-GM-100, für `gm5c` umgesetzt).
+
+## 125. Gletscher: Schneemodell, Paket GM-9 — Neuschneedichte aus Temperatur und Wind gemessen, die Regel trägt nicht, nichts gebaut (V-GM-50, E-GM-41; `audit/gletscher-schneemodell.md` §3m), 2026-11-24
+
+**Stand 24.11. nachts: geschlossen und auf dein Wort lokal committet, nicht gepusht.** Kein Code unter `scripts/glacier/lib`,
+`scripts/glacier/*.mjs` oder `src`, kein Producer-Lauf, nichts im Daten- oder Archiv-Repo, kein Schalter. buscosun Fusion und die
+Stationslinie nur gelesen.
+
+Was gemessen ist (§3m.2, §3m.3): an 2 324 Schneefalltagen an 18 SLF-Messfeldern (Brett, wahres Wasser) schlägt keine Regel aus
+Temperatur und Wind die feste Dichte von 96 kg/m³ — die beste ist 3,6 % besser als eine gleich geschätzte Konstante (nötig 5 %)
+und gleichauf mit 96; die Formen aus der Literatur wie gedruckt sind 10–25 % schlechter. Urteil vom Skript nach eingefrorener
+Regel (`gm9-method-frozen.md`, sha256 `86004805…`), Negativkontrolle ohne Gewinn.
+
+1. **Entschieden (du, 24.11., E-GM-41):** `--density=tw` wird nicht gebaut, die Dichte bleibt 96 (`board`); kein GM-9b jetzt
+   (festgehalten als V-GM-108 mit dem Hinweis vom Weissfluhjoch: dort 6–11 % besser als 96, ein Messfeld); keine Nachrechnung
+   von V-GM-50 mit 82 gegen 96.
+2. **Berichtigt:** die 52–81 kg/m³ aus §3a waren Dichten aus Messer-Wasser; mit dem Minderfang 0,70 sind es ≈ 97. 96 ist im
+   Mittel nicht zu dicht.
+3. **Nachsehen ab 25.11. 17 UTC:** der Schmelzlauf dieser Stunde ergibt gegen `2026112417` die erste 24-h-Änderung aus den
+   Schattenpaaren mit dem Antrieb von buscosun Fusion — sie beantwortet die offene Frage von V-GM-50 (V-GM-107).
+4. **Push von `buscosun-web`** (dein Gate) — ändert am Betrieb nichts (nur Audit-Dateien und Doku).
+5. **Offen bei dir:** V-GM-105 — die Zugspitze hat keine Schneehöhe in `obs/v1` (10-min-Daten des DWD ohne Schneehöhe; Tageswerte
+   ohne `SHK_TAG` seit 2.2.2026); die stündlichen Meldungen der DWD-Station 10961 sind nicht geprüft. Eine Änderung an der
+   Stationslinie braucht dein Wort. V-GM-108 — GM-9b (IMIS-Paarung ab 2 000 m) nur auf dein Wort.

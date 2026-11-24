@@ -8,6 +8,7 @@
 > **GM-5 (§3i, §3j) — 24.11., von Jan committet und gepusht am 24.11. 16:35 UTC (`b448d652`), alle neuen Schalter aus:** die Verteilung aus Sentinel-2 ist nicht gebaut (die Saisonzeilen tragen nur eine Schneegrenze je Szene; E-GM-30). **GM-5a:** hinter `--snowpack-spread=scenarios` trägt die Schneedecke p10/p90 aus 100 Szenarien je Höhe und Tag, die Summe der Tage 8–14 als eine Spanne, Nachbar-Zeilen den Vermerk „ohne Spanne“ und im Kopf EIN Paar zur Unsicherheit des Faktors; ohne Schalter 32 von 32 Dateien des vollen Laufs Byte für Byte gleich. **GM-5b:** Eichrunde 2 nach eingefrorener Regel mit dem Schmelzkern des Betriebs — Faktor je Gletscher (Winterbilanz 233 statt 402 mm) und Form je Höhenstufe (Formfehler 74 statt 132 mm) tragen; eigene Tabelle `snow-calibration-glaciers.json` (43 Gletscher), im Schmelzlauf hinter `--glacier-factor` und `--glacier-shape`; die Schneedecke liest sie nicht. Offen bei Jan: E-GM-36, **E-GM-37 (vor dem Commit)**, E-GM-38.
 > **GM-4 (§3h) — Diagnose 23.11. abends, danach GM-4a gebaut, von Jan committet und gepusht am 24.11. 05:27 UTC (`019ab63c`), beide Schalter aus:** die Daten tragen heute KEINE Kopplung an Stationen (der Stand in Stationshöhe ist der Faktor, 1,86 × Station; die 24-h-Änderung bei Schneefall 0,76 × Station; Gratstationen verlieren beim Schneefall Schnee; die Abweichung der Änderung überträgt sich nicht auf Nachbarn), und mit dem Antrieb von buscosun Fusion gibt es noch keinen Lauf. Auf Jans Wort (E-GM-20 … E-GM-23) gebaut: Schattenpaare `snowpack/pairs/<lauf>.json` hinter `--snowpack-pairs=on` (Modell in Stationshöhe neben der Station, nichts gekoppelt), ihr Archiv (`glacier-archive.mjs --pairs`, Vorlage nachgezogen) und der Satelliten-Abgleich einmal je Szene im Schmelzlauf hinter `--sat-nudge=once`; kein Übertrag. Ohne Schalter 338 von 338 Dateien Byte für Byte gleich.
 > **GM-5c (§3k, §3l) — 24.11. abends, auf `origin/main` (`32b400df`, Jans Push 24.11. 21:24 UTC), kein neuer Schalter, beide Gates geschlossen; die Spanne ist auf dem Runner AN seit 24.11. 21:29 UTC (E-GM-36: Jan „on, K = 100“, Daten-Repo `2d208df2`, §3i.4d):** der erste Runner-Lauf mit Schattenpaaren (`2026112417`) ist gelesen (§3h.17: 468 Paare, 465 mit Stationswert; das Archiv legte sie um 18:48 UTC noch nicht ab — die fehlende Repo-Variable ist seit 19:47 UTC gesetzt, V-GM-96). **V-GM-79:** in einem Lauf mit Spanne tragen die Paare die Vorhersage in Stationshöhe für +24 / +48 / +72 h (Erwartungswert an jedem Paar, p10/p90 wo die Zeile eine Spanne hat — das Quantil der je Szenario in Stationshöhe gelesenen Werte). **V-GM-81:** die Statuszeile des Schmelzlaufs trägt `mem` { `rssMb`, `heapMb`, `heapLimitMb` } (lokal 3 217 / 2 830 / 4 144 MB). Prüfer grün (`-snowpack` 72/72, `-melt` 78/78); voller lokaler Lauf am endgültigen Baum: mit ausgeschalteter Spanne 33 von 33 Dateien Byte für Byte wie `b448d652`, mit beiden Schaltern genau zwei Dateien anders (279 Paare mit Spanne), das Schneedecken-Dokument gleich dem von `b448d652` mit der Spanne allein; Gegenprobe 58 von 58 bemerkt. **Jan 24.11. abends: E-GM-39 (A, wie gebaut), E-GM-40 (wie gebaut, kein Schalter), E-GM-37 (A: die Tabelle je Gletscher bleibt im Repo, mit Quellenangabe GLAMOS und WGMS im Tabellenkopf und in `audit/gletscher/licences.md`).** Offen bei Jan: Push (MANUELLE-SCHRITTE §124).
+> **GM-9 (§3m) — 24.11. nachts, geschlossen:** gemessen, ob eine Regel aus Temperatur und Wind die feste Neuschneedichte von 96 kg/m³ schlägt — nein (eingefrorene Regel, Urteil vom Skript); nichts gebaut, die Dichte bleibt 96 (E-GM-41). Die 52–81 kg/m³ aus §3a waren Messer-Wasser (Minderfang 0,70 ⇒ ≈ 97). Lokal committet, nicht gepusht.
 > Ausgangspunkt: `audit/qualitaetspruefung-seewetter-gletscher-2026-11-22.md` (K-2, K-3, M-17, M-18, G-26) und die Recherche vom selben Tag.
 
 ## 1. Auftrag und Jans Entscheidungen
@@ -100,7 +101,7 @@ Abweichung von der Quelle, benannt: Δsnow ist für Tagesschritte und Stationen 
 | zusammen | 89 | | | −2,5 / 3,9 cm | 68 kg/m³ |
 
 Befunde:
-- **Die Neuschneedichte stimmt.** Niederschlag geteilt durch gemessene Neuschneehöhe ergibt an Tagen unter −1 °C im Mittel 68 kg/m³, genau der Literaturwert. Je Station 52–81.
+- **Die Neuschneedichte stimmt.** Niederschlag geteilt durch gemessene Neuschneehöhe ergibt an Tagen unter −1 °C im Mittel 68 kg/m³, genau der Literaturwert. Je Station 52–81. *(Berichtigt 24.11., §3m.8: das ist Messer-Wasser; mit dem Minderfang 0,70 wird daraus ≈ 97 kg/m³ — die 52–81 sind keine Neuschneedichten.)*
 - **Neuschnee je Schneefalltag liegt 2,5 cm (rund 20 %) zu niedrig**, mittlerer Fehler 3,9 cm. Ob das an der Setzung des ersten Tags oder am Minderfang der Niederschlagsmesser liegt, trennt diese Messung nicht.
 - **Die Schneehöhe ist mit gemessenem Niederschlag nicht zu treffen** (über elf Stationen ab 1 400 m: gemessen 53 cm, Modell 33 cm, mittlerer Fehler 29 cm). Am Pitztaler Gletscher fielen laut Messer 150 mm in vier Monaten bei im Mittel 1 m Schnee; am Sonnblick liegt das Modell 17 cm zu hoch (Windabtrag am Gipfel). Der Niederschlag ist die bestimmende Fehlerquelle, nicht Dichte oder Setzung. Das bestätigt die Reihenfolge der Pakete: Eichung des Niederschlags (GM-3) und Kopplung an gemessene Schneehöhen (GM-4) entscheiden über die Güte.
 - **Zwei Fehler im ersten Entwurf des Kerns, durch die Messung gefunden:** Δsnow allein setzte stündlichen Neuschnee am ersten Tag um den Faktor 1,6 zu stark (behoben durch das Neuschnee-Gesetz der Quelle); das 24-Stunden-Fenster ließ die erste Schicht des Tages aus (behoben, angeschnittene Schichten zählen anteilig).
@@ -1341,7 +1342,7 @@ Jeder Wert der Schneedecke bleibt `computed`, nie `measured`; „berechnet, noch
 |---|---|---|---|
 | V-GM-48 | In Österreich ordnet der Stand der Schneedecke in Stationshöhe die Stationen nicht (r = −0,08, 133 Paare an 29 Stationen; Schweiz 0,82) | ob die Unterschiede zwischen österreichischen Gletschern echt sind · je Gletscher gegen SNOWGRID (r) und gegen die INCA-Zelle der Station statt des Gletscherpunkts; die Temperaturverschiebung (§3f.1 D, ±2 K) als Ursache prüfen | offen |
 | V-GM-49 | Der Satelliten-Abgleich wendet Szenen bis 20 Tage an, auch wenn seither Schnee gefallen ist (Griesgletscher: Szene 14.11. löscht die Zunge nach dem Schneefall vom 20.–23.11.) | kein gelöschter Neuschnee im Schmelzindex · einmal je Szene (E-GM-22) und eine Szene nur, wenn seither kein Schneefall gerechnet ist | E-GM-22 |
-| V-GM-50 | Die 24-h-Änderung bei Schneefall liegt beim 0,76-fachen der Station, der Stand beim 1,86-fachen: Niederschlag und Neuschneedichte (96 gegen gemessen 52–81 kg/m³) sind in Zentimetern nicht zu trennen | eine Kopplung, die nicht die Dichte als Niederschlag verbucht · Wasserwert des Neuschnees an den SLF-Messfeldern (Q6, `HN_1D` dort gemessen) neben die Höhenänderung stellen | offen |
+| V-GM-50 | Die 24-h-Änderung bei Schneefall liegt beim 0,76-fachen der Station, der Stand beim 1,86-fachen: Niederschlag und Neuschneedichte (96 gegen gemessen 52–81 kg/m³) sind in Zentimetern nicht zu trennen | eine Kopplung, die nicht die Dichte als Niederschlag verbucht · Wasserwert des Neuschnees an den SLF-Messfeldern (Q6, `HN_1D` dort gemessen) neben die Höhenänderung stellen | offen; Dichte-Teil gemessen in GM-9 (§3m.8: 96 im Mittel nicht zu dicht, die 52–81 waren Messer-Wasser); Rest über die Schattenpaare ab 25.11. 17 UTC (V-GM-107) |
 | V-GM-51 | Im Fenster 20.–23.11. gab es nur 7 Ruhe-Paare: die Setzung ohne Schneefall (V-GM-38) bleibt ungemessen | verlässliches „Neuschnee 72 h“ · aus den Schattenpaaren der nächsten trockenen Tage | offen |
 | V-GM-52 | IMIS-Schneehöhen stehen erst seit dem Push von GI (22.11.) in den Slots; die Schweiz hat keine 48-h-Änderung | — · wächst von selbst; die Ablage stündlich trägt sie seit dem Push | erledigt sich |
 | V-GM-53 | Laufdokumente der Schneedecke und Stationsslots verschwinden nach 72 h; keiner von beiden ist für die Schneedecke archiviert | eine Messung über Wochen ohne Lücken · Paare im Lauf bilden und archivieren (E-GM-20, E-GM-21) | E-GM-21 |
@@ -1859,6 +1860,148 @@ Die fünf Fragen: (1) Funktionserhalt — kein Dokument, kein Zustand, kein Zeig
 | V-GM-81 | zweiter Teil bleibt: WAS der Producer hält, solange er Gletscher mit eigenem Antrieb rechnet (`forcings` in `melt.mjs` trägt die Antworten aller 957, dazu der Zwischenspeicher des Cube-Lesers?) | offen; zuerst die Zahlen vom Runner lesen |
 | V-GM-101 | L3 unterscheidet Höchstwert und Stand von jetzt nur dort, wo ein Prozess freigegebenen Speicher an das System zurückgibt; gemessen nur unter Windows. Rot wird die Prüfung deshalb nirgends — sie könnte auf dem CI-Runner aber blind sein. Mehrwert: eine Prüfung, von der man weiß, was sie sieht. Skizze: im ersten CI-Lauf nach dem Push die Zahlen von L3 lesen (`during`, `now`), oder die Gegenprobe „Stand von jetzt“ einmal auf Linux laufen lassen | offen (nach dem Push) |
 
+## 3m. GM-9: Neuschneedichte aus Temperatur und Wind (V-GM-50) — Diagnose, Schritte 0 und 1, geschlossen (24.11. nachts)
+
+Auftrag (Jan, 24.11. abends): zuerst messen, ob eine Regel aus Temperatur und Wind die feste Neuschneedichte von 96 kg/m³ schlägt, die Regel vor dem ersten gewerteten Lauf einfrieren, dann anhalten. Kein Code in `scripts/glacier/lib` oder `src`, kein voller lokaler Lauf, keine Gegenprobe (die Maschine lief am Abend in Speichermangel; erster Runner-Lauf mit Spanne um 23:20 UTC). buscosun Fusion und die Stationslinie nur gelesen.
+
+Werkzeug `audit/gletscher-schneemodell/gm9-density.mjs` (Modus `count` zählt nur, `score` läuft nur bei passendem Hash der Regel). Regel `gm9-method-frozen.md`, sha256 `86004805…` (`gm9-method-frozen.sha256`), Werkzeug beim Einfrieren `6ffa40c1…`. Bericht `gm9-report.json` (35 s). Daten: Cache von GM-3 (`C:\dev\buscosun-glacier-cache\gm3\`, SLF-Messfelder, SwissMetNet, GeoSphere `klima-v2-1d`) und neu `C:\dev\buscosun-glacier-cache\gm9\dwd\` (DWD `water_equiv` und `kl`, 61 Stationen ab 800 m; Zugspitze). Nichts in `buscosun-data` oder `buscosun-archiv`.
+
+Reihenfolge: (1) laden und zählen, (2) Selbstprüfung an erfundenen Ereignissen, (3) Regel einfrieren und hashen, (4) gewerteter Lauf. Hash und Lauf: 24.11. 21:57 UTC in einem Aufruf. **Schreibfehler in der eingefrorenen Datei:** sie nennt „gegen 22:10 UTC“; richtig ist 21:57 UTC (Hash-Datei und Bericht). Nach dem Lauf nicht korrigiert, weil das den Hash bräche.
+
+### 3m.1 Daten (Zählung vor dem Einfrieren)
+
+| Land | Wahrheit | Ereignisse | Rolle |
+|---|---|---|---|
+| CH | SLF-Messfelder: Neuschnee und sein Wasserwert vom selben Brett; SwissMetNet ≤ 3 km / 200 m, Stundenwerte T, Wind, Feuchte | 2 362 zugelassen wie in GM-3, **2 324 gewertet** (Wind an allen 24 h, Feuchte ≥ 20 h) an 18 Messfeldern, 14 Winter 2012–2025; 576 unter 1 500 m, 1 054 1 500–1 999 m, **694 ab 2 000 m (praktisch nur Weissfluhjoch, 2 536 m)** | gewertet |
+| AT | `klima-v2-1d`: Neuschnee von Hand, Wasser aus dem **Messer** | 8 061 Tage an 57 Stationen ab 1 000 m, 2016–2025 | beschreibend |
+| DE | DWD `water_equiv`: Wasserwert der ganzen Decke, Zuwachs zwischen zwei Messtagen | 775 Intervalle mit Temperatur an 18 Stationen mit Klimadaten (1 674 ohne) | beschreibend |
+
+**DWD `water_equiv` (Jans Frage zuerst):** die Reihe endet **nicht** 2022 — `recent` reicht bis 23.11.2026 (1 177 Stationen in der Liste). Aber: gemessen wird meist montags, mittwochs und freitags, und zwar der Wasserwert der **ganzen** Schneedecke; die aktiven Stationen liegen höchstens auf 1 141 m (Hochgfäll), die höchsten der Geschichte auf 1 486 m (Feldberg, bis 2014) und 1 436 m (Großer Arber, bis 2016); die Zugspitze ist nicht dabei. Eine Neuschneedichte misst diese Reihe nicht (V-GM-106).
+
+### 3m.2 Tabellen — gemessene Dichte je Ereignis (kg/m³, Zelle: Zahl / Median)
+
+**Schweiz, Brett (wahres Wasser).** Alle 2 324 Tage: p10 / Median / p90 **65 / 100 / 147**; je Band 94 / 100 / 100.
+
+Tagesmittel der Temperatur × Wind (Tagesmittel 10 m):
+
+| Band | T | u < 2 m/s | 2–4 | ab 4 | zusammen |
+|---|---|---|---|---|---|
+| < 1 500 m | < −8 °C | 9 / 91 | 3 / 73 | 1 / – | 13 / 91 |
+| | −8 … −3 | 132 / 90 | 72 / 92 | 44 / 90 | 248 / 91 |
+| | ab −3 | 206 / 100 | 76 / 94 | 33 / 100 | 315 / 98 |
+| 1 500–1 999 m | < −8 | 23 / 67 | 31 / 78 | 34 / 110 | 88 / 83 |
+| | −8 … −3 | 261 / 89 | 204 / 90 | 123 / 106 | 588 / 91 |
+| | ab −3 | 241 / 103 | 91 / 110 | 46 / 108 | 378 / 107 |
+| ab 2 000 m | < −8 | 0 | 10 / 73 | **277 / 84** | 287 / 83 |
+| | −8 … −3 | 1 / – | 28 / 84 | 296 / 109 | 325 / 107 |
+| | ab −3 | 0 | 13 / 100 | 69 / 125 | 82 / 122 |
+
+Feuchttemperatur × Wind: dasselbe Bild (ab 2 000 m: < −8 °C 87, −8 … −3 109, ab −3 127; 1 500–1 999 m windstill und kalt 70). Ein Wert „300“ in einer Zelle mit einem Tag ist ausgelassen. Zellen unter 10 Tagen tragen nur den Median.
+
+**Österreich, Wasser aus dem Messer** (Minderfang; in der Schweiz fängt der Messer an denselben Tagen 70 % des Brettwassers, GM-3 D): alle 8 061 Tage 40 / **70** / 125. Ab 2 000 m: < −8 °C 62 (1 703 Tage, fast alle ab 4 m/s), −8 … −3 75, ab −3 95; bei Wind ab 4 m/s und ab −3 °C 103. Unter 1 500 m kaum ein Gang (57–65). Dieselbe Richtung wie in der Schweiz (kalt leicht, warm und windig dicht), auf einem um den Minderfang tieferen Niveau; der Minderfang hängt selbst am Wind, deshalb nicht gewertet.
+
+**Deutschland, Zuwachs der ganzen Decke über 1–3 Tage:** 66 / **164** / 315 (unter 1 000 m 140, ab 1 000 m 204), fast nur Gipfelstationen (Brocken 135 Intervalle, Fichtelberg 96, Großer Arber 56), fast alle Intervalle bei Wind ab 4 m/s. Das ist die Dichte des Zuwachses nach Setzung des Altschnees, Windpressung und Regen, keine Neuschneedichte (V-GM-106); nicht gewertet.
+
+**Wo 96 danebenliegt** (CH, mittlerer Fehler der Neuschneehöhe mit 96 im Kern; Ablagedichte ρ*, die genau trifft, Median):
+
+| T | u < 2 | 2–4 | ab 4 |
+|---|---|---|---|
+| < −8 °C | 32 Tage: −3,3 cm, ρ* 67 | 44: −2,8 cm, ρ* 70 | 312: −1,1 cm, ρ* 82 |
+| −8 … −3 | 394: −2,3 cm, ρ* 82 | 304: −2,2 cm, ρ* 82 | 463: +1,6 cm, ρ* 99 |
+| ab −3 | 447: +0,8 cm, ρ* 95 | 180: +0,6 cm, ρ* 95 | 148: +1,7 cm, ρ* 104 |
+
+Die Richtung ist da: kalt und windstill leichter, warm und windig dichter. Wie viel davon eine Regel aus Tagesmitteln voraussagen kann, sagt die Wertung.
+
+### 3m.3 Wertung nach der eingefrorenen Regel (CH, 2 324 Tage, ein Winter ausgelassen)
+
+Kennzahl: mittlerer Fehler der Neuschneehöhe (cm) des Schneekerns auf leerem Brett, 24 h, mit gemessenem Wasser. „Streuung erklärt“ = 1 − mittlerer |log(Brettdichte Modell / gemessen)| gegen die je Rückhaltung geschätzte Konstante C1 (in Klammern dasselbe als R² in log).
+
+| Regel | Fehler | Bias | gegen C1 | gegen 96 | Streuung erklärt | Winter besser als C1 | ab 2 000 m (694 Tage) | trägt |
+|---|---|---|---|---|---|---|---|---|
+| C0 — 96 fest (heute) | **4,43** | −0,3 | +3,8 % | 0 | — | 12 / 14 | 3,03 | — |
+| C1 — Konstante, geschätzt (88 kg/m³) | 4,60 | +1,2 | 0 | −4,0 % | 0 | — | 3,36 | — |
+| **F1** log ρ = a + b·T + c·√u | 4,44 | +1,3 | **+3,6 %** | −0,2 % | 4,8 % (6,3 %) | 11 / 14 | **2,85** (+15 % gegen C1) | nein |
+| F2 wie F1 mit Feuchttemperatur | 4,44 | +1,3 | +3,5 % | −0,3 % | 4,8 % (6,2 %) | 12 / 14 | 2,87 | nein |
+| F3 nur Temperatur | 4,60 | +1,3 | +0,1 % | −3,8 % | 1,0 % | 8 / 14 | 3,55 | nein |
+| F4 nur Wind | 4,58 | +1,1 | +0,6 % | −3,4 % | 0,9 % | 10 / 14 | 3,13 | nein |
+| L1 Vionnet 2012 wie gedruckt | 5,51 | −4,0 | −19,7 % | −24,5 % | — | 4 / 14 | 3,68 | nein |
+| L2 Anderson 1976 | 5,16 | −0,7 | −12,0 % | −16,5 % | — | 5 / 14 | 3,81 | nein |
+| L3 Hedstrom & Pomeroy 1998 | 5,09 | +2,5 | −10,5 % | −14,8 % | — | 3 / 14 | 4,33 | nein |
+| L1s k × Vionnet (k = 0,70) | 4,72 | +1,8 | −2,4 % | −6,5 % | 2,1 % | 6 / 14 | **2,71** | nein |
+| L2s k × Anderson | 5,61 | +2,2 | −21,8 % | −26,6 % | — | 0 / 14 | 5,59 | nein |
+| L3s k × Hedstrom & Pomeroy | 4,75 | +1,5 | −3,2 % | −7,3 % | — | 5 / 14 | 3,86 | nein |
+| Negativkontrolle (F1 mit vertauschtem Wetter) | 4,61 | +1,1 | −0,1 % | −4,1 % | −0,1 % | 6 / 14 | 3,35 | besteht nicht ⇒ Urteil gültig |
+
+Voll angepasst (alle Winter): F1 log ρ = 4,453 + 0,0396·T + 0,119·√u (ρ* bei −5 °C und 4 m/s: 89 kg/m³), F2 4,493 + 0,0402·Tw + 0,116·√u.
+
+**Urteil des Skripts: NEIN.** Keine Form mit Temperatur und Wind trägt (F1, F2, L1, L1s). Die beste (F1) ist 3,6 % besser als eine gleich geschätzte Konstante (nötig: 5 %) und gleichauf mit 96 (−0,2 %). Temperatur und Wind erklären rund **5–6 %** der Streuung der Dichte von Tag zu Tag; jede für sich rund 1 %. Die Formen aus der Literatur wie gedruckt sind 10–25 % schlechter als 96. Die Negativkontrolle gewinnt nichts.
+
+**Lesart (meine, nach dem Lauf):**
+- Die Abhängigkeit ist echt (Tabellen §3m.2, Negativkontrolle bei 0), aber klein gegen die Streuung je Ereignis: die gemessene Dichte reicht an denselben Bedingungen von rund 65 bis 150 kg/m³. Eine Regel aus Tagesmitteln von Temperatur und Wind holt davon wenig heraus.
+- **Fehler meiner Regel (V-GM-103):** angepasst wird auf den gewichteten Betrag in log ρ*, gewertet auf den Fehler der Neuschneehöhe in cm. Die beiden Ziele sind nicht gleich: die geschätzte Konstante landet bei 88 statt bei den 96, die den Fehler in cm klein machen (GM-3), und jede angepasste Form erbt rund +1,2 cm Bias. Bedingung 1 vergleicht Gleiches mit Gleichem (F1 gegen C1, beide mit demselben Ziel: 3,6 %) und entscheidet das Urteil für sich; Bedingung 2 (gegen 96) wird durch den Fehler benachteiligt. Ohne den Bias läge F1 grob 3–4 % unter 96 — auch das unter der Grenze von 5 %. Das ist eine Schätzung, kein Lauf.
+- **Ab 2 000 m sieht es anders aus (V-GM-104, explorativ, nicht Teil des Urteils):** F1 2,85 cm, k × Vionnet 2,71 cm gegen 3,03 cm mit 96 (6 % bzw. 11 % besser). Die 694 Tage dort sind aber fast alle EIN Messfeld (Weissfluhjoch); ob das auf andere Höhenlagen und auf Gletscherhöhe übergeht, ist mit diesen Daten nicht zu prüfen.
+
+### 3m.4 Was das für V-GM-50 heißt
+
+V-GM-50: die 24-h-Änderung bei Schneefall liegt beim 0,76-Fachen der Station, der Stand beim 1,86-Fachen (§3h.3). Vermutung: 96 kg/m³ ist zu dicht.
+- Nach dieser Messung ist 96 **im Mittel nicht zu dicht** (Brettmedian 100, ρ* 91; bester fester Wert für die Neuschneehöhe 96). Die Werte 52–81 aus §3a waren Dichten aus **Messer**-Wasser; 68 / 0,70 ≈ 97 (§3c.5). Österreich bestätigt das von der anderen Seite (Messer-Median 70).
+- In einer kalten, windigen Lage wie 20.–23.11. (Zugspitze laut DWD-Tageswerten −8,5 bis −13,6 °C, Wind im Tagesmittel 5,6–11 m/s) liegt die Dichte, die trifft, in der Schweiz bei rund 82 (ab 2 000 m, unter −8 °C, ab 4 m/s: Brettmedian 84, 277 Tage). Mit 82 statt 96 wäre der Neuschnee um rund 17 % höher, das Verhältnis also rund 0,89 statt 0,76. **Rechnung aus einer Tabellenzelle, nicht am Ereignis gemessen.** Die Dichte kann damit höchstens einen kleinen Teil der Lücke erklären; das Verhältnis von 1,9, das der Faktor erwarten ließe (B2 in §3h.3), erreicht sie bei Weitem nicht. Der größere Teil bleibt beim Niederschlag des Antriebs (für 20.–23.11. Analysen und an zwei Schweizer Tagen buscosun Fusion) und bei der Setzung bzw. dem Windabtrag an den Stationen (V-GM-55).
+
+**Schattenpaare (Schritt 0, letzter Punkt):** im Daten-Repo liegt genau eine Paar-Datei (`snowpack/pairs/2026112417.json`, gelesen 21:58 UTC über die GitHub-API, nur lesend), dazu die Schneedecken-Läufe `2026112323`, `…05`, `…11`, `…17` — keine zwei Läufe 24 h auseinander. Im Archiv liegt noch keine `pairs-*.json.gz` (Archivlauf 00:47 UTC steht aus, V-GM-96). **Eine 24-h-Änderung aus Schattenpaaren gibt es frühestens mit dem Lauf vom 25.11. 17 UTC** gegen `2026112417`. Das Ereignis 20.–23.11. liegt vor den Paaren; seine 0,76 stammen aus der nachgerechneten Bahn des Startzustands (Analyse-Antrieb, `gm4-probe.mjs`), nicht aus Paaren (V-GM-107).
+
+### 3m.5 Referenzpaar Zugspitze
+
+| Frage | Befund |
+|---|---|
+| Ist die DWD-Station Zugspitze dem Nördlichen Schneeferner zugeordnet? | **ja, aber nicht für Schnee:** Zuordnung `20261120-1.4` — `gl_de_noerdlicher-schneeferner` → `de:05792` (2 956 m, 0,2 km vom Umriss, +373 m über der Medianhöhe) für `t`, `wind`, `gust`, `rad`; ebenso Höllentalferner (0,4 km, +557 m). Kein Eintrag `snow`; Deutschland hat 0 Schneepaare (§3h.2) |
+| Liefert sie eine Schneehöhe? | **nein.** In den Stationsslots kommt `de:05792` aus `dwd10` (10-min-Daten des DWD) mit `t`, `td`, `rh`, `ff`, `dd`, `fx`, `gr` — die 10-min-Reihen des DWD haben keine Schneehöhe. In den DWD-Tageswerten (`kl`, `recent`) steht die Schneehöhe `SHK_TAG` bis 1.2.2026 an jedem Tag, **seit 2.2.2026 an keinem** (ebenso der Niederschlag `RSK`); die Neuschneehöhe (`more_precip`, `NSH_TAG`) fehlt in der ganzen Datei |
+| Was fehlt | eine Quelle für die Schneehöhe an der Zugspitze in `obs/v1` (Kandidaten: DWD-POI/SYNOP stündlich, Station 10961 — nicht geprüft; Q10 Lawinenwarndienst Bayern, Lizenz offen) und, für eine Neuschneedichte, ein Wasserwert. Die Stationslinie ist nicht geändert (V-GM-105) |
+
+Stand und 24-h-Änderung dieses Paars können deshalb aus den Schattenpaaren nicht gezeigt werden.
+
+### 3m.6 Vorschlag, was gebaut wird
+
+Das Urteil ist „nein“. **Ich schlage vor, den Konstantensatz `tw` jetzt NICHT zu bauen.** Gebaut ergäbe er eine Regel, die nach der eigenen Messregel nicht trägt (gleichauf mit 96, 3,6 % gegen eine gleich geschätzte Konstante), hinter einem Schalter, den niemand einschalten sollte.
+
+Stattdessen, in dieser Reihenfolge:
+1. **GM-9b — Höhe messen statt schätzen (nur Messung, neue eingefrorene Regel):** die SLF-Messfelder zusätzlich mit IMIS-Stationen (Q2, freigegeben; Temperatur, Wind und Feuchte auf 2 000–3 000 m) paaren, damit ab 2 000 m mehr als ein Messfeld wertet; gewertet nur ab 2 000 m, ein Messfeld und ein Winter ausgelassen, Anpassung direkt auf den Fehler in cm (behebt V-GM-103). Trägt dort eine Form, dann `--density=tw` als dritter Konstantensatz wie im Auftrag (Schritte 2–4), mit Gültigkeit ab einer Höhe. Trägt nichts, bleibt 96 und GM-9 ist geschlossen.
+2. **V-GM-50 über den Niederschlag beantworten:** Schritt 3 des Auftrags (die GM-4-Rechnung der 24-h-Änderung) braucht keine neue Dichte, um zu zeigen, wie viel die Dichte höchstens ausmacht: mit 82 und 96 an derselben Bahn des Startzustands gerechnet (Werkzeug `gm4-probe.mjs`, ohne Producer-Lauf), dazu ab 25.11. 17 UTC die Paare mit dem Antrieb von buscosun Fusion.
+3. Die Zugspitze als Referenzpaar braucht eine Schneehöhe in `obs/v1` — Änderung an der Stationslinie, Jans Wort (V-GM-105).
+
+### 3m.7 Befunde
+
+| Nr. | Inhalt | Mehrwert · Skizze | Stand |
+|---|---|---|---|
+| V-GM-103 | Die eingefrorene Regel von GM-9 passt auf den gewichteten Betrag in log ρ* an, wertet aber den Fehler der Neuschneehöhe in cm. Die geschätzte Konstante landet bei 88 statt 96, jede angepasste Form trägt rund +1,2 cm Bias; der Vergleich mit 96 ist dadurch benachteiligt (Urteil bleibt „nein“: auch gegen die gleich geschätzte Konstante nur 3,6 %) | ein fairer Vergleich mit dem heutigen Wert · in der nächsten Runde direkt auf den Fehler in cm anpassen (Simplex über den Kern) oder den Achsenabschnitt danach auf den Median der Neuschneehöhe stellen | offen, in V-GM-108 |
+| V-GM-104 | Ab 2 000 m (694 Tage, fast nur Weissfluhjoch) sind Temperatur-Wind-Formen 6–11 % besser als 96 (F1 2,85, k × Vionnet 2,71 gegen 3,03 cm) — nach dem Lauf gesehen, nicht Teil des Urteils | die Höhe, auf der die Gletscher liegen · GM-9b: Messfelder zusätzlich mit IMIS-Stationen paaren, nur ab 2 000 m werten, ein Messfeld ausgelassen | offen, in V-GM-108 |
+| V-GM-105 | Die Zugspitze liefert keine Schneehöhe: `obs/v1` führt sie aus den 10-min-Daten des DWD (ohne Schneehöhe), die DWD-Tageswerte haben `SHK_TAG` seit 2.2.2026 nicht mehr, Neuschneehöhe nie. Deutschland hat damit kein Schneepaar | das einzige deutsche Referenzpaar (Nördlicher Schneeferner, Höllentalferner) · Schneehöhe der Zugspitze aus den stündlichen POI/SYNOP-Meldungen des DWD in `obs/v1` (Station 10961; Änderung an der Stationslinie, Jans Wort) oder Q10 (LWD Bayern, Lizenz offen) | offen |
+| V-GM-106 | DWD `water_equiv` misst den Wasserwert der ganzen Decke, meist dreimal je Woche, an Stationen bis 1 141 m (keine Zugspitze); der Zuwachs zwischen zwei Messtagen hat im Median 164 kg/m³ (Setzung, Windpressung, Regen) | keine Fehleichung aus einer ungeeigneten Reihe · als Wahrheit für Neuschneedichte nicht verwenden; für die Setzung des Altschnees (V-GM-38) könnte sie taugen | Hinweis |
+| V-GM-107 | Aus den Schattenpaaren gibt es noch keine 24-h-Änderung: eine Paar-Datei (`2026112417`), keine zwei Schneedecken-Läufe 24 h auseinander, im Archiv noch keine Paare; das Ereignis 20.–23.11. liegt vor den Paaren | V-GM-50 mit dem Antrieb des Betriebs · ab 25.11. 17 UTC Paare im 24-h-Abstand lesen; für das Ereignis die Bahn des Startzustands mit zwei Dichten rechnen (§3m.6 Punkt 2) | offen |
+
+Nicht gemessen: die Dichte auf Gletscherhöhe (Bretter bis 2 690 m, gewertet bis 2 536 m); Schneefälle unter 10 cm (V-GM-20); das Ereignis 20.–23.11. selbst; Feuchttemperatur in Österreich (die Tagesdateien tragen keine Feuchte).
+
+Stand nach Schritt 1 (24.11. nachts, vor Jans Wort): Schritte 0 und 1 erledigt, angehalten, nichts committet; offen E-GM-41.
+
+### 3m.8 Jans Entscheidung E-GM-41 und Abschluss (24.11. nachts)
+
+| Nr. | Entscheidung (Jan, 24.11.) |
+|---|---|
+| E-GM-41 | (1) `--density=tw` wird **nicht** gebaut; die Dichte bleibt 96 kg/m³ (Konstantensatz `board`). (2) **Kein GM-9b jetzt**; festgehalten als ein Befund (V-GM-108: IMIS-Paarung ab 2 000 m, ein Messfeld ausgelassen) mit dem gemessenen Hinweis vom Weissfluhjoch. (3) **Keine Nachrechnung von V-GM-50 mit 82 gegen 96** (§3m.6 Punkt 2 entfällt); die Frage bleibt offen, und die Schattenpaare beantworten sie ab 25.11. 17 UTC mit dem Antrieb von buscosun Fusion. Commit der GM-9-Dateien auf Jans Wort, kein Push. |
+
+**Gate GM-9: gemessen, die Regel trägt nicht, nichts gebaut.** Beleg: `gm9-report.json` (Lauf 24.11. 21:57 UTC, Hash der Regel `86004805…` gegen `gm9-method-frozen.sha256`), Urteil vom Skript (§3m.3), Negativkontrolle ohne Gewinn. Kein Code unter `scripts/glacier/lib`, `scripts/glacier/*.mjs` oder `src`, kein Producer-Lauf, nichts im Daten- oder Archiv-Repo; buscosun Fusion und die Stationslinie nur gelesen. Die Zugspitze bleibt ohne Schneehöhe (V-GM-105 offen, die Stationslinie ist nicht angefasst).
+
+**Berichtigte Lesart von §3a (M-2):** der Satz „Die Neuschneedichte stimmt … im Mittel 68 kg/m³, je Station 52–81“ rechnete mit dem Wasser des **Niederschlagsmessers**. Der Messer fängt an Schneefalltagen rund 70 % des Brettwassers (Minderfang, GM-3 D, §3c.5); die Dichte des Neuschnees aus wahrem Wasser liegt bei 68 / 0,70 ≈ 97 kg/m³ (SLF-Brett: Median 100, §3m.2). Die 52–81 sind deshalb **keine** gemessenen Neuschneedichten, und die Vermutung in V-GM-50 („96 gegen gemessen 52–81“) fällt mit ihnen: 96 ist im Mittel nicht zu dicht. Der Text von §3a bleibt als Stand vom 22.11. stehen; dort ist ein Verweis hierher nachgetragen.
+
+**V-GM-50 nach GM-9:** die Dichte erklärt die 0,76 der 24-h-Änderung höchstens zu einem kleinen Teil (Tabellenrechnung §3m.4, keine Messung am Ereignis; auf Jans Wort nicht nachgerechnet). Offen bleibt, wie viel davon am Niederschlag des Antriebs und wie viel an Setzung und Windabtrag an den Stationen liegt. Antworten geben die Schattenpaare: ab dem Lauf vom 25.11. 17 UTC gegen `2026112417` gibt es die erste 24-h-Änderung mit dem Antrieb von buscosun Fusion (V-GM-107).
+
+| Nr. | Inhalt | Mehrwert · Skizze | Stand |
+|---|---|---|---|
+| V-GM-108 | **GM-9b, nicht jetzt (E-GM-41):** ab 2 000 m wertet heute praktisch nur ein Messfeld (Weissfluhjoch, 2 536 m, 694 Tage); dort sind Temperatur-Wind-Formen gemessen 6–11 % besser als 96 (F1 2,85 cm, k × Vionnet 2,71 cm gegen 3,03 cm; nach dem Lauf gesehen, nicht Teil des Urteils, V-GM-104). Ob das auf Gletscherhöhe trägt, sagen diese Daten nicht | die Höhe, auf der die Gletscher liegen · SLF-Messfelder zusätzlich mit IMIS-Stationen paaren (Temperatur, Wind, Feuchte auf 2 000–3 000 m), nur ab 2 000 m werten, ein Messfeld und ein Winter ausgelassen, Anpassung direkt auf den Fehler in cm (behebt V-GM-103); neue eingefrorene Regel; erst danach über `tw` reden | offen (Jans Wort für den Start) |
+
+Stand der übrigen Befunde: V-GM-103 und V-GM-104 gehen in V-GM-108 auf; V-GM-105 offen (Zugspitze, stündliche DWD-Meldungen der Station 10961 nicht geprüft); V-GM-106 Hinweis; V-GM-107 offen bis zum Lauf vom 25.11. 17 UTC.
+
+**Stand GM-9: geschlossen (24.11. nachts).** Committet auf Jans Wort, nicht gepusht: `audit/gletscher-schneemodell/gm9-density.mjs`, `gm9-method-frozen.md`, `gm9-method-frozen.sha256`, `gm9-report.json`, dieses Audit, `CLAUDE.md`, `MANUELLE-SCHRITTE.md` (§125).
+
 ## 4. Quellenliste (zur Prüfung durch Jan)
 
 Spalte „Stand“: **da** = schon im Betrieb, **neu** = käme mit dieser Phase dazu. Spalte „Lizenz“: **belegt** = am 22.11. an der Quelle gelesen; **wie bisher** = unverändert aus der bestehenden Linie; **offen** = von mir nicht geprüft.
@@ -2004,4 +2147,5 @@ Reihenfolge: GM-1 und GM-2 zuerst (sie hängen an keiner offenen Quelle), GM-3 p
 - GM-4 (§3h): Diagnose, E-GM-20 … E-GM-23 entschieden und als GM-4a gebaut (Schalter aus, auf `origin/main` seit 24.11. `019ab63c`); offen die Archiv-Vorlage, E-GM-24 (Einschalten) und V-GM-48 … V-GM-59; GM-4b (Kopplung) wartet auf die Messung mit Schattenläufen.
 - GM-4a auf dem Runner: Schattenpaare an seit dem Lauf `2026112417` (24.11. 17 UTC), Beleg §3h.17 (468 Paare, 465 mit Stationswert, Vertrag ohne Befund, aus den eigenen Eingängen nachgerechnet gleich); V-GM-96 behoben (Variable `GLACIER_PRODUCER_REF = main` gesetzt 24.11. 19:47 UTC; Beleg am Archivlauf 25.11. 00:47 UTC steht aus); offen `GLACIER_SAT_NUDGE`.
 - GM-5c (§3k): V-GM-79 gebaut und geprüft (die Paare tragen in einem Lauf mit Spanne die Vorhersage in Stationshöhe; kein neuer Schalter, auf `origin/main` `32b400df` seit 24.11. 21:24 UTC): voller Lauf 33 von 33 mit ausgeschalteter Spanne, Negativkontrolle, Gegenprobe 58 von 58; E-GM-39 entschieden (wie gebaut); erster Lauf mit Spanne §3k.7; offen V-GM-99.
+- GM-9 (§3m, V-GM-50): **geschlossen 24.11. nachts** — gemessen, die Regel trägt nicht (F1 +3,6 % gegen eine gleich geschätzte Konstante, −0,2 % gegen 96), nichts gebaut; E-GM-41 entschieden (kein `tw`, kein GM-9b jetzt, keine Nachrechnung 82 gegen 96; §3m.8); offen V-GM-105 (Zugspitze ohne Schneehöhe), V-GM-107 (Paare ab 25.11. 17 UTC), V-GM-108 (GM-9b auf Jans Wort).
 - V-GM-81 (§3l): Speicherzeile `lines.melt.mem` gebaut und geprüft (ohne Schalter, auf `origin/main` `32b400df` seit 24.11. 21:24 UTC; lokal 3 217 / 2 830 / 4 144 MB); E-GM-40 entschieden (wie gebaut); die Zahlen vom Runner §3l.5; offen V-GM-101; die Ursache der 1,5 GB bleibt offen.
