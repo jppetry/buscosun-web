@@ -2255,6 +2255,32 @@ Am 24.11. gibt buscosun Fusion schon **ohne Faktor** etwa doppelt so viel Wasser
 | V-GM-149 | Nach V-GM-136 trägt `snow-factor-predicted-ch.json` den Hash einer Eichtabelle, die es nicht mehr gibt; `verify:glacier-snowcal` I8 bleibt rot, bis sie neu gebaut ist | ein grüner Prüfer · Tabelle mit `--mode=table` neu bauen (Jans Wort), Faktoren vorher und nachher vergleichen (erwartet: gleich) |
 | V-GM-150 | Das Venedigerkees hat 11 gemessene Winter je Stufe, aber keinen eigenen Platz im Katalog (AGI 5 führt es im Obersulzbach Kees) | ein Eichgletscher mehr in Österreich, wenn der Katalog es trennt · prüfen, ob AGI 5 / RGI 6 einen Teilumriss für RGI60-11.00116 hergibt; bis dahin Wahrheit nur für den Landeswert |
 
+### 3q.4 Der ungesehene Winter 2025/26 (1.4; ein Winter)
+
+**Regel vor dem Lauf eingefroren:** `audit/gletscher-schneemodell/gm11-winter26-frozen.md`, sha256 `f563fd0813b018ec…` (`gm11-winter26-frozen.sha256`); das Werkzeug `gm11-winter26.mjs` prüft den Hash und rechnet das Urteil. Nichts neu angepasst.
+
+**Daten.** GLAMOS Release 2026 (`massbalance_2026_r2026.zip`, 506 763 B, sha256 `2994804f…`): **gleiches Format** wie Release 2025 (gleiche Kopf- und Spaltenzeilen), **gleicher Lizenzkopf** („scientific and non-commercial use“, durch die Bestätigung vom 25.11. gedeckt) — kein STOPP. 27 Schweizer Gletscherwinter 2026 (alle Stufen mit Winterbilanz). Antrieb neu gebaut in `C:\dev\buscosun-glacier-cache\gm11\w26\` mit den Werkzeugen der Eichung (`snowcal-forcing.mjs` 01.09.2024–01.06.2026, `py/snowcal_grid.py`, `snowcal-radiation.mjs`): SwissMetNet stündlich aus den Dekadendateien bis 31.12.2025, **Januar–November 2026 aus `…_h_recent.csv` im Cache angehängt** (gleicher Kopf, Stunden nach dem letzten Wert; 57 Stationen); RhiresD 2024, 2025 und Januar–Mai 2026 als Monatsdateien „last“ (882 Tage, keine Lücke; Dezember 2025 in „last“ und Jahresdatei an allen 28 Zellen gleich bis 0,1 mm). Strahlung fehlt an 3 von 55 Gletscherwintern in mehr als 2 % der Stunden, an keinem in mehr als 15 %.
+
+**Gegenprobe (Winter 2025, Wahrheit von GM-3, eigener Faktor).** Erster Lauf **rot**: 26 von 27 Gletschern gleich auf 0,0 mm, **Vadret Pers 161 mm anders** — die Stationsregel wählt im Zeitraum 2024–2026 Passo del Bernina (4,8 km, 98 %), in der Eichung (2011–2025, dort unter 90 % der Stunden) Piz Corvatsch. Nach der Regel nicht gewertet (Bericht `winter26-run1-probe-red.json`; seine Zahlen habe ich gesehen, sie unterscheiden sich vom gewerteten Lauf nur an Pers um ≤ 1,5 mm im Mittel). Behoben, wie der Auftrag sagt („Antrieb wie in der Eichung“): im neuen Speicher tragen die Eichgletscher die Temperaturstation der Eichung (`stations.json`, Vermerk `assignFrom`; die Regelzuordnung 2024–2026 liegt daneben). Zweiter Lauf: **Gegenprobe grün, 27 von 27 gleich (0,0 mm)**.
+
+**Ergebnis (gletscherweite Winterbilanz, `s2` in mm w. e.; Bias = mittleres `s3`, Modell − Messung):**
+
+| Grundlage | Gletscherwinter 2026 | mittleres s2 2026 | Bias 2026 | Referenz (ausgelassen): Mittel | p10 … p90 des Mittels bei n Wintern | Regel hält? |
+|---|---|---|---|---|---|---|
+| Landeswert (F 1,793) | 27 | **458,9** | −413,4 | 397,1 (391) | 307,0 … 501,7 | **ja** |
+| eigener Faktor | 25 | **388,0** | −388,0 | 204,3 (391) | 156,9 … 256,9 | **nein** |
+| eigener Faktor + Form | 25 | **388,3** | −388,3 | 204,2 (391) | 155,5 … 257,5 | **nein** |
+| vorhergesagt (Form C) | 27 | **389,7** | −359,8 | 313,1 (377) | 225,8 … 419,3 | **ja** |
+| vorhergesagt, geschrumpft | 27 | **405,9** | −395,0 | 327,0 (377) | 244,4 … 427,3 | **ja** |
+| wie gebaut (Tabelle) | 27 (own 25, predicted 2) | 391,0 | — | — | — | — |
+
+**Lesart (ein Winter, kein Urteil über die Tabellen):** Der Winter 2025/26 liegt mit dem Stationsantrieb an fast jedem Gletscher **zu niedrig** — alle Grundlagen um 360–415 mm (gemessen im Mittel 998 mm); an allen 25 Gletschern mit eigenem Faktor ist sein Fehler negativ (von −19 mm an Alphubel N und Giétro bis −778 mm am Schwarzberg). Dieser gemeinsame Fehler des Winters ist größer als die Unterschiede der Grundlagen: der eigene Faktor ist 2026 nicht besser als die Vorhersage (388 gegen 390) und nur 15 % besser als der Landeswert; nach der Regel **hält er nicht**, weil seine Referenz (ein Winter ausgelassen) mit 204 mm eng ist — er kannte die übrigen Winter dieses Gletschers. Landeswert und Vorhersage halten, weil ihre Referenz breiter ist. Ob der Winter am Antrieb (RhiresD in der Höhe, Strahlung), an der Schmelze oder an der Messung (Stichtag 30.04.) liegt, sagt ein Winter nicht.
+
+| V-… | Befund | Mehrwert · Skizze |
+|---|---|---|
+| V-GM-151 | Im ungesehenen Winter 2025/26 liegen alle fünf Grundlagen um 360–415 mm zu niedrig; der Jahresfehler ist größer als jeder Unterschied der Grundlagen, und der eigene Faktor hält seine Referenz nicht | warnt, dass die Spanne der Faktoren die Jahr-zu-Jahr-Streuung unterschätzt · die Spanne je Grundlage um einen Jahresanteil erweitern, bevor E-GM-38 einschaltet; am Winter 2026 RhiresD gegen die IMIS-/Messfeld-Neuschneesummen der Saison prüfen |
+| V-GM-152 | Die Stationsregel der Eichung hängt am Zeitfenster: dieselbe Regel wählt für Pers 2011–2025 Piz Corvatsch, 2024–2026 Passo del Bernina (161 mm Unterschied in einem Winter) | jede neue Eichrunde rechnet mit denselben Stationen · die Zuordnung der Eichung als Datei festhalten und neu nur mit Vermerk ändern |
+
 ### 3q.5 Hindcast-Prüfung, Stufe A: Diagnose (1.5; nichts gerechnet)
 
 **a) Bestand.** Der Hindcast (`C:\dev\buscosun-hindcast`) hält je Slot und Stufe **nur die 405 Archivpunkte**, je Punkt die nächste Cube-Zelle (0,05°) und drei Nachbarn (Block 2 × 2, `cells\t1.json`); die Rohquellen sind nur für diese 8 680 Zellen ausgezogen. Es gibt keine Kacheln: ein Gletscher geht nur dort, wo seine Fläche nahe einer gespeicherten Zelle liegt. Abstand vom L1-Umriss zur nächsten gespeicherten Zellmitte, für die 43 Eichgletscher (Werkzeug im Scratchpad, Ergebnis `C:\dev\buscosun-glacier-cache\gm11\hindcast-inventory.json`):
