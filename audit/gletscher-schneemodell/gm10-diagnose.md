@@ -239,3 +239,65 @@ Die Liste je Gletscher steht im lokalen Bericht (`countries.AT.cautious.*.perGla
 ### 11.8 Nicht gemessen
 
 Schrumpfung (nach Regel bewusst keine); x1 aus der Hypsometrie des Builds; andere Geländekombinationen als C1/C2 (z. B. x1 + Fläche allein — wäre eine neue Regel); Gletscher ohne Messung. Kein Producer-Lauf, keine Mutationsrunde, nichts im Daten- oder Archiv-Repo, kein Workflow, kein Push, kein Commit.
+
+## 12. GM-10b, Größenmessung vor dem Bau (25.11.2026, **post hoc** — folgt V-GM-118; nur Messung)
+
+> Auftrag E-GM-43 (Jan, 25.11.): vor dem Bau von C2 messen, ob der Größenterm ein Gitterartefakt ist — A = C2 wie gemessen, B = C2 mit `ln(1 + Zellen im Umriss)` statt Fläche, C = C2 ohne Größe; gleiche Wertung wie 0b; Fehler je Größenklasse; Pizol, Schwarzwasserfirn, Sex Rouge benannt; Größenverteilung der Zielgletscher. Die gebaute Variante wählt die Regel. Anhalten vor dem Bau.
+>
+> Werkzeuge (neu): `gm10b-cells.py` (Zellen im L1-Umriss aller 1 291 Schweizer Gletscher, Q20 v1.1; Gegenprobe an 36 Gletschern der Wahrheit gleich Schritt 0), `gm10b-size.mjs` (importiert Wertung und Bedingungen unverändert aus `gm10b-combine.mjs`). Regel `gm10b-size-method-frozen.md`, sha256 `d45627b2184e1cfefc848552b514795ae31620ebeaa5be433bf47e6a5116748a`, eingefroren 25.11. 11:23:41 UTC; Werkzeug sha256 `16bb6b94…`. Bericht mit Werten je Gletscher NUR lokal: `C:\dev\buscosun-glacier-cache\gm10\report-size.json`.
+
+### 12.1 Reihenfolge
+
+1. Zellen gezählt (liest keine Winterbilanz). 2. **Synthetischer Test** vor dem Einfrieren (`gm10\synthetic-size.json`): ohne Größeneffekt ⇒ **C** gewählt (A/B/C je 282 mm, G1 364); mit Zelleneffekt (−0,20) ⇒ **B** gewählt (β gefunden −0,19; B 274, A 280, C 375, G1 478). A und B sind synthetisch kaum zu trennen. 3. Regel eingefroren. 4. Erster gewerteter Lauf 11:23 UTC vom System wegen Speichermangel abgebrochen (während B, nichts geschrieben, keine Zahl gesehen); auf Jans Wort neu gestartet 12:18–12:32 UTC mit derselben Regel.
+
+### 12.2 Varianten (32 Gletscher, 377 Winter; s2 mm, exakt; a 402,3 · a′ 406,1 · **G1 334,8** · b 207,7)
+
+| Variante | s2 | gegen G1 | eine Vertauschung | p (200) | p10 | besser / schlechter als G1 | β (x1, zMed, north, Größe) | Urteil |
+|---|---|---|---|---|---|---|---|---|
+| A = C2 (ln Fläche) | **276,4** | 17,4 % | −3,5 % | 0,005 | 6,9 % | 22 / 10 | 0,24 / −0,06 / 0,06 / −0,10 | trägt |
+| B = C2 mit ln(1 + Zellen) | 285,2 | 14,8 % | −4,0 % | 0,005 | 3,9 % | 21 / 11 | 0,24 / −0,07 / 0,06 / −0,08 | trägt |
+| **C** = ohne Größe | 297,2 | 11,2 % | −2,0 % | 0,005 | 0,6 % | 22 / 10 | 0,22 / −0,10 / 0,08 | trägt |
+
+**Wahl des Werkzeugs: C** — „A schlägt B nur um 8,8 mm < 16,7 mm ⇒ B; B schlägt C nur um 12,0 mm < 16,7 mm ⇒ C“. A gibt Schritt 0b genau wieder (276,4).
+
+### 12.3 Größenklassen (s2 mm; Klasse nach Zellen im Umriss)
+
+| Klasse | Gletscher / Winter | a′ | G1 | A | B | C | b |
+|---|---|---|---|---|---|---|---|
+| K1 eine Zelle (0–1) | 4 / 37 | 489,2 | 521,1 | **194,8** | 239,0 | 362,4 | 156,7 |
+| K2 2–4 Zellen | 6 / 60 | 658,2 | **470,8** | 495,3 | 517,1 | 514,6 | 315,5 |
+| K3 ≥ 5 Zellen | 22 / 280 | 341,1 | 281,0 | 240,3 | 241,6 | 242,0 | 191,4 |
+
+**Mindestgröße (Werkzeug): 5 Zellen** — K3 qualifiziert (C 242,0 ≤ G1 281,0), K2 nicht (C 514,6 > G1 470,8), die Kette bricht dort ab. Ohne Mont Collon (beschreibend; er liegt in K2): K2 G1 343,4 · A 351,9 · B 360,6 · **C 316,6** — dann hätte auch K2 qualifiziert, und C wäre in K1 ebenfalls besser als G1 (362,4 gegen 521,1).
+
+**Mit Schutz (beschreibend, §7 der Regel):** C an 22 Gletschern, G1 an 10 (unter der Mindestgröße), kein Gletscher außerhalb der Spanne von x1/zMed/north, 2 gekappt: **314,2 mm, 6,1 % besser als G1** (K3 249,0 gegen 281,0; K1 und K2 = G1).
+
+**Die drei benannten Gletscher** (Werte nur im lokalen Bericht): Pizolgletscher (K1, 1 Zelle) und Schwarzwasserfirn (K1, keine eigene Zelle) werden in jeder Variante deutlich besser als mit G1, am meisten mit A, am wenigsten mit C; Glacier du Sex Rouge (K2, 3 Zellen) wird in **jeder** Variante deutlich schlechter als mit G1 — auch in C, also nicht nur durch den Größenterm.
+
+**Streuung des Vorhersagefehlers** ln(F̂ / F_eigen), ohne Mont Collon: G1 0,20 · A 0,13 · B 0,14 · C 0,16.
+
+### 12.4 Größenverteilung
+
+| | Zahl | 0 Zellen | 1 Zelle | K1 | K2 | K3 | Fläche q25 / q50 / q75 (km²) | Median Zellen |
+|---|---|---|---|---|---|---|---|---|
+| Eichgletscher | 32 | 1 | 3 | 4 | 6 | 22 | 0,208 / 1,896 / 5,305 | 28,5 |
+| Zielgletscher (ohne die 35 mit eigenem Faktor) | 1 256 | 328 | 295 | **623** | 302 | **331** | 0,031 / 0,086 / 0,292 | 2 |
+
+Höchstens so klein wie Pizol (0,014 km²) — und damit kleiner als jeder Eichgletscher: **94** Zielgletscher; wie Schwarzwasserfirn (0,029 km²): 296; wie Sex Rouge (0,222 km²): 876 (in Zellen: 867 mit ≤ 3 Zellen).
+
+### 12.5 Lesart (meine, nach dem Lauf)
+
+- Nach der Regel wird **C** gebaut, ab **5 Zellen**; darunter G1. Das trifft **331 von 1 256** Schweizer Zielgletschern; 925 rechnen mit G1. An den Eichgletschern erwartet: 6 % besser als G1 statt 17 % mit A ohne Schutz.
+- Der Größenterm ist nicht nur Artefakt, aber auch nicht sauber: A schlägt C um 20,8 mm (über der Schwelle); die Regel kam an A nicht vorbei, weil sie bei Gleichstand B vorzieht und B C nicht schlägt (V-GM-122). Der Gewinn von A sitzt in K1 — vier Gletscher.
+- Die Mindestgröße hängt an Mont Collon (V-GM-123). Halb so viele Zielgletscher, wie es gibt, liegen in einer Klasse, über die vier Eichgletscher urteilen (V-GM-124).
+
+### 12.6 Befunde
+
+| Nr. | Befund | Mehrwert · Skizze |
+|---|---|---|
+| V-GM-122 | Die Wahl ging A → B → C: A schlägt C um 20,8 mm (> 16,7), wurde aber vorher von B verdrängt (Vorliebe für die beschränkte Größe) | ehrliche Lesart der Wahl · nur mit neuer Regel und Jans Wort anders; mit x1 aus der Hypsometrie neu messen (V-GM-113), bevor der Größenterm ganz fällt |
+| V-GM-123 | Die Mindestgröße 5 Zellen kommt aus K2, und K2 kippt an Mont Collon (ohne ihn wäre C in K2 und K1 besser als G1 ⇒ keine Mindestgröße) | eine Grenze, die nicht an einem Gletscher an der Suchgrenze hängt · V-GM-116 in die nächste Regel: Gletscher an der Grenze vorab aus der Klassenprüfung |
+| V-GM-124 | 623 von 1 256 Zielgletschern haben höchstens eine Zelle, 94 sind kleiner als jeder Eichgletscher; unter den Eichgletschern sind es 4 bzw. 0 | wissen, wofür die Eichung spricht · Klassen K1/K2 bleiben bei G1 (Regel), bis mehr kleine Gletscher mit Winterbilanz vorliegen |
+| V-GM-125 | Sex Rouge wird in jeder Variante schlechter als mit G1, auch ohne Größenterm | eine Grenze des Geländeteils · nach dem Bau im lokalen Bericht verfolgen; ggf. Exposition/Höhe am Plateaugletscher prüfen |
+
+Kein Producer-Code, keine Mutationsrunde, nichts im Daten- oder Archiv-Repo, kein Push. Committet auf Jans Wort (E-GM-44); V-GM-122 und V-GM-123 ergeben keine neue Regel (E-GM-44, Punkt 2: beide Abweichungen gingen in die vorsichtige Richtung).

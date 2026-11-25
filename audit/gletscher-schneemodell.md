@@ -2086,6 +2086,22 @@ Diagnose, Inventar, Zahlen und Befunde: `audit/gletscher-schneemodell/gm10-diagn
 |---|---|
 | E-GM-43 | Schritt 0b committen. Dann **GM-10b**. **Schweiz:** C2 hinter einem Schalter, aus. Vor dem Bau eine weitere Messung mit eigener eingefrorener Regel (sha256 vor dem ersten gewerteten Lauf), im Audit als **post hoc** markiert, weil sie V-GM-118 folgt: Varianten C2 wie gemessen; C2 mit „Zahl der Gitterzellen im Umriss“ statt Fläche; C2 ohne Größenterm (G1 + Höhe + Exposition); gleiche Wertung, ein Gletscher ausgelassen, Vertauschung als Kontrolle; Fehler je Größenklasse (eine Zelle, 2–4 Zellen, mehr), Pizol, Schwarzwasserfirn und Sex Rouge in jeder Variante benannt; Größenverteilung aller Schweizer Zielgletscher neben der der 32 Eichgletscher (wie viele Ziele sind so klein wie die drei). Die gebaute Variante wählt die eingefrorene Regel, nicht Jan. Schutz in jeder Variante, alle `set`: vorhergesagten Faktor an die Spanne der geeichten Faktoren kappen; unter einer Mindestgröße aus dieser Messung G1 allein; außerhalb der Eichspanne der übrigen Prädiktoren der Landeswert. Danach `c` und `β` mit x1 aus der Hypsometrie des Builds neu anpassen, Q20 v1.1. **Österreich:** G1 in der vorsichtigen Form (halber Weg zum Landeswert, gekappt 1,9–3,1) hinter EIGENEM Schalter, aus; jede Zeile „vorhergesagt, nicht beurteilt“; nicht C1, nicht C2; nach dem Bau die drei Prüfungen aus E-GM-42 (ein Gletscher ausgelassen, voller lokaler Lauf mit Schalter an, Schattenpaare). **Deutschland:** keine Vorhersage, bleibt bei 1,854. Mitnehmen: V-GM-86 (die Schneedecke in drei Höhen liest denselben Faktor hinter denselben Schaltern, neuer Start ab 1. Oktober, der Zustand nennt die Regel) und V-GM-91 (der Schmelzzustand mischt nie zwei Faktorregeln). Tabelle je Gletscher bleibt im lokalen Zwischenspeicher, keine abgeleitete Tabelle im Repo, bis GLAMOS geantwortet hat. Rule 2, volle lokale Läufe nacheinander, Mutationsrunde auf einer Kopie des Baums, kein Push, nichts in `buscosun-data`. **Anhalten nach der Schweizer Größenmessung und berichten, vor dem Bau.** |
 
+**GM-10b, Größenmessung vor dem Bau (25.11., post hoc nach V-GM-118, nur Messung)** — `gm10-diagnose.md` §12, Regel `gm10b-size-method-frozen.md` (sha256 `d45627b2…`, eingefroren 11:23:41 UTC nach dem synthetischen Test), Werkzeuge `gm10b-cells.py`, `gm10b-size.mjs`; Bericht nur lokal (`C:\dev\buscosun-glacier-cache\gm10\report-size.json`).
+
+| Schweiz (32 Gletscher) | s2 | gegen G1 | Urteil |
+|---|---|---|---|
+| A = C2 (ln Fläche) | 276,4 | 17,4 % | trägt |
+| B = C2 mit ln(1 + Zellen) | 285,2 | 14,8 % | trägt |
+| **C** = G1 + Höhe + Exposition | 297,2 | 11,2 % | trägt, **gewählt** (A → B ohne Vorsprung, B → C ohne Vorsprung) |
+
+  Mindestgröße **5 Zellen** (K2 mit Mont Collon schlechter als G1); mit Schutz 314,2 mm (6,1 % gegen G1). Zielgletscher: 1 256, davon 623 mit höchstens einer Zelle, 331 ab 5 Zellen. Befunde V-GM-122 … V-GM-125. Committet auf Jans Wort (E-GM-44). **Angehalten vor dem Bau.**
+
+**Jans Entscheidung E-GM-44 (25.11.)**
+
+| Nr. | Entscheidung |
+|---|---|
+| E-GM-44 | (1) Die Dateien der Größenmessung committen. (2) V-GM-122 und V-GM-123: **keine neue Regel** — die eingefrorene Regel steht; beide Abweichungen gingen in die vorsichtige Richtung. (3) Vor dem Bau aus dem lokalen Bericht je Größenklasse (eine Zelle, 2–4 Zellen, ≥ 5 Zellen) eine Tabelle zeigen: Fehler mit dem Landeswert, G1, C, C halb zum Landeswert geschrumpft und dem eigenen Faktor — je mit und ohne Mont Collon. Beschreibend; kein neuer gewerteter Lauf außer der geschrumpften Variante, gerechnet mit einem ausgelassenen Gletscher. (4) **Kleine Gletscher (unter 5 Zellen) — Jans Entscheidung, nicht Urteil eines Skripts:** schlägt das geschrumpfte C den Landeswert in BEIDEN kleinen Klassen, wird für sie das geschrumpfte C gebaut (halber Weg zum Landeswert, gekappt an die Spanne der geeichten Faktoren); sonst behalten sie den heutigen Landeswert; Zielgletscher, die kleiner sind als jeder Eichgletscher, behalten in jedem Fall den Landeswert. Der frühere Schutz „unter der Mindestgröße G1 allein“ (E-GM-43) ist **zurückgenommen**. Nach der Tabelle anhalten, nicht bauen. |
+
 ## 4. Quellenliste (zur Prüfung durch Jan)
 
 Spalte „Stand“: **da** = schon im Betrieb, **neu** = käme mit dieser Phase dazu. Spalte „Lizenz“: **belegt** = am 22.11. an der Quelle gelesen; **wie bisher** = unverändert aus der bestehenden Linie; **offen** = von mir nicht geprüft.
