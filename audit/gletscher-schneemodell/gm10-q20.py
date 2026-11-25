@@ -19,8 +19,10 @@ from shapely.prepared import prep
 
 ap = argparse.ArgumentParser()
 ap.add_argument('--truth', required=True); ap.add_argument('--static', required=True); ap.add_argument('--q20', required=True); ap.add_argument('--out', required=True)
+# GM-10b: version 1.1 (Zenodo record 24088217) has the corrected northing and the zip names OSHD_DATA_WY_<year>.zip
+ap.add_argument('--north-fix', type=float, default=2000.0); ap.add_argument('--zip-fmt', default='OSHD_DATA_WY{wy}.zip'); ap.add_argument('--version', default='1.0')
 a = ap.parse_args()
-NORTH_FIX = 2000.0
+NORTH_FIX = a.north_fix
 tr = Transformer.from_crs('EPSG:4326', 'EPSG:2056', always_xy=True)
 
 truth = json.load(open(a.truth, encoding='utf8'))['gy']
@@ -30,7 +32,7 @@ catById = {g['id']: g for g in cat}
 # --- grid -------------------------------------------------------------------------------------------------------------------------------------
 def month_file(y, m):
     wy = y + 1 if m >= 9 else y
-    return os.path.join(a.q20, f'OSHD_DATA_WY{wy}.zip'), f'OSHD_DATA_{y:04d}-{m:02d}.nc'
+    return os.path.join(a.q20, a.zip_fmt.format(wy=wy)), f'OSHD_DATA_{y:04d}-{m:02d}.nc'
 
 zp, nm = month_file(2020, 4)
 tmp = tempfile.mkdtemp(prefix='gm10q20-')
@@ -67,16 +69,19 @@ for fn in sorted(os.listdir(os.path.join(a.static, 'outline'))):
     for ft in json.load(open(os.path.join(a.static, 'outline', fn), encoding='utf8'))['features']:
         outlines[ft['properties']['id']] = ft['geometry']
 
-E0, N0 = E[0], N[0]   # E ascending, N descending
+E0, N0 = E[0], N[0]   # E ascending; N descending in v1.0, ascending in v1.1 (GM-10b) => row index from the signed step
+dN = float(N[1] - N[0])
+def j_of(y): return (y - N0) / dN
 def cells_of(gid):
     g = lv95_geom(outlines[gid]); x0, y0, x1, y1 = g.bounds
     i0 = max(0, int(math.floor((x0 - E0) / dx)) - 1); i1 = min(len(E) - 1, int(math.ceil((x1 - E0) / dx)) + 1)
-    j0 = max(0, int(math.floor((N0 - y1) / dx)) - 1); j1 = min(len(N) - 1, int(math.ceil((N0 - y0) / dx)) + 1)
+    ja, jb = sorted((j_of(y0), j_of(y1)))
+    j0 = max(0, int(math.floor(ja)) - 1); j1 = min(len(N) - 1, int(math.ceil(jb)) + 1)
     if i0 > i1 or j0 > j1: return None, 'outside'
     pg = prep(g); out = [(i, j) for i in range(i0, i1 + 1) for j in range(j0, j1 + 1) if pg.contains(Point(E[i], N[j]))]
     how = 'outline'
     if not out:
-        c = g.centroid; i = int(round((c.x - E0) / dx)); j = int(round((N0 - c.y) / dx))
+        c = g.centroid; i = int(round((c.x - E0) / dx)); j = int(round(j_of(c.y)))
         if not (0 <= i < len(E) and 0 <= j < len(N)): return None, 'outside'
         out = [(i, j)]; how = 'nearest'
     return out, how
@@ -135,7 +140,7 @@ for (y, m), days in sorted(byMonth.items()):
     os.remove(p)
     print(f'{y}-{m:02d}: {len(days)} Tage', flush=True)
 
-out = {'kind': 'gm10/q20-glaciers', 'source': 'SLF snow dataset 2016-2025, Zenodo 10.5281/zenodo.17313889 v1.0 (CC BY 4.0), northing +2000 m',
+out = {'kind': 'gm10/q20-glaciers', 'source': f'SLF snow dataset 2016-2025, Zenodo 10.5281/zenodo.17313889 v{a.version} (CC BY 4.0), northing +{NORTH_FIX:.0f} m',
        'northingFix': NORTH_FIX, 'fixCheck': fixcheck, 'cellM': 250, 'rule': 'swe(t1+1) - swe(t0), 06:00 UTC+1 values, mean over cell centres inside the L1 outline',
        'glaciers': {}, 'regions': {}, 'missingCellValues': missing}
 for k, e in tg.items():

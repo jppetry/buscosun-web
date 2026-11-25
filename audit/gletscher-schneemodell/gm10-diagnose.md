@@ -141,4 +141,101 @@ Für Österreich und Deutschland: nicht bauen, der Landeswert bleibt.
 
 ## 10. Nicht gemessen
 
-Gitter und Gelände zusammen; die Form je Stufe; Gletscher ohne Messung (nichts gerechnet); der Winter 2025/26; Q20 Version 1.1. Kein Producer-Lauf, keine Mutationsrunde, nichts im Daten- oder Archiv-Repo, kein Commit.
+Gitter und Gelände zusammen; die Form je Stufe; Gletscher ohne Messung (nichts gerechnet); der Winter 2025/26; Q20 Version 1.1. Kein Producer-Lauf, keine Mutationsrunde, nichts im Daten- oder Archiv-Repo, kein Commit. (Gitter + Gelände und Q20 v1.1: gemessen in Schritt 0b, §11.)
+
+## 11. Schritt 0b — Schlägt Gitter + Gelände das Gitter allein? (25.11.2026, nur Messung)
+
+> Auftrag (Jan, 25.11.): an denselben 32 Schweizer und 8 österreichischen Gletschern messen, ob G1 + Medianhöhe (C1) oder G1 + T3 (C2) das Gitter allein schlägt, ein Gletscher ausgelassen. Schweiz gewertet, Österreich nur berichtet, dazu die vorsichtige Variante (E-GM-42). Nebenher Q20 Version 1.1. Kein Producer-Code, nichts veröffentlicht.
+>
+> Werkzeuge (neu, nur in diesem Ordner): `gm10b-combine.mjs` (synthetischer Test, gewerteter Lauf; importiert Daten, Prädiktoren, Anpassung und Auslassen unverändert aus `gm10-factor.mjs`), `gm10b-q20-versions.py` (Stichprobe v1.0 gegen v1.1); `gm10-q20.py` hat drei Schalter für v1.1 bekommen und liest die Nordwerte jetzt in beiden Reihenfolgen (mit v1.0 nachgerechnet: Ausgabe Byte für Byte gleich). Regel: `gm10b-method-frozen.md` (Hash in `gm10b-method-frozen.sha256`). Voller Bericht mit Werten je Gletscher NUR lokal: `C:\dev\buscosun-glacier-cache\gm10\report-0b.json`.
+
+### 11.1 Reihenfolge und Belege
+
+1. **Synthetischer Wiederfindungstest** (vor dem Einfrieren; echte x1 und zMed der 32 Schweizer Gletscher, echte Tabellen, erfundene Winterbilanzen, ε ~ N(0; 0,2), 100 Vertauschungen; `gm10\synthetic-0b.json`):
+
+   | Fall | Kandidat | β gefunden (x1, zMed) | s2 Kandidat / G1 | Gewinn gegen G1 | eine Vertauschung | p | p10 | Urteil | Wahl |
+   |---|---|---|---|---|---|---|---|---|---|
+   | kombiniert (wahr 0,25 / 0,20) | C1 | **0,254 / 0,210** | 266,5 / 368,1 | 27,6 % | −2,2 % | 0,01 | 0,215 | trägt | **C1** (C2 vorn nur 0,2 mm < 18,4 mm) |
+   | | C2 | 0,246 / 0,211 (north, lnArea 0,009 / 0,016) | 266,3 / 368,1 | 27,7 % | −5,0 % | 0,01 | 0,214 | trägt | |
+   | nur Gitter (wahr 0,25 / 0) | C1 | 0,258 / 0,012 | 270,8 / 270,5 | −0,1 % | −0,1 % | 0,15 | −0,005 | trägt nicht | **G1** |
+   | | C2 | — | 272,9 / 270,5 | −0,9 % | 0,0 % | 0,42 | −0,015 | trägt nicht | |
+
+2. **Regel eingefroren** 25.11. 09:52:19 UTC: `gm10b-method-frozen.md`, sha256 `cffb09ee9c635f10c481951801f5587b852e88c466c436fd2440fa7c862afd31`; Werkzeug `gm10b-combine.mjs` sha256 `4351e161…` (steht im Bericht).
+3. **Gewerteter Lauf** 09:52:25–10:01:58 UTC. G1 neu gerechnet gibt Schritt 0 genau wieder (CH 334,8, AT 341,1); T3 aus den Faktoren von Schritt 0 auf denselben Gletschern 347,0 (CH) und 375,2 (AT).
+
+### 11.2 Schweiz (gewertet; 32 Gletscher, 377 Winter; s2 in mm Wasserwert, exakt mit dem Kern)
+
+| Form | s2 | Gewinn gegen G1 | gegen a′ | Lücke a → b geschlossen | Lücke G1 → b geschlossen | besser / schlechter als G1 (Gletscher) | eine Vertauschung (nur Gelände) | Vertauschung p (200) | p10 / p90 (Ziehungen) | **Urteil** |
+|---|---|---|---|---|---|---|---|---|---|---|
+| a Landeswert GM-5b | 402,3 | | | | | | | | | |
+| a′ Landeswert (gleiche Größe) | 406,1 | | | | | | | | | |
+| T3 allein (Faktoren aus Schritt 0) | 347,0 | −3,6 % | 14,6 % | 28 % | — | 17 / 15 | | | | |
+| G1 allein | 334,8 | 0 | 17,6 % | 35 % | 0 | — | | | | |
+| **C1** G1 + Medianhöhe | 326,7 | 2,4 % | 19,6 % | 39 % | 6 % | 18 / 14 | −3,5 % | 0,085 | −7,7 / 12,0 % | **trägt nicht** (Gewinn < 5 %, p, p10) |
+| **C2** G1 + T3 | **276,4** | **17,4 %** | 31,9 % | **65 %** | **46 %** | **22 / 10** | −3,5 % | **0,005** | 6,9 / 27,5 % | **trägt** |
+| b eigener Faktor | 207,7 | | | | | | | | | |
+
+**Urteil des Skripts: C2 trägt, C1 nicht; gewählt C2** („nur C2 trägt“). Koeffizienten von C2 (Median über die Auslassungen, je Streuung): x1 **+0,24**, Medianhöhe −0,06, Nord +0,06, **ln Fläche −0,10** — alle stabil über die 32 Auslassungen (p10–p90 je ≤ 0,02 breit). In C1: x1 +0,20, Medianhöhe −0,12.
+
+**Beschreibend, ändert kein Urteil (aus den Zeilen je Gletscher des Berichts):**
+- **Ohne Mont Collon** (Faktor an der Grenze 5): a′ 366,2 · G1 314,0 · C1 290,7 (**+7,4 %** gegen G1) · C2 251,7 (**+19,8 %**). C1 scheitert an der Regel also vor allem an Mont Collon (V-GM-116 wirkt hier); C2 trägt mit und ohne ihn.
+- **Woher der Gewinn von C2 kommt:** verteilt — der größte Einzelbeitrag ist ein Viertel der Summe. Am meisten gewinnen die beiden kleinsten Gletscher (0,01 und 0,03 km², an EINER bzw. der nächsten 250-m-Zelle), an denen G1 den Faktor deutlich zu klein schätzt; ein Gletscher von 0,22 km² wird dagegen deutlich schlechter. Lesart: die Fläche korrigiert vor allem, was eine 250-m-Zelle an einem sehr kleinen Gletscher falsch sieht (V-GM-118).
+- **Streuung des Vorhersagefehlers** `ln(F̂ / F_eigen)` ohne Mont Collon (31 Gletscher): Landeswert 0,27 · G1 0,20 · C1 0,17 · **C2 0,13** — in Faktoren ±14 % statt ±22 % (G1) und ±31 % (Landeswert).
+- Die vorsichtige Variante (E-GM-42) auf die Schweiz angewandt (nur zum Vergleich): C2 vorsichtig 304,6, besser als a′ an 28 von 32 Gletschern; G1 vorsichtig 350,6.
+
+### 11.3 Österreich (berichtet, nicht gewertet; 8 Gletscher, 87 Winter)
+
+| Form | s2 | gegen G1 | gegen a′ (411,3) | gegen a (425,3) | besser / schlechter als G1 | eine Vertauschung | p (200) |
+|---|---|---|---|---|---|---|---|
+| G1 | 341,1 | 0 | 17,1 % | 19,8 % | — | | |
+| C1 | 351,1 | −2,9 % | 14,6 % | 17,5 % | 5 / 3 | −6,1 % | 0,35 |
+| C2 | 442,2 | **−29,6 %** | −7,5 % | −4,0 % | 3 / 5 | −29,6 % | 0,72 |
+| T3 (Faktoren aus Schritt 0) | 375,2 | −10,0 % | 8,8 % | 11,8 % | 3 / 5 | | |
+
+Fünf Parameter an sieben Trainings-Gletschern tragen nicht; das Gelände bringt in Österreich zu G1 nichts.
+
+**Vorsichtige Variante (E-GM-42)** — `ln F = ½ ln F̂ + ½ ln F_Land`, gekappt an die eigenen Faktoren der sieben Trainings-Gletscher (Spanne 1,9–3,1):
+
+| Grundlage | s2 | gegen a′ | gegen a | besser / schlechter als a′ (Gletscher) | gekappt | schlechter um (je Winter) |
+|---|---|---|---|---|---|---|
+| G1 vorsichtig | **354,3** | **13,9 %** | 16,7 % | **6 / 2** | 0 | 11 mm und 6 mm |
+| C1 vorsichtig | 353,5 | 14,1 % | 16,9 % | 6 / 2 | 1 | 3 mm und 2 mm |
+| C2 vorsichtig | 364,3 | 11,4 % | 14,3 % | 6 / 2 | 1 | 48 mm und 67 mm |
+
+Die Liste je Gletscher steht im lokalen Bericht (`countries.AT.cautious.*.perGlacier`).
+
+**Geteilte SNOWGRID-Zellen** (Zellendatei der Phase GN `20261120-1.1`): von 799 österreichischen Gletschern teilen sich **342** eine 1-km-Zelle mit einem anderen Gletscher. Unter den acht Eichgletschern teilen sich **keine zwei** eine Zelle; einer (Mullwitzkees) teilt eine seiner drei Zellen mit einem nicht vermessenen Gletscher; vier hängen an einer einzigen Zelle (Goldbergkees nur an der nächsten).
+
+**Deutschland:** keine Vorhersage. Die vier deutschen Gletscher (Region `de`) rechnen heute mit **F = 1,854** aus `scripts/glacier/snow-calibration.json` (`fOrigin: transferred`, `fFrom: all` = aus Schweiz und Österreich zusammen übertragen), mal Brücke 1 (`applied: false`); zum Vergleich Schweiz 1,793, Österreich 2,326.
+
+### 11.4 Q20 Version 1.1 (V-GM-110)
+
+- Geladen nach `C:\dev\buscosun-glacier-cache\gm10\q20-v1.1\` (Record 24088217, Version 1.1 vom 09.11.2026): elf Dateien, 5,9 GB, **alle md5 stimmen**. Die Archive heißen jetzt `OSHD_DATA_WY_<Jahr>.zip`.
+- **Stichprobe** (`gm10\q20-versions.json`; Oktober 2016, April 2020, Mai 2024, je erster, mittlerer, letzter Tag): Ostwerte gleich; **v1.1 speichert die Nordwerte aufsteigend** (v1.0 absteigend); an derselben Koordinate (v1.0 + 2 000 m) sind `swe` und `hs` **Zelle für Zelle gleich** (928 155 Zellen mit Wert, größte Abweichung 0, gleiche Maske); Gegenprobe ohne Verschiebung: mittlere Abweichung bis 94 mm SWE.
+- **Prädiktoren neu gerechnet mit v1.1** (ohne Verschiebung): Zellen, Zellzahl, Zellhöhen, jeder SWE-Wert je Gletscher und Winter und alle Regionsmittel **gleich** an allen 44 Gletschern. Höhenprobe von v1.1: Maximum bei 0 m (0,838). ⇒ x1 und x2 ändern sich nicht; nach Regel §6 werden Schritt 0 und 0b **nicht** wiederholt. V-GM-110 ist geschlossen; für einen Bau Version 1.1 benutzen (keine Handkorrektur).
+
+### 11.5 Lesart (meine, nach dem Lauf)
+
+- **Gitter und Gelände zusammen tragen in der Schweiz deutlich mehr als jedes allein:** 276 mm statt 335 (G1) bzw. 347 (T3); zwei Drittel der Lücke zwischen Landeswert und eigenem Faktor sind geschlossen statt ein Drittel. Das ist mehr, als die beiden einzelnen Gewinne erwarten ließen — der Geländeteil wirkt hier vor allem als Korrektur von x1, nicht als eigene Information (ln Fläche allein 3 %, in C2 der stärkste Geländeterm).
+- **Die Medianhöhe allein reicht nicht** (C1 +2,4 %, ohne Mont Collon +7,4 %).
+- **Vorsicht vor dem Bau:** der Flächenterm hängt an der Zellgröße des Gitters (250 m in der Schweiz). Er ist mit x1 aus den GLAMOS-Höhenstufen gelernt; mit x1 aus der Hypsometrie des Builds (V-GM-113) kann er sich verschieben. Der eine stark verschlechterte Gletscher zeigt, dass einzelne Vorhersagen weit danebenliegen können.
+- **Österreich:** keine Kombination trägt; die vorsichtige Variante von G1 ist an sechs von acht Gletschern besser als der Landeswert und an zwei nur wenig schlechter.
+
+### 11.6 Vorschlag
+
+- **Schweiz: C2 (G1 + Medianhöhe + Exposition + ln Fläche)** als Form von GM-10b, Schalter aus, wie in §8 beschrieben — mit zwei Ergänzungen: (i) vor dem Bau `c` und `β` mit x1 aus der Hypsometrie des Builds neu anpassen und an den 32 Gletschern gegen diese Runde vergleichen (V-GM-113, V-GM-118); (ii) Spanne des vorhergesagten Faktors aus der Streuung von C2 (0,13 in ln ohne Mont Collon), und die Spanne der Eichgletscher in Fläche, Höhe und x1 als Grenze — ein Gletscher außerhalb behält den Landeswert. Die 35 vermessenen behalten ihren eigenen Faktor; Lizenzfrage GLAMOS wie E-GM-37/38.
+- **Österreich:** nicht entscheidbar; mein Vorschlag: Landeswert behalten. Falls dort überhaupt etwas, dann **nur G1 vorsichtig** (E-GM-42), hinter eigenem Schalter (aus) — nicht C1, nicht C2.
+- **Deutschland:** keine Vorhersage; bleibt bei 1,854 (Region `de`).
+
+### 11.7 Befunde
+
+| Nr. | Befund | Mehrwert · Skizze |
+|---|---|---|
+| V-GM-118 | Der Gewinn von C2 kommt zu einem großen Teil vom Flächenterm, der x1 an sehr kleinen Gletschern korrigiert (dort sieht eine 250-m-Zelle den Gletscher kaum); ein mittelgroßer Gletscher wird dadurch deutlich schlechter | ein Bau, der nicht an einem Gitterartefakt hängt · in GM-10b x1 mit der Hypsometrie rechnen (V-GM-113), C2 neu anpassen und Fläche gegen „Zahl der Zellen im Umriss“ als Prädiktor vergleichen (neue eingefrorene Regel) |
+| V-GM-119 | C1 scheitert an der Regel vor allem an Mont Collon (ohne ihn +7,4 % gegen G1, über der Schwelle) | ehrliche Lesart des Urteils · bestätigt V-GM-116: in der nächsten Regel Gletscher an der Suchgrenze vorab aus der Wertung nehmen |
+| V-GM-120 | In Österreich schadet jedes zusätzliche Gelände (C2 −30 % gegen G1); fünf Parameter an sieben Trainings-Gletschern | keine Form, die nur an acht Gletschern hängt · in Österreich höchstens G1 vorsichtig; mehr erst mit weiteren Winterbilanzen |
+| V-GM-121 | Q20 v1.1 speichert die Nordwerte aufsteigend; die Werte sind gleich v1.0 + 2 000 m; `gm10-q20.py` liest beide Reihenfolgen (v1.0 Byte für Byte gleich nachgerechnet) | ein Leser, der bei einer neuen Version nicht still falsche Zellen nimmt · im Bau die Reihenfolge aus den Koordinaten lesen, nie annehmen; V-GM-110 geschlossen |
+
+### 11.8 Nicht gemessen
+
+Schrumpfung (nach Regel bewusst keine); x1 aus der Hypsometrie des Builds; andere Geländekombinationen als C1/C2 (z. B. x1 + Fläche allein — wäre eine neue Regel); Gletscher ohne Messung. Kein Producer-Lauf, keine Mutationsrunde, nichts im Daten- oder Archiv-Repo, kein Workflow, kein Push, kein Commit.

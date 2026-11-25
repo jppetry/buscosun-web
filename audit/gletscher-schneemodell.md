@@ -2066,6 +2066,25 @@ Diagnose, Inventar, Zahlen und Befunde: `audit/gletscher-schneemodell/gm10-diagn
   Ohne Mont Collon: G1-CH 14,3 %. Fehler eines vorhergesagten Faktors (Std. in ln) 0,20 statt 0,27 mit dem Landeswert. Windexposition und Lawineneinzug tragen nichts.
 - **Vorschlag:** bauen nur für die Schweiz mit G1, als eigenes Paket GM-10b hinter einem Schalter (aus), mit Q20 Version 1.1 und der Hypsometrie des Builds; Österreich und Deutschland behalten den Landeswert. Vor dem Bau: Lizenzfrage GLAMOS (wie E-GM-37/38), ob Gitter + Gelände zusammen gemessen werden (V-GM-112), Abhängigkeit von `TF`/`SRF` (V-GM-89).
 - Befunde V-GM-110 … V-GM-117 (`gm10-diagnose.md` §9). Offen: Jans Entscheidung.
+- **Stand Schritt 0:** committet auf Jans Wort (`5ae0800e`), nicht gepusht.
+
+**Schritt 0b (25.11., nur Messung): Gitter + Gelände gegen das Gitter allein** — `gm10-diagnose.md` §11, Regel `gm10b-method-frozen.md` (sha256 `cffb09ee…`, eingefroren 09:52:19 UTC nach dem synthetischen Test), Werkzeug `gm10b-combine.mjs`; voller Bericht nur lokal (`gm10\report-0b.json`).
+
+| Schweiz (32 Gletscher, gewertet) | s2 | gegen G1 | Lücke a → b | besser / schlechter als G1 | Vertauschung p | Urteil |
+|---|---|---|---|---|---|---|
+| G1 allein | 334,8 | — | 35 % | — | — | Referenz |
+| C1 = G1 + Medianhöhe | 326,7 | +2,4 % | 39 % | 18 / 14 | 0,085 | trägt nicht |
+| **C2 = G1 + T3** | **276,4** | **+17,4 %** | **65 %** | 22 / 10 | 0,005 | **trägt, gewählt** |
+
+  Ohne Mont Collon: C1 +7,4 %, C2 +19,8 %. Fehler eines vorhergesagten Faktors (Std. in ln) 0,13 mit C2 statt 0,20 mit G1. Österreich (berichtet): C1 −2,9 %, C2 −29,6 % gegen G1; G1 vorsichtig (E-GM-42) 354,3 gegen a′ 411,3, an 6 von 8 Gletschern besser. Q20 v1.1 ändert keinen Prädiktor (V-GM-110 geschlossen, V-GM-121). Deutschland: Region `de` mit F = 1,854 (übertragen aus CH + AT).
+- **Vorschlag:** Schweiz C2 (nach Neuanpassung mit x1 aus der Hypsometrie, V-GM-113/118); Österreich Landeswert, höchstens G1 vorsichtig hinter eigenem Schalter; Deutschland unverändert. Befunde V-GM-118 … V-GM-121.
+- **Stand Schritt 0b:** committet auf Jans Wort (E-GM-43), nicht gepusht.
+
+**Jans Entscheidung E-GM-43 (25.11.)**
+
+| Nr. | Entscheidung |
+|---|---|
+| E-GM-43 | Schritt 0b committen. Dann **GM-10b**. **Schweiz:** C2 hinter einem Schalter, aus. Vor dem Bau eine weitere Messung mit eigener eingefrorener Regel (sha256 vor dem ersten gewerteten Lauf), im Audit als **post hoc** markiert, weil sie V-GM-118 folgt: Varianten C2 wie gemessen; C2 mit „Zahl der Gitterzellen im Umriss“ statt Fläche; C2 ohne Größenterm (G1 + Höhe + Exposition); gleiche Wertung, ein Gletscher ausgelassen, Vertauschung als Kontrolle; Fehler je Größenklasse (eine Zelle, 2–4 Zellen, mehr), Pizol, Schwarzwasserfirn und Sex Rouge in jeder Variante benannt; Größenverteilung aller Schweizer Zielgletscher neben der der 32 Eichgletscher (wie viele Ziele sind so klein wie die drei). Die gebaute Variante wählt die eingefrorene Regel, nicht Jan. Schutz in jeder Variante, alle `set`: vorhergesagten Faktor an die Spanne der geeichten Faktoren kappen; unter einer Mindestgröße aus dieser Messung G1 allein; außerhalb der Eichspanne der übrigen Prädiktoren der Landeswert. Danach `c` und `β` mit x1 aus der Hypsometrie des Builds neu anpassen, Q20 v1.1. **Österreich:** G1 in der vorsichtigen Form (halber Weg zum Landeswert, gekappt 1,9–3,1) hinter EIGENEM Schalter, aus; jede Zeile „vorhergesagt, nicht beurteilt“; nicht C1, nicht C2; nach dem Bau die drei Prüfungen aus E-GM-42 (ein Gletscher ausgelassen, voller lokaler Lauf mit Schalter an, Schattenpaare). **Deutschland:** keine Vorhersage, bleibt bei 1,854. Mitnehmen: V-GM-86 (die Schneedecke in drei Höhen liest denselben Faktor hinter denselben Schaltern, neuer Start ab 1. Oktober, der Zustand nennt die Regel) und V-GM-91 (der Schmelzzustand mischt nie zwei Faktorregeln). Tabelle je Gletscher bleibt im lokalen Zwischenspeicher, keine abgeleitete Tabelle im Repo, bis GLAMOS geantwortet hat. Rule 2, volle lokale Läufe nacheinander, Mutationsrunde auf einer Kopie des Baums, kein Push, nichts in `buscosun-data`. **Anhalten nach der Schweizer Größenmessung und berichten, vor dem Bau.** |
 
 ## 4. Quellenliste (zur Prüfung durch Jan)
 
