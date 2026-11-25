@@ -2116,6 +2116,59 @@ Diagnose, Zahlen, Befunde: `audit/gletscher-schneemodell/gm10-diagnose.md` §13.
 - Befunde V-GM-126 … V-GM-134. Nichts im Daten- oder Archiv-Repo, kein Workflow, kein Push.
 - **Nachtrag 25.11. abends:** GLAMOS hat Jan die Nutzung schriftlich bestätigt (E-GM-37 aufgelöst, Q17, `audit/gletscher/licences.md`). Die Tabelle liegt jetzt im Repo als `scripts/glacier/snow-factor-predicted-ch.json` (sha256 `8fa1833c…`), mit Quellenblock `SNOW_FACTOR_SOURCES` (empfohlenes Zitat des Release 2025, vom Vertrag verlangt); neu gebaut und Feld für Feld gleich dem Bau von 14:06 außer Zeitstempel, Quellenblock und Werkzeug-Hash (`gm10-diagnose.md` §13.9). `predicted` bleibt aus, bis V-GM-127 gemessen ist. E-GM-38 (`on`/`on` für die gemessenen Gletscher): Ablauf in MANUELLE-SCHRITTE §127, vorbereitet, nicht ausgeführt.
 
+## 3p. V-GM-135: Wo blieb der Neuschnee? Zerlegung des ersten 24-h-Fensters (25.11. abends, nur gelesen)
+
+Ein Fenster (24.11. 17 → 25.11. 17 UTC), beschreibend, kein Urteil, keine Regeländerung. buscosun Fusion nur gelesen; kein Producer-Lauf, nichts im Daten- oder Archiv-Repo. Werkzeug `audit/gletscher-schneemodell/v135-decompose.mjs` (rein, liest nur lokale Kopien), Bericht `C:\dev\buscosun-glacier-cache\v135\v135-decompose.json`.
+
+**Gesichert** (25.11. ab 18:16 UTC, raw an `f2dcc36f` bzw. `9dc7e990`, jede Datei gegen den Blob-Hash geprüft, 0 Abweichungen; Liste `C:\dev\buscosun-glacier-cache\v135\GESICHERT.md`): `melt/wx/<lauf>` (Tag + 26 Stunden-Chunks) und `snowpack/<lauf>.json` der Läufe 2417, 2423, 2511, 2517 (dazu 2323/2405/2411 als Vorlauf), `snowpack/pairs/` 2417–2517, `status.json` (nur Lauf 2517, zwei Stände), `snowpack/state.json`, Stationsslots `stn/h/` 24.11. 12 → 25.11. 18 UTC, Zuordnung `20261120-1.6`, `precipsum/v1/2026112517-…` (1–48 h). Rund 62 MB. **Einen Lauf `2026112505` gibt es nicht**; die Statusstände der Läufe 2417/2423/2511 sind nach dem Force-Push nicht mehr erreichbar (der `state`-Block steht in jedem `snowpack/<lauf>.json`).
+
+**Wie das Modell die 24 h rechnet.** Der Wert an der Laufstunde ist der Zustand des Vorlaufs, nachgespielt mit dessen gespeichertem Antrieb (`advanceEntry`, 18 h Vorrat): 17→23 UTC aus Lauf 2417 (Vorlauf 0–5 h), 23→11 UTC aus 2423 (0–11 h; 2505 fehlt), 11→17 UTC aus 2511 (0–5 h). Rekonstruiert: Fest = Faktor × `sn` des Chunks (`sn` = p · Anteil). Gegenprobe: Fest gegen ΔSWE der Zeilen im Mittel −0,02 mm, höchstens 0,8 mm (eine Zunge) — Schmelze ≈ 0; `m` der Paare gegen die Zeile in Stationshöhe ≤ 0,1 cm. 39 Paare rechnen auf dem Antrieb eines Nachbarn; dort steht der Anteil des Nachbarn in der nächsten Höhe (Näherung, im Bericht `approxShare`), die Gegenprobe ΔSWE hält auch dort (≤ 0,1 mm).
+
+**Schritt 2 — Mittel über 98 Schneefallpaare (17 Stationen) und die Kontrolle** (je Schneefallstation die nächste Station desselben Netzes ohne Schneefall, 17 Stationen, 78 Paare); Werte in Stationshöhe, Zunge/Mitte/Oberkante in Klammern.
+
+| Größe | Schneefall | Kontrolle |
+|---|---|---|
+| Höhen Gletscher · Station (m) | 2 676 / 2 887 / 3 140 · 2 636 (68 Paare unter der Zunge) | 2 596 / 2 949 / 3 349 · 2 528 |
+| a) Niederschlag buscosun Fusion, vor dem Faktor | **4,7 mm** (× F 1,79: 8,5) | 3,9 mm (7,1) |
+| b) Anteil fest · Temperatur · Schneefallgrenze | 1,00 (alle Höhen) · −6,3 °C (−5,9 / −7,1 / −8,5) · 900–1 690 m | 1,00 · −5,8 °C · 910–1 730 m |
+| c) gebuchtes Neuschneewasser · frisch bei 96 kg/m³ · davon nach 24 h übrig (`hn` 24 h) | 8,4 mm · **+8,8 cm** · 8,6 cm | 7,0 mm · +7,3 cm · 7,1 cm |
+| d) Schmelze · Setzung gesamt (neu / alt) | 0,0 · **−7,8 cm** (−0,2 / −7,6) | 0,0 · −6,0 cm |
+| Modelländerung | **+1,0 cm** | +1,2 cm |
+| e) Station: Änderung der Schneehöhe | **+6,5 cm** (erste 12 h +3,3, zweite +3,9) | −0,8 cm |
+| e) Station: Niederschlag / Neuschnee | IMIS (16 von 17): keiner (unbeheizte Messer, `HN_1D` ist Modell); Gütsch `ch:GUE` 1,1 mm (144/144) bei +8 cm | — |
+| f) unabhängig: 24-h-Summe precipsum (CH CombiPrecip, AT INCA) an der Stationszelle | **3,1 mm** (× F: 5,5) | 1,9 mm |
+| Modelldecke · Station an der Laufstunde A (paargewichtet) | 139 cm · 85 cm; Modell-Neuschnee der 72 h davor 46,5 cm (48 h: 31,6) | 105 cm · 49 cm (stationsgewichtet) |
+
+ICON-D2/ICON-CH1 als Rohglied des Cubes: die Cube-Läufe vom 24.11. sind nicht mehr im Daten-Repo (Aufbewahrung 9–24 h) und nicht in der Ablage — nicht gelesen.
+
+**Aufteilung der Lücke (Station +6,5, Modell +1,0, Lücke 5,5 cm):**
+
+| Teil | Anteil an der Lücke | Beleg | trennbar? |
+|---|---|---|---|
+| zu wenig Niederschlag | **keiner sichtbar** — das Modell bucht frisch 8,8 cm, mehr als die Station netto zeigt; buscosun Fusion gibt 1,5 × die CombiPrecip/INCA-Summe (Kontrolle 2 ×); mit F × precipsum wären es 3,1 cm weniger | a, c, f | nein: F × precipsum (5,5 mm ⇒ 5,8 cm bei 96) erklärt selbst ohne Setzung die +6,5 cm der Station nicht — precipsum zu niedrig in 2 300–2 600 m, Dichte unter 96 oder Verfrachtung an der Station; IMIS misst weder Niederschlag noch Neuschnee |
+| Regen statt Schnee | **0** | Anteil 1,00 an allen Höhen, Grenze ≤ 1 690 m, Stundenhöchstwert der Temperatur über alle Zeilen und Höhen +2,4 °C, im Mittel −4,3 °C an der Zunge, Schmelze 0,0 | ja |
+| Zeitpunkt (Schnee außerhalb des Fensters) | **0** im Modell | die 8,4 mm fallen im Fenster (Lauf A sah für dasselbe Fenster nur 6,2 mm vor); Fusion 2,8 / 2,0 mm in den Hälften, Station +3,3 / +3,9 cm; nach dem Fenster sagt Lauf B weitere 8,3 mm vorher — Station und Modell schneien weiter | ja |
+| Dichte | nicht bestimmbar | Modell 96 kg/m³ ⇒ 8,8 cm; der neue Schnee setzt sich im Modell in 24 h nur um 0,2 cm | nein (kein Neuschnee an IMIS) |
+| Setzung | **im Modell der ganze Verlust: −7,6 cm alte Decke** (5,6 % der Modelldecke je Tag) | d; Modelldecke doppelt so tief wie gemessen, mit 31,6 cm Neuschnee aus dem Startzustand (22.→23.11., Analysen) | nein für die Station: ihre Setzung ist unbekannt; am Vortag (23.→24.11.) fiel sie an denselben 17 Stationen um 6,8 cm, das Modell in 18 h um 3,9 |
+
+Lesart des Modells: Lücke = (Neuschnee Station − 8,8) − (Setzung Station − 7,8). Messbar ist nur die Modellseite; die Station trennt Neuschnee und Setzung nicht.
+
+**Schritt 3 — zwei Prüfungen ohne Physik.**
+
+- *Zeit und Ausrichtung:* beide Seiten zählen dieselben 24 h. Zustand A an 24.11. 17:00 UTC (`atMs` 1795539600000), B an 25.11. 17:00 UTC; Stationsstempel A 0 min, B 0 min (95 Paare) bzw. 30 min (3 Paare `imis:BER2`, Wert 16:30). Kette 6 + 12 + 6 = 24 h nachgespielt (`replayedH` = `ageH` in jedem Lauf), an keiner Zeile neue Stunden ohne Antrieb (`gap` A = B; die 30 h stammen aus dem Startzustand). **Kein Versatz um einen Lauf.**
+- *Eigener oder Nachbar-Antrieb:* eigen 59 Paare (14 Stationen) +6,2 / +1,0 cm, Verhältnis 0,16; Nachbar 39 Paare (12) +6,9 / +0,9 cm, 0,13; frisch 8,8 / 8,8 cm, Setzung 7,8 / 7,9 cm. **Die Art des Antriebs erklärt nichts.**
+- Nebenbei: ohne `imis:BOR2` (s. V-GM-141) 91 Paare +5,45 / +0,78 cm, 0,14; je Station gewichtet +7,3 / +1,4 cm, 0,19.
+
+**Befunde**
+
+| V-… | Befund | Mehrwert · Skizze |
+|---|---|---|
+| V-GM-139 | Antrieb (`melt/wx/<lauf>`), Zeilen (`snowpack/<lauf>.json`) und Statusstand eines Schmelzlaufs liegen nur 72 h im Daten-Repo, `precipsum/v1` nur drei Läufe (3 h); die Ablage hält je Tag `melt-<lauf>` und `pairs-<lauf>` und die Stationsslots, aber keinen Antrieb und keine Schneedecken-Zeile — ein Schattenpaar lässt sich nach drei Tagen nicht mehr zerlegen | jedes Fenster bleibt erklärbar · im Archivlauf je Lauf eine Datei `snowpack-forcing-<lauf>.json.gz` mit `t p s sn sl` der 470 Gletscher mit Schneestation und ihrer 38 Antriebs-Besitzer (gemessen an 2517: ≈ 121 KB gz) und `z f hs swe hn` ihrer Zeilen (≈ 20 KB gz) plus `lines.snowpack` des Status; ≈ 0,56 MB/Tag. Dazu einmal täglich die 24-h-Summe von `precipsum` an den Zellen der Schneestationen (wenige KB). Reihenfolge wie bisher: nur hinzufügen |
+| V-GM-140 | In diesem Fenster fehlt dem Modell kein Neuschnee: es bucht an den Schneefallstationen 8,8 cm frisch, mehr als die Station netto zeigt; der Verlust ist die Setzung der älteren Modelldecke (7,6 cm in 24 h). Die Modelldecke ist an diesen Stationshöhen rund doppelt so tief wie gemessen (139 gegen 85 cm) und trägt 31,6 cm Neuschnee aus dem Startzustand vom 22./23.11. | trennt Antrieb und Ausgangsdecke · je Fenster die Setzung der Modelldecke an Tagen ohne Schneefall gegen die Station legen (23.→24.11.: Station −6,8 cm in 24 h, Modell −3,9 in 18 h) und die Ausgangsdifferenz Modell − Station je Paar mitschreiben; nichts ändern, bevor sieben Fenster dasselbe sagen (V-GM-135) |
+| V-GM-141 | `imis:BOR2` (Bortelsee, 2 517 m) springt zwischen 20 und 22 UTC von 67 auf 84 cm und bleibt dort; die Stationsprüfung (Sprung) lässt es durch. Mit 7 von 98 Paaren trägt die Station +20,2 cm ins Schneefallmittel | ein Sprung zählt nicht als Schneefall · die Sprunggrenze der Schneehöhe je Stunde in `stations.mjs` gegen diesen Fall prüfen (Grenze `set`); im Paar-Werkzeug zusätzlich je Station gewichten |
+| V-GM-142 | buscosun Fusion gibt an den 17 Schneefallstationen 4,7 mm, CombiPrecip/INCA an der Stationszelle 3,1 mm; mit dem Faktor erklärt precipsum die +6,5 cm der Station selbst ohne Setzung nicht (5,8 cm bei 96 kg/m³). Die einzige Station mit Messer (Gütsch) misst 1,1 mm bei +8 cm | zeigt, dass Niederschlag allein hier nicht entscheidet · an Stationen mit Neuschneebrett oder beheiztem Messer (eine neue Quelle — Jans Wort) ließe sich Dichte von Setzung trennen; bis dahin precipsum je Fenster neben das Paar legen (V-GM-139) |
+| V-GM-143 | Der Schmelzlauf `2026112505` fehlt (kein `melt/wx`, kein `snowpack`); die Stunden 23→11 UTC kamen aus Lauf 2423 mit Vorlauf bis 11 h. Die Buchung ist vollständig (Vorrat 18 h), aber ein Paar sagt nicht, welche Läufe seine 24 h trugen | macht die Zeitprüfung ohne Antrieb lesbar · im Paar-Dokument die Kette der Läufe nennen, die das Fenster seit dem Vorgänger nachgespielt hat (`replayedFrom`); warum 2505 ausfiel, ist nicht untersucht |
+
 ## 4. Quellenliste (zur Prüfung durch Jan)
 
 Spalte „Stand“: **da** = schon im Betrieb, **neu** = käme mit dieser Phase dazu. Spalte „Lizenz“: **belegt** = am 22.11. an der Quelle gelesen; **wie bisher** = unverändert aus der bestehenden Linie; **offen** = von mir nicht geprüft.
