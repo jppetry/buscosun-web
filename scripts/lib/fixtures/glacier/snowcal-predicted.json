@@ -1,0 +1,227 @@
+{
+ "schema": 1,
+ "kind": "glacier/snow-factor-predicted",
+ "country": "CH",
+ "build": "20261011-9",
+ "builtAt": "2026-11-25T00:00:00.000Z",
+ "origin": "computed",
+ "verified": false,
+ "note": "SYNTHETISCH — Fixture der Prüfer; erfundene Gletscher und Zahlen, keine Messung und kein Wert einer Quelle",
+ "rule": {
+  "decision": "E-GM-44 (Jan, 25.11.2026)",
+  "form": "C",
+  "predictors": [
+   "x1",
+   "zMed",
+   "north"
+  ],
+  "minCells": 5,
+  "shrink": 0.5,
+  "smallArea": "country",
+  "outside": "country",
+  "clamp": "own factors of the calibration glaciers, not at a search bound",
+  "origin": "set"
+ },
+ "smallClasses": {
+  "rule": "shrunk",
+  "decision": "synthetic",
+  "step1": {
+   "K1": {
+    "shrunk": 300,
+    "country": 400
+   },
+   "K2": {
+    "shrunk": 350,
+    "country": 450
+   }
+  }
+ },
+ "inputs": {
+  "ownTable": "0000000000000000000000000000000000000000000000000000000000000000",
+  "snowcal": "0000000000000000000000000000000000000000000000000000000000000000",
+  "countryF": 1.793,
+  "predictors": "0000000000000000000000000000000000000000000000000000000000000000",
+  "x1": "0000000000000000000000000000000000000000000000000000000000000000",
+  "q20": "synthetic",
+  "melt": {
+   "model": "eti",
+   "TF": 0.12,
+   "SRF": 0.005455
+  },
+  "tool": "0000000000000000000000000000000000000000000000000000000000000000"
+ },
+ "sources": {
+  "note": "Abgeleitete Modellgrößen aus einer eigenen Rechnung (vorhergesagter Niederschlagsfaktor je Schweizer Gletscher). Die Tabelle enthält keine Zeile und keinen Messwert der Quelldateien (E-GL-17); GLAMOS wirkt nur über die Anpassung an die Eichgletscher.",
+  "attribution": [
+   {
+    "id": "glamos",
+    "name": "GLAMOS — Glacier Monitoring Switzerland: Swiss Glacier Mass Balance, Release 2025",
+    "doi": "10.18750/massbalance.2025.r2025",
+    "licence": "CC BY 4.0",
+    "citation": "GLAMOS (2025). Swiss Glacier Mass Balance, release 2025, Glacier Monitoring Switzerland, doi:10.18750/massbalance.2025.r2025.",
+    "permission": "schriftliche Bestätigung von GLAMOS per Mail an Jan, 25.11.2026 (abgeleitete Modellparameter in einem kostenlosen Webdienst)",
+    "use": "Winterbilanz der Schweizer Eichgletscher (Wahrheit der Anpassung)"
+   },
+   {
+    "id": "slf-q20",
+    "name": "SLF snow dataset 2016–2025 (Q20), version 1.1",
+    "doi": "10.5281/zenodo.17313889",
+    "licence": "CC BY 4.0",
+    "use": "Gitter-Prädiktor x1 (Schneezuwachs 1.10.–1.5.)"
+   },
+   {
+    "id": "meteoswiss",
+    "name": "MeteoSwiss Open Data: SwissMetNet, RhiresD",
+    "licence": "CC BY 4.0",
+    "credit": "Quelle: MeteoSchweiz",
+    "use": "Antrieb der vergangenen Winter"
+   },
+   {
+    "id": "glo30",
+    "name": "Copernicus DEM GLO-30",
+    "licence": "Copernicus DEM licence (free basis)",
+    "use": "Medianhöhe und Exposition"
+   }
+  ]
+ },
+ "model": {
+  "c": 0.55,
+  "beta": [
+   0.22,
+   -0.1,
+   0.08
+  ],
+  "mu": [
+   0.35,
+   3000,
+   0.3
+  ],
+  "sc": [
+   0.2,
+   300,
+   0.3
+  ],
+  "cPrime": 1.82,
+  "glaciers": 32,
+  "winters": 377,
+  "cal": {
+   "ranges": {
+    "x1": [
+     -0.2,
+     1.2
+    ],
+    "zMed": [
+     2500,
+     3700
+    ],
+    "north": [
+     -0.5,
+     0.9
+    ]
+   },
+   "minArea": 0.014,
+   "own": [
+    1.2,
+    3
+   ]
+  }
+ },
+ "spread": {
+  "own": {
+   "n": 31,
+   "p10": 0.97,
+   "p90": 1.03,
+   "sdLn": 0.02,
+   "how": "synthetic"
+  },
+  "predicted": {
+   "n": 31,
+   "p10": 0.8,
+   "p90": 1.2,
+   "sdLn": 0.15,
+   "how": "synthetic"
+  },
+  "predicted-shrunk": {
+   "n": 31,
+   "p10": 0.78,
+   "p90": 1.25,
+   "sdLn": 0.18,
+   "how": "synthetic"
+  },
+  "country": {
+   "n": 31,
+   "p10": 0.73,
+   "p90": 1.37,
+   "sdLn": 0.27,
+   "how": "synthetic"
+  },
+  "origin": "measured",
+  "glaciers": 31
+ },
+ "counts": {
+  "own": 1,
+  "predicted": 1,
+  "predicted-shrunk": 1,
+  "country": 1
+ },
+ "area": {
+  "own": {
+   "km2": 3,
+   "share": 0.73
+  },
+  "predicted": {
+   "km2": 0.5,
+   "share": 0.12
+  },
+  "predicted-shrunk": {
+   "km2": 0.05,
+   "share": 0.01
+  },
+  "country": {
+   "km2": 0.55,
+   "share": 0.13
+  }
+ },
+ "countryWhy": {
+  "no-grid-predictor": 1
+ },
+ "glaciers": {
+  "gl_ch_alpha": {
+   "b": "own",
+   "F": 2.5,
+   "n": 12,
+   "q": [
+    2.425,
+    2.575
+   ]
+  },
+  "gl_ch_beta": {
+   "b": "predicted",
+   "F": 2.1,
+   "n": 6,
+   "q": [
+    1.68,
+    2.52
+   ]
+  },
+  "gl_ch_gamma": {
+   "b": "predicted-shrunk",
+   "F": 1.9,
+   "n": 1,
+   "q": [
+    1.482,
+    2.375
+   ]
+  },
+  "gl_ch_delta": {
+   "b": "country",
+   "F": 1.793,
+   "why": "no-grid-predictor",
+   "n": 2,
+   "q": [
+    1.309,
+    2.456
+   ]
+  }
+ }
+}

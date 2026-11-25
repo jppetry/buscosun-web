@@ -7,6 +7,12 @@
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/snowpack-seed.mjs \
  *        --data=<v1 view of the glacier line> --cache=<dir> --out=<dir> [--from=2026-10-01T00:00] [--end=<iso hour, default: the last full hour − 1 h>]
  *        [--precip=gate-c|country] [--density=helfricht|board] [--snowcal=<json>] [--calibration=<json>] [--python=<python with h5py>] [--fetch-wx=1] [--allow-partial=1] [--report=<json, default <out>-report.json>]
+ *        [--glacier-factor=off|on|predicted] [--glacier-factor-table=<json>] [--snowcal-glaciers=<json>] [--melt-respin=<melt/state.json>]
+ *
+ * GM-10b (V-GM-86, V-GM-91): `--glacier-factor` is the switch of the producer — the seed then runs every glacier on the factor the melt run gives it (own,
+ * predicted, else its region) and names the rule in `rules.factor`; a producer run continues only a state of its own rule. `--melt-respin` re-spins the
+ * melt state of the glaciers whose factor changes with this rule from `--from` to the state's own hour (`--end` must be that hour) and writes it as
+ * `<out>/melt/state.json` next to the snowpack state — the other glaciers keep their entry.
  *
  * Forcing (the datasets the precipitation factor of the calibration stands against — the bridge to buscosun Fusion does not apply here):
  *   Austria, Germany  GeoSphere Austria `inca-v2-1h-1km` (CC BY 4.0): hourly precipitation, temperature, global radiation at the nearest 1 km cell
@@ -24,7 +30,12 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 
 import { execFileSync } from 'node:child_process';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { MELT, bandsOf, cosZenith, clearSky, cloudFactor } from './lib/meltcore.mjs';
+import { MELT, bandsOf, cosZenith, clearSky, cloudFactor, simulate, emptyState } from './lib/meltcore.mjs';
+import { createHash } from 'node:crypto';
+import { glacierFactorModeOf, glacierRunOf } from './lib/snowcalGlaciers.mjs';
+import { factorTableRunOf, factorRuleOf } from './lib/snowcalPredict.mjs';
+import { stateRowOf } from './lib/meltstate.mjs';
+import { meltStateProblems } from '../../src/glacier/glacierMeltContract.ts';
 import { SNOW, SNOW_ORIGIN } from './lib/snowcore.mjs';
 import { snowSwitchesOf, snowCoreSetup, precipRunOf } from './lib/snowcal.mjs';
 import { emptyLevel, bareAlbedo, stepLevel, normalizeLevel } from './lib/snowpackcore.mjs';
@@ -103,6 +114,43 @@ export function seedOfForcing({ glaciers, fromMs, hours, cal, c, rules, info = {
     g[gl.id] = [beginH, holes, levels.map((lv) => normalizeLevel(lv, c)), levels.map((lv) => Math.round(lv.aS * 1000)), null];
   }
   return { schema: 1, kind: 'glacier/snowpack-state', atMs: fromMs + hours * H, source: 'seed', run: null, since: new Date(fromMs).toISOString(), rules, pendH: GLACIER_SNOWPACK_PEND_H, seed: { ...info, ...(filledGlaciers ? { filled: { rule: 'fusion-weather-runs', glaciers: filledGlaciers, maxH: filledMax } } : {}) }, g };
+}
+
+/**
+ * V-GM-91 (GM-10b) — RE-SPIN of the melt state for a new factor rule: the glaciers of `state` (a `melt/state.json`) whose recorded factor (`fac.f[id]`,
+ * none = the value of the region) differs from the factor of the new rule (`factorOf(id)`, `null` = the value of the region) begin again at `fromMs` from
+ * an empty state and are run with the melt core of the producer (`simulate`, eti, TF / SRF, the factor, no gradient) on the SAME analysis forcing as the
+ * snowpack seed (temperature at the median elevation = analysis + shift, precipitation, radiation; an hour of a weather run of buscosun Fusion where the
+ * analysis has none; an hour without either is left out) up to the state's own hour (`hours` = (atMs − fromMs) / 1 h). Every other glacier keeps its entry
+ * byte for byte. The result names the rule and the factor of every glacier that is not on its region's value (`fac`), so the producer continues it.
+ * `glaciers`: { id, bands, ela, F (the new factor actually used), series, dT, fill? }.
+ */
+export function respinMeltState({ state, glaciers, factorOf, rule, fromMs, hours, cal }) {
+  if (state?.kind !== 'glacier/melt-state') throw new Error('kein Schmelzzustand');
+  if (Math.round((state.atMs - fromMs) / H) !== hours) throw new Error(`der Schmelzzustand steht bei ${new Date(state.atMs).toISOString()}, das Einschwingen endet bei ${new Date(fromMs + hours * H).toISOString()} — beide müssen dieselbe Stunde haben`);
+  const byId = new Map(glaciers.map((g) => [g.id, g])), g = { ...state.g }, respun = [], missing = [];
+  for (const id of Object.keys(state.g)) {
+    const was = state.fac?.f?.[id] ?? null, now = factorOf(id);
+    if ((was == null) === (now == null) && (was == null || Math.abs(was - now) <= 1e-9)) continue;
+    const gl = byId.get(id);
+    if (!gl) { missing.push(id); delete g[id]; continue; }   // no forcing: the entry is dropped, the producer begins it anew and says so
+    const t = [], p = [], gg = [];
+    for (let h = 0; h < hours; h++) {
+      const th = gl.series.t[h];
+      if (th != null && Number.isFinite(th)) { t.push(th + gl.dT); p.push(Math.max(0, gl.series.p[h] ?? 0)); gg.push(Math.max(0, gl.series.g[h] ?? 0)); }
+      else if (gl.fill?.[h]) { const fx = gl.fill[h]; t.push(fx.T[1]); p.push(Math.max(0, fx.P ?? 0)); gg.push(Math.max(0, fx.G ?? 0)); }
+    }
+    const zMed = gl.ela;
+    const out = simulate({ bands: gl.bands, ela: gl.ela, t: Float64Array.from(t), g: Float64Array.from(gg), p: Float64Array.from(p), zT: zMed, zP: zMed, pf: gl.F, TF: cal.TF, SRF: cal.SRF, state: emptyState(gl.bands.zb.length), model: 'eti', pGrad: 0 });
+    g[id] = stateRowOf(out.state); respun.push(id);
+  }
+  const f = Object.fromEntries(Object.keys(g).map((id) => [id, factorOf(id)]).filter(([, F]) => F != null));
+  const next = { ...state, g };
+  if (rule) next.fac = { rule, f }; else delete next.fac;
+  if (next.sat) next.sat = Object.fromEntries(Object.entries(next.sat).filter(([id]) => id in g));
+  const problems = meltStateProblems(next);
+  if (problems.length) throw new Error(`neu eingeschwungener Schmelzzustand verletzt den Vertrag: ${problems.slice(0, 5).join('; ')}`);
+  return { state: next, respun, missing };
 }
 
 // --- the tool ----------------------------------------------------------------------------------------------------------------------------------
@@ -219,6 +267,25 @@ async function main() {
   const table = rules.precip === 'country' ? J(resolve(args.snowcal ?? join(HERE, 'snow-calibration.json'))) : null;
   const precip = table ? precipRunOf(table, [...new Set(cat.map((g) => g.region))]) : null;   // throws when the table is not usable
   const setup = snowCoreSetup({ density: rules.density, base: SNOW, baseOrigin: SNOW_ORIGIN, table });
+  // V-GM-86 (GM-10b): the factor switch of the producer — the seed runs on the SAME factor per glacier and names the rule in its state
+  const facMode = glacierFactorModeOf(args['glacier-factor'] ?? process.env.GLACIER_SNOW_GLACIER_FACTOR);
+  let facOf = () => null;
+  if (facMode !== 'off') {
+    if (rules.precip !== 'country') throw new Error('Faktor je Gletscher gilt nur mit dem Niederschlagsfaktor „country“');
+    const ownFile = resolve(args['snowcal-glaciers'] ?? join(HERE, 'snow-calibration-glaciers.json'));
+    const own = glacierRunOf(J(ownFile), { factor: true }, new Set(cat.map((g) => g.id))), ownSha = createHash('sha256').update(readFileSync(ownFile)).digest('hex');
+    let pred = null, sha = ownSha;
+    if (facMode === 'predicted') {
+      const named = args['glacier-factor-table'] ?? process.env.GLACIER_SNOW_GLACIER_FACTOR_TABLE;
+      if (!named) throw new Error('Faktor je Gletscher „predicted“ braucht --glacier-factor-table=<json>');
+      const raw = readFileSync(resolve(named));
+      sha = createHash('sha256').update(raw).digest('hex');
+      const regionOf = new Map(cat.map((g) => [g.id, g.region]));
+      pred = factorTableRunOf(JSON.parse(raw.toString('utf8')), { own, ownSha, countryOf: (id) => precip.factorOf(regionOf.get(id)), catalog: new Map(cat.map((g) => [g.id, g])), tableSha: sha });
+    }
+    facOf = (id) => own.factorOf(id) ?? pred?.factorOf(id) ?? null;
+    rules.factor = factorRuleOf(facMode, sha);
+  }
   const hyp = new Map(), hypOf = (region) => { if (!hyp.has(region)) hyp.set(region, J(join(dataDir, 'static', build, 'hypso', `${region}.json`)).glaciers ?? {}); return hyp.get(region); };
   const skipped = [], all = [];
   for (const g of cat) {
@@ -226,7 +293,7 @@ async function main() {
     if (!h?.a?.some((v) => v > 0)) { skipped.push({ id: g.id, reason: 'no-hypsometry' }); continue; }
     const zb = bandsOf(h).zb, z = [zb[0], g.z[1], zb[zb.length - 1]];
     if (!(z[0] <= z[1] + 25 && z[1] <= z[2] + 25)) { skipped.push({ id: g.id, reason: 'elevations' }); continue; }
-    all.push({ id: g.id, key: g.id, country: g.country, lat: g.lat, lon: g.lon, z, ela: g.z[1], F: precip ? precip.factorOf(g.region) : z.map((zz) => cal.pf * (1 + (MELT.pGrad * (zz - g.z[1])) / 100)) });
+    all.push({ id: g.id, key: g.id, country: g.country, lat: g.lat, lon: g.lon, z, ela: g.z[1], bands: bandsOf(h), F: precip ? facOf(g.id) ?? precip.factorOf(g.region) : z.map((zz) => cal.pf * (1 + (MELT.pGrad * (zz - g.z[1])) / 100)) });
   }
   console.error(`${all.length} Gletscher (${skipped.length} ohne Höhen), ${hours} Stunden ${new Date(fromMs).toISOString()} … ${new Date(endMs).toISOString()}, Regeln ${rules.precip}/${rules.density}`);
   const { temps: fusion, rows: fusionRows, from: fusionFrom, runs: wxRuns } = await fusionTemps({ dataDir, cacheDir, fromMs, endMs, fetchWx: !!args['fetch-wx'] });
@@ -279,7 +346,16 @@ async function main() {
   const sweOf = (row) => (row[0] + row.slice(2).reduce((s, v, i) => s + (i % 3 === 0 ? v : 0), 0)) / 10, hsOf = (row) => (row[1] + row.slice(2).reduce((s, v, i) => s + (i % 3 === 1 ? v : 0), 0)) / 10;
   const q3 = (a) => [0.1, 0.5, 0.9].map((q) => Math.round(quant(a, q) * 10) / 10);
   const by = (c) => { const gs = glaciers.filter((g) => g.country === c); return gs.length ? { glaciers: gs.length, filledH: q3(gs.map((g) => Object.keys(g.fill ?? {}).length)), holesH: q3(gs.map((g) => state.g[g.id][1])), hsCm: [0, 1, 2].map((l) => q3(gs.map((g) => hsOf(state.g[g.id][2][l])))), sweMm: [0, 1, 2].map((l) => q3(gs.map((g) => sweOf(state.g[g.id][2][l])))), without: [0, 1, 2].map((l) => gs.filter((g) => state.g[g.id][2][l][0] === 0 && state.g[g.id][2][l].length === 2).length) } : null; };
-  const report = { kind: 'glacier/snowpack-seed-report', ...info, window: { from: state.since, to: new Date(state.atMs).toISOString(), hours }, rules, bytes: Buffer.byteLength(raw), shiftK: q3(shifts), byCountry: Object.fromEntries(['AT', 'CH', 'DE'].map((c) => [c, by(c)])), skippedList: skipped };
+  // V-GM-91 (GM-10b): `--melt-respin=<melt/state.json>` re-spins the melt state of the glaciers whose factor changes with this rule, up to the state's own hour
+  let respin = null;
+  if (args['melt-respin']) {
+    const ms = J(resolve(args['melt-respin']));
+    const r = respinMeltState({ state: ms, glaciers, factorOf: facOf, rule: rules.factor ?? null, fromMs, hours, cal });
+    mkdirSync(join(outDir, 'melt'), { recursive: true });
+    writeFileSync(join(outDir, 'melt', 'state.json'), JSON.stringify(r.state));
+    respin = { from: resolve(args['melt-respin']), respun: r.respun.length, dropped: r.missing.length, rule: rules.factor ?? null };
+  }
+  const report = { kind: 'glacier/snowpack-seed-report', ...info, ...(respin ? { meltRespin: respin } : {}), window: { from: state.since, to: new Date(state.atMs).toISOString(), hours }, rules, bytes: Buffer.byteLength(raw), shiftK: q3(shifts), byCountry: Object.fromEntries(['AT', 'CH', 'DE'].map((c) => [c, by(c)])), skippedList: skipped };
   // the report lies NEXT to the output tree: the tree holds nothing but `snowpack/state.json`, so it can be handed to the publisher as it is
   writeFileSync(resolve(args.report ?? `${outDir}-report.json`), JSON.stringify(report, null, 1));
   console.log(JSON.stringify({ ...report, skippedList: undefined, skippedReasons: skipped.reduce((m, s) => { m[s.reason] = (m[s.reason] ?? 0) + 1; return m; }, {}) }));

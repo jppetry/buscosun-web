@@ -16,7 +16,8 @@
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-glacier-melt.mjs
  */
 import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, existsSync, readdirSync, rmSync, cpSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -416,6 +417,109 @@ add('G4 Archiv: die Leitgletscher des Laufs gehen als eigene Datei ins Archivver
     add('K7 Kern: mit einem Multiplikator je Band ist der Zuwachs von Hand Stunden · Niederschlag · Faktor · Multiplikator (6 · 2 · 1,5 · 0,8 = 14,4 und · 1,2 = 21,6 mm), ohne ihn rechnet der Kern wie immer (mit Gradient 0 je 18 mm, ohne Angabe die gesetzten 4 % je 100 m ab der Bezugshöhe); eine Liste, die nicht zu den Bändern passt, wird abgelehnt',
       Math.abs(withCorr.bal[0] - 14.4) < 1e-9 && Math.abs(withCorr.bal[1] - 21.6) < 1e-9 && Math.abs(plain.bal[0] - 18) < 1e-9 && Math.abs(plain.bal[1] - 18) < 1e-9 && Math.abs(grad.bal[0] - 18 * 0.96) < 1e-9 && Math.abs(grad.bal[1] - 18 * 1.04) < 1e-9 && refused, JSON.stringify([Array.from(withCorr.bal), Array.from(grad.bal)]));
   }
+  // --- L: GM-10b (E-GM-44) — predicted factors (`--glacier-factor=predicted`) and the factor rule of the melt state (V-GM-91), same cold and wet run --------
+  // (a crash inside the block is a named failure, not an abort of the verifier)
+  try {
+    const realGl = JSON.parse(readFileSync(join(HERE, 'glacier', 'snow-calibration-glaciers.json'), 'utf8'));
+    const shapeA = { z0: 2400, stepM: 50, s: [-0.3, -0.2, -0.1, 0, 0.1, 0.2, 0.2, 0.1, 0], m: 0.5 }, shapeF = { z0: 2600, stepM: 50, s: [0.2, 0, -0.2], m: 1 };
+    const glTable = structuredClone(realGl);
+    glTable.glaciers = { gl_ch_alpha: { country: 'CH', winters: 9, years: [2015, 2023], F: 2.5, origin: 'measured', shape: shapeA }, gl_ch_far: { country: 'CH', winters: 7, years: [2012, 2018], F: 5, origin: 'measured', atBound: true, shape: shapeF } };
+    const glDir = join(tmp, 'L-gl'); mkdirSync(glDir, { recursive: true });
+    const glFile = join(glDir, 'snowcal-glaciers.json'); writeFileSync(glFile, JSON.stringify(glTable));
+    const glSha = createHash('sha256').update(readFileSync(glFile)).digest('hex');
+    // the SYNTHETIC table of the fixture (invented glaciers of the test catalogue): Alpha own 2,5 — Beta predicted 2,1 — Gamma predicted-shrunk 1,9 — Delta country
+    const fx = JSON.parse(readFileSync(join(HERE, 'lib', 'fixtures', 'glacier', 'snowcal-predicted.json'), 'utf8'));
+    const predFor = (edit = null) => { const t = structuredClone(fx); t.inputs.ownTable = glSha; edit?.(t); return t; };
+    let nL = 0;
+    const snowFcAt = (nowMs) => async () => { const fc = synthFc({ tOf: () => -2 }); fc.cube.v2.axis.steps.forEach((s, i) => { s.validAtMs = Math.floor(nowMs / H) * H + i * H; s.vars.precip.mean = 3; }); return fc; };
+    const runL = async (name, { extra = {}, pred = predFor(), prevState = null, atH = 0, tableArg = true } = {}) => {
+      const root = join(tmp, `L-${name}-${nL++}`); const tr = mkTree(root);
+      const tf = join(root, 'snowcal.json'); writeFileSync(tf, JSON.stringify(tableFor()));
+      const pf = join(root, 'predicted.json'); if (pred != null) writeFileSync(pf, typeof pred === 'string' ? pred : JSON.stringify(pred));
+      if (prevState) { mkdirSync(join(tr.data, 'melt'), { recursive: true }); writeFileSync(join(tr.data, 'melt', 'state.json'), prevState); }
+      const now = NOW + atH * H;
+      let r = null, err = null;
+      try { r = await main({ data: tr.data, cube: tr.cube, out: join(root, 'out'), calibration: tr.calFile, now: new Date(now).toISOString(), forecast: snowFcAt(now), ioFactory: okIo, always: true, weather: '0', snowcal: tf, 'snowcal-glaciers': glFile, ...(tableArg ? { 'glacier-factor-table': pf } : {}), ...extra }); } catch (e) { err = String(e.message ?? e); }
+      if (err) return { err, wrote: existsSync(join(root, 'out')) };
+      const read = (rel) => readFileSync(join(root, rel), 'utf8');
+      const status = JSON.parse(read('patch/status-patch.json')); delete status.lines.melt.seconds; delete status.lines.melt.mem;
+      const stateRaw = read('out/melt/state.json');
+      return { r, docRaw: read(`out/melt/${r.run}.json`), doc: JSON.parse(read(`out/melt/${r.run}.json`)), stateRaw, file: JSON.parse(stateRaw), state: JSON.parse(stateRaw).g, index: read('patch/index-patch.json'), status };
+    };
+    const sweH = (hours, z0, zRef, pf) => hypZb(z0).map((z) => { const Tb = -2 + 0.0065 * (zRef - z); return 3 * hours * pf * Math.min(1, Math.max(0, (2 - Tb) / 2)); });
+    // a state carried over one more run holds the rounding to 0,1 mm twice: 0,11 mm for 12-h values
+    const is = (s, id, hand, tol = hand === null ? 0 : 0.051) => !!s?.[id] && s[id][0].length === 8 && s[id][0].every((v, i) => Math.abs(v - hand[i]) <= tol);
+    const is12 = (s, id, hand) => is(s, id, hand, 0.11);
+
+    const P = await runL('pred', { extra: { 'glacier-factor': 'predicted' } });
+    const pb = P.doc?.params?.precip?.glaciers;
+    add('L1 Faktor je Gletscher „predicted“ (E-GM-44): Alpha behält den eigenen Faktor 2,5, Beta läuft auf dem vorhergesagten 2,1, Gamma (Nachbar-Antrieb) auf dem geschrumpften 1,9, Far (eigener Faktor an der Grenze, keine Zeile) auf dem Wert seiner Region — je von Hand 6 · 3 mm · Faktor · Schneeanteil an jedem Band; Gegenprobe: Beta mit dem Landeswert passt nicht; das Dokument nennt Tabelle (Hash), Regel, Herkunft „computed“, „nicht nachgeprüft“, Zahlen je Grundlage und die Zeilen je Grundlage, die Statuszeile zählt sie, der Zustand nennt Regel und Faktor der drei (V-GM-91); Verträge ohne Befund; kein „measured“ im Block',
+      !P.err && is(P.state, 'gl_ch_alpha', sweH(6, 2400, 2900, 2.5)) && is(P.state, 'gl_ch_beta', sweH(6, 2500, 2800, 2.1)) && !is(P.state, 'gl_ch_beta', sweH(6, 2500, 2800, F['ch-test']))
+      && is(P.state, 'gl_ch_gamma', sweH(6, 2600, 2900, 1.9)) && is(P.state, 'gl_ch_far', sweH(6, 2600, 2750, F['ch-far']))
+      && pb?.factor === true && JSON.stringify(pb.applied) === JSON.stringify({ factor: ['gl_ch_alpha'], shape: [] }) && pb.predicted?.rule === 'predicted' && /^[0-9a-f]{64}$/.test(pb.predicted.table)
+      && pb.predicted.origin === 'computed' && pb.predicted.verified === false && pb.predicted.small === 'shrunk' && JSON.stringify(pb.predicted.applied) === JSON.stringify({ predicted: ['gl_ch_beta'], 'predicted-shrunk': ['gl_ch_gamma'] })
+      && JSON.stringify(P.status.lines.melt.glacier) === JSON.stringify({ factor: 1, shape: 0, predicted: 1, predictedShrunk: 1 })
+      && P.file.fac?.rule === `predicted:${pb.predicted.table.slice(0, 16)}` && JSON.stringify(P.file.fac.f) === JSON.stringify({ gl_ch_alpha: 2.5, gl_ch_beta: 2.1, gl_ch_gamma: 1.9 })
+      && meltProblems(P.doc).length === 0 && meltStateProblems(P.file).length === 0 && meltPrecipProblems(P.doc.params.precip, ['ch-test', 'ch-far']).length === 0 && !/measured/.test(JSON.stringify(pb.predicted)),
+      JSON.stringify({ err: P.err, beta: P.state?.gl_ch_beta?.[0], hand: sweH(6, 2500, 2800, 2.1), pb, fac: P.file?.fac, status: P.status?.lines?.melt?.glacier }));
+    // the switch off: the table is not opened (a broken file named next to it changes nothing) and every byte is the run without any switch
+    const plain = await runL('plain', { pred: null, tableArg: false }), offBroken = await runL('off-broken', { pred: '{kaputt', extra: { 'glacier-factor': 'off' } });
+    add('L2 aus: mit „off“ wird die Tabelle vorhergesagter Faktoren nicht geöffnet — eine kaputte Datei daneben ändert kein Byte (Dokument, Zustand, Zeiger, Statuszeile gleich dem Lauf ohne jeden Schalter); kein Feld `fac` im Zustand, keine Angabe in der Statuszeile; die Voreinstellung bleibt „off“, „predicted“ ist ein erlaubtes Wort',
+      !plain.err && !offBroken.err && plain.docRaw === offBroken.docRaw && plain.stateRaw === offBroken.stateRaw && plain.index === offBroken.index && JSON.stringify(plain.status) === JSON.stringify(offBroken.status)
+      && plain.file.fac === undefined && !('glacier' in plain.status.lines.melt) && GLACIER_FACTOR_DEFAULT === 'off' && glacierFactorModeOf('predicted') === 'predicted', JSON.stringify({ err: [plain.err, offBroken.err] }));
+    // never a silent fall back: every one stops with the reason and writes nothing
+    const stops = {
+      noName: await runL('no-name', { extra: { 'glacier-factor': 'predicted' }, tableArg: false }),
+      noFile: await runL('no-file', { extra: { 'glacier-factor': 'predicted' }, pred: null }),
+      notJson: await runL('not-json', { extra: { 'glacier-factor': 'predicted' }, pred: '{kaputt' }),
+      gateC: await runL('gate-c', { extra: { 'glacier-factor': 'predicted', precip: 'gate-c' } }),
+      otherOwn: await runL('other-own', { extra: { 'glacier-factor': 'predicted' }, pred: predFor((t) => { t.inputs.ownTable = 'f'.repeat(64); }) }),
+      ownDiffers: await runL('own-differs', { extra: { 'glacier-factor': 'predicted' }, pred: predFor((t) => { t.glaciers.gl_ch_alpha.F = 2.4; t.glaciers.gl_ch_alpha.q = [2.328, 2.472]; }) }),
+      ownAsPred: await runL('own-as-pred', { extra: { 'glacier-factor': 'predicted' }, pred: predFor((t) => { t.glaciers.gl_ch_alpha = { b: 'predicted', F: 2.5, q: [2, 3], n: 12 }; t.counts.own = 0; t.counts.predicted = 2; }) }),
+      country: await runL('country', { extra: { 'glacier-factor': 'predicted' }, pred: predFor((t) => { t.inputs.countryF = 1.8; t.glaciers.gl_ch_delta.F = 1.8; t.glaciers.gl_ch_delta.q = [1.314, 2.466]; }) }),
+      stranger: await runL('stranger', { extra: { 'glacier-factor': 'predicted' }, pred: predFor((t) => { t.glaciers.gl_ch_nobody = { ...t.glaciers.gl_ch_beta }; t.counts.predicted = 2; }) }),
+      unclamped: await runL('unclamped', { extra: { 'glacier-factor': 'predicted' }, pred: predFor((t) => { t.glaciers.gl_ch_beta.F = 3.5; t.glaciers.gl_ch_beta.q = [2.8, 4.2]; }) }),
+      measured: await runL('measured', { extra: { 'glacier-factor': 'predicted' }, pred: predFor((t) => { t.origin = 'measured'; }) }),
+    };
+    const want = { noName: /braucht die Tabelle vorhergesagter Faktoren/, noFile: /nicht lesbar/, notJson: /kein JSON/, gateC: /nur mit dem Niederschlagsfaktor „country“/, otherOwn: /inputs\.ownTable/, ownDiffers: /Zeile „own“ ohne denselben eigenen Faktor/, ownAsPred: /eigenem Faktor, Zeile aber „predicted“/, country: /mit 1\.8 gebaut/, stranger: /gl_ch_nobody: nicht als Schweizer Gletscher/, unclamped: /nicht an die eigenen Faktoren gekappt/, measured: /Herkunft measured/ };
+    add('L3 „predicted“ fällt nie still zurück: ohne genannte Tabelle, Datei fehlt, kein JSON, „gate-c“ daneben, Tabelle gegen eine andere Tabelle eigener Faktoren gebaut, Zeile „own“ mit anderem Faktor, Gletscher mit eigenem Faktor als „predicted“, anderer Landeswert, Gletscher außerhalb des Katalogs, vorhergesagter Faktor nicht gekappt, Herkunft „measured“ ⇒ Abbruch mit Grund, nichts geschrieben',
+      Object.entries(want).every(([k, re]) => re.test(stops[k].err ?? '') && stops[k].wrote === false), JSON.stringify(Object.fromEntries(Object.entries(stops).map(([k, x]) => [k, x.err ?? 'kein Abbruch']))));
+    process.env.GLACIER_SNOW_GLACIER_FACTOR = 'predicted';
+    const envP = await runL('env', { tableArg: false });   // no table named anywhere: stops
+    const envFile = join(tmp, 'L-env-table.json'); writeFileSync(envFile, JSON.stringify(predFor()));
+    process.env.GLACIER_SNOW_GLACIER_FACTOR_TABLE = envFile;
+    const envT = await runL('env-t', { tableArg: false });
+    delete process.env.GLACIER_SNOW_GLACIER_FACTOR; delete process.env.GLACIER_SNOW_GLACIER_FACTOR_TABLE;
+    add('L4 Umgebungsvariablen GLACIER_SNOW_GLACIER_FACTOR=predicted und GLACIER_SNOW_GLACIER_FACTOR_TABLE schreiben dieselben Bytes wie die Schalter; ohne Tabelle bricht auch die Umgebungsvariable ab',
+      /braucht die Tabelle/.test(envP.err ?? '') && !envT.err && envT.docRaw === P.docRaw && envT.stateRaw === P.stateRaw && JSON.stringify(envT.status) === JSON.stringify(P.status), JSON.stringify({ err: [envP.err, envT.err] }));
+    // V-GM-91: the next run (6 h later) continues the state of the predicted run — with the switch off the three glaciers on another factor begin anew
+    const offNext = await runL('off-next', { prevState: P.stateRaw, atH: 6, pred: null, tableArg: false });
+    const predNext = await runL('pred-next', { prevState: P.stateRaw, atH: 6, extra: { 'glacier-factor': 'predicted' } });
+    const onNext = await runL('on-next', { prevState: P.stateRaw, atH: 6, extra: { 'glacier-factor': 'on' } });
+    const plainNext = await runL('plain-next', { prevState: plain.stateRaw, atH: 6, pred: null, tableArg: false });
+    add('L5 V-GM-91 — nie Schnee aus zwei Faktoren: der Lauf 6 h später setzt den Zustand fort. Mit „off“ beginnen Alpha, Beta, Gamma (Zustand von einem anderen Faktor) neu — von Hand 6 h mit dem Landeswert —, Far wird fortgesetzt (12 h); das Dokument zählt 3 neu begonnene, der neue Zustand trägt kein `fac`. Mit „predicted“ wird jeder fortgesetzt (12 h mit 2,5 / 2,1 / 1,9, keiner neu). Mit „on“ beginnen Beta und Gamma neu (jetzt Landeswert), Alpha (gleicher Faktor 2,5) wird fortgesetzt. Gegenprobe: ohne Schalter auf einem Zustand ohne `fac` beginnt keiner neu',
+      !offNext.err && offNext.doc.state.source === 'carried' && offNext.doc.state.respun === 3 && is(offNext.state, 'gl_ch_alpha', sweH(6, 2400, 2900, F['ch-test'])) && is(offNext.state, 'gl_ch_beta', sweH(6, 2500, 2800, F['ch-test'])) && is(offNext.state, 'gl_ch_gamma', sweH(6, 2600, 2900, F['ch-test']))
+      && is12(offNext.state, 'gl_ch_far', sweH(12, 2600, 2750, F['ch-far'])) && offNext.file.fac === undefined && offNext.status.lines.melt.glacier?.respun === 3
+      && !predNext.err && predNext.doc.state.respun === undefined && is12(predNext.state, 'gl_ch_alpha', sweH(12, 2400, 2900, 2.5)) && is12(predNext.state, 'gl_ch_beta', sweH(12, 2500, 2800, 2.1)) && is12(predNext.state, 'gl_ch_gamma', sweH(12, 2600, 2900, 1.9))
+      && !onNext.err && onNext.doc.state.respun === 2 && is12(onNext.state, 'gl_ch_alpha', sweH(12, 2400, 2900, 2.5)) && is(onNext.state, 'gl_ch_beta', sweH(6, 2500, 2800, F['ch-test'])) && JSON.stringify(onNext.file.fac?.f) === JSON.stringify({ gl_ch_alpha: 2.5 }) && /^on:[0-9a-f]{16}$/.test(onNext.file.fac?.rule ?? '')
+      && !plainNext.err && plainNext.doc.state.respun === undefined && is12(plainNext.state, 'gl_ch_beta', sweH(12, 2500, 2800, F['ch-test'])) && meltStateProblems(onNext.file).length === 0,
+      JSON.stringify({ err: [offNext.err, predNext.err, onNext.err, plainNext.err], respun: [offNext.doc?.state?.respun, predNext.doc?.state?.respun, onNext.doc?.state?.respun], far: offNext.state?.gl_ch_far?.[0], farHand: sweH(12, 2600, 2750, F['ch-far']), betaPlain: plainNext.state?.gl_ch_beta?.[0], betaHand: sweH(12, 2500, 2800, F['ch-test']), alphaPred: predNext.state?.gl_ch_alpha?.[0], st: offNext.status?.lines?.melt?.glacier, facOn: onNext.file?.fac }));
+    // the rule of the state file: eight violations of `fac`, each reported
+    const st0 = P.file, badFac = (f) => { const s = structuredClone(st0); f(s); return meltStateProblems(s).length; };
+    const facCaught = [(s) => { s.fac.rule = 'predicted'; }, (s) => { s.fac.rule = 'maybe:0123456789abcdef'; }, (s) => { s.fac.f = []; }, (s) => { s.fac.f.gl_ch_alpha = 7; }, (s) => { s.fac.f.gl_ch_alpha = '2.5'; }, (s) => { s.fac.f.gl_ch_nobody = 2; }, (s) => { delete s.fac.f; }, (s) => { s.fac = null; }].map(badFac);
+    add('L6 Regeln von `fac` im Schmelzzustand: Regel ohne Tabelle, fremdes Wort, Liste statt Zuordnung, Faktor außerhalb der Grenzen, Faktor als Text, Faktor ohne Zustand, ohne Zuordnung, leerer Block — jede Verletzung gemeldet; der echte Zustand hat keine',
+      facCaught.every((n) => n > 0) && meltStateProblems(st0).length === 0, JSON.stringify(facCaught));
+    // the COMMAND LINE hands the table on: a run of melt.mjs as a process with a broken table file stops at the table (`kein JSON`), not for lack of one
+    {
+      const root = join(tmp, 'L-cli'); const tr = mkTree(root);
+      const tf = join(root, 'snowcal.json'); writeFileSync(tf, JSON.stringify(tableFor()));
+      const pf = join(root, 'predicted.json'); writeFileSync(pf, '{kaputt');
+      const cli = (extra) => spawnSync(process.execPath, ['--experimental-strip-types', '--import', './scripts/lib/register-ts.mjs', 'scripts/glacier/melt.mjs', `--data=${tr.data}`, `--cube=${tr.cube}`, `--out=${join(root, 'out')}`, `--calibration=${tr.calFile}`, `--snowcal=${tf}`, `--snowcal-glaciers=${glFile}`, '--weather=0', '--always', ...extra], { cwd: join(HERE, '..'), encoding: 'utf8' });
+      const withT = cli(['--glacier-factor=predicted', `--glacier-factor-table=${pf}`]), without = cli(['--glacier-factor=predicted']);
+      add('L7 die Kommandozeile reicht die Tabelle durch: `melt.mjs --glacier-factor=predicted --glacier-factor-table=<kaputte Datei>` als Prozess bricht an der Tabelle ab („kein JSON“), ohne die Angabe mit „braucht die Tabelle“; beide mit Exit 1, nichts geschrieben',
+        withT.status === 1 && /kein JSON/.test(withT.stderr) && without.status === 1 && /braucht die Tabelle/.test(without.stderr) && !existsSync(join(root, 'out')), JSON.stringify({ withT: [withT.status, withT.stderr.split('\n').filter((l) => !/Warning|trace-warnings/.test(l)).join(' | ')], without: [without.status, without.stderr.split('\n').slice(-3).join(' | ')] }));
+    }
+  } catch (e) { add('L Block abgebrochen', false, String(e?.stack ?? e)); }
 }
 // --- I: phase GM (GM-3d, V-GM-32) — where the carried state stands: `ahead` (as always, the fall back) or `run-hour` with its forcing ---------------
 // (a crash inside the block is a named failure, not an abort of the verifier)

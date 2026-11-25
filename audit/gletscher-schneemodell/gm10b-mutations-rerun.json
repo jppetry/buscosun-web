@@ -1,0 +1,38 @@
+{
+ "generated": "2026-11-25T15:34:02.059Z",
+ "root": "C:\\dev\\buscosun-glacier-cache\\gm10\\mut\\code",
+ "verifiers": [
+  "verify:glacier-snowcal",
+  "verify:glacier-melt",
+  "verify:glacier-snowpack"
+ ],
+ "greenBefore": true,
+ "greenAfter": true,
+ "noticed": 3,
+ "of": 3,
+ "crashedOnly": 0,
+ "errors": 0,
+ "mutations": [
+  {
+   "name": "Vertrag: Spanne einer Zeile passt nicht zur Grundlage",
+   "file": "scripts/glacier/lib/snowcalPredict.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: I1",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag: Landeswert-Zeile mit anderem Wert gilt",
+   "file": "scripts/glacier/lib/snowcalPredict.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: I1",
+   "crashedOnly": false
+  },
+  {
+   "name": "Neu-Einschwingen: Stunde ohne Antrieb wird als null gerechnet",
+   "file": "scripts/glacier/snowpack-seed.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I17",
+   "crashedOnly": false
+  }
+ ]
+}

@@ -117,7 +117,11 @@ export interface GlacierSnowpackDoc {
   /** GM-5a, only in a run with spreads: rows with a spread and the rows without, by reason. */
   spread?: { rows: number; none: Record<string, number> };
   /** GM-5a, only in a run with spreads: what is said about the run hour instead of a spread per row (E-GM-33). */
-  now?: { factor: { p10: number; p90: number; origin: string; verified: false; note: string } };
+  now?: {
+    factor: { p10: number; p90: number; origin: string; verified: false; note: string };
+    /** GM-10b, only with predicted factors: the measured pair of every basis of the factor table (one glacier left out; own: one winter left out). */
+    bases?: Record<string, { p10: number; p90: number; n: number; origin: 'measured'; verified: false }>;
+  };
   state: {
     source: 'carried' | 'seed' | 'cold';
     /** Begin of the calculation chain (ISO, UTC). */
@@ -152,7 +156,7 @@ export interface GlacierSnowpackState {
   /** Begin of the calculation chain (ISO, UTC). */
   since: string;
   /** The rules the mass and the thickness of every pack were computed with; a run with other switches does not continue this state. */
-  rules: { precip: 'country' | 'gate-c'; density: 'board' | 'helfricht' };
+  rules: { precip: 'country' | 'gate-c'; density: 'board' | 'helfricht'; /** V-GM-86, only with the factor switch on: `<word>:<16 hex of its table>`. */ factor?: string };
   pendH: number;
   /** Only in a seed: what it was built from (free form, written by the seed tool). */
   seed?: Record<string, unknown>;
@@ -184,6 +188,8 @@ export function snowpackProblems(doc: GlacierSnowpackDoc, catalogIds?: ReadonlyS
       || !Array.isArray(w2) || w2.length !== 2 || !Number.isInteger(w2[0]) || !Number.isInteger(w2[1]) || w2[0] < 1 || w2[0] > w2[1] || w2[1] > GLACIER_SNOWPACK_DAYS) p.push('Regeln: Spanne');
     const nf = doc.now?.factor;
     if (!nf || !(nf.p10 > 0 && nf.p10 < 1 && nf.p90 > 1) || nf.verified !== false || !nf.note || !nf.origin) p.push('Kopf: Unsicherheit des Faktors zur Laufstunde fehlt');
+    const nb = doc.now?.bases;
+    if (nb !== undefined && (!nb || typeof nb !== 'object' || !Object.values(nb).every((x) => x && x.p10 > 0 && x.p10 <= 1 && x.p90 >= 1 && Number.isInteger(x.n) && x.origin === 'measured' && x.verified === false))) p.push('Kopf: Paare je Grundlage');
   } else if (doc.now != null || doc.spread != null) p.push('Kopf: Spanne ohne Regel');
   if (!['country', 'gate-c'].includes(r?.precip?.rule as string)) p.push('Regeln: Niederschlagsfaktor fehlt');
   else if (r.precip.rule === 'country' && (typeof r.precip.gate !== 'boolean' || (r.precip.gate === false && !r.precip.reason))) p.push('Regeln: Urteil der Eichung fehlt');
@@ -278,6 +284,8 @@ export function snowpackStateProblems(s: GlacierSnowpackState): string[] {
   if (!['run', 'seed'].includes(s.source)) p.push('Quelle');
   if (Number.isNaN(Date.parse(s.since ?? '')) || Date.parse(s.since) > s.atMs) p.push('Beginn');
   if (!['country', 'gate-c'].includes(s.rules?.precip) || !['board', 'helfricht'].includes(s.rules?.density) || (s.rules.density === 'board' && s.rules.precip !== 'country')) p.push('Regeln');
+  // V-GM-86: a factor rule only next to `country` (the factors are factors against the same analyses)
+  if (s.rules?.factor !== undefined && (typeof s.rules.factor !== 'string' || !/^(on|predicted):[0-9a-f]{16}$/.test(s.rules.factor) || s.rules.precip !== 'country')) p.push('Regeln: Faktorregel');
   if (!Number.isInteger(s.pendH) || s.pendH < 0) p.push('pendH');
   const atH = s.atMs / 3_600_000, sinceH = Date.parse(s.since ?? '') / 3_600_000;
   for (const [id, e] of Object.entries(s.g ?? {})) {

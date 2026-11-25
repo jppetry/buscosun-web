@@ -1,0 +1,339 @@
+{
+ "generated": "2026-11-25T15:31:26.120Z",
+ "root": "C:\\dev\\buscosun-glacier-cache\\gm10\\mut\\code",
+ "verifiers": [
+  "verify:glacier-snowcal",
+  "verify:glacier-melt",
+  "verify:glacier-snowpack"
+ ],
+ "greenBefore": true,
+ "greenAfter": true,
+ "noticed": 43,
+ "of": 46,
+ "crashedOnly": 0,
+ "errors": 0,
+ "mutations": [
+  {
+   "name": "Voreinstellung „Faktor je Gletscher“ = predicted",
+   "file": "scripts/glacier/lib/snowcalGlaciers.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: H2, I6",
+   "crashedOnly": false
+  },
+  {
+   "name": "Kommandozeile reicht die Tabelle nicht durch",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: L7",
+   "crashedOnly": false
+  },
+  {
+   "name": "„predicted“ ohne genannte Tabelle bricht nicht mit Grund ab",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: L3, L4, L7",
+   "crashedOnly": false
+  },
+  {
+   "name": "fehlende Tabelle fällt still auf eine leere zurück",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: L3",
+   "crashedOnly": false
+  },
+  {
+   "name": "Schalter gelten auch neben „gate-c“",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: K6, L3",
+   "crashedOnly": false
+  },
+  {
+   "name": "Producer übergeht die vorhergesagte Tabelle",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: L1, L5",
+   "crashedOnly": false
+  },
+  {
+   "name": "Dokument nennt die vorhergesagten Zeilen nicht",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: L1",
+   "crashedOnly": false
+  },
+  {
+   "name": "Statuszeile zählt die vorhergesagten Zeilen nicht",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: L1",
+   "crashedOnly": false
+  },
+  {
+   "name": "V-GM-91: Zustand eines anderen Faktors wird fortgesetzt",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: L5",
+   "crashedOnly": false
+  },
+  {
+   "name": "V-GM-91: Zustand nennt die Faktorregel nicht",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: L1, L5, L",
+   "crashedOnly": false
+  },
+  {
+   "name": "V-GM-91: Dokument zählt neu begonnene nicht",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-melt: L5",
+   "crashedOnly": false
+  },
+  {
+   "name": "V-GM-91: Vertrag prüft `fac` nicht",
+   "file": "src/glacier/glacierMeltContract.ts",
+   "noticed": true,
+   "by": "glacier-melt: L6",
+   "crashedOnly": false
+  },
+  {
+   "name": "V-GM-86: Schneedecke rechnet wieder mit dem Landeswert",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I14",
+   "crashedOnly": false
+  },
+  {
+   "name": "V-GM-86: Schneedecke nennt die Faktorregel nicht",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I14, I15, I16",
+   "crashedOnly": false
+  },
+  {
+   "name": "V-GM-86: Zustand einer anderen Faktorregel wird fortgesetzt",
+   "file": "scripts/glacier/lib/snowpackcore.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I15",
+   "crashedOnly": false
+  },
+  {
+   "name": "V-GM-86: Vertrag prüft die Faktorregel des Zustands nicht",
+   "file": "src/glacier/glacierSnowpackContract.ts",
+   "noticed": true,
+   "by": "glacier-snowpack: I15",
+   "crashedOnly": false
+  },
+  {
+   "name": "Kopf ohne Paare je Grundlage",
+   "file": "scripts/glacier/melt.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I16",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag nimmt Paare je Grundlage ohne Herkunft „measured“",
+   "file": "src/glacier/glacierSnowpackContract.ts",
+   "noticed": true,
+   "by": "glacier-snowpack: I16",
+   "crashedOnly": false
+  },
+  {
+   "name": "Leser: Tabelle gegen eine andere eigene Tabelle gilt",
+   "file": "scripts/glacier/lib/snowcalPredict.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: I2",
+   "crashedOnly": false
+  },
+  {
+   "name": "Leser: Zeile „own“ mit anderem Faktor gilt",
+   "file": "scripts/glacier/lib/snowcalPredict.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: I2",
+   "crashedOnly": false
+  },
+  {
+   "name": "Leser: Gletscher mit eigenem Faktor als „predicted“ gilt",
+   "file": "scripts/glacier/lib/snowcalPredict.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: I2",
+   "crashedOnly": false
+  },
+  {
+   "name": "Leser: anderer Landeswert im Lauf gilt",
+   "file": "scripts/glacier/lib/snowcalPredict.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: I2",
+   "crashedOnly": false
+  },
+  {
+   "name": "Leser gibt auch Zeilen „country“ heraus",
+   "file": "scripts/glacier/lib/snowcalPredict.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: I2",
+   "crashedOnly": false
+  },
+  {
+   "name": "Block nennt den vorhergesagten Faktor gemessen",
+   "file": "scripts/glacier/lib/snowcalPredict.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: I2",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag: Herkunft „measured“ gilt",
+   "file": "scripts/glacier/lib/snowcalPredict.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: I1, I2",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag: vorhergesagter Faktor muss nicht gekappt sein",
+   "file": "scripts/glacier/lib/snowcalPredict.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: I1",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag: volle Form C unter 5 Zellen gilt",
+   "file": "scripts/glacier/lib/snowcalPredict.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: I1",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag: Paare je Grundlage ohne Herkunft gelten",
+   "file": "scripts/glacier/lib/snowcalPredict.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: I1",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag: Spanne einer Zeile passt nicht zur Grundlage",
+   "file": "scripts/glacier/lib/snowcalPredict.mjs",
+   "noticed": false,
+   "by": null,
+   "crashedOnly": false
+  },
+  {
+   "name": "Vertrag: Landeswert-Zeile mit anderem Wert gilt",
+   "file": "scripts/glacier/lib/snowcalPredict.mjs",
+   "noticed": false,
+   "by": null,
+   "crashedOnly": false
+  },
+  {
+   "name": "Regel: unter 5 Zellen nicht geschrumpft",
+   "file": "scripts/glacier/lib/snowcalPredict.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: I3",
+   "crashedOnly": false
+  },
+  {
+   "name": "Regel: Schrumpfung 0,6 statt ½",
+   "file": "scripts/glacier/lib/snowcalPredict.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: I3",
+   "crashedOnly": false
+  },
+  {
+   "name": "Regel: genau 5 Zellen gelten als klein",
+   "file": "scripts/glacier/lib/snowcalPredict.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: I3",
+   "crashedOnly": false
+  },
+  {
+   "name": "Regel: keine Kappung",
+   "file": "scripts/glacier/lib/snowcalPredict.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: I3",
+   "crashedOnly": false
+  },
+  {
+   "name": "Regel: kleiner als jeder Eichgletscher wird vorhergesagt",
+   "file": "scripts/glacier/lib/snowcalPredict.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: I3",
+   "crashedOnly": false
+  },
+  {
+   "name": "Regel: außerhalb der Eichspanne wird vorhergesagt",
+   "file": "scripts/glacier/lib/snowcalPredict.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: I3",
+   "crashedOnly": false
+  },
+  {
+   "name": "Regel: Rand der Eichspanne gilt als außerhalb",
+   "file": "scripts/glacier/lib/snowcalPredict.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: I3",
+   "crashedOnly": false
+  },
+  {
+   "name": "Vorhersage ohne Skalierung der Prädiktoren",
+   "file": "scripts/glacier/lib/snowcalPredict.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: I3, I5",
+   "crashedOnly": false
+  },
+  {
+   "name": "x1-Suche: Schnitt einen Gitterpunkt zu spät",
+   "file": "scripts/glacier/lib/snowcalPredict.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: I4",
+   "crashedOnly": false
+  },
+  {
+   "name": "x1-Suche: Ziel genau am unteren Rand nicht gekappt",
+   "file": "scripts/glacier/lib/snowcalPredict.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: I4",
+   "crashedOnly": false
+  },
+  {
+   "name": "x1: Winter ohne Zuwachs zählt mit",
+   "file": "scripts/glacier/snowcal-predict.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: I7",
+   "crashedOnly": false
+  },
+  {
+   "name": "x1: zwei Winter reichen",
+   "file": "scripts/glacier/lib/snowcalPredict.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: I7",
+   "crashedOnly": false
+  },
+  {
+   "name": "Neu-Einschwingen: Gletscher mit neuem Faktor behält den alten Schnee",
+   "file": "scripts/glacier/snowpack-seed.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I17",
+   "crashedOnly": false
+  },
+  {
+   "name": "Neu-Einschwingen: Stunde ohne Antrieb wird als null gerechnet",
+   "file": "scripts/glacier/snowpack-seed.mjs",
+   "noticed": false,
+   "by": null,
+   "crashedOnly": false
+  },
+  {
+   "name": "Neu-Einschwingen: Regel wird nicht vermerkt",
+   "file": "scripts/glacier/snowpack-seed.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: Ip",
+   "crashedOnly": false
+  },
+  {
+   "name": "Neu-Einschwingen: Gletscher ohne Antrieb behält alten Schnee",
+   "file": "scripts/glacier/snowpack-seed.mjs",
+   "noticed": true,
+   "by": "glacier-snowpack: I17",
+   "crashedOnly": false
+  }
+ ]
+}

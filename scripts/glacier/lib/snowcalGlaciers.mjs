@@ -8,7 +8,7 @@
  *   `--glacier-shape=off|on`  / `GLACIER_SNOW_GLACIER_SHAPE`    `on` = a glacier with an entry spreads the accumulation over its bands by its shape —
  *                                                                area-weighted mean-free, so the mean of the glacier stays with the factor
  * A glacier without an entry, or whose factor sits at a bound of the search range (`atBound`), keeps the value of its region and the run counts it.
- * The snowpack line (three elevations) does not read this table (its state names the rule it was computed with, audit V-GM-86).
+ * GM-10b (V-GM-86): with the factor switch on, the snowpack line (three elevations) runs on the same factor; its state names the rule.
  */
 export const SNOWCAL_GLACIERS_KIND = 'glacier/snow-calibration-glaciers';
 export const SNOWCAL_GLACIERS_BOUNDS = Object.freeze({ F: [0.3, 5], floor: 0.2, stepM: 50, minWinters: 4 });
@@ -24,7 +24,11 @@ export const SNOWCAL_GLACIERS_SOURCES = Object.freeze({
     Object.freeze({ id: 'wgms', name: 'WGMS — Fluctuations of Glaciers Database, Version 2026-02-10', doi: '10.5904/wgms-fog-2026-02-10', licence: 'CC BY 4.0 (open access under the requirement of correct citation)', use: 'Winterbilanz je Höhenstufe der österreichischen Gletscher (Wahrheit der Eichung)' }),
   ]),
 });
-export const GLACIER_FACTOR_MODES = Object.freeze(['off', 'on']);
+/**
+ * GM-10b (E-GM-44): `predicted` = `on` for the glaciers with an own factor PLUS the table of predicted factors for the other Swiss glaciers
+ * (`lib/snowcalPredict.mjs`, `--glacier-factor-table=`); never the default.
+ */
+export const GLACIER_FACTOR_MODES = Object.freeze(['off', 'on', 'predicted']);
 export const GLACIER_FACTOR_DEFAULT = 'off';
 export const GLACIER_SHAPE_MODES = Object.freeze(['off', 'on']);
 export const GLACIER_SHAPE_DEFAULT = 'off';

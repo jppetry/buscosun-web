@@ -310,10 +310,12 @@ export function spreadOfGlacier({ levels, pars, c, t0Ms, seed, rule, p, g, facto
   return { hsq: hs.map(pair), hnq: hn.map(pair), hnw: wk.map((x) => q(x, [0.1, 0.5, 0.9])), ...(sa ? { at: pair(sa) } : {}) };
 }
 
-/** May a run continue a state? `null` = yes, else the reason. `rules` = { precip, density } of the run. */
+/** May a run continue a state? `null` = yes, else the reason. `rules` = { precip, density, factor? } of the run. */
 export function stateRefusal(state, rules, t0Ms) {
   if (!state) return 'kein Zustand (snowpack/state.json fehlt): erst den Startzustand einspielen oder mit --snowpack-start=cold beginnen';
   if (state.rules?.precip !== rules.precip || state.rules?.density !== rules.density) return `Zustand aus anderer Rechnung (${state.rules?.precip}/${state.rules?.density} statt ${rules.precip}/${rules.density}): eine Schneedecke stammt aus einer Rechnung`;
+  // V-GM-86: and from one factor rule (none = every glacier on its region's value)
+  if ((state.rules?.factor ?? null) !== (rules.factor ?? null)) return `Zustand aus anderer Faktorregel (${state.rules?.factor ?? 'Landeswert'} statt ${rules.factor ?? 'Landeswert'}): erst einen Startzustand mit dieser Regel einspielen (snowpack-seed.mjs --glacier-factor=…)`;
   if (!(state.atMs <= t0Ms)) return `Zustand liegt in der Zukunft (${new Date(state.atMs).toISOString()})`;
   return null;
 }

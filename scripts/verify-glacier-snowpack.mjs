@@ -42,7 +42,10 @@ import {
 import { glacierWeatherRunPath, glacierWeatherHourlyPath, GLACIER_WEATHER_PHASE_PATH } from '../src/glacier/glacierWeatherContract.ts';
 import { main } from './glacier/melt.mjs';
 import { checkPackage, pruneList, GLACIER_POLICIES, GLACIER_LINES } from './glacier/glacier-publish.mjs';
-import { seedOfForcing, hourlyFromDaily, shiftOf } from './glacier/snowpack-seed.mjs';
+import { seedOfForcing, hourlyFromDaily, shiftOf, respinMeltState } from './glacier/snowpack-seed.mjs';
+import { stateRowOf } from './glacier/lib/meltstate.mjs';
+import { meltStateProblems } from '../src/glacier/glacierMeltContract.ts';
+import { createHash } from 'node:crypto';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const H = 3_600_000;
@@ -684,14 +687,65 @@ await block('Ip', async () => {
   const eLapse = await runSp(mk('i-lapse'), { ...base, 'snowpack-spread': 'scenarios', spreadRule: quiet, phase: 'psnow' }, { hook: lapseHook });
   const lapseOk = own.map((id) => { const r = rowOf(eLapse, id); return r?.lv === 'lapse' && !!r.hsq && [0, 1, 2].every((l) => eq(r.hsq[l][0], r.hsd[l]) && eq(r.hsq[l][1], r.hsd[l]) && eq(r.hnq[l][0], r.hnd[l])); });
   const eLapseT = await runSp(mk('i-lapset'), { ...base, 'snowpack-spread': 'scenarios', spreadRule: quiet, phase: 'psnow' }, { hook: (o, e, lv) => { if (lv !== 1) throw new Error('Antwort fehlt'); return withDist(1e-9, 2)(); } });
-  // GM-5b: the table per measured glacier belongs to the MELT run — the snowpack keeps the factor of the region (its state names the rule it came from)
+  // V-GM-86 (GM-10b): with the factor switch on, the snowpack runs every glacier on the SAME factor as its melt run (own here), the shape stays with the melt
+  // run, the state names the rule; equivalence by hand: Alpha's row on its own factor 2,5 is the row of a run whose REGION value is 2,5
   const glT = J(join(HERE, 'glacier', 'snow-calibration-glaciers.json'));
   glT.glaciers = { gl_ch_alpha: { country: 'CH', winters: 9, years: [2015, 2023], F: 2.5, origin: 'measured', shape: { z0: 2400, stepM: 50, s: [-0.3, -0.1, 0, 0.1, 0.2, 0.2, 0.1, 0, 0], m: 0.5 } } };
   const glFile = join(tmp, 'gl-table.json'); writeFileSync(glFile, JSON.stringify(glT));
+  const glSha16 = createHash('sha256').update(readFileSync(glFile)).digest('hex').slice(0, 16);
   const eGl = await runSp(mk('i-gl'), { ...base, 'glacier-factor': 'on', 'glacier-shape': 'on', 'snowcal-glaciers': glFile }, wide);
-  add('I14 Faktor je Gletscher und Form je Band (GM-5b) gehören dem Schmelzlauf: mit beiden Schaltern an sind Schneedecken-Dokument und -Zustand Byte für Byte die des Laufs ohne sie, die Wetterdokumente ebenso; Gegenprobe: das Schmelzdokument ist ein anderes (es nennt den Gletscher mit eigenem Faktor und eigener Form)',
-    !eGl.err && !!eGl.doc && JSON.stringify(eGl.doc) === JSON.stringify(eOff.doc) && eGl.stateRaw === eOff.stateRaw && [0, 1, 2, 3].every((i) => eGl.files[i] != null && eGl.files[i] === eOff.files[i]) && eGl.files[4] !== eOff.files[4]
-    && JSON.stringify(JSON.parse(eGl.files[4]).params.precip.glaciers?.applied) === JSON.stringify({ factor: ['gl_ch_alpha'], shape: ['gl_ch_alpha'] }), JSON.stringify({ err: eGl.err }));
+  const eSh = await runSp(mk('i-sh'), { ...base, 'glacier-shape': 'on', 'snowcal-glaciers': glFile }, wide);
+  const r25 = mk('i-region25'); { const t = J(join(r25, 'snowcal.json')); t.precip.regions['ch-test'].F = 2.5; writeFileSync(join(r25, 'snowcal.json'), JSON.stringify(t)); }
+  const e25 = await runSp(r25, base, wide);
+  const rowEq = (a, b, id) => JSON.stringify(rowOf(a, id)) === JSON.stringify(rowOf(b, id));
+  add('I14 V-GM-86 — die Schneedecke rechnet mit dem Faktor des Schmelzlaufs: mit „Faktor je Gletscher“ an ist Alphas Zeile genau die eines Laufs, dessen REGIONSwert 2,5 ist (eigener Faktor 2,5), und eine andere als ohne Schalter; Beta, Gamma, Far bleiben Byte für Byte; die Form je Band gehört weiter allein dem Schmelzlauf (nur Form an = dieselben Bytes wie ohne Schalter); der Zustand nennt die Regel `on:<Tabelle>`, das Dokument die Zeilen mit eigenem Faktor; die Wetterdokumente bleiben gleich, das Schmelzdokument nennt den Gletscher',
+    !eGl.err && !eSh.err && !e25.err && rowEq(eGl, e25, 'gl_ch_alpha') && !rowEq(eGl, eOff, 'gl_ch_alpha') && ['gl_ch_beta', 'gl_ch_gamma', 'gl_ch_far'].every((id) => rowEq(eGl, eOff, id))
+    && JSON.stringify(eSh.doc) === JSON.stringify(eOff.doc) && eSh.stateRaw === eOff.stateRaw && eGl.state.rules.factor === `on:${glSha16}` && eOff.state.rules.factor === undefined
+    && JSON.stringify(eGl.doc.rules.precip.glaciers?.applied) === JSON.stringify({ own: ['gl_ch_alpha'], predicted: [], 'predicted-shrunk': [] }) && eGl.doc.rules.precip.glaciers.rule === 'on'
+    && [0, 1, 2, 3].every((i) => eGl.files[i] != null && eGl.files[i] === eOff.files[i]) && eGl.files[4] !== eOff.files[4]
+    && JSON.stringify(JSON.parse(eGl.files[4]).params.precip.glaciers?.applied) === JSON.stringify({ factor: ['gl_ch_alpha'], shape: ['gl_ch_alpha'] }) && !snowpackProblems(eGl.doc).length && !snowpackStateProblems(eGl.state).length,
+    JSON.stringify({ err: [eGl.err, eSh.err, e25.err], rule: eGl.state?.rules, block: eGl.doc?.rules?.precip?.glaciers }));
+  // one snowpack from ONE factor rule: a state of another rule is not continued (either way), a state of the same rule is
+  const rA = mk('i-rule-a'); putState(rA, eOff.stateRaw); const eA = await runSp(rA, { snowpack: 'shadow', 'glacier-factor': 'on', 'snowcal-glaciers': glFile }, { ...wide, shiftH: 6 });
+  const rB = mk('i-rule-b'); putState(rB, eGl.stateRaw); const eB = await runSp(rB, { snowpack: 'shadow' }, { ...wide, shiftH: 6 });
+  const rC = mk('i-rule-c'); putState(rC, eGl.stateRaw); const eC = await runSp(rC, { snowpack: 'shadow', 'glacier-factor': 'on', 'snowcal-glaciers': glFile }, { ...wide, shiftH: 6 });
+  add('I15 V-GM-86 — eine Schneedecke aus EINER Faktorregel: ein Zustand ohne Regel wird von einem Lauf mit „Faktor je Gletscher“ nicht fortgesetzt und umgekehrt (kein Schneedecken-Dokument, kein Zustand, die Statuszeile nennt die Faktorregel und den Weg über einen neuen Startzustand; der Schmelzlauf läuft); ein Zustand derselben Regel wird fortgesetzt; die Regeln des Zustands: eine Faktorregel nur neben „country“ und nur in der Form <Wort>:<16 hex>',
+    !eA.err && !eA.doc && /anderer Faktorregel \(Landeswert statt on:/.test(eA.status?.lines?.snowpack?.error ?? '') && !eB.err && !eB.doc && /anderer Faktorregel \(on:[0-9a-f]{16} statt Landeswert\)/.test(eB.status?.lines?.snowpack?.error ?? '')
+    && /snowpack-seed\.mjs --glacier-factor/.test(eA.status.lines.snowpack.error) && !eC.err && !!eC.doc && eC.doc.state.source === 'carried'
+    && stateRefusal({ ...eGl.state, rules: { ...eGl.state.rules, factor: 'predicted:0123456789abcdef' } }, eGl.state.rules, Date.now()) != null && stateRefusal(eGl.state, eGl.state.rules, Date.now()) === null
+    && snowpackStateProblems({ ...eGl.state, rules: { ...eGl.state.rules, factor: 'on' } }).length > 0 && snowpackStateProblems({ ...eGl.state, rules: { precip: 'gate-c', density: 'helfricht', factor: eGl.state.rules.factor } }).length > 0,
+    JSON.stringify({ err: [eA.err, eB.err, eC.err], a: eA.status?.lines?.snowpack, b: eB.status?.lines?.snowpack?.error }));
+  // GM-10b: predicted factors with spreads — the head names the measured pair of every basis next to the one pair of the run hour
+  const fxP = J(join(HERE, 'lib', 'fixtures', 'glacier', 'snowcal-predicted.json'));
+  fxP.inputs.ownTable = createHash('sha256').update(readFileSync(glFile)).digest('hex'); delete fxP.glaciers.gl_ch_delta; fxP.counts.country = 0;
+  const pFile = join(tmp, 'predicted.json'); writeFileSync(pFile, JSON.stringify(fxP));
+  const ePr = await runSp(mk('i-pred'), { ...base, 'snowpack-spread': 'scenarios', 'glacier-factor': 'predicted', 'glacier-factor-table': pFile, 'snowcal-glaciers': glFile }, wide);
+  const ePr0 = await runSp(mk('i-pred-nospread'), { ...base, 'glacier-factor': 'predicted', 'glacier-factor-table': pFile, 'snowcal-glaciers': glFile }, wide);
+  const nb = ePr.doc?.now?.bases;
+  add('I16 GM-10b — vorhergesagte Faktoren in der Schneedecke: Betas Zeile ist die eines Laufs mit Regionswert 2,1 (vorhergesagt), Alphas die mit 2,5 (eigener Faktor); mit Spannen nennt der Kopf neben dem einen Paar der Laufstunde das gemessene Paar jeder Grundlage (aus der Tabelle, „measured“, „nicht nachgeprüft“), ohne Spannen nicht; der Zustand nennt die Regel `predicted:<Tabelle>`, das Dokument die Zeilen je Grundlage; Verträge ohne Befund; Gegenprobe: ein Paar je Grundlage ohne Herkunft wird abgelehnt',
+    !ePr.err && !ePr0.err && !!nb && JSON.stringify(Object.keys(nb)) === JSON.stringify(['own', 'predicted', 'predicted-shrunk', 'country']) && nb.predicted.p10 === fxP.spread.predicted.p10 && nb.predicted.origin === 'measured' && nb.predicted.verified === false
+    && ePr.doc.now.factor.p10 === 0.73 && ePr0.doc.now === undefined && /^predicted:[0-9a-f]{16}$/.test(ePr.state.rules.factor) && JSON.stringify(ePr.doc.rules.precip.glaciers.applied) === JSON.stringify({ own: ['gl_ch_alpha'], predicted: ['gl_ch_beta'], 'predicted-shrunk': ['gl_ch_gamma'] })
+    && !snowpackProblems(ePr.doc).length && snowpackProblems({ ...ePr.doc, now: { ...ePr.doc.now, bases: { ...nb, predicted: { ...nb.predicted, origin: 'set' } } } }).length > 0,
+    JSON.stringify({ err: [ePr.err, ePr0.err], nb, rules: ePr.state?.rules }));
+  // V-GM-91: the re-spin of the melt state by the seed tool, by hand (pure)
+  {
+    const fromMs = Date.UTC(2026, 9, 1), hours = 48, bands = { zb: [2625, 2675], w: [0.5, 0.5] }, ser = { t: Array(48).fill(-4), p: Array(48).fill(1), g: Array(48).fill(100) };
+    ser.t[10] = null; ser.p[10] = null;   // an hour without forcing: left out
+    // a's hour 20 has no analysis but the forcing of a weather run of buscosun Fusion (`fill`): it counts, with its own temperature and no shift
+    const serA = { t: ser.t.map((v, h) => (h === 20 ? null : v)), p: ser.p.map((v, h) => (h === 20 ? null : v)), g: ser.g };
+    const glaciers = [{ id: 'a', bands, ela: 2650, F: 2.5, series: serA, dT: -1, fill: { 20: { T: [-6, -6, -6], P: 5, G: 50 } } }, { id: 'b', bands, ela: 2650, F: 2.1, series: ser, dT: 0 }, { id: 'c', bands, ela: 2650, F: 1.793, series: ser, dT: 0 }];
+    const state = { schema: 1, kind: 'glacier/melt-state', atMs: fromMs + hours * H, g: { a: [[5, 5], [800, 800]], b: [[7, 7], [700, 700]], c: [[9, 9], [600, 600]], d: [[1, 1], [500, 500]] }, fac: { rule: 'on:0123456789abcdef', f: { b: 2.1, c: 1.9 } } };
+    const factorOf = (id) => ({ a: 2.5, b: 2.1, d: 2.2 })[id] ?? null;
+    const r = respinMeltState({ state, glaciers, factorOf, rule: 'predicted:fedcba9876543210', fromMs, hours, cal: { TF: 0.05, SRF: 0.008 } });
+    const hand = (dT, F) => stateRowOf(simulate({ bands, ela: 2650, t: Float64Array.from(ser.t.filter((v, h) => h !== 10).map((v) => v + dT)), g: Float64Array.from(Array(47).fill(100)), p: Float64Array.from(Array(47).fill(1)), zT: 2650, zP: 2650, pf: F, TF: 0.05, SRF: 0.008, state: emptyState(2), model: 'eti', pGrad: 0 }).state);
+    const hours47 = Array.from({ length: 48 }, (_, h) => h).filter((h) => h !== 10);
+    const handA = stateRowOf(simulate({ bands, ela: 2650, t: Float64Array.from(hours47.map((h) => (h === 20 ? -6 : ser.t[h] - 1))), g: Float64Array.from(hours47.map((h) => (h === 20 ? 50 : 100))), p: Float64Array.from(hours47.map((h) => (h === 20 ? 5 : 1))), zT: 2650, zP: 2650, pf: 2.5, TF: 0.05, SRF: 0.008, state: emptyState(2), model: 'eti', pGrad: 0 }).state);
+    let refused = null; try { respinMeltState({ state, glaciers, factorOf, rule: null, fromMs, hours: 47, cal: { TF: 0.05, SRF: 0.008 } }); } catch (e) { refused = String(e.message); }
+    add('I17 V-GM-91 — Neu-Einschwingen des Schmelzzustands (rein, `snowpack-seed.mjs --melt-respin`): a (bisher Landeswert, jetzt 2,5) und c (bisher 1,9, jetzt Landeswert) beginnen am 1. Oktober neu — von Hand der Kern des Betriebs mit dem neuen Faktor über die Stunden mit Antrieb (die Stunde ohne fällt weg, eine Stunde mit dem Antrieb eines Wetterlaufs von buscosun Fusion zählt mit dessen Temperatur, Niederschlag und Strahlung); b (gleicher Faktor 2,1) bleibt Byte für Byte; d (ohne Antrieb) fällt heraus statt mit altem Schnee weiterzulaufen; `fac` nennt die neue Regel und die Faktoren der Gletscher, die nicht auf dem Landeswert laufen; der Vertrag nimmt den Zustand; ein Zustand, der nicht am Ende des Einschwingens steht, wird abgelehnt',
+      JSON.stringify(r.state.g.a) === JSON.stringify(handA) && JSON.stringify(handA) !== JSON.stringify(hand(-1, 2.5)) && JSON.stringify(r.state.g.c) === JSON.stringify(hand(0, 1.793)) && r.state.g.b === state.g.b && !('d' in r.state.g)
+      && JSON.stringify(r.respun) === JSON.stringify(['a', 'c']) && JSON.stringify(r.missing) === JSON.stringify(['d']) && r.state.fac.rule === 'predicted:fedcba9876543210' && JSON.stringify(r.state.fac.f) === JSON.stringify({ a: 2.5, b: 2.1 })
+      && r.state.g.a[0][0] > 0 && meltStateProblems(r.state).length === 0 && /dieselbe Stunde/.test(refused ?? ''), JSON.stringify({ a: r.state.g.a, hand: handA, fac: r.state.fac, respun: r.respun, refused }));
+  }
   add('I13 Producer: auch eine Zeile OHNE drei Antworten (Zunge und Oberkante ausgefallen, Regel „psnow“ — der Schneeanteil ist dort nicht die Temperatur-Rampe) hält die Regel: ein Szenario ohne Streuung ist der Erwartungswert; mit dem Temperaturfehler der Antwort öffnet sich die Spanne',
     !eLapse.err && lapseOk.every(Boolean) && wOf(eLapseT, 'gl_ch_alpha', 0, 13) > 0.3, JSON.stringify({ err: eLapse.err, lapseOk, rows: eLapse.doc?.glaciers.map((r) => [r.id, r.lv ?? null, r.sq ?? null]), wT: wOf(eLapseT, 'gl_ch_alpha', 0, 13) }));
 });

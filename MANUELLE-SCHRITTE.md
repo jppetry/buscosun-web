@@ -4865,6 +4865,11 @@ Tabelle). Punkt 1 (E-GM-37) hast du am 24.11. abends entschieden: (A), die Tabel
 aber nicht aufgelöst. Beide neuen Schalter aus. Nichts im Daten- oder Archiv-Repo, kein Workflow geändert, buscosun Fusion nur gelesen. Nachgeladen (nur gelesen,
 in den lokalen Zwischenspeicher): die Globalstrahlung `cglo` von sieben österreichischen Stationen aus `klima-v2-1h`.**
 
+**Nachtrag 25.11. abends: Punkt 8 ist erledigt — GLAMOS hat dir per Mail bestätigt, dass die Daten wie angefragt genutzt werden
+dürfen; E-GM-37 ist aufgelöst (`audit/gletscher/licences.md`, „GLAMOS — Bestätigung 25.11.2026“). Punkt 4 (E-GM-38) trägt keinen
+Lizenzpunkt mehr; du schaltest nur Faktor und Form der gemessenen Gletscher ein — der Ablauf steht in §127 (vorbereitet, nicht
+ausgeführt).**
+
 Was die Runde sagt (ein Winter ausgelassen, 478 Winter an 43 Gletschern, Urteile vom Werkzeug): der Faktor je Gletscher senkt
 den Fehler der Winterbilanz von 402 auf 233 mm (**trägt**), die Form je Höhenstufe den Formfehler von 132 auf 74 mm (**trägt**,
 die fremde Form der Negativkontrolle verschlechtert). Die Schmelze des Betriebs trifft die Winterbilanz gleich gut wie die
@@ -4896,8 +4901,11 @@ an drei Höhen liest die Tabelle nicht.
    `lines.melt.glacier` lesen (`factor` 42, `shape` 43) und im Schmelzdokument `params.precip.glaciers.applied`. Vorher bedenken:
    der Schmelzzustand trägt Schnee aus dem Landeswert; nach dem Einschalten liegt an diesen Gletschern Schnee aus zwei Faktoren
    übereinander (V-GM-91). Und: ob Faktor und Form die Schmelze im Sommer verbessern, ist nicht gemessen (V-GM-94).
-   **Solange die Antwort von GLAMOS aus Punkt 8 fehlt, ist das Einschalten deine Entscheidung mit diesem offenen Punkt:** mit
-   den Schaltern rechnet der öffentliche Schmelzlauf mit Größen, die aus den GLAMOS-Stufenwerten abgeleitet sind.
+   ~~Solange die Antwort von GLAMOS aus Punkt 8 fehlt, ist das Einschalten deine Entscheidung mit diesem offenen Punkt.~~
+   **Erledigt 25.11.:** GLAMOS hat die Nutzung schriftlich bestätigt (Punkt 8). **Die zwei Zeilen allein reichen seit GM-10b
+   nicht mehr:** der Schmelzzustand nennt die Faktorregel und beginnt einen Gletscher mit geändertem Faktor neu (V-GM-91,
+   V-GM-131), die Schneedecke rechnet mit demselben Faktor und setzt nur einen Zustand ihrer Regel fort (V-GM-86). Der Ablauf
+   mit Neu-Einschwingen, Startzustand und Rückweg steht in **§127**.
 5. **Zurück.** Die Zeile(n) entfernen; der nächste Lauf rechnet wieder mit dem Wert der Region.
 6. **Nicht geprüft:** kein Lauf auf dem Runner; der Winter 2025/26 (GLAMOS veröffentlicht ihn 2027); die Wirkung auf den Sommer;
    nichts im Browser (keine Anzeige ändert sich, der Schmelzindex der betroffenen Gletscher schon — im Winter kaum, im
@@ -4905,7 +4913,14 @@ an drei Höhen liest die Tabelle nicht.
 7. **Weiter offen:** die rund 2 050 Gletscher ohne Stufenwerte bleiben beim Landeswert; die Schneedecke an drei Höhen ebenso
    (V-GM-86); die Winterschmelze des Betriebs ist eher zu groß und bestimmt die Höhe jedes Faktors mit (V-GM-89, mit V-GM-26
    vor Mai 2027).
-8. **Mail an GLAMOS (nur du; neu am 24.11. abends, Folge von E-GM-37).** An `office@glamos.ch` (Adresse aus dem Impressum).
+8. **Erledigt 25.11.2026:** GLAMOS hat dir per Mail schriftlich bestätigt, dass die Daten wie angefragt genutzt werden dürfen
+   (abgeleitete Modellparameter in einem kostenlosen Webdienst). Die Mail liegt bei dir, nicht im Repo; eingetragen in
+   `audit/gletscher/licences.md` („GLAMOS — Bestätigung 25.11.2026“), der Widerspruch DOI-Seite (CC BY 4.0) gegen die Kopfzeile
+   der CSV-Dateien ist damit aufgelöst. Die Quellenangabe nach CC BY 4.0 bleibt Pflicht: empfohlenes Zitat des Release 2025 im
+   Kopf der Tabelle vorhergesagter Faktoren und, sobald Faktoren in die Anzeige kommen, in der Quellen-Kachel;
+   `snow-calibration-glaciers.json` bleibt nach deinem Wort, wie sie ist (V-GM-102 für sie offen). Der Text dieses Punkts
+   darunter ist der Stand vom 24.11.:
+   **Mail an GLAMOS (nur du; neu am 24.11. abends, Folge von E-GM-37).** An `office@glamos.ch` (Adresse aus dem Impressum).
    Bitte um schriftliche Bestätigung, dass **abgeleitete Modellgrößen** — je Gletscher ein Niederschlagsfaktor und eine Form der
    Winterakkumulation je 50 m Höhe, gewonnen aus „Swiss Glacier Mass Balance, release 2025“ (doi:10.18750/massbalance.2025.r2025)
    — unter CC BY 4.0 mit Quellenangabe in einem **kostenlosen Webdienst veröffentlicht werden dürfen, der später Werbung tragen
@@ -5017,3 +5032,117 @@ Regel (`gm9-method-frozen.md`, sha256 `86004805…`), Negativkontrolle ohne Gewi
 5. **Offen bei dir:** V-GM-105 — die Zugspitze hat keine Schneehöhe in `obs/v1` (10-min-Daten des DWD ohne Schneehöhe; Tageswerte
    ohne `SHK_TAG` seit 2.2.2026); die stündlichen Meldungen der DWD-Station 10961 sind nicht geprüft. Eine Änderung an der
    Stationslinie braucht dein Wort. V-GM-108 — GM-9b (IMIS-Paarung ab 2 000 m) nur auf dein Wort.
+
+## 126. Gletscher: Schneemodell, Paket GM-10b — vorhergesagter Faktor für Schweizer Gletscher gebaut, Schalter aus (E-GM-43, E-GM-44; `audit/gletscher-schneemodell.md` §3o, Zahlen `audit/gletscher-schneemodell/gm10-diagnose.md` §13), 2026-11-25
+
+**Stand 25.11. abends: gebaut und geprüft, auf dein Wort committet am 25.11. abends (ein Commit, Nachricht `feat(glacier): GM-10b …`), nichts gepusht, nichts im Daten- oder Archiv-Repo.**
+Nach der Bestätigung von GLAMOS (§123 Punkt 8) liegt die Tabelle vorhergesagter Faktoren im Repo:
+`scripts/glacier/snow-factor-predicted-ch.json` (sha256 `8fa1833c…`, mit Quellenblock und dem empfohlenen Zitat des Release 2025;
+neu gebaut, Feld für Feld gleich dem lokalen Bau `fadea420…` außer Zeitstempel, Quellenblock und Werkzeug-Hash, gm10-diagnose §13.9).
+
+1. **Commit (dein Wort):** Werkzeug `scripts/glacier/snowcal-predict.mjs`, `py/snowcal_predictors.py`, Vertrag und Leser
+   `lib/snowcalPredict.mjs`, Producer (`--glacier-factor=predicted`, V-GM-91, V-GM-86), Einschwing-Werkzeug (`--glacier-factor`,
+   `--melt-respin`), zwei Verträge unter `src/glacier/`, drei Prüfer, synthetische Fixture, **die Tabelle mit Quellenangabe**, die
+   Messwerkzeuge und das Audit. Nicht mitcommittet: `tsconfig.app.tsbuildinfo`, die Berichte unter `C:\dev\buscosun-glacier-cache\gm10\`.
+2. **Einschalten von `predicted` — erst wenn V-GM-127 gemessen ist (dein Wort, 25.11.).** Dann in dieser Reihenfolge: (a) neuer
+   Startzustand der Schneedecke ab 1. Oktober mit `snowpack-seed.mjs --glacier-factor=predicted
+   --glacier-factor-table=scripts/glacier/snow-factor-predicted-ch.json` und `--melt-respin=<melt/state.json des Daten-Repos>`
+   (sonst beginnen 707 Gletscher im Schmelzzustand kalt, V-GM-131, und die Schneedecke wird nicht geschrieben); (b) im Workflow
+   `GLACIER_SNOW_GLACIER_FACTOR: predicted` und `GLACIER_SNOW_GLACIER_FACTOR_TABLE: scripts/glacier/snow-factor-predicted-ch.json`
+   (der Runner arbeitet in `app/`, dem Klon von `buscosun-web`), beides in EINEM Push wie in §127 f. Rückfall: die Zeilen entfernen
+   und wieder einen Startzustand ohne Regel einspielen (§127 h). Vorher kommt E-GM-38 mit `on`/`on` (§127).
+3. **Österreich:** nicht gebaut (Auftrag). E-GM-43 sah G1 vorsichtig hinter eigenem Schalter vor; offen, ob und wann.
+4. **Entscheidungen zu den Befunden** (gm10-diagnose §13.7): V-GM-127 Spannen-Regel (493 Zielgletscher, 16 % der Fläche auf dem
+   Landeswert — Rand oder Abschneiden?), V-GM-128 Plateaugletscher (Sex Rouge, Plaine Morte), V-GM-129 Schattenlauf mit dem
+   Schalter für die Paare, V-GM-130 σ des Faktors je Grundlage in den Spannen.
+5. **V-GM-107** (24-h-Änderung aus den Schattenpaaren): gelesen 25.11. 18:30 UTC (Runner `2026112417` → `2026112517`, nur gelesen, gm10-diagnose §13.8): am
+   Schneefall nimmt das Modell nur **0,15** der Stationsänderung auf (98 Paare an 17 Stationen, fast alle IMIS; GM-4: 0,76), an IMIS ohne
+   Schneefall sinkt die Station 5,6 cm und das Modell bleibt bei 0; Österreich folgt der Abnahme (0,93). Ein Fenster, kein Urteil —
+   V-GM-135: dieselbe Ablesung über sieben Fenster. Die Ablage-Kopie von 2517 gibt es erst nach dem Archivlauf 23:10 UTC.
+
+## 127. Gletscher: Schneemodell, E-GM-38 — Faktor und Form der 43 gemessenen Gletscher einschalten (`on`/`on`, NICHT `predicted`): Ablauf für den Lauf 23:20 UTC (`audit/gletscher-schneemodell.md` §3j, §3o; V-GM-91, V-GM-86, V-GM-97, V-GM-131, V-GM-133), 2026-11-25
+
+**Stand 25.11. abends: vorbereitet, NICHTS ausgeführt — nichts im Daten-Repo, kein Workflow geändert. Ich warte auf dein Wort.**
+Voraussetzung ist dein Push von `buscosun-web` mit GM-10b (§126): erst dieser Producer vermerkt die Faktorregel im Schmelzzustand
+(`fac`) und rechnet die Schneedecke mit demselben Faktor. Der Runner holt den Producer von `main` (`GLACIER_PRODUCER_REF = main`).
+Der vorhergesagte Faktor (`predicted`) bleibt aus, bis V-GM-127 gemessen ist.
+
+Was sich einschaltet: `--glacier-factor=on` = 42 Gletscher (34 Schweiz, 8 Österreich) rechnen mit ihrem eigenen Faktor aus
+`snow-calibration-glaciers.json` (Mont Collon steht am Rand der Suche und behält den Landeswert); `--glacier-shape=on` = 43 Gletscher
+verteilen den Schnee mit ihrer Form über die Höhenstufen (Mittel bleibt beim Faktor). Regel im Zustand: `on:271ce7fe6665fb5a`
+(die ersten 16 Stellen des sha256 von `snow-calibration-glaciers.json`, auf `origin/main` seit `942ef226`).
+
+**Warum nicht nur die zwei Zeilen:** mit dem Producer von GM-10b beginnt ein Gletscher, dessen Faktor sich gegenüber dem Zustand
+ändert, im Schmelzzustand neu bei null (V-GM-91 — nie Schnee aus zwei Faktoren übereinander); ohne Neu-Einschwingen wären das am
+23:20-Lauf 42 Gletscher, im Winter mit „Fläche ohne Schneedecke“ (V-GM-131). Die Schneedecke setzt nur einen Zustand ihrer
+eigenen Faktorregel fort (V-GM-86); ohne neuen Startzustand schreibt sie nichts und nennt „Zustand aus anderer Faktorregel“.
+
+Ablauf (die Zahlen in spitzen Klammern liest du ab bzw. ich lese sie dir ab; lokal sind a–e meine Schritte auf dein Wort, f ist dein Gate):
+
+a. **Stand prüfen (gegen 22:15 UTC).** `buscosun-web` `origin/main` trägt den GM-10b-Commit. In `glacier/v1/status.json` steht
+   `lines.melt.at` = Laufstunde des letzten Schmelzlaufs `<H>` (erwartet `2026-11-25T17:00:00Z`: der 20:20-Lauf überspringt
+   meist, weil t2/t3 keinen neuen Lauf haben — falls doch gelaufen, gilt seine Stunde). Bis 23:20 darf kein weiterer
+   Schmelzlauf kommen; der nächste ist 23:20.
+b. **Schmelzzustand holen (nur lesen):** `glacier/v1/melt/state.json` der aktuellen Daten-Repo-Revision nach
+   `C:\dev\buscosun-glacier-cache\e-gm-38\melt-state-<H>.json`; prüfen: `atMs` = `<H>`, kein `fac`.
+c. **Neu-Einschwingen des Schmelzzustands (V-GM-91, V-GM-131)** — die 42 Gletscher mit eigenem Faktor vom 1. Oktober bis `<H>`
+   auf den Analysen, alle anderen Gletscher behalten ihren Eintrag Byte für Byte:
+   `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/glacier/snowpack-seed.mjs
+   --data=C:\dev\buscosun-glacier-cache\gs\view\glacier\v1 --cache=C:\dev\buscosun-glacier-cache\gm3c-snowpack\seed
+   --out=C:\dev\buscosun-glacier-cache\e-gm-38\respin --end=<H> --fetch-wx=1
+   --python=C:\dev\buscosun-glacier-cache\.venv\Scripts\python.exe --glacier-factor=on
+   --melt-respin=C:\dev\buscosun-glacier-cache\e-gm-38\melt-state-<H>.json`
+   Bericht `respin-report.json`: `meltRespin.respun` = 42, `dropped` = 0 (ein Gletscher ohne Antrieb fiele heraus und begänne im
+   Producer neu — dann nenne ich ihn), `rule` = `on:271ce7fe6665fb5a`. Daraus wird NUR `respin\melt\state.json` gebraucht.
+d. **Neuer Startzustand der Schneedecke mit der Faktorregel (V-GM-86)** — derselbe Aufruf ohne `--melt-respin` und ohne `--end`
+   (endet an der letzten vollen Stunde − 1 h; die Stunden nach `<H>` füllt der Wetterlauf von buscosun Fusion), `--out=…\e-gm-38\seed`.
+   Bericht: Zahl der Gletscher (≈ 2 084), `skippedReasons`, Stunden ohne Antrieb je Land, `rules.factor` = `on:271ce7fe6665fb5a`.
+   Daraus wird NUR `seed\snowpack\state.json` gebraucht. (Dauer beider Aufrufe zusammen etwa 6–10 min; vorher freien Speicher prüfen.)
+e. **Prüfen vor dem Einspielen:** beide Dateien gegen ihre Verträge (`meltStateProblems`, `snowpackStateProblems`) ohne Befund;
+   Schmelzzustand: `fac.rule` = `on:271ce7fe6665fb5a`, `fac.f` hat 42 Einträge, alle übrigen Einträge gleich der geholten Datei;
+   Schneedecke: `rules.factor` gleich, `rules.precip` = `country`, Dichte wie im Betrieb.
+f. **Einspielen — EIN Push ins Daten-Repo vor 23:15 UTC (dein Gate):** in einem frischen Klon `checkout --detach origin/main`, dann
+   - `respin\melt\state.json` → `glacier/v1/melt/state.json`,
+   - `seed\snowpack\state.json` → `glacier/v1/snowpack/state.json`,
+   - in `.github/workflows/glacier-melt.yml` unter `jobs.melt.env` die zwei Zeilen, `on` in Anführungszeichen (V-GM-97 — ohne sie
+     liest YAML einen Wahrheitswert und der Producer bricht mit „unbekannte Stellung“ ab):
+     ```yaml
+           # Phase GM (GM-5b, E-GM-38, Jan 25.11.2026): own precipitation factor (42) and shape per band (43) of the measured glaciers;
+           # melt state re-spun and snowpack re-seeded with the rule on:271ce7fe6665fb5a. Fallback: buscosun-web MANUELLE-SCHRITTE §127 g.
+           GLACIER_SNOW_GLACIER_FACTOR: 'on'
+           GLACIER_SNOW_GLACIER_SHAPE: 'on'
+     ```
+   committen und `push HEAD:main` in der Schleife (V-WL-20; das Daten-Repo wird force-gepusht). **Zustände und Zeilen gehören in
+   denselben Push:** ein Zustand mit `fac` ohne die Zeilen lässt am nächsten Lauf die 42 Gletscher neu beginnen und die
+   Schneedecke verstummen — die Zeilen ohne die Zustände ebenso. Den Push eines Workflows darf das Token des Publishers nicht;
+   das ist dein Schritt.
+g. **Nach dem Lauf 23:20 lesen (gegen 23:35 UTC), `glacier/v1/status.json`:**
+   - `lines.melt`: `precip` = `country`, `glacier` = `{ factor: 42, shape: 43 }`, **kein `respun`** (stünde dort eine Zahl, hätte
+     der Zustand nicht gepasst und so viele Gletscher begannen neu), `state` = `run-hour`; im Dokument `melt/2026112523.json`
+     `state.source` = `carried`, `params.precip.glaciers.rule` = `on`, `.factor` = `on:271ce7fe6665fb5a`, `.applied.factor` (42 ids),
+     `.applied.shape` (43 ids); `melt/state.json` trägt `fac` mit derselben Regel.
+   - `lines.snowpack`: kein `error`; `state.source` = `seed`, `glaciers` ≈ 2 084, `state.gaps` (Gletscher mit Stunden ohne Antrieb,
+     Höchstwert); `pairs` und `spread` wie am Vorlauf. Im Dokument `snowpack/2026112523.json` `rules.precip.glaciers` (der Faktor je
+     Gletscher, der nicht der Landeswert ist) und im Zustand `rules.factor`.
+   - Was ich danach lese: die Paare `snowpack/pairs/2026112523.json` gegen `2026112517` (Modell/Station der 42 Gletscher) — nur
+     lesen, ein Abschnitt im Audit.
+h. **Rückweg.** Schnell: die zwei Zeilen entfernen — dann beginnen am nächsten Lauf die 42 Gletscher im Schmelzzustand neu
+   (`lines.melt.glacier.respun` 42; V-GM-91, nie gemischt) und die Schneedecke schreibt nichts („Zustand aus anderer Faktorregel“),
+   bis ein Startzustand ohne Regel eingespielt ist. Sauber: c und d mit `--glacier-factor=off` (Neu-Einschwingen zurück auf den
+   Landeswert, `fac` entfällt; Startzustand ohne `rules.factor`) und beides im selben Push mit dem Entfernen der Zeilen.
+
+**V-GM-133 — der Zustand vermerkt die Form nicht. Wirkt es bei diesem Einschalten?** Ja, aber klein und ohne Bruch: das
+Neu-Einschwingen in c rechnet die 42 Gletscher mit ihrem Faktor, aber mit gleichmäßiger Verteilung über die Höhenstufen (das
+Werkzeug kennt die Form nicht), und Mont Collon (nur Form) wird gar nicht neu eingeschwungen. Der Schnee vom 1. Oktober bis zum
+Einschalten liegt an diesen 43 Gletschern also nach der alten Verteilung, alles danach nach der Form — die Menge je Gletscher
+stimmt (Form ist mittelfrei), nur ihre Verteilung auf die Stufen mischt zwei Rechnungen. Im Winter schmilzt dort kaum etwas, der
+Schmelzindex ändert sich dadurch nicht sichtbar; im Frühjahr kann es entscheiden, welche Stufe einige Tage früher frei wird, und
+der Anteil des Schnees bis Ende November am Winter ist klein. Die Schneedecke an drei Höhen liest die Form nicht. Zweite Folge:
+schaltet jemand später nur die Form aus, merkt der Zustand es nicht (kein Neubeginn) — für den Rückweg h gilt deshalb: beide
+Zeilen zusammen. **Meine Empfehlung: so einschalten und V-GM-133 offen lassen.** Wer es sauber will: Neu-Einschwingen mit Form
+und die Form in die Regel aufnehmen (`on+shape:<sha>`) — Code in `snowpack-seed.mjs`, `melt.mjs`, Vertrag und Prüfer, etwa eine
+Stunde mit Prüfung; nicht gebaut.
+
+Nicht geprüft: kein Lauf mit `on`/`on` auf dem Runner; der volle lokale Lauf mit beiden Schaltern lief am 24.11. (GM-5b, nur
+Schmelzdokument und -zustand anders) und das Neu-Einschwingen nur mit dem vorhergesagten Faktor (GM-10b, 3d) und von Hand im
+Prüfer (I17) — nicht mit `on` auf dem Zustand des Daten-Repos.

@@ -24,7 +24,9 @@ import {
   precipLevelOf, precipRunOf, meltPrecipProblems, snowConstantsOf, snowOriginOf, snowCoreSetup,
 } from './glacier/lib/snowcal.mjs';
 
-import { snowGlaciersProblems, shapeAtElevation, shapeCorrOf, glacierRunOf, GLACIER_FACTOR_DEFAULT, GLACIER_SHAPE_DEFAULT } from './glacier/lib/snowcalGlaciers.mjs';
+import { snowGlaciersProblems, shapeAtElevation, shapeCorrOf, glacierRunOf, glacierFactorModeOf, GLACIER_FACTOR_DEFAULT, GLACIER_SHAPE_DEFAULT } from './glacier/lib/snowcalGlaciers.mjs';
+import { snowFactorTableProblems, factorTableRunOf, ruleOf, kForLazy, fitForm, predictOf, spreadOfErrors, factorRuleOf, SNOW_FACTOR_RULE, SNOW_FACTOR_BASES, SNOW_FACTOR_SOURCES } from './glacier/lib/snowcalPredict.mjs';
+import { x1Of } from './glacier/snowcal-predict.mjs';
 import { buildGlacierTable } from './glacier/snowcal-table2.mjs';
 import { CAL2, evaluate, tableValues, tableOf, tabVal, kStar, balAll, balOne, scoreOf as scoreOf2, attachRadiation, fitF, shapeFactors } from './glacier/snowcal-fit2.mjs';
 import { simulate, emptyState, rng, gauss, cosZenith, clearSky } from './glacier/lib/meltcore.mjs';
@@ -389,6 +391,109 @@ const W = Object.fromEntries(winters.map((w) => [w.country, w]));
   const noon = clearSky(cosZenith(46.5, 8, Date.parse('2020-06-21T10:30:00Z')), 3000) * 0.55;
   add('H8 Strahlung am Gletscher, von Hand: der Stationswert mit dem Höhenzuschlag des Klarhimmels (600 W/m² auf 1 500 m werden auf 3 000 m 600 · 1,18 / 1,09), eine gemessene Null bleibt null, eine Stunde ohne Messung bekommt Klarhimmel × 0,55 (mittags im Juni mehrere hundert W/m², nachts 0), und der Anteil solcher Stunden wird gezählt (22 von 24)',
     near(recR.g[11], (600 * (1 + 6e-5 * 3000)) / (1 + 6e-5 * 1500), 1e-9) && recR.g[12] === 0 && near(recR.g[10], noon, 1e-9) && noon > 300 && recR.g[0] === 0 && near(recR.gMiss, 22 / 24, 1e-12), { g11: recR.g[11], noon, gMiss: recR.gMiss });
+}
+
+// --- I: GM-10b (E-GM-44) — the predicted factor of the Swiss glaciers: contract and reader of the table, the rule by hand, the search for x1, the fit -------
+{
+  const fx = J(join(HERE, 'lib', 'fixtures', 'glacier', 'snowcal-predicted.json'));
+  const cat = new Map(['gl_ch_alpha', 'gl_ch_beta', 'gl_ch_gamma', 'gl_ch_delta'].map((id) => [id, { id, country: 'CH' }]).concat([['gl_at_x', { id: 'gl_at_x', country: 'AT' }]]));
+  const bad = (f) => { const t = structuredClone(fx); f(t); return snowFactorTableProblems(t, cat); };
+  const negatives = {
+    kind: (t) => { t.kind = 'x'; }, country: (t) => { t.country = 'AT'; }, measured: (t) => { t.origin = 'measured'; }, verified: (t) => { t.verified = true; }, note: (t) => { delete t.note; },
+    ownHash: (t) => { t.inputs.ownTable = 'x'; }, countryF: (t) => { delete t.inputs.countryF; }, form: (t) => { t.rule.form = 'A'; }, predictors: (t) => { t.rule.predictors = ['x1', 'zMed']; },
+    minCells: (t) => { t.rule.minCells = 0; }, shrink: (t) => { t.rule.shrink = 1; }, ruleOrigin: (t) => { t.rule.origin = 'measured'; }, small: (t) => { delete t.smallClasses; },
+    beta: (t) => { t.model.beta = [0.1, 0.2]; }, sc: (t) => { t.model.sc[1] = 0; }, ranges: (t) => { t.model.cal.ranges.zMed = [3000, 2000]; }, minArea: (t) => { t.model.cal.minArea = 0; },
+    spreadBasis: (t) => { delete t.spread['predicted-shrunk']; }, spreadPair: (t) => { t.spread.predicted.p10 = 1.1; }, spreadOrigin: (t) => { t.spread.origin = 'set'; },
+    basis: (t) => { t.glaciers.gl_ch_beta.b = 'guess'; }, bounds: (t) => { t.glaciers.gl_ch_beta.F = 7; }, countryWhy: (t) => { delete t.glaciers.gl_ch_delta.why; }, countryValue: (t) => { t.glaciers.gl_ch_delta.F = 2; }, countryValueOnly: (t) => { t.glaciers.gl_ch_delta.F = 2; t.glaciers.gl_ch_delta.q = [1.46, 2.74]; },
+    whyElsewhere: (t) => { t.glaciers.gl_ch_beta.why = 'x'; }, unclamped: (t) => { t.glaciers.gl_ch_beta.F = 3.2; t.glaciers.gl_ch_beta.q = [2.56, 3.84]; }, fullSmall: (t) => { t.glaciers.gl_ch_beta.n = 4; },
+    shrunkBig: (t) => { t.glaciers.gl_ch_gamma.n = 5; }, shrunkButCountry: (t) => { t.smallClasses.rule = 'country'; }, q: (t) => { t.glaciers.gl_ch_beta.q = [1.6, 2.6]; }, qLow: (t) => { t.glaciers.gl_ch_beta.q = [1.6, 2.52]; }, qHigh: (t) => { t.glaciers.gl_ch_beta.q = [1.68, 2.6]; }, counts: (t) => { t.counts.predicted = 5; },
+    notSwiss: (t) => { t.glaciers.gl_at_x = { ...t.glaciers.gl_ch_beta }; t.counts.predicted = 2; }, unknown: (t) => { t.glaciers.gl_ch_nobody = { ...t.glaciers.gl_ch_beta }; t.counts.predicted = 2; },
+    sources: (t) => { delete t.sources; }, citation: (t) => { t.sources.attribution[0].citation = 'GLAMOS (2025), doi:10.18750/massbalance.2025.r2025'; },
+  };
+  const caught = Object.fromEntries(Object.entries(negatives).map(([k, f]) => [k, bad(f).length]));
+  add('I1 Vertrag der Tabelle vorhergesagter Faktoren (GM-10b): die synthetische Fixture hat keinen Befund; 38 Verletzungen, jede gemeldet — Art, Land, Herkunft „measured“, „nachgeprüft“, Vermerk, Hash der eigenen Tabelle, Landeswert, Form, Prädiktoren, Mindestzellen, Schrumpfung, Herkunft der Regel, Entscheidung für die kleinen Gletscher, β, Skala, Spannen, kleinste Fläche, eine Grundlage ohne Paar, Paar ohne 1 dazwischen, Herkunft der Paare, unbekannte Grundlage, Faktor außerhalb der Grenzen, Landeswert ohne Grund oder mit anderem Wert (auch mit dazu passender Spanne), Grund an anderer Zeile, nicht gekappt, volle Form unter 5 Zellen, geschrumpfte ab 5 Zellen, geschrumpfte obwohl die Kleinen den Landeswert behalten, Spanne passt nicht zur Grundlage (beide Enden, nur das untere, nur das obere), Zählung, Gletscher nicht in der Schweiz oder nicht im Katalog, Quellenangabe fehlt, Zitierwortlaut von GLAMOS weicht ab',
+    snowFactorTableProblems(fx, cat).length === 0 && Object.values(caught).every((n) => n > 0) && Object.keys(caught).length === 38, JSON.stringify(Object.entries(caught).filter(([, n]) => !n)));
+  // reader, by hand, against a stub of the GM-5b reader
+  const ownSha = '1'.repeat(64), withSha = () => { const t = structuredClone(fx); t.inputs.ownTable = ownSha; return t; };
+  const own = { factorOf: (id) => (id === 'gl_ch_alpha' ? 2.5 : null) };
+  const args = { own, ownSha, countryOf: () => 1.793, catalog: cat, tableSha: 'a'.repeat(64) };
+  const rd = factorTableRunOf(withSha(), args);
+  const throws = (t, a = args) => { try { factorTableRunOf(t, a); return null; } catch (e) { return String(e.message); } };
+  const tOwn = withSha(); tOwn.glaciers.gl_ch_alpha.F = 2.4; tOwn.glaciers.gl_ch_alpha.q = [2.328, 2.472];
+  const tAsPred = withSha(); tAsPred.glaciers.gl_ch_alpha = { b: 'predicted', F: 2.5, q: [2, 3], n: 12 }; tAsPred.counts = { own: 0, predicted: 2, 'predicted-shrunk': 1, country: 1 };
+  const refusals = [throws(fx), throws(tOwn), throws(tAsPred), throws(withSha(), { ...args, countryOf: () => 1.8 }), throws({ ...withSha(), origin: 'measured' })];
+  add('I2 Leser der Tabelle, von Hand: eigener Faktor 2,5, vorhergesagt 2,1, geschrumpft 1,9 — die Zeile „country“ gibt nichts heraus (der Lauf nimmt den Wert der Region), ein Gletscher ohne Zeile auch nicht; Grundlage je Zeile, die Paare je Grundlage aus der Tabelle; der Block nennt Regel, Hash, Form, Mindestzellen, Schrumpfung, Entscheidung, „computed“, „nicht nachgeprüft“, Zählung; Abbruch mit Grund bei: Tabelle gegen eine andere eigene Tabelle gebaut, Zeile „own“ mit anderem Faktor, Gletscher mit eigenem Faktor als „predicted“, anderer Landeswert im Lauf, Verstoß gegen den Vertrag',
+    rd.factorOf('gl_ch_alpha') === 2.5 && rd.factorOf('gl_ch_beta') === 2.1 && rd.factorOf('gl_ch_gamma') === 1.9 && rd.factorOf('gl_ch_delta') === null && rd.factorOf('gl_ch_nobody') === null
+    && rd.basisOf('gl_ch_gamma') === 'predicted-shrunk' && rd.basisOf('gl_ch_nobody') === null && rd.spread.predicted.p90 === 1.2 && rd.spread.country.n === 31
+    && rd.block.rule === 'predicted' && rd.block.table === 'a'.repeat(64) && rd.block.minCells === 5 && rd.block.shrink === 0.5 && rd.block.small === 'shrunk' && rd.block.origin === 'computed' && rd.block.verified === false && rd.block.counts.own === 1
+    && /inputs\.ownTable/.test(refusals[0]) && /Zeile „own“ ohne denselben/.test(refusals[1]) && /Zeile aber „predicted“/.test(refusals[2]) && /mit 1\.793 gebaut/.test(refusals[3]) && /Herkunft measured/.test(refusals[4]), JSON.stringify(refusals));
+  // the rule by hand
+  const model = { c: Math.log(2), beta: [0.2, -0.1, 0.05], mu: [0, 3000, 0], sc: [1, 100, 1] };
+  const calR = { ranges: { x1: [-0.5, 1], zMed: [2600, 3600], north: [-0.8, 0.9] }, minArea: 0.02, own: [1.2, 3.0] };
+  const g = { x1: 0.4, zMed: 3200, north: 0.5, nIn: 6, areaKm2: 0.3 };
+  const FcHand = Math.exp(Math.log(2) + 0.2 * 0.4 - 0.1 * 2 + 0.05 * 0.5);
+  const full = ruleOf(g, model, calR, 1.793), five = ruleOf({ ...g, nIn: 5 }, model, calR, 1.793), shr = ruleOf({ ...g, nIn: 4 }, model, calR, 1.793), shr0 = ruleOf({ ...g, nIn: 0 }, model, calR, 1.793);
+  const hi = ruleOf({ ...g, x1: 1, zMed: 2600, north: 0.9 }, model, calR, 1.793), lo = ruleOf({ ...g, x1: -0.5, zMed: 3600, north: -0.8 }, model, calR, 1.793);
+  const small = ruleOf({ ...g, areaKm2: 0.019 }, model, calR, 1.793), edge = ruleOf({ ...g, areaKm2: 0.02 }, model, calR, 1.793), noX = ruleOf({ ...g, x1: null }, model, calR, 1.793);
+  const outs = [ruleOf({ ...g, x1: 1.01 }, model, calR, 1.793), ruleOf({ ...g, zMed: 2599 }, model, calR, 1.793), ruleOf({ ...g, north: 0.91, x1: -0.6 }, model, calR, 1.793)];
+  const hiHand = Math.exp(Math.log(2) + 0.2 + 0.4 + 0.045), loHand = Math.exp(Math.log(2) - 0.1 - 0.6 - 0.04);
+  add('I3 Regel von Hand (Jan, E-GM-44): ab 5 Zellen (genau 5 eingeschlossen) die volle Form C (exp(c + Σ β · z)); darunter der halbe Weg zum Landeswert in ln — auch bei 0 Zellen; ein vorhergesagter Faktor über bzw. unter den eigenen Faktoren wird an 3,0 bzw. 1,2 gekappt (vor der Kappung steht der Rohwert); kleiner als der kleinste Eichgletscher (auch knapp) ⇒ Landeswert, genau gleich groß nicht; x1, Medianhöhe oder Exposition außerhalb der Eichspanne ⇒ Landeswert mit dem benannten Prädiktor, der Rand selbst gilt noch; ohne x1 ⇒ Landeswert; SNOW_FACTOR_RULE nennt 5 Zellen, ½, „set“',
+    full.basis === 'predicted' && near(full.F, FcHand, 1e-12) && five.basis === 'predicted' && shr.basis === 'predicted-shrunk' && near(shr.F, Math.exp(0.5 * Math.log(FcHand) + 0.5 * Math.log(1.793)), 1e-12) && shr0.basis === 'predicted-shrunk'
+    && hi.basis === 'predicted' && hi.F === 3.0 && near(hi.raw, hiHand, 1e-12) && hi.clamped === true && lo.F === 1.2 && near(lo.raw, loHand, 1e-12)
+    && small.basis === 'country' && small.F === 1.793 && small.why === 'smaller-than-calibration' && edge.basis === 'predicted' && noX.why === 'no-grid-predictor'
+    && outs[0].why === 'outside:x1' && outs[1].why === 'outside:zMed' && outs[2].why === 'outside:x1+north' && outs.every((o) => o.basis === 'country' && o.F === 1.793)
+    && SNOW_FACTOR_RULE.minCells === 5 && SNOW_FACTOR_RULE.shrink === 0.5 && SNOW_FACTOR_RULE.origin === 'set' && JSON.stringify(SNOW_FACTOR_BASES) === '["own","predicted","predicted-shrunk","country"]',
+    JSON.stringify({ full, shr, hi, lo, FcHand }));
+  // the search for x1 on the grid: lazy bisection = the full table (first crossing, linear in between, capped), on a balance that never falls with k
+  const KSg = Float64Array.from({ length: 236 }, (_, j) => Math.round((0.3 + j * 0.02) * 100) / 100), rr = rng(11);
+  let same = 0, maxEvals = 0, n = 0;
+  for (let c = 0; c < 40; c++) {
+    let acc = -300 - 200 * rr(); const tot = KSg.map(() => (acc += rr() < 0.1 ? 0 : 5 * rr()));   // flat stretches included
+    for (const target of [tot[0] - 1, tot[0], tot[235] + 1, tot[235], ...Array.from({ length: 6 }, () => tot[0] + (tot[235] - tot[0]) * rr()), tot[100]]) {
+      n++; const a = kForLazy((j) => tot[j], target, KSg);
+      // the full-table rule of step 0 (kFor in gm10-factor.mjs)
+      let b; if (target <= tot[0]) b = { k: KSg[0], capped: true }; else { b = { k: KSg[235], capped: true }; for (let j = 0; j < 235; j++) if (tot[j + 1] >= target) { const d = tot[j + 1] - tot[j]; b = { k: KSg[j] + (d > 0 ? ((target - tot[j]) / d) * (KSg[1] - KSg[0]) : 0), capped: false }; break; } }
+      if (a.k === b.k && a.capped === b.capped) same++; maxEvals = Math.max(maxEvals, a.evals);
+    }
+  }
+  add('I4 Suche nach x1 auf dem Gitter: die Bisektion gibt an 440 erfundenen, nie fallenden Bilanzen (mit flachen Stücken, Zielen am Rand, unter und über der Spanne) genau den Wert der vollen Tabelle (erster Schnitt, linear dazwischen, gekappt) — mit höchstens 10 statt 236 Kernläufen',
+    same === n && n === 440 && maxEvals <= 10, JSON.stringify({ same, n, maxEvals }));
+  // the fit finds known coefficients on invented tables (the scored measure of step 0) and predicts by hand
+  const tv = (row, k) => { const x = (Math.min(5, Math.max(0.3, k)) - 0.3) / 0.02, j = Math.min(234, Math.floor(x)); return row[j] + (row[j + 1] - row[j]) * (x - j); };
+  const glac = Array.from({ length: 24 }, (_, i) => ({ key: `g${i}`, x: [rr() * 2 - 0.5, 2700 + 1000 * rr(), rr() * 1.6 - 0.8] }));
+  const truthF = (x) => Math.exp(Math.log(1.8) + 0.25 * (x[0] - 0.5) / 0.6 - 0.15 * (x[1] - 3200) / 290 + 0.1 * x[2] / 0.46);
+  for (const g2 of glac) g2.items = Array.from({ length: 6 }, () => { const A = 300 + 400 * rr(), B = 200 * rr(), tot = Float64Array.from(KSg, (k) => A * k - B); return { tot, BW: tv(tot, truthF(g2.x)) }; });
+  const fit = fitForm(glac, tv), errs = glac.map((g2) => Math.abs(Math.log(predictOf(fit, g2.x) / truthF(g2.x))));
+  const hand = Math.exp(fit.c + fit.beta.reduce((s, b, j) => s + b * ((glac[0].x[j] - fit.mu[j]) / fit.sc[j]), 0));
+  add('I5 Anpassung auf der gewerteten Kennzahl (der Code von Schritt 0): an 24 erfundenen Gletschern mit bekanntem Faktor exp(c + β · z) findet sie jeden Faktor auf 2 % wieder und die Vorzeichen der drei β; die Vorhersage ist von Hand exp(c + Σ β · (x − μ) / s); die Konstante allein (Landeswert desselben Maßes) ist eine eigene Anpassung',
+    Math.max(...errs) < 0.02 && fit.beta[0] > 0 && fit.beta[1] < 0 && fit.beta[2] > 0 && near(predictOf(fit, glac[0].x), hand, 1e-12) && Number.isFinite(fit.c0) && fit.c0 !== fit.c, JSON.stringify({ maxErr: Math.max(...errs), beta: fit.beta }));
+  const eI = [Math.log(0.9), 0, Math.log(1.1), Math.log(1.2), Math.log(0.8)], sp = spreadOfErrors(eI), sI = [...eI].sort((x, y) => x - y);
+  const q10 = Math.round(Math.exp(sI[0] + 0.4 * (sI[1] - sI[0])) * 1000) / 1000, q90 = Math.round(Math.exp(sI[3] + 0.6 * (sI[4] - sI[3])) * 1000) / 1000;
+  add('I6 Paar je Grundlage von Hand: p10/p90 = exp(Quantile von ln(F / F_eigen)), n, Streuung in ln; unter drei Werten kein Paar; die Faktorregel des Zustands ist <Wort>:<16 hex der Tabelle>, aus = keine Regel; „predicted“ ist ein Wort des Schalters, die Voreinstellung bleibt „off“',
+    sp.n === 5 && sp.p10 === q10 && sp.p90 === q90 && q10 < 0.85 && q90 > 1.15 && spreadOfErrors([0, 0]) === null && factorRuleOf('predicted', 'ab'.repeat(32)) === `predicted:${'ab'.repeat(8)}` && factorRuleOf('off', 'x') === null
+    && glacierFactorModeOf('predicted') === 'predicted' && GLACIER_FACTOR_DEFAULT === 'off', JSON.stringify(sp));
+  // the tool's x1 on one invented glacier: three winters reach their gain at k = 1,5 / 2 / 0,8 ⇒ x1 = mean ln k; a winter without gain is dropped, one without grid value counted
+  const mEtiI = { model: 'eti', TF: J(join(HERE, 'glacier', 'melt-calibration.json')).fit.TF, SRF: J(join(HERE, 'glacier', 'melt-calibration.json')).fit.SRF };
+  const mkRec = (year) => { const n2 = 24 * 120, t = new Float64Array(n2), p = new Float64Array(n2), gg = new Float64Array(n2); for (let h = 0; h < n2; h++) { t[h] = -3 + 2 * Math.sin((2 * Math.PI * h) / 24); p[h] = h % 30 < 6 ? 1 : 0; gg[h] = 100; } return { year, t, p, g: gg, zT: 2000, zMed: 2800, b: [{ z: 2700, w: 0.4 }, { z: 2900, w: 0.6 }] }; };
+  const totOf = (rec, k) => { const bal = balAll(rec, mEtiI, k); return 0.4 * bal[0] + 0.6 * bal[1]; };
+  const recs = [2017, 2018, 2019, 2020, 2021].map(mkRec), ks = [1.5, 2, 0.8];
+  const q20w = { 2017: { swe0: 10, swe1: 10 + totOf(recs[0], 1.5) }, 2018: { swe0: 0, swe1: totOf(recs[1], 2) }, 2019: { swe0: 5, swe1: 5 + totOf(recs[2], 0.8) }, 2020: { swe0: 50, swe1: 40 } };
+  const xr = x1Of(recs, q20w, mEtiI), two = x1Of(recs.slice(0, 2), q20w, mEtiI);
+  add('I7 x1 des Werkzeugs an einem erfundenen Gletscher: drei Winter erreichen ihren Zuwachs bei k = 1,5 / 2 / 0,8 ⇒ x1 = Mittel der ln k (auf 1e-3); ein Winter ohne Zuwachs fällt heraus, einer ohne Gitterwert wird gezählt; unter drei Wintern kein x1',
+    near(xr.x1, (Math.log(1.5) + Math.log(2) + Math.log(0.8)) / 3, 1e-3) && xr.winters === 3 && xr.dropped === 1 && xr.missing === 1 && two.x1 === null && two.winters === 2, JSON.stringify(xr));
+
+  // the committed table (GLAMOS confirmed the use on 25.11.2026): it keeps the rules of its own and names its sources
+  const tabPath = join(HERE, 'glacier', 'snow-factor-predicted-ch.json');
+  const tab = J(tabPath), rowsT = Object.values(tab.glaciers ?? {});
+  const glamos = tab.sources?.attribution?.find((x) => x.id === 'glamos');
+  const ownT = J(join(HERE, 'glacier', 'snow-calibration-glaciers.json'));
+  const ownCH = Object.entries(ownT.glaciers ?? {}).filter(([, g]) => g.country === 'CH').map(([id]) => id);
+  add('I8 Tabelle im Repo (`scripts/glacier/snow-factor-predicted-ch.json`): ohne Befund des Vertrags; der Kopf nennt die Quellen wie `SNOW_FACTOR_SOURCES` mit dem Zitierwortlaut von GLAMOS, Release 2025 (CC BY 4.0, Bestätigung vom 25.11.2026); „verified: false“; jede Grundlage kommt vor und die Zählung stimmt; der Hash der eigenen Tabelle ist der der Tabelle im Repo; ein Gletscher mit eigenem Faktor steht als „own“ mit genau diesem Faktor',
+    snowFactorTableProblems(tab).length === 0 && JSON.stringify(tab.sources) === JSON.stringify(SNOW_FACTOR_SOURCES) && glamos?.citation === 'GLAMOS (2025). Swiss Glacier Mass Balance, release 2025, Glacier Monitoring Switzerland, doi:10.18750/massbalance.2025.r2025.' && glamos?.licence === 'CC BY 4.0'
+      && tab.verified === false && SNOW_FACTOR_BASES.every((b) => rowsT.some((g) => g.b === b)) && rowsT.length === SNOW_FACTOR_BASES.reduce((s, b) => s + tab.counts[b], 0)
+      && tab.inputs.ownTable === createHash('sha256').update(readFileSync(join(HERE, 'glacier', 'snow-calibration-glaciers.json'))).digest('hex')
+      && Object.entries(tab.glaciers).filter(([, g]) => g.b === 'own').every(([id, g]) => ownCH.includes(id) && Math.abs(g.F - ownT.glaciers[id].F) < 1e-9),
+    JSON.stringify({ problems: snowFactorTableProblems(tab).slice(0, 5), counts: tab.counts, glamos }));
 }
 
 const failed = checks.filter((c) => !c.ok);

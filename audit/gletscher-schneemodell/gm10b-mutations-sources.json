@@ -1,0 +1,24 @@
+{
+ "generated": "2026-11-25T17:25:06.387Z",
+ "root": "C:\\dev\\buscosun-glacier-cache\\gm10\\mut\\code",
+ "verifiers": [
+  "verify:glacier-snowcal",
+  "verify:glacier-melt",
+  "verify:glacier-snowpack"
+ ],
+ "greenBefore": true,
+ "greenAfter": true,
+ "noticed": 1,
+ "of": 1,
+ "crashedOnly": 0,
+ "errors": 0,
+ "mutations": [
+  {
+   "name": "Vertrag verlangt die Quellenangabe der Tabelle nicht",
+   "file": "scripts/glacier/lib/snowcalPredict.mjs",
+   "noticed": true,
+   "by": "glacier-snowcal: I1",
+   "crashedOnly": false
+  }
+ ]
+}

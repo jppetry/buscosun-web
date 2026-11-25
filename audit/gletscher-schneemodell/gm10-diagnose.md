@@ -301,3 +301,181 @@ Höchstens so klein wie Pizol (0,014 km²) — und damit kleiner als jeder Eichg
 | V-GM-125 | Sex Rouge wird in jeder Variante schlechter als mit G1, auch ohne Größenterm | eine Grenze des Geländeteils · nach dem Bau im lokalen Bericht verfolgen; ggf. Exposition/Höhe am Plateaugletscher prüfen |
 
 Kein Producer-Code, keine Mutationsrunde, nichts im Daten- oder Archiv-Repo, kein Push. Committet auf Jans Wort (E-GM-44); V-GM-122 und V-GM-123 ergeben keine neue Regel (E-GM-44, Punkt 2: beide Abweichungen gingen in die vorsichtige Richtung).
+
+### 12.7 Tabelle je Größenklasse vor dem Bau (E-GM-44 Punkt 3; beschreibend)
+
+Werkzeug `gm10b-shrunk.mjs` (neu, importiert Daten, Kern, Prädiktoren und Auslassen unverändert); einziger neu gewerteter Lauf: **C geschrumpft** = halber Weg von C zum Landeswert in ln (`ln F = 0,5 · ln F̂_C + 0,5 · ln a′` desselben Durchgangs, wie die vorsichtige Form E-GM-42), dann an [min, max] der eigenen Faktoren der Trainings-Gletscher ohne Suchgrenze gekappt (wie §7 der Größenregel); ein Gletscher ausgelassen, s2 exakt mit dem Kern. Wiedergabe geprüft: a′, G1, C, b je Klasse gleich `report-size.json` (±0,05 mm), mit und ohne Mont Collon — sonst bricht das Werkzeug ab. Ohne Mont Collon: seine Zeilen fehlen in den Mitteln, die Anpassungen bleiben (wie die Empfindlichkeit in §12.3). Gekappt: 0 Gletscher. Werte je Gletscher nur lokal (`C:\dev\buscosun-glacier-cache\gm10\report-shrunk.json`).
+
+s2 in mm Wasserwert. **a** = heutiger Landeswert 1,79 (Live), a′ = Landeswert desselben Auslassens, b = eigener Faktor.
+
+| Klasse | Mont Collon | Gletscher / Winter | a (Landeswert) | a′ | G1 | C | **C geschrumpft** | b (eigener Faktor) |
+|---|---|---|---|---|---|---|---|---|
+| K1 eine Zelle | mit = ohne | 4 / 37 | 491,0 | 489,2 | 521,1 | 362,4 | **357,4** | 156,7 |
+| K2 2–4 Zellen | mit | 6 / 60 | 660,3 | 658,2 | 470,8 | 514,6 | **540,6** | 315,5 |
+| K2 2–4 Zellen | ohne | 5 / 53 | 412,5 | 412,7 | 343,4 | 316,6 | **310,0** | 227,8 |
+| K3 ≥ 5 Zellen | mit = ohne | 22 / 280 | 335,3 | 341,1 | 281,0 | 242,0 | 270,0 | 191,4 |
+| alle | mit | 32 / 377 | 402,3 | 406,1 | 334,8 | 297,2 | 321,6 | 207,7 |
+| alle | ohne | 31 / 370 | 361,9 | 366,2 | 314,0 | 264,7 | 284,4 | 193,1 |
+
+Je Gletscher (Zählung, keine Werte): C geschrumpft besser als a an 3 von 4 Gletschern in K1 (schlechter: Pizolgletscher) und an 5 von 6 in K2 (schlechter: Glacier du Sex Rouge). Zielgletscher kleiner als jeder Eichgletscher (Fläche unter Pizol): 94, alle in K1.
+
+**Jans Regel E-GM-44 Punkt 4, angewendet (Jans Entscheidung, kein Urteil eines Skripts):** C geschrumpft schlägt den Landeswert in K1 (357,4 gegen 491,0) und in K2 (540,6 gegen 660,3; ohne Mont Collon 310,0 gegen 412,5) — mit a wie mit a′. Damit fiele der Bau für Gletscher unter 5 Zellen auf **C geschrumpft**, außer den 94 Zielgletschern unter der kleinsten Eichfläche (Landeswert). Angehalten vor dem Bau; Jans Wort steht aus.
+
+## 13. GM-10b — Bau: vorhergesagter Faktor für Schweizer Gletscher (25.11.2026)
+
+> Auftrag (Jan, 25.11., E-GM-44): entscheiden, bauen, prüfen in einem Zug; nur die Schweiz (Österreich und Deutschland behalten den Landeswert); buscosun Fusion nur gelesen; Schalter aus; Tabelle nur im lokalen Zwischenspeicher (GLAMOS-Lizenz offen). **Nachtrag 25.11. abends: GLAMOS hat die Nutzung bestätigt; die Tabelle liegt jetzt im Repo (§13.9).**
+>
+> Werkzeuge: `scripts/glacier/snowcal-predict.mjs` (Modi `forcing`, `x1`, `check-x1`, `table`), `scripts/glacier/py/snowcal_predictors.py` (Q20 v1.1 und Exposition je Gletscher), Vertrag und Leser `scripts/glacier/lib/snowcalPredict.mjs`, synthetische Fixture `scripts/lib/fixtures/glacier/snowcal-predicted.json`; Messwerkzeuge in diesem Ordner: `gm10b-shrunk.mjs` (Schritt 1), `gm10b-refit.mjs` (Neuanpassung nach der eingefrorenen Größenregel), `gm10b-pairs-factor.mjs` (3e), `gm10b-pairs24.mjs` (V-GM-107), `gm10b-mutations.mjs` (3f). Werte je Gletscher NUR lokal: `C:\dev\buscosun-glacier-cache\gm10\predict\` (`table.json`, `table-report.json`, `refit.json`), Volläufe `…\gm10\full\`.
+
+### 13.1 Schritt 1 — Tabelle je Größenklasse und Jans Regel
+
+Die Tabelle steht in §12.7 (s2 in mm, ein Gletscher ausgelassen; a = Landeswert 1,79, b = eigener Faktor):
+
+| Klasse | Mont Collon | a | G1 | C | **C geschrumpft** | b |
+|---|---|---|---|---|---|---|
+| K1 eine Zelle | mit = ohne | 491,0 | 521,1 | 362,4 | **357,4** | 156,7 |
+| K2 2–4 Zellen | mit | 660,3 | 470,8 | 514,6 | **540,6** | 315,5 |
+| K2 2–4 Zellen | ohne | 412,5 | 343,4 | 316,6 | **310,0** | 227,8 |
+| K3 ≥ 5 Zellen | mit = ohne | 335,3 | 281,0 | 242,0 | 270,0 | 191,4 |
+
+**Angewandt — Jans Entscheidung (E-GM-44, 25.11.), kein Urteil eines Skripts:** C geschrumpft schlägt den Landeswert in beiden kleinen Klassen ⇒ unter 5 Zellen wird **C geschrumpft** gebaut (halber Weg zum Landeswert in ln), ab 5 Zellen **C** voll; kleiner als jeder Eichgletscher (unter Pizol, 0,0143 km²) ⇒ Landeswert; x1, Medianhöhe oder Exposition außerhalb der Eichspanne ⇒ Landeswert; jeder vorhergesagte Faktor an die eigenen Faktoren der Eichgletscher (ohne Mont Collon an der Suchgrenze, 1,107–3,558) gekappt; Gletscher mit eigenem Faktor behalten ihn (GM-5b). Alle Schwellen `set` (`SNOW_FACTOR_RULE` in `lib/snowcalPredict.mjs`). Die Regel des Zustands der kleinen Gletscher steht in der Tabelle (`smallClasses.rule = 'shrunk'` mit den Zahlen von Schritt 1).
+
+### 13.2 Antrieb und x1 für alle Schweizer Gletscher (wie in der Eichung)
+
+- **Q20 v1.1 und Exposition** für alle 1 291 Schweizer Katalog-Gletscher (`snowcal_predictors.py`, 18 s für die Eichgletscher, rund 4 min für alle). **Gegenprobe:** an den 36 Gletschern der Wahrheit Exposition 36 von 36 gleich `terrain.json` (Schritt 0), Zellen gleich `cells-ch.json`, 292 Winterwerte gleicher Fenster gleich Schritt 0 (v1.0 + 2 000 m).
+- **Antrieb** nach der Stationsregel von GM-3 (nächste SwissMetNet-Station ≤ 30 km, ≤ 1 800 m Höhenunterschied, ≥ 90 % der Stunden der zehn Q20-Winter), Temperatur und Strahlung derselben Station, RhiresD an der nächsten 1-km-Zelle: **alle 1 291 Gletscher haben eine Station** (49 Stationen). An drei der 32 Eichgletscher wählt die Regel jetzt eine andere Station als GM-3 (Schwarzwasserfirn, St. Annafirn: GUE → ANT; Vadret Pers: COV → BEH), weil sie nach der Katalog-Medianhöhe und den Q20-Wintern urteilt (V-GM-126).
+- **x1 des Builds:** die Bänder der Hypsometrie des Builds (50 m), das feste Fenster 1. Oktober 00 UTC … 1. Mai 00 UTC (ein Gletscher ohne Messung hat kein Wahrheitsfenster), Schmelzkern des Betriebs. Die Suche nach k läuft als Bisektion auf demselben Gitter (`kForLazy`): **Gegenprobe an den 36 Gletschern der Wahrheit mit GLAMOS-Stufen und Wahrheitsfenstern: x1 = Schritt 0 an 36 von 36** (rund 8 statt 236 Kernläufe je Winter). Ergebnis: 1 287 von 1 291 Gletschern mit x1 (4 mit weniger als drei Gitterwintern), 76 von 12 910 Gletscherwintern wegen Lücken im Antrieb nicht nutzbar, 10 gekappt.
+- **x1 des Builds gegen Schritt 0** an den 32 Eichgletschern: r = 0,813, mittlere Abweichung −0,045; die größte bei Mont Collon (1,446 → 0,388).
+
+### 13.3 Neuanpassung nach der eingefrorenen Größenregel (STOPP-Prüfung 3)
+
+`gm10b-refit.mjs`: Regel `gm10b-size-method-frozen.md` unverändert (Hash geprüft), einziger Unterschied x1 aus §13.2. Der erste Anlauf wurde vom System wegen Speichermangels beendet (15:21 MEZ, zweiter solcher Stopp am Tag); auf Jans Wort neu gestartet, allein gelaufen (15:26–15:40 MEZ, Prozess ≈ 240 MB, frei 1,0–2,6 GB).
+
+| Schweiz (32 Gletscher, 377 Winter) | s2 | gegen G1 | eine Vertauschung | p (200) | p10 | besser / schlechter als G1 | Urteil |
+|---|---|---|---|---|---|---|---|
+| a / a′ | 402,3 / 406,1 | | | | | | |
+| G1 (x1 des Builds) | 358,3 | — | | | | | |
+| A = C2 | 295,1 | 17,6 % | −2,4 % | 0,005 | 7,3 % | 22 / 10 | trägt |
+| B | 298,4 | 16,7 % | −2,6 % | 0,005 | 6,1 % | 22 / 10 | trägt |
+| **C** | **313,1** | **12,6 %** | +0,4 % | 0,005 | 2,0 % | 21 / 11 | **trägt** |
+
+**Wahl des Werkzeugs: C** („A schlägt B nur um 3,3 mm < 17,9 mm ⇒ B; B schlägt C nur um 14,7 mm < 17,9 mm ⇒ C“). **Das Urteil der eingefrorenen Regel ändert sich nicht ⇒ kein STOPP.** G1 wird mit dem x1 des Builds schlechter (358,3 statt 334,8; vor allem Mont Collon). Klassen: K1 C 305,8 gegen G1 497,6 (a 491,0); K2 610,2 gegen 615,1 (a 660,3); K3 250,4 gegen 284,8 (a 335,3). Koeffizienten der Endanpassung (alle 32, je Streuung des Prädiktors): c = 0,599 (e^c = 1,82), β x1 +0,153, Medianhöhe −0,127, Nord +0,082.
+
+### 13.4 Die Tabelle (lokal, `table.json`, sha256 `fadea420…`)
+
+| Grundlage | Gletscher | Fläche km² | Anteil der Schweizer Gletscherfläche (860,1 km²) |
+|---|---|---|---|
+| `own` (eigener Faktor, GM-5b) | 34 | 184,6 | 21,5 % |
+| `predicted` (C, ≥ 5 Zellen) | 249 | 495,5 | 57,6 % |
+| `predicted-shrunk` (C halb zum Landeswert, < 5 Zellen) | 416 | 38,2 | 4,4 % |
+| `country` (Landeswert 1,793) | 592 | 141,7 | 16,5 % |
+
+Gründe für den Landeswert: außerhalb der Eichspanne 493 (Medianhöhe unter 2 668 m 211, x1 unter −0,098 184, Exposition unter −0,683 128; über der Spanne 18 / 6 / 31; Mehrfachnennung möglich), kleiner als jeder Eichgletscher 94, zu wenige Gitterwinter 4, eigener Faktor an der Suchgrenze 1 (Mont Collon). Kein vorhergesagter Faktor erreicht die Kappung. Faktor je Grundlage p10 / Median / p90: `predicted` 1,39 / 1,88 / 2,38, `predicted-shrunk` 1,57 / 1,85 / 2,14. Jede Zeile trägt Grundlage, Faktor, Spanne (`q`, aus dem Paar ihrer Grundlage) und Zellenzahl; Herkunft `computed`, `verified: false`.
+
+**Spanne je Grundlage (gemessen, ein Gletscher ausgelassen; `own`: ein Winter ausgelassen)** — p10 / p90 von F / F_eigen: `own` 0,986 / 1,016 (n 370 Winter; die Schätzgenauigkeit des eigenen Faktors, nicht sein Fehler auf dem Eis), `predicted` 0,798 / 1,191 (Std. in ln 0,16), `predicted-shrunk` 0,800 / 1,231 (0,17), `country` 0,721 / 1,433 (0,26); je 31 Gletscher ohne Mont Collon.
+
+### 13.5 Verdrahtung (Rule 2: aus, benannter Rückfall)
+
+| Teil | Wo | Was |
+|---|---|---|
+| Schalter | `melt.mjs`, `lib/snowcalGlaciers.mjs` | `--glacier-factor=off\|on\|predicted` (`GLACIER_SNOW_GLACIER_FACTOR`), Voreinstellung `off` unverändert; `predicted` braucht `--glacier-factor-table=<json>` (`GLACIER_SNOW_GLACIER_FACTOR_TABLE`). Ohne Tabelle, mit unlesbarer, mit einer Tabelle gegen eine andere eigene Tabelle, mit anderem Landeswert, eigenem Faktor als „predicted“, Gletscher außerhalb des Katalogs, ungekapptem Faktor oder Herkunft „measured“: Abbruch mit Grund, nichts geschrieben. Das Dokument nennt Tabelle (Hash), Regel, Herkunft `computed`, Zahlen und Zeilen je Grundlage (`params.precip.glaciers.predicted`), die Statuszeile zählt sie |
+| V-GM-91 | `melt.mjs`, `glacierMeltContract.ts` | `melt/state.json` trägt mit dem Faktor-Schalter (`on` oder `predicted`) `fac` = { Regel `<Wort>:<16 hex der Tabelle>`, Faktor je Gletscher, der nicht auf dem Landeswert läuft }. Ein Gletscher, dessen Faktor sich seitdem geändert hat (auch beim Abschalten), beginnt neu (`state.respun`), nie mit Schnee aus zwei Faktoren. Ohne Schalter und ohne `fac` ändert sich kein Byte |
+| Neu-Einschwingen | `snowpack-seed.mjs` | `--melt-respin=<melt/state.json>`: die Gletscher, deren Faktor sich mit der neuen Regel ändert, ab 1. Oktober mit dem Kern des Betriebs auf demselben Analyse-Antrieb wie der Startzustand der Schneedecke bis zur Stunde des Zustands neu gerechnet; alle anderen behalten ihren Eintrag Byte für Byte; ohne Antrieb fällt ein Gletscher heraus (der Producer beginnt ihn neu und sagt es) |
+| V-GM-86 | `melt.mjs`, `lib/snowpackcore.mjs`, `glacierSnowpackContract.ts`, `snowpack-seed.mjs` | Mit dem Faktor-Schalter rechnet die Schneedecke jeden Gletscher mit dem Faktor seines Schmelzlaufs (auch bei `on`; die Form je Band bleibt beim Schmelzlauf). Der Zustand nennt die Regel (`rules.factor`); ein Lauf setzt nur einen Zustand derselben Regel fort; neuer Startzustand ab 1. Oktober mit `snowpack-seed.mjs --glacier-factor=…`. Mit Spannen nennt der Kopf neben dem einen Paar der Laufstunde das gemessene Paar jeder Grundlage (`now.bases`) |
+
+Die Tabelle geht nicht ins Repo; im Repo stehen Werkzeug, Vertrag, Leser und die synthetische Fixture (erfundene Gletscher des Test-Katalogs).
+
+### 13.6 Prüfung
+
+**a) Wie gebaut, ein Gletscher ausgelassen (32 Gletscher, 377 Winter, s2 mm, exakt mit dem Kern; die Regel in jedem Durchgang):**
+
+| | Gletscher | Landeswert | G1 | C ohne Regel | **wie gebaut** | eigener Faktor |
+|---|---|---|---|---|---|---|
+| alle | 32 | 396,1 | 358,3 | 313,1 | **353,4** | 190,7 |
+| K1 | 4 | 494,0 | 497,6 | 305,8 | **471,7** | 137,8 |
+| K2 | 6 | 654,9 | 615,1 | 610,2 | **637,7** | 295,8 |
+| K3 | 22 | 327,7 | 284,8 | 250,4 | **276,9** | 175,1 |
+| alle ohne Mont Collon | 31 | 355,6 | 318,1 | 267,9 | **310,5** | 175,7 |
+
+(Der Landeswert ist hier der des Betriebs, 1,793; §12.7 nennt 402,3 aus den Zeilen von GM-5b mit 1,821.) Wie gebaut schlägt der Landeswert in jeder Klasse und G1 knapp gesamt (353,4 gegen 358,3) — STOPP-Fall 1 tritt nicht ein. Der Abstand zu C ohne Regel kommt von der Spannen-Regel: im Auslassen liegen die Gletscher am Rand der Eichspanne außerhalb der übrigen 31 und fallen auf den Landeswert (Silvretta x1 höchster ⇒ 950,6 statt G1 498,5; Jöri, Hohsaas, Alphubel N, Pizol) (V-GM-127).
+
+**9 von 32 Gletschern werden schlechter als mit dem Landeswert:** Glacier de la Plaine Morte +232,2 mm (K3, C 2,42 gegen eigen 1,97), Vadret dal Murtèl +213,1 (K3, C 1,42 gegen 1,99), Mont Collon +82,6 (K2, eigener Faktor an der Grenze), dann Sex Rouge +48,4, Schwarzberg +42,4, Allalin +42,2, Otemma +30,7, Gries +8,9, Plan Névé +6,7.
+
+**Glacier du Sex Rouge (V-GM-125):** 3 Zellen (K2), 0,222 km², x1 0,408 (Rang 17 von 32), Medianhöhe 2 789 m (Rang 7, tief), Nord 0,741 (Rang 25, nordseitig). Tiefe Lage und Nordexposition heben die Form C an (2,41 roh, geschrumpft 2,08), sein eigener Faktor liegt aber beim Landeswert (1,82) — ein flacher, windexponierter Plateaugletscher (Diablerets), wie Plaine Morte, der zweite Plateaugletscher unter den schlechter gewordenen. Ihm ähnlich (alle drei Prädiktoren innerhalb ±0,5 Streuung der Eichgletscher): **75 Zielgletscher** (24 `predicted`, 41 `predicted-shrunk`, 10 Landeswert; 27 km²); innerhalb ±1 Streuung 310 (141,8 km²).
+
+**b) Prüfer:** `verify:glacier-snowcal` **54/54** (neu Block I, I1–I7: Vertrag mit 36 Negativkontrollen, Leser von Hand, Regel je Grundlage samt Grenze 5 Zellen, Kappung, Schrumpfung, Spannen- und Flächenregel, x1-Suche gegen die volle Tabelle an 440 Fällen, Anpassung findet bekannte β, Paare von Hand, x1 des Werkzeugs), `verify:glacier-melt` **85/85** (neu Block L, L1–L7: vorhergesagte Faktoren von Hand am Schneezustand, aus = dieselben Bytes auch mit kaputter Tabellendatei daneben, 11 Abbrüche ohne stillen Rückfall, Umgebungsvariablen, V-GM-91 an einer Kette über zwei Läufe in drei Stellungen, Regeln von `fac`, die Kommandozeile reicht die Tabelle durch), `verify:glacier-snowpack` **75/75** (I14 neu: V-GM-86 — Alphas Zeile mit eigenem Faktor 2,5 ist die eines Laufs mit Regionswert 2,5; I15 Verweigerung fremder Faktorregeln; I16 vorhergesagte Faktoren und `now.bases`; I17 Neu-Einschwingen des Schmelzzustands von Hand).
+
+**c) Voller lokaler Lauf, Schalter aus** (Lesesicht `gm4\view-stn`, Cube 21.11., Uhr 21.11. 17:50 UTC, Schalter des Runners: Schneedecke, Paare, Spannen; Code aus Schnappschüssen): HEAD (`git archive`) gegen Arbeitsbaum **33 von 33 Dateien Byte für Byte gleich, Zeiger und Statuszeile gleich**. Negativkontrolle: derselbe Arbeitsbaum mit `predicted` (unten d) unterscheidet sich in 5 Dateien. Das Einschwing-Werkzeug ohne Schalter gibt `seed-1121` an allen 2 019 Gletschern wieder (nur der Bauzeitstempel im Kopf ist anders).
+
+**d) Voller lokaler Lauf, Schalter an** (`--glacier-factor=predicted`, Lesesicht mit dem Startzustand der Schneedecke derselben Regel, `seed-pred`, Regel `predicted:fadea420fc2273ef`): anders sind **genau** `melt/2026112117.json`, `melt/state.json`, `snowpack/2026112117.json`, `snowpack/state.json`, `snowpack/pairs/2026112117.json`; die 28 übrigen (alle Wetterdateien) gleich, Zeiger gleich. Geändert: 8 Schmelzzeilen, 247 Schmelzzustände, 706 Schneedecken-Zeilen — **keine außerhalb der Gletscher mit eigenem oder vorhergesagtem Faktor**. Statuszeile `glacier: { factor 42, shape 0, predicted 249, predictedShrunk 416 }`; `fac` nennt 707 Gletscher (42 eigene inkl. Österreich, 665 vorhergesagt). Faktor gegen den Landeswert an den 699 Schweizer Gletschern mit anderem Faktor: p10 0,834 · Median 1,033 · p90 1,258. Die zehn größten Änderungen: Silvretta +98 % (eigen 3,558), Verstanclagletscher +81 % (vorhergesagt 3,24), Grialetsch W +76 %, Grialetsch E +65 %, Hohsaas −38 % (eigen), Zenbächen −37 % (vorhergesagt 1,13), Sarsura +57 %, Chessjen NW +54 % (eigen), Porchabella +52 %, Glatt Firn +51 %. **Schneehöhe in der Medianhöhe zur Laufstunde** (Schweizer Zeilen, p10 / Median / p90, cm): alle 41,2 / 113,7 / 180,8 → 46,0 / 114,1 / 180,7; `predicted` 48,8 / 120,7 / 176,1 → 61,4 / 122,3 / 173,1; `predicted-shrunk` 39,7 / 108,2 / 160,6 → 45,3 / 107,0 / 157,3; `own` 54,7 / 118,3 / 206,5 → 71,9 / 118,2 / 213,7; `country` unverändert. Laufzeit gleich (386 / 385 s). Der Schmelzzustand begann in dieser Lesesicht kalt (der Zustand der Ansicht liegt 6 h nach der Laufstunde) — die Kette über zwei Läufe prüft L5.
+
+**e) Schattenpaare (nur Plausibilität; die Station steht neben dem Eis):** Die Lesesicht vom 21.11. trägt noch keine IMIS-Stationen (kamen mit GI am 22.11.) ⇒ lokal **ein einziges** Schweizer Paar mit Stationswert (Stand 57,7 → 59,0 cm gegen 29 cm Station; 24-h-Änderung +3,2 → +3,3 gegen −1 cm). Die archivierten Runner-Paare (24.11. 17 und 23 UTC; 335 Schweizer Paare an 64 Stationen) sind mit dem Landeswert gerechnet; nach der Grundlage, die der Gletscher bekäme (Lauf 23 UTC, Modell / Station Median): `own` 1,78 (16 Paare), `predicted` 1,71 (109), `predicted-shrunk` 1,88 (97), `country` 1,82 (113); der neue Faktor läge dort im Median beim 1,03- / 1,05- / 1,06-fachen. Rangkorrelation (Station / Modell) gegen (neuer Faktor / Landeswert) an den 206 vorhergesagten Paaren: +0,18 — die Richtung stimmt schwach, Gleichlauf in 53 %. Stand und 24-h-Änderung mit dem neuen Faktor an diesen Stunden sind **nicht gerechnet**: dazu bräuchte es einen Schattenlauf mit dem Schalter (Cube und Zustände dieser Stunden) (V-GM-129). Den Stand auf dem Eis beweist das nicht.
+
+**f) Mutationsrunde** auf einer Kopie des Baums (`C:\dev\buscosun-glacier-cache\gm10\mut\code`), `gm10b-mutations.mjs`: 46 eingebaute Fehler in Schalter, Producer, V-GM-91, V-GM-86, Leser, Vertrag, Regel, x1-Suche, Werkzeug und Neu-Einschwingen: **43 von 46 bemerkt** in der ersten Runde (keiner nur als Abbruch), Prüfer danach grün. Drei übersehen — und jede zeigte eine echte Lücke: (1) „Spanne einer Zeile passt nicht“: der Vertrag prüft beide Enden, aber kein Fall verletzte nur das untere; (2) „Landeswert-Zeile mit anderem Wert“ fiel nur über die nicht passende Spanne auf; (3) „Stunde ohne Antrieb als null gerechnet“: I17 hatte keine aus einem Wetterlauf gefüllte Stunde. Ergänzt: I1 um drei Negativkontrollen (nur unteres Ende, nur oberes Ende, Landeswert mit passender Spanne; jetzt 36), I17 um eine gefüllte Stunde mit Niederschlag. **Wiederholung: 3 von 3 bemerkt**, Prüfer danach grün (`gm10b-mutations.json`, `gm10b-mutations-rerun.json`). Die Kopie war vor der Runde Datei für Datei gleich dem Arbeitsbaum. Typecheck grün, Build 281/281, Budget unverändert (totalJs 2 118,1 / 2 121 KB, unter `src/` nur Verträge).
+
+Die fünf Fragen: (1) Funktionserhalt — ohne Schalter jede Datei des vollen Laufs Byte für Byte wie HEAD, alle Prüfer grün; (2)–(5) keine Anzeige liest etwas Neues, unter `src/` nur zwei Verträge (Typen und Regeln), Build und Budget unverändert.
+
+### 13.7 Befunde
+
+| Nr. | Befund | Mehrwert · Skizze |
+|---|---|---|
+| V-GM-126 | Die Stationsregel wählt für 3 der 32 Eichgletscher eine andere Station als GM-3 (sie urteilt jetzt nach Katalog-Medianhöhe und Q20-Wintern); x1 des Builds korreliert mit Schritt 0 nur 0,81, Mont Collon 1,45 → 0,39; G1 wird dadurch schlechter (358 statt 335) | ein Prädiktor, der für alle gleich entsteht, ist der ehrliche — die Eichung auf das Build-x1 umstellen ist geschehen; die alten Zahlen von Schritt 0 gelten für das GLAMOS-x1 |
+| V-GM-127 | Die Spannen-Regel schickt 493 von 1 256 Zielgletschern (16 % der Fläche) auf den Landeswert, vor allem tiefe (Medianhöhe < 2 668 m) und solche mit x1 < −0,10; im Auslassen kostet sie viel (wie gebaut 353 statt C 313 mm) | Jans Entscheidung, ob ein Rand (z. B. 10 % der Spanne) oder das Abschneiden des Prädiktors an der Spanne statt des Rückfalls gilt — neue eingefrorene Regel nötig |
+| V-GM-128 | Sex Rouge und Plaine Morte (flache, windexponierte Plateaugletscher) werden mit C schlechter; 75 Zielgletscher sind Sex Rouge ähnlich | ein Windexpositionsterm, der trägt (tpi1k trug in Schritt 0 nicht); vorher nichts ändern |
+| V-GM-129 | Die Schattenpaare können den neuen Faktor erst prüfen, wenn ein Lauf mit dem Schalter läuft; lokal fehlen der Lesesicht vom 21.11. die IMIS-Stationen | Schattenlauf mit `predicted` auf dem Runner (eigener Pfad, nicht veröffentlicht) oder eine Lesesicht ab dem 22.11. |
+| V-GM-130 | Die Szenarien der Spannen ziehen den Faktor weiter mit σ 0,25 für jede Grundlage; nur der Kopf nennt die Paare je Grundlage | σ je Grundlage aus der Tabelle (own 0,01, predicted 0,16, shrunk 0,17, country 0,26) — eine Regeländerung der Spannen, auf Jans Wort |
+| V-GM-131 | Ohne vorheriges Neu-Einschwingen beginnen beim Einschalten die 665 + 42 Gletscher im Schmelzzustand kalt (im Winter hebt das die Kachel „Fläche ohne Schneedecke“, vgl. GM-3d) | Einschalten immer zusammen mit `snowpack-seed.mjs --melt-respin` auf den Zustand im Daten-Repo und dem neuen Startzustand der Schneedecke |
+| V-GM-132 | `main` des Einschwing-Werkzeugs ist von keinem Prüfer gedeckt (Netz-Eingänge); ein Fehler in der Reihenfolge (`respin` vor seiner Deklaration) fiel erst im echten Lauf auf; ebenso reichte die Kommandozeile von `melt.mjs` `--glacier-factor-table` zuerst nicht durch (jetzt L7) | ein Prüfer, der `main` an einem Zwischenspeicher-Fixture laufen lässt |
+| V-GM-133 | `fac` vermerkt nur den Faktor; ein Umschalten der Form je Band mischt weiter zwei Rechnungen im Schmelzzustand | die Form in dieselbe Regel aufnehmen, wenn E-GM-38 die Form einschaltet |
+| V-GM-134 | Die drei Schweizer Gletscher von GM-5b ohne Gitter-x1 in Schritt 0 (Vorab, Segnas, Tiefen) haben jetzt ein Build-x1, stehen aber nicht in der Anpassung (Menge der eingefrorenen Regel) | in der nächsten Runde mitnehmen (neue Regel) |
+
+### 13.9 Nachtrag 25.11. abends — Tabelle ins Repo (GLAMOS hat die Nutzung bestätigt)
+
+Jans Auftrag nach der Mail von GLAMOS (25.11.2026, `audit/gletscher/licences.md` „GLAMOS — Bestätigung 25.11.2026“): die Tabelle
+vorhergesagter Faktoren kommt mit Quellenangabe ins Repo, `snow-calibration-glaciers.json` bleibt, wie sie ist.
+
+- **Quellenblock im Code:** `SNOW_FACTOR_SOURCES` in `lib/snowcalPredict.mjs` (Vermerk „abgeleitete Modellgrößen … keine Zeile und
+  kein Messwert der Quelldateien“; GLAMOS Release 2025 mit DOI, CC BY 4.0, dem **empfohlenen Zitat wörtlich** und dem Vermerk der
+  Bestätigung; SLF-Schneedatensatz Q20 v1.1, MeteoSchweiz, Copernicus GLO-30). Das Werkzeug schreibt ihn, der Vertrag der Tabelle
+  verlangt genau ihn (`verify:glacier-snowcal` I1: zwei Negativkontrollen mehr, zusammen 38; neu I8 prüft die Datei im Repo).
+- **Neu gebaut** 17:13:57–17:16:47 UTC im Vordergrund (frei 1,2 von 19,7 GB, Chrome hielt 10,5 GB; ein Vordergrundlauf ist vor dem
+  Speicher-Reaper sicher), derselbe Aufruf wie um 14:02. **Feld für Feld gleich dem Bau von 14:06 außer `builtAt`, `sources` und
+  `inputs.tool`** (Hash des geänderten Werkzeugs); der Bericht (`table-src.out.json`) ohne Pfad, Hash und Zeitstempel gleich.
+  Datei `scripts/glacier/snow-factor-predicted-ch.json`, sha256 `8fa1833ce90c771b…` (vorher lokal `fadea420…`). Die Faktoren sind
+  dieselben; die Volläufe 3c/3d liefen mit `fadea420` — mit der neuen Datei heißt die Regel `predicted:8fa1833ce90c771b`.
+- Prüfer: `-snowcal` **55/55**, `-melt` 85/85, `-snowpack` 75/75. Gegenprobe auf der Kopie: „Vertrag verlangt die Quellenangabe
+  der Tabelle nicht“ — bemerkt von I1, Prüfer danach grün (`gm10b-mutations-sources.json`). `src/` unverändert seit dem Gate
+  (Typecheck, Build, Budget nicht neu gerechnet).
+- Der Schalter `predicted` bleibt aus, bis V-GM-127 gemessen ist (Jan). Kommen Faktoren in die Anzeige, gehört das Zitat von GLAMOS
+  in die Quellen-Kachel.
+
+### 13.8 V-GM-107 — erste 24-h-Änderung aus den Schattenpaaren des Runners
+
+Nur gelesen, 25.11. 18:30 UTC, kein voller lokaler Lauf aktiv. Werkzeug `gm10b-pairs24.mjs`, Bericht
+`C:\dev\buscosun-glacier-cache\gm10\runner\v107-2517.json`. Lauf A = `pairs-2026112417` (Ablage), Lauf B = `pairs/2026112517.json`
+aus dem Daten-Repo (Commit `9dc7e990`, 17:28:59 UTC, über raw an diesem Commit gelesen; **die Ablage-Kopie von 2517 gibt es erst nach dem
+Archivlauf 23:10 UTC** — der Vergleich mit ihr steht aus). Regel wie GM-4 §3h.3: Schneefall = Station ≥ +3 cm in 24 h, ruhig =
+|Station| < 1 cm, Verhältnis = mittlere Modelländerung / mittlere Stationsänderung (nur bei |Station| ≥ 1 cm). 465 Paare in beiden Läufen.
+
+| Teilmenge | Paare (Stationen) | Station cm | Modell cm | Verhältnis | MAE cm | r |
+| --- | --- | --- | --- | --- | --- | --- |
+| alle, Schneefall | 98 (17) | +6,5 | +1,0 | **0,15** | 6,1 | 0,33 |
+| alle, ohne Schneefall | 367 (74) | −4,4 | −0,7 | 0,15 | 4,6 | 0,28 |
+| alle, ruhig | 89 (15) | +0,1 | −0,5 | — | 1,9 | −0,07 |
+| CH, Schneefall (IMIS 96 von 97) | 97 (16) | +6,5 | +1,0 | 0,15 | 6,1 | 0,32 |
+| CH, ohne Schneefall (IMIS) | 238 (48) | −5,6 | 0,0 | 0,00 | 5,8 | 0,45 |
+| AT, ohne Schneefall (Tirol 94, Hydro 26, Bozen 8) | 129 (27) | −2,0 | −1,8 | 0,93 | 2,4 | 0,04 |
+| AT, ruhig | 56 (8) | +0,2 | −1,7 | — | 1,9 | 0,17 |
+
+**Lesart (ein Fenster, 17 Stationen mit Schneefall — kein Urteil):** Am Schneefall nimmt die Schneedecke des Runners in 24 h nur
+**0,15** der Stationsänderung auf; GM-4 maß im Fenster 22./23.11. mit Analysen und Startzustand **0,76**. Fast alle Schneefallpaare
+sind IMIS-Stationen der Schweiz. Dort sinkt die Station an den übrigen Paaren um 5,6 cm, das Modell bleibt bei 0,0 — Setzung oder
+Verfrachtung an der Station, die das Modell in 24 h nicht zeigt. In Österreich folgt das Modell der Abnahme (0,93), an ruhigen
+Paaren sinkt es um 1,7 cm, wo die Station steht. Zwei Ursachen lassen sich aus einem Fenster nicht trennen: der Antrieb (der
+Runner rechnet mit dem Niederschlag von buscosun Fusion, GM-4 mit Analysen) und der Kern (Setzung). Der vorhergesagte Faktor ist
+aus — diese Zahlen sind die des Landeswerts. Befund **V-GM-135**.
+
+| V-… | Befund | Mehrwert · Skizze |
+| --- | --- | --- |
+| V-GM-135 | Im ersten 24-h-Fenster aus den Runner-Paaren (24.11. 17 → 25.11. 17 UTC) nimmt die Schneedecke am Schneefall nur 0,15 der Stationsänderung auf (GM-4: 0,76); an den IMIS-Stationen ohne Schneefall sinkt die Station 5,6 cm, das Modell 0 | weiß, ob die Schneedecke Neuschnee im Betrieb verschluckt · dieselbe Ablesung über sieben Fenster (bis 02.12.) und je Fenster den Niederschlag von buscosun Fusion an der Station gegen RhiresD/IMIS legen, damit Antrieb und Kern getrennt werden; nichts ändern, bevor sieben Fenster dasselbe sagen |
+

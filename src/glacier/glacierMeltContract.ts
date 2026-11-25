@@ -80,6 +80,14 @@ export interface GlacierMeltDoc {
       glaciers?: {
         factor: boolean; shape: boolean; method: string; melt: string; shrink: { n0: number; n0s: number }; entries: number; atBound: number;
         verdict: { K6: boolean; K7: boolean }; applied: { factor: string[]; shape: string[] };
+        /**
+         * GM-10b (E-GM-44), only with `--glacier-factor=predicted`: the table of PREDICTED factors (computed, not measured) the other Swiss rows ran on —
+         * its hash, the rule, the counts per basis and the rows per basis. A row of the table with basis `country` ran on `regions` and is not listed.
+         */
+        predicted?: {
+          rule: 'predicted'; table: string; form: string; minCells: number; shrink: number; small: 'shrunk' | 'country'; origin: 'computed'; verified: false;
+          counts: Record<string, number>; applied: { predicted: string[]; 'predicted-shrunk': string[] };
+        };
       };
     };
   };
@@ -91,7 +99,7 @@ export interface GlacierMeltDoc {
    * `--melt-state=run-hour`: `mode`, `replayedH` (hours advanced with the forcing the state file carried) and `held` (glaciers whose state was taken
    * without advancing because the file carried no forcing for them). The page reads `source` only.
    */
-  state: { source: 'carried' | 'cold'; ageH: number | null; nudged: number; mode?: 'run-hour'; replayedH?: number; held?: number; sat?: { rule: 'once'; applied: number; held: number } };
+  state: { source: 'carried' | 'cold'; ageH: number | null; nudged: number; mode?: 'run-hour'; replayedH?: number; held?: number; sat?: { rule: 'once'; applied: number; held: number }; respun?: number };
   build: string;
   glaciers: GlacierMeltRow[];
   skipped: { id: string; reason: string }[];
@@ -112,6 +120,12 @@ export interface GlacierMeltState {
   pend?: { h: number; f: Record<string, GlacierMeltPendRow>; o: Record<string, string> };
   /** GM-4 (E-GM-22, `--sat-nudge=once`): per glacier the date (yyyy-mm-dd) of the season row its state took last; a row of that date or older does not nudge again */
   sat?: Record<string, string>;
+  /**
+   * V-GM-91, only from a run with the factor switch on (`--glacier-factor=on|predicted`): the rule of that run (`<word>:<16 hex of its table>`) and per
+   * glacier the factor its snow came from where it was not the value of its region. A run starts a glacier anew whose factor differs from the one named
+   * here (none named = its region's value) — a state never holds snow of two factors.
+   */
+  fac?: { rule: string; f: Record<string, number> };
 }
 export type GlacierMeltPendRow = [number, (number | null)[], (number | null)[], (number | null)[], (number | null)[]];
 
@@ -171,6 +185,14 @@ export function meltStateProblems(s: GlacierMeltState): string[] {
     for (const [id, owner] of Object.entries(pd.o)) if (!(owner in pd.f)) p.push(`${id}: Antriebsgeber ${owner} fehlt`);
     // every glacier of the state can be advanced: its owner (itself unless `o` names another) carries forcing
     for (const id of Object.keys(s.g ?? {})) if (!((pd.o[id] ?? id) in pd.f)) p.push(`${id}: Zustand ohne Antrieb`);
+  }
+  if (s.fac !== undefined) {
+    // V-GM-91: the factor rule and the factor of each glacier that ran on its own or a predicted one
+    if (!s.fac || typeof s.fac.rule !== 'string' || !/^(on|predicted):[0-9a-f]{16}$/.test(s.fac.rule) || !s.fac.f || typeof s.fac.f !== 'object' || Array.isArray(s.fac.f)) return [...p, 'Faktorregel: Form'];
+    for (const [id, F] of Object.entries(s.fac.f)) {
+      if (!(typeof F === 'number' && Number.isFinite(F) && F >= 0.3 - 1e-9 && F <= 5 + 1e-9)) p.push(`${id}: Faktor ${String(F)}`);
+      if (!(id in (s.g ?? {}))) p.push(`${id}: Faktor ohne Zustand`);
+    }
   }
   if (s.sat !== undefined) {
     // GM-4 (E-GM-22): a scene record belongs to a state of the file
