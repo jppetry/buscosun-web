@@ -24,7 +24,9 @@ const r1 = (x) => (x == null ? null : Math.round(x * 10) / 10);
 const mean = (a) => (a.length ? a.reduce((s, v) => s + v, 0) / a.length : null);
 // the frozen rule
 const frozen = readFileSync(join(HERE, 'gm11-winter26-frozen.md'));
-const sha = createHash('sha256').update(frozen).digest('hex');
+const sha = createHash('sha256').update(frozen.toString('utf8').replace(/
+/g, '
+')).digest('hex');   // the blob in git (LF); a CRLF checkout hashes the same
 const want = readFileSync(join(HERE, 'gm11-winter26-frozen.sha256'), 'utf8').trim().split(/\s+/)[0];
 if (sha !== want) throw new Error(`Regel geändert: ${sha} ≠ ${want}`);
 const cal = J(join(REPO, 'scripts/glacier/melt-calibration.json')).fit, m = { model: 'eti', TF: cal.TF, SRF: cal.SRF };

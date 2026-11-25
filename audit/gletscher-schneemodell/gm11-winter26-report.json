@@ -255,7 +255,6 @@
    "key": "A10g-05",
    "name": "Silvrettagletscher",
    "catId": "gl_ch_silvrettagletscher",
-   "BW": 901.5,
    "gapT": 0,
    "gapP": 0,
    "s": {
@@ -302,7 +301,6 @@
    "key": "A14g-16",
    "name": "Glatscher da Plattas / Glatscher da Medel",
    "catId": "gl_ch_glatscher-da-medel-e",
-   "BW": 1073.8,
    "gapT": 0,
    "gapP": 0,
    "s": {
@@ -349,7 +347,6 @@
    "key": "A50i-19",
    "name": "Claridenfirn",
    "catId": "gl_ch_claridenfirn",
-   "BW": 1403.5,
    "gapT": 0,
    "gapP": 0,
    "s": {
@@ -396,7 +393,6 @@
    "key": "A54g-03",
    "name": "Oberaargletscher",
    "catId": "gl_ch_oberaargletscher",
-   "BW": 1185.2,
    "gapT": 0,
    "gapP": 0,
    "s": {
@@ -443,7 +439,6 @@
    "key": "A55f-03",
    "name": "Glacier de la Plaine Morte",
    "catId": "gl_ch_glacier-de-la-plaine-morte",
-   "BW": 1471.5,
    "gapT": 0,
    "gapP": 0,
    "s": {
@@ -490,7 +485,6 @@
    "key": "B16-01",
    "name": "Glacier du Sex Rouge",
    "catId": "gl_ch_glacier-du-sex-rouge",
-   "BW": 1373.5,
    "gapT": 1.3,
    "gapP": 0,
    "s": {
@@ -537,7 +531,6 @@
    "key": "B22-01",
    "name": "Glacier de Tsanfleuron",
    "catId": "gl_ch_glacier-de-tsanfleuron",
-   "BW": 1757.2,
    "gapT": 1.3,
    "gapP": 0,
    "s": {
@@ -584,7 +577,6 @@
    "key": "B36-26",
    "name": "Grosser Aletschgletscher",
    "catId": "gl_ch_grosser-aletschgletscher",
-   "BW": 830.1,
    "gapT": 0,
    "gapP": 0,
    "s": {
@@ -631,7 +623,6 @@
    "key": "B43-03",
    "name": "Rhonegletscher",
    "catId": "gl_ch_rhonegletscher",
-   "BW": 1341.9,
    "gapT": 0,
    "gapP": 0,
    "s": {
@@ -678,7 +669,6 @@
    "key": "B45-04",
    "name": "Griesgletscher",
    "catId": "gl_ch_griesgletscher",
-   "BW": 1109.1,
    "gapT": 0,
    "gapP": 0,
    "s": {
@@ -725,7 +715,6 @@
    "key": "B51-41",
    "name": "Hohsaasgletscher",
    "catId": "gl_ch_hohsaasgletscher",
-   "BW": 643,
    "gapT": 0,
    "gapP": 0,
    "s": {
@@ -772,7 +761,6 @@
    "key": "B52-24",
    "name": "Schwarzberggletscher",
    "catId": "gl_ch_schwarzberggletscher-zentral",
-   "BW": 863.4,
    "gapT": 0,
    "gapP": 0,
    "s": {
@@ -819,7 +807,6 @@
    "key": "B52-29",
    "name": "Allalingletscher",
    "catId": "gl_ch_allalingletscher",
-   "BW": 850.2,
    "gapT": 0,
    "gapP": 0,
    "s": {
@@ -866,7 +853,6 @@
    "key": "B52-32",
    "name": "Hohlaubgletscher",
    "catId": "gl_ch_hohlaubgletscher",
-   "BW": 946.7,
    "gapT": 0,
    "gapP": 0,
    "s": {
@@ -913,7 +899,6 @@
    "key": "B53-14",
    "name": "Chessjengletscher NW",
    "catId": "gl_ch_chessjengletscher-nw",
-   "BW": 1096.8,
    "gapT": 0,
    "gapP": 0,
    "s": {
@@ -960,7 +945,6 @@
    "key": "B55-15",
    "name": "Alphubelgletscher N",
    "catId": "gl_ch_feegletscher-g007867e46057n",
-   "BW": 376,
    "gapT": 0,
    "gapP": 0,
    "s": {
@@ -1007,7 +991,6 @@
    "key": "B56-03",
    "name": "Findelgletscher",
    "catId": "gl_ch_findelgletscher",
-   "BW": 863.5,
    "gapT": 0,
    "gapP": 0,
    "s": {
@@ -1054,7 +1037,6 @@
    "key": "B75-12",
    "name": "Glacier de Tortin",
    "catId": "gl_ch_glacier-de-tortin-zentral",
-   "BW": 979.1,
    "gapT": 0,
    "gapP": 0,
    "s": {
@@ -1101,7 +1083,6 @@
    "key": "B82-14",
    "name": "Glacier du Giétro",
    "catId": "gl_ch_glacier-du-gietro",
-   "BW": 818.4,
    "gapT": 0,
    "gapP": 0,
    "s": {
@@ -1148,7 +1129,6 @@
    "key": "B82-27",
    "name": "Glacier d'Otemma",
    "catId": "gl_ch_glacier-d-otemma-zentral",
-   "BW": 754.6,
    "gapT": 0,
    "gapP": 0,
    "s": {
@@ -1195,7 +1175,6 @@
    "key": "B83-03",
    "name": "Glacier de Corbassière",
    "catId": "gl_ch_glacier-de-corbassiere",
-   "BW": 893,
    "gapT": 0,
    "gapP": 0,
    "s": {
@@ -1242,7 +1221,6 @@
    "key": "B85-23",
    "name": "Glacier d'Orny",
    "catId": "gl_ch_glacier-d-orny",
-   "BW": 1493.4,
    "gapT": 0,
    "gapP": 0,
    "s": {
@@ -1277,7 +1255,6 @@
    "key": "C14-10",
    "name": "Ghiacciaio del Basòdino",
    "catId": "gl_ch_ghiacciaio-del-basodino",
-   "BW": 1208,
    "gapT": 3.1,
    "gapP": 0,
    "s": {
@@ -1324,7 +1301,6 @@
    "key": "E22-03",
    "name": "Vadret da Morteratsch",
    "catId": "gl_ch_vadret-da-morteratsch",
-   "BW": 747.3,
    "gapT": 0,
    "gapP": 0,
    "s": {
@@ -1359,7 +1335,6 @@
    "key": "E22-16",
    "name": "Vadret Pers",
    "catId": "gl_ch_vadret-pers",
-   "BW": 721.1,
    "gapT": 1.3,
    "gapP": 0,
    "s": {
@@ -1406,7 +1381,6 @@
    "key": "E23-16",
    "name": "Vadret dal Murtèl",
    "catId": "gl_ch_vadret-dal-murtel-g009821e46407n",
-   "BW": 708.3,
    "gapT": 1.3,
    "gapP": 0,
    "s": {
@@ -1453,7 +1427,6 @@
    "key": "E23-18",
    "name": "Vadret dal Corvatsch",
    "catId": "gl_ch_vadret-dal-corvatsch-s",
-   "BW": 537.7,
    "gapT": 1.3,
    "gapP": 0,
    "s": {
@@ -1496,5 +1469,6 @@
    },
    "basis": "own"
   }
- ]
+ ],
+ "note": "Ohne gemessene Winterbilanz je Gletscher (E-GL-17: GLAMOS-Messwerte bleiben im lokalen Cache, C:dev\buscosun-glacier-cachegm11w26winter26.json); hier nur Faktoren und Fehler des Modells"
 }
