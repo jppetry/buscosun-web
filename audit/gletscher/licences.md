@@ -92,3 +92,5 @@ Repo; gelesen habe ich sie nicht.
 
 Unverändert: Messwerte und Zeilen der GLAMOS-Dateien bleiben im lokalen Cache und dienen intern als Wahrheit (E-GL-17); abgeleitete Größen
 tragen den Quellenblock.
+
+**Vermerk 25.11.2026 (E-GL-17):** Commit `d1361864` von `buscosun-web` trägt in `audit/gletscher-schneemodell/gm11-winter26-report.json` gemessene gletscherweite Winterbilanzen 2026 (27 Schweizer Gletscher) aus GLAMOS Release 2026; entfernt in `3820bffa`; beide am 25.11.2026 um 21:13 UTC gepusht, Historie nicht umgeschrieben. Gedeckt durch CC BY 4.0 und die schriftliche Bestätigung vom 25.11.2026; **die Datei in `d1361864` nennt GLAMOS nicht als Quelle** (Namensnennung fehlt in diesem einen Stand). E-GL-17 war damit für einen Commit der Historie verletzt; der Baum an HEAD ist sauber.

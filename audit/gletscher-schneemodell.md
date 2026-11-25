@@ -2252,7 +2252,7 @@ Am 24.11. gibt buscosun Fusion schon **ohne Faktor** etwa doppelt so viel Wasser
 
 | V-… | Befund | Mehrwert · Skizze |
 |---|---|---|
-| V-GM-149 | Nach V-GM-136 trägt `snow-factor-predicted-ch.json` den Hash einer Eichtabelle, die es nicht mehr gibt; `verify:glacier-snowcal` I8 bleibt rot, bis sie neu gebaut ist | ein grüner Prüfer · Tabelle mit `--mode=table` neu bauen (Jans Wort), Faktoren vorher und nachher vergleichen (erwartet: gleich) |
+| V-GM-149 (erledigt 25.11. abends: Tabelle neu gebaut, alle 1 291 Faktoren gleich, nur `builtAt` und `inputs.ownTable` anders; `verify:glacier-snowcal` 55/55) | Nach V-GM-136 trägt `snow-factor-predicted-ch.json` den Hash einer Eichtabelle, die es nicht mehr gibt; `verify:glacier-snowcal` I8 bleibt rot, bis sie neu gebaut ist | ein grüner Prüfer · Tabelle mit `--mode=table` neu bauen (Jans Wort), Faktoren vorher und nachher vergleichen (erwartet: gleich) |
 | V-GM-150 | Das Venedigerkees hat 11 gemessene Winter je Stufe, aber keinen eigenen Platz im Katalog (AGI 5 führt es im Obersulzbach Kees) | ein Eichgletscher mehr in Österreich, wenn der Katalog es trennt · prüfen, ob AGI 5 / RGI 6 einen Teilumriss für RGI60-11.00116 hergibt; bis dahin Wahrheit nur für den Landeswert |
 
 ### 3q.4 Der ungesehene Winter 2025/26 (1.4; ein Winter)
@@ -2280,6 +2280,8 @@ Am 24.11. gibt buscosun Fusion schon **ohne Faktor** etwa doppelt so viel Wasser
 |---|---|---|
 | V-GM-151 | Im ungesehenen Winter 2025/26 liegen alle fünf Grundlagen um 360–415 mm zu niedrig; der Jahresfehler ist größer als jeder Unterschied der Grundlagen, und der eigene Faktor hält seine Referenz nicht | warnt, dass die Spanne der Faktoren die Jahr-zu-Jahr-Streuung unterschätzt · die Spanne je Grundlage um einen Jahresanteil erweitern, bevor E-GM-38 einschaltet; am Winter 2026 RhiresD gegen die IMIS-/Messfeld-Neuschneesummen der Saison prüfen |
 | V-GM-152 | Die Stationsregel der Eichung hängt am Zeitfenster: dieselbe Regel wählt für Pers 2011–2025 Piz Corvatsch, 2024–2026 Passo del Bernina (161 mm Unterschied in einem Winter) | jede neue Eichrunde rechnet mit denselben Stationen · die Zuordnung der Eichung als Datei festhalten und neu nur mit Vermerk ändern |
+
+**Nachtrag 25.11. abends — E-GL-17 in einem Commit der Historie verletzt.** Commit `d1361864` enthielt in `audit/gletscher-schneemodell/gm11-winter26-report.json` die gemessene gletscherweite Winterbilanz 2026 (Feld `BW`) von 27 Schweizer Gletschern aus GLAMOS Release 2026; `3820bffa` nimmt sie heraus. Beide sind mit `44e7af13..2de69d0b` am 25.11. um 21:13 UTC auf `origin/main` gepusht (Jan); die Historie wird nicht umgeschrieben. Gedeckt durch CC BY 4.0 und die schriftliche Bestätigung von GLAMOS vom 25.11. (Release 2026, `audit/gletscher/licences.md`). **Geprüft: die Datei in `d1361864` nennt GLAMOS nicht als Quelle** (kein Vorkommen von „GLAMOS“, nur die Regel-Datei) — die Namensnennung fehlt dort; sie steht in diesem Abschnitt und in der eingefrorenen Regel. Der Baum an HEAD ist sauber (`BW` 0-mal).
 
 ### 3q.5 Hindcast-Prüfung, Stufe A: Diagnose (1.5; nichts gerechnet)
 
