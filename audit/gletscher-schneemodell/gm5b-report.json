@@ -1,6 +1,6 @@
 {
  "kind": "gm5b/report",
- "generated": "2026-11-24T07:39:17.608Z",
+ "generated": "2026-11-25T20:49:49.603Z",
  "method": {
   "file": "audit/gletscher-schneemodell/gm5b-method-frozen.md",
   "sha256": "c5242e51e53d55e5eabf4e034208e28bdfca7d6ff74fc491a45a8d13b8231344"
@@ -916,7 +916,7 @@
    }
   },
   "10460": {
-   "catId": "gl_at_untersulzbach-kees",
+   "catId": null,
    "name": "VENEDIGER K.",
    "country": "AT",
    "winters": 11,

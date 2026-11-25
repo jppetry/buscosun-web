@@ -19,7 +19,9 @@ const AUDIT = join(ROOT, 'audit', 'gletscher-schneemodell');
 export function buildGlacierTable(R) {
   const [lo, hi] = SNOWCAL_GLACIERS_BOUNDS.F;
   const glaciers = {};
-  for (const g of Object.values(R.table).sort((a, b) => (a.catId < b.catId ? -1 : 1))) {
+  // GM-11 (V-GM-136): a series without a catalogue glacier (it measures a part of one, `snowcal-truth.mjs`) stays in the fit, gets no row here
+  const without = Object.entries(R.table).filter(([, g]) => !g.catId).map(([key, g]) => ({ key, name: g.name, country: g.country, winters: g.winters }));
+  for (const g of Object.values(R.table).filter((x) => x.catId).sort((a, b) => (a.catId < b.catId ? -1 : 1))) {
     glaciers[g.catId] = { country: g.country, winters: g.winters, years: g.years, F: g.F, origin: 'measured', ...(g.F <= lo + 1e-9 || g.F >= hi - 1e-9 ? { atBound: true } : {}), shape: g.shape };
   }
   const s = R.summary, v = R.verdicts;
@@ -33,6 +35,7 @@ export function buildGlacierTable(R) {
     sources: SNOWCAL_GLACIERS_SOURCES,
     forcing: 'Temperatur und Globalstrahlung einer Station (SwissMetNet, GeoSphere klima-v2-1h), nicht die des Betriebs',
     n: { glaciers: s.glaciers, winters: s.winters, usable: R.data.usable },
+    ...(without.length ? { withoutCatalogue: { note: 'Reihen der Eichung ohne eigenen Katalog-Gletscher (Teil eines Gletschers): im Landeswert und im Formpool, ohne Zeile', series: without } } : {}),
     shrink: { n0: s.n0, n0s: s.n0s }, country: s.countryFull, bounds: { F: SNOWCAL_GLACIERS_BOUNDS.F, floor: SNOWCAL_GLACIERS_BOUNDS.floor },
     scores: { unit: 'mm w. e.', leftOut: 'ein Winter', V0: s.V0.all, V1: s.V1.all, V2: s.V2.all, V3: s.V3.all, negative: s.N.all, byCountry: { CH: { V0: s.V0.CH, V1: s.V1.CH, V2: s.V2.CH }, AT: { V0: s.V0.AT, V1: s.V1.AT, V2: s.V2.AT } } },
     verdict: v, gate: { factor: v.K6.carries, shape: v.K7.carries },

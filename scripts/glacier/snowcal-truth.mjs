@@ -70,7 +70,8 @@ export function buildTruth({ glamosDir, wgmsDir, catalogPath, from = FROM, to = 
   }
 
   // --- Austria: WGMS bands, the dates of the survey ------------------------------------------------------------------------------
-  const glac = new Map(csv(readFileSync(join(wgmsDir, 'glacier.csv'), 'utf8')).filter((r) => r.country === 'AT').map((r) => [r.id, r]));
+  const allGlac = new Map(csv(readFileSync(join(wgmsDir, 'glacier.csv'), 'utf8')).map((r) => [r.id, r]));
+  const glac = new Map([...allGlac].filter(([, r]) => r.country === 'AT'));
   const dates = new Map(csv(readFileSync(join(wgmsDir, 'mass_balance.csv'), 'utf8')).filter((r) => r.country === 'AT').map((r) => [`${r.glacier_id}|${r.year}`, r]));
   const at = new Map();
   for (const r of csv(readFileSync(join(wgmsDir, 'mass_balance_band.csv'), 'utf8'))) {
@@ -98,7 +99,22 @@ export function buildTruth({ glamosDir, wgmsDir, catalogPath, from = FROM, to = 
     if (o.bins.some((b) => !(b.area > 0))) { dropped.push(`${o.name} ${o.year}: band without area`); continue; }
     const lat = Number(g.latitude), lon = Number(g.longitude);
     const near = atCat.map((c) => ({ c, km: hav(lon, lat, c.lon, c.lat) })).sort((a, b) => a.km - b.km)[0];
-    Object.assign(o, { t0: d.begin_date, t1: d.midseason_date, timeSystem: d.time_system || null, catId: near.km <= 3 ? near.c.id : null, catKm: Math.round(near.km * 10) / 10, region: near.c.region, lat, lon });
+    // GM-11 (V-GM-136): the catalogue glacier of a series — first the WGMS id the catalogue carries (`inv.wgms`), then the chain of
+    // `parent_glacier_id`, the distance only for a series with neither. A series whose chain reaches a catalogue glacier only through an
+    // ancestor measures a PART of that glacier: it names the ancestor (`catAncestor`) and gets no catalogue glacier (`catId: null`) — it stays
+    // truth for the country value and the shape, it gives no glacier its own factor. `region` stays the nearest entry's (the forcing station).
+    const byWgms = atCat.find((c) => String(c.inv?.wgms ?? '') === o.key);
+    let via = null, catId = null, ancestor = null;
+    if (byWgms) { via = 'wgms'; catId = byWgms.id; }
+    else if (g.parent_glacier_id) {
+      via = 'parent';
+      for (let p = g.parent_glacier_id, hops = 0; p && hops < 5; hops++) {
+        const hit = atCat.find((c) => String(c.inv?.wgms ?? '') === p);
+        if (hit) { ancestor = { wgms: p, id: hit.id, hops: hops + 1 }; break; }
+        p = allGlac.get(p)?.parent_glacier_id || null;
+      }
+    } else if (near.km <= 3) { via = 'distance'; catId = near.c.id; }
+    Object.assign(o, { t0: d.begin_date, t1: d.midseason_date, timeSystem: d.time_system || null, catId, catVia: via, ...(ancestor ? { catAncestor: ancestor } : {}), catKm: Math.round(near.km * 10) / 10, region: near.c.region, lat, lon });
     out.push(o);
   }
 
@@ -120,7 +136,7 @@ if (import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}`) {
   writeFileSync(arg('out'), JSON.stringify({ kind: 'glacier/snowcal-truth', from: FROM, to: TO, sources: ['GLAMOS (2025), Swiss Glacier Mass Balance, release 2025, doi:10.18750/massbalance.2025.r2025', 'WGMS (2026), Fluctuations of Glaciers Database, 2026-02-10'], dropped, gy }));
   const gl = new Map();
   for (const o of gy) { const k = `${o.country} ${o.region} | ${o.name}`; const e = gl.get(k) ?? { n: 0, o }; e.n++; gl.set(k, e); }
-  for (const [k, e] of [...gl].sort()) console.log(k.padEnd(62), String(e.n).padStart(2), `zMed ${e.o.zMed}`, `bins ${e.o.bins.length}`, e.o.catId ?? `(kein Katalogeintrag ≤ 3 km, nächster ${e.o.catKm} km)`);
+  for (const [k, e] of [...gl].sort()) console.log(k.padEnd(62), String(e.n).padStart(2), `zMed ${e.o.zMed}`, `bins ${e.o.bins.length}`, e.o.catId ? `${e.o.catId} (${e.o.catVia ?? "sgi"})` : e.o.catAncestor ? `(Teil von ${e.o.catAncestor.id} über die Elternkette, kein eigener Katalog-Gletscher)` : `(kein Katalogeintrag, nächster ${e.o.catKm} km)`);
   console.log(`${gy.length} glacier-winters, ${gl.size} glaciers (CH ${gy.filter((o) => o.country === 'CH').length}, AT ${gy.filter((o) => o.country === 'AT').length}); dropped ${dropped.length}`);
   for (const d of dropped) console.log('  dropped:', d);
 }

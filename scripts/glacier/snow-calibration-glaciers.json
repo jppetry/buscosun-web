@@ -1,7 +1,7 @@
 {
  "schema": 1,
  "kind": "glacier/snow-calibration-glaciers",
- "generated": "2026-11-24T07:39:17.608Z",
+ "generated": "2026-11-25T20:49:49.603Z",
  "method": {
   "file": "audit/gletscher-schneemodell/gm5b-method-frozen.md",
   "sha256": "c5242e51e53d55e5eabf4e034208e28bdfca7d6ff74fc491a45a8d13b8231344",
@@ -44,6 +44,17 @@
   "glaciers": 43,
   "winters": 478,
   "usable": 481
+ },
+ "withoutCatalogue": {
+  "note": "Reihen der Eichung ohne eigenen Katalog-Gletscher (Teil eines Gletschers): im Landeswert und im Formpool, ohne Zeile",
+  "series": [
+   {
+    "key": "10460",
+    "name": "VENEDIGER K.",
+    "country": "AT",
+    "winters": 11
+   }
+  ]
  },
  "shrink": {
   "n0": 0,
@@ -410,43 +421,6 @@
      0.105
     ],
     "m": 0.857
-   }
-  },
-  "gl_at_untersulzbach-kees": {
-   "country": "AT",
-   "winters": 11,
-   "years": [
-    2013,
-    2025
-   ],
-   "F": 1.91,
-   "origin": "measured",
-   "shape": {
-    "z0": 2400,
-    "stepM": 50,
-    "s": [
-     -0.178,
-     -0.181,
-     -0.174,
-     -0.125,
-     -0.104,
-     -0.139,
-     -0.134,
-     -0.093,
-     -0.054,
-     -0.011,
-     0.017,
-     0.02,
-     0.015,
-     0.006,
-     0.004,
-     0.043,
-     0.129,
-     0.169,
-     0.155,
-     0.134
-    ],
-    "m": 0.846
    }
   },
   "gl_ch_adlergletscher": {
