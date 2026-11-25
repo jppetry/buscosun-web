@@ -2049,6 +2049,24 @@ Stand der übrigen Befunde: V-GM-103 und V-GM-104 gehen in V-GM-108 auf; V-GM-10
 
 **Stand GM-9: geschlossen (24.11. nachts).** Committet auf Jans Wort, nicht gepusht: `audit/gletscher-schneemodell/gm9-density.mjs`, `gm9-method-frozen.md`, `gm9-method-frozen.sha256`, `gm9-report.json`, dieses Audit, `CLAUDE.md`, `MANUELLE-SCHRITTE.md` (§125).
 
+## 3n. GM-10, Schritt 0: Lässt sich der Faktor eines Gletschers vorhersagen? (25.11., nur Messung)
+
+Diagnose, Inventar, Zahlen und Befunde: `audit/gletscher-schneemodell/gm10-diagnose.md`. Regel `gm10-method-frozen.md` (sha256 `d487643d…`, eingefroren 25.11. 07:36:45 UTC nach dem synthetischen Wiederfindungstest), Werkzeuge `gm10-q20.py`, `gm10-snowgrid.mjs`, `gm10-terrain.py`, `gm10-factor.mjs` (alle in diesem Ordner). Der volle Bericht mit Werten je Gletscher liegt nur lokal (`C:\dev\buscosun-glacier-cache\gm10\report.json`, Lizenzfrage GLAMOS offen). Kein Producer-Code, nichts im Daten- oder Archiv-Repo, kein Commit.
+
+- **Daten:** Q20 (SLF, 250 m, Winter 2016–2025) lag vollständig im Zwischenspeicher, md5 stimmt; Version 1.0 mit um 2 000 m falsch beschriftetem Nordwert, korrigiert und am Höhenmodell geprüft (V-GM-110). SNOWGRID für Österreich in 3 Abrufen. Gewertet: Schweiz 32 von 35 Gletschern (377 Winter), Österreich 8 (87 Winter, 1-km-Zellen, vier Gletscher an einer Zelle).
+- **Ergebnis (Winterbilanzfehler, ein Gletscher ausgelassen, exakt mit dem Kern):**
+
+| Form | Land | Form | Landeswert a′ / a | eigener Faktor b | Gewinn gegen a′ | Lücke geschlossen | Vertauschung p | Urteil des Skripts |
+|---|---|---|---|---|---|---|---|---|
+| G1: Faktor, den das Gitter verlangt (Q20) | CH | **334,8** | 406,1 / 402,3 | 207,7 | **17,6 %** | 35 % | 0,005 | **trägt** |
+| G1 (SNOWGRID) | AT | 341,1 | 411,3 / 425,3 | 361,8 | 17,1 % | 132 % | 0,005 | nicht entscheidbar (8 Gletscher) |
+| T3: Höhe, Exposition, Fläche | CH + AT | 352,1 | 401,7 / 402,2 | 233,0 | 12,4 % | 30 % | 0,005 | trägt |
+| G2: Schneewasser relativ zur Region | CH / AT | 420,6 / 455,8 | 406,1 / 411,3 | — | −3,6 / −10,8 % | — | 0,88 / 0,76 | (sekundär) nichts |
+
+  Ohne Mont Collon: G1-CH 14,3 %. Fehler eines vorhergesagten Faktors (Std. in ln) 0,20 statt 0,27 mit dem Landeswert. Windexposition und Lawineneinzug tragen nichts.
+- **Vorschlag:** bauen nur für die Schweiz mit G1, als eigenes Paket GM-10b hinter einem Schalter (aus), mit Q20 Version 1.1 und der Hypsometrie des Builds; Österreich und Deutschland behalten den Landeswert. Vor dem Bau: Lizenzfrage GLAMOS (wie E-GM-37/38), ob Gitter + Gelände zusammen gemessen werden (V-GM-112), Abhängigkeit von `TF`/`SRF` (V-GM-89).
+- Befunde V-GM-110 … V-GM-117 (`gm10-diagnose.md` §9). Offen: Jans Entscheidung.
+
 ## 4. Quellenliste (zur Prüfung durch Jan)
 
 Spalte „Stand“: **da** = schon im Betrieb, **neu** = käme mit dieser Phase dazu. Spalte „Lizenz“: **belegt** = am 22.11. an der Quelle gelesen; **wie bisher** = unverändert aus der bestehenden Linie; **offen** = von mir nicht geprüft.
