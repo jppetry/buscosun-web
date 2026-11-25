@@ -1,0 +1,157 @@
+{
+ "generated": "2026-11-24T23:29:15.842Z",
+ "run": "2026112423",
+ "runAt": "2026-11-24T23:23:28.662Z",
+ "status": {
+  "mem": {
+   "rssMb": 3315,
+   "heapMb": 2830,
+   "heapLimitMb": 4144
+  },
+  "meltSeconds": 206,
+  "snowpackSeconds": 91,
+  "spread": {
+   "k": 100,
+   "rows": 957,
+   "none": {
+    "neighbour": 1127
+   },
+   "seconds": 86
+  },
+  "pairs": {
+   "pairs": 468,
+   "withValue": 468,
+   "map": "20261120-1.5",
+   "slot": "2026112423",
+   "bytes": 103448,
+   "spread": 279
+  }
+ },
+ "snowpack": {
+  "contract": [],
+  "bytes": 2076739,
+  "statusBytes": 2076739,
+  "rule": {
+   "rule": "scenarios",
+   "k": 100,
+   "rho": 0.9,
+   "quantiles": [
+    10,
+    90
+   ],
+   "sums": "scenarios",
+   "week2": [
+    8,
+    14
+   ],
+   "sigma": {
+    "factor": 0.25,
+    "densitySystematic": 0.12,
+    "densityEvent": 0.3
+   },
+   "origin": {
+    "paths": "set",
+    "sigma": "measured"
+   },
+   "neighbour": "none"
+  },
+  "rows": 2084,
+  "rowsWithSpread": 957,
+  "rowsWithoutByReason": {
+   "neighbour": 1127
+  },
+  "rowsWithBoth": 0,
+  "rowsWithNeither": 0,
+  "statusMatches": true,
+  "widthMedianLevelCm": {
+   "day1": 6.8,
+   "day2": 27,
+   "day3": 26.5,
+   "day7": 27.5,
+   "day14": 46
+  }
+ },
+ "pairs": {
+  "contract": [],
+  "contractAgainstRows": [],
+  "bytes": 103448,
+  "gzBytes": 24035,
+  "head": {
+   "hours": [
+    24,
+    48,
+    72
+   ],
+   "origin": "computed",
+   "spread": {
+    "rule": "scenarios",
+    "k": 100,
+    "quantiles": [
+     10,
+     90
+    ],
+    "elevation": "per-scenario-linear-between-levels-clamped"
+   },
+   "pairs": 279,
+   "none": {
+    "neighbour": 189
+   }
+  },
+  "origins": {
+   "m": "computed",
+   "hn": "computed",
+   "v": "measured",
+   "hsd": "measured",
+   "fm": "computed",
+   "fq": "computed"
+  },
+  "bareSameAsRecomputed": true,
+  "sameCounts": true,
+  "n": 468,
+  "withFm": 468,
+  "withSpread": 279,
+  "withoutByReason": {
+   "neighbour": 189
+  },
+  "spreadAndReason": 0,
+  "fmNotTheRow": 0,
+  "reasonNotTheRow": 0,
+  "headMatches": true,
+  "statusMatches": true,
+  "stationsWithSpread": 75,
+  "spreadByAt": {
+   "below": 180,
+   "inside": 92,
+   "above": 7
+  },
+  "spreadWithStationValue": 279,
+  "widthCm": {
+   "h24": 9.4,
+   "h48": 26.8,
+   "h72": 25.8
+  },
+  "changeAgainstRunHourCm": {
+   "h24": {
+    "p10": -3.4,
+    "expected": -0.7,
+    "p90": 5.3
+   },
+   "h48": {
+    "p10": -7.1,
+    "expected": 3.4,
+    "p90": 18.3
+   },
+   "h72": {
+    "p10": -10.2,
+    "expected": 0.6,
+    "p90": 13.9
+   }
+  },
+  "expectedOutsideSpread": {
+   "h24": 3,
+   "h48": 0,
+   "h72": 0
+  },
+  "spreadNotOrdered": 0
+ }
+}

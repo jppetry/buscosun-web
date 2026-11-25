@@ -1,0 +1,281 @@
+{
+ "generated": "2026-11-24T23:28:37.313Z",
+ "commit": "1c9ae206f2c76c6bd8127c094ad71314023cf3e2",
+ "run": "2026112423",
+ "status": {
+  "melt": {
+   "at": "2026-11-24T23:23:28.662Z",
+   "glaciers": 2094,
+   "skipped": 0,
+   "unit": false,
+   "seconds": 206,
+   "precip": "country",
+   "state": "run-hour",
+   "mem": {
+    "rssMb": 3315,
+    "heapMb": 2830,
+    "heapLimitMb": 4144
+   }
+  },
+  "snowpack": {
+   "at": "2026-11-24T23:23:28.662Z",
+   "mode": "shadow",
+   "glaciers": 2084,
+   "skipped": 10,
+   "coverage": {
+    "own": 957,
+    "neighbour": 1127,
+    "lapse": 0
+   },
+   "precip": "country",
+   "density": "board",
+   "state": {
+    "source": "carried",
+    "since": "2026-10-01T00:00:00.000Z",
+    "ageH": 6,
+    "replayedH": 6,
+    "started": 0,
+    "gaps": {
+     "glaciers": 2084,
+     "maxH": 30
+    }
+   },
+   "carried": 0,
+   "dropped": 0,
+   "bytes": 2076739,
+   "stateBytes": 1759682,
+   "seconds": 91,
+   "pairs": {
+    "pairs": 468,
+    "withValue": 468,
+    "map": "20261120-1.5",
+    "slot": "2026112423",
+    "bytes": 103448,
+    "spread": 279
+   },
+   "spread": {
+    "k": 100,
+    "rows": 957,
+    "none": {
+     "neighbour": 1127
+    },
+    "seconds": 86
+   }
+  }
+ },
+ "pointer": {
+  "melt": {
+   "run": "2026112423",
+   "runAt": "2026-11-24T23:23:28.662Z",
+   "engine": {
+    "name": "buscosun Fusion 14",
+    "version": 14
+   },
+   "cube": {
+    "t3": "2026112412",
+    "stations": "2026112421",
+    "t1": "2026112421",
+    "t2": "2026112418"
+   },
+   "unit": false,
+   "build": "20261120-1"
+  },
+  "snowpack": {
+   "run": "2026112423",
+   "runAt": "2026-11-24T23:23:28.662Z",
+   "engine": {
+    "name": "buscosun Fusion 14",
+    "version": 14
+   },
+   "build": "20261120-1",
+   "since": "2026-10-01T00:00:00.000Z"
+  },
+  "stations": {
+   "hour": "2026112423",
+   "builtAt": "2026-11-24T23:14:20.766Z",
+   "n": 545,
+   "map": "20261120-1.5",
+   "mapAt": "2026-11-24T04:44:05.640Z",
+   "slot": "2026112423"
+  }
+ },
+ "pairs": {
+  "bytes": 103448,
+  "statusBytes": 103448,
+  "contract": [],
+  "run": "2026112423",
+  "atMs": "2026-11-24T23:00:00.000Z",
+  "snowpack": {
+   "run": "2026112423",
+   "precip": "country",
+   "density": "board"
+  },
+  "stations": {
+   "map": "20261120-1.5",
+   "slot": "2026112423",
+   "source": "glacier/v1/stn"
+  },
+  "counts": {
+   "pairs": 468,
+   "withValue": 468,
+   "at": {
+    "below": 322,
+    "inside": 119,
+    "above": 27
+   },
+   "why": {},
+   "mappedWithoutRow": 1
+  },
+  "statusLine": {
+   "pairs": 468,
+   "withValue": 468,
+   "map": "20261120-1.5",
+   "slot": "2026112423",
+   "bytes": 103448,
+   "spread": 279
+  },
+  "statusMatches": true,
+  "recomputed": {
+   "samePairs": false,
+   "sameCounts": true
+  },
+  "byNet": {
+   "tirol": 98,
+   "at": 26,
+   "bz": 8,
+   "imis": 334,
+   "ch": 2
+  },
+  "withValueByNet": {
+   "tirol": 98,
+   "at": 26,
+   "bz": 8,
+   "imis": 334,
+   "ch": 2
+  },
+  "withHsd": 98,
+  "ageMin": {
+   "p10": 0,
+   "median": 0,
+   "p90": 0
+  },
+  "modelOverStation": {
+   "n": 467,
+   "median": 1.96,
+   "rule": "nur Paare mit Stationswert >= 5 cm"
+  },
+  "stationsDistinct": 92,
+  "carriesForecast": true
+ },
+ "snowpack": {
+  "contract": [],
+  "glaciers": 2084,
+  "skipped": 10,
+  "coverage": {
+   "own": 957,
+   "neighbour": 1127,
+   "lapse": 0
+  },
+  "state": {
+   "source": "carried",
+   "since": "2026-10-01T00:00:00.000Z",
+   "ageH": 6,
+   "replayedH": 6,
+   "started": 0,
+   "gaps": {
+    "glaciers": 2084,
+    "maxH": 30
+   }
+  },
+  "spread": {
+   "rule": "scenarios",
+   "k": 100,
+   "rho": 0.9,
+   "quantiles": [
+    10,
+    90
+   ],
+   "sums": "scenarios",
+   "week2": [
+    8,
+    14
+   ],
+   "sigma": {
+    "factor": 0.25,
+    "densitySystematic": 0.12,
+    "densityEvent": 0.3
+   },
+   "origin": {
+    "paths": "set",
+    "sigma": "measured"
+   },
+   "neighbour": "none"
+  },
+  "precip": "country",
+  "density": "board",
+  "engine": {
+   "name": "buscosun Fusion 14",
+   "version": 14,
+   "stageCurrent": true
+  },
+  "cube": {
+   "t1": "2026112421",
+   "t2": "2026112418",
+   "t3": "2026112412",
+   "stations": "2026112421"
+  },
+  "stateFile": {
+   "contract": [],
+   "atMs": "2026-11-24T23:00:00.000Z",
+   "run": "2026112423",
+   "glaciers": 2084
+  },
+  "hsMedianCm": {
+   "tongue": 113.9,
+   "median": 127.7,
+   "top": 136.4
+  }
+ },
+ "melt": {
+  "contract": [],
+  "glaciers": 2094,
+  "skipped": 0,
+  "state": {
+   "source": "carried",
+   "ageH": 0,
+   "nudged": 297,
+   "mode": "run-hour",
+   "replayedH": 6,
+   "held": 0
+  },
+  "engine": {
+   "name": "buscosun Fusion 14",
+   "version": 14,
+   "stageCurrent": true
+  },
+  "cube": {
+   "t1": "2026112421",
+   "t2": "2026112418",
+   "t3": "2026112412",
+   "stations": "2026112421"
+  },
+  "precip": "country",
+  "glaciersBlock": null,
+  "stateFile": {
+   "contract": [],
+   "atMs": "2026-11-24T23:00:00.000Z",
+   "glaciers": 2094,
+   "pend": true,
+   "sat": false
+  }
+ },
+ "prev": {
+  "run": "2026112417",
+  "common": 2084,
+  "hsMedianLevelChangeCm": {
+   "p10": -1.5,
+   "median": -0.6,
+   "p90": -0.20000000000000284
+  }
+ }
+}

@@ -4808,8 +4808,9 @@ Gebaut auf dein Wort (E-GM-20 … E-GM-23, alles meine Empfehlungen):
 
 **Stand 24.11. 21:30 UTC: Punkt 1 und 2 sind erledigt — von dir committet und gepusht am 24.11. 16:35 UTC (`b448d652`). Punkt 3
 (E-GM-36) hast du am 24.11. abends entschieden: AN, K = 100 — auf dein Wort eingeschaltet am 24.11. 21:29 UTC (Daten-Repo
-`2d208df2`, eine Zeile im Workflow `glacier-melt`; kein anderer Schalter angefasst). Erster Lauf mit Spanne: der von 23:20 UTC
-(Punkt 3). buscosun Fusion nur gelesen.**
+`2d208df2`, eine Zeile im Workflow `glacier-melt`; kein anderer Schalter angefasst). Erster Lauf mit Spanne: der von 23:20 UTC,
+grün und gelesen (Punkt 3: `spread` = `k` 100, `rows` 957, `none.neighbour` 1 127, 86 s; `pairs.spread` 279). buscosun Fusion
+nur gelesen.**
 
 Was gebaut ist: hinter `--snowpack-spread=scenarios` (`GLACIER_SNOWPACK_SPREAD`, nur mit der Schneedecke) trägt jede Zeile der
 Schneedecke mit eigenem Antrieb p10/p90 je Höhe und Tag für Schneehöhe und Neuschnee (100 Szenarien) und die Summe des Neuschnees
@@ -4839,6 +4840,14 @@ Die Verteilung aus Sentinel-2 ist nicht gebaut (E-GM-30).
    `workflow-glacier-melt.yml` sind Byte für Byte die Datei im Daten-Repo (uncommitted in `buscosun-web`; die übrigen Vorlagen
    erzeugt der Generator unverändert). K = 100 ist die Konstante im Vertrag — der Workflow nennt keine Zahl.
    Weil die Paare an sind (§121), tragen sie ab diesem Lauf auch die Vorhersage in Stationshöhe (§124, V-GM-79/V-GM-98).
+   **Erster Lauf gelesen (`2026112423`, 24.11. 23:23 UTC; Actions-Lauf 354 grün, Daten-Repo `1c9ae206`):**
+   `lines.snowpack.spread` = `{ k: 100, rows: 957, none: { neighbour: 1127 }, seconds: 86 }` — wie erwartet;
+   `lines.snowpack.pairs.spread` = 279 (von 468 Paaren, alle mit Stationswert); `lines.melt.mem` = 3 315 / 2 830 / 4 144 MB
+   (§124.4). Der Schmelzlauf dauerte 206 s (um 17 UTC ohne Spanne 163 s), das Dokument ist 2,08 MB groß (vorher 1,26), die
+   Paar-Datei 103 KB (vorher 77). Beide Dokumente gegen den Vertrag ohne Befund, die Paare auch gegen die Zeilen; ohne die neuen
+   Felder sind die 468 Paare die, die sich aus Zeilen, Zuordnung und Stationsslot neu rechnen lassen. Beleg: Audit §3k.7.
+   **Neuer Befund (V-GM-109), nichts für jetzt:** an 95 von 40 194 Werten liegt der Erwartungswert ÜBER dem p90 seiner eigenen
+   Szenarien (meist um 0,2 cm an Tag 1, an den Tagen 9–14 bis 6,3 cm; nie unter p10). Das gehört vor jede Anzeige (GM-7) geklärt.
 4. **Zurück.** Die Zeile im Workflow entfernen. Der nächste Lauf schreibt das Dokument wieder ohne Spannen.
 5. **Nicht geprüft:** kein Lauf auf dem Runner; nur eine Wetterlage (21.11.); die Spanne gegen Messungen — das geht erst mit
    den Schattenpaaren von GM-4 (E-GM-24) über einige Wochen, und die Paare müssten dafür die Spanne in Stationshöhe mitschreiben
@@ -4939,9 +4948,10 @@ Was gebaut ist:
 
 1. **V-GM-96 — ERLEDIGT am 24.11. 19:47 UTC auf dein Wort („mache das … du hast die Berechtigung“):** die Repo-Variable
    `GLACIER_PRODUCER_REF = main` steht in `buscosun-archiv` (über die GitHub-API angelegt und zurückgelesen; vorher gab es sie
-   nicht — der Archivlauf von 18:48 UTC hatte deshalb `melt-2026112417.json.gz` abgelegt und keine `pairs-…`). **Noch nachsehen:**
-   nach dem Archivlauf von 00:47 UTC (25.11.) muss in `glacier/v1/2026-11-24/` die Datei `pairs-2026112417.json.gz` liegen (und die
-   der Läufe von 20 und 23 UTC, wenn sie liefen). Zurück: die Variable unter Settings → Secrets and variables → Actions →
+   nicht — der Archivlauf von 18:48 UTC hatte deshalb `melt-2026112417.json.gz` abgelegt und keine `pairs-…`). **Nachgesehen am 25.11. 01:00 UTC
+   (nichts mehr zu tun):** der Archivlauf Nr. 177 (gestartet 00:55 UTC, grün, Archiv-Commit `f44316ef`) hat
+   `pairs-2026112417.json.gz` und `pairs-2026112423.json.gz` nach `glacier/v1/2026-11-24/` gelegt — entpackt Byte für Byte die
+   Dateien des Daten-Repos, die zweite mit der Vorhersage (279 Paare mit Spanne). Mehr Paar-Dateien gab es an dem Tag nicht. Zurück: die Variable unter Settings → Secrets and variables → Actions →
    Variables löschen — dann kommt der Archivierer wieder vom Zweig `feat/gletscher`.
 2. **Entschieden (du, 24.11. abends):** E-GM-39 — (A), wie gebaut: +24 / +48 / +72 h und an jedem Paar der Erwartungswert.
    E-GM-40 — wie gebaut: die Speicherzeile ohne Schalter. E-GM-37 — (A): `snow-calibration-glaciers.json` bleibt im Repo; der Kopf
@@ -4964,10 +4974,17 @@ Was gebaut ist:
    `glacier/v1/status.json` — sonst nichts (die Spanne ist auf dem Runner aus, die Paare bleiben, wie sie sind). Im ersten Lauf
    danach lesen: `heapLimitMb` (die Grenze von Node auf dem Runner, vermutlich kleiner als die 4 144 MB hier) und `heapMb` dagegen;
    `rssMb` gegen den Arbeitsspeicher des Runners. Im ersten CI-Lauf die Zeile L3 von `verify:glacier-melt` ansehen (V-GM-101).
+   **Gelesen am ersten Lauf (`2026112423`, 24.11. 23:23 UTC): `rssMb` 3 315, `heapMb` 2 830, `heapLimitMb` 4 144.** Die Grenze
+   von Node ist auf dem Runner dieselbe wie hier (meine Erwartung „kleiner“ war falsch), `heapMb` steht bei 68 % davon und ist
+   auf den MB die Zahl von hier — sie zeigt also eher, wie weit Node den Abfall wachsen lässt, als was der Lauf braucht (nicht
+   belegt). Den Arbeitsspeicher des Runners habe ich nicht gemessen. Für dich nichts zu tun. Beleg: Audit §3l.5.
 5. **Einschalten:** nichts Eigenes. Mit E-GM-36 (`GLACIER_SNOWPACK_SPREAD: scenarios`, §122.3) tragen die Paare die Vorhersage von
    selbst; dann zusätzlich `lines.snowpack.pairs.spread` lesen (erwartet um 279). Die Paar-Datei wächst von rund 80 auf rund 106 KB
    (gepackt 15 → 24 KB). Die Prüfung der Spanne gegen Messungen beginnt mit diesem Lauf: die Messung 24 h später steht im Paar
    des Laufs zur selben Stunde oder in der stündlichen Stationsablage des Archivs.
+   **Seit dem Lauf `2026112423` (24.11. 23:23 UTC) so auf dem Runner:** 279 Paare mit Spanne (75 Stationen), 189 mit dem Vermerk
+   `neighbour`, jedes der 468 Paare mit `fm`; Datei 103 448 Bytes (gepackt 24 KB). Das erste Paar „Vorhersage +24 h gegen
+   Messung“ entsteht mit dem Lauf vom 25.11. 23 UTC. Beleg: Audit §3k.7.
 6. **Zurück.** V-GM-79: `GLACIER_SNOWPACK_SPREAD` nicht setzen bzw. die Zeile entfernen — die Paare sind dann Byte für Byte die
    alten. V-GM-81: kein Schalter; zurück = den Commit zurücknehmen.
 7. **Nicht geprüft:** kein Lauf auf dem Runner; eine zweite Wetterlage; die Spanne gegen Messungen; die Speicherzeile unter Linux;
