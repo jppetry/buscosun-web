@@ -78,3 +78,17 @@ Vermerk (Jans Wortlaut, 25.11.2026): „Written confirmation from GLAMOS by mail
   `snow-calibration-glaciers.json` bleibt, wie sie ist (Jan 25.11.2026): Name, DOI, Lizenz, ohne den Zitierwortlaut (V-GM-102 offen).
 - Folgen: E-GM-37 ist aufgelöst; E-GM-38 (Faktor und Form der 43 gemessenen Gletscher einschalten) trägt keinen Lizenzpunkt mehr; die
   Tabelle vorhergesagter Faktoren liegt im Repo (Zeile oben). `MANUELLE-SCHRITTE.md` §123 Punkt 8 ist erledigt.
+
+## GLAMOS — Punktmessungen und Release 2026 (25.11.2026, Jans Vermerk)
+
+Vermerk (Jan, 25.11.2026): GLAMOS hat Jan am 25.11.2026 per Mail bestätigt, dass die Nutzung in Ordnung ist, **ausdrücklich auch für die
+Punktmessungen (Q18, `massbalance_point`, Release 2026) und das Release 2026 der Massenbilanz (Q17a)**. Die Mail liegt bei Jan, nicht im
+Repo; gelesen habe ich sie nicht.
+
+| Datensatz | Ampel | Pflicht |
+|---|---|---|
+| GLAMOS Swiss Glacier Mass Balance, **release 2026** (doi:10.18750/massbalance.2026.r2026) | **grün** (bestätigt 25.11.2026) | Quellenangabe unverändert nach CC BY 4.0 mit dem empfohlenen Zitat des Release; die Kopfzeile „scientific and non-commercial use“ der CSV-Dateien ist für unsere Nutzung durch die Bestätigung erledigt |
+| GLAMOS Swiss Glacier Point Mass Balance Observations, **release 2026** (doi:10.18750/massbalance.point.2026.r2026) | **grün** (bestätigt 25.11.2026) | Zitat „GLAMOS (2026). Swiss Glacier Point Mass Balance Observations, release 2026, Glacier Monitoring Switzerland. doi:10.18750/massbalance.point.2026.r2026.“ |
+
+Unverändert: Messwerte und Zeilen der GLAMOS-Dateien bleiben im lokalen Cache und dienen intern als Wahrheit (E-GL-17); abgeleitete Größen
+tragen den Quellenblock.

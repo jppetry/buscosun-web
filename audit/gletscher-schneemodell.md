@@ -2209,11 +2209,30 @@ Spalte „Stand“: **da** = schon im Betrieb, **neu** = käme mit dieser Phase 
 | Nr. | Quelle | Was | Stand | Lizenz |
 |---|---|---|---|---|
 | Q17 | GLAMOS Massenbilanz, `doi.glamos.ch` (Release 2025) | Winter- und Jahresbilanz gletscherweit **und je Höhenstufe** | teils da (Gate C nutzte nur gletscherweit) | CC BY 4.0, belegt; der Widerspruch zur Kopfzeile der CSV-Dateien („non-commercial“) ist **aufgelöst durch die schriftliche Bestätigung von GLAMOS (Mail an Jan, 25.11.2026: abgeleitete Modellparameter in einem kostenlosen Webdienst; die Mail liegt bei Jan)**; Quellenangabe bleibt Pflicht — empfohlenes Zitat des Release 2025 (`audit/gletscher/licences.md`, „GLAMOS — Bestätigung 25.11.2026“) |
-| Q18 | GLAMOS Punktmessungen (`massbalance_point`) | Schneesondierungen im April/Mai mit Lage und Höhe | neu | CC BY 4.0, belegt |
+| Q17a | GLAMOS Massenbilanz Release 2026 (doi:10.18750/massbalance.2026.r2026) | +1 Winter (2025/26) je Schweizer Gletscher; ungesehener Prüfwinter (V-GM-137) | neu | **geprüft von Jan, 25.11.**: Nutzung von GLAMOS per Mail bestätigt (`audit/gletscher/licences.md`, „Punktmessungen und Release 2026“), Quellenangabe Pflicht |
+| Q18 | GLAMOS Punktmessungen (`massbalance_point`), Release 2026 (doi:10.18750/massbalance.point.2026.r2026) | Schneesondierungen im April/Mai mit Lage und Höhe an 54 Gletschern | neu | **geprüft von Jan, 25.11.**: CC BY 4.0, Nutzung von GLAMOS per Mail bestätigt, Quellenangabe Pflicht |
 | Q19 | WGMS Fluctuations of Glaciers | Winterbilanzen österreichischer und deutscher Gletscher, teils je Höhenband | da (Reihen) | wie bisher |
 | Q20 | SLF-Schneedatensatz 2016–2025, 250 m, Zenodo `10.5281/zenodo.17313889` | tägliche Schneehöhe und Wasserwert für die Schweiz, zehn Winter; zehn Archive, zusammen rund 6,3 GB | neu | CC BY 4.0, belegt (Zenodo-Eintrag) |
 | Q21 | MeteoSchweiz SwissMetNet, Stundenwerte | gemessener Antrieb für die Eichung an vergangenen Wintern | da (Gate C) | wie bisher |
 | Q22 | Universität Innsbruck, Hintereisferner | Fremdtest wie in Gate C | da | wie bisher |
+
+**Neu aus der Recherche vom 25.11.** (`audit/gletscher-schneemodell/quellen-wahrheit-2026-11-25.md` §7, Wortlaute und Fundstellen dort). Alle Einträge **Vorschlag**, außer Q17a und Q18 (oben, geprüft von Jan, 25.11.).
+
+| Nr. | Quelle | Was | Stand | Lizenz · Empfehlung |
+|---|---|---|---|---|
+| Q19a | WGMS Echtzeit-Datenbank `db.wgms.ch` | unbekannt (nicht abgefragt) | Vorschlag | wie Q19, „real-time data lacks a version or DOI“ · einmal nur lesend abfragen (Jans Freigabe), nichts Unversioniertes in die Eichung |
+| Q24 | IGF ÖAW, Stubacher Sonnblickkees, Höhenzonen `bwaZ` 2017/18–2024/25 (PANGAEA 993864 ff.) | +1 Eichgletscher in Österreich (8 Winter) | Vorschlag | CC BY 4.0 · use |
+| Q25 | IGF ÖAW, Winter-Punktbilanzen Mullwitzkees 2006–2024, Venedigerkees 2011/12–2024 | Prüfpunkte mit x/y/z | Vorschlag | CC BY 4.0 · use (Prüfung) |
+| Q26 | IGF ÖAW, Weißseespitze (Gepatschferner), Schneehöhe am Pegel und SR50A 2017–2024 | Schattenpaar auf dem Eis, ohne Wasserwert | Vorschlag | CC BY 4.0 · use |
+| Q27 | Universität Innsbruck, CRNS-SWE + Schächte Hintereisferner 2021–2024 (Zenodo 15019323) | SWE-Punkte auf dem Eis | Vorschlag | CC BY 4.0 · use (Prüfung) |
+| Q28 | Universität Innsbruck, Jahresberichte HEF-KWF, Sondierungen je Jahr | ≈ 30 Punkte je Winter | Vorschlag | keine Lizenz · ask provider |
+| Q29 | Hintereisferner ALS-DEMs (PANGAEA 875889) | Frühjahr − Herbst, ein Winter im Fenster | Vorschlag | CC BY 3.0 · drop |
+| Q30 | Vernagtferner (BAdW), Winter je Stufe nach 2012 | +1 Eichgletscher, falls vorhanden | Vorschlag | Website NC · ask provider |
+| Q31 | GeoSphere / Sonnblick Verein: Goldberg, Kleinfleiß, Wurten, Pasterze | Stufen nach 2021, Wurten nach 2011 | Vorschlag | nichts Offenes · ask provider |
+| Q32 | DWD Zugspitze SHK_TAG (05792 bis 01.02.2026, 20278 ab dann) | Schneehöhe neben den vier deutschen Gletschern, täglich, ohne Wasserwert | Vorschlag | CC BY 4.0 · use (Schattenpaar, V-GM-138) |
+| Q33 | EnviDat UAV-DSMs St. Annafirn, Findelen, Gries 2015–2016 | indirekte Schneehöhenfelder | Vorschlag | ODbL · drop |
+| Q34 | SLF Flugzeug-Schneehöhenkarten (envidat.418, .62) | auf Gletschern maskiert | Vorschlag | ODbL · drop |
+| Q35 | Zugspitze Pléiades-Schneehöhe 09.04.2021 (Zenodo 13475075) | ein Termin, Abdeckung ungeprüft | Vorschlag | CC BY 4.0 · use nur bei Abdeckung, sonst drop |
 
 ### 4.5 Gelände und Umrisse
 
@@ -2316,3 +2335,7 @@ Reihenfolge: GM-1 und GM-2 zuerst (sie hängen an keiner offenen Quelle), GM-3 p
 - GM-5c (§3k): V-GM-79 gebaut und geprüft (die Paare tragen in einem Lauf mit Spanne die Vorhersage in Stationshöhe; kein neuer Schalter, auf `origin/main` `32b400df` seit 24.11. 21:24 UTC): voller Lauf 33 von 33 mit ausgeschalteter Spanne, Negativkontrolle, Gegenprobe 58 von 58; E-GM-39 entschieden (wie gebaut); erster Lauf mit Spanne `2026112423` gelesen (§3k.7: 279 Paare mit Spanne, Verträge ohne Befund, Spannen 86 s); offen V-GM-99, V-GM-109 (Erwartungswert an 95 von 40 194 Zeilenwerten über p90).
 - GM-9 (§3m, V-GM-50): **geschlossen 24.11. nachts** — gemessen, die Regel trägt nicht (F1 +3,6 % gegen eine gleich geschätzte Konstante, −0,2 % gegen 96), nichts gebaut; E-GM-41 entschieden (kein `tw`, kein GM-9b jetzt, keine Nachrechnung 82 gegen 96; §3m.8); offen V-GM-105 (Zugspitze ohne Schneehöhe), V-GM-107 (Paare ab 25.11. 17 UTC), V-GM-108 (GM-9b auf Jans Wort).
 - V-GM-81 (§3l): Speicherzeile `lines.melt.mem` gebaut und geprüft (ohne Schalter, auf `origin/main` `32b400df` seit 24.11. 21:24 UTC; lokal 3 217 / 2 830 / 4 144 MB); E-GM-40 entschieden (wie gebaut); auf dem Runner 3 315 / 2 830 / 4 144 MB (§3l.5: dieselbe Grenze wie lokal); offen V-GM-101; die Ursache der 1,5 GB bleibt offen.
+- V-GM-135 (§3p): **geschlossen 25.11. abends** — zerlegt: im Fenster 24.→25.11. bucht das Modell an den Schneefallstationen +8,8 cm frischen Schnee und verliert 7,6 cm durch Setzung einer älteren Decke, die doppelt so tief ist wie an der Station (139 gegen 85 cm) und noch 31,6 cm Neuschnee aus dem Startzustand vom 22./23.11. trägt; Folgebefunde V-GM-139 … V-GM-143 (§3p), weiter in GM-11 (§3q).
+- **V-GM-136** (Vorschlag, Recherche 25.11., `quellen-wahrheit-2026-11-25.md` §1.3): die WGMS-Reihe „Venediger K.“ (10460) hängt am Katalog-Gletscher „Untersulzbach Kees“ (nächster Punkt, 0,69 km); ihr `parent_glacier_id` führt zum Obersulzbachkees. Behoben in GM-11 §3q.3.
+- **V-GM-137** (Vorschlag, ebd. §2.3): GLAMOS Release 2026 der Massenbilanz liegt vor (Q17a, geprüft von Jan 25.11.); die Eichung nutzt Release 2025. Gemessen als ungesehener Winter in GM-11 §3q.4.
+- **V-GM-138** (Vorschlag, ebd. §5): Q10 hat eine offene Antwort, die nicht der Lawinenwarndienst ist — DWD Zugspitze SHK_TAG (Q32), täglich, CC BY 4.0, mit dem Stationswechsel 05792 → 20278 am 01.02.2026.
