@@ -5146,3 +5146,19 @@ Stunde mit Prüfung; nicht gebaut.
 Nicht geprüft: kein Lauf mit `on`/`on` auf dem Runner; der volle lokale Lauf mit beiden Schaltern lief am 24.11. (GM-5b, nur
 Schmelzdokument und -zustand anders) und das Neu-Einschwingen nur mit dem vorhergesagten Faktor (GM-10b, 3d) und von Hand im
 Prüfer (I17) — nicht mit `on` auf dem Zustand des Daten-Repos.
+
+## 128. Gletscher: Schneemodell, GM-11 Phase 1 — wo der Fehler sitzt, nur Messung (`audit/gletscher-schneemodell.md` §3p, §3q), 2026-11-25
+
+Nichts eingeschaltet, nichts im Daten- oder Archiv-Repo, kein Workflow geändert, nichts gepusht. Lokal committet: `44e7af13` (1.1), `b9d6119a` (1.2), `832cc667` (1.3), `d1361864` + `3820bffa` (1.4), `d67bad4b` (1.5).
+
+1. **Push von `buscosun-web`** (Jan). Achtung: `d1361864` enthält im Bericht `gm11-winter26-report.json` noch die gemessene Winterbilanz je Gletscher (GLAMOS), `3820bffa` nimmt sie heraus (E-GL-17) — vor dem Push ggf. zusammenlegen.
+2. **Archiv des Antriebs (V-GM-139)** nach dem Push: `scripts/glacier/workflow-glacier-archiv.yml` nach `.github/workflows/glacier-archiv.yml` in `buscosun-archiv` kopieren (liest zusätzlich `/glacier/v1/snowpack/`, `/glacier/v1/stn/map/`, `/precipsum/v1/`; ≈ 0,56 MB/Tag). Ein älteres Skript überliest die neuen Angaben.
+3. **Bis dahin täglich nach 17:30 UTC, vor 20 UTC** (precipsum hält nur drei Stunden):
+   `node audit/gletscher-schneemodell/gm11-save-runs.mjs` und
+   `node --experimental-strip-types --import ./scripts/lib/register-ts.mjs audit/gletscher-schneemodell/gm11-windows.mjs --fetch --audit=audit/gletscher-schneemodell.md --out=C:\dev\buscosun-glacier-cache\gm11\windows.json`;
+   dazu `gm11-plots.mjs --fetch` für die SLF-Messfelder (die Schnittstelle hält sieben Tage). Kein Urteil vor sieben Fenstern.
+4. **Tabelle vorhergesagter Faktoren neu bauen** (V-GM-149, `snowcal-predict.mjs --mode=table`): erwartet dieselben Faktoren, `verify:glacier-snowcal` I8 wird wieder grün. Jans Wort.
+5. **E-GM-38 (§127) betrifft jetzt 42 Gletscher:** das Untersulzbach Kees hat keine eigene Zeile mehr (V-GM-136).
+6. **V-GM-141 / V-GM-143 — Vorschläge, nichts geändert:** zweite Sprungregel der Schneehöhe („Stufe, die bleibt“, 10 cm in ≤ 2 h, Nachbarstationen); `repeatVerdict` auch fällig bei ≥ 6 h seit dem letzten Lauf und neuerem t1; den fehlgeschlagenen Publish des t2-Laufs 25.11. 04:47 UTC im Protokoll von `point.yml` (Job `45547610153`) ansehen — nur mit Anmeldung lesbar.
+7. **Hindcast-Prüfung Stufe B:** Regel-Entwurf `audit/gletscher-schneemodell/gm11-hindcast-plan-draft.md` prüfen (Grenzen 25 %, Hälfte, 0,8–1,25 sind `set`), dann einfrieren und rechnen (sechs Schweizer Gletscher, zwei Winter, ≈ 10–15 min). Für mehr Gletscher müssten ihre Zellen in den Hindcast ausgezogen werden (V-GM-146).
+8. **V-GM-151:** vor E-GM-38 entscheiden, ob die Spanne der Faktoren um einen Jahresanteil erweitert wird (Winter 2025/26: alle Grundlagen 360–415 mm zu niedrig).
