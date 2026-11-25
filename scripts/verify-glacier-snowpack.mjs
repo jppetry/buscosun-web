@@ -34,7 +34,7 @@ import {
   SNOWPACK_SPREAD_DEFAULT, SNOWPACK_SPREAD_MODES, snowpackSpreadModeOf, spreadOfGlacier, shiftLevels,
 } from './glacier/lib/snowpackcore.mjs';
 import { GLACIER_SNOWPACK_PAIRS_NOTE, GLACIER_SNOWPACK_PAIRS_FC_HOURS, GLACIER_SNOWPACK_PAIRS_FC_ELEVATION, GLACIER_SNOWPACK_PAIRS_WINDOW_MIN, glacierSnowpackPairsPath, snowpackPairsProblems } from '../src/glacier/glacierSnowpackPairsContract.ts';
-import { archivePairs } from './glacier/glacier-archive.mjs';
+import { archivePairs, archiveForcing } from './glacier/glacier-archive.mjs';
 import {
   GLACIER_SNOWPACK_DAYS, GLACIER_SNOWPACK_PEND_H, GLACIER_SNOWPACK_STATE_PATH, GLACIER_SNOWPACK_NOTE, glacierSnowpackRunPath, snowpackProblems, snowpackStateProblems,
   GLACIER_SNOWPACK_SPREAD_RULE, GLACIER_SNOWPACK_SPREAD_K, GLACIER_SNOWPACK_NOW_FACTOR,
@@ -898,6 +898,24 @@ await block('Jp', async () => {
   const gz = join(aOut, `${eB.run.slice(0, 4)}-${eB.run.slice(4, 6)}-${eB.run.slice(6, 8)}`, `pairs-${eB.run}.json.gz`);
   add('J15 Archiv: ein Paar-Dokument mit Vorhersage wird abgelegt wie jedes andere — Bytes unverändert, nichts verweigert',
     eq(a1.written, [eB.run]) && a1.refused.length === 0 && existsSync(gz) && gunzipSync(readFileSync(gz)).toString('utf8') === pRaw(eB), JSON.stringify(a1));
+  // GM-11 (V-GM-139): the forcing of the glaciers with a snow station — a small store: g1 own with a station, g2 on g3's forcing with a station,
+  // g3 without a station (kept as the owner of g2), g4 without a station and not an owner (left out); run R2 has no snowpack document (refused)
+  const st = join(tmp, 'j16-store'), R1 = '2026112417', R2 = '2026112423';
+  const w = (p, o) => { mkdirSync(dirname(p), { recursive: true }); writeFileSync(p, JSON.stringify(o)); };
+  const hr = (v) => ({ t: [[v], [v], [v]], p: [1], s: [100], sn: [[1], [1], [1]], sl: [900], w: [5] });
+  for (const r of [R1, R2]) w(join(st, 'melt', 'wx', r, 'ch-west.json'), { glaciers: { g1: hr(-1), g2: { t: [[-2], [-2], [-2]] }, g3: hr(-3), g4: hr(-4) } });
+  w(join(st, 'snowpack', `${R1}.json`), { runAt: 'x', engine: { version: 14 }, state: { ageH: 6 }, rules: { precip: { rule: 'country', regions: { 'ch-west': { F: 1.793 } } }, density: { rhoNew: 96 } }, glaciers: [{ id: 'g1', z: [1, 2, 3], f: 'own', hs: [1, 2, 3], swe: [1, 2, 3], hn: [[0, 0, 0], [0, 0, 0], [0, 0, 0]] }, { id: 'g2', z: [1, 2, 3], f: 'g3', hs: [1, 2, 3], swe: [1, 2, 3], hn: [[0, 0, 0], [0, 0, 0], [0, 0, 0]] }, { id: 'g4', z: [1, 2, 3], f: 'own', hs: [1, 2, 3], swe: [1, 2, 3], hn: [[0, 0, 0], [0, 0, 0], [0, 0, 0]] }] });
+  w(join(st, 'snowpack', 'pairs', `${R1}.json`), { stations: { map: 'm.1' } });
+  w(join(st, 'stn', 'map', 'm.1.json'), { ext: { glaciers: { g1: { snow: ['imis:A', 1, 0] }, g2: { snow: ['imis:B', 2, 0] }, g3: { t: ['imis:A', 1, 0] } }, stations: {} } });
+  const fArch = join(tmp, 'j16-arch'), fOut = join(tmp, 'j16-out');
+  const f1 = archiveForcing({ storeDir: st, archiveDir: fArch, outDir: fOut });
+  const fz = join(fOut, '2026-11-24', `forcing-${R1}.json.gz`), fd = existsSync(fz) ? JSON.parse(gunzipSync(readFileSync(fz)).toString('utf8')) : null;
+  mkdirSync(join(fArch, '2026-11-24'), { recursive: true }); if (existsSync(fz)) writeFileSync(join(fArch, '2026-11-24', `forcing-${R1}.json.gz`), readFileSync(fz));
+  const f2 = archiveForcing({ storeDir: st, archiveDir: fArch, outDir: join(tmp, 'j16-out2') }), f3 = archiveForcing({ storeDir: join(tmp, 'nirgends'), archiveDir: fArch, outDir: join(tmp, 'j16-out3') });
+  add('J16 Archiv des Antriebs (V-GM-139): Zeilen nur der Gletscher mit Schneestation, Stundenwerte dazu für ihre Antriebs-Besitzer, nichts sonst; Wind bleibt draußen; ein Lauf ohne Schneedecken-Dokument wird genannt, nicht abgelegt; ein zweiter Lauf hält, ohne Daten-Ordner nichts',
+    eq(f1.written, [R1]) && f1.refused.length === 1 && f1.refused[0].run === R2 && fd && eq(Object.keys(fd.rows).sort(), ['g1', 'g2']) && eq(Object.keys(fd.hourly).sort(), ['g1', 'g2', 'g3'])
+      && fd.hourly.g1.w === undefined && fd.hourly.g1.sn && fd.rules.precip.regions['ch-west'] === 1.793 && fd.map === 'm.1' && f2.written.length === 0 && f2.held === 1 && f3.dir === false && f3.written.length === 0,
+    JSON.stringify({ f1, f2: { written: f2.written, held: f2.held }, rows: fd && Object.keys(fd.rows), hourly: fd && Object.keys(fd.hourly) }));
 });
 
 // --- G: guard ------------------------------------------------------------------------------------------------------------------------------------

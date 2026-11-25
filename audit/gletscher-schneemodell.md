@@ -2169,6 +2169,68 @@ Lesart des Modells: Lücke = (Neuschnee Station − 8,8) − (Setzung Station �
 | V-GM-142 | buscosun Fusion gibt an den 17 Schneefallstationen 4,7 mm, CombiPrecip/INCA an der Stationszelle 3,1 mm; mit dem Faktor erklärt precipsum die +6,5 cm der Station selbst ohne Setzung nicht (5,8 cm bei 96 kg/m³). Die einzige Station mit Messer (Gütsch) misst 1,1 mm bei +8 cm | zeigt, dass Niederschlag allein hier nicht entscheidet · an Stationen mit Neuschneebrett oder beheiztem Messer (eine neue Quelle — Jans Wort) ließe sich Dichte von Setzung trennen; bis dahin precipsum je Fenster neben das Paar legen (V-GM-139) |
 | V-GM-143 | Der Schmelzlauf `2026112505` fehlt (kein `melt/wx`, kein `snowpack`); die Stunden 23→11 UTC kamen aus Lauf 2423 mit Vorlauf bis 11 h. Die Buchung ist vollständig (Vorrat 18 h), aber ein Paar sagt nicht, welche Läufe seine 24 h trugen | macht die Zeitprüfung ohne Antrieb lesbar · im Paar-Dokument die Kette der Läufe nennen, die das Fenster seit dem Vorgänger nachgespielt hat (`replayedFrom`); warum 2505 ausfiel, ist nicht untersucht |
 
+## 3q. GM-11, Phase 1: Wo sitzt der Fehler? (25.11. abends, nur Messung)
+
+Auftrag Jan 25.11.: messen, nichts einschalten, nichts in `buscosun-data` oder `buscosun-archiv`, kein Workflow, kein Push; buscosun Fusion nur gelesen. Kein Urteil vor sieben Fenstern.
+
+### 3q.1 V-GM-135 geschlossen, Quellen übernommen
+
+Die Dateien von V-GM-135 und die Recherche hatte Jan schon als `b5a52514` committet. Übernommen (`44e7af13`): Q17a und Q18 in §4.4 als „geprüft von Jan, 25.11.“ (GLAMOS hat die Nutzung per Mail bestätigt, ausdrücklich auch für die Punktmessungen und Release 2026; `audit/gletscher/licences.md`, Abschnitt „Punktmessungen und Release 2026“, beide grün, Quellenangabe unverändert Pflicht), Q19a und Q24 … Q35 als Vorschlag, V-GM-136 … V-GM-138 in §9.
+
+### 3q.2 Weiterlesen, aber Neuschnee und Setzung getrennt (1.2)
+
+**a) Fenster-Werkzeug** `audit/gletscher-schneemodell/gm11-windows.mjs` (nur lesend). Liest jedes 24-h-Fenster 17 UTC gegen 17 UTC aus den abgelegten Paaren (`buscosun-archiv`, Blob-Hash geprüft; was die Ablage noch nicht hält, aus dem lokalen Cache) und schreibt die Tabelle unten neu — je Land, Netz und Gruppe (Schneefall = Station ≥ +3 cm, sonst „ohne“): Neuschnee des Modells, frisch gebuchter Schnee, Verlust der älteren Decke, Schmelze, Modell- und Stationsänderung, Niederschlag von buscosun Fusion ohne Faktor und precipsum an der Stationszelle, Anteil der Stationswerte in der p10–p90-Spanne, die Lauf A für den ersten Tag schrieb (erst ab Fenster A = 2517: der Lauf 2423 ist der erste mit Spanne, aber kein 17-UTC-Lauf), und die Ausgangsdifferenz der Decke. „Seed“ = Lauf A vor dem 26.11. 17 UTC (der 72-h-Neuschnee von A hält noch den Startzustand). Nie das Verhältnis allein.
+
+Bis V-GM-139 im Archiv steht, sichert `audit/gletscher-schneemodell/gm11-save-runs.mjs` jeden neuen Lauf in `C:\dev\buscosun-glacier-cache\gm11\runs\<lauf>\` (Tag + Chunks, Schneedecken-Zeilen, Paare; Statusstand je Commit; precipsum mit Ende 17 UTC; Blob-Hash je Datei, Protokoll `saves.jsonl`). Gesichert am 25.11.: Läufe 2305 … 2517 (10 Läufe, der Lauf 2505 fehlt, s. V-GM-143).
+
+**So läuft es an den nächsten Tagen** (je einmal nach 17:30 UTC; precipsum hält nur drei Stunden, deshalb vor 20 UTC):
+
+```
+node audit/gletscher-schneemodell/gm11-save-runs.mjs
+node --experimental-strip-types --import ./scripts/lib/register-ts.mjs audit/gletscher-schneemodell/gm11-windows.mjs --fetch --audit=audit/gletscher-schneemodell.md --out=C:\dev\buscosun-glacier-cache\gm11\windows.json
+```
+
+<!-- gm11-windows:start -->
+_Erzeugt von `gm11-windows.mjs` am 2026-11-25 19:27 UTC; Quellen der Paare je Fenster im Bericht. „frisch gebucht“, „Schmelze“ und „P Fusion“ nur, wo der Antrieb aller Läufe des Fensters im Cache liegt; sonst rechnet „Verlust“ mit `hn24` und enthält die Schmelze._
+
+| Fenster (A → B) | Seed | Land · Netz | Gruppe | Paare | Neuschnee Modell `hn24` cm | frisch gebucht cm | Verlust alte Decke cm | Schmelze mm | Modell Δ cm | Station Δ cm | P Fusion mm (ohne F) | P precipsum mm | in p10–p90 | Decke Modell − Station bei A cm |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 24.11. 17 → 25.11. 17 UTC | ja | AT · at | ohne | 26 | 0,9 | 1,0 | 2,8 | 0,0 | −1,9 | −0,3 | 0,4 | 0,1 | – | 111,1 |
+| 24.11. 17 → 25.11. 17 UTC | ja | AT · bz | ohne | 8 | 2,9 | 2,9 | 3,1 | 0,0 | −0,2 | −1,4 | 1,2 | – | – | 75,1 |
+| 24.11. 17 → 25.11. 17 UTC | ja | AT · imis | ohne | 1 | 0,5 | 0,5 | 3,3 | 0,0 | −2,8 | −2,1 | 0,1 | 0,0 | – | 63,0 |
+| 24.11. 17 → 25.11. 17 UTC | ja | AT · tirol | Schneefall | 1 | 0,5 | 0,4 | 1,8 | 0,0 | −1,4 | 4,0 | 0,0 | 0,4 | – | 74,5 |
+| 24.11. 17 → 25.11. 17 UTC | ja | AT · tirol | ohne | 94 | 1,1 | 1,1 | 3,1 | 0,0 | −2,0 | −2,5 | 0,4 | 0,2 | – | 56,1 |
+| 24.11. 17 → 25.11. 17 UTC | ja | CH · ch | Schneefall | 1 | 6,2 | 6,2 | 5,7 | 0,1 | 0,4 | 8,0 | 3,2 | 0,9 | – | 51,9 |
+| 24.11. 17 → 25.11. 17 UTC | ja | CH · ch | ohne | 1 | 4,1 | 4,2 | 7,8 | 0,0 | −3,6 | −2,0 | 2,0 | 0,4 | – | 24,2 |
+| 24.11. 17 → 25.11. 17 UTC | ja | CH · imis | Schneefall | 96 | 8,7 | 8,9 | 7,9 | 0,0 | 1,0 | 6,5 | 4,8 | 3,2 | – | 54,6 |
+| 24.11. 17 → 25.11. 17 UTC | ja | CH · imis | ohne | 237 | 6,6 | 6,8 | 6,8 | 0,0 | 0,0 | −5,7 | 3,7 | 1,7 | – | 50,2 |
+| 24.11. 17 → 25.11. 17 UTC | ja | alle · alle | Schneefall | 98 | 8,6 | 8,8 | 7,8 | 0,0 | 1,0 | 6,5 | 4,7 | 3,1 | – | 54,7 |
+| 24.11. 17 → 25.11. 17 UTC | ja | alle · alle | ohne | 367 | 4,7 | 4,8 | 5,5 | 0,0 | −0,7 | −4,4 | 2,5 | 1,2 | – | 56,5 |
+<!-- gm11-windows:end -->
+
+Lesart des ersten Fensters (kein Urteil): an den Schneefallpaaren der Schweiz (IMIS) fängt der Verlust der älteren Decke (7,9 cm) den frisch gebuchten Schnee (8,9 cm) fast ganz auf; an den Schweizer IMIS-Paaren ohne Schneefall sind beide Teile gleich groß (6,8 / 6,8 cm) — das Modell bleibt stehen, die Station sinkt um 5,7 cm. In Österreich bucht das Modell wenig (≈ 1 cm) und verliert 3 cm, die Station verliert 2,5 cm. Die Decke des Modells liegt an jedem Netz 50–110 cm über der Station.
+
+**b) Die SLF-Messfelder (Q6) als Wahrheit für den Neuschnee.** Werkzeug `gm11-plots.mjs`, Regel der Stationszuordnung (Abstand zum L1-Umriss ≤ 5 km, Höhe in der Spanne des Gletschers ±300 m). **11 der 100 Messfelder liegen im Fenster eines Gletschers** (Arolla, Trübsee, Berninapass, La Creusaz, Corvatsch, Grindelwald Bort, Kühboden, Diavolezza, Grimsel Hospiz, Egginer, Grindel; 1 565–2 690 m; Egginer 0,5 km und Corvatsch 0,9 km am nächsten). Werte der letzten sieben Tage aus der öffentlichen Schnittstelle (`period_in_days=7`; die Tagesdateien des SLF enden am 23.11.). Verglichen wird mit dem Niederschlag von buscosun Fusion **ohne Faktor** am Gletscher des Fensters mit eigenem Antrieb — die Antwort von buscosun Fusion steht am Gletscherpunkt in seiner Medianhöhe, nicht am Messfeld; jede Stunde aus dem jüngsten Lauf davor, wie die Schneedecke sie nachspielt. Der gesicherte Antrieb deckt zwei Messtage:
+
+| Tag (24 h bis 06 UTC) | Messfelder | Neuschnee gemessen (Mittel) | buscosun Fusion ohne Faktor (Mittel) | mit Wasserwert gemessen: Messfeld — HNW / Fusion |
+|---|---|---|---|---|
+| 24.11. | 10 | 5,3 cm | 10,3 mm | Trübsee 18 / 22,9 mm · Grindel 9 / 18,6 mm |
+| 25.11. | 7 (2 ohne HN) | 2,9 cm | 2,4 mm | — |
+
+Am 24.11. gibt buscosun Fusion schon **ohne Faktor** etwa doppelt so viel Wasser, wie das Messfeld als Neuschnee sieht (bei 96 kg/m³ wären 10,3 mm 10,7 cm; mit dem Faktor 1,79 19 cm); an den zwei Feldern mit Wasserwert 1,3- und 2,1-mal so viel. Am 25.11. liegen beide gleichauf. Der Wasserwert `HNW_1D` fehlt an den meisten Tagen. Zwei Tage, elf Felder, alle unter 2 700 m — eine Ablesung, kein Urteil. Der Tag bis 23.11. 06 UTC (Messfelder 26–40 cm Neuschnee, Wasserwerte 25–85 mm) ist nicht vergleichbar: dessen Antrieb ist nicht mehr gesichert, und die Schneedecke rechnete ihn aus dem Startzustand (Analysen).
+
+**c) Archiv des Antriebs (V-GM-139) — vorbereitet, nicht eingespielt.** `scripts/glacier/glacier-archive.mjs` bekommt zwei Teile, beide nur mit Angabe aktiv: `--forcing=<glacier/v1>` legt je Lauf `forcing-<lauf>.json.gz` ab (Stundenwerte `t p s sn sl` der Gletscher mit Schneestation und ihrer Antriebs-Besitzer, Zeilen `z f hs swe hn gap`, Kopf mit Zustand, Faktor je Region und Dichte; lokal an zehn gesicherten Läufen: 7 abgelegt, **138 848 B im Mittel**, 3 ohne Schneedecken-Dokument genannt und nicht abgelegt); `--precipsum=<precipsum/v1>` legt für jeden precipsum-Lauf mit Ende 17 UTC die 24-h-Summe an jeder Schneestation ab. Nur hinzufügen, wie bei den Paaren. Die Vorlage `scripts/glacier/workflow-glacier-archiv.yml` liest dafür zusätzlich `/glacier/v1/snowpack/`, `/glacier/v1/stn/map/` und `/precipsum/v1/` und gibt beide Angaben weiter; ein älteres Skript überliest sie. Prüfer: `verify:glacier-snowpack` 76/76 (neu J16, mit Gegenproben: Gletscher ohne Station und ohne Besitz bleibt draußen, Lauf ohne Dokument wird genannt, zweiter Lauf hält), `-publish` 34/34, `-snow` 37/37 (I3: das Archiv nennt das SNOWGRID-Produkt nicht). **Was Jan tut** (MANUELLE-SCHRITTE): `buscosun-web` pushen, dann die Vorlage nach `.github/workflows/glacier-archiv.yml` in `buscosun-archiv` kopieren. Ablage ≈ 0,56 MB/Tag.
+
+**d) Ursachen.**
+
+- *V-GM-141* (Sprung an `imis:BOR2`): die Stationsprüfung lässt je Stunde bis **60 cm** Schneehöhen-Zunahme durch (`STN_JUMP_PER_H.snow = 60`, `set`, `src/glacier/glacierStationContract.ts`), gegen den letzten angenommenen Wert. BOR2: 20:30 UTC 65,9 cm, 21:00 kein Wert, 21:30 76,0, 22:00 84,4, 22:30 86,5, danach flach; Lufttemperatur −6 °C; buscosun Fusion gab an den zwei Gletschern dieser Station in diesen Stunden 0,1–0,3 mm/h. In den gesicherten 49 Slots (283 Stationen, 14 084 Schritte) steigen nur 25 Schritte um ≥ 8 cm/h, fast alle als einzelne halbe Stunde mit 4–5 cm (Rauschen, das zurückgeht); heraus stechen BOR2 (+18,5 cm in 1,5 h, bleibt) und `imis:VIN2` (+13,9 cm in 0,5 h). **Vorschlag, nicht geändert:** eine zweite Sprungregel für die Schneehöhe, „Stufe, die bleibt“: Zunahme ≥ 10 cm in ≤ 2 h, die danach ≥ 2 h nicht zurückgeht, gilt als Sprung, solange keine Nachbarstation desselben Netzes bis 20 km im selben Fenster mindestens die Hälfte zeigt (alles `set`; buscosun Fusion liest die Stationslinie nicht und umgekehrt — die Regel bleibt stationseigen). Vorher an einem Winter der Ablage `stn-<stunde>` zählen, wie oft sie Schneefall träfe.
+- *V-GM-143* (kein Lauf `2026112505`): der Schmelz-Workflow lief um 05:24 UTC (Job `45553350411`), der Schritt „Melt run“ endete nach 2 s, Publish übersprungen — `repeatVerdict` (`melt.mjs`) sah t2/t3 unverändert seit Lauf 2423. Grund: der t2-Lauf des Punkt-Cubes von 00 UTC wurde gebaut (Workflow `point.yml`, Job `45547610153`, Bau 04:34–04:46 UTC), sein **Publish-Schritt schlug fehl** (04:47–04:51 UTC); t2 sprang erst um 10:48 UTC auf `2026112506`. Folge: die Stunden 23 → 11 UTC kamen aus Lauf 2423 mit Vorlauf bis 11 h; gebucht wurde vollständig (Vorrat 18 h). **Vorschlag, nicht geändert:** `repeatVerdict` zusätzlich fällig machen, wenn der letzte Lauf ≥ 6 h alt ist und t1 neuer ist (hält den 6-h-Takt, wenn ein t2-Publish ausfällt); die Ursache des Publish-Fehlers liegt im Workflow `point.yml` des Daten-Repos (Protokoll nur mit Anmeldung lesbar — Jan).
+
+| V-… | Befund | Mehrwert · Skizze |
+|---|---|---|
+| V-GM-144 | An den SLF-Messfeldern im Fenster eines Gletschers gibt buscosun Fusion am 24.11. schon **ohne** Faktor rund das Doppelte des gemessenen Neuschnees; der Faktor 1,79 wurde mit Analysen als Antrieb geeicht (`bridge.value = 1`, `set`) und wirkt im Betrieb auf buscosun Fusion | prüft, ob der Faktor im Betrieb doppelt zählt · `gm11-plots.mjs` jeden Tag mitlaufen lassen (der Saver hält den Antrieb), nach sieben Messtagen mit Neuschnee die Brücke Fusion / Messfeld je Land lesen; nichts ändern vorher |
+| V-GM-145 | Der Wasserwert des Neuschnees (`HNW_1D`) fehlt an den Messfeldern an den meisten Tagen (24./25.11.: 2 von 17 Messwerten); ohne ihn vergleicht der Abgleich Zentimeter mit Millimetern | ehrlicher Abgleich · Tage mit `HNW_1D` getrennt zählen und die Zentimeter-Tage nur als Richtung führen |
+
 ## 4. Quellenliste (zur Prüfung durch Jan)
 
 Spalte „Stand“: **da** = schon im Betrieb, **neu** = käme mit dieser Phase dazu. Spalte „Lizenz“: **belegt** = am 22.11. an der Quelle gelesen; **wie bisher** = unverändert aus der bestehenden Linie; **offen** = von mir nicht geprüft.
