@@ -2357,6 +2357,60 @@ Andere Grundlagen über alle drei Winter: Landeswert s2 247,5 → 346,3 (Bias �
 | V-GM-159 | Die Schneefallgrenze aus den drei Antworten von buscosun Fusion liegt an Aletsch rund 1 000 m unter der des Standardgradienten (kalte Zunge in 1 639 m); die Modellhöhe der Zellen liegt 220–910 m unter der Medianhöhe | der Gradient des Kerns und die Höhenkorrektur von Fusion sagen am selben Gletscher Verschiedenes · im Wetterteil (`weathercore`) prüfen, welche Grenze angezeigt wird |
 | V-GM-160 | An 2 606 Punktmessungen ist S fast überall zu tief (−228 mm), H streut mehr (MAE 460 gegen 384) und trifft nur 2025/26 besser (349 gegen 472) | zweite Wahrheit bestätigt die Winterbilanz · Punkte sind für die Form je Höhe zu nutzen, sobald der Kern (V-GM-157) geklärt ist |
 
+### 3q.7 Winterschmelze des Kerns (1c, 26.11.; nur Messung, nach Schritt 3 GESTOPPT)
+
+**Ablauf.** Die Arbeit von 1b lag schon als ein lokaler Commit vor (`0181b084`, nicht gepusht); kein weiterer Commit. Werkzeug `audit/gletscher-schneemodell/gm11-wintermelt.mjs` mit zwei Diagnose-Kopien (`stepLevelV` von `stepLevel`, `simulateV` von `simulate`) und den Varianten R1–R4; nichts unter `scripts/glacier/**`, `src/**`, kein Workflow, nichts in `buscosun-data`/`buscosun-archiv`. Bericht ohne Messwerte je Gletscherwinter: `gm11-wintermelt-report.json`; alles andere in `C:\dev\buscosun-glacier-cache\gm11\wintermelt\`. Ein Prozess, ein Messfeld zur Zeit, freier Speicher vor jedem Schritt 5,2–5,8 GB (nie unter 3 GB).
+
+**STOPP nach Schritt 3:** nur ein SLF-Messfeld besteht die Paarungsregel (Auftrag: weniger als vier ⇒ Schritte 1–2 und 6 berichten, aufhören). **Schritte 4 und 5 sind nicht gerechnet, die Regel `gm11-wintermelt-frozen.md` ist nicht geschrieben und nicht eingefroren**; die Varianten R1–R4 stehen im Werkzeug, sind aber an keinem Messfeld und keinem Gletscher gewertet worden. Der Teil für Schritt 4/5 (`--step=glaciers`, `plots-rules`, `gatec`) bricht ohne eingefrorene Regel ab.
+
+**Schritt 1 — nachgerechnet.** `gm11-wfj.mjs` trifft `hindcast\wfj.json` Byte für Byte (bis auf den Zeitstempel), wenn die SwissMetNet-Datei 2020–2029 aus `gm11\w26\smn` kommt (die in `gm3\smn` endet am 31.12.2025; damit fehlten im Winter 2026 4 351 Temperaturstunden). Schmelze Dez/Jan/Feb/Mär 36,7 / 14,4 / 31,9 / 40,4 mm — wie §3q.6.
+
+**Kontrolle A:** die Kopie von `stepLevel` trifft das Original an allen 85 248 Stunden des Weissfluhjochs (Schmelze, Albedo, Wasserwert, Höhe je Stunde und die Schneedecke am Ende, `Object.is`) — grün. Die Kopie von `simulate` ist geschrieben, aber nicht geprüft, weil der Gletscherteil nicht lief.
+
+**Schritt 2 — woher die Winterschmelze am Weissfluhjoch kommt** (5WJ0, 2 536 m, 13 Winter 2014–2026, Kern wie im Betrieb, gemessener Wasserwert des Neuschnees, SwissMetNet WFJ auf 2 536 m mit −6,5 K/km):
+
+| Monat | Schmelzstunden je Winter | Schmelztage je Winter | mm je Winter | Anteil Temperaturglied | Anteil Strahlungsglied | Luft in den Schmelzstunden | Globalstrahlung | Albedo des Modells |
+|---|---|---|---|---|---|---|---|---|
+| Okt | 109 | 9,9 | 52,6 | 0,63 | 0,37 | 3,8 °C | 144 W/m² | 0,55 (654 Stunden auf Boden-Albedo 0,30) |
+| Nov | 97 | 8,6 | 47,1 | 0,58 | 0,42 | 2,9 °C | 136 | 0,66 |
+| Dez | 85 | 6,8 | 36,7 | 0,65 | 0,35 | 2,7 °C | 101 | 0,73 |
+| Jan | 34 | 2,9 | 14,4 | 0,56 | 0,44 | 2,4 °C | 126 | 0,73 |
+| Feb | 53 | 3,9 | 31,9 | 0,51 | 0,49 | 3,0 °C | 183 | 0,71 |
+| Mär | 51 | 4,9 | 40,4 | 0,32 | 0,68 | 2,5 °C | 334 | 0,71 |
+| Apr | 167 | 13,5 | 156,9 | 0,35 | 0,65 | 3,2 °C | 361 | 0,69 |
+
+- Dezember–März zusammen **123 mm je Winter = 13 % des gemessenen Neuschnee-Wassers** einer Saison (958 mm im Mittel); mit Oktober–November 223 mm = 23 %.
+- **Nicht an kalten Tagen:** nur 7,8 % der Dez–Mär-Schmelze fallen an Tagen mit Tagesmittel unter 0 °C, 5,0 % an Tagen nach einer Nacht unter −5 °C. Geschmolzen wird an milden Stunden — die Schwelle `Ti > 1 °C` heißt Luft über +1,18 °C; im Mittel liegt die Luft dann bei +2,4 … +3,0 °C.
+- **Albedo:** an Schmelztagen hält das Modell 0,77–0,81 bis zwei Tage nach dem Schneefall, 0,71 nach 3–5 Tagen (53 mm je Winter, der größte Teil), 0,64 nach 6–10 Tagen (27 mm), 0,59 nach 11–20 Tagen (6,5 mm). Die Boden-Albedo greift im Hochwinter fast nie (4 Stunden, 0,4 mm).
+- **Gemessene Oberfläche:** keine. Die SwissMetNet-Stundendateien von WFJ im Speicher tragen die Spalten langwellige Ausstrahlung (`olo000h0`), reflektierte Kurzwelle (`osr000h0`) und `ods000h0` 2010–2026 leer; eine Schneeoberflächentemperatur steht in keiner Quelle von §4. Nicht geholt.
+- **Diagnose ohne Dez–Mär-Schmelze** (nur hier): Fehler der Schneehöhe Dez/Jan/Feb/Mär −13,1 / −13,6 / −8,3 / −1,3 cm statt −20,5 / −29,2 / −27,3 / −30,0; April +2,5 statt −32,2; Ausapern 7,0 statt 9,6 Tage zu früh (gemessen 10.06.–01.07., gekappt am 01.07. in 4 Wintern). Der Rest im Dezember/Januar ist die Schmelze von Oktober/November (100 mm), die weiterwirkt.
+
+**Lesart.** Die Winterschmelze ist ein Temperaturfehler, kein Albedofehler: sie kommt an milden Stunden über einer Schneedecke, die in Wirklichkeit noch kalt ist (Kältereserve) und deren Schmelzwasser wieder gefriert — beides kennt der Kern nicht. Das Strahlungsglied wächst erst im März. Das passt zu R1 (Kältereserve) vor R2 (Albedo); R3 (weicher Einsatz) würde Schmelze *hinzufügen*. Dazu kommt ein Verdacht am Antrieb: die Station WFJ steht 155 m ÜBER dem Messfeld; die Abwärtskorrektur mit −6,5 K/km macht das Messfeld 1 K wärmer, bei Inversion ist es aber kälter (V-GM-163). Ob das an Gletschern genauso ist und wie viel vom Faktor es erklärt, ist **nicht gemessen** (Schritt 4 lief nicht). Grobe Hochrechnung, keine Messung: nähme der Kern auf Gletschern ebenfalls 13 % der Akkumulation im Hochwinter weg, wäre ein Faktor um rund 15 % zu hoch (1/0,87) — 1,79 hieße dann ≈ 1,56.
+
+**Schritt 3 — Messfelder.** Paarungsregel: Anteil der Schneefalltage mit Wasserwert ≥ 90 % (2011–2026 zusammen), nächste SwissMetNet-Station des Speichers ≤ 10 km und ±300 m mit Temperatur und Globalstrahlung, ≥ 3 gewertete Winter (Wasserwert ≥ 90 % je Winter, Temperatur fehlt ≤ 10 % der Stunden). Von 116 Messfeldern der Datei: **besteht nur 5WJ0** (WFJ, 0,5 km, +155 m); 27 ohne jeden Wasserwert, 88 mit zu wenig — die meisten 15–40 %, die besten Innerferrera 61 %, Poschiavo 51 %, Landquart 42 % (Liste im Bericht). Die SLF-Messfelder messen den Wasserwert offenbar nur an einem Teil der Schneefalltage; die Frage „an wie vielen Orten“ lässt sich mit dieser Datei und dieser Regel nicht beantworten.
+
+**Schritt 6 — Stationsantrieb 2025/26** (Wintersumme Oktober–April). Wie `gm11\w26` gebaut ist: RhiresD 2024 und 2025 als Jahresdateien, **Dezember 2025 bis Mai 2026 als Monatsdateien `…-last…`** (eine endgültige Jahresdatei 2026 gibt es im Speicher nicht); 2024/25 ist in der Eich-Datei (`gm3`) und in `w26` an allen 28 Punkten gleich (Verhältnis 1,000). Die Datei `w26\rhires.json` beginnt am 01.01.2024 — Oktober–Dezember 2023 fehlen ihr; 2023/24 kommt hier aus der Eich-Datei. Welche Stationen die „last“-Dateien tragen, sagen die Dateien nicht.
+
+| Verhältnis 2025/26 zu 2024/25 | RhiresD am Gletscher | SwissMetNet-Regenmesser in der Nähe |
+|---|---|---|
+| Findelen | **0,31** | Zermatt 0,53 · Grächen 0,48 · Mottec 0,57 · Evolène 0,47 |
+| Basòdino | 0,54 | Robièi 0,58 · Piotta 0,59 |
+| Murtèl, Corvatsch | 0,59 | Piz Corvatsch 0,58 · Segl-Maria 0,60 · Samedan 0,57 |
+| Aletsch | 0,69 | Grimsel Hospiz 1,02 · Ulrichen 0,73 · Simplon 0,49 |
+| Rhone | 0,82 | Grimsel Hospiz 1,02 · Ulrichen 0,73 |
+| alle 27 CH-Gletscher / alle 46 Messer | Median 0,69 (p10 0,36, p90 0,91) | Median 0,71 (0,48 … 1,02) |
+
+Weissfluhjoch: Neuschnee-Wasser 1,29 (619 gegen 459 mm), Messer WFJ 1,18. Gegen das Mittel der beiden Vorwinter: RhiresD am Gletscher Median 0,55, Messer 0,52 (2023/24 war sehr nass). **Urteil:** der Winter 2025/26 war wirklich trocken (Messer und RhiresD sagen dasselbe, im Engadin und am Basòdino auf ±0,05); **nur an Findelen liegt RhiresD rund 40 % unter dem, was die Messer ringsum sagen** — dort ist ein Datenfehler der vorläufigen „last“-Dateien möglich, sicher sagen lässt es sich erst mit der endgültigen Datei (V-GM-165). Das passt zum Sprung von H/RhiresD an Findelen (0,57 → 1,29, §3q.6).
+
+| V-… | Befund | Mehrwert · Skizze |
+|---|---|---|
+| V-GM-161 | Am Weissfluhjoch fällt die Winterschmelze (123 mm Dez–Mär, 13 % des Neuschnee-Wassers) an milden Stunden (+2,4 … +3,0 °C), nur 8 % an Tagen mit Tagesmittel unter 0 °C; ohne sie läge die Schneehöhe Jan–Mär 1–14 cm statt 27–30 cm zu tief | der Kern lässt eine Schneedecke schmelzen, die in Wirklichkeit noch kalt ist; das ist die wahrscheinlichste Ursache des gemeinsamen Fehlbetrags · R1 (Kältereserve) zuerst prüfen; dafür braucht es mehr als ein Messfeld (V-GM-162) |
+| V-GM-162 | Nur 1 von 116 SLF-Messfeldern hat an ≥ 90 % der Schneefalltage einen Wasserwert des Neuschnees; die Paarungsregel von Schritt 3 lässt sich nicht erfüllen | ohne mehr Orte bleibt jede Regel eine Weissfluhjoch-Regel · Jans Wahl: Schwelle senken und die fehlenden Tage aus dem Winter-Mittel Wasser je cm füllen (Innerferrera 61 %, Poschiavo 51 % kämen dazu, beide tief), Sonnblick (`shneu_manu`, GeoSphere, in §4) als zweiten Hochort, oder Messfelder nur mit Schneehöhe und dem Niederschlag der Station (dann wirkt wieder ein Faktor) |
+| V-GM-163 | Die Station WFJ steht 155 m über dem Messfeld; die Korrektur mit −6,5 K/km macht das Messfeld 1 K wärmer, bei winterlicher Inversion ist es kälter | ein Teil der „Winterschmelze“ kann im Antrieb liegen, nicht im Kern · dieselben Läufe mit der Stationstemperatur ohne Höhenkorrektur als Gegenprobe (nur Diagnose) |
+| V-GM-164 | Zwei Drittel der Dez–Mär-Schmelze fallen 3–10 Tage nach dem letzten Schneefall bei Modell-Albedo 0,64–0,71 | die Albedo ist eine Nebenursache · R2 als zweite Regel, nach R1 |
+| V-GM-165 | RhiresD 2025/26 an Findelen = 0,31 des Vorwinters, die Regenmesser ringsum 0,47–0,57; sonst liegen RhiresD und Messer auf ±0,1 (Aletsch gemischt); Jan–Mai 2026 stammen aus vorläufigen Monatsdateien „last“ | ein Teil des Fehlbetrags 2025/26 an Findelen kann ein Datenfehler sein · die endgültige RhiresD 2026 holen, sobald MeteoSchweiz sie veröffentlicht, §3q.4/§3q.6 für Findelen wiederholen |
+| V-GM-166 | Auch ohne Dez–Mär-Schmelze bleibt der Dezember 13 cm zu tief (Oktober/November 100 mm Schmelze, davon 654 Oktober-Stunden mit Boden-Albedo 0,30) und das Ausapern 7 Tage zu früh | eine zweite, kleinere Fehlerquelle liegt im Frühwinter und im Frühjahr · im nächsten Durchgang die Herbstschmelze auf dünner Decke getrennt werten |
+
 ## 4. Quellenliste (zur Prüfung durch Jan)
 
 Spalte „Stand“: **da** = schon im Betrieb, **neu** = käme mit dieser Phase dazu. Spalte „Lizenz“: **belegt** = am 22.11. an der Quelle gelesen; **wie bisher** = unverändert aus der bestehenden Linie; **offen** = von mir nicht geprüft.

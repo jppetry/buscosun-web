@@ -1,0 +1,1738 @@
+{
+ "kind": "gm11/wintermelt",
+ "generated": "2026-11-26T17:36:46.009Z",
+ "stop": "STOPP nach Auftrag: nur 1 SLF-Messfeld (5WJ0) besteht die Paarungsregel (< 4) — Schritte 3 (Rest), 4 und 5 nicht gerechnet, Regel nicht eingefroren",
+ "step1": {
+  "reproduced": "gm11-wfj.mjs mit --smn=gm3\\\\smn,gm11\\\\w26\\\\smn trifft hindcast\\\\wfj.json Byte für Byte (bis auf generated)",
+  "meltMmDecJanFebMar": [
+   36.7,
+   14.4,
+   31.9,
+   40.4
+  ]
+ },
+ "step2": {
+  "controlA": {
+   "hours": 85248,
+   "notIdentical": 0,
+   "green": true
+  },
+  "site": {
+   "code": "5WJ0",
+   "z": 2536,
+   "station": "WFJ"
+  },
+  "meltMm": {
+   "10": 52.6,
+   "11": 47.1,
+   "12": 36.7,
+   "01": 14.4,
+   "02": 31.9,
+   "03": 40.4,
+   "04": 156.9,
+   "05": 290,
+   "06": 280.7
+  },
+  "anatomy": {
+   "winters": 13,
+   "byMonth": {
+    "10": {
+     "meltHoursPerWinter": 108.6,
+     "meltDaysPerWinter": 9.9,
+     "mmPerWinter": 52.6,
+     "shareTempTerm": 0.629,
+     "shareRadTerm": 0.371,
+     "meanT": 3.8,
+     "meanG": 144,
+     "meanAlbedo": 0.554,
+     "hoursOnBareAlbedo": 654
+    },
+    "11": {
+     "meltHoursPerWinter": 96.8,
+     "meltDaysPerWinter": 8.6,
+     "mmPerWinter": 47.1,
+     "shareTempTerm": 0.583,
+     "shareRadTerm": 0.417,
+     "meanT": 2.9,
+     "meanG": 136,
+     "meanAlbedo": 0.66,
+     "hoursOnBareAlbedo": 188
+    },
+    "12": {
+     "meltHoursPerWinter": 85.2,
+     "meltDaysPerWinter": 6.8,
+     "mmPerWinter": 36.7,
+     "shareTempTerm": 0.646,
+     "shareRadTerm": 0.354,
+     "meanT": 2.7,
+     "meanG": 101,
+     "meanAlbedo": 0.728,
+     "hoursOnBareAlbedo": 4
+    },
+    "01": {
+     "meltHoursPerWinter": 33.5,
+     "meltDaysPerWinter": 2.9,
+     "mmPerWinter": 14.4,
+     "shareTempTerm": 0.558,
+     "shareRadTerm": 0.442,
+     "meanT": 2.4,
+     "meanG": 126,
+     "meanAlbedo": 0.728,
+     "hoursOnBareAlbedo": 0
+    },
+    "02": {
+     "meltHoursPerWinter": 53.4,
+     "meltDaysPerWinter": 3.9,
+     "mmPerWinter": 31.9,
+     "shareTempTerm": 0.507,
+     "shareRadTerm": 0.493,
+     "meanT": 3,
+     "meanG": 183,
+     "meanAlbedo": 0.707,
+     "hoursOnBareAlbedo": 0
+    },
+    "03": {
+     "meltHoursPerWinter": 50.7,
+     "meltDaysPerWinter": 4.9,
+     "mmPerWinter": 40.4,
+     "shareTempTerm": 0.323,
+     "shareRadTerm": 0.677,
+     "meanT": 2.5,
+     "meanG": 334,
+     "meanAlbedo": 0.705,
+     "hoursOnBareAlbedo": 0
+    },
+    "04": {
+     "meltHoursPerWinter": 167.3,
+     "meltDaysPerWinter": 13.5,
+     "mmPerWinter": 156.9,
+     "shareTempTerm": 0.348,
+     "shareRadTerm": 0.652,
+     "meanT": 3.2,
+     "meanG": 361,
+     "meanAlbedo": 0.687,
+     "hoursOnBareAlbedo": 0
+    },
+    "05": {
+     "meltHoursPerWinter": 323.6,
+     "meltDaysPerWinter": 19.8,
+     "mmPerWinter": 290,
+     "shareTempTerm": 0.473,
+     "shareRadTerm": 0.527,
+     "meanT": 4.2,
+     "meanG": 315,
+     "meanAlbedo": 0.713,
+     "hoursOnBareAlbedo": 50
+    },
+    "06": {
+     "meltHoursPerWinter": 255.6,
+     "meltDaysPerWinter": 13.5,
+     "mmPerWinter": 280.7,
+     "shareTempTerm": 0.544,
+     "shareRadTerm": 0.456,
+     "meanT": 6,
+     "meanG": 269,
+     "meanAlbedo": 0.623,
+     "hoursOnBareAlbedo": 248
+    },
+    "07": {
+     "meltHoursPerWinter": 0.9,
+     "meltDaysPerWinter": 0.2,
+     "mmPerWinter": 0.4,
+     "shareTempTerm": 0.802,
+     "shareRadTerm": 0.198,
+     "meanT": 3.6,
+     "meanG": 64,
+     "meanAlbedo": 0.589,
+     "hoursOnBareAlbedo": 3
+    }
+   },
+   "decMar": {
+    "mmPerWinter": 123.4,
+    "shareOnDaysMeanBelow0": 0.078,
+    "shareAfterNightBelowM5": 0.05,
+    "hoursOnBareAlbedo": 4,
+    "mmOnBareAlbedo": 0.4
+   },
+   "albedoByDaysSinceSnowfall": {
+    "0": {
+     "meltHours": 306,
+     "meanAlbedo": 0.765,
+     "mmPerWinter": 11.8
+    },
+    "1": {
+     "meltHours": 305,
+     "meanAlbedo": 0.813,
+     "mmPerWinter": 9.1
+    },
+    "2": {
+     "meltHours": 406,
+     "meanAlbedo": 0.778,
+     "mmPerWinter": 15.8
+    },
+    "3–5": {
+     "meltHours": 1256,
+     "meanAlbedo": 0.71,
+     "mmPerWinter": 52.9
+    },
+    "6–10": {
+     "meltHours": 490,
+     "meanAlbedo": 0.635,
+     "mmPerWinter": 27.2
+    },
+    "11–20": {
+     "meltHours": 132,
+     "meanAlbedo": 0.587,
+     "mmPerWinter": 6.5
+    }
+   },
+   "measuredSurface": "nicht vorhanden: die SwissMetNet-Stundendateien von WFJ im Speicher (2010–2026) tragen die Spalten olo000h0 (langwellige Ausstrahlung), osr000h0 (reflektierte Kurzwelle) und ods000h0 leer; eine Oberflächentemperatur des Schnees steht in keiner Quelle von §4"
+  },
+  "noWinterMelt": {
+   "winters": 13,
+   "winterMeltMm": 0,
+   "meltMm": {
+    "10": 52.6,
+    "11": 47.1,
+    "12": 0,
+    "01": 0,
+    "02": 0,
+    "03": 0,
+    "04": 156.9,
+    "05": 306.6,
+    "06": 377.3
+   },
+   "byMonth": {
+    "10": {
+     "n": 403,
+     "bias": -0.3,
+     "mae": 5.1
+    },
+    "11": {
+     "n": 390,
+     "bias": -7.8,
+     "mae": 15.4
+    },
+    "12": {
+     "n": 403,
+     "bias": -13.1,
+     "mae": 18.7
+    },
+    "01": {
+     "n": 403,
+     "bias": -13.6,
+     "mae": 20.5
+    },
+    "02": {
+     "n": 367,
+     "bias": -8.3,
+     "mae": 18.6
+    },
+    "03": {
+     "n": 403,
+     "bias": -1.3,
+     "mae": 17.1
+    },
+    "04": {
+     "n": 390,
+     "bias": 2.5,
+     "mae": 17.2
+    },
+    "05": {
+     "n": 403,
+     "bias": -6.6,
+     "mae": 24.3
+    },
+    "06": {
+     "n": 390,
+     "bias": -20.1,
+     "mae": 25.5
+    }
+   },
+   "decMar": {
+    "n": 1576,
+    "bias": -9.1,
+    "mae": 18.7
+   },
+   "janMar": {
+    "n": 1173,
+    "bias": -7.7,
+    "mae": 18.7
+   },
+   "aprJun": {
+    "n": 1183,
+    "bias": -8,
+    "mae": 22.4
+   },
+   "meltOut": {
+    "maeD": 7,
+    "biasD": -7
+   }
+  }
+ },
+ "step3": {
+  "pairing": "Wasserwert ≥ 90 % der Schneefalltage (2011–2026), nächste SwissMetNet-Station des Speichers ≤ 10 km und ±300 m mit Temperatur und Globalstrahlung, ≥ 3 gewertete Winter",
+  "controlA": {
+   "hours": 85248,
+   "notIdentical": 0,
+   "green": true
+  },
+  "survived": [
+   "5WJ0"
+  ],
+  "dropped": [
+   {
+    "code": "1MR0",
+    "label": "Mürren",
+    "z": 1650,
+    "share": 0.275,
+    "drop": "Wasserwert an 28 % der Schneefalltage"
+   },
+   {
+    "code": "1AD0",
+    "label": "Adelboden",
+    "z": 1325,
+    "share": 0.265,
+    "drop": "Wasserwert an 27 % der Schneefalltage"
+   },
+   {
+    "code": "2EN0",
+    "label": "Engelberg",
+    "z": 1023,
+    "share": 0,
+    "drop": "kein Wasserwert des Neuschnees"
+   },
+   {
+    "code": "1GH0",
+    "label": "Grimsel Hospiz",
+    "z": 1970,
+    "share": 0.306,
+    "drop": "Wasserwert an 31 % der Schneefalltage"
+   },
+   {
+    "code": "4MO0",
+    "label": "Montana",
+    "z": 1590,
+    "share": 0.346,
+    "drop": "Wasserwert an 35 % der Schneefalltage"
+   },
+   {
+    "code": "4UL0",
+    "label": "Ulrichen",
+    "z": 1345,
+    "share": 0.297,
+    "drop": "Wasserwert an 30 % der Schneefalltage"
+   },
+   {
+    "code": "5DF0",
+    "label": "Davos Flüelastr.",
+    "z": 1560,
+    "share": 0.183,
+    "drop": "Wasserwert an 18 % der Schneefalltage"
+   },
+   {
+    "code": "1LB0",
+    "label": "Lauterbrunnen",
+    "z": 800,
+    "share": 0,
+    "drop": "kein Wasserwert des Neuschnees"
+   },
+   {
+    "code": "5AR0",
+    "label": "Arosa",
+    "z": 1845,
+    "share": 0.311,
+    "drop": "Wasserwert an 31 % der Schneefalltage"
+   },
+   {
+    "code": "5BI0",
+    "label": "Bivio",
+    "z": 1770,
+    "share": 0.239,
+    "drop": "Wasserwert an 24 % der Schneefalltage"
+   },
+   {
+    "code": "5IG0",
+    "label": "Innerglas",
+    "z": 1820,
+    "share": 0.216,
+    "drop": "Wasserwert an 22 % der Schneefalltage"
+   },
+   {
+    "code": "5IN0",
+    "label": "Innerferrera",
+    "z": 1460,
+    "share": 0.605,
+    "drop": "Wasserwert an 61 % der Schneefalltage"
+   },
+   {
+    "code": "5JU0",
+    "label": "Juf",
+    "z": 2117,
+    "share": 0.187,
+    "drop": "Wasserwert an 19 % der Schneefalltage"
+   },
+   {
+    "code": "5MA0",
+    "label": "Matta Frauenkirch",
+    "z": 1655,
+    "share": 0,
+    "drop": "kein Wasserwert des Neuschnees"
+   },
+   {
+    "code": "5OB0",
+    "label": "Obersaxen",
+    "z": 1420,
+    "share": 0.166,
+    "drop": "Wasserwert an 17 % der Schneefalltage"
+   },
+   {
+    "code": "5SE0",
+    "label": "Sedrun",
+    "z": 1413,
+    "share": 0.242,
+    "drop": "Wasserwert an 24 % der Schneefalltage"
+   },
+   {
+    "code": "5SP0",
+    "label": "Splügen",
+    "z": 1470,
+    "share": 0.222,
+    "drop": "Wasserwert an 22 % der Schneefalltage"
+   },
+   {
+    "code": "7BU0",
+    "label": "Buffalora",
+    "z": 1970,
+    "share": 0,
+    "drop": "kein Wasserwert des Neuschnees"
+   },
+   {
+    "code": "7MT0",
+    "label": "Motta Naluns",
+    "z": 2150,
+    "share": 0.159,
+    "drop": "Wasserwert an 16 % der Schneefalltage"
+   },
+   {
+    "code": "7MZ0",
+    "label": "St.Moritz",
+    "z": 1850,
+    "share": 0.162,
+    "drop": "Wasserwert an 16 % der Schneefalltage"
+   },
+   {
+    "code": "7SD0",
+    "label": "Samedan",
+    "z": 1750,
+    "share": 0,
+    "drop": "kein Wasserwert des Neuschnees"
+   },
+   {
+    "code": "7SN0",
+    "label": "Samnaun",
+    "z": 1750,
+    "share": 0.174,
+    "drop": "Wasserwert an 17 % der Schneefalltage"
+   },
+   {
+    "code": "7ZU0",
+    "label": "Zuoz",
+    "z": 1710,
+    "share": 0.132,
+    "drop": "Wasserwert an 13 % der Schneefalltage"
+   },
+   {
+    "code": "4EG0",
+    "label": "Egginer",
+    "z": 2645,
+    "share": 0.016,
+    "drop": "Wasserwert an 2 % der Schneefalltage"
+   },
+   {
+    "code": "4FK0",
+    "label": "Felskinn",
+    "z": 2910,
+    "share": 0,
+    "drop": "kein Wasserwert des Neuschnees"
+   },
+   {
+    "code": "1GB0",
+    "label": "Grindelwald Bort",
+    "z": 1565,
+    "share": 0.346,
+    "drop": "Wasserwert an 35 % der Schneefalltage"
+   },
+   {
+    "code": "4SF0",
+    "label": "Saas Fee",
+    "z": 1790,
+    "share": 0.147,
+    "drop": "Wasserwert an 15 % der Schneefalltage"
+   },
+   {
+    "code": "1SH0",
+    "label": "Stockhorn",
+    "z": 1646,
+    "share": 0.259,
+    "drop": "Wasserwert an 26 % der Schneefalltage"
+   },
+   {
+    "code": "1SM0",
+    "label": "Saanenmöser",
+    "z": 1390,
+    "share": 0.276,
+    "drop": "Wasserwert an 28 % der Schneefalltage"
+   },
+   {
+    "code": "2AN0",
+    "label": "Andermatt",
+    "z": 1440,
+    "share": 0.231,
+    "drop": "Wasserwert an 23 % der Schneefalltage"
+   },
+   {
+    "code": "2GA0",
+    "label": "Göscheneralp",
+    "z": 1550,
+    "share": 0.256,
+    "drop": "Wasserwert an 26 % der Schneefalltage"
+   },
+   {
+    "code": "1HB0",
+    "label": "Hasliberg",
+    "z": 1825,
+    "share": 0.245,
+    "drop": "Wasserwert an 25 % der Schneefalltage"
+   },
+   {
+    "code": "2GU0",
+    "label": "Gurtnellen",
+    "z": 950,
+    "share": 0,
+    "drop": "kein Wasserwert des Neuschnees"
+   },
+   {
+    "code": "1GD0",
+    "label": "Grindel",
+    "z": 1950,
+    "share": 0.333,
+    "drop": "Wasserwert an 33 % der Schneefalltage"
+   },
+   {
+    "code": "2ME0",
+    "label": "Meien",
+    "z": 1320,
+    "share": 0.235,
+    "drop": "Wasserwert an 24 % der Schneefalltage"
+   },
+   {
+    "code": "2OG0",
+    "label": "Oberiberg",
+    "z": 1060,
+    "share": 0.211,
+    "drop": "Wasserwert an 21 % der Schneefalltage"
+   },
+   {
+    "code": "2GO0",
+    "label": "Göschenen",
+    "z": 1110,
+    "share": 0,
+    "drop": "kein Wasserwert des Neuschnees"
+   },
+   {
+    "code": "1GS0",
+    "label": "Gsteig",
+    "z": 1190,
+    "share": 0.241,
+    "drop": "Wasserwert an 24 % der Schneefalltage"
+   },
+   {
+    "code": "1GT0",
+    "label": "Gantrisch",
+    "z": 1510,
+    "share": 0.277,
+    "drop": "Wasserwert an 28 % der Schneefalltage"
+   },
+   {
+    "code": "1JA0",
+    "label": "Jaunpass",
+    "z": 1520,
+    "share": 0.08,
+    "drop": "Wasserwert an 8 % der Schneefalltage"
+   },
+   {
+    "code": "1LC0",
+    "label": "La Comballaz",
+    "z": 1360,
+    "share": 0,
+    "drop": "kein Wasserwert des Neuschnees"
+   },
+   {
+    "code": "1LS0",
+    "label": "Leysin",
+    "z": 1300,
+    "share": 0.278,
+    "drop": "Wasserwert an 28 % der Schneefalltage"
+   },
+   {
+    "code": "2SO0",
+    "label": "Sörenberg",
+    "z": 1150,
+    "share": 0.258,
+    "drop": "Wasserwert an 26 % der Schneefalltage"
+   },
+   {
+    "code": "2ST0",
+    "label": "Stoos",
+    "z": 1280,
+    "share": 0.385,
+    "drop": "Wasserwert an 39 % der Schneefalltage"
+   },
+   {
+    "code": "2TR0",
+    "label": "Trübsee",
+    "z": 1780,
+    "share": 0.247,
+    "drop": "Wasserwert an 25 % der Schneefalltage"
+   },
+   {
+    "code": "2UR0",
+    "label": "Isenthal",
+    "z": 1395,
+    "share": 0.266,
+    "drop": "Wasserwert an 27 % der Schneefalltage"
+   },
+   {
+    "code": "3BR0",
+    "label": "Braunwald",
+    "z": 1310,
+    "share": 0.391,
+    "drop": "Wasserwert an 39 % der Schneefalltage"
+   },
+   {
+    "code": "3FB0",
+    "label": "Flumserberg",
+    "z": 1310,
+    "share": 0.317,
+    "drop": "Wasserwert an 32 % der Schneefalltage"
+   },
+   {
+    "code": "3MB0",
+    "label": "Malbun",
+    "z": 1610,
+    "share": 0.334,
+    "drop": "Wasserwert an 33 % der Schneefalltage"
+   },
+   {
+    "code": "3MG0",
+    "label": "St.Margrethenberg",
+    "z": 1190,
+    "share": 0.328,
+    "drop": "Wasserwert an 33 % der Schneefalltage"
+   },
+   {
+    "code": "3SW0",
+    "label": "Schwägalp",
+    "z": 1350,
+    "share": 0.348,
+    "drop": "Wasserwert an 35 % der Schneefalltage"
+   },
+   {
+    "code": "3UI0",
+    "label": "Unterwasser Iltios",
+    "z": 1340,
+    "share": 0.084,
+    "drop": "Wasserwert an 8 % der Schneefalltage"
+   },
+   {
+    "code": "4BN0",
+    "label": "Binn",
+    "z": 1410,
+    "share": 0.176,
+    "drop": "Wasserwert an 18 % der Schneefalltage"
+   },
+   {
+    "code": "4BP0",
+    "label": "Bourg-St-Pierre",
+    "z": 1670,
+    "share": 0.199,
+    "drop": "Wasserwert an 20 % der Schneefalltage"
+   },
+   {
+    "code": "4FY0",
+    "label": "Fionnay",
+    "z": 1500,
+    "share": 0.346,
+    "drop": "Wasserwert an 35 % der Schneefalltage"
+   },
+   {
+    "code": "4GR0",
+    "label": "Grimentz",
+    "z": 1560,
+    "share": 0.23,
+    "drop": "Wasserwert an 23 % der Schneefalltage"
+   },
+   {
+    "code": "4KU0",
+    "label": "Kühboden",
+    "z": 2210,
+    "share": 0.174,
+    "drop": "Wasserwert an 17 % der Schneefalltage"
+   },
+   {
+    "code": "4LA0",
+    "label": "Lauchernalp",
+    "z": 1976,
+    "share": 0.272,
+    "drop": "Wasserwert an 27 % der Schneefalltage"
+   },
+   {
+    "code": "4LF0",
+    "label": "La Fouly",
+    "z": 1570,
+    "share": 0,
+    "drop": "kein Wasserwert des Neuschnees"
+   },
+   {
+    "code": "4MS0",
+    "label": "Münster",
+    "z": 1430,
+    "share": 0.251,
+    "drop": "Wasserwert an 25 % der Schneefalltage"
+   },
+   {
+    "code": "4OW0",
+    "label": "Oberwald",
+    "z": 1370,
+    "share": 0,
+    "drop": "kein Wasserwert des Neuschnees"
+   },
+   {
+    "code": "4SH0",
+    "label": "Simplon Hospiz",
+    "z": 2000,
+    "share": 0.182,
+    "drop": "Wasserwert an 18 % der Schneefalltage"
+   },
+   {
+    "code": "4SM0",
+    "label": "Simplon Dorf",
+    "z": 1470,
+    "share": 0.194,
+    "drop": "Wasserwert an 19 % der Schneefalltage"
+   },
+   {
+    "code": "4VI0",
+    "label": "Visp",
+    "z": 660,
+    "share": 0,
+    "drop": "kein Wasserwert des Neuschnees"
+   },
+   {
+    "code": "4WI0",
+    "label": "Wiler",
+    "z": 1450,
+    "share": 0.256,
+    "drop": "Wasserwert an 26 % der Schneefalltage"
+   },
+   {
+    "code": "4ZE0",
+    "label": "Zermatt",
+    "z": 1600,
+    "share": 0.253,
+    "drop": "Wasserwert an 25 % der Schneefalltage"
+   },
+   {
+    "code": "5DI0",
+    "label": "Disentis",
+    "z": 1190,
+    "share": 0,
+    "drop": "kein Wasserwert des Neuschnees"
+   },
+   {
+    "code": "5KK0",
+    "label": "Klosters KW",
+    "z": 1190,
+    "share": 0.176,
+    "drop": "Wasserwert an 18 % der Schneefalltage"
+   },
+   {
+    "code": "5KR0",
+    "label": "Klosters RhB",
+    "z": 1188,
+    "share": 0.005,
+    "drop": "Wasserwert an 1 % der Schneefalltage"
+   },
+   {
+    "code": "5KU0",
+    "label": "Küblis",
+    "z": 815,
+    "share": 0,
+    "drop": "kein Wasserwert des Neuschnees"
+   },
+   {
+    "code": "5LQ0",
+    "label": "Landquart",
+    "z": 520,
+    "share": 0.421,
+    "drop": "Wasserwert an 42 % der Schneefalltage"
+   },
+   {
+    "code": "5PU0",
+    "label": "Pusserein",
+    "z": 942,
+    "share": 0.297,
+    "drop": "Wasserwert an 30 % der Schneefalltage"
+   },
+   {
+    "code": "5SA0",
+    "label": "St.Antönien",
+    "z": 1510,
+    "share": 0.276,
+    "drop": "Wasserwert an 28 % der Schneefalltage"
+   },
+   {
+    "code": "5TH0",
+    "label": "Thusis",
+    "z": 701,
+    "share": 0,
+    "drop": "kein Wasserwert des Neuschnees"
+   },
+   {
+    "code": "5VZ0",
+    "label": "Valzeina",
+    "z": 1090,
+    "share": 0,
+    "drop": "kein Wasserwert des Neuschnees"
+   },
+   {
+    "code": "6BE0",
+    "label": "Bellinzona",
+    "z": 230,
+    "share": 0,
+    "drop": "kein Wasserwert des Neuschnees"
+   },
+   {
+    "code": "6BG0",
+    "label": "Bosco Gurin",
+    "z": 1525,
+    "share": 0.247,
+    "drop": "Wasserwert an 25 % der Schneefalltage"
+   },
+   {
+    "code": "6CB0",
+    "label": "Campo Blenio",
+    "z": 1215,
+    "share": 0.196,
+    "drop": "Wasserwert an 20 % der Schneefalltage"
+   },
+   {
+    "code": "6NT0",
+    "label": "Nante",
+    "z": 1412,
+    "share": 0.204,
+    "drop": "Wasserwert an 20 % der Schneefalltage"
+   },
+   {
+    "code": "6RI0",
+    "label": "Ritom Piora",
+    "z": 1800,
+    "share": 0.259,
+    "drop": "Wasserwert an 26 % der Schneefalltage"
+   },
+   {
+    "code": "6RO0",
+    "label": "Robiei",
+    "z": 1890,
+    "share": 0.194,
+    "drop": "Wasserwert an 19 % der Schneefalltage"
+   },
+   {
+    "code": "6SB0",
+    "label": "San Bernardino",
+    "z": 1640,
+    "share": 0.384,
+    "drop": "Wasserwert an 38 % der Schneefalltage"
+   },
+   {
+    "code": "1WE0",
+    "label": "Wengen",
+    "z": 1280,
+    "share": 0.218,
+    "drop": "Wasserwert an 22 % der Schneefalltage"
+   },
+   {
+    "code": "1GA0",
+    "label": "Gadmen",
+    "z": 1190,
+    "share": 0.315,
+    "drop": "Wasserwert an 32 % der Schneefalltage"
+   },
+   {
+    "code": "7BR0",
+    "label": "Brusio",
+    "z": 800,
+    "share": 0.115,
+    "drop": "Wasserwert an 12 % der Schneefalltage"
+   },
+   {
+    "code": "7FA0",
+    "label": "Ftan",
+    "z": 1707,
+    "share": 0.113,
+    "drop": "Wasserwert an 11 % der Schneefalltage"
+   },
+   {
+    "code": "7LD0",
+    "label": "La Drossa",
+    "z": 1710,
+    "share": 0.165,
+    "drop": "Wasserwert an 17 % der Schneefalltage"
+   },
+   {
+    "code": "7MA0",
+    "label": "Maloja",
+    "z": 1810,
+    "share": 0.254,
+    "drop": "Wasserwert an 25 % der Schneefalltage"
+   },
+   {
+    "code": "7PV0",
+    "label": "Poschiavo",
+    "z": 1015,
+    "share": 0.513,
+    "drop": "Wasserwert an 51 % der Schneefalltage"
+   },
+   {
+    "code": "7ST0",
+    "label": "Sta.Maria",
+    "z": 1387,
+    "share": 0.159,
+    "drop": "Wasserwert an 16 % der Schneefalltage"
+   },
+   {
+    "code": "7SU0",
+    "label": "Scuol",
+    "z": 1285,
+    "share": 0,
+    "drop": "kein Wasserwert des Neuschnees"
+   },
+   {
+    "code": "7ZN0",
+    "label": "Zernez",
+    "z": 1475,
+    "share": 0,
+    "drop": "kein Wasserwert des Neuschnees"
+   },
+   {
+    "code": "4ZW0",
+    "label": "Furi - Zermatt West",
+    "z": 1847,
+    "share": 0.02,
+    "drop": "Wasserwert an 2 % der Schneefalltage"
+   },
+   {
+    "code": "2RI0",
+    "label": "Rigi Scheidegg",
+    "z": 1640,
+    "share": 0.203,
+    "drop": "Wasserwert an 20 % der Schneefalltage"
+   },
+   {
+    "code": "1MI0",
+    "label": "Morgins",
+    "z": 1320,
+    "share": 0.245,
+    "drop": "Wasserwert an 25 % der Schneefalltage"
+   },
+   {
+    "code": "1MN0",
+    "label": "Moléson",
+    "z": 1520,
+    "share": 0.028,
+    "drop": "Wasserwert an 3 % der Schneefalltage"
+   },
+   {
+    "code": "1PL0",
+    "label": "Planachaux",
+    "z": 1870,
+    "share": 0.133,
+    "drop": "Wasserwert an 13 % der Schneefalltage"
+   },
+   {
+    "code": "3EL0",
+    "label": "Elm",
+    "z": 1690,
+    "share": 0.218,
+    "drop": "Wasserwert an 22 % der Schneefalltage"
+   },
+   {
+    "code": "4AO0",
+    "label": "Arolla",
+    "z": 2070,
+    "share": 0,
+    "drop": "kein Wasserwert des Neuschnees"
+   },
+   {
+    "code": "4CR0",
+    "label": "La Creusaz",
+    "z": 1720,
+    "share": 0.39,
+    "drop": "Wasserwert an 39 % der Schneefalltage"
+   },
+   {
+    "code": "4OV0",
+    "label": "Ovronnaz",
+    "z": 2050,
+    "share": 0,
+    "drop": "kein Wasserwert des Neuschnees"
+   },
+   {
+    "code": "4RU0",
+    "label": "Ruinettes",
+    "z": 2200,
+    "share": 0.135,
+    "drop": "Wasserwert an 14 % der Schneefalltage"
+   },
+   {
+    "code": "5BE0",
+    "label": "Bergün",
+    "z": 1380,
+    "share": 0.003,
+    "drop": "Wasserwert an 0 % der Schneefalltage"
+   },
+   {
+    "code": "5CU0",
+    "label": "Curaglia",
+    "z": 1345,
+    "share": 0,
+    "drop": "kein Wasserwert des Neuschnees"
+   },
+   {
+    "code": "5PL0",
+    "label": "Plaun Laax",
+    "z": 1630,
+    "share": 0.222,
+    "drop": "Wasserwert an 22 % der Schneefalltage"
+   },
+   {
+    "code": "5SI0",
+    "label": "Siat",
+    "z": 1273,
+    "share": 0.245,
+    "drop": "Wasserwert an 25 % der Schneefalltage"
+   },
+   {
+    "code": "5VA0",
+    "label": "Vals",
+    "z": 1260,
+    "share": 0.372,
+    "drop": "Wasserwert an 37 % der Schneefalltage"
+   },
+   {
+    "code": "5ZV0",
+    "label": "Zervreila",
+    "z": 1735,
+    "share": 0.202,
+    "drop": "Wasserwert an 20 % der Schneefalltage"
+   },
+   {
+    "code": "7AG0",
+    "label": "Alp Grüm",
+    "z": 2090,
+    "share": 0,
+    "drop": "kein Wasserwert des Neuschnees"
+   },
+   {
+    "code": "7BP0",
+    "label": "Berninapass",
+    "z": 2260,
+    "share": 0,
+    "drop": "kein Wasserwert des Neuschnees"
+   },
+   {
+    "code": "7CA0",
+    "label": "Cavaglia",
+    "z": 1690,
+    "share": 0,
+    "drop": "kein Wasserwert des Neuschnees"
+   },
+   {
+    "code": "7CO0",
+    "label": "Corvatsch",
+    "z": 2690,
+    "share": 0.201,
+    "drop": "Wasserwert an 20 % der Schneefalltage"
+   },
+   {
+    "code": "7DI0",
+    "label": "Bernina Diavolezza",
+    "z": 2090,
+    "share": 0,
+    "drop": "kein Wasserwert des Neuschnees"
+   },
+   {
+    "code": "4ZO0",
+    "label": "Eisflue - Zermatt Ost",
+    "z": 2235,
+    "share": 0,
+    "drop": "kein Wasserwert des Neuschnees"
+   },
+   {
+    "code": "6PE0",
+    "label": "Pesciüm",
+    "z": 1770,
+    "share": 0.26,
+    "drop": "Wasserwert an 26 % der Schneefalltage"
+   }
+  ]
+ },
+ "step6": {
+  "rhiresFiles": [
+   "ogd-surface-derived-grid-last.rhiresd_ch01h.swiss.lv95_20251201000000_20251231000000.nc",
+   "ogd-surface-derived-grid-last.rhiresd_ch01h.swiss.lv95_20260101000000_20260131000000.nc",
+   "ogd-surface-derived-grid-last.rhiresd_ch01h.swiss.lv95_20260201000000_20260228000000.nc",
+   "ogd-surface-derived-grid-last.rhiresd_ch01h.swiss.lv95_20260301000000_20260331000000.nc",
+   "ogd-surface-derived-grid-last.rhiresd_ch01h.swiss.lv95_20260401000000_20260430000000.nc",
+   "ogd-surface-derived-grid-last.rhiresd_ch01h.swiss.lv95_20260501000000_20260531000000.nc",
+   "rhiresd_2024.nc",
+   "rhiresd_2025.nc"
+  ],
+  "w26RhiresDays": 882,
+  "glaciersRhires": {
+   "all": {
+    "n": 27,
+    "median": 0.552,
+    "p10": 0.351,
+    "p90": 0.728
+   },
+   "all25": {
+    "n": 27,
+    "median": 0.685,
+    "p10": 0.356,
+    "p90": 0.913
+   },
+   "six": [
+    {
+     "key": "B36-26",
+     "six": true,
+     "w24": 1361.2,
+     "w25": 914.6,
+     "w26": 631.5,
+     "ratio": 0.555,
+     "ratio25": 0.691,
+     "sameFile2025": 1
+    },
+    {
+     "key": "B43-03",
+     "six": true,
+     "w24": 1651.3,
+     "w25": 894.4,
+     "w26": 735.2,
+     "ratio": 0.578,
+     "ratio25": 0.822,
+     "sameFile2025": 1
+    },
+    {
+     "key": "B56-03",
+     "six": true,
+     "w24": 1230,
+     "w25": 1255.5,
+     "w26": 383.8,
+     "ratio": 0.309,
+     "ratio25": 0.306,
+     "sameFile2025": 1
+    },
+    {
+     "key": "C14-10",
+     "six": true,
+     "w24": 1512.1,
+     "w25": 1147.2,
+     "w26": 623,
+     "ratio": 0.469,
+     "ratio25": 0.543,
+     "sameFile2025": 1
+    },
+    {
+     "key": "E23-16",
+     "six": true,
+     "w24": 1011.7,
+     "w25": 511.4,
+     "w26": 300.7,
+     "ratio": 0.395,
+     "ratio25": 0.588,
+     "sameFile2025": 1
+    },
+    {
+     "key": "E23-18",
+     "six": true,
+     "w24": 983.6,
+     "w25": 496.3,
+     "w26": 291.3,
+     "ratio": 0.394,
+     "ratio25": 0.587,
+     "sameFile2025": 1
+    }
+   ]
+  },
+  "sameFile2025": {
+   "note": "Wintersumme 2024/25 am Gletscher: Eich-Datei gm3 / Datei gm11\\w26",
+   "ratio": {
+    "n": 28,
+    "median": 1,
+    "p10": 1,
+    "p90": 1
+   }
+  },
+  "slfPlotsHnw": {
+   "n": 2,
+   "median": 0.673,
+   "p10": 0.614,
+   "p90": 0.731
+  },
+  "slfPlotsHnw25": {
+   "n": 2,
+   "median": 1.05,
+   "p10": 0.81,
+   "p90": 1.289
+  },
+  "slfPlots": [
+   {
+    "code": "5WJ0",
+    "label": "Weissfluhjoch",
+    "z": 2536,
+    "ratio": 0.745,
+    "ratio25": 1.349,
+    "w24": 1202,
+    "w25": 459,
+    "w26": 619
+   },
+   {
+    "code": "6BE0",
+    "label": "Bellinzona",
+    "z": 230,
+    "ratio": null,
+    "ratio25": null,
+    "w24": 0,
+    "w25": 0,
+    "w26": 0
+   },
+   {
+    "code": "7PV0",
+    "label": "Poschiavo",
+    "z": 1015,
+    "ratio": 0.6,
+    "ratio25": 0.75,
+    "w24": 12,
+    "w25": 8,
+    "w26": 6
+   }
+  ],
+  "gaugesSmn": {
+   "n": 46,
+   "median": 0.52,
+   "p10": 0.386,
+   "p90": 0.707
+  },
+  "gaugesSmn25": {
+   "n": 46,
+   "median": 0.708,
+   "p10": 0.481,
+   "p90": 1.023
+  },
+  "gauges": [
+   {
+    "abbr": "ABO",
+    "name": "Adelboden",
+    "z": 1321,
+    "ratio": 0.595,
+    "ratio25": 0.75,
+    "w24": 916,
+    "w25": 602.4,
+    "w26": 451.6
+   },
+   {
+    "abbr": "ALT",
+    "name": "Altdorf",
+    "z": 438,
+    "ratio": 0.537,
+    "ratio25": 0.842,
+    "w24": 809.2,
+    "w25": 379.4,
+    "w26": 319.3
+   },
+   {
+    "abbr": "AND",
+    "name": "Andeer",
+    "z": 987,
+    "ratio": 0.392,
+    "ratio25": 0.617,
+    "w24": 607.5,
+    "w25": 283.1,
+    "w26": 174.6
+   },
+   {
+    "abbr": "ANT",
+    "name": "Andermatt",
+    "z": 1435,
+    "ratio": 0.521,
+    "ratio25": 0.81,
+    "w24": 911.3,
+    "w25": 432,
+    "w26": 349.8
+   },
+   {
+    "abbr": "ARO",
+    "name": "Arosa",
+    "z": 1878,
+    "ratio": 0.685,
+    "ratio25": 1.01,
+    "w24": 776.6,
+    "w25": 398.6,
+    "w26": 402.7
+   },
+   {
+    "abbr": "BIN",
+    "name": "Binn",
+    "z": 1479,
+    "ratio": 0.391,
+    "ratio25": 0.471,
+    "w24": 907.1,
+    "w25": 643.1,
+    "w26": 302.9
+   },
+   {
+    "abbr": "BIV",
+    "name": "Bivio",
+    "z": 1856,
+    "ratio": 0.463,
+    "ratio25": 0.709,
+    "w24": 766.4,
+    "w25": 371.7,
+    "w26": 263.7
+   },
+   {
+    "abbr": "BUF",
+    "name": "Buffalora",
+    "z": 1971,
+    "ratio": 0.364,
+    "ratio25": 0.471,
+    "w24": 667.1,
+    "w25": 419.8,
+    "w26": 197.7
+   },
+   {
+    "abbr": "CDM",
+    "name": "Col des Mosses",
+    "z": 1412,
+    "ratio": 0.761,
+    "ratio25": 1.023,
+    "w24": 1201.5,
+    "w25": 710.8,
+    "w26": 727.3
+   },
+   {
+    "abbr": "CIM",
+    "name": "Cimetta",
+    "z": 1661,
+    "ratio": 0.544,
+    "ratio25": 0.558,
+    "w24": 809.7,
+    "w25": 769.9,
+    "w26": 429.3
+   },
+   {
+    "abbr": "COV",
+    "name": "Piz Corvatsch",
+    "z": 3294,
+    "ratio": 0.382,
+    "ratio25": 0.578,
+    "w24": 1182,
+    "w25": 583.2,
+    "w26": 336.9
+   },
+   {
+    "abbr": "DAV",
+    "name": "Davos",
+    "z": 1594,
+    "ratio": 0.633,
+    "ratio25": 1.235,
+    "w24": 690,
+    "w25": 237.5,
+    "w26": 293.4
+   },
+   {
+    "abbr": "DIS",
+    "name": "Disentis",
+    "z": 1197,
+    "ratio": 0.515,
+    "ratio25": 0.836,
+    "w24": 827.1,
+    "w25": 368.4,
+    "w26": 307.8
+   },
+   {
+    "abbr": "ELM",
+    "name": "Elm",
+    "z": 958,
+    "ratio": 0.477,
+    "ratio25": 0.842,
+    "w24": 1419.7,
+    "w25": 561.2,
+    "w26": 472.8
+   },
+   {
+    "abbr": "ENG",
+    "name": "Engelberg",
+    "z": 1036,
+    "ratio": 0.568,
+    "ratio25": 0.754,
+    "w24": 1120.3,
+    "w25": 676.7,
+    "w26": 510.5
+   },
+   {
+    "abbr": "EVI",
+    "name": "Evionnaz",
+    "z": 482,
+    "ratio": 0.647,
+    "ratio25": 0.757,
+    "w24": 669,
+    "w25": 498.2,
+    "w26": 377.3
+   },
+   {
+    "abbr": "EVO",
+    "name": "Evolène / Villa",
+    "z": 1825,
+    "ratio": 0.431,
+    "ratio25": 0.469,
+    "w24": 514.8,
+    "w25": 437.4,
+    "w26": 205
+   },
+   {
+    "abbr": "GLA",
+    "name": "Glarus",
+    "z": 517,
+    "ratio": 0.584,
+    "ratio25": 0.856,
+    "w24": 1035.6,
+    "w25": 537.2,
+    "w26": 459.6
+   },
+   {
+    "abbr": "GOS",
+    "name": "Göschenen",
+    "z": 950,
+    "ratio": 0.541,
+    "ratio25": 0.782,
+    "w24": 1063.9,
+    "w25": 563.1,
+    "w26": 440.5
+   },
+   {
+    "abbr": "GRC",
+    "name": "Grächen",
+    "z": 1605,
+    "ratio": 0.465,
+    "ratio25": 0.476,
+    "w24": 438,
+    "w25": 417.7,
+    "w26": 198.9
+   },
+   {
+    "abbr": "GRH",
+    "name": "Grimsel Hospiz",
+    "z": 1980,
+    "ratio": 0.694,
+    "ratio25": 1.022,
+    "w24": 1594.1,
+    "w25": 819.5,
+    "w26": 837.4
+   },
+   {
+    "abbr": "GSB",
+    "name": "Col du Grand St-Bernard",
+    "z": 2472,
+    "ratio": 0.579,
+    "ratio25": 0.694,
+    "w24": 1346.4,
+    "w25": 962.6,
+    "w26": 668.4
+   },
+   {
+    "abbr": "GUE",
+    "name": "Gütsch, Andermatt",
+    "z": 2286,
+    "ratio": 0.72,
+    "ratio25": 1.046,
+    "w24": 1026.5,
+    "w25": 538.5,
+    "w26": 563.1
+   },
+   {
+    "abbr": "ILZ",
+    "name": "Ilanz",
+    "z": 698,
+    "ratio": 0.552,
+    "ratio25": 0.921,
+    "w24": 690.8,
+    "w25": 296,
+    "w26": 272.6
+   },
+   {
+    "abbr": "INT",
+    "name": "Interlaken",
+    "z": 578,
+    "ratio": 0.605,
+    "ratio25": 0.722,
+    "w24": 792.5,
+    "w25": 571.5,
+    "w26": 412.5
+   },
+   {
+    "abbr": "LAT",
+    "name": "Bergün / Latsch",
+    "z": 1408,
+    "ratio": 0.465,
+    "ratio25": 0.74,
+    "w24": 597.6,
+    "w25": 274.2,
+    "w26": 202.8
+   },
+   {
+    "abbr": "MAR",
+    "name": "Les Marécottes",
+    "z": 990,
+    "ratio": 0.752,
+    "ratio25": 0.958,
+    "w24": 1224.7,
+    "w25": 791.9,
+    "w26": 758.4
+   },
+   {
+    "abbr": "MER",
+    "name": "Meiringen",
+    "z": 589,
+    "ratio": 0.528,
+    "ratio25": 0.706,
+    "w24": 874.4,
+    "w25": 522.3,
+    "w26": 368.7
+   },
+   {
+    "abbr": "MTE",
+    "name": "Mottec",
+    "z": 1580,
+    "ratio": 0.523,
+    "ratio25": 0.569,
+    "w24": 523,
+    "w25": 444.1,
+    "w26": 252.8
+   },
+   {
+    "abbr": "MVE",
+    "name": "Montana",
+    "z": 1423,
+    "ratio": 0.747,
+    "ratio25": 0.932,
+    "w24": 736.2,
+    "w25": 492.5,
+    "w26": 458.8
+   },
+   {
+    "abbr": "PIO",
+    "name": "Piotta",
+    "z": 990,
+    "ratio": 0.441,
+    "ratio25": 0.593,
+    "w24": 1010.5,
+    "w25": 597.6,
+    "w26": 354.3
+   },
+   {
+    "abbr": "PMA",
+    "name": "Piz Martegnas",
+    "z": 2668,
+    "ratio": 0.346,
+    "ratio25": 0.516,
+    "w24": 525.5,
+    "w25": 265.4,
+    "w26": 137
+   },
+   {
+    "abbr": "ROB",
+    "name": "Poschiavo / Robbia",
+    "z": 1078,
+    "ratio": 0.419,
+    "ratio25": 0.614,
+    "w24": 971.9,
+    "w25": 502.9,
+    "w26": 309
+   },
+   {
+    "abbr": "ROE",
+    "name": "Robièi",
+    "z": 1898,
+    "ratio": 0.487,
+    "ratio25": 0.576,
+    "w24": 1808,
+    "w25": 1324.9,
+    "w26": 763.1
+   },
+   {
+    "abbr": "SAE",
+    "name": "Säntis",
+    "z": 2501,
+    "ratio": 0.624,
+    "ratio25": 1.114,
+    "w24": 2766.7,
+    "w25": 1077.3,
+    "w26": 1199.9
+   },
+   {
+    "abbr": "SAM",
+    "name": "Samedan",
+    "z": 1709,
+    "ratio": 0.389,
+    "ratio25": 0.574,
+    "w24": 508.9,
+    "w25": 260.8,
+    "w26": 149.8
+   },
+   {
+    "abbr": "SBE",
+    "name": "S. Bernardino",
+    "z": 1639,
+    "ratio": 0.504,
+    "ratio25": 0.546,
+    "w24": 1014.1,
+    "w25": 868.2,
+    "w26": 474
+   },
+   {
+    "abbr": "SCU",
+    "name": "Scuol",
+    "z": 1304,
+    "ratio": 0.407,
+    "ratio25": 0.659,
+    "w24": 568.7,
+    "w25": 253.9,
+    "w26": 167.3
+   },
+   {
+    "abbr": "SIA",
+    "name": "Segl-Maria",
+    "z": 1804,
+    "ratio": 0.417,
+    "ratio25": 0.602,
+    "w24": 763.5,
+    "w25": 405,
+    "w26": 243.7
+   },
+   {
+    "abbr": "SIM",
+    "name": "Simplon-Dorf",
+    "z": 1465,
+    "ratio": 0.454,
+    "ratio25": 0.489,
+    "w24": 965.6,
+    "w25": 835.6,
+    "w26": 408.5
+   },
+   {
+    "abbr": "SMM",
+    "name": "Sta. Maria, Val Müstair",
+    "z": 1386,
+    "ratio": 0.335,
+    "ratio25": 0.456,
+    "w24": 593.6,
+    "w25": 344.8,
+    "w26": 157.3
+   },
+   {
+    "abbr": "ULR",
+    "name": "Ulrichen",
+    "z": 1346,
+    "ratio": 0.518,
+    "ratio25": 0.725,
+    "w24": 1071.4,
+    "w25": 595.8,
+    "w26": 431.7
+   },
+   {
+    "abbr": "VIO",
+    "name": "Vicosoprano",
+    "z": 1089,
+    "ratio": 0.361,
+    "ratio25": 0.486,
+    "w24": 1100.5,
+    "w25": 650.2,
+    "w26": 316.3
+   },
+   {
+    "abbr": "VLS",
+    "name": "Vals",
+    "z": 1242,
+    "ratio": 0.41,
+    "ratio25": 0.616,
+    "w24": 763.9,
+    "w25": 381.9,
+    "w26": 235.1
+   },
+   {
+    "abbr": "WFJ",
+    "name": "Weissfluhjoch",
+    "z": 2691,
+    "ratio": 0.72,
+    "ratio25": 1.18,
+    "w24": 1119.9,
+    "w25": 491.5,
+    "w26": 580
+   },
+   {
+    "abbr": "ZER",
+    "name": "Zermatt",
+    "z": 1638,
+    "ratio": 0.524,
+    "ratio25": 0.533,
+    "w24": 417.1,
+    "w25": 403.6,
+    "w26": 215.2
+   }
+  ],
+  "note": "ratio = Wintersumme Okt–Apr 2025/26 / Mittel der Winter 2023/24 und 2024/25, ratio25 = 2025/26 / 2024/25; nur Reihen mit ≤ 5 % fehlenden Tagen in jedem der drei Winter"
+ },
+ "mem": [
+  {
+   "label": "start",
+   "freeGb": 5.59
+  },
+  {
+   "label": "Messfeld 5WJ0",
+   "freeGb": 5.59
+  },
+  {
+   "label": "start",
+   "freeGb": 5.666
+  },
+  {
+   "label": "Messfeld 5WJ0",
+   "freeGb": 5.356
+  },
+  {
+   "label": "start",
+   "freeGb": 5.725
+  },
+  {
+   "label": "Messfelder",
+   "freeGb": 5.509
+  },
+  {
+   "label": "Messnetz",
+   "freeGb": 5.834
+  }
+ ]
+}

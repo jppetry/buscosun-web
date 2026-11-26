@@ -5171,3 +5171,13 @@ Nichts eingeschaltet, nichts im Daten- oder Archiv-Repo, nichts für den Prüfst
 2. **Faktor im Betrieb:** aus sechs Gletschern keine Tabelle (Regel). Zu entscheiden, ob der Faktor gegen den Antrieb des Betriebs statt gegen RhiresD geeicht werden soll (V-GM-154: Brücke 0,55–1,81 je Gletscher) — dafür müssten mehr Gletscherzellen in den Hindcast (V-GM-146) und ein Fit der Lernstufe ohne 2025/26 her (V-GM-156).
 3. **Hochwinter-Schmelze des Kerns (V-GM-157):** ob vor jeder Faktorfrage die Winterschmelze (Albedo-Abfall, Schwelle 1 °C) am Weissfluhjoch und an weiteren Messfeldern gemessen wird. Keine Änderung am Kern ohne Jans Wort.
 4. **E-GM-38 (§127)** im Licht von V-GM-153/155 neu ansehen: der eigene Faktor ist an 2023/24 und 2024/25 mit S mitgeeicht.
+
+## 130. Gletscher: Schneemodell, GM-11 Phase 1c — Winterschmelze des Kerns, nur Messung, nach Schritt 3 gestoppt (`audit/gletscher-schneemodell.md` §3q.7), 2026-11-26
+
+Nichts eingeschaltet, nichts unter `scripts/glacier/**` oder `src/**`, nichts im Daten- oder Archiv-Repo, nichts gepusht, nichts committet (1b lag schon als `0181b084` vor). Neu im Baum: `audit/gletscher-schneemodell/gm11-wintermelt.mjs`, `gm11-wintermelt-report.json`, §3q.7 im Audit, Zeile GM in `CLAUDE.md`. Volle Ergebnisse in `C:\dev\buscosun-glacier-cache\gm11\wintermelt\`.
+
+1. **Commit** auf Jans Wort (Werkzeug, Bericht, Audit, Zeilen).
+2. **Zweite Wahrheit für die Winterschmelze (V-GM-162):** nur das Weissfluhjoch hat genug Wasserwerte. Zur Wahl: (a) Schwelle der Paarungsregel senken (z. B. 50 %; Innerferrera, Poschiavo kämen dazu, beide unter 1 500 m), (b) Sonnblick (GeoSphere `klima-v2-1d/1h`, schon in §4) als zweiter Hochort, (c) Messfelder nur mit Schneehöhe und Stationsniederschlag (dann wirkt wieder ein Faktor). Erst danach Schritte 4 und 5 mit eingefrorener Regel.
+3. **Temperatur am Weissfluhjoch (V-GM-163):** ob die Höhenkorrektur der Station (+1 K nach unten) als Gegenprobe gerechnet werden soll, bevor eine Regel am Kern geprüft wird.
+4. **RhiresD 2025/26 an Findelen (V-GM-165):** die endgültige Jahresdatei 2026 holen, sobald MeteoSchweiz sie veröffentlicht, und §3q.4/§3q.6 für Findelen wiederholen.
+5. Keine Änderung am Kern ohne Jans Wort; R1 (Kältereserve) ist nach Schritt 2 der erste Kandidat, R3 würde Schmelze hinzufügen.
