@@ -670,14 +670,18 @@ export async function main(opts) {
           const tzW = lv ? lv.tz : z.map((zz) => tempAt(f, zz));
           const w = weatherOfGlacier({ id: g.id, z, tz: tzW, from: f.from ?? 'own', p: f.p, n: f.n, wx: f.wx, sg: f.sg, phase: wxPhase, seed: seedOf(run, g.id), levels: lv ? { sg: lv.sg, rh: lv.rh, ps: lv.ps } : null });
           wOut = { w, z, tz: tzW };
+          // GLACIER_COLUMN (shadow): the column of EVERY glacier with a weather answer — also one whose weather row is skipped, since its snowpack row
+          // (and so its pair) still comes from `wOut`; the chunk section only for glaciers with an hourly row
+          let colRes = null;
+          if (colSt?.atmo) {
+            try { colRes = await colSt.atmo.column(g.lat, g.lon); if (spPairs) colSt.tsrc.set(g.id, { z, tz: tzW, colRes }); } catch { colSt.fails = (colSt.fails ?? 0) + 1; }
+          }
           if (w.skip) wxSkipped.push({ id: g.id, reason: w.skip });
           else {
             if (wxHeights === 'three' && own) { if (lv) { lvStat.rows++; lvStat.clipped += w.stat.clipped; lvStat.clippedWet += w.stat.clippedWet; } else { w.row.lv = 'lapse'; lvStat.fallback++; } }
             wxRows.push(w.row); if (!wxHourly.has(g.region)) wxHourly.set(g.region, {}); wxHourly.get(g.region)[g.id] = w.hourly; if (w.cmp) wxCmp.push(w.cmp);
-            if (colSt?.atmo) {
+            if (colSt?.atmo && colRes) {
               try {
-                const colRes = await colSt.atmo.column(g.lat, g.lon);
-                if (spPairs) colSt.tsrc.set(g.id, { z, tz: tzW, colRes });
                 const cs = columnShadowOf(colRes, z, tzW, colSt.atmo.run, t0Ms, GLACIER_WEATHER_HOURS);
                 if (cs.ok) colSt.glaciers++;
                 colSt.values += cs.values;

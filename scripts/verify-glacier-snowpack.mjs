@@ -452,6 +452,9 @@ const putStations = (root, { extraMin = 0, stampAt = null, slotRun = LX_RUN, wit
   return { chosen: c };
 };
 const pairsDoc = (e) => { const f = join(e.outDir, glacierSnowpackPairsPath(e.run)); return existsSync(f) ? J(f) : null; };
+// GLACIER_COLUMN = shadow adds only the optional temperature pairs (`ta` per pair, `temp` in the head and in the status line); the checks below drop exactly these
+const noTempSt = (st) => { if (!st) return st; const x = { ...st }; delete x.temp; return x; };
+const noTempRaw = (raw) => { if (raw == null) return raw; const x = JSON.parse(raw); if (!('temp' in x) && !x.pairs?.some((q) => 'ta' in q)) return raw; delete x.temp; for (const q of x.pairs ?? []) delete q.ta; return JSON.stringify(x); };
 const stripPairs = (e) => { const s = structuredClone(e.status); delete s.lines.snowpack?.pairs; delete s.lines.melt.seconds; delete s.lines.melt.mem; if (s.lines.weather?.levels) delete s.lines.weather.levels.seconds; if (s.lines.snowpack) delete s.lines.snowpack.seconds; return JSON.stringify([s, e.index]); };
 await block('H', async () => {
   // a seed with snow (the spin-up of F4 on the real INCA answer), so that the pairs carry depths that are not zero
@@ -486,7 +489,7 @@ await block('H', async () => {
     && d.snowpack.precip === 'country' && d.snowpack.density === 'board' && d.stations.map === 'test.1' && d.stations.slot === LX_RUN && d.atMs === LX_T0 && d.counts.pairs === 4 && d.counts.mappedWithoutRow === 1 && same(d.counts.at, { below: 2, inside: 1, above: 1 }) && a.m > 5 && b.m > 5 && g.m > 5 && rows.get('gl_ch_beta').hs[0] !== rows.get('gl_ch_beta').hs[1] && rows.get('gl_ch_gamma').hs[1] !== rows.get('gl_ch_gamma').hs[2]
     && a.s === c.tirol && a.at === 'inside' && Math.abs(a.m - hand('gl_ch_alpha').v) <= 0.051 && b.at === 'below' && b.m === rows.get('gl_ch_beta').hs[0] && g.at === 'above' && g.m === rows.get('gl_ch_gamma').hs[2]
     && [a, b, g, f].every((p) => p.hn[0] <= p.hn[1] && p.hn[1] <= p.hn[2]) && a.v === ent(c.tirol).v.snow && a.age === ageOf(c.tirol) && same(a.hsd, ent(c.tirol).hsd) && b.v === ent(c.imis).v.snow && b.hsd === undefined
-    && f.s === c.missing && f.v === null && f.why === 'no-value' && d.counts.withValue === 3 && same(eOn.status.lines.snowpack.pairs, { pairs: 4, withValue: 3, map: 'test.1', slot: LX_RUN, bytes: Buffer.byteLength(readFileSync(join(eOn.outDir, glacierSnowpackPairsPath(eOn.run)))) }),
+    && f.s === c.missing && f.v === null && f.why === 'no-value' && d.counts.withValue === 3 && same(noTempSt(eOn.status.lines.snowpack.pairs), { pairs: 4, withValue: 3, map: 'test.1', slot: LX_RUN, bytes: Buffer.byteLength(readFileSync(join(eOn.outDir, glacierSnowpackPairsPath(eOn.run)))) }),
     JSON.stringify({ counts: d?.counts, a, f, p: d ? snowpackPairsProblems(d) : null, st: eOn.status?.lines.snowpack?.pairs }));
   const ae = (zs) => atElevation([2000, 2500, 3000], [10, 20, 40], zs);
   add('H3b Höhe der Station (rein): linear im unteren Abschnitt (2 250 m ⇒ 15) und im oberen (2 750 m ⇒ 30), an den drei Höhen genau deren Wert, darunter der Wert der Zunge (1 900 m ⇒ 10, „below“), darüber der der Oberkante (3 100 m ⇒ 40, „above“) — nie hochgerechnet; zwei gleiche Höhen teilen nicht durch null',
@@ -832,14 +835,14 @@ await block('Jp', async () => {
   const rawOf = (e, rel) => (existsSync(join(e.outDir, rel)) ? readFileSync(join(e.outDir, rel), 'utf8') : null);
   const pRaw = (e) => rawOf(e, glacierSnowpackPairsPath(e.run)), sRaw = (e) => rawOf(e, glacierSnowpackRunPath(e.run));
   const dP = pairsDoc(eP), dB = pairsDoc(eB);
-  const bareP = (d) => { if (!d) return null; const x = structuredClone(d); delete x.forecast; delete x.origins.fm; delete x.origins.fq; for (const q of x.pairs) { delete q.fm; delete q.fq; delete q.sq; } return JSON.stringify(x); };
+  const bareP = (d) => { if (!d) return null; const x = structuredClone(d); delete x.forecast; delete x.temp; delete x.origins.fm; delete x.origins.fq; for (const q of x.pairs) { delete q.fm; delete q.fq; delete q.sq; delete q.ta; } return JSON.stringify(x); };
   const sameFiles = (a, b) => a.files.every((f, i) => f != null && f === b.files[i]);
-  const stP = (e) => { const s = structuredClone(e.status?.lines.snowpack?.pairs ?? null); if (s) { delete s.spread; delete s.bytes; } return JSON.stringify(s); };
+  const stP = (e) => { const s = structuredClone(e.status?.lines.snowpack?.pairs ?? null); if (s) { delete s.spread; delete s.bytes; delete s.temp; } return JSON.stringify(s); };
   add('J8 Producer, Spanne aus = wie vorher: mit den Paaren allein trägt das Paar-Dokument keine Vorhersage (kein Kopfblock, kein `fm`, `fq`, `sq`, Herkunft nur der vier alten Felder), die Statuszeile der Paare keine Zeile `spread`',
     !eP.err && !!dP && !('forecast' in dP) && eq(Object.keys(dP.origins), ['m', 'hn', 'v', 'hsd']) && dP.pairs.every((x) => !('fm' in x) && !('fq' in x) && !('sq' in x)) && !('spread' in (eP.status?.lines.snowpack?.pairs ?? {})) && !snowpackPairsProblems(dP).length, JSON.stringify({ err: eP.err }));
   add('J9 Producer, beide an: das Schneedecken-Dokument ist Byte für Byte das des Laufs mit der Spanne allein (der Zusatz zieht keine Zufallszahl und steht in keiner Zeile), sein Zustand ebenso, Schmelz- und Wetterdateien und der Zeiger sind die des Laufs mit den Paaren allein; das Paar-Dokument ist OHNE die neuen Felder Byte für Byte das ohne Spanne, die Statuszeile der Paare bis auf `spread` und `bytes` gleich; zweimal gerechnet gibt dieselben Bytes',
-    !eS.err && !eB.err && !!sRaw(eB) && sRaw(eB) === sRaw(eS) && eB.stateRaw === eS.stateRaw && sameFiles(eB, eP) && sameFiles(eB, eS) && JSON.stringify(eB.index) === JSON.stringify(eP.index) && !!dB && bareP(dB) === pRaw(eP) && stP(eB) === stP(eP)
-    && pRaw(eB) === pRaw(eB2) && pRaw(eB) !== pRaw(eP) && pairsDoc(eS) === null, JSON.stringify({ errS: eS.err, errB: eB.err, sameSp: sRaw(eB) === sRaw(eS), bare: bareP(dB) === pRaw(eP) }));
+    !eS.err && !eB.err && !!sRaw(eB) && sRaw(eB) === sRaw(eS) && eB.stateRaw === eS.stateRaw && sameFiles(eB, eP) && sameFiles(eB, eS) && JSON.stringify(eB.index) === JSON.stringify(eP.index) && !!dB && bareP(dB) === noTempRaw(pRaw(eP)) && stP(eB) === stP(eP)
+    && pRaw(eB) === pRaw(eB2) && pRaw(eB) !== pRaw(eP) && pairsDoc(eS) === null, JSON.stringify({ errS: eS.err, errB: eB.err, sameSp: sRaw(eB) === sRaw(eS), bare: bareP(dB) === noTempRaw(pRaw(eP)) }));
   const rows = new Map((eB.doc?.glaciers ?? []).map((r) => [r.id, r])), by = new Map((dB?.pairs ?? []).map((x) => [x.g, x]));
   const a = by.get('gl_ch_alpha'), b = by.get('gl_ch_beta'), gm = by.get('gl_ch_gamma'), fr = by.get('gl_ch_far');
   const handFm = (gid) => { const r = rows.get(gid), zs = PX.stations[by.get(gid).s].elev; return [0, 1, 2].map((d) => { const v = r.hsd.map((x) => x[d]); if (zs < r.z[0]) return v[0]; if (zs > r.z[2]) return v[2]; const l = zs <= r.z[1] ? 0 : 1; return Math.round((v[l] + ((v[l + 1] - v[l]) * (zs - r.z[l])) / (r.z[l + 1] - r.z[l])) * 10) / 10; }); };
