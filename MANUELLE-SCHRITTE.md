@@ -5200,3 +5200,13 @@ Nichts eingeschaltet, nichts unter `scripts/glacier/**` oder `src/**`, nichts ge
 2. **Teil B starten ja oder nein** (Schwankung des Faktors von Winter zu Winter; Diagnose B0 zuerst).
 3. **V-GM-172:** vor jeder Herbstregel klären, ob die GLAMOS-Winterbilanz dieselbe Oktober-Ablation bucht wie der Kern — dafür einen PDF-Leser (z. B. `pypdf`) für Huss et al. 2015 freigeben, oder die Bilanz der Beobachtungsperiode als zweite Wahrheit werten lassen.
 4. **Lizenz GeoSphere `klima-v2-1d`** (Q7) weiter offen, Jans Blick.
+
+## 133. Gletscher: Schneemodell, GM-11 Phase 1d Teil B — Diagnose B0, vor dem Einfrieren (`audit/gletscher-schneemodell.md` §3q.10), 2026-11-26
+
+Teil A ist lokal committet (`b678b3f4`, nicht gepusht). B0 ist nur gezählt, nichts gewertet, keine Regel eingefroren. Neu (uncommitted): `gm11-yearly.mjs`, `gm11-yearly-b0-report.json`, §3q.10, Zeile GM.
+
+1. **Paarungsregel:** ≤ 30 km, Reihe höchstens 800 m unter dem Median des Gletschers, die nächsten bis zu drei Reihen mit ≥ 8 Wintern (29 von 37 Gletschern) — ja, oder andere Werte (Tabelle in §3q.10).
+2. **Anomalie:** gemessener Neuschnee seit 1. Oktober durch den Schneefall des Antriebs am Ort der Reihe (RhiresD × Schneeanteil, Faktor 1), je zum Mittel der übrigen Winter derselben Reihe — ja oder nein.
+3. **Toleranzen:** Gewinn ≥ 5 %, p10 > 0, Vertauschung |≤ 1 %|, zu wenig unter 15 Gletschern / 100 Gletscherwintern, synthetisch β 0,8–1,2 — ja oder andere.
+4. **IMIS historisch holen (V-GM-176)?** Nicht vorgeschlagen ohne dein Wort.
+5. Danach V-GM-172 über die Bilanz der Beobachtungsperiode (dein Wort vom 26.11.).

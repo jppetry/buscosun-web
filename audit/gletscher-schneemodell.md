@@ -2517,6 +2517,46 @@ Je Winter liegt der Bias mit (ii) im Oktober bei −23 … +7 cm, im November be
 | V-GM-173 | Ohne Okt–Nov-Schmelze fällt k* je Gletscher auf 0,84 (0,79–0,92), ohne nur (b) auf 0,96, ohne nur (c) auf 0,93; die Streuung über die Winter bleibt 0,15–0,16 | der Herbst verschiebt den Faktor, nicht seine Schwankung · Teil B misst die Schwankung |
 | V-GM-174 | Am Weissfluhjoch hält das Modell im Okt–Nov an 76 von 793 Tagen keinen Schnee, wo das Messfeld welchen hat (47 davon in zwei Herbsten), umgekehrt an 16 | der Kern verliert vereinzelt eine frühe Decke · zwei Ereignisse, kein Anlass für eine Regel |
 
+### 3q.10 Jahreskomponente des Faktors, Teil B — Diagnose B0 (1d, 26.11.; nichts gewertet, Regel NICHT eingefroren)
+
+**Ablauf.** Teil A als ein lokaler Commit `b678b3f4` (nicht gepusht), mit der Lizenz von GeoSphere `klima-v2-1d` (CC BY 4.0, DOI 10.60669/gs6w-jd70, Jans Bestätigung 26.11.; §4 Q7 und `audit/gletscher/licences.md` mit Namensnennungspflicht). Werkzeug `audit/gletscher-schneemodell/gm11-yearly.mjs --step=b0` (nur Zählung, kein Modelllauf); Bericht `gm11-yearly-b0-report.json` (nur Zählungen), Reihenliste im Cache `C:\dev\buscosun-glacier-cache\gm11\yearly\`. Freier Speicher über 6 GB. **Nach B0 angehalten — Jans Wort zur Paarungsregel und zur Definition der Anomalie, dann einfrieren.**
+
+**Welche gemessenen Schneereihen von §4 die 15 Winter abdecken** (Winter zählt, wenn die Größe an ≥ 90 % der Tage 1. Oktober – 1. April vorliegt; eine Reihe braucht ≥ 8 der 15 Winter):
+
+| Reihe | im Speicher | brauchbar | Höhe p10 / Median / p90 | Größe | Bemerkung |
+|---|---|---|---|---|---|
+| SLF-Messfelder (Beobachter) | 135 | **102** | 1 060 / 1 500 / 2 070 m | Neuschnee HN (cm) und Schneehöhe HS, täglich von Hand | Wasserwert HNW nur an einem Teil der Tage (§3q.7), wird nicht gebraucht; je Winter 93–115 Reihen, 2025/26: 93 |
+| SwissMetNet Schneehöhe `htoauths` | 57 Stationen mit Spalte | **14** | 1 036 / 1 548 / 1 980 m | Schneehöhe automatisch (cm), Neuschnee nur als Zuwachs | wenige, tief |
+| IMIS (SLF) | — | — | — | — | nicht im Speicher; in §4 nur live (Q2); eine historische Reihe 2011–2026 wäre ein neuer Abruf. Nicht vorgeschlagen |
+| SLF-Gitter OSHD (Q20 v1.1, 250 m, `hs`, `swe` täglich) | Wasserjahre 2016–2025 | 10 Winter | — | Analyse mit eigener Niederschlagskorrektur, **keine Messung** | 2011/12–2014/15 und 2025/26 fehlen; nur als Nebenreihe vorgeschlagen |
+| RhiresD-Gitter (MeteoSchweiz) | 2011–2025 Jahresdateien, 2026 vorläufig | — | — | Antrieb an jedem Ort einer Reihe | nötig für die faktorfreie Anomalie |
+
+**Die Reihen liegen tief, die Gletscher hoch** (Median der Gletscher 2 305–3 789 m). Gletscher (von 37) mit mindestens einer brauchbaren Reihe — Abstand ≤ km, Reihe höchstens dz unter dem Median des Gletschers:
+
+| Abstand | dz ≤ 300 m | ≤ 500 m | ≤ 800 m | ≤ 1 200 m |
+|---|---|---|---|---|
+| 10 km | 1 | 6 | 15 | 22 |
+| 20 km | 3 | 8 | 22 | 30 (13 mit ≥ 3 Reihen) |
+| 30 km | 4 | 9 | **29** (2 mit ≥ 3) | 37 (16 mit ≥ 3) |
+| 50 km | 9 | 16 | 36 (8 mit ≥ 3) | 37 (30 mit ≥ 3) |
+
+Eine enge Höhenregel lässt fast keinen Gletscher übrig; die Anomalie ist ein Verhältnis eines Winters zum eigenen Mittel, deshalb trägt sie über größere Höhenunterschiede als ein absoluter Wert — das ist eine Annahme, die B2 mitprüft (Gewinn je Höhenunterschied ausweisen).
+
+**Vorschlag (vor dem Einfrieren, Jans Wort):**
+
+1. **Anomalie einer Reihe s, Winter Y, Stichtag d** (1. Jan, 1. Feb, 1. Mär, 1. Apr): q_s(Y, d) = gemessener Neuschnee Σ HN vom 1. Oktober bis d (cm; bei SwissMetNet die Summe der positiven Tageszuwächse von `htoauths`) **geteilt durch** den Schneefall des Antriebs S am Ort der Reihe im selben Zeitraum (RhiresD der Gitterzelle der Reihe × Schneeanteil des Kerns aus der Temperatur der nächsten SwissMetNet-Station, mit −6,5 K/km auf die Höhe der Reihe, Faktor 1). Anomalie a_s(Y, d) = q_s(Y, d) / Mittel von q_s(·, d) über die **übrigen** Winter derselben Reihe. Jeder feste Faktor des Orts (Dichte, Fang des Messers, Fehler von RhiresD am Ort) kürzt sich heraus; es braucht keinen Faktor und keinen Wasserwert.
+2. **Anomalie eines Gletschers:** a_g(Y) = k*(Y) / Mittel von k* über die übrigen Winter desselben Gletschers (wie im Auftrag), k* wie §3q.8/§3q.9 (Kern wie gebaut, Landeswert als Ausgangspunkt der Suche, Antrieb S).
+3. **Paarungsregel:** Reihen mit ≥ 8 Wintern, **≤ 30 km** vom Gletscherpunkt, höchstens **800 m unter** dem Median des Gletschers (keine Obergrenze); die nächsten **bis zu drei**, ihr Median ist die gepaarte Anomalie; eine Reihe zählt in einem Winter nur, wenn sie dort gültig ist. Ergibt 29 von 37 Gletschern. Nebenregel zur Beschreibung (nicht für das Urteil): 50 km / 800 m (36 Gletscher).
+4. **Wertung B2:** Fehler der Winterbilanz |B_mod − B_meas| mit (eigener mittlerer Faktor, LOWO) gegen (eigener mittlerer Faktor × vorhergesagte Anomalie), dasselbe mit dem Landeswert als Grundlage; vorhergesagte Anomalie = 1 + β · (a_s − 1), β je Stichtag angepasst nur auf den Trainingswintern bzw. -gletschern (leave-one-winter-out und leave-one-glacier-out); je Stichtag, je Gletscher besser/schlechter, 2025/26 getrennt; 2024/25 nur mit gemessener Wahrheit.
+5. **Toleranzen (Urteil durch das Skript, je Stichtag):** „yearly component carries“, wenn der mittlere Fehler um **≥ 5 %** sinkt **und** das p10 des Gewinns (Bootstrap über Winter als Blöcke, 1 000 Ziehungen, fester Seed) **> 0** ist **und** der Gewinn mit vertauschten Wintern der Reihen (B3, 200 Vertauschungen) im Mittel **|≤ 1 %|** bleibt; „too few pairs“ unter **15 Gletschern oder 100 Gletscherwintern** an diesem Stichtag; sonst „does not carry“. Synthetische Kontrolle: eine bekannte Anomalie (k* × 1 ± 0,15, aus der Reihe abgeleitet) wird gepflanzt; bestanden, wenn β zwischen 0,8 und 1,2 zurückkommt.
+6. **B1** (Anteil des gemeinsamen Signals): R² von a_g gegen den Median von a_g der ANDEREN Gletscher desselben Winters, alle und innerhalb 50 km; nur Beschreibung, Obergrenze für jede Jahreskomponente.
+7. **OSHD** nur als Nebenreihe 2015/16–2024/25 (Anomalie von `swe` am Gletscher gegen S am Gletscher, gleich gebildet), berichtet, nicht im Urteil — es ist eine Analyse, keine Messung.
+
+| V-… | Befund | Mehrwert · Skizze |
+|---|---|---|
+| V-GM-175 | Die brauchbaren Schneereihen (102 SLF-Messfelder, 14 SwissMetNet) liegen im Median auf 1 500 m, die Eichgletscher auf 2 300–3 800 m; ≤ 30 km und ≤ 500 m unter dem Median finden nur 9 von 37 Gletschern eine Reihe | eine Jahreskomponente kann nur über große Höhenunterschiede gelesen werden · B2 weist den Gewinn je Höhenunterschied aus; eine historische IMIS-Reihe (2 000–3 000 m) wäre die bessere Quelle, wäre aber ein neuer Abruf |
+| V-GM-176 | IMIS liegt nur live im Speicher; das OSHD-Gitter deckt nur 2015/16–2024/25 und ist eine Analyse | ohne IMIS fehlt der Hochbereich · Jans Wahl, ob IMIS historisch geholt wird (Lizenz wie GI, CC BY 4.0) |
+
 ## 4. Quellenliste (zur Prüfung durch Jan)
 
 Spalte „Stand“: **da** = schon im Betrieb, **neu** = käme mit dieser Phase dazu. Spalte „Lizenz“: **belegt** = am 22.11. an der Quelle gelesen; **wie bisher** = unverändert aus der bestehenden Linie; **offen** = von mir nicht geprüft.

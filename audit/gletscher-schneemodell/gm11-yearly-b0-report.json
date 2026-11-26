@@ -1,0 +1,184 @@
+{
+ "kind": "gm11/yearly/b0",
+ "generated": "2026-11-26T18:43:44.856Z",
+ "glaciers": {
+  "n": 37,
+  "zMedRange": [
+   2305,
+   3789
+  ],
+  "winters": 15
+ },
+ "series": {
+  "slfPlots": {
+   "inFile": 135,
+   "usable": 102,
+   "zP10P50P90": [
+    1060,
+    1500,
+    2070
+   ],
+   "lastDay": "2026-11-15",
+   "quantity": "HN (Neuschnee von Hand, cm) und HS; HNW nur an einem Teil der Tage (§3q.7)"
+  },
+  "smnSnowDepth": {
+   "inCache": 57,
+   "usable": 14,
+   "zP10P50P90": [
+    1036,
+    1548,
+    1980
+   ],
+   "quantity": "htoauths (Schneehöhe automatisch, cm); Neuschnee nur als Zuwachs ableitbar"
+  },
+  "imis": "nicht im Speicher: IMIS steht in §4 nur live (Q2); eine historische Reihe 2011–2026 wäre ein neuer Abruf",
+  "oshdGrid": {
+   "waterYears": [
+    2016,
+    2017,
+    2018,
+    2019,
+    2020,
+    2021,
+    2022,
+    2023,
+    2024,
+    2025
+   ],
+   "note": "SLF OSHD (Q20, v1.1): tägliche Felder hs, swe, scf, smro; 10 Winter 2015/16–2024/25; 2011/12–2014/15 und 2025/26 fehlen; eine Analyse mit eigener Niederschlagskorrektur, keine Messung"
+  },
+  "rhiresGrids": [
+   2011,
+   2012,
+   2013,
+   2014,
+   2015,
+   2016,
+   2017,
+   2018,
+   2019,
+   2020,
+   2021,
+   2022,
+   2023,
+   2024,
+   2025
+  ]
+ },
+ "minWinters": 8,
+ "pairingGrid": [
+  {
+   "km": 10,
+   "dzBelowMedian": 300,
+   "glaciersWithOne": 1,
+   "glaciersWithThree": 0,
+   "pairs": 1
+  },
+  {
+   "km": 10,
+   "dzBelowMedian": 500,
+   "glaciersWithOne": 6,
+   "glaciersWithThree": 0,
+   "pairs": 6
+  },
+  {
+   "km": 10,
+   "dzBelowMedian": 800,
+   "glaciersWithOne": 15,
+   "glaciersWithThree": 0,
+   "pairs": 15
+  },
+  {
+   "km": 10,
+   "dzBelowMedian": 1200,
+   "glaciersWithOne": 22,
+   "glaciersWithThree": 3,
+   "pairs": 32
+  },
+  {
+   "km": 20,
+   "dzBelowMedian": 300,
+   "glaciersWithOne": 3,
+   "glaciersWithThree": 0,
+   "pairs": 3
+  },
+  {
+   "km": 20,
+   "dzBelowMedian": 500,
+   "glaciersWithOne": 8,
+   "glaciersWithThree": 0,
+   "pairs": 8
+  },
+  {
+   "km": 20,
+   "dzBelowMedian": 800,
+   "glaciersWithOne": 22,
+   "glaciersWithThree": 1,
+   "pairs": 25
+  },
+  {
+   "km": 20,
+   "dzBelowMedian": 1200,
+   "glaciersWithOne": 30,
+   "glaciersWithThree": 13,
+   "pairs": 75
+  },
+  {
+   "km": 30,
+   "dzBelowMedian": 300,
+   "glaciersWithOne": 4,
+   "glaciersWithThree": 0,
+   "pairs": 5
+  },
+  {
+   "km": 30,
+   "dzBelowMedian": 500,
+   "glaciersWithOne": 9,
+   "glaciersWithThree": 0,
+   "pairs": 10
+  },
+  {
+   "km": 30,
+   "dzBelowMedian": 800,
+   "glaciersWithOne": 29,
+   "glaciersWithThree": 2,
+   "pairs": 41
+  },
+  {
+   "km": 30,
+   "dzBelowMedian": 1200,
+   "glaciersWithOne": 37,
+   "glaciersWithThree": 16,
+   "pairs": 131
+  },
+  {
+   "km": 50,
+   "dzBelowMedian": 300,
+   "glaciersWithOne": 9,
+   "glaciersWithThree": 1,
+   "pairs": 12
+  },
+  {
+   "km": 50,
+   "dzBelowMedian": 500,
+   "glaciersWithOne": 16,
+   "glaciersWithThree": 1,
+   "pairs": 21
+  },
+  {
+   "km": 50,
+   "dzBelowMedian": 800,
+   "glaciersWithOne": 36,
+   "glaciersWithThree": 8,
+   "pairs": 79
+  },
+  {
+   "km": 50,
+   "dzBelowMedian": 1200,
+   "glaciersWithOne": 37,
+   "glaciersWithThree": 30,
+   "pairs": 266
+  }
+ ],
+ "mem": 6.66
+}
