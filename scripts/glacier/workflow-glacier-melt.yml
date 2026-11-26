@@ -52,6 +52,10 @@ jobs:
       # also carries the forecast at station elevation for +24/+48/+72 h (GM-5c). Read `lines.snowpack.spread` and `lines.snowpack.pairs.spread`
       # in status.json. Fallback: remove this line or set `off` (buscosun-web MANUELLE-SCHRITTE §122.4).
       GLACIER_SNOWPACK_SPREAD: scenarios
+      # GLACIER_COLUMN (Jan 26.11.2026): the height cube atmo/v1 in shadow — corrected temperatures and column wind as own files
+      # `glacier/v1/melt/wx/<run>/col-<region>.json` (no page reads them) and, with the pairs on, temperature pairs `ta` in the pairs document.
+      # Nothing that exists changes; a cube that cannot be read is named in `lines.weather.column`. Fallback: remove this line or set `off`.
+      GLACIER_COLUMN: shadow
     steps:
       - uses: actions/setup-node@v4
         with:
