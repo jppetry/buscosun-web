@@ -12,7 +12,7 @@ dx = |a| * 111320 * cos(lat of the outline box centre)); aspect = direction the 
 Curvature = cell elevation - mean elevation of the ring of cells RING_M away (cells whose centre distance differs from RING_M by at most half a cell);
 positive = bump, negative = hollow.
 """
-import argparse, glob, json, math, os, re, time, datetime as dt
+import argparse, base64, glob, json, math, os, re, time, datetime as dt
 import ctypes
 import numpy as np, rasterio
 from rasterio.merge import merge
@@ -27,6 +27,23 @@ HOR_AZ = [15 * k for k in range(24)]   # 0 = north, clockwise
 HOR_STEPS = np.concatenate([np.arange(30, 1000 + 1e-6, 30), np.arange(1060, 3000 + 1e-6, 60), np.arange(3120, HOR_KM * 1000 + 1e-6, 120)])
 EARTH_R = 6371000.0
 MIN_FREE_GB = 3.0
+SUN_YEAR = 2026  # set: the calendar the day of year is taken from (not a leap year)
+SUN_DAY = 15     # set: day of the month
+
+
+def sun_pos(lat_deg, lon_deg, month, hour, minute=30):
+    """cos of the zenith angle and azimuth (degrees from north, clockwise) at UTC `hour`:`minute` of SUN_DAY.`month`.SUN_YEAR.
+    cosZenith of scripts/glacier/lib/meltcore.mjs (Spencer 1971) line by line; azimuth from the same declination and hour angle."""
+    doy = np.array([0] + [(dt.date(SUN_YEAR, m, SUN_DAY) - dt.date(SUN_YEAR, 1, 1)).days + 1 for m in range(1, 13)])[np.asarray(month)]
+    gam = (2 * np.pi / 365) * (doy - 1 + (hour - 12) / 24)
+    eqt = 229.18 * (0.000075 + 0.001868 * np.cos(gam) - 0.032077 * np.sin(gam) - 0.014615 * np.cos(2 * gam) - 0.040849 * np.sin(2 * gam))
+    decl = 0.006918 - 0.399912 * np.cos(gam) + 0.070257 * np.sin(gam) - 0.006758 * np.cos(2 * gam) + 0.000907 * np.sin(2 * gam) - 0.002697 * np.cos(3 * gam) + 0.00148 * np.sin(3 * gam)
+    minutes = hour * 60 + minute
+    ha = ((minutes + eqt + 4 * lon_deg) / 4 - 180) * np.pi / 180
+    lat = np.radians(lat_deg)
+    cosz = np.sin(lat) * np.sin(decl) + np.cos(lat) * np.cos(decl) * np.cos(ha)
+    az = (np.degrees(np.arctan2(np.sin(ha), np.cos(ha) * np.sin(lat) - np.tan(decl) * np.cos(lat))) + 180) % 360
+    return cosz, az
 MARGIN_M = 3000   # window = outline box + 3 km, as snowcal_predictors.py (same grid, so the northness agrees); >= RING_M
 
 ap = argparse.ArgumentParser()
@@ -81,6 +98,25 @@ def horizon_of(geom, x0, y0, x1, y1, pts):
     hor = np.nanmax(np.where(np.isfinite(ang), ang, -90.0), axis=2)   # ns x 24
     return hor, edge
 
+MONTHS = np.repeat(np.arange(1, 13), 24); HOURS = np.tile(np.arange(24), 12)
+def sun_table(S, H):
+    """S = samples [lon, lat, z, dz/dcol, dz/drow-grid]; H = their horizons [ns][24]. Returns (base64 of 288 bytes, 12 ratios)."""
+    cz, az = sun_pos(S[:, 1, None], S[:, 0, None], MONTHS[None, :], HOURS[None, :])        # ns x 288
+    elev = np.degrees(np.arcsin(np.clip(cz, -1, 1)))
+    # surface normal (east, north, up) from the A1 gradient: dz/dE = gx, dz/dN = -gy (rows run south)
+    nE, nN = -S[:, 3], S[:, 4]; nU = np.ones(len(S)); nn = np.sqrt(nE ** 2 + nN ** 2 + 1)
+    ce = np.cos(np.radians(elev)); sE, sN, sU = np.sin(np.radians(az)) * ce, np.cos(np.radians(az)) * ce, np.sin(np.radians(elev))
+    inc = (nE[:, None] * sE + nN[:, None] * sN + nU[:, None] * sU) / nn[:, None]
+    # horizon in the sun's direction, linear in azimuth between the 24 directions
+    x = az / 15.0; i0 = np.floor(x).astype(int) % 24; i1 = (i0 + 1) % 24; w = x - np.floor(x)
+    rows = np.arange(len(S))[:, None]
+    hz = H[rows, i0] * (1 - w) + H[rows, i1] * w
+    c = np.where((elev > hz) & (elev > 0), np.maximum(0.0, inc), 0.0).mean(axis=0)        # 288
+    flat = np.where(elev > 0, cz, 0.0).mean(axis=0)
+    q = np.clip(np.round(c * 255), 0, 255).astype(np.uint8)
+    day = [round(float(c[m * 24:(m + 1) * 24].sum() / flat[m * 24:(m + 1) * 24].sum()), 2) if flat[m * 24:(m + 1) * 24].sum() > 0 else None for m in range(12)]
+    return base64.b64encode(q.tobytes()).decode('ascii'), day
+
 def bbox(geom):
     polys = [geom['coordinates']] if geom['type'] == 'Polygon' else geom['coordinates']
     xs = [x for p in polys for x, _ in p[0]]; ys = [y for p in polys for _, y in p[0]]
@@ -126,7 +162,7 @@ def terrain_of(g):
             dmin = float(np.nanmin(np.where(valid, d, np.nan))); sel = valid & (d <= dmin + BAND_M); how = 'nearest'; dz = round(dmin)
         I, J = np.nonzero(sel)
         k = np.unique(np.round(np.linspace(0, len(I) - 1, min(HOR_SAMPLES, len(I)))).astype(int))
-        samples.append([(T.c + (J[q] + 0.5) * T.a, T.f + (I[q] + 0.5) * T.e, float(Z[I[q], J[q]])) for q in k])
+        samples.append([(T.c + (J[q] + 0.5) * T.a, T.f + (I[q] + 0.5) * T.e, float(Z[I[q], J[q]]), float(gx_[I[q], J[q]]), float(gy_[I[q], J[q]])) for q in k])
         acc = np.zeros(len(I)); cnt = np.zeros(len(I))
         for di, dj in ring:
             ii, jj = I + di, J + dj
@@ -150,6 +186,7 @@ def terrain_of(g):
             e['hor'] = [round(float(v), 1) for v in h_.mean(axis=0)]
             e['svf'] = r3(np.mean(np.cos(np.radians(np.maximum(h_, 0))) ** 2))
             e['ns'] = len(s_); e['edge'] = bool(ed.any())
+            e['sun'], e['sunDay'] = sun_table(np.array(s_, dtype=float), h_)
     return {**whole, 'levels': levels}
 
 out = {'kind': 'glacier/terrain-params', 'build': catDoc.get('build'), 'builtAt': dt.date.today().isoformat(),
@@ -157,6 +194,10 @@ out = {'kind': 'glacier/terrain-params', 'build': catDoc.get('build'), 'builtAt'
        'constants': {'bandM': {'v': BAND_M, 'origin': 'set'}, 'ringM': {'v': RING_M, 'origin': 'set'}, 'horKm': {'v': HOR_KM, 'origin': 'set'}, 'horSamples': {'v': HOR_SAMPLES, 'origin': 'set'}},
        'horizon': {'azimuths': HOR_AZ, 'steps': '30 m to 1 km, 60 m to 3 km, 120 m to 10 km', 'curvature': 'earth drop d^2/(2R), R = 6371 km', 'window': 'outline box + 10 km (own window; A1 fields use outline box + 3 km)',
                    'samples': 'up to horSamples cells of the level, evenly spread over its cells in row order', 'edge': 'a ray of a sample met no DEM value (window ran out of tiles): the horizon may be too low',
+                   'sun': {'definition': 'per hour: mean over the samples of max(0, cos(angle sun - surface normal of the sample)) where the sun stands above the own horizon of the sample in its direction (horizon linear in azimuth), else 0; normal from the A1 gradient of the sample cell',
+                           'encoding': '288 bytes, c x 255 rounded, base64; index = 24 * (month - 1) + hour, months first', 'day': f'the {SUN_DAY}th of each month, year {SUN_YEAR}',
+                           'time': 'UTC, the middle of each hour (hh:30); solar position at the longitude and latitude of each sample (the own longitude of the glacier), cosZenith of meltcore.mjs (Spencer 1971)',
+                           'sunDay': 'per month: sum of c over the day / sum of the flat cos zenith over the hours with the sun above 0 deg (free horizon), two decimals'},
                    'svf': {'formula': 'mean over the 24 directions of cos^2(max(horizon, 0)), mean over the samples', 'origin': 'literature', 'source': 'sky-view factor of a horizontal surface, Dozier & Frew (1990), IEEE TGRS 28(5)'}},
        'rules': {'cells': 'GLO-30 cells inside the L1 outline within +-bandM of the elevation, else within bandM of the nearest elevation of the outline (how: nearest, dz)',
                  'gradient': 'np.gradient in metres as snowcal_predictors.py; aspect = down-slope direction', 'curv': 'cell elevation - mean of the ring ringM away (m)',
@@ -197,6 +238,15 @@ if a.count:
     mid = [(gid, r) for gid, r in G.items() if len(r.get('levels', [])) == 3 and r['levels'][1].get('svf') is not None]
     lines['lowestSvfMedian'] = [f"{names[gid]} ({r['country']}, {r['region']}) {r['levels'][1]['svf']}" for gid, r in sorted(mid, key=lambda x: x[1]['levels'][1]['svf'])[:5]]
     lines['highestHorSouthMedian'] = [f"{names[gid]} ({r['country']}, {r['region']}) {r['levels'][1]['hor'][12]}°" for gid, r in sorted(mid, key=lambda x: -x[1]['levels'][1]['hor'][12])[:5]]
+    for i, name in enumerate(('tongue', 'median', 'top')):
+        for mname, m in (('dec', 11), ('mar', 2), ('jun', 5), ('sep', 8)):
+            v = [r['levels'][i]['sunDay'][m] for r in G.values() if len(r.get('levels', [])) == 3 and r['levels'][i].get('sunDay') and r['levels'][i]['sunDay'][m] is not None]
+            lines['median'][name]['sunDay_' + mname] = round(float(np.median(v)), 2)
+    lines['zeroSunDecMedian'] = sum(1 for _, r in mid if r['levels'][1].get('sunDay') and r['levels'][1]['sunDay'][11] == 0)
+    jun = [(gid, r) for gid, r in mid if r['levels'][1].get('sunDay')]
+    fmt = lambda gid, r: f"{names[gid]} ({r['country']}, {r['region']}) {r['levels'][1]['sunDay'][5]}"
+    lines['highestSunJunMedian'] = [fmt(*x) for x in sorted(jun, key=lambda x: -x[1]['levels'][1]['sunDay'][5])[:5]]
+    lines['lowestSunJunMedian'] = [fmt(*x) for x in sorted(jun, key=lambda x: x[1]['levels'][1]['sunDay'][5])[:5]]
     if a.north_ref:
         ref = json.load(open(a.north_ref, encoding='utf8'))['glaciers']
         d = [G[k]['north'] - v['north'] for k, v in ref.items() if k in G and G[k].get('north') is not None and v.get('north') is not None]
