@@ -5181,3 +5181,13 @@ Nichts eingeschaltet, nichts unter `scripts/glacier/**` oder `src/**`, nichts im
 3. **Temperatur am Weissfluhjoch (V-GM-163):** ob die Höhenkorrektur der Station (+1 K nach unten) als Gegenprobe gerechnet werden soll, bevor eine Regel am Kern geprüft wird.
 4. **RhiresD 2025/26 an Findelen (V-GM-165):** die endgültige Jahresdatei 2026 holen, sobald MeteoSchweiz sie veröffentlicht, und §3q.4/§3q.6 für Findelen wiederholen.
 5. Keine Änderung am Kern ohne Jans Wort; R1 (Kältereserve) ist nach Schritt 2 der erste Kandidat, R3 würde Schmelze hinzufügen.
+
+## 131. Gletscher: Schneemodell, GM-11 Phase 1c Teil A — Temperatur, Gletscher, Sonnblick, nur Beschreibung (`audit/gletscher-schneemodell.md` §3q.8), 2026-11-26
+
+Nichts eingeschaltet, nichts unter `scripts/glacier/**` oder `src/**`, nichts gepusht, nichts committet (§3q.7 liegt als `5de4f738` vor). Neu: drei beschreibende Schritte in `gm11-wintermelt.mjs`, `gm11-wintermelt-a-report.json`, §3q.8, Zeile GM. Sonnblick-Daten geholt nach `C:\dev\buscosun-glacier-cache\gm11\sonnblick\` (GeoSphere Data Hub, CC BY 4.0).
+
+1. **Commit** auf Jans Wort.
+2. **Teil B ja oder nein:** auf den Gletschern verschiebt die Hochwinter-Schmelze k* nur um 2 % (V-GM-168). Teil B würde zeigen, ob R1/R2/R4 das trotzdem sauber tun, ohne Frühjahr und Sommer zu stören — der Nutzen für den Faktor ist klein.
+3. **Herbstschmelze (V-GM-169):** ob statt (oder vor) Teil B die Schmelze im Oktober–November geprüft wird — sie ist der größte Posten des Winterfensters.
+4. **Lizenz Q7:** in §4 steht GeoSphere `klima-v2-1d` noch „offen“, `audit/gletscher/licences.md` führt GeoSphere als grün (CC BY 4.0) — bitte bestätigen.
+5. **Temperatur am Messfeld Weissfluhjoch (V-GM-167):** ob beim SLF die historische Lufttemperatur der IMIS-Station am Messfeld angefragt wird.

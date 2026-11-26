@@ -2411,6 +2411,59 @@ Weissfluhjoch: Neuschnee-Wasser 1,29 (619 gegen 459 mm), Messer WFJ 1,18. Gegen 
 | V-GM-165 | RhiresD 2025/26 an Findelen = 0,31 des Vorwinters, die Regenmesser ringsum 0,47–0,57; sonst liegen RhiresD und Messer auf ±0,1 (Aletsch gemischt); Jan–Mai 2026 stammen aus vorläufigen Monatsdateien „last“ | ein Teil des Fehlbetrags 2025/26 an Findelen kann ein Datenfehler sein · die endgültige RhiresD 2026 holen, sobald MeteoSchweiz sie veröffentlicht, §3q.4/§3q.6 für Findelen wiederholen |
 | V-GM-166 | Auch ohne Dez–Mär-Schmelze bleibt der Dezember 13 cm zu tief (Oktober/November 100 mm Schmelze, davon 654 Oktober-Stunden mit Boden-Albedo 0,30) und das Ausapern 7 Tage zu früh | eine zweite, kleinere Fehlerquelle liegt im Frühwinter und im Frühjahr · im nächsten Durchgang die Herbstschmelze auf dünner Decke getrennt werten |
 
+### 3q.8 Winterschmelze, Teil A: Temperatur, Gletscher, Sonnblick (1c fortgesetzt, 26.11.; nur Beschreibung, keine Regel)
+
+**Ablauf.** §3q.7 als ein lokaler Commit `5de4f738` (nicht gepusht). Jans Wort (§130): zweite Wahrheit Sonnblick, Gegenprobe ohne Höhenkorrektur zuerst, Findelen später, R3 entfällt. Neue Schritte im selben Werkzeug `gm11-wintermelt.mjs`: `wfj-temp`, `sonnblick`, `glaciers-desc` (beschreibend, ohne Regel-Hash); `glaciers`/`plots-rules`/`gatec` verlangen weiter die eingefrorene Regel (Teil B). Bericht `gm11-wintermelt-a-report.json` (keine Messwerte je Gletscherwinter: je Gletscher nur Mediane über die Winter, je Winter nur Mittel über 23–30 Gletscher); volle Ergebnisse `C:\dev\buscosun-glacier-cache\gm11\wintermelt\`. Freier Speicher 5,8–6,2 GB. **Kontrolle A** grün: `stepLevel` an 170 496 (WFJ) und 196 752 (Sonnblick) Stunden, `simulate` an allen 421 Gletscherwintern (Schmelze je Stunde, Bandbilanz, Zustand, Summe; `Object.is`).
+
+**A1 — Weissfluhjoch, Temperatur** (13 Winter 2014–2026, Kern wie im Betrieb):
+
+| Antrieb | Schmelze Dez–Mär | Okt / Nov | Fehler Schneehöhe Jan–Mär | Apr–Jun | Ausapern | ohne Dez–Mär-Schmelze: Jan–Mär |
+|---|---|---|---|---|---|---|
+| (i) WFJ 2 691 m mit −6,5 K/km auf 2 536 m (+1,0 K) | **123,4 mm** | 52,6 / 47,1 | −28,9 cm | −36,5 cm | 9,6 Tage zu früh | −7,7 cm |
+| (ii) Stationstemperatur unverändert | **75,3 mm** | 49,0 / 33,4 | −16,0 cm | −3,9 cm | 3,5 Tage zu früh | −2,9 cm |
+| (iii) Temperatur am Messfeld | — | — | — | — | — | — |
+
+(iii) gibt es nicht: die Messfelddatei des SLF trägt keine Lufttemperatur, die IMIS-Station am Messfeld steht in §4 nur mit der Schneehöhe (Q2) und nur live; nicht geholt. Ohne Höhenkorrektur fällt die Dez–Mär-Schmelze zu 18 % an Tagen mit Tagesmittel unter 0 °C (mit Korrektur 8 %). **Lesart:** 48 mm der 123 mm (39 %) hängen allein an der 1-K-Korrektur des Versuchsaufbaus; 75 mm bleiben auch mit der kälteren Stationsluft. Welche der beiden Temperaturen die richtige ist, lässt sich ohne Messung am Messfeld nicht sagen — die Antwort liegt zwischen (i) und (ii). Auffällig: mit (ii) ist der Frühling fast richtig (Apr–Jun −3,9 cm, Ausapern 3,5 Tage früh), mit (i) nicht.
+
+**A2 — Gletscher** (Schweizer Eichgletscher, Antrieb S, Landeswert, pGrad 0, Fenster t0 … t1 der Wahrheit; 421 Gletscherwinter an 37 Gletschern, 2011/12–2025/26; 4 Winter nach den Regeln von `loadWinters` ohne Antrieb): **die Hochwinter-Schmelze ist auf den Gletschern klein.** Gletscherweit im Median 1,6 % der Akkumulation, je Winter im Mittel 6–77 mm. k* ohne Dez–Mär-Schmelze / k* wie gebaut: **Median 0,981** (p10 0,958, p90 0,998); kein Gletscher unter 0,95, Mont Collon (2 305 m Median) 1,03. Fehler der Winterbilanz mit Landeswert: s2 400 → 381 mm, Bias −124 → −84 mm; Streuung von k* über die Winter (Median des Variationskoeffizienten) 0,156 → 0,156; LOWO-s2 220 → 214 mm.
+
+Schmelze im Winterfenster je 250-m-Stufe (gewichtetes Mittel über die Bandwinter; mm und Anteil der Akkumulation):
+
+| Höhe | Akkumulation | Okt–Nov | Dez–Mär | Apr–Mai |
+|---|---|---|---|---|
+| 1 750–2 000 | 1 097 | 1 245 (1,13) | 746 (0,68) | 550 (0,50) |
+| 2 000–2 250 | 1 260 | 1 012 (0,80) | 461 (0,37) | 370 (0,29) |
+| 2 250–2 500 | 1 278 | 613 (0,48) | 199 (0,16) | 296 (0,23) |
+| 2 500–2 750 | 1 589 | 342 (0,21) | 65 (0,04) | 154 (0,10) |
+| 2 750–3 000 | 1 654 | 305 (0,18) | 53 (0,03) | 110 (0,07) |
+| 3 000–3 250 | 1 432 | 195 (0,14) | 16 (0,01) | 57 (0,04) |
+| 3 250–3 500 | 1 548 | 139 (0,09) | 6 (0,004) | 29 (0,02) |
+| ≥ 3 500 | 1 300–1 700 | 3–84 (≤ 0,06) | ≤ 0,4 | ≤ 5 |
+
+(Unter 2 000 m schmilzt mehr, als fällt: dort liegt Eis oder Firn ohne Schnee, die Schmelze zählt im Kern auch ohne Decke.) **Das Herbstfenster Oktober–November trägt 3- bis über 20-mal so viel Schmelze wie Dezember–März** (2 250–3 000 m: 3–6-mal; V-GM-169).
+
+Je Winter (Mittel über die Gletscher, mm): Dez–Mär-Schmelze 5,6 (2017/18) … 76,7 (2011/12); Bias der Winterbilanz wie gebaut → ohne Dez–Mär-Schmelze z. B. 2016/17 −276 → −197, 2015/16 −269 → −217, 2017/18 −346 → −341. **2025/26 (trockener Winter):** 21,3 mm Dez–Mär-Schmelze (2,1 % der Akkumulation) — weniger als der Mittelwert der Winter (≈ 40 mm), Bias −413 → −392 mm: **die Winterschmelze erklärt rund 22 mm, also 5 % des Fehlbetrags dieses Winters.** (−413 ist der Landeswert, wie §3q.4; die −395 von §3q.6 sind der eigene Faktor an sechs Gletschern.)
+
+Je Gletscher (Median über die Winter): Dez–Mär-Schmelze 0,1 mm (Alphubel N, 3 789 m) … 115 mm (Tsanfleuron), Mont Collon 268 mm; Verhältnis der k* 0,953 (Schwarzberg, Vorab) … 1,000 (Corvatsch, Alphubel N). Volle Tabelle im Bericht.
+
+**A3 — Sonnblick** (GeoSphere `klima-v2-1h`: `tl`, `cglo` stündlich lückenarm 2011–2026, `sh` erst ab 2017/18, `rr` stündlich fast leer; `klima-v2-1d`: `sh_manu` an 5 385 Tagen, `shneu_manu` und `rr` täglich; Station 15411, 3 109 m, seit 1986; CC BY 4.0, GeoSphere ist in `audit/gletscher/licences.md` grün (in §4 steht Q7 noch „offen“ — Widerspruch, Jans Blick); geholt nach `gm11\sonnblick`; ein Wasserwert des Neuschnees fehlt). Gelesen wie die SLF-Messfelder: Tageswert = Ablesung 06 UTC über die 24 h davor (GeoSphere liest um 07 MEZ). Zwei Antriebe, 15 Winter:
+
+| Antrieb | Schmelze Dez–Mär | Okt / Nov | Fehler Schneehöhe Jan–Mär (Bias / MAE) | Apr–Jun | Ausapern |
+|---|---|---|---|---|---|
+| (a) Neuschnee von Hand × 96 kg/m³ (ohne Faktor; Dichte des Kerns steckt drin) | **2,3 mm** | 32,0 / 11,5 | +31,0 / 76,4 cm | +41,7 cm | nie vor dem 1. Juli, nicht wertbar |
+| (b) Tagesniederschlag × Schneeanteil, Faktor 1 — **„Faktor inside“** | **2,3 mm** | 28,5 / 12,0 | −36,2 / 71,4 cm | −56,5 cm | nie vor dem 1. Juli |
+
+In 3 109 m schmilzt der Kern im Hochwinter fast nichts (65 % davon an Tagen unter 0 °C, Strahlungsglied 53–87 %). Der Fehler der Schneehöhe ist dort keine Schmelzfrage: mit (a) zu hoch (Gipfel: Wind trägt Schnee weg, der Neuschnee von Hand zählt ihn mit), mit (b) zu tief (Messer auf dem Gipfel fängt Schnee schlecht).
+
+**Lesart Teil A.** Die Winterschmelze am Weissfluhjoch ist zu gut einem Drittel Versuchsaufbau (Höhenkorrektur), der Rest liegt im Kern. Auf den Gletschern ist sie klein — sie verschiebt k* um 2 % und erklärt vom Fehlbetrag 2025/26 rund 5 %; der Faktor 1,79 ist **keine** Reparatur der Hochwinter-Schmelze. Was im Winterfenster auf den Gletschern viel Schnee wegnimmt, ist die Schmelze im Oktober–November.
+
+| V-… | Befund | Mehrwert · Skizze |
+|---|---|---|
+| V-GM-167 | Am Weissfluhjoch hängen 48 der 123 mm Dez–Mär-Schmelze an der Höhenkorrektur der Station (+1 K); ohne sie ist auch der Frühling fast richtig (Apr–Jun −3,9 statt −36,5 cm) | V-GM-157 ist zu einem Drittel ein Fehler des Versuchs · eine Lufttemperatur am Messfeld (IMIS WFJ2, historisch) beim SLF anfragen; bis dahin jede Messfeldprüfung mit (i) und (ii) |
+| V-GM-168 | Auf den Gletschern ist die Dez–Mär-Schmelze 1,6 % der Akkumulation (Median); k* ohne sie 0,98 des Werts mit ihr; 2025/26 erklärt sie 22 von 413 mm | die Faktorfrage hängt nicht an der Winterschmelze · R1/R2 können den Faktor höchstens um wenige Prozent senken; Teil B misst trotzdem, ob sie das Frühjahr und den Sommer stören |
+| V-GM-169 | Im Winterfenster schmilzt der Kern auf den Gletschern im Oktober–November 3- bis über 20-mal mehr als im Hochwinter (2 500–3 000 m: 18–21 % der Akkumulation) | größter Posten des Winterfensters · Herbstschmelze getrennt prüfen: Schneefall auf noch warmes Eis/Firn, Albedo 0,30/0,50 ohne Decke, Start des Fensters am 1. Oktober |
+| V-GM-170 | Am Sonnblick fehlt ein Wasserwert; Neuschnee von Hand × 96 kg/m³ macht die Decke 31 cm zu hoch, der Gipfel-Messer 36 cm zu tief | Sonnblick taugt für die Schmelze im Winter (sie braucht keine Niederschlagswahrheit), nicht für Schneehöhe ohne Faktor · Teil B wertet dort nur Schmelze und Ausapern-freie Größen |
+
 ## 4. Quellenliste (zur Prüfung durch Jan)
 
 Spalte „Stand“: **da** = schon im Betrieb, **neu** = käme mit dieser Phase dazu. Spalte „Lizenz“: **belegt** = am 22.11. an der Quelle gelesen; **wie bisher** = unverändert aus der bestehenden Linie; **offen** = von mir nicht geprüft.

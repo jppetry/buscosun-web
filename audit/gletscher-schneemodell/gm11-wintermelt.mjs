@@ -40,6 +40,7 @@ function mem(label) { const g = freeGb(); memLog.push({ label, freeGb: r3(g) });
 
 // ---- the frozen rule (scored steps only) ----
 const SCORED = new Set(['plots-rules', 'glaciers', 'gatec']);
+const DESC = STEP === 'glaciers-desc';
 let ruleSha = null;
 if (SCORED.has(STEP)) {
   const frozen = readFileSync(join(HERE, 'gm11-wintermelt-frozen.md'), 'utf8').replace(/\r\n/g, '\n');
@@ -209,7 +210,7 @@ function smnSeries(abbr) {
 /** One plot: day map, coordinates, SMN series, lapse to plot elevation. Returns the scored winters with their drive. */
 function plotSetup(plot, st) {
   const { by } = slfAll(), day = by.get(plot.code), s = smnSeries(st.abbr);
-  const T = new Float64Array(nAll); for (let i = 0; i < nAll; i++) T[i] = s.T[i] + LAPSE * (plot.z - st.z);
+  const T = new Float64Array(nAll); const lapse = plot.lapse ?? LAPSE; for (let i = 0; i < nAll; i++) T[i] = s.T[i] + lapse * (plot.z - st.z);
   const Tf = fillShortGaps(T, 6);
   const winters = [], dropped = [];
   for (let Y = 2012; Y <= 2026; Y++) {
@@ -313,18 +314,21 @@ function choosePlots() {
 // ================================================================================================================================================
 const report = { kind: `gm11/wintermelt/${STEP}`, generated: new Date().toISOString(), rule: ruleSha ? { sha256: ruleSha } : 'Beschreibung, vor der Regel', mem: memLog };
 
-if (STEP === 'anatomy' || STEP === 'plots' || STEP === 'plots-rules') {
+if (STEP === 'anatomy' || STEP === 'plots' || STEP === 'plots-rules' || STEP === 'wfj-temp' || STEP === 'sonnblick') {
   mem('start');
   const sm = smnMeta();
   let plots;
-  if (STEP === 'anatomy') plots = [{ code: '5WJ0', label: 'Weissfluhjoch', z: 2536, lat: 46.8296, lon: 9.8092, station: { abbr: 'WFJ' } }];
+  const WFJ = { code: '5WJ0', label: 'Weissfluhjoch', z: 2536, lat: 46.8296, lon: 9.8092, station: { abbr: 'WFJ' } };
+  if (STEP === 'anatomy') plots = [WFJ];
+  else if (STEP === 'wfj-temp') plots = [{ ...WFJ, label: 'Weissfluhjoch (i) Station −6,5 K/km auf 2 536 m', lapse: LAPSE }, { ...WFJ, label: 'Weissfluhjoch (ii) Stationstemperatur unverändert', lapse: 0 }];
+  else if (STEP === 'sonnblick') plots = [{ code: 'SBK-a', z: 3109, label: 'Sonnblick, Neuschnee von Hand × 96 kg/m³ (ohne Faktor, Dichte des Kerns)', mode: 'hn' }, { code: 'SBK-b', z: 3109, label: 'Sonnblick, Tagesniederschlag × Schneeanteil (Faktor 1: Faktor inside)', mode: 'rr' }];
   else { const c = choosePlots(); plots = c.chosen; report.dropped = c.dropped; report.pairing = 'Wasserwert ≥ 90 % der Schneefalltage (2011–2026), nächste SwissMetNet-Station des Speichers ≤ 10 km und ±300 m mit Temperatur und Globalstrahlung, ≥ 3 gewertete Winter'; }
   report.plots = [];
   let ctrlBadAll = 0, ctrlNAll = 0;
   for (const pl of plots) {
     mem(`Messfeld ${pl.code}`);
-    const st = sm.get(pl.station.abbr);
-    const P = plotSetup(pl, st);
+    const st = pl.mode ? { abbr: '15411', z: 3109 } : sm.get(pl.station.abbr);
+    const P = pl.mode ? sonnblickSetup(pl.mode) : plotSetup(pl, st);
     if (P.winters.length < (STEP === 'anatomy' ? 1 : RULE.minPlotWinters)) { report.plots.push({ code: pl.code, label: pl.label, z: pl.z, station: st.abbr, dropped: P.dropped, scored: P.winters.length, drop: 'weniger als drei gewertete Winter' }); continue; }
     const variantsHere = STEP === 'plots-rules' ? Object.keys(VARIANTS) : ['core'];
     const per = {};
@@ -332,10 +336,10 @@ if (STEP === 'anatomy' || STEP === 'plots' || STEP === 'plots-rules') {
       const ws = [];
       for (const w of P.winters) {
         const hours = [];
-        const res = runPlot(P, w, VARIANTS[vk], { twin: vk === 'core', log: STEP === 'anatomy' ? (o) => hours.push(o) : null });
+        const res = runPlot(P, w, VARIANTS[vk], { twin: vk === 'core', log: STEP === 'anatomy' || STEP === 'sonnblick' || STEP === 'wfj-temp' ? (o) => hours.push(o) : null });
         if (vk === 'core') { ctrlBadAll += res.ctrlBad; ctrlNAll += res.ctrlN; }
         const sc = scorePlot(P, w, res);
-        ws.push({ Y: w.Y, ...sc, hours, out: STEP === 'anatomy' ? res.out : null, held: res.held, filled: w.filled, hnwSum: w.hnwSum });
+        ws.push({ Y: w.Y, ...sc, hours, out: null, held: res.held, filled: w.filled, hnwSum: w.hnwSum });
       }
       per[vk] = ws;
     }
@@ -346,15 +350,51 @@ if (STEP === 'anatomy' || STEP === 'plots' || STEP === 'plots-rules') {
     const meltMonth = (ws) => Object.fromEntries(MONTHS.map((mo) => [mo, r1(mean(ws.map((x) => x.meltMo[mo] ?? 0)))]));
     const summary = (ws) => ({ winters: ws.length, winterMeltMm: r1(mean(ws.map((x) => x.winterMelt))), meltMm: meltMonth(ws), byMonth: byMonth(ws), decMar: agg(ws, ['12', '01', '02', '03']), janMar: agg(ws, ['01', '02', '03']), aprJun: agg(ws, ['04', '05', '06']),
       meltOut: { maeD: r1(mean(ws.map((x) => Math.abs(x.meltOutErrD)))), biasD: r1(mean(ws.map((x) => x.meltOutErrD))) } });
-    const rec = { code: pl.code, label: pl.label, z: pl.z, station: st.abbr, stationZ: st.z, km: pl.station.km ?? null, dropped: P.dropped, scoredWinters: P.winters.map((w) => w.Y), filledDays: P.winters.reduce((s, w) => s + w.filled, 0),
+    const rec = { code: pl.code, label: pl.label, z: pl.z, station: st.abbr, stationZ: st.z, km: pl.station?.km ?? null, dropped: P.dropped, scoredWinters: P.winters.map((w) => w.Y), filledDays: P.winters.reduce((s, w) => s + w.filled, 0),
       tempHeldH: per.core.reduce((s, x) => s + x.held, 0), variants: Object.fromEntries(Object.entries(per).filter(([k]) => k !== 'noWinter').map(([k, ws]) => [k, summary(ws)])), noWinterMelt: per.noWinter ? summary(per.noWinter) : undefined,
       meltOutDates: per.core.map((x) => ({ Y: x.Y, meas: new Date(x.meltOutMeas).toISOString().slice(0, 10), model: new Date(x.meltOutMod).toISOString().slice(0, 10) })) };
-    if (STEP === 'anatomy') rec.anatomy = anatomyOf(per.core, P);
+    if (STEP === 'anatomy' || STEP === 'sonnblick' || STEP === 'wfj-temp') rec.anatomy = anatomyOf(per.core, P);
     report.plots.push(rec);
   }
   report.controlA = { hours: ctrlNAll, notIdentical: ctrlBadAll, green: ctrlBadAll === 0 };
   if (ctrlBadAll) console.error('STOPP: Kontrolle A nicht bitgleich');
   if (STEP === 'plots-rules') report.verdicts = plotVerdicts(report.plots.filter((p) => p.variants));
+}
+
+/** Sonnblick (GeoSphere klima-v2-1h tl/cglo, klima-v2-1d sh_manu/shneu_manu/rr, station 15411, 3 109 m; the plot IS the station, no lapse).
+ *  A daily value of date d is read as the observation at 06 UTC of d covering the 24 h before (the SLF convention; GeoSphere reads 07 MEZ). */
+function sonnblickSetup(mode) {
+  const dir = join(CACHE, 'gm11/sonnblick'), z = 3109, lat = 47.05417, lon = 12.9575;
+  const T = new Float64Array(nAll).fill(NaN), G = new Float64Array(nAll).fill(NaN);
+  for (const f of readdirSyncSafe(dir).filter((x) => /^h-\d{4}\.csv$/.test(x))) for (const l of readFileSync(join(dir, f), 'utf8').split(/\r?\n/).slice(1)) {
+    if (!l) continue; const x = l.split(','); const i = Math.round((Date.parse(x[0].replace('+00:00', 'Z')) - fromAll) / H); if (i < 0 || i >= nAll) continue;
+    if (x[2] !== '') T[i] = +x[2]; if (x[3] !== '') G[i] = +x[3];
+  }
+  const Tf = fillShortGaps(T, 6), day = new Map();
+  for (const l of readFileSync(join(dir, 'd-all.csv'), 'utf8').split(/\r?\n/).slice(1)) {
+    if (!l) continue; const x = l.split(','); const ms = Date.parse(x[0].replace('+00:00', 'Z'));
+    const f = (v) => (v === '' || v == null ? null : +v), hn = f(x[4]);
+    day.set(ms, { HS: f(x[3]), HN: hn == null ? null : Math.max(0, hn), RR: f(x[5]) });
+  }
+  const fsOf = (t) => Math.min(1, Math.max(0, (MELT.fsWarm - t) / (MELT.fsWarm - MELT.fsCold)));
+  const water = (m) => (!m ? 0 : mode === 'hn' ? ((m.HN ?? 0) * cDens.rhoNew) / 100 : m.RR ?? 0);
+  const winters = [], dropped = [];
+  for (let Y = 2012; Y <= 2026; Y++) {
+    const start = Date.UTC(Y - 1, 9, 1, 6), end = Date.UTC(Y, 6, 1, 6);
+    let hs = 0, miss = 0, tMiss = 0, w = 0;
+    for (let ms = Date.UTC(Y - 1, 9, 2); ms <= Date.UTC(Y, 6, 1); ms += D) { const m = day.get(ms); if (m?.HS != null) hs++; if (m == null || (mode === 'hn' ? m.HN == null : m.RR == null)) miss++; w += water(m); }
+    for (let ms = start; ms < end; ms += H) if (!Number.isFinite(Tf[Math.round((ms - fromAll) / H)])) tMiss++;
+    if (hs < 200) { dropped.push({ Y, why: 'Schneehöhe von Hand an < 200 Tagen', hs }); continue; }
+    if (miss > 10) { dropped.push({ Y, why: 'Eingang fehlt an > 10 Tagen', miss }); continue; }
+    if (tMiss / ((end - start) / H) > RULE.tempHeldMax) { dropped.push({ Y, why: 'Temperatur fehlt > 10 % der Stunden', tMiss }); continue; }
+    const rd = (ms) => day.get(Math.floor(ms / D) * D + (ms % D >= 6 * H ? D : 0));
+    const drive = (ms) => { const i = Math.round((ms - fromAll) / H), m = rd(ms), t = Tf[i];
+      const S = !m ? 0 : mode === 'hn' ? water(m) / 24 : Number.isFinite(t) ? (water(m) / 24) * fsOf(t) : 0;
+      return { T: t, S, G: G[i] }; };
+    winters.push({ Y, start, end, drive, filled: 0, hnwSum: w });
+  }
+  for (const m of day.values()) m.HNW = water(m);   // the anatomy reads HNW/HN for "days since snowfall"
+  return { day, winters, dropped, lat, lon, z };
 }
 
 function anatomyOf(ws, P) {
@@ -414,7 +454,7 @@ function plotVerdicts(plots) {
 }
 
 // ================================================================================================================================================
-if (STEP === 'glaciers') {
+if (STEP === 'glaciers' || DESC) {
   mem('start');
   const gm3 = join(CACHE, 'gm3'), w26 = join(CACHE, 'gm11/w26');
   const tmpd = join(OUT, 'tmp'); mkdirSync(tmpd, { recursive: true });
@@ -447,7 +487,7 @@ if (STEP === 'glaciers') {
   const BK = (mo) => (mo === 10 || mo === 11 ? 0 : mo === 12 || mo <= 3 ? 1 : 2), BKN = ['Okt–Nov', 'Dez–Mär', 'Apr–Mai'];
   const zClass = (z) => Math.floor(z / 250) * 250;
   const bandAgg = new Map(), perGlacier = new Map();
-  const VK = ['core', 'noWinter', 'R1', 'R2', 'R3', 'R4'];
+  const VK = DESC ? ['core', 'noWinter'] : ['core', 'noWinter', 'R1', 'R2', 'R4'];
   const VV = { ...VARIANTS, noWinter: { noWinter: true } };
   let i = 0;
   for (const rec of recs) {
@@ -455,7 +495,7 @@ if (STEP === 'glaciers') {
     const F = precip.factorOf(rec.region), meas = measOf(rec);
     const r = base(rec, F, {}, BK, 3);
     rec.b.forEach((x, b) => { const k = zClass(x.z); const a = bandAgg.get(k) ?? { n: 0, acc: 0, m: [0, 0, 0], w: 0 }; a.n++; a.w += x.w; a.acc += x.w * r.acc[b]; for (let j = 0; j < 3; j++) a.m[j] += x.w * r.mB[j][b]; bandAgg.set(k, a); });
-    const row = { key: rec.key, name: rec.name, year: rec.year, region: rec.region, F, k: {}, err: {}, meltDecMar: r.mB[1].reduce((s, v, b) => s + rec.b[b].w * v, 0), acc: rec.b.reduce((s, x, b) => s + x.w * r.acc[b], 0) };
+    const row = { key: rec.key, name: rec.name, year: rec.year, region: rec.region, F, zMed: rec.zMed, k: {}, err: {}, meltDecMar: r.mB[1].reduce((s, v, b) => s + rec.b[b].w * v, 0), acc: rec.b.reduce((s, x, b) => s + x.w * r.acc[b], 0) };
     for (const vk of VK) { row.k[vk] = kStar(rec, VV[vk]); row.err[vk] = base(rec, F, VV[vk]).balance - meas; }
     if (!perGlacier.has(rec.key)) perGlacier.set(rec.key, []);
     perGlacier.get(rec.key).push({ row, rec });
@@ -489,7 +529,10 @@ if (STEP === 'glaciers') {
     note: 'Grundlage Landeswert, Antrieb S (Station + RhiresD), pGrad 0, Fenster t0 … t1 der Wahrheit; noWinter = Schmelze Dez–Mär abgeschaltet (nur Diagnose); k* = der für alle Stufen gleiche Faktor, der die gletscherweite Winterbilanz genau trifft; LOWO = Faktor eines Winters aus dem Median von k* der übrigen Winter desselben Gletschers (≥ 4 Winter)',
   };
   writeFileSync(join(OUT, 'glaciers-full.json'), JSON.stringify({ rows, gl }, null, 1));   // measured-derived values per glacier winter: cache only (E-GL-17)
-  report.perGlacier = gl.map((g) => ({ name: g.name, winters: g.winters, kCore: g.core.kMed, kNoWinter: g.noWinter.kMed, ratioNoWinter: g.ratioNoWinter, kR4: g.R4.kMed, kCvCore: g.core.kCv, kCvR4: g.R4.kCv }));
+  report.perGlacier = gl.map((g) => ({ name: g.name, winters: g.winters, zMed: perGlacier.get(g.key)[0].row.zMed, kCore: g.core.kMed, kNoWinter: g.noWinter.kMed, ratioNoWinter: g.ratioNoWinter, kR4: g.R4?.kMed, kCvCore: g.core.kCv, kCvR4: g.R4?.kCv,
+    decMarMeltMm: r1(mean(perGlacier.get(g.key).map((x) => x.row.meltDecMar))), decMarShareOfAcc: r3(mean(perGlacier.get(g.key).map((x) => x.row.meltDecMar / x.row.acc))) }));
+  report.perWinter = [...new Set(rows.map((r) => r.year))].sort().map((Y) => { const R = rows.filter((r) => r.year === Y);
+    return { winter: `${Y - 1}/${String(Y).slice(2)}`, n: R.length, decMarMeltMm: r1(mean(R.map((r) => r.meltDecMar))), decMarShareOfAcc: r3(mean(R.map((r) => r.meltDecMar / r.acc))), biasCore: r1(mean(R.map((r) => r.err.core))), s2Core: r1(mean(R.map((r) => Math.abs(r.err.core)))), biasNoWinter: r1(mean(R.map((r) => r.err.noWinter))), s2NoWinter: r1(mean(R.map((r) => Math.abs(r.err.noWinter)))) }; });
 }
 function quant(a, q) { if (!a.length) return null; const s = [...a].sort((x, y) => x - y), i = (s.length - 1) * q, lo = Math.floor(i), hi = Math.ceil(i); return s[lo] + (s[hi] - s[lo]) * (i - lo); }
 

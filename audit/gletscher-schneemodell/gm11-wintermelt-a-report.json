@@ -1,0 +1,1333 @@
+{
+ "kind": "gm11/wintermelt-a",
+ "generated": "2026-11-26T17:59:07.878Z",
+ "rule": "Teil A: Beschreibung, vor jeder Regel",
+ "A1": {
+  "controlA": {
+   "hours": 170496,
+   "notIdentical": 0,
+   "green": true
+  },
+  "runs": [
+   {
+    "label": "Weissfluhjoch (i) Station −6,5 K/km auf 2 536 m",
+    "winters": 13,
+    "meltMm": {
+     "10": 52.6,
+     "11": 47.1,
+     "12": 36.7,
+     "01": 14.4,
+     "02": 31.9,
+     "03": 40.4,
+     "04": 156.9,
+     "05": 290,
+     "06": 280.7
+    },
+    "decMarMeltMm": 123.4,
+    "byMonth": {
+     "10": {
+      "n": 403,
+      "bias": -0.3,
+      "mae": 5.1
+     },
+     "11": {
+      "n": 390,
+      "bias": -7.8,
+      "mae": 15.4
+     },
+     "12": {
+      "n": 403,
+      "bias": -20.5,
+      "mae": 24.1
+     },
+     "01": {
+      "n": 403,
+      "bias": -29.2,
+      "mae": 30.5
+     },
+     "02": {
+      "n": 367,
+      "bias": -27.3,
+      "mae": 29.2
+     },
+     "03": {
+      "n": 403,
+      "bias": -30,
+      "mae": 32.7
+     },
+     "04": {
+      "n": 390,
+      "bias": -32.2,
+      "mae": 35.3
+     },
+     "05": {
+      "n": 403,
+      "bias": -39.9,
+      "mae": 40.7
+     },
+     "06": {
+      "n": 390,
+      "bias": -37.3,
+      "mae": 37.5
+     }
+    },
+    "janMar": {
+     "n": 1173,
+     "bias": -28.9,
+     "mae": 30.9
+    },
+    "aprJun": {
+     "n": 1183,
+     "bias": -36.5,
+     "mae": 37.8
+    },
+    "meltOut": {
+     "maeD": 9.6,
+     "biasD": -9.6
+    },
+    "noWinterMelt": {
+     "janMar": {
+      "n": 1173,
+      "bias": -7.7,
+      "mae": 18.7
+     },
+     "aprJun": {
+      "n": 1183,
+      "bias": -8,
+      "mae": 22.4
+     },
+     "meltOut": {
+      "maeD": 7,
+      "biasD": -7
+     }
+    },
+    "anatomy": {
+     "mmPerWinter": 123.4,
+     "shareOnDaysMeanBelow0": 0.078,
+     "shareAfterNightBelowM5": 0.05,
+     "hoursOnBareAlbedo": 4,
+     "mmOnBareAlbedo": 0.4
+    }
+   },
+   {
+    "label": "Weissfluhjoch (ii) Stationstemperatur unverändert",
+    "winters": 13,
+    "meltMm": {
+     "10": 49,
+     "11": 33.4,
+     "12": 24.2,
+     "01": 6.9,
+     "02": 21,
+     "03": 23.2,
+     "04": 107,
+     "05": 252.4,
+     "06": 407.3
+    },
+    "decMarMeltMm": 75.3,
+    "byMonth": {
+     "10": {
+      "n": 403,
+      "bias": 0.7,
+      "mae": 5.1
+     },
+     "11": {
+      "n": 390,
+      "bias": -2.8,
+      "mae": 13.8
+     },
+     "12": {
+      "n": 403,
+      "bias": -11.9,
+      "mae": 18.1
+     },
+     "01": {
+      "n": 403,
+      "bias": -18.3,
+      "mae": 23.4
+     },
+     "02": {
+      "n": 367,
+      "bias": -15.4,
+      "mae": 22.2
+     },
+     "03": {
+      "n": 403,
+      "bias": -14.2,
+      "mae": 22.3
+     },
+     "04": {
+      "n": 390,
+      "bias": -6.3,
+      "mae": 18
+     },
+     "05": {
+      "n": 403,
+      "bias": 1.9,
+      "mae": 19.8
+     },
+     "06": {
+      "n": 390,
+      "bias": -7.4,
+      "mae": 22.1
+     }
+    },
+    "janMar": {
+     "n": 1173,
+     "bias": -16,
+     "mae": 22.6
+    },
+    "aprJun": {
+     "n": 1183,
+     "bias": -3.9,
+     "mae": 20
+    },
+    "meltOut": {
+     "maeD": 4,
+     "biasD": -3.5
+    },
+    "noWinterMelt": {
+     "janMar": {
+      "n": 1173,
+      "bias": -2.9,
+      "mae": 17.4
+     },
+     "aprJun": {
+      "n": 1183,
+      "bias": 14.7,
+      "mae": 22.9
+     },
+     "meltOut": {
+      "maeD": 1.4,
+      "biasD": -0.8
+     }
+    },
+    "anatomy": {
+     "mmPerWinter": 75.3,
+     "shareOnDaysMeanBelow0": 0.18,
+     "shareAfterNightBelowM5": 0.047,
+     "hoursOnBareAlbedo": 18,
+     "mmOnBareAlbedo": 0.4
+    }
+   }
+  ],
+  "iii": "keine Lufttemperatur am Messfeld 5WJ0 in einer Quelle von §4 im Speicher (SLF-Messfelddatei ohne Temperatur; IMIS-Station WFJ2 nur live, Q2 nennt nur Schneehöhe) — nicht geholt"
+ },
+ "A2": {
+  "controlA": {
+   "glacierWinters": 421,
+   "notIdentical": 0,
+   "green": true
+  },
+  "unusable": [
+   "Glacier du Sex Rouge 2014: 25 % der Temperaturstunden fehlen",
+   "Glacier du Sex Rouge 2018: 17 % der Temperaturstunden fehlen",
+   "Glacier de Tsanfleuron 2014: 25 % der Temperaturstunden fehlen",
+   "Glacier de Tsanfleuron 2018: 17 % der Temperaturstunden fehlen"
+  ],
+  "glaciers": {
+   "glacierWinters": 421,
+   "glaciers": 37,
+   "winters": [
+    2012,
+    2013,
+    2014,
+    2015,
+    2016,
+    2017,
+    2018,
+    2019,
+    2020,
+    2021,
+    2022,
+    2023,
+    2024,
+    2025,
+    2026
+   ],
+   "windows": {
+    "1500–1750": {
+     "bandWinters": 15,
+     "accMm": 838.5,
+     "Okt–Nov": {
+      "mm": 1449.9,
+      "shareOfAcc": 1.729
+     },
+     "Dez–Mär": {
+      "mm": 1185.7,
+      "shareOfAcc": 1.414
+     },
+     "Apr–Mai": {
+      "mm": 844.3,
+      "shareOfAcc": 1.007
+     }
+    },
+    "1750–2000": {
+     "bandWinters": 45,
+     "accMm": 1097.4,
+     "Okt–Nov": {
+      "mm": 1244.8,
+      "shareOfAcc": 1.134
+     },
+     "Dez–Mär": {
+      "mm": 746.3,
+      "shareOfAcc": 0.68
+     },
+     "Apr–Mai": {
+      "mm": 550.3,
+      "shareOfAcc": 0.501
+     }
+    },
+    "2000–2250": {
+     "bandWinters": 31,
+     "accMm": 1260.2,
+     "Okt–Nov": {
+      "mm": 1012.1,
+      "shareOfAcc": 0.803
+     },
+     "Dez–Mär": {
+      "mm": 460.7,
+      "shareOfAcc": 0.366
+     },
+     "Apr–Mai": {
+      "mm": 369.5,
+      "shareOfAcc": 0.293
+     }
+    },
+    "2250–2500": {
+     "bandWinters": 244,
+     "accMm": 1277.7,
+     "Okt–Nov": {
+      "mm": 612.6,
+      "shareOfAcc": 0.479
+     },
+     "Dez–Mär": {
+      "mm": 198.8,
+      "shareOfAcc": 0.156
+     },
+     "Apr–Mai": {
+      "mm": 295.9,
+      "shareOfAcc": 0.232
+     }
+    },
+    "2500–2750": {
+     "bandWinters": 565,
+     "accMm": 1589.4,
+     "Okt–Nov": {
+      "mm": 341.5,
+      "shareOfAcc": 0.215
+     },
+     "Dez–Mär": {
+      "mm": 64.8,
+      "shareOfAcc": 0.041
+     },
+     "Apr–Mai": {
+      "mm": 154.3,
+      "shareOfAcc": 0.097
+     }
+    },
+    "2750–3000": {
+     "bandWinters": 1118,
+     "accMm": 1653.9,
+     "Okt–Nov": {
+      "mm": 305.4,
+      "shareOfAcc": 0.185
+     },
+     "Dez–Mär": {
+      "mm": 52.6,
+      "shareOfAcc": 0.032
+     },
+     "Apr–Mai": {
+      "mm": 109.6,
+      "shareOfAcc": 0.066
+     }
+    },
+    "3000–3250": {
+     "bandWinters": 734,
+     "accMm": 1431.7,
+     "Okt–Nov": {
+      "mm": 194.9,
+      "shareOfAcc": 0.136
+     },
+     "Dez–Mär": {
+      "mm": 15.8,
+      "shareOfAcc": 0.011
+     },
+     "Apr–Mai": {
+      "mm": 56.9,
+      "shareOfAcc": 0.04
+     }
+    },
+    "3250–3500": {
+     "bandWinters": 669,
+     "accMm": 1547.7,
+     "Okt–Nov": {
+      "mm": 139.2,
+      "shareOfAcc": 0.09
+     },
+     "Dez–Mär": {
+      "mm": 5.7,
+      "shareOfAcc": 0.004
+     },
+     "Apr–Mai": {
+      "mm": 28.7,
+      "shareOfAcc": 0.019
+     }
+    },
+    "3500–3750": {
+     "bandWinters": 323,
+     "accMm": 1497.2,
+     "Okt–Nov": {
+      "mm": 83.9,
+      "shareOfAcc": 0.056
+     },
+     "Dez–Mär": {
+      "mm": 0.4,
+      "shareOfAcc": 0
+     },
+     "Apr–Mai": {
+      "mm": 4.6,
+      "shareOfAcc": 0.003
+     }
+    },
+    "3750–4000": {
+     "bandWinters": 367,
+     "accMm": 1307.8,
+     "Okt–Nov": {
+      "mm": 58.5,
+      "shareOfAcc": 0.045
+     },
+     "Dez–Mär": {
+      "mm": 0.1,
+      "shareOfAcc": 0
+     },
+     "Apr–Mai": {
+      "mm": 2.3,
+      "shareOfAcc": 0.002
+     }
+    },
+    "4000–4250": {
+     "bandWinters": 116,
+     "accMm": 1634.2,
+     "Okt–Nov": {
+      "mm": 14.9,
+      "shareOfAcc": 0.009
+     },
+     "Dez–Mär": {
+      "mm": 0,
+      "shareOfAcc": 0
+     },
+     "Apr–Mai": {
+      "mm": 0.1,
+      "shareOfAcc": 0
+     }
+    },
+    "4250–4500": {
+     "bandWinters": 30,
+     "accMm": 1703.3,
+     "Okt–Nov": {
+      "mm": 3.3,
+      "shareOfAcc": 0.002
+     },
+     "Dez–Mär": {
+      "mm": 0,
+      "shareOfAcc": 0
+     },
+     "Apr–Mai": {
+      "mm": 0,
+      "shareOfAcc": 0
+     }
+    }
+   },
+   "decMarMeltShareOfAccMedian": 0.016,
+   "ratioNoWinterMedian": 0.981,
+   "ratioNoWinterP10P90": [
+    0.958,
+    0.998
+   ],
+   "byVariant": {
+    "core": {
+     "s2": 400.1,
+     "bias": -124.3,
+     "kMedOfGlaciers": 1.899,
+     "kCvMedian": 0.156,
+     "lowoS2": 219.5,
+     "lowoN": 420
+    },
+    "noWinter": {
+     "s2": 380.9,
+     "bias": -83.8,
+     "kMedOfGlaciers": 1.877,
+     "kCvMedian": 0.156,
+     "lowoS2": 214.4,
+     "lowoN": 420
+    }
+   },
+   "note": "Grundlage Landeswert, Antrieb S (Station + RhiresD), pGrad 0, Fenster t0 … t1 der Wahrheit; noWinter = Schmelze Dez–Mär abgeschaltet (nur Diagnose); k* = der für alle Stufen gleiche Faktor, der die gletscherweite Winterbilanz genau trifft; LOWO = Faktor eines Winters aus dem Median von k* der übrigen Winter desselben Gletschers (≥ 4 Winter)"
+  },
+  "perGlacier": [
+   {
+    "name": "Silvrettagletscher",
+    "winters": 15,
+    "zMed": 2786,
+    "kCore": 3.659,
+    "kNoWinter": 3.564,
+    "ratioNoWinter": 0.974,
+    "kCvCore": 0.154,
+    "decMarMeltMm": 47.8,
+    "decMarShareOfAcc": 0.056
+   },
+   {
+    "name": "Jörigletscher",
+    "winters": 8,
+    "zMed": 2790,
+    "kCore": 2.873,
+    "kNoWinter": 2.759,
+    "ratioNoWinter": 0.96,
+    "kCvCore": 0.098,
+    "decMarMeltMm": 47.5,
+    "decMarShareOfAcc": 0.051
+   },
+   {
+    "name": "Glatscher da Plattas / Glatscher da Medel",
+    "winters": 10,
+    "zMed": 2954,
+    "kCore": 2.153,
+    "kNoWinter": 2.091,
+    "ratioNoWinter": 0.971,
+    "kCvCore": 0.163,
+    "decMarMeltMm": 40.9,
+    "decMarShareOfAcc": 0.03
+   },
+   {
+    "name": "Vorabgletscher",
+    "winters": 5,
+    "zMed": 2703,
+    "kCore": 1.524,
+    "kNoWinter": 1.452,
+    "ratioNoWinter": 0.953,
+    "kCvCore": 0.097,
+    "decMarMeltMm": 34.7,
+    "decMarShareOfAcc": 0.023
+   },
+   {
+    "name": "Glatschiu dil Segnas",
+    "winters": 5,
+    "zMed": 2747,
+    "kCore": 1.399,
+    "kNoWinter": 1.362,
+    "ratioNoWinter": 0.974,
+    "kCvCore": 0.129,
+    "decMarMeltMm": 25,
+    "decMarShareOfAcc": 0.017
+   },
+   {
+    "name": "Pizolgletscher",
+    "winters": 10,
+    "zMed": 2681,
+    "kCore": 2.267,
+    "kNoWinter": 2.173,
+    "ratioNoWinter": 0.959,
+    "kCvCore": 0.055,
+    "decMarMeltMm": 37.5,
+    "decMarShareOfAcc": 0.026
+   },
+   {
+    "name": "Claridenfirn",
+    "winters": 15,
+    "zMed": 2848,
+    "kCore": 2.148,
+    "kNoWinter": 2.128,
+    "ratioNoWinter": 0.991,
+    "kCvCore": 0.152,
+    "decMarMeltMm": 48.8,
+    "decMarShareOfAcc": 0.031
+   },
+   {
+    "name": "Schwarzwasserfirn",
+    "winters": 9,
+    "zMed": 2779,
+    "kCore": 2.614,
+    "kNoWinter": 2.599,
+    "ratioNoWinter": 0.994,
+    "kCvCore": 0.121,
+    "decMarMeltMm": 33.8,
+    "decMarShareOfAcc": 0.02
+   },
+   {
+    "name": "St. Annafirn",
+    "winters": 12,
+    "zMed": 2750,
+    "kCore": 2.151,
+    "kNoWinter": 2.121,
+    "ratioNoWinter": 0.986,
+    "kCvCore": 0.143,
+    "decMarMeltMm": 41.8,
+    "decMarShareOfAcc": 0.028
+   },
+   {
+    "name": "Tiefengletscher",
+    "winters": 4,
+    "zMed": 3023,
+    "kCore": 1.777,
+    "kNoWinter": 1.774,
+    "ratioNoWinter": 0.998,
+    "kCvCore": 0.041,
+    "decMarMeltMm": 9.3,
+    "decMarShareOfAcc": 0.005
+   },
+   {
+    "name": "Oberaargletscher",
+    "winters": 13,
+    "zMed": 2887,
+    "kCore": 1.462,
+    "kNoWinter": 1.45,
+    "ratioNoWinter": 0.992,
+    "kCvCore": 0.159,
+    "decMarMeltMm": 19.1,
+    "decMarShareOfAcc": 0.01
+   },
+   {
+    "name": "Glacier de la Plaine Morte",
+    "winters": 15,
+    "zMed": 2735,
+    "kCore": 2.007,
+    "kNoWinter": 1.92,
+    "ratioNoWinter": 0.957,
+    "kCvCore": 0.122,
+    "decMarMeltMm": 76.8,
+    "decMarShareOfAcc": 0.045
+   },
+   {
+    "name": "Glacier du Sex Rouge",
+    "winters": 13,
+    "zMed": 2813,
+    "kCore": 1.96,
+    "kNoWinter": 1.877,
+    "ratioNoWinter": 0.958,
+    "kCvCore": 0.145,
+    "decMarMeltMm": 100.5,
+    "decMarShareOfAcc": 0.049
+   },
+   {
+    "name": "Glacier de Tsanfleuron",
+    "winters": 13,
+    "zMed": 2768,
+    "kCore": 2.219,
+    "kNoWinter": 2.147,
+    "ratioNoWinter": 0.968,
+    "kCvCore": 0.16,
+    "decMarMeltMm": 115.1,
+    "decMarShareOfAcc": 0.056
+   },
+   {
+    "name": "Grosser Aletschgletscher",
+    "winters": 15,
+    "zMed": 3128,
+    "kCore": 1.848,
+    "kNoWinter": 1.79,
+    "ratioNoWinter": 0.969,
+    "kCvCore": 0.164,
+    "decMarMeltMm": 79.8,
+    "decMarShareOfAcc": 0.049
+   },
+   {
+    "name": "Rhonegletscher",
+    "winters": 15,
+    "zMed": 2956,
+    "kCore": 1.637,
+    "kNoWinter": 1.634,
+    "ratioNoWinter": 0.998,
+    "kCvCore": 0.157,
+    "decMarMeltMm": 16.8,
+    "decMarShareOfAcc": 0.009
+   },
+   {
+    "name": "Griesgletscher",
+    "winters": 15,
+    "zMed": 2929,
+    "kCore": 1.796,
+    "kNoWinter": 1.785,
+    "ratioNoWinter": 0.994,
+    "kCvCore": 0.127,
+    "decMarMeltMm": 14.6,
+    "decMarShareOfAcc": 0.008
+   },
+   {
+    "name": "Hohsaasgletscher",
+    "winters": 9,
+    "zMed": 3335,
+    "kCore": 1.2,
+    "kNoWinter": 1.195,
+    "ratioNoWinter": 0.996,
+    "kCvCore": 0.173,
+    "decMarMeltMm": 5.6,
+    "decMarShareOfAcc": 0.003
+   },
+   {
+    "name": "Schwarzberggletscher",
+    "winters": 15,
+    "zMed": 3043,
+    "kCore": 1.989,
+    "kNoWinter": 1.895,
+    "ratioNoWinter": 0.953,
+    "kCvCore": 0.301,
+    "decMarMeltMm": 54.3,
+    "decMarShareOfAcc": 0.041
+   },
+   {
+    "name": "Allalingletscher",
+    "winters": 15,
+    "zMed": 3353,
+    "kCore": 1.428,
+    "kNoWinter": 1.397,
+    "ratioNoWinter": 0.978,
+    "kCvCore": 0.303,
+    "decMarMeltMm": 22,
+    "decMarShareOfAcc": 0.017
+   },
+   {
+    "name": "Hohlaubgletscher",
+    "winters": 15,
+    "zMed": 3211,
+    "kCore": 2.034,
+    "kNoWinter": 1.985,
+    "ratioNoWinter": 0.976,
+    "kCvCore": 0.253,
+    "decMarMeltMm": 26.3,
+    "decMarShareOfAcc": 0.025
+   },
+   {
+    "name": "Chessjengletscher NW",
+    "winters": 9,
+    "zMed": 3013,
+    "kCore": 3.139,
+    "kNoWinter": 3.032,
+    "ratioNoWinter": 0.966,
+    "kCvCore": 0.267,
+    "decMarMeltMm": 30.6,
+    "decMarShareOfAcc": 0.03
+   },
+   {
+    "name": "Alphubelgletscher N",
+    "winters": 11,
+    "zMed": 3789,
+    "kCore": 1.23,
+    "kNoWinter": 1.23,
+    "ratioNoWinter": 1,
+    "kCvCore": 0.115,
+    "decMarMeltMm": 0.1,
+    "decMarShareOfAcc": 0
+   },
+   {
+    "name": "Findelgletscher",
+    "winters": 15,
+    "zMed": 3323,
+    "kCore": 1.626,
+    "kNoWinter": 1.616,
+    "ratioNoWinter": 0.994,
+    "kCvCore": 0.255,
+    "decMarMeltMm": 22.9,
+    "decMarShareOfAcc": 0.016
+   },
+   {
+    "name": "Adlergletscher",
+    "winters": 13,
+    "zMed": 3436,
+    "kCore": 1.213,
+    "kNoWinter": 1.201,
+    "ratioNoWinter": 0.99,
+    "kCvCore": 0.134,
+    "decMarMeltMm": 9.1,
+    "decMarShareOfAcc": 0.006
+   },
+   {
+    "name": "Mont Collon",
+    "winters": 7,
+    "zMed": 2305,
+    "kCore": 6.294,
+    "kNoWinter": 6.457,
+    "ratioNoWinter": 1.026,
+    "kCvCore": 0.223,
+    "decMarMeltMm": 268.3,
+    "decMarShareOfAcc": 0.341
+   },
+   {
+    "name": "Glacier de Tortin",
+    "winters": 12,
+    "zMed": 2895,
+    "kCore": 2.573,
+    "kNoWinter": 2.479,
+    "ratioNoWinter": 0.963,
+    "kCvCore": 0.128,
+    "decMarMeltMm": 57,
+    "decMarShareOfAcc": 0.053
+   },
+   {
+    "name": "Glacier du Giétro",
+    "winters": 15,
+    "zMed": 3225,
+    "kCore": 1.899,
+    "kNoWinter": 1.88,
+    "ratioNoWinter": 0.99,
+    "kCvCore": 0.136,
+    "decMarMeltMm": 14.7,
+    "decMarShareOfAcc": 0.012
+   },
+   {
+    "name": "Glacier d'Otemma",
+    "winters": 7,
+    "zMed": 3026,
+    "kCore": 1.817,
+    "kNoWinter": 1.735,
+    "ratioNoWinter": 0.955,
+    "kCvCore": 0.265,
+    "decMarMeltMm": 49,
+    "decMarShareOfAcc": 0.041
+   },
+   {
+    "name": "Glacier de Corbassière",
+    "winters": 15,
+    "zMed": 3239,
+    "kCore": 1.306,
+    "kNoWinter": 1.292,
+    "ratioNoWinter": 0.989,
+    "kCvCore": 0.128,
+    "decMarMeltMm": 11.1,
+    "decMarShareOfAcc": 0.007
+   },
+   {
+    "name": "Glacier d'Orny",
+    "winters": 4,
+    "zMed": 2945,
+    "kCore": 1.028,
+    "kNoWinter": 1.024,
+    "ratioNoWinter": 0.996,
+    "kCvCore": 0.46,
+    "decMarMeltMm": 3.6,
+    "decMarShareOfAcc": 0.001
+   },
+   {
+    "name": "Plan Névé",
+    "winters": 8,
+    "zMed": 2889,
+    "kCore": 1.879,
+    "kNoWinter": 1.803,
+    "ratioNoWinter": 0.96,
+    "kCvCore": 0.107,
+    "decMarMeltMm": 75.1,
+    "decMarShareOfAcc": 0.039
+   },
+   {
+    "name": "Ghiacciaio del Basòdino",
+    "winters": 15,
+    "zMed": 2896,
+    "kCore": 1.752,
+    "kNoWinter": 1.711,
+    "ratioNoWinter": 0.977,
+    "kCvCore": 0.181,
+    "decMarMeltMm": 33.9,
+    "decMarShareOfAcc": 0.019
+   },
+   {
+    "name": "Vadret da Morteratsch",
+    "winters": 1,
+    "zMed": 3240,
+    "kCore": 3.385,
+    "kNoWinter": 3.345,
+    "ratioNoWinter": 0.988,
+    "kCvCore": null,
+    "decMarMeltMm": 13.9,
+    "decMarShareOfAcc": 0.023
+   },
+   {
+    "name": "Vadret Pers",
+    "winters": 15,
+    "zMed": 2972,
+    "kCore": 2.547,
+    "kNoWinter": 2.499,
+    "ratioNoWinter": 0.981,
+    "kCvCore": 0.206,
+    "decMarMeltMm": 26.1,
+    "decMarShareOfAcc": 0.028
+   },
+   {
+    "name": "Vadret dal Murtèl",
+    "winters": 14,
+    "zMed": 3185,
+    "kCore": 1.979,
+    "kNoWinter": 1.968,
+    "ratioNoWinter": 0.994,
+    "kCvCore": 0.163,
+    "decMarMeltMm": 2,
+    "decMarShareOfAcc": 0.003
+   },
+   {
+    "name": "Vadret dal Corvatsch",
+    "winters": 14,
+    "zMed": 3252,
+    "kCore": 1.597,
+    "kNoWinter": 1.597,
+    "ratioNoWinter": 1,
+    "kCvCore": 0.173,
+    "decMarMeltMm": 1.4,
+    "decMarShareOfAcc": 0.002
+   }
+  ],
+  "perWinter": [
+   {
+    "winter": "2011/12",
+    "n": 23,
+    "decMarMeltMm": 76.7,
+    "decMarShareOfAcc": 0.055,
+    "biasCore": -61.5,
+    "s2Core": 472.5,
+    "biasNoWinter": 15.2,
+    "s2NoWinter": 480.1
+   },
+   {
+    "winter": "2012/13",
+    "n": 26,
+    "decMarMeltMm": 8,
+    "decMarShareOfAcc": 0.006,
+    "biasCore": -74.3,
+    "s2Core": 391.4,
+    "biasNoWinter": -66.3,
+    "s2NoWinter": 387.7
+   },
+   {
+    "winter": "2013/14",
+    "n": 26,
+    "decMarMeltMm": 57.5,
+    "decMarShareOfAcc": 0.044,
+    "biasCore": -7.7,
+    "s2Core": 353.3,
+    "biasNoWinter": 49.9,
+    "s2NoWinter": 339.1
+   },
+   {
+    "winter": "2014/15",
+    "n": 29,
+    "decMarMeltMm": 18.3,
+    "decMarShareOfAcc": 0.016,
+    "biasCore": -42.2,
+    "s2Core": 419.4,
+    "biasNoWinter": -22.5,
+    "s2NoWinter": 409.1
+   },
+   {
+    "winter": "2015/16",
+    "n": 30,
+    "decMarMeltMm": 51.6,
+    "decMarShareOfAcc": 0.045,
+    "biasCore": -268.9,
+    "s2Core": 442.9,
+    "biasNoWinter": -217.3,
+    "s2NoWinter": 404
+   },
+   {
+    "winter": "2016/17",
+    "n": 29,
+    "decMarMeltMm": 73.7,
+    "decMarShareOfAcc": 0.073,
+    "biasCore": -275.8,
+    "s2Core": 378,
+    "biasNoWinter": -196.7,
+    "s2NoWinter": 312.1
+   },
+   {
+    "winter": "2017/18",
+    "n": 29,
+    "decMarMeltMm": 5.6,
+    "decMarShareOfAcc": 0.004,
+    "biasCore": -346.4,
+    "s2Core": 544.4,
+    "biasNoWinter": -340.8,
+    "s2NoWinter": 541.3
+   },
+   {
+    "winter": "2018/19",
+    "n": 30,
+    "decMarMeltMm": 62.3,
+    "decMarShareOfAcc": 0.035,
+    "biasCore": -108,
+    "s2Core": 435.6,
+    "biasNoWinter": -45.7,
+    "s2NoWinter": 396.6
+   },
+   {
+    "winter": "2019/20",
+    "n": 30,
+    "decMarMeltMm": 39.6,
+    "decMarShareOfAcc": 0.024,
+    "biasCore": -66.6,
+    "s2Core": 385.9,
+    "biasNoWinter": -26.8,
+    "s2NoWinter": 375.9
+   },
+   {
+    "winter": "2020/21",
+    "n": 30,
+    "decMarMeltMm": 45.7,
+    "decMarShareOfAcc": 0.031,
+    "biasCore": -15.7,
+    "s2Core": 312,
+    "biasNoWinter": 30,
+    "s2NoWinter": 296.7
+   },
+   {
+    "winter": "2021/22",
+    "n": 28,
+    "decMarMeltMm": 50,
+    "decMarShareOfAcc": 0.047,
+    "biasCore": -116.3,
+    "s2Core": 275.2,
+    "biasNoWinter": -66.2,
+    "s2NoWinter": 245.6
+   },
+   {
+    "winter": "2022/23",
+    "n": 29,
+    "decMarMeltMm": 39.8,
+    "decMarShareOfAcc": 0.031,
+    "biasCore": -138.5,
+    "s2Core": 402.8,
+    "biasNoWinter": -98.7,
+    "s2NoWinter": 385.9
+   },
+   {
+    "winter": "2023/24",
+    "n": 28,
+    "decMarMeltMm": 34.6,
+    "decMarShareOfAcc": 0.016,
+    "biasCore": 43.1,
+    "s2Core": 399.4,
+    "biasNoWinter": 77.8,
+    "s2NoWinter": 393.8
+   },
+   {
+    "winter": "2024/25",
+    "n": 27,
+    "decMarMeltMm": 16.7,
+    "decMarShareOfAcc": 0.011,
+    "biasCore": 55,
+    "s2Core": 335.3,
+    "biasNoWinter": 72,
+    "s2NoWinter": 323.1
+   },
+   {
+    "winter": "2025/26",
+    "n": 27,
+    "decMarMeltMm": 21.3,
+    "decMarShareOfAcc": 0.021,
+    "biasCore": -413.4,
+    "s2Core": 458.9,
+    "biasNoWinter": -391.6,
+    "s2NoWinter": 437.2
+   }
+  ]
+ },
+ "A3": {
+  "source": "GeoSphere Austria Data Hub, klima-v2-1h (tl, cglo, sh, rr) und klima-v2-1d (sh, sh_manu, shneu_manu, rr, tl_mittel), Station 15411 Sonnblick 3 109 m, seit 1986; CC BY 4.0 (audit/gletscher/licences.md: GeoSphere grün, Bestand); geholt 26.11. nach C:\\\\dev\\\\buscosun-glacier-cache\\\\gm11\\\\sonnblick",
+  "controlA": {
+   "hours": 196752,
+   "notIdentical": 0,
+   "green": true
+  },
+  "runs": [
+   {
+    "label": "Sonnblick, Neuschnee von Hand × 96 kg/m³ (ohne Faktor, Dichte des Kerns)",
+    "winters": 15,
+    "meltMm": {
+     "10": 32,
+     "11": 11.5,
+     "12": 0.9,
+     "01": 0.5,
+     "02": 0.4,
+     "03": 0.6,
+     "04": 13.4,
+     "05": 73.3,
+     "06": 444.3
+    },
+    "decMarMeltMm": 2.3,
+    "byMonth": {
+     "10": {
+      "n": 434,
+      "bias": -31.9,
+      "mae": 39.4
+     },
+     "11": {
+      "n": 448,
+      "bias": -33.3,
+      "mae": 53.7
+     },
+     "12": {
+      "n": 465,
+      "bias": -22.2,
+      "mae": 61.5
+     },
+     "01": {
+      "n": 465,
+      "bias": 13.6,
+      "mae": 62.3
+     },
+     "02": {
+      "n": 424,
+      "bias": 38.5,
+      "mae": 77.9
+     },
+     "03": {
+      "n": 465,
+      "bias": 41.6,
+      "mae": 89.1
+     },
+     "04": {
+      "n": 450,
+      "bias": 42.6,
+      "mae": 88.3
+     },
+     "05": {
+      "n": 465,
+      "bias": 42.4,
+      "mae": 84.8
+     },
+     "06": {
+      "n": 450,
+      "bias": 39.9,
+      "mae": 88.1
+     }
+    },
+    "janMar": {
+     "n": 1354,
+     "bias": 31,
+     "mae": 76.4
+    },
+    "aprJun": {
+     "n": 1365,
+     "bias": 41.7,
+     "mae": 87
+    },
+    "meltOut": {
+     "maeD": 0,
+     "biasD": 0
+    },
+    "noWinterMelt": {
+     "janMar": {
+      "n": 1354,
+      "bias": 31.4,
+      "mae": 76.6
+     },
+     "aprJun": {
+      "n": 1365,
+      "bias": 42.3,
+      "mae": 87.1
+     },
+     "meltOut": {
+      "maeD": 0,
+      "biasD": 0
+     }
+    },
+    "anatomy": {
+     "mmPerWinter": 2.3,
+     "shareOnDaysMeanBelow0": 0.655,
+     "shareAfterNightBelowM5": 0.067,
+     "hoursOnBareAlbedo": 0,
+     "mmOnBareAlbedo": 0
+    }
+   },
+   {
+    "label": "Sonnblick, Tagesniederschlag × Schneeanteil (Faktor 1: Faktor inside)",
+    "winters": 15,
+    "meltMm": {
+     "10": 28.5,
+     "11": 12,
+     "12": 0.8,
+     "01": 0.5,
+     "02": 0.4,
+     "03": 0.6,
+     "04": 14.1,
+     "05": 72,
+     "06": 434.7
+    },
+    "decMarMeltMm": 2.3,
+    "byMonth": {
+     "10": {
+      "n": 434,
+      "bias": -34.4,
+      "mae": 42.1
+     },
+     "11": {
+      "n": 448,
+      "bias": -43,
+      "mae": 59.3
+     },
+     "12": {
+      "n": 465,
+      "bias": -52.2,
+      "mae": 72.4
+     },
+     "01": {
+      "n": 465,
+      "bias": -36.1,
+      "mae": 63.4
+     },
+     "02": {
+      "n": 424,
+      "bias": -30.2,
+      "mae": 68.7
+     },
+     "03": {
+      "n": 465,
+      "bias": -41.8,
+      "mae": 81.9
+     },
+     "04": {
+      "n": 450,
+      "bias": -53.9,
+      "mae": 79.7
+     },
+     "05": {
+      "n": 465,
+      "bias": -57.9,
+      "mae": 75.8
+     },
+     "06": {
+      "n": 450,
+      "bias": -57.7,
+      "mae": 72.3
+     }
+    },
+    "janMar": {
+     "n": 1354,
+     "bias": -36.2,
+     "mae": 71.4
+    },
+    "aprJun": {
+     "n": 1365,
+     "bias": -56.5,
+     "mae": 75.9
+    },
+    "meltOut": {
+     "maeD": 0,
+     "biasD": 0
+    },
+    "noWinterMelt": {
+     "janMar": {
+      "n": 1354,
+      "bias": -35.8,
+      "mae": 71.4
+     },
+     "aprJun": {
+      "n": 1365,
+      "bias": -55.9,
+      "mae": 75.4
+     },
+     "meltOut": {
+      "maeD": 0,
+      "biasD": 0
+     }
+    },
+    "anatomy": {
+     "mmPerWinter": 2.3,
+     "shareOnDaysMeanBelow0": 0.654,
+     "shareAfterNightBelowM5": 0.076,
+     "hoursOnBareAlbedo": 0,
+     "mmOnBareAlbedo": 0
+    }
+   }
+  ]
+ },
+ "mem": [
+  {
+   "label": "start",
+   "freeGb": 6.05
+  },
+  {
+   "label": "Messfeld 5WJ0",
+   "freeGb": 6.048
+  },
+  {
+   "label": "Messfeld 5WJ0",
+   "freeGb": 5.779
+  },
+  {
+   "label": "start",
+   "freeGb": 6
+  },
+  {
+   "label": "Messfeld SBK-a",
+   "freeGb": 5.998
+  },
+  {
+   "label": "Messfeld SBK-b",
+   "freeGb": 6.019
+  },
+  {
+   "label": "start",
+   "freeGb": 6.078
+  },
+  {
+   "label": "Winter 2012–2025 geladen",
+   "freeGb": 5.918
+  },
+  {
+   "label": "Winter 2026 geladen",
+   "freeGb": 5.918
+  },
+  {
+   "label": "Kontrolle A",
+   "freeGb": 5.928
+  },
+  {
+   "label": "Gletscherwinter 1/421",
+   "freeGb": 5.928
+  },
+  {
+   "label": "Gletscherwinter 41/421",
+   "freeGb": 5.95
+  },
+  {
+   "label": "Gletscherwinter 81/421",
+   "freeGb": 5.949
+  },
+  {
+   "label": "Gletscherwinter 121/421",
+   "freeGb": 5.941
+  },
+  {
+   "label": "Gletscherwinter 161/421",
+   "freeGb": 5.929
+  },
+  {
+   "label": "Gletscherwinter 201/421",
+   "freeGb": 5.957
+  },
+  {
+   "label": "Gletscherwinter 241/421",
+   "freeGb": 6.186
+  },
+  {
+   "label": "Gletscherwinter 281/421",
+   "freeGb": 6.162
+  },
+  {
+   "label": "Gletscherwinter 321/421",
+   "freeGb": 6.172
+  },
+  {
+   "label": "Gletscherwinter 361/421",
+   "freeGb": 6.173
+  },
+  {
+   "label": "Gletscherwinter 401/421",
+   "freeGb": 6.124
+  },
+  {
+   "label": "k* fertig",
+   "freeGb": 6.109
+  },
+  {
+   "label": "LOWO fertig",
+   "freeGb": 6.161
+  }
+ ]
+}
