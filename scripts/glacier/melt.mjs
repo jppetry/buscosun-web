@@ -128,7 +128,7 @@ import { snowpackModeOf, snowpackStartOf, driveOf, bareAlbedo, levelsOfEntry, ad
 import { GLACIER_SNOWPACK_PAIRS_WINDOW_MIN, GLACIER_SNOWPACK_PAIRS_NOTE, GLACIER_SNOWPACK_PAIRS_FC_HOURS, GLACIER_SNOWPACK_PAIRS_FC_ELEVATION, glacierSnowpackPairsPath, snowpackPairsProblems } from '../../src/glacier/glacierSnowpackPairsContract.ts';
 import { glacierStnHourPath, glacierStnMapPath } from '../../src/glacier/glacierStationContract.ts';
 import { memWatch } from './lib/runmem.mjs';
-import { openAtmo, httpAtmo, dirAtmo, columnModeOf, columnShadowOf, LAPSE_STD_K_PER_M, FREE_REF_ABOVE_LOWEST_M } from './lib/column.mjs';
+import { glacierWeatherColumnPath, openAtmo, httpAtmo, dirAtmo, columnModeOf, columnShadowOf, LAPSE_STD_K_PER_M, FREE_REF_ABOVE_LOWEST_M } from './lib/column.mjs';
 import {
   GLACIER_SNOWPACK_DAYS, GLACIER_SNOWPACK_WINDOWS, GLACIER_SNOWPACK_HEIGHTS, GLACIER_SNOWPACK_PEND_H, GLACIER_SNOWPACK_NOTE, GLACIER_SNOWPACK_STATE_PATH, glacierSnowpackRunPath,
   snowpackProblems, snowpackStateProblems, GLACIER_SNOWPACK_SPREAD_RULE, GLACIER_SNOWPACK_NOW_FACTOR,
@@ -827,7 +827,7 @@ export async function main(opts) {
     } catch (e) { pairs = { error: String(e?.message ?? e).split('\n')[0] }; }
     if (pairs.error) log(`Schattenpaare nicht geschrieben: ${pairs.error}`);
   }
-  const colLine = colSt && (colSt.error ? { mode: colSt.mode, error: colSt.error } : { mode: colSt.mode, run: colSt.atmo.run, glaciers: colSt.glaciers, values: colSt.values, ...(colSt.fails ? { fails: colSt.fails } : {}) });
+  const colLine = colSt && (colSt.error ? { mode: colSt.mode, error: colSt.error } : { mode: colSt.mode, run: colSt.atmo.run, glaciers: colSt.glaciers, values: colSt.values, ...(colSt.bytes != null ? { bytes: colSt.bytes } : {}), ...(colSt.fails ? { fails: colSt.fails } : {}) });
   const spStatus = snowpack && (snowpack.error ? { at: doc.runAt, mode: 'shadow', error: snowpack.error }
     : { at: doc.runAt, mode: 'shadow', glaciers: snowpack.glaciers, skipped: snowpack.skipped, coverage: snowpack.coverage, precip: sp.rules.precip, density: sp.rules.density, state: snowpack.state, carried: snowpack.carried, dropped: snowpack.dropped, bytes: snowpack.bytes, stateBytes: snowpack.stateBytes, seconds: snowpack.seconds });
   if (spStatus && snowpack.spread) spStatus.spread = snowpack.spread;
@@ -949,8 +949,7 @@ export function writeWeather({ outDir, dataDir, run, runAt, nowMs, version, cube
   };
   const problems = [...weatherProblems(doc, catalogIds), ...weatherSnowProblems(doc), ...weatherLevelProblems(doc)];
   if (problems.length) throw new Error(`Vertrag verletzt: ${problems.slice(0, 5).join('; ')}`);
-  const chunks = regions.map((region) => ({ region, doc: { ...head, kind: 'glacier/weather-hourly', region, hours: GLACIER_WEATHER_HOURS, glaciers: hourly.get(region),
-    ...(column ? { col: { run: column.atmo.run, lapseStd: LAPSE_STD_K_PER_M * 1000, freeAboveM: FREE_REF_ABOVE_LOWEST_M, glaciers: column.hourly.get(region) ?? {} } } : {}) } }));
+  const chunks = regions.map((region) => ({ region, doc: { ...head, kind: 'glacier/weather-hourly', region, hours: GLACIER_WEATHER_HOURS, glaciers: hourly.get(region) } }));
   for (const c of chunks) { const pr = [...weatherHourlyProblems(c.doc, doc), ...weatherHourlySnowProblems(c.doc, doc), ...weatherHourlyLevelProblems(c.doc, doc)]; if (pr.length) throw new Error(`Vertrag verletzt (${c.region}): ${pr.slice(0, 5).join('; ')}`); }
   // output tree = everything that stays in `melt/wx/`: the earlier runs of the last 72 h (document + chunk folder), then this run
   const wxIn = join(dataDir, 'melt', 'wx'), wxOut = join(outDir, 'melt', 'wx');
@@ -965,6 +964,14 @@ export function writeWeather({ outDir, dataDir, run, runAt, nowMs, version, cube
   const put = (rel, d) => { const s = JSON.stringify(d); mkdirSync(dirname(join(outDir, rel)), { recursive: true }); writeFileSync(join(outDir, rel), s); bytes += Buffer.byteLength(s); };
   put(glacierWeatherRunPath(run), doc);
   for (const c of chunks) put(glacierWeatherHourlyPath(run, c.region), c.doc);
+  // GLACIER_COLUMN (shadow): the height-cube section as its own file per region next to the chunk (the site never loads it); not counted in `files`/`bytes`
+  let colBytes = 0;
+  if (column) for (const c of chunks) {
+    const t = JSON.stringify({ ...head, kind: 'glacier/weather-column', region: c.region, hours: GLACIER_WEATHER_HOURS,
+      col: { run: column.atmo.run, lapseStd: LAPSE_STD_K_PER_M * 1000, freeAboveM: FREE_REF_ABOVE_LOWEST_M, glaciers: column.hourly.get(c.region) ?? {} } });
+    writeFileSync(join(outDir, glacierWeatherColumnPath(run, c.region)), t); colBytes += Buffer.byteLength(t);
+  }
+  if (column) column.bytes = colBytes;
   // Phase GS: one more line in the comparison of the two phase rules (not a weather document: neither counted in `files` nor in `bytes`)
   const phaseDoc = phaseDocWith(readJson(join(dataDir, GLACIER_WEATHER_PHASE_PATH)), phaseRunOf(run, phase, cmp, heights), nowMs);
   writeFileSync(join(outDir, GLACIER_WEATHER_PHASE_PATH), JSON.stringify(phaseDoc));

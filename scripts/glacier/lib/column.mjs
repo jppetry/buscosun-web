@@ -165,6 +165,9 @@ export function stepOf(run, tMs) {
   return Number.isFinite(h) && h >= 0 && h <= 48 ? h : null;
 }
 
+/** Shadow file of one region next to the hourly chunk `melt/wx/<run>/<region>.json` (region names never start with `col-`). */
+export const glacierWeatherColumnPath = (run, region) => `melt/wx/${run}/col-${region}.json`;
+
 /** The standard gradient the shadow correction removes from buscosun Fusion (K/m, `set`). */
 export const LAPSE_STD_K_PER_M = -0.0065;
 export const COLUMN_MODES = Object.freeze(['off', 'shadow']);
