@@ -15,7 +15,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  ATMO_INDEX_PATH, ATMO_SCHEMA, TILE_CELLS, gridCellOf, tileExtent, tilePath, decodeAtmoTile,
+  ATMO_INDEX_PATH, ATMO_SCHEMA, TILE_CELLS, runMs, gridCellOf, tileExtent, tilePath, decodeAtmoTile,
 } from '../../../src/atmosphere/atmoContract.ts';
 
 const UA = 'buscosun-glacier (buscosun-web/scripts/glacier/lib/column.mjs)';
@@ -115,6 +115,56 @@ export async function openAtmo(src) {
   return { run, runAt, levels: index.levels, steps: index.steps, column, preload, stats };
 }
 
+// --- pure functions on a column ----------------------------------------------------------------------------------
+
+/** `free` reference: the first level at least this far above the lowest (m, `set`). */
+export const FREE_REF_ABOVE_LOWEST_M = 150;
+
+/**
+ * Values at elevation `zM` (m MSL) in step index `step`, linear in height between the two bracketing levels.
+ * `{ v: { t, rh, ws, wd }, why: null }` (°C, %, m/s, degrees the wind comes FROM) or `{ v: null, why }`,
+ * why ∈ 'below' | 'above' | 'step' | 'missing'. Never extrapolated.
+ */
+export function columnAt(col, zM, step) {
+  const n = col.nLev, z = col.z;
+  if (!Number.isInteger(step) || step < 0 || step >= col.steps.length) return { v: null, why: 'step' };
+  if (!(zM >= z[0])) return { v: null, why: 'below' };
+  if (!(zM <= z[n - 1])) return { v: null, why: 'above' };
+  let l = 0;
+  while (l < n - 2 && z[l + 1] < zM) l++;
+  const w = z[l + 1] === z[l] ? 0 : (zM - z[l]) / (z[l + 1] - z[l]);
+  const o = step * n;
+  const at = (a) => a[o + l] + w * (a[o + l + 1] - a[o + l]);
+  const t = at(col.t), rh = at(col.rh), u = at(col.u), vv = at(col.v);
+  if (![t, rh, u, vv].every(Number.isFinite)) return { v: null, why: 'missing' };
+  const ws = Math.hypot(u, vv);
+  const wd = ws > 0 ? (Math.atan2(-u, -vv) * 180 / Math.PI + 360) % 360 : null;
+  return { v: { t, rh, ws, wd }, why: null };
+}
+
+/** Temperature at `zTo` minus temperature at `zFrom` (K) from the column, null if either is outside or missing. */
+export function lapseDelta(col, zFrom, zTo, step) {
+  const a = columnAt(col, zFrom, step), b = columnAt(col, zTo, step);
+  return a.v && b.v ? b.v.t - a.v.t : null;
+}
+
+/** Reference elevation of a column: `ground` = lowest level, `free` = first level ≥ FREE_REF_ABOVE_LOWEST_M above it. `{ zM, level }` or null. */
+export function refLevel(col, variant) {
+  const z = col.z;
+  if (variant === 'ground') return { zM: z[0], level: 0 };
+  if (variant === 'free') {
+    for (let l = 1; l < col.nLev; l++) if (z[l] - z[0] >= FREE_REF_ABOVE_LOWEST_M) return { zM: z[l], level: l };
+    return null;
+  }
+  return null;
+}
+
+/** Step index of run `run` (`YYYYMMDDHH`) valid at `tMs` (nearest full hour), null outside 0…48 h. */
+export function stepOf(run, tMs) {
+  const h = Math.round((tMs - runMs(run)) / 3_600_000);
+  return Number.isFinite(h) && h >= 0 && h <= 48 ? h : null;
+}
+
 function distKm(la1, lo1, la2, lo2) {
   const r = Math.PI / 180, dla = (la2 - la1) * r, dlo = (lo2 - lo1) * r;
   const a = Math.sin(dla / 2) ** 2 + Math.cos(la1 * r) * Math.cos(la2 * r) * Math.sin(dlo / 2) ** 2;
@@ -141,12 +191,19 @@ async function countMain(args) {
   const tilesNeeded = await atmo.preload(glaciers);
   const dist = [], reasons = {};
   const inside = [0, 0, 0];
+  const lapse = { ground: [], free: [] };
   for (const g of glaciers) {
     const r = await atmo.column(g.lat, g.lon);
     if (r.why) { reasons[r.why] = (reasons[r.why] ?? 0) + 1; continue; }
     const c = r.col;
     dist.push(c.distKm);
     const lo = c.z[0], hi = c.z[c.nLev - 1];
+    for (const vr of ['ground', 'free']) {
+      const ref = refLevel(c, vr), zg = g.z?.[1];
+      if (!ref || !Number.isFinite(zg) || Math.abs(zg - ref.zM) < 1) continue;
+      const d = lapseDelta(c, ref.zM, zg, 12);
+      if (d != null) lapse[vr].push(d / ((zg - ref.zM) / 1000));
+    }
     (g.z ?? []).forEach((zz, k) => { if (Number.isFinite(zz) && zz >= lo && zz <= hi) inside[k]++; });
   }
   dist.sort((a, b) => a - b);
@@ -155,6 +212,7 @@ async function countMain(args) {
     run: atmo.run, glaciers: glaciers.length, withColumn: dist.length,
     distKm: { median: q(0.5), max: dist.length ? +dist[dist.length - 1].toFixed(2) : null },
     insideColumn: { tongue: inside[0], median: inside[1], top: inside[2] },
+    lapseKPerKmStep12: Object.fromEntries(Object.entries(lapse).map(([k, a]) => { a.sort((x, y) => x - y); return [k, { n: a.length, median: a.length ? +a[a.length >> 1].toFixed(2) : null }]; })),
     tiles: { needed: tilesNeeded, read: atmo.stats.tiles, failed: atmo.stats.tileFailures }, bytes: atmo.stats.bytes,
     seconds: +((performance.now() - t0) / 1000).toFixed(1), reasons,
   }, null, 1));
