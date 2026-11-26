@@ -2464,6 +2464,59 @@ In 3 109 m schmilzt der Kern im Hochwinter fast nichts (65 % davon an Tagen unte
 | V-GM-169 | Im Winterfenster schmilzt der Kern auf den Gletschern im Oktober–November 3- bis über 20-mal mehr als im Hochwinter (2 500–3 000 m: 18–21 % der Akkumulation) | größter Posten des Winterfensters · Herbstschmelze getrennt prüfen: Schneefall auf noch warmes Eis/Firn, Albedo 0,30/0,50 ohne Decke, Start des Fensters am 1. Oktober |
 | V-GM-170 | Am Sonnblick fehlt ein Wasserwert; Neuschnee von Hand × 96 kg/m³ macht die Decke 31 cm zu hoch, der Gipfel-Messer 36 cm zu tief | Sonnblick taugt für die Schmelze im Winter (sie braucht keine Niederschlagswahrheit), nicht für Schneehöhe ohne Faktor · Teil B wertet dort nur Schmelze und Ausapern-freie Größen |
 
+### 3q.9 Herbstschmelze, Teil A (1d, 26.11.; nur Beschreibung, keine Regel)
+
+**Ablauf.** Jans Wort zu §131: Teil A von 1c committet, Teil B von 1c (R1/R2/R4) entfällt, keine Anfrage an das SLF, GeoSphere `klima-v2-1d` erst nach Jans Lizenzblick ins Repo (nichts davon ist dazugekommen). Zwei beschreibende Schritte im selben Werkzeug `gm11-wintermelt.mjs`: `autumn-glaciers` (A1/A2) und `autumn-wfj` (A3); die Diagnose-Kopie `simulateV` trägt dafür eine Zerlegung der Oktober–November-Schmelze (`split`) und drei Schalter (`offAut`, `offB`, `offC`), alle nur in der Kopie. Nichts unter `scripts/glacier/**`, `src/**`, kein Workflow, nichts in `buscosun-data`/`buscosun-archiv`, kein Commit. Bericht ohne Messwerte je Gletscherwinter: `gm11-autumn-a-report.json`; alles andere in `C:\dev\buscosun-glacier-cache\gm11\autumn\`. Ein Prozess, freier Speicher 6,9–7,4 GB. **Kontrolle A** grün: `simulate` an allen 421 Gletscherwintern, `stepLevel` an 170 496 Stunden des Weissfluhjochs (`Object.is`, alle Schalter aus; die Zerlegung bucht nur mit und ändert keine Schmelze).
+
+**A1 — Zerlegung** (37 Schweizer Eichgletscher, 421 Gletscherwinter 2011/12–2025/26, Antrieb S, Landeswert, pGrad 0, wie §3q.8). Je Band und Stunde im Oktober–November: (a) Schnee über `sweMin` → Schnee-Albedo; (b) 0 < Schnee ≤ `sweMin` → Albedo 0,30 (unter der ELA) / 0,50 (darüber) auf dünnem Schnee; (c) keine Decke, oder der Teil der Schmelze über dem vorhandenen Schnee → Eis oder Firn. mm je Winter, flächengewichtet, in Klammern Anteil der Akkumulation des Winterfensters:
+
+| Höhe | Akkumulation | (a) Schnee-Albedo | (b) dünner Schnee, Boden-Albedo | (c) ohne Schnee |
+|---|---|---|---|---|
+| 1 750–2 000 | 1 097 | 103 (0,094) | 16 (0,015) | 1 126 (1,03) |
+| 2 000–2 250 | 1 260 | 119 (0,095) | 14 (0,011) | 879 (0,70) |
+| 2 250–2 500 | 1 278 | 104 (0,081) | 14 (0,011) | 494 (0,39) |
+| 2 500–2 750 | 1 589 | 112 (0,071) | 10 (0,006) | 219 (0,14) |
+| 2 750–3 000 | 1 654 | 107 (0,064) | 10 (0,006) | 189 (0,11) |
+| 3 000–3 250 | 1 432 | 76 (0,053) | 6 (0,004) | 113 (0,08) |
+| 3 250–3 500 | 1 548 | 62 (0,040) | 5 (0,003) | 72 (0,05) |
+| ≥ 3 500 | 1 300–1 700 | ≤ 40 | ≤ 3 | ≤ 42 |
+
+- **Der größte Teil ist (c):** zwischen 2 500 und 3 000 m sind 0,11–0,14 von den 0,18–0,21 aus §3q.8 Schmelze ohne Schneedecke, (a) 0,06–0,07, (b) unter 0,01.
+- **In die gewertete Bandbilanz gehen alle drei.** `simulate` bucht `bal[b] += S − melt` mit der vollen Schmelze, auch ohne Decke (`taken = min(swe, melt)` wirkt nur auf den Schnee, nicht auf die Bilanz). Die Winterbilanz eines Bands im Kern ist also Schneefall minus jede Schmelze im Fenster, Eis und Firn eingeschlossen.
+- **Ob die gemessene Winterbilanz Oktober-Eisschmelze enthält:** den Methodentext konnte ich nicht im Wortlaut lesen. Die GLAMOS-Seiten (Glossar, DOI-Seite der Massenbilanz 2025) nennen „fixed-date system“ und „hydrological year“, aber kein Umrechnungsverfahren; die Dateien verweisen für die Festdatum-Werte auf Huss et al. 2015 (doi:10.3189/2015JoG15J015). Dort steht nur „Temporal differences between the hydrological year and the effective dates of the surveys can be corrected“, mit einem „distributed accumulation and temperature-index melt model … daily resolution“; der Abschnitt zur Umrechnung fehlt mir (das PDF liegt lokal, ein PDF-Leser fehlt, eine Installation wurde nicht freigegeben). **Die Daten selbst sagen ja:** in `massbalance_fixdate_elevationbins.csv` sind 100 von 3 992 Schweizer Bandwerten der Winterbilanz 2012–2025 **negativ**, bis −1 572 mm (Grosser Aletsch 1 600–1 800 m). Eine Sondierung bis zur letzten Sommerfläche kann keinen Winterwert unter null geben; die Festdatum-Winterbilanz enthält also modellierte Ablation zwischen 1. Oktober und der Messung, unten auch Eisschmelze. Wie groß dieser Teil auf 2 500–3 000 m ist, sagt die Datei nicht. **Belegt aus den Daten, nicht aus dem Methodentext** (V-GM-172).
+
+**A2 — k*** (der für alle Stufen gleiche Faktor, der die gletscherweite Winterbilanz genau trifft; Verhältnis zu k* wie gebaut, je Gletscher Median über die Winter):
+
+| Variante | k* / k* gebaut, Median (p10 … p90) | Gletscher unter 0,95 | Median k* | Streuung von k* über die Winter (Median VK) | s2 Landeswert | Bias | LOWO-s2 |
+|---|---|---|---|---|---|---|---|
+| wie gebaut | 1 | — | 1,899 | 0,156 | 400 mm | −124 | 220 |
+| (i) Okt–Nov-Schmelze aus | **0,839** (0,793 … 0,915) | 37 von 37 | 1,620 | 0,162 | 378 | +127 | 194 |
+| (ii) nur (b) aus | **0,960** (0,910 … 0,994) | 13 | 1,791 | 0,150 | 361 | −21 | 202 |
+| (iii) nur (c) aus | **0,931** (0,861 … 0,970) | 23 | 1,715 | 0,159 | 367 | +32 | 210 |
+
+- Die Herbstschmelze trägt rund **16 % des Faktors** (am meisten Vorab 0,76, Tortin 0,78, Plan Névé 0,78; am wenigsten Plattas/Medel 0,92, Alphubel N 0,93).
+- **(b) wirkt stärker, als seine Menge sagt:** (b) ist unter 1 % der Akkumulation, k* fällt aber um 4 %. Bleibt der dünne Schnee liegen, steigt die Decke über `sweMin`, die Schnee-Albedo greift, und spätere Schmelze ohne Decke (c) fällt weg — eine Kette, kein Einzelposten.
+- **Die Streuung über die Winter bleibt:** 0,150–0,162 in jeder Variante. Wie bei der Winterschmelze (§3q.8) ist die Schwankung von Winter zu Winter keine Herbstfrage.
+- **Je Winter:** 2025/26 Bias −413 → −179 (Herbst aus), −286 ((b) aus), −245 ((c) aus); 2023/24 kippt in die andere Richtung (+43 → +440 mit Herbst aus).
+
+**A3 — Weissfluhjoch, Oktober–November** (Stationstemperatur unverändert = (ii) von §3q.8; jeder Tag mit gemessener Schneehöhe, 13 Winter, 793 Tage; schneefrei = unter 0,5 cm):
+
+| Antrieb | Bias / MAE | Modell schneefrei, Messfeld nicht | Messfeld schneefrei, Modell nicht | beide Schnee / beide frei |
+|---|---|---|---|---|
+| (ii) Station unverändert | −1,0 / 9,4 cm | **76 Tage** (24 im Herbst 2020, 23 im Herbst 2015) | 16 | 489 / 212 |
+| (i) zum Vergleich, −6,5 K/km | −4,0 / 10,1 cm | 101 | 10 | 464 / 218 |
+
+Je Winter liegt der Bias mit (ii) im Oktober bei −23 … +7 cm, im November bei −53 … +17 cm; der Ausreißer ist der Herbst 2020 (−23 / −53 cm: das Modell schmilzt eine früh gefallene Decke weg, die am Messfeld liegen bleibt). Ohne 2015/16 und 2020/21 sind es 29 Tage „Modell frei, Messfeld nicht“ in 11 Herbsten. Die Schmelze des Modells auf 2 536 m: 18–94 mm im Oktober, 0,4–79 mm im November.
+
+**Lesart Teil A.** Die Herbstschmelze auf den Gletschern ist zum größeren Teil Schmelze ohne Schneedecke (c); sie geht voll in die Bandbilanz des Kerns, und die gemessene Festdatum-Winterbilanz enthält nach den negativen Bandwerten ebenfalls Ablation ab dem 1. Oktober — wie viel, ist ungeklärt. Enthielte die Wahrheit keine, wäre der Faktor um bis zu 16 % zu hoch; enthält sie dieselbe, ist der Kern richtig gebucht. Was davon ein Artefakt ist, lässt sich erst sagen, wenn V-GM-172 geklärt ist. Am Messfeld (kein Eis) trifft der Kern den Herbst mit unveränderter Stationstemperatur im Mittel (−1 cm), verliert aber in zwei von 13 Herbsten eine frühe Decke. Die Schwankung des Faktors von Winter zu Winter erklärt der Herbst nicht.
+
+| V-… | Befund | Mehrwert · Skizze |
+|---|---|---|
+| V-GM-171 | Von der Okt–Nov-Schmelze auf 2 500–3 000 m sind rund zwei Drittel Schmelze ohne Schneedecke (0,11–0,14 der Akkumulation), ein Drittel Schnee mit Schnee-Albedo, unter 1 % dünner Schnee mit Boden-Albedo; alle drei gehen in die Bandbilanz | größter Posten des Winterfensters ist Eis-/Firnschmelze im Oktober · vor jeder Regel klären, ob die Wahrheit dieselbe Ablation enthält (V-GM-172) |
+| V-GM-172 | Die GLAMOS-Festdatum-Winterbilanz hat 100 von 3 992 negative Bandwerte (bis −1 572 mm), enthält also modellierte Ablation ab dem 1. Oktober; das Verfahren (Huss et al. 2015) ist nicht im Wortlaut gelesen | entscheidet, ob 16 % des Faktors ein Fehler sind · Methodenabschnitt lesen (PDF-Leser nötig) und die Bilanz der Beobachtungsperiode (`massbalance_observation_elevationbins.csv`) mit dem Kern über dieselben Daten werten, ohne Umrechnung durch GLAMOS |
+| V-GM-173 | Ohne Okt–Nov-Schmelze fällt k* je Gletscher auf 0,84 (0,79–0,92), ohne nur (b) auf 0,96, ohne nur (c) auf 0,93; die Streuung über die Winter bleibt 0,15–0,16 | der Herbst verschiebt den Faktor, nicht seine Schwankung · Teil B misst die Schwankung |
+| V-GM-174 | Am Weissfluhjoch hält das Modell im Okt–Nov an 76 von 793 Tagen keinen Schnee, wo das Messfeld welchen hat (47 davon in zwei Herbsten), umgekehrt an 16 | der Kern verliert vereinzelt eine frühe Decke · zwei Ereignisse, kein Anlass für eine Regel |
+
 ## 4. Quellenliste (zur Prüfung durch Jan)
 
 Spalte „Stand“: **da** = schon im Betrieb, **neu** = käme mit dieser Phase dazu. Spalte „Lizenz“: **belegt** = am 22.11. an der Quelle gelesen; **wie bisher** = unverändert aus der bestehenden Linie; **offen** = von mir nicht geprüft.
@@ -2483,7 +2536,7 @@ Spalte „Stand“: **da** = schon im Betrieb, **neu** = käme mit dieser Phase 
 | Q4 | Provinz Bozen | Schneehöhe | da | CC0, wie bisher |
 | Q5 | `obs/v1`: GeoSphere TAWES (285 Stationen mit Schneehöhe, 11 ab 2 000 m), MeteoSchweiz SMN (102 / 13) und NIME (270 / 5), DWD | Schneehöhe | da (`obs.yml`) | wie bisher |
 | Q6 | SLF Beobachter-Messfelder, `measurement-api.slf.ch/public/api/study-plot` | gemessener Neuschnee (`HN_1D`), Schneehöhe, Wasserwert des Neuschnees, täglich 6 UTC; 100 Stationen, 3 ab 2 500 m, höchste 2 690 m. **GM-3:** die Historie je Messfeld steht unter `measurement-data.slf.ch/study-plot/` (V-GM-17) | neu | CC BY 4.0, belegt (die Seite des SLF-Datenservice nennt „manual measurement sites, historical and live“) |
-| Q7 | GeoSphere `klima-v2-1d` | Schneehöhe (`sh`, `sh_manu`) und Neuschnee von Hand (`shneu_manu`), täglich | neu | offen (Data Hub, vermutlich CC BY 4.0) |
+| Q7 | GeoSphere `klima-v2-1d` | Schneehöhe (`sh`, `sh_manu`) und Neuschnee von Hand (`shneu_manu`), täglich | neu | **CC BY 4.0, bestätigt (Jan 26.11.2026, Datensatzseite, DOI 10.60669/gs6w-jd70);** Pflicht: Namensnennung „Datenquelle: GeoSphere Austria“ mit Datensatz, DOI und Lizenz an jedem abgeleiteten Wert |
 | Q8 | Euregio-Feed `static.avalanche.report`, übrige Betreiber: Trentino (30), Meteomont (19), TIWAG (12), ÖBB (7), Verbund (5), Universität Innsbruck (7), BFW (3), Eurac (3) | Schneehöhe und Wetter in Hochlagen, darunter Stationen der Universität Innsbruck am Hintereisferner | neu | offen, je Betreiber; bisher bewusst ausgeschlossen |
 | Q9 | Lawinenwarndienste Salzburg, Kärnten, Vorarlberg, Steiermark (über `lawis.at`) | Schneehöhe für die Hohen Tauern, Silvretta, Dachstein | neu | offen; Endpunkt von mir nicht geprüft |
 | Q10 | Lawinenwarndienst Bayern | Schneehöhe am Zugspitzplatt für die vier deutschen Gletscher | neu | offen; Endpunkt nicht geprüft |

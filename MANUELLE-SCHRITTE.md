@@ -5191,3 +5191,12 @@ Nichts eingeschaltet, nichts unter `scripts/glacier/**` oder `src/**`, nichts ge
 3. **Herbstschmelze (V-GM-169):** ob statt (oder vor) Teil B die Schmelze im Oktober–November geprüft wird — sie ist der größte Posten des Winterfensters.
 4. **Lizenz Q7:** in §4 steht GeoSphere `klima-v2-1d` noch „offen“, `audit/gletscher/licences.md` führt GeoSphere als grün (CC BY 4.0) — bitte bestätigen.
 5. **Temperatur am Messfeld Weissfluhjoch (V-GM-167):** ob beim SLF die historische Lufttemperatur der IMIS-Station am Messfeld angefragt wird.
+
+## 132. Gletscher: Schneemodell, GM-11 Phase 1d Teil A — Herbstschmelze, nur Beschreibung (`audit/gletscher-schneemodell.md` §3q.9), 2026-11-26
+
+Nichts eingeschaltet, nichts unter `scripts/glacier/**` oder `src/**`, nichts gepusht, nichts committet. Neu: Schritte `autumn-glaciers`/`autumn-wfj` in `gm11-wintermelt.mjs`, `gm11-autumn-a-report.json`, §3q.9, Zeile GM. Teil B ist nicht begonnen (wartet auf Jans Wort).
+
+1. **Commit** auf Jans Wort.
+2. **Teil B starten ja oder nein** (Schwankung des Faktors von Winter zu Winter; Diagnose B0 zuerst).
+3. **V-GM-172:** vor jeder Herbstregel klären, ob die GLAMOS-Winterbilanz dieselbe Oktober-Ablation bucht wie der Kern — dafür einen PDF-Leser (z. B. `pypdf`) für Huss et al. 2015 freigeben, oder die Bilanz der Beobachtungsperiode als zweite Wahrheit werten lassen.
+4. **Lizenz GeoSphere `klima-v2-1d`** (Q7) weiter offen, Jans Blick.
