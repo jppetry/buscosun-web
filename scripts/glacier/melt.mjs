@@ -128,6 +128,7 @@ import { snowpackModeOf, snowpackStartOf, driveOf, bareAlbedo, levelsOfEntry, ad
 import { GLACIER_SNOWPACK_PAIRS_WINDOW_MIN, GLACIER_SNOWPACK_PAIRS_NOTE, GLACIER_SNOWPACK_PAIRS_FC_HOURS, GLACIER_SNOWPACK_PAIRS_FC_ELEVATION, glacierSnowpackPairsPath, snowpackPairsProblems } from '../../src/glacier/glacierSnowpackPairsContract.ts';
 import { glacierStnHourPath, glacierStnMapPath } from '../../src/glacier/glacierStationContract.ts';
 import { memWatch } from './lib/runmem.mjs';
+import { sunModeOf, loadSunTable, sunEntryOf, terrainG, SUN_RULES } from './lib/sunTable.mjs';
 import { tempPairsOf, glacierWeatherColumnPath, openAtmo, httpAtmo, dirAtmo, columnModeOf, columnShadowOf, LAPSE_STD_K_PER_M, FREE_REF_ABOVE_LOWEST_M } from './lib/column.mjs';
 import {
   GLACIER_SNOWPACK_DAYS, GLACIER_SNOWPACK_WINDOWS, GLACIER_SNOWPACK_HEIGHTS, GLACIER_SNOWPACK_PEND_H, GLACIER_SNOWPACK_NOTE, GLACIER_SNOWPACK_STATE_PATH, glacierSnowpackRunPath,
@@ -149,6 +150,34 @@ const args = Object.fromEntries(process.argv.slice(2).map((a) => { const m = /^-
 const J = (p) => JSON.parse(readFileSync(p, 'utf8'));
 const readJson = (p) => { try { return J(p); } catch { return null; } };
 const r1 = (x) => Math.round(x * 10) / 10;
+const r2 = (x) => Math.round(x * 100) / 100;
+
+/**
+ * GLACIER_SUN (shadow): the melt of one glacier twice, deterministic (expected temperature, no scenarios), band by band — with the flat radiation of the
+ * forcing and with the terrain variant of `lib/sunTable.mjs` at each band's elevation. `simulate` is called per band with that band's own state and
+ * accumulation multiplier, so the flat variant is the glacier-wide run split into its bands; nothing of the published run is computed here.
+ */
+export function sunShadowOfGlacier({ g, hyp, forcing, params, state, ela, table, entry, owner, t0Ms }) {
+  const bands = bandsOf(hyp), nb = bands.zb.length, hours = forcing.t.length;
+  const zMed = bands.zb[Math.floor(nb / 2)];
+  const tAt = tempAt(forcing, zMed);
+  const corr = params.corrOf ? params.corrOf(bands) : bands.zb.map((z) => 1 + ((params.pGrad ?? MELT.pGrad) * (z - forcing.zRef)) / 100);
+  const st0 = state ?? emptyState(nb);
+  const cz = new Float64Array(hours);
+  for (let i = 0; i < hours; i++) cz[i] = cosZenith(owner.lat, owner.lon, t0Ms + (i + 0.5) * H);
+  const days = GLACIER_MELT_DAYS, flatD = new Float64Array(days), terrD = new Float64Array(days);
+  const pick = [0, Math.floor(nb / 2), nb - 1], lv = { flat: [], terr: [] };
+  for (let b = 0; b < nb; b++) {
+    const one = { zb: [bands.zb[b]], w: [1] }, st = { swe: [st0.swe[b]], aS: [st0.aS[b]] };
+    const run1 = (gs) => simulate({ bands: one, ela, t: tAt, g: gs, p: forcing.p, zT: zMed, zP: forcing.zRef, pf: params.pf, TF: params.TF, SRF: params.SRF, state: st, model: 'eti', corr: [corr[b]] });
+    const gT = terrainG({ table, entry, zM: bands.zb[b], gFlat: forcing.g, n: forcing.n, cosZ: (i) => cz[i], t0Ms });
+    const dF = dailySums(run1(forcing.g).meltH, days), dT = dailySums(run1(gT).meltH, days);
+    for (let d = 0; d < days; d++) { flatD[d] += bands.w[b] * dF[d]; terrD[d] += bands.w[b] * dT[d]; }
+    for (let j = 0; j < 3; j++) if (pick[j] === b) { lv.flat[j] = dF.map(r2); lv.terr[j] = dT.map(r2); }
+  }
+  const sF = flatD.reduce((a, x) => a + x, 0), sT = terrD.reduce((a, x) => a + x, 0);
+  return { id: g.id, f: forcing.from ?? 'own', z: pick.map((b) => Math.round(bands.zb[b])), flat: Array.from(flatD, r2), terr: Array.from(terrD, r2), lv, ratio: sF > 0 ? Math.round((sT / sF) * 1000) / 1000 : null };
+}
 const stamp = (ms) => new Date(ms).toISOString().replace(/[-:T]/g, '').slice(0, 10);
 /** Run id `yyyymmddhh` → ms UTC. */
 const runMs = (run) => Date.UTC(+run.slice(0, 4), +run.slice(4, 6) - 1, +run.slice(6, 8), +run.slice(8, 10));
@@ -371,6 +400,16 @@ export async function main(opts) {
   const lvStat = { rows: 0, fallback: 0, clipped: 0, clippedWet: 0, ms: 0 };
   // GLACIER_COLUMN (shadow): the height cube atmo/v1 read once; corrected temperatures and the column wind go into an own section `col` of the
   // hourly chunk. Never fails the run: an unknown word or an unreadable cube leaves the section out and names the reason in the status line.
+  // GLACIER_SUN (shadow): the terrain variant of the radiation next to the published run; an unknown word or an unreadable table never stops the run
+  let sunSt = null;
+  {
+    let mode = 'flat';
+    try { mode = sunModeOf(opts.sun ?? process.env.GLACIER_SUN); } catch (e) { sunSt = { mode: 'shadow', error: String(e?.message ?? e) }; }
+    if (mode === 'shadow') {
+      const lt = loadSunTable(opts['sun-table'] ?? process.env.GLACIER_SUN_TABLE);
+      sunSt = lt.why ? { mode, error: lt.why } : { mode, table: lt.table, rows: [], skipped: {}, fails: 0 };
+    }
+  }
   let colSt = null;
   if (wxOn) {
     let mode = 'off';
@@ -639,6 +678,16 @@ export async function main(opts) {
       const { st, ela } = mk(g, hyp, f);
       const out = runGlacier({ g, hyp, forcing: f, params: paramsOf(g), state: st, ela, run, unit });
       rows.push(out.row);
+      if (sunSt?.table) {
+        const entry = sunEntryOf(sunSt.table, g.id);
+        if (entry.why) sunSt.skipped[entry.why] = (sunSt.skipped[entry.why] ?? 0) + 1;
+        else {
+          try {
+            const owner = (f.from ?? 'own') === 'own' ? g : catAll.find((x) => x.id === f.from) ?? g;
+            sunSt.rows.push(sunShadowOfGlacier({ g, hyp, forcing: f, params: paramsOf(g), state: st, ela, table: sunSt.table, entry, owner, t0Ms }));
+          } catch { sunSt.fails++; }
+        }
+      }
       // GM-5b: which rows ran on a factor of their own and which on a shape per band (named in the document, counted in the status line)
       if (glTab) { if (glTab.factorOf(g.id) != null) glApplied.factor.push(g.id); if (glTab.shape && glTab.has(g.id)) glApplied.shape.push(g.id); }
       // GM-10b: the rows that ran on a PREDICTED factor, by basis (`country` rows of the table ran on their region and are not listed)
@@ -770,6 +819,26 @@ export async function main(opts) {
     if (d && f !== `${run}.json` && nowMs - Date.parse(d.runAt) <= GLACIER_MELT_KEEP_MS) copyFileSync(join(meltDir, f), join(outDir, 'melt', f));
   }
   writeFileSync(join(outDir, glacierMeltRunPath(run)), JSON.stringify(doc));
+  // GLACIER_SUN (shadow): own file `melt/sun/<run>.json` (no page reads it); the files of the last 72 h are carried like the melt documents
+  let sunLine = null;
+  if (sunSt) {
+    const sunIn = join(meltDir, 'sun'), sunOut = join(outDir, 'melt', 'sun');
+    for (const f of existsSync(sunIn) ? readdirSync(sunIn).filter((x) => /^\d{10}\.json$/.test(x)) : []) {
+      const d = readJson(join(sunIn, f));
+      if (d && f !== `${run}.json` && nowMs - Date.parse(d.runAt) <= GLACIER_MELT_KEEP_MS) { mkdirSync(sunOut, { recursive: true }); copyFileSync(join(sunIn, f), join(sunOut, f)); }
+    }
+    if (sunSt.error) sunLine = { mode: sunSt.mode, error: sunSt.error };
+    else {
+      const sd = { schema: 1, kind: 'glacier/melt-sun', run, runAt: doc.runAt, origin: 'model', shadow: true, engine: { name: engine.name, version: engine.version },
+        note: 'Schatten: Schmelze mit flacher Strahlung und mit der Geländevariante, deterministisch (erwartete Temperatur, ohne Szenarien), je Band gerechnet; keine Seite liest diese Datei',
+        table: { build: sunSt.table.doc.build ?? null, builtAt: sunSt.table.doc.builtAt ?? null }, rules: SUN_RULES, days: GLACIER_MELT_DAYS, unit: 'mm w.e. per day',
+        fields: { flat: 'glacier-wide daily melt, flat radiation', terr: 'glacier-wide daily melt, terrain radiation', z: 'lowest, median, highest band (m)', lv: 'daily melt at these three bands, both variants', ratio: 'sum terr / sum flat over all days' },
+        skipped: sunSt.skipped, glaciers: sunSt.rows };
+      const t = JSON.stringify(sd);
+      mkdirSync(sunOut, { recursive: true }); writeFileSync(join(sunOut, `${run}.json`), t);
+      sunLine = { mode: sunSt.mode, build: sd.table.build, glaciers: sunSt.rows.length, skipped: sunSt.skipped, bytes: Buffer.byteLength(t), ...(sunSt.fails ? { fails: sunSt.fails } : {}) };
+    }
+  }
   const stateOut = stMode === 'run-hour'
     ? { schema: 1, kind: 'glacier/melt-state', atMs: t0Ms, g: nextState, pend: pendOut }
     : { schema: 1, kind: 'glacier/melt-state', atMs: t0Ms + MELT_STATE_ADVANCE_H * H, g: nextState };
@@ -845,7 +914,7 @@ export async function main(opts) {
     ...(snowpack && !snowpack.error ? { snowpack: snowpack.pointer } : {}),
   }));
   writeFileSync(join(patchDir, 'status-patch.json'), JSON.stringify({ lines: {
-    melt: { at: doc.runAt, glaciers: rows.length, skipped: skipped.length, unit, seconds: Math.round((Date.now() - tStart) / 1000), ...(precip ? { precip: precipRule } : {}), ...(stMode === 'run-hour' ? { state: stMode } : {}), ...(satMode === 'once' ? { sat: satMode } : {}), ...(glTab ? { glacier: { factor: glApplied.factor.length, shape: glApplied.shape.length, ...(predTab ? { predicted: glApplied.predicted.length, predictedShrunk: glApplied['predicted-shrunk'].length } : {}), ...(respun.length ? { respun: respun.length } : {}) } } : respun.length ? { glacier: { respun: respun.length } } : {}), mem: mem.line() },
+    melt: { at: doc.runAt, glaciers: rows.length, skipped: skipped.length, unit, seconds: Math.round((Date.now() - tStart) / 1000), ...(precip ? { precip: precipRule } : {}), ...(stMode === 'run-hour' ? { state: stMode } : {}), ...(satMode === 'once' ? { sat: satMode } : {}), ...(glTab ? { glacier: { factor: glApplied.factor.length, shape: glApplied.shape.length, ...(predTab ? { predicted: glApplied.predicted.length, predictedShrunk: glApplied['predicted-shrunk'].length } : {}), ...(respun.length ? { respun: respun.length } : {}) } } : respun.length ? { glacier: { respun: respun.length } } : {}), mem: mem.line(), ...(sunLine ? { sun: sunLine } : {}) },
     ...(weather ? { weather: weather.error ? { at: doc.runAt, error: weather.error, ...(colLine ? { column: colLine } : {}) } : { at: doc.runAt, glaciers: weather.glaciers, skipped: weather.skipped, files: weather.files, bytes: weather.bytes, phase: weather.phase, ...(weather.levels ? { levels: weather.levels } : {}), ...(colLine ? { column: colLine } : {}) } } : {}),
     ...(spStatus ? { snowpack: spStatus } : {}),
   } }));
@@ -994,6 +1063,6 @@ export function writeWeather({ outDir, dataDir, run, runAt, nowMs, version, cube
 
 if (process.argv[1] && /(^|[\\/])melt\.mjs$/.test(process.argv[1])) {
   if (!args.data || !args.cube || !args.out) { console.error('--data=<v1> --cube=<buscosun-data> --out=<Ordner> fehlen'); process.exit(2); }
-  main({ data: args.data, cube: args.cube, out: args.out, patch: args.patch, 'archive-out': args['archive-out'], calibration: args.calibration, now: args.now, only: args.only, limit: args.limit, classes: args.classes, always: !!args.always, weather: args.weather, phase: args.phase, heights: args.heights, precip: args.precip, snowcal: args.snowcal, snowpack: args.snowpack, 'snowpack-start': args['snowpack-start'], density: args.density, 'melt-state': args['melt-state'], 'snowpack-pairs': args['snowpack-pairs'], 'snowpack-spread': args['snowpack-spread'], 'sat-nudge': args['sat-nudge'], 'glacier-factor': args['glacier-factor'], 'glacier-factor-table': args['glacier-factor-table'], 'glacier-shape': args['glacier-shape'], column: args.column, 'column-dir': args['column-dir'], 'snowcal-glaciers': args['snowcal-glaciers'], log: (m) => console.error(m) })
+  main({ data: args.data, cube: args.cube, out: args.out, patch: args.patch, 'archive-out': args['archive-out'], calibration: args.calibration, now: args.now, only: args.only, limit: args.limit, classes: args.classes, always: !!args.always, weather: args.weather, phase: args.phase, heights: args.heights, precip: args.precip, snowcal: args.snowcal, snowpack: args.snowpack, 'snowpack-start': args['snowpack-start'], density: args.density, 'melt-state': args['melt-state'], 'snowpack-pairs': args['snowpack-pairs'], 'snowpack-spread': args['snowpack-spread'], 'sat-nudge': args['sat-nudge'], 'glacier-factor': args['glacier-factor'], 'glacier-factor-table': args['glacier-factor-table'], 'glacier-shape': args['glacier-shape'], column: args.column, 'column-dir': args['column-dir'], sun: args.sun, 'sun-table': args['sun-table'], 'snowcal-glaciers': args['snowcal-glaciers'], log: (m) => console.error(m) })
     .then((r) => console.log(JSON.stringify(r))).catch((e) => { console.error(e.message ?? e); process.exit(1); });
 }

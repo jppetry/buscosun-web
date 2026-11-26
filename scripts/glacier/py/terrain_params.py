@@ -47,11 +47,26 @@ def sun_pos(lat_deg, lon_deg, month, hour, minute=30):
 MARGIN_M = 3000   # window = outline box + 3 km, as snowcal_predictors.py (same grid, so the northness agrees); >= RING_M
 
 ap = argparse.ArgumentParser()
-for k in ('static', 'dem', 'out'): ap.add_argument('--' + k, required=True)
+for k in ('static', 'dem'): ap.add_argument('--' + k)
+ap.add_argument('--out', required=True)
+ap.add_argument('--sun-out', default=None, help='write only the compact sun file from the existing --out (no computation)')
 ap.add_argument('--only', default=None)
 ap.add_argument('--count', action='store_true')
 ap.add_argument('--north-ref', default=None)
 a = ap.parse_args()
+if a.sun_out:
+    src = json.load(open(a.out, encoding='utf8'))
+    hd = src['horizon']
+    comp = {'kind': 'glacier/sun-table', 'build': src['build'], 'builtAt': src['builtAt'], 'from': os.path.basename(a.out), 'dem': src['dem'],
+            'sun': {**hd['sun'], 'day': SUN_DAY, 'year': SUN_YEAR}, 'svf': hd['svf'], 'glaciers': {}}
+    for gid, g in src['glaciers'].items():
+        lv = g.get('levels', [])
+        if len(lv) == 3 and all(x.get('sun') and x.get('svf') is not None for x in lv):
+            comp['glaciers'][gid] = {'z': [x['z'] for x in lv], 'sun': [x['sun'] for x in lv], 'svf': [x['svf'] for x in lv]}
+    json.dump(comp, open(a.sun_out, 'w', encoding='utf8'), ensure_ascii=False, separators=(',', ':'))
+    print(f"{len(comp['glaciers'])} von {len(src['glaciers'])} Gletschern -> {a.sun_out}")
+    raise SystemExit(0)
+if not a.static or not a.dem: ap.error('--static and --dem are required unless --sun-out')
 t0 = time.time()
 catDoc = json.load(open(os.path.join(a.static, 'catalog.json'), encoding='utf8'))
 only = set(a.only.split(',')) if a.only else None
