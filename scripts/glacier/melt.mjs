@@ -128,7 +128,7 @@ import { snowpackModeOf, snowpackStartOf, driveOf, bareAlbedo, levelsOfEntry, ad
 import { GLACIER_SNOWPACK_PAIRS_WINDOW_MIN, GLACIER_SNOWPACK_PAIRS_NOTE, GLACIER_SNOWPACK_PAIRS_FC_HOURS, GLACIER_SNOWPACK_PAIRS_FC_ELEVATION, glacierSnowpackPairsPath, snowpackPairsProblems } from '../../src/glacier/glacierSnowpackPairsContract.ts';
 import { glacierStnHourPath, glacierStnMapPath } from '../../src/glacier/glacierStationContract.ts';
 import { memWatch } from './lib/runmem.mjs';
-import { glacierWeatherColumnPath, openAtmo, httpAtmo, dirAtmo, columnModeOf, columnShadowOf, LAPSE_STD_K_PER_M, FREE_REF_ABOVE_LOWEST_M } from './lib/column.mjs';
+import { tempPairsOf, glacierWeatherColumnPath, openAtmo, httpAtmo, dirAtmo, columnModeOf, columnShadowOf, LAPSE_STD_K_PER_M, FREE_REF_ABOVE_LOWEST_M } from './lib/column.mjs';
 import {
   GLACIER_SNOWPACK_DAYS, GLACIER_SNOWPACK_WINDOWS, GLACIER_SNOWPACK_HEIGHTS, GLACIER_SNOWPACK_PEND_H, GLACIER_SNOWPACK_NOTE, GLACIER_SNOWPACK_STATE_PATH, glacierSnowpackRunPath,
   snowpackProblems, snowpackStateProblems, GLACIER_SNOWPACK_SPREAD_RULE, GLACIER_SNOWPACK_NOW_FACTOR,
@@ -379,7 +379,7 @@ export async function main(opts) {
       try {
         const dir = opts['column-dir'] ?? process.env.GLACIER_COLUMN_DIR;
         const atmo = await openAtmo(opts.atmoSource ?? (dir ? dirAtmo(resolve(dir)) : httpAtmo()));
-        colSt = atmo.why ? { mode, error: atmo.why } : { mode, atmo, glaciers: 0, values: 0, hourly: new Map() };
+        colSt = atmo.why ? { mode, error: atmo.why } : { mode, atmo, glaciers: 0, values: 0, hourly: new Map(), tsrc: new Map() };
       } catch (e) { colSt = { mode, error: String(e?.message ?? e).split('\n')[0] }; }
     }
   }
@@ -676,7 +676,9 @@ export async function main(opts) {
             wxRows.push(w.row); if (!wxHourly.has(g.region)) wxHourly.set(g.region, {}); wxHourly.get(g.region)[g.id] = w.hourly; if (w.cmp) wxCmp.push(w.cmp);
             if (colSt?.atmo) {
               try {
-                const cs = columnShadowOf(await colSt.atmo.column(g.lat, g.lon), z, tzW, colSt.atmo.run, t0Ms, GLACIER_WEATHER_HOURS);
+                const colRes = await colSt.atmo.column(g.lat, g.lon);
+                if (spPairs) colSt.tsrc.set(g.id, { z, tz: tzW, colRes });
+                const cs = columnShadowOf(colRes, z, tzW, colSt.atmo.run, t0Ms, GLACIER_WEATHER_HOURS);
                 if (cs.ok) colSt.glaciers++;
                 colSt.values += cs.values;
                 if (!colSt.hourly.has(g.region)) colSt.hourly.set(g.region, {});
@@ -823,7 +825,7 @@ export async function main(opts) {
   if (spPairs) {
     try {
       if (snowpack?.error) throw new Error('Schneedecke nicht geschrieben');
-      pairs = writeSnowpackPairs({ outDir, dataDir, index, run, runAt: doc.runAt, t0Ms, rows: sp.rows, rules: sp.rules, ...(spSpread ? { forecast: { rule: spSpreadRule, at: spAtQ } } : {}) });
+      pairs = writeSnowpackPairs({ outDir, dataDir, index, run, runAt: doc.runAt, t0Ms, rows: sp.rows, rules: sp.rules, ...(spSpread ? { forecast: { rule: spSpreadRule, at: spAtQ } } : {}), ...(colSt?.atmo ? { temp: { src: colSt.tsrc, cubeRun: colSt.atmo.run } } : {}) });
     } catch (e) { pairs = { error: String(e?.message ?? e).split('\n')[0] }; }
     if (pairs.error) log(`Schattenpaare nicht geschrieben: ${pairs.error}`);
   }
@@ -831,7 +833,7 @@ export async function main(opts) {
   const spStatus = snowpack && (snowpack.error ? { at: doc.runAt, mode: 'shadow', error: snowpack.error }
     : { at: doc.runAt, mode: 'shadow', glaciers: snowpack.glaciers, skipped: snowpack.skipped, coverage: snowpack.coverage, precip: sp.rules.precip, density: sp.rules.density, state: snowpack.state, carried: snowpack.carried, dropped: snowpack.dropped, bytes: snowpack.bytes, stateBytes: snowpack.stateBytes, seconds: snowpack.seconds });
   if (spStatus && snowpack.spread) spStatus.spread = snowpack.spread;
-  if (spStatus && pairs) spStatus.pairs =pairs.error ? { error: pairs.error } : { pairs: pairs.pairs, withValue: pairs.withValue, map: pairs.map, slot: pairs.slot, bytes: pairs.bytes, ...(pairs.spread != null ? { spread: pairs.spread } : {}) };
+  if (spStatus && pairs) spStatus.pairs =pairs.error ? { error: pairs.error } : { pairs: pairs.pairs, withValue: pairs.withValue, map: pairs.map, slot: pairs.slot, bytes: pairs.bytes, ...(pairs.spread != null ? { spread: pairs.spread } : {}), ...(pairs.temp != null ? { temp: pairs.temp } : {}) };
   mkdirSync(patchDir, { recursive: true });
   writeFileSync(join(patchDir, 'index-patch.json'), JSON.stringify({
     melt: { run, runAt: doc.runAt, engine: { name: engine.name, version: engine.version }, cube: cubeRuns, unit, build },
@@ -907,7 +909,7 @@ export function writeSnowpack({ outDir, run, runAt, t0Ms, engine, cube, build, r
  * forecast at the station elevation and the head the block `forecast`; the document is checked against the rows it was built from. Without it the bytes
  * are what they were.
  */
-export function writeSnowpackPairs({ outDir, dataDir, index, run, runAt, t0Ms, rows, rules, forecast = null }) {
+export function writeSnowpackPairs({ outDir, dataDir, index, run, runAt, t0Ms, rows, rules, forecast = null, temp = null }) {
   const mapName = index?.stations?.map;
   if (!mapName) throw new Error('Zeiger ohne Stationszuordnung (index.stations.map)');
   const mapFile = join(dataDir, glacierStnMapPath(mapName));
@@ -915,13 +917,17 @@ export function writeSnowpackPairs({ outDir, dataDir, index, run, runAt, t0Ms, r
   const slot = [run, stamp(t0Ms - H)].find((s) => existsSync(join(dataDir, glacierStnHourPath(s))));
   if (!slot) throw new Error(`kein Stationsslot der Laufstunde oder der Stunde davor (${run})`);
   const days = GLACIER_SNOWPACK_PAIRS_FC_HOURS.map((h) => h / 24);
-  const { pairs, counts, forecast: fcCount } = pairsOf({ rows, map: J(mapFile), slot: J(join(dataDir, glacierStnHourPath(slot))), t0Ms, windowMin: GLACIER_SNOWPACK_PAIRS_WINDOW_MIN, ...(forecast ? { forecast: { days, at: forecast.at } } : {}) });
+  const slotDoc = J(join(dataDir, glacierStnHourPath(slot)));
+  const { pairs, counts, forecast: fcCount } = pairsOf({ rows, map: J(mapFile), slot: slotDoc, t0Ms, windowMin: GLACIER_SNOWPACK_PAIRS_WINDOW_MIN, ...(forecast ? { forecast: { days, at: forecast.at } } : {}) });
+  // GLACIER_COLUMN (shadow): the temperature pairs at the snow station (+0 h; +24/+48 h where the run carries the forecast at station elevation)
+  const tb = temp ? tempPairsOf({ pairs, entries: { ...slotDoc.stations, ...(slotDoc.ext?.stations ?? {}) }, t0Ms, windowMin: GLACIER_SNOWPACK_PAIRS_WINDOW_MIN, src: temp.src, cubeRun: temp.cubeRun, leads: forecast ? [0, 24, 48] : [0] }) : null;
   const doc = {
     schema: 1, kind: 'glacier/snowpack-pairs', run, runAt, atMs: t0Ms, origin: 'comparison', origins: { m: 'computed', hn: 'computed', v: 'measured', hsd: 'measured', ...(forecast ? { fm: 'computed', fq: 'computed' } : {}) },
     note: GLACIER_SNOWPACK_PAIRS_NOTE, coupling: 'none', snowpack: { run, precip: rules.precip, density: rules.density },
     stations: { map: mapName, slot, source: 'glacier/v1/stn' }, rule: { elevation: 'linear-between-levels-clamped', windowMin: GLACIER_SNOWPACK_PAIRS_WINDOW_MIN, origin: 'set' },
     counts,
     ...(forecast ? { forecast: { hours: GLACIER_SNOWPACK_PAIRS_FC_HOURS, origin: 'computed', spread: { rule: forecast.rule.rule, k: forecast.rule.k, quantiles: forecast.rule.quantiles, elevation: GLACIER_SNOWPACK_PAIRS_FC_ELEVATION }, ...fcCount } } : {}),
+    ...(tb ? { temp: tb } : {}),
     pairs,
   };
   const problems = snowpackPairsProblems(doc, new Set(rows.map((r) => r.id)), forecast ? new Map(rows.map((r) => [r.id, r])) : undefined);
@@ -929,7 +935,7 @@ export function writeSnowpackPairs({ outDir, dataDir, index, run, runAt, t0Ms, r
   const raw = JSON.stringify(doc);
   mkdirSync(join(outDir, dirname(glacierSnowpackPairsPath(run))), { recursive: true });
   writeFileSync(join(outDir, glacierSnowpackPairsPath(run)), raw);
-  return { pairs: counts.pairs, withValue: counts.withValue, map: mapName, slot, bytes: Buffer.byteLength(raw), ...(forecast ? { spread: fcCount.pairs } : {}) };
+  return { pairs: counts.pairs, withValue: counts.withValue, map: mapName, slot, bytes: Buffer.byteLength(raw), ...(forecast ? { spread: fcCount.pairs } : {}), ...(doc.temp ? { temp: doc.temp.pairs } : {}) };
 }
 
 /**

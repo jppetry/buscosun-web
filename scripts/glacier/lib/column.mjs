@@ -14,6 +14,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { atElevation } from './snowpackcore.mjs';
 import {
   ATMO_INDEX_PATH, ATMO_SCHEMA, TILE_CELLS, runMs, gridCellOf, tileExtent, tilePath, decodeAtmoTile,
 } from '../../../src/atmosphere/atmoContract.ts';
@@ -215,6 +216,42 @@ export function columnShadowOf(colRes, z, tz, cubeRun, t0Ms, hours) {
     });
   }
   return { e, values, ok: true };
+}
+
+/**
+ * Shadow temperature pairs at the snow station of each pair (GLACIER_COLUMN = shadow with the snowpack pairs on). Adds `p.ta` to a pair whose
+ * station measures air temperature in the window, whose glacier has a column and whose station elevation lies inside it:
+ *   ta = { v: measured °C, age: min, f: [Fusion at the station elevation per lead], g: [corrected, ground], fr: [corrected, free] }
+ * `f` = `atElevation` between the three elevations of the weather row (the interpolation the pairs use); `g`/`fr` = f + lapseDelta(ref → zs) − LAPSE_STD·(zs − ref)
+ * with the glacier's column; null per lead outside 0…48 h of the cube run. Every other pair keeps its bytes; the reason is counted.
+ * `src` = Map(glacier id → { z, tz, colRes }); `entries` = slot stations (both sections). Returns the head block.
+ */
+export function tempPairsOf({ pairs, entries, t0Ms, windowMin, src, cubeRun, leads }) {
+  const none = {}, cnt = (k) => { none[k] = (none[k] ?? 0) + 1; };
+  let n = 0;
+  for (const p of pairs) {
+    const s = src.get(p.g), e = entries[p.s], zs = p.z;
+    if (!s?.colRes?.col) { cnt('no-column'); continue; }
+    const c = s.colRes.col, rg = refLevel(c, 'ground'), rf = refLevel(c, 'free');
+    if (!(zs >= c.z[0])) { cnt('below'); continue; }
+    if (!(zs <= c.z[c.nLev - 1])) { cnt('above'); continue; }
+    const stamp = e ? Date.parse(e.t) : NaN;
+    if (!e || !Number.isFinite(e.v?.t) || !Number.isFinite(stamp)) { cnt('no-value'); continue; }
+    const age = Math.round((t0Ms - stamp) / 60_000);
+    if (age > windowMin[0]) { cnt('stale'); continue; }
+    if (age < -windowMin[1]) { cnt('future'); continue; }
+    const f = [], g = [], fr = [];
+    for (const h of leads) {
+      const tf = atElevation(s.z, s.tz.map((a) => a[h]), zs).v;
+      f.push(r1(tf));
+      const st = stepOf(cubeRun, t0Ms + h * 3_600_000);
+      const cor = (rl) => { if (st == null || !rl || !Number.isFinite(tf)) return null; const d = lapseDelta(c, rl.zM, zs, st); return d == null ? null : r1(tf + d - LAPSE_STD_K_PER_M * (zs - rl.zM)); };
+      g.push(cor(rg)); fr.push(cor(rf));
+    }
+    p.ta = { v: e.v.t, age, f, g, fr };
+    n++;
+  }
+  return { leads, run: cubeRun, lapseStd: LAPSE_STD_K_PER_M * 1000, freeAboveM: FREE_REF_ABOVE_LOWEST_M, origin: { v: 'measured', f: 'computed', g: 'computed', fr: 'computed' }, pairs: n, none };
 }
 
 function distKm(la1, lo1, la2, lo2) {
