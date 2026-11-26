@@ -5162,3 +5162,12 @@ Nichts eingeschaltet, nichts im Daten- oder Archiv-Repo, kein Workflow geändert
 6. **V-GM-141 / V-GM-143 — Vorschläge, nichts geändert:** zweite Sprungregel der Schneehöhe („Stufe, die bleibt“, 10 cm in ≤ 2 h, Nachbarstationen); `repeatVerdict` auch fällig bei ≥ 6 h seit dem letzten Lauf und neuerem t1; den fehlgeschlagenen Publish des t2-Laufs 25.11. 04:47 UTC im Protokoll von `point.yml` (Job `45547610153`) ansehen — nur mit Anmeldung lesbar.
 7. **Hindcast-Prüfung Stufe B:** Regel-Entwurf `audit/gletscher-schneemodell/gm11-hindcast-plan-draft.md` prüfen (Grenzen 25 %, Hälfte, 0,8–1,25 sind `set`), dann einfrieren und rechnen (sechs Schweizer Gletscher, zwei Winter, ≈ 10–15 min). Für mehr Gletscher müssten ihre Zellen in den Hindcast ausgezogen werden (V-GM-146).
 8. **V-GM-151:** vor E-GM-38 entscheiden, ob die Spanne der Faktoren um einen Jahresanteil erweitert wird (Winter 2025/26: alle Grundlagen 360–415 mm zu niedrig).
+
+## 129. Gletscher: Schneemodell, GM-11 Phase 1b — Hindcast-Prüfung gerechnet, nur Messung (`audit/gletscher-schneemodell.md` §3q.6), 2026-11-26
+
+Nichts eingeschaltet, nichts im Daten- oder Archiv-Repo, nichts für den Prüfstand geschrieben, nichts committet. Neu im Baum: `audit/gletscher-schneemodell/gm11-hindcast-frozen.md` (+ `.sha256`), `gm11-hindcast-forcing.mjs`, `gm11-hindcast.mjs`, `gm11-wfj.mjs`, `gm11-hindcast-report.json` (ohne gemessene Werte je Gletscherwinter), §3q.6 im Audit, Zeile GM in `CLAUDE.md`.
+
+1. **Commit** auf Jans Wort (Werkzeuge, Regel, Bericht, Audit).
+2. **Faktor im Betrieb:** aus sechs Gletschern keine Tabelle (Regel). Zu entscheiden, ob der Faktor gegen den Antrieb des Betriebs statt gegen RhiresD geeicht werden soll (V-GM-154: Brücke 0,55–1,81 je Gletscher) — dafür müssten mehr Gletscherzellen in den Hindcast (V-GM-146) und ein Fit der Lernstufe ohne 2025/26 her (V-GM-156).
+3. **Hochwinter-Schmelze des Kerns (V-GM-157):** ob vor jeder Faktorfrage die Winterschmelze (Albedo-Abfall, Schwelle 1 °C) am Weissfluhjoch und an weiteren Messfeldern gemessen wird. Keine Änderung am Kern ohne Jans Wort.
+4. **E-GM-38 (§127)** im Licht von V-GM-153/155 neu ansehen: der eigene Faktor ist an 2023/24 und 2024/25 mit S mitgeeicht.
