@@ -128,6 +128,7 @@ import { snowpackModeOf, snowpackStartOf, driveOf, bareAlbedo, levelsOfEntry, ad
 import { GLACIER_SNOWPACK_PAIRS_WINDOW_MIN, GLACIER_SNOWPACK_PAIRS_NOTE, GLACIER_SNOWPACK_PAIRS_FC_HOURS, GLACIER_SNOWPACK_PAIRS_FC_ELEVATION, glacierSnowpackPairsPath, snowpackPairsProblems } from '../../src/glacier/glacierSnowpackPairsContract.ts';
 import { glacierStnHourPath, glacierStnMapPath } from '../../src/glacier/glacierStationContract.ts';
 import { memWatch } from './lib/runmem.mjs';
+import { openAtmo, httpAtmo, dirAtmo, columnModeOf, columnShadowOf, LAPSE_STD_K_PER_M, FREE_REF_ABOVE_LOWEST_M } from './lib/column.mjs';
 import {
   GLACIER_SNOWPACK_DAYS, GLACIER_SNOWPACK_WINDOWS, GLACIER_SNOWPACK_HEIGHTS, GLACIER_SNOWPACK_PEND_H, GLACIER_SNOWPACK_NOTE, GLACIER_SNOWPACK_STATE_PATH, glacierSnowpackRunPath,
   snowpackProblems, snowpackStateProblems, GLACIER_SNOWPACK_SPREAD_RULE, GLACIER_SNOWPACK_NOW_FACTOR,
@@ -368,6 +369,20 @@ export async function main(opts) {
   let wxHeights = null;
   if (wxOn && !wxPhaseError) { try { wxHeights = weatherHeightsOf(opts.heights ?? process.env.GLACIER_WEATHER_HEIGHTS); } catch (e) { wxPhaseError = String(e?.message ?? e); wxPhase = null; } }
   const lvStat = { rows: 0, fallback: 0, clipped: 0, clippedWet: 0, ms: 0 };
+  // GLACIER_COLUMN (shadow): the height cube atmo/v1 read once; corrected temperatures and the column wind go into an own section `col` of the
+  // hourly chunk. Never fails the run: an unknown word or an unreadable cube leaves the section out and names the reason in the status line.
+  let colSt = null;
+  if (wxOn) {
+    let mode = 'off';
+    try { mode = columnModeOf(opts.column ?? process.env.GLACIER_COLUMN); } catch (e) { colSt = { mode: 'shadow', error: String(e?.message ?? e) }; }
+    if (mode === 'shadow') {
+      try {
+        const dir = opts['column-dir'] ?? process.env.GLACIER_COLUMN_DIR;
+        const atmo = await openAtmo(opts.atmoSource ?? (dir ? dirAtmo(resolve(dir)) : httpAtmo()));
+        colSt = atmo.why ? { mode, error: atmo.why } : { mode, atmo, glaciers: 0, values: 0, hourly: new Map() };
+      } catch (e) { colSt = { mode, error: String(e?.message ?? e).split('\n')[0] }; }
+    }
+  }
   // Phase GM (E-GM-7): which precipitation factor this run accumulates with; an unknown word stops the run before anything is read or written
   const precipRule = snowPrecipOf(opts.precip ?? process.env.GLACIER_SNOW_PRECIP);
   // Phase GM (GM-3d, V-GM-32): where the carried state of the melt run stands — 6 h ahead as always (`ahead`) or at the run hour with its forcing
@@ -659,6 +674,15 @@ export async function main(opts) {
           else {
             if (wxHeights === 'three' && own) { if (lv) { lvStat.rows++; lvStat.clipped += w.stat.clipped; lvStat.clippedWet += w.stat.clippedWet; } else { w.row.lv = 'lapse'; lvStat.fallback++; } }
             wxRows.push(w.row); if (!wxHourly.has(g.region)) wxHourly.set(g.region, {}); wxHourly.get(g.region)[g.id] = w.hourly; if (w.cmp) wxCmp.push(w.cmp);
+            if (colSt?.atmo) {
+              try {
+                const cs = columnShadowOf(await colSt.atmo.column(g.lat, g.lon), z, tzW, colSt.atmo.run, t0Ms, GLACIER_WEATHER_HOURS);
+                if (cs.ok) colSt.glaciers++;
+                colSt.values += cs.values;
+                if (!colSt.hourly.has(g.region)) colSt.hourly.set(g.region, {});
+                colSt.hourly.get(g.region)[g.id] = cs.e;
+              } catch (e) { colSt.fails = (colSt.fails ?? 0) + 1; }
+            }
           }
         } catch (e) { wxSkipped.push({ id: g.id, reason: `error: ${String(e?.message ?? e).split('\n')[0]}` }); }
       }
@@ -762,7 +786,7 @@ export async function main(opts) {
   if (wxOn) {
     try {
       if (wxPhaseError) throw new Error(wxPhaseError);
-      weather = writeWeather({ outDir, dataDir, run, runAt: doc.runAt, nowMs, version: engine.version, cube: cubeRuns, build, rows: wxRows, skipped: wxSkipped, hourly: wxHourly, catalogIds: new Set(catAll.map((g) => g.id)), phase: wxPhase, cmp: wxCmp, heights: wxHeights, levels: lvStat });
+      weather = writeWeather({ outDir, dataDir, run, runAt: doc.runAt, nowMs, version: engine.version, cube: cubeRuns, build, rows: wxRows, skipped: wxSkipped, hourly: wxHourly, catalogIds: new Set(catAll.map((g) => g.id)), phase: wxPhase, cmp: wxCmp, heights: wxHeights, levels: lvStat, ...(colSt?.atmo ? { column: colSt } : {}) });
     } catch (e) { weather = { error: String(e?.message ?? e).split('\n')[0] }; }
     if (weather.error) log(`Wetter am Gletscher nicht geschrieben: ${weather.error}`);
   }
@@ -803,6 +827,7 @@ export async function main(opts) {
     } catch (e) { pairs = { error: String(e?.message ?? e).split('\n')[0] }; }
     if (pairs.error) log(`Schattenpaare nicht geschrieben: ${pairs.error}`);
   }
+  const colLine = colSt && (colSt.error ? { mode: colSt.mode, error: colSt.error } : { mode: colSt.mode, run: colSt.atmo.run, glaciers: colSt.glaciers, values: colSt.values, ...(colSt.fails ? { fails: colSt.fails } : {}) });
   const spStatus = snowpack && (snowpack.error ? { at: doc.runAt, mode: 'shadow', error: snowpack.error }
     : { at: doc.runAt, mode: 'shadow', glaciers: snowpack.glaciers, skipped: snowpack.skipped, coverage: snowpack.coverage, precip: sp.rules.precip, density: sp.rules.density, state: snowpack.state, carried: snowpack.carried, dropped: snowpack.dropped, bytes: snowpack.bytes, stateBytes: snowpack.stateBytes, seconds: snowpack.seconds });
   if (spStatus && snowpack.spread) spStatus.spread = snowpack.spread;
@@ -815,7 +840,7 @@ export async function main(opts) {
   }));
   writeFileSync(join(patchDir, 'status-patch.json'), JSON.stringify({ lines: {
     melt: { at: doc.runAt, glaciers: rows.length, skipped: skipped.length, unit, seconds: Math.round((Date.now() - tStart) / 1000), ...(precip ? { precip: precipRule } : {}), ...(stMode === 'run-hour' ? { state: stMode } : {}), ...(satMode === 'once' ? { sat: satMode } : {}), ...(glTab ? { glacier: { factor: glApplied.factor.length, shape: glApplied.shape.length, ...(predTab ? { predicted: glApplied.predicted.length, predictedShrunk: glApplied['predicted-shrunk'].length } : {}), ...(respun.length ? { respun: respun.length } : {}) } } : respun.length ? { glacier: { respun: respun.length } } : {}), mem: mem.line() },
-    ...(weather ? { weather: weather.error ? { at: doc.runAt, error: weather.error } : { at: doc.runAt, glaciers: weather.glaciers, skipped: weather.skipped, files: weather.files, bytes: weather.bytes, phase: weather.phase, ...(weather.levels ? { levels: weather.levels } : {}) } } : {}),
+    ...(weather ? { weather: weather.error ? { at: doc.runAt, error: weather.error, ...(colLine ? { column: colLine } : {}) } : { at: doc.runAt, glaciers: weather.glaciers, skipped: weather.skipped, files: weather.files, bytes: weather.bytes, phase: weather.phase, ...(weather.levels ? { levels: weather.levels } : {}), ...(colLine ? { column: colLine } : {}) } } : {}),
     ...(spStatus ? { snowpack: spStatus } : {}),
   } }));
   if (opts['archive-out'] || opts.archiveOut) {
@@ -911,7 +936,7 @@ export function writeSnowpackPairs({ outDir, dataDir, index, run, runAt, t0Ms, r
  * Phase GW — writes `melt/wx/<run>.json` and one hourly chunk per region into the output tree, next to the weather runs of the last 72 h. Throws with a reason
  * when there is nothing true to write (no stand of buscosun Fusion in the answer, no row, a contract violation); the caller keeps the melt run.
  */
-export function writeWeather({ outDir, dataDir, run, runAt, nowMs, version, cube, build, rows, skipped, hourly, catalogIds, phase = weatherPhaseOf(null), cmp = [], heights = weatherHeightsOf(null), levels = null }) {
+export function writeWeather({ outDir, dataDir, run, runAt, nowMs, version, cube, build, rows, skipped, hourly, catalogIds, phase = weatherPhaseOf(null), cmp = [], heights = weatherHeightsOf(null), levels = null, column = null }) {
   const three = heights === 'three';
   if (!Number.isInteger(version)) throw new Error('die Antwort von buscosun Fusion nennt ihren Stand nicht');
   if (!rows.length) throw new Error(`kein Gletscher mit Wetter (${skipped.length} übersprungen, z. B. ${skipped[0]?.reason ?? '—'})`);
@@ -924,7 +949,8 @@ export function writeWeather({ outDir, dataDir, run, runAt, nowMs, version, cube
   };
   const problems = [...weatherProblems(doc, catalogIds), ...weatherSnowProblems(doc), ...weatherLevelProblems(doc)];
   if (problems.length) throw new Error(`Vertrag verletzt: ${problems.slice(0, 5).join('; ')}`);
-  const chunks = regions.map((region) => ({ region, doc: { ...head, kind: 'glacier/weather-hourly', region, hours: GLACIER_WEATHER_HOURS, glaciers: hourly.get(region) } }));
+  const chunks = regions.map((region) => ({ region, doc: { ...head, kind: 'glacier/weather-hourly', region, hours: GLACIER_WEATHER_HOURS, glaciers: hourly.get(region),
+    ...(column ? { col: { run: column.atmo.run, lapseStd: LAPSE_STD_K_PER_M * 1000, freeAboveM: FREE_REF_ABOVE_LOWEST_M, glaciers: column.hourly.get(region) ?? {} } } : {}) } }));
   for (const c of chunks) { const pr = [...weatherHourlyProblems(c.doc, doc), ...weatherHourlySnowProblems(c.doc, doc), ...weatherHourlyLevelProblems(c.doc, doc)]; if (pr.length) throw new Error(`Vertrag verletzt (${c.region}): ${pr.slice(0, 5).join('; ')}`); }
   // output tree = everything that stays in `melt/wx/`: the earlier runs of the last 72 h (document + chunk folder), then this run
   const wxIn = join(dataDir, 'melt', 'wx'), wxOut = join(outDir, 'melt', 'wx');
@@ -951,6 +977,6 @@ export function writeWeather({ outDir, dataDir, run, runAt, nowMs, version, cube
 
 if (process.argv[1] && /(^|[\\/])melt\.mjs$/.test(process.argv[1])) {
   if (!args.data || !args.cube || !args.out) { console.error('--data=<v1> --cube=<buscosun-data> --out=<Ordner> fehlen'); process.exit(2); }
-  main({ data: args.data, cube: args.cube, out: args.out, patch: args.patch, 'archive-out': args['archive-out'], calibration: args.calibration, now: args.now, only: args.only, limit: args.limit, classes: args.classes, always: !!args.always, weather: args.weather, phase: args.phase, heights: args.heights, precip: args.precip, snowcal: args.snowcal, snowpack: args.snowpack, 'snowpack-start': args['snowpack-start'], density: args.density, 'melt-state': args['melt-state'], 'snowpack-pairs': args['snowpack-pairs'], 'snowpack-spread': args['snowpack-spread'], 'sat-nudge': args['sat-nudge'], 'glacier-factor': args['glacier-factor'], 'glacier-factor-table': args['glacier-factor-table'], 'glacier-shape': args['glacier-shape'], 'snowcal-glaciers': args['snowcal-glaciers'], log: (m) => console.error(m) })
+  main({ data: args.data, cube: args.cube, out: args.out, patch: args.patch, 'archive-out': args['archive-out'], calibration: args.calibration, now: args.now, only: args.only, limit: args.limit, classes: args.classes, always: !!args.always, weather: args.weather, phase: args.phase, heights: args.heights, precip: args.precip, snowcal: args.snowcal, snowpack: args.snowpack, 'snowpack-start': args['snowpack-start'], density: args.density, 'melt-state': args['melt-state'], 'snowpack-pairs': args['snowpack-pairs'], 'snowpack-spread': args['snowpack-spread'], 'sat-nudge': args['sat-nudge'], 'glacier-factor': args['glacier-factor'], 'glacier-factor-table': args['glacier-factor-table'], 'glacier-shape': args['glacier-shape'], column: args.column, 'column-dir': args['column-dir'], 'snowcal-glaciers': args['snowcal-glaciers'], log: (m) => console.error(m) })
     .then((r) => console.log(JSON.stringify(r))).catch((e) => { console.error(e.message ?? e); process.exit(1); });
 }

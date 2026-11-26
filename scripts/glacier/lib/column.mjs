@@ -165,6 +165,55 @@ export function stepOf(run, tMs) {
   return Number.isFinite(h) && h >= 0 && h <= 48 ? h : null;
 }
 
+/** The standard gradient the shadow correction removes from buscosun Fusion (K/m, `set`). */
+export const LAPSE_STD_K_PER_M = -0.0065;
+export const COLUMN_MODES = Object.freeze(['off', 'shadow']);
+/** Producer switch `--column` / `GLACIER_COLUMN`; unset = off. */
+export function columnModeOf(v) {
+  const s = v == null || v === '' ? 'off' : String(v);
+  if (!COLUMN_MODES.includes(s)) throw new Error(`--column=${s} unbekannt (${COLUMN_MODES.join(' | ')})`);
+  return s;
+}
+
+const r1 = (x) => (Number.isFinite(x) ? Math.round(x * 10) / 10 : null);
+
+/**
+ * Shadow entry of one glacier for the hourly weather chunk: for the elevations `z` [tongue, median, top] and the
+ * Fusion temperatures `tz` (three hourly series from `t0Ms`), per variant `ground` / `free`
+ *   T_new(z) = T_fusion(z) + [ lapseDelta(ref → z) − LAPSE_STD · (z − ref) ]
+ * and the column wind (km/h, degrees from) at the elevations. `col` = `{ col }` or `{ why }` of `column()`.
+ * Null where z is outside the column, the hour outside 0…48 h of the cube run, or the column is missing.
+ * Returns `{ e, values, ok }` (`values` = non-null numbers written).
+ */
+export function columnShadowOf(colRes, z, tz, cubeRun, t0Ms, hours) {
+  const nul = () => z.map(() => new Array(hours).fill(null));
+  const e = { zr: [null, null], tg: nul(), tf: nul(), w: nul(), d: nul() };
+  if (!colRes?.col) return { e: { ...e, why: colRes?.why ?? 'keine Spalte' }, values: 0, ok: false };
+  const c = colRes.col;
+  const ref = { ground: refLevel(c, 'ground'), free: refLevel(c, 'free') };
+  e.zr = [r1(ref.ground?.zM), r1(ref.free?.zM)];
+  let values = 0;
+  for (let h = 0; h < hours; h++) {
+    const s = stepOf(cubeRun, t0Ms + h * 3_600_000);
+    if (s == null) continue;
+    z.forEach((zz, k) => {
+      const tf = tz[k]?.[h];
+      for (const [key, rf] of [['tg', ref.ground], ['tf', ref.free]]) {
+        if (!rf || !Number.isFinite(tf)) continue;
+        const d = lapseDelta(c, rf.zM, zz, s);
+        if (d == null) continue;
+        e[key][k][h] = r1(tf + d - LAPSE_STD_K_PER_M * (zz - rf.zM)); values++;
+      }
+      const a = columnAt(c, zz, s);
+      if (a.v) {
+        e.w[k][h] = r1(a.v.ws * 3.6); values++;
+        if (a.v.wd != null) { e.d[k][h] = Math.round(a.v.wd); values++; }
+      }
+    });
+  }
+  return { e, values, ok: true };
+}
+
 function distKm(la1, lo1, la2, lo2) {
   const r = Math.PI / 180, dla = (la2 - la1) * r, dlo = (lo2 - lo1) * r;
   const a = Math.sin(dla / 2) ** 2 + Math.cos(la1 * r) * Math.cos(la2 * r) * Math.sin(dlo / 2) ** 2;
@@ -192,6 +241,8 @@ async function countMain(args) {
   const dist = [], reasons = {};
   const inside = [0, 0, 0];
   const lapse = { ground: [], free: [] };
+  const STEPS = [0, 6, 12, 18, 24, 30, 36, 42];
+  const bySt = STEPS.map(() => ({ ground: [], free: [] }));
   for (const g of glaciers) {
     const r = await atmo.column(g.lat, g.lon);
     if (r.why) { reasons[r.why] = (reasons[r.why] ?? 0) + 1; continue; }
@@ -204,6 +255,14 @@ async function countMain(args) {
       const d = lapseDelta(c, ref.zM, zg, 12);
       if (d != null) lapse[vr].push(d / ((zg - ref.zM) / 1000));
     }
+    STEPS.forEach((st, i) => {
+      for (const vr of ['ground', 'free']) {
+        const ref = refLevel(c, vr), zg = g.z?.[1];
+        if (!ref || !Number.isFinite(zg) || Math.abs(zg - ref.zM) < 1) continue;
+        const d = lapseDelta(c, ref.zM, zg, st);
+        if (d != null) bySt[i][vr].push(d / ((zg - ref.zM) / 1000));
+      }
+    });
     (g.z ?? []).forEach((zz, k) => { if (Number.isFinite(zz) && zz >= lo && zz <= hi) inside[k]++; });
   }
   dist.sort((a, b) => a - b);
@@ -213,6 +272,10 @@ async function countMain(args) {
     distKm: { median: q(0.5), max: dist.length ? +dist[dist.length - 1].toFixed(2) : null },
     insideColumn: { tongue: inside[0], median: inside[1], top: inside[2] },
     lapseKPerKmStep12: Object.fromEntries(Object.entries(lapse).map(([k, a]) => { a.sort((x, y) => x - y); return [k, { n: a.length, median: a.length ? +a[a.length >> 1].toFixed(2) : null }]; })),
+    lapseKPerKmBySteps: STEPS.map((st, i) => {
+      const med = (a) => { a.sort((x, y) => x - y); return a.length ? +a[a.length >> 1].toFixed(2) : null; };
+      return `${new Date(runMs(atmo.run) + st * 3_600_000).toISOString().slice(0, 16)}Z +${st} h  ground ${med(bySt[i].ground)}  free ${med(bySt[i].free)}`;
+    }),
     tiles: { needed: tilesNeeded, read: atmo.stats.tiles, failed: atmo.stats.tileFailures }, bytes: atmo.stats.bytes,
     seconds: +((performance.now() - t0) / 1000).toFixed(1), reasons,
   }, null, 1));
