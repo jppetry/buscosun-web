@@ -610,7 +610,13 @@ export function saveStore(store, dir, nowMs, changedSources) {
 
 // ───────────────────────────── publish ─────────────────────────────
 /** Same rules as the sea/road lines: fresh base each attempt (force-pushed history is no obstacle), only `obs/`, no force. */
+// R2 line (buscosun-pipeline, design §5 pattern S): `PUBLISH_TARGET=r2` replaces fetch/commit/push and the jsDelivr
+// purges by ONE call of `R2_PUBLISH_CMD <repoDir> obs` (uploads the changed files of `obs/v1/`); repoDir is then a plain
+// directory. Default `git` = the old line, byte-identical.
+const PUBLISH_TARGET = process.env.PUBLISH_TARGET === 'r2' ? 'r2' : 'git';
+
 export function publish({ repoDir, storeDir, message, retries = 6, log = () => {} }) {
+  if (PUBLISH_TARGET === 'r2') return publishR2({ repoDir, storeDir, message, retries, log });
   const git = (...a) => execFileSync('git', ['-C', repoDir, ...a], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
@@ -639,7 +645,28 @@ export function publish({ repoDir, storeDir, message, retries = 6, log = () => {
   return { pushed: false, failed: true };
 }
 
+function publishR2({ repoDir, storeDir, message, retries, log }) {
+  const cmd = process.env.R2_PUBLISH_CMD;
+  if (!cmd) throw new Error('PUBLISH_TARGET=r2 needs R2_PUBLISH_CMD');
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const dst = join(repoDir, 'obs', 'v1');
+      rmSync(dst, { recursive: true, force: true });
+      mkdirSync(dst, { recursive: true });
+      cpSync(storeDir, dst, { recursive: true, filter: (p) => !/\.tmp-\d+$/.test(p) });
+      const out = execFileSync(process.execPath, [cmd, repoDir, 'obs'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, R2_PUBLISH_MESSAGE: message } });
+      const r = JSON.parse(out.trim().split('\n').pop());
+      return r.changed ? { pushed: true, r2: true, attempts: attempt, files: r.changed } : { pushed: false, unchanged: true };
+    } catch (e) {
+      log(`Publish Versuch ${attempt}: ${String(e.stderr ?? e.message).split('\n').find((l) => l.trim()) ?? '?'}`);
+      execFileSync(process.execPath, ['-e', `setTimeout(()=>{}, ${4000 * attempt})`]);
+    }
+  }
+  return { pushed: false, failed: true };
+}
+
 async function purge(paths, log) {
+  if (PUBLISH_TARGET === 'r2') return;   // R2: fixed paths carry max-age=30, nothing to purge
   for (const p of paths) {
     try { await fetch(`https://purge.jsdelivr.net/gh/jppetry/buscosun-data@main/${p}`, { headers: { 'user-agent': UA } }); } catch (e) { log(`purge ${p}: ${e.message}`); }
   }

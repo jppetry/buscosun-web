@@ -63,6 +63,12 @@ const ROOT = process.cwd();                       // der Klon (Arbeitsverzeichni
 const MIRROR = process.env.MIRROR ?? join(ROOT, '..', 'radar-mirror-store');   // lokaler Bestand, außerhalb des Klons
 const UA = 'buscosun-radar-mirror (buscosun-web/audit/radar-datenrepo.md)';
 const PUSH_RETRIES = 4;
+// R2 line (buscosun-pipeline, design §5 pattern S): `PUBLISH_TARGET=r2` replaces fetch/commit/push by ONE call of
+// `R2_PUBLISH_CMD <ROOT> radar` (a node script of the pipeline that uploads the changed files of `radar/` + `road/v1/`).
+// ROOT is then a plain directory, not a clone. Default `git` = the old line, byte-identical.
+const PUBLISH_TARGET = process.env.PUBLISH_TARGET === 'r2' ? 'r2' : 'git';
+const R2_PUBLISH_CMD = process.env.R2_PUBLISH_CMD ?? '';
+if (PUBLISH_TARGET === 'r2' && !R2_PUBLISH_CMD) throw new Error('PUBLISH_TARGET=r2 needs R2_PUBLISH_CMD');
 const IMG_VERSION = 'v1';
 
 // RD3: buscosun-web-Klon mit den Client-Decodern; ohne ihn läuft der Spiegel roh only.
@@ -366,8 +372,10 @@ export function publish(msg) {
   let lastErr;
   for (let attempt = 1; attempt <= PUSH_RETRIES; attempt++) {
     try {
-      git(['fetch', '--quiet', '--depth=1', REMOTE, BRANCH]);
-      git(['checkout', '--quiet', '-B', BRANCH, `${REMOTE}/${BRANCH}`]);
+      if (PUBLISH_TARGET === 'git') {
+        git(['fetch', '--quiet', '--depth=1', REMOTE, BRANCH]);
+        git(['checkout', '--quiet', '-B', BRANCH, `${REMOTE}/${BRANCH}`]);
+      }
       const radar = join(ROOT, 'radar');
       rmSync(radar, { recursive: true, force: true });
       for (const p of Object.values(PRODUCTS)) {
@@ -381,6 +389,13 @@ export function publish(msg) {
       let roadOn = false;
       try { roadOn = !!road?.copyInto(ROOT); } catch (e) { log(`road: Einkopieren fehlgeschlagen (${e.message}) — road/ bleibt wie auf main`); }
       const paths = roadOn ? ['radar', 'road'] : ['radar'];
+      if (PUBLISH_TARGET === 'r2') {
+        const t0 = Date.now();
+        const out = execFileSync(process.execPath, [R2_PUBLISH_CMD, ROOT, 'radar'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, R2_PUBLISH_MESSAGE: msg } });
+        const r = JSON.parse(out.trim().split('\n').pop());
+        if (!r.changed) { log('nichts zu committen'); return { pushedAt: nowIso(), noop: true }; }
+        return { pushedAt: nowIso(), pushMs: Date.now() - t0, attempt };
+      }
       git(['add', '-A', ...paths]);
       if (!git(['status', '--porcelain', ...paths])) { log('nichts zu committen'); return { pushedAt: nowIso(), noop: true }; }
       git(['commit', '--quiet', '-m', msg]);
