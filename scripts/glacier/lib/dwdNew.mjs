@@ -8,7 +8,7 @@
 import { decodeGrib2 } from '../../../src/sources/gribDecode.ts';
 
 export const DWD_NEW = process.env.DWD_NEW_BASE || 'https://opendata.dwd.de/weather/nwp/v1/m';
-const UA = 'buscosun-glacier/0.1 (+https://buscosun.com; jppetry94@gmail.com)';
+const UA = 'buscosun-glacier/0.1 (+https://buscosun.com; contact@buscosun.com)';
 const pad = (n, w) => String(n).padStart(w, '0');
 
 export const isoRun = (ms) => { const d = new Date(ms); return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1, 2)}-${pad(d.getUTCDate(), 2)}T${pad(d.getUTCHours(), 2)}%3A00`; };

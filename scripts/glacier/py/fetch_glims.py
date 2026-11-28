@@ -20,7 +20,7 @@ import urllib.request
 
 RAW = "C:/dev/buscosun-glacier-cache/raw/glims/"
 WFS = "https://www.glims.org/geoserver/ows"
-UA = "buscosun-glacier/0.1 (jppetry94@gmail.com)"
+UA = "buscosun-glacier/0.1 (contact@buscosun.com)"
 # name -> (submission id, line type). The submission ids were identified by geometry (audit/gletscher/glims-identity.md), not by their labels.
 SETS = {
     "sgi2016": (869, "glac_bound"),

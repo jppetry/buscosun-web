@@ -7,7 +7,7 @@ import { getBytes, fieldUrl, cellCoords, net } from '../../glacier/lib/dwdNew.mj
 import { decodeGrib2 } from '../../../src/sources/gribDecode.ts';
 import { RUC_MODEL, RUC_PARAM, RUC_STEP_MIN, RUC_STEPS } from '../../../src/point/rucFormat.ts';
 
-const UA = 'buscosun-ruc/0.1 (+https://buscosun.com; jppetry94@gmail.com)';
+const UA = 'buscosun-ruc/0.1 (+https://buscosun.com; contact@buscosun.com)';
 const H = 3_600_000;
 
 export { net };

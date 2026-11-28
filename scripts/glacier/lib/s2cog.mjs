@@ -11,7 +11,7 @@ import { COG_HEADER_BYTES, COG_HEADER_RETRY_BYTES, parseCogIfds, tilesFor, decod
 import { utmFwd, utmInv } from '../../../src/fire/detail/sentinelGeo.ts';
 
 export const STAC_URL = 'https://earth-search.aws.element84.com/v1/search';
-const UA = 'buscosun-glacier/0.1 (+https://buscosun.com; jppetry94@gmail.com)';
+const UA = 'buscosun-glacier/0.1 (+https://buscosun.com; contact@buscosun.com)';
 
 /** Counters so a spike or a job can report what a scan really cost. */
 export const net = { requests: 0, bytes: 0 };

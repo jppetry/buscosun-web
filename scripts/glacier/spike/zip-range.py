@@ -9,7 +9,7 @@ Note: this checks the member CRC32, NOT the md5 of the whole archive (recorded a
 """
 import os, re, struct, sys, urllib.request, zlib
 
-UA = "buscosun-glacier-spike/0.1 (jppetry94@gmail.com)"
+UA = "buscosun-glacier-spike/0.1 (contact@buscosun.com)"
 
 
 def rng(url, a, b):

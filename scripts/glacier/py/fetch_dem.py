@@ -13,7 +13,7 @@ import shapefile
 RAW = "C:/dev/buscosun-glacier-cache/raw/"
 OUT = RAW + "dem/"
 BASE = "https://copernicus-dem-30m.s3.amazonaws.com/"
-UA = "buscosun-glacier/0.1 (jppetry94@gmail.com)"
+UA = "buscosun-glacier/0.1 (contact@buscosun.com)"
 
 
 def tile_name(lat0, lon0):
