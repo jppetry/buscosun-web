@@ -5210,3 +5210,22 @@ Teil A ist lokal committet (`b678b3f4`, nicht gepusht). B0 ist nur gezählt, nic
 3. **Toleranzen:** Gewinn ≥ 5 %, p10 > 0, Vertauschung |≤ 1 %|, zu wenig unter 15 Gletschern / 100 Gletscherwintern, synthetisch β 0,8–1,2 — ja oder andere.
 4. **IMIS historisch holen (V-GM-176)?** Nicht vorgeschlagen ohne dein Wort.
 5. Danach V-GM-172 über die Bilanz der Beobachtungsperiode (dein Wort vom 26.11.).
+
+## 134. Gletscher: Schneemodell, GM-11 Phase 1d Teil B — B1–B3 gewertet, Frage IMIS (`audit/gletscher-schneemodell.md` §3q.10), 2026-11-26
+
+B0 ist lokal committet (`68d5d6de`). Regel eingefroren (`gm11-yearly-frozen.md`, sha256 `740db355…`). Neu und uncommitted: `gm11-yearly-score.mjs`, `gm11-oshd-dates.py`, `gm11-yearly-frozen.md` + `.sha256`, `gm11-yearly-b-report.json`, Fortsetzung von §3q.10, Zeile GM. Nichts gepusht, nichts in den Daten-Repos.
+
+1. **Commit** auf Jans Wort.
+2. **IMIS historisch holen?** B1 r² = 0,335 (alle) / 0,288 (≤ 50 km) — über der Schwelle 0,30, deshalb diese Frage. Die tiefen Messreihen lesen nichts davon (β ≈ 0); nur eine Reihe in Gletscherhöhe könnte es. Abruf beim SLF, CC BY 4.0 wie GI, Schneehöhe ohne Neuschnee von Hand (Neuschnee nur als Zuwachs).
+3. **Abweichung bestätigen:** in der synthetischen Kontrolle fallen gepflanzte Anomalien ≤ 0 heraus (0–5 je Stichtag), nach dem ersten Lauf entschieden; kein Urteil hängt daran.
+4. Danach **V-GM-172** über die Bilanz der Beobachtungsperiode (dein Wort vom 26.11.).
+
+## 135. Gletscher: Schneemodell, GM-12 B3 — Geländesonne an vergangenen Jahren gemessen (`audit/gletscher-schneemodell.md` §3r), 2026-11-28
+
+Nur Messung. Neu und uncommitted: `gm12-sun-frozen.md` + `.sha256`, `gm12-sun-lib.mjs`, `gm12-sun.mjs`, `gm12-sun-report.json`, §3r. Daneben (deine Anweisung 28.11., nicht GM-12): Kontaktadresse `contact@buscosun.com` statt der privaten in sechs User-Agent-Zeilen unter `scripts/glacier/` und `scripts/ruc/`. Nichts gepusht, nichts in den Daten-Repos, `melt-calibration.json` unberührt.
+
+1. **Commit** auf dein Wort.
+2. ~~Geländesonne nur auf der Winterseite einschalten?~~ **Ja (E-GM-45, 28.11.)** — `GLACIER_SUN=winter` ab Werk an, gebaut, wirkt mit dem **Push von `main`** (der Runner holt den Producer von dort). Danach den ersten Lauf ansehen: `lines.melt.sun` mit `applied` ≈ Zahl der Gletscher, `winterNow: true`. Rückfall: Repo-Variable `GLACIER_SUN=flat` im Daten-Repo.
+3. **Grenze von TF** (0,12, alle Falten daran) in eigener Phase neu begründen, bevor die Sonnenfrage im Sommer neu gestellt wird (V-GM-181/182)?
+4. Abweichung bestätigen: Speichersperre ab Sommer-P12 bei 1,5 statt 3 GB (dein Wort 27.11.); traf nie zu.
+5. Historie: deine private Adresse steht in alten Commits weiter öffentlich; nur ein Umschreiben mit Force-Push entfernt sie (unumkehrbar).

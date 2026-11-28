@@ -128,7 +128,7 @@ import { snowpackModeOf, snowpackStartOf, driveOf, bareAlbedo, levelsOfEntry, ad
 import { GLACIER_SNOWPACK_PAIRS_WINDOW_MIN, GLACIER_SNOWPACK_PAIRS_NOTE, GLACIER_SNOWPACK_PAIRS_FC_HOURS, GLACIER_SNOWPACK_PAIRS_FC_ELEVATION, glacierSnowpackPairsPath, snowpackPairsProblems } from '../../src/glacier/glacierSnowpackPairsContract.ts';
 import { glacierStnHourPath, glacierStnMapPath } from '../../src/glacier/glacierStationContract.ts';
 import { memWatch } from './lib/runmem.mjs';
-import { sunModeOf, loadSunTable, sunEntryOf, terrainG, SUN_RULES } from './lib/sunTable.mjs';
+import { sunModeOf, loadSunTable, sunEntryOf, terrainG, winterBandsG, SUN_RULES, SUN_WINTER_MONTHS } from './lib/sunTable.mjs';
 import { tempPairsOf, glacierWeatherColumnPath, openAtmo, httpAtmo, dirAtmo, columnModeOf, columnShadowOf, LAPSE_STD_K_PER_M, FREE_REF_ABOVE_LOWEST_M } from './lib/column.mjs';
 import {
   GLACIER_SNOWPACK_DAYS, GLACIER_SNOWPACK_WINDOWS, GLACIER_SNOWPACK_HEIGHTS, GLACIER_SNOWPACK_PEND_H, GLACIER_SNOWPACK_NOTE, GLACIER_SNOWPACK_STATE_PATH, glacierSnowpackRunPath,
@@ -253,6 +253,20 @@ export function meltOfForcing({ bands, ela, forcing, params, state, tOverride = 
   // `params.pGrad` (phase GM, E-GM-7): the gradient that goes with the factor in use; left out = the set 4 % per 100 m of the core
   // `params.corrOf` (phase GM, GM-5b, E-GM-31): the multiplier per band of a measured glacier's shape, or `null` — then the gradient as always
   const corr = params.corrOf ? params.corrOf(bands) : null;
+  // GLACIER_SUN=winter (GM-12, E-GM-45): an own radiation per band — `simulate` per band with that band's state and multiplier (exactly the
+  // glacier-wide run split into its bands, audit §3r control A2), joined back into the glacier-wide result
+  const gB = params.gBandsOf ? params.gBandsOf(bands, forcing) : null;
+  if (gB) {
+    const nb = bands.zb.length, pG = params.pGrad ?? MELT.pGrad;
+    const cB = corr ?? bands.zb.map((z) => 1 + (pG * (z - forcing.zRef)) / 100);
+    const meltH = new Float64Array(n), bal = new Float64Array(nb), swe = new Float64Array(nb), aS = new Float64Array(nb);
+    for (let b = 0; b < nb; b++) {
+      const r = simulate({ bands: { zb: [bands.zb[b]], w: [1] }, ela, t: tAt, g: gB[b].subarray(0, n), p: forcing.p.subarray(0, n), zT: zMed, zP: forcing.zRef, pf: params.pf, TF: params.TF, SRF: params.SRF, state: { swe: [state.swe[b]], aS: [state.aS[b]] }, model: 'eti', corr: [cB[b]] });
+      bal[b] = r.bal[0]; swe[b] = r.state.swe[0]; aS[b] = r.state.aS[0];
+      for (let h = 0; h < n; h++) meltH[h] += bands.w[b] * r.meltH[h];
+    }
+    return { meltH, bal, state: { swe, aS }, meltSum: meltH.reduce((x, y) => x + y, 0), balance: bands.w.reduce((s, w, b) => s + w * bal[b], 0) };
+  }
   return simulate({ bands, ela, t: tAt, g: forcing.g.subarray(0, n), p: forcing.p.subarray(0, n), zT: zMed, zP: forcing.zRef, pf: params.pf, TF: params.TF, SRF: params.SRF, state, model: 'eti', ...(params.pGrad == null ? {} : { pGrad: params.pGrad }), ...(corr ? { corr } : {}) });
 }
 
@@ -405,9 +419,11 @@ export async function main(opts) {
   {
     let mode = 'flat';
     try { mode = sunModeOf(opts.sun ?? process.env.GLACIER_SUN); } catch (e) { sunSt = { mode: 'shadow', error: String(e?.message ?? e) }; }
-    if (mode === 'shadow') {
-      const lt = loadSunTable(opts['sun-table'] ?? process.env.GLACIER_SUN_TABLE);
-      sunSt = lt.why ? { mode, error: lt.why } : { mode, table: lt.table, rows: [], skipped: {}, fails: 0 };
+    if (mode === 'shadow' || mode === 'winter') {
+      // `winter` (E-GM-45) reads the table next to this file when none is named; without a table the run stays flat and the status line says why
+      const tp = opts['sun-table'] ?? process.env.GLACIER_SUN_TABLE ?? (mode === 'winter' ? join(dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), 'sun-table.json') : null);
+      const lt = loadSunTable(tp);
+      sunSt = lt.why ? { mode, error: lt.why } : { mode, table: lt.table, rows: [], skipped: {}, fails: 0, applied: 0 };
     }
   }
   let colSt = null;
@@ -676,9 +692,30 @@ export async function main(opts) {
       }
       if (f.hoursWithT < MELT_MIN_HOURS_SHARE * GLACIER_MELT_HOURS) { skipped.push({ id: g.id, reason: 'few-hours' }); continue; }
       const { st, ela } = mk(g, hyp, f);
-      const out = runGlacier({ g, hyp, forcing: f, params: paramsOf(g), state: st, ela, run, unit });
+      // GLACIER_SUN=winter (E-GM-45): the terrain radiation per band for THIS forcing (owner = the glacier whose forcing it is; the sun table is the
+      // glacier's own). A glacier without a table entry runs flat and is counted; the radiation per band is built once per glacier, not per scenario.
+      let pr = paramsOf(g);
+      if (sunSt?.table && sunSt.mode === 'winter') {
+        const entry = sunEntryOf(sunSt.table, g.id);
+        if (entry.why) sunSt.skipped[entry.why] = (sunSt.skipped[entry.why] ?? 0) + 1;
+        else {
+          const owner = (f.from ?? 'own') === 'own' ? g : catAll.find((x) => x.id === f.from) ?? g;
+          let memo;
+          pr = { ...pr, gBandsOf: (bands, fo) => {
+            if (fo !== f) return null;   // only the run's own forcing starts at t0 (the replay of GM-3d stays flat)
+            if (memo === undefined) {
+              const cz = new Float64Array(f.g.length);
+              for (let i = 0; i < cz.length; i++) cz[i] = cosZenith(owner.lat, owner.lon, t0Ms + (i + 0.5) * H);
+              memo = winterBandsG({ table: sunSt.table, entry, zb: bands.zb, gFlat: f.g, n: f.n, cosZ: (i) => cz[i], t0Ms });
+            }
+            return memo;
+          } };
+          sunSt.applied++;
+        }
+      }
+      const out = runGlacier({ g, hyp, forcing: f, params: pr, state: st, ela, run, unit });
       rows.push(out.row);
-      if (sunSt?.table) {
+      if (sunSt?.table && sunSt.mode === 'shadow') {
         const entry = sunEntryOf(sunSt.table, g.id);
         if (entry.why) sunSt.skipped[entry.why] = (sunSt.skipped[entry.why] ?? 0) + 1;
         else {
@@ -806,6 +843,8 @@ export async function main(opts) {
     scenarios: { k: GLACIER_MELT_SCENARIOS, rho: GLACIER_MELT_RHO, origin: 'set', sums: 'scenarios' },
     ref: { dailyMm: GLACIER_MELT_REF_DAILY_MM, origin: 'set' },
     state: { source: carry ? 'carried' : 'cold', ageH: carry ? stateAgeH : null, nudged, ...(stMode === 'run-hour' ? { mode: stMode, replayedH: carry ? sv.replayH : 0, held: stStat.held } : {}), ...(satMode === 'once' ? { sat: { rule: 'once', applied: satStat.applied, held: satStat.held } } : {}), ...(respun.length ? { respun: respun.length } : {}) },
+    // E-GM-45: which radiation this run melted with (absent = flat in every hour, as before GM-12)
+    ...(sunSt?.mode === 'winter' && sunSt.table ? { sun: { mode: 'winter', months: SUN_WINTER_MONTHS, origin: 'set', rules: SUN_RULES, table: { build: sunSt.table.doc.build ?? null, builtAt: sunSt.table.doc.builtAt ?? null }, applied: sunSt.applied, report: 'audit/gletscher-schneemodell.md §3r' } } : {}),
     build, glaciers: rows, skipped,
   };
   const rowIds = new Set(rows.map((r) => r.id));
@@ -828,6 +867,7 @@ export async function main(opts) {
       if (d && f !== `${run}.json` && nowMs - Date.parse(d.runAt) <= GLACIER_MELT_KEEP_MS) { mkdirSync(sunOut, { recursive: true }); copyFileSync(join(sunIn, f), join(sunOut, f)); }
     }
     if (sunSt.error) sunLine = { mode: sunSt.mode, error: sunSt.error };
+    else if (sunSt.mode === 'winter') sunLine = { mode: 'winter', build: sunSt.table.doc.build ?? null, applied: sunSt.applied, skipped: sunSt.skipped, winterNow: SUN_WINTER_MONTHS.includes(new Date(t0Ms).getUTCMonth() + 1) };
     else {
       const sd = { schema: 1, kind: 'glacier/melt-sun', run, runAt: doc.runAt, origin: 'model', shadow: true, engine: { name: engine.name, version: engine.version },
         note: 'Schatten: Schmelze mit flacher Strahlung und mit der Geländevariante, deterministisch (erwartete Temperatur, ohne Szenarien), je Band gerechnet; keine Seite liest diese Datei',

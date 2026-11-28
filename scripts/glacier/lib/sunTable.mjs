@@ -18,9 +18,16 @@ export const SUN_RULES = Object.freeze({
   ratioMax: { v: SUN_RATIO_MAX, origin: 'set' }, diffuseClear: { v: SUN_DIFFUSE_CLEAR, origin: 'set' }, cosZMin: { v: SUN_COSZ_MIN, origin: 'set' },
   diffuse: 'd = diffuseClear under a clear sky, linear to 1 at the cloud factor of full cover', table: 'c linear between the two nearest mid-month tables by day of year, table hour = UTC hour of the start of the step, linear in elevation between tongue / median / top (outside the nearest)',
 });
-export const SUN_MODES = Object.freeze(['flat', 'shadow']);
+/**
+ * `winter` (GM-12, E-GM-45, Jan 28.11.): the published melt run takes the terrain radiation in the months of the winter balance and the flat one in
+ * summer. Measured (audit §3r): winter −5.5 % (verdict `carries`), summer −9.3 % but `does not carry` ⇒ summer stays flat. Months by UTC, `set`.
+ */
+export const SUN_WINTER_MONTHS = Object.freeze([10, 11, 12, 1, 2, 3, 4, 5]);
+export const SUN_MODES = Object.freeze(['flat', 'shadow', 'winter']);
+/** The mode when nothing is set (E-GM-45: on). `flat` = every hour flat radiation, as before GM-12. */
+export const SUN_MODE_DEFAULT = 'winter';
 export function sunModeOf(v) {
-  const s = v == null || v === '' ? 'flat' : String(v);
+  const s = v == null || v === '' ? SUN_MODE_DEFAULT : String(v);
   if (!SUN_MODES.includes(s)) throw new Error(`--sun=${s} unbekannt (${SUN_MODES.join(' | ')})`);
   return s;
 }
@@ -89,6 +96,25 @@ export function diffuseShare(nFrac) {
  * The terrain series at elevation `zM`: `gFlat`, `n` = the forcing's radiation and cloud fraction, `cosZ(i)` = the flat cosine of step i as the core
  * computes it (at the middle of the step), `t0Ms` = start of step 0.
  */
+/** Whether the step that starts at `tMs` lies in the winter months of `winter`. */
+export const inSunWinter = (tMs) => SUN_WINTER_MONTHS.includes(new Date(tMs).getUTCMonth() + 1);
+
+/**
+ * `winter`: the radiation per band — terrain in the winter months, the flat value of the forcing otherwise. `null` when no hour of the series lies
+ * in winter (then the caller runs exactly as before).
+ */
+export function winterBandsG({ table, entry, zb, gFlat, n, cosZ, t0Ms }) {
+  let any = false;
+  const win = new Uint8Array(gFlat.length);
+  for (let i = 0; i < gFlat.length; i++) if (inSunWinter(t0Ms + i * H)) { win[i] = 1; any = true; }
+  if (!any) return null;
+  return zb.map((zM) => {
+    const gT = terrainG({ table, entry, zM, gFlat, n, cosZ, t0Ms });
+    for (let i = 0; i < gT.length; i++) if (!win[i]) gT[i] = gFlat[i];
+    return gT;
+  });
+}
+
 export function terrainG({ table, entry, zM, gFlat, n, cosZ, t0Ms }) {
   const out = new Float64Array(gFlat.length), svf = sunSvf(entry, zM);
   for (let i = 0; i < gFlat.length; i++) {

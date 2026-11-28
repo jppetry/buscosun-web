@@ -2517,7 +2517,7 @@ Je Winter liegt der Bias mit (ii) im Oktober bei −23 … +7 cm, im November be
 | V-GM-173 | Ohne Okt–Nov-Schmelze fällt k* je Gletscher auf 0,84 (0,79–0,92), ohne nur (b) auf 0,96, ohne nur (c) auf 0,93; die Streuung über die Winter bleibt 0,15–0,16 | der Herbst verschiebt den Faktor, nicht seine Schwankung · Teil B misst die Schwankung |
 | V-GM-174 | Am Weissfluhjoch hält das Modell im Okt–Nov an 76 von 793 Tagen keinen Schnee, wo das Messfeld welchen hat (47 davon in zwei Herbsten), umgekehrt an 16 | der Kern verliert vereinzelt eine frühe Decke · zwei Ereignisse, kein Anlass für eine Regel |
 
-### 3q.10 Jahreskomponente des Faktors, Teil B — Diagnose B0 (1d, 26.11.; nichts gewertet, Regel NICHT eingefroren)
+### 3q.10 Jahreskomponente des Faktors, Teil B (1d, 26.11.; B0 Diagnose, dann Regel eingefroren, B1–B3 gewertet)
 
 **Ablauf.** Teil A als ein lokaler Commit `b678b3f4` (nicht gepusht), mit der Lizenz von GeoSphere `klima-v2-1d` (CC BY 4.0, DOI 10.60669/gs6w-jd70, Jans Bestätigung 26.11.; §4 Q7 und `audit/gletscher/licences.md` mit Namensnennungspflicht). Werkzeug `audit/gletscher-schneemodell/gm11-yearly.mjs --step=b0` (nur Zählung, kein Modelllauf); Bericht `gm11-yearly-b0-report.json` (nur Zählungen), Reihenliste im Cache `C:\dev\buscosun-glacier-cache\gm11\yearly\`. Freier Speicher über 6 GB. **Nach B0 angehalten — Jans Wort zur Paarungsregel und zur Definition der Anomalie, dann einfrieren.**
 
@@ -2556,6 +2556,116 @@ Eine enge Höhenregel lässt fast keinen Gletscher übrig; die Anomalie ist ein 
 |---|---|---|
 | V-GM-175 | Die brauchbaren Schneereihen (102 SLF-Messfelder, 14 SwissMetNet) liegen im Median auf 1 500 m, die Eichgletscher auf 2 300–3 800 m; ≤ 30 km und ≤ 500 m unter dem Median finden nur 9 von 37 Gletschern eine Reihe | eine Jahreskomponente kann nur über große Höhenunterschiede gelesen werden · B2 weist den Gewinn je Höhenunterschied aus; eine historische IMIS-Reihe (2 000–3 000 m) wäre die bessere Quelle, wäre aber ein neuer Abruf |
 | V-GM-176 | IMIS liegt nur live im Speicher; das OSHD-Gitter deckt nur 2015/16–2024/25 und ist eine Analyse | ohne IMIS fehlt der Hochbereich · Jans Wahl, ob IMIS historisch geholt wird (Lizenz wie GI, CC BY 4.0) |
+
+**B1–B3 (26.11., nach dem Einfrieren).**
+
+**B0 committet** als `68d5d6de` (lokal). **Jans Wort zu §133 (26.11.):** Paarung wie vorgeschlagen; Anomalie wie vorgeschlagen mit zwei Zusätzen (β global, nie auf dem gewerteten Winter oder Gletscher geschätzt, daneben β = 1; OSHD als eigene Nebenreihe, als Analyse benannt, nie gemischt); Toleranzen wie vorgeschlagen, Gewinne auch in mm, nach Höhenunterschied und Stichtag; IMIS erst nach B1: bei r² ≥ 0,30 nach B1 und B2 anhalten und fragen.
+
+**Regel eingefroren:** `gm11-yearly-frozen.md`, sha256 `740db355f099fec0c78a7719aac6abf8f0040d5c27bbd06ee5248d9823252348` (`gm11-yearly-frozen.sha256`), vor dem ersten gewerteten Lauf; `gm11-yearly-score.mjs` bricht bei anderem Hash ab. Eingänge vor dem Lauf, ohne Wertung: RhiresD an den 15 gepaarten Reihen (`scripts/glacier/py/snowcal_grid.py --points`, Jahresdateien 2011–2025 und die Dateien von `gm11\w26`), OSHD-Wasserwert an 35 Gletschern zu 1. Okt / 1. Jan / 1. Feb / 1. Mär / 1. Apr (`gm11-oshd-dates.py`, Kopie von `gm10-q20.py` mit anderen Tagen und anderer Ausgabe, v1.1). Der Kern ist das Original `simulate` (keine Diagnose-Kopie). Interpolation des Faktorgitters gegen den direkten Lauf an k*: Median 0,27 mm, höchstens 1,2 mm. 421 Gletscherwinter, 419 mit k*, 418 mit Anomalie; 15 Reihen (12 SLF-Messfelder, 3 SwissMetNet). Freier Speicher 6,2–7,1 GB. Bericht ohne Messwerte je Gletscherwinter: `gm11-yearly-b-report.json`; alles andere `C:\dev\buscosun-glacier-cache\gm11\yearly\`.
+
+**Abweichung von der eingefrorenen Regel (nach dem ersten Lauf, nur Kontrolle):** in der synthetischen Kontrolle kann a_syn = 1 + (a_p − 1) + ε bei einer Streuung von 0,30–0,39 kleiner als null werden; ein solcher Faktor existiert nicht, der erste Lauf gab dort NaN. Diese Gletscherwinter (0–5 je Stichtag) bleiben aus der synthetischen Kontrolle heraus und sind gezählt (`droppedNonPositive`). Wertung, Vertauschung und Urteilsregel sind unverändert; an keinem Stichtag hängt ein Urteil daran, weil der Gewinn schon für sich unter der Schwelle liegt.
+
+**B1 — gemeinsamer Anteil** (418 Gletscherwinter; Streuung der Anomalie 0,20):
+
+| Vergleich | Paare | r² |
+|---|---|---|
+| Median der anderen Gletscher desselben Winters, alle | 418 | **0,335** |
+| nur andere Gletscher ≤ 50 km (mindestens 2) | 400 | 0,288 |
+
+Ein Drittel der Schwankung von Winter zu Winter teilen die Gletscher miteinander. **r² ≥ 0,30 ⇒ nach der Regel hier anhalten und Jan zu IMIS fragen.** B3 ist trotzdem gerechnet, weil das Urteil von B2 die Kontrollen braucht.
+
+**B2 — lesbarer Anteil, Hauptreihen (Messung)** (278 Gletscherwinter an 28 Gletschern je Stichtag; Grundlage eigener mittlerer Faktor, leave-one-winter-out; mittlerer Fehler ohne Anomalie 225,5 mm):
+
+| Stichtag | β (Median der Falten) | Gewinn β angepasst | p10 | β = 1 | Gletscher besser / schlechter | ≤ 500 m | 500–800 m | 2025/26 (12) | Vertauschung (Mittel) | synthetisch β | Urteil (β angepasst / β = 1) |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1. Jan | 0,002 | −4,1 mm (−1,8 %) | −3,2 % | −201 mm (−89 %) | 7 / 21 | −3,0 mm (60) | −4,4 mm (218) | −8,1 mm | −1,8 % | 1,23 (nicht bestanden) | does not carry / does not carry |
+| 1. Feb | 0,017 | −0,8 mm (−0,4 %) | −1,0 % | −196 mm (−87 %) | 19 / 9 | +2,3 mm | −1,7 mm | −3,9 mm | −1,3 % | 0,95 | does not carry / does not carry |
+| 1. Mär | −0,003 | −3,1 mm (−1,4 %) | −2,4 % | −171 mm (−76 %) | 9 / 19 | −4,5 mm | −2,7 mm | −3,0 mm | −1,3 % | 1,03 | does not carry / does not carry |
+| 1. Apr | 0,002 | −3,4 mm (−1,5 %) | −2,9 % | −140 mm (−62 %) | 12 / 16 | −4,2 mm | −3,2 mm | −0,9 mm | −1,3 % | 0,86 | does not carry / does not carry |
+
+Leave-one-glacier-out und der Landeswert als Grundlage sagen dasselbe (Gewinn −0,4 … −1,0 %, β 0,00–0,02; Landeswert: mittlerer Fehler 411 mm, Gewinn −1,5 … −2,9 mm). **Die gepaarte Anomalie der Messreihen trägt keine Information über die Anomalie des Gletschers:** das angepasste β liegt bei null, mit β = 1 wird der Fehler fast verdoppelt, und die echte Reihe ist nicht besser als die mit vertauschten Wintern. Die synthetische Kontrolle zeigt, dass das Werkzeug eine gepflanzte Anomalie findet (β 0,86–1,03 an drei Stichtagen; am 1. Jan 1,23, knapp über 1,2 — dort ist das Rauschen am größten).
+
+**B2 — Nebenreihe OSHD (eine ANALYSE des SLF, keine Messung; 262 Gletscherwinter an 29 Gletschern, 2015/16–2024/25; mittlerer Fehler ohne Anomalie 188,4 mm):**
+
+| Stichtag | β | Gewinn β angepasst | p10 | leave-one-glacier-out | β = 1 | Gletscher besser / schlechter | Vertauschung | synthetisch β | Urteil |
+|---|---|---|---|---|---|---|---|---|---|
+| 1. Jan | 0,04 | −2,5 mm (−1,3 %) | −3,1 % | −0,7 mm | −198 mm | 8 / 21 | −1,3 % | 1,22 (nicht bestanden) | does not carry |
+| 1. Feb | 0,08 | +0,7 mm (+0,3 %) | −2,2 % | +2,5 mm | −139 mm | 14 / 15 | −1,5 % | 1,23 (nicht bestanden) | does not carry |
+| 1. Mär | 0,13 | +3,3 mm (+1,7 %) | −1,4 % | +5,5 mm | −99 mm | 13 / 16 | −1,6 % | 1,22 (nicht bestanden) | does not carry |
+| 1. Apr | 0,19 | **+7,2 mm (+3,8 %)** | +0,2 % | +8,8 mm (+4,7 %, p10 +1,3 %) | −70 mm | 16 / 13 | −1,5 % | 1,13 | does not carry |
+
+Das OSHD-Gitter trägt bis April einen kleinen, wachsenden Teil (β 0,04 → 0,19, Gewinn bis +3,8 %), unter der Schwelle von 5 %. Es ist eine Analyse mit eigener Niederschlagskorrektur, die Messungen derselben Region einrechnet — kein unabhängiger Beleg.
+
+**Bekannte Schwäche der Hauptreihen:** Neuschnee in cm hängt an der Dichte; ein warmer Winter mit schwerem Schnee liest sich schneearm. Dazu liegen die Reihen im Median 900 m unter den Gletschern (218 von 278 Paaren 500–800 m darunter); auch die Paare ≤ 500 m tragen nichts (−3,0 … +2,3 mm).
+
+**Lesart Teil B.** Ein Drittel der Schwankung des Faktors ist gemeinsam (B1), aber die tiefen Messreihen lesen davon nichts (B2: β ≈ 0, alle Urteile „does not carry“); das OSHD-Gitter liest bis April etwas, zu wenig für das Urteil. Ob der gemeinsame Teil mit höheren Reihen lesbar wäre, kann nur eine Reihe in Gletscherhöhe zeigen (IMIS, 2 000–3 000 m).
+
+| V-… | Befund | Mehrwert · Skizze |
+|---|---|---|
+| V-GM-177 | Die Anomalie des Faktors teilen die Schweizer Gletscher zu einem Drittel (r² 0,335 gegen den Median der anderen Gletscher desselben Winters, 0,288 innerhalb 50 km) | eine regionale Jahreskomponente hätte eine Obergrenze von rund einem Drittel der Streuung · nur sinnvoll, wenn sie während des Winters lesbar ist (V-GM-178) |
+| V-GM-178 | Die Anomalie der 15 gepaarten Messreihen (Neuschnee / Antrieb am Ort) erklärt die Anomalie des Gletschers nicht: β ≈ 0 an allen vier Stichtagen, Gewinn −0,4 … −1,8 %, β = 1 verdoppelt den Fehler fast | eine Jahreskomponente aus den tiefen Messfeldern ist ausgeschlossen · nur eine Reihe in Gletscherhöhe (IMIS) könnte das ändern; Jans Wort |
+| V-GM-179 | Das OSHD-Gitter am Gletscher trägt einen kleinen Teil, wachsend bis 1. April (β 0,19, +3,8 %, leave-one-glacier-out +4,7 % mit p10 +1,3 %), unter der Schwelle | die Analyse des SLF sieht mehr als die Messfelder, aber nicht genug · nicht unabhängig (rechnet Messungen ein), endet 2024/25 |
+| V-GM-180 | In der synthetischen Kontrolle kann die gepflanzte Anomalie bei einer Streuung von 0,3–0,4 negativ werden (0–5 Gletscherwinter je Stichtag), und bei großer Streuung kommt β leicht über 1,2 zurück (1,22–1,23 am 1. Jan und bei OSHD) | die Kontrolle ist an diesen Stichtagen knapp · in einer nächsten Regel a_syn mit kleinerer Streuung oder logarithmisch pflanzen |
+
+## 3r. GM-12 B3 — Macht die Geländesonne die Schmelze besser? (27./28.11.; nur Messung an vergangenen Jahren)
+
+**Frage.** Rechnet die Schmelze mit der Sonne des Geländes (Schatten, Neigung, Himmelsanteil; Schalter `GLACIER_SUN`, `81def15e`) die gemessenen Bilanzen vergangener Jahre besser als mit flacher Sonne? Kein Eingriff unter `scripts/glacier/**` oder `src/**`, `melt-calibration.json` unberührt, kein Workflow, nichts in den Daten-Repos. Werkzeuge `gletscher-schneemodell/gm12-sun.mjs` + `gm12-sun-lib.mjs`; volle Ergebnisse nur in `C:\dev\buscosun-glacier-cache\gm12\sun\` (E-GL-17), im Repo nur `gm12-sun-report.json` (Mittel, Steigungen, Zählungen).
+
+**Vorbehalt der Geometrie.** Die Sonnentabelle ist das Gelände von 2026 (GLO-30) auf den Umrissen des Inventarjahrs. Zungen, die heute nicht mehr bestehen, bekommen den Wert der tiefsten Tabellenhöhe und sind gekennzeichnet (Herbstrechnung: höchstens 0,8 % der Fläche je Stufe).
+
+**Regel.** Eingefroren vor dem ersten gewerteten Lauf: `gm12-sun-frozen.md`, sha256 `51d50ea6…557b6d` (Jans Entscheidungen 1–8). Urteilssatz E = 2012–2024, 371 Sommer an 36 Gletschern (gewertet 368, Antrieb S); Gate C (75 Gletscherjahre, Stationsstrahlung) als Gegenprobe; Winter W = 421 Winter an 37 Gletschern. Varianten F0/F1 flach, T0/T1 Gelände (0 = Sommerwerte fest, 1 = neu angepasst), P1…P20 = T1 mit vertauschter Tabelle (jeder Gletscher behält seine Höhe, bekommt lv/svf eines anderen). Urteil je Seite: Gewinn ≥ 5 %, Bootstrap-p10 > 0, Gegenseite nicht mehr als 2 % schlechter, bei nachweisbarer Steigung des F1-Fehlers gegen den Sonnenanteil muss T1 sie mindestens halbieren; dann „carries“, wenn der Median der Vertauschten höchstens den halben Gewinn erreicht, sonst „only the level“.
+
+**Kontrollen (alle bestanden).** A1 Kern gegen `simulate` 864 Datensätze, Differenz 0, Geländepfad gegen Betrieb 9·10⁻¹⁶; A2 Bänder Differenz 0; B Gate C mit dem unveränderten `gate-c.mjs` exakt nachgebaut (pf 1,28897, TF 0,12, SRF 0,005455; LYO/LGO Differenz 0); C synthetisch: T1 findet TF auf 0,8 % und SRF auf 0,3 % wieder, auf flacher Wahrheit gewinnt T1 −10 % (also nicht durch freie Parameter), auf Geländewahrheit ist die F1-Steigung 1,63 [1,19; 2,28] nachweisbar. Die Kontrollen fanden zwei Werkzeugfehler VOR jeder Wertung: `pGrad: 0` fehlte im Winterpfad (A2 zeigte bis 946 mm), und `Float64Array.map` zwang Zustandsfelder zu Zahlen (pf = NaN); beide behoben, Kontrollen neu gelaufen.
+
+**Ablauf.** Ein Prozess, ein Gletscherjahr zugleich, freier Speicher im Log. Dreimal hat Claude Code den Hintergrundlauf bei knappem Systemspeicher beendet (nicht die eigene Sperre; zuletzt frei 3,4–5,6 GB); fortgesetzt mit `--only=` (fertige Varianten bleiben, neue kommen dazu). **Abweichung von der Regel:** die eigene Sperre ab Sommer-P12 bei 1,5 statt 3 GB (Jans Wort 27.11.); die Regeldatei blieb unverändert, sie traf in keinem Lauf zu.
+
+**Sommer (E, leave-one-glacier-out).**
+
+| Variante | TF | SRF | an der Grenze | MAE m w.e. | Bias m |
+|---|---|---|---|---|---|
+| F1 flach | 0,12 | 0,00555 | 36/36 Falten | 0,594 | +0,092 |
+| **T1 Gelände** | 0,12 | 0,00651 | 36/36 | **0,539** | +0,045 |
+| T1 mit Erbs (berichtet) | 0,12 | 0,00654 | 36/36 | 0,536 | +0,045 |
+| F1, TF bis 0,30 (berichtet) | 0,171 | 0,00329 | 0 | 0,582 | +0,086 |
+| T1, TF bis 0,30 (berichtet) | 0,124 | 0,00634 | 0 | 0,567 | +0,021 |
+| P1…P20 vertauscht | – | – | – | Median 0,614 | – |
+
+Gewinn T1 **9,3 %** (Bootstrap p10/p50/p90 2,9 / 8,8 / 15,6 %); Vertauschte Median **−3,3 %** (p90 +2,2 %), keine erreicht T1. Steigung des Fehlers gegen den Sonnenanteil: F1 3,18 [1,58; 5,10] nachweisbar, T1 1,73 [0,24; 3,43] — die Hälfte wäre 1,59. **Urteil des Skripts: „does not carry“**, allein an der Steigung (T1 nimmt 45 % statt der verlangten 50 % weg). Gegenprobe Gate C: T1 0,613 gegen F1 0,629 (+2,5 %), 2025 (24 Jahre, nur gewertet) 0,709 gegen 0,712 (≈ 0).
+
+**Winter (W).**
+
+| Variante | pf | MAE LGO | MAE LOWO |
+|---|---|---|---|
+| F0 flach, Sommer fest | 1,848 | 0,405 | 0,402 |
+| T0 Gelände, Sommer fest | 1,799 | 0,376 | 0,372 |
+| F1 flach | 1,857 | 0,407 | 0,403 |
+| **T1 Gelände** | 1,836 | **0,385** | **0,381** |
+| P1…P20 vertauscht | – | Median Gewinn 0,8 % (p90 3,7 %) | – |
+
+Gewinn T1 5,5 % (LGO, p10 3,1 %) und 5,6 % (LOWO, p10 4,7 %); Sommer nicht schlechter. **Urteil des Skripts: „carries“.** Der Faktor k* bleibt praktisch gleich: Median 1,90 (F1) → 1,93 (T1), je Gletscher T1/F0 p10/p50/p90 0,96 / 1,00 / 1,04; Streuung über die Winter 0,150 → 0,148.
+
+**Herbstschmelze (Okt–Nov, Akkumulationsseite, Mittel je Höhenstufe).** 2 000 m: 1 025 → 1 056 mm (+3 %); 2 500 m: 448 → 450; 3 000 m: 203 → 204. Die Geländesonne ändert die Herbstschmelze kaum.
+
+**B3 (nachrangig, Schneelinien 2023–2025, Gate-C-Parameter).** MAE 262 → 263 m; schattiges Drittel 277 → 270, offenes 166 → 170. Kein Effekt.
+
+**B5 (modellfrei, 445 Gletscherjahre an 227 Gletschern, Szenen 2025–2026).** Höhe der Schneelinie gegen den Sonnenanteil: −61 m je 0,1 (Bootstrap −89 … −33), erwartet war ein positives Vorzeichen; ohne Schattenmarke −28 (−65 … +5). Der Effekt kommt aus der Schweiz (−77), Österreich +12 (nicht nachweisbar). Das Vorzeichen widerspricht der Erwartung; wahrscheinlich ist der Sonnenanteil mit Lage und Höhe der Gletscher verwechselt (sonnige Gletscher liegen höher). Nur berichtet.
+
+**Lesart.** Im Sommer hilft die richtige Sonnentabelle deutlich (−9 %, vertauschte helfen nicht), aber TF klebt in allen Falten an der oberen Grenze, mit weiterer Grenze schrumpft der Gewinn auf 2,6 %, und der Höhengang des Fehlers wird nur zu 45 % behoben ⇒ nach der Regel trägt es nicht. Im Winter (Herbst- und Frühjahrsschmelze in der Winterbilanz) trägt es nach der Regel; der Faktor ändert sich dabei nicht.
+
+| V-… | Befund | Mehrwert · Skizze |
+|---|---|---|
+| V-GM-181 | TF sitzt in Satz E in allen 36 Falten an der oberen Grenze 0,12, flach wie im Gelände; mit 0,30 frei sinkt der Sommergewinn von 9,3 auf 2,6 % | ein Teil des Gewinns ist ein Ersatz für die fehlende Temperaturfreiheit · die Grenze von TF in einer eigenen Phase neu begründen, bevor eine Sonnenvariante gewählt wird |
+| V-GM-182 | Der Sommer-Fehler steigt mit dem Sonnenanteil (F1 3,18); die Geländesonne nimmt 45 % davon weg, knapp unter der Schwelle | der Höhen-/Lagegang ist der eigentliche Hebel · mit dem freien TF (V-GM-181) neu messen |
+| V-GM-183 | Winter: Geländesonne −5,5 % (LGO) und −5,6 % (LOWO), vertauschte Tabellen +0,8 % | eine Geländesonne nur für Okt–Mai wäre belegt · `GLACIER_SUN=shadow` auf die Winterseite beschränken, gegen Gate C neu prüfen; Jans Wort |
+| V-GM-184 | B5 zeigt ein umgekehrtes Vorzeichen (sonnige Gletscher: tiefere Schneelinie), getragen von der Schweiz | modellfrei nicht als Beleg nutzbar · Höhe und Exposition als Kovariaten mitführen |
+| V-GM-186 | Im Modus `winter` rechnet das Nachrechnen der Stunden seit dem gespeicherten Zustand (GM-3d, höchstens 18 h) weiter mit flacher Strahlung | wenige Stunden je Lauf, kleiner Fehler · den Startzeitpunkt des gespeicherten Antriebs mitgeben und auch dort die Geländesonne nehmen |
+| V-GM-185 | Der Hintergrundlauf wird bei knappem Systemspeicher beendet (dreimal), obwohl der Prozess selbst 3,4–5,6 GB frei sah | lange Läufe sind nur mit `--only`-Fortsetzung sicher · jeder Schritt schreibt nach jeder Variante, Neustart ohne Verlust |
+
+### 3r.1 E-GM-45: Geländesonne im Winter eingeschaltet (Jan 28.11.: „ja, schalte ein, wir haben ja jetzt Winter“)
+
+Neuer Modus `GLACIER_SUN=winter`, **ab Werk an** (`SUN_MODE_DEFAULT`): der veröffentlichte Schmelzlauf rechnet in den Monaten Okt–Mai (UTC, `set`, `SUN_WINTER_MONTHS`) mit der Geländestrahlung je Band, Juni–September flach wie bisher. Der Lauf rechnet dann jedes Band einzeln (`meltOfForcing`, eigener Zustand und Faktor je Band), ein Gletscher ohne Eintrag in der Tabelle läuft flach und wird gezählt. Die Tabelle liegt als `scripts/glacier/sun-table.json` (2,6 MB, Build `20261120-1` = Katalog, GLO-30 mit Copernicus-Vermerk) im Repo, der Runner klont sie mit `scripts/`; ohne lesbare Tabelle bleibt der Lauf flach und die Statuszeile nennt den Grund. Das Schmelzdokument trägt `sun` (Modus, Monate, Regeln, Tabelle, Zahl der Gletscher), die Statuszeile `lines.melt.sun`. Nicht berührt: die Schneedecke (`snowpack`), `melt-calibration.json`, Workflow, Daten-Repos. Rückfall `GLACIER_SUN=flat` (Repo-Variable oder `--sun=flat`).
+
+Belege: `verify:glacier-melt` 85/85 (der Prüfer kennt den neuen Weg noch nicht: seine Gletscher stehen nicht in der Tabelle); Selbsttest 4/4 — Bandweg mit flacher Strahlung gleicht dem alten Weg auf 10⁻¹², November Gelände, Juli `null` (exakt wie bisher), Lauf über den 1. Juni: Mai Gelände, Juni flach. Kein voller Lauf gegen echte Daten.
 
 ## 4. Quellenliste (zur Prüfung durch Jan)
 
