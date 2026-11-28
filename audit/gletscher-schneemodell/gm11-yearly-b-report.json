@@ -1,0 +1,1823 @@
+{
+ "kind": "gm11/yearly/b",
+ "generated": "2026-11-26T18:58:28.167Z",
+ "rule": {
+  "file": "gm11-yearly-frozen.md",
+  "sha256": "740db355f099fec0c78a7719aac6abf8f0040d5c27bbd06ee5248d9823252348"
+ },
+ "mem": [
+  {
+   "l": "start",
+   "gb": 7.074
+  },
+  {
+   "l": "Gletscherwinter geladen",
+   "gb": 6.867
+  },
+  {
+   "l": "Gitter 0/421",
+   "gb": 6.866
+  },
+  {
+   "l": "Gitter 60/421",
+   "gb": 6.902
+  },
+  {
+   "l": "Gitter 120/421",
+   "gb": 6.878
+  },
+  {
+   "l": "Gitter 180/421",
+   "gb": 6.9
+  },
+  {
+   "l": "Gitter 240/421",
+   "gb": 6.874
+  },
+  {
+   "l": "Gitter 300/421",
+   "gb": 6.841
+  },
+  {
+   "l": "Gitter 360/421",
+   "gb": 6.911
+  },
+  {
+   "l": "Gitter 420/421",
+   "gb": 6.979
+  },
+  {
+   "l": "Gitter fertig",
+   "gb": 6.98
+  },
+  {
+   "l": "B1",
+   "gb": 6.98
+  },
+  {
+   "l": "Reihen",
+   "gb": 6.369
+  },
+  {
+   "l": "measured 1. Jan",
+   "gb": 6.368
+  },
+  {
+   "l": "measured 1. Feb",
+   "gb": 6.357
+  },
+  {
+   "l": "measured 1. Mär",
+   "gb": 6.371
+  },
+  {
+   "l": "measured 1. Apr",
+   "gb": 6.352
+  },
+  {
+   "l": "oshd 1. Jan",
+   "gb": 6.348
+  },
+  {
+   "l": "oshd 1. Feb",
+   "gb": 6.35
+  },
+  {
+   "l": "oshd 1. Mär",
+   "gb": 6.351
+  },
+  {
+   "l": "oshd 1. Apr",
+   "gb": 6.352
+  }
+ ],
+ "glacierWinters": {
+  "all": 421,
+  "withK": 419,
+  "glaciers": 37,
+  "interpErrMm": {
+   "median": 0.268,
+   "max": 1.245
+  }
+ },
+ "b1": {
+  "glacierWinters": 418,
+  "sdAnomaly": 0.2,
+  "all": {
+   "n": 418,
+   "r2": 0.335
+  },
+  "within50km": {
+   "n": 400,
+   "r2": 0.288
+  },
+  "imisQuestion": true
+ },
+ "b2": {
+  "measured": {
+   "1. Jan": {
+    "betaFit|lowo|G": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 225.5,
+     "eMm": 229.6,
+     "gainMm": -4.1,
+     "gainPct": -0.018,
+     "bootP10Pct": -0.032,
+     "betaMedian": 0.002,
+     "betterGlaciers": 7,
+     "worseGlaciers": 21,
+     "w2526": {
+      "n": 12,
+      "gainMm": -8.1,
+      "gainPct": -0.022
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": -3,
+      "gainPct": -0.011
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -4.4,
+      "gainPct": -0.021
+     },
+     "verdict": "does not carry"
+    },
+    "betaFit|lowo|L": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 410.6,
+     "eMm": 413.4,
+     "gainMm": -2.9,
+     "gainPct": -0.007,
+     "bootP10Pct": -0.013,
+     "betaMedian": 0.002,
+     "betterGlaciers": 13,
+     "worseGlaciers": 15,
+     "w2526": {
+      "n": 12,
+      "gainMm": -8,
+      "gainPct": -0.017
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": 1.1,
+      "gainPct": 0.002
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -4,
+      "gainPct": -0.011
+     },
+     "verdict": "does not carry"
+    },
+    "betaFit|logo|G": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 225.5,
+     "eMm": 227.3,
+     "gainMm": -1.8,
+     "gainPct": -0.008,
+     "bootP10Pct": -0.014,
+     "betaMedian": 0.002,
+     "betterGlaciers": 10,
+     "worseGlaciers": 18,
+     "w2526": {
+      "n": 12,
+      "gainMm": -4.9,
+      "gainPct": -0.013
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": -0.5,
+      "gainPct": -0.002
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -2.1,
+      "gainPct": -0.01
+     },
+     "verdict": "does not carry"
+    },
+    "betaFit|logo|L": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 410.6,
+     "eMm": 412,
+     "gainMm": -1.4,
+     "gainPct": -0.003,
+     "bootP10Pct": -0.006,
+     "betaMedian": 0.002,
+     "betterGlaciers": 9,
+     "worseGlaciers": 19,
+     "w2526": {
+      "n": 12,
+      "gainMm": -4.8,
+      "gainPct": -0.01
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": 0.1,
+      "gainPct": 0
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -1.8,
+      "gainPct": -0.005
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|lowo|G": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 225.5,
+     "eMm": 426.2,
+     "gainMm": -200.7,
+     "gainPct": -0.89,
+     "bootP10Pct": -1.239,
+     "betaMedian": 1,
+     "betterGlaciers": 7,
+     "worseGlaciers": 21,
+     "w2526": {
+      "n": 12,
+      "gainMm": -247.7,
+      "gainPct": -0.678
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": -70.2,
+      "gainPct": -0.253
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -236.6,
+      "gainPct": -1.12
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|lowo|L": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 410.6,
+     "eMm": 584.4,
+     "gainMm": -173.8,
+     "gainPct": -0.423,
+     "bootP10Pct": -0.596,
+     "betaMedian": 1,
+     "betterGlaciers": 4,
+     "worseGlaciers": 24,
+     "w2526": {
+      "n": 12,
+      "gainMm": -247.3,
+      "gainPct": -0.528
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": -85.5,
+      "gainPct": -0.158
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -198.1,
+      "gainPct": -0.528
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|logo|G": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 225.5,
+     "eMm": 426.2,
+     "gainMm": -200.7,
+     "gainPct": -0.89,
+     "bootP10Pct": -1.239,
+     "betaMedian": 1,
+     "betterGlaciers": 7,
+     "worseGlaciers": 21,
+     "w2526": {
+      "n": 12,
+      "gainMm": -247.7,
+      "gainPct": -0.678
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": -70.2,
+      "gainPct": -0.253
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -236.6,
+      "gainPct": -1.12
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|logo|L": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 410.6,
+     "eMm": 584.4,
+     "gainMm": -173.8,
+     "gainPct": -0.423,
+     "bootP10Pct": -0.596,
+     "betaMedian": 1,
+     "betterGlaciers": 4,
+     "worseGlaciers": 24,
+     "w2526": {
+      "n": 12,
+      "gainMm": -247.3,
+      "gainPct": -0.528
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": -85.5,
+      "gainPct": -0.158
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -198.1,
+      "gainPct": -0.528
+     },
+     "verdict": "does not carry"
+    }
+   },
+   "1. Feb": {
+    "betaFit|lowo|G": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 225.5,
+     "eMm": 226.3,
+     "gainMm": -0.8,
+     "gainPct": -0.004,
+     "bootP10Pct": -0.01,
+     "betaMedian": 0.017,
+     "betterGlaciers": 19,
+     "worseGlaciers": 9,
+     "w2526": {
+      "n": 12,
+      "gainMm": -3.9,
+      "gainPct": -0.011
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": 2.3,
+      "gainPct": 0.008
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -1.7,
+      "gainPct": -0.008
+     },
+     "verdict": "does not carry"
+    },
+    "betaFit|lowo|L": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 410.6,
+     "eMm": 412.1,
+     "gainMm": -1.5,
+     "gainPct": -0.004,
+     "bootP10Pct": -0.006,
+     "betaMedian": 0.017,
+     "betterGlaciers": 14,
+     "worseGlaciers": 14,
+     "w2526": {
+      "n": 12,
+      "gainMm": -3.9,
+      "gainPct": -0.008
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": 2.3,
+      "gainPct": 0.004
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -2.5,
+      "gainPct": -0.007
+     },
+     "verdict": "does not carry"
+    },
+    "betaFit|logo|G": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 225.5,
+     "eMm": 227.2,
+     "gainMm": -1.7,
+     "gainPct": -0.007,
+     "bootP10Pct": -0.015,
+     "betaMedian": 0.016,
+     "betterGlaciers": 20,
+     "worseGlaciers": 8,
+     "w2526": {
+      "n": 12,
+      "gainMm": -5,
+      "gainPct": -0.014
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": 2.1,
+      "gainPct": 0.008
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -2.7,
+      "gainPct": -0.013
+     },
+     "verdict": "does not carry"
+    },
+    "betaFit|logo|L": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 410.6,
+     "eMm": 413.1,
+     "gainMm": -2.5,
+     "gainPct": -0.006,
+     "bootP10Pct": -0.01,
+     "betaMedian": 0.016,
+     "betterGlaciers": 14,
+     "worseGlaciers": 14,
+     "w2526": {
+      "n": 12,
+      "gainMm": -4.9,
+      "gainPct": -0.01
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": 0.6,
+      "gainPct": 0.001
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -3.4,
+      "gainPct": -0.009
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|lowo|G": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 225.5,
+     "eMm": 421.2,
+     "gainMm": -195.7,
+     "gainPct": -0.868,
+     "bootP10Pct": -1.235,
+     "betaMedian": 1,
+     "betterGlaciers": 9,
+     "worseGlaciers": 19,
+     "w2526": {
+      "n": 12,
+      "gainMm": -136.9,
+      "gainPct": -0.375
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": -138.8,
+      "gainPct": -0.501
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -211.4,
+      "gainPct": -1
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|lowo|L": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 410.6,
+     "eMm": 595.4,
+     "gainMm": -184.8,
+     "gainPct": -0.45,
+     "bootP10Pct": -0.609,
+     "betaMedian": 1,
+     "betterGlaciers": 6,
+     "worseGlaciers": 22,
+     "w2526": {
+      "n": 12,
+      "gainMm": -142.9,
+      "gainPct": -0.305
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": -128.2,
+      "gainPct": -0.237
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -200.4,
+      "gainPct": -0.535
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|logo|G": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 225.5,
+     "eMm": 421.2,
+     "gainMm": -195.7,
+     "gainPct": -0.868,
+     "bootP10Pct": -1.235,
+     "betaMedian": 1,
+     "betterGlaciers": 9,
+     "worseGlaciers": 19,
+     "w2526": {
+      "n": 12,
+      "gainMm": -136.9,
+      "gainPct": -0.375
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": -138.8,
+      "gainPct": -0.501
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -211.4,
+      "gainPct": -1
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|logo|L": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 410.6,
+     "eMm": 595.4,
+     "gainMm": -184.8,
+     "gainPct": -0.45,
+     "bootP10Pct": -0.609,
+     "betaMedian": 1,
+     "betterGlaciers": 6,
+     "worseGlaciers": 22,
+     "w2526": {
+      "n": 12,
+      "gainMm": -142.9,
+      "gainPct": -0.305
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": -128.2,
+      "gainPct": -0.237
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -200.4,
+      "gainPct": -0.535
+     },
+     "verdict": "does not carry"
+    }
+   },
+   "1. Mär": {
+    "betaFit|lowo|G": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 225.5,
+     "eMm": 228.6,
+     "gainMm": -3.1,
+     "gainPct": -0.014,
+     "bootP10Pct": -0.024,
+     "betaMedian": -0.003,
+     "betterGlaciers": 9,
+     "worseGlaciers": 19,
+     "w2526": {
+      "n": 12,
+      "gainMm": -3,
+      "gainPct": -0.008
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": -4.5,
+      "gainPct": -0.016
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -2.7,
+      "gainPct": -0.013
+     },
+     "verdict": "does not carry"
+    },
+    "betaFit|lowo|L": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 410.6,
+     "eMm": 412.4,
+     "gainMm": -1.8,
+     "gainPct": -0.004,
+     "bootP10Pct": -0.009,
+     "betaMedian": -0.003,
+     "betterGlaciers": 13,
+     "worseGlaciers": 15,
+     "w2526": {
+      "n": 12,
+      "gainMm": -3.1,
+      "gainPct": -0.007
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": 0.7,
+      "gainPct": 0.001
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -2.5,
+      "gainPct": -0.007
+     },
+     "verdict": "does not carry"
+    },
+    "betaFit|logo|G": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 225.5,
+     "eMm": 227.5,
+     "gainMm": -2,
+     "gainPct": -0.009,
+     "bootP10Pct": -0.013,
+     "betaMedian": -0.001,
+     "betterGlaciers": 3,
+     "worseGlaciers": 25,
+     "w2526": {
+      "n": 12,
+      "gainMm": -2.9,
+      "gainPct": -0.008
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": -0.4,
+      "gainPct": -0.001
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -2.4,
+      "gainPct": -0.011
+     },
+     "verdict": "does not carry"
+    },
+    "betaFit|logo|L": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 410.6,
+     "eMm": 412.3,
+     "gainMm": -1.7,
+     "gainPct": -0.004,
+     "bootP10Pct": -0.007,
+     "betaMedian": -0.001,
+     "betterGlaciers": 7,
+     "worseGlaciers": 21,
+     "w2526": {
+      "n": 12,
+      "gainMm": -2.8,
+      "gainPct": -0.006
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": -0.2,
+      "gainPct": 0
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -2.1,
+      "gainPct": -0.006
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|lowo|G": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 225.5,
+     "eMm": 396.3,
+     "gainMm": -170.8,
+     "gainPct": -0.757,
+     "bootP10Pct": -1.064,
+     "betaMedian": 1,
+     "betterGlaciers": 8,
+     "worseGlaciers": 20,
+     "w2526": {
+      "n": 12,
+      "gainMm": -143.8,
+      "gainPct": -0.394
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": -117.5,
+      "gainPct": -0.424
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -185.4,
+      "gainPct": -0.877
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|lowo|L": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 410.6,
+     "eMm": 569.4,
+     "gainMm": -158.8,
+     "gainPct": -0.387,
+     "bootP10Pct": -0.537,
+     "betaMedian": 1,
+     "betterGlaciers": 5,
+     "worseGlaciers": 23,
+     "w2526": {
+      "n": 12,
+      "gainMm": -145,
+      "gainPct": -0.31
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": -95,
+      "gainPct": -0.176
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -176.3,
+      "gainPct": -0.47
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|logo|G": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 225.5,
+     "eMm": 396.3,
+     "gainMm": -170.8,
+     "gainPct": -0.757,
+     "bootP10Pct": -1.064,
+     "betaMedian": 1,
+     "betterGlaciers": 8,
+     "worseGlaciers": 20,
+     "w2526": {
+      "n": 12,
+      "gainMm": -143.8,
+      "gainPct": -0.394
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": -117.5,
+      "gainPct": -0.424
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -185.4,
+      "gainPct": -0.877
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|logo|L": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 410.6,
+     "eMm": 569.4,
+     "gainMm": -158.8,
+     "gainPct": -0.387,
+     "bootP10Pct": -0.537,
+     "betaMedian": 1,
+     "betterGlaciers": 5,
+     "worseGlaciers": 23,
+     "w2526": {
+      "n": 12,
+      "gainMm": -145,
+      "gainPct": -0.31
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": -95,
+      "gainPct": -0.176
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -176.3,
+      "gainPct": -0.47
+     },
+     "verdict": "does not carry"
+    }
+   },
+   "1. Apr": {
+    "betaFit|lowo|G": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 225.5,
+     "eMm": 228.9,
+     "gainMm": -3.4,
+     "gainPct": -0.015,
+     "bootP10Pct": -0.029,
+     "betaMedian": 0.002,
+     "betterGlaciers": 12,
+     "worseGlaciers": 16,
+     "w2526": {
+      "n": 12,
+      "gainMm": -0.9,
+      "gainPct": -0.002
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": -4.2,
+      "gainPct": -0.015
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -3.2,
+      "gainPct": -0.015
+     },
+     "verdict": "does not carry"
+    },
+    "betaFit|lowo|L": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 410.6,
+     "eMm": 412.8,
+     "gainMm": -2.3,
+     "gainPct": -0.005,
+     "bootP10Pct": -0.011,
+     "betaMedian": 0.002,
+     "betterGlaciers": 12,
+     "worseGlaciers": 16,
+     "w2526": {
+      "n": 12,
+      "gainMm": -1,
+      "gainPct": -0.002
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": 0.8,
+      "gainPct": 0.001
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -3.1,
+      "gainPct": -0.008
+     },
+     "verdict": "does not carry"
+    },
+    "betaFit|logo|G": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 225.5,
+     "eMm": 227.7,
+     "gainMm": -2.2,
+     "gainPct": -0.01,
+     "bootP10Pct": -0.016,
+     "betaMedian": 0.006,
+     "betterGlaciers": 18,
+     "worseGlaciers": 10,
+     "w2526": {
+      "n": 12,
+      "gainMm": -2.4,
+      "gainPct": -0.007
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": 0.3,
+      "gainPct": 0.001
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -2.9,
+      "gainPct": -0.014
+     },
+     "verdict": "does not carry"
+    },
+    "betaFit|logo|L": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 410.6,
+     "eMm": 412.8,
+     "gainMm": -2.2,
+     "gainPct": -0.005,
+     "bootP10Pct": -0.009,
+     "betaMedian": 0.006,
+     "betterGlaciers": 12,
+     "worseGlaciers": 16,
+     "w2526": {
+      "n": 12,
+      "gainMm": -2.4,
+      "gainPct": -0.005
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": 0.1,
+      "gainPct": 0
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -2.8,
+      "gainPct": -0.008
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|lowo|G": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 225.5,
+     "eMm": 365.5,
+     "gainMm": -140,
+     "gainPct": -0.621,
+     "bootP10Pct": -0.911,
+     "betaMedian": 1,
+     "betterGlaciers": 11,
+     "worseGlaciers": 17,
+     "w2526": {
+      "n": 12,
+      "gainMm": -57.2,
+      "gainPct": -0.157
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": -91.1,
+      "gainPct": -0.329
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -153.5,
+      "gainPct": -0.726
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|lowo|L": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 410.6,
+     "eMm": 548.5,
+     "gainMm": -137.9,
+     "gainPct": -0.336,
+     "bootP10Pct": -0.471,
+     "betaMedian": 1,
+     "betterGlaciers": 4,
+     "worseGlaciers": 24,
+     "w2526": {
+      "n": 12,
+      "gainMm": -63.7,
+      "gainPct": -0.136
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": -72.3,
+      "gainPct": -0.134
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -155.9,
+      "gainPct": -0.416
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|logo|G": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 225.5,
+     "eMm": 365.5,
+     "gainMm": -140,
+     "gainPct": -0.621,
+     "bootP10Pct": -0.911,
+     "betaMedian": 1,
+     "betterGlaciers": 11,
+     "worseGlaciers": 17,
+     "w2526": {
+      "n": 12,
+      "gainMm": -57.2,
+      "gainPct": -0.157
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": -91.1,
+      "gainPct": -0.329
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -153.5,
+      "gainPct": -0.726
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|logo|L": {
+     "rows": 278,
+     "glaciers": 28,
+     "e0Mm": 410.6,
+     "eMm": 548.5,
+     "gainMm": -137.9,
+     "gainPct": -0.336,
+     "bootP10Pct": -0.471,
+     "betaMedian": 1,
+     "betterGlaciers": 4,
+     "worseGlaciers": 24,
+     "w2526": {
+      "n": 12,
+      "gainMm": -63.7,
+      "gainPct": -0.136
+     },
+     "dzLe500": {
+      "n": 60,
+      "gainMm": -72.3,
+      "gainPct": -0.134
+     },
+     "dz500to800": {
+      "n": 218,
+      "gainMm": -155.9,
+      "gainPct": -0.416
+     },
+     "verdict": "does not carry"
+    }
+   }
+  },
+  "oshd": {
+   "1. Jan": {
+    "betaFit|lowo|G": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 188.4,
+     "eMm": 190.9,
+     "gainMm": -2.5,
+     "gainPct": -0.013,
+     "bootP10Pct": -0.031,
+     "betaMedian": 0.042,
+     "betterGlaciers": 8,
+     "worseGlaciers": 21,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    },
+    "betaFit|lowo|L": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 345.6,
+     "eMm": 345.4,
+     "gainMm": 0.1,
+     "gainPct": 0,
+     "bootP10Pct": -0.005,
+     "betaMedian": 0.042,
+     "betterGlaciers": 15,
+     "worseGlaciers": 14,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    },
+    "betaFit|logo|G": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 188.4,
+     "eMm": 189.1,
+     "gainMm": -0.7,
+     "gainPct": -0.004,
+     "bootP10Pct": -0.015,
+     "betaMedian": 0.038,
+     "betterGlaciers": 13,
+     "worseGlaciers": 16,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    },
+    "betaFit|logo|L": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 345.6,
+     "eMm": 344.6,
+     "gainMm": 1,
+     "gainPct": 0.003,
+     "bootP10Pct": -0.002,
+     "betaMedian": 0.038,
+     "betterGlaciers": 20,
+     "worseGlaciers": 9,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|lowo|G": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 188.4,
+     "eMm": 386.3,
+     "gainMm": -197.9,
+     "gainPct": -1.05,
+     "bootP10Pct": -1.333,
+     "betaMedian": 1,
+     "betterGlaciers": 1,
+     "worseGlaciers": 28,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|lowo|L": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 345.6,
+     "eMm": 462.1,
+     "gainMm": -116.5,
+     "gainPct": -0.337,
+     "bootP10Pct": -0.468,
+     "betaMedian": 1,
+     "betterGlaciers": 6,
+     "worseGlaciers": 23,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|logo|G": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 188.4,
+     "eMm": 386.3,
+     "gainMm": -197.9,
+     "gainPct": -1.05,
+     "bootP10Pct": -1.333,
+     "betaMedian": 1,
+     "betterGlaciers": 1,
+     "worseGlaciers": 28,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|logo|L": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 345.6,
+     "eMm": 462.1,
+     "gainMm": -116.5,
+     "gainPct": -0.337,
+     "bootP10Pct": -0.468,
+     "betaMedian": 1,
+     "betterGlaciers": 6,
+     "worseGlaciers": 23,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    }
+   },
+   "1. Feb": {
+    "betaFit|lowo|G": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 188.4,
+     "eMm": 187.8,
+     "gainMm": 0.7,
+     "gainPct": 0.003,
+     "bootP10Pct": -0.022,
+     "betaMedian": 0.084,
+     "betterGlaciers": 14,
+     "worseGlaciers": 15,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    },
+    "betaFit|lowo|L": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 345.6,
+     "eMm": 343.9,
+     "gainMm": 1.7,
+     "gainPct": 0.005,
+     "bootP10Pct": -0.003,
+     "betaMedian": 0.084,
+     "betterGlaciers": 16,
+     "worseGlaciers": 13,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    },
+    "betaFit|logo|G": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 188.4,
+     "eMm": 185.9,
+     "gainMm": 2.5,
+     "gainPct": 0.013,
+     "bootP10Pct": -0.009,
+     "betaMedian": 0.088,
+     "betterGlaciers": 15,
+     "worseGlaciers": 14,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    },
+    "betaFit|logo|L": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 345.6,
+     "eMm": 343.1,
+     "gainMm": 2.5,
+     "gainPct": 0.007,
+     "bootP10Pct": -0.001,
+     "betaMedian": 0.088,
+     "betterGlaciers": 17,
+     "worseGlaciers": 12,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|lowo|G": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 188.4,
+     "eMm": 326.9,
+     "gainMm": -138.5,
+     "gainPct": -0.735,
+     "bootP10Pct": -0.928,
+     "betaMedian": 1,
+     "betterGlaciers": 2,
+     "worseGlaciers": 27,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|lowo|L": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 345.6,
+     "eMm": 434.6,
+     "gainMm": -89,
+     "gainPct": -0.258,
+     "bootP10Pct": -0.344,
+     "betaMedian": 1,
+     "betterGlaciers": 7,
+     "worseGlaciers": 22,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|logo|G": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 188.4,
+     "eMm": 326.9,
+     "gainMm": -138.5,
+     "gainPct": -0.735,
+     "bootP10Pct": -0.928,
+     "betaMedian": 1,
+     "betterGlaciers": 2,
+     "worseGlaciers": 27,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|logo|L": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 345.6,
+     "eMm": 434.6,
+     "gainMm": -89,
+     "gainPct": -0.258,
+     "bootP10Pct": -0.344,
+     "betaMedian": 1,
+     "betterGlaciers": 7,
+     "worseGlaciers": 22,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    }
+   },
+   "1. Mär": {
+    "betaFit|lowo|G": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 188.4,
+     "eMm": 185.1,
+     "gainMm": 3.3,
+     "gainPct": 0.017,
+     "bootP10Pct": -0.014,
+     "betaMedian": 0.126,
+     "betterGlaciers": 13,
+     "worseGlaciers": 16,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    },
+    "betaFit|lowo|L": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 345.6,
+     "eMm": 343.5,
+     "gainMm": 2.1,
+     "gainPct": 0.006,
+     "bootP10Pct": -0.005,
+     "betaMedian": 0.126,
+     "betterGlaciers": 15,
+     "worseGlaciers": 14,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    },
+    "betaFit|logo|G": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 188.4,
+     "eMm": 182.9,
+     "gainMm": 5.5,
+     "gainPct": 0.029,
+     "bootP10Pct": -0.001,
+     "betaMedian": 0.13,
+     "betterGlaciers": 20,
+     "worseGlaciers": 9,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    },
+    "betaFit|logo|L": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 345.6,
+     "eMm": 342.6,
+     "gainMm": 3,
+     "gainPct": 0.009,
+     "bootP10Pct": -0.002,
+     "betaMedian": 0.13,
+     "betterGlaciers": 16,
+     "worseGlaciers": 13,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|lowo|G": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 188.4,
+     "eMm": 287.9,
+     "gainMm": -99.4,
+     "gainPct": -0.528,
+     "bootP10Pct": -0.7,
+     "betaMedian": 1,
+     "betterGlaciers": 2,
+     "worseGlaciers": 27,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|lowo|L": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 345.6,
+     "eMm": 419.5,
+     "gainMm": -73.9,
+     "gainPct": -0.214,
+     "bootP10Pct": -0.29,
+     "betaMedian": 1,
+     "betterGlaciers": 7,
+     "worseGlaciers": 22,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|logo|G": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 188.4,
+     "eMm": 287.9,
+     "gainMm": -99.4,
+     "gainPct": -0.528,
+     "bootP10Pct": -0.7,
+     "betaMedian": 1,
+     "betterGlaciers": 2,
+     "worseGlaciers": 27,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|logo|L": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 345.6,
+     "eMm": 419.5,
+     "gainMm": -73.9,
+     "gainPct": -0.214,
+     "bootP10Pct": -0.29,
+     "betaMedian": 1,
+     "betterGlaciers": 7,
+     "worseGlaciers": 22,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    }
+   },
+   "1. Apr": {
+    "betaFit|lowo|G": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 188.4,
+     "eMm": 181.2,
+     "gainMm": 7.2,
+     "gainPct": 0.038,
+     "bootP10Pct": 0.002,
+     "betaMedian": 0.19,
+     "betterGlaciers": 16,
+     "worseGlaciers": 13,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    },
+    "betaFit|lowo|L": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 345.6,
+     "eMm": 342.6,
+     "gainMm": 3,
+     "gainPct": 0.009,
+     "bootP10Pct": -0.008,
+     "betaMedian": 0.19,
+     "betterGlaciers": 13,
+     "worseGlaciers": 16,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    },
+    "betaFit|logo|G": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 188.4,
+     "eMm": 179.6,
+     "gainMm": 8.8,
+     "gainPct": 0.047,
+     "bootP10Pct": 0.013,
+     "betaMedian": 0.189,
+     "betterGlaciers": 21,
+     "worseGlaciers": 8,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    },
+    "betaFit|logo|L": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 345.6,
+     "eMm": 342.3,
+     "gainMm": 3.3,
+     "gainPct": 0.009,
+     "bootP10Pct": -0.007,
+     "betaMedian": 0.189,
+     "betterGlaciers": 17,
+     "worseGlaciers": 12,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|lowo|G": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 188.4,
+     "eMm": 258.8,
+     "gainMm": -70.3,
+     "gainPct": -0.373,
+     "bootP10Pct": -0.525,
+     "betaMedian": 1,
+     "betterGlaciers": 6,
+     "worseGlaciers": 23,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|lowo|L": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 345.6,
+     "eMm": 401.4,
+     "gainMm": -55.8,
+     "gainPct": -0.161,
+     "bootP10Pct": -0.241,
+     "betaMedian": 1,
+     "betterGlaciers": 9,
+     "worseGlaciers": 20,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|logo|G": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 188.4,
+     "eMm": 258.8,
+     "gainMm": -70.3,
+     "gainPct": -0.373,
+     "bootP10Pct": -0.525,
+     "betaMedian": 1,
+     "betterGlaciers": 6,
+     "worseGlaciers": 23,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    },
+    "beta1|logo|L": {
+     "rows": 262,
+     "glaciers": 29,
+     "e0Mm": 345.6,
+     "eMm": 401.4,
+     "gainMm": -55.8,
+     "gainPct": -0.161,
+     "bootP10Pct": -0.241,
+     "betaMedian": 1,
+     "betterGlaciers": 9,
+     "worseGlaciers": 20,
+     "w2526": {
+      "n": 0
+     },
+     "verdict": "does not carry"
+    }
+   }
+  }
+ },
+ "b3": {
+  "measured": {
+   "1. Jan": {
+    "shuffle": {
+     "betaFit": {
+      "meanPct": -0.018,
+      "p90Pct": 0.004
+     },
+     "beta1": {
+      "meanPct": -0.924,
+      "p90Pct": -0.75
+     }
+    },
+    "synthetic": {
+     "rows": 274,
+     "droppedNonPositive": 2,
+     "sdEps": 0.352,
+     "beta": 1.231,
+     "gainPct": 0.209,
+     "pass": false
+    }
+   },
+   "1. Feb": {
+    "shuffle": {
+     "betaFit": {
+      "meanPct": -0.013,
+      "p90Pct": 0.004
+     },
+     "beta1": {
+      "meanPct": -0.941,
+      "p90Pct": -0.78
+     }
+    },
+    "synthetic": {
+     "rows": 271,
+     "droppedNonPositive": 5,
+     "sdEps": 0.394,
+     "beta": 0.954,
+     "gainPct": 0.205,
+     "pass": true
+    }
+   },
+   "1. Mär": {
+    "shuffle": {
+     "betaFit": {
+      "meanPct": -0.013,
+      "p90Pct": 0.002
+     },
+     "beta1": {
+      "meanPct": -0.792,
+      "p90Pct": -0.629
+     }
+    },
+    "synthetic": {
+     "rows": 275,
+     "droppedNonPositive": 1,
+     "sdEps": 0.341,
+     "beta": 1.026,
+     "gainPct": 0.187,
+     "pass": true
+    }
+   },
+   "1. Apr": {
+    "shuffle": {
+     "betaFit": {
+      "meanPct": -0.013,
+      "p90Pct": 0.003
+     },
+     "beta1": {
+      "meanPct": -0.629,
+      "p90Pct": -0.472
+     }
+    },
+    "synthetic": {
+     "rows": 276,
+     "droppedNonPositive": 0,
+     "sdEps": 0.308,
+     "beta": 0.858,
+     "gainPct": 0.196,
+     "pass": true
+    }
+   }
+  },
+  "oshd": {
+   "1. Jan": {
+    "shuffle": {
+     "betaFit": {
+      "meanPct": -0.013,
+      "p90Pct": 0.004
+     },
+     "beta1": {
+      "meanPct": -0.876,
+      "p90Pct": -0.721
+     }
+    },
+    "synthetic": {
+     "rows": 261,
+     "droppedNonPositive": 1,
+     "sdEps": 0.299,
+     "beta": 1.219,
+     "gainPct": 0.273,
+     "pass": false
+    }
+   },
+   "1. Feb": {
+    "shuffle": {
+     "betaFit": {
+      "meanPct": -0.015,
+      "p90Pct": 0.005
+     },
+     "beta1": {
+      "meanPct": -0.703,
+      "p90Pct": -0.538
+     }
+    },
+    "synthetic": {
+     "rows": 262,
+     "droppedNonPositive": 0,
+     "sdEps": 0.254,
+     "beta": 1.232,
+     "gainPct": 0.277,
+     "pass": false
+    }
+   },
+   "1. Mär": {
+    "shuffle": {
+     "betaFit": {
+      "meanPct": -0.016,
+      "p90Pct": 0.005
+     },
+     "beta1": {
+      "meanPct": -0.579,
+      "p90Pct": -0.421
+     }
+    },
+    "synthetic": {
+     "rows": 262,
+     "droppedNonPositive": 0,
+     "sdEps": 0.225,
+     "beta": 1.224,
+     "gainPct": 0.236,
+     "pass": false
+    }
+   },
+   "1. Apr": {
+    "shuffle": {
+     "betaFit": {
+      "meanPct": -0.015,
+      "p90Pct": 0.006
+     },
+     "beta1": {
+      "meanPct": -0.486,
+      "p90Pct": -0.357
+     }
+    },
+    "synthetic": {
+     "rows": 262,
+     "droppedNonPositive": 0,
+     "sdEps": 0.201,
+     "beta": 1.127,
+     "gainPct": 0.241,
+     "pass": true
+    }
+   }
+  }
+ },
+ "series": {
+  "measured": 15,
+  "note": "Hauptreihen: Messungen (SLF-Messfelder HN, SwissMetNet htoauths). Nebenreihe OSHD: eine ANALYSE des SLF (Q20 v1.1), keine Messung; nie mit den Hauptreihen gemischt.",
+  "list": [
+   {
+    "key": "slf-plot:5WJ0",
+    "z": 2536,
+    "tStation": "WFJ",
+    "tKm": 0.5,
+    "winters": 15
+   },
+   {
+    "key": "slf-plot:4BP0",
+    "z": 1670,
+    "tStation": "GSB",
+    "tKm": 9,
+    "winters": 15
+   },
+   {
+    "key": "slf-plot:4ZE0",
+    "z": 1600,
+    "tStation": "ZER",
+    "tKm": 0.6,
+    "winters": 15
+   },
+   {
+    "key": "slf-plot:7BP0",
+    "z": 2260,
+    "tStation": "BEH",
+    "tKm": 0,
+    "winters": 9
+   },
+   {
+    "key": "slf-plot:4GR0",
+    "z": 1560,
+    "tStation": "MTE",
+    "tKm": 5.4,
+    "winters": 11
+   },
+   {
+    "key": "slf-plot:4LA0",
+    "z": 1976,
+    "tStation": "BLA",
+    "tKm": 4.1,
+    "winters": 12
+   },
+   {
+    "key": "slf-plot:4RU0",
+    "z": 2200,
+    "tStation": "ATT",
+    "tKm": 1.5,
+    "winters": 10
+   },
+   {
+    "key": "slf-plot:7MT0",
+    "z": 2150,
+    "tStation": "NAS",
+    "tKm": 1,
+    "winters": 12
+   },
+   {
+    "key": "slf-plot:4AO0",
+    "z": 2070,
+    "tStation": "EVO",
+    "tKm": 9.6,
+    "winters": 10
+   },
+   {
+    "key": "slf-plot:4KU0",
+    "z": 2210,
+    "tStation": "EGH",
+    "tKm": 1.6,
+    "winters": 12
+   },
+   {
+    "key": "slf-plot:4EG0",
+    "z": 2645,
+    "tStation": "ZER",
+    "tKm": 13.7,
+    "winters": 12
+   },
+   {
+    "key": "slf-plot:7CO0",
+    "z": 2690,
+    "tStation": "COV",
+    "tKm": 1.6,
+    "winters": 9
+   },
+   {
+    "key": "smn-hs:GRH",
+    "z": 1980,
+    "tStation": "GRH",
+    "tKm": 0,
+    "winters": 15
+   },
+   {
+    "key": "smn-hs:GUE",
+    "z": 2286,
+    "tStation": "GUE",
+    "tKm": 0,
+    "winters": 14
+   },
+   {
+    "key": "smn-hs:ZER",
+    "z": 1638,
+    "tStation": "ZER",
+    "tKm": 0,
+    "winters": 14
+   }
+  ]
+ }
+}
